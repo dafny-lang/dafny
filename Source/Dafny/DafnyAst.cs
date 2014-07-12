@@ -313,18 +313,46 @@ namespace Microsoft.Dafny {
     }
 
     /// <summary>
-    /// Return the most constrained version of "this".
+    /// Return the most constrained version of "this", getting to the bottom of proxies.
     /// </summary>
-    /// <returns></returns>
     public Type Normalize() {
       Contract.Ensures(Contract.Result<Type>() != null);
       Type type = this;
       while (true) {
-        TypeProxy pt = type as TypeProxy;
+        var pt = type as TypeProxy;
         if (pt != null && pt.T != null) {
           type = pt.T;
         } else {
           return type;
+        }
+      }
+    }
+
+    /// <summary>
+    /// Return the type that "this" stands for, getting to the bottom of proxies and following type synonyms.
+    /// </summary>
+    public Type NormalizeExpand() {
+      Contract.Ensures(Contract.Result<Type>() != null);
+      Contract.Ensures(!(Contract.Result<Type>() is TypeProxy) || ((TypeProxy)Contract.Result<Type>()).T == null);  // return a proxy only if .T == null
+      Type type = this;
+      while (true) {
+        var pt = type as TypeProxy;
+        if (pt != null && pt.T != null) {
+          type = pt.T;
+        } else {
+          var syn = type.AsTypeSynonym;
+          if (syn != null) {
+            // Instantiate with the actual type arguments
+            if (syn.TypeArgs.Count == 0) {
+              // this optimization seems worthwhile
+              type = syn.Rhs;
+            } else {
+              var subst = Resolver.TypeSubstitutionMap(syn.TypeArgs, ((UserDefinedType)type).TypeArgs);
+              type = Resolver.SubstType(syn.Rhs, subst);
+            }
+          } else {
+            return type;
+          }
         }
       }
     }
@@ -355,6 +383,16 @@ namespace Microsoft.Dafny {
       get {
         UserDefinedType udt = UserDefinedType.DenotesClass(this);
         return udt == null ? null : udt.ResolvedClass as ArrayClassDecl;
+      }
+    }
+    public TypeSynonymDecl AsTypeSynonym {
+      get {
+        var udt = this as UserDefinedType;
+        if (udt == null) {
+          return null;
+        } else {
+          return udt.ResolvedClass as TypeSynonymDecl;
+        }
       }
     }
     public bool IsDatatype {
@@ -430,6 +468,11 @@ namespace Microsoft.Dafny {
     public bool IsOrdered {
       get { return !IsTypeParameter && !IsCoDatatype; }
     }
+
+    public void ForeachTypeComponent(Action<Type> action) {
+      action(this);
+      TypeArgs.ForEach(action);
+    }
   }
 
   /// <summary>
@@ -449,7 +492,7 @@ namespace Microsoft.Dafny {
       return "bool";
     }
     public override bool Equals(Type that) {
-      return that.Normalize() is BoolType;
+      return that.NormalizeExpand() is BoolType;
     }
   }
 
@@ -459,7 +502,7 @@ namespace Microsoft.Dafny {
       return "int";
     }
     public override bool Equals(Type that) {
-      return that.Normalize() is IntType;
+      return that.NormalizeExpand() is IntType;
     }
   }
 
@@ -477,7 +520,7 @@ namespace Microsoft.Dafny {
       return "real";
     }
     public override bool Equals(Type that) {
-      return that.Normalize() is RealType;
+      return that.NormalizeExpand() is RealType;
     }
   }
 
@@ -488,7 +531,7 @@ namespace Microsoft.Dafny {
       return "object";
     }
     public override bool Equals(Type that) {
-      return that.Normalize() is ObjectType;
+      return that.NormalizeExpand() is ObjectType;
     }
   }
 
@@ -541,7 +584,7 @@ namespace Microsoft.Dafny {
     public override string CollectionTypeName { get { return "set"; } }
     [Pure]
     public override bool Equals(Type that) {
-      var t = that.Normalize() as SetType;
+      var t = that.NormalizeExpand() as SetType;
       return t != null && Arg.Equals(t.Arg);
     }
   }
@@ -552,7 +595,7 @@ namespace Microsoft.Dafny {
     }
     public override string CollectionTypeName { get { return "multiset"; } }
     public override bool Equals(Type that) {
-      var t = that.Normalize() as MultiSetType;
+      var t = that.NormalizeExpand() as MultiSetType;
       return t != null && Arg.Equals(t.Arg);
     }
   }
@@ -562,7 +605,7 @@ namespace Microsoft.Dafny {
     }
     public override string CollectionTypeName { get { return "seq"; } }
     public override bool Equals(Type that) {
-      var t = that.Normalize() as SeqType;
+      var t = that.NormalizeExpand() as SeqType;
       return t != null && Arg.Equals(t.Arg);
     }
   }
@@ -600,7 +643,7 @@ namespace Microsoft.Dafny {
       return CollectionTypeName + targs;
     }
     public override bool Equals(Type that) {
-      var t = that.Normalize() as MapType;
+      var t = that.NormalizeExpand() as MapType;
       return t != null && Arg.Equals(t.Arg) && Range.Equals(t.Range);
     }
   }
@@ -716,7 +759,7 @@ namespace Microsoft.Dafny {
     }
 
     public override bool Equals(Type that) {
-      var t = that.Normalize() as UserDefinedType;
+      var t = that.NormalizeExpand() as UserDefinedType;
       return t != null && ResolvedClass == t.ResolvedClass && ResolvedParam == t.ResolvedParam;
     }
 
@@ -727,7 +770,7 @@ namespace Microsoft.Dafny {
     public static UserDefinedType DenotesClass(Type type) {
       Contract.Requires(type != null);
       Contract.Ensures(Contract.Result<UserDefinedType>() == null || Contract.Result<UserDefinedType>().ResolvedClass is ClassDecl);
-      type = type.Normalize();
+      type = type.NormalizeExpand();
       UserDefinedType ct = type as UserDefinedType;
       if (ct != null && ct.ResolvedClass is ClassDecl) {
         return ct;
@@ -751,9 +794,6 @@ namespace Microsoft.Dafny {
     [Pure]
     public override string TypeName(ModuleDefinition context) {
       Contract.Ensures(Contract.Result<string>() != null);
-      /* if (ResolvedParam != null) {
-        return ResolvedParam.FullName();
-      } else */ 
       if (BuiltIns.IsTupleTypeName(Name)) {
         return "(" + Util.Comma(",", TypeArgs, ty => ty.TypeName(context)) + ")";
       } else {
@@ -825,9 +865,9 @@ namespace Microsoft.Dafny {
       }
     }
     public override bool Equals(Type that) {
-      var i = Normalize();
+      var i = NormalizeExpand();
       if (i is TypeProxy) {
-        var u = that.Normalize() as TypeProxy;
+        var u = that.NormalizeExpand() as TypeProxy;
         return u != null && object.ReferenceEquals(i, u);
       } else {
         return i.Equals(that);
@@ -1720,7 +1760,7 @@ namespace Microsoft.Dafny {
         return "_increasingInt";
       }
       public override bool Equals(Type that) {
-        return that.Normalize() is EverIncreasingType;
+        return that.NormalizeExpand() is EverIncreasingType;
       }
     }
 
@@ -1889,6 +1929,20 @@ namespace Microsoft.Dafny {
       Contract.Requires(name != null);
       Contract.Requires(module != null);
       TheType = new TypeParameter(tok, name, equalitySupport);
+    }
+  }
+
+  public class TypeSynonymDecl : TopLevelDecl
+  {
+    public readonly Type Rhs;
+    public TypeSynonymDecl(IToken tok, string name, List<TypeParameter> typeArgs, ModuleDefinition module, Type rhs, Attributes attributes)
+      : base(tok, name, module, typeArgs, attributes) {
+      Contract.Requires(tok != null);
+      Contract.Requires(name != null);
+      Contract.Requires(typeArgs != null);
+      Contract.Requires(module != null);
+      Contract.Requires(rhs != null);
+      Rhs = rhs;
     }
   }
 
@@ -2071,7 +2125,6 @@ namespace Microsoft.Dafny {
       }
     }
     Type type;
-    //[Pure(false)]  // TODO: if Type gets the status of [Frozen], then this attribute is not needed
     public Type Type {
       get {
         Contract.Ensures(Contract.Result<Type>() != null);
@@ -3267,7 +3320,6 @@ namespace Microsoft.Dafny {
     }
     public readonly Type OptionalType;  // this is the type mentioned in the declaration, if any
     internal Type type;  // this is the declared or inferred type of the variable; it is non-null after resolution (even if resolution fails)
-    //[Pure(false)]
     public Type Type {
       get {
         Contract.Ensures(Contract.Result<Type>() != null);
@@ -4195,13 +4247,10 @@ namespace Microsoft.Dafny {
 
     protected Type type;
     public Type Type {  // filled in during resolution
-      [Verify(false)]  // TODO: how do we allow Type.get to modify type and still be [Pure]?
-      [Additive]  // validity of proper subclasses is not required
       get {
         Contract.Ensures(type != null || Contract.Result<Type>() == null);  // useful in conjunction with postcondition of constructor
         return type == null ? null : type.Normalize();
       }
-      [NoDefaultContract]  // no particular validity of 'this' is required, except that it not be committed
       set {
         Contract.Requires(!WasResolved());  // set it only once
         Contract.Requires(value != null);

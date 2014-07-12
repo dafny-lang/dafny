@@ -237,7 +237,7 @@ bool CloseOptionalBrace(bool usesOptionalBrace) {
 
 
 	void Dafny() {
-		ClassDecl/*!*/ c; DatatypeDecl/*!*/ dt; ArbitraryTypeDecl at; IteratorDecl iter;
+		ClassDecl/*!*/ c; DatatypeDecl/*!*/ dt; TopLevelDecl td; IteratorDecl iter;
 		List<MemberDecl/*!*/> membersDefaultClass = new List<MemberDecl/*!*/>();
 		ModuleDecl submodule;
 		// to support multiple files, create a default module only if theModule is null
@@ -279,8 +279,8 @@ bool CloseOptionalBrace(bool usesOptionalBrace) {
 				break;
 			}
 			case 32: {
-				ArbitraryTypeDecl(defaultModule, out at);
-				defaultModule.TopLevelDecls.Add(at); 
+				OtherTypeDecl(defaultModule, out td);
+				defaultModule.TopLevelDecls.Add(td); 
 				break;
 			}
 			case 34: {
@@ -310,7 +310,7 @@ bool CloseOptionalBrace(bool usesOptionalBrace) {
 	}
 
 	void SubModuleDecl(ModuleDefinition parent, out ModuleDecl submodule) {
-		ClassDecl/*!*/ c; DatatypeDecl/*!*/ dt; ArbitraryTypeDecl at; IteratorDecl iter;
+		ClassDecl/*!*/ c; DatatypeDecl/*!*/ dt; TopLevelDecl td; IteratorDecl iter;
 		Attributes attrs = null;  IToken/*!*/ id;
 		List<MemberDecl/*!*/> namedModuleDefaultClassMembers = new List<MemberDecl>();;
 		List<IToken> idRefined = null, idPath = null, idAssignment = null;
@@ -355,8 +355,8 @@ bool CloseOptionalBrace(bool usesOptionalBrace) {
 					break;
 				}
 				case 32: {
-					ArbitraryTypeDecl(module, out at);
-					module.TopLevelDecls.Add(at); 
+					OtherTypeDecl(module, out td);
+					module.TopLevelDecls.Add(td); 
 					break;
 				}
 				case 34: {
@@ -484,23 +484,39 @@ bool CloseOptionalBrace(bool usesOptionalBrace) {
 		
 	}
 
-	void ArbitraryTypeDecl(ModuleDefinition/*!*/ module, out ArbitraryTypeDecl at) {
+	void OtherTypeDecl(ModuleDefinition/*!*/ module, out TopLevelDecl td) {
 		IToken/*!*/ id;
 		Attributes attrs = null;
 		var eqSupport = TypeParameter.EqualitySupportValue.Unspecified;
+		List<TypeParameter> typeArgs;
+		Type ty;
 		
 		Expect(32);
 		while (la.kind == 9) {
 			Attribute(ref attrs);
 		}
 		NoUSIdent(out id);
-		if (la.kind == 11) {
-			Get();
-			Expect(33);
-			Expect(12);
-			eqSupport = TypeParameter.EqualitySupportValue.Required; 
+		td = null; 
+		if (la.kind == 11 || la.kind == 21 || la.kind == 38) {
+			if (la.kind == 11) {
+				Get();
+				Expect(33);
+				Expect(12);
+				eqSupport = TypeParameter.EqualitySupportValue.Required; 
+			} else {
+				typeArgs = new List<TypeParameter>(); 
+				if (la.kind == 38) {
+					GenericParameters(typeArgs);
+				}
+				Expect(21);
+				Type(out ty);
+				td = new TypeSynonymDecl(id, id.val, typeArgs, module, ty, attrs); 
+			}
 		}
-		at = new ArbitraryTypeDecl(id, id.val, module, eqSupport, attrs); 
+		if (td == null) {
+		 td = new ArbitraryTypeDecl(id, id.val, module, eqSupport, attrs);
+		}
+		
 		if (la.kind == 8) {
 			while (!(la.kind == 0 || la.kind == 8)) {SynErr(133); Get();}
 			Get();
@@ -1016,6 +1032,11 @@ bool CloseOptionalBrace(bool usesOptionalBrace) {
 		Type(out ty);
 	}
 
+	void Type(out Type/*!*/ ty) {
+		Contract.Ensures(Contract.ValueAtReturn(out ty) != null); IToken/*!*/ tok; 
+		TypeAndToken(out tok, out ty);
+	}
+
 	void GIdentType(bool allowGhostKeyword, out IToken/*!*/ id, out Type/*!*/ ty, out bool isGhost) {
 		Contract.Ensures(Contract.ValueAtReturn(out id)!=null);
 		Contract.Ensures(Contract.ValueAtReturn(out ty)!=null);
@@ -1046,11 +1067,6 @@ bool CloseOptionalBrace(bool usesOptionalBrace) {
 		 }
 		}
 		
-	}
-
-	void Type(out Type/*!*/ ty) {
-		Contract.Ensures(Contract.ValueAtReturn(out ty) != null); IToken/*!*/ tok; 
-		TypeAndToken(out tok, out ty);
 	}
 
 	void LocalIdentTypeOptional(out LocalVariable var, bool isGhost) {
@@ -3934,7 +3950,7 @@ public class Errors {
 			case 130: s = "this symbol not expected in DatatypeDecl"; break;
 			case 131: s = "invalid DatatypeDecl"; break;
 			case 132: s = "this symbol not expected in DatatypeDecl"; break;
-			case 133: s = "this symbol not expected in ArbitraryTypeDecl"; break;
+			case 133: s = "this symbol not expected in OtherTypeDecl"; break;
 			case 134: s = "this symbol not expected in IteratorDecl"; break;
 			case 135: s = "invalid IteratorDecl"; break;
 			case 136: s = "invalid ClassMemberDecl"; break;

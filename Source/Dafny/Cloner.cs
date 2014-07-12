@@ -30,6 +30,10 @@ namespace Microsoft.Dafny
       if (d is ArbitraryTypeDecl) {
         var dd = (ArbitraryTypeDecl)d;
         return new ArbitraryTypeDecl(Tok(dd.tok), dd.Name, m, dd.EqualitySupport, CloneAttributes(dd.Attributes));
+      } else if (d is TypeSynonymDecl) {
+        var dd = (TypeSynonymDecl)d;
+        var tps = dd.TypeArgs.ConvertAll(CloneTypeParam);
+        return new TypeSynonymDecl(Tok(dd.tok), dd.Name, tps, m, CloneType(dd.Rhs), CloneAttributes(dd.Attributes));
       } else if (d is TupleTypeDecl) {
         var dd = (TupleTypeDecl)d;
         return new TupleTypeDecl(dd.Dims, dd.Module);

@@ -142,6 +142,14 @@ namespace Microsoft.Dafny {
             wr.Write("(==)");
           }
           wr.WriteLine();
+        } else if (d is TypeSynonymDecl) {
+          var syn = (TypeSynonymDecl)d;
+          if (i++ != 0) { wr.WriteLine(); }
+          Indent(indent);
+          PrintClassMethodHelper("type", syn.Attributes, syn.Name, syn.TypeArgs);
+          wr.Write(" = ");
+          PrintType(syn.Rhs);
+          wr.WriteLine();
         } else if (d is DatatypeDecl) {
           if (i++ != 0) { wr.WriteLine(); }
           PrintDatatype((DatatypeDecl)d, indent);

@@ -364,6 +364,8 @@ namespace Microsoft.Dafny {
           currentDeclaration = d;
           if (d is ArbitraryTypeDecl) {
             AddTypeDecl((ArbitraryTypeDecl)d);
+          } else if (d is TypeSynonymDecl) {
+            // do nothing, just bypass type synonyms in the translation
           } else if (d is DatatypeDecl) {
             AddDatatype((DatatypeDecl)d);
           } else if (d is ModuleDecl) {
@@ -4908,16 +4910,10 @@ namespace Microsoft.Dafny {
       Contract.Requires(predef != null);
       Contract.Ensures(Contract.Result<Bpl.Type>() != null);
 
-      while (true) {
-        TypeProxy tp = type as TypeProxy;
-        if (tp == null) {
-          break;
-        } else if (tp.T == null) {
-          // unresolved proxy; just treat as ref, since no particular type information is apparently needed for this type
-          return predef.RefType;
-        } else {
-          type = tp.T;
-        }
+      type = type.NormalizeExpand();
+      if (type is TypeProxy) {
+        // unresolved proxy; just treat as ref, since no particular type information is apparently needed for this type
+        return predef.RefType;
       }
 
       if (type is BoolType) {
@@ -4995,16 +4991,10 @@ namespace Microsoft.Dafny {
 
     public static bool ModeledAsBoxType(Type t) {
       Contract.Requires(t != null);
-      while (true) {
-        TypeProxy tp = t as TypeProxy;
-        if (tp == null) {
-          break;
-        } else if (tp.T == null) {
-          // unresolved proxy
-          return false;
-        } else {
-          t = tp.T;
-        }
+      t = t.NormalizeExpand();
+      if (t is TypeProxy) {
+        // unresolved proxy
+        return false;
       }
       return t.IsTypeParameter;
     }
@@ -7272,7 +7262,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(etran != null);
       Contract.Requires(predef != null);
       var r = GetWhereClause(tok, x, type, etran);
-      type = type.Normalize();
+      type = type.NormalizeExpand();
       if (type.IsDatatype) {
         UserDefinedType udt = (UserDefinedType)type;
         var oneOfTheCases = FunctionCall(tok, "$IsA#" + udt.ResolvedClass.FullSanitizedName, Bpl.Type.Bool, x);
@@ -7286,27 +7276,28 @@ namespace Microsoft.Dafny {
     Bpl.Expr TypeToTy(Type type) {
       Contract.Requires(type != null);
       Contract.Ensures(Contract.Result<Bpl.Expr>() != null);
-      var tok = Token.NoToken;
+
+      type = type.NormalizeExpand();
 
       if (type is SetType) {
-        return FunctionCall(tok, "TSet", predef.Ty, TypeToTy(((CollectionType)type).Arg));
+        return FunctionCall(Token.NoToken, "TSet", predef.Ty, TypeToTy(((CollectionType)type).Arg));
       } else if (type is MultiSetType) {
-        return FunctionCall(tok, "TMultiSet", predef.Ty, TypeToTy(((CollectionType)type).Arg));
+        return FunctionCall(Token.NoToken, "TMultiSet", predef.Ty, TypeToTy(((CollectionType)type).Arg));
       } else if (type is SeqType) {
-        return FunctionCall(tok, "TSeq", predef.Ty, TypeToTy(((CollectionType)type).Arg));
+        return FunctionCall(Token.NoToken, "TSeq", predef.Ty, TypeToTy(((CollectionType)type).Arg));
       } else if (type is MapType) {
-        return FunctionCall(tok, "TMap", predef.Ty, 
+        return FunctionCall(Token.NoToken, "TMap", predef.Ty, 
           TypeToTy(((MapType)type).Domain),
           TypeToTy(((MapType)type).Range)); 
       } else if (type is BoolType) {
-        return new Bpl.IdentifierExpr(tok, "TBool", predef.Ty);
+        return new Bpl.IdentifierExpr(Token.NoToken, "TBool", predef.Ty);
       } else if (type is RealType) {
-        return new Bpl.IdentifierExpr(tok, "TReal", predef.Ty);
+        return new Bpl.IdentifierExpr(Token.NoToken, "TReal", predef.Ty);
       } else if (type is NatType) {
         // (Nat needs to come before Int)
-        return new Bpl.IdentifierExpr(tok, "TNat", predef.Ty);
+        return new Bpl.IdentifierExpr(Token.NoToken, "TNat", predef.Ty);
       } else if (type is IntType) {
-        return new Bpl.IdentifierExpr(tok, "TInt", predef.Ty);
+        return new Bpl.IdentifierExpr(Token.NoToken, "TInt", predef.Ty);
       } else if (type.IsTypeParameter) {
         return trTypeParam(type.AsTypeParameter);              
       } else if (type is ObjectType) {
@@ -7320,13 +7311,8 @@ namespace Microsoft.Dafny {
           args.Add(TypeToTy(ch));
         }
         return ClassTyCon(((UserDefinedType)type), args);      
-      } else if (type is TypeProxy || type is InferredTypeProxy || type is ParamTypeProxy) {
-        Type proxied = ((TypeProxy)type).T;
-        if (proxied == null && type is ParamTypeProxy) {
-          return trTypeParam(((ParamTypeProxy)type).orig);
-        } else {
-          return TypeToTy(proxied);
-        }
+      } else if (type is ParamTypeProxy) {
+        return trTypeParam(((ParamTypeProxy)type).orig);
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected type
       }
@@ -7417,18 +7403,12 @@ namespace Microsoft.Dafny {
       Contract.Requires(etran != null);
       Contract.Requires(predef != null);
 
-      while (true) {
-        TypeProxy proxy = type as TypeProxy;
-        if (proxy == null) {
-          break;
-        } else if (proxy.T == null) {
-          // Unresolved proxy
-          // Omit where clause (in other places, unresolved proxies are treated as a reference type; we could do that here too, but
-          // we might as well leave out the where clause altogether).
-          return null;
-        } else {
-          type = proxy.T;
-        }
+      type = type.NormalizeExpand();
+      if (type is TypeProxy) {
+        // Unresolved proxy
+        // Omit where clause (in other places, unresolved proxies are treated as a reference type; we could do that here too, but
+        // we might as well leave out the where clause altogether).
+        return null;
       }
 
       if (type is NatType) {
@@ -7448,7 +7428,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(type != null);
       Contract.Ensures(Contract.Result<Bpl.Expr>() != null);
 
-      if (type.Normalize() is BoolType) {
+      if (type.NormalizeExpand() is BoolType) {
         return FunctionCall(box.tok, BuiltinFunction.IsCanonicalBoolBox, null, box);
       } else {
         return Bpl.Expr.True;

@@ -528,6 +528,7 @@ namespace Microsoft.Dafny
       var datatypeDependencies = new Graph<IndDatatypeDecl>();
       var codatatypeDependencies = new Graph<CoDatatypeDecl>();
       int prevErrorCount = ErrorCount;
+      ResolveAttributes(m.Attributes, false, new NoContext(m.Module));
       ResolveTopLevelDecls_Signatures(m, m.TopLevelDecls, datatypeDependencies, codatatypeDependencies);
       if (ErrorCount == prevErrorCount) {
         ResolveTopLevelDecls_Meat(m.TopLevelDecls, datatypeDependencies, codatatypeDependencies);
@@ -750,6 +751,8 @@ namespace Microsoft.Dafny
           // nothing to do
         } else if (d is ArbitraryTypeDecl) {
           // nothing more to register
+        } else if (d is TypeSynonymDecl) {
+          // nothing more to register
 
         } else if (d is IteratorDecl) {
           var iter = (IteratorDecl)d;
@@ -899,14 +902,14 @@ namespace Microsoft.Dafny
 
                   List<TypeParameter> tyvars = cop.TypeArgs.ConvertAll(cloner.CloneTypeParam);
 
-	          /*
+                  /*
                   Dictionary<TypeParameter, Type> su = new Dictionary<TypeParameter, Type>();
                   for (int i = 0; i < tyvars.Count; i++) {
                     su[cop.TypeArgs[i]] = new UserDefinedType(tyvars[i].tok, tyvars[i].Name, tyvars[i]);
                   }
                   var sub = new Translator.Substituter(null, new Dictionary<IVariable, Expression>(), su, null);
-		  // We would like to apply this substitution the new body... he-hum
-		  */
+                  // We would like to apply this substitution the new body... he-hum
+                  */
 
                   // create prefix predicate
                   cop.PrefixPredicate = new PrefixPredicate(cop.tok, extraName, cop.IsStatic,
@@ -1039,6 +1042,10 @@ namespace Microsoft.Dafny
       if (d is ArbitraryTypeDecl) {
         var dd = (ArbitraryTypeDecl)d;
         return new ArbitraryTypeDecl(dd.tok, dd.Name, m, dd.EqualitySupport, null);
+      } else if (d is TypeSynonymDecl) {
+        var dd = (TypeSynonymDecl)d;
+        var tps = dd.TypeArgs.ConvertAll(CloneTypeParam);
+        return new TypeSynonymDecl(dd.tok, dd.Name, tps, m, CloneType(dd.Rhs), null);
       } else if (d is TupleTypeDecl) {
         var dd = (TupleTypeDecl)d;
         return new TupleTypeDecl(dd.Dims, dd.Module);
@@ -1402,12 +1409,23 @@ namespace Microsoft.Dafny
       Contract.Requires(declarations != null);
       Contract.Requires(datatypeDependencies != null);
       Contract.Requires(codatatypeDependencies != null);
+
+      var typeSynonymDependencies = new Graph<TypeSynonymDecl>();
       foreach (TopLevelDecl d in declarations) {
         Contract.Assert(d != null);
         allTypeParameters.PushMarker();
         ResolveTypeParameters(d.TypeArgs, true, d);
         if (d is ArbitraryTypeDecl) {
           // nothing to do
+        } else if (d is TypeSynonymDecl) {
+          var syn = (TypeSynonymDecl)d;
+          ResolveType(syn.tok, syn.Rhs, ResolveTypeOptionEnum.AllowPrefix, syn.TypeArgs);
+          syn.Rhs.ForeachTypeComponent(ty => {
+            var s = ty.AsTypeSynonym;
+            if (s != null) {
+              typeSynonymDependencies.AddEdge(syn, s);
+            }
+          });
         } else if (d is IteratorDecl) {
           ResolveIteratorSignature((IteratorDecl)d);
         } else if (d is ClassDecl) {
@@ -1431,6 +1449,14 @@ namespace Microsoft.Dafny
         }
         allTypeParameters.PopMarker();
       }
+
+      // perform acyclicity test on type synonyms
+      var cycle = typeSynonymDependencies.TryFindCycle();
+      if (cycle != null) {
+        Contract.Assert(cycle.Count != 0);
+        var erste = cycle[0];
+        Error(erste.tok, "Cycle among type synonyms: {0} -> {1}", Util.Comma(" -> ", cycle, syn => syn.Name), erste.Name);
+      }
     }
 
     public void ResolveTopLevelDecls_Meat(List<TopLevelDecl/*!*/>/*!*/ declarations, Graph<IndDatatypeDecl/*!*/>/*!*/ datatypeDependencies, Graph<CoDatatypeDecl/*!*/>/*!*/ codatatypeDependencies) {
@@ -1440,19 +1466,21 @@ namespace Microsoft.Dafny
 
       int prevErrorCount = ErrorCount;
 
-      // Resolve the meat of classes, and the type parameters of all top-level type declarations
+      // Resolve the meat of classes and iterators, the definitions of type synonyms, and the type parameters of all top-level type declarations
       foreach (TopLevelDecl d in declarations) {
         Contract.Assert(d != null);
         allTypeParameters.PushMarker();
         ResolveTypeParameters(d.TypeArgs, false, d);
+        if (!(d is IteratorDecl)) {
+          // Note, attributes of iterators are resolved by ResolvedIterator, after registering any names in the iterator signature
+          ResolveAttributes(d.Attributes, false, new NoContext(d.Module));
+        }
         if (d is IteratorDecl) {
           var iter = (IteratorDecl)d;
           ResolveIterator(iter);
           ResolveClassMemberBodies(iter);  // resolve the automatically generated members
-
         } else if (d is ClassDecl) {
           var cl = (ClassDecl)d;
-          ResolveAttributes(cl.Attributes, false, new NoContext(cl.Module));
           ResolveClassMemberBodies(cl);
         }
         allTypeParameters.PopMarker();
@@ -2435,8 +2463,8 @@ namespace Microsoft.Dafny
       protected override bool VisitOneExpr(Expression expr, ref bool st) {
         if (expr is BinaryExpr) {
           var e = (BinaryExpr)expr;
-          var t0 = e.E0.Type.Normalize();
-          var t1 = e.E1.Type.Normalize();
+          var t0 = e.E0.Type.NormalizeExpand();
+          var t1 = e.E1.Type.NormalizeExpand();
           switch (e.Op) {
             case BinaryExpr.Opcode.Eq:
             case BinaryExpr.Opcode.Neq:
@@ -2516,7 +2544,7 @@ namespace Microsoft.Dafny
       public void CheckEqualityTypes_Type(IToken tok, Type type) {
         Contract.Requires(tok != null);
         Contract.Requires(type != null);
-        type = type.Normalize();
+        type = type.NormalizeExpand();
         if (type is BasicType) {
           // fine
         } else if (type is SetType) {
@@ -2661,7 +2689,7 @@ namespace Microsoft.Dafny
       Contract.Requires(tp != null);
       Contract.Requires(type != null);
 
-      type = type.Normalize();
+      type = type.NormalizeExpand();
       if (type is BasicType) {
       } else if (type is SetType) {
         var st = (SetType)type;
@@ -3001,7 +3029,7 @@ namespace Microsoft.Dafny
             } else {
               var otherDt = arg.Type.AsIndDatatype;
               if (otherDt != null && otherDt.EqualitySupport == IndDatatypeDecl.ES.ConsultTypeArguments) {  // datatype is in a different SCC
-                var otherUdt = (UserDefinedType)arg.Type.Normalize();
+                var otherUdt = (UserDefinedType)arg.Type.NormalizeExpand();
                 var i = 0;
                 foreach (var otherTp in otherDt.TypeArgs) {
                   if (otherTp.NecessaryForEqualitySupportOfSurroundingInductiveDatatype) {
@@ -3029,7 +3057,7 @@ namespace Microsoft.Dafny
             foreach (var arg in ctor.Formals) {
               var otherDt = arg.Type.AsIndDatatype;
               if (otherDt != null && otherDt.EqualitySupport == IndDatatypeDecl.ES.NotYetComputed) { // otherDt lives in the same SCC
-                var otherUdt = (UserDefinedType)arg.Type.Normalize();
+                var otherUdt = (UserDefinedType)arg.Type.NormalizeExpand();
                 var i = 0;
                 foreach (var otherTp in otherDt.TypeArgs) {
                   if (otherTp.NecessaryForEqualitySupportOfSurroundingInductiveDatatype) {
@@ -3804,11 +3832,6 @@ namespace Microsoft.Dafny
         for (int i = 0; i < n; i++) {
           typeArgs.Add(new InferredTypeProxy());
         }
-      /*
-      } else if (option.Opt == ResolveTypeOptionEnum.AllowExact && defaultTypeArguments.Count != n) {
-        // the number of default arguments is not exactly what we need, so don't add anything
-      } else if (option.Opt == ResolveTypeOptionEnum.AllowPrefix && defaultTypeArguments.Count < n) {
-      */
       } else if (option.Opt == ResolveTypeOptionEnum.AllowPrefix && defaultTypeArguments.Count < n) {
         // there aren't enough default arguments, so don't do anything
       } else {
@@ -3833,27 +3856,15 @@ namespace Microsoft.Dafny
     public bool UnifyTypes(Type a, Type b) {
       Contract.Requires(a != null);
       Contract.Requires(b != null);
-      while (a is TypeProxy) {
-        TypeProxy proxy = (TypeProxy)a;
-        if (proxy.T == null) {
-          // merge a and b; to avoid cycles, first get to the bottom of b
-          while (b is TypeProxy && ((TypeProxy)b).T != null) {
-            b = ((TypeProxy)b).T;
-          }
-          return AssignProxy(proxy, b);
-        } else {
-          a = proxy.T;
-        }
-      }
 
-      while (b is TypeProxy) {
-        TypeProxy proxy = (TypeProxy)b;
-        if (proxy.T == null) {
-          // merge a and b (we have already got to the bottom of a)
-          return AssignProxy(proxy, a);
-        } else {
-          b = proxy.T;
-        }
+      a = a.NormalizeExpand();
+      b = b.NormalizeExpand();
+      if (a is TypeProxy) {
+        // merge a and b (cycles are avoided even if b is a TypeProxy, since we have got to the bottom of both a and b)
+        return AssignProxy((TypeProxy)a, b);
+      } else if (b is TypeProxy) {
+        // merge a and b
+        return AssignProxy((TypeProxy)b, a);
       }
 
 #if !NO_CHEAP_OBJECT_WORKAROUND
@@ -3888,8 +3899,8 @@ namespace Microsoft.Dafny
         if (!(b is UserDefinedType)) {
           return false;
         }
-        UserDefinedType aa = (UserDefinedType)a;
-        UserDefinedType bb = (UserDefinedType)b;
+        var aa = (UserDefinedType)a;
+        var bb = (UserDefinedType)b;
         if (aa.ResolvedClass != null && aa.ResolvedClass == bb.ResolvedClass) {
           // these are both resolved class/datatype types
           Contract.Assert(aa.TypeArgs.Count == bb.TypeArgs.Count);
@@ -4719,11 +4730,11 @@ namespace Microsoft.Dafny
         }
         UserDefinedType sourceType = null;
         DatatypeDecl dtd = null;
-        Dictionary<TypeParameter, Type> subst = new Dictionary<TypeParameter, Type>();
-        if (s.Source.Type.IsDatatype) {
-          sourceType = (UserDefinedType)s.Source.Type;
+        if (s.Source.Type.NormalizeExpand().IsDatatype) {
+          sourceType = (UserDefinedType)s.Source.Type.NormalizeExpand();
           dtd = cce.NonNull((DatatypeDecl)sourceType.ResolvedClass);
         }
+        var subst = new Dictionary<TypeParameter, Type>();
         Dictionary<string, DatatypeCtor> ctors;
         if (dtd == null) {
           Error(s.Source, "the type of the match source expression must be a datatype (instead found {0})", s.Source.Type);
@@ -5669,7 +5680,7 @@ namespace Microsoft.Dafny
       Contract.Ensures(Contract.Result<MemberDecl>() == null || Contract.ValueAtReturn(out nptype) != null);
 
       nptype = null;  // prepare for the worst
-      receiverType = receiverType.Normalize();
+      receiverType = receiverType.NormalizeExpand();
       if (receiverType is TypeProxy) {
         Error(tok, "type of the receiver is not fully determined at this program point", receiverType);
         return null;
@@ -5739,7 +5750,7 @@ namespace Microsoft.Dafny
     /// <summary>
     /// If the substitution has no effect, the return value is pointer-equal to 'type'
     /// </summary>
-    public static Type SubstType(Type type, Dictionary<TypeParameter/*!*/, Type/*!*/>/*!*/ subst) {
+    public static Type SubstType(Type type, Dictionary<TypeParameter, Type> subst) {
       Contract.Requires(type != null);
       Contract.Requires(cce.NonNullDictionaryAndValues(subst));
       Contract.Ensures(Contract.Result<Type>() != null);
@@ -6642,11 +6653,11 @@ namespace Microsoft.Dafny
         Contract.Assert(me.Source.Type != null);  // follows from postcondition of ResolveExpression
         UserDefinedType sourceType = null;
         DatatypeDecl dtd = null;
-        Dictionary<TypeParameter, Type> subst = new Dictionary<TypeParameter, Type>();
-        if (me.Source.Type.IsDatatype) {
-          sourceType = (UserDefinedType)me.Source.Type;
+        if (me.Source.Type.NormalizeExpand().IsDatatype) {
+          sourceType = (UserDefinedType)me.Source.Type.NormalizeExpand();
           dtd = cce.NonNull((DatatypeDecl)sourceType.ResolvedClass);
         }
+        var subst = new Dictionary<TypeParameter, Type>();
         Dictionary<string, DatatypeCtor> ctors;
         if (dtd == null) {
           Error(me.Source, "the type of the match source expression must be a datatype (instead found {0})", me.Source.Type);
@@ -7338,7 +7349,7 @@ namespace Microsoft.Dafny
 
         bool itIsAMethod = false;
         if (allowMethodCall) {
-          var udt = r.Type.Normalize() as UserDefinedType;
+          var udt = r.Type.NormalizeExpand() as UserDefinedType;
           if (udt != null && udt.ResolvedClass != null) {
             Dictionary<string, MemberDecl> members;
             if (udt.ResolvedClass is ClassDecl) {

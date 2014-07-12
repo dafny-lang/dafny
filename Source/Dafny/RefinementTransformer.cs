@@ -429,6 +429,8 @@ namespace Microsoft.Dafny
     public static bool ResolvedTypesAreTheSame(Type prev, Type next) {
       Contract.Requires(prev != null);
       Contract.Requires(next != null);
+      prev = prev.NormalizeExpand();
+      next = next.NormalizeExpand();
       if (prev is TypeProxy || next is TypeProxy)
         return false;
 

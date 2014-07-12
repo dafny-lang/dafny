@@ -115,6 +115,8 @@ namespace Microsoft.Dafny {
           if (d is ArbitraryTypeDecl) {
             var at = (ArbitraryTypeDecl)d;
             Error("Arbitrary type ('{0}') cannot be compiled", at.FullName);
+          } else if (d is TypeSynonymDecl) {
+            // do nothing, just bypass type synonyms in the compiler
           } else if (d is DatatypeDecl) {
             var dt = (DatatypeDecl)d;
             Indent(indent);
@@ -868,16 +870,10 @@ namespace Microsoft.Dafny {
       Contract.Requires(type != null);
       Contract.Ensures(Contract.Result<string>() != null);
 
-      while (true) {
-        TypeProxy tp = type as TypeProxy;
-        if (tp == null) {
-          break;
-        } else if (tp.T == null) {
-          // unresolved proxy; just treat as ref, since no particular type information is apparently needed for this type
-          return "object";
-        } else {
-          type = tp.T;
-        }
+      type = type.NormalizeExpand();
+      if (type is TypeProxy) {
+        // unresolved proxy; just treat as ref, since no particular type information is apparently needed for this type
+        return "object";
       }
 
       if (type is BoolType) {
@@ -968,16 +964,10 @@ namespace Microsoft.Dafny {
       Contract.Requires(type != null);
       Contract.Ensures(Contract.Result<string>() != null);
 
-      while (true) {
-        TypeProxy tp = type as TypeProxy;
-        if (tp == null) {
-          break;
-        } else if (tp.T == null) {
-          // unresolved proxy; just treat as ref, since no particular type information is apparently needed for this type
-          return "null";
-        } else {
-          type = tp.T;
-        }
+      type = type.NormalizeExpand();
+      if (type is TypeProxy) {
+        // unresolved proxy; just treat as ref, since no particular type information is apparently needed for this type
+        return "null";
       }
 
       if (type is BoolType) {

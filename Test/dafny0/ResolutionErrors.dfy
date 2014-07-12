@@ -983,3 +983,62 @@ module TypeArgumentCount {
     var c: C<T,int>;  // error: too many type arguments
   }
 }
+
+// --- Type synonyms ---
+
+module BadTypeSynonyms {
+  datatype List<T> = Nil | Cons(T, List)
+  type BadSyn0 = List  // error: must have at least one type parameter
+  type BadSyn1 = badName  // error: badName does not denote a type
+  type BadSyn2 = List<X>  // error: X does not denote a type
+  type BadSyn2 = int  // error: repeated name
+}
+
+// --- cycles ---
+
+module CycleError0 {
+  type A = A  // error: cycle: A -> A
+}
+module CycleError1 {
+  type A = B  // error: cycle: A -> B -> A
+  type B = A
+}
+module CycleError2 {
+  type A = B  // error: cycle: A -> B -> A
+  type B = set<A>
+}
+module Good0 {
+  type A = (B, D<bool>)
+  type B = C
+  class C {
+    var a: A;  // this is fine
+  }
+  datatype D<X> = Make(A, B, C)  // this is fine, too
+}
+module CycleError3 {
+  type A = B  // error: cycle: A -> B -> A
+  type B = C<A>
+  class C<T> { }
+}
+module CycleError4 {
+  type A = B  // error: cycle: A -> B -> A
+  type B = Dt<A>
+  datatype Dt<T> = Make(T)
+}
+
+// --- attributes in top-level declarations ---
+
+iterator {:myAttribute x} Iter() {  // error: x does not refer to anything
+}
+
+class {:myAttribute x} C {  // error: x does not refer to anything
+}
+
+datatype {:myAttribute x} Dt = Blue  // error: x does not refer to anything
+
+type {:myAttribute x} Something  // error: x does not refer to anything
+
+type {:myAttribute x} Synonym = int  // error: x does not refer to anything
+
+module {:myAttribute x} Modulette {  // error: x does not refer to anything
+}

@@ -189,7 +189,7 @@ IGNORE cr + lf + tab
 /*------------------------------------------------------------------------*/
 PRODUCTIONS
 Dafny
-= (. ClassDecl/*!*/ c; DatatypeDecl/*!*/ dt; ArbitraryTypeDecl at; IteratorDecl iter;
+= (. ClassDecl/*!*/ c; DatatypeDecl/*!*/ dt; TopLevelDecl td; IteratorDecl iter;
      List<MemberDecl/*!*/> membersDefaultClass = new List<MemberDecl/*!*/>();
      ModuleDecl submodule;
      // to support multiple files, create a default module only if theModule is null
@@ -213,7 +213,7 @@ Dafny
   { SubModuleDecl<defaultModule, out submodule> (. defaultModule.TopLevelDecls.Add(submodule); .)
   | ClassDecl<defaultModule, out c>             (. defaultModule.TopLevelDecls.Add(c); .)
   | DatatypeDecl<defaultModule, out dt>         (. defaultModule.TopLevelDecls.Add(dt); .)
-  | ArbitraryTypeDecl<defaultModule, out at>    (. defaultModule.TopLevelDecls.Add(at); .)
+  | OtherTypeDecl<defaultModule, out td>        (. defaultModule.TopLevelDecls.Add(td); .)
   | IteratorDecl<defaultModule, out iter>       (. defaultModule.TopLevelDecls.Add(iter); .)
 
   | ClassMemberDecl<membersDefaultClass, false>
@@ -234,7 +234,7 @@ Dafny
   EOF
   .
 SubModuleDecl<ModuleDefinition parent, out ModuleDecl submodule>
-= (. ClassDecl/*!*/ c; DatatypeDecl/*!*/ dt; ArbitraryTypeDecl at; IteratorDecl iter;
+= (. ClassDecl/*!*/ c; DatatypeDecl/*!*/ dt; TopLevelDecl td; IteratorDecl iter;
      Attributes attrs = null;  IToken/*!*/ id;
      List<MemberDecl/*!*/> namedModuleDefaultClassMembers = new List<MemberDecl>();;
      List<IToken> idRefined = null, idPath = null, idAssignment = null;
@@ -254,7 +254,7 @@ SubModuleDecl<ModuleDefinition parent, out ModuleDecl submodule>
         { SubModuleDecl<module, out sm>                (. module.TopLevelDecls.Add(sm); .)
         | ClassDecl<module, out c>                     (. module.TopLevelDecls.Add(c); .)
         | DatatypeDecl<module, out dt>                 (. module.TopLevelDecls.Add(dt); .)
-        | ArbitraryTypeDecl<module, out at>            (. module.TopLevelDecls.Add(at); .)
+        | OtherTypeDecl<module, out td>                (. module.TopLevelDecls.Add(td); .)
         | IteratorDecl<module, out iter>               (. module.TopLevelDecls.Add(iter); .)
         | ClassMemberDecl<namedModuleDefaultClassMembers, false>
         }
@@ -393,16 +393,25 @@ FieldDecl<.MemberModifiers mmod, List<MemberDecl/*!*/>/*!*/ mm.>
   }
   SYNC ";"
   .
-ArbitraryTypeDecl<ModuleDefinition/*!*/ module, out ArbitraryTypeDecl at>
+OtherTypeDecl<ModuleDefinition/*!*/ module, out TopLevelDecl td>
 = (. IToken/*!*/ id;
      Attributes attrs = null;
      var eqSupport = TypeParameter.EqualitySupportValue.Unspecified;
+     List<TypeParameter> typeArgs;
+     Type ty;
   .)
   "type"
   { Attribute<ref attrs> }
-  NoUSIdent<out id>
+  NoUSIdent<out id>            (. td = null; .)
   [ "(" "==" ")"               (. eqSupport = TypeParameter.EqualitySupportValue.Required; .)
-  ]                            (. at = new ArbitraryTypeDecl(id, id.val, module, eqSupport, attrs); .)
+  |                            (. typeArgs = new List<TypeParameter>(); .)
+    [ GenericParameters<typeArgs> ]
+    "="
+    Type<out ty>               (. td = new TypeSynonymDecl(id, id.val, typeArgs, module, ty, attrs); .)
+  ]                            (. if (td == null) {
+                                    td = new ArbitraryTypeDecl(id, id.val, module, eqSupport, attrs);
+                                  }
+                               .)
   [ SYNC ";"
       // This semi-colon used to be required, but it seems silly to have it.
       // To stage the transition toward not having it at all, let's make it optional for now.  Then,
