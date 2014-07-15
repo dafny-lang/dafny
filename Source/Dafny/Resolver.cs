@@ -1041,7 +1041,7 @@ namespace Microsoft.Dafny
 
       if (d is ArbitraryTypeDecl) {
         var dd = (ArbitraryTypeDecl)d;
-        return new ArbitraryTypeDecl(dd.tok, dd.Name, m, dd.EqualitySupport, null);
+        return new ArbitraryTypeDecl(dd.tok, dd.Name, m, dd.EqualitySupport, dd.TypeArgs.ConvertAll(CloneTypeParam), null);
       } else if (d is TypeSynonymDecl) {
         var dd = (TypeSynonymDecl)d;
         var tps = dd.TypeArgs.ConvertAll(CloneTypeParam);
@@ -7238,7 +7238,7 @@ namespace Microsoft.Dafny
 
     CallRhs ResolveIdentifierSequenceModuleScope(IdentifierSequence e, int p, ModuleSignature sig, bool twoState, ICodeContext codeContext, bool allowMethodCall) {
       // Look up "id" as follows:
-      //  - unamibugous type/module name (class, datatype, sub-module (including submodules of imports) or arbitrary-type)
+      //  - unambiguous type/module name (class, datatype, sub-module (including submodules of imports) or arbitrary-type)
       //       (if two imported types have the same name, an error message is produced here)
       //  - static function or method of sig.
       // This is used to look up names that appear after a dot in a sequence identifier. For example, in X.M.*, M should be looked up in X, but
@@ -7255,17 +7255,19 @@ namespace Microsoft.Dafny
       if (sig.TopLevels.TryGetValue(id.val, out decl)) {
         if (decl is AmbiguousTopLevelDecl) {
           Error(id, "The name {0} ambiguously refers to a something in one of the modules {1}", id.val, ((AmbiguousTopLevelDecl)decl).ModuleNames());
-        } else if (decl is ClassDecl) {
-          // ----- root is a class
-          var cd = (ClassDecl)decl;
-          r = ResolveSuffix(new StaticReceiverExpr(id, cd), e, p + 1, twoState, codeContext, allowMethodCall, out call);
-
         } else if (decl is ModuleDecl) {
           // ----- root is a submodule
           if (!(p + 1 < e.Tokens.Count)) {
             Error(e.tok, "module {0} cannot be used here", ((ModuleDecl)decl).Name);
           }
           call = ResolveIdentifierSequenceModuleScope(e, p + 1, ((ModuleDecl)decl).Signature, twoState, codeContext, allowMethodCall);
+        } else if (decl is TypeSynonymDecl) {
+          // ----- root apparently refers to a type synonym
+          Error(e.tok, "type synonym {0} cannot be used here", id.val);  // todo: this is a bit of a cop-out; perhaps something better could be done
+        } else if (decl is ClassDecl) {
+          // ----- root is a class
+          var cd = (ClassDecl)decl;
+          r = ResolveSuffix(new StaticReceiverExpr(id, cd), e, p + 1, twoState, codeContext, allowMethodCall, out call);
         } else {
           // ----- root is a datatype
           var dt = (DatatypeDecl)decl;  // otherwise, unexpected TopLevelDecl

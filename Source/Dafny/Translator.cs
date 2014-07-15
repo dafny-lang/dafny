@@ -7012,15 +7012,15 @@ namespace Microsoft.Dafny {
       }
 
       int N = Math.Min(contextDecreases.Count, calleeDecreases.Count);
-      List<IToken> toks = new List<IToken>();
-      List<Type> types0 = new List<Type>();
-      List<Type> types1 = new List<Type>();
-      List<Expr> callee = new List<Expr>();
-      List<Expr> caller = new List<Expr>();
+      var toks = new List<IToken>();
+      var types0 = new List<Type>();
+      var types1 = new List<Type>();
+      var callee = new List<Expr>();
+      var caller = new List<Expr>();
       for (int i = 0; i < N; i++) {
         Expression e0 = Substitute(calleeDecreases[i], receiverReplacement, substMap);
         Expression e1 = contextDecreases[i];
-        if (!CompatibleDecreasesTypes(cce.NonNull(e0.Type), cce.NonNull(e1.Type))) {
+        if (!CompatibleDecreasesTypes(e0.Type, e1.Type)) {
           N = i;
           break;
         }
@@ -7048,7 +7048,7 @@ namespace Microsoft.Dafny {
     /// ee0 represents the new values and ee1 represents old values.
     /// If builder is non-null, then the check '0 ATMOST decr' is generated to builder.
     /// </summary>
-    Bpl.Expr DecreasesCheck(List<IToken/*!*/>/*!*/ toks, List<Type/*!*/>/*!*/ types0, List<Type/*!*/>/*!*/ types1, List<Bpl.Expr/*!*/>/*!*/ ee0, List<Bpl.Expr/*!*/>/*!*/ ee1,
+    Bpl.Expr DecreasesCheck(List<IToken> toks, List<Type> types0, List<Type> types1, List<Bpl.Expr> ee0, List<Bpl.Expr> ee1,
                             Bpl.StmtListBuilder builder, string suffixMsg, bool allowNoChange, bool includeLowerBound)
     {
       Contract.Requires(cce.NonNullElements(toks));
@@ -7114,6 +7114,8 @@ namespace Microsoft.Dafny {
     bool CompatibleDecreasesTypes(Type t, Type u) {
       Contract.Requires(t != null);
       Contract.Requires(u != null);
+      t = t.NormalizeExpand();
+      u = u.NormalizeExpand();
       if (t is BoolType) {
         return u is BoolType;
       } else if (t is IntType) {
@@ -7146,7 +7148,7 @@ namespace Microsoft.Dafny {
       else return null;
     }
 
-    void ComputeLessEq(IToken/*!*/ tok, Type/*!*/ ty0, Type/*!*/ ty1, Bpl.Expr/*!*/ e0, Bpl.Expr/*!*/ e1, out Bpl.Expr/*!*/ less, out Bpl.Expr/*!*/ atmost, out Bpl.Expr/*!*/ eq, bool includeLowerBound)
+    void ComputeLessEq(IToken tok, Type ty0, Type ty1, Bpl.Expr e0, Bpl.Expr e1, out Bpl.Expr less, out Bpl.Expr atmost, out Bpl.Expr eq, bool includeLowerBound)
     {
       Contract.Requires(tok != null);
       Contract.Requires(ty0 != null);
@@ -7158,8 +7160,10 @@ namespace Microsoft.Dafny {
       Contract.Ensures(Contract.ValueAtReturn(out atmost)!=null);
       Contract.Ensures(Contract.ValueAtReturn(out eq)!=null);
 
-      Nullable<BuiltinFunction> rk0 = RankFunction(ty0);
-      Nullable<BuiltinFunction> rk1 = RankFunction(ty1);
+      ty0 = ty0.NormalizeExpand();
+      ty1 = ty1.NormalizeExpand();
+      var rk0 = RankFunction(ty0);
+      var rk1 = RankFunction(ty1);
       if (rk0 != null && rk1 != null && rk0 != rk1) {
         eq = Bpl.Expr.False;
         Bpl.Expr b0 = FunctionCall(tok, rk0.Value, null, e0);

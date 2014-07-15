@@ -397,19 +397,22 @@ OtherTypeDecl<ModuleDefinition/*!*/ module, out TopLevelDecl td>
 = (. IToken/*!*/ id;
      Attributes attrs = null;
      var eqSupport = TypeParameter.EqualitySupportValue.Unspecified;
-     List<TypeParameter> typeArgs;
+     var typeArgs = new List<TypeParameter>();
+     td = null;
      Type ty;
   .)
   "type"
   { Attribute<ref attrs> }
-  NoUSIdent<out id>            (. td = null; .)
-  [ "(" "==" ")"               (. eqSupport = TypeParameter.EqualitySupportValue.Required; .)
-  |                            (. typeArgs = new List<TypeParameter>(); .)
+  NoUSIdent<out id>
+  ( "(" "==" ")"               (. eqSupport = TypeParameter.EqualitySupportValue.Required; .)
     [ GenericParameters<typeArgs> ]
-    "="
-    Type<out ty>               (. td = new TypeSynonymDecl(id, id.val, typeArgs, module, ty, attrs); .)
-  ]                            (. if (td == null) {
-                                    td = new ArbitraryTypeDecl(id, id.val, module, eqSupport, attrs);
+  |
+    [ GenericParameters<typeArgs> ]
+    [ "="
+      Type<out ty>             (. td = new TypeSynonymDecl(id, id.val, typeArgs, module, ty, attrs); .)
+    ]
+  )                            (. if (td == null) {
+                                    td = new ArbitraryTypeDecl(id, id.val, module, eqSupport, typeArgs, attrs);
                                   }
                                .)
   [ SYNC ";"

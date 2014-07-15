@@ -154,31 +154,34 @@ namespace Microsoft.Dafny
                 if (dDemandsEqualitySupport != ((ArbitraryTypeDecl)nw).MustSupportEquality) {
                   reporter.Error(nw, "type declaration '{0}' is not allowed to change the requirement of supporting equality", nw.Name);
                 }
+                if (nw.TypeArgs.Count != d.TypeArgs.Count) {
+                  reporter.Error(nw, "type '{0}' is not allowed to change its number of type parameters (got {1}, expected {2})", nw.Name, nw.TypeArgs.Count, d.TypeArgs.Count);
+                }
               } else if (dDemandsEqualitySupport) {
                 if (nw is ClassDecl) {
                   // fine, as long as "nw" does not take any type parameters
                   if (nw.TypeArgs.Count != d.TypeArgs.Count) {
-                    reporter.Error(nw, "arbitrary type '{0}' is not allowed to be replaced by a class that takes a different number of type parameters", nw.Name);
+                    reporter.Error(nw, "arbitrary type '{0}' is not allowed to be replaced by a class that takes a different number of type parameters (got {1}, expected {2})", nw.Name, nw.TypeArgs.Count, d.TypeArgs.Count);
                   }
                 } else if (nw is CoDatatypeDecl) {
                   reporter.Error(nw, "a type declaration that requires equality support cannot be replaced by a codatatype");
                 } else {
-                  Contract.Assert(nw is IndDatatypeDecl);
+                  Contract.Assert(nw is IndDatatypeDecl || nw is TypeSynonymDecl);
                   if (nw.TypeArgs.Count != d.TypeArgs.Count) {
-                    reporter.Error(nw, "arbitrary type '{0}' is not allowed to be replaced by a datatype that takes a different number of type parameters", nw.Name);
+                    reporter.Error(nw, "arbitrary type '{0}' is not allowed to be replaced by a type that takes a different number of type parameters (got {1}, expected {2})", nw.Name, nw.TypeArgs.Count, d.TypeArgs.Count);
                   } else {
                     // Here, we need to figure out if the new type supports equality.  But we won't know about that until resolution has
                     // taken place, so we defer it until the PostResolve phase.
-                    var udt = new UserDefinedType(nw.tok, nw.Name, nw, new List<Type>());
-                    postTasks.Enqueue(delegate() {
+                    var udt = new UserDefinedType(nw.tok, nw.Name, nw, nw.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp)));
+                    postTasks.Enqueue(() => {
                       if (!udt.SupportsEquality) {
-                        reporter.Error(udt.tok, "datatype '{0}' is used to refine an arbitrary type with equality support, but '{0}' does not support equality", udt.Name);
+                        reporter.Error(udt.tok, "type '{0}' is used to refine an arbitrary type with equality support, but '{0}' does not support equality", udt.Name);
                       }
                     });
                   }
                 }
               } else if (d.TypeArgs.Count != nw.TypeArgs.Count) {
-                reporter.Error(nw, "arbitrary type '{0}' is not allowed to be replaced by a type that takes a different number of type parameters", nw.Name);
+                reporter.Error(nw, "arbitrary type '{0}' is not allowed to be replaced by a type that takes a different number of type parameters (got {1}, expected {2})", nw.Name, nw.TypeArgs.Count, d.TypeArgs.Count);
               }
             }
           } else if (nw is ArbitraryTypeDecl) {

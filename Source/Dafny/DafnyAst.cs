@@ -752,6 +752,9 @@ namespace Microsoft.Dafny {
       this.Path = new List<IToken>();
     }
 
+    /// <summary>
+    /// This constructor constructs a resolved type parameter
+    /// </summary>
     public UserDefinedType(TypeParameter tp)
       : this(tp.tok, tp.Name, tp)
     {
@@ -835,6 +838,9 @@ namespace Microsoft.Dafny {
             i++;
           }
           return true;
+        } else if (ResolvedClass is TypeSynonymDecl) {
+          var t = (TypeSynonymDecl)ResolvedClass;
+          return t.Rhs.SupportsEquality;
         } else if (ResolvedParam != null) {
           return ResolvedParam.MustSupportEquality;
         }
@@ -1923,11 +1929,12 @@ namespace Microsoft.Dafny {
       Contract.Invariant(TheType != null && Name == TheType.Name);
     }
 
-    public ArbitraryTypeDecl(IToken tok, string name, ModuleDefinition module, TypeParameter.EqualitySupportValue equalitySupport, Attributes attributes)
-      : base(tok, name, module, new List<TypeParameter>(), attributes) {
+    public ArbitraryTypeDecl(IToken tok, string name, ModuleDefinition module, TypeParameter.EqualitySupportValue equalitySupport, List<TypeParameter> typeArgs, Attributes attributes)
+      : base(tok, name, module, typeArgs, attributes) {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
       Contract.Requires(module != null);
+      Contract.Requires(typeArgs != null);
       TheType = new TypeParameter(tok, name, equalitySupport);
     }
   }
