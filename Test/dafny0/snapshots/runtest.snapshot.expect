@@ -59,3 +59,21 @@ Dafny program verifier finished with 1 verified, 2 errors
 Dafny program verifier finished with 3 verified, 0 errors
 
 Dafny program verifier finished with 3 verified, 0 errors
+
+-------------------- Snapshots6.dfy --------------------
+
+Dafny program verifier finished with 4 verified, 0 errors
+Snapshots6.v1.dfy(20,14): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+
+Dafny program verifier finished with 3 verified, 1 error
+
+-------------------- Snapshots7.dfy --------------------
+
+Dafny program verifier finished with 4 verified, 0 errors
+Snapshots7.v1.dfy(19,14): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+
+Dafny program verifier finished with 3 verified, 1 error
