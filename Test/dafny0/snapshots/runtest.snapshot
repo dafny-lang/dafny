@@ -1,2 +1,2 @@
-// RUN: %dafny /compile:0 /verifySnapshots:2 /verifySeparately Snapshots0.dfy Snapshots1.dfy Snapshots2.dfy Snapshots3.dfy Snapshots4.dfy > "%t"
+// RUN: %dafny /compile:0 /verifySnapshots:2 /verifySeparately Snapshots0.dfy Snapshots1.dfy Snapshots2.dfy Snapshots3.dfy Snapshots4.dfy Snapshots5.dfy > "%t"
 // RUN: %diff "%s.expect" "%t"
