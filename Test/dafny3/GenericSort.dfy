@@ -129,7 +129,7 @@ module Client {
     import O = IntOrder
   }
   import I = IntOrder
-  method Main() {
+  static method TheMain() {
      var a := new I.T[4];
      a[0] := I.T.Int(6);  // alternatively, we could have written the RHS as:  IntSort.O.T.Int(6)
      a[1] := I.T.Int(1);
@@ -147,4 +147,52 @@ module Client {
      // why not print out the result!
      print a[..], "\n";
   }
+}
+
+// ----- Now for the actual 'int' type -----
+
+module intOrder refines TotalOrder {
+  // Instantiate type T with a datatype wrapper around an integer.
+  type T = int
+  // Define the ordering on these integers
+  static predicate method Leq ...
+    ensures Leq(a, b) ==> a <= b;
+  {
+    a <= b
+  }
+  // The three required properties of the order are proved here as lemmas.
+  // The proofs are automatic and don't require any further assistance.
+  static lemma Antisymmetry ... { }
+  static lemma Transitivity ... { }
+  static lemma Totality ... { }
+}
+
+module AnotherClient {
+  module intSort refines Sort {
+    import O = intOrder
+  }
+  import I = intOrder
+  static method TheMain() {
+    var a := new int[4];  // alternatively, could have written 'new I.T[4]'
+    a[0] := 6;
+    a[1] := 1;
+    a[2] := 0;
+    a[3] := 4;
+    // These are now the elements of the array:
+    assert a[..] == [6, 1, 0, 4];
+    // Call the sorting routine to sort the array
+    intSort.InsertionSort(a);
+    // Check the answer
+    assert intSort.O.Leq(a[0], a[1]);  // lemma
+    assert intSort.O.Leq(a[1], a[2]);  // lemma
+    assert intSort.O.Leq(a[2], a[3]);  // lemma
+    assert a[..] == [0, 1, 4, 6];
+    // why not print out the result!
+    print a[..], "\n";
+  }
+}
+
+method Main() {
+  Client.TheMain();
+  AnotherClient.TheMain();
 }
