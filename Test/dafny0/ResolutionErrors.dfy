@@ -1042,3 +1042,51 @@ type {:myAttribute x} Synonym = int  // error: x does not refer to anything
 
 module {:myAttribute x} Modulette {  // error: x does not refer to anything
 }
+
+// --- opaque types with type parameters ---
+
+module OpaqueTypes0 {
+  type P<AA>
+  method M<B>(p: P<B>) returns (q: P<B,B>)  // error: wrong param count
+  {
+    q := p;
+  }
+}
+
+module OpaqueTypes1 {
+  type P<A>
+
+  method M0<B>(p: P<B>) returns (q: P<B>)
+  {
+    q := p;
+    var m: P<BX>;  // error: BX undefined
+  }
+
+  method M1<B>(p: P<B>) returns (q: P)  // type parameter of q's type inferred
+  {
+    q := p;
+  }
+
+  method M2(p: P<int>) returns (q: P<bool>)
+  {
+    q := p;  // error: cannot assign P<bool> to P<int>
+  }
+
+  method M3<A,B>(p: P<A>) returns (q: P<B>)
+  {
+    q := p;  // error: cannot assign P<A> to P<B>
+  }
+
+  method M4<A>() returns (p: P<A>, q: P<int>)
+  {
+    q := p;  // error: cannot assign P<A> to P<int>
+    p := q;  // error: cannot assign P<int> to P<A>
+  }
+
+  method EqualityTests<X>(p: P<int>, q: P<bool>, r: P<X>)
+  {
+    assert p != r;  // error: types must be the same in order to do compare
+    assert q != r;  // error: types must be the same in order to do compare
+    assert p != q;  // error: types must be the same in order to do compare
+  }
+}

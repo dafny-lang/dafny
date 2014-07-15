@@ -1,3 +1,7 @@
+DTypes.dfy(181,3): Error BP5003: A postcondition might not hold on this return path.
+DTypes.dfy(180,15): Related location: This is the postcondition that might not hold.
+Execution trace:
+    (0,0): anon0
 DTypes.dfy(18,14): Error: assertion violation
 Execution trace:
     (0,0): anon0
@@ -24,4 +28,4 @@ Execution trace:
     (0,0): anon6_Then
     (0,0): anon4
 
-Dafny program verifier finished with 27 verified, 6 errors
+Dafny program verifier finished with 36 verified, 7 errors

@@ -427,15 +427,24 @@ namespace Microsoft.Dafny {
     }
 
     void AddTypeDecl(ArbitraryTypeDecl td) {
+      Contract.Requires(td != null);
       string nm = nameTypeParam(td.TheType);
       if (abstractTypes.Contains(nm)) {
-        // do nothing!
-      } else {
+        // nothing to do; has already been added
+        return;
+      }
+      if (td.TypeArgs.Count == 0) {
         sink.TopLevelDeclarations.Add(
           new Bpl.Constant(td.tok,
             new TypedIdent(td.tok, nm, predef.Ty), false /* not unique */));
-        abstractTypes.Add(nm);
+      } else {
+        // Note, the function produced is NOT necessarily injective, because the type may be replaced
+        // in a refinement module in such a way that the type arguments do not matter.
+        var args = new List<Bpl.Variable>(td.TypeArgs.ConvertAll(a => (Bpl.Variable)BplFormalVar(null, predef.Ty, true)));
+        var func = new Bpl.Function(td.tok, nm, args, BplFormalVar(null, predef.Ty, false));
+        sink.TopLevelDeclarations.Add(func);
       }
+      abstractTypes.Add(nm);
     }
 
     void AddDatatype(DatatypeDecl dt) {
@@ -3081,7 +3090,7 @@ namespace Microsoft.Dafny {
       {
         var args = new List<Bpl.Expr>();
         foreach (var p in GetTypeParams(f)) {
-          args.Add(trTypeParam(p));
+          args.Add(trTypeParam(p, null));
         }
         if (f.IsRecursive) {
           args.Add(etran.LayerN(1));
@@ -3116,7 +3125,7 @@ namespace Microsoft.Dafny {
         Bpl.FunctionCall funcID = new Bpl.FunctionCall(new Bpl.IdentifierExpr(f.tok, f.FullSanitizedName, TrType(f.ResultType)));
         List<Bpl.Expr> args = new List<Bpl.Expr>();
         foreach (var p in GetTypeParams(f)) {
-          args.Add(trTypeParam(p));
+          args.Add(trTypeParam(p, null));
         }
         if (f.IsRecursive) {
           args.Add(etran.LayerN(1));
@@ -7272,7 +7281,9 @@ namespace Microsoft.Dafny {
       }
     }
 
-    // Translates an AST Type to a Boogie expression of type Ty.
+    /// <summary>
+    /// Translates an AST Type to a Boogie expression of type Ty.
+    /// </summary>
     Bpl.Expr TypeToTy(Type type) {
       Contract.Requires(type != null);
       Contract.Ensures(Contract.Result<Bpl.Expr>() != null);
@@ -7299,20 +7310,16 @@ namespace Microsoft.Dafny {
       } else if (type is IntType) {
         return new Bpl.IdentifierExpr(Token.NoToken, "TInt", predef.Ty);
       } else if (type.IsTypeParameter) {
-        return trTypeParam(type.AsTypeParameter);              
+        var args = type.TypeArgs.ConvertAll(TypeToTy);
+        return trTypeParam(type.AsTypeParameter, args);
       } else if (type is ObjectType) {
         return ClassTyCon(program.BuiltIns.ObjectDecl, new List<Bpl.Expr>());
       } else if (type is UserDefinedType) {
         // Classes, (co-)datatypes
-        List<Bpl.Expr> args = new List<Bpl.Expr> { };
-        foreach (Type ch in type.TypeArgs) {
-          var tr_ty = TypeToTy(ch);
-          Contract.Assert(tr_ty != null);
-          args.Add(TypeToTy(ch));
-        }
+        var args = type.TypeArgs.ConvertAll(TypeToTy);
         return ClassTyCon(((UserDefinedType)type), args);      
       } else if (type is ParamTypeProxy) {
-        return trTypeParam(((ParamTypeProxy)type).orig);
+        return trTypeParam(((ParamTypeProxy)type).orig, null);
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected type
       }
@@ -7328,9 +7335,16 @@ namespace Microsoft.Dafny {
       }
     }
    
-    Bpl.Expr trTypeParam(TypeParameter x) {
+    Bpl.Expr trTypeParam(TypeParameter x, List<Bpl.Expr> tyArguments) {
       Contract.Requires(x != null);
-      return new Bpl.IdentifierExpr(x.tok, nameTypeParam(x), predef.Ty);      
+      var nm = nameTypeParam(x);
+      var opaqueType = x as OpaqueType_AsParameter;
+      if (tyArguments != null && tyArguments.Count != 0) {
+        return FunctionCall(x.tok, nm, predef.Ty, tyArguments);
+      } else {
+        // return an identifier denoting a constant
+        return new Bpl.IdentifierExpr(x.tok, nm, predef.Ty);
+      }
     }
 
     public List<TypeParameter> GetTypeParams(IMethodCodeContext cc) {

@@ -157,3 +157,36 @@ class DatatypeInduction<T> {
     assert forall n :: 0 <= n && n < a.Length ==> a[n] == n*n;  // error reported
   }
 }
+
+// --- opaque types with type parameters ---
+
+abstract module OpaqueTypesWithParameters {
+  type P<A>
+
+  method M<B>(p: P<B>) returns (q: P<B>)
+  {
+    q := p;
+    var a := new P<int>[500];
+  }
+
+  method DifferentTypes(a: array<P<int>>, b: array<P<bool>>)
+    requires a != null && b != null;
+    // If P were a known type, then it would also be known that P<int> and P<bool>
+    // would be different types, and then the types of 'a' and 'b' would be different,
+    // which would imply that the following postcondition would hold.
+    // However, it is NOT necessarily the case that the type parameters of an opaque
+    // type actually make the opaque type different.  For example, see the refinement
+    // module CaseInPoint below.
+    ensures a != b;  // error
+  {
+  }
+}
+
+module CaseInPoint refines OpaqueTypesWithParameters {
+  type P<A> = real  // note, the type parameter is not used
+  method Client() {
+    var x := new real[100];
+    DifferentTypes(x, x);
+    assert false;  // this is provable here, since DifferentTypes has a bogus postcondition
+  }
+}

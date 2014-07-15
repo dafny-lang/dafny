@@ -2577,19 +2577,26 @@ namespace Microsoft.Dafny
 
         } else if (type is UserDefinedType) {
           var udt = (UserDefinedType)type;
+          List<TypeParameter> formalTypeArgs = null;
           if (udt.ResolvedClass != null) {
-            Contract.Assert(udt.ResolvedClass.TypeArgs.Count == udt.TypeArgs.Count);
+            formalTypeArgs = udt.ResolvedClass.TypeArgs;
+          } else if (udt.ResolvedParam is OpaqueType_AsParameter) {
+            var t = (OpaqueType_AsParameter)udt.ResolvedParam;
+            formalTypeArgs = t.TypeArgs;
+          }
+          if (formalTypeArgs == null) {
+            Contract.Assert(udt.TypeArgs.Count == 0);
+          } else {
+            Contract.Assert(formalTypeArgs.Count == udt.TypeArgs.Count);
             var i = 0;
             foreach (var argType in udt.TypeArgs) {
-              var formalTypeArg = udt.ResolvedClass.TypeArgs[i];
+              var formalTypeArg = formalTypeArgs[i];
               if (formalTypeArg.MustSupportEquality && !argType.SupportsEquality) {
                 Error(tok, "type parameter {0} ({1}) passed to type {2} must support equality (got {3}){4}", i, formalTypeArg.Name, udt.ResolvedClass.Name, argType, TypeEqualityErrorMessageHint(argType));
               }
               CheckEqualityTypes_Type(tok, argType);
               i++;
             }
-          } else {
-            Contract.Assert(udt.TypeArgs.Count == 0);  // TypeParameters have no type arguments
           }
 
         } else {
@@ -2707,17 +2714,25 @@ namespace Microsoft.Dafny
         return InferRequiredEqualitySupport(tp, sq.Arg);
       } else if (type is UserDefinedType) {
         var udt = (UserDefinedType)type;
+        List<TypeParameter> formalTypeArgs = null;
         if (udt.ResolvedClass != null) {
+          formalTypeArgs = udt.ResolvedClass.TypeArgs;
+        } else if (udt.ResolvedParam is OpaqueType_AsParameter) {
+          var t = (OpaqueType_AsParameter)udt.ResolvedParam;
+          formalTypeArgs = t.TypeArgs;
+        }
+        if (formalTypeArgs == null) {
+          Contract.Assert(udt.TypeArgs.Count == 0);
+        } else {
+          Contract.Assert(formalTypeArgs.Count == udt.TypeArgs.Count);
           var i = 0;
           foreach (var argType in udt.TypeArgs) {
-            var formalTypeArg = udt.ResolvedClass.TypeArgs[i];
+            var formalTypeArg = formalTypeArgs[i];
             if ((formalTypeArg.MustSupportEquality && argType.AsTypeParameter == tp) || InferRequiredEqualitySupport(tp, argType)) {
               return true;
             }
             i++;
           }
-        } else {
-          Contract.Assert(udt.TypeArgs.Count == 0);  // TypeParameters have no type arguments
         }
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected type
@@ -3793,11 +3808,16 @@ namespace Microsoft.Dafny
             // error has been reported above
           } else if (d is AmbiguousTopLevelDecl) {
             Error(t.tok, "The name {0} ambiguously refers to a type in one of the modules {1} (try qualifying the type name with the module name)", t.Name, ((AmbiguousTopLevelDecl)d).ModuleNames());
-          } else if (d is ArbitraryTypeDecl) {
-            t.ResolvedParam = ((ArbitraryTypeDecl)d).TheType;  // resolve like a type parameter
           } else {
-            // d is a class or datatype, and it may have type parameters
-            t.ResolvedClass = d;
+            string what;
+            if (d is ArbitraryTypeDecl) {
+              what = "arbitrary type";
+              t.ResolvedParam = ((ArbitraryTypeDecl)d).TheType;  // resolve like a type parameter, and it may have type parameters if it's an arbitrary-type
+            } else {
+              // d is a class or datatype, and it may have type parameters
+              what = "class/datatype";
+              t.ResolvedClass = d;
+            }
             if (option.Opt == ResolveTypeOptionEnum.DontInfer) {
               // don't add anything
             } else if (d.TypeArgs.Count != t.TypeArgs.Count && t.TypeArgs.Count == 0) {
@@ -3805,7 +3825,7 @@ namespace Microsoft.Dafny
             }
             // defaults and auto have been applied; check if we now have the right number of arguments
             if (d.TypeArgs.Count != t.TypeArgs.Count) {
-              Error(t.tok, "Wrong number of type arguments ({0} instead of {1}) passed to class/datatype: {2}", t.TypeArgs.Count, d.TypeArgs.Count, t.Name);
+              Error(t.tok, "Wrong number of type arguments ({0} instead of {1}) passed to {2}: {3}", t.TypeArgs.Count, d.TypeArgs.Count, what, t.Name);
             }
           }
         }
@@ -3914,9 +3934,18 @@ namespace Microsoft.Dafny
           }
           return successSoFar;
         } else if (aa.ResolvedParam != null && aa.ResolvedParam == bb.ResolvedParam) {
-          // these are both resolved type parameters
-          Contract.Assert(aa.TypeArgs.Count == 0 && bb.TypeArgs.Count == 0);
-          return true;
+          // type parameters
+          if (aa.TypeArgs.Count != bb.TypeArgs.Count) {
+            return false;
+          } else {
+            bool successSoFar = true;
+            for (int i = 0; i < aa.TypeArgs.Count; i++) {
+              if (!UnifyTypes(aa.TypeArgs[i], bb.TypeArgs[i])) {
+                successSoFar = false;
+              }
+            }
+            return successSoFar;
+          }
         } else {
           // something is wrong; either aa or bb wasn't properly resolved, or they don't unify
           return false;

@@ -1067,6 +1067,19 @@ namespace Microsoft.Dafny {
     }
   }
 
+  public class OpaqueType_AsParameter : TypeParameter
+  {
+    public readonly List<TypeParameter> TypeArgs;
+    public OpaqueType_AsParameter(IToken tok, string name, EqualitySupportValue equalitySupport, List<TypeParameter> typeArgs)
+      : base(tok, name, equalitySupport)
+    {
+      Contract.Requires(tok != null);
+      Contract.Requires(name != null);
+      Contract.Requires(typeArgs != null);
+      TypeArgs = typeArgs;
+    }
+  }
+
   public class TypeParameter : Declaration {
     public interface ParentType {
       string FullName {
@@ -1935,7 +1948,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(name != null);
       Contract.Requires(module != null);
       Contract.Requires(typeArgs != null);
-      TheType = new TypeParameter(tok, name, equalitySupport);
+      TheType = new OpaqueType_AsParameter(tok, name, equalitySupport, TypeArgs);
     }
   }
 
