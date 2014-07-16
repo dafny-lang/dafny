@@ -1,7 +1,7 @@
 // RUN: %dafny "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
-type MyType  // compile error: arbitrary type
+type MyType  // compile error: opaque type
 iterator Iter()  // compile error: body-less iterator
 ghost method M()  // compile error: body-less ghost method
 method P()  // compile error: body-less method

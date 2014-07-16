@@ -133,8 +133,8 @@ namespace Microsoft.Dafny {
       int i = 0;
       foreach (TopLevelDecl d in decls) {
         Contract.Assert(d != null);
-        if (d is ArbitraryTypeDecl) {
-          var at = (ArbitraryTypeDecl)d;
+        if (d is OpaqueTypeDecl) {
+          var at = (OpaqueTypeDecl)d;
           if (i++ != 0) { wr.WriteLine(); }
           Indent(indent);
           PrintClassMethodHelper("type", at.Attributes, at.Name, new List<TypeParameter>());

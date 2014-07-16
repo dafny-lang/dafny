@@ -112,9 +112,9 @@ namespace Microsoft.Dafny {
             continue;
           }
           wr.WriteLine();
-          if (d is ArbitraryTypeDecl) {
-            var at = (ArbitraryTypeDecl)d;
-            Error("Arbitrary type ('{0}') cannot be compiled", at.FullName);
+          if (d is OpaqueTypeDecl) {
+            var at = (OpaqueTypeDecl)d;
+            Error("Opaque type ('{0}') cannot be compiled", at.FullName);
           } else if (d is TypeSynonymDecl) {
             // do nothing, just bypass type synonyms in the compiler
           } else if (d is DatatypeDecl) {

@@ -516,7 +516,7 @@ bool CloseOptionalBrace(bool usesOptionalBrace) {
 			}
 		} else SynErr(133);
 		if (td == null) {
-		 td = new ArbitraryTypeDecl(id, id.val, module, eqSupport, typeArgs, attrs);
+		 td = new OpaqueTypeDecl(id, id.val, module, eqSupport, typeArgs, attrs);
 		}
 		
 		if (la.kind == 8) {

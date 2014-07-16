@@ -351,8 +351,8 @@ namespace Microsoft.Dafny {
 
       foreach (TopLevelDecl d in program.BuiltIns.SystemModule.TopLevelDecls) {
         currentDeclaration = d;
-        if (d is ArbitraryTypeDecl) {
-          AddTypeDecl((ArbitraryTypeDecl)d);
+        if (d is OpaqueTypeDecl) {
+          AddTypeDecl((OpaqueTypeDecl)d);
         } else if (d is DatatypeDecl) {
           AddDatatype((DatatypeDecl)d);
         } else {
@@ -362,8 +362,8 @@ namespace Microsoft.Dafny {
       foreach (ModuleDefinition m in program.Modules) {
         foreach (TopLevelDecl d in m.TopLevelDecls) {
           currentDeclaration = d;
-          if (d is ArbitraryTypeDecl) {
-            AddTypeDecl((ArbitraryTypeDecl)d);
+          if (d is OpaqueTypeDecl) {
+            AddTypeDecl((OpaqueTypeDecl)d);
           } else if (d is TypeSynonymDecl) {
             // do nothing, just bypass type synonyms in the translation
           } else if (d is DatatypeDecl) {
@@ -426,7 +426,7 @@ namespace Microsoft.Dafny {
       return sink;
     }
 
-    void AddTypeDecl(ArbitraryTypeDecl td) {
+    void AddTypeDecl(OpaqueTypeDecl td) {
       Contract.Requires(td != null);
       string nm = nameTypeParam(td.TheType);
       if (abstractTypes.Contains(nm)) {

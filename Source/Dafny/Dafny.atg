@@ -412,14 +412,14 @@ OtherTypeDecl<ModuleDefinition/*!*/ module, out TopLevelDecl td>
       Type<out ty>             (. td = new TypeSynonymDecl(id, id.val, typeArgs, module, ty, attrs); .)
     ]
   )                            (. if (td == null) {
-                                    td = new ArbitraryTypeDecl(id, id.val, module, eqSupport, typeArgs, attrs);
+                                    td = new OpaqueTypeDecl(id, id.val, module, eqSupport, typeArgs, attrs);
                                   }
                                .)
   [ SYNC ";"
       // This semi-colon used to be required, but it seems silly to have it.
       // To stage the transition toward not having it at all, let's make it optional for now.  Then,
       // in a next big version of Dafny, including the following warning message:
-      //     (. errors.Warning(t, "the semi-colon that used to terminate an arbitrary-type declaration has been deprecated; in the new syntax, just leave off the semi-colon"); .)
+      //     (. errors.Warning(t, "the semi-colon that used to terminate an opaque-type declaration has been deprecated; in the new syntax, just leave off the semi-colon"); .)
       // And in a version after that, don't allow the semi-colon at all.
   ]
   .

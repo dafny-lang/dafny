@@ -27,9 +27,9 @@ namespace Microsoft.Dafny
       Contract.Requires(d != null);
       Contract.Requires(m != null);
 
-      if (d is ArbitraryTypeDecl) {
-        var dd = (ArbitraryTypeDecl)d;
-        return new ArbitraryTypeDecl(Tok(dd.tok), dd.Name, m, dd.EqualitySupport, dd.TypeArgs.ConvertAll(CloneTypeParam), CloneAttributes(dd.Attributes));
+      if (d is OpaqueTypeDecl) {
+        var dd = (OpaqueTypeDecl)d;
+        return new OpaqueTypeDecl(Tok(dd.tok), dd.Name, m, dd.EqualitySupport, dd.TypeArgs.ConvertAll(CloneTypeParam), CloneAttributes(dd.Attributes));
       } else if (d is TypeSynonymDecl) {
         var dd = (TypeSynonymDecl)d;
         var tps = dd.TypeArgs.ConvertAll(CloneTypeParam);

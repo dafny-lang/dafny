@@ -749,7 +749,7 @@ namespace Microsoft.Dafny
         }
         if (d is ModuleDecl) {
           // nothing to do
-        } else if (d is ArbitraryTypeDecl) {
+        } else if (d is OpaqueTypeDecl) {
           // nothing more to register
         } else if (d is TypeSynonymDecl) {
           // nothing more to register
@@ -1039,9 +1039,9 @@ namespace Microsoft.Dafny
       Contract.Requires(d != null);
       Contract.Requires(m != null);
 
-      if (d is ArbitraryTypeDecl) {
-        var dd = (ArbitraryTypeDecl)d;
-        return new ArbitraryTypeDecl(dd.tok, dd.Name, m, dd.EqualitySupport, dd.TypeArgs.ConvertAll(CloneTypeParam), null);
+      if (d is OpaqueTypeDecl) {
+        var dd = (OpaqueTypeDecl)d;
+        return new OpaqueTypeDecl(dd.tok, dd.Name, m, dd.EqualitySupport, dd.TypeArgs.ConvertAll(CloneTypeParam), null);
       } else if (d is TypeSynonymDecl) {
         var dd = (TypeSynonymDecl)d;
         var tps = dd.TypeArgs.ConvertAll(CloneTypeParam);
@@ -1415,7 +1415,7 @@ namespace Microsoft.Dafny
         Contract.Assert(d != null);
         allTypeParameters.PushMarker();
         ResolveTypeParameters(d.TypeArgs, true, d);
-        if (d is ArbitraryTypeDecl) {
+        if (d is OpaqueTypeDecl) {
           // nothing to do
         } else if (d is TypeSynonymDecl) {
           var syn = (TypeSynonymDecl)d;
@@ -2016,7 +2016,7 @@ namespace Microsoft.Dafny
         Contract.Requires(what != null);
         t = t.Normalize();
         if (t is TypeProxy && (aggressive || !(t is InferredTypeProxy || t is ParamTypeProxy || t is ObjectTypeProxy))) {
-          Error(tok, "the type of this {0} is underspecified, but it cannot be an arbitrary type.", what);
+          Error(tok, "the type of this {0} is underspecified, but it cannot be an opaque type.", what);
           return false;
         } else if (aggressive && t is MapType) {
           return CheckTypeIsDetermined(tok, ((MapType)t).Range, what, aggressive) &&
@@ -3810,9 +3810,9 @@ namespace Microsoft.Dafny
             Error(t.tok, "The name {0} ambiguously refers to a type in one of the modules {1} (try qualifying the type name with the module name)", t.Name, ((AmbiguousTopLevelDecl)d).ModuleNames());
           } else {
             string what;
-            if (d is ArbitraryTypeDecl) {
-              what = "arbitrary type";
-              t.ResolvedParam = ((ArbitraryTypeDecl)d).TheType;  // resolve like a type parameter, and it may have type parameters if it's an arbitrary-type
+            if (d is OpaqueTypeDecl) {
+              what = "opaque type";
+              t.ResolvedParam = ((OpaqueTypeDecl)d).TheType;  // resolve like a type parameter, and it may have type parameters if it's an opaque type
             } else {
               // d is a class or datatype, and it may have type parameters
               what = "class/datatype";
@@ -7154,7 +7154,7 @@ namespace Microsoft.Dafny
     CallRhs ResolveIdentifierSequence(IdentifierSequence e, bool twoState, ICodeContext codeContext, bool allowMethodCall) {
       // Look up "id" as follows:
       //  - local variable, parameter, or bound variable (if this clashes with something of interest, one can always rename the local variable locally)
-      //  - unamibugous type/module name (class, datatype, sub-module (including submodules of imports) or arbitrary-type)
+      //  - unamibugous type/module name (class, datatype, sub-module (including submodules of imports) or opaque type)
       //       (if two imported types have the same name, an error message is produced here)
       //  - unambiguous constructor name of a datatype (if two constructors have the same name, an error message is produced here)
       //  - field, function or method name (with implicit receiver) (if the field is occluded by anything above, one can use an explicit "this.")
@@ -7267,7 +7267,7 @@ namespace Microsoft.Dafny
 
     CallRhs ResolveIdentifierSequenceModuleScope(IdentifierSequence e, int p, ModuleSignature sig, bool twoState, ICodeContext codeContext, bool allowMethodCall) {
       // Look up "id" as follows:
-      //  - unambiguous type/module name (class, datatype, sub-module (including submodules of imports) or arbitrary-type)
+      //  - unambiguous type/module name (class, datatype, sub-module (including submodules of imports) or opaque type)
       //       (if two imported types have the same name, an error message is produced here)
       //  - static function or method of sig.
       // This is used to look up names that appear after a dot in a sequence identifier. For example, in X.M.*, M should be looked up in X, but

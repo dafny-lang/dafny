@@ -145,13 +145,13 @@ namespace Microsoft.Dafny
                   reporter.Error(nw.tok, "a module ({0}) can only be replaced by a refinement of the original module", d.Name);
               }
             }
-          } else if (d is ArbitraryTypeDecl) {
+          } else if (d is OpaqueTypeDecl) {
             if (nw is ModuleDecl) {
               reporter.Error(nw, "a module ({0}) must refine another module", nw.Name);
             } else {
-              bool dDemandsEqualitySupport = ((ArbitraryTypeDecl)d).MustSupportEquality;
-              if (nw is ArbitraryTypeDecl) {
-                if (dDemandsEqualitySupport != ((ArbitraryTypeDecl)nw).MustSupportEquality) {
+              bool dDemandsEqualitySupport = ((OpaqueTypeDecl)d).MustSupportEquality;
+              if (nw is OpaqueTypeDecl) {
+                if (dDemandsEqualitySupport != ((OpaqueTypeDecl)nw).MustSupportEquality) {
                   reporter.Error(nw, "type declaration '{0}' is not allowed to change the requirement of supporting equality", nw.Name);
                 }
                 if (nw.TypeArgs.Count != d.TypeArgs.Count) {
@@ -161,33 +161,33 @@ namespace Microsoft.Dafny
                 if (nw is ClassDecl) {
                   // fine, as long as "nw" does not take any type parameters
                   if (nw.TypeArgs.Count != d.TypeArgs.Count) {
-                    reporter.Error(nw, "arbitrary type '{0}' is not allowed to be replaced by a class that takes a different number of type parameters (got {1}, expected {2})", nw.Name, nw.TypeArgs.Count, d.TypeArgs.Count);
+                    reporter.Error(nw, "opaque type '{0}' is not allowed to be replaced by a class that takes a different number of type parameters (got {1}, expected {2})", nw.Name, nw.TypeArgs.Count, d.TypeArgs.Count);
                   }
                 } else if (nw is CoDatatypeDecl) {
                   reporter.Error(nw, "a type declaration that requires equality support cannot be replaced by a codatatype");
                 } else {
                   Contract.Assert(nw is IndDatatypeDecl || nw is TypeSynonymDecl);
                   if (nw.TypeArgs.Count != d.TypeArgs.Count) {
-                    reporter.Error(nw, "arbitrary type '{0}' is not allowed to be replaced by a type that takes a different number of type parameters (got {1}, expected {2})", nw.Name, nw.TypeArgs.Count, d.TypeArgs.Count);
+                    reporter.Error(nw, "opaque type '{0}' is not allowed to be replaced by a type that takes a different number of type parameters (got {1}, expected {2})", nw.Name, nw.TypeArgs.Count, d.TypeArgs.Count);
                   } else {
                     // Here, we need to figure out if the new type supports equality.  But we won't know about that until resolution has
                     // taken place, so we defer it until the PostResolve phase.
                     var udt = new UserDefinedType(nw.tok, nw.Name, nw, nw.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp)));
                     postTasks.Enqueue(() => {
                       if (!udt.SupportsEquality) {
-                        reporter.Error(udt.tok, "type '{0}' is used to refine an arbitrary type with equality support, but '{0}' does not support equality", udt.Name);
+                        reporter.Error(udt.tok, "type '{0}' is used to refine an opaque type with equality support, but '{0}' does not support equality", udt.Name);
                       }
                     });
                   }
                 }
               } else if (d.TypeArgs.Count != nw.TypeArgs.Count) {
-                reporter.Error(nw, "arbitrary type '{0}' is not allowed to be replaced by a type that takes a different number of type parameters (got {1}, expected {2})", nw.Name, nw.TypeArgs.Count, d.TypeArgs.Count);
+                reporter.Error(nw, "opaque type '{0}' is not allowed to be replaced by a type that takes a different number of type parameters (got {1}, expected {2})", nw.Name, nw.TypeArgs.Count, d.TypeArgs.Count);
               }
             }
-          } else if (nw is ArbitraryTypeDecl) {
-            reporter.Error(nw, "an arbitrary type declaration ({0}) in a refining module cannot replace a more specific type declaration in the refinement base", nw.Name);
+          } else if (nw is OpaqueTypeDecl) {
+            reporter.Error(nw, "an opaque type declaration ({0}) in a refining module cannot replace a more specific type declaration in the refinement base", nw.Name);
           } else if (nw is DatatypeDecl) {
-            reporter.Error(nw, "a datatype declaration ({0}) in a refinement module can only replace an arbitrary-type declaration", nw.Name);
+            reporter.Error(nw, "a datatype declaration ({0}) in a refinement module can only replace an opaque type declaration", nw.Name);
           } else if (nw is IteratorDecl) {
             if (d is IteratorDecl) {
               m.TopLevelDecls[index] = MergeIterator((IteratorDecl)nw, (IteratorDecl)d);
@@ -235,31 +235,31 @@ namespace Microsoft.Dafny
             } else {
               CheckIsRefinement(((ModuleDecl)nw).Signature, ((ModuleDecl)d).Signature);
             }
-          } else if (d is ArbitraryTypeDecl) {
+          } else if (d is OpaqueTypeDecl) {
             if (nw is ModuleDecl) {
               reporter.Error(nw, "a module ({0}) must refine another module", nw.Name);
             } else {
-              bool dDemandsEqualitySupport = ((ArbitraryTypeDecl)d).MustSupportEquality;
-              if (nw is ArbitraryTypeDecl) {
-                if (dDemandsEqualitySupport != ((ArbitraryTypeDecl)nw).MustSupportEquality) {
+              bool dDemandsEqualitySupport = ((OpaqueTypeDecl)d).MustSupportEquality;
+              if (nw is OpaqueTypeDecl) {
+                if (dDemandsEqualitySupport != ((OpaqueTypeDecl)nw).MustSupportEquality) {
                   reporter.Error(nw, "type declaration '{0}' is not allowed to change the requirement of supporting equality", nw.Name);
                 }
               } else if (dDemandsEqualitySupport) {
                 if (nw is ClassDecl) {
                   // fine, as long as "nw" does not take any type parameters
                   if (nw.TypeArgs.Count != 0) {
-                    reporter.Error(nw, "arbitrary type '{0}' is not allowed to be replaced by a class that takes type parameters", nw.Name);
+                    reporter.Error(nw, "opaque type '{0}' is not allowed to be replaced by a class that takes type parameters", nw.Name);
                   }
                 } else if (nw is CoDatatypeDecl) {
                   reporter.Error(nw, "a type declaration that requires equality support cannot be replaced by a codatatype");
                 } else {
                   Contract.Assert(nw is IndDatatypeDecl);
                   if (nw.TypeArgs.Count != 0) {
-                    reporter.Error(nw, "arbitrary type '{0}' is not allowed to be replaced by a datatype that takes type parameters", nw.Name);
+                    reporter.Error(nw, "opaque type '{0}' is not allowed to be replaced by a datatype that takes type parameters", nw.Name);
                   } else {
                     var udt = new UserDefinedType(nw.tok, nw.Name, nw, new List<Type>());
                     if (!(udt.SupportsEquality)) {
-                      reporter.Error(nw.tok, "datatype '{0}' is used to refine an arbitrary type with equality support, but '{0}' does not support equality", nw.Name);
+                      reporter.Error(nw.tok, "datatype '{0}' is used to refine an opaque type with equality support, but '{0}' does not support equality", nw.Name);
                     }
                   }
                 }

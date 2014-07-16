@@ -1928,7 +1928,7 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public class ArbitraryTypeDecl : TopLevelDecl, TypeParameter.ParentType
+  public class OpaqueTypeDecl : TopLevelDecl, TypeParameter.ParentType
   {
     public readonly TypeParameter TheType;
     public TypeParameter.EqualitySupportValue EqualitySupport {
@@ -1942,7 +1942,7 @@ namespace Microsoft.Dafny {
       Contract.Invariant(TheType != null && Name == TheType.Name);
     }
 
-    public ArbitraryTypeDecl(IToken tok, string name, ModuleDefinition module, TypeParameter.EqualitySupportValue equalitySupport, List<TypeParameter> typeArgs, Attributes attributes)
+    public OpaqueTypeDecl(IToken tok, string name, ModuleDefinition module, TypeParameter.EqualitySupportValue equalitySupport, List<TypeParameter> typeArgs, Attributes attributes)
       : base(tok, name, module, typeArgs, attributes) {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);

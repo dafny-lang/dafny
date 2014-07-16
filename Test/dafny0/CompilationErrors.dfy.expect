@@ -1,6 +1,6 @@
 
 Dafny program verifier finished with 15 verified, 0 errors
-Compilation error: Arbitrary type ('_module.MyType') cannot be compiled
+Compilation error: Opaque type ('_module.MyType') cannot be compiled
 Compilation error: Iterator _module.Iter has no body
 Compilation error: Method _module._default.M has no body
 Compilation error: Method _module._default.P has no body

@@ -16,8 +16,8 @@ ResolutionErrors.dfy(608,10): Error: ghost variables are allowed only in specifi
 ResolutionErrors.dfy(617,17): Error: 'new' is not allowed in ghost contexts
 ResolutionErrors.dfy(619,20): Error: only ghost methods can be called from this context
 ResolutionErrors.dfy(621,8): Error: calls to methods with side-effects are not allowed inside a hint
-ResolutionErrors.dfy(639,21): Error: the type of this expression is underspecified, but it cannot be an arbitrary type.
-ResolutionErrors.dfy(639,21): Error: the type of this expression is underspecified, but it cannot be an arbitrary type.
+ResolutionErrors.dfy(639,21): Error: the type of this expression is underspecified, but it cannot be an opaque type.
+ResolutionErrors.dfy(639,21): Error: the type of this expression is underspecified, but it cannot be an opaque type.
 ResolutionErrors.dfy(676,8): Error: calls to methods with side-effects are not allowed inside a hint
 ResolutionErrors.dfy(686,8): Error: only ghost methods can be called from this context
 ResolutionErrors.dfy(689,20): Error: 'decreases *' is not allowed on ghost loops
@@ -66,7 +66,7 @@ ResolutionErrors.dfy(1007,7): Error: Cycle among type synonyms: A -> B -> A
 ResolutionErrors.dfy(1019,7): Error: Cycle among type synonyms: A -> B -> A
 ResolutionErrors.dfy(1024,7): Error: Cycle among type synonyms: A -> B -> A
 ResolutionErrors.dfy(1043,21): Error: unresolved identifier: x
-ResolutionErrors.dfy(1050,35): Error: Wrong number of type arguments (2 instead of 1) passed to arbitrary type: P
+ResolutionErrors.dfy(1050,35): Error: Wrong number of type arguments (2 instead of 1) passed to opaque type: P
 ResolutionErrors.dfy(1062,13): Error: Undeclared top-level type or type parameter: BX (did you forget to qualify a name?)
 ResolutionErrors.dfy(1072,6): Error: RHS (of type P<int>) not assignable to LHS (of type P<bool>)
 ResolutionErrors.dfy(1077,6): Error: RHS (of type P<A>) not assignable to LHS (of type P<B>)
