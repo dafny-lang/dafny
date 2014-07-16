@@ -136,7 +136,7 @@ namespace DafnyLanguage
           if (!HasBodyTokens(d) && !(d is Dafny.ClassDecl)) {
             continue;
           }
-          if (d is Dafny.ArbitraryTypeDecl) {
+          if (d is Dafny.OpaqueTypeDecl) {
             newRegions.Add(new OutliningRegion(d, "type"));
           } else if (d is Dafny.CoDatatypeDecl) {
             newRegions.Add(new OutliningRegion(d, "codatatype"));
