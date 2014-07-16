@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:0 /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %dafny /compile:0 /dprint:"%t.dprint" /doNotUseParallelism "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // We consider a number representation that consists of a sequence of digits.  The least
@@ -266,6 +266,8 @@ lemma LeastSignificantDigitIsAlmostMod(a: seq<int>, lowDigit: int, base: nat)
   assert base * nrest + a[0] == n;
 
   var p := MulProperty(base, d, m, nrest, a[0]);
+  assert -base <= a[0] - m < base;
+  assert -base == -1 * base && base == 1 * base;
   assert -1 * base <= a[0] - m < 1 * base;
   if {
     case p == -1 =>  assert a[0] == m - base;
