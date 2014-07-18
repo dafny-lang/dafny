@@ -12,3 +12,4 @@ syntax: glob
 *.dll
 *.tmp
 *.tmp.dfy
+dafny_all_filesThat_Change.txt
