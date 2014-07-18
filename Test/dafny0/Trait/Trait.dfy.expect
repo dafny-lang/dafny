@@ -1,0 +1,5 @@
+Trait.dfy(77,13): Error: member in the class has been already inherited from its parent trait
+Trait.dfy(70,7): Error: class: I0Child does not implement trait member: Customizable
+Trait.dfy(80,7): Error: class: I0Child2 does not implement trait member: F
+Trait.dfy(91,7): Error: unresolved identifier: IX
+4 resolution/type errors detected in Trait.dfy
