@@ -2916,13 +2916,16 @@ namespace Microsoft.Dafny
                       else //the member is not already in the class
                       {
                           MemberDecl classNewMember = cloner.CloneMember(traitMem.Value);
+                          if (classNewMember is Field)
+                          {
+                              Field f = (Field)classNewMember;
+                              if (f.Type is UserDefinedType)
+                                  ((UserDefinedType)f.Type).ResolvedClass = ((UserDefinedType)(((Field)(traitMem.Value)).Type)).ResolvedClass;
+                          }
                           classNewMember.EnclosingClass = cl;
                           classNewMember.Inherited = true;
                           classMembers[cl].Add(traitMem.Key, classNewMember);
                           cl.Members.Add(classNewMember);
-                          //traitMem.Value.Inherited = true;
-                          //classMembers[cl].Add(traitMem.Key, traitMem.Value);
-                          //cl.Members.Add(traitMem.Value);
                       }
                   }//foreach
 
@@ -2934,27 +2937,32 @@ namespace Microsoft.Dafny
                       if (traitMember is Function)
                       {
                           Function traitFunc = (Function)traitMember;
-                          var classMem = cl.Members.Where(clMem => clMem is Function).FirstOrDefault(clMem => ((Function)clMem).Body != null && clMem.CompileName == traitMember.CompileName);
-                          if (classMem != null)
+                          if (traitFunc.Body == null) //we do this check only if trait function body is null
                           {
-                              Function classFunc = (Function)classMem;
-                              refinementTransformer.CheckOverride_FunctionParameters(classFunc, traitFunc);
+                              var classMem = cl.Members.Where(clMem => clMem is Function).FirstOrDefault(clMem => ((Function)clMem).Body != null && clMem.CompileName == traitMember.CompileName);
+                              if (classMem != null)
+                              {
+                                  Function classFunc = (Function)classMem;
+                                  refinementTransformer.CheckOverride_FunctionParameters(classFunc, traitFunc);
+                              }
+                              else if (!cl.Module.IsAbstract && traitFunc.Body == null && classMem == null)
+                                  Error(cl, "class: {0} does not implement trait member: {1}", cl.CompileName, traitFunc.CompileName);
                           }
-                          else if (!cl.Module.IsAbstract && traitFunc.Body == null && classMem == null)
-                              Error(cl, "class: {0} does not implement trait member: {1}", cl.CompileName, traitFunc.CompileName);
                       }
                       if (traitMember is Method)
                       {
                           Method traitMethod = (Method)traitMember;
-
-                          var classMem = cl.Members.Where(clMem => clMem is Method).FirstOrDefault(clMem => ((Method)clMem).Body != null && clMem.CompileName == traitMember.CompileName);
-                          if (classMem != null)
+                          if (traitMethod.Body == null) //we do this check only if trait method body is null
                           {
-                              Method classMethod = (Method)classMem;
-                              refinementTransformer.CheckOverride_MethodParameters(classMethod, traitMethod);
+                              var classMem = cl.Members.Where(clMem => clMem is Method).FirstOrDefault(clMem => ((Method)clMem).Body != null && clMem.CompileName == traitMember.CompileName);
+                              if (classMem != null)
+                              {
+                                  Method classMethod = (Method)classMem;
+                                  refinementTransformer.CheckOverride_MethodParameters(classMethod, traitMethod);
+                              }
+                              if (!cl.Module.IsAbstract && traitMethod.Body == null && classMem == null)
+                                  Error(cl, "class: {0} does not implement trait member: {1}", cl.CompileName, traitMethod.CompileName);
                           }
-                          if (!cl.Module.IsAbstract && traitMethod.Body == null && classMem == null)
-                              Error(cl, "class: {0} does not implement trait member: {1}", cl.CompileName, traitMethod.CompileName);
                       }
                   }
               }

@@ -2,8 +2,7 @@
 // RUN: %diff "%s.expect" "%t"
 
 
-//related compiler changes
-//everything works OK in the following code
+//everything should work OK in the following program
 trait J 
 {
 	function method F(y: int): int
@@ -44,4 +43,17 @@ class c extends t
   { 
      2
   }
+}
+
+trait P1
+{
+  method M(N: int, a: array<int>) returns (sum: int)
+  {
+    sum := 1;   
+  }
+}
+
+class C1 extends P1
+{
+
 }

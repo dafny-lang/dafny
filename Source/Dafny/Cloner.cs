@@ -137,8 +137,6 @@ namespace Microsoft.Dafny
         var f = (Field)member;
         Field field = new Field(Tok(f.tok), f.Name, f.IsGhost, f.IsMutable, f.IsUserMutable, CloneType(f.Type), CloneAttributes(f.Attributes));
         field.Inherited = member.Inherited; //we do need this information in ResolveClassMemberTypes method
-        if (field.Type is UserDefinedType)
-            ((UserDefinedType)field.Type).ResolvedClass = ((UserDefinedType)(((Field)(member)).Type)).ResolvedClass;
         return field;
       } else if (member is Function) {
         var f = (Function)member;
@@ -184,7 +182,10 @@ namespace Microsoft.Dafny
     }
 
     public Formal CloneFormal(Formal formal) {
-      return new Formal(Tok(formal.tok), formal.Name, CloneType(formal.Type), formal.InParam, formal.IsGhost);
+      Formal f = new Formal(Tok(formal.tok), formal.Name, CloneType(formal.Type), formal.InParam, formal.IsGhost);
+      if (f.Type is UserDefinedType && formal.Type is UserDefinedType) 
+          ((UserDefinedType)f.Type).ResolvedClass = ((UserDefinedType)(formal.Type)).ResolvedClass;
+      return f;
     }
 
     public BoundVar CloneBoundVar(BoundVar bv) {
