@@ -57,3 +57,20 @@ class C1 extends P1
 {
 
 }
+
+trait TT
+{
+   static function method M(a:int, b:int) : int
+     ensures M(a,b) == a + b;
+   {
+       a + b
+   }
+}
+
+class CC extends TT 
+{
+   method Testing(a:int,b:int)
+   {
+       assert (TT.M(a,b) == a + b);
+   }
+}
