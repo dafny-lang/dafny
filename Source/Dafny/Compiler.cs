@@ -221,7 +221,7 @@ namespace Microsoft.Dafny {
               List<MemberDecl> members = new List<MemberDecl>();
               foreach (MemberDecl mem in trait.Members)
               {
-                  if (mem.IsStatic)
+                  if (mem.IsStatic && !mem.IsGhost)
                   {
                       if (mem is Function)
                       {
@@ -790,7 +790,7 @@ namespace Microsoft.Dafny {
               {
                   Error("Function {0} has no body", f.FullName);
               }
-              else if (!member.IsStatic) //static members are not included in the target trait
+              else if (!member.IsStatic && !member.IsGhost) //static and ghost members are not included in the target trait
               {
                   Indent(indent);
                   wr.Write("{0} @{1}", TypeName(f.ResultType), f.CompileName);
@@ -836,7 +836,7 @@ namespace Microsoft.Dafny {
               {
                   Error("Method {0} has no body", m.FullName);
               }
-              else if (!member.IsStatic) //static members are not included in the target trait
+              else if (!member.IsStatic && !member.IsGhost) //static and ghost members are not included in the target trait
               {
                   Indent(indent);
                   wr.Write("void @{0}", m.CompileName);

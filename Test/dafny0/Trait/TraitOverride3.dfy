@@ -26,3 +26,22 @@ class C extends J
 	   assert a==100;
 	}
 }
+
+trait t
+{
+  function f(s2:int):int
+  ensures f(s2) > 0;
+  //requires s != null && s.Length > 1;
+  //reads s, s2;
+}
+
+class c extends t
+{
+  function f(s3:int):int
+  ensures f(s3) > 1;
+  //requires s0 != null && s0.Length > (0);
+  //reads s0;
+  { 
+     2
+  }
+}
