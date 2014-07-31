@@ -1,3 +1,0 @@
-TraitBasics.dfy(4,6): Error: a trait is not allowed to declare a constructor
-TraitBasics.dfy(23,10): Error: new can not be applied to a trait
-2 resolution/type errors detected in TraitBasics.dfy
