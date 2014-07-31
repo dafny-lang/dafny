@@ -25,6 +25,13 @@ trait J
 	   x := 1000;
 	   y := y + x;
 	}
+	
+	method arrM (y: array<int>, x: int, a: int, b: int) returns (c: int)
+	  requires a > b;
+	  requires y != null && y.Length > 0;
+	  ensures c == a + b;
+	  modifies y;
+	  decreases x;
 }
 
 class C extends J 
@@ -37,5 +44,16 @@ class C extends J
 	method M(kk:int) returns (ksos:int) //errors here, M must provide its own specifications
 	{
 		ksos:=10;	
-	}	 
+	}
+
+	method arrM (y1: array<int>, x1: int, a1: int, b1: int) returns (c1: int)
+	  requires a1 > b1;
+	  requires y1 != null && y1.Length > 0;
+	  ensures c1 == a1 + b1;
+	  modifies y1;
+	  decreases x1;	
+	{
+	    y1[0] := a1 + b1;
+            c1 := a1 + b1;
+        }	
 }
