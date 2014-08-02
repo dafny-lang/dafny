@@ -1,0 +1,3 @@
+TraitExtend.dfy(40,20): Error: wrong number of function arguments (got 2, expected 3)
+TraitExtend.dfy(41,20): Error: wrong number of function arguments (got 3, expected 2)
+2 resolution/type errors detected in TraitExtend.dfy

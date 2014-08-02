@@ -67,14 +67,34 @@ namespace Microsoft.Dafny
           req, ens, yreq, yens,
           body, CloneAttributes(dd.Attributes), dd.SignatureEllipsis);
         return iter;
-      } else if (d is ClassDecl) {
+      }
+      else if (d is TraitDecl)
+      {
+          if (d is DefaultClassDecl)
+          {
+              var dd = (TraitDecl)d;
+              var tps = dd.TypeArgs.ConvertAll(CloneTypeParam);
+              var mm = dd.Members.ConvertAll(CloneMember);
+              var cl = new DefaultClassDecl(m, mm);
+              return cl;
+          }
+          else
+          {
+              var dd = (TraitDecl)d;
+              var tps = dd.TypeArgs.ConvertAll(CloneTypeParam);
+              var mm = dd.Members.ConvertAll(CloneMember);
+              var cl = new TraitDecl(Tok(dd.tok), dd.Name, m, tps, mm, CloneAttributes(dd.Attributes));
+              return cl;
+          }
+      }
+      else if (d is ClassDecl) {
         var dd = (ClassDecl)d;
         var tps = dd.TypeArgs.ConvertAll(CloneTypeParam);
         var mm = dd.Members.ConvertAll(CloneMember);
         if (d is DefaultClassDecl) {
           return new DefaultClassDecl(m, mm);
         } else {
-          return new ClassDecl(Tok(dd.tok), dd.Name, m, tps, mm, CloneAttributes(dd.Attributes));
+            return new ClassDecl(Tok(dd.tok), dd.Name, m, tps, mm, CloneAttributes(dd.Attributes), new List<IToken> { dd.TraitId });
         }
       } else if (d is ModuleDecl) {
         if (d is LiteralModuleDecl) {
@@ -115,13 +135,21 @@ namespace Microsoft.Dafny
       if (member is Field) {
         Contract.Assert(!(member is SpecialField));  // we don't expect a SpecialField to be cloned (or do we?)
         var f = (Field)member;
-        return new Field(Tok(f.tok), f.Name, f.IsGhost, f.IsMutable, f.IsUserMutable, CloneType(f.Type), CloneAttributes(f.Attributes));
+        Field field = new Field(Tok(f.tok), f.Name, f.IsGhost, f.IsMutable, f.IsUserMutable, CloneType(f.Type), CloneAttributes(f.Attributes));
+        field.Inherited = member.Inherited; //we do need this information in ResolveClassMemberTypes method
+        return field;
       } else if (member is Function) {
         var f = (Function)member;
-        return CloneFunction(f);
+        f.Inherited = member.Inherited;
+        Function func = CloneFunction(f);
+        func.Inherited = member.Inherited;
+        return func;
       } else {
         var m = (Method)member;
-        return CloneMethod(m);
+        m.Inherited = member.Inherited;
+        Method method = CloneMethod(m);
+        method.Inherited = member.Inherited;
+        return method;
       }
     }
 
@@ -161,7 +189,10 @@ namespace Microsoft.Dafny
     }
 
     public Formal CloneFormal(Formal formal) {
-      return new Formal(Tok(formal.tok), formal.Name, CloneType(formal.Type), formal.InParam, formal.IsGhost);
+      Formal f = new Formal(Tok(formal.tok), formal.Name, CloneType(formal.Type), formal.InParam, formal.IsGhost);
+      if (f.Type is UserDefinedType && formal.Type is UserDefinedType) 
+          ((UserDefinedType)f.Type).ResolvedClass = ((UserDefinedType)(formal.Type)).ResolvedClass;
+      return f;
     }
 
     public BoundVar CloneBoundVar(BoundVar bv) {

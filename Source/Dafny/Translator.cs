@@ -1099,7 +1099,18 @@ namespace Microsoft.Dafny {
           if (c == program.BuiltIns.ObjectDecl) {
             rhs = Bpl.Expr.True;
           } else {
-            rhs = BplOr(o_null, DType(o, o_ty));
+              //generating $o == null || implements$J(dtype(x))
+              if (c is TraitDecl)
+              {
+                  var t = (TraitDecl)c;
+                  var dtypeFunc = FunctionCall(o.tok, BuiltinFunction.DynamicType, null, o);
+                  Bpl.Expr implementsFunc = FunctionCall(t.tok, "implements$" + t.Name, Bpl.Type.Bool, new List<Expr> { dtypeFunc });
+                  rhs = BplOr(o_null, implementsFunc);
+              }
+              else
+              {
+                  rhs = BplOr(o_null, DType(o, o_ty));
+              }
           }
           body = BplIff(is_o, rhs);
         }
@@ -1107,6 +1118,31 @@ namespace Microsoft.Dafny {
         sink.TopLevelDeclarations.Add(new Bpl.Axiom(c.tok, BplForall(vars, BplTrigger(is_o), body), name));
       });
 
+      //this adds: function implements$J(ClassName): bool;
+      if (c is TraitDecl)
+      {
+          var arg_ref = new Bpl.Formal(c.tok, new Bpl.TypedIdent(c.tok, Bpl.TypedIdent.NoName, predef.Ty), true);
+          var res = new Bpl.Formal(c.tok, new Bpl.TypedIdent(c.tok, Bpl.TypedIdent.NoName, Bpl.Type.Bool), false);
+          var implement_intr = new Bpl.Function(c.tok, "implements$" + c.Name, new List<Variable> { arg_ref }, res);
+          sink.TopLevelDeclarations.Add(implement_intr);
+      }
+      //this adds: axiom implements$J(class.C); 
+      else if (c is ClassDecl)
+      {
+          if (c.Trait != null)
+          {
+              //var dtypeFunc = FunctionCall(c.tok, BuiltinFunction.DynamicType, null, o);
+              //Bpl.Expr implementsFunc = FunctionCall(t.tok, "implements$" + t.Name, Bpl.Type.Bool, new List<Expr> { dtypeFunc });
+
+              var args = new Bpl.Formal(c.tok, new Bpl.TypedIdent(c.tok, Bpl.TypedIdent.NoName, predef.ClassNameType), true);
+              var ret_value = new Bpl.Formal(c.tok, new Bpl.TypedIdent(c.tok, Bpl.TypedIdent.NoName, Bpl.Type.Bool), false);
+              var funCall = new Bpl.FunctionCall(new Bpl.Function(c.tok, "implements$" + c.TraitId.val, new List<Variable> { args }, ret_value));
+              var expr = new Bpl.NAryExpr(c.tok, funCall, new List<Expr> { new Bpl.IdentifierExpr(c.tok, string.Format("class.{0}", c.FullSanitizedName), predef.ClassNameType) });
+              var implements_axiom = new Bpl.Axiom(c.tok, expr);
+              sink.TopLevelDeclarations.Add(implements_axiom);
+          }
+      }
+       
       foreach (MemberDecl member in c.Members) {
         currentDeclaration = member;
         if (member is Field) {
@@ -1127,6 +1163,10 @@ namespace Microsoft.Dafny {
           AddClassMember_Function(f);
           if (!IsOpaqueFunction(f) && !f.IsBuiltin && !(f.tok is IncludeToken)) { // Opaque function's well-formedness is checked on the full version
             AddWellformednessCheck(f);
+            if (f.OverriddenFunction != null) //it means that f is overriding its associated parent function
+            {
+                AddFunctionOverrideCheckImpl(f);
+            }
           }
           var cop = f as CoPredicate;
           if (cop != null) {
@@ -1145,6 +1185,12 @@ namespace Microsoft.Dafny {
             sink.TopLevelDeclarations.Add(proc);
             if (!(m.tok is IncludeToken)) {
               AddMethodImpl(m, proc, true);
+            }
+            if (m.OverriddenMethod != null) //method has overrided a parent method
+            {
+                var procOverrideChk = AddMethod(m, MethodTranslationKind.OverrideCheck);
+                sink.TopLevelDeclarations.Add(procOverrideChk);
+                AddMethodOverrideCheckImpl(m, procOverrideChk);
             }
           }
           // the method spec itself
@@ -2551,6 +2597,552 @@ namespace Microsoft.Dafny {
       loopHeapVarCount = 0;
       otherTmpVarCount = 0;
       _tmpIEs.Clear();
+    }
+
+    private void AddFunctionOverrideCheckImpl(Function f)
+    {
+        Contract.Requires(f != null);
+        //Contract.Requires(proc != null);
+        Contract.Requires(sink != null && predef != null);
+        Contract.Requires(f.OverriddenFunction != null);
+        Contract.Requires(f.Formals.Count == f.OverriddenFunction.Formals.Count);
+        Contract.Requires(currentModule == null && codeContext == null && loopHeapVarCount == 0 && _tmpIEs.Count == 0);
+        Contract.Ensures(currentModule == null && codeContext == null && loopHeapVarCount == 0 && _tmpIEs.Count == 0);
+
+        #region first procedure, no impl yet
+        //Function nf = new Function(f.tok, "OverrideCheck_" + f.Name, f.IsStatic, f.IsGhost, f.TypeArgs, f.OpenParen, f.Formals, f.ResultType, f.Req, f.Reads, f.Ens, f.Decreases, f.Body, f.Attributes, f.SignatureEllipsis);
+        //AddFunction(f);
+        currentModule = f.EnclosingClass.Module;
+        codeContext = f;
+
+        ExpressionTranslator etran = new ExpressionTranslator(this, predef, f.tok);
+        // parameters of the procedure
+        List<Variable> inParams = new List<Variable>();
+        if (!f.IsStatic)
+        {
+            Bpl.Expr wh = Bpl.Expr.And(
+              Bpl.Expr.Neq(new Bpl.IdentifierExpr(f.tok, "this", predef.RefType), predef.Null),
+              etran.GoodRef(f.tok, new Bpl.IdentifierExpr(f.tok, "this", predef.RefType), Resolver.GetReceiverType(f.tok, f)));
+            Bpl.Formal thVar = new Bpl.Formal(f.tok, new Bpl.TypedIdent(f.tok, "this", predef.RefType, wh), true);
+            inParams.Add(thVar);
+        }
+        foreach (Formal p in f.Formals)
+        {
+            Bpl.Type varType = TrType(p.Type);
+            Bpl.Expr wh = GetWhereClause(p.tok, new Bpl.IdentifierExpr(p.tok, p.AssignUniqueName(f), varType), p.Type, etran);
+            inParams.Add(new Bpl.Formal(p.tok, new Bpl.TypedIdent(p.tok, p.AssignUniqueName(f), varType, wh), true));
+        }
+        List<TypeVariable> typeParams = TrTypeParamDecls(f.TypeArgs);
+        // the procedure itself
+        var req = new List<Bpl.Requires>();
+        // free requires mh == ModuleContextHeight && fh == FunctionContextHeight;
+        req.Add(Requires(f.tok, true, etran.HeightContext(f), null, null));
+        // modifies $Heap, $Tick
+        var mod = new List<Bpl.IdentifierExpr> { (Bpl.IdentifierExpr/*TODO: this cast is rather dubious*/)etran.HeapExpr, etran.Tick() };
+        // check that postconditions hold
+        var ens = new List<Bpl.Ensures>();
+        foreach (Expression p in f.Ens)
+        {
+            var functionHeight = currentModule.CallGraph.GetSCCRepresentativeId(f);
+            var splits = new List<SplitExprInfo>();
+            bool splitHappened/*we actually don't care*/ = TrSplitExpr(p, splits, true, functionHeight,false, etran);
+            foreach (var s in splits)
+            {
+                if (s.IsChecked && !RefinementToken.IsInherited(s.E.tok, currentModule))
+                {
+                    ens.Add(Ensures(s.E.tok, false, s.E, null, null));
+                }
+            }
+        }
+        Bpl.Procedure proc = new Bpl.Procedure(f.tok, "OverrideCheck$$" + f.FullSanitizedName, typeParams, inParams, new List<Variable>(),
+          req, mod, ens, etran.TrAttributes(f.Attributes, null));
+        sink.TopLevelDeclarations.Add(proc);
+        var implInParams = Bpl.Formal.StripWhereClauses(inParams);
+
+        #endregion
+
+        //List<Variable> outParams = Bpl.Formal.StripWhereClauses(proc.OutParams);
+
+        Bpl.StmtListBuilder builder = new Bpl.StmtListBuilder();
+        List<Variable> localVariables = new List<Variable>();
+        //GenerateImplPrelude(m, wellformednessProc, inParams, outParams, builder, localVariables);
+
+        var substMap = new Dictionary<IVariable, Expression>();
+        for (int i = 0; i < f.Formals.Count; i++)
+        {
+            //get corresponsing formal in the class
+            var ie = new IdentifierExpr(f.Formals[i].tok, f.Formals[i].AssignUniqueName(f));
+            ie.Var = f.Formals[i]; ie.Type = ie.Var.Type;
+            substMap.Add(f.OverriddenFunction.Formals[i], ie);
+        }
+
+        Bpl.StmtList stmts;
+        //adding assume Pre’; assert P; // this checks that Pre’ implies P
+        AddFunctionOverrideReqsChk(f, builder, etran, substMap);
+
+        //adding assert R <= Rank’;
+        AddFunctionOverrideTerminationChk(f, builder, etran, substMap);
+
+        //adding assert W <= Frame’
+        AddFunctionOverrideSubsetChk(f, builder, etran, localVariables, substMap);
+
+        //change the heap at locations W
+        HavocFunctionFrameLocations(f, builder, etran, localVariables);
+
+        //adding assume Q; assert Post’;
+        AddFunctionOverrideEnsChk(f, builder, etran, substMap, implInParams);
+
+        //creating an axiom that conncets J.F and C.F
+        //which is a class function and overridden trait function
+        AddFunctionOverrideAxiom(f);
+
+        stmts = builder.Collect(f.tok);
+
+        QKeyValue kv = etran.TrAttributes(f.Attributes, null);
+
+        Bpl.Implementation impl = new Bpl.Implementation(f.tok, proc.Name, typeParams, implInParams, new List<Variable>(), localVariables, stmts, kv);
+        sink.TopLevelDeclarations.Add(impl);
+
+        if (InsertChecksums)
+        {
+            InsertChecksum(f, proc, true);
+        }
+
+        currentModule = null;
+        codeContext = null;
+        loopHeapVarCount = 0;
+        otherTmpVarCount = 0;
+        _tmpIEs.Clear();
+    }
+
+    private void AddFunctionOverrideAxiom(Function f)
+    {
+        Contract.Requires(f != null);
+        Contract.Requires(sink != null && predef != null);
+        // function override axiom
+        // axiom (forall $heap: HeapType, this: ref, x#0: int ::
+        //     { J.F($heap, this, x#0) }
+        //     this != null && dtype(this) == class.C
+        //     ==>
+        //     J.F($heap, this, x#0) == C.F($heap, this, x#0));
+
+        var formals = new List<Variable>();
+        var argsC = new List<Bpl.Expr>();
+        var argsT = new List<Bpl.Expr>();
+
+        var bv = new Bpl.BoundVariable(f.tok, new Bpl.TypedIdent(f.tok, "$ly", predef.LayerType));
+        var s = new Bpl.IdentifierExpr(f.tok, bv);
+        if (f.IsRecursive)
+        {
+            formals.Add(bv);
+            argsC.Add(FunctionCall(f.tok, BuiltinFunction.LayerSucc, null, s));
+            argsT.Add(FunctionCall(f.tok, BuiltinFunction.LayerSucc, null, s));
+        }
+
+        bv = new Bpl.BoundVariable(f.tok, new Bpl.TypedIdent(f.tok, predef.HeapVarName, predef.HeapType));
+        formals.Add(bv);
+        s = new Bpl.IdentifierExpr(f.tok, bv);
+        argsC.Add(s);
+        argsT.Add(s);
+
+        if (!f.IsStatic)
+        {
+            bv = new Bpl.BoundVariable(f.tok, new Bpl.TypedIdent(f.tok, "this", predef.RefType));
+            formals.Add(bv);
+            s = new Bpl.IdentifierExpr(f.tok, bv);
+            argsC.Add(s);
+            argsT.Add(s);
+        }
+        foreach (var p in f.Formals)
+        {
+            bv = new Bpl.BoundVariable(p.tok, new Bpl.TypedIdent(p.tok, f.FullSanitizedName + "_" + p.AssignUniqueName(f), TrType(p.Type)));
+            formals.Add(bv);
+            s = new Bpl.IdentifierExpr(f.tok, bv);
+            argsC.Add(s);
+        }
+        foreach (var p in f.OverriddenFunction.Formals)
+        {
+            bv = new Bpl.BoundVariable(p.tok, new Bpl.TypedIdent(p.tok, f.OverriddenFunction.FullSanitizedName + "_" + p.AssignUniqueName(f.OverriddenFunction), TrType(p.Type)));
+            formals.Add(bv);
+            s = new Bpl.IdentifierExpr(f.OverriddenFunction.tok, bv);
+            argsT.Add(s);
+        }
+
+        var funcIdC = new Bpl.FunctionCall(new Bpl.IdentifierExpr(f.tok, f.FullSanitizedName, TrType(f.ResultType)));
+        var funcIdT = new Bpl.FunctionCall(new Bpl.IdentifierExpr(f.OverriddenFunction.tok, f.OverriddenFunction.FullSanitizedName, TrType(f.OverriddenFunction.ResultType)));
+        var funcApplC = new Bpl.NAryExpr(f.tok, funcIdC, argsC);
+        var funcApplT = new Bpl.NAryExpr(f.OverriddenFunction.tok, funcIdT, argsT);
+
+        var typeParams = TrTypeParamDecls(f.TypeArgs);
+
+        Bpl.Trigger tr = new Bpl.Trigger(f.OverriddenFunction.tok, true, new List<Bpl.Expr> { funcApplT, funcApplC });
+        Bpl.Expr ax = new Bpl.ForallExpr(f.tok, typeParams, formals, null, tr, Bpl.Expr.Eq(funcApplC, funcApplT));
+        sink.TopLevelDeclarations.Add(new Bpl.Axiom(f.tok, ax, "function override axiom"));
+    }
+
+    private void AddFunctionOverrideEnsChk(Function f, StmtListBuilder builder, ExpressionTranslator etran, Dictionary<IVariable, Expression> substMap, List<Variable> implInParams)
+    {
+        //generating class post-conditions
+        foreach (var en in f.Ens)
+        {
+            builder.Add(new Bpl.AssumeCmd(f.tok, etran.TrExpr(en)));
+        }
+
+        //generating assume J.F(ins) == C.F(ins)
+        Bpl.FunctionCall funcIdC = new Bpl.FunctionCall(new Bpl.IdentifierExpr(f.tok, f.FullSanitizedName, TrType(f.ResultType)));
+        Bpl.FunctionCall funcIdT = new Bpl.FunctionCall(new Bpl.IdentifierExpr(f.OverriddenFunction.tok, f.OverriddenFunction.FullSanitizedName, TrType(f.OverriddenFunction.ResultType)));
+        List<Bpl.Expr> argsC = new List<Bpl.Expr>();
+        List<Bpl.Expr> argsT = new List<Bpl.Expr>();
+        if (f.IsRecursive)
+        {
+            argsC.Add(etran.LayerN(1));
+        }
+        if (f.OverriddenFunction.IsRecursive)
+        {
+            argsT.Add(etran.LayerN(1));
+        }
+        argsC.Add(etran.HeapExpr);
+        argsT.Add(etran.HeapExpr);
+        foreach (Variable p in implInParams)
+        {
+            argsC.Add(new Bpl.IdentifierExpr(f.tok, p));
+            argsT.Add(new Bpl.IdentifierExpr(f.OverriddenFunction.tok, p));
+        }
+        Bpl.Expr funcExpC = new Bpl.NAryExpr(f.tok, funcIdC, argsC);
+        Bpl.Expr funcExpT = new Bpl.NAryExpr(f.OverriddenFunction.tok, funcIdT, argsT);
+        builder.Add(new Bpl.AssumeCmd(f.tok, Bpl.Expr.Eq(funcExpC, funcExpT)));
+
+        //generating trait post-conditions with class variables
+        foreach (var en in f.OverriddenFunction.Ens)
+        {
+            Expression postcond = Substitute(en, null, substMap);
+            bool splitHappened;
+            var reqSplitedE = TrSplitExpr(postcond, etran,false, out splitHappened);
+            foreach (var s in reqSplitedE)
+            {
+                var assert = new Bpl.AssertCmd(f.tok, s.E);
+                assert.ErrorData = "Error: the function must provide an equal or more detailed postcondition than in its parent trait";
+                builder.Add(assert);
+            }
+        }
+    }
+
+    private void HavocFunctionFrameLocations(Function f, StmtListBuilder builder, ExpressionTranslator etran, List<Variable> localVariables)
+    {
+        // play havoc with the heap according to the modifies clause
+        builder.Add(new Bpl.HavocCmd(f.tok, new List<Bpl.IdentifierExpr> { (Bpl.IdentifierExpr/*TODO: this cast is rather dubious*/)etran.HeapExpr }));
+        // assume the usual two-state boilerplate information
+        foreach (BoilerplateTriple tri in GetTwoStateBoilerplate(f.tok, f.Reads, f.IsGhost, etran.Old, etran, etran.Old))
+        {
+            if (tri.IsFree)
+            {
+                builder.Add(new Bpl.AssumeCmd(f.tok, tri.Expr));
+            }
+        }
+    }
+
+    private void AddFunctionOverrideSubsetChk(Function func, StmtListBuilder builder, ExpressionTranslator etran, List<Variable> localVariables, Dictionary<IVariable, Expression> substMap)
+    {
+        //getting framePrime
+        List<FrameExpression> traitFrameExps = new List<FrameExpression>();
+        foreach (var e in func.OverriddenFunction.Reads)
+        {
+            var newE = Substitute(e.E, null, substMap);
+            FrameExpression fe = new FrameExpression(e.tok, newE, e.FieldName);
+            traitFrameExps.Add(fe);
+        }
+
+        QKeyValue kv = etran.TrAttributes(func.Attributes, null);
+
+        IToken tok = func.tok;
+        // Declare a local variable $_Frame: <alpha>[ref, Field alpha]bool
+        Bpl.IdentifierExpr traitFrame = etran.TheFrame(func.OverriddenFunction.tok);  // this is a throw-away expression, used only to extract the type and name of the $_Frame variable
+        traitFrame.Name = func.EnclosingClass.Name + "_" + traitFrame.Name;
+        Contract.Assert(traitFrame.Type != null);  // follows from the postcondition of TheFrame
+        Bpl.LocalVariable frame = new Bpl.LocalVariable(tok, new Bpl.TypedIdent(tok, null ?? traitFrame.Name, traitFrame.Type));
+        localVariables.Add(frame);
+        // $_Frame := (lambda<alpha> $o: ref, $f: Field alpha :: $o != null && $Heap[$o,alloc] ==> ($o,$f) in Modifies/Reads-Clause);
+        Bpl.TypeVariable alpha = new Bpl.TypeVariable(tok, "alpha");
+        Bpl.BoundVariable oVar = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, "$o", predef.RefType));
+        Bpl.IdentifierExpr o = new Bpl.IdentifierExpr(tok, oVar);
+        Bpl.BoundVariable fVar = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, "$f", predef.FieldName(tok, alpha)));
+        Bpl.IdentifierExpr f = new Bpl.IdentifierExpr(tok, fVar);
+        Bpl.Expr ante = Bpl.Expr.And(Bpl.Expr.Neq(o, predef.Null), etran.IsAlloced(tok, o));
+        Bpl.Expr consequent = InRWClause(tok, o, f, traitFrameExps, etran, null, null);
+        Bpl.Expr lambda = new Bpl.LambdaExpr(tok, new List<TypeVariable> { alpha }, new List<Variable> { oVar, fVar }, null,
+                                             Bpl.Expr.Imp(ante, consequent));
+
+        //to initialize $_Frame variable to Frame'
+        builder.Add(Bpl.Cmd.SimpleAssign(tok, new Bpl.IdentifierExpr(tok, frame), lambda));
+
+        // emit: assert (forall<alpha> o: ref, f: Field alpha :: o != null && $Heap[o,alloc] && (o,f) in subFrame ==> $_Frame[o,f]);
+        Bpl.Expr oInCallee = InRWClause(tok, o, f, func.Reads, etran, null, null);
+        Bpl.Expr consequent2 = InRWClause(tok, o, f, traitFrameExps, etran, null, null);
+        Bpl.Expr q = new Bpl.ForallExpr(tok, new List<TypeVariable> { alpha }, new List<Variable> { oVar, fVar },
+                                        Bpl.Expr.Imp(Bpl.Expr.And(ante, oInCallee), consequent2));
+        builder.Add(Assert(tok, q, "expression may read an object not in the parent trait context's reads clause", kv));
+    }
+
+    private void AddFunctionOverrideTerminationChk(Function f, StmtListBuilder builder, ExpressionTranslator etran, Dictionary<IVariable, Expression> substMap)
+    {
+        var decrToks = new List<IToken>();
+        var decrTypes1 = new List<Type>();
+        var decrTypes2 = new List<Type>();
+        var decrClass = new List<Expr>();
+        var decrTrait = new List<Expr>();
+        if (f.Decreases != null)
+        {
+            foreach (var decC in f.Decreases.Expressions)
+            {
+                decrToks.Add(decC.tok);
+                decrTypes1.Add(decC.Type);
+                decrClass.Add(etran.TrExpr(decC));
+            }
+        }
+        if (f.OverriddenFunction.Decreases != null)
+        {
+            foreach (var decT in f.OverriddenFunction.Decreases.Expressions)
+            {
+                var decCNew = Substitute(decT, null, substMap);
+                decrTypes2.Add(decCNew.Type);
+                decrTrait.Add(etran.TrExpr(decCNew));
+            }
+        }
+        var decrChk = DecreasesCheck(decrToks, decrTypes1, decrTypes2, decrClass, decrTrait, null, null, true, false);
+        builder.Add(new Bpl.AssertCmd(f.tok, decrChk));
+    }
+
+    private void AddFunctionOverrideReqsChk(Function f, StmtListBuilder builder, ExpressionTranslator etran, Dictionary<IVariable, Expression> substMap)
+    {
+        //generating trait pre-conditions with class variables
+        foreach (var req in f.OverriddenFunction.Req)
+        {
+            Expression precond = Substitute(req, null, substMap);
+            builder.Add(new Bpl.AssumeCmd(f.tok, etran.TrExpr(precond)));
+        }
+        //generating class pre-conditions
+        foreach (var req in f.Req)
+        {
+            bool splitHappened;
+            var reqSplitedE = TrSplitExpr(req, etran,false, out splitHappened);
+            foreach (var s in reqSplitedE)
+            {
+                var assert = new Bpl.AssertCmd(f.tok, s.E);
+                assert.ErrorData = "Error: the function must provide an equal or more permissive precondition than in its parent trait";
+                builder.Add(assert);
+            }
+        }
+    }
+
+    private void AddMethodOverrideCheckImpl(Method m, Bpl.Procedure proc)
+    {
+        Contract.Requires(m != null);
+        Contract.Requires(proc != null);
+        Contract.Requires(sink != null && predef != null);
+        Contract.Requires(m.OverriddenMethod != null);
+        Contract.Requires(m.Ins.Count == m.OverriddenMethod.Ins.Count);
+        Contract.Requires(m.Outs.Count == m.OverriddenMethod.Outs.Count);
+        //Contract.Requires(wellformednessProc || m.Body != null);
+        Contract.Requires(currentModule == null && codeContext == null && loopHeapVarCount == 0 && _tmpIEs.Count == 0);
+        Contract.Ensures(currentModule == null && codeContext == null && loopHeapVarCount == 0 && _tmpIEs.Count == 0);
+
+        currentModule = m.EnclosingClass.Module;
+        codeContext = m;
+
+        List<TypeVariable> typeParams = TrTypeParamDecls(m.TypeArgs);
+        List<Variable> inParams = Bpl.Formal.StripWhereClauses(proc.InParams);
+        List<Variable> outParams = Bpl.Formal.StripWhereClauses(proc.OutParams);
+
+        Bpl.StmtListBuilder builder = new Bpl.StmtListBuilder();
+        ExpressionTranslator etran = new ExpressionTranslator(this, predef, m.tok);
+        List<Variable> localVariables = new List<Variable>();
+        //GenerateImplPrelude(m, wellformednessProc, inParams, outParams, builder, localVariables);
+
+        var substMap = new Dictionary<IVariable, Expression>();
+        for (int i = 0; i < m.Ins.Count; i++)
+        {
+            //get corresponsing formal in the class
+            var ie = new IdentifierExpr(m.Ins[i].tok, m.Ins[i].AssignUniqueName(m));
+            ie.Var = m.Ins[i]; ie.Type = ie.Var.Type;
+            substMap.Add(m.OverriddenMethod.Ins[i], ie);
+        }
+        for (int i = 0; i < m.Outs.Count; i++)
+        {
+            //get corresponsing formal in the class
+            var ie = new IdentifierExpr(m.Outs[i].tok, m.Outs[i].AssignUniqueName(m));
+            ie.Var = m.Outs[i]; ie.Type = ie.Var.Type;
+            substMap.Add(m.OverriddenMethod.Outs[i], ie);
+        }
+
+        Bpl.StmtList stmts;
+        //adding assume Pre’; assert P; // this checks that Pre’ implies P
+        AddMethodOverrideReqsChk(m, builder, etran, substMap);
+
+        //adding assert R <= Rank’;
+        AddMethodOverrideTerminationChk(m, builder, etran, substMap);
+
+        //adding assert W <= Frame’
+        AddMethodOverrideSubsetChk(m, builder, etran, localVariables, substMap);
+
+        //change the heap at locations W
+        HavocMethodFrameLocations(m, builder, etran, localVariables);
+
+        //adding assume Q; assert Post’;
+        AddMethodOverrideEnsChk(m, builder, etran, substMap);
+
+        stmts = builder.Collect(m.tok);
+
+        QKeyValue kv = etran.TrAttributes(m.Attributes, null);
+
+        Bpl.Implementation impl = new Bpl.Implementation(m.tok, proc.Name, typeParams, inParams, outParams, localVariables, stmts, kv);
+        sink.TopLevelDeclarations.Add(impl);
+
+        if (InsertChecksums)
+        {
+            InsertChecksum(m, impl);
+        }
+
+        currentModule = null;
+        codeContext = null;
+        loopHeapVarCount = 0;
+        otherTmpVarCount = 0;
+        _tmpIEs.Clear();
+    }
+
+    private void HavocMethodFrameLocations(Method m, Bpl.StmtListBuilder builder, ExpressionTranslator etran, List<Variable> localVariables)
+    {
+        Contract.Requires(m != null);
+        Contract.Requires(m.EnclosingClass != null && m.EnclosingClass is ClassDecl);
+
+        // play havoc with the heap according to the modifies clause
+        builder.Add(new Bpl.HavocCmd(m.tok, new List<Bpl.IdentifierExpr> { (Bpl.IdentifierExpr/*TODO: this cast is rather dubious*/)etran.HeapExpr }));
+        // assume the usual two-state boilerplate information
+        foreach (BoilerplateTriple tri in GetTwoStateBoilerplate(m.tok, m.Mod.Expressions, m.IsGhost, etran.Old, etran, etran.Old))
+        {
+            if (tri.IsFree)
+            {
+                builder.Add(new Bpl.AssumeCmd(m.tok, tri.Expr));
+            }
+        }
+    }
+
+    private void AddMethodOverrideEnsChk(Method m, Bpl.StmtListBuilder builder, ExpressionTranslator etran, Dictionary<IVariable, Expression> substMap)
+    {
+        //generating class post-conditions
+        foreach (var en in m.Ens)
+        {
+            builder.Add(new Bpl.AssumeCmd(m.tok, etran.TrExpr(en.E)));
+        }
+        //generating trait post-conditions with class variables
+        foreach (var en in m.OverriddenMethod.Ens)
+        {
+            Expression postcond = Substitute(en.E, null, substMap);
+            bool splitHappened;
+            var reqSplitedE = TrSplitExpr(postcond, etran,false, out splitHappened);
+            foreach (var s in reqSplitedE)
+            {
+                var assert = new Bpl.AssertCmd(m.tok, s.E);
+                assert.ErrorData = "Error: the method must provide an equal or more detailed postcondition than in its parent trait";
+                builder.Add(assert);
+            }
+        }
+    }
+
+    private void AddMethodOverrideReqsChk(Method m, Bpl.StmtListBuilder builder, ExpressionTranslator etran, Dictionary<IVariable, Expression> substMap)
+    {
+        //generating trait pre-conditions with class variables
+        foreach (var req in m.OverriddenMethod.Req)
+        {
+            Expression precond = Substitute(req.E, null, substMap);
+            builder.Add(new Bpl.AssumeCmd(m.tok, etran.TrExpr(precond)));
+        }
+        //generating class pre-conditions
+        foreach (var req in m.Req)
+        {
+            bool splitHappened;
+            var reqSplitedE = TrSplitExpr(req.E, etran,false, out splitHappened);
+            foreach (var s in reqSplitedE)
+            {
+                var assert = new Bpl.AssertCmd(m.tok, s.E);
+                assert.ErrorData = "Error: the method must provide an equal or more permissive precondition than in its parent trait";
+                builder.Add(assert);
+            }
+        }
+    }
+
+    private void AddMethodOverrideTerminationChk(Method m, Bpl.StmtListBuilder builder, ExpressionTranslator etran, Dictionary<IVariable, Expression> substMap)
+    {
+        var decrToks = new List<IToken>();
+        var decrTypes1 = new List<Type>();
+        var decrTypes2 = new List<Type>();
+        var decrClass = new List<Expr>();
+        var decrTrait = new List<Expr>();
+        if (m.Decreases != null)
+        {
+            foreach (var decC in m.Decreases.Expressions)
+            {
+                decrToks.Add(decC.tok);
+                decrTypes1.Add(decC.Type);
+                decrClass.Add(etran.TrExpr(decC));
+            }
+        }
+        if (m.OverriddenMethod.Decreases != null)
+        {
+            foreach (var decT in m.OverriddenMethod.Decreases.Expressions)
+            {
+                var decCNew = Substitute(decT, null, substMap);
+                decrTypes2.Add(decCNew.Type);
+                decrTrait.Add(etran.TrExpr(decCNew));
+            }
+        }
+        var decrChk = DecreasesCheck(decrToks, decrTypes1, decrTypes2, decrClass, decrTrait, null, null, true, false);
+        builder.Add(new Bpl.AssertCmd(m.tok, decrChk));
+    }
+
+    private void AddMethodOverrideSubsetChk(Method m, Bpl.StmtListBuilder builder, ExpressionTranslator etran, List<Variable> localVariables, Dictionary<IVariable, Expression> substMap)
+    {
+        //getting framePrime
+        List<FrameExpression> traitFrameExps = new List<FrameExpression>();
+        List<FrameExpression> classFrameExps = m.Mod != null ? m.Mod.Expressions : new List<FrameExpression>();
+        if (m.OverriddenMethod.Mod != null)
+        {
+            foreach (var e in m.OverriddenMethod.Mod.Expressions)
+            {
+                var newE = Substitute(e.E, null, substMap);
+                FrameExpression fe = new FrameExpression(e.tok, newE, e.FieldName);
+                traitFrameExps.Add(fe);
+            }
+        }
+
+        QKeyValue kv = etran.TrAttributes(m.Attributes, null);
+
+        IToken tok = m.tok;
+        // Declare a local variable $_Frame: <alpha>[ref, Field alpha]bool
+        Bpl.IdentifierExpr traitFrame = etran.TheFrame(m.OverriddenMethod.tok);  // this is a throw-away expression, used only to extract the type and name of the $_Frame variable
+        traitFrame.Name = m.EnclosingClass.Name + "_" + traitFrame.Name;
+        Contract.Assert(traitFrame.Type != null);  // follows from the postcondition of TheFrame
+        Bpl.LocalVariable frame = new Bpl.LocalVariable(tok, new Bpl.TypedIdent(tok, null ?? traitFrame.Name, traitFrame.Type));
+        localVariables.Add(frame);
+        // $_Frame := (lambda<alpha> $o: ref, $f: Field alpha :: $o != null && $Heap[$o,alloc] ==> ($o,$f) in Modifies/Reads-Clause);
+        Bpl.TypeVariable alpha = new Bpl.TypeVariable(tok, "alpha");
+        Bpl.BoundVariable oVar = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, "$o", predef.RefType));
+        Bpl.IdentifierExpr o = new Bpl.IdentifierExpr(tok, oVar);
+        Bpl.BoundVariable fVar = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, "$f", predef.FieldName(tok, alpha)));
+        Bpl.IdentifierExpr f = new Bpl.IdentifierExpr(tok, fVar);
+        Bpl.Expr ante = Bpl.Expr.And(Bpl.Expr.Neq(o, predef.Null), etran.IsAlloced(tok, o));
+        Bpl.Expr consequent = InRWClause(tok, o, f, traitFrameExps, etran, null, null);
+        Bpl.Expr lambda = new Bpl.LambdaExpr(tok, new List<TypeVariable> { alpha }, new List<Variable> { oVar, fVar }, null,
+                                             Bpl.Expr.Imp(ante, consequent));
+
+        //to initialize $_Frame variable to Frame'
+        builder.Add(Bpl.Cmd.SimpleAssign(tok, new Bpl.IdentifierExpr(tok, frame), lambda));
+
+        // emit: assert (forall<alpha> o: ref, f: Field alpha :: o != null && $Heap[o,alloc] && (o,f) in subFrame ==> $_Frame[o,f]);
+        Bpl.Expr oInCallee = InRWClause(tok, o, f, classFrameExps, etran, null, null);
+        Bpl.Expr consequent2 = InRWClause(tok, o, f, traitFrameExps, etran, null, null);
+        Bpl.Expr q = new Bpl.ForallExpr(tok, new List<TypeVariable> { alpha }, new List<Variable> { oVar, fVar },
+                                        Bpl.Expr.Imp(Bpl.Expr.And(ante, oInCallee), consequent2));
+        builder.Add(Assert(tok, q, "expression may modify an object not in the parent trait context's modifies clause", kv));
     }
 
     private void InsertChecksum(Method m, Bpl.Declaration decl, bool specificationOnly = false)
@@ -4349,7 +4941,7 @@ namespace Microsoft.Dafny {
     /// Note that SpecWellformedness and Implementation have procedure implementations
     /// but no callers, and vice versa for InterModuleCall, IntraModuleCall, and CoCall.
     /// </summary>
-    enum MethodTranslationKind { SpecWellformedness, InterModuleCall, IntraModuleCall, CoCall, Implementation }
+    enum MethodTranslationKind { SpecWellformedness, InterModuleCall, IntraModuleCall, CoCall, Implementation, OverrideCheck }
 
     /// <summary>
     /// This method is expected to be called at most once for each parameter combination, and in particular
@@ -4376,7 +4968,7 @@ namespace Microsoft.Dafny {
       var mod = new List<Bpl.IdentifierExpr>();
       var ens = new List<Bpl.Ensures>();
       // FREE PRECONDITIONS
-      if (kind == MethodTranslationKind.SpecWellformedness || kind == MethodTranslationKind.Implementation) {  // the other cases have no need for a free precondition
+      if (kind == MethodTranslationKind.SpecWellformedness || kind == MethodTranslationKind.Implementation || kind== MethodTranslationKind.OverrideCheck) {  // the other cases have no need for a free precondition
         // free requires mh == ModuleContextHeight && fh == FunctionContextHeight;
         req.Add(Requires(m.tok, true, etran.HeightContext(m), null, null));
       }
@@ -4385,7 +4977,8 @@ namespace Microsoft.Dafny {
 
       var bodyKind = kind == MethodTranslationKind.SpecWellformedness || kind == MethodTranslationKind.Implementation;
 
-      if (kind != MethodTranslationKind.SpecWellformedness) {
+      if (kind != MethodTranslationKind.SpecWellformedness && kind != MethodTranslationKind.OverrideCheck)
+      {
         // USER-DEFINED SPECIFICATIONS
         var comment = "user-defined preconditions";
         foreach (var p in m.Req) {
@@ -4466,6 +5059,8 @@ namespace Microsoft.Dafny {
           return "CoCall$$" + m.FullSanitizedName;
         case MethodTranslationKind.Implementation:
           return "Impl$$" + m.FullSanitizedName;
+        case MethodTranslationKind.OverrideCheck:
+          return "OverrideCheck$$" + m.FullSanitizedName;
         default:
           Contract.Assert(false);  // unexpected kind
           throw new cce.UnreachableException();

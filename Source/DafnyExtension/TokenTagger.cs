@@ -284,6 +284,8 @@ namespace DafnyLanguage
                 case "calc":
                 case "case":
                 case "class":
+        	    case "trait":
+                case "extends":
                 case "codatatype":
                 case "colemma":
                 case "constructor":

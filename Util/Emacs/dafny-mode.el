@@ -31,6 +31,7 @@
 
    `(,(dafny-regexp-opt '(
         "class" "datatype" "codatatype" "type" "iterator"
+	"trait" "extends"
         "function" "predicate" "copredicate"
         "ghost" "var" "method" "lemma" "constructor" "colemma"
         "abstract" "module" "import" "default" "as" "opened" "static" "refines"

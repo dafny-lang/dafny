@@ -39,6 +39,8 @@ namespace Microsoft.Dafny
         exitValue = ExitValue.PREPROCESSING_ERROR;
         goto END;
       }
+      //CommandLineOptions.Clo.Files = new List<string> { @"C:\dafny\Test\dafny0\Trait\TraitOverride1.dfy" };
+
       if (CommandLineOptions.Clo.Files.Count == 0)
       {
         printer.ErrorWriteLine(Console.Out, "*** Error: No input files were specified.");

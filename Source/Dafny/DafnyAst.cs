@@ -92,7 +92,7 @@ namespace Microsoft.Dafny {
     public readonly ClassDecl ObjectDecl;
     public BuiltIns() {
       // create class 'object'
-      ObjectDecl = new ClassDecl(Token.NoToken, "object", SystemModule, new List<TypeParameter>(), new List<MemberDecl>(), DontCompile());
+        ObjectDecl = new ClassDecl(Token.NoToken, "object", SystemModule, new List<TypeParameter>(), new List<MemberDecl>(), DontCompile(), null);
       SystemModule.TopLevelDecls.Add(ObjectDecl);
       // add one-dimensional arrays, since they may arise during type checking
       // Arrays of other dimensions may be added during parsing as the parser detects the need for these
@@ -1460,8 +1460,18 @@ namespace Microsoft.Dafny {
     }
   }
 
+  public class TraitDecl : ClassDecl
+  {
+      public bool IsParent { set; get; }
+      public TraitDecl(IToken tok, string name, ModuleDefinition module,
+        List<TypeParameter> typeArgs, [Captured] List<MemberDecl> members, Attributes attributes)
+          : base(tok, name, module, typeArgs, members, attributes, null) { }
+  }
+
   public class ClassDecl : TopLevelDecl {
     public readonly List<MemberDecl> Members;
+    public TraitDecl Trait;
+    public readonly IToken TraitId;
     public bool HasConstructor;  // filled in (early) during resolution; true iff there exists a member that is a Constructor
     [ContractInvariantMethod]
     void ObjectInvariant() {
@@ -1469,7 +1479,7 @@ namespace Microsoft.Dafny {
     }
 
     public ClassDecl(IToken tok, string name, ModuleDefinition module,
-      List<TypeParameter> typeArgs, [Captured] List<MemberDecl> members, Attributes attributes)
+      List<TypeParameter> typeArgs, [Captured] List<MemberDecl> members, Attributes attributes, List<IToken> traitId)
       : base(tok, name, module, typeArgs, attributes) {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
@@ -1477,6 +1487,8 @@ namespace Microsoft.Dafny {
       Contract.Requires(cce.NonNullElements(typeArgs));
       Contract.Requires(cce.NonNullElements(members));
       Members = members;
+      if (traitId != null && traitId.Count > 0)
+          TraitId = traitId[0]; //there are at most one inheriting trait at the moment
     }
     public virtual bool IsDefaultClass {
       get {
@@ -1487,7 +1499,7 @@ namespace Microsoft.Dafny {
 
   public class DefaultClassDecl : ClassDecl {
     public DefaultClassDecl(ModuleDefinition module, [Captured] List<MemberDecl> members)
-      : base(Token.NoToken, "_default", module, new List<TypeParameter>(), members, null) {
+      : base(Token.NoToken, "_default", module, new List<TypeParameter>(), members, null,null) {
       Contract.Requires(module != null);
       Contract.Requires(cce.NonNullElements(members));
     }
@@ -1503,7 +1515,7 @@ namespace Microsoft.Dafny {
     public ArrayClassDecl(int dims, ModuleDefinition module, Attributes attrs)
     : base(Token.NoToken, BuiltIns.ArrayClassName(dims), module,
       new List<TypeParameter>(new TypeParameter[]{new TypeParameter(Token.NoToken, "arg")}),
-      new List<MemberDecl>(), attrs)
+      new List<MemberDecl>(), attrs,null)
     {
       Contract.Requires(1 <= dims);
       Contract.Requires(module != null);
@@ -1758,7 +1770,7 @@ namespace Microsoft.Dafny {
                         List<MaybeFreeExpression> yieldRequires,
                         List<MaybeFreeExpression> yieldEnsures,
                         BlockStmt body, Attributes attributes, IToken signatureEllipsis)
-      : base(tok, name, module, typeArgs, new List<MemberDecl>(), attributes)
+      : base(tok, name, module, typeArgs, new List<MemberDecl>(), attributes,null)
     {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
@@ -1832,7 +1844,7 @@ namespace Microsoft.Dafny {
     public readonly bool IsGhost;
     public TopLevelDecl EnclosingClass;  // filled in during resolution
     public MemberDecl RefinementBase;  // filled in during the pre-resolution refinement transformation; null if the member is new here
-
+    public bool Inherited;
     public MemberDecl(IToken tok, string name, bool isStatic, bool isGhost, Attributes attributes)
       : base(tok, name, attributes) {
       Contract.Requires(tok != null);
@@ -2294,6 +2306,7 @@ namespace Microsoft.Dafny {
     public bool SignatureIsOmitted { get { return SignatureEllipsis != null; } }  // is "false" for all Function objects that survive into resolution
     public readonly IToken SignatureEllipsis;
     public bool IsBuiltin;
+    public Function OverriddenFunction;
 
     /// <summary>
     /// The "AllCalls" field is used for non-CoPredicate, non-PrefixPredicate functions only (so its value should not be relied upon for CoPredicate and PrefixPredicate functions).
@@ -2463,6 +2476,7 @@ namespace Microsoft.Dafny {
     public bool IsRecursive;  // filled in during resolution
     public bool IsTailRecursive;  // filled in during resolution
     public readonly ISet<IVariable> AssignedAssumptionVariables = new HashSet<IVariable>();
+    public Method OverriddenMethod;
 
     [ContractInvariantMethod]
     void ObjectInvariant() {
