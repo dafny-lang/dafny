@@ -656,6 +656,13 @@ namespace Dafny
       num = n;
       den = d;
     }
+    public BigInteger ToBigInteger() {
+      if (0 <= num) {
+        return num / den;
+      } else {
+        return (num - den + 1) / den;
+      }
+    }
     /// <summary>
     /// Returns values such that aa/dd == a and bb/dd == b.
     /// </summary>

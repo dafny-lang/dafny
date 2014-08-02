@@ -1007,20 +1007,20 @@ module CycleError2 {
   type A = B  // error: cycle: A -> B -> A
   type B = set<A>
 }
-module Good0 {
+module CycleErrors3 {
   type A = (B, D<bool>)
   type B = C
   class C {
     var a: A;  // this is fine
   }
-  datatype D<X> = Make(A, B, C)  // this is fine, too
+  datatype D<X> = Make(A, B, C)  // error: cannot construct a D<X>
 }
-module CycleError3 {
+module CycleError4 {
   type A = B  // error: cycle: A -> B -> A
   type B = C<A>
   class C<T> { }
 }
-module CycleError4 {
+module CycleError5 {
   type A = B  // error: cycle: A -> B -> A
   type B = Dt<A>
   datatype Dt<T> = Make(T)

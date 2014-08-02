@@ -130,7 +130,6 @@ namespace Microsoft.Dafny {
         arrayTypeDecls.Add(dims, arrayClass);
         SystemModule.TopLevelDecls.Add(arrayClass);
       }
-      udt.ResolvedClass = arrayTypeDecls[dims];
       return udt;
     }
 
@@ -331,6 +330,7 @@ namespace Microsoft.Dafny {
     /// <summary>
     /// Return the type that "this" stands for, getting to the bottom of proxies and following type synonyms.
     /// </summary>
+    [Pure]
     public Type NormalizeExpand() {
       Contract.Ensures(Contract.Result<Type>() != null);
       Contract.Ensures(!(Contract.Result<Type>() is TypeProxy) || ((TypeProxy)Contract.Result<Type>()).T == null);  // return a proxy only if .T == null
@@ -357,19 +357,32 @@ namespace Microsoft.Dafny {
       }
     }
 
+    /// <summary>
+    /// Returns whether or not "this" and "that" denote the same type, module proxies and type synonyms.
+    /// </summary>
     [Pure]
     public abstract bool Equals(Type that);
 
+    public bool IsBoolType { get { return NormalizeExpand() is BoolType; } }
+    public bool IsIntegerType { get { return NormalizeExpand() is IntType; } }
+    public bool IsRealType { get { return NormalizeExpand() is RealType; } }
     public bool IsSubrangeType {
-      get { return this is NatType; }
+      get { return NormalizeExpand() is NatType; }
     }
+
+    public CollectionType AsCollectionType { get { return NormalizeExpand() as CollectionType; } }
+    public SetType AsSetType { get { return NormalizeExpand() as SetType; } }
+    public MultiSetType AsMultiSetType { get { return NormalizeExpand() as MultiSetType; } }
+    public SeqType AsSeqType { get { return NormalizeExpand() as SeqType; } }
+    public MapType AsMapType { get { return NormalizeExpand() as MapType; } }
 
     public bool IsRefType {
       get {
-        if (this is ObjectType) {
+        var t = NormalizeExpand();
+        if (t is ObjectType) {
           return true;
         } else {
-          UserDefinedType udt = this as UserDefinedType;
+          var udt = t as UserDefinedType;
           return udt != null && udt.ResolvedParam == null && udt.ResolvedClass is ClassDecl;
         }
       }
@@ -381,13 +394,14 @@ namespace Microsoft.Dafny {
     }
     public ArrayClassDecl/*?*/ AsArrayType {
       get {
-        UserDefinedType udt = UserDefinedType.DenotesClass(this);
+        var t = NormalizeExpand();
+        var udt = UserDefinedType.DenotesClass(t);
         return udt == null ? null : udt.ResolvedClass as ArrayClassDecl;
       }
     }
     public TypeSynonymDecl AsTypeSynonym {
       get {
-        var udt = this as UserDefinedType;
+        var udt = this as UserDefinedType;  // note, it is important to use 'this' here, not 'this.NormalizeExpand()'
         if (udt == null) {
           return null;
         } else {
@@ -402,7 +416,7 @@ namespace Microsoft.Dafny {
     }
     public DatatypeDecl AsDatatype {
       get {
-        UserDefinedType udt = this as UserDefinedType;
+        var udt = NormalizeExpand() as UserDefinedType;
         if (udt == null) {
           return null;
         } else {
@@ -417,7 +431,7 @@ namespace Microsoft.Dafny {
     }
     public IndDatatypeDecl AsIndDatatype {
       get {
-        UserDefinedType udt = this as UserDefinedType;
+        var udt = NormalizeExpand() as UserDefinedType;
         if (udt == null) {
           return null;
         } else {
@@ -432,7 +446,7 @@ namespace Microsoft.Dafny {
     }
     public CoDatatypeDecl AsCoDatatype {
       get {
-        UserDefinedType udt = this as UserDefinedType;
+        var udt = NormalizeExpand() as UserDefinedType;
         if (udt == null) {
           return null;
         } else {
@@ -452,7 +466,7 @@ namespace Microsoft.Dafny {
     }
     public TypeParameter AsTypeParameter {
       get {
-        UserDefinedType ct = this as UserDefinedType;
+        var ct = NormalizeExpand() as UserDefinedType;
         return ct == null ? null : ct.ResolvedParam;
       }
     }
@@ -466,7 +480,9 @@ namespace Microsoft.Dafny {
     /// Returns true if it is known how to meaningfully compare the type's inhabitants.
     /// </summary>
     public bool IsOrdered {
-      get { return !IsTypeParameter && !IsCoDatatype; }
+      get {
+        return !IsTypeParameter && !IsCoDatatype;
+      }
     }
 
     public void ForeachTypeComponent(Action<Type> action) {
@@ -492,7 +508,7 @@ namespace Microsoft.Dafny {
       return "bool";
     }
     public override bool Equals(Type that) {
-      return that.NormalizeExpand() is BoolType;
+      return that.IsBoolType;
     }
   }
 
@@ -762,8 +778,14 @@ namespace Microsoft.Dafny {
     }
 
     public override bool Equals(Type that) {
-      var t = that.NormalizeExpand() as UserDefinedType;
-      return t != null && ResolvedClass == t.ResolvedClass && ResolvedParam == t.ResolvedParam;
+      var i = NormalizeExpand();
+      if (i is UserDefinedType) {
+        var ii = (UserDefinedType)i;
+        var t = that.NormalizeExpand() as UserDefinedType;
+        return t != null && ii.ResolvedClass == t.ResolvedClass && ii.ResolvedParam == t.ResolvedParam;
+      } else {
+        return i.Equals(that);
+      }
     }
 
     /// <summary>
@@ -800,6 +822,11 @@ namespace Microsoft.Dafny {
       if (BuiltIns.IsTupleTypeName(Name)) {
         return "(" + Util.Comma(",", TypeArgs, ty => ty.TypeName(context)) + ")";
       } else {
+#if TEST_TYPE_SYNONYM_TRANSPARENCY
+        if (Name == "type#synonym#transparency#test" && ResolvedClass is TypeSynonymDecl) {
+          return ((TypeSynonymDecl)ResolvedClass).Rhs.TypeName(context);
+        }
+#endif
         string s = "";
         foreach (var t in Path) {
           if (context != null && t == context.tok) {
@@ -4278,6 +4305,13 @@ namespace Microsoft.Dafny {
         type = value.Normalize();
       }
     }
+#if TEST_TYPE_SYNONYM_TRANSPARENCY
+    public void DebugTest_ChangeType(Type ty) {
+      Contract.Requires(WasResolved());  // we're here to set it again
+      Contract.Requires(ty != null);
+      type = ty;
+    }
+#endif
 
     public Expression(IToken tok) {
       Contract.Requires(tok != null);
@@ -4295,7 +4329,7 @@ namespace Microsoft.Dafny {
 
     public static IEnumerable<Expression> Conjuncts(Expression expr) {
       Contract.Requires(expr != null);
-      Contract.Requires(expr.Type is BoolType);
+      Contract.Requires(expr.Type.IsBoolType);
       Contract.Ensures(cce.NonNullElements(Contract.Result<IEnumerable<Expression>>()));
 
       // strip off parens
@@ -4327,7 +4361,7 @@ namespace Microsoft.Dafny {
     public static Expression CreateAdd(Expression e0, Expression e1) {
       Contract.Requires(e0 != null);
       Contract.Requires(e1 != null);
-      Contract.Requires((e0.Type is IntType && e1.Type is IntType) || (e0.Type is RealType && e1.Type is RealType));
+      Contract.Requires((e0.Type.NormalizeExpand() is IntType && e1.Type.NormalizeExpand() is IntType) || (e0.Type.NormalizeExpand() is RealType && e1.Type.NormalizeExpand() is RealType));
       Contract.Ensures(Contract.Result<Expression>() != null);
       var s = new BinaryExpr(e0.tok, BinaryExpr.Opcode.Add, e0, e1);
       s.ResolvedOp = BinaryExpr.ResolvedOpcode.Add;  // resolve here
@@ -4341,7 +4375,7 @@ namespace Microsoft.Dafny {
     public static Expression CreateSubtract(Expression e0, Expression e1) {
       Contract.Requires(e0 != null);
       Contract.Requires(e1 != null);
-      Contract.Requires((e0.Type is IntType && e1.Type is IntType) || (e0.Type is RealType && e1.Type is RealType));
+      Contract.Requires((e0.Type.NormalizeExpand() is IntType && e1.Type.NormalizeExpand() is IntType) || (e0.Type.NormalizeExpand() is RealType && e1.Type.NormalizeExpand() is RealType));
       Contract.Ensures(Contract.Result<Expression>() != null);
       var s = new BinaryExpr(e0.tok, BinaryExpr.Opcode.Sub, e0, e1);
       s.ResolvedOp = BinaryExpr.ResolvedOpcode.Sub;  // resolve here
@@ -4354,7 +4388,7 @@ namespace Microsoft.Dafny {
     /// </summary>
     public static Expression CreateIncrement(Expression e, int n) {
       Contract.Requires(e != null);
-      Contract.Requires(e.Type is IntType);
+      Contract.Requires(e.Type.NormalizeExpand() is IntType);
       Contract.Requires(0 <= n);
       Contract.Ensures(Contract.Result<Expression>() != null);
       if (n == 0) {
@@ -4369,7 +4403,7 @@ namespace Microsoft.Dafny {
     /// </summary>
     public static Expression CreateDecrement(Expression e, int n) {
       Contract.Requires(e != null);
-      Contract.Requires(e.Type is IntType);
+      Contract.Requires(e.Type.NormalizeExpand() is IntType);
       Contract.Requires(0 <= n);
       Contract.Ensures(Contract.Result<Expression>() != null);
       if (n == 0) {
@@ -4406,7 +4440,7 @@ namespace Microsoft.Dafny {
 
     public static Expression CreateNot(IToken tok, Expression e) {
       Contract.Requires(tok != null);
-      Contract.Requires(e.Type is BoolType);
+      Contract.Requires(e.Type.IsBoolType);
       var un = new UnaryOpExpr(tok, UnaryOpExpr.Opcode.Not, e);
       un.Type = Type.Bool;  // resolve here
       return un;
@@ -4418,7 +4452,7 @@ namespace Microsoft.Dafny {
     public static Expression CreateLess(Expression e0, Expression e1) {
       Contract.Requires(e0 != null);
       Contract.Requires(e1 != null);
-      Contract.Requires(e0.Type is IntType && e1.Type is IntType);
+      Contract.Requires(e0.Type.NormalizeExpand() is IntType && e1.Type.NormalizeExpand() is IntType);
       Contract.Ensures(Contract.Result<Expression>() != null);
       var s = new BinaryExpr(e0.tok, BinaryExpr.Opcode.Lt, e0, e1);
       s.ResolvedOp = BinaryExpr.ResolvedOpcode.Lt;  // resolve here
@@ -4432,7 +4466,7 @@ namespace Microsoft.Dafny {
     public static Expression CreateAtMost(Expression e0, Expression e1) {
       Contract.Requires(e0 != null);
       Contract.Requires(e1 != null);
-      Contract.Requires((e0.Type is IntType && e1.Type is IntType) || (e0.Type is RealType && e1.Type is RealType));
+      Contract.Requires((e0.Type.NormalizeExpand() is IntType && e1.Type.NormalizeExpand() is IntType) || (e0.Type.NormalizeExpand() is RealType && e1.Type.NormalizeExpand() is RealType));
       Contract.Ensures(Contract.Result<Expression>() != null);
       var s = new BinaryExpr(e0.tok, BinaryExpr.Opcode.Le, e0, e1);
       s.ResolvedOp = BinaryExpr.ResolvedOpcode.Le;  // resolve here
@@ -4466,7 +4500,7 @@ namespace Microsoft.Dafny {
     public static Expression CreateAnd(Expression a, Expression b) {
       Contract.Requires(a != null);
       Contract.Requires(b != null);
-      Contract.Requires(a.Type is BoolType && b.Type is BoolType);
+      Contract.Requires(a.Type.IsBoolType && b.Type.IsBoolType);
       Contract.Ensures(Contract.Result<Expression>() != null);
       if (LiteralExpr.IsTrue(a)) {
         return b;
@@ -4486,7 +4520,7 @@ namespace Microsoft.Dafny {
     public static Expression CreateImplies(Expression a, Expression b) {
       Contract.Requires(a != null);
       Contract.Requires(b != null);
-      Contract.Requires(a.Type is BoolType && b.Type is BoolType);
+      Contract.Requires(a.Type.IsBoolType && b.Type.IsBoolType);
       Contract.Ensures(Contract.Result<Expression>() != null);
       if (LiteralExpr.IsTrue(a) || LiteralExpr.IsTrue(b)) {
         return b;
@@ -4505,7 +4539,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(test != null);
       Contract.Requires(e0 != null);
       Contract.Requires(e1 != null);
-      Contract.Requires(test.Type is BoolType && e0.Type.Equals(e1.Type));
+      Contract.Requires(test.Type.IsBoolType && e0.Type.Equals(e1.Type));
       Contract.Ensures(Contract.Result<Expression>() != null);
       var ite = new ITEExpr(test.tok, test, e0, e1);
       ite.Type = e0.type;  // resolve here

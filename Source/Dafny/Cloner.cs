@@ -142,6 +142,13 @@ namespace Microsoft.Dafny
         return new MapType(CloneType(tt.Domain), CloneType(tt.Range));
       } else if (t is UserDefinedType) {
         var tt = (UserDefinedType)t;
+#if TEST_TYPE_SYNONYM_TRANSPARENCY
+        if (tt.Name == "type#synonym#transparency#test") {
+          // time to drop the synonym wrapper
+          var syn = (TypeSynonymDecl)tt.ResolvedClass;
+          return CloneType(syn.Rhs);
+        }
+#endif
         return new UserDefinedType(Tok(tt.tok), tt.Name, tt.TypeArgs.ConvertAll(CloneType), tt.Path.ConvertAll(Tok));
       } else if (t is InferredTypeProxy) {
         return new InferredTypeProxy();

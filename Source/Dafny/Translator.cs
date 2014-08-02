@@ -598,17 +598,18 @@ namespace Microsoft.Dafny {
           sink.TopLevelDeclarations.Add(new Bpl.Axiom(ctor.tok, q, "Constructor injectivity"));
 
           if (dt is IndDatatypeDecl) {
-            if (arg.Type.IsDatatype || arg.Type.IsTypeParameter) {
+            var argType = arg.Type.NormalizeExpand();
+            if (argType.IsDatatype || argType.IsTypeParameter) {
               // for datatype:             axiom (forall params :: DtRank(params_i) < DtRank(#dt.ctor(params)));
               // for type-parameter type:  axiom (forall params :: DtRank(Unbox(params_i)) < DtRank(#dt.ctor(params)));
               CreateBoundVariables(ctor.Formals, out bvs, out args);
               Bpl.Expr lhs = FunctionCall(ctor.tok, BuiltinFunction.DtRank, null,
-                arg.Type.IsDatatype ? args[i] : FunctionCall(ctor.tok, BuiltinFunction.Unbox, predef.DatatypeType, args[i]));
+                argType.IsDatatype ? args[i] : FunctionCall(ctor.tok, BuiltinFunction.Unbox, predef.DatatypeType, args[i]));
               Bpl.Expr rhs = FunctionCall(ctor.tok, ctor.FullName, predef.DatatypeType, args);
               rhs = FunctionCall(ctor.tok, BuiltinFunction.DtRank, null, rhs);
               q = new Bpl.ForallExpr(ctor.tok, bvs, Bpl.Expr.Lt(lhs, rhs));
               sink.TopLevelDeclarations.Add(new Bpl.Axiom(ctor.tok, q, "Inductive rank"));
-            } else if (arg.Type is SeqType) {
+            } else if (argType is SeqType) {
               // axiom (forall params, i: int :: 0 <= i && i < |arg| ==> DtRank(arg[i]) < DtRank(#dt.ctor(params)));
               // that is:
               // axiom (forall params, i: int :: 0 <= i && i < |arg| ==> DtRank(Unbox(Seq#Index(arg,i))) < DtRank(#dt.ctor(params)));
@@ -633,7 +634,7 @@ namespace Microsoft.Dafny {
               rhs = FunctionCall(ctor.tok, BuiltinFunction.DtRank, null, rhs);
               q = new Bpl.ForallExpr(ctor.tok, bvs, Bpl.Expr.Lt(lhs, rhs));
               sink.TopLevelDeclarations.Add(new Bpl.Axiom(ctor.tok, q, "Inductive seq rank"));
-            } else if (arg.Type is SetType) {
+            } else if (argType is SetType) {
               // axiom (forall params, d: Datatype :: arg[d] ==> DtRank(d) < DtRank(#dt.ctor(params)));
               // that is:
               // axiom (forall params, d: Datatype :: arg[Box(d)] ==> DtRank(d) < DtRank(#dt.ctor(params)));
@@ -647,7 +648,7 @@ namespace Microsoft.Dafny {
               rhs = FunctionCall(ctor.tok, BuiltinFunction.DtRank, null, rhs);
               q = new Bpl.ForallExpr(ctor.tok, bvs, Bpl.Expr.Imp(ante, Bpl.Expr.Lt(lhs, rhs)));
               sink.TopLevelDeclarations.Add(new Bpl.Axiom(ctor.tok, q, "Inductive set rank"));
-            } else if (arg.Type is MultiSetType) {
+            } else if (argType is MultiSetType) {
               // axiom (forall params, d: Datatype :: 0 < arg[d] ==> DtRank(d) < DtRank(#dt.ctor(params)));
               // that is:
               // axiom (forall params, d: Datatype :: 0 < arg[Box(d)] ==> DtRank(d) < DtRank(#dt.ctor(params)));
@@ -946,6 +947,12 @@ namespace Microsoft.Dafny {
 
     // Makes a call to equality, if k is null, or otherwise prefix equality. For codatatypes.
     Bpl.Expr CoEqualCall(CoDatatypeDecl codecl, List<Bpl.Expr> largs, List<Bpl.Expr> rargs, Bpl.Expr k, Bpl.Expr l, Bpl.Expr A, Bpl.Expr B, IToken tok = null) {
+      Contract.Requires(codecl != null);
+      Contract.Requires(largs != null);
+      Contract.Requires(rargs != null);
+      Contract.Requires(l != null);
+      Contract.Requires(A != null);
+      Contract.Requires(B != null);
       if (tok == null) {
         tok = A.tok;
       }
@@ -960,6 +967,12 @@ namespace Microsoft.Dafny {
 
     // Same as above, but with Dafny-typed type-argument lists
     Bpl.Expr CoEqualCall(CoDatatypeDecl codecl, List<Type> largs, List<Type> rargs, Bpl.Expr k, Bpl.Expr l, Bpl.Expr A, Bpl.Expr B, IToken tok = null) {
+      Contract.Requires(codecl != null);
+      Contract.Requires(largs != null);
+      Contract.Requires(rargs != null);
+      Contract.Requires(l != null);
+      Contract.Requires(A != null);
+      Contract.Requires(B != null);
       return CoEqualCall(codecl, Map(largs, TypeToTy), Map(rargs, TypeToTy), k, l, A, B, tok);
     }
 
@@ -2447,7 +2460,7 @@ namespace Microsoft.Dafny {
               var decrCaller = new List<Expr>();
               foreach (var ee in m.Decreases.Expressions) {
                 decrToks.Add(ee.tok);
-                decrTypes.Add(ee.Type);
+                decrTypes.Add(ee.Type.NormalizeExpand());
                 decrCaller.Add(exprTran.TrExpr(ee));
                 Expression es = Substitute(ee, receiverReplacement, substMap);
                 es = Substitute(es, null, decrSubstMap);
@@ -2951,8 +2964,8 @@ namespace Microsoft.Dafny {
 #endif
     }
 
-    Bpl.Expr/*!*/ InRWClause(IToken/*!*/ tok, Bpl.Expr/*!*/ o, Bpl.Expr/*!*/ f, List<FrameExpression/*!*/>/*!*/ rw, ExpressionTranslator/*!*/ etran,
-                             Expression receiverReplacement, Dictionary<IVariable,Expression/*!*/> substMap) {
+    Bpl.Expr/*!*/ InRWClause(IToken tok, Bpl.Expr o, Bpl.Expr f, List<FrameExpression> rw, ExpressionTranslator etran,
+                             Expression receiverReplacement, Dictionary<IVariable,Expression> substMap) {
       Contract.Requires(tok != null);
       Contract.Requires(o != null);
       Contract.Requires(f != null);
@@ -2974,12 +2987,13 @@ namespace Microsoft.Dafny {
           e = Substitute(e, receiverReplacement, substMap);
         }
         Bpl.Expr disjunct;
+        var eType = e.Type.NormalizeExpand();
         if (e is WildcardExpr) {
           disjunct = Bpl.Expr.True;
-        } else if (e.Type is SetType) {
+        } else if (eType is SetType) {
           // old(e)[Box(o)]
-          disjunct = etran.TrInSet(tok, o, e, ((SetType)e.Type).Arg);
-        } else if (e.Type is SeqType) {
+          disjunct = etran.TrInSet(tok, o, e, ((SetType)eType).Arg);
+        } else if (eType is SeqType) {
           // (exists i: int :: 0 <= i && i < Seq#Length(old(e)) && Seq#Index(old(e),i) == Box(o))
           Bpl.Expr boxO = FunctionCall(tok, BuiltinFunction.Box, null, o);
           Bpl.Variable iVar = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, "$i", Bpl.Type.Int));
@@ -3235,7 +3249,6 @@ namespace Microsoft.Dafny {
         }
       } else if (expr is SeqSelectExpr) {
         SeqSelectExpr e = (SeqSelectExpr)expr;
-        //bool isSequence = e.Seq.Type is SeqType;
         Bpl.Expr total = CanCallAssumption(e.Seq, etran);
         Bpl.Expr seq = etran.TrExpr(e.Seq);
         Bpl.Expr e0 = null;
@@ -3571,20 +3584,21 @@ namespace Microsoft.Dafny {
         }
       } else if (expr is SeqSelectExpr) {
         SeqSelectExpr e = (SeqSelectExpr)expr;
-        bool isSequence = e.Seq.Type is SeqType;
+        var eSeqType = e.Seq.Type.NormalizeExpand();
+        bool isSequence = eSeqType is SeqType;
         CheckWellformed(e.Seq, options, locals, builder, etran);
         Bpl.Expr seq = etran.TrExpr(e.Seq);
-        if (e.Seq.Type.IsArrayType) {
+        if (eSeqType.IsArrayType) {
           builder.Add(Assert(e.Seq.tok, Bpl.Expr.Neq(seq, predef.Null), "array may be null"));
         }
         Bpl.Expr e0 = null;
-        if (e.Seq.Type is MapType) {
+        if (eSeqType is MapType) {
           e0 = etran.TrExpr(e.E0);
           CheckWellformed(e.E0, options, locals, builder, etran);
           Bpl.Expr inDomain = FunctionCall(expr.tok, BuiltinFunction.MapDomain, predef.MapType(e.tok, predef.BoxType, predef.BoxType), seq);
           inDomain = Bpl.Expr.Select(inDomain, BoxIfNecessary(e.tok, e0, e.E0.Type));
           builder.Add(Assert(expr.tok, inDomain, "element may not be in domain", options.AssertKv));
-        } else if (e.Seq.Type is MultiSetType) {
+        } else if (eSeqType is MultiSetType) {
           // cool
 
         } else {
@@ -3598,14 +3612,14 @@ namespace Microsoft.Dafny {
             builder.Add(Assert(expr.tok, InSeqRange(expr.tok, etran.TrExpr(e.E1), seq, isSequence, e0, true), "upper bound " + (e.E0 == null ? "" : "below lower bound or ") + "above length of " + (isSequence ? "sequence" : "array"), options.AssertKv));
           }
         }
-        if (options.DoReadsChecks && e.Seq.Type.IsArrayType) {
+        if (options.DoReadsChecks && eSeqType.IsArrayType) {
           if (e.SelectOne) {
             Contract.Assert(e.E0 != null);
             Bpl.Expr fieldName = FunctionCall(expr.tok, BuiltinFunction.IndexField, null, etran.TrExpr(e.E0));
             builder.Add(Assert(expr.tok, Bpl.Expr.SelectTok(expr.tok, etran.TheFrame(expr.tok), seq, fieldName), "insufficient reads clause to read array element", options.AssertKv));
           } else {
             Bpl.Expr lowerBound = e.E0 == null ? Bpl.Expr.Literal(0) : etran.TrExpr(e.E0);
-            Contract.Assert((e.Seq.Type).AsArrayType.Dims == 1);
+            Contract.Assert(eSeqType.AsArrayType.Dims == 1);
             Bpl.Expr upperBound = e.E1 == null ? ArrayLength(e.tok, seq, 1, 0) : etran.TrExpr(e.E1);
             // check that, for all i in lowerBound..upperBound, a[i] is in the frame
             Bpl.BoundVariable iVar = new Bpl.BoundVariable(e.tok, new Bpl.TypedIdent(e.tok, "$i", Bpl.Type.Int));
@@ -3645,20 +3659,14 @@ namespace Microsoft.Dafny {
           Bpl.Expr index = etran.TrExpr(e.Index);
           Bpl.Expr value = etran.TrExpr(e.Value);
           CheckWellformed(e.Index, options, locals, builder, etran);
-          if (e.Seq.Type is SeqType)
-          {
+          var eSeqType = e.Seq.Type.NormalizeExpand();
+          if (eSeqType is SeqType) {
             builder.Add(Assert(expr.tok, InSeqRange(expr.tok, index, seq, true, null, false), "index out of range", options.AssertKv));
-          }
-          else if (e.Seq.Type is MapType)
-          {
+          } else if (eSeqType is MapType) {
             // updates to maps are always valid if the values are well formed
-          }
-          else if (e.Seq.Type is MultiSetType)
-          {
+          } else if (eSeqType is MultiSetType) {
             builder.Add(Assert(expr.tok, Bpl.Expr.Le(Bpl.Expr.Literal(0), value), "new number of occurrences might be negative", options.AssertKv));
-          }
-          else
-          {
+          } else {
             Contract.Assert(false);
           }
           CheckWellformed(e.Value, options, locals, builder, etran);
@@ -3834,7 +3842,7 @@ namespace Microsoft.Dafny {
             break;
           case BinaryExpr.ResolvedOpcode.Div:
           case BinaryExpr.ResolvedOpcode.Mod: {
-              Bpl.Expr zero = (e.E1.Type is RealType) ? Bpl.Expr.Literal(Basetypes.BigDec.ZERO) : Bpl.Expr.Literal(0);
+              Bpl.Expr zero = (e.E1.Type.IsRealType) ? Bpl.Expr.Literal(Basetypes.BigDec.ZERO) : Bpl.Expr.Literal(0);
               CheckWellformed(e.E1, options, locals, builder, etran);
               builder.Add(Assert(expr.tok, Bpl.Expr.Neq(etran.TrExpr(e.E1), zero), "possible division by zero", options.AssertKv));
             }
@@ -5725,7 +5733,8 @@ namespace Microsoft.Dafny {
     IEnumerable<Expression> GuessWitnesses(BoundVar x, Expression expr) {
       Contract.Requires(x != null);
       Contract.Requires(expr != null);
-      if (x.Type is BoolType) {
+      var xType = x.Type.NormalizeExpand();
+      if (xType is BoolType) {
         var lit = new LiteralExpr(x.tok, false);
         lit.Type = Type.Bool;  // resolve here
         yield return lit;
@@ -5733,13 +5742,13 @@ namespace Microsoft.Dafny {
         lit.Type = Type.Bool;  // resolve here
         yield return lit;
         yield break;  // there are no more possible witnesses for booleans
-      } else if (x.Type.IsRefType) {
+      } else if (xType.IsRefType) {
         var lit = new LiteralExpr(x.tok);  // null
-        lit.Type = x.Type;
+        lit.Type = xType;
         yield return lit;
-      } else if (x.Type.IsDatatype) {
-        var dt = x.Type.AsDatatype;
-        Expression zero = Zero(x.tok, x.Type);
+      } else if (xType.IsDatatype) {
+        var dt = xType.AsDatatype;
+        Expression zero = Zero(x.tok, xType);
         if (zero != null) {
           yield return zero;
         }
@@ -5747,28 +5756,28 @@ namespace Microsoft.Dafny {
           if (ctor.Formals.Count == 0) {
             var v = new DatatypeValue(x.tok, dt.Name, ctor.Name, new List<Expression>());
             v.Ctor = ctor;  // resolve here
-            v.InferredTypeArgs = x.Type.TypeArgs; // resolved here.
+            v.InferredTypeArgs = xType.TypeArgs; // resolved here.
             v.Type = new UserDefinedType(x.tok, dt.Name, dt, new List<Type>());  // resolve here
             yield return v;
           }
         }
-      } else if (x.Type is SetType) {
+      } else if (xType is SetType) {
         var empty = new SetDisplayExpr(x.tok, new List<Expression>());
-        empty.Type = x.Type;
+        empty.Type = xType;
         yield return empty;
-      } else if (x.Type is MultiSetType) {
+      } else if (xType is MultiSetType) {
         var empty = new MultiSetDisplayExpr(x.tok, new List<Expression>());
-        empty.Type = x.Type;
+        empty.Type = xType;
         yield return empty;
-      } else if (x.Type is SeqType) {
+      } else if (xType is SeqType) {
         var empty = new SeqDisplayExpr(x.tok, new List<Expression>());
-        empty.Type = x.Type;
+        empty.Type = xType;
         yield return empty;
-      } else if (x.Type is IntType) {
+      } else if (xType is IntType) {
         var lit = new LiteralExpr(x.tok, 0);
         lit.Type = Type.Int;  // resolve here
         yield return lit;
-      } else if (x.Type is RealType) {
+      } else if (xType is RealType) {
         var lit = new LiteralExpr(x.tok, Basetypes.BigDec.ZERO);
         lit.Type = Type.Real;  // resolve here
         yield return lit;
@@ -6580,12 +6589,12 @@ namespace Microsoft.Dafny {
 
       // include a free invariant that says that all completed iterations so far have only decreased the termination metric
       if (initDecr != null) {
-        List<IToken> toks = new List<IToken>();
-        List<Type> types = new List<Type>();
-        List<Expr> decrs = new List<Expr>();
+        var toks = new List<IToken>();
+        var types = new List<Type>();
+        var decrs = new List<Expr>();
         foreach (Expression e in theDecreases) {
           toks.Add(e.tok);
-          types.Add(cce.NonNull(e.Type));
+          types.Add(e.Type.NormalizeExpand());
           decrs.Add(etran.TrExpr(e));
         }
         Bpl.Expr decrCheck = DecreasesCheck(toks, types, types, decrs, initDecr, null, null, true, false);
@@ -6616,12 +6625,12 @@ namespace Microsoft.Dafny {
         // time for the actual loop body
         bodyTr(loopBodyBuilder, updatedFrameEtran);
         // check definedness of decreases expressions
-        List<IToken> toks = new List<IToken>();
-        List<Type> types = new List<Type>();
-        List<Expr> decrs = new List<Expr>();
+        var toks = new List<IToken>();
+        var types = new List<Type>();
+        var decrs = new List<Expr>();
         foreach (Expression e in theDecreases) {
           toks.Add(e.tok);
-          types.Add(cce.NonNull(e.Type));
+          types.Add(e.Type.NormalizeExpand());
           decrs.Add(etran.TrExpr(e));
         }
         Bpl.Expr decrCheck = DecreasesCheck(toks, types, types, decrs, oldBfs, loopBodyBuilder, " at end of loop iteration", false, false);
@@ -7034,8 +7043,8 @@ namespace Microsoft.Dafny {
           break;
         }
         toks.Add(tok);
-        types0.Add(e0.Type);
-        types1.Add(e1.Type);
+        types0.Add(e0.Type.NormalizeExpand());
+        types1.Add(e1.Type.NormalizeExpand());
         callee.Add(etranCurrent.TrExpr(e0));
         caller.Add(etranInitial.TrExpr(e1));
       }
@@ -7056,6 +7065,7 @@ namespace Microsoft.Dafny {
     /// or has gone down or stayed the same (if allowNoChange).
     /// ee0 represents the new values and ee1 represents old values.
     /// If builder is non-null, then the check '0 ATMOST decr' is generated to builder.
+    /// Requires all types in types0 and types1 to be non-proxy non-synonym types (that is, callers should invoke NormalizeExpand)
     /// </summary>
     Bpl.Expr DecreasesCheck(List<IToken> toks, List<Type> types0, List<Type> types1, List<Bpl.Expr> ee0, List<Bpl.Expr> ee1,
                             Bpl.StmtListBuilder builder, string suffixMsg, bool allowNoChange, bool includeLowerBound)
@@ -7157,6 +7167,9 @@ namespace Microsoft.Dafny {
       else return null;
     }
 
+    /// <summary>
+    /// Requires ty0 and ty1 to be non-proxy non-synonym types (that is, caller is expected have have invoked NormalizeExpand)
+    /// </summary>
     void ComputeLessEq(IToken tok, Type ty0, Type ty1, Bpl.Expr e0, Bpl.Expr e1, out Bpl.Expr less, out Bpl.Expr atmost, out Bpl.Expr eq, bool includeLowerBound)
     {
       Contract.Requires(tok != null);
@@ -7169,8 +7182,6 @@ namespace Microsoft.Dafny {
       Contract.Ensures(Contract.ValueAtReturn(out atmost)!=null);
       Contract.Ensures(Contract.ValueAtReturn(out eq)!=null);
 
-      ty0 = ty0.NormalizeExpand();
-      ty1 = ty1.NormalizeExpand();
       var rk0 = RankFunction(ty0);
       var rk1 = RankFunction(ty1);
       if (rk0 != null && rk1 != null && rk0 != rk1) {
@@ -7442,7 +7453,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(type != null);
       Contract.Ensures(Contract.Result<Bpl.Expr>() != null);
 
-      if (type.NormalizeExpand() is BoolType) {
+      if (type.IsBoolType) {
         return FunctionCall(box.tok, BuiltinFunction.IsCanonicalBoolBox, null, box);
       } else {
         return Bpl.Expr.True;
@@ -7871,7 +7882,8 @@ namespace Microsoft.Dafny {
       Contract.Requires(builder != null);
 
       var cre = CheckSubrange_Expr(tok, bRhs, tp);
-      var msg = (tp is NatType) ? "value assigned to a nat must be non-negative" :
+      var msg = (tp.NormalizeExpand() is NatType) ?
+                                  "value assigned to a nat must be non-negative" :
                                   "value does not satisfy the subrange criteria";
       builder.Add(Assert(tok, cre, msg));
     }
@@ -7883,7 +7895,7 @@ namespace Microsoft.Dafny {
 
       // Only need to check this for natural numbers for now.
       // We should always be able to use  Is, but this is an optimisation.
-      if (tp is NatType) {
+      if (tp.NormalizeExpand() is NatType) {
         return MkIs(bRhs, tp);
       } else {
        return Bpl.Expr.True; 
@@ -8597,20 +8609,21 @@ namespace Microsoft.Dafny {
         } else if (expr is SeqSelectExpr) {
           SeqSelectExpr e = (SeqSelectExpr)expr;
           Bpl.Expr seq = TrExpr(e.Seq);
+          var seqType = e.Seq.Type.NormalizeExpand();
           Type elmtType = null;
           Type domainType = null;
-          Contract.Assert(e.Seq.Type != null);  // the expression has been successfully resolved
-          if (e.Seq.Type.IsArrayType) {
+          Contract.Assert(seqType != null);  // the expression has been successfully resolved
+          if (seqType.IsArrayType) {
             domainType = Type.Int;
-            elmtType = UserDefinedType.ArrayElementType(e.Seq.Type);
-          } else if (e.Seq.Type is SeqType) {
+            elmtType = UserDefinedType.ArrayElementType(seqType);
+          } else if (seqType is SeqType) {
             domainType = Type.Int;
-            elmtType = ((SeqType)e.Seq.Type).Arg;
-          } else if (e.Seq.Type is MapType) {
-            domainType = ((MapType)e.Seq.Type).Domain;
-            elmtType = ((MapType)e.Seq.Type).Range;
-          } else if (e.Seq.Type is MultiSetType) {
-            domainType = ((MultiSetType)e.Seq.Type).Arg;
+            elmtType = ((SeqType)seqType).Arg;
+          } else if (seqType is MapType) {
+            domainType = ((MapType)seqType).Domain;
+            elmtType = ((MapType)seqType).Range;
+          } else if (seqType is MultiSetType) {
+            domainType = ((MultiSetType)seqType).Arg;
             elmtType = Type.Int;
           } else { Contract.Assert(false); }
           Bpl.Type elType = translator.TrType(elmtType);
@@ -8620,23 +8633,23 @@ namespace Microsoft.Dafny {
           if (e.SelectOne) {
             Contract.Assert(e1 == null);
             Bpl.Expr x;
-            if (e.Seq.Type.IsArrayType) {
+            if (seqType.IsArrayType) {
               Bpl.Expr fieldName = translator.FunctionCall(expr.tok, BuiltinFunction.IndexField, null, e0);
               x = ReadHeap(expr.tok, HeapExpr, TrExpr(e.Seq), fieldName);
-            } else if(e.Seq.Type is SeqType) {
+            } else if (seqType is SeqType) {
               x = translator.FunctionCall(expr.tok, BuiltinFunction.SeqIndex, predef.BoxType, seq, e0);
-            } else if (e.Seq.Type is MapType) {
+            } else if (seqType is MapType) {
               x = translator.FunctionCall(expr.tok, BuiltinFunction.MapElements, predef.MapType(e.tok, predef.BoxType, predef.BoxType), seq);
               x = Bpl.Expr.Select(x, BoxIfNecessary(e.tok, e0, domainType));
-            } else if (e.Seq.Type is MultiSetType) {
+            } else if (seqType is MultiSetType) {
               x = Bpl.Expr.SelectTok(expr.tok, TrExpr(e.Seq), BoxIfNecessary(expr.tok, e0, domainType));
             } else { Contract.Assert(false); x = null; }
-            if (!ModeledAsBoxType(elmtType) && !(e.Seq.Type is MultiSetType)) {
+            if (!ModeledAsBoxType(elmtType) && !(seqType is MultiSetType)) {
               x = translator.FunctionCall(expr.tok, BuiltinFunction.Unbox, elType, x);
             }
             return x;
           } else {
-            if (e.Seq.Type.IsArrayType) {
+            if (seqType.IsArrayType) {
               seq = translator.FunctionCall(expr.tok, BuiltinFunction.SeqFromArray, elType, HeapExpr, seq);
             }
             var isLit = translator.IsLit(seq);
@@ -8665,24 +8678,25 @@ namespace Microsoft.Dafny {
           else
           {
             Bpl.Expr seq = TrExpr(e.Seq);
-            if (e.Seq.Type is SeqType)
+            var seqType = e.Seq.Type.NormalizeExpand();
+            if (seqType is SeqType)
             {
-              Type elmtType = cce.NonNull((SeqType)e.Seq.Type).Arg;
+              Type elmtType = cce.NonNull((SeqType)seqType).Arg;
               Bpl.Expr index = TrExpr(e.Index);
               Bpl.Expr val = BoxIfNecessary(expr.tok, TrExpr(e.Value), elmtType);
               return translator.FunctionCall(expr.tok, BuiltinFunction.SeqUpdate, predef.BoxType, seq, index, val);
             }
-            else if (e.Seq.Type is MapType)
+            else if (seqType is MapType)
             {
-              MapType mt = (MapType)e.Seq.Type;
+              MapType mt = (MapType)seqType;
               Bpl.Type maptype = predef.MapType(expr.tok, predef.BoxType, predef.BoxType);
               Bpl.Expr index = BoxIfNecessary(expr.tok, TrExpr(e.Index), mt.Domain);
               Bpl.Expr val = BoxIfNecessary(expr.tok, TrExpr(e.Value), mt.Range);
               return translator.FunctionCall(expr.tok, "Map#Build", maptype, seq, index, val);
             }
-            else if (e.Seq.Type is MultiSetType)
+            else if (seqType is MultiSetType)
             {
-              Type elmtType = cce.NonNull((MultiSetType)e.Seq.Type).Arg;
+              Type elmtType = cce.NonNull((MultiSetType)seqType).Arg;
               Bpl.Expr index = BoxIfNecessary(expr.tok, TrExpr(e.Index), elmtType);
               Bpl.Expr val = TrExpr(e.Value);
               return Bpl.Expr.StoreTok(expr.tok, seq, index, val);
@@ -8757,10 +8771,11 @@ namespace Microsoft.Dafny {
 
         } else if (expr is MultiSetFormingExpr) {
           MultiSetFormingExpr e = (MultiSetFormingExpr)expr;
-          if (e.E.Type is SetType) {
-            return translator.FunctionCall(expr.tok, BuiltinFunction.MultiSetFromSet, translator.TrType(cce.NonNull((SetType)e.E.Type).Arg), TrExpr(e.E));
-          } else if (e.E.Type is SeqType) {
-            return translator.FunctionCall(expr.tok, BuiltinFunction.MultiSetFromSeq, translator.TrType(cce.NonNull((SeqType)e.E.Type).Arg), TrExpr(e.E));
+          var eType = e.E.Type.NormalizeExpand();
+          if (eType is SetType) {
+            return translator.FunctionCall(expr.tok, BuiltinFunction.MultiSetFromSet, translator.TrType(cce.NonNull((SetType)eType).Arg), TrExpr(e.E));
+          } else if (eType is SeqType) {
+            return translator.FunctionCall(expr.tok, BuiltinFunction.MultiSetFromSeq, translator.TrType(cce.NonNull((SeqType)eType).Arg), TrExpr(e.E));
           } else {
             Contract.Assert(false); throw new cce.UnreachableException();
           }
@@ -8774,29 +8789,31 @@ namespace Microsoft.Dafny {
             case UnaryOpExpr.Opcode.Not:
               return Bpl.Expr.Unary(expr.tok, UnaryOperator.Opcode.Not, arg);
             case UnaryOpExpr.Opcode.Cardinality:
-              if (e.E.Type is SeqType) {
+              var eType = e.E.Type.NormalizeExpand();
+              if (eType is SeqType) {
                 return translator.FunctionCall(expr.tok, BuiltinFunction.SeqLength, null, arg);
-              } else if (e.E.Type is SetType) {
+              } else if (eType is SetType) {
                 return translator.FunctionCall(expr.tok, BuiltinFunction.SetCard, null, arg);
-              } else if (e.E.Type is MultiSetType) {
+              } else if (eType is MultiSetType) {
                 return translator.FunctionCall(expr.tok, BuiltinFunction.MultiSetCard, null, arg);
-              } else if (e.E.Type is MapType) {
+              } else if (eType is MapType) {
                 return translator.FunctionCall(expr.tok, BuiltinFunction.MapCard, null, arg);
               } else {
                 Contract.Assert(false); throw new cce.UnreachableException();  // unexpected sized type
               }
             case UnaryOpExpr.Opcode.Fresh:
-              if (e.E.Type is SetType) {
+              var eeType = e.E.Type.NormalizeExpand();
+              if (eeType is SetType) {
                 // generate:  (forall $o: ref :: $o != null && X[Box($o)] ==> !old($Heap)[$o,alloc])
                 // TODO: trigger?
                 Bpl.Variable oVar = new Bpl.BoundVariable(expr.tok, new Bpl.TypedIdent(expr.tok, "$o", predef.RefType));
                 Bpl.Expr o = new Bpl.IdentifierExpr(expr.tok, oVar);
                 Bpl.Expr oNotNull = Bpl.Expr.Neq(o, predef.Null);
-                Bpl.Expr oInSet = TrInSet(expr.tok, o, e.E, ((SetType)e.E.Type).Arg);
+                Bpl.Expr oInSet = TrInSet(expr.tok, o, e.E, ((SetType)eeType).Arg);
                 Bpl.Expr oIsFresh = Bpl.Expr.Not(Old.IsAlloced(expr.tok, o));
                 Bpl.Expr body = Bpl.Expr.Imp(Bpl.Expr.And(oNotNull, oInSet), oIsFresh);
                 return new Bpl.ForallExpr(expr.tok, new List<Variable> { oVar }, body);
-              } else if (e.E.Type is SeqType) {
+              } else if (eeType is SeqType) {
                 // generate:  (forall $i: int :: 0 <= $i && $i < Seq#Length(X) && Unbox(Seq#Index(X,$i)) != null ==> !old($Heap)[Unbox(Seq#Index(X,$i)),alloc])
                 // TODO: trigger?
                 Bpl.Variable iVar = new Bpl.BoundVariable(expr.tok, new Bpl.TypedIdent(expr.tok, "$i", Bpl.Type.Int));
@@ -8808,9 +8825,9 @@ namespace Microsoft.Dafny {
                 Bpl.Expr xsubiNotNull = Bpl.Expr.Neq(XsubI, predef.Null);
                 Bpl.Expr body = Bpl.Expr.Imp(Bpl.Expr.And(iBounds, xsubiNotNull), oIsFresh);
                 return new Bpl.ForallExpr(expr.tok, new List<Variable> { iVar }, body);
-              } else if (e.E.Type.IsDatatype) {
-            // translator.FunctionCall(e.tok, BuiltinFunction.DtAlloc, null, TrExpr(e.E), Old.HeapExpr);
-            Bpl.Expr alloc = translator.MkIsAlloc(TrExpr(e.E), e.E.Type, Old.HeapExpr);
+              } else if (eeType.IsDatatype) {
+                // translator.FunctionCall(e.tok, BuiltinFunction.DtAlloc, null, TrExpr(e.E), Old.HeapExpr);
+                Bpl.Expr alloc = translator.MkIsAlloc(TrExpr(e.E), eeType, Old.HeapExpr);
                 return Bpl.Expr.Unary(expr.tok, UnaryOperator.Opcode.Not, alloc);
               } else {
                 // generate:  x != null && !old($Heap)[x]
@@ -8837,7 +8854,7 @@ namespace Microsoft.Dafny {
 
         } else if (expr is BinaryExpr) {
           BinaryExpr e = (BinaryExpr)expr;
-          bool isReal = e.E0.Type is RealType;
+          bool isReal = e.E0.Type.IsRealType;
           Bpl.Expr e0 = TrExpr(e.E0);
           if (e.ResolvedOp == BinaryExpr.ResolvedOpcode.InSet) {
             return TrInSet(expr.tok, e0, e.E1, cce.NonNull(e.E0.Type));  // let TrInSet translate e.E1
@@ -8883,16 +8900,20 @@ namespace Microsoft.Dafny {
 
             case BinaryExpr.ResolvedOpcode.EqCommon:
               keepLits = true;
-              if (e.E0.Type.IsCoDatatype) {
-                var cot = e.E0.Type.AsCoDatatype;
-                return translator.CoEqualCall(cot, e.E0.Type.TypeArgs, e.E1.Type.TypeArgs, null, LayerN(2), e0, e1, expr.tok);
+              var cot = e.E0.Type.AsCoDatatype;
+              if (cot != null) {
+                var e0args = e.E0.Type.NormalizeExpand().TypeArgs;
+                var e1args = e.E1.Type.NormalizeExpand().TypeArgs;
+                return translator.CoEqualCall(cot, e0args, e1args, null, LayerN(2), e0, e1, expr.tok);
               }
               typ = Bpl.Type.Bool;
               bOpcode = BinaryOperator.Opcode.Eq; break;
             case BinaryExpr.ResolvedOpcode.NeqCommon:
-              if (e.E0.Type.IsCoDatatype) {
-                var cot = e.E0.Type.AsCoDatatype;
-                var x = translator.CoEqualCall(cot, e.E0.Type.TypeArgs, e.E1.Type.TypeArgs, null, LayerN(2), e0, e1, expr.tok);
+              var cotx = e.E0.Type.AsCoDatatype;
+              if (cotx != null) {
+                var e0args = e.E0.Type.NormalizeExpand().TypeArgs;
+                var e1args = e.E1.Type.NormalizeExpand().TypeArgs;
+                var x = translator.CoEqualCall(cotx, e0args, e1args, null, LayerN(2), e0, e1, expr.tok);
                 return Bpl.Expr.Unary(expr.tok, UnaryOperator.Opcode.Not, x);
               }
               typ = Bpl.Type.Bool;
@@ -8952,11 +8973,11 @@ namespace Microsoft.Dafny {
             case BinaryExpr.ResolvedOpcode.NotInSet:
               Contract.Assert(false); throw new cce.UnreachableException();  // this case handled above
             case BinaryExpr.ResolvedOpcode.Union:
-              return translator.FunctionCall(expr.tok, BuiltinFunction.SetUnion, translator.TrType(cce.NonNull((SetType)expr.Type).Arg), e0, e1);
+              return translator.FunctionCall(expr.tok, BuiltinFunction.SetUnion, translator.TrType(expr.Type.AsSetType.Arg), e0, e1);
             case BinaryExpr.ResolvedOpcode.Intersection:
-              return translator.FunctionCall(expr.tok, BuiltinFunction.SetIntersection, translator.TrType(cce.NonNull((SetType)expr.Type).Arg), e0, e1);
+              return translator.FunctionCall(expr.tok, BuiltinFunction.SetIntersection, translator.TrType(expr.Type.AsSetType.Arg), e0, e1);
             case BinaryExpr.ResolvedOpcode.SetDifference:
-              return translator.FunctionCall(expr.tok, BuiltinFunction.SetDifference, translator.TrType(cce.NonNull((SetType)expr.Type).Arg), e0, e1);
+              return translator.FunctionCall(expr.tok, BuiltinFunction.SetDifference, translator.TrType(expr.Type.AsSetType.Arg), e0, e1);
 
             case BinaryExpr.ResolvedOpcode.MultiSetEq:
               return translator.FunctionCall(expr.tok, BuiltinFunction.MultiSetEqual, null, e0, e1);
@@ -8981,11 +9002,11 @@ namespace Microsoft.Dafny {
             case BinaryExpr.ResolvedOpcode.NotInMultiSet:
               Contract.Assert(false); throw new cce.UnreachableException();  // this case handled above
             case BinaryExpr.ResolvedOpcode.MultiSetUnion:
-              return translator.FunctionCall(expr.tok, BuiltinFunction.MultiSetUnion, translator.TrType(cce.NonNull((MultiSetType)expr.Type).Arg), e0, e1);
+              return translator.FunctionCall(expr.tok, BuiltinFunction.MultiSetUnion, translator.TrType(expr.Type.AsMultiSetType.Arg), e0, e1);
             case BinaryExpr.ResolvedOpcode.MultiSetIntersection:
-              return translator.FunctionCall(expr.tok, BuiltinFunction.MultiSetIntersection, translator.TrType(cce.NonNull((MultiSetType)expr.Type).Arg), e0, e1);
+              return translator.FunctionCall(expr.tok, BuiltinFunction.MultiSetIntersection, translator.TrType(expr.Type.AsMultiSetType.Arg), e0, e1);
             case BinaryExpr.ResolvedOpcode.MultiSetDifference:
-              return translator.FunctionCall(expr.tok, BuiltinFunction.MultiSetDifference, translator.TrType(cce.NonNull((MultiSetType)expr.Type).Arg), e0, e1);
+              return translator.FunctionCall(expr.tok, BuiltinFunction.MultiSetDifference, translator.TrType(expr.Type.AsMultiSetType.Arg), e0, e1);
 
             case BinaryExpr.ResolvedOpcode.SeqEq:
               return translator.FunctionCall(expr.tok, BuiltinFunction.SeqEqual, null, e0, e1);
@@ -9002,7 +9023,7 @@ namespace Microsoft.Dafny {
                   translator.FunctionCall(expr.tok, BuiltinFunction.SeqSameUntil, null, e0, e1, len0));
               }
             case BinaryExpr.ResolvedOpcode.Concat:
-              return translator.FunctionCall(expr.tok, BuiltinFunction.SeqAppend, translator.TrType(cce.NonNull((SeqType)expr.Type).Arg), e0, e1);
+              return translator.FunctionCall(expr.tok, BuiltinFunction.SeqAppend, translator.TrType(expr.Type.AsSeqType.Arg), e0, e1);
             case BinaryExpr.ResolvedOpcode.InSeq:
               return translator.FunctionCall(expr.tok, BuiltinFunction.SeqContains, null, e1,
                        BoxIfNecessary(expr.tok, e0, cce.NonNull(e.E0.Type)));
@@ -9047,9 +9068,11 @@ namespace Microsoft.Dafny {
           switch (e.Op) {
             case TernaryExpr.Opcode.PrefixEqOp:
             case TernaryExpr.Opcode.PrefixNeqOp:
-              var cot = e.E1.Type.AsCoDatatype;
+              var e1type = e.E1.Type.NormalizeExpand();
+              var e2type = e.E2.Type.NormalizeExpand();
+              var cot = e1type.AsCoDatatype;
               Contract.Assert(cot != null);  // the argument types of prefix equality (and prefix disequality) are codatatypes
-              var r = translator.CoEqualCall(cot, e.E1.Type.TypeArgs, e.E2.Type.TypeArgs, e0, LayerN(2), e1, e2);
+              var r = translator.CoEqualCall(cot, e1type.TypeArgs, e2type.TypeArgs, e0, LayerN(2), e1, e2);
               if (e.Op == TernaryExpr.Opcode.PrefixEqOp) {
                 return r;
               } else {
@@ -10063,7 +10086,7 @@ namespace Microsoft.Dafny {
     /// </summary>
     bool TrSplitExpr(Expression expr, List<SplitExprInfo/*!*/>/*!*/ splits, bool position, int heightLimit, bool apply_induction, ExpressionTranslator etran) {
       Contract.Requires(expr != null);
-      Contract.Requires(expr.Type is BoolType || (expr is BoxingCastExpr && ((BoxingCastExpr)expr).E.Type is BoolType));
+      Contract.Requires(expr.Type.IsBoolType || (expr is BoxingCastExpr && ((BoxingCastExpr)expr).E.Type.IsBoolType));
       Contract.Requires(splits != null);
       Contract.Requires(etran != null);
 
@@ -10139,7 +10162,9 @@ namespace Microsoft.Dafny {
       } else if (expr is TernaryExpr) {
         var e = (TernaryExpr)expr;
         if ((e.Op == TernaryExpr.Opcode.PrefixEqOp && position) || (e.Op == TernaryExpr.Opcode.PrefixNeqOp && !position)) {
-          var codecl = e.E1.Type.AsCoDatatype;
+          var e1type = e.E1.Type.NormalizeExpand();
+          var e2type = e.E2.Type.NormalizeExpand();
+          var codecl = e1type.AsCoDatatype;
           Contract.Assert(codecl != null);
           var k = etran.TrExpr(e.E0);
           var A = etran.TrExpr(e.E1);
@@ -10149,7 +10174,7 @@ namespace Microsoft.Dafny {
           //   checked $PrefixEqual#Dt(k, A, B) || (0 < k ==> A.Cons? ==> B.Cons? && A.head == B.head && $PrefixEqual#2#Dt(k - 1, A.tail, B.tail))  // note the #2 in the recursive call, just like for user-defined predicates that are inlined by TrSplitExpr
           //   free $PrefixEqual#Dt(k, A, B);
           var kPos = Bpl.Expr.Lt(Bpl.Expr.Literal(0), k);
-          var prefixEqK = CoEqualCall(codecl, e.E1.Type.TypeArgs, e.E2.Type.TypeArgs, k, etran.LayerN(2), A, B); // FunctionCall(expr.tok, CoPrefixName(codecl, 1), Bpl.Type.Bool, k, A, B);
+          var prefixEqK = CoEqualCall(codecl, e1type.TypeArgs, e2type.TypeArgs, k, etran.LayerN(2), A, B); // FunctionCall(expr.tok, CoPrefixName(codecl, 1), Bpl.Type.Bool, k, A, B);
           var kMinusOne = Bpl.Expr.Sub(k, Bpl.Expr.Literal(1));
           // for the inlining of the definition of prefix equality, translate the two main equality operands arguments with a higher offset (to obtain #2 functions)
           var etran2 = etran.LayerOffset(1);
@@ -10158,7 +10183,7 @@ namespace Microsoft.Dafny {
           var needsTokenAdjust = TrSplitNeedsTokenAdjustment(expr);
           // Dan: dafny4/Circ.dfy needs this one to be 2+, rather than 1+ 
           Bpl.Expr layer = LayerSucc(etran.layerInterCluster, 2); 
-          foreach (var c in CoPrefixEquality(needsTokenAdjust ? new ForceCheckToken(expr.tok) : expr.tok, codecl, e.E1.Type.TypeArgs, e.E2.Type.TypeArgs, kMinusOne, layer, A2, B2, true)) {
+          foreach (var c in CoPrefixEquality(needsTokenAdjust ? new ForceCheckToken(expr.tok) : expr.tok, codecl, e1type.TypeArgs, e2type.TypeArgs, kMinusOne, layer, A2, B2, true)) {
             var p = Bpl.Expr.Binary(c.tok, BinaryOperator.Opcode.Or, prefixEqK, Bpl.Expr.Imp(kPos, c));
             splits.Add(new SplitExprInfo(SplitExprInfo.K.Checked, p));
           }
@@ -10306,7 +10331,7 @@ namespace Microsoft.Dafny {
           var substMap = new Dictionary<IVariable, Expression>();
           foreach (var n in inductionVariables) {
             toks.Add(n.tok);
-            types.Add(n.Type);
+            types.Add(n.Type.NormalizeExpand());
             BoundVar k = new BoundVar(n.tok, n.Name + "$ih#" + otherTmpVarCount, n.Type);
             otherTmpVarCount++;
             kvars.Add(k);
@@ -10736,6 +10761,7 @@ namespace Microsoft.Dafny {
     }
 
     IEnumerable<Bpl.Expr> InductionCases(Type ty, Bpl.Expr expr, ExpressionTranslator etran) {
+      ty = ty.NormalizeExpand();
       IndDatatypeDecl dt = ty.AsIndDatatype;
       if (dt == null) {
         yield return Bpl.Expr.True;
@@ -10806,7 +10832,7 @@ namespace Microsoft.Dafny {
       if (ty.IsTypeParameter && ! ty.AsTypeParameter.IsAbstractTypeDeclaration) {
         fvs.Add(ty.AsTypeParameter);
       }
-      ty.TypeArgs.Iter(tt => ComputeFreeTypeVariables(tt, fvs));
+      ty.NormalizeExpand().TypeArgs.Iter(tt => ComputeFreeTypeVariables(tt, fvs));
     }
 
     static void ComputeFreeVariables(Expression expr, ISet<IVariable> fvs, ref bool usesHeap, ref bool usesOldHeap, ref Type usesThis, bool inOldContext) {
@@ -11863,6 +11889,8 @@ namespace Microsoft.Dafny {
     }
 
     static List<A> Concat<A>(List<A> xs, List<A> ys) {
+      Contract.Requires(xs != null);
+      Contract.Requires(ys != null);
       List<A> cpy = new List<A>(xs);
       cpy.AddRange(ys);
       return cpy;
@@ -11870,6 +11898,8 @@ namespace Microsoft.Dafny {
 
     public static List<B> Map<A,B>(IEnumerable<A> xs, Func<A,B> f)
     {
+      Contract.Requires(xs != null);
+      Contract.Requires(f != null);
       List<B> ys = new List<B>();
       foreach (A x in xs) {
         ys.Add(f(x));
@@ -11879,6 +11909,8 @@ namespace Microsoft.Dafny {
     
     public static void MapM<A>(IEnumerable<A> xs, Action<A> K)
     {
+      Contract.Requires(xs != null);
+      Contract.Requires(K != null);
       foreach (A x in xs) {
         K(x);
       }

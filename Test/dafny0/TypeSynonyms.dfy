@@ -44,3 +44,10 @@ function Skip(s: Synonym3): Synonym0
   case Nil => Nil
   case Cons(_, tail) => tail
 }
+
+type MyMap = map<int, map<real, bool>>
+
+predicate MyMapProperty(m: MyMap, x: int)
+{
+  x in m && real(x) in m[x] && m[x][real(x)]
+}

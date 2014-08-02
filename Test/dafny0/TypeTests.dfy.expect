@@ -25,8 +25,8 @@ TypeTests.dfy(106,3): Error: cannot assign to a range of array elements (try the
 TypeTests.dfy(107,3): Error: cannot assign to a range of array elements (try the 'forall' statement)
 TypeTests.dfy(113,6): Error: sorry, cannot instantiate collection type with a subrange type
 TypeTests.dfy(114,9): Error: sorry, cannot instantiate type parameter with a subrange type
-TypeTests.dfy(115,8): Error: sorry, cannot instantiate 'array' type with a subrange type
-TypeTests.dfy(116,8): Error: sorry, cannot instantiate 'array' type with a subrange type
+TypeTests.dfy(115,8): Error: sorry, cannot instantiate type parameter with a subrange type
+TypeTests.dfy(116,8): Error: sorry, cannot instantiate type parameter with a subrange type
 TypeTests.dfy(128,15): Error: ghost variables are allowed only in specification contexts
 TypeTests.dfy(138,4): Error: cannot assign to non-ghost variable in a ghost context
 TypeTests.dfy(139,7): Error: cannot assign to non-ghost variable in a ghost context
