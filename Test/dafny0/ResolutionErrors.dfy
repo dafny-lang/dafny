@@ -1090,3 +1090,13 @@ module OpaqueTypes1 {
     assert p != q;  // error: types must be the same in order to do compare
   }
 }
+
+// ----- new trait -------------------------------------------
+
+
+trait J { }
+type JJ = J
+method TraitSynonym()
+{
+  var x := new JJ;  // error: new cannot be applied to a trait
+}

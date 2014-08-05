@@ -1,2 +1,2 @@
-TraitMultiModule.dfy(21,9): Error: class M2.C2 is in a different module than trait M1.T1. A class may only extend a trait in the same module
+TraitMultiModule.dfy(21,20): Error: class M2.C2 is in a different module than trait M1.T1. A class may only extend a trait in the same module
 1 resolution/type errors detected in TraitMultiModule.dfy

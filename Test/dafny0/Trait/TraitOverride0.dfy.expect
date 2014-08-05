@@ -1,4 +1,4 @@
-TraitOverride0.dfy(53,20): Error: a class can not override implemented functions
+TraitOverride0.dfy(53,20): Error: a class cannot override implemented functions
 TraitOverride0.dfy(48,20): Error: function 'BodyLess1' is declared with a different number of parameter (1 instead of 0) than the corresponding function in the module it overrides
 TraitOverride0.dfy(65,6): Error: class: C2 does not implement trait member: BodyLess1
 TraitOverride0.dfy(65,6): Error: class: C2 does not implement trait member: BodyLess2

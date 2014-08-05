@@ -1,7 +1,7 @@
+TraitBasix.dfy(91,23): Error: unresolved identifier: IX
 TraitBasix.dfy(77,13): Error: member in the class has been already inherited from its parent trait
 TraitBasix.dfy(70,7): Error: class: I0Child does not implement trait member: Customizable
 TraitBasix.dfy(80,7): Error: class: I0Child2 does not implement trait member: F
-TraitBasix.dfy(91,7): Error: unresolved identifier: IX
 TraitBasix.dfy(98,6): Error: a trait is not allowed to declare a constructor
-TraitBasix.dfy(117,10): Error: new can not be applied to a trait
+TraitBasix.dfy(117,10): Error: new cannot be applied to a trait
 6 resolution/type errors detected in TraitBasix.dfy

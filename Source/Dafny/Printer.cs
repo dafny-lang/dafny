@@ -265,6 +265,9 @@ namespace Microsoft.Dafny {
       Contract.Requires(c != null);
       Indent(indent);
       PrintClassMethodHelper((c is TraitDecl) ? "trait" : "class", c.Attributes, c.Name, c.TypeArgs);
+      if (c.TraitId != null) {
+        wr.Write(" extends {0}", c.TraitId.val);
+      }
       if (c.Members.Count == 0) {
         wr.WriteLine(" { }");
       } else {
