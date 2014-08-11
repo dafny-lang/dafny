@@ -136,14 +136,15 @@ namespace Microsoft.Dafny
         return nm;
       }
     }
-    //Dictionary<string/*!*/, Tuple<DatatypeCtor, bool>> allDatatypeCtors;
+    //Dictionary<string, Tuple<DatatypeCtor, bool>> allDatatypeCtors;
 
-    readonly Dictionary<ClassDecl/*!*/, Dictionary<string/*!*/, MemberDecl/*!*/>/*!*/>/*!*/ classMembers = new Dictionary<ClassDecl/*!*/, Dictionary<string/*!*/, MemberDecl/*!*/>/*!*/>();
-    readonly Dictionary<DatatypeDecl/*!*/, Dictionary<string/*!*/, MemberDecl/*!*/>/*!*/>/*!*/ datatypeMembers = new Dictionary<DatatypeDecl/*!*/, Dictionary<string/*!*/, MemberDecl/*!*/>/*!*/>();
-    readonly Dictionary<DatatypeDecl/*!*/, Dictionary<string/*!*/, DatatypeCtor/*!*/>/*!*/>/*!*/ datatypeCtors = new Dictionary<DatatypeDecl/*!*/, Dictionary<string/*!*/, DatatypeCtor/*!*/>/*!*/>();
-    readonly Graph<ModuleDecl/*!*/>/*!*/ dependencies = new Graph<ModuleDecl/*!*/>();
+    readonly Dictionary<ClassDecl, Dictionary<string, MemberDecl>> classMembers = new Dictionary<ClassDecl, Dictionary<string, MemberDecl>>();
+    readonly Dictionary<DatatypeDecl, Dictionary<string, MemberDecl>> datatypeMembers = new Dictionary<DatatypeDecl, Dictionary<string, MemberDecl>>();
+    readonly Dictionary<DatatypeDecl, Dictionary<string, DatatypeCtor>> datatypeCtors = new Dictionary<DatatypeDecl, Dictionary<string, DatatypeCtor>>();
+    readonly Graph<ModuleDecl> dependencies = new Graph<ModuleDecl>();
     private ModuleSignature systemNameInfo = null;
     private bool useCompileSignatures = false;
+    private RefinementTransformer refinementTransformer = null; 
 
     public Resolver(Program prog) {
       Contract.Requires(prog != null);
@@ -474,16 +475,17 @@ namespace Microsoft.Dafny
         } else {
           Expression e = fe.E;  // keep only fe.E, drop any fe.Field designation
           Contract.Assert(e.Type != null);  // should have been resolved already
-          if (e.Type.IsRefType) {
+          var eType = e.Type.NormalizeExpand();
+          if (eType.IsRefType) {
             // e represents a singleton set
             if (singletons == null) {
               singletons = new List<Expression>();
             }
             singletons.Add(e);
-          } else if (e.Type is SeqType) {
+          } else if (eType is SeqType) {
             // e represents a sequence
             // Add:  set x :: x in e
-            var bv = new BoundVar(e.tok, "_s2s_" + tmpVarCount, ((SeqType)e.Type).Arg);
+            var bv = new BoundVar(e.tok, "_s2s_" + tmpVarCount, ((SeqType)eType).Arg);
             tmpVarCount++;
             var bvIE = new IdentifierExpr(e.tok, bv.Name);
             bvIE.Var = bv;  // resolve here
@@ -496,7 +498,7 @@ namespace Microsoft.Dafny
             sets.Add(s);
           } else {
             // e is already a set
-            Contract.Assert(e.Type is SetType);
+            Contract.Assert(eType is SetType);
             sets.Add(e);
           }
         }
@@ -947,7 +949,11 @@ namespace Microsoft.Dafny
             }
           }
           cl.HasConstructor = hasConstructor;
-          if (cl.IsDefaultClass) {
+          if (cl is TraitDecl && cl.HasConstructor)
+          {
+              Error(cl, "a trait is not allowed to declare a constructor");
+          }
+            if (cl.IsDefaultClass) {
             foreach (MemberDecl m in cl.Members) {
               if (m.IsStatic && (m is Function || m is Method)) {
                 sig.StaticMembers[m.Name] = m;
@@ -1056,9 +1062,10 @@ namespace Microsoft.Dafny
         var dd = (ClassDecl)d;
         var tps = dd.TypeArgs.ConvertAll(CloneTypeParam);
         var mm = dd.Members.ConvertAll(CloneMember);
+        List<IToken> trait = null;
         if (dd is DefaultClassDecl) {
           return new DefaultClassDecl(m, mm);
-        } else return new ClassDecl(dd.tok, dd.Name, m, tps, mm, null);
+        } else return new ClassDecl(dd.tok, dd.Name, m, tps, mm, null,trait);
       } else if (d is ModuleDecl) {
         if (d is LiteralModuleDecl) {
           return new LiteralModuleDecl(((LiteralModuleDecl)d).ModuleDef, m);
@@ -1447,6 +1454,14 @@ namespace Microsoft.Dafny
         allTypeParameters.PopMarker();
       }
 
+      // Now that all traits have been resolved, let classes inherit the trait members
+      foreach (var d in declarations) {
+        var cl = d as ClassDecl;
+        if (cl != null) {
+          InheritTraitMembers(cl);
+        }
+      }
+
       // perform acyclicity test on type synonyms
       var cycle = typeSynonymDependencies.TryFindCycle();
       if (cycle != null) {
@@ -1466,6 +1481,10 @@ namespace Microsoft.Dafny
       // Resolve the meat of classes and iterators, the definitions of type synonyms, and the type parameters of all top-level type declarations
       foreach (TopLevelDecl d in declarations) {
         Contract.Assert(d != null);
+        if (d is TraitDecl && d.TypeArgs != null && d.TypeArgs.Count > 0)
+        {
+            Error(d, "a trait cannot declare type parameters");
+        }
         allTypeParameters.PushMarker();
         ResolveTypeParameters(d.TypeArgs, false, d);
         if (!(d is IteratorDecl)) {
@@ -2028,7 +2047,7 @@ namespace Microsoft.Dafny
         Contract.Requires(tok != null);
         Contract.Requires(t != null);
         Contract.Requires(what != null);
-        t = t.Normalize();
+        t = t.NormalizeExpand();
         if (t is TypeProxy && (aggressive || !(t is InferredTypeProxy || t is ParamTypeProxy || t is ObjectTypeProxy))) {
           Error(tok, "the type of this {0} is underspecified, but it cannot be an opaque type.", what);
           return false;
@@ -2766,12 +2785,33 @@ namespace Microsoft.Dafny
     /// <summary>
     /// Assumes type parameters have already been pushed
     /// </summary>
-    void ResolveClassMemberTypes(ClassDecl/*!*/ cl) {
+    void ResolveClassMemberTypes(ClassDecl cl) {
       Contract.Requires(cl != null);
       Contract.Requires(currentClass == null);
       Contract.Ensures(currentClass == null);
 
       currentClass = cl;
+
+      // Resolve names of traits extended
+      if (cl.TraitId != null) {
+        var trait = classMembers.Keys.FirstOrDefault(traitDecl => traitDecl.CompileName == cl.TraitId.val);
+        if (trait == null) {
+          Error(cl.TraitId, "unresolved identifier: {0}", cl.TraitId.val);
+        } else if (!(trait is TraitDecl)) {
+          Error(cl.TraitId, "identifier '{0}' does not denote a trait", cl.TraitId.val);
+        } else {
+          //disallowing inheritance in multi module case
+          string clModName = cl.Module.CompileName.Replace("_Compile", string.Empty);
+          string traitModName = trait.Module.CompileName.Replace("_Compile", string.Empty);
+          if (clModName != traitModName) {
+            Error(cl.TraitId, string.Format("class {0} is in a different module than trait {1}. A class may only extend a trait in the same module",
+                cl.FullName, trait.FullName));
+          } else {
+            cl.Trait = (TraitDecl)trait;
+          }
+        }
+      }
+
       foreach (MemberDecl member in cl.Members) {
         member.EnclosingClass = cl;
         if (member is Field) {
@@ -2815,7 +2855,127 @@ namespace Microsoft.Dafny
           Contract.Assert(false); throw new cce.UnreachableException();  // unexpected member type
         }
       }
+
       currentClass = null;
+    }
+
+    void InheritTraitMembers(ClassDecl cl) {
+      Contract.Requires(cl != null);
+
+      //merging class members with parent members if any
+      if (cl.Trait != null) {
+        var clMembers = classMembers[cl];
+        var traitMembers = classMembers[cl.Trait];
+        //merging current class members with the inheriting trait
+        foreach (KeyValuePair<string, MemberDecl> traitMem in traitMembers) {
+          MemberDecl clMember;
+          if (clMembers.TryGetValue(traitMem.Key, out clMember)) {
+            //check if the signature of the members are equal and the member is body-less
+            if (traitMem.Value is Method) {
+              Method traitMethod = (Method)traitMem.Value;
+              // TODO: should check that the class member is also a method, and the same kind of method
+              Method classMethod = (Method)clMember;
+              //refinementTransformer.CheckMethodsAreRefinements(classMethod, traitMethod);
+              if (traitMethod.Body != null && !clMembers[classMethod.CompileName].Inherited) //if the existing method in the class is not that inherited one from the parent
+                Error(classMethod, "a class cannot override implemented methods");
+              else {
+                classMethod.OverriddenMethod = traitMethod;
+                //adding a call graph edge from the trait method to that of class
+                cl.Module.CallGraph.AddEdge(traitMethod, classMethod);
+
+                //checking specifications
+                //class method must provide its own specifications in case the overriden method has provided any
+                if ((classMethod.Req == null || classMethod.Req.Count == 0) && (classMethod.OverriddenMethod.Req != null && classMethod.OverriddenMethod.Req.Count > 0))  //it means m.OverriddenMethod.Req =>  m.Req
+                {
+                  Error(classMethod, "Method must provide its own Requires clauses anew");
+                }
+                if ((classMethod.Ens == null || classMethod.Ens.Count == 0) && (classMethod.OverriddenMethod.Ens != null && classMethod.OverriddenMethod.Ens.Count > 0))  //it means m.OverriddenMethod.Ens =>  m.Ens
+                {
+                  Error(classMethod, "Method must provide its own Ensures clauses anew");
+                }
+                if ((classMethod.Mod == null || classMethod.Mod.Expressions == null || classMethod.Mod.Expressions.Count == 0) && (classMethod.OverriddenMethod.Mod != null && classMethod.OverriddenMethod.Mod.Expressions != null && classMethod.OverriddenMethod.Mod.Expressions.Count > 0))  //it means m.OverriddenMethod.Mod =>  m.Mod
+                {
+                  Error(classMethod, "Method must provide its own Modifies clauses anew");
+                }
+                if ((classMethod.Decreases == null || classMethod.Decreases.Expressions == null || classMethod.Decreases.Expressions.Count == 0) && (classMethod.OverriddenMethod.Decreases != null && classMethod.OverriddenMethod.Decreases.Expressions != null && classMethod.OverriddenMethod.Decreases.Expressions.Count > 0))  //it means m.OverriddenMethod.Decreases =>  m.Decreases
+                {
+                  Error(classMethod, "Method must provide its own Decreases clauses anew");
+                }
+              }
+            } else if (traitMem.Value is Function) {
+              Function traitFunction = (Function)traitMem.Value;
+              Function classFunction = (Function)clMember;
+              //refinementTransformer.CheckFunctionsAreRefinements(classFunction, traitFunction);
+              if (traitFunction.Body != null && !classMembers[cl][classFunction.CompileName].Inherited)
+                Error(classFunction, "a class cannot override implemented functions");
+              else {
+                classFunction.OverriddenFunction = traitFunction;
+                //adding a call graph edge from the trait method to that of class
+                cl.Module.CallGraph.AddEdge(traitFunction, classFunction);
+
+                //checking specifications
+                //class function must provide its own specifications in case the overriden function has provided any
+                if ((classFunction.Req == null || classFunction.Req.Count == 0) && (classFunction.OverriddenFunction.Req != null && classFunction.OverriddenFunction.Req.Count > 0))  //it means m.OverriddenMethod.Req =>  m.Req
+                {
+                  Error(classFunction, "Function must provide its own Requires clauses anew");
+                }
+                if ((classFunction.Ens == null || classFunction.Ens.Count == 0) && (classFunction.OverriddenFunction.Ens != null && classFunction.OverriddenFunction.Ens.Count > 0))  //it means m.OverriddenMethod.Ens =>  m.Ens
+                {
+                  Error(classFunction, "Function must provide its own Ensures clauses anew");
+                }
+                if ((classFunction.Reads == null || classFunction.Reads.Count == 0) && (classFunction.OverriddenFunction.Reads != null && classFunction.OverriddenFunction.Reads.Count > 0))  //it means m.OverriddenMethod.Mod =>  m.Mod
+                {
+                  Error(classFunction, "Function must provide its own Reads clauses anew");
+                }
+                if ((classFunction.Decreases == null || classFunction.Decreases.Expressions == null || classFunction.Decreases.Expressions.Count == 0) && (classFunction.OverriddenFunction.Decreases != null && classFunction.OverriddenFunction.Decreases.Expressions != null && classFunction.OverriddenFunction.Decreases.Expressions.Count > 0))  //it means m.OverriddenMethod.Decreases =>  m.Decreases
+                {
+                  Error(classFunction, "Function must provide its own Decreases clauses anew");
+                }
+              }
+            } else if (traitMem.Value is Field) {
+              Field traitField = (Field)traitMem.Value;
+              Field classField = (Field)clMember;
+              if (!clMembers[classField.CompileName].Inherited)
+                Error(classField, "member in the class has been already inherited from its parent trait");
+            }
+          } else {
+            //the member is not already in the class
+            // enter the trait member in the symbol table for the class
+            clMembers.Add(traitMem.Key, traitMem.Value);
+          }
+        }//foreach
+
+        //checking to make sure all body-less methods/functions have been implemented in the child class
+        if (refinementTransformer == null)
+          refinementTransformer = new RefinementTransformer(this, AdditionalInformationReporter, null);
+        foreach (MemberDecl traitMember in cl.Trait.Members.Where(mem => mem is Function || mem is Method)) {
+          if (traitMember is Function) {
+            Function traitFunc = (Function)traitMember;
+            if (traitFunc.Body == null) //we do this check only if trait function body is null
+                          {
+              var classMem = cl.Members.Where(clMem => clMem is Function).FirstOrDefault(clMem => ((Function)clMem).Body != null && clMem.CompileName == traitMember.CompileName);
+              if (classMem != null) {
+                Function classFunc = (Function)classMem;
+                refinementTransformer.CheckOverride_FunctionParameters(classFunc, traitFunc);
+              } else if (!cl.Module.IsAbstract && traitFunc.Body == null && classMem == null)
+                Error(cl, "class: {0} does not implement trait member: {1}", cl.CompileName, traitFunc.CompileName);
+            }
+          }
+          if (traitMember is Method) {
+            Method traitMethod = (Method)traitMember;
+            if (traitMethod.Body == null) //we do this check only if trait method body is null
+                          {
+              var classMem = cl.Members.Where(clMem => clMem is Method).FirstOrDefault(clMem => ((Method)clMem).Body != null && clMem.CompileName == traitMember.CompileName);
+              if (classMem != null) {
+                Method classMethod = (Method)classMem;
+                refinementTransformer.CheckOverride_MethodParameters(classMethod, traitMethod);
+              }
+              if (!cl.Module.IsAbstract && traitMethod.Body == null && classMem == null)
+                Error(cl, "class: {0} does not implement trait member: {1}", cl.CompileName, traitMethod.CompileName);
+            }
+          }
+        }
+      }
     }
 
     /// <summary>
@@ -2898,11 +3058,12 @@ namespace Microsoft.Dafny
       }
     }
 
-    void AddDatatypeDependencyEdge(IndDatatypeDecl/*!*/ dt, Type/*!*/ tp, Graph<IndDatatypeDecl/*!*/>/*!*/ dependencies) {
+    void AddDatatypeDependencyEdge(IndDatatypeDecl dt, Type tp, Graph<IndDatatypeDecl> dependencies) {
       Contract.Requires(dt != null);
       Contract.Requires(tp != null);
       Contract.Requires(dependencies != null);  // more expensive check: Contract.Requires(cce.NonNullElements(dependencies));
 
+      tp = tp.NormalizeExpand();
       var dependee = tp.AsIndDatatype;
       if (dependee != null && dt.Module == dependee.Module) {
         dependencies.AddEdge(dt, dependee);
@@ -2995,6 +3156,7 @@ namespace Microsoft.Dafny
     }
 
     bool CheckCanBeConstructed(Type tp, List<TypeParameter> typeParametersUsed) {
+      tp = tp.NormalizeExpand();
       var dependee = tp.AsIndDatatype;
       if (dependee == null) {
         // the type is not an inductive datatype, which means it is always possible to construct it
@@ -3227,8 +3389,9 @@ namespace Microsoft.Dafny
       ResolveExpression(fe.E, false, codeContext);
       Type t = fe.E.Type;
       Contract.Assert(t != null);  // follows from postcondition of ResolveExpression
-      if (t is CollectionType) {
-        t = ((CollectionType)t).Arg;
+      var collType = t.AsCollectionType;
+      if (collType != null) {
+        t = collType.Arg;
       }
       if (!UnifyTypes(t, new ObjectType())) {
         Error(fe.E, "a {0}-clause expression must denote an object or a collection of objects (instead got {1})", kind, fe.E.Type);
@@ -3772,6 +3935,10 @@ namespace Microsoft.Dafny
       } else if (type is UserDefinedType) {
         var t = (UserDefinedType)type;
         var isArrow = t is ArrowType;
+        if (!isArrow && (t.ResolvedClass != null || t.ResolvedParam != null)) {
+          // Apparently, this type has already been resolved
+          return null;
+        }
         foreach (Type tt in t.TypeArgs) {
           ResolveType(t.tok, tt, option, defaultTypeArguments);
           if (tt.IsSubrangeType && !isArrow) {
@@ -3960,6 +4127,10 @@ namespace Microsoft.Dafny
             successSoFar = UnifyTypes(aa.TypeArgs[i], bb.TypeArgs[i]);
           }
           return successSoFar;
+        } else if ((bb.ResolvedClass is ClassDecl) && (aa.ResolvedClass is TraitDecl)) {
+          return ((ClassDecl)bb.ResolvedClass).Trait.FullCompileName == ((TraitDecl)aa.ResolvedClass).FullCompileName;
+        } else if ((aa.ResolvedClass is ClassDecl) && (bb.ResolvedClass is TraitDecl)) {
+          return ((ClassDecl)aa.ResolvedClass).Trait.FullCompileName == ((TraitDecl)bb.ResolvedClass).FullCompileName;
         } else if (aa.ResolvedParam != null && aa.ResolvedParam == bb.ResolvedParam) {
           // type parameters
           if (aa.TypeArgs.Count != bb.TypeArgs.Count) {
@@ -3977,7 +4148,6 @@ namespace Microsoft.Dafny
           // something is wrong; either aa or bb wasn't properly resolved, or they don't unify
           return false;
         }
-
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected type
       }
@@ -4016,7 +4186,7 @@ namespace Microsoft.Dafny
         // In the remaining cases, proxy is a restricted proxy and t is a non-proxy
       } else if (proxy is DatatypeProxy) {
         var dtp = (DatatypeProxy)proxy;
-        if (!dtp.Co && t.IsIndDatatype) {
+        if (!dtp.Co && t.NormalizeExpand().IsIndDatatype) {
           // all is fine, proxy can be redirected to t
         } else if (dtp.Co && t.IsCoDatatype) {
           // all is fine, proxy can be redirected to t
@@ -4059,7 +4229,7 @@ namespace Microsoft.Dafny
           } else if (!UnifyTypes(iProxy.Arg, iProxy.Range)) {
             return false;
           }
-        } else if (iProxy.AllowArray && t.IsArrayType && (t.AsArrayType).Dims == 1) {
+        } else if (iProxy.AllowArray && t.IsArrayType && t.AsArrayType.Dims == 1) {
           Type elType = UserDefinedType.ArrayElementType(t);
           if (!UnifyTypes(iProxy.Domain, Type.Int)) {
             return false;
@@ -4126,7 +4296,7 @@ namespace Microsoft.Dafny
         } else if (b is IndexableTypeProxy && ((IndexableTypeProxy)b).AllowArray) {
           var ib = (IndexableTypeProxy)b;
           // the intersection of ObjectTypeProxy and IndexableTypeProxy is an array type
-          a.T = builtIns.ArrayType(1, ib.Arg);
+          a.T = ResolvedArrayType(Token.NoToken, 1, ib.Arg);
           b.T = a.T;
           return UnifyTypes(ib.Arg, ib.Range);
         } else {
@@ -4205,6 +4375,20 @@ namespace Microsoft.Dafny
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected restricted-proxy type
       }
+    }
+
+    /// <summary>
+    /// Returns a resolved type denoting an array type with dimension "dims" and element type "arg".
+    /// Callers are expected to provide "arg" as an already resolved type.  (Note, a proxy type is resolved--
+    /// only types that contain identifiers stand the possibility of not being resolved.)
+    /// </summary>
+    Type ResolvedArrayType(IToken tok, int dims, Type arg) {
+      Contract.Requires(tok != null);
+      Contract.Requires(1 <= dims);
+      Contract.Requires(arg != null);
+      var at = builtIns.ArrayType(tok, dims, new List<Type> { arg }, false);
+      ResolveType(tok, at, ResolveTypeOptionEnum.DontInfer, null);
+      return at;
     }
 
     /// <summary>
@@ -4394,7 +4578,7 @@ namespace Microsoft.Dafny
             {
               Error(local.Tok, "assumption variable must be ghost");
             }
-            if (!(local.Type is BoolType))
+            if (!(local.Type.IsBoolType))
             {
               Error(s, "assumption variable must be of type 'bool'");
             }
@@ -4788,7 +4972,7 @@ namespace Microsoft.Dafny
         }
         UserDefinedType sourceType = null;
         DatatypeDecl dtd = null;
-        if (s.Source.Type.NormalizeExpand().IsDatatype) {
+        if (s.Source.Type.IsDatatype) {
           sourceType = (UserDefinedType)s.Source.Type.NormalizeExpand();
           dtd = cce.NonNull((DatatypeDecl)sourceType.ResolvedClass);
         }
@@ -4902,7 +5086,7 @@ namespace Microsoft.Dafny
                 guess = Expression.CreateSubtract(bin.E0, bin.E1);
                 break;
               case BinaryExpr.ResolvedOpcode.NeqCommon:
-                if (bin.E0.Type is IntType || bin.E0.Type is RealType) {
+                if (bin.E0.Type.IsIntegerType || bin.E0.Type.IsRealType) {
                   // for A != B where A and B are integers, use the absolute difference between A and B (that is: if A <= B then B-A else A-B)
                   var AminusB = Expression.CreateSubtract(bin.E0, bin.E1);
                   var BminusA = Expression.CreateSubtract(bin.E1, bin.E0);
@@ -5346,7 +5530,7 @@ namespace Microsoft.Dafny
         }
       } else if (lhs is SeqSelectExpr) {
         var ll = (SeqSelectExpr)lhs;
-        if (!UnifyTypes(ll.Seq.Type, builtIns.ArrayType(1, new InferredTypeProxy()))) {
+        if (!UnifyTypes(ll.Seq.Type, ResolvedArrayType(ll.Seq.tok, 1, new InferredTypeProxy()))) {
           Error(ll.Seq, "LHS of array assignment must denote an array element (found {0})", ll.Seq.Type);
         }
         if (!ll.SelectOne) {
@@ -5649,8 +5833,6 @@ namespace Microsoft.Dafny
       }
     }
 
-
-
     Type ResolveTypeRhs(TypeRhs rr, Statement stmt, bool specContextOnly, ICodeContext codeContext) {
       Contract.Requires(rr != null);
       Contract.Requires(stmt != null);
@@ -5667,9 +5849,6 @@ namespace Microsoft.Dafny
           Contract.Assert(rr.Arguments == null && rr.OptionalNameComponent == null && rr.InitCall == null);
           ResolveType(stmt.Tok, rr.EType, ResolveTypeOptionEnum.InferTypeProxies, null);
           int i = 0;
-          if (rr.EType.IsSubrangeType) {
-            Error(stmt, "sorry, cannot instantiate 'array' type with a subrange type");
-          }
           foreach (Expression dim in rr.ArrayDimensions) {
             Contract.Assert(dim != null);
             ResolveExpression(dim, true, codeContext);
@@ -5678,7 +5857,7 @@ namespace Microsoft.Dafny
             }
             i++;
           }
-          rr.Type = builtIns.ArrayType(rr.ArrayDimensions.Count, rr.EType);
+          rr.Type = ResolvedArrayType(stmt.Tok, rr.ArrayDimensions.Count, rr.EType);
         } else {
           var initCallTok = rr.Tok;
           if (rr.OptionalNameComponent == null && rr.Arguments != null) {
@@ -5718,10 +5897,13 @@ namespace Microsoft.Dafny
               // ---------- new C
               Contract.Assert(rr.ArrayDimensions == null && rr.OptionalNameComponent == null && rr.InitCall == null);
             }
-            if (!callsConstructor && rr.EType is UserDefinedType) {
-              var udt = (UserDefinedType)rr.EType;
+            if (rr.EType.NormalizeExpand() is UserDefinedType) {
+              var udt = (UserDefinedType)rr.EType.NormalizeExpand();
               var cl = (ClassDecl)udt.ResolvedClass;  // cast is guaranteed by the call to rr.EType.IsRefType above, together with the "rr.EType is UserDefinedType" test
-              if (cl.HasConstructor) {
+              if (cl is TraitDecl) {
+                Error(stmt, "new cannot be applied to a trait");
+              }
+              if (!callsConstructor && cl.HasConstructor) {
                 Error(stmt, "when allocating an object of type '{0}', one of its constructor methods must be called", cl.Name);
               }
             }
@@ -5855,6 +6037,20 @@ namespace Microsoft.Dafny
           }
         } else if (t.ResolvedClass != null) {
           List<Type> newArgs = null;  // allocate it lazily
+          var resolvedClass = t.ResolvedClass;
+#if TEST_TYPE_SYNONYM_TRANSPARENCY
+          if (resolvedClass is TypeSynonymDecl && resolvedClass.Name == "type#synonym#transparency#test") {
+            // Usually, all type parameters mentioned in the definition of a type synonym are also type parameters
+            // to the type synonym itself, but in this instrumented testing, that is not so, so we also do a substitution
+            // in the .Rhs of the synonym.
+            var syn = (TypeSynonymDecl)resolvedClass;
+            var r = SubstType(syn.Rhs, subst);
+            if (r != syn.Rhs) {
+              resolvedClass = new TypeSynonymDecl(syn.tok, syn.Name, syn.TypeArgs, syn.Module, r, null);
+              newArgs = new List<Type>();
+            }
+          }
+#endif
           for (int i = 0; i < t.TypeArgs.Count; i++) {
             Type p = t.TypeArgs[i];
             Type s = SubstType(p, subst);
@@ -5873,7 +6069,7 @@ namespace Microsoft.Dafny
             // there were no substitutions
             return type;
           } else {
-            return new UserDefinedType(t.tok, t.Name, t.ResolvedClass, newArgs, t.Path);
+            return new UserDefinedType(t.tok, t.Name, resolvedClass, newArgs, t.Path);
           }
         } else {
           // there's neither a resolved param nor a resolved class, which means the UserDefinedType wasn't
@@ -5919,6 +6115,17 @@ namespace Microsoft.Dafny
     /// "twoState" implies that "old" and "fresh" expressions are allowed.
     /// </summary>
     public void ResolveExpression(Expression expr, bool twoState, ICodeContext codeContext) {
+#if TEST_TYPE_SYNONYM_TRANSPARENCY
+      ResolveExpressionX(expr, twoState, codeContext);
+      // For testing purposes, change the type of "expr" to a type synonym (mwo-ha-ha-ha!)
+      var t = expr.Type;
+      Contract.Assert(t != null);
+      var sd = new TypeSynonymDecl(expr.tok, "type#synonym#transparency#test", new List<TypeParameter>(), codeContext.EnclosingModule, t, null);
+      var ts = new UserDefinedType(expr.tok, "type#synonym#transparency#test", sd, new List<Type>(), null);
+      expr.DebugTest_ChangeType(ts);
+    }
+    public void ResolveExpressionX(Expression expr, bool twoState, ICodeContext codeContext) {
+#endif
       Contract.Requires(expr != null);
       Contract.Requires(codeContext != null);
       Contract.Ensures(expr.Type != null);
@@ -5960,7 +6167,7 @@ namespace Microsoft.Dafny
           e.ResolvedExpression = e.E;
         } else {
           Expression zero;
-          if (e.E.Type is RealType) {
+          if (e.E.Type.IsRealType) {
             // we know for sure that this is a real-unary-minus
             zero = new LiteralExpr(e.tok, Basetypes.BigDec.ZERO);
           } else {
@@ -6130,7 +6337,7 @@ namespace Microsoft.Dafny
         ResolveExpression(e.Array, twoState, codeContext);
         Contract.Assert(e.Array.Type != null);  // follows from postcondition of ResolveExpression
         Type elementType = new InferredTypeProxy();
-        if (!UnifyTypes(e.Array.Type, builtIns.ArrayType(e.Indices.Count, elementType))) {
+        if (!UnifyTypes(e.Array.Type, ResolvedArrayType(e.Array.tok, e.Indices.Count, elementType))) {
           Error(e.Array, "array selection requires an array{0} (got {1})", e.Indices.Count, e.Array.Type);
         }
         int i = 0;
@@ -6185,8 +6392,8 @@ namespace Microsoft.Dafny
           }
           expr.Type = e.Seq.Type;
 
-        } else if (e.Seq.Type is UserDefinedType && ((UserDefinedType)e.Seq.Type).IsDatatype) {
-          DatatypeDecl dt = ((UserDefinedType)e.Seq.Type).AsDatatype;
+        } else if (e.Seq.Type.IsDatatype) {
+          var dt = e.Seq.Type.AsDatatype;
 
           if (!(e.Index is IdentifierSequence || (e.Index is LiteralExpr && ((LiteralExpr)e.Index).Value is BigInteger))) {
             Error(expr, "datatype updates must be to datatype destructors");
@@ -6269,7 +6476,7 @@ namespace Microsoft.Dafny
         if (!UnifyTypes(e.E.Type, new SetType(new InferredTypeProxy())) && !UnifyTypes(e.E.Type, new SeqType(new InferredTypeProxy()))) {
           Error(e.tok, "can only form a multiset from a seq or set.");
         }
-        expr.Type = new MultiSetType(((CollectionType)e.E.Type).Arg);
+        expr.Type = new MultiSetType(e.E.Type.AsCollectionType.Arg);
 
       } else if (expr is UnaryOpExpr) {
         var e = (UnaryOpExpr)expr;
@@ -6293,10 +6500,10 @@ namespace Microsoft.Dafny
               Error(expr, "fresh expressions are not allowed in this context");
             }
             // the type of e.E must be either an object or a collection of objects
-            Type t = e.E.Type;
+            Type t = e.E.Type.NormalizeExpand();
             Contract.Assert(t != null);  // follows from postcondition of ResolveExpression
             if (t is CollectionType) {
-              t = ((CollectionType)t).Arg;
+              t = ((CollectionType)t).Arg.NormalizeExpand();
             }
             if (t is ObjectType) {
               // fine
@@ -6318,11 +6525,11 @@ namespace Microsoft.Dafny
         ResolveType(e.tok, e.ToType, new ResolveTypeOption(ResolveTypeOptionEnum.DontInfer), null);
         ResolveExpression(e.E, twoState, codeContext);
         if (e.ToType is IntType) {
-          if (!(e.E.Type is RealType)) {
+          if (!(e.E.Type.IsRealType)) {
             Error(expr, "type conversion to int is allowed only from real (got {0})", e.E.Type);
           }
         } else if (e.ToType is RealType) {
-          if (!(e.E.Type is IntType)) {
+          if (!(e.E.Type.IsIntegerType)) {
             Error(expr, "type conversion to real is allowed only from int (got {0})", e.E.Type);
           }
         } else {
@@ -6388,15 +6595,15 @@ namespace Microsoft.Dafny
           case BinaryExpr.Opcode.Lt:
           case BinaryExpr.Opcode.Le:
           case BinaryExpr.Opcode.Add: {
-              if (e.Op == BinaryExpr.Opcode.Lt && e.E0.Type.IsIndDatatype) {
+              if (e.Op == BinaryExpr.Opcode.Lt && (e.E0.Type.NormalizeExpand().IsIndDatatype || e.E0.Type.IsTypeParameter)) {
                 if (UnifyTypes(e.E1.Type, new DatatypeProxy(false))) {
                   e.ResolvedOp = BinaryExpr.ResolvedOpcode.RankLt;
                 } else {
                   Error(expr, "arguments to rank comparison must be datatypes (instead of {0})", e.E1.Type);
                 }
                 expr.Type = Type.Bool;
-              } else if (e.Op == BinaryExpr.Opcode.Lt && e.E1.Type.IsIndDatatype) {
-                if (UnifyTypes(e.E0.Type, new DatatypeProxy(false)) || e.E0.Type.IsTypeParameter) {
+              } else if (e.Op == BinaryExpr.Opcode.Lt && e.E1.Type.NormalizeExpand().IsIndDatatype) {
+                if (UnifyTypes(e.E0.Type, new DatatypeProxy(false))) {
                   e.ResolvedOp = BinaryExpr.ResolvedOpcode.RankLt;
                 } else {
                   Error(expr, "arguments to rank comparison must be datatypes (instead of {0})", e.E0.Type);
@@ -6425,14 +6632,14 @@ namespace Microsoft.Dafny
           case BinaryExpr.Opcode.Mul:
           case BinaryExpr.Opcode.Gt:
           case BinaryExpr.Opcode.Ge: {
-              if (e.Op == BinaryExpr.Opcode.Gt && e.E0.Type.IsIndDatatype) {
+              if (e.Op == BinaryExpr.Opcode.Gt && e.E0.Type.NormalizeExpand().IsIndDatatype) {
                 if (UnifyTypes(e.E1.Type, new DatatypeProxy(false)) || e.E1.Type.IsTypeParameter) {
                   e.ResolvedOp = BinaryExpr.ResolvedOpcode.RankGt;
                 } else {
                   Error(expr, "arguments to rank comparison must be datatypes (instead of {0})", e.E1.Type);
                 }
                 expr.Type = Type.Bool;
-              } else if (e.Op == BinaryExpr.Opcode.Gt && e.E1.Type.IsIndDatatype) {
+              } else if (e.Op == BinaryExpr.Opcode.Gt && (e.E1.Type.NormalizeExpand().IsIndDatatype || e.E1.Type.IsTypeParameter)) {
                 if (UnifyTypes(e.E0.Type, new DatatypeProxy(false))) {
                   e.ResolvedOp = BinaryExpr.ResolvedOpcode.RankGt;
                 } else {
@@ -6775,7 +6982,7 @@ namespace Microsoft.Dafny
         Contract.Assert(me.Source.Type != null);  // follows from postcondition of ResolveExpression
         UserDefinedType sourceType = null;
         DatatypeDecl dtd = null;
-        if (me.Source.Type.NormalizeExpand().IsDatatype) {
+        if (me.Source.Type.IsDatatype) {
           sourceType = (UserDefinedType)me.Source.Type.NormalizeExpand();
           dtd = cce.NonNull((DatatypeDecl)sourceType.ResolvedClass);
         }
@@ -6870,7 +7077,7 @@ namespace Microsoft.Dafny
       DatatypeDecl dtd = null;
       UserDefinedType udt = null;
       if (sourceType.IsDatatype) {
-        udt = (UserDefinedType)sourceType;
+        udt = (UserDefinedType)sourceType.NormalizeExpand();
         dtd = (DatatypeDecl)udt.ResolvedClass;
       }
       // Find the constructor in the given datatype
@@ -6960,7 +7167,9 @@ namespace Microsoft.Dafny
       }
     }
 
-    public bool ComparableTypes(Type A, Type B) {
+    private bool ComparableTypes(Type A, Type B) {
+      A = A.NormalizeExpand();
+      B = B.NormalizeExpand();
       if (A.IsArrayType && B.IsArrayType) {
         Type a = UserDefinedType.ArrayElementType(A);
         Type b = UserDefinedType.ArrayElementType(B);
@@ -7620,12 +7829,12 @@ namespace Microsoft.Dafny
       for (int j = 0; j < bvars.Count; j++) {
         var bv = bvars[j];
         var bounds = new List<ComprehensionExpr.BoundedPool>();
-        if (bv.Type is BoolType) {
+        if (bv.Type.IsBoolType) {
           // easy
           bounds.Add(new ComprehensionExpr.BoolBoundedPool());
         } else {
           bool foundBoundsForBv = false;
-          if (bv.Type.IsIndDatatype && (bv.Type.AsIndDatatype).HasFinitePossibleValues) {
+          if (bv.Type.IsIndDatatype && bv.Type.AsIndDatatype.HasFinitePossibleValues) {
             bounds.Add(new ComprehensionExpr.DatatypeBoundedPool(bv.Type.AsIndDatatype));
             foundBoundsForBv = true;
           }
@@ -8123,6 +8332,7 @@ namespace Microsoft.Dafny
     /// </summary>
     public static BinaryExpr.ResolvedOpcode ResolveOp(BinaryExpr.Opcode op, Type operandType) {
       Contract.Requires(operandType != null);
+      operandType = operandType.NormalizeExpand();
       switch (op) {
         case BinaryExpr.Opcode.Iff: return BinaryExpr.ResolvedOpcode.Iff;
         case BinaryExpr.Opcode.Imp: return BinaryExpr.ResolvedOpcode.Imp;

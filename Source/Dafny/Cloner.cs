@@ -67,14 +67,34 @@ namespace Microsoft.Dafny
           req, ens, yreq, yens,
           body, CloneAttributes(dd.Attributes), dd.SignatureEllipsis);
         return iter;
-      } else if (d is ClassDecl) {
+      }
+      else if (d is TraitDecl)
+      {
+          if (d is DefaultClassDecl)
+          {
+              var dd = (TraitDecl)d;
+              var tps = dd.TypeArgs.ConvertAll(CloneTypeParam);
+              var mm = dd.Members.ConvertAll(CloneMember);
+              var cl = new DefaultClassDecl(m, mm);
+              return cl;
+          }
+          else
+          {
+              var dd = (TraitDecl)d;
+              var tps = dd.TypeArgs.ConvertAll(CloneTypeParam);
+              var mm = dd.Members.ConvertAll(CloneMember);
+              var cl = new TraitDecl(Tok(dd.tok), dd.Name, m, tps, mm, CloneAttributes(dd.Attributes));
+              return cl;
+          }
+      }
+      else if (d is ClassDecl) {
         var dd = (ClassDecl)d;
         var tps = dd.TypeArgs.ConvertAll(CloneTypeParam);
         var mm = dd.Members.ConvertAll(CloneMember);
         if (d is DefaultClassDecl) {
           return new DefaultClassDecl(m, mm);
         } else {
-          return new ClassDecl(Tok(dd.tok), dd.Name, m, tps, mm, CloneAttributes(dd.Attributes));
+            return new ClassDecl(Tok(dd.tok), dd.Name, m, tps, mm, CloneAttributes(dd.Attributes), new List<IToken> { dd.TraitId });
         }
       } else if (d is ModuleDecl) {
         if (d is LiteralModuleDecl) {
@@ -115,13 +135,16 @@ namespace Microsoft.Dafny
       if (member is Field) {
         Contract.Assert(!(member is SpecialField));  // we don't expect a SpecialField to be cloned (or do we?)
         var f = (Field)member;
-        return new Field(Tok(f.tok), f.Name, f.IsGhost, f.IsMutable, f.IsUserMutable, CloneType(f.Type), CloneAttributes(f.Attributes));
+        Field field = new Field(Tok(f.tok), f.Name, f.IsGhost, f.IsMutable, f.IsUserMutable, CloneType(f.Type), CloneAttributes(f.Attributes));
+        return field;
       } else if (member is Function) {
         var f = (Function)member;
-        return CloneFunction(f);
+        Function func = CloneFunction(f);
+        return func;
       } else {
         var m = (Method)member;
-        return CloneMethod(m);
+        Method method = CloneMethod(m);
+        return method;
       }
     }
 
@@ -145,6 +168,13 @@ namespace Microsoft.Dafny
         return new ArrowType(tt.Args.ConvertAll(CloneType), CloneType(tt.Result));
       } else if (t is UserDefinedType) {
         var tt = (UserDefinedType)t;
+#if TEST_TYPE_SYNONYM_TRANSPARENCY
+        if (tt.Name == "type#synonym#transparency#test") {
+          // time to drop the synonym wrapper
+          var syn = (TypeSynonymDecl)tt.ResolvedClass;
+          return CloneType(syn.Rhs);
+        }
+#endif
         return new UserDefinedType(Tok(tt.tok), tt.Name, tt.TypeArgs.ConvertAll(CloneType), tt.Path.ConvertAll(Tok));
       } else if (t is InferredTypeProxy) {
         return new InferredTypeProxy();
@@ -157,7 +187,8 @@ namespace Microsoft.Dafny
     }
 
     public Formal CloneFormal(Formal formal) {
-      return new Formal(Tok(formal.tok), formal.Name, CloneType(formal.Type), formal.InParam, formal.IsGhost);
+      Formal f = new Formal(Tok(formal.tok), formal.Name, CloneType(formal.Type), formal.InParam, formal.IsGhost);
+      return f;
     }
 
     public BoundVar CloneBoundVar(BoundVar bv) {

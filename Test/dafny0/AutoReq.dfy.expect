@@ -1,5 +1,5 @@
-AutoReq.dfy(247,3): Error: possible violation of function precondition
-AutoReq.dfy(239,12): Related location
+AutoReq.dfy(247,5): Error: possible violation of function precondition
+AutoReq.dfy(239,14): Related location
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Else

@@ -207,6 +207,7 @@ Dafny
      // to support multiple files, create a default module only if theModule is null
      DefaultModuleDecl defaultModule = (DefaultModuleDecl)((LiteralModuleDecl)theModule).ModuleDef;
      // theModule should be a DefaultModuleDecl (actually, the singular DefaultModuleDecl)
+	 TraitDecl/*!*/ trait;
      Contract.Assert(defaultModule != null);
   .)
   { "include" string                            (. {
@@ -227,7 +228,7 @@ Dafny
   | DatatypeDecl<defaultModule, out dt>         (. defaultModule.TopLevelDecls.Add(dt); .)
   | OtherTypeDecl<defaultModule, out td>        (. defaultModule.TopLevelDecls.Add(td); .)
   | IteratorDecl<defaultModule, out iter>       (. defaultModule.TopLevelDecls.Add(iter); .)
-
+  | TraitDecl<defaultModule, out trait>    (. defaultModule.TopLevelDecls.Add(trait); .)
   | ClassMemberDecl<membersDefaultClass, false>
   }
   (. // find the default class in the default module, then append membersDefaultClass to its member list
@@ -248,7 +249,8 @@ Dafny
 SubModuleDecl<ModuleDefinition parent, out ModuleDecl submodule>
 = (. ClassDecl/*!*/ c; DatatypeDecl/*!*/ dt; TopLevelDecl td; IteratorDecl iter;
      Attributes attrs = null;  IToken/*!*/ id;
-     List<MemberDecl/*!*/> namedModuleDefaultClassMembers = new List<MemberDecl>();;
+     TraitDecl/*!*/ trait;
+	 List<MemberDecl/*!*/> namedModuleDefaultClassMembers = new List<MemberDecl>();;
      List<IToken> idRefined = null, idPath = null, idAssignment = null;
      ModuleDefinition module;
      ModuleDecl sm;
@@ -265,7 +267,8 @@ SubModuleDecl<ModuleDefinition parent, out ModuleDecl submodule>
        "{"                                       (. module.BodyStartTok = t; .)
         { SubModuleDecl<module, out sm>                (. module.TopLevelDecls.Add(sm); .)
         | ClassDecl<module, out c>                     (. module.TopLevelDecls.Add(c); .)
-        | DatatypeDecl<module, out dt>                 (. module.TopLevelDecls.Add(dt); .)
+        | TraitDecl<module, out trait>            (. module.TopLevelDecls.Add(trait); .)
+		| DatatypeDecl<module, out dt>                 (. module.TopLevelDecls.Add(dt); .)
         | OtherTypeDecl<module, out td>                (. module.TopLevelDecls.Add(td); .)
         | IteratorDecl<module, out iter>               (. module.TopLevelDecls.Add(iter); .)
         | ClassMemberDecl<namedModuleDefaultClassMembers, false>
@@ -310,7 +313,8 @@ ClassDecl<ModuleDefinition/*!*/ module, out ClassDecl/*!*/ c>
 = (. Contract.Requires(module != null);
      Contract.Ensures(Contract.ValueAtReturn(out c) != null);
      IToken/*!*/ id;
-     Attributes attrs = null;
+     List<IToken>/*!*/ traitId=null;
+	 Attributes attrs = null;
      List<TypeParameter/*!*/> typeArgs = new List<TypeParameter/*!*/>();
      List<MemberDecl/*!*/> members = new List<MemberDecl/*!*/>();
      IToken bodyStart;
@@ -320,15 +324,41 @@ ClassDecl<ModuleDefinition/*!*/ module, out ClassDecl/*!*/ c>
   { Attribute<ref attrs> }
   NoUSIdent<out id>
   [ GenericParameters<typeArgs> ]
+  ["extends" QualifiedName<out traitId>]
   "{"                                            (. bodyStart = t; .)
   { ClassMemberDecl<members, true>
   }
   "}"
-  (. c = new ClassDecl(id, id.val, module, typeArgs, members, attrs);
+  (. c = new ClassDecl(id, id.val, module, typeArgs, members, attrs, traitId);
      c.BodyStartTok = bodyStart;
      c.BodyEndTok = t;
   .)
   .
+
+    TraitDecl<ModuleDefinition/*!*/ module, out TraitDecl/*!*/ trait>
+  = (. Contract.Requires(module != null);
+	   Contract.Ensures(Contract.ValueAtReturn(out trait) != null);
+	   IToken/*!*/ id;
+	   Attributes attrs = null;
+	   List<TypeParameter/*!*/> typeArgs = new List<TypeParameter/*!*/>(); //traits should not support type parameters at the moment
+	   List<MemberDecl/*!*/> members = new List<MemberDecl/*!*/>();
+	   IToken bodyStart;
+    .)
+	SYNC
+	"trait"
+	{ Attribute<ref attrs> }
+	NoUSIdent<out id>
+	[ GenericParameters<typeArgs> ]
+	"{"                                            (. bodyStart = t; .)
+    { ClassMemberDecl<members, true>
+    }
+    "}"
+	(. trait = new TraitDecl(id, id.val, module, typeArgs, members, attrs);
+     trait.BodyStartTok = bodyStart;
+     trait.BodyEndTok = t;
+    .)
+	.
+
 ClassMemberDecl<.List<MemberDecl/*!*/>/*!*/ mm, bool allowConstructors.>
 = (. Contract.Requires(cce.NonNullElements(mm));
      Method/*!*/ m;

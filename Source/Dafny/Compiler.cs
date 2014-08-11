@@ -206,10 +206,51 @@ namespace Microsoft.Dafny {
             // end of the class
             Indent(indent); wr.WriteLine("}");
 
-          } else if (d is ClassDecl) {
+          }
+          else if (d is TraitDecl)
+          {
+              //writing the trait
+              var trait = (TraitDecl)d;
+              Indent(indent);
+              wr.Write("public interface @{0}", trait.CompileName);
+              wr.WriteLine(" {");
+              CompileClassMembers(trait, indent + IndentAmount);
+              Indent(indent); wr.WriteLine("}");
+
+              //writing the _Companion class
+              List<MemberDecl> members = new List<MemberDecl>();
+              foreach (MemberDecl mem in trait.Members)
+              {
+                  if (mem.IsStatic && !mem.IsGhost)
+                  {
+                      if (mem is Function)
+                      {
+                          if (((Function)mem).Body != null)
+                              members.Add(mem);
+                      }
+                      if (mem is Method)
+                      {
+                          if (((Method)mem).Body != null)
+                              members.Add(mem);
+                      }
+                  }
+              }
+              var cl = new ClassDecl(d.tok, d.Name, d.Module, d.TypeArgs, members, d.Attributes, null);
+              Indent(indent);
+              wr.Write("public class @_Companion_{0}", cl.CompileName);
+              wr.WriteLine(" {");
+              CompileClassMembers(cl, indent + IndentAmount);
+              Indent(indent); wr.WriteLine("}");
+          }
+          else if (d is ClassDecl) {
             var cl = (ClassDecl)d;
             Indent(indent);
-            wr.Write("public class @{0}", cl.CompileName);
+            if (cl.Trait != null && cl.Trait is TraitDecl)
+            {
+                wr.WriteLine("public class @{0} : @{1}", cl.CompileName, cl.TraitId.val);
+            }
+            else
+                wr.Write("public class @{0}", cl.CompileName);
             if (cl.TypeArgs.Count != 0) {
               wr.Write("<{0}>", TypeParameters(cl.TypeArgs));
             }
@@ -708,98 +749,186 @@ namespace Microsoft.Dafny {
         if (member is Field) {
           Field f = (Field)member;
           if (!f.IsGhost) {
-            Indent(indent);
-            wr.WriteLine("public {0} @{1} = {2};", TypeName(f.Type), f.CompileName, DefaultValue(f.Type));
+              if (c is TraitDecl)
+              {
+                  {
+                      Indent(indent);
+                      wr.Write("{0} @{1}", TypeName(f.Type), f.CompileName);
+                      wr.Write(" {");
+                      wr.Write(" get; set; ");
+                      wr.WriteLine("}");
+                  }
+              }
+              else
+              {
+                  if (f.Inherited)
+                  {
+                      Indent(indent);
+                      wr.WriteLine("public {0} @{1};", TypeName(f.Type), f.CompileName);
+                      wr.Write("{0} @{1}.@{2}", TypeName(f.Type), c.Trait.CompileName, f.CompileName);
+                      wr.WriteLine(" {");
+                      wr.WriteLine(" get { ");
+                      wr.Write("return this.@{0};", f.CompileName);
+                      wr.WriteLine("}");
+                      wr.WriteLine(" set { ");
+                      wr.WriteLine("this.@{0} = value;", f.CompileName);
+                      wr.WriteLine("}");
+                      wr.WriteLine("}");
+                  }
+                  else
+                  {
+                      Indent(indent);
+                      wr.WriteLine("public {0} @{1} = {2};", TypeName(f.Type), f.CompileName, DefaultValue(f.Type));
+                  }
+              }
           }
-
         } else if (member is Function) {
           Function f = (Function)member;
-          if (f.Body == null) {
-            if (!Attributes.Contains(f.Attributes, "axiom")) {
-              Error("Function {0} has no body", f.FullName);
-            }
-          } else if (f.IsGhost) {
-            var v = new CheckHasNoAssumes_Visitor(this);
-            v.Visit(f.Body);
-          } else {
-            Indent(indent);
-            wr.Write("public {0}{1} @{2}", f.IsStatic ? "static " : "", TypeName(f.ResultType), f.CompileName);
-            if (f.TypeArgs.Count != 0) {
-              wr.Write("<{0}>", TypeParameters(f.TypeArgs));
-            }
-            wr.Write("(");
-            WriteFormals("", f.Formals);
-            wr.WriteLine(") {");
-            CompileReturnBody(f.Body, indent + IndentAmount);
-            Indent(indent); wr.WriteLine("}");
+          if (c is TraitDecl)
+          {
+              if (member.IsStatic && f.Body == null)
+              {
+                  Error("Function {0} has no body", f.FullName);
+              }
+              else if (!member.IsStatic && !member.IsGhost) //static and ghost members are not included in the target trait
+              {
+                  Indent(indent);
+                  wr.Write("{0} @{1}", TypeName(f.ResultType), f.CompileName);
+                  wr.Write("(");
+                  WriteFormals("", f.Formals);
+                  wr.WriteLine(");");
+              }
           }
-
+          else
+          {
+              if (f.Body == null)
+              {
+                  if (!Attributes.Contains(f.Attributes, "axiom"))
+                  {
+                      Error("Function {0} has no body", f.FullName);
+                  }
+              }
+              else if (f.IsGhost)
+              {
+                  var v = new CheckHasNoAssumes_Visitor(this);
+                  v.Visit(f.Body);
+              }
+              else
+              {
+                  Indent(indent);
+                  wr.Write("public {0}{1} @{2}", f.IsStatic ? "static " : "", TypeName(f.ResultType), f.CompileName);
+                  if (f.TypeArgs.Count != 0)
+                  {
+                      wr.Write("<{0}>", TypeParameters(f.TypeArgs));
+                  }
+                  wr.Write("(");
+                  WriteFormals("", f.Formals);
+                  wr.WriteLine(") {");
+                  CompileReturnBody(f.Body, indent + IndentAmount);
+                  Indent(indent); wr.WriteLine("}");
+              }
+          }
         } else if (member is Method) {
           Method m = (Method)member;
-          if (m.Body == null) {
-            if (!Attributes.Contains(m.Attributes, "axiom")) {
-              Error("Method {0} has no body", m.FullName);
-            }
-          } else if (m.IsGhost) {
-            var v = new CheckHasNoAssumes_Visitor(this);
-            v.Visit(m.Body);
-          } else {
-            Indent(indent);
-            wr.Write("public {0}void @{1}", m.IsStatic ? "static " : "", m.CompileName);
-            if (m.TypeArgs.Count != 0) {
-              wr.Write("<{0}>", TypeParameters(m.TypeArgs));
-            }
-            wr.Write("(");
-            int nIns = WriteFormals("", m.Ins);
-            WriteFormals(nIns == 0 ? "" : ", ", m.Outs);
-            wr.WriteLine(")");
-            Indent(indent);  wr.WriteLine("{");
-            foreach (Formal p in m.Outs) {
-              if (!p.IsGhost) {
-                Indent(indent + IndentAmount);
-                wr.WriteLine("@{0} = {1};", p.CompileName, DefaultValue(p.Type));
+          if (c is TraitDecl)
+          {
+              if (member.IsStatic && m.Body == null)
+              {
+                  Error("Method {0} has no body", m.FullName);
               }
-            }
-            if (m.Body == null) {
-              Error("Method {0} has no body", m.FullName);
-            } else {
-              if (m.IsTailRecursive) {
-                Indent(indent); wr.WriteLine("TAIL_CALL_START: ;");
-                if (!m.IsStatic) {
-                  Indent(indent + IndentAmount); wr.WriteLine("var _this = this;");
-                }
+              else if (!member.IsStatic && !member.IsGhost) //static and ghost members are not included in the target trait
+              {
+                  Indent(indent);
+                  wr.Write("void @{0}", m.CompileName);
+                  wr.Write("(");
+                  int nIns = WriteFormals("", m.Ins);
+                  WriteFormals(nIns == 0 ? "" : ", ", m.Outs);
+                  wr.WriteLine(");");
               }
-              Contract.Assert(enclosingMethod == null);
-              enclosingMethod = m;
-              TrStmtList(m.Body.Body, indent);
-              Contract.Assert(enclosingMethod == m);
-              enclosingMethod = null;
-            }
-            Indent(indent);  wr.WriteLine("}");
-
-            // allow the Main method to be an instance method
-            if (!m.IsStatic && m.Name == "Main" && m.TypeArgs.Count == 0 && m.Ins.Count == 0 && m.Outs.Count == 0 && m.Req.Count == 0) {
-              Indent(indent);
-              wr.WriteLine("public static void Main(string[] args) {");
-              Contract.Assert(m.EnclosingClass == c);
-              Indent(indent + IndentAmount);
-              wr.Write("@{0} b = new @{0}", c.CompileName);
-              if (c.TypeArgs.Count != 0) {
-                // instantiate every parameter, it doesn't particularly matter how
-                wr.Write("<");
-                string sep = "";
-                for (int i = 0; i < c.TypeArgs.Count; i++) {
-                  wr.Write("{0}int", sep);
-                  sep = ", ";
-                }
-                wr.Write(">");
-              }
-              wr.WriteLine("();");
-              Indent(indent + IndentAmount);  wr.WriteLine("b.@Main();");
-              Indent(indent);  wr.WriteLine("}");
-            }
           }
+          else
+          {
+              if (m.Body == null)
+              {
+                  if (!Attributes.Contains(m.Attributes, "axiom"))
+                  {
+                      Error("Method {0} has no body", m.FullName);
+                  }
+              }
+              else if (m.IsGhost)
+              {
+                  var v = new CheckHasNoAssumes_Visitor(this);
+                  v.Visit(m.Body);
+              }
+              else
+              {
+                  Indent(indent);
+                  wr.Write("public {0}void @{1}", m.IsStatic ? "static " : "", m.CompileName);
+                  if (m.TypeArgs.Count != 0)
+                  {
+                      wr.Write("<{0}>", TypeParameters(m.TypeArgs));
+                  }
+                  wr.Write("(");
+                  int nIns = WriteFormals("", m.Ins);
+                  WriteFormals(nIns == 0 ? "" : ", ", m.Outs);
+                  wr.WriteLine(")");
+                  Indent(indent); wr.WriteLine("{");
+                  foreach (Formal p in m.Outs)
+                  {
+                      if (!p.IsGhost)
+                      {
+                          Indent(indent + IndentAmount);
+                          wr.WriteLine("@{0} = {1};", p.CompileName, DefaultValue(p.Type));
+                      }
+                  }
+                  if (m.Body == null)
+                  {
+                      Error("Method {0} has no body", m.FullName);
+                  }
+                  else
+                  {
+                      if (m.IsTailRecursive)
+                      {
+                          Indent(indent); wr.WriteLine("TAIL_CALL_START: ;");
+                          if (!m.IsStatic)
+                          {
+                              Indent(indent + IndentAmount); wr.WriteLine("var _this = this;");
+                          }
+                      }
+                      Contract.Assert(enclosingMethod == null);
+                      enclosingMethod = m;
+                      TrStmtList(m.Body.Body, indent);
+                      Contract.Assert(enclosingMethod == m);
+                      enclosingMethod = null;
+                  }
+                  Indent(indent); wr.WriteLine("}");
 
+                  // allow the Main method to be an instance method
+                  if (!m.IsStatic && m.Name == "Main" && m.TypeArgs.Count == 0 && m.Ins.Count == 0 && m.Outs.Count == 0 && m.Req.Count == 0)
+                  {
+                      Indent(indent);
+                      wr.WriteLine("public static void Main(string[] args) {");
+                      Contract.Assert(m.EnclosingClass == c);
+                      Indent(indent + IndentAmount);
+                      wr.Write("@{0} b = new @{0}", c.CompileName);
+                      if (c.TypeArgs.Count != 0)
+                      {
+                          // instantiate every parameter, it doesn't particularly matter how
+                          wr.Write("<");
+                          string sep = "";
+                          for (int i = 0; i < c.TypeArgs.Count; i++)
+                          {
+                              wr.Write("{0}int", sep);
+                              sep = ", ";
+                          }
+                          wr.Write(">");
+                      }
+                      wr.WriteLine("();");
+                      Indent(indent + IndentAmount); wr.WriteLine("b.@Main();");
+                      Indent(indent); wr.WriteLine("}");
+                  }
+              }
+          }
         } else {
           Contract.Assert(false); throw new cce.UnreachableException();  // unexpected member
         }
@@ -1536,8 +1665,6 @@ namespace Microsoft.Dafny {
         //   ...
         // }
         if (s.Cases.Count != 0) {
-          var sourceType = (UserDefinedType)s.Source.Type;
-
           SpillLetVariableDecls(s.Source, indent);
           string source = "_source" + tmpVarCount;
           tmpVarCount++;
@@ -1547,6 +1674,7 @@ namespace Microsoft.Dafny {
           wr.WriteLine(";");
 
           int i = 0;
+          var sourceType = (UserDefinedType)s.Source.Type.NormalizeExpand();
           foreach (MatchCaseStmt mc in s.Cases) {
             MatchCasePrelude(source, sourceType, cce.NonNull(mc.Ctor), mc.Arguments, i, s.Cases.Count, indent);
             TrStmtList(mc.Body, indent);
@@ -1764,7 +1892,14 @@ namespace Microsoft.Dafny {
           wr.Write("@" + receiverReplacement);
         } else if (s.Method.IsStatic) {
           Indent(indent);
-          wr.Write(TypeName(cce.NonNull(s.Receiver.Type)));
+          if (s.Receiver.Type is UserDefinedType && ((UserDefinedType)s.Receiver.Type).ResolvedClass is TraitDecl)
+          {
+              wr.Write("@_Companion_{0}", TypeName(cce.NonNull(s.Receiver.Type)).Replace("@", string.Empty));
+          }
+          else
+          {
+              wr.Write(TypeName(cce.NonNull(s.Receiver.Type)));
+          }
         } else {
           SpillLetVariableDecls(s.Receiver, indent);
           Indent(indent);
@@ -1813,7 +1948,7 @@ namespace Microsoft.Dafny {
         if (tp.ArrayDimensions == null) {
           wr.Write("new {0}()", TypeName(tp.EType));
         } else {
-          if (tp.EType is IntType || tp.EType.IsTypeParameter) {
+          if (tp.EType.IsIntegerType || tp.EType.IsTypeParameter) {
             // Because the default constructor for BigInteger does not generate a valid BigInteger, we have
             // to excplicitly initialize the elements of an integer array.  This is all done in a helper routine.
             wr.Write("Dafny.Helpers.InitNewArray{0}<{1}>", tp.ArrayDimensions.Count, TypeName(tp.EType));
@@ -1995,24 +2130,24 @@ namespace Microsoft.Dafny {
         wr.Write(enclosingMethod != null && enclosingMethod.IsTailRecursive ? "_this" : "this");
 
       } else if (expr is IdentifierExpr) {
-        IdentifierExpr e = (IdentifierExpr)expr;
+        var e = (IdentifierExpr)expr;
         wr.Write("@" + e.Var.CompileName);
 
       } else if (expr is SetDisplayExpr) {
-        SetDisplayExpr e = (SetDisplayExpr)expr;
-        Type elType = cce.NonNull((SetType)e.Type).Arg;
+        var e = (SetDisplayExpr)expr;
+        var elType = e.Type.AsSetType.Arg;
         wr.Write("{0}<{1}>.FromElements", DafnySetClass, TypeName(elType));
         TrExprList(e.Elements);
 
       } else if (expr is MultiSetDisplayExpr) {
-        MultiSetDisplayExpr e = (MultiSetDisplayExpr)expr;
-        Type elType = cce.NonNull((MultiSetType)e.Type).Arg;
+        var e = (MultiSetDisplayExpr)expr;
+        var elType = e.Type.AsMultiSetType.Arg;
         wr.Write("{0}<{1}>.FromElements", DafnyMultiSetClass, TypeName(elType));
         TrExprList(e.Elements);
 
       } else if (expr is SeqDisplayExpr) {
-        SeqDisplayExpr e = (SeqDisplayExpr)expr;
-        Type elType = cce.NonNull((SeqType)e.Type).Arg;
+        var e = (SeqDisplayExpr)expr;
+        var elType = e.Type.AsSeqType.Arg;
         wr.Write("{0}<{1}>.FromElements", DafnySeqClass, TypeName(elType));
         TrExprList(e.Elements);
 
@@ -2067,11 +2202,12 @@ namespace Microsoft.Dafny {
           }
         }
       } else if (expr is MultiSetFormingExpr) {
-        MultiSetFormingExpr e = (MultiSetFormingExpr)expr;
-        wr.Write("{0}<{1}>", DafnyMultiSetClass, TypeName(((CollectionType)e.E.Type).Arg));
-        if (e.E.Type is SeqType) {
+        var e = (MultiSetFormingExpr)expr;
+        wr.Write("{0}<{1}>", DafnyMultiSetClass, TypeName(e.E.Type.AsCollectionType.Arg));
+        var eeType = e.E.Type.NormalizeExpand();
+        if (eeType is SeqType) {
           TrParenExpr(".FromSeq", e.E);
-        } else if (e.E.Type is SetType) {
+        } else if (eeType is SetType) {
           TrParenExpr(".FromSet", e.E);
         } else {
           Contract.Assert(false); throw new cce.UnreachableException();
@@ -2191,7 +2327,7 @@ namespace Microsoft.Dafny {
             TrParenExpr(e.E);
             break;
           case UnaryOpExpr.Opcode.Cardinality:
-            if (cce.NonNull(e.E.Type).IsArrayType) {
+            if (e.E.Type.IsArrayType) {
               wr.Write("new BigInteger(");
               TrParenExpr(e.E);
               wr.Write(".Length)");
@@ -2207,11 +2343,11 @@ namespace Microsoft.Dafny {
       } else if (expr is ConversionExpr) {
         var e = (ConversionExpr)expr;
         if (e.ToType is IntType) {
-          Contract.Assert(e.E.Type is RealType);
+          Contract.Assert(e.E.Type.IsRealType);
           TrParenExpr(e.E);
           wr.Write(".ToBigInteger()");
         } else if (e.ToType is RealType) {
-          Contract.Assert(e.E.Type is IntType);
+          Contract.Assert(e.E.Type.IsIntegerType);
           wr.Write("new Dafny.BigRational(");
           TrExpr(e.E);
           wr.Write(", BigInteger.One)");
@@ -2236,10 +2372,9 @@ namespace Microsoft.Dafny {
             opString = "&&";  break;
 
           case BinaryExpr.ResolvedOpcode.EqCommon: {
-            Type t = cce.NonNull(e.E0.Type);
-            if (t.IsDatatype || t.IsTypeParameter) {
+            if (e.E0.Type.IsDatatype || e.E0.Type.IsTypeParameter) {
               callString = "Equals";
-            } else if (t.IsRefType) {
+            } else if (e.E0.Type.IsRefType) {
               // Dafny's type rules are slightly different C#, so we may need a cast here.
               // For example, Dafny allows x==y if x:array<T> and y:array<int> and T is some
               // type parameter.
@@ -2250,11 +2385,10 @@ namespace Microsoft.Dafny {
             break;
           }
           case BinaryExpr.ResolvedOpcode.NeqCommon: {
-            Type t = cce.NonNull(e.E0.Type);
-            if (t.IsDatatype || t.IsTypeParameter) {
+            if (e.E0.Type.IsDatatype || e.E0.Type.IsTypeParameter) {
               preOpString = "!";
               callString = "Equals";
-            } else if (t.IsRefType) {
+            } else if (e.E0.Type.IsRefType) {
               // Dafny's type rules are slightly different C#, so we may need a cast here.
               // For example, Dafny allows x==y if x:array<T> and y:array<int> and T is some
               // type parameter.
@@ -2280,7 +2414,7 @@ namespace Microsoft.Dafny {
           case BinaryExpr.ResolvedOpcode.Mul:
             opString = "*";  break;
           case BinaryExpr.ResolvedOpcode.Div:
-            if (expr.Type is IntType) {
+            if (expr.Type.IsIntegerType) {
               wr.Write("Dafny.Helpers.EuclideanDivision(");
               TrParenExpr(e.E0);
               wr.Write(", ");
@@ -2291,7 +2425,7 @@ namespace Microsoft.Dafny {
             }
             break;
           case BinaryExpr.ResolvedOpcode.Mod:
-            if (expr.Type is IntType) {
+            if (expr.Type.IsIntegerType) {
               wr.Write("Dafny.Helpers.EuclideanModulus(");
               TrParenExpr(e.E0);
               wr.Write(", ");
@@ -2446,7 +2580,7 @@ namespace Microsoft.Dafny {
           wr.Write("throw new System.Exception();");
         } else {
           int i = 0;
-          var sourceType = (UserDefinedType)e.Source.Type;
+          var sourceType = (UserDefinedType)e.Source.Type.NormalizeExpand();
           foreach (MatchCaseExpr mc in e.Cases) {
             MatchCasePrelude(source, sourceType, cce.NonNull(mc.Ctor), mc.Arguments, i, e.Cases.Count, 0);
             wr.Write("return ");
@@ -2529,7 +2663,7 @@ namespace Microsoft.Dafny {
         //   return Dafny.Set<G>.FromCollection(_coll);
         // })()
         Contract.Assert(e.Bounds != null);  // the resolver would have insisted on finding bounds
-        var typeName = TypeName(((SetType)e.Type).Arg);
+        var typeName = TypeName(e.Type.AsSetType.Arg);
         wr.Write("((Dafny.Helpers.ComprehensionDelegate<{0}>)delegate() {{ ", typeName);
         wr.Write("var _coll = new System.Collections.Generic.List<{0}>(); ", typeName);
         var n = e.BoundVars.Count;
@@ -2598,8 +2732,8 @@ namespace Microsoft.Dafny {
         //   return Dafny.Map<U, V>.FromElements(_coll);
         // })()
         Contract.Assert(e.Bounds != null);  // the resolver would have insisted on finding bounds
-        var domtypeName = TypeName(((MapType)e.Type).Domain);
-        var rantypeName = TypeName(((MapType)e.Type).Range);
+        var domtypeName = TypeName(e.Type.AsMapType.Domain);
+        var rantypeName = TypeName(e.Type.AsMapType.Range);
         wr.Write("((Dafny.Helpers.MapComprehensionDelegate<{0},{1}>)delegate() {{ ", domtypeName, rantypeName);
         wr.Write("var _coll = new System.Collections.Generic.List<Dafny.Pair<{0},{1}>>(); ", domtypeName, rantypeName);
         var n = e.BoundVars.Count;

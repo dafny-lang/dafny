@@ -146,170 +146,170 @@ module {:autoReq} QuantifierTestsHard {
   function n(x:int) : bool
   
   function f1(x:int) : bool
-	requires x > 3;
-	requires x < 16;
+  requires x > 3;
+  requires x < 16;
 
   function variable_uniqueness_test(x:int) : bool
   {
     (forall y:int :: m(y))
-	&&
-	f1(x)
+    &&
+    f1(x)
   }
 }
 
 module CorrectReqOrdering {
-	function f1(x:int) : bool
-		requires x > 3;
+  function f1(x:int) : bool
+    requires x > 3;
 
-	function f2(b:bool) : bool
-		requires b;
+  function f2(b:bool) : bool
+    requires b;
 
-	// Should pass if done correctly.
-	// However, if Dafny incorrectly put the requires for f2 first,
-	// then the requires for f1 won't be satisfied
-	function {:autoReq} f3(z:int) : bool
-	{
-		f2(f1(z))
-	} 		
+  // Should pass if done correctly.
+  // However, if Dafny incorrectly put the requires for f2 first,
+  // then the requires for f1 won't be satisfied
+  function {:autoReq} f3(z:int) : bool
+  {
+    f2(f1(z))
+  }     
 
 }
 
-module ShortCircuiting {	
-	function f1(x:int) : bool
-		requires x > 3;
+module ShortCircuiting {  
+  function f1(x:int) : bool
+    requires x > 3;
 
-	function f2(y:int) : bool
-		requires y < 10;
+  function f2(y:int) : bool
+    requires y < 10;
 
-	function {:autoReq} test1(x':int, y':int) : bool
-	{
-		f1(x') && f2(y')
-	}
+  function {:autoReq} test1(x':int, y':int) : bool
+  {
+    f1(x') && f2(y')
+  }
 
-	function {:autoReq} test2(x':int, y':int) : bool
-	{
-		f1(x') ==> f2(y')
-	}
+  function {:autoReq} test2(x':int, y':int) : bool
+  {
+    f1(x') ==> f2(y')
+  }
 
-	function {:autoReq} test3(x':int, y':int) : bool
-	{
-		f1(x') || f2(y')
-	}
+  function {:autoReq} test3(x':int, y':int) : bool
+  {
+    f1(x') || f2(y')
+  }
 }
 
 module Lets {
-	function f1(x:int) : bool
-		requires x > 3;
+  function f1(x:int) : bool
+    requires x > 3;
 
-	function {:autoReq} test1(x':int) : bool
-	{
-		var y' := 3*x'; f1(y')
-	}
+  function {:autoReq} test1(x':int) : bool
+  {
+    var y' := 3*x'; f1(y')
+  }
 }
 
 // Test nested module specification of :autoReq attribute
 module {:autoReq} M1 {
-    module M2 {
-        function f(x:int) : bool
-          requires x > 3;
-        {
-          x > 7
-        }
-
-        // Should succeed thanks to auto-generation based on f's requirements
-        function {:autoReq} h(y:int) : bool  
-        {
-          f(y)
-        }
-    }
-}
-
-module Datatypes {
-	datatype TheType = TheType_builder(x:int) | TheType_copier(t:TheType);
-
-	function f1(t:TheType):bool
-		requires t.TheType_builder? && t.x > 3;
-
-	function {:autoReq} test(t:TheType) : bool
-	{
-		f1(t)
-	}
-
-	function f2(x:int) : bool
-		requires forall t:TheType :: t.TheType_builder? && t.x > x;
-	{
-		true
-	}
-
-	// Should cause a function-requirement violation without autoReq
-	function f3(y:int) : bool
-	{
-		f2(y)
-	}
-
-	function {:autoReq} test2(z:int) : bool
-	{
-		f2(z)
-	}
-
-}
-
-module Matches {
-	datatype TheType = TheType_builder(x:int) | TheType_copier(t:TheType);
-
-	function f1(x:int):bool
-		requires x > 3;
-
-	function {:autoReq} basic_test(t:TheType) : bool
-	{
-		match t
-			case TheType_builder(x) => f1(x)
-			case TheType_copier(t) => true
-	}
-}
-
-// Make sure :autoReq works with static functions
-module StaticTest {
-    static function f(x:int) : bool
+  module M2 {
+    function f(x:int) : bool
       requires x > 3;
     {
       x > 7
     }
 
-	static function {:autoReq} g(z:int) : bool
-        requires f(z);
-    {
-        true
-    }
-	
     // Should succeed thanks to auto-generation based on f's requirements
-    static function {:autoReq} h(y:int) : bool  
+    function {:autoReq} h(y:int) : bool  
     {
-      g(y)
+      f(y)
     }
+  }
+}
 
-    static predicate IsEven(x:int)
+module Datatypes {
+  datatype TheType = TheType_builder(x:int) | TheType_copier(t:TheType);
 
-    static function EvenDoubler(x:int) : int
-        requires IsEven(x);
+  function f1(t:TheType):bool
+    requires t.TheType_builder? && t.x > 3;
 
-    // Should succeed thanks to auto-generated requirement of IsEven
-    static function {:autoReq} test(y:int) : int
-    {
-        EvenDoubler(y)
-    }
+  function {:autoReq} test(t:TheType) : bool
+  {
+    f1(t)
+  }
+
+  function f2(x:int) : bool
+    requires forall t:TheType :: t.TheType_builder? && t.x > x;
+  {
+    true
+  }
+
+  // Should cause a function-requirement violation without autoReq
+  function f3(y:int) : bool
+  {
+    f2(y)
+  }
+
+  function {:autoReq} test2(z:int) : bool
+  {
+    f2(z)
+  }
+
+}
+
+module Matches {
+  datatype TheType = TheType_builder(x:int) | TheType_copier(t:TheType);
+
+  function f1(x:int):bool
+    requires x > 3;
+
+  function {:autoReq} basic_test(t:TheType) : bool
+  {
+    match t
+      case TheType_builder(x) => f1(x)
+      case TheType_copier(t) => true
+  }
+}
+
+// Make sure :autoReq works with static functions
+module StaticTest {
+  static function f(x:int) : bool
+    requires x > 3;
+  {
+    x > 7
+  }
+
+  static function {:autoReq} g(z:int) : bool
+    requires f(z);
+  {
+    true
+  }
+
+  // Should succeed thanks to auto-generation based on f's requirements
+  static function {:autoReq} h(y:int) : bool  
+  {
+    g(y)
+  }
+
+  static predicate IsEven(x:int)
+
+  static function EvenDoubler(x:int) : int
+    requires IsEven(x);
+
+  // Should succeed thanks to auto-generated requirement of IsEven
+  static function {:autoReq} test(y:int) : int
+  {
+    EvenDoubler(y)
+  }
 }
 
 module OpaqueTest {
-    static function bar(x:int) : int
-           requires x>7;
-    {
-           x-2
-    }
+  static function bar(x:int) : int
+    requires x>7;
+  {
+    x-2
+  }
 
-    static function {:autoReq} {:opaque} foo(x:int) : int
-    {
-           bar(x)
-    }
+  static function {:autoReq} {:opaque} foo(x:int) : int
+  {
+    bar(x)
+  }
 
 }

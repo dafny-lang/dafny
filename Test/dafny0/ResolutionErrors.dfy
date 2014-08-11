@@ -1007,20 +1007,20 @@ module CycleError2 {
   type A = B  // error: cycle: A -> B -> A
   type B = set<A>
 }
-module Good0 {
+module CycleErrors3 {
   type A = (B, D<bool>)
   type B = C
   class C {
     var a: A;  // this is fine
   }
-  datatype D<X> = Make(A, B, C)  // this is fine, too
+  datatype D<X> = Make(A, B, C)  // error: cannot construct a D<X>
 }
-module CycleError3 {
+module CycleError4 {
   type A = B  // error: cycle: A -> B -> A
   type B = C<A>
   class C<T> { }
 }
-module CycleError4 {
+module CycleError5 {
   type A = B  // error: cycle: A -> B -> A
   type B = Dt<A>
   datatype Dt<T> = Make(T)
@@ -1089,4 +1089,14 @@ module OpaqueTypes1 {
     assert q != r;  // error: types must be the same in order to do compare
     assert p != q;  // error: types must be the same in order to do compare
   }
+}
+
+// ----- new trait -------------------------------------------
+
+
+trait J { }
+type JJ = J
+method TraitSynonym()
+{
+  var x := new JJ;  // error: new cannot be applied to a trait
 }
