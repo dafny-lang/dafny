@@ -91,7 +91,7 @@ class Tree {
 
   function method IsEmpty(): bool
     requires Valid();
-    reads Repr;
+    reads this, Repr;
     ensures IsEmpty() <==> Contents == [];
   {
     left == this

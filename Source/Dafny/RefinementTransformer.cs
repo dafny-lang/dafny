@@ -1441,8 +1441,8 @@ namespace Microsoft.Dafny
             reporter.Error(l.tok, "cannot assign to variable defined previously");
             return false;
           }
-        } else if (l is FieldSelectExpr) {
-          if (RefinementToken.IsInherited(((FieldSelectExpr)l).Field.tok, m)) {
+        } else if (l is MemberSelectExpr) {
+          if (RefinementToken.IsInherited(((MemberSelectExpr)l).Member.tok, m)) {
             return false;
           }
         } else {

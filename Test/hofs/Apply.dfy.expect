@@ -1,0 +1,7 @@
+Apply.dfy(27,16): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    Apply.dfy(26,35): anon15_Else
+    Apply.dfy(27,27): anon17_Else
+
+Dafny program verifier finished with 6 verified, 1 error

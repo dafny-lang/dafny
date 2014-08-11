@@ -8,14 +8,14 @@ class PriorityQueue {
 
   var a: array<int>;  // private implementation of PriorityQueue
 
-  predicate Valid
+  predicate Valid()
     reads this, Repr;
   {
-    MostlyValid &&
+    MostlyValid() &&
     (forall j :: 2 <= j && j <= n ==> a[j/2] <= a[j])
   }
 
-  predicate MostlyValid
+  predicate MostlyValid()
     reads this, Repr;
   {
     this in Repr && a in Repr &&
@@ -26,7 +26,7 @@ class PriorityQueue {
   method Init(capacity: int)
     requires 0 <= capacity;
     modifies this;
-    ensures Valid && fresh(Repr - {this});
+    ensures Valid() && fresh(Repr - {this});
     ensures N == capacity;
   {
     N := capacity;
@@ -37,9 +37,9 @@ class PriorityQueue {
   }
 
   method Insert(x: int)
-    requires Valid && n < N;
+    requires Valid() && n < N;
     modifies this, a;
-    ensures Valid && fresh(Repr - old(Repr));
+    ensures Valid() && fresh(Repr - old(Repr));
     ensures n == old(n) + 1 && N == old(N);
   {
     n := n + 1;
@@ -49,16 +49,16 @@ class PriorityQueue {
 
   method SiftUp(k: int)
     requires 1 <= k && k <= n;
-    requires MostlyValid;
+    requires MostlyValid();
     requires (forall j :: 2 <= j && j <= n && j != k ==> a[j/2] <= a[j]);
     requires (forall j :: 1 <= j && j <= n ==> j/2 != k);  // k is a leaf
     modifies a;
-    ensures Valid;
+    ensures Valid();
   {
     var i := k;
-    assert MostlyValid;
+    assert MostlyValid();
     while (1 < i)
-      invariant i <= k && MostlyValid;
+      invariant i <= k && MostlyValid();
       invariant (forall j :: 2 <= j && j <= n && j != i ==> a[j/2] <= a[j]);
       invariant (forall j :: 1 <= j/2/2 && j/2 == i && j <= n ==> a[j/2/2] <= a[j]);
     {
@@ -71,9 +71,9 @@ class PriorityQueue {
   }
 
   method RemoveMin() returns (x: int)
-    requires Valid && 1 <= n;
+    requires Valid() && 1 <= n;
     modifies this, a;
-    ensures Valid && fresh(Repr - old(Repr));
+    ensures Valid() && fresh(Repr - old(Repr));
     ensures n == old(n) - 1;
   {
     x := a[1];
@@ -84,17 +84,17 @@ class PriorityQueue {
 
   method SiftDown(k: int)
     requires 1 <= k;
-    requires MostlyValid;
+    requires MostlyValid();
     requires (forall j :: 2 <= j && j <= n && j/2 != k ==> a[j/2] <= a[j]);
     requires (forall j :: 2 <= j && j <= n && 1 <= j/2/2 && j/2/2 != k ==> a[j/2/2] <= a[j]);
     // Alternatively, the line above can be expressed as:
     //     requires (forall j :: 1 <= k/2 && j/2 == k && j <= n ==> a[j/2/2] <= a[j]);
     modifies a;
-    ensures Valid;
+    ensures Valid();
   {
     var i := k;
     while (2*i <= n)  // while i is not a leaf
-      invariant 1 <= i && MostlyValid;
+      invariant 1 <= i && MostlyValid();
       invariant (forall j :: 2 <= j && j <= n && j/2 != i ==> a[j/2] <= a[j]);
       invariant (forall j :: 2 <= j && j <= n && 1 <= j/2/2 && j/2/2 != i ==> a[j/2/2] <= a[j]);
     {
@@ -123,14 +123,14 @@ class PriorityQueue_Alternative {
 
   var a: array<int>;  // private implementation of PriorityQueue
 
-  predicate Valid
+  predicate Valid()
     reads this, Repr;
   {
-    MostlyValid &&
+    MostlyValid() &&
     (forall j :: 2 <= j && j <= n ==> a[j/2] <= a[j])
   }
 
-  predicate MostlyValid
+  predicate MostlyValid()
     reads this, Repr;
   {
     this in Repr && a in Repr &&
@@ -141,7 +141,7 @@ class PriorityQueue_Alternative {
   method Init(capacity: int)
     requires 0 <= capacity;
     modifies this;
-    ensures Valid && fresh(Repr - {this});
+    ensures Valid() && fresh(Repr - {this});
     ensures N == capacity;
   {
     N := capacity;
@@ -152,9 +152,9 @@ class PriorityQueue_Alternative {
   }
 
   method Insert(x: int)
-    requires Valid && n < N;
+    requires Valid() && n < N;
     modifies this, a;
-    ensures Valid && fresh(Repr - old(Repr));
+    ensures Valid() && fresh(Repr - old(Repr));
     ensures n == old(n) + 1 && N == old(N);
   {
     n := n + 1;
@@ -163,15 +163,15 @@ class PriorityQueue_Alternative {
   }
 
   method SiftUp()
-    requires MostlyValid;
+    requires MostlyValid();
     requires (forall j :: 2 <= j && j <= n && j != n ==> a[j/2] <= a[j]);
     modifies a;
-    ensures Valid;
+    ensures Valid();
   {
     var i := n;
-    assert MostlyValid;
+    assert MostlyValid();
     while (1 < i)
-      invariant i <= n && MostlyValid;
+      invariant i <= n && MostlyValid();
       invariant (forall j :: 2 <= j && j <= n && j != i ==> a[j/2] <= a[j]);
       invariant (forall j :: 1 <= j/2/2 && j/2 == i && j <= n ==> a[j/2/2] <= a[j]);
     {
@@ -184,9 +184,9 @@ class PriorityQueue_Alternative {
   }
 
   method RemoveMin() returns (x: int)
-    requires Valid && 1 <= n;
+    requires Valid() && 1 <= n;
     modifies this, a;
-    ensures Valid && fresh(Repr - old(Repr));
+    ensures Valid() && fresh(Repr - old(Repr));
     ensures n == old(n) - 1;
   {
     x := a[1];
@@ -196,14 +196,14 @@ class PriorityQueue_Alternative {
   }
 
   method SiftDown()
-    requires MostlyValid;
+    requires MostlyValid();
     requires (forall j :: 4 <= j && j <= n ==> a[j/2] <= a[j]);
     modifies a;
-    ensures Valid;
+    ensures Valid();
   {
     var i := 1;
     while (2*i <= n)  // while i is not a leaf
-      invariant 1 <= i && MostlyValid;
+      invariant 1 <= i && MostlyValid();
       invariant (forall j :: 2 <= j && j <= n && j/2 != i ==> a[j/2] <= a[j]);
       invariant (forall j :: 1 <= j/2/2 && j/2 == i && j <= n ==> a[j/2/2] <= a[j]);
     {

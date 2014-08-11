@@ -1,0 +1,2 @@
+MutableField.dfy(12,4): Error: LHS of assignment must denote a mutable field
+1 resolution/type errors detected in MutableField.dfy

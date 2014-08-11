@@ -1,0 +1,38 @@
+// RUN: %dafny /compile:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %diff "%s.expect" "%t"
+
+function method Twice(f : A -> A): A -> A
+{
+  x requires f.requires(x) && f.requires(f(x))
+    reads f.reads(x) reads if f.requires(x) then f.reads(f(x)) else {}
+  => f(f(x))
+}
+
+method Simple() {
+  assert Twice(x => x + 1)(0) == 2;
+  assert Twice(Twice(x => x + 1))(0) == 4;
+
+  // why does these fail? need requires/reads for literals?
+  // assert Twice(Twice)(x => x + 1)(0) == 4;
+  // assert Twice(Twice)(Twice)(x => x + 1)(0) == 16;
+}
+
+method WithReads() {
+  var a : array<int> := new int[1];
+  a[0] := 1;
+  var f := x reads a => x + a[0];
+  assert Twice(f)(0) == 2;
+  a[0] := 2;
+  assert Twice(f)(0) == 4;
+  assert Twice(f)(0) == 2; // should fail
+  assert false;            // should fail
+}
+
+
+function method Twice_bad(f : A -> A): A -> A
+{
+  x requires f.requires(x) && f.requires(f(x))
+    reads f.reads(x) + f.reads(f(x))
+  => f(f(x))
+}
+

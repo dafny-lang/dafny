@@ -370,7 +370,9 @@ namespace Microsoft.Dafny {
           return true;
         } else {
           UserDefinedType udt = this as UserDefinedType;
-          return udt != null && udt.ResolvedParam == null && udt.ResolvedClass is ClassDecl;
+          return udt != null && udt.ResolvedParam == null && udt.ResolvedClass is ClassDecl
+            && !(udt.ResolvedClass is ArrowType.ArrowTypeDecl);
+
         }
       }
     }
@@ -535,6 +537,115 @@ namespace Microsoft.Dafny {
     }
   }
 
+  public class ArrowType : UserDefinedType
+  {
+    public List<Type> Args {
+      get { return TypeArgs.GetRange(0, Arity); }
+    }
+
+    public Type Result {
+      get { return TypeArgs[Arity]; }
+    }
+
+    public int Arity {
+      get { return TypeArgs.Count - 1; }
+    }
+
+    public ArrowType(List<Type> args, Type result) : 
+      base(Token.NoToken, ArrowType.ArrowTypeName(args.Count), Util.Snoc(args, result), null) {
+      ResolvedClass = GetArrowDecl(args.Count);
+    }
+
+    public static string ArrowTypeName(int arity) {
+      return "_Func" + arity;
+    }
+
+    public static bool IsArrowTypeName(string s) {
+      return s.StartsWith("_Func");
+    }
+
+    public override string TypeName(ModuleDefinition context) {
+      string s = "", closeparen = "";
+      if (Args.Count != 1 || Args[0] is ArrowType) {
+        s += "("; closeparen = ")";
+      }
+      s += Util.Comma(Args, arg => arg.TypeName(context));
+      s += closeparen;
+      s += " -> ";
+      s += Result.TypeName(context);
+      return s;
+    }
+   
+    private static ArrowTypeDecl GetArrowDecl(int arity) {
+      ArrowTypeDecl arrowDecl;
+      if (!arrowTypeDecls.TryGetValue(arity, out arrowDecl)) {
+        var tok = Token.NoToken;
+        var tps = Util.Map(Enumerable.Range(0, arity + 1),
+          x => new TypeParameter(tok, "_Fn" + x));
+        var tys = tps.ConvertAll(tp => (Type)(new UserDefinedType(tp)));
+        var args = tys.GetRange(0, arity).ConvertAll(t => new Formal(tok, "x", t, true, false));
+        var argExprs = args.ConvertAll(a => 
+              (Expression)new IdentifierExpr(tok, a.Name) { Var = a, Type = a.Type });
+        var readsIS = new IdentifierSequence(new List<IToken> { tok }, tok, argExprs) {
+          Type = new SetType(new ObjectType()),
+        };
+        var readsFrame = new List<FrameExpression> { new FrameExpression(tok, readsIS, null) };
+        var req = new Function(tok, "requires", false, true,
+          new List<TypeParameter>(), tok, args, Type.Bool,
+          new List<Expression>(), readsFrame, new List<Expression>(),
+          new Specification<Expression>(new List<Expression>(), null),
+          null, null, null); 
+        var reads = new Function(tok, "reads", false, true,
+          new List<TypeParameter>(), tok, args, new SetType(new ObjectType()),
+          new List<Expression>(), readsFrame, new List<Expression>(),
+          new Specification<Expression>(new List<Expression>(), null),
+          null, null, null);
+        var readsFexp =
+          new FunctionCallExpr(tok, "reads", new ThisExpr(tok), tok, argExprs) {
+            Function = reads,
+            Type = readsIS.Type,
+            TypeArgumentSubstitutions = Util.Dict(tps, tys) 
+          };
+        readsIS.ResolvedExpression = readsFexp;
+        arrowDecl = new ArrowTypeDecl(tps, req, reads);
+        arrowTypeDecls[arity] = arrowDecl;
+      }
+      return arrowDecl;
+    }
+
+    private readonly static Dictionary<int, ArrowTypeDecl> arrowTypeDecls = new Dictionary<int, ArrowTypeDecl>();
+    private static readonly ModuleDefinition FunctionModule = new ModuleDefinition(Token.NoToken, "_Fn", false, false, null, null, null, true) { Height = -1 };
+
+    public static IEnumerable<ArrowTypeDecl> ArrowTypeDecls {
+      get {
+        return ArrowType.arrowTypeDecls.Values;
+      }
+    }
+
+    public class ArrowTypeDecl : ClassDecl
+    {
+      public readonly int Arity;
+      public readonly Function Requires;
+      public readonly Function Reads;
+
+      public ArrowTypeDecl(List<TypeParameter> tps, Function req, Function reads) 
+        : base(Token.NoToken, "_Func" + (tps.Count-1), FunctionModule, tps, 
+               new List<MemberDecl>{ req, reads }, null) {
+        Arity = tps.Count-1;
+        Requires = req;
+        Reads = reads;
+        Requires.EnclosingClass = this;
+        Reads.EnclosingClass = this;
+      }
+    }
+
+    public override bool SupportsEquality {
+      get {
+        return false;
+      }
+    }
+  }
+
   public abstract class CollectionType : NonProxyType
   {
     public abstract string CollectionTypeName { get; }
@@ -656,6 +767,7 @@ namespace Microsoft.Dafny {
       Contract.Invariant(Name != null);
       Contract.Invariant(cce.NonNullElements(TypeArgs));
       Contract.Invariant(cce.NonNullElements(Path));
+      Contract.Invariant(!ArrowType.IsArrowTypeName(Name) || this is ArrowType);
     }
 
     public readonly List<IToken> Path;
@@ -2268,6 +2380,12 @@ namespace Microsoft.Dafny {
     public readonly IToken SignatureEllipsis;
     public bool IsBuiltin;
 
+    public Type Type {
+      get {
+        return new ArrowType(Formals.ConvertAll(f => f.Type), ResultType);
+      }
+    }
+
     /// <summary>
     /// The "AllCalls" field is used for non-CoPredicate, non-PrefixPredicate functions only (so its value should not be relied upon for CoPredicate and PrefixPredicate functions).
     /// It records all function calls made by the Function, including calls made in the body as well as in the specification.
@@ -3255,9 +3373,9 @@ namespace Microsoft.Dafny {
       if (lhs is IdentifierExpr) {
         var x = (IdentifierExpr)lhs;
         return x.Var.IsGhost;
-      } else if (lhs is FieldSelectExpr) {
-        var x = (FieldSelectExpr)lhs;
-        return x.Field.IsGhost;
+      } else if (lhs is MemberSelectExpr) {
+        var x = (MemberSelectExpr)lhs;
+        return x.Member.IsGhost;
       } else {
         // LHS denotes an array element, which is always non-ghost
         return false;
@@ -4846,25 +4964,53 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public class FieldSelectExpr : Expression {
+  // Former FieldSelectExpression
+  public class MemberSelectExpr : Expression {
     public readonly Expression Obj;
-    public readonly string FieldName;
-    public Field Field;  // filled in by resolution
+    public readonly string MemberName;
+    public MemberDecl Member;          // filled in by resolution, will be a Field or Function
+    public List<Type> TypeApplication; 
+      // If it is a function, it must have all its polymorphic variables applied
 
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(Obj != null);
-      Contract.Invariant(FieldName != null);
+      Contract.Invariant(MemberName != null);
+      Contract.Invariant((Member is Function) == (TypeApplication != null));
     }
 
-    public FieldSelectExpr(IToken tok, Expression obj, string fieldName)
+    public MemberSelectExpr(IToken tok, Expression obj, string memberName)
       : base(tok) {
       Contract.Requires(tok != null);
       Contract.Requires(obj != null);
-      Contract.Requires(fieldName != null);
+      Contract.Requires(memberName != null);
       this.Obj = obj;
-      this.FieldName = fieldName;
+      this.MemberName = memberName;
     }
+
+    public void MemberSelectCase(Action<Field> fieldK, Action<Function> functionK) {
+      MemberSelectCase<bool>(
+        f => {
+          fieldK(f);
+          return true;
+        },
+        f => {
+          functionK(f);
+          return true;
+        });
+    }
+
+    public A MemberSelectCase<A>(Func<Field,A> fieldK, Func<Function,A> functionK) {
+      var field = Member as Field;
+      var function = Member as Function;
+      if (field != null) {
+        return fieldK(field);
+      } else {
+        Contract.Assert(function != null);
+        return functionK(function);
+      }
+    }
+
 
     public override IEnumerable<Expression> SubExpressions {
       get { yield return Obj; }
@@ -4967,6 +5113,32 @@ namespace Microsoft.Dafny {
           }
         }
       }
+    }
+  }
+
+  public class ApplyExpr : Expression {
+    // The idea is that this apply expression does not need a type argument substitution,
+    // since lambda functions and anonymous functions are never polymorphic.
+    // Make a FunctionCallExpr otherwise, to call a resolvable anonymous function.
+    public readonly Expression Receiver;
+    public readonly List<Expression> Args;
+    public readonly IToken OpenParen;
+
+    public override IEnumerable<Expression> SubExpressions {
+      get {
+        yield return Receiver;
+        foreach (var e in Args) {
+          yield return e;
+        }
+      }
+    }
+
+    public ApplyExpr(IToken tok, IToken openParen, Expression receiver, List<Expression> args) 
+      : base(tok)
+    {
+      OpenParen = openParen;
+      Receiver = receiver;
+      Args = args;
     }
   }
 
@@ -5606,19 +5778,18 @@ namespace Microsoft.Dafny {
 
   public abstract class QuantifierExpr : ComprehensionExpr, TypeParameter.ParentType {
     public List<TypeParameter> TypeArgs;
-    public static int quantCount = 0;
+    private static int quantCount = 0;
     private readonly int quantUnique;
-    private int typeRefreshCount = 0;
     public string FullName {
       get {
         return "q$" + quantUnique;
       }
     }
-    public String Refresh(String s) {
-      return s + "#" + typeRefreshCount++ + FullName; 
+    public String Refresh(String s, ref int counter) {
+      return s + "#" + counter++ + FullName; 
     }
-    public TypeParameter Refresh(TypeParameter p) {
-      TypeParameter cp = new TypeParameter(p.tok, typeRefreshCount++ + "#" + p.Name, p.EqualitySupport);
+    public TypeParameter Refresh(TypeParameter p, ref int counter) {
+      var cp = new TypeParameter(p.tok, counter++ + "#" + p.Name, p.EqualitySupport);
       cp.Parent = this;
       return cp;
     }
@@ -5634,7 +5805,6 @@ namespace Microsoft.Dafny {
       Contract.Requires(term != null);
       this.TypeArgs = tvars;
       this.quantUnique = quantCount++;
-      this.typeRefreshCount = 0;
     }
     public abstract Expression LogicalBody();
   }
@@ -5712,6 +5882,48 @@ namespace Microsoft.Dafny {
       Contract.Requires(term != null);
     }
   }
+
+  public class LambdaExpr : ComprehensionExpr
+  {
+    private static int lamUniques = 0;
+
+    public readonly bool OneShot;
+
+    public readonly List<FrameExpression> Reads;
+
+    public string MkName(string nm) {
+      return "$l" + lamUniques++ + "#" + nm; 
+    }
+
+    public LambdaExpr(IToken tok, bool oneShot, List<BoundVar> bvars, Expression requires, List<FrameExpression> reads, Expression body)
+      : base(tok, bvars, requires, body, null) 
+    {
+      Contract.Requires(reads != null); 
+      Reads = reads;
+      OneShot = oneShot;
+    }
+
+    // Synonym
+    public Expression Body {
+      get {
+        return Term;
+      }
+    }
+
+    public override IEnumerable<Expression> SubExpressions {
+      get {
+        yield return Term;
+        if (Range != null) {
+          yield return Range;
+        }
+        foreach (var read in Reads) {
+          yield return read.E;
+        }
+      }
+    }
+
+  }
+
 
   public class WildcardExpr : Expression
   {  // a WildcardExpr can occur only in reads clauses and a loop's decreases clauses (with different meanings)
@@ -6103,6 +6315,26 @@ namespace Microsoft.Dafny {
       E = e;
     }
   }
+
+  public class TypeExpr : ParensExpression
+  {
+    public readonly Type T;
+    public TypeExpr(IToken tok, Expression e, Type t) 
+      : base(tok, e)
+    {
+      Contract.Requires(t != null);
+      T = t;
+    }
+    
+    public static Expression MaybeTypeExpr(Expression e, Type t) {
+      if (t == null) {
+        return e;
+      } else {
+        return new TypeExpr(e.tok, e, t);
+      }
+    }
+  }
+
 
   /// <summary>
   /// An AutoGeneratedExpression is simply a wrapper around an expression.  This expression tells the generation of hover text (in the Dafny IDE)

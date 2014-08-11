@@ -1,0 +1,14 @@
+ResolveError.dfy(7,11): Error: the number of left-hand sides (1) and right-hand sides (2) must match for a multi-assignment
+ResolveError.dfy(8,11): Error: the number of left-hand sides (1) and right-hand sides (2) must match for a multi-assignment
+ResolveError.dfy(21,6): Error: LHS of assignment must denote a mutable field
+ResolveError.dfy(31,16): Error: arguments must have the same type (got int and bool)
+ResolveError.dfy(32,12): Error: cannot apply arguments with types int,int to expression with type int -> int
+ResolveError.dfy(33,12): Error: cannot apply arguments with types bool to expression with type int -> int
+ResolveError.dfy(34,13): Error: incorrect type of function argument 0 (expected int, got bool)
+ResolveError.dfy(35,25): Error: arguments must have the same type (got bool and int)
+ResolveError.dfy(36,13): Error: wrong number of function arguments (got 2, expected 1)
+ResolveError.dfy(37,13): Error: incorrect type of function argument 0 (expected int, got bool)
+ResolveError.dfy(38,22): Error: arguments must have the same type (got set<object> and int)
+ResolveError.dfy(39,13): Error: wrong number of function arguments (got 2, expected 1)
+ResolveError.dfy(49,9): Error: condition is expected to be of type bool, but is () -> bool
+13 resolution/type errors detected in ResolveError.dfy

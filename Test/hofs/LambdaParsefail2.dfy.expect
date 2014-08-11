@@ -1,0 +1,2 @@
+LambdaParsefail2.dfy(6,33): error: Type specification not allowed here, comma separator was expected.
+1 parse errors detected in LambdaParsefail2.dfy

@@ -936,14 +936,7 @@ namespace Microsoft.Dafny {
     string/*!*/ TypeNames(List<Type/*!*/>/*!*/ types) {
       Contract.Requires(cce.NonNullElements(types));
       Contract.Ensures(Contract.Result<string>() != null);
-
-      string s = "";
-      string sep = "";
-      foreach (Type t in types) {
-        s += sep + TypeName(t);
-        sep = ",";
-      }
-      return s;
+      return Util.Comma(types, TypeName);
     }
 
     string/*!*/ TypeParameters(List<TypeParameter/*!*/>/*!*/ targs) {
@@ -1390,8 +1383,8 @@ namespace Microsoft.Dafny {
         // Compute L
         int L;
         string tupleTypeArgs;
-        if (s0.Lhs is FieldSelectExpr) {
-          var lhs = (FieldSelectExpr)s0.Lhs;
+        if (s0.Lhs is MemberSelectExpr) {
+          var lhs = (MemberSelectExpr)s0.Lhs;
           L = 2;
           tupleTypeArgs = TypeName(lhs.Obj.Type);
         } else if (s0.Lhs is SeqSelectExpr) {
@@ -1474,8 +1467,8 @@ namespace Microsoft.Dafny {
         SpillLetVariableDecls(rhs, indFinal);
         Indent(indFinal);
         wr.Write("{0}.Add(new System.Tuple<{1}>(", ingredients, tupleTypeArgs);
-        if (s0.Lhs is FieldSelectExpr) {
-          var lhs = (FieldSelectExpr)s0.Lhs;
+        if (s0.Lhs is MemberSelectExpr) {
+          var lhs = (MemberSelectExpr)s0.Lhs;
           TrExpr(lhs.Obj);
         } else if (s0.Lhs is SeqSelectExpr) {
           var lhs = (SeqSelectExpr)s0.Lhs;
@@ -1511,9 +1504,9 @@ namespace Microsoft.Dafny {
         Indent(indent);
         wr.WriteLine("foreach (var {0} in {1}) {{", tup, ingredients);
         Indent(indent + IndentAmount);
-        if (s0.Lhs is FieldSelectExpr) {
-          var lhs = (FieldSelectExpr)s0.Lhs;
-          wr.WriteLine("{0}.Item1.@{1} = {0}.Item2;", tup, lhs.FieldName);
+        if (s0.Lhs is MemberSelectExpr) {
+          var lhs = (MemberSelectExpr)s0.Lhs;
+          wr.WriteLine("{0}.Item1.@{1} = {0}.Item2;", tup, lhs.MemberName);
         } else if (s0.Lhs is SeqSelectExpr) {
           var lhs = (SeqSelectExpr)s0.Lhs;
           wr.WriteLine("{0}.Item1[{0}.Item2] = {0}.Item3;", tup);
@@ -1588,15 +1581,15 @@ namespace Microsoft.Dafny {
       if (lhs is IdentifierExpr) {
         var ll = (IdentifierExpr)lhs;
         return "@" + ll.Var.CompileName;
-      } else if (lhs is FieldSelectExpr) {
-        var ll = (FieldSelectExpr)lhs;
+      } else if (lhs is MemberSelectExpr) {
+        var ll = (MemberSelectExpr)lhs;
         string obj = "_obj" + tmpVarCount;
         tmpVarCount++;
         Indent(indent);
         wr.Write("var {0} = ", obj);
         TrExpr(ll.Obj);
         wr.WriteLine(";");
-        return string.Format("{0}.@{1}", obj, ll.Field.CompileName);
+        return string.Format("{0}.@{1}", obj, ll.Member.CompileName);
       } else if (lhs is SeqSelectExpr) {
         var ll = (SeqSelectExpr)lhs;
         string arr = "_arr" + tmpVarCount;
@@ -2028,9 +2021,9 @@ namespace Microsoft.Dafny {
         wr.Write("{0}.FromElements", TypeName(e.Type));
         TrExprPairList(e.Elements);
 
-      } else if (expr is FieldSelectExpr) {
-        FieldSelectExpr e = (FieldSelectExpr)expr;
-        SpecialField sf = e.Field as SpecialField;
+      } else if (expr is MemberSelectExpr) {
+        MemberSelectExpr e = (MemberSelectExpr)expr;
+        SpecialField sf = e.Member as SpecialField;
         if (sf != null) {
           wr.Write(sf.PreString);
           TrParenExpr(e.Obj);
@@ -2038,7 +2031,7 @@ namespace Microsoft.Dafny {
           wr.Write(sf.PostString);
         } else {
           TrParenExpr(e.Obj);
-          wr.Write(".@{0}", e.Field.CompileName);
+          wr.Write(".@{0}", e.Member.CompileName);
         }
 
       } else if (expr is SeqSelectExpr) {
@@ -2649,6 +2642,14 @@ namespace Microsoft.Dafny {
         wr.Write("}");
         wr.Write("return Dafny.Map<{0},{1}>.FromCollection(_coll); ", domtypeName, rantypeName);
         wr.Write("})()");
+
+      } else if (expr is LambdaExpr) {
+        LambdaExpr e = (LambdaExpr)expr;
+        wr.Write("((");
+        wr.Write(Util.Comma(e.BoundVars, bv => bv.CompileName));
+        wr.Write(") => ");
+        TrExpr(e.Body);
+        wr.Write(")");
 
       } else if (expr is StmtExpr) {
         var e = (StmtExpr)expr;

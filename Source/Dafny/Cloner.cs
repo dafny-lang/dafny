@@ -140,6 +140,9 @@ namespace Microsoft.Dafny
       } else if (t is MapType) {
         var tt = (MapType)t;
         return new MapType(CloneType(tt.Domain), CloneType(tt.Range));
+      } else if (t is ArrowType) {
+        var tt = (ArrowType)t;
+        return new ArrowType(tt.Args.ConvertAll(CloneType), CloneType(tt.Result));
       } else if (t is UserDefinedType) {
         var tt = (UserDefinedType)t;
         return new UserDefinedType(Tok(tt.tok), tt.Name, tt.TypeArgs.ConvertAll(CloneType), tt.Path.ConvertAll(Tok));
@@ -251,9 +254,9 @@ namespace Microsoft.Dafny
         var e = (ExprDotName)expr;
         return new ExprDotName(Tok(e.tok), CloneExpr(e.Obj), e.SuffixName);
 
-      } else if (expr is FieldSelectExpr) {
-        var e = (FieldSelectExpr)expr;
-        return new FieldSelectExpr(Tok(e.tok), CloneExpr(e.Obj), e.FieldName);
+      } else if (expr is MemberSelectExpr) {
+        var e = (MemberSelectExpr)expr;
+        return new MemberSelectExpr(Tok(e.tok), CloneExpr(e.Obj), e.MemberName);
 
       } else if (expr is SeqSelectExpr) {
         var e = (SeqSelectExpr)expr;
@@ -270,6 +273,10 @@ namespace Microsoft.Dafny
       } else if (expr is FunctionCallExpr) {
         var e = (FunctionCallExpr)expr;
         return new FunctionCallExpr(Tok(e.tok), e.Name, CloneExpr(e.Receiver), e.OpenParen == null ? null : Tok(e.OpenParen), e.Args.ConvertAll(CloneExpr));
+
+      } else if (expr is ApplyExpr) {
+        var e = (ApplyExpr)expr;
+        return new ApplyExpr(Tok(e.tok), Tok(e.OpenParen), CloneExpr(e.Receiver), e.Args.ConvertAll(CloneExpr));
 
       } else if (expr is OldExpr) {
         var e = (OldExpr)expr;
@@ -324,6 +331,9 @@ namespace Microsoft.Dafny
           }
         } else if (e is MapComprehension) {
           return new MapComprehension(tk, bvs, range, term);
+        } else if (e is LambdaExpr) {
+          var l = (LambdaExpr)e;
+          return new LambdaExpr(tk, l.OneShot, bvs, range, l.Reads.ConvertAll(CloneFrameExpr), term);
         } else {
           Contract.Assert(e is SetComprehension);
           return new SetComprehension(tk, bvs, range, term);

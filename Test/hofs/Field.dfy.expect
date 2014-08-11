@@ -1,0 +1,14 @@
+Field.dfy(12,10): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+Field.dfy(12,12): Error: possible violation of function precondition
+Execution trace:
+    (0,0): anon0
+Field.dfy(21,10): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+Field.dfy(21,12): Error: possible violation of function precondition
+Execution trace:
+    (0,0): anon0
+
+Dafny program verifier finished with 2 verified, 4 errors
