@@ -35,13 +35,13 @@ colemma {:induction false} CoUpLemma(n: int)
   CoUpLemma(n+1);
 }
 
-lemma UpLemma_Auto(k: nat, n: int)
-  ensures Inc(Up(n)) ==#[k] Up(n+1);
+lemma UpLemma_Auto(k: nat, n: int, nn: int)
+  ensures nn == n+1 ==> Inc(Up(n)) ==#[k] Up(nn);  // note: it would be nice to do an automatic rewrite (from "ensures Inc(Up(n)) ==#[k] Up(n+1)") to obtain the good trigger here
 {
 }
 
-colemma CoUpLemma_Auto(n: int)
-  ensures Inc(Up(n)) == Up(n+1);
+colemma CoUpLemma_Auto(n: int, nn: int)
+  ensures nn == n+1 ==> Inc(Up(n)) == Up(nn);  // see comment above
 {
 }
 
