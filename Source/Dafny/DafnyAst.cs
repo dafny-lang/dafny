@@ -575,6 +575,7 @@ namespace Microsoft.Dafny {
       return "_Func" + arity;
     }
 
+    [Pure]
     public static bool IsArrowTypeName(string s) {
       return s.StartsWith("_Func");
     }
