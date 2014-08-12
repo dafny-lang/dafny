@@ -5070,7 +5070,7 @@ namespace Microsoft.Dafny {
         {
           // Reads(Ty.., F#Handle( Ty1, ..., TyN, Layer, self), Heap, arg1, ..., argN)[Box(o)] 
           //   =  $Frame_F(args...)[o]
-          //   && Scramble(...)
+          // //  && Scramble(...)
 
           var fhandle = FunctionCall(f.tok, name, predef.HandleType, SnocSelf(args));
           Bpl.Expr o; var oVar = BplBoundVar("o", predef.RefType, out o);
@@ -5079,8 +5079,8 @@ namespace Microsoft.Dafny {
             new List<Bpl.Expr> { lhs_inner, FunctionCall(f.tok, BuiltinFunction.Box, null, o) });
 
           var et = new ExpressionTranslator(this, predef, h);
-          var rhs = BplAnd(InRWClause(f.tok, o, null, f.Reads, et, selfExpr, rhs_dict),
-                           MakeScrambler(f.tok, f.FullSanitizedName + "#extraReads", Cons(oVar, Concat(vars, bvars))));
+          var rhs = InRWClause(f.tok, o, null, f.Reads, et, selfExpr, rhs_dict);
+                           // MakeScrambler(f.tok, f.FullSanitizedName + "#extraReads", Cons(oVar, Concat(vars, bvars))));
 
           sink.TopLevelDeclarations.Add(new Axiom(f.tok,
             BplForall(Cons(oVar, Concat(vars, bvars)), BplTrigger(lhs), Bpl.Expr.Eq(lhs, rhs))));
@@ -5146,7 +5146,7 @@ namespace Microsoft.Dafny {
         //
         // no precondition for these, but:
         // for requires, we add: RequiresN(...) <== r[heap, b1, ..., bN] 
-        // for reads, we could:  ReadsN(...)[bx] ==> rd[heap, b1, ..., bN][bx] 
+        // for reads, we could:  ReadsN(...)[bx] ==> rd[heap, b1, ..., bN][bx] , but we don't
         Action<string, Bpl.Type, string, Bpl.Type, string, Bpl.Type> SelectorSemantics = (selector, selectorTy, selectorVar, selectorVarTy, precond, precondTy) => {
           Contract.Assert((precond == null) == (precondTy == null));
           var bvars = new List<Bpl.Variable>();
@@ -5177,7 +5177,7 @@ namespace Microsoft.Dafny {
             var bx = BplBoundVar("bx", predef.BoxType, bvars);
             lhs = new Bpl.NAryExpr(tok, new Bpl.MapSelect(tok, 1), new List<Bpl.Expr> { lhs, bx });
             rhs = new Bpl.NAryExpr(tok, new Bpl.MapSelect(tok, 1), new List<Bpl.Expr> { rhs, bx });
-            op = Bpl.Expr.Imp;
+            // op = Bpl.Expr.Imp;
           }
           if (selectorVar == "r") {
             op = (u, v) => Bpl.Expr.Imp(v, u);
@@ -12280,7 +12280,7 @@ namespace Microsoft.Dafny {
       ty.NormalizeExpand().TypeArgs.Iter(tt => ComputeFreeTypeVariables(tt, fvs));
     }
 
-    static void ComputeFreeVariables(Expression expr, ISet<IVariable> fvs, ref bool usesHeap, ref bool usesOldHeap, ref Type usesThis, bool inOldContext) {
+    public static void ComputeFreeVariables(Expression expr, ISet<IVariable> fvs, ref bool usesHeap, ref bool usesOldHeap, ref Type usesThis, bool inOldContext) {
       Contract.Requires(expr != null);
 
       if (expr is ThisExpr) {

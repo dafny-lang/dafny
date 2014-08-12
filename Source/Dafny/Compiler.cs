@@ -938,53 +938,10 @@ namespace Microsoft.Dafny {
     void CompileReturnBody(Expression body, int indent) {
       Contract.Requires(0 <= indent);
       body = body.Resolved;
-      SpillLetVariableDecls(body, indent);
       Indent(indent);
       wr.Write("return ");
       TrExpr(body);
       wr.WriteLine(";");
-    }
-
-    void SpillLetVariableDecls(Expression expr, int indent) {
-      Contract.Requires(0 <= indent);
-      if (expr == null) {
-        // allow "null" as an argument; nothing to do
-        return;
-      }
-      if (expr is LetExpr) {
-        var e = (LetExpr)expr;
-        // Bound variables introduced in the LHS are ghost if either the entire let expression is declared
-        // a ghost or the position of a variable corresponds to the datatype constructor argument that is
-        // declared a ghost.  If all variables are ghost, then the corresponding RHS is not needed; but if
-        // there is any non-ghost variable, then the corresponding RHS is needed.
-        Contract.Assert(e.LHSs.Count == e.RHSs.Count);
-        var i = 0;
-        foreach (var lhs in e.LHSs) {
-          var needRHS = false;
-          foreach (var v in lhs.Vars) {
-            if (!v.IsGhost) {
-              if (!needRHS) {
-                // this is the first of lhs's variables that we have found we need
-                Indent(indent);
-                var nm = string.Format("_pat_let{0}_{1}", GetUniqueAstNumber(e), i);
-                wr.WriteLine("{0} @{1};", TypeName(e.RHSs[i].Type), nm);
-                needRHS = true;
-              }
-              Indent(indent);
-              wr.WriteLine("{0} @{1};", TypeName(v.Type), v.CompileName);
-            }
-          }
-          if (needRHS) {
-            SpillLetVariableDecls(e.RHSs[i], indent);
-          }
-          i++;
-        }
-        SpillLetVariableDecls(e.Body, indent);
-        return;
-      }
-      foreach (var ee in expr.SubExpressions) {
-        SpillLetVariableDecls(ee, indent);
-      }
     }
 
     // ----- Type ---------------------------------------------------------------------------------
@@ -1025,6 +982,9 @@ namespace Microsoft.Dafny {
       } else if (type is UserDefinedType) {
         UserDefinedType udt = (UserDefinedType)type;
         string s = "@" + udt.FullCompileName;
+        if (type is ArrowType) {
+          s = "Func";
+        }
         if (udt.TypeArgs.Count != 0) {
           if (udt.TypeArgs.Exists(argType => argType is ObjectType)) {
             Error("compilation does not support type 'object' as a type parameter; consider introducing a ghost");
@@ -1118,6 +1078,8 @@ namespace Microsoft.Dafny {
         return DafnySeqClass + "<" + TypeName(((SeqType)type).Arg) + ">.Empty";
       } else if (type is MapType) {
         return TypeName(type)+".Empty";
+      } else if (type is ArrowType) {
+        return "null";
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected type
       }
@@ -1162,7 +1124,6 @@ namespace Microsoft.Dafny {
       if (stmt is PrintStmt) {
         PrintStmt s = (PrintStmt)stmt;
         foreach (Attributes.Argument arg in s.Args) {
-          SpillLetVariableDecls(arg.E, indent);
           Indent(indent);
           wr.Write("System.Console.Write(");
           if (arg.S != null) {
@@ -1235,7 +1196,6 @@ namespace Microsoft.Dafny {
           }
         } else {
           Contract.Assume(s.Bounds != null);
-          SpillLetVariableDecls(s.Expr, indent);
 
           // For "i,j,k,l :| R(i,j,k,l);", emit something like:
           //
@@ -1392,7 +1352,6 @@ namespace Microsoft.Dafny {
             TrStmt(s.Thn, indent);
           }
         } else {
-          SpillLetVariableDecls(s.Guard, indent);
           Indent(indent);  wr.Write("if (");
           TrExpr(s.Guard);
           wr.WriteLine(")");
@@ -1407,7 +1366,6 @@ namespace Microsoft.Dafny {
       } else if (stmt is AlternativeStmt) {
         var s = (AlternativeStmt)stmt;
         foreach (var alternative in s.Alternatives) {
-          SpillLetVariableDecls(alternative.Guard, indent);
         }
         Indent(indent);
         foreach (var alternative in s.Alternatives) {
@@ -1426,7 +1384,6 @@ namespace Microsoft.Dafny {
           Indent(indent);
           wr.WriteLine("while (false) { }");
         } else {
-          SpillLetVariableDecls(s.Guard, indent);
           Indent(indent);
           wr.Write("while (");
           TrExpr(s.Guard);
@@ -1441,7 +1398,6 @@ namespace Microsoft.Dafny {
           wr.WriteLine("while (true) {");
           int ind = indent + IndentAmount;
           foreach (var alternative in s.Alternatives) {
-            SpillLetVariableDecls(alternative.Guard, ind);
           }
           Indent(ind);
           foreach (var alternative in s.Alternatives) {
@@ -1551,8 +1507,6 @@ namespace Microsoft.Dafny {
             wr.Write("foreach (var @{0} in Dafny.Helpers.AllBooleans) {{ ", bv.CompileName);
           } else if (bound is ComprehensionExpr.IntBoundedPool) {
             var b = (ComprehensionExpr.IntBoundedPool)bound;
-            SpillLetVariableDecls(b.LowerBound, ind);
-            SpillLetVariableDecls(b.UpperBound, ind);
             Indent(ind);
             wr.Write("for (var @{0} = ", bv.CompileName);
             TrExpr(b.LowerBound);
@@ -1561,14 +1515,12 @@ namespace Microsoft.Dafny {
             wr.Write("; @{0}++) {{ ", bv.CompileName);
           } else if (bound is ComprehensionExpr.SetBoundedPool) {
             var b = (ComprehensionExpr.SetBoundedPool)bound;
-            SpillLetVariableDecls(b.Set, ind);
             Indent(ind);
             wr.Write("foreach (var @{0} in (", bv.CompileName);
             TrExpr(b.Set);
             wr.Write(").Elements) { ");
           } else if (bound is ComprehensionExpr.SeqBoundedPool) {
             var b = (ComprehensionExpr.SeqBoundedPool)bound;
-            SpillLetVariableDecls(b.Seq, ind);
             Indent(ind);
             wr.Write("foreach (var @{0} in (", bv.CompileName);
             TrExpr(b.Seq);
@@ -1585,15 +1537,12 @@ namespace Microsoft.Dafny {
         // if (range) {
         //   ingredients.Add(new L-Tuple( LHS0(w,x,y,z), LHS1(w,x,y,z), ..., RHS(w,x,y,z) ));
         // }
-        SpillLetVariableDecls(s.Range, indent + n * IndentAmount);
         Indent(indent + n * IndentAmount);
         wr.Write("if ");
         TrParenExpr(s.Range);
         wr.WriteLine(" {");
 
         var indFinal = indent + (n + 1) * IndentAmount;
-        SpillLetVariableDecls(s0.Lhs, indFinal);
-        SpillLetVariableDecls(rhs, indFinal);
         Indent(indFinal);
         wr.Write("{0}.Add(new System.Tuple<{1}>(", ingredients, tupleTypeArgs);
         if (s0.Lhs is MemberSelectExpr) {
@@ -1665,7 +1614,6 @@ namespace Microsoft.Dafny {
         //   ...
         // }
         if (s.Cases.Count != 0) {
-          SpillLetVariableDecls(s.Source, indent);
           string source = "_source" + tmpVarCount;
           tmpVarCount++;
           Indent(indent);
@@ -1705,7 +1653,6 @@ namespace Microsoft.Dafny {
 
     string CreateLvalue(Expression lhs, int indent) {
       lhs = lhs.Resolved;
-      SpillLetVariableDecls(lhs, indent);
       if (lhs is IdentifierExpr) {
         var ll = (IdentifierExpr)lhs;
         return "@" + ll.Var.CompileName;
@@ -1759,7 +1706,6 @@ namespace Microsoft.Dafny {
 
     void TrRhs(string target, Expression targetExpr, AssignmentRhs rhs, int indent) {
       Contract.Requires((target == null) != (targetExpr == null));
-      SpillLetVariableDecls(targetExpr, indent);
       var tRhs = rhs as TypeRhs;
       if (tRhs != null && tRhs.InitCall != null) {
         string nw = "_nw" + tmpVarCount;
@@ -1780,10 +1726,8 @@ namespace Microsoft.Dafny {
         // do nothing
       } else {
         if (rhs is ExprRhs) {
-          SpillLetVariableDecls(((ExprRhs)rhs).Expr, indent);
         } else if (tRhs != null && tRhs.ArrayDimensions != null) {
           foreach (Expression dim in tRhs.ArrayDimensions) {
-            SpillLetVariableDecls(dim, indent);
           }
         }
         Indent(indent);
@@ -1810,13 +1754,11 @@ namespace Microsoft.Dafny {
         for (int i = 0; i < s.Method.Ins.Count; i++) {
           Formal p = s.Method.Ins[i];
           if (!p.IsGhost) {
-            SpillLetVariableDecls(s.Args[i], indent);
           }
         }
         if (receiverReplacement != null) {
           // TODO:  What to do here?  When does this happen, what does it mean?
         } else if (!s.Method.IsStatic) {
-          SpillLetVariableDecls(s.Receiver, indent);
 
           string inTmp = "_in" + tmpVarCount;
           tmpVarCount++;
@@ -1884,7 +1826,6 @@ namespace Microsoft.Dafny {
         for (int i = 0; i < s.Method.Ins.Count; i++) {
           Formal p = s.Method.Ins[i];
           if (!p.IsGhost) {
-            SpillLetVariableDecls(s.Args[i], indent);
           }
         }
         if (receiverReplacement != null) {
@@ -1901,7 +1842,6 @@ namespace Microsoft.Dafny {
               wr.Write(TypeName(cce.NonNull(s.Receiver.Type)));
           }
         } else {
-          SpillLetVariableDecls(s.Receiver, indent);
           Indent(indent);
           TrParenExpr(s.Receiver);
         }
@@ -2243,6 +2183,15 @@ namespace Microsoft.Dafny {
         FunctionCallExpr e = (FunctionCallExpr)expr;
         CompileFunctionCallExpr(e, wr, TrExpr);
 
+      } else if (expr is ApplyExpr) {
+        var e = expr as ApplyExpr;
+        wr.Write("Dafny.Helpers.Id<");
+        wr.Write(TypeName(e.Receiver.Type));
+        wr.Write(">(");
+        TrExpr(e.Receiver);
+        wr.Write(")");
+        TrExprList(e.Args);
+
       } else if (expr is DatatypeValue) {
         DatatypeValue dtv = (DatatypeValue)expr;
         Contract.Assert(dtv.Ctor != null);  // since dtv has been successfully resolved
@@ -2532,10 +2481,9 @@ namespace Microsoft.Dafny {
         // The Dafny "let" expression
         //    var Pattern(x,y) := G; E
         // is translated into C# as:
-        //    ExpressionSequence(tmp = G,
-        //      ExpressionSequence(x = dtorX(tmp),
-        //      ExpressionSequence(y = dtorY(tmp), E)))
-        // preceded by the declaration of tmp, x, y.
+        //    LamLet(G, tmp =>
+        //      LamLet(dtorX(tmp), x =>
+        //      LamLet(dtorY(tmp), y => E)))
         Contract.Assert(e.LHSs.Count == e.RHSs.Count);  // checked by resolution
         Contract.Assert(e.Exact);  // because !Exact is ghost only
         var neededCloseParens = 0;
@@ -2543,11 +2491,13 @@ namespace Microsoft.Dafny {
           var lhs = e.LHSs[i];
           if (Contract.Exists(lhs.Vars, bv => !bv.IsGhost)) {
             var rhsName = string.Format("_pat_let{0}_{1}", GetUniqueAstNumber(e), i);
-            wr.Write("Dafny.Helpers.ExpressionSequence({0} = ", rhsName);
+            wr.Write("Dafny.Helpers.Let<");
+            wr.Write(TypeName(e.RHSs[i].Type) + "," + TypeName(e.Body.Type));
+            wr.Write(">("); 
             TrExpr(e.RHSs[i]);
-            wr.Write(", ");
+            wr.Write(", " + rhsName + " => ");
             neededCloseParens++;
-            var c = TrCasePattern(lhs, rhsName);
+            var c = TrCasePattern(lhs, rhsName, e.Body.Type);
             Contract.Assert(c != 0);  // we already checked that there's at least one non-ghost
             neededCloseParens += c;
           }
@@ -2556,6 +2506,32 @@ namespace Microsoft.Dafny {
         for (int i = 0; i < neededCloseParens; i++) {
           wr.Write(")");
         }
+
+        /*
+        int i = 0;
+        for (int i = 0; i < e.LHSs.Count; ++i) {
+          var lhs = e.LHSs[i];
+          if (Contract.Exists(lhs.Vars, bv => !bv.IsGhost)) {
+            var rhsName = string.Format("_pat_let{0}_{1}", GetUniqueAstNumber(e), i);
+
+            wr.Write("Dafny.Helpers.Id<");
+            wr.Write(TypeName(new ArrowType(e.RHSs[i], bodyType)));
+            wr.Write(">(");
+            wr.Write(rhsName);
+            wr.Write(" => ");
+            neededCloseParens++;
+
+            c = TrCasePattern(lhs, rhsName));
+            Contract.Assert(c != 0);  // we already checked that there's at least one non-ghost
+            neededCloseParens += c;
+          }
+        }
+
+        TrExpr(e.Body);
+        for (int i = 0; i < neededCloseParens; i++) {
+          wr.Write(")");
+        }
+        */
 
       } else  if (expr is MatchExpr) {
         var e = (MatchExpr)expr;
@@ -2779,11 +2755,36 @@ namespace Microsoft.Dafny {
 
       } else if (expr is LambdaExpr) {
         LambdaExpr e = (LambdaExpr)expr;
-        wr.Write("((");
-        wr.Write(Util.Comma(e.BoundVars, bv => bv.CompileName));
-        wr.Write(") => ");
-        TrExpr(e.Body);
-        wr.Write(")");
+        ISet<IVariable> fvs = new HashSet<IVariable>();
+        bool dontCare = false;
+        Type dontCareT = null;
+
+        Translator.ComputeFreeVariables(expr, fvs, ref dontCare, ref dontCare, ref dontCareT, false);
+        var sm = new Dictionary<IVariable, Expression>();
+
+        var bvars = new List<BoundVar>();
+        var fexprs = new List<Expression>();
+        foreach(var fv in fvs) {
+          fexprs.Add(new IdentifierExpr(fv.Tok, fv.Name) {
+            Var = fv, // resolved here!
+            Type = fv.Type
+          });
+          var bv = new BoundVar(fv.Tok, fv.Name, fv.Type);
+          bvars.Add(bv);
+          sm[fv] = new IdentifierExpr(bv.Tok, bv.Name) {
+            Var = bv, // resolved here!
+            Type = bv.Type
+          };
+        }
+
+        var su = new Translator.Substituter(null, sm, new Dictionary<TypeParameter, Type>(), null);
+
+        BetaRedex(bvars, fexprs, expr.Type, () => {
+          wr.Write("(");
+          wr.Write(Util.Comma(e.BoundVars, bv => "@" + bv.CompileName));
+          wr.Write(") => ");
+          TrExpr(su.Substitute(e.Body));
+        });
 
       } else if (expr is StmtExpr) {
         var e = (StmtExpr)expr;
@@ -2810,14 +2811,15 @@ namespace Microsoft.Dafny {
       }
     }
 
-    int TrCasePattern(CasePattern pat, string rhsName) {
+    int TrCasePattern(CasePattern pat, string rhsString, Type bodyType) {
       Contract.Requires(pat != null);
-      Contract.Requires(rhsName != null);
+      Contract.Requires(rhsString != null);
       int c = 0;
       if (pat.Var != null) {
         var bv = pat.Var;
         if (!bv.IsGhost) {
-          wr.Write("Dafny.Helpers.ExpressionSequence(@{0} = {1}, ", bv.CompileName, rhsName);
+          wr.Write("Dafny.Helpers.Let<" + TypeName(bv.Type) + "," + TypeName(bodyType) + ">");
+          wr.Write("(" + rhsString + ", @" + bv.CompileName + " => ");
           c++;
         }
       } else if (pat.Arguments != null) {
@@ -2832,7 +2834,7 @@ namespace Microsoft.Dafny {
             // nothing to compile, but do a sanity check
             Contract.Assert(!Contract.Exists(arg.Vars, bv => !bv.IsGhost));
           } else {
-            c += TrCasePattern(arg, string.Format("(({0})({1})._D).@{2}", DtCtorName(ctor, ((DatatypeValue)pat.Expr).InferredTypeArgs), rhsName, FormalName(formal, k)));
+            c += TrCasePattern(arg, string.Format("(({0})({1})._D).@{2}", DtCtorName(ctor, ((DatatypeValue)pat.Expr).InferredTypeArgs), rhsString, FormalName(formal, k)), bodyType);
             k++;
           }
         }
@@ -2863,5 +2865,22 @@ namespace Microsoft.Dafny {
       }
       twr.Write(")");
     }
+
+    void BetaRedex(List<BoundVar> bvars, List<Expression> exprs, Type bodyType, Action makeBody) {
+      Contract.Requires(bvars != null);
+      Contract.Requires(exprs != null);
+      Contract.Requires(bvars.Count == exprs.Count);
+      wr.Write("Dafny.Helpers.Id<");
+      wr.Write(TypeName(new ArrowType(bvars.ConvertAll(bv => bv.Type), bodyType)));
+      wr.Write(">((");
+      wr.Write(Util.Comma(bvars, bv => "@" + bv.CompileName));
+      wr.Write(") => ");
+
+      makeBody();
+
+      wr.Write(")");
+      TrExprList(exprs);
+    }
+
   }
 }

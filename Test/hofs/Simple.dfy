@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:0 "%s" > "%t"
+// RUN: %dafny "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 function method MkId<A>() : A -> A {
@@ -81,10 +81,18 @@ function P(f: A -> B, x : A): B
   f(x)
 }
 
+
 function Q(f: U -> V, x : U): V
-  reads (f.reads)(x);  // would be nice to be able to write P.reads(f,x)
-  requires (f.requires)(x);
+  reads P.reads(f,x);
+  requires f.requires(x);  // would be nice to be able to write P.requires(f,x)
 {
   P(f,x)
+}
+
+function QQ(f: U -> V, x : U): V
+  reads ((() => ((()=>f)()).reads)())((()=>x)());
+  requires ((() => ((()=>f)()).requires)())((()=>x)());
+{
+  ((() => P)())((()=>f)(),(()=>x)())
 }
 

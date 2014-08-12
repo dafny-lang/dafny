@@ -1,59 +1,103 @@
-// RUN: %dafny /compile:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %dafny /print:"%t.print" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
-function MyReadsOk(f : A -> B, a : A) : set<object>
-  reads f.reads(a);
-{
-  f.reads(a)
+module ReadsRequiresReads {
+  function MyReadsOk(f : A -> B, a : A) : set<object>
+    reads f.reads(a);
+  {
+    f.reads(a)
+  }
+
+  function MyReadsOk2(f : A -> B, a : A) : set<object>
+    reads f.reads(a);
+  {
+    (f.reads)(a)
+  }
+
+  function MyReadsOk3(f : A -> B, a : A) : set<object>
+    reads (f.reads)(a);
+  {
+    f.reads(a)
+  }
+
+  function MyReadsOk4(f : A -> B, a : A) : set<object>
+    reads (f.reads)(a);
+  {
+    (f.reads)(a)
+  }
+
+  function MyReadsBad(f : A -> B, a : A) : set<object>
+  {
+    f.reads(a)
+  }
+
+  function MyReadsBad2(f : A -> B, a : A) : set<object>
+  {
+    (f.reads)(a)
+  }
+
+  function MyReadsOk'(f : A -> B, a : A, o : object) : bool
+    reads f.reads(a);
+  {
+    o in f.reads(a)
+  }
+
+  function MyReadsBad'(f : A -> B, a : A, o : object) : bool
+  {
+    o in f.reads(a)
+  }
+
+  function MyRequiresOk(f : A -> B, a : A) : bool
+    reads f.reads(a);
+  {
+    f.requires(a)
+  }
+
+  function MyRequiresBad(f : A -> B, a : A) : bool
+  {
+    f.requires(a)
+  }
 }
 
-function MyReadsOk2(f : A -> B, a : A) : set<object>
-  reads f.reads(a);
-{
-  (f.reads)(a)
-}
+module WhatWeKnowAboutReads {
+  function ReadsNothing():(){()}
 
-function MyReadsOk3(f : A -> B, a : A) : set<object>
-  reads (f.reads)(a);
-{
-  f.reads(a)
-}
+  lemma IndeedNothing() {
+    assert ReadsNothing.reads() == {};
+  }
 
-function MyReadsOk4(f : A -> B, a : A) : set<object>
-  reads (f.reads)(a);
-{
-  (f.reads)(a)
-}
+  method NothingHere() {
+    assert (() => ()).reads() == {};
+  }
 
-function MyReadsBad(f : A -> B, a : A) : set<object>
-{
-  f.reads(a)
-}
+  class S {
+    var s : S;
+  }
 
-function MyReadsBad2(f : A -> B, a : A) : set<object>
-{
-  (f.reads)(a)
-}
+  function ReadsSomething(s : S):()
+    reads s;
+  {()}
 
-function MyReadsOk'(f : A -> B, a : A, o : object) : bool
-  reads f.reads(a);
-{
-  o in f.reads(a)
-}
+  method MaybeSomething() {
+    var s  := new S;
+    var s' := new S;
+           if * { assert s in ReadsSomething.reads(s) || ReadsSomething.reads(s) == {};
+    } else if * { assert s in ReadsSomething.reads(s);
+    } else if * { assert ReadsSomething.reads(s) == {};
+    } else if * { assert s' !in ReadsSomething.reads(s);
+    } else if * { assert s' in ReadsSomething.reads(s);
+    }
+  }
 
-function MyReadsBad'(f : A -> B, a : A, o : object) : bool
-{
-  o in f.reads(a)
+  method SomethingHere() {
+    var s  := new S;
+    var s' := new S;
+    var f := (u) reads u => ();
+           if * { assert s in f.reads(s) || f.reads(s) == {};
+    } else if * { assert s in f.reads(s);
+    } else if * { assert f.reads(s) == {};
+    } else if * { assert s' !in f.reads(s);
+    } else if * { assert s' in f.reads(s);
+    }
+  }
 }
-
-function MyRequiresOk(f : A -> B, a : A) : bool
-  reads f.reads(a);
-{
-  f.requires(a)
-}
-
-function MyRequiresBad(f : A -> B, a : A) : bool
-{
-  f.requires(a)
-}
-

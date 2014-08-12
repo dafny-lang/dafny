@@ -1,4 +1,5 @@
-﻿using System.Numerics;
+﻿using System; // for Func
+using System.Numerics;
 
 namespace Dafny
 {
@@ -27,7 +28,7 @@ namespace Dafny
         d[t] = true;
       return new Set<T>(d);
     }
-    
+
     public IEnumerable<T> Elements {
       get {
         return dict.Keys;
@@ -636,7 +637,16 @@ namespace Dafny
     {
       return u;
     }
+
+    public static U Let<T, U>(T t, Func<T,U> f) {
+      return f(t);
+    }
+
     public delegate Result Function<Input,Result>(Input input);
+
+    public static A Id<A>(A a) {
+      return a;
+    }
   }
 
   public struct BigRational

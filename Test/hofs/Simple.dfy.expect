@@ -29,4 +29,4 @@ Execution trace:
     Simple.dfy(72,38): anon5_Else
     Simple.dfy(73,38): anon6_Else
 
-Dafny program verifier finished with 13 verified, 7 errors
+Dafny program verifier finished with 14 verified, 7 errors

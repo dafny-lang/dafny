@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:0 /print:"%t.print" "%s" > "%t"
+// RUN: %dafny /print:"%t.print" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 function Apply(f: A -> B, x: A): B

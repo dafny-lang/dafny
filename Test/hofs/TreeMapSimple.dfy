@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:0 "%s" > "%t"
+// RUN: %dafny "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 datatype List<A> = Nil | Cons(head: A,tail: List<A>);
@@ -27,7 +27,7 @@ function Pre(f : A -> B, s : set<A>) : bool
 }
 
 function method Map(xs : List<A>, f : A -> B): List<B>
-  reads (set x, y | x in ListData(xs) && y in f.reads(x) :: y);
+  reads Pre.reads(f, ListData(xs));
   requires Pre(f, ListData(xs));
   decreases xs;
 {
@@ -37,7 +37,7 @@ function method Map(xs : List<A>, f : A -> B): List<B>
 }
 
 function method TMap(t0 : Tree<A>, f : A -> B) : Tree<B>
-  reads (set x, y | x in TreeData(t0) && y in f.reads(x) :: y);
+  reads Pre.reads(f, TreeData(t0));
   requires Pre(f, TreeData(t0));
   decreases t0;
 {

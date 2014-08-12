@@ -18,10 +18,5 @@ Execution trace:
     (0,0): anon0
     FnRef.dfy(56,13): anon8_Else
     (0,0): anon10_Then
-FnRef.dfy(67,14): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    FnRef.dfy(56,13): anon8_Else
-    (0,0): anon10_Else
 
-Dafny program verifier finished with 4 verified, 5 errors
+Dafny program verifier finished with 4 verified, 4 errors

@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:0 "%s" > "%t"
+// RUN: %dafny "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 function OnId(f : (bool -> bool) -> int) : int
@@ -16,9 +16,9 @@ method Equal() {
 }
 
 method K<A,B>(P : (A -> A) -> bool)
+  requires P.requires(x => x);
+  requires P(y => y);
 {
-  assume P.requires(x => x);
-  assume P(y => y);
   assert P(z => z);
   assert (x => y => x) == ((a : A) => (b : B) => a);
 }
