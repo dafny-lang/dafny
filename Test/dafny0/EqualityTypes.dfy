@@ -135,3 +135,109 @@ module Gh {
     }
   }
 }
+
+// ------ deeper nesting ------
+
+module Deep {
+  codatatype Co = Mo(Co) | NoMo
+  class C<T> { }
+
+  method M(a: set<C<Co>>) {
+    var s: set<C<Co>>;
+    var t: set<Co>;  // error: set element type must support equality
+    var co: Co;
+    var d := G(co, NoMo);  // error: actual type parameter for Y (namely, Co) does
+                           // not support equality
+    d := G(t, t) + G(s, s);  // fine, because all sets support equality
+  }
+
+  function method G<Y(==)>(y: Y, z: Y): int { if y == z then 5 else 7 }
+
+  method P(b: set<Co>) {  // error: set element type must be a type with equality
+  }
+
+  ghost method Q(b: set<Co>) {  // fine, since this is a ghost method
+  }
+
+  method R(ghost b: set<Co>) {  // fine, since this is a ghost parameter
+  }
+
+  datatype Dt<T> = Bucket(T)
+  datatype Left<T,U> = Bucket(T)
+  datatype Right<T,U> = Bucket(set<U>)  // note, Dafny infers that U should be U(==)
+  datatype RightExplicit<T,U(==)> = Bucket(set<U>)
+  type Syn<A,B,C> = Left<C,A>
+
+  method W<alpha(==)>()
+  {
+    var a: set<Dt<Co>>;  // error: Dt<Co> does not support equality
+    var b: set<Dt<int>>;
+    var c: set<Left<int,Co>>;
+    var d: set<Left<Co,int>>;  // error: Left<Co,...> does not support equality
+    var e: set<Right<Co,Co>>;  // error: type parameter 1 to Right is required to support equality
+    ghost var e': set<Right<Co,Co>>;  // fine, since this is a ghost field
+    var e'': set<RightExplicit<Co,Co>>;  // error: cannot instantiate argument 1 with Co
+    var f: set<Syn<Co,Co,int>>;
+    var g: set<Syn<int,int,Co>>;  // error: Syn<int,int,Co> does not support equality
+    ghost var h: set<Syn<int,int,Co>>;  // in a ghost context, it's cool, though
+
+    var i;  // error: inferred type (set<Co>) uses invalid set-element type
+    var j: set;  // error: ditto
+    ghost var k: set<Co>;  // type allowed here, because it's a ghost
+    assert i == k || j == k || true;  // this infers the types of 'i' and 'j'
+  }
+
+  method StatementsWithVariables(a: set<C<Co>>) {
+    var s: set<C<Co>>;
+    var t: set<Co>;  // error: bad type
+    ghost var u: set<Co>;
+
+    var c := new ABC;
+    forall x | x in {t} {  // error: bad type for x
+      c.f := 0;
+    }
+    if t == u {
+      forall x | x in {t}  // fine, because this is a ghost statement
+        ensures true;
+      {
+      }
+    }
+  }
+
+  class ABC { var f: int; }
+
+  method Expressions() {
+    var t: set<Co>;  // error: bad type
+    var b := forall x | x in {t} :: x == x;  // error: bad type
+    var y := var k: set<Co> := t; k <= t;  // error: bad type
+  }
+
+  ghost method GhostThings0(t: set<Co>) {
+    assert forall x | x in {t} :: x == x;
+    var y := var k: set<Co> := t; k <= t;
+    assert y;
+  }
+
+  method GhostThings1(ghost t: set<Co>) {
+    assert forall x | x in {t} :: x == x;
+    ghost var y := var k: set<Co> := t; k <= t;
+    assert y;
+  }
+
+  method InferEqualitySupportIsRequired<A>(s: set<A>)
+  ghost method DontInferEqualitySupportIsRequired<A>(s: set<A>)
+  method Explicit<A(==)>(s: set<A>)
+  method TakesABoolean(b: bool)
+  method AClient(co: Co, ko: Co) {
+    Explicit({5});
+    Explicit({co});  // error: bad type
+    var b := ko in {co};  // error: bad type (argument for the set)
+    ghost var bg := ko in {co};  // fine, it's a ghost
+    InferEqualitySupportIsRequired({co});  // error: bad type
+    DontInferEqualitySupportIsRequired({co});
+    TakesABoolean(ko in {co});  // error: bad type
+    var x := multiset([co,ko,co,ko])[ko];  // error: bad type
+    var m0 := map[5 := ko];  // no prob
+    var m1 := map[ko := 5];  // error: bad type
+  }
+}

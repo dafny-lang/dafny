@@ -342,14 +342,9 @@ namespace Microsoft.Dafny {
         } else {
           var syn = type.AsTypeSynonym;
           if (syn != null) {
+            var udt = (UserDefinedType)type;  // correctness of cast follows from the AsTypeSynonym != null test.
             // Instantiate with the actual type arguments
-            if (syn.TypeArgs.Count == 0) {
-              // this optimization seems worthwhile
-              type = syn.Rhs;
-            } else {
-              var subst = Resolver.TypeSubstitutionMap(syn.TypeArgs, ((UserDefinedType)type).TypeArgs);
-              type = Resolver.SubstType(syn.Rhs, subst);
-            }
+            type = syn.RhsWithArgument(udt.TypeArgs);
           } else {
             return type;
           }
@@ -589,7 +584,9 @@ namespace Microsoft.Dafny {
     }
     public override bool SupportsEquality {
       get {
-        return Arg.SupportsEquality;
+        // Note that all collection types support equality. There is, however, a requirement (checked during resolution)
+        // that the argument types of collections support equality.
+        return true;
       }
     }
   }
@@ -867,7 +864,7 @@ namespace Microsoft.Dafny {
           return true;
         } else if (ResolvedClass is TypeSynonymDecl) {
           var t = (TypeSynonymDecl)ResolvedClass;
-          return t.Rhs.SupportsEquality;
+          return t.RhsWithArgument(TypeArgs).SupportsEquality;
         } else if (ResolvedParam != null) {
           return ResolvedParam.MustSupportEquality;
         }
@@ -2002,6 +1999,21 @@ namespace Microsoft.Dafny {
       Contract.Requires(module != null);
       Contract.Requires(rhs != null);
       Rhs = rhs;
+    }
+    /// <summary>
+    /// Returns the declared .Rhs but with formal type arguments replaced by the given actuals.
+    /// </summary>
+    public Type RhsWithArgument(List<Type> typeArgs) {
+      Contract.Requires(typeArgs != null);
+      Contract.Requires(typeArgs.Count == TypeArgs.Count);
+      // Instantiate with the actual type arguments
+      if (typeArgs.Count == 0) {
+        // this optimization seems worthwhile
+        return Rhs;
+      } else {
+        var subst = Resolver.TypeSubstitutionMap(TypeArgs, typeArgs);
+        return Resolver.SubstType(Rhs, subst);
+      }
     }
   }
 

@@ -138,9 +138,7 @@ namespace Microsoft.Dafny {
           if (i++ != 0) { wr.WriteLine(); }
           Indent(indent);
           PrintClassMethodHelper("type", at.Attributes, at.Name, new List<TypeParameter>());
-          if (at.EqualitySupport == TypeParameter.EqualitySupportValue.Required) {
-            wr.Write("(==)");
-          }
+          wr.Write(EqualitySupportSuffix(at.EqualitySupport));
           wr.WriteLine();
         } else if (d is TypeSynonymDecl) {
           var syn = (TypeSynonymDecl)d;
@@ -336,7 +334,7 @@ namespace Microsoft.Dafny {
       if (typeArgs.Count != 0) {
         wr.Write("<" +
                  Util.Comma(", ", typeArgs,
-                   tp => tp.Name + (tp.EqualitySupport == TypeParameter.EqualitySupportValue.Required ? "(==)" : ""))
+                   tp => tp.Name + EqualitySupportSuffix(tp.EqualitySupport))
                  + ">");
       }
     }
@@ -614,6 +612,15 @@ namespace Microsoft.Dafny {
       string s = ty.ToString();
       if (s != "?") {
         wr.Write("{0}{1}", prefix, s);
+      }
+    }
+
+    string EqualitySupportSuffix(TypeParameter.EqualitySupportValue es) {
+      if (es == TypeParameter.EqualitySupportValue.Required ||
+        (es == TypeParameter.EqualitySupportValue.InferredRequired && DafnyOptions.O.DafnyPrintResolvedFile != null)) {
+        return "(==)";
+      } else {
+        return "";
       }
     }
 

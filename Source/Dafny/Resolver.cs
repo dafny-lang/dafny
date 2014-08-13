@@ -2430,6 +2430,11 @@ namespace Microsoft.Dafny
       protected override bool VisitOneStmt(Statement stmt, ref bool st) {
         if (stmt.IsGhost) {
           return false;  // no need to recurse to sub-parts, since all sub-parts must be ghost as well
+        } else if (stmt is VarDeclStmt) {
+          var s = (VarDeclStmt)stmt;
+          foreach (var v in s.Locals) {
+            CheckEqualityTypes_Type(v.Tok, v.Type);
+          }
         } else if (stmt is WhileStmt) {
           var s = (WhileStmt)stmt;
           // don't recurse on the specification parts, which are ghost
@@ -2478,6 +2483,11 @@ namespace Microsoft.Dafny
             i++;
           }
           return false;  // we've done what there is to be done
+        } else if (stmt is ForallStmt) {
+          var s = (ForallStmt)stmt;
+          foreach (var v in s.BoundVars) {
+            CheckEqualityTypes_Type(v.Tok, v.Type);
+          }
         }
         return true;
       }
@@ -2558,6 +2568,9 @@ namespace Microsoft.Dafny
             i++;
           }
           return false;  // we've done what there is to be done
+        } else if (expr is SetDisplayExpr || expr is MultiSetDisplayExpr || expr is MapDisplayExpr || expr is MultiSetFormingExpr) {
+          // This catches other expressions whose type may potentially be illegal
+          CheckEqualityTypes_Type(expr.tok, expr.Type);
         }
         return true;
       }
@@ -2618,6 +2631,8 @@ namespace Microsoft.Dafny
             }
           }
 
+        } else if (type is TypeProxy) {
+          // the type was underconstrained; this is checked elsewhere, but it is not in violation of the equality-type test
         } else {
           Contract.Assert(false); throw new cce.UnreachableException();  // unexpected type
         }
@@ -5200,7 +5215,7 @@ namespace Microsoft.Dafny
         } else if (update.Lhss.Count != update.Rhss.Count) {
           Error(update, "the number of left-hand sides ({0}) and right-hand sides ({1}) must match for a multi-assignment", update.Lhss.Count, update.Rhss.Count);
         } else if (ErrorCount == errorCountBeforeCheckingLhs) {
-          // add the statements here in a sequence, but don't use that sequence later for translation (instead, should translated properly as multi-assignment)
+          // add the statements here in a sequence, but don't use that sequence later for translation (instead, should translate properly as multi-assignment)
           for (int i = 0; i < update.Lhss.Count; i++) {
             var a = new AssignStmt(update.Tok, update.EndTok, update.Lhss[i].Resolved, update.Rhss[i]);
             update.ResolvedStatements.Add(a);
@@ -6687,7 +6702,7 @@ namespace Microsoft.Dafny
               c++;
             }
             if (c == 0) {
-              // Every identifier-looking thing in the patterned resolved to a constructor; that is, this LHS is a constant literal
+              // Every identifier-looking thing in the pattern resolved to a constructor; that is, this LHS is a constant literal
               Error(lhs.tok, "LHS is a constant literal; to be legal, it must introduce at least one bound variable");
             }
             i++;
