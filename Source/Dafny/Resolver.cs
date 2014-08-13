@@ -1732,7 +1732,7 @@ namespace Microsoft.Dafny
             var iter = (IteratorDecl)d;
             foreach (var p in iter.Ins) {
               if (!p.IsGhost) {
-                // CheckEqualityTypes_Type(p.tok, p.Type);
+                CheckEqualityTypes_Type(p.tok, p.Type);
               }
             }
             foreach (var p in iter.Outs) {
@@ -1749,18 +1749,15 @@ namespace Microsoft.Dafny
               if (!member.IsGhost) {
                 if (member is Field) {
                   var f = (Field)member;
-                  // CheckEqualityTypes_Type(f.tok, f.Type);
-                  // Why check this?!
+                  CheckEqualityTypes_Type(f.tok, f.Type);
                 } else if (member is Function) {
                   var f = (Function)member;
                   foreach (var p in f.Formals) {
                     if (!p.IsGhost) {
-                      // CheckEqualityTypes_Type(p.tok, p.Type);
-                      // Why check this?!
+                      CheckEqualityTypes_Type(p.tok, p.Type);
                     }
                   }
-                  // CheckEqualityTypes_Type(f.tok, f.ResultType);
-                  // Why should we check this?!
+                  CheckEqualityTypes_Type(f.tok, f.ResultType);
                   if (f.Body != null) {
                     CheckEqualityTypes(f.Body);
                   }
@@ -1768,12 +1765,12 @@ namespace Microsoft.Dafny
                   var m = (Method)member;
                   foreach (var p in m.Ins) {
                     if (!p.IsGhost) {
-                      // CheckEqualityTypes_Type(p.tok, p.Type);
+                      CheckEqualityTypes_Type(p.tok, p.Type);
                     }
                   }
                   foreach (var p in m.Outs) {
                     if (!p.IsGhost) {
-                      // CheckEqualityTypes_Type(p.tok, p.Type);
+                      CheckEqualityTypes_Type(p.tok, p.Type);
                     }
                   }
                   if (m.Body != null) {

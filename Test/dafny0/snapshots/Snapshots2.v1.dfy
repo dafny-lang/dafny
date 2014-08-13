@@ -5,15 +5,15 @@ method M()
 }
 
 method N()
-  ensures P;
+  ensures P();
 
-predicate P
-  ensures P == Q;
+predicate P()
+  ensures P() == Q();
 
-predicate Q
-  ensures Q == R;
+predicate Q()
+  ensures Q() == R();
 
-predicate R
+predicate R()
 {
   true
 }

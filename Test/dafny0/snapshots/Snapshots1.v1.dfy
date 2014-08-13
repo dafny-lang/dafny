@@ -5,9 +5,9 @@ method M()
 }
 
 method N()
-  ensures P;
+  ensures P();
 
-predicate P
+predicate P()
 {
   true
 }
