@@ -59,7 +59,7 @@ class SoWellformed {
     modifies s;
     ensures next.xyz < 100;  // error: may not be well-defined (if this in s and body sets next to null)
   {
-  
+
   }
   method R(a: SoWellformed, s: set<SoWellformed>) returns (c: bool, d: SoWellformed)
     requires next != null && this !in s;
@@ -220,14 +220,14 @@ function Postie1(c: Mountain): Mountain
 }
 
 function Postie2(c: Mountain): Mountain
-  requires c != null && c.x == 5;
+  requires c != null && c.x == 5; reads c;
   ensures Postie2(c).x == 5;  // error: well-formedness error (null dereference)
 {
   c
 }
 
 function Postie3(c: Mountain): Mountain  // all is cool
-  requires c != null && c.x == 5;
+  requires c != null && c.x == 5; reads c;
   ensures Postie3(c) != null && Postie3(c).x < 10;
   ensures Postie3(c).x == 5;
 {
@@ -235,7 +235,7 @@ function Postie3(c: Mountain): Mountain  // all is cool
 }
 
 function Postie4(c: Mountain): Mountain
-  requires c != null && c.x <= 5;
+  requires c != null && c.x <= 5; reads c;
   ensures Postie4(c) != null && Postie4(c).x < 10;
   ensures Postie4(c).x == 5;  // error: postcondition might not hold
 {

@@ -346,21 +346,21 @@ class DefaultDecreasesFunction {
   }
   function F(x: int): int
     requires Valid();
-    reads Repr;
+    reads this, Repr;
     // the default reads clause is: decreases Repr, x
   {
     if next == null || x < 0 then x else next.F(x + data)
   }
   function G(x: int): int
     requires Valid();
-    reads Repr;
+    reads this, Repr;
     decreases x;
   {
     if next == null || x < 0 then x else next.G(x + data)  // error: failure to reduce 'decreases' measure
   }
   function H(x: int): int
     requires Valid() && 0 <= x;
-    reads Repr;
+    reads this, Repr;
     // the default reads clause is: decreases Repr, x
   {
     if next != null then

@@ -11,3 +11,4 @@ lemma Test(r: nat)
 {
   assert KeepDoin'It(20) == r;
 }
+

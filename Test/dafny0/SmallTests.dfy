@@ -65,7 +65,7 @@ class Node {
     requires if next == null then true else 0 <= 5/x;  // error: ill-defined then branch
     requires if next.next == null then true else true;  // error: ill-defined guard
     requires 10/x != 8;  // this is well-defined, because we get here only if x is non-0
-    reads this;
+    reads this, next;
   {
     12
   }

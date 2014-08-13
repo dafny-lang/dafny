@@ -1265,8 +1265,8 @@ namespace Microsoft.Dafny {
         wr.Write(e.SuffixName);
         if (parensNeeded) { wr.Write(")"); }
 
-      } else if (expr is FieldSelectExpr) {
-        FieldSelectExpr e = (FieldSelectExpr)expr;
+      } else if (expr is MemberSelectExpr) {
+        MemberSelectExpr e = (MemberSelectExpr)expr;
         // determine if parens are needed
         int opBindingStrength = 0x70;
         bool parensNeeded = !(e.Obj is ImplicitThisExpr) &&
@@ -1278,7 +1278,7 @@ namespace Microsoft.Dafny {
           PrintExpr(e.Obj, opBindingStrength, false, false, !parensNeeded && isFollowedBySemicolon, -1);
           wr.Write(".");
         }
-        wr.Write(e.FieldName);
+        wr.Write(e.MemberName);
         if (parensNeeded) { wr.Write(")"); }
 
       } else if (expr is SeqSelectExpr) {
@@ -1347,6 +1347,23 @@ namespace Microsoft.Dafny {
           wr.Write("]");
           if (parensNeeded) { wr.Write(")"); }
         }
+      } else if (expr is ApplyExpr) {
+        var e = (ApplyExpr)expr;
+        // determine if parens are needed
+        int opBindingStrength = 0x70;
+        bool parensNeeded = 
+          opBindingStrength < contextBindingStrength ||
+          (fragileContext && opBindingStrength == contextBindingStrength);
+
+        if (parensNeeded) { wr.Write("("); }
+
+        PrintExpr(e.Receiver, opBindingStrength, false, false, !parensNeeded && isFollowedBySemicolon, -1);
+        wr.Write("(");
+        PrintExpressionList(e.Args, false);
+        wr.Write(")");
+        
+        if (parensNeeded) { wr.Write(")"); }
+
       } else if (expr is FunctionCallExpr) {
         var e = (FunctionCallExpr)expr;
         // determine if parens are needed
@@ -1636,6 +1653,22 @@ namespace Microsoft.Dafny {
         wr.Write(" :: ");
         PrintExpression(e.Term, !parensNeeded && isFollowedBySemicolon);
         if (parensNeeded) { wr.Write(")"); }
+       
+      } else if (expr is LambdaExpr) {
+        var e = (LambdaExpr)expr;
+        wr.Write("(");
+        wr.Write(Util.Comma(e.BoundVars, bv => bv.DisplayName + ":" + bv.Type));
+        wr.Write(")");
+        if (e.Range != null) {
+          wr.Write(" requires ");
+          PrintExpression(e.Range, false);
+        }
+        foreach (var read in e.Reads) {
+          wr.Write(" reads ");
+          PrintExpression(read.E, false);
+        }
+        wr.Write(e.OneShot ? " -> " : " => ");
+        PrintExpression(e.Body, isFollowedBySemicolon);
 
       } else if (expr is WildcardExpr) {
         wr.Write("*");

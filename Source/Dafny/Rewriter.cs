@@ -109,7 +109,7 @@ namespace Microsoft.Dafny
           // reads this;
           valid.Reads.Add(new FrameExpression(tok, new ThisExpr(tok), null));
           // reads Repr;
-          valid.Reads.Add(new FrameExpression(tok, new FieldSelectExpr(tok, new ImplicitThisExpr(tok), "Repr"), null));
+          valid.Reads.Add(new FrameExpression(tok, new MemberSelectExpr(tok, new ImplicitThisExpr(tok), "Repr"), null));
         } else if (member is Constructor) {
           var ctor = (Constructor)member;
           // modifies this;
@@ -118,7 +118,7 @@ namespace Microsoft.Dafny
           ctor.Ens.Insert(0, new MaybeFreeExpression(new FunctionCallExpr(tok, "Valid", new ImplicitThisExpr(tok), tok, new List<Expression>())));
           // ensures fresh(Repr - {this});
           var freshness = new UnaryOpExpr(tok, UnaryOpExpr.Opcode.Fresh, new BinaryExpr(tok, BinaryExpr.Opcode.Sub,
-            new FieldSelectExpr(tok, new ImplicitThisExpr(tok), "Repr"),
+            new MemberSelectExpr(tok, new ImplicitThisExpr(tok), "Repr"),
             new SetDisplayExpr(tok, new List<Expression>() { new ThisExpr(tok) })));
           ctor.Ens.Insert(1, new MaybeFreeExpression(freshness));
         } else if (member is Method && !member.IsStatic) {
@@ -187,8 +187,8 @@ namespace Microsoft.Dafny
       self.Type = ty;
       var implicitSelf = new ImplicitThisExpr(clTok);
       implicitSelf.Type = ty;
-      var Repr = new FieldSelectExpr(clTok, implicitSelf, "Repr");
-      Repr.Field = ReprField;
+      var Repr = new MemberSelectExpr(clTok, implicitSelf, "Repr");
+      Repr.Member = ReprField;
       Repr.Type = ReprField.Type;
       var cNull = new LiteralExpr(clTok);
       cNull.Type = new ObjectType();
@@ -224,8 +224,8 @@ namespace Microsoft.Dafny
                 // F != null ==> F in Repr  (so, nothing else to do)
               } else {
                 // F != null ==> F in Repr && F.Repr <= Repr && this !in F.Repr
-                var FRepr = new FieldSelectExpr(tok, F, ff.Item2.Name);
-                FRepr.Field = ff.Item2;
+                var FRepr = new MemberSelectExpr(tok, F, ff.Item2.Name);
+                FRepr.Member = ff.Item2;
                 FRepr.Type = ff.Item2.Type;
                 var c2 = BinBoolExpr(tok, BinaryExpr.ResolvedOpcode.Subset, FRepr, Repr);
                 var c3 = BinBoolExpr(tok, BinaryExpr.ResolvedOpcode.NotInSet, self, FRepr);
@@ -826,9 +826,9 @@ namespace Microsoft.Dafny
           reqs.AddRange(generateAutoReqs(p.A));
           reqs.AddRange(generateAutoReqs(p.B));        
         }
-      } else if (expr is FieldSelectExpr) {
-        FieldSelectExpr e = (FieldSelectExpr)expr;
-        Contract.Assert(e.Field != null);
+      } else if (expr is MemberSelectExpr) {
+        MemberSelectExpr e = (MemberSelectExpr)expr;
+        Contract.Assert(e.Member != null && e.Member is Field);
 
         reqs.AddRange(generateAutoReqs(e.Obj));       
       } else if (expr is SeqSelectExpr) {

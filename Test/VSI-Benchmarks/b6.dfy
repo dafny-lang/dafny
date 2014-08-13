@@ -4,28 +4,28 @@
 class Collection<T> {
   ghost var footprint:set<object>;
   var elements:seq<T>;
-  
+
   function Valid():bool
     reads this, footprint;
   {
     this in footprint
   }
-  
+
   method GetCount() returns (c:int)
     requires Valid();
     ensures 0<=c;
   {
     c:=|elements|;
   }
-  
+
   method Init()
     modifies this;
     ensures Valid() && fresh(footprint -{this});
   {
     elements := [];
-    footprint := {this}; 
+    footprint := {this};
   }
-  
+
   method GetItem(i:int ) returns (x:T)
     requires Valid();
     requires 0<=i && i<|elements|;
@@ -33,7 +33,7 @@ class Collection<T> {
   {
     x:=elements[i];
   }
-  
+
   method Add(x:T )
     requires Valid();
     modifies footprint;
@@ -42,7 +42,7 @@ class Collection<T> {
   {
     elements:= elements + [x];
   }
-  
+
   method GetIterator() returns (iter:Iterator<T>)
     requires Valid();
     ensures iter != null && iter.Valid();
@@ -51,22 +51,22 @@ class Collection<T> {
   {
       iter:= new Iterator<T>.Init(this);
   }
-  
+
 }
 
 class Iterator<T> {
- 
+
   var c:Collection<T>;
   var pos:int;
-  
+
   ghost var footprint:set<object>;
-  
+
   function Valid():bool
     reads this, footprint;
   {
     this in footprint && c != null && -1 <= pos && null !in footprint
   }
-  
+
   method Init(coll:Collection<T>)
     requires coll != null;
     modifies this;
@@ -75,9 +75,9 @@ class Iterator<T> {
   {
     c := coll;
     pos := -1;
-    footprint := {this}; 
+    footprint := {this};
   }
-  
+
   method MoveNext() returns (b:bool)
     requires Valid();
     modifies footprint;
@@ -87,21 +87,21 @@ class Iterator<T> {
     pos := pos+1;
     b := pos < |c.elements|;
   }
-  
+
   function HasCurrent():bool //???
     requires Valid();
-    reads this, c;
+    reads this, c, footprint;
   {
     0 <= pos && pos < |c.elements|
   }
- 
+
   method GetCurrent() returns (x:T)
     requires Valid() && HasCurrent();
     ensures c.elements[pos] == x;
   {
     x := c.elements[pos];
   }
-} 
+}
 
 class Client
 {
@@ -112,26 +112,26 @@ class Client
     c.Add(33);
     c.Add(45);
     c.Add(78);
-    
+
     var s := [];
-    
+
     var iter := c.GetIterator();
     var b := iter.MoveNext();
-    
+
     while (b)
       invariant iter.Valid() && b == iter.HasCurrent() && fresh(iter.footprint);
       invariant c.Valid() && fresh(c.footprint) && iter.footprint !! c.footprint; //disjoint footprints
       invariant 0 <= iter.pos && iter.pos <=|c.elements| && s == c.elements[..iter.pos] ;
       invariant iter.c == c;
       decreases |c.elements| - iter.pos;
-    {   
+    {
       var x := iter.GetCurrent();
       s := s + [x];
       b := iter.MoveNext();
     }
-    
+
     assert s == c.elements; //verifies that the iterator returns the correct things
     c.Add(100);
   }
-  
+
 }

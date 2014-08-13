@@ -243,6 +243,10 @@ axiom (forall a: ClassName, b: ClassName :: { TypeTuple(a,b) }
   TypeTupleCar(TypeTuple(a,b)) == a &&
   TypeTupleCdr(TypeTuple(a,b)) == b);
 
+// -- Function handles -------------------------------------------
+
+type HandleType;
+
 // ---------------------------------------------------------------
 // -- Datatypes --------------------------------------------------
 // ---------------------------------------------------------------
@@ -257,6 +261,9 @@ type DtCtorId;
 function DatatypeCtorId(DatatypeType): DtCtorId;
 
 function DtRank(DatatypeType): int;
+function BoxRank(Box): int;
+
+axiom (forall d: DatatypeType :: {BoxRank($Box(d))} BoxRank($Box(d)) == DtRank(d));
 
 // ---------------------------------------------------------------
 // -- Axiom contexts ---------------------------------------------
@@ -273,6 +280,10 @@ const $FunctionContextHeight: int;
 type LayerType;
 const $LZ: LayerType;
 function $LS(LayerType): LayerType;
+
+function AtLayer<A>([LayerType]A, LayerType): A;
+axiom (forall<A> f : [LayerType]A, ly : LayerType :: { AtLayer(f,ly) } AtLayer(f,ly) == f[ly]);
+axiom (forall<A> f : [LayerType]A, ly : LayerType :: { AtLayer(f,$LS(ly)) } AtLayer(f,$LS(ly)) == AtLayer(f,ly));
 
 // ---------------------------------------------------------------
 // -- Fields -----------------------------------------------------

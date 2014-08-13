@@ -1,0 +1,22 @@
+FnRef.dfy(17,45): Error: possible violation of function precondition
+Execution trace:
+    (0,0): anon0
+    FnRef.dfy(15,12): anon5_Else
+    (0,0): anon6_Then
+FnRef.dfy(32,8): Error: possible violation of function precondition
+Execution trace:
+    (0,0): anon0
+    FnRef.dfy(26,12): anon9_Else
+    FnRef.dfy(28,8): anon10_Else
+FnRef.dfy(46,12): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    FnRef.dfy(43,13): anon7_Else
+    (0,0): anon9_Then
+FnRef.dfy(65,14): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    FnRef.dfy(56,13): anon8_Else
+    (0,0): anon10_Then
+
+Dafny program verifier finished with 4 verified, 4 errors

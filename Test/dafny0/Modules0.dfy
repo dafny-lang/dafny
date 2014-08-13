@@ -53,8 +53,8 @@ module X0 {
   class MyClass0 {
     method Down() {
     }
-    method Up(x1: MyClass1,  // error: MyClass1 is not in scope
-              x2: MyClass2) {  // error: MyClass2 is not in scope
+    method Up<S>(x1: MyClass1,  // error: MyClass1 is not in scope
+                 x2: MyClass2) {  // error: MyClass2 is not in scope
     }
   }
 }
@@ -65,7 +65,7 @@ module X1 {
     method Down(x0: X0'.MyClass0) {
       x0.Down();
     }
-    method Up(x2: MyClass2) {  // error: class MyClass2 is not in scope
+    method Up<T>(x2: MyClass2) {  // error: class MyClass2 is not in scope
     }
   }
 }
@@ -89,7 +89,7 @@ module X2 {
 module YY {
   class MyClassY {
     method M() { }
-    method P(g: ClassG) {  // error: ClassG is not in scope
+    method P<R>(g: ClassG) {  // error: ClassG is not in scope
     }
   }
 }

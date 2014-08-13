@@ -243,9 +243,12 @@ namespace DafnyLanguage
       } else if (expr is IdentifierExpr) {
         var e = (IdentifierExpr)expr;
         IdRegion.Add(regions, e.tok, e.Var, false, module);
-      } else if (expr is FieldSelectExpr) {
-        var e = (FieldSelectExpr)expr;
-        IdRegion.Add(regions, e.tok, e.Field, e.Type, "field", false, module);
+      } else if (expr is MemberSelectExpr) {
+        var e = (MemberSelectExpr)expr;
+        var field = e.Member as Field;
+        if (field != null) {
+          IdRegion.Add(regions, e.tok, field, e.Type, "field", false, module);
+        }
       } else if (expr is LetExpr) {
         var e = (LetExpr)expr;
         foreach (var bv in e.BoundVars) {
