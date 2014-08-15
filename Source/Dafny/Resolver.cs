@@ -6073,12 +6073,18 @@ namespace Microsoft.Dafny
       } else if (type is UserDefinedType) {
         var t = (UserDefinedType)type;
         if (t.ResolvedParam != null) {
-          Contract.Assert(t.TypeArgs.Count == 0);
           Type s;
           if (subst.TryGetValue(t.ResolvedParam, out s)) {
+            Contract.Assert(t.TypeArgs.Count == 0); // what to do?
             return cce.NonNull(s);
           } else {
-            return type;
+            if (t.TypeArgs.Count == 0) {
+              return type;
+            } else {
+              return new UserDefinedType(t.ResolvedParam) {
+                TypeArgs = t.TypeArgs.ConvertAll(u => SubstType(u, subst))
+              };
+            }
           }
         } else if (t.ResolvedClass != null) {
           List<Type> newArgs = null;  // allocate it lazily
