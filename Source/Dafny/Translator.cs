@@ -3629,6 +3629,9 @@ namespace Microsoft.Dafny {
           Contract.Assert(substMap != null);
           e = Substitute(e, receiverReplacement, substMap);
         }
+
+        e = Resolver.FrameArrowToObjectSet(e, ref otherTmpVarCount);
+
         Bpl.Expr disjunct;
         var eType = e.Type.NormalizeExpand();
         if (e is WildcardExpr) {

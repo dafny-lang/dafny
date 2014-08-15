@@ -461,6 +461,39 @@ namespace Microsoft.Dafny
       return anyChangeToDecreases;
     }
 
+    public static Expression FrameArrowToObjectSet(Expression e, ref int tmpCounter) {
+      var arrTy = e.Type as ArrowType;
+      if (arrTy != null) {
+        var bvars = new List<BoundVar>();
+        var bexprs = new List<Expression>();
+        foreach (var t in arrTy.Args) {
+          var bv = new BoundVar(e.tok, "_x" + tmpCounter++, t);
+          bvars.Add(bv);
+          bexprs.Add(new IdentifierExpr(e.tok, bv.Name) { Type = bv.Type, Var = bv });
+        }
+        var oVar = new BoundVar(e.tok, "_o" + tmpCounter++, new ObjectType());
+        var obj = new IdentifierExpr(e.tok, oVar.Name) { Type = oVar.Type, Var = oVar };
+        bvars.Add(oVar);
+
+        return 
+          new SetComprehension(e.tok, bvars,
+            new BinaryExpr(e.tok, BinaryExpr.Opcode.In, obj,
+              new ApplyExpr(e.tok, e.tok, e, bexprs) 
+              {
+                Type = new SetType(new ObjectType())
+              }) 
+            {
+              ResolvedOp = BinaryExpr.ResolvedOpcode.InSet,
+              Type = Type.Bool
+            }, obj) 
+          {
+            Type = new SetType(new ObjectType())
+          };
+      } else {
+        return e;
+      }
+    }
+
     public static Expression FrameToObjectSet(List<FrameExpression> fexprs) {
       Contract.Requires(fexprs != null);
       Contract.Ensures(Contract.Result<Expression>() != null);
@@ -473,7 +506,7 @@ namespace Microsoft.Dafny
         if (fe.E is WildcardExpr) {
           // drop wildcards altogether
         } else {
-          Expression e = fe.E;  // keep only fe.E, drop any fe.Field designation
+          Expression e = FrameArrowToObjectSet(fe.E, ref tmpVarCount);  // keep only fe.E, drop any fe.Field designation
           Contract.Assert(e.Type != null);  // should have been resolved already
           var eType = e.Type.NormalizeExpand();
           if (eType.IsRefType) {
@@ -6883,8 +6916,12 @@ namespace Microsoft.Dafny
           e.Bounds = DiscoverBounds(e.tok, e.BoundVars, e.Range, true, false, missingBounds);
           if (missingBounds.Count != 0) {
             e.MissingBounds = missingBounds;
-            foreach (var bv in e.MissingBounds) {
-              Error(expr, "a set comprehension must produce a finite set, but Dafny's heuristics can't figure out how to produce a bounded set of values for '{0}'", bv.Name);
+            if (codeContext.IsGhost && (e.Term.Type.IsRefType || e.Term.Type is BoolType)) {
+              // ok!
+            } else {
+              foreach (var bv in e.MissingBounds) {
+                Error(expr, "a set comprehension must produce a finite set, but Dafny's heuristics can't figure out how to produce a bounded set of values for '{0}'", bv.Name);
+              }
             }
           }
         }
