@@ -10102,6 +10102,21 @@ namespace Microsoft.Dafny {
           Contract.Assert(tt != null);
           Contract.Assert(tt.Arity == arity);
 
+          {
+            // optimisation: if this could have just as well been a FunctionCallExpr, call it as such!
+            var con = e.Function as ConcreteSyntaxExpression;
+            var recv = con == null ? e.Function : con.Resolved;
+            var mem = recv as MemberSelectExpr;
+            var fn = mem == null ? null : mem.Member as Function;
+            if (fn != null) {
+              return TrExpr(new FunctionCallExpr(e.tok, fn.Name, mem.Obj, e.OpenParen, e.Args) {
+                Function = fn,
+                Type = e.Type,
+                TypeArgumentSubstitutions = Util.Dict(GetTypeParams(fn), mem.TypeApplication)
+              });
+            }
+          }
+
           Func<Expression, Bpl.Expr> TrArg = arg => translator.BoxIfUnboxed(TrExpr(arg), arg.Type);
 
           var applied = translator.FunctionCall(expr.tok, translator.Apply(arity), predef.BoxType, 
