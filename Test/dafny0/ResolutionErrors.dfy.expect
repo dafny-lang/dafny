@@ -76,6 +76,8 @@ ResolutionErrors.dfy(1083,6): Error: RHS (of type P<int>) not assignable to LHS 
 ResolutionErrors.dfy(1088,13): Error: arguments must have the same type (got P<int> and P<X>)
 ResolutionErrors.dfy(1089,13): Error: arguments must have the same type (got P<bool> and P<X>)
 ResolutionErrors.dfy(1090,13): Error: arguments must have the same type (got P<int> and P<bool>)
+ResolutionErrors.dfy(1113,38): Error: a set comprehension must produce a finite set, but Dafny's heuristics can't figure out how to produce a bounded set of values for 'o'
+ResolutionErrors.dfy(1115,24): Error: a set comprehension must produce a finite set, but Dafny's heuristics can't figure out how to produce a bounded set of values for 'o'
 ResolutionErrors.dfy(429,2): Error: More than one default constructor
 ResolutionErrors.dfy(50,13): Error: 'this' is not allowed in a 'static' context
 ResolutionErrors.dfy(111,9): Error: ghost variables are allowed only in specification contexts
@@ -173,4 +175,4 @@ ResolutionErrors.dfy(960,7): Error: type conversion to real is allowed only from
 ResolutionErrors.dfy(961,7): Error: type conversion to int is allowed only from real (got int)
 ResolutionErrors.dfy(962,7): Error: type conversion to int is allowed only from real (got nat)
 ResolutionErrors.dfy(1101,8): Error: new cannot be applied to a trait
-175 resolution/type errors detected in ResolutionErrors.dfy
+177 resolution/type errors detected in ResolutionErrors.dfy

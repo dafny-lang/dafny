@@ -373,7 +373,7 @@ method TestCalc(m: int, n: int, a: bool, b: bool)
     n + m; // error: ==> operator requires boolean lines
     n + m + 1;
     n + m + 2;
-  }    
+  }
   calc {
     n + m;
     n + m + 1;
@@ -394,8 +394,8 @@ ghost method Mod(a: int)
   ensures ycalc == a;
 {
   ycalc := a;
-}  
-  
+}
+
 ghost method Bad()
   modifies this;
   ensures 0 == 1;
@@ -465,7 +465,7 @@ method AssignSuchThatFromGhost()
   ghost var g: int;
 
   x := g;  // error: ghost cannot flow into non-ghost
-  
+
   x := *;
   assume x == g;  // this mix of ghosts and non-ghosts is cool (but, of course,
                   // the compiler will complain)
@@ -509,7 +509,7 @@ module NoTypeArgs0 {
     match t
     case Leaf(_,_) => t
     case Node(x, y) => x
-  }  
+  }
 
   function FTree1(t: Tree): Tree
   {
@@ -1099,4 +1099,18 @@ type JJ = J
 method TraitSynonym()
 {
   var x := new JJ;  // error: new cannot be applied to a trait
+}
+
+// ----- set comprehensions where the term type is finite ----
+
+module ObjectSetComprehensions {
+  // allowed in non-ghost context:
+  function A() : set<object> { set o : object | true :: o }
+
+  lemma B() { var x := set o : object | true :: o; }
+
+  // not allowed in non-ghost context:
+  function method C() : set<object> { set o : object | true :: o }
+
+  method D() { var x := set o : object | true :: o; }
 }

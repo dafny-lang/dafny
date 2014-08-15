@@ -101,3 +101,33 @@ module WhatWeKnowAboutReads {
     }
   }
 }
+
+module ReadsAll {
+  function A(f: int -> int) : int
+    reads set o,x | o in f.reads(x) :: o;
+    requires forall x :: f.requires(x);
+  {
+    f(0) + f(1) + f(2)
+  }
+
+  function method B(f: int -> int) : int
+    reads set o,x | o in f.reads(x) :: o;
+    requires forall x :: f.requires(x);
+  {
+    f(0) + f(1) + f(2)
+  }
+
+  function C(f: int -> int) : int
+    reads f.reads;
+    requires forall x :: f.requires(x);
+  {
+    f(0) + f(1) + f(2)
+  }
+
+  function method D(f: int -> int) : int
+    reads f.reads;
+    requires forall x :: f.requires(x);
+  {
+    f(0) + f(1) + f(2)
+  }
+}
