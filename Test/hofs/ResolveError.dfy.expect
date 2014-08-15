@@ -10,5 +10,7 @@ ResolveError.dfy(36,13): Error: wrong number of function arguments (got 2, expec
 ResolveError.dfy(37,13): Error: incorrect type of function argument 0 (expected int, got bool)
 ResolveError.dfy(38,22): Error: arguments must have the same type (got set<object> and int)
 ResolveError.dfy(39,13): Error: wrong number of function arguments (got 2, expected 1)
-ResolveError.dfy(49,9): Error: condition is expected to be of type bool, but is () -> bool
-13 resolution/type errors detected in ResolveError.dfy
+ResolveError.dfy(46,15): Error: a reads-clause expression must denote an object or a collection of objects (instead got int)
+ResolveError.dfy(47,7): Error: Precondition must be boolean (got int)
+ResolveError.dfy(56,9): Error: condition is expected to be of type bool, but is () -> bool
+15 resolution/type errors detected in ResolveError.dfy

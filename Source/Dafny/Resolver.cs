@@ -6983,7 +6983,7 @@ namespace Microsoft.Dafny
           ResolveExpression(e.Range, twoState, codeContext);
           Contract.Assert(e.Range.Type != null);  // follows from postcondition of ResolveExpression
           if (!UnifyTypes(e.Range.Type, Type.Bool)) {
-            Error(expr, "requires clause for lambda must be bool (instead got {0})", e.Range.Type);
+            Error(expr, "Precondition must be boolean (got {0})", e.Range.Type);
           }
         }
 

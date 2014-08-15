@@ -40,6 +40,13 @@ method RequiresFail(f : int -> int)
 {
 }
 
+method Bogus()
+{
+  var f;
+  f := x reads 1 => x;
+  f := x requires 1 => x;
+}
+
 predicate method Bool()
 {
   true
