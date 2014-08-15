@@ -1,0 +1,244 @@
+// RUN: %dafny /compile:0 "%s" > "%t"
+// RUN: %diff "%s.expect" "%t"
+
+abstract module Monad {
+  type M<A>;
+
+  static function method Return(x: A): M<A>
+  static function method Bind(m: M<A>, f:A -> M<B>):M<B>
+    reads f.reads;
+    requires forall a :: f.requires(a);
+
+  // return x >>= f = f x
+  static lemma LeftIdentity(x : A, f : A -> M<B>)
+    requires forall a :: f.requires(a);
+    ensures Bind(Return(x),f) == f(x);
+
+  // m >>= return = m
+  static lemma RightIdentity(m : M<A>)
+    ensures Bind(m,Return) == m;
+
+  // (m >>= f) >>= g = m >>= (x => f(x) >>= g)
+  static lemma Associativity(m : M<A>, f:A -> M<B>, g: B -> M<C>)
+    requires forall a :: f.requires(a);
+    requires forall b :: g.requires(b);
+	ensures Bind(Bind(m,f),g) ==
+	        Bind(m,x reads f.reads(x)
+	                 reads g.reads
+					 requires f.requires(x)
+					 requires forall b :: g.requires(b) => Bind(f(x),g));
+}
+
+module Identity refines Monad {
+  datatype M<A> = I(A);
+
+  static function method Return<A>(x: A): M<A>
+  { I(x) }
+
+  static function method Bind<A,B>(m: M<A>, f:A -> M<B>):M<B>
+  {
+    var I(x) := m; f(x)
+  }
+
+  static lemma LeftIdentity<A,B>(x : A, f : A -> M<B>)
+  {
+  }
+
+  static lemma RightIdentity<A>(m : M<A>)
+  {
+    assert Bind(m,Return) == m;
+  }
+
+  static lemma Associativity<A,B,C>(m : M<A>, f:A -> M<B>, g: B -> M<C>)
+  {
+	assert
+	  Bind(Bind(m,f),g) ==
+	  Bind(m,x reads f.reads(x)
+	           reads g.reads
+	    	   requires f.requires(x)
+	    	   requires forall b :: g.requires(b) => Bind(f(x),g));
+  }
+
+}
+
+module Maybe refines Monad {
+  datatype M<A> = Just(A) | Nothing;
+
+  static function method Return<A>(x: A): M<A>
+  { Just(x) }
+
+  static function method Bind<A,B>(m: M<A>, f:A -> M<B>):M<B>
+  {
+    match m
+	  case Nothing => Nothing
+	  case Just(x) => f(x)
+  }
+
+  static lemma LeftIdentity<A,B>(x : A, f : A -> M<B>)
+  {
+  }
+
+  static lemma RightIdentity<A>(m : M<A>)
+  {
+    assert Bind(m,Return) == m;
+  }
+
+  static lemma Associativity<A,B,C>(m : M<A>, f:A -> M<B>, g: B -> M<C>)
+  {
+	assert
+	  Bind(Bind(m,f),g) ==
+	  Bind(m,x reads f.reads(x)
+	           reads g.reads
+	    	   requires f.requires(x)
+	    	   requires forall b :: g.requires(b) => Bind(f(x),g));
+  }
+
+}
+
+module List refines Monad {
+  datatype M<A> = Cons(hd: A,tl: M<A>) | Nil;
+
+  static function method Return<A>(x: A): M<A>
+  { Cons(x,Nil) }
+
+  static function method Concat(xs: M<A>, ys: M<A>): M<A>
+  {
+    match xs
+	  case Nil => ys
+	  case Cons(x,xs) => Cons(x,Concat(xs,ys))
+  }
+
+  static function method Join(xss: M<M<A>>) : M<A>
+  {
+    match xss
+	  case Nil => Nil
+	  case Cons(xs,xss) => Concat(xs,Join(xss))
+  }
+
+  static function method Map(xs: M<A>, f: A -> B):M<B>
+    reads f.reads;
+	requires forall a :: f.requires(a);
+  {
+    match xs
+	  case Nil => Nil
+	  case Cons(x,xs) => Cons(f(x),Map(xs,f))
+  }
+
+  static function method Bind<A,B>(m: M<A>, f:A -> M<B>):M<B>
+  {
+    Join(Map(m,f))
+  }
+
+  static lemma LeftIdentity<A,B>(x : A, f : A -> M<B>)
+  {
+    calc {
+	     Bind(Return(x),f);
+	  == Join(Map(Cons(x,Nil),f));
+	  == Join(Cons(f(x),Nil));
+	  == Concat(f(x),Nil);
+ 	  == { assert forall xs : M<B> :: Concat(xs,Nil) == xs; }
+	     f(x);
+	}
+  }
+
+  static lemma RightIdentity<A>(m : M<A>)
+  {
+    match m
+	  case Nil => calc {
+	       Bind(Nil,Return);
+		== Join(Map(Nil,Return));
+		== Join(Nil);
+		== Nil;
+		== m;
+		}
+	  case Cons(x,xs) =>
+        calc {
+		     Bind(m,Return);
+          == Bind(Cons(x,xs),Return);
+	      == Join(Map(Cons(x,xs),Return));
+          == Join(Cons(Return(x),Map(xs,Return)));
+          == Concat(Return(x),Join(Map(xs,Return)));
+		  == { RightIdentity(xs); }
+		     Concat(Return(x),xs);
+		  == Concat(Cons(x,Nil),xs);
+		  == Cons(x,xs);
+		  == m;
+	    }
+  }
+
+  static lemma ConcatAssociativity<A>(xs : M<A>, ys : M<A>, zs: M<A>)
+    ensures Concat(Concat(xs,ys),zs) == Concat(xs,Concat(ys,zs));
+  {}
+
+  static lemma BindMorphism(xs : M<A>, ys: M<A>, f : A -> M<B>)
+    requires forall a :: f.requires(a);
+	ensures Bind(Concat(xs,ys),f) == Concat(Bind(xs,f),Bind(ys,f));
+  {
+    match xs
+	  case Nil => calc {
+           Bind(Concat(Nil,ys),f);
+        == Bind(ys,f);
+        == Concat(Nil,Bind(ys,f));
+        == Concat(Bind(Nil,f),Bind(ys,f));
+      }
+	  case Cons(z,zs) => calc {
+           Bind(Concat(xs,ys),f);
+        == Bind(Concat(Cons(z,zs),ys),f);
+        == Concat(f(z),Bind(Concat(zs,ys),f));
+        == { BindMorphism(zs,ys,f); }
+		   Concat(f(z),Concat(Bind(zs,f),Bind(ys,f)));
+		== { ConcatAssociativity(f(z),Bind(zs,f),Bind(ys,f)); }
+           Concat(Concat(f(z),Join(Map(zs,f))),Bind(ys,f));
+		== Concat(Bind(Cons(z,zs),f),Bind(ys,f));
+		== Concat(Bind(xs,f),Bind(ys,f));
+	  }
+  }
+
+  static lemma Associativity<A,B,C>(m : M<A>, f:A -> M<B>, g: B -> M<C>)
+  {
+    match m
+	  case Nil => calc {
+ 	       Bind(Bind(m,f),g);
+ 	    == Bind(Bind(Nil,f),g);
+ 	    == Bind(Nil,g);
+ 	    == Nil;
+	    == Bind(Nil,x reads f.reads(x)
+	             reads g.reads
+	         	 requires f.requires(x)
+	             requires forall b :: g.requires(b) => Bind(f(x),g));
+	    == Bind(m,x reads f.reads(x)
+	             reads g.reads
+	         	 requires f.requires(x)
+	             requires forall b :: g.requires(b) => Bind(f(x),g));
+   	    }
+	  case Cons(x,xs) => calc {
+	       Bind(Bind(m,f),g);
+	    == Bind(Bind(Cons(x,xs),f),g);
+	    == Bind(Concat(f(x),Bind(xs,f)),g);
+		== { BindMorphism(f(x),Bind(xs,f),g); }
+		   Concat(Bind(f(x),g),Bind(Bind(xs,f),g));
+		== { Associativity(xs,f,g); }
+		   Concat(Bind(f(x),g),Join(Map(xs,y reads f.reads(y)
+	             reads g.reads
+	         	 requires f.requires(y)
+	             requires forall b :: g.requires(b) => Bind(f(y),g))));
+		== Join(Cons(Bind(f(x),g),Map(xs,y reads f.reads(y)
+	             reads g.reads
+	         	 requires f.requires(y)
+	             requires forall b :: g.requires(b) => Bind(f(y),g))));
+		== Join(Map(Cons(x,xs),y reads f.reads(y)
+	             reads g.reads
+	         	 requires f.requires(y)
+	             requires forall b :: g.requires(b) => Bind(f(y),g)));
+	    == Bind(Cons(x,xs),y reads f.reads(y)
+	            reads g.reads
+	        	 requires f.requires(y)
+	            requires forall b :: g.requires(b) => Bind(f(y),g));
+	    == Bind(m,x reads f.reads(x)
+	             reads g.reads
+	         	 requires f.requires(x)
+	             requires forall b :: g.requires(b) => Bind(f(x),g));
+	    }
+  }
+}
+
