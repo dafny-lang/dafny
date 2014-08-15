@@ -2186,9 +2186,9 @@ namespace Microsoft.Dafny {
       } else if (expr is ApplyExpr) {
         var e = expr as ApplyExpr;
         wr.Write("Dafny.Helpers.Id<");
-        wr.Write(TypeName(e.Receiver.Type));
+        wr.Write(TypeName(e.Function.Type));
         wr.Write(">(");
-        TrExpr(e.Receiver);
+        TrExpr(e.Function);
         wr.Write(")");
         TrExprList(e.Args);
 

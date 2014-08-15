@@ -3952,7 +3952,7 @@ namespace Microsoft.Dafny {
       } else if (expr is ApplyExpr) {
         ApplyExpr e = (ApplyExpr)expr;
         return BplAnd(
-          Cons(CanCallAssumption(e.Receiver, etran), 
+          Cons(CanCallAssumption(e.Function, etran), 
           e.Args.ConvertAll(ee => CanCallAssumption(ee, etran))));
       } else if (expr is FunctionCallExpr) {
         FunctionCallExpr e = (FunctionCallExpr)expr;
@@ -4408,12 +4408,12 @@ namespace Microsoft.Dafny {
       } else if (expr is ApplyExpr) {
         var e = (ApplyExpr)expr;
         int arity = e.Args.Count;
-        var tt = e.Receiver.Type as ArrowType;
+        var tt = e.Function.Type as ArrowType;
         Contract.Assert(tt != null);
         Contract.Assert(tt.Arity == arity);
 
         // check WF of receiver and arguments
-        CheckWellformed(e.Receiver, options, locals, builder, etran);
+        CheckWellformed(e.Function, options, locals, builder, etran);
         foreach (Expression arg in e.Args) {
           CheckWellformed(arg, options, locals, builder, etran);
         }
@@ -4446,7 +4446,7 @@ namespace Microsoft.Dafny {
 
         var args = Concat(
           Map(tt.TypeArgs, TypeToTy),
-          Cons(etran.TrExpr(e.Receiver), 
+          Cons(etran.TrExpr(e.Function), 
           Cons(etran.HeapExpr, 
           e.Args.ConvertAll(arg => TrArg(arg)))));
 
@@ -10078,7 +10078,7 @@ namespace Microsoft.Dafny {
         } else if (expr is ApplyExpr) {
           ApplyExpr e = (ApplyExpr)expr;
           int arity = e.Args.Count;
-          var tt = e.Receiver.Type as ArrowType;
+          var tt = e.Function.Type as ArrowType;
           Contract.Assert(tt != null);
           Contract.Assert(tt.Arity == arity);
 
@@ -10086,7 +10086,7 @@ namespace Microsoft.Dafny {
 
           var applied = translator.FunctionCall(expr.tok, translator.Apply(arity), predef.BoxType, 
             Concat(Map(tt.TypeArgs,translator.TypeToTy),
-            Cons(TrExpr(e.Receiver), Cons(HeapExpr, e.Args.ConvertAll(arg => TrArg(arg))))));
+            Cons(TrExpr(e.Function), Cons(HeapExpr, e.Args.ConvertAll(arg => TrArg(arg))))));
 
           return translator.UnboxIfBoxed(applied, tt.Result);
 
@@ -12533,7 +12533,7 @@ namespace Microsoft.Dafny {
 
         } else if (expr is ApplyExpr) {
           ApplyExpr e = (ApplyExpr)expr;
-          Expression receiver = Substitute(e.Receiver);
+          Expression receiver = Substitute(e.Function);
           List<Expression> args = SubstituteExprList(e.Args);
           newExpr = new ApplyExpr(e.tok, e.OpenParen, receiver, args);
 

@@ -5180,13 +5180,13 @@ namespace Microsoft.Dafny {
     // The idea is that this apply expression does not need a type argument substitution,
     // since lambda functions and anonymous functions are never polymorphic.
     // Make a FunctionCallExpr otherwise, to call a resolvable anonymous function.
-    public readonly Expression Receiver;
+    public readonly Expression Function;
     public readonly List<Expression> Args;
     public readonly IToken OpenParen;
 
     public override IEnumerable<Expression> SubExpressions {
       get {
-        yield return Receiver;
+        yield return Function;
         foreach (var e in Args) {
           yield return e;
         }
@@ -5197,7 +5197,7 @@ namespace Microsoft.Dafny {
       : base(tok)
     {
       OpenParen = openParen;
-      Receiver = receiver;
+      Function = receiver;
       Args = args;
     }
   }

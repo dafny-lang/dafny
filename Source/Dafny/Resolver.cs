@@ -6461,16 +6461,16 @@ namespace Microsoft.Dafny
 
       } else if (expr is ApplyExpr) {
         ApplyExpr e = (ApplyExpr)expr;
-        ResolveExpression(e.Receiver, twoState, codeContext);
+        ResolveExpression(e.Function, twoState, codeContext);
         foreach (var arg in e.Args) {
           ResolveExpression(arg, twoState, codeContext);
         }
         Type tb = new InferredTypeProxy();
         var targs = e.Args.ConvertAll(arg => arg.Type);
         Type tc = new ArrowType(targs, tb);
-        if (!UnifyTypes(e.Receiver.Type, tc)) {
+        if (!UnifyTypes(e.Function.Type, tc)) {
           Error(e.OpenParen, "cannot apply arguments with types {0} to expression with type {1}", 
-            Util.Comma(targs, x => x.ToString()), e.Receiver.Type, ", ");
+            Util.Comma(targs, x => x.ToString()), e.Function.Type, ", ");
         }
         expr.Type = tb;
 
@@ -8531,7 +8531,7 @@ namespace Microsoft.Dafny
         return e.Args.Exists(arg => UsesSpecFeatures(arg));
       } else if (expr is ApplyExpr) {
         ApplyExpr e = (ApplyExpr)expr;
-        return UsesSpecFeatures(e.Receiver) || e.Args.Exists(UsesSpecFeatures);
+        return UsesSpecFeatures(e.Function) || e.Args.Exists(UsesSpecFeatures);
       } else if (expr is OldExpr) {
         OldExpr e = (OldExpr)expr;
         return UsesSpecFeatures(e.E);

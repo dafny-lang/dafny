@@ -307,7 +307,7 @@ namespace Microsoft.Dafny
 
       } else if (expr is ApplyExpr) {
         var e = (ApplyExpr)expr;
-        return new ApplyExpr(Tok(e.tok), Tok(e.OpenParen), CloneExpr(e.Receiver), e.Args.ConvertAll(CloneExpr));
+        return new ApplyExpr(Tok(e.tok), Tok(e.OpenParen), CloneExpr(e.Function), e.Args.ConvertAll(CloneExpr));
 
       } else if (expr is OldExpr) {
         var e = (OldExpr)expr;

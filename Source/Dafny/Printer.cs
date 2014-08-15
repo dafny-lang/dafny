@@ -1357,7 +1357,7 @@ namespace Microsoft.Dafny {
 
         if (parensNeeded) { wr.Write("("); }
 
-        PrintExpr(e.Receiver, opBindingStrength, false, false, !parensNeeded && isFollowedBySemicolon, -1);
+        PrintExpr(e.Function, opBindingStrength, false, false, !parensNeeded && isFollowedBySemicolon, -1);
         wr.Write("(");
         PrintExpressionList(e.Args, false);
         wr.Write(")");
