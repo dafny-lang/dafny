@@ -56,3 +56,8 @@ method Bla() {
   assert Bool;
 }
 
+method Pli(f : A -> B) requires f != null;
+{
+  var o : object;
+  assert f != o;
+}

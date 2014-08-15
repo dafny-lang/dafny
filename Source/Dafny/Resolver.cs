@@ -4240,7 +4240,9 @@ namespace Microsoft.Dafny
         }
 
       } else if (proxy is ObjectTypeProxy) {
-        if (t is ObjectType || UserDefinedType.DenotesClass(t) != null) {
+        if (t is ArrowType) {
+          return false;
+        } else if (t is ObjectType || UserDefinedType.DenotesClass(t) != null) {
           // all is fine, proxy can be redirected to t
         } else {
           return false;
