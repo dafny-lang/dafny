@@ -891,7 +891,18 @@ namespace Microsoft.Dafny {
       if (i is UserDefinedType) {
         var ii = (UserDefinedType)i;
         var t = that.NormalizeExpand() as UserDefinedType;
-        return t != null && ii.ResolvedClass == t.ResolvedClass && ii.ResolvedParam == t.ResolvedParam;
+        if (ii.ResolvedParam != null) {
+          return t != null && t.ResolvedParam == ii.ResolvedParam;
+        } else if (t == null || ii.ResolvedClass != t.ResolvedClass || ii.TypeArgs.Count != t.TypeArgs.Count) {
+          return false;
+        } else {
+          for (int j = 0; j < ii.TypeArgs.Count; j++) {
+            if (!ii.TypeArgs[j].Equals(t.TypeArgs[j])) {
+              return false;
+            }
+          }
+          return true;
+        }
       } else {
         return i.Equals(that);
       }
