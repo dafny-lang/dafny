@@ -1249,6 +1249,11 @@ namespace Microsoft.Dafny {
       if (f.Body != null && !IsOpaqueFunction(f)) {
         AddFunctionAxiom(f, FunctionAxiomVisibility.IntraModuleOnly, f.Body.Resolved);
         AddFunctionAxiom(f, FunctionAxiomVisibility.ForeignModuleOnly, f.Body.Resolved);
+      }  
+      // for body-less functions, at least generate its #requires function
+      if (f.Body == null) {
+        var b = FunctionAxiom(f, FunctionAxiomVisibility.ForeignModuleOnly, null, null);
+        Contract.Assert(b == null);
       }
       // supply the connection between co-predicates and prefix predicates
       if (f is CoPredicate) {
@@ -1636,6 +1641,7 @@ namespace Microsoft.Dafny {
 
     void AddFunctionAxiom(Function f, FunctionAxiomVisibility visibility, Expression body) {
       Contract.Requires(f != null);
+      Contract.Requires(body != null);
 
       var ax = FunctionAxiom(f, visibility, body, null);
       sink.TopLevelDeclarations.Add(ax);
@@ -1815,8 +1821,9 @@ namespace Microsoft.Dafny {
       Contract.Requires(f != null);
       Contract.Requires(predef != null);
       Contract.Requires(f.EnclosingClass != null);
-      Contract.Requires(body != null);
-      Contract.Ensures(Contract.Result<Bpl.Axiom>() != null);
+
+      // only if body is null, we will return null:
+      Contract.Ensures((Contract.Result<Bpl.Axiom>() == null) == (body == null));
 
       ExpressionTranslator etran = new ExpressionTranslator(this, predef, f.tok);
 
@@ -1849,6 +1856,10 @@ namespace Microsoft.Dafny {
       // where GOOD_PARAMETERS means:
       //   $IsGoodHeap($Heap) && this != null && formals-have-the-expected-types &&
       //   Pre($Heap,formals)
+      // 
+      // NOTE: this is lifted out to a #requires function for intra module calls,
+      //       and used in the function pseudo-handles for top level functions.
+      //       For body-less functions, this is emitted when body is null.
       //
       // BODY
       // means:
@@ -1920,6 +1931,42 @@ namespace Microsoft.Dafny {
         if (wh != null) { ante = Bpl.Expr.And(ante, wh); }
       }
 
+      Bpl.Expr pre = Bpl.Expr.True;
+      foreach (Expression req in f.Req) {
+        pre = BplAnd(pre, etran.TrExpr(Substitute(req, null, substMap)));
+      }
+      // useViaContext: (mh != ModuleContextHeight || fh != FunctionContextHeight)
+      ModuleDefinition mod = f.EnclosingClass.Module;
+      Bpl.Expr useViaContext = visibility == FunctionAxiomVisibility.ForeignModuleOnly ? (Bpl.Expr)Bpl.Expr.True :
+        Bpl.Expr.Neq(Bpl.Expr.Literal(mod.CallGraph.GetSCCRepresentativeId(f)), etran.FunctionContextHeight());
+
+      // ante := (useViaContext && typeAnte && pre)
+      ante = BplAnd(useViaContext, BplAnd(ante, pre));
+
+      // Add the precondition function and its axiom (which is equivalent to the ante)
+      if (body == null || (visibility == FunctionAxiomVisibility.IntraModuleOnly && lits == null)) {
+        var precondF = new Bpl.Function(f.tok, 
+          RequiresName(f), new List<Bpl.TypeVariable>(), 
+          formals.ConvertAll(v => (Bpl.Variable)BplFormalVar(null, v.TypedIdent.Type, true)), 
+          BplFormalVar(null, Bpl.Type.Bool, false));
+        sink.TopLevelDeclarations.Add(precondF);
+        var appl = FunctionCall(f.tok, RequiresName(f), Bpl.Type.Bool, 
+          formals.ConvertAll(x => (Bpl.Expr)(new Bpl.IdentifierExpr(f.tok, x))));
+        sink.TopLevelDeclarations.Add(new Axiom(f.tok, BplForall(formals, BplTrigger(appl), Bpl.Expr.Eq(appl, ante))));
+        ante = appl; // might just as well use it and check that it always works :-)
+      }
+
+      if (body == null) {
+        return null;
+      }
+
+      // useViaCanCall: f#canCall(args)
+      Bpl.IdentifierExpr canCallFuncID = new Bpl.IdentifierExpr(f.tok, f.FullSanitizedName + "#canCall", Bpl.Type.Bool);
+      Bpl.Expr useViaCanCall = new Bpl.NAryExpr(f.tok, new Bpl.FunctionCall(canCallFuncID), Concat(tyargs,args));
+
+      // ante := useViaCanCall || (useViaContext && typeAnte && pre)
+      ante = Bpl.Expr.Or(useViaCanCall, ante);
+
       Bpl.Expr funcAppl;
       {
         var funcID = new Bpl.IdentifierExpr(f.tok, f.FullSanitizedName, TrType(f.ResultType));
@@ -1937,36 +1984,6 @@ namespace Microsoft.Dafny {
         funcAppl = new Bpl.NAryExpr(f.tok, new Bpl.FunctionCall(funcID), funcArgs);
       }
 
-      Bpl.Expr pre = Bpl.Expr.True;
-      foreach (Expression req in f.Req) {
-        pre = BplAnd(pre, etran.TrExpr(Substitute(req, null, substMap)));
-      }
-      // useViaContext: (mh != ModuleContextHeight || fh != FunctionContextHeight)
-      ModuleDefinition mod = f.EnclosingClass.Module;
-      Bpl.Expr useViaContext = visibility == FunctionAxiomVisibility.ForeignModuleOnly ? (Bpl.Expr)Bpl.Expr.True :
-        Bpl.Expr.Neq(Bpl.Expr.Literal(mod.CallGraph.GetSCCRepresentativeId(f)), etran.FunctionContextHeight());
-      // useViaCanCall: f#canCall(args)
-      Bpl.IdentifierExpr canCallFuncID = new Bpl.IdentifierExpr(f.tok, f.FullSanitizedName + "#canCall", Bpl.Type.Bool);
-      Bpl.Expr useViaCanCall = new Bpl.NAryExpr(f.tok, new Bpl.FunctionCall(canCallFuncID), Concat(tyargs,args));
-
-      // ante := (useViaContext && typeAnte && pre)
-      ante = BplAnd(useViaContext, BplAnd(ante, pre));
-
-      // Add the precondition function and its axiom (which is equivalent to the ante)
-      if (visibility == FunctionAxiomVisibility.IntraModuleOnly && lits == null) {
-        var precondF = new Bpl.Function(f.tok, 
-          RequiresName(f), new List<Bpl.TypeVariable>(), 
-          formals.ConvertAll(v => (Bpl.Variable)BplFormalVar(null, v.TypedIdent.Type, true)), 
-          BplFormalVar(null, Bpl.Type.Bool, false));
-        sink.TopLevelDeclarations.Add(precondF);
-        var appl = FunctionCall(f.tok, RequiresName(f), Bpl.Type.Bool, 
-          formals.ConvertAll(x => (Bpl.Expr)(new Bpl.IdentifierExpr(f.tok, x))));
-        sink.TopLevelDeclarations.Add(new Axiom(f.tok, BplForall(formals, BplTrigger(appl), Bpl.Expr.Eq(appl, ante))));
-        ante = appl; // might just as well use it and check that it always works :-)
-      }
-
-      // ante := useViaCanCall || (useViaContext && typeAnte && pre)
-      ante = Bpl.Expr.Or(useViaCanCall, ante);
 
       Bpl.Trigger tr = new Bpl.Trigger(f.tok, true, new List<Bpl.Expr> { funcAppl });
       var typeParams = TrTypeParamDecls(f.TypeArgs);
