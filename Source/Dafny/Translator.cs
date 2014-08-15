@@ -1953,11 +1953,11 @@ namespace Microsoft.Dafny {
         var appl = FunctionCall(f.tok, RequiresName(f), Bpl.Type.Bool, 
           formals.ConvertAll(x => (Bpl.Expr)(new Bpl.IdentifierExpr(f.tok, x))));
         sink.TopLevelDeclarations.Add(new Axiom(f.tok, BplForall(formals, BplTrigger(appl), Bpl.Expr.Eq(appl, ante))));
-        ante = appl; // might just as well use it and check that it always works :-)
-      }
-
-      if (body == null) {
-        return null;
+        // you could use it to check that it always works, but it makes VSI-Benchmarks/b3.dfy time out:
+        // ante = appl; 
+        if (body == null) {
+          return null;
+        }
       }
 
       // useViaCanCall: f#canCall(args)
