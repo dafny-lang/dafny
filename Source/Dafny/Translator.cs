@@ -1647,7 +1647,8 @@ namespace Microsoft.Dafny {
       sink.TopLevelDeclarations.Add(ax);
       // TODO(namin) Is checking f.Reads.Count==0 excluding Valid() of BinaryTree in the right way?
       //             I don't see how this in the decreasing clause would help there.
-      if (!(f is CoPredicate) && f.Reads.Count == 0) {
+      // danr: Let's create the literal function axioms if there is an arrow type in the signature
+      if (!(f is CoPredicate) && (f.Reads.Count == 0 || f.Formals.Exists(a => a.Type is ArrowType))) {
         var FVs = new HashSet<IVariable>();
         bool usesHeap = false, usesOldHeap = false;
         Type usesThis = null;
@@ -1975,7 +1976,7 @@ namespace Microsoft.Dafny {
         if (layer != null) {
           var ly = new Bpl.IdentifierExpr(f.tok, layer);
           if (lits == null) {
-            funcArgs.Add(FunctionCall(f.tok, BuiltinFunction.LayerSucc, null, ly));
+            funcArgs.Add(LayerSucc(ly));
           } else {
             funcArgs.Add(ly);
           }
@@ -10679,13 +10680,15 @@ namespace Microsoft.Dafny {
           new Bpl.LambdaExpr(e.tok, new List<TypeVariable>(), rdvars, null, 
             BplImp(ante, consequent));
 
-        return translator.FunctionCall(e.tok, BuiltinFunction.AtLayer, predef.HandleType,
-          new Bpl.LambdaExpr(e.tok, new List<TypeVariable>(), lvars, null,
-            translator.FunctionCall(e.tok, translator.Handle(e.BoundVars.Count), predef.BoxType,
-              new Bpl.LambdaExpr(e.tok, new List<TypeVariable>(), bvars, null, ebody),
-              new Bpl.LambdaExpr(e.tok, new List<TypeVariable>(), bvars, null, reqbody),
-              new Bpl.LambdaExpr(e.tok, new List<TypeVariable>(), bvars, null, rdbody)))
-          , layerIntraCluster ?? layerInterCluster );
+        return translator.Lit(
+          translator.FunctionCall(e.tok, BuiltinFunction.AtLayer, predef.HandleType,
+            new Bpl.LambdaExpr(e.tok, new List<TypeVariable>(), lvars, null,
+              translator.FunctionCall(e.tok, translator.Handle(e.BoundVars.Count), predef.BoxType,
+                new Bpl.LambdaExpr(e.tok, new List<TypeVariable>(), bvars, null, ebody),
+                new Bpl.LambdaExpr(e.tok, new List<TypeVariable>(), bvars, null, reqbody),
+                new Bpl.LambdaExpr(e.tok, new List<TypeVariable>(), bvars, null, rdbody))), 
+            layerIntraCluster ?? layerInterCluster), 
+          predef.HandleType);
       }
 
       public Expression DesugarMatchExpr(MatchExpr e) {

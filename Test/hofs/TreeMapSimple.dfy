@@ -1,4 +1,4 @@
-// RUN: %dafny "%s" > "%t"
+// RUN: %dafny /compile:3 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 datatype List<A> = Nil | Cons(head: A,tail: List<A>);
@@ -47,3 +47,9 @@ function method TMap(t0 : Tree<A>, f : A -> B) : Tree<B>
                       => TMap(t,f)))
 }
 
+method Main()
+{
+  var t := TMap(Branch(1,Cons(Branch(2,Nil),Nil)), x requires x != 0 => 100 / x);
+  assert t   == Branch(100,Cons(Branch(50,Nil),Nil));
+  print t, "\n";
+}
