@@ -4239,6 +4239,8 @@ namespace Microsoft.Dafny
           // all is fine, proxy can be redirected to t
         } else if (dtp.Co && t.IsCoDatatype) {
           // all is fine, proxy can be redirected to t
+        } else if (dtp.TypeVariableOK && t.IsTypeParameter) {
+          // looking good
         } else {
           return false;
         }
@@ -6675,14 +6677,14 @@ namespace Microsoft.Dafny
           case BinaryExpr.Opcode.Le:
           case BinaryExpr.Opcode.Add: {
               if (e.Op == BinaryExpr.Opcode.Lt && (e.E0.Type.NormalizeExpand().IsIndDatatype || e.E0.Type.IsTypeParameter)) {
-                if (UnifyTypes(e.E1.Type, new DatatypeProxy(false))) {
+                if (UnifyTypes(e.E1.Type, new DatatypeProxy(false, false))) {
                   e.ResolvedOp = BinaryExpr.ResolvedOpcode.RankLt;
                 } else {
                   Error(expr, "arguments to rank comparison must be datatypes (instead of {0})", e.E1.Type);
                 }
                 expr.Type = Type.Bool;
               } else if (e.Op == BinaryExpr.Opcode.Lt && e.E1.Type.NormalizeExpand().IsIndDatatype) {
-                if (UnifyTypes(e.E0.Type, new DatatypeProxy(false))) {
+                if (UnifyTypes(e.E0.Type, new DatatypeProxy(false, true))) {
                   e.ResolvedOp = BinaryExpr.ResolvedOpcode.RankLt;
                 } else {
                   Error(expr, "arguments to rank comparison must be datatypes (instead of {0})", e.E0.Type);
@@ -6712,14 +6714,14 @@ namespace Microsoft.Dafny
           case BinaryExpr.Opcode.Gt:
           case BinaryExpr.Opcode.Ge: {
               if (e.Op == BinaryExpr.Opcode.Gt && e.E0.Type.NormalizeExpand().IsIndDatatype) {
-                if (UnifyTypes(e.E1.Type, new DatatypeProxy(false)) || e.E1.Type.IsTypeParameter) {
+                if (UnifyTypes(e.E1.Type, new DatatypeProxy(false, true))) {
                   e.ResolvedOp = BinaryExpr.ResolvedOpcode.RankGt;
                 } else {
                   Error(expr, "arguments to rank comparison must be datatypes (instead of {0})", e.E1.Type);
                 }
                 expr.Type = Type.Bool;
               } else if (e.Op == BinaryExpr.Opcode.Gt && (e.E1.Type.NormalizeExpand().IsIndDatatype || e.E1.Type.IsTypeParameter)) {
-                if (UnifyTypes(e.E0.Type, new DatatypeProxy(false))) {
+                if (UnifyTypes(e.E0.Type, new DatatypeProxy(false, false))) {
                   e.ResolvedOp = BinaryExpr.ResolvedOpcode.RankGt;
                 } else {
                   Error(expr, "arguments to rank comparison must be datatypes (instead of {0})", e.E0.Type);

@@ -15,7 +15,7 @@ function method Eval(e : Expr): int
 
 function method Fold(xs : List<A>, unit : B, f : (A,B) -> B): B
   reads f.reads;
-  requires forall x : A, y: B :: x < xs ==> f.requires(x,y);
+  requires forall x, y :: x < xs ==> f.requires(x,y);
 {
   match xs
     case Nil => unit

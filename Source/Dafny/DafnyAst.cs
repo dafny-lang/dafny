@@ -1068,8 +1068,10 @@ namespace Microsoft.Dafny {
   /// </summary>
   public class DatatypeProxy : RestrictedTypeProxy {
     public readonly bool Co;  // false means only inductive datatypes; true means only co-inductive datatypes
-    public DatatypeProxy(bool co) {
+    public readonly bool TypeVariableOK;
+    public DatatypeProxy(bool co, bool typeVariableOk = false) {
       Co = co;
+      TypeVariableOK = typeVariableOk;
     }
     public override int OrderID {
       get {
