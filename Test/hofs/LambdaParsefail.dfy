@@ -1,16 +1,15 @@
 // RUN: %dafny /print:"%t.print" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
-method Fails() {
-    var g1 := x.x => x;   // fail
-    var g2 := x() => x;   // fail
-    var g3 := ((x)) => x; // fail
-
+method Fails() { // all these fail
+    var g1 := x.x => x;
+    var g2 := x() => x;
+    var g3 := ((x)) => x;
+    var g4 := _a => 5;
+    var g5 := x : int => x;
 }
 
-method Fail() {
-    var g8 := x : int => x;   // not ok!
-}
+// the rest of these are OK:
 
 function f():() {
   a.b(x); a.b(x)
