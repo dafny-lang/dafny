@@ -15,4 +15,5 @@ ResolveError.dfy(47,7): Error: Precondition must be boolean (got int)
 ResolveError.dfy(56,9): Error: condition is expected to be of type bool, but is () -> bool
 ResolveError.dfy(59,34): Error: arguments must have the same type (got A -> B and ?)
 ResolveError.dfy(62,11): Error: arguments must have the same type (got A -> B and object)
-17 resolution/type errors detected in ResolveError.dfy
+ResolveError.dfy(68,24): Error: unresolved identifier: _
+18 resolution/type errors detected in ResolveError.dfy

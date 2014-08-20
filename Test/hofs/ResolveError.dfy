@@ -61,3 +61,9 @@ method Pli(f : A -> B) requires f != null;
   var o : object;
   assert f != o;
 }
+
+method Underscores() {
+  var u := _ => 0;
+  var v := (_, _) => 0;
+  var w := (_, _, _) => _;
+}

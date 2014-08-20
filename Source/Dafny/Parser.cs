@@ -151,6 +151,17 @@ bool IsParenStar() {
   return la.kind == _openparen && x.kind == _star;
 }
 
+string UnwildIdent(string x, bool allowWildcardId) {
+  if (x.StartsWith("_")) {
+    if (allowWildcardId && x.Length == 1) {
+      return "_v" + anonymousIds++;
+    } else {
+      SemErr("cannot declare identifier beginning with underscore");
+    }
+  }
+  return x;
+}
+
 bool IsLambda(bool allowLambda)
 {
   return allowLambda &&
@@ -1126,13 +1137,7 @@ bool CloseOptionalBrace(bool usesOptionalBrace) {
 		Contract.Ensures(Contract.ValueAtReturn(out x) != null); 
 		Expect(1);
 		x = t;
-		if (x.val.StartsWith("_")) {
-		 if (allowWildcardId && x.val.Length == 1) {
-		   t.val = "_v" + anonymousIds++;
-		 } else {
-		   SemErr("cannot declare identifier beginning with underscore");
-		 }
-		}
+		t.val = UnwildIdent(x.val, allowWildcardId);
 		
 	}
 
@@ -3229,7 +3234,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 			if (args != null) {
 			 SemErr(openParen, "Expected variable binding.");
 			}
-			BoundVar bv = new BoundVar(id, id.val,  new InferredTypeProxy());
+			BoundVar bv = new BoundVar(id, UnwildIdent(id.val, true),  new InferredTypeProxy());
 			e = new LambdaExpr(id, oneShot, new List<BoundVar>{ bv }, req, reads, body);
 			
 		}
@@ -3633,7 +3638,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 			   if (ise.Arguments != null) {
 			     SemErr(ise.OpenParen, "Expected variable binding.");
 			   }
-			   bvs.Add(new BoundVar(id, id.val, tt ?? new InferredTypeProxy()));
+			   bvs.Add(new BoundVar(id, UnwildIdent(id.val, true), tt ?? new InferredTypeProxy()));
 			 } else {
 			   SemErr(ee.tok, "Expected variable binding.");
 			 }
