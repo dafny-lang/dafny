@@ -1114,3 +1114,41 @@ module ObjectSetComprehensions {
 
   method D() { var x := set o : object | true :: o; }
 }
+
+// ----- decreases * tests ----
+
+method NonTermination_A()
+{
+  NonTermination_B();  // error: to call a non-terminating method, the caller must be marked 'decreases *'
+}
+
+method NonTermination_B()
+  decreases *;
+{
+  while true
+    decreases *;
+  {
+  }
+}
+
+method NonTermination_C()
+{
+  while true
+    decreases *;  // error: to use an infinite loop, the enclosing method must be marked 'decreases *'
+  {
+  }
+}
+
+method NonTermination_D()
+  decreases *;
+{
+  var n := 0;
+  while n < 100  // note, no 'decreases *' here, even if the nested loop may fail to terminate
+  {
+    while *
+      decreases *;
+    {
+    }
+    n := n + 1;
+  }
+}

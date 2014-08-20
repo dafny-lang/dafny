@@ -54,6 +54,7 @@ abstract module M0 {
     ensures forall n :: n in S ==>
                 n.childrenVisited == old(n.childrenVisited) &&
                 n.children == old(n.children);
+    decreases *;  // leave termination checking for a later refinement
   {
     root.marked := true;
     var t, p := root, null;
@@ -159,8 +160,6 @@ abstract module M1 refines M0 {
       invariant forall n :: n in stackNodes || n == t ==>
                   n.marked &&
                   forall j :: 0 <= j < n.childrenVisited ==> n.children[j] == null || n.children[j].marked;
-
-      decreases *;  // keep postponing termination checking
     {
       if ... {  // pop
       } else if ... {  // next child
@@ -221,8 +220,6 @@ abstract module M2 refines M1 {
       invariant forall n :: n in S && n.marked ==> var pth := n.pathFromRoot;
                   !fresh(pth) && old(ReachableVia(root, pth, n, S));
       invariant forall n :: n in S && n.marked ==> old(Reachable(root, n, S));
-
-      decreases *;  // keep postponing termination checking
     {
       if ... {
         // pop
@@ -249,6 +246,9 @@ abstract module M2 refines M1 {
 module M3 refines M2 {
   // In this final superposition, we prove termination of the loop.
   method SchorrWaite...
+    decreases true;  // say that the method is now one that is proved to terminate (note, the value
+                     // 'true' is arbitrary; we just need to supply _some_ decreases clause so that
+                     // the 'decreases *' from above is not inherited)
   {
     // The loop variant is a lexicographic triple, consisting of (0) the set of unmarked
     // nodes, (1) the (length of the) stackNodes sequence, and (2) the number children of

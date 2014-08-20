@@ -275,6 +275,7 @@ function Zipper2<T>(a: List<T>, b: List<T>): List<T>
 
 method WhileStar0(n: int)
   requires 2 <= n;
+  decreases *;
 {
   var m := n;
   var k := 0;
@@ -427,5 +428,24 @@ class C {
       v := v - 1;
       Terminate();
     }
+  }
+}
+
+// --------------------- decreases * tests
+
+module TerminationRefinement0 {
+  method M(x: int)
+    decreases *;
+  {
+    M(x);  // error [in TerminationRefinement1]: bad recursion
+           // Note, no complaint is issued in TerminationRefinement0, since
+           // the method is declared with 'decreases *'.
+  }
+}
+module TerminationRefinement1 refines TerminationRefinement0 {
+  method M...
+    decreases 4;  // this will cause termination checking to be done, and it will produce an error message for the recursive call
+  {
+    ...;
   }
 }

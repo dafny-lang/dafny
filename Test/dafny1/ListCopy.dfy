@@ -12,6 +12,7 @@ class Node {
   }
 
   method Copy(root: Node) returns (result: Node)
+    decreases *;
   {
     var existingRegion: set<Node>;
     assume root == null || root in existingRegion;

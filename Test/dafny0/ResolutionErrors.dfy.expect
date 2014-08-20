@@ -134,7 +134,7 @@ ResolutionErrors.dfy(258,4): Error: label shadows an enclosing label
 ResolutionErrors.dfy(263,2): Error: duplicate label
 ResolutionErrors.dfy(289,4): Error: when allocating an object of type 'ClassWithConstructor', one of its constructor methods must be called
 ResolutionErrors.dfy(290,4): Error: when allocating an object of type 'ClassWithConstructor', one of its constructor methods must be called
-ResolutionErrors.dfy(292,4): Error: a constructor is only allowed to be called when an object is being allocated
+ResolutionErrors.dfy(292,4): Error: a constructor is allowed to be called only when an object is being allocated
 ResolutionErrors.dfy(306,16): Error: arguments must have the same type (got int and DTD_List)
 ResolutionErrors.dfy(307,16): Error: arguments must have the same type (got DTD_List and int)
 ResolutionErrors.dfy(308,25): Error: arguments must have the same type (got bool and int)
@@ -175,4 +175,6 @@ ResolutionErrors.dfy(960,7): Error: type conversion to real is allowed only from
 ResolutionErrors.dfy(961,7): Error: type conversion to int is allowed only from real (got int)
 ResolutionErrors.dfy(962,7): Error: type conversion to int is allowed only from real (got nat)
 ResolutionErrors.dfy(1101,8): Error: new cannot be applied to a trait
-177 resolution/type errors detected in ResolutionErrors.dfy
+ResolutionErrors.dfy(1122,2): Error: a call to a possibly non-terminating method is allowed only if the calling method is also declared (with 'decreases *') to be possibly non-terminating
+ResolutionErrors.dfy(1137,14): Error: a possibly infinite loop is allowed only if the enclosing method is declared (with 'decreases *') to be possibly non-terminating
+179 resolution/type errors detected in ResolutionErrors.dfy

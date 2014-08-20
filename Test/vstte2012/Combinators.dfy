@@ -202,25 +202,25 @@ ghost method Lemma_FindAndStep(t: Term) returns (r: Term, C: Context, u: Term)
             r == EvalExpr(C, Step(u));
 {
   Lemma_ContextPossibilities(t);
-  if (Step(t) != t) {
+  if Step(t) != t {
     // t == Hole[t] and Step applies t.  So, return Hole[Step(t)]
     return Step(t), Hole, t;
-  } else if (!t.Apply?) {
+  } else if !t.Apply? {
     r := t;
   } else {
     r, C, u := Lemma_FindAndStep(t.car);  // (*)
-    if (r != t.car) {
+    if r != t.car {
       // t has the form (a b) where a==t.car and b==t.cdr, and a==C[u] for some
       // context C and some u to which the Step applies.  t can therefore be
       // denoted by (C[u] b) == (C b)[u] and the Step applies to u.  So, return
       // (C b)[Step(u)] == (C[Step(u)] b).  Note that FindAndStep(a)
       // gives C[Step(u)].
       return Apply(r, t.cdr), C_term(C, t.cdr), u;
-    } else if (IsValue(t.car)) {
+    } else if IsValue(t.car) {
       r, C, u := Lemma_FindAndStep(t.cdr);
       assert IsTerminal(t.car);  // make sure this is still remembered from (*)
 
-      if (r != t.cdr) {
+      if r != t.cdr {
         // t has the form (a b) where a==t.car and b==t.cdr and "a" is a Value,
         // and b==C[u] for some context C and some u to which the Step applies.
         // t can therefore be denoted by (a C[u]) == (C a)[u] and the Step
@@ -305,15 +305,16 @@ method reduction(t: Term) returns (r: Term)
   ensures exists trace :: IsTrace(trace, t, r);
   // The result "r" cannot be reduced any further:
   ensures IsTerminal(r);
+  decreases *;  // allow this method to diverge
 {
   r := t;
   ghost var trace := EmptyTrace;
-  while (true)
+  while true
     invariant IsTrace(trace, t, r);
     decreases *;  // allow this statement to loop forever
   {
     var u := FindAndStep(r);
-    if (u == r) {
+    if u == r {
       // we have found a fixpoint
       Theorem_FindAndStep(r);
       return;
@@ -365,13 +366,13 @@ method VerificationTask2(t: Term) returns (r: Term)
 {
   r := t;
   ghost var trace := EmptyTrace;
-  while (true)
+  while true
     invariant IsTrace(trace, t, r) && !ContainsS(r);
     invariant TerminatingReduction(t) == TerminatingReduction(r);
     decreases TermSize(r);
   {
     var u := FindAndStep(r);
-    if (u == r) {
+    if u == r {
       // we have found a fixpoint
       Theorem_FindAndStep(r);
       return;

@@ -11,6 +11,7 @@ class Node {
     modifies r;
     ensures reverse == null || reverse in r;
     ensures (forall y :: y in r ==> y.nxt == null || y.nxt in r);  // region closure
+    decreases *;
   {
     var current := x;
     reverse := null;

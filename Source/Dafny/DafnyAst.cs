@@ -1816,6 +1816,7 @@ namespace Microsoft.Dafny {
     ModuleDefinition EnclosingModule { get; }  // to be called only after signature-resolution is complete
     bool MustReverify { get; }
     string FullSanitizedName { get; }
+    bool AllowsNontermination { get; }
   }
   /// <summary>
   /// An ICallable is a Function, Method, or IteratorDecl.
@@ -1858,6 +1859,7 @@ namespace Microsoft.Dafny {
     ModuleDefinition ICodeContext.EnclosingModule { get { return Module; } }
     bool ICodeContext.MustReverify { get { Contract.Assume(false, "should not be called on NoContext"); throw new cce.UnreachableException(); } }
     public string FullSanitizedName { get { Contract.Assume(false, "should not be called on NoContext"); throw new cce.UnreachableException(); } }
+    public bool AllowsNontermination { get { Contract.Assume(false, "should not be called on NoContext"); throw new cce.UnreachableException(); } }
   }
 
   public class IteratorDecl : ClassDecl, IMethodCodeContext
@@ -1959,6 +1961,11 @@ namespace Microsoft.Dafny {
     }
     ModuleDefinition ICodeContext.EnclosingModule { get { return this.Module; } }
     bool ICodeContext.MustReverify { get { return false; } }
+    public bool AllowsNontermination {
+      get {
+        return Contract.Exists(Decreases.Expressions, e => e is WildcardExpr);
+      }
+    }
   }
 
   public abstract class MemberDecl : Declaration {
@@ -2451,6 +2458,12 @@ namespace Microsoft.Dafny {
       }
     }
 
+    public bool AllowsNontermination {
+      get {
+        return Contract.Exists(Decreases.Expressions, e => e is WildcardExpr);
+      }
+    }
+
     /// <summary>
     /// The "AllCalls" field is used for non-CoPredicate, non-PrefixPredicate functions only (so its value should not be relied upon for CoPredicate and PrefixPredicate functions).
     /// It records all function calls made by the Function, including calls made in the body as well as in the specification.
@@ -2683,6 +2696,11 @@ namespace Microsoft.Dafny {
       }
     }
     bool ICodeContext.MustReverify { get { return this.MustReverify; } }
+    public bool AllowsNontermination {
+      get {
+        return Contract.Exists(Decreases.Expressions, e => e is WildcardExpr);
+      }
+    }
   }
 
   public class Lemma : Method

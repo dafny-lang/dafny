@@ -1944,9 +1944,6 @@ namespace Microsoft.Dafny
             }
           }
         }
-        if (!m.IsTailRecursive && m.Body != null && Contract.Exists(m.Decreases.Expressions, e => e is WildcardExpr)) {
-          Error(m.Decreases.Expressions[0].tok, "'decreases *' is allowed only on tail-recursive methods");
-        }
       } else if (member is Function) {
         var f = (Function)member;
         var errorCount = ErrorCount;
@@ -4825,8 +4822,12 @@ namespace Microsoft.Dafny
         ResolveAttributes(s.Decreases.Attributes, new ResolveOpts(codeContext, true));
         foreach (Expression e in s.Decreases.Expressions) {
           ResolveExpression(e, new ResolveOpts(codeContext, true));
-          if (bodyMustBeSpecOnly && e is WildcardExpr) {
-            Error(e, "'decreases *' is not allowed on ghost loops");
+          if (e is WildcardExpr) {
+            if (bodyMustBeSpecOnly) {
+              Error(e, "'decreases *' is not allowed on ghost loops");
+            } else if (!codeContext.AllowsNontermination) {
+              Error(e, "a possibly infinite loop is allowed only if the enclosing method is declared (with 'decreases *') to be possibly non-terminating");
+            }
           }
           // any type is fine
         }
@@ -4859,8 +4860,12 @@ namespace Microsoft.Dafny
 
         foreach (Expression e in s.Decreases.Expressions) {
           ResolveExpression(e, new ResolveOpts(codeContext, true));
-          if (s.IsGhost && e is WildcardExpr) {
-            Error(e, "'decreases *' is not allowed on ghost loops");
+          if (e is WildcardExpr) {
+            if (s.IsGhost) {
+              Error(e, "'decreases *' is not allowed on ghost loops");
+            } else if (!codeContext.AllowsNontermination) {
+              Error(e, "a possibly infinite loop is allowed only if the enclosing method is declared (with 'decreases *') to be possibly non-terminating");
+            }
           }
           // any type is fine
         }
@@ -5436,7 +5441,7 @@ namespace Microsoft.Dafny
         s.Method = (Method)member;
         callee = s.Method;
         if (!isInitCall && callee is Constructor) {
-          Error(s, "a constructor is only allowed to be called when an object is being allocated");
+          Error(s, "a constructor is allowed to be called only when an object is being allocated");
         }
         s.IsGhost = callee.IsGhost;
         if (specContextOnly && !callee.IsGhost) {
@@ -5560,6 +5565,9 @@ namespace Microsoft.Dafny
             }
           }
         }
+      }
+      if (callee != null && Contract.Exists(callee.Decreases.Expressions, e => e is WildcardExpr) && !codeContext.AllowsNontermination) {
+        Error(s.Tok, "a call to a possibly non-terminating method is allowed only if the calling method is also declared (with 'decreases *') to be possibly non-terminating");
       }
     }
 
