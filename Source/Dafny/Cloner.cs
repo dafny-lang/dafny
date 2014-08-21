@@ -9,6 +9,15 @@ namespace Microsoft.Dafny
 {
   class Cloner
   {
+    private readonly bool cloneMethodBodies = true;
+
+    public Cloner(bool CloneMethodBodies) {
+      cloneMethodBodies = CloneMethodBodies;
+    }
+
+    public Cloner() {
+    }
+     
     public ModuleDefinition CloneModuleDefinition(ModuleDefinition m, string name) {
       ModuleDefinition nw;
       if (m is DefaultModuleDecl) {
@@ -23,6 +32,7 @@ namespace Microsoft.Dafny
       nw.Height = m.Height;
       return nw;
     }
+
     public TopLevelDecl CloneDeclaration(TopLevelDecl d, ModuleDefinition m) {
       Contract.Requires(d != null);
       Contract.Requires(m != null);
@@ -615,7 +625,7 @@ namespace Microsoft.Dafny
 
       var ens = m.Ens.ConvertAll(CloneMayBeFreeExpr);
 
-      var body = CloneBlockStmt(m.Body);
+      var body = cloneMethodBodies ? CloneBlockStmt(m.Body) : null;
       if (m is Constructor) {
         return new Constructor(Tok(m.tok), m.Name, tps, ins,
           req, mod, ens, decreases, body, CloneAttributes(m.Attributes), null);
