@@ -656,7 +656,7 @@ MethodDecl<MemberModifiers mmod, bool allowConstructor, out Method/*!*/ m>
   | "constructor"                   (. if (allowConstructor) {
                                          isConstructor = true;
                                        } else {
-                                         SemErr(t, "constructors are only allowed in classes");
+                                         SemErr(t, "constructors are allowed only in classes");
                                        }
                                     .)
   )                                 (. keywordToken = t; .)
@@ -1424,13 +1424,13 @@ Invariant<out MaybeFreeExpression/*!*/ invariant>
 DecreasesList<.List<Expression/*!*/> decreases, bool allowWildcard.>
 = (. Expression/*!*/ e; .)
   PossiblyWildExpression<out e>          (. if (!allowWildcard && e is WildcardExpr) {
-                                              SemErr(e.tok, "'decreases *' is only allowed on loops and tail-recursive methods");
+                                              SemErr(e.tok, "'decreases *' is allowed only on loops and tail-recursive methods");
                                             } else {
                                               decreases.Add(e);
                                             }
                                          .)
   { "," PossiblyWildExpression<out e>    (. if (!allowWildcard && e is WildcardExpr) {
-                                              SemErr(e.tok, "'decreases *' is only allowed on loops and tail-recursive methods");
+                                              SemErr(e.tok, "'decreases *' is allowed only on loops and tail-recursive methods");
                                             } else {
                                               decreases.Add(e);
                                             }

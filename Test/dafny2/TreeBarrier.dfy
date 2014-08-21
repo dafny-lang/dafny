@@ -70,8 +70,8 @@ class Node {
     requires valid();
     requires before();
     modifies this, left, right;
+    decreases *;  // allow the method to not terminate
   {
-
 //A
     pc := 1;
     if(left != null) {

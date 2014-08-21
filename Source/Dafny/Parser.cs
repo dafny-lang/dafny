@@ -991,7 +991,7 @@ bool CloseOptionalBrace(bool usesOptionalBrace) {
 			if (allowConstructor) {
 			 isConstructor = true;
 			} else {
-			 SemErr(t, "constructors are only allowed in classes");
+			 SemErr(t, "constructors are allowed only in classes");
 			}
 			
 		} else SynErr(151);
@@ -1546,7 +1546,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 		Expression/*!*/ e; 
 		PossiblyWildExpression(out e);
 		if (!allowWildcard && e is WildcardExpr) {
-		 SemErr(e.tok, "'decreases *' is only allowed on loops and tail-recursive methods");
+		 SemErr(e.tok, "'decreases *' is allowed only on loops and tail-recursive methods");
 		} else {
 		 decreases.Add(e);
 		}
@@ -1555,7 +1555,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 			Get();
 			PossiblyWildExpression(out e);
 			if (!allowWildcard && e is WildcardExpr) {
-			 SemErr(e.tok, "'decreases *' is only allowed on loops and tail-recursive methods");
+			 SemErr(e.tok, "'decreases *' is allowed only on loops and tail-recursive methods");
 			} else {
 			 decreases.Add(e);
 			}

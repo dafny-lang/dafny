@@ -7970,9 +7970,6 @@ namespace Microsoft.Dafny {
         string msg;
         if (s.InferredDecreases) {
           msg = "cannot prove termination; try supplying a decreases clause for the loop";
-          if (s is RefinedWhileStmt) {
-            msg += " (note that a refined loop does not inherit 'decreases *' from the refined loop)";
-          }
         } else {
           msg = "decreases expression might not decrease";
         }
@@ -8370,6 +8367,10 @@ namespace Microsoft.Dafny {
       var types1 = new List<Type>();
       var callee = new List<Expr>();
       var caller = new List<Expr>();
+      if (RefinementToken.IsInherited(tok, currentModule) && contextDecreases.All(e => !RefinementToken.IsInherited(e.tok, currentModule))) {
+        // the call site is inherited but all the context decreases expressions are new
+        tok = new ForceCheckToken(tok);
+      }
       for (int i = 0; i < N; i++) {
         Expression e0 = Substitute(calleeDecreases[i], receiverReplacement, substMap);
         Expression e1 = contextDecreases[i];
@@ -8377,7 +8378,7 @@ namespace Microsoft.Dafny {
           N = i;
           break;
         }
-        toks.Add(tok);
+        toks.Add(new NestedToken(tok, e1.tok));
         types0.Add(e0.Type.NormalizeExpand());
         types1.Add(e1.Type.NormalizeExpand());
         callee.Add(etranCurrent.TrExpr(e0));
