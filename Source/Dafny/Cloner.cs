@@ -34,6 +34,9 @@ namespace Microsoft.Dafny
         var dd = (TypeSynonymDecl)d;
         var tps = dd.TypeArgs.ConvertAll(CloneTypeParam);
         return new TypeSynonymDecl(Tok(dd.tok), dd.Name, tps, m, CloneType(dd.Rhs), CloneAttributes(dd.Attributes));
+      } else if (d is DerivedTypeDecl) {
+        var dd = (DerivedTypeDecl)d;
+        return new DerivedTypeDecl(Tok(dd.tok), dd.Name, m, CloneType(dd.BaseType), CloneAttributes(dd.Attributes));
       } else if (d is TupleTypeDecl) {
         var dd = (TupleTypeDecl)d;
         return new TupleTypeDecl(dd.Dims, dd.Module);

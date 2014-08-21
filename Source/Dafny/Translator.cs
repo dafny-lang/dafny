@@ -368,6 +368,8 @@ namespace Microsoft.Dafny {
         currentDeclaration = d;
         if (d is OpaqueTypeDecl) {
           AddTypeDecl((OpaqueTypeDecl)d);
+        } else if (d is DerivedTypeDecl) {
+          AddTypeDecl((DerivedTypeDecl)d);
         } else if (d is DatatypeDecl) {
           AddDatatype((DatatypeDecl)d);
         } else {
@@ -379,6 +381,8 @@ namespace Microsoft.Dafny {
           currentDeclaration = d;
           if (d is OpaqueTypeDecl) {
             AddTypeDecl((OpaqueTypeDecl)d);
+          } else if (d is DerivedTypeDecl) {
+            AddTypeDecl((DerivedTypeDecl)d);
           } else if (d is TypeSynonymDecl) {
             // do nothing, just bypass type synonyms in the translation
           } else if (d is DatatypeDecl) {
@@ -443,20 +447,30 @@ namespace Microsoft.Dafny {
 
     void AddTypeDecl(OpaqueTypeDecl td) {
       Contract.Requires(td != null);
-      string nm = nameTypeParam(td.TheType);
+      AddTypeDecl_Aux(td.tok, nameTypeParam(td.TheType), td.TypeArgs);
+    }
+    void AddTypeDecl(DerivedTypeDecl dd) {
+      Contract.Requires(dd != null);
+      AddTypeDecl_Aux(dd.tok, dd.FullName, new List<TypeParameter>());
+    }
+    void AddTypeDecl_Aux(IToken tok, string nm, List<TypeParameter> typeArgs) {
+      Contract.Requires(tok != null);
+      Contract.Requires(nm != null);
+      Contract.Requires(typeArgs != null);
+
       if (abstractTypes.Contains(nm)) {
         // nothing to do; has already been added
         return;
       }
-      if (td.TypeArgs.Count == 0) {
+      if (typeArgs.Count == 0) {
         sink.TopLevelDeclarations.Add(
-          new Bpl.Constant(td.tok,
-            new TypedIdent(td.tok, nm, predef.Ty), false /* not unique */));
+          new Bpl.Constant(tok,
+            new TypedIdent(tok, nm, predef.Ty), false /* not unique */));
       } else {
         // Note, the function produced is NOT necessarily injective, because the type may be replaced
         // in a refinement module in such a way that the type arguments do not matter.
-        var args = new List<Bpl.Variable>(td.TypeArgs.ConvertAll(a => (Bpl.Variable)BplFormalVar(null, predef.Ty, true)));
-        var func = new Bpl.Function(td.tok, nm, args, BplFormalVar(null, predef.Ty, false));
+        var args = new List<Bpl.Variable>(typeArgs.ConvertAll(a => (Bpl.Variable)BplFormalVar(null, predef.Ty, true)));
+        var func = new Bpl.Function(tok, nm, args, BplFormalVar(null, predef.Ty, false));
         sink.TopLevelDeclarations.Add(func);
       }
       abstractTypes.Add(nm);

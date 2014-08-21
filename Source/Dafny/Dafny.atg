@@ -462,7 +462,13 @@ OtherTypeDecl<ModuleDefinition/*!*/ module, out TopLevelDecl td>
   |
     [ GenericParameters<typeArgs> ]
     [ "="
-      Type<out ty>             (. td = new TypeSynonymDecl(id, id.val, typeArgs, module, ty, attrs); .)
+      ( "new"
+        Type<out ty>             (. if (typeArgs.Count != 0) {
+                                      SemErr(typeArgs[0].tok, "a derived type is not allowed type arguments");
+                                    }
+                                    td = new DerivedTypeDecl(id, id.val, module, ty, attrs); .)
+      | Type<out ty>             (. td = new TypeSynonymDecl(id, id.val, typeArgs, module, ty, attrs); .)
+      )
     ]
   )                            (. if (td == null) {
                                     td = new OpaqueTypeDecl(id, id.val, module, eqSupport, typeArgs, attrs);

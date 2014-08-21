@@ -364,6 +364,12 @@ namespace Microsoft.Dafny {
     public bool IsSubrangeType {
       get { return NormalizeExpand() is NatType; }
     }
+    public bool IsNumericBased {
+      get {
+        var t = NormalizeExpand();
+        return t.IsIntegerType || t.IsRealType || t.AsDerivedType != null;
+      }
+    }
 
     public CollectionType AsCollectionType { get { return NormalizeExpand() as CollectionType; } }
     public SetType AsSetType { get { return NormalizeExpand() as SetType; } }
@@ -395,6 +401,12 @@ namespace Microsoft.Dafny {
         return udt == null ? null : udt.ResolvedClass as ArrayClassDecl;
       }
     }
+    public DerivedTypeDecl AsDerivedType {
+      get {
+        var udt = NormalizeExpand() as UserDefinedType;
+        return udt == null ? null : udt.ResolvedClass as DerivedTypeDecl;
+      }
+    }
     public TypeSynonymDecl AsTypeSynonym {
       get {
         var udt = this as UserDefinedType;  // note, it is important to use 'this' here, not 'this.NormalizeExpand()'
@@ -402,6 +414,16 @@ namespace Microsoft.Dafny {
           return null;
         } else {
           return udt.ResolvedClass as TypeSynonymDecl;
+        }
+      }
+    }
+    public RedirectingTypeDecl AsRedirectingType {
+      get {
+        var udt = this as UserDefinedType;  // Note, it is important to use 'this' here, not 'this.NormalizeExpand()'.  This property getter is intended to be used during resolution.
+        if (udt == null) {
+          return null;
+        } else {
+          return (RedirectingTypeDecl)(udt.ResolvedClass as TypeSynonymDecl) ?? udt.ResolvedClass as DerivedTypeDecl;
         }
       }
     }
@@ -966,7 +988,7 @@ namespace Microsoft.Dafny {
 
     public override bool SupportsEquality {
       get {
-        if (ResolvedClass is ClassDecl) {
+        if (ResolvedClass is ClassDecl || ResolvedClass is DerivedTypeDecl) {
           return true;
         } else if (ResolvedClass is CoDatatypeDecl) {
           return false;
@@ -1114,16 +1136,16 @@ namespace Microsoft.Dafny {
   }
 
   /// <summary>
-  /// This proxy stands for either:
-  ///     int or real or set or multiset or seq
-  /// if AllowSeq, or:
-  ///     int or real or set or multiset
-  /// if !AllowSeq.
+  /// This proxy can stand for any numeric type.
+  /// In addition, if AllowSeq, then it can stand for a seq.
+  /// In addition, if AllowSetVarieties, it can stand for a set or multiset.
   /// </summary>
   public class OperationTypeProxy : RestrictedTypeProxy {
     public readonly bool AllowSeq;
-    public OperationTypeProxy(bool allowSeq) {
+    public readonly bool AllowSetVarieties;
+    public OperationTypeProxy(bool allowSeq, bool allowSetVarieties) {
       AllowSeq = allowSeq;
+      AllowSetVarieties = allowSetVarieties;
     }
     public override int OrderID {
       get {
@@ -2113,7 +2135,28 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public class TypeSynonymDecl : TopLevelDecl
+  public interface RedirectingTypeDecl
+  {
+    IToken Tok { get; }
+    string Name { get; }
+  }
+
+  public class DerivedTypeDecl : TopLevelDecl, RedirectingTypeDecl
+  {
+    public readonly Type BaseType;
+    public DerivedTypeDecl(IToken tok, string name, ModuleDefinition module, Type baseType, Attributes attributes)
+      : base(tok, name, module, new List<TypeParameter>(), attributes) {
+      Contract.Requires(tok != null);
+      Contract.Requires(name != null);
+      Contract.Requires(module != null);
+      Contract.Requires(baseType != null);
+      BaseType = baseType;
+    }
+    IToken RedirectingTypeDecl.Tok { get { return tok; } }
+    string RedirectingTypeDecl.Name { get { return Name; } }
+  }
+
+  public class TypeSynonymDecl : TopLevelDecl, RedirectingTypeDecl
   {
     public readonly Type Rhs;
     public TypeSynonymDecl(IToken tok, string name, List<TypeParameter> typeArgs, ModuleDefinition module, Type rhs, Attributes attributes)
@@ -2140,6 +2183,8 @@ namespace Microsoft.Dafny {
         return Resolver.SubstType(Rhs, subst);
       }
     }
+    IToken RedirectingTypeDecl.Tok { get { return tok; } }
+    string RedirectingTypeDecl.Name { get { return Name; } }
   }
 
   [ContractClass(typeof(IVariableContracts))]

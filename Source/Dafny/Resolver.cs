@@ -788,6 +788,8 @@ namespace Microsoft.Dafny
           // nothing more to register
         } else if (d is TypeSynonymDecl) {
           // nothing more to register
+        } else if (d is DerivedTypeDecl) {
+          // nothing more to register
 
         } else if (d is IteratorDecl) {
           var iter = (IteratorDecl)d;
@@ -1447,7 +1449,7 @@ namespace Microsoft.Dafny
       Contract.Requires(datatypeDependencies != null);
       Contract.Requires(codatatypeDependencies != null);
 
-      var typeSynonymDependencies = new Graph<TypeSynonymDecl>();
+      var typeRedirectionDependencies = new Graph<RedirectingTypeDecl>();
       foreach (TopLevelDecl d in declarations) {
         Contract.Assert(d != null);
         allTypeParameters.PushMarker();
@@ -1458,9 +1460,18 @@ namespace Microsoft.Dafny
           var syn = (TypeSynonymDecl)d;
           ResolveType(syn.tok, syn.Rhs, ResolveTypeOptionEnum.AllowPrefix, syn.TypeArgs);
           syn.Rhs.ForeachTypeComponent(ty => {
-            var s = ty.AsTypeSynonym;
+            var s = ty.AsRedirectingType;
             if (s != null) {
-              typeSynonymDependencies.AddEdge(syn, s);
+              typeRedirectionDependencies.AddEdge(syn, s);
+            }
+          });
+        } else if (d is DerivedTypeDecl) {
+          var dd = (DerivedTypeDecl)d;
+          ResolveType(dd.tok, dd.BaseType, ResolveTypeOptionEnum.DontInfer, null);
+          dd.BaseType.ForeachTypeComponent(ty => {
+            var s = ty.AsRedirectingType;
+            if (s != null) {
+              typeRedirectionDependencies.AddEdge(dd, s);
             }
           });
         } else if (d is IteratorDecl) {
@@ -1496,11 +1507,11 @@ namespace Microsoft.Dafny
       }
 
       // perform acyclicity test on type synonyms
-      var cycle = typeSynonymDependencies.TryFindCycle();
+      var cycle = typeRedirectionDependencies.TryFindCycle();
       if (cycle != null) {
         Contract.Assert(cycle.Count != 0);
         var erste = cycle[0];
-        Error(erste.tok, "Cycle among type synonyms: {0} -> {1}", Util.Comma(" -> ", cycle, syn => syn.Name), erste.Name);
+        Error(erste.Tok, "Cycle among redirecting types (derived types, type synonyms): {0} -> {1}", Util.Comma(" -> ", cycle, syn => syn.Name), erste.Name);
       }
     }
 
@@ -1531,6 +1542,12 @@ namespace Microsoft.Dafny
         } else if (d is ClassDecl) {
           var cl = (ClassDecl)d;
           ResolveClassMemberBodies(cl);
+        } else if (d is DerivedTypeDecl) {
+          var dd = (DerivedTypeDecl)d;
+          // this check can be done only after it has been determined that the redirected types do not involve cycles
+          if (!dd.BaseType.IsNumericBased) {
+            Error(dd.tok, "derived types must be based on some numeric type (got {0})", dd.BaseType);
+          }
         }
         allTypeParameters.PopMarker();
       }
@@ -4265,8 +4282,8 @@ namespace Microsoft.Dafny
         }
 
       } else if (proxy is OperationTypeProxy) {
-        OperationTypeProxy opProxy = (OperationTypeProxy)proxy;
-        if (t is IntType || t is RealType || t is SetType || t is MultiSetType || (opProxy.AllowSeq && t is SeqType)) {
+        var opProxy = (OperationTypeProxy)proxy;
+        if (t.IsNumericBased || (opProxy.AllowSetVarieties && (t is SetType || t is MultiSetType)) || (opProxy.AllowSeq && t is SeqType)) {
           // this is the expected case
         } else {
           return false;
@@ -4361,10 +4378,11 @@ namespace Microsoft.Dafny
           a.T = b;
           return UnifyTypes(((CollectionTypeProxy)a).Arg, ((CollectionTypeProxy)b).Arg);
         } else if (b is OperationTypeProxy) {
-          if (((OperationTypeProxy)b).AllowSeq) {
+          var proxy = (OperationTypeProxy)b;
+          if (proxy.AllowSeq && proxy.AllowSetVarieties) {
             b.T = a;  // a is a stronger constraint than b
           } else {
-            // a says set<T>,seq<T> and b says int,set; the intersection is set<T>
+            // a says set<T>,seq<T> and b says numeric,set; the intersection is set<T>
             a.T = new SetType(((CollectionTypeProxy)a).Arg);
             b.T = a.T;
           }
@@ -6692,8 +6710,8 @@ namespace Microsoft.Dafny
                 expr.Type = Type.Bool;
               } else {
                 bool err = false;
-                if (!UnifyTypes(e.E0.Type, new OperationTypeProxy(true))) {
-                  Error(expr, "arguments to {0} must be int or real or a collection type (instead got {1})", BinaryExpr.OpcodeString(e.Op), e.E0.Type);
+                if (!UnifyTypes(e.E0.Type, new OperationTypeProxy(true, true))) {
+                  Error(expr, "arguments to {0} must be of a numeric type or a collection type (instead got {1})", BinaryExpr.OpcodeString(e.Op), e.E0.Type);
                   err = true;
                 }
                 if (!UnifyTypes(e.E1.Type, e.E0.Type)) {
@@ -6729,8 +6747,8 @@ namespace Microsoft.Dafny
                 expr.Type = Type.Bool;
               } else {
                 bool err = false;
-                if (!UnifyTypes(e.E0.Type, new OperationTypeProxy(false))) {
-                  Error(expr, "arguments to {0} must be int or real or a set (instead got {1})", BinaryExpr.OpcodeString(e.Op), e.E0.Type);
+                if (!UnifyTypes(e.E0.Type, new OperationTypeProxy(false, true))) {
+                  Error(expr, "arguments to {0} must be of a numeric type or set type (instead got {1})", BinaryExpr.OpcodeString(e.Op), e.E0.Type);
                   err = true;
                 }
                 if (!UnifyTypes(e.E1.Type, e.E0.Type)) {
@@ -6755,9 +6773,8 @@ namespace Microsoft.Dafny
             break;
 
           case BinaryExpr.Opcode.Div:
-            if (!UnifyTypes(e.E0.Type, new OperationTypeProxy(false))) {
-              // TODO: this should disallow OperationTypeProxy types except for int and real
-              Error(expr, "first argument to {0} must be of type int or real (instead got {1})", BinaryExpr.OpcodeString(e.Op), e.E0.Type);
+            if (!UnifyTypes(e.E0.Type, new OperationTypeProxy(false, false))) {
+              Error(expr, "first argument to {0} must be of numeric type (instead got {1})", BinaryExpr.OpcodeString(e.Op), e.E0.Type);
             }
             if (!UnifyTypes(e.E1.Type, e.E0.Type)) {
               Error(expr, "arguments to {0} must have the same type (got {1} and {2})", BinaryExpr.OpcodeString(e.Op), e.E0.Type, e.E1.Type);

@@ -1101,7 +1101,7 @@ method TraitSynonym()
   var x := new JJ;  // error: new cannot be applied to a trait
 }
 
-// ----- set comprehensions where the term type is finite ----
+// ----- set comprehensions where the term type is finite -----
 
 module ObjectSetComprehensions {
   // allowed in non-ghost context:
@@ -1113,4 +1113,11 @@ module ObjectSetComprehensions {
   function method C() : set<object> { set o : object | true :: o }
 
   method D() { var x := set o : object | true :: o; }
+}
+
+// ------ regression test for type checking of integer division -----
+
+method IntegerDivision(s: set<bool>)
+{
+  var t := s / s;  // error: / cannot be used with sets
 }

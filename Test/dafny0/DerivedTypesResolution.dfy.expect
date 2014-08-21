@@ -1,0 +1,3 @@
+DerivedTypesResolution.dfy(5,7): Error: Cycle among redirecting types (derived types, type synonyms): MySynonym -> MyIntegerType_WellSupposedly -> MyNewType -> MySynonym
+DerivedTypesResolution.dfy(12,7): Error: derived types must be based on some numeric type (got List<int>)
+2 resolution/type errors detected in DerivedTypesResolution.dfy
