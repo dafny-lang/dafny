@@ -364,10 +364,33 @@ namespace Microsoft.Dafny {
     public bool IsSubrangeType {
       get { return NormalizeExpand() is NatType; }
     }
-    public bool IsNumericBased {
-      get {
-        var t = NormalizeExpand();
-        return t.IsIntegerType || t.IsRealType || t.AsDerivedType != null;
+    public bool IsNumericBased() {
+      var t = NormalizeExpand();
+      return t.IsIntegerType || t.IsRealType || t.AsDerivedType != null;
+    }
+    public enum NumericPersuation { Int, Real }
+    public bool IsNumericBased(NumericPersuation p) {
+      Type t = this;
+      while (true) {
+        t = t.NormalizeExpand();
+        if (t.IsIntegerType) {
+          return p == NumericPersuation.Int;
+        } else if (t.IsRealType) {
+          return p == NumericPersuation.Real;
+        }
+        var proxy = t as OperationTypeProxy;
+        if (proxy != null) {
+          if (proxy.JustInts) {
+            return p == NumericPersuation.Int;
+          } else if (proxy.JustReals) {
+            return p == NumericPersuation.Real;
+          }
+        }
+        var d = t.AsDerivedType;
+        if (d == null) {
+          return false;
+        }
+        t = d.BaseType;
       }
     }
 
@@ -1141,9 +1164,20 @@ namespace Microsoft.Dafny {
   /// In addition, if AllowSetVarieties, it can stand for a set or multiset.
   /// </summary>
   public class OperationTypeProxy : RestrictedTypeProxy {
+    public readonly bool AllowInts;
+    public readonly bool AllowReals;
     public readonly bool AllowSeq;
     public readonly bool AllowSetVarieties;
-    public OperationTypeProxy(bool allowSeq, bool allowSetVarieties) {
+    public bool JustInts {
+      get { return AllowInts && !AllowReals && !AllowSeq && !AllowSetVarieties; }
+    }
+    public bool JustReals {
+      get { return !AllowInts && AllowReals && !AllowSeq && !AllowSetVarieties; }
+    }
+    public OperationTypeProxy(bool allowInts, bool allowReals, bool allowSeq, bool allowSetVarieties) {
+      Contract.Requires(allowInts || allowReals || allowSeq || allowSetVarieties);  // don't allow unsatisfiable constraint
+      AllowInts = allowInts;
+      AllowReals = allowReals;
       AllowSeq = allowSeq;
       AllowSetVarieties = allowSetVarieties;
     }
@@ -1151,6 +1185,19 @@ namespace Microsoft.Dafny {
       get {
         return 3;
       }
+    }
+    [Pure]
+    public override string TypeName(ModuleDefinition context) {
+      Contract.Ensures(Contract.Result<string>() != null);
+
+      if (T == null) {
+        if (JustInts) {
+          return "int";
+        } else if (JustReals) {
+          return "real";
+        }
+      }
+      return base.TypeName(context);
     }
   }
 
@@ -1162,11 +1209,13 @@ namespace Microsoft.Dafny {
   /// This proxy stands for one of:
   ///   seq(T)       Domain,Range,Arg := int,T,T
   ///   multiset(T)  Domain,Range,Arg := T,int,T
+  ///   if AllowMap, may also be:
   ///   map(T,U)     Domain,Range,Arg := T,U,T
   ///   if AllowArray, may also be:
   ///   array(T)     Domain,Range,Arg := int,T,T
   /// </summary>
   public class IndexableTypeProxy : RestrictedTypeProxy {
+    public readonly bool AllowMap;
     public readonly bool AllowArray;
     public readonly Type Domain, Range, Arg;
     [ContractInvariantMethod]
@@ -1176,13 +1225,14 @@ namespace Microsoft.Dafny {
       Contract.Invariant(Arg != null);
     }
 
-    public IndexableTypeProxy(Type domain, Type range, Type arg, bool allowArray) {
+    public IndexableTypeProxy(Type domain, Type range, Type arg, bool allowMap, bool allowArray) {
       Contract.Requires(domain != null);
       Contract.Requires(range != null);
       Contract.Requires(arg != null);
       Domain = domain;
       Range = range;
       Arg = arg;
+      AllowMap = allowMap;
       AllowArray = allowArray;
     }
     public override int OrderID {

@@ -957,9 +957,9 @@ method TypeConversions(m: nat, i: int, r: real) returns (n: nat, j: int, s: real
 
   s := (2.0 / 1.7) + (r / s) - (--r) * -12.3;
 
-  s := real(s);  // error: cannot convert real->real
-  j := int(j);  // error: cannot convert int->int
-  j := int(n);  // error: cannot convert nat->int
+  s := real(s);  // fine (identity transform)
+  j := int(j);  // fine (identity transform)
+  j := int(n);  // fine (identity transform)
 }
 
 // --- filling in type arguments and checking that there aren't too many ---

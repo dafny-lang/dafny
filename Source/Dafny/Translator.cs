@@ -4676,7 +4676,7 @@ namespace Microsoft.Dafny {
             break;
           case BinaryExpr.ResolvedOpcode.Div:
           case BinaryExpr.ResolvedOpcode.Mod: {
-              Bpl.Expr zero = (e.E1.Type.IsRealType) ? Bpl.Expr.Literal(Basetypes.BigDec.ZERO) : Bpl.Expr.Literal(0);
+              Bpl.Expr zero = e.E1.Type.IsNumericBased(Type.NumericPersuation.Real) ? Bpl.Expr.Literal(Basetypes.BigDec.ZERO) : Bpl.Expr.Literal(0);
               CheckWellformed(e.E1, options, locals, builder, etran);
               builder.Add(Assert(expr.tok, Bpl.Expr.Neq(etran.TrExpr(e.E1), zero), "possible division by zero", options.AssertKv));
             }
@@ -6228,10 +6228,18 @@ namespace Microsoft.Dafny {
       Contract.Requires(predef != null);
       Contract.Ensures(Contract.Result<Bpl.Type>() != null);
 
-      type = type.NormalizeExpand();
-      if (type is TypeProxy) {
-        // unresolved proxy; just treat as ref, since no particular type information is apparently needed for this type
-        return predef.RefType;
+      while (true) {
+        type = type.NormalizeExpand();
+        if (type is TypeProxy) {
+          // unresolved proxy; just treat as ref, since no particular type information is apparently needed for this type
+          return predef.RefType;
+        }
+        var d = type.AsDerivedType;
+        if (d == null) {
+          break;
+        } else {
+          type = d.BaseType;  // the Boogie type to be used for the derived type is the same as for the base type
+        }
       }
 
       if (type is BoolType) {
@@ -7103,15 +7111,14 @@ namespace Microsoft.Dafny {
         var empty = new SeqDisplayExpr(x.tok, new List<Expression>());
         empty.Type = xType;
         yield return empty;
-      } else if (xType is IntType) {
+      } else if (xType.IsNumericBased(Type.NumericPersuation.Int)) {
         var lit = new LiteralExpr(x.tok, 0);
-        lit.Type = Type.Int;  // resolve here
+        lit.Type = xType;  // resolve here
         yield return lit;
-      } else if (xType is RealType) {
+      } else if (xType.IsNumericBased(Type.NumericPersuation.Real)) {
         var lit = new LiteralExpr(x.tok, Basetypes.BigDec.ZERO);
-        lit.Type = Type.Real;  // resolve here
+        lit.Type = xType;  // resolve here
         yield return lit;
-       
       }
 
       var missingBounds = new List<BoundVar>();
@@ -8436,16 +8443,24 @@ namespace Microsoft.Dafny {
           Bpl.Expr prefixIsLess = Bpl.Expr.False;
           for (int i = 0; i < k; i++) {
             prefixIsLess = Bpl.Expr.Or(prefixIsLess, Less[i]);
+          };
+
+          Bpl.Expr zero = null;
+          string zeroStr = null;
+          if (types0[k].IsNumericBased(Type.NumericPersuation.Int)) {
+            zero = Bpl.Expr.Literal(0);
+            zeroStr = "0";
+          } else if (types0[k].IsNumericBased(Type.NumericPersuation.Real)) {
+            zero = Bpl.Expr.Literal(Basetypes.BigDec.ZERO);
+            zeroStr = "0.0";
           }
-          if (types0[k] is IntType || types0[k] is RealType) {
-            var zero = types0[k] is IntType ? Bpl.Expr.Literal(0) : Bpl.Expr.Literal(Basetypes.BigDec.ZERO);
+          if (zero != null) {
             Bpl.Expr bounded = Bpl.Expr.Le(zero, ee1[k]);
             for (int i = 0; i < k; i++) {
               bounded = Bpl.Expr.Or(bounded, Less[i]);
             }
             string component = N == 1 ? "" : " (component " + k + ")";
-            string zerostr = types0[k] is IntType ? "0" : "0.0";
-            Bpl.Cmd cmd = Assert(toks[k], Bpl.Expr.Or(bounded, Eq[k]), "decreases expression" + component + " must be bounded below by " + zerostr + suffixMsg);
+            Bpl.Cmd cmd = Assert(toks[k], Bpl.Expr.Or(bounded, Eq[k]), "decreases expression" + component + " must be bounded below by " + zeroStr + suffixMsg);
             builder.Add(cmd);
           }
         }
@@ -8473,10 +8488,12 @@ namespace Microsoft.Dafny {
       u = u.NormalizeExpand();
       if (t is BoolType) {
         return u is BoolType;
-      } else if (t is IntType) {
-        return u is IntType;
-      } else if (t is RealType) {
-        return u is RealType;
+      } else if (t.IsNumericBased(Type.NumericPersuation.Int)) {
+        // we can allow different kinds of int-based types
+        return u.IsNumericBased(Type.NumericPersuation.Int);
+      } else if (t.IsNumericBased(Type.NumericPersuation.Real)) {
+        // we can allow different kinds of real-based types
+        return u.IsNumericBased(Type.NumericPersuation.Real);
       } else if (t is SetType) {
         return u is SetType;
       } else if (t is SeqType) {
@@ -8532,9 +8549,9 @@ namespace Microsoft.Dafny {
         eq = Bpl.Expr.Iff(e0, e1);
         less = Bpl.Expr.And(Bpl.Expr.Not(e0), e1);
         atmost = Bpl.Expr.Imp(e0, e1);
-      } else if (ty0 is IntType || ty0 is SeqType || ty0.IsDatatype) {
+      } else if (ty0.IsNumericBased(Type.NumericPersuation.Int) || ty0 is SeqType || ty0.IsDatatype) {
         Bpl.Expr b0, b1;
-        if (ty0 is IntType) {
+        if (ty0.IsNumericBased(Type.NumericPersuation.Int)) {
           b0 = e0;
           b1 = e1;
         } else if (ty0 is SeqType) {
@@ -8549,12 +8566,12 @@ namespace Microsoft.Dafny {
         eq = Bpl.Expr.Eq(b0, b1);
         less = Bpl.Expr.Lt(b0, b1);
         atmost = Bpl.Expr.Le(b0, b1);
-        if (ty0 is IntType && includeLowerBound) {
+        if (ty0.IsNumericBased(Type.NumericPersuation.Int) && includeLowerBound) {
           less = Bpl.Expr.And(Bpl.Expr.Le(Bpl.Expr.Literal(0), b0), less);
           atmost = Bpl.Expr.And(Bpl.Expr.Le(Bpl.Expr.Literal(0), b0), atmost);
         }
 
-      } else if (ty0 is RealType) {
+      } else if (ty0.IsNumericBased(Type.NumericPersuation.Real)) {
         eq = Bpl.Expr.Eq(e0, e1);
         less = Bpl.Expr.Le(e0, Bpl.Expr.Sub(e1, Bpl.Expr.Literal(Basetypes.BigDec.FromInt(1))));
         atmost = Bpl.Expr.Le(e0, e1);
@@ -10265,8 +10282,14 @@ namespace Microsoft.Dafny {
           var e = (ConversionExpr)expr;
           Bpl.ArithmeticCoercion.CoercionType ct;
           if (e.ToType is IntType) {
+            if (e.E.Type.IsNumericBased(Type.NumericPersuation.Int)) {
+              return TrExpr(e.E);
+            }
             ct = Bpl.ArithmeticCoercion.CoercionType.ToInt;
           } else if (e.ToType is RealType) {
+            if (e.E.Type.IsNumericBased(Type.NumericPersuation.Real)) {
+              return TrExpr(e.E);
+            }
             ct = Bpl.ArithmeticCoercion.CoercionType.ToReal;
           } else {
             Contract.Assert(false);  // unexpected ConversionExpr to-type
@@ -10276,7 +10299,7 @@ namespace Microsoft.Dafny {
 
         } else if (expr is BinaryExpr) {
           BinaryExpr e = (BinaryExpr)expr;
-          bool isReal = e.E0.Type.IsRealType;
+          bool isReal = e.E0.Type.IsNumericBased(Type.NumericPersuation.Real);
           Bpl.Expr e0 = TrExpr(e.E0);
           if (e.ResolvedOp == BinaryExpr.ResolvedOpcode.InSet) {
             return TrInSet(expr.tok, e0, e.E1, cce.NonNull(e.E0.Type));  // let TrInSet translate e.E1

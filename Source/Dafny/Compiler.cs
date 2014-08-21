@@ -2298,14 +2298,22 @@ namespace Microsoft.Dafny {
       } else if (expr is ConversionExpr) {
         var e = (ConversionExpr)expr;
         if (e.ToType is IntType) {
-          Contract.Assert(e.E.Type.IsRealType);
-          TrParenExpr(e.E);
-          wr.Write(".ToBigInteger()");
+          if (e.E.Type.IsNumericBased(Type.NumericPersuation.Int)) {
+            TrParenExpr(e.E);
+          } else {
+            Contract.Assert(e.E.Type.IsRealType);
+            TrParenExpr(e.E);
+            wr.Write(".ToBigInteger()");
+          }
         } else if (e.ToType is RealType) {
-          Contract.Assert(e.E.Type.IsIntegerType);
-          wr.Write("new Dafny.BigRational(");
-          TrExpr(e.E);
-          wr.Write(", BigInteger.One)");
+          if (e.E.Type.IsNumericBased(Type.NumericPersuation.Real)) {
+            TrParenExpr(e.E);
+          } else {
+            Contract.Assert(e.E.Type.IsIntegerType);
+            wr.Write("new Dafny.BigRational(");
+            TrExpr(e.E);
+            wr.Write(", BigInteger.One)");
+          }
         } else {
           Contract.Assert(false);  // unexpected ConversionExpr to-type
         }

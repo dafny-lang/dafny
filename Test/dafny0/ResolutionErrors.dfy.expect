@@ -2,8 +2,8 @@ ResolutionErrors.dfy(499,7): Error: RHS (of type List<A>) not assignable to LHS 
 ResolutionErrors.dfy(504,7): Error: RHS (of type List<A>) not assignable to LHS (of type List<B>)
 ResolutionErrors.dfy(518,23): Error: type of case bodies do not agree (found Tree<_T1,_T0>, previous types Tree<_T0,_T1>)
 ResolutionErrors.dfy(530,24): Error: Wrong number of type arguments (0 instead of 2) passed to class/datatype: Tree
-ResolutionErrors.dfy(558,23): Error: type variable 'T' in the function call to 'P' could not determined
-ResolutionErrors.dfy(565,23): Error: type variable 'T' in the function call to 'P' could not determined
+ResolutionErrors.dfy(558,23): Error: type variable 'T' in the function call to 'P' could not be determined
+ResolutionErrors.dfy(565,23): Error: type variable 'T' in the function call to 'P' could not be determined
 ResolutionErrors.dfy(578,13): Error: 'new' is not allowed in ghost contexts
 ResolutionErrors.dfy(579,9): Error: 'new' is not allowed in ghost contexts
 ResolutionErrors.dfy(586,14): Error: new allocation not supported in forall statements
@@ -171,11 +171,8 @@ ResolutionErrors.dfy(932,26): Error: member x does not exist in datatype _tuple#
 ResolutionErrors.dfy(932,18): Error: arguments must have the same type (got (int,int,int) and (int,int))
 ResolutionErrors.dfy(955,15): Error: arguments to / must have the same type (got real and int)
 ResolutionErrors.dfy(956,10): Error: second argument to % must be of type int (instead got real)
-ResolutionErrors.dfy(960,7): Error: type conversion to real is allowed only from int (got real)
-ResolutionErrors.dfy(961,7): Error: type conversion to int is allowed only from real (got int)
-ResolutionErrors.dfy(962,7): Error: type conversion to int is allowed only from real (got nat)
 ResolutionErrors.dfy(1101,8): Error: new cannot be applied to a trait
 ResolutionErrors.dfy(1122,13): Error: first argument to / must be of numeric type (instead got set<bool>)
 ResolutionErrors.dfy(1129,2): Error: a call to a possibly non-terminating method is allowed only if the calling method is also declared (with 'decreases *') to be possibly non-terminating
 ResolutionErrors.dfy(1144,14): Error: a possibly infinite loop is allowed only if the enclosing method is declared (with 'decreases *') to be possibly non-terminating
-180 resolution/type errors detected in ResolutionErrors.dfy
+177 resolution/type errors detected in ResolutionErrors.dfy

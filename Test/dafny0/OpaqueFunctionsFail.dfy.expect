@@ -1,4 +1,4 @@
-OpaqueFunctionsFail.dfy(9,18): Error: type variable 'A' in the function call to '#zero_FULL' could not determined. If you are making an opaque function, make sure that the function can be called.
-OpaqueFunctionsFail.dfy(9,18): Error: type variable 'A' in the function call to 'zero' could not determined
-OpaqueFunctionsFail.dfy(9,18): Error: type variable 'A' in the function call to '#zero_FULL' could not determined. If you are making an opaque function, make sure that the function can be called.
+OpaqueFunctionsFail.dfy(9,18): Error: type variable 'A' in the function call to '#zero_FULL' could not be determined. If you are making an opaque function, make sure that the function can be called.
+OpaqueFunctionsFail.dfy(9,18): Error: type variable 'A' in the function call to 'zero' could not be determined
+OpaqueFunctionsFail.dfy(9,18): Error: type variable 'A' in the function call to '#zero_FULL' could not be determined. If you are making an opaque function, make sure that the function can be called.
 3 resolution/type errors detected in OpaqueFunctionsFail.dfy
