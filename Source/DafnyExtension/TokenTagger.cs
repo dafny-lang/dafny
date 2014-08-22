@@ -320,6 +320,7 @@ namespace DafnyLanguage
                 case "multiset":
                 case "nat":
                 case "new":
+                case "newtype":
                 case "null":
                 case "object":
                 case "old":
@@ -340,6 +341,7 @@ namespace DafnyLanguage
                 case "true":
                 case "type":
                 case "var":
+                case "where":
                 case "while":
                 case "yield":
                 case "yields":

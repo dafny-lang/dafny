@@ -3,19 +3,19 @@
 
 module Cycle {
   type MySynonym = MyNewType  // error: a cycle
-  type MyNewType = new MyIntegerType_WellSupposedly
+  newtype MyNewType = MyIntegerType_WellSupposedly
   type MyIntegerType_WellSupposedly = MySynonym
 }
 
 module MustBeNumeric {
   datatype List<T> = Nil | Cons(T, List)
-  type NewDatatype = new List<int>  // error: base type must be numeric based
+  newtype NewDatatype = List<int>  // error: base type must be numeric based
 }
 
 module Goodies {
-  type int32 = new int
-  type posReal = new real
-  type int8 = new int32
+  newtype int32 = int
+  newtype posReal = real
+  newtype int8 = int32
 
   method M()
   {

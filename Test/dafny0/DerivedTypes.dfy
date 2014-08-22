@@ -1,9 +1,9 @@
 // RUN: %dafny /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
-type int32 = new int
-type posReal = new real
-type int8 = new int32
+newtype int32 = int
+newtype posReal = real
+newtype int8 = int32
 
 method M()
 {

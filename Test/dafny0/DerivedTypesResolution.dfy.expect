@@ -1,5 +1,5 @@
 DerivedTypesResolution.dfy(5,7): Error: Cycle among redirecting types (derived types, type synonyms): MySynonym -> MyIntegerType_WellSupposedly -> MyNewType -> MySynonym
-DerivedTypesResolution.dfy(12,7): Error: derived types must be based on some numeric type (got List<int>)
+DerivedTypesResolution.dfy(12,10): Error: derived types must be based on some numeric type (got List<int>)
 DerivedTypesResolution.dfy(38,9): Error: arguments must have the same type (got posReal and real)
 DerivedTypesResolution.dfy(44,9): Error: arguments must have the same type (got int32 and int)
 DerivedTypesResolution.dfy(50,13): Error: arguments must have the same type (got posReal and int32)

@@ -2201,6 +2201,8 @@ namespace Microsoft.Dafny {
   public class DerivedTypeDecl : TopLevelDecl, RedirectingTypeDecl
   {
     public readonly Type BaseType;
+    public readonly BoundVar Var;  // can be null (if non-null, Var.Type == BaseType)
+    public readonly Expression Constraint;  // is null iff Var is
     public DerivedTypeDecl(IToken tok, string name, ModuleDefinition module, Type baseType, Attributes attributes)
       : base(tok, name, module, new List<TypeParameter>(), attributes) {
       Contract.Requires(tok != null);
@@ -2208,6 +2210,16 @@ namespace Microsoft.Dafny {
       Contract.Requires(module != null);
       Contract.Requires(baseType != null);
       BaseType = baseType;
+    }
+    public DerivedTypeDecl(IToken tok, string name, ModuleDefinition module, BoundVar bv, Expression constraint, Attributes attributes)
+      : base(tok, name, module, new List<TypeParameter>(), attributes) {
+      Contract.Requires(tok != null);
+      Contract.Requires(name != null);
+      Contract.Requires(module != null);
+      Contract.Requires(bv != null && bv.Type != null);
+      BaseType = bv.Type;
+      Var = bv;
+      Constraint = constraint;
     }
     IToken RedirectingTypeDecl.Tok { get { return tok; } }
     string RedirectingTypeDecl.Name { get { return Name; } }
