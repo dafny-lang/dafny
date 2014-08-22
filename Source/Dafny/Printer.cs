@@ -144,9 +144,16 @@ namespace Microsoft.Dafny {
           var dd = (DerivedTypeDecl)d;
           if (i++ != 0) { wr.WriteLine(); }
           Indent(indent);
-          PrintClassMethodHelper("type", dd.Attributes, dd.Name, new List<TypeParameter>());
-          wr.Write(" = new ");
-          PrintType(dd.BaseType);
+          PrintClassMethodHelper("newtype", dd.Attributes, dd.Name, new List<TypeParameter>());
+          wr.Write(" = ");
+          if (dd.Var == null) {
+            PrintType(dd.BaseType);
+          } else {
+            wr.Write("{0}: ", dd.Var.DisplayName);
+            PrintType(dd.BaseType);
+            wr.Write(" where ");
+            PrintExpression(dd.Constraint, true);
+          }
           wr.WriteLine();
         } else if (d is TypeSynonymDecl) {
           var syn = (TypeSynonymDecl)d;

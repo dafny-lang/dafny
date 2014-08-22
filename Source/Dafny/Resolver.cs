@@ -1557,6 +1557,21 @@ namespace Microsoft.Dafny
           if (!dd.BaseType.IsNumericBased()) {
             Error(dd.tok, "derived types must be based on some numeric type (got {0})", dd.BaseType);
           }
+          // type check the constraint, if any
+          if (dd.Var != null) {
+            Contract.Assert(object.ReferenceEquals(dd.Var.Type, dd.BaseType));  // follows from DerivedTypeDecl invariant
+            Contract.Assert(dd.Constraint != null);  // follows from DerivedTypeDecl invariant
+            scope.PushMarker();
+            var added = scope.Push(dd.Var.Name, dd.Var);
+            Contract.Assert(added);
+            ResolveType(dd.Var.tok, dd.Var.Type, ResolveTypeOptionEnum.DontInfer, null);
+            ResolveExpression(dd.Constraint, new ResolveOpts(new NoContext(d.Module), false, true));
+            Contract.Assert(dd.Constraint.Type != null);  // follows from postcondition of ResolveExpression
+            if (!UnifyTypes(dd.Constraint.Type, Type.Bool)) {
+              Error(dd.Constraint, "newtype constraint must be of type bool (instead got {0})", dd.Constraint.Type);
+            }
+            scope.PopMarker();
+          }
         }
         allTypeParameters.PopMarker();
       }
@@ -6310,16 +6325,19 @@ namespace Microsoft.Dafny
       public readonly bool twoState;
       public readonly bool IsGhost;
       public ResolveOpts(ICodeContext codeContext, bool twoState) {
+        Contract.Requires(codeContext != null);
         this.codeContext = codeContext;
         this.twoState = twoState;
         IsGhost = codeContext.IsGhost;
       }
       public ResolveOpts(ICodeContext codeContext, bool twoState, bool isGhost) {
+        Contract.Requires(codeContext != null);
         this.codeContext = codeContext;
         this.twoState = twoState;
         this.IsGhost = isGhost;
       }
       public ResolveOpts(ResolveOpts r, bool isGhost) {
+        Contract.Requires(r != null);
         codeContext = r.codeContext;
         twoState = r.twoState;
         this.IsGhost = isGhost;

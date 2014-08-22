@@ -1882,7 +1882,6 @@ namespace Microsoft.Dafny {
   public interface ICodeContext
   {
     bool IsGhost { get; }
-    bool IsStatic { get; }
     List<TypeParameter> TypeArgs { get; }
     List<Formal> Ins { get ; }
     ModuleDefinition EnclosingModule { get; }  // to be called only after signature-resolution is complete
@@ -1924,7 +1923,6 @@ namespace Microsoft.Dafny {
       this.Module = module;
     }
     bool ICodeContext.IsGhost { get { return true; } }
-    bool ICodeContext.IsStatic { get { Contract.Assume(false, "should not be called on NoContext"); throw new cce.UnreachableException(); } }
     List<TypeParameter> ICodeContext.TypeArgs { get { return new List<TypeParameter>(); } }
     List<Formal> ICodeContext.Ins { get { return new List<Formal>(); } }
     Specification<Expression> Decreases { get { return new Specification<Expression>(null, null); } }
@@ -2019,7 +2017,6 @@ namespace Microsoft.Dafny {
     }
 
     bool ICodeContext.IsGhost { get { return false; } }
-    bool ICodeContext.IsStatic { get { return true; } }
     List<TypeParameter> ICodeContext.TypeArgs { get { return this.TypeArgs; } }
     List<Formal> ICodeContext.Ins { get { return this.Ins; } }
     List<Formal> IMethodCodeContext.Outs { get { return this.Outs; } }
@@ -2201,7 +2198,7 @@ namespace Microsoft.Dafny {
   public class DerivedTypeDecl : TopLevelDecl, RedirectingTypeDecl
   {
     public readonly Type BaseType;
-    public readonly BoundVar Var;  // can be null (if non-null, Var.Type == BaseType)
+    public readonly BoundVar Var;  // can be null (if non-null, then object.ReferenceEquals(Var.Type, BaseType))
     public readonly Expression Constraint;  // is null iff Var is
     public DerivedTypeDecl(IToken tok, string name, ModuleDefinition module, Type baseType, Attributes attributes)
       : base(tok, name, module, new List<TypeParameter>(), attributes) {
@@ -2627,7 +2624,6 @@ namespace Microsoft.Dafny {
     }
 
     bool ICodeContext.IsGhost { get { return this.IsGhost; } }
-    bool ICodeContext.IsStatic { get { return this.IsStatic; } }
     List<TypeParameter> ICodeContext.TypeArgs { get { return this.TypeArgs; } }
     List<Formal> ICodeContext.Ins { get { return this.Formals; } }
     IToken ICallable.Tok { get { return this.tok; } }
@@ -2784,7 +2780,6 @@ namespace Microsoft.Dafny {
     }
 
     bool ICodeContext.IsGhost { get { return this.IsGhost; } }
-    bool ICodeContext.IsStatic { get { return this.IsStatic; } }
     List<TypeParameter> ICodeContext.TypeArgs { get { return this.TypeArgs; } }
     List<Formal> ICodeContext.Ins { get { return this.Ins; } }
     List<Formal> IMethodCodeContext.Outs { get { return this.Outs; } }
