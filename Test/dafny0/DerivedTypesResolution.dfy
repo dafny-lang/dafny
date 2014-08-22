@@ -61,5 +61,8 @@ module Goodies {
     assert forall ii :: 0 <= ii < |sq| ==> sq[ii] == sq[ii];
     var ms := multiset{23.0, 50.0};
     assert forall rr :: 0.0 <= rr < 100.0  ==> ms[rr] == ms[rr];
+
+    var truncated := r0.Trunc + x.Trunc;
+    var rounded := (r0 + 0.5).Trunc;
   }
 }

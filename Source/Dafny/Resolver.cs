@@ -141,6 +141,12 @@ namespace Microsoft.Dafny
     readonly Dictionary<ClassDecl, Dictionary<string, MemberDecl>> classMembers = new Dictionary<ClassDecl, Dictionary<string, MemberDecl>>();
     readonly Dictionary<DatatypeDecl, Dictionary<string, MemberDecl>> datatypeMembers = new Dictionary<DatatypeDecl, Dictionary<string, MemberDecl>>();
     readonly Dictionary<DatatypeDecl, Dictionary<string, DatatypeCtor>> datatypeCtors = new Dictionary<DatatypeDecl, Dictionary<string, DatatypeCtor>>();
+    enum BasicTypeVariety { Bool = 0, Int, Real, None }  // note, these are ordered, so they can be used as indices into basicTypeMembers
+    readonly Dictionary<string, MemberDecl>[] basicTypeMembers = new Dictionary<string, MemberDecl>[] {
+      new Dictionary<string, MemberDecl>(),
+      new Dictionary<string, MemberDecl>(),
+      new Dictionary<string, MemberDecl>()
+    };
     readonly Graph<ModuleDecl> dependencies = new Graph<ModuleDecl>();
     private ModuleSignature systemNameInfo = null;
     private bool useCompileSignatures = false;
@@ -149,6 +155,9 @@ namespace Microsoft.Dafny
     public Resolver(Program prog) {
       Contract.Requires(prog != null);
       builtIns = prog.BuiltIns;
+      // Populate the members of the basic types
+      var trunc = new SpecialField(Token.NoToken, "Trunc", "ToBigInteger()", "", "", false, false, false, Type.Int, null);
+      basicTypeMembers[(int)BasicTypeVariety.Real].Add(trunc.Name, trunc);
     }
 
     [ContractInvariantMethod]
@@ -6072,6 +6081,16 @@ namespace Microsoft.Dafny
 
       nptype = null;  // prepare for the worst
       receiverType = receiverType.NormalizeExpand();
+      var opProxy = receiverType as OperationTypeProxy;
+      if (opProxy != null) {
+        if (opProxy.JustInts) {
+          // close enough to do member lookups for int-based types
+          receiverType = Type.Int;
+        } else if (opProxy.JustReals) {
+          // close enough to do member lookups for real-based types
+          receiverType = Type.Real;
+        }
+      }
       if (receiverType is TypeProxy) {
         Error(tok, "type of the receiver is not fully determined at this program point", receiverType);
         return null;
@@ -6106,6 +6125,24 @@ namespace Microsoft.Dafny
           return null;
         } else {
           nptype = (UserDefinedType)receiverType;
+          return member;
+        }
+      }
+
+      BasicTypeVariety basic;
+      if (receiverType.IsBoolType) {
+        basic = BasicTypeVariety.Bool;
+      } else if (receiverType.IsNumericBased(Type.NumericPersuation.Int)) {
+        basic = BasicTypeVariety.Int;
+      } else if (receiverType.IsNumericBased(Type.NumericPersuation.Real)) {
+        basic = BasicTypeVariety.Real;
+      } else {
+        basic = BasicTypeVariety.None;
+      }
+      if (basic != BasicTypeVariety.None) {
+        MemberDecl member;
+        if (basicTypeMembers[(int)basic].TryGetValue(memberName, out member)) {
+          nptype = (NonProxyType)receiverType;
           return member;
         }
       }
@@ -6470,18 +6507,22 @@ namespace Microsoft.Dafny
         Contract.Assert(e.Obj.Type != null);  // follows from postcondition of ResolveExpression
         NonProxyType nptype;
         MemberDecl member = ResolveMember(expr.tok, e.Obj.Type, e.MemberName, out nptype);
-#if !NO_WORK_TO_BE_DONE
-        UserDefinedType ctype = nptype as UserDefinedType;
-#endif
         if (member == null) {
           // error has already been reported by ResolveMember
         } else if (member is Function) {
           var fn = member as Function;
           e.Member = fn;
           // build the type substitution map
-          var subst = TypeSubstitutionMap(ctype.ResolvedClass.TypeArgs, ctype.TypeArgs);
-          // instantiate all type arguments from the functions. no polymorphic application
-          e.TypeApplication = new List<Type>(ctype.TypeArgs);
+          e.TypeApplication = new List<Type>();
+          Dictionary<TypeParameter, Type> subst;
+          var ctype = nptype as UserDefinedType;
+          if (ctype == null) {
+            subst = new Dictionary<TypeParameter, Type>();
+          } else {
+            subst = TypeSubstitutionMap(ctype.ResolvedClass.TypeArgs, ctype.TypeArgs);
+            // instantiate all type arguments from the functions. no polymorphic application
+            e.TypeApplication.AddRange(ctype.TypeArgs);
+          }
           foreach (var tp in fn.TypeArgs) {
             Type prox = new InferredTypeProxy();
             subst[tp] = prox; 
@@ -6489,20 +6530,23 @@ namespace Microsoft.Dafny
           }
           e.Type = SubstType(fn.Type, subst);
           AddCallGraphEdge(e, opts.codeContext, fn);
-        } else if (!(member is Field)) {
-          Error(expr, "member {0} in type {1} does not refer to a field or a function", e.MemberName,
-            cce.NonNull(ctype).Name);
-        } else {
-          Contract.Assert(member is Field);
-          Contract.Assert(ctype != null && ctype.ResolvedClass != null); // follows from postcondition of ResolveMember
+        } else if (member is Field) {
           var field = (Field)member;
           e.Member = field;
           if (e.Obj is StaticReceiverExpr) {
             Error(expr, "a field must be selected via an object, not just a class name");
           }
-          // build the type substitution map
-          var subst = TypeSubstitutionMap(ctype.ResolvedClass.TypeArgs, ctype.TypeArgs);
-          e.Type = SubstType(field.Type, subst);
+          var ctype = nptype as UserDefinedType;
+          if (ctype == null) {
+            e.Type = field.Type;
+          } else {
+            Contract.Assert(ctype.ResolvedClass != null); // follows from postcondition of ResolveMember
+            // build the type substitution map
+            var subst = TypeSubstitutionMap(ctype.ResolvedClass.TypeArgs, ctype.TypeArgs);
+            e.Type = SubstType(field.Type, subst);
+          }
+        } else {
+          Error(expr, "member {0} in type {1} does not refer to a field or a function", e.MemberName, nptype);
         }
 
       } else if (expr is SeqSelectExpr) {

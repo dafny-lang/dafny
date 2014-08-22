@@ -60,6 +60,7 @@ namespace Microsoft.Dafny {
       private readonly Bpl.TypeSynonymDecl multiSetTypeCtor;
       private readonly Bpl.TypeCtorDecl mapTypeCtor;
       public readonly Bpl.Function ArrayLength;
+      public readonly Bpl.Function RealTrunc;
       private readonly Bpl.TypeCtorDecl seqTypeCtor;
       readonly Bpl.TypeCtorDecl fieldName;
       public readonly Bpl.Type HeapType;
@@ -82,6 +83,7 @@ namespace Microsoft.Dafny {
         Contract.Invariant(setTypeCtor != null);
         Contract.Invariant(multiSetTypeCtor != null);
         Contract.Invariant(ArrayLength != null);
+        Contract.Invariant(RealTrunc != null);
         Contract.Invariant(seqTypeCtor != null);
         Contract.Invariant(fieldName != null);
         Contract.Invariant(HeapVarName != null);
@@ -143,7 +145,8 @@ namespace Microsoft.Dafny {
       }
 
       public PredefinedDecls(Bpl.TypeCtorDecl refType, Bpl.TypeCtorDecl boxType, Bpl.TypeCtorDecl tickType,
-                             Bpl.TypeSynonymDecl setTypeCtor, Bpl.TypeSynonymDecl multiSetTypeCtor, Bpl.TypeCtorDecl mapTypeCtor, Bpl.Function arrayLength, Bpl.TypeCtorDecl seqTypeCtor, Bpl.TypeCtorDecl fieldNameType,
+                             Bpl.TypeSynonymDecl setTypeCtor, Bpl.TypeSynonymDecl multiSetTypeCtor, Bpl.TypeCtorDecl mapTypeCtor,
+                             Bpl.Function arrayLength, Bpl.Function realTrunc, Bpl.TypeCtorDecl seqTypeCtor, Bpl.TypeCtorDecl fieldNameType,
                              Bpl.TypeCtorDecl tyType, Bpl.TypeCtorDecl tyTagType,
                              Bpl.GlobalVariable heap, Bpl.TypeCtorDecl classNameType, Bpl.TypeCtorDecl nameFamilyType,
                              Bpl.TypeCtorDecl datatypeType, Bpl.TypeCtorDecl handleType, Bpl.TypeCtorDecl layerType, Bpl.TypeCtorDecl dtCtorId,
@@ -156,6 +159,7 @@ namespace Microsoft.Dafny {
         Contract.Requires(multiSetTypeCtor != null);
         Contract.Requires(mapTypeCtor != null);
         Contract.Requires(arrayLength != null);
+        Contract.Requires(realTrunc != null);
         Contract.Requires(seqTypeCtor != null);
         Contract.Requires(fieldNameType != null);
         Contract.Requires(heap != null);
@@ -176,6 +180,7 @@ namespace Microsoft.Dafny {
         this.multiSetTypeCtor = multiSetTypeCtor;
         this.mapTypeCtor = mapTypeCtor;
         this.ArrayLength = arrayLength;
+        this.RealTrunc = realTrunc;
         this.seqTypeCtor = seqTypeCtor;
         this.fieldName = fieldNameType;
         this.HeapType = heap.TypedIdent.Type;
@@ -204,6 +209,7 @@ namespace Microsoft.Dafny {
       Bpl.TypeSynonymDecl setTypeCtor = null;
       Bpl.TypeSynonymDecl multiSetTypeCtor = null;
       Bpl.Function arrayLength = null;
+      Bpl.Function realTrunc = null;
       Bpl.TypeCtorDecl seqTypeCtor = null;
       Bpl.TypeCtorDecl fieldNameType = null;
       Bpl.TypeCtorDecl classNameType = null;
@@ -271,8 +277,11 @@ namespace Microsoft.Dafny {
           }
         } else if (d is Bpl.Function) {
           var f = (Bpl.Function)d;
-          if (f.Name == "_System.array.Length")
+          if (f.Name == "_System.array.Length") {
             arrayLength = f;
+          } else if (f.Name == "_System.real.Trunc") {
+            realTrunc = f;
+          }
         }
       }
       if (seqTypeCtor == null) {
@@ -285,6 +294,8 @@ namespace Microsoft.Dafny {
         Console.WriteLine("Error: Dafny prelude is missing declaration of type Map");
       } else if (arrayLength == null) {
         Console.WriteLine("Error: Dafny prelude is missing declaration of function _System.array.Length");
+      } else if (realTrunc == null) {
+        Console.WriteLine("Error: Dafny prelude is missing declaration of function _System.real.Trunc");
       } else if (fieldNameType == null) {
         Console.WriteLine("Error: Dafny prelude is missing declaration of type Field");
       } else if (classNameType == null) {
@@ -315,7 +326,11 @@ namespace Microsoft.Dafny {
         Console.WriteLine("Error: Dafny prelude is missing declaration of constant alloc");
       } else {
         return new PredefinedDecls(refType, boxType, tickType,
-                                   setTypeCtor, multiSetTypeCtor, mapTypeCtor, arrayLength, seqTypeCtor, fieldNameType, tyType, tyTagType, heap, classNameType, nameFamilyType, datatypeType, handleType, layerType, dtCtorId,
+                                   setTypeCtor, multiSetTypeCtor, mapTypeCtor,
+                                   arrayLength, realTrunc, seqTypeCtor, fieldNameType,
+                                   tyType, tyTagType,
+                                   heap, classNameType, nameFamilyType,
+                                   datatypeType, handleType, layerType, dtCtorId,
                                    allocField);
       }
       return null;
@@ -4657,6 +4672,18 @@ namespace Microsoft.Dafny {
       } else if (expr is UnaryExpr) {
         UnaryExpr e = (UnaryExpr)expr;
         CheckWellformed(e.E, options, locals, builder, etran);
+        if (e is ConversionExpr) {
+          var ee = (ConversionExpr)e;
+          if (ee.ToType is IntType && ee.E.Type.IsNumericBased(Type.NumericPersuation.Real)) {
+            // this operation is well-formed only if the real-based number represents an integer
+            // assert ToReal(ToInt(e.E)) == e.E
+            var arg = etran.TrExpr(e.E);
+            Bpl.Expr isAnInt = new Bpl.NAryExpr(e.tok, new ArithmeticCoercion(e.tok, ArithmeticCoercion.CoercionType.ToInt), new List<Expr> { arg });
+            isAnInt = new Bpl.NAryExpr(e.tok, new ArithmeticCoercion(e.tok, ArithmeticCoercion.CoercionType.ToReal), new List<Expr> { isAnInt });
+            isAnInt = Bpl.Expr.Binary(e.tok, BinaryOperator.Opcode.Eq, isAnInt, arg);
+            builder.Add(Assert(expr.tok, isAnInt, "the real-based number must be an integer (if you want truncation, apply .Trunc to the real-based number)"));
+          }
+        }
       } else if (expr is BinaryExpr) {
         BinaryExpr e = (BinaryExpr)expr;
         CheckWellformed(e.E0, options, locals, builder, etran);
@@ -5525,7 +5552,6 @@ namespace Microsoft.Dafny {
       Contract.Requires(f != null && !f.IsMutable);
       Contract.Requires(sink != null && predef != null);
       Contract.Ensures(Contract.Result<Bpl.Function>() != null);
-
       
       Bpl.Function ff;
       if (fieldFunctions.TryGetValue(f, out ff)) {        
@@ -5534,6 +5560,9 @@ namespace Microsoft.Dafny {
         if (f.EnclosingClass is ArrayClassDecl && f.Name == "Length") { // link directly to the function in the prelude.
           fieldFunctions.Add(f, predef.ArrayLength);
           return predef.ArrayLength;
+        } else if (f.EnclosingClass == null && f.Name == "Trunc") { // link directly to the function in the prelude.
+          fieldFunctions.Add(f, predef.RealTrunc);
+          return predef.RealTrunc;
         }
         // function f(Ref): ty;
         Bpl.Type ty = TrType(f.Type);

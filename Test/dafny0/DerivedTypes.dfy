@@ -11,6 +11,7 @@ method M()
   var s: set<int32>;
   var x: posReal;
   var y: posReal;
+  var yOrig := y;
   var z: int32;
   x := 5.3;
   z := 12;
@@ -35,4 +36,11 @@ method M()
   y := 60.0;
   var dr: posReal := y / 2.0 + 120.0 / y;
   assert dr == 32.0;
+
+  if yOrig == 0.3 {
+    var truncated := r0.Trunc + x.Trunc;
+    assert truncated == 5 + 5;
+    var rounded := (r0 + 0.5).Trunc;
+    assert rounded == 6;
+  }
 }
