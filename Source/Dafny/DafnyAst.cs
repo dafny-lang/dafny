@@ -364,6 +364,35 @@ namespace Microsoft.Dafny {
     public bool IsSubrangeType {
       get { return NormalizeExpand() is NatType; }
     }
+    public bool IsNumericBased() {
+      var t = NormalizeExpand();
+      return t.IsIntegerType || t.IsRealType || t.AsDerivedType != null;
+    }
+    public enum NumericPersuation { Int, Real }
+    public bool IsNumericBased(NumericPersuation p) {
+      Type t = this;
+      while (true) {
+        t = t.NormalizeExpand();
+        if (t.IsIntegerType) {
+          return p == NumericPersuation.Int;
+        } else if (t.IsRealType) {
+          return p == NumericPersuation.Real;
+        }
+        var proxy = t as OperationTypeProxy;
+        if (proxy != null) {
+          if (proxy.JustInts) {
+            return p == NumericPersuation.Int;
+          } else if (proxy.JustReals) {
+            return p == NumericPersuation.Real;
+          }
+        }
+        var d = t.AsDerivedType;
+        if (d == null) {
+          return false;
+        }
+        t = d.BaseType;
+      }
+    }
 
     public CollectionType AsCollectionType { get { return NormalizeExpand() as CollectionType; } }
     public SetType AsSetType { get { return NormalizeExpand() as SetType; } }
@@ -395,6 +424,12 @@ namespace Microsoft.Dafny {
         return udt == null ? null : udt.ResolvedClass as ArrayClassDecl;
       }
     }
+    public DerivedTypeDecl AsDerivedType {
+      get {
+        var udt = NormalizeExpand() as UserDefinedType;
+        return udt == null ? null : udt.ResolvedClass as DerivedTypeDecl;
+      }
+    }
     public TypeSynonymDecl AsTypeSynonym {
       get {
         var udt = this as UserDefinedType;  // note, it is important to use 'this' here, not 'this.NormalizeExpand()'
@@ -402,6 +437,16 @@ namespace Microsoft.Dafny {
           return null;
         } else {
           return udt.ResolvedClass as TypeSynonymDecl;
+        }
+      }
+    }
+    public RedirectingTypeDecl AsRedirectingType {
+      get {
+        var udt = this as UserDefinedType;  // Note, it is important to use 'this' here, not 'this.NormalizeExpand()'.  This property getter is intended to be used during resolution.
+        if (udt == null) {
+          return null;
+        } else {
+          return (RedirectingTypeDecl)(udt.ResolvedClass as TypeSynonymDecl) ?? udt.ResolvedClass as DerivedTypeDecl;
         }
       }
     }
@@ -966,7 +1011,7 @@ namespace Microsoft.Dafny {
 
     public override bool SupportsEquality {
       get {
-        if (ResolvedClass is ClassDecl) {
+        if (ResolvedClass is ClassDecl || ResolvedClass is DerivedTypeDecl) {
           return true;
         } else if (ResolvedClass is CoDatatypeDecl) {
           return false;
@@ -1114,21 +1159,45 @@ namespace Microsoft.Dafny {
   }
 
   /// <summary>
-  /// This proxy stands for either:
-  ///     int or real or set or multiset or seq
-  /// if AllowSeq, or:
-  ///     int or real or set or multiset
-  /// if !AllowSeq.
+  /// This proxy can stand for any numeric type.
+  /// In addition, if AllowSeq, then it can stand for a seq.
+  /// In addition, if AllowSetVarieties, it can stand for a set or multiset.
   /// </summary>
   public class OperationTypeProxy : RestrictedTypeProxy {
+    public readonly bool AllowInts;
+    public readonly bool AllowReals;
     public readonly bool AllowSeq;
-    public OperationTypeProxy(bool allowSeq) {
+    public readonly bool AllowSetVarieties;
+    public bool JustInts {
+      get { return AllowInts && !AllowReals && !AllowSeq && !AllowSetVarieties; }
+    }
+    public bool JustReals {
+      get { return !AllowInts && AllowReals && !AllowSeq && !AllowSetVarieties; }
+    }
+    public OperationTypeProxy(bool allowInts, bool allowReals, bool allowSeq, bool allowSetVarieties) {
+      Contract.Requires(allowInts || allowReals || allowSeq || allowSetVarieties);  // don't allow unsatisfiable constraint
+      AllowInts = allowInts;
+      AllowReals = allowReals;
       AllowSeq = allowSeq;
+      AllowSetVarieties = allowSetVarieties;
     }
     public override int OrderID {
       get {
         return 3;
       }
+    }
+    [Pure]
+    public override string TypeName(ModuleDefinition context) {
+      Contract.Ensures(Contract.Result<string>() != null);
+
+      if (T == null) {
+        if (JustInts) {
+          return "int";
+        } else if (JustReals) {
+          return "real";
+        }
+      }
+      return base.TypeName(context);
     }
   }
 
@@ -1140,11 +1209,13 @@ namespace Microsoft.Dafny {
   /// This proxy stands for one of:
   ///   seq(T)       Domain,Range,Arg := int,T,T
   ///   multiset(T)  Domain,Range,Arg := T,int,T
+  ///   if AllowMap, may also be:
   ///   map(T,U)     Domain,Range,Arg := T,U,T
   ///   if AllowArray, may also be:
   ///   array(T)     Domain,Range,Arg := int,T,T
   /// </summary>
   public class IndexableTypeProxy : RestrictedTypeProxy {
+    public readonly bool AllowMap;
     public readonly bool AllowArray;
     public readonly Type Domain, Range, Arg;
     [ContractInvariantMethod]
@@ -1154,13 +1225,14 @@ namespace Microsoft.Dafny {
       Contract.Invariant(Arg != null);
     }
 
-    public IndexableTypeProxy(Type domain, Type range, Type arg, bool allowArray) {
+    public IndexableTypeProxy(Type domain, Type range, Type arg, bool allowMap, bool allowArray) {
       Contract.Requires(domain != null);
       Contract.Requires(range != null);
       Contract.Requires(arg != null);
       Domain = domain;
       Range = range;
       Arg = arg;
+      AllowMap = allowMap;
       AllowArray = allowArray;
     }
     public override int OrderID {
@@ -1810,12 +1882,12 @@ namespace Microsoft.Dafny {
   public interface ICodeContext
   {
     bool IsGhost { get; }
-    bool IsStatic { get; }
     List<TypeParameter> TypeArgs { get; }
     List<Formal> Ins { get ; }
     ModuleDefinition EnclosingModule { get; }  // to be called only after signature-resolution is complete
     bool MustReverify { get; }
     string FullSanitizedName { get; }
+    bool AllowsNontermination { get; }
   }
   /// <summary>
   /// An ICallable is a Function, Method, or IteratorDecl.
@@ -1851,13 +1923,13 @@ namespace Microsoft.Dafny {
       this.Module = module;
     }
     bool ICodeContext.IsGhost { get { return true; } }
-    bool ICodeContext.IsStatic { get { Contract.Assume(false, "should not be called on NoContext"); throw new cce.UnreachableException(); } }
     List<TypeParameter> ICodeContext.TypeArgs { get { return new List<TypeParameter>(); } }
     List<Formal> ICodeContext.Ins { get { return new List<Formal>(); } }
     Specification<Expression> Decreases { get { return new Specification<Expression>(null, null); } }
     ModuleDefinition ICodeContext.EnclosingModule { get { return Module; } }
     bool ICodeContext.MustReverify { get { Contract.Assume(false, "should not be called on NoContext"); throw new cce.UnreachableException(); } }
     public string FullSanitizedName { get { Contract.Assume(false, "should not be called on NoContext"); throw new cce.UnreachableException(); } }
+    public bool AllowsNontermination { get { Contract.Assume(false, "should not be called on NoContext"); throw new cce.UnreachableException(); } }
   }
 
   public class IteratorDecl : ClassDecl, IMethodCodeContext
@@ -1945,7 +2017,6 @@ namespace Microsoft.Dafny {
     }
 
     bool ICodeContext.IsGhost { get { return false; } }
-    bool ICodeContext.IsStatic { get { return true; } }
     List<TypeParameter> ICodeContext.TypeArgs { get { return this.TypeArgs; } }
     List<Formal> ICodeContext.Ins { get { return this.Ins; } }
     List<Formal> IMethodCodeContext.Outs { get { return this.Outs; } }
@@ -1959,6 +2030,11 @@ namespace Microsoft.Dafny {
     }
     ModuleDefinition ICodeContext.EnclosingModule { get { return this.Module; } }
     bool ICodeContext.MustReverify { get { return false; } }
+    public bool AllowsNontermination {
+      get {
+        return Contract.Exists(Decreases.Expressions, e => e is WildcardExpr);
+      }
+    }
   }
 
   public abstract class MemberDecl : Declaration {
@@ -2113,7 +2189,40 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public class TypeSynonymDecl : TopLevelDecl
+  public interface RedirectingTypeDecl
+  {
+    IToken Tok { get; }
+    string Name { get; }
+  }
+
+  public class DerivedTypeDecl : TopLevelDecl, RedirectingTypeDecl
+  {
+    public readonly Type BaseType;
+    public readonly BoundVar Var;  // can be null (if non-null, then object.ReferenceEquals(Var.Type, BaseType))
+    public readonly Expression Constraint;  // is null iff Var is
+    public DerivedTypeDecl(IToken tok, string name, ModuleDefinition module, Type baseType, Attributes attributes)
+      : base(tok, name, module, new List<TypeParameter>(), attributes) {
+      Contract.Requires(tok != null);
+      Contract.Requires(name != null);
+      Contract.Requires(module != null);
+      Contract.Requires(baseType != null);
+      BaseType = baseType;
+    }
+    public DerivedTypeDecl(IToken tok, string name, ModuleDefinition module, BoundVar bv, Expression constraint, Attributes attributes)
+      : base(tok, name, module, new List<TypeParameter>(), attributes) {
+      Contract.Requires(tok != null);
+      Contract.Requires(name != null);
+      Contract.Requires(module != null);
+      Contract.Requires(bv != null && bv.Type != null);
+      BaseType = bv.Type;
+      Var = bv;
+      Constraint = constraint;
+    }
+    IToken RedirectingTypeDecl.Tok { get { return tok; } }
+    string RedirectingTypeDecl.Name { get { return Name; } }
+  }
+
+  public class TypeSynonymDecl : TopLevelDecl, RedirectingTypeDecl
   {
     public readonly Type Rhs;
     public TypeSynonymDecl(IToken tok, string name, List<TypeParameter> typeArgs, ModuleDefinition module, Type rhs, Attributes attributes)
@@ -2140,6 +2249,8 @@ namespace Microsoft.Dafny {
         return Resolver.SubstType(Rhs, subst);
       }
     }
+    IToken RedirectingTypeDecl.Tok { get { return tok; } }
+    string RedirectingTypeDecl.Name { get { return Name; } }
   }
 
   [ContractClass(typeof(IVariableContracts))]
@@ -2451,6 +2562,12 @@ namespace Microsoft.Dafny {
       }
     }
 
+    public bool AllowsNontermination {
+      get {
+        return Contract.Exists(Decreases.Expressions, e => e is WildcardExpr);
+      }
+    }
+
     /// <summary>
     /// The "AllCalls" field is used for non-CoPredicate, non-PrefixPredicate functions only (so its value should not be relied upon for CoPredicate and PrefixPredicate functions).
     /// It records all function calls made by the Function, including calls made in the body as well as in the specification.
@@ -2507,7 +2624,6 @@ namespace Microsoft.Dafny {
     }
 
     bool ICodeContext.IsGhost { get { return this.IsGhost; } }
-    bool ICodeContext.IsStatic { get { return this.IsStatic; } }
     List<TypeParameter> ICodeContext.TypeArgs { get { return this.TypeArgs; } }
     List<Formal> ICodeContext.Ins { get { return this.Formals; } }
     IToken ICallable.Tok { get { return this.tok; } }
@@ -2664,7 +2780,6 @@ namespace Microsoft.Dafny {
     }
 
     bool ICodeContext.IsGhost { get { return this.IsGhost; } }
-    bool ICodeContext.IsStatic { get { return this.IsStatic; } }
     List<TypeParameter> ICodeContext.TypeArgs { get { return this.TypeArgs; } }
     List<Formal> ICodeContext.Ins { get { return this.Ins; } }
     List<Formal> IMethodCodeContext.Outs { get { return this.Outs; } }
@@ -2683,6 +2798,11 @@ namespace Microsoft.Dafny {
       }
     }
     bool ICodeContext.MustReverify { get { return this.MustReverify; } }
+    public bool AllowsNontermination {
+      get {
+        return Contract.Exists(Decreases.Expressions, e => e is WildcardExpr);
+      }
+    }
   }
 
   public class Lemma : Method

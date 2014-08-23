@@ -145,7 +145,7 @@ method Test_AbsInt1()
 {
   var a, i := 0.3, 0.0;
   while i < 10.0
-    invariant i <= 10.0 && i == real(int(i));
+    invariant i <= 10.0 && i == real(i.Trunc);
     invariant a == 0.3 + 0.5 * i;
   {
     a, i := a + 0.5, i + 1.0;

@@ -141,6 +141,12 @@ namespace Microsoft.Dafny
     readonly Dictionary<ClassDecl, Dictionary<string, MemberDecl>> classMembers = new Dictionary<ClassDecl, Dictionary<string, MemberDecl>>();
     readonly Dictionary<DatatypeDecl, Dictionary<string, MemberDecl>> datatypeMembers = new Dictionary<DatatypeDecl, Dictionary<string, MemberDecl>>();
     readonly Dictionary<DatatypeDecl, Dictionary<string, DatatypeCtor>> datatypeCtors = new Dictionary<DatatypeDecl, Dictionary<string, DatatypeCtor>>();
+    enum BasicTypeVariety { Bool = 0, Int, Real, None }  // note, these are ordered, so they can be used as indices into basicTypeMembers
+    readonly Dictionary<string, MemberDecl>[] basicTypeMembers = new Dictionary<string, MemberDecl>[] {
+      new Dictionary<string, MemberDecl>(),
+      new Dictionary<string, MemberDecl>(),
+      new Dictionary<string, MemberDecl>()
+    };
     readonly Graph<ModuleDecl> dependencies = new Graph<ModuleDecl>();
     private ModuleSignature systemNameInfo = null;
     private bool useCompileSignatures = false;
@@ -149,6 +155,9 @@ namespace Microsoft.Dafny
     public Resolver(Program prog) {
       Contract.Requires(prog != null);
       builtIns = prog.BuiltIns;
+      // Populate the members of the basic types
+      var trunc = new SpecialField(Token.NoToken, "Trunc", "ToBigInteger()", "", "", false, false, false, Type.Int, null);
+      basicTypeMembers[(int)BasicTypeVariety.Real].Add(trunc.Name, trunc);
     }
 
     [ContractInvariantMethod]
@@ -788,6 +797,8 @@ namespace Microsoft.Dafny
           // nothing more to register
         } else if (d is TypeSynonymDecl) {
           // nothing more to register
+        } else if (d is DerivedTypeDecl) {
+          // nothing more to register
 
         } else if (d is IteratorDecl) {
           var iter = (IteratorDecl)d;
@@ -1104,7 +1115,7 @@ namespace Microsoft.Dafny
       Contract.Requires(datatypeDependencies != null);
       Contract.Requires(codatatypeDependencies != null);
 
-      var typeSynonymDependencies = new Graph<TypeSynonymDecl>();
+      var typeRedirectionDependencies = new Graph<RedirectingTypeDecl>();
       foreach (TopLevelDecl d in declarations) {
         Contract.Assert(d != null);
         allTypeParameters.PushMarker();
@@ -1115,9 +1126,18 @@ namespace Microsoft.Dafny
           var syn = (TypeSynonymDecl)d;
           ResolveType(syn.tok, syn.Rhs, ResolveTypeOptionEnum.AllowPrefix, syn.TypeArgs);
           syn.Rhs.ForeachTypeComponent(ty => {
-            var s = ty.AsTypeSynonym;
+            var s = ty.AsRedirectingType;
             if (s != null) {
-              typeSynonymDependencies.AddEdge(syn, s);
+              typeRedirectionDependencies.AddEdge(syn, s);
+            }
+          });
+        } else if (d is DerivedTypeDecl) {
+          var dd = (DerivedTypeDecl)d;
+          ResolveType(dd.tok, dd.BaseType, ResolveTypeOptionEnum.DontInfer, null);
+          dd.BaseType.ForeachTypeComponent(ty => {
+            var s = ty.AsRedirectingType;
+            if (s != null) {
+              typeRedirectionDependencies.AddEdge(dd, s);
             }
           });
         } else if (d is IteratorDecl) {
@@ -1153,11 +1173,11 @@ namespace Microsoft.Dafny
       }
 
       // perform acyclicity test on type synonyms
-      var cycle = typeSynonymDependencies.TryFindCycle();
+      var cycle = typeRedirectionDependencies.TryFindCycle();
       if (cycle != null) {
         Contract.Assert(cycle.Count != 0);
         var erste = cycle[0];
-        Error(erste.tok, "Cycle among type synonyms: {0} -> {1}", Util.Comma(" -> ", cycle, syn => syn.Name), erste.Name);
+        Error(erste.Tok, "Cycle among redirecting types (derived types, type synonyms): {0} -> {1}", Util.Comma(" -> ", cycle, syn => syn.Name), erste.Name);
       }
     }
 
@@ -1188,6 +1208,27 @@ namespace Microsoft.Dafny
         } else if (d is ClassDecl) {
           var cl = (ClassDecl)d;
           ResolveClassMemberBodies(cl);
+        } else if (d is DerivedTypeDecl) {
+          var dd = (DerivedTypeDecl)d;
+          // this check can be done only after it has been determined that the redirected types do not involve cycles
+          if (!dd.BaseType.IsNumericBased()) {
+            Error(dd.tok, "derived types must be based on some numeric type (got {0})", dd.BaseType);
+          }
+          // type check the constraint, if any
+          if (dd.Var != null) {
+            Contract.Assert(object.ReferenceEquals(dd.Var.Type, dd.BaseType));  // follows from DerivedTypeDecl invariant
+            Contract.Assert(dd.Constraint != null);  // follows from DerivedTypeDecl invariant
+            scope.PushMarker();
+            var added = scope.Push(dd.Var.Name, dd.Var);
+            Contract.Assert(added);
+            ResolveType(dd.Var.tok, dd.Var.Type, ResolveTypeOptionEnum.DontInfer, null);
+            ResolveExpression(dd.Constraint, new ResolveOpts(new NoContext(d.Module), false, true));
+            Contract.Assert(dd.Constraint.Type != null);  // follows from postcondition of ResolveExpression
+            if (!UnifyTypes(dd.Constraint.Type, Type.Bool)) {
+              Error(dd.Constraint, "newtype constraint must be of type bool (instead got {0})", dd.Constraint.Type);
+            }
+            scope.PopMarker();
+          }
         }
         allTypeParameters.PopMarker();
       }
@@ -1601,9 +1642,6 @@ namespace Microsoft.Dafny
             }
           }
         }
-        if (!m.IsTailRecursive && m.Body != null && Contract.Exists(m.Decreases.Expressions, e => e is WildcardExpr)) {
-          Error(m.Decreases.Expressions[0].tok, "'decreases *' is allowed only on tail-recursive methods");
-        }
       } else if (member is Function) {
         var f = (Function)member;
         var errorCount = ErrorCount;
@@ -1673,8 +1711,8 @@ namespace Microsoft.Dafny
         } else if (stmt is CallStmt) {
           var s = (CallStmt)stmt;
           foreach (var p in s.TypeArgumentSubstitutions) {
-            if (p.Value.Normalize() is TypeProxy) {
-              Error(stmt.Tok, "type variable '{0}' in the method call to '{1}' could not determined", p.Key.Name, s.MethodName);
+            if (!IsDetermined(p.Value.Normalize())) {
+              Error(stmt.Tok, "type variable '{0}' in the method call to '{1}' could not be determined", p.Key.Name, s.MethodName);
             }
           }
         }
@@ -1684,8 +1722,8 @@ namespace Microsoft.Dafny
           var e = (ComprehensionExpr)expr;
           if (e != null) {
             foreach (var bv in e.BoundVars) {
-              if (bv.Type.Normalize() is TypeProxy) {
-                Error(bv.tok, "type of bound variable '{0}' could not determined; please specify the type explicitly",
+              if (!IsDetermined(bv.Type.Normalize())) {
+                Error(bv.tok, "type of bound variable '{0}' could not be determined; please specify the type explicitly",
                   bv.Name);
               }
             }
@@ -1694,7 +1732,7 @@ namespace Microsoft.Dafny
           var e = (MemberSelectExpr)expr;
           if (e.Member is Function) {
             foreach (var p in e.TypeApplication) {
-              if (p.Normalize() is TypeProxy) {
+              if (!IsDetermined(p.Normalize())) {
                 Error(e.tok, "type '{0}' to the function '{1}' is not determined", p, e.Member.Name);
               }
             }
@@ -1702,8 +1740,8 @@ namespace Microsoft.Dafny
         } else if (expr is FunctionCallExpr) {
           var e = (FunctionCallExpr)expr;
           foreach (var p in e.TypeArgumentSubstitutions) {
-            if (p.Value.Normalize() is TypeProxy) {
-              Error(e.tok, "type variable '{0}' in the function call to '{1}' could not determined{2}", p.Key.Name, e.Name,
+            if (!IsDetermined(p.Value.Normalize())) {
+              Error(e.tok, "type variable '{0}' in the function call to '{1}' could not be determined{2}", p.Key.Name, e.Name,
                 (e.Name.Contains("reveal_") || e.Name.Contains("_FULL"))
                 ? ". If you are making an opaque function, make sure that the function can be called."
                 : ""
@@ -1714,7 +1752,7 @@ namespace Microsoft.Dafny
           var e = (LetExpr)expr;
           foreach (var p in e.LHSs) {
             foreach (var x in p.Vars) {
-              if (x.Type.Normalize() is TypeProxy) {
+              if (!IsDetermined(x.Type.Normalize())) {
                 Error(e.tok, "the type of the bound variable '{0}' could not be determined", x.Name);
               }
             }
@@ -1730,11 +1768,43 @@ namespace Microsoft.Dafny
           }
         }
       }
+      /// <summary>
+      /// This method checks to see if 'tp' has been determined and returns the result.
+      /// However, if tp denotes an int-based or real-based type, then tp is set to int or real,
+      /// respectively, here.
+      /// </summary>
+      bool IsDetermined(Type t) {
+        Contract.Requires(t != null);
+        // If the type specifies an arbitrary int-based or real-based type, just fill it in with int or real, respectively
+        if (t is OperationTypeProxy) {
+          var proxy = (OperationTypeProxy)t;
+          if (proxy.JustInts) {
+            proxy.T = Type.Int;
+            return true;
+          } else if (proxy.JustReals) {
+            proxy.T = Type.Real;
+            return true;
+          }
+        }
+        return !(t is TypeProxy);  // all other proxies indicate the type has not yet been determined
+      }
       bool CheckTypeIsDetermined(IToken tok, Type t, string what, bool aggressive = false) {
         Contract.Requires(tok != null);
         Contract.Requires(t != null);
         Contract.Requires(what != null);
         t = t.NormalizeExpand();
+        // If the type specifies an arbitrary int-based or real-based type, just fill it in with int or real, respectively
+        if (t is OperationTypeProxy) {
+          var proxy = (OperationTypeProxy)t;
+          if (proxy.JustInts) {
+            proxy.T = Type.Int;
+            return true;
+          } else if (proxy.JustReals) {
+            proxy.T = Type.Real;
+            return true;
+          }
+        }
+
         if (t is TypeProxy && (aggressive || !(t is InferredTypeProxy || t is ParamTypeProxy || t is ObjectTypeProxy))) {
           Error(tok, "the type of this {0} is underspecified, but it cannot be an opaque type.", what);
           return false;
@@ -3922,9 +3992,15 @@ namespace Microsoft.Dafny
         }
 
       } else if (proxy is OperationTypeProxy) {
-        OperationTypeProxy opProxy = (OperationTypeProxy)proxy;
-        if (t is IntType || t is RealType || t is SetType || t is MultiSetType || (opProxy.AllowSeq && t is SeqType)) {
-          // this is the expected case
+        var opProxy = (OperationTypeProxy)proxy;
+        if (opProxy.AllowInts && t.IsNumericBased(Type.NumericPersuation.Int)) {
+          // fine
+        } else if (opProxy.AllowReals && t.IsNumericBased(Type.NumericPersuation.Real)) {
+          // fine
+        } else if (opProxy.AllowSetVarieties && (t is SetType || t is MultiSetType)) {
+          // fine
+        } else if (opProxy.AllowSeq && t is SeqType) {
+          // fine
         } else {
           return false;
         }
@@ -3948,7 +4024,7 @@ namespace Microsoft.Dafny
           } else if (!UnifyTypes(iProxy.Arg, iProxy.Range)) {
             return false;
           }
-        } else if (t is MapType) {
+        } else if (iProxy.AllowMap && t is MapType) {
           if (!UnifyTypes(iProxy.Domain, ((MapType)t).Domain)) {
             return false;
           } else if (!UnifyTypes(iProxy.Range, ((MapType)t).Range)) {
@@ -4018,25 +4094,28 @@ namespace Microsoft.Dafny
           a.T = b;
           return UnifyTypes(((CollectionTypeProxy)a).Arg, ((CollectionTypeProxy)b).Arg);
         } else if (b is OperationTypeProxy) {
-          if (((OperationTypeProxy)b).AllowSeq) {
+          var proxy = (OperationTypeProxy)b;
+          if (proxy.AllowSeq && proxy.AllowSetVarieties) {
             b.T = a;  // a is a stronger constraint than b
           } else {
-            // a says set<T>,seq<T> and b says int,set; the intersection is set<T>
+            // a says set<T>,seq<T> and b says numeric,set; the intersection is set<T>
             a.T = new SetType(((CollectionTypeProxy)a).Arg);
             b.T = a.T;
           }
           return true;
         } else if (b is IndexableTypeProxy) {
-          CollectionTypeProxy pa = (CollectionTypeProxy)a;
+          var pa = (CollectionTypeProxy)a;
           var ib = (IndexableTypeProxy)b;
           // pa is:
           //   set(Arg) or multiset(Arg) or seq(Arg) or map(Arg, anyRange)
-          // pb is:
-          //   seq(Arg) or multiset(Arg) or map(Domain, Arg), or
+          // ib is:
+          //   multiset(Arg) or
+          //   seq(Arg) or
+          //   if AllowMap, map(Domain, Arg), or
           //   if AllowArray, array(Arg)
           // Their intersection is:
           if (ib.AllowArray) {
-            var c = new IndexableTypeProxy(ib.Domain, ib.Range, ib.Arg, false);
+            var c = new IndexableTypeProxy(ib.Domain, ib.Range, ib.Arg, ib.AllowMap, false);
             ib.T = c;
             ib = c;
           }
@@ -4049,25 +4128,50 @@ namespace Microsoft.Dafny
       } else if (a is OperationTypeProxy) {
         var pa = (OperationTypeProxy)a;
         if (b is OperationTypeProxy) {
-          if (pa.AllowSeq) {
-            a.T = b;  // a has the weaker requirement
-          } else {
+          var pb = (OperationTypeProxy)b;
+          var i = pa.AllowInts && pb.AllowInts;
+          var r = pa.AllowReals && pb.AllowReals;
+          var q = pa.AllowSeq && pb.AllowSeq;
+          var s = pa.AllowSetVarieties && pb.AllowSetVarieties;
+          if (!i && !r && !q && !s) {
+            // over-constrained
+            return false;
+          } else if (i == pa.AllowInts && r == pa.AllowReals && q == pa.AllowSeq && s == pa.AllowSetVarieties) {
             b.T = a;  // a has the stronger requirement
+          } else if (i == pb.AllowInts && r == pb.AllowReals && q == pb.AllowSeq && s == pb.AllowSetVarieties) {
+            a.T = b;  // b has the stronger requirement
+          } else {
+            var c = new OperationTypeProxy(i, r, q, s);
+            a.T = c;
+            b.T = c;
           }
           return true;
         } else {
-          var pb = (IndexableTypeProxy)b;  // cast justification:  else we have unexpected restricted-proxy type
-          // a is:  int or set or multiset or seq
-          // b is:  seq, multiset, map, or possibly array
-          if (!pa.AllowSeq) {
+          var ib = (IndexableTypeProxy)b;  // cast justification:  else we have unexpected restricted-proxy type
+          // a is:  possibly numeric, possibly seq, possibly set or multiset
+          // b is:  seq, multiset, possibly map, possibly array -- with some constraints about the type parameterization
+          // So, the intersection could include multiset and seq.
+          if (pa.AllowSetVarieties && !pa.AllowSeq) {
             // strengthen a and b to a multiset type
-            b.T = new MultiSetType(pb.Arg);
+            b.T = new MultiSetType(ib.Arg);
             a.T = b.T;
             return true;
-          } else {
+          } else if (pa.AllowSeq && !pa.AllowSetVarieties) {
             // strengthen a and b to a sequence type
-            b.T = new SeqType(pb.Arg);  // TODO: the type is really *either* a seq or a multiset
+            b.T = new SeqType(ib.Arg);  // TODO: the type is really *either* a seq or a multiset
             a.T = b.T;
+            return true;
+          } else if (!pa.AllowSeq && !pa.AllowSetVarieties) {
+            // over-constrained
+            return false;
+          } else {
+            Contract.Assert(pa.AllowSeq && pa.AllowSetVarieties);  // the only case left
+            if (ib.AllowMap || ib.AllowArray) {
+              var c = new IndexableTypeProxy(ib.Domain, ib.Range, ib.Arg, false, false);
+              b.T = c;
+              b = c;
+            }
+            a.T = b;
             return true;
           }
         }
@@ -4075,10 +4179,16 @@ namespace Microsoft.Dafny
       } else if (a is IndexableTypeProxy) {
         var ia = (IndexableTypeProxy)a;
         var ib = (IndexableTypeProxy)b;  // cast justification: else we have unexpected restricted-proxy type
-        if (ia.AllowArray) {
-          a.T = b;  // a has the weaker requirement
+        var am = ia.AllowMap && ib.AllowMap;
+        var ar = ia.AllowArray && ib.AllowArray;
+        if (am == ia.AllowMap && ar == ia.AllowArray) {
+          b.T = a;  // a has the stronger requirement
+        } else if (am == ib.AllowMap && ar == ib.AllowArray) {
+          a.T = b;  // b has the stronger requirement
         } else {
-          b.T = a;  // a has the strong requirement
+          var c = new IndexableTypeProxy(ia.Domain, ia.Range, ia.Arg, am, ar);
+          a.T = c;
+          b.T = c;
         }
         return UnifyTypes(ia.Domain, ib.Domain) && UnifyTypes(ia.Range, ib.Range) && UnifyTypes(ia.Arg, ib.Arg);
 
@@ -4482,8 +4592,12 @@ namespace Microsoft.Dafny
         ResolveAttributes(s.Decreases.Attributes, new ResolveOpts(codeContext, true));
         foreach (Expression e in s.Decreases.Expressions) {
           ResolveExpression(e, new ResolveOpts(codeContext, true));
-          if (bodyMustBeSpecOnly && e is WildcardExpr) {
-            Error(e, "'decreases *' is not allowed on ghost loops");
+          if (e is WildcardExpr) {
+            if (bodyMustBeSpecOnly) {
+              Error(e, "'decreases *' is not allowed on ghost loops");
+            } else if (!codeContext.AllowsNontermination) {
+              Error(e, "a possibly infinite loop is allowed only if the enclosing method is declared (with 'decreases *') to be possibly non-terminating");
+            }
           }
           // any type is fine
         }
@@ -4516,8 +4630,12 @@ namespace Microsoft.Dafny
 
         foreach (Expression e in s.Decreases.Expressions) {
           ResolveExpression(e, new ResolveOpts(codeContext, true));
-          if (s.IsGhost && e is WildcardExpr) {
-            Error(e, "'decreases *' is not allowed on ghost loops");
+          if (e is WildcardExpr) {
+            if (s.IsGhost) {
+              Error(e, "'decreases *' is not allowed on ghost loops");
+            } else if (!codeContext.AllowsNontermination) {
+              Error(e, "a possibly infinite loop is allowed only if the enclosing method is declared (with 'decreases *') to be possibly non-terminating");
+            }
           }
           // any type is fine
         }
@@ -4796,8 +4914,8 @@ namespace Microsoft.Dafny
                 guess = Expression.CreateSubtract(bin.E0, bin.E1);
                 break;
               case BinaryExpr.ResolvedOpcode.NeqCommon:
-                if (bin.E0.Type.IsIntegerType || bin.E0.Type.IsRealType) {
-                  // for A != B where A and B are integers, use the absolute difference between A and B (that is: if A <= B then B-A else A-B)
+                if (bin.E0.Type.IsNumericBased()) {
+                  // for A != B where A and B are numeric, use the absolute difference between A and B (that is: if A <= B then B-A else A-B)
                   var AminusB = Expression.CreateSubtract(bin.E0, bin.E1);
                   var BminusA = Expression.CreateSubtract(bin.E1, bin.E0);
                   var test = Expression.CreateAtMost(bin.E0, bin.E1);
@@ -5093,7 +5211,7 @@ namespace Microsoft.Dafny
         s.Method = (Method)member;
         callee = s.Method;
         if (!isInitCall && callee is Constructor) {
-          Error(s, "a constructor is only allowed to be called when an object is being allocated");
+          Error(s, "a constructor is allowed to be called only when an object is being allocated");
         }
         s.IsGhost = callee.IsGhost;
         if (specContextOnly && !callee.IsGhost) {
@@ -5217,6 +5335,9 @@ namespace Microsoft.Dafny
             }
           }
         }
+      }
+      if (callee != null && Contract.Exists(callee.Decreases.Expressions, e => e is WildcardExpr) && !codeContext.AllowsNontermination) {
+        Error(s.Tok, "a call to a possibly non-terminating method is allowed only if the calling method is also declared (with 'decreases *') to be possibly non-terminating");
       }
     }
 
@@ -5632,6 +5753,16 @@ namespace Microsoft.Dafny
 
       nptype = null;  // prepare for the worst
       receiverType = receiverType.NormalizeExpand();
+      var opProxy = receiverType as OperationTypeProxy;
+      if (opProxy != null) {
+        if (opProxy.JustInts) {
+          // close enough to do member lookups for int-based types
+          receiverType = Type.Int;
+        } else if (opProxy.JustReals) {
+          // close enough to do member lookups for real-based types
+          receiverType = Type.Real;
+        }
+      }
       if (receiverType is TypeProxy) {
         Error(tok, "type of the receiver is not fully determined at this program point", receiverType);
         return null;
@@ -5666,6 +5797,24 @@ namespace Microsoft.Dafny
           return null;
         } else {
           nptype = (UserDefinedType)receiverType;
+          return member;
+        }
+      }
+
+      BasicTypeVariety basic;
+      if (receiverType.IsBoolType) {
+        basic = BasicTypeVariety.Bool;
+      } else if (receiverType.IsNumericBased(Type.NumericPersuation.Int)) {
+        basic = BasicTypeVariety.Int;
+      } else if (receiverType.IsNumericBased(Type.NumericPersuation.Real)) {
+        basic = BasicTypeVariety.Real;
+      } else {
+        basic = BasicTypeVariety.None;
+      }
+      if (basic != BasicTypeVariety.None) {
+        MemberDecl member;
+        if (basicTypeMembers[(int)basic].TryGetValue(memberName, out member)) {
+          nptype = (NonProxyType)receiverType;
           return member;
         }
       }
@@ -5833,16 +5982,19 @@ namespace Microsoft.Dafny
       public readonly bool twoState;
       public readonly bool IsGhost;
       public ResolveOpts(ICodeContext codeContext, bool twoState) {
+        Contract.Requires(codeContext != null);
         this.codeContext = codeContext;
         this.twoState = twoState;
         IsGhost = codeContext.IsGhost;
       }
       public ResolveOpts(ICodeContext codeContext, bool twoState, bool isGhost) {
+        Contract.Requires(codeContext != null);
         this.codeContext = codeContext;
         this.twoState = twoState;
         this.IsGhost = isGhost;
       }
       public ResolveOpts(ResolveOpts r, bool isGhost) {
+        Contract.Requires(r != null);
         codeContext = r.codeContext;
         twoState = r.twoState;
         this.IsGhost = isGhost;
@@ -5905,11 +6057,11 @@ namespace Microsoft.Dafny
           e.ResolvedExpression = e.E;
         } else {
           Expression zero;
-          if (e.E.Type.IsRealType) {
-            // we know for sure that this is a real-unary-minus
+          if (e.E.Type.IsNumericBased(Type.NumericPersuation.Real)) {
+            // we know for sure that this is a real-based unary minus
             zero = new LiteralExpr(e.tok, Basetypes.BigDec.ZERO);
           } else {
-            // it's may be an integer operand or it may be that we don't know yet; we'll treat
+            // it may be an int-based operand or it may be that we don't know yet; we'll treat
             // two cases the same way
             zero = new LiteralExpr(e.tok, 0);
           }
@@ -5932,9 +6084,9 @@ namespace Microsoft.Dafny
           if (e.Value == null) {
             e.Type = new ObjectTypeProxy();
           } else if (e.Value is BigInteger) {
-            e.Type = Type.Int;
+            e.Type = new OperationTypeProxy(true, false, false, false);
           } else if (e.Value is Basetypes.BigDec) {
-            e.Type = Type.Real;
+            e.Type = new OperationTypeProxy(false, true, false, false);
           } else if (e.Value is bool) {
             e.Type = Type.Bool;
           } else {
@@ -6030,18 +6182,22 @@ namespace Microsoft.Dafny
         Contract.Assert(e.Obj.Type != null);  // follows from postcondition of ResolveExpression
         NonProxyType nptype;
         MemberDecl member = ResolveMember(expr.tok, e.Obj.Type, e.MemberName, out nptype);
-#if !NO_WORK_TO_BE_DONE
-        UserDefinedType ctype = nptype as UserDefinedType;
-#endif
         if (member == null) {
           // error has already been reported by ResolveMember
         } else if (member is Function) {
           var fn = member as Function;
           e.Member = fn;
           // build the type substitution map
-          var subst = TypeSubstitutionMap(ctype.ResolvedClass.TypeArgs, ctype.TypeArgs);
-          // instantiate all type arguments from the functions. no polymorphic application
-          e.TypeApplication = new List<Type>(ctype.TypeArgs);
+          e.TypeApplication = new List<Type>();
+          Dictionary<TypeParameter, Type> subst;
+          var ctype = nptype as UserDefinedType;
+          if (ctype == null) {
+            subst = new Dictionary<TypeParameter, Type>();
+          } else {
+            subst = TypeSubstitutionMap(ctype.ResolvedClass.TypeArgs, ctype.TypeArgs);
+            // instantiate all type arguments from the functions. no polymorphic application
+            e.TypeApplication.AddRange(ctype.TypeArgs);
+          }
           foreach (var tp in fn.TypeArgs) {
             Type prox = new InferredTypeProxy();
             subst[tp] = prox; 
@@ -6049,20 +6205,23 @@ namespace Microsoft.Dafny
           }
           e.Type = SubstType(fn.Type, subst);
           AddCallGraphEdge(e, opts.codeContext, fn);
-        } else if (!(member is Field)) {
-          Error(expr, "member {0} in type {1} does not refer to a field or a function", e.MemberName,
-            cce.NonNull(ctype).Name);
-        } else {
-          Contract.Assert(member is Field);
-          Contract.Assert(ctype != null && ctype.ResolvedClass != null); // follows from postcondition of ResolveMember
+        } else if (member is Field) {
           var field = (Field)member;
           e.Member = field;
           if (e.Obj is StaticReceiverExpr) {
             Error(expr, "a field must be selected via an object, not just a class name");
           }
-          // build the type substitution map
-          var subst = TypeSubstitutionMap(ctype.ResolvedClass.TypeArgs, ctype.TypeArgs);
-          e.Type = SubstType(field.Type, subst);
+          var ctype = nptype as UserDefinedType;
+          if (ctype == null) {
+            e.Type = field.Type;
+          } else {
+            Contract.Assert(ctype.ResolvedClass != null); // follows from postcondition of ResolveMember
+            // build the type substitution map
+            var subst = TypeSubstitutionMap(ctype.ResolvedClass.TypeArgs, ctype.TypeArgs);
+            e.Type = SubstType(field.Type, subst);
+          }
+        } else {
+          Error(expr, "member {0} in type {1} does not refer to a field or a function", e.MemberName, nptype);
         }
 
       } else if (expr is SeqSelectExpr) {
@@ -6263,12 +6422,12 @@ namespace Microsoft.Dafny
         ResolveType(e.tok, e.ToType, new ResolveTypeOption(ResolveTypeOptionEnum.DontInfer), null);
         ResolveExpression(e.E, opts);
         if (e.ToType is IntType) {
-          if (!(e.E.Type.IsRealType)) {
-            Error(expr, "type conversion to int is allowed only from real (got {0})", e.E.Type);
+          if (!UnifyTypes(e.E.Type, new OperationTypeProxy(true, true, false, false))) {
+            Error(expr, "type conversion to int is allowed only from numeric types (got {0})", e.E.Type);
           }
         } else if (e.ToType is RealType) {
-          if (!(e.E.Type.IsIntegerType)) {
-            Error(expr, "type conversion to real is allowed only from int (got {0})", e.E.Type);
+          if (!UnifyTypes(e.E.Type, new OperationTypeProxy(true, true, false, false))) {
+            Error(expr, "type conversion to real is allowed only from numeric types(got {0})", e.E.Type);
           }
         } else {
           Error(expr, "type conversions are not supported to this type (got {0})", e.ToType);
@@ -6349,8 +6508,8 @@ namespace Microsoft.Dafny
                 expr.Type = Type.Bool;
               } else {
                 bool err = false;
-                if (!UnifyTypes(e.E0.Type, new OperationTypeProxy(true))) {
-                  Error(expr, "arguments to {0} must be int or real or a collection type (instead got {1})", BinaryExpr.OpcodeString(e.Op), e.E0.Type);
+                if (!UnifyTypes(e.E0.Type, new OperationTypeProxy(true, true, true, true))) {
+                  Error(expr, "arguments to {0} must be of a numeric type or a collection type (instead got {1})", BinaryExpr.OpcodeString(e.Op), e.E0.Type);
                   err = true;
                 }
                 if (!UnifyTypes(e.E1.Type, e.E0.Type)) {
@@ -6386,8 +6545,8 @@ namespace Microsoft.Dafny
                 expr.Type = Type.Bool;
               } else {
                 bool err = false;
-                if (!UnifyTypes(e.E0.Type, new OperationTypeProxy(false))) {
-                  Error(expr, "arguments to {0} must be int or real or a set (instead got {1})", BinaryExpr.OpcodeString(e.Op), e.E0.Type);
+                if (!UnifyTypes(e.E0.Type, new OperationTypeProxy(true, true, false, true))) {
+                  Error(expr, "arguments to {0} must be of a numeric type or set type (instead got {1})", BinaryExpr.OpcodeString(e.Op), e.E0.Type);
                   err = true;
                 }
                 if (!UnifyTypes(e.E1.Type, e.E0.Type)) {
@@ -6412,9 +6571,8 @@ namespace Microsoft.Dafny
             break;
 
           case BinaryExpr.Opcode.Div:
-            if (!UnifyTypes(e.E0.Type, new OperationTypeProxy(false))) {
-              // TODO: this should disallow OperationTypeProxy types except for int and real
-              Error(expr, "first argument to {0} must be of type int or real (instead got {1})", BinaryExpr.OpcodeString(e.Op), e.E0.Type);
+            if (!UnifyTypes(e.E0.Type, new OperationTypeProxy(true, true, false, false))) {
+              Error(expr, "first argument to {0} must be of numeric type (instead got {1})", BinaryExpr.OpcodeString(e.Op), e.E0.Type);
             }
             if (!UnifyTypes(e.E1.Type, e.E0.Type)) {
               Error(expr, "arguments to {0} must have the same type (got {1} and {2})", BinaryExpr.OpcodeString(e.Op), e.E0.Type, e.E1.Type);
@@ -6423,13 +6581,13 @@ namespace Microsoft.Dafny
             break;
 
           case BinaryExpr.Opcode.Mod:
-            if (!UnifyTypes(e.E0.Type, Type.Int)) {
+            if (!UnifyTypes(e.E0.Type, new OperationTypeProxy(true, false, false, false))) {
               Error(expr, "first argument to {0} must be of type int (instead got {1})", BinaryExpr.OpcodeString(e.Op), e.E0.Type);
             }
-            if (!UnifyTypes(e.E1.Type, Type.Int)) {
+            if (!UnifyTypes(e.E1.Type, e.E0.Type)) {
               Error(expr, "second argument to {0} must be of type int (instead got {1})", BinaryExpr.OpcodeString(e.Op), e.E1.Type);
             }
-            expr.Type = Type.Int;
+            expr.Type = e.E0.Type;
             break;
 
           default:
@@ -8027,7 +8185,7 @@ namespace Microsoft.Dafny
       Type domainType = new InferredTypeProxy();
       Type argType = new InferredTypeProxy();
 
-      IndexableTypeProxy expectedType = new IndexableTypeProxy(domainType, elementType, argType, true);
+      IndexableTypeProxy expectedType = new IndexableTypeProxy(domainType, elementType, argType, true, true);
       if (!UnifyTypes(e.Seq.Type, expectedType)) {
         Error(e, "sequence/array/multiset/map selection requires a sequence, array, multiset, or map (got {0})", e.Seq.Type);
         seqErr = true;

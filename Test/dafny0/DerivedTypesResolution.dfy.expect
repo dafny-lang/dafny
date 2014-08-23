@@ -1,0 +1,14 @@
+DerivedTypesResolution.dfy(5,7): Error: Cycle among redirecting types (derived types, type synonyms): MySynonym -> MyIntegerType_WellSupposedly -> MyNewType -> MySynonym
+DerivedTypesResolution.dfy(12,10): Error: derived types must be based on some numeric type (got List<int>)
+DerivedTypesResolution.dfy(38,9): Error: arguments must have the same type (got posReal and real)
+DerivedTypesResolution.dfy(44,9): Error: arguments must have the same type (got int32 and int)
+DerivedTypesResolution.dfy(50,13): Error: arguments must have the same type (got posReal and int32)
+DerivedTypesResolution.dfy(51,13): Error: arguments to <= must have the same type (got posReal and int32)
+DerivedTypesResolution.dfy(52,13): Error: arguments to < must have the same type (got int32 and int)
+DerivedTypesResolution.dfy(53,13): Error: arguments to > must have the same type (got posReal and real)
+DerivedTypesResolution.dfy(57,13): Error: first argument to % must be of type int (instead got posReal)
+DerivedTypesResolution.dfy(57,25): Error: first argument to % must be of type int (instead got real)
+DerivedTypesResolution.dfy(75,12): Error: newtype constraint must be of type bool (instead got SmallInt)
+DerivedTypesResolution.dfy(77,14): Error: unresolved identifier: a
+DerivedTypesResolution.dfy(91,35): Error: old expressions are not allowed in this context
+13 resolution/type errors detected in DerivedTypesResolution.dfy

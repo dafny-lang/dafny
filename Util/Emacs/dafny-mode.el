@@ -30,7 +30,7 @@
 ]\\)*" . font-lock-comment-face)
 
    `(,(dafny-regexp-opt '(
-        "class" "datatype" "codatatype" "type" "iterator"
+        "class" "datatype" "codatatype" "newtype" "type" "iterator"
 	"trait" "extends"
         "function" "predicate" "copredicate"
         "ghost" "var" "method" "lemma" "constructor" "colemma"

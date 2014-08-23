@@ -143,6 +143,11 @@ bool IsIdentParen() {
   return la.kind == _ident && x.kind == _openparen;
 }
 
+bool IsIdentColon() {
+  Token x = scanner.Peek();
+  return la.kind == _ident && x.kind == _colon;
+}
+
 bool SemiFollowsCall(bool allowSemi, Expression e) {
   return allowSemi && la.kind == _semi &&
     (e is FunctionCallExpr || e is ApplyExpr ||
@@ -237,6 +242,7 @@ Dafny
   { SubModuleDecl<defaultModule, out submodule> (. defaultModule.TopLevelDecls.Add(submodule); .)
   | ClassDecl<defaultModule, out c>             (. defaultModule.TopLevelDecls.Add(c); .)
   | DatatypeDecl<defaultModule, out dt>         (. defaultModule.TopLevelDecls.Add(dt); .)
+  | NewtypeDecl<defaultModule, out td>          (. defaultModule.TopLevelDecls.Add(td); .)
   | OtherTypeDecl<defaultModule, out td>        (. defaultModule.TopLevelDecls.Add(td); .)
   | IteratorDecl<defaultModule, out iter>       (. defaultModule.TopLevelDecls.Add(iter); .)
   | TraitDecl<defaultModule, out trait>    (. defaultModule.TopLevelDecls.Add(trait); .)
@@ -278,8 +284,9 @@ SubModuleDecl<ModuleDefinition parent, out ModuleDecl submodule>
        "{"                                       (. module.BodyStartTok = t; .)
         { SubModuleDecl<module, out sm>                (. module.TopLevelDecls.Add(sm); .)
         | ClassDecl<module, out c>                     (. module.TopLevelDecls.Add(c); .)
-        | TraitDecl<module, out trait>            (. module.TopLevelDecls.Add(trait); .)
+        | TraitDecl<module, out trait>                 (. module.TopLevelDecls.Add(trait); .)
 		| DatatypeDecl<module, out dt>                 (. module.TopLevelDecls.Add(dt); .)
+        | NewtypeDecl<module, out td>                  (. module.TopLevelDecls.Add(td); .)
         | OtherTypeDecl<module, out td>                (. module.TopLevelDecls.Add(td); .)
         | IteratorDecl<module, out iter>               (. module.TopLevelDecls.Add(iter); .)
         | ClassMemberDecl<namedModuleDefaultClassMembers, false>
@@ -446,8 +453,33 @@ FieldDecl<.MemberModifiers mmod, List<MemberDecl/*!*/>/*!*/ mm.>
   }
   SYNC ";"
   .
-OtherTypeDecl<ModuleDefinition/*!*/ module, out TopLevelDecl td>
-= (. IToken/*!*/ id;
+NewtypeDecl<ModuleDefinition module, out TopLevelDecl td>
+= (. IToken id, bvId;
+     Attributes attrs = null;
+     td = null;
+     Type baseType;
+     Expression wh;
+  .)
+  "newtype"
+  { Attribute<ref attrs> }
+  NoUSIdent<out id>
+  "="
+  ( IF(IsIdentColon())
+    NoUSIdent<out bvId>
+    ":"
+    Type<out baseType>
+    "where"
+    Expression<out wh, false, true>  (. td = new DerivedTypeDecl(id, id.val, module, new BoundVar(bvId, bvId.val, baseType), wh, attrs); .)
+  | Type<out baseType>               (. td = new DerivedTypeDecl(id, id.val, module, baseType, attrs); .)
+  )
+  [ SYNC ";"
+      // In a future version of Dafny, including the following warning message:
+      //     (. errors.Warning(t, "the semi-colon that used to terminate an opaque-type declaration has been deprecated; in the new syntax, just leave off the semi-colon"); .)
+      // And in a version after that, don't allow the semi-colon at all.
+  ]
+  .
+OtherTypeDecl<ModuleDefinition module, out TopLevelDecl td>
+= (. IToken id;
      Attributes attrs = null;
      var eqSupport = TypeParameter.EqualitySupportValue.Unspecified;
      var typeArgs = new List<TypeParameter>();
@@ -650,7 +682,7 @@ MethodDecl<MemberModifiers mmod, bool allowConstructor, out Method/*!*/ m>
   | "constructor"                   (. if (allowConstructor) {
                                          isConstructor = true;
                                        } else {
-                                         SemErr(t, "constructors are only allowed in classes");
+                                         SemErr(t, "constructors are allowed only in classes");
                                        }
                                     .)
   )                                 (. keywordToken = t; .)
@@ -1418,13 +1450,13 @@ Invariant<out MaybeFreeExpression/*!*/ invariant>
 DecreasesList<.List<Expression/*!*/> decreases, bool allowWildcard.>
 = (. Expression/*!*/ e; .)
   PossiblyWildExpression<out e>          (. if (!allowWildcard && e is WildcardExpr) {
-                                              SemErr(e.tok, "'decreases *' is only allowed on loops and tail-recursive methods");
+                                              SemErr(e.tok, "'decreases *' is allowed only on loops and tail-recursive methods");
                                             } else {
                                               decreases.Add(e);
                                             }
                                          .)
   { "," PossiblyWildExpression<out e>    (. if (!allowWildcard && e is WildcardExpr) {
-                                              SemErr(e.tok, "'decreases *' is only allowed on loops and tail-recursive methods");
+                                              SemErr(e.tok, "'decreases *' is allowed only on loops and tail-recursive methods");
                                             } else {
                                               decreases.Add(e);
                                             }

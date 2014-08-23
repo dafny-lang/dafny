@@ -159,9 +159,14 @@ namespace Microsoft.Dafny
                 }
               } else if (dDemandsEqualitySupport) {
                 if (nw is ClassDecl) {
-                  // fine, as long as "nw" does not take any type parameters
+                  // fine, as long as "nw" takes the right number of type parameters
                   if (nw.TypeArgs.Count != d.TypeArgs.Count) {
                     reporter.Error(nw, "opaque type '{0}' is not allowed to be replaced by a class that takes a different number of type parameters (got {1}, expected {2})", nw.Name, nw.TypeArgs.Count, d.TypeArgs.Count);
+                  }
+                } else if (nw is DerivedTypeDecl) {
+                  // fine, as long as "nw" does not take any type parameters
+                  if (nw.TypeArgs.Count != 0) {
+                    reporter.Error(nw, "opaque type '{0}', which has {1} type argument{2}, is not allowed to be replaced by a derived type, which takes none", nw.Name, d.TypeArgs.Count, d.TypeArgs.Count == 1 ? "" : "s");
                   }
                 } else if (nw is CoDatatypeDecl) {
                   reporter.Error(nw, "a type declaration that requires equality support cannot be replaced by a codatatype");
@@ -744,14 +749,20 @@ namespace Microsoft.Dafny
               if (m.Mod.Expressions.Count != 0) {
                 reporter.Error(m.Mod.Expressions[0].E.tok, "a refining method is not allowed to extend the modifies clause");
               }
+              // If the previous method was not specified with "decreases *", then the new method is not allowed to provide any "decreases" clause.
+              // Any "decreases *" clause is not inherited, so if the previous method was specified with "decreases *", then the new method needs
+              // to either redeclare "decreases *", provided a termination-checking "decreases" clause, or give no "decreases" clause and thus
+              // get a default "decreases" loop.
               Specification<Expression> decreases;
-              if (Contract.Exists(prevMethod.Decreases.Expressions, e => e is WildcardExpr)) {
-                decreases = m.Decreases;
+              if (m.Decreases.Expressions.Count == 0) {
+                // inherited whatever the previous loop used
+                decreases = refinementCloner.CloneSpecExpr(prevMethod.Decreases);
               } else {
-                if (m.Decreases.Expressions.Count != 0) {
+                if (!Contract.Exists(prevMethod.Decreases.Expressions, e => e is WildcardExpr)) {
+                  // If the previous loop was not specified with "decreases *", then the new loop is not allowed to provide any "decreases" clause.
                   reporter.Error(m.Decreases.Expressions[0].tok, "decreases clause on refining method not supported, unless the refined method was specified with 'decreases *'");
                 }
-                decreases = refinementCloner.CloneSpecExpr(prevMethod.Decreases);
+                decreases = m.Decreases;
               }
               if (prevMethod.IsStatic != m.IsStatic) {
                 reporter.Error(m, "a method in a refining module cannot be changed from static to non-static or vice versa: {0}", m.Name);
@@ -1402,18 +1413,16 @@ namespace Microsoft.Dafny
       // the Specification structures with a null list).
       Contract.Assume(cNew.Mod.Expressions == null);
 
-      // If the previous loop was not specified with "decreases *", then the new loop is not allowed to provide any "decreases" clause.
-      // Any "decreases *" clause is not inherited, so if the previous loop was specified with "decreases *", then the new loop needs
-      // to either redeclare "decreases *", provided a termination-checking "decreases" clause, or give no "decreases" clause and thus
-      // get a default "decreases" loop.
       Specification<Expression> decr;
-      if (Contract.Exists(cOld.Decreases.Expressions, e => e is WildcardExpr)) {
-        decr = cNew.Decreases;  // take the new decreases clauses, whatever they may be (including nothing at all)
+      if (cNew.Decreases.Expressions.Count == 0) {
+        // inherited whatever the previous loop used
+        decr = refinementCloner.CloneSpecExpr(cOld.Decreases);
       } else {
-        if (cNew.Decreases.Expressions.Count != 0) {
+        if (!Contract.Exists(cOld.Decreases.Expressions, e => e is WildcardExpr)) {
+          // If the previous loop was not specified with "decreases *", then the new loop is not allowed to provide any "decreases" clause.
           reporter.Error(cNew.Decreases.Expressions[0].tok, "a refining loop can provide a decreases clause only if the loop being refined was declared with 'decreases *'");
         }
-        decr = refinementCloner.CloneSpecExpr(cOld.Decreases);
+        decr = cNew.Decreases;
       }
 
       var invs = cOld.Invariants.ConvertAll(refinementCloner.CloneMayBeFreeExpr);

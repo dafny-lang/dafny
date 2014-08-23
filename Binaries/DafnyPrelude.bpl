@@ -432,8 +432,7 @@ axiom (forall o: ref :: 0 <= _System.array.Length(o));
 // -- Reals ------------------------------------------------------
 // ---------------------------------------------------------------
 
-function _System.Real.RealToInt(h: Heap, x: real): int { int(x) }
-function _System.Real.IntToReal(h: Heap, x: int): real { real(x) }
+function {:inline true} _System.real.Trunc(x: real): int { int(x) }
 
 // ---------------------------------------------------------------
 // -- The heap ---------------------------------------------------
@@ -868,17 +867,6 @@ axiom (forall<T> s, t: Seq T ::
 function Seq#FromArray(h: Heap, a: ref): Seq Box;
 axiom (forall h: Heap, a: ref ::
   { Seq#Length(Seq#FromArray(h,a)) }
-  /*
-<<<<<<< local
-    Seq#Length(Seq#FromArray(h, a)) == _System.array.Length(a));
-axiom (forall h: Heap, a: ref :: { Seq#FromArray(h,a): Seq Box }
-   (forall i: int :: 0 <= i && i < Seq#Length(Seq#FromArray(h, a)) ==> Seq#Index(Seq#FromArray(h, a), i) == read(h, a, IndexField(i))));
-axiom (forall<alpha> h: Heap, o: ref, f: Field alpha, v: alpha, a: ref ::
-  { Seq#FromArray(update(h, o, f, v), a) }
-    o != a ==> Seq#FromArray(update(h, o, f, v), a) == Seq#FromArray(h, a) );
-axiom (forall h: Heap, i: int, v: Box, a: ref ::
-=======
-*/
   Seq#Length(Seq#FromArray(h, a)) == _System.array.Length(a));
 axiom (forall h: Heap, a: ref, i: int ::
   { Seq#Index(Seq#FromArray(h, a): Seq Box, i) }

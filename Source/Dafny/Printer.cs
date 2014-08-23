@@ -140,6 +140,21 @@ namespace Microsoft.Dafny {
           PrintClassMethodHelper("type", at.Attributes, at.Name, new List<TypeParameter>());
           wr.Write(EqualitySupportSuffix(at.EqualitySupport));
           wr.WriteLine();
+        } else if (d is DerivedTypeDecl) {
+          var dd = (DerivedTypeDecl)d;
+          if (i++ != 0) { wr.WriteLine(); }
+          Indent(indent);
+          PrintClassMethodHelper("newtype", dd.Attributes, dd.Name, new List<TypeParameter>());
+          wr.Write(" = ");
+          if (dd.Var == null) {
+            PrintType(dd.BaseType);
+          } else {
+            wr.Write("{0}: ", dd.Var.DisplayName);
+            PrintType(dd.BaseType);
+            wr.Write(" where ");
+            PrintExpression(dd.Constraint, true);
+          }
+          wr.WriteLine();
         } else if (d is TypeSynonymDecl) {
           var syn = (TypeSynonymDecl)d;
           if (i++ != 0) { wr.WriteLine(); }

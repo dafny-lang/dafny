@@ -30,25 +30,24 @@ method C(q: int) returns (x: int)
 }
 
 method D(q: int) returns (x: int)
-  decreases *;  // error: not allowed, because the method is not tail recursive
 {
   x := D(q-1);
   x := x + 1;
 }
 
-method E0(q: int) returns (x: int)
-  decreases *;  // error: not allowed, because the method is not tail recursive (since mutually recursive methods are currently not recognized as being tail recursive)
+method {:tailrecursion} E0(q: int) returns (x: int)  // error: not allowed, because the method is not
+  // tail recursive (since mutually recursive methods are currently not recognized as being tail recursive)
 {
   x := E1(q-1);
 }
-method E1(q: int) returns (x: int)
-  decreases *;  // error: not allowed, because the method is not tail recursive (since mutually recursive methods are currently not recognized as being tail recursive)
+method {:tailrecursion} E1(q: int) returns (x: int)  // error: not allowed, because the method is not
+  // tail recursive (since mutually recursive methods are currently not recognized as being tail recursive)
 {
   x := E0(q);
 }
 
 method F0(q: int) returns (x: int)
-  decreases *;  // fine, but no 'decreases' spec is needed at all here
+  decreases *;  // fine
 {
   x := D(q);
 }
@@ -63,18 +62,18 @@ method {:tailrecursion} G0(q: int) returns (x: int)
 {
   x := D(q);
 }
-method {:tailrecursion false} G1(q: int) returns (x: int)
-  decreases *;  // error: even though there is no recursion in this method's body, the annotation specifically says "not tail recursive", so (the easiest thing to do in the Resolver was to) generate an error
+method {:tailrecursion false} G1(q: int) returns (x: int)  // the annotation tells the compiler not to tail-call optimize
+  decreases *;
 {
-  x := D(q);
+  x := G1(q);
 }
 
 method H0(q: int) returns (x: int)
-  decreases *;  // fine, but no 'decreases' spec is needed at all here
+  decreases *;  // fine
 method {:tailrecursion} H1(q: int) returns (x: int)
-  decreases *;  // fine, but no 'decreases' spec is needed at all here
+  decreases *;  // fine
 method H2(q: int) returns (x: int)
-  decreases 5;  // fine, but no 'decreases' spec is needed at all here
+  decreases 5;  // fine
 
 class {:autocontracts} MyAutoContractClass {
   var left: MyAutoContractClass;

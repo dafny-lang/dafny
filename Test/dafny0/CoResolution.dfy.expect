@@ -19,6 +19,6 @@ CoResolution.dfy(141,17): Error: a recursive call from a copredicate can go only
 CoResolution.dfy(149,4): Error: a recursive call from a copredicate can go only to other copredicates
 CoResolution.dfy(151,4): Error: a recursive call from a copredicate can go only to other copredicates
 CoResolution.dfy(167,13): Error: a recursive call from a colemma can go only to other colemmas and prefix lemmas
-CoResolution.dfy(202,12): Error: type variable '_T0' in the function call to 'A' could not determined
-CoResolution.dfy(202,19): Error: type variable '_T0' in the function call to 'S' could not determined
+CoResolution.dfy(202,12): Error: type variable '_T0' in the function call to 'A' could not be determined
+CoResolution.dfy(202,19): Error: type variable '_T0' in the function call to 'S' could not be determined
 23 resolution/type errors detected in CoResolution.dfy

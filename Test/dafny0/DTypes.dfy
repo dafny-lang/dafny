@@ -57,6 +57,7 @@ class C {
   }
 
   method A5()
+    decreases *;
   {
     var a := new CP<int,C>;
     var b := new CP<int,object>;

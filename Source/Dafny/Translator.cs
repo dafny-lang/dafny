@@ -60,6 +60,7 @@ namespace Microsoft.Dafny {
       private readonly Bpl.TypeSynonymDecl multiSetTypeCtor;
       private readonly Bpl.TypeCtorDecl mapTypeCtor;
       public readonly Bpl.Function ArrayLength;
+      public readonly Bpl.Function RealTrunc;
       private readonly Bpl.TypeCtorDecl seqTypeCtor;
       readonly Bpl.TypeCtorDecl fieldName;
       public readonly Bpl.Type HeapType;
@@ -82,6 +83,7 @@ namespace Microsoft.Dafny {
         Contract.Invariant(setTypeCtor != null);
         Contract.Invariant(multiSetTypeCtor != null);
         Contract.Invariant(ArrayLength != null);
+        Contract.Invariant(RealTrunc != null);
         Contract.Invariant(seqTypeCtor != null);
         Contract.Invariant(fieldName != null);
         Contract.Invariant(HeapVarName != null);
@@ -143,7 +145,8 @@ namespace Microsoft.Dafny {
       }
 
       public PredefinedDecls(Bpl.TypeCtorDecl refType, Bpl.TypeCtorDecl boxType, Bpl.TypeCtorDecl tickType,
-                             Bpl.TypeSynonymDecl setTypeCtor, Bpl.TypeSynonymDecl multiSetTypeCtor, Bpl.TypeCtorDecl mapTypeCtor, Bpl.Function arrayLength, Bpl.TypeCtorDecl seqTypeCtor, Bpl.TypeCtorDecl fieldNameType,
+                             Bpl.TypeSynonymDecl setTypeCtor, Bpl.TypeSynonymDecl multiSetTypeCtor, Bpl.TypeCtorDecl mapTypeCtor,
+                             Bpl.Function arrayLength, Bpl.Function realTrunc, Bpl.TypeCtorDecl seqTypeCtor, Bpl.TypeCtorDecl fieldNameType,
                              Bpl.TypeCtorDecl tyType, Bpl.TypeCtorDecl tyTagType,
                              Bpl.GlobalVariable heap, Bpl.TypeCtorDecl classNameType, Bpl.TypeCtorDecl nameFamilyType,
                              Bpl.TypeCtorDecl datatypeType, Bpl.TypeCtorDecl handleType, Bpl.TypeCtorDecl layerType, Bpl.TypeCtorDecl dtCtorId,
@@ -156,6 +159,7 @@ namespace Microsoft.Dafny {
         Contract.Requires(multiSetTypeCtor != null);
         Contract.Requires(mapTypeCtor != null);
         Contract.Requires(arrayLength != null);
+        Contract.Requires(realTrunc != null);
         Contract.Requires(seqTypeCtor != null);
         Contract.Requires(fieldNameType != null);
         Contract.Requires(heap != null);
@@ -176,6 +180,7 @@ namespace Microsoft.Dafny {
         this.multiSetTypeCtor = multiSetTypeCtor;
         this.mapTypeCtor = mapTypeCtor;
         this.ArrayLength = arrayLength;
+        this.RealTrunc = realTrunc;
         this.seqTypeCtor = seqTypeCtor;
         this.fieldName = fieldNameType;
         this.HeapType = heap.TypedIdent.Type;
@@ -204,6 +209,7 @@ namespace Microsoft.Dafny {
       Bpl.TypeSynonymDecl setTypeCtor = null;
       Bpl.TypeSynonymDecl multiSetTypeCtor = null;
       Bpl.Function arrayLength = null;
+      Bpl.Function realTrunc = null;
       Bpl.TypeCtorDecl seqTypeCtor = null;
       Bpl.TypeCtorDecl fieldNameType = null;
       Bpl.TypeCtorDecl classNameType = null;
@@ -271,8 +277,11 @@ namespace Microsoft.Dafny {
           }
         } else if (d is Bpl.Function) {
           var f = (Bpl.Function)d;
-          if (f.Name == "_System.array.Length")
+          if (f.Name == "_System.array.Length") {
             arrayLength = f;
+          } else if (f.Name == "_System.real.Trunc") {
+            realTrunc = f;
+          }
         }
       }
       if (seqTypeCtor == null) {
@@ -285,6 +294,8 @@ namespace Microsoft.Dafny {
         Console.WriteLine("Error: Dafny prelude is missing declaration of type Map");
       } else if (arrayLength == null) {
         Console.WriteLine("Error: Dafny prelude is missing declaration of function _System.array.Length");
+      } else if (realTrunc == null) {
+        Console.WriteLine("Error: Dafny prelude is missing declaration of function _System.real.Trunc");
       } else if (fieldNameType == null) {
         Console.WriteLine("Error: Dafny prelude is missing declaration of type Field");
       } else if (classNameType == null) {
@@ -315,7 +326,11 @@ namespace Microsoft.Dafny {
         Console.WriteLine("Error: Dafny prelude is missing declaration of constant alloc");
       } else {
         return new PredefinedDecls(refType, boxType, tickType,
-                                   setTypeCtor, multiSetTypeCtor, mapTypeCtor, arrayLength, seqTypeCtor, fieldNameType, tyType, tyTagType, heap, classNameType, nameFamilyType, datatypeType, handleType, layerType, dtCtorId,
+                                   setTypeCtor, multiSetTypeCtor, mapTypeCtor,
+                                   arrayLength, realTrunc, seqTypeCtor, fieldNameType,
+                                   tyType, tyTagType,
+                                   heap, classNameType, nameFamilyType,
+                                   datatypeType, handleType, layerType, dtCtorId,
                                    allocField);
       }
       return null;
@@ -368,6 +383,8 @@ namespace Microsoft.Dafny {
         currentDeclaration = d;
         if (d is OpaqueTypeDecl) {
           AddTypeDecl((OpaqueTypeDecl)d);
+        } else if (d is DerivedTypeDecl) {
+          AddTypeDecl((DerivedTypeDecl)d);
         } else if (d is DatatypeDecl) {
           AddDatatype((DatatypeDecl)d);
         } else {
@@ -379,6 +396,8 @@ namespace Microsoft.Dafny {
           currentDeclaration = d;
           if (d is OpaqueTypeDecl) {
             AddTypeDecl((OpaqueTypeDecl)d);
+          } else if (d is DerivedTypeDecl) {
+            AddTypeDecl((DerivedTypeDecl)d);
           } else if (d is TypeSynonymDecl) {
             // do nothing, just bypass type synonyms in the translation
           } else if (d is DatatypeDecl) {
@@ -443,20 +462,30 @@ namespace Microsoft.Dafny {
 
     void AddTypeDecl(OpaqueTypeDecl td) {
       Contract.Requires(td != null);
-      string nm = nameTypeParam(td.TheType);
+      AddTypeDecl_Aux(td.tok, nameTypeParam(td.TheType), td.TypeArgs);
+    }
+    void AddTypeDecl(DerivedTypeDecl dd) {
+      Contract.Requires(dd != null);
+      AddTypeDecl_Aux(dd.tok, dd.FullName, new List<TypeParameter>());
+    }
+    void AddTypeDecl_Aux(IToken tok, string nm, List<TypeParameter> typeArgs) {
+      Contract.Requires(tok != null);
+      Contract.Requires(nm != null);
+      Contract.Requires(typeArgs != null);
+
       if (abstractTypes.Contains(nm)) {
         // nothing to do; has already been added
         return;
       }
-      if (td.TypeArgs.Count == 0) {
+      if (typeArgs.Count == 0) {
         sink.TopLevelDeclarations.Add(
-          new Bpl.Constant(td.tok,
-            new TypedIdent(td.tok, nm, predef.Ty), false /* not unique */));
+          new Bpl.Constant(tok,
+            new TypedIdent(tok, nm, predef.Ty), false /* not unique */));
       } else {
         // Note, the function produced is NOT necessarily injective, because the type may be replaced
         // in a refinement module in such a way that the type arguments do not matter.
-        var args = new List<Bpl.Variable>(td.TypeArgs.ConvertAll(a => (Bpl.Variable)BplFormalVar(null, predef.Ty, true)));
-        var func = new Bpl.Function(td.tok, nm, args, BplFormalVar(null, predef.Ty, false));
+        var args = new List<Bpl.Variable>(typeArgs.ConvertAll(a => (Bpl.Variable)BplFormalVar(null, predef.Ty, true)));
+        var func = new Bpl.Function(tok, nm, args, BplFormalVar(null, predef.Ty, false));
         sink.TopLevelDeclarations.Add(func);
       }
       abstractTypes.Add(nm);
@@ -4643,6 +4672,18 @@ namespace Microsoft.Dafny {
       } else if (expr is UnaryExpr) {
         UnaryExpr e = (UnaryExpr)expr;
         CheckWellformed(e.E, options, locals, builder, etran);
+        if (e is ConversionExpr) {
+          var ee = (ConversionExpr)e;
+          if (ee.ToType is IntType && ee.E.Type.IsNumericBased(Type.NumericPersuation.Real)) {
+            // this operation is well-formed only if the real-based number represents an integer
+            // assert ToReal(ToInt(e.E)) == e.E
+            var arg = etran.TrExpr(e.E);
+            Bpl.Expr isAnInt = new Bpl.NAryExpr(e.tok, new ArithmeticCoercion(e.tok, ArithmeticCoercion.CoercionType.ToInt), new List<Expr> { arg });
+            isAnInt = new Bpl.NAryExpr(e.tok, new ArithmeticCoercion(e.tok, ArithmeticCoercion.CoercionType.ToReal), new List<Expr> { isAnInt });
+            isAnInt = Bpl.Expr.Binary(e.tok, BinaryOperator.Opcode.Eq, isAnInt, arg);
+            builder.Add(Assert(expr.tok, isAnInt, "the real-based number must be an integer (if you want truncation, apply .Trunc to the real-based number)"));
+          }
+        }
       } else if (expr is BinaryExpr) {
         BinaryExpr e = (BinaryExpr)expr;
         CheckWellformed(e.E0, options, locals, builder, etran);
@@ -4662,7 +4703,7 @@ namespace Microsoft.Dafny {
             break;
           case BinaryExpr.ResolvedOpcode.Div:
           case BinaryExpr.ResolvedOpcode.Mod: {
-              Bpl.Expr zero = (e.E1.Type.IsRealType) ? Bpl.Expr.Literal(Basetypes.BigDec.ZERO) : Bpl.Expr.Literal(0);
+              Bpl.Expr zero = e.E1.Type.IsNumericBased(Type.NumericPersuation.Real) ? Bpl.Expr.Literal(Basetypes.BigDec.ZERO) : Bpl.Expr.Literal(0);
               CheckWellformed(e.E1, options, locals, builder, etran);
               builder.Add(Assert(expr.tok, Bpl.Expr.Neq(etran.TrExpr(e.E1), zero), "possible division by zero", options.AssertKv));
             }
@@ -5511,7 +5552,6 @@ namespace Microsoft.Dafny {
       Contract.Requires(f != null && !f.IsMutable);
       Contract.Requires(sink != null && predef != null);
       Contract.Ensures(Contract.Result<Bpl.Function>() != null);
-
       
       Bpl.Function ff;
       if (fieldFunctions.TryGetValue(f, out ff)) {        
@@ -5520,6 +5560,9 @@ namespace Microsoft.Dafny {
         if (f.EnclosingClass is ArrayClassDecl && f.Name == "Length") { // link directly to the function in the prelude.
           fieldFunctions.Add(f, predef.ArrayLength);
           return predef.ArrayLength;
+        } else if (f.EnclosingClass == null && f.Name == "Trunc") { // link directly to the function in the prelude.
+          fieldFunctions.Add(f, predef.RealTrunc);
+          return predef.RealTrunc;
         }
         // function f(Ref): ty;
         Bpl.Type ty = TrType(f.Type);
@@ -6214,10 +6257,18 @@ namespace Microsoft.Dafny {
       Contract.Requires(predef != null);
       Contract.Ensures(Contract.Result<Bpl.Type>() != null);
 
-      type = type.NormalizeExpand();
-      if (type is TypeProxy) {
-        // unresolved proxy; just treat as ref, since no particular type information is apparently needed for this type
-        return predef.RefType;
+      while (true) {
+        type = type.NormalizeExpand();
+        if (type is TypeProxy) {
+          // unresolved proxy; just treat as ref, since no particular type information is apparently needed for this type
+          return predef.RefType;
+        }
+        var d = type.AsDerivedType;
+        if (d == null) {
+          break;
+        } else {
+          type = d.BaseType;  // the Boogie type to be used for the derived type is the same as for the base type
+        }
       }
 
       if (type is BoolType) {
@@ -7089,15 +7140,14 @@ namespace Microsoft.Dafny {
         var empty = new SeqDisplayExpr(x.tok, new List<Expression>());
         empty.Type = xType;
         yield return empty;
-      } else if (xType is IntType) {
+      } else if (xType.IsNumericBased(Type.NumericPersuation.Int)) {
         var lit = new LiteralExpr(x.tok, 0);
-        lit.Type = Type.Int;  // resolve here
+        lit.Type = xType;  // resolve here
         yield return lit;
-      } else if (xType is RealType) {
+      } else if (xType.IsNumericBased(Type.NumericPersuation.Real)) {
         var lit = new LiteralExpr(x.tok, Basetypes.BigDec.ZERO);
-        lit.Type = Type.Real;  // resolve here
+        lit.Type = xType;  // resolve here
         yield return lit;
-       
       }
 
       var missingBounds = new List<BoundVar>();
@@ -7956,9 +8006,6 @@ namespace Microsoft.Dafny {
         string msg;
         if (s.InferredDecreases) {
           msg = "cannot prove termination; try supplying a decreases clause for the loop";
-          if (s is RefinedWhileStmt) {
-            msg += " (note that a refined loop does not inherit 'decreases *' from the refined loop)";
-          }
         } else {
           msg = "decreases expression might not decrease";
         }
@@ -8356,6 +8403,10 @@ namespace Microsoft.Dafny {
       var types1 = new List<Type>();
       var callee = new List<Expr>();
       var caller = new List<Expr>();
+      if (RefinementToken.IsInherited(tok, currentModule) && contextDecreases.All(e => !RefinementToken.IsInherited(e.tok, currentModule))) {
+        // the call site is inherited but all the context decreases expressions are new
+        tok = new ForceCheckToken(tok);
+      }
       for (int i = 0; i < N; i++) {
         Expression e0 = Substitute(calleeDecreases[i], receiverReplacement, substMap);
         Expression e1 = contextDecreases[i];
@@ -8363,7 +8414,7 @@ namespace Microsoft.Dafny {
           N = i;
           break;
         }
-        toks.Add(tok);
+        toks.Add(new NestedToken(tok, e1.tok));
         types0.Add(e0.Type.NormalizeExpand());
         types1.Add(e1.Type.NormalizeExpand());
         callee.Add(etranCurrent.TrExpr(e0));
@@ -8421,16 +8472,24 @@ namespace Microsoft.Dafny {
           Bpl.Expr prefixIsLess = Bpl.Expr.False;
           for (int i = 0; i < k; i++) {
             prefixIsLess = Bpl.Expr.Or(prefixIsLess, Less[i]);
+          };
+
+          Bpl.Expr zero = null;
+          string zeroStr = null;
+          if (types0[k].IsNumericBased(Type.NumericPersuation.Int)) {
+            zero = Bpl.Expr.Literal(0);
+            zeroStr = "0";
+          } else if (types0[k].IsNumericBased(Type.NumericPersuation.Real)) {
+            zero = Bpl.Expr.Literal(Basetypes.BigDec.ZERO);
+            zeroStr = "0.0";
           }
-          if (types0[k] is IntType || types0[k] is RealType) {
-            var zero = types0[k] is IntType ? Bpl.Expr.Literal(0) : Bpl.Expr.Literal(Basetypes.BigDec.ZERO);
+          if (zero != null) {
             Bpl.Expr bounded = Bpl.Expr.Le(zero, ee1[k]);
             for (int i = 0; i < k; i++) {
               bounded = Bpl.Expr.Or(bounded, Less[i]);
             }
             string component = N == 1 ? "" : " (component " + k + ")";
-            string zerostr = types0[k] is IntType ? "0" : "0.0";
-            Bpl.Cmd cmd = Assert(toks[k], Bpl.Expr.Or(bounded, Eq[k]), "decreases expression" + component + " must be bounded below by " + zerostr + suffixMsg);
+            Bpl.Cmd cmd = Assert(toks[k], Bpl.Expr.Or(bounded, Eq[k]), "decreases expression" + component + " must be bounded below by " + zeroStr + suffixMsg);
             builder.Add(cmd);
           }
         }
@@ -8458,10 +8517,12 @@ namespace Microsoft.Dafny {
       u = u.NormalizeExpand();
       if (t is BoolType) {
         return u is BoolType;
-      } else if (t is IntType) {
-        return u is IntType;
-      } else if (t is RealType) {
-        return u is RealType;
+      } else if (t.IsNumericBased(Type.NumericPersuation.Int)) {
+        // we can allow different kinds of int-based types
+        return u.IsNumericBased(Type.NumericPersuation.Int);
+      } else if (t.IsNumericBased(Type.NumericPersuation.Real)) {
+        // we can allow different kinds of real-based types
+        return u.IsNumericBased(Type.NumericPersuation.Real);
       } else if (t is SetType) {
         return u is SetType;
       } else if (t is SeqType) {
@@ -8517,9 +8578,9 @@ namespace Microsoft.Dafny {
         eq = Bpl.Expr.Iff(e0, e1);
         less = Bpl.Expr.And(Bpl.Expr.Not(e0), e1);
         atmost = Bpl.Expr.Imp(e0, e1);
-      } else if (ty0 is IntType || ty0 is SeqType || ty0.IsDatatype) {
+      } else if (ty0.IsNumericBased(Type.NumericPersuation.Int) || ty0 is SeqType || ty0.IsDatatype) {
         Bpl.Expr b0, b1;
-        if (ty0 is IntType) {
+        if (ty0.IsNumericBased(Type.NumericPersuation.Int)) {
           b0 = e0;
           b1 = e1;
         } else if (ty0 is SeqType) {
@@ -8534,12 +8595,12 @@ namespace Microsoft.Dafny {
         eq = Bpl.Expr.Eq(b0, b1);
         less = Bpl.Expr.Lt(b0, b1);
         atmost = Bpl.Expr.Le(b0, b1);
-        if (ty0 is IntType && includeLowerBound) {
+        if (ty0.IsNumericBased(Type.NumericPersuation.Int) && includeLowerBound) {
           less = Bpl.Expr.And(Bpl.Expr.Le(Bpl.Expr.Literal(0), b0), less);
           atmost = Bpl.Expr.And(Bpl.Expr.Le(Bpl.Expr.Literal(0), b0), atmost);
         }
 
-      } else if (ty0 is RealType) {
+      } else if (ty0.IsNumericBased(Type.NumericPersuation.Real)) {
         eq = Bpl.Expr.Eq(e0, e1);
         less = Bpl.Expr.Le(e0, Bpl.Expr.Sub(e1, Bpl.Expr.Literal(Basetypes.BigDec.FromInt(1))));
         atmost = Bpl.Expr.Le(e0, e1);
@@ -10250,8 +10311,14 @@ namespace Microsoft.Dafny {
           var e = (ConversionExpr)expr;
           Bpl.ArithmeticCoercion.CoercionType ct;
           if (e.ToType is IntType) {
+            if (e.E.Type.IsNumericBased(Type.NumericPersuation.Int)) {
+              return TrExpr(e.E);
+            }
             ct = Bpl.ArithmeticCoercion.CoercionType.ToInt;
           } else if (e.ToType is RealType) {
+            if (e.E.Type.IsNumericBased(Type.NumericPersuation.Real)) {
+              return TrExpr(e.E);
+            }
             ct = Bpl.ArithmeticCoercion.CoercionType.ToReal;
           } else {
             Contract.Assert(false);  // unexpected ConversionExpr to-type
@@ -10261,7 +10328,7 @@ namespace Microsoft.Dafny {
 
         } else if (expr is BinaryExpr) {
           BinaryExpr e = (BinaryExpr)expr;
-          bool isReal = e.E0.Type.IsRealType;
+          bool isReal = e.E0.Type.IsNumericBased(Type.NumericPersuation.Real);
           Bpl.Expr e0 = TrExpr(e.E0);
           if (e.ResolvedOp == BinaryExpr.ResolvedOpcode.InSet) {
             return TrInSet(expr.tok, e0, e.E1, cce.NonNull(e.E0.Type));  // let TrInSet translate e.E1

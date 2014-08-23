@@ -1,5 +1,5 @@
-DTypes.dfy(181,3): Error BP5003: A postcondition might not hold on this return path.
-DTypes.dfy(180,15): Related location: This is the postcondition that might not hold.
+DTypes.dfy(182,3): Error BP5003: A postcondition might not hold on this return path.
+DTypes.dfy(181,15): Related location: This is the postcondition that might not hold.
 Execution trace:
     (0,0): anon0
 DTypes.dfy(18,14): Error: assertion violation
@@ -8,20 +8,20 @@ Execution trace:
 DTypes.dfy(56,18): Error: assertion violation
 Execution trace:
     (0,0): anon0
-DTypes.dfy(120,13): Error: assertion violation
-DTypes.dfy(92,30): Related location
+DTypes.dfy(121,13): Error: assertion violation
+DTypes.dfy(93,30): Related location
 Execution trace:
     (0,0): anon0
-DTypes.dfy(126,13): Error: assertion violation
-DTypes.dfy(92,20): Related location
+DTypes.dfy(127,13): Error: assertion violation
+DTypes.dfy(93,20): Related location
 Execution trace:
     (0,0): anon0
-DTypes.dfy(136,12): Error: assertion violation
-DTypes.dfy(131,6): Related location
-DTypes.dfy(92,20): Related location
+DTypes.dfy(137,12): Error: assertion violation
+DTypes.dfy(132,6): Related location
+DTypes.dfy(93,20): Related location
 Execution trace:
     (0,0): anon0
-DTypes.dfy(157,12): Error: assertion violation
+DTypes.dfy(158,12): Error: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon5_Then

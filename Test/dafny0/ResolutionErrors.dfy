@@ -957,9 +957,9 @@ method TypeConversions(m: nat, i: int, r: real) returns (n: nat, j: int, s: real
 
   s := (2.0 / 1.7) + (r / s) - (--r) * -12.3;
 
-  s := real(s);  // error: cannot convert real->real
-  j := int(j);  // error: cannot convert int->int
-  j := int(n);  // error: cannot convert nat->int
+  s := real(s);  // fine (identity transform)
+  j := int(j);  // fine (identity transform)
+  j := int(n);  // fine (identity transform)
 }
 
 // --- filling in type arguments and checking that there aren't too many ---
@@ -1101,7 +1101,7 @@ method TraitSynonym()
   var x := new JJ;  // error: new cannot be applied to a trait
 }
 
-// ----- set comprehensions where the term type is finite ----
+// ----- set comprehensions where the term type is finite -----
 
 module ObjectSetComprehensions {
   // allowed in non-ghost context:
@@ -1113,4 +1113,49 @@ module ObjectSetComprehensions {
   function method C() : set<object> { set o : object | true :: o }
 
   method D() { var x := set o : object | true :: o; }
+}
+
+// ------ regression test for type checking of integer division -----
+
+method IntegerDivision(s: set<bool>)
+{
+  var t := s / s;  // error: / cannot be used with sets
+}
+
+// ----- decreases * tests ----
+
+method NonTermination_A()
+{
+  NonTermination_B();  // error: to call a non-terminating method, the caller must be marked 'decreases *'
+}
+
+method NonTermination_B()
+  decreases *;
+{
+  while true
+    decreases *;
+  {
+  }
+}
+
+method NonTermination_C()
+{
+  while true
+    decreases *;  // error: to use an infinite loop, the enclosing method must be marked 'decreases *'
+  {
+  }
+}
+
+method NonTermination_D()
+  decreases *;
+{
+  var n := 0;
+  while n < 100  // note, no 'decreases *' here, even if the nested loop may fail to terminate
+  {
+    while *
+      decreases *;
+    {
+    }
+    n := n + 1;
+  }
 }
