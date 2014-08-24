@@ -468,6 +468,44 @@ namespace Microsoft.Dafny {
       Contract.Requires(dd != null);
       AddTypeDecl_Aux(dd.tok, dd.FullName, new List<TypeParameter>());
       AddWellformednessCheck(dd);
+      // Add $Is and $IsAlloc axioms for the newtype
+      MapM(Bools, is_alloc => {
+        var vars = new List<Variable>();
+
+        var oDafnyType = dd.BaseType.IsNumericBased(Type.NumericPersuation.Int) ? (Type)Type.Int : Type.Real;
+        var oBplType = dd.BaseType.IsNumericBased(Type.NumericPersuation.Int) ? Bpl.Type.Int : Bpl.Type.Real;
+
+        var oVarDafny = new BoundVar(dd.tok, "$o", oDafnyType);
+        var o = BplBoundVar(oVarDafny.AssignUniqueName(dd), oBplType, vars);
+
+        Bpl.Expr body, is_o;
+        Bpl.Expr o_ty = ClassTyCon(dd, new List<Expr>());
+        string name = dd.FullName + ": newtype ";
+
+        if (is_alloc) {
+          name += "$IsAlloc";
+          var h = BplBoundVar("$h", predef.HeapType, vars);
+          // $IsAlloc(o, ..)
+          is_o = MkIsAlloc(o, o_ty, h);
+          body = is_o;
+        } else {
+          name += "$Is";
+          // $Is(o, ..)
+          is_o = MkIs(o, o_ty);
+          Bpl.Expr rhs = MkIs(o, dd.BaseType);
+          if (dd.Var != null) {
+            // conjoin the constraint
+            var etran = new ExpressionTranslator(this, predef, dd.tok);
+            var ie = new IdentifierExpr(dd.tok, oVarDafny.Name);
+            ie.Var = oVarDafny; ie.Type = ie.Var.Type;  // resolve ie here
+            var constraint = etran.TrExpr(Substitute(dd.Constraint, dd.Var, ie));
+            rhs = BplAnd(rhs, constraint);
+          }
+          body = BplIff(is_o, rhs);
+        }
+
+        sink.TopLevelDeclarations.Add(new Bpl.Axiom(dd.tok, BplForall(vars, BplTrigger(is_o), body), name));
+      });
     }
     void AddTypeDecl_Aux(IToken tok, string nm, List<TypeParameter> typeArgs) {
       Contract.Requires(tok != null);

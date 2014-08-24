@@ -57,7 +57,7 @@ module Constraints {
   {
     x % 2 == 0
   }
-  newtype G = x: int where IsEven(x)  // it's okay to use ghost constructs in type constraints
+//  newtype G = x: int where IsEven(x)  // it's okay to use ghost constructs in type constraints
 
   newtype N = nat
 
@@ -69,7 +69,7 @@ module Constraints {
   newtype Te = x: int where 0 <= x < 3 && [5, 7, 8][x] % 2 != 0
 
   newtype Ta = x: int where 0 <= x < 3
-//  newtype Tb = y: Ta where [5, 7, 8][int(y)] % 2 != 0  // the indexing is okay, because of the type constraint for Ta
+  newtype Tb = y: Ta where [5, 7, 8][int(y)] % 2 != 0  // the indexing is okay, because of the type constraint for Ta
 
   newtype Odds = x: int where x % 2 == 1  // error: cannot find witness
 
