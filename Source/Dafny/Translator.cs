@@ -1242,7 +1242,7 @@ namespace Microsoft.Dafny {
       //this adds: function implements$J(ClassName): bool;
       if (c is TraitDecl)
       {
-          var arg_ref = new Bpl.Formal(c.tok, new Bpl.TypedIdent(c.tok, Bpl.TypedIdent.NoName, predef.Ty), true);
+          var arg_ref = new Bpl.Formal(c.tok, new Bpl.TypedIdent(c.tok, Bpl.TypedIdent.NoName, predef.ClassNameType), true);
           var res = new Bpl.Formal(c.tok, new Bpl.TypedIdent(c.tok, Bpl.TypedIdent.NoName, Bpl.Type.Bool), false);
           var implement_intr = new Bpl.Function(c.tok, "implements$" + c.Name, new List<Variable> { arg_ref }, res);
           sink.TopLevelDeclarations.Add(implement_intr);
