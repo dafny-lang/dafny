@@ -8,7 +8,7 @@ DerivedTypesResolution.dfy(52,13): Error: arguments to < must have the same type
 DerivedTypesResolution.dfy(53,13): Error: arguments to > must have the same type (got posReal and real)
 DerivedTypesResolution.dfy(57,13): Error: first argument to % must be of type int (instead got posReal)
 DerivedTypesResolution.dfy(57,25): Error: first argument to % must be of type int (instead got real)
-DerivedTypesResolution.dfy(75,12): Error: newtype constraint must be of type bool (instead got SmallInt)
-DerivedTypesResolution.dfy(77,14): Error: unresolved identifier: a
-DerivedTypesResolution.dfy(91,35): Error: old expressions are not allowed in this context
+DerivedTypesResolution.dfy(98,24): Error: Wrong number of type arguments (1 instead of 0) passed to newtype: N
+DerivedTypesResolution.dfy(102,10): Error: recursive dependency involving a newtype: _default.BadLemma -> Cycle
+DerivedTypesResolution.dfy(111,10): Error: recursive dependency involving a newtype: SelfCycle -> SelfCycle
 13 resolution/type errors detected in DerivedTypesResolution.dfy

@@ -1467,7 +1467,7 @@ namespace Microsoft.Dafny
           // nothing to do
         } else if (d is TypeSynonymDecl) {
           var syn = (TypeSynonymDecl)d;
-          ResolveType(syn.tok, syn.Rhs, ResolveTypeOptionEnum.AllowPrefix, syn.TypeArgs);
+          ResolveType(syn.tok, syn.Rhs, syn, ResolveTypeOptionEnum.AllowPrefix, syn.TypeArgs);
           syn.Rhs.ForeachTypeComponent(ty => {
             var s = ty.AsRedirectingType;
             if (s != null) {
@@ -1476,7 +1476,7 @@ namespace Microsoft.Dafny
           });
         } else if (d is DerivedTypeDecl) {
           var dd = (DerivedTypeDecl)d;
-          ResolveType(dd.tok, dd.BaseType, ResolveTypeOptionEnum.DontInfer, null);
+          ResolveType(dd.tok, dd.BaseType, dd, ResolveTypeOptionEnum.DontInfer, null);
           dd.BaseType.ForeachTypeComponent(ty => {
             var s = ty.AsRedirectingType;
             if (s != null) {
@@ -1564,8 +1564,8 @@ namespace Microsoft.Dafny
             scope.PushMarker();
             var added = scope.Push(dd.Var.Name, dd.Var);
             Contract.Assert(added);
-            ResolveType(dd.Var.tok, dd.Var.Type, ResolveTypeOptionEnum.DontInfer, null);
-            ResolveExpression(dd.Constraint, new ResolveOpts(new NoContext(d.Module), false, true));
+            ResolveType(dd.Var.tok, dd.Var.Type, dd, ResolveTypeOptionEnum.DontInfer, null);
+            ResolveExpression(dd.Constraint, new ResolveOpts(dd, false, true));
             Contract.Assert(dd.Constraint.Type != null);  // follows from postcondition of ResolveExpression
             if (!UnifyTypes(dd.Constraint.Type, Type.Bool)) {
               Error(dd.Constraint, "newtype constraint must be of type bool (instead got {0})", dd.Constraint.Type);
@@ -1588,6 +1588,11 @@ namespace Microsoft.Dafny
           } else if (d is ClassDecl) {
             var cl = (ClassDecl)d;
             cl.Members.Iter(CheckTypeInference_Member);
+          } else if (d is DerivedTypeDecl) {
+            var dd = (DerivedTypeDecl)d;
+            if (dd.Constraint != null) {
+              CheckTypeInference(dd.Constraint);
+            }
           }
         }
       }
@@ -1866,6 +1871,7 @@ namespace Microsoft.Dafny
         }
         // Check that copredicates are not recursive with non-copredicate functions, and
         // check that colemmas are not recursive with non-colemma methods.
+        // Also, check that newtypes sit in their own SSC.
         foreach (var d in declarations) {
           if (d is ClassDecl) {
             foreach (var member in ((ClassDecl)d).Members) {
@@ -1889,6 +1895,12 @@ namespace Microsoft.Dafny
                   CoLemmaChecks(m.Body, m);
                 }
               }
+            }
+          } else if (d is DerivedTypeDecl) {
+            var dd = (DerivedTypeDecl)d;
+            if (dd.Module.CallGraph.GetSCCSize(dd) != 1) {
+              var cycle = Util.Comma(" -> ", dd.Module.CallGraph.GetSCC(dd), clbl => clbl.NameRelativeToModule);
+              Error(dd.tok, "recursive dependency involving a newtype: " + cycle);
             }
           }
         }
@@ -2930,7 +2942,10 @@ namespace Microsoft.Dafny
       foreach (MemberDecl member in cl.Members) {
         member.EnclosingClass = cl;
         if (member is Field) {
-          ResolveType(member.tok, ((Field)member).Type, ResolveTypeOptionEnum.DontInfer, null);
+          // In the following, we pass in a NoContext, because any cycle formed by newtype constraints would have to
+          // involve a non-null object in order to get to the field and its type, and there is no way in a newtype constraint
+          // to obtain a non-null object.
+          ResolveType(member.tok, ((Field)member).Type, new NoContext(cl.Module), ResolveTypeOptionEnum.DontInfer, null);
 
         } else if (member is Function) {
           var f = (Function)member;
@@ -3442,9 +3457,9 @@ namespace Microsoft.Dafny
         if (!scope.Push(p.Name, p)) {
           Error(p, "Duplicate parameter name: {0}", p.Name);
         }
-        ResolveType(p.tok, p.Type, option, f.TypeArgs);
+        ResolveType(p.tok, p.Type, f, option, f.TypeArgs);
       }
-      ResolveType(f.tok, f.ResultType, option, f.TypeArgs);
+      ResolveType(f.tok, f.ResultType, f, option, f.TypeArgs);
       scope.PopMarker();
     }
 
@@ -3546,14 +3561,14 @@ namespace Microsoft.Dafny
         if (!scope.Push(p.Name, p)) {
           Error(p, "Duplicate parameter name: {0}", p.Name);
         }
-        ResolveType(p.tok, p.Type, option, m.TypeArgs);
+        ResolveType(p.tok, p.Type, m, option, m.TypeArgs);
       }
       // resolve out-parameters
       foreach (Formal p in m.Outs) {
         if (!scope.Push(p.Name, p)) {
           Error(p, "Duplicate parameter name: {0}", p.Name);
         }
-        ResolveType(p.tok, p.Type, option, m.TypeArgs);
+        ResolveType(p.tok, p.Type, m, option, m.TypeArgs);
       }
       scope.PopMarker();
     }
@@ -3652,10 +3667,14 @@ namespace Microsoft.Dafny
 
     void ResolveCtorSignature(DatatypeCtor ctor, List<TypeParameter> dtTypeArguments) {
       Contract.Requires(ctor != null);
+      Contract.Requires(ctor.EnclosingDatatype != null);
       Contract.Requires(dtTypeArguments != null);
       ResolveTypeOption option = dtTypeArguments.Count == 0 ? new ResolveTypeOption(ctor) : new ResolveTypeOption(ResolveTypeOptionEnum.AllowPrefix);
       foreach (Formal p in ctor.Formals) {
-        ResolveType(p.tok, p.Type, option, dtTypeArguments);
+        // In the following, we pass in a NoContext, because any cycle formed by newtype constraints would have to
+        // involve a non-null object in order to get to the field and its type, and there is no way in a newtype constraint
+        // to obtain a non-null object.
+        ResolveType(p.tok, p.Type, new NoContext(ctor.EnclosingDatatype.Module), option, dtTypeArguments);
       }
     }
 
@@ -3671,11 +3690,11 @@ namespace Microsoft.Dafny
       var option = iter.TypeArgs.Count == 0 ? new ResolveTypeOption(iter) : new ResolveTypeOption(ResolveTypeOptionEnum.AllowPrefix);
       // resolve the types of the parameters
       foreach (var p in iter.Ins.Concat(iter.Outs)) {
-        ResolveType(p.tok, p.Type, option, iter.TypeArgs);
+        ResolveType(p.tok, p.Type, iter, option, iter.TypeArgs);
       }
       // resolve the types of the added fields (in case some of these types would cause the addition of default type arguments)
       foreach (var p in iter.OutsHistoryFields) {
-        ResolveType(p.tok, p.Type, option, iter.TypeArgs);
+        ResolveType(p.tok, p.Type, iter, option, iter.TypeArgs);
       }
       scope.PopMarker();
     }
@@ -3957,15 +3976,21 @@ namespace Microsoft.Dafny
     /// <summary>
     /// See ResolveTypeOption for a description of the option/defaultTypeArguments parameters.
     /// </summary>
-    public void ResolveType(IToken tok, Type type, ResolveTypeOptionEnum eopt, List<TypeParameter> defaultTypeArguments) {
+    public void ResolveType(IToken tok, Type type, ICodeContext context, ResolveTypeOptionEnum eopt, List<TypeParameter> defaultTypeArguments) {
+      Contract.Requires(tok != null);
+      Contract.Requires(type != null);
+      Contract.Requires(context != null);
       Contract.Requires(eopt != ResolveTypeOptionEnum.AllowPrefixExtend);
-      ResolveType(tok, type, new ResolveTypeOption(eopt), defaultTypeArguments);
+      ResolveType(tok, type, context, new ResolveTypeOption(eopt), defaultTypeArguments);
     }
 
-    public void ResolveType(IToken tok, Type type, ResolveTypeOption option, List<TypeParameter> defaultTypeArguments) {
+    public void ResolveType(IToken tok, Type type, ICodeContext context, ResolveTypeOption option, List<TypeParameter> defaultTypeArguments) {
+      Contract.Requires(tok != null);
+      Contract.Requires(type != null);
+      Contract.Requires(context != null);
       Contract.Requires(option != null);
       Contract.Requires((option.Opt == ResolveTypeOptionEnum.DontInfer || option.Opt == ResolveTypeOptionEnum.InferTypeProxies) == (defaultTypeArguments == null));
-      var r = ResolveTypeLenient(tok, type, option, defaultTypeArguments, false);
+      var r = ResolveTypeLenient(tok, type, context, option, defaultTypeArguments, false);
       Contract.Assert(r == null);
     }
 
@@ -3990,9 +4015,10 @@ namespace Microsoft.Dafny
     ///   shorter, then return an unresolved replacement type where the identifier sequence is one
     ///   shorter.  (In all other cases, the method returns null.)
     /// </summary>
-    public ResolveTypeReturn ResolveTypeLenient(IToken tok, Type type, ResolveTypeOption option, List<TypeParameter> defaultTypeArguments, bool allowShortenedPath) {
+    public ResolveTypeReturn ResolveTypeLenient(IToken tok, Type type, ICodeContext context, ResolveTypeOption option, List<TypeParameter> defaultTypeArguments, bool allowShortenedPath) {
       Contract.Requires(tok != null);
       Contract.Requires(type != null);
+      Contract.Requires(context != null);
       Contract.Requires((option.Opt == ResolveTypeOptionEnum.DontInfer || option.Opt == ResolveTypeOptionEnum.InferTypeProxies) == (defaultTypeArguments == null));
       if (type is BasicType) {
         // nothing to resolve
@@ -4000,8 +4026,8 @@ namespace Microsoft.Dafny
         var mt = (MapType)type;
         int typeArgumentCount = 0;
         if (mt.HasTypeArg()) {
-          ResolveType(tok, mt.Domain, option, defaultTypeArguments);
-          ResolveType(tok, mt.Range, option, defaultTypeArguments);
+          ResolveType(tok, mt.Domain, context, option, defaultTypeArguments);
+          ResolveType(tok, mt.Range, context, option, defaultTypeArguments);
           typeArgumentCount = 2;
         } else if (option.Opt != ResolveTypeOptionEnum.DontInfer) {
           var inferredTypeArgs = new List<Type>();
@@ -4031,7 +4057,7 @@ namespace Microsoft.Dafny
       } else if (type is CollectionType) {
         var t = (CollectionType)type;
         if (t.HasTypeArg()) {
-          ResolveType(tok, t.Arg, option, defaultTypeArguments);
+          ResolveType(tok, t.Arg, context, option, defaultTypeArguments);
         } else if (option.Opt != ResolveTypeOptionEnum.DontInfer) {
           var inferredTypeArgs = new List<Type>();
           FillInTypeArguments(tok, 1, inferredTypeArgs, defaultTypeArguments, option);
@@ -4059,7 +4085,7 @@ namespace Microsoft.Dafny
           return null;
         }
         foreach (Type tt in t.TypeArgs) {
-          ResolveType(t.tok, tt, option, defaultTypeArguments);
+          ResolveType(t.tok, tt, context, option, defaultTypeArguments);
           if (tt.IsSubrangeType && !isArrow) {
             Error(t.tok, "sorry, cannot instantiate type parameter with a subrange type");
           }
@@ -4128,6 +4154,18 @@ namespace Microsoft.Dafny
             if (d is OpaqueTypeDecl) {
               what = "opaque type";
               t.ResolvedParam = ((OpaqueTypeDecl)d).TheType;  // resolve like a type parameter, and it may have type parameters if it's an opaque type
+            } else if (d is DerivedTypeDecl) {
+              var dd = (DerivedTypeDecl)d;
+              var caller = context as ICallable;
+              if (caller != null) {
+                caller.EnclosingModule.CallGraph.AddEdge(caller, dd);
+                if (caller == dd) {
+                  // detect self-loops here, since they don't show up in the graph's SSC methods
+                  Error(dd.tok, "recursive dependency involving a newtype: {0} -> {0}", dd.Name);
+                }
+              }                
+              what = "newtype";
+              t.ResolvedClass = dd;
             } else {
               // d is a class or datatype, and it may have type parameters
               what = "class/datatype";
@@ -4148,7 +4186,7 @@ namespace Microsoft.Dafny
       } else if (type is TypeProxy) {
         TypeProxy t = (TypeProxy)type;
         if (t.T != null) {
-          ResolveType(tok, t.T, option, defaultTypeArguments);
+          ResolveType(tok, t.T, context, option, defaultTypeArguments);
         }
 
       } else {
@@ -4425,7 +4463,10 @@ namespace Microsoft.Dafny
         } else if (b is IndexableTypeProxy && ((IndexableTypeProxy)b).AllowArray) {
           var ib = (IndexableTypeProxy)b;
           // the intersection of ObjectTypeProxy and IndexableTypeProxy is an array type
-          a.T = ResolvedArrayType(Token.NoToken, 1, ib.Arg);
+          // Note, we're calling ResolvedArrayType here, which in turn calls ResolveType on ib.Arg.  However, we
+          // don't need to worry about what ICodeContext we're passing in, because ib.Arg should already have been
+          // resolved.
+          a.T = ResolvedArrayType(Token.NoToken, 1, ib.Arg, new DontUseICallable());
           b.T = a.T;
           return UnifyTypes(ib.Arg, ib.Range);
         } else {
@@ -4545,12 +4586,12 @@ namespace Microsoft.Dafny
     /// Callers are expected to provide "arg" as an already resolved type.  (Note, a proxy type is resolved--
     /// only types that contain identifiers stand the possibility of not being resolved.)
     /// </summary>
-    Type ResolvedArrayType(IToken tok, int dims, Type arg) {
+    Type ResolvedArrayType(IToken tok, int dims, Type arg, ICodeContext context) {
       Contract.Requires(tok != null);
       Contract.Requires(1 <= dims);
       Contract.Requires(arg != null);
       var at = builtIns.ArrayType(tok, dims, new List<Type> { arg }, false);
-      ResolveType(tok, at, ResolveTypeOptionEnum.DontInfer, null);
+      ResolveType(tok, at, context, ResolveTypeOptionEnum.DontInfer, null);
       return at;
     }
 
@@ -4681,7 +4722,7 @@ namespace Microsoft.Dafny
 
         // Resolve the types of the locals
         foreach (var local in s.Locals) {
-          ResolveType(local.Tok, local.OptionalType, ResolveTypeOptionEnum.InferTypeProxies, null);
+          ResolveType(local.Tok, local.OptionalType, codeContext, ResolveTypeOptionEnum.InferTypeProxies, null);
           local.type = local.OptionalType;
           if (specContextOnly) {
             // a local variable in a specification-only context might as well be ghost
@@ -4763,7 +4804,7 @@ namespace Microsoft.Dafny
             // the LHS didn't resolve correctly; some error would already have been reported
           } else {
             lvalueIsGhost = var.IsGhost || codeContext.IsGhost;
-            CheckIsLvalue(lhs);
+            CheckIsLvalue(lhs, codeContext);
             if (!lvalueIsGhost && specContextOnly) {
               Error(stmt, "Assignment to non-ghost variable is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)");
             }
@@ -4803,7 +4844,7 @@ namespace Microsoft.Dafny
                 }
               }
             }
-            CheckIsLvalue(fse);
+            CheckIsLvalue(fse, codeContext);
           }
         } else if (lhs is SeqSelectExpr) {
           var slhs = (SeqSelectExpr)lhs;
@@ -4813,17 +4854,17 @@ namespace Microsoft.Dafny
             if (specContextOnly) {
               Error(stmt, "Assignment to array element is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)");
             }
-            CheckIsLvalue(slhs);
+            CheckIsLvalue(slhs, codeContext);
           }
 
         } else if (lhs is MultiSelectExpr) {
           if (specContextOnly) {
             Error(stmt, "Assignment to array element is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)");
           }
-          CheckIsLvalue(lhs);
+          CheckIsLvalue(lhs, codeContext);
 
         } else {
-          CheckIsLvalue(lhs);
+          CheckIsLvalue(lhs, codeContext);
         }
 
         s.IsGhost = lvalueIsGhost;
@@ -4992,7 +5033,7 @@ namespace Microsoft.Dafny
           if (!scope.Push(v.Name, v)) {
             Error(v, "Duplicate bound-variable name: {0}", v.Name);
           }
-          ResolveType(v.tok, v.Type, ResolveTypeOptionEnum.InferTypeProxies, null);
+          ResolveType(v.tok, v.Type, codeContext, ResolveTypeOptionEnum.InferTypeProxies, null);
         }
         ResolveExpression(s.Range, new ResolveOpts(codeContext, true));
         Contract.Assert(s.Range.Type != null);  // follows from postcondition of ResolveExpression
@@ -5190,7 +5231,7 @@ namespace Microsoft.Dafny
             if (!scope.Push(v.Name, v)) {
               Error(v, "Duplicate parameter name: {0}", v.Name);
             }
-            ResolveType(v.tok, v.Type, ResolveTypeOptionEnum.InferTypeProxies, null);
+            ResolveType(v.tok, v.Type, codeContext, ResolveTypeOptionEnum.InferTypeProxies, null);
             if (ctor != null && i < ctor.Formals.Count) {
               Formal formal = ctor.Formals[i];
               Type st = SubstType(formal.Type, subst);
@@ -5657,7 +5698,7 @@ namespace Microsoft.Dafny
               }
             }
             // LHS must denote a mutable field.
-            CheckIsLvalue(resolvedLhs);
+            CheckIsLvalue(resolvedLhs, codeContext);
           }
         }
 
@@ -5689,8 +5730,9 @@ namespace Microsoft.Dafny
     /// that can be assigned to.  In particular, this means that lhs denotes a mutable variable, field,
     /// or array element.  If a violation is detected, an error is reported.
     /// </summary>
-    void CheckIsLvalue(Expression lhs) {
+    void CheckIsLvalue(Expression lhs, ICodeContext codeContext) {
       Contract.Requires(lhs != null);
+      Contract.Requires(codeContext != null);
       if (lhs is IdentifierExpr) {
         var ll = (IdentifierExpr)lhs;
         if (!ll.Var.IsMutable) {
@@ -5704,7 +5746,7 @@ namespace Microsoft.Dafny
         }
       } else if (lhs is SeqSelectExpr) {
         var ll = (SeqSelectExpr)lhs;
-        if (!UnifyTypes(ll.Seq.Type, ResolvedArrayType(ll.Seq.tok, 1, new InferredTypeProxy()))) {
+        if (!UnifyTypes(ll.Seq.Type, ResolvedArrayType(ll.Seq.tok, 1, new InferredTypeProxy(), codeContext))) {
           Error(ll.Seq, "LHS of array assignment must denote an array element (found {0})", ll.Seq.Type);
         }
         if (!ll.SelectOne) {
@@ -6021,7 +6063,7 @@ namespace Microsoft.Dafny
         if (rr.ArrayDimensions != null) {
           // ---------- new T[EE]
           Contract.Assert(rr.Arguments == null && rr.OptionalNameComponent == null && rr.InitCall == null);
-          ResolveType(stmt.Tok, rr.EType, ResolveTypeOptionEnum.InferTypeProxies, null);
+          ResolveType(stmt.Tok, rr.EType, codeContext, ResolveTypeOptionEnum.InferTypeProxies, null);
           int i = 0;
           foreach (Expression dim in rr.ArrayDimensions) {
             Contract.Assert(dim != null);
@@ -6031,7 +6073,7 @@ namespace Microsoft.Dafny
             }
             i++;
           }
-          rr.Type = ResolvedArrayType(stmt.Tok, rr.ArrayDimensions.Count, rr.EType);
+          rr.Type = ResolvedArrayType(stmt.Tok, rr.ArrayDimensions.Count, rr.EType, codeContext);
         } else {
           var initCallTok = rr.Tok;
           if (rr.OptionalNameComponent == null && rr.Arguments != null) {
@@ -6039,21 +6081,21 @@ namespace Microsoft.Dafny
             // * If rr.EType denotes a type, then set rr.OptionalNameComponent to "_ctor", which sets up a call to the default constructor.
             // * If the all-but-last components of rr.EType denote a type, then do EType,OptionalNameComponent := allButLast(EType),last(EType)
             // * Otherwise, report an error
-            var ret = ResolveTypeLenient(stmt.Tok, rr.EType, new ResolveTypeOption(ResolveTypeOptionEnum.InferTypeProxies), null, true);
+            var ret = ResolveTypeLenient(stmt.Tok, rr.EType, codeContext, new ResolveTypeOption(ResolveTypeOptionEnum.InferTypeProxies), null, true);
             if (ret != null) {
               // While rr.EType does not denote a type, no error has been reported yet and the all-but-last components of rr.EType may
               // denote a type, so shift the last component to OptionalNameComponent and retry with the suggested type.
               rr.OptionalNameComponent = ret.LastName;
               rr.EType = ret.ReplacementType;
               initCallTok = ret.LastToken;
-              ResolveType(stmt.Tok, rr.EType, ResolveTypeOptionEnum.InferTypeProxies, null);
+              ResolveType(stmt.Tok, rr.EType, codeContext, ResolveTypeOptionEnum.InferTypeProxies, null);
             } else {
               // Either rr.EType resolved correctly as a type or there was no way to drop a last component to make it into something that looked
               // like a type.  In either case, set OptionalNameComponent to "_ctor" and continue.
               rr.OptionalNameComponent = "_ctor";
             }
           } else {
-            ResolveType(stmt.Tok, rr.EType, ResolveTypeOptionEnum.InferTypeProxies, null);
+            ResolveType(stmt.Tok, rr.EType, codeContext, ResolveTypeOptionEnum.InferTypeProxies, null);
           }
           if (!rr.EType.IsRefType) {
             Error(stmt, "new can be applied only to reference types (got {0})", rr.EType);
@@ -6421,7 +6463,7 @@ namespace Microsoft.Dafny
 
         if (e is StaticReceiverExpr) {
           StaticReceiverExpr eStatic = (StaticReceiverExpr)e;
-          this.ResolveType(eStatic.tok, eStatic.UnresolvedType, ResolveTypeOptionEnum.InferTypeProxies, null);
+          this.ResolveType(eStatic.tok, eStatic.UnresolvedType, opts.codeContext, ResolveTypeOptionEnum.InferTypeProxies, null);
           eStatic.Type = eStatic.UnresolvedType;
         } else {
           if (e.Value == null) {
@@ -6577,7 +6619,7 @@ namespace Microsoft.Dafny
         ResolveExpression(e.Array, opts);
         Contract.Assert(e.Array.Type != null);  // follows from postcondition of ResolveExpression
         Type elementType = new InferredTypeProxy();
-        if (!UnifyTypes(e.Array.Type, ResolvedArrayType(e.Array.tok, e.Indices.Count, elementType))) {
+        if (!UnifyTypes(e.Array.Type, ResolvedArrayType(e.Array.tok, e.Indices.Count, elementType, opts.codeContext))) {
           Error(e.Array, "array selection requires an array{0} (got {1})", e.Indices.Count, e.Array.Type);
         }
         int i = 0;
@@ -6762,7 +6804,7 @@ namespace Microsoft.Dafny
 
       } else if (expr is ConversionExpr) {
         var e = (ConversionExpr)expr;
-        ResolveType(e.tok, e.ToType, new ResolveTypeOption(ResolveTypeOptionEnum.DontInfer), null);
+        ResolveType(e.tok, e.ToType, opts.codeContext, new ResolveTypeOption(ResolveTypeOptionEnum.DontInfer), null);
         ResolveExpression(e.E, opts);
         if (e.ToType is IntType) {
           if (!UnifyTypes(e.E.Type, new OperationTypeProxy(true, true, false, false))) {
@@ -6976,7 +7018,7 @@ namespace Microsoft.Dafny
           var i = 0;
           foreach (var lhs in e.LHSs) {
             var rhsType = i < e.RHSs.Count ? e.RHSs[i].Type : new InferredTypeProxy();
-            ResolveCasePattern(lhs, rhsType);
+            ResolveCasePattern(lhs, rhsType, opts.codeContext);
             // Check for duplicate names now, because not until after resolving the case pattern do we know if identifiers inside it refer to bound variables or nullary constructors
             var c = 0;
             foreach (var v in lhs.Vars) {
@@ -7004,7 +7046,7 @@ namespace Microsoft.Dafny
             if (!scope.Push(v.Name, v)) {
               Error(v, "Duplicate let-variable name: {0}", v.Name);
             }
-            ResolveType(v.tok, v.Type, ResolveTypeOptionEnum.InferTypeProxies, null);
+            ResolveType(v.tok, v.Type, opts.codeContext, ResolveTypeOptionEnum.InferTypeProxies, null);
           }
           foreach (var rhs in e.RHSs) {
             ResolveExpression(rhs, opts);
@@ -7035,7 +7077,7 @@ namespace Microsoft.Dafny
             Error(v, "Duplicate bound-variable name: {0}", v.Name);
           }
           var option = typeQuantifier ? new ResolveTypeOption(e) : new ResolveTypeOption(ResolveTypeOptionEnum.DontInfer);
-          ResolveType(v.tok, v.Type, option, typeQuantifier ? e.TypeArgs : null);
+          ResolveType(v.tok, v.Type, opts.codeContext, option, typeQuantifier ? e.TypeArgs : null);
         }
         if (e.TypeArgs.Count > 0 && !typeQuantifier) {
           Error(expr, "a quantifier cannot quantify over types. Possible fix: use the experimental attribute :typeQuantifier");
@@ -7090,7 +7132,7 @@ namespace Microsoft.Dafny
           if (!scope.Push(v.Name, v)) {
             Error(v, "Duplicate bound-variable name: {0}", v.Name);
           }
-          ResolveType(v.tok, v.Type, ResolveTypeOptionEnum.InferTypeProxies, null);
+          ResolveType(v.tok, v.Type, opts.codeContext, ResolveTypeOptionEnum.InferTypeProxies, null);
         }
         ResolveExpression(e.Range, opts);
         Contract.Assert(e.Range.Type != null);  // follows from postcondition of ResolveExpression
@@ -7131,7 +7173,7 @@ namespace Microsoft.Dafny
           if (!scope.Push(v.Name, v)) {
             Error(v, "Duplicate bound-variable name: {0}", v.Name);
           }
-          ResolveType(v.tok, v.Type, ResolveTypeOptionEnum.InferTypeProxies, null);
+          ResolveType(v.tok, v.Type, opts.codeContext, ResolveTypeOptionEnum.InferTypeProxies, null);
         }
         ResolveExpression(e.Range, opts);
         Contract.Assert(e.Range.Type != null);  // follows from postcondition of ResolveExpression
@@ -7164,7 +7206,7 @@ namespace Microsoft.Dafny
           if (!scope.Push(v.Name, v)) {
             Error(v, "Duplicate bound-variable name: {0}", v.Name);
           }
-          ResolveType(v.tok, v.Type, ResolveTypeOptionEnum.InferTypeProxies, null);
+          ResolveType(v.tok, v.Type, opts.codeContext, ResolveTypeOptionEnum.InferTypeProxies, null);
         }
 
         if (e.Range != null) {
@@ -7272,7 +7314,7 @@ namespace Microsoft.Dafny
             if (!scope.Push(v.Name, v)) {
               Error(v, "Duplicate parameter name: {0}", v.Name);
             }
-            ResolveType(v.tok, v.Type, ResolveTypeOptionEnum.InferTypeProxies, null);
+            ResolveType(v.tok, v.Type, opts.codeContext, ResolveTypeOptionEnum.InferTypeProxies, null);
             if (ctor != null && i < ctor.Formals.Count) {
               Formal formal = ctor.Formals[i];
               Type st = SubstType(formal.Type, subst);
@@ -7313,9 +7355,10 @@ namespace Microsoft.Dafny
       }
     }
 
-    void ResolveCasePattern(CasePattern pat, Type sourceType) {
+    void ResolveCasePattern(CasePattern pat, Type sourceType, ICodeContext context) {
       Contract.Requires(pat != null);
       Contract.Requires(sourceType != null);
+      Contract.Requires(context != null);
 
       DatatypeDecl dtd = null;
       UserDefinedType udt = null;
@@ -7336,7 +7379,7 @@ namespace Microsoft.Dafny
       if (pat.Var != null) {
         // this is a simple resolution
         var v = pat.Var;
-        ResolveType(v.tok, v.Type, ResolveTypeOptionEnum.InferTypeProxies, null);
+        ResolveType(v.tok, v.Type, context, ResolveTypeOptionEnum.InferTypeProxies, null);
         if (!UnifyTypes(v.Type, sourceType)) {
           Error(v.tok, "type of corresponding source/RHS ({0}) does not match type of bound variable ({1})", sourceType, v.Type);
         }
@@ -7362,7 +7405,7 @@ namespace Microsoft.Dafny
           if (j < ctor.Formals.Count) {
             var formal = ctor.Formals[j];
             Type st = SubstType(formal.Type, subst);
-            ResolveCasePattern(arg, st);
+            ResolveCasePattern(arg, st, context);
           }
           j++;
         }
@@ -8014,7 +8057,7 @@ namespace Microsoft.Dafny
         // error has already been reported by ResolveMember
         return null;
       } else {
-        // assume it's a field and let the resolution of the FieldSelectExpr check any further problems
+        // assume it's a field and let the resolution of the MemberSelectExpr check any further problems
         return new MemberSelectExpr(tok, obj, suffixName);
       }
     }

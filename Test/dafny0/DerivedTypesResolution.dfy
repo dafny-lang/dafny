@@ -94,4 +94,19 @@ module Constraints {
     var k := s;
     assert k == s;
     k < 10 || 10 <= s
+
+  method BadTypeArgs(n: N<int>)  // error: N takes no type arguments
+}
+
+module CyclicDependencies {
+  newtype Cycle = x: int where (BadLemma(); false)  // error: cycle
+  static lemma BadLemma()
+    ensures false;
+  {
+    var c: Cycle;
+  }
+}
+
+module SelfCycleTest {
+  newtype SelfCycle = x: int where var s: SelfCycle := 4; s < 10  // error: cyclic dependency on itself
 }

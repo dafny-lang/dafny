@@ -467,6 +467,7 @@ namespace Microsoft.Dafny {
     void AddTypeDecl(DerivedTypeDecl dd) {
       Contract.Requires(dd != null);
       AddTypeDecl_Aux(dd.tok, dd.FullName, new List<TypeParameter>());
+      AddWellformednessCheck(dd);
     }
     void AddTypeDecl_Aux(IToken tok, string nm, List<TypeParameter> typeArgs) {
       Contract.Requires(tok != null);
@@ -3807,7 +3808,7 @@ namespace Microsoft.Dafny {
       //   }
       // Here go the postconditions (termination checks included, but no reads checks)
       StmtListBuilder postCheckBuilder = new StmtListBuilder();
-      // Assume the type returned by the call itself respects its type (this matter if the type is "nat", for example)
+      // Assume the type returned by the call itself respects its type (this matters if the type is "nat", for example)
       {
         var args = new List<Bpl.Expr>();
         foreach (var p in GetTypeParams(f)) {
@@ -3889,6 +3890,80 @@ namespace Microsoft.Dafny {
 
       Contract.Assert(currentModule == f.EnclosingClass.Module);
       Contract.Assert(codeContext == f);
+      currentModule = null;
+      codeContext = null;
+    }
+
+    void AddWellformednessCheck(DerivedTypeDecl decl) {
+      Contract.Requires(decl != null);
+      Contract.Requires(sink != null && predef != null);
+      Contract.Requires(currentModule == null && codeContext == null);
+      Contract.Ensures(currentModule == null && codeContext == null);
+
+      // If there's no constraint, there's nothing to do
+      if (decl.Var == null) {
+        return;
+      }
+      Contract.Assert(decl.Constraint != null);  // follows from the test above and the DerivedTypeDecl class invariant
+
+      currentModule = decl.Module;
+      codeContext = decl;
+      ExpressionTranslator etran = new ExpressionTranslator(this, predef, decl.tok);
+
+      // parameters of the procedure
+      var inParams = new List<Variable>();
+      Bpl.Type varType = TrType(decl.Var.Type);
+      Bpl.Expr wh = GetWhereClause(decl.Var.tok, new Bpl.IdentifierExpr(decl.Var.tok, decl.Var.AssignUniqueName(decl), varType), decl.Var.Type, etran);
+      inParams.Add(new Bpl.Formal(decl.Var.tok, new Bpl.TypedIdent(decl.Var.tok, decl.Var.AssignUniqueName(decl), varType, wh), true));
+
+      // the procedure itself
+      var req = new List<Bpl.Requires>();
+      // free requires mh == ModuleContextHeight && fh == TypeContextHeight;
+      req.Add(Requires(decl.tok, true, etran.HeightContext(decl), null, null));
+      // modifies $Heap, $Tick
+      var mod = new List<Bpl.IdentifierExpr> {
+        (Bpl.IdentifierExpr /*TODO: this cast is rather dubious*/)etran.HeapExpr,
+        etran.Tick()
+      };
+      var proc = new Bpl.Procedure(decl.tok, "CheckWellformed$$" + decl.FullSanitizedName, new List<TypeVariable>(),
+        inParams, new List<Variable>(),
+        req, mod, new List<Bpl.Ensures>(), etran.TrAttributes(decl.Attributes, null));
+      sink.TopLevelDeclarations.Add(proc);
+
+      // TODO: Can a checksum be inserted here?
+
+      Contract.Assert(proc.InParams.Count == inParams.Count);
+      // Changed the next line to strip from inParams instead of proc.InParams
+      // They should be the same, but hence the added contract
+      var implInParams = Bpl.Formal.StripWhereClauses(inParams);
+      var locals = new List<Variable>();
+      var builder = new Bpl.StmtListBuilder();
+      builder.Add(new CommentCmd("AddWellformednessCheck for newtype " + decl));
+      builder.Add(CaptureState(decl.tok, false, "initial state"));
+
+      DefineFrame(decl.tok, new List<FrameExpression>(), builder, locals, null);
+
+      // check well-formedness of the constraint (including termination, and reads checks)
+      CheckWellformed(decl.Constraint, new WFOptions(null, true), locals, builder, etran);
+
+      // Check that the type is inhabited.
+      // For now, we do that simply by checking if 0 (or 0.0) is part of the type.  As this will be changed in the future, the compiler also needs to be updated to pick an appropriate witness.
+      var witnessCheck = etran.TrExpr(Substitute(decl.Constraint, decl.Var,
+        decl.BaseType.IsNumericBased(Type.NumericPersuation.Int) ?
+        Expression.CreateIntLiteral(decl.tok, 0) :
+        Expression.CreateRealLiteral(decl.tok, Basetypes.BigDec.ZERO)));
+      builder.Add(Assert(decl.tok, witnessCheck, string.Format("cannot find witness that shows type is inhabited (sorry, for now, only tried {0})",
+        decl.BaseType.IsNumericBased(Type.NumericPersuation.Int) ? "0" : "0.0")));
+
+      var impl = new Bpl.Implementation(decl.tok, proc.Name,
+        new List<TypeVariable>(), implInParams, new List<Variable>(),
+        locals, builder.Collect(decl.tok), etran.TrAttributes(decl.Attributes, null));
+      sink.TopLevelDeclarations.Add(impl);
+
+      // TODO: Should a checksum be inserted here?
+
+      Contract.Assert(currentModule == decl.Module);
+      Contract.Assert(codeContext == decl);
       currentModule = null;
       codeContext = null;
     }

@@ -1,3 +1,9 @@
+DerivedTypes.dfy(74,11): Error: cannot find witness that shows type is inhabited (sorry, for now, only tried 0)
+Execution trace:
+    (0,0): anon0
+DerivedTypes.dfy(76,49): Error: possible division by zero
+Execution trace:
+    (0,0): anon0
+    (0,0): anon3_Then
 
-Dafny program verifier finished with 2 verified, 0 errors
-Compiled assembly into DerivedTypes.dll
+Dafny program verifier finished with 11 verified, 2 errors

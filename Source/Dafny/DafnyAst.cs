@@ -1877,7 +1877,7 @@ namespace Microsoft.Dafny {
   }
 
   /// <summary>
-  /// An ICodeContext is a Function, Method, or IteratorDecl, or a NoContext.
+  /// An ICodeContext is an ICallable or a NoContext.
   /// </summary>
   public interface ICodeContext
   {
@@ -1890,11 +1890,12 @@ namespace Microsoft.Dafny {
     bool AllowsNontermination { get; }
   }
   /// <summary>
-  /// An ICallable is a Function, Method, or IteratorDecl.
+  /// An ICallable is a Function, Method, IteratorDecl, or RedirectingTypeDecl.
   /// </summary>
   public interface ICallable : ICodeContext
   {
     IToken Tok { get; }
+    string NameRelativeToModule { get; }
     Specification<Expression> Decreases { get; }
     /// <summary>
     /// The InferredDecreases property says whether or not a process was attempted to provide a default decreases
@@ -1902,6 +1903,23 @@ namespace Microsoft.Dafny {
     /// the property will get the value "true".  This is so that a useful error message can be provided.
     /// </summary>
     bool InferredDecreases { get; set; }
+  }
+  public class DontUseICallable : ICallable
+  {
+    public bool IsGhost { get { throw new cce.UnreachableException(); } }
+    public List<TypeParameter> TypeArgs { get { throw new cce.UnreachableException(); } }
+    public List<Formal> Ins { get { throw new cce.UnreachableException(); } }
+    public ModuleDefinition EnclosingModule { get { throw new cce.UnreachableException(); } }
+    public bool MustReverify { get { throw new cce.UnreachableException(); } }
+    public string FullSanitizedName { get { throw new cce.UnreachableException(); } }
+    public bool AllowsNontermination { get { throw new cce.UnreachableException(); } }
+    public IToken Tok { get { throw new cce.UnreachableException(); } }
+    public string NameRelativeToModule { get { throw new cce.UnreachableException(); } }
+    public Specification<Expression> Decreases { get { throw new cce.UnreachableException(); } }
+    public bool InferredDecreases {
+      get { throw new cce.UnreachableException(); }
+      set { throw new cce.UnreachableException(); }
+    }
   }
   /// <summary>
   /// An IMethodCodeContext is a Method or IteratorDecl.
@@ -1913,7 +1931,7 @@ namespace Microsoft.Dafny {
   }
 
   /// <summary>
-  /// Applies when we are neither inside a method, nor iterator.
+  /// Applies when we are not inside an ICallable.  In particular, a NoContext is used to resolve the attributes of declarations with no other context.
   /// </summary>
   public class NoContext : ICodeContext
   {
@@ -2022,6 +2040,7 @@ namespace Microsoft.Dafny {
     List<Formal> IMethodCodeContext.Outs { get { return this.Outs; } }
     Specification<FrameExpression> IMethodCodeContext.Modifies { get { return this.Modifies; } }
     IToken ICallable.Tok { get { return this.tok; } }
+    string ICallable.NameRelativeToModule { get { return this.Name; } }
     Specification<Expression> ICallable.Decreases { get { return this.Decreases; } }
     bool _inferredDecr;
     bool ICallable.InferredDecreases {
@@ -2189,9 +2208,8 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public interface RedirectingTypeDecl
+  public interface RedirectingTypeDecl : ICallable
   {
-    IToken Tok { get; }
     string Name { get; }
   }
 
@@ -2218,8 +2236,28 @@ namespace Microsoft.Dafny {
       Var = bv;
       Constraint = constraint;
     }
-    IToken RedirectingTypeDecl.Tok { get { return tok; } }
+
     string RedirectingTypeDecl.Name { get { return Name; } }
+
+    bool ICodeContext.IsGhost { get { return true; } }
+    List<TypeParameter> ICodeContext.TypeArgs { get { return new List<TypeParameter>(); } }
+    List<Formal> ICodeContext.Ins { get { return new List<Formal>(); } }
+    ModuleDefinition ICodeContext.EnclosingModule { get { return Module; } }
+    bool ICodeContext.MustReverify { get { return false; } }
+    bool ICodeContext.AllowsNontermination { get { return false; } }
+    IToken ICallable.Tok { get { return tok; } }
+    string ICallable.NameRelativeToModule { get { return Name; } }
+    Specification<Expression> ICallable.Decreases {
+      get {
+        // The resolver checks that a DerivedTypeDecl sits in its own SSC in the call graph.  Therefore,
+        // the question of what its Decreases clause is should never arise.
+        throw new cce.UnreachableException();
+      }
+    }
+    bool ICallable.InferredDecreases {
+      get { throw new cce.UnreachableException(); }  // see comment above about ICallable.Decreases
+      set { throw new cce.UnreachableException(); }  // see comment above about ICallable.Decreases
+    }
   }
 
   public class TypeSynonymDecl : TopLevelDecl, RedirectingTypeDecl
@@ -2249,8 +2287,33 @@ namespace Microsoft.Dafny {
         return Resolver.SubstType(Rhs, subst);
       }
     }
-    IToken RedirectingTypeDecl.Tok { get { return tok; } }
+
     string RedirectingTypeDecl.Name { get { return Name; } }
+
+    bool ICodeContext.IsGhost {
+      get {
+        // A type synonym does not have any expressions or statements, so the the question of IsGhost should never arise.
+        throw new cce.UnreachableException();
+      }
+    }
+    List<TypeParameter> ICodeContext.TypeArgs { get { return TypeArgs; } }
+    List<Formal> ICodeContext.Ins { get { return new List<Formal>(); } }
+    ModuleDefinition ICodeContext.EnclosingModule { get { return Module; } }
+    bool ICodeContext.MustReverify {get { return false; } }
+    bool ICodeContext.AllowsNontermination { get { return false; } }
+    IToken ICallable.Tok { get { return tok; } }
+    string ICallable.NameRelativeToModule { get { return Name; } }
+    Specification<Expression> ICallable.Decreases {
+      get {
+        // The resolver checks that a DerivedTypeDecl sits in its own SSC in the call graph.  Therefore,
+        // the question of what its Decreases clause is should never arise.
+        throw new cce.UnreachableException();
+      }
+    }
+    bool ICallable.InferredDecreases {
+      get { throw new cce.UnreachableException(); }  // see comment above about ICallable.Decreases
+      set { throw new cce.UnreachableException(); }  // see comment above about ICallable.Decreases
+    }
   }
 
   [ContractClass(typeof(IVariableContracts))]
@@ -2627,6 +2690,7 @@ namespace Microsoft.Dafny {
     List<TypeParameter> ICodeContext.TypeArgs { get { return this.TypeArgs; } }
     List<Formal> ICodeContext.Ins { get { return this.Formals; } }
     IToken ICallable.Tok { get { return this.tok; } }
+    string ICallable.NameRelativeToModule { get { return EnclosingClass.Name + "." + Name; } }
     Specification<Expression> ICallable.Decreases { get { return this.Decreases; } }
     bool _inferredDecr;
     bool ICallable.InferredDecreases {
@@ -2785,6 +2849,7 @@ namespace Microsoft.Dafny {
     List<Formal> IMethodCodeContext.Outs { get { return this.Outs; } }
     Specification<FrameExpression> IMethodCodeContext.Modifies { get { return Mod; } }
     IToken ICallable.Tok { get { return this.tok; } }
+    string ICallable.NameRelativeToModule { get { return EnclosingClass.Name + "." + Name; } }
     Specification<Expression> ICallable.Decreases { get { return this.Decreases; } }
     bool _inferredDecr;
     bool ICallable.InferredDecreases {
@@ -4703,6 +4768,16 @@ namespace Microsoft.Dafny {
       } else {
         return CreateDecrement(CreateIntLiteral(tok, 0), -n);
       }
+    }
+
+    /// <summary>
+    /// Create a resolved expression of the form "x"
+    /// </summary>
+    public static Expression CreateRealLiteral(IToken tok, Basetypes.BigDec x) {
+      Contract.Requires(tok != null);
+      var nn = new LiteralExpr(tok, x);
+      nn.Type = Type.Real;
+      return nn;
     }
 
     /// <summary>
