@@ -4813,6 +4813,7 @@ namespace Microsoft.Dafny {
           case BinaryExpr.ResolvedOpcode.Add:
           case BinaryExpr.ResolvedOpcode.Sub:
           case BinaryExpr.ResolvedOpcode.Mul:
+            CheckWellformed(e.E1, options, locals, builder, etran);
             CheckResultToBeInType(expr.tok, expr, expr.Type, locals, builder, etran);
             break;
           case BinaryExpr.ResolvedOpcode.Div:
@@ -5085,7 +5086,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(builder != null);
       Contract.Requires(etran != null);
       bool needIntegerCheck = expr.Type.IsNumericBased(Type.NumericPersuation.Real) && toType.IsNumericBased(Type.NumericPersuation.Int);
-      var dd = expr.Type.AsDerivedType;
+      var dd = toType.AsDerivedType;
       if (!needIntegerCheck && dd == null) {
         return;
       }
@@ -5098,8 +5099,10 @@ namespace Microsoft.Dafny {
 
       Bpl.Expr be;
       if (needIntegerCheck) {
-        be = new Bpl.NAryExpr(tok, new Bpl.ArithmeticCoercion(tok, Bpl.ArithmeticCoercion.CoercionType.ToInt), new List<Bpl.Expr> { o });
-        Bpl.Expr e = new Bpl.NAryExpr(tok, new Bpl.ArithmeticCoercion(tok, Bpl.ArithmeticCoercion.CoercionType.ToReal), new List<Bpl.Expr> { be });
+        // this operation is well-formed only if the real-based number represents an integer
+        //   assert Real(Int(o)) == o;
+        be = FunctionCall(tok, BuiltinFunction.RealToInt, null, o);
+        Bpl.Expr e = FunctionCall(tok, BuiltinFunction.IntToReal, null, be);
         e = Bpl.Expr.Binary(tok, Bpl.BinaryOperator.Opcode.Eq, e, o);
         builder.Add(Assert(tok, e, "the real-based number must be an integer (if you want truncation, apply .Trunc to the real-based number)"));
       } else {
@@ -5129,6 +5132,7 @@ namespace Microsoft.Dafny {
         builder.Add(Assert(tok, constraint, "result of operation might violate newtype constraint"));
       }
     }
+
 
     void CheckFunctionSelectWF(string what, StmtListBuilder builder, ExpressionTranslator etran, Expression e, string hint) {
       Function fn = null;
@@ -10476,22 +10480,22 @@ namespace Microsoft.Dafny {
 
         } else if (expr is ConversionExpr) {
           var e = (ConversionExpr)expr;
-          Bpl.ArithmeticCoercion.CoercionType ct;
+          BuiltinFunction ct;
           if (e.ToType is IntType) {
             if (e.E.Type.IsNumericBased(Type.NumericPersuation.Int)) {
               return TrExpr(e.E);
             }
-            ct = Bpl.ArithmeticCoercion.CoercionType.ToInt;
+            ct = BuiltinFunction.RealToInt;
           } else if (e.ToType is RealType) {
             if (e.E.Type.IsNumericBased(Type.NumericPersuation.Real)) {
               return TrExpr(e.E);
             }
-            ct = Bpl.ArithmeticCoercion.CoercionType.ToReal;
+            ct = BuiltinFunction.IntToReal;
           } else {
             Contract.Assert(false);  // unexpected ConversionExpr to-type
-            ct = Bpl.ArithmeticCoercion.CoercionType.ToInt;  // please compiler
+            ct = BuiltinFunction.RealToInt;  // please compiler
           }
-          return new Bpl.NAryExpr(e.tok, new ArithmeticCoercion(e.tok, ct), new List<Expr> { TrExpr(e.E) });
+          return translator.FunctionCall(e.tok, ct, null, TrExpr(e.E));
 
         } else if (expr is BinaryExpr) {
           BinaryExpr e = (BinaryExpr)expr;
@@ -11310,6 +11314,9 @@ namespace Microsoft.Dafny {
       Unbox,
       IsCanonicalBoolBox,
 
+      RealToInt,
+      IntToReal,
+
       IsGoodHeap,
       HeapSucc,
       HeapSuccGhost,
@@ -11622,6 +11629,15 @@ namespace Microsoft.Dafny {
           Contract.Assert(args.Length == 1);
           Contract.Assert(typeInstantiation == null);
           return FunctionCall(tok, "$IsCanonicalBoolBox", Bpl.Type.Bool, args);
+
+        case BuiltinFunction.RealToInt:
+          Contract.Assume(args.Length == 1);
+          Contract.Assume(typeInstantiation == null);
+          return FunctionCall(tok, "Int", Bpl.Type.Int, args);
+        case BuiltinFunction.IntToReal:
+          Contract.Assume(args.Length == 1);
+          Contract.Assume(typeInstantiation == null);
+          return FunctionCall(tok, "Real", Bpl.Type.Real, args);
 
         case BuiltinFunction.IsGoodHeap:
           Contract.Assert(args.Length == 1);

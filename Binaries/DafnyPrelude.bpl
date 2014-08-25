@@ -432,7 +432,11 @@ axiom (forall o: ref :: 0 <= _System.array.Length(o));
 // -- Reals ------------------------------------------------------
 // ---------------------------------------------------------------
 
-function {:inline true} _System.real.Trunc(x: real): int { int(x) }
+function Int(x: real): int { int(x) }
+function Real(x: int): real { real(x) }
+axiom (forall i: int :: { Int(Real(i)) } Int(Real(i)) == i);
+
+function {:inline true} _System.real.Trunc(x: real): int { Int(x) }
 
 // ---------------------------------------------------------------
 // -- The heap ---------------------------------------------------
