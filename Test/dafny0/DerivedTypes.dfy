@@ -57,7 +57,7 @@ module Constraints {
   {
     x % 2 == 0
   }
-//  newtype G = x: int where IsEven(x)  // it's okay to use ghost constructs in type constraints
+  newtype G = x: int where IsEven(x)  // it's okay to use ghost constructs in type constraints
 
   newtype N = nat
 
