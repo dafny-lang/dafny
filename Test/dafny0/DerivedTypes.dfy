@@ -75,3 +75,44 @@ module Constraints {
 
   newtype K = x: real where 10.0 <= x ==> 200.0 / (x - 20.0) < 30.0  // error: division by zero
 }
+
+module PredicateTests {
+  newtype char8 = x: int where 0 <= x < 256
+
+  method M() {
+    var u: char8 := 85;
+    var v: char8 := 86;
+    var ch := u + v - v + u;
+    assert ch + u == 255;
+    ch := ch + v - 3;  // error: value out of range (for the plus operation)
+  }
+
+  method N() {
+    var y: char8;
+    if * {
+      y := y / 2;
+      y := y + 1;
+      y := 300;  // error: value out of range
+    } else {
+      y := y + 1;  // error: value out of range
+    }
+  }
+
+  method MidPoint_Bad(lo: char8, hi: char8) returns (mid: char8)
+    requires lo <= hi;
+  {
+    mid := (lo + hi) / 2;  // error: intermediate result is out of range
+  }
+
+  method MidPoint_Good(lo: char8, hi: char8) returns (mid: char8)
+    requires lo <= hi;
+  {
+    mid := lo + (hi - lo) / 2;
+  }
+
+  method MidPoint_AlsoFine(lo: char8, hi: char8) returns (mid: char8)
+    requires lo <= hi;
+  {
+//    mid := char8(int(lo) + int(hi) / 2);
+  }
+}

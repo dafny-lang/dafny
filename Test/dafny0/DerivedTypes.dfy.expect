@@ -5,5 +5,19 @@ DerivedTypes.dfy(76,49): Error: possible division by zero
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Then
+DerivedTypes.dfy(87,14): Error: result of operation might violate newtype constraint
+Execution trace:
+    (0,0): anon0
+DerivedTypes.dfy(95,12): Error: result of operation might violate newtype constraint
+Execution trace:
+    (0,0): anon0
+    (0,0): anon3_Then
+DerivedTypes.dfy(97,14): Error: result of operation might violate newtype constraint
+Execution trace:
+    (0,0): anon0
+    (0,0): anon3_Else
+DerivedTypes.dfy(104,16): Error: result of operation might violate newtype constraint
+Execution trace:
+    (0,0): anon0
 
-Dafny program verifier finished with 11 verified, 2 errors
+Dafny program verifier finished with 20 verified, 6 errors

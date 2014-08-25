@@ -4439,7 +4439,7 @@ namespace Microsoft.Dafny {
     /// See class WFOptions for descriptions of the specified options.
     /// </summary>
     void CheckWellformedWithResult(Expression expr, WFOptions options, Bpl.Expr result, Type resultType,
-                                   List<Variable> locals, Bpl.StmtListBuilder builder, ExpressionTranslator etran) {
+                                   List<Bpl.Variable> locals, Bpl.StmtListBuilder builder, ExpressionTranslator etran) {
       Contract.Requires(expr != null);
       Contract.Requires(options != null);
       Contract.Requires((result == null) == (resultType == null));
@@ -4448,7 +4448,9 @@ namespace Microsoft.Dafny {
       Contract.Requires(etran != null);
       Contract.Requires(predef != null);
 
-      if (expr is LiteralExpr || expr is ThisExpr || expr is IdentifierExpr || expr is WildcardExpr || expr is BoogieWrapper) {
+      if (expr is LiteralExpr) {
+        CheckResultToBeInType(expr.tok, expr, expr.Type, locals, builder, etran);
+      } else if (expr is ThisExpr || expr is IdentifierExpr || expr is WildcardExpr || expr is BoogieWrapper) {
         // always allowed
       } else if (expr is DisplayExpression) {
         DisplayExpression e = (DisplayExpression)expr;
@@ -4789,15 +4791,7 @@ namespace Microsoft.Dafny {
         CheckWellformed(e.E, options, locals, builder, etran);
         if (e is ConversionExpr) {
           var ee = (ConversionExpr)e;
-          if (ee.ToType is IntType && ee.E.Type.IsNumericBased(Type.NumericPersuation.Real)) {
-            // this operation is well-formed only if the real-based number represents an integer
-            // assert ToReal(ToInt(e.E)) == e.E
-            var arg = etran.TrExpr(e.E);
-            Bpl.Expr isAnInt = new Bpl.NAryExpr(e.tok, new ArithmeticCoercion(e.tok, ArithmeticCoercion.CoercionType.ToInt), new List<Expr> { arg });
-            isAnInt = new Bpl.NAryExpr(e.tok, new ArithmeticCoercion(e.tok, ArithmeticCoercion.CoercionType.ToReal), new List<Expr> { isAnInt });
-            isAnInt = Bpl.Expr.Binary(e.tok, BinaryOperator.Opcode.Eq, isAnInt, arg);
-            builder.Add(Assert(expr.tok, isAnInt, "the real-based number must be an integer (if you want truncation, apply .Trunc to the real-based number)"));
-          }
+          CheckResultToBeInType(expr.tok, ee.E, ee.ToType, locals, builder, etran);
         }
       } else if (expr is BinaryExpr) {
         BinaryExpr e = (BinaryExpr)expr;
@@ -4816,11 +4810,17 @@ namespace Microsoft.Dafny {
               builder.Add(new Bpl.IfCmd(expr.tok, Bpl.Expr.Not(etran.TrExpr(e.E0)), b.Collect(expr.tok), null, null));
             }
             break;
+          case BinaryExpr.ResolvedOpcode.Add:
+          case BinaryExpr.ResolvedOpcode.Sub:
+          case BinaryExpr.ResolvedOpcode.Mul:
+            CheckResultToBeInType(expr.tok, expr, expr.Type, locals, builder, etran);
+            break;
           case BinaryExpr.ResolvedOpcode.Div:
           case BinaryExpr.ResolvedOpcode.Mod: {
               Bpl.Expr zero = e.E1.Type.IsNumericBased(Type.NumericPersuation.Real) ? Bpl.Expr.Literal(Basetypes.BigDec.ZERO) : Bpl.Expr.Literal(0);
               CheckWellformed(e.E1, options, locals, builder, etran);
               builder.Add(Assert(expr.tok, Bpl.Expr.Neq(etran.TrExpr(e.E1), zero), "possible division by zero", options.AssertKv));
+              CheckResultToBeInType(expr.tok, expr, expr.Type, locals, builder, etran);
             }
             break;
           default:
@@ -5075,6 +5075,58 @@ namespace Microsoft.Dafny {
         builder.Add(new CommentCmd("CheckWellformedWithResult: any expression"));
         builder.Add(new Bpl.AssumeCmd(expr.tok, MkIsAlloc(result, resultType, etran.HeapExpr)));
         builder.Add(new Bpl.AssumeCmd(expr.tok, MkIs(result, resultType)));
+      }
+    }
+
+    void CheckResultToBeInType(IToken tok, Expression expr, Type toType, List<Bpl.Variable> locals, StmtListBuilder builder, ExpressionTranslator etran) {
+      Contract.Requires(tok != null);
+      Contract.Requires(expr != null);
+      Contract.Requires(toType != null);
+      Contract.Requires(builder != null);
+      Contract.Requires(etran != null);
+      bool needIntegerCheck = expr.Type.IsNumericBased(Type.NumericPersuation.Real) && toType.IsNumericBased(Type.NumericPersuation.Int);
+      var dd = expr.Type.AsDerivedType;
+      if (!needIntegerCheck && dd == null) {
+        return;
+      }
+
+      var oVar = new Bpl.LocalVariable(tok, new Bpl.TypedIdent(tok, "newtype$check#" + otherTmpVarCount, TrType(expr.Type)));
+      otherTmpVarCount++;
+      locals.Add(oVar);
+      var o = new Bpl.IdentifierExpr(tok, oVar);
+      builder.Add(Bpl.Cmd.SimpleAssign(tok, o, etran.TrExpr(expr)));
+
+      Bpl.Expr be;
+      if (needIntegerCheck) {
+        be = new Bpl.NAryExpr(tok, new Bpl.ArithmeticCoercion(tok, Bpl.ArithmeticCoercion.CoercionType.ToInt), new List<Bpl.Expr> { o });
+        Bpl.Expr e = new Bpl.NAryExpr(tok, new Bpl.ArithmeticCoercion(tok, Bpl.ArithmeticCoercion.CoercionType.ToReal), new List<Bpl.Expr> { be });
+        e = Bpl.Expr.Binary(tok, Bpl.BinaryOperator.Opcode.Eq, e, o);
+        builder.Add(Assert(tok, e, "the real-based number must be an integer (if you want truncation, apply .Trunc to the real-based number)"));
+      } else {
+        be = o;
+      }
+
+      if (dd != null) {
+        var dafnyType = toType.IsNumericBased(Type.NumericPersuation.Int) ? (Type)Type.Int : Type.Real;
+        CheckResultToBeInType_Aux(tok, new BoogieWrapper(be, dafnyType), dd, builder, etran);
+      }
+    }
+    void CheckResultToBeInType_Aux(IToken tok, Expression expr, DerivedTypeDecl dd, StmtListBuilder builder, ExpressionTranslator etran) {
+      Contract.Requires(tok != null);
+      Contract.Requires(expr != null);
+      Contract.Requires(dd != null);
+      Contract.Requires(builder != null);
+      Contract.Requires(etran != null);
+      // First, check constraints of base types
+      var baseType = dd.BaseType.AsDerivedType;
+      if (baseType != null) {
+        CheckResultToBeInType_Aux(tok, expr, baseType, builder, etran);
+      }
+      // Check any constraint defined in 'dd'
+      if (dd.Var != null) {
+        // TODO: use TrSplitExpr
+        var constraint = etran.TrExpr(Substitute(dd.Constraint, dd.Var, expr));
+        builder.Add(Assert(tok, constraint, "result of operation might violate newtype constraint"));
       }
     }
 
