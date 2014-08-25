@@ -6806,13 +6806,13 @@ namespace Microsoft.Dafny
         var e = (ConversionExpr)expr;
         ResolveType(e.tok, e.ToType, opts.codeContext, new ResolveTypeOption(ResolveTypeOptionEnum.DontInfer), null);
         ResolveExpression(e.E, opts);
-        if (e.ToType is IntType) {
+        if (e.ToType.IsNumericBased(Type.NumericPersuation.Int)) {
           if (!UnifyTypes(e.E.Type, new OperationTypeProxy(true, true, false, false))) {
-            Error(expr, "type conversion to int is allowed only from numeric types (got {0})", e.E.Type);
+            Error(expr, "type conversion to an int-based type is allowed only from numeric types (got {0})", e.E.Type);
           }
-        } else if (e.ToType is RealType) {
+        } else if (e.ToType.IsNumericBased(Type.NumericPersuation.Real)) {
           if (!UnifyTypes(e.E.Type, new OperationTypeProxy(true, true, false, false))) {
-            Error(expr, "type conversion to real is allowed only from numeric types(got {0})", e.E.Type);
+            Error(expr, "type conversion to a real-based type is allowed only from numeric types (got {0})", e.E.Type);
           }
         } else {
           Error(expr, "type conversions are not supported to this type (got {0})", e.ToType);
@@ -7804,10 +7804,27 @@ namespace Microsoft.Dafny
           //   datatype Id = Id
           // you cannot refer to the constructor, instead this error message is thrown:
           // (bug?)
-          Error(id, "name of type ('{0}') is used as a function", id.val);
-          // resolve the arguments nonetheless
-          foreach (var arg in e.Arguments) {
-            ResolveExpression(arg, opts);
+          var tpArgs = decl.TypeArgs.ConvertAll(_ => (Type)new InferredTypeProxy());
+          var ty = new UserDefinedType(e.tok, decl.Name, decl, tpArgs);
+          if (ty.AsDerivedType != null) {
+            if (e.Arguments.Count != 1) {
+              Error(id, "conversion operation to {0} got wrong number of arguments (expected 1, got {1})", id.val, e.Arguments.Count);
+            }
+            var conversionArg = 1 <= e.Arguments.Count ? e.Arguments[0] :
+              ty.IsNumericBased(Type.NumericPersuation.Int) ? LiteralExpr.CreateIntLiteral(e.tok, 0) :
+              LiteralExpr.CreateRealLiteral(e.tok, Basetypes.BigDec.ZERO);
+            r = new ConversionExpr(e.tok, conversionArg, ty);
+            ResolveExpression(r, opts);
+            // resolve the rest of the arguments, if any
+            for (int i = 1; i < e.Arguments.Count; i++) {
+              ResolveExpression(e.Arguments[i], opts);
+            }
+          } else {
+            Error(id, "name of type ('{0}') is used as a function", id.val);
+            // resolve the arguments nonetheless
+            foreach (var arg in e.Arguments) {
+              ResolveExpression(arg, opts);
+            }
           }
         } else if (decl is ClassDecl) {
           // ----- root is a class

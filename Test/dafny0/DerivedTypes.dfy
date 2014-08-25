@@ -113,6 +113,19 @@ module PredicateTests {
   method MidPoint_AlsoFine(lo: char8, hi: char8) returns (mid: char8)
     requires lo <= hi;
   {
-//    mid := char8(int(lo) + int(hi) / 2);
+    mid := char8((int(lo) + int(hi)) / 2);
   }
 }
+
+/*
+module Module0 {
+  import Module1
+  method M(x: int) returns (n: Module1.N9) {
+    n := Module1.N9(x);
+  }
+}
+
+module Module1 {
+  newtype N9 = int
+}
+*/

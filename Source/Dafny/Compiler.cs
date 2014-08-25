@@ -2297,25 +2297,22 @@ namespace Microsoft.Dafny {
 
       } else if (expr is ConversionExpr) {
         var e = (ConversionExpr)expr;
-        if (e.ToType is IntType) {
-          if (e.E.Type.IsNumericBased(Type.NumericPersuation.Int)) {
-            TrParenExpr(e.E);
-          } else {
-            Contract.Assert(e.E.Type.IsRealType);
-            TrParenExpr(e.E);
-            wr.Write(".ToBigInteger()");
-          }
-        } else if (e.ToType is RealType) {
-          if (e.E.Type.IsNumericBased(Type.NumericPersuation.Real)) {
-            TrParenExpr(e.E);
-          } else {
-            Contract.Assert(e.E.Type.IsIntegerType);
-            wr.Write("new Dafny.BigRational(");
-            TrExpr(e.E);
-            wr.Write(", BigInteger.One)");
-          }
+        var fromInt = e.E.Type.IsNumericBased(Type.NumericPersuation.Int);
+        Contract.Assert(fromInt || e.E.Type.IsNumericBased(Type.NumericPersuation.Real));
+        var toInt = e.ToType.IsNumericBased(Type.NumericPersuation.Int);
+        Contract.Assert(toInt || e.ToType.IsNumericBased(Type.NumericPersuation.Real));
+        if (fromInt && !toInt) {
+          // int -> real
+          wr.Write("new Dafny.BigRational(");
+          TrExpr(e.E);
+          wr.Write(", BigInteger.One)");
+        } else if (!fromInt && toInt) {
+          // real -> int
+          TrParenExpr(e.E);
+          wr.Write(".ToBigInteger()");
         } else {
-          Contract.Assert(false);  // unexpected ConversionExpr to-type
+          Contract.Assert(fromInt == toInt);
+          TrParenExpr(e.E);
         }
 
       } else if (expr is BinaryExpr) {

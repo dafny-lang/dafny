@@ -10480,20 +10480,18 @@ namespace Microsoft.Dafny {
 
         } else if (expr is ConversionExpr) {
           var e = (ConversionExpr)expr;
+          var fromInt = e.E.Type.IsNumericBased(Type.NumericPersuation.Int);
+          Contract.Assert(fromInt || e.E.Type.IsNumericBased(Type.NumericPersuation.Real));
+          var toInt = e.ToType.IsNumericBased(Type.NumericPersuation.Int);
+          Contract.Assert(toInt || e.ToType.IsNumericBased(Type.NumericPersuation.Real));
           BuiltinFunction ct;
-          if (e.ToType is IntType) {
-            if (e.E.Type.IsNumericBased(Type.NumericPersuation.Int)) {
-              return TrExpr(e.E);
-            }
-            ct = BuiltinFunction.RealToInt;
-          } else if (e.ToType is RealType) {
-            if (e.E.Type.IsNumericBased(Type.NumericPersuation.Real)) {
-              return TrExpr(e.E);
-            }
+          if (fromInt && !toInt) {
             ct = BuiltinFunction.IntToReal;
+          } else if (!fromInt && toInt) {
+            ct = BuiltinFunction.RealToInt;
           } else {
-            Contract.Assert(false);  // unexpected ConversionExpr to-type
-            ct = BuiltinFunction.RealToInt;  // please compiler
+            Contract.Assert(fromInt == toInt);
+            return TrExpr(e.E);
           }
           return translator.FunctionCall(e.tok, ct, null, TrExpr(e.E));
 
