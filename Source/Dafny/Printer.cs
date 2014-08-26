@@ -140,8 +140,8 @@ namespace Microsoft.Dafny {
           PrintClassMethodHelper("type", at.Attributes, at.Name, new List<TypeParameter>());
           wr.Write(EqualitySupportSuffix(at.EqualitySupport));
           wr.WriteLine();
-        } else if (d is DerivedTypeDecl) {
-          var dd = (DerivedTypeDecl)d;
+        } else if (d is NewtypeDecl) {
+          var dd = (NewtypeDecl)d;
           if (i++ != 0) { wr.WriteLine(); }
           Indent(indent);
           PrintClassMethodHelper("newtype", dd.Attributes, dd.Name, new List<TypeParameter>());

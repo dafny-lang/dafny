@@ -383,8 +383,8 @@ namespace Microsoft.Dafny {
         currentDeclaration = d;
         if (d is OpaqueTypeDecl) {
           AddTypeDecl((OpaqueTypeDecl)d);
-        } else if (d is DerivedTypeDecl) {
-          AddTypeDecl((DerivedTypeDecl)d);
+        } else if (d is NewtypeDecl) {
+          AddTypeDecl((NewtypeDecl)d);
         } else if (d is DatatypeDecl) {
           AddDatatype((DatatypeDecl)d);
         } else {
@@ -396,8 +396,8 @@ namespace Microsoft.Dafny {
           currentDeclaration = d;
           if (d is OpaqueTypeDecl) {
             AddTypeDecl((OpaqueTypeDecl)d);
-          } else if (d is DerivedTypeDecl) {
-            AddTypeDecl((DerivedTypeDecl)d);
+          } else if (d is NewtypeDecl) {
+            AddTypeDecl((NewtypeDecl)d);
           } else if (d is TypeSynonymDecl) {
             // do nothing, just bypass type synonyms in the translation
           } else if (d is DatatypeDecl) {
@@ -464,7 +464,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(td != null);
       AddTypeDecl_Aux(td.tok, nameTypeParam(td.TheType), td.TypeArgs);
     }
-    void AddTypeDecl(DerivedTypeDecl dd) {
+    void AddTypeDecl(NewtypeDecl dd) {
       Contract.Requires(dd != null);
       AddTypeDecl_Aux(dd.tok, dd.FullName, new List<TypeParameter>());
       AddWellformednessCheck(dd);
@@ -3934,7 +3934,7 @@ namespace Microsoft.Dafny {
       codeContext = null;
     }
 
-    void AddWellformednessCheck(DerivedTypeDecl decl) {
+    void AddWellformednessCheck(NewtypeDecl decl) {
       Contract.Requires(decl != null);
       Contract.Requires(sink != null && predef != null);
       Contract.Requires(currentModule == null && codeContext == null);
@@ -3944,7 +3944,7 @@ namespace Microsoft.Dafny {
       if (decl.Var == null) {
         return;
       }
-      Contract.Assert(decl.Constraint != null);  // follows from the test above and the DerivedTypeDecl class invariant
+      Contract.Assert(decl.Constraint != null);  // follows from the test above and the NewtypeDecl class invariant
 
       currentModule = decl.Module;
       codeContext = decl;
@@ -5086,7 +5086,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(builder != null);
       Contract.Requires(etran != null);
       bool needIntegerCheck = expr.Type.IsNumericBased(Type.NumericPersuation.Real) && toType.IsNumericBased(Type.NumericPersuation.Int);
-      var dd = toType.AsDerivedType;
+      var dd = toType.AsNewtype;
       if (!needIntegerCheck && dd == null) {
         return;
       }
@@ -5114,14 +5114,14 @@ namespace Microsoft.Dafny {
         CheckResultToBeInType_Aux(tok, new BoogieWrapper(be, dafnyType), dd, builder, etran);
       }
     }
-    void CheckResultToBeInType_Aux(IToken tok, Expression expr, DerivedTypeDecl dd, StmtListBuilder builder, ExpressionTranslator etran) {
+    void CheckResultToBeInType_Aux(IToken tok, Expression expr, NewtypeDecl dd, StmtListBuilder builder, ExpressionTranslator etran) {
       Contract.Requires(tok != null);
       Contract.Requires(expr != null);
       Contract.Requires(dd != null);
       Contract.Requires(builder != null);
       Contract.Requires(etran != null);
       // First, check constraints of base types
-      var baseType = dd.BaseType.AsDerivedType;
+      var baseType = dd.BaseType.AsNewtype;
       if (baseType != null) {
         CheckResultToBeInType_Aux(tok, expr, baseType, builder, etran);
       }
@@ -6434,11 +6434,11 @@ namespace Microsoft.Dafny {
           // unresolved proxy; just treat as ref, since no particular type information is apparently needed for this type
           return predef.RefType;
         }
-        var d = type.AsDerivedType;
+        var d = type.AsNewtype;
         if (d == null) {
           break;
         } else {
-          type = d.BaseType;  // the Boogie type to be used for the derived type is the same as for the base type
+          type = d.BaseType;  // the Boogie type to be used for the newtype is the same as for the base type
         }
       }
 

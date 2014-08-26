@@ -797,7 +797,7 @@ namespace Microsoft.Dafny
           // nothing more to register
         } else if (d is TypeSynonymDecl) {
           // nothing more to register
-        } else if (d is DerivedTypeDecl) {
+        } else if (d is NewtypeDecl) {
           // nothing more to register
 
         } else if (d is IteratorDecl) {
@@ -1474,8 +1474,8 @@ namespace Microsoft.Dafny
               typeRedirectionDependencies.AddEdge(syn, s);
             }
           });
-        } else if (d is DerivedTypeDecl) {
-          var dd = (DerivedTypeDecl)d;
+        } else if (d is NewtypeDecl) {
+          var dd = (NewtypeDecl)d;
           ResolveType(dd.tok, dd.BaseType, dd, ResolveTypeOptionEnum.DontInfer, null);
           dd.BaseType.ForeachTypeComponent(ty => {
             var s = ty.AsRedirectingType;
@@ -1520,7 +1520,7 @@ namespace Microsoft.Dafny
       if (cycle != null) {
         Contract.Assert(cycle.Count != 0);
         var erste = cycle[0];
-        Error(erste.Tok, "Cycle among redirecting types (derived types, type synonyms): {0} -> {1}", Util.Comma(" -> ", cycle, syn => syn.Name), erste.Name);
+        Error(erste.Tok, "Cycle among redirecting types (newtypes, type synonyms): {0} -> {1}", Util.Comma(" -> ", cycle, syn => syn.Name), erste.Name);
       }
     }
 
@@ -1551,16 +1551,16 @@ namespace Microsoft.Dafny
         } else if (d is ClassDecl) {
           var cl = (ClassDecl)d;
           ResolveClassMemberBodies(cl);
-        } else if (d is DerivedTypeDecl) {
-          var dd = (DerivedTypeDecl)d;
+        } else if (d is NewtypeDecl) {
+          var dd = (NewtypeDecl)d;
           // this check can be done only after it has been determined that the redirected types do not involve cycles
           if (!dd.BaseType.IsNumericBased()) {
-            Error(dd.tok, "derived types must be based on some numeric type (got {0})", dd.BaseType);
+            Error(dd.tok, "newtypes must be based on some numeric type (got {0})", dd.BaseType);
           }
           // type check the constraint, if any
           if (dd.Var != null) {
-            Contract.Assert(object.ReferenceEquals(dd.Var.Type, dd.BaseType));  // follows from DerivedTypeDecl invariant
-            Contract.Assert(dd.Constraint != null);  // follows from DerivedTypeDecl invariant
+            Contract.Assert(object.ReferenceEquals(dd.Var.Type, dd.BaseType));  // follows from NewtypeDecl invariant
+            Contract.Assert(dd.Constraint != null);  // follows from NewtypeDecl invariant
             scope.PushMarker();
             var added = scope.Push(dd.Var.Name, dd.Var);
             Contract.Assert(added);
@@ -1591,8 +1591,8 @@ namespace Microsoft.Dafny
           } else if (d is ClassDecl) {
             var cl = (ClassDecl)d;
             cl.Members.Iter(CheckTypeInference_Member);
-          } else if (d is DerivedTypeDecl) {
-            var dd = (DerivedTypeDecl)d;
+          } else if (d is NewtypeDecl) {
+            var dd = (NewtypeDecl)d;
             if (dd.Var != null) {
               Contract.Assert(dd.Constraint != null);
               CheckTypeInference(dd.Constraint);
@@ -1900,8 +1900,8 @@ namespace Microsoft.Dafny
                 }
               }
             }
-          } else if (d is DerivedTypeDecl) {
-            var dd = (DerivedTypeDecl)d;
+          } else if (d is NewtypeDecl) {
+            var dd = (NewtypeDecl)d;
             if (dd.Module.CallGraph.GetSCCSize(dd) != 1) {
               var cycle = Util.Comma(" -> ", dd.Module.CallGraph.GetSCC(dd), clbl => clbl.NameRelativeToModule);
               Error(dd.tok, "recursive dependency involving a newtype: " + cycle);
@@ -4158,8 +4158,8 @@ namespace Microsoft.Dafny
             if (d is OpaqueTypeDecl) {
               what = "opaque type";
               t.ResolvedParam = ((OpaqueTypeDecl)d).TheType;  // resolve like a type parameter, and it may have type parameters if it's an opaque type
-            } else if (d is DerivedTypeDecl) {
-              var dd = (DerivedTypeDecl)d;
+            } else if (d is NewtypeDecl) {
+              var dd = (NewtypeDecl)d;
               var caller = context as ICallable;
               if (caller != null) {
                 caller.EnclosingModule.CallGraph.AddEdge(caller, dd);
@@ -7894,7 +7894,7 @@ namespace Microsoft.Dafny
     bool ResolveAsTypeConversion(IdentifierSequence e, ResolveOpts opts, TopLevelDecl decl, IToken id, ref Expression r) {
       var tpArgs = decl.TypeArgs.ConvertAll(_ => (Type)new InferredTypeProxy());
       var ty = new UserDefinedType(e.tok, decl.Name, decl, tpArgs);
-      if (ty.AsDerivedType == null) {
+      if (ty.AsNewtype == null) {
         return false;
       } else {
         if (e.Arguments.Count != 1) {

@@ -117,8 +117,8 @@ namespace Microsoft.Dafny {
             Error("Opaque type ('{0}') cannot be compiled", at.FullName);
           } else if (d is TypeSynonymDecl) {
             // do nothing, just bypass type synonyms in the compiler
-          } else if (d is DerivedTypeDecl) {
-            // do nothing, just bypass derived types in the compiler
+          } else if (d is NewtypeDecl) {
+            // do nothing, just bypass newtypes in the compiler
           } else if (d is DatatypeDecl) {
             var dt = (DatatypeDecl)d;
             Indent(indent);
@@ -970,8 +970,8 @@ namespace Microsoft.Dafny {
         return "BigInteger";
       } else if (type is RealType) {
         return "Dafny.BigRational";
-      } else if (type.AsDerivedType != null) {
-        return TypeName(type.AsDerivedType.BaseType);
+      } else if (type.AsNewtype != null) {
+        return TypeName(type.AsNewtype.BaseType);
       } else if (type is ObjectType) {
         return "object";
       } else if (type.IsArrayType) {
@@ -1062,8 +1062,8 @@ namespace Microsoft.Dafny {
         return "BigInteger.Zero";
       } else if (type is RealType) {
         return "Dafny.BigRational.ZERO";
-      } else if (type.AsDerivedType != null) {
-        return DefaultValue(type.AsDerivedType.BaseType);
+      } else if (type.AsNewtype != null) {
+        return DefaultValue(type.AsNewtype.BaseType);
       } else if (type.IsRefType) {
         return string.Format("({0})null", TypeName(type));
       } else if (type.IsDatatype) {

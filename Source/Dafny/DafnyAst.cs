@@ -370,7 +370,7 @@ namespace Microsoft.Dafny {
       if (opProxy != null) {
         return (opProxy.AllowInts || opProxy.AllowReals) && !opProxy.AllowSeq && !opProxy.AllowSetVarieties;
       }
-      return t.IsIntegerType || t.IsRealType || t.AsDerivedType != null;
+      return t.IsIntegerType || t.IsRealType || t.AsNewtype != null;
     }
     public enum NumericPersuation { Int, Real }
     public bool IsNumericBased(NumericPersuation p) {
@@ -390,7 +390,7 @@ namespace Microsoft.Dafny {
             return p == NumericPersuation.Real;
           }
         }
-        var d = t.AsDerivedType;
+        var d = t.AsNewtype;
         if (d == null) {
           return false;
         }
@@ -428,10 +428,10 @@ namespace Microsoft.Dafny {
         return udt == null ? null : udt.ResolvedClass as ArrayClassDecl;
       }
     }
-    public DerivedTypeDecl AsDerivedType {
+    public NewtypeDecl AsNewtype {
       get {
         var udt = NormalizeExpand() as UserDefinedType;
-        return udt == null ? null : udt.ResolvedClass as DerivedTypeDecl;
+        return udt == null ? null : udt.ResolvedClass as NewtypeDecl;
       }
     }
     public TypeSynonymDecl AsTypeSynonym {
@@ -450,7 +450,7 @@ namespace Microsoft.Dafny {
         if (udt == null) {
           return null;
         } else {
-          return (RedirectingTypeDecl)(udt.ResolvedClass as TypeSynonymDecl) ?? udt.ResolvedClass as DerivedTypeDecl;
+          return (RedirectingTypeDecl)(udt.ResolvedClass as TypeSynonymDecl) ?? udt.ResolvedClass as NewtypeDecl;
         }
       }
     }
@@ -1015,7 +1015,7 @@ namespace Microsoft.Dafny {
 
     public override bool SupportsEquality {
       get {
-        if (ResolvedClass is ClassDecl || ResolvedClass is DerivedTypeDecl) {
+        if (ResolvedClass is ClassDecl || ResolvedClass is NewtypeDecl) {
           return true;
         } else if (ResolvedClass is CoDatatypeDecl) {
           return false;
@@ -2217,12 +2217,12 @@ namespace Microsoft.Dafny {
     string Name { get; }
   }
 
-  public class DerivedTypeDecl : TopLevelDecl, RedirectingTypeDecl
+  public class NewtypeDecl : TopLevelDecl, RedirectingTypeDecl
   {
     public readonly Type BaseType;
     public readonly BoundVar Var;  // can be null (if non-null, then object.ReferenceEquals(Var.Type, BaseType))
     public readonly Expression Constraint;  // is null iff Var is
-    public DerivedTypeDecl(IToken tok, string name, ModuleDefinition module, Type baseType, Attributes attributes)
+    public NewtypeDecl(IToken tok, string name, ModuleDefinition module, Type baseType, Attributes attributes)
       : base(tok, name, module, new List<TypeParameter>(), attributes) {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
@@ -2230,7 +2230,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(baseType != null);
       BaseType = baseType;
     }
-    public DerivedTypeDecl(IToken tok, string name, ModuleDefinition module, BoundVar bv, Expression constraint, Attributes attributes)
+    public NewtypeDecl(IToken tok, string name, ModuleDefinition module, BoundVar bv, Expression constraint, Attributes attributes)
       : base(tok, name, module, new List<TypeParameter>(), attributes) {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
@@ -2253,7 +2253,7 @@ namespace Microsoft.Dafny {
     string ICallable.NameRelativeToModule { get { return Name; } }
     Specification<Expression> ICallable.Decreases {
       get {
-        // The resolver checks that a DerivedTypeDecl sits in its own SSC in the call graph.  Therefore,
+        // The resolver checks that a NewtypeDecl sits in its own SSC in the call graph.  Therefore,
         // the question of what its Decreases clause is should never arise.
         throw new cce.UnreachableException();
       }
@@ -2309,7 +2309,7 @@ namespace Microsoft.Dafny {
     string ICallable.NameRelativeToModule { get { return Name; } }
     Specification<Expression> ICallable.Decreases {
       get {
-        // The resolver checks that a DerivedTypeDecl sits in its own SSC in the call graph.  Therefore,
+        // The resolver checks that a NewtypeDecl sits in its own SSC in the call graph.  Therefore,
         // the question of what its Decreases clause is should never arise.
         throw new cce.UnreachableException();
       }

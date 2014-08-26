@@ -34,12 +34,12 @@ namespace Microsoft.Dafny
         var dd = (TypeSynonymDecl)d;
         var tps = dd.TypeArgs.ConvertAll(CloneTypeParam);
         return new TypeSynonymDecl(Tok(dd.tok), dd.Name, tps, m, CloneType(dd.Rhs), CloneAttributes(dd.Attributes));
-      } else if (d is DerivedTypeDecl) {
-        var dd = (DerivedTypeDecl)d;
+      } else if (d is NewtypeDecl) {
+        var dd = (NewtypeDecl)d;
         if (dd.Var == null) {
-          return new DerivedTypeDecl(Tok(dd.tok), dd.Name, m, CloneType(dd.BaseType), CloneAttributes(dd.Attributes));
+          return new NewtypeDecl(Tok(dd.tok), dd.Name, m, CloneType(dd.BaseType), CloneAttributes(dd.Attributes));
         } else {
-          return new DerivedTypeDecl(Tok(dd.tok), dd.Name, m, CloneBoundVar(dd.Var), CloneExpr(dd.Constraint), CloneAttributes(dd.Attributes));
+          return new NewtypeDecl(Tok(dd.tok), dd.Name, m, CloneBoundVar(dd.Var), CloneExpr(dd.Constraint), CloneAttributes(dd.Attributes));
         }
       } else if (d is TupleTypeDecl) {
         var dd = (TupleTypeDecl)d;

@@ -562,10 +562,10 @@ bool CloseOptionalBrace(bool usesOptionalBrace) {
 			if (baseType == null) { baseType = new OperationTypeProxy(true, true, false, false); } 
 			Expect(8);
 			Expression(out wh, false, true);
-			td = new DerivedTypeDecl(id, id.val, module, new BoundVar(bvId, bvId.val, baseType), wh, attrs); 
+			td = new NewtypeDecl(id, id.val, module, new BoundVar(bvId, bvId.val, baseType), wh, attrs); 
 		} else if (StartOf(3)) {
 			Type(out baseType);
-			td = new DerivedTypeDecl(id, id.val, module, baseType, attrs); 
+			td = new NewtypeDecl(id, id.val, module, baseType, attrs); 
 		} else SynErr(137);
 		if (la.kind == 9) {
 			while (!(la.kind == 0 || la.kind == 9)) {SynErr(138); Get();}

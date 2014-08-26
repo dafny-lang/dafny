@@ -163,10 +163,10 @@ namespace Microsoft.Dafny
                   if (nw.TypeArgs.Count != d.TypeArgs.Count) {
                     reporter.Error(nw, "opaque type '{0}' is not allowed to be replaced by a class that takes a different number of type parameters (got {1}, expected {2})", nw.Name, nw.TypeArgs.Count, d.TypeArgs.Count);
                   }
-                } else if (nw is DerivedTypeDecl) {
+                } else if (nw is NewtypeDecl) {
                   // fine, as long as "nw" does not take any type parameters
                   if (nw.TypeArgs.Count != 0) {
-                    reporter.Error(nw, "opaque type '{0}', which has {1} type argument{2}, is not allowed to be replaced by a derived type, which takes none", nw.Name, d.TypeArgs.Count, d.TypeArgs.Count == 1 ? "" : "s");
+                    reporter.Error(nw, "opaque type '{0}', which has {1} type argument{2}, is not allowed to be replaced by a newtype, which takes none", nw.Name, d.TypeArgs.Count, d.TypeArgs.Count == 1 ? "" : "s");
                   }
                 } else if (nw is CoDatatypeDecl) {
                   reporter.Error(nw, "a type declaration that requires equality support cannot be replaced by a codatatype");
