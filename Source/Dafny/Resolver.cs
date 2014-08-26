@@ -7430,7 +7430,7 @@ namespace Microsoft.Dafny
         subst.Add(dt.TypeArgs[i], t);
       }
       // Construct a resolved type directly, as we know the declaration is dt.
-      dtv.Type = new UserDefinedType(dtv.tok, dtv.DatatypeName, dt, gt);
+      dtv.Type = new UserDefinedType(dtv.tok, dt.Name, dt, gt);
 
       DatatypeCtor ctor;
       if (!datatypeCtors[dt].TryGetValue(dtv.MemberName, out ctor)) {
@@ -7655,8 +7655,26 @@ namespace Microsoft.Dafny
     /// If you are calling a field that could be a function, creates an ApplyExpr, otherwise an ordinary FunctionCallExpr.
     /// </summary>
     private Expression NewFunctionCallExpr(IToken tok, string fn, Expression receiver, IToken openParen, List<Expression> args) {
-      NonProxyType nptype;
-      MemberDecl member = ResolveMember(tok, receiver.Type, fn, out nptype);
+      Contract.Requires(tok != null);
+      Contract.Requires(fn != null);
+      Contract.Requires(receiver != null && receiver.Type != null);
+      // We're going to look for a field of a class or a destructor of a datatype, but rather than calling
+      // ResolveMember (which would report an error if the member is not found), we do it ourselves.
+      MemberDecl member;
+      UserDefinedType ctype = UserDefinedType.DenotesClass(receiver.Type);
+      if (ctype != null) {
+        var cd = (ClassDecl)ctype.ResolvedClass;  // correctness of cast follows from postcondition of DenotesClass
+        if (!classMembers[cd].TryGetValue(fn, out member)) {
+          member = null;
+        }
+      } else if (receiver.Type.IsDatatype) {
+        var dtd = receiver.Type.AsDatatype;
+        if (!datatypeMembers[dtd].TryGetValue(fn, out member)) {
+          member = null;
+        }
+      } else {
+        member = null;
+      }
       var field = member as Field;
       if (field != null) {
         if (field.Type is ArrowType || field.Type.IsTypeParameter) {
@@ -7830,11 +7848,6 @@ namespace Microsoft.Dafny
               ResolveExpression(arg, opts);
             }
           }
-        } else if (decl is ClassDecl) {
-          // ----- root is a class
-          var cd = (ClassDecl)decl;
-          r = ResolveSuffix(new StaticReceiverExpr(id, cd), e, 1, opts, allowMethodCall, out call);
-
         } else if (decl is ModuleDecl) {
           // ----- root is a submodule
           if (!(1 < e.Tokens.Count)) {
@@ -7842,13 +7855,25 @@ namespace Microsoft.Dafny
           }
           call = ResolveIdentifierSequenceModuleScope(e, 1, ((ModuleDecl)decl).Signature, opts, allowMethodCall);
         } else {
-          // ----- root is a datatype
-          var dt = (DatatypeDecl)decl;  // otherwise, unexpected TopLevelDecl
-          var args = (e.Tokens.Count == 2 ? e.Arguments : null) ?? new List<Expression>();
-          r = new DatatypeValue(id, id.val, e.Tokens[1].val, args);
-          ResolveExpression(r, opts);
-          if (e.Tokens.Count != 2) {
-            r = ResolveSuffix(r, e, 2, opts, allowMethodCall, out call);
+          // expand any synonyms
+          var tpArgs = decl.TypeArgs.ConvertAll(_ => (Type)new InferredTypeProxy());
+          var ty = new UserDefinedType(e.tok, decl.Name, decl, tpArgs).NormalizeExpand();
+          if (ty.IsRefType) {
+            // ----- root is a class
+            var cd = (ClassDecl)((UserDefinedType)ty).ResolvedClass;
+            r = ResolveSuffix(new StaticReceiverExpr(id, cd), e, 1, opts, allowMethodCall, out call);
+          } else if (ty.IsDatatype) {
+            // ----- root is a datatype
+            var dt = ty.AsDatatype;
+            var args = (e.Tokens.Count == 2 ? e.Arguments : null) ?? new List<Expression>();
+            var dtv = new DatatypeValue(id, id.val, e.Tokens[1].val, args);
+            ResolveDatatypeValue(opts, dtv, dt);
+            r = dtv;
+            if (e.Tokens.Count != 2) {
+              r = ResolveSuffix(r, e, 2, opts, allowMethodCall, out call);
+            }
+          } else {
+            Error(id, "name of type ('{0}') is used as a variable", id.val);
           }
         }
 
@@ -7940,28 +7965,34 @@ namespace Microsoft.Dafny
             Error(e.tok, "module {0} cannot be used here", ((ModuleDecl)decl).Name);
           }
           call = ResolveIdentifierSequenceModuleScope(e, p + 1, ((ModuleDecl)decl).Signature, opts, allowMethodCall);
-        } else if (decl is TypeSynonymDecl) {
-          // ----- root apparently refers to a type synonym
-          Error(e.tok, "type synonym {0} cannot be used here", id.val);  // todo: this is a bit of a cop-out; perhaps something better could be done
-        } else if (decl is ClassDecl) {
-          // ----- root is a class
-          var cd = (ClassDecl)decl;
-          r = ResolveSuffix(new StaticReceiverExpr(id, cd), e, p + 1, opts, allowMethodCall, out call);
-        } else if (decl is DatatypeDecl) {
-          // ----- root is a datatype
-          var dt = (DatatypeDecl)decl;  // otherwise, unexpected TopLevelDecl
-          var args = (e.Tokens.Count == p + 2 ? e.Arguments : null) ?? new List<Expression>();
-          r = new DatatypeValue(id, id.val, e.Tokens[p + 1].val, args);
-          ResolveDatatypeValue(opts, (DatatypeValue)r, dt);
-          if (e.Tokens.Count != p + 2) {
-            r = ResolveSuffix(r, e, p + 2, opts, allowMethodCall, out call);
-          }
         } else {
-          Error(id, "unresolved identifier: {0}", id.val);
-          // resolve arguments, if any
-          if (e.Arguments != null) {
-            foreach (var arg in e.Arguments) {
-              ResolveExpression(arg, opts);
+          // expand any synonyms
+          var tpArgs = decl.TypeArgs.ConvertAll(_ => (Type)new InferredTypeProxy());
+          var ty = new UserDefinedType(e.tok, decl.Name, decl, tpArgs).NormalizeExpand();
+          if (ty.IsRefType) {
+            // ----- root is a class
+            var cd = (ClassDecl)((UserDefinedType)ty).ResolvedClass;
+            r = ResolveSuffix(new StaticReceiverExpr(id, cd), e, p + 1, opts, allowMethodCall, out call);
+          } else if (ty.IsDatatype) {
+            // ----- root is a datatype
+            var dt = ty.AsDatatype;
+            var args = (e.Tokens.Count == p + 2 ? e.Arguments : null) ?? new List<Expression>();
+            r = new DatatypeValue(id, id.val, e.Tokens[p + 1].val, args);
+            ResolveDatatypeValue(opts, (DatatypeValue)r, dt);
+            if (e.Tokens.Count != p + 2) {
+              r = ResolveSuffix(r, e, p + 2, opts, allowMethodCall, out call);
+            }
+          } else {
+            if (p == e.Tokens.Count - 1 && e.Arguments != null) {
+              Error(id, "name of type ('{0}') is used as a function", id.val);
+            } else {
+              Error(id, "name of type ('{0}') is used as a variable", id.val);
+            }
+            // resolve arguments, if any
+            if (e.Arguments != null) {
+              foreach (var arg in e.Arguments) {
+                ResolveExpression(arg, opts);
+              }
             }
           }
         }

@@ -213,6 +213,12 @@ namespace DafnyLanguage
                 IdRegion.Add(newRegions, fld.tok, fld, null, "field", true, module);
               }
             }
+          } else if (d is NewtypeDecl) {
+            var dd = (NewtypeDecl)d;
+            if (dd.Var != null) {
+              IdRegion.Add(newRegions, dd.Var.tok, dd.Var, true, module);
+              ExprRegions(dd.Constraint, newRegions, module);
+            }
           }
         }
       }

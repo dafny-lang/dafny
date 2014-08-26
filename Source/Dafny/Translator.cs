@@ -500,7 +500,7 @@ namespace Microsoft.Dafny {
             ie.Var = oVarDafny; ie.Type = ie.Var.Type;  // resolve ie here
             var constraint = etran.TrExpr(Substitute(dd.Constraint, dd.Var, ie));
             var heap = new Bpl.BoundVariable(dd.tok, new Bpl.TypedIdent(dd.tok, predef.HeapVarName, predef.HeapType));
-            var ex = new Bpl.ExistsExpr(dd.tok, new List<Variable> { heap }, constraint);
+            var ex = new Bpl.ExistsExpr(dd.tok, new List<Variable> { heap }, BplAnd(FunctionCall(dd.tok, BuiltinFunction.IsGoodHeap, null, etran.HeapExpr), constraint));
             rhs = BplAnd(rhs, ex);
           }
           body = BplIff(is_o, rhs);

@@ -140,3 +140,66 @@ module InferredType {
     j := a;  // error: AnotherInt not assignable to Int
   }
 }
+
+module SynonymsAndModules {
+  module M {
+    type Syn = int
+    type Y = Klass
+    class Klass {
+      static method H()
+    }
+  }
+
+  method P()
+  {
+    var x: M.Syn;
+    x := B;  // error: bad use of B
+    x := M.Syn;  // error: bad use of M.Syn
+    C.D();
+    X.D();
+    M.Klass.H();
+    M.Y.H();
+    M.Y.U();  // error: non-existent member U
+  }
+
+  type B = int
+  type X = C
+  class C {
+    static method D()
+  }
+}
+
+module MoreSynonyms {
+  import SynonymLibrary
+
+  type Syn<T> = Syn'<T,T>
+  type Syn'<A,B> = C<B>
+  class C<alpha> {
+    static method MyMethod<beta>(b: beta, a: alpha)
+  }
+  method M() {
+    var a, b;
+    Syn.MyMethod(b, a);
+    a, b := 25, true;
+  }
+  method P() {
+    var d := SynonymLibrary.S.Cons(50, SynonymLibrary.Dt.Nil);
+    var e := SynonymLibrary.Dt.Cons(true, SynonymLibrary.S.Cons(40, d));
+    var f := SynonymLibrary.S.Cons(50, SynonymLibrary.S.Cons(true, d));  // error: 'true' argument is expected to be an integer
+  }
+}
+
+module SynonymLibrary {
+  type S = Dt<int>
+  datatype Dt<T> = Nil | Cons(T, S)
+}
+
+module QualifiedDatatypeCtor {
+  type S = Dt<int>
+  datatype Dt<T> = Nil | Cons(T, S)
+
+  method P() {
+    var d: S;
+    var f := S.Cons(50, S.Nil);
+  }
+}
