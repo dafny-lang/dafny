@@ -7771,11 +7771,14 @@ namespace Microsoft.Dafny
     /// Otherwise, resolves all sub-parts of "e" and returns a (resolved) CallRhs expression representing the call.
     /// </summary>
     CallRhs ResolveIdentifierSequence(IdentifierSequence e, ResolveOpts opts, bool allowMethodCall) {
+      Contract.Requires(e != null);
+      Contract.Requires(opts != null);
       // Look up "id" as follows:
       //  - local variable, parameter, or bound variable (if this clashes with something of interest, one can always rename the local variable locally)
+      //  - if the length of the path is 1, unambiguous constructor name of a datatype (if two constructors have the same name, an error message is
+      //    produced here)
       //  - unamibugous type/module name (class, datatype, sub-module (including submodules of imports) or opaque type)
       //       (if two imported types have the same name, an error message is produced here)
-      //  - unambiguous constructor name of a datatype (if two constructors have the same name, an error message is produced here)
       //  - field, function or method name (with implicit receiver) (if the field is occluded by anything above, one can use an explicit "this.")
       //  - iterator
       //  - static function or method in the enclosing module, or its imports.
@@ -7794,32 +7797,29 @@ namespace Microsoft.Dafny
         ResolveExpression(r, opts);
         r = ResolveSuffix(r, e, 1, opts, allowMethodCall, out call);
 
+      } else if (e.Tokens.Count == 1 && moduleInfo.Ctors.TryGetValue(id.val, out pair)) {
+        // ----- root is a datatype constructor
+        if (pair.Item2) {
+          // there is more than one constructor with this name
+          Error(id, "the name '{0}' denotes a datatype constructor, but does not do so uniquely; add an explicit qualification (for example, '{1}.{0}')", id.val, pair.Item1.EnclosingDatatype.Name);
+        } else {
+          var args = (e.Tokens.Count == 1 ? e.Arguments : null) ?? new List<Expression>();
+          r = new DatatypeValue(id, pair.Item1.EnclosingDatatype.Name, id.val, args);
+          ResolveExpression(r, opts);
+          if (e.Tokens.Count != 1) {
+            r = ResolveSuffix(r, e, 1, opts, allowMethodCall, out call);
+          }
+        }
+
       } else if (moduleInfo.TopLevels.TryGetValue(id.val, out decl)) {
         if (decl is AmbiguousTopLevelDecl) {
           Error(id, "The name {0} ambiguously refers to a type in one of the modules {1}", id.val, ((AmbiguousTopLevelDecl)decl).ModuleNames());
         } else if (e.Tokens.Count == 1 && e.Arguments == null) {
           Error(id, "name of type ('{0}') is used as a variable", id.val);
         } else if (e.Tokens.Count == 1 && e.Arguments != null) {
-          // in
-          //   datatype Id = Id
-          // you cannot refer to the constructor, instead this error message is thrown:
-          // (bug?)
-          var tpArgs = decl.TypeArgs.ConvertAll(_ => (Type)new InferredTypeProxy());
-          var ty = new UserDefinedType(e.tok, decl.Name, decl, tpArgs);
-          if (ty.AsDerivedType != null) {
-            if (e.Arguments.Count != 1) {
-              Error(id, "conversion operation to {0} got wrong number of arguments (expected 1, got {1})", id.val, e.Arguments.Count);
-            }
-            var conversionArg = 1 <= e.Arguments.Count ? e.Arguments[0] :
-              ty.IsNumericBased(Type.NumericPersuation.Int) ? LiteralExpr.CreateIntLiteral(e.tok, 0) :
-              LiteralExpr.CreateRealLiteral(e.tok, Basetypes.BigDec.ZERO);
-            r = new ConversionExpr(e.tok, conversionArg, ty);
-            ResolveExpression(r, opts);
-            // resolve the rest of the arguments, if any
-            for (int i = 1; i < e.Arguments.Count; i++) {
-              ResolveExpression(e.Arguments[i], opts);
-            }
-          } else {
+          if (ResolveAsTypeConversion(e, opts, decl, id, ref r)) {
+            // everything taken care of by ResolveAsTypeConversion
+          }  else {
             Error(id, "name of type ('{0}') is used as a function", id.val);
             // resolve the arguments nonetheless
             foreach (var arg in e.Arguments) {
@@ -7845,20 +7845,6 @@ namespace Microsoft.Dafny
           ResolveExpression(r, opts);
           if (e.Tokens.Count != 2) {
             r = ResolveSuffix(r, e, 2, opts, allowMethodCall, out call);
-          }
-        }
-
-      } else if (moduleInfo.Ctors.TryGetValue(id.val, out pair)) {
-        // ----- root is a datatype constructor
-        if (pair.Item2) {
-          // there is more than one constructor with this name
-          Error(id, "the name '{0}' denotes a datatype constructor, but does not do so uniquely; add an explicit qualification (for example, '{1}.{0}')", id.val, pair.Item1.EnclosingDatatype.Name);
-        } else {
-          var args = (e.Tokens.Count == 1 ? e.Arguments : null) ?? new List<Expression>();
-          r = new DatatypeValue(id, pair.Item1.EnclosingDatatype.Name, id.val, args);
-          ResolveExpression(r, opts);
-          if (e.Tokens.Count != 1) {
-            r = ResolveSuffix(r, e, 1, opts, allowMethodCall, out call);
           }
         }
 
@@ -7901,6 +7887,28 @@ namespace Microsoft.Dafny
       return call;
     }
 
+    bool ResolveAsTypeConversion(IdentifierSequence e, ResolveOpts opts, TopLevelDecl decl, IToken id, ref Expression r) {
+      var tpArgs = decl.TypeArgs.ConvertAll(_ => (Type)new InferredTypeProxy());
+      var ty = new UserDefinedType(e.tok, decl.Name, decl, tpArgs);
+      if (ty.AsDerivedType == null) {
+        return false;
+      } else {
+        if (e.Arguments.Count != 1) {
+          Error(id, "conversion operation to {0} got wrong number of arguments (expected 1, got {1})", id.val, e.Arguments.Count);
+        }
+        var conversionArg = 1 <= e.Arguments.Count ? e.Arguments[0] :
+          ty.IsNumericBased(Type.NumericPersuation.Int) ? LiteralExpr.CreateIntLiteral(e.tok, 0) :
+          LiteralExpr.CreateRealLiteral(e.tok, Basetypes.BigDec.ZERO);
+        r = new ConversionExpr(e.tok, conversionArg, ty);
+        ResolveExpression(r, opts);
+        // resolve the rest of the arguments, if any
+        for (int i = 1; i < e.Arguments.Count; i++) {
+          ResolveExpression(e.Arguments[i], opts);
+        }
+        return true;
+      }
+    }
+
     CallRhs ResolveIdentifierSequenceModuleScope(IdentifierSequence e, int p, ModuleSignature sig, ResolveOpts opts, bool allowMethodCall) {
       // Look up "id" as follows:
       //  - unambiguous type/module name (class, datatype, sub-module (including submodules of imports) or opaque type)
@@ -7920,6 +7928,8 @@ namespace Microsoft.Dafny
       if (sig.TopLevels.TryGetValue(id.val, out decl)) {
         if (decl is AmbiguousTopLevelDecl) {
           Error(id, "The name {0} ambiguously refers to a something in one of the modules {1}", id.val, ((AmbiguousTopLevelDecl)decl).ModuleNames());
+        } else if (p == e.Tokens.Count - 1 && e.Arguments != null && ResolveAsTypeConversion(e, opts, decl, id, ref r)) {
+          // everything taken care of by ResolveAsTypeConversion
         } else if (decl is ModuleDecl) {
           // ----- root is a submodule
           if (!(p + 1 < e.Tokens.Count)) {
@@ -7933,7 +7943,7 @@ namespace Microsoft.Dafny
           // ----- root is a class
           var cd = (ClassDecl)decl;
           r = ResolveSuffix(new StaticReceiverExpr(id, cd), e, p + 1, opts, allowMethodCall, out call);
-        } else {
+        } else if (decl is DatatypeDecl) {
           // ----- root is a datatype
           var dt = (DatatypeDecl)decl;  // otherwise, unexpected TopLevelDecl
           var args = (e.Tokens.Count == p + 2 ? e.Arguments : null) ?? new List<Expression>();
@@ -7941,6 +7951,14 @@ namespace Microsoft.Dafny
           ResolveDatatypeValue(opts, (DatatypeValue)r, dt);
           if (e.Tokens.Count != p + 2) {
             r = ResolveSuffix(r, e, p + 2, opts, allowMethodCall, out call);
+          }
+        } else {
+          Error(id, "unresolved identifier: {0}", id.val);
+          // resolve arguments, if any
+          if (e.Arguments != null) {
+            foreach (var arg in e.Arguments) {
+              ResolveExpression(arg, opts);
+            }
           }
         }
       } else if (sig.Ctors.TryGetValue(id.val, out pair)) {

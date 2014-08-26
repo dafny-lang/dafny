@@ -20,4 +20,4 @@ DerivedTypes.dfy(104,16): Error: result of operation might violate newtype const
 Execution trace:
     (0,0): anon0
 
-Dafny program verifier finished with 20 verified, 6 errors
+Dafny program verifier finished with 24 verified, 6 errors

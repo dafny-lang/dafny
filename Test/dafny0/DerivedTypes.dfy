@@ -117,7 +117,6 @@ module PredicateTests {
   }
 }
 
-/*
 module Module0 {
   import Module1
   method M(x: int) returns (n: Module1.N9) {
@@ -128,4 +127,14 @@ module Module0 {
 module Module1 {
   newtype N9 = int
 }
-*/
+
+module DatatypeCtorResolution {
+  datatype Pair = Pair(int, int)
+
+  method M() {
+    var p := Pair(5, 6);
+    var q: Pair;
+    q := p;
+    q := Pair.Pair(10, 20);
+  }
+}

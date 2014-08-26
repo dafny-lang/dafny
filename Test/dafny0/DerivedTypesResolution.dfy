@@ -110,3 +110,14 @@ module CyclicDependencies {
 module SelfCycleTest {
   newtype SelfCycle = x: int where var s: SelfCycle := 4; s < 10  // error: cyclic dependency on itself
 }
+
+module Module0 {
+  import Module1
+  method M(x: int) returns (n: Module1.N9) {
+    var x := Module1.N9;  // error
+  }
+}
+
+module Module1 {
+  newtype N9 = int
+}

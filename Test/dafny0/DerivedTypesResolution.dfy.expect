@@ -11,4 +11,5 @@ DerivedTypesResolution.dfy(57,25): Error: first argument to % must be of type in
 DerivedTypesResolution.dfy(98,24): Error: Wrong number of type arguments (1 instead of 0) passed to newtype: N
 DerivedTypesResolution.dfy(102,10): Error: recursive dependency involving a newtype: _default.BadLemma -> Cycle
 DerivedTypesResolution.dfy(111,10): Error: recursive dependency involving a newtype: SelfCycle -> SelfCycle
-13 resolution/type errors detected in DerivedTypesResolution.dfy
+DerivedTypesResolution.dfy(117,21): Error: unresolved identifier: N9
+14 resolution/type errors detected in DerivedTypesResolution.dfy
