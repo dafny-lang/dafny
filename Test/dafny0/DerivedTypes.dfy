@@ -46,38 +46,38 @@ method M()
 }
 
 module Constraints {
-  newtype SmallInt = x: int where 0 <= x < 100
-  newtype LargeInt = y: int where 0 <= y < 100
+  newtype SmallInt = x: int | 0 <= x < 100
+  newtype LargeInt = y: int | 0 <= y < 100
 
-  newtype A = x: int where 0 <= x
-  newtype B = x: A where x < 100
+  newtype A = x: int | 0 <= x
+  newtype B = x: A | x < 100
   newtype C = B  // the constraints 0 <= x < 100 still apply
 
   static predicate IsEven(x: int)  // note that this is a ghost predicate
   {
     x % 2 == 0
   }
-  newtype G = x: int where IsEven(x)  // it's okay to use ghost constructs in type constraints
+  newtype G = x: int | IsEven(x)  // it's okay to use ghost constructs in type constraints
 
   newtype N = nat
 
-  newtype AssertType = s: int where
+  newtype AssertType = s: int |
     var k := s;
     assert k <= s;
     k < 10 || 10 <= s
 
-  newtype Te = x: int where 0 <= x < 3 && [5, 7, 8][x] % 2 != 0
+  newtype Te = x: int | 0 <= x < 3 && [5, 7, 8][x] % 2 != 0
 
-  newtype Ta = x: int where 0 <= x < 3
-  newtype Tb = y: Ta where [5, 7, 8][int(y)] % 2 != 0  // the indexing is okay, because of the type constraint for Ta
+  newtype Ta = x: int | 0 <= x < 3
+  newtype Tb = y: Ta | [5, 7, 8][int(y)] % 2 != 0  // the indexing is okay, because of the type constraint for Ta
 
-  newtype Odds = x: int where x % 2 == 1  // error: cannot find witness
+  newtype Odds = x: int | x % 2 == 1  // error: cannot find witness
 
-  newtype K = x: real where 10.0 <= x ==> 200.0 / (x - 20.0) < 30.0  // error: division by zero
+  newtype K = x: real | 10.0 <= x ==> 200.0 / (x - 20.0) < 30.0  // error: division by zero
 }
 
 module PredicateTests {
-  newtype char8 = x: int where 0 <= x < 256
+  newtype char8 = x: int | 0 <= x < 256
 
   method M() {
     var u: char8 := 85;
@@ -136,5 +136,22 @@ module DatatypeCtorResolution {
     var q: Pair;
     q := p;
     q := Pair.Pair(10, 20);
+  }
+}
+
+module X {
+  newtype Int = x | 0 <= x < 100
+  newtype Real = r | 0.0 <= r <= 100.0
+
+  method M() returns (i: Int, r: Real)
+  {
+    i := 4;
+    r := 4.0;
+  }
+
+  method N()
+  {
+    var x := var i := 3; i;
+    var y := var j := 3.0; j;
   }
 }

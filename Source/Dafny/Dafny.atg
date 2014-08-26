@@ -143,9 +143,9 @@ bool IsIdentParen() {
   return la.kind == _ident && x.kind == _openparen;
 }
 
-bool IsIdentColon() {
+bool IsIdentColonOrBar() {
   Token x = scanner.Peek();
-  return la.kind == _ident && x.kind == _colon;
+  return la.kind == _ident && (x.kind == _colon || x.kind == _verticalbar);
 }
 
 bool SemiFollowsCall(bool allowSemi, Expression e) {
@@ -200,6 +200,7 @@ TOKENS
   arrayToken = "array" [posDigit {digit}].
   string = quote {nonquote} quote.
   colon = ':'.
+  verticalbar = '|'.
   semi = ';'.
   darrow = "=>".
   arrow = "->".
@@ -457,18 +458,17 @@ NewtypeDecl<ModuleDefinition module, out TopLevelDecl td>
 = (. IToken id, bvId;
      Attributes attrs = null;
      td = null;
-     Type baseType;
+     Type baseType = null;
      Expression wh;
   .)
   "newtype"
   { Attribute<ref attrs> }
   NoUSIdent<out id>
   "="
-  ( IF(IsIdentColon())
+  ( IF(IsIdentColonOrBar())
     NoUSIdent<out bvId>
-    ":"
-    Type<out baseType>
-    "where"
+    [ ":" Type<out baseType> ]       (. if (baseType == null) { baseType = new OperationTypeProxy(true, true, false, false); } .)
+    "|"
     Expression<out wh, false, true>  (. td = new DerivedTypeDecl(id, id.val, module, new BoundVar(bvId, bvId.val, baseType), wh, attrs); .)
   | Type<out baseType>               (. td = new DerivedTypeDecl(id, id.val, module, baseType, attrs); .)
   )

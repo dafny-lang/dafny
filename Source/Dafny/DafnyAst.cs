@@ -366,6 +366,10 @@ namespace Microsoft.Dafny {
     }
     public bool IsNumericBased() {
       var t = NormalizeExpand();
+      var opProxy = t as OperationTypeProxy;
+      if (opProxy != null) {
+        return (opProxy.AllowInts || opProxy.AllowReals) && !opProxy.AllowSeq && !opProxy.AllowSetVarieties;
+      }
       return t.IsIntegerType || t.IsRealType || t.AsDerivedType != null;
     }
     public enum NumericPersuation { Int, Real }

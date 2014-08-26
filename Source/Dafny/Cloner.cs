@@ -36,7 +36,11 @@ namespace Microsoft.Dafny
         return new TypeSynonymDecl(Tok(dd.tok), dd.Name, tps, m, CloneType(dd.Rhs), CloneAttributes(dd.Attributes));
       } else if (d is DerivedTypeDecl) {
         var dd = (DerivedTypeDecl)d;
-        return new DerivedTypeDecl(Tok(dd.tok), dd.Name, m, CloneType(dd.BaseType), CloneAttributes(dd.Attributes));
+        if (dd.Var == null) {
+          return new DerivedTypeDecl(Tok(dd.tok), dd.Name, m, CloneType(dd.BaseType), CloneAttributes(dd.Attributes));
+        } else {
+          return new DerivedTypeDecl(Tok(dd.tok), dd.Name, m, CloneBoundVar(dd.Var), CloneExpr(dd.Constraint), CloneAttributes(dd.Attributes));
+        }
       } else if (d is TupleTypeDecl) {
         var dd = (TupleTypeDecl)d;
         return new TupleTypeDecl(dd.Dims, dd.Module);
@@ -181,6 +185,9 @@ namespace Microsoft.Dafny
         return new UserDefinedType(Tok(tt.tok), tt.Name, tt.TypeArgs.ConvertAll(CloneType), tt.Path.ConvertAll(Tok));
       } else if (t is InferredTypeProxy) {
         return new InferredTypeProxy();
+      } else if (t is OperationTypeProxy) {
+        var p = (OperationTypeProxy)t;
+        return new OperationTypeProxy(p.AllowInts, p.AllowReals, p.AllowSeq, p.AllowSetVarieties);
       } else if (t is ParamTypeProxy) {
         return new ParamTypeProxy(CloneTypeParam(((ParamTypeProxy)t).orig));
       } else {

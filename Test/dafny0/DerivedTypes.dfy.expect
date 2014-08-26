@@ -1,7 +1,7 @@
 DerivedTypes.dfy(74,11): Error: cannot find witness that shows type is inhabited (sorry, for now, only tried 0)
 Execution trace:
     (0,0): anon0
-DerivedTypes.dfy(76,49): Error: possible division by zero
+DerivedTypes.dfy(76,45): Error: possible division by zero
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Then
@@ -20,4 +20,4 @@ DerivedTypes.dfy(104,16): Error: result of operation might violate newtype const
 Execution trace:
     (0,0): anon0
 
-Dafny program verifier finished with 24 verified, 6 errors
+Dafny program verifier finished with 30 verified, 6 errors

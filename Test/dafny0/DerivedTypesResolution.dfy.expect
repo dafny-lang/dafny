@@ -8,8 +8,13 @@ DerivedTypesResolution.dfy(52,13): Error: arguments to < must have the same type
 DerivedTypesResolution.dfy(53,13): Error: arguments to > must have the same type (got posReal and real)
 DerivedTypesResolution.dfy(57,13): Error: first argument to % must be of type int (instead got posReal)
 DerivedTypesResolution.dfy(57,25): Error: first argument to % must be of type int (instead got real)
-DerivedTypesResolution.dfy(98,24): Error: Wrong number of type arguments (1 instead of 0) passed to newtype: N
-DerivedTypesResolution.dfy(102,10): Error: recursive dependency involving a newtype: _default.BadLemma -> Cycle
-DerivedTypesResolution.dfy(111,10): Error: recursive dependency involving a newtype: SelfCycle -> SelfCycle
-DerivedTypesResolution.dfy(117,21): Error: unresolved identifier: N9
-14 resolution/type errors detected in DerivedTypesResolution.dfy
+DerivedTypesResolution.dfy(75,8): Error: newtype constraint must be of type bool (instead got SmallInt)
+DerivedTypesResolution.dfy(77,10): Error: unresolved identifier: a
+DerivedTypesResolution.dfy(91,31): Error: old expressions are not allowed in this context
+DerivedTypesResolution.dfy(101,24): Error: Wrong number of type arguments (1 instead of 0) passed to newtype: N
+DerivedTypesResolution.dfy(105,10): Error: recursive dependency involving a newtype: _default.BadLemma -> Cycle
+DerivedTypesResolution.dfy(114,10): Error: recursive dependency involving a newtype: SelfCycle -> SelfCycle
+DerivedTypesResolution.dfy(120,21): Error: unresolved identifier: N9
+DerivedTypesResolution.dfy(139,6): Error: RHS (of type int) not assignable to LHS (of type Int)
+DerivedTypesResolution.dfy(140,6): Error: RHS (of type AnotherInt) not assignable to LHS (of type Int)
+19 resolution/type errors detected in DerivedTypesResolution.dfy

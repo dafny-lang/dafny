@@ -1570,6 +1570,9 @@ namespace Microsoft.Dafny
             if (!UnifyTypes(dd.Constraint.Type, Type.Bool)) {
               Error(dd.Constraint, "newtype constraint must be of type bool (instead got {0})", dd.Constraint.Type);
             }
+            if (!CheckTypeInference_Visitor.IsDetermined(dd.BaseType.NormalizeExpand())) {
+              Error(dd.tok, "newtype's base type is not fully determined; add an explicit type for '{0}'", dd.Var.Name);
+            }
             scope.PopMarker();
           }
         }
@@ -1590,7 +1593,8 @@ namespace Microsoft.Dafny
             cl.Members.Iter(CheckTypeInference_Member);
           } else if (d is DerivedTypeDecl) {
             var dd = (DerivedTypeDecl)d;
-            if (dd.Constraint != null) {
+            if (dd.Var != null) {
+              Contract.Assert(dd.Constraint != null);
               CheckTypeInference(dd.Constraint);
             }
           }
@@ -2128,7 +2132,7 @@ namespace Microsoft.Dafny
       /// However, if tp denotes an int-based or real-based type, then tp is set to int or real,
       /// respectively, here.
       /// </summary>
-      bool IsDetermined(Type t) {
+      public static bool IsDetermined(Type t) {
         Contract.Requires(t != null);
         // If the type specifies an arbitrary int-based or real-based type, just fill it in with int or real, respectively
         if (t is OperationTypeProxy) {

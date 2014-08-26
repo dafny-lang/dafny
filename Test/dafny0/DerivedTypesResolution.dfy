@@ -54,7 +54,7 @@ module Goodies {
 
     var di := z % 2 - z / 2 + if z == 0 then 3 else 100 / z + 100 % z;
     var dr := x / 2.0 + if x == 0.0 then 3.0 else 100.0 / x;
-    dr := dr % 3.0 + 3.0 % dr;  // error: mod not supported for real-based types
+    dr := dr % 3.0 + 3.0 % dr;  // error (x2): mod not supported for real-based types
     z, x := di, dr;
 
     var sq := [23, 50];
@@ -68,38 +68,41 @@ module Goodies {
 }
 
 module Constraints {
-  newtype SmallInt = x: int where 0 <= x < 100
-  newtype LargeInt = y: int where 0 <= y < 100
+  newtype SmallInt = x: int | 0 <= x < 100
+  newtype LargeInt = y: int | 0 <= y < 100
 
   newtype BadConstraint = a: SmallInt
-    where a + a  // error: not a boolean
+    | a + a  // error: not a boolean
   newtype WotsDisVariable = u  :BadConstraint
-    where u + a < 50  // error: undeclared identifier 'a'
+    | u + a < 50  // error: undeclared identifier 'a'
 
-  newtype A = x: int where 0 <= x
-  newtype B = x: A where x < 100
+  newtype A = x: int | 0 <= x
+  newtype B = x: A | x < 100
   newtype C = B  // the constraints 0 <= x < 100 still apply
 
   static predicate IsEven(x: int)  // note that this is a ghost predicate
   {
     x % 2 == 0
   }
-  newtype G = x: int where IsEven(x)  // it's okay to use ghost constructs in type constraints
+  newtype G = x: int | IsEven(x)  // it's okay to use ghost constructs in type constraints
 
   newtype N = nat
 
-  newtype OldState = y: real where old(y) == y  // error: old is not allowed in constraint
+  newtype OldState = y: real | old(y) == y  // error: old is not allowed in constraint
 
-  newtype AssertType = s: int where
+  newtype AssertType = s: int |
     var k := s;
     assert k == s;
     k < 10 || 10 <= s
+}
 
+module WrongNumberOfArguments {
+  newtype N = nat
   method BadTypeArgs(n: N<int>)  // error: N takes no type arguments
 }
 
 module CyclicDependencies {
-  newtype Cycle = x: int where (BadLemma(); false)  // error: cycle
+  newtype Cycle = x: int | (BadLemma(); false)  // error: cycle
   static lemma BadLemma()
     ensures false;
   {
@@ -108,7 +111,7 @@ module CyclicDependencies {
 }
 
 module SelfCycleTest {
-  newtype SelfCycle = x: int where var s: SelfCycle := 4; s < 10  // error: cyclic dependency on itself
+  newtype SelfCycle = x: int | var s: SelfCycle := 4; s < 10  // error: cyclic dependency on itself
 }
 
 module Module0 {
@@ -120,4 +123,20 @@ module Module0 {
 
 module Module1 {
   newtype N9 = int
+}
+
+module InferredType {
+  newtype Int = x | 0 <= x < 100
+  newtype Real = r | 0.0 <= r <= 100.0
+  method M() returns (i: Int, r: Real)
+  {
+    i := 4;
+    r := 4.0;
+  }
+  newtype AnotherInt = int
+  method P(i: int, a: AnotherInt) returns (j: Int)
+  {
+    j := i;  // error: int not assignable to Int
+    j := a;  // error: AnotherInt not assignable to Int
+  }
 }

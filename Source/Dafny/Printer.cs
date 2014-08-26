@@ -149,9 +149,12 @@ namespace Microsoft.Dafny {
           if (dd.Var == null) {
             PrintType(dd.BaseType);
           } else {
-            wr.Write("{0}: ", dd.Var.DisplayName);
-            PrintType(dd.BaseType);
-            wr.Write(" where ");
+            wr.Write(dd.Var.DisplayName);
+            if (!(dd.Var.Type is TypeProxy) || DafnyOptions.O.DafnyPrintResolvedFile != null) {
+              wr.Write(": ");
+              PrintType(dd.BaseType);
+            }
+            wr.Write(" | ");
             PrintExpression(dd.Constraint, true);
           }
           wr.WriteLine();
