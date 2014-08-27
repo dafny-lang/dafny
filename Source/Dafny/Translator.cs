@@ -437,6 +437,10 @@ namespace Microsoft.Dafny {
         }
       }
 
+      //adding TraitParent function and axioms
+      AddTraitParentFuncAndAxioms();
+
+
       if (InsertChecksums)
       {
         foreach (var decl in sink.TopLevelDeclarations)
@@ -456,6 +460,70 @@ namespace Microsoft.Dafny {
       }
 
       return sink;
+    }
+
+    //adding TraitParent function and axioms
+    //if a class A extends trait J and B does not extned anything, then this method adds the followings to the sink: 
+    //   const unique NoTraitAtAll: ClassName;
+    //   function TraitParent(ClassName): ClassName;
+    //   axiom TraitParent(class.A) == class.J;
+    //   axiom TraitParent(class.B) == NoTraitAtAll;
+    private void AddTraitParentFuncAndAxioms()
+    {
+        foreach (ModuleDefinition m in program.Modules)
+        {
+            if (m.TopLevelDecls.Any(d => (d is ClassDecl && ((ClassDecl)d).Trait != null) || (d is TraitDecl)))
+            {
+                //adding const unique NoTraitAtAll: ClassName;
+                Token tNoTrait = new Token();
+                Token tTraitParent = new Token();
+                Bpl.Constant cNoTrait = new Bpl.Constant(tNoTrait, new Bpl.TypedIdent(tNoTrait, "NoTraitAtAll", predef.ClassNameType), true);
+                sink.TopLevelDeclarations.Add(cNoTrait);
+                //adding function TraitParent(ClassName): ClassName;
+                var arg_ref = new Bpl.Formal(tTraitParent, new Bpl.TypedIdent(tTraitParent, Bpl.TypedIdent.NoName, predef.ClassNameType), true);
+                var res = new Bpl.Formal(tTraitParent, new Bpl.TypedIdent(tTraitParent, Bpl.TypedIdent.NoName, predef.ClassNameType), false);
+                var fTraitParent = new Bpl.Function(tTraitParent, "TraitParent", new List<Variable> { arg_ref }, res);
+                sink.TopLevelDeclarations.Add(fTraitParent);
+
+                foreach (TopLevelDecl d in m.TopLevelDecls)
+                {
+                    if (d is ClassDecl)
+                    {
+                        var c = (ClassDecl)d;
+                        if (c is ClassDecl && c.Trait != null)
+                        {
+                            //this adds: axiom TraitParent(class.A) == class.J; Where A extends J
+                            Bpl.TypedIdent trait_id = new Bpl.TypedIdent(c.Trait.tok, string.Format("class.{0}", c.Trait.FullSanitizedName), predef.ClassNameType);
+                            Bpl.Constant trait = new Bpl.Constant(c.Trait.tok, trait_id, true);
+                            Bpl.Expr traitId_expr = new Bpl.IdentifierExpr(c.Trait.tok, trait);
+
+                            var args = new Bpl.Formal(c.tok, new Bpl.TypedIdent(c.tok, Bpl.TypedIdent.NoName, predef.ClassNameType), true);
+                            var ret_value = new Bpl.Formal(c.tok, new Bpl.TypedIdent(c.tok, Bpl.TypedIdent.NoName, predef.ClassNameType), false);
+                            var funCall = new Bpl.FunctionCall(new Bpl.Function(c.tok, "TraitParent", new List<Variable> { args }, ret_value));
+                            var funCallExpr = new Bpl.NAryExpr(c.tok, funCall, new List<Expr> { new Bpl.IdentifierExpr(c.tok, string.Format("class.{0}", c.FullSanitizedName), predef.ClassNameType) });
+                            var traitParentAxiom = new Bpl.Axiom(c.tok, Bpl.Expr.Eq(funCallExpr, traitId_expr));
+
+                            sink.TopLevelDeclarations.Add(traitParentAxiom);
+                        }
+                        else if (c is ClassDecl && c.Trait == null)
+                        {
+                            //this adds: axiom TraitParent(class.B) == NoTraitAtAll; Where B does not extend any traits
+                            Bpl.TypedIdent noTraitAtAll_id = new Bpl.TypedIdent(c.tok, "NoTraitAtAll", predef.ClassNameType);
+                            Bpl.Constant noTraitAtAll = new Bpl.Constant(c.tok, noTraitAtAll_id, true);
+                            Bpl.Expr noTraitAtAll_expr = new Bpl.IdentifierExpr(c.tok, noTraitAtAll);
+
+                            var args = new Bpl.Formal(c.tok, new Bpl.TypedIdent(c.tok, Bpl.TypedIdent.NoName, predef.ClassNameType), true);
+                            var ret_value = new Bpl.Formal(c.tok, new Bpl.TypedIdent(c.tok, Bpl.TypedIdent.NoName, predef.ClassNameType), false);
+                            var funCall = new Bpl.FunctionCall(new Bpl.Function(c.tok, "TraitParent", new List<Variable> { args }, ret_value));
+                            var funCallExpr = new Bpl.NAryExpr(c.tok, funCall, new List<Expr> { new Bpl.IdentifierExpr(c.tok, string.Format("class.{0}", c.FullSanitizedName), predef.ClassNameType) });
+                            var traitParentAxiom = new Bpl.Axiom(c.tok, Bpl.Expr.Eq(funCallExpr, noTraitAtAll_expr));
+
+                            sink.TopLevelDeclarations.Add(traitParentAxiom);
+                        }
+                    }
+                }
+            }
+        }
     }
 
     void AddTypeDecl(OpaqueTypeDecl td) {
@@ -1156,54 +1224,64 @@ namespace Microsoft.Dafny {
                $IsAlloc(p, TClassA(G), h) => (p == null || h[p, alloc]);
       */
 
-      MapM(Bools, is_alloc => {
-        List<Bpl.Expr> tyexprs;
-        var vars = MkTyParamBinders(GetTypeParams(c), out tyexprs);
+      if (!(c is TraitDecl))
+      {
+          MapM(Bools, is_alloc =>
+          {
+              List<Bpl.Expr> tyexprs;
+              var vars = MkTyParamBinders(GetTypeParams(c), out tyexprs);
 
-        var o = BplBoundVar("$o", predef.RefType, vars);
+              var o = BplBoundVar("$o", predef.RefType, vars);
 
-        Bpl.Expr body, is_o;
-        Bpl.Expr o_null = Bpl.Expr.Eq(o, predef.Null);
-        Bpl.Expr o_ty = ClassTyCon(c, tyexprs);
-        string name;
-        
-        if (is_alloc) {
-          name = c + ": Class $IsAlloc";
-          var h = BplBoundVar("$h", predef.HeapType, vars);
-          // $IsAlloc(o, ..)
-          is_o = MkIsAlloc(o, o_ty, h);
-          body = BplIff(is_o, BplOr(o_null, IsAlloced(c.tok, h, o)));
-        } else  {
-          name = c + ": Class $Is";
-          // $Is(o, ..)
-          is_o = MkIs(o, o_ty);
-          Bpl.Expr rhs;
-          if (c == program.BuiltIns.ObjectDecl) {
-            rhs = Bpl.Expr.True;
-          } else {
-              //generating $o == null || implements$J(dtype(x))
-              if (c is TraitDecl)
+              Bpl.Expr body, is_o;
+              Bpl.Expr o_null = Bpl.Expr.Eq(o, predef.Null);
+              Bpl.Expr o_ty = ClassTyCon(c, tyexprs);
+              string name;
+
+              if (is_alloc)
               {
-                  var t = (TraitDecl)c;
-                  var dtypeFunc = FunctionCall(o.tok, BuiltinFunction.DynamicType, null, o);
-                  Bpl.Expr implementsFunc = FunctionCall(t.tok, "implements$" + t.Name, Bpl.Type.Bool, new List<Expr> { dtypeFunc });
-                  rhs = BplOr(o_null, implementsFunc);
+                  name = c + ": Class $IsAlloc";
+                  var h = BplBoundVar("$h", predef.HeapType, vars);
+                  // $IsAlloc(o, ..)
+                  is_o = MkIsAlloc(o, o_ty, h);
+                  body = BplIff(is_o, BplOr(o_null, IsAlloced(c.tok, h, o)));
               }
               else
               {
-                  rhs = BplOr(o_null, DType(o, o_ty));
+                  name = c + ": Class $Is";
+                  // $Is(o, ..)
+                  is_o = MkIs(o, o_ty);
+                  Bpl.Expr rhs;
+                  if (c == program.BuiltIns.ObjectDecl)
+                  {
+                      rhs = Bpl.Expr.True;
+                  }
+                  else
+                  {
+                      //generating $o == null || implements$J(dtype(x))
+                      if (c is TraitDecl)
+                      {
+                          var t = (TraitDecl)c;
+                          var dtypeFunc = FunctionCall(o.tok, BuiltinFunction.DynamicType, null, o);
+                          Bpl.Expr implementsFunc = FunctionCall(t.tok, "implements$" + t.Name, Bpl.Type.Bool, new List<Expr> { dtypeFunc });
+                          rhs = BplOr(o_null, implementsFunc);
+                      }
+                      else
+                      {
+                          rhs = BplOr(o_null, DType(o, o_ty));
+                      }
+                  }
+                  body = BplIff(is_o, rhs);
               }
-          }
-          body = BplIff(is_o, rhs);
-        }
 
-        sink.TopLevelDeclarations.Add(new Bpl.Axiom(c.tok, BplForall(vars, BplTrigger(is_o), body), name));
-      });
+              sink.TopLevelDeclarations.Add(new Bpl.Axiom(c.tok, BplForall(vars, BplTrigger(is_o), body), name));
+          });
+      }
 
       //this adds: function implements$J(ClassName): bool;
       if (c is TraitDecl)
       {
-          var arg_ref = new Bpl.Formal(c.tok, new Bpl.TypedIdent(c.tok, Bpl.TypedIdent.NoName, predef.Ty), true);
+          var arg_ref = new Bpl.Formal(c.tok, new Bpl.TypedIdent(c.tok, Bpl.TypedIdent.NoName, predef.ClassNameType), true);
           var res = new Bpl.Formal(c.tok, new Bpl.TypedIdent(c.tok, Bpl.TypedIdent.NoName, Bpl.Type.Bool), false);
           var implement_intr = new Bpl.Function(c.tok, "implements$" + c.Name, new List<Variable> { arg_ref }, res);
           sink.TopLevelDeclarations.Add(implement_intr);

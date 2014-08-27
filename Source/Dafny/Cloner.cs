@@ -9,6 +9,9 @@ namespace Microsoft.Dafny
 {
   class Cloner
   {
+    public Cloner() {
+    }
+     
     public ModuleDefinition CloneModuleDefinition(ModuleDefinition m, string name) {
       ModuleDefinition nw;
       if (m is DefaultModuleDecl) {
@@ -23,6 +26,7 @@ namespace Microsoft.Dafny
       nw.Height = m.Height;
       return nw;
     }
+
     public TopLevelDecl CloneDeclaration(TopLevelDecl d, ModuleDefinition m) {
       Contract.Requires(d != null);
       Contract.Requires(m != null);
@@ -451,7 +455,7 @@ namespace Microsoft.Dafny
       return c;
     }
 
-    public BlockStmt CloneBlockStmt(BlockStmt stmt) {
+    public virtual BlockStmt CloneBlockStmt(BlockStmt stmt) {
       if (stmt == null) {
         return null;
       } else {
@@ -642,6 +646,17 @@ namespace Microsoft.Dafny
     }
     public virtual IToken Tok(IToken tok) {
       return tok;
+    }
+  }
+
+  class ClonerButDropMethodBodies : Cloner
+  {
+    public ClonerButDropMethodBodies()
+      : base() {
+    }
+
+    public override BlockStmt CloneBlockStmt(BlockStmt stmt) {
+      return null;
     }
   }
 
