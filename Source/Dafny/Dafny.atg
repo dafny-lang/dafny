@@ -586,7 +586,6 @@ IteratorDecl<ModuleDefinition module, out IteratorDecl/*!*/ iter>
      IToken/*!*/ id;
      Attributes attrs = null;
      List<TypeParameter/*!*/>/*!*/ typeArgs = new List<TypeParameter/*!*/>();
-     IToken openParen;
      List<Formal/*!*/> ins = new List<Formal/*!*/>();
      List<Formal/*!*/> outs = new List<Formal/*!*/>();
      List<FrameExpression/*!*/> reads = new List<FrameExpression/*!*/>();
@@ -611,13 +610,13 @@ IteratorDecl<ModuleDefinition module, out IteratorDecl/*!*/ iter>
   NoUSIdent<out id>
   (
     [ GenericParameters<typeArgs> ]
-    Formals<true, true, ins, out openParen>
+    Formals<true, true, ins>
     [ ( "yields"
       | "returns"           (. SemErr(t, "iterators don't have a 'returns' clause; did you mean 'yields'?"); .)
       )
-      Formals<false, true, outs, out openParen>
+      Formals<false, true, outs>
     ]
-  | "..."                                       (. signatureEllipsis = t; openParen = Token.NoToken; .)
+  | "..."                                       (. signatureEllipsis = t; .)
   )
   { IteratorSpec<reads, mod, decreases, req, ens, yieldReq, yieldEns, ref readsAttrs, ref modAttrs, ref decrAttrs> }
   [ BlockStmt<out body, out bodyStart, out bodyEnd>
@@ -655,7 +654,6 @@ MethodDecl<MemberModifiers mmod, bool allowConstructor, out Method/*!*/ m>
      bool hasName = false;  IToken keywordToken;
      Attributes attrs = null;
      List<TypeParameter/*!*/>/*!*/ typeArgs = new List<TypeParameter/*!*/>();
-     IToken openParen;
      List<Formal/*!*/> ins = new List<Formal/*!*/>();
      List<Formal/*!*/> outs = new List<Formal/*!*/>();
      List<MaybeFreeExpression/*!*/> req = new List<MaybeFreeExpression/*!*/>();
@@ -715,11 +713,11 @@ MethodDecl<MemberModifiers mmod, bool allowConstructor, out Method/*!*/ m>
   .)
   (
     [ GenericParameters<typeArgs> ]
-    Formals<true, !mmod.IsGhost, ins, out openParen>
+    Formals<true, !mmod.IsGhost, ins>
     [ "returns"                                 (. if (isConstructor) { SemErr(t, "constructors cannot have out-parameters"); } .)
-      Formals<false, !mmod.IsGhost, outs, out openParen>
+      Formals<false, !mmod.IsGhost, outs>
     ]
-  | "..."                                       (. signatureEllipsis = t; openParen = Token.NoToken; .)
+  | "..."                                       (. signatureEllipsis = t; .)
   )
   { MethodSpec<req, mod, ens, dec, ref decAttrs, ref modAttrs> }
   [ BlockStmt<out body, out bodyStart, out bodyEnd>
@@ -810,9 +808,9 @@ IteratorSpec<.List<FrameExpression/*!*/>/*!*/ reads, List<FrameExpression/*!*/>/
   | "decreases" { IF(IsAttribute()) Attribute<ref decrAttrs> } DecreasesList<decreases, false> SYNC ";"
   )
   .
-Formals<.bool incoming, bool allowGhostKeyword, List<Formal/*!*/>/*!*/ formals, out IToken openParen.>
-= (. Contract.Requires(cce.NonNullElements(formals)); IToken/*!*/ id;  Type/*!*/ ty;  bool isGhost; .)
-  "("                                                                  (. openParen = t; .)
+Formals<.bool incoming, bool allowGhostKeyword, List<Formal> formals.>
+= (. Contract.Requires(cce.NonNullElements(formals)); IToken id;  Type ty;  bool isGhost; .)
+  "("
   [
     GIdentType<allowGhostKeyword, out id, out ty, out isGhost>         (. formals.Add(new Formal(id, id.val, ty, incoming, isGhost)); .)
     { "," GIdentType<allowGhostKeyword, out id, out ty, out isGhost>   (. formals.Add(new Formal(id, id.val, ty, incoming, isGhost)); .)
@@ -943,10 +941,10 @@ FunctionDecl<MemberModifiers mmod, out Function/*!*/ f>
      Expression body = null;
      bool isPredicate = false;  bool isCoPredicate = false;
      bool isFunctionMethod = false;
-     IToken openParen = null;
      IToken bodyStart = Token.NoToken;
      IToken bodyEnd = Token.NoToken;
      IToken signatureEllipsis = null;
+     bool missingOpenParen;
   .)
   /* ----- function ----- */
   ( "function"
@@ -958,11 +956,10 @@ FunctionDecl<MemberModifiers mmod, out Function/*!*/ f>
     NoUSIdent<out id>
     (
       [ GenericParameters<typeArgs> ]
-      Formals<true, isFunctionMethod, formals, out openParen>
+      Formals<true, isFunctionMethod, formals>
       ":"
       Type<out returnType>
-    | "..."                    (. signatureEllipsis = t;
-                                  openParen = Token.NoToken; .)
+    | "..."                    (. signatureEllipsis = t; .)
     )
 
   /* ----- predicate ----- */
@@ -974,13 +971,12 @@ FunctionDecl<MemberModifiers mmod, out Function/*!*/ f>
     { Attribute<ref attrs> }
     NoUSIdent<out id>
     (
-      [ GenericParameters<typeArgs> ]
-      [ Formals<true, isFunctionMethod, formals, out openParen>
-        [ ":"                  (. SemErr(t, "predicates do not have an explicitly declared return type; it is always bool"); .)
-        ]
+      [ GenericParameters<typeArgs> ]                  (. missingOpenParen = true; .)
+      [ Formals<true, isFunctionMethod, formals>       (. missingOpenParen = false; .)
+      ]                                                (. if (missingOpenParen) { errors.Warning(t, "with the new support of higher-order functions in Dafny, parentheses-less predicates are no longer supported; in the new syntax, parentheses are required for the declaration and uses of predicates, even if the predicate takes no additional arguments"); } .)
+      [ ":"                    (. SemErr(t, "predicates do not have an explicitly declared return type; it is always bool"); .)
       ]
-    | "..."                    (. signatureEllipsis = t;
-                                  openParen = Token.NoToken; .)
+    | "..."                    (. signatureEllipsis = t; .)
     )
 
   /* ----- copredicate ----- */
@@ -990,13 +986,12 @@ FunctionDecl<MemberModifiers mmod, out Function/*!*/ f>
     { Attribute<ref attrs> }
     NoUSIdent<out id>
     (
-      [ GenericParameters<typeArgs> ]
-      [ Formals<true, isFunctionMethod, formals, out openParen>
-        [ ":"                  (. SemErr(t, "copredicates do not have an explicitly declared return type; it is always bool"); .)
-        ]
+      [ GenericParameters<typeArgs> ]                  (. missingOpenParen = true; .)
+      [ Formals<true, isFunctionMethod, formals>       (. missingOpenParen = false; .)
+      ]                                                (. if (missingOpenParen) { errors.Warning(t, "with the new support of higher-order functions in Dafny, parentheses-less co-predicates are no longer supported; in the new syntax, parentheses are required for the declaration and uses of predicates, even if the co-predicate takes no additional arguments"); } .)
+      [ ":"                    (. SemErr(t, "copredicates do not have an explicitly declared return type; it is always bool"); .)
       ]
-    | "..."                    (. signatureEllipsis = t;
-                                  openParen = Token.NoToken; .)
+    | "..."                    (. signatureEllipsis = t; .)
     )
   )
 
@@ -1010,13 +1005,13 @@ FunctionDecl<MemberModifiers mmod, out Function/*!*/ f>
 
      IToken tok = theVerifyThisFile ? id : new IncludeToken(id);
      if (isPredicate) {
-        f = new Predicate(tok, id.val, mmod.IsStatic, !isFunctionMethod, typeArgs, openParen, formals,
+        f = new Predicate(tok, id.val, mmod.IsStatic, !isFunctionMethod, typeArgs, formals,
                           reqs, reads, ens, new Specification<Expression>(decreases, null), body, Predicate.BodyOriginKind.OriginalOrInherited, attrs, signatureEllipsis);
      } else if (isCoPredicate) {
-        f = new CoPredicate(tok, id.val, mmod.IsStatic, typeArgs, openParen, formals,
+        f = new CoPredicate(tok, id.val, mmod.IsStatic, typeArgs, formals,
                           reqs, reads, ens, body, attrs, signatureEllipsis);
      } else {
-        f = new Function(tok, id.val, mmod.IsStatic, !isFunctionMethod, typeArgs, openParen, formals, returnType,
+        f = new Function(tok, id.val, mmod.IsStatic, !isFunctionMethod, typeArgs, formals, returnType,
                          reqs, reads, ens, new Specification<Expression>(decreases, null), body, attrs, signatureEllipsis);
      }
      f.BodyStartTok = bodyStart;

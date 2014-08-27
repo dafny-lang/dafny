@@ -607,13 +607,13 @@ namespace Microsoft.Dafny
       }
 
       if (f is Predicate) {
-        return new Predicate(Tok(f.tok), newName, f.IsStatic, f.IsGhost, tps, f.OpenParen, formals,
+        return new Predicate(Tok(f.tok), newName, f.IsStatic, f.IsGhost, tps, formals,
           req, reads, ens, decreases, body, Predicate.BodyOriginKind.OriginalOrInherited, CloneAttributes(f.Attributes), null);
       } else if (f is CoPredicate) {
-        return new CoPredicate(Tok(f.tok), newName, f.IsStatic, tps, f.OpenParen, formals,
+        return new CoPredicate(Tok(f.tok), newName, f.IsStatic, tps, formals,
           req, reads, ens, body, CloneAttributes(f.Attributes), null);
       } else {
-        return new Function(Tok(f.tok), newName, f.IsStatic, f.IsGhost, tps, f.OpenParen, formals, CloneType(f.ResultType),
+        return new Function(Tok(f.tok), newName, f.IsStatic, f.IsGhost, tps, formals, CloneType(f.ResultType),
           req, reads, ens, decreases, body, CloneAttributes(f.Attributes), null);
       }
     }

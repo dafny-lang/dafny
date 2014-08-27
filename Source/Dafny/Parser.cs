@@ -619,7 +619,6 @@ bool CloseOptionalBrace(bool usesOptionalBrace) {
 		IToken/*!*/ id;
 		Attributes attrs = null;
 		List<TypeParameter/*!*/>/*!*/ typeArgs = new List<TypeParameter/*!*/>();
-		IToken openParen;
 		List<Formal/*!*/> ins = new List<Formal/*!*/>();
 		List<Formal/*!*/> outs = new List<Formal/*!*/>();
 		List<FrameExpression/*!*/> reads = new List<FrameExpression/*!*/>();
@@ -648,7 +647,7 @@ bool CloseOptionalBrace(bool usesOptionalBrace) {
 			if (la.kind == 45) {
 				GenericParameters(typeArgs);
 			}
-			Formals(true, true, ins, out openParen);
+			Formals(true, true, ins);
 			if (la.kind == 42 || la.kind == 43) {
 				if (la.kind == 42) {
 					Get();
@@ -656,11 +655,11 @@ bool CloseOptionalBrace(bool usesOptionalBrace) {
 					Get();
 					SemErr(t, "iterators don't have a 'returns' clause; did you mean 'yields'?"); 
 				}
-				Formals(false, true, outs, out openParen);
+				Formals(false, true, outs);
 			}
 		} else if (la.kind == 44) {
 			Get();
-			signatureEllipsis = t; openParen = Token.NoToken; 
+			signatureEllipsis = t; 
 		} else SynErr(142);
 		while (StartOf(5)) {
 			IteratorSpec(reads, mod, decreases, req, ens, yieldReq, yieldEns, ref readsAttrs, ref modAttrs, ref decrAttrs);
@@ -878,10 +877,10 @@ bool CloseOptionalBrace(bool usesOptionalBrace) {
 		Expression body = null;
 		bool isPredicate = false;  bool isCoPredicate = false;
 		bool isFunctionMethod = false;
-		IToken openParen = null;
 		IToken bodyStart = Token.NoToken;
 		IToken bodyEnd = Token.NoToken;
 		IToken signatureEllipsis = null;
+		bool missingOpenParen;
 		
 		if (la.kind == 67) {
 			Get();
@@ -899,13 +898,12 @@ bool CloseOptionalBrace(bool usesOptionalBrace) {
 				if (la.kind == 45) {
 					GenericParameters(typeArgs);
 				}
-				Formals(true, isFunctionMethod, formals, out openParen);
+				Formals(true, isFunctionMethod, formals);
 				Expect(7);
 				Type(out returnType);
 			} else if (la.kind == 44) {
 				Get();
-				signatureEllipsis = t;
-				openParen = Token.NoToken; 
+				signatureEllipsis = t; 
 			} else SynErr(148);
 		} else if (la.kind == 68) {
 			Get();
@@ -924,17 +922,19 @@ bool CloseOptionalBrace(bool usesOptionalBrace) {
 				if (la.kind == 45) {
 					GenericParameters(typeArgs);
 				}
+				missingOpenParen = true; 
 				if (la.kind == 16) {
-					Formals(true, isFunctionMethod, formals, out openParen);
-					if (la.kind == 7) {
-						Get();
-						SemErr(t, "predicates do not have an explicitly declared return type; it is always bool"); 
-					}
+					Formals(true, isFunctionMethod, formals);
+					missingOpenParen = false; 
+				}
+				if (missingOpenParen) { errors.Warning(t, "with the new support of higher-order functions in Dafny, parentheses-less predicates are no longer supported; in the new syntax, parentheses are required for the declaration and uses of predicates, even if the predicate takes no additional arguments"); } 
+				if (la.kind == 7) {
+					Get();
+					SemErr(t, "predicates do not have an explicitly declared return type; it is always bool"); 
 				}
 			} else if (la.kind == 44) {
 				Get();
-				signatureEllipsis = t;
-				openParen = Token.NoToken; 
+				signatureEllipsis = t; 
 			} else SynErr(149);
 		} else if (la.kind == 69) {
 			Get();
@@ -949,17 +949,19 @@ bool CloseOptionalBrace(bool usesOptionalBrace) {
 				if (la.kind == 45) {
 					GenericParameters(typeArgs);
 				}
+				missingOpenParen = true; 
 				if (la.kind == 16) {
-					Formals(true, isFunctionMethod, formals, out openParen);
-					if (la.kind == 7) {
-						Get();
-						SemErr(t, "copredicates do not have an explicitly declared return type; it is always bool"); 
-					}
+					Formals(true, isFunctionMethod, formals);
+					missingOpenParen = false; 
+				}
+				if (missingOpenParen) { errors.Warning(t, "with the new support of higher-order functions in Dafny, parentheses-less co-predicates are no longer supported; in the new syntax, parentheses are required for the declaration and uses of predicates, even if the co-predicate takes no additional arguments"); } 
+				if (la.kind == 7) {
+					Get();
+					SemErr(t, "copredicates do not have an explicitly declared return type; it is always bool"); 
 				}
 			} else if (la.kind == 44) {
 				Get();
-				signatureEllipsis = t;
-				openParen = Token.NoToken; 
+				signatureEllipsis = t; 
 			} else SynErr(150);
 		} else SynErr(151);
 		decreases = isCoPredicate ? null : new List<Expression/*!*/>(); 
@@ -975,13 +977,13 @@ bool CloseOptionalBrace(bool usesOptionalBrace) {
 		
 		IToken tok = theVerifyThisFile ? id : new IncludeToken(id);
 		if (isPredicate) {
-		  f = new Predicate(tok, id.val, mmod.IsStatic, !isFunctionMethod, typeArgs, openParen, formals,
+		  f = new Predicate(tok, id.val, mmod.IsStatic, !isFunctionMethod, typeArgs, formals,
 		                    reqs, reads, ens, new Specification<Expression>(decreases, null), body, Predicate.BodyOriginKind.OriginalOrInherited, attrs, signatureEllipsis);
 		} else if (isCoPredicate) {
-		  f = new CoPredicate(tok, id.val, mmod.IsStatic, typeArgs, openParen, formals,
+		  f = new CoPredicate(tok, id.val, mmod.IsStatic, typeArgs, formals,
 		                    reqs, reads, ens, body, attrs, signatureEllipsis);
 		} else {
-		  f = new Function(tok, id.val, mmod.IsStatic, !isFunctionMethod, typeArgs, openParen, formals, returnType,
+		  f = new Function(tok, id.val, mmod.IsStatic, !isFunctionMethod, typeArgs, formals, returnType,
 		                   reqs, reads, ens, new Specification<Expression>(decreases, null), body, attrs, signatureEllipsis);
 		}
 		f.BodyStartTok = bodyStart;
@@ -1000,7 +1002,6 @@ bool CloseOptionalBrace(bool usesOptionalBrace) {
 		bool hasName = false;  IToken keywordToken;
 		Attributes attrs = null;
 		List<TypeParameter/*!*/>/*!*/ typeArgs = new List<TypeParameter/*!*/>();
-		IToken openParen;
 		List<Formal/*!*/> ins = new List<Formal/*!*/>();
 		List<Formal/*!*/> outs = new List<Formal/*!*/>();
 		List<MaybeFreeExpression/*!*/> req = new List<MaybeFreeExpression/*!*/>();
@@ -1076,15 +1077,15 @@ bool CloseOptionalBrace(bool usesOptionalBrace) {
 			if (la.kind == 45) {
 				GenericParameters(typeArgs);
 			}
-			Formals(true, !mmod.IsGhost, ins, out openParen);
+			Formals(true, !mmod.IsGhost, ins);
 			if (la.kind == 43) {
 				Get();
 				if (isConstructor) { SemErr(t, "constructors cannot have out-parameters"); } 
-				Formals(false, !mmod.IsGhost, outs, out openParen);
+				Formals(false, !mmod.IsGhost, outs);
 			}
 		} else if (la.kind == 44) {
 			Get();
-			signatureEllipsis = t; openParen = Token.NoToken; 
+			signatureEllipsis = t; 
 		} else SynErr(154);
 		while (StartOf(10)) {
 			MethodSpec(req, mod, ens, dec, ref decAttrs, ref modAttrs);
@@ -1396,10 +1397,9 @@ bool CloseOptionalBrace(bool usesOptionalBrace) {
 		}
 	}
 
-	void Formals(bool incoming, bool allowGhostKeyword, List<Formal/*!*/>/*!*/ formals, out IToken openParen) {
-		Contract.Requires(cce.NonNullElements(formals)); IToken/*!*/ id;  Type/*!*/ ty;  bool isGhost; 
+	void Formals(bool incoming, bool allowGhostKeyword, List<Formal> formals) {
+		Contract.Requires(cce.NonNullElements(formals)); IToken id;  Type ty;  bool isGhost; 
 		Expect(16);
-		openParen = t; 
 		if (la.kind == 1 || la.kind == 32) {
 			GIdentType(allowGhostKeyword, out id, out ty, out isGhost);
 			formals.Add(new Formal(id, id.val, ty, incoming, isGhost)); 
@@ -4039,7 +4039,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 		{T,x,x,x, x,x,x,x, x,T,x,x, x,x,x,T, x,x,x,x, x,T,T,x, T,x,T,x, x,T,x,T, T,T,T,T, T,x,T,T, x,T,x,x, x,T,x,T, T,T,T,T, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,T, T,T,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x},
 		{x,x,x,x, x,x,x,x, x,x,x,x, T,T,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, T,T,T,T, T,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x},
 		{x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,T, T,T,T,T, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x},
-		{T,x,x,x, x,x,x,x, x,x,x,x, T,T,T,T, T,x,x,x, x,T,T,x, T,x,x,x, x,T,x,T, T,T,T,T, T,x,T,T, x,T,x,x, x,T,x,T, T,T,T,T, x,x,T,T, x,x,x,x, x,x,x,x, x,x,x,T, T,T,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x},
+		{T,x,x,x, x,x,x,T, x,x,x,x, T,T,T,T, T,x,x,x, x,T,T,x, T,x,x,x, x,T,x,T, T,T,T,T, T,x,T,T, x,T,x,x, x,T,x,T, T,T,T,T, x,x,T,T, x,x,x,x, x,x,x,x, x,x,x,T, T,T,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x},
 		{x,x,x,x, x,x,x,x, x,x,x,x, T,T,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,T,T, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x},
 		{T,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,T, T,T,T,T, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x},
 		{x,x,x,x, x,x,x,x, x,x,x,x, x,T,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, T,T,T,T, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x},

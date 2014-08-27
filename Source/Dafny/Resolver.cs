@@ -879,7 +879,7 @@ namespace Microsoft.Dafny
             new Specification<Expression>(new List<Expression>(), null),
             null, null, null);
           // --- here comes predicate Valid()
-          var valid = new Predicate(iter.tok, "Valid", false, true, new List<TypeParameter>(), iter.tok,
+          var valid = new Predicate(iter.tok, "Valid", false, true, new List<TypeParameter>(),
             new List<Formal>(),
             new List<Expression>(),
             new List<FrameExpression>(),
@@ -950,7 +950,7 @@ namespace Microsoft.Dafny
 
                   // create prefix predicate
                   cop.PrefixPredicate = new PrefixPredicate(cop.tok, extraName, cop.IsStatic,
-                    tyvars, cop.OpenParen, k, formals,
+                    tyvars, k, formals,
                     cop.Req.ConvertAll(cloner.CloneExpr),
                     cop.Reads.ConvertAll(cloner.CloneFrameExpr),
                     cop.Ens.ConvertAll(cloner.CloneExpr),

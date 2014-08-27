@@ -3399,9 +3399,7 @@ namespace Microsoft.Dafny {
       {
         var printer = new Printer(writer);
         printer.PrintAttributes(f.Attributes);
-        if (f.OpenParen != null) {
-          printer.PrintFormals(f.Formals);
-        }
+        printer.PrintFormals(f.Formals);
         writer.Write(": ");
         printer.PrintType(f.ResultType);
         printer.PrintSpec("", f.Req, 0);

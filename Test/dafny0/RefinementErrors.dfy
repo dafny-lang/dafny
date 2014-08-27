@@ -31,7 +31,7 @@ module B refines A {
       modifies this;  // error: cannot add a modifies clause
       ensures 0 <= x;  // fine
 
-    predicate abc  // error: cannot replace a field with a predicate
+    predicate abc()  // error: cannot replace a field with a predicate
     var xyz: bool;  // error: ...or even with another field
 
     function F   // error: cannot replace a "function method" with a "function"

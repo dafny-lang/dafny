@@ -438,11 +438,7 @@ namespace Microsoft.Dafny {
       if (f.SignatureIsOmitted) {
         wr.WriteLine(" ...");
       } else {
-        if (f.OpenParen != null) {
-          PrintFormals(f.Formals, f.Name);
-        } else {
-          Contract.Assert(isPredicate);
-        }
+        PrintFormals(f.Formals, f.Name);
         if (!isPredicate) {
           wr.Write(": ");
           PrintType(f.ResultType);
