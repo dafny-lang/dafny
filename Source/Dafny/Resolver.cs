@@ -471,7 +471,7 @@ namespace Microsoft.Dafny
     }
 
     public static Expression FrameArrowToObjectSet(Expression e, ref int tmpCounter) {
-      var arrTy = e.Type as ArrowType;
+      var arrTy = e.Type.AsArrowType;
       if (arrTy != null) {
         var bvars = new List<BoundVar>();
         var bexprs = new List<Expression>();
@@ -1175,7 +1175,7 @@ namespace Microsoft.Dafny
         return new MapType(CloneType(tt.Domain), CloneType(tt.Range));
       } else if (t is ArrowType) {
         var tt = (ArrowType)t;
-        return new ArrowType(tt.Args.ConvertAll(CloneType), CloneType(tt.Result));
+        return new ArrowType(tt.tok, tt.Args.ConvertAll(CloneType), CloneType(tt.Result));
       } else if (t is UserDefinedType) {
         var tt = (UserDefinedType)t;
         return new UserDefinedType(tt.tok, tt.Name, tt.TypeArgs.ConvertAll(CloneType), tt.Path.ConvertAll(x => x));
@@ -3523,7 +3523,7 @@ namespace Microsoft.Dafny
       ResolveExpression(fe.E, new ResolveOpts(codeContext, false, true /* yes, this is ghost */));
       Type t = fe.E.Type;
       Contract.Assert(t != null);  // follows from postcondition of ResolveExpression
-      var arrTy = t.NormalizeExpand() as ArrowType;
+      var arrTy = t.AsArrowType;
       if (arrTy != null) {
         t = arrTy.Result;
       }
@@ -4084,7 +4084,7 @@ namespace Microsoft.Dafny
       } else if (type is UserDefinedType) {
         var t = (UserDefinedType)type;
         var isArrow = t is ArrowType;
-        if (!isArrow && (t.ResolvedClass != null || t.ResolvedParam != null)) {
+        if (t.ResolvedClass != null || t.ResolvedParam != null) {
           // Apparently, this type has already been resolved
           return null;
         }
@@ -4093,10 +4093,6 @@ namespace Microsoft.Dafny
           if (tt.IsSubrangeType && !isArrow) {
             Error(t.tok, "sorry, cannot instantiate type parameter with a subrange type");
           }
-        }
-        if (isArrow) {
-          return null;
-          // Done already, all arrow types are resolved at construction time
         }
         TypeParameter tp = t.Path.Count == 0 ? allTypeParameters.Find(t.Name) : null;
         if (tp != null) {
@@ -6162,9 +6158,14 @@ namespace Microsoft.Dafny
       if (ctype != null) {
         var cd = (ClassDecl)ctype.ResolvedClass;  // correctness of cast follows from postcondition of DenotesClass
         Contract.Assert(ctype.TypeArgs.Count == cd.TypeArgs.Count);  // follows from the fact that ctype was resolved
+#if TWO_SEARCHES
         MemberDecl member = cd.Members.Find(md => md.Name == memberName);
         if (member == null && 
           (!classMembers.ContainsKey(cd) || !classMembers[cd].TryGetValue(memberName, out member))) {
+#else
+        MemberDecl member;
+        if (!classMembers[cd].TryGetValue(memberName, out member)) {
+#endif
           var kind = cd is IteratorDecl ? "iterator" : "class";
           if (memberName == "_ctor") {
             Error(tok, "{0} {1} does not have a default constructor", kind, ctype.Name);
@@ -6272,7 +6273,9 @@ namespace Microsoft.Dafny
         }
       } else if (type is ArrowType) {
         var t = (ArrowType)type;
-        return new ArrowType(t.Args.ConvertAll(u => SubstType(u, subst)), SubstType(t.Result, subst));
+        var at = new ArrowType(t.tok, t.Args.ConvertAll(u => SubstType(u, subst)), SubstType(t.Result, subst));
+        at.ResolvedClass = t.ResolvedClass;
+        return at;
       } else if (type is UserDefinedType) {
         var t = (UserDefinedType)type;
         if (t.ResolvedParam != null) {
@@ -6592,7 +6595,7 @@ namespace Microsoft.Dafny
             subst[tp] = prox; 
             e.TypeApplication.Add(prox);
           }
-          e.Type = SubstType(fn.Type, subst);
+          e.Type = new ArrowType(fn.tok, fn.Formals.ConvertAll(f => SubstType(f.Type, subst)), SubstType(fn.ResultType, subst), builtIns.SystemModule);
           AddCallGraphEdge(e, opts.codeContext, fn);
         } else if (member is Field) {
           var field = (Field)member;
@@ -6734,19 +6737,24 @@ namespace Microsoft.Dafny
         ResolveFunctionCallExpr(e, opts, false);
 
       } else if (expr is ApplyExpr) {
-        ApplyExpr e = (ApplyExpr)expr;
+        var e = (ApplyExpr)expr;
         ResolveExpression(e.Function, opts);
         foreach (var arg in e.Args) {
           ResolveExpression(arg, opts);
         }
-        Type tb = new InferredTypeProxy();
-        var targs = e.Args.ConvertAll(arg => arg.Type);
-        Type tc = new ArrowType(targs, tb);
-        if (!UnifyTypes(e.Function.Type, tc)) {
-          Error(e.OpenParen, "cannot apply arguments with types {0} to expression with type {1}", 
-            Util.Comma(targs, x => x.ToString()), e.Function.Type, ", ");
+        var fnType = e.Function.Type.AsArrowType;
+        if (fnType == null) {
+          Error(e.OpenParen, "apply expression requires a function (got {0})", e.Function.Type);
+        } else if (fnType.Arity != e.Args.Count) {
+          Error(e.OpenParen, "wrong number of arguments to function application (function type '{0}' expects {1}, got {2})", fnType, fnType.Arity, e.Args.Count);
+        } else {
+          for (var i = 0; i < fnType.Arity; i++) {
+            if (!UnifyTypes(fnType.Args[i], e.Args[i].Type)) {
+              Error(e.Args[i].tok, "type mismatch for argument {0} (function expects {1}, got {2})", i, fnType.Args[i], e.Args[i].Type);
+            }
+          }
         }
-        expr.Type = tb;
+        expr.Type = fnType == null ? new InferredTypeProxy() : fnType.Result;
 
       } else if (expr is OldExpr) {
         OldExpr e = (OldExpr)expr;
@@ -7228,7 +7236,7 @@ namespace Microsoft.Dafny
         ResolveExpression(e.Term, opts);
         Contract.Assert(e.Term.Type != null);
         scope.PopMarker();
-        expr.Type = new ArrowType(Util.Map(e.BoundVars, v => v.Type), e.Body.Type);
+        expr.Type = new ArrowType(e.tok, Util.Map(e.BoundVars, v => v.Type), e.Body.Type, builtIns.SystemModule);
       } else if (expr is WildcardExpr) {
         expr.Type = new SetType(new ObjectType());
       } else if (expr is StmtExpr) {
@@ -7677,7 +7685,7 @@ namespace Microsoft.Dafny
       }
       var field = member as Field;
       if (field != null) {
-        if (field.Type is ArrowType || field.Type.IsTypeParameter) {
+        if (field.Type.IsArrowType || field.Type.IsTypeParameter) {
           return new ApplyExpr(tok, openParen, new ExprDotName(tok, receiver, fn), args);
         } 
       }
@@ -8095,7 +8103,7 @@ namespace Microsoft.Dafny
         }
       } else if (e.Arguments != null) {
         Contract.Assert(p == e.Tokens.Count);
-        if (r.Type is ArrowType || r.Type.IsTypeParameter) {
+        if (r.Type.IsArrowType || r.Type.IsTypeParameter) {
           r = new ApplyExpr(e.tok, e.OpenParen, r, e.Arguments);
           ResolveExpression(r, opts);
         } else {

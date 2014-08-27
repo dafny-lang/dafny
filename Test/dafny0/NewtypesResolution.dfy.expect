@@ -1,25 +1,25 @@
-DerivedTypesResolution.dfy(5,7): Error: Cycle among redirecting types (newtypes, type synonyms): MySynonym -> MyIntegerType_WellSupposedly -> MyNewType -> MySynonym
-DerivedTypesResolution.dfy(12,10): Error: newtypes must be based on some numeric type (got List<int>)
-DerivedTypesResolution.dfy(38,9): Error: arguments must have the same type (got posReal and real)
-DerivedTypesResolution.dfy(44,9): Error: arguments must have the same type (got int32 and int)
-DerivedTypesResolution.dfy(50,13): Error: arguments must have the same type (got posReal and int32)
-DerivedTypesResolution.dfy(51,13): Error: arguments to <= must have the same type (got posReal and int32)
-DerivedTypesResolution.dfy(52,13): Error: arguments to < must have the same type (got int32 and int)
-DerivedTypesResolution.dfy(53,13): Error: arguments to > must have the same type (got posReal and real)
-DerivedTypesResolution.dfy(57,13): Error: first argument to % must be of type int (instead got posReal)
-DerivedTypesResolution.dfy(57,25): Error: first argument to % must be of type int (instead got real)
-DerivedTypesResolution.dfy(75,8): Error: newtype constraint must be of type bool (instead got SmallInt)
-DerivedTypesResolution.dfy(77,10): Error: unresolved identifier: a
-DerivedTypesResolution.dfy(91,31): Error: old expressions are not allowed in this context
-DerivedTypesResolution.dfy(101,24): Error: Wrong number of type arguments (1 instead of 0) passed to newtype: N
-DerivedTypesResolution.dfy(105,10): Error: recursive dependency involving a newtype: _default.BadLemma -> Cycle
-DerivedTypesResolution.dfy(114,10): Error: recursive dependency involving a newtype: SelfCycle -> SelfCycle
-DerivedTypesResolution.dfy(120,21): Error: name of type ('N9') is used as a variable
-DerivedTypesResolution.dfy(139,6): Error: RHS (of type int) not assignable to LHS (of type Int)
-DerivedTypesResolution.dfy(140,6): Error: RHS (of type AnotherInt) not assignable to LHS (of type Int)
-DerivedTypesResolution.dfy(156,9): Error: name of type ('B') is used as a variable
-DerivedTypesResolution.dfy(157,11): Error: name of type ('Syn') is used as a variable
-DerivedTypesResolution.dfy(162,8): Error: member U does not exist in class Klass
-DerivedTypesResolution.dfy(162,4): Error: expected method call, found expression
-DerivedTypesResolution.dfy(188,39): Error: incorrect type of datatype constructor argument (found Dt<bool>, expected S)
-24 resolution/type errors detected in DerivedTypesResolution.dfy
+NewtypesResolution.dfy(5,7): Error: Cycle among redirecting types (newtypes, type synonyms): MySynonym -> MyIntegerType_WellSupposedly -> MyNewType -> MySynonym
+NewtypesResolution.dfy(12,10): Error: newtypes must be based on some numeric type (got List<int>)
+NewtypesResolution.dfy(38,9): Error: arguments must have the same type (got posReal and real)
+NewtypesResolution.dfy(44,9): Error: arguments must have the same type (got int32 and int)
+NewtypesResolution.dfy(50,13): Error: arguments must have the same type (got posReal and int32)
+NewtypesResolution.dfy(51,13): Error: arguments to <= must have the same type (got posReal and int32)
+NewtypesResolution.dfy(52,13): Error: arguments to < must have the same type (got int32 and int)
+NewtypesResolution.dfy(53,13): Error: arguments to > must have the same type (got posReal and real)
+NewtypesResolution.dfy(57,13): Error: first argument to % must be of type int (instead got posReal)
+NewtypesResolution.dfy(57,25): Error: first argument to % must be of type int (instead got real)
+NewtypesResolution.dfy(75,8): Error: newtype constraint must be of type bool (instead got SmallInt)
+NewtypesResolution.dfy(77,10): Error: unresolved identifier: a
+NewtypesResolution.dfy(91,31): Error: old expressions are not allowed in this context
+NewtypesResolution.dfy(101,24): Error: Wrong number of type arguments (1 instead of 0) passed to newtype: N
+NewtypesResolution.dfy(105,10): Error: recursive dependency involving a newtype: _default.BadLemma -> Cycle
+NewtypesResolution.dfy(114,10): Error: recursive dependency involving a newtype: SelfCycle -> SelfCycle
+NewtypesResolution.dfy(120,21): Error: name of type ('N9') is used as a variable
+NewtypesResolution.dfy(139,6): Error: RHS (of type int) not assignable to LHS (of type Int)
+NewtypesResolution.dfy(140,6): Error: RHS (of type AnotherInt) not assignable to LHS (of type Int)
+NewtypesResolution.dfy(156,9): Error: name of type ('B') is used as a variable
+NewtypesResolution.dfy(157,11): Error: name of type ('Syn') is used as a variable
+NewtypesResolution.dfy(162,8): Error: member U does not exist in class Klass
+NewtypesResolution.dfy(162,4): Error: expected method call, found expression
+NewtypesResolution.dfy(188,39): Error: incorrect type of datatype constructor argument (found Dt<bool>, expected S)
+24 resolution/type errors detected in NewtypesResolution.dfy

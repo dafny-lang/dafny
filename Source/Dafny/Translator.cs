@@ -373,12 +373,6 @@ namespace Microsoft.Dafny {
         return new Bpl.Program();
       }
 
-      foreach (var ad in ArrowType.ArrowTypeDecls) {
-        currentDeclaration = ad;
-        GetClassTyCon(ad);
-        AddArrowTypeAxioms(ad);
-      }
-
       foreach (TopLevelDecl d in program.BuiltIns.SystemModule.TopLevelDecls) {
         currentDeclaration = d;
         if (d is OpaqueTypeDecl) {
@@ -387,6 +381,10 @@ namespace Microsoft.Dafny {
           AddTypeDecl((NewtypeDecl)d);
         } else if (d is DatatypeDecl) {
           AddDatatype((DatatypeDecl)d);
+        } else if (d is ArrowTypeDecl) {
+          var ad = (ArrowTypeDecl)d;
+          GetClassTyCon(ad);
+          AddArrowTypeAxioms(ad);
         } else {
           AddClassMembers((ClassDecl)d);
         }
@@ -1718,7 +1716,7 @@ namespace Microsoft.Dafny {
       // TODO(namin) Is checking f.Reads.Count==0 excluding Valid() of BinaryTree in the right way?
       //             I don't see how this in the decreasing clause would help there.
       // danr: Let's create the literal function axioms if there is an arrow type in the signature
-      if (!(f is CoPredicate) && (f.Reads.Count == 0 || f.Formals.Exists(a => a.Type is ArrowType))) {
+      if (!(f is CoPredicate) && (f.Reads.Count == 0 || f.Formals.Exists(a => a.Type.IsArrowType))) {
         var FVs = new HashSet<IVariable>();
         bool usesHeap = false, usesOldHeap = false;
         Type usesThis = null;
@@ -4575,7 +4573,7 @@ namespace Microsoft.Dafny {
       } else if (expr is ApplyExpr) {
         var e = (ApplyExpr)expr;
         int arity = e.Args.Count;
-        var tt = e.Function.Type as ArrowType;
+        var tt = e.Function.Type.AsArrowType;
         Contract.Assert(tt != null);
         Contract.Assert(tt.Arity == arity);
 
@@ -4636,9 +4634,9 @@ namespace Microsoft.Dafny {
         Contract.Assert(e.Function != null);  // follows from the fact that expr has been successfully resolved
         // check well-formedness of receiver
         CheckWellformed(e.Receiver, options, locals, builder, etran);
-        if (!e.Function.IsStatic && !(e.Receiver is ThisExpr) && !(e.Receiver.Type is ArrowType)) {
+        if (!e.Function.IsStatic && !(e.Receiver is ThisExpr) && !e.Receiver.Type.IsArrowType) {
           CheckNonNull(expr.tok, e.Receiver, builder, etran, options.AssertKv);
-        } else if (e.Receiver.Type is ArrowType) {
+        } else if (e.Receiver.Type.IsArrowType) {
           CheckFunctionSelectWF("function specification", builder, etran, e.Receiver, "");
         }
         // check well-formedness of the other parameters
@@ -5228,7 +5226,7 @@ namespace Microsoft.Dafny {
           formals.Add(BplFormalVar(null, predef.LayerType, true));
         }
 
-        var enclosingArrow = f.EnclosingClass as ArrowType.ArrowTypeDecl;
+        var enclosingArrow = f.EnclosingClass as ArrowTypeDecl;
         var fromArrowType = enclosingArrow != null;
 
         Func<List<Bpl.Expr>, List<Bpl.Expr>> SnocSelf = x => x;
@@ -5331,7 +5329,8 @@ namespace Microsoft.Dafny {
       return FunctionCall(tk, name, Bpl.Type.Bool, bvars.ConvertAll(bv => (Bpl.Expr)new Bpl.IdentifierExpr(tk, bv)));
     }
 
-    private void AddArrowTypeAxioms(ArrowType.ArrowTypeDecl ad) {
+    private void AddArrowTypeAxioms(ArrowTypeDecl ad) {
+      Contract.Requires(ad != null);
       var arity = ad.Arity;
       var tok = ad.tok;
 
@@ -5576,7 +5575,7 @@ namespace Microsoft.Dafny {
     private string AddTyAxioms(TopLevelDecl td) {
       IToken tok = td.tok;
       var ty_repr =
-        td is ArrowType.ArrowTypeDecl ? predef.HandleType :
+        td is ArrowTypeDecl ? predef.HandleType :
         td is DatatypeDecl ? predef.DatatypeType :
         predef.RefType;
       var arity = td.TypeArgs.Count;
@@ -6549,7 +6548,7 @@ namespace Microsoft.Dafny {
         return false;
       }
       var res = t.IsTypeParameter;
-      Contract.Assert(t is ArrowType ? !res : true);
+      Contract.Assert(t.IsArrowType ? !res : true);
       return res;
     }
 
@@ -10331,7 +10330,7 @@ namespace Microsoft.Dafny {
         } else if (expr is ApplyExpr) {
           ApplyExpr e = (ApplyExpr)expr;
           int arity = e.Args.Count;
-          var tt = e.Function.Type as ArrowType;
+          var tt = e.Function.Type.AsArrowType;
           Contract.Assert(tt != null);
           Contract.Assert(tt.Arity == arity);
 
@@ -12819,9 +12818,9 @@ namespace Microsoft.Dafny {
 
         } else if (expr is ApplyExpr) {
           ApplyExpr e = (ApplyExpr)expr;
-          Expression receiver = Substitute(e.Function);
+          Expression fn = Substitute(e.Function);
           List<Expression> args = SubstituteExprList(e.Args);
-          newExpr = new ApplyExpr(e.tok, e.OpenParen, receiver, args);
+          newExpr = new ApplyExpr(e.tok, e.OpenParen, fn, args);
 
         } else if (expr is DatatypeValue) {
           DatatypeValue dtv = (DatatypeValue)expr;

@@ -984,18 +984,8 @@ namespace Microsoft.Dafny {
         }
         return name + "]";
       } else if (type is UserDefinedType) {
-        UserDefinedType udt = (UserDefinedType)type;
-        string s = "@" + udt.FullCompileName;
-        if (type is ArrowType) {
-          s = "Func";
-        }
-        if (udt.TypeArgs.Count != 0) {
-          if (udt.TypeArgs.Exists(argType => argType is ObjectType)) {
-            Error("compilation does not support type 'object' as a type parameter; consider introducing a ghost");
-          }
-          s += "<" + TypeNames(udt.TypeArgs) + ">";
-        }
-        return s;
+        var udt = (UserDefinedType)type;
+        return TypeName_UDT(udt.FullCompileName, udt.TypeArgs);
       } else if (type is SetType) {
         Type argType = ((SetType)type).Arg;
         if (argType is ObjectType) {
@@ -1024,6 +1014,19 @@ namespace Microsoft.Dafny {
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected type
       }
+    }
+
+    string TypeName_UDT(string fullCompileName, List<Type> typeArgs) {
+      Contract.Requires(fullCompileName != null);
+      Contract.Requires(typeArgs != null);
+      string s = "@" + fullCompileName;
+      if (typeArgs.Count != 0) {
+        if (typeArgs.Exists(argType => argType is ObjectType)) {
+          Error("compilation does not support type 'object' as a type parameter; consider introducing a ghost");
+        }
+        s += "<" + TypeNames(typeArgs) + ">";
+      }
+      return s;
     }
 
     string/*!*/ TypeNames(List<Type/*!*/>/*!*/ types) {
@@ -2882,7 +2885,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(exprs != null);
       Contract.Requires(bvars.Count == exprs.Count);
       wr.Write("Dafny.Helpers.Id<");
-      wr.Write(TypeName(new ArrowType(bvars.ConvertAll(bv => bv.Type), bodyType)));
+      wr.Write(TypeName_UDT(ArrowType.Arrow_FullCompileName, Util.Snoc(bvars.ConvertAll(bv => bv.Type), bodyType)));
       wr.Write(">((");
       wr.Write(Util.Comma(bvars, bv => "@" + bv.CompileName));
       wr.Write(") => ");

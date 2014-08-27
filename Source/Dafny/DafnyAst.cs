@@ -87,16 +87,22 @@ namespace Microsoft.Dafny {
   public class BuiltIns
   {
     public readonly ModuleDefinition SystemModule = new ModuleDefinition(Token.NoToken, "_System", false, false, null, null, null, true);
-    Dictionary<int, ClassDecl> arrayTypeDecls = new Dictionary<int, ClassDecl>();
-    Dictionary<int, TupleTypeDecl> tupleTypeDecls = new Dictionary<int, TupleTypeDecl>();
+    readonly Dictionary<int, ClassDecl> arrayTypeDecls = new Dictionary<int, ClassDecl>();
+    readonly Dictionary<int, ArrowTypeDecl> arrowTypeDecls = new Dictionary<int, ArrowTypeDecl>();
+    readonly Dictionary<int, TupleTypeDecl> tupleTypeDecls = new Dictionary<int, TupleTypeDecl>();
+
     public readonly ClassDecl ObjectDecl;
     public BuiltIns() {
+      SystemModule.Height = -1;  // the system module doesn't get a height assigned later, so we set it here to something below everything else
       // create class 'object'
       ObjectDecl = new ClassDecl(Token.NoToken, "object", SystemModule, new List<TypeParameter>(), new List<MemberDecl>(), DontCompile(), null);
       SystemModule.TopLevelDecls.Add(ObjectDecl);
       // add one-dimensional arrays, since they may arise during type checking
       // Arrays of other dimensions may be added during parsing as the parser detects the need for these
       UserDefinedType tmp = ArrayType(1, Type.Int, true);
+      // Arrow types of other dimensions may be added during parsing as the parser detects the need for these.  For the 0-arity
+      // arrow type, the resolver adds a Valid() predicate for iterators, whose corresponding arrow type is conveniently created here.
+      CreateArrowTypeDecl(0);
       // Note, in addition to these types, the _System module contains tuple types.  These tuple types are added to SystemModule
       // by the parser as the parser detects the need for these.
     }
@@ -106,7 +112,7 @@ namespace Microsoft.Dafny {
       return new Attributes("compile", new List<Attributes.Argument>() { flse }, null);
     }
 
-    public UserDefinedType ArrayType(int dims, Type arg, bool allowCreationOfNewClass = false) {
+    public UserDefinedType ArrayType(int dims, Type arg, bool allowCreationOfNewClass) {
       Contract.Requires(1 <= dims);
       Contract.Requires(arg != null);
       return ArrayType(Token.NoToken, dims, new List<Type>() { arg }, allowCreationOfNewClass);
@@ -139,6 +145,46 @@ namespace Microsoft.Dafny {
         return "array";
       } else {
         return "array" + dims;
+      }
+    }
+
+    /// <summary>
+    /// Idempotently add an arrow type with arity 'arity' to the system module.
+    /// </summary>
+    public void CreateArrowTypeDecl(int arity) {
+      Contract.Requires(0 <= arity);
+      if (!arrowTypeDecls.ContainsKey(arity)) {
+        IToken tok = Token.NoToken;
+        var tps = Util.Map(Enumerable.Range(0, arity + 1),
+          x => new TypeParameter(tok, "_Fn" + x));
+        var tys = tps.ConvertAll(tp => (Type)(new UserDefinedType(tp)));
+        var args = tys.GetRange(0, arity).ConvertAll(t => new Formal(tok, "x", t, true, false));
+        var argExprs = args.ConvertAll(a =>
+              (Expression)new IdentifierExpr(tok, a.Name) { Var = a, Type = a.Type });
+        var readsIS = new IdentifierSequence(new List<IToken> { tok }, tok, argExprs) {
+          Type = new SetType(new ObjectType()),
+        };
+        var readsFrame = new List<FrameExpression> { new FrameExpression(tok, readsIS, null) };
+        var req = new Function(tok, "requires", false, true,
+          new List<TypeParameter>(), tok, args, Type.Bool,
+          new List<Expression>(), readsFrame, new List<Expression>(),
+          new Specification<Expression>(new List<Expression>(), null),
+          null, new Attributes("axiom", new List<Attributes.Argument>(), null), null);
+        var reads = new Function(tok, "reads", false, true,
+          new List<TypeParameter>(), tok, args, new SetType(new ObjectType()),
+          new List<Expression>(), readsFrame, new List<Expression>(),
+          new Specification<Expression>(new List<Expression>(), null),
+          null, new Attributes("axiom", new List<Attributes.Argument>(), null), null);
+        var readsFexp =
+          new FunctionCallExpr(tok, "reads", new ThisExpr(tok), tok, argExprs) {
+            Function = reads,
+            Type = readsIS.Type,
+            TypeArgumentSubstitutions = Util.Dict(tps, tys)
+          };
+        readsIS.ResolvedExpression = readsFexp;
+        var arrowDecl = new ArrowTypeDecl(tps, req, reads, SystemModule);
+        arrowTypeDecls.Add(arity, arrowDecl);
+        SystemModule.TopLevelDecls.Add(arrowDecl);
       }
     }
 
@@ -412,7 +458,7 @@ namespace Microsoft.Dafny {
         } else {
           var udt = t as UserDefinedType;
           return udt != null && udt.ResolvedParam == null && udt.ResolvedClass is ClassDecl
-            && !(udt.ResolvedClass is ArrowType.ArrowTypeDecl);
+            && !(udt.ResolvedClass is ArrowTypeDecl);
         }
       }
     }
@@ -426,6 +472,15 @@ namespace Microsoft.Dafny {
         var t = NormalizeExpand();
         var udt = UserDefinedType.DenotesClass(t);
         return udt == null ? null : udt.ResolvedClass as ArrayClassDecl;
+      }
+    }
+    public bool IsArrowType {
+      get { return AsArrowType != null; }
+    }
+    public ArrowType AsArrowType {
+      get {
+        var t = NormalizeExpand();
+        return t as ArrowType;
       }
     }
     public NewtypeDecl AsNewtype {
@@ -610,9 +665,31 @@ namespace Microsoft.Dafny {
       get { return TypeArgs.Count - 1; }
     }
 
-    public ArrowType(List<Type> args, Type result) : 
-      base(Token.NoToken, ArrowType.ArrowTypeName(args.Count), Util.Snoc(args, result), null) {
-      ResolvedClass = GetArrowDecl(args.Count);
+    /// <summary>
+    /// Constructs a(n unresolved) arrow type.
+    /// </summary>
+    public ArrowType(IToken tok, List<Type> args, Type result)
+      :  base(tok, ArrowType.ArrowTypeName(args.Count), Util.Snoc(args, result), null) {
+      Contract.Requires(tok != null);
+      Contract.Requires(args != null);
+      Contract.Requires(result != null);
+    }
+    /// <summary>
+    /// Constructs and returns a resolved arrow type.
+    /// </summary>
+    public ArrowType(IToken tok, List<Type> args, Type result, ModuleDefinition systemModule)
+      : this(tok, args, result) {
+      Contract.Requires(tok != null);
+      Contract.Requires(args != null);
+      Contract.Requires(result != null);
+      Contract.Requires(systemModule != null);
+      ResolvedClass = systemModule.TopLevelDecls.Find(d => d.Name == Name);
+      Contract.Assume(ResolvedClass != null);
+    }
+
+    public const string Arrow_FullCompileName = "Func";  // this is the same for all arities
+    public override string FullCompileName {
+      get { return Arrow_FullCompileName; }
     }
 
     public static string ArrowTypeName(int arity) {
@@ -626,7 +703,7 @@ namespace Microsoft.Dafny {
 
     public override string TypeName(ModuleDefinition context) {
       string s = "", closeparen = "";
-      if (Args.Count != 1 || Args[0] is ArrowType) {
+      if (Args.Count != 1 || Args[0].Normalize() is ArrowType) {
         s += "("; closeparen = ")";
       }
       s += Util.Comma(Args, arg => arg.TypeName(context));
@@ -636,69 +713,6 @@ namespace Microsoft.Dafny {
       return s;
     }
    
-    private static ArrowTypeDecl GetArrowDecl(int arity) {
-      ArrowTypeDecl arrowDecl;
-      if (!arrowTypeDecls.TryGetValue(arity, out arrowDecl)) {
-        var tok = Token.NoToken;
-        var tps = Util.Map(Enumerable.Range(0, arity + 1),
-          x => new TypeParameter(tok, "_Fn" + x));
-        var tys = tps.ConvertAll(tp => (Type)(new UserDefinedType(tp)));
-        var args = tys.GetRange(0, arity).ConvertAll(t => new Formal(tok, "x", t, true, false));
-        var argExprs = args.ConvertAll(a => 
-              (Expression)new IdentifierExpr(tok, a.Name) { Var = a, Type = a.Type });
-        var readsIS = new IdentifierSequence(new List<IToken> { tok }, tok, argExprs) {
-          Type = new SetType(new ObjectType()),
-        };
-        var readsFrame = new List<FrameExpression> { new FrameExpression(tok, readsIS, null) };
-        var req = new Function(tok, "requires", false, true,
-          new List<TypeParameter>(), tok, args, Type.Bool,
-          new List<Expression>(), readsFrame, new List<Expression>(),
-          new Specification<Expression>(new List<Expression>(), null),
-          null, null, null); 
-        var reads = new Function(tok, "reads", false, true,
-          new List<TypeParameter>(), tok, args, new SetType(new ObjectType()),
-          new List<Expression>(), readsFrame, new List<Expression>(),
-          new Specification<Expression>(new List<Expression>(), null),
-          null, null, null);
-        var readsFexp =
-          new FunctionCallExpr(tok, "reads", new ThisExpr(tok), tok, argExprs) {
-            Function = reads,
-            Type = readsIS.Type,
-            TypeArgumentSubstitutions = Util.Dict(tps, tys) 
-          };
-        readsIS.ResolvedExpression = readsFexp;
-        arrowDecl = new ArrowTypeDecl(tps, req, reads);
-        arrowTypeDecls[arity] = arrowDecl;
-      }
-      return arrowDecl;
-    }
-
-    private readonly static Dictionary<int, ArrowTypeDecl> arrowTypeDecls = new Dictionary<int, ArrowTypeDecl>();
-    private static readonly ModuleDefinition FunctionModule = new ModuleDefinition(Token.NoToken, "_Fn", false, false, null, null, null, true) { Height = -1 };
-
-    public static IEnumerable<ArrowTypeDecl> ArrowTypeDecls {
-      get {
-        return ArrowType.arrowTypeDecls.Values;
-      }
-    }
-
-    public class ArrowTypeDecl : ClassDecl
-    {
-      public readonly int Arity;
-      public readonly Function Requires;
-      public readonly Function Reads;
-
-      public ArrowTypeDecl(List<TypeParameter> tps, Function req, Function reads) 
-        : base(Token.NoToken, "_Func" + (tps.Count-1), FunctionModule, tps, 
-               new List<MemberDecl>{ req, reads }, null, null) {
-        Arity = tps.Count-1;
-        Requires = req;
-        Reads = reads;
-        Requires.EnclosingClass = this;
-        Reads.EnclosingClass = this;
-      }
-    }
-
     public override bool SupportsEquality {
       get {
         return false;
@@ -848,7 +862,7 @@ namespace Microsoft.Dafny {
     }
 
     string compileName;
-    public string CompileName {
+    string CompileName {
       get {
         if (compileName == null) {
           compileName = NonglobalVariable.CompilerizeName(Name);
@@ -856,7 +870,7 @@ namespace Microsoft.Dafny {
         return compileName;
       }
     }
-    public string FullCompileName {
+    public virtual string FullCompileName {
       get {
         if (ResolvedClass != null && !ResolvedClass.Module.IsDefaultModule) {
           return ResolvedClass.Module.CompileName + ".@" + CompileName;
@@ -1719,6 +1733,27 @@ namespace Microsoft.Dafny {
       Contract.Requires(module != null);
 
       Dims = dims;
+    }
+  }
+
+  public class ArrowTypeDecl : ClassDecl
+  {
+    public readonly int Arity;
+    public readonly Function Requires;
+    public readonly Function Reads;
+
+    public ArrowTypeDecl(List<TypeParameter> tps, Function req, Function reads, ModuleDefinition module)
+      : base(Token.NoToken, "_Func" + (tps.Count - 1), module, tps,
+             new List<MemberDecl> { req, reads }, null, null) {
+      Contract.Requires(tps != null && 1 <= tps.Count);
+      Contract.Requires(req != null);
+      Contract.Requires(reads != null);
+      Contract.Requires(module != null);
+      Arity = tps.Count - 1;
+      Requires = req;
+      Reads = reads;
+      Requires.EnclosingClass = this;
+      Reads.EnclosingClass = this;
     }
   }
 
@@ -2625,7 +2660,8 @@ namespace Microsoft.Dafny {
 
     public Type Type {
       get {
-        return new ArrowType(Formals.ConvertAll(f => f.Type), ResultType);
+        // Note, the following returned type can contain type parameters from the function and its enclosing class
+        return new ArrowType(tok, Formals.ConvertAll(f => f.Type), ResultType);
       }
     }
 

@@ -890,11 +890,13 @@ TypeAndToken<out IToken tok, out Type ty>
     | ReferenceType<out tok, out ty>
   )
   [ (. Type t2; .)
-    "->" Type<out t2>
+    "->"                  (. tok = t; .)
+    Type<out t2>
     (. if (gt == null) {
          gt = new List<Type>{ ty };
        }
-       ty = new ArrowType(gt, t2);
+       ty = new ArrowType(tok, gt, t2);
+       theBuiltIns.CreateArrowTypeDecl(gt.Count);
     .)
   ]
 
@@ -1019,6 +1021,11 @@ FunctionDecl<MemberModifiers mmod, out Function/*!*/ f>
      }
      f.BodyStartTok = bodyStart;
      f.BodyEndTok = bodyEnd;
+     theBuiltIns.CreateArrowTypeDecl(formals.Count);
+     if (isCoPredicate) {
+       // also create an arrow type for the corresponding prefix predicate
+       theBuiltIns.CreateArrowTypeDecl(formals.Count);
+     }
   .)
   .
 FunctionSpec<.List<Expression/*!*/>/*!*/ reqs, List<FrameExpression/*!*/>/*!*/ reads, List<Expression/*!*/>/*!*/ ens, List<Expression/*!*/> decreases.>
@@ -2081,6 +2088,7 @@ ParensExpression<out Expression e, bool allowSemi, bool allowLambda>
          }
        }
        e = new LambdaExpr(x, oneShot, bvs, req, reads, body);
+       theBuiltIns.CreateArrowTypeDecl(bvs.Count);
        isLambda = true;
     .)
   ]
@@ -2353,6 +2361,7 @@ DottedIdentifiersAndFunction<out Expression e, bool allowSemi, bool allowLambda>
        }
        BoundVar bv = new BoundVar(id, UnwildIdent(id.val, true),  new InferredTypeProxy());
        e = new LambdaExpr(id, oneShot, new List<BoundVar>{ bv }, req, reads, body);
+       theBuiltIns.CreateArrowTypeDecl(1);
     .)
   ]
   // If it wasn't a lambda expression, then it indeed is an identifier sequence

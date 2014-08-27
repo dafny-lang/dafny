@@ -1,22 +1,22 @@
-DerivedTypes.dfy(74,11): Error: cannot find witness that shows type is inhabited (sorry, for now, only tried 0)
+Newtypes.dfy(74,11): Error: cannot find witness that shows type is inhabited (sorry, for now, only tried 0)
 Execution trace:
     (0,0): anon0
-DerivedTypes.dfy(76,45): Error: possible division by zero
-Execution trace:
-    (0,0): anon0
-    (0,0): anon3_Then
-DerivedTypes.dfy(87,14): Error: result of operation might violate newtype constraint
-Execution trace:
-    (0,0): anon0
-DerivedTypes.dfy(95,12): Error: result of operation might violate newtype constraint
+Newtypes.dfy(76,45): Error: possible division by zero
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Then
-DerivedTypes.dfy(97,14): Error: result of operation might violate newtype constraint
+Newtypes.dfy(87,14): Error: result of operation might violate newtype constraint
+Execution trace:
+    (0,0): anon0
+Newtypes.dfy(95,12): Error: result of operation might violate newtype constraint
+Execution trace:
+    (0,0): anon0
+    (0,0): anon3_Then
+Newtypes.dfy(97,14): Error: result of operation might violate newtype constraint
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Else
-DerivedTypes.dfy(104,16): Error: result of operation might violate newtype constraint
+Newtypes.dfy(104,16): Error: result of operation might violate newtype constraint
 Execution trace:
     (0,0): anon0
 

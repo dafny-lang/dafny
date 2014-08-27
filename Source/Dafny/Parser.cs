@@ -986,6 +986,11 @@ bool CloseOptionalBrace(bool usesOptionalBrace) {
 		}
 		f.BodyStartTok = bodyStart;
 		f.BodyEndTok = bodyEnd;
+		theBuiltIns.CreateArrowTypeDecl(formals.Count);
+		if (isCoPredicate) {
+		 // also create an arrow type for the corresponding prefix predicate
+		 theBuiltIns.CreateArrowTypeDecl(formals.Count);
+		}
 		
 	}
 
@@ -1380,11 +1385,13 @@ bool CloseOptionalBrace(bool usesOptionalBrace) {
 		if (la.kind == 11) {
 			Type t2; 
 			Get();
+			tok = t; 
 			Type(out t2);
 			if (gt == null) {
 			 gt = new List<Type>{ ty };
 			}
-			ty = new ArrowType(gt, t2);
+			ty = new ArrowType(tok, gt, t2);
+			theBuiltIns.CreateArrowTypeDecl(gt.Count);
 			
 		}
 	}
@@ -3285,6 +3292,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 			}
 			BoundVar bv = new BoundVar(id, UnwildIdent(id.val, true),  new InferredTypeProxy());
 			e = new LambdaExpr(id, oneShot, new List<BoundVar>{ bv }, req, reads, body);
+			theBuiltIns.CreateArrowTypeDecl(1);
 			
 		}
 		if (e == null) {
@@ -3693,6 +3701,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 			 }
 			}
 			e = new LambdaExpr(x, oneShot, bvs, req, reads, body);
+			theBuiltIns.CreateArrowTypeDecl(bvs.Count);
 			isLambda = true;
 			
 		}

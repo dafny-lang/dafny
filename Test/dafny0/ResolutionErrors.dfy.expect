@@ -60,12 +60,12 @@ ResolutionErrors.dfy(994,7): Error: Duplicate name of top-level declaration: Bad
 ResolutionErrors.dfy(991,17): Error: Wrong number of type arguments (0 instead of 1) passed to class/datatype: List
 ResolutionErrors.dfy(992,17): Error: Undeclared top-level type or type parameter: badName (did you forget to qualify a name?)
 ResolutionErrors.dfy(993,22): Error: Undeclared top-level type or type parameter: X (did you forget to qualify a name?)
-ResolutionErrors.dfy(1000,7): Error: Cycle among redirecting types (derived types, type synonyms): A -> A
-ResolutionErrors.dfy(1003,7): Error: Cycle among redirecting types (derived types, type synonyms): A -> B -> A
-ResolutionErrors.dfy(1007,7): Error: Cycle among redirecting types (derived types, type synonyms): A -> B -> A
+ResolutionErrors.dfy(1000,7): Error: Cycle among redirecting types (newtypes, type synonyms): A -> A
+ResolutionErrors.dfy(1003,7): Error: Cycle among redirecting types (newtypes, type synonyms): A -> B -> A
+ResolutionErrors.dfy(1007,7): Error: Cycle among redirecting types (newtypes, type synonyms): A -> B -> A
 ResolutionErrors.dfy(1016,11): Error: because of cyclic dependencies among constructor argument types, no instances of datatype 'D' can be constructed
-ResolutionErrors.dfy(1019,7): Error: Cycle among redirecting types (derived types, type synonyms): A -> B -> A
-ResolutionErrors.dfy(1024,7): Error: Cycle among redirecting types (derived types, type synonyms): A -> B -> A
+ResolutionErrors.dfy(1019,7): Error: Cycle among redirecting types (newtypes, type synonyms): A -> B -> A
+ResolutionErrors.dfy(1024,7): Error: Cycle among redirecting types (newtypes, type synonyms): A -> B -> A
 ResolutionErrors.dfy(1043,21): Error: unresolved identifier: x
 ResolutionErrors.dfy(1050,35): Error: Wrong number of type arguments (2 instead of 1) passed to opaque type: P
 ResolutionErrors.dfy(1062,13): Error: Undeclared top-level type or type parameter: BX (did you forget to qualify a name?)
