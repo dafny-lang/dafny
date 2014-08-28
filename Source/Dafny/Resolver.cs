@@ -1181,35 +1181,29 @@ namespace Microsoft.Dafny
       }
     }
 
+    private readonly List<SetComprehension> needFiniteBoundsChecks = new List<SetComprehension>();
+    public int NFBC_Count { get { return needFiniteBoundsChecks.Count; } } // provided just for the purpose of conveniently writing contracts for ResolveTopLevelDecl_Meat
+
     public void ResolveTopLevelDecls_Meat(List<TopLevelDecl/*!*/>/*!*/ declarations, Graph<IndDatatypeDecl/*!*/>/*!*/ datatypeDependencies, Graph<CoDatatypeDecl/*!*/>/*!*/ codatatypeDependencies) {
       Contract.Requires(declarations != null);
       Contract.Requires(cce.NonNullElements(datatypeDependencies));
       Contract.Requires(cce.NonNullElements(codatatypeDependencies));
+      Contract.Requires(NFBC_Count == 0);
+      Contract.Ensures(NFBC_Count == 0);
 
       int prevErrorCount = ErrorCount;
 
       // Resolve the meat of classes and iterators, the definitions of type synonyms, and the type parameters of all top-level type declarations
+      // First, resolve the newtype declarations and the constraint clauses, including filling in .ResolvedOp fields.  This is needed for the 
+      // resolution of the other declarations, because those other declarations may invoke DiscoverBounds, which looks at the .Constraint field
+      // of any newtypes involved.  DiscoverBounds is called on quantifiers (but only in non-ghost contexts) and set comprehensions (in all
+      // contexts).  The constraints of newtypes are ghost, so DiscoverBounds is not going to be called on any quantifiers they may contain.
+      // However, the constraints may contain set comprehensions.  For this reason, we postpone the DiscoverBounds checks on set comprehensions.
       foreach (TopLevelDecl d in declarations) {
         Contract.Assert(d != null);
-        if (d is TraitDecl && d.TypeArgs != null && d.TypeArgs.Count > 0)
-        {
-            Error(d, "a trait cannot declare type parameters");
-        }
-        allTypeParameters.PushMarker();
-        ResolveTypeParameters(d.TypeArgs, false, d);
-        if (!(d is IteratorDecl)) {
-          // Note, attributes of iterators are resolved by ResolvedIterator, after registering any names in the iterator signature
-          ResolveAttributes(d.Attributes, new ResolveOpts(new NoContext(d.Module), false));
-        }
-        if (d is IteratorDecl) {
-          var iter = (IteratorDecl)d;
-          ResolveIterator(iter);
-          ResolveClassMemberBodies(iter);  // resolve the automatically generated members
-        } else if (d is ClassDecl) {
-          var cl = (ClassDecl)d;
-          ResolveClassMemberBodies(cl);
-        } else if (d is NewtypeDecl) {
+        if (d is NewtypeDecl) {
           var dd = (NewtypeDecl)d;
+          ResolveAttributes(d.Attributes, new ResolveOpts(new NoContext(d.Module), false));
           // this check can be done only after it has been determined that the redirected types do not involve cycles
           if (!dd.BaseType.IsNumericBased()) {
             Error(dd.tok, "newtypes must be based on some numeric type (got {0})", dd.BaseType);
@@ -1230,11 +1224,48 @@ namespace Microsoft.Dafny
             if (!CheckTypeInference_Visitor.IsDetermined(dd.BaseType.NormalizeExpand())) {
               Error(dd.tok, "newtype's base type is not fully determined; add an explicit type for '{0}'", dd.Var.Name);
             }
+            CheckTypeInference(dd.Constraint);
             scope.PopMarker();
           }
         }
+      }
+      // Now, we're ready for the other declarations.
+      foreach (TopLevelDecl d in declarations) {
+        if (d is TraitDecl && d.TypeArgs != null && d.TypeArgs.Count > 0)
+        {
+            Error(d, "a trait cannot declare type parameters");
+        }
+        allTypeParameters.PushMarker();
+        ResolveTypeParameters(d.TypeArgs, false, d);
+        if (!(d is IteratorDecl)) {
+          // Note, attributes of iterators are resolved by ResolvedIterator, after registering any names in the iterator signature
+          ResolveAttributes(d.Attributes, new ResolveOpts(new NoContext(d.Module), false));
+        }
+        if (d is IteratorDecl) {
+          var iter = (IteratorDecl)d;
+          ResolveIterator(iter);
+          ResolveClassMemberBodies(iter);  // resolve the automatically generated members
+        } else if (d is ClassDecl) {
+          var cl = (ClassDecl)d;
+          ResolveClassMemberBodies(cl);
+        }
         allTypeParameters.PopMarker();
       }
+
+      if (ErrorCount == prevErrorCount) {
+        foreach (var e in needFiniteBoundsChecks) {
+          var missingBounds = new List<BoundVar>();
+          CheckTypeInference(e.Range);  // we need to resolve operators before the call to DiscoverBounds
+          e.Bounds = DiscoverBounds(e.tok, e.BoundVars, e.Range, true, false, missingBounds);
+          if (missingBounds.Count != 0) {
+            e.MissingBounds = missingBounds;
+            foreach (var bv in e.MissingBounds) {
+              Error(e, "a set comprehension must produce a finite set, but Dafny's heuristics can't figure out how to produce a bounded set of values for '{0}'", bv.Name);
+            }
+          }
+        }
+      }
+      needFiniteBoundsChecks.Clear();
 
       if (ErrorCount == prevErrorCount) {
         // Check that type inference went well everywhere; this will also fill in the .ResolvedOp field in binary expressions
@@ -4199,7 +4230,7 @@ namespace Microsoft.Dafny
             return true;
           } else if (pa.AllowSeq && !pa.AllowSetVarieties) {
             // strengthen a and b to a sequence type
-            b.T = new SeqType(ib.Arg);  // TODO: the type is really *either* a seq or a multiset
+            b.T = new SeqType(ib.Arg);
             a.T = b.T;
             return true;
           } else if (!pa.AllowSeq && !pa.AllowSetVarieties) {
@@ -6815,20 +6846,10 @@ namespace Microsoft.Dafny
         scope.PopMarker();
         expr.Type = new SetType(e.Term.Type);
 
-        if (prevErrorCount == ErrorCount) {
-          var missingBounds = new List<BoundVar>();
-          CheckTypeInference(e.Range);  // we need to resolve operators before the call to DiscoverBounds
-          e.Bounds = DiscoverBounds(e.tok, e.BoundVars, e.Range, true, false, missingBounds);
-          if (missingBounds.Count != 0) {
-            e.MissingBounds = missingBounds;
-            if (opts.IsGhost && (e.Term.Type.IsRefType || e.Term.Type is BoolType)) {
-              // ok, term type is finite and we're in a ghost context
-            } else {
-              foreach (var bv in e.MissingBounds) {
-                Error(expr, "a set comprehension must produce a finite set, but Dafny's heuristics can't figure out how to produce a bounded set of values for '{0}'", bv.Name);
-              }
-            }
-          }
+        if (opts.IsGhost && (e.Term.Type.IsRefType || e.Term.Type is BoolType)) {
+          // ok, term type is finite and we're in a ghost context
+        } else {
+          needFiniteBoundsChecks.Add(e);
         }
 
       } else if (expr is MapComprehension) {
@@ -7847,6 +7868,10 @@ namespace Microsoft.Dafny
 
       var allBounds = new List<Tuple<VT, List<ComprehensionExpr.BoundedPool>>>();
       bool foundError = false;
+      foreach (var bv in bvars) {
+        var c = TypeConstraint(bv, bv.Type);
+        expr = polarity ? Expression.CreateAnd(c, expr) : Expression.CreateImplies(c, expr);
+      }
       for (int j = 0; j < bvars.Count; j++) {
         var bv = bvars[j];
         var bounds = new List<ComprehensionExpr.BoundedPool>();
@@ -7860,7 +7885,7 @@ namespace Microsoft.Dafny
             foundBoundsForBv = true;
           }
           // Go through the conjuncts of the range expression to look for bounds.
-          Expression lowerBound = bv.Type is NatType ? Expression.CreateIntLiteral(bv.Tok, 0) : null;
+          Expression lowerBound = null;
           Expression upperBound = null;
           if (returnAllBounds && lowerBound != null) {
             bounds.Add(new ComprehensionExpr.IntBoundedPool(lowerBound, upperBound));
@@ -7933,17 +7958,21 @@ namespace Microsoft.Dafny
               case BinaryExpr.ResolvedOpcode.Ge:
                 Contract.Assert(false); throw new cce.UnreachableException();  // promised by postconditions of NormalizedConjunct
               case BinaryExpr.ResolvedOpcode.Lt:
-                if (whereIsBv == 0 && upperBound == null) {
-                  upperBound = e1;  // bv < E
-                } else if (whereIsBv == 1 && lowerBound == null) {
-                  lowerBound = Expression.CreateIncrement(e0, 1);  // E < bv
+                if (e0.Type.IsNumericBased(Type.NumericPersuation.Int)) {
+                  if (whereIsBv == 0 && upperBound == null) {
+                    upperBound = e1;  // bv < E
+                  } else if (whereIsBv == 1 && lowerBound == null) {
+                    lowerBound = Expression.CreateIncrement(e0, 1);  // E < bv
+                  }
                 }
                 break;
               case BinaryExpr.ResolvedOpcode.Le:
-                if (whereIsBv == 0 && upperBound == null) {
-                  upperBound = Expression.CreateIncrement(e1, 1);  // bv <= E
-                } else if (whereIsBv == 1 && lowerBound == null) {
-                  lowerBound = e0;  // E <= bv
+                if (e0.Type.IsNumericBased(Type.NumericPersuation.Int)) {
+                  if (whereIsBv == 0 && upperBound == null) {
+                    upperBound = Expression.CreateIncrement(e1, 1);  // bv <= E
+                  } else if (whereIsBv == 1 && lowerBound == null) {
+                    lowerBound = e0;  // E <= bv
+                  }
                 }
                 break;
               default:
@@ -7974,6 +8003,24 @@ namespace Microsoft.Dafny
       allBounds.Add(new Tuple<VT, List<ComprehensionExpr.BoundedPool>>(bv, bounds));
       }
       return foundError ? null : allBounds;
+    }
+
+    static Expression TypeConstraint(IVariable bv, Type ty) {
+      Contract.Requires(bv != null);
+      Contract.Requires(ty != null);
+      ty = ty.NormalizeExpand();
+      var dd = ty.AsNewtype;
+      if (dd != null) {
+        var c = TypeConstraint(bv, dd.BaseType);
+        if (dd.Var != null) {
+          c = Expression.CreateAnd(c, new Translator().Substitute(dd.Constraint, dd.Var, Expression.CreateIdentExpr(bv)));
+        }
+        return c;
+      }
+      if (ty is NatType) {
+        return Expression.CreateAtMost(Expression.CreateIntLiteral(bv.Tok, 0), Expression.CreateIdentExpr(bv));
+      }
+      return Expression.CreateBoolLiteral(bv.Tok, true);
     }
 
     /// <summary>
