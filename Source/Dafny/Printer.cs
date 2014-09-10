@@ -124,6 +124,12 @@ namespace Microsoft.Dafny {
         wr.WriteLine("// " + Bpl.CommandLineOptions.Clo.Environment);
       }
       wr.WriteLine("// {0}", prog.Name);
+      if (DafnyOptions.O.DafnyPrintResolvedFile != null) {
+        wr.WriteLine();
+        wr.WriteLine("/*");
+        PrintModuleDefinition(prog.BuiltIns.SystemModule, 0);
+        wr.WriteLine("*/");
+      }
       wr.WriteLine();
       PrintTopLevelDecls(prog.DefaultModuleDef.TopLevelDecls, 0);
     }
@@ -204,23 +210,7 @@ namespace Microsoft.Dafny {
           Indent(indent);
           if (d is LiteralModuleDecl) {
             ModuleDefinition module = ((LiteralModuleDecl)d).ModuleDef;
-            if (module.IsAbstract) {
-              wr.Write("abstract ");
-            }
-            wr.Write("module");
-            PrintAttributes(module.Attributes);
-            wr.Write(" {0} ", module.Name);
-            if (module.RefinementBaseName != null) {
-              wr.Write("refines {0} ", Util.Comma(".", module.RefinementBaseName, id => id.val));
-            }
-            if (module.TopLevelDecls.Count == 0) {
-              wr.WriteLine("{ }");
-            } else {
-              wr.WriteLine("{");
-              PrintTopLevelDecls(module.TopLevelDecls, indent + IndentAmount);
-              Indent(indent);
-              wr.WriteLine("}");
-            }
+            PrintModuleDefinition(module, indent);
           } else if (d is AliasModuleDecl) {
             wr.Write("import"); if (((AliasModuleDecl)d).Opened) wr.Write(" opened");
             wr.Write(" {0} ", ((AliasModuleDecl)d).Name);
@@ -230,9 +220,32 @@ namespace Microsoft.Dafny {
             wr.Write(" {0} ", ((ModuleFacadeDecl)d).Name);
             wr.WriteLine("as {0}", Util.Comma(".", ((ModuleFacadeDecl)d).Path, id => id.val));
           }
+
         } else {
           Contract.Assert(false);  // unexpected TopLevelDecl
         }
+      }
+    }
+
+    void PrintModuleDefinition(ModuleDefinition module, int indent) {
+      Contract.Requires(module != null);
+      Contract.Requires(0 <= indent);
+      if (module.IsAbstract) {
+        wr.Write("abstract ");
+      }
+      wr.Write("module");
+      PrintAttributes(module.Attributes);
+      wr.Write(" {0} ", module.Name);
+      if (module.RefinementBaseName != null) {
+        wr.Write("refines {0} ", Util.Comma(".", module.RefinementBaseName, id => id.val));
+      }
+      if (module.TopLevelDecls.Count == 0) {
+        wr.WriteLine("{ }");
+      } else {
+        wr.WriteLine("{");
+        PrintTopLevelDecls(module.TopLevelDecls, indent + IndentAmount);
+        Indent(indent);
+        wr.WriteLine("}");
       }
     }
 

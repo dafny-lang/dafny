@@ -156,12 +156,12 @@ namespace Microsoft.Dafny {
       if (!arrowTypeDecls.ContainsKey(arity)) {
         IToken tok = Token.NoToken;
         var tps = Util.Map(Enumerable.Range(0, arity + 1),
-          x => new TypeParameter(tok, "_Fn" + x));
+          x => new TypeParameter(tok, "T" + x));
         var tys = tps.ConvertAll(tp => (Type)(new UserDefinedType(tp)));
-        var args = tys.GetRange(0, arity).ConvertAll(t => new Formal(tok, "x", t, true, false));
+        var args = Util.Map(Enumerable.Range(0, arity), i => new Formal(tok, "x" + i, tys[i], true, false));
         var argExprs = args.ConvertAll(a =>
               (Expression)new IdentifierExpr(tok, a.Name) { Var = a, Type = a.Type });
-        var readsIS = new IdentifierSequence(new List<IToken> { tok }, tok, argExprs) {
+        var readsIS = new FunctionCallExpr(tok, "reads", new ImplicitThisExpr(tok), tok, argExprs) {
           Type = new SetType(new ObjectType()),
         };
         var readsFrame = new List<FrameExpression> { new FrameExpression(tok, readsIS, null) };
@@ -169,20 +169,15 @@ namespace Microsoft.Dafny {
           new List<TypeParameter>(), args, Type.Bool,
           new List<Expression>(), readsFrame, new List<Expression>(),
           new Specification<Expression>(new List<Expression>(), null),
-          null, new Attributes("axiom", new List<Attributes.Argument>(), null), null);
+          null, null, null);
         var reads = new Function(tok, "reads", false, true,
           new List<TypeParameter>(), args, new SetType(new ObjectType()),
           new List<Expression>(), readsFrame, new List<Expression>(),
           new Specification<Expression>(new List<Expression>(), null),
-          null, new Attributes("axiom", new List<Attributes.Argument>(), null), null);
-        var readsFexp =
-          new FunctionCallExpr(tok, "reads", new ThisExpr(tok), tok, argExprs) {
-            Function = reads,
-            Type = readsIS.Type,
-            TypeArgumentSubstitutions = Util.Dict(tps, tys)
-          };
-        readsIS.ResolvedExpression = readsFexp;
-        var arrowDecl = new ArrowTypeDecl(tps, req, reads, SystemModule);
+          null, null, null);
+        readsIS.Function = reads;  // just so we can really claim the member declarations are resolved
+        readsIS.TypeArgumentSubstitutions = Util.Dict(tps, tys);  // ditto
+        var arrowDecl = new ArrowTypeDecl(tps, req, reads, SystemModule, DontCompile());
         arrowTypeDecls.Add(arity, arrowDecl);
         SystemModule.TopLevelDecls.Add(arrowDecl);
       }
@@ -693,12 +688,12 @@ namespace Microsoft.Dafny {
     }
 
     public static string ArrowTypeName(int arity) {
-      return "_Func" + arity;
+      return "_#Func" + arity;
     }
 
     [Pure]
     public static bool IsArrowTypeName(string s) {
-      return s.StartsWith("_Func");
+      return s.StartsWith("_#Func");
     }
 
     public override string TypeName(ModuleDefinition context) {
@@ -1742,9 +1737,9 @@ namespace Microsoft.Dafny {
     public readonly Function Requires;
     public readonly Function Reads;
 
-    public ArrowTypeDecl(List<TypeParameter> tps, Function req, Function reads, ModuleDefinition module)
-      : base(Token.NoToken, "_Func" + (tps.Count - 1), module, tps,
-             new List<MemberDecl> { req, reads }, null, null) {
+    public ArrowTypeDecl(List<TypeParameter> tps, Function req, Function reads, ModuleDefinition module, Attributes attributes)
+      : base(Token.NoToken, "_#Func" + (tps.Count - 1), module, tps,
+             new List<MemberDecl> { req, reads }, attributes, null) {
       Contract.Requires(tps != null && 1 <= tps.Count);
       Contract.Requires(req != null);
       Contract.Requires(reads != null);
