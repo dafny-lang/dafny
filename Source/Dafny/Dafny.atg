@@ -2308,7 +2308,11 @@ CasePattern<out CasePattern pat>
                                           pat = new CasePattern(bv.tok, bv);
                                        .)
   )
-
+  (. // In case of parsing errors, make sure 'pat' still returns as non-null
+     if (pat == null) {
+       pat = new CasePattern(t, "_ParseError", new List<CasePattern>());
+     }
+  .)
   .
 /*------------------------------------------------------------------------*/
 DottedIdentifiersAndFunction<out Expression e, bool allowSemi, bool allowLambda>

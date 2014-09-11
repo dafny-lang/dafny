@@ -3956,6 +3956,10 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 			pat = new CasePattern(bv.tok, bv);
 			
 		} else SynErr(237);
+		if (pat == null) {
+		 pat = new CasePattern(t, "_ParseError", new List<CasePattern>());
+		}
+		
 	}
 
 	void CaseExpression(out MatchCaseExpr c, bool allowSemi, bool allowLambda) {
