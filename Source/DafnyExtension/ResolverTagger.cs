@@ -327,7 +327,7 @@ namespace DafnyLanguage
       }
       catch (Exception e)
       {
-        newErrors = new List<DafnyError> { new DafnyError(filename, 0, 0, ErrorCategory.InternalError, "internal Dafny error: " + e.Message, snapshot) };
+        newErrors = new List<DafnyError> { new DafnyError(filename, 0, 0, ErrorCategory.InternalError, "internal Dafny error: " + e.Message, snapshot, false) };
         program = null;
       }
 
@@ -575,13 +575,13 @@ namespace DafnyLanguage
     /// <summary>
     /// "line" and "col" are expected to be 0-based
     /// </summary>
-    public DafnyError(string filename, int line, int col, ErrorCategory cat, string msg, ITextSnapshot snapshot, string model = null, bool inCurrentDocument=true)
+    public DafnyError(string filename, int line, int col, ErrorCategory cat, string msg, ITextSnapshot snapshot, bool isRecycled, string model = null, bool inCurrentDocument = true)
     {
       Filename = filename;
       Line = Math.Max(0, line);
       Column = Math.Max(0, col);
       Category = cat;
-      Message = msg;
+      Message = msg + ((isRecycled && cat == ErrorCategory.VerificationError) ? " (recycled)" : "");
       Snapshot = snapshot;
       if (inCurrentDocument) {
         var sLine = snapshot.GetLineFromLineNumber(line);

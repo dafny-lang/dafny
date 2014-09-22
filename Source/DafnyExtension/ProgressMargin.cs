@@ -340,10 +340,11 @@ namespace DafnyLanguage
           if (!_disposed)
           {
             errorInfo.BoogieErrorCode = null;
-            var recycled = errorInfo.OriginalRequestId != requestId ? " (recycled)" : "";
+            var isRecycled = false;
             ITextSnapshot s = null;
             if (errorInfo.OriginalRequestId != null)
             {
+              isRecycled = errorInfo.OriginalRequestId != requestId;
               RequestIdToSnapshot.TryGetValue(errorInfo.OriginalRequestId, out s);
             }
             if (s == null && errorInfo.RequestId != null)
@@ -352,22 +353,22 @@ namespace DafnyLanguage
             }
             if (s != null)
             {
-              errorListHolder.AddError(new DafnyError(errorInfo.Tok.filename, errorInfo.Tok.line - 1, errorInfo.Tok.col - 1, ErrorCategory.VerificationError, errorInfo.FullMsg + recycled, s, errorInfo.Model.ToString(), System.IO.Path.GetFullPath(_document.FilePath) == errorInfo.Tok.filename), errorInfo.ImplementationName, requestId);
+              errorListHolder.AddError(new DafnyError(errorInfo.Tok.filename, errorInfo.Tok.line - 1, errorInfo.Tok.col - 1, ErrorCategory.VerificationError, errorInfo.FullMsg, s, isRecycled, errorInfo.Model.ToString(), System.IO.Path.GetFullPath(_document.FilePath) == errorInfo.Tok.filename), errorInfo.ImplementationName, requestId);
               foreach (var aux in errorInfo.Aux)
               {
-                errorListHolder.AddError(new DafnyError(aux.Tok.filename, aux.Tok.line - 1, aux.Tok.col - 1, ErrorCategory.AuxInformation, aux.FullMsg, s, null, System.IO.Path.GetFullPath(_document.FilePath) == aux.Tok.filename), errorInfo.ImplementationName, requestId);
+                errorListHolder.AddError(new DafnyError(aux.Tok.filename, aux.Tok.line - 1, aux.Tok.col - 1, ErrorCategory.AuxInformation, aux.FullMsg, s, isRecycled, null, System.IO.Path.GetFullPath(_document.FilePath) == aux.Tok.filename), errorInfo.ImplementationName, requestId);
               }
             }
           }
         });
         if (!success)
         {
-          errorListHolder.AddError(new DafnyError("$$program$$", 0, 0, ErrorCategory.InternalError, "Verification process error", snapshot), "$$program$$", requestId);
+          errorListHolder.AddError(new DafnyError("$$program$$", 0, 0, ErrorCategory.InternalError, "Verification process error", snapshot, false), "$$program$$", requestId);
         }
       }
       catch (Exception e)
       {
-        errorListHolder.AddError(new DafnyError("$$program$$", 0, 0, ErrorCategory.InternalError, "Verification process error: " + e.Message, snapshot), "$$program$$", requestId);
+        errorListHolder.AddError(new DafnyError("$$program$$", 0, 0, ErrorCategory.InternalError, "Verification process error: " + e.Message, snapshot, false), "$$program$$", requestId);
       }
 
       lock (this) {

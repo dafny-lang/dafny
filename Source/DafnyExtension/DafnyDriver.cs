@@ -114,9 +114,9 @@ namespace DafnyLanguage
       return true;  // success
     }
 
-    void RecordError(string filename, int line, int col, ErrorCategory cat, string msg)
+    void RecordError(string filename, int line, int col, ErrorCategory cat, string msg, bool isRecycled = false)
     {
-      _errors.Add(new DafnyError(filename, line, col, cat, msg, _snapshot, null, System.IO.Path.GetFullPath(this._filename) == filename));
+      _errors.Add(new DafnyError(filename, line, col, cat, msg, _snapshot, isRecycled, null, System.IO.Path.GetFullPath(this._filename) == filename));
     }
 
     class VSErrors : Dafny.Errors
