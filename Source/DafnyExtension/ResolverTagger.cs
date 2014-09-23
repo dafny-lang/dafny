@@ -154,7 +154,7 @@ namespace DafnyLanguage
 
     string MostRecentRequestId;
     
-    internal void ReInitializeVerificationErrors(string mostRecentRequestId, List<Microsoft.Boogie.Declaration> units)
+    internal void ReInitializeVerificationErrors(string mostRecentRequestId, IEnumerable<Microsoft.Boogie.Declaration> units)
     {
       var implNames = units.OfType<Microsoft.Boogie.Implementation>().Select(impl => impl.Name);
       lock (this)
