@@ -440,19 +440,18 @@ namespace Microsoft.Dafny {
       //adding TraitParent function and axioms
       AddTraitParentFuncAndAxioms();
 
-
       if (InsertChecksums)
       {
-        foreach (var decl in sink.TopLevelDeclarations)
+        foreach (var impl in sink.Implementations)
         {
-          var impl = decl as Implementation;
-          if (impl != null && impl.FindStringAttribute("checksum") == null)
+          if (impl.FindStringAttribute("checksum") == null)
           {
             impl.AddAttribute("checksum", "stable");
           }
-
-          var func = decl as Bpl.Function;
-          if (func != null && func.FindStringAttribute("checksum") == null)
+        }
+        foreach (var func in sink.Functions)
+        {
+          if (func.FindStringAttribute("checksum") == null)
           {
             func.AddAttribute("checksum", "stable");
           }
