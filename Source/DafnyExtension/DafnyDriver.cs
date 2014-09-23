@@ -248,7 +248,7 @@ namespace DafnyLanguage
       translator.UniqueIdPrefix = uniqueIdPrefix;
       Bpl.Program boogieProgram = translator.Translate(dafnyProgram);
 
-      resolver.ReInitializeVerificationErrors(requestId, boogieProgram.TopLevelDeclarations);
+      resolver.ReInitializeVerificationErrors(requestId, boogieProgram.Implementations);
 
       // TODO(wuestholz): Maybe we should use a fixed program ID to limit the memory overhead due to the program cache in Boogie.
       PipelineOutcome oc = BoogiePipeline(boogieProgram, 1 < Dafny.DafnyOptions.Clo.VerifySnapshots ? uniqueIdPrefix : null, requestId, er);
