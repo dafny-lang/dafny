@@ -499,7 +499,7 @@ namespace DafnyLanguage
         {
           using (var rd = new StringReader(ModelText))
           {
-            var models = Microsoft.Boogie.Model.ParseModels(rd, null).ToArray();
+            var models = Microsoft.Boogie.Model.ParseModels(rd).ToArray();
             Contract.Assert(models.Length == 1);
             _model = models[0];
           }
