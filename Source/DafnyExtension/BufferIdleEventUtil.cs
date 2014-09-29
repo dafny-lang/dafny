@@ -120,7 +120,7 @@ namespace DafnyLanguage
             {
                 timer = new DispatcherTimer(DispatcherPriority.ApplicationIdle)
                 {
-                    Interval = TimeSpan.FromMilliseconds(500)
+                    Interval = TimeSpan.FromMilliseconds(50)
                 };
 
                 timer.Tick += (s, e) =>

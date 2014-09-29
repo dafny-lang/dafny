@@ -118,7 +118,7 @@ namespace DafnyLanguage
       _errorProvider = new ErrorListProvider(serviceProvider);
 
       timer = new DispatcherTimer(DispatcherPriority.ApplicationIdle);
-      timer.Interval = TimeSpan.FromMilliseconds(500);
+      timer.Interval = TimeSpan.FromMilliseconds(50);
       timer.Tick += new EventHandler(UponIdle);
 
       tagAggregator.TagsChanged += new EventHandler<TagsChangedEventArgs>(_aggregator_TagsChanged);
