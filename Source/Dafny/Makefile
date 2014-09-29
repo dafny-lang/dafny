@@ -6,7 +6,7 @@
 # ###############################################################################
 COCO_EXE_DIR = ..\..\..\boogiepartners\CocoRdownload
 FRAME_DIR = ..\..\..\boogiepartners\CocoR\Modified
-COCO = $(COCO_EXE_DIR)\Coco.exe
+COCO = COCO = $(COCO_EXE_DIR)\Coco.exe
 
 # "all" depends on 2 files, really (Parser.cs and Scanner.cs), but they
 # are both generated in one go and I don't know a better way to tell

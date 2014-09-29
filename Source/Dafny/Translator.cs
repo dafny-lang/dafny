@@ -9,7 +9,7 @@ using System.Linq;
 using System.Numerics;
 using System.Diagnostics.Contracts;
 using Bpl = Microsoft.Boogie;
-using BplParser = Parser;
+using BplParser = Microsoft.Boogie.Parser;
 using System.Text;
 using Microsoft.Boogie;
 
@@ -413,7 +413,7 @@ namespace Microsoft.Dafny {
         }
       }
       foreach(var c in fieldConstants.Values) {
-        sink.TopLevelDeclarations.Add(c);
+        sink.AddTopLevelDeclaration(c);
       }
       HashSet<Tuple<string, string>> checkedMethods = new HashSet<Tuple<string, string>>();
       HashSet<Tuple<string, string>> checkedFunctions = new HashSet<Tuple<string, string>>();
@@ -440,19 +440,18 @@ namespace Microsoft.Dafny {
       //adding TraitParent function and axioms
       AddTraitParentFuncAndAxioms();
 
-
       if (InsertChecksums)
       {
-        foreach (var decl in sink.TopLevelDeclarations)
+        foreach (var impl in sink.Implementations)
         {
-          var impl = decl as Implementation;
-          if (impl != null && impl.FindStringAttribute("checksum") == null)
+          if (impl.FindStringAttribute("checksum") == null)
           {
             impl.AddAttribute("checksum", "stable");
           }
-
-          var func = decl as Bpl.Function;
-          if (func != null && func.FindStringAttribute("checksum") == null)
+        }
+        foreach (var func in sink.Functions)
+        {
+          if (func.FindStringAttribute("checksum") == null)
           {
             func.AddAttribute("checksum", "stable");
           }
@@ -478,12 +477,12 @@ namespace Microsoft.Dafny {
                 Token tNoTrait = new Token();
                 Token tTraitParent = new Token();
                 Bpl.Constant cNoTrait = new Bpl.Constant(tNoTrait, new Bpl.TypedIdent(tNoTrait, "NoTraitAtAll", predef.ClassNameType), true);
-                sink.TopLevelDeclarations.Add(cNoTrait);
+                sink.AddTopLevelDeclaration(cNoTrait);
                 //adding function TraitParent(ClassName): ClassName;
                 var arg_ref = new Bpl.Formal(tTraitParent, new Bpl.TypedIdent(tTraitParent, Bpl.TypedIdent.NoName, predef.ClassNameType), true);
                 var res = new Bpl.Formal(tTraitParent, new Bpl.TypedIdent(tTraitParent, Bpl.TypedIdent.NoName, predef.ClassNameType), false);
                 var fTraitParent = new Bpl.Function(tTraitParent, "TraitParent", new List<Variable> { arg_ref }, res);
-                sink.TopLevelDeclarations.Add(fTraitParent);
+                sink.AddTopLevelDeclaration(fTraitParent);
 
                 foreach (TopLevelDecl d in m.TopLevelDecls)
                 {
@@ -503,7 +502,7 @@ namespace Microsoft.Dafny {
                             var funCallExpr = new Bpl.NAryExpr(c.tok, funCall, new List<Expr> { new Bpl.IdentifierExpr(c.tok, string.Format("class.{0}", c.FullSanitizedName), predef.ClassNameType) });
                             var traitParentAxiom = new Bpl.Axiom(c.tok, Bpl.Expr.Eq(funCallExpr, traitId_expr));
 
-                            sink.TopLevelDeclarations.Add(traitParentAxiom);
+                            sink.AddTopLevelDeclaration(traitParentAxiom);
                         }
                         else if (c is ClassDecl && c.Trait == null)
                         {
@@ -518,7 +517,7 @@ namespace Microsoft.Dafny {
                             var funCallExpr = new Bpl.NAryExpr(c.tok, funCall, new List<Expr> { new Bpl.IdentifierExpr(c.tok, string.Format("class.{0}", c.FullSanitizedName), predef.ClassNameType) });
                             var traitParentAxiom = new Bpl.Axiom(c.tok, Bpl.Expr.Eq(funCallExpr, noTraitAtAll_expr));
 
-                            sink.TopLevelDeclarations.Add(traitParentAxiom);
+                            sink.AddTopLevelDeclaration(traitParentAxiom);
                         }
                     }
                 }
@@ -572,7 +571,7 @@ namespace Microsoft.Dafny {
           body = BplIff(is_o, rhs);
         }
 
-        sink.TopLevelDeclarations.Add(new Bpl.Axiom(dd.tok, BplForall(vars, BplTrigger(is_o), body), name));
+        sink.AddTopLevelDeclaration(new Bpl.Axiom(dd.tok, BplForall(vars, BplTrigger(is_o), body), name));
       });
     }
     void AddTypeDecl_Aux(IToken tok, string nm, List<TypeParameter> typeArgs) {
@@ -585,7 +584,7 @@ namespace Microsoft.Dafny {
         return;
       }
       if (typeArgs.Count == 0) {
-        sink.TopLevelDeclarations.Add(
+        sink.AddTopLevelDeclaration(
           new Bpl.Constant(tok,
             new TypedIdent(tok, nm, predef.Ty), false /* not unique */));
       } else {
@@ -593,7 +592,7 @@ namespace Microsoft.Dafny {
         // in a refinement module in such a way that the type arguments do not matter.
         var args = new List<Bpl.Variable>(typeArgs.ConvertAll(a => (Bpl.Variable)BplFormalVar(null, predef.Ty, true)));
         var func = new Bpl.Function(tok, nm, args, BplFormalVar(null, predef.Ty, false));
-        sink.TopLevelDeclarations.Add(func);
+        sink.AddTopLevelDeclaration(func);
       }
       abstractTypes.Add(nm);
     }
@@ -602,7 +601,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(dt != null);
       Contract.Requires(sink != null && predef != null);
       Bpl.Constant dt_const = GetClass(dt);
-      sink.TopLevelDeclarations.Add(dt_const);
+      sink.AddTopLevelDeclaration(dt_const);
 
       foreach (DatatypeCtor ctor in dt.Ctors) {
         int i;
@@ -619,7 +618,7 @@ namespace Microsoft.Dafny {
         if (InsertChecksums) {
           InsertChecksum(dt, fn);
         }
-        sink.TopLevelDeclarations.Add(fn);
+        sink.AddTopLevelDeclaration(fn);
 
         List<Variable> bvs;
         List<Bpl.Expr> args;
@@ -629,7 +628,7 @@ namespace Microsoft.Dafny {
           // Add:  const unique ##dt.ctor: DtCtorId;
           Bpl.Constant cid = new Bpl.Constant(ctor.tok, new Bpl.TypedIdent(ctor.tok, "#" + ctor.FullName, predef.DtCtorId), true);
           Bpl.Expr c = new Bpl.IdentifierExpr(ctor.tok, cid);
-          sink.TopLevelDeclarations.Add(cid);
+          sink.AddTopLevelDeclaration(cid);
 
           {
             // Add:  axiom (forall params :: DatatypeCtorId(#dt.ctor(params)) == ##dt.ctor);       
@@ -637,13 +636,13 @@ namespace Microsoft.Dafny {
             Bpl.Expr lhs = FunctionCall(ctor.tok, ctor.FullName, predef.DatatypeType, args);
             lhs = FunctionCall(ctor.tok, BuiltinFunction.DatatypeCtorId, null, lhs);
             Bpl.Expr q = Bpl.Expr.Eq(lhs, c);
-            sink.TopLevelDeclarations.Add(new Bpl.Axiom(ctor.tok, BplForall(bvs, q), "Constructor identifier"));
+            sink.AddTopLevelDeclaration(new Bpl.Axiom(ctor.tok, BplForall(bvs, q), "Constructor identifier"));
           }
 
           {
             // Add:  function dt.ctor?(this: DatatypeType): bool { DatatypeCtorId(this) == ##dt.ctor }
             fn = GetReadonlyField(ctor.QueryField);
-            sink.TopLevelDeclarations.Add(fn);
+            sink.AddTopLevelDeclaration(fn);
 
             // and here comes the associated axiom:
 
@@ -654,7 +653,7 @@ namespace Microsoft.Dafny {
             var body = Bpl.Expr.Iff(queryPredicate, rhs);
             var tr = BplTrigger(queryPredicate);
             var ax = BplForall(thVar, tr, body);
-            sink.TopLevelDeclarations.Add(new Bpl.Axiom(ctor.tok, ax, "Questionmark and identifier"));
+            sink.AddTopLevelDeclaration(new Bpl.Axiom(ctor.tok, ax, "Questionmark and identifier"));
           }
 
         }
@@ -671,7 +670,7 @@ namespace Microsoft.Dafny {
           }
           Bpl.Expr dtq = FunctionCall(ctor.tok, ctor.QueryField.FullSanitizedName, Bpl.Type.Bool, dId);
           q = BplForall(dBv, null, BplImp(dtq, q));
-          sink.TopLevelDeclarations.Add(new Bpl.Axiom(ctor.tok, q, "Constructor questionmark has arguments"));
+          sink.AddTopLevelDeclaration(new Bpl.Axiom(ctor.tok, q, "Constructor questionmark has arguments"));
         }
 
         MapM(Bools, is_alloc => {
@@ -705,14 +704,14 @@ namespace Microsoft.Dafny {
           bvs.InsertRange(0, tyvars);
           if (!is_alloc) {
             var c_is = MkIs(c_params, c_ty);
-            sink.TopLevelDeclarations.Add(new Bpl.Axiom(ctor.tok,
+            sink.AddTopLevelDeclaration(new Bpl.Axiom(ctor.tok,
                 BplForall(bvs, BplTrigger(c_is), BplIff(c_is, conj)),
                 "Constructor $Is"));
           } else if (is_alloc) {
             var isGoodHeap = FunctionCall(ctor.tok, BuiltinFunction.IsGoodHeap, null, h);
             var c_alloc = MkIsAlloc(c_params, c_ty, h);
             bvs.Add(hVar);
-            sink.TopLevelDeclarations.Add(new Bpl.Axiom(ctor.tok,
+            sink.AddTopLevelDeclaration(new Bpl.Axiom(ctor.tok,
                 BplForall(bvs, BplTrigger(c_alloc),
                                BplImp(isGoodHeap, BplIff(c_alloc, conj))),
                 "Constructor $IsAlloc"));
@@ -730,7 +729,7 @@ namespace Microsoft.Dafny {
           Bpl.Expr lhs = FunctionCall(ctor.tok, ctor.FullName, predef.DatatypeType, litargs);                 
           Bpl.Expr rhs = Lit(FunctionCall(ctor.tok, ctor.FullName, predef.DatatypeType, args), predef.DatatypeType);
           Bpl.Expr q = BplForall(bvs, BplTrigger(lhs), Bpl.Expr.Eq(lhs, rhs));
-          sink.TopLevelDeclarations.Add(new Bpl.Axiom(ctor.tok, q, "Constructor literal"));
+          sink.AddTopLevelDeclaration(new Bpl.Axiom(ctor.tok, q, "Constructor literal"));
         }         
 
         // Injectivity axioms for normal arguments
@@ -740,13 +739,13 @@ namespace Microsoft.Dafny {
           var sf = ctor.Destructors[i];
           Contract.Assert(sf != null);
           fn = GetReadonlyField(sf);
-          sink.TopLevelDeclarations.Add(fn);
+          sink.AddTopLevelDeclaration(fn);
           // axiom (forall params :: ##dt.ctor#i(#dt.ctor(params)) == params_i);
           CreateBoundVariables(ctor.Formals, out bvs, out args);         
           var inner = FunctionCall(ctor.tok, ctor.FullName, predef.DatatypeType, args);
           var outer = FunctionCall(ctor.tok, fn.Name, TrType(arg.Type), inner);
           var q = BplForall(bvs, BplTrigger(inner), Bpl.Expr.Eq(outer, args[i]));
-          sink.TopLevelDeclarations.Add(new Bpl.Axiom(ctor.tok, q, "Constructor injectivity"));
+          sink.AddTopLevelDeclaration(new Bpl.Axiom(ctor.tok, q, "Constructor injectivity"));
 
           if (dt is IndDatatypeDecl) {
             var argType = arg.Type.NormalizeExpand();
@@ -762,7 +761,7 @@ namespace Microsoft.Dafny {
               Bpl.Expr rhs = FunctionCall(ctor.tok, ctor.FullName, predef.DatatypeType, args);
               rhs = FunctionCall(ctor.tok, BuiltinFunction.DtRank, null, rhs);
               q = new Bpl.ForallExpr(ctor.tok, bvs, Bpl.Expr.Lt(lhs, rhs));
-              sink.TopLevelDeclarations.Add(new Bpl.Axiom(ctor.tok, q, "Inductive rank"));
+              sink.AddTopLevelDeclaration(new Bpl.Axiom(ctor.tok, q, "Inductive rank"));
             } else if (argType is SeqType) {
               // axiom (forall params, i: int :: 0 <= i && i < |arg| ==> DtRank(arg[i]) < DtRank(#dt.ctor(params)));
               // that is:
@@ -780,14 +779,14 @@ namespace Microsoft.Dafny {
               Bpl.Expr rhs = FunctionCall(ctor.tok, ctor.FullName, predef.DatatypeType, args);
               rhs = FunctionCall(ctor.tok, BuiltinFunction.DtRank, null, rhs);
               q = new Bpl.ForallExpr(ctor.tok, bvs, Bpl.Expr.Imp(ante, Bpl.Expr.Lt(lhs, rhs)));
-              sink.TopLevelDeclarations.Add(new Bpl.Axiom(ctor.tok, q));
+              sink.AddTopLevelDeclaration(new Bpl.Axiom(ctor.tok, q));
               // axiom (forall params, SeqRank(arg) < DtRank(#dt.ctor(params)));
               CreateBoundVariables(ctor.Formals, out bvs, out args);             
               lhs = FunctionCall(ctor.tok, BuiltinFunction.SeqRank, null, args[i]);
               rhs = FunctionCall(ctor.tok, ctor.FullName, predef.DatatypeType, args);
               rhs = FunctionCall(ctor.tok, BuiltinFunction.DtRank, null, rhs);
               q = new Bpl.ForallExpr(ctor.tok, bvs, Bpl.Expr.Lt(lhs, rhs));
-              sink.TopLevelDeclarations.Add(new Bpl.Axiom(ctor.tok, q, "Inductive seq rank"));
+              sink.AddTopLevelDeclaration(new Bpl.Axiom(ctor.tok, q, "Inductive seq rank"));
             } else if (argType is SetType) {
               // axiom (forall params, d: Datatype :: arg[d] ==> DtRank(d) < DtRank(#dt.ctor(params)));
               // that is:
@@ -801,7 +800,7 @@ namespace Microsoft.Dafny {
               Bpl.Expr rhs = FunctionCall(ctor.tok, ctor.FullName, predef.DatatypeType, args);
               rhs = FunctionCall(ctor.tok, BuiltinFunction.DtRank, null, rhs);
               q = new Bpl.ForallExpr(ctor.tok, bvs, Bpl.Expr.Imp(ante, Bpl.Expr.Lt(lhs, rhs)));
-              sink.TopLevelDeclarations.Add(new Bpl.Axiom(ctor.tok, q, "Inductive set rank"));
+              sink.AddTopLevelDeclaration(new Bpl.Axiom(ctor.tok, q, "Inductive set rank"));
             } else if (argType is MultiSetType) {
               // axiom (forall params, d: Datatype :: 0 < arg[d] ==> DtRank(d) < DtRank(#dt.ctor(params)));
               // that is:
@@ -815,7 +814,7 @@ namespace Microsoft.Dafny {
               Bpl.Expr rhs = FunctionCall(ctor.tok, ctor.FullName, predef.DatatypeType, args);
               rhs = FunctionCall(ctor.tok, BuiltinFunction.DtRank, null, rhs);
               q = new Bpl.ForallExpr(ctor.tok, bvs, Bpl.Expr.Imp(ante, Bpl.Expr.Lt(lhs, rhs)));
-              sink.TopLevelDeclarations.Add(new Bpl.Axiom(ctor.tok, q, "Inductive multiset rank"));
+              sink.AddTopLevelDeclaration(new Bpl.Axiom(ctor.tok, q, "Inductive multiset rank"));
             }
           }
 
@@ -839,7 +838,7 @@ namespace Microsoft.Dafny {
           InsertChecksum(dt, cases_fn);
         }
 
-        sink.TopLevelDeclarations.Add(cases_fn);
+        sink.AddTopLevelDeclaration(cases_fn);
         // and here comes the actual axiom:
         {
           Bpl.Expr d;
@@ -851,7 +850,7 @@ namespace Microsoft.Dafny {
             cases_body = BplOr(cases_body, disj);
           }
           var ax = BplForall(new List<Variable> { dVar }, BplTrigger(lhs), BplImp(lhs, cases_body));
-          sink.TopLevelDeclarations.Add(new Bpl.Axiom(dt.tok, ax, "One-depth case-split axiom"));
+          sink.AddTopLevelDeclaration(new Bpl.Axiom(dt.tok, ax, "One-depth case-split axiom"));
         }
       }
 
@@ -880,7 +879,7 @@ namespace Microsoft.Dafny {
         }
         var body = Bpl.Expr.Imp(d_is, cases_body);
         var ax = BplForall(Snoc(tyvars, dVar), tr, body);
-        sink.TopLevelDeclarations.Add(new Bpl.Axiom(dt.tok, ax, "Questionmark data type disjunctivity"));
+        sink.AddTopLevelDeclaration(new Bpl.Axiom(dt.tok, ax, "Questionmark data type disjunctivity"));
       }
 
       if (dt is CoDatatypeDecl) {
@@ -937,7 +936,7 @@ namespace Microsoft.Dafny {
             if (InsertChecksums) {
               InsertChecksum(dt, fn);
             }
-            sink.TopLevelDeclarations.Add(fn);
+            sink.AddTopLevelDeclaration(fn);
           }
 
           // axiom (forall G0,...,Gn : Ty, k: int, ly : Layer, d0, d1: DatatypeType :: 
@@ -956,7 +955,7 @@ namespace Microsoft.Dafny {
               BplIff(eqDt,
                 BplImp(kGtZero, BplOr(CoPrefixEquality(dt.tok, codecl, tyargs.Item1, tyargs.Item2, MinusOne(k), ly, d0, d1)))));
             var ax = BplForall(vars, BplTrigger(eqDt), body);
-            sink.TopLevelDeclarations.Add(new Bpl.Axiom(dt.tok, ax, "Layered co-equality axiom"));
+            sink.AddTopLevelDeclaration(new Bpl.Axiom(dt.tok, ax, "Layered co-equality axiom"));
           });
 
           // axiom (forall G0,...,Gn : Ty, k: int, ly : Layer, d0, d1: DatatypeType :: 
@@ -969,7 +968,7 @@ namespace Microsoft.Dafny {
             var eqDtL  = CoEqualCall(codecl, lexprs, rexprs, k, ly, d0, d1);
             var body = BplImp(kGtZero, BplIff(eqDtSL, eqDtL));
             var ax = BplForall(vars, BplTrigger(eqDtSL), body);
-            sink.TopLevelDeclarations.Add(new Bpl.Axiom(dt.tok, ax, "Unbump layer co-equality axiom"));
+            sink.AddTopLevelDeclaration(new Bpl.Axiom(dt.tok, ax, "Unbump layer co-equality axiom"));
           });
         };
 
@@ -979,7 +978,7 @@ namespace Microsoft.Dafny {
         CoAxHelper(false, (tyargs, vars, lexprs, rexprs, kVar, k, kGtZero, ly, d0, d1) => {
           var Eq = CoEqualCall(codecl, lexprs, rexprs, k, LayerSucc(ly), d0, d1);
           var equal = Bpl.Expr.Eq(d0, d1);
-          sink.TopLevelDeclarations.Add(new Axiom(dt.tok,
+          sink.AddTopLevelDeclaration(new Axiom(dt.tok,
             BplForall(vars, BplTrigger(Eq), BplIff(Eq, equal)),
             "Equality for codatatypes"));
         });
@@ -993,7 +992,7 @@ namespace Microsoft.Dafny {
           var Eq = CoEqualCall(codecl, lexprs, rexprs, null, LayerSucc(ly), d0, d1);
           var PEq = CoEqualCall(codecl, lexprs, rexprs, k, LayerSucc(ly), d0, d1);
           vars.Remove(kVar);
-          sink.TopLevelDeclarations.Add(new Axiom(dt.tok,
+          sink.AddTopLevelDeclaration(new Axiom(dt.tok,
             BplForall(vars, BplTrigger(Eq), BplIff(Eq, BplForall(kVar, BplTrigger(PEq), BplImp(kGtZero, PEq)))),
             "Coequality and prefix equality connection"));
         });
@@ -1005,7 +1004,7 @@ namespace Microsoft.Dafny {
           var PEqK = CoEqualCall(codecl, lexprs, rexprs, k, LayerSucc(ly), d0, d1);
           var PEqM = CoEqualCall(codecl, lexprs, rexprs, m, LayerSucc(ly), d0, d1);
           var kLtM = Bpl.Expr.Lt(k, m);
-          sink.TopLevelDeclarations.Add(new Axiom(dt.tok,
+          sink.AddTopLevelDeclaration(new Axiom(dt.tok,
             BplForall(vars,
             new Bpl.Trigger(dt.tok, true, new List<Bpl.Expr> { PEqK, PEqM }),
             BplImp(BplAnd(BplAnd(kGtZero, kLtM), PEqM), PEqK)),
@@ -1019,7 +1018,7 @@ namespace Microsoft.Dafny {
         CoAxHelper(true, (tyargs, vars, lexprs, rexprs, kVar, k, kGtZero, ly, d0, d1) => {
           var equal = Bpl.Expr.Eq(d0, d1);
           var PEq = CoEqualCall(codecl, lexprs, rexprs, k, LayerSucc(ly), d0, d1);
-          sink.TopLevelDeclarations.Add(new Axiom(dt.tok,
+          sink.AddTopLevelDeclaration(new Axiom(dt.tok,
             BplForall(vars, null, BplImp(BplAnd(equal, kGtZero), PEq)),
             "Prefix equality shortcut"));
         });
@@ -1209,7 +1208,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(sink != null && predef != null);
       Contract.Requires(c != null);
 
-      sink.TopLevelDeclarations.Add(GetClass(c));
+      sink.AddTopLevelDeclaration(GetClass(c));
       if (c is ArrayClassDecl) {
         // classes.Add(c, predef.ClassDotArray);
         AddAllocationAxiom(null, c, true);
@@ -1274,7 +1273,7 @@ namespace Microsoft.Dafny {
                   body = BplIff(is_o, rhs);
               }
 
-              sink.TopLevelDeclarations.Add(new Bpl.Axiom(c.tok, BplForall(vars, BplTrigger(is_o), body), name));
+              sink.AddTopLevelDeclaration(new Bpl.Axiom(c.tok, BplForall(vars, BplTrigger(is_o), body), name));
           });
       }
 
@@ -1284,7 +1283,7 @@ namespace Microsoft.Dafny {
           var arg_ref = new Bpl.Formal(c.tok, new Bpl.TypedIdent(c.tok, Bpl.TypedIdent.NoName, predef.ClassNameType), true);
           var res = new Bpl.Formal(c.tok, new Bpl.TypedIdent(c.tok, Bpl.TypedIdent.NoName, Bpl.Type.Bool), false);
           var implement_intr = new Bpl.Function(c.tok, "implements$" + c.Name, new List<Variable> { arg_ref }, res);
-          sink.TopLevelDeclarations.Add(implement_intr);
+          sink.AddTopLevelDeclaration(implement_intr);
       }
       //this adds: axiom implements$J(class.C); 
       else if (c is ClassDecl)
@@ -1299,7 +1298,7 @@ namespace Microsoft.Dafny {
               var funCall = new Bpl.FunctionCall(new Bpl.Function(c.tok, "implements$" + c.TraitId.val, new List<Variable> { args }, ret_value));
               var expr = new Bpl.NAryExpr(c.tok, funCall, new List<Expr> { new Bpl.IdentifierExpr(c.tok, string.Format("class.{0}", c.FullSanitizedName), predef.ClassNameType) });
               var implements_axiom = new Bpl.Axiom(c.tok, expr);
-              sink.TopLevelDeclarations.Add(implements_axiom);
+              sink.AddTopLevelDeclaration(implements_axiom);
           }
       }
        
@@ -1309,11 +1308,11 @@ namespace Microsoft.Dafny {
           Field f = (Field)member;
           if (f.IsMutable) {
             Bpl.Constant fc = GetField(f);
-            sink.TopLevelDeclarations.Add(fc);
+            sink.AddTopLevelDeclaration(fc);
           } else {
             Bpl.Function ff = GetReadonlyField(f);
             if (ff != predef.ArrayLength)
-              sink.TopLevelDeclarations.Add(ff);
+              sink.AddTopLevelDeclaration(ff);
           }
 
           AddAllocationAxiom(f, c);
@@ -1342,30 +1341,30 @@ namespace Microsoft.Dafny {
             // skip the well-formedness check, because it has already been done for the iterator
           } else {
             var proc = AddMethod(m, MethodTranslationKind.SpecWellformedness);
-            sink.TopLevelDeclarations.Add(proc);
+            sink.AddTopLevelDeclaration(proc);
             if (!(m.tok is IncludeToken)) {
               AddMethodImpl(m, proc, true);
             }
             if (m.OverriddenMethod != null) //method has overrided a parent method
             {
                 var procOverrideChk = AddMethod(m, MethodTranslationKind.OverrideCheck);
-                sink.TopLevelDeclarations.Add(procOverrideChk);
+                sink.AddTopLevelDeclaration(procOverrideChk);
                 AddMethodOverrideCheckImpl(m, procOverrideChk);
             }
           }
           // the method spec itself
-          sink.TopLevelDeclarations.Add(AddMethod(m, MethodTranslationKind.InterModuleCall));
-          sink.TopLevelDeclarations.Add(AddMethod(m, MethodTranslationKind.IntraModuleCall));
+          sink.AddTopLevelDeclaration(AddMethod(m, MethodTranslationKind.InterModuleCall));
+          sink.AddTopLevelDeclaration(AddMethod(m, MethodTranslationKind.IntraModuleCall));
           if (m is CoLemma) {
             // Let the CoCall and Impl forms to use m.PrefixLemma signature and specification (and
             // note that m.PrefixLemma.Body == m.Body.
             m = ((CoLemma)m).PrefixLemma;
-            sink.TopLevelDeclarations.Add(AddMethod(m, MethodTranslationKind.CoCall));
+            sink.AddTopLevelDeclaration(AddMethod(m, MethodTranslationKind.CoCall));
           }
           if (m.Body != null && !(m.tok is IncludeToken)) {
             // ...and its implementation
             var proc = AddMethod(m, MethodTranslationKind.Implementation);
-            sink.TopLevelDeclarations.Add(proc);
+            sink.AddTopLevelDeclaration(proc);
             AddMethodImpl(m, proc, false);
           }
 
@@ -1390,7 +1389,7 @@ namespace Microsoft.Dafny {
       // add frame axiom
       AddFrameAxiom(f);
       // add consequence axiom
-      sink.TopLevelDeclarations.Add(FunctionConsequenceAxiom(f, f.Ens));
+      sink.AddTopLevelDeclaration(FunctionConsequenceAxiom(f, f.Ens));
       // add definition axioms, suitably specialized for "match" cases and for literals
       if (f.Body != null && !IsOpaqueFunction(f)) {
         AddFunctionAxiom(f, FunctionAxiomVisibility.IntraModuleOnly, f.Body.Resolved);
@@ -1412,12 +1411,12 @@ namespace Microsoft.Dafny {
 
       // wellformedness check for method specification
       Bpl.Procedure proc = AddIteratorProc(iter, MethodTranslationKind.SpecWellformedness);
-      sink.TopLevelDeclarations.Add(proc);
+      sink.AddTopLevelDeclaration(proc);
       AddIteratorWellformed(iter, proc);
       // the method itself
       if (iter.Body != null) {
         proc = AddIteratorProc(iter, MethodTranslationKind.Implementation);
-        sink.TopLevelDeclarations.Add(proc);
+        sink.AddTopLevelDeclaration(proc);
         // ...and its implementation
         AddIteratorImpl(iter, proc);
       }
@@ -1630,7 +1629,7 @@ namespace Microsoft.Dafny {
       Bpl.Implementation impl = new Bpl.Implementation(iter.tok, proc.Name,
         typeParams, inParams, new List<Variable>(),
         localVariables, stmts, kv);
-      sink.TopLevelDeclarations.Add(impl);
+      sink.AddTopLevelDeclaration(impl);
 
       currentModule = null;
       codeContext = null;
@@ -1693,7 +1692,7 @@ namespace Microsoft.Dafny {
       Bpl.Implementation impl = new Bpl.Implementation(iter.tok, proc.Name,
         typeParams, inParams, new List<Variable>(),
         localVariables, stmts, kv);
-      sink.TopLevelDeclarations.Add(impl);
+      sink.AddTopLevelDeclaration(impl);
 
       currentModule = null;
       codeContext = null;
@@ -1790,7 +1789,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(body != null);
 
       var ax = FunctionAxiom(f, visibility, body, null);
-      sink.TopLevelDeclarations.Add(ax);
+      sink.AddTopLevelDeclaration(ax);
       // TODO(namin) Is checking f.Reads.Count==0 excluding Valid() of BinaryTree in the right way?
       //             I don't see how this in the decreasing clause would help there.
       // danr: Let's create the literal function axioms if there is an arrow type in the signature
@@ -1810,10 +1809,10 @@ namespace Microsoft.Dafny {
         Contract.Assert(decs.Count <= f.Formals.Count);
         if (0 < decs.Count && decs.Count < f.Formals.Count) {
           ax = FunctionAxiom(f, visibility, body, decs);
-          sink.TopLevelDeclarations.Add(ax);
+          sink.AddTopLevelDeclaration(ax);
         }
         ax = FunctionAxiom(f, visibility, body, f.Formals);
-        sink.TopLevelDeclarations.Add(ax);
+        sink.AddTopLevelDeclaration(ax);
       }
     }
 
@@ -2096,10 +2095,10 @@ namespace Microsoft.Dafny {
           RequiresName(f), new List<Bpl.TypeVariable>(), 
           formals.ConvertAll(v => (Bpl.Variable)BplFormalVar(null, v.TypedIdent.Type, true)), 
           BplFormalVar(null, Bpl.Type.Bool, false));
-        sink.TopLevelDeclarations.Add(precondF);
+        sink.AddTopLevelDeclaration(precondF);
         var appl = FunctionCall(f.tok, RequiresName(f), Bpl.Type.Bool, 
           formals.ConvertAll(x => (Bpl.Expr)(new Bpl.IdentifierExpr(f.tok, x))));
-        sink.TopLevelDeclarations.Add(new Axiom(f.tok, BplForall(formals, BplTrigger(appl), Bpl.Expr.Eq(appl, ante))));
+        sink.AddTopLevelDeclaration(new Axiom(f.tok, BplForall(formals, BplTrigger(appl), Bpl.Expr.Eq(appl, ante))));
         // you could use it to check that it always works, but it makes VSI-Benchmarks/b3.dfy time out:
         // ante = appl; 
         if (body == null) {
@@ -2255,7 +2254,7 @@ namespace Microsoft.Dafny {
 
       Bpl.Trigger tr = new Bpl.Trigger(f.tok, true, new List<Bpl.Expr> { funcAppl1 });
       Bpl.Expr ax = new Bpl.ForallExpr(f.tok, typeParams, formals, null, tr, Bpl.Expr.Eq(funcAppl1, funcAppl0));
-      sink.TopLevelDeclarations.Add(new Bpl.Axiom(f.tok, ax, "layer synonym axiom"));
+      sink.AddTopLevelDeclaration(new Bpl.Axiom(f.tok, ax, "layer synonym axiom"));
     }
 
     /// <summary>
@@ -2362,12 +2361,12 @@ namespace Microsoft.Dafny {
       var allK = new Bpl.ForallExpr(tok, new List<Variable> { k }, tr, BplImp(kWhere, prefixAppl));
       tr = new Bpl.Trigger(tok, true, new List<Bpl.Expr> { coAppl });
       var allS = new Bpl.ForallExpr(tok, bvs, tr, BplImp(BplAnd(ante, coAppl), allK));
-      sink.TopLevelDeclarations.Add(new Bpl.Axiom(tok, Bpl.Expr.Imp(activation, allS), 
+      sink.AddTopLevelDeclaration(new Bpl.Axiom(tok, Bpl.Expr.Imp(activation, allS), 
         "1st prefix predicate axiom for " + pp.FullSanitizedName));
 
       // forall args :: { P(args) } args-have-appropriate-values && (forall k :: 0 ATMOST k ==> P#[k](args)) ==> P(args)
       allS = new Bpl.ForallExpr(tok, bvs, tr, BplImp(BplAnd(ante, allK), coAppl));
-      sink.TopLevelDeclarations.Add(new Bpl.Axiom(tok, Bpl.Expr.Imp(activation, allS),
+      sink.AddTopLevelDeclaration(new Bpl.Axiom(tok, Bpl.Expr.Imp(activation, allS),
         "2nd prefix predicate axiom"));
 
       // forall args,k :: args-have-appropriate-values && k == 0 ==> P#0#[k](args)
@@ -2378,7 +2377,7 @@ namespace Microsoft.Dafny {
       funcID = new Bpl.IdentifierExpr(tok, pp.FullSanitizedName, TrType(pp.ResultType));
       var prefixLimited = new Bpl.NAryExpr(tok, new Bpl.FunctionCall(funcID), prefixArgsLimited);
       var trueAtZero = new Bpl.ForallExpr(tok, moreBvs, BplImp(BplAnd(ante, z), prefixLimited));
-      sink.TopLevelDeclarations.Add(new Bpl.Axiom(tok, Bpl.Expr.Imp(activation, trueAtZero),
+      sink.AddTopLevelDeclaration(new Bpl.Axiom(tok, Bpl.Expr.Imp(activation, trueAtZero),
         "3rd prefix predicate axiom"));
     }
 
@@ -2484,7 +2483,7 @@ namespace Microsoft.Dafny {
         tr = new Bpl.Trigger(c.tok, true, t_es);
       }
       Bpl.Expr ax = BplForall(Concat(Concat(tyvars, ixvars), new List<Variable> { hVar, oVar }), tr, body);
-      sink.TopLevelDeclarations.Add(new Bpl.Axiom(c.tok, ax, 
+      sink.AddTopLevelDeclaration(new Bpl.Axiom(c.tok, ax, 
         c + "." + f + ": Allocation axiom"));
     }
 
@@ -2779,7 +2778,7 @@ namespace Microsoft.Dafny {
       Bpl.Implementation impl = new Bpl.Implementation(m.tok, proc.Name,
         typeParams, inParams, outParams,
         localVariables, stmts, kv);
-      sink.TopLevelDeclarations.Add(impl);
+      sink.AddTopLevelDeclaration(impl);
 
       if (InsertChecksums)
       {
@@ -2850,7 +2849,7 @@ namespace Microsoft.Dafny {
         }
         Bpl.Procedure proc = new Bpl.Procedure(f.tok, "OverrideCheck$$" + f.FullSanitizedName, typeParams, inParams, new List<Variable>(),
           req, mod, ens, etran.TrAttributes(f.Attributes, null));
-        sink.TopLevelDeclarations.Add(proc);
+        sink.AddTopLevelDeclaration(proc);
         var implInParams = Bpl.Formal.StripWhereClauses(inParams);
 
         #endregion
@@ -2895,7 +2894,7 @@ namespace Microsoft.Dafny {
         QKeyValue kv = etran.TrAttributes(f.Attributes, null);
 
         Bpl.Implementation impl = new Bpl.Implementation(f.tok, proc.Name, typeParams, implInParams, new List<Variable>(), localVariables, stmts, kv);
-        sink.TopLevelDeclarations.Add(impl);
+        sink.AddTopLevelDeclaration(impl);
 
         if (InsertChecksums)
         {
@@ -2971,7 +2970,7 @@ namespace Microsoft.Dafny {
 
         Bpl.Trigger tr = new Bpl.Trigger(f.OverriddenFunction.tok, true, new List<Bpl.Expr> { funcApplT, funcApplC });
         Bpl.Expr ax = new Bpl.ForallExpr(f.tok, typeParams, formals, null, tr, Bpl.Expr.Eq(funcApplC, funcApplT));
-        sink.TopLevelDeclarations.Add(new Bpl.Axiom(f.tok, ax, "function override axiom"));
+        sink.AddTopLevelDeclaration(new Bpl.Axiom(f.tok, ax, "function override axiom"));
     }
 
     private void AddFunctionOverrideEnsChk(Function f, StmtListBuilder builder, ExpressionTranslator etran, Dictionary<IVariable, Expression> substMap, List<Variable> implInParams)
@@ -3189,7 +3188,7 @@ namespace Microsoft.Dafny {
         QKeyValue kv = etran.TrAttributes(m.Attributes, null);
 
         Bpl.Implementation impl = new Bpl.Implementation(m.tok, proc.Name, typeParams, inParams, outParams, localVariables, stmts, kv);
-        sink.TopLevelDeclarations.Add(impl);
+        sink.AddTopLevelDeclaration(impl);
 
         if (InsertChecksums)
         {
@@ -3620,7 +3619,7 @@ namespace Microsoft.Dafny {
           }
           var res = new Bpl.Formal(f.tok, new Bpl.TypedIdent(f.tok, Bpl.TypedIdent.NoName, TrType(f.ResultType)), false);
           var funcFrame = new Bpl.Function(f.tok, f.FullSanitizedName + "#frame", typeParams, formals, res, comment);
-          sink.TopLevelDeclarations.Add(funcFrame);
+          sink.AddTopLevelDeclaration(funcFrame);
         }
 
         var heapVar = new Bpl.BoundVariable(f.tok, new Bpl.TypedIdent(f.tok, "$h", predef.HeapType));
@@ -3675,7 +3674,7 @@ namespace Microsoft.Dafny {
         var tr = new Bpl.Trigger(f.tok, true, new List<Bpl.Expr> { F0 });
 
         var ax = new Bpl.ForallExpr(f.tok, typeParams, bvars, null, tr, Bpl.Expr.Imp(wellFormed, eq));
-        sink.TopLevelDeclarations.Add(new Bpl.Axiom(f.tok, ax));
+        sink.AddTopLevelDeclaration(new Bpl.Axiom(f.tok, ax));
       } else {
 #else
         // This is the general case                
@@ -3762,7 +3761,7 @@ namespace Microsoft.Dafny {
         var ax = new Bpl.ForallExpr(f.tok, typeParams, bvars, null, tr,
           Bpl.Expr.Imp(Bpl.Expr.And(wellFormed, heapSucc),
           Bpl.Expr.Imp(q0, eq)));
-        sink.TopLevelDeclarations.Add(new Bpl.Axiom(f.tok, ax, comment));
+        sink.AddTopLevelDeclaration(new Bpl.Axiom(f.tok, ax, comment));
 #endif
 #if POSSIBLY_FUTURE_OPTIMIZATION
       }
@@ -3873,7 +3872,7 @@ namespace Microsoft.Dafny {
       Bpl.Procedure proc = new Bpl.Procedure(f.tok, "CheckWellformed$$" + f.FullSanitizedName, typeParams,
         Concat(typeInParams, inParams), new List<Variable>(),
         req, mod, ens, etran.TrAttributes(f.Attributes, null));
-      sink.TopLevelDeclarations.Add(proc);
+      sink.AddTopLevelDeclaration(proc);
 
       if (InsertChecksums) {
         InsertChecksum(f, proc, true);
@@ -3995,7 +3994,7 @@ namespace Microsoft.Dafny {
       Bpl.Implementation impl = new Bpl.Implementation(f.tok, proc.Name,
         typeParams, Concat(typeInParams, implInParams), new List<Variable>(),
         locals, sl, etran.TrAttributes(f.Attributes, null));
-      sink.TopLevelDeclarations.Add(impl);
+      sink.AddTopLevelDeclaration(impl);
 
       if (InsertChecksums)
       {
@@ -4042,7 +4041,7 @@ namespace Microsoft.Dafny {
       var proc = new Bpl.Procedure(decl.tok, "CheckWellformed$$" + decl.FullSanitizedName, new List<TypeVariable>(),
         inParams, new List<Variable>(),
         req, mod, new List<Bpl.Ensures>(), etran.TrAttributes(decl.Attributes, null));
-      sink.TopLevelDeclarations.Add(proc);
+      sink.AddTopLevelDeclaration(proc);
 
       // TODO: Can a checksum be inserted here?
 
@@ -4072,7 +4071,7 @@ namespace Microsoft.Dafny {
       var impl = new Bpl.Implementation(decl.tok, proc.Name,
         new List<TypeVariable>(), implInParams, new List<Variable>(),
         locals, builder.Collect(decl.tok), etran.TrAttributes(decl.Attributes, null));
-      sink.TopLevelDeclarations.Add(impl);
+      sink.AddTopLevelDeclaration(impl);
 
       // TODO: Should a checksum be inserted here?
 
@@ -5319,7 +5318,7 @@ namespace Microsoft.Dafny {
         }
 
         // F#Handle(Ty, .., Ty, LayerType, ref) : HandleType
-        sink.TopLevelDeclarations.Add(
+        sink.AddTopLevelDeclaration(
           new Bpl.Function(f.tok, name, formals, BplFormalVar(null, predef.HandleType, false)));
 
         var bvars = new List<Bpl.Variable>();
@@ -5350,7 +5349,7 @@ namespace Microsoft.Dafny {
           var rhs = FunctionCall(f.tok, f.FullSanitizedName, TrType(f.ResultType), Concat(SnocSelf(Snoc(args, h)), rhs_args));
           var rhs_boxed = BoxIfUnboxed(rhs, f.ResultType);
 
-          sink.TopLevelDeclarations.Add(new Axiom(f.tok,
+          sink.AddTopLevelDeclaration(new Axiom(f.tok,
             BplForall(Concat(vars, bvars), BplTrigger(lhs), Bpl.Expr.Eq(lhs, rhs_boxed))));
         }
 
@@ -5370,7 +5369,7 @@ namespace Microsoft.Dafny {
             rhs = Bpl.Expr.True;
           }
 
-          sink.TopLevelDeclarations.Add(new Axiom(f.tok,
+          sink.AddTopLevelDeclaration(new Axiom(f.tok,
             BplForall(Concat(vars, bvars), BplTrigger(lhs), Bpl.Expr.Eq(lhs, rhs))));
         }
 
@@ -5389,7 +5388,7 @@ namespace Microsoft.Dafny {
           var rhs = InRWClause(f.tok, o, null, f.Reads, et, selfExpr, rhs_dict);
                            // MakeScrambler(f.tok, f.FullSanitizedName + "#extraReads", Cons(oVar, Concat(vars, bvars))));
 
-          sink.TopLevelDeclarations.Add(new Axiom(f.tok,
+          sink.AddTopLevelDeclaration(new Axiom(f.tok,
             BplForall(Cons(oVar, Concat(vars, bvars)), BplTrigger(lhs), Bpl.Expr.Eq(lhs, rhs))));
         }
       }
@@ -5401,7 +5400,7 @@ namespace Microsoft.Dafny {
         bvars.ConvertAll(bv => (Bpl.Variable)BplFormalVar(null, bv.TypedIdent.Type, true)),
         BplFormalVar(null, Bpl.Type.Bool, false));
 
-      sink.TopLevelDeclarations.Add(f);
+      sink.AddTopLevelDeclaration(f);
       return FunctionCall(tk, name, Bpl.Type.Bool, bvars.ConvertAll(bv => (Bpl.Expr)new Bpl.IdentifierExpr(tk, bv)));
     }
 
@@ -5429,7 +5428,7 @@ namespace Microsoft.Dafny {
           BplFormalVar(null, requires_ty, true),
           BplFormalVar(null, reads_ty, true)
         };
-        sink.TopLevelDeclarations.Add(new Bpl.Function(Token.NoToken, Handle(arity), arg, res));
+        sink.AddTopLevelDeclaration(new Bpl.Function(Token.NoToken, Handle(arity), arg, res));
       }
 
       Action<string, Bpl.Type> SelectorFunction = (s, t) => {
@@ -5438,7 +5437,7 @@ namespace Microsoft.Dafny {
         args.Add(BplFormalVar(null, predef.HandleType, true));
         args.Add(BplFormalVar(null, predef.HeapType, true));
         MapM(Enumerable.Range(0, arity), i => args.Add(BplFormalVar(null, predef.BoxType, true)));
-        sink.TopLevelDeclarations.Add(new Bpl.Function(Token.NoToken, s, args, BplFormalVar(null, t, false)));
+        sink.AddTopLevelDeclaration(new Bpl.Function(Token.NoToken, s, args, BplFormalVar(null, t, false)));
       };
 
       // function ApplyN(Ty, ... Ty, HandleType, Heap, Box, ..., Box) : Box
@@ -5490,7 +5489,7 @@ namespace Microsoft.Dafny {
           if (selectorVar == "r") {
             op = (u, v) => Bpl.Expr.Imp(v, u);
           }
-          sink.TopLevelDeclarations.Add(new Axiom(tok,
+          sink.AddTopLevelDeclaration(new Axiom(tok,
             BplForall(bvars, BplTrigger(lhs), op(lhs, rhs))));
         };
         SelectorSemantics(Apply(arity), predef.BoxType, "h", apply_ty, Requires(arity), requires_ty);
@@ -5517,7 +5516,7 @@ namespace Microsoft.Dafny {
           MapM(Enumerable.Range(0, arity), i => rhsargs.Add(BplFormalVar("bx" + i, predef.BoxType, true, formals)));
 
           Action<string, Bpl.Type, Bpl.Expr> sink_function = (nm, res_ty, body) =>
-            sink.TopLevelDeclarations.Add(
+            sink.AddTopLevelDeclaration(
               new Bpl.Function(f.tok, nm, new List<TypeVariable>(), formals,
                 BplFormalVar(null, res_ty, false), null,
                 new QKeyValue(f.tok, "inline", new List<object> { Bpl.Expr.True }, null)) {
@@ -5592,7 +5591,7 @@ namespace Microsoft.Dafny {
 
             Func<Bpl.Expr, Bpl.Expr> fn = h => FunctionCall(tok, fname, Bpl.Type.Bool, Concat(types, Cons(f, Cons<Bpl.Expr>(h, boxes))));
 
-            sink.TopLevelDeclarations.Add(new Axiom(tok,
+            sink.AddTopLevelDeclaration(new Axiom(tok,
               BplForall(bvars,
                 new Bpl.Trigger(tok, true, new List<Bpl.Expr> {heapSucc, fn(h1)}),
                 BplImp(
@@ -5640,7 +5639,7 @@ namespace Microsoft.Dafny {
 
           var applied_is = BplAnd(MkIs(applied, types[ad.Arity], true), MkIsAlloc(applied, types[ad.Arity], h, true));
 
-          sink.TopLevelDeclarations.Add(new Axiom(tok,
+          sink.AddTopLevelDeclaration(new Axiom(tok,
             BplForall(bvars,
               new Bpl.Trigger(tok, true, new List<Bpl.Expr> {applied}),
               BplImp(BplAnd(goodHeap, isness), applied_is))));
@@ -5664,7 +5663,7 @@ namespace Microsoft.Dafny {
           Enumerable.Range(0, arity).Select(i =>
             (Bpl.Variable)BplFormalVar(null, predef.Ty, true)));
         var func = new Bpl.Function(tok, name, args, tyVarOut);
-        sink.TopLevelDeclarations.Add(func);
+        sink.AddTopLevelDeclaration(func);
       }
 
       // Helper action to create variables and the function call.
@@ -5686,8 +5685,8 @@ namespace Microsoft.Dafny {
         Bpl.Expr tag_expr = new Bpl.IdentifierExpr(tok, tag);
         Bpl.Expr tag_call = FunctionCall(tok, "Tag", predef.TyTag, inner);
         Bpl.Expr qq = BplForall(args, BplTrigger(inner), Bpl.Expr.Eq(tag_call, tag_expr));
-        sink.TopLevelDeclarations.Add(new Axiom(tok, qq, name + " Tag"));
-        sink.TopLevelDeclarations.Add(tag);
+        sink.AddTopLevelDeclaration(new Axiom(tok, qq, name + " Tag"));
+        sink.AddTopLevelDeclaration(tag);
       });
 
       // Create the injectivity axiom and its function
@@ -5703,8 +5702,8 @@ namespace Microsoft.Dafny {
           var injfunc = new Bpl.Function(tok, injname, Singleton(tyVarIn), tyVarOut);
           var outer = FunctionCall(tok, injname, args[i].TypedIdent.Type, inner);
           Bpl.Expr qq = BplForall(args, BplTrigger(inner), Bpl.Expr.Eq(outer, argExprs[i]));
-          sink.TopLevelDeclarations.Add(new Axiom(tok, qq, name + " injectivity " + i));
-          sink.TopLevelDeclarations.Add(injfunc);
+          sink.AddTopLevelDeclaration(new Axiom(tok, qq, name + " injectivity " + i));
+          sink.AddTopLevelDeclaration(injfunc);
         });
       }
 
@@ -5723,7 +5722,7 @@ namespace Microsoft.Dafny {
         var box_is = MkIs(bx, ty, true);
         var unbox_is = MkIs(unbox, ty, false);
         var box_unbox = FunctionCall(tok, BuiltinFunction.Box, null, unbox);
-        sink.TopLevelDeclarations.Add(
+        sink.AddTopLevelDeclaration(
           new Axiom(tok,
             BplForall(Snoc(args, bxVar), BplTrigger(box_is),
               BplImp(box_is, BplAnd(Bpl.Expr.Eq(box_unbox, bx), unbox_is))),
@@ -5787,7 +5786,7 @@ namespace Microsoft.Dafny {
         var ig = FunctionCall(f.tok, BuiltinFunction.IsGhostField, ty, Bpl.Expr.Ident(fc));
         cond = Bpl.Expr.And(cond, f.IsGhost ? ig : Bpl.Expr.Not(ig));
         Bpl.Axiom ax = new Bpl.Axiom(f.tok, cond);
-        sink.TopLevelDeclarations.Add(ax);
+        sink.AddTopLevelDeclaration(ax);
       }
       return fc;
     }
@@ -5835,7 +5834,7 @@ namespace Microsoft.Dafny {
           Bpl.IdentifierExpr o = new Bpl.IdentifierExpr(f.tok, oVar);
           Bpl.Expr body = Bpl.Expr.Le(Bpl.Expr.Literal(0), new Bpl.NAryExpr(f.tok, new Bpl.FunctionCall(ff), new List<Bpl.Expr> { o }));
           Bpl.Expr qq = new Bpl.ForallExpr(f.tok, new List<Variable> { oVar }, body);
-          sink.TopLevelDeclarations.Add(new Bpl.Axiom(f.tok, qq));
+          sink.AddTopLevelDeclaration(new Bpl.Axiom(f.tok, qq));
         }
       }
       return ff;
@@ -5877,7 +5876,7 @@ namespace Microsoft.Dafny {
         if (InsertChecksums) {
           InsertChecksum(f, func);
         }
-        sink.TopLevelDeclarations.Add(func);
+        sink.AddTopLevelDeclaration(func);
       }
 
       // declare the corresponding canCall function
@@ -5894,7 +5893,7 @@ namespace Microsoft.Dafny {
         }
         var res = new Bpl.Formal(f.tok, new Bpl.TypedIdent(f.tok, Bpl.TypedIdent.NoName, Bpl.Type.Bool), false);
         var canCallF = new Bpl.Function(f.tok, f.FullSanitizedName + "#canCall", typeParams, formals, res);
-        sink.TopLevelDeclarations.Add(canCallF);
+        sink.AddTopLevelDeclaration(canCallF);
       }
     }
 
@@ -6104,7 +6103,7 @@ namespace Microsoft.Dafny {
       string name = "CheckRefinement$$" + m.FullSanitizedName + "$" + methodCheck.Refining.FullSanitizedName;
       var proc = new Bpl.Procedure(m.tok, name, typeParams, inParams, outParams, req, mod, new List<Bpl.Ensures>(), etran.TrAttributes(m.Attributes, null));
 
-      sink.TopLevelDeclarations.Add(proc);
+      sink.AddTopLevelDeclaration(proc);
 
 
       // Generate the implementation
@@ -6194,7 +6193,7 @@ namespace Microsoft.Dafny {
       var impl = new Bpl.Implementation(m.tok, proc.Name,
         typeParams, inParams, outParams,
         localVariables, stmts, etran.TrAttributes(m.Attributes, null));
-      sink.TopLevelDeclarations.Add(impl);
+      sink.AddTopLevelDeclaration(impl);
 
       // Clean up
       currentModule = null;
@@ -6267,7 +6266,7 @@ namespace Microsoft.Dafny {
       }
       Bpl.Procedure proc = new Bpl.Procedure(function.tok, "CheckIsRefinement$$" + f.FullSanitizedName + "$" + functionCheck.Refining.FullSanitizedName, typeParams, inParams, new List<Variable>(),
         req, new List<Bpl.IdentifierExpr>(), ens, etran.TrAttributes(function.Attributes, null));
-      sink.TopLevelDeclarations.Add(proc);
+      sink.AddTopLevelDeclaration(proc);
 
       List<Variable> implInParams = Bpl.Formal.StripWhereClauses(proc.InParams);
       List<Variable> locals = new List<Variable>();
@@ -6321,7 +6320,7 @@ namespace Microsoft.Dafny {
       Bpl.Implementation impl = new Bpl.Implementation(function.tok, proc.Name,
         typeParams, implInParams, new List<Variable>(),
         locals, builder.Collect(function.tok), etran.TrAttributes(function.Attributes, null));
-      sink.TopLevelDeclarations.Add(impl);
+      sink.AddTopLevelDeclaration(impl);
 
       Contract.Assert(currentModule == function.EnclosingClass.Module);
       currentModule = null;
@@ -9642,7 +9641,7 @@ namespace Microsoft.Dafny {
             InsertChecksum(e.Body, fn);
           }
 
-          sink.TopLevelDeclarations.Add(fn);
+          sink.AddTopLevelDeclaration(fn);
         }
         // add canCall function
         {
@@ -9655,7 +9654,7 @@ namespace Microsoft.Dafny {
             InsertChecksum(e.Body, fn);
           }
 
-          sink.TopLevelDeclarations.Add(fn);
+          sink.AddTopLevelDeclaration(fn);
         }
 
         {
@@ -9691,7 +9690,7 @@ namespace Microsoft.Dafny {
           var p = Substitute(e.RHSs[0], receiverReplacement, substMap);
           Bpl.Expr ax = Bpl.Expr.Imp(canCall, etranCC.TrExpr(p));
           ax = BplForall(gg, tr, ax);
-          sink.TopLevelDeclarations.Add(new Bpl.Axiom(e.tok, ax));
+          sink.AddTopLevelDeclaration(new Bpl.Axiom(e.tok, ax));
         }
 
         // now that we've declared the functions and axioms, let's prepare the let-such-that desugaring

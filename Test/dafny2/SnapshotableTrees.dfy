@@ -1,3 +1,6 @@
+// RUN: %dafny /compile:0 /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %diff "%s.expect" "%t"
+
 // Rustan Leino, September 2011.
 // This file contains a version of the C5 library's snapshotable trees.  A different verification
 // of a version like this has been done by Hannes Mehnert, Filip Sieczkowski, Lars Birkedal, and
@@ -88,7 +91,7 @@ class Tree
     root := null;
     reprIsShared := false;
   }
-  
+
   method CreateSnapshot() returns (snapshot: Tree)
     requires Valid();
     modifies Repr;
@@ -215,9 +218,9 @@ class Node
   constructor Build(left: Node, x: int, right: Node)
     requires this != left && this != right;
     requires left != null ==> left.Valid() && this !in left.Repr &&
-               forall i :: 0 <= i < |left.Contents| ==> left.Contents[i] < x;
+               forall e :: e in left.Contents ==> e < x;
     requires right != null ==> right.Valid() && this !in right.Repr &&
-               forall i :: 0 <= i < |right.Contents| ==> x < right.Contents[i];
+               forall e :: e in right.Contents ==> x < e;
     requires left != null && right != null ==> left.Repr !! right.Repr;
     modifies this;
     ensures Valid();
@@ -259,12 +262,12 @@ class Node
       assert n.left != null ==> n.data == n.Contents[|n.left.Contents|];
       assert n.left == null ==> n.data == n.Contents[0];
       left, pos := FunctionalInsert(n.left, x);
-      assert n.left == old(n.left);
+      // assert n.left == old(n.left);
       if (left == n.left) {
         r, pos := n, -1;
       } else {
-        assert n.left != null ==> forall i :: 0 <= i < |n.left.Contents| ==> n.Contents[i] < n.data;
-        assert forall i :: 0 <= i < |left.Contents| ==> left.Contents[i] < n.data;
+        // assert n.left != null ==> forall e :: e in n.left.Contents ==> e < n.data;
+        // assert forall e :: e in left.Contents ==> e < n.data;
         r := new Node.Build(left, n.data, n.right);
       }
     } else if (n.data < x) {
@@ -273,11 +276,11 @@ class Node
       assert n.left == null ==> n.data == n.Contents[0];
       right, pos := FunctionalInsert(n.right, x);
       if (right == n.right) {
-        assert n != null && x in n.Contents;
+        // assert n != null && x in n.Contents;
         r, pos := n, -1;
       } else {
-        assert n.left != null ==> forall i :: 0 <= i < |n.left.Contents| ==> n.left.Contents[i] < n.data;
-        assert forall i :: 0 <= i < |right.Contents| ==> n.data < right.Contents[i];
+        // assert n.left != null ==> forall e :: e in n.left.Contents ==> e < n.data;
+        // assert forall e :: e in right.Contents ==> n.data < e;
         r := new Node.Build(n.left, n.data, right);
         pos := pos + 1 + if n.left == null then 0 else |n.left.Contents|;
         assert n != null && x !in n.Contents ==> r.Contents == n.Contents[..pos] + [x] + n.Contents[pos..];
@@ -300,32 +303,32 @@ class Node
     assert data == Contents[if left==null then 0 else |left.Contents|];
     if (x < data) {
       assert right == null || x !in right.Contents;
-      assert right != null ==> forall i :: 0 <= i < |right.Contents| ==> x < right.Contents[i];
+      // assert right != null ==> forall e :: e in right.Contents ==> x < e;
       if (left == null) {
         left := new Node.Init(x);
         pos := 0;
       } else {
-        assert forall i :: 0 <= i < |left.Contents| ==> left.Contents[i] < data;
+        // assert forall e :: e in left.Contents ==> e < data;
         pos := left.MutatingInsert(x);
         assert Tree.IsSorted(left.Contents);
         assert right != null ==> Tree.IsSorted(right.Contents);
-        assert forall i :: 0 <= i < |left.Contents| ==> left.Contents[i] < data;
+        // assert forall e :: e in left.Contents ==> e < data;
       }
       Repr := Repr + left.Repr;
       Contents := left.Contents + [data] + if right == null then [] else right.Contents;
       assert Tree.IsSorted(Contents);
     } else if (data < x) {
       assert left == null || x !in left.Contents;
-      assert left != null ==> forall i :: 0 <= i < |left.Contents| ==> left.Contents[i] < x;
+      // assert left != null ==> forall e :: e in left.Contents ==> e < x;
       if (right == null) {
         right := new Node.Init(x);
         pos := 1 + if left == null then 0 else |left.Contents|;
       } else {
-        assert forall i :: 0 <= i < |right.Contents| ==> data < right.Contents[i];
+        // assert forall e :: e in right.Contents ==> data < e;
         pos := right.MutatingInsert(x);
         assert Tree.IsSorted(right.Contents);
-        assert left != null ==> Tree.IsSorted(left.Contents);
-        assert forall i :: 0 <= i < |right.Contents| ==> data < right.Contents[i];
+        // assert left != null ==> Tree.IsSorted(left.Contents);
+        // assert forall e :: e in right.Contents ==> data < e;
         if (0 <= pos) {
           pos := pos + 1 + if left == null then 0 else |left.Contents|;
           assert (if left == null then [] else left.Contents) + [data] + right.Contents == old(Contents[..pos] + [x] + Contents[pos..]);
@@ -352,7 +355,8 @@ class Iterator
   var stack: List;
 
   function Valid(): bool
-    reads this, IterRepr, T, T.Repr;
+    reads this, IterRepr, T;
+    reads if T != null then T.Repr else {};
   {
     this in IterRepr && null !in IterRepr &&
     T != null && T.Valid() && IterRepr !! T.Repr &&
