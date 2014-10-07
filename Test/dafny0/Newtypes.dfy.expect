@@ -19,5 +19,28 @@ Execution trace:
 Newtypes.dfy(104,16): Error: result of operation might violate newtype constraint
 Execution trace:
     (0,0): anon0
+Newtypes.dfy(177,14): Error: result of operation might violate newtype constraint
+Execution trace:
+    (0,0): anon0
+Newtypes.dfy(193,64): Error: index 0 out of range
+Execution trace:
+    (0,0): anon0
+    (0,0): anon32_Then
+    (0,0): anon33_Then
+    (0,0): anon16
+Newtypes.dfy(194,67): Error: index 1 out of range
+Execution trace:
+    (0,0): anon0
+    (0,0): anon34_Then
+    (0,0): anon35_Then
+    (0,0): anon19
+Newtypes.dfy(222,16): Error: new number of occurrences might be negative
+Execution trace:
+    (0,0): anon0
+    (0,0): anon6_Then
+Newtypes.dfy(225,40): Error: result of operation might violate newtype constraint
+Execution trace:
+    (0,0): anon0
+    (0,0): anon8_Then
 
-Dafny program verifier finished with 30 verified, 6 errors
+Dafny program verifier finished with 35 verified, 11 errors

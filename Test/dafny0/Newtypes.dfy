@@ -155,3 +155,75 @@ module X {
     var y := var j := 3.0; j;
   }
 }
+
+module IntegerBasedValues {
+  // Dafny allows any integer-based type, not just 'int', in the following
+  // places:
+  //   * array indices (any dimension)
+  //   * array lengths (with new, any dimension)
+  //   * sequence indicies
+  //   * subsequence bounds (like sq[lo..hi])
+  //   * the new multiplicity in multiset update (m[t := multiplicity])
+  //   * subarray-to-sequence bounds (like a[lo..hi])
+  // Note that for an array 'a', 'a.Length' is always an integer, so a
+  // comparison 'i < a.Length' still requires 'i' to be an integer, not
+  // any integer-based value.  Same for '|sq|' for a sequence 'sq'.
+
+  type T
+
+  newtype Even = x | x % 2 == 0
+
+  method BadSpec(o: Even)
+    requires 1 < o;  // error: 1 is not of type Even
+
+  method Arrays(n: nat, o: Even, i: Even, j: Even, k: nat) returns (x: T)
+    requires 0 <= o && 0 <= i && 0 <= j;
+  {
+    var a := new T[n];
+    var b := new T[o];
+    var m := new T[o, n];
+    if {
+      case int(i) < n        =>  x := a[i];
+      case int(i) < a.Length =>  x := a[i];
+      case i < o             =>  x := b[i];
+      case int(i) < b.Length =>  x := b[i];
+      case k < m.Length0 && int(j) < m.Length1 =>  x := m[k, j];
+      case int(i) < m.Length0 && k < m.Length1 =>  x := m[i, k];
+      case int(i) < m.Length0 && int(j) < m.Length1 =>  x := m[i, j];
+      case int(i) < m.Length0 && int(j) < m.Length1 =>  x := m[j, j];  // error: bad index 0
+      case int(i) < m.Length0 && int(j) < m.Length1 =>  x := m[i, i];  // error: bad index 1
+      case true =>
+    }
+  }
+  
+  method Sequences(a: seq<T>, n: nat, i: Even, lo: Even, hi: Even) returns (x: T, b: seq<T>)
+    requires 0 <= i && 0 <= lo <= hi;
+  {
+    if {
+      case int(i) < |a|                   =>  x := a[i];
+      case |a| % 2 == 0 && i < Even(|a|)  =>  x := a[i];
+      case int(hi) <= |a|                 =>  b := a[lo..hi];
+      case int(hi) <= |a|                 =>  b := a[..hi];
+      case int(hi) <= |a|                 =>  b := a[0..hi];
+      case int(lo) <= |a|                 =>  b := a[lo..];
+      case int(lo) <= |a|                 =>  b := a[lo..|a|];
+      case int(lo) <= |a| && |a| % 2 == 0 =>  assert a[lo..|a|] == a[lo..Even(|a|)];
+      case n <= int(hi) <= |a|            =>  b := a[n..hi];
+      case int(lo) <= n <= |a|            =>  b := a[lo..n];
+      case int(hi + hi) <= |a|            =>  b := a[lo..Even(2*hi)];
+      case true =>
+    }
+  }
+
+  method MultisetUpdate<U>(m: multiset<U>, t: U, n: Even) returns (m': multiset<U>)
+  {
+    if {
+      case true   =>
+        m' := m[t := n];  // error: n may be negative
+        m' := m[t := n+n];  // fine, if the previous statement was
+      case 0 <= n =>  m' := m[t := n];
+      case 0 <= n =>  m' := m[t := n+n+1];  // error: n+n+1 is not Even (like n+n and 1 are)
+      case 0 <= n =>  m' := m[t := int(n+n)+1];
+    }
+  }
+}

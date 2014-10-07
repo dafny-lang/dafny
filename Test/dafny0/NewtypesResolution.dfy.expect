@@ -22,4 +22,13 @@ NewtypesResolution.dfy(157,11): Error: name of type ('Syn') is used as a variabl
 NewtypesResolution.dfy(162,8): Error: member U does not exist in class Klass
 NewtypesResolution.dfy(162,4): Error: expected method call, found expression
 NewtypesResolution.dfy(188,39): Error: incorrect type of datatype constructor argument (found Dt<bool>, expected S)
-24 resolution/type errors detected in NewtypesResolution.dfy
+NewtypesResolution.dfy(219,11): Error: new must use an integer-based expression for the array size (got real for index 2)
+NewtypesResolution.dfy(221,13): Error: arguments to < must have the same type (got Even and nat)
+NewtypesResolution.dfy(223,13): Error: arguments to < must have the same type (got Even and int)
+NewtypesResolution.dfy(227,13): Error: arguments to < must have the same type (got Even and int)
+NewtypesResolution.dfy(229,13): Error: arguments to < must have the same type (got Even and int)
+NewtypesResolution.dfy(230,13): Error: arguments to < must have the same type (got Even and int)
+NewtypesResolution.dfy(238,13): Error: arguments to < must have the same type (got Even and int)
+NewtypesResolution.dfy(240,13): Error: arguments to <= must have the same type (got Even and int)
+NewtypesResolution.dfy(249,17): Error: multiset update requires integer-based numeric value (got real)
+33 resolution/type errors detected in NewtypesResolution.dfy

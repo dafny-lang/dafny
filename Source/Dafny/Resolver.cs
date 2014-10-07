@@ -4077,7 +4077,7 @@ namespace Microsoft.Dafny
       } else if (proxy is IndexableTypeProxy) {
         var iProxy = (IndexableTypeProxy)proxy;
         if (t is SeqType) {
-          if (!UnifyTypes(iProxy.Domain, Type.Int)) {
+          if (!UnifyTypes(iProxy.Domain, new OperationTypeProxy(true, false, false, false))) {
             return false;
           } else if (!UnifyTypes(iProxy.Range, ((SeqType)t).Arg)) {
             return false;
@@ -4086,7 +4086,7 @@ namespace Microsoft.Dafny
           }
         } else if (iProxy.AllowArray && t.IsArrayType && t.AsArrayType.Dims == 1) {
           Type elType = UserDefinedType.ArrayElementType(t);
-          if (!UnifyTypes(iProxy.Domain, Type.Int)) {
+          if (!UnifyTypes(iProxy.Domain, new OperationTypeProxy(true, false, false, false))) {
             return false;
           } else if (!UnifyTypes(iProxy.Range, elType)) {
             return false;
@@ -4104,7 +4104,7 @@ namespace Microsoft.Dafny
         } else if (t is MultiSetType) {
           if (!UnifyTypes(iProxy.Domain, ((MultiSetType)t).Arg)) {
             return false;
-          } else if (!UnifyTypes(iProxy.Range, Type.Int)) {
+          } else if (!UnifyTypes(iProxy.Range, new OperationTypeProxy(true, false, false, false))) {
             return false;
           } else if (!UnifyTypes(iProxy.Arg, iProxy.Domain)) {
             return false;
@@ -5756,8 +5756,8 @@ namespace Microsoft.Dafny
           foreach (Expression dim in rr.ArrayDimensions) {
             Contract.Assert(dim != null);
             ResolveExpression(dim, new ResolveOpts(codeContext, true));
-            if (!UnifyTypes(dim.Type, Type.Int)) {
-              Error(stmt, "new must use an integer expression for the array size (got {0} for index {1})", dim.Type, i);
+            if (!UnifyTypes(dim.Type, new OperationTypeProxy(true, false, false, false))) {
+              Error(stmt, "new must use an integer-based expression for the array size (got {0} for index {1})", dim.Type, i);
             }
             i++;
           }
@@ -6322,8 +6322,8 @@ namespace Microsoft.Dafny
           Contract.Assert(idx != null);
           ResolveExpression(idx, opts);
           Contract.Assert(idx.Type != null);  // follows from postcondition of ResolveExpression
-          if (!UnifyTypes(idx.Type, Type.Int)) {
-            Error(idx, "array selection requires integer indices (got {0} for index {1})", idx.Type, i);
+          if (!UnifyTypes(idx.Type, new OperationTypeProxy(true, false, false, false))) {
+            Error(idx, "array selection requires integer-based numeric indices (got {0} for index {1})", idx.Type, i);
           }
           i++;
         }
@@ -6364,8 +6364,8 @@ namespace Microsoft.Dafny
             Error(e.Index, "multiset update requires domain element to be of type {0} (got {1})", elementType, e.Index.Type);
           }
           ResolveExpression(e.Value, opts);
-          if (!UnifyTypes(e.Value.Type, Type.Int)) {
-            Error(e.Value, "multiset update requires integer value (got {0})", e.Value.Type);
+          if (!UnifyTypes(e.Value.Type, new OperationTypeProxy(true, false, false, false))) {
+            Error(e.Value, "multiset update requires integer-based numeric value (got {0})", e.Value.Type);
           }
           expr.Type = e.Seq.Type;
 
@@ -8381,8 +8381,9 @@ namespace Microsoft.Dafny
       if (e.E1 != null) {
         ResolveExpression(e.E1, opts);
         Contract.Assert(e.E1.Type != null);  // follows from postcondition of ResolveExpression
-        if (!UnifyTypes(e.E1.Type, domainType)) {
-          Error(e.E1, "sequence/array/multiset/map selection requires {1} indices (got {0})", e.E1.Type, domainType);
+        var domType = e.E0 == null ? domainType : new OperationTypeProxy(true, false, false, false);  // reuse 'domainType' if .E0 did not use it; otherwise, create a new proxy to allow .E1 to be any integer-based numeric type, independent of the integer-based numeric type used by .E0
+        if (!UnifyTypes(e.E1.Type, domType)) {
+          Error(e.E1, "sequence/array/multiset/map selection requires {1} indices (got {0})", e.E1.Type, domType);
         }
       }
       if (!seqErr) {

@@ -203,3 +203,49 @@ module QualifiedDatatypeCtor {
     var f := S.Cons(50, S.Nil);
   }
 }
+
+module IntegerBasedValues {
+  type T
+
+  newtype Even = x | x % 2 == 0
+
+  method Arrays(n: nat, o: Even, i: Even) returns (x: T)
+    requires 0 <= o;
+    requires -1 < i;  // note, -1 is not of type Even, but that's for the verifier (not type checker) to check
+  {
+    var a := new T[n];
+    var b := new T[o];
+    var m := new T[o, n];
+    var m' := new T[o, n, 3.14];  // error: 3.14 is not of an integer-based type
+    if {
+      case i < n =>  // error: i and n are of different integer-based types
+        x := a[i];
+      case i < a.Length =>  // error: i and a.Length are of different integer-based types
+        x := a[i];
+      case i < o =>
+        x := b[i];
+      case i < b.Length =>  // error: i and b.Length are of different integer-based types
+        x := b[i];
+      case i < m.Length0 =>  // error: i and m.Length0 are of different integer-based types
+      case i < m.Length1 =>  // error: i and m.Length1 are of different integer-based types
+    }
+  }
+  
+  method Sequences(a: seq<T>, i: Even) returns (x: T, b: seq<T>)
+    requires 0 <= i;
+  {
+    if {
+      case i < |a| =>  // error: i and |a| are of different integer-based types
+        x := a[i];
+      case i <= int(|a|) =>  // error: type of i is a different integer-based type than int
+        b := a[0..i];
+    }
+  }
+
+  method MultisetUpdate<U>(m: multiset<U>, t: U, n: Even)
+  {
+    var m' := m[t := n];
+    m' := m[t := 12];
+    m' := m[t := 1.1415];  // error: real is not an integer-based numeric type
+  }
+}

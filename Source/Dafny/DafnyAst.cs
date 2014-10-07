@@ -1220,12 +1220,13 @@ namespace Microsoft.Dafny {
   /// Arg is either Domain or Range, depending on what type it is.  Arg is the type
   /// one would use in an expression "x in C", whereas
   /// This proxy stands for one of:
-  ///   seq(T)       Domain,Range,Arg := int,T,T
-  ///   multiset(T)  Domain,Range,Arg := T,int,T
+  ///   seq(T)       Domain,Range,Arg := integer,T,T
+  ///   multiset(T)  Domain,Range,Arg := T,integer,T
   ///   if AllowMap, may also be:
   ///   map(T,U)     Domain,Range,Arg := T,U,T
   ///   if AllowArray, may also be:
-  ///   array(T)     Domain,Range,Arg := int,T,T
+  ///   array(T)     Domain,Range,Arg := integer,T,T
+  /// where "integer" refers to any integer-based numeric type.
   /// </summary>
   public class IndexableTypeProxy : RestrictedTypeProxy {
     public readonly bool AllowMap;
