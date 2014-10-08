@@ -512,7 +512,7 @@ class AttributeTests {
 
 static method TestAttributesVarDecls()
 {
-  var {:foo} foo;
+  var {:foo} foo := null;
   var {:bar} bar := 0;
   var {:foo} {:bar} foobar : set<int> := {};
   var {:baz} baz, {:foobaz} foobaz := true, false;

@@ -6505,8 +6505,7 @@ namespace Microsoft.Dafny {
       while (true) {
         type = type.NormalizeExpand();
         if (type is TypeProxy) {
-          // unresolved proxy; just treat as ref, since no particular type information is apparently needed for this type
-          return predef.RefType;
+          Contract.Assume(false);  // we assume that all proxies should have been dealt with in the resolver
         }
         var d = type.AsNewtype;
         if (d == null) {

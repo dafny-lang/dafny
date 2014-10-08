@@ -68,7 +68,7 @@ method DuplicateVarName(x: int) returns (y: int)
 method ScopeTests()
 {
   var x := x;  // error: the 'x' in the RHS is not in scope
-  var y :| y == y;  // fine, 'y' is in scope in the RHS
+  var y: real :| y == y;  // fine, 'y' is in scope in the RHS
   var z := DuplicateVarName(z);  // error: the 'z' in the RHS is not in scope
   var w0, w1 := IntTransform(w1), IntTransform(w0);  // errors two
   var c := new MyClass.Init(null);  // fine

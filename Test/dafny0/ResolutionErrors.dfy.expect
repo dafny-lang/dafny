@@ -2,7 +2,9 @@ ResolutionErrors.dfy(499,7): Error: RHS (of type List<A>) not assignable to LHS 
 ResolutionErrors.dfy(504,7): Error: RHS (of type List<A>) not assignable to LHS (of type List<B>)
 ResolutionErrors.dfy(518,23): Error: type of case bodies do not agree (found Tree<_T1,_T0>, previous types Tree<_T0,_T1>)
 ResolutionErrors.dfy(530,24): Error: Wrong number of type arguments (0 instead of 2) passed to class/datatype: Tree
+ResolutionErrors.dfy(558,25): Error: the type of this variable is underspecified
 ResolutionErrors.dfy(558,23): Error: type variable 'T' in the function call to 'P' could not be determined
+ResolutionErrors.dfy(565,25): Error: the type of this variable is underspecified
 ResolutionErrors.dfy(565,23): Error: type variable 'T' in the function call to 'P' could not be determined
 ResolutionErrors.dfy(578,13): Error: 'new' is not allowed in ghost contexts
 ResolutionErrors.dfy(579,9): Error: 'new' is not allowed in ghost contexts
@@ -16,8 +18,7 @@ ResolutionErrors.dfy(608,10): Error: ghost variables are allowed only in specifi
 ResolutionErrors.dfy(617,17): Error: 'new' is not allowed in ghost contexts
 ResolutionErrors.dfy(619,20): Error: only ghost methods can be called from this context
 ResolutionErrors.dfy(621,8): Error: calls to methods with side-effects are not allowed inside a hint
-ResolutionErrors.dfy(639,21): Error: the type of this expression is underspecified, but it cannot be an opaque type.
-ResolutionErrors.dfy(639,21): Error: the type of this expression is underspecified, but it cannot be an opaque type.
+ResolutionErrors.dfy(639,21): Error: the type of this variable is underspecified
 ResolutionErrors.dfy(676,8): Error: calls to methods with side-effects are not allowed inside a hint
 ResolutionErrors.dfy(686,8): Error: only ghost methods can be called from this context
 ResolutionErrors.dfy(689,20): Error: 'decreases *' is not allowed on ghost loops
@@ -78,7 +79,11 @@ ResolutionErrors.dfy(1089,13): Error: arguments must have the same type (got P<b
 ResolutionErrors.dfy(1090,13): Error: arguments must have the same type (got P<int> and P<bool>)
 ResolutionErrors.dfy(1113,38): Error: a set comprehension must produce a finite set, but Dafny's heuristics can't figure out how to produce a bounded set of values for 'o'
 ResolutionErrors.dfy(1115,24): Error: a set comprehension must produce a finite set, but Dafny's heuristics can't figure out how to produce a bounded set of values for 'o'
-ResolutionErrors.dfy(429,2): Error: More than one default constructor
+ResolutionErrors.dfy(1220,26): Error: the type of this variable is underspecified
+ResolutionErrors.dfy(1221,31): Error: the type of this variable is underspecified
+ResolutionErrors.dfy(1222,29): Error: the type of this variable is underspecified
+ResolutionErrors.dfy(1232,34): Error: the type of this variable is underspecified
+ResolutionErrors.dfy(429,2): Error: More than one anonymous constructor
 ResolutionErrors.dfy(50,13): Error: 'this' is not allowed in a 'static' context
 ResolutionErrors.dfy(111,9): Error: ghost variables are allowed only in specification contexts
 ResolutionErrors.dfy(112,9): Error: function calls are allowed only in specification contexts (consider declaring the function a 'function method')
@@ -99,7 +104,7 @@ ResolutionErrors.dfy(240,8): Error: return statement is not allowed in this cont
 ResolutionErrors.dfy(435,14): Error: when allocating an object of type 'YHWH', one of its constructor methods must be called
 ResolutionErrors.dfy(440,6): Error: when allocating an object of type 'Lucifer', one of its constructor methods must be called
 ResolutionErrors.dfy(441,6): Error: when allocating an object of type 'Lucifer', one of its constructor methods must be called
-ResolutionErrors.dfy(443,9): Error: class Lamb does not have a default constructor
+ResolutionErrors.dfy(443,9): Error: class Lamb does not have a anonymous constructor
 ResolutionErrors.dfy(839,11): Error: a modifies-clause expression must denote an object or a collection of objects (instead got int)
 ResolutionErrors.dfy(843,14): Error: in a ghost context, only ghost fields can be mentioned as frame targets (x)
 ResolutionErrors.dfy(846,12): Error: in a ghost context, only ghost fields can be mentioned as frame targets (x)
@@ -175,4 +180,4 @@ ResolutionErrors.dfy(1101,8): Error: new cannot be applied to a trait
 ResolutionErrors.dfy(1122,13): Error: first argument to / must be of numeric type (instead got set<bool>)
 ResolutionErrors.dfy(1129,2): Error: a call to a possibly non-terminating method is allowed only if the calling method is also declared (with 'decreases *') to be possibly non-terminating
 ResolutionErrors.dfy(1144,14): Error: a possibly infinite loop is allowed only if the enclosing method is declared (with 'decreases *') to be possibly non-terminating
-177 resolution/type errors detected in ResolutionErrors.dfy
+182 resolution/type errors detected in ResolutionErrors.dfy

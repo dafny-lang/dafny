@@ -555,8 +555,8 @@ module NonInferredType {
   method NonInferredType0(x: int)
   {
     var t;
-    assume forall z :: P(z) && z == t;
-    assume t == x;  // this statement determined the type of z
+    assume forall z :: P(z) && z == t;  // It would be nice to allow the following example, but the implementation calls DiscoverBounds before CheckInference for quantifiers.
+    assume t == x;  // this statement determines the type of t and z
   }
 
   method NonInferredType1(x: int)
@@ -1157,5 +1157,86 @@ method NonTermination_D()
     {
     }
     n := n + 1;
+  }
+}
+
+// ------------ type variables whose values are not inferred ----------
+
+module NonInferredTypeVariables {
+  class C<CT> {
+    var f: CT;
+  }
+
+  predicate method P<PT>(x: int)
+  {
+    x < 100
+  }
+  function Q<QT>(x: int): QT
+  {
+    var qt :| true; qt
+  }
+  method M<MT>(n: nat)
+  {
+    var a := new MT[n];
+  }
+  method N<NT>(n: nat) returns (x: NT)
+  {
+    var a := new NT[10];
+    x := a[3];
+  }
+
+  method DeterminedClient(n: nat)
+  {
+    ghost var q := Q(n);
+    var x := N(n);
+    var a := new array;
+    var c := new C;
+    var s: set;
+    var ss := new set[15];
+
+    q := 3.14;  // this will determine the type parameter of Q to be 'real'
+    x := 3.14;  // this will determine the type parameter of N to be 'real'
+    if a.Length != 0 {
+      a[0] := 3.14;  // this will determine the type parameter of 'array' to be 'real'
+    }
+    c.f := 3.14;  // this will determine the type parameter of 'C' to be 'real'
+    var containsPi := 3.14 in s;  // this will determine the type parameter of 'set' to be 'real'
+    ss[12] := s;  // this will determine the type parameter of 'array<set< _ >>' to be 'real'
+  }
+  method BadClient(n: nat)
+  {
+    var p := P(n);  // error: cannot infer the type argument for P
+    ghost var q := Q(n);  // error: cannot infer the type argument for Q
+    M(n);  // error: cannot infer the type argument for M
+    var x := N(n);  // error: cannot infer the type argument for N
+    var a := new array;  // error: cannot infer the type argument for 'array'
+    var c := new C;  // error: cannot infer the type argument for 'C'
+    var s: set;  // type argument for 'set' 
+    var ss := new set[15];  // error: cannot infer the type argument in 'array<set< _ >>'
+    var what;  // error: the type of this local variable in underspecified
+  }
+  method MoreBadClient()
+  {
+    var b0 := forall s :: s <= {} ==> s == {};  // error: type of s underspecified
+    var b1 := forall s: set :: s <= {} ==> s == {};  // error: type of s underspecified
+    var b2 := forall c: C :: c in {null} ==> c == null;  // error: type of s underspecified
+
+    // In the following, the type of the bound variable is completely determined.
+    var S: set<set<int>>;
+    ghost var d0 := forall s :: s == {7} ==> s != {};
+    var d1 := forall s: set :: s in S ==> s == {};
+    var ggcc0: C;
+    var ggcc1: C;
+    ghost var d2 := forall c: C :: c != null ==> c.f == 10;
+    ghost var d2' := forall c :: c == ggcc0 && c != null ==> c.f == 10;
+    ghost var d2'' := forall c :: c == ggcc1 && c != null ==> c.f == c.f; // error: here, type of c is not determined
+
+    /* TODO: Dafny's heuristic that looks for bounds should look for equality to
+     *       accept these.
+    var d0' := forall s :: s == {7} ==> s != {};
+    var d0'' := forall s :: s <= {7} ==> s == {};
+    var ggcc2: C;
+    var d2''' := forall c :: c == ggcc2 && c != null ==> c.f == 10;
+     */
   }
 }

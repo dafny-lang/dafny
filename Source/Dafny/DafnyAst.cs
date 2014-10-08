@@ -3332,7 +3332,7 @@ namespace Microsoft.Dafny {
   ///    Here, Path may either be of the form C.Init
   ///      -- represents new C.Init(EE)
   ///    or all of Path denotes a type
-  ///      -- represents new C._ctor(EE), where _ctor is the default constructor for class C
+  ///      -- represents new C._ctor(EE), where _ctor is the anonymous constructor for class C
   ///  * TypeRhs(Path, s, EE)
   ///    Here, Path must denote a type and s is a string that denotes the method/constructor Init
   ///      -- represents new Path.s(EE)

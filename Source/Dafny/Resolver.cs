@@ -984,7 +984,7 @@ namespace Microsoft.Dafny
                 members.Add(extraName, extraMember);
               }
             } else if (m is Constructor && !((Constructor)m).HasName) {
-              Error(m, "More than one default constructor");
+              Error(m, "More than one anonymous constructor");
             } else {
               Error(m, "Duplicate member name: {0}", m.Name);
             }
@@ -1804,10 +1804,9 @@ namespace Microsoft.Dafny
               }
             }
           }
-        } else if (expr is MapDisplayExpr) {
-          CheckTypeIsDetermined(expr.tok, expr.Type, "map constructor", true);
-        } else if (expr is DisplayExpression) {
-          CheckTypeIsDetermined(expr.tok, expr.Type, "collection constructor", true);
+        } else if (expr is IdentifierExpr) {
+          // by specializing for IdentifierExpr, error messages will be clearer
+          CheckTypeIsDetermined(expr.tok, expr.Type, "variable");
         } else if (CheckTypeIsDetermined(expr.tok, expr.Type, "expression")) {
           var bin = expr as BinaryExpr;
           if (bin != null) {
@@ -1816,12 +1815,14 @@ namespace Microsoft.Dafny
         }
       }
       /// <summary>
-      /// This method checks to see if 'tp' has been determined and returns the result.
-      /// However, if tp denotes an int-based or real-based type, then tp is set to int or real,
-      /// respectively, here.
+      /// This method checks to see if 't' has been determined and returns the result.
+      /// However, if t denotes an int-based or real-based type, then t is set to int or real,
+      /// respectively, here.  Similarly, if t is an unresolved type for "null", then t
+      /// is set to "object".
       /// </summary>
       public static bool IsDetermined(Type t) {
         Contract.Requires(t != null);
+        Contract.Requires(!(t is TypeProxy) || ((TypeProxy)t).T == null);
         // If the type specifies an arbitrary int-based or real-based type, just fill it in with int or real, respectively
         if (t is OperationTypeProxy) {
           var proxy = (OperationTypeProxy)t;
@@ -1832,15 +1833,21 @@ namespace Microsoft.Dafny
             proxy.T = Type.Real;
             return true;
           }
+        } else if (t is ObjectTypeProxy) {
+          var proxy = (ObjectTypeProxy)t;
+          proxy.T = new ObjectType();
+          return true;
         }
         return !(t is TypeProxy);  // all other proxies indicate the type has not yet been determined
       }
-      bool CheckTypeIsDetermined(IToken tok, Type t, string what, bool aggressive = false) {
+      ISet<TypeProxy> UnderspecifiedTypeProxies = new HashSet<TypeProxy>();
+      bool CheckTypeIsDetermined(IToken tok, Type t, string what) {
         Contract.Requires(tok != null);
         Contract.Requires(t != null);
         Contract.Requires(what != null);
         t = t.NormalizeExpand();
-        // If the type specifies an arbitrary int-based or real-based type, just fill it in with int or real, respectively
+        // If the type specifies an arbitrary int-based or real-based type, just fill it in with int or real, respectively;
+        // similarly, if t refers to the type of "null", set its type to be "object".
         if (t is OperationTypeProxy) {
           var proxy = (OperationTypeProxy)t;
           if (proxy.JustInts) {
@@ -1850,18 +1857,29 @@ namespace Microsoft.Dafny
             proxy.T = Type.Real;
             return true;
           }
+        } else if (t is ObjectTypeProxy) {
+          var proxy = (ObjectTypeProxy)t;
+          proxy.T = new ObjectType();
+          return true;
         }
 
-        if (t is TypeProxy && (aggressive || !(t is InferredTypeProxy || t is ParamTypeProxy || t is ObjectTypeProxy))) {
-          Error(tok, "the type of this {0} is underspecified, but it cannot be an opaque type.", what);
+        if (t is TypeProxy) {
+          var proxy = (TypeProxy)t;
+          if (!UnderspecifiedTypeProxies.Contains(proxy)) {
+            // report an error for this TypeProxy only once
+            Error(tok, "the type of this {0} is underspecified", what);
+            UnderspecifiedTypeProxies.Add(proxy);
+          }
           return false;
-        } else if (aggressive && t is MapType) {
-          return CheckTypeIsDetermined(tok, ((MapType)t).Range, what, aggressive) &&
-                 CheckTypeIsDetermined(tok, ((MapType)t).Domain, what, aggressive);
-        } else if (aggressive && t is CollectionType) {
-          return CheckTypeIsDetermined(tok, ((CollectionType)t).Arg, what, aggressive);
-        } else if (aggressive && t is UserDefinedType) {
-          return t.TypeArgs.All(rg => CheckTypeIsDetermined(tok, rg, what, aggressive));
+        }
+        // Recurse on type arguments:
+        if (t is MapType) {
+          return CheckTypeIsDetermined(tok, ((MapType)t).Range, what) &&
+                 CheckTypeIsDetermined(tok, ((MapType)t).Domain, what);
+        } else if (t is CollectionType) {
+          return CheckTypeIsDetermined(tok, ((CollectionType)t).Arg, what);
+        } else if (t is UserDefinedType) {
+          return t.TypeArgs.All(rg => CheckTypeIsDetermined(tok, rg, what));
         } else {
           return true;
         }
@@ -5766,7 +5784,7 @@ namespace Microsoft.Dafny
           var initCallTok = rr.Tok;
           if (rr.OptionalNameComponent == null && rr.Arguments != null) {
             // Resolve rr.EType and do one of three things:
-            // * If rr.EType denotes a type, then set rr.OptionalNameComponent to "_ctor", which sets up a call to the default constructor.
+            // * If rr.EType denotes a type, then set rr.OptionalNameComponent to "_ctor", which sets up a call to the anonymous constructor.
             // * If the all-but-last components of rr.EType denote a type, then do EType,OptionalNameComponent := allButLast(EType),last(EType)
             // * Otherwise, report an error
             var ret = ResolveTypeLenient(stmt.Tok, rr.EType, codeContext, new ResolveTypeOption(ResolveTypeOptionEnum.InferTypeProxies), null, true);
@@ -5856,7 +5874,7 @@ namespace Microsoft.Dafny
 #endif
           var kind = cd is IteratorDecl ? "iterator" : "class";
           if (memberName == "_ctor") {
-            Error(tok, "{0} {1} does not have a default constructor", kind, ctype.Name);
+            Error(tok, "{0} {1} does not have a anonymous constructor", kind, ctype.Name);
           } else {
             Error(tok, "member {0} does not exist in {2} {1}", memberName, ctype.Name, kind);
           }
@@ -6768,7 +6786,7 @@ namespace Microsoft.Dafny
         QuantifierExpr e = (QuantifierExpr)expr;
         int prevErrorCount = ErrorCount;
         bool _val = true;
-        bool typeQuantifier = Attributes.ContainsBool(e.Attributes, "typeQuantifier", ref _val);
+        bool typeQuantifier = Attributes.ContainsBool(e.Attributes, "typeQuantifier", ref _val) && _val;
         allTypeParameters.PushMarker();
         ResolveTypeParameters(e.TypeArgs, true, e);
         scope.PushMarker();
@@ -6776,7 +6794,7 @@ namespace Microsoft.Dafny
           if (!scope.Push(v.Name, v)) {
             Error(v, "Duplicate bound-variable name: {0}", v.Name);
           }
-          var option = typeQuantifier ? new ResolveTypeOption(e) : new ResolveTypeOption(ResolveTypeOptionEnum.DontInfer);
+          var option = typeQuantifier ? new ResolveTypeOption(e) : new ResolveTypeOption(ResolveTypeOptionEnum.InferTypeProxies);
           ResolveType(v.tok, v.Type, opts.codeContext, option, typeQuantifier ? e.TypeArgs : null);
         }
         if (e.TypeArgs.Count > 0 && !typeQuantifier) {

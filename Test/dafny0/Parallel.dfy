@@ -196,7 +196,7 @@ ghost method DontDoMuch(x: int)
 }
 
 method OmittedRange() {
-  forall (x) { }
+  forall (x: int) { }  // a type is still needed for the bound variable
   forall (x) {
     DontDoMuch(x);
   }
