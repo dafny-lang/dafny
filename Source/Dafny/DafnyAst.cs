@@ -697,12 +697,28 @@ namespace Microsoft.Dafny {
     }
 
     public override string TypeName(ModuleDefinition context) {
-      string s = "", closeparen = "";
-      if (Args.Count != 1 || Args[0].Normalize() is ArrowType) {
-        s += "("; closeparen = ")";
+      var domainNeedsParens = false;
+      if (Arity != 1) {
+        // 0 or 2-or-more arguments:  need parentheses
+        domainNeedsParens = true;
+      } else {
+        var arg = Args[0].Normalize();  // note, we do Normalize(), not NormalizeExpand(), since the TypeName will use any synonym
+        if (arg is ArrowType) {
+          // arrows are right associative, so we need parentheses around the domain type
+          domainNeedsParens = true;
+        } else {
+          // if the domain type consists of a single tuple type, then an extra set of parentheses is needed
+          // Note, we do NOT call .AsDatatype or .AsIndDatatype here, because those calls will do a NormalizeExpand().  Instead, we do the check manually.
+          var udt = arg as UserDefinedType;
+          if (udt != null && udt.ResolvedClass is TupleTypeDecl) {
+            domainNeedsParens = true;
+          }
+        }
       }
+      string s = "";
+      if (domainNeedsParens) { s += "("; }
       s += Util.Comma(Args, arg => arg.TypeName(context));
-      s += closeparen;
+      if (domainNeedsParens) { s += ")"; }
       s += " -> ";
       s += Result.TypeName(context);
       return s;
