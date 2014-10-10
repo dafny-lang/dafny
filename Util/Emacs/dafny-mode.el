@@ -30,20 +30,24 @@
 ]\\)*" . font-lock-comment-face)
 
    `(,(dafny-regexp-opt '(
-        "class" "datatype" "codatatype" "newtype" "type" "iterator"
-	"trait" "extends"
+        "class" "trait" "datatype" "codatatype" "newtype" "type" "iterator"
         "function" "predicate" "copredicate"
-        "ghost" "var" "method" "lemma" "constructor" "colemma"
-        "abstract" "module" "import" "default" "as" "opened" "static" "refines"
-        "returns" "yields" "requires" "ensures" "modifies" "reads" "free"
-        "invariant" "decreases" "include"
+        "var" "method" "constructor" "lemma" "colemma"
+        "ghost" "static" "abstract"
+	"module" "import" "default" "as" "opened"
+	"include"
+        "extends" "refines" "returns" "yields"
+	"requires" "ensures" "modifies" "reads" "free" "invariant" "decreases"
         )) . font-lock-builtin-face)
    `(,(dafny-regexp-opt '(
         "assert" "assume" "break" "then" "else" "if" "label" "return" "yield"
         "while" "print" "where"
         "old" "forall" "exists" "new" "calc" "modify" "in" "this" "fresh"
         "match" "case" "false" "true" "null")) . font-lock-keyword-face)
-   `(,(dafny-regexp-opt '("array" "array2" "array3" "bool" "multiset" "map" "nat" "int" "real" "object" "set" "seq")) . font-lock-type-face)
+   `(,(dafny-regexp-opt '(
+        "bool" "int" "nat" "real"
+        "set" "multiset" "seq" "map" 
+	"object" "array" "array2" "array3")) . font-lock-type-face)
    )
   "Minimal highlighting for Dafny mode")
 
