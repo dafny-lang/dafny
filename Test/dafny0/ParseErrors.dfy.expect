@@ -6,10 +6,12 @@ ParseErrors.dfy(18,18): error: this operator cannot be part of a chain
 ParseErrors.dfy(19,19): error: this operator cannot be part of a chain
 ParseErrors.dfy(20,18): error: this operator cannot be part of a chain
 ParseErrors.dfy(21,18): error: chaining not allowed from the previous operator
-ParseErrors.dfy(49,8): error: the main operator of a calculation must be transitive
-ParseErrors.dfy(65,2): error: this operator cannot continue this calculation
-ParseErrors.dfy(66,2): error: this operator cannot continue this calculation
-ParseErrors.dfy(71,2): error: this operator cannot continue this calculation
-ParseErrors.dfy(72,2): error: this operator cannot continue this calculation
-ParseErrors.dfy(78,2): error: this operator cannot continue this calculation
-14 parse errors detected in ParseErrors.dfy
+ParseErrors.dfy(28,19): error: chaining not allowed from the previous operator
+ParseErrors.dfy(31,20): error: can only chain disjoint (!!) with itself.
+ParseErrors.dfy(58,8): error: the main operator of a calculation must be transitive
+ParseErrors.dfy(74,2): error: this operator cannot continue this calculation
+ParseErrors.dfy(75,2): error: this operator cannot continue this calculation
+ParseErrors.dfy(80,2): error: this operator cannot continue this calculation
+ParseErrors.dfy(81,2): error: this operator cannot continue this calculation
+ParseErrors.dfy(87,2): error: this operator cannot continue this calculation
+16 parse errors detected in ParseErrors.dfy

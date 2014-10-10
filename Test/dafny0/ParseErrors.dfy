@@ -22,6 +22,15 @@ method TestChaining1<T>(s: set<T>, t: set<T>, u: set<T>, x: T, SuperSet: set<set
 {
 }
 
+method TestChaining2(a: set<int>, b: set<int>, c: set<int>)
+{
+  var x := a !! b !! c;
+  var y := a !! b == c;  // error
+  var z0 := a == (b !! c);
+  var z1 := (a == b) !! c;
+  var z2 := a == b !! c;  // error: == and !! do not chain together (regression test)
+}
+
 // ---------------------- calc statements -----------------------------------
 
 method TestCalc()
