@@ -25,3 +25,26 @@ method test(x:seq<int>)
     assert forall i :: 0 <= i < |e| ==> e[i] == x[i+1];
     assert forall i :: 0 <= i < |f| ==> f[i] == x[i+6];
 }
+
+newtype MyNumeric = n | 0 <= n < 100
+
+method NumericSlice<T>(x: seq<T>, two: MyNumeric) returns (y: seq<T>)
+  requires 10 <= |x| && two == 2;
+  ensures |y| == 3;
+{
+  var slices;
+  if * {
+    slices := x[0:two:3:0:];
+  } else {
+    slices := x[1 : 1 : 1 : 3 : two : two : 0];
+    assert |slices[5]| == 2;
+  }
+  assert |slices| == 5 || |slices| == 7;
+  return middle(slices);
+}
+
+function method middle<G>(s: seq<G>): G
+  requires |s| % 2 == 1;
+{
+  s[|s| / 2]
+}
