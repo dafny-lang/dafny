@@ -79,6 +79,42 @@ method Explies(s: seq<int>, i: nat)
   assert s[i] > 0 <== i < |s|;      // OK, because <== is short-circuiting from the right
 }
 
+method ExpliesAssociativityM(A: bool, B: bool, C: bool) {
+  var x := A ==> B;
+  var y := B <== A;
+  var z;
+  assert x == y;
+
+  if * {
+    x := A ==> B ==> C;
+    y := A ==> (B ==> C);  // parens not needed, because ==> is right associative
+    z := (A ==> B) ==> C;
+    assert x == y;
+    assert x == z;  // error
+  } else {
+    x := A <== B <== C;
+    y := (A <== B) <== C;  // parens not needed, because <== is left associative
+    z := A <== (B <== C);
+    assert x == y;
+    assert x == z;  // error
+  }
+}
+
+method ExpliesShortCircuiting(a: array<T>)
+{
+  assert a == null || 0 <= a.Length;  // (W)
+  assert a != null ==> 0 <= a.Length;  // (X) -- same as (W)
+  assert 0 <= a.Length <== a != null;  // (Y)
+
+  // Note: short-circuiting is left-to-right for &&, ||, and ==>, but it is
+  // right-to-left for <==
+  if * {
+    assert a == null <== a.Length < 0;  // error: contrapositive of (X), but not well-formed
+  } else {
+    assert a.Length < 0 ==> a == null;  // error: contrapositive of (Y), but not well-formed
+  }
+}
+
 // --------- multi assignments --------------------------------
 
 class Multi {
