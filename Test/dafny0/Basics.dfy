@@ -92,9 +92,9 @@ method ExpliesAssociativityM(A: bool, B: bool, C: bool) {
     assert x == y;
     assert x == z;  // error
   } else {
-    x := A <== B <== C;
-    y := (A <== B) <== C;  // parens not needed, because <== is left associative
-    z := A <== (B <== C);
+    x := C <== B <== A;
+    y := (C <== B) <== A;  // parens not needed, because <== is left associative
+    z := C <== (B <== A);
     assert x == y;
     assert x == z;  // error
   }
