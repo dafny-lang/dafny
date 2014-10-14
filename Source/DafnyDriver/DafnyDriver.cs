@@ -126,7 +126,7 @@ namespace Microsoft.Dafny
         return exitValue;
       }
 
-      if (0 < CommandLineOptions.Clo.VerifySnapshots && lookForSnapshots)
+      if (0 <= CommandLineOptions.Clo.VerifySnapshots && lookForSnapshots)
       {
         var snapshotsByVersion = ExecutionEngine.LookForSnapshots(fileNames);
         foreach (var s in snapshotsByVersion)
