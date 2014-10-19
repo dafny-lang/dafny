@@ -127,27 +127,27 @@ Dafny program verifier finished with 1 verified, 2 errors
 -------------------- Snapshots5.dfy --------------------
 Processing command (at Snapshots5.v0.dfy(3,3)) assert (forall<alpha> $o: ref, $f: Field alpha :: false ==> $_Frame[$o, $f]) /* checksum: A0-B4-50-60-9F-FE-44-6C-9C-B7-4F-16-C3-B5-03-42 */ ;
   >>> did nothing
-Processing command (at Snapshots5.v0.dfy(10,40)) assert (forall b#1: bool :: true ==> b#1 || !b#1) || 0 != 0 /* checksum: F5-C2-A4-FA-E3-68-61-B0-9E-67-CF-D6-EB-82-4B-83 */ ;
+Processing command (at Snapshots5.v0.dfy(10,40)) assert (forall b#1: bool :: true ==> b#1 || !b#1) || 0 != 0 /* checksum: F5-42-1C-46-53-48-B1-C8-9E-E7-CF-D6-6B-C2-33-83 */ ;
   >>> did nothing
-Processing command (at Snapshots5.v0.dfy(12,3)) assert (forall<alpha> $o: ref, $f: Field alpha :: false ==> $_Frame[$o, $f]) /* checksum: 52-12-87-8B-4B-EC-C8-CE-B0-B1-32-B7-07-89-DA-63 */ ;
+Processing command (at Snapshots5.v0.dfy(12,3)) assert (forall<alpha> $o: ref, $f: Field alpha :: false ==> $_Frame[$o, $f]) /* checksum: 52-92-0F-5F-BB-CC-18-D6-B0-31-32-B7-87-C9-F2-63 */ ;
   >>> did nothing
-Processing command (at Snapshots5.v0.dfy(13,38)) assert (forall b#3: bool :: true ==> b#3 || !b#3) || 3 != 3 /* checksum: 01-BD-3B-F5-9F-4C-6E-A4-02-18-DC-91-9D-9B-D2-38 */ ;
+Processing command (at Snapshots5.v0.dfy(13,38)) assert (forall b#3: bool :: true ==> b#3 || !b#3) || 3 != 3 /* checksum: 01-09-3B-C5-5F-C0-D6-24-82-98-EC-A1-9D-9B-D2-38 */ ;
   >>> did nothing
-Processing command (at Snapshots5.v0.dfy(20,40)) assert (forall b#5: bool :: true ==> b#5 || !b#5) || 1 != 1 /* checksum: 23-47-65-F9-36-74-DB-E0-DA-7C-DC-98-35-95-54-0F */ ;
+Processing command (at Snapshots5.v0.dfy(20,40)) assert (forall b#5: bool :: true ==> b#5 || !b#5) || 1 != 1 /* checksum: A3-47-65-A9-36-74-DB-60-BE-7C-DC-78-B5-15-54-0F */ ;
   >>> did nothing
 
 Dafny program verifier finished with 3 verified, 0 errors
 Processing command (at Snapshots5.v1.dfy(3,3)) assert (forall<alpha> $o: ref, $f: Field alpha :: false ==> $_Frame[$o, $f]) /* checksum: A0-B4-50-60-9F-FE-44-6C-9C-B7-4F-16-C3-B5-03-42 */ ;
   >>> turned assertion into assume statement
-Processing command (at Snapshots5.v1.dfy(10,40)) assert (forall b#1: bool :: true ==> b#1 || !b#1) || 0 != 0 /* checksum: F5-C2-A4-FA-E3-68-61-B0-9E-67-CF-D6-EB-82-4B-83 */ ;
+Processing command (at Snapshots5.v1.dfy(10,40)) assert (forall b#1: bool :: true ==> b#1 || !b#1) || 0 != 0 /* checksum: F5-42-1C-46-53-48-B1-C8-9E-E7-CF-D6-6B-C2-33-83 */ ;
   >>> turned assertion into assume statement
-Processing command (at Snapshots5.v1.dfy(12,3)) assert (forall<alpha> $o: ref, $f: Field alpha :: false ==> $_Frame[$o, $f]) /* checksum: 52-12-87-8B-4B-EC-C8-CE-B0-B1-32-B7-07-89-DA-63 */ ;
+Processing command (at Snapshots5.v1.dfy(12,3)) assert (forall<alpha> $o: ref, $f: Field alpha :: false ==> $_Frame[$o, $f]) /* checksum: 52-92-0F-5F-BB-CC-18-D6-B0-31-32-B7-87-C9-F2-63 */ ;
   >>> turned assertion into assume statement
-Processing command (at Snapshots5.v1.dfy(13,38)) assert (forall b#3: bool :: true ==> b#3 || !b#3) || 3 != 3 /* checksum: 01-BD-3B-F5-9F-4C-6E-A4-02-18-DC-91-9D-9B-D2-38 */ ;
+Processing command (at Snapshots5.v1.dfy(13,38)) assert (forall b#3: bool :: true ==> b#3 || !b#3) || 3 != 3 /* checksum: 01-09-3B-C5-5F-C0-D6-24-82-98-EC-A1-9D-9B-D2-38 */ ;
   >>> turned assertion into assume statement
-Processing command (at Snapshots5.v1.dfy(20,40)) assert (exists b#5: bool :: b#5 || !b#5) || 4 != 4 /* checksum: 0A-7D-56-D6-BD-AD-1D-7A-48-E5-4E-0E-FD-83-27-25 */ ;
+Processing command (at Snapshots5.v1.dfy(20,40)) assert (exists b#5: bool :: b#5 || !b#5) || 4 != 4 /* checksum: 8A-FD-56-16-5D-AD-1D-FA-48-E5-4E-3E-7D-07-27-25 */ ;
   >>> did nothing
-Processing command (at Snapshots5.v1.dfy(22,38)) assert (exists b#7: bool :: b#7 || !b#7) || 5 != 5 /* checksum: 0F-FC-46-D6-72-EB-6E-10-B7-34-F6-DC-A8-99-A8-0B */ ;
+Processing command (at Snapshots5.v1.dfy(22,38)) assert (exists b#7: bool :: b#7 || !b#7) || 5 != 5 /* checksum: 0F-FC-66-96-4A-EB-8E-10-F3-B4-D2-BC-A8-99-A8-FB */ ;
   >>> did nothing
 
 Dafny program verifier finished with 3 verified, 0 errors
