@@ -147,6 +147,7 @@ namespace DafnyLanguage.DafnyMenu
 
         var toggleMoreAdvancedSnapshotVerificationCommandID = new CommandID(GuidList.guidDafnyMenuCmdSet, (int)PkgCmdIDList.cmdidToggleMoreAdvancedSnapshotVerification);
         toggleMoreAdvancedSnapshotVerificationCommand = new OleMenuCommand(ToggleMoreAdvancedSnapshotVerificationCallback, toggleMoreAdvancedSnapshotVerificationCommandID);
+        toggleMoreAdvancedSnapshotVerificationCommand.Enabled = true;
         toggleMoreAdvancedSnapshotVerificationCommand.BeforeQueryStatus += toggleMoreAdvancedSnapshotVerificationCommand_BeforeQueryStatus;
         mcs.AddCommand(toggleMoreAdvancedSnapshotVerificationCommand);
 
