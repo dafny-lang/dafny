@@ -10195,7 +10195,16 @@ namespace Microsoft.Dafny {
             return predef.Null;
           } else if (e.Value is bool) {
             return translator.Lit(new Bpl.LiteralExpr(e.tok, (bool)e.Value));
-          } else if (e.Value is string) {
+          } else if (e is CharLiteralExpr) {
+            // we expect e.Value to be a string representing exactly one char
+            Bpl.Expr rawElement = null;  // assignment to please compiler's definite assignment rule
+            foreach (char ch in Util.UnescapedCharacters((string)e.Value, false)) {
+              Contract.Assert(rawElement == null);  // we should get here only once
+              rawElement = translator.FunctionCall(expr.tok, BuiltinFunction.CharFromInt, null, Bpl.Expr.Literal((int)ch));
+            }
+            Contract.Assert(rawElement != null);  // there should have been an iteration of the loop above
+            return translator.Lit(rawElement, predef.CharType);
+          } else if (e is StringLiteralExpr) {
             var str = (StringLiteralExpr)e;
             Bpl.Expr seq = translator.FunctionCall(expr.tok, BuiltinFunction.SeqEmpty, predef.BoxType);
             foreach (char ch in Util.UnescapedCharacters((string)e.Value, str.IsVerbatim)) {

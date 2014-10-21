@@ -166,7 +166,7 @@ CHARACTERS
   digit = "0123456789".
   posDigit = "123456789".
   hexdigit = "0123456789ABCDEFabcdef".
-  special = "'_?\\".
+  special = "'_?".
   glyph = "`~!@#$%^&*()-_=+[{]}|;:',<.>/?\\".
   cr        = '\r'.
   lf        = '\n'.
@@ -175,29 +175,42 @@ CHARACTERS
   nondigit = letter + special.
   idchar = nondigit + digit.
   nonidchar = ANY - idchar.
-  /* exclude the characters in 'array' */
-  nondigitMinusA = nondigit - 'a'.
+  /* exclude the characters in 'array' and '\'' */
+  nondigitMinusATick = nondigit - 'a' - '\''.
   idcharMinusA = idchar - 'a'.
   idcharMinusR = idchar - 'r'.
   idcharMinusY = idchar - 'y'.
   idcharMinusPosDigit = idchar - posDigit.
+  ischarMinusTick = idchar - '\''.
   /* string literals */
+  charChar = ANY - '\'' - '\\' - cr - lf.
   stringChar = ANY - '"' - '\\' - cr - lf.
   verbatimStringChar = ANY - '"'.
 
 /*------------------------------------------------------------------------*/
 TOKENS
-  ident =  nondigitMinusA {idchar}            /* if char 0 is not an 'a', then anything else is fine */
+  ident =  nondigitMinusATick {idchar}        /* if char 0 is not an 'a' or '\'', then anything else is fine */
         |  'a' [ idcharMinusR {idchar} ]      /* if char 0 is an 'a', then either there is no char 1 or char 1 is not an 'r' */
         |  'a' 'r' [ idcharMinusR {idchar} ]  /* etc. */
         |  'a' 'r' 'r' [ idcharMinusA {idchar} ]
         |  'a' 'r' 'r' 'a' [ idcharMinusY {idchar} ]
         |  'a' 'r' 'r' 'a' 'y' idcharMinusPosDigit {idchar}
-        |  'a' 'r' 'r' 'a' 'y' posDigit {idchar} nondigit {idchar}.
+        |  'a' 'r' 'r' 'a' 'y' posDigit {idchar} nondigit {idchar}
+        |  "'" [ idchar ]                        /* if char 0 is a '\'' and length is 1 or 2, then it is an identifier */
+        |  "'" idchar ischarMinusTick            /* if char 0 is '\'' and length is 3, then it is an identifier provided char 2 is not '\'' */
+        |  "'" idchar idchar idchar { idchar }   /* if char 0 is '\'' and length exceeds 3, then it is an identifier */
+        .
   digits = digit {digit}.
   hexdigits = "0x" hexdigit {hexdigit}.
   decimaldigits = digit {digit} '.' digit {digit}.
   arrayToken = "array" [posDigit {digit}].
+  charToken =
+      "'"
+      ( charChar
+        | "\\\'" | "\\\"" | "\\\\" | "\\0" | "\\n" | "\\r" | "\\t"
+        | "\\u" hexdigit hexdigit hexdigit hexdigit
+      )
+      "'".
   stringToken =
       '"'
       { stringChar
@@ -2023,6 +2036,7 @@ ConstAtomExpression<out Expression e, bool allowSemi, bool allowLambda>
   | "null"                                     (. e = new LiteralExpr(t); .)
   | Nat<out n>                                 (. e = new LiteralExpr(t, n); .)
   | Dec<out d>                                 (. e = new LiteralExpr(t, d); .)
+  | charToken                                  (. e = new CharLiteralExpr(t, t.val.Substring(1, t.val.Length - 2)); .)
   | stringToken                                (. bool isVerbatimString;
                                                   string s = Util.RemoveParsedStringQuotes(t.val, out isVerbatimString);
                                                   e = new StringLiteralExpr(t, s, isVerbatimString);

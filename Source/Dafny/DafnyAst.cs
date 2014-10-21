@@ -5090,11 +5090,19 @@ namespace Microsoft.Dafny {
     ///   * a bool for a bool literal
     ///   * a BigInteger for int literal
     ///   * a Basetypes.BigDec for a (rational) real literal
-    ///   * a string for a string literal -- Note, the string is stored with all escapes as characters.  For
-    ///     example, the input string "hello\n" is stored in a LiteralExpr has being 7 characters long, whereas
-    ///     the Dafny (and C#) length of this string is 6.  This simplifies printing of the string, both when
-    ///     pretty printed as a Dafny expression and when being compiled into C# code.  The parser checks the
-    ///     validity of the escape sequences and the verifier deals with turning them into single characters.
+    ///   * a string for a char literal
+    ///     This case always uses the subclass CharLiteralExpr.
+    ///     Note, a string is stored to keep any escape sequence, since this simplifies printing of the character
+    ///     literal, both when pretty printed as a Dafny expression and when being compiled into C# code.  The
+    ///     parser checks the validity of any escape sequence and the verifier deals with turning such into a
+    ///     single character value.
+    ///   * a string for a string literal
+    ///     This case always uses the subclass StringLiteralExpr.
+    ///     Note, the string is stored with all escapes as characters.  For example, the input string "hello\n" is
+    ///     stored in a LiteralExpr has being 7 characters long, whereas the Dafny (and C#) length of this string is 6.
+    ///     This simplifies printing of the string, both when pretty printed as a Dafny expression and when being
+    ///     compiled into C# code.  The parser checks the validity of the escape sequences and the verifier deals
+    ///     with turning them into single characters.
     /// </summary>
     public readonly object Value;
 
@@ -5143,14 +5151,23 @@ namespace Microsoft.Dafny {
     }
 
     /// <summary>
-    /// This constructor is to be used only with the StringLiteralExpr subclass, since string literals also need
-    /// an additional field.
+    /// This constructor is to be used only with the StringLiteralExpr and CharLiteralExpr subclasses, for
+    /// two reasons:  both of these literals store a string in .Value, and string literals also carry an
+    /// additional field.
     /// </summary>
     protected LiteralExpr(IToken tok, string s)
       : base(tok) {
       Contract.Requires(tok != null);
       Contract.Requires(s != null);
       this.Value = s;
+    }
+  }
+
+  public class CharLiteralExpr : LiteralExpr
+  {
+    public CharLiteralExpr(IToken tok, string s)
+      : base(tok, s) {
+      Contract.Requires(s != null);
     }
   }
 

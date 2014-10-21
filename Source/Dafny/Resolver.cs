@@ -6191,7 +6191,9 @@ namespace Microsoft.Dafny
             e.Type = new OperationTypeProxy(false, true, false, false);
           } else if (e.Value is bool) {
             e.Type = Type.Bool;
-          } else if (e.Value is string) {
+          } else if (e is CharLiteralExpr) {
+            e.Type = Type.Char;
+          } else if (e is StringLiteralExpr) {
             e.Type = new UserDefinedType(e.tok, "string", new List<Type>(), new List<IToken>());
             ResolveType(e.tok, e.Type, opts.codeContext, ResolveTypeOptionEnum.DontInfer, null);
           } else {

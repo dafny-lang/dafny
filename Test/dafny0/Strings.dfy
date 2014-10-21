@@ -35,6 +35,8 @@ method Main()
   print "Escape X: ", x, "\n";
   print "Escape Y: ", y, "\n";
   print "Escape Z: ", z, "\n";
+  var c, d := CharEscapes();
+  print "Here is the end" + [c, d] + [' ', ' ', ' '] + [[d]][0] + "   ", d, "\n";
 }
 
 method GimmieAChar(s: string) returns (ch: char)
@@ -54,4 +56,14 @@ method Escapes() returns (x: string, y: string, z: string)
   y := @"I say ""hello"" \ you say 'good bye'";
   assert x == y;
   z := "There needs to be \u0052\u0026\u0044\n\tYes, sir";
+}
+
+method CharEscapes() returns (c: char, d: char)
+{
+  // cool variable names, huh?
+  var 'x := 'R';
+  var x' := '\u0052';
+  assert 'x==x' ;
+  c := '\n';
+  d := '*';
 }

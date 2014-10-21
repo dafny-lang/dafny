@@ -1214,7 +1214,9 @@ namespace Microsoft.Dafny {
           wr.Write("null");
         } else if (e.Value is bool) {
           wr.Write((bool)e.Value ? "true" : "false");
-        } else if (e.Value is string) {
+        } else if (e is CharLiteralExpr) {
+          wr.Write("'{0}'", (string)e.Value);
+        } else if (e is StringLiteralExpr) {
           var str = (StringLiteralExpr)e;
           wr.Write("{0}\"{1}\"", str.IsVerbatim ? "@" : "", (string)e.Value);
         } else if (e.Value is Basetypes.BigDec) {

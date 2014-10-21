@@ -2048,7 +2048,9 @@ namespace Microsoft.Dafny {
           wr.Write("({0})null", TypeName(e.Type));
         } else if (e.Value is bool) {
           wr.Write((bool)e.Value ? "true" : "false");
-        } else if (e.Value is string) {
+        } else if (e is CharLiteralExpr) {
+          wr.Write("'{0}'", (string)e.Value);
+        } else if (e is StringLiteralExpr) {
           var str = (StringLiteralExpr)e;
           wr.Write("{0}<char>.FromString({1}\"{2}\")", DafnySeqClass, str.IsVerbatim ? "@" : "", (string)e.Value);
         } else if (e.Value is BigInteger) {

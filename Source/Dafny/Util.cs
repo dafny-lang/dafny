@@ -125,12 +125,12 @@ namespace Microsoft.Dafny {
               case 'r': special = '\r'; break;
               case 't': special = '\t'; break;
               case 'u':
-                int ch = HexValue(p[i + 1]);
-                ch = 16 * ch + HexValue(p[i + 2]);
+                int ch = HexValue(p[i + 2]);
                 ch = 16 * ch + HexValue(p[i + 3]);
                 ch = 16 * ch + HexValue(p[i + 4]);
+                ch = 16 * ch + HexValue(p[i + 5]);
                 yield return (char)ch;
-                i += 5;
+                i += 6;
                 continue;
               default:
                 break;
