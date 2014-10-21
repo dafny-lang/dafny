@@ -392,6 +392,7 @@ namespace Microsoft.Dafny {
       return t.IsIntegerType || t.IsRealType || t.AsNewtype != null;
     }
     public enum NumericPersuation { Int, Real }
+    [Pure]
     public bool IsNumericBased(NumericPersuation p) {
       Type t = this;
       while (true) {
@@ -4758,7 +4759,9 @@ namespace Microsoft.Dafny {
     public static Expression CreateSubtract(Expression e0, Expression e1) {
       Contract.Requires(e0 != null);
       Contract.Requires(e1 != null);
-      Contract.Requires((e0.Type.NormalizeExpand() is IntType && e1.Type.NormalizeExpand() is IntType) || (e0.Type.NormalizeExpand() is RealType && e1.Type.NormalizeExpand() is RealType));
+      Contract.Requires(
+        (e0.Type.IsNumericBased(Type.NumericPersuation.Int) && e1.Type.IsNumericBased(Type.NumericPersuation.Int)) ||
+        (e0.Type.IsNumericBased(Type.NumericPersuation.Real) && e1.Type.IsNumericBased(Type.NumericPersuation.Real)));
       Contract.Ensures(Contract.Result<Expression>() != null);
       var s = new BinaryExpr(e0.tok, BinaryExpr.Opcode.Sub, e0, e1);
       s.ResolvedOp = BinaryExpr.ResolvedOpcode.Sub;  // resolve here
