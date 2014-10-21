@@ -20,6 +20,7 @@ for %%f in (
   Graph.dll                           Graph.pdb
   Houdini.dll                         Houdini.pdb
   Model.dll                           Model.pdb
+  ModelViewer.dll                     ModelViewer.pdb
   ParserHelper.dll                    ParserHelper.pdb
   Provers.SMTLib.dll                  Provers.SMTLib.pdb
   VCExpr.dll                          VCExpr.pdb
