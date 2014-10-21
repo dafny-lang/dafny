@@ -224,7 +224,7 @@ namespace DafnyLanguage
     public static int ChangeIncrementalVerification(int mode)
     {
       var old = Dafny.DafnyOptions.Clo.VerifySnapshots;
-      if (mode == 1 && old != 0)
+      if (mode == 1 && 1 <= old)
       {
         // Disable mode 1.
         Dafny.DafnyOptions.Clo.VerifySnapshots = 0;
