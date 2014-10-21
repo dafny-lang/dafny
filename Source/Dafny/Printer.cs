@@ -403,19 +403,14 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public void PrintAttributeArgs(List<Attributes.Argument> args, bool isFollowedBySemicolon) {
+    public void PrintAttributeArgs(List<Expression> args, bool isFollowedBySemicolon) {
       Contract.Requires(args != null);
       string prefix = " ";
-      foreach (Attributes.Argument arg in args) {
+      foreach (var arg in args) {
         Contract.Assert(arg != null);
         wr.Write(prefix);
         prefix = ", ";
-        if (arg.S != null) {
-          wr.Write("\"{0}\"", arg.S);
-        } else {
-          Contract.Assert( arg.E != null);
-          PrintExpression(arg.E, isFollowedBySemicolon);
-        }
+        PrintExpression(arg, isFollowedBySemicolon);
       }
     }
 
@@ -1219,6 +1214,9 @@ namespace Microsoft.Dafny {
           wr.Write("null");
         } else if (e.Value is bool) {
           wr.Write((bool)e.Value ? "true" : "false");
+        } else if (e.Value is string) {
+          var str = (StringLiteralExpr)e;
+          wr.Write("{0}\"{1}\"", str.IsVerbatim ? "@" : "", (string)e.Value);
         } else if (e.Value is Basetypes.BigDec) {
           Basetypes.BigDec dec = (Basetypes.BigDec)e.Value;
           wr.Write((dec.Mantissa >= 0) ? "" : "-");

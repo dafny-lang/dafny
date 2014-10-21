@@ -334,7 +334,6 @@ datatype Primitive = primCreatePath | primExec
 datatype Reason = rCompatibility | rValidity | rInconsistentCache
 
 datatype Path = OpaquePath(int) | TransparentPath(int)
-type string(==)
 type Artifact
 type Identifier
 

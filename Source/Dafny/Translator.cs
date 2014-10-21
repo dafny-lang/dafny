@@ -53,6 +53,7 @@ namespace Microsoft.Dafny {
     public string UniqueIdPrefix { get; set; }
 
     internal class PredefinedDecls {
+      public readonly Bpl.Type CharType;
       public readonly Bpl.Type RefType;
       public readonly Bpl.Type BoxType;
       public readonly Bpl.Type TickType;
@@ -77,6 +78,7 @@ namespace Microsoft.Dafny {
       private readonly Bpl.Constant allocField;
       [ContractInvariantMethod]
       void ObjectInvariant() {
+        Contract.Invariant(CharType != null);
         Contract.Invariant(RefType != null);
         Contract.Invariant(BoxType != null);
         Contract.Invariant(TickType != null);
@@ -144,7 +146,7 @@ namespace Microsoft.Dafny {
         return new Bpl.IdentifierExpr(tok, allocField);
       }
 
-      public PredefinedDecls(Bpl.TypeCtorDecl refType, Bpl.TypeCtorDecl boxType, Bpl.TypeCtorDecl tickType,
+      public PredefinedDecls(Bpl.TypeCtorDecl charType, Bpl.TypeCtorDecl refType, Bpl.TypeCtorDecl boxType, Bpl.TypeCtorDecl tickType,
                              Bpl.TypeSynonymDecl setTypeCtor, Bpl.TypeSynonymDecl multiSetTypeCtor, Bpl.TypeCtorDecl mapTypeCtor,
                              Bpl.Function arrayLength, Bpl.Function realTrunc, Bpl.TypeCtorDecl seqTypeCtor, Bpl.TypeCtorDecl fieldNameType,
                              Bpl.TypeCtorDecl tyType, Bpl.TypeCtorDecl tyTagType,
@@ -152,6 +154,7 @@ namespace Microsoft.Dafny {
                              Bpl.TypeCtorDecl datatypeType, Bpl.TypeCtorDecl handleType, Bpl.TypeCtorDecl layerType, Bpl.TypeCtorDecl dtCtorId,
                              Bpl.Constant allocField) {
         #region Non-null preconditions on parameters
+        Contract.Requires(charType != null);
         Contract.Requires(refType != null);
         Contract.Requires(boxType != null);
         Contract.Requires(tickType != null);
@@ -172,6 +175,7 @@ namespace Microsoft.Dafny {
         Contract.Requires(tyTagType != null);
         #endregion
 
+        this.CharType = new Bpl.CtorType(Token.NoToken, charType, new List<Bpl.Type>());
         Bpl.CtorType refT = new Bpl.CtorType(Token.NoToken, refType, new List<Bpl.Type>());
         this.RefType = refT;
         this.BoxType = new Bpl.CtorType(Token.NoToken, boxType, new List<Bpl.Type>());
@@ -205,6 +209,7 @@ namespace Microsoft.Dafny {
         return null;
       }
 
+      Bpl.TypeCtorDecl charType = null;
       Bpl.TypeCtorDecl refType = null;
       Bpl.TypeSynonymDecl setTypeCtor = null;
       Bpl.TypeSynonymDecl multiSetTypeCtor = null;
@@ -246,6 +251,8 @@ namespace Microsoft.Dafny {
             layerType = dt;
           } else if (dt.Name == "DtCtorId") {
             dtCtorId = dt;
+          } else if (dt.Name == "char") {
+            charType = dt;
           } else if (dt.Name == "ref") {
             refType = dt;
           } else if (dt.Name == "NameFamily") {
@@ -314,6 +321,8 @@ namespace Microsoft.Dafny {
         Console.WriteLine("Error: Dafny prelude is missing declaration of type LayerType");
       } else if (dtCtorId == null) {
         Console.WriteLine("Error: Dafny prelude is missing declaration of type DtCtorId");
+      } else if (charType == null) {
+        Console.WriteLine("Error: Dafny prelude is missing declaration of type char");
       } else if (refType == null) {
         Console.WriteLine("Error: Dafny prelude is missing declaration of type ref");
       } else if (boxType == null) {
@@ -325,7 +334,7 @@ namespace Microsoft.Dafny {
       } else if (allocField == null) {
         Console.WriteLine("Error: Dafny prelude is missing declaration of constant alloc");
       } else {
-        return new PredefinedDecls(refType, boxType, tickType,
+        return new PredefinedDecls(charType, refType, boxType, tickType,
                                    setTypeCtor, multiSetTypeCtor, mapTypeCtor,
                                    arrayLength, realTrunc, seqTypeCtor, fieldNameType,
                                    tyType, tyTagType,
@@ -379,6 +388,8 @@ namespace Microsoft.Dafny {
           AddTypeDecl((OpaqueTypeDecl)d);
         } else if (d is NewtypeDecl) {
           AddTypeDecl((NewtypeDecl)d);
+        } else if (d is TypeSynonymDecl) {
+          // do nothing, just bypass type synonyms in the translation
         } else if (d is DatatypeDecl) {
           AddDatatype((DatatypeDecl)d);
         } else if (d is ArrowTypeDecl) {
@@ -6517,6 +6528,8 @@ namespace Microsoft.Dafny {
 
       if (type is BoolType) {
         return Bpl.Type.Bool;
+      } else if (type is CharType) {
+        return predef.CharType;
       } else if (type is IntType) {
         return Bpl.Type.Int;
       } else if (type is RealType) {
@@ -6779,10 +6792,8 @@ namespace Microsoft.Dafny {
       } else if (stmt is PrintStmt) {
         AddComment(builder, stmt, "print statement");
         PrintStmt s = (PrintStmt)stmt;
-        foreach (Attributes.Argument arg in s.Args) {
-          if (arg.E != null) {
-            TrStmt_CheckWellformed(arg.E, builder, locals, etran, false);
-          }
+        foreach (var arg in s.Args) {
+          TrStmt_CheckWellformed(arg, builder, locals, etran, false);
         }
 
       } else if (stmt is BreakStmt) {
@@ -7353,6 +7364,8 @@ namespace Microsoft.Dafny {
         lit.Type = Type.Bool;  // resolve here
         yield return lit;
         yield break;  // there are no more possible witnesses for booleans
+      } else if (xType is CharType) {
+        // TODO: something could be done for character literals
       } else if (xType.IsRefType) {
         var lit = new LiteralExpr(x.tok);  // null
         lit.Type = xType;
@@ -8761,6 +8774,8 @@ namespace Microsoft.Dafny {
       u = u.NormalizeExpand();
       if (t is BoolType) {
         return u is BoolType;
+      } else if (t is CharType) {
+        return u is CharType;
       } else if (t.IsNumericBased(Type.NumericPersuation.Int)) {
         // we can allow different kinds of int-based types
         return u.IsNumericBased(Type.NumericPersuation.Int);
@@ -8822,6 +8837,10 @@ namespace Microsoft.Dafny {
         eq = Bpl.Expr.Iff(e0, e1);
         less = Bpl.Expr.And(Bpl.Expr.Not(e0), e1);
         atmost = Bpl.Expr.Imp(e0, e1);
+      } else if (ty0 is CharType) {
+        eq = Bpl.Expr.Eq(e0, e1);
+        less = Bpl.Expr.False;
+        atmost = eq;  // less || eq
       } else if (ty0.IsNumericBased(Type.NumericPersuation.Int) || ty0 is SeqType || ty0.IsDatatype) {
         Bpl.Expr b0, b1;
         if (ty0.IsNumericBased(Type.NumericPersuation.Int)) {
@@ -8948,6 +8967,8 @@ namespace Microsoft.Dafny {
           TypeToTy(((MapType)type).Range)); 
       } else if (type is BoolType) {
         return new Bpl.IdentifierExpr(Token.NoToken, "TBool", predef.Ty);
+      } else if (type is CharType) {
+        return new Bpl.IdentifierExpr(Token.NoToken, "TChar", predef.Ty);
       } else if (type is RealType) {
         return new Bpl.IdentifierExpr(Token.NoToken, "TReal", predef.Ty);
       } else if (type is NatType) {
@@ -10174,6 +10195,15 @@ namespace Microsoft.Dafny {
             return predef.Null;
           } else if (e.Value is bool) {
             return translator.Lit(new Bpl.LiteralExpr(e.tok, (bool)e.Value));
+          } else if (e.Value is string) {
+            var str = (StringLiteralExpr)e;
+            Bpl.Expr seq = translator.FunctionCall(expr.tok, BuiltinFunction.SeqEmpty, predef.BoxType);
+            foreach (char ch in Util.UnescapedCharacters((string)e.Value, str.IsVerbatim)) {
+              var rawElement = translator.FunctionCall(expr.tok, BuiltinFunction.CharFromInt, null, Bpl.Expr.Literal((int)ch));
+              Bpl.Expr elt = BoxIfNecessary(expr.tok, rawElement, Type.Char);
+              seq = translator.FunctionCall(expr.tok, BuiltinFunction.SeqBuild, predef.BoxType, seq, elt);
+            }
+            return translator.Lit(seq, translator.TrType(new SeqType(Type.Char)));
           } else if (e.Value is BigInteger) {
             return translator.Lit(Bpl.Expr.Literal(Microsoft.Basetypes.BigNum.FromBigInt((BigInteger)e.Value)));
           } else if (e.Value is Basetypes.BigDec) {
@@ -10233,9 +10263,10 @@ namespace Microsoft.Dafny {
 
         } else if (expr is SeqDisplayExpr) {
           SeqDisplayExpr e = (SeqDisplayExpr)expr;
+          // Note: a LiteralExpr(string) is really another kind of SeqDisplayExpr
           Bpl.Expr s = translator.FunctionCall(expr.tok, BuiltinFunction.SeqEmpty, predef.BoxType);
           bool isLit = true;
-           foreach (Expression ee in e.Elements) {
+          foreach (Expression ee in e.Elements) {
             var rawElement = TrExpr(ee);
             isLit = isLit && translator.IsLit(rawElement);
             Bpl.Expr elt = BoxIfNecessary(expr.tok, rawElement, ee.Type);
@@ -10842,11 +10873,7 @@ namespace Microsoft.Dafny {
             if (aa.Name == "trigger") {
               List<Bpl.Expr> tt = new List<Bpl.Expr>();
               foreach (var arg in aa.Args) {
-                if (arg.E == null) {
-                  Console.WriteLine("Warning: string argument to 'trigger' attribute ignored");
-                } else {
-                  tt.Add(bodyEtran.TrExpr(arg.E));
-                }
+                tt.Add(bodyEtran.TrExpr(arg));
               }
               tr = new Bpl.Trigger(expr.tok, true, tt, tr);
             } 
@@ -11273,13 +11300,15 @@ namespace Microsoft.Dafny {
             continue;
           }
           List<object> parms = new List<object>();
-          foreach (Attributes.Argument arg in attrs.Args) {
-            if (arg.E != null) {
-              var e = TrExpr(arg.E);
+          foreach (var arg in attrs.Args) {
+            var s = arg.AsStringLiteral();
+            if (s != null) {
+              // pass string literals down to Boogie as string literals, not as their expression translation
+              parms.Add(s);
+            } else {
+              var e = TrExpr(arg);
               e = translator.RemoveLit(e);
               parms.Add(e);
-            } else {
-              parms.Add(cce.NonNull(arg.S));
             }
           }
           kv = new Bpl.QKeyValue(Token.NoToken, attrs.Name, parms, kv);
@@ -11325,6 +11354,7 @@ namespace Microsoft.Dafny {
       LitInt,
       LitReal,
       LayerSucc,
+      CharFromInt,
       
       Is, IsBox,
       IsAlloc, IsAllocBox,
@@ -11476,6 +11506,11 @@ namespace Microsoft.Dafny {
           Contract.Assert(args.Length == 1);
           Contract.Assert(typeInstantiation == null);
           return FunctionCall(tok, "$LS", predef.LayerType, args);
+
+        case BuiltinFunction.CharFromInt:
+          Contract.Assert(args.Length == 1);
+          Contract.Assert(typeInstantiation == null);
+          return FunctionCall(tok, "char#FromInt", predef.CharType, args);
 
         case BuiltinFunction.Is:
           Contract.Assert(args.Length == 2);
@@ -12308,7 +12343,7 @@ namespace Microsoft.Dafny {
 
           // Handle {:induction false}
           if (a.Args.Count == 1) {
-            var arg = a.Args[0].E as LiteralExpr;
+            var arg = a.Args[0] as LiteralExpr;
             if (arg != null && arg.Value is bool && !(bool)arg.Value) {
               if (CommandLineOptions.Clo.Trace) {
                 Console.Write("Suppressing automatic induction for: ");
@@ -12324,7 +12359,7 @@ namespace Microsoft.Dafny {
             // check that all attribute arguments refer to bound variables; otherwise, go to default_form
             var argsAsVars = new List<VarType>();
             foreach (var arg in a.Args) {
-              var theArg = arg.E.Resolved;
+              var theArg = arg.Resolved;
               if (theArg is ThisExpr) {
                 foreach (var bv in boundVars) {
                   if (bv is ThisSurrogate) {
@@ -13453,18 +13488,16 @@ namespace Microsoft.Dafny {
       public Attributes SubstAttributes(Attributes attrs) {
         Contract.Requires(cce.NonNullDictionaryAndValues(substMap));
         if (attrs != null) {
-          List<Attributes.Argument> newArgs = new List<Attributes.Argument>();  // allocate it eagerly, what the heck, it doesn't seem worth the extra complexity in the code to do it lazily for the infrequently occurring attributes
+          var newArgs = new List<Expression>();  // allocate it eagerly, what the heck, it doesn't seem worth the extra complexity in the code to do it lazily for the infrequently occurring attributes
           bool anyArgSubst = false;
-          foreach (Attributes.Argument arg in attrs.Args) {
-            Attributes.Argument newArg = arg;
-            if (arg.E != null) {
-              Expression newE = Substitute(arg.E);
-              if (newE != arg.E) {
-                newArg = new Attributes.Argument(arg.Tok, newE);
-                anyArgSubst = true;
-              }
+          foreach (var arg in attrs.Args) {
+            var argToBeAdded = arg;
+            var substArg = Substitute(arg);
+            if (substArg != arg) {
+              argToBeAdded = substArg;
+              anyArgSubst = true;
             }
-            newArgs.Add(newArg);
+            newArgs.Add(argToBeAdded);
           }
           if (!anyArgSubst) {
             newArgs = attrs.Args;

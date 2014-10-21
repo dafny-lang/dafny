@@ -45,8 +45,8 @@
         "old" "forall" "exists" "new" "calc" "modify" "in" "this" "fresh"
         "match" "case" "false" "true" "null")) . font-lock-keyword-face)
    `(,(dafny-regexp-opt '(
-        "bool" "int" "nat" "real"
-        "set" "multiset" "seq" "map" 
+        "bool" "char" "int" "nat" "real"
+        "set" "multiset" "seq" "string" "map" 
 	"object" "array" "array2" "array3")) . font-lock-type-face)
    )
   "Minimal highlighting for Dafny mode")

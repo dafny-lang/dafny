@@ -3123,15 +3123,17 @@ namespace Microsoft.Dafny
       }
     }
 
-    void ResolveAttributeArgs(List<Attributes.Argument/*!*/>/*!*/ args, ResolveOpts opts, bool allowGhosts) {
+    void ResolveAttributeArgs(List<Expression> args, ResolveOpts opts, bool allowGhosts) {
       Contract.Requires(args != null);
-      foreach (Attributes.Argument aa in args) {
-        Contract.Assert(aa != null);
-        if (aa.E != null) {
-          ResolveExpression(aa.E, opts);
-          if (!allowGhosts) {
-            CheckIsNonGhost(aa.E);
-          }
+      foreach (var arg in args) {
+        Contract.Assert(arg != null);
+        int prevErrors = ErrorCount;
+        ResolveExpression(arg, opts);
+        if (!allowGhosts) {
+          CheckIsNonGhost(arg);
+        }
+        if (prevErrors == ErrorCount) {
+          CheckTypeInference(arg);
         }
       }
     }
@@ -3962,6 +3964,8 @@ namespace Microsoft.Dafny
 
       if (a is BoolType) {
         return b is BoolType;
+      } else if (a is CharType) {
+        return b is CharType;
       } else if (a is IntType) {
         return b is IntType;
       } else if (a is RealType) {
@@ -6187,6 +6191,9 @@ namespace Microsoft.Dafny
             e.Type = new OperationTypeProxy(false, true, false, false);
           } else if (e.Value is bool) {
             e.Type = Type.Bool;
+          } else if (e.Value is string) {
+            e.Type = new UserDefinedType(e.tok, "string", new List<Type>(), new List<IToken>());
+            ResolveType(e.tok, e.Type, opts.codeContext, ResolveTypeOptionEnum.DontInfer, null);
           } else {
             Contract.Assert(false); throw new cce.UnreachableException();  // unexpected literal type
           }
@@ -6864,7 +6871,7 @@ namespace Microsoft.Dafny
         scope.PopMarker();
         expr.Type = new SetType(e.Term.Type);
 
-        if (opts.IsGhost && (e.Term.Type.IsRefType || e.Term.Type is BoolType)) {
+        if (opts.IsGhost && (e.Term.Type.IsRefType || e.Term.Type.IsBoolType) || e.Term.Type.IsCharType) {
           // ok, term type is finite and we're in a ghost context
         } else {
           needFiniteBoundsChecks.Add(e);

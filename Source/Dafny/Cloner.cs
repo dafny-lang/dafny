@@ -228,14 +228,7 @@ namespace Microsoft.Dafny
       if (attrs == null) {
         return null;
       } else {
-        return new Attributes(attrs.Name, attrs.Args.ConvertAll(CloneAttrArg), CloneAttributes(attrs.Prev));
-      }
-    }
-    public Attributes.Argument CloneAttrArg(Attributes.Argument aa) {
-      if (aa.E != null) {
-        return new Attributes.Argument(Tok(aa.Tok), CloneExpr(aa.E));
-      } else {
-        return new Attributes.Argument(Tok(aa.Tok), aa.S);
+        return new Attributes(attrs.Name, attrs.Args.ConvertAll(CloneExpr), CloneAttributes(attrs.Prev));
       }
     }
 
@@ -256,6 +249,9 @@ namespace Microsoft.Dafny
           return new LiteralExpr(Tok(e.tok));
         } else if (e.Value is bool) {
           return new LiteralExpr(Tok(e.tok), (bool)e.Value);
+        } else if (e.Value is string) {
+          var str = (StringLiteralExpr)e;
+          return new StringLiteralExpr(Tok(e.tok), (string)e.Value, str.IsVerbatim);
         } else if (e.Value is Basetypes.BigDec) {
           return new LiteralExpr(Tok(e.tok), (Basetypes.BigDec)e.Value);
         } else {
@@ -479,7 +475,7 @@ namespace Microsoft.Dafny
 
       } else if (stmt is PrintStmt) {
         var s = (PrintStmt)stmt;
-        r = new PrintStmt(Tok(s.Tok), Tok(s.EndTok), s.Args.ConvertAll(CloneAttrArg));
+        r = new PrintStmt(Tok(s.Tok), Tok(s.EndTok), s.Args.ConvertAll(CloneExpr));
 
       } else if (stmt is BreakStmt) {
         var s = (BreakStmt)stmt;

@@ -966,6 +966,8 @@ namespace Microsoft.Dafny {
 
       if (type is BoolType) {
         return "bool";
+      } else if (type is CharType) {
+        return "char";
       } else if (type is IntType) {
         return "BigInteger";
       } else if (type is RealType) {
@@ -1061,6 +1063,8 @@ namespace Microsoft.Dafny {
 
       if (type is BoolType) {
         return "false";
+      } else if (type is CharType) {
+        return "'D'";
       } else if (type is IntType) {
         return "BigInteger.Zero";
       } else if (type is RealType) {
@@ -1132,15 +1136,10 @@ namespace Microsoft.Dafny {
 
       if (stmt is PrintStmt) {
         PrintStmt s = (PrintStmt)stmt;
-        foreach (Attributes.Argument arg in s.Args) {
+        foreach (var arg in s.Args) {
           Indent(indent);
           wr.Write("System.Console.Write(");
-          if (arg.S != null) {
-            wr.Write("\"{0}\"", arg.S);
-          } else {
-            Contract.Assert(arg.E != null);
-            TrExpr(arg.E);
-          }
+          TrExpr(arg);
           wr.WriteLine(");");
         }
       } else if (stmt is BreakStmt) {
@@ -2049,6 +2048,9 @@ namespace Microsoft.Dafny {
           wr.Write("({0})null", TypeName(e.Type));
         } else if (e.Value is bool) {
           wr.Write((bool)e.Value ? "true" : "false");
+        } else if (e.Value is string) {
+          var str = (StringLiteralExpr)e;
+          wr.Write("{0}<char>.FromString({1}\"{2}\")", DafnySeqClass, str.IsVerbatim ? "@" : "", (string)e.Value);
         } else if (e.Value is BigInteger) {
           BigInteger i = (BigInteger)e.Value;
           if (new BigInteger(int.MinValue) <= i && i <= new BigInteger(int.MaxValue)) {

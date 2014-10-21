@@ -434,6 +434,9 @@ namespace Dafny
     public static Sequence<T> FromElements(params T[] values) {
       return new Sequence<T>(values);
     }
+    public static Sequence<char> FromString(string s) {
+      return new Sequence<char>(s.ToCharArray());
+    }
     public BigInteger Length {
       get { return new BigInteger(elmts.Length); }
     }
@@ -467,13 +470,21 @@ namespace Dafny
       return elmts.GetHashCode();
     }
     public override string ToString() {
-      var s = "[";
-      var sep = "";
-      foreach (var t in elmts) {
-        s += sep + t.ToString();
-        sep = ", ";
+      if (elmts is char[]) {
+        var s = "";
+        foreach (var t in elmts) {
+          s += t.ToString();
+        }
+        return s;
+      } else {
+        var s = "[";
+        var sep = "";
+        foreach (var t in elmts) {
+          s += sep + t.ToString();
+          sep = ", ";
+        }
+        return s + "]";
       }
-      return s + "]";
     }
     bool EqualUntil(Sequence<T> other, int n) {
       for (int i = 0; i < n; i++) {

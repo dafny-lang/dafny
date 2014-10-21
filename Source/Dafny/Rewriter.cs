@@ -488,8 +488,7 @@ namespace Microsoft.Dafny
             fWithBody.tok = newToken;
 
             // Annotate the new function so we remember that we introduced it
-            List<Attributes.Argument/*!*/>new_args = new List<Attributes.Argument/*!*/>();
-            fWithBody.Attributes = new Attributes("opaque_full", new_args, fWithBody.Attributes);
+            fWithBody.Attributes = new Attributes("opaque_full", new List<Expression>(), fWithBody.Attributes);
 
             // Create a lemma to allow the user to selectively reveal the function's body          
             // That is, given:
@@ -530,14 +529,12 @@ namespace Microsoft.Dafny
             if (f.Formals.Count > 0) {
               // Build an explicit trigger for the forall, so Z3 doesn't get confused
               Expression trigger = func_builder(f);
-              List<Attributes.Argument/*!*/> args = new List<Attributes.Argument/*!*/>();
-              Attributes.Argument/*!*/ anArg;
-              anArg = new Attributes.Argument(f.tok, trigger);
-              args.Add(anArg);
+              List<Expression> args = new List<Expression>();
+              args.Add(trigger);
               Attributes attrs = new Attributes("trigger", args, null);
 
               // Also specify that this is a type quantifier
-              attrs = new Attributes("typeQuantifier", new List<Attributes.Argument>(), attrs);
+              attrs = new Attributes("typeQuantifier", new List<Expression>(), attrs);
 
               newEnsures = new MaybeFreeExpression(new ForallExpr(f.tok, typeVars, boundVars, null, requiresImpliesOldEqualsNew, attrs));
             } else {
@@ -548,8 +545,7 @@ namespace Microsoft.Dafny
             newEnsuresList.Add(newEnsures);
 
             // Add an axiom attribute so that the compiler won't complain about the lemma's lack of a body
-            List<Attributes.Argument> argList = new List<Attributes.Argument>();
-            Attributes lemma_attrs = new Attributes("axiom", argList, null);
+            Attributes lemma_attrs = new Attributes("axiom", new List<Expression>(), null);
 
             var reveal = new Lemma(f.tok, "reveal_" + f.Name, f.IsStatic, new List<TypeParameter>(), new List<Formal>(), new List<Formal>(), new List<MaybeFreeExpression>(),
                                     new Specification<FrameExpression>(new List<FrameExpression>(), null), newEnsuresList,
@@ -593,7 +589,7 @@ namespace Microsoft.Dafny
     protected void needsLayerQuantifier(Lemma lem, Function fn) {
       var origForall = lem.Ens[0].E as ForallExpr;
       if (origForall != null && fn.IsRecursive) {
-        var newAttrib = new Attributes("layerQuantifier", new List<Attributes.Argument>(), origForall.Attributes);
+        var newAttrib = new Attributes("layerQuantifier", new List<Expression>(), origForall.Attributes);
         var newForall = new ForallExpr(origForall.tok, origForall.TypeArgs, origForall.BoundVars, origForall.Range, origForall.Term, newAttrib);
         newForall.Type = Type.Bool;
         lem.Ens[0] = new MaybeFreeExpression(newForall);

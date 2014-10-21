@@ -247,7 +247,6 @@ abstract module M0 {
   type Path(==)
   function Loc(cmd: string, deps: set<Path>, exp: string): Path
 
-  type string(==)
   type Artifact
   type Identifier
 

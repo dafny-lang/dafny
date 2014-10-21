@@ -15,6 +15,7 @@ axiom $$Language$Dafny;        // coming from a Dafny program.
 type Ty;
 
 const unique TBool : Ty;
+const unique TChar : Ty;
 const unique TInt  : Ty;
 const unique TNat  : Ty;
 const unique TReal : Ty;
@@ -41,6 +42,7 @@ type TyTag;
 function Tag(Ty) : TyTag;
 
 const unique TagBool     : TyTag;
+const unique TagChar     : TyTag;
 const unique TagInt      : TyTag;
 const unique TagNat      : TyTag;
 const unique TagReal     : TyTag;
@@ -51,6 +53,7 @@ const unique TagMap      : TyTag;
 const unique TagClass    : TyTag;
 
 axiom Tag(TBool) == TagBool;
+axiom Tag(TChar) == TagChar;
 axiom Tag(TInt) == TagInt;
 axiom Tag(TNat) == TagNat;
 axiom Tag(TReal) == TagReal;
@@ -68,6 +71,17 @@ function {:identity} LitReal(x: real): real { x }
 axiom (forall x: real :: { $Box(LitReal(x)) } $Box(LitReal(x)) == Lit($Box(x)) );
 function {:identity} Lit<T>(x: T): T { x }
 axiom (forall<T> x: T :: { $Box(Lit(x)) } $Box(Lit(x)) == Lit($Box(x)) );
+
+// ---------------------------------------------------------------
+// -- Characters -------------------------------------------------
+// ---------------------------------------------------------------
+
+type char;
+function char#FromInt(int): char;
+function char#ToInt(char): int;  // inverse of char#FromInt
+axiom (forall n: int ::
+  { char#FromInt(n) }
+  0 <= n && n < 65536 ==> char#ToInt(char#FromInt(n)) == n);
 
 // ---------------------------------------------------------------
 // -- References -------------------------------------------------
@@ -115,6 +129,9 @@ axiom (forall bx : Box ::
 axiom (forall bx : Box ::
     { $IsBox(bx, TBool) }
     ( $IsBox(bx, TBool) ==> $Box($Unbox(bx) : bool) == bx && $Is($Unbox(bx) : bool, TBool)));
+axiom (forall bx : Box ::
+    { $IsBox(bx, TChar) }
+    ( $IsBox(bx, TChar) ==> $Box($Unbox(bx) : char) == bx && $Is($Unbox(bx) : char, TChar)));
 axiom (forall bx : Box, t : Ty ::
     { $IsBox(bx, TSet(t)) }
     ( $IsBox(bx, TSet(t)) ==> $Box($Unbox(bx) : Set Box) == bx && $Is($Unbox(bx) : Set Box, TSet(t))));
@@ -169,11 +186,13 @@ axiom(forall v : int  :: { $Is(v,TInt) }  $Is(v,TInt));
 axiom(forall v : int  :: { $Is(v,TNat) }  $Is(v,TNat) <==> v >= 0);
 axiom(forall v : real :: { $Is(v,TReal) } $Is(v,TReal));
 axiom(forall v : bool :: { $Is(v,TBool) } $Is(v,TBool));
+axiom(forall v : char :: { $Is(v,TChar) } $Is(v,TChar));
 
 axiom(forall h : Heap, v : int  :: { $IsAlloc(v,TInt,h) }  $IsAlloc(v,TInt,h));
 axiom(forall h : Heap, v : int  :: { $IsAlloc(v,TNat,h) }  $IsAlloc(v,TNat,h));
 axiom(forall h : Heap, v : real :: { $IsAlloc(v,TReal,h) } $IsAlloc(v,TReal,h));
 axiom(forall h : Heap, v : bool :: { $IsAlloc(v,TBool,h) } $IsAlloc(v,TBool,h));
+axiom(forall h : Heap, v : char :: { $IsAlloc(v,TChar,h) } $IsAlloc(v,TChar,h));
 
 axiom (forall v: Set Box, t0: Ty :: { $Is(v, TSet(t0)) }
   $Is(v, TSet(t0)) <==>

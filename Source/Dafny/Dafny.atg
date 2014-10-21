@@ -18,7 +18,6 @@ readonly Expression/*!*/ dummyExpr;
 readonly AssignmentRhs/*!*/ dummyRhs;
 readonly FrameExpression/*!*/ dummyFrameExpr;
 readonly Statement/*!*/ dummyStmt;
-readonly Attributes.Argument/*!*/ dummyAttrArg;
 readonly ModuleDecl theModule;
 readonly BuiltIns theBuiltIns;
 readonly bool theVerifyThisFile;
@@ -89,7 +88,6 @@ public Parser(Scanner/*!*/ scanner, Errors/*!*/ errors, ModuleDecl module, Built
   dummyRhs = new ExprRhs(dummyExpr, null);
   dummyFrameExpr = new FrameExpression(dummyExpr.tok, dummyExpr, null);
   dummyStmt = new ReturnStmt(Token.NoToken, Token.NoToken, null);
-  dummyAttrArg = new Attributes.Argument(Token.NoToken, "dummyAttrArg");
   theModule = module;
   theBuiltIns = builtIns;
   theVerifyThisFile = verifyThisFile;
@@ -174,17 +172,19 @@ CHARACTERS
   lf        = '\n'.
   tab       = '\t'.
   space = ' '.
-  quote = '"'.
   nondigit = letter + special.
   idchar = nondigit + digit.
   nonidchar = ANY - idchar.
-  nonquote = letter + digit + space + glyph.
   /* exclude the characters in 'array' */
   nondigitMinusA = nondigit - 'a'.
   idcharMinusA = idchar - 'a'.
   idcharMinusR = idchar - 'r'.
   idcharMinusY = idchar - 'y'.
   idcharMinusPosDigit = idchar - posDigit.
+  /* string literals */
+  stringChar = ANY - '"' - '\\' - cr - lf.
+  verbatimStringChar = ANY - '"'.
+
 /*------------------------------------------------------------------------*/
 TOKENS
   ident =  nondigitMinusA {idchar}            /* if char 0 is not an 'a', then anything else is fine */
@@ -198,7 +198,14 @@ TOKENS
   hexdigits = "0x" hexdigit {hexdigit}.
   decimaldigits = digit {digit} '.' digit {digit}.
   arrayToken = "array" [posDigit {digit}].
-  string = quote {nonquote} quote.
+  stringToken =
+      '"'
+      { stringChar
+        | "\\\'" | "\\\"" | "\\\\" | "\\0" | "\\n" | "\\r" | "\\t"
+        | "\\u" hexdigit hexdigit hexdigit hexdigit
+      }
+      '"'
+    | '@' '"' { verbatimStringChar | "\"\"" } '"'.
   colon = ':'.
   verticalbar = '|'.
   semi = ';'.
@@ -227,18 +234,20 @@ Dafny
 	 TraitDecl/*!*/ trait;
      Contract.Assert(defaultModule != null);
   .)
-  { "include" string                            (. {
-                                                    string parsedFile = t.filename;
-                                                    string includedFile = t.val.Substring(1, t.val.Length - 2);
-                                                    string fullPath = includedFile;
-                                                    if (!Path.IsPathRooted(includedFile)) {
-                                                      string basePath = Path.GetDirectoryName(parsedFile);
-                                                      includedFile = Path.Combine(basePath, includedFile);
-                                                      fullPath = Path.GetFullPath(includedFile);
-                                                    }
-                                                    defaultModule.Includes.Add(new Include(t, includedFile, fullPath));
-                                                   }
-                                                .)
+  { "include" stringToken               (. {
+                                             string parsedFile = t.filename;
+                                             bool isVerbatimString;
+                                             string includedFile = Util.RemoveParsedStringQuotes(t.val, out isVerbatimString);
+                                             includedFile = Util.RemoveEscaping(includedFile, isVerbatimString);
+                                             string fullPath = includedFile;
+                                             if (!Path.IsPathRooted(includedFile)) {
+                                               string basePath = Path.GetDirectoryName(parsedFile);
+                                               includedFile = Path.Combine(basePath, includedFile);
+                                               fullPath = Path.GetFullPath(includedFile);
+                                             }
+                                             defaultModule.Includes.Add(new Include(t, includedFile, fullPath));
+                                           }
+                                        .)
   }
   { SubModuleDecl<defaultModule, out submodule> (. defaultModule.TopLevelDecls.Add(submodule); .)
   | ClassDecl<defaultModule, out c>             (. defaultModule.TopLevelDecls.Add(c); .)
@@ -840,6 +849,7 @@ TypeAndToken<out IToken tok, out Type ty>
      List<Type> gt = null;
   .)
   ( "bool"                          (. tok = t; .)
+  | "char"                          (. tok = t;  ty = new CharType(); .)
   | "nat"                           (. tok = t;  ty = new NatType(); .)
   | "int"                           (. tok = t;  ty = new IntType(); .)
   | "real"                          (. tok = t;  ty = new RealType(); .)
@@ -861,6 +871,7 @@ TypeAndToken<out IToken tok, out Type ty>
                                        }
                                        ty = new SeqType(gt.Count == 1 ? gt[0] : null);
                                     .)
+  | "string"                        (. tok = t;  ty = new UserDefinedType(tok, tok.val, new List<Type>(), new List<IToken>()); .)
   | "map"                           (. tok = t;  gt = new List<Type/*!*/>(); .)
     [ GenericInstantiation<gt> ]    (. if (gt.Count == 0) {
                                          ty = new MapType(null, null);
@@ -1546,8 +1557,8 @@ AssumeStmt<out Statement/*!*/ s>
   .)
   .
 PrintStmt<out Statement/*!*/ s>
-= (. Contract.Ensures(Contract.ValueAtReturn(out s) != null); IToken/*!*/ x;  Attributes.Argument/*!*/ arg;
-     List<Attributes.Argument/*!*/> args = new List<Attributes.Argument/*!*/>();
+= (. Contract.Ensures(Contract.ValueAtReturn(out s) != null); IToken/*!*/ x;  Expression arg;
+     List<Expression> args = new List<Expression>();
   .)
   "print"                                      (. x = t; .)
   AttributeArg<out arg, false>                 (. args.Add(arg); .)
@@ -2012,6 +2023,10 @@ ConstAtomExpression<out Expression e, bool allowSemi, bool allowLambda>
   | "null"                                     (. e = new LiteralExpr(t); .)
   | Nat<out n>                                 (. e = new LiteralExpr(t, n); .)
   | Dec<out d>                                 (. e = new LiteralExpr(t, d); .)
+  | stringToken                                (. bool isVerbatimString;
+                                                  string s = Util.RemoveParsedStringQuotes(t.val, out isVerbatimString);
+                                                  e = new StringLiteralExpr(t, s, isVerbatimString);
+                                               .)
   | "this"                                     (. e = new ThisExpr(t); .)
   | "fresh"                                    (. x = t; .)
     "(" Expression<out e, true, true> ")"            (. e = new UnaryOpExpr(x, UnaryOpExpr.Opcode.Fresh, e); .)
@@ -2553,8 +2568,8 @@ Attribute<ref Attributes attrs>
   .
 AttributeBody<ref Attributes attrs>
 = (. string aName;
-     List<Attributes.Argument/*!*/> aArgs = new List<Attributes.Argument/*!*/>();
-     Attributes.Argument/*!*/ aArg;
+     List<Expression> aArgs = new List<Expression>();
+     Expression aArg;
   .)
   ":" ident                            (. aName = t.val; .)
   [ AttributeArg<out aArg, true>       (. aArgs.Add(aArg); .)
@@ -2562,11 +2577,9 @@ AttributeBody<ref Attributes attrs>
     }
   ]                                    (. attrs = new Attributes(aName, aArgs, attrs); .)
   .
-AttributeArg<out Attributes.Argument arg, bool allowSemi>
-= (. Contract.Ensures(Contract.ValueAtReturn(out arg) != null); Expression/*!*/ e;  arg = dummyAttrArg; .)
-  ( string                             (. arg = new Attributes.Argument(t, t.val.Substring(1, t.val.Length-2)); .)
-  | Expression<out e, allowSemi, true>       (. arg = new Attributes.Argument(t, e); .)
-  )
+AttributeArg<out Expression arg, bool allowSemi>
+= (. Contract.Ensures(Contract.ValueAtReturn(out arg) != null); Expression/*!*/ e;  arg = dummyExpr; .)
+  Expression<out e, allowSemi, true>       (. arg = e; .)
   .
 /*------------------------------------------------------------------------*/
 Ident<out IToken/*!*/ x>

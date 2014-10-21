@@ -94,6 +94,9 @@ namespace Microsoft.Dafny {
     public readonly ClassDecl ObjectDecl;
     public BuiltIns() {
       SystemModule.Height = -1;  // the system module doesn't get a height assigned later, so we set it here to something below everything else
+      // create type synonym 'string'
+      var str = new TypeSynonymDecl(Token.NoToken, "string", new List<TypeParameter>(), SystemModule, new SeqType(new CharType()), null);
+      SystemModule.TopLevelDecls.Add(str);
       // create class 'object'
       ObjectDecl = new ClassDecl(Token.NoToken, "object", SystemModule, new List<TypeParameter>(), new List<MemberDecl>(), DontCompile(), null);
       SystemModule.TopLevelDecls.Add(ObjectDecl);
@@ -108,8 +111,8 @@ namespace Microsoft.Dafny {
     }
 
     private Attributes DontCompile() {
-      var flse = new Attributes.Argument(Token.NoToken, Expression.CreateBoolLiteral(Token.NoToken, false));
-      return new Attributes("compile", new List<Attributes.Argument>() { flse }, null);
+      var flse = Expression.CreateBoolLiteral(Token.NoToken, false);
+      return new Attributes("compile", new List<Expression>() { flse }, null);
     }
 
     public UserDefinedType ArrayType(int dims, Type arg, bool allowCreationOfNewClass) {
@@ -217,10 +220,10 @@ namespace Microsoft.Dafny {
 
     public readonly string Name;
     /*Frozen*/
-    public readonly List<Argument> Args;
+    public readonly List<Expression> Args;
     public readonly Attributes Prev;
 
-    public Attributes(string name, [Captured] List<Argument> args, Attributes prev) {
+    public Attributes(string name, [Captured] List<Expression> args, Attributes prev) {
       Contract.Requires(name != null);
       Contract.Requires(cce.NonNullElements(args));
       Name = name;
@@ -231,9 +234,7 @@ namespace Microsoft.Dafny {
     public static IEnumerable<Expression> SubExpressions(Attributes attrs) {
       for (; attrs != null; attrs = attrs.Prev) {
         foreach (var arg in attrs.Args) {
-          if (arg.E != null) {
-            yield return arg.E;
-          }
+          yield return arg;
         }
       }
     }
@@ -260,7 +261,7 @@ namespace Microsoft.Dafny {
       for (; attrs != null; attrs = attrs.Prev) {
         if (attrs.Name == nm) {
           if (attrs.Args.Count == 1) {
-            var arg = attrs.Args[0].E as LiteralExpr;
+            var arg = attrs.Args[0] as LiteralExpr;
             if (arg != null && arg.Value is bool) {
               value = (bool)arg.Value;
             }
@@ -297,37 +298,13 @@ namespace Microsoft.Dafny {
 
       return false;
     }
-
-    public class Argument
-    {
-      public readonly IToken Tok;
-      public readonly string S;
-      public readonly Expression E;
-      [ContractInvariantMethod]
-      void ObjectInvariant() {
-        Contract.Invariant(Tok != null);
-        Contract.Invariant((S == null) != (E == null));
-      }
-
-      public Argument(IToken tok, string s) {
-        Contract.Requires(tok != null);
-        Contract.Requires(s != null);
-        Tok = tok;
-        S = s;
-      }
-      public Argument(IToken tok, Expression e) {
-        Contract.Requires(tok != null);
-        Contract.Requires(e != null);
-        Tok = tok;
-        E = e;
-      }
-    }
   }
 
   // ------------------------------------------------------------------------------------------------------
 
   public abstract class Type {
     public static readonly BoolType Bool = new BoolType();
+    public static readonly CharType Char = new CharType();
     public static readonly IntType Int = new IntType();
     public static readonly RealType Real = new RealType();
 
@@ -400,6 +377,7 @@ namespace Microsoft.Dafny {
     public abstract bool Equals(Type that);
 
     public bool IsBoolType { get { return NormalizeExpand() is BoolType; } }
+    public bool IsCharType { get { return NormalizeExpand() is CharType; } }
     public bool IsIntegerType { get { return NormalizeExpand() is IntType; } }
     public bool IsRealType { get { return NormalizeExpand() is RealType; } }
     public bool IsSubrangeType {
@@ -607,7 +585,19 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public class IntType : BasicType {
+  public class CharType : BasicType
+  {
+    [Pure]
+    public override string TypeName(ModuleDefinition context) {
+      return "char";
+    }
+    public override bool Equals(Type that) {
+      return that.IsCharType;
+    }
+  }
+
+  public class IntType : BasicType
+  {
     [Pure]
     public override string TypeName(ModuleDefinition context) {
       return "int";
@@ -664,7 +654,7 @@ namespace Microsoft.Dafny {
     /// Constructs a(n unresolved) arrow type.
     /// </summary>
     public ArrowType(IToken tok, List<Type> args, Type result)
-      :  base(tok, ArrowType.ArrowTypeName(args.Count), Util.Snoc(args, result), null) {
+      :  base(tok, ArrowTypeName(args.Count), Util.Snoc(args, result), null) {
       Contract.Requires(tok != null);
       Contract.Requires(args != null);
       Contract.Requires(result != null);
@@ -1755,7 +1745,7 @@ namespace Microsoft.Dafny {
     public readonly Function Reads;
 
     public ArrowTypeDecl(List<TypeParameter> tps, Function req, Function reads, ModuleDefinition module, Attributes attributes)
-      : base(Token.NoToken, "_#Func" + (tps.Count - 1), module, tps,
+      : base(Token.NoToken, ArrowType.ArrowTypeName(tps.Count - 1), module, tps,
              new List<MemberDecl> { req, reads }, attributes, null) {
       Contract.Requires(tps != null && 1 <= tps.Count);
       Contract.Requires(req != null);
@@ -3158,13 +3148,13 @@ namespace Microsoft.Dafny {
   }
 
   public class PrintStmt : Statement {
-    public readonly List<Attributes.Argument> Args;
+    public readonly List<Expression> Args;
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(cce.NonNullElements(Args));
     }
 
-    public PrintStmt(IToken tok, IToken endTok, List<Attributes.Argument> args)
+    public PrintStmt(IToken tok, IToken endTok, List<Expression> args)
       : base(tok, endTok) {
       Contract.Requires(tok != null);
       Contract.Requires(endTok != null);
@@ -3176,9 +3166,7 @@ namespace Microsoft.Dafny {
       get {
         foreach (var e in base.SubExpressions) { yield return e; }
         foreach (var arg in Args) {
-          if (arg.E != null) {
-            yield return arg.E;
-          }
+          yield return arg;
         }
       }
     }
@@ -5056,6 +5044,14 @@ namespace Microsoft.Dafny {
       return sub.Substitute(e);
     }
 
+    public string AsStringLiteral() {
+      var le = this as LiteralExpr;
+      if (le != null) {
+        return le.Value as string;
+      } else {
+        return null;
+      }
+    }
   }
 
   /// <summary>
@@ -5088,6 +5084,18 @@ namespace Microsoft.Dafny {
   }
 
   public class LiteralExpr : Expression {
+    /// <summary>
+    /// One of the following:
+    ///   * 'null' for the 'null' literal (a special case of which is the subclass StaticReceiverExpr)
+    ///   * a bool for a bool literal
+    ///   * a BigInteger for int literal
+    ///   * a Basetypes.BigDec for a (rational) real literal
+    ///   * a string for a string literal -- Note, the string is stored with all escapes as characters.  For
+    ///     example, the input string "hello\n" is stored in a LiteralExpr has being 7 characters long, whereas
+    ///     the Dafny (and C#) length of this string is 6.  This simplifies printing of the string, both when
+    ///     pretty printed as a Dafny expression and when being compiled into C# code.  The parser checks the
+    ///     validity of the escape sequences and the verifier deals with turning them into single characters.
+    /// </summary>
     public readonly object Value;
 
     [Pure]
@@ -5111,7 +5119,6 @@ namespace Microsoft.Dafny {
       : base(tok) {
       Contract.Requires(tok != null);
       Contract.Requires(0 <= n.Sign);
-
       this.Value = n;
     }
 
@@ -5119,14 +5126,13 @@ namespace Microsoft.Dafny {
       : base(tok) {
       Contract.Requires(0 <= n.Mantissa.Sign);
       Contract.Requires(tok != null);
-
       this.Value = n;
     }
 
-    public LiteralExpr(IToken tok, int n) :base(tok){
+    public LiteralExpr(IToken tok, int n)
+      :base(tok) {
       Contract.Requires(tok != null);
       Contract.Requires(0 <= n);
-
       this.Value = new BigInteger(n);
     }
 
@@ -5134,6 +5140,27 @@ namespace Microsoft.Dafny {
       : base(tok) {
       Contract.Requires(tok != null);
       this.Value = b;
+    }
+
+    /// <summary>
+    /// This constructor is to be used only with the StringLiteralExpr subclass, since string literals also need
+    /// an additional field.
+    /// </summary>
+    protected LiteralExpr(IToken tok, string s)
+      : base(tok) {
+      Contract.Requires(tok != null);
+      Contract.Requires(s != null);
+      this.Value = s;
+    }
+  }
+
+  public class StringLiteralExpr : LiteralExpr
+  {
+    public readonly bool IsVerbatim;
+    public StringLiteralExpr(IToken tok, string s, bool isVerbatim)
+      : base(tok, s) {
+      Contract.Requires(s != null);
+      IsVerbatim = isVerbatim;
     }
   }
 

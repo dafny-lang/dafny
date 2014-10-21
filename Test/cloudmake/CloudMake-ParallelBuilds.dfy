@@ -153,7 +153,6 @@ abstract module M0 {
   type Path(==)
   function Loc(cmd: string, deps: set<Path>, exp: string): Path
 
-  type string(==)
   type Artifact
   type Identifier
 
@@ -778,7 +777,6 @@ module M3 refines M2 {
     a
   }
 
-  datatype string = stringCons(int)
   datatype Artifact = ArtifactCons(int)
   datatype Identifier = IdentifierCons(int)
 

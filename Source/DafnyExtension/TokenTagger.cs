@@ -283,8 +283,9 @@ namespace DafnyLanguage
                 case "break":
                 case "calc":
                 case "case":
+                case "char":
                 case "class":
-        	    case "trait":
+                case "trait":
                 case "extends":
                 case "codatatype":
                 case "colemma":
@@ -336,6 +337,7 @@ namespace DafnyLanguage
                 case "seq":
                 case "set":
                 case "static":
+                case "string":
                 case "then":
                 case "this":
                 case "true":

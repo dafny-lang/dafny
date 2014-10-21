@@ -444,6 +444,8 @@ namespace Microsoft.Dafny
 
       if (prev is BoolType) {
         return next is BoolType;
+      } else if (prev is CharType) {
+        return next is CharType;
       } else if (prev is IntType) {
         if (next is IntType) {
           return (prev is NatType) == (next is NatType);
@@ -1071,7 +1073,7 @@ namespace Microsoft.Dafny
                 var e = refinementCloner.CloneExpr(oldAssume.Expr);
                 var attrs = refinementCloner.MergeAttributes(oldAssume.Attributes, skel.Attributes);
                 body.Add(new AssertStmt(new Translator.ForceCheckToken(skel.Tok), new Translator.ForceCheckToken(skel.EndTok),
-                  e, new Attributes("prependAssertToken", new List<Attributes.Argument>(), attrs)));
+                  e, new Attributes("prependAssertToken", new List<Expression>(), attrs)));
                 ReportAdditionalInformation(c.ConditionEllipsis, "assume->assert: " + Printer.ExprToString(e), 3);
                 i++; j++;
               }
@@ -1589,7 +1591,7 @@ namespace Microsoft.Dafny
       if (moreAttrs == null) {
         return CloneAttributes(prevAttrs);
       } else {
-        return new Attributes(moreAttrs.Name, moreAttrs.Args.ConvertAll(CloneAttrArg), MergeAttributes(prevAttrs, moreAttrs.Prev));
+        return new Attributes(moreAttrs.Name, moreAttrs.Args.ConvertAll(CloneExpr), MergeAttributes(prevAttrs, moreAttrs.Prev));
       }
     }
   }
