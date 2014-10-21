@@ -560,7 +560,7 @@ bool CloseOptionalBrace(bool usesOptionalBrace) {
 				Get();
 				Type(out baseType);
 			}
-			if (baseType == null) { baseType = new OperationTypeProxy(true, true, false, false); } 
+			if (baseType == null) { baseType = new OperationTypeProxy(true, true, false, false, false); } 
 			Expect(9);
 			Expression(out wh, false, true);
 			td = new NewtypeDecl(id, id.val, module, new BoundVar(bvId, bvId.val, baseType), wh, attrs); 

@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:3 /print:"%t.print" /dprint:"%2.dprint" "%s" > "%t"
+// RUN: %dafny /compile:3 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 method Char(a: char, s: string, i: int) returns (b: char)

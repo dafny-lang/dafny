@@ -387,7 +387,7 @@ namespace Microsoft.Dafny {
       var t = NormalizeExpand();
       var opProxy = t as OperationTypeProxy;
       if (opProxy != null) {
-        return (opProxy.AllowInts || opProxy.AllowReals) && !opProxy.AllowSeq && !opProxy.AllowSetVarieties;
+        return (opProxy.AllowInts || opProxy.AllowReals) && !opProxy.AllowChar && !opProxy.AllowSeq && !opProxy.AllowSetVarieties;
       }
       return t.IsIntegerType || t.IsRealType || t.AsNewtype != null;
     }
@@ -1185,18 +1185,21 @@ namespace Microsoft.Dafny {
   public class OperationTypeProxy : RestrictedTypeProxy {
     public readonly bool AllowInts;
     public readonly bool AllowReals;
+    public readonly bool AllowChar;
     public readonly bool AllowSeq;
     public readonly bool AllowSetVarieties;
     public bool JustInts {
-      get { return AllowInts && !AllowReals && !AllowSeq && !AllowSetVarieties; }
+      get { return AllowInts && !AllowReals && !AllowChar && !AllowSeq && !AllowSetVarieties; }
     }
     public bool JustReals {
-      get { return !AllowInts && AllowReals && !AllowSeq && !AllowSetVarieties; }
+      get { return !AllowInts && AllowReals && !AllowChar && !AllowSeq && !AllowSetVarieties; }
     }
-    public OperationTypeProxy(bool allowInts, bool allowReals, bool allowSeq, bool allowSetVarieties) {
-      Contract.Requires(allowInts || allowReals || allowSeq || allowSetVarieties);  // don't allow unsatisfiable constraint
+    public OperationTypeProxy(bool allowInts, bool allowReals, bool allowChar, bool allowSeq, bool allowSetVarieties) {
+      Contract.Requires(allowInts || allowReals || allowChar || allowSeq || allowSetVarieties);  // don't allow unsatisfiable constraint
+      Contract.Requires(!(!allowInts && !allowReals && allowChar && !allowSeq && !allowSetVarieties));  // to constrain to just char, don't use a proxy
       AllowInts = allowInts;
       AllowReals = allowReals;
+      AllowChar = allowChar;
       AllowSeq = allowSeq;
       AllowSetVarieties = allowSetVarieties;
     }
@@ -5707,6 +5710,11 @@ namespace Microsoft.Dafny {
       Mul,
       Div,
       Mod,
+      // char
+      LtChar,
+      LeChar,
+      GeChar,
+      GtChar,
       // sets
       SetEq,
       SetNeq,
@@ -5801,6 +5809,7 @@ namespace Microsoft.Dafny {
           return Opcode.Neq;
 
         case ResolvedOpcode.Lt:
+        case ResolvedOpcode.LtChar:
         case ResolvedOpcode.ProperSubset:
         case ResolvedOpcode.ProperMultiSuperset:
         case ResolvedOpcode.ProperPrefix:
@@ -5808,17 +5817,20 @@ namespace Microsoft.Dafny {
           return Opcode.Lt;
 
         case ResolvedOpcode.Le:
+        case ResolvedOpcode.LeChar:
         case ResolvedOpcode.Subset:
         case ResolvedOpcode.MultiSubset:
         case ResolvedOpcode.Prefix:
           return Opcode.Le;
 
         case ResolvedOpcode.Ge:
+        case ResolvedOpcode.GeChar:
         case ResolvedOpcode.Superset:
         case ResolvedOpcode.MultiSuperset:
           return Opcode.Ge;
 
         case ResolvedOpcode.Gt:
+        case ResolvedOpcode.GtChar:
         case ResolvedOpcode.ProperSuperset:
         case ResolvedOpcode.ProperMultiSubset:
         case ResolvedOpcode.RankGt:

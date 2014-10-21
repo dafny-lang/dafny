@@ -79,6 +79,9 @@ axiom (forall<T> x: T :: { $Box(Lit(x)) } $Box(Lit(x)) == Lit($Box(x)) );
 type char;
 function char#FromInt(int): char;
 function char#ToInt(char): int;  // inverse of char#FromInt
+axiom (forall ch: char ::
+  { char#ToInt(ch) } 
+  char#FromInt(char#ToInt(ch)) == ch);
 axiom (forall n: int ::
   { char#FromInt(n) }
   0 <= n && n < 65536 ==> char#ToInt(char#FromInt(n)) == n);

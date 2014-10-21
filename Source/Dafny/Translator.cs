@@ -8711,7 +8711,7 @@ namespace Microsoft.Dafny {
 
       int N = types0.Count;
 
-      // compute eq and less for each component of the lexicographic pair
+      // compute eq and less for each component of the lexicographic tuple
       List<Bpl.Expr> Eq = new List<Bpl.Expr>(N);
       List<Bpl.Expr> Less = new List<Bpl.Expr>(N);
       for (int i = 0; i < N; i++) {
@@ -8839,8 +8839,10 @@ namespace Microsoft.Dafny {
         atmost = Bpl.Expr.Imp(e0, e1);
       } else if (ty0 is CharType) {
         eq = Bpl.Expr.Eq(e0, e1);
-        less = Bpl.Expr.False;
-        atmost = eq;  // less || eq
+        var operand0 = FunctionCall(e0.tok, BuiltinFunction.CharToInt, null, e0);
+        var operand1 = FunctionCall(e0.tok, BuiltinFunction.CharToInt, null, e1);
+        less = Bpl.Expr.Binary(tok, BinaryOperator.Opcode.Lt, operand0, operand1);
+        atmost = Bpl.Expr.Binary(tok, BinaryOperator.Opcode.Le, operand0, operand1);
       } else if (ty0.IsNumericBased(Type.NumericPersuation.Int) || ty0 is SeqType || ty0.IsDatatype) {
         Bpl.Expr b0, b1;
         if (ty0.IsNumericBased(Type.NumericPersuation.Int)) {
@@ -10710,6 +10712,26 @@ namespace Microsoft.Dafny {
               typ = Bpl.Type.Int;
               bOpcode = BinaryOperator.Opcode.Mod; break;
 
+            case BinaryExpr.ResolvedOpcode.LtChar:
+            case BinaryExpr.ResolvedOpcode.LeChar:
+            case BinaryExpr.ResolvedOpcode.GeChar:
+            case BinaryExpr.ResolvedOpcode.GtChar: {
+                // work off the original operands (that is, allow them to be lit-wrapped)
+                var operand0 = translator.FunctionCall(e0.tok, BuiltinFunction.CharToInt, null, oe0);
+                var operand1 = translator.FunctionCall(e0.tok, BuiltinFunction.CharToInt, null, oe1);
+                BinaryOperator.Opcode bOp;
+                switch (e.ResolvedOp) {
+                  case BinaryExpr.ResolvedOpcode.LtChar:  bOp = BinaryOperator.Opcode.Lt; break;
+                  case BinaryExpr.ResolvedOpcode.LeChar: bOp = BinaryOperator.Opcode.Le; break;
+                  case BinaryExpr.ResolvedOpcode.GeChar: bOp = BinaryOperator.Opcode.Ge; break;
+                  case BinaryExpr.ResolvedOpcode.GtChar: bOp = BinaryOperator.Opcode.Gt; break;
+                  default:
+                    Contract.Assert(false);  // unexpected case
+                    throw new cce.UnreachableException();  // to please compiler
+                }
+                return Bpl.Expr.Binary(expr.tok, bOp, operand0, operand1);
+              }
+
             case BinaryExpr.ResolvedOpcode.SetEq:
               return translator.FunctionCall(expr.tok, BuiltinFunction.SetEqual, null, e0, e1);
             case BinaryExpr.ResolvedOpcode.SetNeq:
@@ -11364,6 +11386,7 @@ namespace Microsoft.Dafny {
       LitReal,
       LayerSucc,
       CharFromInt,
+      CharToInt,
       
       Is, IsBox,
       IsAlloc, IsAllocBox,
@@ -11520,6 +11543,10 @@ namespace Microsoft.Dafny {
           Contract.Assert(args.Length == 1);
           Contract.Assert(typeInstantiation == null);
           return FunctionCall(tok, "char#FromInt", predef.CharType, args);
+        case BuiltinFunction.CharToInt:
+          Contract.Assert(args.Length == 1);
+          Contract.Assert(typeInstantiation == null);
+          return FunctionCall(tok, "char#ToInt", predef.CharType, args);
 
         case BuiltinFunction.Is:
           Contract.Assert(args.Length == 2);

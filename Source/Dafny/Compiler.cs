@@ -2367,13 +2367,17 @@ namespace Microsoft.Dafny {
           }
 
           case BinaryExpr.ResolvedOpcode.Lt:
-            opString = "<";  break;
+          case BinaryExpr.ResolvedOpcode.LtChar:
+            opString = "<"; break;
           case BinaryExpr.ResolvedOpcode.Le:
-            opString = "<=";  break;
+          case BinaryExpr.ResolvedOpcode.LeChar:
+            opString = "<="; break;
           case BinaryExpr.ResolvedOpcode.Ge:
-            opString = ">=";  break;
+          case BinaryExpr.ResolvedOpcode.GeChar:
+            opString = ">="; break;
           case BinaryExpr.ResolvedOpcode.Gt:
-            opString = ">";  break;
+          case BinaryExpr.ResolvedOpcode.GtChar:
+            opString = ">"; break;
           case BinaryExpr.ResolvedOpcode.Add:
             opString = "+";  break;
           case BinaryExpr.ResolvedOpcode.Sub:

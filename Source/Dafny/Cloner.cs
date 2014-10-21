@@ -191,7 +191,7 @@ namespace Microsoft.Dafny
         return new InferredTypeProxy();
       } else if (t is OperationTypeProxy) {
         var p = (OperationTypeProxy)t;
-        return new OperationTypeProxy(p.AllowInts, p.AllowReals, p.AllowSeq, p.AllowSetVarieties);
+        return new OperationTypeProxy(p.AllowInts, p.AllowReals, p.AllowChar, p.AllowSeq, p.AllowSetVarieties);
       } else if (t is ParamTypeProxy) {
         return new ParamTypeProxy(CloneTypeParam(((ParamTypeProxy)t).orig));
       } else {

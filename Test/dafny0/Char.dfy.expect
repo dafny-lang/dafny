@@ -1,0 +1,16 @@
+Char.dfy(48,21): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    (0,0): anon9_Then
+    (0,0): anon10_Then
+Char.dfy(52,21): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    (0,0): anon9_Then
+    (0,0): anon11_Else
+Char.dfy(63,17): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    (0,0): anon5_Else
+
+Dafny program verifier finished with 8 verified, 3 errors
