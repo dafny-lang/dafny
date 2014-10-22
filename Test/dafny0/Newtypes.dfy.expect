@@ -42,5 +42,17 @@ Newtypes.dfy(225,40): Error: result of operation might violate newtype constrain
 Execution trace:
     (0,0): anon0
     (0,0): anon8_Then
+Newtypes.dfy(237,19): Error: result of operation might violate newtype constraint
+Execution trace:
+    (0,0): anon0
+    Newtypes.dfy(236,5): anon9_LoopHead
+    (0,0): anon9_LoopBody
+    (0,0): anon10_Then
+Newtypes.dfy(277,19): Error: result of operation might violate newtype constraint
+Execution trace:
+    (0,0): anon0
+    Newtypes.dfy(276,5): anon9_LoopHead
+    (0,0): anon9_LoopBody
+    (0,0): anon10_Then
 
-Dafny program verifier finished with 35 verified, 11 errors
+Dafny program verifier finished with 47 verified, 13 errors

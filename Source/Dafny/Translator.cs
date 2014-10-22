@@ -7805,7 +7805,7 @@ namespace Microsoft.Dafny {
         }
       } else if (F is BinaryExpr) {
         var bin = (BinaryExpr)F;
-        if (bin.ResolvedOp == BinaryExpr.ResolvedOpcode.Add) {
+        if (bin.ResolvedOp == BinaryExpr.ResolvedOpcode.Add && (bin.E0.Type.IsIntegerType || bin.E0.Type.IsRealType)) {
           if (!ContainsFreeVariable(bin.E1, false, i)) {
             // We're looking at:  R(i) && j == f(i) + K.
             // By a recursive call, we'll ask to invert:  R(i) && j' == f(i).
@@ -7823,7 +7823,7 @@ namespace Microsoft.Dafny {
               yield return val.Subst(j, jMinusK, this);
             }
           }
-        } else if (bin.ResolvedOp == BinaryExpr.ResolvedOpcode.Sub) {
+        } else if (bin.ResolvedOp == BinaryExpr.ResolvedOpcode.Sub && (bin.E0.Type.IsIntegerType || bin.E0.Type.IsRealType)) {
           if (!ContainsFreeVariable(bin.E1, false, i)) {
             // We're looking at:  R(i) && j == f(i) - K
             // Recurse on f(i) and then replace j := j + K

@@ -227,3 +227,85 @@ module IntegerBasedValues {
     }
   }
 }
+
+module Guessing_Termination_Metrics {
+  newtype N = x | x == 0 || x == 3 || x == 7
+
+  method M_Bad() {
+    var x: N, y: N;
+    while x < y
+      decreases y - x;  // error: y-x may not be an N
+    {
+      if 3 < y {
+        y := 3;
+      } else {
+        x := 3;
+      }
+    }
+  }
+
+  method M_Good() {
+    var x: N, y: N;
+    while x < y
+      decreases int(y) - int(x);
+    {
+      if 3 < y {
+        y := 3;
+      } else {
+        x := 3;
+      }
+    }
+  }
+
+  method M_Inferred() {
+    var x: N, y: N;
+    while x < y  // the inferred decreases clause includes the type conversion to int
+    {
+      if 3 < y {
+        y := 3;
+      } else {
+        x := 3;
+      }
+    }
+  }
+
+  newtype R = r | r == 0.0 || 10.0 <= r <= 20.0
+
+  method P_Bad() {
+    var x: R, y: R;
+    while x < y
+      decreases y - x;  // error: y-x may not be an R
+    {
+      if 12.0 < y {
+        y := 10.0;
+      } else {
+        x := 14.2;
+      }
+    }
+  }
+
+  method P_Good() {
+    var x: R, y: R;
+    while x < y
+      decreases real(y) - real(x);
+    {
+      if 12.0 < y {
+        y := 10.0;
+      } else {
+        x := 14.2;
+      }
+    }
+  }
+
+  method P_Inferred() {
+    var x: R, y: R;
+    while x < y  // the inferred decreases clause includes the type conversion to real
+    {
+      if 12.0 < y {
+        y := 10.0;
+      } else {
+        x := 14.2;
+      }
+    }
+  }
+}

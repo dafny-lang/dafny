@@ -5004,18 +5004,18 @@ namespace Microsoft.Dafny
               case BinaryExpr.ResolvedOpcode.Lt:
               case BinaryExpr.ResolvedOpcode.Le:
                 // for A < B and A <= B, use the decreases B - A
-                guess = Expression.CreateSubtract(bin.E1, bin.E0);
+                guess = Expression.CreateSubtract_TypeConvert(bin.E1, bin.E0);
                 break;
               case BinaryExpr.ResolvedOpcode.Ge:
               case BinaryExpr.ResolvedOpcode.Gt:
                 // for A >= B and A > B, use the decreases A - B
-                guess = Expression.CreateSubtract(bin.E0, bin.E1);
+                guess = Expression.CreateSubtract_TypeConvert(bin.E0, bin.E1);
                 break;
               case BinaryExpr.ResolvedOpcode.NeqCommon:
                 if (bin.E0.Type.IsNumericBased()) {
                   // for A != B where A and B are numeric, use the absolute difference between A and B (that is: if A <= B then B-A else A-B)
-                  var AminusB = Expression.CreateSubtract(bin.E0, bin.E1);
-                  var BminusA = Expression.CreateSubtract(bin.E1, bin.E0);
+                  var AminusB = Expression.CreateSubtract_TypeConvert(bin.E0, bin.E1);
+                  var BminusA = Expression.CreateSubtract_TypeConvert(bin.E1, bin.E0);
                   var test = Expression.CreateAtMost(bin.E0, bin.E1);
                   guess = Expression.CreateITE(test, BminusA, AminusB);
                 }
