@@ -181,7 +181,7 @@ CHARACTERS
   idcharMinusR = idchar - 'r'.
   idcharMinusY = idchar - 'y'.
   idcharMinusPosDigit = idchar - posDigit.
-  ischarMinusTick = idchar - '\''.
+  idcharMinusTick = idchar - '\''.
   /* string literals */
   charChar = ANY - '\'' - '\\' - cr - lf.
   stringChar = ANY - '"' - '\\' - cr - lf.
@@ -197,12 +197,12 @@ TOKENS
         |  'a' 'r' 'r' 'a' 'y' idcharMinusPosDigit {idchar}
         |  'a' 'r' 'r' 'a' 'y' posDigit {idchar} nondigit {idchar}
         |  "'" [ idchar ]                        /* if char 0 is a '\'' and length is 1 or 2, then it is an identifier */
-        |  "'" idchar ischarMinusTick            /* if char 0 is '\'' and length is 3, then it is an identifier provided char 2 is not '\'' */
+        |  "'" idchar idcharMinusTick            /* if char 0 is '\'' and length is 3, then it is an identifier provided char 2 is not '\'' */
         |  "'" idchar idchar idchar { idchar }   /* if char 0 is '\'' and length exceeds 3, then it is an identifier */
         .
-  digits = digit {digit}.
-  hexdigits = "0x" hexdigit {hexdigit}.
-  decimaldigits = digit {digit} '.' digit {digit}.
+  digits = digit {['_'] digit}.
+  hexdigits = "0x" hexdigit {['_'] hexdigit}.
+  decimaldigits = digit {['_'] digit} '.' digit {['_'] digit}.
   arrayToken = "array" [posDigit {digit}].
   charToken =
       "'"
@@ -2659,31 +2659,36 @@ WildIdent<out IToken/*!*/ x, bool allowWildcardId>
   .
 
 Nat<out BigInteger n>
-= (. n = BigInteger.Zero; .)
-  (digits
-    (. try {
-         n = BigInteger.Parse(t.val);
+= (. n = BigInteger.Zero;
+     string S;
+  .)
+  ( digits
+    (. S = Util.RemoveUnderscores(t.val);
+       try {
+         n = BigInteger.Parse(S);
        } catch (System.FormatException) {
          SemErr("incorrectly formatted number");
          n = BigInteger.Zero;
        }
     .)
-   |hexdigits
-    (. try {
+  | hexdigits
+    (. S = Util.RemoveUnderscores(t.val.Substring(2));
+       try {
          // note: leading 0 required when parsing positive hex numbers
-         n = BigInteger.Parse("0" + t.val.Substring(2), System.Globalization.NumberStyles.HexNumber);
+         n = BigInteger.Parse("0" + S, System.Globalization.NumberStyles.HexNumber);
        } catch (System.FormatException) {
          SemErr("incorrectly formatted number");
          n = BigInteger.Zero;
        }
     .)
-   )
+  )
   .
 Dec<out Basetypes.BigDec d>
 = (. d = Basetypes.BigDec.ZERO; .)
   (decimaldigits
-    (. try {
-         d = Basetypes.BigDec.FromString(t.val);
+    (. var S = Util.RemoveUnderscores(t.val);
+       try {
+         d = Basetypes.BigDec.FromString(S);
        } catch (System.FormatException) {
          SemErr("incorrectly formatted number");
          d = Basetypes.BigDec.ZERO;

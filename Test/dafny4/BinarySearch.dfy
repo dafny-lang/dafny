@@ -28,10 +28,10 @@ method BinarySearch(a: array<int>, key: int) returns (r: int)
 
 // Binary search using bounded integers
 
-newtype int32 = x | -0x80000000 <= x < 0x80000000
+newtype int32 = x | -0x8000_0000 <= x < 0x8000_0000
 
 method BinarySearchInt32_bad(a: array<int>, key: int) returns (r: int32)
-  requires a != null && a.Length < 0x80000000;
+  requires a != null && a.Length < 0x8000_0000;
   requires forall i,j :: 0 <= i < j < a.Length ==> a[i] <= a[j];
   ensures 0 <= r ==> r < int32(a.Length) && a[r] == key;
   ensures r < 0 ==> key !in a[..];
@@ -54,7 +54,7 @@ method BinarySearchInt32_bad(a: array<int>, key: int) returns (r: int32)
 }
 
 method BinarySearchInt32_good(a: array<int>, key: int) returns (r: int32)
-  requires a != null && a.Length < 0x80000000;
+  requires a != null && a.Length < 0x8000_0000;
   requires forall i,j :: 0 <= i < j < a.Length ==> a[i] <= a[j];
   ensures 0 <= r ==> r < int32(a.Length) && a[r] == key;
   ensures r < 0 ==> key !in a[..];

@@ -3632,11 +3632,14 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 	}
 
 	void Nat(out BigInteger n) {
-		n = BigInteger.Zero; 
+		n = BigInteger.Zero;
+		string S;
+		
 		if (la.kind == 2) {
 			Get();
+			S = Util.RemoveUnderscores(t.val);
 			try {
-			 n = BigInteger.Parse(t.val);
+			 n = BigInteger.Parse(S);
 			} catch (System.FormatException) {
 			 SemErr("incorrectly formatted number");
 			 n = BigInteger.Zero;
@@ -3644,9 +3647,10 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 			
 		} else if (la.kind == 3) {
 			Get();
+			S = Util.RemoveUnderscores(t.val.Substring(2));
 			try {
 			 // note: leading 0 required when parsing positive hex numbers
-			 n = BigInteger.Parse("0" + t.val.Substring(2), System.Globalization.NumberStyles.HexNumber);
+			 n = BigInteger.Parse("0" + S, System.Globalization.NumberStyles.HexNumber);
 			} catch (System.FormatException) {
 			 SemErr("incorrectly formatted number");
 			 n = BigInteger.Zero;
@@ -3658,8 +3662,9 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 	void Dec(out Basetypes.BigDec d) {
 		d = Basetypes.BigDec.ZERO; 
 		Expect(4);
+		var S = Util.RemoveUnderscores(t.val);
 		try {
-		 d = Basetypes.BigDec.FromString(t.val);
+		 d = Basetypes.BigDec.FromString(S);
 		} catch (System.FormatException) {
 		 SemErr("incorrectly formatted number");
 		 d = Basetypes.BigDec.ZERO;

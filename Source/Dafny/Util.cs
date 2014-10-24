@@ -68,6 +68,20 @@ namespace Microsoft.Dafny {
     }
 
     /// <summary>
+    /// Returns s but with all occurrences of '_' removed.
+    /// </summary>
+    public static string RemoveUnderscores(string s) {
+      Contract.Requires(s != null);
+      while (true) {
+        var j = s.IndexOf('_');
+        if (j == -1) {
+          return s;
+        }
+        s = s.Substring(0, j) + s.Substring(j + 1);
+      }
+    }
+
+    /// <summary>
     /// For "S" returns S and false.
     /// For @"S" return S and true.
     /// Assumes that s has one of these forms.
