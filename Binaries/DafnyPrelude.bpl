@@ -1022,3 +1022,18 @@ axiom (forall<U, V> m: Map U V, m': Map U V ::
   { Map#Disjoint(m, m') }
     Map#Disjoint(m, m') <==> (forall o: U :: {Map#Domain(m)[o]} {Map#Domain(m')[o]} !Map#Domain(m)[o] || !Map#Domain(m')[o]));
 
+// -------------------------------------------------------------------------
+// -- Provide arithmetic wrappers to improve triggering and non-linear math 
+// -------------------------------------------------------------------------
+
+function INTERNAL_add_boogie(x:int, y:int) : int { x + y }
+function INTERNAL_sub_boogie(x:int, y:int) : int { x - y }
+function INTERNAL_mul_boogie(x:int, y:int) : int { x * y }
+function INTERNAL_div_boogie(x:int, y:int) : int { x div y }
+function INTERNAL_mod_boogie(x:int, y:int) : int { x mod y }
+function {:never_pattern true} INTERNAL_lt_boogie(x:int, y:int) : bool { x < y }
+function {:never_pattern true} INTERNAL_le_boogie(x:int, y:int) : bool { x <= y }
+function {:never_pattern true} INTERNAL_gt_boogie(x:int, y:int) : bool { x > y }
+function {:never_pattern true} INTERNAL_ge_boogie(x:int, y:int) : bool { x >= y }
+
+// -------------------------------------------------------------------------
