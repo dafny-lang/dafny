@@ -432,10 +432,6 @@ class AttributeTests {
     ensures {:boolAttr false} true;
     ensures {:intAttr 0} true;
     ensures {:intAttr 1} true;
-    free ensures {:boolAttr true} true;
-    free ensures {:boolAttr false} true;
-    free ensures {:intAttr 0} true;
-    free ensures {:intAttr 1} true;
     modifies {:boolAttr true} this`f;
     modifies {:boolAttr false} this`f;
     modifies {:intAttr 0} this`f;
@@ -459,10 +455,6 @@ class AttributeTests {
       invariant {:boolAttr false} true;
       invariant {:intAttr 0} true;
       invariant {:intAttr 1} true;
-      free invariant {:boolAttr true} true;
-      free invariant {:boolAttr false} true;
-      free invariant {:intAttr 0} true;
-      free invariant {:intAttr 1} true;
       modifies {:boolAttr true} this`f;
       modifies {:boolAttr false} this`f;
       modifies {:intAttr 0} this`f;

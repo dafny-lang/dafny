@@ -1465,7 +1465,9 @@ ref Attributes readsAttrs, ref Attributes modAttrs, ref Attributes decrAttrs) {
 		} else if (StartOf(14)) {
 			if (la.kind == 54) {
 				Get();
-				isFree = true; 
+				isFree = true;
+				errors.Warning(t, "the 'free' keyword is soon to be deprecated");
+				
 			}
 			if (la.kind == 57) {
 				Get();
@@ -1543,7 +1545,9 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 		} else if (la.kind == 14 || la.kind == 54 || la.kind == 55) {
 			if (la.kind == 54) {
 				Get();
-				isFree = true; 
+				isFree = true;
+				errors.Warning(t, "the 'free' keyword is soon to be deprecated");
+				
 			}
 			if (la.kind == 14) {
 				Get();
@@ -2226,7 +2230,9 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 			isFree = false; 
 			if (la.kind == 54) {
 				Get();
-				isFree = true; 
+				isFree = true;
+				errors.Warning(t, "the 'free' keyword is soon to be deprecated");
+				
 			}
 			Expect(55);
 			Expression(out e, false, true);
@@ -2582,7 +2588,9 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 		while (!(la.kind == 0 || la.kind == 54 || la.kind == 88)) {SynErr(195); Get();}
 		if (la.kind == 54) {
 			Get();
-			isFree = true; 
+			isFree = true;
+			errors.Warning(t, "the 'free' keyword is soon to be deprecated");
+			
 		}
 		Expect(88);
 		while (IsAttribute()) {

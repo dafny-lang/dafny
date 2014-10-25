@@ -94,14 +94,14 @@ SmallTests.dfy(385,6): Error: cannot prove termination; try supplying a decrease
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Else
-SmallTests.dfy(689,14): Error: assertion violation
+SmallTests.dfy(681,14): Error: assertion violation
 Execution trace:
     (0,0): anon0
-    SmallTests.dfy(686,5): anon7_LoopHead
+    SmallTests.dfy(678,5): anon7_LoopHead
     (0,0): anon7_LoopBody
-    SmallTests.dfy(686,5): anon8_Else
+    SmallTests.dfy(678,5): anon8_Else
     (0,0): anon9_Then
-SmallTests.dfy(710,14): Error: assertion violation
+SmallTests.dfy(702,14): Error: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon7_Then
@@ -133,12 +133,12 @@ SmallTests.dfy(400,41): Related location: This is the postcondition that might n
 Execution trace:
     (0,0): anon0
     (0,0): anon6_Else
-SmallTests.dfy(560,12): Error: assertion violation
+SmallTests.dfy(552,12): Error: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Then
     (0,0): anon2
-SmallTests.dfy(574,20): Error: left-hand sides 0 and 1 may refer to the same location
+SmallTests.dfy(566,20): Error: left-hand sides 0 and 1 may refer to the same location
 Execution trace:
     (0,0): anon0
     (0,0): anon27_Then
@@ -150,11 +150,11 @@ Execution trace:
     (0,0): anon31_Then
     (0,0): anon32_Then
     (0,0): anon12
-SmallTests.dfy(576,15): Error: left-hand sides 1 and 2 may refer to the same location
+SmallTests.dfy(568,15): Error: left-hand sides 1 and 2 may refer to the same location
 Execution trace:
     (0,0): anon0
     (0,0): anon27_Then
-    SmallTests.dfy(569,18): anon28_Else
+    SmallTests.dfy(561,18): anon28_Else
     (0,0): anon4
     (0,0): anon29_Else
     (0,0): anon30_Then
@@ -165,16 +165,16 @@ Execution trace:
     (0,0): anon37_Then
     (0,0): anon22
     (0,0): anon38_Then
-SmallTests.dfy(583,25): Error: target object may be null
+SmallTests.dfy(575,25): Error: target object may be null
 Execution trace:
     (0,0): anon0
-SmallTests.dfy(596,10): Error: assertion violation
+SmallTests.dfy(588,10): Error: assertion violation
 Execution trace:
     (0,0): anon0
-SmallTests.dfy(620,5): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
+SmallTests.dfy(612,5): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
 Execution trace:
     (0,0): anon0
-SmallTests.dfy(643,10): Error: assertion violation
+SmallTests.dfy(635,10): Error: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon8_Then
@@ -182,17 +182,17 @@ Execution trace:
     (0,0): anon4
     (0,0): anon10_Then
     (0,0): anon7
-SmallTests.dfy(657,10): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
+SmallTests.dfy(649,10): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
 Execution trace:
     (0,0): anon0
     (0,0): anon5_Then
     (0,0): anon6_Then
     (0,0): anon3
-SmallTests.dfy(659,10): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
+SmallTests.dfy(651,10): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
 Execution trace:
     (0,0): anon0
     (0,0): anon5_Else
-SmallTests.dfy(672,9): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
+SmallTests.dfy(664,9): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
 Execution trace:
     (0,0): anon0
 

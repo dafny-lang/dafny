@@ -777,7 +777,9 @@ MethodSpec<.List<MaybeFreeExpression/*!*/>/*!*/ req, List<FrameExpression/*!*/>/
                  { "," FrameExpression<out fe>               (. mod.Add(fe); .)
                  }
                ] OldSemi
-  | [ "free"                                                 (. isFree = true; .)
+  | [ "free"                                                 (. isFree = true;
+                                                                errors.Warning(t, "the 'free' keyword is soon to be deprecated");
+                                                             .)
     ]
     ( "requires" Expression<out e, false, true> OldSemi      (. req.Add(new MaybeFreeExpression(e, isFree)); .)
     | "ensures"
@@ -804,7 +806,9 @@ IteratorSpec<.List<FrameExpression/*!*/>/*!*/ reads, List<FrameExpression/*!*/>/
                  { "," FrameExpression<out fe>               (. mod.Add(fe); .)
                  }
                ] OldSemi
-  | [ "free"                                                 (. isFree = true; .)
+  | [ "free"                                                 (. isFree = true;
+                                                                errors.Warning(t, "the 'free' keyword is soon to be deprecated");
+                                                             .)
     ]
     [ "yield"                                                (. isYield = true; .)
     ]
@@ -1463,7 +1467,9 @@ LoopSpec<.out List<MaybeFreeExpression/*!*/> invariants, out List<Expression/*!*
 Invariant<out MaybeFreeExpression/*!*/ invariant>
 = (. bool isFree = false; Expression/*!*/ e; List<string> ids = new List<string>(); invariant = null; Attributes attrs = null; .)
     SYNC
-    ["free"                            (. isFree = true; .)
+    ["free"                            (. isFree = true;
+                                          errors.Warning(t, "the 'free' keyword is soon to be deprecated");
+                                       .)
     ]
     "invariant" { IF(IsAttribute()) Attribute<ref attrs> }
     Expression<out e, false, true>           (. invariant = new MaybeFreeExpression(e, isFree, attrs); .)
@@ -1609,7 +1615,9 @@ ForallStmt<out Statement/*!*/ s>
   |                                         (. if (usesOptionalParen) { SemErr(t, "expecting close parenthesis"); } .)
   )
   {                                         (. isFree = false; .)
-    [ "free"                                (. isFree = true; .)
+    [ "free"                                (. isFree = true;
+                                               errors.Warning(t, "the 'free' keyword is soon to be deprecated");
+                                            .)
     ]
     "ensures" Expression<out e, false, true>  (. ens.Add(new MaybeFreeExpression(e, isFree)); .)
     OldSemi                                   (. tok = t; .)
