@@ -474,7 +474,7 @@ FieldDecl<.MemberModifiers mmod, List<MemberDecl/*!*/>/*!*/ mm.>
   FIdentType<out id, out ty>                        (. mm.Add(new Field(id, id.val, mmod.IsGhost, ty, attrs)); .)
   { "," FIdentType<out id, out ty>                  (. mm.Add(new Field(id, id.val, mmod.IsGhost, ty, attrs)); .)
   }
-  SYNC ";"
+  OldSemi
   .
 NewtypeDecl<ModuleDefinition module, out TopLevelDecl td>
 = (. IToken id, bvId;
@@ -494,11 +494,6 @@ NewtypeDecl<ModuleDefinition module, out TopLevelDecl td>
     Expression<out wh, false, true>  (. td = new NewtypeDecl(id, id.val, module, new BoundVar(bvId, bvId.val, baseType), wh, attrs); .)
   | Type<out baseType>               (. td = new NewtypeDecl(id, id.val, module, baseType, attrs); .)
   )
-  [ SYNC ";"
-      // In a future version of Dafny, including the following warning message:
-      //     (. errors.Warning(t, "the semi-colon that used to terminate an opaque-type declaration has been deprecated; in the new syntax, just leave off the semi-colon"); .)
-      // And in a version after that, don't allow the semi-colon at all.
-  ]
   .
 OtherTypeDecl<ModuleDefinition module, out TopLevelDecl td>
 = (. IToken id;
@@ -781,15 +776,15 @@ MethodSpec<.List<MaybeFreeExpression/*!*/>/*!*/ req, List<FrameExpression/*!*/>/
                [ FrameExpression<out fe>                     (. mod.Add(fe); .)
                  { "," FrameExpression<out fe>               (. mod.Add(fe); .)
                  }
-               ] SYNC ";"
+               ] OldSemi
   | [ "free"                                                 (. isFree = true; .)
     ]
-    ( "requires" Expression<out e, false, true> SYNC ";"           (. req.Add(new MaybeFreeExpression(e, isFree)); .)
+    ( "requires" Expression<out e, false, true> OldSemi      (. req.Add(new MaybeFreeExpression(e, isFree)); .)
     | "ensures"
       { IF(IsAttribute()) Attribute<ref ensAttrs> }
-      Expression<out e, false, true> SYNC ";"                      (. ens.Add(new MaybeFreeExpression(e, isFree, ensAttrs)); .)
+      Expression<out e, false, true> OldSemi                 (. ens.Add(new MaybeFreeExpression(e, isFree, ensAttrs)); .)
     )
-  | "decreases" { IF(IsAttribute()) Attribute<ref decAttrs> } DecreasesList<decreases, true> SYNC ";"
+  | "decreases" { IF(IsAttribute()) Attribute<ref decAttrs> } DecreasesList<decreases, true> OldSemi
   )
   .
 IteratorSpec<.List<FrameExpression/*!*/>/*!*/ reads, List<FrameExpression/*!*/>/*!*/ mod, List<Expression/*!*/> decreases,
@@ -803,31 +798,31 @@ IteratorSpec<.List<FrameExpression/*!*/>/*!*/ reads, List<FrameExpression/*!*/>/
                [ FrameExpression<out fe>                     (. reads.Add(fe); .)
                  { "," FrameExpression<out fe>               (. reads.Add(fe); .)
                  }
-               ] SYNC ";"
+               ] OldSemi
   | "modifies" { IF(IsAttribute()) Attribute<ref modAttrs> }
                [ FrameExpression<out fe>                     (. mod.Add(fe); .)
                  { "," FrameExpression<out fe>               (. mod.Add(fe); .)
                  }
-               ] SYNC ";"
+               ] OldSemi
   | [ "free"                                                 (. isFree = true; .)
     ]
     [ "yield"                                                (. isYield = true; .)
     ]
-    ( "requires" Expression<out e, false, true> SYNC ";"           (. if (isYield) {
+    ( "requires" Expression<out e, false, true> OldSemi      (. if (isYield) {
                                                                   yieldReq.Add(new MaybeFreeExpression(e, isFree));
                                                                 } else {
                                                                   req.Add(new MaybeFreeExpression(e, isFree));
                                                                 }
                                                              .)
     | "ensures" { IF(IsAttribute()) Attribute<ref ensAttrs> }
-      Expression<out e, false, true> SYNC ";"                      (. if (isYield) {
+      Expression<out e, false, true> OldSemi                 (. if (isYield) {
                                                                   yieldEns.Add(new MaybeFreeExpression(e, isFree, ensAttrs));
                                                                 } else {
                                                                   ens.Add(new MaybeFreeExpression(e, isFree, ensAttrs));
                                                                 }
                                                              .)
     )
-  | "decreases" { IF(IsAttribute()) Attribute<ref decrAttrs> } DecreasesList<decreases, false> SYNC ";"
+  | "decreases" { IF(IsAttribute()) Attribute<ref decrAttrs> } DecreasesList<decreases, false> OldSemi
   )
   .
 Formals<.bool incoming, bool allowGhostKeyword, List<Formal> formals.>
@@ -1054,18 +1049,18 @@ FunctionSpec<.List<Expression/*!*/>/*!*/ reqs, List<FrameExpression/*!*/>/*!*/ r
      Expression/*!*/ e;  FrameExpression/*!*/ fe; .)
   (
     SYNC
-    "requires" Expression<out e, false, true> SYNC ";"     (. reqs.Add(e); .)
-  | "reads" [ PossiblyWildFrameExpression<out fe>              (. reads.Add(fe); .)
-              { "," PossiblyWildFrameExpression<out fe>        (. reads.Add(fe); .)
+    "requires" Expression<out e, false, true> OldSemi     (. reqs.Add(e); .)
+  | "reads" [ PossiblyWildFrameExpression<out fe>         (. reads.Add(fe); .)
+              { "," PossiblyWildFrameExpression<out fe>   (. reads.Add(fe); .)
               }
-            ] SYNC ";"
-  | "ensures" Expression<out e, false, true> SYNC ";"      (. ens.Add(e); .)
+            ] OldSemi
+  | "ensures" Expression<out e, false, true> OldSemi      (. ens.Add(e); .)
   | "decreases"                               (. if (decreases == null) {
                                                    SemErr(t, "'decreases' clauses are meaningless for copredicates, so they are not allowed");
                                                    decreases = new List<Expression/*!*/>();
                                                  }
                                               .)
-    DecreasesList<decreases, false> SYNC ";"
+    DecreasesList<decreases, false> OldSemi
   )
   .
 
@@ -1453,16 +1448,16 @@ LoopSpec<.out List<MaybeFreeExpression/*!*/> invariants, out List<Expression/*!*
      mod = null;
   .)
   {
-    Invariant<out invariant> SYNC ";"   (. invariants.Add(invariant); .)
+    Invariant<out invariant> OldSemi   (. invariants.Add(invariant); .)
   | SYNC "decreases"
     { IF(IsAttribute()) Attribute<ref decAttrs> }
-    DecreasesList<decreases, true> SYNC ";"
+    DecreasesList<decreases, true> OldSemi
   | SYNC "modifies"
     { IF(IsAttribute()) Attribute<ref modAttrs> } (. mod = mod ?? new List<FrameExpression>(); .)
     [ FrameExpression<out fe>                     (. mod.Add(fe); .)
       { "," FrameExpression<out fe>               (. mod.Add(fe); .)
       }
-    ] SYNC ";"
+    ] OldSemi
   }
   .
 Invariant<out MaybeFreeExpression/*!*/ invariant>
@@ -1616,8 +1611,8 @@ ForallStmt<out Statement/*!*/ s>
   {                                         (. isFree = false; .)
     [ "free"                                (. isFree = true; .)
     ]
-    "ensures" Expression<out e, false, true>      (. ens.Add(new MaybeFreeExpression(e, isFree)); .)
-    ";"                                     (. tok = t; .)
+    "ensures" Expression<out e, false, true>  (. ens.Add(new MaybeFreeExpression(e, isFree)); .)
+    OldSemi                                   (. tok = t; .)
   }
   [ BlockStmt<out block, out bodyStart, out bodyEnd>
   ]
@@ -2657,6 +2652,12 @@ WildIdent<out IToken/*!*/ x, bool allowWildcardId>
                       t.val = UnwildIdent(x.val, allowWildcardId);
                    .)
   .
+
+OldSemi
+= /* In the future, semi-colons will be neither needed nor allowed in certain places where, in the past, they
+   * were required.  As a period of transition between the two, such semi-colons are optional.
+   */
+  [ SYNC ";" ].
 
 Nat<out BigInteger n>
 = (. n = BigInteger.Zero;
