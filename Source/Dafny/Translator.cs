@@ -10676,41 +10676,106 @@ namespace Microsoft.Dafny {
               }
               typ = Bpl.Type.Bool;
               bOpcode = BinaryOperator.Opcode.Neq; break;
-
             case BinaryExpr.ResolvedOpcode.Lt:
-              typ = Bpl.Type.Bool;
-              bOpcode = BinaryOperator.Opcode.Lt; break;
+              if (isReal || !DafnyOptions.O.DisableNLarith) {
+                typ = Bpl.Type.Bool;
+                bOpcode = BinaryOperator.Opcode.Lt;
+                break;
+              } else {
+                return translator.FunctionCall(expr.tok, "INTERNAL_lt_boogie", Bpl.Type.Int, e0, e1);
+              }
+
             case BinaryExpr.ResolvedOpcode.Le:
               keepLits = true;
-              typ = Bpl.Type.Bool;
-              bOpcode = BinaryOperator.Opcode.Le; break;
+              if (isReal || !DafnyOptions.O.DisableNLarith) {
+                typ = Bpl.Type.Bool;
+                bOpcode = BinaryOperator.Opcode.Le;
+                break;
+              } else {
+                return translator.FunctionCall(expr.tok, "INTERNAL_le_boogie", Bpl.Type.Int, e0, e1);
+              }
             case BinaryExpr.ResolvedOpcode.Ge:
               keepLits = true;
-              typ = Bpl.Type.Bool;
-              bOpcode = BinaryOperator.Opcode.Ge; break;
+              if (isReal || !DafnyOptions.O.DisableNLarith) {
+                typ = Bpl.Type.Bool;
+                bOpcode = BinaryOperator.Opcode.Ge;
+                break;
+              } else {
+                return translator.FunctionCall(expr.tok, "INTERNAL_ge_boogie", Bpl.Type.Int, e0, e1);
+              }
             case BinaryExpr.ResolvedOpcode.Gt:
-              typ = Bpl.Type.Bool;
-              bOpcode = BinaryOperator.Opcode.Gt; break;
+              if (isReal || !DafnyOptions.O.DisableNLarith) {
+                typ = Bpl.Type.Bool;
+                bOpcode = BinaryOperator.Opcode.Gt;
+                break;
+              } else {
+                return translator.FunctionCall(expr.tok, "INTERNAL_gt_boogie", Bpl.Type.Int, e0, e1);
+              }
             case BinaryExpr.ResolvedOpcode.Add:
-              typ = isReal ? Bpl.Type.Real : Bpl.Type.Int;
-              bOpcode = BinaryOperator.Opcode.Add; break;
+              if (!DafnyOptions.O.DisableNLarith) {
+                typ = isReal ? Bpl.Type.Real : Bpl.Type.Int;
+                bOpcode = BinaryOperator.Opcode.Add; break;
+              } else {
+                if (isReal) {
+                  typ = Bpl.Type.Real;
+                  bOpcode = BinaryOperator.Opcode.Add;
+                  break;
+                } else {
+                  return translator.FunctionCall(expr.tok, "INTERNAL_add_boogie", Bpl.Type.Int, e0, e1);
+                }
+              }
             case BinaryExpr.ResolvedOpcode.Sub:
-              typ = isReal ? Bpl.Type.Real : Bpl.Type.Int;
-              bOpcode = BinaryOperator.Opcode.Sub; break;
+              if (!DafnyOptions.O.DisableNLarith) {
+                typ = isReal ? Bpl.Type.Real : Bpl.Type.Int;
+                bOpcode = BinaryOperator.Opcode.Sub; break;
+              } else {
+                if (isReal) {
+                  typ = Bpl.Type.Real;
+                  bOpcode = BinaryOperator.Opcode.Sub;
+                  break;
+                } else {
+                  return translator.FunctionCall(expr.tok, "INTERNAL_sub_boogie", Bpl.Type.Int, e0, e1);
+                }
+              }
             case BinaryExpr.ResolvedOpcode.Mul:
-              typ = isReal ? Bpl.Type.Real : Bpl.Type.Int;
-              bOpcode = BinaryOperator.Opcode.Mul; break;
+              if (!DafnyOptions.O.DisableNLarith) {
+                typ = isReal ? Bpl.Type.Real : Bpl.Type.Int;
+                bOpcode = BinaryOperator.Opcode.Mul; break;
+              } else {
+                if (isReal) {
+                  typ = Bpl.Type.Real;
+                  bOpcode = BinaryOperator.Opcode.Mul;
+                  break;
+                } else {
+                  return translator.FunctionCall(expr.tok, "INTERNAL_mul_boogie", Bpl.Type.Int, e0, e1);
+                }
+              }
+            
             case BinaryExpr.ResolvedOpcode.Div:
               if (isReal) {
                 typ = Bpl.Type.Real;
                 bOpcode = BinaryOperator.Opcode.RealDiv; break;
               } else {
-                typ = Bpl.Type.Int;
-                bOpcode = BinaryOperator.Opcode.Div; break;
+                if (!DafnyOptions.O.DisableNLarith) {
+                  typ = Bpl.Type.Int;
+                  bOpcode = BinaryOperator.Opcode.Div; break;
+                } else {
+                  return translator.FunctionCall(expr.tok, "INTERNAL_div_boogie", Bpl.Type.Int, e0, e1);
+                }
               }
             case BinaryExpr.ResolvedOpcode.Mod:
-              typ = Bpl.Type.Int;
-              bOpcode = BinaryOperator.Opcode.Mod; break;
+              if (!DafnyOptions.O.DisableNLarith) {
+                typ = Bpl.Type.Int;
+                bOpcode = BinaryOperator.Opcode.Mod; break;
+              } else {
+                if (isReal) {
+                  typ = Bpl.Type.Real;
+                  bOpcode = BinaryOperator.Opcode.Mod;
+                  break;
+                } else {
+                  return translator.FunctionCall(expr.tok, "INTERNAL_mod_boogie", Bpl.Type.Int, e0, e1);
+                }
+              }
 
             case BinaryExpr.ResolvedOpcode.LtChar:
             case BinaryExpr.ResolvedOpcode.LeChar:

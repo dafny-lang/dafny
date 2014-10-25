@@ -41,6 +41,7 @@ namespace Microsoft.Dafny
     public bool RunAfterCompile = false;
     public bool SpillTargetCode = false;
     public bool DisallowIncludes = false;
+    public bool DisableNLarith = false;
 
     protected override bool ParseOption(string name, Bpl.CommandLineOptionEngine.CommandLineParseState ps) {
       var args = ps.args;  // convenient synonym
@@ -101,6 +102,11 @@ namespace Microsoft.Dafny
 
         case "noIncludes":
           DisallowIncludes = true;
+          return true;
+
+        case "noNLarith":
+          DisableNLarith = true;
+          this.Z3Options.Add("NL_ARITH=false");
           return true;
 
         default:
