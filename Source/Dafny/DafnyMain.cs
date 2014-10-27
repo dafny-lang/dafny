@@ -54,7 +54,7 @@ namespace Microsoft.Dafny {
       }
 
       if (!DafnyOptions.O.DisallowIncludes) {
-        string errString = ParseIncludes(module, builtIns, new Errors());
+        string errString = ParseIncludes(module, builtIns, fileNames, new Errors());
         if (errString != null) {
           return errString;
         }
@@ -84,8 +84,11 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public static string ParseIncludes(ModuleDecl module, BuiltIns builtIns, Errors errs) {
+    public static string ParseIncludes(ModuleDecl module, BuiltIns builtIns, List<string> excludeFiles, Errors errs) {
       SortedSet<Include> includes = new SortedSet<Include>(new IncludeComparer());
+      foreach (string fileName in excludeFiles) {
+        includes.Add(new Include(null, fileName, Path.GetFullPath(fileName)));
+      }
       bool newlyIncluded;
       do {
         newlyIncluded = false;
