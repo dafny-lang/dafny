@@ -967,7 +967,7 @@ bool CloseOptionalBrace(bool usesOptionalBrace) {
 		if (la.kind == 15) {
 			FunctionBody(out body, out bodyStart, out bodyEnd);
 		}
-		if (DafnyOptions.O.DisallowSoundnessCheating && body == null && ens.Count > 0 && !Attributes.Contains(attrs, "axiom")) {
+		if (DafnyOptions.O.DisallowSoundnessCheating && body == null && ens.Count > 0 && !Attributes.Contains(attrs, "axiom") && !Attributes.Contains(attrs, "imported")) {
 		  SemErr(t, "a function with an ensures clause must have a body, unless given the :axiom attribute");
 		}
 		
@@ -1089,7 +1089,7 @@ bool CloseOptionalBrace(bool usesOptionalBrace) {
 		if (la.kind == 15) {
 			BlockStmt(out body, out bodyStart, out bodyEnd);
 		}
-		if (DafnyOptions.O.DisallowSoundnessCheating && body == null && ens.Count > 0 && !Attributes.Contains(attrs, "axiom")) {
+		if (DafnyOptions.O.DisallowSoundnessCheating && body == null && ens.Count > 0 && !Attributes.Contains(attrs, "axiom") && !Attributes.Contains(attrs, "imported") && !Attributes.Contains(attrs, "decl") && theVerifyThisFile) {
 		  SemErr(t, "a method with an ensures clause must have a body, unless given the :axiom attribute");
 		}
 		
