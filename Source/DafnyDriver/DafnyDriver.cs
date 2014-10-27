@@ -147,7 +147,8 @@ namespace Microsoft.Dafny
         if (err != null) {
           exitValue = ExitValue.DAFNY_ERROR;
           printer.ErrorWriteLine(Console.Out, err);
-        } else if (dafnyProgram != null && !CommandLineOptions.Clo.NoResolve && !CommandLineOptions.Clo.NoTypecheck) {
+        } else if (dafnyProgram != null && !CommandLineOptions.Clo.NoResolve && !CommandLineOptions.Clo.NoTypecheck
+            && DafnyOptions.O.DafnyVerify) {
           Dafny.Translator translator = new Dafny.Translator();
           Bpl.Program boogieProgram = translator.Translate(dafnyProgram);
           if (CommandLineOptions.Clo.PrintFile != null)
