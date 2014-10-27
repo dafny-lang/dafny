@@ -742,7 +742,7 @@ namespace Microsoft.Dafny
                     List<Expression> local_auto_reqs = generateAutoReqs(req.E);
                     foreach (Expression local_auto_req in local_auto_reqs)
                     {
-                        auto_reqs.Add(new MaybeFreeExpression(local_auto_req, req.IsFree));
+                        auto_reqs.Add(new MaybeFreeExpression(local_auto_req, !req.IsFree));
                     }
                 }
                 method.Req.InsertRange(0, auto_reqs); // Need to come before the actual requires
