@@ -424,6 +424,22 @@ namespace Microsoft.Dafny
       }
       var anyChangeToDecreases = false;
       var decr = clbl.Decreases.Expressions;
+      if (DafnyOptions.O.Dafnycc) {
+        if (decr.Count > 1) {
+          Error(decr[1].tok, "In dafnycc mode, only one decreases expression is allowed");
+        }
+        // In dafnycc mode, only consider first argument
+        if (decr.Count == 0 && clbl.Ins.Count > 0) {
+          var p = clbl.Ins[0];
+          if (!(p is ImplicitFormal) && p.Type.IsOrdered) {
+            var ie = new IdentifierExpr(p.tok, p.Name);
+            ie.Var = p; ie.Type = p.Type;  // resolve it here
+            decr.Add(ie);
+            return true;
+          }
+        }
+        return false;
+      }
       if (decr.Count == 0 || (clbl is PrefixLemma && decr.Count == 1)) {
         // The default for a function starts with the function's reads clause, if any
         if (clbl is Function) {

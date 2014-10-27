@@ -31,6 +31,7 @@ namespace Microsoft.Dafny
     }
 
     public bool DisallowSoundnessCheating = false;
+    public bool Dafnycc = false;
     public int Induction = 3;
     public int InductionHeuristic = 6;
     public string DafnyPrelude = null;
@@ -117,6 +118,13 @@ namespace Microsoft.Dafny
             }
             return true;
           }
+
+        case "dafnycc":
+          Dafnycc = true;
+          Induction = 0;
+          Compile = false;
+          UseAbstractInterpretation = false; // /noinfer
+          return true;
 
         case "noCheating": {
             int cheat = 0; // 0 is default, allows cheating
@@ -209,6 +217,7 @@ namespace Microsoft.Dafny
                 0 (default) - don't write the compiled Dafny program (but
                     still compile it, if /compile indicates to do so)
                 1 - write the compiled Dafny program as a .cs file
+  /dafnycc      Disable features not supported by DafnyCC
   /noCheating:<n>
                 0 (default) - allow assume statements and free invariants
                 1 - treat all assumptions as asserts, and drop free.

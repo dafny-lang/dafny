@@ -1818,12 +1818,15 @@ namespace Microsoft.Dafny {
           }
         }
         Contract.Assert(decs.Count <= f.Formals.Count);
-        if (0 < decs.Count && decs.Count < f.Formals.Count) {
+        if (0 < decs.Count && decs.Count < f.Formals.Count && !DafnyOptions.O.Dafnycc) {
           ax = FunctionAxiom(f, visibility, body, decs);
           sink.AddTopLevelDeclaration(ax);
         }
-        ax = FunctionAxiom(f, visibility, body, f.Formals);
-        sink.AddTopLevelDeclaration(ax);
+
+        if (!DafnyOptions.O.Dafnycc) {
+            ax = FunctionAxiom(f, visibility, body, f.Formals);
+            sink.AddTopLevelDeclaration(ax);
+        }
       }
     }
 
