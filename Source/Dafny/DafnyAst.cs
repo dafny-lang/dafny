@@ -6080,7 +6080,12 @@ namespace Microsoft.Dafny {
   public abstract class ComprehensionExpr : Expression {
     public readonly List<BoundVar> BoundVars;
     public readonly Expression Range;
-    public readonly Expression Term;
+    private Expression term;
+    public Expression Term { get { return term; } }
+
+    public void UpdateTerm(Expression newTerm) {
+        term = newTerm;
+    }
 
     [ContractInvariantMethod]
     void ObjectInvariant() {
@@ -6156,7 +6161,7 @@ namespace Microsoft.Dafny {
 
       this.BoundVars = bvars;
       this.Range = range;
-      this.Term = term;
+      this.UpdateTerm(term);
       this.Attributes = attrs;
     }
 

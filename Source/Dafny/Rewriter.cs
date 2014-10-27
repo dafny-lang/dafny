@@ -950,7 +950,10 @@ namespace Microsoft.Dafny
 
         var auto_reqs = generateAutoReqs(e.Term);
         if (auto_reqs.Count > 0) {
-          reqs.Add(Expression.CreateQuantifier(e, true, andify(e.Term.tok, auto_reqs)));        
+            Expression allReqsSatisfied = andify(e.Term.tok, auto_reqs);
+            Expression allReqsSatisfiedAndTerm = Expression.CreateAnd(allReqsSatisfied, e.Term);
+            e.UpdateTerm(allReqsSatisfiedAndTerm);
+            resolver.ReportAdditionalInformation(e.tok, "autoreq added (" + Printer.ExtendedExprToString(allReqsSatisfied) + ") &&", e.tok.val.Length);
         }
       } else if (expr is SetComprehension) {
         var e = (SetComprehension)expr;
