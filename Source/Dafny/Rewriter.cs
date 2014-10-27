@@ -637,6 +637,12 @@ namespace Microsoft.Dafny
         reqs = Expression.CreateAnd(reqs, expr);
       }
 
+      if (fn.Formals.Count == 0)
+      {
+          lem.Ens[0] = new MaybeFreeExpression(Expression.CreateImplies(reqs, lem.Ens[0].E));
+          return;
+      }
+
       var origForall = (ForallExpr)lem.Ens[0].E;
       var origImpl = (BinaryExpr)origForall.Term;
 
