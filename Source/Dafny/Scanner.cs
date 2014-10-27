@@ -299,7 +299,7 @@ public class Scanner {
 	}
 
 //	[NotDelayed]
-	public Scanner (string/*!*/ fileName, Errors/*!*/ errorHandler, bool useBaseName = false) : base() {
+	public Scanner (string/*!*/ fileName, Errors/*!*/ errorHandler) : base() {
 	  Contract.Requires(fileName != null);
 	  Contract.Requires(errorHandler != null);
 		this.errorHandler = errorHandler;
@@ -308,7 +308,7 @@ public class Scanner {
 		try {
 			Stream stream = new FileStream(fileName, FileMode.Open, FileAccess.Read, FileShare.Read);
 			buffer = new Buffer(stream, false);
-			Filename = useBaseName? GetBaseName(fileName): fileName;
+			Filename = fileName;
 			Init();
 		} catch (IOException) {
 			throw new FatalError("Cannot open file " + fileName);
@@ -316,7 +316,7 @@ public class Scanner {
 	}
 
 //	[NotDelayed]
-	public Scanner (Stream/*!*/ s, Errors/*!*/ errorHandler, string/*!*/ fileName, bool useBaseName = false) : base() {
+	public Scanner (Stream/*!*/ s, Errors/*!*/ errorHandler, string/*!*/ fileName) : base() {
 	  Contract.Requires(s != null);
 	  Contract.Requires(errorHandler != null);
 	  Contract.Requires(fileName != null);
@@ -324,13 +324,9 @@ public class Scanner {
 		t = new Token(); // dummy because t is a non-null field
 		buffer = new Buffer(s, true);
 		this.errorHandler = errorHandler;
-		this.Filename = useBaseName? GetBaseName(fileName) : fileName;
+		this.Filename = fileName;
 		Init();
 	}
-
-    string GetBaseName(string fileName) {
-        return System.IO.Path.GetFileName(fileName); // Return basename
-    }
 
 	void Init() {
 		pos = -1; line = 1; col = 0;

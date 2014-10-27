@@ -1089,10 +1089,6 @@ bool CloseOptionalBrace(bool usesOptionalBrace) {
 		if (la.kind == 15) {
 			BlockStmt(out body, out bodyStart, out bodyEnd);
 		}
-		if (Attributes.Contains(attrs, "axiom") && !mmod.IsGhost && !isLemma) {
-		  SemErr(t, "only ghost methods can have the :axiom attribute");
-		}
-		
 		if (DafnyOptions.O.DisallowSoundnessCheating && body == null && ens.Count > 0 && !Attributes.Contains(attrs, "axiom")) {
 		  SemErr(t, "a method with an ensures clause must have a body, unless given the :axiom attribute");
 		}
