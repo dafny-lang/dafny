@@ -74,6 +74,7 @@ namespace Microsoft.Dafny
     readonly BuiltIns builtIns;
 
     ModuleSignature moduleInfo = null;
+    int tempVarCount = 0;
 
     public Action<AdditionalInformation> AdditionalInformationReporter;
 
@@ -6427,22 +6428,35 @@ namespace Microsoft.Dafny
               if (!datatypeMembers[dt].TryGetValue(destructor_str, out member)) {
                 Error(expr, "member {0} does not exist in datatype {1}", destructor_str, dt.Name);
               } else {
-                // Rewrite an update of the form "dt[dtor := E]" to be "dtCtr(E, dt.dtor2, dt.dtor3,...)"
+                // Rewrite an update of the form "dt[dtor := E]" to be "let d' := dt in dtCtr(E, d'.dtor2, d'.dtor3,...)"
+                // Wrapping it in a let expr avoids exponential growth in the size of the expression
+
+                // Create a unique name for d', the variable we introduce in the let expression
+                string tmpName = string.Format("dt_update_tmp#{0}", this.tempVarCount);
+                this.tempVarCount += 1;
+                IdentifierExpr tmpVarIdExpr = new IdentifierExpr(e.Seq.tok, tmpName);
+                BoundVar tmpVarBv = new BoundVar(e.Seq.tok, tmpName, e.Seq.Type);
+
                 DatatypeDestructor destructor = (DatatypeDestructor)member;
                 DatatypeCtor ctor = destructor.EnclosingCtor;
 
+                // Build the arguments to the datatype constructor, using the updated value in the appropriate slot
                 List<Expression> ctor_args = new List<Expression>();
                 foreach (Formal d in ctor.Formals) {
                   if (d.Name == destructor.Name) {
                     ctor_args.Add(e.Value);
-                  } else {
-                    ctor_args.Add(new ExprDotName(expr.tok, e.Seq, d.Name));
+                  } else {                    
+                    ctor_args.Add(new ExprDotName(expr.tok, tmpVarIdExpr, d.Name));
                   }
                 }
 
                 DatatypeValue ctor_call = new DatatypeValue(expr.tok, ctor.EnclosingDatatype.Name, ctor.Name, ctor_args);
-                ResolveExpression(ctor_call, opts);
-                e.ResolvedUpdateExpr = ctor_call;
+
+                CasePattern tmpVarPat = new CasePattern(e.Seq.tok, tmpVarBv);
+                LetExpr let = new LetExpr(e.Seq.tok, new List<CasePattern>() { tmpVarPat }, new List<Expression>() { e.Seq }, ctor_call, true);
+
+                ResolveExpression(let, opts);
+                e.ResolvedUpdateExpr = let;
 
                 expr.Type = e.Seq.Type;
               }
