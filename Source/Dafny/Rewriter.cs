@@ -697,13 +697,13 @@ namespace Microsoft.Dafny
                 auto_reqs.AddRange(generateAutoReqs(req));
               }
               fn.Req.InsertRange(0, auto_reqs); // Need to come before the actual requires
-              addAutoReqToolTipInfo("pre", fn, auto_reqs);
+              addAutoReqToolTipInfoToFunction("pre", fn, auto_reqs);
 
               // Then the body itself, if any          
               if (fn.Body != null) {
                 auto_reqs = generateAutoReqs(fn.Body);
                 fn.Req.AddRange(auto_reqs);
-                addAutoReqToolTipInfo("post", fn, auto_reqs);
+                addAutoReqToolTipInfoToFunction("post", fn, auto_reqs);
               }
             } else {  // Opaque functions need special handling
               // The opaque function's requirements are the same as for the _FULL version,
@@ -727,7 +727,28 @@ namespace Microsoft.Dafny
               fn.Req.AddRange(new_reqs);
             }
           }
-        } 
+        }
+        else if (scComponent is Method)
+        {
+            Method method = (Method)scComponent;
+            if (Attributes.ContainsBoolAtAnyLevel(method, "autoReq"))
+            {
+                parentFunction = null;
+                containsMatch = false; // Assume no match statements are involved
+
+                List<MaybeFreeExpression> auto_reqs = new List<MaybeFreeExpression>();
+                foreach (MaybeFreeExpression req in method.Req)
+                {
+                    List<Expression> local_auto_reqs = generateAutoReqs(req.E);
+                    foreach (Expression local_auto_req in local_auto_reqs)
+                    {
+                        auto_reqs.Add(new MaybeFreeExpression(local_auto_req, req.IsFree));
+                    }
+                }
+                method.Req.InsertRange(0, auto_reqs); // Need to come before the actual requires
+                addAutoReqToolTipInfoToMethod("pre", method, auto_reqs);
+            }
+        }
       }
     }
 
@@ -749,7 +770,7 @@ namespace Microsoft.Dafny
       return sub.Substitute(e);
     }
 
-    public void addAutoReqToolTipInfo(string label, Function f, List<Expression> reqs) {
+    public void addAutoReqToolTipInfoToFunction(string label, Function f, List<Expression> reqs) {
       string prefix = "auto requires " + label + " ";
       string tip = "";
 
@@ -768,6 +789,33 @@ namespace Microsoft.Dafny
         if (DafnyOptions.O.AutoReqPrintFile != null) {
           using (System.IO.TextWriter writer = new System.IO.StreamWriter(DafnyOptions.O.AutoReqPrintFile, true)) {
             writer.WriteLine(f.Name);
+            writer.WriteLine("\t" + tip);
+          }
+        }
+      }
+    }
+
+    public void addAutoReqToolTipInfoToMethod(string label, Method method, List<MaybeFreeExpression> reqs) {
+      string tip = "";
+
+      foreach (var req in reqs) {
+        string prefix = "auto ";
+        if (req.IsFree) {
+          prefix += "free ";
+        }
+        prefix += " requires " + label + " ";
+        if (containsMatch) {  // Pretty print the requirements
+          tip += prefix + Printer.ExtendedExprToString(req.E) + ";\n";
+        } else {
+          tip += prefix + Printer.ExprToString(req.E) + ";\n";
+        }
+      }
+
+      if (!tip.Equals("")) {
+        resolver.ReportAdditionalInformation(method.tok, tip, method.tok.val.Length);
+        if (DafnyOptions.O.AutoReqPrintFile != null) {
+          using (System.IO.TextWriter writer = new System.IO.StreamWriter(DafnyOptions.O.AutoReqPrintFile, true)) {
+            writer.WriteLine(method.Name);
             writer.WriteLine("\t" + tip);
           }
         }
@@ -863,7 +911,7 @@ namespace Microsoft.Dafny
           reqs.AddRange(generateAutoReqs(arg));
         }
 
-        if (ModuleDefinition.InSameSCC(e.Function, parentFunction)) {
+        if (parentFunction != null && ModuleDefinition.InSameSCC(e.Function, parentFunction)) {
           // We're making a call within the same SCC, so don't descend into this function
         } else {
           reqs.AddRange(gatherReqs(e.Function, e.Args, e.Receiver));
