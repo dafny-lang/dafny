@@ -759,6 +759,12 @@ namespace Microsoft.Dafny
 
       if (!tip.Equals("")) {
         resolver.ReportAdditionalInformation(f.tok, tip, f.tok.val.Length);
+        if (DafnyOptions.O.AutoReqPrintFile != null) {
+          using (System.IO.TextWriter writer = new System.IO.StreamWriter(DafnyOptions.O.AutoReqPrintFile, true)) {
+            writer.WriteLine(f.Name);
+            writer.WriteLine("\t" + tip);
+          }
+        }
       }
     }
 
