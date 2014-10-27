@@ -2658,7 +2658,8 @@ namespace Microsoft.Dafny {
               } else {
                 substMap.Add(iv, ie);
               }
-            }
+            }            
+             
 
             // Generate a CallStmt for the recursive call
             Expression recursiveCallReceiver;
@@ -12018,6 +12019,25 @@ namespace Microsoft.Dafny {
       return splits;
     }
 
+    Bpl.Trigger TrTrigger(ExpressionTranslator etran, Attributes attribs, IToken tok, Dictionary<IVariable, Expression> substMap = null)
+    {      
+      Bpl.Trigger tr = null;
+      for (Attributes aa = attribs; aa != null; aa = aa.Prev) {
+        if (aa.Name == "trigger") {
+          List<Bpl.Expr> tt = new List<Bpl.Expr>();
+          foreach (var arg in aa.Args) {            
+            if (substMap == null) {
+              tt.Add(etran.TrExpr(arg));
+            } else {
+              tt.Add(etran.TrExpr(Substitute(arg, null, substMap)));
+            }
+          }
+          tr = new Bpl.Trigger(tok, true, tt, tr);
+        }
+      }
+      return tr;
+    }
+
     /// <summary>
     /// Tries to split the expression into tactical conjuncts (if "position") or disjuncts (if "!position").
     /// If a (necessarily boolean) function call appears as a top-level conjunct, then inline the function if
@@ -12287,7 +12307,6 @@ namespace Microsoft.Dafny {
             substMap.Add(n, ieK);
           }
           Expression bodyK = Substitute(e.LogicalBody(), null, substMap);
-
           Bpl.Expr less = DecreasesCheck(toks, types, types, kk, nn, null, null, false, true);
 
           Bpl.Expr ihBody = etran.TrExpr(bodyK);
@@ -12297,7 +12316,13 @@ namespace Microsoft.Dafny {
           ihBody = Bpl.Expr.Imp(less, ihBody);
           List<Variable> bvars = new List<Variable>();
           Bpl.Expr typeAntecedent = etran.TrBoundVariables(kvars, bvars);
-          Bpl.Expr ih = new Bpl.ForallExpr(expr.tok, bvars, Bpl.Expr.Imp(typeAntecedent, ihBody));
+          Bpl.Expr ih;
+          if (Attributes.Contains(e.Attributes, "trigger")) {
+            Bpl.Trigger tr = TrTrigger(etran, e.Attributes, expr.tok, substMap);
+            ih = new Bpl.ForallExpr(expr.tok, bvars, tr, Bpl.Expr.Imp(typeAntecedent, ihBody));
+          } else {
+            ih = new Bpl.ForallExpr(expr.tok, bvars, Bpl.Expr.Imp(typeAntecedent, ihBody));
+          }
 
           // More precisely now:
           //   (forall n :: n-has-expected-type && (forall k :: k < n ==> P(k)) && case0(n)   ==> P(n))
@@ -12329,7 +12354,12 @@ namespace Microsoft.Dafny {
             var bdy = etran.LayerOffset(1).TrExpr(e.LogicalBody());
             Bpl.Expr q;
             if (position) {
-              q = new Bpl.ForallExpr(kase.tok, bvars, Bpl.Expr.Imp(ante, bdy));
+              if (Attributes.Contains(e.Attributes, "trigger")) {
+                Bpl.Trigger tr = TrTrigger(etran, e.Attributes, expr.tok);               
+                q = new Bpl.ForallExpr(kase.tok, bvars, tr, Bpl.Expr.Imp(ante, bdy));
+              } else {
+                q = new Bpl.ForallExpr(kase.tok, bvars, Bpl.Expr.Imp(ante, bdy));
+              }
             } else {
               q = new Bpl.ExistsExpr(kase.tok, bvars, Bpl.Expr.And(ante, bdy));
             }
