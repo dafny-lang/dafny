@@ -689,43 +689,43 @@ namespace Microsoft.Dafny
             parentFunction = fn;  // Remember where the recursion started
             containsMatch = false;  // Assume no match statements are involved
 
-            List<Expression> auto_reqs = new List<Expression>();
+            if (!opaqueInfo.isOpaque(fn)) { // It's a normal function
+              List<Expression> auto_reqs = new List<Expression>();
 
-            // First handle all of the requirements' preconditions
-            foreach (Expression req in fn.Req) {
-              auto_reqs.AddRange(generateAutoReqs(req));
-            }
-            fn.Req.InsertRange(0, auto_reqs); // Need to come before the actual requires
-            addAutoReqToolTipInfo("pre", fn, auto_reqs);
+              // First handle all of the requirements' preconditions
+              foreach (Expression req in fn.Req) {
+                auto_reqs.AddRange(generateAutoReqs(req));
+              }
+              fn.Req.InsertRange(0, auto_reqs); // Need to come before the actual requires
+              addAutoReqToolTipInfo("pre", fn, auto_reqs);
 
-            // Then the body itself, if any
-            var body = fn.Body;
-            if (opaqueInfo.isOpaque(fn)) {  // Opaque functions don't have a body at this point, so use the original body
-              body = opaqueInfo.FullVersion(fn).Body;
-            }
+              // Then the body itself, if any          
+              if (fn.Body != null) {
+                auto_reqs = generateAutoReqs(fn.Body);
+                fn.Req.AddRange(auto_reqs);
+                addAutoReqToolTipInfo("post", fn, auto_reqs);
+              }
+            } else {  // Opaque functions need special handling
+              // The opaque function's requirements are the same as for the _FULL version,
+              // so we don't need to generate them again.  We do, however, need to swap
+              // the function's variables for those of the FULL version
 
-            if (body != null) {
-              auto_reqs = generateAutoReqs(body);
-
-              if (opaqueInfo.isOpaque(fn)) {  // We need to swap fn's variables in for fn_FULL's               
-                List<Expression> fnVars = new List<Expression>();
-                foreach (var formal in fn.Formals) {
-                  var id = new IdentifierExpr(formal.tok, formal.Name);
-                  id.Var = formal;  // resolve here
-                  id.Type = formal.Type;  // resolve here
-                  fnVars.Add(id);
-                }
-
-                var body_reqs = new List<Expression>();
-                foreach (var req in auto_reqs) {
-                  body_reqs.Add(subVars(opaqueInfo.FullVersion(fn).Formals, fnVars, req, null));
-                }
-                auto_reqs = body_reqs;
+              List<Expression> fnVars = new List<Expression>();
+              foreach (var formal in fn.Formals) {
+                var id = new IdentifierExpr(formal.tok, formal.Name);
+                id.Var = formal;  // resolve here
+                id.Type = formal.Type;  // resolve here
+                fnVars.Add(id);
               }
 
-              fn.Req.AddRange(auto_reqs);
-              addAutoReqToolTipInfo("post", fn, auto_reqs);
-            }          
+              var new_reqs = new List<Expression>();
+              foreach (var req in opaqueInfo.FullVersion(fn).Req) {
+                new_reqs.Add(subVars(opaqueInfo.FullVersion(fn).Formals, fnVars, req, null));
+              }
+
+              fn.Req.Clear();
+              fn.Req.AddRange(new_reqs);
+            }
           }
         } 
       }
