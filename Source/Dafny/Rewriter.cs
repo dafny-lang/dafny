@@ -988,6 +988,54 @@ namespace Microsoft.Dafny
       return reqs;
     }
   }
+
+
+
+  /// <summary>
+  /// Replace all occurrences of attribute {:timeLimitMultiplier X} with {:timeLimit Y}
+  /// where Y = X*default-time-limit or Y = X*command-line-time-limit
+  /// </summary>
+  public class TimeLimitRewriter : IRewriter
+  {
+    public void PreResolve(ModuleDefinition m) {
+      foreach (var d in m.TopLevelDecls) {
+        if (d is ClassDecl) {
+          var c = (ClassDecl)d;
+          foreach (MemberDecl member in c.Members)  {
+            if (member is Function || member is Method) {
+              // Check for the timeLimitMultiplier attribute
+              if (Attributes.Contains(member.Attributes, "timeLimitMultiplier")) {
+                Attributes attrs = member.Attributes;
+                for (; attrs != null; attrs = attrs.Prev) {
+                  if (attrs.Name == "timeLimitMultiplier") {
+                    if (attrs.Args.Count == 1 && attrs.Args[0] is LiteralExpr) {
+                      var arg = attrs.Args[0] as LiteralExpr;
+                      System.Numerics.BigInteger value = (System.Numerics.BigInteger)arg.Value;
+                      if (value.Sign > 0) {
+                        int current_limit = DafnyOptions.O.ProverKillTime > 0 ? DafnyOptions.O.ProverKillTime : 10;  // Default to 10 seconds
+                        attrs.Args[0] = new LiteralExpr(attrs.Args[0].tok, value * current_limit);
+                        attrs.Name = "timeLimit";
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+
+    public void PostResolve(ModuleDefinition m)
+    {
+      // Nothing to do here
+    }
+
+    public void PostCyclicityResolve(ModuleDefinition m) {
+      // Nothing to do here
+    }
+
+  }
 }
 
 

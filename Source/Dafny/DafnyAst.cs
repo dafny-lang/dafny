@@ -218,7 +218,7 @@ namespace Microsoft.Dafny {
       Contract.Invariant(cce.NonNullElements(Args));
     }
 
-    public readonly string Name;
+    public string Name;
     /*Frozen*/
     public readonly List<Expression> Args;
     public readonly Attributes Prev;

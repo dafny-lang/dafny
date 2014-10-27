@@ -205,6 +205,7 @@ namespace Microsoft.Dafny
       var opaqueRewriter = new OpaqueFunctionRewriter();
       rewriters.Add(new AutoReqFunctionRewriter(this, opaqueRewriter));
       rewriters.Add(opaqueRewriter);
+      rewriters.Add(new TimeLimitRewriter());
 
       systemNameInfo = RegisterTopLevelDecls(prog.BuiltIns.SystemModule, false);
       prog.CompileModules.Add(prog.BuiltIns.SystemModule);
