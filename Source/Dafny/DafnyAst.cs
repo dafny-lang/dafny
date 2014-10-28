@@ -4709,7 +4709,9 @@ namespace Microsoft.Dafny {
     }
 
     /// <summary>
-    /// Returns the non-null subexpressions of the Expression.
+    /// Returns the non-null subexpressions of the Expression.  To be called after the expression has been resolved; this
+    /// means, for example, that any concrete syntax that resolves to some other expression will return the subexpressions
+    /// of the resolved expression.
     /// </summary>
     public virtual IEnumerable<Expression> SubExpressions {
       get { yield break; }
@@ -5469,11 +5471,26 @@ namespace Microsoft.Dafny {
     }
   }
 
+  /// <summary>
+  /// Represents an expression of the form A[B := C], where, syntactically, A, B, and C are expressions.
+  /// Successfully resolved, the expression stands for one of the following:
+  /// * if A is a sequence, then B is an integer-based index into the sequence and C's type is the sequence element type
+  /// * if A is a map(T,U), then B is a key of type T and C is a value of type U
+  /// * if A is a multiset, then B's type is the multiset element type and C is an integer-based numeric
+  /// * if A is a datatype, then B is the name of a destructor of A's type and C's type is the type of that destructor -- in
+  ///   this case, the resolver will set the ResolvedUpdateExpr to an expression that constructs an appropriate datatype value
+  /// </summary>
   public class SeqUpdateExpr : Expression {
     public readonly Expression Seq;
     public readonly Expression Index;
     public readonly Expression Value;
-    public Expression ResolvedUpdateExpr;       // May be filled in during resolution
+    public Expression ResolvedUpdateExpr;       // filled in during resolution, if the SeqUpdateExpr corresponds to a datatype update
+    [ContractInvariantMethod]
+    void ObjectInvariant() {
+      Contract.Invariant(Seq != null);
+      Contract.Invariant(Index != null);
+      Contract.Invariant(Value != null);
+    }
 
     public SeqUpdateExpr(IToken tok, Expression seq, Expression index, Expression val)
       : base(tok) {
@@ -5484,7 +5501,6 @@ namespace Microsoft.Dafny {
       Seq = seq;
       Index = index;
       Value = val;
-      ResolvedUpdateExpr = null;
     }
 
     public override IEnumerable<Expression> SubExpressions {

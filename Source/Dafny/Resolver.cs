@@ -6459,7 +6459,7 @@ namespace Microsoft.Dafny
                 // Build the arguments to the datatype constructor, using the updated value in the appropriate slot
                 List<Expression> ctor_args = new List<Expression>();
                 foreach (Formal d in ctor.Formals) {
-                  if (d.Name == destructor.Name) {
+                  if (d == destructor.CorrespondingFormal) {
                     ctor_args.Add(e.Value);
                   } else {                    
                     ctor_args.Add(new ExprDotName(expr.tok, tmpVarIdExpr, d.Name));
@@ -8652,8 +8652,8 @@ namespace Microsoft.Dafny
       } else if (expr is SeqUpdateExpr) {
         SeqUpdateExpr e = (SeqUpdateExpr)expr;
         return UsesSpecFeatures(e.Seq) ||
-               (e.Index != null && UsesSpecFeatures(e.Index)) ||
-               (e.Value != null && UsesSpecFeatures(e.Value));
+               UsesSpecFeatures(e.Index) ||
+               UsesSpecFeatures(e.Value);
       } else if (expr is FunctionCallExpr) {
         FunctionCallExpr e = (FunctionCallExpr)expr;
         if (cce.NonNull(e.Function).IsGhost) {

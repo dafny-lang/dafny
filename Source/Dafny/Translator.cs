@@ -13022,18 +13022,14 @@ namespace Microsoft.Dafny {
           }
 
         } else if (expr is SeqUpdateExpr) {
-          SeqUpdateExpr sse = (SeqUpdateExpr)expr;
-          if (sse.ResolvedUpdateExpr != null)
-          {
-            newExpr = Substitute(sse.ResolvedUpdateExpr);
-          }
-          else
-          {
+          var sse = (SeqUpdateExpr)expr;
+          if (sse.ResolvedUpdateExpr != null) {
+            return Substitute(sse.ResolvedUpdateExpr);
+          } else {
             Expression seq = Substitute(sse.Seq);
             Expression index = Substitute(sse.Index);
             Expression val = Substitute(sse.Value);
-            if (seq != sse.Seq || index != sse.Index || val != sse.Value)
-            {
+            if (seq != sse.Seq || index != sse.Index || val != sse.Value) {
               newExpr = new SeqUpdateExpr(sse.tok, seq, index, val);
             }
           }
