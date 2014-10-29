@@ -335,7 +335,7 @@ module ArrayTypeMagic {
     return b[..];
   }
 
-  datatype ArrayCubeTree = Leaf(array3) | Node(ArrayCubeTree, ArrayCubeTree)
+  datatype ArrayCubeTree<T> = Leaf(array3) | Node(ArrayCubeTree, ArrayCubeTree)
   datatype AnotherACT<T> = Leaf(array3) | Node(AnotherACT, AnotherACT)
   datatype OneMoreACT<T,U> = Leaf(array3) | Node(OneMoreACT, OneMoreACT)
 

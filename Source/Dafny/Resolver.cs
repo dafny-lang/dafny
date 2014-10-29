@@ -3399,12 +3399,11 @@ namespace Microsoft.Dafny
       Contract.Requires(ctor != null);
       Contract.Requires(ctor.EnclosingDatatype != null);
       Contract.Requires(dtTypeArguments != null);
-      ResolveTypeOption option = dtTypeArguments.Count == 0 ? new ResolveTypeOption(ctor) : new ResolveTypeOption(ResolveTypeOptionEnum.AllowPrefix);
       foreach (Formal p in ctor.Formals) {
         // In the following, we pass in a NoContext, because any cycle formed by newtype constraints would have to
         // involve a non-null object in order to get to the field and its type, and there is no way in a newtype constraint
         // to obtain a non-null object.
-        ResolveType(p.tok, p.Type, new NoContext(ctor.EnclosingDatatype.Module), option, dtTypeArguments);
+        ResolveType(p.tok, p.Type, new NoContext(ctor.EnclosingDatatype.Module), ResolveTypeOptionEnum.AllowPrefix, dtTypeArguments);
       }
     }
 
@@ -3894,7 +3893,7 @@ namespace Microsoft.Dafny
               t.ResolvedClass = dd;
             } else {
               // d is a class or datatype, and it may have type parameters
-              what = "class/datatype";
+              what = isArrow ? "function type" : "class/datatype";
               t.ResolvedClass = d;
             }
             if (option.Opt == ResolveTypeOptionEnum.DontInfer) {
