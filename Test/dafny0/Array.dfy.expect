@@ -13,6 +13,14 @@ Execution trace:
 Array.dfy(51,20): Error: assertion violation
 Execution trace:
     (0,0): anon0
+    (0,0): anon12_Then
+    (0,0): anon13_Then
+    (0,0): anon14_Then
+    (0,0): anon6
+    (0,0): anon15_Then
+    (0,0): anon16_Then
+    (0,0): anon9
+    (0,0): anon11
 Array.dfy(59,8): Error: assignment may update an array element not in the enclosing context's modifies clause
 Execution trace:
     (0,0): anon0
@@ -104,4 +112,4 @@ Execution trace:
     (0,0): anon2
     (0,0): anon6_Then
 
-Dafny program verifier finished with 46 verified, 20 errors
+Dafny program verifier finished with 49 verified, 20 errors

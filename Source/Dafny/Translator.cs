@@ -9512,7 +9512,7 @@ namespace Microsoft.Dafny {
         // assume $nw != null && !$Heap[$nw, alloc] && dtype($nw) == RHS;
         Bpl.Expr nwNotNull = Bpl.Expr.Neq(nw, predef.Null);
         Bpl.Expr rightType;
-        rightType = etran.GoodRef_(tok, nw, tRhs.EType, true);
+        rightType = etran.GoodRef_(tok, nw, tRhs.Type, true);
         builder.Add(new Bpl.AssumeCmd(tok, Bpl.Expr.And(nwNotNull, rightType)));
         if (tRhs.ArrayDimensions != null) {
           int i = 0;
