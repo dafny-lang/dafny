@@ -26,6 +26,18 @@ namespace Microsoft.Dafny
 
     public static int Main(string[] args)
     {
+      int ret = 0;
+      var thread = new System.Threading.Thread(
+        new System.Threading.ThreadStart(() =>
+          { ret = ThreadMain(args); }),
+          0x10000000); // 256MB stack size to prevent stack overflow
+      thread.Start();
+      thread.Join();
+      return ret;
+    }
+
+    public static int ThreadMain(string[] args)
+    {
       Contract.Requires(cce.NonNullElements(args));
 
       printer = new DafnyConsolePrinter();
