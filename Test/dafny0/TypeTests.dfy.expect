@@ -1,3 +1,6 @@
+TypeTests.dfy(156,15): Error: incorrect type of datatype constructor argument (found ? -> ?, expected ? -> Dt<?>)
+TypeTests.dfy(162,15): Error: incorrect type of datatype constructor argument (found ? -> ?, expected ? -> Dt<?>)
+TypeTests.dfy(169,6): Error: RHS (of type set<?>) not assignable to LHS (of type ?)
 TypeTests.dfy(7,13): Error: incorrect type of function argument 0 (expected C, got D)
 TypeTests.dfy(7,13): Error: incorrect type of function argument 1 (expected D, got C)
 TypeTests.dfy(8,13): Error: incorrect type of function argument 0 (expected C, got int)
@@ -31,4 +34,4 @@ TypeTests.dfy(128,15): Error: ghost variables are allowed only in specification 
 TypeTests.dfy(138,4): Error: cannot assign to non-ghost variable in a ghost context
 TypeTests.dfy(139,7): Error: cannot assign to non-ghost variable in a ghost context
 TypeTests.dfy(21,9): Error: because of cyclic dependencies among constructor argument types, no instances of datatype 'NeverendingList' can be constructed
-33 resolution/type errors detected in TypeTests.dfy
+36 resolution/type errors detected in TypeTests.dfy

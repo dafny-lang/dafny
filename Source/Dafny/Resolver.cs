@@ -4162,9 +4162,32 @@ namespace Microsoft.Dafny
       if (t is NatType) {
         proxy.T = Type.Int;
       } else {
-        proxy.T = t;
+        return AssignProxyAfterCycleCheck(proxy, t);
       }
       return true;
+    }
+
+    bool AssignProxyAfterCycleCheck(TypeProxy proxy, Type t) {
+      Contract.Requires(proxy != null && proxy.T == null);
+      Contract.Requires(t != null);
+      if (TypeArgumentsIncludeProxy(t, proxy)) {
+        return false;
+      } else {
+        proxy.T = t;
+        return true;
+      }
+    }
+
+    bool TypeArgumentsIncludeProxy(Type t, TypeProxy proxy) {
+      Contract.Requires(t != null);
+      Contract.Requires(proxy != null);
+      foreach (var ta in t.TypeArgs) {
+        var a = ta.Normalize();
+        if (a == proxy || TypeArgumentsIncludeProxy(a, proxy)) {
+          return true;
+        }
+      }
+      return false;
     }
 
     bool AssignRestrictedProxies(RestrictedTypeProxy a, RestrictedTypeProxy b) {
@@ -4195,9 +4218,8 @@ namespace Microsoft.Dafny
           // Note, we're calling ResolvedArrayType here, which in turn calls ResolveType on ib.Arg.  However, we
           // don't need to worry about what ICodeContext we're passing in, because ib.Arg should already have been
           // resolved.
-          a.T = ResolvedArrayType(Token.NoToken, 1, ib.Arg, new DontUseICallable());
-          b.T = a.T;
-          return UnifyTypes(ib.Arg, ib.Range);
+          var c = ResolvedArrayType(Token.NoToken, 1, ib.Arg, new DontUseICallable());
+          return AssignProxyAfterCycleCheck(a, c) && AssignProxyAfterCycleCheck(b, c) && UnifyTypes(ib.Arg, ib.Range);
         } else {
           return false;
         }
@@ -4212,8 +4234,8 @@ namespace Microsoft.Dafny
             b.T = a;  // a is a stronger constraint than b
           } else {
             // a says set<T>,seq<T> and b says numeric,set; the intersection is set<T>
-            a.T = new SetType(((CollectionTypeProxy)a).Arg);
-            b.T = a.T;
+            var c = new SetType(((CollectionTypeProxy)a).Arg);
+            return AssignProxyAfterCycleCheck(a, c) && AssignProxyAfterCycleCheck(b, c);
           }
           return true;
         } else if (b is IndexableTypeProxy) {
@@ -4256,8 +4278,9 @@ namespace Microsoft.Dafny
             a.T = b;  // b has the stronger requirement
           } else {
             Type c = !i && !r && h && !q && !s ? new CharType() : (Type)new OperationTypeProxy(i, r, h, q, s);
-            a.T = c;
-            b.T = c;
+            // the calls to AssignProxyAfterCycleCheck are needed only when c is a non-proxy type, but it doesn't
+            // hurt to do them in both cases
+            return AssignProxyAfterCycleCheck(a, c) && AssignProxyAfterCycleCheck(b, c);
           }
           return true;
         } else {
@@ -4267,14 +4290,12 @@ namespace Microsoft.Dafny
           // So, the intersection could include multiset and seq.
           if (pa.AllowSetVarieties && !pa.AllowSeq) {
             // strengthen a and b to a multiset type
-            b.T = new MultiSetType(ib.Arg);
-            a.T = b.T;
-            return true;
+            var c = new MultiSetType(ib.Arg);
+            return AssignProxyAfterCycleCheck(a, c) && AssignProxyAfterCycleCheck(b, c);
           } else if (pa.AllowSeq && !pa.AllowSetVarieties) {
             // strengthen a and b to a sequence type
-            b.T = new SeqType(ib.Arg);
-            a.T = b.T;
-            return true;
+            var c = new SeqType(ib.Arg);
+            return AssignProxyAfterCycleCheck(a, c) && AssignProxyAfterCycleCheck(b, c);
           } else if (!pa.AllowSeq && !pa.AllowSetVarieties) {
             // over-constrained
             return false;
