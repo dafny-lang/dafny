@@ -5111,6 +5111,7 @@ namespace Microsoft.Dafny
       var update = s as UpdateStmt;
 
       var lhsNameSet = new HashSet<string>();  // used to check for duplicate identifiers on the left (full duplication checking for references and the like is done during verification)
+      var i = 0;
       foreach (var lhs in s.Lhss) {
         var ec = ErrorCount;
         ResolveExpression(lhs, new ResolveOpts(codeContext, true));
@@ -5120,14 +5121,6 @@ namespace Microsoft.Dafny
           }
           if (lhs is SeqSelectExpr && !((SeqSelectExpr)lhs).SelectOne) {
             Error(lhs, "cannot assign to a range of array elements (try the 'forall' statement)");
-          }
-          var ie = lhs.Resolved as IdentifierExpr;
-          if (ie != null) {
-            if (lhsNameSet.Contains(ie.Name)) {
-              Error(update, "duplicate variable in left-hand side of call statement: {0}", ie.Name);
-            } else {
-              lhsNameSet.Add(ie.Name);
-            }
           }
         }
       }

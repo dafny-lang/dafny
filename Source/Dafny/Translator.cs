@@ -6964,7 +6964,7 @@ namespace Microsoft.Dafny {
           // ProcessLhss has laid down framing conditions and the ProcessUpdateAssignRhss will check subranges (nats),
           // but we need to generate the distinctness condition (two LHS are equal only when the RHS is also
           // equal). We need both the LHS and the RHS to do this, which is why we need to do it here.
-          CheckLhssDistinctness(finalRhss, lhss, builder, etran, lhsObjs, lhsFields, lhsNames);
+          CheckLhssDistinctness(finalRhss, s.Rhss, lhss, builder, etran, lhsObjs, lhsFields, lhsNames);
           // Now actually perform the assignments to the LHS.
           for (int i = 0; i < lhss.Count; i++) {
             lhsBuilder[i](finalRhss[i], builder, etran);
@@ -7491,9 +7491,9 @@ namespace Microsoft.Dafny {
       //     assume Range[x,y := x',y'];
       //     assume !(x == x' && y == y');
       //     (a)
-      //       assert E(x,y) != E(x',y');
+      //       assert E(x,y) != E(x',y') || G(x,y) == G(x',y');
       //     (b)
-      //       assert !( A(x,y)==A(x',y') && I0(x,y)==I0(x',y') && I1(x,y)==I1(x',y') && ... );
+      //       assert !( A(x,y)==A(x',y') && I0(x,y)==I0(x',y') && I1(x,y)==I1(x',y') && ... ) || G(x,y) == G(x',y');
       //
       //     assume false;
       //
@@ -7566,24 +7566,31 @@ namespace Microsoft.Dafny {
       }
 
       // check for duplicate LHSs
-      var substMapPrime = SetupBoundVarsAsLocals(s.BoundVars, definedness, locals, etran);
-      var lhsPrime = Substitute(s0.Lhs.Resolved, null, substMapPrime);
-      range = Substitute(s.Range, null, substMapPrime);
-      definedness.Add(new Bpl.AssumeCmd(range.tok, etran.TrExpr(range)));
-      // assume !(x == x' && y == y');
-      Bpl.Expr eqs = Bpl.Expr.True;
-      foreach (var bv in s.BoundVars) {
-        var x = substMap[bv];
-        var xPrime = substMapPrime[bv];
-        // TODO: in the following line, is the term equality okay, or does it have to include things like Set#Equal sometimes too?
-        eqs = BplAnd(eqs, Bpl.Expr.Eq(etran.TrExpr(x), etran.TrExpr(xPrime)));
+      if (s0.Rhs is ExprRhs) {  // if Rhs denotes a havoc, then no duplicate check is performed
+        var substMapPrime = SetupBoundVarsAsLocals(s.BoundVars, definedness, locals, etran);
+        var lhsPrime = Substitute(s0.Lhs.Resolved, null, substMapPrime);
+        range = Substitute(s.Range, null, substMapPrime);
+        definedness.Add(new Bpl.AssumeCmd(range.tok, etran.TrExpr(range)));
+        // assume !(x == x' && y == y');
+        Bpl.Expr eqs = Bpl.Expr.True;
+        foreach (var bv in s.BoundVars) {
+          var x = substMap[bv];
+          var xPrime = substMapPrime[bv];
+          // TODO: in the following line, is the term equality okay, or does it have to include things like Set#Equal sometimes too?
+          eqs = BplAnd(eqs, Bpl.Expr.Eq(etran.TrExpr(x), etran.TrExpr(xPrime)));
+        }
+        definedness.Add(new Bpl.AssumeCmd(s.Tok, Bpl.Expr.Not(eqs)));
+        Bpl.Expr objPrime, FPrime;
+        GetObjFieldDetails(lhsPrime, etran, out objPrime, out FPrime);
+        var Rhs = ((ExprRhs)s0.Rhs).Expr;
+        var rhs = etran.TrExpr(Substitute(Rhs, null, substMap));
+        var rhsPrime = etran.TrExpr(Substitute(Rhs, null, substMapPrime));
+        definedness.Add(Assert(s0.Tok,
+          Bpl.Expr.Or(
+            Bpl.Expr.Or(Bpl.Expr.Neq(obj, objPrime), Bpl.Expr.Neq(F, FPrime)),
+            Bpl.Expr.Eq(rhs, rhsPrime)),
+          "left-hand sides for different forall-statement bound variables may refer to the same location"));
       }
-      definedness.Add(new Bpl.AssumeCmd(s.Tok, Bpl.Expr.Not(eqs)));
-      Bpl.Expr objPrime, FPrime;
-      GetObjFieldDetails(lhsPrime, etran, out objPrime, out FPrime);
-      definedness.Add(Assert(s0.Tok,
-        Bpl.Expr.Or(Bpl.Expr.Neq(obj, objPrime), Bpl.Expr.Neq(F, FPrime)),
-        "left-hand sides for different forall-statement bound variables may refer to the same location"));
 
       definedness.Add(new Bpl.AssumeCmd(s.Tok, Bpl.Expr.False));
 
@@ -9230,9 +9237,14 @@ namespace Microsoft.Dafny {
     }
 
 
-    private void CheckLhssDistinctness(List<Bpl.IdentifierExpr> rhs, List<Expression> lhss, StmtListBuilder builder, ExpressionTranslator etran,
+    private void CheckLhssDistinctness(List<Bpl.IdentifierExpr> rhs, List<AssignmentRhs> rhsOriginal, List<Expression> lhss,
+      StmtListBuilder builder, ExpressionTranslator etran,
       Bpl.Expr[] objs, Bpl.Expr[] fields, string[] names) {
-      Contract.Requires(cce.NonNullElements(lhss));
+      Contract.Requires(rhs != null);
+      Contract.Requires(rhsOriginal != null);
+      Contract.Requires(lhss != null);
+      Contract.Requires(rhs.Count == rhsOriginal.Count);
+      Contract.Requires(lhss.Count == rhsOriginal.Count);
       Contract.Requires(builder != null);
       Contract.Requires(etran != null);
       Contract.Requires(predef != null);
@@ -9240,10 +9252,14 @@ namespace Microsoft.Dafny {
       for (int i = 0; i < lhss.Count; i++) {
         var lhs = lhss[i];
         Contract.Assume(!(lhs is ConcreteSyntaxExpression));
+        if (rhsOriginal[i] is HavocRhs) {
+          continue;
+        }
         IToken tok = lhs.tok;
 
         if (lhs is IdentifierExpr) {
           for (int j = 0; j < i; j++) {
+            if (rhsOriginal[j] is HavocRhs) { continue; }
             var prev = lhss[j] as IdentifierExpr;
             if (prev != null && names[i] == names[j]) {
               builder.Add(Assert(tok, Bpl.Expr.Imp(Bpl.Expr.True, Bpl.Expr.Eq(rhs[i], rhs[j])), string.Format("when left-hand sides {0} and {1} refer to the same location, they must be assigned the same value", j, i)));
@@ -9253,6 +9269,7 @@ namespace Microsoft.Dafny {
           var fse = (MemberSelectExpr)lhs;
           // check that this LHS is not the same as any previous LHSs
           for (int j = 0; j < i; j++) {
+            if (rhsOriginal[j] is HavocRhs) { continue; }
             var prev = lhss[j] as MemberSelectExpr;
             var field = fse.Member as Field;
             Contract.Assert(field != null);
@@ -9265,6 +9282,7 @@ namespace Microsoft.Dafny {
           SeqSelectExpr sel = (SeqSelectExpr)lhs;
           // check that this LHS is not the same as any previous LHSs
           for (int j = 0; j < i; j++) {
+            if (rhsOriginal[j] is HavocRhs) { continue; }
             var prev = lhss[j] as SeqSelectExpr;
             if (prev != null) {
               builder.Add(Assert(tok,
@@ -9276,6 +9294,7 @@ namespace Microsoft.Dafny {
           MultiSelectExpr mse = (MultiSelectExpr)lhs;
           // check that this LHS is not the same as any previous LHSs
           for (int j = 0; j < i; j++) {
+            if (rhsOriginal[j] is HavocRhs) { continue; }
             var prev = lhss[j] as MultiSelectExpr;
             if (prev != null) {
               builder.Add(Assert(tok,
