@@ -4354,10 +4354,11 @@ namespace Microsoft.Dafny
     public void ResolveStatement(Statement stmt, bool specContextOnly, ICodeContext codeContext) {
       Contract.Requires(stmt != null);
       Contract.Requires(codeContext != null);
-      ResolveAttributes(stmt.Attributes, new ResolveOpts(codeContext, true));
+      if (!(stmt is ForallStmt)) {  // forall statements do their own attribute resolution below
+        ResolveAttributes(stmt.Attributes, new ResolveOpts(codeContext, true));
+      }
       if (stmt is PredicateStmt) {
         PredicateStmt s = (PredicateStmt)stmt;
-        ResolveAttributes(s.Attributes, new ResolveOpts(codeContext, false));
         s.IsGhost = true;
         ResolveExpression(s.Expr, new ResolveOpts(codeContext, true));
         Contract.Assert(s.Expr.Type != null);  // follows from postcondition of ResolveExpression
@@ -4513,6 +4514,10 @@ namespace Microsoft.Dafny
           if (!scope.Push(local.Name, local)) {
             Error(local.Tok, "Duplicate local-variable name: {0}", local.Name);
           }
+        }
+        // With the new locals in scope, it's now time to resolve the attributes on all the locals
+        foreach (var local in s.Locals) {
+          ResolveAttributes(local.Attributes, new ResolveOpts(codeContext, true));
         }
         // Resolve the AssignSuchThatStmt, if any
         if (s.Update is AssignSuchThatStmt) {
