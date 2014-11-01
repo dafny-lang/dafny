@@ -1120,6 +1120,11 @@ namespace Microsoft.Dafny {
           if (s.Body == null) {
             compiler.Error("a forall statement without a body cannot be compiled (line {0})", stmt.Tok.line);
           }
+        } else if (stmt is WhileStmt) {
+          var s = (WhileStmt)stmt;
+          if (s.Body == null) {
+            compiler.Error("a while statement without a body cannot be compiled (line {0})", stmt.Tok.line);
+          }
         }
       }
     }
@@ -1388,6 +1393,9 @@ namespace Microsoft.Dafny {
 
       } else if (stmt is WhileStmt) {
         WhileStmt s = (WhileStmt)stmt;
+        if (s.Body == null) {
+          return;
+        }
         if (s.Guard == null) {
           Indent(indent);
           wr.WriteLine("while (false) { }");
@@ -2515,7 +2523,7 @@ namespace Microsoft.Dafny {
             var rhsName = string.Format("_pat_let{0}_{1}", GetUniqueAstNumber(e), i);
             wr.Write("Dafny.Helpers.Let<");
             wr.Write(TypeName(e.RHSs[i].Type) + "," + TypeName(e.Body.Type));
-            wr.Write(">("); 
+            wr.Write(">(");
             TrExpr(e.RHSs[i]);
             wr.Write(", " + rhsName + " => ");
             neededCloseParens++;

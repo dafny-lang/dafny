@@ -1407,6 +1407,7 @@ WhileStmt<out Statement/*!*/ stmt>
      IToken bodyStart = null, bodyEnd = null, endTok = Token.NoToken;
      List<GuardedAlternative> alternatives;
      stmt = dummyStmt;  // to please the compiler
+     bool isDirtyLoop = true;
   .)
   "while"                    (. x = t; .)
   (
@@ -1419,22 +1420,24 @@ WhileStmt<out Statement/*!*/ stmt>
     | "..."                      (. guardEllipsis = t; .)
     )
     LoopSpec<out invariants, out decreases, out mod, ref decAttrs, ref modAttrs>
-    ( BlockStmt<out body, out bodyStart, out bodyEnd>  (. endTok = body.EndTok; .)
-    | "..."                      (. bodyEllipsis = t; endTok = t; .)
-    )
+    [ BlockStmt<out body, out bodyStart, out bodyEnd>  (. endTok = body.EndTok; isDirtyLoop = false; .)
+    | "..."                      (. bodyEllipsis = t; endTok = t; isDirtyLoop = false; .)
+    ]
     (.
       if (guardEllipsis != null || bodyEllipsis != null) {
         if (mod != null) {
           SemErr(mod[0].E.tok, "'modifies' clauses are not allowed on refining loops");
         }
-        if (body == null) {
+        if (body == null && !isDirtyLoop) {
           body = new BlockStmt(x, endTok, new List<Statement>());
         }
         stmt = new WhileStmt(x, endTok, guard, invariants, new Specification<Expression>(decreases, decAttrs), new Specification<FrameExpression>(null, null), body);
         stmt = new SkeletonStatement(stmt, guardEllipsis, bodyEllipsis);
       } else {
         // The following statement protects against crashes in case of parsing errors
-        body = body ?? new BlockStmt(x, endTok, new List<Statement>());
+        if (body == null && !isDirtyLoop) {
+          body = new BlockStmt(x, endTok, new List<Statement>());
+        }
         stmt = new WhileStmt(x, endTok, guard, invariants, new Specification<Expression>(decreases, decAttrs), new Specification<FrameExpression>(mod, modAttrs), body);
       }
     .)

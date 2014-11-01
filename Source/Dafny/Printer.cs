@@ -595,7 +595,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    internal void PrintDecreasesSpec(Specification<Expression> decs, int indent) {
+    internal void PrintDecreasesSpec(Specification<Expression> decs, int indent, bool newLine = true) {
       Contract.Requires(decs != null);
       if (printMode == DafnyOptions.PrintModes.NoGhost) { return; }
       if (decs.Expressions != null && decs.Expressions.Count != 0) {
@@ -607,11 +607,15 @@ namespace Microsoft.Dafny {
         }
         wr.Write(" ");
         PrintExpressionList(decs.Expressions, true);
-        wr.WriteLine(";");
+        if (newLine) {
+          wr.WriteLine(";");
+        } else {
+          wr.Write(";");
+        }
       }
     }
 
-    internal void PrintFrameSpecLine(string kind, List<FrameExpression/*!*/> ee, int indent, Attributes attrs) {
+    internal void PrintFrameSpecLine(string kind, List<FrameExpression/*!*/> ee, int indent, Attributes attrs, bool newLine = true) {
       Contract.Requires(kind != null);
       Contract.Requires(cce.NonNullElements(ee));
       if (ee != null && ee.Count != 0) {
@@ -622,7 +626,11 @@ namespace Microsoft.Dafny {
         }
         wr.Write(" ");
         PrintFrameExpressionList(ee);
-        wr.WriteLine(";");
+        if (newLine) {
+          wr.WriteLine(";");
+        } else {
+          wr.Write(";");
+        }
       }
     }
 
@@ -1047,15 +1055,15 @@ namespace Microsoft.Dafny {
         wr.WriteLine();
       }
 
-      PrintSpec("invariant", s.Invariants, indent + IndentAmount);
-      PrintDecreasesSpec(s.Decreases, indent + IndentAmount);
+      PrintSpec("invariant", s.Invariants, indent + IndentAmount, s.Body != null || omitBody || (s.Decreases.Expressions != null && s.Decreases.Expressions.Count != 0) || (s.Mod.Expressions != null && s.Mod.Expressions.Count != 0));
+      PrintDecreasesSpec(s.Decreases, indent + IndentAmount, s.Body != null || omitBody || (s.Mod.Expressions != null && s.Mod.Expressions.Count != 0));
       if (s.Mod.Expressions != null) {
-        PrintFrameSpecLine("modifies", s.Mod.Expressions, indent + IndentAmount, s.Mod.HasAttributes() ? s.Mod.Attributes : null);
+        PrintFrameSpecLine("modifies", s.Mod.Expressions, indent + IndentAmount, s.Mod.HasAttributes() ? s.Mod.Attributes : null, s.Body != null || omitBody);
       }
       Indent(indent);
       if (omitBody) {
         wr.WriteLine("...;");
-      } else {
+      } else if (s.Body != null) {
         PrintStatement(s.Body, indent);
       }
     }
@@ -1414,7 +1422,7 @@ namespace Microsoft.Dafny {
         var e = (ApplyExpr)expr;
         // determine if parens are needed
         int opBindingStrength = 0x70;
-        bool parensNeeded = 
+        bool parensNeeded =
           opBindingStrength < contextBindingStrength ||
           (fragileContext && opBindingStrength == contextBindingStrength);
 
@@ -1424,7 +1432,7 @@ namespace Microsoft.Dafny {
         wr.Write("(");
         PrintExpressionList(e.Args, false);
         wr.Write(")");
-        
+
         if (parensNeeded) { wr.Write(")"); }
 
       } else if (expr is FunctionCallExpr) {
@@ -1453,7 +1461,7 @@ namespace Microsoft.Dafny {
           PrintActualArguments(e.Args, e.Name);
         }
         if (parensNeeded) { wr.Write(")"); }
- 
+
       } else if (expr is OldExpr) {
         wr.Write("old(");
         PrintExpression(((OldExpr)expr).E, false);
@@ -1660,7 +1668,7 @@ namespace Microsoft.Dafny {
         bool parensNeeded = !isRightmost;
         if (parensNeeded) { wr.Write("("); }
         wr.Write(e is ForallExpr ? "forall" : "exists");
-        PrintTypeParams(e.TypeArgs); // new! 
+        PrintTypeParams(e.TypeArgs); // new!
         wr.Write(" ");
         PrintQuantifierDomain(e.BoundVars, e.Attributes, e.Range);
         wr.Write(" :: ");
@@ -1716,7 +1724,7 @@ namespace Microsoft.Dafny {
         wr.Write(" :: ");
         PrintExpression(e.Term, !parensNeeded && isFollowedBySemicolon);
         if (parensNeeded) { wr.Write(")"); }
-       
+
       } else if (expr is LambdaExpr) {
         var e = (LambdaExpr)expr;
         wr.Write("(");
