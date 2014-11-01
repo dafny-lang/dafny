@@ -9119,18 +9119,6 @@ namespace Microsoft.Dafny {
       }
     }
 
-    Bpl.Expr GetBoolBoxCondition(Expr box, Type type) {
-      Contract.Requires(box != null);
-      Contract.Requires(type != null);
-      Contract.Ensures(Contract.Result<Bpl.Expr>() != null);
-
-      if (type.IsBoolType) {
-        return FunctionCall(box.tok, BuiltinFunction.IsCanonicalBoolBox, null, box);
-      } else {
-        return Bpl.Expr.True;
-      }
-    }
-
     /// <summary>
     /// "lhs" is expected to be a resolved form of an expression, i.e., not a conrete-syntax expression.
     /// </summary>
@@ -11533,7 +11521,6 @@ namespace Microsoft.Dafny {
 
       Box,
       Unbox,
-      IsCanonicalBoolBox,
 
       RealToInt,
       IntToReal,
@@ -11855,10 +11842,6 @@ namespace Microsoft.Dafny {
           Contract.Assert(args.Length == 1);
           Contract.Assert(typeInstantiation != null);
           return Bpl.Expr.CoerceType(tok, FunctionCall(tok, "$Unbox", typeInstantiation, args), typeInstantiation);
-        case BuiltinFunction.IsCanonicalBoolBox:
-          Contract.Assert(args.Length == 1);
-          Contract.Assert(typeInstantiation == null);
-          return FunctionCall(tok, "$IsCanonicalBoolBox", Bpl.Type.Bool, args);
 
         case BuiltinFunction.RealToInt:
           Contract.Assume(args.Length == 1);
