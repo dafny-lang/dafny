@@ -872,7 +872,10 @@ axiom (forall<T> s: Seq T, n: int :: { Seq#Length(Seq#Take(s,n)) }
   0 <= n ==>
     (n <= Seq#Length(s) ==> Seq#Length(Seq#Take(s,n)) == n) &&
     (Seq#Length(s) < n ==> Seq#Length(Seq#Take(s,n)) == Seq#Length(s)));
-axiom (forall<T> s: Seq T, n: int, j: int :: { Seq#Index(Seq#Take(s,n), j) } {:weight 25}
+axiom (forall<T> s: Seq T, n: int, j: int ::
+  {:weight 25}
+  { Seq#Index(Seq#Take(s,n), j) }
+  { Seq#Index(s, j), Seq#Take(s,n) }
   0 <= j && j < n && j < Seq#Length(s) ==>
     Seq#Index(Seq#Take(s,n), j) == Seq#Index(s, j));
 
@@ -881,9 +884,16 @@ axiom (forall<T> s: Seq T, n: int :: { Seq#Length(Seq#Drop(s,n)) }
   0 <= n ==>
     (n <= Seq#Length(s) ==> Seq#Length(Seq#Drop(s,n)) == Seq#Length(s) - n) &&
     (Seq#Length(s) < n ==> Seq#Length(Seq#Drop(s,n)) == 0));
-axiom (forall<T> s: Seq T, n: int, j: int :: { Seq#Index(Seq#Drop(s,n), j) } {:weight 25}
+axiom (forall<T> s: Seq T, n: int, j: int ::
+  {:weight 25}
+  { Seq#Index(Seq#Drop(s,n), j) }
   0 <= n && 0 <= j && j < Seq#Length(s)-n ==>
     Seq#Index(Seq#Drop(s,n), j) == Seq#Index(s, j+n));
+axiom (forall<T> s: Seq T, n: int, k: int ::
+  {:weight 25}
+  { Seq#Index(s, k), Seq#Drop(s,n) }
+  0 <= n && n <= k && k < Seq#Length(s) ==>
+    Seq#Index(Seq#Drop(s,n), k-n) == Seq#Index(s, k));
 
 axiom (forall<T> s, t: Seq T ::
   { Seq#Append(s, t) }
@@ -894,9 +904,18 @@ function Seq#FromArray(h: Heap, a: ref): Seq Box;
 axiom (forall h: Heap, a: ref ::
   { Seq#Length(Seq#FromArray(h,a)) }
   Seq#Length(Seq#FromArray(h, a)) == _System.array.Length(a));
-axiom (forall h: Heap, a: ref, i: int ::
-  { Seq#Index(Seq#FromArray(h, a): Seq Box, i) }
-  0 <= i && i < Seq#Length(Seq#FromArray(h, a)) ==> Seq#Index(Seq#FromArray(h, a), i) == read(h, a, IndexField(i)));
+axiom (forall h: Heap, a: ref :: 
+  { Seq#FromArray(h, a) } 
+  (forall i: int ::
+    // it's important to include both triggers, so that assertions about the
+    // the relation between the array and the sequence can be proved in either
+    // direction
+    { read(h, a, IndexField(i)) }
+    { Seq#Index(Seq#FromArray(h, a): Seq Box, i) } 
+    0 <= i &&
+    i < Seq#Length(Seq#FromArray(h, a))  // this will trigger the previous axiom to get a connection with _System.array.Length(a)
+    ==>
+    Seq#Index(Seq#FromArray(h, a), i) == read(h, a, IndexField(i))));
 axiom (forall h0, h1: Heap, a: ref ::
   { Seq#FromArray(h1, a), $HeapSucc(h0, h1) }
   $IsGoodHeap(h0) && $IsGoodHeap(h1) && $HeapSucc(h0, h1) &&
