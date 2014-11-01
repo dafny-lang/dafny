@@ -151,7 +151,7 @@ namespace Microsoft.Dafny
     readonly Graph<ModuleDecl> dependencies = new Graph<ModuleDecl>();
     private ModuleSignature systemNameInfo = null;
     private bool useCompileSignatures = false;
-    private RefinementTransformer refinementTransformer = null; 
+    private RefinementTransformer refinementTransformer = null;
 
     public Resolver(Program prog) {
       Contract.Requires(prog != null);
@@ -502,17 +502,17 @@ namespace Microsoft.Dafny
         var obj = new IdentifierExpr(e.tok, oVar.Name) { Type = oVar.Type, Var = oVar };
         bvars.Add(oVar);
 
-        return 
+        return
           new SetComprehension(e.tok, bvars,
             new BinaryExpr(e.tok, BinaryExpr.Opcode.In, obj,
-              new ApplyExpr(e.tok, e.tok, e, bexprs) 
+              new ApplyExpr(e.tok, e.tok, e, bexprs)
               {
                 Type = new SetType(new ObjectType())
-              }) 
+              })
             {
               ResolvedOp = BinaryExpr.ResolvedOpcode.InSet,
               Type = Type.Bool
-            }, obj) 
+            }, obj)
           {
             Type = new SetType(new ObjectType())
           };
@@ -1212,7 +1212,7 @@ namespace Microsoft.Dafny
       int prevErrorCount = ErrorCount;
 
       // Resolve the meat of classes and iterators, the definitions of type synonyms, and the type parameters of all top-level type declarations
-      // First, resolve the newtype declarations and the constraint clauses, including filling in .ResolvedOp fields.  This is needed for the 
+      // First, resolve the newtype declarations and the constraint clauses, including filling in .ResolvedOp fields.  This is needed for the
       // resolution of the other declarations, because those other declarations may invoke DiscoverBounds, which looks at the .Constraint field
       // of any newtypes involved.  DiscoverBounds is called on quantifiers (but only in non-ghost contexts) and set comprehensions (in all
       // contexts).  The constraints of newtypes are ghost, so DiscoverBounds is not going to be called on any quantifiers they may contain.
@@ -1497,7 +1497,7 @@ namespace Microsoft.Dafny
                         if (InferRequiredEqualitySupport(tp, p.Type)) {
                           tp.EqualitySupport = TypeParameter.EqualitySupportValue.InferredRequired;
                           done = true;
-                          break; 
+                          break;
                         }
                       }
                       foreach (var p in m.Outs) {
@@ -2027,7 +2027,10 @@ namespace Microsoft.Dafny
         return status;
       } else if (stmt is WhileStmt) {
         var s = (WhileStmt)stmt;
-        var status = CheckTailRecursive(s.Body, enclosingMethod, ref tailCall, reportErrors);
+        var status = TailRecursionStatus.NotTailRecursive;
+        if (s.Body != null) {
+          status = CheckTailRecursive(s.Body, enclosingMethod, ref tailCall, reportErrors);
+        }
         if (status != TailRecursionStatus.CanBeFollowedByAnything) {
           if (status == TailRecursionStatus.NotTailRecursive) {
             // an error has already been reported
@@ -2295,7 +2298,10 @@ namespace Microsoft.Dafny
           if (s.Guard != null) {
             Visit(s.Guard, st);
           }
-          Visit(s.Body, st);
+          // don't recurse on the body, if it's a dirty loop
+          if (s.Body != null) {
+            Visit(s.Body, st);
+          }
           return false;
         } else if (stmt is AlternativeLoopStmt) {
           var s = (AlternativeLoopStmt)stmt;
@@ -2364,7 +2370,7 @@ namespace Microsoft.Dafny
                 Error(e.E0, "{0} can only be applied to expressions of types that support equality (got {1}){2}", BinaryExpr.OpcodeString(e.Op), t0, TypeEqualityErrorMessageHint(t0));
               } else if (!t1.SupportsEquality) {
                 Error(e.E1, "{0} can only be applied to expressions of types that support equality (got {1}){2}", BinaryExpr.OpcodeString(e.Op), t1, TypeEqualityErrorMessageHint(t1));
-              } 
+              }
               break;
             default:
               switch (e.ResolvedOp) {
@@ -3888,7 +3894,7 @@ namespace Microsoft.Dafny
                   // detect self-loops here, since they don't show up in the graph's SSC methods
                   Error(dd.tok, "recursive dependency involving a newtype: {0} -> {0}", dd.Name);
                 }
-              }                
+              }
               what = "newtype";
               t.ResolvedClass = dd;
             } else {
@@ -4750,13 +4756,15 @@ namespace Microsoft.Dafny
           }
         }
         s.IsGhost = bodyMustBeSpecOnly;
-        loopStack.Add(s);  // push
-        if (s.Labels == null) {  // otherwise, "s" is already in "inSpecOnlyContext" map
-          inSpecOnlyContext.Add(s, specContextOnly);
-        }
+        if (s.Body != null) {
+          loopStack.Add(s);  // push
+          if (s.Labels == null) {  // otherwise, "s" is already in "inSpecOnlyContext" map
+            inSpecOnlyContext.Add(s, specContextOnly);
+          }
 
-        ResolveStatement(s.Body, bodyMustBeSpecOnly, codeContext);
-        loopStack.RemoveAt(loopStack.Count - 1);  // pop
+          ResolveStatement(s.Body, bodyMustBeSpecOnly, codeContext);
+          loopStack.RemoveAt(loopStack.Count - 1);  // pop
+        }
 
       } else if (stmt is AlternativeLoopStmt) {
         var s = (AlternativeLoopStmt)stmt;
@@ -5111,7 +5119,6 @@ namespace Microsoft.Dafny
       var update = s as UpdateStmt;
 
       var lhsNameSet = new HashSet<string>();  // used to check for duplicate identifiers on the left (full duplication checking for references and the like is done during verification)
-      var i = 0;
       foreach (var lhs in s.Lhss) {
         var ec = ErrorCount;
         ResolveExpression(lhs, new ResolveOpts(codeContext, true));
@@ -5627,7 +5634,9 @@ namespace Microsoft.Dafny
 
       } else if (stmt is WhileStmt) {
         WhileStmt s = (WhileStmt)stmt;
-        CheckForallStatementBodyRestrictions(s.Body, kind);
+        if (s.Body != null) {
+          CheckForallStatementBodyRestrictions(s.Body, kind);
+        }
 
       } else if (stmt is AlternativeLoopStmt) {
         var s = (AlternativeLoopStmt)stmt;
@@ -5746,7 +5755,9 @@ namespace Microsoft.Dafny
         if (s.Mod.Expressions != null && s.Mod.Expressions.Count != 0) {
           Error(s.Mod.Expressions[0].tok, "a while statement used inside a hint is not allowed to have a modifies clause");
         }
-        CheckHintRestrictions(s.Body);
+        if (s.Body != null) {
+          CheckHintRestrictions(s.Body);
+        }
 
       } else if (stmt is AlternativeLoopStmt) {
         var s = (AlternativeLoopStmt)stmt;
@@ -5910,7 +5921,7 @@ namespace Microsoft.Dafny
         Contract.Assert(ctype.TypeArgs.Count == cd.TypeArgs.Count);  // follows from the fact that ctype was resolved
 #if TWO_SEARCHES
         MemberDecl member = cd.Members.Find(md => md.Name == memberName);
-        if (member == null && 
+        if (member == null &&
           (!classMembers.ContainsKey(cd) || !classMembers[cd].TryGetValue(memberName, out member))) {
 #else
         MemberDecl member;
@@ -6317,7 +6328,7 @@ namespace Microsoft.Dafny
         if (resolved == null) {
           // error has already been reported by ResolvePredicateOrField
         } else {
-          // the following will cause e.Obj to be resolved again, but that's still correct 
+          // the following will cause e.Obj to be resolved again, but that's still correct
           e.ResolvedExpression = resolved;
           ResolveExpression(e.ResolvedExpression, opts);
           e.Type = e.ResolvedExpression.Type;
@@ -6347,7 +6358,7 @@ namespace Microsoft.Dafny
           }
           foreach (var tp in fn.TypeArgs) {
             Type prox = new InferredTypeProxy();
-            subst[tp] = prox; 
+            subst[tp] = prox;
             e.TypeApplication.Add(prox);
           }
           e.Type = new ArrowType(fn.tok, fn.Formals.ConvertAll(f => SubstType(f.Type, subst)), SubstType(fn.ResultType, subst), builtIns.SystemModule);
@@ -6479,7 +6490,7 @@ namespace Microsoft.Dafny
                 foreach (Formal d in ctor.Formals) {
                   if (d == destructor.CorrespondingFormal) {
                     ctor_args.Add(e.Value);
-                  } else {                    
+                  } else {
                     ctor_args.Add(new ExprDotName(expr.tok, tmpVarIdExpr, d.Name));
                   }
                 }
@@ -7449,7 +7460,7 @@ namespace Microsoft.Dafny
       if (field != null) {
         if (field.Type.IsArrowType || field.Type.IsTypeParameter) {
           return new ApplyExpr(tok, openParen, new ExprDotName(tok, receiver, fn), args);
-        } 
+        }
       }
       return new FunctionCallExpr(tok, fn, receiver, openParen, args);
     }
@@ -7875,12 +7886,12 @@ namespace Microsoft.Dafny
             ResolveExpression(arg, opts);
           }
         }
-      } 
+      }
       return r;
     }
 
     /// <summary>
-    /// Resolves "obj . suffixName" to a member select expression, 
+    /// Resolves "obj . suffixName" to a member select expression,
     /// Expects "obj" already to have been resolved.
     /// On success, returns the result of the resolution--as an un-resolved expression.
     /// On failure, returns null (in which case an error has been reported to the user).
@@ -8380,7 +8391,7 @@ namespace Microsoft.Dafny
           s.UnionWith(t);
         }
         return s;
-       
+
       } else if (expr is LambdaExpr) {
         var e = (LambdaExpr)expr;
         var s = FreeVariables(e.Term);
@@ -8753,7 +8764,7 @@ namespace Microsoft.Dafny
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected expression
       }
 }
-    
+
 
     /// <summary>
     /// This method adds to "coConclusions" all copredicate calls and codatatype equalities that occur
