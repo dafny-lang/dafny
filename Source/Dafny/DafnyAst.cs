@@ -714,7 +714,7 @@ namespace Microsoft.Dafny {
       s += Result.TypeName(context);
       return s;
     }
-   
+
     public override bool SupportsEquality {
       get {
         return false;
@@ -3995,10 +3995,6 @@ namespace Microsoft.Dafny {
   {
     public readonly Expression Guard;
     public readonly BlockStmt Body;
-    [ContractInvariantMethod]
-    void ObjectInvariant() {
-      Contract.Invariant(Body != null);
-    }
 
     public WhileStmt(IToken tok, IToken endTok, Expression guard,
                      List<MaybeFreeExpression> invariants, Specification<Expression> decreases, Specification<FrameExpression> mod,
@@ -4006,14 +4002,15 @@ namespace Microsoft.Dafny {
       : base(tok, endTok, invariants, decreases, mod) {
       Contract.Requires(tok != null);
       Contract.Requires(endTok != null);
-      Contract.Requires(body != null);
       this.Guard = guard;
       this.Body = body;
     }
 
     public override IEnumerable<Statement> SubStatements {
       get {
-        yield return Body;
+        if (Body != null) {
+          yield return Body;
+        }
       }
     }
     public override IEnumerable<Expression> SubExpressions {
@@ -5361,7 +5358,7 @@ namespace Microsoft.Dafny {
     public readonly Expression Obj;
     public readonly string MemberName;
     public MemberDecl Member;          // filled in by resolution, will be a Field or Function
-    public List<Type> TypeApplication; 
+    public List<Type> TypeApplication;
       // If it is a function, it must have all its polymorphic variables applied
 
     [ContractInvariantMethod]
@@ -5539,7 +5536,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public ApplyExpr(IToken tok, IToken openParen, Expression receiver, List<Expression> args) 
+    public ApplyExpr(IToken tok, IToken openParen, Expression receiver, List<Expression> args)
       : base(tok)
     {
       OpenParen = openParen;
@@ -6206,7 +6203,7 @@ namespace Microsoft.Dafny {
       }
     }
     public String Refresh(String s, ref int counter) {
-      return s + "#" + counter++ + FullName; 
+      return s + "#" + counter++ + FullName;
     }
     public TypeParameter Refresh(TypeParameter p, ref int counter) {
       var cp = new TypeParameter(p.tok, counter++ + "#" + p.Name, p.EqualitySupport);
@@ -6312,13 +6309,13 @@ namespace Microsoft.Dafny {
     public readonly List<FrameExpression> Reads;
 
     public string MkName(string nm) {
-      return "$l" + lamUniques++ + "#" + nm; 
+      return "$l" + lamUniques++ + "#" + nm;
     }
 
     public LambdaExpr(IToken tok, bool oneShot, List<BoundVar> bvars, Expression requires, List<FrameExpression> reads, Expression body)
-      : base(tok, bvars, requires, body, null) 
+      : base(tok, bvars, requires, body, null)
     {
-      Contract.Requires(reads != null); 
+      Contract.Requires(reads != null);
       Reads = reads;
       OneShot = oneShot;
     }
@@ -6739,13 +6736,13 @@ namespace Microsoft.Dafny {
   public class TypeExpr : ParensExpression
   {
     public readonly Type T;
-    public TypeExpr(IToken tok, Expression e, Type t) 
+    public TypeExpr(IToken tok, Expression e, Type t)
       : base(tok, e)
     {
       Contract.Requires(t != null);
       T = t;
     }
-    
+
     public static Expression MaybeTypeExpr(Expression e, Type t) {
       if (t == null) {
         return e;

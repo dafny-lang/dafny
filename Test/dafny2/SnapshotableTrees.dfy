@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:0 /dprint:"%t.dprint" /vcsMaxKeepGoingSplits:10 "%s" > "%t"
+// RUN: %dafny /compile:0 /dprint:"%t.dprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // Rustan Leino, September 2011.
@@ -266,7 +266,7 @@ class Node
       if (left == n.left) {
         r, pos := n, -1;
       } else {
-        // assert n.left != null ==> forall e :: e in n.left.Contents ==> e < n.data;
+        assert n.left != null ==> forall e :: e in n.left.Contents ==> e < n.data;
         // assert forall e :: e in left.Contents ==> e < n.data;
         r := new Node.Build(left, n.data, n.right);
       }

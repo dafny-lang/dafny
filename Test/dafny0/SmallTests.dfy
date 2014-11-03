@@ -497,6 +497,15 @@ class AttributeTests {
     } else {
       return new AttributeTests.C() {:intAttr 0};
     }
+
+    // forall statements resolve their attributes once the bound variables have been
+    // added to the scope
+    var y: bool, x: real;
+    var aa := new real[120];
+    forall y: int, x, z {:trgr x == y} {:tri z == z} | x < y  // the range will infer the type of x
+      ensures z && 0 <= x < aa.Length ==> aa[x] == 0.0;  // ensures clause will infer type of z
+    {
+    }
   }
 }
 
@@ -504,10 +513,10 @@ class AttributeTests {
 
 static method TestAttributesVarDecls()
 {
-  var {:foo} foo := null;
-  var {:bar} bar := 0;
-  var {:foo} {:bar} foobar : set<int> := {};
-  var {:baz} baz, {:foobaz} foobaz := true, false;
+  var {:foo foo} foo := null;
+  var {:bar bar} bar := 0;
+  var {:foo foobar} {:bar foobar} foobar : set<int> := {};
+  var {:baz baz && foobaz} baz, {:foobaz foobaz != baz} foobaz := true, false;
 }
 
 // ----------------------- Pretty printing of !(!expr) --------
