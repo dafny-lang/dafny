@@ -8263,6 +8263,7 @@ namespace Microsoft.Dafny {
           types.Add(e.Type.NormalizeExpand());
           decrs.Add(etran.TrExpr(e));
         }
+        AddComment(loopBodyBuilder, s, "loop termination check");
         Bpl.Expr decrCheck = DecreasesCheck(toks, types, types, decrs, oldBfs, loopBodyBuilder, " at end of loop iteration", false, false);
         string msg;
         if (s.InferredDecreases) {
