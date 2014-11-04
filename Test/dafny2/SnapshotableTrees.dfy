@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:0 /dprint:"%t.dprint" /vcsMaxKeepGoingSplits:10 "%s" > "%t"
+// RUN: %dafny /compile:2 /dprint:"%t.dprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // Rustan Leino, September 2011.
@@ -8,7 +8,7 @@
 
 method Main()
 {
-  var t := new Tree.Empty();
+  var t := new SnapTree.Tree.Empty();
   ghost var pos := t.Insert(2);
   pos := t.Insert(1);
   pos := t.Insert(3);
@@ -19,11 +19,13 @@ method Main()
   ghost var sc := s.Contents;
   var it := s.CreateIterator();
   var more := it.MoveNext();
-  while (more)
+  while more
     invariant t.Valid() && !t.IsReadonly && it.Valid();
     invariant more ==> 0 <= it.N < |it.Contents|;
-    invariant fresh(t.Repr) && fresh(it.IterRepr) && t.MutableRepr !! it.T.Repr && t.Repr !! it.IterRepr;
-    invariant it.T == s && s.Valid() && s.Contents == sc;  // this is not needed in the loop, but serves as an extra test case of the specifications
+    invariant fresh(t.Repr) && fresh(it.IterRepr);
+    invariant t.MutableRepr <= t.Repr && it !in t.MutableRepr && t.MutableRepr !! it.T.Repr && t.Repr !! it.IterRepr;
+    invariant it.T == s && s.Valid();
+    invariant s.Contents == sc;  // this is not needed in the loop, but serves as an extra test case of the specifications
     decreases |it.Contents| - it.N;
   {
     var x := it.Current();
@@ -37,448 +39,643 @@ method Main()
 
 method TestContents()  // this method tests Tree.Insert's specifications of Contents
 {
-  var t := new Tree.Empty();          assert t.Contents == [];
-  ghost var pos := t.Insert(2);       assert pos == 0 && t.Contents == [2];
+  var t := new SnapTree.Tree.Empty();   assert t.Contents == [];
+  ghost var pos := t.Insert(2);         assert pos == 0 && t.Contents == [2];
 
   pos := t.Insert(1);
   // Convince the verifier of the absurdity of pos==1
   assert pos == 1 ==> t.Contents == [2,1];
   ghost var hc := [2,1];
-  assert hc[0] == 2 && hc[1] == 1 && !Tree.IsSorted(hc);
+  SnapTree.Tree.IsSortedProperty(hc);
+  assert hc[0] == 2 && hc[1] == 1 && !SnapTree.Tree.IsSorted(hc);
   // So:
   assert pos == 0 && t.Contents == [1, 2];
 }
-
-class Tree
-{
-  // public
-  ghost var Contents: seq<int>;
-  var IsReadonly: bool;
-  ghost var Repr: set<object>;
-  ghost var MutableRepr: set<object>;
-  // private
-  var root: Node;
-  var reprIsShared: bool;
-
-  function Valid(): bool
-    reads this, Repr;
-  {
-    this in MutableRepr && MutableRepr <= Repr && null !in Repr &&
-    (root == null ==> Contents == []) &&
-    (root != null ==>
-      root in Repr && root.Repr <= Repr && this !in root.Repr &&
-      root.Valid() && Contents == root.Contents) &&
-    IsSorted(Contents) &&
-    (IsReadonly ==> reprIsShared) &&
-    (!reprIsShared && root != null ==> root.Repr <= MutableRepr) &&
-    (reprIsShared ==> MutableRepr == {this})
-  }
-
-  static function IsSorted(c: seq<int>): bool  // checks if "c" is sorted and has no duplicates
-  {
-    forall i, j :: 0 <= i < j < |c| ==> c[i] < c[j]
-  }
-
-  constructor Empty()
-    modifies this;
-    ensures Valid() && Contents == [] && !IsReadonly;
-    ensures fresh(Repr - {this});
-  {
-    Contents := [];
-    IsReadonly := false;
-    MutableRepr := {this};
-    Repr := MutableRepr;
-    root := null;
-    reprIsShared := false;
-  }
-
-  method CreateSnapshot() returns (snapshot: Tree)
-    requires Valid();
-    modifies Repr;
-    ensures Valid() && fresh(Repr - old(Repr));
-    ensures Contents == old(Contents) && IsReadonly == old(IsReadonly);
-    ensures snapshot != null && snapshot.Valid();
-    ensures snapshot.Contents == Contents && snapshot.IsReadonly;
-    // the mutable part of the original tree is disjoint from the representation of the snapshot
-    ensures snapshot.Repr !! MutableRepr;
-    // representation of the snapshot consists of new things of things from the previous tree (that are now immutable)
-    ensures fresh(snapshot.Repr - old(Repr));
-  {
-    // from now on, only "this" is mutable; the rest of the representation is immutable
-    Repr := Repr + MutableRepr;
-    MutableRepr := {this};
-    reprIsShared := true;
-    snapshot := new Tree.Private();
-    snapshot.Contents := Contents;
-    snapshot.IsReadonly := true;
-    snapshot.MutableRepr := {snapshot};
-    snapshot.Repr := Repr - {this} + {snapshot};
-    snapshot.root := root;
-    snapshot.reprIsShared := true;
-  }
-
-  // private
-  constructor Private() { }
-
-  method Insert(x: int) returns (ghost pos: int)
-    requires Valid() && !IsReadonly;
-    modifies MutableRepr;
-    ensures Valid() && fresh(Repr - old(Repr)) && fresh(MutableRepr - old(MutableRepr));
-    ensures IsReadonly == old(IsReadonly);
-    ensures x in old(Contents) ==> pos < 0 && Contents == old(Contents);
-    ensures x !in old(Contents) ==>
-      0 <= pos < |Contents| == |old(Contents)| + 1 &&
-      Contents == old(Contents[..pos] + [x] + Contents[pos..]);
-  {
-    if (reprIsShared) {
-      root, pos := Node.FunctionalInsert(root, x);
-      Contents := root.Contents;
-      Repr := root.Repr + {this};
-      MutableRepr := {this};
-    } else if (root == null) {
-      root := new Node.Init(x);
-      Contents := root.Contents;
-      pos := 0;
-      MutableRepr := root.Repr + {this};
-      Repr := MutableRepr;
-    } else {
-      pos := root.MutatingInsert(x);
-      Contents := root.Contents;
-      MutableRepr := MutableRepr + root.Repr;
-      Repr := MutableRepr;
-    }
-  }
-
-  method CreateIterator() returns (iter: Iterator)
-    requires Valid(); // && IsReadonly;
-    ensures iter != null && iter.Valid() && fresh(iter.IterRepr);
-    ensures iter.T == this && iter.Contents == Contents && iter.N == -1;
-  {
-    iter := new Iterator.Init(this);
-  }
-
-  method Print()
-    requires Valid();
-    modifies Repr;
-    ensures Valid() && fresh(Repr - old(Repr));
-    ensures Contents == old(Contents) && IsReadonly == old(IsReadonly);
-  {
-    print "Tree:";
-    var s := CreateSnapshot();
-    var it := s.CreateIterator();
-    var more := it.MoveNext();
-    while (more)
-      invariant Valid() && fresh(Repr - old(Repr)) && Contents == old(Contents) && IsReadonly == old(IsReadonly);
-      invariant it.Valid();
-      invariant more ==> 0 <= it.N < |it.Contents|;
-      invariant fresh(it.IterRepr) && MutableRepr !! it.T.Repr && Repr !! it.IterRepr;
-      decreases |it.Contents| - it.N;
-    {
-      var x := it.Current();
-      print " ", x;
-      more := it.MoveNext();
-    }
-    print "\n";
-  }
-}
-
-class Node
-{
-  ghost var Contents: seq<int>;
-  ghost var Repr: set<object>;
-  var data: int;
-  var left: Node;
-  var right: Node;
-
-  function Valid(): bool
-    reads this, Repr;
-  {
-    this in Repr && null !in Repr &&
-    (left != null ==>
-      left in Repr && left.Repr <= Repr && this !in left.Repr && left.Valid()) &&
-    (right != null ==>
-      right in Repr && right.Repr <= Repr && this !in right.Repr && right.Valid()) &&
-    (left == null && right == null ==> Contents == [data]) &&
-    (left != null && right == null ==> Contents == left.Contents + [data]) &&
-    (left == null && right != null ==> Contents == [data] + right.Contents) &&
-    (left != null && right != null ==> Contents == left.Contents + [data] + right.Contents && left.Repr !! right.Repr) &&
-    Tree.IsSorted(Contents)
-  }
-
-  constructor Init(x: int)
-    modifies this;
-    ensures Valid() && fresh(Repr - {this});
-    ensures Contents == [x];
-  {
-    Contents := [x];
-    Repr := {this};
-    left, data, right := null, x, null;
-  }
-
-  constructor Build(left: Node, x: int, right: Node)
-    requires this != left && this != right;
-    requires left != null ==> left.Valid() && this !in left.Repr &&
-               forall e :: e in left.Contents ==> e < x;
-    requires right != null ==> right.Valid() && this !in right.Repr &&
-               forall e :: e in right.Contents ==> x < e;
-    requires left != null && right != null ==> left.Repr !! right.Repr;
-    modifies this;
-    ensures Valid();
-    ensures left == null && right == null ==> Contents == [x] && fresh(Repr - {this});
-    ensures left != null && right == null ==> Contents == left.Contents + [x] && fresh(Repr - {this} - left.Repr);
-    ensures left == null && right != null ==> Contents == [x] + right.Contents && fresh(Repr - {this} - right.Repr);
-    ensures left != null && right != null ==> Contents == left.Contents + [x] + right.Contents && fresh(Repr - {this} - left.Repr - right.Repr);
-  {
-    Contents := [x];
-    Repr := {this};
-    this.left, data, this.right := left, x, right;
-    if (left != null) {
-      Contents := left.Contents + Contents;
-      Repr := Repr + left.Repr;
-    }
-    if (right != null) {
-      Contents := Contents + right.Contents;
-      Repr := Repr + right.Repr;
-    }
-  }
-
-  static method FunctionalInsert(n: Node, x: int) returns (r: Node, ghost pos: int)
-    requires n != null ==> n.Valid();
-    ensures r != null && r.Valid();
-    ensures n == null ==> fresh(r.Repr);
-    ensures n != null ==> fresh(r.Repr - n.Repr);
-    ensures n == null ==> r.Contents == [x] && pos == 0;
-    ensures n != null && x in n.Contents ==> r == n && pos < 0;
-    ensures n != null && x !in n.Contents ==>
-      0 <= pos < |r.Contents| == |n.Contents| + 1 &&
-      r.Contents == n.Contents[..pos] + [x] + n.Contents[pos..];
-    decreases if n == null then {} else n.Repr;
-  {
-    if (n == null) {
-      r := new Node.Init(x);
-      pos := 0;
-    } else if (x < n.data) {
-      var left;
-      assert n.left != null ==> n.data == n.Contents[|n.left.Contents|];
-      assert n.left == null ==> n.data == n.Contents[0];
-      left, pos := FunctionalInsert(n.left, x);
-      // assert n.left == old(n.left);
-      if (left == n.left) {
-        r, pos := n, -1;
-      } else {
-        // assert n.left != null ==> forall e :: e in n.left.Contents ==> e < n.data;
-        // assert forall e :: e in left.Contents ==> e < n.data;
-        r := new Node.Build(left, n.data, n.right);
-      }
-    } else if (n.data < x) {
-      var right;
-      assert n.left != null ==> n.data == n.Contents[|n.left.Contents|];
-      assert n.left == null ==> n.data == n.Contents[0];
-      right, pos := FunctionalInsert(n.right, x);
-      if (right == n.right) {
-        // assert n != null && x in n.Contents;
-        r, pos := n, -1;
-      } else {
-        // assert n.left != null ==> forall e :: e in n.left.Contents ==> e < n.data;
-        // assert forall e :: e in right.Contents ==> n.data < e;
-        r := new Node.Build(n.left, n.data, right);
-        pos := pos + 1 + if n.left == null then 0 else |n.left.Contents|;
-        assert n != null && x !in n.Contents ==> r.Contents == n.Contents[..pos] + [x] + n.Contents[pos..];
-      }
-    } else {
-      r, pos := n, -1;
-    }
-  }
-
-  method MutatingInsert(x: int) returns (ghost pos: int)
-    requires Valid();
-    modifies Repr;
-    ensures Valid() && fresh(Repr - old(Repr));
-    ensures x in old(Contents) ==> pos < 0 && Contents == old(Contents);
-    ensures x !in old(Contents) ==>
-      0 <= pos < |Contents| == |old(Contents)| + 1 &&
-      Contents == old(Contents[..pos] + [x] + Contents[pos..]);
-    decreases Repr;
-  {
-    assert data == Contents[if left==null then 0 else |left.Contents|];
-    if (x < data) {
-      assert right == null || x !in right.Contents;
-      // assert right != null ==> forall e :: e in right.Contents ==> x < e;
-      if (left == null) {
-        left := new Node.Init(x);
-        pos := 0;
-      } else {
-        // assert forall e :: e in left.Contents ==> e < data;
-        pos := left.MutatingInsert(x);
-        assert Tree.IsSorted(left.Contents);
-        assert right != null ==> Tree.IsSorted(right.Contents);
-        // assert forall e :: e in left.Contents ==> e < data;
-      }
-      Repr := Repr + left.Repr;
-      Contents := left.Contents + [data] + if right == null then [] else right.Contents;
-      assert Tree.IsSorted(Contents);
-    } else if (data < x) {
-      assert left == null || x !in left.Contents;
-      // assert left != null ==> forall e :: e in left.Contents ==> e < x;
-      if (right == null) {
-        right := new Node.Init(x);
-        pos := 1 + if left == null then 0 else |left.Contents|;
-      } else {
-        // assert forall e :: e in right.Contents ==> data < e;
-        pos := right.MutatingInsert(x);
-        assert Tree.IsSorted(right.Contents);
-        // assert left != null ==> Tree.IsSorted(left.Contents);
-        // assert forall e :: e in right.Contents ==> data < e;
-        if (0 <= pos) {
-          pos := pos + 1 + if left == null then 0 else |left.Contents|;
-          assert (if left == null then [] else left.Contents) + [data] + right.Contents == old(Contents[..pos] + [x] + Contents[pos..]);
-        }
-      }
-      Repr := Repr + right.Repr;
-      Contents := (if left == null then [] else left.Contents) + [data] + right.Contents;
-      assert Tree.IsSorted(Contents);
-    } else {
-      pos := -1;
-    }
-  }
-}
-
-class Iterator
-{
-  // public
-  ghost var IterRepr: set<object>;  // note, IterRepr does not include T.Repr
-  ghost var Contents: seq<int>;
-  ghost var N: int;
-  var T: Tree;
-  // private
-  var initialized: bool;
-  var stack: List;
-
-  function Valid(): bool
-    reads this, IterRepr, T;
-    reads if T != null then T.Repr else {};
-  {
-    this in IterRepr && null !in IterRepr &&
-    T != null && T.Valid() && IterRepr !! T.Repr &&
-    Contents == T.Contents && -1 <= N <= |Contents| &&
-    (initialized <==> 0 <= N) &&
-    (N < 0 ==> R(stack, 0, Contents, T.Repr)) &&
-    (0 <= N ==> R(stack, N, Contents, T.Repr))
-  }
-
-  // R(wlist, n, C, Nodes) says that C[n..] are data items yet to be processed.
-  // In more detail, wlist is a stack of tree fragments, where the concatenation of the
-  // "load" of each tree fragment (from the top of the stack downwards) equals
-  // C[n..].  A tree fragment is either
-  //  * for Nil, the empty fragment
-  //  * for Cons(p, rest), fragment [p.data]+p.right.Contents
-  // In each case, R(wlist,n,C,Nodes) implies that the fragment wlist proper is a prefix of C[n..].
-  // Nodes is (an overapproximation of) the set of nodes read by R.
-  static function R(wlist: List, n: int, C: seq<int>, Nodes: set<object>): bool
-    reads Nodes;
-    decreases wlist;
-  {
-    match wlist
-    case Nil => n == |C|
-    case Cons(p, rest) =>
-      p != null && p in Nodes && p.Repr <= Nodes && p.Valid() &&
-      0 <= n < |C| && p.data == C[n] &&
-      R(rest, n + 1 + if p.right==null then 0 else |p.right.Contents|, C, Nodes) &&
-      p.Contents[if p.left==null then 0 else |p.left.Contents| ..] <= C[n..]
-  }
-
-  constructor Init(t: Tree)
-    requires t != null && t.Valid() && this !in t.Repr;
-    modifies this;
-    ensures Valid() && fresh(IterRepr - {this});
-    ensures T == t && Contents == t.Contents && N == -1;
-  {
-    T := t;
-    IterRepr := {this};
-    Contents := T.Contents;
-    initialized, stack, N := false, Nil, -1;
-    if (t.root != null) {
-      stack := Push(stack, 0, t.root, Contents, T.Repr);
-    }
-  }
-
-  // private
-  static method Push(stIn: List, ghost n: int, p: Node, ghost C: seq<int>, ghost Nodes: set<object>) returns (st: List)
-    requires p != null && p in Nodes && p.Repr <= Nodes && p.Valid();
-    requires 0 <= n <= |C|;
-    requires p.Contents <= C[n..];
-    requires R(stIn, n + |p.Contents|, C, Nodes);
-    ensures R(st, n, C, Nodes);
-    decreases p.Contents;
-  {
-    st := Cons(p, stIn);
-
-    assert p.data == p.Contents[if p.left == null then 0 else |p.left.Contents|];  // lemma
-    if (p.left != null) {
-      st := Push(st, n, p.left, C, Nodes);
-    }
-  }
-
-  method Current() returns (x: int)
-    requires Valid() && 0 <= N < |Contents|;
-    ensures x == Contents[N];
-  {
-    match (stack) {
-      case Cons(y, rest) => x := y.data;
-    }
-  }
-
-  method MoveNext() returns (hasCurrent: bool)
-    requires Valid() && N <= |Contents|;
-    modifies IterRepr;
-    ensures Valid() && fresh(IterRepr - old(IterRepr)) && T.Repr == old(T.Repr);
-    ensures Contents == old(Contents) && T == old(T);
-    ensures old(N) < |Contents| ==> N == old(N) + 1;
-    ensures old(N) == |Contents| ==> N == old(N);
-    ensures hasCurrent <==> 0 <= N < |Contents|;
-  {
-    if (!initialized) {
-      initialized, N := true, 0;
-      hasCurrent := stack != Nil;
-    } else {
-      match (stack) {
-        case Nil =>
-          hasCurrent := false;
-        case Cons(p, rest) =>
-          // lemmas:
-          assert R(rest, N + 1 + if p.right==null then 0 else |p.right.Contents|, Contents, T.Repr);
-          ghost var k := if p.left==null then 0 else |p.left.Contents|;
-          assert p.Contents[k..] == [p.data] + p.Contents[k+1..];
-          assert p.Contents[k+1..] <= Contents[N+1..];
-
-          stack, N := rest, N+1;
-
-          if (p.right != null) {
-            stack := Push(stack, N, p.right, Contents, T.Repr);
-          }
-          hasCurrent := stack != Nil;
-      }
-    }
-    match (stack) { case Nil => assert N == |Contents|; case Cons(p, rest) => assert N < |Contents|; } // lemma
-  }
-}
-
-datatype List = Nil | Cons(Node, List);
 
 /*  The following method shows the problem of concurrent modifications and shows that the
  *  design of the snapshotable trees herein handle this correctly.  That is, after inserting
  *  into a tree that is being iterated, use of the associated iterator can no longer be
  *  proved to be correct.
- *
-method TestConcurrentModification(t: Tree)
+ */
+method TestConcurrentModification(t: SnapTree.Tree)
   requires t != null && t.Valid() && !t.IsReadonly;
   modifies t.MutableRepr;
 {
   var it := t.CreateIterator();
   var more := it.MoveNext();
-  if (more) {
+  if more {
     var pos := t.Insert(52);  // this modification of the collection renders all associated iterators invalid
     more := it.MoveNext();  // error: operation t.Insert may have made this iterator invalid
   }
 }
-*/
+
+// ------------------------------------------------------------------------
+
+module SnapTree {
+
+  datatype List = Nil | Cons(Node, List)
+
+  class Tree
+  {
+    // public
+    ghost var Contents: seq<int>;
+    var IsReadonly: bool;
+    ghost var Repr: set<object>;
+    ghost var MutableRepr: set<object>;
+    // private
+    var root: Node;
+    var reprIsShared: bool;
+
+    predicate Valid()
+      reads this, Repr;
+      ensures Valid() ==> this in Repr && null !in Repr && MutableRepr <= Repr;
+      ensures Valid() ==> IsSorted(Contents);
+    {
+      this in MutableRepr && MutableRepr <= Repr && null !in Repr &&
+      (root == null ==> Contents == []) &&
+      (root != null ==>
+        root in Repr && root.Repr <= Repr && this !in root.Repr &&
+        root.NodeValid() && Contents == root.Contents) &&
+      IsSorted(Contents) &&
+      (IsReadonly ==> reprIsShared) &&
+      (!reprIsShared && root != null ==> root.Repr <= MutableRepr) &&
+      (reprIsShared ==> MutableRepr == {this})
+    }
+
+    static predicate {:opaque} IsSorted(c: seq<int>)  // checks if "c" is sorted and has no duplicates
+    {
+      forall i, j :: 0 <= i < j < |c| ==> c[i] < c[j]
+    }
+    static lemma IsSortedProperty(c: seq<int>)
+      ensures IsSorted(c) <==> forall i, j :: 0 <= i < j < |c| ==> c[i] < c[j];
+    {
+      reveal_IsSorted();
+    }
+    static lemma SmallIsSorted(s: seq<int>)
+      ensures |s| <= 1 ==> IsSorted(s);
+    {
+      reveal_IsSorted();
+    }
+    static predicate AllBelow(s: seq<int>, d: int)
+    {
+      forall e :: e in s ==> e < d
+    }
+    static predicate AllAbove(d: int, s: seq<int>)
+    {
+      forall e :: e in s ==> d < e
+    }
+    static predicate SortedSplit(left: seq<int>, data: int, right: seq<int>)
+    {
+      IsSorted(left) && IsSorted(right) &&
+      AllBelow(left, data) && AllAbove(data, right)
+    }
+    static lemma SortCombineProperty(left: seq<int>, data: int, right: seq<int>)
+      requires SortedSplit(left, data, right);
+      ensures IsSorted(left + [data] + right);
+    {
+      reveal_IsSorted();
+    }
+
+    constructor Empty()
+      modifies this;
+      ensures Valid() && Contents == [] && !IsReadonly;
+      ensures MutableRepr <= Repr && fresh(Repr - {this});
+    {
+      Contents := [];
+      IsReadonly := false;
+      MutableRepr := {this};
+      Repr := MutableRepr;
+      root := null;
+      reprIsShared := false;
+      SmallIsSorted(Contents);
+    }
+
+    method CreateSnapshot() returns (snapshot: Tree)
+      requires Valid();
+      modifies Repr;
+      ensures Valid() && fresh(Repr - old(Repr));
+      ensures Contents == old(Contents) && IsReadonly == old(IsReadonly);
+      ensures snapshot != null && snapshot.Valid();
+      ensures snapshot.Contents == Contents && snapshot.IsReadonly;
+      // the mutable part of the original tree is disjoint from the representation of the snapshot
+      ensures snapshot.Repr !! MutableRepr;
+      // representation of the snapshot consists of new things of things from the previous tree (that are now immutable)
+      ensures fresh(snapshot.Repr - old(Repr));
+    {
+      // from now on, only "this" is mutable; the rest of the representation is immutable
+      Repr := Repr + MutableRepr;
+      MutableRepr := {this};
+      reprIsShared := true;
+      snapshot := new Tree.Private();
+      snapshot.Contents := Contents;
+      snapshot.IsReadonly := true;
+      snapshot.MutableRepr := {snapshot};
+      snapshot.Repr := Repr - {this} + {snapshot};
+      snapshot.root := root;
+      snapshot.reprIsShared := true;
+    }
+
+    // private
+    constructor Private() { }
+
+    method Insert(x: int) returns (ghost pos: int)
+      requires Valid() && !IsReadonly;
+      modifies MutableRepr;
+      ensures Valid() && fresh(Repr - old(Repr)) && fresh(MutableRepr - old(MutableRepr));
+      ensures IsReadonly == old(IsReadonly);
+      ensures x in old(Contents) ==> pos < 0 && Contents == old(Contents);
+      ensures x !in old(Contents) ==>
+        0 <= pos < |Contents| == |old(Contents)| + 1 &&
+        Contents == old(Contents[..pos] + [x] + Contents[pos..]);
+    {
+      if reprIsShared {
+        root, pos := Node.FunctionalInsert(root, x);
+        Contents := root.Contents;
+        Repr := root.Repr + {this};
+        MutableRepr := {this};
+      } else if root == null {
+        root := new Node.Init(x);
+        Contents := root.Contents;
+        pos := 0;
+        MutableRepr := root.Repr + {this};
+        Repr := MutableRepr;
+      } else {
+        pos := root.MutatingInsert(x);
+        Contents := root.Contents;
+        MutableRepr := MutableRepr + root.Repr;
+        Repr := MutableRepr;
+      }
+    }
+
+    method CreateIterator() returns (iter: Iterator)
+      requires Valid(); // && IsReadonly;
+      ensures iter != null && iter.Valid() && fresh(iter.IterRepr);
+      ensures iter.T == this && iter.Contents == Contents && iter.N == -1;
+    {
+      iter := new Iterator.Init(this);
+    }
+
+    method Print()
+      requires Valid();
+      modifies Repr;
+      ensures Valid() && fresh(Repr - old(Repr));
+      ensures Contents == old(Contents) && IsReadonly == old(IsReadonly);
+    {
+      var s;
+      if IsReadonly {
+        s := this;
+      } else {
+        s := CreateSnapshot();
+      }
+      var it := s.CreateIterator();
+      it.Print();
+    }
+  }
+
+  class Node
+  {
+    ghost var Contents: seq<int>;
+    ghost var Repr: set<object>;
+    var data: int;
+    var left: Node;
+    var right: Node;
+
+    predicate {:opaque} NodeValid()
+      reads this, Repr;
+      ensures NodeValid() ==> this in Repr && null !in Repr && Tree.IsSorted(Contents);
+    {
+      this in Repr && null !in Repr &&
+      (left != null ==>
+        left in Repr && left.Repr <= Repr && this !in left.Repr && left.NodeValid()) &&
+      (right != null ==>
+        right in Repr && right.Repr <= Repr && this !in right.Repr && right.NodeValid()) &&
+      (left != null && right != null ==> left.Repr !! right.Repr) &&
+      SortedSplit(left, data, right) &&
+      Contents == CombineSplit(left, data, right) &&
+      Tree.IsSorted(Contents)
+    }
+
+    static predicate SortedSplit(left: Node, data: int, right: Node)
+      reads left, right;
+    {
+      Tree.SortedSplit(if left == null then [] else left.Contents, data, if right == null then [] else right.Contents)
+    }
+    static function CombineSplit(left: Node, data: int, right: Node): seq<int>
+      reads left, right;
+    {
+      if left == null && right == null then
+        [data]
+      else if left != null && right == null then
+        left.Contents + [data]
+      else if left == null && right != null then
+        [data] + right.Contents
+      else
+        left.Contents + [data] + right.Contents
+    }
+    static lemma CombineSortedSplit(left: Node, data: int, right: Node)
+      requires SortedSplit(left, data, right);
+      ensures Tree.IsSorted(CombineSplit(left, data, right));
+    {
+      var L := if left == null then [] else left.Contents;
+      var R := if right == null then [] else right.Contents;
+      Tree.SortCombineProperty(L, data, R);
+      assert CombineSplit(left, data, right) == L + [data] + R;
+    }
+
+    constructor Init(x: int)
+      modifies this;
+      ensures NodeValid() && fresh(Repr - {this});
+      ensures Contents == [x];
+    {
+      Contents := [x];
+      Repr := {this};
+      left, data, right := null, x, null;
+      Tree.SmallIsSorted([]);
+      Tree.SmallIsSorted([x]);
+      reveal_NodeValid();
+    }
+
+    constructor Build(left: Node, x: int, right: Node)
+      requires this != left && this != right;
+      requires left != null ==> left.NodeValid() && this !in left.Repr && Tree.AllBelow(left.Contents, x);
+      requires right != null ==> right.NodeValid() && this !in right.Repr && Tree.AllAbove(x, right.Contents);
+      requires left != null && right != null ==> left.Repr !! right.Repr;
+      modifies this;
+      ensures NodeValid();
+      ensures Contents == CombineSplit(left, x, right);
+      ensures left == null && right == null ==> fresh(Repr - {this});
+      ensures left != null && right == null ==> fresh(Repr - {this} - left.Repr);
+      ensures left == null && right != null ==> fresh(Repr - {this} - right.Repr);
+      ensures left != null && right != null ==> fresh(Repr - {this} - left.Repr - right.Repr);
+    {
+      Contents := [x];
+      Repr := {this};
+      this.left, data, this.right := left, x, right;
+      if left != null {
+        Contents := left.Contents + Contents;
+        Repr := Repr + left.Repr;
+      }
+      if right != null {
+        Contents := Contents + right.Contents;
+        Repr := Repr + right.Repr;
+      }
+      ghost var L := if left == null then [] else left.Contents;
+      ghost var R := if right == null then [] else right.Contents;
+      Tree.SmallIsSorted([]);
+      assert Tree.IsSorted(L) && Tree.IsSorted(R);
+      assert Tree.AllBelow(L, x);
+      assert Tree.AllAbove(x, R);
+      assert Tree.SortedSplit(L, x, R);
+      assert SortedSplit(left, x, right);
+      assert Contents == CombineSplit(left, x, right);
+      CombineSortedSplit(left, x, right);
+      assert Tree.IsSorted(Contents);
+      reveal_NodeValid();
+    }
+
+    static method FunctionalInsert(n: Node, x: int) returns (r: Node, ghost pos: int)
+      requires n != null ==> n.NodeValid();
+      ensures r != null && r.NodeValid();
+      ensures n == null ==> fresh(r.Repr);
+      ensures n != null ==> fresh(r.Repr - n.Repr);
+      ensures n == null ==> r.Contents == [x] && pos == 0;
+      ensures n != null && x in n.Contents ==> r == n && pos < 0;
+      ensures n != null && x !in n.Contents ==>
+        0 <= pos < |r.Contents| == |n.Contents| + 1 &&
+        r.Contents == n.Contents[..pos] + [x] + n.Contents[pos..];
+      decreases if n == null then {} else n.Repr;
+    {
+      if n == null {
+        r := new Node.Init(x);
+        pos := 0;
+      } else if x < n.data {
+        r, pos := FunctionalInsert_Left(n, x);
+      } else if n.data < x {
+        r, pos := FunctionalInsert_Right(n, x);
+      } else {
+        n.reveal_NodeValid();
+        r, pos := n, -1;
+      }
+    }
+
+    static method {:timeLimit 20} FunctionalInsert_Left(n: Node, x: int) returns (r: Node, ghost pos: int)
+      requires n != null && n.NodeValid() && x < n.data;
+      ensures r != null && r.NodeValid();
+      ensures fresh(r.Repr - n.Repr);
+      ensures x in n.Contents ==> r == n && pos < 0;
+      ensures x !in n.Contents ==>
+        0 <= pos < |r.Contents| == |n.Contents| + 1 &&
+        r.Contents == n.Contents[..pos] + [x] + n.Contents[pos..];
+      decreases n.Repr, 0;
+    {
+      n.reveal_NodeValid();
+      var left;
+      left, pos := FunctionalInsert(n.left, x);
+      if left == n.left {
+        r, pos := n, -1;
+      } else {
+        assert n.left != null ==> left.Contents[..pos] == n.left.Contents[..pos] == n.Contents[..pos];
+        r := new Node.Build(left, n.data, n.right);
+      }
+    }
+
+    static method {:timeLimit 30} FunctionalInsert_Right(n: Node, x: int) returns (r: Node, ghost pos: int)
+      requires n != null && n.NodeValid() && n.data < x;
+      ensures r != null && r.NodeValid();
+      ensures fresh(r.Repr - n.Repr);
+      ensures x in n.Contents ==> r == n && pos < 0;
+      ensures x !in n.Contents ==>
+        0 <= pos < |r.Contents| == |n.Contents| + 1 &&
+        r.Contents == n.Contents[..pos] + [x] + n.Contents[pos..];
+      decreases n.Repr, 0;
+    {
+      n.reveal_NodeValid();
+      var right;
+      right, pos := FunctionalInsert(n.right, x);
+      if right == n.right {
+        r, pos := n, -1;
+      } else {
+        ghost var L := if n.left == null then [] else n.left.Contents;
+        ghost var Llen := |L| + 1;
+        assert n.Contents == CombineSplit(n.left, n.data, n.right);
+        if n.right != null {
+          calc {
+            n.Contents[Llen..Llen + pos];
+            (L + [n.data] + n.right.Contents)[Llen..Llen + pos];
+            { assert |L + [n.data]| == Llen; }
+            n.right.Contents[..pos];
+          }
+          assert right.Contents[..pos] == n.right.Contents[..pos] == n.Contents[Llen..Llen + pos];
+        }
+        pos := Llen + pos;
+        r := new Node.Build(n.left, n.data, right);
+      }
+    }
+
+    method MutatingInsert(x: int) returns (ghost pos: int)
+      requires NodeValid();
+      modifies Repr;
+      ensures NodeValid() && fresh(Repr - old(Repr));
+      ensures x in old(Contents) ==> pos < 0 && Contents == old(Contents);
+      ensures x !in old(Contents) ==>
+        0 <= pos < |Contents| == |old(Contents)| + 1 &&
+        Contents == old(Contents[..pos] + [x] + Contents[pos..]);
+      decreases Repr;
+    {
+      if x < data {
+        pos := MutatingInsert_Left(x);
+      } else if data < x {
+        pos := MutatingInsert_Right(x);
+      } else {
+        reveal_NodeValid();
+        pos := -1;
+      }
+    }
+
+    method {:timeLimit 20} MutatingInsert_Left(x: int) returns (ghost pos: int)
+      requires NodeValid() && x < data;
+      modifies Repr;
+      ensures NodeValid() && fresh(Repr - old(Repr));
+      ensures x in old(Contents) ==> pos < 0 && Contents == old(Contents);
+      ensures x !in old(Contents) ==>
+        0 <= pos < |Contents| == |old(Contents)| + 1 &&
+        Contents == old(Contents[..pos] + [x] + Contents[pos..]);
+      decreases Repr, 0;
+    {
+      reveal_NodeValid();
+      ghost var R := if right == null then [] else right.Contents;
+      assert Tree.AllAbove(data, R);
+      assert Tree.AllAbove(x, R);
+      Tree.SmallIsSorted([]);
+      assert Tree.IsSorted(R);
+      if left == null {
+        left := new Node.Init(x);
+        pos := 0;
+      } else {
+        pos := left.MutatingInsert(x);
+        assert Tree.IsSorted(left.Contents);
+      }
+      Repr := Repr + left.Repr;
+      Contents := left.Contents + [data] + R;
+      assert Tree.AllBelow(left.Contents, data);
+      assert Tree.AllAbove(data, R);
+      assert Tree.IsSorted(left.Contents);
+      assert Tree.IsSorted(R);
+      Tree.SortCombineProperty(left.Contents, data, R);
+      assert Tree.IsSorted(Contents);
+      reveal_NodeValid();
+    }
+
+    method {:timeLimit 20} MutatingInsert_Right(x: int) returns (ghost pos: int)
+      requires NodeValid() && data < x;
+      modifies Repr;
+      ensures NodeValid() && fresh(Repr - old(Repr));
+      ensures x in old(Contents) ==> pos < 0 && Contents == old(Contents);
+      ensures x !in old(Contents) ==>
+        0 <= pos < |Contents| == |old(Contents)| + 1 &&
+        Contents == old(Contents[..pos] + [x] + Contents[pos..]);
+      decreases Repr, 0;
+    {
+      reveal_NodeValid();
+      assert Contents == CombineSplit(left, data, right);
+      ghost var L := if left == null then [] else left.Contents;
+      ghost var Llen := |L| + 1;
+      assert Contents[..Llen] == L + [data];
+      if right == null {
+        right := new Node.Init(x);
+        pos := Llen;
+        assert Contents == L + [data];
+      } else {
+        pos := right.MutatingInsert(x);
+        assert L == if left == null then [] else left.Contents;
+        assert data == old(data);
+        if pos < 0 {
+          assert right.Contents == old(right.Contents);
+        } else {
+          calc {
+            L + [data] + right.Contents;
+            // only the right part has changed
+            old(Contents[..Llen]) + right.Contents;
+            // result of the recursive call to right.MutatingInsert
+            old(Contents[..Llen]) + old(right.Contents[..pos] + [x] + right.Contents[pos..]);
+            // re-associate +
+            old(Contents[..Llen]) + old(right.Contents[..pos]) + [x] + old(right.Contents[pos..]);
+            { assert old(right.Contents[..pos]) == old(Contents[Llen..Llen+pos]); }
+            old(Contents[..Llen]) + old(Contents[Llen..Llen+pos]) + [x] + old(right.Contents[pos..]);
+            old(Contents[..Llen+pos]) + [x] + old(right.Contents[pos..]);
+            { assert old(right.Contents[pos..]) == old(Contents[Llen+pos..]); }
+            old(Contents[..Llen+pos]) + [x] + old(Contents[Llen+pos..]);
+          }
+          pos := Llen + pos;
+          assert L + [data] + right.Contents == old(Contents[..pos] + [x] + Contents[pos..]);
+        }
+      }
+      Repr := Repr + right.Repr;
+      Contents := L + [data] + right.Contents;
+      assert left != null ==> Tree.AllBelow(left.Contents, data);
+      assert Tree.AllBelow([], data);
+      assert Tree.AllAbove(data, right.Contents);
+      assert left != null ==> Tree.IsSorted(left.Contents);
+      Tree.SmallIsSorted([]);
+      assert Tree.IsSorted(right.Contents);
+      Tree.SortCombineProperty(L, data, right.Contents);
+      assert Tree.IsSorted(Contents);
+      reveal_NodeValid();
+    }
+  }
+
+  class Iterator
+  {
+    // public
+    ghost var IterRepr: set<object>;  // note, IterRepr does not include T.Repr
+    ghost var Contents: seq<int>;
+    ghost var N: int;
+    var T: Tree;
+    // private
+    var initialized: bool;
+    var stack: List;
+
+    predicate Valid()
+      reads this, IterRepr, T;
+      reads if T != null then T.Repr else {};
+      ensures Valid() ==> T != null && IterRepr !! T.Repr;
+    {
+      this in IterRepr && null !in IterRepr &&
+      T != null && T.Valid() && IterRepr !! T.Repr &&
+      Contents == T.Contents && -1 <= N <= |Contents| &&
+      (initialized <==> 0 <= N) &&
+      (N < 0 ==> R(stack, 0, Contents, T.Repr)) &&
+      (0 <= N ==> R(stack, N, Contents, T.Repr))
+    }
+
+    // R(wlist, n, C, Nodes) says that C[n..] are data items yet to be processed.
+    // In more detail, wlist is a stack of tree fragments, where the concatenation of the
+    // "load" of each tree fragment (from the top of the stack downwards) equals
+    // C[n..].  A tree fragment is either
+    //  * for Nil, the empty fragment
+    //  * for Cons(p, rest), fragment [p.data]+p.right.Contents
+    // In each case, R(wlist,n,C,Nodes) implies that the fragment wlist proper is a prefix of C[n..].
+    // Nodes is (an overapproximation of) the set of nodes read by R.
+    static function R(wlist: List, n: int, C: seq<int>, Nodes: set<object>): bool
+      reads Nodes;
+      decreases wlist;
+    {
+      match wlist
+      case Nil => n == |C|
+      case Cons(p, rest) =>
+        p != null && p in Nodes && p.Repr <= Nodes && p.NodeValid() &&
+        0 <= n < |C| && p.data == C[n] &&
+        (p.reveal_NodeValid();
+         R(rest, n + 1 + if p.right==null then 0 else |p.right.Contents|, C, Nodes) &&
+         p.Contents[if p.left==null then 0 else |p.left.Contents| ..] <= C[n..])
+    }
+
+    constructor Init(t: Tree)
+      requires t != null && t.Valid() && this !in t.Repr;
+      modifies this;
+      ensures Valid() && fresh(IterRepr - {this});
+      ensures T == t && Contents == t.Contents && N == -1;
+    {
+      Init_Aux(t);
+    }
+    method Init_Aux(t: Tree)
+      requires t != null && this !in t.Repr;
+      // The following three lines say what it is we need from t.Valid():
+      requires t.root == null ==> |t.Contents| == 0;
+      requires t.root != null ==> t.root in t.Repr && t.root.Repr <= t.Repr && t.root.NodeValid();
+      requires t.root != null ==> t.root.Contents <= t.Contents && |t.Contents| == |t.root.Contents|;
+      modifies this;
+      ensures t.Valid() ==> Valid();
+      ensures fresh(IterRepr - {this});
+      ensures T == t && Contents == t.Contents && N == -1;
+    {
+      T := t;
+      IterRepr := {this};
+      Contents := T.Contents;
+      initialized, stack, N := false, Nil, -1;
+      if t.root != null {
+        stack := Push(stack, 0, t.root, Contents, T.Repr);
+      }
+    }
+
+    method Print()
+      requires Valid();
+      modifies IterRepr;
+    {
+      print "Tree:";
+      var more := MoveNext();
+      while more
+        invariant Valid();
+        invariant more ==> 0 <= N < |Contents|;
+        invariant fresh(IterRepr - old(IterRepr));
+        decreases |Contents| - N;
+      {
+        var x := Current();
+        print " ", x;
+        more := MoveNext();
+      }
+      print "\n";
+    }
+
+    // private
+    static method Push(stIn: List, ghost n: int, p: Node, ghost C: seq<int>, ghost Nodes: set<object>) returns (st: List)
+      requires p != null && p in Nodes && p.Repr <= Nodes && p.NodeValid();
+      requires 0 <= n <= |C|;
+      requires p.Contents <= C[n..];
+      requires R(stIn, n + |p.Contents|, C, Nodes);
+      ensures R(st, n, C, Nodes);
+      decreases |p.Contents|;
+    {
+      st := Cons(p, stIn);
+
+      p.reveal_NodeValid();
+      assert p.data == p.Contents[if p.left == null then 0 else |p.left.Contents|];  // lemma
+      if p.left != null {
+        st := Push(st, n, p.left, C, Nodes);
+      }
+    }
+
+    method Current() returns (x: int)
+      requires Valid() && 0 <= N < |Contents|;
+      ensures x == Contents[N];
+    {
+      match (stack) {
+        case Cons(y, rest) => x := y.data;
+      }
+    }
+
+    method MoveNext() returns (hasCurrent: bool)
+      requires Valid() && N <= |Contents|;
+      modifies IterRepr;
+      ensures Valid() && fresh(IterRepr - old(IterRepr)) && T.Repr == old(T.Repr) && null !in IterRepr;
+      ensures Contents == old(Contents) && T == old(T);
+      ensures old(N) < |Contents| ==> N == old(N) + 1;
+      ensures old(N) == |Contents| ==> N == old(N);
+      ensures hasCurrent <==> 0 <= N < |Contents|;
+    {
+      if !initialized {
+        initialized, N := true, 0;
+        hasCurrent := stack != Nil;
+      } else {
+        match (stack) {
+          case Nil =>
+            hasCurrent := false;
+          case Cons(p, rest) =>
+            // lemmas:
+            p.reveal_NodeValid();
+            assert R(rest, N + 1 + if p.right==null then 0 else |p.right.Contents|, Contents, T.Repr);
+            ghost var k := if p.left==null then 0 else |p.left.Contents|;
+            assert p.Contents[k..] == [p.data] + p.Contents[k+1..];
+
+            stack, N := rest, N+1;
+
+            if p.right != null {
+              stack := Push(stack, N, p.right, Contents, T.Repr);
+            }
+            hasCurrent := stack != Nil;
+        }
+      }
+    }
+  }
+
+}  // module SnapTree

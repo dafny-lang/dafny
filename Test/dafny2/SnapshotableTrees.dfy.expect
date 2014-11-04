@@ -1,2 +1,8 @@
+SnapshotableTrees.dfy(68,16): Error BP5002: A precondition for this call might not hold.
+SnapshotableTrees.dfy(648,16): Related location: This is the precondition that might not hold.
+Execution trace:
+    (0,0): anon0
+    (0,0): anon3_Then
 
-Dafny program verifier finished with 37 verified, 0 errors
+Dafny program verifier finished with 65 verified, 1 error
+Compiled assembly into SnapshotableTrees.exe
