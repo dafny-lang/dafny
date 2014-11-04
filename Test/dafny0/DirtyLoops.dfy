@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:0 /dprint:"%t.dprint.dfy" "%s" > "%t"; %dafny /noVerify /compile:0 "%t.dprint.dfy" >> "%t"
+// RUN: %dafny /compile:0 /dprint:"%t.dprint.dfy" "%s" > "%t"; %dafny /noVerify /compile:1 "%t.dprint.dfy" >> "%t"
 // RUN: %diff "%s.expect" "%t"
 
 method M0(S: set<int>) {
