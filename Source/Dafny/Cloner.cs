@@ -105,7 +105,7 @@ namespace Microsoft.Dafny
         if (d is DefaultClassDecl) {
           return new DefaultClassDecl(m, mm);
         } else {
-            return new ClassDecl(Tok(dd.tok), dd.Name, m, tps, mm, CloneAttributes(dd.Attributes), new List<IToken> { dd.TraitId });
+            return new ClassDecl(Tok(dd.tok), dd.Name, m, tps, mm, CloneAttributes(dd.Attributes), dd.TraitTyp);
         }
       } else if (d is ModuleDecl) {
         if (d is LiteralModuleDecl) {

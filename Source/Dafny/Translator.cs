@@ -509,7 +509,7 @@ namespace Microsoft.Dafny {
     {
         foreach (ModuleDefinition m in program.Modules)
         {
-            if (m.TopLevelDecls.Any(d => (d is ClassDecl && ((ClassDecl)d).Trait != null) || (d is TraitDecl)))
+            if (m.TopLevelDecls.Any(d => (d is ClassDecl && ((ClassDecl)d).TraitObj != null) || (d is TraitDecl)))
             {
                 //adding const unique NoTraitAtAll: ClassName;
                 Token tNoTrait = new Token();
@@ -527,12 +527,12 @@ namespace Microsoft.Dafny {
                     if (d is ClassDecl)
                     {
                         var c = (ClassDecl)d;
-                        if (c is ClassDecl && c.Trait != null)
+                        if (c is ClassDecl && c.TraitObj != null)
                         {
                             //this adds: axiom TraitParent(class.A) == class.J; Where A extends J
-                            Bpl.TypedIdent trait_id = new Bpl.TypedIdent(c.Trait.tok, string.Format("class.{0}", c.Trait.FullSanitizedName), predef.ClassNameType);
-                            Bpl.Constant trait = new Bpl.Constant(c.Trait.tok, trait_id, true);
-                            Bpl.Expr traitId_expr = new Bpl.IdentifierExpr(c.Trait.tok, trait);
+                            Bpl.TypedIdent trait_id = new Bpl.TypedIdent(c.TraitObj.tok, string.Format("class.{0}", c.TraitObj.FullSanitizedName), predef.ClassNameType);
+                            Bpl.Constant trait = new Bpl.Constant(c.TraitObj.tok, trait_id, true);
+                            Bpl.Expr traitId_expr = new Bpl.IdentifierExpr(c.TraitObj.tok, trait);
 
                             var args = new Bpl.Formal(c.tok, new Bpl.TypedIdent(c.tok, Bpl.TypedIdent.NoName, predef.ClassNameType), true);
                             var ret_value = new Bpl.Formal(c.tok, new Bpl.TypedIdent(c.tok, Bpl.TypedIdent.NoName, predef.ClassNameType), false);
@@ -542,7 +542,7 @@ namespace Microsoft.Dafny {
 
                             sink.AddTopLevelDeclaration(traitParentAxiom);
                         }
-                        else if (c is ClassDecl && c.Trait == null)
+                        else if (c is ClassDecl && c.TraitObj == null)
                         {
                             //this adds: axiom TraitParent(class.B) == NoTraitAtAll; Where B does not extend any traits
                             Bpl.TypedIdent noTraitAtAll_id = new Bpl.TypedIdent(c.tok, "NoTraitAtAll", predef.ClassNameType);
@@ -1325,14 +1325,14 @@ namespace Microsoft.Dafny {
       //this adds: axiom implements$J(class.C);
       else if (c is ClassDecl)
       {
-          if (c.Trait != null)
+          if (c.TraitObj != null)
           {
               //var dtypeFunc = FunctionCall(c.tok, BuiltinFunction.DynamicType, null, o);
               //Bpl.Expr implementsFunc = FunctionCall(t.tok, "implements$" + t.Name, Bpl.Type.Bool, new List<Expr> { dtypeFunc });
 
               var args = new Bpl.Formal(c.tok, new Bpl.TypedIdent(c.tok, Bpl.TypedIdent.NoName, predef.ClassNameType), true);
               var ret_value = new Bpl.Formal(c.tok, new Bpl.TypedIdent(c.tok, Bpl.TypedIdent.NoName, Bpl.Type.Bool), false);
-              var funCall = new Bpl.FunctionCall(new Bpl.Function(c.tok, "implements$" + c.TraitId.val, new List<Variable> { args }, ret_value));
+              var funCall = new Bpl.FunctionCall(new Bpl.Function(c.tok, "implements$" + ((UserDefinedType)(c.TraitTyp)).tok, new List<Variable> { args }, ret_value));
               var expr = new Bpl.NAryExpr(c.tok, funCall, new List<Expr> { new Bpl.IdentifierExpr(c.tok, string.Format("class.{0}", c.FullSanitizedName), predef.ClassNameType) });
               var implements_axiom = new Bpl.Axiom(c.tok, expr);
               sink.AddTopLevelDeclaration(implements_axiom);

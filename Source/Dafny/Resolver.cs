@@ -2657,21 +2657,22 @@ namespace Microsoft.Dafny
       currentClass = cl;
 
       // Resolve names of traits extended
-      if (cl.TraitId != null) {
-        var trait = classMembers.Keys.FirstOrDefault(traitDecl => traitDecl.CompileName == cl.TraitId.val);
+      if (cl.TraitTyp != null && cl.TraitTyp is UserDefinedType)
+      {
+          var trait = classMembers.Keys.FirstOrDefault(traitDecl => traitDecl.CompileName == ((UserDefinedType)(cl.TraitTyp)).FullCompileName);
         if (trait == null) {
-          Error(cl.TraitId, "unresolved identifier: {0}", cl.TraitId.val);
+            Error(((UserDefinedType)(cl.TraitTyp)).tok, "unresolved identifier: {0}", ((UserDefinedType)(cl.TraitTyp)).tok.val);
         } else if (!(trait is TraitDecl)) {
-          Error(cl.TraitId, "identifier '{0}' does not denote a trait", cl.TraitId.val);
+            Error(((UserDefinedType)(cl.TraitTyp)).tok, "identifier '{0}' does not denote a trait", ((UserDefinedType)(cl.TraitTyp)).tok.val);
         } else {
           //disallowing inheritance in multi module case
           string clModName = cl.Module.CompileName.Replace("_Compile", string.Empty);
           string traitModName = trait.Module.CompileName.Replace("_Compile", string.Empty);
           if (clModName != traitModName) {
-            Error(cl.TraitId, string.Format("class {0} is in a different module than trait {1}. A class may only extend a trait in the same module",
+              Error(((UserDefinedType)(cl.TraitTyp)).tok, string.Format("class {0} is in a different module than trait {1}. A class may only extend a trait in the same module",
                 cl.FullName, trait.FullName));
           } else {
-            cl.Trait = (TraitDecl)trait;
+            cl.TraitObj = (TraitDecl)trait;
           }
         }
       }
@@ -2730,9 +2731,9 @@ namespace Microsoft.Dafny
       Contract.Requires(cl != null);
 
       //merging class members with parent members if any
-      if (cl.Trait != null) {
+      if (cl.TraitObj != null) {
         var clMembers = classMembers[cl];
-        var traitMembers = classMembers[cl.Trait];
+        var traitMembers = classMembers[cl.TraitObj];
         //merging current class members with the inheriting trait
         foreach (KeyValuePair<string, MemberDecl> traitMem in traitMembers) {
           MemberDecl clMember;
@@ -2815,7 +2816,7 @@ namespace Microsoft.Dafny
         //checking to make sure all body-less methods/functions have been implemented in the child class
         if (refinementTransformer == null)
           refinementTransformer = new RefinementTransformer(this, AdditionalInformationReporter, null);
-        foreach (MemberDecl traitMember in cl.Trait.Members.Where(mem => mem is Function || mem is Method)) {
+        foreach (MemberDecl traitMember in cl.TraitObj.Members.Where(mem => mem is Function || mem is Method)) {
           if (traitMember is Function) {
             Function traitFunc = (Function)traitMember;
             if (traitFunc.Body == null) //we do this check only if trait function body is null
@@ -4021,9 +4022,9 @@ namespace Microsoft.Dafny
           }
           return successSoFar;
         } else if ((bb.ResolvedClass is ClassDecl) && (aa.ResolvedClass is TraitDecl)) {
-          return ((ClassDecl)bb.ResolvedClass).Trait.FullCompileName == ((TraitDecl)aa.ResolvedClass).FullCompileName;
+          return ((ClassDecl)bb.ResolvedClass).TraitObj.FullCompileName == ((TraitDecl)aa.ResolvedClass).FullCompileName;
         } else if ((aa.ResolvedClass is ClassDecl) && (bb.ResolvedClass is TraitDecl)) {
-          return ((ClassDecl)aa.ResolvedClass).Trait.FullCompileName == ((TraitDecl)bb.ResolvedClass).FullCompileName;
+          return ((ClassDecl)aa.ResolvedClass).TraitObj.FullCompileName == ((TraitDecl)bb.ResolvedClass).FullCompileName;
         } else if (aa.ResolvedParam != null && aa.ResolvedParam == bb.ResolvedParam) {
           // type parameters
           if (aa.TypeArgs.Count != bb.TypeArgs.Count) {

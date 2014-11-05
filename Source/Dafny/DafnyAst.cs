@@ -1688,8 +1688,8 @@ namespace Microsoft.Dafny {
 
   public class ClassDecl : TopLevelDecl {
     public readonly List<MemberDecl> Members;
-    public TraitDecl Trait;
-    public readonly IToken TraitId;
+    public TraitDecl TraitObj;
+    public readonly Type TraitTyp;
     public bool HasConstructor;  // filled in (early) during resolution; true iff there exists a member that is a Constructor
     [ContractInvariantMethod]
     void ObjectInvariant() {
@@ -1697,7 +1697,7 @@ namespace Microsoft.Dafny {
     }
 
     public ClassDecl(IToken tok, string name, ModuleDefinition module,
-      List<TypeParameter> typeArgs, [Captured] List<MemberDecl> members, Attributes attributes, List<IToken> traitId)
+      List<TypeParameter> typeArgs, [Captured] List<MemberDecl> members, Attributes attributes, Type trait)
       : base(tok, name, module, typeArgs, attributes) {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
@@ -1705,8 +1705,8 @@ namespace Microsoft.Dafny {
       Contract.Requires(cce.NonNullElements(typeArgs));
       Contract.Requires(cce.NonNullElements(members));
       Members = members;
-      if (traitId != null && traitId.Count > 0)
-          TraitId = traitId[0]; //there are at most one inheriting trait at the moment
+      if (trait != null)
+          TraitTyp = trait; //there are at most one inheriting trait at the moment
     }
     public virtual bool IsDefaultClass {
       get {
