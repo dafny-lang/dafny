@@ -4755,7 +4755,7 @@ namespace Microsoft.Dafny
             ResolveFrameExpression(fe, "modifies", bodyMustBeSpecOnly, codeContext);
           }
         }
-        s.IsGhost = bodyMustBeSpecOnly;
+        s.IsGhost = s.Body == null || bodyMustBeSpecOnly;
         if (s.Body != null) {
           loopStack.Add(s);  // push
           if (s.Labels == null) {  // otherwise, "s" is already in "inSpecOnlyContext" map
@@ -4825,7 +4825,7 @@ namespace Microsoft.Dafny
             bodyMustBeSpecOnly = true;
           }
         }
-        s.IsGhost = bodyMustBeSpecOnly;
+        s.IsGhost = s.Body == null || bodyMustBeSpecOnly;
 
         if (s.Body != null) {
           // clear the labels for the duration of checking the body, because break statements are not allowed to leave a forall statement
