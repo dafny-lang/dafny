@@ -42,12 +42,12 @@ class A {
     assert zz2 != zz0;  // holds because zz2 is newly allocated
     var o: object := zz0;
     assert this != o;  // holds because zz0 has a different type
-    /******  This would be a good thing to be able to verify, but the current encoding is not up to the task
+
     if (zz0 != null && zz1 != null && 2 <= zz0.Length && zz0.Length == zz1.Length) {
       o := zz1[1];
       assert zz0[1] == o ==> o == null;  // holds because zz0 and zz1 have different element types
     }
-    ******/
+
     assert zz2[20] == null;  // error: no reason that this must hold
   }
 
@@ -152,7 +152,7 @@ class A {
     ensures fresh(b) && Q1(b[..]);
 }
 
-type B;
+class B { }
 
 // -------------------------------
 
@@ -300,4 +300,30 @@ method AllocationBusiness2(a: array2<MyClass>, i: int, j: int)
 {
   var c := new MyClass;
   assert c !in a[i,j].Repr;  // the proof requires allocation axioms for multi-dim arrays
+}
+
+// ------- a regression test, testing that dtype is set correctly after allocation ------
+
+module DtypeRegression {
+  predicate array_equal(a: array<int>, b: array<int>)
+    requires a != null && b != null;
+    reads a, b;
+  {
+    a[..] == b[..]
+  }
+
+  method duplicate_array(input: array<int>, len: int) returns (output: array<int>) 
+    requires input != null && len == input.Length;
+    ensures output != null && array_equal(input, output);
+  {
+    output := new int[len];
+    var i := 0;
+    while i < len
+      invariant 0 <= i <= len;
+      invariant forall j :: 0 <= j < i ==> output[j] == input[j];
+    {
+      output[i] := input[i];
+      i := i + 1;
+    }
+  }
 }

@@ -80,7 +80,7 @@ namespace DafnyLanguage
       if (start == end) yield break;
 
       foreach (var r in _regions) {
-        if (0 <= r.Length && r.Start <= end && start <= r.Start + r.Length) {
+        if (0 <= r.Length && r.Start >= start && r.Start + r.Length <= end) {
           yield return new TagSpan<OutliningRegionTag>(
             new SnapshotSpan(_snapshot, r.Start, r.Length),
             new OutliningRegionTag(false, false, "...", r.HoverText));

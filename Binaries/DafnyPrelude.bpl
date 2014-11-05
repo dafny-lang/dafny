@@ -103,21 +103,6 @@ const $ArbitraryBoxValue: Box;
 function $Box<T>(T): Box;
 function $Unbox<T>(Box): T;
 
-/*
-axiom (forall<T> x: T :: { $Box(x) } $Unbox($Box(x)) == x);
-axiom (forall b: Box :: { $Unbox(b): int } $Box($Unbox(b): int) == b);
-axiom (forall b: Box :: { $Unbox(b): ref } $Box($Unbox(b): ref) == b);
-axiom (forall b: Box :: { $Unbox(b): Set Box } $Box($Unbox(b): Set Box) == b);
-axiom (forall b: Box :: { $Unbox(b): MultiSet Box } $Box($Unbox(b): MultiSet Box) == b);
-axiom (forall b: Box :: { $Unbox(b): Seq Box } $Box($Unbox(b): Seq Box) == b);
-axiom (forall b: Box :: { $Unbox(b): Map Box Box } $Box($Unbox(b): Map Box Box) == b);
-axiom (forall b: Box :: { $Unbox(b): DatatypeType } $Box($Unbox(b): DatatypeType) == b);
-// Note: an axiom like this for bool would not be sound; instead, we do:
-function $IsCanonicalBoolBox(Box): bool;
-axiom $IsCanonicalBoolBox($Box(false)) && $IsCanonicalBoolBox($Box(true));
-axiom (forall b: Box :: { $Unbox(b): bool } $IsCanonicalBoolBox(b) ==> $Box($Unbox(b): bool) == b);
-*/
-
 axiom (forall<T> x : T :: { $Box(x) } $Unbox($Box(x)) == x);
 
 axiom (forall bx : Box ::
@@ -255,7 +240,6 @@ const unique class._System.seq: ClassName;
 const unique class._System.multiset: ClassName;
 
 function /*{:never_pattern true}*/ dtype(ref): Ty; // changed from ClassName to Ty
-// function /*{:never_pattern true}*/ TypeParams(ref, int): ClassName;
 
 function TypeTuple(a: ClassName, b: ClassName): ClassName;
 function TypeTupleCar(ClassName): ClassName;
@@ -274,10 +258,6 @@ type HandleType;
 // ---------------------------------------------------------------
 
 type DatatypeType;
-
-// function /*{:never_pattern true}*/ DtType(DatatypeType): Ty;  // the analog of dtype for datatype values
-                                                // changed from ClassName to Ty
-// function /*{:never_pattern true}*/ DtTypeParams(DatatypeType, int): ClassName;  // the analog of TypeParams
 
 type DtCtorId;
 function DatatypeCtorId(DatatypeType): DtCtorId;
@@ -357,91 +337,6 @@ axiom(forall h, k : Heap, bx : Box, t : Ty ::
 
 const unique alloc: Field bool;
 axiom FDim(alloc) == 0 && !$IsGhostField(alloc);  // treat as non-ghost field, because it cannot be changed by ghost code
-
-// DtAlloc, removed
-//function DtAlloc(DatatypeType, Heap): bool;
-//axiom (forall h, k: Heap, d: DatatypeType ::
-//  { $HeapSucc(h, k), DtAlloc(d, h) }
-//  $HeapSucc(h, k) ==> DtAlloc(d, h) ==> DtAlloc(d, k));
-
-// GenericAlloc removed.
-
-/*
-function GenericAlloc(Box, Heap): bool;
-axiom (forall h: Heap, k: Heap, d: Box ::
-  { $HeapSucc(h, k), GenericAlloc(d, h) }
-  $HeapSucc(h, k) ==> GenericAlloc(d, h) ==> GenericAlloc(d, k));
-// GenericAlloc ==>
-//references
-axiom (forall b: Box, h: Heap ::
-  { GenericAlloc(b, h), h[$Unbox(b): ref, alloc] }
-  GenericAlloc(b, h) ==>
-  $Unbox(b): ref == null || h[$Unbox(b): ref, alloc]);
-//seqs
-axiom (forall b: Box, h: Heap, i: int ::
-  { GenericAlloc(b, h), Seq#Index($Unbox(b): Seq Box, i) }
-  GenericAlloc(b, h) &&
-  0 <= i && i < Seq#Length($Unbox(b): Seq Box) ==>
-  GenericAlloc( Seq#Index($Unbox(b): Seq Box, i), h ) );
-
-//maps
-//seq-like axiom, talking about the range elements
-axiom (forall b: Box, h: Heap, i: Box ::
-  { GenericAlloc(b, h), Map#Domain($Unbox(b): Map Box Box)[i] }
-  GenericAlloc(b, h) && Map#Domain($Unbox(b): Map Box Box)[i] ==>
-  GenericAlloc( Map#Elements($Unbox(b): Map Box Box)[i], h ) );
-//set-like axiom, talking about the domain elements
-axiom (forall b: Box, h: Heap, t: Box ::
-  { GenericAlloc(b, h), Map#Domain($Unbox(b): Map Box Box)[t] }
-  GenericAlloc(b, h) && Map#Domain($Unbox(b): Map Box Box)[t] ==>
-  GenericAlloc(t, h));
-
-//sets
-axiom (forall b: Box, h: Heap, t: Box ::
-  { GenericAlloc(b, h), ($Unbox(b): Set Box)[t] }
-  GenericAlloc(b, h) && ($Unbox(b): Set Box)[t] ==>
-  GenericAlloc(t, h));
-//datatypes
-axiom (forall b: Box, h: Heap ::
-  { GenericAlloc(b, h), DtAlloc($Unbox(b): DatatypeType, h) }
-  GenericAlloc(b, h) <==> DtAlloc($Unbox(b): DatatypeType, h));
-axiom (forall dt: DatatypeType, h: Heap ::
-  { GenericAlloc($Box(dt), h) }
-  GenericAlloc($Box(dt), h) <==> DtAlloc(dt, h));
-// ==> GenericAlloc
-axiom (forall b: bool, h: Heap ::
-  $IsGoodHeap(h) ==> GenericAlloc($Box(b), h));
-axiom (forall x: int, h: Heap ::
-  $IsGoodHeap(h) ==> GenericAlloc($Box(x), h));
-axiom (forall r: ref, h: Heap ::
-  { GenericAlloc($Box(r), h) }
-  $IsGoodHeap(h) && (r == null || h[r,alloc]) ==> GenericAlloc($Box(r), h));
-// boxes in the heap
-axiom (forall r: ref, f: Field Box, h: Heap ::
-  { GenericAlloc(read(h, r, f), h) }
-  $IsGoodHeap(h) && r != null && read(h, r, alloc) ==>
-  GenericAlloc(read(h, r, f), h));
-
-axiom (forall h: Heap, r: ref, j: int ::
- { read(h, r, IndexField(j)) }
- $IsGoodHeap(h) && r != null && read(h, r, alloc) &&
- 0 <= j && j < _System.array.Length(r)
- ==>
- GenericAlloc(read(h, r, IndexField(j)), h));
-axiom (forall h: Heap, r: ref, m: Field Box, j: int ::
- { read(h, r, MultiIndexField(m, j)) }
- $IsGoodHeap(h) && r != null && read(h, r, alloc)
- // It would be best also to constrain MultiIndexField(m,j) to produce
- // a proper field (that is, to refer to an array element within
- // bounds.  However, since the LengthX fields of multi-dimentional
- // are produced on the fly, adding them would require more work.
- // Thus, the model to keep in mind is that MultiIndexField then
- // produces a field who value, when dereferenced for array 'r',
- // is a box that has the desired allocation properties.
- ==>
- GenericAlloc(read(h, r, MultiIndexField(m, j)), h));
- */
-
 
 // ---------------------------------------------------------------
 // -- Arrays -----------------------------------------------------
@@ -557,10 +452,6 @@ function Set#Singleton<T>(T): Set T;
 axiom (forall<T> r: T :: { Set#Singleton(r) } Set#Singleton(r)[r]);
 axiom (forall<T> r: T, o: T :: { Set#Singleton(r)[o] } Set#Singleton(r)[o] <==> r == o);
 axiom (forall<T> r: T :: { Set#Card(Set#Singleton(r)) } Set#Card(Set#Singleton(r)) == 1);
-
-// the singleton set will be the same type as its box
-//axiom (forall bx : Ty, t: Ty :: { $Is(Set#Singleton(
-
 
 function Set#UnionOne<T>(Set T, T): Set T;
 axiom (forall<T> a: Set T, x: T, o: T :: { Set#UnionOne(a,x)[o] }
@@ -832,12 +723,13 @@ axiom (forall<T> s: Seq T, x: T :: { Seq#Contains(s,x) }
 axiom (forall x: ref ::
   { Seq#Contains(Seq#Empty(), x) }
   !Seq#Contains(Seq#Empty(), x));
+
 axiom (forall<T> s0: Seq T, s1: Seq T, x: T ::
   { Seq#Contains(Seq#Append(s0, s1), x) }
   Seq#Contains(Seq#Append(s0, s1), x) <==>
     Seq#Contains(s0, x) || Seq#Contains(s1, x));
 
-axiom (forall<T> s: Seq T, v: T, x: T ::
+axiom (forall<T> s: Seq T, v: T, x: T ::  // needed to prove things like '4 in [2,3,4]', see method TestSequences0 in SmallTests.dfy
   { Seq#Contains(Seq#Build(s, v), x) }
     Seq#Contains(Seq#Build(s, v), x) <==> (v == x || Seq#Contains(s, x)));
 
@@ -869,21 +761,27 @@ axiom (forall<T> s0: Seq T, s1: Seq T, n: int :: { Seq#SameUntil(s0,s1,n) }
 
 function Seq#Take<T>(s: Seq T, howMany: int): Seq T;
 axiom (forall<T> s: Seq T, n: int :: { Seq#Length(Seq#Take(s,n)) }
-  0 <= n ==>
-    (n <= Seq#Length(s) ==> Seq#Length(Seq#Take(s,n)) == n) &&
-    (Seq#Length(s) < n ==> Seq#Length(Seq#Take(s,n)) == Seq#Length(s)));
-axiom (forall<T> s: Seq T, n: int, j: int :: { Seq#Index(Seq#Take(s,n), j) } {:weight 25}
+  0 <= n && n <= Seq#Length(s) ==> Seq#Length(Seq#Take(s,n)) == n);
+axiom (forall<T> s: Seq T, n: int, j: int ::
+  {:weight 25}
+  { Seq#Index(Seq#Take(s,n), j) }
+  { Seq#Index(s, j), Seq#Take(s,n) }
   0 <= j && j < n && j < Seq#Length(s) ==>
     Seq#Index(Seq#Take(s,n), j) == Seq#Index(s, j));
 
 function Seq#Drop<T>(s: Seq T, howMany: int): Seq T;
 axiom (forall<T> s: Seq T, n: int :: { Seq#Length(Seq#Drop(s,n)) }
-  0 <= n ==>
-    (n <= Seq#Length(s) ==> Seq#Length(Seq#Drop(s,n)) == Seq#Length(s) - n) &&
-    (Seq#Length(s) < n ==> Seq#Length(Seq#Drop(s,n)) == 0));
-axiom (forall<T> s: Seq T, n: int, j: int :: { Seq#Index(Seq#Drop(s,n), j) } {:weight 25}
+  0 <= n && n <= Seq#Length(s) ==> Seq#Length(Seq#Drop(s,n)) == Seq#Length(s) - n);
+axiom (forall<T> s: Seq T, n: int, j: int ::
+  {:weight 25}
+  { Seq#Index(Seq#Drop(s,n), j) }
   0 <= n && 0 <= j && j < Seq#Length(s)-n ==>
     Seq#Index(Seq#Drop(s,n), j) == Seq#Index(s, j+n));
+axiom (forall<T> s: Seq T, n: int, k: int ::
+  {:weight 25}
+  { Seq#Index(s, k), Seq#Drop(s,n) }
+  0 <= n && n <= k && k < Seq#Length(s) ==>
+    Seq#Index(Seq#Drop(s,n), k-n) == Seq#Index(s, k));
 
 axiom (forall<T> s, t: Seq T ::
   { Seq#Append(s, t) }
@@ -894,9 +792,18 @@ function Seq#FromArray(h: Heap, a: ref): Seq Box;
 axiom (forall h: Heap, a: ref ::
   { Seq#Length(Seq#FromArray(h,a)) }
   Seq#Length(Seq#FromArray(h, a)) == _System.array.Length(a));
-axiom (forall h: Heap, a: ref, i: int ::
-  { Seq#Index(Seq#FromArray(h, a): Seq Box, i) }
-  0 <= i && i < Seq#Length(Seq#FromArray(h, a)) ==> Seq#Index(Seq#FromArray(h, a), i) == read(h, a, IndexField(i)));
+axiom (forall h: Heap, a: ref :: 
+  { Seq#FromArray(h, a) } 
+  (forall i: int ::
+    // it's important to include both triggers, so that assertions about the
+    // the relation between the array and the sequence can be proved in either
+    // direction
+    { read(h, a, IndexField(i)) }
+    { Seq#Index(Seq#FromArray(h, a): Seq Box, i) } 
+    0 <= i &&
+    i < Seq#Length(Seq#FromArray(h, a))  // this will trigger the previous axiom to get a connection with _System.array.Length(a)
+    ==>
+    Seq#Index(Seq#FromArray(h, a), i) == read(h, a, IndexField(i))));
 axiom (forall h0, h1: Heap, a: ref ::
   { Seq#FromArray(h1, a), $HeapSucc(h0, h1) }
   $IsGoodHeap(h0) && $IsGoodHeap(h1) && $HeapSucc(h0, h1) &&
@@ -907,14 +814,6 @@ axiom (forall h0, h1: Heap, a: ref ::
 axiom (forall h: Heap, i: int, v: Box, a: ref ::
   { Seq#FromArray(update(h, a, IndexField(i), v), a) }
     0 <= i && i < _System.array.Length(a) ==> Seq#FromArray(update(h, a, IndexField(i), v), a) == Seq#Update(Seq#FromArray(h, a), i, v) );
-/**** Someday:
-axiom (forall h: Heap, a: ref :: { Seq#FromArray(h, a) }
-    $IsGoodHeap(h) &&
-    a != null && read(h, a, alloc) && dtype(a) == class._System.array && TypeParams(a, 0) == class._System.bool
-    ==>
-    (forall i: int :: { Seq#Index(Seq#FromArray(h, a), i) }
-      0 <= i && i < Seq#Length(Seq#FromArray(h, a)) ==>  $IsCanonicalBoolBox(Seq#Index(Seq#FromArray(h, a), i))));
-****/
 
 // Commutability of Take and Drop with Update.
 axiom (forall<T> s: Seq T, i: int, v: T, n: int ::
@@ -1022,3 +921,18 @@ axiom (forall<U, V> m: Map U V, m': Map U V ::
   { Map#Disjoint(m, m') }
     Map#Disjoint(m, m') <==> (forall o: U :: {Map#Domain(m)[o]} {Map#Domain(m')[o]} !Map#Domain(m)[o] || !Map#Domain(m')[o]));
 
+// -------------------------------------------------------------------------
+// -- Provide arithmetic wrappers to improve triggering and non-linear math 
+// -------------------------------------------------------------------------
+
+function INTERNAL_add_boogie(x:int, y:int) : int { x + y }
+function INTERNAL_sub_boogie(x:int, y:int) : int { x - y }
+function INTERNAL_mul_boogie(x:int, y:int) : int { x * y }
+function INTERNAL_div_boogie(x:int, y:int) : int { x div y }
+function INTERNAL_mod_boogie(x:int, y:int) : int { x mod y }
+function {:never_pattern true} INTERNAL_lt_boogie(x:int, y:int) : bool { x < y }
+function {:never_pattern true} INTERNAL_le_boogie(x:int, y:int) : bool { x <= y }
+function {:never_pattern true} INTERNAL_gt_boogie(x:int, y:int) : bool { x > y }
+function {:never_pattern true} INTERNAL_ge_boogie(x:int, y:int) : bool { x >= y }
+
+// -------------------------------------------------------------------------

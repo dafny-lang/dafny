@@ -637,6 +637,12 @@ namespace Microsoft.Dafny
         reqs = Expression.CreateAnd(reqs, expr);
       }
 
+      if (fn.Formals.Count == 0)
+      {
+          lem.Ens[0] = new MaybeFreeExpression(Expression.CreateImplies(reqs, lem.Ens[0].E));
+          return;
+      }
+
       var origForall = (ForallExpr)lem.Ens[0].E;
       var origImpl = (BinaryExpr)origForall.Term;
 
@@ -683,45 +689,66 @@ namespace Microsoft.Dafny
             parentFunction = fn;  // Remember where the recursion started
             containsMatch = false;  // Assume no match statements are involved
 
-            List<Expression> auto_reqs = new List<Expression>();
+            if (!opaqueInfo.isOpaque(fn)) { // It's a normal function
+              List<Expression> auto_reqs = new List<Expression>();
 
-            // First handle all of the requirements' preconditions
-            foreach (Expression req in fn.Req) {
-              auto_reqs.AddRange(generateAutoReqs(req));
-            }
-            fn.Req.InsertRange(0, auto_reqs); // Need to come before the actual requires
-            addAutoReqToolTipInfo("pre", fn, auto_reqs);
+              // First handle all of the requirements' preconditions
+              foreach (Expression req in fn.Req) {
+                auto_reqs.AddRange(generateAutoReqs(req));
+              }
+              fn.Req.InsertRange(0, auto_reqs); // Need to come before the actual requires
+              addAutoReqToolTipInfoToFunction("pre", fn, auto_reqs);
 
-            // Then the body itself, if any
-            var body = fn.Body;
-            if (opaqueInfo.isOpaque(fn)) {  // Opaque functions don't have a body at this point, so use the original body
-              body = opaqueInfo.FullVersion(fn).Body;
-            }
+              // Then the body itself, if any          
+              if (fn.Body != null) {
+                auto_reqs = generateAutoReqs(fn.Body);
+                fn.Req.AddRange(auto_reqs);
+                addAutoReqToolTipInfoToFunction("post", fn, auto_reqs);
+              }
+            } else {  // Opaque functions need special handling
+              // The opaque function's requirements are the same as for the _FULL version,
+              // so we don't need to generate them again.  We do, however, need to swap
+              // the function's variables for those of the FULL version
 
-            if (body != null) {
-              auto_reqs = generateAutoReqs(body);
-
-              if (opaqueInfo.isOpaque(fn)) {  // We need to swap fn's variables in for fn_FULL's               
-                List<Expression> fnVars = new List<Expression>();
-                foreach (var formal in fn.Formals) {
-                  var id = new IdentifierExpr(formal.tok, formal.Name);
-                  id.Var = formal;  // resolve here
-                  id.Type = formal.Type;  // resolve here
-                  fnVars.Add(id);
-                }
-
-                var body_reqs = new List<Expression>();
-                foreach (var req in auto_reqs) {
-                  body_reqs.Add(subVars(opaqueInfo.FullVersion(fn).Formals, fnVars, req, null));
-                }
-                auto_reqs = body_reqs;
+              List<Expression> fnVars = new List<Expression>();
+              foreach (var formal in fn.Formals) {
+                var id = new IdentifierExpr(formal.tok, formal.Name);
+                id.Var = formal;  // resolve here
+                id.Type = formal.Type;  // resolve here
+                fnVars.Add(id);
               }
 
-              fn.Req.AddRange(auto_reqs);
-              addAutoReqToolTipInfo("post", fn, auto_reqs);
-            }          
+              var new_reqs = new List<Expression>();
+              foreach (var req in opaqueInfo.FullVersion(fn).Req) {
+                new_reqs.Add(subVars(opaqueInfo.FullVersion(fn).Formals, fnVars, req, null));
+              }
+
+              fn.Req.Clear();
+              fn.Req.AddRange(new_reqs);
+            }
           }
-        } 
+        }
+        else if (scComponent is Method)
+        {
+            Method method = (Method)scComponent;
+            if (Attributes.ContainsBoolAtAnyLevel(method, "autoReq"))
+            {
+                parentFunction = null;
+                containsMatch = false; // Assume no match statements are involved
+
+                List<MaybeFreeExpression> auto_reqs = new List<MaybeFreeExpression>();
+                foreach (MaybeFreeExpression req in method.Req)
+                {
+                    List<Expression> local_auto_reqs = generateAutoReqs(req.E);
+                    foreach (Expression local_auto_req in local_auto_reqs)
+                    {
+                        auto_reqs.Add(new MaybeFreeExpression(local_auto_req, !req.IsFree));
+                    }
+                }
+                method.Req.InsertRange(0, auto_reqs); // Need to come before the actual requires
+                addAutoReqToolTipInfoToMethod("pre", method, auto_reqs);
+            }
+        }
       }
     }
 
@@ -743,7 +770,7 @@ namespace Microsoft.Dafny
       return sub.Substitute(e);
     }
 
-    public void addAutoReqToolTipInfo(string label, Function f, List<Expression> reqs) {
+    public void addAutoReqToolTipInfoToFunction(string label, Function f, List<Expression> reqs) {
       string prefix = "auto requires " + label + " ";
       string tip = "";
 
@@ -759,6 +786,39 @@ namespace Microsoft.Dafny
 
       if (!tip.Equals("")) {
         resolver.ReportAdditionalInformation(f.tok, tip, f.tok.val.Length);
+        if (DafnyOptions.O.AutoReqPrintFile != null) {
+          using (System.IO.TextWriter writer = new System.IO.StreamWriter(DafnyOptions.O.AutoReqPrintFile, true)) {
+            writer.WriteLine(f.Name);
+            writer.WriteLine("\t" + tip);
+          }
+        }
+      }
+    }
+
+    public void addAutoReqToolTipInfoToMethod(string label, Method method, List<MaybeFreeExpression> reqs) {
+      string tip = "";
+
+      foreach (var req in reqs) {
+        string prefix = "auto ";
+        if (req.IsFree) {
+          prefix += "free ";
+        }
+        prefix += " requires " + label + " ";
+        if (containsMatch) {  // Pretty print the requirements
+          tip += prefix + Printer.ExtendedExprToString(req.E) + ";\n";
+        } else {
+          tip += prefix + Printer.ExprToString(req.E) + ";\n";
+        }
+      }
+
+      if (!tip.Equals("")) {
+        resolver.ReportAdditionalInformation(method.tok, tip, method.tok.val.Length);
+        if (DafnyOptions.O.AutoReqPrintFile != null) {
+          using (System.IO.TextWriter writer = new System.IO.StreamWriter(DafnyOptions.O.AutoReqPrintFile, true)) {
+            writer.WriteLine(method.Name);
+            writer.WriteLine("\t" + tip);
+          }
+        }
       }
     }
 
@@ -851,7 +911,7 @@ namespace Microsoft.Dafny
           reqs.AddRange(generateAutoReqs(arg));
         }
 
-        if (ModuleDefinition.InSameSCC(e.Function, parentFunction)) {
+        if (parentFunction != null && ModuleDefinition.InSameSCC(e.Function, parentFunction)) {
           // We're making a call within the same SCC, so don't descend into this function
         } else {
           reqs.AddRange(gatherReqs(e.Function, e.Args, e.Receiver));
@@ -944,7 +1004,10 @@ namespace Microsoft.Dafny
 
         var auto_reqs = generateAutoReqs(e.Term);
         if (auto_reqs.Count > 0) {
-          reqs.Add(Expression.CreateQuantifier(e, true, andify(e.Term.tok, auto_reqs)));        
+            Expression allReqsSatisfied = andify(e.Term.tok, auto_reqs);
+            Expression allReqsSatisfiedAndTerm = Expression.CreateAnd(allReqsSatisfied, e.Term);
+            e.UpdateTerm(allReqsSatisfiedAndTerm);
+            resolver.ReportAdditionalInformation(e.tok, "autoreq added (" + Printer.ExtendedExprToString(allReqsSatisfied) + ") &&", e.tok.val.Length);
         }
       } else if (expr is SetComprehension) {
         var e = (SetComprehension)expr;
@@ -981,6 +1044,54 @@ namespace Microsoft.Dafny
 
       return reqs;
     }
+  }
+
+
+
+  /// <summary>
+  /// Replace all occurrences of attribute {:timeLimitMultiplier X} with {:timeLimit Y}
+  /// where Y = X*default-time-limit or Y = X*command-line-time-limit
+  /// </summary>
+  public class TimeLimitRewriter : IRewriter
+  {
+    public void PreResolve(ModuleDefinition m) {
+      foreach (var d in m.TopLevelDecls) {
+        if (d is ClassDecl) {
+          var c = (ClassDecl)d;
+          foreach (MemberDecl member in c.Members)  {
+            if (member is Function || member is Method) {
+              // Check for the timeLimitMultiplier attribute
+              if (Attributes.Contains(member.Attributes, "timeLimitMultiplier")) {
+                Attributes attrs = member.Attributes;
+                for (; attrs != null; attrs = attrs.Prev) {
+                  if (attrs.Name == "timeLimitMultiplier") {
+                    if (attrs.Args.Count == 1 && attrs.Args[0] is LiteralExpr) {
+                      var arg = attrs.Args[0] as LiteralExpr;
+                      System.Numerics.BigInteger value = (System.Numerics.BigInteger)arg.Value;
+                      if (value.Sign > 0) {
+                        int current_limit = DafnyOptions.O.ProverKillTime > 0 ? DafnyOptions.O.ProverKillTime : 10;  // Default to 10 seconds
+                        attrs.Args[0] = new LiteralExpr(attrs.Args[0].tok, value * current_limit);
+                        attrs.Name = "timeLimit";
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+
+    public void PostResolve(ModuleDefinition m)
+    {
+      // Nothing to do here
+    }
+
+    public void PostCyclicityResolve(ModuleDefinition m) {
+      // Nothing to do here
+    }
+
   }
 }
 

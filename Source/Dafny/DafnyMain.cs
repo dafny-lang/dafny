@@ -11,6 +11,21 @@ using Bpl = Microsoft.Boogie;
 
 namespace Microsoft.Dafny {
   public class Main {
+
+      private static void MaybePrintProgram(Program program, string filename)
+      {
+          if (filename != null) {
+              TextWriter tw;
+              if (filename == "-") {
+                  tw = System.Console.Out;
+              } else {
+                  tw = new System.IO.StreamWriter(filename);
+              }
+              Printer pr = new Printer(tw, DafnyOptions.O.PrintMode);
+              pr.PrintProgram(program);
+          }
+      }
+   
     /// <summary>
     /// Returns null on success, or an error string otherwise.
     /// </summary>
@@ -39,7 +54,7 @@ namespace Microsoft.Dafny {
       }
 
       if (!DafnyOptions.O.DisallowIncludes) {
-        string errString = ParseIncludes(module, builtIns, new Errors());
+        string errString = ParseIncludes(module, builtIns, fileNames, new Errors());
         if (errString != null) {
           return errString;
         }
@@ -47,35 +62,14 @@ namespace Microsoft.Dafny {
 
       program = new Program(programName, module, builtIns);
 
-      if (DafnyOptions.O.DafnyPrintFile != null) {
-        string filename = DafnyOptions.O.DafnyPrintFile;
-        if (filename == "-") {
-          Printer pr = new Printer(System.Console.Out);
-          pr.PrintProgram(program);
-        } else {
-          using (TextWriter writer = new System.IO.StreamWriter(filename)) {
-            Printer pr = new Printer(writer);
-            pr.PrintProgram(program);
-          }
-        }
-      }
+      MaybePrintProgram(program, DafnyOptions.O.DafnyPrintFile);
 
       if (Bpl.CommandLineOptions.Clo.NoResolve || Bpl.CommandLineOptions.Clo.NoTypecheck) { return null; }
 
       Dafny.Resolver r = new Dafny.Resolver(program);
       r.ResolveProgram(program);
-      if (DafnyOptions.O.DafnyPrintResolvedFile != null) {
-        string filename = DafnyOptions.O.DafnyPrintResolvedFile;
-        if (filename == "-") {
-          Printer pr = new Printer(System.Console.Out);
-          pr.PrintProgram(program);
-        } else {
-          using (TextWriter writer = new System.IO.StreamWriter(filename)) {
-            Printer pr = new Printer(writer);
-            pr.PrintProgram(program);
-          }
-        }
-      }
+      MaybePrintProgram(program, DafnyOptions.O.DafnyPrintResolvedFile);
+
       if (r.ErrorCount != 0) {
         return string.Format("{0} resolution/type errors detected in {1}", r.ErrorCount, program.Name);
       }
@@ -90,8 +84,11 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public static string ParseIncludes(ModuleDecl module, BuiltIns builtIns, Errors errs) {
+    public static string ParseIncludes(ModuleDecl module, BuiltIns builtIns, List<string> excludeFiles, Errors errs) {
       SortedSet<Include> includes = new SortedSet<Include>(new IncludeComparer());
+      foreach (string fileName in excludeFiles) {
+        includes.Add(new Include(null, fileName, Path.GetFullPath(fileName)));
+      }
       bool newlyIncluded;
       do {
         newlyIncluded = false;

@@ -181,7 +181,7 @@ CHARACTERS
   idcharMinusR = idchar - 'r'.
   idcharMinusY = idchar - 'y'.
   idcharMinusPosDigit = idchar - posDigit.
-  ischarMinusTick = idchar - '\''.
+  idcharMinusTick = idchar - '\''.
   /* string literals */
   charChar = ANY - '\'' - '\\' - cr - lf.
   stringChar = ANY - '"' - '\\' - cr - lf.
@@ -197,12 +197,12 @@ TOKENS
         |  'a' 'r' 'r' 'a' 'y' idcharMinusPosDigit {idchar}
         |  'a' 'r' 'r' 'a' 'y' posDigit {idchar} nondigit {idchar}
         |  "'" [ idchar ]                        /* if char 0 is a '\'' and length is 1 or 2, then it is an identifier */
-        |  "'" idchar ischarMinusTick            /* if char 0 is '\'' and length is 3, then it is an identifier provided char 2 is not '\'' */
+        |  "'" idchar idcharMinusTick            /* if char 0 is '\'' and length is 3, then it is an identifier provided char 2 is not '\'' */
         |  "'" idchar idchar idchar { idchar }   /* if char 0 is '\'' and length exceeds 3, then it is an identifier */
         .
-  digits = digit {digit}.
-  hexdigits = "0x" hexdigit {hexdigit}.
-  decimaldigits = digit {digit} '.' digit {digit}.
+  digits = digit {['_'] digit}.
+  hexdigits = "0x" hexdigit {['_'] hexdigit}.
+  decimaldigits = digit {['_'] digit} '.' digit {['_'] digit}.
   arrayToken = "array" [posDigit {digit}].
   charToken =
       "'"
@@ -474,7 +474,7 @@ FieldDecl<.MemberModifiers mmod, List<MemberDecl/*!*/>/*!*/ mm.>
   FIdentType<out id, out ty>                        (. mm.Add(new Field(id, id.val, mmod.IsGhost, ty, attrs)); .)
   { "," FIdentType<out id, out ty>                  (. mm.Add(new Field(id, id.val, mmod.IsGhost, ty, attrs)); .)
   }
-  SYNC ";"
+  OldSemi
   .
 NewtypeDecl<ModuleDefinition module, out TopLevelDecl td>
 = (. IToken id, bvId;
@@ -494,11 +494,6 @@ NewtypeDecl<ModuleDefinition module, out TopLevelDecl td>
     Expression<out wh, false, true>  (. td = new NewtypeDecl(id, id.val, module, new BoundVar(bvId, bvId.val, baseType), wh, attrs); .)
   | Type<out baseType>               (. td = new NewtypeDecl(id, id.val, module, baseType, attrs); .)
   )
-  [ SYNC ";"
-      // In a future version of Dafny, including the following warning message:
-      //     (. errors.Warning(t, "the semi-colon that used to terminate an opaque-type declaration has been deprecated; in the new syntax, just leave off the semi-colon"); .)
-      // And in a version after that, don't allow the semi-colon at all.
-  ]
   .
 OtherTypeDecl<ModuleDefinition module, out TopLevelDecl td>
 = (. IToken id;
@@ -745,11 +740,7 @@ MethodDecl<MemberModifiers mmod, bool allowConstructor, out Method/*!*/ m>
   [ BlockStmt<out body, out bodyStart, out bodyEnd>
   ]
   (.
-     if (Attributes.Contains(attrs, "axiom") && !mmod.IsGhost && !isLemma) {
-        SemErr(t, "only ghost methods can have the :axiom attribute");
-     }
-
-     if (DafnyOptions.O.DisallowSoundnessCheating && body == null && ens.Count > 0 && !Attributes.Contains(attrs, "axiom")) {
+     if (DafnyOptions.O.DisallowSoundnessCheating && body == null && ens.Count > 0 && !Attributes.Contains(attrs, "axiom") && !Attributes.Contains(attrs, "imported") && !Attributes.Contains(attrs, "decl") && theVerifyThisFile) {
         SemErr(t, "a method with an ensures clause must have a body, unless given the :axiom attribute");
      }
 
@@ -781,15 +772,17 @@ MethodSpec<.List<MaybeFreeExpression/*!*/>/*!*/ req, List<FrameExpression/*!*/>/
                [ FrameExpression<out fe>                     (. mod.Add(fe); .)
                  { "," FrameExpression<out fe>               (. mod.Add(fe); .)
                  }
-               ] SYNC ";"
-  | [ "free"                                                 (. isFree = true; .)
+               ] OldSemi
+  | [ "free"                                                 (. isFree = true;
+                                                                errors.Warning(t, "the 'free' keyword is soon to be deprecated");
+                                                             .)
     ]
-    ( "requires" Expression<out e, false, true> SYNC ";"           (. req.Add(new MaybeFreeExpression(e, isFree)); .)
+    ( "requires" Expression<out e, false, true> OldSemi      (. req.Add(new MaybeFreeExpression(e, isFree)); .)
     | "ensures"
       { IF(IsAttribute()) Attribute<ref ensAttrs> }
-      Expression<out e, false, true> SYNC ";"                      (. ens.Add(new MaybeFreeExpression(e, isFree, ensAttrs)); .)
+      Expression<out e, false, true> OldSemi                 (. ens.Add(new MaybeFreeExpression(e, isFree, ensAttrs)); .)
     )
-  | "decreases" { IF(IsAttribute()) Attribute<ref decAttrs> } DecreasesList<decreases, true> SYNC ";"
+  | "decreases" { IF(IsAttribute()) Attribute<ref decAttrs> } DecreasesList<decreases, true> OldSemi
   )
   .
 IteratorSpec<.List<FrameExpression/*!*/>/*!*/ reads, List<FrameExpression/*!*/>/*!*/ mod, List<Expression/*!*/> decreases,
@@ -803,31 +796,33 @@ IteratorSpec<.List<FrameExpression/*!*/>/*!*/ reads, List<FrameExpression/*!*/>/
                [ FrameExpression<out fe>                     (. reads.Add(fe); .)
                  { "," FrameExpression<out fe>               (. reads.Add(fe); .)
                  }
-               ] SYNC ";"
+               ] OldSemi
   | "modifies" { IF(IsAttribute()) Attribute<ref modAttrs> }
                [ FrameExpression<out fe>                     (. mod.Add(fe); .)
                  { "," FrameExpression<out fe>               (. mod.Add(fe); .)
                  }
-               ] SYNC ";"
-  | [ "free"                                                 (. isFree = true; .)
+               ] OldSemi
+  | [ "free"                                                 (. isFree = true;
+                                                                errors.Warning(t, "the 'free' keyword is soon to be deprecated");
+                                                             .)
     ]
     [ "yield"                                                (. isYield = true; .)
     ]
-    ( "requires" Expression<out e, false, true> SYNC ";"           (. if (isYield) {
+    ( "requires" Expression<out e, false, true> OldSemi      (. if (isYield) {
                                                                   yieldReq.Add(new MaybeFreeExpression(e, isFree));
                                                                 } else {
                                                                   req.Add(new MaybeFreeExpression(e, isFree));
                                                                 }
                                                              .)
     | "ensures" { IF(IsAttribute()) Attribute<ref ensAttrs> }
-      Expression<out e, false, true> SYNC ";"                      (. if (isYield) {
+      Expression<out e, false, true> OldSemi                 (. if (isYield) {
                                                                   yieldEns.Add(new MaybeFreeExpression(e, isFree, ensAttrs));
                                                                 } else {
                                                                   ens.Add(new MaybeFreeExpression(e, isFree, ensAttrs));
                                                                 }
                                                              .)
     )
-  | "decreases" { IF(IsAttribute()) Attribute<ref decrAttrs> } DecreasesList<decreases, false> SYNC ";"
+  | "decreases" { IF(IsAttribute()) Attribute<ref decrAttrs> } DecreasesList<decreases, false> OldSemi
   )
   .
 Formals<.bool incoming, bool allowGhostKeyword, List<Formal> formals.>
@@ -1023,7 +1018,7 @@ FunctionDecl<MemberModifiers mmod, out Function/*!*/ f>
   { FunctionSpec<reqs, reads, ens, decreases> }
   [ FunctionBody<out body, out bodyStart, out bodyEnd>
   ]
-  (. if (DafnyOptions.O.DisallowSoundnessCheating && body == null && ens.Count > 0 && !Attributes.Contains(attrs, "axiom")) {
+  (. if (DafnyOptions.O.DisallowSoundnessCheating && body == null && ens.Count > 0 && !Attributes.Contains(attrs, "axiom") && !Attributes.Contains(attrs, "imported")) {
         SemErr(t, "a function with an ensures clause must have a body, unless given the :axiom attribute");
      }
 
@@ -1054,18 +1049,18 @@ FunctionSpec<.List<Expression/*!*/>/*!*/ reqs, List<FrameExpression/*!*/>/*!*/ r
      Expression/*!*/ e;  FrameExpression/*!*/ fe; .)
   (
     SYNC
-    "requires" Expression<out e, false, true> SYNC ";"     (. reqs.Add(e); .)
-  | "reads" [ PossiblyWildFrameExpression<out fe>              (. reads.Add(fe); .)
-              { "," PossiblyWildFrameExpression<out fe>        (. reads.Add(fe); .)
+    "requires" Expression<out e, false, true> OldSemi     (. reqs.Add(e); .)
+  | "reads" [ PossiblyWildFrameExpression<out fe>         (. reads.Add(fe); .)
+              { "," PossiblyWildFrameExpression<out fe>   (. reads.Add(fe); .)
               }
-            ] SYNC ";"
-  | "ensures" Expression<out e, false, true> SYNC ";"      (. ens.Add(e); .)
+            ] OldSemi
+  | "ensures" Expression<out e, false, true> OldSemi      (. ens.Add(e); .)
   | "decreases"                               (. if (decreases == null) {
                                                    SemErr(t, "'decreases' clauses are meaningless for copredicates, so they are not allowed");
                                                    decreases = new List<Expression/*!*/>();
                                                  }
                                               .)
-    DecreasesList<decreases, false> SYNC ";"
+    DecreasesList<decreases, false> OldSemi
   )
   .
 
@@ -1412,6 +1407,7 @@ WhileStmt<out Statement/*!*/ stmt>
      IToken bodyStart = null, bodyEnd = null, endTok = Token.NoToken;
      List<GuardedAlternative> alternatives;
      stmt = dummyStmt;  // to please the compiler
+     bool isDirtyLoop = true;
   .)
   "while"                    (. x = t; .)
   (
@@ -1424,22 +1420,24 @@ WhileStmt<out Statement/*!*/ stmt>
     | "..."                      (. guardEllipsis = t; .)
     )
     LoopSpec<out invariants, out decreases, out mod, ref decAttrs, ref modAttrs>
-    ( BlockStmt<out body, out bodyStart, out bodyEnd>  (. endTok = body.EndTok; .)
-    | "..."                      (. bodyEllipsis = t; endTok = t; .)
-    )
+    [ BlockStmt<out body, out bodyStart, out bodyEnd>  (. endTok = body.EndTok; isDirtyLoop = false; .)
+    | "..."                      (. bodyEllipsis = t; endTok = t; isDirtyLoop = false; .)
+    ]
     (.
       if (guardEllipsis != null || bodyEllipsis != null) {
         if (mod != null) {
           SemErr(mod[0].E.tok, "'modifies' clauses are not allowed on refining loops");
         }
-        if (body == null) {
+        if (body == null && !isDirtyLoop) {
           body = new BlockStmt(x, endTok, new List<Statement>());
         }
         stmt = new WhileStmt(x, endTok, guard, invariants, new Specification<Expression>(decreases, decAttrs), new Specification<FrameExpression>(null, null), body);
         stmt = new SkeletonStatement(stmt, guardEllipsis, bodyEllipsis);
       } else {
         // The following statement protects against crashes in case of parsing errors
-        body = body ?? new BlockStmt(x, endTok, new List<Statement>());
+        if (body == null && !isDirtyLoop) {
+          body = new BlockStmt(x, endTok, new List<Statement>());
+        }
         stmt = new WhileStmt(x, endTok, guard, invariants, new Specification<Expression>(decreases, decAttrs), new Specification<FrameExpression>(mod, modAttrs), body);
       }
     .)
@@ -1453,22 +1451,24 @@ LoopSpec<.out List<MaybeFreeExpression/*!*/> invariants, out List<Expression/*!*
      mod = null;
   .)
   {
-    Invariant<out invariant> SYNC ";"   (. invariants.Add(invariant); .)
+    Invariant<out invariant> OldSemi   (. invariants.Add(invariant); .)
   | SYNC "decreases"
     { IF(IsAttribute()) Attribute<ref decAttrs> }
-    DecreasesList<decreases, true> SYNC ";"
+    DecreasesList<decreases, true> OldSemi
   | SYNC "modifies"
     { IF(IsAttribute()) Attribute<ref modAttrs> } (. mod = mod ?? new List<FrameExpression>(); .)
     [ FrameExpression<out fe>                     (. mod.Add(fe); .)
       { "," FrameExpression<out fe>               (. mod.Add(fe); .)
       }
-    ] SYNC ";"
+    ] OldSemi
   }
   .
 Invariant<out MaybeFreeExpression/*!*/ invariant>
 = (. bool isFree = false; Expression/*!*/ e; List<string> ids = new List<string>(); invariant = null; Attributes attrs = null; .)
     SYNC
-    ["free"                            (. isFree = true; .)
+    ["free"                            (. isFree = true;
+                                          errors.Warning(t, "the 'free' keyword is soon to be deprecated");
+                                       .)
     ]
     "invariant" { IF(IsAttribute()) Attribute<ref attrs> }
     Expression<out e, false, true>           (. invariant = new MaybeFreeExpression(e, isFree, attrs); .)
@@ -1614,10 +1614,12 @@ ForallStmt<out Statement/*!*/ s>
   |                                         (. if (usesOptionalParen) { SemErr(t, "expecting close parenthesis"); } .)
   )
   {                                         (. isFree = false; .)
-    [ "free"                                (. isFree = true; .)
+    [ "free"                                (. isFree = true;
+                                               errors.Warning(t, "the 'free' keyword is soon to be deprecated");
+                                            .)
     ]
-    "ensures" Expression<out e, false, true>      (. ens.Add(new MaybeFreeExpression(e, isFree)); .)
-    ";"                                     (. tok = t; .)
+    "ensures" Expression<out e, false, true>  (. ens.Add(new MaybeFreeExpression(e, isFree)); .)
+    OldSemi                                   (. tok = t; .)
   }
   [ BlockStmt<out block, out bodyStart, out bodyEnd>
   ]
@@ -2658,32 +2660,43 @@ WildIdent<out IToken/*!*/ x, bool allowWildcardId>
                    .)
   .
 
+OldSemi
+= /* In the future, semi-colons will be neither needed nor allowed in certain places where, in the past, they
+   * were required.  As a period of transition between the two, such semi-colons are optional.
+   */
+  [ SYNC ";" ].
+
 Nat<out BigInteger n>
-= (. n = BigInteger.Zero; .)
-  (digits
-    (. try {
-         n = BigInteger.Parse(t.val);
+= (. n = BigInteger.Zero;
+     string S;
+  .)
+  ( digits
+    (. S = Util.RemoveUnderscores(t.val);
+       try {
+         n = BigInteger.Parse(S);
        } catch (System.FormatException) {
          SemErr("incorrectly formatted number");
          n = BigInteger.Zero;
        }
     .)
-   |hexdigits
-    (. try {
+  | hexdigits
+    (. S = Util.RemoveUnderscores(t.val.Substring(2));
+       try {
          // note: leading 0 required when parsing positive hex numbers
-         n = BigInteger.Parse("0" + t.val.Substring(2), System.Globalization.NumberStyles.HexNumber);
+         n = BigInteger.Parse("0" + S, System.Globalization.NumberStyles.HexNumber);
        } catch (System.FormatException) {
          SemErr("incorrectly formatted number");
          n = BigInteger.Zero;
        }
     .)
-   )
+  )
   .
 Dec<out Basetypes.BigDec d>
 = (. d = Basetypes.BigDec.ZERO; .)
   (decimaldigits
-    (. try {
-         d = Basetypes.BigDec.FromString(t.val);
+    (. var S = Util.RemoveUnderscores(t.val);
+       try {
+         d = Basetypes.BigDec.FromString(S);
        } catch (System.FormatException) {
          SemErr("incorrectly formatted number");
          d = Basetypes.BigDec.ZERO;

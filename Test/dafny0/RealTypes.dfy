@@ -23,10 +23,10 @@ method R2(ghost x: real, ghost y: real) {
 
 // Check that literals are handled properly
 method R3() {
-  ghost var x := 1.5;
-  ghost var y := real(3);
-  assert x == y / 2.0000000;  
-  assert x == y / 2.000000000000000000000000001;  // error
+  ghost var x := 000_00_0_1.5_0_0_00_000_0;  // 1.5
+  ghost var y := real(000_000_003);  // 3
+  assert x == y / 2.000_000_0;
+  assert x == y / 2.000_000_000_000_000_000_000_000_001;  // error
 }
 
 // Check that real value in decreases clause doesn't scare Dafny

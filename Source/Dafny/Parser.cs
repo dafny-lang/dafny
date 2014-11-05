@@ -568,10 +568,6 @@ bool CloseOptionalBrace(bool usesOptionalBrace) {
 			Type(out baseType);
 			td = new NewtypeDecl(id, id.val, module, baseType, attrs); 
 		} else SynErr(140);
-		if (la.kind == 10) {
-			while (!(la.kind == 0 || la.kind == 10)) {SynErr(141); Get();}
-			Get();
-		}
 	}
 
 	void OtherTypeDecl(ModuleDefinition module, out TopLevelDecl td) {
@@ -604,13 +600,13 @@ bool CloseOptionalBrace(bool usesOptionalBrace) {
 				Type(out ty);
 				td = new TypeSynonymDecl(id, id.val, typeArgs, module, ty, attrs); 
 			}
-		} else SynErr(142);
+		} else SynErr(141);
 		if (td == null) {
 		 td = new OpaqueTypeDecl(id, id.val, module, eqSupport, typeArgs, attrs);
 		}
 		
 		if (la.kind == 10) {
-			while (!(la.kind == 0 || la.kind == 10)) {SynErr(143); Get();}
+			while (!(la.kind == 0 || la.kind == 10)) {SynErr(142); Get();}
 			Get();
 		}
 	}
@@ -638,7 +634,7 @@ bool CloseOptionalBrace(bool usesOptionalBrace) {
 		IToken bodyStart = Token.NoToken;
 		IToken bodyEnd = Token.NoToken;
 		
-		while (!(la.kind == 0 || la.kind == 42)) {SynErr(144); Get();}
+		while (!(la.kind == 0 || la.kind == 42)) {SynErr(143); Get();}
 		Expect(42);
 		while (la.kind == 15) {
 			Attribute(ref attrs);
@@ -661,7 +657,7 @@ bool CloseOptionalBrace(bool usesOptionalBrace) {
 		} else if (la.kind == 45) {
 			Get();
 			signatureEllipsis = t; 
-		} else SynErr(145);
+		} else SynErr(144);
 		while (StartOf(5)) {
 			IteratorSpec(reads, mod, decreases, req, ens, yieldReq, yieldEns, ref readsAttrs, ref modAttrs, ref decrAttrs);
 		}
@@ -688,7 +684,7 @@ bool CloseOptionalBrace(bool usesOptionalBrace) {
 		List<MemberDecl/*!*/> members = new List<MemberDecl/*!*/>();
 		IToken bodyStart;
 		
-		while (!(la.kind == 0 || la.kind == 32)) {SynErr(146); Get();}
+		while (!(la.kind == 0 || la.kind == 32)) {SynErr(145); Get();}
 		Expect(32);
 		while (la.kind == 15) {
 			Attribute(ref attrs);
@@ -732,7 +728,7 @@ bool CloseOptionalBrace(bool usesOptionalBrace) {
 		} else if (StartOf(6)) {
 			MethodDecl(mmod, allowConstructors, out m);
 			mm.Add(m); 
-		} else SynErr(147);
+		} else SynErr(146);
 	}
 
 	void Attribute(ref Attributes attrs) {
@@ -808,7 +804,7 @@ bool CloseOptionalBrace(bool usesOptionalBrace) {
 		} else if (la.kind == 13) {
 			Get();
 			x = t; 
-		} else SynErr(148);
+		} else SynErr(147);
 	}
 
 	void GenericParameters(List<TypeParameter/*!*/>/*!*/ typeArgs) {
@@ -846,7 +842,7 @@ bool CloseOptionalBrace(bool usesOptionalBrace) {
 		Attributes attrs = null;
 		IToken/*!*/ id;  Type/*!*/ ty;
 		
-		while (!(la.kind == 0 || la.kind == 37)) {SynErr(149); Get();}
+		while (!(la.kind == 0 || la.kind == 37)) {SynErr(148); Get();}
 		Expect(37);
 		if (mmod.IsStatic) { SemErr(t, "fields cannot be declared 'static'"); }
 		
@@ -860,8 +856,7 @@ bool CloseOptionalBrace(bool usesOptionalBrace) {
 			FIdentType(out id, out ty);
 			mm.Add(new Field(id, id.val, mmod.IsGhost, ty, attrs)); 
 		}
-		while (!(la.kind == 0 || la.kind == 10)) {SynErr(150); Get();}
-		Expect(10);
+		OldSemi();
 	}
 
 	void FunctionDecl(MemberModifiers mmod, out Function/*!*/ f) {
@@ -905,7 +900,7 @@ bool CloseOptionalBrace(bool usesOptionalBrace) {
 			} else if (la.kind == 45) {
 				Get();
 				signatureEllipsis = t; 
-			} else SynErr(151);
+			} else SynErr(149);
 		} else if (la.kind == 71) {
 			Get();
 			isPredicate = true; 
@@ -936,7 +931,7 @@ bool CloseOptionalBrace(bool usesOptionalBrace) {
 			} else if (la.kind == 45) {
 				Get();
 				signatureEllipsis = t; 
-			} else SynErr(152);
+			} else SynErr(150);
 		} else if (la.kind == 72) {
 			Get();
 			isCoPredicate = true; 
@@ -963,8 +958,8 @@ bool CloseOptionalBrace(bool usesOptionalBrace) {
 			} else if (la.kind == 45) {
 				Get();
 				signatureEllipsis = t; 
-			} else SynErr(153);
-		} else SynErr(154);
+			} else SynErr(151);
+		} else SynErr(152);
 		decreases = isCoPredicate ? null : new List<Expression/*!*/>(); 
 		while (StartOf(8)) {
 			FunctionSpec(reqs, reads, ens, decreases);
@@ -972,7 +967,7 @@ bool CloseOptionalBrace(bool usesOptionalBrace) {
 		if (la.kind == 15) {
 			FunctionBody(out body, out bodyStart, out bodyEnd);
 		}
-		if (DafnyOptions.O.DisallowSoundnessCheating && body == null && ens.Count > 0 && !Attributes.Contains(attrs, "axiom")) {
+		if (DafnyOptions.O.DisallowSoundnessCheating && body == null && ens.Count > 0 && !Attributes.Contains(attrs, "axiom") && !Attributes.Contains(attrs, "imported")) {
 		  SemErr(t, "a function with an ensures clause must have a body, unless given the :axiom attribute");
 		}
 		
@@ -1019,7 +1014,7 @@ bool CloseOptionalBrace(bool usesOptionalBrace) {
 		IToken bodyStart = Token.NoToken;
 		IToken bodyEnd = Token.NoToken;
 		
-		while (!(StartOf(9))) {SynErr(155); Get();}
+		while (!(StartOf(9))) {SynErr(153); Get();}
 		if (la.kind == 48) {
 			Get();
 		} else if (la.kind == 49) {
@@ -1041,7 +1036,7 @@ bool CloseOptionalBrace(bool usesOptionalBrace) {
 			 SemErr(t, "constructors are allowed only in classes");
 			}
 			
-		} else SynErr(156);
+		} else SynErr(154);
 		keywordToken = t; 
 		if (isLemma) {
 		 if (mmod.IsGhost) {
@@ -1087,18 +1082,14 @@ bool CloseOptionalBrace(bool usesOptionalBrace) {
 		} else if (la.kind == 45) {
 			Get();
 			signatureEllipsis = t; 
-		} else SynErr(157);
+		} else SynErr(155);
 		while (StartOf(10)) {
 			MethodSpec(req, mod, ens, dec, ref decAttrs, ref modAttrs);
 		}
 		if (la.kind == 15) {
 			BlockStmt(out body, out bodyStart, out bodyEnd);
 		}
-		if (Attributes.Contains(attrs, "axiom") && !mmod.IsGhost && !isLemma) {
-		  SemErr(t, "only ghost methods can have the :axiom attribute");
-		}
-		
-		if (DafnyOptions.O.DisallowSoundnessCheating && body == null && ens.Count > 0 && !Attributes.Contains(attrs, "axiom")) {
+		if (DafnyOptions.O.DisallowSoundnessCheating && body == null && ens.Count > 0 && !Attributes.Contains(attrs, "axiom") && !Attributes.Contains(attrs, "imported") && !Attributes.Contains(attrs, "decl") && theVerifyThisFile) {
 		  SemErr(t, "a method with an ensures clause must have a body, unless given the :axiom attribute");
 		}
 		
@@ -1161,9 +1152,16 @@ bool CloseOptionalBrace(bool usesOptionalBrace) {
 		} else if (la.kind == 2) {
 			Get();
 			id = t; 
-		} else SynErr(158);
+		} else SynErr(156);
 		Expect(8);
 		Type(out ty);
+	}
+
+	void OldSemi() {
+		if (la.kind == 10) {
+			while (!(la.kind == 0 || la.kind == 10)) {SynErr(157); Get();}
+			Get();
+		}
 	}
 
 	void Type(out Type ty) {
@@ -1263,7 +1261,7 @@ bool CloseOptionalBrace(bool usesOptionalBrace) {
 			id = t; name = id.val;
 			Expect(8);
 			Type(out ty);
-		} else SynErr(159);
+		} else SynErr(158);
 		if (name != null) {
 		 identName = name;
 		} else {
@@ -1392,7 +1390,7 @@ bool CloseOptionalBrace(bool usesOptionalBrace) {
 			ReferenceType(out tok, out ty);
 			break;
 		}
-		default: SynErr(160); break;
+		default: SynErr(159); break;
 		}
 		if (la.kind == 12) {
 			Type t2; 
@@ -1429,7 +1427,7 @@ List<MaybeFreeExpression/*!*/>/*!*/ yieldReq, List<MaybeFreeExpression/*!*/>/*!*
 ref Attributes readsAttrs, ref Attributes modAttrs, ref Attributes decrAttrs) {
 		Expression/*!*/ e; FrameExpression/*!*/ fe; bool isFree = false; bool isYield = false; Attributes ensAttrs = null;
 		
-		while (!(StartOf(12))) {SynErr(161); Get();}
+		while (!(StartOf(12))) {SynErr(160); Get();}
 		if (la.kind == 13) {
 			Get();
 			while (IsAttribute()) {
@@ -1444,8 +1442,7 @@ ref Attributes readsAttrs, ref Attributes modAttrs, ref Attributes decrAttrs) {
 					reads.Add(fe); 
 				}
 			}
-			while (!(la.kind == 0 || la.kind == 10)) {SynErr(162); Get();}
-			Expect(10);
+			OldSemi();
 		} else if (la.kind == 53) {
 			Get();
 			while (IsAttribute()) {
@@ -1460,12 +1457,13 @@ ref Attributes readsAttrs, ref Attributes modAttrs, ref Attributes decrAttrs) {
 					mod.Add(fe); 
 				}
 			}
-			while (!(la.kind == 0 || la.kind == 10)) {SynErr(163); Get();}
-			Expect(10);
+			OldSemi();
 		} else if (StartOf(14)) {
 			if (la.kind == 54) {
 				Get();
-				isFree = true; 
+				isFree = true;
+				errors.Warning(t, "the 'free' keyword is soon to be deprecated");
+				
 			}
 			if (la.kind == 57) {
 				Get();
@@ -1474,12 +1472,11 @@ ref Attributes readsAttrs, ref Attributes modAttrs, ref Attributes decrAttrs) {
 			if (la.kind == 14) {
 				Get();
 				Expression(out e, false, true);
-				while (!(la.kind == 0 || la.kind == 10)) {SynErr(164); Get();}
-				Expect(10);
+				OldSemi();
 				if (isYield) {
-				yieldReq.Add(new MaybeFreeExpression(e, isFree));
+				 yieldReq.Add(new MaybeFreeExpression(e, isFree));
 				} else {
-				req.Add(new MaybeFreeExpression(e, isFree));
+				 req.Add(new MaybeFreeExpression(e, isFree));
 				}
 				
 			} else if (la.kind == 55) {
@@ -1488,24 +1485,22 @@ ref Attributes readsAttrs, ref Attributes modAttrs, ref Attributes decrAttrs) {
 					Attribute(ref ensAttrs);
 				}
 				Expression(out e, false, true);
-				while (!(la.kind == 0 || la.kind == 10)) {SynErr(165); Get();}
-				Expect(10);
+				OldSemi();
 				if (isYield) {
-				yieldEns.Add(new MaybeFreeExpression(e, isFree, ensAttrs));
+				 yieldEns.Add(new MaybeFreeExpression(e, isFree, ensAttrs));
 				} else {
-				ens.Add(new MaybeFreeExpression(e, isFree, ensAttrs));
+				 ens.Add(new MaybeFreeExpression(e, isFree, ensAttrs));
 				}
 				
-			} else SynErr(166);
+			} else SynErr(161);
 		} else if (la.kind == 56) {
 			Get();
 			while (IsAttribute()) {
 				Attribute(ref decrAttrs);
 			}
 			DecreasesList(decreases, false);
-			while (!(la.kind == 0 || la.kind == 10)) {SynErr(167); Get();}
-			Expect(10);
-		} else SynErr(168);
+			OldSemi();
+		} else SynErr(162);
 	}
 
 	void BlockStmt(out BlockStmt/*!*/ block, out IToken bodyStart, out IToken bodyEnd) {
@@ -1527,7 +1522,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 		Contract.Requires(cce.NonNullElements(req)); Contract.Requires(cce.NonNullElements(mod)); Contract.Requires(cce.NonNullElements(ens)); Contract.Requires(cce.NonNullElements(decreases));
 		Expression/*!*/ e;  FrameExpression/*!*/ fe;  bool isFree = false; Attributes ensAttrs = null;
 		
-		while (!(StartOf(16))) {SynErr(169); Get();}
+		while (!(StartOf(16))) {SynErr(163); Get();}
 		if (la.kind == 53) {
 			Get();
 			while (IsAttribute()) {
@@ -1542,18 +1537,18 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 					mod.Add(fe); 
 				}
 			}
-			while (!(la.kind == 0 || la.kind == 10)) {SynErr(170); Get();}
-			Expect(10);
+			OldSemi();
 		} else if (la.kind == 14 || la.kind == 54 || la.kind == 55) {
 			if (la.kind == 54) {
 				Get();
-				isFree = true; 
+				isFree = true;
+				errors.Warning(t, "the 'free' keyword is soon to be deprecated");
+				
 			}
 			if (la.kind == 14) {
 				Get();
 				Expression(out e, false, true);
-				while (!(la.kind == 0 || la.kind == 10)) {SynErr(171); Get();}
-				Expect(10);
+				OldSemi();
 				req.Add(new MaybeFreeExpression(e, isFree)); 
 			} else if (la.kind == 55) {
 				Get();
@@ -1561,19 +1556,17 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 					Attribute(ref ensAttrs);
 				}
 				Expression(out e, false, true);
-				while (!(la.kind == 0 || la.kind == 10)) {SynErr(172); Get();}
-				Expect(10);
+				OldSemi();
 				ens.Add(new MaybeFreeExpression(e, isFree, ensAttrs)); 
-			} else SynErr(173);
+			} else SynErr(164);
 		} else if (la.kind == 56) {
 			Get();
 			while (IsAttribute()) {
 				Attribute(ref decAttrs);
 			}
 			DecreasesList(decreases, true);
-			while (!(la.kind == 0 || la.kind == 10)) {SynErr(174); Get();}
-			Expect(10);
-		} else SynErr(175);
+			OldSemi();
+		} else SynErr(165);
 	}
 
 	void FrameExpression(out FrameExpression/*!*/ fe) {
@@ -1597,7 +1590,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 			Ident(out id);
 			fieldName = id.val; 
 			fe = new FrameExpression(id, new ImplicitThisExpr(id), fieldName); 
-		} else SynErr(176);
+		} else SynErr(166);
 	}
 
 	void DecreasesList(List<Expression/*!*/> decreases, bool allowWildcard) {
@@ -1665,7 +1658,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 				GenericInstantiation(gt);
 			}
 			ty = new UserDefinedType(tok, tok.val, gt, path); 
-		} else SynErr(177);
+		} else SynErr(167);
 	}
 
 	void FunctionSpec(List<Expression/*!*/>/*!*/ reqs, List<FrameExpression/*!*/>/*!*/ reads, List<Expression/*!*/>/*!*/ ens, List<Expression/*!*/> decreases) {
@@ -1674,11 +1667,10 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 		Contract.Requires(decreases == null || cce.NonNullElements(decreases));
 		Expression/*!*/ e;  FrameExpression/*!*/ fe; 
 		if (la.kind == 14) {
-			while (!(la.kind == 0 || la.kind == 14)) {SynErr(178); Get();}
+			while (!(la.kind == 0 || la.kind == 14)) {SynErr(168); Get();}
 			Get();
 			Expression(out e, false, true);
-			while (!(la.kind == 0 || la.kind == 10)) {SynErr(179); Get();}
-			Expect(10);
+			OldSemi();
 			reqs.Add(e); 
 		} else if (la.kind == 13) {
 			Get();
@@ -1691,13 +1683,11 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 					reads.Add(fe); 
 				}
 			}
-			while (!(la.kind == 0 || la.kind == 10)) {SynErr(180); Get();}
-			Expect(10);
+			OldSemi();
 		} else if (la.kind == 55) {
 			Get();
 			Expression(out e, false, true);
-			while (!(la.kind == 0 || la.kind == 10)) {SynErr(181); Get();}
-			Expect(10);
+			OldSemi();
 			ens.Add(e); 
 		} else if (la.kind == 56) {
 			Get();
@@ -1707,9 +1697,8 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 			}
 			
 			DecreasesList(decreases, false);
-			while (!(la.kind == 0 || la.kind == 10)) {SynErr(182); Get();}
-			Expect(10);
-		} else SynErr(183);
+			OldSemi();
+		} else SynErr(169);
 	}
 
 	void FunctionBody(out Expression/*!*/ e, out IToken bodyStart, out IToken bodyEnd) {
@@ -1728,7 +1717,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 			fe = new FrameExpression(t, new WildcardExpr(t), null); 
 		} else if (StartOf(13)) {
 			FrameExpression(out fe);
-		} else SynErr(184);
+		} else SynErr(170);
 	}
 
 	void LambdaSpec(out Expression req, List<FrameExpression> reads) {
@@ -1760,7 +1749,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 			e = new WildcardExpr(t); 
 		} else if (StartOf(17)) {
 			Expression(out e, false, false);
-		} else SynErr(185);
+		} else SynErr(171);
 	}
 
 	void Stmt(List<Statement/*!*/>/*!*/ ss) {
@@ -1777,7 +1766,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 		IToken bodyStart, bodyEnd;
 		int breakCount;
 		
-		while (!(StartOf(19))) {SynErr(186); Get();}
+		while (!(StartOf(19))) {SynErr(172); Get();}
 		switch (la.kind) {
 		case 15: {
 			BlockStmt(out bs, out bodyStart, out bodyEnd);
@@ -1848,8 +1837,8 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 					Get();
 					breakCount++; 
 				}
-			} else SynErr(187);
-			while (!(la.kind == 0 || la.kind == 10)) {SynErr(188); Get();}
+			} else SynErr(173);
+			while (!(la.kind == 0 || la.kind == 10)) {SynErr(174); Get();}
 			Expect(10);
 			s = label != null ? new BreakStmt(x, t, label) : new BreakStmt(x, t, breakCount); 
 			break;
@@ -1862,7 +1851,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 			SkeletonStmt(out s);
 			break;
 		}
-		default: SynErr(189); break;
+		default: SynErr(175); break;
 		}
 	}
 
@@ -1881,7 +1870,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 		} else if (la.kind == 45) {
 			Get();
 			dotdotdot = t; 
-		} else SynErr(190);
+		} else SynErr(176);
 		Expect(10);
 		if (dotdotdot != null) {
 		 s = new SkeletonStatement(new AssertStmt(x, t, new LiteralExpr(x, true), attrs), dotdotdot, null);
@@ -1906,7 +1895,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 		} else if (la.kind == 45) {
 			Get();
 			dotdotdot = t; 
-		} else SynErr(191);
+		} else SynErr(177);
 		Expect(10);
 		if (dotdotdot != null) {
 		 s = new SkeletonStatement(new AssumeStmt(x, t, new LiteralExpr(x, true), attrs), dotdotdot, null);
@@ -1976,13 +1965,13 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 					suchThatAssume = t; 
 				}
 				Expression(out suchThat, false, true);
-			} else SynErr(192);
+			} else SynErr(178);
 			Expect(10);
 			endTok = t; 
 		} else if (la.kind == 8) {
 			Get();
 			SemErr(t, "invalid statement (did you forget the 'label' keyword?)"); 
-		} else SynErr(193);
+		} else SynErr(179);
 		if (suchThat != null) {
 		 s = new AssignSuchThatStmt(x, endTok, lhss, suchThat, suchThatAssume);
 		} else {
@@ -2103,7 +2092,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 				} else if (la.kind == 15) {
 					BlockStmt(out bs, out bodyStart, out bodyEnd);
 					els = bs; endTok = bs.EndTok; 
-				} else SynErr(194);
+				} else SynErr(180);
 			}
 			if (guardEllipsis != null) {
 			 ifStmt = new SkeletonStatement(new IfStmt(x, endTok, guard, thn, els), guardEllipsis, null);
@@ -2111,7 +2100,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 			 ifStmt = new IfStmt(x, endTok, guard, thn, els);
 			}
 			
-		} else SynErr(195);
+		} else SynErr(181);
 	}
 
 	void WhileStmt(out Statement/*!*/ stmt) {
@@ -2126,6 +2115,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 		IToken bodyStart = null, bodyEnd = null, endTok = Token.NoToken;
 		List<GuardedAlternative> alternatives;
 		stmt = dummyStmt;  // to please the compiler
+		bool isDirtyLoop = true;
 		
 		Expect(87);
 		x = t; 
@@ -2142,29 +2132,33 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 				guardEllipsis = t; 
 			}
 			LoopSpec(out invariants, out decreases, out mod, ref decAttrs, ref modAttrs);
-			if (la.kind == 15) {
-				BlockStmt(out body, out bodyStart, out bodyEnd);
-				endTok = body.EndTok; 
-			} else if (la.kind == 45) {
-				Get();
-				bodyEllipsis = t; endTok = t; 
-			} else SynErr(196);
+			if (la.kind == 15 || la.kind == 45) {
+				if (la.kind == 15) {
+					BlockStmt(out body, out bodyStart, out bodyEnd);
+					endTok = body.EndTok; isDirtyLoop = false; 
+				} else {
+					Get();
+					bodyEllipsis = t; endTok = t; isDirtyLoop = false; 
+				}
+			}
 			if (guardEllipsis != null || bodyEllipsis != null) {
 			 if (mod != null) {
 			   SemErr(mod[0].E.tok, "'modifies' clauses are not allowed on refining loops");
 			 }
-			 if (body == null) {
+			 if (body == null && !isDirtyLoop) {
 			   body = new BlockStmt(x, endTok, new List<Statement>());
 			 }
 			 stmt = new WhileStmt(x, endTok, guard, invariants, new Specification<Expression>(decreases, decAttrs), new Specification<FrameExpression>(null, null), body);
 			 stmt = new SkeletonStatement(stmt, guardEllipsis, bodyEllipsis);
 			} else {
 			 // The following statement protects against crashes in case of parsing errors
-			 body = body ?? new BlockStmt(x, endTok, new List<Statement>());
+			 if (body == null && !isDirtyLoop) {
+			   body = new BlockStmt(x, endTok, new List<Statement>());
+			 }
 			 stmt = new WhileStmt(x, endTok, guard, invariants, new Specification<Expression>(decreases, decAttrs), new Specification<FrameExpression>(mod, modAttrs), body);
 			}
 			
-		} else SynErr(197);
+		} else SynErr(182);
 	}
 
 	void MatchStmt(out Statement/*!*/ s) {
@@ -2188,7 +2182,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 			Expect(16);
 		} else if (StartOf(22)) {
 			if (usesOptionalBrace) { SemErr(t, "expecting close curly brace"); } 
-		} else SynErr(198);
+		} else SynErr(183);
 		s = new MatchStmt(x, t, e, cases, usesOptionalBrace); 
 	}
 
@@ -2214,7 +2208,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 			x = t;
 			errors.Warning(t, "the 'parallel' keyword has been deprecated; the comprehension statement now uses the keyword 'forall' (and the parentheses around the bound variables are now optional)");
 			
-		} else SynErr(199);
+		} else SynErr(184);
 		if (la.kind == 17) {
 			Get();
 			usesOptionalParen = true; 
@@ -2232,17 +2226,19 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 			Expect(18);
 		} else if (StartOf(23)) {
 			if (usesOptionalParen) { SemErr(t, "expecting close parenthesis"); } 
-		} else SynErr(200);
+		} else SynErr(185);
 		while (la.kind == 54 || la.kind == 55) {
 			isFree = false; 
 			if (la.kind == 54) {
 				Get();
-				isFree = true; 
+				isFree = true;
+				errors.Warning(t, "the 'free' keyword is soon to be deprecated");
+				
 			}
 			Expect(55);
 			Expression(out e, false, true);
 			ens.Add(new MaybeFreeExpression(e, isFree)); 
-			Expect(10);
+			OldSemi();
 			tok = t; 
 		}
 		if (la.kind == 15) {
@@ -2348,10 +2344,10 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 		if (la.kind == 15) {
 			BlockStmt(out body, out bodyStart, out endTok);
 		} else if (la.kind == 10) {
-			while (!(la.kind == 0 || la.kind == 10)) {SynErr(201); Get();}
+			while (!(la.kind == 0 || la.kind == 10)) {SynErr(186); Get();}
 			Get();
 			endTok = t; 
-		} else SynErr(202);
+		} else SynErr(187);
 		s = new ModifyStmt(tok, endTok, mod, attrs, body);
 		if (ellipsisToken != null) {
 		 s = new SkeletonStatement(s, ellipsisToken, null);
@@ -2371,7 +2367,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 		} else if (la.kind == 57) {
 			Get();
 			returnTok = t; isYield = true; 
-		} else SynErr(203);
+		} else SynErr(188);
 		if (StartOf(26)) {
 			Rhs(out r, null);
 			rhss = new List<AssignmentRhs>(); rhss.Add(r); 
@@ -2473,7 +2469,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 		} else if (StartOf(17)) {
 			Expression(out e, false, true);
 			r = new ExprRhs(e); 
-		} else SynErr(204);
+		} else SynErr(189);
 		while (la.kind == 15) {
 			Attribute(ref attrs);
 		}
@@ -2495,7 +2491,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 			while (la.kind == 69 || la.kind == 82) {
 				Suffix(ref e);
 			}
-		} else SynErr(205);
+		} else SynErr(190);
 	}
 
 	void Expressions(List<Expression/*!*/>/*!*/ args) {
@@ -2544,7 +2540,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 		} else if (StartOf(17)) {
 			Expression(out ee, true, true);
 			e = ee; 
-		} else SynErr(206);
+		} else SynErr(191);
 	}
 
 	void LoopSpec(out List<MaybeFreeExpression/*!*/> invariants, out List<Expression/*!*/> decreases, out List<FrameExpression/*!*/> mod, ref Attributes decAttrs, ref Attributes modAttrs) {
@@ -2557,20 +2553,18 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 		while (StartOf(28)) {
 			if (la.kind == 54 || la.kind == 88) {
 				Invariant(out invariant);
-				while (!(la.kind == 0 || la.kind == 10)) {SynErr(207); Get();}
-				Expect(10);
+				OldSemi();
 				invariants.Add(invariant); 
 			} else if (la.kind == 56) {
-				while (!(la.kind == 0 || la.kind == 56)) {SynErr(208); Get();}
+				while (!(la.kind == 0 || la.kind == 56)) {SynErr(192); Get();}
 				Get();
 				while (IsAttribute()) {
 					Attribute(ref decAttrs);
 				}
 				DecreasesList(decreases, true);
-				while (!(la.kind == 0 || la.kind == 10)) {SynErr(209); Get();}
-				Expect(10);
+				OldSemi();
 			} else {
-				while (!(la.kind == 0 || la.kind == 53)) {SynErr(210); Get();}
+				while (!(la.kind == 0 || la.kind == 53)) {SynErr(193); Get();}
 				Get();
 				while (IsAttribute()) {
 					Attribute(ref modAttrs);
@@ -2585,18 +2579,19 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 						mod.Add(fe); 
 					}
 				}
-				while (!(la.kind == 0 || la.kind == 10)) {SynErr(211); Get();}
-				Expect(10);
+				OldSemi();
 			}
 		}
 	}
 
 	void Invariant(out MaybeFreeExpression/*!*/ invariant) {
 		bool isFree = false; Expression/*!*/ e; List<string> ids = new List<string>(); invariant = null; Attributes attrs = null; 
-		while (!(la.kind == 0 || la.kind == 54 || la.kind == 88)) {SynErr(212); Get();}
+		while (!(la.kind == 0 || la.kind == 54 || la.kind == 88)) {SynErr(194); Get();}
 		if (la.kind == 54) {
 			Get();
-			isFree = true; 
+			isFree = true;
+			errors.Warning(t, "the 'free' keyword is soon to be deprecated");
+			
 		}
 		Expect(88);
 		while (IsAttribute()) {
@@ -2734,7 +2729,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 			x = t;  binOp = BinaryExpr.Opcode.Exp; 
 			break;
 		}
-		default: SynErr(213); break;
+		default: SynErr(195); break;
 		}
 		if (k == null) {
 		 op = new Microsoft.Dafny.CalcStmt.BinaryCalcOp(binOp);
@@ -2771,7 +2766,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 			Get();
 		} else if (la.kind == 104) {
 			Get();
-		} else SynErr(214);
+		} else SynErr(196);
 	}
 
 	void ImpliesOp() {
@@ -2779,7 +2774,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 			Get();
 		} else if (la.kind == 106) {
 			Get();
-		} else SynErr(215);
+		} else SynErr(197);
 	}
 
 	void ExpliesOp() {
@@ -2787,7 +2782,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 			Get();
 		} else if (la.kind == 108) {
 			Get();
-		} else SynErr(216);
+		} else SynErr(198);
 	}
 
 	void EquivExpression(out Expression e0, bool allowSemi, bool allowLambda) {
@@ -2972,7 +2967,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 			Get();
 		} else if (la.kind == 110) {
 			Get();
-		} else SynErr(217);
+		} else SynErr(199);
 	}
 
 	void OrOp() {
@@ -2980,7 +2975,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 			Get();
 		} else if (la.kind == 112) {
 			Get();
-		} else SynErr(218);
+		} else SynErr(200);
 	}
 
 	void Term(out Expression e0, bool allowSemi, bool allowLambda) {
@@ -3085,7 +3080,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 			x = t;  op = BinaryExpr.Opcode.Ge; 
 			break;
 		}
-		default: SynErr(219); break;
+		default: SynErr(201); break;
 		}
 	}
 
@@ -3107,7 +3102,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 		} else if (la.kind == 116) {
 			Get();
 			x = t;  op = BinaryExpr.Opcode.Sub; 
-		} else SynErr(220);
+		} else SynErr(202);
 	}
 
 	void UnaryExpression(out Expression e, bool allowSemi, bool allowLambda) {
@@ -3165,7 +3160,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 				MapComprehensionExpr(x, out e, allowSemi);
 			} else if (StartOf(32)) {
 				SemErr("map must be followed by literal in brackets or comprehension."); 
-			} else SynErr(221);
+			} else SynErr(203);
 			break;
 		}
 		case 2: case 3: case 4: case 6: case 7: case 9: case 17: case 61: case 62: case 120: case 121: case 122: case 123: case 124: case 125: {
@@ -3175,7 +3170,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 			}
 			break;
 		}
-		default: SynErr(222); break;
+		default: SynErr(204); break;
 		}
 	}
 
@@ -3190,7 +3185,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 		} else if (la.kind == 118) {
 			Get();
 			x = t;  op = BinaryExpr.Opcode.Mod; 
-		} else SynErr(223);
+		} else SynErr(205);
 	}
 
 	void NegOp() {
@@ -3198,7 +3193,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 			Get();
 		} else if (la.kind == 119) {
 			Get();
-		} else SynErr(224);
+		} else SynErr(206);
 	}
 
 	void EndlessExpression(out Expression e, bool allowSemi, bool allowLambda) {
@@ -3245,7 +3240,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 			NamedExpr(out e, allowSemi, allowLambda);
 			break;
 		}
-		default: SynErr(225); break;
+		default: SynErr(207); break;
 		}
 	}
 
@@ -3387,7 +3382,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 						multipleIndices.Add(ee);
 						
 					}
-				} else SynErr(226);
+				} else SynErr(208);
 			} else if (la.kind == 127) {
 				Get();
 				anyDots = true; 
@@ -3395,7 +3390,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 					Expression(out ee, true, true);
 					e1 = ee; 
 				}
-			} else SynErr(227);
+			} else SynErr(209);
 			if (multipleIndices != null) {
 			 e = new MultiSelectExpr(x, e, multipleIndices);
 			 // make sure an array class with this dimensionality exists
@@ -3436,7 +3431,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 			}
 			
 			Expect(83);
-		} else SynErr(228);
+		} else SynErr(210);
 		ApplySuffix(ref e);
 	}
 
@@ -3473,7 +3468,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 			}
 			e = new SeqDisplayExpr(x, elements); 
 			Expect(83);
-		} else SynErr(229);
+		} else SynErr(211);
 	}
 
 	void MultiSetExpr(out Expression e) {
@@ -3499,7 +3494,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 			Expect(18);
 		} else if (StartOf(32)) {
 			SemErr("multiset must be followed by multiset literal or expression to coerce in parentheses."); 
-		} else SynErr(230);
+		} else SynErr(212);
 	}
 
 	void MapDisplayExpr(IToken/*!*/ mapToken, out Expression e) {
@@ -3627,16 +3622,19 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 			ParensExpression(out e, allowSemi, allowLambda);
 			break;
 		}
-		default: SynErr(231); break;
+		default: SynErr(213); break;
 		}
 	}
 
 	void Nat(out BigInteger n) {
-		n = BigInteger.Zero; 
+		n = BigInteger.Zero;
+		string S;
+		
 		if (la.kind == 2) {
 			Get();
+			S = Util.RemoveUnderscores(t.val);
 			try {
-			 n = BigInteger.Parse(t.val);
+			 n = BigInteger.Parse(S);
 			} catch (System.FormatException) {
 			 SemErr("incorrectly formatted number");
 			 n = BigInteger.Zero;
@@ -3644,22 +3642,24 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 			
 		} else if (la.kind == 3) {
 			Get();
+			S = Util.RemoveUnderscores(t.val.Substring(2));
 			try {
 			 // note: leading 0 required when parsing positive hex numbers
-			 n = BigInteger.Parse("0" + t.val.Substring(2), System.Globalization.NumberStyles.HexNumber);
+			 n = BigInteger.Parse("0" + S, System.Globalization.NumberStyles.HexNumber);
 			} catch (System.FormatException) {
 			 SemErr("incorrectly formatted number");
 			 n = BigInteger.Zero;
 			}
 			
-		} else SynErr(232);
+		} else SynErr(214);
 	}
 
 	void Dec(out Basetypes.BigDec d) {
 		d = Basetypes.BigDec.ZERO; 
 		Expect(4);
+		var S = Util.RemoveUnderscores(t.val);
 		try {
-		 d = Basetypes.BigDec.FromString(t.val);
+		 d = Basetypes.BigDec.FromString(S);
 		} catch (System.FormatException) {
 		 SemErr("incorrectly formatted number");
 		 d = Basetypes.BigDec.ZERO;
@@ -3761,7 +3761,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 		} else if (la.kind == 12) {
 			Get();
 			oneShot = true; 
-		} else SynErr(233);
+		} else SynErr(215);
 	}
 
 	void OptTypedExpr(out Expression e, out Type tt, bool allowSemi) {
@@ -3794,7 +3794,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 			Get();
 		} else if (la.kind == 132) {
 			Get();
-		} else SynErr(234);
+		} else SynErr(216);
 	}
 
 	void MatchExpression(out Expression e, bool allowSemi, bool allowLambda) {
@@ -3817,7 +3817,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 			Expect(16);
 		} else if (StartOf(32)) {
 			if (usesOptionalBrace) { SemErr(t, "expecting close curly brace"); } 
-		} else SynErr(235);
+		} else SynErr(217);
 		e = new MatchExpr(x, e, cases, usesOptionalBrace); 
 	}
 
@@ -3835,7 +3835,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 		} else if (la.kind == 129 || la.kind == 130) {
 			Exists();
 			x = t; 
-		} else SynErr(236);
+		} else SynErr(218);
 		QuantifierDomain(out bvars, out attrs, out range);
 		QSep();
 		Expression(out body, allowSemi, allowLambda);
@@ -3883,7 +3883,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 			AssumeStmt(out s);
 		} else if (la.kind == 95) {
 			CalcStmt(out s);
-		} else SynErr(237);
+		} else SynErr(219);
 	}
 
 	void LetExpr(out Expression e, bool allowSemi, bool allowLambda) {
@@ -3923,7 +3923,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 			 }
 			}
 			
-		} else SynErr(238);
+		} else SynErr(220);
 		Expression(out e, false, true);
 		letRHSs.Add(e); 
 		while (la.kind == 38) {
@@ -3974,7 +3974,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 			IdentTypeOptional(out bv);
 			pat = new CasePattern(bv.tok, bv);
 			
-		} else SynErr(239);
+		} else SynErr(221);
 		if (pat == null) {
 		 pat = new CasePattern(t, "_ParseError", new List<CasePattern>());
 		}
@@ -4011,7 +4011,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 			Get();
 		} else if (la.kind == 128) {
 			Get();
-		} else SynErr(240);
+		} else SynErr(222);
 	}
 
 	void Exists() {
@@ -4019,7 +4019,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 			Get();
 		} else if (la.kind == 130) {
 			Get();
-		} else SynErr(241);
+		} else SynErr(223);
 	}
 
 	void AttributeBody(ref Attributes attrs) {
@@ -4253,107 +4253,89 @@ public class Errors {
 			case 138: s = "invalid DatatypeDecl"; break;
 			case 139: s = "this symbol not expected in DatatypeDecl"; break;
 			case 140: s = "invalid NewtypeDecl"; break;
-			case 141: s = "this symbol not expected in NewtypeDecl"; break;
-			case 142: s = "invalid OtherTypeDecl"; break;
-			case 143: s = "this symbol not expected in OtherTypeDecl"; break;
-			case 144: s = "this symbol not expected in IteratorDecl"; break;
-			case 145: s = "invalid IteratorDecl"; break;
-			case 146: s = "this symbol not expected in TraitDecl"; break;
-			case 147: s = "invalid ClassMemberDecl"; break;
-			case 148: s = "invalid IdentOrDigitsSuffix"; break;
-			case 149: s = "this symbol not expected in FieldDecl"; break;
-			case 150: s = "this symbol not expected in FieldDecl"; break;
+			case 141: s = "invalid OtherTypeDecl"; break;
+			case 142: s = "this symbol not expected in OtherTypeDecl"; break;
+			case 143: s = "this symbol not expected in IteratorDecl"; break;
+			case 144: s = "invalid IteratorDecl"; break;
+			case 145: s = "this symbol not expected in TraitDecl"; break;
+			case 146: s = "invalid ClassMemberDecl"; break;
+			case 147: s = "invalid IdentOrDigitsSuffix"; break;
+			case 148: s = "this symbol not expected in FieldDecl"; break;
+			case 149: s = "invalid FunctionDecl"; break;
+			case 150: s = "invalid FunctionDecl"; break;
 			case 151: s = "invalid FunctionDecl"; break;
 			case 152: s = "invalid FunctionDecl"; break;
-			case 153: s = "invalid FunctionDecl"; break;
-			case 154: s = "invalid FunctionDecl"; break;
-			case 155: s = "this symbol not expected in MethodDecl"; break;
-			case 156: s = "invalid MethodDecl"; break;
-			case 157: s = "invalid MethodDecl"; break;
-			case 158: s = "invalid FIdentType"; break;
-			case 159: s = "invalid TypeIdentOptional"; break;
-			case 160: s = "invalid TypeAndToken"; break;
-			case 161: s = "this symbol not expected in IteratorSpec"; break;
-			case 162: s = "this symbol not expected in IteratorSpec"; break;
-			case 163: s = "this symbol not expected in IteratorSpec"; break;
-			case 164: s = "this symbol not expected in IteratorSpec"; break;
-			case 165: s = "this symbol not expected in IteratorSpec"; break;
-			case 166: s = "invalid IteratorSpec"; break;
-			case 167: s = "this symbol not expected in IteratorSpec"; break;
-			case 168: s = "invalid IteratorSpec"; break;
-			case 169: s = "this symbol not expected in MethodSpec"; break;
-			case 170: s = "this symbol not expected in MethodSpec"; break;
-			case 171: s = "this symbol not expected in MethodSpec"; break;
-			case 172: s = "this symbol not expected in MethodSpec"; break;
-			case 173: s = "invalid MethodSpec"; break;
-			case 174: s = "this symbol not expected in MethodSpec"; break;
-			case 175: s = "invalid MethodSpec"; break;
-			case 176: s = "invalid FrameExpression"; break;
-			case 177: s = "invalid ReferenceType"; break;
-			case 178: s = "this symbol not expected in FunctionSpec"; break;
-			case 179: s = "this symbol not expected in FunctionSpec"; break;
-			case 180: s = "this symbol not expected in FunctionSpec"; break;
-			case 181: s = "this symbol not expected in FunctionSpec"; break;
-			case 182: s = "this symbol not expected in FunctionSpec"; break;
-			case 183: s = "invalid FunctionSpec"; break;
-			case 184: s = "invalid PossiblyWildFrameExpression"; break;
-			case 185: s = "invalid PossiblyWildExpression"; break;
-			case 186: s = "this symbol not expected in OneStmt"; break;
-			case 187: s = "invalid OneStmt"; break;
-			case 188: s = "this symbol not expected in OneStmt"; break;
-			case 189: s = "invalid OneStmt"; break;
-			case 190: s = "invalid AssertStmt"; break;
-			case 191: s = "invalid AssumeStmt"; break;
-			case 192: s = "invalid UpdateStmt"; break;
-			case 193: s = "invalid UpdateStmt"; break;
-			case 194: s = "invalid IfStmt"; break;
-			case 195: s = "invalid IfStmt"; break;
-			case 196: s = "invalid WhileStmt"; break;
-			case 197: s = "invalid WhileStmt"; break;
-			case 198: s = "invalid MatchStmt"; break;
-			case 199: s = "invalid ForallStmt"; break;
-			case 200: s = "invalid ForallStmt"; break;
-			case 201: s = "this symbol not expected in ModifyStmt"; break;
-			case 202: s = "invalid ModifyStmt"; break;
-			case 203: s = "invalid ReturnStmt"; break;
-			case 204: s = "invalid Rhs"; break;
-			case 205: s = "invalid Lhs"; break;
-			case 206: s = "invalid Guard"; break;
-			case 207: s = "this symbol not expected in LoopSpec"; break;
-			case 208: s = "this symbol not expected in LoopSpec"; break;
-			case 209: s = "this symbol not expected in LoopSpec"; break;
-			case 210: s = "this symbol not expected in LoopSpec"; break;
-			case 211: s = "this symbol not expected in LoopSpec"; break;
-			case 212: s = "this symbol not expected in Invariant"; break;
-			case 213: s = "invalid CalcOp"; break;
-			case 214: s = "invalid EquivOp"; break;
-			case 215: s = "invalid ImpliesOp"; break;
-			case 216: s = "invalid ExpliesOp"; break;
-			case 217: s = "invalid AndOp"; break;
-			case 218: s = "invalid OrOp"; break;
-			case 219: s = "invalid RelOp"; break;
-			case 220: s = "invalid AddOp"; break;
-			case 221: s = "invalid UnaryExpression"; break;
-			case 222: s = "invalid UnaryExpression"; break;
-			case 223: s = "invalid MulOp"; break;
-			case 224: s = "invalid NegOp"; break;
-			case 225: s = "invalid EndlessExpression"; break;
-			case 226: s = "invalid Suffix"; break;
-			case 227: s = "invalid Suffix"; break;
-			case 228: s = "invalid Suffix"; break;
-			case 229: s = "invalid DisplayExpr"; break;
-			case 230: s = "invalid MultiSetExpr"; break;
-			case 231: s = "invalid ConstAtomExpression"; break;
-			case 232: s = "invalid Nat"; break;
-			case 233: s = "invalid LambdaArrow"; break;
-			case 234: s = "invalid QSep"; break;
-			case 235: s = "invalid MatchExpression"; break;
-			case 236: s = "invalid QuantifierGuts"; break;
-			case 237: s = "invalid StmtInExpr"; break;
-			case 238: s = "invalid LetExpr"; break;
-			case 239: s = "invalid CasePattern"; break;
-			case 240: s = "invalid Forall"; break;
-			case 241: s = "invalid Exists"; break;
+			case 153: s = "this symbol not expected in MethodDecl"; break;
+			case 154: s = "invalid MethodDecl"; break;
+			case 155: s = "invalid MethodDecl"; break;
+			case 156: s = "invalid FIdentType"; break;
+			case 157: s = "this symbol not expected in OldSemi"; break;
+			case 158: s = "invalid TypeIdentOptional"; break;
+			case 159: s = "invalid TypeAndToken"; break;
+			case 160: s = "this symbol not expected in IteratorSpec"; break;
+			case 161: s = "invalid IteratorSpec"; break;
+			case 162: s = "invalid IteratorSpec"; break;
+			case 163: s = "this symbol not expected in MethodSpec"; break;
+			case 164: s = "invalid MethodSpec"; break;
+			case 165: s = "invalid MethodSpec"; break;
+			case 166: s = "invalid FrameExpression"; break;
+			case 167: s = "invalid ReferenceType"; break;
+			case 168: s = "this symbol not expected in FunctionSpec"; break;
+			case 169: s = "invalid FunctionSpec"; break;
+			case 170: s = "invalid PossiblyWildFrameExpression"; break;
+			case 171: s = "invalid PossiblyWildExpression"; break;
+			case 172: s = "this symbol not expected in OneStmt"; break;
+			case 173: s = "invalid OneStmt"; break;
+			case 174: s = "this symbol not expected in OneStmt"; break;
+			case 175: s = "invalid OneStmt"; break;
+			case 176: s = "invalid AssertStmt"; break;
+			case 177: s = "invalid AssumeStmt"; break;
+			case 178: s = "invalid UpdateStmt"; break;
+			case 179: s = "invalid UpdateStmt"; break;
+			case 180: s = "invalid IfStmt"; break;
+			case 181: s = "invalid IfStmt"; break;
+			case 182: s = "invalid WhileStmt"; break;
+			case 183: s = "invalid MatchStmt"; break;
+			case 184: s = "invalid ForallStmt"; break;
+			case 185: s = "invalid ForallStmt"; break;
+			case 186: s = "this symbol not expected in ModifyStmt"; break;
+			case 187: s = "invalid ModifyStmt"; break;
+			case 188: s = "invalid ReturnStmt"; break;
+			case 189: s = "invalid Rhs"; break;
+			case 190: s = "invalid Lhs"; break;
+			case 191: s = "invalid Guard"; break;
+			case 192: s = "this symbol not expected in LoopSpec"; break;
+			case 193: s = "this symbol not expected in LoopSpec"; break;
+			case 194: s = "this symbol not expected in Invariant"; break;
+			case 195: s = "invalid CalcOp"; break;
+			case 196: s = "invalid EquivOp"; break;
+			case 197: s = "invalid ImpliesOp"; break;
+			case 198: s = "invalid ExpliesOp"; break;
+			case 199: s = "invalid AndOp"; break;
+			case 200: s = "invalid OrOp"; break;
+			case 201: s = "invalid RelOp"; break;
+			case 202: s = "invalid AddOp"; break;
+			case 203: s = "invalid UnaryExpression"; break;
+			case 204: s = "invalid UnaryExpression"; break;
+			case 205: s = "invalid MulOp"; break;
+			case 206: s = "invalid NegOp"; break;
+			case 207: s = "invalid EndlessExpression"; break;
+			case 208: s = "invalid Suffix"; break;
+			case 209: s = "invalid Suffix"; break;
+			case 210: s = "invalid Suffix"; break;
+			case 211: s = "invalid DisplayExpr"; break;
+			case 212: s = "invalid MultiSetExpr"; break;
+			case 213: s = "invalid ConstAtomExpression"; break;
+			case 214: s = "invalid Nat"; break;
+			case 215: s = "invalid LambdaArrow"; break;
+			case 216: s = "invalid QSep"; break;
+			case 217: s = "invalid MatchExpression"; break;
+			case 218: s = "invalid QuantifierGuts"; break;
+			case 219: s = "invalid StmtInExpr"; break;
+			case 220: s = "invalid LetExpr"; break;
+			case 221: s = "invalid CasePattern"; break;
+			case 222: s = "invalid Forall"; break;
+			case 223: s = "invalid Exists"; break;
 
 			default: s = "error " + n; break;
 		}

@@ -21,3 +21,10 @@ method test(foo:MyDataType, x:int) returns (abc:MyDataType, def:MyDataType, ghi:
 
     assert abc[myint := abc.myint - 2] == foo[myint := x];
 }
+
+// regression test (for a previous bug in the Translator.Substituter):
+datatype Dt = Ctor(x: int, y: bool)
+function F(d: Dt): Dt
+{
+  d[x := 5]
+}

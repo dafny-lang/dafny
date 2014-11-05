@@ -1,7 +1,7 @@
 // RUN: %dafny /compile:3 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
-datatype List = Nil | Cons(A,List<A>);
+datatype List<A> = Nil | Cons(A,List<A>);
 
 datatype Expr = Add(List<Expr>) | Mul(List<Expr>) | Lit(int);
 

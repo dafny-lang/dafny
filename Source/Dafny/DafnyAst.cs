@@ -218,7 +218,7 @@ namespace Microsoft.Dafny {
       Contract.Invariant(cce.NonNullElements(Args));
     }
 
-    public readonly string Name;
+    public string Name;
     /*Frozen*/
     public readonly List<Expression> Args;
     public readonly Attributes Prev;
@@ -714,7 +714,7 @@ namespace Microsoft.Dafny {
       s += Result.TypeName(context);
       return s;
     }
-   
+
     public override bool SupportsEquality {
       get {
         return false;
@@ -3963,6 +3963,10 @@ namespace Microsoft.Dafny {
       this.Invariants = invariants;
       this.Decreases = decreases;
       this.Mod = mod;
+      if (DafnyOptions.O.Dafnycc) {
+        Decreases = new Specification<Expression>(
+          new List<Expression>() { new WildcardExpr(tok) }, null);
+      }
     }
     public override IEnumerable<Expression> SubExpressions {
       get {
@@ -3991,10 +3995,6 @@ namespace Microsoft.Dafny {
   {
     public readonly Expression Guard;
     public readonly BlockStmt Body;
-    [ContractInvariantMethod]
-    void ObjectInvariant() {
-      Contract.Invariant(Body != null);
-    }
 
     public WhileStmt(IToken tok, IToken endTok, Expression guard,
                      List<MaybeFreeExpression> invariants, Specification<Expression> decreases, Specification<FrameExpression> mod,
@@ -4002,14 +4002,15 @@ namespace Microsoft.Dafny {
       : base(tok, endTok, invariants, decreases, mod) {
       Contract.Requires(tok != null);
       Contract.Requires(endTok != null);
-      Contract.Requires(body != null);
       this.Guard = guard;
       this.Body = body;
     }
 
     public override IEnumerable<Statement> SubStatements {
       get {
-        yield return Body;
+        if (Body != null) {
+          yield return Body;
+        }
       }
     }
     public override IEnumerable<Expression> SubExpressions {
@@ -4705,7 +4706,9 @@ namespace Microsoft.Dafny {
     }
 
     /// <summary>
-    /// Returns the non-null subexpressions of the Expression.
+    /// Returns the non-null subexpressions of the Expression.  To be called after the expression has been resolved; this
+    /// means, for example, that any concrete syntax that resolves to some other expression will return the subexpressions
+    /// of the resolved expression.
     /// </summary>
     public virtual IEnumerable<Expression> SubExpressions {
       get { yield break; }
@@ -5355,7 +5358,7 @@ namespace Microsoft.Dafny {
     public readonly Expression Obj;
     public readonly string MemberName;
     public MemberDecl Member;          // filled in by resolution, will be a Field or Function
-    public List<Type> TypeApplication; 
+    public List<Type> TypeApplication;
       // If it is a function, it must have all its polymorphic variables applied
 
     [ContractInvariantMethod]
@@ -5465,11 +5468,26 @@ namespace Microsoft.Dafny {
     }
   }
 
+  /// <summary>
+  /// Represents an expression of the form A[B := C], where, syntactically, A, B, and C are expressions.
+  /// Successfully resolved, the expression stands for one of the following:
+  /// * if A is a sequence, then B is an integer-based index into the sequence and C's type is the sequence element type
+  /// * if A is a map(T,U), then B is a key of type T and C is a value of type U
+  /// * if A is a multiset, then B's type is the multiset element type and C is an integer-based numeric
+  /// * if A is a datatype, then B is the name of a destructor of A's type and C's type is the type of that destructor -- in
+  ///   this case, the resolver will set the ResolvedUpdateExpr to an expression that constructs an appropriate datatype value
+  /// </summary>
   public class SeqUpdateExpr : Expression {
     public readonly Expression Seq;
     public readonly Expression Index;
     public readonly Expression Value;
-    public Expression ResolvedUpdateExpr;       // May be filled in during resolution
+    public Expression ResolvedUpdateExpr;       // filled in during resolution, if the SeqUpdateExpr corresponds to a datatype update
+    [ContractInvariantMethod]
+    void ObjectInvariant() {
+      Contract.Invariant(Seq != null);
+      Contract.Invariant(Index != null);
+      Contract.Invariant(Value != null);
+    }
 
     public SeqUpdateExpr(IToken tok, Expression seq, Expression index, Expression val)
       : base(tok) {
@@ -5480,7 +5498,6 @@ namespace Microsoft.Dafny {
       Seq = seq;
       Index = index;
       Value = val;
-      ResolvedUpdateExpr = null;
     }
 
     public override IEnumerable<Expression> SubExpressions {
@@ -5519,7 +5536,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public ApplyExpr(IToken tok, IToken openParen, Expression receiver, List<Expression> args) 
+    public ApplyExpr(IToken tok, IToken openParen, Expression receiver, List<Expression> args)
       : base(tok)
     {
       OpenParen = openParen;
@@ -6080,7 +6097,12 @@ namespace Microsoft.Dafny {
   public abstract class ComprehensionExpr : Expression {
     public readonly List<BoundVar> BoundVars;
     public readonly Expression Range;
-    public readonly Expression Term;
+    private Expression term;
+    public Expression Term { get { return term; } }
+
+    public void UpdateTerm(Expression newTerm) {
+        term = newTerm;
+    }
 
     [ContractInvariantMethod]
     void ObjectInvariant() {
@@ -6156,7 +6178,7 @@ namespace Microsoft.Dafny {
 
       this.BoundVars = bvars;
       this.Range = range;
-      this.Term = term;
+      this.UpdateTerm(term);
       this.Attributes = attrs;
     }
 
@@ -6181,7 +6203,7 @@ namespace Microsoft.Dafny {
       }
     }
     public String Refresh(String s, ref int counter) {
-      return s + "#" + counter++ + FullName; 
+      return s + "#" + counter++ + FullName;
     }
     public TypeParameter Refresh(TypeParameter p, ref int counter) {
       var cp = new TypeParameter(p.tok, counter++ + "#" + p.Name, p.EqualitySupport);
@@ -6287,13 +6309,13 @@ namespace Microsoft.Dafny {
     public readonly List<FrameExpression> Reads;
 
     public string MkName(string nm) {
-      return "$l" + lamUniques++ + "#" + nm; 
+      return "$l" + lamUniques++ + "#" + nm;
     }
 
     public LambdaExpr(IToken tok, bool oneShot, List<BoundVar> bvars, Expression requires, List<FrameExpression> reads, Expression body)
-      : base(tok, bvars, requires, body, null) 
+      : base(tok, bvars, requires, body, null)
     {
-      Contract.Requires(reads != null); 
+      Contract.Requires(reads != null);
       Reads = reads;
       OneShot = oneShot;
     }
@@ -6714,13 +6736,13 @@ namespace Microsoft.Dafny {
   public class TypeExpr : ParensExpression
   {
     public readonly Type T;
-    public TypeExpr(IToken tok, Expression e, Type t) 
+    public TypeExpr(IToken tok, Expression e, Type t)
       : base(tok, e)
     {
       Contract.Requires(t != null);
       T = t;
     }
-    
+
     public static Expression MaybeTypeExpr(Expression e, Type t) {
       if (t == null) {
         return e;

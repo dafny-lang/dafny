@@ -144,3 +144,28 @@ ghost method GhostM() returns (x: int)
 {
   x :| true;  // no problem (but there once was a problem with this case, where an error was generated for no reason)
 }
+
+// ------------------ cycles that could arise from proxy assignments ---------
+
+module ProxyCycles {
+  datatype Dt<X> = Ctor(X -> Dt<X>)
+  method M0()
+  {
+    var dt: Dt<int>;
+    var f := x => x;
+    dt := Ctor(f);  // error: cannot infer a type for f
+  }
+  method M1()
+  {
+    var dt: Dt;
+    var f := x => x;
+    dt := Ctor(f);  // error: cannot infer a type for f
+  }
+
+  function method F<X>(x: X): set<X>
+  method N()
+  {
+    var x;
+    x := F(x);  // error: cannot infer type for x
+  }
+}
