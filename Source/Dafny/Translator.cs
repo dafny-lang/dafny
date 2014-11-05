@@ -1161,8 +1161,7 @@ namespace Microsoft.Dafny {
       args = new List<Bpl.Expr>();
       foreach (Formal arg in formals) {
         Contract.Assert(arg != null);
-        var nm = string.Format("a{0}#{1}", bvs.Count, otherTmpVarCount);
-        otherTmpVarCount++;
+        var nm = string.Format("a{0}#{1}", bvs.Count, FreshOtherTmpVarCount());
         Bpl.Variable bv = new Bpl.BoundVariable(arg.tok, new Bpl.TypedIdent(arg.tok, nm, TrType(arg.Type)));
         bvs.Add(bv);
         args.Add(new Bpl.IdentifierExpr(arg.tok, bv));
@@ -2529,7 +2528,15 @@ namespace Microsoft.Dafny {
     Bpl.LocalVariable yieldCountVariable = null;  // non-null when an iterator body is being translated
     bool assertAsAssume = false; // generate assume statements instead of assert statements
     int loopHeapVarCount = 0;
+    int FreshLoopHeadVarCount()
+    {
+      return loopHeapVarCount++;
+    }
     int otherTmpVarCount = 0;
+    int FreshOtherTmpVarCount()
+    {
+      return otherTmpVarCount++;
+    }
     Dictionary<string, Bpl.IdentifierExpr> _tmpIEs = new Dictionary<string, Bpl.IdentifierExpr>();
     Bpl.IdentifierExpr GetTmpVar_IdExpr(IToken tok, string name, Bpl.Type ty, List<Variable> locals)  // local variable that's shared between statements that need it
     {
@@ -3795,7 +3802,7 @@ namespace Microsoft.Dafny {
           e = Substitute(e, receiverReplacement, substMap);
         }
 
-        e = Resolver.FrameArrowToObjectSet(e, ref otherTmpVarCount);
+        e = Resolver.FrameArrowToObjectSet(e, FreshOtherTmpVarCount);
 
         Bpl.Expr disjunct;
         var eType = e.Type.NormalizeExpand();
@@ -4007,8 +4014,7 @@ namespace Microsoft.Dafny {
 
       Contract.Assert(currentModule == f.EnclosingClass.Module);
       Contract.Assert(codeContext == f);
-      currentModule = null;
-      codeContext = null;
+      Reset();
     }
 
     void AddWellformednessCheck(NewtypeDecl decl) {
@@ -4081,8 +4087,7 @@ namespace Microsoft.Dafny {
 
       Contract.Assert(currentModule == decl.Module);
       Contract.Assert(codeContext == decl);
-      currentModule = null;
-      codeContext = null;
+      Reset();
     }
 
     Bpl.Expr CtorInvocation(MatchCase mc, ExpressionTranslator etran, List<Variable> locals, StmtListBuilder localTypeAssumptions) {
@@ -4122,8 +4127,7 @@ namespace Microsoft.Dafny {
       var args = new List<Bpl.Expr>();
       foreach (Formal arg in ctor.Formals) {
         Contract.Assert(arg != null);
-        var nm = string.Format("a{0}#{1}", args.Count, otherTmpVarCount);
-        otherTmpVarCount++;
+        var nm = string.Format("a{0}#{1}", args.Count, FreshOtherTmpVarCount());
         Bpl.Variable bv = new Bpl.LocalVariable(arg.tok, new Bpl.TypedIdent(arg.tok, nm, TrType(arg.Type)));
         locals.Add(bv);
         args.Add(new Bpl.IdentifierExpr(arg.tok, bv));
@@ -4292,8 +4296,7 @@ namespace Microsoft.Dafny {
 
         List<Bpl.Variable> bvars = new List<Bpl.Variable>();
 
-        int u = otherTmpVarCount++;
-        Func<string, string> MkName = s => "$l" + u + "#" + s;
+        Func<string, string> MkName = s => "$l" + FreshOtherTmpVarCount() + "#" + s;
 
         Bpl.Expr heap; var hVar = BplBoundVar(MkName("heap"), predef.HeapType, out heap);
         bvars.Add(hVar);
@@ -4465,7 +4468,7 @@ namespace Microsoft.Dafny {
       public Action<IToken, Bpl.Expr, string, Bpl.QKeyValue> AssertSink(Translator tran, StmtListBuilder builder) {
         return (t, e, s, qk) => {
           if (Locals != null) {
-            var b = BplLocalVar("b$reqreads#" + tran.otherTmpVarCount++, Bpl.Type.Bool, Locals);
+            var b = BplLocalVar("b$reqreads#" + tran.FreshOtherTmpVarCount(), Bpl.Type.Bool, Locals);
             Asserts.Add(tran.Assert(t, b, s, qk));
             builder.Add(Bpl.Cmd.SimpleAssign(e.tok, (Bpl.IdentifierExpr)b, e));
           } else {
@@ -4930,8 +4933,7 @@ namespace Microsoft.Dafny {
           for (int i = 0; i < e.LHSs.Count; i++) {
             var pat = e.LHSs[i];
             var rhs = e.RHSs[i];
-            var nm = string.Format("let{0}#{1}", i, otherTmpVarCount);
-            otherTmpVarCount++;
+            var nm = string.Format("let{0}#{1}", i, FreshOtherTmpVarCount());
             var r = new Bpl.LocalVariable(pat.tok, new Bpl.TypedIdent(pat.tok, nm, TrType(rhs.Type)));
             locals.Add(r);
             var rIe = new Bpl.IdentifierExpr(pat.tok, r);
@@ -4998,7 +5000,7 @@ namespace Microsoft.Dafny {
         var typeMap = new Dictionary<TypeParameter, Type>();
         var copies = new List<TypeParameter>();
         if (q != null) {
-          copies = Map(q.TypeArgs, tp => q.Refresh(tp, ref otherTmpVarCount));
+          copies = Map(q.TypeArgs, tp => q.Refresh(tp, FreshOtherTmpVarCount()));
           typeMap = Util.Dict(q.TypeArgs, Map(copies, tp => (Type)new UserDefinedType(tp)));
         }
         locals.AddRange(Map(copies,
@@ -5017,7 +5019,7 @@ namespace Microsoft.Dafny {
             // Havoc heap, unless oneShot
             if (!lam.OneShot) {
               Bpl.Expr oldHeap;
-              locals.Add(BplLocalVar("$oldHeap#" + otherTmpVarCount++, predef.HeapType, out oldHeap));
+              locals.Add(BplLocalVar("$oldHeap#" + FreshOtherTmpVarCount(), predef.HeapType, out oldHeap));
               newBuilder.Add(BplSimplestAssign(oldHeap, etran.HeapExpr));
               newBuilder.Add(new HavocCmd(expr.tok, Singleton((Bpl.IdentifierExpr)etran.HeapExpr)));
               newBuilder.Add(new AssumeCmd(expr.tok,
@@ -5026,7 +5028,7 @@ namespace Microsoft.Dafny {
             }
 
             // Set up a new frame
-            var frameName = "$_Frame#l" + otherTmpVarCount++;
+            var frameName = "$_Frame#l" + FreshOtherTmpVarCount();
             reads = lam.Reads.ConvertAll(s.SubstFrameExpr);
             DefineFrame(e.tok, reads, newBuilder, locals, frameName);
             newEtran = new ExpressionTranslator(newEtran, frameName);
@@ -5168,8 +5170,7 @@ namespace Microsoft.Dafny {
         return;
       }
 
-      var oVar = new Bpl.LocalVariable(tok, new Bpl.TypedIdent(tok, "newtype$check#" + otherTmpVarCount, TrType(expr.Type)));
-      otherTmpVarCount++;
+      var oVar = new Bpl.LocalVariable(tok, new Bpl.TypedIdent(tok, "newtype$check#" + FreshOtherTmpVarCount(), TrType(expr.Type)));
       locals.Add(oVar);
       var o = new Bpl.IdentifierExpr(tok, oVar);
       builder.Add(Bpl.Cmd.SimpleAssign(tok, o, etran.TrExpr(expr)));
@@ -5230,8 +5231,7 @@ namespace Microsoft.Dafny {
       Contract.Ensures(Contract.ValueAtReturn(out bv) != null);
       Contract.Ensures(Contract.ValueAtReturn(out ie) != null);
 
-      bv = new BoundVar(tok, prefix + otherTmpVarCount, iv.Type);
-      otherTmpVarCount++;  // use this counter, but for a Dafny name (the idea being that the number and the initial "_" in the name might avoid name conflicts)
+      bv = new BoundVar(tok, prefix + FreshOtherTmpVarCount(), iv.Type); // use this temporary variable counter, but for a Dafny name (the idea being that the number and the initial "_" in the name might avoid name conflicts)
       ie = new IdentifierExpr(tok, bv.Name);
       ie.Var = bv;  // resolve here
       ie.Type = bv.Type;  // resolve here
@@ -6158,8 +6158,7 @@ namespace Microsoft.Dafny {
         var bLhs = m.Outs[i];
         if (!ModeledAsBoxType(method.Outs[i].Type) && ModeledAsBoxType(bLhs.Type)) {
           // we need an Box
-          Bpl.LocalVariable var = new Bpl.LocalVariable(bLhs.tok, new Bpl.TypedIdent(bLhs.tok, "$tmp##" + otherTmpVarCount, TrType(method.Outs[i].Type)));
-          otherTmpVarCount++;
+          Bpl.LocalVariable var = new Bpl.LocalVariable(bLhs.tok, new Bpl.TypedIdent(bLhs.tok, "$tmp##" + FreshOtherTmpVarCount(), TrType(method.Outs[i].Type)));
           localVariables.Add(var);
           Bpl.IdentifierExpr varIdE = new Bpl.IdentifierExpr(bLhs.tok, var.Name, TrType(method.Outs[i].Type));
           tmpOuts.Add(varIdE);
@@ -6323,7 +6322,7 @@ namespace Microsoft.Dafny {
       sink.AddTopLevelDeclaration(impl);
 
       Contract.Assert(currentModule == function.EnclosingClass.Module);
-      currentModule = null;
+      Reset();
     }
 
     private void GenerateMethodParameters(IToken tok, Method m, MethodTranslationKind kind, ExpressionTranslator etran, out List<Variable> inParams, out List<Variable> outParams) {
@@ -7029,8 +7028,7 @@ namespace Microsoft.Dafny {
         // check that the modifies is a subset
         CheckFrameSubset(s.Tok, s.Mod.Expressions, null, null, etran, builder, "modify statement may violate context's modifies clause", null);
         // cause the change of the heap according to the given frame
-        int modifyId = loopHeapVarCount;
-        loopHeapVarCount++;
+        int modifyId = FreshLoopHeadVarCount();
         string modifyFrameName = "#_Frame#" + modifyId;
         var preModifyHeapVar = new Bpl.LocalVariable(s.Tok, new Bpl.TypedIdent(s.Tok, "$PreModifyHeap" + modifyId, predef.HeapType));
         locals.Add(preModifyHeapVar);
@@ -7922,8 +7920,7 @@ namespace Microsoft.Dafny {
 
       // Now for the other branch, where the postcondition of the call is exported.
       {
-        var initHeapVar = new Bpl.LocalVariable(tok, new Bpl.TypedIdent(tok, "$initHeapForallStmt#" + otherTmpVarCount, predef.HeapType));
-        otherTmpVarCount++;
+        var initHeapVar = new Bpl.LocalVariable(tok, new Bpl.TypedIdent(tok, "$initHeapForallStmt#" + FreshOtherTmpVarCount(), predef.HeapType));
         locals.Add(initHeapVar);
         var initHeap = new Bpl.IdentifierExpr(tok, initHeapVar);
         var initEtran = new ExpressionTranslator(this, predef, initHeap, etran.Old.HeapExpr);
@@ -7985,8 +7982,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(locals != null);
       Contract.Requires(etran != null);
       // Add all newly allocated objects to the set this._new
-      var updatedSet = new Bpl.LocalVariable(iter.tok, new Bpl.TypedIdent(iter.tok, "$iter_newUpdate" + otherTmpVarCount, predef.SetType(iter.tok, predef.BoxType)));
-      otherTmpVarCount++;
+      var updatedSet = new Bpl.LocalVariable(iter.tok, new Bpl.TypedIdent(iter.tok, "$iter_newUpdate" + FreshOtherTmpVarCount(), predef.SetType(iter.tok, predef.BoxType)));
       locals.Add(updatedSet);
       var updatedSetIE = new Bpl.IdentifierExpr(iter.tok, updatedSet);
       // call $iter_newUpdate := $IterCollectNewObjects(initHeap, $Heap, this, _new);
@@ -8063,8 +8059,7 @@ namespace Microsoft.Dafny {
 
       // Now for the other branch, where the ensures clauses are exported.
 
-      var initHeapVar = new Bpl.LocalVariable(s.Tok, new Bpl.TypedIdent(s.Tok, "$initHeapForallStmt#" + otherTmpVarCount, predef.HeapType));
-      otherTmpVarCount++;
+      var initHeapVar = new Bpl.LocalVariable(s.Tok, new Bpl.TypedIdent(s.Tok, "$initHeapForallStmt#" + FreshOtherTmpVarCount(), predef.HeapType));
       locals.Add(initHeapVar);
       var initHeap = new Bpl.IdentifierExpr(s.Tok, initHeapVar);
       var initEtran = new ExpressionTranslator(this, predef, initHeap, etran.Old.HeapExpr);
@@ -8129,8 +8124,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(locals != null);
       Contract.Requires(etran != null);
 
-      int loopId = loopHeapVarCount;
-      loopHeapVarCount++;
+      int loopId = FreshLoopHeadVarCount();
 
       var theDecreases = s.Decreases.Expressions;
 
@@ -8346,8 +8340,7 @@ namespace Microsoft.Dafny {
         builder.Add(new CommentCmd("TrCallStmt: Adding lhs " + lhs + " with type " + lhs.Type));
         if (bLhss[i] == null) {  // (in the current implementation, the second parameter "true" to ProcessLhss implies that all bLhss[*] will be null)
           // create temporary local and assign it to bLhss[i]
-          string nm = "$rhs##" + otherTmpVarCount;
-          otherTmpVarCount++;
+          string nm = "$rhs##" + FreshOtherTmpVarCount();
           var ty = TrType(lhs.Type);
           Bpl.Expr wh = GetWhereClause(lhs.tok, new Bpl.IdentifierExpr(lhs.tok, nm, ty), lhs.Type, etran);
           Bpl.LocalVariable var = new Bpl.LocalVariable(lhs.tok, new Bpl.TypedIdent(lhs.tok, nm, ty, wh));
@@ -8358,8 +8351,7 @@ namespace Microsoft.Dafny {
       Bpl.IdentifierExpr initHeap = null;
       if (codeContext is IteratorDecl) {
         // var initHeap := $Heap;
-        var initHeapVar = new Bpl.LocalVariable(s.Tok, new Bpl.TypedIdent(s.Tok, "$initHeapCallStmt#" + otherTmpVarCount, predef.HeapType));
-        otherTmpVarCount++;
+        var initHeapVar = new Bpl.LocalVariable(s.Tok, new Bpl.TypedIdent(s.Tok, "$initHeapCallStmt#" + FreshOtherTmpVarCount(), predef.HeapType));
         locals.Add(initHeapVar);
         initHeap = new Bpl.IdentifierExpr(s.Tok, initHeapVar);
         // initHeap := $Heap;
@@ -8532,8 +8524,7 @@ namespace Microsoft.Dafny {
         var bLhs = Lhss[i];
         if (ModeledAsBoxType(callee.Outs[i].Type) && !ModeledAsBoxType(LhsTypes[i])) {
           // we need an Unbox
-          Bpl.LocalVariable var = new Bpl.LocalVariable(bLhs.tok, new Bpl.TypedIdent(bLhs.tok, "$tmp##" + otherTmpVarCount, predef.BoxType));
-          otherTmpVarCount++;
+          Bpl.LocalVariable var = new Bpl.LocalVariable(bLhs.tok, new Bpl.TypedIdent(bLhs.tok, "$tmp##" + FreshOtherTmpVarCount(), predef.BoxType));
           locals.Add(var);
           Bpl.IdentifierExpr varIdE = new Bpl.IdentifierExpr(bLhs.tok, var.Name, predef.BoxType);
           tmpOuts.Add(varIdE);
@@ -9475,8 +9466,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(predef != null);
 
       if (bLhs == null) {
-        var nm = string.Format("$rhs#{0}", otherTmpVarCount);
-        otherTmpVarCount++;
+        var nm = string.Format("$rhs#{0}", FreshOtherTmpVarCount());
         var v = new Bpl.LocalVariable(tok, new Bpl.TypedIdent(tok, nm, lhsType == null ? predef.BoxType : TrType(lhsType)));
         locals.Add(v);
         bLhs = new Bpl.IdentifierExpr(tok, v);
@@ -10961,12 +10951,12 @@ namespace Microsoft.Dafny {
 
           if (Attributes.ContainsBool(e.Attributes, "layerQuantifier", ref _scratch)) {
             // If this is a layer quantifier, quantify over layers here, and use $LS(ly) layers in the translation of the body
-            var ly = BplBoundVar(e.Refresh("$ly", ref translator.otherTmpVarCount), predef.LayerType, bvars);
+            var ly = BplBoundVar(e.Refresh("$ly", translator.FreshOtherTmpVarCount()), predef.LayerType, bvars);
             Expr layer = translator.LayerSucc(ly);
             bodyEtran = new ExpressionTranslator(translator, predef, HeapExpr, This, applyLimited_CurrentFunction, layer, layer, modifiesFrame);
           }
           if (Attributes.ContainsBool(e.Attributes, "heapQuantifier", ref _scratch)) {
-            var h = BplBoundVar(e.Refresh("$heap", ref translator.otherTmpVarCount), predef.HeapType, bvars);
+            var h = BplBoundVar(e.Refresh("$heap", translator.FreshOtherTmpVarCount()), predef.HeapType, bvars);
             bodyEtran = new ExpressionTranslator(bodyEtran, h);
             antecedent = BplAnd(new List<Bpl.Expr> {
               antecedent,
@@ -11007,8 +10997,7 @@ namespace Microsoft.Dafny {
           Bpl.Expr typeAntecedent = TrBoundVariables(e.BoundVars, bvars);
           Bpl.QKeyValue kv = TrAttributes(e.Attributes, null);
 
-          var yVar = new Bpl.BoundVariable(expr.tok, new Bpl.TypedIdent(expr.tok, "$y#" + translator.otherTmpVarCount, predef.BoxType));
-          translator.otherTmpVarCount++;
+          var yVar = new Bpl.BoundVariable(expr.tok, new Bpl.TypedIdent(expr.tok, "$y#" + translator.FreshOtherTmpVarCount(), predef.BoxType));
           Bpl.Expr y = new Bpl.IdentifierExpr(expr.tok, yVar);
 
           var eq = Bpl.Expr.Eq(y, BoxIfNecessary(expr.tok, TrExpr(e.Term), e.Term.Type));
@@ -11028,8 +11017,7 @@ namespace Microsoft.Dafny {
 
           Bpl.QKeyValue kv = TrAttributes(e.Attributes, null);
 
-          var yVar = new Bpl.BoundVariable(expr.tok, new Bpl.TypedIdent(expr.tok, "$y#" + translator.otherTmpVarCount, predef.BoxType));
-          translator.otherTmpVarCount++;
+          var yVar = new Bpl.BoundVariable(expr.tok, new Bpl.TypedIdent(expr.tok, "$y#" + translator.FreshOtherTmpVarCount(), predef.BoxType));
 
           Bpl.Expr unboxy = translator.UnboxIfBoxed(new Bpl.IdentifierExpr(expr.tok, yVar), bv.Type);
           Bpl.Expr typeAntecedent = translator.GetWhereClause(bv.tok, unboxy, bv.Type, this);
@@ -12305,8 +12293,7 @@ namespace Microsoft.Dafny {
           foreach (var n in inductionVariables) {
             toks.Add(n.tok);
             types.Add(n.Type.NormalizeExpand());
-            BoundVar k = new BoundVar(n.tok, n.Name + "$ih#" + otherTmpVarCount, n.Type);
-            otherTmpVarCount++;
+            BoundVar k = new BoundVar(n.tok, n.Name + "$ih#" + FreshOtherTmpVarCount(), n.Type);
             kvars.Add(k);
 
             IdentifierExpr ieK = new IdentifierExpr(k.tok, k.AssignUniqueName(currentDeclaration));
