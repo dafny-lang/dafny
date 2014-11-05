@@ -1642,11 +1642,7 @@ namespace Microsoft.Dafny {
         localVariables, stmts, kv);
       sink.AddTopLevelDeclaration(impl);
 
-      currentModule = null;
-      codeContext = null;
-      loopHeapVarCount = 0;
-      otherTmpVarCount = 0;
-      _tmpIEs.Clear();
+      Reset();
     }
 
     void AddIteratorImpl(IteratorDecl iter, Bpl.Procedure proc) {
@@ -1704,10 +1700,15 @@ namespace Microsoft.Dafny {
         typeParams, inParams, new List<Variable>(),
         localVariables, stmts, kv);
       sink.AddTopLevelDeclaration(impl);
+      
+      yieldCountVariable = null;
+      Reset();
+    }
 
+    private void Reset()
+    {
       currentModule = null;
       codeContext = null;
-      yieldCountVariable = null;
       loopHeapVarCount = 0;
       otherTmpVarCount = 0;
       _tmpIEs.Clear();
@@ -2800,11 +2801,7 @@ namespace Microsoft.Dafny {
         InsertChecksum(m, impl);
       }
 
-      currentModule = null;
-      codeContext = null;
-      loopHeapVarCount = 0;
-      otherTmpVarCount = 0;
-      _tmpIEs.Clear();
+      Reset();
     }
 
     private void AddFunctionOverrideCheckImpl(Function f)
@@ -2916,11 +2913,7 @@ namespace Microsoft.Dafny {
             InsertChecksum(f, proc, true);
         }
 
-        currentModule = null;
-        codeContext = null;
-        loopHeapVarCount = 0;
-        otherTmpVarCount = 0;
-        _tmpIEs.Clear();
+        Reset();
     }
 
     private void AddFunctionOverrideAxiom(Function f)
@@ -3210,11 +3203,7 @@ namespace Microsoft.Dafny {
             InsertChecksum(m, impl);
         }
 
-        currentModule = null;
-        codeContext = null;
-        loopHeapVarCount = 0;
-        otherTmpVarCount = 0;
-        _tmpIEs.Clear();
+        Reset();
     }
 
     private void HavocMethodFrameLocations(Method m, Bpl.StmtListBuilder builder, ExpressionTranslator etran, List<Variable> localVariables)
@@ -6210,11 +6199,7 @@ namespace Microsoft.Dafny {
         localVariables, stmts, etran.TrAttributes(m.Attributes, null));
       sink.AddTopLevelDeclaration(impl);
 
-      // Clean up
-      currentModule = null;
-      codeContext = null;
-      otherTmpVarCount = 0;
-      _tmpIEs.Clear();
+      Reset();
     }
 
     private static QKeyValue ErrorMessageAttribute(IToken t, string error) {
