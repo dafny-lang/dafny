@@ -75,6 +75,10 @@ namespace Microsoft.Dafny
 
     ModuleSignature moduleInfo = null;
     int tempVarCount = 0;
+    int FreshTempVarCount()
+    {
+      return ++tempVarCount;
+    }
 
     public Action<AdditionalInformation> AdditionalInformationReporter;
 
@@ -488,17 +492,17 @@ namespace Microsoft.Dafny
       return anyChangeToDecreases;
     }
 
-    public static Expression FrameArrowToObjectSet(Expression e, ref int tmpCounter) {
+    public static Expression FrameArrowToObjectSet(Expression e, Func<int> freshTmp) {
       var arrTy = e.Type.AsArrowType;
       if (arrTy != null) {
         var bvars = new List<BoundVar>();
         var bexprs = new List<Expression>();
         foreach (var t in arrTy.Args) {
-          var bv = new BoundVar(e.tok, "_x" + tmpCounter++, t);
+          var bv = new BoundVar(e.tok, "_x" + freshTmp(), t);
           bvars.Add(bv);
           bexprs.Add(new IdentifierExpr(e.tok, bv.Name) { Type = bv.Type, Var = bv });
         }
-        var oVar = new BoundVar(e.tok, "_o" + tmpCounter++, new ObjectType());
+        var oVar = new BoundVar(e.tok, "_o" + freshTmp(), new ObjectType());
         var obj = new IdentifierExpr(e.tok, oVar.Name) { Type = oVar.Type, Var = oVar };
         bvars.Add(oVar);
 
@@ -533,7 +537,7 @@ namespace Microsoft.Dafny
         if (fe.E is WildcardExpr) {
           // drop wildcards altogether
         } else {
-          Expression e = FrameArrowToObjectSet(fe.E, ref tmpVarCount);  // keep only fe.E, drop any fe.Field designation
+          Expression e = FrameArrowToObjectSet(fe.E, () => ++tmpVarCount);  // keep only fe.E, drop any fe.Field designation
           Contract.Assert(e.Type != null);  // should have been resolved already
           var eType = e.Type.NormalizeExpand();
           if (eType.IsRefType) {
@@ -545,8 +549,7 @@ namespace Microsoft.Dafny
           } else if (eType is SeqType) {
             // e represents a sequence
             // Add:  set x :: x in e
-            var bv = new BoundVar(e.tok, "_s2s_" + tmpVarCount, ((SeqType)eType).Arg);
-            tmpVarCount++;
+            var bv = new BoundVar(e.tok, "_s2s_" + (++tmpVarCount), ((SeqType)eType).Arg);
             var bvIE = new IdentifierExpr(e.tok, bv.Name);
             bvIE.Var = bv;  // resolve here
             bvIE.Type = bv.Type;  // resolve here
@@ -6477,8 +6480,7 @@ namespace Microsoft.Dafny
                 // Wrapping it in a let expr avoids exponential growth in the size of the expression
 
                 // Create a unique name for d', the variable we introduce in the let expression
-                string tmpName = string.Format("dt_update_tmp#{0}", this.tempVarCount);
-                this.tempVarCount += 1;
+                string tmpName = string.Format("dt_update_tmp#{0}", FreshTempVarCount());
                 IdentifierExpr tmpVarIdExpr = new IdentifierExpr(e.Seq.tok, tmpName);
                 BoundVar tmpVarBv = new BoundVar(e.Seq.tok, tmpName, e.Seq.Type);
 

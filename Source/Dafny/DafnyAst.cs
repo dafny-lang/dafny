@@ -6202,11 +6202,11 @@ namespace Microsoft.Dafny {
         return "q$" + quantUnique;
       }
     }
-    public String Refresh(String s, ref int counter) {
-      return s + "#" + counter++ + FullName;
+    public String Refresh(String s, int counter) {
+      return s + "#" + counter + FullName;
     }
-    public TypeParameter Refresh(TypeParameter p, ref int counter) {
-      var cp = new TypeParameter(p.tok, counter++ + "#" + p.Name, p.EqualitySupport);
+    public TypeParameter Refresh(TypeParameter p, int counter) {
+      var cp = new TypeParameter(p.tok, counter + "#" + p.Name, p.EqualitySupport);
       cp.Parent = this;
       return cp;
     }
