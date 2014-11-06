@@ -100,16 +100,16 @@ bool IsAttribute() {
 
 bool IsAlternative() {
   Token x = scanner.Peek();
-  return la.kind == _lbrace && x.val == "case";
+  return la.kind == _lbrace && x.kind == _case;
 }
 
 bool IsLoopSpec() {
-  return la.val == "invariant" | la.val == "decreases" | la.val == "modifies";
+  return la.kind == _invariant | la.kind == _decreases | la.kind == _modifies;
 }
 
 bool IsLoopSpecOrAlternative() {
   Token x = scanner.Peek();
-  return IsLoopSpec() || (la.kind == _lbrace && x.val == "case");
+  return IsLoopSpec() || (la.kind == _lbrace && x.kind == _case);
 }
 
 bool IsParenStar() {
@@ -150,10 +150,6 @@ bool SemiFollowsCall(bool allowSemi, Expression e) {
   return allowSemi && la.kind == _semi &&
     (e is FunctionCallExpr || e is ApplyExpr ||
      (e is IdentifierSequence && ((IdentifierSequence)e).OpenParen != null));
-}
-
-bool CloseOptionalParen(bool usesOptionalParen) {
-  return usesOptionalParen && la.kind == _closeparen;
 }
 
 bool CloseOptionalBrace(bool usesOptionalBrace) {
@@ -224,6 +220,11 @@ TOKENS
   semi = ';'.
   darrow = "=>".
   arrow = "->".
+  assume = "assume".
+  case = "case".
+  decreases = "decreases".
+  invariant = "invariant".
+  modifies = "modifies".
   reads = "reads".
   requires = "requires".
   lbrace = '{'.
@@ -769,10 +770,10 @@ MethodSpec<.List<MaybeFreeExpression/*!*/>/*!*/ req, List<FrameExpression/*!*/>/
   .)
   SYNC
   ( "modifies" { IF(IsAttribute()) Attribute<ref modAttrs> }
-               [ FrameExpression<out fe>                     (. mod.Add(fe); .)
-                 { "," FrameExpression<out fe>               (. mod.Add(fe); .)
-                 }
-               ] OldSemi
+               FrameExpression<out fe>                     (. mod.Add(fe); .)
+               { "," FrameExpression<out fe>               (. mod.Add(fe); .)
+               }
+               OldSemi
   | [ "free"                                                 (. isFree = true;
                                                                 errors.Warning(t, "the 'free' keyword is soon to be deprecated");
                                                              .)
@@ -793,15 +794,15 @@ IteratorSpec<.List<FrameExpression/*!*/>/*!*/ reads, List<FrameExpression/*!*/>/
   .)
   SYNC
   ( "reads"    { IF(IsAttribute()) Attribute<ref readsAttrs> }
-               [ FrameExpression<out fe>                     (. reads.Add(fe); .)
-                 { "," FrameExpression<out fe>               (. reads.Add(fe); .)
-                 }
-               ] OldSemi
+               FrameExpression<out fe>                     (. reads.Add(fe); .)
+               { "," FrameExpression<out fe>               (. reads.Add(fe); .)
+               }
+               OldSemi
   | "modifies" { IF(IsAttribute()) Attribute<ref modAttrs> }
-               [ FrameExpression<out fe>                     (. mod.Add(fe); .)
-                 { "," FrameExpression<out fe>               (. mod.Add(fe); .)
-                 }
-               ] OldSemi
+               FrameExpression<out fe>                     (. mod.Add(fe); .)
+               { "," FrameExpression<out fe>               (. mod.Add(fe); .)
+               }
+               OldSemi
   | [ "free"                                                 (. isFree = true;
                                                                 errors.Warning(t, "the 'free' keyword is soon to be deprecated");
                                                              .)
@@ -904,7 +905,7 @@ TypeAndToken<out IToken tok, out Type ty>
                                          ty = new UserDefinedType(tok, BuiltIns.TupleTypeName(dims), gt, new List<IToken>());
                                        }
                                     .)
-    | ReferenceType<out tok, out ty>
+  | ReferenceType<out tok, out ty>
   )
   [ (. Type t2; .)
     "->"                  (. tok = t; .)
@@ -1050,10 +1051,10 @@ FunctionSpec<.List<Expression/*!*/>/*!*/ reqs, List<FrameExpression/*!*/>/*!*/ r
   (
     SYNC
     "requires" Expression<out e, false, true> OldSemi     (. reqs.Add(e); .)
-  | "reads" [ PossiblyWildFrameExpression<out fe>         (. reads.Add(fe); .)
-              { "," PossiblyWildFrameExpression<out fe>   (. reads.Add(fe); .)
-              }
-            ] OldSemi
+  | "reads" PossiblyWildFrameExpression<out fe>           (. reads.Add(fe); .)
+            { "," PossiblyWildFrameExpression<out fe>     (. reads.Add(fe); .)
+            }
+            OldSemi
   | "ensures" Expression<out e, false, true> OldSemi      (. ens.Add(e); .)
   | "decreases"                               (. if (decreases == null) {
                                                    SemErr(t, "'decreases' clauses are meaningless for copredicates, so they are not allowed");
@@ -1241,7 +1242,8 @@ UpdateStmt<out Statement/*!*/ s>
       { "," Rhs<out r, lhs0>       (. rhss.Add(r); .)
       }
     | ":|"                         (. x = t; .)
-      [ "assume"                   (. suchThatAssume = t; .)
+      [ IF(la.kind == _assume)     /* an Expression can also begin with an "assume", so this says to resolve it to pick up any "assume" here */
+        "assume"                   (. suchThatAssume = t; .)
       ]
       Expression<out suchThat, false, true>
     )
@@ -1321,7 +1323,8 @@ VarDeclStatement<.out Statement/*!*/ s.>
     { "," Rhs<out r, lhs0>         (. rhss.Add(r); .)
     }
   | ":|"                           (. assignTok = t; .)
-    [ "assume"                     (. suchThatAssume = t; .)
+    [ IF(la.kind == _assume)       /* an Expression can also begin with an "assume", so this says to resolve it to pick up any "assume" here */
+      "assume"                     (. suchThatAssume = t; .)
     ]
     Expression<out suchThat, false, true>
   ]
@@ -1504,13 +1507,11 @@ MatchStmt<out Statement/*!*/ s>
   .)
   "match"                     (. x = t; .)
   Expression<out e, true, true>
-  [ "{"                                     (. usesOptionalBrace = true; .)
-  ]
-  { CaseStatement<out c>     (. cases.Add(c); .)
-  }
-  ( IF(CloseOptionalBrace(usesOptionalBrace))
-    "}"
-  |                                         (. if (usesOptionalBrace) { SemErr(t, "expecting close curly brace"); } .)
+  ( IF(la.kind == _lbrace)  /* always favor brace-enclosed match body to a case-less match */
+    "{" { CaseStatement<out c> (. cases.Add(c); .) } "}"  (. usesOptionalBrace = true; .)
+  |     { IF(la.kind == _case)  /* let each "case" bind to the closest preceding "match" */
+          CaseStatement<out c> (. cases.Add(c); .)
+        }
   )
   (. s = new MatchStmt(x, t, e, cases, usesOptionalBrace); .)
   .
@@ -1583,8 +1584,7 @@ PrintStmt<out Statement/*!*/ s>
 ForallStmt<out Statement/*!*/ s>
 = (. Contract.Ensures(Contract.ValueAtReturn(out s) != null);
      IToken/*!*/ x = Token.NoToken;
-     bool usesOptionalParen = false;
-     List<BoundVar/*!*/> bvars = null;
+     List<BoundVar> bvars = null;
      Attributes attrs = null;
      Expression range = null;
      var ens = new List<MaybeFreeExpression/*!*/>();
@@ -1599,20 +1599,17 @@ ForallStmt<out Statement/*!*/ s>
                                                  errors.Warning(t, "the 'parallel' keyword has been deprecated; the comprehension statement now uses the keyword 'forall' (and the parentheses around the bound variables are now optional)");
                                               .)
   )
-  [ "("                                     (. usesOptionalParen = true; .)
-  ]
-  [                                         (. List<BoundVar/*!*/> bvarsX;  Attributes attrsX;  Expression rangeX; .)
-    QuantifierDomain<out bvarsX, out attrsX, out rangeX>
-                                            (. bvars = bvarsX; attrs = attrsX; range = rangeX;
-                                            .)
-  ]
-                                            (. if (bvars == null) { bvars = new List<BoundVar>(); }
-                                               if (range == null) { range = new LiteralExpr(x, true); }
-                                            .)
-  ( IF(CloseOptionalParen(usesOptionalParen))
-    ")"
-  |                                         (. if (usesOptionalParen) { SemErr(t, "expecting close parenthesis"); } .)
+
+  ( IF(la.kind == _openparen)  /* disambiguation needed, because of the possibility of a body-less forall statement */
+    "(" [ QuantifierDomain<out bvars, out attrs, out range> ] ")"
+  |     [ IF(la.kind == _ident)  /* disambiguation needed, because of the possibility of a body-less forall statement */
+          QuantifierDomain<out bvars, out attrs, out range>
+        ]
   )
+  (. if (bvars == null) { bvars = new List<BoundVar>(); }
+     if (range == null) { range = new LiteralExpr(x, true); }
+  .)
+
   {                                         (. isFree = false; .)
     [ "free"                                (. isFree = true;
                                                errors.Warning(t, "the 'free' keyword is soon to be deprecated");
@@ -1621,7 +1618,8 @@ ForallStmt<out Statement/*!*/ s>
     "ensures" Expression<out e, false, true>  (. ens.Add(new MaybeFreeExpression(e, isFree)); .)
     OldSemi                                   (. tok = t; .)
   }
-  [ BlockStmt<out block, out bodyStart, out bodyEnd>
+  [ IF(la.kind == _lbrace)  /* if the input continues like a block statement, take it to be the body of the forall statement; a body-less forall statement must continue in some other way */
+    BlockStmt<out block, out bodyStart, out bodyEnd>
   ]
   (. if (DafnyOptions.O.DisallowSoundnessCheating && block == null && 0 < ens.Count) {
         SemErr(t, "a forall statement with an ensures clause must have a body");
@@ -1647,11 +1645,11 @@ ModifyStmt<out Statement s>
    * may also look like a BlockStmt.  We're happy to parse the former, because if the user intended
    * the latter, then an explicit FrameExpression of {} could be given.
    */
-  [ FrameExpression<out fe>         (. mod.Add(fe); .)
+  ( FrameExpression<out fe>         (. mod.Add(fe); .)
     { "," FrameExpression<out fe>   (. mod.Add(fe); .)
     }
   | "..."                           (. ellipsisToken = t; .)
-  ]
+  )
   ( BlockStmt<out body, out bodyStart, out endTok>
   | SYNC ";"         (. endTok = t; .)
   )
@@ -2543,7 +2541,8 @@ QuantifierDomain<.out List<BoundVar> bvars, out Attributes attrs, out Expression
     IdentTypeOptional<out bv>                  (. bvars.Add(bv); .)
   }
   { IF(IsAttribute()) Attribute<ref attrs> }
-  [ "|"
+  [ IF(la.kind == _verticalbar)   /* Coco complains about this ambiguity, thinking that a "|" can follow a body-less forall statement; I don't see how that's possible, but this IF is good and suppresses the reported ambiguity */
+    "|"
     Expression<out range, true, true>
   ]
   .

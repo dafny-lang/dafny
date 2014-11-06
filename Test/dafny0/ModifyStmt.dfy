@@ -16,7 +16,7 @@ class MyClass {
     modify {this}, this, {this}, S;
     modify this;
     modify {:myAttribute} {:another true} {this}, this, S;
-    modify ;
+    modify {} ;
   }
 
   method N()

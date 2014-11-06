@@ -43,7 +43,7 @@ method Testing3(a: array<int>)
    var i := 0;
    while(i < 10) 
       invariant 0 <= i <= 10;
-      modifies;
+      modifies {};
    {
       a[0] := i; // ERROR
       i := i + 1;
@@ -58,7 +58,7 @@ method Testing4(a: array<int>)
    var i := 0;
    while(i < 10) 
       invariant 0 <= i <= 10;
-      modifies;
+      modifies {};
    {
       a[0] := i; // ERROR
       i := i + 1;
@@ -70,7 +70,7 @@ method Testing4(a: array<int>)
 // modifies not a subset:
 method Testing5(a: array<int>)
    requires a != null && a.Length > 0;
-   modifies;
+   modifies {};
 {
    var i := 0;
    while(i < 10) // ERROR
@@ -249,14 +249,14 @@ method Testing11()
    var arr := new int[1];
    while(i < 10) 
       invariant 0 <= i <= 10;
-      modifies;
+      modifies {};
    {
       arr := new int[1];
       arr[0] := 1;
       var j := 0;
       while(j < 10) 
          invariant 0 <= j <= 10;
-         modifies;
+         modifies {};
       {
          // can't touch arr in here.
          j := j + 1;
