@@ -19,3 +19,15 @@ method M2(x: int)
     invariant i <= x;
     decreases i;
 }
+
+var f: int;
+
+method M3(x: int)
+  requires f <= x;
+  modifies `f;
+{
+  while (0 < f)
+    invariant f <= x;
+    decreases f;
+    modifies `f;
+}

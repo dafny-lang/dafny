@@ -39,7 +39,7 @@ namespace Microsoft.Dafny
     public static int ThreadMain(string[] args)
     {
       Contract.Requires(cce.NonNullElements(args));
-
+         
       printer = new DafnyConsolePrinter();
       ExecutionEngine.printer = printer;
 
@@ -51,7 +51,7 @@ namespace Microsoft.Dafny
         exitValue = ExitValue.PREPROCESSING_ERROR;
         goto END;
       }
-      //CommandLineOptions.Clo.Files = new List<string> { @"C:\dafny\Test\dafny0\Trait\TraitOverride1.dfy" };
+      //CommandLineOptions.Clo.Files = new List<string> { @"C:\dafny\Test\dafny0\Trait\TraitExtend.dfy" };
 
       if (CommandLineOptions.Clo.Files.Count == 0)
       {
@@ -109,6 +109,7 @@ namespace Microsoft.Dafny
           // TODO(wuestholz): We should probably add a separate flag for this. This is currently only used by the new testing infrastructure.
           return 0;
         }
+        //Console.ReadKey();
         return (int)exitValue;
     }
 

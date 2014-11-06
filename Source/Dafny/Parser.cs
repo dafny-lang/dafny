@@ -466,7 +466,7 @@ bool CloseOptionalBrace(bool usesOptionalBrace) {
 		Contract.Requires(module != null);
 		Contract.Ensures(Contract.ValueAtReturn(out c) != null);
 		IToken/*!*/ id;
-		List<IToken>/*!*/ traitId=null;
+		Type/*!*/ trait = null;
 		Attributes attrs = null;
 		List<TypeParameter/*!*/> typeArgs = new List<TypeParameter/*!*/>();
 		List<MemberDecl/*!*/> members = new List<MemberDecl/*!*/>();
@@ -483,15 +483,15 @@ bool CloseOptionalBrace(bool usesOptionalBrace) {
 		}
 		if (la.kind == 36) {
 			Get();
-			QualifiedName(out traitId);
+			Type(out trait);
 		}
 		Expect(20);
-		bodyStart = t; 
+		bodyStart = t;  
 		while (StartOf(2)) {
 			ClassMemberDecl(members, true);
 		}
 		Expect(21);
-		c = new ClassDecl(id, id.val, module, typeArgs, members, attrs, traitId);
+		c = new ClassDecl(id, id.val, module, typeArgs, members, attrs, trait);
 		c.BodyStartTok = bodyStart;
 		c.BodyEndTok = t;
 		
@@ -838,6 +838,11 @@ bool CloseOptionalBrace(bool usesOptionalBrace) {
 		Expect(52);
 	}
 
+	void Type(out Type ty) {
+		Contract.Ensures(Contract.ValueAtReturn(out ty) != null); IToken/*!*/ tok; 
+		TypeAndToken(out tok, out ty);
+	}
+
 	void FieldDecl(MemberModifiers mmod, List<MemberDecl/*!*/>/*!*/ mm) {
 		Contract.Requires(cce.NonNullElements(mm));
 		Attributes attrs = null;
@@ -1163,11 +1168,6 @@ bool CloseOptionalBrace(bool usesOptionalBrace) {
 			while (!(la.kind == 0 || la.kind == 10)) {SynErr(157); Get();}
 			Get();
 		}
-	}
-
-	void Type(out Type ty) {
-		Contract.Ensures(Contract.ValueAtReturn(out ty) != null); IToken/*!*/ tok; 
-		TypeAndToken(out tok, out ty);
 	}
 
 	void Expression(out Expression e, bool allowSemi, bool allowLambda) {

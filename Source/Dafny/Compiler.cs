@@ -247,9 +247,9 @@ namespace Microsoft.Dafny {
           else if (d is ClassDecl) {
             var cl = (ClassDecl)d;
             Indent(indent);
-            if (cl.Trait != null && cl.Trait is TraitDecl)
+            if (cl.TraitObj != null && cl.TraitObj is TraitDecl)
             {
-                wr.WriteLine("public class @{0} : @{1}", cl.CompileName, cl.TraitId.val);
+                wr.WriteLine("public class @{0} : @{1}", cl.CompileName, ((UserDefinedType)cl.TraitTyp).tok);
             }
             else
                 wr.Write("public class @{0}", cl.CompileName);
@@ -487,7 +487,7 @@ namespace Microsoft.Dafny {
 
         Indent(indent);  wr.WriteLine("}");
       }
-      constructorIndex ++;
+      constructorIndex++;
     }
 
     void CompileDatatypeStruct(DatatypeDecl dt, int indent) {
@@ -767,7 +767,7 @@ namespace Microsoft.Dafny {
                   {
                       Indent(indent);
                       wr.WriteLine("public {0} @{1};", TypeName(f.Type), f.CompileName);
-                      wr.Write("{0} @{1}.@{2}", TypeName(f.Type), c.Trait.CompileName, f.CompileName);
+                      wr.Write("{0} @{1}.@{2}", TypeName(f.Type), c.TraitObj.CompileName, f.CompileName);
                       wr.WriteLine(" {");
                       wr.WriteLine(" get { ");
                       wr.Write("return this.@{0};", f.CompileName);
@@ -1179,7 +1179,7 @@ namespace Microsoft.Dafny {
               if (!(rhs is HavocRhs)) {
                 lvalues.Add(CreateLvalue(lhs, indent));
 
-                string target = "_rhs" + FreshTmpVarCount();
+                string target = VariableNameGenerator.FreshVariableName("_rhs");
                 rhss.Add(target);
                 TrRhs("var " + target, null, rhs, indent);
               }
@@ -1240,7 +1240,7 @@ namespace Microsoft.Dafny {
           Contract.Assert(s.Bounds != null);  // follows from s.MissingBounds == null
           var n = s.Lhss.Count;
           Contract.Assert(s.Bounds.Count == n);
-          var c = FreshTmpVarCount();
+          var c = VariableNameGenerator.FreshVariableCount();
           var doneLabel = "_ASSIGN_SUCH_THAT_" + c;
           var iterLimit = "_iterLimit_" + c;
 
@@ -1259,7 +1259,7 @@ namespace Microsoft.Dafny {
               Indent(ind);
               wr.WriteLine("var {0}_{1} = {0};", iterLimit, i);
             }
-            var tmpVar = "_assign_such_that_" + FreshTmpVarCount();
+            var tmpVar = VariableNameGenerator.FreshVariableName("_assign_such_that_");
             Indent(ind);
             if (bound is ComprehensionExpr.BoolBoundedPool) {
               wr.WriteLine("foreach (var {0} in Dafny.Helpers.AllBooleans) {{ @{1} = {0};", tmpVar, bv.CompileName);
@@ -1475,7 +1475,7 @@ namespace Microsoft.Dafny {
         // be nested.
 
         // Temporary names
-        var c = FreshTmpVarCount();
+        var c = VariableNameGenerator.FreshVariableCount();
         string ingredients = "_ingredients" + c;
         string tup = "_tup" + c;
 
@@ -1628,7 +1628,7 @@ namespace Microsoft.Dafny {
         //   ...
         // }
         if (s.Cases.Count != 0) {
-          string source = "_source" + FreshTmpVarCount();
+          string source = VariableNameGenerator.FreshVariableName("_source");
           Indent(indent);
           wr.Write("{0} {1} = ", TypeName(cce.NonNull(s.Source.Type)), source);
           TrExpr(s.Source);
@@ -1671,7 +1671,7 @@ namespace Microsoft.Dafny {
         return "@" + ll.Var.CompileName;
       } else if (lhs is MemberSelectExpr) {
         var ll = (MemberSelectExpr)lhs;
-        string obj = "_obj" + FreshTmpVarCount();
+        string obj = VariableNameGenerator.FreshVariableName("_obj");
         Indent(indent);
         wr.Write("var {0} = ", obj);
         TrExpr(ll.Obj);
@@ -1679,7 +1679,7 @@ namespace Microsoft.Dafny {
         return string.Format("{0}.@{1}", obj, ll.Member.CompileName);
       } else if (lhs is SeqSelectExpr) {
         var ll = (SeqSelectExpr)lhs;
-        var c = FreshTmpVarCount();
+        var c = VariableNameGenerator.FreshVariableCount();
         string arr = "_arr" + c;
         string index = "_index" + c;
         Indent(indent);
@@ -1693,7 +1693,7 @@ namespace Microsoft.Dafny {
         return string.Format("{0}[(int){1}]", arr, index);
       } else {
         var ll = (MultiSelectExpr)lhs;
-        var c = FreshTmpVarCount();
+        var c = VariableNameGenerator.FreshVariableCount();
         string arr = "_arr" + c;
         Indent(indent);
         wr.Write("var {0} = ", arr);
@@ -1720,7 +1720,7 @@ namespace Microsoft.Dafny {
       Contract.Requires((target == null) != (targetExpr == null));
       var tRhs = rhs as TypeRhs;
       if (tRhs != null && tRhs.InitCall != null) {
-        string nw = "_nw" + FreshTmpVarCount();
+        string nw = VariableNameGenerator.FreshVariableName("_nw");
         Indent(indent);
         wr.Write("var {0} = ", nw);
         TrAssignmentRhs(rhs);  // in this case, this call will not require us to spill any let variables first
@@ -1771,7 +1771,7 @@ namespace Microsoft.Dafny {
           // TODO:  What to do here?  When does this happen, what does it mean?
         } else if (!s.Method.IsStatic) {
 
-          string inTmp = "_in" + FreshTmpVarCount();
+          string inTmp = VariableNameGenerator.FreshVariableName("_in");
           inTmps.Add(inTmp);
           Indent(indent);
           wr.Write("var {0} = ", inTmp);
@@ -1781,7 +1781,7 @@ namespace Microsoft.Dafny {
         for (int i = 0; i < s.Method.Ins.Count; i++) {
           Formal p = s.Method.Ins[i];
           if (!p.IsGhost) {
-            string inTmp = "_in" + FreshTmpVarCount();
+            string inTmp = VariableNameGenerator.FreshVariableName("_in");
             inTmps.Add(inTmp);
             Indent(indent);
             wr.Write("var {0} = ", inTmp);
@@ -1823,7 +1823,7 @@ namespace Microsoft.Dafny {
         for (int i = 0; i < s.Method.Outs.Count; i++) {
           Formal p = s.Method.Outs[i];
           if (!p.IsGhost) {
-            string target = "_out" + FreshTmpVarCount();
+            string target = VariableNameGenerator.FreshVariableName("_out");
             outTmps.Add(target);
             Indent(indent);
             wr.WriteLine("{0} {1};", TypeName(s.Lhs[i].Type), target);
@@ -1879,11 +1879,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    int tmpVarCount = 0;
-    int FreshTmpVarCount()
-    {
-      return tmpVarCount++;
-    }
+    FreshVariableNameGenerator VariableNameGenerator = new FreshVariableNameGenerator();
 
     /// <summary>
     /// Before calling TrAssignmentRhs(rhs), the caller must have spilled the let variables declared in "rhs".
@@ -2249,7 +2245,7 @@ namespace Microsoft.Dafny {
               string arg;
               var fce = actual as FunctionCallExpr;
               if (fce == null || fce.CoCall != FunctionCallExpr.CoCallResolution.Yes) {
-                string varName = "_ac" + FreshTmpVarCount();
+                string varName = VariableNameGenerator.FreshVariableName("_ac");
                 arg = varName;
 
                 wr.Write("var {0} = ", varName);
@@ -2258,7 +2254,7 @@ namespace Microsoft.Dafny {
               } else {
                 var sw = new StringWriter();
                 CompileFunctionCallExpr(fce, sw, (exp) => {
-                  string varName = "_ac" + FreshTmpVarCount();
+                  string varName = VariableNameGenerator.FreshVariableName("_ac");
                   sw.Write(varName);
 
                   wr.Write("var {0} = ", varName);
@@ -2571,7 +2567,7 @@ namespace Microsoft.Dafny {
         //   }
         // }(src)
 
-        string source = "_source" + FreshTmpVarCount();
+        string source = VariableNameGenerator.FreshVariableName("_source");
         wr.Write("new Dafny.Helpers.Function<{0}, {1}>(delegate ({0} {2}) {{ ", TypeName(e.Source.Type), TypeName(e.Type), source);
 
         if (e.Cases.Count == 0) {

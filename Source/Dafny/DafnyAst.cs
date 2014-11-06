@@ -1688,8 +1688,8 @@ namespace Microsoft.Dafny {
 
   public class ClassDecl : TopLevelDecl {
     public readonly List<MemberDecl> Members;
-    public TraitDecl Trait;
-    public readonly IToken TraitId;
+    public TraitDecl TraitObj;
+    public readonly Type TraitTyp;
     public bool HasConstructor;  // filled in (early) during resolution; true iff there exists a member that is a Constructor
     [ContractInvariantMethod]
     void ObjectInvariant() {
@@ -1697,7 +1697,7 @@ namespace Microsoft.Dafny {
     }
 
     public ClassDecl(IToken tok, string name, ModuleDefinition module,
-      List<TypeParameter> typeArgs, [Captured] List<MemberDecl> members, Attributes attributes, List<IToken> traitId)
+      List<TypeParameter> typeArgs, [Captured] List<MemberDecl> members, Attributes attributes, Type trait)
       : base(tok, name, module, typeArgs, attributes) {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
@@ -1705,8 +1705,8 @@ namespace Microsoft.Dafny {
       Contract.Requires(cce.NonNullElements(typeArgs));
       Contract.Requires(cce.NonNullElements(members));
       Members = members;
-      if (traitId != null && traitId.Count > 0)
-          TraitId = traitId[0]; //there are at most one inheriting trait at the moment
+      if (trait != null)
+          TraitTyp = trait; //there are at most one inheriting trait at the moment
     }
     public virtual bool IsDefaultClass {
       get {
@@ -6195,6 +6195,7 @@ namespace Microsoft.Dafny {
 
   public abstract class QuantifierExpr : ComprehensionExpr, TypeParameter.ParentType {
     public List<TypeParameter> TypeArgs;
+    // TODO(wuestholz): Can we make this non-static?
     private static int quantCount = 0;
     private readonly int quantUnique;
     public string FullName {
@@ -6202,11 +6203,11 @@ namespace Microsoft.Dafny {
         return "q$" + quantUnique;
       }
     }
-    public String Refresh(String s, int counter) {
-      return s + "#" + counter + FullName;
+    public String Refresh(string prefix, FreshVariableNameGenerator freshVarNameGen) {
+      return freshVarNameGen.FreshVariableName(prefix + "#") + FullName;
     }
-    public TypeParameter Refresh(TypeParameter p, int counter) {
-      var cp = new TypeParameter(p.tok, counter + "#" + p.Name, p.EqualitySupport);
+    public TypeParameter Refresh(TypeParameter p, FreshVariableNameGenerator freshVarNameGen) {
+      var cp = new TypeParameter(p.tok, freshVarNameGen.FreshVariableCount() + "#" + p.Name, p.EqualitySupport);
       cp.Parent = this;
       return cp;
     }
@@ -6302,6 +6303,7 @@ namespace Microsoft.Dafny {
 
   public class LambdaExpr : ComprehensionExpr
   {
+    // TODO(wuestholz): Can we make this non-static?
     private static int lamUniques = 0;
 
     public readonly bool OneShot;

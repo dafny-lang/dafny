@@ -492,17 +492,17 @@ namespace Microsoft.Dafny
       return anyChangeToDecreases;
     }
 
-    public static Expression FrameArrowToObjectSet(Expression e, Func<int> freshTmp) {
+    public static Expression FrameArrowToObjectSet(Expression e, FreshVariableNameGenerator freshVarNameGen) {
       var arrTy = e.Type.AsArrowType;
       if (arrTy != null) {
         var bvars = new List<BoundVar>();
         var bexprs = new List<Expression>();
         foreach (var t in arrTy.Args) {
-          var bv = new BoundVar(e.tok, "_x" + freshTmp(), t);
+          var bv = new BoundVar(e.tok, freshVarNameGen.FreshVariableName("_x"), t);
           bvars.Add(bv);
           bexprs.Add(new IdentifierExpr(e.tok, bv.Name) { Type = bv.Type, Var = bv });
         }
-        var oVar = new BoundVar(e.tok, "_o" + freshTmp(), new ObjectType());
+        var oVar = new BoundVar(e.tok, freshVarNameGen.FreshVariableName("_o"), new ObjectType());
         var obj = new IdentifierExpr(e.tok, oVar.Name) { Type = oVar.Type, Var = oVar };
         bvars.Add(oVar);
 
@@ -531,13 +531,13 @@ namespace Microsoft.Dafny
 
       List<Expression> sets = new List<Expression>();
       List<Expression> singletons = null;
-      int tmpVarCount = 0;
+      var freshVarNameGen = new FreshVariableNameGenerator();
       foreach (FrameExpression fe in fexprs) {
         Contract.Assert(fe != null);
         if (fe.E is WildcardExpr) {
           // drop wildcards altogether
         } else {
-          Expression e = FrameArrowToObjectSet(fe.E, () => ++tmpVarCount);  // keep only fe.E, drop any fe.Field designation
+          Expression e = FrameArrowToObjectSet(fe.E, freshVarNameGen);  // keep only fe.E, drop any fe.Field designation
           Contract.Assert(e.Type != null);  // should have been resolved already
           var eType = e.Type.NormalizeExpand();
           if (eType.IsRefType) {
@@ -549,7 +549,7 @@ namespace Microsoft.Dafny
           } else if (eType is SeqType) {
             // e represents a sequence
             // Add:  set x :: x in e
-            var bv = new BoundVar(e.tok, "_s2s_" + (++tmpVarCount), ((SeqType)eType).Arg);
+            var bv = new BoundVar(e.tok, freshVarNameGen.FreshVariableName("_s2s_"), ((SeqType)eType).Arg);
             var bvIE = new IdentifierExpr(e.tok, bv.Name);
             bvIE.Var = bv;  // resolve here
             bvIE.Type = bv.Type;  // resolve here
@@ -2657,21 +2657,22 @@ namespace Microsoft.Dafny
       currentClass = cl;
 
       // Resolve names of traits extended
-      if (cl.TraitId != null) {
-        var trait = classMembers.Keys.FirstOrDefault(traitDecl => traitDecl.CompileName == cl.TraitId.val);
+      if (cl.TraitTyp != null && cl.TraitTyp is UserDefinedType)
+      {
+          var trait = classMembers.Keys.FirstOrDefault(traitDecl => traitDecl.CompileName == ((UserDefinedType)(cl.TraitTyp)).FullCompileName);
         if (trait == null) {
-          Error(cl.TraitId, "unresolved identifier: {0}", cl.TraitId.val);
+            Error(((UserDefinedType)(cl.TraitTyp)).tok, "unresolved identifier: {0}", ((UserDefinedType)(cl.TraitTyp)).tok.val);
         } else if (!(trait is TraitDecl)) {
-          Error(cl.TraitId, "identifier '{0}' does not denote a trait", cl.TraitId.val);
+            Error(((UserDefinedType)(cl.TraitTyp)).tok, "identifier '{0}' does not denote a trait", ((UserDefinedType)(cl.TraitTyp)).tok.val);
         } else {
           //disallowing inheritance in multi module case
           string clModName = cl.Module.CompileName.Replace("_Compile", string.Empty);
           string traitModName = trait.Module.CompileName.Replace("_Compile", string.Empty);
           if (clModName != traitModName) {
-            Error(cl.TraitId, string.Format("class {0} is in a different module than trait {1}. A class may only extend a trait in the same module",
+              Error(((UserDefinedType)(cl.TraitTyp)).tok, string.Format("class {0} is in a different module than trait {1}. A class may only extend a trait in the same module",
                 cl.FullName, trait.FullName));
           } else {
-            cl.Trait = (TraitDecl)trait;
+            cl.TraitObj = (TraitDecl)trait;
           }
         }
       }
@@ -2730,9 +2731,9 @@ namespace Microsoft.Dafny
       Contract.Requires(cl != null);
 
       //merging class members with parent members if any
-      if (cl.Trait != null) {
+      if (cl.TraitObj != null) {
         var clMembers = classMembers[cl];
-        var traitMembers = classMembers[cl.Trait];
+        var traitMembers = classMembers[cl.TraitObj];
         //merging current class members with the inheriting trait
         foreach (KeyValuePair<string, MemberDecl> traitMem in traitMembers) {
           MemberDecl clMember;
@@ -2815,7 +2816,7 @@ namespace Microsoft.Dafny
         //checking to make sure all body-less methods/functions have been implemented in the child class
         if (refinementTransformer == null)
           refinementTransformer = new RefinementTransformer(this, AdditionalInformationReporter, null);
-        foreach (MemberDecl traitMember in cl.Trait.Members.Where(mem => mem is Function || mem is Method)) {
+        foreach (MemberDecl traitMember in cl.TraitObj.Members.Where(mem => mem is Function || mem is Method)) {
           if (traitMember is Function) {
             Function traitFunc = (Function)traitMember;
             if (traitFunc.Body == null) //we do this check only if trait function body is null
@@ -4021,9 +4022,9 @@ namespace Microsoft.Dafny
           }
           return successSoFar;
         } else if ((bb.ResolvedClass is ClassDecl) && (aa.ResolvedClass is TraitDecl)) {
-          return ((ClassDecl)bb.ResolvedClass).Trait.FullCompileName == ((TraitDecl)aa.ResolvedClass).FullCompileName;
+          return ((ClassDecl)bb.ResolvedClass).TraitObj.FullCompileName == ((TraitDecl)aa.ResolvedClass).FullCompileName;
         } else if ((aa.ResolvedClass is ClassDecl) && (bb.ResolvedClass is TraitDecl)) {
-          return ((ClassDecl)aa.ResolvedClass).Trait.FullCompileName == ((TraitDecl)bb.ResolvedClass).FullCompileName;
+          return ((ClassDecl)aa.ResolvedClass).TraitObj.FullCompileName == ((TraitDecl)bb.ResolvedClass).FullCompileName;
         } else if (aa.ResolvedParam != null && aa.ResolvedParam == bb.ResolvedParam) {
           // type parameters
           if (aa.TypeArgs.Count != bb.TypeArgs.Count) {
@@ -4717,11 +4718,15 @@ namespace Microsoft.Dafny
       } else if (stmt is WhileStmt) {
         WhileStmt s = (WhileStmt)stmt;
         bool bodyMustBeSpecOnly = specContextOnly;
+        var fvs = new HashSet<IVariable>();
+        bool usesHeap = false, usesOldHeap = false;
+        Type usesThis = null;
         if (s.Guard != null) {
           int prevErrorCount = ErrorCount;
           ResolveExpression(s.Guard, new ResolveOpts(codeContext, true));
           Contract.Assert(s.Guard.Type != null);  // follows from postcondition of ResolveExpression
           bool successfullyResolved = ErrorCount == prevErrorCount;
+          Translator.ComputeFreeVariables(s.Guard, fvs, ref usesHeap, ref usesOldHeap, ref usesThis, false);
           if (!UnifyTypes(s.Guard.Type, Type.Bool)) {
             Error(s.Guard, "condition is expected to be of type {0}, but is {1}", Type.Bool, s.Guard.Type);
           }
@@ -4734,6 +4739,7 @@ namespace Microsoft.Dafny
           ResolveAttributes(inv.Attributes, new ResolveOpts(codeContext, true));
           ResolveExpression(inv.E, new ResolveOpts(codeContext, true));
           Contract.Assert(inv.E.Type != null);  // follows from postcondition of ResolveExpression
+          Translator.ComputeFreeVariables(inv.E, fvs, ref usesHeap, ref usesOldHeap, ref usesThis, false);
           if (!UnifyTypes(inv.E.Type, Type.Bool)) {
             Error(inv.E, "invariant is expected to be of type {0}, but is {1}", Type.Bool, inv.E.Type);
           }
@@ -4756,6 +4762,7 @@ namespace Microsoft.Dafny
           ResolveAttributes(s.Mod.Attributes, new ResolveOpts(codeContext, true));
           foreach (FrameExpression fe in s.Mod.Expressions) {
             ResolveFrameExpression(fe, "modifies", bodyMustBeSpecOnly, codeContext);
+            Translator.ComputeFreeVariables(fe.E, fvs, ref usesHeap, ref usesOldHeap, ref usesThis, false);
           }
         }
         s.IsGhost = s.Body == null || bodyMustBeSpecOnly;
@@ -4767,6 +4774,17 @@ namespace Microsoft.Dafny
 
           ResolveStatement(s.Body, bodyMustBeSpecOnly, codeContext);
           loopStack.RemoveAt(loopStack.Count - 1);  // pop
+        } else {
+          string text = "havoc {";
+          if (fvs.Count != 0) {
+            string sep = "";
+            foreach (var fv in fvs) {
+              text += sep + fv.Name;
+              sep = ", ";
+            }
+          }
+          text += "};";  // always terminate with a semi-colon
+          ReportAdditionalInformation(s.Tok, text, s.Tok.val.Length);
         }
 
       } else if (stmt is AlternativeLoopStmt) {
