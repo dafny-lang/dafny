@@ -86,8 +86,8 @@ class Benchmark3 {
    
     while (j < n)
       invariant j <= n;
+      invariant 0 <= k < n && old(q.contents)[k] == m;
       invariant q.contents == old(q.contents)[j..] + old(q.contents)[..j]; //i.e. rotated
-      invariant 0 <= k < |old(q.contents)| && old(q.contents)[k] == m;
       invariant forall i :: 0 <= i < j ==> m <= old(q.contents)[i]; //m is min so far
     {
       var x := q.Dequeue();
@@ -104,7 +104,6 @@ class Benchmark3 {
       var x := q.Dequeue();
       q.Enqueue(x);
       j := j+1;
-      assert q.contents == old(q.contents)[j..] + old(q.contents)[..j];
     }
 
     m := q.Dequeue();
