@@ -4717,11 +4717,15 @@ namespace Microsoft.Dafny
       } else if (stmt is WhileStmt) {
         WhileStmt s = (WhileStmt)stmt;
         bool bodyMustBeSpecOnly = specContextOnly;
+        var fvs = new HashSet<IVariable>();
+        bool usesHeap = false, usesOldHeap = false;
+        Type usesThis = null;
         if (s.Guard != null) {
           int prevErrorCount = ErrorCount;
           ResolveExpression(s.Guard, new ResolveOpts(codeContext, true));
           Contract.Assert(s.Guard.Type != null);  // follows from postcondition of ResolveExpression
           bool successfullyResolved = ErrorCount == prevErrorCount;
+          Translator.ComputeFreeVariables(s.Guard, fvs, ref usesHeap, ref usesOldHeap, ref usesThis, false);
           if (!UnifyTypes(s.Guard.Type, Type.Bool)) {
             Error(s.Guard, "condition is expected to be of type {0}, but is {1}", Type.Bool, s.Guard.Type);
           }
@@ -4734,6 +4738,7 @@ namespace Microsoft.Dafny
           ResolveAttributes(inv.Attributes, new ResolveOpts(codeContext, true));
           ResolveExpression(inv.E, new ResolveOpts(codeContext, true));
           Contract.Assert(inv.E.Type != null);  // follows from postcondition of ResolveExpression
+          Translator.ComputeFreeVariables(inv.E, fvs, ref usesHeap, ref usesOldHeap, ref usesThis, false);
           if (!UnifyTypes(inv.E.Type, Type.Bool)) {
             Error(inv.E, "invariant is expected to be of type {0}, but is {1}", Type.Bool, inv.E.Type);
           }
@@ -4756,6 +4761,7 @@ namespace Microsoft.Dafny
           ResolveAttributes(s.Mod.Attributes, new ResolveOpts(codeContext, true));
           foreach (FrameExpression fe in s.Mod.Expressions) {
             ResolveFrameExpression(fe, "modifies", bodyMustBeSpecOnly, codeContext);
+            Translator.ComputeFreeVariables(fe.E, fvs, ref usesHeap, ref usesOldHeap, ref usesThis, false);
           }
         }
         s.IsGhost = s.Body == null || bodyMustBeSpecOnly;
@@ -4767,6 +4773,17 @@ namespace Microsoft.Dafny
 
           ResolveStatement(s.Body, bodyMustBeSpecOnly, codeContext);
           loopStack.RemoveAt(loopStack.Count - 1);  // pop
+        } else {
+          string text = "havoc {";
+          if (fvs.Count != 0) {
+            string sep = "";
+            foreach (var fv in fvs) {
+              text += sep + fv.Name;
+              sep = ", ";
+            }
+          }
+          text += "};";  // always terminate with a semi-colon
+          ReportAdditionalInformation(s.Tok, text, s.Tok.val.Length);
         }
 
       } else if (stmt is AlternativeLoopStmt) {
