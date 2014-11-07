@@ -156,6 +156,10 @@ bool CloseOptionalBrace(bool usesOptionalBrace) {
   return usesOptionalBrace && la.kind == _rbrace;
 }
 
+bool IsNotEndOfCase() {
+  return la.kind != _rbrace && la.kind != _case;
+}
+
 /*--------------------------------------------------------------------------*/
 CHARACTERS
   letter = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz".
@@ -217,10 +221,13 @@ TOKENS
     | '@' '"' { verbatimStringChar | "\"\"" } '"'.
   colon = ':'.
   verticalbar = '|'.
+  doublecolon = "::".
+  bullet = '\u2022'.
   semi = ';'.
   darrow = "=>".
   arrow = "->".
   assume = "assume".
+  calc = "calc".
   case = "case".
   decreases = "decreases".
   invariant = "invariant".
@@ -233,6 +240,7 @@ TOKENS
   closeparen = ')'.
   star = '*'.
   notIn = "!in" CONTEXT (nonidchar).
+  ellipsis = "...".
 COMMENTS FROM "/*" TO "*/" NESTED
 COMMENTS FROM "//" TO lf
 IGNORE cr + lf + tab
@@ -1423,9 +1431,12 @@ WhileStmt<out Statement/*!*/ stmt>
     | "..."                      (. guardEllipsis = t; .)
     )
     LoopSpec<out invariants, out decreases, out mod, ref decAttrs, ref modAttrs>
-    [ BlockStmt<out body, out bodyStart, out bodyEnd>  (. endTok = body.EndTok; isDirtyLoop = false; .)
-    | "..."                      (. bodyEllipsis = t; endTok = t; isDirtyLoop = false; .)
-    ]
+    ( IF(la.kind == _lbrace)      /* if there's an open brace, claim it as the beginning of the loop body (as opposed to a BlockStmt following the loop) */
+      BlockStmt<out body, out bodyStart, out bodyEnd>  (. endTok = body.EndTok; isDirtyLoop = false; .)
+    | IF(la.kind == _ellipsis)    /* if there's an ellipsis, claim it as standing for the loop body (as opposed to a "...;" statement following the loop) */
+      "..."                      (. bodyEllipsis = t; endTok = t; isDirtyLoop = false; .)
+    | /* go body-less */
+    )
     (.
       if (guardEllipsis != null || bodyEllipsis != null) {
         if (mod != null) {
@@ -1530,7 +1541,9 @@ CaseStatement<out MatchCaseStmt/*!*/ c>
     }
   ")" ]
   "=>"
-    { Stmt<body> }
+    { IF(IsNotEndOfCase()) /* This is a little sketchy. It would be nicer to be able to write IF(la is start-symbol of Stmt), but Coco doesn't allow that */
+      Stmt<body>
+    }
   (. c = new MatchCaseStmt(x, id.val, arguments, body); .)
   .
 /*------------------------------------------------------------------------*/
@@ -1747,8 +1760,12 @@ Hint<out BlockStmt s>
      Token x = la;
      IToken endTok = x;
   .)
-  { BlockStmt<out block, out bodyStart, out bodyEnd>  (. endTok = block.EndTok; subhints.Add(block); .)
-  | CalcStmt<out calc>                                (. endTok = calc.EndTok; subhints.Add(calc); .)
+  { IF(la.kind == _lbrace || la.kind == _calc)  /* Grab as a hint if possible, not a next line in the calculation whose expression begins with an open brace
+                                                 * or StmtExpr containing a calc.  A user has to rewrite such a line to be enclosed in parentheses.
+                                                 */
+    ( BlockStmt<out block, out bodyStart, out bodyEnd>  (. endTok = block.EndTok; subhints.Add(block); .)
+    | CalcStmt<out calc>                                (. endTok = calc.EndTok; subhints.Add(calc); .)
+    )
   }
   (. s = new BlockStmt(x, endTok, subhints); // if the hint is empty x is the first token of the next line, but it doesn't matter cause the block statement is just used as a container
   .)
@@ -1995,7 +2012,6 @@ UnaryExpression<out Expression e, bool allowSemi, bool allowLambda>
   | EndlessExpression<out e, allowSemi, allowLambda>
   | DottedIdentifiersAndFunction<out e, allowSemi, allowLambda>
     { Suffix<ref e> }
-    ApplySuffix<ref e>
   | DisplayExpr<out e>
     { Suffix<ref e> }
   | MultiSetExpr<out e>
@@ -2015,7 +2031,6 @@ Lhs<out Expression e>
   .)
   ( DottedIdentifiersAndFunction<out e, false, false>
     { Suffix<ref e> }
-    ApplySuffix<ref e>
   | ConstAtomExpression<out e, false, false>
     Suffix<ref e>
     { Suffix<ref e> }
@@ -2052,7 +2067,7 @@ ConstAtomExpression<out Expression e, bool allowSemi, bool allowLambda>
   | ( "int"                                    (. x = t; toType = new IntType(); .)
     | "real"                                   (. x = t; toType = new RealType(); .)
     )
-    "(" Expression<out e, true, true> ")"            (. e = new ConversionExpr(x, e, toType); .)
+    "(" Expression<out e, true, true> ")"      (. e = new ConversionExpr(x, e, toType); .)
   | ParensExpression<out e, allowSemi, allowLambda>
   )
   .
@@ -2168,9 +2183,8 @@ MultiSetExpr<out Expression e>
       [ Expressions<elements> ]                (. e = new MultiSetDisplayExpr(x, elements);.)
     "}"
   | "("                                        (. x = t;  elements = new List<Expression/*!*/>(); .)
-      Expression<out e, true, true>                  (. e = new MultiSetFormingExpr(x, e); .)
+      Expression<out e, true, true>            (. e = new MultiSetFormingExpr(x, e); .)
     ")"
-  | (. SemErr("multiset must be followed by multiset literal or expression to coerce in parentheses."); .)
   )
   .
 MapDisplayExpr<IToken/*!*/ mapToken, out Expression e>
@@ -2215,7 +2229,7 @@ EndlessExpression<out Expression e, bool allowSemi, bool allowLambda>
     "else" Expression<out e1, allowSemi, allowLambda> (. e = new ITEExpr(x, e, e0, e1); .)
   | MatchExpression<out e, allowSemi, allowLambda>
   | QuantifierGuts<out e, allowSemi, allowLambda>
-  | ComprehensionExpr<out e, allowSemi, allowLambda>
+  | SetComprehensionExpr<out e, allowSemi, allowLambda>
   | StmtInExpr<out s>
     Expression<out e, allowSemi, allowLambda>               (. e = new StmtExpr(s.Tok, s, e); .)
   | LetExpr<out e, allowSemi, allowLambda>
@@ -2285,17 +2299,11 @@ MatchExpression<out Expression e, bool allowSemi, bool allowLambda>
   .)
   "match"                     (. x = t; .)
   Expression<out e, allowSemi, true>
-  [ "{"                                     (. usesOptionalBrace = true; .)
-  ]
-  /* Note: The following gives rise to a '"case" is start & successor of deletable structure' error,
-     but it's okay, because we want this closer match expression to bind as much as possible--use
-     parens around it to limit its scope. */
-  { CaseExpression<out c, allowSemi, usesOptionalBrace || allowLambda>
-                                            (. cases.Add(c); .)
-  }
-  ( IF(CloseOptionalBrace(usesOptionalBrace))
-    "}"
-  |                                         (. if (usesOptionalBrace) { SemErr(t, "expecting close curly brace"); } .)
+  ( IF(la.kind == _lbrace)  /* always favor brace-enclosed match body to a case-less match */
+    "{" { CaseExpression<out c, allowSemi, usesOptionalBrace || allowLambda> (. cases.Add(c); .) } "}"  (. usesOptionalBrace = true; .)
+  |     { IF(la.kind == _case)  /* let each "case" bind to the closest preceding "match" */
+          CaseExpression<out c, allowSemi, usesOptionalBrace || allowLambda> (. cases.Add(c); .)
+        }
   )
   (. e = new MatchExpr(x, e, cases, usesOptionalBrace); .)
   .
@@ -2354,21 +2362,15 @@ DottedIdentifiersAndFunction<out Expression e, bool allowSemi, bool allowLambda>
   Ident<out id>                              (. idents.Add(id); .)
   { IdentOrDigitsSuffix<out id, out idPrime> (. idents.Add(id);
                                                 if (idPrime != null) { idents.Add(idPrime); id = idPrime; }
-                                              .)
+                                             .)
   }
-  [                                     (. args = new List<Expression>(); .)
-    [ "#"                               (. id.val = id.val + "#";  Expression k; .)
-      "[" Expression<out k, true, true> "]"   (. args.Add(k); .)
+  [                                          (. args = new List<Expression>(); .)
+    [ "#"                                    (. id.val = id.val + "#";  Expression k; .)
+      "[" Expression<out k, true, true> "]"  (. args.Add(k); .)
     ]
-    "("                                 (. openParen = t; .)
+    "("                                      (. openParen = t; .)
       [ Expressions<args> ]
     ")"
-    /*
-    { "("                               (. openParen = t; var argList = new List<Expression>(); .)
-      [ Expressions<argList> ]
-      ")"                               (. applyArgLists.Add(argList); .)
-    }
-    */
   ]
   // A quick-and-dirty lambda expression?
   [ IF(IsLambda(allowLambda))
@@ -2402,8 +2404,9 @@ DottedIdentifiersAndFunction<out Expression e, bool allowSemi, bool allowLambda>
   .)
   .
 Suffix<ref Expression e>
-= (. Contract.Requires(e != null); Contract.Ensures(e!=null); IToken/*!*/ id, x;  List<Expression/*!*/>/*!*/ args;
-     Expression e0 = null;  Expression e1 = null;  Expression/*!*/ ee;  bool anyDots = false; List<Expression> multipleLengths = null; bool takeRest = false;
+= (. Contract.Requires(e != null); Contract.Ensures(e!=null);
+     IToken id, x;  List<Expression> args;
+     Expression e0 = null;  Expression e1 = null;  Expression ee;  bool anyDots = false; List<Expression> multipleLengths = null; bool takeRest = false;
      List<Expression> multipleIndices = null;
      bool func = false;
   .)
@@ -2491,15 +2494,10 @@ Suffix<ref Expression e>
          }
       .)
     "]"
-  )
-  ApplySuffix<ref e>
-  .
-
-ApplySuffix<ref Expression e>
-= { "("                                    (. IToken openParen = t; var args = new List<Expression>(); .)
+  | "("                                    (. IToken openParen = t; args = new List<Expression>(); .)
     [ Expressions<args> ]
     ")"                                    (. e = new ApplyExpr(e.tok, openParen, e, args); .)
-  }
+  )
   .
 
 /*------------------------------------------------------------------------*/
@@ -2547,7 +2545,7 @@ QuantifierDomain<.out List<BoundVar> bvars, out Attributes attrs, out Expression
   ]
   .
 
-ComprehensionExpr<out Expression q, bool allowSemi, bool allowLambda>
+SetComprehensionExpr<out Expression q, bool allowSemi, bool allowLambda>
 = (. Contract.Ensures(Contract.ValueAtReturn(out q) != null);
      IToken x = Token.NoToken;
      BoundVar bv;
@@ -2561,7 +2559,7 @@ ComprehensionExpr<out Expression q, bool allowSemi, bool allowLambda>
     IdentTypeOptional<out bv>                  (. bvars.Add(bv); .)
   }
   "|" Expression<out range, allowSemi, allowLambda>
-  [
+  [ IF(la.kind == _doublecolon || la.kind == _bullet)  /* let any given body bind to the closest enclosing set comprehension */
     QSep
     Expression<out body, allowSemi, allowLambda>
   ]
