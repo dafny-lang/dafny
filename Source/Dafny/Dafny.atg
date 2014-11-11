@@ -118,6 +118,47 @@ bool IsParenStar() {
   return la.kind == _openparen && x.kind == _star;
 }
 
+bool IsEquivOp() {
+  return la.val == "<==>" || la.val == "\u21d4";
+}
+bool IsImpliesOp() {
+  return la.val == "==>" || la.val == "\u21d2";
+}
+bool IsExpliesOp() {
+  return la.val == "<==" || la.val == "\u21d0";
+}
+bool IsAndOp() {
+  return la.val == "&&" || la.val == "\u2227";
+}
+bool IsOrOp() {
+  return la.val == "||" || la.val == "\u2228";
+}
+bool IsRelOp() {
+  return la.val == "=="
+      || la.val == "<"
+      || la.val == ">"
+      || la.val == "<="
+      || la.val == ">="
+      || la.val == "!="
+      || la.val == "in"
+      || la.kind == _notIn
+      || la.val =="!"
+      || la.val == "\u2260"
+      || la.val == "\u2264"
+      || la.val == "\u2265";
+}
+bool IsAddOp() {
+  return la.val == "+" || la.val == "-";
+}
+bool IsMulOp() {
+  return la.kind == _star || la.val == "/" || la.val == "%";
+}
+
+bool IsColonExpr() {
+  // more precisely, "is colon, but is not colon + rbracket"
+  return la.kind == _colon && scanner.Peek().kind != _rbracket;
+}
+
 string UnwildIdent(string x, bool allowWildcardId) {
   if (x.StartsWith("_")) {
     if (allowWildcardId && x.Length == 1) {
@@ -236,6 +277,8 @@ TOKENS
   requires = "requires".
   lbrace = '{'.
   rbrace = '}'.
+  lbracket = '['.
+  rbracket = ']'.
   openparen = '('.
   closeparen = ')'.
   star = '*'.
@@ -1771,6 +1814,17 @@ Hint<out BlockStmt s>
   .)
   .
 /*------------------------------------------------------------------------*/
+/* Note. In order to avoid LL(1) warnings for expressions that "parse as far as possible", it is
+ * necessary to use Coco/R's IF construct.  That means there are two ways to check for these
+ * operators, both in Is...() methods (defined above) and as grammar non-terminals (defined
+ * here).  These pairs of definitions must be changed together.
+ */
+EquivOp = "<==>" | '\u21d4'.
+ImpliesOp = "==>" | '\u21d2'.
+ExpliesOp = "<==" | '\u21d0'.
+AndOp = "&&" | '\u2227'.
+OrOp = "||" | '\u2228'.
+
 /* The "allowSemi" argument says whether or not the top-level expression
  * to be parsed is allowed to have the form S;E where S is a call to a lemma.
  * "allowSemi" should be passed in as "false" whenever the expression to
@@ -1795,51 +1849,55 @@ Expression<out Expression e, bool allowSemi, bool allowLambda>
 EquivExpression<out Expression e0, bool allowSemi, bool allowLambda>
 = (. Contract.Ensures(Contract.ValueAtReturn(out e0) != null); IToken/*!*/ x;  Expression/*!*/ e1; .)
   ImpliesExpliesExpression<out e0, allowSemi, allowLambda>
-  { EquivOp                                                   (. x = t; .)
+  { IF(IsEquivOp())  /* read an EquivExpression as far as possible */
+    EquivOp                                                   (. x = t; .)
     ImpliesExpliesExpression<out e1, allowSemi, allowLambda>  (. e0 = new BinaryExpr(x, BinaryExpr.Opcode.Iff, e0, e1); .)
   }
   .
-EquivOp = "<==>" | '\u21d4'.
 /*------------------------------------------------------------------------*/
 ImpliesExpliesExpression<out Expression e0, bool allowSemi, bool allowLambda>
 = (. Contract.Ensures(Contract.ValueAtReturn(out e0) != null); IToken/*!*/ x;  Expression/*!*/ e1; .)
   LogicalExpression<out e0, allowSemi, allowLambda>
-  [ ImpliesOp                                               (. x = t; .)
-    ImpliesExpression<out e1, allowSemi, allowLambda>       (. e0 = new BinaryExpr(x, BinaryExpr.Opcode.Imp, e0, e1); .)
-  | ExpliesOp                                               (. x = t; .)
-    LogicalExpression<out e1, allowSemi, allowLambda>       (. e0 = new BinaryExpr(x, BinaryExpr.Opcode.Exp, e0, e1); .)
-    { ExpliesOp                                             (. x = t; .)
-      LogicalExpression<out e1, allowSemi, allowLambda>     (. e0 = new BinaryExpr(x, BinaryExpr.Opcode.Exp, e0, e1); .)
-    }
+  [ IF(IsImpliesOp() || IsExpliesOp())  /* read an ImpliesExpliesExpression as far as possible */
+    ( ImpliesOp                                               (. x = t; .)
+      ImpliesExpression<out e1, allowSemi, allowLambda>       (. e0 = new BinaryExpr(x, BinaryExpr.Opcode.Imp, e0, e1); .)
+    | ExpliesOp                                               (. x = t; .)
+      LogicalExpression<out e1, allowSemi, allowLambda>       (. e0 = new BinaryExpr(x, BinaryExpr.Opcode.Exp, e0, e1); .)
+      { IF(IsExpliesOp())  /* read a reverse implication as far as possible */
+        ExpliesOp                                             (. x = t; .)
+        LogicalExpression<out e1, allowSemi, allowLambda>     (. e0 = new BinaryExpr(x, BinaryExpr.Opcode.Exp, e0, e1); .)
+      }
+    )
   ]
   .
 ImpliesExpression<out Expression e0, bool allowSemi, bool allowLambda>
 = (. Contract.Ensures(Contract.ValueAtReturn(out e0) != null); IToken/*!*/ x;  Expression/*!*/ e1; .)
   LogicalExpression<out e0, allowSemi, allowLambda>
-  [ ImpliesOp                                               (. x = t; .)
+  [ IF(IsImpliesOp())  /* read an ImpliesExpression as far as possible */
+    ImpliesOp                                               (. x = t; .)
     ImpliesExpression<out e1, allowSemi, allowLambda>       (. e0 = new BinaryExpr(x, BinaryExpr.Opcode.Imp, e0, e1); .)
   ]
   .
-ImpliesOp = "==>" | '\u21d2'.
-ExpliesOp = "<==" | '\u21d0'.
 /*------------------------------------------------------------------------*/
 LogicalExpression<out Expression e0, bool allowSemi, bool allowLambda>
 = (. Contract.Ensures(Contract.ValueAtReturn(out e0) != null); IToken/*!*/ x;  Expression/*!*/ e1; .)
   RelationalExpression<out e0, allowSemi, allowLambda>
-  [ AndOp                                                   (. x = t; .)
-    RelationalExpression<out e1, allowSemi, allowLambda>    (. e0 = new BinaryExpr(x, BinaryExpr.Opcode.And, e0, e1); .)
-    { AndOp                                                 (. x = t; .)
-      RelationalExpression<out e1, allowSemi, allowLambda>  (. e0 = new BinaryExpr(x, BinaryExpr.Opcode.And, e0, e1); .)
-    }
-  | OrOp                                                    (. x = t; .)
-    RelationalExpression<out e1, allowSemi, allowLambda>    (. e0 = new BinaryExpr(x, BinaryExpr.Opcode.Or, e0, e1); .)
-    { OrOp                                                  (. x = t; .)
-      RelationalExpression<out e1, allowSemi, allowLambda>  (. e0 = new BinaryExpr(x, BinaryExpr.Opcode.Or, e0, e1); .)
-    }
+  [ IF(IsAndOp() || IsOrOp())  /* read a LogicalExpression as far as possible */
+    ( AndOp                                                   (. x = t; .)
+      RelationalExpression<out e1, allowSemi, allowLambda>    (. e0 = new BinaryExpr(x, BinaryExpr.Opcode.And, e0, e1); .)
+      { IF(IsAndOp())  /* read a conjunction as far as possible */
+        AndOp                                                 (. x = t; .)
+        RelationalExpression<out e1, allowSemi, allowLambda>  (. e0 = new BinaryExpr(x, BinaryExpr.Opcode.And, e0, e1); .)
+      }
+    | OrOp                                                    (. x = t; .)
+      RelationalExpression<out e1, allowSemi, allowLambda>    (. e0 = new BinaryExpr(x, BinaryExpr.Opcode.Or, e0, e1); .)
+      { IF(IsOrOp())  /* read a disjunction as far as possible */
+        OrOp                                                  (. x = t; .)
+        RelationalExpression<out e1, allowSemi, allowLambda>  (. e0 = new BinaryExpr(x, BinaryExpr.Opcode.Or, e0, e1); .)
+      }
+    )
   ]
   .
-AndOp = "&&" | '\u2227'.
-OrOp = "||" | '\u2228'.
 /*------------------------------------------------------------------------*/
 RelationalExpression<out Expression e, bool allowSemi, bool allowLambda>
 = (. Contract.Ensures(Contract.ValueAtReturn(out e) != null);
@@ -1857,7 +1915,8 @@ RelationalExpression<out Expression e, bool allowSemi, bool allowLambda>
   .)
   Term<out e0, allowSemi, allowLambda>
                                    (. e = e0; .)
-  [ RelOp<out x, out op, out k>    (. firstOpTok = x; .)
+  [ IF(IsRelOp())  /* read a RelationalExpression as far as possible */
+    RelOp<out x, out op, out k>    (. firstOpTok = x; .)
     Term<out e1, allowSemi, allowLambda>
                                    (. if (k == null) {
                                         e = new BinaryExpr(x, op, e0, e1);
@@ -1868,7 +1927,8 @@ RelationalExpression<out Expression e, bool allowSemi, bool allowLambda>
                                         e = new TernaryExpr(x, op == BinaryExpr.Opcode.Eq ? TernaryExpr.Opcode.PrefixEqOp : TernaryExpr.Opcode.PrefixNeqOp, k, e0, e1);
                                       }
                                    .)
-    {                              (. if (chain == null) {
+    { IF(IsRelOp())  /* read a RelationalExpression as far as possible */
+                                   (. if (chain == null) {
                                         chain = new List<Expression>();
                                         ops = new List<BinaryExpr.Opcode>();
                                         prefixLimits = new List<Expression>();
@@ -1956,7 +2016,8 @@ RelOp<out IToken/*!*/ x, out BinaryExpr.Opcode op, out Expression k>
   | /* The next operator is "!!", but we have to scan it as two "!", since the scanner is gready
        so if "!!" is a valid token, we won't be able to scan it as two "!" when needed: */
     "!"            (. x = t;  y = Token.NoToken; .)
-    [ "!"          (. y = t; .)
+    [ IF(la.val == "!")
+      "!"          (. y = t; .)
     ]              (. if (y == Token.NoToken) {
                         SemErr(x, "invalid RelOp");
                       } else if (y.pos != x.pos + 1) {
@@ -1975,7 +2036,8 @@ RelOp<out IToken/*!*/ x, out BinaryExpr.Opcode op, out Expression k>
 Term<out Expression e0, bool allowSemi, bool allowLambda>
 = (. Contract.Ensures(Contract.ValueAtReturn(out e0) != null); IToken/*!*/ x;  Expression/*!*/ e1;  BinaryExpr.Opcode op; .)
   Factor<out e0, allowSemi, allowLambda>
-  { AddOp<out x, out op>
+  { IF(IsAddOp())  /* read a Term as far as possible */
+    AddOp<out x, out op>
     Factor<out e1, allowSemi, allowLambda> (. e0 = new BinaryExpr(x, op, e0, e1); .)
   }
   .
@@ -1989,7 +2051,8 @@ AddOp<out IToken x, out BinaryExpr.Opcode op>
 Factor<out Expression e0, bool allowSemi, bool allowLambda>
 = (. Contract.Ensures(Contract.ValueAtReturn(out e0) != null); IToken/*!*/ x;  Expression/*!*/ e1;  BinaryExpr.Opcode op; .)
   UnaryExpression<out e0, allowSemi, allowLambda>
-  { MulOp<out x, out op>
+  { IF(IsMulOp())  /* read a Factor as far as possible */
+    MulOp<out x, out op>
     UnaryExpression<out e1, allowSemi, allowLambda> (. e0 = new BinaryExpr(x, op, e0, e1); .)
   }
   .
@@ -2020,7 +2083,6 @@ UnaryExpression<out Expression e, bool allowSemi, bool allowLambda>
     ( MapDisplayExpr<x, out e>
       { Suffix<ref e> }
     | MapComprehensionExpr<x, out e, allowSemi>
-    | (. SemErr("map must be followed by literal in brackets or comprehension."); .)
     )
   | ConstAtomExpression<out e, allowSemi, allowLambda>
     { Suffix<ref e> }
@@ -2372,6 +2434,7 @@ DottedIdentifiersAndFunction<out Expression e, bool allowSemi, bool allowLambda>
       [ Expressions<args> ]
     ")"
   ]
+
   // A quick-and-dirty lambda expression?
   [ IF(IsLambda(allowLambda))
     (. Expression body = null;
@@ -2406,7 +2469,8 @@ DottedIdentifiersAndFunction<out Expression e, bool allowSemi, bool allowLambda>
 Suffix<ref Expression e>
 = (. Contract.Requires(e != null); Contract.Ensures(e!=null);
      IToken id, x;  List<Expression> args;
-     Expression e0 = null;  Expression e1 = null;  Expression ee;  bool anyDots = false; List<Expression> multipleLengths = null; bool takeRest = false;
+     Expression e0 = null;  Expression e1 = null;  Expression ee;  bool anyDots = false;
+     List<Expression> multipleLengths = null; bool takeRest = false; // takeRest is relevant only if multipleLengths is non-null
      List<Expression> multipleIndices = null;
      bool func = false;
   .)
@@ -2418,31 +2482,32 @@ Suffix<ref Expression e>
                                                .)
     [                                          (. args = new List<Expression/*!*/>();  func = true; .)
       [ "#"                                    (. id.val = id.val + "#";  Expression k; .)
-        "[" Expression<out k, true, true> "]"        (. args.Add(k); .)
+        "[" Expression<out k, true, true> "]"  (. args.Add(k); .)
       ]
       "("                                      (. IToken openParen = t; .)
         [ Expressions<args> ]
       ")"                                      (. e = new FunctionCallExpr(id, id.val, e, openParen, args); .)
     ]                                          (. if (!func) { e = new ExprDotName(id, e, id.val); } .)
   | "["                                        (. x = t; .)
-      ( Expression<out ee, true, true>               (. e0 = ee; .)
+      ( Expression<out ee, true, true>         (. e0 = ee; .)
         ( ".."                                 (. anyDots = true; .)
-          [ Expression<out ee, true, true>           (. e1 = ee; .)
+          [ Expression<out ee, true, true>     (. e1 = ee; .)
           ]
         | ":="
-          Expression<out ee, true, true>             (. e1 = ee; .)
-        | { ":"                                (. if (multipleLengths == null) {
-                                                    multipleLengths = new List<Expression>();
-                                                    multipleLengths.Add(e0);
-                                                  }
+          Expression<out ee, true, true>       (. e1 = ee; .)
+        | ":"                                  (. multipleLengths = new List<Expression>();
+                                                  multipleLengths.Add(e0);  // account for the Expression read before the colon
                                                   takeRest = true;
                                                .)
-            [Expression<out ee, true, true>          (. multipleLengths.Add(ee);
-                                                  takeRest = false;
-                                               .)
+          [ Expression<out ee, true, true>     (. multipleLengths.Add(ee); takeRest = false; .)
+            { IF(IsColonExpr())
+              ":"
+              Expression<out ee, true, true>   (. multipleLengths.Add(ee); .)
+            }
+            [ ":"                              (. takeRest = true; .)
             ]
-          }
-        | { "," Expression<out ee, true, true>       (. if (multipleIndices == null) {
+          ]
+        | { "," Expression<out ee, true, true> (. if (multipleIndices == null) {
                                                     multipleIndices = new List<Expression>();
                                                     multipleIndices.Add(e0);
                                                   }
@@ -2467,20 +2532,15 @@ Suffix<ref Expression e>
            if (anyDots) {
              //Contract.Assert(e0 != null || e1 != null);
              e = new SeqSelectExpr(x, false, e, e0, e1);
-           } else if (multipleLengths != null || takeRest) {
-             Expression prev = new LiteralExpr(x, 0);
+           } else if (multipleLengths != null) {
+             Expression prev = null;
              List<Expression> seqs = new List<Expression>();
-             if (multipleLengths != null)
-             {
-               foreach (var len in multipleLengths)
-               {
-                 var end = new BinaryExpr(x, BinaryExpr.Opcode.Add, prev, len);
-                 seqs.Add(new SeqSelectExpr(x, false, e, prev, end));
-                 prev = end;
-               }
-             }
-             if (takeRest)
-             {
+              foreach (var len in multipleLengths) {
+                var end = prev == null ? len : new BinaryExpr(x, BinaryExpr.Opcode.Add, prev, len);
+                seqs.Add(new SeqSelectExpr(x, false, e, prev, end));
+                prev = end;
+              }
+             if (takeRest) {
                seqs.Add(new SeqSelectExpr(x, false, e, prev, null));
              }
              e = new SeqDisplayExpr(x, seqs);
