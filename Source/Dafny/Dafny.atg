@@ -153,9 +153,11 @@ bool IsAddOp() {
 bool IsMulOp() {
   return la.kind == _star || la.val == "/" || la.val == "%";
 }
+bool IsQSep() {
+  return la.kind == _doublecolon || la.kind == _bullet;
+}
 
-bool IsColonExpr() {
-  // more precisely, "is colon, but is not colon + rbracket"
+bool IsNonFinalColon() {
   return la.kind == _colon && scanner.Peek().kind != _rbracket;
 }
 
@@ -821,20 +823,20 @@ MethodSpec<.List<MaybeFreeExpression/*!*/>/*!*/ req, List<FrameExpression/*!*/>/
   .)
   SYNC
   ( "modifies" { IF(IsAttribute()) Attribute<ref modAttrs> }
-               FrameExpression<out fe>                     (. mod.Add(fe); .)
-               { "," FrameExpression<out fe>               (. mod.Add(fe); .)
+               FrameExpression<out fe, false, false>         (. mod.Add(fe); .)
+               { "," FrameExpression<out fe, false, false>   (. mod.Add(fe); .)
                }
                OldSemi
   | [ "free"                                                 (. isFree = true;
                                                                 errors.Warning(t, "the 'free' keyword is soon to be deprecated");
                                                              .)
     ]
-    ( "requires" Expression<out e, false, true> OldSemi      (. req.Add(new MaybeFreeExpression(e, isFree)); .)
+    ( "requires" Expression<out e, false, false> OldSemi     (. req.Add(new MaybeFreeExpression(e, isFree)); .)
     | "ensures"
       { IF(IsAttribute()) Attribute<ref ensAttrs> }
-      Expression<out e, false, true> OldSemi                 (. ens.Add(new MaybeFreeExpression(e, isFree, ensAttrs)); .)
+      Expression<out e, false, false> OldSemi                (. ens.Add(new MaybeFreeExpression(e, isFree, ensAttrs)); .)
     )
-  | "decreases" { IF(IsAttribute()) Attribute<ref decAttrs> } DecreasesList<decreases, true> OldSemi
+  | "decreases" { IF(IsAttribute()) Attribute<ref decAttrs> } DecreasesList<decreases, true, false> OldSemi
   )
   .
 IteratorSpec<.List<FrameExpression/*!*/>/*!*/ reads, List<FrameExpression/*!*/>/*!*/ mod, List<Expression/*!*/> decreases,
@@ -845,13 +847,13 @@ IteratorSpec<.List<FrameExpression/*!*/>/*!*/ reads, List<FrameExpression/*!*/>/
   .)
   SYNC
   ( "reads"    { IF(IsAttribute()) Attribute<ref readsAttrs> }
-               FrameExpression<out fe>                     (. reads.Add(fe); .)
-               { "," FrameExpression<out fe>               (. reads.Add(fe); .)
+               FrameExpression<out fe, false, false>       (. reads.Add(fe); .)
+               { "," FrameExpression<out fe, false, false> (. reads.Add(fe); .)
                }
                OldSemi
   | "modifies" { IF(IsAttribute()) Attribute<ref modAttrs> }
-               FrameExpression<out fe>                     (. mod.Add(fe); .)
-               { "," FrameExpression<out fe>               (. mod.Add(fe); .)
+               FrameExpression<out fe, false, false>       (. mod.Add(fe); .)
+               { "," FrameExpression<out fe, false, false> (. mod.Add(fe); .)
                }
                OldSemi
   | [ "free"                                                 (. isFree = true;
@@ -860,21 +862,21 @@ IteratorSpec<.List<FrameExpression/*!*/>/*!*/ reads, List<FrameExpression/*!*/>/
     ]
     [ "yield"                                                (. isYield = true; .)
     ]
-    ( "requires" Expression<out e, false, true> OldSemi      (. if (isYield) {
+    ( "requires" Expression<out e, false, false> OldSemi     (. if (isYield) {
                                                                   yieldReq.Add(new MaybeFreeExpression(e, isFree));
                                                                 } else {
                                                                   req.Add(new MaybeFreeExpression(e, isFree));
                                                                 }
                                                              .)
     | "ensures" { IF(IsAttribute()) Attribute<ref ensAttrs> }
-      Expression<out e, false, true> OldSemi                 (. if (isYield) {
+      Expression<out e, false, false> OldSemi                (. if (isYield) {
                                                                   yieldEns.Add(new MaybeFreeExpression(e, isFree, ensAttrs));
                                                                 } else {
                                                                   ens.Add(new MaybeFreeExpression(e, isFree, ensAttrs));
                                                                 }
                                                              .)
     )
-  | "decreases" { IF(IsAttribute()) Attribute<ref decrAttrs> } DecreasesList<decreases, false> OldSemi
+  | "decreases" { IF(IsAttribute()) Attribute<ref decrAttrs> } DecreasesList<decreases, false, false> OldSemi
   )
   .
 Formals<.bool incoming, bool allowGhostKeyword, List<Formal> formals.>
@@ -1101,47 +1103,48 @@ FunctionSpec<.List<Expression/*!*/>/*!*/ reqs, List<FrameExpression/*!*/>/*!*/ r
      Expression/*!*/ e;  FrameExpression/*!*/ fe; .)
   (
     SYNC
-    "requires" Expression<out e, false, true> OldSemi     (. reqs.Add(e); .)
-  | "reads" PossiblyWildFrameExpression<out fe>           (. reads.Add(fe); .)
-            { "," PossiblyWildFrameExpression<out fe>     (. reads.Add(fe); .)
-            }
-            OldSemi
-  | "ensures" Expression<out e, false, true> OldSemi      (. ens.Add(e); .)
+    "requires" Expression<out e, false, false> OldSemi  (. reqs.Add(e); .)
+  | "reads"
+    PossiblyWildFrameExpression<out fe, false>          (. reads.Add(fe); .)
+    { "," PossiblyWildFrameExpression<out fe, false>    (. reads.Add(fe); .)
+    }
+    OldSemi
+  | "ensures" Expression<out e, false, false> OldSemi       (. ens.Add(e); .)
   | "decreases"                               (. if (decreases == null) {
                                                    SemErr(t, "'decreases' clauses are meaningless for copredicates, so they are not allowed");
                                                    decreases = new List<Expression/*!*/>();
                                                  }
                                               .)
-    DecreasesList<decreases, false> OldSemi
+    DecreasesList<decreases, false, false> OldSemi
   )
   .
 
 LambdaSpec<.out Expression req, List<FrameExpression> reads.>
 = (. Contract.Requires(reads != null);
      Expression e; req = null;  FrameExpression fe; .)
-  { ( "requires" Expression<out e, false, false>
+  { ( "requires" Expression<out e, true, false>
         (. if (req == null) {
              req = e;
            } else {
              req = new BinaryExpr(req.tok, BinaryExpr.Opcode.And, req, e);
            }
         .)
-    | "reads" PossiblyWildFrameExpression<out fe> (. reads.Add(fe); .)
+    | "reads" PossiblyWildFrameExpression<out fe, true> (. reads.Add(fe); .)
     )
   }
   .
 
-PossiblyWildExpression<out Expression/*!*/ e>
+PossiblyWildExpression<out Expression e, bool allowLambda>
 = (. Contract.Ensures(Contract.ValueAtReturn(out e)!=null);
      e = dummyExpr; .)
   /* A decreases clause on a loop asks that no termination check be performed.
    * Use of this feature is sound only with respect to partial correctness.
    */
   ( "*"                        (. e = new WildcardExpr(t); .)
-  | Expression<out e, false, false>
+  | Expression<out e, false, allowLambda>
   )
   .
-PossiblyWildFrameExpression<out FrameExpression/*!*/ fe>
+PossiblyWildFrameExpression<out FrameExpression fe, bool allowSemi>
 = (. Contract.Ensures(Contract.ValueAtReturn(out fe) != null); fe = dummyFrameExpr; .)
   /* A reads clause can list a wildcard, which allows the enclosing function to
    * read anything.  In many cases, and in particular in all cases where
@@ -1150,25 +1153,23 @@ PossiblyWildFrameExpression<out FrameExpression/*!*/ fe>
    * language allows it (and it is sound).
    */
   ( "*"                        (. fe = new FrameExpression(t, new WildcardExpr(t), null); .)
-  | FrameExpression<out fe>
+  | FrameExpression<out fe, allowSemi, false>
   )
   .
-FrameExpression<out FrameExpression/*!*/ fe>
+FrameExpression<out FrameExpression fe, bool allowSemi, bool allowLambda>
 = (. Contract.Ensures(Contract.ValueAtReturn(out fe) != null);
      Expression/*!*/ e;
      IToken/*!*/ id;
      string fieldName = null;  IToken feTok = null;
      fe = null;
   .)
-  (( Expression<out e, false, false>   (. feTok = e.tok; .)
-     [ "`" Ident<out id>        (. fieldName = id.val;  feTok = id; .)
-     ]
-                                (. fe = new FrameExpression(feTok, e, fieldName); .)
-   )
+  ( Expression<out e, allowSemi, allowLambda>   (. feTok = e.tok; .)
+    [ "`" Ident<out id>        (. fieldName = id.val;  feTok = id; .)
+    ]                          (. fe = new FrameExpression(feTok, e, fieldName); .)
   |
-   (  "`" Ident<out id>         (. fieldName = id.val; .)
-                                (. fe = new FrameExpression(id, new ImplicitThisExpr(id), fieldName); .)
-  ))
+    "`" Ident<out id>          (. fieldName = id.val; .)
+                               (. fe = new FrameExpression(id, new ImplicitThisExpr(id), fieldName); .)
+  )
   .
 FunctionBody<out Expression/*!*/ e, out IToken bodyStart, out IToken bodyEnd>
 = (. Contract.Ensures(Contract.ValueAtReturn(out e) != null); e = dummyExpr; .)
@@ -1260,10 +1261,9 @@ ReturnStmt<out Statement/*!*/ s>
   ( "return"                         (. returnTok = t; .)
   | "yield"                          (. returnTok = t; isYield = true; .)
   )
-  [
-      Rhs<out r, null>               (. rhss = new List<AssignmentRhs>(); rhss.Add(r); .)
-      { "," Rhs<out r, null>         (. rhss.Add(r); .)
-        }
+  [ Rhs<out r, null>                 (. rhss = new List<AssignmentRhs>(); rhss.Add(r); .)
+    { "," Rhs<out r, null>           (. rhss.Add(r); .)
+    }
   ]
   ";"                                (. if (isYield) {
                                           s = new YieldStmt(returnTok, t, rhss);
@@ -1343,7 +1343,7 @@ Rhs<out AssignmentRhs r, Expression receiverForInitCall>
        }
     .)
   | "*"                                (. r = new HavocRhs(t); .)
-  | Expression<out e, false, true>           (. r = new ExprRhs(e); .)
+  | Expression<out e, false, true>     (. r = new ExprRhs(e); .)
   )
   { Attribute<ref attrs> }             (. r.Attributes = attrs; .)
   .
@@ -1511,11 +1511,11 @@ LoopSpec<.out List<MaybeFreeExpression/*!*/> invariants, out List<Expression/*!*
     Invariant<out invariant> OldSemi   (. invariants.Add(invariant); .)
   | SYNC "decreases"
     { IF(IsAttribute()) Attribute<ref decAttrs> }
-    DecreasesList<decreases, true> OldSemi
+    DecreasesList<decreases, true, true> OldSemi
   | SYNC "modifies"
     { IF(IsAttribute()) Attribute<ref modAttrs> } (. mod = mod ?? new List<FrameExpression>(); .)
-    [ FrameExpression<out fe>                     (. mod.Add(fe); .)
-      { "," FrameExpression<out fe>               (. mod.Add(fe); .)
+    [ FrameExpression<out fe, false, true>        (. mod.Add(fe); .)
+      { "," FrameExpression<out fe, false, true>  (. mod.Add(fe); .)
       }
     ] OldSemi
   }
@@ -1530,20 +1530,21 @@ Invariant<out MaybeFreeExpression/*!*/ invariant>
     "invariant" { IF(IsAttribute()) Attribute<ref attrs> }
     Expression<out e, false, true>           (. invariant = new MaybeFreeExpression(e, isFree, attrs); .)
   .
-DecreasesList<.List<Expression/*!*/> decreases, bool allowWildcard.>
+DecreasesList<.List<Expression/*!*/> decreases, bool allowWildcard, bool allowLambda.>
 = (. Expression/*!*/ e; .)
-  PossiblyWildExpression<out e>          (. if (!allowWildcard && e is WildcardExpr) {
-                                              SemErr(e.tok, "'decreases *' is allowed only on loops and tail-recursive methods");
-                                            } else {
-                                              decreases.Add(e);
-                                            }
-                                         .)
-  { "," PossiblyWildExpression<out e>    (. if (!allowWildcard && e is WildcardExpr) {
-                                              SemErr(e.tok, "'decreases *' is allowed only on loops and tail-recursive methods");
-                                            } else {
-                                              decreases.Add(e);
-                                            }
-                                         .)
+  PossiblyWildExpression<out e, allowLambda> (. if (!allowWildcard && e is WildcardExpr) {
+                                                  SemErr(e.tok, "'decreases *' is allowed only on loops and tail-recursive methods");
+                                                } else {
+                                                  decreases.Add(e);
+                                                }
+                                             .)
+  { "," PossiblyWildExpression<out e, allowLambda>
+                                             (. if (!allowWildcard && e is WildcardExpr) {
+                                                  SemErr(e.tok, "'decreases *' is allowed only on loops and tail-recursive methods");
+                                                } else {
+                                                  decreases.Add(e);
+                                                }
+                                             .)
   }
   .
 Guard<out Expression e>   /* null represents demonic-choice */
@@ -1562,7 +1563,9 @@ MatchStmt<out Statement/*!*/ s>
   "match"                     (. x = t; .)
   Expression<out e, true, true>
   ( IF(la.kind == _lbrace)  /* always favor brace-enclosed match body to a case-less match */
-    "{" { CaseStatement<out c> (. cases.Add(c); .) } "}"  (. usesOptionalBrace = true; .)
+    "{" (. usesOptionalBrace = true; .)
+        { CaseStatement<out c> (. cases.Add(c); .) }
+    "}"
   |     { IF(la.kind == _case)  /* let each "case" bind to the closest preceding "match" */
           CaseStatement<out c> (. cases.Add(c); .)
         }
@@ -1626,13 +1629,14 @@ AssumeStmt<out Statement/*!*/ s>
      }
   .)
   .
-PrintStmt<out Statement/*!*/ s>
-= (. Contract.Ensures(Contract.ValueAtReturn(out s) != null); IToken/*!*/ x;  Expression arg;
-     List<Expression> args = new List<Expression>();
+PrintStmt<out Statement s>
+= (. Contract.Ensures(Contract.ValueAtReturn(out s) != null);
+     IToken x;  Expression e;
+     var args = new List<Expression>();
   .)
   "print"                                      (. x = t; .)
-  AttributeArg<out arg, false>                 (. args.Add(arg); .)
-  { "," AttributeArg<out arg, false>           (. args.Add(arg); .)
+  Expression<out e, false, true>               (. args.Add(e); .)
+  { "," Expression<out e, false, true>         (. args.Add(e); .)
   }
   ";"                                          (. s = new PrintStmt(x, t, args); .)
   .
@@ -1701,10 +1705,10 @@ ModifyStmt<out Statement s>
    * may also look like a BlockStmt.  We're happy to parse the former, because if the user intended
    * the latter, then an explicit FrameExpression of {} could be given.
    */
-  ( FrameExpression<out fe>         (. mod.Add(fe); .)
-    { "," FrameExpression<out fe>   (. mod.Add(fe); .)
+  ( FrameExpression<out fe, false, true>       (. mod.Add(fe); .)
+    { "," FrameExpression<out fe, false, true> (. mod.Add(fe); .)
     }
-  | "..."                           (. ellipsisToken = t; .)
+  | "..."                               (. ellipsisToken = t; .)
   )
   ( BlockStmt<out body, out bodyStart, out endTok>
   | SYNC ";"         (. endTok = t; .)
@@ -1815,8 +1819,8 @@ Hint<out BlockStmt s>
   .
 /*------------------------------------------------------------------------*/
 /* Note. In order to avoid LL(1) warnings for expressions that "parse as far as possible", it is
- * necessary to use Coco/R's IF construct.  That means there are two ways to check for these
- * operators, both in Is...() methods (defined above) and as grammar non-terminals (defined
+ * necessary to use Coco/R's IF construct.  That means there are two ways to check for some of
+ * these operators, both in Is...() methods (defined above) and as grammar non-terminals (defined
  * here).  These pairs of definitions must be changed together.
  */
 EquivOp = "<==>" | '\u21d4'.
@@ -1825,18 +1829,29 @@ ExpliesOp = "<==" | '\u21d0'.
 AndOp = "&&" | '\u2227'.
 OrOp = "||" | '\u2228'.
 
-/* The "allowSemi" argument says whether or not the top-level expression
+NegOp = "!" | '\u00ac'.
+Forall = "forall" | '\u2200'.
+Exists = "exists" | '\u2203'.
+QSep = "::" | '\u2022'.
+
+/* The "allowSemi" argument says whether or not the expression
  * to be parsed is allowed to have the form S;E where S is a call to a lemma.
  * "allowSemi" should be passed in as "false" whenever the expression to
  * be parsed sits in a context that itself is terminated by a semi-colon.
  *
- * The "allowLambda" is there to be able to parse "case x => e".
- * Directly after the case keyword, you cannot do identifier-sequence-lambdas.
+ * The "allowLambda" says whether or not the expression to be parsed is
+ * allowed to be a lambda expression.  More precisely, an identifier or
+ * parenthesized-enclosed comma-delimited list of identifiers is allowed to
+ * continue as a lambda expression (that is, continue with a "reads", "requires",
+ * or "=>") only if "allowLambda" is true.  This affects function/method/iterator
+ * specifications, if/while statements with guarded alternatives, and expressions
+ * in the specification of a lambda expression itself.
  */
 Expression<out Expression e, bool allowSemi, bool allowLambda>
 = (. Expression e0; IToken endTok; .)
   EquivExpression<out e, allowSemi, allowLambda>
   [ IF(SemiFollowsCall(allowSemi, e))
+    /* here we parse the ";E" that is part of a "LemmaCall;E" expression (other "S;E" expressions are parsed elsewhere) */
     ";"                       (. endTok = t; .)
     Expression<out e0, allowSemi, allowLambda>
     (. e = new StmtExpr(e.tok,
@@ -1859,6 +1874,9 @@ ImpliesExpliesExpression<out Expression e0, bool allowSemi, bool allowLambda>
 = (. Contract.Ensures(Contract.ValueAtReturn(out e0) != null); IToken/*!*/ x;  Expression/*!*/ e1; .)
   LogicalExpression<out e0, allowSemi, allowLambda>
   [ IF(IsImpliesOp() || IsExpliesOp())  /* read an ImpliesExpliesExpression as far as possible */
+    /* Note, the asymmetry in the parsing of implies and explies expressions stems from the fact that
+     * implies is right associative whereas reverse implication is left associative
+     */
     ( ImpliesOp                                               (. x = t; .)
       ImpliesExpression<out e1, allowSemi, allowLambda>       (. e0 = new BinaryExpr(x, BinaryExpr.Opcode.Imp, e0, e1); .)
     | ExpliesOp                                               (. x = t; .)
@@ -2082,7 +2100,8 @@ UnaryExpression<out Expression e, bool allowSemi, bool allowLambda>
   | "map"                                      (. x = t; .)
     ( MapDisplayExpr<x, out e>
       { Suffix<ref e> }
-    | MapComprehensionExpr<x, out e, allowSemi>
+    | MapComprehensionExpr<x, out e, allowSemi, allowLambda>
+      /* Note, a MapComprehensionExpr cannot be followed by suffixes */
     )
   | ConstAtomExpression<out e, allowSemi, allowLambda>
     { Suffix<ref e> }
@@ -2098,7 +2117,7 @@ Lhs<out Expression e>
     { Suffix<ref e> }
   )
   .
-NegOp = "!" | '\u00ac'.
+
 /* A ConstAtomExpression is never an l-value.  Also, a ConstAtomExpression is never followed by
  * an open paren (but could very well have a suffix that starts with a period or a square bracket).
  * (The "Also..." part may change if expressions in Dafny could yield functions.)
@@ -2150,10 +2169,10 @@ ParensExpression<out Expression e, bool allowSemi, bool allowLambda>
      Type tt;
      bool isLambda = false;
   .)
-  "("                                         (. x = t; .)
+  "("                                      (. x = t; .)
     [
-      OptTypedExpr<out ee, out tt, true>       (. args.Add(ee); types.Add(tt); .)
-      { "," OptTypedExpr<out ee, out tt, true> (. args.Add(ee); types.Add(tt); .)
+      OptTypedExpr<out ee, out tt>         (. args.Add(ee); types.Add(tt); .)
+      { "," OptTypedExpr<out ee, out tt>   (. args.Add(ee); types.Add(tt); .)
       }
     ]
   ")"
@@ -2217,9 +2236,9 @@ ParensExpression<out Expression e, bool allowSemi, bool allowLambda>
     }
   ]
   .
-OptTypedExpr<out Expression e, out Type tt, bool allowSemi>
+OptTypedExpr<out Expression e, out Type tt>
 = (. tt = null; .)
-  Expression<out e, allowSemi, true>
+  Expression<out e, true, true>
   [ ":" Type<out tt> ]
   .
 DisplayExpr<out Expression e>
@@ -2265,7 +2284,7 @@ MapLiteralExpressions<.out List<ExpressionPair> elements.>
   { "," Expression<out d, true, true> ":=" Expression<out r, true, true> (. elements.Add(new ExpressionPair(d,r)); .)
   }
   .
-MapComprehensionExpr<IToken mapToken, out Expression e, bool allowSemi>
+MapComprehensionExpr<IToken mapToken, out Expression e, bool allowSemi, bool allowLambda>
 = (. Contract.Ensures(Contract.ValueAtReturn(out e) != null);
      BoundVar bv;
      List<BoundVar> bvars = new List<BoundVar>();
@@ -2275,7 +2294,7 @@ MapComprehensionExpr<IToken mapToken, out Expression e, bool allowSemi>
   IdentTypeOptional<out bv>                    (. bvars.Add(bv); .)
   [ "|" Expression<out range, true, true> ]
   QSep
-  Expression<out body, allowSemi, true>
+  Expression<out body, allowSemi, allowLambda>
   (. e = new MapComprehension(mapToken, bvars, range ?? new LiteralExpr(mapToken, true), body);
   .)
   .
@@ -2360,11 +2379,13 @@ MatchExpression<out Expression e, bool allowSemi, bool allowLambda>
      bool usesOptionalBrace = false;
   .)
   "match"                     (. x = t; .)
-  Expression<out e, allowSemi, true>
+  Expression<out e, allowSemi, allowLambda>
   ( IF(la.kind == _lbrace)  /* always favor brace-enclosed match body to a case-less match */
-    "{" { CaseExpression<out c, allowSemi, usesOptionalBrace || allowLambda> (. cases.Add(c); .) } "}"  (. usesOptionalBrace = true; .)
+    "{" (. usesOptionalBrace = true; .)
+        { CaseExpression<out c, true, true> (. cases.Add(c); .) }
+    "}"
   |     { IF(la.kind == _case)  /* let each "case" bind to the closest preceding "match" */
-          CaseExpression<out c, allowSemi, usesOptionalBrace || allowLambda> (. cases.Add(c); .)
+          CaseExpression<out c, allowSemi, allowLambda> (. cases.Add(c); .)
         }
   )
   (. e = new MatchExpr(x, e, cases, usesOptionalBrace); .)
@@ -2444,7 +2465,7 @@ DottedIdentifiersAndFunction<out Expression e, bool allowSemi, bool allowLambda>
     .)
     LambdaSpec<out req, reads>
     LambdaArrow<out oneShot>
-    Expression<out body, allowSemi, true>
+    Expression<out body, allowSemi, allowLambda>
     (.
        if (idents.Count != 1) {
          SemErr(id, "Invalid variable binding in lambda.");
@@ -2500,7 +2521,7 @@ Suffix<ref Expression e>
                                                   takeRest = true;
                                                .)
           [ Expression<out ee, true, true>     (. multipleLengths.Add(ee); takeRest = false; .)
-            { IF(IsColonExpr())
+            { IF(IsNonFinalColon())
               ":"
               Expression<out ee, true, true>   (. multipleLengths.Add(ee); .)
             }
@@ -2583,10 +2604,6 @@ QuantifierGuts<out Expression q, bool allowSemi, bool allowLambda>
   .)
   .
 
-Forall = "forall" | '\u2200'.
-Exists = "exists" | '\u2203'.
-QSep = "::" | '\u2022'.
-
 QuantifierDomain<.out List<BoundVar> bvars, out Attributes attrs, out Expression range.>
 = (.
      bvars = new List<BoundVar>();
@@ -2619,7 +2636,7 @@ SetComprehensionExpr<out Expression q, bool allowSemi, bool allowLambda>
     IdentTypeOptional<out bv>                  (. bvars.Add(bv); .)
   }
   "|" Expression<out range, allowSemi, allowLambda>
-  [ IF(la.kind == _doublecolon || la.kind == _bullet)  /* let any given body bind to the closest enclosing set comprehension */
+  [ IF(IsQSep())  /* let any given body bind to the closest enclosing set comprehension */
     QSep
     Expression<out body, allowSemi, allowLambda>
   ]
@@ -2635,24 +2652,13 @@ Expressions<.List<Expression/*!*/>/*!*/ args.>
   .
 /*------------------------------------------------------------------------*/
 Attribute<ref Attributes attrs>
-= "{"
-    AttributeBody<ref attrs>
-  "}"
-  .
-AttributeBody<ref Attributes attrs>
-= (. string aName;
-     List<Expression> aArgs = new List<Expression>();
-     Expression aArg;
+= (. string name;
+     var args = new List<Expression>();
   .)
-  ":" ident                            (. aName = t.val; .)
-  [ AttributeArg<out aArg, true>       (. aArgs.Add(aArg); .)
-    { "," AttributeArg<out aArg, true> (. aArgs.Add(aArg); .)
-    }
-  ]                                    (. attrs = new Attributes(aName, aArgs, attrs); .)
-  .
-AttributeArg<out Expression arg, bool allowSemi>
-= (. Contract.Ensures(Contract.ValueAtReturn(out arg) != null); Expression/*!*/ e;  arg = dummyExpr; .)
-  Expression<out e, allowSemi, true>       (. arg = e; .)
+  "{" ":" ident                            (. name = t.val; .)
+  [ Expressions<args> ]
+  "}"
+  (. attrs = new Attributes(name, args, attrs); .)
   .
 /*------------------------------------------------------------------------*/
 Ident<out IToken/*!*/ x>
