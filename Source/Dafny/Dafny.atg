@@ -160,6 +160,9 @@ bool IsQSep() {
 bool IsNonFinalColon() {
   return la.kind == _colon && scanner.Peek().kind != _rbracket;
 }
+bool IsMapDisplay() {
+  return la.kind == _map && scanner.Peek().kind == _lbracket;
+}
 
 string UnwildIdent(string x, bool allowWildcardId) {
   if (x.StartsWith("_")) {
@@ -174,9 +177,43 @@ string UnwildIdent(string x, bool allowWildcardId) {
 
 bool IsLambda(bool allowLambda)
 {
-  return allowLambda &&
-    (la.kind == _darrow || la.kind == _arrow
-    || la.kind == _reads || la.kind == _requires);
+  if (!allowLambda) {
+    return false;
+  }
+  scanner.ResetPeek();
+  Token x;
+  // peek at what might be a signature of a lambda expression
+  if (la.kind == _ident) {
+    // cool, that's the entire candidate signature
+  } else if (la.kind != _openparen) {
+    return false;  // this is not a lambda expression
+  } else {
+    int identCount = 0;
+    x = scanner.Peek();
+    while (x.kind != _closeparen) {
+      if (identCount != 0) {
+        if (x.kind != _comma) {
+          return false;  // not the signature of a lambda
+        }
+        x = scanner.Peek();
+      }
+      if (x.kind != _ident) {
+        return false;  // not a lambda expression
+      }
+      identCount++;
+      x = scanner.Peek();
+      if (x.kind == _colon) {
+        // a colon belongs only in a lamdba signature, so this must be a lambda (or something ill-formed)
+        return true;
+      }
+    }
+  }
+  // What we have seen so far could have been a lambda signature or could have been some
+  // other expression (in particular, an identifier, a parenthesized identifier, or a
+  // tuple all of whose subexpressions are identifiers).
+  // It is a lambda expression if what follows is something that must be a lambda.
+  x = scanner.Peek();
+  return x.kind == _darrow || x.kind == _arrow || x.kind == _reads || x.kind == _requires;
 }
 
 bool IsIdentParen() {
@@ -263,6 +300,7 @@ TOKENS
       '"'
     | '@' '"' { verbatimStringChar | "\"\"" } '"'.
   colon = ':'.
+  comma = ','.
   verticalbar = '|'.
   doublecolon = "::".
   bullet = '\u2022'.
@@ -274,6 +312,7 @@ TOKENS
   case = "case".
   decreases = "decreases".
   invariant = "invariant".
+  map = "map".
   modifies = "modifies".
   reads = "reads".
   requires = "requires".
@@ -1101,9 +1140,8 @@ FunctionSpec<.List<Expression/*!*/>/*!*/ reqs, List<FrameExpression/*!*/>/*!*/ r
      Contract.Requires(cce.NonNullElements(reads));
      Contract.Requires(decreases == null || cce.NonNullElements(decreases));
      Expression/*!*/ e;  FrameExpression/*!*/ fe; .)
-  (
-    SYNC
-    "requires" Expression<out e, false, false> OldSemi  (. reqs.Add(e); .)
+  SYNC
+  ( "requires" Expression<out e, false, false> OldSemi  (. reqs.Add(e); .)
   | "reads"
     PossiblyWildFrameExpression<out fe, false>          (. reads.Add(fe); .)
     { "," PossiblyWildFrameExpression<out fe, false>    (. reads.Add(fe); .)
@@ -1379,7 +1417,7 @@ VarDeclStatement<.out Statement/*!*/ s.>
     ]
     Expression<out suchThat, false, true>
   ]
-  ";"                              (. endTok = t; .)
+  SYNC ";"                         (. endTok = t; .)
   (. ConcreteUpdateStatement update;
      if (suchThat != null) {
        var ies = new List<Expression>();
@@ -2084,25 +2122,25 @@ MulOp<out IToken x, out BinaryExpr.Opcode op>
 /*------------------------------------------------------------------------*/
 UnaryExpression<out Expression e, bool allowSemi, bool allowLambda>
 = (. Contract.Ensures(Contract.ValueAtReturn(out e) != null); IToken/*!*/ x;  e = dummyExpr; .)
-  ( "-"                                        (. x = t; .)
-    UnaryExpression<out e, allowSemi, allowLambda>
-                                               (. e = new NegationExpression(x, e); .)
-  | NegOp                                      (. x = t; .)
-    UnaryExpression<out e, allowSemi, allowLambda>
-                                               (. e = new UnaryOpExpr(x, UnaryOpExpr.Opcode.Not, e); .)
+  ( "-"                                             (. x = t; .)
+    UnaryExpression<out e, allowSemi, allowLambda>  (. e = new NegationExpression(x, e); .)
+  | NegOp                                           (. x = t; .)
+    UnaryExpression<out e, allowSemi, allowLambda>  (. e = new UnaryOpExpr(x, UnaryOpExpr.Opcode.Not, e); .)
+
+  | IF(IsMapDisplay())  /* this alternative must be checked before going into EndlessExpression, where there is another "map" */
+    "map"                                           (. x = t; .)
+    MapDisplayExpr<x, out e>
+    { Suffix<ref e> }
+  | IF(IsLambda(allowLambda))
+    LambdaExpression<out e, allowSemi>  /* this is an endless expression */
   | EndlessExpression<out e, allowSemi, allowLambda>
-  | DottedIdentifiersAndFunction<out e, allowSemi, allowLambda>
+
+  | DottedIdentifiersAndFunction<out e>
     { Suffix<ref e> }
   | DisplayExpr<out e>
     { Suffix<ref e> }
   | MultiSetExpr<out e>
     { Suffix<ref e> }
-  | "map"                                      (. x = t; .)
-    ( MapDisplayExpr<x, out e>
-      { Suffix<ref e> }
-    | MapComprehensionExpr<x, out e, allowSemi, allowLambda>
-      /* Note, a MapComprehensionExpr cannot be followed by suffixes */
-    )
   | ConstAtomExpression<out e, allowSemi, allowLambda>
     { Suffix<ref e> }
   )
@@ -2110,7 +2148,7 @@ UnaryExpression<out Expression e, bool allowSemi, bool allowLambda>
 Lhs<out Expression e>
 = (. e = dummyExpr;  // the assignment is to please the compiler, the dummy value to satisfy contracts in the event of a parse error
   .)
-  ( DottedIdentifiersAndFunction<out e, false, false>
+  ( DottedIdentifiersAndFunction<out e>
     { Suffix<ref e> }
   | ConstAtomExpression<out e, false, false>
     Suffix<ref e>
@@ -2160,86 +2198,51 @@ LambdaArrow<out bool oneShot>
   )
   .
 
-ParensExpression<out Expression e, bool allowSemi, bool allowLambda>
-= (. IToken x;
-     Expression ee;
-     e = null;
-     List<Expression> args = new List<Expression>();
-     List<Type> types = new List<Type>();
-     Type tt;
-     bool isLambda = false;
+LambdaExpression<out Expression e, bool allowSemi>
+= (. IToken x = Token.NoToken;
+     IToken id;  BoundVar bv;
+     var bvs = new List<BoundVar>();
+     Expression body = null;
+     Expression req = null;
+     bool oneShot;
+     var reads = new List<FrameExpression>();
   .)
-  "("                                      (. x = t; .)
-    [
-      OptTypedExpr<out ee, out tt>         (. args.Add(ee); types.Add(tt); .)
-      { "," OptTypedExpr<out ee, out tt>   (. args.Add(ee); types.Add(tt); .)
-      }
-    ]
+  ( WildIdent<out id, true>                  (. x = t; bvs.Add(new BoundVar(id, id.val, new InferredTypeProxy())); .)
+  | "("                                      (. x = t; .)
+      [
+        IdentTypeOptional<out bv>            (. bvs.Add(bv); .)
+        { "," IdentTypeOptional<out bv>      (. bvs.Add(bv); .)
+        }
+      ]
+    ")"
+  )
+  LambdaSpec<out req, reads>
+  LambdaArrow<out oneShot>
+  Expression<out body, allowSemi, true>
+  (. e = new LambdaExpr(x, oneShot, bvs, req, reads, body);
+     theBuiltIns.CreateArrowTypeDecl(bvs.Count);
+  .)
+  .
+ParensExpression<out Expression e, bool allowSemi, bool allowLambda>
+= (. IToken x;  IToken openParen;
+     List<Expression> args = new List<Expression>();
+  .)
+  "("                                        (. x = t; .)
+  [ Expressions<args> ]
   ")"
-  [ IF(IsLambda(allowLambda))
-    (. Expression body = null;
-       Expression req = null;
-       bool oneShot;
-       var reads = new List<FrameExpression>();
-       x = t;
-    .)
-    LambdaSpec<out req, reads>
-    LambdaArrow<out oneShot>
-    Expression<out body, allowSemi, true>
-    (. List<BoundVar> bvs = new List<BoundVar>();
-       for (int i = 0; i < args.Count; i++) {
-         ee = args[i];
-         tt = types[i];
-         if (ee is IdentifierSequence) {
-           IdentifierSequence ise = (IdentifierSequence)ee;
-           List<IToken> idents = ise.Tokens;
-           Contract.Assert(idents != null);
-           Contract.Assert(idents.Count > 0);
-           IToken id = idents[0];
-           if (idents.Count != 1) {
-             SemErr(id, "Expected variable binding.");
-           }
-           if (ise.Arguments != null) {
-             SemErr(ise.OpenParen, "Expected variable binding.");
-           }
-           bvs.Add(new BoundVar(id, UnwildIdent(id.val, true), tt ?? new InferredTypeProxy()));
-         } else {
-           SemErr(ee.tok, "Expected variable binding.");
-         }
-       }
-       e = new LambdaExpr(x, oneShot, bvs, req, reads, body);
-       theBuiltIns.CreateArrowTypeDecl(bvs.Count);
-       isLambda = true;
-    .)
-  ]
-  (. if (!isLambda) {
-       for (int i = 0; i < args.Count; i++) {
-         if (types[i] != null) {
-           SemErr(args[i].tok, "Type specification not allowed here, comma separator was expected.");
-         }
-       }
-       if (args.Count == 1) {
-         e = new ParensExpression(x, args[0]);
-       } else {
-         // make sure the corresponding tuple type exists
-         var tmp = theBuiltIns.TupleType(x, args.Count, true);
-         e = new DatatypeValue(x, BuiltIns.TupleTypeName(args.Count), BuiltIns.TupleTypeCtorName, args);
-       }
+  (. if (args.Count == 1) {
+       e = new ParensExpression(x, args[0]);
+     } else {
+       // make sure the corresponding tuple type exists
+       var tmp = theBuiltIns.TupleType(x, args.Count, true);
+       e = new DatatypeValue(x, BuiltIns.TupleTypeName(args.Count), BuiltIns.TupleTypeCtorName, args);
      }
   .)
-  [ IF(!isLambda && args.Count == 1 && la.kind == _openparen)
-    (. IToken openParen; .)
-    { "(" (. openParen = t; args = new List<Expression>(); .)
-      [ Expressions<args> ]
-      ")"
-      (. e = new ApplyExpr(x, openParen, e, args); .)
-    }
-  ]
-  .
-OptTypedExpr<out Expression e, out Type tt>
-= (. tt = null; .)
-  Expression<out e, true, true>
-  [ ":" Type<out tt> ]
+  { "("                       (. openParen = t; args = new List<Expression>(); .)
+    [ Expressions<args> ]
+    ")"
+    (. e = new ApplyExpr(x, openParen, e, args); .)
+  }
   .
 DisplayExpr<out Expression e>
 = (. Contract.Ensures(Contract.ValueAtReturn(out e) != null);
@@ -2307,13 +2310,15 @@ EndlessExpression<out Expression e, bool allowSemi, bool allowLambda>
   ( "if"                            (. x = t; .)
     Expression<out e, true, true>
     "then" Expression<out e0, true, true>
-    "else" Expression<out e1, allowSemi, allowLambda> (. e = new ITEExpr(x, e, e0, e1); .)
+    "else" Expression<out e1, allowSemi, allowLambda>    (. e = new ITEExpr(x, e, e0, e1); .)
   | MatchExpression<out e, allowSemi, allowLambda>
   | QuantifierGuts<out e, allowSemi, allowLambda>
   | SetComprehensionExpr<out e, allowSemi, allowLambda>
   | StmtInExpr<out s>
-    Expression<out e, allowSemi, allowLambda>               (. e = new StmtExpr(s.Tok, s, e); .)
+    Expression<out e, allowSemi, allowLambda>            (. e = new StmtExpr(s.Tok, s, e); .)
   | LetExpr<out e, allowSemi, allowLambda>
+  | "map"                           (. x = t; .)
+    MapComprehensionExpr<x, out e, allowSemi, allowLambda>
   | NamedExpr<out e, allowSemi, allowLambda>
   )
   .
@@ -2435,7 +2440,7 @@ CasePattern<out CasePattern pat>
   .)
   .
 /*------------------------------------------------------------------------*/
-DottedIdentifiersAndFunction<out Expression e, bool allowSemi, bool allowLambda>
+DottedIdentifiersAndFunction<out Expression e>
 = (. IToken id, idPrime;  IToken openParen = null;
      List<Expression> args = null;
      List<IToken> idents = new List<IToken>();
@@ -2456,34 +2461,9 @@ DottedIdentifiersAndFunction<out Expression e, bool allowSemi, bool allowLambda>
     ")"
   ]
 
-  // A quick-and-dirty lambda expression?
-  [ IF(IsLambda(allowLambda))
-    (. Expression body = null;
-       Expression req = null;
-       bool oneShot;
-       var reads = new List<FrameExpression>();
-    .)
-    LambdaSpec<out req, reads>
-    LambdaArrow<out oneShot>
-    Expression<out body, allowSemi, allowLambda>
-    (.
-       if (idents.Count != 1) {
-         SemErr(id, "Invalid variable binding in lambda.");
-       }
-       if (args != null) {
-         SemErr(openParen, "Expected variable binding.");
-       }
-       BoundVar bv = new BoundVar(id, UnwildIdent(id.val, true),  new InferredTypeProxy());
-       e = new LambdaExpr(id, oneShot, new List<BoundVar>{ bv }, req, reads, body);
-       theBuiltIns.CreateArrowTypeDecl(1);
-    .)
-  ]
-  // If it wasn't a lambda expression, then it indeed is an identifier sequence
-  (. if (e == null) {
-       e = new IdentifierSequence(idents, openParen, args);
-       foreach (var args_ in applyArgLists) {
-         e = new ApplyExpr(id, openParen, e, args_);
-       }
+  (. e = new IdentifierSequence(idents, openParen, args);
+     foreach (var args_ in applyArgLists) {
+       e = new ApplyExpr(id, openParen, e, args_);
      }
   .)
   .
@@ -2644,8 +2624,8 @@ SetComprehensionExpr<out Expression q, bool allowSemi, bool allowLambda>
      q = new SetComprehension(x, bvars, range, body);
   .)
   .
-Expressions<.List<Expression/*!*/>/*!*/ args.>
-= (. Contract.Requires(cce.NonNullElements(args)); Expression/*!*/ e; .)
+Expressions<.List<Expression> args.>
+= (. Expression e; .)
   Expression<out e, true, true>                      (. args.Add(e); .)
   { "," Expression<out e, true, true>                (. args.Add(e); .)
   }
@@ -2716,16 +2696,16 @@ NoUSIdent<out IToken/*!*/ x>
   .
 
 // Identifier, disallowing leading underscores, except possibly the "wildcard" identifier "_"
-WildIdent<out IToken/*!*/ x, bool allowWildcardId>
+WildIdent<out IToken x, bool allowWildcardId>
 = (. Contract.Ensures(Contract.ValueAtReturn(out x) != null); .)
   ident            (. x = t;
-                      t.val = UnwildIdent(x.val, allowWildcardId);
+                      t.val = UnwildIdent(t.val, allowWildcardId);
                    .)
   .
 
 OldSemi
-= /* In the future, semi-colons will be neither needed nor allowed in certain places where, in the past, they
-   * were required.  As a period of transition between the two, such semi-colons are optional.
+= /* In the future, it may be that semi-colons will be neither needed nor allowed in certain places where,
+   * in the past, they were required.  As a period of transition between the two, such semi-colons are optional.
    */
   [ SYNC ";" ].
 

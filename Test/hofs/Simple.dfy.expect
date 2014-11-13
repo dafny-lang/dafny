@@ -11,7 +11,7 @@ Execution trace:
 Simple.dfy(37,9): Error: possible violation of function precondition
 Execution trace:
     (0,0): anon0
-    Simple.dfy(35,15): anon5_Else
+    Simple.dfy(35,13): anon5_Else
 Simple.dfy(49,9): Error: possible violation of function precondition
 Execution trace:
     (0,0): anon0

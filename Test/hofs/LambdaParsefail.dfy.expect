@@ -1,6 +1,6 @@
-LambdaParsefail.dfy(5,17): error: Invalid variable binding in lambda.
-LambdaParsefail.dfy(6,16): error: Expected variable binding.
-LambdaParsefail.dfy(7,16): error: Expected variable binding.
-LambdaParsefail.dfy(8,21): error: cannot declare identifier beginning with underscore
-LambdaParsefail.dfy(9,17): error: semi expected
+LambdaParsefail.dfy(5,19): error: this symbol not expected in VarDeclStatement
+LambdaParsefail.dfy(6,19): error: this symbol not expected in VarDeclStatement
+LambdaParsefail.dfy(7,21): error: this symbol not expected in VarDeclStatement
+LambdaParsefail.dfy(8,15): error: cannot declare identifier beginning with underscore
+LambdaParsefail.dfy(9,17): error: this symbol not expected in VarDeclStatement
 5 parse errors detected in LambdaParsefail.dfy

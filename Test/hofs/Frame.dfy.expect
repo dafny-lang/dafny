@@ -1,17 +1,17 @@
 Frame.dfy(23,16): Error: assertion violation
 Execution trace:
     (0,0): anon0
-    Frame.dfy(19,13): anon5_Else
+    Frame.dfy(19,12): anon5_Else
     (0,0): anon6_Then
 Frame.dfy(37,14): Error: assertion violation
 Execution trace:
     (0,0): anon0
-    Frame.dfy(33,13): anon3_Else
+    Frame.dfy(33,12): anon3_Else
 Frame.dfy(63,23): Error: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon13_Then
-    Frame.dfy(55,13): anon14_Else
+    Frame.dfy(55,12): anon14_Else
     (0,0): anon15_Then
     (0,0): anon5
 Frame.dfy(66,19): Error: insufficient reads clause to read array element
