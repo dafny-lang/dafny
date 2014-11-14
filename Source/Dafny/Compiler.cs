@@ -1552,9 +1552,14 @@ namespace Microsoft.Dafny {
         //   ingredients.Add(new L-Tuple( LHS0(w,x,y,z), LHS1(w,x,y,z), ..., RHS(w,x,y,z) ));
         // }
         Indent(indent + n * IndentAmount);
-        wr.Write("if ");
-        TrParenExpr(s.Range);
-        wr.WriteLine(" {");
+        wr.Write("if (");
+        foreach (var bv in s.BoundVars) {
+          if (bv.Type.NormalizeExpand() is NatType) {
+            wr.Write("0 <= {0} && ", bv.CompileName);
+          }
+        }
+        TrExpr(s.Range);
+        wr.WriteLine(") {");
 
         var indFinal = indent + (n + 1) * IndentAmount;
         Indent(indFinal);
@@ -1576,7 +1581,6 @@ namespace Microsoft.Dafny {
             TrExpr(lhs.Indices[i]);
             wr.Write(")");
           }
-          wr.WriteLine("] = {0}.Item{1};", tup, L);
         }
         wr.Write(", ");
         TrExpr(rhs);
@@ -1604,7 +1608,7 @@ namespace Microsoft.Dafny {
           wr.WriteLine("{0}.Item1[{0}.Item2] = {0}.Item3;", tup);
         } else {
           var lhs = (MultiSelectExpr)s0.Lhs;
-          wr.Write("{0}.Item1[");
+          wr.Write("{0}.Item1[", tup);
           string sep = "";
           for (int i = 0; i < lhs.Indices.Count; i++) {
             wr.Write("{0}{1}.Item{2}", sep, tup, i + 2);
