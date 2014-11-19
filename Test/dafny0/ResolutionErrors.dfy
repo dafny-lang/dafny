@@ -1259,3 +1259,45 @@ module SignatureCompletion {
   function F2<A,B>(s: set, x: A -> B): int
   function F3<A,B>(x: A -> B, s: set): int
 }
+
+// -------------- more fields as frame targets --------------------
+
+module FrameTargetFields {
+  class C {
+    var x: int
+    var y: int
+    ghost var z: int
+
+    method M()
+      modifies this
+    {
+      var n := 0;
+      ghost var save := y;
+      while n < x
+        modifies `x
+      {
+        n, x := n + 1, x - 1;
+      }
+      assert y == save;
+    }
+
+    ghost method N()
+      modifies this
+      modifies `y  // resolution error: cannot mention non-ghost here
+      modifies `z  // cool
+    {
+    }
+
+    method P()
+      modifies this
+    {
+      ghost var h := x;
+      while 0 <= h
+        modifies `x  // resolution error: cannot mention non-ghost here
+        modifies `z  // cool
+      {
+        h, z := h - 1, 5 * z;
+      }
+    }
+  }
+}

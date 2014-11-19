@@ -13581,7 +13581,9 @@ namespace Microsoft.Dafny {
 
       public FrameExpression SubstFrameExpr(FrameExpression frame) {
         Contract.Requires(frame != null);
-        return new FrameExpression(frame.tok, Substitute(frame.E), frame.FieldName);
+        var fe = new FrameExpression(frame.tok, Substitute(frame.E), frame.FieldName);
+        fe.Field = frame.Field;  // resolve here
+        return fe;
       }
 
       protected AssignmentRhs SubstRHS(AssignmentRhs rhs) {

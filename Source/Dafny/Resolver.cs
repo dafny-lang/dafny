@@ -3224,7 +3224,7 @@ namespace Microsoft.Dafny
         }
       }
       foreach (FrameExpression fr in f.Reads) {
-        ResolveFrameExpression(fr, "reads", f.IsGhost, f);
+        ResolveFrameExpression(fr, true, f.IsGhost, f);
       }
       foreach (Expression r in f.Ens) {
         ResolveExpression(r, new ResolveOpts(f, false));  // since this is a function, the postcondition is still a one-state predicate
@@ -3252,9 +3252,15 @@ namespace Microsoft.Dafny
       scope.PopMarker();
     }
 
-    void ResolveFrameExpression(FrameExpression fe, string kind, bool isGhostContext, ICodeContext codeContext) {
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="fe"></param>
+    /// <param name="readsFrame">True indicates "reads", false indicates "modifies".</param>
+    /// <param name="isGhostContext"></param>
+    /// <param name="codeContext"></param>
+    void ResolveFrameExpression(FrameExpression fe, bool readsFrame, bool isGhostContext, ICodeContext codeContext) {
       Contract.Requires(fe != null);
-      Contract.Requires(kind != null);
       Contract.Requires(codeContext != null);
       ResolveExpression(fe.E, new ResolveOpts(codeContext, false, true /* yes, this is ghost */));
       Type t = fe.E.Type;
@@ -3268,7 +3274,7 @@ namespace Microsoft.Dafny
         t = collType.Arg;
       }
       if (!UnifyTypes(t, new ObjectType())) {
-        Error(fe.E, "a {0}-clause expression must denote an object or a collection of objects (instead got {1})", kind, fe.E.Type);
+        Error(fe.E, "a {0}-clause expression must denote an object or a collection of objects (instead got {1})", readsFrame ? "reads" : "modifies", fe.E.Type);
       } else if (fe.FieldName != null) {
         NonProxyType nptype;
         MemberDecl member = ResolveMember(fe.E.tok, t, fe.FieldName, out nptype);
@@ -3277,8 +3283,8 @@ namespace Microsoft.Dafny
           // error has already been reported by ResolveMember
         } else if (!(member is Field)) {
           Error(fe.E, "member {0} in type {1} does not refer to a field", fe.FieldName, ctype.Name);
-        } else if (isGhostContext && !member.IsGhost) {
-          Error(fe.E, "in a ghost context, only ghost fields can be mentioned as frame targets ({0})", fe.FieldName);
+        } else if (!readsFrame && isGhostContext && !member.IsGhost) {
+          Error(fe.E, "in a ghost context, only ghost fields can be mentioned as modifies frame targets ({0})", fe.FieldName);
         } else {
           Contract.Assert(ctype != null && ctype.ResolvedClass != null);  // follows from postcondition of ResolveMember
           fe.Field = (Field)member;
@@ -3343,7 +3349,7 @@ namespace Microsoft.Dafny
         }
         ResolveAttributes(m.Mod.Attributes, new ResolveOpts(m, false));
         foreach (FrameExpression fe in m.Mod.Expressions) {
-          ResolveFrameExpression(fe, "modifies", m.IsGhost, m);
+          ResolveFrameExpression(fe, false, m.IsGhost, m);
           if (m is Lemma) {
             Error(fe.tok, "lemmas are not allowed to have modifies clauses");
           } else if (m is CoLemma) {
@@ -3469,10 +3475,10 @@ namespace Microsoft.Dafny
         }
       }
       foreach (FrameExpression fe in iter.Reads.Expressions) {
-        ResolveFrameExpression(fe, "reads", false, iter);
+        ResolveFrameExpression(fe, true, false, iter);
       }
       foreach (FrameExpression fe in iter.Modifies.Expressions) {
-        ResolveFrameExpression(fe, "modifies", false, iter);
+        ResolveFrameExpression(fe, false, false, iter);
       }
       foreach (MaybeFreeExpression e in iter.Requires) {
         ResolveExpression(e.E, new ResolveOpts(iter, false));
@@ -4761,7 +4767,7 @@ namespace Microsoft.Dafny
         if (s.Mod.Expressions != null) {
           ResolveAttributes(s.Mod.Attributes, new ResolveOpts(codeContext, true));
           foreach (FrameExpression fe in s.Mod.Expressions) {
-            ResolveFrameExpression(fe, "modifies", bodyMustBeSpecOnly, codeContext);
+            ResolveFrameExpression(fe, false, bodyMustBeSpecOnly, codeContext);
             Translator.ComputeFreeVariables(fe.E, fvs, ref usesHeap, ref usesOldHeap, ref usesThis, false);
           }
         }
@@ -4904,7 +4910,7 @@ namespace Microsoft.Dafny
         ResolveAttributes(s.Mod.Attributes, new ResolveOpts(codeContext, true));
         foreach (FrameExpression fe in s.Mod.Expressions) {
           // (yes, say "modifies", not "modify", in the next line -- it seems to give a more readable error message
-          ResolveFrameExpression(fe, "modifies", specContextOnly, codeContext);
+          ResolveFrameExpression(fe, false, specContextOnly, codeContext);
         }
         if (s.Body != null) {
           ResolveBlockStatement(s.Body, specContextOnly, codeContext);
@@ -7023,7 +7029,7 @@ namespace Microsoft.Dafny
         }
 
         foreach (var read in e.Reads) {
-          ResolveFrameExpression(read, "reads", false, opts.codeContext);
+          ResolveFrameExpression(read, true, false, opts.codeContext);
         }
 
         ResolveExpression(e.Term, opts);
