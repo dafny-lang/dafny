@@ -205,8 +205,8 @@ namespace Microsoft.Dafny
 
     public Formal CloneFormal(Formal formal) {
       Formal f = new Formal(Tok(formal.tok), formal.Name, CloneType(formal.Type), formal.InParam, formal.IsGhost);
-      if (f.Type is UserDefinedType && formal.Type is UserDefinedType)
-          ((UserDefinedType)f.Type).ResolvedClass = ((UserDefinedType)(formal.Type)).ResolvedClass;
+      //if (f.Type is UserDefinedType && formal.Type is UserDefinedType)
+      //    ((UserDefinedType)f.Type).ResolvedClass = ((UserDefinedType)(formal.Type)).ResolvedClass;
       return f;
     }
 

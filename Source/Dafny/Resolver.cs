@@ -2810,14 +2810,7 @@ namespace Microsoft.Dafny
           } else {
             //the member is not already in the class
             // enter the trait member in the symbol table for the class
-            //clMembers.Add(traitMem.Key, traitMem.Value);
               MemberDecl classNewMember = cloner.CloneMember(traitMem.Value);
-              if (classNewMember is Field)
-              {
-                  Field f = (Field)classNewMember;
-                  if (f.Type is UserDefinedType)
-                      ((UserDefinedType)f.Type).ResolvedClass = ((UserDefinedType)(((Field)(traitMem.Value)).Type)).ResolvedClass;
-              }
               classNewMember.EnclosingClass = cl;
               classNewMember.Inherited = true;
               classMembers[cl].Add(traitMem.Key, classNewMember);

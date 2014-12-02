@@ -124,19 +124,6 @@ class c extends t
   }
 }
 
-trait P1
-{
-  method M(N: int, a: array<int>) returns (sum: int)
-  {
-    sum := 1;   
-  }
-}
-
-class CC1 extends P1
-{
-
-}
-
 trait TT
 {
    static function method M(a:int, b:int) : int
