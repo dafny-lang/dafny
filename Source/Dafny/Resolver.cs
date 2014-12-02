@@ -2730,6 +2730,7 @@ namespace Microsoft.Dafny
     void InheritTraitMembers(ClassDecl cl) {
       Contract.Requires(cl != null);
 
+      RefinementCloner cloner = new RefinementCloner(cl.Module);
       //merging class members with parent members if any
       if (cl.TraitObj != null) {
         var clMembers = classMembers[cl];
@@ -2809,7 +2810,18 @@ namespace Microsoft.Dafny
           } else {
             //the member is not already in the class
             // enter the trait member in the symbol table for the class
-            clMembers.Add(traitMem.Key, traitMem.Value);
+            //clMembers.Add(traitMem.Key, traitMem.Value);
+              MemberDecl classNewMember = cloner.CloneMember(traitMem.Value);
+              if (classNewMember is Field)
+              {
+                  Field f = (Field)classNewMember;
+                  if (f.Type is UserDefinedType)
+                      ((UserDefinedType)f.Type).ResolvedClass = ((UserDefinedType)(((Field)(traitMem.Value)).Type)).ResolvedClass;
+              }
+              classNewMember.EnclosingClass = cl;
+              classNewMember.Inherited = true;
+              classMembers[cl].Add(traitMem.Key, classNewMember);
+              cl.Members.Add(classNewMember);
           }
         }//foreach
 
@@ -4027,6 +4039,9 @@ namespace Microsoft.Dafny
             successSoFar = UnifyTypes(aa.TypeArgs[i], bb.TypeArgs[i]);
           }
           return successSoFar;
+        }
+        else if ((bb.ResolvedClass is TraitDecl) && (aa.ResolvedClass is TraitDecl)) {
+            return ((TraitDecl)bb.ResolvedClass).FullCompileName == ((TraitDecl)aa.ResolvedClass).FullCompileName;
         } else if ((bb.ResolvedClass is ClassDecl) && (aa.ResolvedClass is TraitDecl)) {
           return ((ClassDecl)bb.ResolvedClass).TraitObj.FullCompileName == ((TraitDecl)aa.ResolvedClass).FullCompileName;
         } else if ((aa.ResolvedClass is ClassDecl) && (bb.ResolvedClass is TraitDecl)) {

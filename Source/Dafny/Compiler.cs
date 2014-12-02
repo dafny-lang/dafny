@@ -249,7 +249,7 @@ namespace Microsoft.Dafny {
             Indent(indent);
             if (cl.TraitObj != null && cl.TraitObj is TraitDecl)
             {
-                wr.WriteLine("public class @{0} : @{1}", cl.CompileName, ((UserDefinedType)cl.TraitTyp).tok);
+                wr.WriteLine("public class @{0} : @{1}", cl.CompileName, cl.TraitObj.Name);
             }
             else
                 wr.Write("public class @{0}", cl.CompileName);

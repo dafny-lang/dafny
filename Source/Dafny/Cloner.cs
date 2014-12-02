@@ -147,14 +147,17 @@ namespace Microsoft.Dafny
         Contract.Assert(!(member is SpecialField));  // we don't expect a SpecialField to be cloned (or do we?)
         var f = (Field)member;
         Field field = new Field(Tok(f.tok), f.Name, f.IsGhost, f.IsMutable, f.IsUserMutable, CloneType(f.Type), CloneAttributes(f.Attributes));
+        field.Inherited = member.Inherited;
         return field;
       } else if (member is Function) {
         var f = (Function)member;
         Function func = CloneFunction(f);
+        func.Inherited = member.Inherited;
         return func;
       } else {
         var m = (Method)member;
         Method method = CloneMethod(m);
+        method.Inherited = member.Inherited;
         return method;
       }
     }
@@ -202,6 +205,8 @@ namespace Microsoft.Dafny
 
     public Formal CloneFormal(Formal formal) {
       Formal f = new Formal(Tok(formal.tok), formal.Name, CloneType(formal.Type), formal.InParam, formal.IsGhost);
+      if (f.Type is UserDefinedType && formal.Type is UserDefinedType)
+          ((UserDefinedType)f.Type).ResolvedClass = ((UserDefinedType)(formal.Type)).ResolvedClass;
       return f;
     }
 
