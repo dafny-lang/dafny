@@ -263,9 +263,10 @@ public class Scanner {
 		start[44] = 29; 
 		start[124] = 90; 
 		start[8226] = 31; 
+		start[46] = 91; 
 		start[59] = 32; 
-		start[61] = 91; 
-		start[45] = 92; 
+		start[61] = 92; 
+		start[45] = 93; 
 		start[123] = 35; 
 		start[125] = 36; 
 		start[91] = 37; 
@@ -273,8 +274,7 @@ public class Scanner {
 		start[40] = 39; 
 		start[41] = 40; 
 		start[42] = 41; 
-		start[33] = 93; 
-		start[46] = 94; 
+		start[33] = 94; 
 		start[60] = 95; 
 		start[62] = 96; 
 		start[96] = 64; 
@@ -495,54 +495,54 @@ public class Scanner {
 
 	void CheckLiteral() {
 		switch (t.val) {
-			case "assume": t.kind = 16; break;
-			case "calc": t.kind = 17; break;
-			case "case": t.kind = 18; break;
-			case "decreases": t.kind = 19; break;
-			case "invariant": t.kind = 20; break;
-			case "map": t.kind = 21; break;
-			case "modifies": t.kind = 22; break;
-			case "reads": t.kind = 23; break;
-			case "requires": t.kind = 24; break;
-			case "include": t.kind = 34; break;
-			case "abstract": t.kind = 35; break;
-			case "module": t.kind = 36; break;
-			case "refines": t.kind = 37; break;
-			case "import": t.kind = 38; break;
-			case "opened": t.kind = 39; break;
-			case "as": t.kind = 41; break;
-			case "default": t.kind = 42; break;
-			case "class": t.kind = 43; break;
-			case "extends": t.kind = 44; break;
-			case "trait": t.kind = 45; break;
-			case "ghost": t.kind = 46; break;
-			case "static": t.kind = 47; break;
-			case "datatype": t.kind = 48; break;
-			case "codatatype": t.kind = 49; break;
-			case "var": t.kind = 50; break;
-			case "newtype": t.kind = 51; break;
-			case "type": t.kind = 52; break;
-			case "iterator": t.kind = 54; break;
-			case "yields": t.kind = 55; break;
-			case "returns": t.kind = 56; break;
-			case "method": t.kind = 59; break;
-			case "lemma": t.kind = 60; break;
-			case "colemma": t.kind = 61; break;
-			case "comethod": t.kind = 62; break;
-			case "constructor": t.kind = 63; break;
-			case "free": t.kind = 64; break;
-			case "ensures": t.kind = 65; break;
-			case "yield": t.kind = 66; break;
-			case "bool": t.kind = 67; break;
-			case "char": t.kind = 68; break;
-			case "nat": t.kind = 69; break;
-			case "int": t.kind = 70; break;
-			case "real": t.kind = 71; break;
-			case "set": t.kind = 72; break;
-			case "multiset": t.kind = 73; break;
-			case "seq": t.kind = 74; break;
-			case "string": t.kind = 75; break;
-			case "object": t.kind = 76; break;
+			case "assume": t.kind = 17; break;
+			case "calc": t.kind = 18; break;
+			case "case": t.kind = 19; break;
+			case "decreases": t.kind = 20; break;
+			case "invariant": t.kind = 21; break;
+			case "map": t.kind = 22; break;
+			case "modifies": t.kind = 23; break;
+			case "reads": t.kind = 24; break;
+			case "requires": t.kind = 25; break;
+			case "include": t.kind = 35; break;
+			case "abstract": t.kind = 36; break;
+			case "module": t.kind = 37; break;
+			case "refines": t.kind = 38; break;
+			case "import": t.kind = 39; break;
+			case "opened": t.kind = 40; break;
+			case "as": t.kind = 42; break;
+			case "default": t.kind = 43; break;
+			case "class": t.kind = 44; break;
+			case "extends": t.kind = 45; break;
+			case "trait": t.kind = 46; break;
+			case "ghost": t.kind = 47; break;
+			case "static": t.kind = 48; break;
+			case "datatype": t.kind = 49; break;
+			case "codatatype": t.kind = 50; break;
+			case "var": t.kind = 51; break;
+			case "newtype": t.kind = 52; break;
+			case "type": t.kind = 53; break;
+			case "iterator": t.kind = 55; break;
+			case "yields": t.kind = 56; break;
+			case "returns": t.kind = 57; break;
+			case "method": t.kind = 60; break;
+			case "lemma": t.kind = 61; break;
+			case "colemma": t.kind = 62; break;
+			case "comethod": t.kind = 63; break;
+			case "constructor": t.kind = 64; break;
+			case "free": t.kind = 65; break;
+			case "ensures": t.kind = 66; break;
+			case "yield": t.kind = 67; break;
+			case "bool": t.kind = 68; break;
+			case "char": t.kind = 69; break;
+			case "nat": t.kind = 70; break;
+			case "int": t.kind = 71; break;
+			case "real": t.kind = 72; break;
+			case "set": t.kind = 73; break;
+			case "multiset": t.kind = 74; break;
+			case "seq": t.kind = 75; break;
+			case "string": t.kind = 76; break;
+			case "object": t.kind = 77; break;
 			case "function": t.kind = 78; break;
 			case "predicate": t.kind = 79; break;
 			case "copredicate": t.kind = 80; break;
@@ -705,25 +705,25 @@ public class Scanner {
 			case 31:
 				{t.kind = 12; break;}
 			case 32:
-				{t.kind = 13; break;}
-			case 33:
 				{t.kind = 14; break;}
-			case 34:
+			case 33:
 				{t.kind = 15; break;}
+			case 34:
+				{t.kind = 16; break;}
 			case 35:
-				{t.kind = 25; break;}
-			case 36:
 				{t.kind = 26; break;}
-			case 37:
+			case 36:
 				{t.kind = 27; break;}
-			case 38:
+			case 37:
 				{t.kind = 28; break;}
-			case 39:
+			case 38:
 				{t.kind = 29; break;}
-			case 40:
+			case 39:
 				{t.kind = 30; break;}
-			case 41:
+			case 40:
 				{t.kind = 31; break;}
+			case 41:
+				{t.kind = 32; break;}
 			case 42:
 				if (ch == 'n') {AddCh(); goto case 43;}
 				else {goto case 0;}
@@ -734,9 +734,9 @@ public class Scanner {
 				{
 					tlen -= apx;
 					SetScannerBehindT();
-					t.kind = 32; break;}
+					t.kind = 33; break;}
 			case 45:
-				{t.kind = 33; break;}
+				{t.kind = 34; break;}
 			case 46:
 				recEnd = pos; recKind = 2;
 				if (ch >= '0' && ch <= '9') {AddCh(); goto case 46;}
@@ -886,39 +886,39 @@ public class Scanner {
 				if (ch == '|') {AddCh(); goto case 81;}
 				else {t.kind = 10; break;}
 			case 91:
-				recEnd = pos; recKind = 40;
-				if (ch == '>') {AddCh(); goto case 33;}
-				else if (ch == '=') {AddCh(); goto case 97;}
-				else {t.kind = 40; break;}
+				recEnd = pos; recKind = 13;
+				if (ch == '.') {AddCh(); goto case 97;}
+				else {t.kind = 13; break;}
 			case 92:
+				recEnd = pos; recKind = 41;
+				if (ch == '>') {AddCh(); goto case 33;}
+				else if (ch == '=') {AddCh(); goto case 98;}
+				else {t.kind = 41; break;}
+			case 93:
 				recEnd = pos; recKind = 122;
 				if (ch == '>') {AddCh(); goto case 34;}
 				else {t.kind = 122; break;}
-			case 93:
+			case 94:
 				recEnd = pos; recKind = 115;
 				if (ch == 'i') {AddCh(); goto case 42;}
 				else if (ch == '=') {AddCh(); goto case 69;}
 				else {t.kind = 115; break;}
-			case 94:
-				recEnd = pos; recKind = 77;
-				if (ch == '.') {AddCh(); goto case 98;}
-				else {t.kind = 77; break;}
 			case 95:
-				recEnd = pos; recKind = 57;
-				if (ch == '=') {AddCh(); goto case 99;}
-				else {t.kind = 57; break;}
-			case 96:
 				recEnd = pos; recKind = 58;
-				if (ch == '=') {AddCh(); goto case 68;}
+				if (ch == '=') {AddCh(); goto case 99;}
 				else {t.kind = 58; break;}
+			case 96:
+				recEnd = pos; recKind = 59;
+				if (ch == '=') {AddCh(); goto case 68;}
+				else {t.kind = 59; break;}
 			case 97:
-				recEnd = pos; recKind = 53;
-				if (ch == '>') {AddCh(); goto case 75;}
-				else {t.kind = 53; break;}
-			case 98:
 				recEnd = pos; recKind = 132;
 				if (ch == '.') {AddCh(); goto case 45;}
 				else {t.kind = 132; break;}
+			case 98:
+				recEnd = pos; recKind = 54;
+				if (ch == '>') {AddCh(); goto case 75;}
+				else {t.kind = 54; break;}
 			case 99:
 				recEnd = pos; recKind = 99;
 				if (ch == '=') {AddCh(); goto case 100;}

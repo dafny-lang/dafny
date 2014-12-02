@@ -28,3 +28,10 @@ function F(d: Dt): Dt
 {
   d[x := 5]
 }
+
+datatype NumericNames = NumNam(010: int)
+
+method UpdateNumNam(nn: NumericNames, y: int) returns (pp: NumericNames)
+{
+  pp := nn[010 := y];  // not to be confused with a field name 10
+}

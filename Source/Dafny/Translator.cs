@@ -10476,7 +10476,7 @@ namespace Microsoft.Dafny {
             var mem = recv as MemberSelectExpr;
             var fn = mem == null ? null : mem.Member as Function;
             if (fn != null) {
-              return TrExpr(new FunctionCallExpr(e.tok, fn.Name, mem.Obj, e.OpenParen, e.Args) {
+              return TrExpr(new FunctionCallExpr(e.tok, fn.Name, mem.Obj, e.tok, e.Args) {
                 Function = fn,
                 Type = e.Type,
                 TypeArgumentSubstitutions = Util.Dict(GetTypeParams(fn), mem.TypeApplication)
@@ -13066,7 +13066,7 @@ namespace Microsoft.Dafny {
           ApplyExpr e = (ApplyExpr)expr;
           Expression fn = Substitute(e.Function);
           List<Expression> args = SubstituteExprList(e.Args);
-          newExpr = new ApplyExpr(e.tok, e.OpenParen, fn, args);
+          newExpr = new ApplyExpr(e.tok, fn, args);
 
         } else if (expr is DatatypeValue) {
           DatatypeValue dtv = (DatatypeValue)expr;

@@ -24,16 +24,16 @@ Execution trace:
     SmallTests.dfy(84,5): anon8_LoopHead
     (0,0): anon8_LoopBody
     (0,0): anon9_Then
-SmallTests.dfy(119,5): Error: call may violate context's modifies clause
+SmallTests.dfy(119,6): Error: call may violate context's modifies clause
 Execution trace:
     (0,0): anon0
     (0,0): anon4_Else
     (0,0): anon3
-SmallTests.dfy(132,9): Error: call may violate context's modifies clause
+SmallTests.dfy(132,10): Error: call may violate context's modifies clause
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Then
-SmallTests.dfy(134,9): Error: call may violate context's modifies clause
+SmallTests.dfy(134,10): Error: call may violate context's modifies clause
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Else
@@ -174,7 +174,7 @@ Execution trace:
 SmallTests.dfy(621,5): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
 Execution trace:
     (0,0): anon0
-SmallTests.dfy(644,10): Error: assertion violation
+SmallTests.dfy(644,23): Error: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon8_Then

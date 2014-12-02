@@ -8,17 +8,17 @@ CoPrefix.dfy(168,15): Related location: This is the postcondition that might not
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Else
-CoPrefix.dfy(176,5): Error: cannot prove termination; try supplying a decreases clause
+CoPrefix.dfy(176,11): Error: cannot prove termination; try supplying a decreases clause
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Then
-CoPrefix.dfy(63,7): Error: failure to decrease termination measure
+CoPrefix.dfy(63,57): Error: failure to decrease termination measure
 Execution trace:
     (0,0): anon0
     (0,0): anon7_Then
     (0,0): anon8_Else
     (0,0): anon9_Then
-CoPrefix.dfy(76,7): Error: cannot prove termination; try supplying a decreases clause
+CoPrefix.dfy(76,56): Error: cannot prove termination; try supplying a decreases clause
 Execution trace:
     (0,0): anon0
     (0,0): anon7_Then

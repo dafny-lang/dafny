@@ -47,11 +47,11 @@ Execution trace:
     (0,0): anon23_Then
     (0,0): anon24_Else
     (0,0): anon25_Then
-Datatypes.dfy(170,14): Error: assertion violation
+Datatypes.dfy(170,16): Error: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon4_Then
-Datatypes.dfy(172,14): Error: assertion violation
+Datatypes.dfy(172,16): Error: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon4_Else

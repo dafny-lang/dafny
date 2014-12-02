@@ -8,11 +8,11 @@ Modules0.dfy(56,21): Error: Undeclared top-level type or type parameter: MyClass
 Modules0.dfy(57,21): Error: Undeclared top-level type or type parameter: MyClass2 (did you forget to qualify a name?)
 Modules0.dfy(68,21): Error: Undeclared top-level type or type parameter: MyClass2 (did you forget to qualify a name?)
 Modules0.dfy(76,9): Error: type MyClass1 does not have a member Down
-Modules0.dfy(76,6): Error: expected method call, found expression
+Modules0.dfy(76,13): Error: expected method call, found expression
 Modules0.dfy(79,9): Error: type MyClass0 does not have a member Down
-Modules0.dfy(79,6): Error: expected method call, found expression
+Modules0.dfy(79,13): Error: expected method call, found expression
 Modules0.dfy(84,8): Error: type MyClassY does not have a member M
-Modules0.dfy(84,6): Error: expected method call, found expression
+Modules0.dfy(84,9): Error: expected method call, found expression
 Modules0.dfy(92,19): Error: Undeclared top-level type or type parameter: ClassG (did you forget to qualify a name?)
 Modules0.dfy(224,15): Error: Undeclared top-level type or type parameter: X (did you forget to qualify a name?)
 Modules0.dfy(224,8): Error: new can be applied only to reference types (got X)
@@ -23,12 +23,12 @@ Modules0.dfy(283,19): Error: Undeclared top-level type or type parameter: D (did
 Modules0.dfy(283,12): Error: new can be applied only to reference types (got D)
 Modules0.dfy(286,25): Error: type of the receiver is not fully determined at this program point
 Modules0.dfy(287,16): Error: type of the receiver is not fully determined at this program point
-Modules0.dfy(287,6): Error: expected method call, found expression
+Modules0.dfy(287,17): Error: expected method call, found expression
 Modules0.dfy(288,16): Error: type of the receiver is not fully determined at this program point
-Modules0.dfy(288,6): Error: expected method call, found expression
+Modules0.dfy(288,17): Error: expected method call, found expression
 Modules0.dfy(310,24): Error: module Q_Imp does not exist
 Modules0.dfy(102,6): Error: type MyClassY does not have a member M
-Modules0.dfy(102,4): Error: expected method call, found expression
+Modules0.dfy(102,7): Error: expected method call, found expression
 Modules0.dfy(127,11): Error: ghost variables are allowed only in specification contexts
 Modules0.dfy(141,11): Error: old expressions are allowed only in specification and ghost contexts
 Modules0.dfy(142,11): Error: fresh expressions are allowed only in specification and ghost contexts

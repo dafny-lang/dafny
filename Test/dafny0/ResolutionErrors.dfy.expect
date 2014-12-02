@@ -16,27 +16,27 @@ ResolutionErrors.dfy(608,15): Error: 'new' is not allowed in ghost contexts
 ResolutionErrors.dfy(608,15): Error: only ghost methods can be called from this context
 ResolutionErrors.dfy(608,10): Error: ghost variables are allowed only in specification contexts
 ResolutionErrors.dfy(617,17): Error: 'new' is not allowed in ghost contexts
-ResolutionErrors.dfy(619,20): Error: only ghost methods can be called from this context
-ResolutionErrors.dfy(621,8): Error: calls to methods with side-effects are not allowed inside a hint
+ResolutionErrors.dfy(619,29): Error: only ghost methods can be called from this context
+ResolutionErrors.dfy(621,17): Error: calls to methods with side-effects are not allowed inside a hint
 ResolutionErrors.dfy(639,21): Error: the type of this variable is underspecified
-ResolutionErrors.dfy(676,8): Error: calls to methods with side-effects are not allowed inside a hint
-ResolutionErrors.dfy(686,8): Error: only ghost methods can be called from this context
+ResolutionErrors.dfy(676,18): Error: calls to methods with side-effects are not allowed inside a hint
+ResolutionErrors.dfy(686,22): Error: only ghost methods can be called from this context
 ResolutionErrors.dfy(689,20): Error: 'decreases *' is not allowed on ghost loops
 ResolutionErrors.dfy(700,16): Error: Assignment to non-ghost field is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)
 ResolutionErrors.dfy(700,16): Error: a hint is not allowed to update heap locations
 ResolutionErrors.dfy(701,21): Error: a hint is not allowed to update heap locations
-ResolutionErrors.dfy(702,8): Error: calls to methods with side-effects are not allowed inside a hint
+ResolutionErrors.dfy(702,18): Error: calls to methods with side-effects are not allowed inside a hint
 ResolutionErrors.dfy(705,19): Error: a while statement used inside a hint is not allowed to have a modifies clause
-ResolutionErrors.dfy(724,8): Error: only ghost methods can be called from this context
+ResolutionErrors.dfy(724,22): Error: only ghost methods can be called from this context
 ResolutionErrors.dfy(727,20): Error: 'decreases *' is not allowed on ghost loops
 ResolutionErrors.dfy(732,16): Error: Assignment to non-ghost field is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)
 ResolutionErrors.dfy(732,16): Error: a hint is not allowed to update heap locations
 ResolutionErrors.dfy(733,21): Error: a hint is not allowed to update heap locations
-ResolutionErrors.dfy(734,8): Error: calls to methods with side-effects are not allowed inside a hint
+ResolutionErrors.dfy(734,9): Error: calls to methods with side-effects are not allowed inside a hint
 ResolutionErrors.dfy(737,19): Error: a while statement used inside a hint is not allowed to have a modifies clause
-ResolutionErrors.dfy(762,4): Error: calls to methods with side-effects are not allowed inside a statement expression
-ResolutionErrors.dfy(763,4): Error: only ghost methods can be called from this context
-ResolutionErrors.dfy(764,4): Error: wrong number of method result arguments (got 0, expected 1)
+ResolutionErrors.dfy(762,17): Error: calls to methods with side-effects are not allowed inside a statement expression
+ResolutionErrors.dfy(763,18): Error: only ghost methods can be called from this context
+ResolutionErrors.dfy(764,18): Error: wrong number of method result arguments (got 0, expected 1)
 ResolutionErrors.dfy(775,23): Error: function calls are allowed only in specification contexts (consider declaring the function a 'function method')
 ResolutionErrors.dfy(785,4): Error: ghost variables are allowed only in specification contexts
 ResolutionErrors.dfy(796,36): Error: ghost variables are allowed only in specification contexts
@@ -92,13 +92,13 @@ ResolutionErrors.dfy(50,13): Error: 'this' is not allowed in a 'static' context
 ResolutionErrors.dfy(111,9): Error: ghost variables are allowed only in specification contexts
 ResolutionErrors.dfy(112,9): Error: function calls are allowed only in specification contexts (consider declaring the function a 'function method')
 ResolutionErrors.dfy(116,11): Error: ghost variables are allowed only in specification contexts
-ResolutionErrors.dfy(117,9): Error: actual out-parameter 0 is required to be a ghost variable
+ResolutionErrors.dfy(117,10): Error: actual out-parameter 0 is required to be a ghost variable
 ResolutionErrors.dfy(124,15): Error: ghost variables are allowed only in specification contexts
 ResolutionErrors.dfy(128,23): Error: ghost variables are allowed only in specification contexts
 ResolutionErrors.dfy(135,4): Error: ghost variables are allowed only in specification contexts
 ResolutionErrors.dfy(139,21): Error: ghost variables are allowed only in specification contexts
 ResolutionErrors.dfy(140,35): Error: ghost variables are allowed only in specification contexts
-ResolutionErrors.dfy(149,9): Error: only ghost methods can be called from this context
+ResolutionErrors.dfy(149,10): Error: only ghost methods can be called from this context
 ResolutionErrors.dfy(155,16): Error: 'decreases *' is not allowed on ghost loops
 ResolutionErrors.dfy(196,27): Error: ghost-context break statement is not allowed to break out of non-ghost structure
 ResolutionErrors.dfy(219,12): Error: ghost-context break statement is not allowed to break out of non-ghost loop
@@ -124,32 +124,31 @@ ResolutionErrors.dfy(12,16): Error: 'decreases *' is not allowed on ghost loops
 ResolutionErrors.dfy(24,11): Error: array selection requires an array2 (got array3<T>)
 ResolutionErrors.dfy(25,12): Error: sequence/array/multiset/map selection requires a sequence, array, multiset, or map (got array3<T>)
 ResolutionErrors.dfy(26,11): Error: array selection requires an array4 (got array<T>)
-ResolutionErrors.dfy(56,14): Error: a field must be selected via an object, not just a class name
+ResolutionErrors.dfy(56,14): Error: accessing member 'X' requires an instance expression
 ResolutionErrors.dfy(57,7): Error: unresolved identifier: F
-ResolutionErrors.dfy(58,14): Error: an instance function must be selected via an object, not just a class name
-ResolutionErrors.dfy(58,7): Error: call to instance function requires an instance
+ResolutionErrors.dfy(58,14): Error: accessing member 'F' requires an instance expression
 ResolutionErrors.dfy(59,7): Error: unresolved identifier: G
 ResolutionErrors.dfy(61,7): Error: unresolved identifier: M
-ResolutionErrors.dfy(62,7): Error: call to instance method requires an instance
+ResolutionErrors.dfy(62,14): Error: accessing member 'M' requires an instance expression
 ResolutionErrors.dfy(63,7): Error: unresolved identifier: N
-ResolutionErrors.dfy(66,8): Error: non-function expression is called with parameters
-ResolutionErrors.dfy(67,14): Error: member z does not exist in class Global
+ResolutionErrors.dfy(66,8): Error: non-function expression (of type int) is called with parameters
+ResolutionErrors.dfy(67,14): Error: member 'z' does not exist in type 'Global'
 ResolutionErrors.dfy(86,12): Error: the name 'Benny' denotes a datatype constructor, but does not do so uniquely; add an explicit qualification (for example, 'Abc.Benny')
 ResolutionErrors.dfy(91,12): Error: the name 'David' denotes a datatype constructor, but does not do so uniquely; add an explicit qualification (for example, 'Abc.David')
 ResolutionErrors.dfy(92,12): Error: the name 'David' denotes a datatype constructor, but does not do so uniquely; add an explicit qualification (for example, 'Abc.David')
 ResolutionErrors.dfy(94,12): Error: the name 'David' denotes a datatype constructor, but does not do so uniquely; add an explicit qualification (for example, 'Abc.David')
-ResolutionErrors.dfy(96,12): Error: wrong number of arguments to datatype constructor Abc (found 2, expected 1)
+ResolutionErrors.dfy(96,16): Error: wrong number of arguments to datatype constructor David (found 2, expected 1)
 ResolutionErrors.dfy(258,4): Error: label shadows an enclosing label
 ResolutionErrors.dfy(263,2): Error: duplicate label
 ResolutionErrors.dfy(289,4): Error: when allocating an object of type 'ClassWithConstructor', one of its constructor methods must be called
 ResolutionErrors.dfy(290,4): Error: when allocating an object of type 'ClassWithConstructor', one of its constructor methods must be called
-ResolutionErrors.dfy(292,4): Error: a constructor is allowed to be called only when an object is being allocated
+ResolutionErrors.dfy(292,9): Error: a constructor is allowed to be called only when an object is being allocated
 ResolutionErrors.dfy(306,16): Error: arguments must have the same type (got int and DTD_List)
 ResolutionErrors.dfy(307,16): Error: arguments must have the same type (got DTD_List and int)
 ResolutionErrors.dfy(308,25): Error: arguments must have the same type (got bool and int)
 ResolutionErrors.dfy(311,18): Error: ghost fields are allowed only in specification contexts
 ResolutionErrors.dfy(320,15): Error: ghost variables are allowed only in specification contexts
-ResolutionErrors.dfy(345,2): Error: incorrect type of method in-parameter 1 (expected GenericClass<int>, got GenericClass<bool>)
+ResolutionErrors.dfy(345,5): Error: incorrect type of method in-parameter 1 (expected GenericClass<int>, got GenericClass<bool>)
 ResolutionErrors.dfy(357,18): Error: incorrect type of datatype constructor argument (found GList<_T0>, expected GList<int>)
 ResolutionErrors.dfy(365,6): Error: arguments to + must be of a numeric type or a collection type (instead got bool)
 ResolutionErrors.dfy(370,6): Error: all lines in a calculation must have the same type (got int after bool)
@@ -160,7 +159,7 @@ ResolutionErrors.dfy(374,10): Error: second argument to ==> must be of type bool
 ResolutionErrors.dfy(379,10): Error: first argument to ==> must be of type bool (instead got int)
 ResolutionErrors.dfy(379,10): Error: second argument to ==> must be of type bool (instead got int)
 ResolutionErrors.dfy(384,6): Error: print statement is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)
-ResolutionErrors.dfy(406,6): Error: calls to methods with side-effects are not allowed inside a hint
+ResolutionErrors.dfy(406,9): Error: calls to methods with side-effects are not allowed inside a hint
 ResolutionErrors.dfy(408,12): Error: a hint is not allowed to update heap locations
 ResolutionErrors.dfy(410,8): Error: a hint is not allowed to update a variable declared outside the hint
 ResolutionErrors.dfy(467,7): Error: ghost variables are allowed only in specification contexts
@@ -174,14 +173,13 @@ ResolutionErrors.dfy(653,11): Error: lemmas are not allowed to have modifies cla
 ResolutionErrors.dfy(913,9): Error: unresolved identifier: s
 ResolutionErrors.dfy(924,32): Error: RHS (of type (int,int,real)) not assignable to LHS (of type (int,real,int))
 ResolutionErrors.dfy(925,37): Error: RHS (of type (int,real,int)) not assignable to LHS (of type (int,real,int,real))
-ResolutionErrors.dfy(931,9): Error: condition is expected to be of type bool, but is int
+ResolutionErrors.dfy(931,16): Error: condition is expected to be of type bool, but is int
 ResolutionErrors.dfy(932,16): Error: member 3 does not exist in datatype _tuple#3
 ResolutionErrors.dfy(932,26): Error: member x does not exist in datatype _tuple#2
-ResolutionErrors.dfy(932,18): Error: arguments must have the same type (got (int,int,int) and (int,int))
 ResolutionErrors.dfy(955,15): Error: arguments to / must have the same type (got real and int)
 ResolutionErrors.dfy(956,10): Error: second argument to % must be of type int (instead got real)
 ResolutionErrors.dfy(1101,8): Error: new cannot be applied to a trait
 ResolutionErrors.dfy(1122,13): Error: first argument to / must be of numeric type (instead got set<bool>)
-ResolutionErrors.dfy(1129,2): Error: a call to a possibly non-terminating method is allowed only if the calling method is also declared (with 'decreases *') to be possibly non-terminating
+ResolutionErrors.dfy(1129,18): Error: a call to a possibly non-terminating method is allowed only if the calling method is also declared (with 'decreases *') to be possibly non-terminating
 ResolutionErrors.dfy(1144,14): Error: a possibly infinite loop is allowed only if the enclosing method is declared (with 'decreases *') to be possibly non-terminating
-186 resolution/type errors detected in ResolutionErrors.dfy
+184 resolution/type errors detected in ResolutionErrors.dfy

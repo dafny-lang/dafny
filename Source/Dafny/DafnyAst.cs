@@ -311,17 +311,6 @@ namespace Microsoft.Dafny {
     // Type arguments to the type
     public List<Type> TypeArgs = new List<Type> { };
 
-    /// <summary>
-    /// Used in error situations in order to reduce further error messages.
-    /// </summary>
-    //[Pure(false)]
-    public static Type Flexible {
-      get {
-        Contract.Ensures(Contract.Result<Type>() != null);
-        return new InferredTypeProxy();
-      }
-    }
-
     [Pure]
     public abstract string TypeName(ModuleDefinition/*?*/ context);
     [Pure]
@@ -5295,6 +5284,47 @@ namespace Microsoft.Dafny {
       : base(tok, name) { }
   }
 
+  /// <summary>
+  /// This class is used only inside the resolver itself. It gets hung in the AST in uncompleted name segments.
+  /// </summary>
+  class Resolver_IdentifierExpr : Expression
+  {
+    public readonly TopLevelDecl Decl;
+    [ContractInvariantMethod]
+    void ObjectInvariant() {
+      Contract.Invariant(Decl != null);
+      Contract.Invariant(Type == null || Type is ResolverType_Module || Type is ResolverType_Type);
+    }
+
+    public class ResolverType_Module : Type
+    {
+      [Pure]
+      public override string TypeName(ModuleDefinition context) {
+        return "#module";
+      }
+      public override bool Equals(Type that) {
+        return that is ResolverType_Module;
+      }
+    }
+    public class ResolverType_Type : Type {
+      [Pure]
+      public override string TypeName(ModuleDefinition context) {
+        return "#type";
+      }
+      public override bool Equals(Type that) {
+        return that is ResolverType_Type;
+      }
+    }
+
+    public Resolver_IdentifierExpr(IToken tok, TopLevelDecl decl)
+      : base(tok) {
+      Contract.Requires(tok != null);
+      Contract.Requires(decl != null);
+      Decl = decl;
+      Type = decl is ModuleDecl ? (Type)new ResolverType_Module() : new ResolverType_Type();
+    }
+  }
+
   public abstract class DisplayExpression : Expression {
     public readonly List<Expression> Elements;
     [ContractInvariantMethod]
@@ -5353,7 +5383,6 @@ namespace Microsoft.Dafny {
     }
   }
 
-  // Former FieldSelectExpression
   public class MemberSelectExpr : Expression {
     public readonly Expression Obj;
     public readonly string MemberName;
@@ -5525,7 +5554,6 @@ namespace Microsoft.Dafny {
     // Make a FunctionCallExpr otherwise, to call a resolvable anonymous function.
     public readonly Expression Function;
     public readonly List<Expression> Args;
-    public readonly IToken OpenParen;
 
     public override IEnumerable<Expression> SubExpressions {
       get {
@@ -5536,11 +5564,10 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public ApplyExpr(IToken tok, IToken openParen, Expression receiver, List<Expression> args)
+    public ApplyExpr(IToken tok, Expression fn, List<Expression> args)
       : base(tok)
     {
-      OpenParen = openParen;
-      Function = receiver;
+      Function = fn;
       Args = args;
     }
   }
@@ -6820,26 +6847,100 @@ namespace Microsoft.Dafny {
   }
 
   /// <summary>
-  /// An ExprDotName desugars into either a FieldSelectExpr or a FunctionCallExpr (with a parameterless predicate function).
+  /// The parsing and resolution/type checking of expressions of the forms
+  ///   0. ident &lt; Types &gt;
+  ///   1. Expr . ident &lt; Types &gt;
+  ///   2. Expr ( Exprs )
+  ///   3. Expr [ Exprs ]
+  ///   4. Expr [ Expr .. Expr ]
+  /// is done as follows.  These forms are parsed into the following AST classes:
+  ///   0. NameSegment
+  ///   1. ExprDotName
+  ///   2. ApplySuffix
+  ///   3. SeqSelectExpr or MultiSelectExpr
+  ///   4. SeqSelectExpr
+  ///   
+  /// The first three of these inherit from ConcreteSyntaxExpression.  The resolver will resolve
+  /// these into:
+  ///   0. IdentifierExpr or MemberSelectExpr (with .Lhs set to ImplicitThisExpr or StaticReceiverExpr)
+  ///   1. IdentifierExpr or MemberSelectExpr
+  ///   2. FuncionCallExpr or ApplyExpr
+  ///   
+  /// The IdentifierExpr's that forms 0 and 1 can turn into sometimes denote the name of a module or
+  /// type.  The .Type field of the corresponding resolved expressions are then the special Type subclasses
+  /// ResolutionType_Module and ResolutionType_Type, respectively.  These will not be seen by the
+  /// verifier or compiler, since, in a well-formed program, the verifier and compiler will use the
+  /// .ResolvedExpr field of whatever form-1 expression contains these.
+  /// 
+  /// Notes:
+  ///   * IdentifierExpr and FunctionCallExpr are resolved-only expressions (that is, they don't contain
+  ///     all the syntactic components that were used to parse them).
+  ///   * Rather than the current SeqSelectExpr/MultiSelectExpr split of forms 3 and 4, it would
+  ///     seem more natural to refactor these into 3: IndexSuffixExpr and 4: RangeSuffixExpr.
   /// </summary>
-  public class ExprDotName : ConcreteSyntaxExpression
+  abstract public class SuffixExpr : ConcreteSyntaxExpression {
+    public readonly Expression Lhs;
+    public SuffixExpr(IToken tok, Expression lhs)
+      : base(tok) {
+      Contract.Requires(tok != null);
+      Contract.Requires(lhs != null);
+      Lhs = lhs;
+    }
+  }
+
+  public class NameSegment : ConcreteSyntaxExpression
   {
-    public readonly Expression Obj;
+    public readonly string Name;
+    public readonly List<Type> OptTypeArguments;
+    public NameSegment(IToken tok, string name, List<Type> optTypeArguments)
+      : base(tok) {
+      Contract.Requires(tok != null);
+      Contract.Requires(name != null);
+      Name = name;
+      OptTypeArguments = optTypeArguments;
+    }
+  }
+
+  /// <summary>
+  /// An ExprDotName desugars into either an IdentifierExpr (if the Lhs is a static name) or a MemberSelectExpr (if the Lhs is a computed expression).
+  /// </summary>
+  public class ExprDotName : SuffixExpr
+  {
     public readonly string SuffixName;
+    public readonly List<Type> OptTypeArguments;
 
     [ContractInvariantMethod]
     void ObjectInvariant() {
-      Contract.Invariant(Obj != null);
       Contract.Invariant(SuffixName != null);
     }
 
     public ExprDotName(IToken tok, Expression obj, string suffixName)
-      : base(tok) {
+      : base(tok, obj) {
       Contract.Requires(tok != null);
       Contract.Requires(obj != null);
       Contract.Requires(suffixName != null);
-      this.Obj = obj;
       this.SuffixName = suffixName;
+    }
+  }
+
+  /// <summary>
+  /// An ApplySuffix desugars into either an ApplyExpr or a FunctionCallExpr
+  /// </summary>
+  public class ApplySuffix : SuffixExpr
+  {
+    public readonly List<Expression> Args;
+
+    [ContractInvariantMethod]
+    void ObjectInvariant() {
+      Contract.Invariant(Args != null);
+    }
+
+    public ApplySuffix(IToken tok, Expression lhs, List<Expression> args)
+      : base(tok, lhs) {
+      Contract.Requires(tok != null);
+      Contract.Requires(lhs != null);
+      Contract.Requires(cce.NonNullElements(args));
+      Args = args;
     }
   }
 

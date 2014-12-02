@@ -25,7 +25,7 @@ Execution trace:
     (0,0): anon0
     (0,0): anon5_Else
     (0,0): anon6_Then
-NatTypes.dfy(92,19): Error: value assigned to a nat must be non-negative
+NatTypes.dfy(92,22): Error: value assigned to a nat must be non-negative
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Then
@@ -35,7 +35,7 @@ Execution trace:
     (0,0): anon6_Else
     (0,0): anon7_Else
     (0,0): anon8_Then
-NatTypes.dfy(130,21): Error: value assigned to a nat must be non-negative
+NatTypes.dfy(130,35): Error: value assigned to a nat must be non-negative
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Then

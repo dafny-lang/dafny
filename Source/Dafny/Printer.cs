@@ -133,8 +133,28 @@ namespace Microsoft.Dafny {
         wr.WriteLine("*/");
       }
       wr.WriteLine();
+      PrintCallGraph(prog.DefaultModuleDef, 0);
       PrintTopLevelDecls(prog.DefaultModuleDef.TopLevelDecls, 0, Path.GetFullPath(prog.Name));
       wr.Flush();
+    }
+
+    public void PrintCallGraph(ModuleDefinition module, int indent) {
+      Contract.Requires(module != null);
+      Contract.Requires(0 <= indent);
+      if (DafnyOptions.O.DafnyPrintResolvedFile != null) {
+        // print call graph
+        Indent(indent); wr.WriteLine("/* CALL GRAPH for module {0}:", module.Name);
+        var SCCs = module.CallGraph.TopologicallySortedComponents();
+        SCCs.Reverse();
+        foreach (var clbl in SCCs) {
+          Indent(indent); wr.WriteLine(" * SCC at height {0}:", module.CallGraph.GetSCCRepresentativeId(clbl));
+          var r = module.CallGraph.GetSCC(clbl);
+          foreach (var m in r) {
+            Indent(indent); wr.WriteLine(" *   {0}", m.NameRelativeToModule);
+          }
+        }
+        Indent(indent); wr.WriteLine(" */");
+      }
     }
 
     public void PrintTopLevelDecls(List<TopLevelDecl> decls, int indent, string fileBeingPrinted) {
@@ -247,6 +267,7 @@ namespace Microsoft.Dafny {
         wr.WriteLine("{ }");
       } else {
         wr.WriteLine("{");
+        PrintCallGraph(module, indent + IndentAmount);
         PrintTopLevelDecls(module.TopLevelDecls, indent + IndentAmount, fileBeingPrinted);
         Indent(indent);
         wr.WriteLine("}");
@@ -1207,6 +1228,25 @@ namespace Microsoft.Dafny {
           Indent(indent);
           wr.WriteLine("}");
         }
+      } else if (expr is LetExpr) {
+        var e = (LetExpr)expr;
+        Indent(indent);
+        wr.Write("var ");
+        string sep = "";
+        foreach (var lhs in e.LHSs) {
+          wr.Write(sep);
+          PrintCasePattern(lhs);
+          sep = ", ";
+        }
+        if (e.Exact) {
+          wr.Write(" := ");
+        } else {
+          wr.Write(" :| ");
+        }
+        PrintExpressionList(e.RHSs, true);
+        wr.WriteLine(";");
+        PrintExtendedExpr(e.Body, indent, isRightmost, endWithCloseParen);
+
       } else if (expr is ParensExpression) {
         PrintExtendedExpr(((ParensExpression)expr).E, indent, isRightmost, endWithCloseParen);
       } else {
@@ -1320,20 +1360,45 @@ namespace Microsoft.Dafny {
         wr.Write("[");
         PrintExpressionPairList(e.Elements);
         wr.Write("]");
+
+      } else if (expr is NameSegment) {
+        var e = (NameSegment)expr;
+        wr.Write(e.Name);
+
       } else if (expr is ExprDotName) {
         var e = (ExprDotName)expr;
         // determine if parens are needed
         int opBindingStrength = 0x70;
-        bool parensNeeded = !(e.Obj is ImplicitThisExpr) &&
+        bool parensNeeded = !(e.Lhs is ImplicitThisExpr) &&
           opBindingStrength < contextBindingStrength ||
           (fragileContext && opBindingStrength == contextBindingStrength);
 
         if (parensNeeded) { wr.Write("("); }
-        if (!(e.Obj is ImplicitThisExpr)) {
-          PrintExpr(e.Obj, opBindingStrength, false, false, !parensNeeded && isFollowedBySemicolon, -1);
+        if (!(e.Lhs is ImplicitThisExpr)) {
+          PrintExpr(e.Lhs, opBindingStrength, false, false, !parensNeeded && isFollowedBySemicolon, -1);
           wr.Write(".");
         }
         wr.Write(e.SuffixName);
+        if (parensNeeded) { wr.Write(")"); }
+      } else if (expr is ApplySuffix) {
+        var e = (ApplySuffix)expr;
+        // determine if parens are needed
+        int opBindingStrength = 0x70;
+        bool parensNeeded = !(e.Lhs is ImplicitThisExpr) &&
+          opBindingStrength < contextBindingStrength ||
+          (fragileContext && opBindingStrength == contextBindingStrength);
+
+        if (parensNeeded) { wr.Write("("); }
+        if (ParensMayMatter(e.Lhs)) {
+          wr.Write("(");
+          PrintExpression(e.Lhs, false);
+          wr.Write(")");
+        } else {
+          PrintExpr(e.Lhs, opBindingStrength, false, false, !parensNeeded && isFollowedBySemicolon, -1);
+        }
+        wr.Write("(");
+        PrintExpressionList(e.Args, false);
+        wr.Write(")");
         if (parensNeeded) { wr.Write(")"); }
 
       } else if (expr is MemberSelectExpr) {
@@ -1838,6 +1903,17 @@ namespace Microsoft.Dafny {
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected expression
       }
+    }
+
+    bool ParensMayMatter(Expression expr) {
+      Contract.Requires(expr != null);
+      int parenPairs = 0;
+      for (; expr is ParensExpression; parenPairs++) {
+        expr = ((ParensExpression)expr).E;
+      }
+      // If the program were resolved, we could be more precise than the following (in particular, looking
+      // to see if expr denotes a MemberSelectExpr of a member that is a Function.
+      return parenPairs != 0 && (expr is NameSegment || expr is ExprDotName);
     }
 
     void PrintCasePattern(CasePattern pat) {

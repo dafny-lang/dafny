@@ -10,11 +10,11 @@ Modules1.dfy(94,18): Error: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Else
-Modules1.dfy(56,3): Error: decreases expression must be bounded below by 0
+Modules1.dfy(56,9): Error: decreases expression must be bounded below by 0
 Modules1.dfy(54,13): Related location
 Execution trace:
     (0,0): anon0
-Modules1.dfy(62,3): Error: failure to decrease termination measure
+Modules1.dfy(62,9): Error: failure to decrease termination measure
 Execution trace:
     (0,0): anon0
 

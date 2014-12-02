@@ -107,11 +107,6 @@ bool IsLoopSpec() {
   return la.kind == _invariant | la.kind == _decreases | la.kind == _modifies;
 }
 
-bool IsLoopSpecOrAlternative() {
-  Token x = scanner.Peek();
-  return IsLoopSpec() || (la.kind == _lbrace && x.kind == _case);
-}
-
 bool IsParenStar() {
   scanner.ResetPeek();
   Token x = scanner.Peek();
@@ -162,6 +157,10 @@ bool IsNonFinalColon() {
 }
 bool IsMapDisplay() {
   return la.kind == _map && scanner.Peek().kind == _lbracket;
+}
+
+bool IsSuffix() {
+  return la.kind == _dot || la.kind == _lbracket || la.kind == _openparen;
 }
 
 string UnwildIdent(string x, bool allowWildcardId) {
@@ -227,9 +226,7 @@ bool IsIdentColonOrBar() {
 }
 
 bool SemiFollowsCall(bool allowSemi, Expression e) {
-  return allowSemi && la.kind == _semi &&
-    (e is FunctionCallExpr || e is ApplyExpr ||
-     (e is IdentifierSequence && ((IdentifierSequence)e).OpenParen != null));
+  return allowSemi && la.kind == _semi && e is ApplySuffix;
 }
 
 bool CloseOptionalBrace(bool usesOptionalBrace) {
@@ -304,6 +301,7 @@ TOKENS
   verticalbar = '|'.
   doublecolon = "::".
   bullet = '\u2022'.
+  dot = '.'.
   semi = ';'.
   darrow = "=>".
   arrow = "->".
@@ -396,8 +394,8 @@ SubModuleDecl<ModuleDefinition parent, out ModuleDecl submodule>
     { Attribute<ref attrs> }
     NoUSIdent<out id>
 
-      [ "refines" QualifiedName<out idRefined> ] (. module = new ModuleDefinition(id, id.val, isAbstract, false, idRefined == null ? null : idRefined, parent, attrs, false); .)
-       "{"                                       (. module.BodyStartTok = t; .)
+      [ "refines" QualifiedModuleName<out idRefined> ] (. module = new ModuleDefinition(id, id.val, isAbstract, false, idRefined == null ? null : idRefined, parent, attrs, false); .)
+       "{"                                             (. module.BodyStartTok = t; .)
         { SubModuleDecl<module, out sm>                (. module.TopLevelDecls.Add(sm); .)
         | ClassDecl<module, out c>                     (. module.TopLevelDecls.Add(c); .)
         | TraitDecl<module, out trait>                 (. module.TopLevelDecls.Add(trait); .)
@@ -413,9 +411,9 @@ SubModuleDecl<ModuleDefinition parent, out ModuleDecl submodule>
   |
     "import" ["opened" (.opened = true;.)]
     NoUSIdent<out id>
-    [ "=" QualifiedName<out idPath>
+    [ "=" QualifiedModuleName<out idPath>
       (. submodule = new AliasModuleDecl(idPath, id, parent, opened); .)
-    | "as" QualifiedName<out idPath>  ["default" QualifiedName<out idAssignment> ]
+    | "as" QualifiedModuleName<out idPath>  ["default" QualifiedModuleName<out idAssignment> ]
       (. submodule = new ModuleFacadeDecl(idPath, id, parent, idAssignment, opened); .)
     ]
     [ SYNC ";"
@@ -434,12 +432,11 @@ SubModuleDecl<ModuleDefinition parent, out ModuleDecl submodule>
   )
 .
 
-QualifiedName<.out List<IToken> ids.>
-= (. IToken id; IToken idPrime; ids = new List<IToken>(); .)
+/* This production is used to parse module names, where it is known that it is a module name that is expected. */
+QualifiedModuleName<.out List<IToken> ids.>
+= (. IToken id; ids = new List<IToken>(); .)
   Ident<out id>                               (. ids.Add(id); .)
-  { IdentOrDigitsSuffix<out id, out idPrime>  (. ids.Add(id);
-                                                 if (idPrime != null) { ids.Add(idPrime); }
-                                              .)
+  { "." Ident<out id>                         (. ids.Add(id); .)
   }
   .
 
@@ -1024,7 +1021,8 @@ ReferenceType<out IToken/*!*/ tok, out Type/*!*/ ty>
                                     .)
   | Ident<out tok>                  (. gt = new List<Type>();
                                        path = new List<IToken>(); .)
-    {                               (. path.Add(tok); .)
+    { IF(la.kind == _dot)  /* greedily parse as many identifiers as possible (if the next identifier really denotes a constructor in a "new" RHS, then it will be adjusted for later */
+                                    (. path.Add(tok); .)
       "." Ident<out tok>
     }
     [ GenericInstantiation<gt> ]    (. ty = new UserDefinedType(tok, tok.val, gt, path); .)
@@ -1131,7 +1129,7 @@ FunctionDecl<MemberModifiers mmod, out Function/*!*/ f>
      theBuiltIns.CreateArrowTypeDecl(formals.Count);
      if (isCoPredicate) {
        // also create an arrow type for the corresponding prefix predicate
-       theBuiltIns.CreateArrowTypeDecl(formals.Count);
+       theBuiltIns.CreateArrowTypeDecl(formals.Count + 1);
      }
   .)
   .
@@ -1155,21 +1153,6 @@ FunctionSpec<.List<Expression/*!*/>/*!*/ reqs, List<FrameExpression/*!*/>/*!*/ r
                                               .)
     DecreasesList<decreases, false, false> OldSemi
   )
-  .
-
-LambdaSpec<.out Expression req, List<FrameExpression> reads.>
-= (. Contract.Requires(reads != null);
-     Expression e; req = null;  FrameExpression fe; .)
-  { ( "requires" Expression<out e, true, false>
-        (. if (req == null) {
-             req = e;
-           } else {
-             req = new BinaryExpr(req.tok, BinaryExpr.Opcode.And, req, e);
-           }
-        .)
-    | "reads" PossiblyWildFrameExpression<out fe, true> (. reads.Add(fe); .)
-    )
-  }
   .
 
 PossiblyWildExpression<out Expression e, bool allowLambda>
@@ -1487,15 +1470,17 @@ AlternativeBlock<.out List<GuardedAlternative> alternatives, out IToken endTok.>
   }
   "}"                           (. endTok = t; .)
   .
-WhileStmt<out Statement/*!*/ stmt>
-= (. Contract.Ensures(Contract.ValueAtReturn(out stmt) != null); IToken/*!*/ x;
+WhileStmt<out Statement stmt>
+= (. Contract.Ensures(Contract.ValueAtReturn(out stmt) != null); IToken x;
      Expression guard = null;  IToken guardEllipsis = null;
-     List<MaybeFreeExpression/*!*/> invariants = new List<MaybeFreeExpression/*!*/>();
-     List<Expression/*!*/> decreases = new List<Expression/*!*/>();
+
+     List<MaybeFreeExpression> invariants = new List<MaybeFreeExpression>();
+     List<Expression> decreases = new List<Expression>();
      Attributes decAttrs = null;
      Attributes modAttrs = null;
-     List<FrameExpression/*!*/> mod = null;
-     BlockStmt/*!*/ body = null;  IToken bodyEllipsis = null;
+     List<FrameExpression> mod = null;
+
+     BlockStmt body = null;  IToken bodyEllipsis = null;
      IToken bodyStart = null, bodyEnd = null, endTok = Token.NoToken;
      List<GuardedAlternative> alternatives;
      stmt = dummyStmt;  // to please the compiler
@@ -1503,15 +1488,15 @@ WhileStmt<out Statement/*!*/ stmt>
   .)
   "while"                    (. x = t; .)
   (
-    IF(IsLoopSpecOrAlternative())
-    LoopSpec<out invariants, out decreases, out mod, ref decAttrs, ref modAttrs>
+    IF(IsLoopSpec() || IsAlternative())
+    { LoopSpec<invariants, decreases, ref mod, ref decAttrs, ref modAttrs> }
     AlternativeBlock<out alternatives, out endTok>
     (. stmt = new AlternativeLoopStmt(x, endTok, invariants, new Specification<Expression>(decreases, decAttrs), new Specification<FrameExpression>(mod, modAttrs), alternatives); .)
   |
     ( Guard<out guard>           (. Contract.Assume(guard == null || cce.Owner.None(guard)); .)
     | "..."                      (. guardEllipsis = t; .)
     )
-    LoopSpec<out invariants, out decreases, out mod, ref decAttrs, ref modAttrs>
+    { LoopSpec<invariants, decreases, ref mod, ref decAttrs, ref modAttrs> }
     ( IF(la.kind == _lbrace)      /* if there's an open brace, claim it as the beginning of the loop body (as opposed to a BlockStmt following the loop) */
       BlockStmt<out body, out bodyStart, out bodyEnd>  (. endTok = body.EndTok; isDirtyLoop = false; .)
     | IF(la.kind == _ellipsis)    /* if there's an ellipsis, claim it as standing for the loop body (as opposed to a "...;" statement following the loop) */
@@ -1538,38 +1523,31 @@ WhileStmt<out Statement/*!*/ stmt>
     .)
   )
   .
-LoopSpec<.out List<MaybeFreeExpression/*!*/> invariants, out List<Expression/*!*/> decreases, out List<FrameExpression/*!*/> mod, ref Attributes decAttrs, ref Attributes modAttrs.>
-= (. FrameExpression/*!*/ fe;
-     invariants = new List<MaybeFreeExpression/*!*/>();
-     MaybeFreeExpression invariant = null;
-     decreases = new List<Expression/*!*/>();
-     mod = null;
+LoopSpec<.List<MaybeFreeExpression> invariants, List<Expression> decreases, ref List<FrameExpression> mod, ref Attributes decAttrs, ref Attributes modAttrs.>
+= (. Expression e; FrameExpression fe;
+     bool isFree = false; Attributes attrs = null;
   .)
-  {
-    Invariant<out invariant> OldSemi   (. invariants.Add(invariant); .)
+  ( SYNC
+    [ "free"                                      (. isFree = true; errors.Warning(t, "the 'free' keyword is soon to be deprecated"); .)
+    ]
+    "invariant"
+    { IF(IsAttribute()) Attribute<ref attrs> }
+    Expression<out e, false, true>                (. invariants.Add(new MaybeFreeExpression(e, isFree, attrs)); .)
+    OldSemi
   | SYNC "decreases"
     { IF(IsAttribute()) Attribute<ref decAttrs> }
-    DecreasesList<decreases, true, true> OldSemi
-  | SYNC "modifies"
-    { IF(IsAttribute()) Attribute<ref modAttrs> } (. mod = mod ?? new List<FrameExpression>(); .)
-    [ FrameExpression<out fe, false, true>        (. mod.Add(fe); .)
-      { "," FrameExpression<out fe, false, true>  (. mod.Add(fe); .)
-      }
-    ] OldSemi
-  }
+    DecreasesList<decreases, true, true>
+    OldSemi
+  | SYNC "modifies"                               (. mod = mod ?? new List<FrameExpression>(); .)
+    { IF(IsAttribute()) Attribute<ref modAttrs> }
+    FrameExpression<out fe, false, true>          (. mod.Add(fe); .)
+    { "," FrameExpression<out fe, false, true>    (. mod.Add(fe); .)
+    }
+    OldSemi
+  )
   .
-Invariant<out MaybeFreeExpression/*!*/ invariant>
-= (. bool isFree = false; Expression/*!*/ e; List<string> ids = new List<string>(); invariant = null; Attributes attrs = null; .)
-    SYNC
-    ["free"                            (. isFree = true;
-                                          errors.Warning(t, "the 'free' keyword is soon to be deprecated");
-                                       .)
-    ]
-    "invariant" { IF(IsAttribute()) Attribute<ref attrs> }
-    Expression<out e, false, true>           (. invariant = new MaybeFreeExpression(e, isFree, attrs); .)
-  .
-DecreasesList<.List<Expression/*!*/> decreases, bool allowWildcard, bool allowLambda.>
-= (. Expression/*!*/ e; .)
+DecreasesList<.List<Expression> decreases, bool allowWildcard, bool allowLambda.>
+= (. Expression e; .)
   PossiblyWildExpression<out e, allowLambda> (. if (!allowWildcard && e is WildcardExpr) {
                                                   SemErr(e.tok, "'decreases *' is allowed only on loops and tail-recursive methods");
                                                 } else {
@@ -1758,17 +1736,16 @@ ModifyStmt<out Statement s>
   .)
   .
 
-CalcStmt<out Statement/*!*/ s>
+CalcStmt<out Statement s>
 = (. Contract.Ensures(Contract.ValueAtReturn(out s) != null);
      Token x;
-     CalcStmt.CalcOp/*!*/ op, calcOp = Microsoft.Dafny.CalcStmt.DefaultOp, resOp = Microsoft.Dafny.CalcStmt.DefaultOp;
-     var lines = new List<Expression/*!*/>();
-     var hints = new List<BlockStmt/*!*/>();
+     CalcStmt.CalcOp op, calcOp = Microsoft.Dafny.CalcStmt.DefaultOp, resOp = Microsoft.Dafny.CalcStmt.DefaultOp;
+     var lines = new List<Expression>();
+     var hints = new List<BlockStmt>();
      CalcStmt.CalcOp stepOp;
      var stepOps = new List<CalcStmt.CalcOp>();
      CalcStmt.CalcOp maybeOp;
-     Expression/*!*/ e;
-     BlockStmt/*!*/ h;
+     Expression e;
      IToken opTok;
      IToken danglingOperator = null;
   .)
@@ -1781,7 +1758,7 @@ CalcStmt<out Statement/*!*/ s>
                                                           .)
   ]
   "{"
-  { Expression<out e, false, true>                              (. lines.Add(e); stepOp = calcOp; danglingOperator = null; .)
+  { Expression<out e, false, true>                        (. lines.Add(e); stepOp = calcOp; danglingOperator = null; .)
     ";"
     [ CalcOp<out opTok, out op>                           (. maybeOp = resOp.ResultOp(op);
                                                              if (maybeOp == null) {
@@ -1792,10 +1769,25 @@ CalcStmt<out Statement/*!*/ s>
                                                                danglingOperator = opTok;
                                                              }
                                                           .)
-    ]                                                   (. stepOps.Add(stepOp); .)
-    Hint<out h>                                         (. hints.Add(h);
-                                                           if (h.Body.Count != 0) { danglingOperator = null; }
-                                                        .)
+    ]                                                     (. stepOps.Add(stepOp); .)
+
+    /* now for the hint, which we build up as a possibly empty sequence of statements placed into one BlockStmt */
+    (. var subhints = new List<Statement>();
+       IToken hintStart = la;  IToken hintEnd = hintStart;
+       IToken t0, t1;
+       BlockStmt subBlock; Statement subCalc;
+    .)
+    { IF(la.kind == _lbrace || la.kind == _calc)  /* Grab as a hint if possible, not a next line in the calculation whose expression begins with an open brace
+                                                   * or StmtExpr containing a calc.  A user has to rewrite such a line to be enclosed in parentheses.
+                                                   */
+      ( BlockStmt<out subBlock, out t0, out t1>   (. hintEnd = subBlock.EndTok; subhints.Add(subBlock); .)
+      | CalcStmt<out subCalc>                     (. hintEnd = subCalc.EndTok; subhints.Add(subCalc); .)
+      )
+    }
+    (. var h = new BlockStmt(hintStart, hintEnd, subhints); // if the hint is empty, hintStart is the first token of the next line, but it doesn't matter because the block statement is just used as a container
+       hints.Add(h);
+       if (h.Body.Count != 0) { danglingOperator = null; }
+    .)
   }
   "}"
   (.
@@ -1836,25 +1828,7 @@ CalcOp<out IToken x, out CalcStmt.CalcOp/*!*/ op>
     }
   .)
   .
-Hint<out BlockStmt s>
-= (. Contract.Ensures(Contract.ValueAtReturn(out s) != null); // returns an empty block statement if the hint is empty
-     var subhints = new List<Statement/*!*/>();
-     IToken bodyStart, bodyEnd;
-     BlockStmt/*!*/ block;
-     Statement/*!*/ calc;
-     Token x = la;
-     IToken endTok = x;
-  .)
-  { IF(la.kind == _lbrace || la.kind == _calc)  /* Grab as a hint if possible, not a next line in the calculation whose expression begins with an open brace
-                                                 * or StmtExpr containing a calc.  A user has to rewrite such a line to be enclosed in parentheses.
-                                                 */
-    ( BlockStmt<out block, out bodyStart, out bodyEnd>  (. endTok = block.EndTok; subhints.Add(block); .)
-    | CalcStmt<out calc>                                (. endTok = calc.EndTok; subhints.Add(calc); .)
-    )
-  }
-  (. s = new BlockStmt(x, endTok, subhints); // if the hint is empty x is the first token of the next line, but it doesn't matter cause the block statement is just used as a container
-  .)
-  .
+
 /*------------------------------------------------------------------------*/
 /* Note. In order to avoid LL(1) warnings for expressions that "parse as far as possible", it is
  * necessary to use Coco/R's IF construct.  That means there are two ways to check for some of
@@ -2130,25 +2104,25 @@ UnaryExpression<out Expression e, bool allowSemi, bool allowLambda>
   | IF(IsMapDisplay())  /* this alternative must be checked before going into EndlessExpression, where there is another "map" */
     "map"                                           (. x = t; .)
     MapDisplayExpr<x, out e>
-    { Suffix<ref e> }
+    { IF(IsSuffix()) Suffix<ref e> }
   | IF(IsLambda(allowLambda))
     LambdaExpression<out e, allowSemi>  /* this is an endless expression */
   | EndlessExpression<out e, allowSemi, allowLambda>
 
-  | DottedIdentifiersAndFunction<out e>
-    { Suffix<ref e> }
+  | NameSegment<out e>
+    { IF(IsSuffix()) Suffix<ref e> }
   | DisplayExpr<out e>
-    { Suffix<ref e> }
+    { IF(IsSuffix()) Suffix<ref e> }
   | MultiSetExpr<out e>
-    { Suffix<ref e> }
+    { IF(IsSuffix()) Suffix<ref e> }
   | ConstAtomExpression<out e, allowSemi, allowLambda>
-    { Suffix<ref e> }
+    { IF(IsSuffix()) Suffix<ref e> }
   )
   .
 Lhs<out Expression e>
 = (. e = dummyExpr;  // the assignment is to please the compiler, the dummy value to satisfy contracts in the event of a parse error
   .)
-  ( DottedIdentifiersAndFunction<out e>
+  ( NameSegment<out e>
     { Suffix<ref e> }
   | ConstAtomExpression<out e, false, false>
     Suffix<ref e>
@@ -2156,10 +2130,7 @@ Lhs<out Expression e>
   )
   .
 
-/* A ConstAtomExpression is never an l-value.  Also, a ConstAtomExpression is never followed by
- * an open paren (but could very well have a suffix that starts with a period or a square bracket).
- * (The "Also..." part may change if expressions in Dafny could yield functions.)
- */
+/* A ConstAtomExpression is never an l-value, and does not start with an identifier. */
 ConstAtomExpression<out Expression e, bool allowSemi, bool allowLambda>
 = (. Contract.Ensures(Contract.ValueAtReturn(out e) != null);
      IToken/*!*/ x;  BigInteger n;   Basetypes.BigDec d;
@@ -2202,10 +2173,11 @@ LambdaExpression<out Expression e, bool allowSemi>
 = (. IToken x = Token.NoToken;
      IToken id;  BoundVar bv;
      var bvs = new List<BoundVar>();
-     Expression body = null;
+     FrameExpression fe;  Expression ee;
+     var reads = new List<FrameExpression>();
      Expression req = null;
      bool oneShot;
-     var reads = new List<FrameExpression>();
+     Expression body = null;
   .)
   ( WildIdent<out id, true>                  (. x = t; bvs.Add(new BoundVar(id, id.val, new InferredTypeProxy())); .)
   | "("                                      (. x = t; .)
@@ -2216,7 +2188,9 @@ LambdaExpression<out Expression e, bool allowSemi>
       ]
     ")"
   )
-  LambdaSpec<out req, reads>
+  { "reads" PossiblyWildFrameExpression<out fe, true> (. reads.Add(fe); .)
+  | "requires" Expression<out ee, true, false>        (. req = req == null ? ee : new BinaryExpr(req.tok, BinaryExpr.Opcode.And, req, ee); .)
+  }
   LambdaArrow<out oneShot>
   Expression<out body, allowSemi, true>
   (. e = new LambdaExpr(x, oneShot, bvs, req, reads, body);
@@ -2224,8 +2198,8 @@ LambdaExpression<out Expression e, bool allowSemi>
   .)
   .
 ParensExpression<out Expression e, bool allowSemi, bool allowLambda>
-= (. IToken x;  IToken openParen;
-     List<Expression> args = new List<Expression>();
+= (. IToken x;
+     var args = new List<Expression>();
   .)
   "("                                        (. x = t; .)
   [ Expressions<args> ]
@@ -2238,15 +2212,10 @@ ParensExpression<out Expression e, bool allowSemi, bool allowLambda>
        e = new DatatypeValue(x, BuiltIns.TupleTypeName(args.Count), BuiltIns.TupleTypeCtorName, args);
      }
   .)
-  { "("                       (. openParen = t; args = new List<Expression>(); .)
-    [ Expressions<args> ]
-    ")"
-    (. e = new ApplyExpr(x, openParen, e, args); .)
-  }
   .
 DisplayExpr<out Expression e>
 = (. Contract.Ensures(Contract.ValueAtReturn(out e) != null);
-     IToken/*!*/ x = null;  List<Expression/*!*/>/*!*/ elements;
+     IToken x;  List<Expression> elements;
      e = dummyExpr;
   .)
   ( "{"                                        (. x = t;  elements = new List<Expression/*!*/>(); .)
@@ -2440,55 +2409,56 @@ CasePattern<out CasePattern pat>
   .)
   .
 /*------------------------------------------------------------------------*/
-DottedIdentifiersAndFunction<out Expression e>
-= (. IToken id, idPrime;  IToken openParen = null;
-     List<Expression> args = null;
-     List<IToken> idents = new List<IToken>();
-     e = null;
-     var applyArgLists = new List<List<Expression>>();
+NameSegment<out Expression e>
+= (. IToken id;
+     IToken openParen = null;  List<Expression> args = null;
   .)
-  Ident<out id>                              (. idents.Add(id); .)
-  { IdentOrDigitsSuffix<out id, out idPrime> (. idents.Add(id);
-                                                if (idPrime != null) { idents.Add(idPrime); id = idPrime; }
-                                             .)
-  }
-  [                                          (. args = new List<Expression>(); .)
-    [ "#"                                    (. id.val = id.val + "#";  Expression k; .)
-      "[" Expression<out k, true, true> "]"  (. args.Add(k); .)
-    ]
-    "("                                      (. openParen = t; .)
-      [ Expressions<args> ]
-    ")"
-  ]
-
-  (. e = new IdentifierSequence(idents, openParen, args);
-     foreach (var args_ in applyArgLists) {
-       e = new ApplyExpr(id, openParen, e, args_);
+  Ident<out id>
+  [ HashCall<id, out openParen, out args> ]
+  /* Note, since HashCall updates id.val, we make sure not to use id.val until after the possibility of calling HashCall. */
+  (. e = new NameSegment(id, id.val, null);
+     if (openParen != null) {
+       e = new ApplySuffix(openParen, e, args);
      }
   .)
   .
+/* The HashCall production extends a given identifier with a hash sign followed by
+ * a list of argument expressions.  That is, if what was just parsed was an identifier id,
+ * then the HashCall production will continue parsing into id#[arg](args).
+ * One could imagine parsing just the id# as an expression, but Dafny doesn't do that
+ * since the first argument to a prefix predicate/method is textually set apart; instead
+ * if a programmer wants to curry the arguments, one has to resort to using a lambda
+ * expression, just like for other function applications.
+ * Note: This grammar production mutates the id.val field to append the hash sign.
+ */
+HashCall<.IToken id, out IToken openParen, out List<Expression> args.>
+= (. Expression k; args = new List<Expression>(); .)
+  "#"                                      (. id.val = id.val + "#"; .)
+  "[" Expression<out k, true, true> "]"    (. args.Add(k); .)
+  "("                                      (. openParen = t; .)
+    [ Expressions<args> ]
+  ")"
+  .
 Suffix<ref Expression e>
 = (. Contract.Requires(e != null); Contract.Ensures(e!=null);
-     IToken id, x;  List<Expression> args;
+     IToken id, x;
      Expression e0 = null;  Expression e1 = null;  Expression ee;  bool anyDots = false;
      List<Expression> multipleLengths = null; bool takeRest = false; // takeRest is relevant only if multipleLengths is non-null
      List<Expression> multipleIndices = null;
-     bool func = false;
   .)
-  ( IdentOrDigitsSuffix<out id, out x>         (. if (x != null) {
+  ( DotSuffix<out id, out x>                   (. if (x != null) {
                                                     // process id as a Suffix in its own right
                                                     e = new ExprDotName(id, e, id.val);
                                                     id = x;  // move to the next Suffix
                                                   }
+                                                  IToken openParen = null;  List<Expression> args = null;
                                                .)
-    [                                          (. args = new List<Expression/*!*/>();  func = true; .)
-      [ "#"                                    (. id.val = id.val + "#";  Expression k; .)
-        "[" Expression<out k, true, true> "]"  (. args.Add(k); .)
-      ]
-      "("                                      (. IToken openParen = t; .)
-        [ Expressions<args> ]
-      ")"                                      (. e = new FunctionCallExpr(id, id.val, e, openParen, args); .)
-    ]                                          (. if (!func) { e = new ExprDotName(id, e, id.val); } .)
+    [ HashCall<id, out openParen, out args> ]
+    (. e = new ExprDotName(id, e, id.val);
+       if (openParen != null) {
+         e = new ApplySuffix(openParen, e, args);
+       }
+    .)
   | "["                                        (. x = t; .)
       ( Expression<out ee, true, true>         (. e0 = ee; .)
         ( ".."                                 (. anyDots = true; .)
@@ -2517,7 +2487,7 @@ Suffix<ref Expression e>
           }
         )
       | ".."                                   (. anyDots = true; .)
-        [ Expression<out ee, true, true>             (. e1 = ee; .)
+        [ Expression<out ee, true, true>       (. e1 = ee; .)
         ]
       )
       (. if (multipleIndices != null) {
@@ -2555,9 +2525,9 @@ Suffix<ref Expression e>
          }
       .)
     "]"
-  | "("                                    (. IToken openParen = t; args = new List<Expression>(); .)
+  | "("                                    (. IToken openParen = t; var args = new List<Expression>(); .)
     [ Expressions<args> ]
-    ")"                                    (. e = new ApplyExpr(e.tok, openParen, e, args); .)
+    ")"                                    (. e = new ApplySuffix(openParen, e, args); .)
   )
   .
 
@@ -2654,7 +2624,7 @@ Ident<out IToken/*!*/ x>
 // In the third case, x and y return as the tokens for the first and second digits.
 // This parser production solves a problem where the scanner might parse a real number instead
 // of stopping at the decimal point.
-IdentOrDigitsSuffix<out IToken x, out IToken y>
+DotSuffix<out IToken x, out IToken y>
 = (. Contract.Ensures(Contract.ValueAtReturn(out x) != null);
      x = Token.NoToken;
      y = null;
@@ -2666,7 +2636,7 @@ IdentOrDigitsSuffix<out IToken x, out IToken y>
                       int exponent = x.val.IndexOf('e');
                       if (0 <= exponent) {
                         // this is not a legal field/destructor name
-                        SemErr(x, "invalid IdentOrDigitsSuffix");
+                        SemErr(x, "invalid DotSuffix");
                       } else {
                         int dot = x.val.IndexOf('.');
                         if (0 <= dot) {

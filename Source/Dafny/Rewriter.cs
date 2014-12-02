@@ -217,7 +217,7 @@ namespace Microsoft.Dafny
                 // the field has been inherited from a refined module, so don't include it here
                 continue;
               }
-              var F = Resolver.NewFieldSelectExpr(tok, implicitSelf, ff.Item1, null);
+              var F = Resolver.NewMemberSelectExpr(tok, implicitSelf, ff.Item1, null);
               var c0 = BinBoolExpr(tok, BinaryExpr.ResolvedOpcode.NeqCommon, F, cNull);
               var c1 = BinBoolExpr(tok, BinaryExpr.ResolvedOpcode.InSet, F, Repr);
               if (ff.Item2 == null) {
@@ -296,7 +296,7 @@ namespace Microsoft.Dafny
       // TODO: these assignments should be included on every return path
 
       foreach (var ff in subobjects) {
-        var F = Resolver.NewFieldSelectExpr(tok, implicitSelf, ff.Item1, null);  // create a resolved FieldSelectExpr
+        var F = Resolver.NewMemberSelectExpr(tok, implicitSelf, ff.Item1, null);  // create a resolved MemberSelectExpr
         Expression e = new SetDisplayExpr(tok, new List<Expression>() { F });
         e.Type = new SetType(new ObjectType());  // resolve here
         var rhs = new BinaryExpr(tok, BinaryExpr.Opcode.Add, Repr, e);
@@ -306,7 +306,7 @@ namespace Microsoft.Dafny
           // Repr := Repr + {F}  (so, nothing else to do)
         } else {
           // Repr := Repr + {F} + F.Repr
-          var FRepr = Resolver.NewFieldSelectExpr(tok, F, ff.Item2, null);  // create resolved FieldSelectExpr
+          var FRepr = Resolver.NewMemberSelectExpr(tok, F, ff.Item2, null);  // create resolved MemberSelectExpr
           rhs = new BinaryExpr(tok, BinaryExpr.Opcode.Add, rhs, FRepr);
           rhs.ResolvedOp = BinaryExpr.ResolvedOpcode.Union;  // resolve here
           rhs.Type = Repr.Type;  // resolve here

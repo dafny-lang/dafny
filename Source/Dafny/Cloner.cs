@@ -293,9 +293,16 @@ namespace Microsoft.Dafny
           pp.Add(new ExpressionPair(CloneExpr(p.A), CloneExpr(p.B)));
         }
         return new MapDisplayExpr(Tok(expr.tok), pp);
+
+      } else if (expr is NameSegment) {
+        var e = (NameSegment)expr;
+        return new NameSegment(Tok(e.tok), e.Name, e.OptTypeArguments == null ? null : e.OptTypeArguments.ConvertAll(CloneType));
       } else if (expr is ExprDotName) {
         var e = (ExprDotName)expr;
-        return new ExprDotName(Tok(e.tok), CloneExpr(e.Obj), e.SuffixName);
+        return new ExprDotName(Tok(e.tok), CloneExpr(e.Lhs), e.SuffixName);
+      } else if (expr is ApplySuffix) {
+        var e = (ApplySuffix)expr;
+        return new ApplySuffix(Tok(e.tok), CloneExpr(e.Lhs), e.Args.ConvertAll(CloneExpr));
 
       } else if (expr is MemberSelectExpr) {
         var e = (MemberSelectExpr)expr;
@@ -319,7 +326,7 @@ namespace Microsoft.Dafny
 
       } else if (expr is ApplyExpr) {
         var e = (ApplyExpr)expr;
-        return new ApplyExpr(Tok(e.tok), Tok(e.OpenParen), CloneExpr(e.Function), e.Args.ConvertAll(CloneExpr));
+        return new ApplyExpr(Tok(e.tok), CloneExpr(e.Function), e.Args.ConvertAll(CloneExpr));
 
       } else if (expr is OldExpr) {
         var e = (OldExpr)expr;

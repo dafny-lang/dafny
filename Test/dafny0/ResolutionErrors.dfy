@@ -95,8 +95,8 @@ method TestNameResolution1() {
                             // parameters match the signature of only one of those constructors)
   var d3 := Abc.David(20, 40);  // error: wrong number of parameters
   var d4 := Rst.David(20, 40);
-  var e := Eleanor;
-  assert Tuv(e, this.Eleanor) == 10;
+  var e := Eleanor;  // this resolves to the field, not the Abc datatype constructor
+  assert Tuv(Abc.Eleanor, e) == 10;
 }
 
 // --------------- ghost tests -------------------------------------

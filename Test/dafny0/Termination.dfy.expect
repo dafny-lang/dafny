@@ -1,4 +1,4 @@
-Termination.dfy[TerminationRefinement1](440,5): Error: failure to decrease termination measure
+Termination.dfy[TerminationRefinement1](440,6): Error: failure to decrease termination measure
 Execution trace:
     (0,0): anon0
 Termination.dfy(360,47): Error: failure to decrease termination measure

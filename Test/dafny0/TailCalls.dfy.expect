@@ -1,4 +1,4 @@
-TailCalls.dfy(21,15): Error: this recursive call is not recognized as being tail recursive, because it is followed by non-ghost code
+TailCalls.dfy(21,16): Error: this recursive call is not recognized as being tail recursive, because it is followed by non-ghost code
 TailCalls.dfy(38,24): Error: sorry, tail-call optimizations are not supported for mutually recursive methods
 TailCalls.dfy(43,24): Error: sorry, tail-call optimizations are not supported for mutually recursive methods
 3 resolution/type errors detected in TailCalls.dfy

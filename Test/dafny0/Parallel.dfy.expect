@@ -1,4 +1,4 @@
-Parallel.dfy(34,5): Error BP5002: A precondition for this call might not hold.
+Parallel.dfy(34,10): Error BP5002: A precondition for this call might not hold.
 Parallel.dfy(60,14): Related location: This is the precondition that might not hold.
 Execution trace:
     (0,0): anon0
@@ -60,7 +60,7 @@ Execution trace:
     (0,0): anon19_Then
     (0,0): anon20_Then
     (0,0): anon5
-Parallel.dfy(296,10): Error: assertion violation
+Parallel.dfy(296,20): Error: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon4_Else

@@ -41,7 +41,7 @@ FunctionSpecifications.dfy(158,3): Error: cannot prove termination; try supplyin
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Else
-FunctionSpecifications.dfy(167,3): Error: cannot prove termination; try supplying a decreases clause
+FunctionSpecifications.dfy(167,11): Error: cannot prove termination; try supplying a decreases clause
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Else

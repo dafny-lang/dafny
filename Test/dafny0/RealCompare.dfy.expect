@@ -1,8 +1,8 @@
-RealCompare.dfy(35,5): Error: failure to decrease termination measure
+RealCompare.dfy(35,6): Error: failure to decrease termination measure
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Then
-RealCompare.dfy(50,3): Error: decreases expression must be bounded below by 0.0
+RealCompare.dfy(50,4): Error: decreases expression must be bounded below by 0.0
 RealCompare.dfy(48,13): Related location
 Execution trace:
     (0,0): anon0
