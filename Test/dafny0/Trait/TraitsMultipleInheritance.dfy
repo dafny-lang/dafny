@@ -23,5 +23,8 @@ method Main()
   j1.x := 20;
   j2.y := 10;
   
+  print "c.x + c.y = " , c.x + c.y, "\n"; 
+  print "j1.x + j2.y = " , j1.x + j2.y, "\n"; 
+  
   assert c.x + c.y == j1.x + j2.y;
 }
