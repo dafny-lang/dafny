@@ -234,7 +234,7 @@ bool CloseOptionalBrace(bool usesOptionalBrace) {
 }
 
 bool IsNotEndOfCase() {
-  return la.kind != _rbrace && la.kind != _case;
+  return la.kind != _EOF && la.kind != _rbrace && la.kind != _case;
 }
 
 /*--------------------------------------------------------------------------*/
@@ -1603,8 +1603,13 @@ CaseStatement<out MatchCaseStmt/*!*/ c>
     }
   ")" ]
   "=>"
+    SYNC  /* this SYNC and the one inside the loop below are used to avoid problems with the IsNotEndOfCase test. The SYNC will
+           * skip until the next symbol that can legally occur here, which is either the beginning of a Stmt or whatever is allowed
+           * to follow the CaseStatement.
+           */
     { IF(IsNotEndOfCase()) /* This is a little sketchy. It would be nicer to be able to write IF(la is start-symbol of Stmt), but Coco doesn't allow that */
       Stmt<body>
+      SYNC  /* see comment about SYNC above */
     }
   (. c = new MatchCaseStmt(x, id.val, arguments, body); .)
   .
