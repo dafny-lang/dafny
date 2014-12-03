@@ -447,7 +447,8 @@ ClassDecl<ModuleDefinition/*!*/ module, out ClassDecl/*!*/ c>
 = (. Contract.Requires(module != null);
      Contract.Ensures(Contract.ValueAtReturn(out c) != null);
      IToken/*!*/ id;
-     Type/*!*/ trait = null;
+	 Type trait = null;
+     List<Type>/*!*/ traits = new List<Type>();
 	 Attributes attrs = null;
      List<TypeParameter/*!*/> typeArgs = new List<TypeParameter/*!*/>();
      List<MemberDecl/*!*/> members = new List<MemberDecl/*!*/>();
@@ -458,12 +459,15 @@ ClassDecl<ModuleDefinition/*!*/ module, out ClassDecl/*!*/ c>
   { Attribute<ref attrs> }
   NoUSIdent<out id>
   [ GenericParameters<typeArgs> ]
-  ["extends" Type<out trait>]         
+  ["extends" 
+  Type<out trait>		(. traits.Add(trait); .) 
+  {"," Type<out trait>  (. traits.Add(trait); .) }
+  ]         
   "{"                                            (. bodyStart = t;  .)
   { ClassMemberDecl<members, true>
   }
   "}"
-  (. c = new ClassDecl(id, id.val, module, typeArgs, members, attrs, trait);
+  (. c = new ClassDecl(id, id.val, module, typeArgs, members, attrs, traits);
      c.BodyStartTok = bodyStart;
      c.BodyEndTok = t;
   .)

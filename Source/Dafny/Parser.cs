@@ -558,7 +558,8 @@ bool IsNotEndOfCase() {
 		Contract.Requires(module != null);
 		Contract.Ensures(Contract.ValueAtReturn(out c) != null);
 		IToken/*!*/ id;
-		Type/*!*/ trait = null;
+		Type trait = null;
+		List<Type>/*!*/ traits = new List<Type>();
 		Attributes attrs = null;
 		List<TypeParameter/*!*/> typeArgs = new List<TypeParameter/*!*/>();
 		List<MemberDecl/*!*/> members = new List<MemberDecl/*!*/>();
@@ -576,6 +577,12 @@ bool IsNotEndOfCase() {
 		if (la.kind == 44) {
 			Get();
 			Type(out trait);
+			traits.Add(trait); 
+			while (la.kind == 9) {
+				Get();
+				Type(out trait);
+				traits.Add(trait); 
+			}
 		}
 		Expect(25);
 		bodyStart = t;  
@@ -583,7 +590,7 @@ bool IsNotEndOfCase() {
 			ClassMemberDecl(members, true);
 		}
 		Expect(26);
-		c = new ClassDecl(id, id.val, module, typeArgs, members, attrs, trait);
+		c = new ClassDecl(id, id.val, module, typeArgs, members, attrs, traits);
 		c.BodyStartTok = bodyStart;
 		c.BodyEndTok = t;
 		

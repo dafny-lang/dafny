@@ -2657,24 +2657,39 @@ namespace Microsoft.Dafny
       currentClass = cl;
 
       // Resolve names of traits extended
-      if (cl.TraitTyp != null && cl.TraitTyp is UserDefinedType)
+      if (cl.TraitsTyp != null)
       {
-          var trait = classMembers.Keys.FirstOrDefault(traitDecl => traitDecl.CompileName == ((UserDefinedType)(cl.TraitTyp)).FullCompileName);
-        if (trait == null) {
-            Error(((UserDefinedType)(cl.TraitTyp)).tok, "unresolved identifier: {0}", ((UserDefinedType)(cl.TraitTyp)).tok.val);
-        } else if (!(trait is TraitDecl)) {
-            Error(((UserDefinedType)(cl.TraitTyp)).tok, "identifier '{0}' does not denote a trait", ((UserDefinedType)(cl.TraitTyp)).tok.val);
-        } else {
-          //disallowing inheritance in multi module case
-          string clModName = cl.Module.CompileName.Replace("_Compile", string.Empty);
-          string traitModName = trait.Module.CompileName.Replace("_Compile", string.Empty);
-          if (clModName != traitModName) {
-              Error(((UserDefinedType)(cl.TraitTyp)).tok, string.Format("class {0} is in a different module than trait {1}. A class may only extend a trait in the same module",
-                cl.FullName, trait.FullName));
-          } else {
-            cl.TraitObj = (TraitDecl)trait;
+          cl.TraitsObj = new List<TraitDecl>();
+          foreach (Type traitTyp in cl.TraitsTyp)
+          {
+              if (traitTyp is UserDefinedType)
+              {
+                  var trait = classMembers.Keys.FirstOrDefault(traitDecl => traitDecl.CompileName == ((UserDefinedType)(traitTyp)).FullCompileName);
+                  if (trait == null)
+                  {
+                      Error(((UserDefinedType)(traitTyp)).tok, "unresolved identifier: {0}", ((UserDefinedType)(traitTyp)).tok.val);
+                  }
+                  else if (!(trait is TraitDecl))
+                  {
+                      Error(((UserDefinedType)(traitTyp)).tok, "identifier '{0}' does not denote a trait", ((UserDefinedType)(traitTyp)).tok.val);
+                  }
+                  else
+                  {
+                      //disallowing inheritance in multi module case
+                      string clModName = cl.Module.CompileName.Replace("_Compile", string.Empty);
+                      string traitModName = trait.Module.CompileName.Replace("_Compile", string.Empty);
+                      if (clModName != traitModName)
+                      {
+                          Error(((UserDefinedType)(traitTyp)).tok, string.Format("class {0} is in a different module than trait {1}. A class may only extend a trait in the same module",
+                            cl.FullName, trait.FullName));
+                      }
+                      else
+                      {
+                          cl.TraitsObj.Add((TraitDecl)trait);
+                      }
+                  }
+              }
           }
-        }
       }
 
       foreach (MemberDecl member in cl.Members) {
@@ -2732,121 +2747,143 @@ namespace Microsoft.Dafny
 
       RefinementCloner cloner = new RefinementCloner(cl.Module);
       //merging class members with parent members if any
-      if (cl.TraitObj != null) {
+      if (cl.TraitsObj != null) {
         var clMembers = classMembers[cl];
-        var traitMembers = classMembers[cl.TraitObj];
-        //merging current class members with the inheriting trait
-        foreach (KeyValuePair<string, MemberDecl> traitMem in traitMembers) {
-          MemberDecl clMember;
-          if (clMembers.TryGetValue(traitMem.Key, out clMember)) {
-            //check if the signature of the members are equal and the member is body-less
-            if (traitMem.Value is Method) {
-              Method traitMethod = (Method)traitMem.Value;
-              // TODO: should check that the class member is also a method, and the same kind of method
-              Method classMethod = (Method)clMember;
-              //refinementTransformer.CheckMethodsAreRefinements(classMethod, traitMethod);
-              if (traitMethod.Body != null && !clMembers[classMethod.CompileName].Inherited) //if the existing method in the class is not that inherited one from the parent
-                Error(classMethod, "a class cannot override implemented methods");
-              else {
-                classMethod.OverriddenMethod = traitMethod;
-                //adding a call graph edge from the trait method to that of class
-                cl.Module.CallGraph.AddEdge(traitMethod, classMethod);
+        foreach (TraitDecl traitObj in cl.TraitsObj)
+        {
+            var traitMembers = classMembers[traitObj];
+            //merging current class members with the inheriting trait
+            foreach (KeyValuePair<string, MemberDecl> traitMem in traitMembers)
+            {
+                MemberDecl clMember;
+                if (clMembers.TryGetValue(traitMem.Key, out clMember))
+                {
+                    //check if the signature of the members are equal and the member is body-less
+                    if (traitMem.Value is Method)
+                    {
+                        Method traitMethod = (Method)traitMem.Value;
+                        // TODO: should check that the class member is also a method, and the same kind of method
+                        Method classMethod = (Method)clMember;
+                        //refinementTransformer.CheckMethodsAreRefinements(classMethod, traitMethod);
+                        if (traitMethod.Body != null && !clMembers[classMethod.CompileName].Inherited) //if the existing method in the class is not that inherited one from the parent
+                            Error(classMethod, "a class cannot override implemented methods");
+                        else
+                        {
+                            classMethod.OverriddenMethod = traitMethod;
+                            //adding a call graph edge from the trait method to that of class
+                            cl.Module.CallGraph.AddEdge(traitMethod, classMethod);
 
-                //checking specifications
-                //class method must provide its own specifications in case the overriden method has provided any
-                if ((classMethod.Req == null || classMethod.Req.Count == 0) && (classMethod.OverriddenMethod.Req != null && classMethod.OverriddenMethod.Req.Count > 0))  //it means m.OverriddenMethod.Req =>  m.Req
-                {
-                  Error(classMethod, "Method must provide its own Requires clauses anew");
-                }
-                if ((classMethod.Ens == null || classMethod.Ens.Count == 0) && (classMethod.OverriddenMethod.Ens != null && classMethod.OverriddenMethod.Ens.Count > 0))  //it means m.OverriddenMethod.Ens =>  m.Ens
-                {
-                  Error(classMethod, "Method must provide its own Ensures clauses anew");
-                }
-                if ((classMethod.Mod == null || classMethod.Mod.Expressions == null || classMethod.Mod.Expressions.Count == 0) && (classMethod.OverriddenMethod.Mod != null && classMethod.OverriddenMethod.Mod.Expressions != null && classMethod.OverriddenMethod.Mod.Expressions.Count > 0))  //it means m.OverriddenMethod.Mod =>  m.Mod
-                {
-                  Error(classMethod, "Method must provide its own Modifies clauses anew");
-                }
-                if ((classMethod.Decreases == null || classMethod.Decreases.Expressions == null || classMethod.Decreases.Expressions.Count == 0) && (classMethod.OverriddenMethod.Decreases != null && classMethod.OverriddenMethod.Decreases.Expressions != null && classMethod.OverriddenMethod.Decreases.Expressions.Count > 0))  //it means m.OverriddenMethod.Decreases =>  m.Decreases
-                {
-                  Error(classMethod, "Method must provide its own Decreases clauses anew");
-                }
-              }
-            } else if (traitMem.Value is Function) {
-              Function traitFunction = (Function)traitMem.Value;
-              Function classFunction = (Function)clMember;
-              //refinementTransformer.CheckFunctionsAreRefinements(classFunction, traitFunction);
-              if (traitFunction.Body != null && !classMembers[cl][classFunction.CompileName].Inherited)
-                Error(classFunction, "a class cannot override implemented functions");
-              else {
-                classFunction.OverriddenFunction = traitFunction;
-                //adding a call graph edge from the trait method to that of class
-                cl.Module.CallGraph.AddEdge(traitFunction, classFunction);
+                            //checking specifications
+                            //class method must provide its own specifications in case the overriden method has provided any
+                            if ((classMethod.Req == null || classMethod.Req.Count == 0) && (classMethod.OverriddenMethod.Req != null && classMethod.OverriddenMethod.Req.Count > 0))  //it means m.OverriddenMethod.Req =>  m.Req
+                            {
+                                Error(classMethod, "Method must provide its own Requires clauses anew");
+                            }
+                            if ((classMethod.Ens == null || classMethod.Ens.Count == 0) && (classMethod.OverriddenMethod.Ens != null && classMethod.OverriddenMethod.Ens.Count > 0))  //it means m.OverriddenMethod.Ens =>  m.Ens
+                            {
+                                Error(classMethod, "Method must provide its own Ensures clauses anew");
+                            }
+                            if ((classMethod.Mod == null || classMethod.Mod.Expressions == null || classMethod.Mod.Expressions.Count == 0) && (classMethod.OverriddenMethod.Mod != null && classMethod.OverriddenMethod.Mod.Expressions != null && classMethod.OverriddenMethod.Mod.Expressions.Count > 0))  //it means m.OverriddenMethod.Mod =>  m.Mod
+                            {
+                                Error(classMethod, "Method must provide its own Modifies clauses anew");
+                            }
+                            if ((classMethod.Decreases == null || classMethod.Decreases.Expressions == null || classMethod.Decreases.Expressions.Count == 0) && (classMethod.OverriddenMethod.Decreases != null && classMethod.OverriddenMethod.Decreases.Expressions != null && classMethod.OverriddenMethod.Decreases.Expressions.Count > 0))  //it means m.OverriddenMethod.Decreases =>  m.Decreases
+                            {
+                                Error(classMethod, "Method must provide its own Decreases clauses anew");
+                            }
+                        }
+                    }
+                    else if (traitMem.Value is Function)
+                    {
+                        Function traitFunction = (Function)traitMem.Value;
+                        Function classFunction = (Function)clMember;
+                        //refinementTransformer.CheckFunctionsAreRefinements(classFunction, traitFunction);
+                        if (traitFunction.Body != null && !classMembers[cl][classFunction.CompileName].Inherited)
+                            Error(classFunction, "a class cannot override implemented functions");
+                        else
+                        {
+                            classFunction.OverriddenFunction = traitFunction;
+                            //adding a call graph edge from the trait method to that of class
+                            cl.Module.CallGraph.AddEdge(traitFunction, classFunction);
 
-                //checking specifications
-                //class function must provide its own specifications in case the overriden function has provided any
-                if ((classFunction.Req == null || classFunction.Req.Count == 0) && (classFunction.OverriddenFunction.Req != null && classFunction.OverriddenFunction.Req.Count > 0))  //it means m.OverriddenMethod.Req =>  m.Req
-                {
-                  Error(classFunction, "Function must provide its own Requires clauses anew");
+                            //checking specifications
+                            //class function must provide its own specifications in case the overriden function has provided any
+                            if ((classFunction.Req == null || classFunction.Req.Count == 0) && (classFunction.OverriddenFunction.Req != null && classFunction.OverriddenFunction.Req.Count > 0))  //it means m.OverriddenMethod.Req =>  m.Req
+                            {
+                                Error(classFunction, "Function must provide its own Requires clauses anew");
+                            }
+                            if ((classFunction.Ens == null || classFunction.Ens.Count == 0) && (classFunction.OverriddenFunction.Ens != null && classFunction.OverriddenFunction.Ens.Count > 0))  //it means m.OverriddenMethod.Ens =>  m.Ens
+                            {
+                                Error(classFunction, "Function must provide its own Ensures clauses anew");
+                            }
+                            if ((classFunction.Reads == null || classFunction.Reads.Count == 0) && (classFunction.OverriddenFunction.Reads != null && classFunction.OverriddenFunction.Reads.Count > 0))  //it means m.OverriddenMethod.Mod =>  m.Mod
+                            {
+                                Error(classFunction, "Function must provide its own Reads clauses anew");
+                            }
+                            if ((classFunction.Decreases == null || classFunction.Decreases.Expressions == null || classFunction.Decreases.Expressions.Count == 0) && (classFunction.OverriddenFunction.Decreases != null && classFunction.OverriddenFunction.Decreases.Expressions != null && classFunction.OverriddenFunction.Decreases.Expressions.Count > 0))  //it means m.OverriddenMethod.Decreases =>  m.Decreases
+                            {
+                                Error(classFunction, "Function must provide its own Decreases clauses anew");
+                            }
+                        }
+                    }
+                    else if (traitMem.Value is Field)
+                    {
+                        Field traitField = (Field)traitMem.Value;
+                        Field classField = (Field)clMember;
+                        if (!clMembers[classField.CompileName].Inherited)
+                            Error(classField, "member in the class has been already inherited from its parent trait");
+                    }
                 }
-                if ((classFunction.Ens == null || classFunction.Ens.Count == 0) && (classFunction.OverriddenFunction.Ens != null && classFunction.OverriddenFunction.Ens.Count > 0))  //it means m.OverriddenMethod.Ens =>  m.Ens
+                else
                 {
-                  Error(classFunction, "Function must provide its own Ensures clauses anew");
+                    //the member is not already in the class
+                    // enter the trait member in the symbol table for the class
+                    MemberDecl classNewMember = cloner.CloneMember(traitMem.Value);
+                    classNewMember.EnclosingClass = cl;
+                    classNewMember.Inherited = true;
+                    classMembers[cl].Add(traitMem.Key, classNewMember);
+                    cl.Members.Add(classNewMember);
                 }
-                if ((classFunction.Reads == null || classFunction.Reads.Count == 0) && (classFunction.OverriddenFunction.Reads != null && classFunction.OverriddenFunction.Reads.Count > 0))  //it means m.OverriddenMethod.Mod =>  m.Mod
-                {
-                  Error(classFunction, "Function must provide its own Reads clauses anew");
-                }
-                if ((classFunction.Decreases == null || classFunction.Decreases.Expressions == null || classFunction.Decreases.Expressions.Count == 0) && (classFunction.OverriddenFunction.Decreases != null && classFunction.OverriddenFunction.Decreases.Expressions != null && classFunction.OverriddenFunction.Decreases.Expressions.Count > 0))  //it means m.OverriddenMethod.Decreases =>  m.Decreases
-                {
-                  Error(classFunction, "Function must provide its own Decreases clauses anew");
-                }
-              }
-            } else if (traitMem.Value is Field) {
-              Field traitField = (Field)traitMem.Value;
-              Field classField = (Field)clMember;
-              if (!clMembers[classField.CompileName].Inherited)
-                Error(classField, "member in the class has been already inherited from its parent trait");
-            }
-          } else {
-            //the member is not already in the class
-            // enter the trait member in the symbol table for the class
-              MemberDecl classNewMember = cloner.CloneMember(traitMem.Value);
-              classNewMember.EnclosingClass = cl;
-              classNewMember.Inherited = true;
-              classMembers[cl].Add(traitMem.Key, classNewMember);
-              cl.Members.Add(classNewMember);
-          }
-        }//foreach
-
+            }//foreach
+        }
         //checking to make sure all body-less methods/functions have been implemented in the child class
         if (refinementTransformer == null)
           refinementTransformer = new RefinementTransformer(this, AdditionalInformationReporter, null);
-        foreach (MemberDecl traitMember in cl.TraitObj.Members.Where(mem => mem is Function || mem is Method)) {
-          if (traitMember is Function) {
-            Function traitFunc = (Function)traitMember;
-            if (traitFunc.Body == null) //we do this check only if trait function body is null
-                          {
-              var classMem = cl.Members.Where(clMem => clMem is Function).FirstOrDefault(clMem => ((Function)clMem).Body != null && clMem.CompileName == traitMember.CompileName);
-              if (classMem != null) {
-                Function classFunc = (Function)classMem;
-                refinementTransformer.CheckOverride_FunctionParameters(classFunc, traitFunc);
-              } else if (!cl.Module.IsAbstract && traitFunc.Body == null && classMem == null)
-                Error(cl, "class: {0} does not implement trait member: {1}", cl.CompileName, traitFunc.CompileName);
+        foreach (TraitDecl traitObj in cl.TraitsObj)
+        {
+            foreach (MemberDecl traitMember in traitObj.Members.Where(mem => mem is Function || mem is Method))
+            {
+                if (traitMember is Function)
+                {
+                    Function traitFunc = (Function)traitMember;
+                    if (traitFunc.Body == null) //we do this check only if trait function body is null
+                    {
+                        var classMem = cl.Members.Where(clMem => clMem is Function).FirstOrDefault(clMem => ((Function)clMem).Body != null && clMem.CompileName == traitMember.CompileName);
+                        if (classMem != null)
+                        {
+                            Function classFunc = (Function)classMem;
+                            refinementTransformer.CheckOverride_FunctionParameters(classFunc, traitFunc);
+                        }
+                        else if (!cl.Module.IsAbstract && traitFunc.Body == null && classMem == null)
+                            Error(cl, "class: {0} does not implement trait member: {1}", cl.CompileName, traitFunc.CompileName);
+                    }
+                }
+                if (traitMember is Method)
+                {
+                    Method traitMethod = (Method)traitMember;
+                    if (traitMethod.Body == null) //we do this check only if trait method body is null
+                    {
+                        var classMem = cl.Members.Where(clMem => clMem is Method).FirstOrDefault(clMem => ((Method)clMem).Body != null && clMem.CompileName == traitMember.CompileName);
+                        if (classMem != null)
+                        {
+                            Method classMethod = (Method)classMem;
+                            refinementTransformer.CheckOverride_MethodParameters(classMethod, traitMethod);
+                        }
+                        if (!cl.Module.IsAbstract && traitMethod.Body == null && classMem == null)
+                            Error(cl, "class: {0} does not implement trait member: {1}", cl.CompileName, traitMethod.CompileName);
+                    }
+                }
             }
-          }
-          if (traitMember is Method) {
-            Method traitMethod = (Method)traitMember;
-            if (traitMethod.Body == null) //we do this check only if trait method body is null
-                          {
-              var classMem = cl.Members.Where(clMem => clMem is Method).FirstOrDefault(clMem => ((Method)clMem).Body != null && clMem.CompileName == traitMember.CompileName);
-              if (classMem != null) {
-                Method classMethod = (Method)classMem;
-                refinementTransformer.CheckOverride_MethodParameters(classMethod, traitMethod);
-              }
-              if (!cl.Module.IsAbstract && traitMethod.Body == null && classMem == null)
-                Error(cl, "class: {0} does not implement trait member: {1}", cl.CompileName, traitMethod.CompileName);
-            }
-          }
         }
       }
     }
@@ -4036,9 +4073,9 @@ namespace Microsoft.Dafny
         else if ((bb.ResolvedClass is TraitDecl) && (aa.ResolvedClass is TraitDecl)) {
             return ((TraitDecl)bb.ResolvedClass).FullCompileName == ((TraitDecl)aa.ResolvedClass).FullCompileName;
         } else if ((bb.ResolvedClass is ClassDecl) && (aa.ResolvedClass is TraitDecl)) {
-          return ((ClassDecl)bb.ResolvedClass).TraitObj.FullCompileName == ((TraitDecl)aa.ResolvedClass).FullCompileName;
+            return ((ClassDecl)bb.ResolvedClass).TraitsObj.Any(tr => tr.FullCompileName == ((TraitDecl)aa.ResolvedClass).FullCompileName);
         } else if ((aa.ResolvedClass is ClassDecl) && (bb.ResolvedClass is TraitDecl)) {
-          return ((ClassDecl)aa.ResolvedClass).TraitObj.FullCompileName == ((TraitDecl)bb.ResolvedClass).FullCompileName;
+            return ((ClassDecl)aa.ResolvedClass).TraitsObj.Any(tr => tr.FullCompileName == ((TraitDecl)bb.ResolvedClass).FullCompileName);
         } else if (aa.ResolvedParam != null && aa.ResolvedParam == bb.ResolvedParam) {
           // type parameters
           if (aa.TypeArgs.Count != bb.TypeArgs.Count) {

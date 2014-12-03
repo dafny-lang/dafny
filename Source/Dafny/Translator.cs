@@ -509,7 +509,7 @@ namespace Microsoft.Dafny {
     {
         foreach (ModuleDefinition m in program.Modules)
         {
-            if (m.TopLevelDecls.Any(d => (d is ClassDecl && ((ClassDecl)d).TraitObj != null) || (d is TraitDecl)))
+            if (m.TopLevelDecls.Any(d => (d is ClassDecl && ((ClassDecl)d).TraitsObj != null) || (d is TraitDecl)))
             {
                 //adding const unique NoTraitAtAll: ClassName;
                 Token tNoTrait = new Token();
@@ -527,22 +527,25 @@ namespace Microsoft.Dafny {
                     if (d is ClassDecl)
                     {
                         var c = (ClassDecl)d;
-                        if (c is ClassDecl && c.TraitObj != null)
+                        if (c is ClassDecl && c.TraitsObj != null)
                         {
-                            //this adds: axiom TraitParent(class.A) == class.J; Where A extends J
-                            Bpl.TypedIdent trait_id = new Bpl.TypedIdent(c.TraitObj.tok, string.Format("class.{0}", c.TraitObj.FullSanitizedName), predef.ClassNameType);
-                            Bpl.Constant trait = new Bpl.Constant(c.TraitObj.tok, trait_id, true);
-                            Bpl.Expr traitId_expr = new Bpl.IdentifierExpr(c.TraitObj.tok, trait);
+                            foreach (TraitDecl traitObj in c.TraitsObj)
+                            {
+                                //this adds: axiom TraitParent(class.A) == class.J; Where A extends J
+                                Bpl.TypedIdent trait_id = new Bpl.TypedIdent(traitObj.tok, string.Format("class.{0}", traitObj.FullSanitizedName), predef.ClassNameType);
+                                Bpl.Constant trait = new Bpl.Constant(traitObj.tok, trait_id, true);
+                                Bpl.Expr traitId_expr = new Bpl.IdentifierExpr(traitObj.tok, trait);
 
-                            var args = new Bpl.Formal(c.tok, new Bpl.TypedIdent(c.tok, Bpl.TypedIdent.NoName, predef.ClassNameType), true);
-                            var ret_value = new Bpl.Formal(c.tok, new Bpl.TypedIdent(c.tok, Bpl.TypedIdent.NoName, predef.ClassNameType), false);
-                            var funCall = new Bpl.FunctionCall(new Bpl.Function(c.tok, "TraitParent", new List<Variable> { args }, ret_value));
-                            var funCallExpr = new Bpl.NAryExpr(c.tok, funCall, new List<Expr> { new Bpl.IdentifierExpr(c.tok, string.Format("class.{0}", c.FullSanitizedName), predef.ClassNameType) });
-                            var traitParentAxiom = new Bpl.Axiom(c.tok, Bpl.Expr.Eq(funCallExpr, traitId_expr));
+                                var args = new Bpl.Formal(c.tok, new Bpl.TypedIdent(c.tok, Bpl.TypedIdent.NoName, predef.ClassNameType), true);
+                                var ret_value = new Bpl.Formal(c.tok, new Bpl.TypedIdent(c.tok, Bpl.TypedIdent.NoName, predef.ClassNameType), false);
+                                var funCall = new Bpl.FunctionCall(new Bpl.Function(c.tok, "TraitParent", new List<Variable> { args }, ret_value));
+                                var funCallExpr = new Bpl.NAryExpr(c.tok, funCall, new List<Expr> { new Bpl.IdentifierExpr(c.tok, string.Format("class.{0}", c.FullSanitizedName), predef.ClassNameType) });
+                                var traitParentAxiom = new Bpl.Axiom(c.tok, Bpl.Expr.Eq(funCallExpr, traitId_expr));
 
-                            sink.AddTopLevelDeclaration(traitParentAxiom);
+                                sink.AddTopLevelDeclaration(traitParentAxiom);
+                            }
                         }
-                        else if (c is ClassDecl && c.TraitObj == null)
+                        else if (c is ClassDecl && c.TraitsObj == null)
                         {
                             //this adds: axiom TraitParent(class.B) == NoTraitAtAll; Where B does not extend any traits
                             Bpl.TypedIdent noTraitAtAll_id = new Bpl.TypedIdent(c.tok, "NoTraitAtAll", predef.ClassNameType);
@@ -1325,17 +1328,22 @@ namespace Microsoft.Dafny {
       //this adds: axiom implements$J(class.C);
       else if (c is ClassDecl)
       {
-          if (c.TraitObj != null)
+          if (c.TraitsObj != null)
           {
               //var dtypeFunc = FunctionCall(c.tok, BuiltinFunction.DynamicType, null, o);
               //Bpl.Expr implementsFunc = FunctionCall(t.tok, "implements$" + t.Name, Bpl.Type.Bool, new List<Expr> { dtypeFunc });
-
-              var args = new Bpl.Formal(c.tok, new Bpl.TypedIdent(c.tok, Bpl.TypedIdent.NoName, predef.ClassNameType), true);
-              var ret_value = new Bpl.Formal(c.tok, new Bpl.TypedIdent(c.tok, Bpl.TypedIdent.NoName, Bpl.Type.Bool), false);
-              var funCall = new Bpl.FunctionCall(new Bpl.Function(c.tok, "implements$" + ((UserDefinedType)(c.TraitTyp)).tok, new List<Variable> { args }, ret_value));
-              var expr = new Bpl.NAryExpr(c.tok, funCall, new List<Expr> { new Bpl.IdentifierExpr(c.tok, string.Format("class.{0}", c.FullSanitizedName), predef.ClassNameType) });
-              var implements_axiom = new Bpl.Axiom(c.tok, expr);
-              sink.AddTopLevelDeclaration(implements_axiom);
+              foreach (Type traitType in c.TraitsTyp)
+              {
+                  if (traitType is UserDefinedType)
+                  {
+                      var args = new Bpl.Formal(c.tok, new Bpl.TypedIdent(c.tok, Bpl.TypedIdent.NoName, predef.ClassNameType), true);
+                      var ret_value = new Bpl.Formal(c.tok, new Bpl.TypedIdent(c.tok, Bpl.TypedIdent.NoName, Bpl.Type.Bool), false);
+                      var funCall = new Bpl.FunctionCall(new Bpl.Function(c.tok, "implements$" + ((UserDefinedType)(traitType)).tok, new List<Variable> { args }, ret_value));
+                      var expr = new Bpl.NAryExpr(c.tok, funCall, new List<Expr> { new Bpl.IdentifierExpr(c.tok, string.Format("class.{0}", c.FullSanitizedName), predef.ClassNameType) });
+                      var implements_axiom = new Bpl.Axiom(c.tok, expr);
+                      sink.AddTopLevelDeclaration(implements_axiom);
+                  }
+              }
           }
       }
 

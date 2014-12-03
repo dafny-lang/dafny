@@ -1688,8 +1688,8 @@ namespace Microsoft.Dafny {
 
   public class ClassDecl : TopLevelDecl {
     public readonly List<MemberDecl> Members;
-    public TraitDecl TraitObj;
-    public readonly Type TraitTyp;
+    public List<TraitDecl> TraitsObj;
+    public readonly List<Type> TraitsTyp;
     public bool HasConstructor;  // filled in (early) during resolution; true iff there exists a member that is a Constructor
     [ContractInvariantMethod]
     void ObjectInvariant() {
@@ -1697,7 +1697,7 @@ namespace Microsoft.Dafny {
     }
 
     public ClassDecl(IToken tok, string name, ModuleDefinition module,
-      List<TypeParameter> typeArgs, [Captured] List<MemberDecl> members, Attributes attributes, Type trait)
+      List<TypeParameter> typeArgs, [Captured] List<MemberDecl> members, Attributes attributes, List<Type> traits)
       : base(tok, name, module, typeArgs, attributes) {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
@@ -1705,13 +1705,36 @@ namespace Microsoft.Dafny {
       Contract.Requires(cce.NonNullElements(typeArgs));
       Contract.Requires(cce.NonNullElements(members));
       Members = members;
-      if (trait != null)
-          TraitTyp = trait; //there are at most one inheriting trait at the moment
+      //if (traits != null)
+      TraitsTyp = traits;
     }
     public virtual bool IsDefaultClass {
       get {
         return false;
       }
+    }
+
+    public string TraitsStr
+    {
+        get
+        {
+            if (TraitsTyp == null || TraitsTyp.Count == 0)
+                return string.Empty;
+            StringBuilder sb = new StringBuilder();
+            foreach (Type ty in TraitsTyp)
+            {
+                if (ty is UserDefinedType)
+                {
+                    sb.Append(((UserDefinedType)(ty)).Name);
+                    sb.Append(",");
+                }
+            }
+            if (sb.Length > 0)
+            {
+                sb.Remove(sb.Length - 1, 1);
+            }
+            return sb.ToString();
+        }
     }
   }
 

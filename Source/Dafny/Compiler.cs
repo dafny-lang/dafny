@@ -247,9 +247,9 @@ namespace Microsoft.Dafny {
           else if (d is ClassDecl) {
             var cl = (ClassDecl)d;
             Indent(indent);
-            if (cl.TraitObj != null && cl.TraitObj is TraitDecl)
+            if (cl.TraitsObj != null)
             {
-                wr.WriteLine("public class @{0} : @{1}", cl.CompileName, cl.TraitObj.Name);
+                wr.WriteLine("public class @{0} : @{1}", cl.CompileName, cl.TraitsStr);
             }
             else
                 wr.Write("public class @{0}", cl.CompileName);
@@ -766,14 +766,14 @@ namespace Microsoft.Dafny {
                   if (f.Inherited)
                   {
                       Indent(indent);
-                      wr.WriteLine("public {0} @{1};", TypeName(f.Type), f.CompileName);
-                      wr.Write("{0} @{1}.@{2}", TypeName(f.Type), c.TraitObj.CompileName, f.CompileName);
+                      wr.WriteLine("public {0} @_{1};", TypeName(f.Type), f.CompileName);
+                      wr.Write("public {0} @{1}", TypeName(f.Type), f.CompileName);
                       wr.WriteLine(" {");
                       wr.WriteLine(" get { ");
-                      wr.Write("return this.@{0};", f.CompileName);
+                      wr.Write("return this.@_{0};", f.CompileName);
                       wr.WriteLine("}");
                       wr.WriteLine(" set { ");
-                      wr.WriteLine("this.@{0} = value;", f.CompileName);
+                      wr.WriteLine("this.@_{0} = value;", f.CompileName);
                       wr.WriteLine("}");
                       wr.WriteLine("}");
                   }
