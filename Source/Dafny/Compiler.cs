@@ -247,7 +247,7 @@ namespace Microsoft.Dafny {
           else if (d is ClassDecl) {
             var cl = (ClassDecl)d;
             Indent(indent);
-            if (cl.TraitsObj != null)
+            if (cl.TraitsObj != null && cl.TraitsObj.Count > 0)
             {
                 wr.WriteLine("public class @{0} : @{1}", cl.CompileName, cl.TraitsStr);
             }

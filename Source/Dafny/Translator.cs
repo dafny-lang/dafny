@@ -509,7 +509,7 @@ namespace Microsoft.Dafny {
     {
         foreach (ModuleDefinition m in program.Modules)
         {
-            if (m.TopLevelDecls.Any(d => (d is ClassDecl && ((ClassDecl)d).TraitsObj != null) || (d is TraitDecl)))
+            if (m.TopLevelDecls.Any(d => (d is ClassDecl && ((ClassDecl)d).TraitsObj != null && ((ClassDecl)d).TraitsObj.Count > 0) || (d is TraitDecl)))
             {
                 //adding const unique NoTraitAtAll: ClassName;
                 Token tNoTrait = new Token();
@@ -527,7 +527,7 @@ namespace Microsoft.Dafny {
                     if (d is ClassDecl)
                     {
                         var c = (ClassDecl)d;
-                        if (c is ClassDecl && c.TraitsObj != null)
+                        if (c is ClassDecl && c.TraitsObj != null && c.TraitsObj.Count > 0)
                         {
                             foreach (TraitDecl traitObj in c.TraitsObj)
                             {
@@ -545,7 +545,7 @@ namespace Microsoft.Dafny {
                                 sink.AddTopLevelDeclaration(traitParentAxiom);
                             }
                         }
-                        else if (c is ClassDecl && c.TraitsObj == null)
+                        else if (c is ClassDecl && (c.TraitsObj == null || c.TraitsObj.Count == 0))
                         {
                             //this adds: axiom TraitParent(class.B) == NoTraitAtAll; Where B does not extend any traits
                             Bpl.TypedIdent noTraitAtAll_id = new Bpl.TypedIdent(c.tok, "NoTraitAtAll", predef.ClassNameType);
@@ -1328,7 +1328,7 @@ namespace Microsoft.Dafny {
       //this adds: axiom implements$J(class.C);
       else if (c is ClassDecl)
       {
-          if (c.TraitsObj != null)
+          if (c.TraitsObj != null && c.TraitsObj.Count > 0)
           {
               //var dtypeFunc = FunctionCall(c.tok, BuiltinFunction.DynamicType, null, o);
               //Bpl.Expr implementsFunc = FunctionCall(t.tok, "implements$" + t.Name, Bpl.Type.Bool, new List<Expr> { dtypeFunc });
