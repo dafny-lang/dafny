@@ -1216,8 +1216,10 @@ namespace Microsoft.Dafny
               }
             }
             bool doMerge = false;
-            if (cOld != null && cNew.Lhs.Resolved is IdentifierExpr && cOld.Lhs.Resolved is IdentifierExpr) {
-              if (((IdentifierExpr)cNew.Lhs.Resolved).Name == ((IdentifierExpr)cOld.Lhs.Resolved).Name) {
+            if (cOld != null && cNew.Lhs.WasResolved() && cOld.Lhs.WasResolved()) {
+              var newLhs = cNew.Lhs.Resolved as IdentifierExpr;
+              var oldLhs = cOld.Lhs.Resolved as IdentifierExpr;
+              if (newLhs != null && oldLhs != null && newLhs.Name == oldLhs.Name) {
                 if (!(cNew.Rhs is TypeRhs) && cOld.Rhs is HavocRhs) {
                   doMerge = true;
                 }
@@ -1325,13 +1327,13 @@ namespace Microsoft.Dafny
       if (old.Count != nw.Count)
         return false;
       for (int i = 0; i < old.Count; i++) {
-        var a = old[i].Resolved as IdentifierExpr;
-        var b = nw[i] as IdentifierSequence;
-        if (a != null && b != null)
-          if (b.Tokens.Count == 1 && b.Arguments == null)
-            if (a.Name == b.Tokens[0].val)
-              continue;
-        return false;
+        var a = old[i].WasResolved() ? old[i].Resolved as IdentifierExpr : null;
+        var b = nw[i] as NameSegment;
+        if (a != null && b != null && a.Name == b.Name) {
+          // cool
+        } else {
+          return false;
+        }
       }
       return true;
     }
@@ -1525,7 +1527,7 @@ namespace Microsoft.Dafny
     }
 
     // Checks that statement stmt, defined in the constructed module m, is a refinement of skip in the parent module
-    private bool CheckIsOkayUpdateStmt(ConcreteUpdateStatement stmt, ModuleDefinition m, ResolutionErrorReporter reporter) {
+    void CheckIsOkayUpdateStmt(ConcreteUpdateStatement stmt, ModuleDefinition m, ResolutionErrorReporter reporter) {
       foreach (var lhs in stmt.Lhss) {
         var l = lhs.Resolved;
         if (l is IdentifierExpr) {
@@ -1533,26 +1535,26 @@ namespace Microsoft.Dafny
           Contract.Assert(ident.Var is LocalVariable || ident.Var is Formal); // LHS identifier expressions must be locals or out parameters (ie. formals)
           if ((ident.Var is LocalVariable && RefinementToken.IsInherited(((LocalVariable)ident.Var).Tok, m)) || ident.Var is Formal) {
             // for some reason, formals are not considered to be inherited.
-            reporter.Error(l.tok, "cannot assign to variable defined previously");
-            return false;
+            reporter.Error(l.tok, "refinement method cannot assign to variable defined in parent module ('{0}')", ident.Var.Name);
           }
         } else if (l is MemberSelectExpr) {
-          if (RefinementToken.IsInherited(((MemberSelectExpr)l).Member.tok, m)) {
-            return false;
+          var member = ((MemberSelectExpr)l).Member;
+          if (RefinementToken.IsInherited(member.tok, m)) {
+            reporter.Error(l.tok, "refinement method cannot assign to a field defined in parent module ('{0}')", member.Name);
           }
         } else {
-          return false;
+          // must be an array element
+          reporter.Error(l.tok, "new assignments in a refinement method can only assign to state that the module defines (which never includes array elements)");
         }
       }
       if (stmt is UpdateStmt) {
         var s = (UpdateStmt)stmt;
         foreach (var rhs in s.Rhss) {
-          if (s.Rhss[0].CanAffectPreviouslyKnownExpressions) {
-            return false;
+          if (rhs.CanAffectPreviouslyKnownExpressions) {
+            reporter.Error(rhs.Tok, "assignment RHS in refinement method is not allowed to affect previously defined state");
           }
         }
       }
-      return true;
     }
     // ---------------------- additional methods -----------------------------------------------------------------------------
 

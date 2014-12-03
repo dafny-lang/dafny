@@ -10,7 +10,7 @@ abstract module R1 {
   }
 }
 
-abstract module R2 refines R1 {
+module R2 refines R1 {
   var g: nat;
   method m ...
   {
@@ -18,8 +18,36 @@ abstract module R2 refines R1 {
     var x := 3;
     t := {1}; // error: previous local
     r := 3; // error: out parameter
-    f := 4; // fine: all fields, will cause re-verification
+    f := 4; // error: previously defined field
     x := 6; // fine: new local
     g := 34;// fine: new field
+  }
+}
+
+abstract module M0 {
+  class C {
+    method Init()
+      modifies this;
+    { }
+    method InitWithSideEffects(c: C)
+      modifies c;
+    { }
+    method mmm(arr: array<int>) {
+      var a: C :| true;
+      var b: C :| true;
+    }
+  }
+}
+
+module M1 refines M0 {
+  class C {
+    method mmm... {
+      var a := new C;  // fine
+      var b := new C.Init();  // fine
+      var c := new C.InitWithSideEffects(b);  // error: modifies previous state
+      if arr != null && 12 < arr.Length {
+        arr[12] := 26;  // error: modifies previously defined state
+      }
+    }
   }
 }
