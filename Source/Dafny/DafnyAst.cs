@@ -5290,10 +5290,12 @@ namespace Microsoft.Dafny {
   class Resolver_IdentifierExpr : Expression
   {
     public readonly TopLevelDecl Decl;
+    public readonly List<Type> TypeArgs;
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(Decl != null);
       Contract.Invariant(Type == null || Type is ResolverType_Module || Type is ResolverType_Type);
+      Contract.Invariant(TypeArgs != null && TypeArgs.Count == Decl.TypeArgs.Count);
     }
 
     public class ResolverType_Module : Type
@@ -5316,11 +5318,13 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public Resolver_IdentifierExpr(IToken tok, TopLevelDecl decl)
+    public Resolver_IdentifierExpr(IToken tok, TopLevelDecl decl, List<Type> typeArgs)
       : base(tok) {
       Contract.Requires(tok != null);
       Contract.Requires(decl != null);
+      Contract.Requires(typeArgs != null && typeArgs.Count == decl.TypeArgs.Count);
       Decl = decl;
+      TypeArgs = typeArgs;
       Type = decl is ModuleDecl ? (Type)new ResolverType_Module() : new ResolverType_Type();
     }
   }
@@ -5387,8 +5391,7 @@ namespace Microsoft.Dafny {
     public readonly Expression Obj;
     public readonly string MemberName;
     public MemberDecl Member;          // filled in by resolution, will be a Field or Function
-    public List<Type> TypeApplication;
-      // If it is a function, it must have all its polymorphic variables applied
+    public List<Type> TypeApplication; // If Member is a Function, then TypeApplication is the list of type arguments used with the enclosing class and the function itself
 
     [ContractInvariantMethod]
     void ObjectInvariant() {
@@ -6943,24 +6946,6 @@ namespace Microsoft.Dafny {
       Args = args;
     }
   }
-
-  public class IdentifierSequence : ConcreteSyntaxExpression
-  {
-    public readonly List<IToken> Tokens;
-    public readonly IToken OpenParen;
-    public readonly List<Expression> Arguments;
-    public IdentifierSequence(List<IToken> tokens, IToken openParen, List<Expression> args)
-      : base(tokens[0]) {
-      Contract.Requires(tokens != null && 1 <= tokens.Count);
-      /* "args" is null to indicate the absence of a parenthesized suffix */
-      Contract.Requires(args == null || openParen != null);
-
-      Tokens = tokens;
-      OpenParen = openParen;
-      Arguments = args;
-    }
-  }
-
 
   public class Specification<T> where T : class
   {

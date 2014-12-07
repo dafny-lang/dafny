@@ -10338,8 +10338,7 @@ namespace Microsoft.Dafny {
               }
             },
             fn => {
-              var args = new List<Bpl.Expr>();
-              args.AddRange(e.TypeApplication.ConvertAll(translator.TypeToTy));
+              var args = e.TypeApplication.ConvertAll(translator.TypeToTy);
               if (fn.IsRecursive) {
                 args.Add(layerInterCluster);
               }

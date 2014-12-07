@@ -409,11 +409,6 @@ namespace Microsoft.Dafny
         var e = (ParensExpression)expr;
         return CloneExpr(e.E);  // skip the parentheses in the clone
 
-      } else if (expr is IdentifierSequence) {
-        var e = (IdentifierSequence)expr;
-        var aa = e.Arguments == null ? null : e.Arguments.ConvertAll(CloneExpr);
-        return new IdentifierSequence(e.Tokens.ConvertAll(Tok), e.OpenParen == null ? null : Tok(e.OpenParen), aa);
-
       } else if (expr is MatchExpr) {
         var e = (MatchExpr)expr;
         return new MatchExpr(Tok(e.tok), CloneExpr(e.Source),

@@ -5191,22 +5191,11 @@ namespace Microsoft.Dafny
           callRhs = callRhs ?? (CallRhs)rhs;
         } else {
           var er = (ExprRhs)rhs;
-#if OLD_STUFF
-          if (er.Expr is IdentifierSequence) {
-            var cRhs = ResolveIdentifierSequence((IdentifierSequence)er.Expr, new ResolveOpts(codeContext, true), true);
-            isEffectful = cRhs != null;
-            callRhs = callRhs ?? cRhs;
-          } else if (er.Expr is FunctionCallExpr) {
-            var cRhs = ResolveFunctionCallExpr((FunctionCallExpr)er.Expr, new ResolveOpts(codeContext, true), true);
-            isEffectful = cRhs != null;
-            callRhs = callRhs ?? cRhs;
-#else
           if (er.Expr is ApplySuffix) {
             var a = (ApplySuffix)er.Expr;
             var cRhs = ResolveApplySuffix(a, new ResolveOpts(codeContext, true), true);
             isEffectful = cRhs != null;
             callRhs = callRhs ?? cRhs;
-#endif
           } else {
             ResolveExpression(er.Expr, new ResolveOpts(codeContext, true));
             isEffectful = false;
@@ -6229,10 +6218,6 @@ namespace Microsoft.Dafny
         e.ResolvedExpression = e.E;
         e.Type = e.E.Type;
 
-      } else if (expr is IdentifierSequence) {
-        var e = (IdentifierSequence)expr;
-        ResolveIdentifierSequence(e, opts, false);
-
       } else if (expr is NegationExpression) {
         var e = (NegationExpression)expr;
         var errorCount = ErrorCount;
@@ -6361,30 +6346,12 @@ namespace Microsoft.Dafny
 
       } else if (expr is ExprDotName) {
         var e = (ExprDotName)expr;
-#if OLD_WAY
-        // The following call to ResolveExpression is just preliminary.  If it succeeds, it is redone below on the resolved expression.  Thus,
-        // it's okay to be more lenient here and use coLevel (instead of trying to use CoLevel_Dec(coLevel), which is needed when .Name denotes a
-        // destructor for a co-datatype).
-        ResolveExpression(e.Lhs, opts);
-        Contract.Assert(e.Lhs.Type != null);  // follows from postcondition of ResolveExpression
-        Expression resolved = ResolveMemberSelect(expr.tok, e.Lhs, e.SuffixName);
-
-        if (resolved == null) {
-          // error has already been reported by ResolvePredicateOrField
-        } else {
-          // the following will cause e.Obj to be resolved again, but that's still correct
-          e.ResolvedExpression = resolved;
-          ResolveExpression(e.ResolvedExpression, opts);
-          e.Type = e.ResolvedExpression.Type;
-        }
-#else
         ResolveDotSuffix(e, true, null, opts, false);
         if (e.Type is Resolver_IdentifierExpr.ResolverType_Module) {
           Error(e.tok, "name of module ({0}) is used as a variable", e.SuffixName);
         } else if (e.Type is Resolver_IdentifierExpr.ResolverType_Type) {
           Error(e.tok, "name of type ({0}) is used as a variable", e.SuffixName);
         }
-#endif
 
       } else if (expr is ApplySuffix) {
         var e = (ApplySuffix)expr;
@@ -7286,24 +7253,28 @@ namespace Microsoft.Dafny
       Expression rWithArgs = null;  // the resolved expression after incorporating "args"
 
       // For 0:
-      var v = scope.Find(expr.Name);
+      IVariable v;
       // For 1:
       Dictionary<string, MemberDecl> members;
       // For 1 and 4:
       MemberDecl member = null;
-      Expression receiver = null;  // non-null implies that member is non-null, too; and it means that r should be constructed from receiver.member
       // For 2:
       Tuple<DatatypeCtor, bool> pair;
       // For 3:
       TopLevelDecl decl;
 
+      v = scope.Find(expr.Name);
       if (v != null) {
         // ----- 0. local variable, parameter, or bound variable
+        if (expr.OptTypeArguments != null) {
+          Error(expr.tok, "variable '{0}' does not take any type parameters", expr.Name);
+        }
         var rr = new IdentifierExpr(expr.tok, expr.Name);
         rr.Var = v; rr.Type = v.Type;
         r = rr;
       } else if (currentClass != null && classMembers.TryGetValue(currentClass, out members) && members.TryGetValue(expr.Name, out member)) {
         // ----- 1. member of the enclosing class
+        Expression receiver;
         if (member.IsStatic) {
           receiver = new StaticReceiverExpr(expr.tok, (ClassDecl)member.EnclosingClass);
         } else {
@@ -7314,13 +7285,16 @@ namespace Microsoft.Dafny
           receiver = new ImplicitThisExpr(expr.tok);
           receiver.Type = GetThisType(expr.tok, (ClassDecl)member.EnclosingClass);  // resolve here
         }
-        // "receiver" and "member" have been set; "r" will be filled in below
+        r = ResolveExprDotCall(expr.tok, receiver, member, expr.OptTypeArguments, opts.codeContext, allowMethodCall);
       } else if (isLastNameSegment && moduleInfo.Ctors.TryGetValue(expr.Name, out pair)) {
         // ----- 2. datatype constructor
         if (pair.Item2) {
           // there is more than one constructor with this name
           Error(expr.tok, "the name '{0}' denotes a datatype constructor, but does not do so uniquely; add an explicit qualification (for example, '{1}.{0}')", expr.Name, pair.Item1.EnclosingDatatype.Name);
         } else {
+          if (expr.OptTypeArguments != null) {
+            Error(expr.tok, "datatype constructor does not take any type parameters ('{0}')", expr.Name);
+          }
           var rr = new DatatypeValue(expr.tok, pair.Item1.EnclosingDatatype.Name, expr.Name, args ?? new List<Expression>());
           ResolveDatatypeValue(opts, rr, pair.Item1.EnclosingDatatype);
           if (args == null) {
@@ -7339,7 +7313,7 @@ namespace Microsoft.Dafny
           // looking at may be followed by a further suffix that makes this into an expresion. We postpone the rest of the
           // resolution to any such suffix. For now, we create a temporary expression that will never be seen by the compiler
           // or verifier, just to have a placeholder where we can recorded what we have found.
-          r = new Resolver_IdentifierExpr(expr.tok, decl);
+          r = CreateResolver_IdentifierExpr(expr.tok, expr.Name, expr.OptTypeArguments, decl);
         }
 
       } else if (moduleInfo.StaticMembers.TryGetValue(expr.Name, out member)) {
@@ -7348,20 +7322,13 @@ namespace Microsoft.Dafny
         if (member is AmbiguousMemberDecl) {
           Error(expr.tok, "The name {0} ambiguously refers to a static member in one of the modules {1}", expr.Name, ((AmbiguousMemberDecl)member).ModuleNames());
         } else {
-          receiver = new StaticReceiverExpr(expr.tok, (ClassDecl)member.EnclosingClass);
+          var receiver = new StaticReceiverExpr(expr.tok, (ClassDecl)member.EnclosingClass);
+          r = ResolveExprDotCall(expr.tok, receiver, member, expr.OptTypeArguments, opts.codeContext, allowMethodCall);
         }
-        // "receiver" and "member" have been set; "r" will be filled in below
 
       } else {
         // ----- None of the above
         Error(expr.tok, "unresolved identifier: {0}", expr.Name);
-      }
-
-      // Now, continue processing cases 1 and 4:
-      if (receiver != null) {
-        Contract.Assert(member != null);
-        Contract.Assert(receiver.WasResolved());
-        r = ResolveExprDotCall(expr.tok, receiver, member, expr.OptTypeArguments, opts.codeContext, allowMethodCall);
       }
 
       if (r == null) {
@@ -7374,20 +7341,39 @@ namespace Microsoft.Dafny
       return rWithArgs;
     }
 
+    Resolver_IdentifierExpr CreateResolver_IdentifierExpr(IToken tok, string name, List<Type> optTypeArguments, TopLevelDecl decl) {
+      Contract.Requires(tok != null);
+      Contract.Requires(name != null);
+      Contract.Requires(decl != null);
+      Contract.Ensures(Contract.Result<Resolver_IdentifierExpr>() != null);
+      var n = optTypeArguments == null ? 0 : optTypeArguments.Count;
+      if (optTypeArguments != null) {
+        // type arguments were supplied; they must be equal in number to those expected
+        if (n != decl.TypeArgs.Count) {
+          Error(tok, "wrong number of type arguments for '{0}' (got {1}, expected {2})", name, n, decl.TypeArgs.Count);
+        }
+      }
+      List<Type> tpArgs = new List<Type>();
+      for (int i = 0; i < decl.TypeArgs.Count; i++) {
+        tpArgs.Add(i < n ? optTypeArguments[i] : new InferredTypeProxy());
+      }
+      return new Resolver_IdentifierExpr(tok, decl, tpArgs);
+    }
+
     /// <summary>
     /// To resolve "id" in expression "E . id", do:
     ///  * If E denotes a module name M:
     ///      0. If isLastNameSegment:
     ///         Unambiguous constructor name of a datatype in module M (if two constructors have the same name, an error message is produced here)
     ///         (Language design note:  If the constructor name is ambiguous or if one of the steps above takes priority, one can qualify the constructor name with the name of the datatype)
-    ///      0. Member of module M:  sub-module (including submodules of imports), class, datatype, etc.
+    ///      1. Member of module M:  sub-module (including submodules of imports), class, datatype, etc.
     ///         (if two imported types have the same name, an error message is produced here)
-    ///      1. Static function or method of M._default
+    ///      2. Static function or method of M._default
     ///    (Note that in contrast to ResolveNameSegment, imported modules, etc. are ignored)
     ///  * If E denotes a type:
-    ///      2. Look up id as a member of that type
+    ///      3. Look up id as a member of that type
     ///  * If E denotes an expression:
-    ///      3. Let T be the type of E.  Look up id in T.
+    ///      4. Let T be the type of E.  Look up id in T.
     /// </summary>
     /// <param name="expr"></param>
     /// <param name="isLastNameSegment">Indicates that the ExprDotName is not directly enclosed in another ExprDotName expression.</param>
@@ -7403,6 +7389,7 @@ namespace Microsoft.Dafny
       Contract.Requires(opts != null);
       Contract.Ensures(Contract.Result<Expression>() == null || args != null);
 
+      // resolve the LHS expression
       if (expr.Lhs is NameSegment) {
         ResolveNameSegment((NameSegment)expr.Lhs, false, null, opts, false);
       } else if (expr.Lhs is ExprDotName) {
@@ -7419,18 +7406,17 @@ namespace Microsoft.Dafny
 
       Expression r = null;  // the resolved expression, if successful
       Expression rWithArgs = null;  // the resolved expression after incorporating "args"
-
       MemberDecl member = null;
-      Expression receiver = null;  // non-null implies that member is non-null, too; and it means that r should be constructed from receiver.member
 
       var lhs = expr.Lhs.Resolved;
       if (lhs != null && lhs.Type is Resolver_IdentifierExpr.ResolverType_Module) {
         var ri = (Resolver_IdentifierExpr)lhs;
         var sig = ((ModuleDecl)ri.Decl).Signature;
         sig = GetSignature(sig);
+        // For 0:
+        Tuple<DatatypeCtor, bool> pair;
         // For 1:
         TopLevelDecl decl;
-        Tuple<DatatypeCtor, bool> pair;
 
         if (isLastNameSegment && moduleInfo.Ctors.TryGetValue(expr.SuffixName, out pair)) {
           // ----- 0. datatype constructor
@@ -7438,6 +7424,9 @@ namespace Microsoft.Dafny
             // there is more than one constructor with this name
             Error(expr.tok, "the name '{0}' denotes a datatype constructor in module {2}, but does not do so uniquely; add an explicit qualification (for example, '{1}.{0}')", expr.SuffixName, pair.Item1.EnclosingDatatype.Name, ((ModuleDecl)ri.Decl).Name);
           } else {
+            if (expr.OptTypeArguments != null) {
+              Error(expr.tok, "datatype constructor does not take any type parameters ('{0}')", expr.SuffixName);
+            }
             var rr = new DatatypeValue(expr.tok, pair.Item1.EnclosingDatatype.Name, expr.SuffixName, args ?? new List<Expression>());
             ResolveExpression(rr, opts);
             if (args == null) {
@@ -7456,7 +7445,7 @@ namespace Microsoft.Dafny
             // looking at may be followed by a further suffix that makes this into an expresion. We postpone the rest of the
             // resolution to any such suffix. For now, we create a temporary expression that will never be seen by the compiler
             // or verifier, just to have a placeholder where we can recorded what we have found.
-            r = new Resolver_IdentifierExpr(expr.tok, decl);
+            r = CreateResolver_IdentifierExpr(expr.tok, expr.SuffixName, expr.OptTypeArguments, decl);
           }
         } else if (sig.StaticMembers.TryGetValue(expr.SuffixName, out member)) {
           // ----- 2. static member of the specified module
@@ -7464,10 +7453,9 @@ namespace Microsoft.Dafny
           if (member is AmbiguousMemberDecl) {
             Error(expr.tok, "The name {0} ambiguously refers to a static member in one of the modules {1}", expr.SuffixName, ((AmbiguousMemberDecl)member).ModuleNames());
           } else {
-            receiver = new StaticReceiverExpr(expr.tok, (ClassDecl)member.EnclosingClass);
+            var receiver = new StaticReceiverExpr(expr.tok, (ClassDecl)member.EnclosingClass);
+            r = ResolveExprDotCall(expr.tok, receiver, member, expr.OptTypeArguments, opts.codeContext, allowMethodCall);
           }
-          // "receiver" and "member" have been set; "r" will be filled in below
-          // TODO (can be done in else branch above)
         } else {
           Error(expr.tok, "unresolved identifier: {0}", expr.SuffixName);
         }
@@ -7477,8 +7465,7 @@ namespace Microsoft.Dafny
         var decl = ri.Decl;
         // ----- 3. Look up name in type
         // expand any synonyms
-        var tpArgs = decl.TypeArgs.ConvertAll(_ => (Type)new InferredTypeProxy());
-        var ty = new UserDefinedType(expr.tok, decl.Name, decl, tpArgs).NormalizeExpand();
+        var ty = new UserDefinedType(expr.tok, decl.Name, decl, ri.TypeArgs).NormalizeExpand();
         if (ty.IsRefType) {
           // ----- LHS is a class
           var cd = (ClassDecl)((UserDefinedType)ty).ResolvedClass;
@@ -7488,7 +7475,8 @@ namespace Microsoft.Dafny
               Error(expr.tok, "accessing member '{0}' requires an instance expression", expr.SuffixName);
               // nevertheless, continue creating an expression that approximates a correct one
             }
-            receiver = new StaticReceiverExpr(expr.tok, (ClassDecl)member.EnclosingClass);
+            var receiver = new StaticReceiverExpr(expr.tok, (ClassDecl)member.EnclosingClass);
+            r = ResolveExprDotCall(expr.tok, receiver, member, expr.OptTypeArguments, opts.codeContext, allowMethodCall);
           }
         } else if (ty.IsDatatype) {
           // ----- LHS is a datatype
@@ -7496,6 +7484,9 @@ namespace Microsoft.Dafny
           Dictionary<string, DatatypeCtor> members;
           DatatypeCtor ctor;
           if (datatypeCtors.TryGetValue(dt, out members) && members.TryGetValue(expr.SuffixName, out ctor)) {
+            if (expr.OptTypeArguments != null) {
+              Error(expr.tok, "datatype constructor does not take any type parameters ('{0}')", expr.SuffixName);
+            }
             var rr = new DatatypeValue(expr.tok, ctor.EnclosingDatatype.Name, expr.SuffixName, args ?? new List<Expression>());
             ResolveDatatypeValue(opts, rr, ctor.EnclosingDatatype);
             if (args == null) {
@@ -7506,7 +7497,7 @@ namespace Microsoft.Dafny
             }
           }
         }
-        if (receiver == null && r == null) {
+        if (r == null) {
           Error(expr.tok, "member '{0}' does not exist in type '{1}'", expr.SuffixName, ri.Decl.Name);
         }
       } else if (lhs != null) {
@@ -7514,14 +7505,9 @@ namespace Microsoft.Dafny
         NonProxyType nptype;
         member = ResolveMember(expr.tok, expr.Lhs.Type, expr.SuffixName, out nptype);
         if (member != null) {
-          receiver = expr.Lhs;
+          var receiver = expr.Lhs;
+          r = ResolveExprDotCall(expr.tok, receiver, member, expr.OptTypeArguments, opts.codeContext, allowMethodCall);
         }
-      }
-
-      if (receiver != null) {
-        Contract.Assert(member != null);
-        Contract.Assert(receiver.WasResolved());
-        r = ResolveExprDotCall(expr.tok, receiver, member, expr.OptTypeArguments, opts.codeContext, allowMethodCall);
       }
 
       if (r == null) {
@@ -7545,7 +7531,7 @@ namespace Microsoft.Dafny
       rr.Member = member;
 
       // Now, fill in rr.Type.  This requires taking into consideration the type parameters passed to the receiver's type as well as any type
-      // parameters used in this NameSegment.
+      // parameters used in this NameSegment/ExprDotName.
       // Add to "subst" the type parameters given to the member's class/datatype
       Dictionary<TypeParameter, Type> subst;
       var udt = receiver.Type.NormalizeExpand() as UserDefinedType;
@@ -7564,9 +7550,12 @@ namespace Microsoft.Dafny
         var fn = (Function)member;
         int suppliedTypeArguments = optTypeArguments == null ? 0 : optTypeArguments.Count;
         if (optTypeArguments != null && suppliedTypeArguments != fn.TypeArgs.Count) {
-          Error(tok, "function {0} expects {1} type arguments (got {2})", member.Name, fn.TypeArgs.Count, suppliedTypeArguments);
+          Error(tok, "function '{0}' expects {1} type arguments (got {2})", member.Name, fn.TypeArgs.Count, suppliedTypeArguments);
         }
         rr.TypeApplication = new List<Type>();
+        if (udt != null && udt.ResolvedClass != null) {
+          rr.TypeApplication.AddRange(udt.TypeArgs);
+        }
         for (int i = 0; i < fn.TypeArgs.Count; i++) {
           var ta = i < suppliedTypeArguments ? optTypeArguments[i] : new InferredTypeProxy();
           rr.TypeApplication.Add(ta);
@@ -7613,9 +7602,9 @@ namespace Microsoft.Dafny
             Error(e.tok, "name of module ({0}) is used as a function", ((Resolver_IdentifierExpr)lhs).Decl.Name);
           } else if (lhs != null && lhs.Type is Resolver_IdentifierExpr.ResolverType_Type) {
             // It may be a conversion expression
-            var decl = ((Resolver_IdentifierExpr)lhs).Decl;
-            var tpArgs = decl.TypeArgs.ConvertAll(_ => (Type)new InferredTypeProxy());
-            var ty = new UserDefinedType(e.tok, decl.Name, decl, tpArgs);
+            var ri = (Resolver_IdentifierExpr)lhs;
+            var decl = ri.Decl;
+            var ty = new UserDefinedType(e.tok, decl.Name, decl, ri.TypeArgs);
             if (ty.AsNewtype != null) {
               if (e.Args.Count != 1) {
                 Error(e.tok, "conversion operation to {0} got wrong number of arguments (expected 1, got {1})", decl.Name, e.Args.Count);
@@ -8051,252 +8040,6 @@ namespace Microsoft.Dafny
       }
     }
 
-    /// <summary>
-    /// If "!allowMethodCall", or if "e" does not designate a method call, resolves "e" and returns "null".
-    /// Otherwise, resolves all sub-parts of "e" and returns a (resolved) CallRhs expression representing the call.
-    /// </summary>
-    CallRhs ResolveIdentifierSequence(IdentifierSequence e, ResolveOpts opts, bool allowMethodCall) {
-      Contract.Requires(e != null);
-      Contract.Requires(opts != null);
-      // Look up "id" as follows:
-      //  - local variable, parameter, or bound variable (if this clashes with something of interest, one can always rename the local variable locally)
-      //  - if the length of the path is 1, unambiguous constructor name of a datatype (if two constructors have the same name, an error message is
-      //    produced here)
-      //  - unamibugous type/module name (class, datatype, sub-module (including submodules of imports) or opaque type)
-      //       (if two imported types have the same name, an error message is produced here)
-      //  - field, function or method name (with implicit receiver) (if the field is occluded by anything above, one can use an explicit "this.")
-      //  - iterator
-      //  - static function or method in the enclosing module, or its imports.
-
-      Expression r = null;  // resolved version of e
-      CallRhs call = null;
-
-      TopLevelDecl decl;
-      Tuple<DatatypeCtor, bool> pair;
-      Dictionary<string, MemberDecl> members;
-      MemberDecl member;
-      var id = e.Tokens[0];
-      if (scope.Find(id.val) != null) {
-        // ----- root is a local variable, parameter, or bound variable
-        r = new IdentifierExpr(id, id.val);
-        ResolveExpression(r, opts);
-        r = ResolveSuffix(r, e, 1, opts, allowMethodCall, out call);
-
-      } else if (e.Tokens.Count == 1 && moduleInfo.Ctors.TryGetValue(id.val, out pair)) {
-        // ----- root is a datatype constructor
-        if (pair.Item2) {
-          // there is more than one constructor with this name
-          Error(id, "the name '{0}' denotes a datatype constructor, but does not do so uniquely; add an explicit qualification (for example, '{1}.{0}')", id.val, pair.Item1.EnclosingDatatype.Name);
-        } else {
-          var args = (e.Tokens.Count == 1 ? e.Arguments : null) ?? new List<Expression>();
-          r = new DatatypeValue(id, pair.Item1.EnclosingDatatype.Name, id.val, args);
-          ResolveExpression(r, opts);
-          if (e.Tokens.Count != 1) {
-            r = ResolveSuffix(r, e, 1, opts, allowMethodCall, out call);
-          }
-        }
-
-      } else if (moduleInfo.TopLevels.TryGetValue(id.val, out decl)) {
-        if (decl is AmbiguousTopLevelDecl) {
-          Error(id, "The name {0} ambiguously refers to a type in one of the modules {1}", id.val, ((AmbiguousTopLevelDecl)decl).ModuleNames());
-        } else if (e.Tokens.Count == 1 && e.Arguments == null) {
-          Error(id, "name of type ('{0}') is used as a variable", id.val);
-        } else if (e.Tokens.Count == 1 && e.Arguments != null) {
-          if (ResolveAsTypeConversion(e, opts, decl, id, ref r)) {
-            // everything taken care of by ResolveAsTypeConversion
-          }  else {
-            Error(id, "name of type ('{0}') is used as a function", id.val);
-            // resolve the arguments nonetheless
-            foreach (var arg in e.Arguments) {
-              ResolveExpression(arg, opts);
-            }
-          }
-        } else if (decl is ModuleDecl) {
-          // ----- root is a submodule
-          if (!(1 < e.Tokens.Count)) {
-            Error(e.tok, "module {0} cannot be used here", ((ModuleDecl)decl).Name);
-          }
-          call = ResolveIdentifierSequenceModuleScope(e, 1, ((ModuleDecl)decl).Signature, opts, allowMethodCall);
-        } else {
-          // expand any synonyms
-          var tpArgs = decl.TypeArgs.ConvertAll(_ => (Type)new InferredTypeProxy());
-          var ty = new UserDefinedType(e.tok, decl.Name, decl, tpArgs).NormalizeExpand();
-          if (ty.IsRefType) {
-            // ----- root is a class
-            var cd = (ClassDecl)((UserDefinedType)ty).ResolvedClass;
-            r = ResolveSuffix(new StaticReceiverExpr(id, cd), e, 1, opts, allowMethodCall, out call);
-          } else if (ty.IsDatatype) {
-            // ----- root is a datatype
-            var dt = ty.AsDatatype;
-            var args = (e.Tokens.Count == 2 ? e.Arguments : null) ?? new List<Expression>();
-            var dtv = new DatatypeValue(id, id.val, e.Tokens[1].val, args);
-            ResolveDatatypeValue(opts, dtv, dt);
-            r = dtv;
-            if (e.Tokens.Count != 2) {
-              r = ResolveSuffix(r, e, 2, opts, allowMethodCall, out call);
-            }
-          } else {
-            Error(id, "name of type ('{0}') is used as a variable", id.val);
-          }
-        }
-
-      } else if ((currentClass != null && classMembers.TryGetValue(currentClass, out members) && members.TryGetValue(id.val, out member))
-                 || moduleInfo.StaticMembers.TryGetValue(id.val, out member)) // try static members of the current module too.
-      {
-        // ----- field, function, or method
-        if (member is AmbiguousMemberDecl) {
-          Contract.Assert(member.IsStatic); // currently, static members of _default are the only thing which can be ambiguous.
-          Error(id, "The name {0} ambiguously refers to a static member in one of the modules {1}", id.val, ((AmbiguousMemberDecl)member).ModuleNames());
-        } else {
-          Expression receiver;
-          if (member.IsStatic) {
-            receiver = new StaticReceiverExpr(id, (ClassDecl)member.EnclosingClass);
-          } else {
-            if (!scope.AllowInstance) {
-              Error(id, "'this' is not allowed in a 'static' context");
-              // nevertheless, set "receiver" to a value so we can continue resolution
-            }
-            receiver = new ImplicitThisExpr(id);
-            receiver.Type = GetThisType(id, (ClassDecl)member.EnclosingClass);  // resolve here
-          }
-          r = ResolveSuffix(receiver, e, 0, opts, allowMethodCall, out call);
-        }
-
-      } else {
-        Error(id, "unresolved identifier: {0}", id.val);
-        // resolve arguments, if any
-        if (e.Arguments != null) {
-          foreach (var arg in e.Arguments) {
-            ResolveExpression(arg, opts);
-          }
-        }
-      }
-
-      if (r != null) {
-        e.ResolvedExpression = r;
-        e.Type = r.Type;
-      }
-      return call;
-    }
-
-    bool ResolveAsTypeConversion(IdentifierSequence e, ResolveOpts opts, TopLevelDecl decl, IToken id, ref Expression r) {
-      var tpArgs = decl.TypeArgs.ConvertAll(_ => (Type)new InferredTypeProxy());
-      var ty = new UserDefinedType(e.tok, decl.Name, decl, tpArgs);
-      if (ty.AsNewtype == null) {
-        return false;
-      } else {
-        if (e.Arguments.Count != 1) {
-          Error(id, "conversion operation to {0} got wrong number of arguments (expected 1, got {1})", id.val, e.Arguments.Count);
-        }
-        var conversionArg = 1 <= e.Arguments.Count ? e.Arguments[0] :
-          ty.IsNumericBased(Type.NumericPersuation.Int) ? LiteralExpr.CreateIntLiteral(e.tok, 0) :
-          LiteralExpr.CreateRealLiteral(e.tok, Basetypes.BigDec.ZERO);
-        r = new ConversionExpr(e.tok, conversionArg, ty);
-        ResolveExpression(r, opts);
-        // resolve the rest of the arguments, if any
-        for (int i = 1; i < e.Arguments.Count; i++) {
-          ResolveExpression(e.Arguments[i], opts);
-        }
-        return true;
-      }
-    }
-
-    CallRhs ResolveIdentifierSequenceModuleScope(IdentifierSequence e, int p, ModuleSignature sig, ResolveOpts opts, bool allowMethodCall) {
-      // Look up "id" as follows:
-      //  - unambiguous type/module name (class, datatype, sub-module (including submodules of imports) or opaque type)
-      //       (if two imported types have the same name, an error message is produced here)
-      //  - static function or method of sig.
-      // This is used to look up names that appear after a dot in a sequence identifier. For example, in X.M.*, M should be looked up in X, but
-      // should not consult the local scope. This distingushes this from the above, in that local scope, imported modules, etc. are ignored.
-      Contract.Requires(0 <= p && p < e.Tokens.Count);
-      Expression r = null;  // resolved version of e
-      CallRhs call = null;
-
-      TopLevelDecl decl;
-      MemberDecl member;
-      Tuple<DatatypeCtor, bool> pair;
-      var id = e.Tokens[p];
-      sig = GetSignature(sig);
-      if (sig.TopLevels.TryGetValue(id.val, out decl)) {
-        if (decl is AmbiguousTopLevelDecl) {
-          Error(id, "The name {0} ambiguously refers to a something in one of the modules {1}", id.val, ((AmbiguousTopLevelDecl)decl).ModuleNames());
-        } else if (p == e.Tokens.Count - 1 && e.Arguments != null && ResolveAsTypeConversion(e, opts, decl, id, ref r)) {
-          // everything taken care of by ResolveAsTypeConversion
-        } else if (decl is ModuleDecl) {
-          // ----- root is a submodule
-          if (!(p + 1 < e.Tokens.Count)) {
-            Error(e.tok, "module {0} cannot be used here", ((ModuleDecl)decl).Name);
-          }
-          call = ResolveIdentifierSequenceModuleScope(e, p + 1, ((ModuleDecl)decl).Signature, opts, allowMethodCall);
-        } else {
-          // expand any synonyms
-          var tpArgs = decl.TypeArgs.ConvertAll(_ => (Type)new InferredTypeProxy());
-          var ty = new UserDefinedType(e.tok, decl.Name, decl, tpArgs).NormalizeExpand();
-          if (ty.IsRefType) {
-            // ----- root is a class
-            var cd = (ClassDecl)((UserDefinedType)ty).ResolvedClass;
-            r = ResolveSuffix(new StaticReceiverExpr(id, cd), e, p + 1, opts, allowMethodCall, out call);
-          } else if (ty.IsDatatype) {
-            // ----- root is a datatype
-            var dt = ty.AsDatatype;
-            var args = (e.Tokens.Count == p + 2 ? e.Arguments : null) ?? new List<Expression>();
-            r = new DatatypeValue(id, id.val, e.Tokens[p + 1].val, args);
-            ResolveDatatypeValue(opts, (DatatypeValue)r, dt);
-            if (e.Tokens.Count != p + 2) {
-              r = ResolveSuffix(r, e, p + 2, opts, allowMethodCall, out call);
-            }
-          } else {
-            if (p == e.Tokens.Count - 1 && e.Arguments != null) {
-              Error(id, "name of type ('{0}') is used as a function", id.val);
-            } else {
-              Error(id, "name of type ('{0}') is used as a variable", id.val);
-            }
-            // resolve arguments, if any
-            if (e.Arguments != null) {
-              foreach (var arg in e.Arguments) {
-                ResolveExpression(arg, opts);
-              }
-            }
-          }
-        }
-      } else if (sig.Ctors.TryGetValue(id.val, out pair)) {
-        // ----- root is a datatype constructor
-        if (pair.Item2) {
-          // there is more than one constructor with this name
-          Error(id, "the name '{0}' denotes a datatype constructor, but does not do so uniquely; add an explicit qualification (for example, '{1}.{0}')", id.val, pair.Item1.EnclosingDatatype.Name);
-        } else {
-          var dt = pair.Item1.EnclosingDatatype;
-          var args = (e.Tokens.Count == p + 1 ? e.Arguments : null) ?? new List<Expression>();
-          r = new DatatypeValue(id, dt.Name, id.val, args);
-          ResolveDatatypeValue(opts, (DatatypeValue)r, dt);
-          if (e.Tokens.Count != p + 1) {
-            r = ResolveSuffix(r, e, p + 1, opts, allowMethodCall, out call);
-          }
-        }
-      } else if (sig.StaticMembers.TryGetValue(id.val, out member)) // try static members of the current module too.
-      {
-        // ----- function, or method
-        Expression receiver;
-        Contract.Assert(member.IsStatic);
-        receiver = new StaticReceiverExpr(id, (ClassDecl)member.EnclosingClass);
-        r = ResolveSuffix(receiver, e, p, opts, allowMethodCall, out call);
-
-      } else {
-        Error(id, "unresolved identifier: {0}", id.val);
-        // resolve arguments, if any
-        if (e.Arguments != null) {
-          foreach (var arg in e.Arguments) {
-            ResolveExpression(arg, opts);
-          }
-        }
-      }
-
-      if (r != null) {
-        e.ResolvedExpression = r;
-        e.Type = r.Type;
-      }
-      return call;
-    }
 
     private ModuleSignature GetSignature(ModuleSignature sig) {
       if (useCompileSignatures) {
@@ -8304,95 +8047,6 @@ namespace Microsoft.Dafny
           sig = sig.CompileSignature;
       }
       return sig;
-    }
-    /// <summary>
-    /// Given resolved expression "r" and unresolved expressions e.Tokens[p..] and e.Arguments.
-    /// Returns a resolved version of the expression:
-    ///   r    . e.Tokens[p]    . e.Tokens[p+1]    ...    . e.Tokens[e.Tokens.Count-1]    ( e.Arguments )
-    /// Except, if "allowMethodCall" is "true" and the would-be-returned value designates a method
-    /// call, instead returns null and returns "call" as a non-null value.
-    /// </summary>
-    Expression ResolveSuffix(Expression r, IdentifierSequence e, int p, ResolveOpts opts, bool allowMethodCall, out CallRhs call) {
-      Contract.Requires(r != null);
-      Contract.Requires(e != null);
-      Contract.Requires(0 <= p && p <= e.Tokens.Count);
-      Contract.Ensures((Contract.Result<Expression>() != null && Contract.ValueAtReturn(out call) == null) ||
-        (allowMethodCall && Contract.Result<Expression>() == null && Contract.ValueAtReturn(out call) != null));
-
-      call = null;
-      int nonCallArguments = e.Arguments == null ? e.Tokens.Count : e.Tokens.Count - 1;
-      for (; p < nonCallArguments; p++) {
-        var resolved = ResolveMemberSelect(e.Tokens[p], r, e.Tokens[p].val);
-        if (resolved != null) {
-          r = resolved;
-          ResolveExpression(r, opts);
-        }
-      }
-
-      if (p < e.Tokens.Count) {
-        Contract.Assert(e.Arguments != null);
-
-        bool itIsAMethod = false;
-        if (allowMethodCall) {
-          var udt = r.Type.NormalizeExpand() as UserDefinedType;
-          if (udt != null && udt.ResolvedClass != null) {
-            Dictionary<string, MemberDecl> members;
-            if (udt.ResolvedClass is ClassDecl) {
-              classMembers.TryGetValue((ClassDecl)udt.ResolvedClass, out members);
-            } else {
-              members = null;
-            }
-            MemberDecl member;
-            if (members != null && members.TryGetValue(e.Tokens[p].val, out member) && member is Method) {
-              itIsAMethod = true;
-            }
-          }
-        }
-        if (itIsAMethod) {
-          // method
-          call = new CallRhs(e.Tokens[p], r, e.Tokens[p].val, e.Arguments);
-          r = null;
-        } else {
-          r = NewFunctionCallExpr(e.Tokens[p], e.Tokens[p].val, r, e.OpenParen, e.Arguments);
-          ResolveExpression(r, opts);
-        }
-      } else if (e.Arguments != null) {
-        Contract.Assert(p == e.Tokens.Count);
-        if (r.Type.IsArrowType || r.Type.IsTypeParameter) {
-          r = new ApplyExpr(e.OpenParen, r, e.Arguments);
-          ResolveExpression(r, opts);
-        } else {
-          Error(e.OpenParen, "non-function expression is called with parameters");
-          // resolve the arguments nonetheless
-          foreach (var arg in e.Arguments) {
-            ResolveExpression(arg, opts);
-          }
-        }
-      }
-      return r;
-    }
-
-    /// <summary>
-    /// Resolves "obj . suffixName" to a member select expression,
-    /// Expects "obj" already to have been resolved.
-    /// On success, returns the result of the resolution--as an un-resolved expression.
-    /// On failure, returns null (in which case an error has been reported to the user).
-    /// </summary>
-    Expression/*?*/ ResolveMemberSelect(IToken tok, Expression obj, string suffixName) {
-      Contract.Requires(tok != null);
-      Contract.Requires(obj != null);
-      Contract.Requires(obj.Type != null);  // obj is expected already to have been resolved
-      Contract.Requires(suffixName != null);
-
-      NonProxyType nptype;
-      MemberDecl member = ResolveMember(tok, obj.Type, suffixName, out nptype);
-      if (member == null) {
-        // error has already been reported by ResolveMember
-        return null;
-      } else {
-        // assume it's a field and let the resolution of the MemberSelectExpr check any further problems
-        return new MemberSelectExpr(tok, obj, suffixName);
-      }
     }
 
     /// <summary>

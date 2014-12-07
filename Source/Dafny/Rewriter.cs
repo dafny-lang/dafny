@@ -518,10 +518,9 @@ namespace Microsoft.Dafny
 
             // Build the implication connecting the function's requires to the connection with the revealed-body version
             Func<Function, Expression> func_builder = func =>
-              new IdentifierSequence(
-                new List<Bpl.IToken>() { func.tok }, 
-                func.tok, 
-                func.Formals.ConvertAll(x => (Expression)new IdentifierExpr(func.tok, x.Name))); 
+              new ApplySuffix(func.tok,
+                new NameSegment(func.tok, func.Name, null),
+                func.Formals.ConvertAll(x => (Expression)new IdentifierExpr(func.tok, x.Name)));
             var oldEqualsNew = new BinaryExpr(f.tok, BinaryExpr.Opcode.Eq, func_builder(f), func_builder(fWithBody));
             var requiresImpliesOldEqualsNew = new BinaryExpr(f.tok, BinaryExpr.Opcode.Imp, reqExpr, oldEqualsNew);            
 

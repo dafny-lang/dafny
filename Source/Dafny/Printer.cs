@@ -1855,19 +1855,6 @@ namespace Microsoft.Dafny {
         PrintExpr(e.E, opBindingStrength, containsNestedNegation, parensNeeded || isRightmost, !parensNeeded && isFollowedBySemicolon, -1);
         if (parensNeeded) { wr.Write(")"); }
 
-      } else if (expr is IdentifierSequence) {
-        var e = (IdentifierSequence)expr;
-        string sep = "";
-        string name = null;
-        foreach (var id in e.Tokens) {
-          name = id.val;
-          wr.Write("{0}{1}", sep, name);
-          sep = ".";
-        }
-        if (e.Arguments != null) {
-          PrintActualArguments(e.Arguments, name);
-        }
-
       } else if (expr is MatchExpr) {
         var e = (MatchExpr)expr;
         var parensNeeded = !isRightmost && !e.UsesOptionalBraces;

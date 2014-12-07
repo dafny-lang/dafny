@@ -1,4 +1,4 @@
-Classes.dfy(41,5): Error: possible violation of function precondition
+Classes.dfy(41,6): Error: possible violation of function precondition
 Execution trace:
     (0,0): anon0
     (0,0): anon11_Then
