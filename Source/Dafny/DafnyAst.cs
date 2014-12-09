@@ -5090,10 +5090,7 @@ namespace Microsoft.Dafny {
     {
       Contract.Requires(tok != null);
       Contract.Requires(cl != null);
-      var typeArgs = new List<Type>();
-      foreach (var ta in cl.TypeArgs) {
-        typeArgs.Add(new InferredTypeProxy());
-      }
+      var typeArgs = cl.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp));
       Type = new UserDefinedType(tok, cl.Name, cl, typeArgs);
       UnresolvedType = Type;
     }
@@ -6917,12 +6914,13 @@ namespace Microsoft.Dafny {
       Contract.Invariant(SuffixName != null);
     }
 
-    public ExprDotName(IToken tok, Expression obj, string suffixName)
+    public ExprDotName(IToken tok, Expression obj, string suffixName, List<Type> optTypeArguments)
       : base(tok, obj) {
       Contract.Requires(tok != null);
       Contract.Requires(obj != null);
       Contract.Requires(suffixName != null);
       this.SuffixName = suffixName;
+      OptTypeArguments = optTypeArguments;
     }
   }
 

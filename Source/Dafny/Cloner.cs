@@ -244,7 +244,8 @@ namespace Microsoft.Dafny
       } else if (expr is LiteralExpr) {
         var e = (LiteralExpr)expr;
         if (e is StaticReceiverExpr) {
-          return new StaticReceiverExpr(e.tok, CloneType(e.Type));
+          var ee = (StaticReceiverExpr)e;
+          return new StaticReceiverExpr(e.tok, CloneType(ee.UnresolvedType));
         } else if (e.Value == null) {          
           return new LiteralExpr(Tok(e.tok));
         } else if (e.Value is bool) {
@@ -299,7 +300,7 @@ namespace Microsoft.Dafny
         return new NameSegment(Tok(e.tok), e.Name, e.OptTypeArguments == null ? null : e.OptTypeArguments.ConvertAll(CloneType));
       } else if (expr is ExprDotName) {
         var e = (ExprDotName)expr;
-        return new ExprDotName(Tok(e.tok), CloneExpr(e.Lhs), e.SuffixName);
+        return new ExprDotName(Tok(e.tok), CloneExpr(e.Lhs), e.SuffixName, e.OptTypeArguments == null ? null : e.OptTypeArguments.ConvertAll(CloneType));
       } else if (expr is ApplySuffix) {
         var e = (ApplySuffix)expr;
         return new ApplySuffix(Tok(e.tok), CloneExpr(e.Lhs), e.Args.ConvertAll(CloneExpr));

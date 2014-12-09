@@ -237,6 +237,115 @@ bool IsNotEndOfCase() {
   return la.kind != _EOF && la.kind != _rbrace && la.kind != _case;
 }
 
+/* The following is the largest lookahead there is. It needs to check if what follows
+ * can be nothing but "<" Type { "," Type } ">".
+ */
+bool IsGenericInstantiation() {
+  scanner.ResetPeek();
+  IToken pt = la;
+  if (!IsTypeList(ref pt)) {
+    return false;
+  }
+  /* There are ambiguities in the parsing.  For example:
+   *     F( a < b , c > (d) )
+   * can either be a unary function F whose argument is a function "a" with type arguments "<b,c>" and
+   * parameter "d", or can be a binary function F with the two boolean arguments "a < b" and "c > (d)".
+   * To make the situation a little better, we (somewhat heuristically) look at the character that
+   * follows the ">".  Note that if we, contrary to a user's intentions, pick "a<b,c>" out as a function
+   * with a type instantiation, the user can disambiguate it by making sure the ">" sits inside some
+   * parentheses, like:
+   *     F( a < b , (c > (d)) )
+   */
+  switch (pt.kind) {
+    case _dot:  // here, we're sure it must have been a type instantiation we saw, because an expression cannot begin with dot
+    case _openparen:  // it was probably a type instantiation of a function/method
+    case _lbracket:  // it is possible that it was a type instantiation
+    case _lbrace:  // it was probably a type instantiation of a function/method
+    // In the following cases, we're sure we must have read a type instantiation that just ended an expression
+    case _closeparen:
+    case _rbracket:
+    case _rbrace:
+    case _semi:
+    case _then:
+    case _else:
+    case _case:
+    case _eq:
+    case _neq:
+    case _neqAlt:
+    case _openAngleBracket:
+    case _closeAngleBracket:
+      return true;
+    default:
+      return false;
+  }
+}
+bool IsTypeList(ref IToken pt) {
+  if (pt.kind != _openAngleBracket) {
+    return false;
+  }
+  pt = scanner.Peek();
+  return IsTypeSequence(ref pt, _closeAngleBracket);
+}
+bool IsTypeSequence(ref IToken pt, int endBracketKind) {
+  while (true) {
+    if (!IsType(ref pt)) {
+      return false;
+    }
+    if (pt.kind == endBracketKind) {
+      // end of type list
+      pt = scanner.Peek();
+      return true;
+    } else if (pt.kind == _comma) {
+      // type list continues
+      pt = scanner.Peek();
+    } else {
+      // not a type list
+      return false;
+    }
+  }
+}
+bool IsType(ref IToken pt) {
+  switch (pt.kind) {
+    case _bool:
+    case _char:
+    case _nat:
+    case _int:
+    case _real:
+    case _object:
+    case _string:
+      pt = scanner.Peek();
+      return true;
+    case _arrayToken:
+    case _set:
+    case _multiset:
+    case _seq:
+    case _map:
+      pt = scanner.Peek();
+      return IsTypeList(ref pt);
+    case _ident:
+      while (true) {
+        // invariant: next token is an ident
+        pt = scanner.Peek();
+        if (pt.kind == _openAngleBracket && !IsTypeList(ref pt)) {
+          return false;
+        }
+        if (pt.kind != _dot) {
+          // end of the type
+          return true;
+        }
+        pt = scanner.Peek();  // get the _dot
+        if (pt.kind != _ident) {
+          return false;
+        }
+      }
+    case _openparen:
+      pt = scanner.Peek();
+      return IsTypeSequence(ref pt, _closeparen);
+    default:
+      return false;
+  }
+}
+
 /*--------------------------------------------------------------------------*/
 CHARACTERS
   letter = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz".
@@ -281,6 +390,17 @@ TOKENS
   hexdigits = "0x" hexdigit {['_'] hexdigit}.
   decimaldigits = digit {['_'] digit} '.' digit {['_'] digit}.
   arrayToken = "array" [posDigit {digit}].
+  bool = "bool".
+  char = "char".
+  int = "int".
+  nat = "nat".
+  real = "real".
+  object = "object".
+  string = "string".
+  set = "set".
+  multiset = "multiset".
+  seq = "seq".
+  map = "map".
   charToken =
       "'"
       ( charChar
@@ -308,9 +428,10 @@ TOKENS
   assume = "assume".
   calc = "calc".
   case = "case".
+  then = "then".
+  else = "else".
   decreases = "decreases".
   invariant = "invariant".
-  map = "map".
   modifies = "modifies".
   reads = "reads".
   requires = "requires".
@@ -320,6 +441,11 @@ TOKENS
   rbracket = ']'.
   openparen = '('.
   closeparen = ')'.
+  openAngleBracket = '<'.
+  closeAngleBracket = '>'.
+  eq = "==".
+  neq = "!=".
+  neqAlt = '\u2260'.
   star = '*'.
   notIn = "!in" CONTEXT (nonidchar).
   ellipsis = "...".
@@ -2416,12 +2542,17 @@ CasePattern<out CasePattern pat>
 /*------------------------------------------------------------------------*/
 NameSegment<out Expression e>
 = (. IToken id;
-     IToken openParen = null;  List<Expression> args = null;
+     IToken openParen = null;  List<Type> typeArgs = null;  List<Expression> args = null;
   .)
   Ident<out id>
-  [ HashCall<id, out openParen, out args> ]
+  ( IF(IsGenericInstantiation())
+    (. typeArgs = new List<Type>(); .)
+    GenericInstantiation<typeArgs>
+  | HashCall<id, out openParen, out typeArgs, out args>
+  | /* empty */
+  )
   /* Note, since HashCall updates id.val, we make sure not to use id.val until after the possibility of calling HashCall. */
-  (. e = new NameSegment(id, id.val, null);
+  (. e = new NameSegment(id, id.val, typeArgs);
      if (openParen != null) {
        e = new ApplySuffix(openParen, e, args);
      }
@@ -2436,9 +2567,12 @@ NameSegment<out Expression e>
  * expression, just like for other function applications.
  * Note: This grammar production mutates the id.val field to append the hash sign.
  */
-HashCall<.IToken id, out IToken openParen, out List<Expression> args.>
-= (. Expression k; args = new List<Expression>(); .)
+HashCall<.IToken id, out IToken openParen, out List<Type> typeArgs, out List<Expression> args.>
+= (. Expression k; args = new List<Expression>(); typeArgs = null; .)
   "#"                                      (. id.val = id.val + "#"; .)
+  [                                        (. typeArgs = new List<Type>(); .)
+    GenericInstantiation<typeArgs>
+  ]
   "[" Expression<out k, true, true> "]"    (. args.Add(k); .)
   "("                                      (. openParen = t; .)
     [ Expressions<args> ]
@@ -2453,13 +2587,20 @@ Suffix<ref Expression e>
   .)
   ( DotSuffix<out id, out x>                   (. if (x != null) {
                                                     // process id as a Suffix in its own right
-                                                    e = new ExprDotName(id, e, id.val);
+                                                    e = new ExprDotName(id, e, id.val, null);
                                                     id = x;  // move to the next Suffix
                                                   }
-                                                  IToken openParen = null;  List<Expression> args = null;
+                                                  IToken openParen = null;  List<Type> typeArgs = null;  List<Expression> args = null;
                                                .)
-    [ HashCall<id, out openParen, out args> ]
-    (. e = new ExprDotName(id, e, id.val);
+
+
+    ( IF(IsGenericInstantiation())
+      (. typeArgs = new List<Type>(); .)
+      GenericInstantiation<typeArgs>
+    | HashCall<id, out openParen, out typeArgs, out args>
+    | /* empty */
+    )
+    (. e = new ExprDotName(id, e, id.val, typeArgs);
        if (openParen != null) {
          e = new ApplySuffix(openParen, e, args);
        }

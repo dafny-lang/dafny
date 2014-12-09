@@ -396,6 +396,18 @@ namespace Microsoft.Dafny {
       }
     }
 
+    private void PrintTypeInstantiation(List<Type> typeArgs) {
+      Contract.Requires(typeArgs == null || typeArgs.Count != 0);
+      if (typeArgs != null) {
+        var prefix = "<";
+        foreach (var ty in typeArgs) {
+          wr.Write("{0}{1}", prefix, ty);
+          prefix = ", ";
+        }
+        wr.Write(">");
+      }
+    }
+
     public void PrintDatatype(DatatypeDecl dt, int indent) {
       Contract.Requires(dt != null);
       Indent(indent);
@@ -1364,6 +1376,7 @@ namespace Microsoft.Dafny {
       } else if (expr is NameSegment) {
         var e = (NameSegment)expr;
         wr.Write(e.Name);
+        PrintTypeInstantiation(e.OptTypeArguments);
 
       } else if (expr is ExprDotName) {
         var e = (ExprDotName)expr;
@@ -1379,7 +1392,9 @@ namespace Microsoft.Dafny {
           wr.Write(".");
         }
         wr.Write(e.SuffixName);
+        PrintTypeInstantiation(e.OptTypeArguments);
         if (parensNeeded) { wr.Write(")"); }
+
       } else if (expr is ApplySuffix) {
         var e = (ApplySuffix)expr;
         // determine if parens are needed

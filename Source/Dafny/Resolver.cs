@@ -6508,7 +6508,7 @@ namespace Microsoft.Dafny
                   if (d == destructor.CorrespondingFormal) {
                     ctor_args.Add(e.Value);
                   } else {
-                    ctor_args.Add(new ExprDotName(expr.tok, tmpVarIdExpr, d.Name));
+                    ctor_args.Add(new ExprDotName(expr.tok, tmpVarIdExpr, d.Name, null));
                   }
                 }
 
@@ -7475,7 +7475,8 @@ namespace Microsoft.Dafny
               Error(expr.tok, "accessing member '{0}' requires an instance expression", expr.SuffixName);
               // nevertheless, continue creating an expression that approximates a correct one
             }
-            var receiver = new StaticReceiverExpr(expr.tok, (ClassDecl)member.EnclosingClass);
+            var receiver = new StaticReceiverExpr(expr.tok, ty);
+            receiver.Type = ty;
             r = ResolveExprDotCall(expr.tok, receiver, member, expr.OptTypeArguments, opts.codeContext, allowMethodCall);
           }
         } else if (ty.IsDatatype) {
@@ -7901,39 +7902,6 @@ namespace Microsoft.Dafny
       foreach (var ee in expr.SubExpressions) {
         CheckIsNonGhost(ee);
       }
-    }
-
-    /// <summary>
-    /// If you are calling a field that could be a function, creates an ApplyExpr, otherwise an ordinary FunctionCallExpr.
-    /// </summary>
-    private Expression NewFunctionCallExpr(IToken tok, string fn, Expression receiver, IToken openParen, List<Expression> args) {
-      Contract.Requires(tok != null);
-      Contract.Requires(fn != null);
-      Contract.Requires(receiver != null && receiver.Type != null);
-      // We're going to look for a field of a class or a destructor of a datatype, but rather than calling
-      // ResolveMember (which would report an error if the member is not found), we do it ourselves.
-      MemberDecl member;
-      UserDefinedType ctype = UserDefinedType.DenotesClass(receiver.Type);
-      if (ctype != null) {
-        var cd = (ClassDecl)ctype.ResolvedClass;  // correctness of cast follows from postcondition of DenotesClass
-        if (!classMembers[cd].TryGetValue(fn, out member)) {
-          member = null;
-        }
-      } else if (receiver.Type.IsDatatype) {
-        var dtd = receiver.Type.AsDatatype;
-        if (!datatypeMembers[dtd].TryGetValue(fn, out member)) {
-          member = null;
-        }
-      } else {
-        member = null;
-      }
-      var field = member as Field;
-      if (field != null) {
-        if (field.Type.IsArrowType || field.Type.IsTypeParameter) {
-          return new ApplyExpr(openParen, new ExprDotName(tok, receiver, fn), args);
-        }
-      }
-      return new FunctionCallExpr(tok, fn, receiver, openParen, args);
     }
 
     /// <summary>

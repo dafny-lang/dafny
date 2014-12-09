@@ -1,0 +1,9 @@
+UserSpecifiedTypeParameters.dfy(27,12): Error: the type of this variable is underspecified
+UserSpecifiedTypeParameters.dfy(27,26): Error: type variable 'T' in the function call to 'H' could not be determined
+UserSpecifiedTypeParameters.dfy(27,26): Error: type variable 'U' in the function call to 'H' could not be determined
+UserSpecifiedTypeParameters.dfy(48,22): Error: Undeclared top-level type or type parameter: b (did you forget to qualify a name?)
+UserSpecifiedTypeParameters.dfy(48,26): Error: Undeclared top-level type or type parameter: c (did you forget to qualify a name?)
+UserSpecifiedTypeParameters.dfy(48,18): Error: variable 'a' does not take any type parameters
+UserSpecifiedTypeParameters.dfy(48,30): Error: non-function expression (of type int) is called with parameters
+UserSpecifiedTypeParameters.dfy(48,16): Error: wrong number of arguments to function application (function 'F' expects 2, got 1)
+8 resolution/type errors detected in UserSpecifiedTypeParameters.dfy
