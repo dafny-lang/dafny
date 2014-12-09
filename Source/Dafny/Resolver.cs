@@ -1205,6 +1205,17 @@ namespace Microsoft.Dafny
     private readonly List<SetComprehension> needFiniteBoundsChecks = new List<SetComprehension>();
     public int NFBC_Count { get { return needFiniteBoundsChecks.Count; } } // provided just for the purpose of conveniently writing contracts for ResolveTopLevelDecl_Meat
 
+    static readonly List<NativeType> NativeTypes = new List<NativeType>() {
+      new NativeType("byte", 0, 0x100, "", true),
+      new NativeType("sbyte", -0x80, 0x80, "", true),
+      new NativeType("ushort", 0, 0x10000, "", true),
+      new NativeType("short", -0x8000, 0x8000, "", true),
+      new NativeType("uint", 0, 0x100000000, "U", false),
+      new NativeType("int", -0x80000000, 0x80000000, "", false),
+      new NativeType("ulong", 0, new BigInteger(0x100000000) * new BigInteger(0x100000000), "UL", false),
+      new NativeType("long", Int64.MinValue, 0x8000000000000000, "L", false),
+    };
+
     public void ResolveTopLevelDecls_Meat(List<TopLevelDecl/*!*/>/*!*/ declarations, Graph<IndDatatypeDecl/*!*/>/*!*/ datatypeDependencies, Graph<CoDatatypeDecl/*!*/>/*!*/ codatatypeDependencies) {
       Contract.Requires(declarations != null);
       Contract.Requires(cce.NonNullElements(datatypeDependencies));
@@ -1288,6 +1299,11 @@ namespace Microsoft.Dafny
       }
       needFiniteBoundsChecks.Clear();
 
+      Dictionary<string, NativeType> nativeTypeMap = new Dictionary<string, NativeType>();
+      foreach (var nativeType in NativeTypes) {
+        nativeTypeMap.Add(nativeType.Name, nativeType);
+      }
+
       if (ErrorCount == prevErrorCount) {
         // Check that type inference went well everywhere; this will also fill in the .ResolvedOp field in binary expressions
         foreach (TopLevelDecl d in declarations) {
@@ -1302,9 +1318,94 @@ namespace Microsoft.Dafny
             cl.Members.Iter(CheckTypeInference_Member);
           } else if (d is NewtypeDecl) {
             var dd = (NewtypeDecl)d;
+            bool? boolNativeType = null;
+            NativeType stringNativeType = null;
+            object nativeTypeAttr = true;
+            bool hasNativeTypeAttr = Attributes.ContainsMatchingValue(dd.Attributes, "nativeType", ref nativeTypeAttr,
+              new Attributes.MatchingValueOption[] {
+                Attributes.MatchingValueOption.Empty,
+                Attributes.MatchingValueOption.Bool,
+                Attributes.MatchingValueOption.String },
+              err => Error(dd, err));
+            if (hasNativeTypeAttr) {
+              if (nativeTypeAttr is bool) {
+                boolNativeType = (bool)nativeTypeAttr;
+              } else {
+                string keyString = (string)nativeTypeAttr;
+                if (nativeTypeMap.ContainsKey(keyString)) {
+                  stringNativeType = nativeTypeMap[keyString];
+                } else {
+                  Error(dd, "Unsupported nativeType {0}", keyString);
+                }
+              }
+            }
+            if (stringNativeType != null || boolNativeType == true) {
+              if (!dd.BaseType.IsNumericBased(Type.NumericPersuation.Int)) {
+                Error(dd, "nativeType can only be used on integral types");
+              }
+              if (dd.Var == null) {
+                Error(dd, "nativeType can only be used if newtype specifies a constraint");
+              }
+            }
             if (dd.Var != null) {
               Contract.Assert(dd.Constraint != null);
               CheckTypeInference(dd.Constraint);
+
+              Func<Expression, BigInteger?> GetConst = null;
+              GetConst = (Expression e) => {
+                int m = 1;
+                BinaryExpr bin = e as BinaryExpr;
+                if (bin != null && bin.Op == BinaryExpr.Opcode.Sub && GetConst(bin.E0) == BigInteger.Zero) {
+                  m = -1;
+                  e = bin.E1;
+                }
+                LiteralExpr l = e as LiteralExpr;
+                if (l != null && l.Value is BigInteger) {
+                  return m * (BigInteger)l.Value;
+                }
+                return null;
+              };
+              var missingBounds = new List<BoundVar>();
+              var bounds = DiscoverBounds(dd.Constraint.tok, new List<BoundVar> { dd.Var }, dd.Constraint,
+                true, true, missingBounds);
+              List<NativeType> potentialNativeTypes =
+                (stringNativeType != null) ? new List<NativeType> { stringNativeType } :
+                (boolNativeType == false) ? new List<NativeType>() :
+                NativeTypes;
+              foreach (var nt in potentialNativeTypes) {
+                if (missingBounds.Count == 0) {
+                  bool lowerOk = false;
+                  bool upperOk = false;
+                  foreach (var bound in bounds) {
+                    if (bound is ComprehensionExpr.IntBoundedPool) {
+                      var bnd = (ComprehensionExpr.IntBoundedPool)bound;
+                      if (bnd.LowerBound != null) {
+                        BigInteger? lower = GetConst(bnd.LowerBound);
+                        if (lower != null && nt.LowerBound <= lower) {
+                          lowerOk = true;
+                        }
+                      }
+                      if (bnd.UpperBound != null) {
+                        BigInteger? upper = GetConst(bnd.UpperBound);
+                        if (upper != null && upper <= nt.UpperBound) {
+                          upperOk = true;
+                        }
+                      }
+                    }
+                  }
+                  if (lowerOk && upperOk) {
+                    dd.NativeType = nt;
+                    break;
+                  }
+                }
+              }
+              if (dd.NativeType == null && (boolNativeType == true || stringNativeType != null)) {
+                Error(dd, "Dafny's heuristics cannot find a compatible native type.  " +
+                  "Hint: try writing a newtype constraint of the form 'i:int | lowerBound <= i < upperBound && (...any additional constraints...)'");
+              }
+              if (dd.NativeType != null && stringNativeType == null) {
+                ReportAdditionalInformation(dd.tok, "{:nativeType \"" + dd.NativeType.Name + "\"}", dd.tok.val.Length);
+              }
             }
           }
         }

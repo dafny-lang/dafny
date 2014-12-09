@@ -298,6 +298,72 @@ namespace Microsoft.Dafny {
 
       return false;
     }
+
+    /// <summary>
+    /// Returns list of expressions if "nm" is a specified attribute:
+    /// - if the attribute is {:nm e1,...,en}, then returns (e1,...,en)
+    /// Otherwise, returns null.
+    /// </summary>
+    public static List<Expression> FindExpressions(Attributes attrs, string nm) {
+      Contract.Requires(nm != null);
+      for (; attrs != null; attrs = attrs.Prev) {
+        if (attrs.Name == nm) {
+          return attrs.Args;
+        }
+      }
+      return null;
+    }
+
+    /// <summary>
+    /// Returns true if "nm" is a specified attribute whose arguments match the "allowed" parameter.
+    /// - if "nm" is not found in attrs, return false and leave value unmodified.  Otherwise,
+    /// - if "allowed" contains Empty and the Args contains zero elements, return true and leave value unmodified.  Otherwise,
+    /// - if "allowed" contains Bool and Args contains one bool literal, return true and set value to the bool literal.  Otherwise,
+    /// - if "allowed" contains Int and Args contains one BigInteger literal, return true and set value to the BigInteger literal.  Otherwise,
+    /// - if "allowed" contains String and Args contains one string literal, return true and set value to the string literal.  Otherwise,
+    /// - if "allowed" contains Expression and Args contains one element, return true and set value to the one element (of type Expression).  Otherwise,
+    /// - return false, leave value unmodified, and call errorReporter with an error string.
+    /// </summary>
+    public enum MatchingValueOption { Empty, Bool, Int, String, Expression }
+    public static bool ContainsMatchingValue(Attributes attrs, string nm, ref object value, IEnumerable<MatchingValueOption> allowed, Action<string> errorReporter) {
+      Contract.Requires(nm != null);
+      Contract.Requires(allowed != null);
+      Contract.Requires(errorReporter != null);
+      List<Expression> args = FindExpressions(attrs, nm);
+      if (args == null) {
+        return false;
+      } else if (args.Count == 0) {
+        if (allowed.Contains(MatchingValueOption.Empty)) {
+          return true;
+        } else {
+          errorReporter("Attribute " + nm + " requires one argument");
+          return false;
+        }
+      } else if (args.Count == 1) {
+        Expression arg = args[0];
+        StringLiteralExpr stringLiteral = arg as StringLiteralExpr;
+        LiteralExpr literal = arg as LiteralExpr;
+        if (literal != null && literal.Value is bool && allowed.Contains(MatchingValueOption.Bool)) {
+          value = literal.Value;
+          return true;
+        } else if (literal != null && literal.Value is BigInteger && allowed.Contains(MatchingValueOption.Int)) {
+          value = literal.Value;
+          return true;
+        } else if (stringLiteral != null && (stringLiteral.Value as string) != null && allowed.Contains(MatchingValueOption.String)) {
+          value = stringLiteral.Value;
+          return true;
+        } else if (allowed.Contains(MatchingValueOption.Expression)) {
+          value = arg;
+          return true;
+        } else {
+          errorReporter("Attribute " + nm + " expects an argument in one of the following categories: " + String.Join(", ", allowed));
+          return false;
+        }
+      } else {
+        errorReporter("Attribute " + nm + " cannot have more than one argument");
+        return false;
+      }
+    }
   }
 
   // ------------------------------------------------------------------------------------------------------
@@ -2281,11 +2347,32 @@ namespace Microsoft.Dafny {
     string Name { get; }
   }
 
+  public class NativeType
+  {
+    public readonly string Name;
+    public readonly BigInteger LowerBound;
+    public readonly BigInteger UpperBound;
+    public readonly string Suffix;
+    public readonly bool NeedsCastAfterArithmetic;
+    public NativeType(string Name, BigInteger LowerBound, BigInteger UpperBound, string Suffix, bool NeedsCastAfterArithmetic) {
+      Contract.Requires(Name != null);
+      Contract.Requires(LowerBound != null);
+      Contract.Requires(UpperBound != null);
+      Contract.Requires(Suffix != null);
+      this.Name = Name;
+      this.LowerBound = LowerBound;
+      this.UpperBound = UpperBound;
+      this.Suffix = Suffix;
+      this.NeedsCastAfterArithmetic = NeedsCastAfterArithmetic;
+    }
+  }
+
   public class NewtypeDecl : TopLevelDecl, RedirectingTypeDecl
   {
     public readonly Type BaseType;
     public readonly BoundVar Var;  // can be null (if non-null, then object.ReferenceEquals(Var.Type, BaseType))
     public readonly Expression Constraint;  // is null iff Var is
+    public NativeType NativeType; // non-null for fixed-size representations (otherwise, use BigIntegers for integers)
     public NewtypeDecl(IToken tok, string name, ModuleDefinition module, Type baseType, Attributes attributes)
       : base(tok, name, module, new List<TypeParameter>(), attributes) {
       Contract.Requires(tok != null);
