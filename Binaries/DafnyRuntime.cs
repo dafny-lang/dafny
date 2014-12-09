@@ -638,10 +638,10 @@ namespace Dafny
     // pre: b != 0
     // post: result == a/b, as defined by Euclidean Division (http://en.wikipedia.org/wiki/Modulo_operation)
     public static sbyte EuclideanDivision_sbyte(sbyte a, sbyte b) {
-      return (sbyte)EuclideanDivision(a, b);
+      return (sbyte)EuclideanDivision_int(a, b);
     }
     public static short EuclideanDivision_short(short a, short b) {
-      return (short)EuclideanDivision(a, b);
+      return (short)EuclideanDivision_int(a, b);
     }
     public static int EuclideanDivision_int(int a, int b) {
       if (0 <= a) {
