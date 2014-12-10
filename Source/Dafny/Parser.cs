@@ -702,7 +702,7 @@ bool IsType(ref IToken pt) {
 			Get();
 			Type(out trait);
 			traits.Add(trait); 
-			while (la.kind == 9) {
+			while (la.kind == 20) {
 				Get();
 				Type(out trait);
 				traits.Add(trait); 

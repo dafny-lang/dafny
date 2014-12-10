@@ -3912,6 +3912,7 @@ namespace Microsoft.Dafny
         // nothing to resolve
       } else if (type is MapType) {
         var mt = (MapType)type;
+        var errorCount = ErrorCount;
         int typeArgumentCount = 0;
         if (mt.HasTypeArg()) {
           ResolveType(tok, mt.Domain, context, option, defaultTypeArguments);
@@ -3939,11 +3940,12 @@ namespace Microsoft.Dafny
           }
           mt.SetRangetype(new InferredTypeProxy());
         }
-        if (mt.Domain.IsSubrangeType || mt.Range.IsSubrangeType) {
+        if (errorCount == ErrorCount && (mt.Domain.IsSubrangeType || mt.Range.IsSubrangeType)) {
           Error(tok, "sorry, cannot instantiate collection type with a subrange type");
         }
       } else if (type is CollectionType) {
         var t = (CollectionType)type;
+        var errorCount = ErrorCount;
         if (t.HasTypeArg()) {
           ResolveType(tok, t.Arg, context, option, defaultTypeArguments);
         } else if (option.Opt != ResolveTypeOptionEnum.DontInfer) {
@@ -3961,7 +3963,7 @@ namespace Microsoft.Dafny
           t.SetTypeArg(new InferredTypeProxy());
         }
 
-        if (t.Arg.IsSubrangeType) {
+        if (errorCount == ErrorCount && t.Arg.IsSubrangeType) {
           Error(tok, "sorry, cannot instantiate collection type with a subrange type");
         }
 
