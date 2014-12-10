@@ -682,7 +682,8 @@ bool IsType(ref IToken pt) {
 		Contract.Requires(module != null);
 		Contract.Ensures(Contract.ValueAtReturn(out c) != null);
 		IToken/*!*/ id;
-		Type/*!*/ trait = null;
+		Type trait = null;
+		List<Type>/*!*/ traits = new List<Type>();
 		Attributes attrs = null;
 		List<TypeParameter/*!*/> typeArgs = new List<TypeParameter/*!*/>();
 		List<MemberDecl/*!*/> members = new List<MemberDecl/*!*/>();
@@ -700,6 +701,12 @@ bool IsType(ref IToken pt) {
 		if (la.kind == 62) {
 			Get();
 			Type(out trait);
+			traits.Add(trait); 
+			while (la.kind == 9) {
+				Get();
+				Type(out trait);
+				traits.Add(trait); 
+			}
 		}
 		Expect(38);
 		bodyStart = t;  
@@ -707,7 +714,7 @@ bool IsType(ref IToken pt) {
 			ClassMemberDecl(members, true);
 		}
 		Expect(39);
-		c = new ClassDecl(id, id.val, module, typeArgs, members, attrs, trait);
+		c = new ClassDecl(id, id.val, module, typeArgs, members, attrs, traits);
 		c.BodyStartTok = bodyStart;
 		c.BodyEndTok = t;
 		

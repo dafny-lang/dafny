@@ -437,8 +437,11 @@ namespace Dafny
     public static Sequence<char> FromString(string s) {
       return new Sequence<char>(s.ToCharArray());
     }
-    public BigInteger Length {
-      get { return new BigInteger(elmts.Length); }
+    public int Length {
+      get { return elmts.Length; }
+    }
+    public long LongLength {
+      get { return elmts.LongLength; }
     }
     public T[] Elements {
       get {
@@ -451,13 +454,31 @@ namespace Dafny
         return st.Elements;
       }
     }
+    public T Select(ulong index) {
+      return elmts[index];
+    }
+    public T Select(long index) {
+      return elmts[index];
+    }
+    public T Select(uint index) {
+      return elmts[index];
+    }
+    public T Select(int index) {
+      return elmts[index];
+    }
     public T Select(BigInteger index) {
       return elmts[(int)index];
     }
-    public Sequence<T> Update(BigInteger index, T t) {
+    public Sequence<T> Update(long index, T t) {
       T[] a = (T[])elmts.Clone();
-      a[(int)index] = t;
+      a[index] = t;
       return new Sequence<T>(a);
+    }
+    public Sequence<T> Update(ulong index, T t) {
+      return Update((long)index, t);
+    }
+    public Sequence<T> Update(BigInteger index, T t) {
+      return Update((long)index, t);
     }
     public bool Equals(Sequence<T> other) {
       int n = elmts.Length;
@@ -519,21 +540,33 @@ namespace Dafny
       }
       return false;
     }
-    public Sequence<T> Take(BigInteger n) {
-      int m = (int)n;
-      if (elmts.Length == m)
+    public Sequence<T> Take(long m) {
+      if (elmts.LongLength == m)
         return this;
       T[] a = new T[m];
       System.Array.Copy(elmts, a, m);
       return new Sequence<T>(a);
     }
-    public Sequence<T> Drop(BigInteger n) {
-      if (n.IsZero)
+    public Sequence<T> Take(ulong n) {
+      return Take((long)n);
+    }
+    public Sequence<T> Take(BigInteger n) {
+      return Take((long)n);
+    }
+    public Sequence<T> Drop(long m) {
+      if (m == 0)
         return this;
-      int m = (int)n;
       T[] a = new T[elmts.Length - m];
       System.Array.Copy(elmts, m, a, 0, elmts.Length - m);
       return new Sequence<T>(a);
+    }
+    public Sequence<T> Drop(ulong n) {
+      return Drop((long)n);
+    }
+    public Sequence<T> Drop(BigInteger n) {
+      if (n.IsZero)
+        return this;
+      return Drop((long)n);
     }
   }
   public struct Pair<A, B>
@@ -604,6 +637,50 @@ namespace Dafny
     }
     // pre: b != 0
     // post: result == a/b, as defined by Euclidean Division (http://en.wikipedia.org/wiki/Modulo_operation)
+    public static sbyte EuclideanDivision_sbyte(sbyte a, sbyte b) {
+      return (sbyte)EuclideanDivision_int(a, b);
+    }
+    public static short EuclideanDivision_short(short a, short b) {
+      return (short)EuclideanDivision_int(a, b);
+    }
+    public static int EuclideanDivision_int(int a, int b) {
+      if (0 <= a) {
+        if (0 <= b) {
+          // +a +b: a/b
+          return (int)(((uint)(a)) / ((uint)(b)));
+        } else {
+          // +a -b: -(a/(-b))
+          return -((int)(((uint)(a)) / ((uint)(unchecked(-b)))));
+        }
+      } else {
+        if (0 <= b) {
+          // -a +b: -((-a-1)/b) - 1
+          return -((int)(((uint)(-(a + 1))) / ((uint)(b)))) - 1;
+        } else {
+          // -a -b: ((-a-1)/(-b)) + 1
+          return ((int)(((uint)(-(a + 1))) / ((uint)(unchecked(-b))))) + 1;
+        }
+      }
+    }
+    public static long EuclideanDivision_long(long a, long b) {
+      if (0 <= a) {
+        if (0 <= b) {
+          // +a +b: a/b
+          return (long)(((ulong)(a)) / ((ulong)(b)));
+        } else {
+          // +a -b: -(a/(-b))
+          return -((long)(((ulong)(a)) / ((ulong)(unchecked(-b)))));
+        }
+      } else {
+        if (0 <= b) {
+          // -a +b: -((-a-1)/b) - 1
+          return -((long)(((ulong)(-(a + 1))) / ((ulong)(b)))) - 1;
+        } else {
+          // -a -b: ((-a-1)/(-b)) + 1
+          return ((long)(((ulong)(-(a + 1))) / ((ulong)(unchecked(-b))))) + 1;
+        }
+      }
+    }
     public static BigInteger EuclideanDivision(BigInteger a, BigInteger b) {
       if (0 <= a.Sign) {
         if (0 <= b.Sign) {
@@ -625,6 +702,38 @@ namespace Dafny
     }
     // pre: b != 0
     // post: result == a%b, as defined by Euclidean Division (http://en.wikipedia.org/wiki/Modulo_operation)
+    public static sbyte EuclideanModulus_sbyte(sbyte a, sbyte b) {
+      return (sbyte)EuclideanModulus(a, b);
+    }
+    public static short EuclideanModulus_short(short a, short b) {
+      return (short)EuclideanModulus(a, b);
+    }
+    public static int EuclideanModulus_int(int a, int b) {
+      uint bp = (0 <= b) ? (uint)b : (uint)(unchecked(-b));
+      if (0 <= a) {
+        // +a: a % b'
+        return (int)(((uint)a) % bp);
+      } else {
+        // c = ((-a) % b')
+        // -a: b' - c if c > 0
+        // -a: 0 if c == 0
+        uint c = ((uint)(unchecked(-a))) % bp;
+        return (int)(c == 0 ? c : bp - c);
+      }
+    }
+    public static long EuclideanModulus_long(long a, long b) {
+      ulong bp = (0 <= b) ? (ulong)b : (ulong)(unchecked(-b));
+      if (0 <= a) {
+        // +a: a % b'
+        return (long)(((ulong)a) % bp);
+      } else {
+        // c = ((-a) % b')
+        // -a: b' - c if c > 0
+        // -a: 0 if c == 0
+        ulong c = ((ulong)(unchecked(-a))) % bp;
+        return (long)(c == 0 ? c : bp - c);
+      }
+    }
     public static BigInteger EuclideanModulus(BigInteger a, BigInteger b) {
       var bp = BigInteger.Abs(b);
       if (0 <= a.Sign) {
