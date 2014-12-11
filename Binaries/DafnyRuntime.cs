@@ -703,10 +703,10 @@ namespace Dafny
     // pre: b != 0
     // post: result == a%b, as defined by Euclidean Division (http://en.wikipedia.org/wiki/Modulo_operation)
     public static sbyte EuclideanModulus_sbyte(sbyte a, sbyte b) {
-      return (sbyte)EuclideanModulus(a, b);
+      return (sbyte)EuclideanModulus_int(a, b);
     }
     public static short EuclideanModulus_short(short a, short b) {
-      return (short)EuclideanModulus(a, b);
+      return (short)EuclideanModulus_int(a, b);
     }
     public static int EuclideanModulus_int(int a, int b) {
       uint bp = (0 <= b) ? (uint)b : (uint)(unchecked(-b));
