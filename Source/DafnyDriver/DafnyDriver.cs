@@ -354,7 +354,8 @@ namespace Microsoft.Dafny
           outputWriter.WriteLine();
           var entry = cr.CompiledAssembly.EntryPoint;
           try {
-            entry.Invoke(null, new object[] { new string[0] });
+            object[] parameters = entry.GetParameters().Length == 0 ? new object[] { } : new object[] { new string[0] };
+            entry.Invoke(null, parameters);
           } catch (System.Reflection.TargetInvocationException e) {
             outputWriter.WriteLine("Error: Execution resulted in exception: {0}", e.Message);
             outputWriter.WriteLine(e.InnerException.ToString());
