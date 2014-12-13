@@ -28,7 +28,7 @@ method BadLemma(c0: Color, c1: Color)
   var w1 := Wrapper.Wrap(c1);
 
   // Manually, add the following assertions in Boogie.  (These would
-  // be ill-typed in Dafny.)
+  // b93e ill-typed in Dafny.)
   //     assert _default.F($Heap, this, w#06);
   //     assert _default.F($Heap, this, w#17);
 
@@ -68,7 +68,8 @@ method M(list: List, S: set<MyClass>) returns (ret: int)
   }
   var k := N();
   assert k.H() == 5;
-  ghost var l := NF();
+  var st := new State;
+  ghost var l := st.NF();
   assert l != null ==> l.H() == 5;
 
   forall s | s in S ensures true; { assert s == null || s.H() == 5; }
@@ -90,8 +91,11 @@ method N() returns (k: MyClass)
 {
   k := new MyClass;
 }
-var a: MyClass;
-function NF(): MyClass reads this; { a }
+
+class State {
+  var a: MyClass;
+  function NF(): MyClass reads this; { a }
+}
 
 function TakesADatatype(a: List): int { 12 }
 

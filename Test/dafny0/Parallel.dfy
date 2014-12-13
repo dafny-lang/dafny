@@ -209,7 +209,7 @@ class TwoState_C { ghost var data: int; }
 // It is not possible to achieve this postcondition in a ghost method, because ghost
 // contexts are not allowed to allocate state.  Callers of this ghost method will know
 // that the postcondition is tantamount to 'false'.
-ghost static method TwoState0(y: int)
+ghost method TwoState0(y: int)
   ensures exists o: TwoState_C :: o != null && fresh(o);
 
 method TwoState_Main0() {
@@ -261,39 +261,41 @@ method TwoState_Main3()
 
 // ------- empty forall statement -----------------------------------------
 
-var emptyPar: int;
+class EmptyForallStatement {
+  var emptyPar: int;
 
-method Empty_Parallel0()
-  modifies this;
-  ensures emptyPar == 8;
-{
-  forall () {
-    this.emptyPar := 8;
-  }
-}
-
-function EmptyPar_P(x: int): bool
-ghost method EmptyPar_Lemma(x: int)
-  ensures EmptyPar_P(x);
-
-method Empty_Parallel1()
-  ensures EmptyPar_P(8);
-{
-  forall {
-    EmptyPar_Lemma(8);
-  }
-}
-
-method Empty_Parallel2()
-{
-  forall
-    ensures exists k :: EmptyPar_P(k);
+  method Empty_Parallel0()
+    modifies this;
+    ensures emptyPar == 8;
   {
-    var y := 8;
-    assume EmptyPar_P(y);
+    forall () {
+      this.emptyPar := 8;
+    }
   }
-  assert exists k :: EmptyPar_P(k);  // yes
-  assert EmptyPar_P(8);  // error: the forall statement's ensures clause does not promise this
+
+  function EmptyPar_P(x: int): bool
+  ghost method EmptyPar_Lemma(x: int)
+    ensures EmptyPar_P(x);
+
+  method Empty_Parallel1()
+    ensures EmptyPar_P(8);
+  {
+    forall {
+      EmptyPar_Lemma(8);
+    }
+  }
+
+  method Empty_Parallel2()
+  {
+    forall
+      ensures exists k :: EmptyPar_P(k);
+    {
+      var y := 8;
+      assume EmptyPar_P(y);
+    }
+    assert exists k :: EmptyPar_P(k);  // yes
+    assert EmptyPar_P(8);  // error: the forall statement's ensures clause does not promise this
+  }
 }
 
 // ---------------------------------------------------------------------

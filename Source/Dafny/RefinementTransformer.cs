@@ -309,8 +309,8 @@ namespace Microsoft.Dafny
         foreach (var m in d.Members) {
           MemberDecl newMem;
           if (map.TryGetValue(m.Name, out newMem)) {
-            if (m.IsStatic != newMem.IsStatic) {
-              reporter.Error(newMem, "member {0} must {1}", m.Name, m.IsStatic? "be static" : "not be static");
+            if (m.HasStaticKeyword != newMem.HasStaticKeyword) {
+              reporter.Error(newMem, "member {0} must {1}", m.Name, m.HasStaticKeyword ? "be static" : "not be static");
             }
             if (m is Field) {
               if (newMem is Field) {
@@ -545,13 +545,13 @@ namespace Microsoft.Dafny
       }
 
       if (f is Predicate) {
-        return new Predicate(tok, f.Name, f.IsStatic, isGhost, tps, formals,
+        return new Predicate(tok, f.Name, f.HasStaticKeyword, isGhost, tps, formals,
           req, reads, ens, decreases, body, bodyOrigin, refinementCloner.MergeAttributes(f.Attributes, moreAttributes), null);
       } else if (f is CoPredicate) {
-        return new CoPredicate(tok, f.Name, f.IsStatic, tps, formals,
+        return new CoPredicate(tok, f.Name, f.HasStaticKeyword, tps, formals,
           req, reads, ens, body, refinementCloner.MergeAttributes(f.Attributes, moreAttributes), null);
       } else {
-        return new Function(tok, f.Name, f.IsStatic, isGhost, tps, formals, refinementCloner.CloneType(f.ResultType),
+        return new Function(tok, f.Name, f.HasStaticKeyword, isGhost, tps, formals, refinementCloner.CloneType(f.ResultType),
           req, reads, ens, decreases, body, refinementCloner.MergeAttributes(f.Attributes, moreAttributes), null);
       }
     }
@@ -579,13 +579,13 @@ namespace Microsoft.Dafny
         return new Constructor(new RefinementToken(m.tok, moduleUnderConstruction), m.Name, tps, ins,
           req, mod, ens, decreases, body, refinementCloner.MergeAttributes(m.Attributes, moreAttributes), null);
       } else if (m is CoLemma) {
-        return new CoLemma(new RefinementToken(m.tok, moduleUnderConstruction), m.Name, m.IsStatic, tps, ins, m.Outs.ConvertAll(refinementCloner.CloneFormal),
+        return new CoLemma(new RefinementToken(m.tok, moduleUnderConstruction), m.Name, m.HasStaticKeyword, tps, ins, m.Outs.ConvertAll(refinementCloner.CloneFormal),
           req, mod, ens, decreases, body, refinementCloner.MergeAttributes(m.Attributes, moreAttributes), null);
       } else if (m is Lemma) {
-        return new Lemma(new RefinementToken(m.tok, moduleUnderConstruction), m.Name, m.IsStatic, tps, ins, m.Outs.ConvertAll(refinementCloner.CloneFormal),
+        return new Lemma(new RefinementToken(m.tok, moduleUnderConstruction), m.Name, m.HasStaticKeyword, tps, ins, m.Outs.ConvertAll(refinementCloner.CloneFormal),
           req, mod, ens, decreases, body, refinementCloner.MergeAttributes(m.Attributes, moreAttributes), null);
       } else {
-        return new Method(new RefinementToken(m.tok, moduleUnderConstruction), m.Name, m.IsStatic, m.IsGhost, tps, ins, m.Outs.ConvertAll(refinementCloner.CloneFormal),
+        return new Method(new RefinementToken(m.tok, moduleUnderConstruction), m.Name, m.HasStaticKeyword, m.IsGhost, tps, ins, m.Outs.ConvertAll(refinementCloner.CloneFormal),
           req, mod, ens, decreases, body, refinementCloner.MergeAttributes(m.Attributes, moreAttributes), null);
       }
     }
@@ -705,7 +705,7 @@ namespace Microsoft.Dafny
                 reporter.Error(f.Decreases.Expressions[0].tok, "decreases clause on refining {0} not supported", s);
               }
 
-              if (prevFunction.IsStatic != f.IsStatic) {
+              if (prevFunction.HasStaticKeyword != f.HasStaticKeyword) {
                 reporter.Error(f, "a function in a refining module cannot be changed from static to non-static or vice versa: {0}", f.Name);
               }
               if (!prevFunction.IsGhost && f.IsGhost) {
@@ -766,7 +766,7 @@ namespace Microsoft.Dafny
                 }
                 decreases = m.Decreases;
               }
-              if (prevMethod.IsStatic != m.IsStatic) {
+              if (prevMethod.HasStaticKeyword != m.HasStaticKeyword) {
                 reporter.Error(m, "a method in a refining module cannot be changed from static to non-static or vice versa: {0}", m.Name);
               }
               if (prevMethod.IsGhost && !m.IsGhost) {

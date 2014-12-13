@@ -5343,16 +5343,18 @@ namespace Microsoft.Dafny {
         var fromArrowType = enclosingArrow != null;
 
         Func<List<Bpl.Expr>, List<Bpl.Expr>> SnocSelf = x => x;
-        Expression selfExpr = null;
-        Dictionary<IVariable, Expression> rhs_dict = null;
-        if (!f.IsStatic) {
+        Expression selfExpr;
+        Dictionary<IVariable, Expression> rhs_dict = new Dictionary<IVariable, Expression>();
+        if (f.IsStatic) {
+          // the value of 'selfExpr' won't be used, but it has to be non-null to satisfy the precondition of the call to InRWClause below
+          selfExpr = new ThisExpr(Token.NoToken);
+        } else {
           var selfTy = fromArrowType ? predef.HandleType : predef.RefType;
           var self = BplBoundVar("$self", selfTy, vars);
           formals.Add(BplFormalVar(null, selfTy, true));
           SnocSelf = xs => Snoc(xs, self);
           selfExpr = new BoogieWrapper(self, fromArrowType ? f.Type : new ObjectType());
                                           // ^ is this an ok type for this wrapper?
-          rhs_dict = new Dictionary<IVariable, Expression>();
         }
 
         // F#Handle(Ty, .., Ty, LayerType, ref) : HandleType
@@ -5369,9 +5371,7 @@ namespace Microsoft.Dafny {
           lhs_args.Add(fe);
           var be = UnboxIfBoxed(fe, fm.Type);
           rhs_args.Add(be);
-          if (rhs_dict != null) {
-            rhs_dict[fm] = new BoogieWrapper(be, fm.Type);
-          }
+          rhs_dict[fm] = new BoogieWrapper(be, fm.Type);
         }
 
         var h = BplBoundVar("$heap", predef.HeapType, vars);

@@ -1,31 +1,31 @@
-LetExpr.dfy(8,12): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-LetExpr.dfy(107,21): Error: assertion violation
+LetExpr.dfy(108,23): Error: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon11_Then
-LetExpr.dfy(251,19): Error: value assigned to a nat must be non-negative
+LetExpr.dfy(8,12): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+LetExpr.dfy(253,19): Error: value assigned to a nat must be non-negative
 Execution trace:
     (0,0): anon0
     (0,0): anon5_Then
-LetExpr.dfy(254,19): Error: value assigned to a nat must be non-negative
+LetExpr.dfy(256,19): Error: value assigned to a nat must be non-negative
 Execution trace:
     (0,0): anon0
     (0,0): anon6_Then
-LetExpr.dfy(256,24): Error: value assigned to a nat must be non-negative
+LetExpr.dfy(258,24): Error: value assigned to a nat must be non-negative
 Execution trace:
     (0,0): anon0
     (0,0): anon6_Else
-LetExpr.dfy(285,14): Error: RHS is not certain to look like the pattern 'Agnes'
+LetExpr.dfy(287,14): Error: RHS is not certain to look like the pattern 'Agnes'
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Else
-LetExpr.dfy(302,42): Error: value assigned to a nat must be non-negative
+LetExpr.dfy(304,42): Error: value assigned to a nat must be non-negative
 Execution trace:
     (0,0): anon0
     (0,0): anon6_Else
-LetExpr.dfy(304,12): Error: assertion violation
+LetExpr.dfy(306,12): Error: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon6_Else

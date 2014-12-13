@@ -178,11 +178,11 @@ iterator AllocationIterator(x: Cell)
   }
 }
 
-static method SomeMethod()
+method SomeMethod()
 {
 }
 
-static method AnotherMethod() returns (u: Cell, v: Cell)
+method AnotherMethod() returns (u: Cell, v: Cell)
   ensures u != null && fresh(u);
 {
   u := new Cell;

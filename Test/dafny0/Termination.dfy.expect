@@ -1,7 +1,7 @@
-Termination.dfy[TerminationRefinement1](440,6): Error: failure to decrease termination measure
+Termination.dfy[TerminationRefinement1](441,6): Error: failure to decrease termination measure
 Execution trace:
     (0,0): anon0
-Termination.dfy(360,47): Error: failure to decrease termination measure
+Termination.dfy(361,47): Error: failure to decrease termination measure
 Execution trace:
     (0,0): anon0
     (0,0): anon7_Else
@@ -41,18 +41,18 @@ Execution trace:
     (0,0): anon10_Then
     (0,0): anon5
     Termination.dfy(125,3): anon11_Else
-Termination.dfy(254,35): Error: cannot prove termination; try supplying a decreases clause
+Termination.dfy(255,35): Error: cannot prove termination; try supplying a decreases clause
 Execution trace:
     (0,0): anon0
     (0,0): anon6_Else
     (0,0): anon7_Else
     (0,0): anon8_Then
-Termination.dfy(295,3): Error: decreases expression might not decrease
+Termination.dfy(296,3): Error: decreases expression might not decrease
 Execution trace:
-    Termination.dfy(295,3): anon9_LoopHead
+    Termination.dfy(296,3): anon9_LoopHead
     (0,0): anon9_LoopBody
-    Termination.dfy(295,3): anon10_Else
-    Termination.dfy(295,3): anon11_Else
+    Termination.dfy(296,3): anon10_Else
+    Termination.dfy(296,3): anon11_Else
     (0,0): anon12_Else
 
 Dafny program verifier finished with 62 verified, 8 errors

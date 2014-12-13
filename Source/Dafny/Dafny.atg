@@ -486,7 +486,7 @@ Dafny
   | OtherTypeDecl<defaultModule, out td>        (. defaultModule.TopLevelDecls.Add(td); .)
   | IteratorDecl<defaultModule, out iter>       (. defaultModule.TopLevelDecls.Add(iter); .)
   | TraitDecl<defaultModule, out trait>    (. defaultModule.TopLevelDecls.Add(trait); .)
-  | ClassMemberDecl<membersDefaultClass, false>
+  | ClassMemberDecl<membersDefaultClass, false, true>
   }
   (. // find the default class in the default module, then append membersDefaultClass to its member list
      DefaultClassDecl defaultClass = null;
@@ -529,7 +529,7 @@ SubModuleDecl<ModuleDefinition parent, out ModuleDecl submodule>
         | NewtypeDecl<module, out td>                  (. module.TopLevelDecls.Add(td); .)
         | OtherTypeDecl<module, out td>                (. module.TopLevelDecls.Add(td); .)
         | IteratorDecl<module, out iter>               (. module.TopLevelDecls.Add(iter); .)
-        | ClassMemberDecl<namedModuleDefaultClassMembers, false>
+        | ClassMemberDecl<namedModuleDefaultClassMembers, false, true>
         }
       "}"                                  (. module.BodyEndTok = t;
                                               module.TopLevelDecls.Add(new DefaultClassDecl(module, namedModuleDefaultClassMembers));
@@ -587,7 +587,7 @@ ClassDecl<ModuleDefinition/*!*/ module, out ClassDecl/*!*/ c>
   {"," Type<out trait>  (. traits.Add(trait); .) }
   ]         
   "{"                                            (. bodyStart = t;  .)
-  { ClassMemberDecl<members, true>
+  { ClassMemberDecl<members, true, false>
   }
   "}"
   (. c = new ClassDecl(id, id.val, module, typeArgs, members, attrs, traits);
@@ -611,7 +611,7 @@ ClassDecl<ModuleDefinition/*!*/ module, out ClassDecl/*!*/ c>
 	NoUSIdent<out id>
 	[ GenericParameters<typeArgs> ]
 	"{"                                            (. bodyStart = t; .)
-    { ClassMemberDecl<members, true>
+    { ClassMemberDecl<members, true, false>
     }
     "}"
 	(. trait = new TraitDecl(id, id.val, module, typeArgs, members, attrs);
@@ -620,18 +620,34 @@ ClassDecl<ModuleDefinition/*!*/ module, out ClassDecl/*!*/ c>
     .)
 	.
 
-ClassMemberDecl<.List<MemberDecl/*!*/>/*!*/ mm, bool allowConstructors.>
+ClassMemberDecl<.List<MemberDecl> mm, bool allowConstructors, bool moduleLevelDecl.>
 = (. Contract.Requires(cce.NonNullElements(mm));
      Method/*!*/ m;
      Function/*!*/ f;
      MemberModifiers mmod = new MemberModifiers();
+     IToken staticToken = null;
   .)
   { "ghost"                                (. mmod.IsGhost = true; .)
-  | "static"                               (. mmod.IsStatic = true; .)
+  | "static"                               (. mmod.IsStatic = true; staticToken = t; .)
   }
-  ( FieldDecl<mmod, mm>
-  | FunctionDecl<mmod, out f>                   (. mm.Add(f); .)
-  | MethodDecl<mmod, allowConstructors, out m>  (. mm.Add(m); .)
+  ( (. if (moduleLevelDecl) {
+         SemErr(la, "fields are not allowed to be declared at the module level; instead, wrap the field in a 'class' declaration");
+         mmod.IsStatic = false;
+       }
+    .)
+    FieldDecl<mmod, mm>
+  | (. if (moduleLevelDecl && staticToken != null) {
+         errors.Warning(staticToken, "module-level functions are always non-instance, so the 'static' keyword is not allowed here");
+         mmod.IsStatic = false;
+       }
+    .)
+    FunctionDecl<mmod, out f>                   (. mm.Add(f); .)
+  | (. if (moduleLevelDecl && staticToken != null) {
+         errors.Warning(staticToken, "module-level methods are always non-instance, so the 'static' keyword is not allowed here");
+         mmod.IsStatic = false;
+       }
+    .)
+    MethodDecl<mmod, allowConstructors, out m>  (. mm.Add(m); .)
   )
   .
 DatatypeDecl<ModuleDefinition/*!*/ module, out DatatypeDecl/*!*/ dt>

@@ -547,7 +547,7 @@ bool IsType(ref IToken pt) {
 				break;
 			}
 			case 64: case 65: case 68: case 74: case 75: case 76: case 77: case 78: case 82: case 83: case 84: {
-				ClassMemberDecl(membersDefaultClass, false);
+				ClassMemberDecl(membersDefaultClass, false, true);
 				break;
 			}
 			}
@@ -634,7 +634,7 @@ bool IsType(ref IToken pt) {
 					break;
 				}
 				case 64: case 65: case 68: case 74: case 75: case 76: case 77: case 78: case 82: case 83: case 84: {
-					ClassMemberDecl(namedModuleDefaultClassMembers, false);
+					ClassMemberDecl(namedModuleDefaultClassMembers, false, true);
 					break;
 				}
 				}
@@ -711,7 +711,7 @@ bool IsType(ref IToken pt) {
 		Expect(38);
 		bodyStart = t;  
 		while (StartOf(2)) {
-			ClassMemberDecl(members, true);
+			ClassMemberDecl(members, true, false);
 		}
 		Expect(39);
 		c = new ClassDecl(id, id.val, module, typeArgs, members, attrs, traits);
@@ -920,7 +920,7 @@ bool IsType(ref IToken pt) {
 		Expect(38);
 		bodyStart = t; 
 		while (StartOf(2)) {
-			ClassMemberDecl(members, true);
+			ClassMemberDecl(members, true, false);
 		}
 		Expect(39);
 		trait = new TraitDecl(id, id.val, module, typeArgs, members, attrs);
@@ -929,11 +929,12 @@ bool IsType(ref IToken pt) {
 		
 	}
 
-	void ClassMemberDecl(List<MemberDecl/*!*/>/*!*/ mm, bool allowConstructors) {
+	void ClassMemberDecl(List<MemberDecl> mm, bool allowConstructors, bool moduleLevelDecl) {
 		Contract.Requires(cce.NonNullElements(mm));
 		Method/*!*/ m;
 		Function/*!*/ f;
 		MemberModifiers mmod = new MemberModifiers();
+		IToken staticToken = null;
 		
 		while (la.kind == 64 || la.kind == 65) {
 			if (la.kind == 64) {
@@ -941,15 +942,30 @@ bool IsType(ref IToken pt) {
 				mmod.IsGhost = true; 
 			} else {
 				Get();
-				mmod.IsStatic = true; 
+				mmod.IsStatic = true; staticToken = t; 
 			}
 		}
 		if (la.kind == 68) {
+			if (moduleLevelDecl) {
+			 SemErr(la, "fields are not allowed to be declared at the module level; instead, wrap the field in a 'class' declaration");
+			 mmod.IsStatic = false;
+			}
+			
 			FieldDecl(mmod, mm);
 		} else if (la.kind == 82 || la.kind == 83 || la.kind == 84) {
+			if (moduleLevelDecl && staticToken != null) {
+			 errors.Warning(staticToken, "module-level functions are always non-instance, so the 'static' keyword is not allowed here");
+			 mmod.IsStatic = false;
+			}
+			
 			FunctionDecl(mmod, out f);
 			mm.Add(f); 
 		} else if (StartOf(6)) {
+			if (moduleLevelDecl && staticToken != null) {
+			 errors.Warning(staticToken, "module-level methods are always non-instance, so the 'static' keyword is not allowed here");
+			 mmod.IsStatic = false;
+			}
+			
 			MethodDecl(mmod, allowConstructors, out m);
 			mm.Add(m); 
 		} else SynErr(146);

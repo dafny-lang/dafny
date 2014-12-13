@@ -613,13 +613,13 @@ namespace Microsoft.Dafny
       }
 
       if (f is Predicate) {
-        return new Predicate(Tok(f.tok), newName, f.IsStatic, f.IsGhost, tps, formals,
+        return new Predicate(Tok(f.tok), newName, f.HasStaticKeyword, f.IsGhost, tps, formals,
           req, reads, ens, decreases, body, Predicate.BodyOriginKind.OriginalOrInherited, CloneAttributes(f.Attributes), null);
       } else if (f is CoPredicate) {
-        return new CoPredicate(Tok(f.tok), newName, f.IsStatic, tps, formals,
+        return new CoPredicate(Tok(f.tok), newName, f.HasStaticKeyword, tps, formals,
           req, reads, ens, body, CloneAttributes(f.Attributes), null);
       } else {
-        return new Function(Tok(f.tok), newName, f.IsStatic, f.IsGhost, tps, formals, CloneType(f.ResultType),
+        return new Function(Tok(f.tok), newName, f.HasStaticKeyword, f.IsGhost, tps, formals, CloneType(f.ResultType),
           req, reads, ens, decreases, body, CloneAttributes(f.Attributes), null);
       }
     }
@@ -640,13 +640,13 @@ namespace Microsoft.Dafny
         return new Constructor(Tok(m.tok), m.Name, tps, ins,
           req, mod, ens, decreases, body, CloneAttributes(m.Attributes), null);
       } else if (m is CoLemma) {
-        return new CoLemma(Tok(m.tok), m.Name, m.IsStatic, tps, ins, m.Outs.ConvertAll(CloneFormal),
+        return new CoLemma(Tok(m.tok), m.Name, m.HasStaticKeyword, tps, ins, m.Outs.ConvertAll(CloneFormal),
           req, mod, ens, decreases, body, CloneAttributes(m.Attributes), null);
       } else if (m is Lemma) {
-        return new Lemma(Tok(m.tok), m.Name, m.IsStatic, tps, ins, m.Outs.ConvertAll(CloneFormal),
+        return new Lemma(Tok(m.tok), m.Name, m.HasStaticKeyword, tps, ins, m.Outs.ConvertAll(CloneFormal),
           req, mod, ens, decreases, body, CloneAttributes(m.Attributes), null);
       } else {
-        return new Method(Tok(m.tok), m.Name, m.IsStatic, m.IsGhost, tps, ins, m.Outs.ConvertAll(CloneFormal),
+        return new Method(Tok(m.tok), m.Name, m.HasStaticKeyword, m.IsGhost, tps, ins, m.Outs.ConvertAll(CloneFormal),
           req, mod, ens, decreases, body, CloneAttributes(m.Attributes), null);
       }
     }

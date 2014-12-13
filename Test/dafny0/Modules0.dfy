@@ -132,18 +132,20 @@ class Ghosty {
   ghost method Theorem(a: int) { }
 }
 
-var SomeField: int;
+class AClassWithSomeField {
+  var SomeField: int;
 
-method SpecialFunctions()
-  modifies this;
-{
-  SomeField := SomeField + 4;
-  var a := old(SomeField);  // error: old can only be used in ghost contexts
-  var b := fresh(this);  // error: fresh can only be used in ghost contexts
-  var c := allocated(this);  // error: allocated can only be used in ghost contexts
-  if (fresh(this)) {  // this guard makes the if statement a ghost statement
-    ghost var x := old(SomeField);  // this is a ghost context, so it's okay
-    ghost var y := allocated(this);  // this is a ghost context, so it's okay
+  method SpecialFunctions()
+    modifies this;
+  {
+    SomeField := SomeField + 4;
+    var a := old(SomeField);  // error: old can only be used in ghost contexts
+    var b := fresh(this);  // error: fresh can only be used in ghost contexts
+    var c := allocated(this);  // error: allocated can only be used in ghost contexts
+    if (fresh(this)) {  // this guard makes the if statement a ghost statement
+      ghost var x := old(SomeField);  // this is a ghost context, so it's okay
+      ghost var y := allocated(this);  // this is a ghost context, so it's okay
+    }
   }
 }
 
@@ -322,4 +324,13 @@ module Q_M {
     var q := new Q_Imp.Klassy.Init();
   }
   class Node { }
+}
+
+// ------- top-level statics -----------------
+
+module TopLevelStatics {
+  static function F(): int  // error/warning: static keyword does not belong here
+  { 0 }
+  static method M()  // error/warning: static keyword does not belong here
+  { }
 }

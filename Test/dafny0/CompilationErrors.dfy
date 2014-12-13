@@ -5,13 +5,15 @@ type MyType  // compile error: opaque type
 iterator Iter()  // compile error: body-less iterator
 ghost method M()  // compile error: body-less ghost method
 method P()  // compile error: body-less method
-method Q()
-{
-  if g == 0 {
-    assume true;  // compile error: assume
+class TestClass {
+  method Q()
+  {
+    if g == 0 {
+      assume true;  // compile error: assume
+    }
   }
+  ghost var g: int;
 }
-ghost var g: int;
 
 function F(): int  // compile error: body-less ghost function
 function method H(): int  // compile error: body-less function method

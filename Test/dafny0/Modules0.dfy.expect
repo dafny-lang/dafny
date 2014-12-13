@@ -1,3 +1,5 @@
+Modules0.dfy(332,3): warning: module-level functions are always non-instance, so the 'static' keyword is not allowed here
+Modules0.dfy(334,3): warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
 Modules0.dfy(8,8): Error: Duplicate name of top-level declaration: WazzupA
 Modules0.dfy(9,11): Error: Duplicate name of top-level declaration: WazzupA
 Modules0.dfy(10,7): Error: Duplicate name of top-level declaration: WazzupA
@@ -14,24 +16,24 @@ Modules0.dfy(79,13): Error: expected method call, found expression
 Modules0.dfy(84,8): Error: type MyClassY does not have a member M
 Modules0.dfy(84,9): Error: expected method call, found expression
 Modules0.dfy(92,19): Error: Undeclared top-level type or type parameter: ClassG (did you forget to qualify a name?)
-Modules0.dfy(224,15): Error: Undeclared top-level type or type parameter: X (did you forget to qualify a name?)
-Modules0.dfy(224,8): Error: new can be applied only to reference types (got X)
-Modules0.dfy(233,13): Error: Undeclared type X in module B
-Modules0.dfy(243,13): Error: unresolved identifier: X
-Modules0.dfy(244,15): Error: member DoesNotExist does not exist in class X
-Modules0.dfy(283,19): Error: Undeclared top-level type or type parameter: D (did you forget to qualify a name?)
-Modules0.dfy(283,12): Error: new can be applied only to reference types (got D)
-Modules0.dfy(286,25): Error: type of the receiver is not fully determined at this program point
-Modules0.dfy(287,16): Error: type of the receiver is not fully determined at this program point
-Modules0.dfy(287,17): Error: expected method call, found expression
-Modules0.dfy(288,16): Error: type of the receiver is not fully determined at this program point
-Modules0.dfy(288,17): Error: expected method call, found expression
-Modules0.dfy(310,24): Error: module Q_Imp does not exist
+Modules0.dfy(226,15): Error: Undeclared top-level type or type parameter: X (did you forget to qualify a name?)
+Modules0.dfy(226,8): Error: new can be applied only to reference types (got X)
+Modules0.dfy(235,13): Error: Undeclared type X in module B
+Modules0.dfy(245,13): Error: unresolved identifier: X
+Modules0.dfy(246,15): Error: member DoesNotExist does not exist in class X
+Modules0.dfy(285,19): Error: Undeclared top-level type or type parameter: D (did you forget to qualify a name?)
+Modules0.dfy(285,12): Error: new can be applied only to reference types (got D)
+Modules0.dfy(288,25): Error: type of the receiver is not fully determined at this program point
+Modules0.dfy(289,16): Error: type of the receiver is not fully determined at this program point
+Modules0.dfy(289,17): Error: expected method call, found expression
+Modules0.dfy(290,16): Error: type of the receiver is not fully determined at this program point
+Modules0.dfy(290,17): Error: expected method call, found expression
+Modules0.dfy(312,24): Error: module Q_Imp does not exist
 Modules0.dfy(102,6): Error: type MyClassY does not have a member M
 Modules0.dfy(102,7): Error: expected method call, found expression
 Modules0.dfy(127,11): Error: ghost variables are allowed only in specification contexts
-Modules0.dfy(141,11): Error: old expressions are allowed only in specification and ghost contexts
-Modules0.dfy(142,11): Error: fresh expressions are allowed only in specification and ghost contexts
-Modules0.dfy(143,11): Error: unresolved identifier: allocated
-Modules0.dfy(146,19): Error: unresolved identifier: allocated
+Modules0.dfy(142,13): Error: old expressions are allowed only in specification and ghost contexts
+Modules0.dfy(143,13): Error: fresh expressions are allowed only in specification and ghost contexts
+Modules0.dfy(144,13): Error: unresolved identifier: allocated
+Modules0.dfy(147,21): Error: unresolved identifier: allocated
 36 resolution/type errors detected in Modules0.dfy

@@ -2,32 +2,34 @@
 // RUN: %diff "%s.expect" "%t"
 
 module TestModule {
-  copredicate P(b: bool)
-  {
-    !b && Q(null)
-  }
+  class TestClass {
+    copredicate P(b: bool)
+    {
+      !b && Q(null)
+    }
 
-  copredicate Q(a: array<int>)
-  {
-    a == null && P(true)
-  }
+    copredicate Q(a: array<int>)
+    {
+      a == null && P(true)
+    }
 
-  copredicate S(d: set<int>)
-  {
-    this.Undeclared#[5](d) &&  // error: 'Undeclared#' is undeclared
-    Undeclared#[5](d) &&  // error: 'Undeclared#' is undeclared
-    this.S#[5](d) &&
-    S#[5](d) &&
-    S#[_k](d)  // error: _k is not an identifier in scope
-  }
+    copredicate S(d: set<int>)
+    {
+      this.Undeclared#[5](d) &&  // error: 'Undeclared#' is undeclared
+      Undeclared#[5](d) &&  // error: 'Undeclared#' is undeclared
+      this.S#[5](d) &&
+      S#[5](d) &&
+      S#[_k](d)  // error: _k is not an identifier in scope
+    }
 
-  colemma CM(d: set<int>)
-  {
-    var b;
-    b := this.S#[5](d);
-    b := S#[5](d);
-    this.CM#[5](d);
-    CM#[5](d);
+    colemma CM(d: set<int>)
+    {
+      var b;
+      b := this.S#[5](d);
+      b := S#[5](d);
+      this.CM#[5](d);
+      CM#[5](d);
+    }
   }
 }
 
@@ -63,19 +65,21 @@ module GhostCheck2 {
 }
 
 module Mojul0 {
-  copredicate D()
-    reads this;  // error: copredicates are not allowed to have a reads clause -- WHY NOT?
-  {
-    true
-  }
+  class MyClass {
+    copredicate D()
+      reads this;  // error: copredicates are not allowed to have a reads clause -- WHY NOT?
+    {
+      true
+    }
 
-  copredicate NoEnsuresPlease(m: nat)
-    ensures NoEnsuresPlease(m) ==> m < 100;  // error: a copredicate is not allowed to have an 'ensures' clause
-  {
-    m < 75
-  }
+    copredicate NoEnsuresPlease(m: nat)
+      ensures NoEnsuresPlease(m) ==> m < 100;  // error: a copredicate is not allowed to have an 'ensures' clause
+    {
+      m < 75
+    }
 
-  // Note, 'decreases' clauses are also disallowed on copredicates, but the parser takes care of that
+    // Note, 'decreases' clauses are also disallowed on copredicates, but the parser takes care of that
+  }
 }
 
 module Mojul1 {

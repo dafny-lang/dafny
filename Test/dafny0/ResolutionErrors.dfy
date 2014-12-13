@@ -78,25 +78,27 @@ datatype Xyz = Alberta | Benny | Constantine(y: int) | David(x: int);
 datatype Rst = David(x: int, y: int);
 
 function Tuv(arg0: Abc, arg1: bool): int { 10 }
-var Eleanor: bool;
 
-method TestNameResolution1() {
-  var a0 := Abel;
-  var a1 := Alberta;
-  var b0 := Benny;  // error: there's more than one constructor with the name Benny; needs qualification
-  var b1 := Abc.Benny;
-  var b2 := Xyz.Benny;
-  var Benny := 15;  // introduce a local variable with the name 'Benny'
-  var b3 := Benny;
-  var d0 := David(20);  // error: constructor name David is ambiguous
-  var d1 := David;  // error: constructor name David is ambiguous (never mind that the signature does
-                    // not match either of them)
-  var d2 := David(20, 40);  // error: constructor name Davis is ambiguous (never mind that the given
-                            // parameters match the signature of only one of those constructors)
-  var d3 := Abc.David(20, 40);  // error: wrong number of parameters
-  var d4 := Rst.David(20, 40);
-  var e := Eleanor;  // this resolves to the field, not the Abc datatype constructor
-  assert Tuv(Abc.Eleanor, e) == 10;
+class EE {
+  var Eleanor: bool;
+  method TestNameResolution1() {
+    var a0 := Abel;
+    var a1 := Alberta;
+    var b0 := Benny;  // error: there's more than one constructor with the name Benny; needs qualification
+    var b1 := Abc.Benny;
+    var b2 := Xyz.Benny;
+    var Benny := 15;  // introduce a local variable with the name 'Benny'
+    var b3 := Benny;
+    var d0 := David(20);  // error: constructor name David is ambiguous
+    var d1 := David;  // error: constructor name David is ambiguous (never mind that the signature does
+		      // not match either of them)
+    var d2 := David(20, 40);  // error: constructor name Davis is ambiguous (never mind that the given
+			      // parameters match the signature of only one of those constructors)
+    var d3 := Abc.David(20, 40);  // error: wrong number of parameters
+    var d4 := Rst.David(20, 40);
+    var e := Eleanor;  // this resolves to the field, not the Abc datatype constructor
+    assert Tuv(Abc.Eleanor, e) == 10;
+  }
 }
 
 // --------------- ghost tests -------------------------------------
@@ -386,34 +388,35 @@ method TestCalc(m: int, n: int, a: bool, b: bool)
   }
 }
 
-/* Side-effect checks */
-ghost var ycalc: int;
+class SideEffectChecks {
+  ghost var ycalc: int;
 
-ghost method Mod(a: int)
-  modifies this;
-  ensures ycalc == a;
-{
-  ycalc := a;
-}
+  ghost method Mod(a: int)
+    modifies this;
+    ensures ycalc == a;
+  {
+    ycalc := a;
+  }
 
-ghost method Bad()
-  modifies this;
-  ensures 0 == 1;
-{
-  var x: int;
-  calc {
-    0;
-    { Mod(0); }     // methods with side-effects are not allowed
-    ycalc;
-    { ycalc := 1; } // heap updates are not allowed
-    1;
-    { x := 1; }     // updates to locals defined outside of the hint are not allowed
-    x;
-    {
-      var x: int;
-      x := 1;       // this is OK
+  ghost method Bad()
+    modifies this;
+    ensures 0 == 1;
+  {
+    var x: int;
+    calc {
+      0;
+      { Mod(0); }     // methods with side-effects are not allowed
+      ycalc;
+      { ycalc := 1; } // heap updates are not allowed
+      1;
+      { x := 1; }     // updates to locals defined outside of the hint are not allowed
+      x;
+      {
+	var x: int;
+	x := 1;       // this is OK
+      }
+      1;
     }
-    1;
   }
 }
 
@@ -648,9 +651,9 @@ module UnderspecifiedTypes {
 // ------------------------- lemmas ------------------------------
 
 // a lemma is allowed to have out-parameters, but not a modifies clause
-lemma MyLemma(x: int) returns (y: int)
+lemma MyLemma(x: int, l: Lamb) returns (y: int)
   requires 0 <= x;
-  modifies this;
+  modifies l;
   ensures 0 <= y;
 {
   y := x;
@@ -659,110 +662,112 @@ lemma MyLemma(x: int) returns (y: int)
 // ------------------------- statements in expressions ------------------------------
 
 module StatementsInExpressions {
-  ghost method SideEffect()
-    modifies this;
-  {
-  }
+  class MyClass {
+    ghost method SideEffect()
+      modifies this;
+    {
+    }
 
-  method NonGhostMethod()
-  {
-  }
+    method NonGhostMethod()
+    {
+    }
 
-  ghost method M()
-    modifies this;
-  {
-    calc {
+    ghost method M()
+      modifies this;
+    {
+      calc {
+	5;
+	{ SideEffect(); }  // error: cannot call method with side effects
+	5;
+      }
+    }
+
+    function F(): int
+    {
+      calc {
+	6;
+	{ assert 6 < 8; }
+	{ NonGhostMethod(); }  // error: cannot call non-ghost method
+	{ var x := 8;
+	  while x != 0
+	    decreases *;  // error: cannot use 'decreases *' in a ghost context
+	  {
+	    x := x - 1;
+	  }
+	}
+	{ var x := 8;
+	  while x != 0
+	  {
+	    x := x - 1;
+	  }
+	}
+	{ MyField := 12; }  // error: cannot assign to a field
+	{ MyGhostField := 12; }  // error: cannot assign to any field
+	{ SideEffect(); }  // error: cannot call (ghost) method with a modifies clause
+	{ var x := 8;
+	  while x != 0
+	    modifies this;  // error: cannot use a modifies clause on a loop
+	  {
+	    x := x - 1;
+	  }
+	}
+	6;
+      }
+      5
+    }
+
+    var MyField: int;
+    ghost var MyGhostField: int;
+
+    method N()
+    {
+      var y :=
+      calc {
+	6;
+	{ assert 6 < 8; }
+	{ NonGhostMethod(); }  // error: cannot call non-ghost method
+	{ var x := 8;
+	  while x != 0
+	    decreases *;  // error: cannot use 'decreases *' in a ghost context
+	  {
+	    x := x - 1;
+	  }
+	}
+	{ MyField := 12; }  // error: cannot assign to a field
+	{ MyGhostField := 12; }  // error: cannot assign to any field
+	{ M(); }  // error: cannot call (ghost) method with a modifies clause
+	{ var x := 8;
+	  while x != 0
+	    modifies this;  // error: cannot use a modifies clause on a loop
+	  {
+	    x := x - 1;
+	  }
+	}
+	{ var x := 8;
+	  while x != 0
+	  {
+	    x := x - 1;
+	  }
+	}
+	6;
+      }
       5;
-      { SideEffect(); }  // error: cannot call method with side effects
-      5;
     }
-  }
 
-  function F(): int
-  {
-    calc {
-      6;
-      { assert 6 < 8; }
-      { NonGhostMethod(); }  // error: cannot call non-ghost method
-      { var x := 8;
-        while x != 0
-          decreases *;  // error: cannot use 'decreases *' in a ghost context
-        {
-          x := x - 1;
-        }
-      }
-      { var x := 8;
-        while x != 0
-        {
-          x := x - 1;
-        }
-      }
-      { MyField := 12; }  // error: cannot assign to a field
-      { MyGhostField := 12; }  // error: cannot assign to any field
-      { SideEffect(); }  // error: cannot call (ghost) method with a modifies clause
-      { var x := 8;
-        while x != 0
-          modifies this;  // error: cannot use a modifies clause on a loop
-        {
-          x := x - 1;
-        }
-      }
-      6;
+    ghost method MyLemma()
+    ghost method MyGhostMethod()
+      modifies this;
+    method OrdinaryMethod()
+    ghost method OutParamMethod() returns (y: int)
+
+    function UseLemma(): int
+    {
+      MyLemma();
+      MyGhostMethod();   // error: modifi2es state
+      OrdinaryMethod();  // error: not a ghost
+      OutParamMethod();  // error: has out-parameters
+      10
     }
-    5
-  }
-
-  var MyField: int;
-  ghost var MyGhostField: int;
-
-  method N()
-  {
-    var y :=
-    calc {
-      6;
-      { assert 6 < 8; }
-      { NonGhostMethod(); }  // error: cannot call non-ghost method
-      { var x := 8;
-        while x != 0
-          decreases *;  // error: cannot use 'decreases *' in a ghost context
-        {
-          x := x - 1;
-        }
-      }
-      { MyField := 12; }  // error: cannot assign to a field
-      { MyGhostField := 12; }  // error: cannot assign to any field
-      { M(); }  // error: cannot call (ghost) method with a modifies clause
-      { var x := 8;
-        while x != 0
-          modifies this;  // error: cannot use a modifies clause on a loop
-        {
-          x := x - 1;
-        }
-      }
-      { var x := 8;
-        while x != 0
-        {
-          x := x - 1;
-        }
-      }
-      6;
-    }
-    5;
-  }
-
-  ghost method MyLemma()
-  ghost method MyGhostMethod()
-    modifies this;
-  method OrdinaryMethod()
-  ghost method OutParamMethod() returns (y: int)
-
-  function UseLemma(): int
-  {
-    MyLemma();
-    MyGhostMethod();   // error: modifies state
-    OrdinaryMethod();  // error: not a ghost
-    OutParamMethod();  // error: has out-parameters
-    10
   }
 }
 

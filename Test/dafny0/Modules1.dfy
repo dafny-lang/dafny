@@ -19,7 +19,7 @@ class C {
 
 method MyMethod() { }
 
-var MyField: int;
+
 
 module Babble {
   class Z {
@@ -30,7 +30,7 @@ module Babble {
   }
 }
 
-static function MyFunction(): int { 5 }
+function MyFunction(): int { 5 }
 
 class D { }
 

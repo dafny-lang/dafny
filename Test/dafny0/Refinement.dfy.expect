@@ -6,35 +6,35 @@ Refinement.dfy[B](15,5): Error BP5003: A postcondition might not hold on this re
 Refinement.dfy(33,20): Related location: This is the postcondition that might not hold.
 Execution trace:
     (0,0): anon0
-Refinement.dfy(64,14): Error: assertion violation
+Refinement.dfy(69,16): Error: assertion violation
 Execution trace:
     (0,0): anon0
-Refinement.dfy(74,17): Error: assertion violation
+Refinement.dfy(80,17): Error: assertion violation
 Execution trace:
     (0,0): anon0
-Refinement.dfy(93,12): Error BP5003: A postcondition might not hold on this return path.
-Refinement.dfy(72,15): Related location: This is the postcondition that might not hold.
+Refinement.dfy(99,12): Error BP5003: A postcondition might not hold on this return path.
+Refinement.dfy(78,15): Related location: This is the postcondition that might not hold.
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Else
-Refinement.dfy(96,3): Error BP5003: A postcondition might not hold on this return path.
-Refinement.dfy(77,15): Related location: This is the postcondition that might not hold.
+Refinement.dfy(102,3): Error BP5003: A postcondition might not hold on this return path.
+Refinement.dfy(83,15): Related location: This is the postcondition that might not hold.
 Execution trace:
     (0,0): anon0
-Refinement.dfy(183,5): Error BP5003: A postcondition might not hold on this return path.
-Refinement.dfy[IncorrectConcrete](115,15): Related location: This is the postcondition that might not hold.
-Refinement.dfy(180,9): Related location
+Refinement.dfy(189,5): Error BP5003: A postcondition might not hold on this return path.
+Refinement.dfy[IncorrectConcrete](121,15): Related location: This is the postcondition that might not hold.
+Refinement.dfy(186,9): Related location
 Execution trace:
     (0,0): anon0
-Refinement.dfy(187,5): Error BP5003: A postcondition might not hold on this return path.
-Refinement.dfy[IncorrectConcrete](123,15): Related location: This is the postcondition that might not hold.
-Refinement.dfy(180,9): Related location
+Refinement.dfy(193,5): Error BP5003: A postcondition might not hold on this return path.
+Refinement.dfy[IncorrectConcrete](129,15): Related location: This is the postcondition that might not hold.
+Refinement.dfy(186,9): Related location
 Execution trace:
     (0,0): anon0
     (0,0): anon4_Then
     (0,0): anon3
-Refinement.dfy(193,7): Error: assertion violation
-Refinement.dfy[IncorrectConcrete](131,24): Related location
+Refinement.dfy(199,7): Error: assertion violation
+Refinement.dfy[IncorrectConcrete](137,24): Related location
 Execution trace:
     (0,0): anon0
 

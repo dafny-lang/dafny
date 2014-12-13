@@ -3,10 +3,10 @@
 
 // Celebrity example, inspired by the Rodin tutorial
 
-static function method Knows<X>(a: X, b: X): bool
+function method Knows<X>(a: X, b: X): bool
   requires a != b;  // forbid asking about the reflexive case
 
-static function IsCelebrity<Y>(c: Y, people: set<Y>): bool
+function IsCelebrity<Y>(c: Y, people: set<Y>): bool
 {
   c in people &&
   (forall p :: p in people && p != c ==> Knows(p, c) && !Knows(c, p))

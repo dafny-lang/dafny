@@ -79,7 +79,7 @@ module A {
    import X as S default T;
    import Y as S default T;
    import Z = T;
-   static method run() {
+   method run() {
      var x := new X.C;
      x.m();
      var y := new Y.C;
@@ -96,17 +96,17 @@ method NotMain() {
 
 abstract module S1 {
   import B as S default T;
-  static method do()
+  method do()
 }
 
 module T1 refines S1 {
-  static method do() {
+  method do() {
     var x := 3;
   }
 }
 module A1 {
    import X as S1 default T1;
-   static method run() {
+   method run() {
      X.do();
      var x := new X.B.C;
      x.m();

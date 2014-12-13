@@ -122,7 +122,7 @@ namespace Microsoft.Dafny
       readonly MemberDecl A;
       readonly MemberDecl B;
       public AmbiguousMemberDecl(ModuleDefinition m, MemberDecl a, MemberDecl b)
-        : base(a.tok, a.Name + "/" + b.Name, a.IsStatic, a.IsGhost, null) {
+        : base(a.tok, a.Name + "/" + b.Name, true, a.IsGhost, null) {
         A = a;
         B = b;
       }
@@ -970,7 +970,7 @@ namespace Microsoft.Dafny
                   List<TypeParameter> tyvars = cop.TypeArgs.ConvertAll(cloner.CloneTypeParam);
 
                   // create prefix predicate
-                  cop.PrefixPredicate = new PrefixPredicate(cop.tok, extraName, cop.IsStatic,
+                  cop.PrefixPredicate = new PrefixPredicate(cop.tok, extraName, cop.HasStaticKeyword,
                     tyvars, k, formals,
                     cop.Req.ConvertAll(cloner.CloneExpr),
                     cop.Reads.ConvertAll(cloner.CloneFrameExpr),
@@ -991,7 +991,7 @@ namespace Microsoft.Dafny
                   decr.Add(new IdentifierExpr(com.tok, k.Name));
                   decr.AddRange(com.Decreases.Expressions.ConvertAll(cloner.CloneExpr));
                   // Create prefix lemma.  Note that the body is not cloned, but simply shared.
-                  com.PrefixLemma = new PrefixLemma(com.tok, extraName, com.IsStatic,
+                  com.PrefixLemma = new PrefixLemma(com.tok, extraName, com.HasStaticKeyword,
                     com.TypeArgs.ConvertAll(cloner.CloneTypeParam), k, formals, com.Outs.ConvertAll(cloner.CloneFormal),
                     com.Req.ConvertAll(cloner.CloneMayBeFreeExpr), cloner.CloneSpecFrameExpr(com.Mod),
                     new List<MaybeFreeExpression>(),  // Note, the postconditions are filled in after the colemma's postconditions have been resolved
@@ -1018,9 +1018,10 @@ namespace Microsoft.Dafny
           {
               Error(cl, "a trait is not allowed to declare a constructor");
           }
-            if (cl.IsDefaultClass) {
+          if (cl.IsDefaultClass) {
             foreach (MemberDecl m in cl.Members) {
-              if (m.IsStatic && (m is Function || m is Method)) {
+              Contract.Assert(!m.HasStaticKeyword);  // note, the IsStatic value isn't available yet; when it becomes available, we expect it will have the value 'true'
+              if (m is Function || m is Method) {
                 sig.StaticMembers[m.Name] = m;
               }
             }

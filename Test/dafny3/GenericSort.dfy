@@ -3,23 +3,23 @@
 
 abstract module TotalOrder {
   type T // the type to be compared
-  static predicate method Leq(a: T, b: T) // Leq(a,b) iff a <= b
+  predicate method Leq(a: T, b: T) // Leq(a,b) iff a <= b
   // Three properties of total orders.  Here, they are given as unproved
   // lemmas, that is, as axioms.
-  static lemma Antisymmetry(a: T, b: T)
+  lemma Antisymmetry(a: T, b: T)
     requires Leq(a, b) && Leq(b, a);
     ensures a == b;
-  static lemma Transitivity(a: T, b: T, c: T)
+  lemma Transitivity(a: T, b: T, c: T)
     requires Leq(a, b) && Leq(b, c);
     ensures Leq(a, c);
-  static lemma Totality(a: T, b: T)
+  lemma Totality(a: T, b: T)
     ensures Leq(a, b) || Leq(b, a);
 }
 
 abstract module Sort {
   import O as TotalOrder  // let O denote some module that has the members of TotalOrder
 
-  static predicate Sorted(a: array<O.T>, low: int, high: int)
+  predicate Sorted(a: array<O.T>, low: int, high: int)
     requires a != null && 0 <= low <= high <= a.Length;
     reads a;
     // The body of the predicate is hidden outside the module, but the postcondition is
@@ -32,7 +32,7 @@ abstract module Sort {
 
   // In the insertion sort routine below, it's more convenient to keep track of only that
   // neighboring elements of the array are sorted...
-  static predicate NeighborSorted(a: array<O.T>, low: int, high: int)
+  predicate NeighborSorted(a: array<O.T>, low: int, high: int)
     requires a != null && 0 <= low <= high <= a.Length;
     reads a;
   {
@@ -40,7 +40,7 @@ abstract module Sort {
   }
   // ...but we show that property to imply all pairs to be sorted.  The proof of this
   // lemma uses the transitivity property.
-  static lemma NeighborSorted_implies_Sorted(a: array<O.T>, low: int, high: int)
+  lemma NeighborSorted_implies_Sorted(a: array<O.T>, low: int, high: int)
     requires a != null && 0 <= low <= high <= a.Length;
     requires NeighborSorted(a, low, high);
     ensures Sorted(a, low, high);
@@ -56,7 +56,7 @@ abstract module Sort {
   }
 
   // Standard insertion sort method
-  static method InsertionSort(a: array<O.T>)
+  method InsertionSort(a: array<O.T>)
     requires a != null;
     modifies a;
     ensures Sorted(a, 0, a.Length);
@@ -96,30 +96,30 @@ module IntOrder refines TotalOrder {
   // (If there were type synonyms, we could perhaps have written just "type T = int".)
   datatype T = Int(i: int)
   // Define the ordering on these integers
-  static predicate method Leq ...
+  predicate method Leq ...
     ensures Leq(a, b) ==> a.i <= b.i;
   {
     a.i <= b.i
   }
   // The three required properties of the order are proved here as lemmas.
   // The proofs are automatic and don't require any further assistance.
-  static lemma Antisymmetry ... { }
-  static lemma Transitivity ... { }
-  static lemma Totality ... { }
+  lemma Antisymmetry ... { }
+  lemma Transitivity ... { }
+  lemma Totality ... { }
 }
 
 // Another example of a TotalOrder. Now we can sort pairs of integers.
 // Lexiographic ordering of pairs of integers
 module IntLexOrder refines TotalOrder {
   datatype T = Int(i: int, j: int)
-  static predicate method Leq ... {
+  predicate method Leq ... {
     if a.i < b.i then true
     else if a.i == b.i then a.j <= b.j
     else false
   }
-  static lemma Antisymmetry ... { }
-  static lemma Transitivity ... { }
-  static lemma Totality ... { }
+  lemma Antisymmetry ... { }
+  lemma Transitivity ... { }
+  lemma Totality ... { }
 }
 
 
@@ -129,7 +129,7 @@ module Client {
     import O = IntOrder
   }
   import I = IntOrder
-  static method TheMain() {
+  method TheMain() {
      var a := new I.T[4];
      a[0] := I.T.Int(6);  // alternatively, we could have written the RHS as:  IntSort.O.T.Int(6)
      a[1] := I.T.Int(1);
@@ -155,16 +155,16 @@ module intOrder refines TotalOrder {
   // Instantiate type T with a datatype wrapper around an integer.
   type T = int
   // Define the ordering on these integers
-  static predicate method Leq ...
+  predicate method Leq ...
     ensures Leq(a, b) ==> a <= b;
   {
     a <= b
   }
   // The three required properties of the order are proved here as lemmas.
   // The proofs are automatic and don't require any further assistance.
-  static lemma Antisymmetry ... { }
-  static lemma Transitivity ... { }
-  static lemma Totality ... { }
+  lemma Antisymmetry ... { }
+  lemma Transitivity ... { }
+  lemma Totality ... { }
 }
 
 module AnotherClient {
@@ -172,7 +172,7 @@ module AnotherClient {
     import O = intOrder
   }
   import I = intOrder
-  static method TheMain() {
+  method TheMain() {
     var a := new int[4];  // alternatively, could have written 'new I.T[4]'
     a[0] := 6;
     a[1] := 1;

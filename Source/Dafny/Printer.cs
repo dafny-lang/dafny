@@ -480,7 +480,7 @@ namespace Microsoft.Dafny {
       var isPredicate = f is Predicate || f is PrefixPredicate;
       Indent(indent);
       string k = isPredicate ? "predicate" : f is CoPredicate ? "copredicate" : "function";
-      if (f.IsStatic) { k = "static " + k; }
+      if (f.HasStaticKeyword) { k = "static " + k; }
       if (!f.IsGhost) { k += " method"; }
       PrintClassMethodHelper(k, f.Attributes, f.Name, f.TypeArgs);
       if (f.SignatureIsOmitted) {
@@ -549,7 +549,7 @@ namespace Microsoft.Dafny {
       if (PrintModeSkipFunctionOrMethod(method.IsGhost, method.Attributes, method.Name)) { return; }
       Indent(indent);
       string k = method is Constructor ? "constructor" : method is CoLemma ? "colemma" : method is Lemma ? "lemma" : "method";
-      if (method.IsStatic) { k = "static " + k; }
+      if (method.HasStaticKeyword) { k = "static " + k; }
       if (method.IsGhost && !(method is Lemma) && !(method is CoLemma)) { k = "ghost " + k; }
       string nm = method is Constructor && !((Constructor)method).HasName ? "" : method.Name;
       PrintClassMethodHelper(k, method.Attributes, nm, method.TypeArgs);

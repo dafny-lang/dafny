@@ -31,7 +31,7 @@ module Mx {
     }
   }
 
-  static method StaticM(k: nat) returns (m: int)
+  method StaticM(k: nat) returns (m: int)
   {
     m := k;
   }

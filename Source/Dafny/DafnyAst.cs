@@ -2180,16 +2180,21 @@ namespace Microsoft.Dafny {
   }
 
   public abstract class MemberDecl : Declaration {
-    public readonly bool IsStatic;
+    public readonly bool HasStaticKeyword;
+    public bool IsStatic {
+      get {
+        return HasStaticKeyword || (EnclosingClass is ClassDecl && ((ClassDecl)EnclosingClass).IsDefaultClass);
+      }
+    }
     public readonly bool IsGhost;
     public TopLevelDecl EnclosingClass;  // filled in during resolution
     public MemberDecl RefinementBase;  // filled in during the pre-resolution refinement transformation; null if the member is new here
     public bool Inherited;
-    public MemberDecl(IToken tok, string name, bool isStatic, bool isGhost, Attributes attributes)
+    public MemberDecl(IToken tok, string name, bool hasStaticKeyword, bool isGhost, Attributes attributes)
       : base(tok, name, attributes) {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
-      IsStatic = isStatic;
+      HasStaticKeyword = hasStaticKeyword;
       IsGhost = isGhost;
     }
     /// <summary>
@@ -2803,11 +2808,11 @@ namespace Microsoft.Dafny {
     /// <summary>
     /// Note, functions are "ghost" by default; a non-ghost function is called a "function method".
     /// </summary>
-    public Function(IToken tok, string name, bool isStatic, bool isGhost,
+    public Function(IToken tok, string name, bool hasStaticKeyword, bool isGhost,
                     List<TypeParameter> typeArgs, List<Formal> formals, Type resultType,
                     List<Expression> req, List<FrameExpression> reads, List<Expression> ens, Specification<Expression> decreases,
                     Expression body, Attributes attributes, IToken signatureEllipsis)
-      : base(tok, name, isStatic, isGhost, attributes) {
+      : base(tok, name, hasStaticKeyword, isGhost, attributes) {
 
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
@@ -2853,11 +2858,11 @@ namespace Microsoft.Dafny {
       Extension  // this predicate extends the definition of a predicate with a body in a module being refined
     }
     public readonly BodyOriginKind BodyOrigin;
-    public Predicate(IToken tok, string name, bool isStatic, bool isGhost,
+    public Predicate(IToken tok, string name, bool hasStaticKeyword, bool isGhost,
                      List<TypeParameter> typeArgs, List<Formal> formals,
                      List<Expression> req, List<FrameExpression> reads, List<Expression> ens, Specification<Expression> decreases,
                      Expression body, BodyOriginKind bodyOrigin, Attributes attributes, IToken signatureEllipsis)
-      : base(tok, name, isStatic, isGhost, typeArgs, formals, new BoolType(), req, reads, ens, decreases, body, attributes, signatureEllipsis) {
+      : base(tok, name, hasStaticKeyword, isGhost, typeArgs, formals, new BoolType(), req, reads, ens, decreases, body, attributes, signatureEllipsis) {
       Contract.Requires(bodyOrigin == Predicate.BodyOriginKind.OriginalOrInherited || body != null);
       BodyOrigin = bodyOrigin;
     }
@@ -2870,11 +2875,11 @@ namespace Microsoft.Dafny {
   {
     public readonly Formal K;
     public readonly CoPredicate Co;
-    public PrefixPredicate(IToken tok, string name, bool isStatic,
+    public PrefixPredicate(IToken tok, string name, bool hasStaticKeyword,
                      List<TypeParameter> typeArgs, Formal k, List<Formal> formals,
                      List<Expression> req, List<FrameExpression> reads, List<Expression> ens, Specification<Expression> decreases,
                      Expression body, Attributes attributes, CoPredicate coPred)
-      : base(tok, name, isStatic, true, typeArgs, formals, new BoolType(), req, reads, ens, decreases, body, attributes, null) {
+      : base(tok, name, hasStaticKeyword, true, typeArgs, formals, new BoolType(), req, reads, ens, decreases, body, attributes, null) {
       Contract.Requires(k != null);
       Contract.Requires(coPred != null);
       Contract.Requires(formals != null && 1 <= formals.Count && formals[0] == k);
@@ -2888,11 +2893,11 @@ namespace Microsoft.Dafny {
     public readonly List<FunctionCallExpr> Uses = new List<FunctionCallExpr>();  // filled in during resolution, used by verifier
     public PrefixPredicate PrefixPredicate;  // filled in during resolution (name registration)
 
-    public CoPredicate(IToken tok, string name, bool isStatic,
+    public CoPredicate(IToken tok, string name, bool hasStaticKeyword,
                      List<TypeParameter> typeArgs, List<Formal> formals,
                      List<Expression> req, List<FrameExpression> reads, List<Expression> ens,
                      Expression body, Attributes attributes, IToken signatureEllipsis)
-      : base(tok, name, isStatic, true, typeArgs, formals, new BoolType(),
+      : base(tok, name, hasStaticKeyword, true, typeArgs, formals, new BoolType(),
              req, reads, ens, new Specification<Expression>(new List<Expression>(), null), body, attributes, signatureEllipsis) {
     }
 
@@ -2956,7 +2961,7 @@ namespace Microsoft.Dafny {
     }
 
     public Method(IToken tok, string name,
-                  bool isStatic, bool isGhost,
+                  bool hasStaticKeyword, bool isGhost,
                   [Captured] List<TypeParameter> typeArgs,
                   [Captured] List<Formal> ins, [Captured] List<Formal> outs,
                   [Captured] List<MaybeFreeExpression> req, [Captured] Specification<FrameExpression> mod,
@@ -2964,7 +2969,7 @@ namespace Microsoft.Dafny {
                   [Captured] Specification<Expression> decreases,
                   [Captured] BlockStmt body,
                   Attributes attributes, IToken signatureEllipsis)
-      : base(tok, name, isStatic, isGhost, attributes) {
+      : base(tok, name, hasStaticKeyword, isGhost, attributes) {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
       Contract.Requires(cce.NonNullElements(typeArgs));
@@ -3016,7 +3021,7 @@ namespace Microsoft.Dafny {
   public class Lemma : Method
   {
     public Lemma(IToken tok, string name,
-                 bool isStatic,
+                 bool hasStaticKeyword,
                  [Captured] List<TypeParameter> typeArgs,
                  [Captured] List<Formal> ins, [Captured] List<Formal> outs,
                  [Captured] List<MaybeFreeExpression> req, [Captured] Specification<FrameExpression> mod,
@@ -3024,7 +3029,7 @@ namespace Microsoft.Dafny {
                  [Captured] Specification<Expression> decreases,
                  [Captured] BlockStmt body,
                  Attributes attributes, IToken signatureEllipsis)
-      : base(tok, name, isStatic, true, typeArgs, ins, outs, req, mod, ens, decreases, body, attributes, signatureEllipsis) {
+      : base(tok, name, hasStaticKeyword, true, typeArgs, ins, outs, req, mod, ens, decreases, body, attributes, signatureEllipsis) {
     }
   }
 
@@ -3063,11 +3068,11 @@ namespace Microsoft.Dafny {
   {
     public readonly Formal K;
     public readonly CoLemma Co;
-    public PrefixLemma(IToken tok, string name, bool isStatic,
+    public PrefixLemma(IToken tok, string name, bool hasStaticKeyword,
                        List<TypeParameter> typeArgs, Formal k, List<Formal> ins, List<Formal> outs,
                        List<MaybeFreeExpression> req, Specification<FrameExpression> mod, List<MaybeFreeExpression> ens, Specification<Expression> decreases,
                        BlockStmt body, Attributes attributes, CoLemma co)
-      : base(tok, name, isStatic, true, typeArgs, ins, outs, req, mod, ens, decreases, body, attributes, null) {
+      : base(tok, name, hasStaticKeyword, true, typeArgs, ins, outs, req, mod, ens, decreases, body, attributes, null) {
       Contract.Requires(k != null);
       Contract.Requires(ins != null && 1 <= ins.Count && ins[0] == k);
       Contract.Requires(co != null);
@@ -3081,7 +3086,7 @@ namespace Microsoft.Dafny {
     public PrefixLemma PrefixLemma;  // filled in during resolution (name registration)
 
     public CoLemma(IToken tok, string name,
-                   bool isStatic,
+                   bool hasStaticKeyword,
                    List<TypeParameter> typeArgs,
                    List<Formal> ins, [Captured] List<Formal> outs,
                    List<MaybeFreeExpression> req, [Captured] Specification<FrameExpression> mod,
@@ -3089,7 +3094,7 @@ namespace Microsoft.Dafny {
                    Specification<Expression> decreases,
                    BlockStmt body,
                    Attributes attributes, IToken signatureEllipsis)
-      : base(tok, name, isStatic, true, typeArgs, ins, outs, req, mod, ens, decreases, body, attributes, signatureEllipsis) {
+      : base(tok, name, hasStaticKeyword, true, typeArgs, ins, outs, req, mod, ens, decreases, body, attributes, signatureEllipsis) {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
       Contract.Requires(cce.NonNullElements(typeArgs));

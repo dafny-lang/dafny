@@ -231,21 +231,21 @@ class BreadthFirstSearch<Vertex(==)>
   }
 }
 
-static function domain<T, U>(m: map<T, U>): set<T>
+function domain<T, U>(m: map<T, U>): set<T>
 {
   set t | t in m
 }
 
 datatype List<T> = Nil | Cons(head: T, tail: List)
 
-static function length(list: List): nat
+function length(list: List): nat
 {
   match list
   case Nil => 0
   case Cons(_, tail) => 1 + length(tail)
 }
 
-static function elements<T>(list: List<T>): set<T>
+function elements<T>(list: List<T>): set<T>
 {
   match list
   case Nil => {}

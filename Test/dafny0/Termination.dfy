@@ -201,50 +201,51 @@ method DecreasesYieldsAnInvariant(z: int) {
 
 // ----------------------- top elements --------------------------------------
 
-var count: int;
+class TopElements {
+  var count: int;
 
-// Here is the old way that this had to be specified:
+  // Here is the old way that this had to be specified:
 
-method OuterOld(a: int)
-  modifies this;
-  decreases a, true;
-{
-  count := count + 1;
-  InnerOld(a, count);
-}
+  method OuterOld(a: int)
+    modifies this;
+    decreases a, true;
+  {
+    count := count + 1;
+    InnerOld(a, count);
+  }
 
-method InnerOld(a: int, b: int)
-  modifies this;
-  decreases a, false, b;
-{
-  count := count + 1;
-  if (b == 0 && 1 <= a) {
-    OuterOld(a - 1);
-  } else if (1 <= b) {
-    InnerOld(a, b - 1);
+  method InnerOld(a: int, b: int)
+    modifies this;
+    decreases a, false, b;
+  {
+    count := count + 1;
+    if (b == 0 && 1 <= a) {
+      OuterOld(a - 1);
+    } else if (1 <= b) {
+      InnerOld(a, b - 1);
+    }
+  }
+
+  // Now the default specifications ("decreases a;" and "decreases a, b;") suffice:
+
+  method Outer(a: int)
+    modifies this;
+  {
+    count := count + 1;
+    Inner(a, count);
+  }
+
+  method Inner(a: int, b: int)
+    modifies this;
+  {
+    count := count + 1;
+    if (b == 0 && 1 <= a) {
+      Outer(a - 1);
+    } else if (1 <= b) {
+      Inner(a, b - 1);
+    }
   }
 }
-
-// Now the default specifications ("decreases a;" and "decreases a, b;") suffice:
-
-method Outer(a: int)
-  modifies this;
-{
-  count := count + 1;
-  Inner(a, count);
-}
-
-method Inner(a: int, b: int)
-  modifies this;
-{
-  count := count + 1;
-  if (b == 0 && 1 <= a) {
-    Outer(a - 1);
-  } else if (1 <= b) {
-    Inner(a, b - 1);
-  }
-}
-
 // -------------------------- decrease either datatype value -----------------
 
 function Zipper0<T>(a: List<T>, b: List<T>): List<T>

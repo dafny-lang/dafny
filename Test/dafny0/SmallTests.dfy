@@ -511,7 +511,7 @@ class AttributeTests {
 
 // ----------------------- test attributes on variable declarations --------
 
-static method TestAttributesVarDecls()
+method TestAttributesVarDecls()
 {
   var {:foo foo} foo := null;
   var {:bar bar} bar := 0;
@@ -521,7 +521,7 @@ static method TestAttributesVarDecls()
 
 // ----------------------- Pretty printing of !(!expr) --------
 
-static method TestNotNot()
+method TestNotNot()
 {
   assert !(!true);  // Shouldn't pretty print as "!!true".
 

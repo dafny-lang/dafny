@@ -546,7 +546,7 @@ namespace Microsoft.Dafny
             // Add an axiom attribute so that the compiler won't complain about the lemma's lack of a body
             Attributes lemma_attrs = new Attributes("axiom", new List<Expression>(), null);
 
-            var reveal = new Lemma(f.tok, "reveal_" + f.Name, f.IsStatic, new List<TypeParameter>(), new List<Formal>(), new List<Formal>(), new List<MaybeFreeExpression>(),
+            var reveal = new Lemma(f.tok, "reveal_" + f.Name, f.HasStaticKeyword, new List<TypeParameter>(), new List<Formal>(), new List<Formal>(), new List<MaybeFreeExpression>(),
                                     new Specification<FrameExpression>(new List<FrameExpression>(), null), newEnsuresList,
                                     new Specification<Expression>(new List<Expression>(), null), null, lemma_attrs, null);
             newDecls.Add(reveal);

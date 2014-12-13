@@ -25,12 +25,12 @@ ghost method test_ThProperty()
 }
 
 // The following is a test that well-typedness antecednets are included in the literal axioms
-static function StaticFact(n: nat): nat
+function StaticFact(n: nat): nat
   ensures 0 < StaticFact(n);
 {
   if n == 0 then 1 else n * StaticFact(n - 1)
 }
-static method test_StaticFact()
+method test_StaticFact()
 {
   assert StaticFact(0) == 1;
   assert 42 != 42;  // error:  this should fail

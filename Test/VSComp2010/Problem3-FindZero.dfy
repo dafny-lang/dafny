@@ -56,7 +56,7 @@ class Node {
   }
 }
 
-static method Search(ll: Node) returns (r: int)
+method Search(ll: Node) returns (r: int)
   requires ll == null || ll.Valid();
   ensures ll == null ==> r == 0;
   ensures ll != null ==>

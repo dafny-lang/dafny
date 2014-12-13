@@ -12,7 +12,7 @@ module CoRecursion {
   }
 
   function AscendingChainAndRead(n: nat): Stream<int>
-    reads this;  // with a reads clause, this function is not a co-recusvie function
+    reads null;  // with a reads clause, this function is not a co-recusvie function
   {
     More(n, AscendingChainAndRead(n+1))  // error: cannot prove termination
   }

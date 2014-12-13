@@ -80,7 +80,7 @@ module Constraints {
   newtype B = x: A | x < 100
   newtype C = B  // the constraints 0 <= x < 100 still apply
 
-  static predicate IsEven(x: int)  // note that this is a ghost predicate
+  predicate IsEven(x: int)  // note that this is a ghost predicate
   {
     x % 2 == 0
   }
@@ -103,7 +103,7 @@ module WrongNumberOfArguments {
 
 module CyclicDependencies {
   newtype Cycle = x: int | (BadLemma(); false)  // error: cycle
-  static lemma BadLemma()
+  lemma BadLemma()
     ensures false;
   {
     var c: Cycle;

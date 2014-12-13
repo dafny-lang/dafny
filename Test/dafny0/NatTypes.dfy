@@ -10,28 +10,30 @@ method Main() {
   M(-25);  // error: cannot pass -25 as a nat
 }
 
-var f: nat;
+class MyClass {
+  var f: nat;
 
-method CheckField(x: nat, y: int)
-  requires 0 <= y;
-  modifies this;
-{
-  var y: nat := y;
-
-  assert 0 <= f;
-  while (0 < y)
+  method CheckField(x: nat, y: int)
+    requires 0 <= y;
+    modifies this;
   {
-    f := f + 1;
-    if (15 < f) {
-      f := f - 12;
-    }
-    y := y - 1;
-  }
-  assert 0 <= f;
+    var y: nat := y;
 
-  f := x;  // no problem
-  f := x + 3;  // no problem here either
-  f := x - 3;  // error: cannot prove RHS is a nat
+    assert 0 <= f;
+    while (0 < y)
+    {
+      f := f + 1;
+      if (15 < f) {
+        f := f - 12;
+      }
+      y := y - 1;
+    }
+    assert 0 <= f;
+
+    f := x;  // no problem
+    f := x + 3;  // no problem here either
+    f := x - 3;  // error: cannot prove RHS is a nat
+  }
 }
 
 method Generic<T>(i: int, t0: T, t1: T) returns (r: T) {

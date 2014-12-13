@@ -104,7 +104,7 @@ class SparseArray<T> {
 }
 
 /* The following method is here only to simulate support of arrays in Dafny */
-/*private*/ static method AllocateArray<G>(n: int) returns (arr: seq<G>)
+/*private*/ method AllocateArray<G>(n: int) returns (arr: seq<G>)
   requires 0 <= n;
   ensures |arr| == n;
 {

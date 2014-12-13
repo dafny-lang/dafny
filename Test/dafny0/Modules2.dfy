@@ -6,14 +6,14 @@ module A {
     var f: int;
   }
   datatype D = E(int) | F(int);
-  static function f(n:nat): nat
+  function f(n:nat): nat
 }
 module B {
   class C {
     var f: int;
   }
   datatype D = E(int) | F(int);
-  static function f(n:nat): nat
+  function f(n:nat): nat
 }
 module Test {
   import opened A; // nice shorthand for import opened A = A; (see below)
@@ -49,7 +49,7 @@ module Test3 {
     var d  := E(i);     // bad, as both A and B give a definition of E
     var d' := D.E(i);   // bad, as D is still itself ambiguous.
     var d'':= B.D.E(i); // good, just use the B version
-    assert f(3) >= 0;   // bad because A and be both define f statically.
+    assert f(3) >= 0;   // bad because A and B both define f statically.
   }  
 }
 
