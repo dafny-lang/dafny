@@ -114,7 +114,7 @@ namespace Microsoft.Dafny
     }
 
 
-    static ExitValue ProcessFiles(List<string/*!*/>/*!*/ fileNames, bool lookForSnapshots = true, string programId = null)
+    static ExitValue ProcessFiles(IList<string/*!*/>/*!*/ fileNames, bool lookForSnapshots = true, string programId = null)
     {
       Contract.Requires(cce.NonNullElements(fileNames));
 

@@ -29,7 +29,7 @@ namespace Microsoft.Dafny {
     /// <summary>
     /// Returns null on success, or an error string otherwise.
     /// </summary>
-    public static string ParseCheck(List<string/*!*/>/*!*/ fileNames, string/*!*/ programName, out Program program)
+    public static string ParseCheck(IList<string/*!*/>/*!*/ fileNames, string/*!*/ programName, out Program program)
       //modifies Bpl.CommandLineOptions.Clo.XmlSink.*;
     {
       Contract.Requires(programName != null);
@@ -84,7 +84,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public static string ParseIncludes(ModuleDecl module, BuiltIns builtIns, List<string> excludeFiles, Errors errs) {
+    public static string ParseIncludes(ModuleDecl module, BuiltIns builtIns, IList<string> excludeFiles, Errors errs) {
       SortedSet<Include> includes = new SortedSet<Include>(new IncludeComparer());
       foreach (string fileName in excludeFiles) {
         includes.Add(new Include(null, fileName, Path.GetFullPath(fileName)));
