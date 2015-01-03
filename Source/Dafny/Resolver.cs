@@ -4879,7 +4879,7 @@ namespace Microsoft.Dafny
           if (e is WildcardExpr) {
             if (bodyMustBeSpecOnly) {
               Error(e, "'decreases *' is not allowed on ghost loops");
-            } else if (!codeContext.AllowsNontermination) {
+            } else if (!codeContext.AllowsNontermination && !DafnyOptions.O.Dafnycc) {
               Error(e, "a possibly infinite loop is allowed only if the enclosing method is declared (with 'decreases *') to be possibly non-terminating");
             }
           }
@@ -4931,7 +4931,7 @@ namespace Microsoft.Dafny
           if (e is WildcardExpr) {
             if (s.IsGhost) {
               Error(e, "'decreases *' is not allowed on ghost loops");
-            } else if (!codeContext.AllowsNontermination) {
+            } else if (!codeContext.AllowsNontermination && !DafnyOptions.O.Dafnycc) {
               Error(e, "a possibly infinite loop is allowed only if the enclosing method is declared (with 'decreases *') to be possibly non-terminating");
             }
           }
