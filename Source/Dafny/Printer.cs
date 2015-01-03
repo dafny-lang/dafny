@@ -786,25 +786,6 @@ namespace Microsoft.Dafny {
         PrintRhs(s.Rhs);
         wr.Write(";");
 
-      } else if (stmt is CallStmt) {
-        CallStmt s = (CallStmt)stmt;
-        if (s.Lhs.Count != 0) {
-          string sep = "";
-          foreach (IdentifierExpr v in s.Lhs) {
-            wr.Write(sep);
-            PrintExpression(v, true);
-            sep = ", ";
-          }
-          wr.Write(" := ");
-        }
-        if (!(s.Receiver is ImplicitThisExpr)) {
-          PrintExpr(s.Receiver, 0x70, false, false, true, -1);
-          wr.Write(".");
-        }
-        wr.Write("{0}", s.MethodName);
-        PrintActualArguments(s.Args, s.MethodName);
-        wr.Write(";");
-
       } else if (stmt is BlockStmt) {
         wr.WriteLine("{");
         int ind = indent + IndentAmount;
@@ -1145,14 +1126,6 @@ namespace Microsoft.Dafny {
           PrintExpressionList(t.Arguments, false);
           wr.Write(")");
         }
-      } else if (rhs is CallRhs) {
-        var r = (CallRhs)rhs;
-        if (!(r.Receiver is ImplicitThisExpr)) {
-          PrintExpr(r.Receiver, 0x70, false, false, true, -1);
-          wr.Write(".");
-        }
-        wr.Write("{0}", r.MethodName);
-        PrintActualArguments(r.Args, r.MethodName);
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected RHS
       }

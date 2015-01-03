@@ -14,7 +14,6 @@ ResolutionErrors.dfy(594,14): Error: new allocation not allowed in ghost context
 ResolutionErrors.dfy(604,23): Error: 'new' is not allowed in ghost contexts
 ResolutionErrors.dfy(611,15): Error: 'new' is not allowed in ghost contexts
 ResolutionErrors.dfy(611,15): Error: only ghost methods can be called from this context
-ResolutionErrors.dfy(611,10): Error: ghost variables are allowed only in specification contexts
 ResolutionErrors.dfy(620,17): Error: 'new' is not allowed in ghost contexts
 ResolutionErrors.dfy(622,29): Error: only ghost methods can be called from this context
 ResolutionErrors.dfy(624,17): Error: calls to methods with side-effects are not allowed inside a hint
@@ -116,7 +115,7 @@ ResolutionErrors.dfy(412,10): Error: a hint is not allowed to update a variable 
 ResolutionErrors.dfy(438,14): Error: when allocating an object of type 'YHWH', one of its constructor methods must be called
 ResolutionErrors.dfy(443,6): Error: when allocating an object of type 'Lucifer', one of its constructor methods must be called
 ResolutionErrors.dfy(444,6): Error: when allocating an object of type 'Lucifer', one of its constructor methods must be called
-ResolutionErrors.dfy(446,9): Error: class Lamb does not have a anonymous constructor
+ResolutionErrors.dfy(446,9): Error: class Lamb does not have an anonymous constructor
 ResolutionErrors.dfy(844,11): Error: a modifies-clause expression must denote an object or a collection of objects (instead got int)
 ResolutionErrors.dfy(848,14): Error: in a ghost context, only ghost fields can be mentioned as modifies frame targets (x)
 ResolutionErrors.dfy(851,12): Error: in a ghost context, only ghost fields can be mentioned as modifies frame targets (x)
@@ -182,4 +181,4 @@ ResolutionErrors.dfy(1106,8): Error: new cannot be applied to a trait
 ResolutionErrors.dfy(1127,13): Error: first argument to / must be of numeric type (instead got set<bool>)
 ResolutionErrors.dfy(1134,18): Error: a call to a possibly non-terminating method is allowed only if the calling method is also declared (with 'decreases *') to be possibly non-terminating
 ResolutionErrors.dfy(1149,14): Error: a possibly infinite loop is allowed only if the enclosing method is declared (with 'decreases *') to be possibly non-terminating
-184 resolution/type errors detected in ResolutionErrors.dfy
+183 resolution/type errors detected in ResolutionErrors.dfy

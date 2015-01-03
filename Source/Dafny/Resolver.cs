@@ -1878,13 +1878,6 @@ namespace Microsoft.Dafny
         } else if (stmt is ForallStmt) {
           var s = (ForallStmt)stmt;
           s.BoundVars.Iter(bv => CheckTypeIsDetermined(bv.tok, bv.Type, "bound variable"));
-        } else if (stmt is CallStmt) {
-          var s = (CallStmt)stmt;
-          foreach (var p in s.TypeArgumentSubstitutions) {
-            if (!IsDetermined(p.Value.Normalize())) {
-              Error(stmt.Tok, "type variable '{0}' in the method call to '{1}' could not be determined", p.Key.Name, s.MethodName);
-            }
-          }
         }
       }
       protected override void VisitOneExpr(Expression expr) {
@@ -1900,10 +1893,11 @@ namespace Microsoft.Dafny
           }
         } else if (expr is MemberSelectExpr) {
           var e = (MemberSelectExpr)expr;
-          if (e.Member is Function) {
+          var what = e.Member is Function ? "function" : e.Member is Method ? "method" : null;
+          if (what != null) {
             foreach (var p in e.TypeApplication) {
               if (!IsDetermined(p.Normalize())) {
-                Error(e.tok, "type '{0}' to the function '{1}' is not determined", p, e.Member.Name);
+                Error(e.tok, "type '{0}' to the {2} '{1}' is not determined", p, e.Member.Name, what);
               }
             }
           }
@@ -2420,10 +2414,10 @@ namespace Microsoft.Dafny
           return false;
         } else if (stmt is CallStmt) {
           var s = (CallStmt)stmt;
-          Contract.Assert(s.Method.TypeArgs.Count <= s.TypeArgumentSubstitutions.Count);
+          Contract.Assert(s.Method.TypeArgs.Count <= s.MethodSelect.TypeArgumentSubstitutions().Count);
           var i = 0;
           foreach (var formalTypeArg in s.Method.TypeArgs) {
-            var actualTypeArg = s.TypeArgumentSubstitutions[formalTypeArg];
+            var actualTypeArg = s.MethodSelect.TypeArgumentSubstitutions()[formalTypeArg];
             if (formalTypeArg.MustSupportEquality && !actualTypeArg.SupportsEquality) {
               Error(s.Tok, "type parameter {0} ({1}) passed to method {2} must support equality (got {3}){4}", i, formalTypeArg.Name, s.Method.Name, actualTypeArg, TypeEqualityErrorMessageHint(actualTypeArg));
             }
@@ -2905,7 +2899,7 @@ namespace Microsoft.Dafny
                         else
                         {
                             classFunction.OverriddenFunction = traitFunction;
-                            //adding a call graph edge from the trait method to that of class
+                            //adding a call graph edge from the trait function to that of class
                             cl.Module.CallGraph.AddEdge(traitFunction, classFunction);
 
                             //checking specifications
@@ -4587,7 +4581,6 @@ namespace Microsoft.Dafny
             Contract.Assert(s.rhss.Count > 0);
             // Create a hidden update statement using the out-parameter formals, resolve the RHS, and check that the RHS is good.
             List<Expression> formals = new List<Expression>();
-            int i = 0;
             foreach (Formal f in cmc.Outs) {
               Expression produceLhs;
               if (stmt is ReturnStmt) {
@@ -4603,14 +4596,6 @@ namespace Microsoft.Dafny
                 produceLhs = yieldIdent;
               }
               formals.Add(produceLhs);
-              // link the receiver parameter properly:
-              if (s.rhss[i] is TypeRhs) {
-                var r = (TypeRhs)s.rhss[i];
-                if (r.Arguments != null) {
-                  r.ReceiverArgumentForInitCall = produceLhs;
-                }
-              }
-              i++;
             }
             s.hiddenUpdate = new UpdateStmt(s.Tok, s.EndTok, formals, s.rhss, true);
             // resolving the update statement will check for return/yield statement specifics.
@@ -4658,18 +4643,6 @@ namespace Microsoft.Dafny
             Contract.Assert(lhs.Type == null);  // not yet resolved
             lhs.Var = local;
             lhs.Type = local.Type;
-          }
-          // there is one more place where a newly declared local may be lurking
-          if (upd.Rhss.Count == 1 && upd.Rhss[0] is TypeRhs) {
-            var rhs = (TypeRhs)upd.Rhss[0];
-            Contract.Assert(s.Locals.Count != 0);  // this is always true of a VarDeclStmt
-            var local = s.Locals[0];
-            if (rhs != null && rhs.ReceiverArgumentForInitCall != null) {
-              var lhs = (IdentifierExpr)rhs.ReceiverArgumentForInitCall;  // as above, we expect this to be an IdentifierExpr, because that's how the parser sets things up
-              Contract.Assert(lhs.Type == null || (upd.Lhss.Count == 1 && upd.Lhss[0] == lhs));  // if it's been resolved before, it's because it's aliased with a Lhss
-              lhs.Var = local;
-              lhs.Type = local.type;
-            }
           }
           // resolve the whole thing
           ResolveConcreteUpdateStmt(s.Update, specContextOnly, codeContext);
@@ -5325,7 +5298,7 @@ namespace Microsoft.Dafny
       Contract.Requires(update != null);
       Contract.Requires(codeContext != null);
       IToken firstEffectfulRhs = null;
-      CallRhs callRhs = null;
+      MethodCallInformation methodCallInfo = null;
       foreach (var rhs in update.Rhss) {
         bool isEffectful;
         if (rhs is TypeRhs) {
@@ -5334,17 +5307,13 @@ namespace Microsoft.Dafny
           isEffectful = tr.InitCall != null;
         } else if (rhs is HavocRhs) {
           isEffectful = false;
-        } else if (rhs is CallRhs) {
-          // (a CallRhs is never parsed; we must have got here from an act of cloning)
-          isEffectful = true;
-          callRhs = callRhs ?? (CallRhs)rhs;
         } else {
           var er = (ExprRhs)rhs;
           if (er.Expr is ApplySuffix) {
             var a = (ApplySuffix)er.Expr;
             var cRhs = ResolveApplySuffix(a, new ResolveOpts(codeContext, true), true);
             isEffectful = cRhs != null;
-            callRhs = callRhs ?? cRhs;
+            methodCallInfo = methodCallInfo ?? cRhs;
           } else {
             ResolveExpression(er.Expr, new ResolveOpts(codeContext, true));
             isEffectful = false;
@@ -5375,8 +5344,8 @@ namespace Microsoft.Dafny
           Error(firstEffectfulRhs, "cannot have effectful parameter in multi-return statement.");
         } else { // it might be ok, if it is a TypeRhs
           Contract.Assert(update.Rhss.Count == 1);
-          if (callRhs != null) {
-            Error(callRhs.Tok, "cannot have method call in return statement.");
+          if (methodCallInfo != null) {
+            Error(methodCallInfo.Tok, "cannot have method call in return statement.");
           } else {
             // we have a TypeRhs
             Contract.Assert(update.Rhss[0] is TypeRhs);
@@ -5395,7 +5364,7 @@ namespace Microsoft.Dafny
         // if there was an effectful RHS, that must be the only RHS
         if (update.Rhss.Count != 1) {
           Error(firstEffectfulRhs, "an update statement is allowed an effectful RHS only if there is just one RHS");
-        } else if (callRhs == null) {
+        } else if (methodCallInfo == null) {
           // must be a single TypeRhs
           if (update.Lhss.Count != 1) {
             Contract.Assert(2 <= update.Lhss.Count);  // the parser allows 0 Lhss only if the whole statement looks like an expression (not a TypeRhs)
@@ -5410,7 +5379,7 @@ namespace Microsoft.Dafny
           foreach (var ll in update.Lhss) {
             resolvedLhss.Add(ll.Resolved);
           }
-          var a = new CallStmt(callRhs.Tok, update.EndTok, resolvedLhss, callRhs.Receiver, callRhs.MethodName, callRhs.Args);
+          var a = new CallStmt(methodCallInfo.Tok, update.EndTok, resolvedLhss, methodCallInfo.Callee, methodCallInfo.Args);
           update.ResolvedStatements.Add(a);
         }
       }
@@ -5509,30 +5478,14 @@ namespace Microsoft.Dafny
       Contract.Requires(codeContext != null);
       bool isInitCall = receiverType != null;
 
-      // resolve receiver
-      ResolveReceiver(s.Receiver, new ResolveOpts(codeContext, true));
-      Contract.Assert(s.Receiver.Type != null);  // follows from postcondition of ResolveExpression
-      if (receiverType == null) {
-        receiverType = s.Receiver.Type;
+      var callee = s.Method;
+      Contract.Assert(callee != null);  // follows from the invariant of CallStmt
+      if (!isInitCall && callee is Constructor) {
+        Error(s, "a constructor is allowed to be called only when an object is being allocated");
       }
-      // resolve the method name
-      NonProxyType nptype;
-      MemberDecl member = ResolveMember(s.Tok, receiverType, s.MethodName, out nptype);
-      Method callee = null;
-      if (member == null) {
-        // error has already been reported by ResolveMember
-      } else if (member is Method) {
-        s.Method = (Method)member;
-        callee = s.Method;
-        if (!isInitCall && callee is Constructor) {
-          Error(s, "a constructor is allowed to be called only when an object is being allocated");
-        }
-        s.IsGhost = callee.IsGhost;
-        if (specContextOnly && !callee.IsGhost) {
-          Error(s, "only ghost methods can be called from this context");
-        }
-      } else {
-        Error(s, "member {0} in type {1} does not refer to a method", s.MethodName, nptype);
+      s.IsGhost = callee.IsGhost;
+      if (specContextOnly && !callee.IsGhost) {
+        Error(s, "only ghost methods can be called from this context");
       }
 
       // resolve left-hand sides
@@ -5545,7 +5498,7 @@ namespace Microsoft.Dafny
       }
       int j = 0;
       foreach (Expression e in s.Args) {
-        bool allowGhost = s.IsGhost || callee == null || callee.Ins.Count <= j || callee.Ins[j].IsGhost;
+        bool allowGhost = s.IsGhost || callee.Ins.Count <= j || callee.Ins[j].IsGhost;
         var ec = ErrorCount;
         ResolveExpression(e, new ResolveOpts(codeContext, true));
         if (ec == ErrorCount && !allowGhost) {
@@ -5554,9 +5507,7 @@ namespace Microsoft.Dafny
         j++;
       }
 
-      if (callee == null) {
-        // error has been reported above
-      } else if (callee.Ins.Count != s.Args.Count) {
+      if (callee.Ins.Count != s.Args.Count) {
         Error(s, "wrong number of method arguments (got {0}, expected {1})", s.Args.Count, callee.Ins.Count);
       } else if (callee.Outs.Count != s.Lhs.Count) {
         if (isInitCall) {
@@ -5565,7 +5516,6 @@ namespace Microsoft.Dafny
           Error(s, "wrong number of method result arguments (got {0}, expected {1})", s.Lhs.Count, callee.Outs.Count);
         }
       } else {
-        Contract.Assert(nptype != null);  // follows from postcondition of ResolveMember above
         if (isInitCall) {
           if (callee.IsStatic) {
             Error(s.Tok, "a method called as an initialization method must not be 'static'");
@@ -5580,26 +5530,15 @@ namespace Microsoft.Dafny
             Error(s.Receiver, "call to instance method requires an instance");
           }
         }
-#if !NO_WORK_TO_BE_DONE
-        UserDefinedType ctype = (UserDefinedType)nptype;  // TODO: get rid of this statement, make this code handle any non-proxy type
-#endif
-        // build the type substitution map
-        s.TypeArgumentSubstitutions = new Dictionary<TypeParameter, Type>();
-        for (int i = 0; i < ctype.TypeArgs.Count; i++) {
-          s.TypeArgumentSubstitutions.Add(cce.NonNull(ctype.ResolvedClass).TypeArgs[i], ctype.TypeArgs[i]);
-        }
-        foreach (TypeParameter p in callee.TypeArgs) {
-          s.TypeArgumentSubstitutions.Add(p, new ParamTypeProxy(p));
-        }
         // type check the arguments
         for (int i = 0; i < callee.Ins.Count; i++) {
-          Type st = SubstType(callee.Ins[i].Type, s.TypeArgumentSubstitutions);
+          Type st = SubstType(callee.Ins[i].Type, s.MethodSelect.TypeArgumentSubstitutions());
           if (!UnifyTypes(cce.NonNull(s.Args[i].Type), st)) {
             Error(s, "incorrect type of method in-parameter {0} (expected {1}, got {2})", i, st, s.Args[i].Type);
           }
         }
         for (int i = 0; i < callee.Outs.Count; i++) {
-          Type st = SubstType(callee.Outs[i].Type, s.TypeArgumentSubstitutions);
+          Type st = SubstType(callee.Outs[i].Type, s.MethodSelect.TypeArgumentSubstitutions());
           var lhs = s.Lhs[i];
           if (!UnifyTypes(cce.NonNull(lhs.Type), st)) {
             Error(s, "incorrect type of method out-parameter {0} (expected {1}, got {2})", i, st, lhs.Type);
@@ -5650,7 +5589,7 @@ namespace Microsoft.Dafny
           }
         }
       }
-      if (callee != null && Contract.Exists(callee.Decreases.Expressions, e => e is WildcardExpr) && !codeContext.AllowsNontermination) {
+      if (Contract.Exists(callee.Decreases.Expressions, e => e is WildcardExpr) && !codeContext.AllowsNontermination) {
         Error(s.Tok, "a call to a possibly non-terminating method is allowed only if the calling method is also declared (with 'decreases *') to be possibly non-terminating");
       }
     }
@@ -6038,10 +5977,25 @@ namespace Microsoft.Dafny
             if (rr.Arguments != null) {
               // ---------- new C.Init(EE)
               Contract.Assert(rr.OptionalNameComponent != null);  // if it wasn't non-null from the beginning, the code above would have set it to a non-null value
-              rr.InitCall = new CallStmt(initCallTok, stmt.EndTok, new List<Expression>(), rr.ReceiverArgumentForInitCall, rr.OptionalNameComponent, rr.Arguments);
-              ResolveCallStmt(rr.InitCall, specContextOnly, codeContext, rr.EType);
-              if (rr.InitCall.Method is Constructor) {
-                callsConstructor = true;
+              var prevErrorCount = ErrorCount;
+
+              // We want to create a MemberSelectExpr for the initializing method.  To do that, we create a throw-away receiver of the appropriate
+              // type, create an dot-suffix expression around this receiver, and then resolve it in the usual way for dot-suffix expressions.
+              var lhs = new ImplicitThisExpr(initCallTok) { Type = rr.EType };
+              var callLhs = new ExprDotName(initCallTok, lhs, rr.OptionalNameComponent, null/*TODO: if the all-but-last components of the original EType above denote a type, then we should use any type arguments of the final EType component here*/);
+              ResolveDotSuffix(callLhs, true, rr.Arguments, new ResolveOpts(codeContext, true, specContextOnly), true);  // we use this call instead of the regular ResolveDotSuffix, since callLhs.Expr has already been resolved
+              if (prevErrorCount == ErrorCount) {
+                Contract.Assert(callLhs.ResolvedExpression is MemberSelectExpr);  // since ResolveApplySuffix succeeded and call.Lhs denotes an expression (not a module or a type)
+                var methodSel = (MemberSelectExpr)callLhs.ResolvedExpression;
+                if (methodSel.Member is Method) {
+                  rr.InitCall = new CallStmt(initCallTok, stmt.EndTok, new List<Expression>(), methodSel, rr.Arguments);
+                  ResolveCallStmt(rr.InitCall, specContextOnly, codeContext, rr.EType);
+                  if (rr.InitCall.Method is Constructor) {
+                    callsConstructor = true;
+                  }
+                } else {
+                  Error(initCallTok, "object initialization must denote an initializing method or constructor ({0})", rr.OptionalNameComponent);
+                }
               }
             } else {
               // ---------- new C
@@ -6092,17 +6046,11 @@ namespace Microsoft.Dafny
       if (ctype != null) {
         var cd = (ClassDecl)ctype.ResolvedClass;  // correctness of cast follows from postcondition of DenotesClass
         Contract.Assert(ctype.TypeArgs.Count == cd.TypeArgs.Count);  // follows from the fact that ctype was resolved
-#if TWO_SEARCHES
-        MemberDecl member = cd.Members.Find(md => md.Name == memberName);
-        if (member == null &&
-          (!classMembers.ContainsKey(cd) || !classMembers[cd].TryGetValue(memberName, out member))) {
-#else
         MemberDecl member;
         if (!classMembers[cd].TryGetValue(memberName, out member)) {
-#endif
           var kind = cd is IteratorDecl ? "iterator" : "class";
           if (memberName == "_ctor") {
-            Error(tok, "{0} {1} does not have a anonymous constructor", kind, ctype.Name);
+            Error(tok, "{0} {1} does not have an anonymous constructor", kind, ctype.Name);
           } else {
             Error(tok, "member {0} does not exist in {2} {1}", memberName, ctype.Name, kind);
           }
@@ -6148,7 +6096,7 @@ namespace Microsoft.Dafny
     }
 
     /// <summary>
-    /// Returns a resolved MemberSelectExpr.
+    /// Returns a resolved MemberSelectExpr for a field.
     /// </summary>
     public static MemberSelectExpr NewMemberSelectExpr(IToken tok, Expression obj, Field field, Dictionary<TypeParameter, Type> typeSubstMap) {
       Contract.Requires(tok != null);
@@ -6534,7 +6482,7 @@ namespace Microsoft.Dafny
             e.TypeApplication.Add(prox);
           }
           e.Type = new ArrowType(fn.tok, fn.Formals.ConvertAll(f => SubstType(f.Type, subst)), SubstType(fn.ResultType, subst), builtIns.SystemModule);
-          AddCallGraphEdge(e, opts.codeContext, fn);
+          AddCallGraphEdge(opts.codeContext, fn, e);
         } else if (member is Field) {
           var field = (Field)member;
           e.Member = field;
@@ -6678,8 +6626,8 @@ namespace Microsoft.Dafny
         }
 
       } else if (expr is FunctionCallExpr) {
-        FunctionCallExpr e = (FunctionCallExpr)expr;
-        ResolveFunctionCallExpr(e, opts, false);
+        var e = (FunctionCallExpr)expr;
+        ResolveFunctionCallExpr(e, opts);
 
       } else if (expr is ApplyExpr) {
         var e = (ApplyExpr)expr;
@@ -7712,24 +7660,60 @@ namespace Microsoft.Dafny
           subst.Add(fn.TypeArgs[i], ta);
         }
         rr.Type = new ArrowType(fn.tok, fn.Formals.ConvertAll(f => SubstType(f.Type, subst)), SubstType(fn.ResultType, subst), builtIns.SystemModule);
-        AddCallGraphEdge(rr, caller, fn);
+        AddCallGraphEdge(caller, fn, rr);
       } else {
         // the member is a method
-        Contract.Assert(member is Method);
+        var m = (Method)member;
         if (!allowMethodCall) {
           // it's a method and method calls are not allowed in the given context
           Error(tok, "expression is not allowed to invoke a method ({0})", member.Name);
+        }
+        int suppliedTypeArguments = optTypeArguments == null ? 0 : optTypeArguments.Count;
+        if (optTypeArguments != null && suppliedTypeArguments != m.TypeArgs.Count) {
+          Error(tok, "method '{0}' expects {1} type arguments (got {2})", member.Name, m.TypeArgs.Count, suppliedTypeArguments);
+        }
+        rr.TypeApplication = new List<Type>();
+        if (udt != null && udt.ResolvedClass != null) {
+          rr.TypeApplication.AddRange(udt.TypeArgs);
+        }
+        for (int i = 0; i < m.TypeArgs.Count; i++) {
+          var ta = i < suppliedTypeArguments ? optTypeArguments[i] : new InferredTypeProxy();
+          rr.TypeApplication.Add(ta);
         }
         rr.Type = new InferredTypeProxy();  // fill in this field, in order to make "rr" resolved
       }
       return rr;
     }
 
+    class MethodCallInformation
+    {
+      public readonly IToken Tok;
+      public readonly MemberSelectExpr Callee;
+      public readonly List<Expression> Args;
 
-    CallRhs ResolveApplySuffix(ApplySuffix e, ResolveOpts opts, bool allowMethodCall) {
+      [ContractInvariantMethod]
+      void ObjectInvariant() {
+        Contract.Invariant(Tok != null);
+        Contract.Invariant(Callee != null);
+        Contract.Invariant(Callee.Member is Method);
+        Contract.Invariant(cce.NonNullElements(Args));
+      }
+
+      public MethodCallInformation(IToken tok, MemberSelectExpr callee, List<Expression> args) {
+        Contract.Requires(tok != null);
+        Contract.Requires(callee != null);
+        Contract.Requires(callee.Member is Method);
+        Contract.Requires(cce.NonNullElements(args));
+        this.Tok = tok;
+        this.Callee = callee;
+        this.Args = args;
+      }
+    }
+
+    MethodCallInformation ResolveApplySuffix(ApplySuffix e, ResolveOpts opts, bool allowMethodCall) {
       Contract.Requires(e != null);
       Contract.Requires(opts != null);
-      Contract.Ensures(Contract.Result<CallRhs>() == null || allowMethodCall);
+      Contract.Ensures(Contract.Result<MethodCallInformation>() == null || allowMethodCall);
       Expression r = null;  // upon success, the expression to which the ApplySuffix resolves
       var errorCount = ErrorCount;
       if (e.Lhs is NameSegment) {
@@ -7774,13 +7758,11 @@ namespace Microsoft.Dafny
           } else {
             if (lhs is MemberSelectExpr && ((MemberSelectExpr)lhs).Member is Method) {
               var mse = (MemberSelectExpr)lhs;
-              var method = (Method)mse.Member;
               if (allowMethodCall) {
-                var cRhs = new CallRhs(e.tok, mse.Obj, method.Name, e.Args);
-                cRhs.Method = method;
+                var cRhs = new MethodCallInformation(e.tok, mse, e.Args);
                 return cRhs;
               } else {
-                Error(e.tok, "method call is not allowed to be used in an expression context ({0})", method.Name);
+                Error(e.tok, "method call is not allowed to be used in an expression context ({0})", mse.Member.Name);
               }
             } else if (lhs != null) {  // if e.Lhs.Resolved is null, then e.Lhs was not successfully resolved and an error has already been reported
               Error(e.tok, "non-function expression (of type {0}) is called with parameters", e.Lhs.Type);
@@ -7802,8 +7784,37 @@ namespace Microsoft.Dafny
               // no nothing else; error has been reported
             } else if (callee != null) {
               // produce a FunctionCallExpr instead of an ApplyExpr(MemberSelectExpr)
-              r = new FunctionCallExpr(e.Lhs.tok, callee.Name, mse.Obj, e.tok, e.Args);
-              ResolveExpression(r, opts);
+              var rr = new FunctionCallExpr(e.Lhs.tok, callee.Name, mse.Obj, e.tok, e.Args);
+              // resolve it here:
+              rr.Function = callee;
+              Contract.Assert(!(mse.Obj is StaticReceiverExpr) || callee.IsStatic);  // this should have been checked already
+              Contract.Assert(callee.Formals.Count == rr.Args.Count);  // this should have been checked already
+              // build the type substitution map
+              rr.TypeArgumentSubstitutions = new Dictionary<TypeParameter, Type>();
+              Contract.Assert(mse.TypeApplication.Count == callee.EnclosingClass.TypeArgs.Count + callee.TypeArgs.Count);
+              for (int i = 0; i < callee.EnclosingClass.TypeArgs.Count; i++) {
+                rr.TypeArgumentSubstitutions.Add(callee.EnclosingClass.TypeArgs[i], mse.TypeApplication[i]);
+              }
+              for (int i = 0; i < callee.TypeArgs.Count; i++) {
+                rr.TypeArgumentSubstitutions.Add(callee.TypeArgs[i], mse.TypeApplication[callee.EnclosingClass.TypeArgs.Count + i]);
+              }
+              // type check the arguments
+              for (int i = 0; i < callee.Formals.Count; i++) {
+                Expression farg = rr.Args[i];
+                ResolveExpression(farg, opts);
+                Contract.Assert(farg.Type != null);  // follows from postcondition of ResolveExpression
+                Type s = SubstType(callee.Formals[i].Type, rr.TypeArgumentSubstitutions);
+                if (!UnifyTypes(farg.Type, s)) {
+                  Error(rr, "incorrect type of function argument {0} (expected {1}, got {2})", i, s, farg.Type);
+                }
+              }
+              rr.Type = SubstType(callee.ResultType, rr.TypeArgumentSubstitutions);
+              // further bookkeeping
+              if (callee is CoPredicate) {
+                ((CoPredicate)callee).Uses.Add(rr);
+              }
+              AddCallGraphEdge(opts.codeContext, callee, rr);
+              r = rr;
             } else {
               r = new ApplyExpr(e.Lhs.tok, e.Lhs, e.Args);
               r.Type = fnType.Result;
@@ -8053,12 +8064,7 @@ namespace Microsoft.Dafny
       }
     }
 
-    /// <summary>
-    /// If "!allowMethodCall" or if what is being called does not refer to a method, resolves "e" and returns "null".
-    /// Otherwise (that is, if "allowMethodCall" and what is being called refers to a method), resolves the receiver
-    /// of "e" but NOT the arguments, and returns a CallRhs corresponding to the call.
-    /// </summary>
-    public CallRhs ResolveFunctionCallExpr(FunctionCallExpr e, ResolveOpts opts, bool allowMethodCall) {
+    public void ResolveFunctionCallExpr(FunctionCallExpr e, ResolveOpts opts) {
       ResolveReceiver(e.Receiver, opts);
       Contract.Assert(e.Receiver.Type != null);  // follows from postcondition of ResolveExpression
       NonProxyType nptype;
@@ -8070,12 +8076,7 @@ namespace Microsoft.Dafny
       if (member == null) {
         // error has already been reported by ResolveMember
       } else if (member is Method) {
-        if (allowMethodCall) {
-          // it's a method
-          return new CallRhs(e.tok, e.Receiver, e.Name, e.Args);
-        } else {
-          Error(e, "member {0} in type {1} refers to a method, but only functions can be used in this context", e.Name, cce.NonNull(ctype).Name);
-        }
+        Error(e, "member {0} in type {1} refers to a method, but only functions can be used in this context", e.Name, cce.NonNull(ctype).Name);
       } else if (!(member is Function)) {
         Error(e, "member {0} in type {1} does not refer to a function", e.Name, cce.NonNull(ctype).Name);
       } else {
@@ -8126,22 +8127,24 @@ namespace Microsoft.Dafny
           e.Type = SubstType(function.ResultType, e.TypeArgumentSubstitutions);
         }
 
-        AddCallGraphEdge(e, opts.codeContext, function);
+        AddCallGraphEdge(opts.codeContext, function, e);
       }
-      return null;
     }
 
-    private static void AddCallGraphEdge(Expression e, ICodeContext codeContext, Function function) {
+    private static void AddCallGraphEdge(ICodeContext callingContext, Function function, Expression e) {
+      Contract.Requires(callingContext != null);
+      Contract.Requires(function != null);
+      Contract.Requires(e != null);
       // Resolution termination check
-      ModuleDefinition callerModule = codeContext.EnclosingModule;
+      ModuleDefinition callerModule = callingContext.EnclosingModule;
       ModuleDefinition calleeModule = function.EnclosingClass.Module;
       if (callerModule == calleeModule) {
         // intra-module call; add edge in module's call graph
-        var caller = codeContext as ICallable;
+        var caller = callingContext as ICallable;
         if (caller == null) {
           // don't add anything to the call graph after all
         } else if (caller is IteratorDecl) {
-          callerModule.CallGraph.AddEdge(((IteratorDecl)codeContext).Member_MoveNext, function);
+          callerModule.CallGraph.AddEdge(((IteratorDecl)callingContext).Member_MoveNext, function);
         } else {
           callerModule.CallGraph.AddEdge(caller, function);
           if (caller is Function) {

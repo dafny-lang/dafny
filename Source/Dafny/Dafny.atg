@@ -1428,8 +1428,8 @@ ReturnStmt<out Statement/*!*/ s>
   ( "return"                         (. returnTok = t; .)
   | "yield"                          (. returnTok = t; isYield = true; .)
   )
-  [ Rhs<out r, null>                 (. rhss = new List<AssignmentRhs>(); rhss.Add(r); .)
-    { "," Rhs<out r, null>           (. rhss.Add(r); .)
+  [ Rhs<out r>                       (. rhss = new List<AssignmentRhs>(); rhss.Add(r); .)
+    { "," Rhs<out r>                 (. rhss.Add(r); .)
     }
   ]
   ";"                                (. if (isYield) {
@@ -1443,7 +1443,6 @@ UpdateStmt<out Statement/*!*/ s>
 = (. List<Expression> lhss = new List<Expression>();
      List<AssignmentRhs> rhss = new List<AssignmentRhs>();
      Expression e;  AssignmentRhs r;
-     Expression lhs0;
      IToken x, endTok = Token.NoToken;
      Attributes attrs = null;
      IToken suchThatAssume = null;
@@ -1452,12 +1451,12 @@ UpdateStmt<out Statement/*!*/ s>
   Lhs<out e>                       (. x = e.tok; .)
   ( { Attribute<ref attrs> }
     ";"                            (. endTok = t; rhss.Add(new ExprRhs(e, attrs)); .)
-  |                                (. lhss.Add(e);  lhs0 = e; .)
+  |                                (. lhss.Add(e); .)
     { "," Lhs<out e>               (. lhss.Add(e); .)
     }
     ( ":="                         (. x = t; .)
-      Rhs<out r, lhs0>             (. rhss.Add(r); .)
-      { "," Rhs<out r, lhs0>       (. rhss.Add(r); .)
+      Rhs<out r>                   (. rhss.Add(r); .)
+      { "," Rhs<out r>             (. rhss.Add(r); .)
       }
     | ":|"                         (. x = t; .)
       [ IF(la.kind == _assume)     /* an Expression can also begin with an "assume", so this says to resolve it to pick up any "assume" here */
@@ -1479,7 +1478,7 @@ UpdateStmt<out Statement/*!*/ s>
      }
   .)
   .
-Rhs<out AssignmentRhs r, Expression receiverForInitCall>
+Rhs<out AssignmentRhs r>
 = (. Contract.Ensures(Contract.ValueAtReturn<AssignmentRhs>(out r) != null);
      IToken/*!*/ x, newToken;  Expression/*!*/ e;
      Type ty = null;
@@ -1504,7 +1503,7 @@ Rhs<out AssignmentRhs r, Expression receiverForInitCall>
     (. if (ee != null) {
          r = new TypeRhs(newToken, ty, ee);
        } else if (args != null) {
-         r = new TypeRhs(newToken, ty, x == null ? null : x.val, receiverForInitCall, args);
+         r = new TypeRhs(newToken, ty, x == null ? null : x.val, args);
        } else {
          r = new TypeRhs(newToken, ty);
        }
@@ -1517,7 +1516,7 @@ Rhs<out AssignmentRhs r, Expression receiverForInitCall>
 VarDeclStatement<.out Statement/*!*/ s.>
 = (. IToken x = null, assignTok = null;  bool isGhost = false;
      LocalVariable d;
-     AssignmentRhs r;  IdentifierExpr lhs0;
+     AssignmentRhs r;
      List<LocalVariable> lhss = new List<LocalVariable>();
      List<AssignmentRhs> rhss = new List<AssignmentRhs>();
      IToken suchThatAssume = null;
@@ -1534,11 +1533,9 @@ VarDeclStatement<.out Statement/*!*/ s.>
     { Attribute<ref attrs> }
     LocalIdentTypeOptional<out d, isGhost>  (. lhss.Add(d); d.Attributes = attrs; attrs = null; .)
   }
-  [ ":="                           (. assignTok = t;
-                                      lhs0 = new IdentifierExpr(lhss[0].Tok, lhss[0].Name);
-                                   .)
-    Rhs<out r, lhs0>               (. rhss.Add(r); .)
-    { "," Rhs<out r, lhs0>         (. rhss.Add(r); .)
+  [ ":="                           (. assignTok = t; .)
+    Rhs<out r>                     (. rhss.Add(r); .)
+    { "," Rhs<out r>               (. rhss.Add(r); .)
     }
   | ":|"                           (. assignTok = t; .)
     [ IF(la.kind == _assume)       /* an Expression can also begin with an "assume", so this says to resolve it to pick up any "assume" here */

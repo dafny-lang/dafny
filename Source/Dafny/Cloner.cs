@@ -440,7 +440,7 @@ namespace Microsoft.Dafny
       }
     }
 
-    public AssignmentRhs CloneRHS(AssignmentRhs rhs) {
+    public virtual AssignmentRhs CloneRHS(AssignmentRhs rhs) {
       AssignmentRhs c;
       if (rhs is ExprRhs) {
         var r = (ExprRhs)rhs;
@@ -454,7 +454,7 @@ namespace Microsoft.Dafny
         } else if (r.Arguments == null) {
           c = new TypeRhs(Tok(r.Tok), CloneType(r.EType));
         } else {
-          c = new TypeRhs(Tok(r.Tok), CloneType(r.EType), r.OptionalNameComponent, CloneExpr(r.ReceiverArgumentForInitCall), r.Arguments.ConvertAll(CloneExpr));
+          c = new TypeRhs(Tok(r.Tok), CloneType(r.EType), r.OptionalNameComponent, r.Arguments.ConvertAll(CloneExpr));
         }
       }
       c.Attributes = CloneAttributes(rhs.Attributes);
@@ -506,10 +506,6 @@ namespace Microsoft.Dafny
       } else if (stmt is AssignStmt) {
         var s = (AssignStmt)stmt;
         r = new AssignStmt(Tok(s.Tok), Tok(s.EndTok), CloneExpr(s.Lhs), CloneRHS(s.Rhs));
-
-      } else if (stmt is CallStmt) {
-        var s = (CallStmt)stmt;
-        r = new CallStmt(Tok(s.Tok), Tok(s.EndTok), s.Lhs.ConvertAll(CloneExpr), CloneExpr(s.Receiver), s.MethodName, s.Args.ConvertAll(CloneExpr));
 
       } else if (stmt is BlockStmt) {
         r = CloneBlockStmt((BlockStmt)stmt);
@@ -744,7 +740,7 @@ namespace Microsoft.Dafny
 
   /// <summary>
   /// The task of the CoLemmaBodyCloner is to fill in the implicit _k-1 arguments in corecursive colemma calls.
-  /// The source statement and the given "k" are assumed to have been resolved, and the resulting statement will also be resolved.
+  /// The source statement and the given "k" are assumed to have been resolved.
   /// </summary>
   class CoLemmaBodyCloner : CoCloner
   {
@@ -757,49 +753,33 @@ namespace Microsoft.Dafny
       Contract.Requires(resolver != null);
       this.context = context;
     }
-    public override Statement CloneStmt(Statement stmt) {
-      if (stmt is UpdateStmt) {
-        var s = (UpdateStmt)stmt;
-        if (s.ResolvedStatements.Count == 1 && s.ResolvedStatements[0] is CallStmt) {
-          var call = (CallStmt)s.ResolvedStatements[0];
-          var moduleCaller = context.EnclosingClass.Module;
-          var moduleCallee = call.Method.EnclosingClass.Module;
-          if (call.Method is CoLemma && ModuleDefinition.InSameSCC(context, call.Method)) {
-            // we're looking at a recursive call to a colemma
-            var args = new List<Expression>();
-            args.Add(k);
-            foreach (var arg in call.Args) {
-              args.Add(CloneExpr(arg));
-            }
-            var rhs = new CallRhs(Tok(call.Tok), CloneExpr(call.Receiver), call.MethodName + "#", args);
-            var r = new UpdateStmt(Tok(s.Tok), Tok(s.EndTok), s.Lhss.ConvertAll(CloneExpr), new List<AssignmentRhs>() { rhs }, s.CanMutateKnownState);
-            // don't forget to add labels to the cloned statement
-            AddStmtLabels(r, stmt.Labels);
-            r.Attributes = CloneAttributes(stmt.Attributes);
-            ReportAdditionalInformation(call.Tok, call.MethodName);
-            return r;
+    public override AssignmentRhs CloneRHS(AssignmentRhs rhs) {
+      var r = rhs as ExprRhs;
+      if (r != null && r.Expr is ApplySuffix) {
+        var apply = (ApplySuffix)r.Expr;
+        var mse = apply.Lhs.Resolved as MemberSelectExpr;
+        if (mse != null && mse.Member is CoLemma && ModuleDefinition.InSameSCC(context, (CoLemma)mse.Member)) {
+          // we're looking at a recursive call to a colemma
+          Contract.Assert(apply.Lhs is NameSegment || apply.Lhs is ExprDotName);  // this is the only way a call statement can have been parsed
+          // clone "apply.Lhs", changing the co lemma to the prefix lemma; then clone "apply", adding in the extra argument
+          Expression lhsClone;
+          if (apply.Lhs is NameSegment) {
+            var lhs = (NameSegment)apply.Lhs;
+            lhsClone = new NameSegment(Tok(lhs.tok), lhs.Name + "#", lhs.OptTypeArguments == null ? null : lhs.OptTypeArguments.ConvertAll(CloneType));
+          } else {
+            var lhs = (ExprDotName)apply.Lhs;
+            lhsClone = new ExprDotName(Tok(lhs.tok), CloneExpr(lhs.Lhs), lhs.SuffixName + "#", lhs.OptTypeArguments == null ? null : lhs.OptTypeArguments.ConvertAll(CloneType));
           }
-        }
-      } else if (stmt is CallStmt) {
-        var s = (CallStmt)stmt;
-        if (s.Method is CoLemma) {
-          if (s.Method is CoLemma && ModuleDefinition.InSameSCC(context, s.Method)) {
-            // we're looking at a recursive call to a colemma
-            var args = new List<Expression>();
-            args.Add(k);
-            foreach (var arg in s.Args) {
-              args.Add(CloneExpr(arg));
-            }
-            var r = new CallStmt(Tok(s.Tok), Tok(s.EndTok), s.Lhs.ConvertAll(CloneExpr), CloneExpr(s.Receiver), s.MethodName + "#", args);
-            // don't forget to add labels to the cloned statement
-            AddStmtLabels(r, stmt.Labels);
-            r.Attributes = CloneAttributes(stmt.Attributes);
-            ReportAdditionalInformation(s.Tok, s.MethodName);
-            return r;
-          }
+          var args = new List<Expression>();
+          args.Add(k);
+          apply.Args.ForEach(arg => args.Add(CloneExpr(arg)));
+          var applyClone = new ApplySuffix(Tok(apply.tok), lhsClone, args);
+          var c = new ExprRhs(applyClone);
+          ReportAdditionalInformation(apply.tok, mse.Member.Name);
+          return c;
         }
       }
-      return base.CloneStmt(stmt);
+      return base.CloneRHS(rhs);
     }
   }
 

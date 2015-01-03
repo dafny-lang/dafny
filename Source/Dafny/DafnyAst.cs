@@ -3465,7 +3465,6 @@ namespace Microsoft.Dafny {
     public Type EType;  // almost readonly, except that resolution can split a given EType into a new EType plus a non-null OptionalNameComponent
     public readonly List<Expression> ArrayDimensions;
     public readonly List<Expression> Arguments;
-    public Expression ReceiverArgumentForInitCall;  // may be filled during resolution (and, if so, had better be done before InitCall is filled)
     public string OptionalNameComponent;
     public CallStmt InitCall;  // may be null (and is definitely null for arrays), may be filled in during resolution
     public Type Type;  // filled in during resolution
@@ -3492,7 +3491,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(type != null);
       EType = type;
     }
-    public TypeRhs(IToken tok, Type type, string optionalNameComponent, Expression receiverForInitCall, List<Expression> arguments)
+    public TypeRhs(IToken tok, Type type, string optionalNameComponent, List<Expression> arguments)
       : base(tok)
     {
       Contract.Requires(tok != null);
@@ -3500,7 +3499,6 @@ namespace Microsoft.Dafny {
       Contract.Requires(arguments != null);
       EType = type;
       OptionalNameComponent = optionalNameComponent;  // may be null
-      ReceiverArgumentForInitCall = receiverForInitCall;
       Arguments = arguments;
     }
     public override bool CanAffectPreviouslyKnownExpressions {
@@ -3529,53 +3527,6 @@ namespace Microsoft.Dafny {
       get {
         if (InitCall != null) {
           yield return InitCall;
-        }
-      }
-    }
-  }
-
-  public class CallRhs : AssignmentRhs
-  {
-    [ContractInvariantMethod]
-    void ObjectInvariant() {
-      Contract.Invariant(Receiver != null);
-      Contract.Invariant(MethodName != null);
-      Contract.Invariant(cce.NonNullElements(Args));
-    }
-
-    public readonly Expression Receiver;
-    public readonly string MethodName;
-    public readonly List<Expression> Args;
-    public Method Method;  // filled in by resolution
-
-    public CallRhs(IToken tok, Expression receiver, string methodName, List<Expression> args)
-      : base(tok)
-    {
-      Contract.Requires(tok != null);
-      Contract.Requires(receiver != null);
-      Contract.Requires(methodName != null);
-      Contract.Requires(cce.NonNullElements(args));
-
-      this.Receiver = receiver;
-      this.MethodName = methodName;
-      this.Args = args;
-    }
-    // TODO: Investigate this. For an initialization, this is true. But for existing objects, this is not true.
-    public override bool CanAffectPreviouslyKnownExpressions {
-      get {
-        foreach (var mod in Method.Mod.Expressions) {
-          if (!(mod.E is ThisExpr)) {
-            return true;
-          }
-        }
-        return false;
-      }
-    }
-    public override IEnumerable<Expression> SubExpressions {
-      get {
-        yield return Receiver;
-        foreach (var e in Args) {
-          yield return e;
         }
       }
     }
@@ -3886,39 +3837,35 @@ namespace Microsoft.Dafny {
     }
   }
 
+  /// <summary>
+  /// A CallStmt is always resolved.  It is typically produced as a resolved counterpart of the syntactic AST note ApplySuffix.
+  /// </summary>
   public class CallStmt : Statement {
     [ContractInvariantMethod]
     void ObjectInvariant() {
-      //Contract.Invariant(Receiver != null);
-      Contract.Invariant(MethodName != null);
+      Contract.Invariant(MethodSelect.Member is Method);
       Contract.Invariant(cce.NonNullElements(Lhs));
       Contract.Invariant(cce.NonNullElements(Args));
-      Contract.Invariant(TypeArgumentSubstitutions == null ||
-        Contract.ForAll(Method.TypeArgs, tp => TypeArgumentSubstitutions.ContainsKey(tp)));
     }
 
     public readonly List<Expression> Lhs;
-    public Expression Receiver;  // non-null after resolution
-    public readonly string MethodName;
+    public readonly MemberSelectExpr MethodSelect;
     public readonly List<Expression> Args;
-    public Dictionary<TypeParameter, Type> TypeArgumentSubstitutions;
-	// create, initialized, and used by resolution
-        // (could be deleted once all of resolution is done)
-	// That's not going to work! It should never be deleted!
-    public Method Method;  // filled in by resolution
 
-    public CallStmt(IToken tok, IToken endTok, List<Expression> lhs, Expression receiver, string methodName, List<Expression> args)
+    public Expression Receiver { get { return MethodSelect.Obj; } }
+    public Method Method { get { return (Method)MethodSelect.Member; } }
+
+    public CallStmt(IToken tok, IToken endTok, List<Expression> lhs, MemberSelectExpr memSel, List<Expression> args)
       : base(tok, endTok) {
       Contract.Requires(tok != null);
       Contract.Requires(endTok != null);
       Contract.Requires(cce.NonNullElements(lhs));
-      Contract.Requires(receiver != null);
-      Contract.Requires(methodName != null);
+      Contract.Requires(memSel != null);
+      Contract.Requires(memSel.Member is Method);
       Contract.Requires(cce.NonNullElements(args));
 
       this.Lhs = lhs;
-      this.Receiver = receiver;
-      this.MethodName = methodName;
+      this.MethodSelect = memSel;
       this.Args = args;
     }
 
@@ -3928,7 +3875,7 @@ namespace Microsoft.Dafny {
         foreach (var ee in Lhs) {
           yield return ee;
         }
-        yield return Receiver;
+        yield return MethodSelect;
         foreach (var ee in Args) {
           yield return ee;
         }
@@ -5503,13 +5450,33 @@ namespace Microsoft.Dafny {
     public readonly Expression Obj;
     public readonly string MemberName;
     public MemberDecl Member;          // filled in by resolution, will be a Field or Function
-    public List<Type> TypeApplication; // If Member is a Function, then TypeApplication is the list of type arguments used with the enclosing class and the function itself
+    public List<Type> TypeApplication; // If Member is a Function or Method, then TypeApplication is the list of type arguments used with the enclosing class and the function/method itself
+
+    public Dictionary<TypeParameter, Type> TypeArgumentSubstitutions() {
+      Contract.Requires(WasResolved());
+      Contract.Requires(Member is ICallable);
+      Contract.Ensures(Contract.Result<Dictionary<TypeParameter, Type>>() != null);
+      Contract.Ensures(Contract.Result<Dictionary<TypeParameter, Type>>().Count == TypeApplication.Count);
+
+      Contract.Assert(Member.EnclosingClass.TypeArgs.Count + ((ICallable)Member).TypeArgs.Count == TypeApplication.Count);  // a consequence of proper resolution
+      var subst = new Dictionary<TypeParameter, Type>();
+      var i = 0;
+      foreach (var tp in Member.EnclosingClass.TypeArgs) {
+        subst.Add(tp, TypeApplication[i]);
+        i++;
+      }
+      foreach (var tp in ((ICallable)Member).TypeArgs) {
+        subst.Add(tp, TypeApplication[i]);
+        i++;
+      }
+      return subst;
+    }
 
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(Obj != null);
       Contract.Invariant(MemberName != null);
-      Contract.Invariant((Member is Function) == (TypeApplication != null));
+      Contract.Invariant((Member is Function || Member is Method) == (TypeApplication != null));
     }
 
     public MemberSelectExpr(IToken tok, Expression obj, string memberName)
@@ -5692,8 +5659,7 @@ namespace Microsoft.Dafny {
     public readonly Expression Receiver;
     public readonly IToken OpenParen;  // can be null if Args.Count == 0
     public readonly List<Expression> Args;
-    public Dictionary<TypeParameter, Type> TypeArgumentSubstitutions;
-	// created, initialized, and used by resolution (and also used by translation)
+    public Dictionary<TypeParameter, Type> TypeArgumentSubstitutions;  // created, initialized, and used by resolution (and also used by translation)
     public enum CoCallResolution {
       No,
       Yes,

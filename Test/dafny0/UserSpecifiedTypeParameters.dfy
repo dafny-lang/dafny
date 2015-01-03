@@ -60,3 +60,41 @@ module M1 {
     }
   }
 }
+
+module M2 {
+  class ClassA {
+    function F<A>(a: A): int
+
+    lemma Lem<Y>() returns (y: Y)
+
+    lemma M<X>(x: X)
+    {
+      var k := Lem<int>();
+    }
+  }
+  class ClassB {
+    lemma LemmaX<A>(y: A)
+    lemma LemmaY<A>(x: int)
+    {
+      LemmaX<A>(x);  // error: The given type instantiation A does not agree with the type of parameter x
+    }
+
+    lemma LemmaR<T>(x: int)
+    lemma LemmaS<A>()
+    {
+      LemmaR<A>(5);
+    }
+
+    function FuncX<A>(y: A): real
+    function FuncY<A>(x: int): real
+    {
+      FuncX<A>(x)  // error: The given type instantiation A does not agree with the type of parameter x
+    }
+
+    function FuncR<T>(x: int): real
+    function FuncS<A>(): real
+    {
+      FuncR<A>(5)
+    }
+  }
+}

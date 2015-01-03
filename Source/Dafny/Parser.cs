@@ -2104,7 +2104,6 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 		List<Expression> lhss = new List<Expression>();
 		List<AssignmentRhs> rhss = new List<AssignmentRhs>();
 		Expression e;  AssignmentRhs r;
-		Expression lhs0;
 		IToken x, endTok = Token.NoToken;
 		Attributes attrs = null;
 		IToken suchThatAssume = null;
@@ -2119,7 +2118,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 			Expect(25);
 			endTok = t; rhss.Add(new ExprRhs(e, attrs)); 
 		} else if (la.kind == 20 || la.kind == 89 || la.kind == 91) {
-			lhss.Add(e);  lhs0 = e; 
+			lhss.Add(e); 
 			while (la.kind == 20) {
 				Get();
 				Lhs(out e);
@@ -2128,11 +2127,11 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 			if (la.kind == 89) {
 				Get();
 				x = t; 
-				Rhs(out r, lhs0);
+				Rhs(out r);
 				rhss.Add(r); 
 				while (la.kind == 20) {
 					Get();
-					Rhs(out r, lhs0);
+					Rhs(out r);
 					rhss.Add(r); 
 				}
 			} else if (la.kind == 91) {
@@ -2165,7 +2164,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 	void VarDeclStatement(out Statement/*!*/ s) {
 		IToken x = null, assignTok = null;  bool isGhost = false;
 		LocalVariable d;
-		AssignmentRhs r;  IdentifierExpr lhs0;
+		AssignmentRhs r;
 		List<LocalVariable> lhss = new List<LocalVariable>();
 		List<AssignmentRhs> rhss = new List<AssignmentRhs>();
 		IToken suchThatAssume = null;
@@ -2195,14 +2194,12 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 		if (la.kind == 89 || la.kind == 91) {
 			if (la.kind == 89) {
 				Get();
-				assignTok = t;
-				lhs0 = new IdentifierExpr(lhss[0].Tok, lhss[0].Name);
-				
-				Rhs(out r, lhs0);
+				assignTok = t; 
+				Rhs(out r);
 				rhss.Add(r); 
 				while (la.kind == 20) {
 					Get();
-					Rhs(out r, lhs0);
+					Rhs(out r);
 					rhss.Add(r); 
 				}
 			} else {
@@ -2560,11 +2557,11 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 			returnTok = t; isYield = true; 
 		} else SynErr(191);
 		if (StartOf(26)) {
-			Rhs(out r, null);
+			Rhs(out r);
 			rhss = new List<AssignmentRhs>(); rhss.Add(r); 
 			while (la.kind == 20) {
 				Get();
-				Rhs(out r, null);
+				Rhs(out r);
 				rhss.Add(r); 
 			}
 		}
@@ -2612,7 +2609,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 		s = new SkeletonStatement(dotdotdot, t, names, exprs); 
 	}
 
-	void Rhs(out AssignmentRhs r, Expression receiverForInitCall) {
+	void Rhs(out AssignmentRhs r) {
 		Contract.Ensures(Contract.ValueAtReturn<AssignmentRhs>(out r) != null);
 		IToken/*!*/ x, newToken;  Expression/*!*/ e;
 		Type ty = null;
@@ -2649,7 +2646,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 			if (ee != null) {
 			 r = new TypeRhs(newToken, ty, ee);
 			} else if (args != null) {
-			 r = new TypeRhs(newToken, ty, x == null ? null : x.val, receiverForInitCall, args);
+			 r = new TypeRhs(newToken, ty, x == null ? null : x.val, args);
 			} else {
 			 r = new TypeRhs(newToken, ty);
 			}

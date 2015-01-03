@@ -2728,8 +2728,13 @@ namespace Microsoft.Dafny {
                 recursiveCallArgs.Add(ie);
               }
             }
-            var recursiveCall = new CallStmt(m.tok, m.tok, new List<Expression>(), recursiveCallReceiver, m.Name, recursiveCallArgs);
-            recursiveCall.Method = m;  // resolve here
+            var methodSel = new MemberSelectExpr(m.tok, recursiveCallReceiver, m.Name);
+            methodSel.Member = m;  // resolve here
+            methodSel.TypeApplication = new List<Type>();
+            methodSel.TypeApplication.AddRange(recursiveCallReceiver.Type.TypeArgs);
+            m.TypeArgs.ForEach(tp => methodSel.TypeApplication.Add(new UserDefinedType(tp)));
+            methodSel.Type = new InferredTypeProxy();  // this is the last step in resolving 'methodSel'
+            var recursiveCall = new CallStmt(m.tok, m.tok, new List<Expression>(), methodSel, recursiveCallArgs);
             recursiveCall.IsGhost = m.IsGhost;  // resolve here
 
             Expression parRange = new LiteralExpr(m.tok, true);
@@ -7990,14 +7995,14 @@ namespace Microsoft.Dafny {
         var argsSubstMap = new Dictionary<IVariable, Expression>();  // maps formal arguments to actuals
         Contract.Assert(s0.Method.Ins.Count == s0.Args.Count);
         for (int i = 0; i < s0.Method.Ins.Count; i++) {
-          var arg = Substitute(s0.Args[i], null, substMap, s0.TypeArgumentSubstitutions);  // substitute the renamed bound variables for the declared ones
+          var arg = Substitute(s0.Args[i], null, substMap, s0.MethodSelect.TypeArgumentSubstitutions());  // substitute the renamed bound variables for the declared ones
           argsSubstMap.Add(s0.Method.Ins[i], new BoogieWrapper(initEtran.TrExpr(arg), s0.Args[i].Type));
         }
-        var receiver = new BoogieWrapper(initEtran.TrExpr(Substitute(s0.Receiver, null, substMap, s0.TypeArgumentSubstitutions)), s0.Receiver.Type);
+        var receiver = new BoogieWrapper(initEtran.TrExpr(Substitute(s0.Receiver, null, substMap, s0.MethodSelect.TypeArgumentSubstitutions())), s0.Receiver.Type);
         var callEtran = new ExpressionTranslator(this, predef, etran.HeapExpr, initHeap);
         Bpl.Expr post = Bpl.Expr.True;
         foreach (var ens in s0.Method.Ens) {
-          var p = Substitute(ens.E, receiver, argsSubstMap, s0.TypeArgumentSubstitutions);  // substitute the call's actuals for the method's formals
+          var p = Substitute(ens.E, receiver, argsSubstMap, s0.MethodSelect.TypeArgumentSubstitutions());  // substitute the call's actuals for the method's formals
           post = BplAnd(post, callEtran.TrExpr(p));
         }
 
@@ -8393,7 +8398,7 @@ namespace Microsoft.Dafny {
         builder.Add(Bpl.Cmd.SimpleAssign(s.Tok, initHeap, etran.HeapExpr));
       }
       builder.Add(new CommentCmd("TrCallStmt: Before ProcessCallStmt"));
-      ProcessCallStmt(s.Tok, s.TypeArgumentSubstitutions, GetTypeParams(s.Method), s.Receiver, actualReceiver, s.Method, s.Args, bLhss, lhsTypes, builder, locals, etran);
+      ProcessCallStmt(s.Tok, s.MethodSelect.TypeArgumentSubstitutions(), GetTypeParams(s.Method), s.Receiver, actualReceiver, s.Method, s.Args, bLhss, lhsTypes, builder, locals, etran);
       builder.Add(new CommentCmd("TrCallStmt: After ProcessCallStmt"));
       for (int i = 0; i < lhsBuilders.Count; i++) {
         var lhs = s.Lhs[i];
@@ -9482,7 +9487,6 @@ namespace Microsoft.Dafny {
                                        Bpl.StmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran) {
       Contract.Requires(tok != null);
       Contract.Requires(rhs != null);
-      Contract.Requires(!(rhs is CallRhs));  // calls are handled in a different translation method
       Contract.Requires(builder != null);
       Contract.Requires(cce.NonNullElements(locals));
       Contract.Requires(etran != null);
@@ -13466,12 +13470,7 @@ namespace Microsoft.Dafny {
           r = new AssignStmt(s.Tok, s.EndTok, Substitute(s.Lhs), SubstRHS(s.Rhs));
         } else if (stmt is CallStmt) {
           var s = (CallStmt)stmt;
-          var rr = new CallStmt(s.Tok, s.EndTok, s.Lhs.ConvertAll(Substitute), Substitute(s.Receiver), s.MethodName, s.Args.ConvertAll(Substitute));
-          rr.Method = s.Method;
-          rr.TypeArgumentSubstitutions = new Dictionary<TypeParameter, Type>();
-          foreach (var p in s.TypeArgumentSubstitutions) {
-            rr.TypeArgumentSubstitutions[p.Key] = Resolver.SubstType(p.Value, typeMap);
-          }
+          var rr = new CallStmt(s.Tok, s.EndTok, s.Lhs.ConvertAll(Substitute), (MemberSelectExpr)Substitute(s.MethodSelect), s.Args.ConvertAll(Substitute));
           r = rr;
         } else if (stmt is BlockStmt) {
           r = SubstBlockStmt((BlockStmt)stmt);
