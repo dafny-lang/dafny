@@ -53,7 +53,7 @@ class Benchmark3 {
     ensures multiset(r.contents) == multiset(old(q.contents));
   {
     r := new Queue<int>.Init();
-    while (|q.contents| != 0)
+    while |q.contents| != 0
       invariant |r.contents| + |q.contents| == |old(q.contents)|;
       invariant forall i, j :: 0 <= i < j < |r.contents| ==> r.contents[i] <= r.contents[j];
       invariant forall i, j ::
@@ -83,29 +83,58 @@ class Benchmark3 {
     k := 0;
     m := q.Head(); 
     var j := 0;
-   
-    while (j < n)
+    while j < n
       invariant j <= n;
       invariant 0 <= k < n && old(q.contents)[k] == m;
       invariant q.contents == old(q.contents)[j..] + old(q.contents)[..j]; //i.e. rotated
       invariant forall i :: 0 <= i < j ==> m <= old(q.contents)[i]; //m is min so far
     {
+      ghost var qc0 := q.contents;
       var x := q.Dequeue();
       q.Enqueue(x);
-      if (x < m) { k := j; m := x; }
+      RotationLemma(old(q.contents), j, qc0, q.contents);
+      if x < m { k := j; m := x; }
       j := j+1;
     }
     
     j := 0;
-    while (j < k)
+    while j < k
       invariant j <= k;
       invariant q.contents == old(q.contents)[j..] + old(q.contents)[..j]; 
     {
+      ghost var qc0 := q.contents;
       var x := q.Dequeue();
       q.Enqueue(x);
+      RotationLemma(old(q.contents), j, qc0, q.contents);
       j := j+1;
     }
-
+  
+    assert j == k;  
+    assert q.contents == old(q.contents)[k..] + old(q.contents)[..k];
     m := q.Dequeue();
+  }
+
+  lemma RotationLemma(O: seq, j: nat, A: seq, C: seq)
+    requires j < |O|;
+    requires A == O[j..] + O[..j];
+    requires C == A[1..] + [O[j]];
+    ensures C == O[j+1..] + O[..j+1];
+  {
+    calc {
+      A;
+      O[j..] + O[..j];
+      O[j..j+1] + O[j+1..] + O[..j];
+      O[j..j+1] + (O[j+1..] + O[..j]);
+    }
+    calc {
+      C;
+      A[1..] + [A[0]];
+      { assert A[0] == O[j] && A[1..] == O[j+1..] + O[..j]; }
+      O[j+1..] + O[..j] + [O[j]];
+      { assert [O[j]] == O[j..j+1]; }
+      O[j+1..] + O[..j] + O[j..j+1];
+      O[j+1..] + (O[..j] + O[j..j+1]);
+      O[j+1..] + O[..j+1];
+    }
   }
 }
