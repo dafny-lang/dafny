@@ -218,3 +218,24 @@ module LayerQuantifiers
     assert f(one + one + one);
   }
 }
+
+// ------------------------------------- regression test
+
+module Regression
+{
+  datatype List<A> = Nil | Cons(A, tl: List<A>)
+
+  function Empty<A>(): List<A> { Nil }
+
+  function {:opaque} Length<A>(s: List<A>): int
+    ensures 0 <= Length(s)
+  {
+    if s.Cons? then 1 + Length(s.tl) else 0
+  }
+
+  lemma Empty_ToZero<A>()
+    ensures Length<A>(Empty<A>()) == 0;  // this line once caused the verifier to crash
+  {
+    reveal_Length();
+  }
+}

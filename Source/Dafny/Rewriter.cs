@@ -576,7 +576,21 @@ namespace Microsoft.Dafny
           var e = (FunctionCallExpr)expr;
 
           if (e.Function == context.original) { // Attempting to call the original opaque function
-            // Redirect the call to the full version
+            // Redirect the call to the full version and its type-argument substitution map
+            // First, do some sanity checks:
+            Contract.Assert(e.TypeArgumentSubstitutions.Count == context.original.EnclosingClass.TypeArgs.Count + context.original.TypeArgs.Count);
+            Contract.Assert(context.original.EnclosingClass == context.full.EnclosingClass);
+            Contract.Assert(context.original.TypeArgs.Count == context.full.TypeArgs.Count);
+            if (context.full.TypeArgs.Count != 0) {
+              var newTypeArgsSubst = new Dictionary<TypeParameter, Type>();
+              context.original.EnclosingClass.TypeArgs.ForEach(tp => newTypeArgsSubst.Add(tp, e.TypeArgumentSubstitutions[tp]));
+              for (int i = 0; i < context.original.TypeArgs.Count; i++) {
+                var tpOrig = context.original.TypeArgs[i];
+                var tpFull = context.full.TypeArgs[i];
+                newTypeArgsSubst.Add(tpFull, e.TypeArgumentSubstitutions[tpOrig]);
+              }
+              e.TypeArgumentSubstitutions = newTypeArgsSubst;
+            }
             e.Function = context.full;
           }
         }

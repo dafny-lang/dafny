@@ -84,4 +84,4 @@ OpaqueFunctions.dfy(185,20): Error: assertion violation
 Execution trace:
     (0,0): anon0
 
-Dafny program verifier finished with 59 verified, 23 errors
+Dafny program verifier finished with 64 verified, 23 errors
