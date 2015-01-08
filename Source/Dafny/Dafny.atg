@@ -486,7 +486,7 @@ Dafny
   | OtherTypeDecl<defaultModule, out td>        (. defaultModule.TopLevelDecls.Add(td); .)
   | IteratorDecl<defaultModule, out iter>       (. defaultModule.TopLevelDecls.Add(iter); .)
   | TraitDecl<defaultModule, out trait>    (. defaultModule.TopLevelDecls.Add(trait); .)
-  | ClassMemberDecl<membersDefaultClass, false, true>
+  | ClassMemberDecl<membersDefaultClass, false, !DafnyOptions.O.AllowGlobals>
   }
   (. // find the default class in the default module, then append membersDefaultClass to its member list
      DefaultClassDecl defaultClass = null;
@@ -529,7 +529,7 @@ SubModuleDecl<ModuleDefinition parent, out ModuleDecl submodule>
         | NewtypeDecl<module, out td>                  (. module.TopLevelDecls.Add(td); .)
         | OtherTypeDecl<module, out td>                (. module.TopLevelDecls.Add(td); .)
         | IteratorDecl<module, out iter>               (. module.TopLevelDecls.Add(iter); .)
-        | ClassMemberDecl<namedModuleDefaultClassMembers, false, true>
+        | ClassMemberDecl<namedModuleDefaultClassMembers, false, !DafnyOptions.O.AllowGlobals>
         }
       "}"                                  (. module.BodyEndTok = t;
                                               module.TopLevelDecls.Add(new DefaultClassDecl(module, namedModuleDefaultClassMembers));

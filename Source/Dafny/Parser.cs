@@ -547,7 +547,7 @@ bool IsType(ref IToken pt) {
 				break;
 			}
 			case 64: case 65: case 68: case 74: case 75: case 76: case 77: case 78: case 82: case 83: case 84: {
-				ClassMemberDecl(membersDefaultClass, false, true);
+				ClassMemberDecl(membersDefaultClass, false, !DafnyOptions.O.AllowGlobals);
 				break;
 			}
 			}
@@ -634,7 +634,7 @@ bool IsType(ref IToken pt) {
 					break;
 				}
 				case 64: case 65: case 68: case 74: case 75: case 76: case 77: case 78: case 82: case 83: case 84: {
-					ClassMemberDecl(namedModuleDefaultClassMembers, false, true);
+					ClassMemberDecl(namedModuleDefaultClassMembers, false, !DafnyOptions.O.AllowGlobals);
 					break;
 				}
 				}

@@ -2183,7 +2183,7 @@ namespace Microsoft.Dafny {
     public readonly bool HasStaticKeyword;
     public bool IsStatic {
       get {
-        return HasStaticKeyword || (EnclosingClass is ClassDecl && ((ClassDecl)EnclosingClass).IsDefaultClass);
+        return HasStaticKeyword || (!DafnyOptions.O.AllowGlobals && EnclosingClass is ClassDecl && ((ClassDecl)EnclosingClass).IsDefaultClass);
       }
     }
     public readonly bool IsGhost;
