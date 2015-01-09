@@ -9062,16 +9062,8 @@ namespace Microsoft.Dafny {
     }
 
     static public List<TypeParameter> GetTypeParams(TopLevelDecl d) {
-      if (d is ClassDecl) {
-        return Concat(GetTypeParams(d.Module), d.TypeArgs);
-      } else if (d is DatatypeDecl) {
-        return Concat(GetTypeParams(d.Module), d.TypeArgs);
-      } else if (d is ModuleDefinition) {
-        return new List<TypeParameter>();
-      } else {
-        Contract.Assert(false);
-        return null;
-      }
+      Contract.Requires(d is ClassDecl || d is DatatypeDecl);
+      return d.TypeArgs;
     }
 
     static List<TypeParameter> GetTypeParams(Function f) {
