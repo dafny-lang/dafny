@@ -92,14 +92,35 @@ namespace Microsoft.Dafny
       }
     }
 
-    class AmbiguousTopLevelDecl : TopLevelDecl  // only used with "classes"
+    interface IAmbiguousThing<Thing>
+    {
+      /// <summary>
+      /// Returns a non-zero number of non-null Thing's
+      /// </summary>
+      IEnumerable<Thing> AllDecls();
+    }
+    class AmbiguousTopLevelDecl : TopLevelDecl, IAmbiguousThing<TopLevelDecl>  // only used with "classes"
     {
       readonly TopLevelDecl A;
       readonly TopLevelDecl B;
       public AmbiguousTopLevelDecl(ModuleDefinition m, TopLevelDecl a, TopLevelDecl b)
         : base(a.tok, a.Name + "/" + b.Name, m, new List<TypeParameter>(), null) {
+        Contract.Requires(a != null);
+        Contract.Requires(b != null);
         A = a;
         B = b;
+      }
+      public IEnumerable<TopLevelDecl> AllDecls() {
+        foreach (var a in new TopLevelDecl[] { A, B }) {
+          var amb = a as AmbiguousTopLevelDecl;
+          if (amb != null) {
+            foreach (var decl in amb.AllDecls()) {
+              yield return decl;
+            }
+          } else {
+            yield return a;
+          }
+        }
       }
       public string ModuleNames() {
         string nm;
@@ -117,14 +138,34 @@ namespace Microsoft.Dafny
       }
     }
 
-    class AmbiguousMemberDecl : MemberDecl  // only used with "classes"
+    class AmbiguousMemberDecl : MemberDecl, IAmbiguousThing<MemberDecl>  // only used with "classes"
     {
       readonly MemberDecl A;
       readonly MemberDecl B;
       public AmbiguousMemberDecl(ModuleDefinition m, MemberDecl a, MemberDecl b)
         : base(a.tok, a.Name + "/" + b.Name, true, a.IsGhost, null) {
+        Contract.Requires(a != null);
+        Contract.Requires(b != null);
         A = a;
         B = b;
+      }
+      public IEnumerable<MemberDecl> AllDecls() {
+        var amb = A as AmbiguousMemberDecl;
+        if (amb == null) {
+          yield return A;
+        } else {
+          foreach (var decl in amb.AllDecls()) {
+            yield return decl;
+          }
+        }
+        amb = B as AmbiguousMemberDecl;
+        if (amb == null) {
+          yield return B;
+        } else {
+          foreach (var decl in amb.AllDecls()) {
+            yield return decl;
+          }
+        }
       }
       public string ModuleNames() {
         string nm;
@@ -4028,7 +4069,7 @@ namespace Microsoft.Dafny
 
           if (d == null) {
             // error has been reported above
-          } else if (d is AmbiguousTopLevelDecl) {
+          } else if (ReallyAmbiguousTopLevelDecl(ref d)) {
             Error(t.tok, "The name {0} ambiguously refers to a type in one of the modules {1} (try qualifying the type name with the module name)", t.Name, ((AmbiguousTopLevelDecl)d).ModuleNames());
           } else {
             string what;
@@ -4074,6 +4115,39 @@ namespace Microsoft.Dafny
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected type
       }
       return null;
+    }
+
+    bool ReallyAmbiguousTopLevelDecl(ref TopLevelDecl decl) {
+      return ReallyAmbiguousThing(ref decl, (d0, d1) => {
+        // We'd like to resolve any AliasModuleDecl to whatever module they refer to.
+        // It seems that the only way to do that is to look at alias.Signature.ModuleDef,
+        // but that is a ModuleDefinition, which is not a TopLevelDecl.  Therefore, we
+        // convert to a ModuleDefinition anything that might refer to something that an
+        // AliasModuleDecl can refer to; this is AliasModuleDecl and LiteralModuleDecl.
+        object a = d0 is ModuleDecl ? ((ModuleDecl)d0).Dereference() : d0;
+        object b = d1 is ModuleDecl ? ((ModuleDecl)d1).Dereference() : d1;
+        return a == b;
+      });
+    }
+
+    bool ReallyAmbiguousThing<Thing>(ref Thing decl, Func<Thing, Thing, bool> eq = null) where Thing : class {
+      Contract.Requires(decl != null);
+      Contract.Ensures(decl != null);
+      Contract.Ensures(!Contract.Result<bool>() || (decl == Contract.OldValue<Thing>(decl) && decl is IAmbiguousThing<Thing>));
+      var amb = decl as IAmbiguousThing<Thing>;
+      if (amb != null) {
+        var allDecls = new List<Thing>(amb.AllDecls());
+        Contract.Assert(1 <= allDecls.Count);  // that's what the specification of AllDecls says
+        var repr = allDecls[0];  // pick one of them
+        // check if all are the same
+        if (amb.AllDecls().All(d => eq == null ? d == repr : eq(d, repr))) {
+          // all ambiguity gets resolved to the same declaration, so there really isn't any ambiguity after all
+          decl = repr;
+          return false;
+        }
+        return true;  // decl is an AmbiguousThing and the declarations it can stand for are not all the same--so this really is an ambiguity
+      }
+      return false;
     }
 
     /// <summary>
@@ -6390,7 +6464,7 @@ namespace Microsoft.Dafny
         TopLevelDecl d;
         if (!moduleInfo.TopLevels.TryGetValue(dtv.DatatypeName, out d)) {
           Error(expr.tok, "Undeclared datatype: {0}", dtv.DatatypeName);
-        } else if (d is AmbiguousTopLevelDecl) {
+        } else if (ReallyAmbiguousTopLevelDecl(ref d)) {
           Error(expr.tok, "The name {0} ambiguously refers to a type in one of the modules {1}", dtv.DatatypeName, ((AmbiguousTopLevelDecl)d).ModuleNames());
         } else if (!(d is DatatypeDecl)) {
           Error(expr.tok, "Expected datatype: {0}", dtv.DatatypeName);
@@ -7403,7 +7477,7 @@ namespace Microsoft.Dafny
         }
       } else if (moduleInfo.TopLevels.TryGetValue(expr.Name, out decl)) {
         // ----- 3. Member of the enclosing module
-        if (decl is AmbiguousTopLevelDecl) {
+        if (ReallyAmbiguousTopLevelDecl(ref decl)) {
           Error(expr.tok, "The name {0} ambiguously refers to a type in one of the modules {1}", expr.Name, ((AmbiguousTopLevelDecl)decl).ModuleNames());
         } else {
           // We have found a module name or a type name, neither of which is an expression. However, the NameSegment we're
@@ -7416,7 +7490,7 @@ namespace Microsoft.Dafny
       } else if (moduleInfo.StaticMembers.TryGetValue(expr.Name, out member)) {
         // ----- 4. static member of the enclosing module
         Contract.Assert(member.IsStatic); // moduleInfo.StaticMembers is supposed to contain only static members of the module's implicit class _default
-        if (member is AmbiguousMemberDecl) {
+        if (ReallyAmbiguousThing(ref member)) {
           Error(expr.tok, "The name {0} ambiguously refers to a static member in one of the modules {1}", expr.Name, ((AmbiguousMemberDecl)member).ModuleNames());
         } else {
           var receiver = new StaticReceiverExpr(expr.tok, (ClassDecl)member.EnclosingClass);
@@ -7535,7 +7609,7 @@ namespace Microsoft.Dafny
           }
         } else if (sig.TopLevels.TryGetValue(expr.SuffixName, out decl)) {
           // ----- 1. Member of the specified module
-          if (decl is AmbiguousTopLevelDecl) {
+          if (ReallyAmbiguousTopLevelDecl(ref decl)) {
             Error(expr.tok, "The name {0} ambiguously refers to a type in one of the modules {1}", expr.SuffixName, ((AmbiguousTopLevelDecl)decl).ModuleNames());
           } else {
             // We have found a module name or a type name, neither of which is an expression. However, the ExprDotName we're
@@ -7547,7 +7621,7 @@ namespace Microsoft.Dafny
         } else if (sig.StaticMembers.TryGetValue(expr.SuffixName, out member)) {
           // ----- 2. static member of the specified module
           Contract.Assert(member.IsStatic); // moduleInfo.StaticMembers is supposed to contain only static members of the module's implicit class _default
-          if (member is AmbiguousMemberDecl) {
+          if (ReallyAmbiguousThing(ref member)) {
             Error(expr.tok, "The name {0} ambiguously refers to a static member in one of the modules {1}", expr.SuffixName, ((AmbiguousMemberDecl)member).ModuleNames());
           } else {
             var receiver = new StaticReceiverExpr(expr.tok, (ClassDecl)member.EnclosingClass);

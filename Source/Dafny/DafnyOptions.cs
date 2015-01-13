@@ -149,7 +149,7 @@ namespace Microsoft.Dafny
 
         case "noNLarith":
           DisableNLarith = true;
-          this.Z3Options.Add("NL_ARITH=false");
+          this.AddZ3Option("NL_ARITH=false");
           return true;
 
         case "autoReqPrint":

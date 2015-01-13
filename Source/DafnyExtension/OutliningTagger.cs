@@ -200,7 +200,7 @@ namespace DafnyLanguage
       public readonly int Start;
       public readonly int Length;
       public readonly string HoverText;
-      public OutliningRegion(Dafny.Declaration decl, string kind) {
+      public OutliningRegion(Dafny.INamedRegion decl, string kind) {
         int startPosition = decl.BodyStartTok.pos + 1;  // skip the open-curly brace itself
         int length = decl.BodyEndTok.pos - startPosition;
         Start = startPosition;

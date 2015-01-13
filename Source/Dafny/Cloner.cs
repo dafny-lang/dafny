@@ -115,7 +115,6 @@ namespace Microsoft.Dafny
         } else if (d is AliasModuleDecl) {
           var a = (AliasModuleDecl)d;
           var alias = new AliasModuleDecl(a.Path, a.tok, m, a.Opened);
-          alias.ModuleReference = a.ModuleReference;
           alias.Signature = a.Signature;
           return alias;
         } else if (d is ModuleFacadeDecl) {

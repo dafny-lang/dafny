@@ -1306,3 +1306,27 @@ module FrameTargetFields {
     }
   }
 }
+
+// ------------------------------------------------------
+
+module AmbiguousModuleReference {
+  module A {
+    module Inner {
+      predicate Q()
+    }
+  }
+  module B {
+    module Inner {
+      predicate Q()
+    }
+  }
+  module OpenClient {
+    import opened A
+    import opened B
+    lemma M() {
+      var a := A.Inner.Q();  // fine
+      var b := B.Inner.Q();  // fine
+      var p := Inner.Q();  // error: Inner is ambiguous (A.Inner or B.Inner)
+    }
+  }
+}

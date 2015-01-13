@@ -1,0 +1,32 @@
+DiamondImports.dfy(34,16): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+DiamondImports.dfy(50,16): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    (0,0): anon3_Then
+    (0,0): anon2
+DiamondImports.dfy(101,16): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    (0,0): anon7_Then
+    (0,0): anon2
+    (0,0): anon8_Then
+    (0,0): anon9_Then
+    (0,0): anon6
+DiamondImports.dfy(120,16): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    (0,0): anon9_Then
+    (0,0): anon2
+    (0,0): anon10_Then
+    (0,0): anon4
+    (0,0): anon11_Then
+    (0,0): anon6
+    (0,0): anon12_Then
+    (0,0): anon8
+DiamondImports.dfy(140,26): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+
+Dafny program verifier finished with 11 verified, 5 errors
