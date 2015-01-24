@@ -7367,6 +7367,9 @@ namespace Microsoft.Dafny
       if (expr.OptTypeArguments != null) {
         foreach (var ty in expr.OptTypeArguments) {
           ResolveType(expr.tok, ty, opts.codeContext, ResolveTypeOptionEnum.InferTypeProxies, null);
+          if (ty.IsSubrangeType) {
+            Error(expr.tok, "sorry, cannot instantiate type parameter with a subrange type");
+          }
         }
       }
 
@@ -7626,6 +7629,9 @@ namespace Microsoft.Dafny
       if (expr.OptTypeArguments != null) {
         foreach (var ty in expr.OptTypeArguments) {
           ResolveType(expr.tok, ty, opts.codeContext, ResolveTypeOptionEnum.InferTypeProxies, null);
+          if (ty.IsSubrangeType) {
+            Error(expr.tok, "sorry, cannot instantiate type parameter with a subrange type");
+          }
         }
       }
 

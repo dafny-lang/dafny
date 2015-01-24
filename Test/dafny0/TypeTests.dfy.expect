@@ -1,6 +1,6 @@
-TypeTests.dfy(156,15): Error: incorrect type of datatype constructor argument (found ? -> ?, expected ? -> Dt<?>)
-TypeTests.dfy(162,15): Error: incorrect type of datatype constructor argument (found ? -> ?, expected ? -> Dt<?>)
-TypeTests.dfy(169,6): Error: RHS (of type set<?>) not assignable to LHS (of type ?)
+TypeTests.dfy(205,15): Error: incorrect type of datatype constructor argument (found ? -> ?, expected ? -> Dt<?>)
+TypeTests.dfy(211,15): Error: incorrect type of datatype constructor argument (found ? -> ?, expected ? -> Dt<?>)
+TypeTests.dfy(218,6): Error: RHS (of type set<?>) not assignable to LHS (of type ?)
 TypeTests.dfy(7,17): Error: type mismatch for argument 0 (function expects C, got D)
 TypeTests.dfy(7,20): Error: type mismatch for argument 1 (function expects D, got C)
 TypeTests.dfy(8,15): Error: type mismatch for argument 0 (function expects C, got int)
@@ -30,8 +30,34 @@ TypeTests.dfy(113,6): Error: sorry, cannot instantiate collection type with a su
 TypeTests.dfy(114,9): Error: sorry, cannot instantiate type parameter with a subrange type
 TypeTests.dfy(115,8): Error: sorry, cannot instantiate type parameter with a subrange type
 TypeTests.dfy(116,8): Error: sorry, cannot instantiate type parameter with a subrange type
-TypeTests.dfy(128,15): Error: ghost variables are allowed only in specification contexts
-TypeTests.dfy(138,4): Error: cannot assign to non-ghost variable in a ghost context
-TypeTests.dfy(139,7): Error: cannot assign to non-ghost variable in a ghost context
+TypeTests.dfy(119,28): Error: sorry, cannot instantiate type parameter with a subrange type
+TypeTests.dfy(119,28): Error: sorry, cannot instantiate type parameter with a subrange type
+TypeTests.dfy(120,17): Error: sorry, cannot instantiate type parameter with a subrange type
+TypeTests.dfy(120,10): Error: new can be applied only to reference types (got Expl_Class<nat>)
+TypeTests.dfy(121,17): Error: sorry, cannot instantiate type parameter with a subrange type
+TypeTests.dfy(124,6): Error: sorry, cannot instantiate collection type with a subrange type
+TypeTests.dfy(125,6): Error: sorry, cannot instantiate collection type with a subrange type
+TypeTests.dfy(126,6): Error: sorry, cannot instantiate collection type with a subrange type
+TypeTests.dfy(127,6): Error: sorry, cannot instantiate collection type with a subrange type
+TypeTests.dfy(128,13): Error: sorry, cannot instantiate type parameter with a subrange type
+TypeTests.dfy(129,9): Error: sorry, cannot instantiate type parameter with a subrange type
+TypeTests.dfy(130,10): Error: sorry, cannot instantiate type parameter with a subrange type
+TypeTests.dfy(134,11): Error: sorry, cannot instantiate type parameter with a subrange type
+TypeTests.dfy(135,11): Error: sorry, cannot instantiate type parameter with a subrange type
+TypeTests.dfy(138,14): Error: sorry, cannot instantiate type parameter with a subrange type
+TypeTests.dfy(139,14): Error: sorry, cannot instantiate type parameter with a subrange type
+TypeTests.dfy(140,20): Error: sorry, cannot instantiate type parameter with a subrange type
+TypeTests.dfy(143,9): Error: sorry, cannot instantiate type parameter with a subrange type
+TypeTests.dfy(144,22): Error: sorry, cannot instantiate type parameter with a subrange type
+TypeTests.dfy(147,12): Error: sorry, cannot instantiate type parameter with a subrange type
+TypeTests.dfy(148,12): Error: sorry, cannot instantiate type parameter with a subrange type
+TypeTests.dfy(150,5): Error: sorry, cannot instantiate type parameter with a subrange type
+TypeTests.dfy(151,13): Error: sorry, cannot instantiate type parameter with a subrange type
+TypeTests.dfy(152,2): Error: sorry, cannot instantiate type parameter with a subrange type
+TypeTests.dfy(153,16): Error: sorry, cannot instantiate type parameter with a subrange type
+TypeTests.dfy(154,14): Error: sorry, cannot instantiate type parameter with a subrange type
+TypeTests.dfy(177,15): Error: ghost variables are allowed only in specification contexts
+TypeTests.dfy(187,4): Error: cannot assign to non-ghost variable in a ghost context
+TypeTests.dfy(188,7): Error: cannot assign to non-ghost variable in a ghost context
 TypeTests.dfy(21,9): Error: because of cyclic dependencies among constructor argument types, no instances of datatype 'NeverendingList' can be constructed
-36 resolution/type errors detected in TypeTests.dfy
+62 resolution/type errors detected in TypeTests.dfy

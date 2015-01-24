@@ -114,6 +114,55 @@ method K() {
   var d: MutuallyRecursiveDataType<nat>;  // error: not allowed to instantiate with 'nat'
   var a := new nat[100];  // error: not allowed the type array<nat>
   var b := new nat[100,200];  // error: not allowed the type array2<nat>
+
+  // constructors
+  var ci0 := new Expl_Class.Init<nat>(0, 0);  // error: subrange not allowed here
+  var ci1 := new Expl_Class<nat>;  // error
+  var ci2 := new Expl_Class<nat>.Init(0, 0);  // error
+
+  // collection types (sets are above) and array types
+  var m0: multiset<nat>;  // error
+  var m1: seq<nat>;  // error
+  var m2: map<nat,int>;  // error
+  var m3: map<int,nat>;  // error
+  var n: seq<MutuallyRecursiveDataType<nat>>;  // error
+  var o: array<nat>;  // error
+  var o': array2<nat>;  // error
+
+  // tuple types
+  var tu0: (nat);  // no problem, this just means 'nat'
+  var tu1: (nat,int);  // error
+  var tu2: (int,nat);  // error
+
+  // function types
+  var fn: nat -> int;  // error
+  var gn: int -> nat;  // error
+  var hn: (int,nat) -> int;  // error
+
+  // the following tests test NameSegment and ExprDotName in types:
+  var k: Expl_Class<nat>;  // error
+  var k': Expl_Module.E<nat>;  // error
+
+  // the following tests test NameSegment and ExprDotName in expressions:
+  var e0 := Expl_M<nat>(0);  // error
+  var e1 := Expl_F<nat>(0);  // error
+  var ec := new Expl_Class<int>;
+  ec.Init<nat>(0, 0);  // error
+  Expl_Class.DoIt<nat>(0, 0);  // error
+  Expl_Class<nat>.DoIt(0, 0);  // error
+  Expl_Module.E.N<nat>(0, 0);  // error
+  Expl_Module.E<nat>.N(0, 0);  // error
+}
+method Expl_M<T>(x: T) returns (y: T)
+function method Expl_F<T>(x: T): T
+class Expl_Class<T> {
+  method Init<U>(t: T, u: U)
+  static method DoIt<U>(t: T, u: U)
+}
+module Expl_Module {
+  class E<T> {
+    static method N<U>(t: T, u: U)
+  }
 }
 
 // --------------------- more ghost tests, for assign-such-that statements
