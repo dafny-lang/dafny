@@ -1147,7 +1147,7 @@ TypeAndToken<out IToken tok, out Type ty>
                                          ty = new UserDefinedType(tok, BuiltIns.TupleTypeName(dims), dims == 0 ? null : tupleArgTypes);
                                        }
                                     .)
-  | (. Expression e; .)
+  | (. Expression e; tok = t; .)
     NameSegmentForTypeName<out e>
     { "." ident                      (. tok = t; List<Type> typeArgs = null; .)
       [ (. typeArgs = new List<Type>(); .)
