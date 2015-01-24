@@ -1,7 +1,7 @@
 ResolutionErrors.dfy(502,7): Error: RHS (of type List<A>) not assignable to LHS (of type List<B>)
 ResolutionErrors.dfy(507,7): Error: RHS (of type List<A>) not assignable to LHS (of type List<B>)
 ResolutionErrors.dfy(521,23): Error: type of case bodies do not agree (found Tree<_T1,_T0>, previous types Tree<_T0,_T1>)
-ResolutionErrors.dfy(533,24): Error: Wrong number of type arguments (0 instead of 2) passed to class/datatype: Tree
+ResolutionErrors.dfy(533,24): Error: Wrong number of type arguments (0 instead of 2) passed to datatype: Tree
 ResolutionErrors.dfy(561,25): Error: the type of this variable is underspecified
 ResolutionErrors.dfy(561,23): Error: type variable 'T' in the function call to 'P' could not be determined
 ResolutionErrors.dfy(568,25): Error: the type of this variable is underspecified
@@ -54,10 +54,10 @@ ResolutionErrors.dfy(903,9): Error: cannot assign to a range of array elements (
 ResolutionErrors.dfy(904,9): Error: cannot assign to a range of array elements (try the 'forall' statement)
 ResolutionErrors.dfy(905,5): Error: cannot assign to a range of array elements (try the 'forall' statement)
 ResolutionErrors.dfy(906,5): Error: cannot assign to a range of array elements (try the 'forall' statement)
-ResolutionErrors.dfy(987,11): Error: Wrong number of type arguments (2 instead of 1) passed to class/datatype: array3
-ResolutionErrors.dfy(988,11): Error: Wrong number of type arguments (2 instead of 1) passed to class/datatype: C
+ResolutionErrors.dfy(987,11): Error: Wrong number of type arguments (2 instead of 1) passed to array type: array3
+ResolutionErrors.dfy(988,11): Error: Wrong number of type arguments (2 instead of 1) passed to class: C
 ResolutionErrors.dfy(999,7): Error: Duplicate name of top-level declaration: BadSyn2
-ResolutionErrors.dfy(996,17): Error: Wrong number of type arguments (0 instead of 1) passed to class/datatype: List
+ResolutionErrors.dfy(996,17): Error: Wrong number of type arguments (0 instead of 1) passed to datatype: List
 ResolutionErrors.dfy(997,17): Error: Undeclared top-level type or type parameter: badName (did you forget to qualify a name?)
 ResolutionErrors.dfy(998,22): Error: Undeclared top-level type or type parameter: X (did you forget to qualify a name?)
 ResolutionErrors.dfy(1005,7): Error: Cycle among redirecting types (newtypes, type synonyms): A -> A
@@ -86,7 +86,7 @@ ResolutionErrors.dfy(1253,21): Error: Undeclared top-level type or type paramete
 ResolutionErrors.dfy(1254,24): Error: Undeclared top-level type or type parameter: X (did you forget to qualify a name?)
 ResolutionErrors.dfy(1291,16): Error: in a ghost context, only ghost fields can be mentioned as modifies frame targets (y)
 ResolutionErrors.dfy(1301,18): Error: in a ghost context, only ghost fields can be mentioned as modifies frame targets (x)
-ResolutionErrors.dfy(1329,15): Error: The name Inner ambiguously refers to a type in one of the modules A, B
+ResolutionErrors.dfy(1329,15): Error: The name Inner ambiguously refers to a type in one of the modules A, B (try qualifying the type name with the module name)
 ResolutionErrors.dfy(432,2): Error: More than one anonymous constructor
 ResolutionErrors.dfy(50,13): Error: 'this' is not allowed in a 'static' context
 ResolutionErrors.dfy(87,14): Error: the name 'Benny' denotes a datatype constructor, but does not do so uniquely; add an explicit qualification (for example, 'Abc.Benny')

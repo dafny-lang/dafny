@@ -1090,33 +1090,34 @@ Type<out Type ty>
 TypeAndToken<out IToken tok, out Type ty>
 = (. Contract.Ensures(Contract.ValueAtReturn(out tok)!=null); Contract.Ensures(Contract.ValueAtReturn(out ty) != null);
      tok = Token.NoToken;  ty = new BoolType();  /*keep compiler happy*/
-     List<Type> gt = null;
+     List<Type> gt; List<Type> tupleArgTypes = null;
   .)
   ( "bool"                          (. tok = t; .)
   | "char"                          (. tok = t;  ty = new CharType(); .)
   | "nat"                           (. tok = t;  ty = new NatType(); .)
   | "int"                           (. tok = t;  ty = new IntType(); .)
   | "real"                          (. tok = t;  ty = new RealType(); .)
-  | "set"                           (. tok = t;  gt = new List<Type/*!*/>(); .)
+  | "object"                        (. tok = t;  ty = new ObjectType(); .)
+  | "set"                           (. tok = t;  gt = new List<Type>(); .)
     [ GenericInstantiation<gt> ]    (. if (gt.Count > 1) {
                                          SemErr("set type expects only one type argument");
                                        }
                                        ty = new SetType(gt.Count == 1 ? gt[0] : null);
                                     .)
-  | "multiset"                      (. tok = t;  gt = new List<Type/*!*/>(); .)
+  | "multiset"                      (. tok = t;  gt = new List<Type>(); .)
     [ GenericInstantiation<gt> ]    (. if (gt.Count > 1) {
                                          SemErr("multiset type expects only one type argument");
                                        }
                                        ty = new MultiSetType(gt.Count == 1 ? gt[0] : null);
                                     .)
-  | "seq"                           (. tok = t;  gt = new List<Type/*!*/>(); .)
+  | "seq"                           (. tok = t;  gt = new List<Type>(); .)
     [ GenericInstantiation<gt> ]    (. if (gt.Count > 1) {
                                          SemErr("seq type expects only one type argument");
                                        }
                                        ty = new SeqType(gt.Count == 1 ? gt[0] : null);
                                     .)
-  | "string"                        (. tok = t;  ty = new UserDefinedType(tok, tok.val, new List<Type>(), new List<IToken>()); .)
-  | "map"                           (. tok = t;  gt = new List<Type/*!*/>(); .)
+  | "string"                        (. tok = t;  ty = new UserDefinedType(tok, tok.val, null); .)
+  | "map"                           (. tok = t;  gt = new List<Type>(); .)
     [ GenericInstantiation<gt> ]    (. if (gt.Count == 0) {
                                          ty = new MapType(null, null);
                                        } else if (gt.Count != 2) {
@@ -1126,26 +1127,42 @@ TypeAndToken<out IToken tok, out Type ty>
                                          ty = new MapType(gt[0], gt[1]);
                                        }
                                     .)
-  | "("                             (. tok = t; gt = new List<Type>(); .)
-    [ Type<out ty>                  (. gt.Add(ty); .)
-      { "," Type<out ty>            (. gt.Add(ty); .)
+  | arrayToken                      (. tok = t;  gt = null; .)
+    [ (. gt = new List<Type>(); .)
+      GenericInstantiation<gt>
+    ]
+                                    (. int dims = tok.val.Length == 5 ? 1 : int.Parse(tok.val.Substring(5));
+                                       ty = theBuiltIns.ArrayType(tok, dims, gt, true);
+                                    .)
+  | "("                             (. tok = t; tupleArgTypes = new List<Type>(); .)
+    [ Type<out ty>                  (. tupleArgTypes.Add(ty); .)
+      { "," Type<out ty>            (. tupleArgTypes.Add(ty); .)
       }
     ]
-    ")"                             (. if (gt.Count == 1) {
+    ")"                             (. if (tupleArgTypes.Count == 1) {
                                          // just return the type 'ty'
                                        } else {
-                                         // make sure the nullary tuple type exists
-                                         var dims = gt.Count;
-                                         var tmp = theBuiltIns.TupleType(tok, dims, true);
-                                         ty = new UserDefinedType(tok, BuiltIns.TupleTypeName(dims), gt, new List<IToken>());
+                                         var dims = tupleArgTypes.Count;
+                                         var tmp = theBuiltIns.TupleType(tok, dims, true);  // make sure the tuple type exists
+                                         ty = new UserDefinedType(tok, BuiltIns.TupleTypeName(dims), dims == 0 ? null : tupleArgTypes);
                                        }
                                     .)
-  | ReferenceType<out tok, out ty>
+  | (. Expression e; .)
+    NameSegmentForTypeName<out e>
+    { "." ident                      (. tok = t; List<Type> typeArgs = null; .)
+      [ (. typeArgs = new List<Type>(); .)
+        GenericInstantiation<typeArgs>
+      ]
+      (. e = new ExprDotName(tok, e, tok.val, typeArgs); .)
+    }
+    (. ty = new UserDefinedType(e.tok, e); .)
   )
   [ (. Type t2; .)
     "->"                  (. tok = t; .)
     Type<out t2>
-    (. if (gt == null) {
+    (. if (tupleArgTypes != null) {
+         gt = tupleArgTypes;
+        } else {
          gt = new List<Type>{ ty };
        }
        ty = new ArrowType(tok, gt, t2);
@@ -1153,26 +1170,6 @@ TypeAndToken<out IToken tok, out Type ty>
     .)
   ]
 
-  .
-ReferenceType<out IToken/*!*/ tok, out Type/*!*/ ty>
-= (. Contract.Ensures(Contract.ValueAtReturn(out tok) != null); Contract.Ensures(Contract.ValueAtReturn(out ty) != null);
-     tok = Token.NoToken;  ty = new BoolType();  /*keep compiler happy*/
-     List<Type> gt;
-     List<IToken> path;
-  .)
-  ( "object"                        (. tok = t;  ty = new ObjectType(); .)
-  | arrayToken                      (. tok = t;  gt = new List<Type>(); .)
-    [ GenericInstantiation<gt> ]    (. int dims = tok.val.Length == 5 ? 1 : int.Parse(tok.val.Substring(5));
-                                       ty = theBuiltIns.ArrayType(tok, dims, gt, true);
-                                    .)
-  | Ident<out tok>                  (. gt = new List<Type>();
-                                       path = new List<IToken>(); .)
-    { IF(la.kind == _dot)  /* greedily parse as many identifiers as possible (if the next identifier really denotes a constructor in a "new" RHS, then it will be adjusted for later */
-                                    (. path.Add(tok); .)
-      "." Ident<out tok>
-    }
-    [ GenericInstantiation<gt> ]    (. ty = new UserDefinedType(tok, tok.val, gt, path); .)
-  )
   .
 GenericInstantiation<.List<Type/*!*/>/*!*/ gt.>
 = (. Contract.Requires(cce.NonNullElements(gt)); Type/*!*/ ty; .)
@@ -1495,7 +1492,6 @@ Rhs<out AssignmentRhs r>
                                           var tmp = theBuiltIns.ArrayType(ee.Count, new IntType(), true);
                                        .)
     |                                  (. x = null; args = new List<Expression/*!*/>(); .)
-      [ "." Ident<out x> ]
       "("
         [ Expressions<args> ]
       ")"
@@ -1503,7 +1499,7 @@ Rhs<out AssignmentRhs r>
     (. if (ee != null) {
          r = new TypeRhs(newToken, ty, ee);
        } else if (args != null) {
-         r = new TypeRhs(newToken, ty, x == null ? null : x.val, args);
+         r = new TypeRhs(newToken, ty, args, false);
        } else {
          r = new TypeRhs(newToken, ty);
        }
@@ -2573,6 +2569,18 @@ NameSegment<out Expression e>
      if (openParen != null) {
        e = new ApplySuffix(openParen, e, args);
      }
+  .)
+  .
+/* NameSegmentForTypeName is like the production NameSegment, except that it does not allow HashCall */
+NameSegmentForTypeName<out Expression e>
+= (. IToken id;
+     List<Type> typeArgs = null;
+  .)
+  Ident<out id>
+  [ (. typeArgs = new List<Type>(); .)
+    GenericInstantiation<typeArgs>
+  ]
+  (. e = new NameSegment(id, id.val, typeArgs);
   .)
   .
 /* The HashCall production extends a given identifier with a hash sign followed by

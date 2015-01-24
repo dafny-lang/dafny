@@ -188,7 +188,7 @@ namespace Microsoft.Dafny
           return CloneType(syn.Rhs);
         }
 #endif
-        return new UserDefinedType(Tok(tt.tok), tt.Name, tt.TypeArgs.ConvertAll(CloneType), tt.Path.ConvertAll(Tok));
+        return new UserDefinedType(Tok(tt.tok), CloneExpr(tt.NamePath));
       } else if (t is InferredTypeProxy) {
         return new InferredTypeProxy();
       } else if (t is OperationTypeProxy) {
@@ -209,8 +209,8 @@ namespace Microsoft.Dafny
       return f;
     }
 
-    public BoundVar CloneBoundVar(BoundVar bv) {
-      var bvNew = new BoundVar(Tok(bv.tok), bv.Name, CloneType(bv.Type));
+    public virtual BoundVar CloneBoundVar(BoundVar bv) {
+      var bvNew = new BoundVar(Tok(bv.tok), bv.Name, CloneType(bv.SyntacticType));
       bvNew.IsGhost = bv.IsGhost;
       return bvNew;
     }
@@ -453,7 +453,7 @@ namespace Microsoft.Dafny
         } else if (r.Arguments == null) {
           c = new TypeRhs(Tok(r.Tok), CloneType(r.EType));
         } else {
-          c = new TypeRhs(Tok(r.Tok), CloneType(r.EType), r.OptionalNameComponent, r.Arguments.ConvertAll(CloneExpr));
+          c = new TypeRhs(Tok(r.Tok), CloneType(r.Path), r.Arguments.ConvertAll(CloneExpr), false);
         }
       }
       c.Attributes = CloneAttributes(rhs.Attributes);
@@ -707,8 +707,10 @@ namespace Microsoft.Dafny
     public override Expression CloneExpr(Expression expr) {
       if (expr is ConcreteSyntaxExpression) {
         var e = (ConcreteSyntaxExpression)expr;
+        // Note, the CoLemmaPostconditionSubstituter is an unusual cloner in that it operates on
+        // resolved expressions.  Hence, we bypass the syntactic parts here.
         return CloneExpr(e.Resolved);
-      } else  if (expr is FunctionCallExpr) {
+      } else if (expr is FunctionCallExpr) {
         var e = (FunctionCallExpr)expr;
         if (coConclusions.Contains(e)) {
           var receiver = CloneExpr(e.Receiver);
@@ -734,6 +736,26 @@ namespace Microsoft.Dafny
         }
       }
       return base.CloneExpr(expr);
+    }
+    public override Type CloneType(Type t) {
+      if (t is UserDefinedType) {
+        var tt = (UserDefinedType)t;
+        // We want syntactic cloning of the Expression that is tt.NamePath, unlike the semantic (that is, post-resolved)
+        // cloning that CloneExpr is doing above.
+        return new UserDefinedType(Tok(tt.tok), CloneNamePathExpression(tt.NamePath));
+      } else {
+        return base.CloneType(t);
+      }
+    }
+    Expression CloneNamePathExpression(Expression expr) {
+      Contract.Requires(expr is NameSegment || expr is ExprDotName);
+      if (expr is NameSegment) {
+        var e = (NameSegment)expr;
+        return new NameSegment(Tok(e.tok), e.Name, e.OptTypeArguments == null ? null : e.OptTypeArguments.ConvertAll(CloneType));
+      } else {
+        var e = (ExprDotName)expr;
+        return new ExprDotName(Tok(e.tok), CloneNamePathExpression(e.Lhs), e.SuffixName, e.OptTypeArguments == null ? null : e.OptTypeArguments.ConvertAll(CloneType));
+      }
     }
   }
 
@@ -812,6 +834,13 @@ namespace Microsoft.Dafny
         newPat.AssembleExpr(patE.InferredTypeArgs.ConvertAll(CloneType));
         return newPat;
       }
+    }
+
+    public override BoundVar CloneBoundVar(BoundVar bv) {
+      // The difference here from the overridden method is that we do CloneType(bv.Type) instead of CloneType(bv.SyntacticType)
+      var bvNew = new BoundVar(Tok(bv.tok), bv.Name, CloneType(bv.Type));
+      bvNew.IsGhost = bv.IsGhost;
+      return bvNew;
     }
   }
 

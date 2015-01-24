@@ -101,6 +101,7 @@ namespace Microsoft.Dafny
     }
     class AmbiguousTopLevelDecl : TopLevelDecl, IAmbiguousThing<TopLevelDecl>  // only used with "classes"
     {
+      public override string WhatKind { get { return A.WhatKind; } }
       readonly TopLevelDecl A;
       readonly TopLevelDecl B;
       public AmbiguousTopLevelDecl(ModuleDefinition m, TopLevelDecl a, TopLevelDecl b)
@@ -140,6 +141,7 @@ namespace Microsoft.Dafny
 
     class AmbiguousMemberDecl : MemberDecl, IAmbiguousThing<MemberDecl>  // only used with "classes"
     {
+      public override string WhatKind { get { return A.WhatKind; } }
       readonly MemberDecl A;
       readonly MemberDecl B;
       public AmbiguousMemberDecl(ModuleDefinition m, MemberDecl a, MemberDecl b)
@@ -1305,7 +1307,7 @@ namespace Microsoft.Dafny
       }
       // Now, we're ready for the other declarations.
       foreach (TopLevelDecl d in declarations) {
-        if (d is TraitDecl && d.TypeArgs != null && d.TypeArgs.Count > 0)
+        if (d is TraitDecl && d.TypeArgs.Count > 0)
         {
             Error(d, "a trait cannot declare type parameters");
         }
@@ -1934,11 +1936,10 @@ namespace Microsoft.Dafny
           }
         } else if (expr is MemberSelectExpr) {
           var e = (MemberSelectExpr)expr;
-          var what = e.Member is Function ? "function" : e.Member is Method ? "method" : null;
-          if (what != null) {
+          if (e.Member is Function || e.Member is Method) {
             foreach (var p in e.TypeApplication) {
               if (!IsDetermined(p.Normalize())) {
-                Error(e.tok, "type '{0}' to the {2} '{1}' is not determined", p, e.Member.Name, what);
+                Error(e.tok, "type '{0}' to the {2} '{1}' is not determined", p, e.Member.Name, e.Member.WhatKind);
               }
             }
           }
@@ -3921,25 +3922,22 @@ namespace Microsoft.Dafny
     public class ResolveTypeReturn
     {
       public readonly Type ReplacementType;
-      public readonly string LastName;
-      public readonly IToken LastToken;
-      public ResolveTypeReturn(Type replacementType, string lastName, IToken lastToken) {
+      public readonly ExprDotName LastComponent;
+      public ResolveTypeReturn(Type replacementType, ExprDotName lastComponent) {
         Contract.Requires(replacementType != null);
-        Contract.Requires(lastName != null);
-        Contract.Requires(lastToken != null);
+        Contract.Requires(lastComponent != null);
         ReplacementType = replacementType;
-        LastName = lastName;
-        LastToken = lastToken;
+        LastComponent = lastComponent;
       }
     }
     /// <summary>
     /// See ResolveTypeOption for a description of the option/defaultTypeArguments parameters.
-    /// One more thing:  if "allowShortenedPath" is true, then if the resolution would have produced
+    /// One more thing:  if "allowDanglingDotName" is true, then if the resolution would have produced
     ///   an error message that could have been avoided if "type" denoted an identifier sequence one
     ///   shorter, then return an unresolved replacement type where the identifier sequence is one
     ///   shorter.  (In all other cases, the method returns null.)
     /// </summary>
-    public ResolveTypeReturn ResolveTypeLenient(IToken tok, Type type, ICodeContext context, ResolveTypeOption option, List<TypeParameter> defaultTypeArguments, bool allowShortenedPath) {
+    public ResolveTypeReturn ResolveTypeLenient(IToken tok, Type type, ICodeContext context, ResolveTypeOption option, List<TypeParameter> defaultTypeArguments, bool allowDanglingDotName) {
       Contract.Requires(tok != null);
       Contract.Requires(type != null);
       Contract.Requires(context != null);
@@ -4005,76 +4003,29 @@ namespace Microsoft.Dafny
 
       } else if (type is UserDefinedType) {
         var t = (UserDefinedType)type;
-        var isArrow = t is ArrowType;
         if (t.ResolvedClass != null || t.ResolvedParam != null) {
           // Apparently, this type has already been resolved
           return null;
         }
-        foreach (Type tt in t.TypeArgs) {
-          ResolveType(t.tok, tt, context, option, defaultTypeArguments);
-          if (tt.IsSubrangeType && !isArrow) {
-            Error(t.tok, "sorry, cannot instantiate type parameter with a subrange type");
-          }
-        }
-        TypeParameter tp = t.Path.Count == 0 ? allTypeParameters.Find(t.Name) : null;
-        if (tp != null) {
-          if (t.TypeArgs.Count == 0) {
-            t.ResolvedParam = tp;
-          } else {
-            Error(t.tok, "Type parameter expects no type arguments: {0}", t.Name);
+        var prevErrorCount = ErrorCount;
+        if (t.NamePath is ExprDotName) {
+          var ret = ResolveDotSuffix_Type((ExprDotName)t.NamePath, new ResolveOpts(context, true), allowDanglingDotName, option, defaultTypeArguments);
+          if (ret != null) {
+            return ret;
           }
         } else {
-          TopLevelDecl d = null;
-
-          int j;
-          var sig = moduleInfo;
-          for (j = 0; j < t.Path.Count; j++) {
-            ModuleSignature submodule;
-            if (sig.FindSubmodule(t.Path[j].val, out submodule)) {
-              sig = GetSignature(submodule);
-            } else {
-              // maybe the last component of t.Path is actually the type name
-              if (allowShortenedPath && t.TypeArgs.Count == 0 && j == t.Path.Count - 1 && sig.TopLevels.TryGetValue(t.Path[j].val, out d)) {
-                // move the last component of t.Path to t.tok/t.name, tell the caller about this, and continue
-                var reducedPath = new List<IToken>();
-                for (int i = 0; i < j; i++) {
-                  reducedPath.Add(t.Path[i]);
-                }
-                return new ResolveTypeReturn(new UserDefinedType(t.Path[j], t.Path[j].val, t.TypeArgs, reducedPath), t.Name, t.tok);
-              } else {
-                Error(t.Path[j], ModuleNotFoundErrorMessage(j, t.Path));
-              }
-              break;
-            }
-          }
-          if (j == t.Path.Count) {
-            if (!sig.TopLevels.TryGetValue(t.Name, out d)) {
-              if (j == 0) {
-                if (option.Opt == ResolveTypeOptionEnum.AllowPrefixExtend && t.TypeArgs.Count == 0) {
-                  tp = new TypeParameter(tok, t.Name, defaultTypeArguments.Count, option.Parent);
-                  defaultTypeArguments.Add(tp);
-                  t.ResolvedParam = tp;
-                  allTypeParameters.Push(t.Name, tp);
-                } else {
-                  Error(t.tok, "Undeclared top-level type or type parameter: {0} (did you forget to qualify a name?)",
-                    t.Name);
-                }
-              } else {
-                Error(t.tok, "Undeclared type {0} in module {1}", t.Name, t.Path[t.Path.Count - 1].val);
-              }
-            }
-          } else {
-            // error has already been reported
-          }
-
-          if (d == null) {
-            // error has been reported above
-          } else if (ReallyAmbiguousTopLevelDecl(ref d)) {
-            Error(t.tok, "The name {0} ambiguously refers to a type in one of the modules {1} (try qualifying the type name with the module name)", t.Name, ((AmbiguousTopLevelDecl)d).ModuleNames());
-          } else {
-            string what;
+          var s = (NameSegment)t.NamePath;
+          ResolveNameSegment_Type(s, new ResolveOpts(context, true), option, defaultTypeArguments);
+        }
+        if (ErrorCount == prevErrorCount) {
+          var r = t.NamePath.Resolved as Resolver_IdentifierExpr;
+          if (r == null || !(r.Type is Resolver_IdentifierExpr.ResolverType_Type)) {
+            Error(t.tok, "expected type");
+          } else if (r.Type is Resolver_IdentifierExpr.ResolverType_Type && r.TypeParamDecl != null) {
+            t.ResolvedParam = r.TypeParamDecl;
+          } else if (r.Type is Resolver_IdentifierExpr.ResolverType_Type) {
+            var d = r.Decl;
             if (d is OpaqueTypeDecl) {
-              what = "opaque type";
               t.ResolvedParam = ((OpaqueTypeDecl)d).TheType;  // resolve like a type parameter, and it may have type parameters if it's an opaque type
             } else if (d is NewtypeDecl) {
               var dd = (NewtypeDecl)d;
@@ -4086,11 +4037,9 @@ namespace Microsoft.Dafny
                   Error(dd.tok, "recursive dependency involving a newtype: {0} -> {0}", dd.Name);
                 }
               }
-              what = "newtype";
               t.ResolvedClass = dd;
             } else {
               // d is a class or datatype, and it may have type parameters
-              what = isArrow ? "function type" : "class/datatype";
               t.ResolvedClass = d;
             }
             if (option.Opt == ResolveTypeOptionEnum.DontInfer) {
@@ -4100,8 +4049,9 @@ namespace Microsoft.Dafny
             }
             // defaults and auto have been applied; check if we now have the right number of arguments
             if (d.TypeArgs.Count != t.TypeArgs.Count) {
-              Error(t.tok, "Wrong number of type arguments ({0} instead of {1}) passed to {2}: {3}", t.TypeArgs.Count, d.TypeArgs.Count, what, t.Name);
+              Error(t.tok, "Wrong number of type arguments ({0} instead of {1}) passed to {2}: {3}", t.TypeArgs.Count, d.TypeArgs.Count, d.WhatKind, t.Name);
             }
+
           }
         }
 
@@ -4176,9 +4126,7 @@ namespace Microsoft.Dafny
         Contract.Assert(n <= defaultTypeArguments.Count);
         // automatically supply a prefix of the arguments from defaultTypeArguments
         for (int i = 0; i < n; i++) {
-          var typeArg = new UserDefinedType(tok, defaultTypeArguments[i].Name, new List<Type>(), null);
-          typeArg.ResolvedParam = defaultTypeArguments[i];  // resolve "typeArg" here
-          typeArgs.Add(typeArg);
+          typeArgs.Add(new UserDefinedType(defaultTypeArguments[i]));
         }
       }
     }
@@ -6009,7 +5957,7 @@ namespace Microsoft.Dafny
       if (rr.Type == null) {
         if (rr.ArrayDimensions != null) {
           // ---------- new T[EE]
-          Contract.Assert(rr.Arguments == null && rr.OptionalNameComponent == null && rr.InitCall == null);
+          Contract.Assert(rr.Arguments == null && rr.Path == null && rr.InitCall == null);
           ResolveType(stmt.Tok, rr.EType, codeContext, ResolveTypeOptionEnum.InferTypeProxies, null);
           int i = 0;
           foreach (Expression dim in rr.ArrayDimensions) {
@@ -6022,42 +5970,44 @@ namespace Microsoft.Dafny
           }
           rr.Type = ResolvedArrayType(stmt.Tok, rr.ArrayDimensions.Count, rr.EType, codeContext);
         } else {
-          var initCallTok = rr.Tok;
-          if (rr.OptionalNameComponent == null && rr.Arguments != null) {
-            // Resolve rr.EType and do one of three things:
-            // * If rr.EType denotes a type, then set rr.OptionalNameComponent to "_ctor", which sets up a call to the anonymous constructor.
-            // * If the all-but-last components of rr.EType denote a type, then do EType,OptionalNameComponent := allButLast(EType),last(EType)
-            // * Otherwise, report an error
-            var ret = ResolveTypeLenient(stmt.Tok, rr.EType, codeContext, new ResolveTypeOption(ResolveTypeOptionEnum.InferTypeProxies), null, true);
-            if (ret != null) {
-              // While rr.EType does not denote a type, no error has been reported yet and the all-but-last components of rr.EType may
-              // denote a type, so shift the last component to OptionalNameComponent and retry with the suggested type.
-              rr.OptionalNameComponent = ret.LastName;
-              rr.EType = ret.ReplacementType;
-              initCallTok = ret.LastToken;
-              ResolveType(stmt.Tok, rr.EType, codeContext, ResolveTypeOptionEnum.InferTypeProxies, null);
-            } else {
-              // Either rr.EType resolved correctly as a type or there was no way to drop a last component to make it into something that looked
-              // like a type.  In either case, set OptionalNameComponent to "_ctor" and continue.
-              rr.OptionalNameComponent = "_ctor";
+          bool callsConstructor = false;
+          if (rr.Arguments == null) {
+            ResolveType(stmt.Tok, rr.EType, codeContext, ResolveTypeOptionEnum.InferTypeProxies, null);
+            if (!rr.EType.IsRefType) {
+              Error(stmt, "new can be applied only to reference types (got {0})", rr.EType);
             }
           } else {
-            ResolveType(stmt.Tok, rr.EType, codeContext, ResolveTypeOptionEnum.InferTypeProxies, null);
-          }
-          if (!rr.EType.IsRefType) {
-            Error(stmt, "new can be applied only to reference types (got {0})", rr.EType);
-          } else {
-            bool callsConstructor = false;
-            if (rr.Arguments != null) {
+            string initCallName = null;
+            IToken initCallTok = null;
+            // Resolve rr.Path and do one of three things:
+            // * If rr.Path denotes a type, then set EType,initCallName to rr.Path,"_ctor", which sets up a call to the anonymous constructor.
+            // * If the all-but-last components of rr.Path denote a type, then do EType,initCallName := allButLast(EType),last(EType)
+            // * Otherwise, report an error
+            var ret = ResolveTypeLenient(rr.Tok, rr.Path, codeContext, new ResolveTypeOption(ResolveTypeOptionEnum.InferTypeProxies), null, true);
+            if (ret != null) {
+              // The all-but-last components of rr.Path denote a type (namely, ret.ReplacementType).
+              rr.EType = ret.ReplacementType;
+              initCallName = ret.LastComponent.SuffixName;
+              initCallTok = ret.LastComponent.tok;
+            } else {
+              // Either rr.Path resolved correctly as a type or there was no way to drop a last component to make it into something that looked
+              // like a type.  In either case, set EType,initCallName to Path,"_ctor" and continue.
+              rr.EType = rr.Path;
+              initCallName = "_ctor";
+              initCallTok = rr.Tok;
+            }
+            if (!rr.EType.IsRefType) {
+              Error(stmt, "new can be applied only to reference types (got {0})", rr.EType);
+            } else {
               // ---------- new C.Init(EE)
-              Contract.Assert(rr.OptionalNameComponent != null);  // if it wasn't non-null from the beginning, the code above would have set it to a non-null value
+              Contract.Assert(initCallName != null);
               var prevErrorCount = ErrorCount;
 
               // We want to create a MemberSelectExpr for the initializing method.  To do that, we create a throw-away receiver of the appropriate
               // type, create an dot-suffix expression around this receiver, and then resolve it in the usual way for dot-suffix expressions.
               var lhs = new ImplicitThisExpr(initCallTok) { Type = rr.EType };
-              var callLhs = new ExprDotName(initCallTok, lhs, rr.OptionalNameComponent, null/*TODO: if the all-but-last components of the original EType above denote a type, then we should use any type arguments of the final EType component here*/);
-              ResolveDotSuffix(callLhs, true, rr.Arguments, new ResolveOpts(codeContext, true, specContextOnly), true);  // we use this call instead of the regular ResolveDotSuffix, since callLhs.Expr has already been resolved
+              var callLhs = new ExprDotName(initCallTok, lhs, initCallName, ret == null ? null : ret.LastComponent.OptTypeArguments);
+              ResolveDotSuffix(callLhs, true, rr.Arguments, new ResolveOpts(codeContext, true, specContextOnly), true);
               if (prevErrorCount == ErrorCount) {
                 Contract.Assert(callLhs.ResolvedExpression is MemberSelectExpr);  // since ResolveApplySuffix succeeded and call.Lhs denotes an expression (not a module or a type)
                 var methodSel = (MemberSelectExpr)callLhs.ResolvedExpression;
@@ -6068,15 +6018,14 @@ namespace Microsoft.Dafny
                     callsConstructor = true;
                   }
                 } else {
-                  Error(initCallTok, "object initialization must denote an initializing method or constructor ({0})", rr.OptionalNameComponent);
+                  Error(initCallTok, "object initialization must denote an initializing method or constructor ({0})", initCallName);
                 }
               }
-            } else {
-              // ---------- new C
-              Contract.Assert(rr.ArrayDimensions == null && rr.OptionalNameComponent == null && rr.InitCall == null);
             }
-            if (rr.EType.NormalizeExpand() is UserDefinedType) {
-              var udt = (UserDefinedType)rr.EType.NormalizeExpand();
+          }
+          if (rr.EType.IsRefType) {
+            var udt = rr.EType.NormalizeExpand() as UserDefinedType;
+            if (udt != null) {
               var cl = (ClassDecl)udt.ResolvedClass;  // cast is guaranteed by the call to rr.EType.IsRefType above, together with the "rr.EType is UserDefinedType" test
               if (cl is TraitDecl) {
                 Error(stmt, "new cannot be applied to a trait");
@@ -6282,7 +6231,8 @@ namespace Microsoft.Dafny
             // there were no substitutions
             return type;
           } else {
-            return new UserDefinedType(t.tok, t.Name, resolvedClass, newArgs, t.Path);
+            // Note, even if t.NamePath is non-null, we don't care to keep that syntactic part of the expression in what we return here
+            return new UserDefinedType(t.tok, t.Name, resolvedClass, newArgs);
           }
         } else {
           // there's neither a resolved param nor a resolved class, which means the UserDefinedType wasn't
@@ -6308,7 +6258,7 @@ namespace Microsoft.Dafny
 
       List<Type> args = new List<Type>();
       foreach (TypeParameter tp in cl.TypeArgs) {
-        args.Add(new UserDefinedType(tok, tp.Name, tp));
+        args.Add(new UserDefinedType(tok, tp));
       }
       return new UserDefinedType(tok, cl.Name, cl, args);
     }
@@ -6436,7 +6386,7 @@ namespace Microsoft.Dafny
           } else if (e is CharLiteralExpr) {
             e.Type = Type.Char;
           } else if (e is StringLiteralExpr) {
-            e.Type = new UserDefinedType(e.tok, "string", new List<Type>(), new List<IToken>());
+            e.Type = new UserDefinedType(e.tok, "string", (List<Type>)null);
             ResolveType(e.tok, e.Type, opts.codeContext, ResolveTypeOptionEnum.DontInfer, null);
           } else {
             Contract.Assert(false); throw new cce.UnreachableException();  // unexpected literal type
@@ -6465,7 +6415,7 @@ namespace Microsoft.Dafny
         if (!moduleInfo.TopLevels.TryGetValue(dtv.DatatypeName, out d)) {
           Error(expr.tok, "Undeclared datatype: {0}", dtv.DatatypeName);
         } else if (ReallyAmbiguousTopLevelDecl(ref d)) {
-          Error(expr.tok, "The name {0} ambiguously refers to a type in one of the modules {1}", dtv.DatatypeName, ((AmbiguousTopLevelDecl)d).ModuleNames());
+          Error(expr.tok, "The name {0} ambiguously refers to a type in one of the modules {1} (try qualifying the type name with the module name)", dtv.DatatypeName, ((AmbiguousTopLevelDecl)d).ModuleNames());
         } else if (!(d is DatatypeDecl)) {
           Error(expr.tok, "Expected datatype: {0}", dtv.DatatypeName);
         } else {
@@ -7478,7 +7428,7 @@ namespace Microsoft.Dafny
       } else if (moduleInfo.TopLevels.TryGetValue(expr.Name, out decl)) {
         // ----- 3. Member of the enclosing module
         if (ReallyAmbiguousTopLevelDecl(ref decl)) {
-          Error(expr.tok, "The name {0} ambiguously refers to a type in one of the modules {1}", expr.Name, ((AmbiguousTopLevelDecl)decl).ModuleNames());
+          Error(expr.tok, "The name {0} ambiguously refers to a type in one of the modules {1} (try qualifying the type name with the module name)", expr.Name, ((AmbiguousTopLevelDecl)decl).ModuleNames());
         } else {
           // We have found a module name or a type name, neither of which is an expression. However, the NameSegment we're
           // looking at may be followed by a further suffix that makes this into an expresion. We postpone the rest of the
@@ -7491,7 +7441,7 @@ namespace Microsoft.Dafny
         // ----- 4. static member of the enclosing module
         Contract.Assert(member.IsStatic); // moduleInfo.StaticMembers is supposed to contain only static members of the module's implicit class _default
         if (ReallyAmbiguousThing(ref member)) {
-          Error(expr.tok, "The name {0} ambiguously refers to a static member in one of the modules {1}", expr.Name, ((AmbiguousMemberDecl)member).ModuleNames());
+          Error(expr.tok, "The name {0} ambiguously refers to a static member in one of the modules {1} (try qualifying the member name with the module name)", expr.Name, ((AmbiguousMemberDecl)member).ModuleNames());
         } else {
           var receiver = new StaticReceiverExpr(expr.tok, (ClassDecl)member.EnclosingClass);
           r = ResolveExprDotCall(expr.tok, receiver, member, expr.OptTypeArguments, opts.codeContext, allowMethodCall);
@@ -7512,6 +7462,110 @@ namespace Microsoft.Dafny
       return rWithArgs;
     }
 
+    /// <summary>
+    /// Look up expr.Name in the following order:
+    ///  0. Type parameter
+    ///  1. Member of enclosing class (an implicit "this" is inserted, if needed)
+    ///  2. Member of the enclosing module (type name or the name of a module)
+    ///  3. Static function or method in the enclosing module or its imports
+    ///  
+    /// Note: 1 and 3 are not used now, but they will be of interest when async task types are supported.
+    /// </summary>
+    void ResolveNameSegment_Type(NameSegment expr, ResolveOpts opts, ResolveTypeOption option, List<TypeParameter> defaultTypeArguments) {
+      Contract.Requires(expr != null);
+      Contract.Requires(!expr.WasResolved());
+      Contract.Requires(opts != null);
+      Contract.Requires((option.Opt == ResolveTypeOptionEnum.DontInfer || option.Opt == ResolveTypeOptionEnum.InferTypeProxies) == (defaultTypeArguments == null));
+
+      if (expr.OptTypeArguments != null) {
+        foreach (var ty in expr.OptTypeArguments) {
+          ResolveType(expr.tok, ty, opts.codeContext, option, defaultTypeArguments);
+          if (ty.IsSubrangeType) {
+            Error(expr.tok, "sorry, cannot instantiate type parameter with a subrange type");
+          }
+        }
+      }
+
+      Expression r = null;  // the resolved expression, if successful
+
+      // For 0:
+      TypeParameter tp;
+#if ASYNC_TASK_TYPES
+      // For 1:
+      Dictionary<string, MemberDecl> members;
+      // For 1 and 3:
+      MemberDecl member = null;
+#endif
+      // For 2:
+      TopLevelDecl decl;
+
+      tp = allTypeParameters.Find(expr.Name);
+      if (tp != null) {
+        // ----- 0. type parameter
+        if (expr.OptTypeArguments == null) {
+          r = new Resolver_IdentifierExpr(expr.tok, tp);
+        } else {
+          Error(expr.tok, "Type parameter expects no type arguments: {0}", expr.Name);
+        }
+#if ASYNC_TASK_TYPES  // At the moment, there is no way for a class member to part of a type name, but this changes with async task types
+      } else if (currentClass != null && classMembers.TryGetValue(currentClass, out members) && members.TryGetValue(expr.Name, out member)) {
+        // ----- 1. member of the enclosing class
+        Expression receiver;
+        if (member.IsStatic) {
+          receiver = new StaticReceiverExpr(expr.tok, (ClassDecl)member.EnclosingClass);
+        } else {
+          if (!scope.AllowInstance) {
+            Error(expr.tok, "'this' is not allowed in a 'static' context");
+            // nevertheless, set "receiver" to a value so we can continue resolution
+          }
+          receiver = new ImplicitThisExpr(expr.tok);
+          receiver.Type = GetThisType(expr.tok, (ClassDecl)member.EnclosingClass);  // resolve here
+        }
+        r = ResolveExprDotCall(expr.tok, receiver, member, expr.OptTypeArguments, opts.codeContext, allowMethodCall);
+#endif
+      } else if (moduleInfo.TopLevels.TryGetValue(expr.Name, out decl)) {
+        // ----- 2. Member of the enclosing module
+        if (ReallyAmbiguousTopLevelDecl(ref decl)) {
+          Error(expr.tok, "The name {0} ambiguously refers to a type in one of the modules {1} (try qualifying the type name with the module name)", expr.Name, ((AmbiguousTopLevelDecl)decl).ModuleNames());
+        } else {
+          // We have found a module name or a type name, neither of which is a type expression. However, the NameSegment we're
+          // looking at may be followed by a further suffix that makes this into a type expresion. We postpone the rest of the
+          // resolution to any such suffix. For now, we create a temporary expression that will never be seen by the compiler
+          // or verifier, just to have a placeholder where we can recorded what we have found.
+          r = CreateResolver_IdentifierExpr(expr.tok, expr.Name, expr.OptTypeArguments, decl);
+        }
+
+#if ASYNC_TASK_TYPES  // At the moment, there is no way for a class member to part of a type name, but this changes with async task types
+      } else if (moduleInfo.StaticMembers.TryGetValue(expr.Name, out member)) {
+        // ----- 3. static member of the enclosing module
+        Contract.Assert(member.IsStatic); // moduleInfo.StaticMembers is supposed to contain only static members of the module's implicit class _default
+        if (ReallyAmbiguousThing(ref member)) {
+          Error(expr.tok, "The name {0} ambiguously refers to a static member in one of the modules {1} (try qualifying the member name with the module name)", expr.Name, ((AmbiguousMemberDecl)member).ModuleNames());
+        } else {
+          var receiver = new StaticReceiverExpr(expr.tok, (ClassDecl)member.EnclosingClass);
+          r = ResolveExprDotCall(expr.tok, receiver, member, expr.OptTypeArguments, opts.codeContext, allowMethodCall);
+        }
+#endif
+      } else if (option.Opt == ResolveTypeOptionEnum.AllowPrefixExtend && expr.OptTypeArguments == null) {
+        // it woulc plausibly be a type parameter, but isn't; we will declare it automatically
+        tp = new TypeParameter(expr.tok, expr.Name, defaultTypeArguments.Count, option.Parent);
+        defaultTypeArguments.Add(tp);
+        r = new Resolver_IdentifierExpr(expr.tok, tp);
+        allTypeParameters.Push(expr.Name, tp);
+      } else {
+        // ----- None of the above
+        Error(expr.tok, "Undeclared top-level type or type parameter: {0} (did you forget to qualify a name?)", expr.Name);
+      }
+
+      if (r == null) {
+        // an error has been reported above; we won't fill in .ResolvedExpression, but we still must fill in .Type
+        expr.Type = new InferredTypeProxy();
+      } else {
+        expr.ResolvedExpression = r;
+        expr.Type = r.Type;
+      }
+    }
+
     Resolver_IdentifierExpr CreateResolver_IdentifierExpr(IToken tok, string name, List<Type> optTypeArguments, TopLevelDecl decl) {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
@@ -7521,7 +7575,7 @@ namespace Microsoft.Dafny
       if (optTypeArguments != null) {
         // type arguments were supplied; they must be equal in number to those expected
         if (n != decl.TypeArgs.Count) {
-          Error(tok, "wrong number of type arguments for '{0}' (got {1}, expected {2})", name, n, decl.TypeArgs.Count);
+          Error(tok, "Wrong number of type arguments ({0} instead of {1}) passed to {2}: {3}", n, decl.TypeArgs.Count, decl.WhatKind, name);
         }
       }
       List<Type> tpArgs = new List<Type>();
@@ -7610,7 +7664,7 @@ namespace Microsoft.Dafny
         } else if (sig.TopLevels.TryGetValue(expr.SuffixName, out decl)) {
           // ----- 1. Member of the specified module
           if (ReallyAmbiguousTopLevelDecl(ref decl)) {
-            Error(expr.tok, "The name {0} ambiguously refers to a type in one of the modules {1}", expr.SuffixName, ((AmbiguousTopLevelDecl)decl).ModuleNames());
+            Error(expr.tok, "The name {0} ambiguously refers to a type in one of the modules {1} (try qualifying the type name with the module name)", expr.SuffixName, ((AmbiguousTopLevelDecl)decl).ModuleNames());
           } else {
             // We have found a module name or a type name, neither of which is an expression. However, the ExprDotName we're
             // looking at may be followed by a further suffix that makes this into an expresion. We postpone the rest of the
@@ -7622,7 +7676,7 @@ namespace Microsoft.Dafny
           // ----- 2. static member of the specified module
           Contract.Assert(member.IsStatic); // moduleInfo.StaticMembers is supposed to contain only static members of the module's implicit class _default
           if (ReallyAmbiguousThing(ref member)) {
-            Error(expr.tok, "The name {0} ambiguously refers to a static member in one of the modules {1}", expr.SuffixName, ((AmbiguousMemberDecl)member).ModuleNames());
+            Error(expr.tok, "The name {0} ambiguously refers to a static member in one of the modules {1} (try qualifying the member name with the module name)", expr.SuffixName, ((AmbiguousMemberDecl)member).ModuleNames());
           } else {
             var receiver = new StaticReceiverExpr(expr.tok, (ClassDecl)member.EnclosingClass);
             r = ResolveExprDotCall(expr.tok, receiver, member, expr.OptTypeArguments, opts.codeContext, allowMethodCall);
@@ -7633,10 +7687,14 @@ namespace Microsoft.Dafny
 
       } else if (lhs != null && lhs.Type is Resolver_IdentifierExpr.ResolverType_Type) {
         var ri = (Resolver_IdentifierExpr)lhs;
-        var decl = ri.Decl;
         // ----- 3. Look up name in type
-        // expand any synonyms
-        var ty = new UserDefinedType(expr.tok, decl.Name, decl, ri.TypeArgs).NormalizeExpand();
+        Type ty;
+        if (ri.TypeParamDecl != null) {
+          ty = new UserDefinedType(ri.TypeParamDecl);
+        } else {
+          // expand any synonyms
+          ty = new UserDefinedType(expr.tok, ri.Decl.Name, ri.Decl, ri.TypeArgs).NormalizeExpand();
+        }
         if (ty.IsRefType) {
           // ----- LHS is a class
           var cd = (ClassDecl)((UserDefinedType)ty).ResolvedClass;
@@ -7670,7 +7728,7 @@ namespace Microsoft.Dafny
           }
         }
         if (r == null) {
-          Error(expr.tok, "member '{0}' does not exist in type '{1}'", expr.SuffixName, ri.Decl.Name);
+          Error(expr.tok, "member '{0}' does not exist in type '{1}'", expr.SuffixName, ri.TypeParamDecl != null ? ri.TypeParamDecl.Name : ri.Decl.Name);
         }
       } else if (lhs != null) {
         // ----- 4. Look up name in the type of the Lhs
@@ -7690,6 +7748,104 @@ namespace Microsoft.Dafny
         expr.Type = r.Type;
       }
       return rWithArgs;
+    }
+
+    /// <summary>
+    /// To resolve "id" in expression "E . id", do:
+    ///  * If E denotes a module name M:
+    ///      0. Member of module M:  sub-module (including submodules of imports), class, datatype, etc.
+    ///         (if two imported types have the same name, an error message is produced here)
+    ///      1. Static member of M._default denoting an async task type
+    ///    (Note that in contrast to ResolveNameSegment_Type, imported modules, etc. are ignored)
+    ///  * If E denotes a type:
+    ///      2. a. Member of that type denoting an async task type, or:
+    ///         b. If allowDanglingDotName:
+    ///            Return the type "E" and the given "expr", letting the caller try to make sense of the final dot-name.
+    ///      
+    /// Note: 1 and 2a are not used now, but they will be of interest when async task types are supported.
+    /// </summary>
+    ResolveTypeReturn ResolveDotSuffix_Type(ExprDotName expr, ResolveOpts opts, bool allowDanglingDotName, ResolveTypeOption option, List<TypeParameter> defaultTypeArguments) {
+      Contract.Requires(expr != null);
+      Contract.Requires(!expr.WasResolved());
+      Contract.Requires(expr.Lhs is NameSegment || expr.Lhs is ExprDotName);
+      Contract.Requires(opts != null);
+      Contract.Ensures(Contract.Result<ResolveTypeReturn>() == null || allowDanglingDotName);
+
+      // resolve the LHS expression
+      if (expr.Lhs is NameSegment) {
+        ResolveNameSegment_Type((NameSegment)expr.Lhs, opts, option, defaultTypeArguments);
+      } else {
+        ResolveDotSuffix_Type((ExprDotName)expr.Lhs, opts, false, option, defaultTypeArguments);
+      }
+
+      if (expr.OptTypeArguments != null) {
+        foreach (var ty in expr.OptTypeArguments) {
+          ResolveType(expr.tok, ty, opts.codeContext, option, defaultTypeArguments);
+          if (ty.IsSubrangeType) {
+            Error(expr.tok, "sorry, cannot instantiate type parameter with a subrange type");
+          }
+        }
+      }
+
+      Expression r = null;  // the resolved expression, if successful
+
+      var lhs = expr.Lhs.Resolved;
+      if (lhs != null && lhs.Type is Resolver_IdentifierExpr.ResolverType_Module) {
+        var ri = (Resolver_IdentifierExpr)lhs;
+        var sig = ((ModuleDecl)ri.Decl).Signature;
+        sig = GetSignature(sig);
+        // For 0:
+        TopLevelDecl decl;
+
+        if (sig.TopLevels.TryGetValue(expr.SuffixName, out decl)) {
+          // ----- 0. Member of the specified module
+          if (ReallyAmbiguousTopLevelDecl(ref decl)) {
+            Error(expr.tok, "The name {0} ambiguously refers to a type in one of the modules {1} (try qualifying the type name with the module name)", expr.SuffixName, ((AmbiguousTopLevelDecl)decl).ModuleNames());
+          } else {
+            // We have found a module name or a type name.  We create a temporary expression that will never be seen by the compiler
+            // or verifier, just to have a placeholder where we can recorded what we have found.
+            r = CreateResolver_IdentifierExpr(expr.tok, expr.SuffixName, expr.OptTypeArguments, decl);
+          }
+#if ASYNC_TASK_TYPES
+        } else if (sig.StaticMembers.TryGetValue(expr.SuffixName, out member)) {
+          // ----- 1. static member of the specified module
+          Contract.Assert(member.IsStatic); // moduleInfo.StaticMembers is supposed to contain only static members of the module's implicit class _default
+          if (ReallyAmbiguousThing(ref member)) {
+            Error(expr.tok, "The name {0} ambiguously refers to a static member in one of the modules {1} (try qualifying the member name with the module name)", expr.SuffixName, ((AmbiguousMemberDecl)member).ModuleNames());
+          } else {
+            var receiver = new StaticReceiverExpr(expr.tok, (ClassDecl)member.EnclosingClass);
+            r = ResolveExprDotCall(expr.tok, receiver, member, expr.OptTypeArguments, opts.codeContext, allowMethodCall);
+          }
+#endif
+        } else {
+          Error(expr.tok, "module '{0}' does not declare a type '{1}'", ri.Decl.Name, expr.SuffixName);
+        }
+
+      } else if (lhs != null && lhs.Type is Resolver_IdentifierExpr.ResolverType_Type) {
+        var ri = (Resolver_IdentifierExpr)lhs;
+        // ----- 2. Look up name in type
+        Type ty;
+        if (ri.TypeParamDecl != null) {
+          ty = new UserDefinedType(ri.TypeParamDecl);
+        } else {
+          ty = new UserDefinedType(expr.tok, ri.Decl.Name, ri.Decl, ri.TypeArgs);
+        }
+        if (allowDanglingDotName && ty.IsRefType) {
+          return new ResolveTypeReturn(ty, expr);
+        }
+        if (r == null) {
+          Error(expr.tok, "member '{0}' does not exist in type '{1}' or cannot be part of type name", expr.SuffixName, ri.TypeParamDecl != null ? ri.TypeParamDecl.Name : ri.Decl.Name);
+        }
+      }
+
+      if (r == null) {
+        // an error has been reported above; we won't fill in .ResolvedExpression, but we still must fill in .Type
+        expr.Type = new InferredTypeProxy();
+      } else {
+        expr.ResolvedExpression = r;
+        expr.Type = r.Type;
+      }
+      return null;
     }
 
     Expression ResolveExprDotCall(IToken tok, Expression receiver, MemberDecl member, List<Type> optTypeArguments, ICodeContext caller, bool allowMethodCall) {
@@ -7811,23 +7967,27 @@ namespace Microsoft.Dafny
           } else if (lhs != null && lhs.Type is Resolver_IdentifierExpr.ResolverType_Type) {
             // It may be a conversion expression
             var ri = (Resolver_IdentifierExpr)lhs;
-            var decl = ri.Decl;
-            var ty = new UserDefinedType(e.tok, decl.Name, decl, ri.TypeArgs);
-            if (ty.AsNewtype != null) {
-              if (e.Args.Count != 1) {
-                Error(e.tok, "conversion operation to {0} got wrong number of arguments (expected 1, got {1})", decl.Name, e.Args.Count);
-              }
-              var conversionArg = 1 <= e.Args.Count ? e.Args[0] :
-                ty.IsNumericBased(Type.NumericPersuation.Int) ? LiteralExpr.CreateIntLiteral(e.tok, 0) :
-                LiteralExpr.CreateRealLiteral(e.tok, Basetypes.BigDec.ZERO);
-              r = new ConversionExpr(e.tok, conversionArg, ty);
-              ResolveExpression(r, opts);
-              // resolve the rest of the arguments, if any
-              for (int i = 1; i < e.Args.Count; i++) {
-                ResolveExpression(e.Args[i], opts);
-              }
+            if (ri.TypeParamDecl != null) {
+              Error(e.tok, "name of type parameter ({0}) is used as a function", ri.TypeParamDecl.Name);
             } else {
-              Error(e.tok, "name of type ({0}) is used as a function", decl.Name);
+              var decl = ri.Decl;
+              var ty = new UserDefinedType(e.tok, decl.Name, decl, ri.TypeArgs);
+              if (ty.AsNewtype != null) {
+                if (e.Args.Count != 1) {
+                  Error(e.tok, "conversion operation to {0} got wrong number of arguments (expected 1, got {1})", decl.Name, e.Args.Count);
+                }
+                var conversionArg = 1 <= e.Args.Count ? e.Args[0] :
+                  ty.IsNumericBased(Type.NumericPersuation.Int) ? LiteralExpr.CreateIntLiteral(e.tok, 0) :
+                  LiteralExpr.CreateRealLiteral(e.tok, Basetypes.BigDec.ZERO);
+                r = new ConversionExpr(e.tok, conversionArg, ty);
+                ResolveExpression(r, opts);
+                // resolve the rest of the arguments, if any
+                for (int i = 1; i < e.Args.Count; i++) {
+                  ResolveExpression(e.Args[i], opts);
+                }
+              } else {
+                Error(e.tok, "name of type ({0}) is used as a function", decl.Name);
+              }
             }
           } else {
             if (lhs is MemberSelectExpr && ((MemberSelectExpr)lhs).Member is Method) {
@@ -7945,63 +8105,27 @@ namespace Microsoft.Dafny
     }
 
     private bool ComparableTypes(Type A, Type B) {
-      A = A.NormalizeExpand();
-      B = B.NormalizeExpand();
-      if (A.IsArrayType && B.IsArrayType) {
-        Type a = UserDefinedType.ArrayElementType(A);
-        Type b = UserDefinedType.ArrayElementType(B);
-        return CouldPossiblyBeSameType(a, b);
-      } else
-        if (A is UserDefinedType && B is UserDefinedType) {
-          UserDefinedType a = (UserDefinedType)A;
-          UserDefinedType b = (UserDefinedType)B;
-          if ((a is ArrowType) != (b is ArrowType)) {
-            return false;
-          }
-          if (a.ResolvedClass != null && b.ResolvedClass != null && a.ResolvedClass.Name == b.ResolvedClass.Name) {
-            if (a.TypeArgs.Count != b.TypeArgs.Count) {
-              return false; // this probably doesn't happen if the classes are the same.
-            }
-            for (int i = 0; i < a.TypeArgs.Count; i++) {
-              if (!CouldPossiblyBeSameType(a.TypeArgs[i], b.TypeArgs[i]))
-                return false;
-            }
-            // all parameters could be the same
-            return true;
-          }
-          // either we don't know what class it is yet, or the classes mismatch
+      // If we know that both A and B denote classes and they denote the same class,
+      // then we will say the types are comparable (for the purpose of the == and !=
+      // opeators) if it isn't blatantly impossible to instantiate the type parameters
+      // of the enclosing context so that A and B are exactly the same type.
+      var a = A.NormalizeExpand() as UserDefinedType;
+      var b = B.NormalizeExpand() as UserDefinedType;
+      if (a != null && b != null) {
+        if (a is ArrowType || b is ArrowType) {
           return false;
         }
-      return false;
-    }
-    public bool CouldPossiblyBeSameType(Type A, Type B) {
-      if ((A is ArrowType) != (B is ArrowType)) {
-        return false;
-      }
-      if (A.IsTypeParameter || B.IsTypeParameter) {
-        return true;
-      }
-      if (A.IsArrayType && B.IsArrayType) {
-        Type a = UserDefinedType.ArrayElementType(A);
-        Type b = UserDefinedType.ArrayElementType(B);
-        return CouldPossiblyBeSameType(a, b);
-      }
-      if (A is UserDefinedType && B is UserDefinedType) {
-        UserDefinedType a = (UserDefinedType)A;
-        UserDefinedType b = (UserDefinedType)B;
-        if (a.ResolvedClass != null && b.ResolvedClass != null && a.ResolvedClass == b.ResolvedClass) {
-          if (a.TypeArgs.Count != b.TypeArgs.Count) {
-            return false; // this probably doesn't happen if the classes are the same.
-          }
-          for (int i = 0; i < a.TypeArgs.Count; i++) {
-            if (!CouldPossiblyBeSameType(a.TypeArgs[i], b.TypeArgs[i]))
+        var acl = a.ResolvedClass;
+        var bcl = b.ResolvedClass;
+        if (acl is ClassDecl && bcl is ClassDecl && acl == bcl) {
+          for (int i = 0; i < acl.TypeArgs.Count; i++) {
+            if (!a.TypeArgs[i].PossiblyEquals(b.TypeArgs[i])) {
               return false;
+            }
           }
           // all parameters could be the same
           return true;
         }
-        // either we don't know what class it is yet, or the classes mismatch
-        return false;
       }
       return false;
     }

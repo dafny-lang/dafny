@@ -1797,7 +1797,7 @@ namespace Microsoft.Dafny {
         // create and resolve datatype value
         var r = new DatatypeValue(mc.tok, mc.Ctor.EnclosingDatatype.Name, mc.Ctor.Name, rArgs);
         r.Ctor = mc.Ctor;
-        r.Type = new UserDefinedType(mc.tok, mc.Ctor.EnclosingDatatype.Name, new List<Type>()/*this is not right, but it seems like it won't matter here*/, null);
+        r.Type = new UserDefinedType(mc.tok, mc.Ctor.EnclosingDatatype.Name, new List<Type>()/*this is not right, but it seems like it won't matter here*/);
 
         Dictionary<IVariable, Expression> substMap = new Dictionary<IVariable, Expression>();
         substMap.Add(formal, r);
@@ -7409,7 +7409,7 @@ namespace Microsoft.Dafny {
             var v = new DatatypeValue(x.tok, dt.Name, ctor.Name, new List<Expression>());
             v.Ctor = ctor;  // resolve here
             v.InferredTypeArgs = xType.TypeArgs; // resolved here.
-            v.Type = new UserDefinedType(x.tok, dt.Name, dt, new List<Type>());  // resolve here
+            v.Type = xType;  // resolve here
             yield return v;
           }
         }

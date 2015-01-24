@@ -332,10 +332,7 @@ namespace Microsoft.Dafny
               if (newMem is Function) {
                 CheckFunctionsAreRefinements((Function)newMem, (Function)m);
               } else {
-                bool isPredicate = m is Predicate;
-                bool isCoPredicate = m is CoPredicate;
-                string s = isPredicate ? "predicate" : isCoPredicate ? "copredicate" : "function";
-                reporter.Error(newMem, "{0} must be refined by a {0}", s);
+                reporter.Error(newMem, "{0} must be refined by a {0}", m.WhatKind);
               }
             }
           } else {
@@ -690,19 +687,18 @@ namespace Microsoft.Dafny
             var f = (Function)nwMember;
             bool isPredicate = f is Predicate;
             bool isCoPredicate = f is CoPredicate;
-            string s = isPredicate ? "predicate" : isCoPredicate ? "copredicate" : "function";
             if (!(member is Function) || (isPredicate && !(member is Predicate)) || (isCoPredicate && !(member is CoPredicate))) {
-              reporter.Error(nwMember, "a {0} declaration ({1}) can only refine a {0}", s, nwMember.Name);
+              reporter.Error(nwMember, "a {0} declaration ({1}) can only refine a {0}", f.WhatKind, nwMember.Name);
             } else {
               var prevFunction = (Function)member;
               if (f.Req.Count != 0) {
-                reporter.Error(f.Req[0].tok, "a refining {0} is not allowed to add preconditions", s);
+                reporter.Error(f.Req[0].tok, "a refining {0} is not allowed to add preconditions", f.WhatKind);
               }
               if (f.Reads.Count != 0) {
-                reporter.Error(f.Reads[0].E.tok, "a refining {0} is not allowed to extend the reads clause", s);
+                reporter.Error(f.Reads[0].E.tok, "a refining {0} is not allowed to extend the reads clause", f.WhatKind);
               }
               if (f.Decreases.Expressions.Count != 0) {
-                reporter.Error(f.Decreases.Expressions[0].tok, "decreases clause on refining {0} not supported", s);
+                reporter.Error(f.Decreases.Expressions[0].tok, "decreases clause on refining {0} not supported", f.WhatKind);
               }
 
               if (prevFunction.HasStaticKeyword != f.HasStaticKeyword) {

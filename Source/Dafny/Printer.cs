@@ -399,12 +399,7 @@ namespace Microsoft.Dafny {
     private void PrintTypeInstantiation(List<Type> typeArgs) {
       Contract.Requires(typeArgs == null || typeArgs.Count != 0);
       if (typeArgs != null) {
-        var prefix = "<";
-        foreach (var ty in typeArgs) {
-          wr.Write("{0}{1}", prefix, ty);
-          prefix = ", ";
-        }
-        wr.Write(">");
+        wr.Write("<{0}>", Util.Comma(",", typeArgs, ty => ty.ToString()));
       }
     }
 
@@ -904,6 +899,9 @@ namespace Microsoft.Dafny {
             string sep = "(";
             foreach (BoundVar bv in mc.Arguments) {
               wr.Write("{0}{1}", sep, bv.DisplayName);
+              if (bv.Type is NonProxyType) {
+                wr.Write(": {0}", bv.Type);
+              }
               sep = ", ";
             }
             wr.Write(")");
@@ -1106,8 +1104,8 @@ namespace Microsoft.Dafny {
       } else if (rhs is TypeRhs) {
         TypeRhs t = (TypeRhs)rhs;
         wr.Write("new ");
-        PrintType(t.EType);
         if (t.ArrayDimensions != null) {
+          PrintType(t.EType);
           string s = "[";
           foreach (Expression dim in t.ArrayDimensions) {
             Contract.Assume(dim != null);
@@ -1117,11 +1115,9 @@ namespace Microsoft.Dafny {
           }
           wr.Write("]");
         } else if (t.Arguments == null) {
-          // nothing else to print
+          PrintType(t.EType);
         } else {
-          if (t.OptionalNameComponent != null) {
-            wr.Write(".{0}", t.OptionalNameComponent);
-          }
+          PrintType(t.Path);
           wr.Write("(");
           PrintExpressionList(t.Arguments, false);
           wr.Write(")");
@@ -1201,6 +1197,9 @@ namespace Microsoft.Dafny {
             string sep = "(";
             foreach (BoundVar bv in mc.Arguments) {
               wr.Write("{0}{1}", sep, bv.DisplayName);
+              if (bv.Type is NonProxyType) {
+                wr.Write(": {0}", bv.Type);
+              }
               sep = ", ";
             }
             wr.Write(")");

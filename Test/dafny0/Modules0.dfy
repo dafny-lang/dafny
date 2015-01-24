@@ -309,6 +309,7 @@ module Q_Imp {
 }
 
 module Q_M {
+  import Q_Imp
   method MyMethod(root: Q_Imp.Node, S: set<Node>)
     requires root in S;  // error: the element type of S does not agree with the type of root
   {

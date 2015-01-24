@@ -120,13 +120,13 @@ namespace Microsoft.Dafny {
       Contract.Requires(arg != null);
       return ArrayType(Token.NoToken, dims, new List<Type>() { arg }, allowCreationOfNewClass);
     }
-    public UserDefinedType ArrayType(IToken tok, int dims, List<Type> typeArgs, bool allowCreationOfNewClass) {
+    public UserDefinedType ArrayType(IToken tok, int dims, List<Type> optTypeArgs, bool allowCreationOfNewClass) {
       Contract.Requires(tok != null);
       Contract.Requires(1 <= dims);
-      Contract.Requires(typeArgs != null);
+      Contract.Requires(optTypeArgs == null || optTypeArgs.Count > 0);  // ideally, it is 1, but more will generate an error later, and null means it will be filled in automatically
       Contract.Ensures(Contract.Result<UserDefinedType>() != null);
 
-      UserDefinedType udt = new UserDefinedType(tok, ArrayClassName(dims), typeArgs, null);
+      UserDefinedType udt = new UserDefinedType(tok, ArrayClassName(dims), optTypeArgs);
       if (allowCreationOfNewClass && !arrayTypeDecls.ContainsKey(dims)) {
         ArrayClassDecl arrayClass = new ArrayClassDecl(dims, SystemModule, DontCompile());
         for (int d = 0; d < dims; d++) {
@@ -430,6 +430,23 @@ namespace Microsoft.Dafny {
     /// </summary>
     [Pure]
     public abstract bool Equals(Type that);
+    /// <summary>
+    /// Returns whether or not "this" and "that" could denote the same type, module proxies and type synonyms, if
+    /// type parameters are treated as wildcards.
+    /// </summary>
+    public bool PossiblyEquals(Type that) {
+      Contract.Requires(that != null);
+      var a = NormalizeExpand();
+      var b = that.NormalizeExpand();
+      return a.AsTypeParameter != null || b.AsTypeParameter != null || a.PossiblyEquals_W(b);
+    }
+    /// <summary>
+    /// Overridable worker routine for PossiblyEquals. Implementations can assume "that" to be non-null,
+    /// and that NormalizeExpand() has been applied to both "this" and "that". Furthermore, neither "this"
+    /// nor "that" is a TypeParameter, because that case is handled by PossiblyEquals. Recursive calls
+    /// should go to PossiblyEquals, not directly to PossiblyEquals_W.
+    /// </summary>
+    public abstract bool PossiblyEquals_W(Type that);
 
     public bool IsBoolType { get { return NormalizeExpand() is BoolType; } }
     public bool IsCharType { get { return NormalizeExpand() is CharType; } }
@@ -629,6 +646,9 @@ namespace Microsoft.Dafny {
 
   public abstract class BasicType : NonProxyType
   {
+    public override bool PossiblyEquals_W(Type that) {
+      return Equals(that);
+    }
   }
 
   public class BoolType : BasicType {
@@ -710,7 +730,7 @@ namespace Microsoft.Dafny {
     /// Constructs a(n unresolved) arrow type.
     /// </summary>
     public ArrowType(IToken tok, List<Type> args, Type result)
-      :  base(tok, ArrowTypeName(args.Count), Util.Snoc(args, result), null) {
+      :  base(tok, ArrowTypeName(args.Count), Util.Snoc(args, result)) {
       Contract.Requires(tok != null);
       Contract.Requires(args != null);
       Contract.Requires(result != null);
@@ -831,6 +851,10 @@ namespace Microsoft.Dafny {
       var t = that.NormalizeExpand() as SetType;
       return t != null && Arg.Equals(t.Arg);
     }
+    public override bool PossiblyEquals_W(Type that) {
+      var t = that as SetType;
+      return t != null && Arg.PossiblyEquals(t.Arg);
+    }
   }
 
   public class MultiSetType : CollectionType
@@ -842,6 +866,10 @@ namespace Microsoft.Dafny {
       var t = that.NormalizeExpand() as MultiSetType;
       return t != null && Arg.Equals(t.Arg);
     }
+    public override bool PossiblyEquals_W(Type that) {
+      var t = that as MultiSetType;
+      return t != null && Arg.PossiblyEquals(t.Arg);
+    }
   }
 
   public class SeqType : CollectionType {
@@ -851,6 +879,10 @@ namespace Microsoft.Dafny {
     public override bool Equals(Type that) {
       var t = that.NormalizeExpand() as SeqType;
       return t != null && Arg.Equals(t.Arg);
+    }
+    public override bool PossiblyEquals_W(Type that) {
+      var t = that as SeqType;
+      return t != null && Arg.PossiblyEquals(t.Arg);
     }
   }
   public class MapType : CollectionType
@@ -890,6 +922,10 @@ namespace Microsoft.Dafny {
       var t = that.NormalizeExpand() as MapType;
       return t != null && Arg.Equals(t.Arg) && Range.Equals(t.Range);
     }
+    public override bool PossiblyEquals_W(Type that) {
+      var t = that as MapType;
+      return t != null && Arg.PossiblyEquals(t.Arg) && Range.PossiblyEquals(t.Range);
+    }
   }
 
   public class UserDefinedType : NonProxyType
@@ -899,11 +935,11 @@ namespace Microsoft.Dafny {
       Contract.Invariant(tok != null);
       Contract.Invariant(Name != null);
       Contract.Invariant(cce.NonNullElements(TypeArgs));
-      Contract.Invariant(cce.NonNullElements(Path));
+      Contract.Invariant(NamePath is NameSegment || NamePath is ExprDotName);
       Contract.Invariant(!ArrowType.IsArrowTypeName(Name) || this is ArrowType);
     }
 
-    public readonly List<IToken> Path;
+    public readonly Expression NamePath;  // either NameSegment or ExprDotName (with the inner expression satisfying this same constraint)
     public readonly IToken tok;  // token of the Name
     public readonly string Name;
     [Rep]
@@ -940,70 +976,76 @@ namespace Microsoft.Dafny {
     public TopLevelDecl ResolvedClass;  // filled in by resolution, if Name denotes a class/datatype/iterator and TypeArgs match the type parameters of that class/datatype/iterator
     public TypeParameter ResolvedParam;  // filled in by resolution, if Name denotes an enclosing type parameter and TypeArgs is the empty list
 
-    public UserDefinedType(IToken tok, string name, [Captured] List<Type> typeArgs, List<IToken> moduleName) {
-      Contract.Requires(tok != null);
-      Contract.Requires(name != null);
-      Contract.Requires(cce.NonNullElements(typeArgs));
-      Contract.Requires(moduleName == null || cce.NonNullElements(moduleName));
-      if (moduleName != null) this.Path = moduleName;
-      else this.Path = new List<IToken>();
-      this.tok = tok;
-      this.Name = name;
-      this.TypeArgs = typeArgs;
-    }
-
-    /// <summary>
-    /// This constructor constructs a resolved class/datatype/iterator type
-    /// </summary>
-    public UserDefinedType(IToken tok, string name, TopLevelDecl cd, [Captured] List<Type> typeArgs)
-      : this(tok, name, cd, typeArgs, null)
+    public UserDefinedType(IToken tok, string name, List<Type> optTypeArgs)
+      : this(tok, new NameSegment(tok, name, optTypeArgs))
     {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
-      Contract.Requires(cd != null);
-      Contract.Requires(cce.NonNullElements(typeArgs));
+      Contract.Requires(optTypeArgs == null || optTypeArgs.Count > 0);  // this is what it means to be syntactically optional
+    }
+
+    public UserDefinedType(IToken tok, Expression namePath) {
+      Contract.Requires(tok != null);
+      Contract.Requires(namePath is NameSegment || namePath is ExprDotName);
+      this.tok = tok;
+      if (namePath is NameSegment) {
+        var n = (NameSegment)namePath;
+        this.Name = n.Name;
+        this.TypeArgs = n.OptTypeArguments;
+      } else {
+        var n = (ExprDotName)namePath;
+        this.Name = n.SuffixName;
+        this.TypeArgs = n.OptTypeArguments;
+      }
+      if (this.TypeArgs == null) {
+        this.TypeArgs = new List<Type>();  // TODO: is this really the thing to do?
+      }
+      this.NamePath = namePath;
     }
 
     /// <summary>
     /// This constructor constructs a resolved class/datatype/iterator type
     /// </summary>
-    public UserDefinedType(IToken tok, string name, TopLevelDecl cd, [Captured] List<Type> typeArgs, List<IToken> moduleName) {
+    public UserDefinedType(IToken tok, string name, TopLevelDecl cd, [Captured] List<Type> typeArgs) {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
       Contract.Requires(cd != null);
       Contract.Requires(cce.NonNullElements(typeArgs));
-      Contract.Requires(moduleName == null || cce.NonNullElements(moduleName));
+      Contract.Requires(cd.TypeArgs.Count == typeArgs.Count);
       this.tok = tok;
       this.Name = name;
       this.ResolvedClass = cd;
       this.TypeArgs = typeArgs;
-      if (moduleName != null)
-        this.Path = moduleName;
-      else
-        this.Path = new List<IToken>();
-    }
-
-    /// <summary>
-    /// This constructor constructs a resolved type parameter
-    /// </summary>
-    public UserDefinedType(IToken tok, string name, TypeParameter tp) {
-      Contract.Requires(tok != null);
-      Contract.Requires(name != null);
-      Contract.Requires(tp != null);
-      this.tok = tok;
-      this.Name = name;
-      this.TypeArgs = new List<Type>();
-      this.ResolvedParam = tp;
-      this.Path = new List<IToken>();
+      var ns = new NameSegment(tok, name, typeArgs.Count == 0 ? null : typeArgs);
+      var r = new Resolver_IdentifierExpr(tok, cd, typeArgs);
+      ns.ResolvedExpression = r;
+      ns.Type = r.Type;
+      this.NamePath = ns;
     }
 
     /// <summary>
     /// This constructor constructs a resolved type parameter
     /// </summary>
     public UserDefinedType(TypeParameter tp)
-      : this(tp.tok, tp.Name, tp)
-    {
+      : this(tp.tok, tp) {
       Contract.Requires(tp != null);
+    }
+
+    /// <summary>
+    /// This constructor constructs a resolved type parameter
+    /// </summary>
+    public UserDefinedType(IToken tok, TypeParameter tp) {
+      Contract.Requires(tok != null);
+      Contract.Requires(tp != null);
+      this.tok = tok;
+      this.Name = tp.Name;
+      this.TypeArgs = new List<Type>();
+      this.ResolvedParam = tp;
+      var ns = new NameSegment(tok, tp.Name, null);
+      var r = new Resolver_IdentifierExpr(tok, tp);
+      ns.ResolvedExpression = r;
+      ns.Type = r.Type;
+      this.NamePath = ns;
     }
 
     public override bool Equals(Type that) {
@@ -1026,6 +1068,19 @@ namespace Microsoft.Dafny {
       } else {
         return i.Equals(that);
       }
+    }
+    public override bool PossiblyEquals_W(Type that) {
+      Contract.Assume(ResolvedParam == null);  // we get this assumption from the caller, PossiblyEquals
+      var t = that as UserDefinedType;
+      if (t != null && ResolvedClass != null && ResolvedClass == t.ResolvedClass) {
+        for (int j = 0; j < TypeArgs.Count; j++) {
+          if (!TypeArgs[j].PossiblyEquals(t.TypeArgs[j])) {
+            return false;
+          }
+        }
+        return true;
+      }
+      return false;
     }
 
     /// <summary>
@@ -1067,18 +1122,12 @@ namespace Microsoft.Dafny {
           return ((TypeSynonymDecl)ResolvedClass).Rhs.TypeName(context);
         }
 #endif
-        string s = "";
-        foreach (var t in Path) {
-          if (context != null && t == context.tok) {
-            // drop the prefix up to here
-            s = "";
-          } else {
-            s += t.val + ".";
+        var s = Printer.ExprToString(NamePath);
+        if (ResolvedClass != null) {
+          var optionalTypeArgs = NamePath is NameSegment ? ((NameSegment)NamePath).OptTypeArguments : ((ExprDotName)NamePath).OptTypeArguments;
+          if (optionalTypeArgs == null && TypeArgs != null && TypeArgs.Count != 0) {
+            s += "<" + Util.Comma(",", TypeArgs, ty => ty.TypeName(context)) + ">";
           }
-        }
-        s += Name;
-        if (TypeArgs.Count != 0) {
-          s += "<" + Util.Comma(",", TypeArgs, ty => ty.TypeName(context)) + ">";
         }
         return s;
       }
@@ -1145,6 +1194,9 @@ namespace Microsoft.Dafny {
       } else {
         return i.Equals(that);
       }
+    }
+    public override bool PossiblyEquals_W(Type that) {
+      return false;  // we don't consider unresolved proxies as worthy of "possibly equals" status
     }
   }
 
@@ -1456,6 +1508,7 @@ namespace Microsoft.Dafny {
   // Represents a submodule declaration at module level scope
   abstract public class ModuleDecl : TopLevelDecl
   {
+    public override string WhatKind { get { return "module"; } }
     public ModuleSignature Signature; // filled in by resolution, in topological order.
     public int Height;
     public readonly bool Opened;
@@ -1720,6 +1773,7 @@ namespace Microsoft.Dafny {
   }
 
   public abstract class TopLevelDecl : Declaration, TypeParameter.ParentType {
+    public abstract string WhatKind { get; }
     public readonly ModuleDefinition Module;
     public readonly List<TypeParameter> TypeArgs;
     [ContractInvariantMethod]
@@ -1762,13 +1816,15 @@ namespace Microsoft.Dafny {
 
   public class TraitDecl : ClassDecl
   {
-      public bool IsParent { set; get; }
-      public TraitDecl(IToken tok, string name, ModuleDefinition module,
-        List<TypeParameter> typeArgs, [Captured] List<MemberDecl> members, Attributes attributes)
-          : base(tok, name, module, typeArgs, members, attributes, null) { }
+    public override string WhatKind { get { return "trait"; } }
+    public bool IsParent { set; get; }
+    public TraitDecl(IToken tok, string name, ModuleDefinition module,
+      List<TypeParameter> typeArgs, [Captured] List<MemberDecl> members, Attributes attributes)
+      : base(tok, name, module, typeArgs, members, attributes, null) { }
   }
 
   public class ClassDecl : TopLevelDecl {
+    public override string WhatKind { get { return "class"; } }
     public readonly List<MemberDecl> Members;
     public List<TraitDecl> TraitsObj;
     public readonly List<Type> TraitsTyp;
@@ -1834,6 +1890,7 @@ namespace Microsoft.Dafny {
   }
 
   public class ArrayClassDecl : ClassDecl {
+    public override string WhatKind { get { return "array type"; } }
     public readonly int Dims;
     public ArrayClassDecl(int dims, ModuleDefinition module, Attributes attrs)
     : base(Token.NoToken, BuiltIns.ArrayClassName(dims), module,
@@ -1849,6 +1906,7 @@ namespace Microsoft.Dafny {
 
   public class ArrowTypeDecl : ClassDecl
   {
+    public override string WhatKind { get { return "function type"; } }
     public readonly int Arity;
     public readonly Function Requires;
     public readonly Function Reads;
@@ -1897,6 +1955,7 @@ namespace Microsoft.Dafny {
 
   public class IndDatatypeDecl : DatatypeDecl
   {
+    public override string WhatKind { get { return "datatype"; } }
     public DatatypeCtor DefaultCtor;  // set during resolution
     public bool[] TypeParametersUsedInConstructionByDefaultCtor;  // set during resolution; has same length as the number of type arguments
 
@@ -1953,7 +2012,7 @@ namespace Microsoft.Dafny {
       var formals = new List<Formal>();
       for (int i = 0; i < typeArgs.Count; i++) {
         var tp = typeArgs[i];
-        var f = new Formal(Token.NoToken, i.ToString(), new UserDefinedType(Token.NoToken, tp.Name, tp), true, false);
+        var f = new Formal(Token.NoToken, i.ToString(), new UserDefinedType(Token.NoToken, tp), true, false);
         formals.Add(f);
       }
       var ctor = new DatatypeCtor(Token.NoToken, BuiltIns.TupleTypeCtorName, formals, null);
@@ -1963,6 +2022,7 @@ namespace Microsoft.Dafny {
 
   public class CoDatatypeDecl : DatatypeDecl
   {
+    public override string WhatKind { get { return "codatatype"; } }
     public CoDatatypeDecl SscRepr;  // filled in during resolution
 
     public CoDatatypeDecl(IToken tok, string name, ModuleDefinition module, List<TypeParameter> typeArgs,
@@ -2102,6 +2162,7 @@ namespace Microsoft.Dafny {
 
   public class IteratorDecl : ClassDecl, IMethodCodeContext
   {
+    public override string WhatKind { get { return "iterator"; } }
     public readonly List<Formal> Ins;
     public readonly List<Formal> Outs;
     public readonly Specification<FrameExpression> Reads;
@@ -2207,6 +2268,7 @@ namespace Microsoft.Dafny {
   }
 
   public abstract class MemberDecl : Declaration {
+    public abstract string WhatKind { get; }
     public readonly bool HasStaticKeyword;
     public bool IsStatic {
       get {
@@ -2269,6 +2331,7 @@ namespace Microsoft.Dafny {
   }
 
   public class Field : MemberDecl {
+    public override string WhatKind { get { return "field"; } }
     public readonly bool IsMutable;  // says whether or not the field can ever change values
     public readonly bool IsUserMutable;  // says whether or not code is allowed to assign to the field (IsUserMutable implies IsMutable)
     public readonly Type Type;
@@ -2341,6 +2404,7 @@ namespace Microsoft.Dafny {
 
   public class OpaqueTypeDecl : TopLevelDecl, TypeParameter.ParentType
   {
+    public override string WhatKind { get { return "opaque type"; } }
     public readonly TypeParameter TheType;
     public TypeParameter.EqualitySupportValue EqualitySupport {
       get { return TheType.EqualitySupport; }
@@ -2390,6 +2454,7 @@ namespace Microsoft.Dafny {
 
   public class NewtypeDecl : TopLevelDecl, RedirectingTypeDecl
   {
+    public override string WhatKind { get { return "newtype"; } }
     public readonly Type BaseType;
     public readonly BoundVar Var;  // can be null (if non-null, then object.ReferenceEquals(Var.Type, BaseType))
     public readonly Expression Constraint;  // is null iff Var is
@@ -2438,6 +2503,7 @@ namespace Microsoft.Dafny {
 
   public class TypeSynonymDecl : TopLevelDecl, RedirectingTypeDecl
   {
+    public override string WhatKind { get { return "type synonym"; } }
     public readonly Type Rhs;
     public TypeSynonymDecl(IToken tok, string name, List<TypeParameter> typeArgs, ModuleDefinition module, Type rhs, Attributes attributes)
       : base(tok, name, module, typeArgs, attributes) {
@@ -2466,12 +2532,7 @@ namespace Microsoft.Dafny {
 
     string RedirectingTypeDecl.Name { get { return Name; } }
 
-    bool ICodeContext.IsGhost {
-      get {
-        // A type synonym does not have any expressions or statements, so the the question of IsGhost should never arise.
-        throw new cce.UnreachableException();
-      }
-    }
+    bool ICodeContext.IsGhost { get { return false; } }
     List<TypeParameter> ICodeContext.TypeArgs { get { return TypeArgs; } }
     List<Formal> ICodeContext.Ins { get { return new List<Formal>(); } }
     ModuleDefinition ICodeContext.EnclosingModule { get { return Module; } }
@@ -2671,6 +2732,7 @@ namespace Microsoft.Dafny {
       }
     }
     Type type;
+    public Type SyntacticType { get { return type; } }  // returns the non-normalized type
     public Type Type {
       get {
         Contract.Ensures(Contract.Result<Type>() != null);
@@ -2780,6 +2842,7 @@ namespace Microsoft.Dafny {
   }
 
   public class Function : MemberDecl, TypeParameter.ParentType, ICallable {
+    public override string WhatKind { get { return "function"; } }
     public bool IsRecursive;  // filled in during resolution
     public readonly List<TypeParameter> TypeArgs;
     public readonly List<Formal> Formals;
@@ -2878,6 +2941,7 @@ namespace Microsoft.Dafny {
 
   public class Predicate : Function
   {
+    public override string WhatKind { get { return "predicate"; } }
     public enum BodyOriginKind
     {
       OriginalOrInherited,  // this predicate definition is new (and the predicate may or may not have a body), or the predicate's body (whether or not it exists) is being inherited unmodified (from the previous refinement--it may be that the inherited body was itself an extension, for example)
@@ -2900,6 +2964,7 @@ namespace Microsoft.Dafny {
   /// </summary>
   public class PrefixPredicate : Function
   {
+    public override string WhatKind { get { return "prefix predicate"; } }
     public readonly Formal K;
     public readonly CoPredicate Co;
     public PrefixPredicate(IToken tok, string name, bool hasStaticKeyword,
@@ -2917,6 +2982,7 @@ namespace Microsoft.Dafny {
 
   public class CoPredicate : Function
   {
+    public override string WhatKind { get { return "copredicate"; } }
     public readonly List<FunctionCallExpr> Uses = new List<FunctionCallExpr>();  // filled in during resolution, used by verifier
     public PrefixPredicate PrefixPredicate;  // filled in during resolution (name registration)
 
@@ -2960,6 +3026,7 @@ namespace Microsoft.Dafny {
 
   public class Method : MemberDecl, TypeParameter.ParentType, IMethodCodeContext
   {
+    public override string WhatKind { get { return "method"; } }
     public bool SignatureIsOmitted { get { return SignatureEllipsis != null; } }
     public readonly IToken SignatureEllipsis;
     public bool MustReverify;
@@ -3047,6 +3114,7 @@ namespace Microsoft.Dafny {
 
   public class Lemma : Method
   {
+    public override string WhatKind { get { return "lemma"; } }
     public Lemma(IToken tok, string name,
                  bool hasStaticKeyword,
                  [Captured] List<TypeParameter> typeArgs,
@@ -3062,6 +3130,7 @@ namespace Microsoft.Dafny {
 
   public class Constructor : Method
   {
+    public override string WhatKind { get { return "constructor"; } }
     public Constructor(IToken tok, string name,
                   [Captured] List<TypeParameter> typeArgs,
                   [Captured] List<Formal> ins,
@@ -3093,6 +3162,7 @@ namespace Microsoft.Dafny {
   /// </summary>
   public class PrefixLemma : Method
   {
+    public override string WhatKind { get { return "prefix lemma"; } }
     public readonly Formal K;
     public readonly CoLemma Co;
     public PrefixLemma(IToken tok, string name, bool hasStaticKeyword,
@@ -3110,6 +3180,7 @@ namespace Microsoft.Dafny {
 
   public class CoLemma : Method
   {
+    public override string WhatKind { get { return "colemma"; } }
     public PrefixLemma PrefixLemma;  // filled in during resolution (name registration)
 
     public CoLemma(IToken tok, string name,
@@ -3462,45 +3533,42 @@ namespace Microsoft.Dafny {
   ///    This allocates an object of type C
   ///  * new C.Init(EE)
   ///    This allocates an object of type C and then invokes the method/constructor Init on it
-  /// There are four ways to construct a TypeRhs syntactically:
+  /// There are three ways to construct a TypeRhs syntactically:
   ///  * TypeRhs(T, EE)
   ///      -- represents new T[EE]
   ///  * TypeRhs(C)
   ///      -- represents new C
-  ///  * TypeRhs(Path, null, EE)
+  ///  * TypeRhs(Path, EE)
   ///    Here, Path may either be of the form C.Init
   ///      -- represents new C.Init(EE)
   ///    or all of Path denotes a type
   ///      -- represents new C._ctor(EE), where _ctor is the anonymous constructor for class C
-  ///  * TypeRhs(Path, s, EE)
-  ///    Here, Path must denote a type and s is a string that denotes the method/constructor Init
-  ///      -- represents new Path.s(EE)
   /// </summary>
   public class TypeRhs : AssignmentRhs
   {
     /// <summary>
     /// If ArrayDimensions != null, then the TypeRhs represents "new EType[ArrayDimensions]"
-    ///     and Arguments, OptionalNameComponent, and InitCall are all null.
-    /// If Arguments == null, then the TypeRhs represents "new C"
-    ///     and ArrayDimensions, OptionalNameComponent, and InitCall are all null.
-    /// If OptionalNameComponent != null, then the TypeRhs represents "new EType.OptionalNameComponents(Arguments)"
-    ///     and InitCall is filled in by resolution, and ArrayDimensions == null and Arguments != null.
+    ///     and Arguments, Path, and InitCall are all null.
+    /// If ArrayDimentions == null && Arguments == null, then the TypeRhs represents "new EType"
+    ///     and Path, and InitCall are all null.
+    /// If Arguments != null, then the TypeRhs represents "new Path(Arguments)"
+    ///     and EType and InitCall is filled in by resolution, and ArrayDimensions == null.
     /// If OptionalNameComponent == null and Arguments != null, then the TypeRHS has not been resolved yet;
     ///   resolution will either produce an error or will chop off the last part of "EType" and move it to
     ///   OptionalNameComponent, after which the case above applies.
     /// </summary>
-    public Type EType;  // almost readonly, except that resolution can split a given EType into a new EType plus a non-null OptionalNameComponent
+    public Type EType;  // in the case of Arguments != null, EType is filled in during resolution
     public readonly List<Expression> ArrayDimensions;
     public readonly List<Expression> Arguments;
-    public string OptionalNameComponent;
+    public Type Path;
     public CallStmt InitCall;  // may be null (and is definitely null for arrays), may be filled in during resolution
     public Type Type;  // filled in during resolution
     [ContractInvariantMethod]
     void ObjectInvariant() {
-      Contract.Invariant(EType != null);
-      Contract.Invariant(ArrayDimensions == null || (Arguments == null && OptionalNameComponent == null && InitCall == null));
-      Contract.Invariant(ArrayDimensions == null || 1 <= ArrayDimensions.Count);
-      Contract.Invariant(OptionalNameComponent == null || (Arguments != null && ArrayDimensions == null));
+      Contract.Invariant(EType != null || Arguments != null);
+      Contract.Invariant(ArrayDimensions == null || (Arguments == null && Path == null && InitCall == null && 1 <= ArrayDimensions.Count));
+      Contract.Invariant(Arguments == null || (Path != null && ArrayDimensions == null));
+      Contract.Invariant(!(ArrayDimensions == null && Arguments == null) || (Path == null && InitCall == null));
     }
 
     public TypeRhs(IToken tok, Type type, List<Expression> arrayDimensions)
@@ -3518,14 +3586,13 @@ namespace Microsoft.Dafny {
       Contract.Requires(type != null);
       EType = type;
     }
-    public TypeRhs(IToken tok, Type type, string optionalNameComponent, List<Expression> arguments)
+    public TypeRhs(IToken tok, Type path, List<Expression> arguments, bool disambiguatingDummy)
       : base(tok)
     {
       Contract.Requires(tok != null);
-      Contract.Requires(type != null);
+      Contract.Requires(path != null);
       Contract.Requires(arguments != null);
-      EType = type;
-      OptionalNameComponent = optionalNameComponent;  // may be null
+      Path = path;
       Arguments = arguments;
     }
     public override bool CanAffectPreviouslyKnownExpressions {
@@ -5375,13 +5442,17 @@ namespace Microsoft.Dafny {
   /// </summary>
   class Resolver_IdentifierExpr : Expression
   {
+    // The Resolver_IdentifierExpr either uses Decl and TypeArgs:
     public readonly TopLevelDecl Decl;
     public readonly List<Type> TypeArgs;
+    // ... or it uses TypeParamDecl:
+    public readonly TypeParameter TypeParamDecl;
     [ContractInvariantMethod]
     void ObjectInvariant() {
-      Contract.Invariant(Decl != null);
-      Contract.Invariant(Type == null || Type is ResolverType_Module || Type is ResolverType_Type);
-      Contract.Invariant(TypeArgs != null && TypeArgs.Count == Decl.TypeArgs.Count);
+      Contract.Invariant((Decl != null) != (TypeParamDecl != null));  // The Decl / TypeParamDecl fields are exclusive
+      Contract.Invariant((Decl != null) == (TypeArgs != null));  // The Decl / TypeArgs fields are used together
+      Contract.Invariant(TypeArgs == null || TypeArgs.Count == Decl.TypeArgs.Count);
+      Contract.Invariant(Type == null || (Type is ResolverType_Module && TypeParamDecl == null) || Type is ResolverType_Type);
     }
 
     public class ResolverType_Module : Type
@@ -5391,7 +5462,10 @@ namespace Microsoft.Dafny {
         return "#module";
       }
       public override bool Equals(Type that) {
-        return that is ResolverType_Module;
+        return that.NormalizeExpand() is ResolverType_Module;
+      }
+      public override bool PossiblyEquals_W(Type that) {
+        return false;
       }
     }
     public class ResolverType_Type : Type {
@@ -5400,7 +5474,10 @@ namespace Microsoft.Dafny {
         return "#type";
       }
       public override bool Equals(Type that) {
-        return that is ResolverType_Type;
+        return that.NormalizeExpand() is ResolverType_Type;
+      }
+      public override bool PossiblyEquals_W(Type that) {
+        return false;
       }
     }
 
@@ -5412,6 +5489,13 @@ namespace Microsoft.Dafny {
       Decl = decl;
       TypeArgs = typeArgs;
       Type = decl is ModuleDecl ? (Type)new ResolverType_Module() : new ResolverType_Type();
+    }
+    public Resolver_IdentifierExpr(IToken tok, TypeParameter tp)
+      : base(tok) {
+      Contract.Requires(tok != null);
+      Contract.Requires(tp != null);
+      TypeParamDecl = tp;
+      Type = new ResolverType_Type();
     }
   }
 
@@ -7004,6 +7088,7 @@ namespace Microsoft.Dafny {
       : base(tok) {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
+      Contract.Requires(optTypeArguments == null || optTypeArguments.Count > 0);
       Name = name;
       OptTypeArguments = optTypeArguments;
     }
