@@ -1063,7 +1063,7 @@ namespace Microsoft.Dafny
           }
           if (cl.IsDefaultClass) {
             foreach (MemberDecl m in cl.Members) {
-              Contract.Assert(!m.HasStaticKeyword);  // note, the IsStatic value isn't available yet; when it becomes available, we expect it will have the value 'true'
+              Contract.Assert(!m.HasStaticKeyword || DafnyOptions.O.AllowGlobals);  // note, the IsStatic value isn't available yet; when it becomes available, we expect it will have the value 'true'
               if (m is Function || m is Method) {
                 sig.StaticMembers[m.Name] = m;
               }
