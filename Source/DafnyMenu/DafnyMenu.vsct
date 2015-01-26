@@ -105,11 +105,10 @@
 
       <Button guid="guidDafnyMenuCmdSet" id="cmdidToggleMoreAdvancedSnapshotVerification" priority="0x0105" type="Button">
         <Parent guid="guidDafnyMenuCmdSet" id="DafnyMenuGroup" />
-        <CommandFlag>DefaultInvisible</CommandFlag>
         <CommandFlag>DynamicVisibility</CommandFlag>
         <CommandFlag>TextChanges</CommandFlag>
         <Strings>
-          <ButtonText>Enable more advanced on-demand re-verification</ButtonText>
+          <ButtonText>Disable more advanced on-demand re-verification</ButtonText>
         </Strings>
       </Button>
 
