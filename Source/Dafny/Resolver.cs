@@ -536,17 +536,17 @@ namespace Microsoft.Dafny
       return anyChangeToDecreases;
     }
 
-    public static Expression FrameArrowToObjectSet(Expression e, FreshVariableNameGenerator freshVarNameGen) {
+    public static Expression FrameArrowToObjectSet(Expression e, FreshIdGenerator idGen) {
       var arrTy = e.Type.AsArrowType;
       if (arrTy != null) {
         var bvars = new List<BoundVar>();
         var bexprs = new List<Expression>();
         foreach (var t in arrTy.Args) {
-          var bv = new BoundVar(e.tok, freshVarNameGen.FreshVariableName("_x"), t);
+          var bv = new BoundVar(e.tok, idGen.FreshId("_x"), t);
           bvars.Add(bv);
           bexprs.Add(new IdentifierExpr(e.tok, bv.Name) { Type = bv.Type, Var = bv });
         }
-        var oVar = new BoundVar(e.tok, freshVarNameGen.FreshVariableName("_o"), new ObjectType());
+        var oVar = new BoundVar(e.tok, idGen.FreshId("_o"), new ObjectType());
         var obj = new IdentifierExpr(e.tok, oVar.Name) { Type = oVar.Type, Var = oVar };
         bvars.Add(oVar);
 
@@ -575,13 +575,13 @@ namespace Microsoft.Dafny
 
       List<Expression> sets = new List<Expression>();
       List<Expression> singletons = null;
-      var freshVarNameGen = new FreshVariableNameGenerator();
+      var idGen = new FreshIdGenerator();
       foreach (FrameExpression fe in fexprs) {
         Contract.Assert(fe != null);
         if (fe.E is WildcardExpr) {
           // drop wildcards altogether
         } else {
-          Expression e = FrameArrowToObjectSet(fe.E, freshVarNameGen);  // keep only fe.E, drop any fe.Field designation
+          Expression e = FrameArrowToObjectSet(fe.E, idGen);  // keep only fe.E, drop any fe.Field designation
           Contract.Assert(e.Type != null);  // should have been resolved already
           var eType = e.Type.NormalizeExpand();
           if (eType.IsRefType) {
@@ -593,7 +593,7 @@ namespace Microsoft.Dafny
           } else if (eType is SeqType) {
             // e represents a sequence
             // Add:  set x :: x in e
-            var bv = new BoundVar(e.tok, freshVarNameGen.FreshVariableName("_s2s_"), ((SeqType)eType).Arg);
+            var bv = new BoundVar(e.tok, idGen.FreshId("_s2s_"), ((SeqType)eType).Arg);
             var bvIE = new IdentifierExpr(e.tok, bv.Name);
             bvIE.Var = bv;  // resolve here
             bvIE.Type = bv.Type;  // resolve here

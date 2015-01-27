@@ -26,15 +26,11 @@ namespace Microsoft.Dafny {
 
     TextWriter wr;
     Method enclosingMethod;  // non-null when a method body is being translated
-    internal static IUniqueNameGenerator UniqueNameGeneratorSingleton = new UniqueNameGenerator();
 
-    class UniqueNameGenerator : IUniqueNameGenerator
+    static int currentUniqueId = -1;
+    public static int FreshId()
     {
-      int currentId = -1;
-      public int GenerateId(string name)
-      {
-        return System.Threading.Interlocked.Increment(ref currentId);
-      }
+      return System.Threading.Interlocked.Increment(ref currentUniqueId);
     }
 
     Dictionary<Expression, int> uniqueAstNumbers = new Dictionary<Expression, int>();
@@ -1165,7 +1161,7 @@ namespace Microsoft.Dafny {
       } else if (stmt is BreakStmt) {
         var s = (BreakStmt)stmt;
         Indent(indent);
-        wr.WriteLine("goto after_{0};", s.TargetStmt.Labels.Data.AssignUniqueId("after_", VariableNameGenerator));
+        wr.WriteLine("goto after_{0};", s.TargetStmt.Labels.Data.AssignUniqueId("after_", IdGenerator));
       } else if (stmt is ProduceStmt) {
         var s = (ProduceStmt)stmt;
         if (s.hiddenUpdate != null)
@@ -1194,7 +1190,7 @@ namespace Microsoft.Dafny {
               if (!(rhs is HavocRhs)) {
                 lvalues.Add(CreateLvalue(lhs, indent));
 
-                string target = VariableNameGenerator.FreshVariableName("_rhs");
+                string target = IdGenerator.FreshId("_rhs");
                 rhss.Add(target);
                 TrRhs("var " + target, null, rhs, indent);
               }
@@ -1255,7 +1251,7 @@ namespace Microsoft.Dafny {
           Contract.Assert(s.Bounds != null);  // follows from s.MissingBounds == null
           var n = s.Lhss.Count;
           Contract.Assert(s.Bounds.Count == n);
-          var c = VariableNameGenerator.FreshVariableCount("_ASSIGN_SUCH_THAT_+_iterLimit_");
+          var c = IdGenerator.FreshNumericId("_ASSIGN_SUCH_THAT_+_iterLimit_");
           var doneLabel = "_ASSIGN_SUCH_THAT_" + c;
           var iterLimit = "_iterLimit_" + c;
 
@@ -1274,7 +1270,7 @@ namespace Microsoft.Dafny {
               Indent(ind);
               wr.WriteLine("var {0}_{1} = {0};", iterLimit, i);
             }
-            var tmpVar = VariableNameGenerator.FreshVariableName("_assign_such_that_");
+            var tmpVar = IdGenerator.FreshId("_assign_such_that_");
             Indent(ind);
             if (bound is ComprehensionExpr.BoolBoundedPool) {
               wr.WriteLine("foreach (var {0} in Dafny.Helpers.AllBooleans) {{ @{1} = {0};", tmpVar, bv.CompileName);
@@ -1490,7 +1486,7 @@ namespace Microsoft.Dafny {
         // be nested.
 
         // Temporary names
-        var c = VariableNameGenerator.FreshVariableCount("_ingredients+_tup");
+        var c = IdGenerator.FreshNumericId("_ingredients+_tup");
         string ingredients = "_ingredients" + c;
         string tup = "_tup" + c;
 
@@ -1647,7 +1643,7 @@ namespace Microsoft.Dafny {
         //   ...
         // }
         if (s.Cases.Count != 0) {
-          string source = VariableNameGenerator.FreshVariableName("_source");
+          string source = IdGenerator.FreshId("_source");
           Indent(indent);
           wr.Write("{0} {1} = ", TypeName(cce.NonNull(s.Source.Type)), source);
           TrExpr(s.Source);
@@ -1690,7 +1686,7 @@ namespace Microsoft.Dafny {
         return "@" + ll.Var.CompileName;
       } else if (lhs is MemberSelectExpr) {
         var ll = (MemberSelectExpr)lhs;
-        string obj = VariableNameGenerator.FreshVariableName("_obj");
+        string obj = IdGenerator.FreshId("_obj");
         Indent(indent);
         wr.Write("var {0} = ", obj);
         TrExpr(ll.Obj);
@@ -1698,7 +1694,7 @@ namespace Microsoft.Dafny {
         return string.Format("{0}.@{1}", obj, ll.Member.CompileName);
       } else if (lhs is SeqSelectExpr) {
         var ll = (SeqSelectExpr)lhs;
-        var c = VariableNameGenerator.FreshVariableCount("_arr+_index");
+        var c = IdGenerator.FreshNumericId("_arr+_index");
         string arr = "_arr" + c;
         string index = "_index" + c;
         Indent(indent);
@@ -1712,7 +1708,7 @@ namespace Microsoft.Dafny {
         return string.Format("{0}[(int){1}]", arr, index);
       } else {
         var ll = (MultiSelectExpr)lhs;
-        var c = VariableNameGenerator.FreshVariableCount("_arr+_index");
+        var c = IdGenerator.FreshNumericId("_arr+_index");
         string arr = "_arr" + c;
         Indent(indent);
         wr.Write("var {0} = ", arr);
@@ -1739,7 +1735,7 @@ namespace Microsoft.Dafny {
       Contract.Requires((target == null) != (targetExpr == null));
       var tRhs = rhs as TypeRhs;
       if (tRhs != null && tRhs.InitCall != null) {
-        string nw = VariableNameGenerator.FreshVariableName("_nw");
+        string nw = IdGenerator.FreshId("_nw");
         Indent(indent);
         wr.Write("var {0} = ", nw);
         TrAssignmentRhs(rhs);  // in this case, this call will not require us to spill any let variables first
@@ -1790,7 +1786,7 @@ namespace Microsoft.Dafny {
           // TODO:  What to do here?  When does this happen, what does it mean?
         } else if (!s.Method.IsStatic) {
 
-          string inTmp = VariableNameGenerator.FreshVariableName("_in");
+          string inTmp = IdGenerator.FreshId("_in");
           inTmps.Add(inTmp);
           Indent(indent);
           wr.Write("var {0} = ", inTmp);
@@ -1800,7 +1796,7 @@ namespace Microsoft.Dafny {
         for (int i = 0; i < s.Method.Ins.Count; i++) {
           Formal p = s.Method.Ins[i];
           if (!p.IsGhost) {
-            string inTmp = VariableNameGenerator.FreshVariableName("_in");
+            string inTmp = IdGenerator.FreshId("_in");
             inTmps.Add(inTmp);
             Indent(indent);
             wr.Write("var {0} = ", inTmp);
@@ -1842,7 +1838,7 @@ namespace Microsoft.Dafny {
         for (int i = 0; i < s.Method.Outs.Count; i++) {
           Formal p = s.Method.Outs[i];
           if (!p.IsGhost) {
-            string target = VariableNameGenerator.FreshVariableName("_out");
+            string target = IdGenerator.FreshId("_out");
             outTmps.Add(target);
             Indent(indent);
             wr.WriteLine("{0} {1};", TypeName(s.Lhs[i].Type), target);
@@ -1898,7 +1894,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    FreshVariableNameGenerator VariableNameGenerator = new FreshVariableNameGenerator();
+    FreshIdGenerator IdGenerator = new FreshIdGenerator();
 
     /// <summary>
     /// Before calling TrAssignmentRhs(rhs), the caller must have spilled the let variables declared in "rhs".
@@ -1945,7 +1941,7 @@ namespace Microsoft.Dafny {
         TrStmt(ss, indent + IndentAmount);
         if (ss.Labels != null) {
           Indent(indent);  // labels are not indented as much as the statements
-          wr.WriteLine("after_{0}: ;", ss.Labels.Data.AssignUniqueId("after_", VariableNameGenerator));
+          wr.WriteLine("after_{0}: ;", ss.Labels.Data.AssignUniqueId("after_", IdGenerator));
         }
       }
     }
@@ -2266,7 +2262,7 @@ namespace Microsoft.Dafny {
               string arg;
               var fce = actual as FunctionCallExpr;
               if (fce == null || fce.CoCall != FunctionCallExpr.CoCallResolution.Yes) {
-                string varName = VariableNameGenerator.FreshVariableName("_ac");
+                string varName = IdGenerator.FreshId("_ac");
                 arg = varName;
 
                 wr.Write("var {0} = ", varName);
@@ -2275,7 +2271,7 @@ namespace Microsoft.Dafny {
               } else {
                 var sw = new StringWriter();
                 CompileFunctionCallExpr(fce, sw, (exp) => {
-                  string varName = VariableNameGenerator.FreshVariableName("_ac");
+                  string varName = IdGenerator.FreshId("_ac");
                   sw.Write(varName);
 
                   wr.Write("var {0} = ", varName);
@@ -2630,7 +2626,7 @@ namespace Microsoft.Dafny {
         //   }
         // }(src)
 
-        string source = VariableNameGenerator.FreshVariableName("_source");
+        string source = IdGenerator.FreshId("_source");
         wr.Write("new Dafny.Helpers.Function<{0}, {1}>(delegate ({0} {2}) {{ ", TypeName(e.Source.Type), TypeName(e.Type), source);
 
         if (e.Cases.Count == 0) {

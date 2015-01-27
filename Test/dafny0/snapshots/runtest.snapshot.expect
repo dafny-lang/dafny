@@ -128,27 +128,27 @@ Dafny program verifier finished with 1 verified, 2 errors
 -------------------- Snapshots5.dfy --------------------
 Processing command (at Snapshots5.v0.dfy(3,4)) assert (forall<alpha> $o: ref, $f: Field alpha :: false ==> $_Frame[$o, $f]);
   >>> DoNothingToAssert
-Processing command (at Snapshots5.v0.dfy(10,40)) assert (forall b#2: bool :: true ==> b#2 || !b#2) || 0 != 0;
+Processing command (at Snapshots5.v0.dfy(10,40)) assert (forall b#1: bool :: true ==> b#1 || !b#1) || 0 != 0;
   >>> DoNothingToAssert
 Processing command (at Snapshots5.v0.dfy(12,4)) assert (forall<alpha> $o: ref, $f: Field alpha :: false ==> $_Frame[$o, $f]);
   >>> DoNothingToAssert
-Processing command (at Snapshots5.v0.dfy(13,38)) assert (forall b#4: bool :: true ==> b#4 || !b#4) || 3 != 3;
+Processing command (at Snapshots5.v0.dfy(13,38)) assert (forall b#3: bool :: true ==> b#3 || !b#3) || 3 != 3;
   >>> DoNothingToAssert
-Processing command (at Snapshots5.v0.dfy(20,40)) assert (forall b#6: bool :: true ==> b#6 || !b#6) || 1 != 1;
+Processing command (at Snapshots5.v0.dfy(20,40)) assert (forall b#5: bool :: true ==> b#5 || !b#5) || 1 != 1;
   >>> DoNothingToAssert
 
 Dafny program verifier finished with 3 verified, 0 errors
 Processing command (at Snapshots5.v1.dfy(3,4)) assert (forall<alpha> $o: ref, $f: Field alpha :: false ==> $_Frame[$o, $f]);
   >>> MarkAsFullyVerified
-Processing command (at Snapshots5.v1.dfy(10,40)) assert (forall b#2: bool :: true ==> b#2 || !b#2) || 0 != 0;
+Processing command (at Snapshots5.v1.dfy(10,40)) assert (forall b#1: bool :: true ==> b#1 || !b#1) || 0 != 0;
   >>> MarkAsFullyVerified
 Processing command (at Snapshots5.v1.dfy(12,4)) assert (forall<alpha> $o: ref, $f: Field alpha :: false ==> $_Frame[$o, $f]);
   >>> MarkAsFullyVerified
-Processing command (at Snapshots5.v1.dfy(13,38)) assert (forall b#4: bool :: true ==> b#4 || !b#4) || 3 != 3;
+Processing command (at Snapshots5.v1.dfy(13,38)) assert (forall b#3: bool :: true ==> b#3 || !b#3) || 3 != 3;
   >>> MarkAsFullyVerified
-Processing command (at Snapshots5.v1.dfy(20,40)) assert (exists b#6: bool :: b#6 || !b#6) || 4 != 4;
+Processing command (at Snapshots5.v1.dfy(20,40)) assert (exists b#5: bool :: b#5 || !b#5) || 4 != 4;
   >>> DoNothingToAssert
-Processing command (at Snapshots5.v1.dfy(22,38)) assert (exists b#8: bool :: b#8 || !b#8) || 5 != 5;
+Processing command (at Snapshots5.v1.dfy(22,38)) assert (exists b#7: bool :: b#7 || !b#7) || 5 != 5;
   >>> DoNothingToAssert
 
 Dafny program verifier finished with 3 verified, 0 errors

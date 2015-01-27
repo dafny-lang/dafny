@@ -1413,7 +1413,7 @@ namespace Microsoft.Dafny {
     string Name { get; }
   }
 
-  public abstract class Declaration : IUniqueNameGenerator, INamedRegion {
+  public abstract class Declaration : INamedRegion {
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(tok != null);
@@ -1452,12 +1452,7 @@ namespace Microsoft.Dafny {
       return Name;
     }
 
-    int currentId;
-
-    public int GenerateId(string name)
-    {
-      return System.Threading.Interlocked.Increment(ref currentId);
-    }
+    internal FreshIdGenerator IdGenerator = new FreshIdGenerator();
   }
 
   public class OpaqueType_AsParameter : TypeParameter
@@ -2100,20 +2095,6 @@ namespace Microsoft.Dafny {
     }
   }
 
-  [ContractClass(typeof(UniqueNameGeneratorContracts))]
-  public interface IUniqueNameGenerator
-  {
-    int GenerateId(string name);
-  }
-  [ContractClassFor(typeof(IUniqueNameGenerator))]
-  public abstract class UniqueNameGeneratorContracts : IUniqueNameGenerator
-  {
-    public int GenerateId(string name) {
-      Contract.Requires(name != null);
-      throw new NotImplementedException();
-    }
-  }
-
   /// <summary>
   /// An ICodeContext is an ICallable or a NoContext.
   /// </summary>
@@ -2595,7 +2576,7 @@ namespace Microsoft.Dafny {
     bool HasBeenAssignedUniqueName {  // unique names are not assigned until the Translator; if you don't already know if that stage has run, this boolean method will tell you
       get;
     }
-    string AssignUniqueName(IUniqueNameGenerator generator);
+    string AssignUniqueName(FreshIdGenerator generator);
     string CompileName {
       get;
     }
@@ -2665,7 +2646,7 @@ namespace Microsoft.Dafny {
         throw new NotImplementedException();
       }
     }
-    public string AssignUniqueName(IUniqueNameGenerator generator)
+    public string AssignUniqueName(FreshIdGenerator generator)
     {
       Contract.Ensures(Contract.Result<string>() != null);
       throw new NotImplementedException();
@@ -2703,13 +2684,12 @@ namespace Microsoft.Dafny {
         return uniqueName != null;
       }
     }
-    public string AssignUniqueName(IUniqueNameGenerator generator)
+    public string AssignUniqueName(FreshIdGenerator generator)
     {
       if (uniqueName == null)
       {
-        var uniqueId = generator.GenerateId(Name);
-        uniqueName = string.Format("{0}#{1}", Name, uniqueId);
-        compileName = string.Format("_{0}_{1}", uniqueId, CompilerizeName(name));
+        uniqueName = generator.FreshId(Name + "#");
+        compileName = string.Format("_{0}_{1}", Compiler.FreshId(), CompilerizeName(name));
       }
       return UniqueName;
     }
@@ -2754,7 +2734,7 @@ namespace Microsoft.Dafny {
       get {
         if (compileName == null)
         {
-          compileName = string.Format("_{0}_{1}", Compiler.UniqueNameGeneratorSingleton.GenerateId(Name), CompilerizeName(name));
+          compileName = string.Format("_{0}_{1}", Compiler.FreshId(), CompilerizeName(name));
         }
         return compileName;
       }
@@ -3322,11 +3302,11 @@ namespace Microsoft.Dafny {
     public readonly IToken Tok;
     public readonly string Name;
     int uniqueId = -1;
-    public int AssignUniqueId(string prefix, FreshVariableNameGenerator nameGen)
+    public int AssignUniqueId(string prefix, FreshIdGenerator idGen)
     {
       if (uniqueId < 0)
       {
-        uniqueId = nameGen.FreshVariableCount(prefix);
+        uniqueId = idGen.FreshNumericId(prefix);
       }
       return uniqueId;
     }
@@ -3911,13 +3891,12 @@ namespace Microsoft.Dafny {
         return uniqueName != null;
       }
     }
-    public string AssignUniqueName(IUniqueNameGenerator generator)
+    public string AssignUniqueName(FreshIdGenerator generator)
     {
       if (uniqueName == null)
       {
-        var uniqueId = generator.GenerateId(Name);
-        uniqueName = string.Format("{0}#{1}", Name, uniqueId);
-        compileName = string.Format("_{0}_{1}", uniqueId, NonglobalVariable.CompilerizeName(name));
+        uniqueName = generator.FreshId(Name + "#");
+        compileName = string.Format("_{0}_{1}", Compiler.FreshId(), NonglobalVariable.CompilerizeName(name));
       }
       return UniqueName;
     }
@@ -3926,7 +3905,7 @@ namespace Microsoft.Dafny {
       get {
         if (compileName == null)
         {
-          compileName = string.Format("_{0}_{1}", Compiler.UniqueNameGeneratorSingleton.GenerateId(Name), NonglobalVariable.CompilerizeName(name));
+          compileName = string.Format("_{0}_{1}", Compiler.FreshId(), NonglobalVariable.CompilerizeName(name));
         }
         return compileName;
       }
@@ -6458,11 +6437,11 @@ namespace Microsoft.Dafny {
         return "q$" + UniqueId;
       }
     }
-    public String Refresh(string prefix, FreshVariableNameGenerator freshVarNameGen) {
-      return freshVarNameGen.FreshVariableName(prefix);
+    public String Refresh(string prefix, FreshIdGenerator idGen) {
+      return idGen.FreshId(prefix);
     }
-    public TypeParameter Refresh(TypeParameter p, FreshVariableNameGenerator freshVarNameGen) {
-      var cp = new TypeParameter(p.tok, freshVarNameGen.FreshVariableName(p.Name + "#"), p.EqualitySupport);
+    public TypeParameter Refresh(TypeParameter p, FreshIdGenerator idGen) {
+      var cp = new TypeParameter(p.tok, idGen.FreshId(p.Name + "#"), p.EqualitySupport);
       cp.Parent = this;
       return cp;
     }
