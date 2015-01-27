@@ -1452,11 +1452,11 @@ namespace Microsoft.Dafny {
       return Name;
     }
 
-    int nameCount;
+    int currentId;
 
     public int GenerateId(string name)
     {
-      return nameCount++;
+      return System.Threading.Interlocked.Increment(ref currentId);
     }
   }
 
@@ -3321,14 +3321,19 @@ namespace Microsoft.Dafny {
   {
     public readonly IToken Tok;
     public readonly string Name;
-    public readonly int UniqueId;
-    static int nodes = 0;
-
+    int uniqueId = -1;
+    public int AssignUniqueId(string prefix, FreshVariableNameGenerator nameGen)
+    {
+      if (uniqueId < 0)
+      {
+        uniqueId = nameGen.FreshVariableCount(prefix);
+      }
+      return uniqueId;
+    }
     public Label(IToken tok, string label) {
       Contract.Requires(tok != null);
       Tok = tok;
       Name = label;
-      UniqueId = nodes++;
     }
   }
 
@@ -6442,11 +6447,15 @@ namespace Microsoft.Dafny {
 
   public abstract class QuantifierExpr : ComprehensionExpr, TypeParameter.ParentType {
     public List<TypeParameter> TypeArgs;
-    private static int quantCount = 0;
-    private readonly int quantUnique;
+    private static int currentQuantId = -1;
+    static int FreshQuantId()
+    {
+      return System.Threading.Interlocked.Increment(ref currentQuantId);
+    }
+    private readonly int UniqueId;
     public string FullName {
       get {
-        return "q$" + quantUnique;
+        return "q$" + UniqueId;
       }
     }
     public String Refresh(string prefix, FreshVariableNameGenerator freshVarNameGen) {
@@ -6468,7 +6477,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(cce.NonNullElements(bvars));
       Contract.Requires(term != null);
       this.TypeArgs = tvars;
-      this.quantUnique = quantCount++;
+      this.UniqueId = FreshQuantId();
     }
     public abstract Expression LogicalBody();
   }

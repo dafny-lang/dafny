@@ -30,10 +30,10 @@ namespace Microsoft.Dafny {
 
     class UniqueNameGenerator : IUniqueNameGenerator
     {
-      int nameCount;
+      int currentId = -1;
       public int GenerateId(string name)
       {
-        return nameCount++;
+        return System.Threading.Interlocked.Increment(ref currentId);
       }
     }
 
@@ -1165,7 +1165,7 @@ namespace Microsoft.Dafny {
       } else if (stmt is BreakStmt) {
         var s = (BreakStmt)stmt;
         Indent(indent);
-        wr.WriteLine("goto after_{0};", s.TargetStmt.Labels.Data.UniqueId);
+        wr.WriteLine("goto after_{0};", s.TargetStmt.Labels.Data.AssignUniqueId("after_", VariableNameGenerator));
       } else if (stmt is ProduceStmt) {
         var s = (ProduceStmt)stmt;
         if (s.hiddenUpdate != null)
@@ -1945,7 +1945,7 @@ namespace Microsoft.Dafny {
         TrStmt(ss, indent + IndentAmount);
         if (ss.Labels != null) {
           Indent(indent);  // labels are not indented as much as the statements
-          wr.WriteLine("after_{0}: ;", ss.Labels.Data.UniqueId);
+          wr.WriteLine("after_{0}: ;", ss.Labels.Data.AssignUniqueId("after_", VariableNameGenerator));
         }
       }
     }

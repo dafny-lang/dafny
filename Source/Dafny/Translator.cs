@@ -15,7 +15,7 @@ using Microsoft.Boogie;
 
 namespace Microsoft.Dafny {
 
-  public class FreshVariableNameGenerator
+  public class FreshVariableNameGenerator : IUniqueNameGenerator
   {
     readonly Dictionary<string, int> PrefixToCount = new Dictionary<string, int>();
 
@@ -54,6 +54,11 @@ namespace Microsoft.Dafny {
       }
       PrefixToCount[prefix] = old + 1;
       return old;
+    }
+
+    public int GenerateId(string name)
+    {
+      return FreshVariableCount(name);
     }
   }
 
@@ -1701,8 +1706,8 @@ namespace Microsoft.Dafny {
       Contract.Requires(proc != null);
       Contract.Requires(sink != null && predef != null);
       Contract.Requires(iter.Body != null);
-      Contract.Requires(currentModule == null && codeContext == null && yieldCountVariable == null && loopHeapVarCount == 0 && _tmpIEs.Count == 0);
-      Contract.Ensures(currentModule == null && codeContext == null && yieldCountVariable == null && loopHeapVarCount == 0 && _tmpIEs.Count == 0);
+      Contract.Requires(currentModule == null && codeContext == null && yieldCountVariable == null && _tmpIEs.Count == 0);
+      Contract.Ensures(currentModule == null && codeContext == null && yieldCountVariable == null && _tmpIEs.Count == 0);
 
       currentModule = iter.Module;
       codeContext = iter;
@@ -1760,7 +1765,6 @@ namespace Microsoft.Dafny {
     {
       currentModule = null;
       codeContext = null;
-      loopHeapVarCount = 0;
       FreshVarNameGenerator.Reset();
       _tmpIEs.Clear();
     }
@@ -2579,13 +2583,7 @@ namespace Microsoft.Dafny {
     ICallable codeContext = null;  // the method/iterator whose implementation is currently being translated or the function whose specification is being checked for well-formedness
     Bpl.LocalVariable yieldCountVariable = null;  // non-null when an iterator body is being translated
     bool assertAsAssume = false; // generate assume statements instead of assert statements
-
-    int loopHeapVarCount = 0;
-    int FreshLoopHeadVarCount()
-    {
-      return loopHeapVarCount++;
-    }
-
+    
     public readonly FreshVariableNameGenerator FreshVarNameGenerator = new FreshVariableNameGenerator();
 
     Dictionary<string, Bpl.IdentifierExpr> _tmpIEs = new Dictionary<string, Bpl.IdentifierExpr>();
@@ -2659,8 +2657,8 @@ namespace Microsoft.Dafny {
       Contract.Requires(proc != null);
       Contract.Requires(sink != null && predef != null);
       Contract.Requires(wellformednessProc || m.Body != null);
-      Contract.Requires(currentModule == null && codeContext == null && loopHeapVarCount == 0 && _tmpIEs.Count == 0);
-      Contract.Ensures(currentModule == null && codeContext == null && loopHeapVarCount == 0 && _tmpIEs.Count == 0);
+      Contract.Requires(currentModule == null && codeContext == null && _tmpIEs.Count == 0);
+      Contract.Ensures(currentModule == null && codeContext == null && _tmpIEs.Count == 0);
 
       currentModule = m.EnclosingClass.Module;
       codeContext = m;
@@ -2874,8 +2872,8 @@ namespace Microsoft.Dafny {
         Contract.Requires(sink != null && predef != null);
         Contract.Requires(f.OverriddenFunction != null);
         Contract.Requires(f.Formals.Count == f.OverriddenFunction.Formals.Count);
-        Contract.Requires(currentModule == null && codeContext == null && loopHeapVarCount == 0 && _tmpIEs.Count == 0);
-        Contract.Ensures(currentModule == null && codeContext == null && loopHeapVarCount == 0 && _tmpIEs.Count == 0);
+        Contract.Requires(currentModule == null && codeContext == null && _tmpIEs.Count == 0);
+        Contract.Ensures(currentModule == null && codeContext == null && _tmpIEs.Count == 0);
 
         #region first procedure, no impl yet
         //Function nf = new Function(f.tok, "OverrideCheck_" + f.Name, f.IsStatic, f.IsGhost, f.TypeArgs, f.OpenParen, f.Formals, f.ResultType, f.Req, f.Reads, f.Ens, f.Decreases, f.Body, f.Attributes, f.SignatureEllipsis);
@@ -3207,8 +3205,8 @@ namespace Microsoft.Dafny {
         Contract.Requires(m.Ins.Count == m.OverriddenMethod.Ins.Count);
         Contract.Requires(m.Outs.Count == m.OverriddenMethod.Outs.Count);
         //Contract.Requires(wellformednessProc || m.Body != null);
-        Contract.Requires(currentModule == null && codeContext == null && loopHeapVarCount == 0 && _tmpIEs.Count == 0);
-        Contract.Ensures(currentModule == null && codeContext == null && loopHeapVarCount == 0 && _tmpIEs.Count == 0);
+        Contract.Requires(currentModule == null && codeContext == null && _tmpIEs.Count == 0);
+        Contract.Ensures(currentModule == null && codeContext == null && _tmpIEs.Count == 0);
 
         currentModule = m.EnclosingClass.Module;
         codeContext = m;
@@ -5387,9 +5385,9 @@ namespace Microsoft.Dafny {
         var lhs_args = new List<Bpl.Expr>();
         var rhs_args = new List<Bpl.Expr>();
 
-        var i = 0;
+        var ng = new FreshVariableNameGenerator();
         foreach (var fm in f.Formals) {
-          var fe = BplBoundVar("x#" + i++, predef.BoxType, bvars);
+          var fe = BplBoundVar(ng.FreshVariableName("x#"), predef.BoxType, bvars);
           lhs_args.Add(fe);
           var be = UnboxIfBoxed(fe, fm.Type);
           rhs_args.Add(be);
@@ -6841,7 +6839,7 @@ namespace Microsoft.Dafny {
       } else if (stmt is BreakStmt) {
         AddComment(builder, stmt, "break statement");
         var s = (BreakStmt)stmt;
-        builder.Add(new GotoCmd(s.Tok, new List<String> { "after_" + s.TargetStmt.Labels.Data.UniqueId }));
+        builder.Add(new GotoCmd(s.Tok, new List<String> { "after_" + s.TargetStmt.Labels.Data.AssignUniqueId("after_", FreshVarNameGenerator) }));
       } else if (stmt is ReturnStmt) {
         var s = (ReturnStmt)stmt;
         AddComment(builder, stmt, "return statement");
@@ -7082,9 +7080,9 @@ namespace Microsoft.Dafny {
         // check that the modifies is a subset
         CheckFrameSubset(s.Tok, s.Mod.Expressions, null, null, etran, builder, "modify statement may violate context's modifies clause", null);
         // cause the change of the heap according to the given frame
-        int modifyId = FreshLoopHeadVarCount();
-        string modifyFrameName = "#_Frame#" + modifyId;
-        var preModifyHeapVar = new Bpl.LocalVariable(s.Tok, new Bpl.TypedIdent(s.Tok, "$PreModifyHeap" + modifyId, predef.HeapType));
+        var suffix = FreshVarNameGenerator.FreshVariableName("modify#");
+        string modifyFrameName = "$Frame$" + suffix;
+        var preModifyHeapVar = new Bpl.LocalVariable(s.Tok, new Bpl.TypedIdent(s.Tok, "$PreModifyHeap$" + suffix, predef.HeapType));
         locals.Add(preModifyHeapVar);
         DefineFrame(s.Tok, s.Mod.Expressions, builder, locals, modifyFrameName);
         if (s.Body == null) {
@@ -7325,7 +7323,7 @@ namespace Microsoft.Dafny {
       foreach (Statement ss in stmts) {
         TrStmt(ss, builder, locals, etran);
         if (ss.Labels != null) {
-          builder.AddLabelCmd("after_" + ss.Labels.Data.UniqueId);
+          builder.AddLabelCmd("after_" + ss.Labels.Data.AssignUniqueId("after_", FreshVarNameGenerator));
         }
       }
     }
@@ -8178,16 +8176,16 @@ namespace Microsoft.Dafny {
       Contract.Requires(locals != null);
       Contract.Requires(etran != null);
 
-      int loopId = FreshLoopHeadVarCount();
+      var suffix = FreshVarNameGenerator.FreshVariableName("loop#");
 
       var theDecreases = s.Decreases.Expressions;
 
-      Bpl.LocalVariable preLoopHeapVar = new Bpl.LocalVariable(s.Tok, new Bpl.TypedIdent(s.Tok, "$PreLoopHeap" + loopId, predef.HeapType));
+      Bpl.LocalVariable preLoopHeapVar = new Bpl.LocalVariable(s.Tok, new Bpl.TypedIdent(s.Tok, "$PreLoopHeap$" + suffix, predef.HeapType));
       locals.Add(preLoopHeapVar);
       Bpl.IdentifierExpr preLoopHeap = new Bpl.IdentifierExpr(s.Tok, preLoopHeapVar);
       ExpressionTranslator etranPreLoop = new ExpressionTranslator(this, predef, preLoopHeap);
       ExpressionTranslator updatedFrameEtran;
-      string loopFrameName = "#_Frame#" + loopId;
+      string loopFrameName = "$Frame$" + suffix;
       if (s.Mod.Expressions != null)
         updatedFrameEtran = new ExpressionTranslator(etran, loopFrameName);
       else
@@ -8201,11 +8199,11 @@ namespace Microsoft.Dafny {
 
       List<Bpl.Expr> initDecr = null;
       if (!Contract.Exists(theDecreases, e => e is WildcardExpr)) {
-        initDecr = RecordDecreasesValue(theDecreases, builder, locals, etran, "$decr" + loopId + "$init$");
+        initDecr = RecordDecreasesValue(theDecreases, builder, locals, etran, "$decr_init$" + suffix);
       }
 
       // the variable w is used to coordinate the definedness checking of the loop invariant
-      Bpl.LocalVariable wVar = new Bpl.LocalVariable(s.Tok, new Bpl.TypedIdent(s.Tok, "$w" + loopId, Bpl.Type.Bool));
+      Bpl.LocalVariable wVar = new Bpl.LocalVariable(s.Tok, new Bpl.TypedIdent(s.Tok, "$w$" + suffix, Bpl.Type.Bool));
       Bpl.IdentifierExpr w = new Bpl.IdentifierExpr(s.Tok, wVar);
       locals.Add(wVar);
       // havoc w;
@@ -8293,7 +8291,7 @@ namespace Microsoft.Dafny {
           // omit termination checking for this loop
           bodyTr(loopBodyBuilder, updatedFrameEtran);
         } else {
-          List<Bpl.Expr> oldBfs = RecordDecreasesValue(theDecreases, loopBodyBuilder, locals, etran, "$decr" + loopId + "$");
+          List<Bpl.Expr> oldBfs = RecordDecreasesValue(theDecreases, loopBodyBuilder, locals, etran, "$decr$" + suffix);
           // time for the actual loop body
           bodyTr(loopBodyBuilder, updatedFrameEtran);
           // check definedness of decreases expressions
@@ -8658,18 +8656,16 @@ namespace Microsoft.Dafny {
       Contract.Requires(builder != null);
       Contract.Requires(decreases != null);
       List<Bpl.Expr> oldBfs = new List<Bpl.Expr>();
-      int c = 0;
+      var ng = new FreshVariableNameGenerator();
       foreach (Expression e in decreases) {
         Contract.Assert(e != null);
-        Bpl.LocalVariable bfVar = new Bpl.LocalVariable(e.tok, new Bpl.TypedIdent(e.tok, varPrefix + c, TrType(cce.NonNull(e.Type))));
+        Bpl.LocalVariable bfVar = new Bpl.LocalVariable(e.tok, new Bpl.TypedIdent(e.tok, ng.FreshVariableName(varPrefix), TrType(cce.NonNull(e.Type))));
         locals.Add(bfVar);
         Bpl.IdentifierExpr bf = new Bpl.IdentifierExpr(e.tok, bfVar);
         oldBfs.Add(bf);
         // record value of each decreases expression at beginning of the loop iteration
         Bpl.Cmd cmd = Bpl.Cmd.SimpleAssign(e.tok, bf, etran.TrExpr(e));
         builder.Add(cmd);
-
-        c++;
       }
       return oldBfs;
     }

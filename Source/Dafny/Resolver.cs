@@ -75,6 +75,7 @@ namespace Microsoft.Dafny
 
     ModuleSignature moduleInfo = null;
     int tempVarCount = 0;
+    // TODO(wuestholz): Can we get rid of this?
     int FreshTempVarCount()
     {
       return ++tempVarCount;
