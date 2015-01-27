@@ -19,6 +19,17 @@ namespace Microsoft.Dafny {
   {
     readonly Dictionary<string, int> PrefixToCount = new Dictionary<string, int>();
 
+    readonly string CommonPrefix;
+
+    public FreshVariableNameGenerator()
+    {
+    }
+
+    private FreshVariableNameGenerator(string commonPrefix = "")
+    {
+      CommonPrefix = commonPrefix;
+    }
+
     public void Reset()
     {
       PrefixToCount.Clear();
@@ -26,7 +37,12 @@ namespace Microsoft.Dafny {
 
     public string FreshVariableName(string prefix = "")
     {
-      return prefix + FreshVariableCount(prefix);
+      return CommonPrefix + prefix + FreshVariableCount(prefix);
+    }
+
+    public FreshVariableNameGenerator FreshChildVariableNameGenerator(string prefix = "")
+    {
+      return new FreshVariableNameGenerator(FreshVariableName(prefix));
     }
 
     public int FreshVariableCount(string prefix = "")
@@ -1187,11 +1203,12 @@ namespace Microsoft.Dafny {
       Contract.Ensures(Contract.ValueAtReturn(out bvs) != null);
       Contract.Ensures(cce.NonNullElements(Contract.ValueAtReturn(out args)));
 
+      var varNameGen = FreshVarNameGenerator.FreshChildVariableNameGenerator("a#");
       bvs = new List<Variable>();
       args = new List<Bpl.Expr>();
       foreach (Formal arg in formals) {
         Contract.Assert(arg != null);
-        var nm = string.Format("a{0}#{1}", bvs.Count, FreshVarNameGenerator.FreshVariableName());
+        var nm = varNameGen.FreshVariableName(string.Format("#{0}#", bvs.Count));
         Bpl.Variable bv = new Bpl.BoundVariable(arg.tok, new Bpl.TypedIdent(arg.tok, nm, TrType(arg.Type)));
         bvs.Add(bv);
         args.Add(new Bpl.IdentifierExpr(arg.tok, bv));
@@ -4163,10 +4180,11 @@ namespace Microsoft.Dafny {
       Contract.Ensures(Contract.Result<Bpl.Expr>() != null);
 
       // create local variables for the formals
+      var varNameGen = FreshVarNameGenerator.FreshChildVariableNameGenerator("a#");
       var args = new List<Bpl.Expr>();
       foreach (Formal arg in ctor.Formals) {
         Contract.Assert(arg != null);
-        var nm = string.Format("a{0}#{1}", args.Count, FreshVarNameGenerator.FreshVariableCount());
+        var nm = varNameGen.FreshVariableName(string.Format("#{0}#", args.Count));
         Bpl.Variable bv = new Bpl.LocalVariable(arg.tok, new Bpl.TypedIdent(arg.tok, nm, TrType(arg.Type)));
         locals.Add(bv);
         args.Add(new Bpl.IdentifierExpr(arg.tok, bv));
@@ -4334,17 +4352,16 @@ namespace Microsoft.Dafny {
         var e = (LambdaExpr)expr;
 
         List<Bpl.Variable> bvars = new List<Bpl.Variable>();
+        
+        var varNameGen = FreshVarNameGenerator.FreshChildVariableNameGenerator("$l#");
 
-        Func<string, string> MkName = s => "$l" + FreshVarNameGenerator.FreshVariableCount() + "#" + s;
-
-        Bpl.Expr heap; var hVar = BplBoundVar(MkName("heap"), predef.HeapType, out heap);
+        Bpl.Expr heap; var hVar = BplBoundVar(varNameGen.FreshVariableName("#heap#"), predef.HeapType, out heap);
         bvars.Add(hVar);
 
         Dictionary<IVariable, Expression> subst = new Dictionary<IVariable,Expression>();
         foreach (var bv in e.BoundVars) {
-          Bpl.Expr ve; var yVar = BplBoundVar(MkName(bv.Name), TrType(bv.Type), out ve);
+          Bpl.Expr ve; var yVar = BplBoundVar(varNameGen.FreshVariableName(string.Format("#{0}#", bv.Name)), TrType(bv.Type), out ve);
           bvars.Add(yVar);
-
           subst[bv] = new BoogieWrapper(ve, bv.Type);
         }
 
@@ -4969,10 +4986,11 @@ namespace Microsoft.Dafny {
         if (e.Exact) {
           var substMap = SetupBoundVarsAsLocals(e.BoundVars.ToList<BoundVar>(), builder, locals, etran);
           Contract.Assert(e.LHSs.Count == e.RHSs.Count);  // checked by resolution
+          var varNameGen = FreshVarNameGenerator.FreshChildVariableNameGenerator("let#");
           for (int i = 0; i < e.LHSs.Count; i++) {
             var pat = e.LHSs[i];
             var rhs = e.RHSs[i];
-            var nm = string.Format("let{0}#{1}", i, FreshVarNameGenerator.FreshVariableCount());
+            var nm = varNameGen.FreshVariableName(string.Format("#{0}#", i));
             var r = new Bpl.LocalVariable(pat.tok, new Bpl.TypedIdent(pat.tok, nm, TrType(rhs.Type)));
             locals.Add(r);
             var rIe = new Bpl.IdentifierExpr(pat.tok, r);
@@ -5270,7 +5288,7 @@ namespace Microsoft.Dafny {
       Contract.Ensures(Contract.ValueAtReturn(out bv) != null);
       Contract.Ensures(Contract.ValueAtReturn(out ie) != null);
 
-      bv = new BoundVar(tok, prefix + FreshVarNameGenerator.FreshVariableCount(), iv.Type); // use this temporary variable counter, but for a Dafny name (the idea being that the number and the initial "_" in the name might avoid name conflicts)
+      bv = new BoundVar(tok, FreshVarNameGenerator.FreshVariableName(prefix), iv.Type); // use this temporary variable counter, but for a Dafny name (the idea being that the number and the initial "_" in the name might avoid name conflicts)
       ie = new IdentifierExpr(tok, bv.Name);
       ie.Var = bv;  // resolve here
       ie.Type = bv.Type;  // resolve here
@@ -11005,12 +11023,12 @@ namespace Microsoft.Dafny {
 
           if (Attributes.ContainsBool(e.Attributes, "layerQuantifier", ref _scratch)) {
             // If this is a layer quantifier, quantify over layers here, and use $LS(ly) layers in the translation of the body
-            var ly = BplBoundVar(e.Refresh("$ly", translator.FreshVarNameGenerator), predef.LayerType, bvars);
+            var ly = BplBoundVar(e.Refresh("q$ly#", translator.FreshVarNameGenerator), predef.LayerType, bvars);
             Expr layer = translator.LayerSucc(ly);
             bodyEtran = new ExpressionTranslator(translator, predef, HeapExpr, This, applyLimited_CurrentFunction, layer, layer, modifiesFrame);
           }
           if (Attributes.ContainsBool(e.Attributes, "heapQuantifier", ref _scratch)) {
-            var h = BplBoundVar(e.Refresh("$heap", translator.FreshVarNameGenerator), predef.HeapType, bvars);
+            var h = BplBoundVar(e.Refresh("q$heap#", translator.FreshVarNameGenerator), predef.HeapType, bvars);
             bodyEtran = new ExpressionTranslator(bodyEtran, h);
             antecedent = BplAnd(new List<Bpl.Expr> {
               antecedent,
@@ -11129,12 +11147,14 @@ namespace Microsoft.Dafny {
         var bvars = new List<Bpl.Variable>();
         var bargs = new List<Bpl.Expr>();
 
-        var heap = BplBoundVar(e.MkName("heap"), predef.HeapType, bvars);
+        var varNameGen = translator.FreshVarNameGenerator.FreshChildVariableNameGenerator("$l#");
+
+        var heap = BplBoundVar(varNameGen.FreshVariableName("#heap#"), predef.HeapType, bvars);
         bargs.Add(heap);
 
         var subst = new Dictionary<IVariable, Expression>();
         foreach (var bv in e.BoundVars) {
-          var ve = BplBoundVar(e.MkName(bv.Name), predef.BoxType, bvars);
+          var ve = BplBoundVar(varNameGen.FreshVariableName(string.Format("#{0}#", bv.Name)), predef.BoxType, bvars);
           bargs.Add(ve);
 
           Bpl.Expr unboxy = translator.UnboxIfBoxed(ve, bv.Type);
@@ -11145,7 +11165,7 @@ namespace Microsoft.Dafny {
 
         var et = new ExpressionTranslator(this, heap);
         var lvars = new List<Bpl.Variable>();
-        var ly = BplBoundVar(e.MkName("ly"), predef.LayerType, lvars);
+        var ly = BplBoundVar(varNameGen.FreshVariableName("#ly#"), predef.LayerType, lvars);
         et = et.WithLayer(ly);
 
         var ebody = et.TrExpr(translator.Substitute(e.Body, null, subst));
@@ -11160,7 +11180,7 @@ namespace Microsoft.Dafny {
         }
 
         var rdvars = new List<Bpl.Variable>();
-        var o = translator.UnboxIfBoxed(BplBoundVar(e.MkName("o"), predef.BoxType, rdvars), new ObjectType());
+        var o = translator.UnboxIfBoxed(BplBoundVar(varNameGen.FreshVariableName("#o#"), predef.BoxType, rdvars), new ObjectType());
 
         Bpl.Expr ante = Bpl.Expr.And(Bpl.Expr.Neq(o, predef.Null), et.IsAlloced(e.tok, o));
         Bpl.Expr consequent = translator.InRWClause(e.tok, o, null, e.Reads.ConvertAll(su.SubstFrameExpr), et, null, null);
@@ -12342,7 +12362,7 @@ namespace Microsoft.Dafny {
           foreach (var n in inductionVariables) {
             toks.Add(n.tok);
             types.Add(n.Type.NormalizeExpand());
-            BoundVar k = new BoundVar(n.tok, n.Name + "$ih#" + FreshVarNameGenerator.FreshVariableCount(), n.Type);
+            BoundVar k = new BoundVar(n.tok, FreshVarNameGenerator.FreshVariableName(n.Name + "$ih#"), n.Type);
             kvars.Add(k);
 
             IdentifierExpr ieK = new IdentifierExpr(k.tok, k.AssignUniqueName(currentDeclaration));

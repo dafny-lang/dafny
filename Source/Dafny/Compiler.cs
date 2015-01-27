@@ -1255,7 +1255,7 @@ namespace Microsoft.Dafny {
           Contract.Assert(s.Bounds != null);  // follows from s.MissingBounds == null
           var n = s.Lhss.Count;
           Contract.Assert(s.Bounds.Count == n);
-          var c = VariableNameGenerator.FreshVariableCount();
+          var c = VariableNameGenerator.FreshVariableCount("_ASSIGN_SUCH_THAT_+_iterLimit_");
           var doneLabel = "_ASSIGN_SUCH_THAT_" + c;
           var iterLimit = "_iterLimit_" + c;
 
@@ -1490,7 +1490,7 @@ namespace Microsoft.Dafny {
         // be nested.
 
         // Temporary names
-        var c = VariableNameGenerator.FreshVariableCount();
+        var c = VariableNameGenerator.FreshVariableCount("_ingredients+_tup");
         string ingredients = "_ingredients" + c;
         string tup = "_tup" + c;
 
@@ -1698,7 +1698,7 @@ namespace Microsoft.Dafny {
         return string.Format("{0}.@{1}", obj, ll.Member.CompileName);
       } else if (lhs is SeqSelectExpr) {
         var ll = (SeqSelectExpr)lhs;
-        var c = VariableNameGenerator.FreshVariableCount();
+        var c = VariableNameGenerator.FreshVariableCount("_arr+_index");
         string arr = "_arr" + c;
         string index = "_index" + c;
         Indent(indent);
@@ -1712,7 +1712,7 @@ namespace Microsoft.Dafny {
         return string.Format("{0}[(int){1}]", arr, index);
       } else {
         var ll = (MultiSelectExpr)lhs;
-        var c = VariableNameGenerator.FreshVariableCount();
+        var c = VariableNameGenerator.FreshVariableCount("_arr+_index");
         string arr = "_arr" + c;
         Indent(indent);
         wr.Write("var {0} = ", arr);

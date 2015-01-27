@@ -6442,7 +6442,6 @@ namespace Microsoft.Dafny {
 
   public abstract class QuantifierExpr : ComprehensionExpr, TypeParameter.ParentType {
     public List<TypeParameter> TypeArgs;
-    // TODO(wuestholz): Can we make this non-static?
     private static int quantCount = 0;
     private readonly int quantUnique;
     public string FullName {
@@ -6451,10 +6450,10 @@ namespace Microsoft.Dafny {
       }
     }
     public String Refresh(string prefix, FreshVariableNameGenerator freshVarNameGen) {
-      return freshVarNameGen.FreshVariableName(prefix + "#") + FullName;
+      return freshVarNameGen.FreshVariableName(prefix);
     }
     public TypeParameter Refresh(TypeParameter p, FreshVariableNameGenerator freshVarNameGen) {
-      var cp = new TypeParameter(p.tok, freshVarNameGen.FreshVariableCount() + "#" + p.Name, p.EqualitySupport);
+      var cp = new TypeParameter(p.tok, freshVarNameGen.FreshVariableName(p.Name + "#"), p.EqualitySupport);
       cp.Parent = this;
       return cp;
     }
@@ -6550,16 +6549,9 @@ namespace Microsoft.Dafny {
 
   public class LambdaExpr : ComprehensionExpr
   {
-    // TODO(wuestholz): Can we make this non-static?
-    private static int lamUniques = 0;
-
     public readonly bool OneShot;
 
     public readonly List<FrameExpression> Reads;
-
-    public string MkName(string nm) {
-      return "$l" + lamUniques++ + "#" + nm;
-    }
 
     public LambdaExpr(IToken tok, bool oneShot, List<BoundVar> bvars, Expression requires, List<FrameExpression> reads, Expression body)
       : base(tok, bvars, requires, body, null)
