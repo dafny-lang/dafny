@@ -19,7 +19,7 @@ namespace Microsoft.Dafny {
   {
     readonly Dictionary<string, int> PrefixToCount = new Dictionary<string, int>();
 
-    readonly string CommonPrefix;
+    readonly string CommonPrefix = "";
 
     public FreshIdGenerator()
     {
@@ -32,7 +32,10 @@ namespace Microsoft.Dafny {
 
     public void Reset()
     {
-      PrefixToCount.Clear();
+      lock (PrefixToCount)
+      {
+        PrefixToCount.Clear();
+      }
     }
 
     public string FreshId(string prefix)
@@ -47,13 +50,16 @@ namespace Microsoft.Dafny {
 
     public int FreshNumericId(string prefix = "")
     {
-      int old;
-      if (!PrefixToCount.TryGetValue(prefix, out old))
+      lock (PrefixToCount)
       {
-        old = 0;
+        int old;
+        if (!PrefixToCount.TryGetValue(prefix, out old))
+        {
+          old = 0;
+        }
+        PrefixToCount[prefix] = old + 1;
+        return old;
       }
-      PrefixToCount[prefix] = old + 1;
-      return old;
     }
   }
 
