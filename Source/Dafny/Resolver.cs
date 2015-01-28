@@ -6256,11 +6256,7 @@ namespace Microsoft.Dafny
       Contract.Requires(cl != null);
       Contract.Ensures(Contract.Result<UserDefinedType>() != null);
 
-      List<Type> args = new List<Type>();
-      foreach (TypeParameter tp in cl.TypeArgs) {
-        args.Add(new UserDefinedType(tok, tp));
-      }
-      return new UserDefinedType(tok, cl.Name, cl, args);
+      return UserDefinedType.FromTopLevelDecl(tok, cl);
     }
 
     /// <summary>

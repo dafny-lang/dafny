@@ -177,7 +177,7 @@ namespace Microsoft.Dafny
                   } else {
                     // Here, we need to figure out if the new type supports equality.  But we won't know about that until resolution has
                     // taken place, so we defer it until the PostResolve phase.
-                    var udt = new UserDefinedType(nw.tok, nw.Name, nw, nw.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp)));
+                    var udt = UserDefinedType.FromTopLevelDecl(nw.tok, nw);
                     postTasks.Enqueue(() => {
                       if (!udt.SupportsEquality) {
                         reporter.Error(udt.tok, "type '{0}' is used to refine an opaque type with equality support, but '{0}' does not support equality", udt.Name);

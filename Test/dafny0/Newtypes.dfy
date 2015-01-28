@@ -309,3 +309,52 @@ module Guessing_Termination_Metrics {
     }
   }
 }
+
+// ----------- test $Is predicates ----------------------------
+
+module SeqTests {
+  newtype byte = i:int | 0 <= i < 0x100
+
+  method M0(many_bytes: seq<byte>, one_byte: byte)
+    requires |many_bytes| == 1;
+  {
+    assert 0 <= int(one_byte) < 0x100;
+    assert 0 <= int(many_bytes[0]) < 0x100;
+  }
+
+  method M1(many_bytes: seq<byte>, many_ints: seq<int>) 
+    requires |many_bytes| == 1;
+    requires |many_ints| == 1;
+  {
+    assert many_bytes[0] in many_bytes;
+    assert many_ints[0] in many_ints;    
+  }
+
+  lemma Lemma2<T>(elt: T, s: seq<T>, index: nat)
+    requires index < |s|;
+    requires elt == s[index];
+    ensures elt in s;
+  {}
+
+  method M2(many_bytes: seq<byte>, many_ints: seq<int>) 
+    requires |many_bytes| == 1;
+    requires |many_ints| == 1;
+  {
+    Lemma2(many_bytes[0], many_bytes, 0);
+    Lemma2(many_ints[0], many_ints, 0);
+    assert many_bytes[0] in many_bytes;
+    assert many_ints[0] in many_ints;    
+  }
+
+  lemma Lemma3_ints(data: seq<int>)
+    requires |data| > 25;
+    ensures  data[0..25] == [data[0]] + data[1..25];
+  {
+  }
+
+  lemma Lemma3_bytes(data: seq<byte>)
+    requires |data| > 25;
+    ensures  data[0..25] == [data[0]] + data[1..25];
+  {
+  }
+}

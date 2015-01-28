@@ -5292,7 +5292,6 @@ namespace Microsoft.Dafny {
     // Note: Prefer to call ClassTyCon or TypeToTy instead.
     private string GetClassTyCon(TopLevelDecl dl) {
       Contract.Requires(dl != null);
-      int n = dl.TypeArgs.Count; // arity
       string name;
       if (classConstants.TryGetValue(dl, out name)) {
         Contract.Assert(name != null);
@@ -5692,10 +5691,8 @@ namespace Microsoft.Dafny {
 
     private string AddTyAxioms(TopLevelDecl td) {
       IToken tok = td.tok;
-      var ty_repr =
-        td is ArrowTypeDecl ? predef.HandleType :
-        td is DatatypeDecl ? predef.DatatypeType :
-        predef.RefType;
+
+      var ty_repr = TrType(UserDefinedType.FromTopLevelDecl(td.tok, td));
       var arity = td.TypeArgs.Count;
       var inner_name = GetClass(td).TypedIdent.Name;
       string name = "T" + inner_name;

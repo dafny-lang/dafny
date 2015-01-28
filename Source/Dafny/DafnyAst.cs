@@ -747,6 +747,16 @@ namespace Microsoft.Dafny {
       ResolvedClass = systemModule.TopLevelDecls.Find(d => d.Name == Name);
       Contract.Assume(ResolvedClass != null);
     }
+    /// <summary>
+    /// Constructs and returns a resolved arrow type.
+    /// </summary>
+    public ArrowType(IToken tok, ArrowTypeDecl atd, List<Type> typeArgsAndResult)
+      : base(tok, ArrowTypeName(atd.Arity), atd, typeArgsAndResult) {
+      Contract.Requires(tok != null);
+      Contract.Requires(atd != null);
+      Contract.Requires(typeArgsAndResult != null);
+      Contract.Requires(typeArgsAndResult.Count == atd.Arity + 1);
+    }
 
     public const string Arrow_FullCompileName = "Func";  // this is the same for all arities
     public override string FullCompileName {
@@ -1001,6 +1011,24 @@ namespace Microsoft.Dafny {
         this.TypeArgs = new List<Type>();  // TODO: is this really the thing to do?
       }
       this.NamePath = namePath;
+    }
+
+    /// <summary>
+    /// Constructs a Type (in particular, a UserDefinedType) from a TopLevelDecl denoting a type declaration.  If
+    /// the given declaration takes type parameters, these are filled as references to the formal type parameters
+    /// themselves.  (Usually, this method is called when the type parameters in the result don't matter, other
+    /// than that they need to be filled in, so as to make a properly resolved UserDefinedType.)
+    /// </summary>
+    public static UserDefinedType FromTopLevelDecl(IToken tok, TopLevelDecl cd) {
+      Contract.Requires(tok != null);
+      Contract.Requires(cd != null);
+      Contract.Assert((cd is ArrowTypeDecl) == ArrowType.IsArrowTypeName(cd.Name));
+      var args =  cd.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp));
+      if (cd is ArrowTypeDecl) {
+        return new ArrowType(tok, (ArrowTypeDecl)cd, args);
+      } else {
+        return new UserDefinedType(tok, cd.Name, cd, args);
+      }
     }
 
     /// <summary>
