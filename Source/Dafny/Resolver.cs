@@ -74,11 +74,21 @@ namespace Microsoft.Dafny
     readonly BuiltIns builtIns;
 
     ModuleSignature moduleInfo = null;
-    int tempVarCount = 0;
-    // TODO(wuestholz): Can we get rid of this?
-    int FreshTempVarCount()
+
+    FreshIdGenerator defaultTempVarIdGenerator;
+    string FreshTempVarName(string prefix, ICodeContext context)
     {
-      return ++tempVarCount;
+      var decl = context as Declaration;
+      if (decl != null)
+      {
+        return decl.IdGenerator.FreshId(prefix);
+      }
+      // TODO(wuestholz): Is the following code ever needed?
+      if (defaultTempVarIdGenerator == null)
+      {
+        defaultTempVarIdGenerator = new FreshIdGenerator();
+      }
+      return defaultTempVarIdGenerator.FreshId(prefix);
     }
 
     public Action<AdditionalInformation> AdditionalInformationReporter;
@@ -6613,7 +6623,7 @@ namespace Microsoft.Dafny
                 // Wrapping it in a let expr avoids exponential growth in the size of the expression
 
                 // Create a unique name for d', the variable we introduce in the let expression
-                string tmpName = string.Format("dt_update_tmp#{0}", FreshTempVarCount());
+                string tmpName = FreshTempVarName("dt_update_tmp#", opts.codeContext);
                 IdentifierExpr tmpVarIdExpr = new IdentifierExpr(e.Seq.tok, tmpName);
                 BoundVar tmpVarBv = new BoundVar(e.Seq.tok, tmpName, e.Seq.Type);
 
