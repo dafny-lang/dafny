@@ -9172,28 +9172,32 @@ namespace Microsoft.Dafny {
       Contract.Requires(etran != null);
       Contract.Requires(predef != null);
 
-      var finalRhss = new List<Bpl.IdentifierExpr>();
+      var finalRhss = new List<Bpl.Expr>();
       for (int i = 0; i < lhss.Count; i++) {
         var lhs = lhss[i];
         // the following assumes are part of the precondition, really
         Contract.Assume(!(lhs is ConcreteSyntaxExpression));
         Contract.Assume(!(lhs is SeqSelectExpr && !((SeqSelectExpr)lhs).SelectOne));  // array-range assignments are not allowed
 
-        Type lhsType = null;
+        Type lhsType;
         if (lhs is IdentifierExpr) {
           lhsType = lhs.Type;
         } else if (lhs is MemberSelectExpr) {
           var fse = (MemberSelectExpr)lhs;
-          var field = fse.Member as Field;
-          Contract.Assert(field != null);
+          var field = (Field)fse.Member;
           lhsType = field.Type;
+        } else {
+          Contract.Assert(lhs is SeqSelectExpr || lhs is MultiSelectExpr);
+          lhsType = null;  // for an array update, always make sure the value assigned is boxed
         }
         var bRhs = TrAssignmentRhs(rhss[i].Tok, bLhss[i], lhsType, rhss[i], lhs.Type, builder, locals, etran);
-        if (bRhs != bLhss[i]) {
-          finalRhss.Add(bRhs);
-        } else {
-          // assignment has already been done by by TrAssignmentRhs
+        if (bLhss[i] != null) {
+          Contract.Assert(bRhs == bLhss[i]);  // this is what the postcondition of TrAssignmentRhs promises
+          // assignment has already been done by TrAssignmentRhs
           finalRhss.Add(null);
+        } else {
+          Contract.Assert(bRhs != null);  // this is what the postcondition of TrAssignmentRhs promises
+          finalRhss.Add(bRhs);
         }
       }
       for (int i = 0; i < lhss.Count; i++) {
@@ -9203,7 +9207,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    List<Bpl.IdentifierExpr> ProcessUpdateAssignRhss(List<Expression> lhss, List<AssignmentRhs> rhss,
+    List<Bpl.Expr> ProcessUpdateAssignRhss(List<Expression> lhss, List<AssignmentRhs> rhss,
       Bpl.StmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran) {
       Contract.Requires(cce.NonNullElements(lhss));
       Contract.Requires(cce.NonNullElements(rhss));
@@ -9211,23 +9215,25 @@ namespace Microsoft.Dafny {
       Contract.Requires(cce.NonNullElements(locals));
       Contract.Requires(etran != null);
       Contract.Requires(predef != null);
-      Contract.Ensures(Contract.ForAll(Contract.Result<List<Bpl.IdentifierExpr>>(), i => i != null));
+      Contract.Ensures(Contract.ForAll(Contract.Result<List<Bpl.Expr>>(), i => i != null));
 
-      var finalRhss = new List<Bpl.IdentifierExpr>();
+      var finalRhss = new List<Bpl.Expr>();
       for (int i = 0; i < lhss.Count; i++) {
         var lhs = lhss[i];
         // the following assumes are part of the precondition, really
         Contract.Assume(!(lhs is ConcreteSyntaxExpression));
         Contract.Assume(!(lhs is SeqSelectExpr && !((SeqSelectExpr)lhs).SelectOne));  // array-range assignments are not allowed
 
-        Type lhsType = null;
+        Type lhsType;
         if (lhs is IdentifierExpr) {
           lhsType = lhs.Type;
         } else if (lhs is MemberSelectExpr) {
           var fse = (MemberSelectExpr)lhs;
-          var field = fse.Member as Field;
-          Contract.Assert(field != null);
+          var field = (Field)fse.Member;
           lhsType = field.Type;
+        } else {
+          Contract.Assert(lhs is SeqSelectExpr || lhs is MultiSelectExpr);
+          lhsType = null;  // for an array update, always make sure the value assigned is boxed
         }
         var bRhs = TrAssignmentRhs(rhss[i].Tok, null, lhsType, rhss[i], lhs.Type, builder, locals, etran);
         finalRhss.Add(bRhs);
@@ -9236,7 +9242,7 @@ namespace Microsoft.Dafny {
     }
 
 
-    private void CheckLhssDistinctness(List<Bpl.IdentifierExpr> rhs, List<AssignmentRhs> rhsOriginal, List<Expression> lhss,
+    private void CheckLhssDistinctness(List<Bpl.Expr> rhs, List<AssignmentRhs> rhsOriginal, List<Expression> lhss,
       StmtListBuilder builder, ExpressionTranslator etran,
       Bpl.Expr[] objs, Bpl.Expr[] fields, string[] names) {
       Contract.Requires(rhs != null);
@@ -9467,23 +9473,38 @@ namespace Microsoft.Dafny {
     }
 
     /// <summary>
-    /// Generates an assignment of the translation of "rhs" to "bLhs" and then return "bLhs".  If "bLhs" is
-    /// passed in as "null", this method will create a new temporary Boogie variable to hold the result.
-    /// Before the assignment, the generated code will check that "rhs" obeys any subrange requirements
-    /// entailed by "checkSubrangeType".
+    /// if "bGivenLhs" is non-null, generates an assignment of the translation of "rhs" to "bGivenLhs" and then returns "bGivenLhs".
+    /// If "bGivenLhs" is null, then this method will an expression that in a stable way denotes the translation of "rhs";
+    /// this is achieved by creating a new temporary Boogie variable to hold the result and returning an expression that mentions
+    /// that new temporary variable.
+    /// 
+    /// Before the assignment, the generated code will check that "rhs" obeys any subrange requirements entailed by "rhsTypeConstraint".
+    /// 
+    /// The purpose of "lhsType" is to determine if the expression should be boxed before doing the assignment.  It is allowed to be null,
+    /// which indicates that the result should always be a box.  Note that "lhsType" may refer to a formal type parameter that is not in\
+    /// scope; this is okay, since the purpose of "lhsType" is just to say whether or not the result should be boxed.
     /// </summary>
-    Bpl.IdentifierExpr TrAssignmentRhs(IToken tok, Bpl.IdentifierExpr bLhs, Type lhsType, AssignmentRhs rhs, Type checkSubrangeType,
-                                       Bpl.StmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran) {
+    Bpl.Expr TrAssignmentRhs(IToken tok, Bpl.IdentifierExpr bGivenLhs, Type lhsType, AssignmentRhs rhs, Type rhsTypeConstraint,
+                             Bpl.StmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran) {
       Contract.Requires(tok != null);
       Contract.Requires(rhs != null);
+      Contract.Requires(rhsTypeConstraint != null);
       Contract.Requires(builder != null);
-      Contract.Requires(cce.NonNullElements(locals));
+      Contract.Requires(locals != null);
       Contract.Requires(etran != null);
       Contract.Requires(predef != null);
+      Contract.Ensures(Contract.Result<Bpl.Expr>() != null);
+      Contract.Ensures(bGivenLhs == null || Contract.Result<Bpl.Expr>() == bGivenLhs);
 
-      if (bLhs == null) {
+      Bpl.IdentifierExpr bLhs;
+      if (bGivenLhs != null) {
+        bLhs = bGivenLhs;
+      } else {
         var nm = FreshVarNameGenerator.FreshVariableName("$rhs#");
-        var v = new Bpl.LocalVariable(tok, new Bpl.TypedIdent(tok, nm, lhsType == null ? predef.BoxType : TrType(lhsType)));
+        Type localType = rhsTypeConstraint;  // this is a type that is appropriate for capturing the value of the RHS
+        var ty = TrType(localType);
+        Bpl.Expr wh = GetWhereClause(tok, new Bpl.IdentifierExpr(tok, nm, ty), localType, etran);
+        var v = new Bpl.LocalVariable(tok, new Bpl.TypedIdent(tok, nm, ty, wh));
         locals.Add(v);
         bLhs = new Bpl.IdentifierExpr(tok, v);
       }
@@ -9494,18 +9515,25 @@ namespace Microsoft.Dafny {
         TrStmt_CheckWellformed(e.Expr, builder, locals, etran, true);
 
         Bpl.Expr bRhs = etran.TrExpr(e.Expr);
-        CheckSubrange(tok, bRhs, checkSubrangeType, builder);
-        bRhs = CondApplyBox(tok, bRhs, e.Expr.Type, lhsType);
-
-        Bpl.Cmd cmd = Bpl.Cmd.SimpleAssign(tok, bLhs, bRhs);
-        builder.Add(cmd);
+        CheckSubrange(tok, bRhs, rhsTypeConstraint, builder);
+        if (bGivenLhs != null) {
+          Contract.Assert(bGivenLhs == bLhs);
+          // box the RHS, then do the assignment
+          var cmd = Bpl.Cmd.SimpleAssign(tok, bGivenLhs, CondApplyBox(tok, bRhs, e.Expr.Type, lhsType));
+          builder.Add(cmd);
+          return bGivenLhs;
+        } else {
+          // do the assignment, then box the result
+          var cmd = Bpl.Cmd.SimpleAssign(tok, bLhs, bRhs);
+          builder.Add(cmd);
+          return CondApplyBox(tok, bLhs, e.Expr.Type, lhsType);
+        }
 
       } else if (rhs is HavocRhs) {
         builder.Add(new Bpl.HavocCmd(tok, new List<Bpl.IdentifierExpr> { bLhs }));
-        var isNat = CheckSubrange_Expr(tok, bLhs, checkSubrangeType);
-        if (isNat != null) {
-          builder.Add(new Bpl.AssumeCmd(tok, isNat));
-        }
+        var isNat = CheckSubrange_Expr(tok, bLhs, rhsTypeConstraint);
+        builder.Add(new Bpl.AssumeCmd(tok, isNat));
+        return CondApplyBox(tok, bLhs, rhsTypeConstraint, lhsType);
       } else {
         // x := new Something
         Contract.Assert(rhs is TypeRhs);  // otherwise, an unexpected AssignmentRhs
@@ -9561,9 +9589,19 @@ namespace Microsoft.Dafny {
           TrCallStmt(tRhs.InitCall, builder, locals, etran, nw);
         }
         // bLhs := $nw;
-        builder.Add(Bpl.Cmd.SimpleAssign(tok, bLhs, CondApplyBox(tok, nw, tRhs.Type, lhsType)));
+        if (bGivenLhs != null) {
+          Contract.Assert(bGivenLhs == bLhs);
+          // box the RHS, then do the assignment
+          cmd = Bpl.Cmd.SimpleAssign(tok, bGivenLhs, CondApplyBox(tok, nw, tRhs.Type, lhsType));
+          builder.Add(cmd);
+          return bGivenLhs;
+        } else {
+          // do the assignment, then box the result
+          cmd = Bpl.Cmd.SimpleAssign(tok, bLhs, nw);
+          builder.Add(cmd);
+          return CondApplyBox(tok, bLhs, tRhs.Type, lhsType);
+        }
       }
-      return bLhs;
     }
 
     void CheckSubrange(IToken tok, Bpl.Expr bRhs, Type tp, StmtListBuilder builder) {
@@ -9583,6 +9621,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(tok != null);
       Contract.Requires(bRhs != null);
       Contract.Requires(tp != null);
+      Contract.Ensures(Contract.Result<Bpl.Expr>() != null);
 
       // Only need to check this for natural numbers for now.
       // We should always be able to use  Is, but this is an optimisation.

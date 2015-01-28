@@ -477,3 +477,123 @@ method {:selective_checking} MySelectiveChecking1(x: int, y: int, z: int)
   }
   assert x < z;  // error (this doesn't hold if we take the 'then' branch)
 }
+
+// ------------- regression test: make sure havoc and assign-such-that statements include type assumptions --
+
+module AssumeTypeAssumptions {
+  predicate f(p: seq<int>)
+
+  method M2() {
+    var path: seq<int>, other: int :| true;  // previously, the 2-or-more variable case was broken
+    assume f(path);
+    assert exists path :: f(path);
+  }
+
+  method M1() {
+    var path: seq<int> :| true;  // ... whereas the 1-variable case had worked
+    assume f(path);
+    assert exists path :: f(path);
+  }
+
+  method P2() {
+    var path: seq<int>, other: int := *, *;
+    assume f(path);
+    assert exists path :: f(path);
+  }
+
+  method P1() {
+    var path: seq<int> := *;
+    assume f(path);
+    assert exists path :: f(path);
+  }
+
+  method Q2(a: array<seq<int>>, j: int)
+    requires a != null && 0 <= j < a.Length
+    modifies a
+  {
+    var other: int;
+    a[j], other := *, *;
+    assume f(a[j]);
+    assert exists path :: f(path);
+  }
+
+  method Q1(a: array<seq<int>>, j: int)
+    requires a != null && 0 <= j < a.Length
+    modifies a
+  {
+    a[j] := *;
+    assume f(a[j]);
+    assert exists path :: f(path);
+  }
+
+  // -----
+
+  class IntCell {
+    var data: int
+  }
+  class Cell<T> {
+    var data: T
+  }
+
+  method Client_Fixed(x: IntCell)
+    requires x != null
+    modifies x
+  {
+    var xx: int;
+    // regular assignments
+    xx := 7;
+    x.data := 7;
+    // havoc assignments
+    xx := *;
+    x.data := *;
+  }
+
+  method Client_Int(x: Cell<int>, a: array<int>, j: int)
+    requires x != null && a != null && 0 <= j < a.Length
+    modifies x, a
+  {
+    var xx: int;
+    // regular assignments
+    xx := 7;
+    x.data := 7;
+    a[j] := 7;
+    // havoc assignments
+    xx := *;
+    x.data := *;
+    a[j] := *;
+  }
+
+  method Client_U<U>(x: Cell<U>, a: array<U>, j: int, u: U)
+    requires x != null && a != null && 0 <= j < a.Length
+    modifies x, a
+  {
+    var xx: U;
+    // regular assignments
+    xx := u;
+    x.data := u;
+    a[j] := u;
+    // havoc assignments
+    xx := *;
+    x.data := *;
+    a[j] := *;
+  }
+
+  method Client_CellU<U>(x: Cell<Cell<U>>, a: array<Cell<U>>, j: int, u: Cell<U>)
+    requires x != null && a != null && 0 <= j < a.Length
+    modifies x, a
+  {
+    var xx: Cell<U>;
+    // regular assignments
+    xx := u;
+    x.data := u;
+    a[j] := u;
+    // havoc assignments
+    xx := *;
+    x.data := *;
+    a[j] := *;
+    // new assignments
+    xx := new Cell<U>;
+    x.data := new Cell<U>;
+    a[j] := new Cell<U>;
+  }
+}
