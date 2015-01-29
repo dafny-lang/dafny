@@ -17,7 +17,37 @@ namespace Microsoft.Dafny {
 
   public class FreshIdGenerator
   {
-    readonly Dictionary<string, int> PrefixToCount = new Dictionary<string, int>();
+    Dictionary<string, int> PrefixToCount = new Dictionary<string, int>();
+
+    public /*spec public*/ readonly Stack<int> Tip = new Stack<int>();
+    string tipString;  // a string representation of Tip
+    int tipChildrenCount = 0;
+    readonly Stack<Dictionary<string, int>> PrefixToCount_Stack = new Stack<Dictionary<string, int>>();  // invariant PrefixToCount_Stack.Count == Tip.Count
+    public void Push() {
+      Tip.Push(tipChildrenCount);
+      tipChildrenCount = 0;
+      tipString = ComputeTipString();
+      PrefixToCount_Stack.Push(PrefixToCount);
+      PrefixToCount = new Dictionary<string, int>();
+    }
+    public void Pop() {
+      Contract.Requires(Tip.Count > 0);
+      int k = Tip.Pop();
+      tipChildrenCount = k + 1;
+      tipString = ComputeTipString();
+      PrefixToCount = PrefixToCount_Stack.Pop();
+    }
+    string ComputeTipString() {
+      string s = null;
+      foreach (var k in Tip) {
+        if (s == null) {
+          s = k.ToString();
+        } else {
+          s = k.ToString() + "_" + s;
+        }
+      }
+      return s;
+    }
 
     readonly string CommonPrefix = "";
 
@@ -48,17 +78,16 @@ namespace Microsoft.Dafny {
       return new FreshIdGenerator(FreshId(prefix));
     }
 
-    public int FreshNumericId(string prefix = "")
+    public string FreshNumericId(string prefix = "")
     {
       lock (PrefixToCount)
       {
         int old;
-        if (!PrefixToCount.TryGetValue(prefix, out old))
-        {
+        if (!PrefixToCount.TryGetValue(prefix, out old)) {
           old = 0;
         }
         PrefixToCount[prefix] = old + 1;
-        return old;
+        return tipString == null ? old.ToString() : tipString + "_" + old.ToString();
       }
     }
   }
@@ -7045,7 +7074,9 @@ namespace Microsoft.Dafny {
           guard = etran.TrExpr(s.Guard);
         }
         Bpl.StmtListBuilder b = new Bpl.StmtListBuilder();
+        CurrentIdGenerator.Push();
         Bpl.StmtList thn = TrStmt2StmtList(b, s.Thn, locals, etran);
+        CurrentIdGenerator.Pop();
         Bpl.StmtList els;
         Bpl.IfCmd elsIf = null;
         if (s.Els == null) {
@@ -7075,7 +7106,11 @@ namespace Microsoft.Dafny {
         var s = (WhileStmt)stmt;
         BodyTranslator bodyTr = null;
         if (s.Body != null) {
-          bodyTr = delegate(Bpl.StmtListBuilder bld, ExpressionTranslator e) { TrStmt(s.Body, bld, locals, e); };
+          bodyTr = delegate(Bpl.StmtListBuilder bld, ExpressionTranslator e) {
+            CurrentIdGenerator.Push();
+            TrStmt(s.Body, bld, locals, e);
+            CurrentIdGenerator.Pop();
+          };
         }
         TrLoop(s, s.Guard, bodyTr, builder, locals, etran);
 
@@ -7189,6 +7224,7 @@ namespace Microsoft.Dafny {
         var s = (CalcStmt)stmt;
         Contract.Assert(s.Steps.Count == s.Hints.Count); // established by the resolver
         AddComment(builder, stmt, "calc statement");
+        CurrentIdGenerator.Push();  // put the entire calc statement within its own sub-branch
         if (s.Lines.Count > 0) {
           Bpl.IfCmd ifCmd = null;
           Bpl.StmtListBuilder b;
@@ -7199,6 +7235,7 @@ namespace Microsoft.Dafny {
             b = new Bpl.StmtListBuilder();
             // assume wf[line<i>]:
             AddComment(b, stmt, "assume wf[lhs]");
+            CurrentIdGenerator.Push();
             assertAsAssume = true;
             TrStmt_CheckWellformed(CalcStmt.Lhs(s.Steps[i]), b, locals, etran, false);
             assertAsAssume = false;
@@ -7235,6 +7272,7 @@ namespace Microsoft.Dafny {
             }
             b.Add(new Bpl.AssumeCmd(s.Tok, Bpl.Expr.False));
             ifCmd = new Bpl.IfCmd(s.Tok, null, b.Collect(s.Tok), ifCmd, null);
+            CurrentIdGenerator.Pop();
           }
           // check well formedness of the first line:
           b = new Bpl.StmtListBuilder();
@@ -7249,6 +7287,7 @@ namespace Microsoft.Dafny {
             builder.Add(new Bpl.AssumeCmd(s.Tok, etran.TrExpr(s.Result)));
           }
         }
+        CurrentIdGenerator.Pop();
 
       } else if (stmt is MatchStmt) {
         var s = (MatchStmt)stmt;
@@ -7282,6 +7321,7 @@ namespace Microsoft.Dafny {
         }
         for (int i = s.Cases.Count; 0 <= --i; ) {
           var mc = (MatchCaseStmt)s.Cases[i];
+          CurrentIdGenerator.Push();
           // havoc all bound variables
           b = new Bpl.StmtListBuilder();
           List<Variable> newLocals = new List<Variable>();
@@ -7303,6 +7343,7 @@ namespace Microsoft.Dafny {
           Bpl.Expr guard = Bpl.Expr.Eq(source, r);
           ifCmd = new Bpl.IfCmd(mc.tok, guard, b.Collect(mc.tok), ifCmd, els);
           els = null;
+          CurrentIdGenerator.Pop();
         }
         Contract.Assert(ifCmd != null);  // follows from the fact that s.Cases.Count + s.MissingCases.Count != 0.
         builder.Add(ifCmd);
@@ -8377,6 +8418,7 @@ namespace Microsoft.Dafny {
       Bpl.IfCmd elsIf = null;
       for (int i = alternatives.Count; 0 <= --i; ) {
         Contract.Assert(elsIf == null || els == null);  // loop invariant
+        CurrentIdGenerator.Push();
         var alternative = alternatives[i];
         b = new Bpl.StmtListBuilder();
         TrStmt_CheckWellformed(alternative.Guard, b, locals, etran, true);
@@ -8387,6 +8429,7 @@ namespace Microsoft.Dafny {
         Bpl.StmtList thn = b.Collect(alternative.Tok);
         elsIf = new Bpl.IfCmd(alternative.Tok, null, thn, elsIf, els);
         els = null;
+        CurrentIdGenerator.Pop();
       }
       Contract.Assert(elsIf != null && els == null); // follows from loop invariant and the fact that there's more than one alternative
       builder.Add(elsIf);

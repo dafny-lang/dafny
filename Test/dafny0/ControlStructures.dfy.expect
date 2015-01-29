@@ -68,7 +68,7 @@ Execution trace:
     ControlStructures.dfy(213,9): anon70_Else
     ControlStructures.dfy(213,9): anon71_Else
     (0,0): anon72_Then
-    (0,0): after_2
+    (0,0): after_0_0_3_0_0_0
     ControlStructures.dfy(224,7): anon74_LoopHead
     (0,0): anon74_LoopBody
     ControlStructures.dfy(224,7): anon75_Else
@@ -109,7 +109,7 @@ Execution trace:
     ControlStructures.dfy(213,9): anon70_Else
     ControlStructures.dfy(213,9): anon71_Else
     (0,0): anon72_Then
-    (0,0): after_2
+    (0,0): after_0_0_3_0_0_0
     ControlStructures.dfy(224,7): anon74_LoopHead
     (0,0): anon74_LoopBody
     ControlStructures.dfy(224,7): anon75_Else

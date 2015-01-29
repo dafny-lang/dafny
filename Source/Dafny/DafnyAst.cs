@@ -3301,10 +3301,10 @@ namespace Microsoft.Dafny {
   {
     public readonly IToken Tok;
     public readonly string Name;
-    int uniqueId = -1;
-    public int AssignUniqueId(string prefix, FreshIdGenerator idGen)
+    string uniqueId = null;
+    public string AssignUniqueId(string prefix, FreshIdGenerator idGen)
     {
-      if (uniqueId < 0)
+      if (uniqueId == null)
       {
         uniqueId = idGen.FreshNumericId(prefix);
       }

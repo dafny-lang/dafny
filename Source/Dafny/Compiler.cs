@@ -30,7 +30,7 @@ namespace Microsoft.Dafny {
     FreshIdGenerator idGenerator = new FreshIdGenerator();
 
     static FreshIdGenerator compileNameIdGenerator = new FreshIdGenerator();
-    public static int FreshId()
+    public static string FreshId()
     {
       return compileNameIdGenerator.FreshNumericId();
     }
