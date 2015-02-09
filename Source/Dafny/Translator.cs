@@ -870,7 +870,7 @@ namespace Microsoft.Dafny {
                   FunctionCall(arg.tok, BuiltinFunction.SeqIndex, predef.DatatypeType, args[i], ie)));
               Bpl.Expr rhs = FunctionCall(ctor.tok, ctor.FullName, predef.DatatypeType, args);
               rhs = FunctionCall(ctor.tok, BuiltinFunction.DtRank, null, rhs);
-              q = new Bpl.ForallExpr(ctor.tok, bvs, Bpl.Expr.Imp(ante, Bpl.Expr.Lt(lhs, rhs)));
+              q = new Bpl.ForallExpr(ctor.tok, bvs, new Trigger(lhs.tok, true, new List<Bpl.Expr> { lhs, rhs }), Bpl.Expr.Imp(ante, Bpl.Expr.Lt(lhs, rhs)));
               sink.AddTopLevelDeclaration(new Bpl.Axiom(ctor.tok, q));
               // axiom (forall params, SeqRank(arg) < DtRank(#dt.ctor(params)));
               CreateBoundVariables(ctor.Formals, out bvs, out args);
