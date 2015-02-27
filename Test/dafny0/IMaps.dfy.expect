@@ -1,0 +1,7 @@
+IMaps.dfy(53,8): Error: element may not be in domain
+Execution trace:
+    (0,0): anon0
+    (0,0): anon5_Then
+    (0,0): anon2
+
+Dafny program verifier finished with 24 verified, 1 error

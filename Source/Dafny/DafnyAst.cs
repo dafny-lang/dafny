@@ -529,6 +529,12 @@ namespace Microsoft.Dafny {
         return t as ArrowType;
       }
     }
+    public bool IsIMapType {
+      get {
+        var t = NormalizeExpand() as MapType;
+        return t != null && !t.Finite;
+      }
+    }
     public NewtypeDecl AsNewtype {
       get {
         var udt = NormalizeExpand() as UserDefinedType;
@@ -627,7 +633,7 @@ namespace Microsoft.Dafny {
     /// </summary>
     public bool IsOrdered {
       get {
-        return !IsTypeParameter && !IsCoDatatype;
+        return !IsTypeParameter && !IsCoDatatype && !(this is MapType && ((MapType)this).Finite);
       }
     }
 
@@ -897,6 +903,11 @@ namespace Microsoft.Dafny {
   }
   public class MapType : CollectionType
   {
+    public bool Finite {
+      get { return finite; }
+      set { finite = value; }
+    }
+    private bool finite;
     public Type Range {
       get { return range; }
       set {
@@ -910,8 +921,9 @@ namespace Microsoft.Dafny {
       Contract.Assume(this.range == null);  // Can only set once.  This is really a precondition.
       this.range = range;
     }
-    public MapType(Type domain, Type range) : base(domain) {
+    public MapType(bool finite, Type domain, Type range) : base(domain) {
       Contract.Requires((domain == null && range == null) || (domain != null && range != null));
+      this.finite = finite;
       this.range = range;
       this.TypeArgs = new List<Type> {domain,range};
     }
@@ -921,7 +933,7 @@ namespace Microsoft.Dafny {
         TypeArgs = new List<Type> { Domain, range };
       }
     }
-    public override string CollectionTypeName { get { return "map"; } }
+    public override string CollectionTypeName { get { return finite ? "map" : "imap"; } }
     [Pure]
     public override string TypeName(ModuleDefinition context) {
       Contract.Ensures(Contract.Result<string>() != null);
@@ -930,11 +942,11 @@ namespace Microsoft.Dafny {
     }
     public override bool Equals(Type that) {
       var t = that.NormalizeExpand() as MapType;
-      return t != null && Arg.Equals(t.Arg) && Range.Equals(t.Range);
+      return t != null && Finite == t.Finite && Arg.Equals(t.Arg) && Range.Equals(t.Range);
     }
     public override bool PossiblyEquals_W(Type that) {
       var t = that as MapType;
-      return t != null && Arg.PossiblyEquals(t.Arg) && Range.PossiblyEquals(t.Range);
+      return t != null && Finite == t.Finite && Arg.PossiblyEquals(t.Arg) && Range.PossiblyEquals(t.Range);
     }
   }
 
@@ -1293,18 +1305,20 @@ namespace Microsoft.Dafny {
 
   /// <summary>
   /// This proxy stands for:
-  ///     set(Arg) or multiset(Arg) or seq(Arg) or map(Arg, anyRange)
+  ///     set(Arg) or multiset(Arg) or seq(Arg) or map(Arg, anyRange) or imap(Arg, anyRange)
   /// </summary>
   public class CollectionTypeProxy : RestrictedTypeProxy {
     public readonly Type Arg;
+    public readonly bool AllowIMap;
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(Arg != null);
     }
 
-    public CollectionTypeProxy(Type arg) {
+    public CollectionTypeProxy(Type arg, bool allowIMap) {
       Contract.Requires(arg != null);
       Arg = arg;
+      AllowIMap = allowIMap;
     }
     public override int OrderID {
       get {
@@ -1375,6 +1389,7 @@ namespace Microsoft.Dafny {
   /// </summary>
   public class IndexableTypeProxy : RestrictedTypeProxy {
     public readonly bool AllowMap;
+    public readonly bool AllowIMap;
     public readonly bool AllowArray;
     public readonly Type Domain, Range, Arg;
     [ContractInvariantMethod]
@@ -1384,7 +1399,7 @@ namespace Microsoft.Dafny {
       Contract.Invariant(Arg != null);
     }
 
-    public IndexableTypeProxy(Type domain, Type range, Type arg, bool allowMap, bool allowArray) {
+    public IndexableTypeProxy(Type domain, Type range, Type arg, bool allowMap, bool allowIMap, bool allowArray) {
       Contract.Requires(domain != null);
       Contract.Requires(range != null);
       Contract.Requires(arg != null);
@@ -1392,6 +1407,7 @@ namespace Microsoft.Dafny {
       Range = range;
       Arg = arg;
       AllowMap = allowMap;
+      AllowIMap = allowIMap;
       AllowArray = allowArray;
     }
     public override int OrderID {
@@ -6525,13 +6541,17 @@ namespace Microsoft.Dafny {
   }
   public class MapComprehension : ComprehensionExpr
   {
-    public MapComprehension(IToken tok, List<BoundVar> bvars, Expression range, Expression term)
+    public readonly bool Finite;
+
+    public MapComprehension(IToken tok, bool finite, List<BoundVar> bvars, Expression range, Expression term)
       : base(tok, bvars, range, term, null) {
       Contract.Requires(tok != null);
       Contract.Requires(cce.NonNullElements(bvars));
       Contract.Requires(1 <= bvars.Count);
       Contract.Requires(range != null);
       Contract.Requires(term != null);
+
+      Finite = finite;
     }
   }
 

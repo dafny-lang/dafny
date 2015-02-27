@@ -2609,6 +2609,9 @@ namespace Microsoft.Dafny
 
         } else if (type is MapType) {
           var mt = (MapType)type;
+          if (!mt.Finite) {
+            Error(tok, "imaps do not support equality: {0}", mt);
+          }
           if (!mt.Domain.SupportsEquality) {
             Error(tok, "map domain type must support equality (got {0}){1}", mt.Domain, TypeEqualityErrorMessageHint(mt.Domain));
           }
@@ -3252,7 +3255,11 @@ namespace Microsoft.Dafny
         foreach (var ctor in dt.Ctors) {
           foreach (var arg in ctor.Formals) {
             var anotherIndDt = arg.Type.AsIndDatatype;
-            if (arg.IsGhost || (anotherIndDt != null && anotherIndDt.EqualitySupport == IndDatatypeDecl.ES.Never) || arg.Type.IsCoDatatype) {
+            if (arg.IsGhost ||
+                (anotherIndDt != null && anotherIndDt.EqualitySupport == IndDatatypeDecl.ES.Never) ||
+                arg.Type.IsCoDatatype ||
+                arg.Type.IsArrowType ||
+                arg.Type.IsIMapType) {
               // arg.Type is known never to support equality
               // So, go around the entire SCC and record what we learnt
               foreach (var ddtt in scc) {
@@ -4183,7 +4190,8 @@ namespace Microsoft.Dafny
       } else if (a is MultiSetType) {
         return b is MultiSetType && UnifyTypes(((MultiSetType)a).Arg, ((MultiSetType)b).Arg);
       } else if (a is MapType) {
-        return b is MapType && UnifyTypes(((MapType)a).Domain, ((MapType)b).Domain) && UnifyTypes(((MapType)a).Range, ((MapType)b).Range);
+        return b is MapType && ((MapType)a).Finite == ((MapType)b).Finite &&
+               UnifyTypes(((MapType)a).Domain, ((MapType)b).Domain) && UnifyTypes(((MapType)a).Range, ((MapType)b).Range);
       } else if (a is SeqType) {
         return b is SeqType && UnifyTypes(((SeqType)a).Arg, ((SeqType)b).Arg);
       } else if (a is UserDefinedType) {
@@ -4326,7 +4334,15 @@ namespace Microsoft.Dafny
           } else if (!UnifyTypes(iProxy.Arg, iProxy.Range)) {
             return false;
           }
-        } else if (iProxy.AllowMap && t is MapType) {
+        } else if (iProxy.AllowMap && t is MapType && ((MapType)t).Finite) {
+          if (!UnifyTypes(iProxy.Domain, ((MapType)t).Domain)) {
+            return false;
+          } else if (!UnifyTypes(iProxy.Range, ((MapType)t).Range)) {
+            return false;
+          } else if (!UnifyTypes(iProxy.Arg, iProxy.Domain)) {
+            return false;
+          }
+        } else if (iProxy.AllowIMap && t is MapType && !((MapType)t).Finite) {
           if (!UnifyTypes(iProxy.Domain, ((MapType)t).Domain)) {
             return false;
           } else if (!UnifyTypes(iProxy.Range, ((MapType)t).Range)) {
@@ -4434,15 +4450,16 @@ namespace Microsoft.Dafny
           var pa = (CollectionTypeProxy)a;
           var ib = (IndexableTypeProxy)b;
           // pa is:
-          //   set(Arg) or multiset(Arg) or seq(Arg) or map(Arg, anyRange)
+          //   set(Arg) or multiset(Arg) or seq(Arg) or map(Arg, anyRange) or imap(Arg, anyRange)
           // ib is:
           //   multiset(Arg) or
           //   seq(Arg) or
           //   if AllowMap, map(Domain, Arg), or
+          //   if AllowIMap, imap(Domain, Arg), or
           //   if AllowArray, array(Arg)
           // Their intersection is:
           if (ib.AllowArray) {
-            var c = new IndexableTypeProxy(ib.Domain, ib.Range, ib.Arg, ib.AllowMap, false);
+            var c = new IndexableTypeProxy(ib.Domain, ib.Range, ib.Arg, ib.AllowMap, ib.AllowIMap, false);
             ib.T = c;
             ib = c;
           }
@@ -4493,8 +4510,8 @@ namespace Microsoft.Dafny
             return false;
           } else {
             Contract.Assert(pa.AllowSeq && pa.AllowSetVarieties);  // the only case left
-            if (ib.AllowMap || ib.AllowArray) {
-              var c = new IndexableTypeProxy(ib.Domain, ib.Range, ib.Arg, false, false);
+            if (ib.AllowMap || ib.AllowIMap || ib.AllowArray) {
+              var c = new IndexableTypeProxy(ib.Domain, ib.Range, ib.Arg, false, false, false);
               a.T = c;
               b.T = c;
             } else {
@@ -4508,13 +4525,14 @@ namespace Microsoft.Dafny
         var ia = (IndexableTypeProxy)a;
         var ib = (IndexableTypeProxy)b;  // cast justification: else we have unexpected restricted-proxy type
         var am = ia.AllowMap && ib.AllowMap;
+        var aim = ia.AllowIMap && ib.AllowIMap;
         var ar = ia.AllowArray && ib.AllowArray;
-        if (am == ia.AllowMap && ar == ia.AllowArray) {
+        if (am == ia.AllowMap && aim == ia.AllowIMap && ar == ia.AllowArray) {
           b.T = a;  // a has the stronger requirement
-        } else if (am == ib.AllowMap && ar == ib.AllowArray) {
+        } else if (am == ib.AllowMap && aim == ib.AllowIMap && ar == ib.AllowArray) {
           a.T = b;  // b has the stronger requirement
         } else {
-          var c = new IndexableTypeProxy(ia.Domain, ia.Range, ia.Arg, am, ar);
+          var c = new IndexableTypeProxy(ia.Domain, ia.Range, ia.Arg, am, aim, ar);
           a.T = c;
           b.T = c;
         }
@@ -6171,7 +6189,7 @@ namespace Microsoft.Dafny
         if (dom == t.Domain && ran == t.Range) {
           return type;
         } else {
-          return new MapType(dom, ran);
+          return new MapType(t.Finite, dom, ran);
         }
       } else if (type is CollectionType) {
         var t = (CollectionType)type;
@@ -6462,7 +6480,7 @@ namespace Microsoft.Dafny
             Error(p.B, "All elements of display must be of the same type (got {0}, but type of previous elements is {1})", p.B.Type, rangeType);
           }
         }
-        expr.Type = new MapType(domainType, rangeType);
+        expr.Type = new MapType(true, domainType, rangeType);
       } else if (expr is NameSegment) {
         var e = (NameSegment)expr;
         ResolveNameSegment(e, true, null, opts, false);
@@ -6577,7 +6595,7 @@ namespace Microsoft.Dafny
             Error(e.Value, "sequence update requires the value to have the element type of the sequence (got {0})", e.Value.Type);
           }
           expr.Type = e.Seq.Type;
-        } else if (UnifyTypes(e.Seq.Type, new MapType(domainType, rangeType))) {
+        } else if (UnifyTypes(e.Seq.Type, new MapType(true, domainType, rangeType))) {
           ResolveExpression(e.Index, opts);
           if (!UnifyTypes(e.Index.Type, domainType)) {
             Error(e.Index, "map update requires domain element to be of type {0} (got {1})", domainType, e.Index.Type);
@@ -6708,7 +6726,7 @@ namespace Microsoft.Dafny
             expr.Type = Type.Bool;
             break;
           case UnaryOpExpr.Opcode.Cardinality:
-            if (!UnifyTypes(e.E.Type, new CollectionTypeProxy(new InferredTypeProxy()))) {
+            if (!UnifyTypes(e.E.Type, new CollectionTypeProxy(new InferredTypeProxy(), false))) {
               Error(expr, "size operator expects a collection argument (instead got {0})", e.E.Type);
             }
             expr.Type = Type.Int;
@@ -6804,7 +6822,7 @@ namespace Microsoft.Dafny
             }
             if (!UnifyTypes(e.E0.Type, new SetType(new InferredTypeProxy())) &&
                 !UnifyTypes(e.E0.Type, new MultiSetType(new InferredTypeProxy())) &&
-                !UnifyTypes(e.E0.Type, new MapType(new InferredTypeProxy(), new InferredTypeProxy()))) {
+                !UnifyTypes(e.E0.Type, new MapType(true, new InferredTypeProxy(), new InferredTypeProxy()))) {
               Error(expr, "arguments must be of a [multi]set or map type (got {0})", e.E0.Type);
             }
             expr.Type = Type.Bool;
@@ -6889,7 +6907,7 @@ namespace Microsoft.Dafny
 
           case BinaryExpr.Opcode.In:
           case BinaryExpr.Opcode.NotIn:
-            if (!UnifyTypes(e.E1.Type, new CollectionTypeProxy(e.E0.Type))) {
+            if (!UnifyTypes(e.E1.Type, new CollectionTypeProxy(e.E0.Type, true))) {
               Error(expr, "second argument to \"{0}\" must be a set, multiset, or sequence with elements of type {1}, or a map with domain {1} (instead got {2})", BinaryExpr.OpcodeString(e.Op), e.E0.Type, e.E1.Type);
             }
             expr.Type = Type.Bool;
@@ -7115,7 +7133,7 @@ namespace Microsoft.Dafny
 
         ResolveAttributes(e.Attributes, opts);
         scope.PopMarker();
-        expr.Type = new MapType(e.BoundVars[0].Type, e.Term.Type);
+        expr.Type = new MapType(e.Finite, e.BoundVars[0].Type, e.Term.Type);
 
         if (prevErrorCount == ErrorCount) {
           var missingBounds = new List<BoundVar>();
@@ -7123,8 +7141,10 @@ namespace Microsoft.Dafny
           e.Bounds = DiscoverBounds(e.tok, e.BoundVars, e.Range, true, false, missingBounds);
           if (missingBounds.Count != 0) {
             e.MissingBounds = missingBounds;
-            foreach (var bv in e.MissingBounds) {
-              Error(expr, "a map comprehension must produce a finite domain, but Dafny's heuristics can't figure out how to produce a bounded set of values for '{0}'", bv.Name);
+            if (e.Finite) {
+              foreach (var bv in e.MissingBounds) {
+                Error(expr, "a map comprehension must produce a finite domain, but Dafny's heuristics can't figure out how to produce a bounded set of values for '{0}'", bv.Name);
+              }
             }
           }
         }
@@ -8254,6 +8274,14 @@ namespace Microsoft.Dafny
           }
           return;
         }
+      } else if (expr is MapComprehension) {
+        var e = (MapComprehension)expr;
+        if (e.MissingBounds != null && !e.Finite) {
+          foreach (var bv in e.MissingBounds) {
+            Error(expr, "imaps in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce a bounded set of values for '{0}'", bv.Name);
+          }
+          return;
+        }
       } else if (expr is NamedExpr) {
         if (!moduleInfo.IsGhost)
           CheckIsNonGhost(((NamedExpr)expr).Body);
@@ -8498,7 +8526,7 @@ namespace Microsoft.Dafny
                 }
                 break;
               case BinaryExpr.ResolvedOpcode.InMap:
-                if (whereIsBv == 0) {
+                if (whereIsBv == 0 && e1.Type.AsMapType.Finite) {
                   bounds.Add(new ComprehensionExpr.SetBoundedPool(e1));
                   foundBoundsForBv = true;
                   if (!returnAllBounds) goto CHECK_NEXT_BOUND_VARIABLE;
@@ -8915,7 +8943,7 @@ namespace Microsoft.Dafny
       Type domainType = new InferredTypeProxy();
       Type argType = new InferredTypeProxy();
 
-      IndexableTypeProxy expectedType = new IndexableTypeProxy(domainType, elementType, argType, true, true);
+      IndexableTypeProxy expectedType = new IndexableTypeProxy(domainType, elementType, argType, true, true, true);
       if (!UnifyTypes(e.Seq.Type, expectedType)) {
         Error(e, "sequence/array/multiset/map selection requires a sequence, array, multiset, or map (got {0})", e.Seq.Type);
         seqErr = true;
@@ -8928,8 +8956,10 @@ namespace Microsoft.Dafny
             Error(e, "selection requires a sequence (got {0})", e.Seq.Type);
           }
         } else {
-          if (UnifyTypes(expectedType, new MapType(new InferredTypeProxy(), new InferredTypeProxy()))) {
+          if (UnifyTypes(expectedType, new MapType(true, new InferredTypeProxy(), new InferredTypeProxy()))) {
             Error(e, "cannot multiselect a map (got {0} as map type)", e.Seq.Type);
+          } else if (UnifyTypes(expectedType, new MapType(false, new InferredTypeProxy(), new InferredTypeProxy()))) {
+            Error(e, "cannot multiselect an imap (got {0} as imap type)", e.Seq.Type);
           }
         }
       }

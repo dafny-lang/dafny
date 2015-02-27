@@ -23,6 +23,7 @@ function TSet(Ty)      : Ty;
 function TMultiSet(Ty) : Ty;
 function TSeq(Ty)      : Ty;
 function TMap(Ty, Ty)  : Ty;
+function TIMap(Ty, Ty) : Ty;
 
 function Inv0_TSet(Ty) : Ty;
 axiom (forall t: Ty :: { TSet(t) } Inv0_TSet(TSet(t)) == t);
@@ -878,13 +879,16 @@ axiom (forall<U, V> u: U ::
         !Map#Domain(Map#Empty(): Map U V)[u]);
 axiom (forall<U, V> m: Map U V :: { Map#Card(m) } Map#Card(m) == 0 <==> m == Map#Empty());
 
-function Map#Glue<U, V>([U] bool, [U]V): Map U V;
-axiom (forall<U, V> a: [U] bool, b:[U]V ::
-        { Map#Domain(Map#Glue(a, b)) }
-        Map#Domain(Map#Glue(a, b)) == a);
-axiom (forall<U, V> a: [U] bool, b:[U]V ::
-        { Map#Elements(Map#Glue(a, b)) }
-        Map#Elements(Map#Glue(a, b)) == b);
+function Map#Glue<U, V>([U] bool, [U]V, Ty): Map U V;
+axiom (forall<U, V> a: [U] bool, b:[U]V, t:Ty ::
+        { Map#Domain(Map#Glue(a, b, t)) }
+        Map#Domain(Map#Glue(a, b, t)) == a);
+axiom (forall<U, V> a: [U] bool, b:[U]V, t:Ty ::
+        { Map#Elements(Map#Glue(a, b, t)) }
+        Map#Elements(Map#Glue(a, b, t)) == b);
+axiom (forall<U, V> a: [U] bool, b:[U]V, t:Ty ::
+        { $Is(Map#Glue(a, b, t), t) }
+        $Is(Map#Glue(a, b, t), t));
 
 
 //Build is used in displays, and for map updates
@@ -920,6 +924,37 @@ function Map#Disjoint<U, V>(Map U V, Map U V): bool;
 axiom (forall<U, V> m: Map U V, m': Map U V ::
   { Map#Disjoint(m, m') }
     Map#Disjoint(m, m') <==> (forall o: U :: {Map#Domain(m)[o]} {Map#Domain(m')[o]} !Map#Domain(m)[o] || !Map#Domain(m')[o]));
+
+// ---------------------------------------------------------------
+// -- Axiomatization of IMaps ------------------------------------
+// ---------------------------------------------------------------
+
+type IMap U V;
+
+function IMap#Domain<U, V>(IMap U V): [U] bool;
+function IMap#Elements<U, V>(IMap U V): [U]V;
+
+function IMap#Glue<U, V>([U] bool, [U]V, Ty): IMap U V;
+axiom (forall<U, V> a: [U] bool, b:[U]V, t:Ty ::
+        { IMap#Domain(IMap#Glue(a, b, t)) }
+        IMap#Domain(IMap#Glue(a, b, t)) == a);
+axiom (forall<U, V> a: [U] bool, b:[U]V, t:Ty ::
+        { IMap#Elements(IMap#Glue(a, b, t)) }
+        IMap#Elements(IMap#Glue(a, b, t)) == b);
+axiom (forall<U, V> a: [U] bool, b:[U]V, t:Ty ::
+        { $Is(IMap#Glue(a, b, t), t) }
+        $Is(IMap#Glue(a, b, t), t));
+
+//equality for imaps
+function IMap#Equal<U, V>(IMap U V, IMap U V): bool;
+axiom (forall<U, V> m: IMap U V, m': IMap U V::
+  { IMap#Equal(m, m') }
+    IMap#Equal(m, m') <==> (forall u : U :: IMap#Domain(m)[u] == IMap#Domain(m')[u]) &&
+                          (forall u : U :: IMap#Domain(m)[u] ==> IMap#Elements(m)[u] == IMap#Elements(m')[u]));
+// extensionality
+axiom (forall<U, V> m: IMap U V, m': IMap U V::
+  { IMap#Equal(m, m') }
+    IMap#Equal(m, m') ==> m == m');
 
 // -------------------------------------------------------------------------
 // -- Provide arithmetic wrappers to improve triggering and non-linear math 

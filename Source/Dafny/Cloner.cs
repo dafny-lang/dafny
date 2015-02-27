@@ -175,7 +175,7 @@ namespace Microsoft.Dafny
         return new MultiSetType(CloneType(tt.Arg));
       } else if (t is MapType) {
         var tt = (MapType)t;
-        return new MapType(CloneType(tt.Domain), CloneType(tt.Range));
+        return new MapType(tt.Finite, CloneType(tt.Domain), CloneType(tt.Range));
       } else if (t is ArrowType) {
         var tt = (ArrowType)t;
         return new ArrowType(Tok(tt.tok), tt.Args.ConvertAll(CloneType), CloneType(tt.Result));
@@ -385,7 +385,7 @@ namespace Microsoft.Dafny
             Contract.Assert(false); throw new cce.UnreachableException();  // unexpected quantifier expression
           }
         } else if (e is MapComprehension) {
-          return new MapComprehension(tk, bvs, range, term);
+          return new MapComprehension(tk, ((MapComprehension)e).Finite, bvs, range, term);
         } else if (e is LambdaExpr) {
           var l = (LambdaExpr)e;
           return new LambdaExpr(tk, l.OneShot, bvs, range, l.Reads.ConvertAll(CloneFrameExpr), term);

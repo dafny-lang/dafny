@@ -401,6 +401,7 @@ TOKENS
   multiset = "multiset".
   seq = "seq".
   map = "map".
+  imap = "imap".
   charToken =
       "'"
       ( charChar
@@ -1119,12 +1120,22 @@ TypeAndToken<out IToken tok, out Type ty>
   | "string"                        (. tok = t;  ty = new UserDefinedType(tok, tok.val, null); .)
   | "map"                           (. tok = t;  gt = new List<Type>(); .)
     [ GenericInstantiation<gt> ]    (. if (gt.Count == 0) {
-                                         ty = new MapType(null, null);
+                                         ty = new MapType(true, null, null);
                                        } else if (gt.Count != 2) {
                                          SemErr("map type expects two type arguments");
-                                         ty = new MapType(gt[0], gt.Count == 1 ? new InferredTypeProxy() : gt[1]);
+                                         ty = new MapType(true, gt[0], gt.Count == 1 ? new InferredTypeProxy() : gt[1]);
                                        } else {
-                                         ty = new MapType(gt[0], gt[1]);
+                                         ty = new MapType(true, gt[0], gt[1]);
+                                       }
+                                    .)
+  | "imap"                          (. tok = t;  gt = new List<Type>(); .)
+    [ GenericInstantiation<gt> ]    (. if (gt.Count == 0) {
+                                         ty = new MapType(false, null, null);
+                                       } else if (gt.Count != 2) {
+                                         SemErr("imap type expects two type arguments");
+                                         ty = new MapType(false, gt[0], gt.Count == 1 ? new InferredTypeProxy() : gt[1]);
+                                       } else {
+                                         ty = new MapType(false, gt[0], gt[1]);
                                        }
                                     .)
   | arrayToken                      (. tok = t;  gt = null; .)
@@ -2400,7 +2411,7 @@ MapLiteralExpressions<.out List<ExpressionPair> elements.>
   { "," Expression<out d, true, true> ":=" Expression<out r, true, true> (. elements.Add(new ExpressionPair(d,r)); .)
   }
   .
-MapComprehensionExpr<IToken mapToken, out Expression e, bool allowSemi, bool allowLambda>
+MapComprehensionExpr<IToken mapToken, bool finite, out Expression e, bool allowSemi, bool allowLambda>
 = (. Contract.Ensures(Contract.ValueAtReturn(out e) != null);
      BoundVar bv;
      List<BoundVar> bvars = new List<BoundVar>();
@@ -2411,7 +2422,7 @@ MapComprehensionExpr<IToken mapToken, out Expression e, bool allowSemi, bool all
   [ "|" Expression<out range, true, true> ]
   QSep
   Expression<out body, allowSemi, allowLambda>
-  (. e = new MapComprehension(mapToken, bvars, range ?? new LiteralExpr(mapToken, true), body);
+  (. e = new MapComprehension(mapToken, finite, bvars, range ?? new LiteralExpr(mapToken, true), body);
   .)
   .
 EndlessExpression<out Expression e, bool allowSemi, bool allowLambda>
@@ -2431,7 +2442,9 @@ EndlessExpression<out Expression e, bool allowSemi, bool allowLambda>
     Expression<out e, allowSemi, allowLambda>            (. e = new StmtExpr(s.Tok, s, e); .)
   | LetExpr<out e, allowSemi, allowLambda>
   | "map"                           (. x = t; .)
-    MapComprehensionExpr<x, out e, allowSemi, allowLambda>
+    MapComprehensionExpr<x, true, out e, allowSemi, allowLambda>
+  | "imap"                           (. x = t; .)
+    MapComprehensionExpr<x, false, out e, allowSemi, allowLambda>
   | NamedExpr<out e, allowSemi, allowLambda>
   )
   .

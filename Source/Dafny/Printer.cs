@@ -1763,7 +1763,7 @@ namespace Microsoft.Dafny {
         var e = (MapComprehension)expr;
         bool parensNeeded = !isRightmost;
         if (parensNeeded) { wr.Write("("); }
-        wr.Write("map ");
+        wr.Write(e.Finite ? "map " : "imap ");
         string sep = "";
         foreach (BoundVar bv in e.BoundVars) {
           wr.Write("{0}{1}", sep, bv.DisplayName);
