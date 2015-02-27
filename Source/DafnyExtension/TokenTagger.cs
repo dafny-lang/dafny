@@ -304,6 +304,7 @@ namespace DafnyLanguage
                 case "function":
                 case "ghost":
                 case "if":
+                case "imap":
                 case "import":
                 case "in":
                 case "include":
