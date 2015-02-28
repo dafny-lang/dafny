@@ -158,6 +158,9 @@ bool IsNonFinalColon() {
 bool IsMapDisplay() {
   return la.kind == _map && scanner.Peek().kind == _lbracket;
 }
+bool IsIMapDisplay() {
+  return la.kind == _imap && scanner.Peek().kind == _lbracket;
+}
 
 bool IsSuffix() {
   return la.kind == _dot || la.kind == _lbracket || la.kind == _openparen;
@@ -320,6 +323,7 @@ bool IsType(ref IToken pt) {
     case _multiset:
     case _seq:
     case _map:
+    case _imap:
       pt = scanner.Peek();
       return IsTypeList(ref pt);
     case _ident:
@@ -2258,7 +2262,11 @@ UnaryExpression<out Expression e, bool allowSemi, bool allowLambda>
 
   | IF(IsMapDisplay())  /* this alternative must be checked before going into EndlessExpression, where there is another "map" */
     "map"                                           (. x = t; .)
-    MapDisplayExpr<x, out e>
+    MapDisplayExpr<x, true, out e>
+    { IF(IsSuffix()) Suffix<ref e> }
+  | IF(IsIMapDisplay())  /* this alternative must be checked before going into EndlessExpression, where there is another "imap" */
+    "imap"                                          (. x = t; .)
+    MapDisplayExpr<x, false, out e>
     { IF(IsSuffix()) Suffix<ref e> }
   | IF(IsLambda(allowLambda))
     LambdaExpression<out e, allowSemi>  /* this is an endless expression */
@@ -2395,13 +2403,13 @@ MultiSetExpr<out Expression e>
     ")"
   )
   .
-MapDisplayExpr<IToken/*!*/ mapToken, out Expression e>
+MapDisplayExpr<IToken/*!*/ mapToken, bool finite, out Expression e>
 = (. Contract.Ensures(Contract.ValueAtReturn(out e) != null);
      List<ExpressionPair/*!*/>/*!*/ elements= new List<ExpressionPair/*!*/>() ;
      e = dummyExpr;
   .)
   "["
-    [ MapLiteralExpressions<out elements> ]  (. e = new MapDisplayExpr(mapToken, elements);.)
+    [ MapLiteralExpressions<out elements> ]  (. e = new MapDisplayExpr(mapToken, finite, elements);.)
   "]"
   .
 MapLiteralExpressions<.out List<ExpressionPair> elements.>

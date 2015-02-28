@@ -297,7 +297,7 @@ namespace Microsoft.Dafny
         foreach (ExpressionPair p in e.Elements) {
           pp.Add(new ExpressionPair(CloneExpr(p.A), CloneExpr(p.B)));
         }
-        return new MapDisplayExpr(Tok(expr.tok), pp);
+        return new MapDisplayExpr(Tok(expr.tok), e.Finite, pp);
 
       } else if (expr is NameSegment) {
         var e = (NameSegment)expr;

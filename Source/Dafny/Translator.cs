@@ -10438,12 +10438,12 @@ namespace Microsoft.Dafny {
 
         } else if (expr is MapDisplayExpr) {
           MapDisplayExpr e = (MapDisplayExpr)expr;
-          Bpl.Type maptype = predef.MapType(expr.tok, true, predef.BoxType, predef.BoxType);
-          Bpl.Expr s = translator.FunctionCall(expr.tok, BuiltinFunction.MapEmpty, predef.BoxType);
+          Bpl.Type maptype = predef.MapType(expr.tok, e.Finite, predef.BoxType, predef.BoxType);
+          Bpl.Expr s = translator.FunctionCall(expr.tok, e.Finite ? BuiltinFunction.MapEmpty : BuiltinFunction.IMapEmpty, predef.BoxType);
           foreach (ExpressionPair p in e.Elements) {
             Bpl.Expr elt = BoxIfNecessary(expr.tok, TrExpr(p.A), cce.NonNull(p.A.Type));
             Bpl.Expr elt2 = BoxIfNecessary(expr.tok, TrExpr(p.B), cce.NonNull(p.B.Type));
-            s = translator.FunctionCall(expr.tok, "Map#Build", maptype, s, elt, elt2);
+            s = translator.FunctionCall(expr.tok, e.Finite ? "Map#Build" : "IMap#Build", maptype, s, elt, elt2);
           }
           return s;
 
@@ -10558,13 +10558,13 @@ namespace Microsoft.Dafny {
               Bpl.Expr val = BoxIfNecessary(expr.tok, TrExpr(e.Value), elmtType);
               return translator.FunctionCall(expr.tok, BuiltinFunction.SeqUpdate, predef.BoxType, seq, index, val);
             }
-            else if (seqType is MapType && ((MapType)seqType).Finite)
+            else if (seqType is MapType)
             {
               MapType mt = (MapType)seqType;
-              Bpl.Type maptype = predef.MapType(expr.tok, true, predef.BoxType, predef.BoxType);
+              Bpl.Type maptype = predef.MapType(expr.tok, mt.Finite, predef.BoxType, predef.BoxType);
               Bpl.Expr index = BoxIfNecessary(expr.tok, TrExpr(e.Index), mt.Domain);
               Bpl.Expr val = BoxIfNecessary(expr.tok, TrExpr(e.Value), mt.Range);
-              return translator.FunctionCall(expr.tok, "Map#Build", maptype, seq, index, val);
+              return translator.FunctionCall(expr.tok, mt.Finite ? "Map#Build" : "IMap#Build", maptype, seq, index, val);
             }
             else if (seqType is MultiSetType)
             {
@@ -11668,6 +11668,7 @@ namespace Microsoft.Dafny {
       MapUnion,
       MapGlue,
 
+      IMapEmpty,
       IMapDomain,
       IMapElements,
       IMapEqual,
@@ -11982,6 +11983,12 @@ namespace Microsoft.Dafny {
           Contract.Assert(typeInstantiation == null);
           return FunctionCall(tok, "Map#Disjoint", typeInstantiation, args);
 
+        case BuiltinFunction.IMapEmpty: {
+            Contract.Assert(args.Length == 0);
+            Contract.Assert(typeInstantiation != null);
+            Bpl.Type resultType = predef.MapType(tok, false, typeInstantiation, typeInstantiation);  // use 'typeInstantiation' (which is really always just BoxType anyway) as both type arguments
+            return Bpl.Expr.CoerceType(tok, FunctionCall(tok, "IMap#Empty", resultType, args), resultType);
+          }
         case BuiltinFunction.IMapDomain:
           Contract.Assert(args.Length == 1);
           return FunctionCall(tok, "IMap#Domain", typeInstantiation, args);
@@ -13173,7 +13180,7 @@ namespace Microsoft.Dafny {
             }
           }
           if (anyChanges) {
-            newExpr = new MapDisplayExpr(expr.tok, elmts);
+            newExpr = new MapDisplayExpr(expr.tok, e.Finite, elmts);
           }
         } else if (expr is MemberSelectExpr) {
           MemberSelectExpr fse = (MemberSelectExpr)expr;

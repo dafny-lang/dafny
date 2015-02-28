@@ -1340,7 +1340,7 @@ namespace Microsoft.Dafny {
 
       } else if (expr is MapDisplayExpr) {
         MapDisplayExpr e = (MapDisplayExpr)expr;
-        wr.Write("map");
+        wr.Write(e.Finite ? "map" : "imap");
         wr.Write("[");
         PrintExpressionPairList(e.Elements);
         wr.Write("]");

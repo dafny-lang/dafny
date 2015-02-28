@@ -223,6 +223,9 @@ bool IsNonFinalColon() {
 bool IsMapDisplay() {
   return la.kind == _map && scanner.Peek().kind == _lbracket;
 }
+bool IsIMapDisplay() {
+  return la.kind == _imap && scanner.Peek().kind == _lbracket;
+}
 
 bool IsSuffix() {
   return la.kind == _dot || la.kind == _lbracket || la.kind == _openparen;
@@ -385,6 +388,7 @@ bool IsType(ref IToken pt) {
     case _multiset:
     case _seq:
     case _map:
+    case _imap:
       pt = scanner.Peek();
       return IsTypeList(ref pt);
     case _ident:
@@ -3321,7 +3325,14 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 		} else if (IsMapDisplay()) {
 			Expect(16);
 			x = t; 
-			MapDisplayExpr(x, out e);
+			MapDisplayExpr(x, true, out e);
+			while (IsSuffix()) {
+				Suffix(ref e);
+			}
+		} else if (IsIMapDisplay()) {
+			Expect(17);
+			x = t; 
+			MapDisplayExpr(x, false, out e);
 			while (IsSuffix()) {
 				Suffix(ref e);
 			}
@@ -3366,7 +3377,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 		} else SynErr(216);
 	}
 
-	void MapDisplayExpr(IToken/*!*/ mapToken, out Expression e) {
+	void MapDisplayExpr(IToken/*!*/ mapToken, bool finite, out Expression e) {
 		Contract.Ensures(Contract.ValueAtReturn(out e) != null);
 		List<ExpressionPair/*!*/>/*!*/ elements= new List<ExpressionPair/*!*/>() ;
 		e = dummyExpr;
@@ -3375,7 +3386,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 		if (StartOf(7)) {
 			MapLiteralExpressions(out elements);
 		}
-		e = new MapDisplayExpr(mapToken, elements);
+		e = new MapDisplayExpr(mapToken, finite, elements);
 		Expect(42);
 	}
 

@@ -35,6 +35,10 @@ function Inv0_TMap(Ty) : Ty;
 function Inv1_TMap(Ty) : Ty;
 axiom (forall t, u: Ty :: { TMap(t,u) } Inv0_TMap(TMap(t,u)) == t);
 axiom (forall t, u: Ty :: { TMap(t,u) } Inv1_TMap(TMap(t,u)) == u);
+function Inv0_TIMap(Ty) : Ty;
+function Inv1_TIMap(Ty) : Ty;
+axiom (forall t, u: Ty :: { TIMap(t,u) } Inv0_TIMap(TIMap(t,u)) == t);
+axiom (forall t, u: Ty :: { TIMap(t,u) } Inv1_TIMap(TIMap(t,u)) == u);
 
 // -- Classes and Datatypes --
 
@@ -51,6 +55,7 @@ const unique TagSet      : TyTag;
 const unique TagMultiSet : TyTag;
 const unique TagSeq      : TyTag;
 const unique TagMap      : TyTag;
+const unique TagIMap     : TyTag;
 const unique TagClass    : TyTag;
 
 axiom Tag(TBool) == TagBool;
@@ -62,6 +67,7 @@ axiom (forall t: Ty    :: { TSet(t) }      Tag(TSet(t))      == TagSet);
 axiom (forall t: Ty    :: { TMultiSet(t) } Tag(TMultiSet(t)) == TagMultiSet);
 axiom (forall t: Ty    :: { TSeq(t) }      Tag(TSeq(t))      == TagSeq);
 axiom (forall t, u: Ty :: { TMap(t,u) }    Tag(TMap(t,u))    == TagMap);
+axiom (forall t, u: Ty :: { TIMap(t,u) }   Tag(TIMap(t,u))   == TagIMap);
 
 // ---------------------------------------------------------------
 // -- Literals ---------------------------------------------------
@@ -133,6 +139,9 @@ axiom (forall bx : Box, t : Ty ::
 axiom (forall bx : Box, s : Ty, t : Ty ::
     { $IsBox(bx, TMap(s, t)) }
     ( $IsBox(bx, TMap(s, t)) ==> $Box($Unbox(bx) : Map Box Box) == bx && $Is($Unbox(bx) : Map Box Box, TMap(s, t))));
+axiom (forall bx : Box, s : Ty, t : Ty ::
+    { $IsBox(bx, TIMap(s, t)) }
+    ( $IsBox(bx, TIMap(s, t)) ==> $Box($Unbox(bx) : IMap Box Box) == bx && $Is($Unbox(bx) : IMap Box Box, TIMap(s, t))));
 
 axiom (forall<T> v : T, t : Ty ::
     { $IsBox($Box(v), t) }
@@ -227,6 +236,23 @@ axiom (forall v: Map Box Box, t0: Ty, t1: Ty, h: Heap ::
       { Map#Elements(v)[bx] } { Map#Domain(v)[bx] }
       Map#Domain(v)[bx] ==>
         $IsAllocBox(Map#Elements(v)[bx], t1, h) &&
+        $IsAllocBox(bx, t0, h)));
+
+axiom (forall v: IMap Box Box, t0: Ty, t1: Ty ::
+  { $Is(v, TIMap(t0, t1)) }
+  $Is(v, TIMap(t0, t1))
+     <==> (forall bx: Box ::
+      { IMap#Elements(v)[bx] } { IMap#Domain(v)[bx] }
+      IMap#Domain(v)[bx] ==>
+        $IsBox(IMap#Elements(v)[bx], t1) &&
+        $IsBox(bx, t0)));
+axiom (forall v: IMap Box Box, t0: Ty, t1: Ty, h: Heap ::
+  { $IsAlloc(v, TIMap(t0, t1), h) }
+  $IsAlloc(v, TIMap(t0, t1), h)
+     <==> (forall bx: Box ::
+      { IMap#Elements(v)[bx] } { IMap#Domain(v)[bx] }
+      IMap#Domain(v)[bx] ==>
+        $IsAllocBox(IMap#Elements(v)[bx], t1, h) &&
         $IsAllocBox(bx, t0, h)));
 
 // ---------------------------------------------------------------
@@ -934,6 +960,11 @@ type IMap U V;
 function IMap#Domain<U, V>(IMap U V): [U] bool;
 function IMap#Elements<U, V>(IMap U V): [U]V;
 
+function IMap#Empty<U, V>(): IMap U V;
+axiom (forall<U, V> u: U ::
+        { IMap#Domain(IMap#Empty(): IMap U V)[u] }
+        !IMap#Domain(IMap#Empty(): IMap U V)[u]);
+
 function IMap#Glue<U, V>([U] bool, [U]V, Ty): IMap U V;
 axiom (forall<U, V> a: [U] bool, b:[U]V, t:Ty ::
         { IMap#Domain(IMap#Glue(a, b, t)) }
@@ -944,6 +975,19 @@ axiom (forall<U, V> a: [U] bool, b:[U]V, t:Ty ::
 axiom (forall<U, V> a: [U] bool, b:[U]V, t:Ty ::
         { $Is(IMap#Glue(a, b, t), t) }
         $Is(IMap#Glue(a, b, t), t));
+
+//Build is used in displays
+function IMap#Build<U, V>(IMap U V, U, V): IMap U V;
+/*axiom (forall<U, V> m: IMap U V, u: U, v: V ::
+  { IMap#Domain(IMap#Build(m, u, v))[u] } { IMap#Elements(IMap#Build(m, u, v))[u] }
+  IMap#Domain(IMap#Build(m, u, v))[u] && IMap#Elements(IMap#Build(m, u, v))[u] == v);*/
+
+axiom (forall<U, V> m: IMap U V, u: U, u': U, v: V ::
+  { IMap#Domain(IMap#Build(m, u, v))[u'] } { IMap#Elements(IMap#Build(m, u, v))[u'] }
+  (u' == u ==> IMap#Domain(IMap#Build(m, u, v))[u'] &&
+               IMap#Elements(IMap#Build(m, u, v))[u'] == v) &&
+  (u' != u ==> IMap#Domain(IMap#Build(m, u, v))[u'] == IMap#Domain(m)[u'] &&
+               IMap#Elements(IMap#Build(m, u, v))[u'] == IMap#Elements(m)[u']));
 
 //equality for imaps
 function IMap#Equal<U, V>(IMap U V, IMap U V): bool;

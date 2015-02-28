@@ -4,8 +4,7 @@
 // This method can be used to test compilation.
 ghost method M()
 {
-   var m := map[2:=3];
-   ghost var im := imap i | i in m :: m[i];
+   ghost var im := imap[2:=3];
    // test "in"
    if(2 in im)
    {
@@ -25,7 +24,7 @@ ghost method M()
    else
    { assert false; }
    // test applicative nature of Map<U, V> in C#
-   if(im == (imap i | i == 2 :: 3))
+   if(im == imap[2 := 3])
    {
    }
    else
@@ -63,8 +62,7 @@ lemma m5(a: imap<int, int>)
 }
 lemma m7()
 {
-   var m := map[1:=1, 2:=4, 3:=9];
-   var a := imap i | i in m :: m[i];
+   var a := imap[1:=1, 2:=4, 3:=9];
    assert forall i | i in a :: a[i] == i * i;
    assert 0 !in a;
    assert 1 in a;

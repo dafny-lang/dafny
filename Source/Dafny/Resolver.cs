@@ -6480,7 +6480,7 @@ namespace Microsoft.Dafny
             Error(p.B, "All elements of display must be of the same type (got {0}, but type of previous elements is {1})", p.B.Type, rangeType);
           }
         }
-        expr.Type = new MapType(true, domainType, rangeType);
+        expr.Type = new MapType(e.Finite, domainType, rangeType);
       } else if (expr is NameSegment) {
         var e = (NameSegment)expr;
         ResolveNameSegment(e, true, null, opts, false);
@@ -6603,6 +6603,16 @@ namespace Microsoft.Dafny
           ResolveExpression(e.Value, opts);
           if (!UnifyTypes(e.Value.Type, rangeType)) {
             Error(e.Value, "map update requires the value to have the range type {0} (got {1})", rangeType, e.Value.Type);
+          }
+          expr.Type = e.Seq.Type;
+        } else if (UnifyTypes(e.Seq.Type, new MapType(false, domainType, rangeType))) {
+          ResolveExpression(e.Index, opts);
+          if (!UnifyTypes(e.Index.Type, domainType)) {
+            Error(e.Index, "imap update requires domain element to be of type {0} (got {1})", domainType, e.Index.Type);
+          }
+          ResolveExpression(e.Value, opts);
+          if (!UnifyTypes(e.Value.Type, rangeType)) {
+            Error(e.Value, "imap update requires the value to have the range type {0} (got {1})", rangeType, e.Value.Type);
           }
           expr.Type = e.Seq.Type;
         } else if (UnifyTypes(e.Seq.Type, new MultiSetType(elementType))) {

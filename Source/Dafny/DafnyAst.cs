@@ -5561,11 +5561,13 @@ namespace Microsoft.Dafny {
   }
 
   public class MapDisplayExpr : Expression {
+    public bool Finite;
     public List<ExpressionPair> Elements;
-    public MapDisplayExpr(IToken tok, List<ExpressionPair> elements)
+    public MapDisplayExpr(IToken tok, bool finite, List<ExpressionPair> elements)
       : base(tok) {
       Contract.Requires(tok != null);
       Contract.Requires(cce.NonNullElements(elements));
+      Finite = finite;
       Elements = elements;
     }
     public override IEnumerable<Expression> SubExpressions {
