@@ -1163,7 +1163,7 @@ TypeAndToken<out IToken tok, out Type ty>
                                        }
                                     .)
   | (. Expression e; tok = t; .)
-    NameSegmentForTypeName<out e>
+    NameSegmentForTypeName<out e> (. tok = t; .)
     { "." ident                      (. tok = t; List<Type> typeArgs = null; .)
       [ (. typeArgs = new List<Type>(); .)
         GenericInstantiation<typeArgs>

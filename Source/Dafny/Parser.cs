@@ -1633,6 +1633,7 @@ bool IsType(ref IToken pt) {
 		case 1: {
 			Expression e; tok = t; 
 			NameSegmentForTypeName(out e);
+			tok = t; 
 			while (la.kind == 25) {
 				Get();
 				Expect(1);
