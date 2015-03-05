@@ -1,7 +1,7 @@
 // RUN: %dafny /compile:0 /dprint:"%t.dprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
-codatatype Stream<T> = Cons(head: T, tail: Stream);
+codatatype Stream<T> = Cons(head: T, tail: Stream)
 
 function Tail(s: Stream, n: nat): Stream
 {
@@ -53,7 +53,7 @@ lemma Lemma_InSubStream<T>(x: T, s: Stream<T>, u: Stream<T>)
   }
 }
 
-type PredicateHandle;
+type PredicateHandle
 predicate P<T>(x: T, h: PredicateHandle)
 
 copredicate AllP(s: Stream, h: PredicateHandle)

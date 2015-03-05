@@ -100,7 +100,7 @@ class Termination {
   }
 }
 
-datatype List<T> = Nil | Cons(T, List<T>);
+datatype List<T> = Nil | Cons(T, List<T>)
 
 method FailureToProveTermination0(N: int)
 {

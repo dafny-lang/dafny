@@ -117,7 +117,7 @@ module M3 refines M2 {
 
 // here a client of the Container
 module Client {
-  import M as M0 default M2;
+  import M as M0 default M2
   method Test() {
     var c := new M.Container();
     c.Add(56);
@@ -134,7 +134,7 @@ module Client {
 }
 
 module CachedClient refines Client {
-  import M = M3;
+  import M = M3
   method Main() {
     Test();
   }

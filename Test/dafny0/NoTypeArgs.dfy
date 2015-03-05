@@ -1,7 +1,7 @@
 // RUN: %dafny /compile:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
-datatype List<T> = Nil | Cons(hd: T, tl: List);
+datatype List<T> = Nil | Cons(hd: T, tl: List)
 
 method M0() {
   var l: List;

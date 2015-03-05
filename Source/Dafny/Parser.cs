@@ -673,6 +673,7 @@ bool IsType(ref IToken pt) {
 			if (la.kind == 26) {
 				while (!(la.kind == 0 || la.kind == 26)) {SynErr(135); Get();}
 				Get();
+				errors.Warning(t, "the semi-colon that used to terminate a sub-module declaration has been deprecated; in the new syntax, just leave off the semi-colon"); 
 			}
 			if (submodule == null) {
 			 idPath = new List<IToken>();
@@ -759,6 +760,7 @@ bool IsType(ref IToken pt) {
 		if (la.kind == 26) {
 			while (!(la.kind == 0 || la.kind == 26)) {SynErr(140); Get();}
 			Get();
+			errors.Warning(t, "the semi-colon that used to terminate a (co)datatype declaration has been deprecated; in the new syntax, just leave off the semi-colon"); 
 		}
 		if (co) {
 		 dt = new CoDatatypeDecl(id, id.val, module, typeArgs, ctors, attrs);
@@ -837,6 +839,7 @@ bool IsType(ref IToken pt) {
 		if (la.kind == 26) {
 			while (!(la.kind == 0 || la.kind == 26)) {SynErr(143); Get();}
 			Get();
+			errors.Warning(t, "the semi-colon that used to terminate an opaque-type declaration has been deprecated; in the new syntax, just leave off the semi-colon"); 
 		}
 	}
 

@@ -3,7 +3,7 @@
 
 // ----- Stream
 
-codatatype Stream<T> = Nil | Cons(head: T, tail: Stream);
+codatatype Stream<T> = Nil | Cons(head: T, tail: Stream)
 
 function append(M: Stream, N: Stream): Stream
 {
@@ -14,7 +14,7 @@ function append(M: Stream, N: Stream): Stream
 
 // ----- f, g, and maps
 
-type X;
+type X
 
 function f(x: X): X
 function g(x: X): X

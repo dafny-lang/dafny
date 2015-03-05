@@ -3,7 +3,7 @@
 
 // A definition of a co-inductive datatype Stream, whose values are possibly
 // infinite lists.
-codatatype Stream<T> = SNil | SCons(head: T, tail: Stream<T>);
+codatatype Stream<T> = SNil | SCons(head: T, tail: Stream<T>)
 
 /*
   A function that returns a stream consisting of all integers upwards of n.

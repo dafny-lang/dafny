@@ -5,7 +5,7 @@
 // program snippets that are tricky to compile or whose compilation once was buggy.
 
 module OnceBuggy {
-  datatype MyDt<T> = Nil | Cons(T, MyDt<T>);
+  datatype MyDt<T> = Nil | Cons(T, MyDt<T>)
 
   method M<U>(x: MyDt<int>)
   {
@@ -20,14 +20,14 @@ module OnceBuggy {
 // --------------------------------------------------
 
 module CoRecursion {
-  codatatype Stream<T> = More(head: T, rest: Stream);
+  codatatype Stream<T> = More(head: T, rest: Stream)
 
   function method AscendingChain(n: int): Stream<int>
   {
     More(n, AscendingChain(n+1))
   }
 
-  datatype List<T> = Nil | Cons(car: T, cdr: List);
+  datatype List<T> = Nil | Cons(car: T, cdr: List)
 
   function method Prefix(n: nat, s: Stream): List
   {
@@ -76,9 +76,9 @@ module T refines S {
   }
 }
 module A {
-   import X as S default T;
-   import Y as S default T;
-   import Z = T;
+   import X as S default T
+   import Y as S default T
+   import Z = T
    method run() {
      var x := new X.C;
      x.m();
@@ -95,7 +95,7 @@ method NotMain() {
 
 
 abstract module S1 {
-  import B as S default T;
+  import B as S default T
   method do()
 }
 
@@ -105,7 +105,7 @@ module T1 refines S1 {
   }
 }
 module A1 {
-   import X as S1 default T1;
+   import X as S1 default T1
    method run() {
      X.do();
      var x := new X.B.C;

@@ -35,7 +35,7 @@
 // verifies and compiles the program (for this program in less than 2 seconds)
 // without further human intervention.
 
-datatype Tree = Null | Node(Tree, int, Tree);
+datatype Tree = Null | Node(Tree, int, Tree)
 
 function Contains(t: Tree, v: int): bool
 {

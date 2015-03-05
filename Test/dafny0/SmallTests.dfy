@@ -219,7 +219,7 @@ class AllocatedTests {
 datatype Lindgren =
   Pippi(Node) |
   Longstocking(seq<object>, Lindgren) |
-  HerrNilsson;
+  HerrNilsson
 
 // --------------------------------------------------
 
@@ -621,7 +621,7 @@ method AssignSuchThat8(n: int) returns (x: int, y: Lindgren) {
   x :| x in [];  // error
 }
 
-codatatype QuiteFinite = QQA | QQB | QQC;
+codatatype QuiteFinite = QQA | QQB | QQC
 
 method AssignSuchThat9() returns (q: QuiteFinite)
 {

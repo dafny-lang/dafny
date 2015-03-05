@@ -1,7 +1,7 @@
 // RUN: %dafny /compile:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
-codatatype Stream<T> = Cons(head: T, tail: Stream);
+codatatype Stream<T> = Cons(head: T, tail: Stream)
 
 function Upward(n: int): Stream<int>
 {
@@ -159,7 +159,7 @@ colemma {:induction false} BadEquality1(n: int)
 
 // test that match statements/expressions get the correct assumption (which wasn't always the case)
 
-codatatype IList<T> = INil | ICons(head: T, tail: IList<T>);
+codatatype IList<T> = INil | ICons(head: T, tail: IList<T>)
 
 ghost method M(s: IList)
 {

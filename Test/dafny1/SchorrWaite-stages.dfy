@@ -17,7 +17,7 @@ abstract module M0 {
     var childrenVisited: nat;
   }
 
-  datatype Path = Empty | Extend(Path, Node);
+  datatype Path = Empty | Extend(Path, Node)
 
   function Reachable(source: Node, sink: Node, S: set<Node>): bool
     requires null !in S;

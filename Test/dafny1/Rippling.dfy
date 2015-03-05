@@ -3,17 +3,17 @@
 
 // Datatypes
 
-datatype Bool = False | True;
+datatype Bool = False | True
 
-datatype Nat = Zero | Suc(Nat);
+datatype Nat = Zero | Suc(Nat)
 
-datatype List = Nil | Cons(Nat, List);
+datatype List = Nil | Cons(Nat, List)
 
-datatype Pair = Pair(Nat, Nat);
+datatype Pair = Pair(Nat, Nat)
 
-datatype PList = PNil | PCons(Pair, PList);
+datatype PList = PNil | PCons(Pair, PList)
 
-datatype Tree = Leaf | Node(Tree, Nat, Tree);
+datatype Tree = Leaf | Node(Tree, Nat, Tree)
 
 // Boolean functions
 
@@ -285,7 +285,7 @@ function mirror(t: Tree): Tree
 // applying some prescribed function (here, a value of the type)
 // to some argument.
 
-type FunctionValue;
+type FunctionValue
 function Apply(f: FunctionValue, x: Nat): Nat  // this function is left uninterpreted
 
 // The following functions stand for the constant "false" and "true" functions,

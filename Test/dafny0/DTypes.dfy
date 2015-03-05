@@ -78,7 +78,7 @@ class Node { }
 class CP<T,U> {
 }
 
-datatype Data = Lemon | Kiwi(int);
+datatype Data = Lemon | Kiwi(int)
 
 function G(d: Data): int
   requires d != Data.Lemon;
@@ -90,7 +90,7 @@ function G(d: Data): int
 
 // -------- some things about induction ---------------------------------
 
-datatype Tree<T> = Leaf(T) | Branch(Tree<T>, Tree<T>);
+datatype Tree<T> = Leaf(T) | Branch(Tree<T>, Tree<T>)
 
 class DatatypeInduction<T> {
   function LeafCount<G>(tree: Tree<G>): int

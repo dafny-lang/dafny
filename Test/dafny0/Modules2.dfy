@@ -5,18 +5,18 @@ module A {
   class C {
     var f: int;
   }
-  datatype D = E(int) | F(int);
+  datatype D = E(int) | F(int)
   function f(n:nat): nat
 }
 module B {
   class C {
     var f: int;
   }
-  datatype D = E(int) | F(int);
+  datatype D = E(int) | F(int)
   function f(n:nat): nat
 }
 module Test {
-  import opened A; // nice shorthand for import opened A = A; (see below)
+  import opened A // nice shorthand for import opened A = A; (see below)
   method m() {
     var c := new C;   // fine, as A was opened
     var c' := new A.C;// also fine, as A is bound
@@ -31,7 +31,7 @@ module Test {
 }
 
 module Test2 {
-  import opened B as A;
+  import opened B as A
   method m() {
     var c := new C;   // fine, as A was opened
     var c' := new B.C;// also fine, as A is bound
@@ -40,8 +40,8 @@ module Test2 {
 }
 
 module Test3 {
-  import opened A;
-  import opened B; // everything in B clashes with A
+  import opened A
+  import opened B // everything in B clashes with A
   method m() {
     var c := new C;    // bad, ambiguous between A.C and B.C
     var c' := new A.C; // good: qualified.
@@ -54,6 +54,6 @@ module Test3 {
 }
 
 module Test4 {
-  import A = A; // good: looks strange, but A is not bound on the RHS of the equality
-  import B; // the same as the above, but for module B
+  import A = A // good: looks strange, but A is not bound on the RHS of the equality
+  import B // the same as the above, but for module B
 }

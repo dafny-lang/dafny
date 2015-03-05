@@ -20,7 +20,7 @@ module A {
 
 module B refines A {
   class C { }
-  datatype Dt = Ax | Bx;
+  datatype Dt = Ax | Bx
   class T {
     method P() returns (p: int)
     {
@@ -165,7 +165,7 @@ module Concrete refines Abstract {
 }
 
 module Client {
-  import C = Concrete;
+  import C = Concrete
   class TheClient {
     method Main() {
       var n := new C.MyNumber.Init();

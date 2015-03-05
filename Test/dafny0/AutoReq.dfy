@@ -225,7 +225,7 @@ module {:autoReq} M1 {
 }
 
 module Datatypes {
-  datatype TheType = TheType_builder(x:int) | TheType_copier(t:TheType);
+  datatype TheType = TheType_builder(x:int) | TheType_copier(t:TheType)
 
   function f1(t:TheType):bool
     requires t.TheType_builder? && t.x > 3;
@@ -255,7 +255,7 @@ module Datatypes {
 }
 
 module Matches {
-  datatype TheType = TheType_builder(x:int) | TheType_copier(t:TheType);
+  datatype TheType = TheType_builder(x:int) | TheType_copier(t:TheType)
 
   function f1(x:int):bool
     requires x > 3;

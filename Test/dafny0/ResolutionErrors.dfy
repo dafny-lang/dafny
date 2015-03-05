@@ -73,9 +73,9 @@ method TestNameResolution0() {
   y := gg.N(5);
 }
 
-datatype Abc = Abel | Benny | Cecilia(y: int) | David(x: int) | Eleanor;
-datatype Xyz = Alberta | Benny | Constantine(y: int) | David(x: int);
-datatype Rst = David(x: int, y: int);
+datatype Abc = Abel | Benny | Cecilia(y: int) | David(x: int) | Eleanor
+datatype Xyz = Alberta | Benny | Constantine(y: int) | David(x: int)
+datatype Rst = David(x: int, y: int)
 
 function Tuv(arg0: Abc, arg1: bool): int { 10 }
 
@@ -105,7 +105,7 @@ class EE {
 
 datatype GhostDt =
   Nil(ghost extraInfo: int) |
-  Cons(data: int, tail: GhostDt, ghost moreInfo: int);
+  Cons(data: int, tail: GhostDt, ghost moreInfo: int)
 
 class GhostTests {
   method M(dt: GhostDt) returns (r: int) {
@@ -296,7 +296,7 @@ method ConstructorTests()
 
 // ------------------- datatype destructors ---------------------------------------
 
-datatype DTD_List = DTD_Nil | DTD_Cons(Car: int, Cdr: DTD_List, ghost g: int);
+datatype DTD_List = DTD_Nil | DTD_Cons(Car: int, Cdr: DTD_List, ghost g: int)
 
 method DatatypeDestructors(d: DTD_List) {
   if {
@@ -347,7 +347,7 @@ method G_Caller()
   MG0(x, w);  // error: types don't match up
 }
 
-datatype GList<T> = GNil | GCons(hd: T, tl: GList);
+datatype GList<T> = GNil | GCons(hd: T, tl: GList)
 
 method MG1(l: GList, n: nat)
 {
@@ -489,8 +489,8 @@ method AssignSuchThatFromGhost()
 // Put the following tests in a separate module, so that the method bodies will
 // be type checked even if there are resolution errors in other modules.
 module NoTypeArgs0 {
-  datatype List<T> = Nil | Cons(T, List);
-  datatype Tree<A,B> = Leaf(A, B) | Node(Tree, Tree<B,A>);
+  datatype List<T> = Nil | Cons(T, List)
+  datatype Tree<A,B> = Leaf(A, B) | Node(Tree, Tree<B,A>)
 
   method DoAPrefix0<A, B, C>(xs: List) returns (ys: List<A>)
   {
@@ -528,7 +528,7 @@ module NoTypeArgs0 {
 }
 
 module NoTypeArgs1 {
-  datatype Tree<A,B> = Leaf(A, B) | Node(Tree, Tree<B,A>);
+  datatype Tree<A,B> = Leaf(A, B) | Node(Tree, Tree<B,A>)
 
   function FTree3<T>(t: Tree): Tree<T,T>  // error: type of 't' does not have enough type parameters
   {

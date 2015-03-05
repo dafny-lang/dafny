@@ -2,7 +2,7 @@
 // RUN: %diff "%s.expect" "%t"
 
 abstract module Monad {
-  type M<A>;
+  type M<A>
 
   function method Return(x: A): M<A>
   function method Bind(m: M<A>, f:A -> M<B>):M<B>
@@ -30,7 +30,7 @@ abstract module Monad {
 }
 
 module Identity refines Monad {
-  datatype M<A> = I(A);
+  datatype M<A> = I(A)
 
   function method Return<A>(x: A): M<A>
   { I(x) }
@@ -62,7 +62,7 @@ module Identity refines Monad {
 }
 
 module Maybe refines Monad {
-  datatype M<A> = Just(A) | Nothing;
+  datatype M<A> = Just(A) | Nothing
 
   function method Return<A>(x: A): M<A>
   { Just(x) }
@@ -96,7 +96,7 @@ module Maybe refines Monad {
 }
 
 module List refines Monad {
-  datatype M<A> = Cons(hd: A,tl: M<A>) | Nil;
+  datatype M<A> = Cons(hd: A,tl: M<A>) | Nil
 
   function method Return<A>(x: A): M<A>
   { Cons(x,Nil) }

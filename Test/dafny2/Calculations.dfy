@@ -4,7 +4,7 @@
 /* Lists */
 // Here are some standard definitions of List and functions on Lists
 
-datatype List<T> = Nil | Cons(T, List);
+datatype List<T> = Nil | Cons(T, List)
 
 function length(l: List): nat
 {

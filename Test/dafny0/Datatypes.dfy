@@ -1,7 +1,7 @@
 // RUN: %dafny /compile:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
-datatype List<T> = Nil | Cons(T, List<T>);
+datatype List<T> = Nil | Cons(T, List<T>)
 
 class Node {
   var data: int;
@@ -140,7 +140,7 @@ class NestedMatchExpr {
 
 // ------------------- datatype destructors ---------------------------------------
 
-datatype XList = XNil | XCons(Car: int, Cdr: XList);
+datatype XList = XNil | XCons(Car: int, Cdr: XList)
 
 method Destructors0(d: XList) {
   Lemma_AllCases(d);
@@ -208,8 +208,8 @@ method MatchingDestructor(d: XList) returns (r: XList)
   r := XCons(5, XNil);
 }
 
-datatype Triple = T(a: int, b: int, c: int);  // just one constructor
-datatype TripleAndMore = T'(a: int, b: int, c: int) | NotATriple;
+datatype Triple = T(a: int, b: int, c: int)  // just one constructor
+datatype TripleAndMore = T'(a: int, b: int, c: int) | NotATriple
 
 method Rotate0(t: Triple) returns (u: Triple)
 {
@@ -249,7 +249,7 @@ function FwdBugFunction(f: Fwd): bool
   // There was once a bug in Dafny, where this had caused an ill-defined Boogie program.
 }
 
-datatype Fwd = FwdNil | FwdCons(k: int, w: Fwd);
+datatype Fwd = FwdNil | FwdCons(k: int, w: Fwd)
 
 method TestAllCases(f: Fwd)
 {

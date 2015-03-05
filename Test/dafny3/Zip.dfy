@@ -17,7 +17,7 @@ of reasoning with quantifiers in SMT solvers make the explicit calls
 necessary.
 */
 
-codatatype Stream<T> = Cons(hd: T, tl: Stream);
+codatatype Stream<T> = Cons(hd: T, tl: Stream)
 
 function zip(xs: Stream, ys: Stream): Stream
   { Cons(xs.hd, Cons(ys.hd, zip(xs.tl, ys.tl))) }

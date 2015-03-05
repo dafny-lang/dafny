@@ -156,7 +156,7 @@ class IntegerInduction {
   }
 }
 
-datatype Tree<T> = Leaf(T) | Branch(Tree<T>, Tree<T>);
+datatype Tree<T> = Leaf(T) | Branch(Tree<T>, Tree<T>)
 
 class DatatypeInduction<T> {
   function LeafCount<T>(tree: Tree<T>): int
@@ -192,7 +192,7 @@ class DatatypeInduction<T> {
 // This is a simple example where the induction hypothesis and the
 // case splits are decoupled.
 
-datatype D = Nothing | Something(D);
+datatype D = Nothing | Something(D)
 
 function FooD(n: nat, d: D): int
   ensures 10 <= FooD(n, d);

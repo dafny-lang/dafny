@@ -1,8 +1,8 @@
 // RUN: %dafny /compile:0 /dprint:"%t.dprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
-codatatype Stream<T> = Cons(head: T, tail: Stream);
-codatatype IList<T> = Nil | ICons(head: T, tail: IList);
+codatatype Stream<T> = Cons(head: T, tail: Stream)
+codatatype IList<T> = Nil | ICons(head: T, tail: IList)
 
 // -----------------------------------------------------------------------
 

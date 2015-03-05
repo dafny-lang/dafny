@@ -34,7 +34,7 @@ module TestModule {
 }
 
 module GhostCheck0 {
-  codatatype Stream<G> = Cons(head: G, tail: Stream);
+  codatatype Stream<G> = Cons(head: G, tail: Stream)
   method UseStream0(s: Stream)
   {
     var x := 3;
@@ -44,7 +44,7 @@ module GhostCheck0 {
   }
 }
 module GhostCheck1 {
-  codatatype Stream<G> = Cons(head: G, tail: Stream);
+  codatatype Stream<G> = Cons(head: G, tail: Stream)
   method UseStream1(s: Stream)
   {
     var x := 3;
@@ -54,7 +54,7 @@ module GhostCheck1 {
   }
 }
 module GhostCheck2 {
-  codatatype Stream<G> = Cons(head: G, tail: Stream);
+  codatatype Stream<G> = Cons(head: G, tail: Stream)
   ghost method UseStreamGhost(s: Stream)
   {
     var x := 3;

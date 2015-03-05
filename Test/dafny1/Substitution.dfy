@@ -1,12 +1,12 @@
 // RUN: %dafny /compile:0 /dprint:"%t.dprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
-datatype List = Nil | Cons(Expr, List);
+datatype List = Nil | Cons(Expr, List)
 
 datatype Expr =
   Const(int) |
   Var(int) |
-  Nary(int, List);
+  Nary(int, List)
 
 function Subst(e: Expr, v: int, val: int): Expr
 {
@@ -50,7 +50,7 @@ lemma Lemma(l: List, v: int, val: int)
 datatype Expression =
   Const(int) |
   Var(int) |
-  Nary(int, seq<Expression>);
+  Nary(int, seq<Expression>)
 
 function Substitute(e: Expression, v: int, val: int): Expression
   decreases e;

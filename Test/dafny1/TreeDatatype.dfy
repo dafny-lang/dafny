@@ -3,9 +3,9 @@
 
 // ------------------ generic list, non-generic tree
 
-datatype List<T> = Nil | Cons(T, List<T>);
+datatype List<T> = Nil | Cons(T, List<T>)
 
-datatype Tree = Node(int, List<Tree>);
+datatype Tree = Node(int, List<Tree>)
 
 function Inc(t: Tree): Tree
 {
@@ -22,7 +22,7 @@ function ForestInc(forest: List<Tree>): List<Tree>
 
 // ------------------ generic list, generic tree (but GInc defined only for GTree<int>
 
-datatype GTree<T> = Node(T, List<GTree<T>>);
+datatype GTree<T> = Node(T, List<GTree<T>>)
 
 function GInc(t: GTree<int>): GTree<int>
 {
@@ -39,9 +39,9 @@ function GForestInc(forest: List<GTree<int>>): List<GTree<int>>
 
 // ------------------ non-generic structures
 
-datatype TreeList = Nil | Cons(OneTree, TreeList);
+datatype TreeList = Nil | Cons(OneTree, TreeList)
 
-datatype OneTree = Node(int, TreeList);
+datatype OneTree = Node(int, TreeList)
 
 function XInc(t: OneTree): OneTree
 {

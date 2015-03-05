@@ -11,7 +11,7 @@
 // definition, "car" and "cdr" are declared to be destructors for terms
 // constructed by Apply.
 
-datatype Term = S | K | Apply(car: Term, cdr: Term);
+datatype Term = S | K | Apply(car: Term, cdr: Term)
 
 // The problem defines values to be a subset of the terms.  More precisely,
 // a Value is a Term that fits the following grammar:
@@ -40,7 +40,7 @@ function method IsValue(t: Term): bool
 // A context is essentially a term with one missing subterm, a "hole".  It
 // is defined as follows:
 
-datatype Context = Hole | C_term(Context, Term) | value_C(Term/*Value*/, Context);
+datatype Context = Hole | C_term(Context, Term) | value_C(Term/*Value*/, Context)
 
 // The problem seems to suggest that the value_C form requires a value and
 // a context.  To formalize that notion, we define a predicate that checks this
@@ -270,7 +270,7 @@ ghost method Lemma_ContextPossibilities(t: Term)
 // sequence of terms from "t" to "r", each term reducing to its
 // successor in the trace.
 
-datatype Trace = EmptyTrace | ReductionStep(Trace, Term);
+datatype Trace = EmptyTrace | ReductionStep(Trace, Term)
 
 function IsTrace(trace: Trace, t: Term, r: Term): bool
 {

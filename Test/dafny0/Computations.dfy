@@ -19,7 +19,7 @@ ghost method compute_fact6_plus()
 {
 }
 
-datatype intlist = IntNil | IntCons(head: int, tail: intlist);
+datatype intlist = IntNil | IntCons(head: int, tail: intlist)
 function intsize(l: intlist): nat
 {
   if (l.IntNil?) then 0 else 1+intsize(l.tail)
@@ -56,7 +56,7 @@ ghost method compute_cintsize4()
   ensures cintsize(IntCons(1, IntCons(2, IntCons(3, IntCons(4, IntNil))))) == 4;
 {
 }
-datatype list<A> = Nil | Cons(head: A, tail: list);
+datatype list<A> = Nil | Cons(head: A, tail: list)
 function size(l: list): nat
 {
   if (l.Nil?) then 0 else 1+size(l.tail)
@@ -78,7 +78,7 @@ ghost method compute_appsize()
 {
 }
 
-datatype exp = Plus(e1: exp, e2: exp) | Num(n: int) | Var(x: int);
+datatype exp = Plus(e1: exp, e2: exp) | Num(n: int) | Var(x: int)
 function interp(env: map<int,int>, e: exp): int
   decreases e;
 {

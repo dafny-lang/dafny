@@ -218,13 +218,13 @@ method TyKn_Main(k0: TyKn_K) {
 
 module OneLayer
 {
-  datatype wrap<V> = Wrap(V);
+  datatype wrap<V> = Wrap(V)
 }
 
 module TwoLayers
 {
-  import OneLayer;
-  datatype wrap2<T> = Wrap2(get: OneLayer.wrap<T>);
+  import OneLayer
+  datatype wrap2<T> = Wrap2(get: OneLayer.wrap<T>)
   
   function F<U>(w: wrap2<U>) : OneLayer.wrap<U>
   {

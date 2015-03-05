@@ -6,13 +6,13 @@
 module Wazzup {
   class WazzupA { }
   class WazzupA { }  // error: duplicate type
-  datatype WazzupA = W_A_X;  // error: duplicate type
-  type WazzupA;  // error: duplicate type
+  datatype WazzupA = W_A_X  // error: duplicate type
+  type WazzupA  // error: duplicate type
 
-  type WazzupB;
-  type WazzupB;  // error: duplicate type
+  type WazzupB
+  type WazzupB  // error: duplicate type
   class WazzupB { }  // error: duplicate type
-  datatype WazzupB = W_B_X;  // error: duplicate type
+  datatype WazzupB = W_B_X  // error: duplicate type
 }
 
 // ---------------------- duplicate types across modules
@@ -27,15 +27,15 @@ module N {
 }
 
 module U {
-  import NN = N;
+  import NN = N
 }
 
 
 module A {  // Note, this has the effect of importing two different T's,
             // but that's okay as long as the module doesn't try to access
             // one of them
-  import MM = M;
-  import NN = N;
+  import MM = M
+  import NN = N
   class X {
     var t: MM.T;  // error: use of the ambiguous name T
     function F(x: MM.T):  // error: use of the ambiguous name T
@@ -60,7 +60,7 @@ module X0 {
 }
 
 module X1 {
-  import X0' = X0;
+  import X0' = X0
   class MyClass1 {
     method Down(x0: X0'.MyClass0) {
       x0.Down();
@@ -151,7 +151,7 @@ class AClassWithSomeField {
 
 // ---------------------- illegal match expressions ---------------
 
-datatype Tree = Nil | Cons(int, Tree, Tree);
+datatype Tree = Nil | Cons(int, Tree, Tree)
 
 function NestedMatch0(tree: Tree): int
 {
@@ -218,7 +218,7 @@ module ATr {
 }
 
 module BTr {
-  import A = ATr;
+  import A = ATr
   class Y {
     method N() returns (x: A.X)
       ensures x != null;
@@ -229,14 +229,14 @@ module BTr {
 }
 
 module CTr {
-  import B = BTr;
+  import B = BTr
   class Z {
     var b: B.Y;  // fine
     var a: B.X;  // error: imports don't reach name X explicitly
   }
 }
 module CTs {
-  import B = BTr;
+  import B = BTr
   method P() {
     var y := new B.Y;
     var x := y.N();  // this is allowed and will correctly infer the type of x to
@@ -275,8 +275,8 @@ module NonLocalB {
 }
 
 module Local {
-  import AA = NonLocalA;
-  import BB = NonLocalB;
+  import AA = NonLocalA
+  import BB = NonLocalB
   class MyClass {
     method MyMethod()
     {
@@ -302,7 +302,7 @@ module Local {
 
 module Q_Imp {
   class Node { }
-  datatype List<T> = Nil | Cons(T, List);
+  datatype List<T> = Nil | Cons(T, List)
   class Klassy {
     method Init()
   }

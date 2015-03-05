@@ -2,7 +2,7 @@
 // RUN: %diff "%s.expect" "%t"
 
 // The tree datatype
-datatype Tree = Leaf | Node(Tree, Tree);
+datatype Tree = Leaf | Node(Tree, Tree)
 
 
 // This datatype is used for the result of the build functions.
@@ -11,7 +11,7 @@ datatype Tree = Leaf | Node(Tree, Tree);
 // build_rec, it also has to yield the rest of the sequence,
 // which still needs to be processed. For function build,
 // this part is not used.
-datatype Result = Fail | Res(t: Tree, sOut: seq<int>);
+datatype Result = Fail | Res(t: Tree, sOut: seq<int>)
 
 
 // Function toList converts a tree to a sequence.

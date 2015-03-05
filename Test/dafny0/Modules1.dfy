@@ -2,14 +2,14 @@
 // RUN: %diff "%s.expect" "%t"
 
 module A {
-  import B = Babble;
+  import B = Babble
   class X {
     function Fx(z: B.Z): int
       requires z != null;
       decreases 5, 4, 3;
     { z.G() }  // fine; this goes to a different module
   }
-  datatype Y = Cons(int, Y) | Empty;
+  datatype Y = Cons(int, Y) | Empty
 }
 
 class C {
@@ -84,7 +84,7 @@ module A_Visibility {
 }
 
 module B_Visibility {
-  import A = A_Visibility;
+  import A = A_Visibility
   method Main() {
     var y;
     if (A.C.P(y)) {
@@ -106,7 +106,7 @@ module Q_Imp {
 }
 
 module Q_M {
-  import Q = Q_Imp;
+  import Q = Q_Imp
   method MyMethod(root: Q.Node, S: set<Q.Node>)
     requires root in S;
   {

@@ -5,10 +5,10 @@
 // "Mechanizing Coinduction and Corecursion in Higher-order Logic"
 // by Lawrence C. Paulson, 1996.
 
-codatatype LList<T> = Nil | Cons(head: T, tail: LList);
+codatatype LList<T> = Nil | Cons(head: T, tail: LList)
 
 // Simulate function as arguments
-datatype FunctionHandle<T> = FH(T);
+datatype FunctionHandle<T> = FH(T)
 function Apply<T>(f: FunctionHandle<T>, argument: T): T
 
 // Function composition

@@ -1,7 +1,7 @@
 // RUN: %dafny /compile:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
-datatype D = Green | Blue | Red | Purple;
+datatype D = Green | Blue | Red | Purple
 
 method M0(d: D)
 {

@@ -52,7 +52,7 @@ function method FenEric<T>(t0: T, t1: T): T
   t1
 }
 
-datatype Pair<T> = Pr(T, T);
+datatype Pair<T> = Pr(T, T)
 
 method K(n: nat, i: int) {
   match (Pair.Pr(n, i)) {
@@ -63,7 +63,7 @@ method K(n: nat, i: int) {
   }
 }
 
-datatype List<T> = Nil | Cons(nat, T, List<T>);
+datatype List<T> = Nil | Cons(nat, T, List<T>)
 
 method MatchIt(list: List<object>) returns (k: nat)
 {

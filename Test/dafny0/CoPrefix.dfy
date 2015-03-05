@@ -3,7 +3,7 @@
 
 // ----- Stream
 
-codatatype Stream = Nil | Cons(head: int, tail: Stream);
+codatatype Stream = Nil | Cons(head: int, tail: Stream)
 
 function append(M: Stream, N: Stream): Stream
 {
@@ -49,7 +49,7 @@ ghost method Theorem0_Manual()
   }
 }
 
-datatype Natural = Zero | Succ(Natural);
+datatype Natural = Zero | Succ(Natural)
 
 colemma {:induction false} Theorem0_TerminationFailure_ExplicitDecreases(y: Natural)
   ensures atmost(zeros(), ones());
@@ -89,7 +89,7 @@ colemma {:induction false} Theorem1()
   Theorem1();
 }
 
-codatatype IList = ICons(head: int, tail: IList);
+codatatype IList = ICons(head: int, tail: IList)
 
 function UpIList(n: int): IList
 {
@@ -114,7 +114,7 @@ colemma {:induction false} Theorem2_NotAProof(n: int)
 {  // error: this is not a proof (without automatic induction)
 }
 
-codatatype TList<T> = TCons(head: T, tail: TList);
+codatatype TList<T> = TCons(head: T, tail: TList)
 
 function Next<T>(t: T): T
 

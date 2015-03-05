@@ -550,9 +550,8 @@ SubModuleDecl<ModuleDefinition parent, out ModuleDecl submodule>
     [ SYNC ";"
         // This semi-colon used to be required, but it seems silly to have it.
         // To stage the transition toward not having it at all, let's make it optional for now.  Then,
-        // in a next big version of Dafny, including the following warning message:
-        //     (. errors.Warning(t, "the semi-colon that used to terminate a sub-module declaration has been deprecated; in the new syntax, just leave off the semi-colon"); .)
-        // And in a version after that, don't allow the semi-colon at all.
+        // in the next big version of Dafny, don't allow the semi-colon at all.
+        (. errors.Warning(t, "the semi-colon that used to terminate a sub-module declaration has been deprecated; in the new syntax, just leave off the semi-colon"); .)
     ]
     (. if (submodule == null) {
          idPath = new List<IToken>();
@@ -678,9 +677,8 @@ DatatypeDecl<ModuleDefinition/*!*/ module, out DatatypeDecl/*!*/ dt>
   [ SYNC ";"
       // This semi-colon used to be required, but it seems silly to have it.
       // To stage the transition toward not having it at all, let's make it optional for now.  Then,
-      // in a next big version of Dafny, including the following warning message:
-      //     (. errors.Warning(t, "the semi-colon that used to terminate a (co)datatype declaration has been deprecated; in the new syntax, just leave off the semi-colon"); .)
-      // And in a version after that, don't allow the semi-colon at all.
+      // in the next big version of Dafny, don't allow the semi-colon at all.
+      (. errors.Warning(t, "the semi-colon that used to terminate a (co)datatype declaration has been deprecated; in the new syntax, just leave off the semi-colon"); .)
   ]
   (. if (co) {
        dt = new CoDatatypeDecl(id, id.val, module, typeArgs, ctors, attrs);
@@ -761,9 +759,8 @@ OtherTypeDecl<ModuleDefinition module, out TopLevelDecl td>
   [ SYNC ";"
       // This semi-colon used to be required, but it seems silly to have it.
       // To stage the transition toward not having it at all, let's make it optional for now.  Then,
-      // in a next big version of Dafny, including the following warning message:
-      //     (. errors.Warning(t, "the semi-colon that used to terminate an opaque-type declaration has been deprecated; in the new syntax, just leave off the semi-colon"); .)
-      // And in a version after that, don't allow the semi-colon at all.
+      // in the next big version of Dafny, don't allow the semi-colon at all.
+      (. errors.Warning(t, "the semi-colon that used to terminate an opaque-type declaration has been deprecated; in the new syntax, just leave off the semi-colon"); .)
   ]
   .
 GIdentType<bool allowGhostKeyword, out IToken/*!*/ id, out Type/*!*/ ty, out bool isGhost>

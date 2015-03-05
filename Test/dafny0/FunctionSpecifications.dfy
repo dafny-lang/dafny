@@ -9,7 +9,7 @@ function Fib(n: int): int
   Fib(n-2) + Fib(n-1)
 }
 
-datatype List = Nil | Cons(int, List);
+datatype List = Nil | Cons(int, List)
 
 function Sum(a: List): int
   ensures 0 <= Sum(a);

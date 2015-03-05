@@ -56,7 +56,7 @@ ghost method FibLemma_All()
   to fill these in automatically.
   */
 
-datatype List<T> = Nil | Cons(head: T, tail: List<T>);
+datatype List<T> = Nil | Cons(head: T, tail: List<T>)
 
 function Append<T>(xs: List<T>, ys: List<T>): List<T>
   decreases xs;

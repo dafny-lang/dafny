@@ -3,9 +3,9 @@
 
 // -------- This is an example of what was once logically (although not trigger-ly) unsound ---
 
-datatype Wrapper<T> = Wrap(T);
-datatype Unit = It;
-datatype Color = Yellow | Blue;
+datatype Wrapper<T> = Wrap(T)
+datatype Unit = It
+datatype Color = Yellow | Blue
 
 function F(a: Wrapper<Unit>): bool
   ensures a == Wrapper.Wrap(Unit.It);
@@ -50,7 +50,7 @@ class MyClass {
   function H(): int { 5 }
 }
 
-datatype List =  Nil | Cons(MyClass, List);
+datatype List =  Nil | Cons(MyClass, List)
 
 method M(list: List, S: set<MyClass>) returns (ret: int)
   modifies S;
@@ -99,6 +99,6 @@ class State {
 
 function TakesADatatype(a: List): int { 12 }
 
-datatype GenData<T> = Pair(T, T);
+datatype GenData<T> = Pair(T, T)
 
 function AlsoTakesADatatype<U>(p: GenData<U>): int { 17 }

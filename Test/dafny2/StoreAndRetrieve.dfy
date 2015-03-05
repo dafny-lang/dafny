@@ -2,7 +2,7 @@
 // RUN: %diff "%s.expect" "%t"
 
 abstract module A {
-  import L = Library;
+  import L = Library
   class {:autocontracts} StoreAndRetrieve<Thing(==)> {
     ghost var Contents: set<Thing>;
     predicate Valid()

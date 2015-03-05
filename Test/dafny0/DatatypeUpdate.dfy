@@ -3,7 +3,7 @@
 
 datatype MyDataType = MyConstructor(myint:int, mybool:bool) 
                     | MyOtherConstructor(otherbool:bool) 
-                    | MyNumericConstructor(42:int);
+                    | MyNumericConstructor(42:int)
 
 method test(foo:MyDataType, x:int) returns (abc:MyDataType, def:MyDataType, ghi:MyDataType, jkl:MyDataType)
     requires foo.MyConstructor?;

@@ -13,7 +13,7 @@ class Node {
   ghost var pathFromRoot: Path;
 }
 
-datatype Path = Empty | Extend(Path, Node);
+datatype Path = Empty | Extend(Path, Node)
 
 
 class Main {

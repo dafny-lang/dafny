@@ -4,7 +4,7 @@
 // --------------------------------------------------
 
 module CoRecursion {
-  codatatype Stream<T> = More(head: T, rest: Stream);
+  codatatype Stream<T> = More(head: T, rest: Stream)
 
   function AscendingChain(n: int): Stream<int>
   {
@@ -23,7 +23,7 @@ module CoRecursion {
     More(n, AscendingChainAndPostcondition(n+1))  // error: cannot prove termination
   }
 
-  datatype List<T> = Nil | Cons(T, List);
+  datatype List<T> = Nil | Cons(T, List)
 
   function Prefix(n: nat, s: Stream): List
   {
@@ -35,7 +35,7 @@ module CoRecursion {
 // --------------------------------------------------
 
 module CoRecursionNotUsed {
-  codatatype Stream<T> = More(T, Stream);
+  codatatype Stream<T> = More(T, Stream)
 
   function F(s: Stream, n: nat): Stream
     decreases n, true;

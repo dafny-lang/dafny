@@ -2,8 +2,8 @@
 // RUN: %diff "%s.expect" "%t"
 
 module A {
-  datatype Explicit<T(==)> = Nil | Cons(set<T>, Explicit<T>);
-  datatype Inferred<T> = Nil | Cons(set<T>, Inferred<T>);
+  datatype Explicit<T(==)> = Nil | Cons(set<T>, Explicit<T>)
+  datatype Inferred<T> = Nil | Cons(set<T>, Inferred<T>)
 
   class C {
     method M<T>(x: Explicit<T>)
@@ -21,42 +21,42 @@ module B refines A {
 // ----------------------------
 
 module C {
-  type X(==);
-  type Y(==);
+  type X(==)
+  type Y(==)
 }
 
 module D refines C {
   class X { }
-  datatype Y = Red | Green | Blue;
+  datatype Y = Red | Green | Blue
 }
 
 module E refines C {
-  codatatype X = Next(int, X);  // error: X requires equality and codatatypes don't got it
-  datatype Y = Nil | Something(Z) | More(Y, Y);  // error: Y does not support equality
-  codatatype Z = Red | Green(X) | Blue;
+  codatatype X = Next(int, X)  // error: X requires equality and codatatypes don't got it
+  datatype Y = Nil | Something(Z) | More(Y, Y)  // error: Y does not support equality
+  codatatype Z = Red | Green(X) | Blue
 }
 
 module F refines C {
-  datatype X<T> = Nil | Cons(T, X<T>);  // error: not allowed to add a type parameter to type X
+  datatype X<T> = Nil | Cons(T, X<T>)  // error: not allowed to add a type parameter to type X
   class Y<T> { }  // error: not allowed to add a type parameter to type Y
 }
 
 module G refines C {
-  datatype X = Nil | Next(Z, X);  // error: X does not support equality
-  datatype Y = Nil | Something(Z) | More(Y, Y);  // error: Y does not support equality
-  codatatype Z = Red | Green | Blue;
+  datatype X = Nil | Next(Z, X)  // error: X does not support equality
+  datatype Y = Nil | Something(Z) | More(Y, Y)  // error: Y does not support equality
+  codatatype Z = Red | Green | Blue
 }
 
 // ----------------------------
 
 module H {
-  datatype Dt<T> = Nil | Cons(T, Dt);
+  datatype Dt<T> = Nil | Cons(T, Dt)
 
-  datatype BulkyList<T> = Nothing | Wrapper(T, BulkyListAux);
-  datatype BulkyListAux<T> = Kons(set<T>, BulkyListAuxAux);
-  datatype BulkyListAuxAux<T> = GoBack(BulkyList);
+  datatype BulkyList<T> = Nothing | Wrapper(T, BulkyListAux)
+  datatype BulkyListAux<T> = Kons(set<T>, BulkyListAuxAux)
+  datatype BulkyListAuxAux<T> = GoBack(BulkyList)
 
-  codatatype Stream<T> = Next(head: T, tail: Stream<T>);
+  codatatype Stream<T> = Next(head: T, tail: Stream<T>)
 
   method M<T(==)>(x: T)
   { }

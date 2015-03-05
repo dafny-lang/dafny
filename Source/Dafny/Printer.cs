@@ -457,7 +457,6 @@ namespace Microsoft.Dafny {
       PrintAttributes(field.Attributes);
       wr.Write(" {0}: ", field.Name);
       PrintType(field.Type);
-      wr.Write(";");
       if (field.IsUserMutable) {
         // nothing more to say
       } else if (field.IsMutable) {
@@ -619,7 +618,7 @@ namespace Microsoft.Dafny {
         Indent(indent);
         wr.Write("{0} ", kind);
         PrintExpression(e, true);
-        wr.WriteLine(";");
+        wr.WriteLine();
       }
     }
 
@@ -636,9 +635,9 @@ namespace Microsoft.Dafny {
         wr.Write(" ");
         PrintExpressionList(decs.Expressions, true);
         if (newLine) {
-          wr.WriteLine(";");
+          wr.WriteLine();
         } else {
-          wr.Write(";");
+          wr.Write(" ");
         }
       }
     }
@@ -655,9 +654,9 @@ namespace Microsoft.Dafny {
         wr.Write(" ");
         PrintFrameExpressionList(ee);
         if (newLine) {
-          wr.WriteLine(";");
+          wr.WriteLine();
         } else {
-          wr.Write(";");
+          wr.Write(" ");
         }
       }
     }
@@ -679,11 +678,10 @@ namespace Microsoft.Dafny {
 
         wr.Write(" ");
         PrintExpression(e.E, true);
-
         if (newLine) {
-          wr.WriteLine(";");
+          wr.WriteLine();
         } else {
-          wr.Write(";");
+          wr.Write(" ");
         }
       }
     }

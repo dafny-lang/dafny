@@ -16,7 +16,7 @@ function seq_loop_s(xs: seq<seq<int>>): int
   else 0
 }
 
-datatype wrap = X | WS(ds: seq<wrap>);
+datatype wrap = X | WS(ds: seq<wrap>)
 function wrap_loop_1(xs: seq<wrap>): int
 {
   if (xs == [WS([X,X])]) then wrap_loop_2(WS([X,X]))

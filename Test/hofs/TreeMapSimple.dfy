@@ -1,9 +1,9 @@
 // RUN: %dafny /compile:3 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
-datatype List<A> = Nil | Cons(head: A,tail: List<A>);
+datatype List<A> = Nil | Cons(head: A,tail: List<A>)
 
-datatype Tree<A> = Branch(val: A,trees: List<Tree<A>>);
+datatype Tree<A> = Branch(val: A,trees: List<Tree<A>>)
 
 function ListData(xs : List) : set
   ensures forall x :: x in ListData(xs) ==> x < xs;

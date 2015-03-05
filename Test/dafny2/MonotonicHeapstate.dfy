@@ -2,7 +2,7 @@
 // RUN: %diff "%s.expect" "%t"
 
 module M0 {
-  datatype Kind = Constant | Ident | Binary;
+  datatype Kind = Constant | Ident | Binary
 
   class Expr {
     var kind: Kind;
