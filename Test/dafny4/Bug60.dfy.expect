@@ -1,0 +1,9 @@
+
+Dafny program verifier finished with 2 verified, 0 errors
+Program compiled successfully
+Running...
+
+({2, 3}, map[2 := 20, 3 := 30])
+(2, 2)
+{2, 3}
+True

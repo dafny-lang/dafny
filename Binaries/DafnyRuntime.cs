@@ -28,7 +28,9 @@ namespace Dafny
         d[t] = true;
       return new Set<T>(d);
     }
-
+    public int Length {
+      get { return dict.Count; }
+    }
     public IEnumerable<T> Elements {
       get {
         return dict.Keys;
@@ -356,6 +358,9 @@ namespace Dafny
         d[p.Car] = p.Cdr;
       }
       return new Map<U, V>(d);
+    }
+    public int Length {
+      get { return dict.Count; }
     }
     public bool Equals(Map<U, V> other) {
       foreach (U u in dict.Keys) {

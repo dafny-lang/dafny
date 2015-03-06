@@ -8537,7 +8537,7 @@ namespace Microsoft.Dafny
                 break;
               case BinaryExpr.ResolvedOpcode.InMap:
                 if (whereIsBv == 0 && e1.Type.AsMapType.Finite) {
-                  bounds.Add(new ComprehensionExpr.SetBoundedPool(e1));
+                  bounds.Add(new ComprehensionExpr.MapBoundedPool(e1));
                   foundBoundsForBv = true;
                   if (!returnAllBounds) goto CHECK_NEXT_BOUND_VARIABLE;
                 }
