@@ -543,13 +543,13 @@ namespace Microsoft.Dafny
       }
 
       if (f is Predicate) {
-        return new Predicate(tok, f.Name, f.HasStaticKeyword, isGhost, tps, formals,
+        return new Predicate(tok, f.Name, f.HasStaticKeyword, f.IsProtected, isGhost, tps, formals,
           req, reads, ens, decreases, body, bodyOrigin, refinementCloner.MergeAttributes(f.Attributes, moreAttributes), null);
       } else if (f is CoPredicate) {
-        return new CoPredicate(tok, f.Name, f.HasStaticKeyword, tps, formals,
+        return new CoPredicate(tok, f.Name, f.HasStaticKeyword, f.IsProtected, tps, formals,
           req, reads, ens, body, refinementCloner.MergeAttributes(f.Attributes, moreAttributes), null);
       } else {
-        return new Function(tok, f.Name, f.HasStaticKeyword, isGhost, tps, formals, refinementCloner.CloneType(f.ResultType),
+        return new Function(tok, f.Name, f.HasStaticKeyword, f.IsProtected, isGhost, tps, formals, refinementCloner.CloneType(f.ResultType),
           req, reads, ens, decreases, body, refinementCloner.MergeAttributes(f.Attributes, moreAttributes), null);
       }
     }

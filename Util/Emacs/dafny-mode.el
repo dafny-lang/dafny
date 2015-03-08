@@ -33,7 +33,7 @@
         "class" "trait" "datatype" "codatatype" "newtype" "type" "iterator"
         "function" "predicate" "copredicate"
         "var" "method" "constructor" "lemma" "colemma"
-        "ghost" "static" "abstract"
+        "ghost" "static" "protected" "abstract"
 	"module" "import" "default" "as" "opened"
 	"include"
         "extends" "refines" "returns" "yields"

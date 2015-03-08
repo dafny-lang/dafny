@@ -954,7 +954,7 @@ namespace Microsoft.Dafny
             new Specification<Expression>(new List<Expression>(), null),
             null, null, null);
           // --- here comes predicate Valid()
-          var valid = new Predicate(iter.tok, "Valid", false, true, new List<TypeParameter>(),
+          var valid = new Predicate(iter.tok, "Valid", false, true, true, new List<TypeParameter>(),
             new List<Formal>(),
             new List<Expression>(),
             new List<FrameExpression>(),
@@ -1024,7 +1024,7 @@ namespace Microsoft.Dafny
                   List<TypeParameter> tyvars = cop.TypeArgs.ConvertAll(cloner.CloneTypeParam);
 
                   // create prefix predicate
-                  cop.PrefixPredicate = new PrefixPredicate(cop.tok, extraName, cop.HasStaticKeyword,
+                  cop.PrefixPredicate = new PrefixPredicate(cop.tok, extraName, cop.HasStaticKeyword, cop.IsProtected,
                     tyvars, k, formals,
                     cop.Req.ConvertAll(cloner.CloneExpr),
                     cop.Reads.ConvertAll(cloner.CloneFrameExpr),

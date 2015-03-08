@@ -26,6 +26,7 @@ int anonymousIds = 0;
 struct MemberModifiers {
   public bool IsGhost;
   public bool IsStatic;
+  public bool IsProtected;
 }
 
 ///<summary>
@@ -629,14 +630,16 @@ ClassMemberDecl<.List<MemberDecl> mm, bool allowConstructors, bool moduleLevelDe
      Method/*!*/ m;
      Function/*!*/ f;
      MemberModifiers mmod = new MemberModifiers();
-     IToken staticToken = null;
+     IToken staticToken = null, protectedToken = null;
   .)
   { "ghost"                                (. mmod.IsGhost = true; .)
   | "static"                               (. mmod.IsStatic = true; staticToken = t; .)
+  | "protected"                            (. mmod.IsProtected = true; protectedToken = t; .)
   }
   ( (. if (moduleLevelDecl) {
          SemErr(la, "fields are not allowed to be declared at the module level; instead, wrap the field in a 'class' declaration");
          mmod.IsStatic = false;
+         mmod.IsProtected = false;
        }
     .)
     FieldDecl<mmod, mm>
@@ -649,6 +652,10 @@ ClassMemberDecl<.List<MemberDecl> mm, bool allowConstructors, bool moduleLevelDe
   | (. if (moduleLevelDecl && staticToken != null) {
          errors.Warning(staticToken, "module-level methods are always non-instance, so the 'static' keyword is not allowed here");
          mmod.IsStatic = false;
+       }
+       if (protectedToken != null) {
+         SemErr(protectedToken, "only functions, not methods, can be declared 'protected'");
+         mmod.IsProtected = false;
        }
     .)
     MethodDecl<mmod, allowConstructors, out m>  (. mm.Add(m); .)
@@ -1270,13 +1277,13 @@ FunctionDecl<MemberModifiers mmod, out Function/*!*/ f>
 
      IToken tok = theVerifyThisFile ? id : new IncludeToken(id);
      if (isPredicate) {
-        f = new Predicate(tok, id.val, mmod.IsStatic, !isFunctionMethod, typeArgs, formals,
+        f = new Predicate(tok, id.val, mmod.IsStatic, mmod.IsProtected, !isFunctionMethod, typeArgs, formals,
                           reqs, reads, ens, new Specification<Expression>(decreases, null), body, Predicate.BodyOriginKind.OriginalOrInherited, attrs, signatureEllipsis);
      } else if (isCoPredicate) {
-        f = new CoPredicate(tok, id.val, mmod.IsStatic, typeArgs, formals,
+        f = new CoPredicate(tok, id.val, mmod.IsStatic, mmod.IsProtected, typeArgs, formals,
                           reqs, reads, ens, body, attrs, signatureEllipsis);
      } else {
-        f = new Function(tok, id.val, mmod.IsStatic, !isFunctionMethod, typeArgs, formals, returnType,
+        f = new Function(tok, id.val, mmod.IsStatic, mmod.IsProtected, !isFunctionMethod, typeArgs, formals, returnType,
                          reqs, reads, ens, new Specification<Expression>(decreases, null), body, attrs, signatureEllipsis);
      }
      f.BodyStartTok = bodyStart;

@@ -63,3 +63,14 @@ colemma M'(x': int)
   ensures true;
 {
 }
+
+// modifiers on functions
+
+class CF {
+  static function F(): int
+  predicate method G()
+  copredicate Co()
+  protected function H(): int
+  static protected function method I(): real
+  protected static predicate method J()
+}
