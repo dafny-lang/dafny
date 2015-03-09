@@ -261,7 +261,7 @@ namespace Microsoft.Dafny
       var refinementTransformer = new RefinementTransformer(this, AdditionalInformationReporter, prog);
       rewriters.Add(refinementTransformer);
       rewriters.Add(new AutoContractsRewriter());
-      var opaqueRewriter = new OpaqueFunctionRewriter();
+      var opaqueRewriter = new OpaqueFunctionRewriter(this);
       rewriters.Add(new AutoReqFunctionRewriter(this, opaqueRewriter));
       rewriters.Add(opaqueRewriter);
       rewriters.Add(new TimeLimitRewriter());

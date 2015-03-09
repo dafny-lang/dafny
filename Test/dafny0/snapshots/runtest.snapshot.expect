@@ -51,11 +51,11 @@ Processing command (at Snapshots2.v0.dfy(4,10)) assert Lit(false);
   >>> DoNothingToAssert
 Processing command (at Snapshots2.v0.dfy(11,11)) assert true;
   >>> DoNothingToAssert
-Processing command (at Snapshots2.v0.dfy(11,15)) assert Lit(_module.__default.P($LS($LS($LZ)), $Heap)) <==> Lit(_module.__default.Q($LS($LS($LZ)), $Heap));
+Processing command (at Snapshots2.v0.dfy(11,15)) assert _module.__default.P($LS($LS($LZ)), $Heap) <==> _module.__default.Q($LS($LS($LZ)), $Heap);
   >>> DoNothingToAssert
 Processing command (at Snapshots2.v0.dfy(14,11)) assert true;
   >>> DoNothingToAssert
-Processing command (at Snapshots2.v0.dfy(14,15)) assert Lit(_module.__default.Q($LS($LS($LZ)), $Heap)) <==> Lit(_module.__default.R($Heap));
+Processing command (at Snapshots2.v0.dfy(14,15)) assert _module.__default.Q($LS($LS($LZ)), $Heap) <==> Lit(_module.__default.R($Heap));
   >>> DoNothingToAssert
 Processing command (at Snapshots2.v0.dfy(18,3)) assert true;
   >>> DoNothingToAssert
@@ -74,11 +74,11 @@ Execution trace:
     (0,0): anon0
 Processing command (at Snapshots2.v1.dfy(11,11)) assert true;
   >>> MarkAsFullyVerified
-Processing command (at Snapshots2.v1.dfy(11,15)) assert Lit(_module.__default.P($LS($LS($LZ)), $Heap)) <==> Lit(_module.__default.Q($LS($LS($LZ)), $Heap));
+Processing command (at Snapshots2.v1.dfy(11,15)) assert _module.__default.P($LS($LS($LZ)), $Heap) <==> _module.__default.Q($LS($LS($LZ)), $Heap);
   >>> DoNothingToAssert
 Processing command (at Snapshots2.v1.dfy(14,11)) assert true;
   >>> MarkAsFullyVerified
-Processing command (at Snapshots2.v1.dfy(14,15)) assert Lit(_module.__default.Q($LS($LS($LZ)), $Heap)) <==> Lit(_module.__default.R($Heap));
+Processing command (at Snapshots2.v1.dfy(14,15)) assert _module.__default.Q($LS($LS($LZ)), $Heap) <==> Lit(_module.__default.R($Heap));
   >>> DoNothingToAssert
 
 Dafny program verifier finished with 5 verified, 1 error

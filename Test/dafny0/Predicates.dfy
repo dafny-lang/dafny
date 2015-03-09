@@ -4,7 +4,7 @@
 module A {
   class C {
     var x: int;
-    predicate P()
+    protected predicate P()
       reads this;
     {
       x < 100
@@ -26,7 +26,7 @@ module A {
 
 module B refines A {
   class C {
-    predicate P()
+    protected predicate P()
     {
       0 <= x
     }
@@ -39,7 +39,7 @@ module Loose {
   class MyNumber {
     var N: int;
     ghost var Repr: set<object>;
-    predicate Valid()
+    protected predicate Valid()
       reads this, Repr;
     {
       this in Repr && null !in Repr &&
@@ -70,7 +70,7 @@ module Loose {
 
 module Tight refines Loose {
   class MyNumber {
-    predicate Valid()
+    protected predicate Valid()
     {
       N % 2 == 0
     }
@@ -115,7 +115,7 @@ module Tricky_Base {
     {
       x < 10
     }
-    predicate Valid()
+    protected predicate Valid()
       reads this;
     {
       x < 100
@@ -131,7 +131,7 @@ module Tricky_Base {
 
 module Tricky_Full refines Tricky_Base {
   class Tree {
-    predicate Valid()
+    protected predicate Valid()
     {
       Constrained()  // this causes an error to be generated for the inherited Init
     }
@@ -143,7 +143,7 @@ module Tricky_Full refines Tricky_Base {
 module Q0 {
   class C {
     var x: int;
-    predicate P()
+    protected predicate P()
       reads this;
     {
       true
@@ -170,7 +170,7 @@ module Q0 {
 
 module Q1 refines Q0 {
   class C {
-    predicate P()
+    protected predicate P()
     {
       x == 18
     }

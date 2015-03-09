@@ -5,7 +5,7 @@
 abstract module M0 {
   class {:autocontracts} Container<T(==)> {
     ghost var Contents: set<T>;
-    predicate Valid()
+    protected predicate Valid()
     constructor ()
       ensures Contents == {};
     method Add(t: T)
@@ -41,7 +41,7 @@ abstract module M1 refines M0 {
 module M2 refines M1 {
   class Container<T(==)> {
     var elems: seq<T>;
-    predicate Valid()
+    protected predicate Valid()
     {
       Contents == (set x | x in elems) &&
       forall i,j :: 0 <= i < j < |elems| ==> elems[i] != elems[j]
@@ -89,7 +89,7 @@ module M3 refines M2 {
   class Container<T(==)> {
     var cachedValue: T;
     var cachedIndex: int;
-    predicate Valid() {
+    protected predicate Valid() {
       0 <= cachedIndex ==> cachedIndex < |elems| && elems[cachedIndex] == cachedValue
     }
     constructor... {

@@ -1429,9 +1429,8 @@ namespace Microsoft.Dafny {
           AddClassMember_Function(f);
           if (!IsOpaqueFunction(f) && !f.IsBuiltin && !(f.tok is IncludeToken)) { // Opaque function's well-formedness is checked on the full version
             AddWellformednessCheck(f);
-            if (f.OverriddenFunction != null) //it means that f is overriding its associated parent function
-            {
-                AddFunctionOverrideCheckImpl(f);
+            if (f.OverriddenFunction != null) { //it means that f is overriding its associated parent function
+              AddFunctionOverrideCheckImpl(f);
             }
           }
           var cop = f as CoPredicate;
@@ -1481,12 +1480,29 @@ namespace Microsoft.Dafny {
       }
     }
 
-    private bool IsOpaqueFunction(Function f) {
+    /// <summary>
+    /// Returns true if the body of function "f" is available in module "context".
+    /// This happens when "f" has a body, "f" is not opaque, and either "f" is declared
+    /// in module "context" or "f" is not protected.
+    /// </summary>
+    static bool FunctionBodyIsAvailable(Function f, ModuleDefinition context) {
+      Contract.Requires(f != null);
+      Contract.Requires(context != null);
+      return f.Body != null && !IsOpaqueFunction(f) && (f.EnclosingClass.Module == context || !f.IsProtected);
+    }
+    static bool IsOpaqueFunction(Function f) {
+      Contract.Requires(f != null);
       return Attributes.Contains(f.Attributes, "opaque") &&
             !Attributes.Contains(f.Attributes, "opaque_full");  // The full version has both attributes
     }
 
     private void AddClassMember_Function(Function f) {
+      Contract.Ensures(currentModule == null && codeContext == null);
+      Contract.Ensures(currentModule == null && codeContext == null);
+
+      currentModule = f.EnclosingClass.Module;
+      codeContext = f;
+
       // declare function
       AddFunction(f);
       // add synonym axiom
@@ -1511,6 +1527,8 @@ namespace Microsoft.Dafny {
       if (f is CoPredicate) {
         AddPrefixPredicateAxioms(((CoPredicate)f).PrefixPredicate);
       }
+
+      Reset();
     }
 
     void AddIteratorSpecAndBody(IteratorDecl iter) {
@@ -1609,6 +1627,11 @@ namespace Microsoft.Dafny {
     }
 
     void AddIteratorWellformed(IteratorDecl iter, Procedure proc) {
+      Contract.Requires(iter != null);
+      Contract.Requires(proc != null);
+      Contract.Requires(currentModule == null && codeContext == null);
+      Contract.Ensures(currentModule == null && codeContext == null);
+
       currentModule = iter.Module;
       codeContext = iter;
 
@@ -1920,8 +1943,8 @@ namespace Microsoft.Dafny {
         }
 
         if (!DafnyOptions.O.Dafnycc) {
-            ax = FunctionAxiom(f, visibility, body, f.Formals);
-            sink.AddTopLevelDeclaration(ax);
+          ax = FunctionAxiom(f, visibility, body, f.Formals);
+          sink.AddTopLevelDeclaration(ax);
         }
       }
     }
@@ -2244,7 +2267,7 @@ namespace Microsoft.Dafny {
       Bpl.Trigger tr = new Bpl.Trigger(f.tok, true, new List<Bpl.Expr> { funcAppl });
       var typeParams = TrTypeParamDecls(f.TypeArgs);
       Bpl.Expr meat;
-      if (visibility == FunctionAxiomVisibility.ForeignModuleOnly /* TODO: add 'public' feature and add: && !IsPublic(f) */) {
+      if (visibility == FunctionAxiomVisibility.ForeignModuleOnly && f.IsProtected) {
         meat = Bpl.Expr.True;
       } else {
         var bodyWithSubst = Substitute(body, null, substMap);
@@ -6018,7 +6041,7 @@ namespace Microsoft.Dafny {
     ///    the first place.
     /// InterModuleCall
     ///    This procedure is suitable for inter-module callers.
-    ///    This means that predicate definitions are not inlined.
+    ///    This means that predicate definitions inlined only for non-protected predicates.
     /// IntraModuleCall
     ///    This procedure is suitable for non-co-call intra-module callers.
     ///    This means that predicates can be inlined in the usual way.
@@ -10646,7 +10669,7 @@ namespace Microsoft.Dafny {
 
           Expr result = new Bpl.NAryExpr(e.tok, new Bpl.FunctionCall(id), args);
           result = translator.CondApplyUnbox(e.tok, result, e.Function.ResultType, e.Type);
-          if (returnLit && !translator.IsOpaqueFunction(e.Function)) {
+          if (returnLit && Translator.FunctionBodyIsAvailable(e.Function, translator.currentModule)) {
             result = translator.Lit(result, ty);
           }
           return result;
@@ -12223,8 +12246,8 @@ namespace Microsoft.Dafny {
 
     /// <summary>
     /// Tries to split the expression into tactical conjuncts (if "position") or disjuncts (if "!position").
-    /// If a (necessarily boolean) function call appears as a top-level conjunct, then inline the function if
-    /// if it declared in the current module and its height is less than "heightLimit" (if "heightLimit" is
+    /// If a (necessarily boolean) function call appears as a top-level conjunct, then inline the function
+    /// if its body is available in the current context and its height is less than "heightLimit" (if "heightLimit" is
     /// passed in as 0, then no functions will be inlined).
     /// </summary>
     bool TrSplitExpr(Expression expr, List<SplitExprInfo/*!*/>/*!*/ splits, bool position, int heightLimit, bool apply_induction, ExpressionTranslator etran) {
@@ -12400,8 +12423,8 @@ namespace Microsoft.Dafny {
               (codeContext == null || !codeContext.MustReverify)) {
             // The function was inherited as body-less but is now given a body. Don't inline the body (since, apparently, everything
             // that needed to be proved about the function was proved already in the previous module, even without the body definition).
-          } else if (IsOpaqueFunction(f)) {
-            // Don't inline opaque functions
+          } else if (!FunctionBodyIsAvailable(f, currentModule)) {
+            // Don't inline opaque functions or foreign protected functions
           } else {
             // inline this body
             var body = GetSubstitutedBody(fexp, f, false);

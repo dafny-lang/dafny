@@ -110,7 +110,7 @@ module Abstract {
   class MyNumber {
     ghost var N: int;
     ghost var Repr: set<object>;
-    predicate Valid()
+    protected predicate Valid()
       reads this, Repr;
     {
       this in Repr && null !in Repr
@@ -144,7 +144,7 @@ module Concrete refines Abstract {
   class MyNumber {
     var a: int;
     var b: int;
-    predicate Valid()
+    protected predicate Valid()
     {
       N == a - b
     }
@@ -181,7 +181,7 @@ module IncorrectConcrete refines Abstract {
   class MyNumber {
     var a: int;
     var b: int;
-    predicate Valid()
+    protected predicate Valid()
     {
       N == 2*a - b
     }
