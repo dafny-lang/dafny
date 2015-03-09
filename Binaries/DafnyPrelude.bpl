@@ -150,22 +150,6 @@ axiom (forall<T> v : T, t : Ty, h : Heap ::
     { $IsAllocBox($Box(v), t, h) }
     ( $IsAllocBox($Box(v), t, h) <==> $IsAlloc(v,t,h) ));
 
-// The following functions and axioms are used to obtain a $Box($Unbox(_)) wrapper around
-// certain expressions.  Note that it assumes any booleans (or, indeed, values of any type) contained
-// in the (multi)set are canonical (which is the case for any (multi)set that occurs in an execution of
-// a Dafny program).
-// The role of the parameter 'dummy' in the following is (an unfortunately clumsy construction
-// whose only purpose is) simply to tell Boogie how to instantiate the type parameter 'T'.
-
-/*
-function $IsGoodSet_Extended<T>(s: Set Box, dummy: T): bool;
-axiom (forall<T> ss: Set Box, dummy: T, bx: Box :: { $IsGoodSet_Extended(ss, dummy), ss[bx] }
-  $IsGoodSet_Extended(ss, dummy) ==> ss[bx] ==> bx == $Box($Unbox(bx): T));
-function $IsGoodMultiSet_Extended<T>(ms: MultiSet Box, dummy: T): bool;
-axiom (forall<T> ms: MultiSet Box, dummy: T, bx: Box :: { $IsGoodMultiSet_Extended(ms, dummy), ms[bx] }
-  $IsGoodMultiSet_Extended(ms, dummy) ==> 0 < ms[bx] ==> bx == $Box($Unbox(bx): T));
-  */
-
 // ---------------------------------------------------------------
 // -- Is and IsAlloc ---------------------------------------------
 // ---------------------------------------------------------------

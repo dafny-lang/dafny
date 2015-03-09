@@ -11651,7 +11651,6 @@ namespace Microsoft.Dafny {
       SetEqual,
       SetSubset,
       SetDisjoint,
-      IsGoodSet_Extended,
 
       MultiSetCard,
       MultiSetEmpty,
@@ -11665,7 +11664,6 @@ namespace Microsoft.Dafny {
       MultiSetFromSet,
       MultiSetFromSeq,
       IsGoodMultiSet,
-      IsGoodMultiSet_Extended,
 
       SeqLength,
       SeqEmpty,
@@ -11859,10 +11857,6 @@ namespace Microsoft.Dafny {
           Contract.Assert(args.Length == 2);
           Contract.Assert(typeInstantiation == null);
           return FunctionCall(tok, "Set#Disjoint", Bpl.Type.Bool, args);
-        case BuiltinFunction.IsGoodSet_Extended:
-          Contract.Assert(args.Length == 2);
-          Contract.Assert(typeInstantiation == null);
-          return FunctionCall(tok, "$IsGoodSet_Extended", Bpl.Type.Bool, args);
 
         case BuiltinFunction.MultiSetCard:
           Contract.Assert(args.Length == 1);
@@ -11914,10 +11908,6 @@ namespace Microsoft.Dafny {
           Contract.Assert(args.Length == 1);
           Contract.Assert(typeInstantiation == null);
           return FunctionCall(tok, "$IsGoodMultiSet", Bpl.Type.Bool, args);
-        case BuiltinFunction.IsGoodMultiSet_Extended:
-          Contract.Assert(args.Length == 2);
-          Contract.Assert(typeInstantiation == null);
-          return FunctionCall(tok, "$IsGoodMultiSet_Extended", Bpl.Type.Bool, args);
 
         case BuiltinFunction.SeqLength:
           Contract.Assert(args.Length == 1);
