@@ -686,7 +686,14 @@ axiom (forall<T> s: Seq T :: { Seq#Length(s) } 0 <= Seq#Length(s));
 
 function Seq#Empty<T>(): Seq T;
 axiom (forall<T> :: Seq#Length(Seq#Empty(): Seq T) == 0);
-axiom (forall<T> s: Seq T :: { Seq#Length(s) } Seq#Length(s) == 0 ==> s == Seq#Empty());
+axiom (forall<T> s: Seq T :: { Seq#Length(s) }
+  (Seq#Length(s) == 0 ==> s == Seq#Empty())
+// The following would be a nice fact to include, because it would enable verifying the
+// GenericPick.SeqPick* methods in Test/dafny0/SmallTests.dfy.  However, it substantially
+// slows down performance on some other tests, including running seemingly forever on
+// some.
+//  && (Seq#Length(s) != 0 ==> (exists x: T :: Seq#Contains(s, x)))
+  );
 
 // The empty sequence $Is any type
 axiom (forall<T> t: Ty :: {$Is(Seq#Empty(): Seq T, t)} $Is(Seq#Empty(): Seq T, t));
@@ -887,7 +894,9 @@ function Map#Empty<U, V>(): Map U V;
 axiom (forall<U, V> u: U ::
         { Map#Domain(Map#Empty(): Map U V)[u] }
         !Map#Domain(Map#Empty(): Map U V)[u]);
-axiom (forall<U, V> m: Map U V :: { Map#Card(m) } Map#Card(m) == 0 <==> m == Map#Empty());
+axiom (forall<U, V> m: Map U V :: { Map#Card(m) }
+ (Map#Card(m) == 0 <==> m == Map#Empty()) &&
+ (Map#Card(m) != 0 ==> (exists x: U :: Map#Domain(m)[x])));
 
 function Map#Glue<U, V>([U] bool, [U]V, Ty): Map U V;
 axiom (forall<U, V> a: [U] bool, b:[U]V, t:Ty ::
