@@ -8263,18 +8263,25 @@ namespace Microsoft.Dafny
         }
       } else if (expr is LetExpr) {
         var e = (LetExpr)expr;
-        if (!e.Exact) {
+        if (e.Exact) {
+          Contract.Assert(e.LHSs.Count == e.RHSs.Count);
+          var i = 0;
+          foreach (var ee in e.RHSs) {
+            if (!e.LHSs[i].Vars.All(bv => bv.IsGhost)) {
+              CheckIsNonGhost(ee);
+            }
+            i++;
+          }
+          CheckIsNonGhost(e.Body);
+        } else {
+          Contract.Assert(e.RHSs.Count == 1);
+          var lhsVarsAreAllGhost = e.LHSs.All(casePat => casePat.Vars.All(bv => bv.IsGhost));
+          if (!lhsVarsAreAllGhost) {
+            CheckIsNonGhost(e.RHSs[0]);
+          }
+          CheckIsNonGhost(e.Body);
           Error(expr, "let-such-that expressions are allowed only in ghost contexts");
         }
-        Contract.Assert(e.LHSs.Count == e.RHSs.Count);
-        var i = 0;
-        foreach (var ee in e.RHSs) {
-          if (!e.LHSs[i].Vars.All(bv => bv.IsGhost)) {
-            CheckIsNonGhost(ee);
-          }
-          i++;
-        }
-        CheckIsNonGhost(e.Body);
         return;
       } else if (expr is QuantifierExpr) {
         var e = (QuantifierExpr)expr;

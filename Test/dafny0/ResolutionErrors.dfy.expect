@@ -87,6 +87,11 @@ ResolutionErrors.dfy(1254,24): Error: Undeclared top-level type or type paramete
 ResolutionErrors.dfy(1291,16): Error: in a ghost context, only ghost fields can be mentioned as modifies frame targets (y)
 ResolutionErrors.dfy(1301,18): Error: in a ghost context, only ghost fields can be mentioned as modifies frame targets (x)
 ResolutionErrors.dfy(1329,15): Error: The name Inner ambiguously refers to a type in one of the modules A, B (try qualifying the type name with the module name)
+ResolutionErrors.dfy(1339,29): Error: ghost variables are allowed only in specification contexts
+ResolutionErrors.dfy(1341,49): Error: ghost variables are allowed only in specification contexts
+ResolutionErrors.dfy(1341,54): Error: ghost variables are allowed only in specification contexts
+ResolutionErrors.dfy(1341,9): Error: let-such-that expressions are allowed only in ghost contexts
+ResolutionErrors.dfy(1342,9): Error: let-such-that expressions are allowed only in ghost contexts
 ResolutionErrors.dfy(432,2): Error: More than one anonymous constructor
 ResolutionErrors.dfy(50,13): Error: 'this' is not allowed in a 'static' context
 ResolutionErrors.dfy(87,14): Error: the name 'Benny' denotes a datatype constructor, but does not do so uniquely; add an explicit qualification (for example, 'Abc.Benny')
@@ -165,8 +170,8 @@ ResolutionErrors.dfy(386,6): Error: print statement is not allowed in this conte
 ResolutionErrors.dfy(470,7): Error: ghost variables are allowed only in specification contexts
 ResolutionErrors.dfy(476,12): Error: ghost variables are allowed only in specification contexts
 ResolutionErrors.dfy(544,7): Error: let-such-that expressions are allowed only in ghost contexts
-ResolutionErrors.dfy(546,7): Error: let-such-that expressions are allowed only in ghost contexts
 ResolutionErrors.dfy(546,20): Error: ghost variables are allowed only in specification contexts
+ResolutionErrors.dfy(546,7): Error: let-such-that expressions are allowed only in ghost contexts
 ResolutionErrors.dfy(548,7): Error: let-such-that expressions are allowed only in ghost contexts
 ResolutionErrors.dfy(549,18): Error: unresolved identifier: w
 ResolutionErrors.dfy(656,11): Error: lemmas are not allowed to have modifies clauses
@@ -182,4 +187,4 @@ ResolutionErrors.dfy(1106,8): Error: new cannot be applied to a trait
 ResolutionErrors.dfy(1127,13): Error: first argument to / must be of numeric type (instead got set<bool>)
 ResolutionErrors.dfy(1134,18): Error: a call to a possibly non-terminating method is allowed only if the calling method is also declared (with 'decreases *') to be possibly non-terminating
 ResolutionErrors.dfy(1149,14): Error: a possibly infinite loop is allowed only if the enclosing method is declared (with 'decreases *') to be possibly non-terminating
-184 resolution/type errors detected in ResolutionErrors.dfy
+189 resolution/type errors detected in ResolutionErrors.dfy
