@@ -4,12 +4,12 @@
 module A {
   class C {
     var x: int;
-    predicate Valid()
+    protected predicate Valid()
       reads this;
     {
       0 <= x
     }
-    function Get(): int
+    protected function Get(): int
       reads this;
     {
       x
@@ -30,7 +30,7 @@ module A {
 }
 module A' refines A {
   class C {
-    predicate Valid...
+    protected predicate Valid...
     {
       x == 8
     }
@@ -55,7 +55,7 @@ module B {
     requires c != null;
     modifies c;
   {
-    assert c.Get() == c.x;  // error because Get() s opaque
+    assert c.Get() == c.x;  // error because Get() is opaque
     if * {
       assert c.Valid();  // error, because Valid() is opaque
     } else if * {

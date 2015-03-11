@@ -1,0 +1,9 @@
+ProtectedResolution.dfy(11,21): Error: a function in a refinement module must be declared 'protected' if and only if the refined function is
+ProtectedResolution.dfy(12,11): Error: a function in a refinement module must be declared 'protected' if and only if the refined function is
+ProtectedResolution.dfy(13,22): Error: a predicate in a refinement module must be declared 'protected' if and only if the refined predicate is
+ProtectedResolution.dfy(14,12): Error: a predicate in a refinement module must be declared 'protected' if and only if the refined predicate is
+ProtectedResolution.dfy(24,11): Error: a refining function is not allowed to extend/change the body
+ProtectedResolution.dfy(25,21): Error: a refining function is not allowed to extend/change the body
+ProtectedResolution.dfy(26,12): Error: a refining predicate is not allowed to extend/change the body unless it is declared 'protected'
+ProtectedResolution.dfy(31,31): Error: :opaque is not allowed to be applied to protected functions (this will be allowed when the language introduces 'opaque'/'reveal' as keywords)
+8 resolution/type errors detected in ProtectedResolution.dfy

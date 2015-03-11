@@ -1,0 +1,21 @@
+Protected.dfy(17,20): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    (0,0): anon9_Then
+Protected.dfy(31,18): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    (0,0): anon12_Then
+    (0,0): anon6
+    (0,0): anon13_Else
+Protected.dfy(35,16): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+Protected.dfy(48,20): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+Protected.dfy(55,20): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+
+Dafny program verifier finished with 14 verified, 5 errors

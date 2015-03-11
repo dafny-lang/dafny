@@ -543,13 +543,13 @@ namespace Microsoft.Dafny
       }
 
       if (f is Predicate) {
-        return new Predicate(tok, f.Name, f.HasStaticKeyword, isGhost, tps, formals,
+        return new Predicate(tok, f.Name, f.HasStaticKeyword, f.IsProtected, isGhost, tps, formals,
           req, reads, ens, decreases, body, bodyOrigin, refinementCloner.MergeAttributes(f.Attributes, moreAttributes), null);
       } else if (f is CoPredicate) {
-        return new CoPredicate(tok, f.Name, f.HasStaticKeyword, tps, formals,
+        return new CoPredicate(tok, f.Name, f.HasStaticKeyword, f.IsProtected, tps, formals,
           req, reads, ens, body, refinementCloner.MergeAttributes(f.Attributes, moreAttributes), null);
       } else {
-        return new Function(tok, f.Name, f.HasStaticKeyword, isGhost, tps, formals, refinementCloner.CloneType(f.ResultType),
+        return new Function(tok, f.Name, f.HasStaticKeyword, f.IsProtected, isGhost, tps, formals, refinementCloner.CloneType(f.ResultType),
           req, reads, ens, decreases, body, refinementCloner.MergeAttributes(f.Attributes, moreAttributes), null);
       }
     }
@@ -690,6 +690,8 @@ namespace Microsoft.Dafny
             bool isCoPredicate = f is CoPredicate;
             if (!(member is Function) || (isPredicate && !(member is Predicate)) || (isCoPredicate && !(member is CoPredicate))) {
               reporter.Error(nwMember, "a {0} declaration ({1}) can only refine a {0}", f.WhatKind, nwMember.Name);
+            } else if (f.IsProtected != ((Function)member).IsProtected) {
+              reporter.Error(f, "a {0} in a refinement module must be declared 'protected' if and only if the refined {0} is", f.WhatKind);
             } else {
               var prevFunction = (Function)member;
               if (f.Req.Count != 0) {
@@ -726,10 +728,14 @@ namespace Microsoft.Dafny
               Expression replacementBody = null;
               if (prevFunction.Body == null) {
                 replacementBody = f.Body;
-              } else if (isPredicate) {
-                moreBody = f.Body;
               } else if (f.Body != null) {
-                reporter.Error(nwMember, "a refining function is not allowed to extend/change the body");
+                if (isPredicate && f.IsProtected) {
+                  moreBody = f.Body;
+                } else if (isPredicate) {
+                  reporter.Error(nwMember, "a refining predicate is not allowed to extend/change the body unless it is declared 'protected'");
+                } else {
+                  reporter.Error(nwMember, "a refining function is not allowed to extend/change the body");
+                }
               }
               var newF = CloneFunction(f.tok, prevFunction, f.IsGhost, f.Ens, moreBody, replacementBody, prevFunction.Body == null, f.Attributes);
               newF.RefinementBase = member;

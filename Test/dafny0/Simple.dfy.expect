@@ -53,6 +53,20 @@ class C {
   var list: List<bool>
 }
 
+class CF {
+  static function F(): int
+
+  predicate method G()
+
+  copredicate Co(): bool
+
+  protected function H(): int
+
+  static protected function method I(): real
+
+  static protected predicate method J()
+}
+
 lemma M(x: int)
   ensures x < 8
 {

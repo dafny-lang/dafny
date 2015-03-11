@@ -386,11 +386,14 @@ namespace Microsoft.Dafny
   /// specifically asks to see it via the reveal_foo() lemma
   /// </summary>
   public class OpaqueFunctionRewriter : IRewriter {
+    readonly ResolutionErrorReporter reporter;
     protected Dictionary<Function, Function> fullVersion; // Given an opaque function, retrieve the full
     protected Dictionary<Function, Function> original;    // Given a full version of an opaque function, find the original opaque version
     protected Dictionary<Lemma, Function> revealOriginal; // Map reveal_* lemmas back to their original functions
 
-    public OpaqueFunctionRewriter() : base() {
+    public OpaqueFunctionRewriter(ResolutionErrorReporter reporter)
+      : base() {
+      this.reporter = reporter;
       fullVersion = new Dictionary<Function, Function>();
       original = new Dictionary<Function, Function>();
       revealOriginal = new Dictionary<Lemma, Function>();
@@ -471,7 +474,11 @@ namespace Microsoft.Dafny
         if (member is Function) {
           var f = (Function)member;
 
-          if (Attributes.Contains(f.Attributes, "opaque") && !RefinementToken.IsInherited(f.tok, c.Module)) {
+          if (!Attributes.Contains(f.Attributes, "opaque")) {
+            // Nothing to do
+          } else if (f.IsProtected) {
+            reporter.Error(f.tok, ":opaque is not allowed to be applied to protected functions (this will be allowed when the language introduces 'opaque'/'reveal' as keywords)");
+          } else if (!RefinementToken.IsInherited(f.tok, c.Module)) {
             // Create a copy, which will be the internal version with a full body
             // which will allow us to verify that the ensures are true
             var cloner = new Cloner();

@@ -32,7 +32,7 @@ Verifying Impl$$_1_M1.C.M ...
 
 Verifying CheckWellformed$$_1_M1.C.P ...
   [2 proof obligations]  error
-Superposition.dfy(50,15): Error BP5003: A postcondition might not hold on this return path.
+Superposition.dfy(50,25): Error BP5003: A postcondition might not hold on this return path.
 Superposition.dfy[M1](22,26): Related location: This is the postcondition that might not hold.
 Execution trace:
     (0,0): anon0

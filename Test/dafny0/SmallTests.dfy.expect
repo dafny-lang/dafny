@@ -196,6 +196,6 @@ SmallTests.dfy(673,9): Error: cannot establish the existence of LHS values that 
 Execution trace:
     (0,0): anon0
 
-Dafny program verifier finished with 87 verified, 35 errors
+Dafny program verifier finished with 104 verified, 35 errors
 
 Dafny program verifier finished with 0 verified, 0 errors

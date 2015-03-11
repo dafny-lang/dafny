@@ -329,6 +329,7 @@ namespace DafnyLanguage
                 case "opened":
                 case "predicate":
                 case "print":
+                case "protected":
                 case "reads":
                 case "real":
                 case "refines":

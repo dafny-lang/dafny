@@ -2563,8 +2563,8 @@ namespace Microsoft.Dafny {
         //    LamLet(G, tmp =>
         //      LamLet(dtorX(tmp), x =>
         //      LamLet(dtorY(tmp), y => E)))
-        Contract.Assert(e.LHSs.Count == e.RHSs.Count);  // checked by resolution
         Contract.Assert(e.Exact);  // because !Exact is ghost only
+        Contract.Assert(e.LHSs.Count == e.RHSs.Count);  // checked by resolution
         var neededCloseParens = 0;
         for (int i = 0; i < e.LHSs.Count; i++) {
           var lhs = e.LHSs[i];
@@ -2585,32 +2585,6 @@ namespace Microsoft.Dafny {
         for (int i = 0; i < neededCloseParens; i++) {
           wr.Write(")");
         }
-
-        /*
-        int i = 0;
-        for (int i = 0; i < e.LHSs.Count; ++i) {
-          var lhs = e.LHSs[i];
-          if (Contract.Exists(lhs.Vars, bv => !bv.IsGhost)) {
-            var rhsName = string.Format("_pat_let{0}_{1}", GetUniqueAstNumber(e), i);
-
-            wr.Write("Dafny.Helpers.Id<");
-            wr.Write(TypeName(new ArrowType(e.RHSs[i], bodyType)));
-            wr.Write(">(");
-            wr.Write(rhsName);
-            wr.Write(" => ");
-            neededCloseParens++;
-
-            c = TrCasePattern(lhs, rhsName));
-            Contract.Assert(c != 0);  // we already checked that there's at least one non-ghost
-            neededCloseParens += c;
-          }
-        }
-
-        TrExpr(e.Body);
-        for (int i = 0; i < neededCloseParens; i++) {
-          wr.Write(")");
-        }
-        */
 
       } else  if (expr is MatchExpr) {
         var e = (MatchExpr)expr;
