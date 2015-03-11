@@ -116,6 +116,7 @@
     <Reference Include="Provers.SMTLib">
       <HintPath>..\..\..\boogie\Binaries\Provers.SMTLib.dll</HintPath>
     </Reference>
+    <Reference Include="System.IO.Compression.FileSystem" />
     <Reference Include="VCExpr">
       <HintPath>..\..\..\boogie\Binaries\VCExpr.dll</HintPath>
     </Reference>
@@ -183,6 +184,9 @@
     <Compile Include="..\version.cs" />
   </ItemGroup>
   <ItemGroup>
+    <Content Include="DafnyOptions.txt">
+      <IncludeInVSIX>true</IncludeInVSIX>
+    </Content>
     <Content Include="DafnyPrelude.bpl">
       <IncludeInVSIX>true</IncludeInVSIX>
     </Content>
@@ -219,6 +223,9 @@
       <ProductName>.NET Framework 3.5 SP1</ProductName>
       <Install>false</Install>
     </BootstrapperPackage>
+  </ItemGroup>
+  <ItemGroup>
+    <WCFMetadata Include="Service References\" />
   </ItemGroup>
   <PropertyGroup>
     <UseCodebase>true</UseCodebase>
