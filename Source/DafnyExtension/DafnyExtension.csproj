@@ -116,7 +116,6 @@
     <Reference Include="Provers.SMTLib">
       <HintPath>..\..\..\boogie\Binaries\Provers.SMTLib.dll</HintPath>
     </Reference>
-    <Reference Include="System.IO.Compression.FileSystem" />
     <Reference Include="VCExpr">
       <HintPath>..\..\..\boogie\Binaries\VCExpr.dll</HintPath>
     </Reference>
