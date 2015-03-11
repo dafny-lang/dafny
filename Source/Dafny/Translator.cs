@@ -4840,7 +4840,8 @@ namespace Microsoft.Dafny {
           Formal p = e.Function.Formals[i];
           // Note, in the following, the "##" makes the variable invisible in BVD.  An alternative would be to communicate
           // to BVD what this variable stands for and display it as such to the user.
-          LocalVariable local = new LocalVariable(p.tok, p.tok, "##" + p.Name, p.Type, p.IsGhost);
+          Type et = Resolver.SubstType(p.Type, e.TypeArgumentSubstitutions);
+          LocalVariable local = new LocalVariable(p.tok, p.tok, "##" + p.Name, et, p.IsGhost);
           local.type = local.OptionalType;  // resolve local here
           IdentifierExpr ie = new IdentifierExpr(local.Tok, local.AssignUniqueName(currentDeclaration.IdGenerator));
           ie.Var = local; ie.Type = ie.Var.Type;  // resolve ie here
@@ -4848,9 +4849,8 @@ namespace Microsoft.Dafny {
           locals.Add(new Bpl.LocalVariable(local.Tok, new Bpl.TypedIdent(local.Tok, local.AssignUniqueName(currentDeclaration.IdGenerator), TrType(local.Type))));
           Bpl.IdentifierExpr lhs = (Bpl.IdentifierExpr)etran.TrExpr(ie);  // TODO: is this cast always justified?
           Expression ee = e.Args[i];
-          Type et = Resolver.SubstType(p.Type, e.TypeArgumentSubstitutions);
           CheckSubrange(ee.tok, etran.TrExpr(ee), et, builder);
-          Bpl.Cmd cmd = Bpl.Cmd.SimpleAssign(p.tok, lhs, CondApplyBox(p.tok, etran.TrExpr(ee), cce.NonNull(ee.Type), p.Type));
+          Bpl.Cmd cmd = Bpl.Cmd.SimpleAssign(p.tok, lhs, CondApplyBox(p.tok, etran.TrExpr(ee), cce.NonNull(ee.Type), et));
           builder.Add(cmd);
           builder.Add(new Bpl.CommentCmd("assume allocatedness for argument to function"));
           builder.Add(new Bpl.AssumeCmd(e.Args[i].tok, MkIsAlloc(lhs, et, etran.HeapExpr)));
