@@ -4453,7 +4453,12 @@ namespace Microsoft.Dafny {
         if (canCall != Bpl.Expr.True) {
           List<Variable> bvars = new List<Variable>();
           Bpl.Expr typeAntecedent = etran.TrBoundVariables(e.BoundVars, bvars);
-          canCall = new Bpl.ForallExpr(expr.tok, Concat(tyvars, bvars), Bpl.Expr.Imp(typeAntecedent, canCall));
+          if (Attributes.Contains(e.Attributes, "trigger")) {
+            Bpl.Trigger tr = TrTrigger(etran, e.Attributes, expr.tok);
+            canCall = new Bpl.ForallExpr(expr.tok, Concat(tyvars, bvars), tr, Bpl.Expr.Imp(typeAntecedent, canCall));
+          } else {
+            canCall = new Bpl.ForallExpr(expr.tok, Concat(tyvars, bvars), Bpl.Expr.Imp(typeAntecedent, canCall));
+          }
         }
         return canCall;
       } else if (expr is StmtExpr) {
@@ -5095,7 +5100,8 @@ namespace Microsoft.Dafny {
             if (tup.Item1.Count != 0) {
               var bvs = new List<Variable>();
               var typeAntecedent = etran.TrBoundVariables(tup.Item1, bvs);
-              body = new Bpl.ExistsExpr(e.tok, bvs, BplAnd(typeAntecedent, body));
+              var triggers = TrTrigger(etran, e.Attributes, e.tok);
+              body = new Bpl.ExistsExpr(e.tok, bvs, triggers, BplAnd(typeAntecedent, body));
             }
             w = BplOr(body, w);
           }
@@ -7038,7 +7044,8 @@ namespace Microsoft.Dafny {
             if (tup.Item1.Count != 0) {
               var bvs = new List<Variable>();
               var typeAntecedent = etran.TrBoundVariables(tup.Item1, bvs);
-              body = new Bpl.ExistsExpr(s.Tok, bvs, BplAnd(typeAntecedent, body));
+              var triggers = TrTrigger(etran, s.Attributes, s.Tok, substMap);
+              body = new Bpl.ExistsExpr(s.Tok, bvs, triggers, BplAnd(typeAntecedent, body));
             }
             w = BplOr(body, w);
           }
@@ -8229,7 +8236,8 @@ namespace Microsoft.Dafny {
 
       Bpl.Expr qq = Bpl.Expr.Imp(ante, post);
       if (bvars.Count != 0) {
-        qq = new Bpl.ForallExpr(s.Tok, bvars, qq);
+        var triggers = TrTrigger(etran, s.Attributes, s.Tok, substMap);
+        qq = new Bpl.ForallExpr(s.Tok, bvars, triggers, qq);
       }
       exporter.Add(new Bpl.AssumeCmd(s.Tok, qq));
     }
@@ -11175,14 +11183,15 @@ namespace Microsoft.Dafny {
           // Translate "set xs | R :: T" into "lambda y: BoxType :: (exists xs :: CorrectType(xs) && R && y==Box(T))".
           List<Variable> bvars = new List<Variable>();
           Bpl.Expr typeAntecedent = TrBoundVariables(e.BoundVars, bvars);
-          Bpl.QKeyValue kv = TrAttributes(e.Attributes, null);
+          Bpl.QKeyValue kv = TrAttributes(e.Attributes, "trigger");
 
           var yVar = new Bpl.BoundVariable(expr.tok, new Bpl.TypedIdent(expr.tok, translator.CurrentIdGenerator.FreshId("$y#"), predef.BoxType));
           Bpl.Expr y = new Bpl.IdentifierExpr(expr.tok, yVar);
 
           var eq = Bpl.Expr.Eq(y, BoxIfNecessary(expr.tok, TrExpr(e.Term), e.Term.Type));
           var ebody = Bpl.Expr.And(BplAnd(typeAntecedent, TrExpr(e.Range)), eq);
-          var exst = new Bpl.ExistsExpr(expr.tok, bvars, ebody);
+          var triggers = translator.TrTrigger(this, e.Attributes, e.tok);
+          var exst = new Bpl.ExistsExpr(expr.tok, bvars, triggers, ebody);
 
           return new Bpl.LambdaExpr(expr.tok, new List<TypeVariable>(), new List<Variable> { yVar }, kv, exst);
 
@@ -11196,7 +11205,7 @@ namespace Microsoft.Dafny {
           var bv = e.BoundVars[0];
           TrBoundVariables(e.BoundVars, bvars);
 
-          Bpl.QKeyValue kv = TrAttributes(e.Attributes, null);
+          Bpl.QKeyValue kv = TrAttributes(e.Attributes, "trigger");
 
           var yVar = new Bpl.BoundVariable(expr.tok, new Bpl.TypedIdent(expr.tok, translator.CurrentIdGenerator.FreshId("$y#"), predef.BoxType));
 
@@ -13405,9 +13414,9 @@ namespace Microsoft.Dafny {
           Attributes newAttrs = SubstAttributes(e.Attributes);
           if (newBoundVars != e.BoundVars || newRange != e.Range || newTerm != e.Term || newAttrs != e.Attributes) {
             if (e is SetComprehension) {
-              newExpr = new SetComprehension(expr.tok, newBoundVars, newRange, newTerm);
+              newExpr = new SetComprehension(expr.tok, newBoundVars, newRange, newTerm, newAttrs);
             } else if (e is MapComprehension) {
-              newExpr = new MapComprehension(expr.tok, ((MapComprehension)e).Finite, newBoundVars, newRange, newTerm);
+              newExpr = new MapComprehension(expr.tok, ((MapComprehension)e).Finite, newBoundVars, newRange, newTerm, newAttrs);
             } else if (expr is ForallExpr) {
               newExpr = new ForallExpr(expr.tok, ((QuantifierExpr)expr).TypeArgs, newBoundVars, newRange, newTerm, newAttrs);
             } else if (expr is ExistsExpr) {
@@ -13685,7 +13694,7 @@ namespace Microsoft.Dafny {
           r = rr;
         } else if (stmt is AssignSuchThatStmt) {
           var s = (AssignSuchThatStmt)stmt;
-          r = new AssignSuchThatStmt(s.Tok, s.EndTok, s.Lhss.ConvertAll(Substitute), Substitute(s.Expr), s.AssumeToken == null ? null : s.AssumeToken);
+          r = new AssignSuchThatStmt(s.Tok, s.EndTok, s.Lhss.ConvertAll(Substitute), Substitute(s.Expr), s.AssumeToken == null ? null : s.AssumeToken, null);
         } else if (stmt is UpdateStmt) {
           var s = (UpdateStmt)stmt;
           var resolved = s.ResolvedStatements;

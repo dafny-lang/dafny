@@ -570,7 +570,7 @@ namespace Microsoft.Dafny
             {
               ResolvedOp = BinaryExpr.ResolvedOpcode.InSet,
               Type = Type.Bool
-            }, obj)
+            }, obj, null)
           {
             Type = new SetType(new ObjectType())
           };
@@ -610,7 +610,7 @@ namespace Microsoft.Dafny
             var sInE = new BinaryExpr(e.tok, BinaryExpr.Opcode.In, bvIE, e);
             sInE.ResolvedOp = BinaryExpr.ResolvedOpcode.InSeq;  // resolve here
             sInE.Type = Type.Bool;  // resolve here
-            var s = new SetComprehension(e.tok, new List<BoundVar>() { bv }, sInE, bvIE);
+            var s = new SetComprehension(e.tok, new List<BoundVar>() { bv }, sInE, bvIE, null);
             s.Type = new SetType(new ObjectType());  // resolve here
             sets.Add(s);
           } else {
@@ -5339,6 +5339,7 @@ namespace Microsoft.Dafny
       } else {
         ResolveUpdateStmt(update, specContextOnly, codeContext, errorCountBeforeCheckingLhs);
       }
+      ResolveAttributes(s.Attributes, new ResolveOpts(codeContext, true));
     }
     /// <summary>
     /// Resolve the RHSs and entire UpdateStmt (LHSs should already have been checked by the caller).
@@ -7024,6 +7025,7 @@ namespace Microsoft.Dafny
           }
         }
         ResolveExpression(e.Body, opts);
+        ResolveAttributes(e.Attributes, opts);
         scope.PopMarker();
         expr.Type = e.Body.Type;
 

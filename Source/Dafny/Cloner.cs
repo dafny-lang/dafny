@@ -363,7 +363,7 @@ namespace Microsoft.Dafny
 
       } else if (expr is LetExpr) {
         var e = (LetExpr)expr;
-        return new LetExpr(Tok(e.tok), e.LHSs.ConvertAll(CloneCasePattern), e.RHSs.ConvertAll(CloneExpr), CloneExpr(e.Body), e.Exact);
+        return new LetExpr(Tok(e.tok), e.LHSs.ConvertAll(CloneCasePattern), e.RHSs.ConvertAll(CloneExpr), CloneExpr(e.Body), e.Exact, e.Attributes);
 
       } else if (expr is NamedExpr) {
         var e = (NamedExpr)expr;
@@ -385,13 +385,13 @@ namespace Microsoft.Dafny
             Contract.Assert(false); throw new cce.UnreachableException();  // unexpected quantifier expression
           }
         } else if (e is MapComprehension) {
-          return new MapComprehension(tk, ((MapComprehension)e).Finite, bvs, range, term);
+          return new MapComprehension(tk, ((MapComprehension)e).Finite, bvs, range, term, CloneAttributes(e.Attributes));
         } else if (e is LambdaExpr) {
           var l = (LambdaExpr)e;
           return new LambdaExpr(tk, l.OneShot, bvs, range, l.Reads.ConvertAll(CloneFrameExpr), term);
         } else {
           Contract.Assert(e is SetComprehension);
-          return new SetComprehension(tk, bvs, range, term);
+          return new SetComprehension(tk, bvs, range, term, CloneAttributes(e.Attributes));
         }
 
       } else if (expr is WildcardExpr) {
@@ -540,7 +540,7 @@ namespace Microsoft.Dafny
 
       } else if (stmt is AssignSuchThatStmt) {
         var s = (AssignSuchThatStmt)stmt;
-        r = new AssignSuchThatStmt(Tok(s.Tok), Tok(s.EndTok), s.Lhss.ConvertAll(CloneExpr), CloneExpr(s.Expr), s.AssumeToken == null ? null : Tok(s.AssumeToken));
+        r = new AssignSuchThatStmt(Tok(s.Tok), Tok(s.EndTok), s.Lhss.ConvertAll(CloneExpr), CloneExpr(s.Expr), s.AssumeToken == null ? null : Tok(s.AssumeToken), null);
 
       } else if (stmt is UpdateStmt) {
         var s = (UpdateStmt)stmt;

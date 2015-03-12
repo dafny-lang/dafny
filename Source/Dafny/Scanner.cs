@@ -217,7 +217,7 @@ public class Scanner {
 
 	[ContractInvariantMethod]
 	void objectInvariant(){
-		Contract.Invariant(buffer!=null);
+		Contract.Invariant(this._buffer != null);
 		Contract.Invariant(t != null);
 		Contract.Invariant(start != null);
 		Contract.Invariant(tokens != null);
@@ -227,7 +227,18 @@ public class Scanner {
 		Contract.Invariant(errorHandler != null);
 	}
 
-	public Buffer/*!*/ buffer; // scanner buffer
+	private Buffer/*!*/ _buffer; // scanner buffer
+
+	public Buffer/*!*/ buffer {
+		get {
+			Contract.Ensures(Contract.Result<Buffer>() != null);
+			return this._buffer;
+		}
+		set {
+			Contract.Requires(value != null);
+			this._buffer = value;
+		}
+	}
 
 	Token/*!*/ t;          // current token
 	int ch;           // current input character
@@ -307,7 +318,7 @@ public class Scanner {
 		t = new Token(); // dummy because t is a non-null field
 		try {
 			Stream stream = new FileStream(fileName, FileMode.Open, FileAccess.Read, FileShare.Read);
-			buffer = new Buffer(stream, false);
+			this._buffer = new Buffer(stream, false);
 			Filename = useBaseName? GetBaseName(fileName): fileName;
 			Init();
 		} catch (IOException) {
@@ -322,7 +333,7 @@ public class Scanner {
 	  Contract.Requires(fileName != null);
 		pt = tokens = new Token();  // first token is a dummy
 		t = new Token(); // dummy because t is a non-null field
-		buffer = new Buffer(s, true);
+		this._buffer = new Buffer(s, true);
 		this.errorHandler = errorHandler;
 		this.Filename = useBaseName? GetBaseName(fileName) : fileName;
 		Init();

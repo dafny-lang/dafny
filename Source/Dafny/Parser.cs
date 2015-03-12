@@ -2194,7 +2194,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 			SemErr(t, "invalid statement (did you forget the 'label' keyword?)"); 
 		} else SynErr(179);
 		if (suchThat != null) {
-		 s = new AssignSuchThatStmt(x, endTok, lhss, suchThat, suchThatAssume);
+		 s = new AssignSuchThatStmt(x, endTok, lhss, suchThat, suchThatAssume, null);
 		} else {
 		 if (lhss.Count == 0 && rhss.Count == 0) {
 		   s = new BlockStmt(x, endTok, new List<Statement>()); // error, give empty statement
@@ -2235,7 +2235,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 			LocalIdentTypeOptional(out d, isGhost);
 			lhss.Add(d); d.Attributes = attrs; attrs = null; 
 		}
-		if (la.kind == 91 || la.kind == 93) {
+		if (la.kind == 39 || la.kind == 91 || la.kind == 93) {
 			if (la.kind == 91) {
 				Get();
 				assignTok = t; 
@@ -2247,7 +2247,10 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 					rhss.Add(r); 
 				}
 			} else {
-				Get();
+				while (la.kind == 39) {
+					Attribute(ref attrs);
+				}
+				Expect(93);
 				assignTok = t; 
 				if (la.kind == _assume) {
 					Expect(29);
@@ -2265,7 +2268,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 		 foreach (var lhs in lhss) {
 		   ies.Add(new IdentifierExpr(lhs.Tok, lhs.Name));
 		 }
-		 update = new AssignSuchThatStmt(assignTok, endTok, ies, suchThat, suchThatAssume);
+		 update = new AssignSuchThatStmt(assignTok, endTok, ies, suchThat, suchThatAssume, attrs);
 		} else if (rhss.Count == 0) {
 		 update = null;
 		} else {
@@ -3896,16 +3899,20 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 		List<BoundVar> bvars = new List<BoundVar>();
 		Expression range = null;
 		Expression body;
+		Attributes attrs = null;
 		
 		IdentTypeOptional(out bv);
 		bvars.Add(bv); 
+		while (la.kind == 39) {
+			Attribute(ref attrs);
+		}
 		if (la.kind == 22) {
 			Get();
 			Expression(out range, true, true);
 		}
 		QSep();
 		Expression(out body, allowSemi, allowLambda);
-		e = new MapComprehension(mapToken, finite, bvars, range ?? new LiteralExpr(mapToken, true), body);
+		e = new MapComprehension(mapToken, finite, bvars, range ?? new LiteralExpr(mapToken, true), body, attrs);
 		
 	}
 
@@ -3967,6 +3974,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 		List<BoundVar/*!*/> bvars = new List<BoundVar>();
 		Expression range;
 		Expression body = null;
+		Attributes attrs = null;
 		
 		Expect(13);
 		x = t; 
@@ -3977,6 +3985,9 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 			IdentTypeOptional(out bv);
 			bvars.Add(bv); 
 		}
+		while (la.kind == 39) {
+			Attribute(ref attrs);
+		}
 		Expect(22);
 		Expression(out range, allowSemi, allowLambda);
 		if (IsQSep()) {
@@ -3984,7 +3995,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 			Expression(out body, allowSemi, allowLambda);
 		}
 		if (body == null && bvars.Count != 1) { SemErr(t, "a set comprehension with more than one bound variable must have a term expression"); }
-		q = new SetComprehension(x, bvars, range, body);
+		q = new SetComprehension(x, bvars, range, body, attrs);
 		
 	}
 
@@ -4006,6 +4017,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 		var letRHSs = new List<Expression>();
 		CasePattern pat;
 		bool exact = true;
+		Attributes attrs = null;
 		e = dummyExpr;
 		
 		if (la.kind == 65) {
@@ -4027,8 +4039,11 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 		}
 		if (la.kind == 91) {
 			Get();
-		} else if (la.kind == 93) {
-			Get();
+		} else if (la.kind == 39 || la.kind == 93) {
+			while (la.kind == 39) {
+				Attribute(ref attrs);
+			}
+			Expect(93);
 			exact = false;
 			foreach (var lhs in letLHSs) {
 			 if (lhs.Arguments != null) {
@@ -4046,7 +4061,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 		}
 		Expect(26);
 		Expression(out e, allowSemi, allowLambda);
-		e = new LetExpr(x, letLHSs, letRHSs, e, exact); 
+		e = new LetExpr(x, letLHSs, letRHSs, e, exact, attrs); 
 	}
 
 	void NamedExpr(out Expression e, bool allowSemi, bool allowLambda) {

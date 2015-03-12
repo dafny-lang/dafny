@@ -3709,8 +3709,8 @@ namespace Microsoft.Dafny {
   public abstract class ConcreteUpdateStatement : Statement
   {
     public readonly List<Expression> Lhss;
-    public ConcreteUpdateStatement(IToken tok, IToken endTok, List<Expression> lhss)
-      : base(tok, endTok) {
+    public ConcreteUpdateStatement(IToken tok, IToken endTok, List<Expression> lhss, Attributes attrs = null)
+      : base(tok, endTok, attrs) {
       Contract.Requires(tok != null);
       Contract.Requires(endTok != null);
       Contract.Requires(cce.NonNullElements(lhss));
@@ -3738,8 +3738,8 @@ namespace Microsoft.Dafny {
     /// "assumeToken" is allowed to be "null", in which case the verifier will check that a RHS value exists.
     /// If "assumeToken" is non-null, then it should denote the "assume" keyword used in the statement.
     /// </summary>
-    public AssignSuchThatStmt(IToken tok, IToken endTok, List<Expression> lhss, Expression expr, IToken assumeToken)
-      : base(tok, endTok, lhss) {
+    public AssignSuchThatStmt(IToken tok, IToken endTok, List<Expression> lhss, Expression expr, IToken assumeToken, Attributes attrs)
+      : base(tok, endTok, lhss, attrs) {
       Contract.Requires(tok != null);
       Contract.Requires(endTok != null);
       Contract.Requires(cce.NonNullElements(lhss));
@@ -6282,16 +6282,21 @@ namespace Microsoft.Dafny {
     public readonly List<Expression> RHSs;
     public readonly Expression Body;
     public readonly bool Exact;  // Exact==true means a regular let expression; Exact==false means an assign-such-that expression
+    public readonly Attributes Attributes;
     public Expression translationDesugaring;  // filled in during translation, lazily; to be accessed only via Translation.LetDesugaring; always null when Exact==true
-    public LetExpr(IToken tok, List<CasePattern> lhss, List<Expression> rhss, Expression body, bool exact)
+    public LetExpr(IToken tok, List<CasePattern> lhss, List<Expression> rhss, Expression body, bool exact, Attributes attrs = null)
       : base(tok) {
       LHSs = lhss;
       RHSs = rhss;
       Body = body;
       Exact = exact;
+      Attributes = attrs;
     }
     public override IEnumerable<Expression> SubExpressions {
       get {
+        foreach (var e in Attributes.SubExpressions(Attributes)) {
+          yield return e;
+        }
         foreach (var rhs in RHSs) {
           yield return rhs;
         }
@@ -6533,8 +6538,8 @@ namespace Microsoft.Dafny {
   {
     public readonly bool TermIsImplicit;
 
-    public SetComprehension(IToken tok, List<BoundVar> bvars, Expression range, Expression term)
-      : base(tok, bvars, range, term ?? new IdentifierExpr(tok, bvars[0].Name), null) {
+    public SetComprehension(IToken tok, List<BoundVar> bvars, Expression range, Expression term, Attributes attrs)
+      : base(tok, bvars, range, term ?? new IdentifierExpr(tok, bvars[0].Name), attrs) {
       Contract.Requires(tok != null);
       Contract.Requires(cce.NonNullElements(bvars));
       Contract.Requires(1 <= bvars.Count);
@@ -6547,8 +6552,8 @@ namespace Microsoft.Dafny {
   {
     public readonly bool Finite;
 
-    public MapComprehension(IToken tok, bool finite, List<BoundVar> bvars, Expression range, Expression term)
-      : base(tok, bvars, range, term, null) {
+    public MapComprehension(IToken tok, bool finite, List<BoundVar> bvars, Expression range, Expression term, Attributes attrs)
+      : base(tok, bvars, range, term, attrs) {
       Contract.Requires(tok != null);
       Contract.Requires(cce.NonNullElements(bvars));
       Contract.Requires(1 <= bvars.Count);
