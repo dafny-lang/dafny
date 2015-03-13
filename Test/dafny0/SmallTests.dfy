@@ -715,3 +715,98 @@ class GT {
     }
   }
 }
+
+// ----- tests of various ways to express that a collection is nonempty, showing that these all lead to being
+// ----- able to pick an element from the (domain of the) collection
+
+module GenericPick {
+  function SetPick0<U>(s: set<U>): U
+    requires s != {}
+  {
+    var x :| x in s; x
+  }
+  function SetPick1<U>(s: set<U>): U
+    requires |s| != 0
+  {
+    var x :| x in s; x
+  }
+  function SetPick2<U>(s: set<U>): U
+    requires exists x :: x in s
+  {
+    var x :| x in s; x
+  }
+
+  function MultisetPick0<U>(s: multiset<U>): U
+    requires s != multiset{}
+  {
+    var x :| x in s; x
+  }
+  function MultisetPick1<U>(s: multiset<U>): U
+    requires |s| != 0
+  {
+    var x :| x in s; x
+  }
+  function MultisetPick2<U>(s: multiset<U>): U
+    requires exists x :: x in s
+  {
+    var x :| x in s; x
+  }
+  function MultisetPick3<U>(s: multiset<U>): U
+    requires exists x :: s[x] > 0
+  {
+    var x :| x in s; x
+  }
+
+  function SeqPick0<U>(s: seq<U>): U
+    requires s != []
+  {
+    EquivalentWaysOfSayingSequenceIsNonempty(s);  // I wish this wasn't needed; see comment near Seq#Length axioms in DafnyPrelude.bpl
+    var x :| x in s; x
+  }
+  function SeqPick1<U>(s: seq<U>): U
+    requires |s| != 0
+  {
+    EquivalentWaysOfSayingSequenceIsNonempty(s);  // I wish this wasn't needed; see comment near Seq#Length axioms in DafnyPrelude.bpl
+    var x :| x in s; x
+  }
+  function SeqPick2<U>(s: seq<U>): U
+    requires exists x :: x in s
+  {
+    var x :| x in s; x
+  }
+  function SeqPick3<U>(s: seq<U>): U
+    requires exists i :: 0 <= i < |s|
+  {
+    EquivalentWaysOfSayingSequenceIsNonempty(s);  // I wish this wasn't needed; see comment near Seq#Length axioms in DafnyPrelude.bpl
+    var x :| x in s; x
+  }
+  function SeqPick4<U>(s: seq<U>): U
+    requires exists i :: 0 <= i < |s|
+  {
+    var i :| 0 <= i < |s|; s[i]
+  }
+  lemma EquivalentWaysOfSayingSequenceIsNonempty<U>(s: seq<U>)
+    requires s != []
+          || |s| != 0
+          || exists i :: 0 <= i < |s|
+    ensures exists x :: x in s
+  {
+    assert s[0] in s;
+  }
+
+  function MapPick0<U,V>(m: map<U,V>): U
+    requires m != map[]
+  {
+    var x :| x in m; x
+  }
+  function MapPick1<U,V>(m: map<U,V>): U
+    requires |m| != 0
+  {
+    var x :| x in m; x
+  }
+  function MapPick2<U,V>(m: map<U,V>): U
+    requires exists x :: x in m
+  {
+    var x :| x in m; x
+  }
+}

@@ -41,7 +41,25 @@ namespace DafnyLanguage
         options.VcsCores = Math.Max(1, System.Environment.ProcessorCount - 1);
         options.ModelViewFile = "-";
         Dafny.DafnyOptions.Install(options);
-        options.ApplyDefaultOptions();
+
+        // Read additional options from DafnyOptions.txt
+        string codebase = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
+        string optionsFilePath = Path.Combine(codebase, "DafnyOptions.txt");
+        if (File.Exists(optionsFilePath)) {
+          var optionsReader = new StreamReader(new FileStream(optionsFilePath, FileMode.Open, FileAccess.Read));
+          List<string> args = new List<string>();
+          while (true) {
+            string line = optionsReader.ReadLine();
+            if (line == null) break;
+            line = line.Trim();
+            if (line.Length == 0 || line.StartsWith("//")) continue;
+            args.Add(line);
+          }
+          optionsReader.Close();
+          CommandLineOptions.Clo.Parse(args.ToArray());
+        } else {
+          options.ApplyDefaultOptions();
+        }
 
         ExecutionEngine.printer = new DummyPrinter();
         ExecutionEngine.errorInformationFactory = new DafnyErrorInformationFactory();

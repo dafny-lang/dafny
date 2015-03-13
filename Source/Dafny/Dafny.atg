@@ -1484,7 +1484,7 @@ UpdateStmt<out Statement/*!*/ s>
   | ":"                            (. SemErr(t, "invalid statement (did you forget the 'label' keyword?)"); .)
   )
   (. if (suchThat != null) {
-       s = new AssignSuchThatStmt(x, endTok, lhss, suchThat, suchThatAssume);
+       s = new AssignSuchThatStmt(x, endTok, lhss, suchThat, suchThatAssume, null);
      } else {
        if (lhss.Count == 0 && rhss.Count == 0) {
          s = new BlockStmt(x, endTok, new List<Statement>()); // error, give empty statement
@@ -1552,7 +1552,8 @@ VarDeclStatement<.out Statement/*!*/ s.>
     Rhs<out r>                     (. rhss.Add(r); .)
     { "," Rhs<out r>               (. rhss.Add(r); .)
     }
-  | ":|"                           (. assignTok = t; .)
+  | { Attribute<ref attrs> }
+    ":|"                           (. assignTok = t; .)
     [ IF(la.kind == _assume)       /* an Expression can also begin with an "assume", so this says to resolve it to pick up any "assume" here */
       "assume"                     (. suchThatAssume = t; .)
     ]
@@ -1565,7 +1566,7 @@ VarDeclStatement<.out Statement/*!*/ s.>
        foreach (var lhs in lhss) {
          ies.Add(new IdentifierExpr(lhs.Tok, lhs.Name));
        }
-       update = new AssignSuchThatStmt(assignTok, endTok, ies, suchThat, suchThatAssume);
+       update = new AssignSuchThatStmt(assignTok, endTok, ies, suchThat, suchThatAssume, attrs);
      } else if (rhss.Count == 0) {
        update = null;
      } else {
@@ -2429,12 +2430,14 @@ MapComprehensionExpr<IToken mapToken, bool finite, out Expression e, bool allowS
      List<BoundVar> bvars = new List<BoundVar>();
      Expression range = null;
      Expression body;
+     Attributes attrs = null;
   .)
   IdentTypeOptional<out bv>                    (. bvars.Add(bv); .)
+  { Attribute<ref attrs> }
   [ "|" Expression<out range, true, true> ]
   QSep
   Expression<out body, allowSemi, allowLambda>
-  (. e = new MapComprehension(mapToken, finite, bvars, range ?? new LiteralExpr(mapToken, true), body);
+  (. e = new MapComprehension(mapToken, finite, bvars, range ?? new LiteralExpr(mapToken, true), body, attrs);
   .)
   .
 EndlessExpression<out Expression e, bool allowSemi, bool allowLambda>
@@ -2476,6 +2479,7 @@ LetExpr<out Expression e, bool allowSemi, bool allowLambda>
      var letRHSs = new List<Expression>();
      CasePattern pat;
      bool exact = true;
+     Attributes attrs = null;
      e = dummyExpr;
   .)
     [ "ghost"                       (. isGhost = true;  x = t; .)
@@ -2489,7 +2493,8 @@ LetExpr<out Expression e, bool allowSemi, bool allowLambda>
                                     .)
     }
     ( ":="
-    | ":|"                          (. exact = false;
+    | { Attribute<ref attrs> }
+      ":|"                          (. exact = false;
                                        foreach (var lhs in letLHSs) {
                                          if (lhs.Arguments != null) {
                                            SemErr(lhs.tok, "LHS of let-such-that expression must be variables, not general patterns");
@@ -2501,7 +2506,7 @@ LetExpr<out Expression e, bool allowSemi, bool allowLambda>
     { "," Expression<out e, false, true>  (. letRHSs.Add(e); .)
     }
     ";"
-    Expression<out e, allowSemi, allowLambda>    (. e = new LetExpr(x, letLHSs, letRHSs, e, exact); .)
+    Expression<out e, allowSemi, allowLambda>    (. e = new LetExpr(x, letLHSs, letRHSs, e, exact, attrs); .)
   .
 
 NamedExpr<out Expression e, bool allowSemi, bool allowLambda>
@@ -2775,19 +2780,21 @@ SetComprehensionExpr<out Expression q, bool allowSemi, bool allowLambda>
      List<BoundVar/*!*/> bvars = new List<BoundVar>();
      Expression range;
      Expression body = null;
+     Attributes attrs = null;
   .)
   "set"                                        (. x = t; .)
   IdentTypeOptional<out bv>                    (. bvars.Add(bv); .)
   { ","
     IdentTypeOptional<out bv>                  (. bvars.Add(bv); .)
   }
+  { Attribute<ref attrs> }
   "|" Expression<out range, allowSemi, allowLambda>
   [ IF(IsQSep())  /* let any given body bind to the closest enclosing set comprehension */
     QSep
     Expression<out body, allowSemi, allowLambda>
   ]
   (. if (body == null && bvars.Count != 1) { SemErr(t, "a set comprehension with more than one bound variable must have a term expression"); }
-     q = new SetComprehension(x, bvars, range, body);
+     q = new SetComprehension(x, bvars, range, body, attrs);
   .)
   .
 Expressions<.List<Expression> args.>
