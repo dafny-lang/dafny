@@ -5369,7 +5369,7 @@ namespace Microsoft.Dafny
       } else {
         ResolveUpdateStmt(update, specContextOnly, codeContext, errorCountBeforeCheckingLhs);
       }
-      ResolveAttributes(s.Attributes, new ResolveOpts(codeContext, true));
+      ResolveAttributes(s.Attributes, new ResolveOpts(codeContext, true, true));
     }
     /// <summary>
     /// Resolve the RHSs and entire UpdateStmt (LHSs should already have been checked by the caller).
@@ -7066,7 +7066,7 @@ namespace Microsoft.Dafny
           }
         }
         ResolveExpression(e.Body, opts);
-        ResolveAttributes(e.Attributes, opts);
+        ResolveAttributes(e.Attributes, new ResolveOpts(opts, true));
         scope.PopMarker();
         expr.Type = e.Body.Type;
 
