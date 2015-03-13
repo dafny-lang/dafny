@@ -541,11 +541,11 @@ module NoTypeArgs1 {
 method LetSuchThat(ghost z: int, n: nat)
 {
   var x: int;
-  x := var y :| y < 0; y;  // error: let-such-that not allowed in non-ghost context
+  x := var y :| y < 0; y;  // fine for the resolver (but would give a verification error for not being deterministic)
 
-  x := var y :| y < z; y;  // error (x2): contraint depend on ghost, and let-such-that not allowed in non-ghost context
+  x := var y :| y < z; y;  // error: contraint depend on ghost (z)
 
-  x := var w :| w == 2*w; w;  // error: let-such-that not allowed in non-ghost context
+  x := var w :| w == 2*w; w;  // fine (even for the verifier, this one)
   x := var w := 2*w; w;  // error: the 'w' in the RHS of the assignment is not in scope
   ghost var xg := var w :| w == 2*w; w;
 }
@@ -1339,6 +1339,6 @@ module GhostLet {
     x := ghost var tmp := 5; tmp;  // error: ghost -> non-ghost
     x := ghost var tmp := 5; 10;  // fine
     x := ghost var a0, a1 :| a0 == 0 && a1 == 1; a0 + a1;  // error: ghost -> non-ghost
-    x := ghost var a :| true; 10;  // error: (conservatively) considered ghost -> non-ghost
+    x := ghost var a :| 0 <= a; 10;  // fine
   }
 }

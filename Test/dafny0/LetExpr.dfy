@@ -306,3 +306,20 @@ function method F_bad(d: Tuple<
   assert q < 200;  // error: assertion failure
   p.1 + if b0 then x + y0 else x + y1
 }
+
+// ----------------------------------
+
+method LetSuchThat_Deterministic() returns (x: int)
+{
+  if {
+    case true =>  
+      x := var y :| y < 0; y;  // error: not deterministic
+    case true =>  
+      x := var y :| y < 0; y*0;
+    case true =>  
+      x := var w :| w == 2*w; w;
+  }
+  var t := {3, 5};
+  var s := var a, b :| a in t && b in t && a != b; {a} + {b};
+  assert s == t;
+}

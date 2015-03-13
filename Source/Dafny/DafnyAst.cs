@@ -6282,6 +6282,10 @@ namespace Microsoft.Dafny {
     public readonly List<Expression> RHSs;
     public readonly Expression Body;
     public readonly bool Exact;  // Exact==true means a regular let expression; Exact==false means an assign-such-that expression
+    public List<ComprehensionExpr.BoundedPool> Constraint_Bounds;  // initialized and filled in by resolver; null for Exact=true and for a ghost statement
+    // invariant Constraint_Bounds == null || Constraint_Bounds.Count == BoundVars.Count;
+    public List<IVariable> Constraint_MissingBounds;  // filled in during resolution; remains "null" if Exact==true or if bounds can be found
+    // invariant Constraint_Bounds == null || Constraint_MissingBounds == null;
     public Expression translationDesugaring;  // filled in during translation, lazily; to be accessed only via Translation.LetDesugaring; always null when Exact==true
     public LetExpr(IToken tok, List<CasePattern> lhss, List<Expression> rhss, Expression body, bool exact)
       : base(tok) {

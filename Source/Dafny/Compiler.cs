@@ -5,6 +5,7 @@
 //-----------------------------------------------------------------------------
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Numerics;
 using System.IO;
 using System.Diagnostics.Contracts;
@@ -1215,140 +1216,15 @@ namespace Microsoft.Dafny {
         if (s.AssumeToken != null) {
           // Note, a non-ghost AssignSuchThatStmt may contain an assume
           Error("an assume statement cannot be compiled (line {0})", s.AssumeToken.line);
-        } else  if (s.MissingBounds != null) {
+        } else if (s.MissingBounds != null) {
           foreach (var bv in s.MissingBounds) {
             Error("this assign-such-that statement is too advanced for the current compiler; Dafny's heuristics cannot find any bound for variable '{0}' (line {1})", bv.Name, s.Tok.line);
           }
         } else {
-          Contract.Assume(s.Bounds != null);
-
-          // For "i,j,k,l :| R(i,j,k,l);", emit something like:
-          //
-          // for (BigInteger iterLimit = 5; ; iterLimit *= 2) {
-          //   var il$0 = iterLimit;
-          //   foreach (L l' in sq.Elements) { l = l';
-          //     if (il$0 == 0) { break; }  il$0--;
-          //     var il$1 = iterLimit;
-          //     foreach (K k' in st.Elements) { k = k';
-          //       if (il$1 == 0) { break; }  il$1--;
-          //       var il$2 = iterLimit;
-          //       j = Lo;
-          //       for (;; j++) {
-          //         if (il$2 == 0) { break; }  il$2--;
-          //         foreach (bool i' in Helper.AllBooleans) { i = i';
-          //           if (R(i,j,k,l)) {
-          //             goto ASSIGN_SUCH_THAT_<id>;
-          //           }
-          //         }
-          //       }
-          //     }
-          //   }
-          // }
-          // throw new Exception("assign-such-that search produced no value"); // a verified program never gets here; however, we need this "throw" to please the C# compiler
-          // ASSIGN_SUCH_THAT_<id>: ;
-          //
-          // where the iterLimit loop can be omitted if s.Lhss.Count == 1 or if all bounds are finite.  Further optimizations could be done, but
-          // are omitted for now.
-          //
           Contract.Assert(s.Bounds != null);  // follows from s.MissingBounds == null
-          var n = s.Lhss.Count;
-          Contract.Assert(s.Bounds.Count == n);
-          var c = idGenerator.FreshNumericId("_ASSIGN_SUCH_THAT_+_iterLimit_");
-          var doneLabel = "_ASSIGN_SUCH_THAT_" + c;
-          var iterLimit = "_iterLimit_" + c;
-
-          int ind = indent;
-          bool needIterLimit = s.Lhss.Count != 1 && s.Bounds.Exists(bnd => !bnd.IsFinite);
-          if (needIterLimit) {
-            Indent(indent);
-            wr.WriteLine("for (var {0} = new BigInteger(5); ; {0} *= 2) {{", iterLimit);
-            ind += IndentAmount;
-          }
-
-          for (int i = 0; i < n; i++, ind += IndentAmount) {
-            var bound = s.Bounds[i];
-            var bv = ((IdentifierExpr)s.Lhss[i].Resolved).Var;  // the resolver allows only IdentifierExpr left-hand sides
-            if (needIterLimit) {
-              Indent(ind);
-              wr.WriteLine("var {0}_{1} = {0};", iterLimit, i);
-            }
-            var tmpVar = idGenerator.FreshId("_assign_such_that_");
-            Indent(ind);
-            if (bound is ComprehensionExpr.BoolBoundedPool) {
-              wr.WriteLine("foreach (var {0} in Dafny.Helpers.AllBooleans) {{ @{1} = {0};", tmpVar, bv.CompileName);
-            } else if (bound is ComprehensionExpr.IntBoundedPool) {
-              var b = (ComprehensionExpr.IntBoundedPool)bound;
-              // (tmpVar is not used in this case)
-              if (b.LowerBound != null) {
-                wr.Write("@{0} = ", bv.CompileName);
-                TrExpr(b.LowerBound);
-                wr.WriteLine(";");
-                Indent(ind);
-                if (b.UpperBound != null) {
-                  wr.Write("for (; @{0} < ", bv.CompileName);
-                  TrExpr(b.UpperBound);
-                  wr.WriteLine("; @{0}++) {{ ", bv.CompileName);
-                } else {
-                  wr.WriteLine("for (;; @{0}++) {{ ", bv.CompileName);
-                }
-              } else {
-                Contract.Assert(b.UpperBound != null);
-                wr.Write("@{0} = ", bv.CompileName);
-                TrExpr(b.UpperBound);
-                wr.WriteLine(";");
-                Indent(ind);
-                wr.WriteLine("for (;; @{0}--) {{ ", bv.CompileName);
-              }
-            } else if (bound is AssignSuchThatStmt.WiggleWaggleBound) {
-              wr.WriteLine("foreach (var {0} in Dafny.Helpers.AllIntegers) {{ @{1} = {0};", tmpVar, bv.CompileName);
-            } else if (bound is ComprehensionExpr.SetBoundedPool) {
-              var b = (ComprehensionExpr.SetBoundedPool)bound;
-              wr.Write("foreach (var {0} in (", tmpVar);
-              TrExpr(b.Set);
-              wr.WriteLine(").Elements) {{ @{0} = {1};", bv.CompileName, tmpVar);
-            } else if (bound is ComprehensionExpr.SubSetBoundedPool) {
-              var b = (ComprehensionExpr.SubSetBoundedPool)bound;
-              wr.Write("foreach (var {0} in (", tmpVar);
-              TrExpr(b.UpperBound);
-              wr.WriteLine(").AllSubsets) {{ @{0} = {1};", bv.CompileName, tmpVar);
-            } else if (bound is ComprehensionExpr.MapBoundedPool) {
-              var b = (ComprehensionExpr.MapBoundedPool)bound;
-              wr.Write("foreach (var {0} in (", tmpVar);
-              TrExpr(b.Map);
-              wr.WriteLine(").Domain) {{ @{0} = {1};", bv.CompileName, tmpVar);
-            } else if (bound is ComprehensionExpr.SeqBoundedPool) {
-              var b = (ComprehensionExpr.SeqBoundedPool)bound;
-              wr.Write("foreach (var {0} in (", tmpVar);
-              TrExpr(b.Seq);
-              wr.WriteLine(").Elements) {{ @{0} = {1};", bv.CompileName, tmpVar);
-            } else if (bound is ComprehensionExpr.DatatypeBoundedPool) {
-              var b = (ComprehensionExpr.DatatypeBoundedPool)bound;
-              wr.WriteLine("foreach (var {0} in {1}.AllSingletonConstructors) {{ @{2} = {0};", tmpVar, TypeName(bv.Type), bv.CompileName);
-            } else {
-              Contract.Assert(false); throw new cce.UnreachableException();  // unexpected BoundedPool type
-            }
-            if (needIterLimit) {
-              Indent(ind + IndentAmount);
-              wr.WriteLine("if ({0}_{1} == 0) {{ break; }}  {0}_{1}--;", iterLimit, i);
-            }
-          }
-          Indent(ind);
-          wr.Write("if (");
-          TrExpr(s.Expr);
-          wr.WriteLine(") {");
-          Indent(ind + IndentAmount);
-          wr.WriteLine("goto {0};", doneLabel);
-          Indent(ind);
-          wr.WriteLine("}");
-          Indent(indent);
-          for (int i = 0; i < n; i++) {
-            wr.Write(i == 0 ? "}" : " }");
-          }
-          wr.WriteLine(needIterLimit ? " }" : "");
-          Indent(indent);
-          wr.WriteLine("throw new System.Exception(\"assign-such-that search produced no value (line {0})\");", s.Tok.line);
-          Indent(indent);
-          wr.WriteLine("{0}: ;", doneLabel);
+          TrAssignSuchThat(indent,
+            s.Lhss.ConvertAll(lhs => ((IdentifierExpr)lhs.Resolved).Var),  // the resolver allows only IdentifierExpr left-hand sides
+            s.Expr, s.Bounds, s.Tok.line);
         }
 
       } else if (stmt is CallStmt) {
@@ -1679,6 +1555,139 @@ namespace Microsoft.Dafny {
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected statement
       }
+    }
+
+    private void TrAssignSuchThat(int indent, List<IVariable> lhss, Expression constraint, List<ComprehensionExpr.BoundedPool> bounds, int debuginfoLine) {
+      Contract.Requires(0 <= indent);
+      Contract.Requires(lhss != null);
+      Contract.Requires(constraint != null);
+      Contract.Requires(bounds != null);
+      // For "i,j,k,l :| R(i,j,k,l);", emit something like:
+      //
+      // for (BigInteger iterLimit = 5; ; iterLimit *= 2) {
+      //   var il$0 = iterLimit;
+      //   foreach (L l' in sq.Elements) { l = l';
+      //     if (il$0 == 0) { break; }  il$0--;
+      //     var il$1 = iterLimit;
+      //     foreach (K k' in st.Elements) { k = k';
+      //       if (il$1 == 0) { break; }  il$1--;
+      //       var il$2 = iterLimit;
+      //       j = Lo;
+      //       for (;; j++) {
+      //         if (il$2 == 0) { break; }  il$2--;
+      //         foreach (bool i' in Helper.AllBooleans) { i = i';
+      //           if (R(i,j,k,l)) {
+      //             goto ASSIGN_SUCH_THAT_<id>;
+      //           }
+      //         }
+      //       }
+      //     }
+      //   }
+      // }
+      // throw new Exception("assign-such-that search produced no value"); // a verified program never gets here; however, we need this "throw" to please the C# compiler
+      // ASSIGN_SUCH_THAT_<id>: ;
+      //
+      // where the iterLimit loop can be omitted if lhss.Count == 1 or if all bounds are finite.  Further optimizations could be done, but
+      // are omitted for now.
+      //
+      var n = lhss.Count;
+      Contract.Assert(bounds.Count == n);
+      var c = idGenerator.FreshNumericId("_ASSIGN_SUCH_THAT_+_iterLimit_");
+      var doneLabel = "_ASSIGN_SUCH_THAT_" + c;
+      var iterLimit = "_iterLimit_" + c;
+
+      int ind = indent;
+      bool needIterLimit = lhss.Count != 1 && bounds.Exists(bnd => !bnd.IsFinite);
+      if (needIterLimit) {
+        Indent(indent);
+        wr.WriteLine("for (var {0} = new BigInteger(5); ; {0} *= 2) {{", iterLimit);
+        ind += IndentAmount;
+      }
+
+      for (int i = 0; i < n; i++, ind += IndentAmount) {
+        var bound = bounds[i];
+        var bv = lhss[i];
+        if (needIterLimit) {
+          Indent(ind);
+          wr.WriteLine("var {0}_{1} = {0};", iterLimit, i);
+        }
+        var tmpVar = idGenerator.FreshId("_assign_such_that_");
+        Indent(ind);
+        if (bound is ComprehensionExpr.BoolBoundedPool) {
+          wr.WriteLine("foreach (var {0} in Dafny.Helpers.AllBooleans) {{ @{1} = {0};", tmpVar, bv.CompileName);
+        } else if (bound is ComprehensionExpr.IntBoundedPool) {
+          var b = (ComprehensionExpr.IntBoundedPool)bound;
+          // (tmpVar is not used in this case)
+          if (b.LowerBound != null) {
+            wr.Write("@{0} = ", bv.CompileName);
+            TrExpr(b.LowerBound);
+            wr.WriteLine(";");
+            Indent(ind);
+            if (b.UpperBound != null) {
+              wr.Write("for (; @{0} < ", bv.CompileName);
+              TrExpr(b.UpperBound);
+              wr.WriteLine("; @{0}++) {{ ", bv.CompileName);
+            } else {
+              wr.WriteLine("for (;; @{0}++) {{ ", bv.CompileName);
+            }
+          } else {
+            Contract.Assert(b.UpperBound != null);
+            wr.Write("@{0} = ", bv.CompileName);
+            TrExpr(b.UpperBound);
+            wr.WriteLine(";");
+            Indent(ind);
+            wr.WriteLine("for (;; @{0}--) {{ ", bv.CompileName);
+          }
+        } else if (bound is AssignSuchThatStmt.WiggleWaggleBound) {
+          wr.WriteLine("foreach (var {0} in Dafny.Helpers.AllIntegers) {{ @{1} = {0};", tmpVar, bv.CompileName);
+        } else if (bound is ComprehensionExpr.SetBoundedPool) {
+          var b = (ComprehensionExpr.SetBoundedPool)bound;
+          wr.Write("foreach (var {0} in (", tmpVar);
+          TrExpr(b.Set);
+          wr.WriteLine(").Elements) {{ @{0} = {1};", bv.CompileName, tmpVar);
+        } else if (bound is ComprehensionExpr.SubSetBoundedPool) {
+          var b = (ComprehensionExpr.SubSetBoundedPool)bound;
+          wr.Write("foreach (var {0} in (", tmpVar);
+          TrExpr(b.UpperBound);
+          wr.WriteLine(").AllSubsets) {{ @{0} = {1};", bv.CompileName, tmpVar);
+        } else if (bound is ComprehensionExpr.MapBoundedPool) {
+          var b = (ComprehensionExpr.MapBoundedPool)bound;
+          wr.Write("foreach (var {0} in (", tmpVar);
+          TrExpr(b.Map);
+          wr.WriteLine(").Domain) {{ @{0} = {1};", bv.CompileName, tmpVar);
+        } else if (bound is ComprehensionExpr.SeqBoundedPool) {
+          var b = (ComprehensionExpr.SeqBoundedPool)bound;
+          wr.Write("foreach (var {0} in (", tmpVar);
+          TrExpr(b.Seq);
+          wr.WriteLine(").Elements) {{ @{0} = {1};", bv.CompileName, tmpVar);
+        } else if (bound is ComprehensionExpr.DatatypeBoundedPool) {
+          var b = (ComprehensionExpr.DatatypeBoundedPool)bound;
+          wr.WriteLine("foreach (var {0} in {1}.AllSingletonConstructors) {{ @{2} = {0};", tmpVar, TypeName(bv.Type), bv.CompileName);
+        } else {
+          Contract.Assert(false); throw new cce.UnreachableException();  // unexpected BoundedPool type
+        }
+        if (needIterLimit) {
+          Indent(ind + IndentAmount);
+          wr.WriteLine("if ({0}_{1} == 0) {{ break; }}  {0}_{1}--;", iterLimit, i);
+        }
+      }
+      Indent(ind);
+      wr.Write("if (");
+      TrExpr(constraint);
+      wr.WriteLine(") {");
+      Indent(ind + IndentAmount);
+      wr.WriteLine("goto {0};", doneLabel);
+      Indent(ind);
+      wr.WriteLine("}");
+      Indent(indent);
+      for (int i = 0; i < n; i++) {
+        wr.Write(i == 0 ? "}" : " }");
+      }
+      wr.WriteLine(needIterLimit ? " }" : "");
+      Indent(indent);
+      wr.WriteLine("throw new System.Exception(\"assign-such-that search produced no value (line {0})\");", debuginfoLine);
+      Indent(indent);
+      wr.WriteLine("{0}: ;", doneLabel);
     }
 
     string CreateLvalue(Expression lhs, int indent) {
@@ -2557,33 +2566,67 @@ namespace Microsoft.Dafny {
 
       } else if (expr is LetExpr) {
         var e = (LetExpr)expr;
-        // The Dafny "let" expression
-        //    var Pattern(x,y) := G; E
-        // is translated into C# as:
-        //    LamLet(G, tmp =>
-        //      LamLet(dtorX(tmp), x =>
-        //      LamLet(dtorY(tmp), y => E)))
-        Contract.Assert(e.Exact);  // because !Exact is ghost only
-        Contract.Assert(e.LHSs.Count == e.RHSs.Count);  // checked by resolution
-        var neededCloseParens = 0;
-        for (int i = 0; i < e.LHSs.Count; i++) {
-          var lhs = e.LHSs[i];
-          if (Contract.Exists(lhs.Vars, bv => !bv.IsGhost)) {
-            var rhsName = string.Format("_pat_let{0}_{1}", GetUniqueAstNumber(e), i);
-            wr.Write("Dafny.Helpers.Let<");
-            wr.Write(TypeName(e.RHSs[i].Type) + "," + TypeName(e.Body.Type));
-            wr.Write(">(");
-            TrExpr(e.RHSs[i]);
-            wr.Write(", " + rhsName + " => ");
-            neededCloseParens++;
-            var c = TrCasePattern(lhs, rhsName, e.Body.Type);
-            Contract.Assert(c != 0);  // we already checked that there's at least one non-ghost
-            neededCloseParens += c;
+        if (e.Exact) {
+          // The Dafny "let" expression
+          //    var Pattern(x,y) := G; E
+          // is translated into C# as:
+          //    LamLet(G, tmp =>
+          //      LamLet(dtorX(tmp), x =>
+          //      LamLet(dtorY(tmp), y => E)))
+          Contract.Assert(e.LHSs.Count == e.RHSs.Count);  // checked by resolution
+          var neededCloseParens = 0;
+          for (int i = 0; i < e.LHSs.Count; i++) {
+            var lhs = e.LHSs[i];
+            if (Contract.Exists(lhs.Vars, bv => !bv.IsGhost)) {
+              var rhsName = string.Format("_pat_let{0}_{1}", GetUniqueAstNumber(e), i);
+              wr.Write("Dafny.Helpers.Let<");
+              wr.Write(TypeName(e.RHSs[i].Type) + "," + TypeName(e.Body.Type));
+              wr.Write(">(");
+              TrExpr(e.RHSs[i]);
+              wr.Write(", " + rhsName + " => ");
+              neededCloseParens++;
+              var c = TrCasePattern(lhs, rhsName, e.Body.Type);
+              Contract.Assert(c != 0);  // we already checked that there's at least one non-ghost
+              neededCloseParens += c;
+            }
           }
-        }
-        TrExpr(e.Body);
-        for (int i = 0; i < neededCloseParens; i++) {
-          wr.Write(")");
+          TrExpr(e.Body);
+          for (int i = 0; i < neededCloseParens; i++) {
+            wr.Write(")");
+          }
+        } else if (e.BoundVars.All(bv => bv.IsGhost)) {
+          // The Dafny "let" expression
+          //    ghost var x,y :| Constraint; E
+          // is compiled just like E is, because the resolver has already checked that x,y (or other ghost variables, for that matter) don't
+          // occur in E (moreover, the verifier has checked that values for x,y satisfying Constraint exist).
+          TrExpr(e.Body);
+        } else {
+          // The Dafny "let" expression
+          //    var x,y :| Constraint; E
+          // is translated into C# as:
+          //    LamLet(0, dummy => {  // the only purpose of this construction here is to allow us to add some code inside an expression in C#
+          //        var x,y;
+          //        // Embark on computation that fills in x,y according to Constraint; the computation stops when the first
+          //        // such value is found, but since the verifier checks that x,y follows uniquely from Constraint, this is
+          //        // not a source of nondeterminancy.
+          //        return E;
+          //      })
+          Contract.Assert(e.RHSs.Count == 1);  // checked by resolution
+          if (e.Constraint_MissingBounds != null) {
+            foreach (var bv in e.Constraint_MissingBounds) {
+              Error("this let-such-that expression is too advanced for the current compiler; Dafny's heuristics cannot find any bound for variable '{0}' (line {1})", bv.Name, e.tok.line);
+            }
+          } else {
+            wr.Write("Dafny.Helpers.Let<int," + TypeName(e.Body.Type) + ">(0, _let_dummy_" + GetUniqueAstNumber(e) + " => {");
+            foreach (var bv in e.BoundVars) {
+              wr.Write("{0} @{1}", TypeName(bv.Type), bv.CompileName);
+              wr.WriteLine(" = {0};", DefaultValue(bv.Type));
+            }
+            TrAssignSuchThat(0, new List<IVariable>(e.BoundVars).ConvertAll(bv => (IVariable)bv), e.RHSs[0], e.Constraint_Bounds, e.tok.line);
+            wr.Write(" return ");
+            TrExpr(e.Body);
+            wr.Write("; })");
+          }
         }
 
       } else  if (expr is MatchExpr) {

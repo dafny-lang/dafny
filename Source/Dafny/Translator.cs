@@ -5083,6 +5083,7 @@ namespace Microsoft.Dafny {
           //   assert (exists b' :: typeAntecedent' && RHS(b'));
           //   assume RHS(b);
           //   CheckWellformed(Body(b));
+          //   If non-ghost:  var b' where typeAntecedent; assume RHS(b'); assert Body(b) == Body(b');
           Contract.Assert(e.RHSs.Count == 1);  // this is true of all successfully resolved let-such-that expressions
           List<BoundVar> lhsVars = e.BoundVars.ToList<BoundVar>();
           var substMap = SetupBoundVarsAsLocals(lhsVars, builder, locals, etran);
@@ -5103,6 +5104,17 @@ namespace Microsoft.Dafny {
           builder.Add(new Bpl.AssumeCmd(e.tok, etran.TrExpr(rhs)));
           var letBody = Substitute(e.Body, null, substMap);
           CheckWellformed(letBody, options, locals, builder, etran);
+          if (e.Constraint_Bounds != null) {
+            Contract.Assert(!e.BoundVars.All(bv => bv.IsGhost));
+            var substMap_prime = SetupBoundVarsAsLocals(lhsVars, builder, locals, etran);
+            var rhs_prime = Substitute(e.RHSs[0], null, substMap_prime);
+            var letBody_prime = Substitute(e.Body, null, substMap_prime);
+            builder.Add(new Bpl.AssumeCmd(e.tok, CanCallAssumption(rhs_prime, etran)));
+            builder.Add(new Bpl.AssumeCmd(e.tok, etran.TrExpr(rhs_prime)));
+            builder.Add(new Bpl.AssumeCmd(e.tok, CanCallAssumption(letBody_prime, etran)));
+            var eq = Expression.CreateEq(letBody, letBody_prime, e.Body.Type);
+            builder.Add(Assert(e.tok, etran.TrExpr(eq), "to be compilable, the value of a let-such-that expression must be uniquely determined"));
+          }
           // If we are supposed to assume "result" to equal this expression, then use the body of the let-such-that, not the generated $let#... function
           if (result != null) {
             Contract.Assert(resultType != null);

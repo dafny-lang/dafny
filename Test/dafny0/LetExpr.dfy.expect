@@ -29,7 +29,11 @@ LetExpr.dfy(306,12): Error: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon6_Else
+LetExpr.dfy(316,12): Error: to be compilable, the value of a let-such-that expression must be uniquely determined
+Execution trace:
+    (0,0): anon0
+    (0,0): anon10_Then
 
-Dafny program verifier finished with 38 verified, 8 errors
+Dafny program verifier finished with 39 verified, 9 errors
 
 Dafny program verifier finished with 0 verified, 0 errors
