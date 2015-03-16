@@ -627,20 +627,24 @@ namespace Microsoft.Dafny
       var origForall = lem.Ens[0].E as ForallExpr;
       if (origForall != null) {
         Contract.Assert(origForall.TypeArgs.Count == fn.TypeArgs.Count);
-        fixupTypeArguments(lem.Ens[0].E, origForall.TypeArgs);
+        fixupTypeArguments(lem.Ens[0].E, fn, origForall.TypeArgs);
       }
     }
 
-    protected void fixupTypeArguments(Expression expr, List<TypeParameter> qparams) {
+    // Type argument substitution for the fn_FULL function using the orginal 
+    // fn function.
+    protected void fixupTypeArguments(Expression expr, Function fn, List<TypeParameter> qparams) {
       FunctionCallExpr e;
-      if ((e = expr as FunctionCallExpr) != null) {
-        e.TypeArgumentSubstitutions = new Dictionary<TypeParameter, Type>();
+      if (((e = expr as FunctionCallExpr) != null) && (e.Function == fullVersion[fn])) {
+        var newTypeArgsSubst = new Dictionary<TypeParameter, Type>();
+        fn.EnclosingClass.TypeArgs.ForEach(tp => newTypeArgsSubst.Add(tp, e.TypeArgumentSubstitutions[tp]));
         for (int i = 0; i < e.Function.TypeArgs.Count; i++) {
-          e.TypeArgumentSubstitutions[e.Function.TypeArgs[i]] = new UserDefinedType(qparams[i]);
+          newTypeArgsSubst.Add(e.Function.TypeArgs[i], new UserDefinedType(qparams[i]));
         }
+        e.TypeArgumentSubstitutions = newTypeArgsSubst;
       }
       foreach (var ee in expr.SubExpressions) {
-        fixupTypeArguments(ee, qparams);
+        fixupTypeArguments(ee, fn, qparams);
       }
     }
 
