@@ -31,6 +31,9 @@ namespace Dafny
     public int Length {
       get { return dict.Count; }
     }
+    public long LongLength {
+      get { return dict.Count; }
+    }
     public IEnumerable<T> Elements {
       get {
         return dict.Keys;
@@ -360,6 +363,9 @@ namespace Dafny
       return new Map<U, V>(d);
     }
     public int Length {
+      get { return dict.Count; }
+    }
+    public long LongLength {
       get { return dict.Count; }
     }
     public bool Equals(Map<U, V> other) {
