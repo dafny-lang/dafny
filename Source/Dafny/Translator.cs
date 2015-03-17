@@ -13418,9 +13418,9 @@ namespace Microsoft.Dafny {
           newExpr = new NamedExpr(e.tok, e.Name, body, contract, e.ReplacerToken);
         } else if (expr is ComprehensionExpr) {
           var e = (ComprehensionExpr)expr;
-          // For quantifiers we want to make sure that we don't introduce name clashes with
+          // For quantifiers and setComprehesion we want to make sure that we don't introduce name clashes with
           // the enclosing scopes.
-          var newBoundVars = CreateBoundVarSubstitutions(e.BoundVars, expr is ForallExpr || expr is ExistsExpr);
+          var newBoundVars = CreateBoundVarSubstitutions(e.BoundVars, expr is ForallExpr || expr is ExistsExpr || expr is SetComprehension);
           Expression newRange = e.Range == null ? null : Substitute(e.Range);
           Expression newTerm = Substitute(e.Term);
           Attributes newAttrs = SubstAttributes(e.Attributes);
