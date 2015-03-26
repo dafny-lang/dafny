@@ -12478,6 +12478,18 @@ namespace Microsoft.Dafny {
               }
             }
 
+            // allocatedness for arguments to the inlined call in body
+            if (typeSpecializedBody is FunctionCallExpr) {
+              FunctionCallExpr e = (FunctionCallExpr)typeSpecializedBody;
+              for (int i = 0; i < e.Args.Count; i++) {
+                Expression ee = e.Args[i];
+                Type t = e.Function.Formals[i].Type;
+                Expr tr_ee = etran.TrExpr(ee);
+                Bpl.Expr wh = GetWhereClause(e.tok, tr_ee, cce.NonNull(ee.Type), etran);
+                if (wh != null) { fargs = Bpl.Expr.And(fargs, wh); }
+              }
+            }
+
             // body
             var trBody = etran.TrExpr(typeSpecializedBody);
             trBody = CondApplyUnbox(trBody.tok, trBody, typeSpecializedResultType, expr.Type);
