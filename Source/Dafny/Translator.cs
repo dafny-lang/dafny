@@ -113,6 +113,7 @@ namespace Microsoft.Dafny {
     readonly Dictionary<Field/*!*/, Bpl.Function/*!*/>/*!*/ fieldFunctions = new Dictionary<Field/*!*/, Bpl.Function/*!*/>();
     readonly Dictionary<string, Bpl.Constant> fieldConstants = new Dictionary<string,Constant>();
     readonly ISet<string> abstractTypes = new HashSet<string>();
+    readonly ISet<string> opaqueTypes = new HashSet<string>();
     Program program;
 
     [ContractInvariantMethod]
@@ -9141,8 +9142,7 @@ namespace Microsoft.Dafny {
       } else if (type is IntType) {
         return new Bpl.IdentifierExpr(Token.NoToken, "TInt", predef.Ty);
       } else if (type.IsTypeParameter) {
-        var args = type.TypeArgs.ConvertAll(TypeToTy);
-        return trTypeParam(type.AsTypeParameter, args);
+        return trTypeParam(type.AsTypeParameter, type.TypeArgs);
       } else if (type is ObjectType) {
         return ClassTyCon(program.BuiltIns.ObjectDecl, new List<Bpl.Expr>());
       } else if (type is UserDefinedType) {
@@ -9166,12 +9166,27 @@ namespace Microsoft.Dafny {
       }
     }
 
-    Bpl.Expr trTypeParam(TypeParameter x, List<Bpl.Expr> tyArguments) {
+    Bpl.Expr trTypeParam(TypeParameter x, List<Type> tyArguments) {
       Contract.Requires(x != null);
       var nm = nameTypeParam(x);
       var opaqueType = x as OpaqueType_AsParameter;
-      if (tyArguments != null && tyArguments.Count != 0) {
-        return FunctionCall(x.tok, nm, predef.Ty, tyArguments);
+      if (tyArguments != null && tyArguments.Count != 0) {    
+        if (opaqueType != null) {
+          for (int i = 0; i < tyArguments.Count; i++) {
+            if (tyArguments[i].IsTypeParameter) {
+              nm = nm + "$" + (tyArguments[i].AsTypeParameter).Name;
+            }
+          }
+          if (!opaqueTypes.Contains(nm)) {
+            opaqueTypes.Add(nm);
+            sink.AddTopLevelDeclaration(new Bpl.Constant(x.tok,
+              new TypedIdent(x.tok, nm, predef.Ty), false /* not unique */));
+          }
+          return new Bpl.IdentifierExpr(x.tok, nm, predef.Ty);
+        } else {
+          List<Bpl.Expr> args = tyArguments.ConvertAll(TypeToTy);
+          return FunctionCall(x.tok, nm, predef.Ty, args);
+        }
       } else {
         // return an identifier denoting a constant
         return new Bpl.IdentifierExpr(x.tok, nm, predef.Ty);
