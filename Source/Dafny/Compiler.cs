@@ -731,10 +731,8 @@ namespace Microsoft.Dafny {
           if (c != null) {
             foreach (var member in c.Members) {
               var m = member as Method;
-              if (m != null) {
-                if (!m.IsGhost && m.Name == "Main" && m.TypeArgs.Count == 0 && m.Ins.Count == 0 && m.Outs.Count == 0 && m.Req.Count == 0) {
+              if (m != null && IsMain(m)) {
                   return true;
-                }
               }
             }
           }
@@ -742,6 +740,23 @@ namespace Microsoft.Dafny {
       }
       return false;
     }
+
+    public static bool IsMain(Method m) {
+      // In order to be a legal Main() method, the following must be true:
+      //    The method takes no parameters 
+      //    The method is not a ghost method 
+      //    The method has no requires clause 
+      //    The method has no modifies clause 
+      //    If the method is an instance (that is, non-static) method in a class, then the enclosing class must not declare any constructor
+      if (!m.IsGhost && m.Name == "Main" && m.TypeArgs.Count == 0 && m.Ins.Count == 0 && m.Outs.Count == 0 && m.Req.Count == 0 
+            && m.Mod.Expressions.Count == 0 && (m.IsStatic || (((ClassDecl)m.EnclosingClass) == null) || !((ClassDecl)m.EnclosingClass).HasConstructor)) {
+        return true;
+      }
+      else {
+        return false;
+      }
+    }
+
 
     void CompileClassMembers(ClassDecl c, int indent)
     {
@@ -904,9 +919,9 @@ namespace Microsoft.Dafny {
                   }
                   Indent(indent); wr.WriteLine("}");
 
+                
                   // allow the Main method to be an instance method
-                  if (!m.IsStatic && m.Name == "Main" && m.TypeArgs.Count == 0 && m.Ins.Count == 0 && m.Outs.Count == 0 && m.Req.Count == 0)
-                  {
+                 if (!m.IsStatic && IsMain(m)) {               
                       Indent(indent);
                       wr.WriteLine("public static void Main(string[] args) {");
                       Contract.Assert(m.EnclosingClass == c);

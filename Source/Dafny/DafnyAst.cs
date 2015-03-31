@@ -3136,6 +3136,18 @@ namespace Microsoft.Dafny {
         return Contract.Exists(Decreases.Expressions, e => e is WildcardExpr);
       }
     }
+
+    public override string CompileName {
+      get {
+        var nm = base.CompileName;
+        if (IsStatic && nm == "Main" && !Dafny.Compiler.IsMain(this)) {
+          // for a static method that is named "Main" but is not a legal "Main" method,
+          // change its name.
+          nm = EnclosingClass.Name + "_" + nm;
+        }
+        return nm;
+      }
+    } 
   }
 
   public class Lemma : Method
