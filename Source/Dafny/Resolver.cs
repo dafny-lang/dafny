@@ -3463,7 +3463,7 @@ namespace Microsoft.Dafny
       }
       ResolveAttributes(f.Decreases.Attributes, new ResolveOpts(f, false, true));
       foreach (Expression r in f.Decreases.Expressions) {
-        ResolveExpression(r, new ResolveOpts(f, false));
+        ResolveExpression(r, new ResolveOpts(f, false, true));
         // any type is fine
       }
       if (f.Body != null) {
