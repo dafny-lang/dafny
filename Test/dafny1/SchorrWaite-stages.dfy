@@ -12,24 +12,24 @@ abstract module M0 {
   // and implementation of the Schorr-Waite algorithm.
 
   class Node {
-    var children: seq<Node>;
-    var marked: bool;
-    var childrenVisited: nat;
+    var children: seq<Node>
+    var marked: bool
+    var childrenVisited: nat
   }
 
   datatype Path = Empty | Extend(Path, Node)
 
-  function Reachable(source: Node, sink: Node, S: set<Node>): bool
-    requires null !in S;
-    reads S;
+  predicate Reachable(source: Node, sink: Node, S: set<Node>)
+    reads S
+    requires null !in S
   {
     exists via: Path :: ReachableVia(source, via, sink, S)
   }
 
-  function ReachableVia(source: Node, p: Path, sink: Node, S: set<Node>): bool
-    requires null !in S;
-    reads S;
-    decreases p;
+  predicate ReachableVia(source: Node, p: Path, sink: Node, S: set<Node>)
+    reads S
+    requires null !in S
+    decreases p
   {
     match p
     case Empty => source == sink
@@ -37,42 +37,42 @@ abstract module M0 {
   }
 
   method SchorrWaite(root: Node, ghost S: set<Node>)
-    requires root in S;
+    requires root in S
     // S is closed under 'children':
     requires forall n :: n in S ==> n != null &&
-                forall ch :: ch in n.children ==> ch == null || ch in S;
+                forall ch :: ch in n.children ==> ch == null || ch in S
     // the graph starts off with nothing marked and nothing being indicated as currently being visited:
-    requires forall n :: n in S ==> !n.marked && n.childrenVisited == 0;
-    modifies S;
+    requires forall n :: n in S ==> !n.marked && n.childrenVisited == 0
+    modifies S
     // nodes reachable from 'root' are marked:
-    ensures root.marked;
+    ensures root.marked
     ensures forall n :: n in S && n.marked ==>
-                forall ch :: ch in n.children && ch != null ==> ch.marked;
+                forall ch :: ch in n.children && ch != null ==> ch.marked
     // every marked node was reachable from 'root' in the pre-state:
-    ensures forall n :: n in S && n.marked ==> old(Reachable(root, n, S));
+    ensures forall n :: n in S && n.marked ==> old(Reachable(root, n, S))
     // the structure of the graph has not changed:
     ensures forall n :: n in S ==>
                 n.childrenVisited == old(n.childrenVisited) &&
-                n.children == old(n.children);
-    decreases *;  // leave termination checking for a later refinement
+                n.children == old(n.children)
+    decreases *  // leave termination checking for a later refinement
   {
     root.marked := true;
     var t, p := root, null;
     ghost var stackNodes := [];
-    while (true)
+    while true
       // stackNodes is a sequence of nodes from S:
-      invariant forall n :: n in stackNodes ==> n in S;
+      invariant forall n :: n in stackNodes ==> n in S
 
       // The current node, t, is not included in stackNodes.  Rather, t is just above the top of stackNodes.
       // We say that the stack stackNodes+[t] are the "active" nodes.
-      invariant t in S && t !in stackNodes;
+      invariant t in S && t !in stackNodes
 
       // p points to the parent of the current node, that is, the node through which t was encountered in the
       // depth-first traversal.  This amounts to being the top of stackNodes, or null if stackNodes is empty.
       // Note, it may seem like the variable p is redundant, since it holds a value that can be computed
       // from stackNodes.  But note that stackNodes is a ghost variable and won't be present at run
       // time, where p is a physical variable that will be present at run time.
-      invariant p == if |stackNodes| == 0 then null else stackNodes[|stackNodes|-1];
+      invariant p == if |stackNodes| == 0 then null else stackNodes[|stackNodes|-1]
 
       // The .childrenVisited field is the extra information that the Schorr-Waite algorithm needs.  It
       // is used only for the active nodes, where it keeps track of how many of a node's children have been
@@ -80,44 +80,44 @@ abstract module M0 {
       // it is an index of a child.  For t, .childrenVisited may be as large as all of the children, which
       // indicates that the node is ready to be popped off the stack of active nodes.  For all other nodes,
       // .childrenVisited is the original value, which is 0.
-      invariant forall n :: n in stackNodes ==> n.childrenVisited < |n.children|;
-      invariant t.childrenVisited <= |t.children|;
-      invariant forall n :: n in S && n !in stackNodes && n != t ==> n.childrenVisited == 0;
+      invariant forall n :: n in stackNodes ==> n.childrenVisited < |n.children|
+      invariant t.childrenVisited <= |t.children|
+      invariant forall n :: n in S && n !in stackNodes && n != t ==> n.childrenVisited == 0
 
       // To represent the stackNodes, the algorithm reverses children pointers.  It never changes the number
       // of children a node has.  The only nodes with children pointers different than the original values are
       // the nodes on stackNodes; moreover, only the index of the currently active child of a node is different.
       invariant forall n :: n in stackNodes ==>
                   |n.children| == old(|n.children|) &&
-                  forall j :: 0 <= j < |n.children| ==> j == n.childrenVisited || n.children[j] == old(n.children[j]);
-      invariant forall n :: n in S && n !in stackNodes ==> n.children == old(n.children);
+                  forall j :: 0 <= j < |n.children| ==> j == n.childrenVisited || n.children[j] == old(n.children[j])
+      invariant forall n :: n in S && n !in stackNodes ==> n.children == old(n.children)
 
       // The children pointers that have been changed form a stack.  That is, the active child of stackNodes[k]
       // points to stackNodes[k-1], with the end case pointing to null.
       invariant 0 < |stackNodes| ==>
-                  stackNodes[0].children[stackNodes[0].childrenVisited] == null;
+                  stackNodes[0].children[stackNodes[0].childrenVisited] == null
       invariant forall k :: 0 < k < |stackNodes| ==>
-                  stackNodes[k].children[stackNodes[k].childrenVisited] == stackNodes[k-1];
+                  stackNodes[k].children[stackNodes[k].childrenVisited] == stackNodes[k-1]
       // We also need to keep track of what the original values of the children pointers had been.  Here, we
       // have that the active child of stackNodes[k] used to be stackNodes[k+1], with the end case pointing
       // to t.
       invariant forall k :: 0 <= k < |stackNodes|-1 ==>
-                  old(stackNodes[k].children)[stackNodes[k].childrenVisited] == stackNodes[k+1];
+                  old(stackNodes[k].children)[stackNodes[k].childrenVisited] == stackNodes[k+1]
       invariant 0 < |stackNodes| ==>
-        old(stackNodes[|stackNodes|-1].children)[stackNodes[|stackNodes|-1].childrenVisited] == t;
+        old(stackNodes[|stackNodes|-1].children)[stackNodes[|stackNodes|-1].childrenVisited] == t
 
-      decreases *;  // leave termination checking for a later refinement
+      decreases *  // leave termination checking for a later refinement
     {
-      if (t.childrenVisited == |t.children|) {
+      if t.childrenVisited == |t.children| {
         // pop
         t.childrenVisited := 0;
-        if (p == null) { break; }
+        if p == null { break; }
 
         t, p, p.children := p, p.children[p.childrenVisited], p.children[p.childrenVisited := t];
         stackNodes := stackNodes[..|stackNodes| - 1];
         t.childrenVisited := t.childrenVisited + 1;
 
-      } else if (t.children[t.childrenVisited] == null || t.children[t.childrenVisited].marked) {
+      } else if t.children[t.childrenVisited] == null || t.children[t.childrenVisited].marked {
         // just advance to next child
         t.childrenVisited := t.childrenVisited + 1;
 
@@ -154,12 +154,12 @@ abstract module M1 refines M0 {
       // The loop keeps marking nodes:  The root is always marked.  All children of any marked non-active
       // node are marked.  Active nodes are marked, and the first .childrenVisited of every active node
       // are marked.
-      invariant root.marked;
+      invariant root.marked
       invariant forall n :: n in S && n.marked && n !in stackNodes && n != t ==>
-                  forall ch :: ch in n.children && ch != null ==> ch.marked;
+                  forall ch :: ch in n.children && ch != null ==> ch.marked
       invariant forall n :: n in stackNodes || n == t ==>
                   n.marked &&
-                  forall j :: 0 <= j < n.childrenVisited ==> n.children[j] == null || n.children[j].marked;
+                  forall j :: 0 <= j < n.childrenVisited ==> n.children[j] == null || n.children[j].marked
     {
       if ... {  // pop
       } else if ... {  // next child
@@ -194,7 +194,7 @@ abstract module M2 refines M1 {
   // field in each node (an alternative would be to have a local variable that is a map from
   // nodes to paths).  So, we add a field declaration to the Node class:
   class Node {
-    ghost var pathFromRoot: Path;
+    ghost var pathFromRoot: Path
   }
 
   method SchorrWaite...
@@ -216,10 +216,10 @@ abstract module M2 refines M1 {
       // references, we need to make sure we can deal with the proof obligation for the path
       // argument.  For this reason, we add invariants that say that "path" and the .pathFromRoot
       // field of all marked nodes contain values that make sense in the pre-state.
-      invariant !fresh(path) && old(ReachableVia(root, path, t, S));
+      invariant !fresh(path) && old(ReachableVia(root, path, t, S))
       invariant forall n :: n in S && n.marked ==> var pth := n.pathFromRoot;
-                  !fresh(pth) && old(ReachableVia(root, pth, n, S));
-      invariant forall n :: n in S && n.marked ==> old(Reachable(root, n, S));
+                  !fresh(pth) && old(ReachableVia(root, pth, n, S))
+      invariant forall n :: n in S && n.marked ==> old(Reachable(root, n, S))
     {
       if ... {
         // pop
@@ -246,9 +246,9 @@ abstract module M2 refines M1 {
 module M3 refines M2 {
   // In this final superposition, we prove termination of the loop.
   method SchorrWaite...
-    decreases true;  // say that the method is now one that is proved to terminate (note, the value
-                     // 'true' is arbitrary; we just need to supply _some_ decreases clause so that
-                     // the 'decreases *' from above is not inherited)
+    decreases true  // say that the method is now one that is proved to terminate (note, the value
+                    // 'true' is arbitrary; we just need to supply _some_ decreases clause so that
+                    // the 'decreases *' from above is not inherited)
   {
     // The loop variant is a lexicographic triple, consisting of (0) the set of unmarked
     // nodes, (1) the (length of the) stackNodes sequence, and (2) the number children of
@@ -257,8 +257,8 @@ module M3 refines M2 {
     ghost var unmarkedNodes := S - {root};
     ...;
     while ...
-      invariant forall n :: n in S && !n.marked ==> n in unmarkedNodes;
-      decreases unmarkedNodes, stackNodes, |t.children| - t.childrenVisited;
+      invariant forall n :: n in S && !n.marked ==> n in unmarkedNodes
+      decreases unmarkedNodes, stackNodes, |t.children| - t.childrenVisited
     {
       if ... {  // pop
       } else if ... {  // next child

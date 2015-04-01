@@ -17,11 +17,13 @@ predicate P()
 // The following theorem says that if f satisfies the peculiar property,
 // then f is the identity function.  The body of the method, and the methods
 // that follow, give the proof.
-ghost method theorem()
-  requires P();
-  ensures forall n: nat :: f(n) == n;
+lemma theorem()
+  requires P()
+  ensures forall n: nat :: f(n) == n
 {
-  forall (n: nat) {
+  forall n: nat
+    ensures f(n) == n
+  {
     calc {
       f(n);
     ==  { lemma_ping(n, n); lemma_pong(n); }
@@ -31,12 +33,13 @@ ghost method theorem()
 }
 
 // Aiming at n <= f(n), but strengthening it for induction
-ghost method lemma_ping(j: nat, n: nat)
-  requires P();
-  ensures j <= n ==> j <= f(n);
+lemma lemma_ping(j: nat, n: nat)
+  requires P()
+  ensures j <= n ==> j <= f(n)
 {
   // The case for j == 0 is trivial
-  if 0 < j {
+  if 0 < j 
+  {
     calc {
       j <= f(n);
     ==
@@ -54,9 +57,9 @@ ghost method lemma_ping(j: nat, n: nat)
 }
 
 // The other directorion: f(n) <= n
-ghost method lemma_pong(n: nat)
-  requires P();
-  ensures f(n) <= n;
+lemma lemma_pong(n: nat)
+  requires P()
+  ensures f(n) <= n
 {
   calc {
     f(n) <= n;
@@ -69,13 +72,13 @@ ghost method lemma_pong(n: nat)
   }
 }
 
-ghost method lemma_monotonicity_0(a: nat, b: nat)
-  requires P();
-  ensures a <= b ==> f(a) <= f(b);  // or, equivalently:  f(b) < f(a) ==> b < a
-  decreases b - a;
+lemma lemma_monotonicity_0(a: nat, b: nat)
+  requires P()
+  ensures a <= b ==> f(a) <= f(b)  // or, equivalently:  f(b) < f(a) ==> b < a
+  decreases b - a
 {
   // The case for a == b is trivial
-  if (a < b) {
+  if a < b {
     calc {
       f(a);
     <=  { lemma_monotonicity_1(a); }
@@ -86,9 +89,9 @@ ghost method lemma_monotonicity_0(a: nat, b: nat)
   }
 }
 
-ghost method lemma_monotonicity_1(n: nat)
-  requires P();
-  ensures f(n) <= f(n + 1);
+lemma lemma_monotonicity_1(n: nat)
+  requires P()
+  ensures f(n) <= f(n + 1)
 {
   calc {
     f(n);
