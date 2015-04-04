@@ -4189,6 +4189,11 @@ namespace Microsoft.Dafny {
       Contract.Requires(currentModule == null && codeContext == null);
       Contract.Ensures(currentModule == null && codeContext == null);
 
+      if (decl.tok is IncludeToken) {
+        // Checked in other file
+        return;
+      }
+
       // If there's no constraint, there's nothing to do
       if (decl.Var == null) {
         return;

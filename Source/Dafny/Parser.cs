@@ -795,10 +795,10 @@ bool IsType(ref IToken pt) {
 			if (baseType == null) { baseType = new OperationTypeProxy(true, true, false, false, false); } 
 			Expect(22);
 			Expression(out wh, false, true);
-			td = new NewtypeDecl(id, id.val, module, new BoundVar(bvId, bvId.val, baseType), wh, attrs); 
+			td = new NewtypeDecl(theVerifyThisFile ? id : new IncludeToken(id), id.val, module, new BoundVar(bvId, bvId.val, baseType), wh, attrs); 
 		} else if (StartOf(3)) {
 			Type(out baseType);
-			td = new NewtypeDecl(id, id.val, module, baseType, attrs); 
+			td = new NewtypeDecl(theVerifyThisFile ? id : new IncludeToken(id), id.val, module, baseType, attrs); 
 		} else SynErr(142);
 	}
 

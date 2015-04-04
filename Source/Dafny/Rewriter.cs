@@ -492,7 +492,7 @@ namespace Microsoft.Dafny
             newToken._val = fWithBody.Name;
             newToken._kind = f.tok.kind;
             newToken._pos = f.tok.pos;
-            fWithBody.tok = newToken;
+            fWithBody.tok = (f.tok is IncludeToken) ? new IncludeToken(newToken) : (Boogie.IToken)newToken;
 
             // Annotate the new function so we remember that we introduced it
             fWithBody.Attributes = new Attributes("opaque_full", new List<Expression>(), fWithBody.Attributes);
