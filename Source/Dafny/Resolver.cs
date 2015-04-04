@@ -2952,25 +2952,6 @@ namespace Microsoft.Dafny
                             classMethod.OverriddenMethod = traitMethod;
                             //adding a call graph edge from the trait method to that of class
                             cl.Module.CallGraph.AddEdge(traitMethod, classMethod);
-
-                            //checking specifications
-                            //class method must provide its own specifications in case the overriden method has provided any
-                            if ((classMethod.Req == null || classMethod.Req.Count == 0) && (classMethod.OverriddenMethod.Req != null && classMethod.OverriddenMethod.Req.Count > 0))  //it means m.OverriddenMethod.Req =>  m.Req
-                            {
-                                Error(classMethod, "Method must provide its own Requires clauses anew");
-                            }
-                            if ((classMethod.Ens == null || classMethod.Ens.Count == 0) && (classMethod.OverriddenMethod.Ens != null && classMethod.OverriddenMethod.Ens.Count > 0))  //it means m.OverriddenMethod.Ens =>  m.Ens
-                            {
-                                Error(classMethod, "Method must provide its own Ensures clauses anew");
-                            }
-                            if ((classMethod.Mod == null || classMethod.Mod.Expressions == null || classMethod.Mod.Expressions.Count == 0) && (classMethod.OverriddenMethod.Mod != null && classMethod.OverriddenMethod.Mod.Expressions != null && classMethod.OverriddenMethod.Mod.Expressions.Count > 0))  //it means m.OverriddenMethod.Mod =>  m.Mod
-                            {
-                                Error(classMethod, "Method must provide its own Modifies clauses anew");
-                            }
-                            if ((classMethod.Decreases == null || classMethod.Decreases.Expressions == null || classMethod.Decreases.Expressions.Count == 0) && (classMethod.OverriddenMethod.Decreases != null && classMethod.OverriddenMethod.Decreases.Expressions != null && classMethod.OverriddenMethod.Decreases.Expressions.Count > 0))  //it means m.OverriddenMethod.Decreases =>  m.Decreases
-                            {
-                                Error(classMethod, "Method must provide its own Decreases clauses anew");
-                            }
                         }
                     }
                     else if (traitMem.Value is Function)
@@ -2985,25 +2966,6 @@ namespace Microsoft.Dafny
                             classFunction.OverriddenFunction = traitFunction;
                             //adding a call graph edge from the trait function to that of class
                             cl.Module.CallGraph.AddEdge(traitFunction, classFunction);
-
-                            //checking specifications
-                            //class function must provide its own specifications in case the overriden function has provided any
-                            if ((classFunction.Req == null || classFunction.Req.Count == 0) && (classFunction.OverriddenFunction.Req != null && classFunction.OverriddenFunction.Req.Count > 0))  //it means m.OverriddenMethod.Req =>  m.Req
-                            {
-                                Error(classFunction, "Function must provide its own Requires clauses anew");
-                            }
-                            if ((classFunction.Ens == null || classFunction.Ens.Count == 0) && (classFunction.OverriddenFunction.Ens != null && classFunction.OverriddenFunction.Ens.Count > 0))  //it means m.OverriddenMethod.Ens =>  m.Ens
-                            {
-                                Error(classFunction, "Function must provide its own Ensures clauses anew");
-                            }
-                            if ((classFunction.Reads == null || classFunction.Reads.Count == 0) && (classFunction.OverriddenFunction.Reads != null && classFunction.OverriddenFunction.Reads.Count > 0))  //it means m.OverriddenMethod.Mod =>  m.Mod
-                            {
-                                Error(classFunction, "Function must provide its own Reads clauses anew");
-                            }
-                            if ((classFunction.Decreases == null || classFunction.Decreases.Expressions == null || classFunction.Decreases.Expressions.Count == 0) && (classFunction.OverriddenFunction.Decreases != null && classFunction.OverriddenFunction.Decreases.Expressions != null && classFunction.OverriddenFunction.Decreases.Expressions.Count > 0))  //it means m.OverriddenMethod.Decreases =>  m.Decreases
-                            {
-                                Error(classFunction, "Function must provide its own Decreases clauses anew");
-                            }
                         }
                     }
                     else if (traitMem.Value is Field)
@@ -3058,6 +3020,11 @@ namespace Microsoft.Dafny
                         {
                             Method classMethod = (Method)classMem;
                             refinementTransformer.CheckOverride_MethodParameters(classMethod, traitMethod);
+                            var traitMethodAllowsNonTermination = Contract.Exists(traitMethod.Decreases.Expressions, e => e is WildcardExpr);
+                            var classMethodAllowsNonTermination = Contract.Exists(classMethod.Decreases.Expressions, e => e is WildcardExpr);
+                            if (classMethodAllowsNonTermination && !traitMethodAllowsNonTermination) {
+                              Error(classMethod.tok, "not allowed to override a terminating method with a possibly non-terminating method ('{0}')", classMethod.Name);
+                            }
                         }
                         if (!cl.Module.IsAbstract && traitMethod.Body == null && classMem == null)
                             Error(cl, "class: {0} does not implement trait member: {1}", cl.CompileName, traitMethod.CompileName);

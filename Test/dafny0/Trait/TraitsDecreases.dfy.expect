@@ -1,0 +1,17 @@
+TraitsDecreases.dfy(57,10): Error: method's decreases clause must be below or equal to that in the trait
+Execution trace:
+    (0,0): anon0
+TraitsDecreases.dfy(69,10): Error: method's decreases clause must be below or equal to that in the trait
+Execution trace:
+    (0,0): anon0
+TraitsDecreases.dfy(72,10): Error: method's decreases clause must be below or equal to that in the trait
+Execution trace:
+    (0,0): anon0
+TraitsDecreases.dfy(78,10): Error: method's decreases clause must be below or equal to that in the trait
+Execution trace:
+    (0,0): anon0
+TraitsDecreases.dfy(88,10): Error: method's decreases clause must be below or equal to that in the trait
+Execution trace:
+    (0,0): anon0
+
+Dafny program verifier finished with 63 verified, 5 errors

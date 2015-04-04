@@ -3405,33 +3405,68 @@ namespace Microsoft.Dafny {
         }
     }
 
-    private void AddMethodOverrideTerminationChk(Method m, Bpl.StmtListBuilder builder, ExpressionTranslator etran, Dictionary<IVariable, Expression> substMap)
-    {
-        var decrToks = new List<IToken>();
-        var decrTypes1 = new List<Type>();
-        var decrTypes2 = new List<Type>();
-        var decrClass = new List<Expr>();
-        var decrTrait = new List<Expr>();
-        if (m.Decreases != null)
-        {
-            foreach (var decC in m.Decreases.Expressions)
-            {
-                decrToks.Add(decC.tok);
-                decrTypes1.Add(decC.Type);
-                decrClass.Add(etran.TrExpr(decC));
-            }
+    private void AddMethodOverrideTerminationChk(Method m, Bpl.StmtListBuilder builder, ExpressionTranslator etran, Dictionary<IVariable, Expression> substMap) {
+      Contract.Requires(m != null);
+      Contract.Requires(builder != null);
+      Contract.Requires(etran != null);
+      Contract.Requires(substMap != null);
+      // Note, it is as if the trait's method is calling the class's method.
+      var contextDecreases = m.OverriddenMethod.Decreases.Expressions;
+      var calleeDecreases = m.Decreases.Expressions;
+      // We want to check:  calleeDecreases <= contextDecreases (note, we can allow equality, since there is a bounded, namely 1, number of dynamic dispatches)
+      if (Contract.Exists(contextDecreases, e => e is WildcardExpr)) {
+        // no check needed
+        return;
+      }
+
+      int N = Math.Min(contextDecreases.Count, calleeDecreases.Count);
+      var toks = new List<IToken>();
+      var types0 = new List<Type>();
+      var types1 = new List<Type>();
+      var callee = new List<Expr>();
+      var caller = new List<Expr>();
+
+      for (int i = 0; i < N; i++) {
+        Expression e0 = calleeDecreases[i];
+        Expression e1 = Substitute(contextDecreases[i], null, substMap);
+        if (!CompatibleDecreasesTypes(e0.Type, e1.Type)) {
+          N = i;
+          break;
         }
-        if (m.OverriddenMethod.Decreases != null)
-        {
-            foreach (var decT in m.OverriddenMethod.Decreases.Expressions)
-            {
-                var decCNew = Substitute(decT, null, substMap);
-                decrTypes2.Add(decCNew.Type);
-                decrTrait.Add(etran.TrExpr(decCNew));
-            }
-        }
-        var decrChk = DecreasesCheck(decrToks, decrTypes1, decrTypes2, decrClass, decrTrait, null, null, true, false);
-        builder.Add(new Bpl.AssertCmd(m.tok, decrChk));
+        toks.Add(new NestedToken(m.tok, e1.tok));
+        types0.Add(e0.Type.NormalizeExpand());
+        types1.Add(e1.Type.NormalizeExpand());
+        callee.Add(etran.TrExpr(e0));
+        caller.Add(etran.TrExpr(e1));
+      }
+
+      var decrCountT = contextDecreases.Count;
+      var decrCountC = calleeDecreases.Count;
+      // Generally, we want to produce a check "decrClass <= decrTrait", allowing (the common case where) they are equal.
+      // * If N < decrCountC && N < decrCountT, then "decrClass <= decrTrait" if the comparison ever gets beyond the
+      //   parts that survived truncation.  Thus, we compare with "allowNoChange" set to "false".
+      // Otherwise:
+      // * If decrCountC == decrCountT, then the truncation we did above had no effect and we pass in "allowNoChange" as "true".
+      // * If decrCountC > decrCountT, then we will have truncated decrClass above.  Let x,y and x' denote decrClass and
+      //   decrTrait, respectively, where x and x' have the same length.  Considering how Dafny in effect pads the end of
+      //   decreases tuples with a \top, we were supposed to evaluate (x,(y,\top)) <= (x',\top), which by lexicographic pairs
+      //   we can expand to:
+      //       x <= x' && (x == x' ==> (y,\top) <= \top)
+      //   which is equivalent to just x <= x'.  Thus, we called DecreasesCheck to compare x and x' and we pass in "allowNoChange"
+      //   as "true".
+      // * If decrCountC < decrCountT, then we will have truncated decrTrait above.  Let x and x',y' denote decrClass and
+      //   decrTrait, respectively, where x and x' have the same length.  We then want to check (x,\top) <= (x',(y',\top)), which
+      //   expands to:
+      //       x <= x' && (x == x' ==> \top <= (y',\top))
+      //    =      { \top is strictly larger than a pair }
+      //       x <= x' && (x == x' ==> false)
+      //    =
+      //       x < x'
+      //   So we perform our desired check by calling DecreasesCheck to strictly compare x and x', so we pass in "allowNoChange"
+      //   as "false".
+      bool allowNoChange = N == decrCountT && decrCountT <= decrCountC;
+      var decrChk = DecreasesCheck(toks, types0, types1, callee, caller, null, null, allowNoChange, false);
+      builder.Add(Assert(m.tok, decrChk, "method's decreases clause must be below or equal to that in the trait"));
     }
 
     private void AddMethodOverrideSubsetChk(Method m, Bpl.StmtListBuilder builder, ExpressionTranslator etran, List<Variable> localVariables, Dictionary<IVariable, Expression> substMap)

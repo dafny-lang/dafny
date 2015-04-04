@@ -7,6 +7,7 @@ trait J
 	function method F(k:int, y: array<int>): int
 	  reads y;
 	  decreases k;
+	  ensures F(k, y) < 100
 	
 	function method G(y: int): int 
 	{ 
@@ -36,12 +37,14 @@ trait J
 
 class C extends J 
 {
+	// F's postcondition (true) is too weak, but that won't be detected until verification time
 	function method F(kk:int, yy: array<int>): int
 	{ 
 	  200 
 	}
 
-	method M(kk:int) returns (ksos:int) //errors here, M must provide its own specifications
+	// M's postcondition (true) is too weak, but that won't be detected until verification time
+	method M(kk:int) returns (ksos:int)
 	{
 		ksos:=10;	
 	}
@@ -56,4 +59,16 @@ class C extends J
 	    y1[0] := a1 + b1;
             c1 := a1 + b1;
         }	
+}
+
+module BadNonTermination {
+  trait TT1 {
+    method N(x: int)
+      decreases x
+  }
+  class CC1 extends TT1 {
+    method N(x: int)
+      decreases *  // error: can't override a terminating method with a possibly non-terminating method
+    { }
+  }
 }
