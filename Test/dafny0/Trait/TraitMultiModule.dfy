@@ -5,22 +5,21 @@ module M1
 {
   trait T1
   {
-     method M1 (a:int)    
+    method M1 (a:int)    
   }
   class C1 extends T1
   {
-     method M1 (x:int)
-     {
-        var y: int := x;
-     }
+    method M1 (x:int)
+    {
+      var y: int := x;
+    }
   }
 }
 
 module M2
 {
-   class C2 extends T1
-   {
+  class C2 extends T1
+  {
    
-   }
-
-} 
+  }
+}

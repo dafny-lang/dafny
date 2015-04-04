@@ -14,7 +14,7 @@ trait T1
    function method Mul (x:int, y:int, z:int) : int
      requires x>y;
    {
-	x * y * z
+     x * y * z
    }
    
    function method BodyLess1() : int
@@ -23,13 +23,13 @@ trait T1
    
    static method GetPhoneNumber (code:int, n:int) returns (z:int)
    {
-	z := code + n;
+     z := code + n;
    }
    
    method TestPhone ()
    {
-        var num : int;
-	num := GetPhoneNumber (10, 30028);
+     var num : int;
+     num := GetPhoneNumber (10, 30028);
    }
 }
 
@@ -47,24 +47,24 @@ class C1 extends T1
     
     function method BodyLess1(i:int) : int //error, overriding function has too many parameters
     {
-	12
+      12
     }
         
     function method Mul (x:int, y:int, z:int) : int //error, can not override implemented methods
      requires x>y;
    {
-	x * y * z
+     x * y * z
    }
    
    function method BodyLess2(a:int, b:int) : int
      {
-	a+b
+       a+b
      }
 }
 
 class C2 extends T1
 {
-      //error, there are body-less methods in the parent trait that must be implemented	
+      //error, there are body-less methods in the parent trait that must be implemented  
 }
 
 abstract module AM1
