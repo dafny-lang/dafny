@@ -994,6 +994,13 @@ namespace Microsoft.Dafny {
         }
       }
     }
+    public string FullCompanionCompileName {
+      get {
+        Contract.Requires(ResolvedClass is TraitDecl);
+        var s = ResolvedClass.Module.IsDefaultModule ? "" : ResolvedClass.Module.CompileName + ".";
+        return s + "@_Companion_" + CompileName;
+      }
+    }
 
     public TopLevelDecl ResolvedClass;  // filled in by resolution, if Name denotes a class/datatype/iterator and TypeArgs match the type parameters of that class/datatype/iterator
     public TypeParameter ResolvedParam;  // filled in by resolution, if Name denotes an enclosing type parameter and TypeArgs is the empty list
