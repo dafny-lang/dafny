@@ -1,4 +1,4 @@
-TraitBasix.dfy(91,24): Error: unresolved identifier: IX
+TraitBasix.dfy(91,24): Error: Undeclared top-level type or type parameter: IX (did you forget to qualify a name?)
 TraitBasix.dfy(77,8): Error: member in the class has been already inherited from its parent trait
 TraitBasix.dfy(70,8): Error: class: I0Child does not implement trait member: Customizable
 TraitBasix.dfy(80,8): Error: class: I0Child2 does not implement trait member: F

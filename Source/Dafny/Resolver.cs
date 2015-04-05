@@ -2837,39 +2837,24 @@ namespace Microsoft.Dafny
       currentClass = cl;
 
       // Resolve names of traits extended
-      if (cl.TraitsTyp != null)
-      {
-          cl.TraitsObj = new List<TraitDecl>();
-          foreach (Type traitTyp in cl.TraitsTyp)
-          {
-              if (traitTyp is UserDefinedType)
-              {
-                  var trait = classMembers.Keys.FirstOrDefault(traitDecl => traitDecl.CompileName == ((UserDefinedType)(traitTyp)).FullCompileName);
-                  if (trait == null)
-                  {
-                      Error(((UserDefinedType)(traitTyp)).tok, "unresolved identifier: {0}", ((UserDefinedType)(traitTyp)).tok.val);
-                  }
-                  else if (!(trait is TraitDecl))
-                  {
-                      Error(((UserDefinedType)(traitTyp)).tok, "identifier '{0}' does not denote a trait", ((UserDefinedType)(traitTyp)).tok.val);
-                  }
-                  else
-                  {
-                      //disallowing inheritance in multi module case
-                      string clModName = cl.Module.CompileName.Replace("_Compile", string.Empty);
-                      string traitModName = trait.Module.CompileName.Replace("_Compile", string.Empty);
-                      if (clModName != traitModName)
-                      {
-                          Error(((UserDefinedType)(traitTyp)).tok, string.Format("class {0} is in a different module than trait {1}. A class may only extend a trait in the same module",
-                            cl.FullName, trait.FullName));
-                      }
-                      else
-                      {
-                          cl.TraitsObj.Add((TraitDecl)trait);
-                      }
-                  }
-              }
+      foreach (var tt in cl.TraitsTyp) {
+        var prevErrorCount = ErrorCount;
+        ResolveType(cl.tok, tt, new NoContext(cl.Module), ResolveTypeOptionEnum.DontInfer, null);
+        if (ErrorCount == prevErrorCount) {
+          var udt = tt as UserDefinedType;
+          if (udt != null && udt.ResolvedClass is TraitDecl) {
+            var trait = (TraitDecl)udt.ResolvedClass;
+            //disallowing inheritance in multi module case
+            if (cl.Module != trait.Module) {
+              Error(udt.tok, "class '{0}' is in a different module than trait '{1}'. A class may only extend a trait in the same module.", cl.Name, trait.FullName);
+            } else {
+              // all is good
+              cl.TraitsObj.Add(trait);
+            }
+          } else {
+            Error(udt != null ? udt.tok : cl.tok, "a class can only extend traits (found '{0}')", tt);
           }
+        }
       }
 
       foreach (MemberDecl member in cl.Members) {

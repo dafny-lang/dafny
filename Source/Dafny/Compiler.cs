@@ -236,24 +236,23 @@ namespace Microsoft.Dafny {
                       }
                   }
               }
-              var cl = new ClassDecl(d.tok, d.Name, d.Module, d.TypeArgs, members, d.Attributes, null);
               Indent(indent);
-              wr.Write("public class @_Companion_{0}", cl.CompileName);
+              wr.Write("public class @_Companion_{0}", trait.CompileName);
               wr.WriteLine(" {");
-              CompileClassMembers(cl, indent + IndentAmount);
+              CompileClassMembers(trait, indent + IndentAmount);
               Indent(indent); wr.WriteLine("}");
           }
           else if (d is ClassDecl) {
             var cl = (ClassDecl)d;
             Indent(indent);
-            if (cl.TraitsObj != null && cl.TraitsObj.Count > 0)
-            {
-                wr.WriteLine("public class @{0} : @{1}", cl.CompileName, cl.TraitsStr);
-            }
-            else
-                wr.Write("public class @{0}", cl.CompileName);
+            wr.Write("public class @{0}", cl.CompileName);
             if (cl.TypeArgs.Count != 0) {
               wr.Write("<{0}>", TypeParameters(cl.TypeArgs));
+            }
+            string sep = " : ";
+            foreach (var trait in cl.TraitsTyp) {
+              wr.Write("{0}{1}", sep, TypeName(trait));
+              sep = ", ";
             }
             wr.WriteLine(" {");
             CompileClassMembers(cl, indent+IndentAmount);

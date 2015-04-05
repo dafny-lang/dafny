@@ -18,8 +18,16 @@ module M1
 
 module M2
 {
-  class C2 extends T1
+  import opened M1
+  class C2 extends T1  // error: currently no support to implement trait in different module
   {
-   
+  }
+}
+
+module M3
+{
+  import M1
+  class C2 extends M1.T1  // error: currently no support to implement trait in different module
+  {
   }
 }

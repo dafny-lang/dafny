@@ -1865,12 +1865,14 @@ namespace Microsoft.Dafny {
   public class ClassDecl : TopLevelDecl {
     public override string WhatKind { get { return "class"; } }
     public readonly List<MemberDecl> Members;
-    public List<TraitDecl> TraitsObj;
-    public readonly List<Type> TraitsTyp;
+    public readonly List<Type> TraitsTyp;  // these are the types that are parsed after the keyword 'extends'
+    public readonly List<TraitDecl> TraitsObj = new List<TraitDecl>();  // populated during resolution
     public bool HasConstructor;  // filled in (early) during resolution; true iff there exists a member that is a Constructor
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(cce.NonNullElements(Members));
+      Contract.Invariant(TraitsTyp != null);
+      Contract.Invariant(TraitsObj != null);
     }
 
     public ClassDecl(IToken tok, string name, ModuleDefinition module,
@@ -1882,42 +1884,18 @@ namespace Microsoft.Dafny {
       Contract.Requires(cce.NonNullElements(typeArgs));
       Contract.Requires(cce.NonNullElements(members));
       Members = members;
-      //if (traits != null)
-      TraitsTyp = traits;
+      TraitsTyp = traits ?? new List<Type>();
     }
     public virtual bool IsDefaultClass {
       get {
         return false;
       }
     }
-
-    public string TraitsStr
-    {
-        get
-        {
-            if (TraitsTyp == null || TraitsTyp.Count == 0)
-                return string.Empty;
-            StringBuilder sb = new StringBuilder();
-            foreach (Type ty in TraitsTyp)
-            {
-                if (ty is UserDefinedType)
-                {
-                    sb.Append(((UserDefinedType)(ty)).Name);
-                    sb.Append(",");
-                }
-            }
-            if (sb.Length > 0)
-            {
-                sb.Remove(sb.Length - 1, 1);
-            }
-            return sb.ToString();
-        }
-    }
   }
 
   public class DefaultClassDecl : ClassDecl {
     public DefaultClassDecl(ModuleDefinition module, [Captured] List<MemberDecl> members)
-      : base(Token.NoToken, "_default", module, new List<TypeParameter>(), members, null,null) {
+      : base(Token.NoToken, "_default", module, new List<TypeParameter>(), members, null, null) {
       Contract.Requires(module != null);
       Contract.Requires(cce.NonNullElements(members));
     }
@@ -1934,7 +1912,7 @@ namespace Microsoft.Dafny {
     public ArrayClassDecl(int dims, ModuleDefinition module, Attributes attrs)
     : base(Token.NoToken, BuiltIns.ArrayClassName(dims), module,
       new List<TypeParameter>(new TypeParameter[]{new TypeParameter(Token.NoToken, "arg")}),
-      new List<MemberDecl>(), attrs,null)
+      new List<MemberDecl>(), attrs, null)
     {
       Contract.Requires(1 <= dims);
       Contract.Requires(module != null);
@@ -2218,7 +2196,7 @@ namespace Microsoft.Dafny {
                         List<MaybeFreeExpression> yieldRequires,
                         List<MaybeFreeExpression> yieldEnsures,
                         BlockStmt body, Attributes attributes, IToken signatureEllipsis)
-      : base(tok, name, module, typeArgs, new List<MemberDecl>(), attributes,null)
+      : base(tok, name, module, typeArgs, new List<MemberDecl>(), attributes, null)
     {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);

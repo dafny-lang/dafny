@@ -319,8 +319,11 @@ namespace Microsoft.Dafny {
       Contract.Requires(c != null);
       Indent(indent);
       PrintClassMethodHelper((c is TraitDecl) ? "trait" : "class", c.Attributes, c.Name, c.TypeArgs);
-      if (c.TraitsStr!=string.Empty) {
-          wr.Write(" extends {0}", c.TraitsStr);
+      string sep = " extends ";
+      foreach (var trait in c.TraitsTyp) {
+        wr.Write(sep);
+        PrintType(trait);
+        sep = ", ";
       }
       if (c.Members.Count == 0) {
         wr.WriteLine(" { }");
