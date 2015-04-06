@@ -25,6 +25,8 @@ for %%f in (
   Provers.SMTLib.dll                  Provers.SMTLib.pdb
   VCExpr.dll                          VCExpr.pdb
   VCGeneration.dll                    VCGeneration.pdb
+  Z3.exe
+  Z3-LICENSE.txt
   DafnyLanguageService.vsix
 ) do (
   copy %%f %DEST_DIR%
