@@ -18,6 +18,11 @@ namespace Microsoft.Dafny
         return System.Diagnostics.FileVersionInfo.GetVersionInfo(System.Reflection.Assembly.GetExecutingAssembly().Location).FileVersion;
       }
     }
+    public override string VersionSuffix {
+      get {
+        return " version " + VersionNumber + ", Copyright (c) 2003-2015, Microsoft.";
+      }
+    }
 
     private static DafnyOptions clo;
     public static DafnyOptions O {
