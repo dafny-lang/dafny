@@ -796,8 +796,12 @@ namespace Microsoft.Dafny {
             }
           } else if (f.IsGhost) {
             // nothing to compile, but we do check for assumes
-            var v = new CheckHasNoAssumes_Visitor(this);
-            v.Visit(f.Body);
+            if (f.Body == null) {
+              Contract.Assert(c is TraitDecl && !f.IsStatic);
+            } else {
+              var v = new CheckHasNoAssumes_Visitor(this);
+              v.Visit(f.Body);
+            }
           } else if (c is TraitDecl && !forCompanionClass) {
             // include it, unless it's static
             if (!f.IsStatic) {
@@ -832,8 +836,12 @@ namespace Microsoft.Dafny {
             }
           } else if (m.IsGhost) {
             // nothing to compile, but we do check for assumes
-            var v = new CheckHasNoAssumes_Visitor(this);
-            v.Visit(m.Body);
+            if (m.Body == null) {
+              Contract.Assert(c is TraitDecl && !m.IsStatic);
+            } else {
+              var v = new CheckHasNoAssumes_Visitor(this);
+              v.Visit(m.Body);
+            }
           } else if (c is TraitDecl && !forCompanionClass) {
             // include it, unless it's static
             if (!m.IsStatic) {
