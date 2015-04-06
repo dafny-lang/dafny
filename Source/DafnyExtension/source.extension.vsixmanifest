@@ -4,6 +4,7 @@
     <Identity Id="6c7ed99a-206a-4937-9e08-b389de175f68" Version="1.8.0.10115" Language="en-US" Publisher="Microsoft Research" />
     <DisplayName>DafnyLanguageMode</DisplayName>
     <Description xml:space="preserve">This is a language mode for using the Dafny language inside Visual Studio.</Description>
+    <License>Z3-LICENSE.txt</License>
   </Metadata>
   <Installation InstalledByMsi="false">
     <InstallationTarget Version="[11.0,13.0)" Id="Microsoft.VisualStudio.Pro" />
