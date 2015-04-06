@@ -1,5 +1,2 @@
-TraitSpecsOverride0.dfy(39,17): Error: Function must provide its own Reads clauses anew
-TraitSpecsOverride0.dfy(39,17): Error: Function must provide its own Decreases clauses anew
-TraitSpecsOverride0.dfy(44,8): Error: Method must provide its own Requires clauses anew
-TraitSpecsOverride0.dfy(44,8): Error: Method must provide its own Ensures clauses anew
-4 resolution/type errors detected in TraitSpecsOverride0.dfy
+TraitSpecsOverride0.dfy(70,11): Error: not allowed to override a terminating method with a possibly non-terminating method ('N')
+1 resolution/type errors detected in TraitSpecsOverride0.dfy

@@ -155,6 +155,7 @@ namespace Microsoft.Dafny {
       public readonly Bpl.Type Ty;
       public readonly Bpl.Type TyTag;
       public readonly Bpl.Expr Null;
+      public readonly Bpl.Expr NoTraitAtAll;
       private readonly Bpl.Constant allocField;
       [ContractInvariantMethod]
       void ObjectInvariant() {
@@ -178,6 +179,7 @@ namespace Microsoft.Dafny {
         Contract.Invariant(Ty != null);
         Contract.Invariant(TyTag != null);
         Contract.Invariant(Null != null);
+        Contract.Invariant(NoTraitAtAll != null);
         Contract.Invariant(allocField != null);
       }
 
@@ -282,6 +284,7 @@ namespace Microsoft.Dafny {
         this.DtCtorId = new Bpl.CtorType(Token.NoToken, dtCtorId, new List<Bpl.Type>());
         this.allocField = allocField;
         this.Null = new Bpl.IdentifierExpr(Token.NoToken, "null", refT);
+        this.NoTraitAtAll = new Bpl.IdentifierExpr(Token.NoToken, "NoTraitAtAll", ClassNameType);
       }
     }
 
@@ -537,8 +540,7 @@ namespace Microsoft.Dafny {
         }
       }
 
-      //adding TraitParent function and axioms
-      AddTraitParentFuncAndAxioms();
+      AddTraitParentAxioms();
 
       if (InsertChecksums)
       {
@@ -561,35 +563,24 @@ namespace Microsoft.Dafny {
       return sink;
     }
 
-    //adding TraitParent function and axioms
-    //if a class A extends trait J and B does not extned anything, then this method adds the followings to the sink:
-    //   const unique NoTraitAtAll: ClassName;
-    //   function TraitParent(ClassName): ClassName;
-    //   axiom TraitParent(class.A) == class.J;
-    //   axiom TraitParent(class.B) == NoTraitAtAll;
-    private void AddTraitParentFuncAndAxioms()
+    /// <summary>
+    /// adding TraitParent axioms
+    /// if a class A extends trait J and B does not extend anything, then this method adds the followings to the sink:
+    ///   axiom TraitParent(class.A) == class.J;
+    ///   axiom TraitParent(class.B) == NoTraitAtAll;
+    /// </summary>
+    private void AddTraitParentAxioms()
     {
         foreach (ModuleDefinition m in program.Modules)
         {
-            if (m.TopLevelDecls.Any(d => (d is ClassDecl && ((ClassDecl)d).TraitsObj != null && ((ClassDecl)d).TraitsObj.Count > 0) || (d is TraitDecl)))
+            if (m.TopLevelDecls.Any(d => (d is ClassDecl && ((ClassDecl)d).TraitsObj.Count > 0) || (d is TraitDecl)))
             {
-                //adding const unique NoTraitAtAll: ClassName;
-                Token tNoTrait = new Token();
-                Token tTraitParent = new Token();
-                Bpl.Constant cNoTrait = new Bpl.Constant(tNoTrait, new Bpl.TypedIdent(tNoTrait, "NoTraitAtAll", predef.ClassNameType), true);
-                sink.AddTopLevelDeclaration(cNoTrait);
-                //adding function TraitParent(ClassName): ClassName;
-                var arg_ref = new Bpl.Formal(tTraitParent, new Bpl.TypedIdent(tTraitParent, Bpl.TypedIdent.NoName, predef.ClassNameType), true);
-                var res = new Bpl.Formal(tTraitParent, new Bpl.TypedIdent(tTraitParent, Bpl.TypedIdent.NoName, predef.ClassNameType), false);
-                var fTraitParent = new Bpl.Function(tTraitParent, "TraitParent", new List<Variable> { arg_ref }, res);
-                sink.AddTopLevelDeclaration(fTraitParent);
-
                 foreach (TopLevelDecl d in m.TopLevelDecls)
                 {
                     if (d is ClassDecl)
                     {
                         var c = (ClassDecl)d;
-                        if (c is ClassDecl && c.TraitsObj != null && c.TraitsObj.Count > 0)
+                        if (c.TraitsObj.Count > 0)
                         {
                             foreach (TraitDecl traitObj in c.TraitsObj)
                             {
@@ -598,27 +589,18 @@ namespace Microsoft.Dafny {
                                 Bpl.Constant trait = new Bpl.Constant(traitObj.tok, trait_id, true);
                                 Bpl.Expr traitId_expr = new Bpl.IdentifierExpr(traitObj.tok, trait);
 
-                                var args = new Bpl.Formal(c.tok, new Bpl.TypedIdent(c.tok, Bpl.TypedIdent.NoName, predef.ClassNameType), true);
-                                var ret_value = new Bpl.Formal(c.tok, new Bpl.TypedIdent(c.tok, Bpl.TypedIdent.NoName, predef.ClassNameType), false);
-                                var funCall = new Bpl.FunctionCall(new Bpl.Function(c.tok, "TraitParent", new List<Variable> { args }, ret_value));
-                                var funCallExpr = new Bpl.NAryExpr(c.tok, funCall, new List<Expr> { new Bpl.IdentifierExpr(c.tok, string.Format("class.{0}", c.FullSanitizedName), predef.ClassNameType) });
+                                var id = new Bpl.IdentifierExpr(c.tok, string.Format("class.{0}", c.FullSanitizedName), predef.ClassNameType);
+                                var funCallExpr = FunctionCall(c.tok, BuiltinFunction.TraitParent, null, id);
                                 var traitParentAxiom = new Bpl.Axiom(c.tok, Bpl.Expr.Eq(funCallExpr, traitId_expr));
 
                                 sink.AddTopLevelDeclaration(traitParentAxiom);
                             }
                         }
-                        else if (c is ClassDecl && (c.TraitsObj == null || c.TraitsObj.Count == 0))
+                        else
                         {
-                            //this adds: axiom TraitParent(class.B) == NoTraitAtAll; Where B does not extend any traits
-                            Bpl.TypedIdent noTraitAtAll_id = new Bpl.TypedIdent(c.tok, "NoTraitAtAll", predef.ClassNameType);
-                            Bpl.Constant noTraitAtAll = new Bpl.Constant(c.tok, noTraitAtAll_id, true);
-                            Bpl.Expr noTraitAtAll_expr = new Bpl.IdentifierExpr(c.tok, noTraitAtAll);
-
-                            var args = new Bpl.Formal(c.tok, new Bpl.TypedIdent(c.tok, Bpl.TypedIdent.NoName, predef.ClassNameType), true);
-                            var ret_value = new Bpl.Formal(c.tok, new Bpl.TypedIdent(c.tok, Bpl.TypedIdent.NoName, predef.ClassNameType), false);
-                            var funCall = new Bpl.FunctionCall(new Bpl.Function(c.tok, "TraitParent", new List<Variable> { args }, ret_value));
-                            var funCallExpr = new Bpl.NAryExpr(c.tok, funCall, new List<Expr> { new Bpl.IdentifierExpr(c.tok, string.Format("class.{0}", c.FullSanitizedName), predef.ClassNameType) });
-                            var traitParentAxiom = new Bpl.Axiom(c.tok, Bpl.Expr.Eq(funCallExpr, noTraitAtAll_expr));
+                            var id = new Bpl.IdentifierExpr(c.tok, string.Format("class.{0}", c.FullSanitizedName), predef.ClassNameType);
+                            var funCallExpr = FunctionCall(c.tok, BuiltinFunction.TraitParent, null, id);
+                            var traitParentAxiom = new Bpl.Axiom(c.tok, Bpl.Expr.Eq(funCallExpr, predef.NoTraitAtAll));
 
                             sink.AddTopLevelDeclaration(traitParentAxiom);
                         }
@@ -1365,7 +1347,7 @@ namespace Microsoft.Dafny {
                       {
                           var t = (TraitDecl)c;
                           var dtypeFunc = FunctionCall(o.tok, BuiltinFunction.DynamicType, null, o);
-                          Bpl.Expr implementsFunc = FunctionCall(t.tok, "implements$" + t.Name, Bpl.Type.Bool, new List<Expr> { dtypeFunc });
+                          Bpl.Expr implementsFunc = FunctionCall(t.tok, "implements$" + t.FullSanitizedName, Bpl.Type.Bool, new List<Expr> { dtypeFunc });
                           rhs = BplOr(o_null, implementsFunc);
                       }
                       else
@@ -1380,34 +1362,20 @@ namespace Microsoft.Dafny {
           });
       }
 
-      //this adds: function implements$J(ClassName): bool;
-      if (c is TraitDecl)
-      {
-          var arg_ref = new Bpl.Formal(c.tok, new Bpl.TypedIdent(c.tok, Bpl.TypedIdent.NoName, predef.ClassNameType), true);
-          var res = new Bpl.Formal(c.tok, new Bpl.TypedIdent(c.tok, Bpl.TypedIdent.NoName, Bpl.Type.Bool), false);
-          var implement_intr = new Bpl.Function(c.tok, "implements$" + c.Name, new List<Variable> { arg_ref }, res);
-          sink.AddTopLevelDeclaration(implement_intr);
-      }
-      //this adds: axiom implements$J(class.C);
-      else if (c is ClassDecl)
-      {
-          if (c.TraitsObj != null && c.TraitsObj.Count > 0)
-          {
-              //var dtypeFunc = FunctionCall(c.tok, BuiltinFunction.DynamicType, null, o);
-              //Bpl.Expr implementsFunc = FunctionCall(t.tok, "implements$" + t.Name, Bpl.Type.Bool, new List<Expr> { dtypeFunc });
-              foreach (Type traitType in c.TraitsTyp)
-              {
-                  if (traitType is UserDefinedType)
-                  {
-                      var args = new Bpl.Formal(c.tok, new Bpl.TypedIdent(c.tok, Bpl.TypedIdent.NoName, predef.ClassNameType), true);
-                      var ret_value = new Bpl.Formal(c.tok, new Bpl.TypedIdent(c.tok, Bpl.TypedIdent.NoName, Bpl.Type.Bool), false);
-                      var funCall = new Bpl.FunctionCall(new Bpl.Function(c.tok, "implements$" + ((UserDefinedType)(traitType)).tok, new List<Variable> { args }, ret_value));
-                      var expr = new Bpl.NAryExpr(c.tok, funCall, new List<Expr> { new Bpl.IdentifierExpr(c.tok, string.Format("class.{0}", c.FullSanitizedName), predef.ClassNameType) });
-                      var implements_axiom = new Bpl.Axiom(c.tok, expr);
-                      sink.AddTopLevelDeclaration(implements_axiom);
-                  }
-              }
-          }
+      if (c is TraitDecl) {
+        //this adds: function implements$J(Ty): bool;
+        var arg_ref = new Bpl.Formal(c.tok, new Bpl.TypedIdent(c.tok, Bpl.TypedIdent.NoName, predef.Ty), true);
+        var res = new Bpl.Formal(c.tok, new Bpl.TypedIdent(c.tok, Bpl.TypedIdent.NoName, Bpl.Type.Bool), false);
+        var implement_intr = new Bpl.Function(c.tok, "implements$" + c.FullSanitizedName, new List<Variable> { arg_ref }, res);
+        sink.AddTopLevelDeclaration(implement_intr);
+      } else if (c is ClassDecl) {
+        //this adds: axiom implements$J(class.C);
+        foreach (var trait in c.TraitsObj) {
+          var arg = ClassTyCon(c, new List<Expr>());  // TODO: this needs more work if overridingClass has type parameters
+          var expr = FunctionCall(c.tok, "implements$" + trait.FullSanitizedName, Bpl.Type.Bool, arg);
+          var implements_axiom = new Bpl.Axiom(c.tok, expr);
+          sink.AddTopLevelDeclaration(implements_axiom);
+        }
       }
 
       foreach (MemberDecl member in c.Members) {
@@ -1514,7 +1482,7 @@ namespace Microsoft.Dafny {
       AddFrameAxiom(f);
       // add consequence axiom
       sink.AddTopLevelDeclaration(FunctionConsequenceAxiom(f, f.Ens));
-      // add definition axioms, suitably specialized for "match" cases and for literals
+      // add definition axioms, suitably specialized for literals
       if (f.Body != null && !IsOpaqueFunction(f)) {
         AddFunctionAxiom(f, FunctionAxiomVisibility.IntraModuleOnly, f.Body.Resolved);
         AddFunctionAxiom(f, FunctionAxiomVisibility.ForeignModuleOnly, f.Body.Resolved);
@@ -2097,10 +2065,11 @@ namespace Microsoft.Dafny {
       }
     }
 
-    Bpl.Axiom FunctionAxiom(Function f, FunctionAxiomVisibility visibility, Expression body, ICollection<Formal> lits) {
+    Bpl.Axiom FunctionAxiom(Function f, FunctionAxiomVisibility visibility, Expression body, ICollection<Formal> lits, TopLevelDecl overridingClass = null) {
       Contract.Requires(f != null);
       Contract.Requires(predef != null);
       Contract.Requires(f.EnclosingClass != null);
+      Contract.Requires(!f.IsStatic || overridingClass == null);
 
       // only if body is null, we will return null:
       Contract.Ensures((Contract.Result<Bpl.Axiom>() == null) == (body == null));
@@ -2114,7 +2083,8 @@ namespace Microsoft.Dafny {
       //   ==>
       //   (forall s, $Heap, formals ::                  // let args := $Heap,formals
       //       { f(Succ(s), args) }                      // (*)
-      //       f#canCall(args) || USE_VIA_CONTEXT
+      //       (f#canCall(args) || USE_VIA_CONTEXT) &&
+      //       dtype(this) == overridingClass            // if "overridingClass" != null
       //       ==>
       //       BODY-can-make-its-calls &&
       //       f(Succ(s), args) == BODY);                // (*)
@@ -2178,6 +2148,7 @@ namespace Microsoft.Dafny {
       // ante:  $IsGoodHeap($Heap) && this != null && formals-have-the-expected-types &&
       Bpl.Expr ante = FunctionCall(f.tok, BuiltinFunction.IsGoodHeap, null, etran.HeapExpr);
 
+      Bpl.Expr additionalAntecedent = null;
       if (!f.IsStatic) {
         var bvThis = new Bpl.BoundVariable(f.tok, new Bpl.TypedIdent(f.tok, etran.This, predef.RefType));
         formals.Add(bvThis);
@@ -2189,6 +2160,10 @@ namespace Microsoft.Dafny {
           Bpl.Expr.Neq(bvThisIdExpr, predef.Null),
           etran.GoodRef(f.tok, bvThisIdExpr, thisType));
         ante = Bpl.Expr.And(ante, wh);
+        if (overridingClass != null) {
+          // additionalAntecednet := dtype(this) == overridingClass
+          additionalAntecedent = DType(bvThisIdExpr, ClassTyCon(overridingClass, new List<Expr>()));  // TODO: this needs more work if overridingClass has type parameters
+        }
       }
 
       var substMap = new Dictionary<IVariable, Expression>();
@@ -2225,11 +2200,13 @@ namespace Microsoft.Dafny {
 
       // Add the precondition function and its axiom (which is equivalent to the ante)
       if (body == null || (visibility == FunctionAxiomVisibility.IntraModuleOnly && lits == null)) {
-        var precondF = new Bpl.Function(f.tok,
-          RequiresName(f), new List<Bpl.TypeVariable>(),
-          formals.ConvertAll(v => (Bpl.Variable)BplFormalVar(null, v.TypedIdent.Type, true)),
-          BplFormalVar(null, Bpl.Type.Bool, false));
-        sink.AddTopLevelDeclaration(precondF);
+        if (overridingClass == null) {
+          var precondF = new Bpl.Function(f.tok,
+            RequiresName(f), new List<Bpl.TypeVariable>(),
+            formals.ConvertAll(v => (Bpl.Variable)BplFormalVar(null, v.TypedIdent.Type, true)),
+            BplFormalVar(null, Bpl.Type.Bool, false));
+          sink.AddTopLevelDeclaration(precondF);
+        }
         var appl = FunctionCall(f.tok, RequiresName(f), Bpl.Type.Bool,
           formals.ConvertAll(x => (Bpl.Expr)(new Bpl.IdentifierExpr(f.tok, x))));
         sink.AddTopLevelDeclaration(new Axiom(f.tok, BplForall(formals, BplTrigger(appl), Bpl.Expr.Eq(appl, ante))));
@@ -2246,6 +2223,9 @@ namespace Microsoft.Dafny {
 
       // ante := useViaCanCall || (useViaContext && typeAnte && pre)
       ante = Bpl.Expr.Or(useViaCanCall, ante);
+      if (additionalAntecedent != null) {
+        ante = Bpl.Expr.And(ante, additionalAntecedent);
+      }
 
       Bpl.Expr funcAppl;
       {
@@ -2287,7 +2267,11 @@ namespace Microsoft.Dafny {
       Bpl.Expr ax = new Bpl.ForallExpr(f.tok, typeParams, formals, kv, tr, Bpl.Expr.Imp(ante, meat));
       var activate = AxiomActivation(f, visibility == FunctionAxiomVisibility.ForeignModuleOnly, visibility == FunctionAxiomVisibility.IntraModuleOnly, etran);
       string comment;
-      comment = "definition axiom for " + f.FullSanitizedName;
+      if (overridingClass == null) {
+        comment = "definition axiom for " + f.FullSanitizedName;
+      } else {
+        comment = "override axiom for " + f.FullSanitizedName + " in class " + overridingClass.FullSanitizedName;
+      }
       if (lits != null) {
         if (lits.Count == f.Formals.Count) {
           comment += " for all literals";
@@ -3056,67 +3040,32 @@ namespace Microsoft.Dafny {
 
     private void AddFunctionOverrideAxiom(Function f)
     {
-        Contract.Requires(f != null);
-        Contract.Requires(sink != null && predef != null);
-        // function override axiom
-        // axiom (forall $heap: HeapType, this: ref, x#0: int ::
-        //     { J.F($heap, this, x#0) }
-        //     this != null && dtype(this) == class.C
-        //     ==>
-        //     J.F($heap, this, x#0) == C.F($heap, this, x#0));
+      Contract.Requires(f != null);
+      Contract.Requires(!f.IsStatic);  // only instance functions can be overridden
+      Contract.Requires(sink != null && predef != null);
 
-        var formals = new List<Variable>();
-        var argsC = new List<Bpl.Expr>();
-        var argsT = new List<Bpl.Expr>();
-
-        var bv = new Bpl.BoundVariable(f.tok, new Bpl.TypedIdent(f.tok, "$ly", predef.LayerType));
-        var s = new Bpl.IdentifierExpr(f.tok, bv);
-        if (f.IsRecursive)
-        {
-            formals.Add(bv);
-            argsC.Add(FunctionCall(f.tok, BuiltinFunction.LayerSucc, null, s));
-            argsT.Add(FunctionCall(f.tok, BuiltinFunction.LayerSucc, null, s));
-        }
-
-        bv = new Bpl.BoundVariable(f.tok, new Bpl.TypedIdent(f.tok, predef.HeapVarName, predef.HeapType));
-        formals.Add(bv);
-        s = new Bpl.IdentifierExpr(f.tok, bv);
-        argsC.Add(s);
-        argsT.Add(s);
-
-        if (!f.IsStatic)
-        {
-            bv = new Bpl.BoundVariable(f.tok, new Bpl.TypedIdent(f.tok, "this", predef.RefType));
-            formals.Add(bv);
-            s = new Bpl.IdentifierExpr(f.tok, bv);
-            argsC.Add(s);
-            argsT.Add(s);
-        }
-        foreach (var p in f.Formals)
-        {
-            bv = new Bpl.BoundVariable(p.tok, new Bpl.TypedIdent(p.tok, f.FullSanitizedName + "_" + p.AssignUniqueName(f.IdGenerator), TrType(p.Type)));
-            formals.Add(bv);
-            s = new Bpl.IdentifierExpr(f.tok, bv);
-            argsC.Add(s);
-        }
-        foreach (var p in f.OverriddenFunction.Formals)
-        {
-            bv = new Bpl.BoundVariable(p.tok, new Bpl.TypedIdent(p.tok, f.OverriddenFunction.FullSanitizedName + "_" + p.AssignUniqueName(f.OverriddenFunction.IdGenerator), TrType(p.Type)));
-            formals.Add(bv);
-            s = new Bpl.IdentifierExpr(f.OverriddenFunction.tok, bv);
-            argsT.Add(s);
-        }
-
-        var funcIdC = new Bpl.FunctionCall(new Bpl.IdentifierExpr(f.tok, f.FullSanitizedName, TrType(f.ResultType)));
-        var funcIdT = new Bpl.FunctionCall(new Bpl.IdentifierExpr(f.OverriddenFunction.tok, f.OverriddenFunction.FullSanitizedName, TrType(f.OverriddenFunction.ResultType)));
-        var funcApplC = new Bpl.NAryExpr(f.tok, funcIdC, argsC);
-        var funcApplT = new Bpl.NAryExpr(f.OverriddenFunction.tok, funcIdT, argsT);
-
-        var typeParams = TrTypeParamDecls(f.TypeArgs);
-
-        Bpl.Trigger tr = new Bpl.Trigger(f.OverriddenFunction.tok, true, new List<Bpl.Expr> { funcApplT, funcApplC });
-        Bpl.Expr ax = new Bpl.ForallExpr(f.tok, typeParams, formals, null, tr, Bpl.Expr.Eq(funcApplC, funcApplT));
-        sink.AddTopLevelDeclaration(new Bpl.Axiom(f.tok, ax, "function override axiom"));
+      // Essentially, the function override axiom looks like:
+      //   axiom (forall $heap: HeapType, this: ref, x#0: int ::
+      //     { J.F($heap, this, x#0) }
+      //     this != null && dtype(this) == class.C
+      //     ==>
+      //     J.F($heap, this, x#0) == C.F($heap, this, x#0));
+      // but it also has the various usual antecedents.  Essentially, the override gives a part of the body of the
+      // trait's function, so we call FunctionAxiom to generate a conditional axiom (that is, we pass in the "overridingClass"
+      // parameter to FunctionAxiom, which will add 'dtype(this) == class.C' as an additional antecedent) for a
+      // body of 'C.F(this, x#0)'.
+      // TODO:  More work needs to be done to support any type parameters that class C might have.  These would
+      // need to be quantified (existentially?) in the axiom.
+      var receiver = new ThisExpr(f.tok);
+      receiver.Type = Resolver.GetReceiverType(f.tok, f);
+      var args = f.OverriddenFunction.Formals.ConvertAll(p => (Expression)new IdentifierExpr(p.tok, p.Name) { Var = p, Type = p.Type });
+      var pseudoBody = new FunctionCallExpr(f.tok, f.Name, new ThisExpr(f.tok), f.tok, args);
+      pseudoBody.Function = f;  // resolve here
+      // TODO: the following two lines (incorrectly) assume there are no type parameters
+      pseudoBody.Type = f.ResultType;  // resolve here
+      pseudoBody.TypeArgumentSubstitutions = new Dictionary<TypeParameter,Type>();  // resolve here
+      sink.AddTopLevelDeclaration(FunctionAxiom(f.OverriddenFunction, FunctionAxiomVisibility.IntraModuleOnly, pseudoBody, null, f.EnclosingClass));
+      sink.AddTopLevelDeclaration(FunctionAxiom(f.OverriddenFunction, FunctionAxiomVisibility.ForeignModuleOnly, pseudoBody, null, f.EnclosingClass));
     }
 
     private void AddFunctionOverrideEnsChk(Function f, StmtListBuilder builder, ExpressionTranslator etran, Dictionary<IVariable, Expression> substMap, List<Variable> implInParams)
@@ -3405,33 +3354,68 @@ namespace Microsoft.Dafny {
         }
     }
 
-    private void AddMethodOverrideTerminationChk(Method m, Bpl.StmtListBuilder builder, ExpressionTranslator etran, Dictionary<IVariable, Expression> substMap)
-    {
-        var decrToks = new List<IToken>();
-        var decrTypes1 = new List<Type>();
-        var decrTypes2 = new List<Type>();
-        var decrClass = new List<Expr>();
-        var decrTrait = new List<Expr>();
-        if (m.Decreases != null)
-        {
-            foreach (var decC in m.Decreases.Expressions)
-            {
-                decrToks.Add(decC.tok);
-                decrTypes1.Add(decC.Type);
-                decrClass.Add(etran.TrExpr(decC));
-            }
+    private void AddMethodOverrideTerminationChk(Method m, Bpl.StmtListBuilder builder, ExpressionTranslator etran, Dictionary<IVariable, Expression> substMap) {
+      Contract.Requires(m != null);
+      Contract.Requires(builder != null);
+      Contract.Requires(etran != null);
+      Contract.Requires(substMap != null);
+      // Note, it is as if the trait's method is calling the class's method.
+      var contextDecreases = m.OverriddenMethod.Decreases.Expressions;
+      var calleeDecreases = m.Decreases.Expressions;
+      // We want to check:  calleeDecreases <= contextDecreases (note, we can allow equality, since there is a bounded, namely 1, number of dynamic dispatches)
+      if (Contract.Exists(contextDecreases, e => e is WildcardExpr)) {
+        // no check needed
+        return;
+      }
+
+      int N = Math.Min(contextDecreases.Count, calleeDecreases.Count);
+      var toks = new List<IToken>();
+      var types0 = new List<Type>();
+      var types1 = new List<Type>();
+      var callee = new List<Expr>();
+      var caller = new List<Expr>();
+
+      for (int i = 0; i < N; i++) {
+        Expression e0 = calleeDecreases[i];
+        Expression e1 = Substitute(contextDecreases[i], null, substMap);
+        if (!CompatibleDecreasesTypes(e0.Type, e1.Type)) {
+          N = i;
+          break;
         }
-        if (m.OverriddenMethod.Decreases != null)
-        {
-            foreach (var decT in m.OverriddenMethod.Decreases.Expressions)
-            {
-                var decCNew = Substitute(decT, null, substMap);
-                decrTypes2.Add(decCNew.Type);
-                decrTrait.Add(etran.TrExpr(decCNew));
-            }
-        }
-        var decrChk = DecreasesCheck(decrToks, decrTypes1, decrTypes2, decrClass, decrTrait, null, null, true, false);
-        builder.Add(new Bpl.AssertCmd(m.tok, decrChk));
+        toks.Add(new NestedToken(m.tok, e1.tok));
+        types0.Add(e0.Type.NormalizeExpand());
+        types1.Add(e1.Type.NormalizeExpand());
+        callee.Add(etran.TrExpr(e0));
+        caller.Add(etran.TrExpr(e1));
+      }
+
+      var decrCountT = contextDecreases.Count;
+      var decrCountC = calleeDecreases.Count;
+      // Generally, we want to produce a check "decrClass <= decrTrait", allowing (the common case where) they are equal.
+      // * If N < decrCountC && N < decrCountT, then "decrClass <= decrTrait" if the comparison ever gets beyond the
+      //   parts that survived truncation.  Thus, we compare with "allowNoChange" set to "false".
+      // Otherwise:
+      // * If decrCountC == decrCountT, then the truncation we did above had no effect and we pass in "allowNoChange" as "true".
+      // * If decrCountC > decrCountT, then we will have truncated decrClass above.  Let x,y and x' denote decrClass and
+      //   decrTrait, respectively, where x and x' have the same length.  Considering how Dafny in effect pads the end of
+      //   decreases tuples with a \top, we were supposed to evaluate (x,(y,\top)) <= (x',\top), which by lexicographic pairs
+      //   we can expand to:
+      //       x <= x' && (x == x' ==> (y,\top) <= \top)
+      //   which is equivalent to just x <= x'.  Thus, we called DecreasesCheck to compare x and x' and we pass in "allowNoChange"
+      //   as "true".
+      // * If decrCountC < decrCountT, then we will have truncated decrTrait above.  Let x and x',y' denote decrClass and
+      //   decrTrait, respectively, where x and x' have the same length.  We then want to check (x,\top) <= (x',(y',\top)), which
+      //   expands to:
+      //       x <= x' && (x == x' ==> \top <= (y',\top))
+      //    =      { \top is strictly larger than a pair }
+      //       x <= x' && (x == x' ==> false)
+      //    =
+      //       x < x'
+      //   So we perform our desired check by calling DecreasesCheck to strictly compare x and x', so we pass in "allowNoChange"
+      //   as "false".
+      bool allowNoChange = N == decrCountT && decrCountT <= decrCountC;
+      var decrChk = DecreasesCheck(toks, types0, types1, callee, caller, null, null, allowNoChange, false);
+      builder.Add(Assert(m.tok, decrChk, "method's decreases clause must be below or equal to that in the trait"));
     }
 
     private void AddMethodOverrideSubsetChk(Method m, Bpl.StmtListBuilder builder, ExpressionTranslator etran, List<Variable> localVariables, Dictionary<IVariable, Expression> substMap)
@@ -11683,6 +11667,8 @@ namespace Microsoft.Dafny {
       Is, IsBox,
       IsAlloc, IsAllocBox,
 
+      TraitParent,
+
       SetCard,
       SetEmpty,
       SetUnionOne,
@@ -11859,6 +11845,11 @@ namespace Microsoft.Dafny {
           Contract.Assert(args.Length == 3);
           Contract.Assert(typeInstantiation == null);
           return FunctionCall(tok, "$IsAllocBox", Bpl.Type.Bool, args);
+
+        case BuiltinFunction.TraitParent:
+          Contract.Assert(args.Length == 1);
+          Contract.Assert(typeInstantiation == null);
+          return FunctionCall(tok, "TraitParent", predef.ClassNameType, args);
 
         case BuiltinFunction.SetCard:
           Contract.Assert(args.Length == 1);

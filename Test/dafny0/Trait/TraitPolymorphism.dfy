@@ -14,20 +14,20 @@ trait T1
    function method Mul (x:int, y:int, z:int) : int
      requires x>y;
    {
-	x * y * z
+     x * y * z
    }
    
    //function method BodyLess1() : int
    
    static method GetPhoneNumber (code:int, n:int) returns (z:int)
    {
-	z := code + n;
+     z := code + n;
    }
    
    method TestPhone ()
    {
-        var num : int;
-	num := GetPhoneNumber (10, 30028);
+     var num : int;
+     num := GetPhoneNumber (10, 30028);
    }
 }
 

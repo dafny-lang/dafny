@@ -215,7 +215,7 @@ namespace Microsoft.Dafny {
               Indent(indent);
               wr.Write("public interface @{0}", trait.CompileName);
               wr.WriteLine(" {");
-              CompileClassMembers(trait, indent + IndentAmount);
+              CompileClassMembers(trait, false, indent + IndentAmount);
               Indent(indent); wr.WriteLine("}");
 
               //writing the _Companion class
@@ -236,27 +236,26 @@ namespace Microsoft.Dafny {
                       }
                   }
               }
-              var cl = new ClassDecl(d.tok, d.Name, d.Module, d.TypeArgs, members, d.Attributes, null);
               Indent(indent);
-              wr.Write("public class @_Companion_{0}", cl.CompileName);
+              wr.Write("public class @_Companion_{0}", trait.CompileName);
               wr.WriteLine(" {");
-              CompileClassMembers(cl, indent + IndentAmount);
+              CompileClassMembers(trait, true, indent + IndentAmount);
               Indent(indent); wr.WriteLine("}");
           }
           else if (d is ClassDecl) {
             var cl = (ClassDecl)d;
             Indent(indent);
-            if (cl.TraitsObj != null && cl.TraitsObj.Count > 0)
-            {
-                wr.WriteLine("public class @{0} : @{1}", cl.CompileName, cl.TraitsStr);
-            }
-            else
-                wr.Write("public class @{0}", cl.CompileName);
+            wr.Write("public class @{0}", cl.CompileName);
             if (cl.TypeArgs.Count != 0) {
               wr.Write("<{0}>", TypeParameters(cl.TypeArgs));
             }
+            string sep = " : ";
+            foreach (var trait in cl.TraitsTyp) {
+              wr.Write("{0}{1}", sep, TypeName(trait));
+              sep = ", ";
+            }
             wr.WriteLine(" {");
-            CompileClassMembers(cl, indent+IndentAmount);
+            CompileClassMembers(cl, false, indent+IndentAmount);
             Indent(indent);  wr.WriteLine("}");
           } else if (d is ModuleDecl) {
             // nop
@@ -757,193 +756,151 @@ namespace Microsoft.Dafny {
       }
     }
 
-
-    void CompileClassMembers(ClassDecl c, int indent)
-    {
+    void CompileClassMembers(ClassDecl c, bool forCompanionClass, int indent) {
       Contract.Requires(c != null);
+      Contract.Requires(!forCompanionClass || c is TraitDecl);
+      Contract.Requires(0 <= indent);
       foreach (MemberDecl member in c.Members) {
         if (member is Field) {
-          Field f = (Field)member;
-          if (!f.IsGhost) {
-              if (c is TraitDecl)
-              {
-                  {
-                      Indent(indent);
-                      wr.Write("{0} @{1}", TypeName(f.Type), f.CompileName);
-                      wr.Write(" {");
-                      wr.Write(" get; set; ");
-                      wr.WriteLine("}");
-                  }
-              }
-              else
-              {
-                  if (f.Inherited)
-                  {
-                      Indent(indent);
-                      wr.WriteLine("public {0} @_{1};", TypeName(f.Type), f.CompileName);
-                      wr.Write("public {0} @{1}", TypeName(f.Type), f.CompileName);
-                      wr.WriteLine(" {");
-                      wr.WriteLine(" get { ");
-                      wr.Write("return this.@_{0};", f.CompileName);
-                      wr.WriteLine("}");
-                      wr.WriteLine(" set { ");
-                      wr.WriteLine("this.@_{0} = value;", f.CompileName);
-                      wr.WriteLine("}");
-                      wr.WriteLine("}");
-                  }
-                  else
-                  {
-                      Indent(indent);
-                      wr.WriteLine("public {0} @{1} = {2};", TypeName(f.Type), f.CompileName, DefaultValue(f.Type));
-                  }
-              }
+          var f = (Field)member;
+          if (f.IsGhost || forCompanionClass) {
+            // emit nothing
+          } else if (c is TraitDecl) {
+            Indent(indent);
+            wr.Write("{0} @{1}", TypeName(f.Type), f.CompileName);
+            wr.WriteLine(" { get; set; }");
+          } else if (f.Inherited) {
+            Indent(indent);
+            wr.WriteLine("public {0} @_{1};", TypeName(f.Type), f.CompileName);
+            wr.Write("public {0} @{1}", TypeName(f.Type), f.CompileName);
+            wr.WriteLine(" {");
+            wr.WriteLine(" get { ");
+            wr.Write("return this.@_{0};", f.CompileName);
+            wr.WriteLine("}");
+            wr.WriteLine(" set { ");
+            wr.WriteLine("this.@_{0} = value;", f.CompileName);
+            wr.WriteLine("}");
+            wr.WriteLine("}");
+          } else {
+            Indent(indent);
+            wr.WriteLine("public {0} @{1} = {2};", TypeName(f.Type), f.CompileName, DefaultValue(f.Type));
           }
         } else if (member is Function) {
-          Function f = (Function)member;
-          if (c is TraitDecl)
-          {
-              if (member.IsStatic && f.Body == null)
-              {
-                  Error("Function {0} has no body", f.FullName);
-              }
-              else if (!member.IsStatic && !member.IsGhost) //static and ghost members are not included in the target trait
-              {
-                  Indent(indent);
-                  wr.Write("{0} @{1}", TypeName(f.ResultType), f.CompileName);
-                  wr.Write("(");
-                  WriteFormals("", f.Formals);
-                  wr.WriteLine(");");
-              }
-          }
-          else
-          {
-              if (f.Body == null)
-              {
-                  if (!Attributes.Contains(f.Attributes, "axiom"))
-                  {
-                      Error("Function {0} has no body", f.FullName);
-                  }
-              }
-              else if (f.IsGhost)
-              {
-                  var v = new CheckHasNoAssumes_Visitor(this);
-                  v.Visit(f.Body);
-              }
-              else
-              {
-                  Indent(indent);
-                  wr.Write("public {0}{1} @{2}", f.IsStatic ? "static " : "", TypeName(f.ResultType), f.CompileName);
-                  if (f.TypeArgs.Count != 0)
-                  {
-                      wr.Write("<{0}>", TypeParameters(f.TypeArgs));
-                  }
-                  wr.Write("(");
-                  WriteFormals("", f.Formals);
-                  wr.WriteLine(") {");
-                  CompileReturnBody(f.Body, indent + IndentAmount);
-                  Indent(indent); wr.WriteLine("}");
-              }
+          var f = (Function)member;
+          if (f.Body == null && !(c is TraitDecl && !f.IsStatic)) {
+            // A (ghost or non-ghost) function must always have a body, except if it's an instance function in a trait.
+            if (forCompanionClass || Attributes.Contains(f.Attributes, "axiom")) {
+              // suppress error message (in the case of "forCompanionClass", the non-forCompanionClass call will produce the error message)
+            } else {
+              Error("Function {0} has no body", f.FullName);
+            }
+          } else if (f.IsGhost) {
+            // nothing to compile, but we do check for assumes
+            var v = new CheckHasNoAssumes_Visitor(this);
+            v.Visit(f.Body);
+          } else if (c is TraitDecl && !forCompanionClass) {
+            // include it, unless it's static
+            if (!f.IsStatic) {
+              Indent(indent);
+              wr.Write("{0} @{1}", TypeName(f.ResultType), f.CompileName);
+              wr.Write("(");
+              WriteFormals("", f.Formals);
+              wr.WriteLine(");");
+            }
+          } else if (forCompanionClass && !f.IsStatic) {
+            // companion classes only has static members
+          } else {
+            Indent(indent);
+            wr.Write("public {0}{1} @{2}", f.IsStatic ? "static " : "", TypeName(f.ResultType), f.CompileName);
+            if (f.TypeArgs.Count != 0) {
+              wr.Write("<{0}>", TypeParameters(f.TypeArgs));
+            }
+            wr.Write("(");
+            WriteFormals("", f.Formals);
+            wr.WriteLine(") {");
+            CompileReturnBody(f.Body, indent + IndentAmount);
+            Indent(indent); wr.WriteLine("}");
           }
         } else if (member is Method) {
-          Method m = (Method)member;
-          if (c is TraitDecl)
-          {
-              if (member.IsStatic && m.Body == null)
-              {
-                  Error("Method {0} has no body", m.FullName);
+          var m = (Method)member;
+          if (m.Body == null && !(c is TraitDecl && !m.IsStatic)) {
+            // A (ghost or non-ghost) method must always have a body, except if it's an instance method in a trait.
+            if (forCompanionClass || Attributes.Contains(m.Attributes, "axiom")) {
+              // suppress error message (in the case of "forCompanionClass", the non-forCompanionClass call will produce the error message)
+            } else {
+              Error("Method {0} has no body", m.FullName);
+            }
+          } else if (m.IsGhost) {
+            // nothing to compile, but we do check for assumes
+            var v = new CheckHasNoAssumes_Visitor(this);
+            v.Visit(m.Body);
+          } else if (c is TraitDecl && !forCompanionClass) {
+            // include it, unless it's static
+            if (!m.IsStatic) {
+              Indent(indent);
+              wr.Write("void @{0}", m.CompileName);
+              wr.Write("(");
+              int nIns = WriteFormals("", m.Ins);
+              WriteFormals(nIns == 0 ? "" : ", ", m.Outs);
+              wr.WriteLine(");");
+            }
+          } else if (forCompanionClass && !m.IsStatic) {
+            // companion classes only has static members
+          } else {
+            Indent(indent);
+            wr.Write("public {0}void @{1}", m.IsStatic ? "static " : "", m.CompileName);
+            if (m.TypeArgs.Count != 0) {
+              wr.Write("<{0}>", TypeParameters(m.TypeArgs));
+            }
+            wr.Write("(");
+            int nIns = WriteFormals("", m.Ins);
+            WriteFormals(nIns == 0 ? "" : ", ", m.Outs);
+            wr.WriteLine(")");
+            Indent(indent); wr.WriteLine("{");
+            foreach (Formal p in m.Outs) {
+              if (!p.IsGhost) {
+                Indent(indent + IndentAmount);
+                wr.WriteLine("@{0} = {1};", p.CompileName, DefaultValue(p.Type));
               }
-              else if (!member.IsStatic && !member.IsGhost) //static and ghost members are not included in the target trait
-              {
-                  Indent(indent);
-                  wr.Write("void @{0}", m.CompileName);
-                  wr.Write("(");
-                  int nIns = WriteFormals("", m.Ins);
-                  WriteFormals(nIns == 0 ? "" : ", ", m.Outs);
-                  wr.WriteLine(");");
+            }
+            if (m.Body == null) {
+              Error("Method {0} has no body", m.FullName);
+            } else {
+              if (m.IsTailRecursive) {
+                Indent(indent); wr.WriteLine("TAIL_CALL_START: ;");
+                if (!m.IsStatic) {
+                  Indent(indent + IndentAmount); wr.WriteLine("var _this = this;");
+                }
               }
-          }
-          else
-          {
-              if (m.Body == null)
-              {
-                  if (!Attributes.Contains(m.Attributes, "axiom"))
-                  {
-                      Error("Method {0} has no body", m.FullName);
-                  }
-              }
-              else if (m.IsGhost)
-              {
-                  var v = new CheckHasNoAssumes_Visitor(this);
-                  v.Visit(m.Body);
-              }
-              else
-              {
-                  Indent(indent);
-                  wr.Write("public {0}void @{1}", m.IsStatic ? "static " : "", m.CompileName);
-                  if (m.TypeArgs.Count != 0)
-                  {
-                      wr.Write("<{0}>", TypeParameters(m.TypeArgs));
-                  }
-                  wr.Write("(");
-                  int nIns = WriteFormals("", m.Ins);
-                  WriteFormals(nIns == 0 ? "" : ", ", m.Outs);
-                  wr.WriteLine(")");
-                  Indent(indent); wr.WriteLine("{");
-                  foreach (Formal p in m.Outs)
-                  {
-                      if (!p.IsGhost)
-                      {
-                          Indent(indent + IndentAmount);
-                          wr.WriteLine("@{0} = {1};", p.CompileName, DefaultValue(p.Type));
-                      }
-                  }
-                  if (m.Body == null)
-                  {
-                      Error("Method {0} has no body", m.FullName);
-                  }
-                  else
-                  {
-                      if (m.IsTailRecursive)
-                      {
-                          Indent(indent); wr.WriteLine("TAIL_CALL_START: ;");
-                          if (!m.IsStatic)
-                          {
-                              Indent(indent + IndentAmount); wr.WriteLine("var _this = this;");
-                          }
-                      }
-                      Contract.Assert(enclosingMethod == null);
-                      enclosingMethod = m;
-                      TrStmtList(m.Body.Body, indent);
-                      Contract.Assert(enclosingMethod == m);
-                      enclosingMethod = null;
-                  }
-                  Indent(indent); wr.WriteLine("}");
+              Contract.Assert(enclosingMethod == null);
+              enclosingMethod = m;
+              TrStmtList(m.Body.Body, indent);
+              Contract.Assert(enclosingMethod == m);
+              enclosingMethod = null;
+            }
+            Indent(indent); wr.WriteLine("}");
 
-                
-                  // allow the Main method to be an instance method
-                 if (!m.IsStatic && IsMain(m)) {               
-                      Indent(indent);
-                      wr.WriteLine("public static void Main(string[] args) {");
-                      Contract.Assert(m.EnclosingClass == c);
-                      Indent(indent + IndentAmount);
-                      wr.Write("@{0} b = new @{0}", c.CompileName);
-                      if (c.TypeArgs.Count != 0)
-                      {
-                          // instantiate every parameter, it doesn't particularly matter how
-                          wr.Write("<");
-                          string sep = "";
-                          for (int i = 0; i < c.TypeArgs.Count; i++)
-                          {
-                              wr.Write("{0}int", sep);
-                              sep = ", ";
-                          }
-                          wr.Write(">");
-                      }
-                      wr.WriteLine("();");
-                      Indent(indent + IndentAmount); wr.WriteLine("b.@Main();");
-                      Indent(indent); wr.WriteLine("}");
-                  }
+            // allow the Main method to be an instance method
+            if (!m.IsStatic && IsMain(m)) {
+              Indent(indent);
+              wr.WriteLine("public static void Main(string[] args) {");
+              Contract.Assert(m.EnclosingClass == c);
+              Indent(indent + IndentAmount);
+              wr.Write("@{0} b = new @{0}", c.CompileName);
+              if (c.TypeArgs.Count != 0) {
+                // instantiate every parameter, it doesn't particularly matter how
+                wr.Write("<");
+                string sep = "";
+                for (int i = 0; i < c.TypeArgs.Count; i++) {
+                  wr.Write("{0}int", sep);
+                  sep = ", ";
+                }
+                wr.Write(">");
               }
+              wr.WriteLine("();");
+              Indent(indent + IndentAmount); wr.WriteLine("b.@Main();");
+              Indent(indent); wr.WriteLine("}");
+            }
           }
         } else {
           Contract.Assert(false); throw new cce.UnreachableException();  // unexpected member
@@ -975,6 +932,22 @@ namespace Microsoft.Dafny {
       return null;
     }
 
+    string TypeName_Companion(Type type) {
+      Contract.Requires(type != null);
+      var udt = type as UserDefinedType;
+      if (udt != null && udt.ResolvedClass is TraitDecl) {
+        string s = udt.FullCompanionCompileName;
+        if (udt.TypeArgs.Count != 0) {
+          if (udt.TypeArgs.Exists(argType => argType is ObjectType)) {
+            Error("compilation does not support type 'object' as a type parameter; consider introducing a ghost");
+          }
+          s += "<" + TypeNames(udt.TypeArgs) + ">";
+        }
+        return s;
+      } else {
+        return TypeName(type);
+      }
+    }
     string TypeName(Type type)
     {
       Contract.Requires(type != null);
@@ -1882,14 +1855,7 @@ namespace Microsoft.Dafny {
           wr.Write("@" + receiverReplacement);
         } else if (s.Method.IsStatic) {
           Indent(indent);
-          if (s.Receiver.Type is UserDefinedType && ((UserDefinedType)s.Receiver.Type).ResolvedClass is TraitDecl)
-          {
-              wr.Write("@_Companion_{0}", TypeName(cce.NonNull(s.Receiver.Type)).Replace("@", string.Empty));
-          }
-          else
-          {
-              wr.Write(TypeName(cce.NonNull(s.Receiver.Type)));
-          }
+          wr.Write(TypeName_Companion(s.Receiver.Type));
         } else {
           Indent(indent);
           TrParenExpr(s.Receiver);
@@ -2957,7 +2923,7 @@ namespace Microsoft.Dafny {
     void CompileFunctionCallExpr(FunctionCallExpr e, TextWriter twr, FCE_Arg_Translator tr) {
       Function f = cce.NonNull(e.Function);
       if (f.IsStatic) {
-        twr.Write(TypeName(cce.NonNull(e.Receiver.Type)));
+        twr.Write(TypeName_Companion(e.Receiver.Type));
       } else {
         twr.Write("(");
         tr(e.Receiver);
