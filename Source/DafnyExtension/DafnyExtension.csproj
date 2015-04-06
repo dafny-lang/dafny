@@ -239,7 +239,9 @@
   <Import Project="$(VSToolsPath)\VSSDK\Microsoft.VsSDK.targets" Condition="'$(VSToolsPath)' != ''" />
   <PropertyGroup>
     <PreBuildEvent>copy /y "..\Binaries\DafnyPrelude.bpl" "$(ProjectDir)"
-copy /y "..\Binaries\DafnyRuntime.cs" "$(ProjectDir)"</PreBuildEvent>
+copy /y "..\Binaries\DafnyRuntime.cs" "$(ProjectDir)"
+copy /y "..\Binaries\Z3-LICENSE.txt" "$(ProjectDir)"
+copy /y "..\Binaries\z3.exe" "$(ProjectDir)"</PreBuildEvent>
   </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it.
        Other similar extension points exist, see Microsoft.Common.targets.
