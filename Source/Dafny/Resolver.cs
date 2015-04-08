@@ -1328,9 +1328,8 @@ namespace Microsoft.Dafny
       }
       // Now, we're ready for the other declarations.
       foreach (TopLevelDecl d in declarations) {
-        if (d is TraitDecl && d.TypeArgs.Count > 0)
-        {
-            Error(d, "a trait cannot declare type parameters");
+        if (d is TraitDecl && d.TypeArgs.Count > 0) {
+          Error(d, "sorry, traits with type parameters are not supported");
         }
         allTypeParameters.PushMarker();
         ResolveTypeParameters(d.TypeArgs, false, d);

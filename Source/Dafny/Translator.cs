@@ -1299,68 +1299,51 @@ namespace Microsoft.Dafny {
         AddAllocationAxiom(null, c, true);
       }
 
-      /* // Add $Is and $IsAlloc for this class :
-            axiom (forall p: ref, G: Ty ::
-               { $Is(p, TClassA(G), h) }
-               $Is(p, TClassA(G), h) <=> (p == null || dtype(p) == TClassA(G));
-            axiom (forall p: ref, h: Heap, G: Ty ::
-               { $IsAlloc(p, TClassA(G), h) }
-               $IsAlloc(p, TClassA(G), h) => (p == null || h[p, alloc]);
-      */
+      // Add $Is and $IsAlloc for this class :
+      //    axiom (forall p: ref, G: Ty ::
+      //       { $Is(p, TClassA(G), h) }
+      //       $Is(p, TClassA(G), h) <=> (p == null || dtype(p) == TClassA(G));
+      //    axiom (forall p: ref, h: Heap, G: Ty ::
+      //       { $IsAlloc(p, TClassA(G), h) }
+      //       $IsAlloc(p, TClassA(G), h) => (p == null || h[p, alloc]);
+      MapM(Bools, is_alloc => {
+        List<Bpl.Expr> tyexprs;
+        var vars = MkTyParamBinders(GetTypeParams(c), out tyexprs);
 
-      if (!(c is TraitDecl))
-      {
-          MapM(Bools, is_alloc =>
-          {
-              List<Bpl.Expr> tyexprs;
-              var vars = MkTyParamBinders(GetTypeParams(c), out tyexprs);
+        var o = BplBoundVar("$o", predef.RefType, vars);
 
-              var o = BplBoundVar("$o", predef.RefType, vars);
+        Bpl.Expr body, is_o;
+        Bpl.Expr o_null = Bpl.Expr.Eq(o, predef.Null);
+        Bpl.Expr o_ty = ClassTyCon(c, tyexprs);
+        string name;
 
-              Bpl.Expr body, is_o;
-              Bpl.Expr o_null = Bpl.Expr.Eq(o, predef.Null);
-              Bpl.Expr o_ty = ClassTyCon(c, tyexprs);
-              string name;
+        if (is_alloc) {
+          name = c + ": Class $IsAlloc";
+          var h = BplBoundVar("$h", predef.HeapType, vars);
+          // $IsAlloc(o, ..)
+          is_o = MkIsAlloc(o, o_ty, h);
+          body = BplIff(is_o, BplOr(o_null, IsAlloced(c.tok, h, o)));
+        } else {
+          name = c + ": Class $Is";
+          // $Is(o, ..)
+          is_o = MkIs(o, o_ty);
+          Bpl.Expr rhs;
+          if (c == program.BuiltIns.ObjectDecl) {
+            rhs = Bpl.Expr.True;
+          } else if (c is TraitDecl) {
+            //generating $o == null || implements$J(dtype(x))
+            var t = (TraitDecl)c;
+            var dtypeFunc = FunctionCall(o.tok, BuiltinFunction.DynamicType, null, o);
+            Bpl.Expr implementsFunc = FunctionCall(t.tok, "implements$" + t.FullSanitizedName, Bpl.Type.Bool, new List<Expr> { dtypeFunc });
+            rhs = BplOr(o_null, implementsFunc);
+          } else {
+            rhs = BplOr(o_null, DType(o, o_ty));
+          }
+          body = BplIff(is_o, rhs);
+        }
 
-              if (is_alloc)
-              {
-                  name = c + ": Class $IsAlloc";
-                  var h = BplBoundVar("$h", predef.HeapType, vars);
-                  // $IsAlloc(o, ..)
-                  is_o = MkIsAlloc(o, o_ty, h);
-                  body = BplIff(is_o, BplOr(o_null, IsAlloced(c.tok, h, o)));
-              }
-              else
-              {
-                  name = c + ": Class $Is";
-                  // $Is(o, ..)
-                  is_o = MkIs(o, o_ty);
-                  Bpl.Expr rhs;
-                  if (c == program.BuiltIns.ObjectDecl)
-                  {
-                      rhs = Bpl.Expr.True;
-                  }
-                  else
-                  {
-                      //generating $o == null || implements$J(dtype(x))
-                      if (c is TraitDecl)
-                      {
-                          var t = (TraitDecl)c;
-                          var dtypeFunc = FunctionCall(o.tok, BuiltinFunction.DynamicType, null, o);
-                          Bpl.Expr implementsFunc = FunctionCall(t.tok, "implements$" + t.FullSanitizedName, Bpl.Type.Bool, new List<Expr> { dtypeFunc });
-                          rhs = BplOr(o_null, implementsFunc);
-                      }
-                      else
-                      {
-                          rhs = BplOr(o_null, DType(o, o_ty));
-                      }
-                  }
-                  body = BplIff(is_o, rhs);
-              }
-
-              sink.AddTopLevelDeclaration(new Bpl.Axiom(c.tok, BplForall(vars, BplTrigger(is_o), body), name));
-          });
-      }
+        sink.AddTopLevelDeclaration(new Bpl.Axiom(c.tok, BplForall(vars, BplTrigger(is_o), body), name));
+      });
 
       if (c is TraitDecl) {
         //this adds: function implements$J(Ty): bool;
