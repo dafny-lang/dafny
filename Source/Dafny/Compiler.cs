@@ -760,6 +760,34 @@ namespace Microsoft.Dafny {
       Contract.Requires(c != null);
       Contract.Requires(!forCompanionClass || c is TraitDecl);
       Contract.Requires(0 <= indent);
+      foreach (var member in c.InheritedMembers) {
+        Contract.Assert(!member.IsGhost && !member.IsStatic);  // only non-ghost instance members should ever be added to .InheritedMembers
+        if (member is Field) {
+          var f = (Field)member;
+          // every field is inherited
+          Indent(indent);
+          wr.WriteLine("public {0} @_{1};", TypeName(f.Type), f.CompileName);
+          wr.Write("public {0} @{1}", TypeName(f.Type), f.CompileName);
+          wr.WriteLine(" {");
+          wr.WriteLine(" get { ");
+          wr.Write("return this.@_{0};", f.CompileName);
+          wr.WriteLine("}");
+          wr.WriteLine(" set { ");
+          wr.WriteLine("this.@_{0} = value;", f.CompileName);
+          wr.WriteLine("}");
+          wr.WriteLine("}");
+        } else if (member is Function) {
+          var f = (Function)member;
+          Contract.Assert(f.Body != null);
+          CompileFunction(indent, f);
+        } else if (member is Method) {
+          var method = (Method)member;
+          Contract.Assert(method.Body != null);
+          CompileMethod(c, indent, method);
+        } else {
+          Contract.Assert(false);  // unexpected member
+        }
+      }
       foreach (MemberDecl member in c.Members) {
         if (member is Field) {
           var f = (Field)member;
@@ -769,18 +797,6 @@ namespace Microsoft.Dafny {
             Indent(indent);
             wr.Write("{0} @{1}", TypeName(f.Type), f.CompileName);
             wr.WriteLine(" { get; set; }");
-          } else if (f.Inherited) {
-            Indent(indent);
-            wr.WriteLine("public {0} @_{1};", TypeName(f.Type), f.CompileName);
-            wr.Write("public {0} @{1}", TypeName(f.Type), f.CompileName);
-            wr.WriteLine(" {");
-            wr.WriteLine(" get { ");
-            wr.Write("return this.@_{0};", f.CompileName);
-            wr.WriteLine("}");
-            wr.WriteLine(" set { ");
-            wr.WriteLine("this.@_{0} = value;", f.CompileName);
-            wr.WriteLine("}");
-            wr.WriteLine("}");
           } else {
             Indent(indent);
             wr.WriteLine("public {0} @{1} = {2};", TypeName(f.Type), f.CompileName, DefaultValue(f.Type));
@@ -814,16 +830,7 @@ namespace Microsoft.Dafny {
           } else if (forCompanionClass && !f.IsStatic) {
             // companion classes only has static members
           } else {
-            Indent(indent);
-            wr.Write("public {0}{1} @{2}", f.IsStatic ? "static " : "", TypeName(f.ResultType), f.CompileName);
-            if (f.TypeArgs.Count != 0) {
-              wr.Write("<{0}>", TypeParameters(f.TypeArgs));
-            }
-            wr.Write("(");
-            WriteFormals("", f.Formals);
-            wr.WriteLine(") {");
-            CompileReturnBody(f.Body, indent + IndentAmount);
-            Indent(indent); wr.WriteLine("}");
+            CompileFunction(indent, f);
           }
         } else if (member is Method) {
           var m = (Method)member;
@@ -855,64 +862,81 @@ namespace Microsoft.Dafny {
           } else if (forCompanionClass && !m.IsStatic) {
             // companion classes only has static members
           } else {
-            Indent(indent);
-            wr.Write("public {0}void @{1}", m.IsStatic ? "static " : "", m.CompileName);
-            if (m.TypeArgs.Count != 0) {
-              wr.Write("<{0}>", TypeParameters(m.TypeArgs));
-            }
-            wr.Write("(");
-            int nIns = WriteFormals("", m.Ins);
-            WriteFormals(nIns == 0 ? "" : ", ", m.Outs);
-            wr.WriteLine(")");
-            Indent(indent); wr.WriteLine("{");
-            foreach (Formal p in m.Outs) {
-              if (!p.IsGhost) {
-                Indent(indent + IndentAmount);
-                wr.WriteLine("@{0} = {1};", p.CompileName, DefaultValue(p.Type));
-              }
-            }
-            if (m.Body == null) {
-              Error("Method {0} has no body", m.FullName);
-            } else {
-              if (m.IsTailRecursive) {
-                Indent(indent); wr.WriteLine("TAIL_CALL_START: ;");
-                if (!m.IsStatic) {
-                  Indent(indent + IndentAmount); wr.WriteLine("var _this = this;");
-                }
-              }
-              Contract.Assert(enclosingMethod == null);
-              enclosingMethod = m;
-              TrStmtList(m.Body.Body, indent);
-              Contract.Assert(enclosingMethod == m);
-              enclosingMethod = null;
-            }
-            Indent(indent); wr.WriteLine("}");
-
-            // allow the Main method to be an instance method
-            if (!m.IsStatic && IsMain(m)) {
-              Indent(indent);
-              wr.WriteLine("public static void Main(string[] args) {");
-              Contract.Assert(m.EnclosingClass == c);
-              Indent(indent + IndentAmount);
-              wr.Write("@{0} b = new @{0}", c.CompileName);
-              if (c.TypeArgs.Count != 0) {
-                // instantiate every parameter, it doesn't particularly matter how
-                wr.Write("<");
-                string sep = "";
-                for (int i = 0; i < c.TypeArgs.Count; i++) {
-                  wr.Write("{0}int", sep);
-                  sep = ", ";
-                }
-                wr.Write(">");
-              }
-              wr.WriteLine("();");
-              Indent(indent + IndentAmount); wr.WriteLine("b.@Main();");
-              Indent(indent); wr.WriteLine("}");
-            }
+            CompileMethod(c, indent, m);
           }
         } else {
           Contract.Assert(false); throw new cce.UnreachableException();  // unexpected member
         }
+      }
+    }
+
+    private void CompileFunction(int indent, Function f) {
+      Indent(indent);
+      wr.Write("public {0}{1} @{2}", f.IsStatic ? "static " : "", TypeName(f.ResultType), f.CompileName);
+      if (f.TypeArgs.Count != 0) {
+        wr.Write("<{0}>", TypeParameters(f.TypeArgs));
+      }
+      wr.Write("(");
+      WriteFormals("", f.Formals);
+      wr.WriteLine(") {");
+      CompileReturnBody(f.Body, indent + IndentAmount);
+      Indent(indent); wr.WriteLine("}");
+    }
+
+    private void CompileMethod(ClassDecl c, int indent, Method m) {
+      Indent(indent);
+      wr.Write("public {0}void @{1}", m.IsStatic ? "static " : "", m.CompileName);
+      if (m.TypeArgs.Count != 0) {
+        wr.Write("<{0}>", TypeParameters(m.TypeArgs));
+      }
+      wr.Write("(");
+      int nIns = WriteFormals("", m.Ins);
+      WriteFormals(nIns == 0 ? "" : ", ", m.Outs);
+      wr.WriteLine(")");
+      Indent(indent); wr.WriteLine("{");
+      foreach (Formal p in m.Outs) {
+        if (!p.IsGhost) {
+          Indent(indent + IndentAmount);
+          wr.WriteLine("@{0} = {1};", p.CompileName, DefaultValue(p.Type));
+        }
+      }
+      if (m.Body == null) {
+        Error("Method {0} has no body", m.FullName);
+      } else {
+        if (m.IsTailRecursive) {
+          Indent(indent); wr.WriteLine("TAIL_CALL_START: ;");
+          if (!m.IsStatic) {
+            Indent(indent + IndentAmount); wr.WriteLine("var _this = this;");
+          }
+        }
+        Contract.Assert(enclosingMethod == null);
+        enclosingMethod = m;
+        TrStmtList(m.Body.Body, indent);
+        Contract.Assert(enclosingMethod == m);
+        enclosingMethod = null;
+      }
+      Indent(indent); wr.WriteLine("}");
+
+      // allow the Main method to be an instance method
+      if (!m.IsStatic && IsMain(m)) {
+        Indent(indent);
+        wr.WriteLine("public static void Main(string[] args) {");
+        Contract.Assert(m.EnclosingClass == c);
+        Indent(indent + IndentAmount);
+        wr.Write("@{0} b = new @{0}", c.CompileName);
+        if (c.TypeArgs.Count != 0) {
+          // instantiate every parameter, it doesn't particularly matter how
+          wr.Write("<");
+          string sep = "";
+          for (int i = 0; i < c.TypeArgs.Count; i++) {
+            wr.Write("{0}int", sep);
+            sep = ", ";
+          }
+          wr.Write(">");
+        }
+        wr.WriteLine("();");
+        Indent(indent + IndentAmount); wr.WriteLine("b.@Main();");
+        Indent(indent); wr.WriteLine("}");
       }
     }
 

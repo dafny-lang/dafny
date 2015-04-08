@@ -5,4 +5,4 @@ Execution trace:
     (0,0): anon2
     (0,0): anon6_Then
 
-Dafny program verifier finished with 9 verified, 1 error
+Dafny program verifier finished with 7 verified, 1 error

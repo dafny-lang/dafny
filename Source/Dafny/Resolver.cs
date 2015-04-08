@@ -209,7 +209,6 @@ namespace Microsoft.Dafny
     readonly Graph<ModuleDecl> dependencies = new Graph<ModuleDecl>();
     private ModuleSignature systemNameInfo = null;
     private bool useCompileSignatures = false;
-    private RefinementTransformer refinementTransformer = null;
 
     public Resolver(Program prog) {
       Contract.Requires(prog != null);
@@ -1006,11 +1005,16 @@ namespace Microsoft.Dafny
           var members = new Dictionary<string, MemberDecl>();
           classMembers.Add(cl, members);
 
-          bool hasConstructor = false;
           foreach (MemberDecl m in cl.Members) {
             if (!members.ContainsKey(m.Name)) {
               members.Add(m.Name, m);
-              if (m is CoPredicate || m is CoLemma) {
+              if (m is Constructor) {
+                if (cl is TraitDecl) {
+                  Error(m.tok, "a trait is not allowed to declare a constructor");
+                } else {
+                  cl.HasConstructor = true;
+                }
+              } else if (m is CoPredicate || m is CoLemma) {
                 var extraName = m.Name + "#";
                 MemberDecl extraMember;
                 var cloner = new Cloner();
@@ -1063,14 +1067,6 @@ namespace Microsoft.Dafny
             } else {
               Error(m, "Duplicate member name: {0}", m.Name);
             }
-            if (m is Constructor) {
-              hasConstructor = true;
-            }
-          }
-          cl.HasConstructor = hasConstructor;
-          if (cl is TraitDecl && cl.HasConstructor)
-          {
-              Error(cl, "a trait is not allowed to declare a constructor");
           }
           if (cl.IsDefaultClass) {
             foreach (MemberDecl m in cl.Members) {
@@ -1190,6 +1186,14 @@ namespace Microsoft.Dafny
       Contract.Requires(declarations != null);
       Contract.Requires(datatypeDependencies != null);
       Contract.Requires(codatatypeDependencies != null);
+
+      // resolve the trait names that a class extends and register the trait members in the classes that inherit them
+      foreach (TopLevelDecl d in declarations) {
+        var cl = d as ClassDecl;
+        if (cl != null) {
+          RegisterInheritedMembers(cl);
+        }
+      }
 
       var typeRedirectionDependencies = new Graph<RedirectingTypeDecl>();
       foreach (TopLevelDecl d in declarations) {
@@ -2825,16 +2829,20 @@ namespace Microsoft.Dafny
     List<Statement> loopStack = new List<Statement>();  // the enclosing loops (from which it is possible to break out)
     readonly Dictionary<Statement, bool> inSpecOnlyContext = new Dictionary<Statement, bool>();  // invariant: domain contain union of the domains of "labeledStatements" and "loopStack"
 
-
     /// <summary>
-    /// Assumes type parameters have already been pushed
+    /// This method resolves the types that have been given after the 'extends' keyword.  Then, it populates
+    /// the string->MemberDecl table for "cl" to make sure that all inherited names are accounted for.  Further
+    /// checks are done later, elsewhere.
     /// </summary>
-    void ResolveClassMemberTypes(ClassDecl cl) {
+    void RegisterInheritedMembers(ClassDecl cl) {
       Contract.Requires(cl != null);
       Contract.Requires(currentClass == null);
       Contract.Ensures(currentClass == null);
-
       currentClass = cl;
+
+      if (cl.TraitsTyp.Count > 0 && cl.TypeArgs.Count > 0) {
+        Error(cl.tok, "sorry, traits are currently supported only for classes that take no type arguments");  // TODO: do the work to remove this limitation
+      }
 
       // Resolve names of traits extended
       foreach (var tt in cl.TraitsTyp) {
@@ -2856,6 +2864,34 @@ namespace Microsoft.Dafny
           }
         }
       }
+
+      // Inherit members from traits.  What we do here is simply to register names, and in particular to register
+      // names that are no already in the class.
+      var members = classMembers[cl];
+      foreach (var trait in cl.TraitsObj) {
+        foreach (var traitMember in trait.Members) {
+          MemberDecl classMember;
+          if (members.TryGetValue(traitMember.Name, out classMember)) {
+            // the class already declares or inherits a member with this name, so we take no further action at this time
+          } else {
+            // register the trait member in the class
+            members.Add(traitMember.Name, traitMember);
+          }
+        }
+      }
+
+      currentClass = null;
+    }
+
+    /// <summary>
+    /// Assumes type parameters have already been pushed
+    /// </summary>
+    void ResolveClassMemberTypes(ClassDecl cl) {
+      Contract.Requires(cl != null);
+      Contract.Requires(currentClass == null);
+      Contract.Ensures(currentClass == null);
+
+      currentClass = cl;
 
       foreach (MemberDecl member in cl.Members) {
         member.EnclosingClass = cl;
@@ -2910,112 +2946,91 @@ namespace Microsoft.Dafny
     void InheritTraitMembers(ClassDecl cl) {
       Contract.Requires(cl != null);
 
-      RefinementCloner cloner = new RefinementCloner(cl.Module);
+      var refinementTransformer = new RefinementTransformer(this, AdditionalInformationReporter, null);
       //merging class members with parent members if any
-      if (cl.TraitsObj != null) {
-        var clMembers = classMembers[cl];
-        foreach (TraitDecl traitObj in cl.TraitsObj)
-        {
-            var traitMembers = classMembers[traitObj];
-            //merging current class members with the inheriting trait
-            foreach (KeyValuePair<string, MemberDecl> traitMem in traitMembers)
-            {
-                MemberDecl clMember;
-                if (clMembers.TryGetValue(traitMem.Key, out clMember))
-                {
-                    //check if the signature of the members are equal and the member is body-less
-                    if (traitMem.Value is Method)
-                    {
-                        Method traitMethod = (Method)traitMem.Value;
-                        // TODO: should check that the class member is also a method, and the same kind of method
-                        Method classMethod = (Method)clMember;
-                        //refinementTransformer.CheckMethodsAreRefinements(classMethod, traitMethod);
-                        if (traitMethod.Body != null && !clMembers[classMethod.CompileName].Inherited) //if the existing method in the class is not that inherited one from the parent
-                            Error(classMethod, "a class cannot override implemented methods");
-                        else
-                        {
-                            classMethod.OverriddenMethod = traitMethod;
-                            //adding a call graph edge from the trait method to that of class
-                            cl.Module.CallGraph.AddEdge(traitMethod, classMethod);
-                        }
-                    }
-                    else if (traitMem.Value is Function)
-                    {
-                        Function traitFunction = (Function)traitMem.Value;
-                        Function classFunction = (Function)clMember;
-                        //refinementTransformer.CheckFunctionsAreRefinements(classFunction, traitFunction);
-                        if (traitFunction.Body != null && !classMembers[cl][classFunction.CompileName].Inherited)
-                            Error(classFunction, "a class cannot override implemented functions");
-                        else
-                        {
-                            classFunction.OverriddenFunction = traitFunction;
-                            //adding a call graph edge from the trait function to that of class
-                            cl.Module.CallGraph.AddEdge(traitFunction, classFunction);
-                        }
-                    }
-                    else if (traitMem.Value is Field)
-                    {
-                        Field traitField = (Field)traitMem.Value;
-                        Field classField = (Field)clMember;
-                        if (!clMembers[classField.CompileName].Inherited)
-                            Error(classField, "member in the class has been already inherited from its parent trait");
-                    }
-                }
-                else
-                {
-                    //the member is not already in the class
-                    // enter the trait member in the symbol table for the class
-                    MemberDecl classNewMember = cloner.CloneMember(traitMem.Value);
-                    classNewMember.EnclosingClass = cl;
-                    classNewMember.Inherited = true;
-                    classMembers[cl].Add(traitMem.Key, classNewMember);
-                    cl.Members.Add(classNewMember);
-                }
-            }//foreach
-        }
-        //checking to make sure all body-less methods/functions have been implemented in the child class
-        if (refinementTransformer == null)
-          refinementTransformer = new RefinementTransformer(this, AdditionalInformationReporter, null);
-        foreach (TraitDecl traitObj in cl.TraitsObj)
-        {
-            foreach (MemberDecl traitMember in traitObj.Members.Where(mem => mem is Function || mem is Method))
-            {
-                if (traitMember is Function)
-                {
-                    Function traitFunc = (Function)traitMember;
-                    if (traitFunc.Body == null) //we do this check only if trait function body is null
-                    {
-                        var classMem = cl.Members.Where(clMem => clMem is Function).FirstOrDefault(clMem => ((Function)clMem).Body != null && clMem.CompileName == traitMember.CompileName);
-                        if (classMem != null)
-                        {
-                            Function classFunc = (Function)classMem;
-                            refinementTransformer.CheckOverride_FunctionParameters(classFunc, traitFunc);
-                        }
-                        else if (!cl.Module.IsAbstract && traitFunc.Body == null && classMem == null)
-                            Error(cl, "class: {0} does not implement trait member: {1}", cl.CompileName, traitFunc.CompileName);
-                    }
-                }
-                if (traitMember is Method)
-                {
-                    Method traitMethod = (Method)traitMember;
-                    if (traitMethod.Body == null) //we do this check only if trait method body is null
-                    {
-                        var classMem = cl.Members.Where(clMem => clMem is Method).FirstOrDefault(clMem => ((Method)clMem).Body != null && clMem.CompileName == traitMember.CompileName);
-                        if (classMem != null)
-                        {
-                            Method classMethod = (Method)classMem;
-                            refinementTransformer.CheckOverride_MethodParameters(classMethod, traitMethod);
-                            var traitMethodAllowsNonTermination = Contract.Exists(traitMethod.Decreases.Expressions, e => e is WildcardExpr);
-                            var classMethodAllowsNonTermination = Contract.Exists(classMethod.Decreases.Expressions, e => e is WildcardExpr);
-                            if (classMethodAllowsNonTermination && !traitMethodAllowsNonTermination) {
-                              Error(classMethod.tok, "not allowed to override a terminating method with a possibly non-terminating method ('{0}')", classMethod.Name);
-                            }
-                        }
-                        if (!cl.Module.IsAbstract && traitMethod.Body == null && classMem == null)
-                            Error(cl, "class: {0} does not implement trait member: {1}", cl.CompileName, traitMethod.CompileName);
-                    }
-                }
+      var clMembers = classMembers[cl];
+      foreach (TraitDecl trait in cl.TraitsObj) {
+        //merging current class members with the inheriting trait
+        foreach (var traitMember in trait.Members) {
+          var clMember = clMembers[traitMember.Name];
+          if (clMember == traitMember) {
+            // The member is the one inherited from the trait (and the class does not itself define a member with this name).  This
+            // is fine for fields and for functions and methods with bodies.  However, for a body-less function or method, the class
+            // is required to at least redeclare the member with its signature.  (It should also provide a stronger specification,
+            // but that will be checked by the verifier.  And it should also have a body, but that will be checked by the compiler.)
+            if (traitMember is Field) {
+              var field = (Field)traitMember;
+              if (!field.IsGhost) {
+                cl.InheritedMembers.Add(field);
+              }
+            } else if (traitMember is Function) {
+              var func = (Function)traitMember;
+              if (func.Body == null) {
+                Error(cl.tok, "class '{0}' does not implement trait function '{1}.{2}'", cl.Name, trait.Name, traitMember.Name);
+              } else if (!func.IsGhost && !func.IsStatic) {
+                cl.InheritedMembers.Add(func);
+              }
+            } else if (traitMember is Method) {
+              var method = (Method)traitMember;
+              if (method.Body == null) {
+                Error(cl.tok, "class '{0}' does not implement trait method '{1}.{2}'", cl.Name, trait.Name, traitMember.Name);
+              } else if (!method.IsGhost && !method.IsStatic) {
+                cl.InheritedMembers.Add(method);
+              }
             }
+          } else if (clMember.EnclosingClass != cl) {
+            // The class inherits the member from two places
+            Error(clMember.tok, "member name '{0}' in class '{1}' inherited from both traits '{2}' and '{3}'", traitMember.Name, cl.Name, clMember.EnclosingClass.Name, trait.Name);
+
+          } else if (traitMember is Field) {
+            // The class is not allowed to do anything with the field other than silently inherit it.
+            if (clMember is Field) {
+              Error(clMember.tok, "field '{0}' is inherited from trait '{1}' and is not allowed to be re-declared", traitMember.Name, trait.Name);
+            } else {
+              Error(clMember.tok, "member name '{0}' in class '{1}' clashes with inherited field from trait '{2}'", traitMember.Name, cl.Name, trait.Name);
+            }
+
+          } else if (traitMember is Method) {
+            var traitMethod = (Method)traitMember;
+            if (traitMethod.Body != null) {
+              // The method was defined in the trait, so the class is not allowed to do anything with the method other than silently inherit it.
+              Error(clMember.tok, "member '{0}' in class '{1}' overrides fully defined method inherited from trait '{2}'", clMember.Name, cl.Name, trait.Name);
+            } else if (!(clMember is Method)) {
+              Error(clMember.tok, "non-method member '{0}' overrides method '{1}' inherited from trait '{2}'", clMember.Name, traitMethod.Name, trait.Name);
+            } else {
+              var classMethod = (Method)clMember;
+              classMethod.OverriddenMethod = traitMethod;
+              //adding a call graph edge from the trait method to that of class
+              cl.Module.CallGraph.AddEdge(traitMethod, classMethod);
+
+              refinementTransformer.CheckOverride_MethodParameters(classMethod, traitMethod);
+
+              var traitMethodAllowsNonTermination = Contract.Exists(traitMethod.Decreases.Expressions, e => e is WildcardExpr);
+              var classMethodAllowsNonTermination = Contract.Exists(classMethod.Decreases.Expressions, e => e is WildcardExpr);
+              if (classMethodAllowsNonTermination && !traitMethodAllowsNonTermination) {
+                Error(classMethod.tok, "not allowed to override a terminating method with a possibly non-terminating method ('{0}')", classMethod.Name);
+              }
+            }
+
+          } else if (traitMember is Function) {
+            var traitFunction = (Function)traitMember;
+            if (traitFunction.Body != null) {
+              // The function was defined in the trait, so the class is not allowed to do anything with the function other than silently inherit it.
+              Error(clMember.tok, "member '{0}' in class '{1}' overrides fully defined function inherited from trait '{2}'", clMember.Name, cl.Name, trait.Name);
+            } else if (!(clMember is Function)) {
+              Error(clMember.tok, "non-function member '{0}' overrides function '{1}' inherited from trait '{2}'", clMember.Name, traitFunction.Name, trait.Name);
+            } else {
+              var classFunction = (Function)clMember;
+              classFunction.OverriddenFunction = traitFunction;
+              //adding a call graph edge from the trait method to that of class
+              cl.Module.CallGraph.AddEdge(traitFunction, classFunction);
+
+              refinementTransformer.CheckOverride_FunctionParameters(classFunction, traitFunction);
+            }
+
+          } else {
+            Contract.Assert(false);  // unexpected member
+          }
         }
       }
     }
@@ -8082,7 +8097,7 @@ namespace Microsoft.Dafny
               }
             }
             if (errorCount != ErrorCount) {
-              // no nothing else; error has been reported
+              // do nothing else; error has been reported
             } else if (callee != null) {
               // produce a FunctionCallExpr instead of an ApplyExpr(MemberSelectExpr)
               var rr = new FunctionCallExpr(e.Lhs.tok, callee.Name, mse.Obj, e.tok, e.Args);

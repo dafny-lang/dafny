@@ -58,14 +58,61 @@ method Main()
   Client(c);
   var z := TT.StaticMinus(50, 20);
   print "z=", z, "\n";
-  var z' := CC.StaticMinus(50, 20);
-  print "z'=", z', "\n";
-  var w := c.StaticMinus(50, 20);
-  print "w=", w, "\n";
+//  var z' := CC.StaticMinus(50, 20);
+//  print "z'=", z', "\n";
+//  var w := c.StaticMinus(50, 20);
+//  print "w=", w, "\n";
 
   c.Double(500);
   c.AddFive(502);
-  c.StaticTriple(504);
+//  c.StaticTriple(504);
   TT.StaticTriple(504);
-  CC.StaticTriple(505);
+//  CC.StaticTriple(505);
+
+  var seven := OtherModule.Y.F(15);
+  assert seven == 7;
+  var b := OtherModule.Y.P(real(seven));
+  print "From OtherModule.Y: ", seven, " and ", b, "\n";
+//  seven := OtherModule.X.F(15);
+//  assert seven == 7;
+//  b := OtherModule.X.P(real(seven));
+//  print "From OtherModule.X: ", seven, " and ", b, "\n";
+
+  TestFields.Test();
+}
+
+module OtherModule {
+  trait Y {
+    static function method F(x: int): int
+    { x / 2 }
+    static method P(t: real) returns (f: bool)
+    {
+      print "This is OtherModule.P(", t, ")\n";
+      f := t < 10.0;
+    }
+  }
+  class X extends Y {
+  }
+}
+
+
+module TestFields {
+  trait J {
+    var f: int
+  }
+
+  class C extends J {
+  }
+
+  method Test() {
+    var c := new C;
+    var j: J := c;
+
+    c.f := 15;
+    assert j.f == 15;
+    print "c.f= ", c.f, " j.f= ", j.f, "\n";
+    j.f := 18;
+    assert c.f == 18;
+    print "c.f= ", c.f, " j.f= ", j.f, "\n";
+  }
 }

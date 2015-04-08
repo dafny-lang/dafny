@@ -1872,6 +1872,7 @@ namespace Microsoft.Dafny {
   public class ClassDecl : TopLevelDecl {
     public override string WhatKind { get { return "class"; } }
     public readonly List<MemberDecl> Members;
+    public readonly List<MemberDecl> InheritedMembers = new List<MemberDecl>();  // these are non-ghost instance fields and instance members defined with bodies in traits (this list is used by the compiler)
     public readonly List<Type> TraitsTyp;  // these are the types that are parsed after the keyword 'extends'
     public readonly List<TraitDecl> TraitsObj = new List<TraitDecl>();  // populated during resolution
     public bool HasConstructor;  // filled in (early) during resolution; true iff there exists a member that is a Constructor
@@ -2288,7 +2289,6 @@ namespace Microsoft.Dafny {
     public readonly bool IsGhost;
     public TopLevelDecl EnclosingClass;  // filled in during resolution
     public MemberDecl RefinementBase;  // filled in during the pre-resolution refinement transformation; null if the member is new here
-    public bool Inherited;
     public MemberDecl(IToken tok, string name, bool hasStaticKeyword, bool isGhost, Attributes attributes)
       : base(tok, name, attributes) {
       Contract.Requires(tok != null);
