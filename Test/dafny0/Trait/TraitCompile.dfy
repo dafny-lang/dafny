@@ -58,25 +58,25 @@ method Main()
   Client(c);
   var z := TT.StaticMinus(50, 20);
   print "z=", z, "\n";
-//  var z' := CC.StaticMinus(50, 20);
-//  print "z'=", z', "\n";
-//  var w := c.StaticMinus(50, 20);
-//  print "w=", w, "\n";
+  var z' := CC.StaticMinus(50, 20);
+  print "z'=", z', "\n";
+  var w := c.StaticMinus(50, 20);
+  print "w=", w, "\n";
 
   c.Double(500);
   c.AddFive(502);
-//  c.StaticTriple(504);
+  c.StaticTriple(504);
   TT.StaticTriple(504);
-//  CC.StaticTriple(505);
+  CC.StaticTriple(505);
 
   var seven := OtherModule.Y.F(15);
   assert seven == 7;
   var b := OtherModule.Y.P(real(seven));
   print "From OtherModule.Y: ", seven, " and ", b, "\n";
-//  seven := OtherModule.X.F(15);
-//  assert seven == 7;
-//  b := OtherModule.X.P(real(seven));
-//  print "From OtherModule.X: ", seven, " and ", b, "\n";
+  seven := OtherModule.X.F(15);
+  assert seven == 7;
+  b := OtherModule.X.P(real(seven));
+  print "From OtherModule.X: ", seven, " and ", b, "\n";
 
   TestFields.Test();
 }

@@ -7786,8 +7786,7 @@ namespace Microsoft.Dafny
               Error(expr.tok, "accessing member '{0}' requires an instance expression", expr.SuffixName);
               // nevertheless, continue creating an expression that approximates a correct one
             }
-            var receiver = new StaticReceiverExpr(expr.tok, ty);
-            receiver.Type = ty;
+            var receiver = new StaticReceiverExpr(expr.tok, (UserDefinedType)ty.NormalizeExpand(), (ClassDecl)member.EnclosingClass);
             r = ResolveExprDotCall(expr.tok, receiver, member, expr.OptTypeArguments, opts.codeContext, allowMethodCall);
           }
         } else if (ty.IsDatatype) {
@@ -7817,7 +7816,13 @@ namespace Microsoft.Dafny
         NonProxyType nptype;
         member = ResolveMember(expr.tok, expr.Lhs.Type, expr.SuffixName, out nptype);
         if (member != null) {
-          var receiver = expr.Lhs;
+          Expression receiver;
+          if (!member.IsStatic) {
+            receiver = expr.Lhs;
+          } else {
+            Contract.Assert(expr.Lhs.Type.IsRefType);  // only reference types have static methods
+            receiver = new StaticReceiverExpr(expr.tok, (UserDefinedType)expr.Lhs.Type.NormalizeExpand(), (ClassDecl)member.EnclosingClass);
+          }
           r = ResolveExprDotCall(expr.tok, receiver, member, expr.OptTypeArguments, opts.codeContext, allowMethodCall);
         }
       }

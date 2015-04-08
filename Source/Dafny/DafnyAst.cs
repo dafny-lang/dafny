@@ -5267,14 +5267,48 @@ namespace Microsoft.Dafny {
       Contract.Requires(t != null);
       UnresolvedType = t;
     }
-
+    
+    /// <summary>
+    /// Constructs a resolved LiteralExpr representing the 'null' literal whose type is "cl"
+    /// parameterized by the type arguments of "cl" itself.
+    /// </summary>
     public StaticReceiverExpr(IToken tok, ClassDecl cl)
-      : base(tok)  // constructs a LiteralExpr representing the 'null' literal
+      : base(tok)
     {
       Contract.Requires(tok != null);
       Contract.Requires(cl != null);
       var typeArgs = cl.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp));
       Type = new UserDefinedType(tok, cl.Name, cl, typeArgs);
+      UnresolvedType = Type;
+    }
+
+    /// <summary>
+    /// Constructs a resolved LiteralExpr representing the 'null' literal whose type is "cl"
+    /// parameterized according to the type arguments to "t".  It is assumed that "t" denotes
+    /// a class or trait that (possibly reflexively or transitively) extends "cl".
+    /// Examples:
+    /// * If "t" denotes "C(G)" and "cl" denotes "C", then the type of the StaticReceiverExpr
+    ///   will be "C(G)".
+    /// * Suppose "C" is a class that extends a trait "T"; then, if "t" denotes "C" and "cl" denotes
+    ///   "T", then the type of the StaticReceiverExpr will be "T".
+    /// * In the future, Dafny will support type parameters for traits and for classes that implement
+    ///   traits.  Then, suppose "C(X)" is a class that extends "T(f(X))", and that "T(Y)" is
+    ///   a trait that in turn extends trait "W(g(Y))".  If "t" denotes type "C(G)" and "cl" denotes "W",
+    ///   then type of the StaticReceiverExpr will be "T(g(f(G)))".
+    /// </summary>
+    public StaticReceiverExpr(IToken tok, UserDefinedType t, ClassDecl cl)
+      : base(tok) {
+      Contract.Requires(tok != null);
+      Contract.Requires(t.ResolvedClass != null);
+      Contract.Requires(cl != null);
+      if (t.ResolvedClass != cl) {
+        var orig = (ClassDecl)t.ResolvedClass;
+        Contract.Assert(orig.TraitsObj.Contains(cl));  // Dafny currently supports only one level of inheritance from traits
+        Contract.Assert(orig.TypeArgs.Count == 0);  // Dafny currently only allows type-parameter-less classes to extend traits
+        Contract.Assert(cl.TypeArgs.Count == 0);  // Dafny currently does not support type parameters for traits
+        t = new UserDefinedType(tok, cl.Name, cl, new List<Type>());
+      }
+      Type = t;
       UnresolvedType = Type;
     }
   }
