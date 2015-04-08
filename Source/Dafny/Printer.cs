@@ -134,7 +134,7 @@ namespace Microsoft.Dafny {
       }
       wr.WriteLine();
       PrintCallGraph(prog.DefaultModuleDef, 0);
-      PrintTopLevelDecls(prog.DefaultModuleDef.TopLevelDecls, 0, Path.GetFullPath(prog.Name));
+      PrintTopLevelDecls(prog.DefaultModuleDef.TopLevelDecls, 0, Path.GetFullPath(prog.FullName));
       wr.Flush();
     }
 
