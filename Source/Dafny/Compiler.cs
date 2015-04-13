@@ -430,7 +430,7 @@ namespace Microsoft.Dafny {
         foreach (Formal arg in ctor.Formals) {
           if (!arg.IsGhost) {
             string nm = FormalName(arg, i);
-            if (arg.Type.IsDatatype || arg.Type.IsTypeParameter) {
+            if (arg.Type.IsDatatype || arg.Type.IsTypeParameter || arg.Type.SupportsEquality) {
               wr.Write(" && this.@{0}.Equals(oth.@{0})", nm);
             } else {
               wr.Write(" && this.@{0} == oth.@{0}", nm);
@@ -2408,7 +2408,7 @@ namespace Microsoft.Dafny {
             opString = "&&";  break;
 
           case BinaryExpr.ResolvedOpcode.EqCommon: {
-            if (e.E0.Type.IsDatatype || e.E0.Type.IsTypeParameter) {
+            if (e.E0.Type.IsDatatype || e.E0.Type.IsTypeParameter || e.E0.Type.SupportsEquality) {
               callString = "Equals";
             } else if (e.E0.Type.IsRefType) {
               // Dafny's type rules are slightly different C#, so we may need a cast here.
@@ -2421,7 +2421,7 @@ namespace Microsoft.Dafny {
             break;
           }
           case BinaryExpr.ResolvedOpcode.NeqCommon: {
-            if (e.E0.Type.IsDatatype || e.E0.Type.IsTypeParameter) {
+            if (e.E0.Type.IsDatatype || e.E0.Type.IsTypeParameter || e.E0.Type.SupportsEquality) {
               preOpString = "!";
               callString = "Equals";
             } else if (e.E0.Type.IsRefType) {
