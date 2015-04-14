@@ -499,7 +499,13 @@ namespace Dafny
       return other is Sequence<T> && Equals((Sequence<T>)other);
     }
     public override int GetHashCode() {
-      return elmts.GetHashCode();
+      if (elmts == null || elmts.Length == 0)
+        return 0;
+      var hashCode = 0;
+      for (var i = 0; i < elmts.Length; i++) {
+        hashCode = (hashCode << 3) | (hashCode >> 29) ^ elmts[i].GetHashCode();
+      }
+      return hashCode;
     }
     public override string ToString() {
       if (elmts is char[]) {
