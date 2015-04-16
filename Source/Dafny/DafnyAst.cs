@@ -5225,12 +5225,14 @@ namespace Microsoft.Dafny {
       return e;
     }
 
-    public static Expression VarSubstituter(List<NonglobalVariable> oldVars, List<BoundVar> newVars, Expression e) {
+    public static Expression VarSubstituter(List<NonglobalVariable> oldVars, List<BoundVar> newVars, Expression e, Dictionary<TypeParameter, Type> typeMap=null) {
       Contract.Requires(oldVars != null && newVars != null);
       Contract.Requires(oldVars.Count == newVars.Count);
 
       Dictionary<IVariable, Expression/*!*/> substMap = new Dictionary<IVariable, Expression>();
-      Dictionary<TypeParameter, Type> typeMap = new Dictionary<TypeParameter, Type>();
+      if (typeMap == null) {
+        typeMap = new Dictionary<TypeParameter, Type>();
+      }
 
       for (int i = 0; i < oldVars.Count; i++) {
         var id = new IdentifierExpr(newVars[i].tok, newVars[i].Name);

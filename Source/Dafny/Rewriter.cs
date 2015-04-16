@@ -672,7 +672,8 @@ namespace Microsoft.Dafny
 
       // Substitute the forall's variables for those of the fn
       var formals = fn.Formals.ConvertAll<NonglobalVariable>(x => (NonglobalVariable)x);
-      reqs = Expression.VarSubstituter(formals, origForall.BoundVars, reqs);
+      var typeMap = Util.Dict<TypeParameter, Type>(fn.TypeArgs, Util.Map(origForall.TypeArgs, x => new UserDefinedType(x)));
+      reqs = Expression.VarSubstituter(formals, origForall.BoundVars, reqs, typeMap);
 
       var newImpl = Expression.CreateImplies(reqs, origImpl.E1);
       //var newForall = Expression.CreateQuantifier(origForall, true, newImpl);
