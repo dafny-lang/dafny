@@ -75,7 +75,11 @@ namespace Dafny
       return other is Set<T> && Equals((Set<T>)other);
     }
     public override int GetHashCode() {
-      return dict.GetHashCode();
+      var hashCode = 0;
+      foreach (var t in dict.Keys) {
+        hashCode = (hashCode << 3) | (hashCode >> 29) ^ t.GetHashCode();
+      }
+      return hashCode;
     }
     public override string ToString() {
       var s = "{";
@@ -228,7 +232,12 @@ namespace Dafny
       return other is MultiSet<T> && Equals((MultiSet<T>)other);
     }
     public override int GetHashCode() {
-      return dict.GetHashCode();
+      var hashCode = 0;
+      foreach (var kv in dict) {
+        hashCode = (hashCode << 3) | (hashCode >> 29) ^ kv.Key.GetHashCode();
+        hashCode = (hashCode << 3) | (hashCode >> 29) ^ kv.Value.GetHashCode();
+      }
+      return hashCode;
     }
     public override string ToString() {
       var s = "multiset{";
@@ -392,7 +401,12 @@ namespace Dafny
       return other is Map<U, V> && Equals((Map<U, V>)other);
     }
     public override int GetHashCode() {
-      return dict.GetHashCode();
+      var hashCode = 0;
+      foreach (var kv in dict) {
+        hashCode = (hashCode << 3) | (hashCode >> 29) ^ kv.Key.GetHashCode();
+        hashCode = (hashCode << 3) | (hashCode >> 29) ^ kv.Value.GetHashCode();
+      }
+      return hashCode;
     }
     public override string ToString() {
       var s = "map[";

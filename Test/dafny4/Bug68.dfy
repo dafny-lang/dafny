@@ -1,9 +1,39 @@
 // RUN: %dafny /compile:3  "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
-method Main()
+method M1()
+{
+  var m := map [{10, 20} := 33];
+  assert {10, 20} in m; // succeeds 
+  print {10, 20} in m, "\n"; // prints False
+}
+
+method M2()
+{
+  var m := map [(map [1 := 10, 2 := 20]) := 33];
+  assert (map [1 := 10, 2 := 20]) in m; // succeeds 
+  print (map [1 := 10, 2 := 20]) in m, "\n"; // prints False
+}
+
+method M3()
+{
+  var m := map [(multiset{10, 20}) := 33];
+  assert (multiset{10, 20}) in m; // succeeds 
+  print (multiset{10, 20}) in m, "\n"; // prints False
+}
+
+
+method M4()
 {
   var m := map [[10, 20] := 33];
   assert [10, 20] in m; // succeeds 
-  print [10, 20] in m; // prints False
+  print [10, 20] in m, "\n"; // prints False
+}
+
+method Main()
+{
+  M1();
+  M2();
+  M3();
+  M4();
 }
