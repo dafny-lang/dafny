@@ -6109,7 +6109,18 @@ namespace Microsoft.Dafny
           if (memberName == "_ctor") {
             Error(tok, "{0} {1} does not have an anonymous constructor", kind, ctype.Name);
           } else {
-            Error(tok, "member {0} does not exist in {2} {1}", memberName, ctype.Name, kind);
+            // search the static members of the enclosing module or its imports
+            if (moduleInfo.StaticMembers.TryGetValue(memberName, out member)) {
+              Contract.Assert(member.IsStatic); // moduleInfo.StaticMembers is supposed to contain only static members of the module's implicit class _default
+              if (ReallyAmbiguousThing(ref member)) {
+                Error(tok, "The name {0} ambiguously refers to a static member in one of the modules {1} (try qualifying the member name with the module name)", memberName, ((AmbiguousMemberDecl)member).ModuleNames());
+              } else {
+                nptype = GetReceiverType(tok, member);
+                return member;
+              }
+            } else {
+              Error(tok, "member {0} does not exist in {2} {1}", memberName, ctype.Name, kind);
+            }
           }
           return null;
         } else {
