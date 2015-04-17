@@ -75,9 +75,9 @@ namespace Dafny
       return other is Set<T> && Equals((Set<T>)other);
     }
     public override int GetHashCode() {
-      var hashCode = 0;
+      var hashCode = 1;
       foreach (var t in dict.Keys) {
-        hashCode = (hashCode << 3) | (hashCode >> 29) ^ t.GetHashCode();
+        hashCode = hashCode * (t.GetHashCode()+3);
       }
       return hashCode;
     }
@@ -232,10 +232,11 @@ namespace Dafny
       return other is MultiSet<T> && Equals((MultiSet<T>)other);
     }
     public override int GetHashCode() {
-      var hashCode = 0;
+      var hashCode = 1;
       foreach (var kv in dict) {
-        hashCode = (hashCode << 3) | (hashCode >> 29) ^ kv.Key.GetHashCode();
-        hashCode = (hashCode << 3) | (hashCode >> 29) ^ kv.Value.GetHashCode();
+        var key = kv.Key.GetHashCode();
+        key = (key << 3) | (key >> 29) ^ kv.Value.GetHashCode();
+        hashCode = hashCode * (key + 3);
       }
       return hashCode;
     }
@@ -401,10 +402,11 @@ namespace Dafny
       return other is Map<U, V> && Equals((Map<U, V>)other);
     }
     public override int GetHashCode() {
-      var hashCode = 0;
+      var hashCode = 1;
       foreach (var kv in dict) {
-        hashCode = (hashCode << 3) | (hashCode >> 29) ^ kv.Key.GetHashCode();
-        hashCode = (hashCode << 3) | (hashCode >> 29) ^ kv.Value.GetHashCode();
+        var key = kv.Key.GetHashCode();
+        key = (key << 3) | (key >> 29) ^ kv.Value.GetHashCode();
+        hashCode = hashCode * (key + 3);
       }
       return hashCode;
     }
