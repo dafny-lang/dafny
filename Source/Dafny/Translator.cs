@@ -11061,14 +11061,15 @@ namespace Microsoft.Dafny {
             case BinaryExpr.ResolvedOpcode.InMap: {
               bool finite = e.E1.Type.AsMapType.Finite;
               var f = finite ? BuiltinFunction.MapDomain : BuiltinFunction.IMapDomain;
-              return Bpl.Expr.Select(translator.FunctionCall(expr.tok, f, predef.MapType(e.tok, finite, predef.BoxType, predef.BoxType), e1),
+              return Bpl.Expr.SelectTok(expr.tok, translator.FunctionCall(expr.tok, f, predef.MapType(e.tok, finite, predef.BoxType, predef.BoxType), e1),
                                      BoxIfNecessary(expr.tok, e0, e.E0.Type));
             }
             case BinaryExpr.ResolvedOpcode.NotInMap: {
               bool finite = e.E1.Type.AsMapType.Finite;
               var f = finite ? BuiltinFunction.MapDomain : BuiltinFunction.IMapDomain;
-              return Bpl.Expr.Not(Bpl.Expr.Select(translator.FunctionCall(expr.tok, f, predef.MapType(e.tok, finite, predef.BoxType, predef.BoxType), e1),
-                                     BoxIfNecessary(expr.tok, e0, e.E0.Type)));
+              Bpl.Expr inMap = Bpl.Expr.SelectTok(expr.tok, translator.FunctionCall(expr.tok, f, predef.MapType(e.tok, finite, predef.BoxType, predef.BoxType), e1),
+                                     BoxIfNecessary(expr.tok, e0, e.E0.Type));
+              return Bpl.Expr.Unary(expr.tok, UnaryOperator.Opcode.Not, inMap);
             }
             case BinaryExpr.ResolvedOpcode.MapDisjoint: {
               return translator.FunctionCall(expr.tok, BuiltinFunction.MapDisjoint, null, e0, e1);
