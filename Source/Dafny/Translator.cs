@@ -4261,12 +4261,21 @@ namespace Microsoft.Dafny {
         return CanCallAssumption(l, etran);
       } else if (expr is MemberSelectExpr) {
         MemberSelectExpr e = (MemberSelectExpr)expr;
+        Bpl.Expr r;
         if (e.Obj is ThisExpr) {
-          return Bpl.Expr.True;
+          r = Bpl.Expr.True;
         } else {
-          Bpl.Expr r = CanCallAssumption(e.Obj, etran);
-          return r;
+          r = CanCallAssumption(e.Obj, etran);
         }
+        if (e.Member is DatatypeDestructor) {
+          var dtor = (DatatypeDestructor)e.Member;
+          if (dtor.EnclosingCtor.EnclosingDatatype.Ctors.Count == 1) {
+            var correctConstructor = FunctionCall(e.tok, dtor.EnclosingCtor.QueryField.FullSanitizedName, Bpl.Type.Bool, etran.TrExpr(e.Obj));
+            // There is only one constructor, so the value must be been constructed by it; might as well assume that here.
+            r = BplAnd(r, correctConstructor);
+          }
+        }
+        return r;
       } else if (expr is SeqSelectExpr) {
         SeqSelectExpr e = (SeqSelectExpr)expr;
         Bpl.Expr total = CanCallAssumption(e.Seq, etran);

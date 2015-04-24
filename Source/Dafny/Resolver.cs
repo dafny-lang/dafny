@@ -872,8 +872,7 @@ namespace Microsoft.Dafny
               Tuple<DatatypeCtor, bool> pair;
               if (sig.Ctors.TryGetValue(kv.Key, out pair)) {
                 // The same ctor can be imported from two different imports (e.g "diamond" imports), in which case, 
-                // they are not duplicates. For TopLevelDecls and static members, they are handled by 
-                // ReallyAmbiguousThing() during resolving.
+                // they are not duplicates.
                 if (kv.Value.Item1 != pair.Item1) {
                   // mark it as a duplicate
                   sig.Ctors[kv.Key] = new Tuple<DatatypeCtor, bool>(pair.Item1, true);
