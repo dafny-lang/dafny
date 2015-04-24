@@ -2023,6 +2023,7 @@ namespace Microsoft.Dafny {
           TypeParametersUsedInConstructionByDefaultCtor[i] = true;
         }
       }
+      this.EqualitySupport = ES.ConsultTypeArguments;
     }
     private static List<TypeParameter> CreateTypeParameters(int dims) {
       Contract.Requires(0 <= dims);

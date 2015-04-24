@@ -1342,3 +1342,10 @@ module GhostLet {
     x := ghost var a :| 0 <= a; 10;  // fine
   }
 }
+
+// ------------------- tuple equality support -------------------
+
+module TupleEqualitySupport {
+  datatype GoodRecord = GoodRecord(set<(int,int)>)
+  datatype BadRecord = BadRecord(set<(int, int->bool)>)  // error: this tuple type does not support equality
+}
