@@ -123,3 +123,23 @@ class DoublyLinkedList {
     Nodes := Nodes[..k] + [x] + Nodes[k..];
   }
 }
+
+// --------------------------------------------------------
+// If it were not required to build a data structure (like the class above) that supports the
+// Remove and PutBack operations, the operations can easily be verified to compose into the
+// identity transformation.  The following method shows that the two operations, under a suitable
+// precondition, have no net effect on any .L or .R field.
+
+method Alt(x: Node)
+  requires x != null && x.L != null && x.R != null
+  requires x.L.R == x && x.R.L == x  // links are mirrored
+  modifies x, x.L, x.R
+  ensures forall y: Node :: y != null ==> y.L == old(y.L) && y.R == old(y.R)
+{
+  // remove
+  x.R.L := x.L;
+  x.L.R := x.R;
+  // put back
+  x.R.L := x;
+  x.L.R := x;
+}
