@@ -4261,12 +4261,21 @@ namespace Microsoft.Dafny {
         return CanCallAssumption(l, etran);
       } else if (expr is MemberSelectExpr) {
         MemberSelectExpr e = (MemberSelectExpr)expr;
+        Bpl.Expr r;
         if (e.Obj is ThisExpr) {
-          return Bpl.Expr.True;
+          r = Bpl.Expr.True;
         } else {
-          Bpl.Expr r = CanCallAssumption(e.Obj, etran);
-          return r;
+          r = CanCallAssumption(e.Obj, etran);
         }
+        if (e.Member is DatatypeDestructor) {
+          var dtor = (DatatypeDestructor)e.Member;
+          if (dtor.EnclosingCtor.EnclosingDatatype.Ctors.Count == 1) {
+            var correctConstructor = FunctionCall(e.tok, dtor.EnclosingCtor.QueryField.FullSanitizedName, Bpl.Type.Bool, etran.TrExpr(e.Obj));
+            // There is only one constructor, so the value must be been constructed by it; might as well assume that here.
+            r = BplAnd(r, correctConstructor);
+          }
+        }
+        return r;
       } else if (expr is SeqSelectExpr) {
         SeqSelectExpr e = (SeqSelectExpr)expr;
         Bpl.Expr total = CanCallAssumption(e.Seq, etran);
@@ -11061,14 +11070,15 @@ namespace Microsoft.Dafny {
             case BinaryExpr.ResolvedOpcode.InMap: {
               bool finite = e.E1.Type.AsMapType.Finite;
               var f = finite ? BuiltinFunction.MapDomain : BuiltinFunction.IMapDomain;
-              return Bpl.Expr.Select(translator.FunctionCall(expr.tok, f, predef.MapType(e.tok, finite, predef.BoxType, predef.BoxType), e1),
+              return Bpl.Expr.SelectTok(expr.tok, translator.FunctionCall(expr.tok, f, predef.MapType(e.tok, finite, predef.BoxType, predef.BoxType), e1),
                                      BoxIfNecessary(expr.tok, e0, e.E0.Type));
             }
             case BinaryExpr.ResolvedOpcode.NotInMap: {
               bool finite = e.E1.Type.AsMapType.Finite;
               var f = finite ? BuiltinFunction.MapDomain : BuiltinFunction.IMapDomain;
-              return Bpl.Expr.Not(Bpl.Expr.Select(translator.FunctionCall(expr.tok, f, predef.MapType(e.tok, finite, predef.BoxType, predef.BoxType), e1),
-                                     BoxIfNecessary(expr.tok, e0, e.E0.Type)));
+              Bpl.Expr inMap = Bpl.Expr.SelectTok(expr.tok, translator.FunctionCall(expr.tok, f, predef.MapType(e.tok, finite, predef.BoxType, predef.BoxType), e1),
+                                     BoxIfNecessary(expr.tok, e0, e.E0.Type));
+              return Bpl.Expr.Unary(expr.tok, UnaryOperator.Opcode.Not, inMap);
             }
             case BinaryExpr.ResolvedOpcode.MapDisjoint: {
               return translator.FunctionCall(expr.tok, BuiltinFunction.MapDisjoint, null, e0, e1);

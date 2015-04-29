@@ -75,7 +75,11 @@ namespace Dafny
       return other is Set<T> && Equals((Set<T>)other);
     }
     public override int GetHashCode() {
-      return dict.GetHashCode();
+      var hashCode = 1;
+      foreach (var t in dict.Keys) {
+        hashCode = hashCode * (t.GetHashCode()+3);
+      }
+      return hashCode;
     }
     public override string ToString() {
       var s = "{";
@@ -228,7 +232,13 @@ namespace Dafny
       return other is MultiSet<T> && Equals((MultiSet<T>)other);
     }
     public override int GetHashCode() {
-      return dict.GetHashCode();
+      var hashCode = 1;
+      foreach (var kv in dict) {
+        var key = kv.Key.GetHashCode();
+        key = (key << 3) | (key >> 29) ^ kv.Value.GetHashCode();
+        hashCode = hashCode * (key + 3);
+      }
+      return hashCode;
     }
     public override string ToString() {
       var s = "multiset{";
@@ -392,7 +402,13 @@ namespace Dafny
       return other is Map<U, V> && Equals((Map<U, V>)other);
     }
     public override int GetHashCode() {
-      return dict.GetHashCode();
+      var hashCode = 1;
+      foreach (var kv in dict) {
+        var key = kv.Key.GetHashCode();
+        key = (key << 3) | (key >> 29) ^ kv.Value.GetHashCode();
+        hashCode = hashCode * (key + 3);
+      }
+      return hashCode;
     }
     public override string ToString() {
       var s = "map[";
@@ -499,7 +515,13 @@ namespace Dafny
       return other is Sequence<T> && Equals((Sequence<T>)other);
     }
     public override int GetHashCode() {
-      return elmts.GetHashCode();
+      if (elmts == null || elmts.Length == 0)
+        return 0;
+      var hashCode = 0;
+      for (var i = 0; i < elmts.Length; i++) {
+        hashCode = (hashCode << 3) | (hashCode >> 29) ^ elmts[i].GetHashCode();
+      }
+      return hashCode;
     }
     public override string ToString() {
       if (elmts is char[]) {
