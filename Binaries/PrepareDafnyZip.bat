@@ -41,7 +41,7 @@ for %%d in (
 )
 for %%f in (
   Util\emacs\dafny-mode.el
-  Util\vim\dafny.vim
+  Util\vim\README.md
   Util\latex\dafny.sty
 ) do (
   copy ..\%%f %DEST_DIR%\%%f
