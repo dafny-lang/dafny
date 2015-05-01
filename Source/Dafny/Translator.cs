@@ -5510,22 +5510,45 @@ namespace Microsoft.Dafny {
         }
 
         {
-          // Reads(Ty.., F#Handle( Ty1, ..., TyN, Layer, self), Heap, arg1, ..., argN)[Box(o)]
-          //   =  $Frame_F(args...)[o]
-          // //  && Scramble(...)
+          // Reads(Ty.., F#Handle( Ty1, ..., TyN, Layer, self), Heap, arg1, ..., argN)
+          //   =  $Frame_F(args...)
 
           var fhandle = FunctionCall(f.tok, name, predef.HandleType, SnocSelf(args));
-          Bpl.Expr o; var oVar = BplBoundVar("o", predef.RefType, out o);
-          Bpl.Expr lhs_inner = FunctionCall(f.tok, Reads(arity), Bpl.Type.Bool, Concat(tyargs, Cons(fhandle, Cons(h, lhs_args))));
-          Bpl.Expr lhs = new Bpl.NAryExpr(f.tok, new Bpl.MapSelect(f.tok, 1),
-            new List<Bpl.Expr> { lhs_inner, FunctionCall(f.tok, BuiltinFunction.Box, null, o) });
+          Bpl.Expr lhs_inner = FunctionCall(f.tok, Reads(arity), TrType(new SetType(new ObjectType())), Concat(tyargs, Cons(fhandle, Cons(h, lhs_args))));
 
           var et = new ExpressionTranslator(this, predef, h);
-          var rhs = InRWClause(f.tok, o, null, f.Reads, et, selfExpr, rhs_dict);
-                           // MakeScrambler(f.tok, f.FullSanitizedName + "#extraReads", Cons(oVar, Concat(vars, bvars))));
+          Bpl.Expr rhs = null;
+          if (!f.Reads.Exists(fr => fr.E is WildcardExpr)) {
+            // Try to generate just Reads(...) == $Frame_F(...), without having to say these two sets are equal at
+            // all points.
+            foreach (FrameExpression rwComponent in f.Reads) {
+              Expression e = Substitute(rwComponent.E, selfExpr, rhs_dict);
+              e = Resolver.FrameArrowToObjectSet(e, CurrentIdGenerator);
+              var eType = e.Type.NormalizeExpand();
+              if (!(eType is SetType)) {
+                // our attempt at a simple RHS didn't pan out
+                rhs = null;
+                break;
+              } else if (rhs == null) {
+                rhs = et.TrExpr(e);
+              } else {
+                rhs = FunctionCall(f.tok, BuiltinFunction.SetUnion, predef.BoxType, rhs, et.TrExpr(e));
+              }
+            }
+          }
+          if (rhs != null) {
+            sink.AddTopLevelDeclaration(new Axiom(f.tok,
+              BplForall(Concat(vars, bvars), BplTrigger(lhs_inner), Bpl.Expr.Eq(lhs_inner, rhs))));
+          } else {
+            Bpl.Expr o; var oVar = BplBoundVar("o", predef.RefType, out o);
+            Bpl.Expr lhs = new Bpl.NAryExpr(f.tok, new Bpl.MapSelect(f.tok, 1),
+              new List<Bpl.Expr> { lhs_inner, FunctionCall(f.tok, BuiltinFunction.Box, null, o) });
 
-          sink.AddTopLevelDeclaration(new Axiom(f.tok,
-            BplForall(Cons(oVar, Concat(vars, bvars)), BplTrigger(lhs), Bpl.Expr.Eq(lhs, rhs))));
+            rhs = InRWClause(f.tok, o, null, f.Reads, et, selfExpr, rhs_dict);
+
+            sink.AddTopLevelDeclaration(new Axiom(f.tok,
+              BplForall(Cons(oVar, Concat(vars, bvars)), BplTrigger(lhs), Bpl.Expr.Eq(lhs, rhs))));
+          }
         }
       }
       return name;

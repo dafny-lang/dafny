@@ -131,3 +131,14 @@ module ReadsAll {
     f(0) + f(1) + f(2)
   }
 }
+
+module ReadsOnFunctions {
+  lemma M0(f: int -> int)
+  {
+    var g := f.requires;
+    assert g.reads(10) == f.reads(10);
+  }
+//  function F(f: int -> int): int
+//    requires forall x :: f.reads(x) == {}  // should always be allowed to invoke .reads, even if F has an empty reads clause
+//  { 0 }
+}
