@@ -3877,10 +3877,30 @@ namespace Microsoft.Dafny {
 #endif
     }
 
-    Bpl.Expr/*!*/ InRWClause(IToken tok, Bpl.Expr o, Bpl.Expr f, List<FrameExpression> rw, ExpressionTranslator etran,
-                             Expression receiverReplacement, Dictionary<IVariable,Expression> substMap) {
+    Bpl.Expr InRWClause(IToken tok, Bpl.Expr o, Bpl.Expr f, List<FrameExpression> rw, ExpressionTranslator etran,
+                        Expression receiverReplacement, Dictionary<IVariable, Expression> substMap) {
       Contract.Requires(tok != null);
       Contract.Requires(o != null);
+      // Contract.Requires(f != null); // f == null means approximate
+      Contract.Requires(etran != null);
+      Contract.Requires(cce.NonNullElements(rw));
+      Contract.Requires(substMap == null || cce.NonNullDictionaryAndValues(substMap));
+      Contract.Requires(predef != null);
+      Contract.Requires((receiverReplacement == null) == (substMap == null));
+      Contract.Ensures(Contract.Result<Bpl.Expr>() != null);
+      var boxO = FunctionCall(tok, BuiltinFunction.Box, null, o);
+      return InRWClause_Aux(tok, o, boxO, f, rw, etran, receiverReplacement, substMap);
+    }
+
+    /// <summary>
+    /// By taking both an "o" and a "boxO" parameter, the caller has a choice of passing in either
+    /// "o, Box(o)" for some "o" or "Unbox(bx), bx" for some "bx".
+    /// </summary>
+    Bpl.Expr InRWClause_Aux(IToken tok, Bpl.Expr o, Bpl.Expr boxO, Bpl.Expr f, List<FrameExpression> rw, ExpressionTranslator etran,
+                        Expression receiverReplacement, Dictionary<IVariable, Expression> substMap) {
+      Contract.Requires(tok != null);
+      Contract.Requires(o != null);
+      Contract.Requires(boxO != null);
       // Contract.Requires(f != null); // f == null means approximate
       Contract.Requires(etran != null);
       Contract.Requires(cce.NonNullElements(rw));
@@ -3907,11 +3927,10 @@ namespace Microsoft.Dafny {
         if (e is WildcardExpr) {
           disjunct = Bpl.Expr.True;
         } else if (eType is SetType) {
-          // old(e)[Box(o)]
-          disjunct = etran.TrInSet(tok, o, e, ((SetType)eType).Arg);
+          // e[Box(o)]
+          disjunct = etran.TrInSet_Aux(tok, o, boxO, e);
         } else if (eType is SeqType) {
-          // (exists i: int :: 0 <= i && i < Seq#Length(old(e)) && Seq#Index(old(e),i) == Box(o))
-          Bpl.Expr boxO = FunctionCall(tok, BuiltinFunction.Box, null, o);
+          // (exists i: int :: 0 <= i && i < Seq#Length(e) && Seq#Index(e,i) == Box(o))
           Bpl.Variable iVar = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, "$i", Bpl.Type.Int));
           Bpl.Expr i = new Bpl.IdentifierExpr(tok, iVar);
           Bpl.Expr iBounds = InSeqRange(tok, i, etran.TrExpr(e), true, null, false);
@@ -3919,7 +3938,7 @@ namespace Microsoft.Dafny {
           // TODO: the equality in the next line should be changed to one that understands extensionality
           disjunct = new Bpl.ExistsExpr(tok, new List<Variable> { iVar }, Bpl.Expr.And(iBounds, Bpl.Expr.Eq(XsubI, boxO)));
         } else {
-          // o == old(e)
+          // o == e
           disjunct = Bpl.Expr.Eq(o, etran.TrExpr(e));
         }
         if (rwComponent.Field != null && f != null) {
@@ -5496,13 +5515,14 @@ namespace Microsoft.Dafny {
 
           var fhandle = FunctionCall(f.tok, name, predef.HandleType, SnocSelf(args));
           var lhs = FunctionCall(f.tok, Requires(arity), Bpl.Type.Bool, Concat(tyargs, Cons(fhandle, Cons(h, lhs_args))));
-          var rhs = BplOr(
-            FunctionCall(f.tok, RequiresName(f), Bpl.Type.Bool, Concat(SnocSelf(Snoc(args, h)), rhs_args)),
-            MakeScrambler(f.tok, f.FullSanitizedName + "#lessReq", Concat(vars, bvars)));
-
-          // In case this is the /requires/ or /reads/ function, then there is no precondition
+          Bpl.Expr rhs;
           if (fromArrowType) {
+            // In case this is the /requires/ or /reads/ function, then there is no precondition
             rhs = Bpl.Expr.True;
+          } else {
+            rhs = BplOr(
+              FunctionCall(f.tok, RequiresName(f), Bpl.Type.Bool, Concat(SnocSelf(Snoc(args, h)), rhs_args)),
+              MakeScrambler(f.tok, f.FullSanitizedName + "#lessReq", Concat(vars, bvars)));
           }
 
           sink.AddTopLevelDeclaration(new Axiom(f.tok,
@@ -5516,39 +5536,15 @@ namespace Microsoft.Dafny {
           var fhandle = FunctionCall(f.tok, name, predef.HandleType, SnocSelf(args));
           Bpl.Expr lhs_inner = FunctionCall(f.tok, Reads(arity), TrType(new SetType(new ObjectType())), Concat(tyargs, Cons(fhandle, Cons(h, lhs_args))));
 
+          Bpl.Expr bx; var bxVar = BplBoundVar("$bx", predef.BoxType, out bx);
+          Bpl.Expr unboxBx = FunctionCall(f.tok, BuiltinFunction.Unbox, predef.RefType, bx);
+          Bpl.Expr lhs = Bpl.Expr.SelectTok(f.tok, lhs_inner, bx);
+
           var et = new ExpressionTranslator(this, predef, h);
-          Bpl.Expr rhs = null;
-          if (!f.Reads.Exists(fr => fr.E is WildcardExpr)) {
-            // Try to generate just Reads(...) == $Frame_F(...), without having to say these two sets are equal at
-            // all points.
-            foreach (FrameExpression rwComponent in f.Reads) {
-              Expression e = Substitute(rwComponent.E, selfExpr, rhs_dict);
-              e = Resolver.FrameArrowToObjectSet(e, CurrentIdGenerator);
-              var eType = e.Type.NormalizeExpand();
-              if (!(eType is SetType)) {
-                // our attempt at a simple RHS didn't pan out
-                rhs = null;
-                break;
-              } else if (rhs == null) {
-                rhs = et.TrExpr(e);
-              } else {
-                rhs = FunctionCall(f.tok, BuiltinFunction.SetUnion, predef.BoxType, rhs, et.TrExpr(e));
-              }
-            }
-          }
-          if (rhs != null) {
-            sink.AddTopLevelDeclaration(new Axiom(f.tok,
-              BplForall(Concat(vars, bvars), BplTrigger(lhs_inner), Bpl.Expr.Eq(lhs_inner, rhs))));
-          } else {
-            Bpl.Expr o; var oVar = BplBoundVar("o", predef.RefType, out o);
-            Bpl.Expr lhs = new Bpl.NAryExpr(f.tok, new Bpl.MapSelect(f.tok, 1),
-              new List<Bpl.Expr> { lhs_inner, FunctionCall(f.tok, BuiltinFunction.Box, null, o) });
+          var rhs = InRWClause_Aux(f.tok, unboxBx, bx, null, f.Reads, et, selfExpr, rhs_dict);
 
-            rhs = InRWClause(f.tok, o, null, f.Reads, et, selfExpr, rhs_dict);
-
-            sink.AddTopLevelDeclaration(new Axiom(f.tok,
-              BplForall(Cons(oVar, Concat(vars, bvars)), BplTrigger(lhs), Bpl.Expr.Eq(lhs, rhs))));
-          }
+          sink.AddTopLevelDeclaration(new Axiom(f.tok,
+            BplForall(Cons(bxVar, Concat(vars, bvars)), BplTrigger(lhs), Bpl.Expr.Eq(lhs, rhs))));
         }
       }
       return name;
@@ -5641,8 +5637,8 @@ namespace Microsoft.Dafny {
           Func<Bpl.Expr, Bpl.Expr, Bpl.Expr> op = Bpl.Expr.Eq;
           if (selectorVar == "rd") {
             var bx = BplBoundVar("bx", predef.BoxType, bvars);
-            lhs = new Bpl.NAryExpr(tok, new Bpl.MapSelect(tok, 1), new List<Bpl.Expr> { lhs, bx });
-            rhs = new Bpl.NAryExpr(tok, new Bpl.MapSelect(tok, 1), new List<Bpl.Expr> { rhs, bx });
+            lhs = Bpl.Expr.SelectTok(tok, lhs, bx);
+            rhs = Bpl.Expr.SelectTok(tok, rhs, bx);
             // op = Bpl.Expr.Imp;
           }
           if (selectorVar == "r") {
@@ -11538,18 +11534,32 @@ namespace Microsoft.Dafny {
         Contract.Requires(elmt != null);
         Contract.Requires(s != null);
         Contract.Requires(elmtType != null);
+        Contract.Ensures(Contract.Result<Bpl.Expr>() != null);
 
+        var elmtBox = BoxIfNecessary(tok, elmt, elmtType);
+        return TrInSet_Aux(tok, elmt, elmtBox, s);
+      }
+      /// <summary>
+      /// The worker routine for TrInSet.  This method takes both "elmt" and "elmtBox" as parameters,
+      /// using the former when the unboxed form is needed and the latter when the boxed form is needed.
+      /// This gives the caller the flexibility to pass in either "o, Box(o)" or "Unbox(bx), bx".
+      /// </summary>
+      public Bpl.Expr TrInSet_Aux(IToken tok, Bpl.Expr elmt, Bpl.Expr elmtBox, Expression s) {
+        Contract.Requires(tok != null);
+        Contract.Requires(elmt != null);
+        Contract.Requires(elmtBox != null);
+        Contract.Requires(s != null);
         Contract.Ensures(Contract.Result<Bpl.Expr>() != null);
 
         if (s is BinaryExpr) {
           BinaryExpr bin = (BinaryExpr)s;
           switch (bin.ResolvedOp) {
             case BinaryExpr.ResolvedOpcode.Union:
-              return Bpl.Expr.Or(TrInSet(tok, elmt, bin.E0, elmtType), TrInSet(tok, elmt, bin.E1, elmtType));
+              return Bpl.Expr.Or(TrInSet_Aux(tok, elmt, elmtBox, bin.E0), TrInSet_Aux(tok, elmt, elmtBox, bin.E1));
             case BinaryExpr.ResolvedOpcode.Intersection:
-              return Bpl.Expr.And(TrInSet(tok, elmt, bin.E0, elmtType), TrInSet(tok, elmt, bin.E1, elmtType));
+              return Bpl.Expr.And(TrInSet_Aux(tok, elmt, elmtBox, bin.E0), TrInSet_Aux(tok, elmt, elmtBox, bin.E1));
             case BinaryExpr.ResolvedOpcode.SetDifference:
-              return Bpl.Expr.And(TrInSet(tok, elmt, bin.E0, elmtType), Bpl.Expr.Not(TrInSet(tok, elmt, bin.E1, elmtType)));
+              return Bpl.Expr.And(TrInSet_Aux(tok, elmt, elmtBox, bin.E0), Bpl.Expr.Not(TrInSet_Aux(tok, elmt, elmtBox, bin.E1)));
             default:
               break;
           }
@@ -11570,7 +11580,7 @@ namespace Microsoft.Dafny {
             return disjunction;
           }
         }
-        return Bpl.Expr.SelectTok(tok, TrExpr(s), BoxIfNecessary(tok, elmt, elmtType));
+        return Bpl.Expr.SelectTok(tok, TrExpr(s), elmtBox);
       }
 
       /// <summary>

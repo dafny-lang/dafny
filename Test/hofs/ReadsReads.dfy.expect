@@ -14,26 +14,23 @@ ReadsReads.dfy(58,7): Error: insufficient reads clause to invoke function
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Else
-ReadsReads.dfy(66,33): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-ReadsReads.dfy(86,50): Error: assertion violation
+ReadsReads.dfy(87,50): Error: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon16_Then
-ReadsReads.dfy(88,29): Error: assertion violation
+ReadsReads.dfy(89,29): Error: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon18_Then
-ReadsReads.dfy(98,37): Error: assertion violation
+ReadsReads.dfy(99,37): Error: assertion violation
 Execution trace:
     (0,0): anon0
-    ReadsReads.dfy(95,14): anon15_Else
+    ReadsReads.dfy(96,14): anon15_Else
     (0,0): anon19_Then
-ReadsReads.dfy(100,29): Error: assertion violation
+ReadsReads.dfy(101,29): Error: assertion violation
 Execution trace:
     (0,0): anon0
-    ReadsReads.dfy(95,14): anon15_Else
+    ReadsReads.dfy(96,14): anon15_Else
     (0,0): anon21_Then
 
-Dafny program verifier finished with 19 verified, 9 errors
+Dafny program verifier finished with 20 verified, 8 errors
