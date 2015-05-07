@@ -579,6 +579,9 @@ namespace Microsoft.Dafny
       if (m is Constructor) {
         return new Constructor(new RefinementToken(m.tok, moduleUnderConstruction), m.Name, tps, ins,
           req, mod, ens, decreases, body, refinementCloner.MergeAttributes(m.Attributes, moreAttributes), null);
+      } else if (m is InductiveLemma) {
+        return new InductiveLemma(new RefinementToken(m.tok, moduleUnderConstruction), m.Name, m.HasStaticKeyword, tps, ins, m.Outs.ConvertAll(refinementCloner.CloneFormal),
+          req, mod, ens, decreases, body, refinementCloner.MergeAttributes(m.Attributes, moreAttributes), null);
       } else if (m is CoLemma) {
         return new CoLemma(new RefinementToken(m.tok, moduleUnderConstruction), m.Name, m.HasStaticKeyword, tps, ins, m.Outs.ConvertAll(refinementCloner.CloneFormal),
           req, mod, ens, decreases, body, refinementCloner.MergeAttributes(m.Attributes, moreAttributes), null);

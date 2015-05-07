@@ -108,6 +108,19 @@ bool IsLoopSpec() {
   return la.kind == _invariant | la.kind == _decreases | la.kind == _modifies;
 }
 
+bool IsFunctionDecl() {
+  switch (la.kind) {
+    case _function:
+    case _predicate:
+    case _copredicate:
+      return true;
+    case _inductive:
+      return scanner.Peek().kind != _lemma;
+    default:
+      return false;
+  }
+}
+
 bool IsParenStar() {
   scanner.ResetPeek();
   Token x = scanner.Peek();
@@ -438,6 +451,11 @@ TOKENS
   else = "else".
   decreases = "decreases".
   invariant = "invariant".
+  function = "function".
+  predicate = "predicate".
+  inductive = "inductive".
+  lemma = "lemma".
+  copredicate = "copredicate".
   modifies = "modifies".
   reads = "reads".
   requires = "requires".
@@ -643,7 +661,8 @@ ClassMemberDecl<.List<MemberDecl> mm, bool allowConstructors, bool moduleLevelDe
        }
     .)
     FieldDecl<mmod, mm>
-  | (. if (moduleLevelDecl && staticToken != null) {
+  | IF(IsFunctionDecl())
+    (. if (moduleLevelDecl && staticToken != null) {
          errors.Warning(staticToken, "module-level functions are always non-instance, so the 'static' keyword is not allowed here");
          mmod.IsStatic = false;
        }
@@ -927,6 +946,7 @@ MethodDecl<MemberModifiers mmod, bool allowConstructor, out Method/*!*/ m>
      BlockStmt body = null;
      bool isLemma = false;
      bool isConstructor = false;
+     bool isIndLemma = false;
      bool isCoLemma = false;
      IToken signatureEllipsis = null;
      IToken bodyStart = Token.NoToken;
@@ -939,6 +959,7 @@ MethodDecl<MemberModifiers mmod, bool allowConstructor, out Method/*!*/ m>
   | "comethod"                      (. isCoLemma = true;
                                        errors.Warning(t, "the 'comethod' keyword has been deprecated; it has been renamed to 'colemma'");
                                     .)
+  | "inductive" "lemma"             (. isIndLemma = true; .)
   | "constructor"                   (. if (allowConstructor) {
                                          isConstructor = true;
                                        } else {
@@ -956,6 +977,10 @@ MethodDecl<MemberModifiers mmod, bool allowConstructor, out Method/*!*/ m>
        }
        if (mmod.IsStatic) {
          SemErr(t, "constructors cannot be declared 'static'");
+       }
+     } else if (isIndLemma) {
+       if (mmod.IsGhost) {
+         SemErr(t, "inductive lemmas cannot be declared 'ghost' (they are automatically 'ghost')");
        }
      } else if (isCoLemma) {
        if (mmod.IsGhost) {
@@ -993,6 +1018,9 @@ MethodDecl<MemberModifiers mmod, bool allowConstructor, out Method/*!*/ m>
      if (isConstructor) {
        m = new Constructor(tok, hasName ? id.val : "_ctor", typeArgs, ins,
                            req, new Specification<FrameExpression>(mod, modAttrs), ens, new Specification<Expression>(dec, decAttrs), body, attrs, signatureEllipsis);
+     } else if (isIndLemma) {
+       m = new InductiveLemma(tok, id.val, mmod.IsStatic, typeArgs, ins, outs,
+                              req, new Specification<FrameExpression>(mod, modAttrs), ens, new Specification<Expression>(dec, decAttrs), body, attrs, signatureEllipsis);
      } else if (isCoLemma) {
        m = new CoLemma(tok, id.val, mmod.IsStatic, typeArgs, ins, outs,
                        req, new Specification<FrameExpression>(mod, modAttrs), ens, new Specification<Expression>(dec, decAttrs), body, attrs, signatureEllipsis);

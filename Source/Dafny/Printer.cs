@@ -345,7 +345,7 @@ namespace Microsoft.Dafny {
         if (m is Method) {
           if (state != 0) { wr.WriteLine(); }
           PrintMethod((Method)m, indent, false);
-          var com = m as CoLemma;
+          var com = m as FixpointLemma;
           if (com != null && com.PrefixLemma != null) {
             Indent(indent); wr.WriteLine("/***");
             PrintMethod(com.PrefixLemma, indent, false);
@@ -546,9 +546,13 @@ namespace Microsoft.Dafny {
 
       if (PrintModeSkipFunctionOrMethod(method.IsGhost, method.Attributes, method.Name)) { return; }
       Indent(indent);
-      string k = method is Constructor ? "constructor" : method is CoLemma ? "colemma" : method is Lemma ? "lemma" : "method";
+      string k = method is Constructor ? "constructor" :
+        method is InductiveLemma ? "inductive lemma" :
+        method is CoLemma ? "colemma" :
+        method is Lemma ? "lemma" :
+        "method";
       if (method.HasStaticKeyword) { k = "static " + k; }
-      if (method.IsGhost && !(method is Lemma) && !(method is CoLemma)) { k = "ghost " + k; }
+      if (method.IsGhost && !(method is Lemma) && !(method is FixpointLemma)) { k = "ghost " + k; }
       string nm = method is Constructor && !((Constructor)method).HasName ? "" : method.Name;
       PrintClassMethodHelper(k, method.Attributes, nm, method.TypeArgs);
       if (method.SignatureIsOmitted) {

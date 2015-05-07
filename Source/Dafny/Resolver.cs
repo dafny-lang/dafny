@@ -465,8 +465,8 @@ namespace Microsoft.Dafny
         foreach (var clbl in ModuleDefinition.AllCallables(module.TopLevelDecls)) {
           ICallable m;
           string s;
-          if (clbl is CoLemma) {
-            var prefixLemma = ((CoLemma)clbl).PrefixLemma;
+          if (clbl is FixpointLemma) {
+            var prefixLemma = ((FixpointLemma)clbl).PrefixLemma;
             m = prefixLemma;
             s = prefixLemma.Name + " ";
           } else {
@@ -1056,7 +1056,7 @@ namespace Microsoft.Dafny
                 } else {
                   cl.HasConstructor = true;
                 }
-              } else if (m is FixpointPredicate || m is CoLemma) {
+              } else if (m is FixpointPredicate || m is FixpointLemma) {
                 var extraName = m.Name + "#";
                 MemberDecl extraMember;
                 var cloner = new Cloner();
@@ -1083,7 +1083,7 @@ namespace Microsoft.Dafny
                   // In the call graph, add an edge from P# to P, since this will have the desired effect of detecting unwanted cycles.
                   moduleDef.CallGraph.AddEdge(cop.PrefixPredicate, cop);
                 } else {
-                  var com = (CoLemma)m;
+                  var com = (FixpointLemma)m;
                   // _k has already been added to 'formals', so append the original formals
                   formals.AddRange(com.Ins.ConvertAll(cloner.CloneFormal));
                   // prepend _k to the given decreases clause
@@ -1091,10 +1091,13 @@ namespace Microsoft.Dafny
                   decr.Add(new IdentifierExpr(com.tok, k.Name));
                   decr.AddRange(com.Decreases.Expressions.ConvertAll(cloner.CloneExpr));
                   // Create prefix lemma.  Note that the body is not cloned, but simply shared.
+                  // For a colemma, the postconditions are filled in after the colemma's postconditions have been resolved.
+                  // For an inductive lemma, the preconditions are filled in after the inductive lemma's preconditions have been resolved.
+                  var req = com is CoLemma ? com.Req.ConvertAll(cloner.CloneMayBeFreeExpr) : new List<MaybeFreeExpression>();
+                  var ens = com is CoLemma ? new List<MaybeFreeExpression>() : com.Ens.ConvertAll(cloner.CloneMayBeFreeExpr);
                   com.PrefixLemma = new PrefixLemma(com.tok, extraName, com.HasStaticKeyword,
                     com.TypeArgs.ConvertAll(cloner.CloneTypeParam), k, formals, com.Outs.ConvertAll(cloner.CloneFormal),
-                    com.Req.ConvertAll(cloner.CloneMayBeFreeExpr), cloner.CloneSpecFrameExpr(com.Mod),
-                    new List<MaybeFreeExpression>(),  // Note, the postconditions are filled in after the colemma's postconditions have been resolved
+                    req, cloner.CloneSpecFrameExpr(com.Mod), ens,
                     new Specification<Expression>(decr, null),
                     null, // Note, the body for the prefix method will be created once the call graph has been computed and the SCC for the colemma is known
                     cloner.CloneAttributes(com.Attributes), com);
@@ -1541,25 +1544,38 @@ namespace Microsoft.Dafny
 
       if (ErrorCount == prevErrorCount) {
         // fill in the postconditions and bodies of prefix lemmas
-        foreach (var com in ModuleDefinition.AllCoLemmas(declarations)) {
+        foreach (var com in ModuleDefinition.AllFixpointLemmas(declarations)) {
           var prefixLemma = com.PrefixLemma;
           if (prefixLemma == null) {
-            continue;  // something went wrong during registration of the prefix lemma (probably a duplicated colemma name)
+            continue;  // something went wrong during registration of the prefix lemma (probably a duplicated fixpoint-lemma name)
           }
-          Contract.Assume(prefixLemma.Ens.Count == 0 && prefixLemma.Body == null);  // these are not supposed to have been filled in before
-          // compute the postconditions of the prefix lemma
           var k = prefixLemma.Ins[0];
-          foreach (var p in com.Ens) {
-            var coConclusions = new HashSet<Expression>();
-            CheckCoLemmaConclusions(p.E, true, coConclusions);
-            var subst = new CoLemmaPostconditionSubstituter(coConclusions, new IdentifierExpr(k.tok, k.Name), this);
-            var post = subst.CloneExpr(p.E);
-            prefixLemma.Ens.Add(new MaybeFreeExpression(post, p.IsFree));
+          if (com is CoLemma) {
+            // compute the postconditions of the prefix lemma
+            Contract.Assume(prefixLemma.Ens.Count == 0);  // these are not supposed to have been filled in before
+            foreach (var p in com.Ens) {
+              var coConclusions = new HashSet<Expression>();
+              CollectFriendlyCallsInFixpointLemmaSpecification(p.E, true, coConclusions, true);
+              var subst = new FixpointLemmaSpecificationSubstituter(coConclusions, new IdentifierExpr(k.tok, k.Name), this, true);
+              var post = subst.CloneExpr(p.E);
+              prefixLemma.Ens.Add(new MaybeFreeExpression(post, p.IsFree));
+            }
+          } else {
+            // compute the preconditions of the prefix lemma
+            Contract.Assume(prefixLemma.Req.Count == 0);  // these are not supposed to have been filled in before
+            foreach (var p in com.Req) {
+              var antecedents = new HashSet<Expression>();
+              CollectFriendlyCallsInFixpointLemmaSpecification(p.E, true, antecedents, false);
+              var subst = new FixpointLemmaSpecificationSubstituter(antecedents, new IdentifierExpr(k.tok, k.Name), this, false);
+              var pre = subst.CloneExpr(p.E);
+              prefixLemma.Req.Add(new MaybeFreeExpression(pre, p.IsFree));
+            }
           }
           // Compute the statement body of the prefix lemma
+          Contract.Assume(prefixLemma.Body == null);  // this is not supposed to have been filled in before
           if (com.Body != null) {
             var kMinusOne = new BinaryExpr(com.tok, BinaryExpr.Opcode.Sub, new IdentifierExpr(k.tok, k.Name), new LiteralExpr(com.tok, 1));
-            var subst = new CoLemmaBodyCloner(com, kMinusOne, this);
+            var subst = new FixpointLemmaBodyCloner(com, kMinusOne, this);
             var mainBody = subst.CloneBlockStmt(com.Body);
             var kPositive = new BinaryExpr(com.tok, BinaryExpr.Opcode.Lt, new LiteralExpr(com.tok, 0), new IdentifierExpr(k.tok, k.Name));
             var condBody = new IfStmt(com.BodyStartTok, mainBody.EndTok, kPositive, mainBody, null);
@@ -1832,10 +1848,10 @@ namespace Microsoft.Dafny
                 if (fn.Body != null) {
                   FixpointPredicateChecks(fn.Body, fn, CallingPosition.Positive);
                 }
-              } else if (member is CoLemma) {
-                var m = (CoLemma)member;
+              } else if (member is FixpointLemma) {
+                var m = (FixpointLemma)member;
                 if (m.Body != null) {
-                  CoLemmaChecks(m.Body, m);
+                  FixpointLemmaChecks(m.Body, m);
                 }
               }
             }
@@ -2333,41 +2349,18 @@ namespace Microsoft.Dafny
       }
     }
 
-    class FixpointPredicateChecks_Visitor : ResolverTopDownVisitor<CallingPosition>
+    class FindFriendlyCalls_Visitor : ResolverTopDownVisitor<CallingPosition>
     {
-      public readonly FixpointPredicate context;
-      public FixpointPredicateChecks_Visitor(Resolver resolver, FixpointPredicate context)
+      public readonly bool IsCoContext;
+      public FindFriendlyCalls_Visitor(Resolver resolver, bool co)
         : base(resolver)
       {
         Contract.Requires(resolver != null);
-        Contract.Requires(context != null);
-        this.context = context;
+        this.IsCoContext = co;
       }
 
       protected override bool VisitOneExpr(Expression expr, ref CallingPosition cp) {
-        if (expr is FunctionCallExpr) {
-          var e = (FunctionCallExpr)expr;
-          if (ModuleDefinition.InSameSCC(context, e.Function)) {
-            var article = context is InductivePredicate ? "an" : "a";
-            // we're looking at a recursive call
-            if (!(context is InductivePredicate ? e.Function is InductivePredicate : e.Function is CoPredicate)) {
-              Error(e, "a recursive call from {0} {1} can go only to other {1}s", article, context.WhatKind);
-            } else if (cp != CallingPosition.Positive) {
-              var msg = string.Format("{0} {1} can be called recursively only in positive positions", article, context.WhatKind);
-              if (cp == CallingPosition.Neither) {
-                // this may be inside an non-friendly quantifier
-                msg += string.Format(" and cannot sit inside an unbounded {0} quantifier", context is InductivePredicate ? "universal" : "existential");
-              } else {
-                // the fixpoint-call is not inside an quantifier, so don't bother mentioning the part of existentials/universals in the error message
-              }
-              Error(e, msg);
-            } else {
-              e.CoCall = FunctionCallExpr.CoCallResolution.Yes;
-              ReportAdditionalInformation(e.tok, e.Function.Name + "#[_k - 1]", e.Function.Name.Length);
-            }
-          }
-          // fall through to do the subexpressions (with cp := Neither)
-        } else if (expr is UnaryOpExpr) {
+        if (expr is UnaryOpExpr) {
           var e = (UnaryOpExpr)expr;
           if (e.Op == UnaryOpExpr.Opcode.Not) {
             // for the sub-parts, use Invert(cp)
@@ -2404,16 +2397,20 @@ namespace Microsoft.Dafny
           foreach (var rhs in e.RHSs) {
             Visit(rhs, CallingPosition.Neither);
           }
-          if (context is CoPredicate) {
-            // note, a let-such-that expression introduces an existential that may depend on the _k in a copredicate, so we disallow recursive copredicate calls in the body of the let-such-that
-            Visit(e.Body, e.Exact ? cp : CallingPosition.Neither);
-          } else {
-            Visit(e.Body, cp);
+          var cpBody = cp;
+          if (!e.Exact) {
+            // a let-such-that expression introduces an existential that may depend on the _k in an inductive/co predicate, so we disallow recursive calls in the body of the let-such-that
+            if (IsCoContext && cp == CallingPosition.Positive) {
+              cpBody = CallingPosition.Neither;
+            } else if (!IsCoContext && cp == CallingPosition.Negative) {
+              cpBody = CallingPosition.Neither;
+            }
           }
+          Visit(e.Body, cpBody);
           return false;
         } else if (expr is QuantifierExpr) {
           var e = (QuantifierExpr)expr;
-          var cpos = context is CoPredicate ? cp : Invert(cp);
+          var cpos = IsCoContext ? cp : Invert(cp);
           if ((cpos == CallingPosition.Positive && e is ExistsExpr) || (cpos == CallingPosition.Negative && e is ForallExpr)) {
             if (e.MissingBounds != null && e.MissingBounds.Count != 0) {
               // To ensure continuity of fixpoint predicates, don't allow calls under an existential (resp. universal) quantifier
@@ -2436,7 +2433,45 @@ namespace Microsoft.Dafny
         cp = CallingPosition.Neither;
         return true;
       }
+    }
 
+    class FixpointPredicateChecks_Visitor : FindFriendlyCalls_Visitor
+    {
+      readonly FixpointPredicate context;
+      public FixpointPredicateChecks_Visitor(Resolver resolver, FixpointPredicate context)
+        : base(resolver, context is CoPredicate) {
+        Contract.Requires(resolver != null);
+        Contract.Requires(context != null);
+        this.context = context;
+      }
+      protected override bool VisitOneExpr(Expression expr, ref CallingPosition cp) {
+        if (expr is FunctionCallExpr) {
+          var e = (FunctionCallExpr)expr;
+          if (ModuleDefinition.InSameSCC(context, e.Function)) {
+            var article = context is InductivePredicate ? "an" : "a";
+            // we're looking at a recursive call
+            if (!(context is InductivePredicate ? e.Function is InductivePredicate : e.Function is CoPredicate)) {
+              Error(e, "a recursive call from {0} {1} can go only to other {1}s", article, context.WhatKind);
+            } else if (cp != CallingPosition.Positive) {
+              var msg = string.Format("{0} {1} can be called recursively only in positive positions", article, context.WhatKind);
+              if (cp == CallingPosition.Neither) {
+                // this may be inside an non-friendly quantifier
+                msg += string.Format(" and cannot sit inside an unbounded {0} quantifier", context is InductivePredicate ? "universal" : "existential");
+              } else {
+                // the fixpoint-call is not inside an quantifier, so don't bother mentioning the part of existentials/universals in the error message
+              }
+              Error(e, msg);
+            } else {
+              e.CoCall = FunctionCallExpr.CoCallResolution.Yes;
+              ReportAdditionalInformation(e.tok, e.Function.Name + "#[_k - 1]", e.Function.Name.Length);
+            }
+          }
+          // do the sub-parts with cp := Neither
+          cp = CallingPosition.Neither;
+          return true;
+        }
+        return base.VisitOneExpr(expr, ref cp);
+      }
       protected override bool VisitOneStmt(Statement stmt, ref CallingPosition st) {
         if (stmt is CallStmt) {
           var s = (CallStmt)stmt;
@@ -2462,13 +2497,13 @@ namespace Microsoft.Dafny
     #endregion FixpointPredicateChecks
 
     // ------------------------------------------------------------------------------------------------------
-    // ----- CoLemmaChecks ----------------------------------------------------------------------------------
+    // ----- FixpointLemmaChecks ----------------------------------------------------------------------------
     // ------------------------------------------------------------------------------------------------------
-    #region CoLemmaChecks
-    class CoLemmaChecks_Visitor : ResolverBottomUpVisitor
+    #region FixpointLemmaChecks
+    class FixpointLemmaChecks_Visitor : ResolverBottomUpVisitor
     {
-      CoLemma context;
-      public CoLemmaChecks_Visitor(Resolver resolver, CoLemma context)
+      FixpointLemma context;
+      public FixpointLemmaChecks_Visitor(Resolver resolver, FixpointLemma context)
         : base(resolver) {
         Contract.Requires(resolver != null);
         Contract.Requires(context != null);
@@ -2477,13 +2512,14 @@ namespace Microsoft.Dafny
       protected override void VisitOneStmt(Statement stmt) {
         if (stmt is CallStmt) {
           var s = (CallStmt)stmt;
-          if (s.Method is CoLemma || s.Method is PrefixLemma) {
+          if (s.Method is FixpointLemma || s.Method is PrefixLemma) {
             // all is cool
           } else {
-            // the call goes from a colemma context to a non-colemma callee
+            // the call goes from a fixpoint-lemma context to a non-fixpoint-lemma callee
             if (ModuleDefinition.InSameSCC(context, s.Method)) {
-              // we're looking at a recursive call (to a non-colemma)
-              Error(s.Tok, "a recursive call from a colemma can go only to other colemmas and prefix lemmas");
+              // we're looking at a recursive call (to a non-fixpoint-lemma)
+              var article = context is InductiveLemma ? "an" : "a";
+              Error(s.Tok, "a recursive call from {0} {1} can go only to other {1}s and prefix lemmas", article, context.WhatKind);
             }
           }
         }
@@ -2500,13 +2536,13 @@ namespace Microsoft.Dafny
         }
       }
     }
-    void CoLemmaChecks(Statement stmt, CoLemma context) {
+    void FixpointLemmaChecks(Statement stmt, FixpointLemma context) {
       Contract.Requires(stmt != null);
       Contract.Requires(context != null);
-      var v = new CoLemmaChecks_Visitor(this, context);
+      var v = new FixpointLemmaChecks_Visitor(this, context);
       v.Visit(stmt);
     }
-    #endregion CoLemmaChecks
+    #endregion FixpointLemmaChecks
 
     // ------------------------------------------------------------------------------------------------------
     // ----- CheckEqualityTypes -----------------------------------------------------------------------------
@@ -2974,7 +3010,7 @@ namespace Microsoft.Dafny
           ResolveTypeParameters(m.TypeArgs, true, m);
           ResolveMethodSignature(m);
           allTypeParameters.PopMarker();
-          var com = m as CoLemma;
+          var com = m as FixpointLemma;
           if (com != null && com.PrefixLemma != null && ec == ErrorCount) {
             var mm = com.PrefixLemma;
             // resolve signature of the prefix lemma
@@ -3595,10 +3631,8 @@ namespace Microsoft.Dafny
         ResolveAttributes(m.Mod.Attributes, new ResolveOpts(m, false, true));
         foreach (FrameExpression fe in m.Mod.Expressions) {
           ResolveFrameExpression(fe, false, m.IsGhost, m);
-          if (m is Lemma) {
-            Error(fe.tok, "lemmas are not allowed to have modifies clauses");
-          } else if (m is CoLemma) {
-            Error(fe.tok, "colemmas are not allowed to have modifies clauses");
+          if (m is Lemma || m is FixpointLemma) {
+            Error(fe.tok, "{0}s are not allowed to have modifies clauses", m.WhatKind);
           }
         }
         ResolveAttributes(m.Decreases.Attributes, new ResolveOpts(m, false, true));
@@ -3613,8 +3647,8 @@ namespace Microsoft.Dafny
         // Add out-parameters to a new scope that will also include the outermost-level locals of the body
         // Don't care about any duplication errors among the out-parameters, since they have already been reported
         scope.PushMarker();
-        if (m is CoLemma && m.Outs.Count != 0) {
-          Error(m.Outs[0].tok, "colemmas are not allowed to have out-parameters");
+        if (m is FixpointLemma && m.Outs.Count != 0) {
+          Error(m.Outs[0].tok, "{0}s are not allowed to have out-parameters", m.WhatKind);
         } else {
           foreach (Formal p in m.Outs) {
             scope.Push(p.Name, p);
@@ -3633,7 +3667,7 @@ namespace Microsoft.Dafny
 
         // Resolve body
         if (m.Body != null) {
-          var com = m as CoLemma;
+          var com = m as FixpointLemma;
           if (com != null && com.PrefixLemma != null) {
             // The body may mentioned the implicitly declared parameter _k.  Throw it into the
             // scope before resolving the body.
@@ -9356,65 +9390,66 @@ namespace Microsoft.Dafny
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected expression
       }
-}
+    }
 
 
     /// <summary>
-    /// This method adds to "coConclusions" all copredicate calls and codatatype equalities that occur
-    /// in positive positions and not under existential quantification.  If "expr" is the postcondition
-    /// of a colemma, then the "coConclusions" are the subexpressions that need to be replaced in order
-    /// to create the postcondition of the corresponding prefix lemma.
+    /// This method adds to "friendlyCalls" all
+    ///     inductive calls                                   if !co
+    ///     copredicate calls and codatatype equalities       if co
+    /// that occur in positive positions and not under
+    ///     universal quantification                          if !co
+    ///     existential quantification.                       if co
+    /// If "expr" is the
+    ///     precondition of an inductive lemma                if !co
+    ///     postcondition of a colemma,                       if co
+    /// then the "friendlyCalls" are the subexpressions that need to be replaced in order
+    /// to create the
+    ///     precondition                                      if !co
+    ///     postcondition                                     if co
+    /// of the corresponding prefix lemma.
     /// </summary>
-    void CheckCoLemmaConclusions(Expression expr, bool position, ISet<Expression> coConclusions) {
+    void CollectFriendlyCallsInFixpointLemmaSpecification(Expression expr, bool position, ISet<Expression> friendlyCalls, bool co) {
       Contract.Requires(expr != null);
-      if (expr is ConcreteSyntaxExpression) {
-        var e = (ConcreteSyntaxExpression)expr;
-        CheckCoLemmaConclusions(e.ResolvedExpression, position, coConclusions);
+      Contract.Requires(friendlyCalls != null);
+      var visitor = new CollectFriendlyCallsInSpec_Visitor(this, friendlyCalls, co);
+      visitor.Visit(expr, position ? CallingPosition.Positive : CallingPosition.Negative);
+    }
 
-      } else if (expr is LetExpr) {
-        var e = (LetExpr)expr;
-        // For simplicity, only look in the body of the let expression, that is, ignoring the RHS of the
-        // binding and ignoring what that binding would expand to in the body.
-        CheckCoLemmaConclusions(e.Body, position, coConclusions);
-
-      } else if (expr is UnaryExpr) {
-        var e = (UnaryOpExpr)expr;
-        if (e.Op == UnaryOpExpr.Opcode.Not) {
-          CheckCoLemmaConclusions(e.E, !position, coConclusions);
+    class CollectFriendlyCallsInSpec_Visitor : FindFriendlyCalls_Visitor
+    {
+      readonly ISet<Expression> friendlyCalls;
+      public CollectFriendlyCallsInSpec_Visitor(Resolver resolver, ISet<Expression> friendlyCalls, bool co)
+        : base(resolver, co)
+      {
+        Contract.Requires(resolver != null);
+        Contract.Requires(friendlyCalls != null);
+        this.friendlyCalls = friendlyCalls;
+      }
+      protected override bool VisitOneExpr(Expression expr, ref CallingPosition cp) {
+        if (cp == CallingPosition.Neither) {
+          // no friendly calls in "expr"
+          return false;  // don't recurse into subexpressions
         }
-
-      } else if (expr is BinaryExpr) {
-        var bin = (BinaryExpr)expr;
-        if (bin.ResolvedOp == BinaryExpr.ResolvedOpcode.And || bin.ResolvedOp == BinaryExpr.ResolvedOpcode.Or) {
-          CheckCoLemmaConclusions(bin.E0, position, coConclusions);
-          CheckCoLemmaConclusions(bin.E1, position, coConclusions);
-        } else if (bin.ResolvedOp == BinaryExpr.ResolvedOpcode.Imp) {
-          CheckCoLemmaConclusions(bin.E0, !position, coConclusions);
-          CheckCoLemmaConclusions(bin.E1, position, coConclusions);
-        } else if (position && bin.ResolvedOp == BinaryExpr.ResolvedOpcode.EqCommon && bin.E0.Type.IsCoDatatype) {
-          coConclusions.Add(bin);
-        } else if (!position && bin.ResolvedOp == BinaryExpr.ResolvedOpcode.NeqCommon && bin.E0.Type.IsCoDatatype) {
-          coConclusions.Add(bin);
+        if (expr is FunctionCallExpr) {
+          if (cp == CallingPosition.Positive) {
+            var fexp = (FunctionCallExpr)expr;
+            if (IsCoContext ? fexp.Function is CoPredicate : fexp.Function is InductivePredicate) {
+              friendlyCalls.Add(fexp);
+            }
+          }
+          return false;  // don't explore subexpressions any further
+        } else if (expr is BinaryExpr && IsCoContext) {
+          var bin = (BinaryExpr)expr;
+          if (cp == CallingPosition.Positive && bin.ResolvedOp == BinaryExpr.ResolvedOpcode.EqCommon && bin.E0.Type.IsCoDatatype) {
+            friendlyCalls.Add(bin);
+            return false;  // don't explore subexpressions any further
+          } else if (cp == CallingPosition.Negative && bin.ResolvedOp == BinaryExpr.ResolvedOpcode.NeqCommon && bin.E0.Type.IsCoDatatype) {
+            friendlyCalls.Add(bin);
+            return false;  // don't explore subexpressions any further
+          }
         }
-
-      } else if (expr is ITEExpr) {
-        var ite = (ITEExpr)expr;
-        CheckCoLemmaConclusions(ite.Thn, position, coConclusions);
-        CheckCoLemmaConclusions(ite.Els, position, coConclusions);
-
-      } else if (expr is StmtExpr) {
-        var e = (StmtExpr)expr;
-        CheckCoLemmaConclusions(e.E, position, coConclusions);
-
-      } else if (expr is OldExpr) {
-        var e = (OldExpr)expr;
-        CheckCoLemmaConclusions(e.E, position, coConclusions);
-
-      } else if (expr is FunctionCallExpr && position) {
-        var fexp = (FunctionCallExpr)expr;
-        if (fexp.Function is CoPredicate) {
-          coConclusions.Add(fexp);
-        }
+        return base.VisitOneExpr(expr, ref cp);
       }
     }
   }

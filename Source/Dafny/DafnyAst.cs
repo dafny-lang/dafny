@@ -1793,12 +1793,12 @@ namespace Microsoft.Dafny {
       }
     }
 
-      public static IEnumerable<CoLemma> AllCoLemmas(List<TopLevelDecl> declarations) {
+      public static IEnumerable<FixpointLemma> AllFixpointLemmas(List<TopLevelDecl> declarations) {
       foreach (var d in declarations) {
         var cl = d as ClassDecl;
         if (cl != null) {
           foreach (var member in cl.Members) {
-            var m = member as CoLemma;
+            var m = member as FixpointLemma;
             if (m != null) {
               yield return m;
             }
@@ -3211,24 +3211,75 @@ namespace Microsoft.Dafny {
   {
     public override string WhatKind { get { return "prefix lemma"; } }
     public readonly Formal K;
-    public readonly CoLemma Co;
+    public readonly FixpointLemma FixpointLemma;
     public PrefixLemma(IToken tok, string name, bool hasStaticKeyword,
                        List<TypeParameter> typeArgs, Formal k, List<Formal> ins, List<Formal> outs,
                        List<MaybeFreeExpression> req, Specification<FrameExpression> mod, List<MaybeFreeExpression> ens, Specification<Expression> decreases,
-                       BlockStmt body, Attributes attributes, CoLemma co)
+                       BlockStmt body, Attributes attributes, FixpointLemma fixpointLemma)
       : base(tok, name, hasStaticKeyword, true, typeArgs, ins, outs, req, mod, ens, decreases, body, attributes, null) {
       Contract.Requires(k != null);
       Contract.Requires(ins != null && 1 <= ins.Count && ins[0] == k);
-      Contract.Requires(co != null);
+      Contract.Requires(fixpointLemma != null);
       K = k;
-      Co = co;
+      FixpointLemma = fixpointLemma;
     }
   }
 
-  public class CoLemma : Method
+  public abstract class FixpointLemma : Method
+  {
+    public PrefixLemma PrefixLemma;  // filled in during resolution (name registration)
+
+    public FixpointLemma(IToken tok, string name,
+                         bool hasStaticKeyword,
+                         List<TypeParameter> typeArgs,
+                         List<Formal> ins, [Captured] List<Formal> outs,
+                         List<MaybeFreeExpression> req, [Captured] Specification<FrameExpression> mod,
+                         List<MaybeFreeExpression> ens,
+                         Specification<Expression> decreases,
+                         BlockStmt body,
+                         Attributes attributes, IToken signatureEllipsis)
+      : base(tok, name, hasStaticKeyword, true, typeArgs, ins, outs, req, mod, ens, decreases, body, attributes, signatureEllipsis) {
+      Contract.Requires(tok != null);
+      Contract.Requires(name != null);
+      Contract.Requires(cce.NonNullElements(typeArgs));
+      Contract.Requires(cce.NonNullElements(ins));
+      Contract.Requires(cce.NonNullElements(outs));
+      Contract.Requires(cce.NonNullElements(req));
+      Contract.Requires(mod != null);
+      Contract.Requires(cce.NonNullElements(ens));
+      Contract.Requires(decreases != null);
+    }
+  }
+
+  public class InductiveLemma : FixpointLemma
+  {
+    public override string WhatKind { get { return "inductive lemma"; } }
+
+    public InductiveLemma(IToken tok, string name,
+                          bool hasStaticKeyword,
+                          List<TypeParameter> typeArgs,
+                          List<Formal> ins, [Captured] List<Formal> outs,
+                          List<MaybeFreeExpression> req, [Captured] Specification<FrameExpression> mod,
+                          List<MaybeFreeExpression> ens,
+                          Specification<Expression> decreases,
+                          BlockStmt body,
+                          Attributes attributes, IToken signatureEllipsis)
+      : base(tok, name, hasStaticKeyword, typeArgs, ins, outs, req, mod, ens, decreases, body, attributes, signatureEllipsis) {
+      Contract.Requires(tok != null);
+      Contract.Requires(name != null);
+      Contract.Requires(cce.NonNullElements(typeArgs));
+      Contract.Requires(cce.NonNullElements(ins));
+      Contract.Requires(cce.NonNullElements(outs));
+      Contract.Requires(cce.NonNullElements(req));
+      Contract.Requires(mod != null);
+      Contract.Requires(cce.NonNullElements(ens));
+      Contract.Requires(decreases != null);
+    }
+  }
+
+  public class CoLemma : FixpointLemma
   {
     public override string WhatKind { get { return "colemma"; } }
-    public PrefixLemma PrefixLemma;  // filled in during resolution (name registration)
 
     public CoLemma(IToken tok, string name,
                    bool hasStaticKeyword,
@@ -3239,7 +3290,7 @@ namespace Microsoft.Dafny {
                    Specification<Expression> decreases,
                    BlockStmt body,
                    Attributes attributes, IToken signatureEllipsis)
-      : base(tok, name, hasStaticKeyword, true, typeArgs, ins, outs, req, mod, ens, decreases, body, attributes, signatureEllipsis) {
+      : base(tok, name, hasStaticKeyword, typeArgs, ins, outs, req, mod, ens, decreases, body, attributes, signatureEllipsis) {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
       Contract.Requires(cce.NonNullElements(typeArgs));

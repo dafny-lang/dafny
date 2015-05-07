@@ -1413,10 +1413,10 @@ namespace Microsoft.Dafny {
           // the method spec itself
           sink.AddTopLevelDeclaration(AddMethod(m, MethodTranslationKind.InterModuleCall));
           sink.AddTopLevelDeclaration(AddMethod(m, MethodTranslationKind.IntraModuleCall));
-          if (m is CoLemma) {
+          if (m is FixpointLemma) {
             // Let the CoCall and Impl forms to use m.PrefixLemma signature and specification (and
             // note that m.PrefixLemma.Body == m.Body.
-            m = ((CoLemma)m).PrefixLemma;
+            m = ((FixpointLemma)m).PrefixLemma;
             sink.AddTopLevelDeclaration(AddMethod(m, MethodTranslationKind.CoCall));
           }
           if (m.Body != null && !(m.tok is IncludeToken)) {
@@ -2732,7 +2732,7 @@ namespace Microsoft.Dafny {
 
       Bpl.StmtList stmts;
       if (!wellformednessProc) {
-        if (3 <= DafnyOptions.O.Induction && m.IsGhost && m.Mod.Expressions.Count == 0 && m.Outs.Count == 0 && !(m is CoLemma)) {
+        if (3 <= DafnyOptions.O.Induction && m.IsGhost && m.Mod.Expressions.Count == 0 && m.Outs.Count == 0 && !(m is FixpointLemma)) {
           var posts = new List<Expression>();
           m.Ens.ForEach(mfe => posts.Add(mfe.E));
           var allIns = new List<Formal>();
@@ -8607,7 +8607,7 @@ namespace Microsoft.Dafny {
         // Note, prefix lemmas are not recorded in the call graph, but their corresponding colemmas are.
         // Similarly, an iterator is not recorded in the call graph, but its MoveNext method is.
         ICallable cllr =
-          codeContext is PrefixLemma ? ((PrefixLemma)codeContext).Co :
+          codeContext is PrefixLemma ? ((PrefixLemma)codeContext).FixpointLemma :
           codeContext is IteratorDecl ? ((IteratorDecl)codeContext).Member_MoveNext :
           codeContext;
         if (ModuleDefinition.InSameSCC(method, cllr)) {
@@ -8617,9 +8617,9 @@ namespace Microsoft.Dafny {
 
       MethodTranslationKind kind;
       var callee = method;
-      if (method is CoLemma && isRecursiveCall) {
+      if (method is FixpointLemma && isRecursiveCall) {
         kind = MethodTranslationKind.CoCall;
-        callee = ((CoLemma)method).PrefixLemma;
+        callee = ((FixpointLemma)method).PrefixLemma;
       } else if (method is PrefixLemma) {
         // an explicit call to a prefix lemma is allowed only inside the SCC of the corresponding colemma,
         // so we consider this to be a co-call
@@ -8660,13 +8660,13 @@ namespace Microsoft.Dafny {
 
         var param = (Bpl.IdentifierExpr)etran.TrExpr(ie);  // TODO: is this cast always justified?
         Bpl.Expr bActual;
-        if (i == 0 && method is CoLemma && isRecursiveCall) {
+        if (i == 0 && method is FixpointLemma && isRecursiveCall) {
           // Treat this call to M(args) as a call to the corresponding prefix lemma M#(_k - 1, args), so insert an argument here.
           var k = ((PrefixLemma)codeContext).K;
           bActual = Bpl.Expr.Sub(new Bpl.IdentifierExpr(k.tok, k.AssignUniqueName(currentDeclaration.IdGenerator), Bpl.Type.Int), Bpl.Expr.Literal(1));
         } else {
           Expression actual;
-          if (method is CoLemma && isRecursiveCall) {
+          if (method is FixpointLemma && isRecursiveCall) {
             actual = Args[i - 1];
           } else {
             actual = Args[i];

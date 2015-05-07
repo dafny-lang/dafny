@@ -39,6 +39,38 @@ lemma M'(k: nat, x: natinf)
   }
 }
 
+// Here is the same proof as in M / M', but packaged into a single "inductive lemma":
+inductive lemma IL(x: natinf)
+  requires Even(x)
+  ensures x.N? && x.n % 2 == 0
+{
+  if {
+    case x.N? && x.n == 0 =>
+      // trivial
+    case x.N? && 2 <= x.n && Even#[_k-1](N(x.n - 2)) =>
+      IL(N(x.n - 2));
+  }
+}
+
+inductive lemma IL_EvenBetter(x: natinf)
+  requires Even(x)
+  ensures x.N? && x.n % 2 == 0
+{
+  if {
+    case x.N? && x.n == 0 =>
+      // trivial
+    case x.N? && 2 <= x.n && Even(N(x.n - 2)) =>
+      IL_EvenBetter(N(x.n - 2));
+  }
+}
+
+inductive lemma IL_Bad(x: natinf)
+  requires Even(x)
+  ensures x.N? && x.n % 2 == 0
+{
+  assert false;  // error: one shouldn't be able to prove just anything
+}
+
 lemma InfNotEven()
   ensures !Even(Inf)
 {

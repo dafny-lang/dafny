@@ -219,6 +219,19 @@ module InductivePredicateResolutionErrors {
       h < 0 && CoLetSuchThat(s.tail)  // error: recursive call to copredicate in body of let-such-that
   }
 
+  inductive predicate NegatedLetSuchThat(s: List<int>)
+  {
+    if s != Nil then true else
+      !var h :| h == s.head;
+      h < 0 && !NegatedLetSuchThat(s.tail)  // error: recursive call to inductive predicate in body of let-such-that
+  }
+  copredicate NegatedCoLetSuchThat(s: IList<int>)
+  {
+    if s != INil then true else
+      !var h :| h == s.head;
+      h < 0 && !NegatedCoLetSuchThat(s.tail)  // this is fine for a coinductive predicate
+  }
+
   inductive predicate CP(i: int)
   {
     CP(i) &&
