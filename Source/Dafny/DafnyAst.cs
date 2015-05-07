@@ -2882,7 +2882,7 @@ namespace Microsoft.Dafny {
     }
 
     /// <summary>
-    /// The "AllCalls" field is used for non-CoPredicate, non-PrefixPredicate functions only (so its value should not be relied upon for CoPredicate and PrefixPredicate functions).
+    /// The "AllCalls" field is used for non-FixpointPredicate, non-PrefixPredicate functions only (so its value should not be relied upon for FixpointPredicate and PrefixPredicate functions).
     /// It records all function calls made by the Function, including calls made in the body as well as in the specification.
     /// The field is filled in during resolution (and used toward the end of resolution, to attach a helpful "decreases" prefix to functions in clusters
     /// with co-recursive calls.
@@ -2972,36 +2972,35 @@ namespace Microsoft.Dafny {
   }
 
   /// <summary>
-  /// An PrefixPredicate is the inductive unrolling P# implicitly declared for every copredicate P.
+  /// An PrefixPredicate is the inductive unrolling P# implicitly declared for every fixpoint-predicate P.
   /// </summary>
   public class PrefixPredicate : Function
   {
     public override string WhatKind { get { return "prefix predicate"; } }
     public readonly Formal K;
-    public readonly CoPredicate Co;
+    public readonly FixpointPredicate FixpointPred;
     public PrefixPredicate(IToken tok, string name, bool hasStaticKeyword, bool isProtected,
                      List<TypeParameter> typeArgs, Formal k, List<Formal> formals,
                      List<Expression> req, List<FrameExpression> reads, List<Expression> ens, Specification<Expression> decreases,
-                     Expression body, Attributes attributes, CoPredicate coPred)
+                     Expression body, Attributes attributes, FixpointPredicate fixpointPred)
       : base(tok, name, hasStaticKeyword, isProtected, true, typeArgs, formals, new BoolType(), req, reads, ens, decreases, body, attributes, null) {
       Contract.Requires(k != null);
-      Contract.Requires(coPred != null);
+      Contract.Requires(fixpointPred != null);
       Contract.Requires(formals != null && 1 <= formals.Count && formals[0] == k);
       K = k;
-      Co = coPred;
+      FixpointPred = fixpointPred;
     }
   }
 
-  public class CoPredicate : Function
+  public abstract class FixpointPredicate : Function
   {
-    public override string WhatKind { get { return "copredicate"; } }
     public readonly List<FunctionCallExpr> Uses = new List<FunctionCallExpr>();  // filled in during resolution, used by verifier
     public PrefixPredicate PrefixPredicate;  // filled in during resolution (name registration)
 
-    public CoPredicate(IToken tok, string name, bool hasStaticKeyword, bool isProtected,
-                     List<TypeParameter> typeArgs, List<Formal> formals,
-                     List<Expression> req, List<FrameExpression> reads, List<Expression> ens,
-                     Expression body, Attributes attributes, IToken signatureEllipsis)
+    public FixpointPredicate(IToken tok, string name, bool hasStaticKeyword, bool isProtected,
+                             List<TypeParameter> typeArgs, List<Formal> formals,
+                             List<Expression> req, List<FrameExpression> reads, List<Expression> ens,
+                             Expression body, Attributes attributes, IToken signatureEllipsis)
       : base(tok, name, hasStaticKeyword, isProtected, true, typeArgs, formals, new BoolType(),
              req, reads, ens, new Specification<Expression>(new List<Expression>(), null), body, attributes, signatureEllipsis) {
     }
@@ -3033,6 +3032,30 @@ namespace Microsoft.Dafny {
       prefixPredCall.Type = fexp.Type;  // resolve here
       prefixPredCall.CoCall = fexp.CoCall;  // resolve here
       return prefixPredCall;
+    }
+  }
+
+  public class InductivePredicate : FixpointPredicate
+  {
+    public override string WhatKind { get { return "inductive predicate"; } }
+    public InductivePredicate(IToken tok, string name, bool hasStaticKeyword, bool isProtected,
+                              List<TypeParameter> typeArgs, List<Formal> formals,
+                              List<Expression> req, List<FrameExpression> reads, List<Expression> ens,
+                              Expression body, Attributes attributes, IToken signatureEllipsis)
+      : base(tok, name, hasStaticKeyword, isProtected, typeArgs, formals,
+             req, reads, ens, body, attributes, signatureEllipsis) {
+    }
+  }
+
+  public class CoPredicate : FixpointPredicate
+  {
+    public override string WhatKind { get { return "copredicate"; } }
+    public CoPredicate(IToken tok, string name, bool hasStaticKeyword, bool isProtected,
+                       List<TypeParameter> typeArgs, List<Formal> formals,
+                       List<Expression> req, List<FrameExpression> reads, List<Expression> ens,
+                       Expression body, Attributes attributes, IToken signatureEllipsis)
+      : base(tok, name, hasStaticKeyword, isProtected, typeArgs, formals,
+             req, reads, ens, body, attributes, signatureEllipsis) {
     }
   }
 

@@ -308,6 +308,7 @@ namespace DafnyLanguage
                 case "import":
                 case "in":
                 case "include":
+                case "inductive":
                 case "int":
                 case "invariant":
                 case "iterator":

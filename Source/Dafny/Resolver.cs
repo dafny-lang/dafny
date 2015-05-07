@@ -397,9 +397,9 @@ namespace Microsoft.Dafny
                 fn.IsRecursive = true;
               }
             }
-            if (fn.IsRecursive && fn is CoPredicate) {
+            if (fn.IsRecursive && fn is FixpointPredicate) {
               // this means the corresponding prefix predicate is also recursive
-              var prefixPred = ((CoPredicate)fn).PrefixPredicate;
+              var prefixPred = ((FixpointPredicate)fn).PrefixPredicate;
               if (prefixPred != null) {
                 prefixPred.IsRecursive = true;
               }
@@ -513,8 +513,8 @@ namespace Microsoft.Dafny
     bool FillInDefaultDecreases(ICallable clbl, bool addPrefixInCoClusters) {
       Contract.Requires(clbl != null);
 
-      if (clbl is CoPredicate) {
-        // copredicates don't have decreases clauses
+      if (clbl is FixpointPredicate) {
+        // fixpoint-predicates don't have decreases clauses
         return false;
       }
       var anyChangeToDecreases = false;
@@ -1056,15 +1056,15 @@ namespace Microsoft.Dafny
                 } else {
                   cl.HasConstructor = true;
                 }
-              } else if (m is CoPredicate || m is CoLemma) {
+              } else if (m is FixpointPredicate || m is CoLemma) {
                 var extraName = m.Name + "#";
                 MemberDecl extraMember;
                 var cloner = new Cloner();
                 var formals = new List<Formal>();
                 var k = new ImplicitFormal(m.tok, "_k", new NatType(), true, false);
                 formals.Add(k);
-                if (m is CoPredicate) {
-                  var cop = (CoPredicate)m;
+                if (m is FixpointPredicate) {
+                  var cop = (FixpointPredicate)m;
                   formals.AddRange(cop.Formals.ConvertAll(cloner.CloneFormal));
 
                   List<TypeParameter> tyvars = cop.TypeArgs.ConvertAll(cloner.CloneTypeParam);
@@ -1811,25 +1811,26 @@ namespace Microsoft.Dafny
             }
           }
         }
-        // Check that copredicates are not recursive with non-copredicate functions, and
+        // Check that fixpoint-predicates are not recursive with non-fixpoint-predicate functions (and only
+        // with fixpoint-predicates of the same polarity), and
         // check that colemmas are not recursive with non-colemma methods.
         // Also, check that newtypes sit in their own SSC.
         foreach (var d in declarations) {
           if (d is ClassDecl) {
             foreach (var member in ((ClassDecl)d).Members) {
-              if (member is CoPredicate) {
-                var fn = (CoPredicate)member;
+              if (member is FixpointPredicate) {
+                var fn = (FixpointPredicate)member;
                 // Check here for the presence of any 'ensures' clauses, which are not allowed (because we're not sure
                 // of their soundness)
                 if (fn.Ens.Count != 0) {
-                  Error(fn.Ens[0].tok, "a copredicate is not allowed to declare any ensures clause");
+                  Error(fn.Ens[0].tok, "a {0} is not allowed to declare any ensures clause", member.WhatKind);
                 }
                 // Also check for 'reads' clauses
                 if (fn.Reads.Count != 0) {
-                  Error(fn.Reads[0].tok, "a copredicate is not allowed to declare any reads clause");  // (why?)
+                  Error(fn.Reads[0].tok, "a {0} is not allowed to declare any reads clause", member.WhatKind);  // (why?)
                 }
                 if (fn.Body != null) {
-                  CoPredicateChecks(fn.Body, fn, CallingPosition.Positive);
+                  FixpointPredicateChecks(fn.Body, fn, CallingPosition.Positive);
                 }
               } else if (member is CoLemma) {
                 var m = (CoLemma)member;
@@ -1953,8 +1954,8 @@ namespace Microsoft.Dafny
             Error(f.tok, "sorry, tail-call functions are not supported");
           }
         }
-        if (errorCount == ErrorCount && f is CoPredicate) {
-          var cop = (CoPredicate)f;
+        if (errorCount == ErrorCount && f is FixpointPredicate) {
+          var cop = (FixpointPredicate)f;
           CheckTypeInference_Member(cop.PrefixPredicate);
         }
       }
@@ -2320,9 +2321,9 @@ namespace Microsoft.Dafny
     #endregion CheckTailRecursive
 
     // ------------------------------------------------------------------------------------------------------
-    // ----- CoPredicateChecks ------------------------------------------------------------------------------
+    // ----- FixpointPredicateChecks ------------------------------------------------------------------------
     // ------------------------------------------------------------------------------------------------------
-    #region CoPredicateChecks
+    #region FixpointPredicateChecks
     enum CallingPosition { Positive, Negative, Neither }
     static CallingPosition Invert(CallingPosition cp) {
       switch (cp) {
@@ -2332,10 +2333,10 @@ namespace Microsoft.Dafny
       }
     }
 
-    class CoPredicateChecks_Visitor : ResolverTopDownVisitor<CallingPosition>
+    class FixpointPredicateChecks_Visitor : ResolverTopDownVisitor<CallingPosition>
     {
-      public readonly CoPredicate context;
-      public CoPredicateChecks_Visitor(Resolver resolver, CoPredicate context)
+      public readonly FixpointPredicate context;
+      public FixpointPredicateChecks_Visitor(Resolver resolver, FixpointPredicate context)
         : base(resolver)
       {
         Contract.Requires(resolver != null);
@@ -2347,16 +2348,17 @@ namespace Microsoft.Dafny
         if (expr is FunctionCallExpr) {
           var e = (FunctionCallExpr)expr;
           if (ModuleDefinition.InSameSCC(context, e.Function)) {
+            var article = context is InductivePredicate ? "an" : "a";
             // we're looking at a recursive call
-            if (!(e.Function is CoPredicate)) {
-              Error(e, "a recursive call from a copredicate can go only to other copredicates");
+            if (!(context is InductivePredicate ? e.Function is InductivePredicate : e.Function is CoPredicate)) {
+              Error(e, "a recursive call from {0} {1} can go only to other {1}s", article, context.WhatKind);
             } else if (cp != CallingPosition.Positive) {
-              var msg = "a copredicate can be called recursively only in positive positions";
+              var msg = string.Format("{0} {1} can be called recursively only in positive positions", article, context.WhatKind);
               if (cp == CallingPosition.Neither) {
-                // this may be inside an existential quantifier
-                msg += " and cannot sit inside an unbounded existential quantifier";
+                // this may be inside an non-friendly quantifier
+                msg += string.Format(" and cannot sit inside an unbounded {0} quantifier", context is InductivePredicate ? "universal" : "existential");
               } else {
-                // the co-call is not inside an existential quantifier, so don't bother mentioning the part of existentials in the error message
+                // the fixpoint-call is not inside an quantifier, so don't bother mentioning the part of existentials/universals in the error message
               }
               Error(e, msg);
             } else {
@@ -2402,14 +2404,20 @@ namespace Microsoft.Dafny
           foreach (var rhs in e.RHSs) {
             Visit(rhs, CallingPosition.Neither);
           }
-          // note, a let-such-that expression introduces an existential that may depend on the _k in a copredicate, so we disallow recursive copredicate calls in the body of the let-such-that
-          Visit(e.Body, e.Exact ? cp : CallingPosition.Neither);
+          if (context is CoPredicate) {
+            // note, a let-such-that expression introduces an existential that may depend on the _k in a copredicate, so we disallow recursive copredicate calls in the body of the let-such-that
+            Visit(e.Body, e.Exact ? cp : CallingPosition.Neither);
+          } else {
+            Visit(e.Body, cp);
+          }
           return false;
         } else if (expr is QuantifierExpr) {
           var e = (QuantifierExpr)expr;
-          if ((cp == CallingPosition.Positive && e is ExistsExpr) || (cp == CallingPosition.Negative && e is ForallExpr)) {
+          var cpos = context is CoPredicate ? cp : Invert(cp);
+          if ((cpos == CallingPosition.Positive && e is ExistsExpr) || (cpos == CallingPosition.Negative && e is ForallExpr)) {
             if (e.MissingBounds != null && e.MissingBounds.Count != 0) {
-              // Don't allow any co-recursive calls under an existential with an unbounded range, because that can be unsound.
+              // To ensure continuity of fixpoint predicates, don't allow calls under an existential (resp. universal) quantifier
+              // for co-predicates (resp. inductive predicates).
               cp = CallingPosition.Neither;
             }
           }
@@ -2434,7 +2442,8 @@ namespace Microsoft.Dafny
           var s = (CallStmt)stmt;
           if (ModuleDefinition.InSameSCC(context, s.Method)) {
             // we're looking at a recursive call
-            Error(stmt.Tok, "a recursive call from a copredicate can go only to other copredicates");
+            var article = context is InductivePredicate ? "an" : "a";
+            Error(stmt.Tok, "a recursive call from {0} {1} can go only to other {1}s", article, context.WhatKind);
           }
           // do the sub-parts with the same "cp"
           return true;
@@ -2444,13 +2453,13 @@ namespace Microsoft.Dafny
       }
     }
 
-    void CoPredicateChecks(Expression expr, CoPredicate context, CallingPosition cp) {
+    void FixpointPredicateChecks(Expression expr, FixpointPredicate context, CallingPosition cp) {
       Contract.Requires(expr != null);
       Contract.Requires(context != null);
-      var v = new CoPredicateChecks_Visitor(this, context);
+      var v = new FixpointPredicateChecks_Visitor(this, context);
       v.Visit(expr, cp);
     }
-    #endregion CoPredicateChecks
+    #endregion FixpointPredicateChecks
 
     // ------------------------------------------------------------------------------------------------------
     // ----- CoLemmaChecks ----------------------------------------------------------------------------------
@@ -2949,8 +2958,8 @@ namespace Microsoft.Dafny
           ResolveTypeParameters(f.TypeArgs, true, f);
           ResolveFunctionSignature(f);
           allTypeParameters.PopMarker();
-          if (f is CoPredicate && ec == ErrorCount) {
-            var ff = ((CoPredicate)f).PrefixPredicate;
+          if (f is FixpointPredicate && ec == ErrorCount) {
+            var ff = ((FixpointPredicate)f).PrefixPredicate;
             ff.EnclosingClass = cl;
             allTypeParameters.PushMarker();
             ResolveTypeParameters(ff.TypeArgs, true, ff);
@@ -3097,8 +3106,8 @@ namespace Microsoft.Dafny
           ResolveTypeParameters(f.TypeArgs, false, f);
           ResolveFunction(f);
           allTypeParameters.PopMarker();
-          if (f is CoPredicate && ec == ErrorCount) {
-            var ff = ((CoPredicate)f).PrefixPredicate;
+          if (f is FixpointPredicate && ec == ErrorCount) {
+            var ff = ((FixpointPredicate)f).PrefixPredicate;
             allTypeParameters.PushMarker();
             ResolveTypeParameters(ff.TypeArgs, false, ff);
             ResolveFunction(ff);
@@ -8158,8 +8167,8 @@ namespace Microsoft.Dafny
               }
               rr.Type = SubstType(callee.ResultType, rr.TypeArgumentSubstitutions);
               // further bookkeeping
-              if (callee is CoPredicate) {
-                ((CoPredicate)callee).Uses.Add(rr);
+              if (callee is FixpointPredicate) {
+                ((FixpointPredicate)callee).Uses.Add(rr);
               }
               AddCallGraphEdge(opts.codeContext, callee, rr);
               r = rr;
@@ -8408,8 +8417,8 @@ namespace Microsoft.Dafny
       } else {
         Function function = (Function)member;
         e.Function = function;
-        if (function is CoPredicate) {
-          ((CoPredicate)function).Uses.Add(e);
+        if (function is FixpointPredicate) {
+          ((FixpointPredicate)function).Uses.Add(e);
         }
         if (e.Receiver is StaticReceiverExpr && !function.IsStatic) {
           Error(e, "an instance function must be selected via an object, not just a class name");

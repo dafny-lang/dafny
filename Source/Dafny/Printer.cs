@@ -359,10 +359,10 @@ namespace Microsoft.Dafny {
         } else if (m is Function) {
           if (state != 0) { wr.WriteLine(); }
           PrintFunction((Function)m, indent, false);
-          var cop = m as CoPredicate;
-          if (cop != null && cop.PrefixPredicate != null) {
+          var fixp = m as FixpointPredicate;
+          if (fixp != null && fixp.PrefixPredicate != null) {
             Indent(indent); wr.WriteLine("/***");
-            PrintFunction(cop.PrefixPredicate, indent, false);
+            PrintFunction(fixp.PrefixPredicate, indent, false);
             Indent(indent); wr.WriteLine("***/");
           }
           state = 2;
@@ -476,7 +476,7 @@ namespace Microsoft.Dafny {
       if (PrintModeSkipFunctionOrMethod(f.IsGhost, f.Attributes, f.Name)) { return; }
       var isPredicate = f is Predicate || f is PrefixPredicate;
       Indent(indent);
-      string k = isPredicate ? "predicate" : f is CoPredicate ? "copredicate" : "function";
+      string k = isPredicate ? "predicate" : f is InductivePredicate ? "inductive predicate" : f is CoPredicate ? "copredicate" : "function";
       if (f.IsProtected) { k = "protected " + k; }
       if (f.HasStaticKeyword) { k = "static " + k; }
       if (!f.IsGhost) { k += " method"; }

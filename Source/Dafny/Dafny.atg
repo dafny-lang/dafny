@@ -1211,7 +1211,7 @@ FunctionDecl<MemberModifiers mmod, out Function/*!*/ f>
      List<FrameExpression/*!*/> reads = new List<FrameExpression/*!*/>();
      List<Expression/*!*/> decreases;
      Expression body = null;
-     bool isPredicate = false;  bool isCoPredicate = false;
+     bool isPredicate = false; bool isIndPredicate = false; bool isCoPredicate = false;
      bool isFunctionMethod = false;
      IToken bodyStart = Token.NoToken;
      IToken bodyEnd = Token.NoToken;
@@ -1251,6 +1251,20 @@ FunctionDecl<MemberModifiers mmod, out Function/*!*/ f>
     | "..."                    (. signatureEllipsis = t; .)
     )
 
+  /* ----- inductive predicate ----- */
+  | "inductive" "predicate"    (. isIndPredicate = true; .)
+    (. if (mmod.IsGhost) { SemErr(t, "inductive predicates cannot be declared 'ghost' (they are ghost by default)"); }
+    .)
+    { Attribute<ref attrs> }
+    NoUSIdent<out id>
+    (
+      [ GenericParameters<typeArgs> ]
+      Formals<true, isFunctionMethod, formals>
+      [ ":"                    (. SemErr(t, "inductive predicates do not have an explicitly declared return type; it is always bool"); .)
+      ]
+    | "..."                    (. signatureEllipsis = t; .)
+    )
+
   /* ----- copredicate ----- */
   | "copredicate"              (. isCoPredicate = true; .)
     (. if (mmod.IsGhost) { SemErr(t, "copredicates cannot be declared 'ghost' (they are ghost by default)"); }
@@ -1258,16 +1272,15 @@ FunctionDecl<MemberModifiers mmod, out Function/*!*/ f>
     { Attribute<ref attrs> }
     NoUSIdent<out id>
     (
-      [ GenericParameters<typeArgs> ]                  (. missingOpenParen = true; .)
-      [ Formals<true, isFunctionMethod, formals>       (. missingOpenParen = false; .)
-      ]                                                (. if (missingOpenParen) { errors.Warning(t, "with the new support of higher-order functions in Dafny, parentheses-less co-predicates are no longer supported; in the new syntax, parentheses are required for the declaration and uses of predicates, even if the co-predicate takes no additional arguments"); } .)
+      [ GenericParameters<typeArgs> ]
+      Formals<true, isFunctionMethod, formals>
       [ ":"                    (. SemErr(t, "copredicates do not have an explicitly declared return type; it is always bool"); .)
       ]
     | "..."                    (. signatureEllipsis = t; .)
     )
   )
 
-  (. decreases = isCoPredicate ? null : new List<Expression/*!*/>(); .)
+  (. decreases = isIndPredicate || isCoPredicate ? null : new List<Expression/*!*/>(); .)
   { FunctionSpec<reqs, reads, ens, decreases> }
   [ FunctionBody<out body, out bodyStart, out bodyEnd>
   ]
@@ -1279,9 +1292,12 @@ FunctionDecl<MemberModifiers mmod, out Function/*!*/ f>
      if (isPredicate) {
         f = new Predicate(tok, id.val, mmod.IsStatic, mmod.IsProtected, !isFunctionMethod, typeArgs, formals,
                           reqs, reads, ens, new Specification<Expression>(decreases, null), body, Predicate.BodyOriginKind.OriginalOrInherited, attrs, signatureEllipsis);
+     } else if (isIndPredicate) {
+        f = new InductivePredicate(tok, id.val, mmod.IsStatic, mmod.IsProtected, typeArgs, formals,
+                                   reqs, reads, ens, body, attrs, signatureEllipsis);
      } else if (isCoPredicate) {
         f = new CoPredicate(tok, id.val, mmod.IsStatic, mmod.IsProtected, typeArgs, formals,
-                          reqs, reads, ens, body, attrs, signatureEllipsis);
+                            reqs, reads, ens, body, attrs, signatureEllipsis);
      } else {
         f = new Function(tok, id.val, mmod.IsStatic, mmod.IsProtected, !isFunctionMethod, typeArgs, formals, returnType,
                          reqs, reads, ens, new Specification<Expression>(decreases, null), body, attrs, signatureEllipsis);
@@ -1289,7 +1305,7 @@ FunctionDecl<MemberModifiers mmod, out Function/*!*/ f>
      f.BodyStartTok = bodyStart;
      f.BodyEndTok = bodyEnd;
      theBuiltIns.CreateArrowTypeDecl(formals.Count);
-     if (isCoPredicate) {
+     if (isIndPredicate || isCoPredicate) {
        // also create an arrow type for the corresponding prefix predicate
        theBuiltIns.CreateArrowTypeDecl(formals.Count + 1);
      }
