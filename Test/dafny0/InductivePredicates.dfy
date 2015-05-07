@@ -3,13 +3,6 @@
 
 datatype natinf = N(n: nat) | Inf
 
-function S(x: natinf): natinf
-{
-  match x
-  case N(n) => N(n+1)
-  case Inf => Inf
-}
-
 inductive predicate Even(x: natinf)
 {
   (x.N? && x.n == 0) ||
@@ -103,4 +96,80 @@ lemma OneMore(x: natinf) returns (y: natinf)
   ensures Even(y)
 {
   y := N(x.n + 2);
+}
+
+// ----------------------- Here's another version of Even, using the S function
+
+module Alt {
+  datatype natinf = N(n: nat) | Inf
+
+  function S(x: natinf): natinf
+  {
+    match x
+    case N(n) => N(n+1)
+   case Inf => Inf
+  }
+
+  inductive predicate Even(x: natinf)
+  {
+    (x.N? && x.n == 0) ||
+    exists y :: x == S(S(y)) && Even(y)
+  }
+
+  inductive lemma MyLemma_NotSoNice(x: natinf)
+    requires Even(x)
+    ensures x.N? && x.n % 2 == 0
+  {
+    if {
+      case x.N? && x.n == 0 =>
+        // trivial
+      case exists y :: x == S(S(y)) && Even#[_k-1](y) =>
+        var y :| x == S(S(y)) && Even#[_k-1](y);
+        MyLemma_NotSoNice(y);
+        assert x.n == y.n + 2;
+    }
+  }
+
+  inductive lemma MyLemma_NiceButNotFast(x: natinf)
+    requires Even(x)
+    ensures x.N? && x.n % 2 == 0
+  {
+    if {
+      case x.N? && x.n == 0 =>
+        // trivial
+      case exists y :: x == S(S(y)) && Even(y) =>
+        var y :| x == S(S(y)) && Even(y);
+        MyLemma_NiceButNotFast(y);
+        assert x.n == y.n + 2;
+    }
+  }
+
+  lemma InfNotEven()
+    ensures !Even(Inf)
+  {
+    if Even(Inf) {
+      InfNotEven_Aux();
+    }
+  }
+
+  inductive lemma InfNotEven_Aux()
+    requires Even(Inf)
+    ensures false
+  {
+    var x := Inf;
+    if {
+      case x.N? && x.n == 0 =>
+        assert false;  // this case is absurd
+      case exists y :: x == S(S(y)) && Even(y) =>
+        var y :| x == S(S(y)) && Even(y);
+        assert y == Inf;
+        InfNotEven_Aux();
+    }
+  }
+
+  lemma NextEven(x: natinf)
+    requires Even(x)
+    ensures Even(S(S(x)))
+  {
+  }
 }
