@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:0 /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %dafny /compile:0 /rprint:"%t.rprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // This file is a Dafny encoding of chapter 3 from "Concrete Semantics: With Isabelle/HOL" by
