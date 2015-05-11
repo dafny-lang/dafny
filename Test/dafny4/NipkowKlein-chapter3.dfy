@@ -41,7 +41,7 @@ function aval(a: aexp, s: state): val
   match a
   case N(n) => n
   case V(x) => s(x)
-  case Plus(a0, a1) => aval(a0,s ) + aval(a1, s)
+  case Plus(a0, a1) => aval(a0, s) + aval(a1, s)
 }
 
 lemma Example0()

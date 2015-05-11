@@ -495,7 +495,6 @@ namespace Microsoft.Dafny
                   sep = ", ";
                 }
               }
-              s += ";";  // always terminate with a semi-colon, even in the case of an empty decreases clause
               // Note, in the following line, we use the location information for "clbl", not "m".  These
               // are the same, except in the case where "clbl" is a CoLemma and "m" is a prefix lemma.
               ReportAdditionalInformation(clbl.Tok, s, clbl.Tok.val.Length);

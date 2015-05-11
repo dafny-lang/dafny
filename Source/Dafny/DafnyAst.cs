@@ -633,7 +633,7 @@ namespace Microsoft.Dafny {
     /// </summary>
     public bool IsOrdered {
       get {
-        return !IsTypeParameter && !IsCoDatatype && !(this is MapType && ((MapType)this).Finite);
+        return !IsTypeParameter && !IsCoDatatype && !IsArrowType && !IsIMapType;
       }
     }
 
