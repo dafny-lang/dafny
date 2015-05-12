@@ -86,7 +86,7 @@
 ;; commands
 
 (defun dafny-command-line (file)
-  (concat "boogie " file))
+  (concat "dafny " file))
 
 (defun dafny-run-verifier ()
   "run Dafny verifier"
