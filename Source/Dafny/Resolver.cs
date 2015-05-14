@@ -5185,96 +5185,7 @@ namespace Microsoft.Dafny
         Contract.Assert(prevErrorCount != ErrorCount || s.Steps.Count == s.Hints.Count);
 
       } else if (stmt is MatchStmt) {
-        MatchStmt s = (MatchStmt)stmt;
-        bool bodyIsSpecOnly = specContextOnly;
-        int prevErrorCount = ErrorCount;
-        ResolveExpression(s.Source, new ResolveOpts(codeContext, true, specContextOnly));
-        Contract.Assert(s.Source.Type != null);  // follows from postcondition of ResolveExpression
-        bool successfullyResolved = ErrorCount == prevErrorCount;
-        if (!specContextOnly && successfullyResolved) {
-          bodyIsSpecOnly = UsesSpecFeatures(s.Source);
-        }
-        UserDefinedType sourceType = null;
-        DatatypeDecl dtd = null;
-        if (s.Source.Type.IsDatatype) {
-          sourceType = (UserDefinedType)s.Source.Type.NormalizeExpand();
-          dtd = cce.NonNull((DatatypeDecl)sourceType.ResolvedClass);
-        }
-        var subst = new Dictionary<TypeParameter, Type>();
-        Dictionary<string, DatatypeCtor> ctors;
-        if (dtd == null) {
-          Error(s.Source, "the type of the match source expression must be a datatype (instead found {0})", s.Source.Type);
-          ctors = null;
-        } else {
-          Contract.Assert(sourceType != null);  // dtd and sourceType are set together above
-          ctors = datatypeCtors[dtd];
-          Contract.Assert(ctors != null);  // dtd should have been inserted into datatypeCtors during a previous resolution stage
-
-          // build the type-parameter substitution map for this use of the datatype
-          for (int i = 0; i < dtd.TypeArgs.Count; i++) {
-            subst.Add(dtd.TypeArgs[i], sourceType.TypeArgs[i]);
-          }
-        }
-        s.IsGhost = bodyIsSpecOnly;
-
-        ISet<string> memberNamesUsed = new HashSet<string>();
-        foreach (MatchCaseStmt mc in s.Cases) {
-          DatatypeCtor ctor = null;
-          if (ctors != null) {
-            Contract.Assert(dtd != null);
-            if (!ctors.TryGetValue(mc.Id, out ctor)) {
-              Error(mc.tok, "member {0} does not exist in datatype {1}", mc.Id, dtd.Name);
-            } else {
-              Contract.Assert(ctor != null);  // follows from postcondition of TryGetValue
-              mc.Ctor = ctor;
-              if (ctor.Formals.Count != mc.Arguments.Count) {
-                Error(mc.tok, "member {0} has wrong number of formals (found {1}, expected {2})", mc.Id, mc.Arguments.Count, ctor.Formals.Count);
-              }
-              if (memberNamesUsed.Contains(mc.Id)) {
-                Error(mc.tok, "member {0} appears in more than one case", mc.Id);
-              } else {
-                memberNamesUsed.Add(mc.Id);  // add mc.Id to the set of names used
-              }
-            }
-          }
-          scope.PushMarker();
-          int i = 0;
-          foreach (BoundVar v in mc.Arguments) {
-            if (!scope.Push(v.Name, v)) {
-              Error(v, "Duplicate parameter name: {0}", v.Name);
-            }
-            ResolveType(v.tok, v.Type, codeContext, ResolveTypeOptionEnum.InferTypeProxies, null);
-            if (ctor != null && i < ctor.Formals.Count) {
-              Formal formal = ctor.Formals[i];
-              Type st = SubstType(formal.Type, subst);
-              if (!UnifyTypes(v.Type, st)) {
-                Error(stmt, "the declared type of the formal ({0}) does not agree with the corresponding type in the constructor's signature ({1})", v.Type, st);
-              }
-              v.IsGhost = formal.IsGhost;
-            }
-            i++;
-          }
-          foreach (Statement ss in mc.Body) {
-            ResolveStatement(ss, bodyIsSpecOnly, codeContext);
-          }
-          scope.PopMarker();
-        }
-        if (dtd != null && memberNamesUsed.Count != dtd.Ctors.Count) {
-          // We could complain about the syntactic omission of constructors:
-          //   Error(stmt, "match statement does not cover all constructors");
-          // but instead we let the verifier do a semantic check.
-          // So, for now, record the missing constructors:
-          foreach (var ctr in dtd.Ctors) {
-            if (!memberNamesUsed.Contains(ctr.Name)) {
-              s.MissingCases.Add(ctr);
-            }
-          }
-          Contract.Assert(memberNamesUsed.Count + s.MissingCases.Count == dtd.Ctors.Count);
-        }
-        if (!s.IsGhost) {
-          s.IsGhost = s.Cases.All(cs => cs.Body.All(ss => ss.IsGhost));
-        }
-
+        ResolveMatchStmt(stmt, specContextOnly, codeContext);
       } else if (stmt is SkeletonStatement) {
         var s = (SkeletonStatement)stmt;
         Error(s.Tok, "skeleton statements are allowed only in refining methods");
@@ -5285,6 +5196,370 @@ namespace Microsoft.Dafny
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();
       }
+    }
+
+    void ResolveMatchStmt(Statement stmt, bool specContextOnly, ICodeContext codeContext) {
+      MatchStmt s = (MatchStmt)stmt;
+      DesugarMatchStmtWithTupleExpression(s);
+
+      bool bodyIsSpecOnly = specContextOnly;
+      int prevErrorCount = ErrorCount;
+      ResolveExpression(s.Source, new ResolveOpts(codeContext, true, specContextOnly));
+      Contract.Assert(s.Source.Type != null);  // follows from postcondition of ResolveExpression
+      bool successfullyResolved = ErrorCount == prevErrorCount;
+      if (!specContextOnly && successfullyResolved) {
+        bodyIsSpecOnly = UsesSpecFeatures(s.Source);
+      }
+      UserDefinedType sourceType = null;
+      DatatypeDecl dtd = null;
+      if (s.Source.Type.IsDatatype) {
+        sourceType = (UserDefinedType)s.Source.Type.NormalizeExpand();
+        dtd = cce.NonNull((DatatypeDecl)sourceType.ResolvedClass);
+      }
+      var subst = new Dictionary<TypeParameter, Type>();
+      Dictionary<string, DatatypeCtor> ctors;
+      if (dtd == null) {
+        Error(s.Source, "the type of the match source expression must be a datatype (instead found {0})", s.Source.Type);
+        ctors = null;
+      } else {
+        Contract.Assert(sourceType != null);  // dtd and sourceType are set together above
+        ctors = datatypeCtors[dtd];
+        Contract.Assert(ctors != null);  // dtd should have been inserted into datatypeCtors during a previous resolution stage
+
+        // build the type-parameter substitution map for this use of the datatype
+        for (int i = 0; i < dtd.TypeArgs.Count; i++) {
+          subst.Add(dtd.TypeArgs[i], sourceType.TypeArgs[i]);
+        }
+      }
+      s.IsGhost = bodyIsSpecOnly;
+
+      // convert CasePattern in MatchCaseExpr to BoundVar and flatten the MatchCaseExpr.
+      Type type = new InferredTypeProxy();
+      string name = FreshTempVarName("_mc#", codeContext);
+      BoundVar bv = new BoundVar(s.Tok, name, type);
+      List<CasePattern> patternSubst = new List<CasePattern>();
+      DesugarMatchCaseStmt(s, dtd, bv, patternSubst);
+
+      ISet<string> memberNamesUsed = new HashSet<string>();
+      foreach (MatchCaseStmt mc in s.Cases) {
+        DatatypeCtor ctor = null;
+        if (ctors != null) {
+          Contract.Assert(dtd != null);
+          if (!ctors.TryGetValue(mc.Id, out ctor)) {
+            Error(mc.tok, "member {0} does not exist in datatype {1}", mc.Id, dtd.Name);
+          } else {
+            Contract.Assert(ctor != null);  // follows from postcondition of TryGetValue
+            mc.Ctor = ctor;
+            if (ctor.Formals.Count != mc.Arguments.Count) {
+              Error(mc.tok, "member {0} has wrong number of formals (found {1}, expected {2})", mc.Id, mc.Arguments.Count, ctor.Formals.Count);
+            }
+            if (memberNamesUsed.Contains(mc.Id)) {
+              Error(mc.tok, "member {0} appears in more than one case", mc.Id);
+            } else {
+              memberNamesUsed.Add(mc.Id);  // add mc.Id to the set of names used
+            }
+          }
+        }
+        scope.PushMarker();
+        int i = 0;
+        foreach (BoundVar v in mc.Arguments) {
+          if (!scope.Push(v.Name, v)) {
+            Error(v, "Duplicate parameter name: {0}", v.Name);
+          }
+          ResolveType(v.tok, v.Type, codeContext, ResolveTypeOptionEnum.InferTypeProxies, null);
+          if (ctor != null && i < ctor.Formals.Count) {
+            Formal formal = ctor.Formals[i];
+            Type st = SubstType(formal.Type, subst);
+            if (!UnifyTypes(v.Type, st)) {
+              Error(stmt, "the declared type of the formal ({0}) does not agree with the corresponding type in the constructor's signature ({1})", v.Type, st);
+            }
+            v.IsGhost = formal.IsGhost;
+          }
+          i++;
+        }
+        foreach (Statement ss in mc.Body) {
+          ResolveStatement(ss, bodyIsSpecOnly, codeContext);
+        }
+        // substitute body to replace the case pat with v. This needs to happen
+        // after the body is resolved so we can scope the bv correctly.
+        if (patternSubst.Count > 0) {
+          MatchCaseExprSubstituteCloner cloner = new MatchCaseExprSubstituteCloner(patternSubst, bv);
+          List<Statement> list = new List<Statement>();
+          foreach (Statement ss in mc.Body) {
+            Statement clone = cloner.CloneStmt(ss);
+            // resolve it again since we just cloned it.
+            ResolveStatement(clone, bodyIsSpecOnly, codeContext);
+            list.Add(clone);
+          }
+          mc.UpdateBody(list);
+        }
+
+        scope.PopMarker();
+      }
+      if (dtd != null && memberNamesUsed.Count != dtd.Ctors.Count) {
+        // We could complain about the syntactic omission of constructors:
+        //   Error(stmt, "match statement does not cover all constructors");
+        // but instead we let the verifier do a semantic check.
+        // So, for now, record the missing constructors:
+        foreach (var ctr in dtd.Ctors) {
+          if (!memberNamesUsed.Contains(ctr.Name)) {
+            s.MissingCases.Add(ctr);
+          }
+        }
+        Contract.Assert(memberNamesUsed.Count + s.MissingCases.Count == dtd.Ctors.Count);
+      }
+      if (!s.IsGhost) {
+        s.IsGhost = s.Cases.All(cs => cs.Body.All(ss => ss.IsGhost));
+      }
+    }
+
+    /*
+     * Convert
+     *  match (x, y)
+     *    case (Zero, _) => Zero
+     *    case (Suc(_), Zero) => x
+     *    case (Suc(a), Suc(b)) => minus(a, b)
+     * To:  
+     *  match x
+     *    case Zero => match y
+     *        case _ => zero
+     *    case Suc(_) => match y
+     *        case Zero => x
+     *    case Suc(a) => match y
+      *        case (b) => minus(a,b)
+     */    
+    void DesugarMatchStmtWithTupleExpression(MatchStmt me) {
+      // (x, y) is treated as a 2-tuple constructor
+      if (me.Source is DatatypeValue) {
+        var e = (DatatypeValue)me.Source;
+        Contract.Assert(e.Arguments.Count >= 1);
+        Expression source = e.Arguments[0];
+        List<MatchCaseStmt> cases = new List<MatchCaseStmt>();
+        foreach (MatchCaseStmt mc in me.Cases) {
+          Contract.Assert(mc.CasePatterns != null);
+          Contract.Assert(mc.CasePatterns.Count == e.Arguments.Count);
+          CasePattern cp = mc.CasePatterns[0];
+          List<CasePattern> patterns;
+          if (cp.Arguments != null) {
+            patterns = cp.Arguments;
+          } else {
+            patterns = new List<CasePattern>();
+          }
+
+          List<Statement> body = mc.Body;
+          for (int i = e.Arguments.Count; 1 <= --i; ) {
+            // others go into the body
+            body = CreateMatchCaseStmtBody(mc.tok, e.Arguments[i], mc.CasePatterns[i], body);
+          }
+          cases.Add(new MatchCaseStmt(cp.tok, cp.Id, patterns, body));
+        }
+        me.UpdateSource(source);
+        me.UpdateCases(cases);
+      }
+    }
+
+    List<Statement> CreateMatchCaseStmtBody(Boogie.IToken tok, Expression source, CasePattern cp, List<Statement> body) {
+      List<MatchCaseStmt> cases = new List<MatchCaseStmt>();
+      List<CasePattern> patterns;
+      if (cp.Var != null) {
+        var bv = cp.Var;
+        if (LocalVariable.HasWildcardName(bv)) {
+          return body;
+        } else {
+          patterns = new List<CasePattern>();
+        }
+      } else {
+        patterns = cp.Arguments;
+      }
+      cases.Add(new MatchCaseStmt(cp.tok, cp.Id, patterns, body));
+      List<Statement> list = new List<Statement>();
+      // endTok??
+      list.Add(new MatchStmt(tok, tok, source, cases, false));
+      return list;
+    }
+  
+
+    /*
+     * Convert
+     *   match xs
+     *     case Cons(y, Cons(z, zs)) => last(Cons(z, zs))
+     *     case Cons(y, Nil) => y
+     * To
+     *   match xs
+     *     case Cons(y, ys) => match ys
+     *       case Nil => y
+     *       case Cons(z, zs) => last(ys)
+     */
+    void DesugarMatchCaseStmt(MatchStmt s, DatatypeDecl dtd, BoundVar sourceVar, List<CasePattern> patterns) {
+      Contract.Assert(dtd != null);
+      Dictionary<string, DatatypeCtor> ctors = datatypeCtors[dtd];
+      foreach (MatchCaseStmt mc in s.Cases) {
+        if (mc.Arguments != null) {
+          // already desugared. This happens during the second pass resolver after cloning.
+          Contract.Assert(mc.CasePatterns == null);
+          return;
+        }
+
+        Contract.Assert(mc.Arguments == null);
+        Contract.Assert(mc.CasePatterns != null);
+        DatatypeCtor ctor = null;
+        if (ctors != null) {
+          if (!ctors.TryGetValue(mc.Id, out ctor)) {
+            Error(mc.tok, "member {0} does not exist in datatype {1}", mc.Id, dtd.Name);
+          } else {
+            Contract.Assert(ctor != null);  // follows from postcondition of TryGetValue
+            mc.Ctor = ctor;
+            if (ctor.Formals.Count != mc.CasePatterns.Count) {
+              Error(mc.tok, "member {0} has wrong number of formals (found {1}, expected {2})", mc.Id, mc.Arguments.Count, ctor.Formals.Count);
+            }
+          }
+        }
+        scope.PushMarker();
+        List<BoundVar> arguments = new List<BoundVar>();
+        foreach (CasePattern pat in mc.CasePatterns) {
+          // Find the constructor in the given datatype
+          // If what was parsed was just an identifier, we will interpret it as a datatype constructor, if possible
+          ctor = null;
+          if (pat.Var == null || (pat.Var != null && pat.Var.Type is TypeProxy && dtd != null)) {
+            if (datatypeCtors[dtd].TryGetValue(pat.Id, out ctor)) {
+              pat.Ctor = ctor;
+              pat.Var = null;
+            }
+          }
+          if (pat.Var != null) {
+            BoundVar v = pat.Var;
+            arguments.Add(v);
+            if (!scope.Push(v.Name, v)) {
+              Error(v, "Duplicate name: {0}", v.Name);
+            }
+          } else {
+            DesugarMatchCasePattern(mc, pat, sourceVar);
+            patterns.Add(pat);
+            arguments.Add(sourceVar);
+          }
+        }
+        mc.Arguments = arguments;
+        mc.CasePatterns = null;
+        scope.PopMarker();
+      }
+
+      List<MatchCaseStmt> newCases = new List<MatchCaseStmt>();
+
+      // need to consolidate the cases.
+      // Convert 
+      //  match xs
+      //    case Cons(y, #mc#0) => match #mc#0
+      //                case Cons((z, zs) => body
+      //    case Cons(y, #mc#0) => match #mc#0
+      //                case Nil => y
+      // into
+      //  match xs
+      //    case Cons(y, #mc#0) => match #mc#0
+      //                case Cons((z, zs) => body
+      //                case Nil => y
+      bool thingsChanged = false;
+      Dictionary<string, MatchCaseStmt> caseMap = new Dictionary<string, MatchCaseStmt>();
+      List<MatchCaseStmt> mcWithWildCard = new List<MatchCaseStmt>();
+      foreach (MatchCaseStmt mc in s.Cases) {
+        // check each CasePattern to see if it has wildcard.
+        if (CaseExprHasWildCard(mc)) {
+          mcWithWildCard.Add(mc);
+        } else {
+          thingsChanged |= CombineMatchCaseStmt(mc, newCases, caseMap);
+        }
+      }
+
+      foreach (MatchCaseStmt mc in mcWithWildCard) {
+        // now process with cases with wildcard
+        thingsChanged |= CombineMatchCaseStmt(mc, newCases, caseMap);
+      }
+
+      if (thingsChanged) {
+        s.UpdateCases(newCases);
+      }
+    }
+
+    void DesugarMatchCasePattern(MatchCaseStmt mc, CasePattern pat, BoundVar v) {
+      // convert 
+      //    case Cons(y, Cons(z, zs)) => body
+      // to
+      //    case Cons(y, #mc#) => match #mc#
+      //            case Cons(z, zs) => body
+
+      Expression source = new NameSegment(pat.tok, v.Name, null);
+      List<MatchCaseStmt> cases = new List<MatchCaseStmt>();
+      cases.Add(new MatchCaseStmt(pat.tok, pat.Id, pat.Arguments == null ? new List<CasePattern>() : pat.Arguments, mc.Body));
+      List<Statement> list = new List<Statement>();
+      // endTok??
+      list.Add(new MatchStmt(pat.tok, pat.tok, source, cases, false));
+      mc.UpdateBody(list);
+    }
+
+    bool CombineMatchCaseStmt(MatchCaseStmt mc, List<MatchCaseStmt> newCases, Dictionary<string, MatchCaseStmt> caseMap) {
+      bool thingsChanged = false;
+      MatchCaseStmt old_mc;
+      if (caseMap.TryGetValue(mc.Id, out old_mc)) {
+        // already has a case with the same ctor, try to consolidate the body.
+        List<Statement> oldBody = old_mc.Body;
+        List<Statement> body = mc.Body;
+        if ((oldBody.Count == 1) && (oldBody[0] is MatchStmt)
+            && (body.Count == 1) && (body[0] is MatchStmt)) {
+          // both only have on statement and the statement is MatchStmt
+          MatchStmt old = (MatchStmt) oldBody[0];
+          MatchStmt current = (MatchStmt) body[0];
+          if (SameMatchCase(old_mc, mc)) {
+            foreach (MatchCaseStmt c in current.Cases) {
+              old.Cases.Add(c);
+            }
+            thingsChanged = true;
+          }
+        } else {
+          // duplicate cases, do nothing for now. The error will be reported during resolving
+        }
+      } else {
+        // it is a new case.
+        newCases.Add(mc);
+        caseMap.Add(mc.Id, mc);
+      }
+      return thingsChanged;
+    }
+
+    bool SameMatchCase(MatchCaseStmt one, MatchCaseStmt other) {
+      // this method is called after all the CasePattern in the match cases are converted
+      // into BoundVars.
+      Contract.Assert(one.CasePatterns == null && one.Arguments != null);
+      Contract.Assert(other.CasePatterns == null && other.Arguments != null);
+      // In order to combine the two match cases, the bodies need to be a MatchExpr and 
+      // the arguments and the source of the body are the same. 
+      // We do string equals since they should be in the same scope.
+      if (one.Arguments.Count != other.Arguments.Count) {
+        return false;
+      }
+      List<Statement> body1 = one.Body;
+      List<Statement> body2 = other.Body;
+      if ((body1.Count != 1) || (body2.Count != 1)) {
+        return false;
+      }
+      if (!(body1[0] is MatchStmt) || !(body2[0] is MatchStmt)) {
+       return false;
+      }
+      var source1 = ((MatchStmt)body1[0]).Source;
+      var source2 = ((MatchStmt)body2[0]).Source;
+      if (!(source1 is NameSegment) || !(source2 is NameSegment)) {
+        return false;
+      }
+      if (!((NameSegment)source1).Name.Equals(((NameSegment)source2).Name)) {
+        return false;
+      }
+      for (int i = 0; i < one.Arguments.Count; i++) {
+        BoundVar bv1 = one.Arguments[i];
+        BoundVar bv2 = other.Arguments[i];
+        if (!LocalVariable.HasWildcardName(bv1) && !LocalVariable.HasWildcardName(bv2) &&
+            !bv1.Name.Equals(bv2.Name)) {
+          return false;
+        }
+      }
+      return true;
     }
 
     void FillInDefaultLoopDecreases(LoopStmt loopStmt, Expression guard, List<Expression> theDecreases, ICallable enclosingMethod) {
@@ -7324,89 +7599,7 @@ namespace Microsoft.Dafny
         }
 
       } else if (expr is MatchExpr) {
-        var me = (MatchExpr)expr;
-        ResolveExpression(me.Source, opts);
-        Contract.Assert(me.Source.Type != null);  // follows from postcondition of ResolveExpression
-        UserDefinedType sourceType = null;
-        DatatypeDecl dtd = null;
-        if (me.Source.Type.IsDatatype) {
-          sourceType = (UserDefinedType)me.Source.Type.NormalizeExpand();
-          dtd = cce.NonNull((DatatypeDecl)sourceType.ResolvedClass);
-        }
-        var subst = new Dictionary<TypeParameter, Type>();
-        Dictionary<string, DatatypeCtor> ctors;
-        if (dtd == null) {
-          Error(me.Source, "the type of the match source expression must be a datatype (instead found {0})", me.Source.Type);
-          ctors = null;
-        } else {
-          Contract.Assert(sourceType != null);  // dtd and sourceType are set together above
-          ctors = datatypeCtors[dtd];
-          Contract.Assert(ctors != null);  // dtd should have been inserted into datatypeCtors during a previous resolution stage
-
-          // build the type-parameter substitution map for this use of the datatype
-          for (int i = 0; i < dtd.TypeArgs.Count; i++) {
-            subst.Add(dtd.TypeArgs[i], sourceType.TypeArgs[i]);
-          }
-        }
-
-        ISet<string> memberNamesUsed = new HashSet<string>();
-        expr.Type = new InferredTypeProxy();
-        foreach (MatchCaseExpr mc in me.Cases) {
-          DatatypeCtor ctor = null;
-          if (ctors != null) {
-            Contract.Assert(dtd != null);
-            if (!ctors.TryGetValue(mc.Id, out ctor)) {
-              Error(mc.tok, "member {0} does not exist in datatype {1}", mc.Id, dtd.Name);
-            } else {
-              Contract.Assert(ctor != null);  // follows from postcondition of TryGetValue
-              mc.Ctor = ctor;
-              if (ctor.Formals.Count != mc.Arguments.Count) {
-                Error(mc.tok, "member {0} has wrong number of formals (found {1}, expected {2})", mc.Id, mc.Arguments.Count, ctor.Formals.Count);
-              }
-              if (memberNamesUsed.Contains(mc.Id)) {
-                Error(mc.tok, "member {0} appears in more than one case", mc.Id);
-              } else {
-                memberNamesUsed.Add(mc.Id);  // add mc.Id to the set of names used
-              }
-            }
-          }
-          scope.PushMarker();
-          int i = 0;
-          foreach (BoundVar v in mc.Arguments) {
-            if (!scope.Push(v.Name, v)) {
-              Error(v, "Duplicate parameter name: {0}", v.Name);
-            }
-            ResolveType(v.tok, v.Type, opts.codeContext, ResolveTypeOptionEnum.InferTypeProxies, null);
-            if (ctor != null && i < ctor.Formals.Count) {
-              Formal formal = ctor.Formals[i];
-              Type st = SubstType(formal.Type, subst);
-              if (!UnifyTypes(v.Type, st)) {
-                Error(expr, "the declared type of the formal ({0}) does not agree with the corresponding type in the constructor's signature ({1})", v.Type, st);
-              }
-              v.IsGhost = formal.IsGhost;
-            }
-            i++;
-          }
-          ResolveExpression(mc.Body, opts);
-          Contract.Assert(mc.Body.Type != null);  // follows from postcondition of ResolveExpression
-          if (!UnifyTypes(expr.Type, mc.Body.Type)) {
-            Error(mc.Body.tok, "type of case bodies do not agree (found {0}, previous types {1})", mc.Body.Type, expr.Type);
-          }
-          scope.PopMarker();
-        }
-        if (dtd != null && memberNamesUsed.Count != dtd.Ctors.Count) {
-          // We could complain about the syntactic omission of constructors:
-          //   Error(expr, "match expression does not cover all constructors");
-          // but instead we let the verifier do a semantic check.
-          // So, for now, record the missing constructors:
-          foreach (var ctr in dtd.Ctors) {
-            if (!memberNamesUsed.Contains(ctr.Name)) {
-              me.MissingCases.Add(ctr);
-            }
-          }
-          Contract.Assert(memberNamesUsed.Count + me.MissingCases.Count == dtd.Ctors.Count);
-        }
-
+        ResolveMatchExpr(expr, opts);
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected expression
       }
@@ -7415,6 +7608,354 @@ namespace Microsoft.Dafny
         // some resolution error occurred
         expr.Type = new InferredTypeProxy();
       }
+    }
+
+    void ResolveMatchExpr(Expression expr, ResolveOpts opts) {
+      var me = (MatchExpr)expr;
+      DesugarMatchExprWithTupleExpression(me);
+
+      ResolveExpression(me.Source, opts);
+      Contract.Assert(me.Source.Type != null);  // follows from postcondition of ResolveExpression
+      UserDefinedType sourceType = null;
+      DatatypeDecl dtd = null;
+      if (me.Source.Type.IsDatatype) {
+        sourceType = (UserDefinedType)me.Source.Type.NormalizeExpand();
+        dtd = cce.NonNull((DatatypeDecl)sourceType.ResolvedClass);
+      }
+      var subst = new Dictionary<TypeParameter, Type>();
+      Dictionary<string, DatatypeCtor> ctors;
+      if (dtd == null) {
+        Error(me.Source, "the type of the match source expression must be a datatype (instead found {0})", me.Source.Type);
+        ctors = null;
+      } else {
+        Contract.Assert(sourceType != null);  // dtd and sourceType are set together above
+        ctors = datatypeCtors[dtd];
+        Contract.Assert(ctors != null);  // dtd should have been inserted into datatypeCtors during a previous resolution stage
+
+        // build the type-parameter substitution map for this use of the datatype
+        for (int i = 0; i < dtd.TypeArgs.Count; i++) {
+          subst.Add(dtd.TypeArgs[i], sourceType.TypeArgs[i]);
+        }
+      }
+
+      // convert CasePattern in MatchCaseExpr to BoundVar and flatten the MatchCaseExpr.
+      Type type = new InferredTypeProxy();
+      string name = FreshTempVarName("_mc#", opts.codeContext);
+      BoundVar bv = new BoundVar(me.tok, name, type);
+      List<CasePattern> patternSubst = new List<CasePattern>();
+      DesugarMatchCaseExpr(me, dtd, bv, patternSubst);
+
+      ISet<string> memberNamesUsed = new HashSet<string>();
+      expr.Type = new InferredTypeProxy();
+      foreach (MatchCaseExpr mc in me.Cases) {
+        DatatypeCtor ctor = null;
+        if (ctors != null) {
+          Contract.Assert(dtd != null);
+          if (!ctors.TryGetValue(mc.Id, out ctor)) {
+            Error(mc.tok, "member {0} does not exist in datatype {1}", mc.Id, dtd.Name);
+          } else {
+            Contract.Assert(ctor != null);  // follows from postcondition of TryGetValue
+            mc.Ctor = ctor;
+            if (ctor.Formals.Count != mc.Arguments.Count) {
+              Error(mc.tok, "member {0} has wrong number of formals (found {1}, expected {2})", mc.Id, mc.Arguments.Count, ctor.Formals.Count);
+            }
+            if (memberNamesUsed.Contains(mc.Id)) {
+              Error(mc.tok, "member {0} appears in more than one case", mc.Id);
+            } else {
+              memberNamesUsed.Add(mc.Id);  // add mc.Id to the set of names used
+            }
+          }
+        }
+        scope.PushMarker();
+        int i = 0;
+        foreach (BoundVar v in mc.Arguments) {
+          if (!scope.Push(v.Name, v)) {
+            Error(v, "Duplicate parameter name: {0}", v.Name);
+          }
+          ResolveType(v.tok, v.Type, opts.codeContext, ResolveTypeOptionEnum.InferTypeProxies, null);
+          if (ctor != null && i < ctor.Formals.Count) {
+            Formal formal = ctor.Formals[i];
+            Type st = SubstType(formal.Type, subst);
+            if (!UnifyTypes(v.Type, st)) {
+              Error(expr, "the declared type of the formal ({0}) does not agree with the corresponding type in the constructor's signature ({1})", v.Type, st);
+            }
+            v.IsGhost = formal.IsGhost;
+          }
+          i++;
+        }
+        ResolveExpression(mc.Body, opts);
+        // substitute body to replace the case pat with v. This needs to happen
+        // after the body is resolved so we can scope the bv correctly.
+        if (patternSubst.Count > 0) {
+          MatchCaseExprSubstituteCloner cloner = new MatchCaseExprSubstituteCloner(patternSubst, bv);
+          mc.UpdateBody(cloner.CloneExpr(mc.Body));
+          // resolve it again since we just cloned it.
+          ResolveExpression(mc.Body, opts);
+        }
+
+        Contract.Assert(mc.Body.Type != null);  // follows from postcondition of ResolveExpression
+        if (!UnifyTypes(expr.Type, mc.Body.Type)) {
+          Error(mc.Body.tok, "type of case bodies do not agree (found {0}, previous types {1})", mc.Body.Type, expr.Type);
+        }
+        scope.PopMarker();
+      }
+      if (dtd != null && memberNamesUsed.Count != dtd.Ctors.Count) {
+        // We could complain about the syntactic omission of constructors:
+        //   Error(expr, "match expression does not cover all constructors");
+        // but instead we let the verifier do a semantic check.
+        // So, for now, record the missing constructors:
+        foreach (var ctr in dtd.Ctors) {
+          if (!memberNamesUsed.Contains(ctr.Name)) {
+            me.MissingCases.Add(ctr);
+          }
+        }
+        Contract.Assert(memberNamesUsed.Count + me.MissingCases.Count == dtd.Ctors.Count);
+      }
+    }
+
+    /*
+     * Convert
+     *  match (x, y)
+     *    case (Zero, _) => Zero
+     *    case (Suc(_), Zero) => x
+     *    case (Suc(a), Suc(b)) => minus(a, b)
+     * To:  
+     *  match x
+     *    case Zero => match y
+     *        case _ => zero
+     *    case Suc(_) => match y
+     *        case Zero => x
+     *    case Suc(a) => match y
+      *        case (b) => minus(a,b)
+     */
+    private void DesugarMatchExprWithTupleExpression(MatchExpr me) {
+      // (x, y) is treated as a 2-tuple constructor
+      if (me.Source is DatatypeValue) {
+        var e = (DatatypeValue)me.Source;
+        Contract.Assert(e.Arguments.Count >= 1);
+        Expression source = e.Arguments[0];
+        List<MatchCaseExpr> cases = new List<MatchCaseExpr>();
+        foreach (MatchCaseExpr mc in me.Cases) {
+          Contract.Assert(mc.CasePatterns != null);
+          Contract.Assert(mc.CasePatterns.Count == e.Arguments.Count);
+          CasePattern cp = mc.CasePatterns[0];
+          List<CasePattern> patterns;
+          if (cp.Arguments != null) {
+            patterns = cp.Arguments;
+          } else {
+            patterns = new List<CasePattern>();
+          }
+
+          Expression body = mc.Body;
+          for (int i = e.Arguments.Count; 1 <= --i; ) {
+            // others go into the body
+            body = CreateMatchCaseExprBody(mc.tok, e.Arguments[i], mc.CasePatterns[i], body);
+          }
+          cases.Add(new MatchCaseExpr(cp.tok, cp.Id, patterns, body));
+        }
+        me.UpdateSource(source);
+        me.UpdateCases(cases);
+      }
+    }
+
+    Expression CreateMatchCaseExprBody(Boogie.IToken tok, Expression source, CasePattern cp, Expression body) {
+      List<MatchCaseExpr> cases = new List<MatchCaseExpr>();
+      List<CasePattern> patterns;
+      if (cp.Var != null) {
+        var bv = cp.Var;
+        if (LocalVariable.HasWildcardName(bv)) {
+          return body;
+        } else {
+          patterns = new List<CasePattern>();
+        }
+      } else {
+        patterns = cp.Arguments;
+      }
+      cases.Add(new MatchCaseExpr(cp.tok, cp.Id, patterns, body));
+      return new MatchExpr(tok, source, cases, false);
+    }
+
+    /*
+     * Convert
+     *   match xs
+     *     case Cons(y, Cons(z, zs)) => last(Cons(z, zs))
+     *     case Cons(y, Nil) => y
+     * To
+     *   match xs
+     *     case Cons(y, ys) => match ys
+     *       case Nil => y
+     *       case Cons(z, zs) => last(ys)
+     * */
+    void DesugarMatchCaseExpr(MatchExpr me, DatatypeDecl dtd, BoundVar sourceVar, List<CasePattern> patterns) {
+      Contract.Assert(dtd != null);
+      Dictionary<string, DatatypeCtor> ctors = datatypeCtors[dtd];
+      foreach (MatchCaseExpr mc in me.Cases) {
+        if (mc.Arguments != null) {
+          // already desugared. This happens during the second pass resolver after cloning.
+          Contract.Assert(mc.CasePatterns == null);
+          return;
+        }
+
+        Contract.Assert(mc.Arguments == null);
+        Contract.Assert(mc.CasePatterns != null);
+        DatatypeCtor ctor = null;
+        if (ctors != null) {
+          if (!ctors.TryGetValue(mc.Id, out ctor)) {
+            Error(mc.tok, "member {0} does not exist in datatype {1}", mc.Id, dtd.Name);
+          } else {
+            Contract.Assert(ctor != null);  // follows from postcondition of TryGetValue
+            mc.Ctor = ctor;
+            if (ctor.Formals.Count != mc.CasePatterns.Count) {
+              Error(mc.tok, "member {0} has wrong number of formals (found {1}, expected {2})", mc.Id, mc.CasePatterns.Count, ctor.Formals.Count);
+            }
+          }
+        }
+        scope.PushMarker();
+        List<BoundVar> arguments = new List<BoundVar>();
+        foreach (CasePattern pat in mc.CasePatterns) {
+          // Find the constructor in the given datatype
+          // If what was parsed was just an identifier, we will interpret it as a datatype constructor, if possible
+          ctor = null;
+          if (pat.Var == null || (pat.Var != null && pat.Var.Type is TypeProxy && dtd != null)) {
+            if (datatypeCtors[dtd].TryGetValue(pat.Id, out ctor)) {
+              pat.Ctor = ctor;
+              pat.Var = null;
+            }
+          }
+          if (pat.Var != null) {
+            BoundVar v = pat.Var;
+            arguments.Add(v);
+            if (!scope.Push(v.Name, v)) {
+              Error(v, "Duplicate name: {0}", v.Name);
+            }
+          } else {
+            DesugarMatchCasePattern(mc, pat, sourceVar);
+            patterns.Add(pat);
+            arguments.Add(sourceVar);
+          }
+        }
+
+        mc.Arguments = arguments;
+        mc.CasePatterns = null;
+        scope.PopMarker();
+      }
+
+      List<MatchCaseExpr> newCases = new List<MatchCaseExpr>();
+      
+      // need to consolidate the cases.
+      // Convert 
+      //  match xs
+      //    case Cons(y, #mc#0) => match #mc#0
+      //                case Cons((z, zs) => body
+      //    case Cons(y, #mc#0) => match #mc#0
+      //                case Nil => y
+      // into
+      //  match xs
+      //    case Cons(y, #mc#0) => match #mc#0
+      //                case Cons((z, zs) => body
+      //                case Nil => y
+      bool thingsChanged = false;      
+      Dictionary<string, MatchCaseExpr> caseMap = new Dictionary<string, MatchCaseExpr>();
+      List<MatchCaseExpr> mcWithWildCard = new List<MatchCaseExpr>();
+      foreach (MatchCaseExpr mc in me.Cases) {
+        // check each CasePattern to see if it has wildcard.
+        if (CaseExprHasWildCard(mc)) {
+          mcWithWildCard.Add(mc);
+        } else {
+          thingsChanged |= CombineMatchCaseExpr(mc, newCases, caseMap);
+        }
+      }
+
+      foreach (MatchCaseExpr mc in mcWithWildCard) {
+        // now process with cases with wildcard
+        thingsChanged |= CombineMatchCaseExpr(mc, newCases, caseMap);
+      }      
+
+      if (thingsChanged) {
+        me.UpdateCases(newCases);
+      }
+    }
+
+    void DesugarMatchCasePattern(MatchCaseExpr mc, CasePattern pat, BoundVar v) {
+      // convert 
+      //    case Cons(y, Cons(z, zs)) => body
+      // to
+      //    case Cons(y, #mc#) => match #mc#
+      //            case Cons(z, zs) => body
+
+      Expression source = new NameSegment(pat.tok, v.Name, null);
+      List<MatchCaseExpr> cases = new List<MatchCaseExpr>(); 
+      cases.Add(new MatchCaseExpr(pat.tok, pat.Id, pat.Arguments == null ? new List<CasePattern>() : pat.Arguments, mc.Body));
+      MatchExpr e = new MatchExpr(pat.tok, source, cases, false);
+      mc.UpdateBody(e);
+    }
+
+
+    bool CaseExprHasWildCard(MatchCase mc) {
+      foreach (BoundVar bv in mc.Arguments) {
+        if (LocalVariable.HasWildcardName(bv)) {
+          return true;
+        }
+      }
+      return false;
+    }
+
+    bool CombineMatchCaseExpr(MatchCaseExpr mc, List<MatchCaseExpr> newCases, Dictionary<string, MatchCaseExpr> caseMap) {
+      bool thingsChanged = false;
+      MatchCaseExpr old_mc;
+      if (caseMap.TryGetValue(mc.Id, out old_mc)) {
+        // already has a case with the same ctor, try to consolidate the body.
+        Expression oldBody = old_mc.Body;
+        Expression body = mc.Body;
+        if (SameMatchCase(old_mc, mc)) {
+          MatchExpr old = (MatchExpr)oldBody;
+          MatchExpr current = (MatchExpr)body;
+          foreach (MatchCaseExpr c in current.Cases) {
+            old.Cases.Add(c);
+          }
+          thingsChanged = true;
+        } else {
+          // duplicate cases, do nothing for now. The error will be reported during resolving
+        }
+      } else {
+        // it is a new case.
+        newCases.Add(mc);
+        caseMap.Add(mc.Id, mc);
+      }
+      return thingsChanged;
+    }
+
+    bool SameMatchCase(MatchCaseExpr one, MatchCaseExpr other) {
+      // this method is called after all the CasePattern in the match cases are converted
+      // into BoundVars.
+      Contract.Assert(one.CasePatterns == null && one.Arguments != null);
+      Contract.Assert(other.CasePatterns == null && other.Arguments != null);
+      // In order to combine the two match cases, the bodies need to be a MatchExpr and 
+      // the arguments and the source of the body are the same. 
+      // We do string equals since they should be in the same scope.
+      if (one.Arguments.Count != other.Arguments.Count) {
+        return false;
+      }
+      if (!(one.Body is MatchExpr) || !(other.Body is MatchExpr)) {
+        return false;
+      }
+      var source1 = ((MatchExpr)one.Body).Source;
+      var source2 = ((MatchExpr)other.Body).Source;
+      if (!(source1 is NameSegment) || !(source2 is NameSegment)) {
+        return false;
+      }
+      if (!((NameSegment)source1).Name.Equals(((NameSegment)source2).Name)) {
+        return false;       
+      }
+      for (int i = 0; i < one.Arguments.Count; i++) {
+        BoundVar bv1 = one.Arguments[i];
+        BoundVar bv2 = other.Arguments[i];
+        if (!LocalVariable.HasWildcardName(bv1) && !LocalVariable.HasWildcardName(bv2) &&
+            !bv1.Name.Equals(bv2.Name)) {
+          return false;
+        }
+      }
+      return true;
     }
 
     void ResolveCasePattern(CasePattern pat, Type sourceType, ICodeContext context) {
@@ -7463,13 +8004,15 @@ namespace Microsoft.Dafny
         }
         // recursively call ResolveCasePattern on each of the arguments
         var j = 0;
-        foreach (var arg in pat.Arguments) {
-          if (j < ctor.Formals.Count) {
-            var formal = ctor.Formals[j];
-            Type st = SubstType(formal.Type, subst);
-            ResolveCasePattern(arg, st, context);
+        if (pat.Arguments != null) {
+          foreach (var arg in pat.Arguments) {
+            if (j < ctor.Formals.Count) {
+              var formal = ctor.Formals[j];
+              Type st = SubstType(formal.Type, subst);
+              ResolveCasePattern(arg, st, context);
+            }
+            j++;
           }
-          j++;
         }
         if (j == ctor.Formals.Count) {
           pat.AssembleExpr(udt.TypeArgs);
@@ -9009,8 +9552,10 @@ namespace Microsoft.Dafny
         var s = FreeVariables(e.Source);
         foreach (MatchCaseExpr mc in e.Cases) {
           var t = FreeVariables(mc.Body);
-          foreach (var bv in mc.Arguments) {
-            t.Remove(bv);
+          foreach (var cp in mc.CasePatterns) {
+            foreach (var bv in cp.Vars) {
+              t.Remove(bv);
+            }
           }
           s.UnionWith(t);
         }

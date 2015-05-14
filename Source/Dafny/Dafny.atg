@@ -1794,17 +1794,24 @@ MatchStmt<out Statement/*!*/ s>
 CaseStatement<out MatchCaseStmt/*!*/ c>
 = (. Contract.Ensures(Contract.ValueAtReturn(out c) != null);
      IToken/*!*/ x, id;
-     List<BoundVar/*!*/> arguments = new List<BoundVar/*!*/>();
-     BoundVar/*!*/ bv;
+     List<CasePattern/*!*/> arguments = new List<CasePattern/*!*/>();
+     CasePattern/*!*/ pat;
      List<Statement/*!*/> body = new List<Statement/*!*/>();
+     string/*!*/ name = "";
   .)
   "case"                      (. x = t; .)
-  Ident<out id>
-  [ "("
-    IdentTypeOptional<out bv>        (. arguments.Add(bv); .)
-    { "," IdentTypeOptional<out bv>  (. arguments.Add(bv); .)
-    }
-  ")" ]
+  ( Ident<out id>             (. name = id.val; .)
+    [ "("
+      CasePattern<out pat>        (. arguments.Add(pat); .)
+      { "," CasePattern<out pat>  (. arguments.Add(pat); .)
+      }
+    ")" ]
+  | "("
+      CasePattern<out pat>        (. arguments.Add(pat); .)
+      { "," CasePattern<out pat>  (. arguments.Add(pat); .)
+      }
+    ")"
+  )
   "=>"
     SYNC  /* this SYNC and the one inside the loop below are used to avoid problems with the IsNotEndOfCase test. The SYNC will
            * skip until the next symbol that can legally occur here, which is either the beginning of a Stmt or whatever is allowed
@@ -1814,7 +1821,7 @@ CaseStatement<out MatchCaseStmt/*!*/ c>
       Stmt<body>
       SYNC  /* see comment about SYNC above */
     }
-  (. c = new MatchCaseStmt(x, id.val, arguments, body); .)
+  (. c = new MatchCaseStmt(x, name, arguments, body); .)
   .
 /*------------------------------------------------------------------------*/
 AssertStmt<out Statement/*!*/ s>
@@ -2584,19 +2591,26 @@ MatchExpression<out Expression e, bool allowSemi, bool allowLambda>
   .
 CaseExpression<out MatchCaseExpr c, bool allowSemi, bool allowLambda>
 = (. Contract.Ensures(Contract.ValueAtReturn(out c) != null); IToken/*!*/ x, id;
-     List<BoundVar/*!*/> arguments = new List<BoundVar/*!*/>();
-     BoundVar/*!*/ bv;
+     List<CasePattern/*!*/> arguments = new List<CasePattern/*!*/>();
+     CasePattern/*!*/ pat;
      Expression/*!*/ body;
+     string/*!*/ name = "";
   .)
   "case"                      (. x = t; .)
-  Ident<out id>
-  [ "("
-    IdentTypeOptional<out bv>        (. arguments.Add(bv); .)
-    { "," IdentTypeOptional<out bv>  (. arguments.Add(bv); .)
-    }
-  ")" ]
+  ( Ident<out id>             (. name = id.val; .)
+    [ "("
+      CasePattern<out pat>        (. arguments.Add(pat); .)
+      { "," CasePattern<out pat>  (. arguments.Add(pat); .)
+      }
+    ")" ]
+  | "("
+      CasePattern<out pat>        (. arguments.Add(pat); .)
+      { "," CasePattern<out pat>  (. arguments.Add(pat); .)
+      }
+    ")"
+  )
   "=>"
-  Expression<out body, allowSemi, allowLambda>    (. c = new MatchCaseExpr(x, id.val, arguments, body); .)
+  Expression<out body, allowSemi, allowLambda>    (. c = new MatchCaseExpr(x, name, arguments, body); .)
   .
 CasePattern<out CasePattern pat>
 = (. IToken id;  List<CasePattern> arguments;

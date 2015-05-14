@@ -4710,8 +4710,8 @@ namespace Microsoft.Dafny {
       Contract.Invariant(cce.NonNullElements(MissingCases));
     }
 
-    public readonly Expression Source;
-    public readonly List<MatchCaseStmt> Cases;
+    private Expression source;
+    private List<MatchCaseStmt> cases;
     public readonly List<DatatypeCtor> MissingCases = new List<DatatypeCtor>();  // filled in during resolution
     public readonly bool UsesOptionalBraces;
 
@@ -4721,14 +4721,31 @@ namespace Microsoft.Dafny {
       Contract.Requires(endTok != null);
       Contract.Requires(source != null);
       Contract.Requires(cce.NonNullElements(cases));
-      this.Source = source;
-      this.Cases = cases;
+      this.source = source;
+      this.cases = cases;
       this.UsesOptionalBraces = usesOptionalBraces;
+    }
+
+    public Expression Source {
+      get { return source; }
+    }
+
+    public List<MatchCaseStmt> Cases {
+      get { return cases; }
+    }
+
+    // should only be used in desugar in resolve to change the cases of the matchexpr
+    public void UpdateSource(Expression source) {
+      this.source = source;
+    }
+
+    public void UpdateCases(List<MatchCaseStmt> cases) {
+      this.cases = cases;
     }
 
     public override IEnumerable<Statement> SubStatements {
       get {
-        foreach (var kase in Cases) {
+        foreach (var kase in cases) {
           foreach (var s in kase.Body) {
             yield return s;
           }
@@ -4745,7 +4762,7 @@ namespace Microsoft.Dafny {
 
   public class MatchCaseStmt : MatchCase
   {
-    public readonly List<Statement> Body;
+    private List<Statement> body;
 
     [ContractInvariantMethod]
     void ObjectInvariant() {
@@ -4759,7 +4776,25 @@ namespace Microsoft.Dafny {
       Contract.Requires(id != null);
       Contract.Requires(cce.NonNullElements(arguments));
       Contract.Requires(cce.NonNullElements(body));
-      this.Body = body;
+      this.body = body;
+    }
+
+    public MatchCaseStmt(IToken tok, string id, [Captured] List<CasePattern> cps, [Captured] List<Statement> body)
+      : base(tok, id, cps) {
+      Contract.Requires(tok != null);
+      Contract.Requires(id != null);
+      Contract.Requires(cce.NonNullElements(cps));
+      Contract.Requires(cce.NonNullElements(body));
+      this.body = body;
+    }
+
+    public List<Statement> Body {
+      get { return body; }
+    }
+
+    // should only be called by resolve to reset the body of the MatchCaseExpr
+    public void UpdateBody(List<Statement> body) {
+      this.body = body;
     }
   }
 
@@ -6806,8 +6841,8 @@ namespace Microsoft.Dafny {
   }
 
   public class MatchExpr : Expression {  // a MatchExpr is an "extended expression" and is only allowed in certain places
-    public readonly Expression Source;
-    public readonly List<MatchCaseExpr> Cases;
+    private Expression source;
+    private List<MatchCaseExpr> cases;
     public readonly List<DatatypeCtor> MissingCases = new List<DatatypeCtor>();  // filled in during resolution
     public readonly bool UsesOptionalBraces;
 
@@ -6823,15 +6858,32 @@ namespace Microsoft.Dafny {
       Contract.Requires(tok != null);
       Contract.Requires(source != null);
       Contract.Requires(cce.NonNullElements(cases));
-      this.Source = source;
-      this.Cases = cases;
+      this.source = source;
+      this.cases = cases;
       this.UsesOptionalBraces = usesOptionalBraces;
+    }
+
+    public Expression Source {
+      get { return source; }
+    }
+
+    public List<MatchCaseExpr> Cases {
+      get { return cases; }
+    }
+
+    // should only be used in desugar in resolve to change the source and cases of the matchexpr
+    public void UpdateSource(Expression source) {
+      this.source = source;
+    }
+
+    public void UpdateCases(List<MatchCaseExpr> cases) {
+      this.cases = cases;
     }
 
     public override IEnumerable<Expression> SubExpressions {
       get {
         yield return Source;
-        foreach (var mc in Cases) {
+        foreach (var mc in cases) {
           yield return mc.Body;
         }
       }
@@ -6913,12 +6965,13 @@ namespace Microsoft.Dafny {
     public readonly IToken tok;
     public readonly string Id;
     public DatatypeCtor Ctor;  // filled in by resolution
-    public readonly List<BoundVar> Arguments;
+    public List<BoundVar> Arguments; // created by the resolver.
+    public List<CasePattern> CasePatterns; // generated from parsers. It should be converted to List<BoundVar> during resolver. Invariant:  CasePatterns != null ==> Arguments == null
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(tok != null);
       Contract.Invariant(Id != null);
-      Contract.Invariant(cce.NonNullElements(Arguments));
+      Contract.Invariant(cce.NonNullElements(Arguments) || cce.NonNullElements(CasePatterns));
     }
 
     public MatchCase(IToken tok, string id, [Captured] List<BoundVar> arguments) {
@@ -6929,24 +6982,51 @@ namespace Microsoft.Dafny {
       this.Id = id;
       this.Arguments = arguments;
     }
+
+    public MatchCase(IToken tok, string id, [Captured] List<CasePattern> cps) {
+      Contract.Requires(tok != null);
+      Contract.Requires(id != null);
+      Contract.Requires(cce.NonNullElements(cps));
+      this.tok = tok;
+      this.Id = id;
+      this.CasePatterns = cps;
+    }
   }
 
   public class MatchCaseExpr : MatchCase
   {
-    public readonly Expression Body;
+    private Expression body;
     [ContractInvariantMethod]
     void ObjectInvariant() {
-      Contract.Invariant(Body != null);
+      Contract.Invariant(body != null);
     }
 
     public MatchCaseExpr(IToken tok, string id, [Captured] List<BoundVar> arguments, Expression body)
-      : base(tok, id, arguments)
-    {
+      : base(tok, id, arguments) {
       Contract.Requires(tok != null);
       Contract.Requires(id != null);
       Contract.Requires(cce.NonNullElements(arguments));
       Contract.Requires(body != null);
-      this.Body = body;
+      this.body = body;
+    }
+
+    public MatchCaseExpr(IToken tok, string id, [Captured] List<CasePattern> cps, Expression body)
+      : base(tok, id, cps)
+    {
+      Contract.Requires(tok != null);
+      Contract.Requires(id != null);
+      Contract.Requires(cce.NonNullElements(cps));
+      Contract.Requires(body != null);
+      this.body = body;
+    }
+
+    public Expression Body {
+      get { return body; }
+    }
+
+    // should only be called by resolve to reset the body of the MatchCaseExpr
+    public void UpdateBody(Expression body) {
+      this.body = body;
     }
   }
 

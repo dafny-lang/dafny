@@ -901,17 +901,7 @@ namespace Microsoft.Dafny {
           wr.WriteLine();
           Indent(caseInd);
           wr.Write("case {0}", mc.Id);
-          if (mc.Arguments.Count != 0) {
-            string sep = "(";
-            foreach (BoundVar bv in mc.Arguments) {
-              wr.Write("{0}{1}", sep, bv.DisplayName);
-              if (bv.Type is NonProxyType) {
-                wr.Write(": {0}", bv.Type);
-              }
-              sep = ", ";
-            }
-            wr.Write(")");
-          }
+          PrintMatchCaseArgument(mc);
           wr.Write(" =>");
           foreach (Statement bs in mc.Body) {
             wr.WriteLine();
@@ -1199,17 +1189,7 @@ namespace Microsoft.Dafny {
           bool isLastCase = i == e.Cases.Count - 1;
           Indent(ind);
           wr.Write("case {0}", mc.Id);
-          if (mc.Arguments.Count != 0) {
-            string sep = "(";
-            foreach (BoundVar bv in mc.Arguments) {
-              wr.Write("{0}{1}", sep, bv.DisplayName);
-              if (bv.Type is NonProxyType) {
-                wr.Write(": {0}", bv.Type);
-              }
-              sep = ", ";
-            }
-            wr.Write(")");
-          }
+          PrintMatchCaseArgument(mc);          
           wr.WriteLine(" =>");
           PrintExtendedExpr(mc.Body, ind + IndentAmount, isLastCase, isLastCase && (parensNeeded || endWithCloseParen));
           i++;
@@ -1243,6 +1223,33 @@ namespace Microsoft.Dafny {
         Indent(indent);
         PrintExpression(expr, false, indent);
         wr.WriteLine(endWithCloseParen ? ")" : "");
+      }
+    }
+
+    public void PrintMatchCaseArgument(MatchCase mc) {
+      if (mc.Arguments != null) {
+        if (mc.Arguments.Count != 0) {
+          string sep = "(";
+          foreach (BoundVar bv in mc.Arguments) {
+            wr.Write("{0}{1}", sep, bv.DisplayName);
+            if (bv.Type is NonProxyType) {
+              wr.Write(": {0}", bv.Type);
+            }
+            sep = ", ";
+          }
+          wr.Write(")");
+        }
+      } else {
+        Contract.Assert(mc.CasePatterns != null);
+        if (mc.CasePatterns.Count != 0) {
+          string sep = "(";
+          foreach (var cp in mc.CasePatterns) {
+            wr.Write(sep);
+            PrintCasePattern(cp);
+            sep = ", ";
+          }
+          wr.Write(")");
+        }
       }
     }
 
@@ -1859,14 +1866,7 @@ namespace Microsoft.Dafny {
         foreach (var mc in e.Cases) {
           bool isLastCase = i == e.Cases.Count - 1;
           wr.Write(" case {0}", mc.Id);
-          if (mc.Arguments.Count != 0) {
-            string sep = "(";
-            foreach (BoundVar bv in mc.Arguments) {
-              wr.Write("{0}{1}", sep, bv.DisplayName);
-              sep = ", ";
-            }
-            wr.Write(")");
-          }
+          PrintMatchCaseArgument(mc);
           wr.Write(" => ");
           PrintExpression(mc.Body, isRightmost && isLastCase, !parensNeeded && isFollowedBySemicolon);
           i++;
