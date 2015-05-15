@@ -2934,7 +2934,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 			Ident(out id);
 			Expect(48);
 			arguments = new List<CasePattern>(); 
-			if (la.kind == 1) {
+			if (la.kind == 1 || la.kind == 48) {
 				CasePattern(out pat);
 				arguments.Add(pat); 
 				while (la.kind == 21) {
@@ -2945,6 +2945,25 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 			}
 			Expect(49);
 			pat = new CasePattern(id, id.val, arguments); 
+		} else if (la.kind == 48) {
+			Get();
+			id = t;                                                           
+			arguments = new List<CasePattern>(); 
+			
+			if (la.kind == 1 || la.kind == 48) {
+				CasePattern(out pat);
+				arguments.Add(pat); 
+				while (la.kind == 21) {
+					Get();
+					CasePattern(out pat);
+					arguments.Add(pat); 
+				}
+			}
+			Expect(49);
+			theBuiltIns.TupleType(id, arguments.Count, true); // make sure the tuple type exists
+			string ctor = BuiltIns.TupleTypeCtorName;  //use the TupleTypeCtors
+			pat = new CasePattern(id, ctor, arguments); 
+			
 		} else if (la.kind == 1) {
 			IdentTypeOptional(out bv);
 			pat = new CasePattern(bv.tok, bv);

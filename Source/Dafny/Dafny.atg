@@ -2625,7 +2625,18 @@ CasePattern<out CasePattern pat>
         }
       ]
     ")"                                (. pat = new CasePattern(id, id.val, arguments); .)
-
+  | "("                                (. id = t;                                                           
+                                          arguments = new List<CasePattern>(); 
+                                       .)
+      [ CasePattern<out pat>           (. arguments.Add(pat); .)
+        { "," CasePattern<out pat>     (. arguments.Add(pat); .)
+        }
+      ]
+    ")"                                (. // Parse parenthesis without an identifier as a built in tuple type.
+                                          theBuiltIns.TupleType(id, arguments.Count, true); // make sure the tuple type exists
+                                          string ctor = BuiltIns.TupleTypeCtorName;  //use the TupleTypeCtors
+                                          pat = new CasePattern(id, ctor, arguments); 
+                                       .)
   | IdentTypeOptional<out bv>          (. // This could be a BoundVar of a parameter-less constructor and we may not know until resolution.
                                           // Nevertheless, we do put the "bv" into the CasePattern here (even though it will get thrown out
                                           // later if resolution finds the CasePattern to denote a parameter-less constructor), because this
