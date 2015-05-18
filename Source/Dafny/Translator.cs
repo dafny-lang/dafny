@@ -8693,7 +8693,7 @@ namespace Microsoft.Dafny {
         Contract.Assert(codeContext != null);
         List<Expression> contextDecreases = codeContext.Decreases.Expressions;
         List<Expression> calleeDecreases = callee.Decreases.Expressions;
-        CheckCallTermination(tok, contextDecreases, calleeDecreases, null, receiver, substMap, etran, etran.Old, builder, codeContext.InferredDecreases, null);
+        CheckCallTermination(tok, contextDecreases, calleeDecreases, null, receiver, substMap, tySubst, etran, etran.Old, builder, codeContext.InferredDecreases, null);
       }
 
       // Create variables to hold the output parameters of the call, so that appropriate unboxes can be introduced.
@@ -8804,6 +8804,7 @@ namespace Microsoft.Dafny {
     void CheckCallTermination(IToken tok, List<Expression> contextDecreases, List<Expression> calleeDecreases,
                               Bpl.Expr allowance,
                               Expression receiverReplacement, Dictionary<IVariable,Expression> substMap,
+                              Dictionary<TypeParameter, Type> typeMap,
                               ExpressionTranslator etranCurrent, ExpressionTranslator etranInitial, Bpl.StmtListBuilder builder, bool inferredDecreases, string hint) {
       Contract.Requires(tok != null);
       Contract.Requires(cce.NonNullElements(contextDecreases));
@@ -8835,7 +8836,7 @@ namespace Microsoft.Dafny {
         tok = new ForceCheckToken(tok);
       }
       for (int i = 0; i < N; i++) {
-        Expression e0 = Substitute(calleeDecreases[i], receiverReplacement, substMap);
+        Expression e0 = Substitute(calleeDecreases[i], receiverReplacement, substMap, typeMap);
         Expression e1 = contextDecreases[i];
         if (!CompatibleDecreasesTypes(e0.Type, e1.Type)) {
           N = i;
