@@ -4985,8 +4985,8 @@ namespace Microsoft.Dafny {
                 Contract.Assert(false);  // unexpected CoCallResolution
                 goto case FunctionCallExpr.CoCallResolution.No;  // please the compiler
             }
-            CheckCallTermination(expr.tok, contextDecreases, calleeDecreases, allowance, e.Receiver, substMap, etran, etran, builder,
-              codeContext.InferredDecreases, hint);
+            CheckCallTermination(expr.tok, contextDecreases, calleeDecreases, allowance, e.Receiver, substMap, e.TypeArgumentSubstitutions,
+              etran, etran, builder, codeContext.InferredDecreases, hint);
           }
 
         }
