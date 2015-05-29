@@ -18,7 +18,7 @@ function append(xs: List, ys: List): List
 // ----- arithmetic expressions -----
 
 type vname = string  // variable names
-datatype aexp = N(n: int) | V(x: vname) | Plus(0: aexp, 1: aexp)  // arithmetic expressions
+datatype aexp = N(n: int) | V(vname) | Plus(aexp, aexp)  // arithmetic expressions
 
 type val = int
 type state = vname -> val
@@ -133,7 +133,7 @@ lemma AsimpCorrect(a: aexp, s: state)
 
 // ----- boolean expressions -----
 
-datatype bexp = Bc(v: bool) | Not(op: bexp) | And(0: bexp, 1: bexp) | Less(a0: aexp, a1: aexp)
+datatype bexp = Bc(v: bool) | Not(bexp) | And(bexp, bexp) | Less(aexp, aexp)
 
 function bval(b: bexp, s: state): bool
   reads s.reads

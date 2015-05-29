@@ -10,25 +10,19 @@ datatype List<T> = Nil | Cons(head: T, tail: List<T>)
 type vname = string  // variable names
 
 type val = int
-type state = imap<vname, val>
-predicate Total(s: state)
-{
-  forall x :: x in s
-}
+type state = map<vname, val>
 
 datatype aexp = N(n: int) | V(x: vname) | Plus(0: aexp, 1: aexp)  // arithmetic expressions
 function aval(a: aexp, s: state): val
-  requires Total(s)
 {
   match a
   case N(n) => n
-  case V(x) => s[x]
+  case V(x) => if x in s then s[x] else 0
   case Plus(a0, a1) => aval(a0,s ) + aval(a1, s)
 }
 
 datatype bexp = Bc(v: bool) | Not(op: bexp) | And(0: bexp, 1: bexp) | Less(a0: aexp, a1: aexp)
 function bval(b: bexp, s: state): bool
-  requires Total(s)
 {
   match b
   case Bc(v) => v
@@ -44,7 +38,6 @@ datatype com = SKIP | Assign(vname, aexp) | Seq(com, com) | If(bexp, com, com) |
 // ----- Big-step semantics -----
 
 inductive predicate big_step(c: com, s: state, t: state)
-  requires Total(s)
 {
   match c
   case SKIP =>
@@ -53,7 +46,6 @@ inductive predicate big_step(c: com, s: state, t: state)
     t == s[x := aval(a, s)]
   case Seq(c0, c1) =>
     exists s' ::
-    Total(s') &&
     big_step(c0, s, s') &&
     big_step(c1, s', t)
   case If(b, thn, els) =>
@@ -61,13 +53,11 @@ inductive predicate big_step(c: com, s: state, t: state)
   case While(b, body) =>
     (!bval(b, s) && s == t) ||
     (bval(b, s) && exists s' ::
-     Total(s') &&
      big_step(body, s, s') &&
      big_step(While(b, body), s', t))
 }
 
 lemma Example1(s: state, t: state)
-  requires Total(s)
   requires t == s["x" := 5]["y" := 5]
   ensures big_step(Seq(Assign("x", N(5)), Assign("y", V("x"))), s, t)
 {
@@ -83,29 +73,13 @@ lemma Example1(s: state, t: state)
 }
 
 lemma SemiAssociativity(c0: com, c1: com, c2: com, s: state, t: state)
-  requires Total(s)
   ensures big_step(Seq(Seq(c0, c1), c2), s, t) == big_step(Seq(c0, Seq(c1, c2)), s, t)
 {
-  calc {
-    big_step(Seq(Seq(c0, c1), c2), s, t);
-    // def. big_step
-    exists s'' :: Total(s'') && big_step(Seq(c0, c1), s, s'') && big_step(c2, s'', t);
-    // def. big_step
-    exists s'' :: Total(s'') && (exists s' :: Total(s') && big_step(c0, s, s') && big_step(c1, s', s'')) && big_step(c2, s'', t);
-    // logic
-    exists s', s'' :: Total(s') && Total(s'') && big_step(c0, s, s') && big_step(c1, s', s'') && big_step(c2, s'', t);
-    // logic
-    exists s' :: Total(s') && big_step(c0, s, s') && exists s'' :: Total(s'') && big_step(c1, s', s'') && big_step(c2, s'', t);
-    // def. big_step
-    exists s' :: Total(s') && big_step(c0, s, s') && big_step(Seq(c1, c2), s', t);
-    // def. big_step
-    big_step(Seq(c0, Seq(c1, c2)), s, t);
-  }
 }
 
 predicate equiv_c(c: com, c': com)
 {
-  forall s,t :: Total(s) ==> big_step(c, s, t) == big_step(c', s, t)
+  forall s,t :: big_step(c, s, t) == big_step(c', s, t)
 }
 
 lemma lemma_7_3(b: bexp, c: com)
@@ -122,7 +96,7 @@ lemma lemma_7_5(b: bexp, c: com, c': com)
   requires equiv_c(c, c')
   ensures equiv_c(While(b, c), While(b, c'))
 {
-  forall s,t | Total(s)
+  forall s,t
     ensures big_step(While(b, c), s, t) == big_step(While(b, c'), s, t)
   {
     if big_step(While(b, c), s, t) {
@@ -135,13 +109,13 @@ lemma lemma_7_5(b: bexp, c: com, c': com)
 }
 
 inductive lemma lemma_7_6(b: bexp, c: com, c': com, s: state, t: state)
-  requires Total(s) && big_step(While(b, c), s, t) && equiv_c(c, c')
+  requires big_step(While(b, c), s, t) && equiv_c(c, c')
   ensures big_step(While(b, c'), s, t)
 {
   if !bval(b, s) {
     // trivial
   } else {
-    var s' :| Total(s') && big_step#[_k-1](c, s, s') && big_step#[_k-1](While(b, c), s', t);
+    var s' :| big_step#[_k-1](c, s, s') && big_step#[_k-1](While(b, c), s', t);
     lemma_7_6(b, c, c', s', t);  // induction hypothesis
   }
 }
@@ -161,7 +135,7 @@ lemma equiv_c_transitive(c: com, c': com, c'': com)
 }
 
 inductive lemma IMP_is_deterministic(c: com, s: state, t: state, t': state)
-  requires Total(s) && big_step(c, s, t) && big_step(c, s, t')
+  requires big_step(c, s, t) && big_step(c, s, t')
   ensures t == t'
 {
   match c
@@ -170,8 +144,8 @@ inductive lemma IMP_is_deterministic(c: com, s: state, t: state, t': state)
   case Assign(x, a) =>
     // trivial
   case Seq(c0, c1) =>
-    var s' :| Total(s') && big_step#[_k-1](c0, s, s') && big_step#[_k-1](c1, s', t);
-    var s'' :| Total(s'') && big_step#[_k-1](c0, s, s'') && big_step#[_k-1](c1, s'', t');
+    var s' :| big_step#[_k-1](c0, s, s') && big_step#[_k-1](c1, s', t);
+    var s'' :| big_step#[_k-1](c0, s, s'') && big_step#[_k-1](c1, s'', t');
     IMP_is_deterministic(c0, s, s', s'');
     IMP_is_deterministic(c1, s', t, t');
   case If(b, thn, els) =>
@@ -180,8 +154,8 @@ inductive lemma IMP_is_deterministic(c: com, s: state, t: state, t': state)
     if !bval(b, s) {
       // trivial
     } else {
-      var s' :| Total(s') && big_step#[_k-1](body, s, s') && big_step#[_k-1](While(b, body), s', t);
-      var s'' :| Total(s'') && big_step#[_k-1](body, s, s'') && big_step#[_k-1](While(b, body), s'', t');
+      var s' :| big_step#[_k-1](body, s, s') && big_step#[_k-1](While(b, body), s', t);
+      var s'' :| big_step#[_k-1](body, s, s'') && big_step#[_k-1](While(b, body), s'', t');
       IMP_is_deterministic(body, s, s', s'');
       IMP_is_deterministic(While(b, body), s', t, t');
     }
@@ -190,7 +164,6 @@ inductive lemma IMP_is_deterministic(c: com, s: state, t: state, t': state)
 // ----- Small-step semantics -----
 
 inductive predicate small_step(c: com, s: state, c': com, s': state)
-  requires Total(s)
 {
   match c
   case SKIP => false
@@ -206,7 +179,6 @@ inductive predicate small_step(c: com, s: state, c': com, s': state)
 }
 
 inductive lemma SmallStep_is_deterministic(cs: (com, state), cs': (com, state), cs'': (com, state))
-  requires Total(cs.1)
   requires small_step(cs.0, cs.1, cs'.0, cs'.1)
   requires small_step(cs.0, cs.1, cs''.0, cs''.1)
   ensures cs' == cs''
@@ -224,77 +196,43 @@ inductive lemma SmallStep_is_deterministic(cs: (com, state), cs': (com, state), 
   case While(b, body) =>
 }
 
-inductive lemma small_step_ends_in_Total_state(c: com, s: state, c': com, s': state)
-  requires Total(s) && small_step(c, s, c', s')
-  ensures Total(s')
-{
-  match c
-  case Assign(x, a) =>
-  case Seq(c0, c1) =>
-    if c0 != SKIP {
-      var c0' :| c' == Seq(c0', c1) && small_step(c0, s, c0', s');
-      small_step_ends_in_Total_state(c0, s, c0', s');
-    }
-  case If(b, thn, els) =>
-  case While(b, body) =>
-}
-
 inductive predicate small_step_star(c: com, s: state, c': com, s': state)
-  requires Total(s)
 {
   (c == c' && s == s') ||
   exists c'', s'' ::
-    small_step(c, s, c'', s'') &&
-    (small_step_ends_in_Total_state(c, s, c'', s''); small_step_star(c'', s'', c', s'))
-}
-
-inductive lemma small_step_star_ends_in_Total_state(c: com, s: state, c': com, s': state)
-  requires Total(s) && small_step_star(c, s, c', s')
-  ensures Total(s')
-{
-  if c == c' && s == s' {
-  } else {
-    var c'', s'' :| small_step(c, s, c'', s'') &&
-       (small_step_ends_in_Total_state(c, s, c'', s''); small_step_star#[_k-1](c'', s'', c', s'));
-    small_step_star_ends_in_Total_state(c'', s'', c', s');
-  }
+    small_step(c, s, c'', s'') && small_step_star(c'', s'', c', s')
 }
 
 lemma star_transitive(c0: com, s0: state, c1: com, s1: state, c2: com, s2: state)
-  requires Total(s0) && Total(s1)
   requires small_step_star(c0, s0, c1, s1) && small_step_star(c1, s1, c2, s2)
   ensures small_step_star(c0, s0, c2, s2)
 {
   star_transitive_aux(c0, s0, c1, s1, c2, s2);
 }
 inductive lemma star_transitive_aux(c0: com, s0: state, c1: com, s1: state, c2: com, s2: state)
-  requires Total(s0) && Total(s1)
   requires small_step_star(c0, s0, c1, s1)
   ensures small_step_star(c1, s1, c2, s2) ==> small_step_star(c0, s0, c2, s2)
 {
   if c0 == c1 && s0 == s1 {
   } else {
     var c', s' :|
-      small_step(c0, s0, c', s') &&
-      (small_step_ends_in_Total_state(c0, s0, c', s'); small_step_star#[_k-1](c', s', c1, s1));
+      small_step(c0, s0, c', s') && small_step_star#[_k-1](c', s', c1, s1);
       star_transitive_aux(c', s', c1, s1, c2, s2);
   }
 }
 
 // The big-step semantics can be simulated by some number of small steps
 inductive lemma BigStep_implies_SmallStepStar(c: com, s: state, t: state)
-  requires Total(s) && big_step(c, s, t)
+  requires big_step(c, s, t)
   ensures small_step_star(c, s, SKIP, t)
 {
   match c
   case SKIP =>
     // trivial
   case Assign(x, a) =>
-    assert t == s[x := aval(a, s)];
-    assert small_step(c, s, SKIP, t);
     assert small_step_star(SKIP, t, SKIP, t);
   case Seq(c0, c1) =>
-    var s' :| Total(s') && big_step#[_k-1](c0, s, s') && big_step#[_k-1](c1, s', t);
+    var s' :| big_step#[_k-1](c0, s, s') && big_step#[_k-1](c1, s', t);
     calc <== {
       small_step_star(c, s, SKIP, t);
       { star_transitive(Seq(c0, c1), s, Seq(SKIP, c1), s', SKIP, t); }
@@ -321,7 +259,7 @@ inductive lemma BigStep_implies_SmallStepStar(c: com, s: state, t: state)
         true;
       }
     } else {
-      var s' :| Total(s') && big_step#[_k-1](body, s, s') && big_step#[_k-1](While(b, body), s', t);
+      var s' :| big_step#[_k-1](body, s, s') && big_step#[_k-1](While(b, body), s', t);
       calc <== {
         small_step_star(c, s, SKIP, t);
         { assert small_step(c, s, If(b, Seq(body, While(b, body)), SKIP), s); }
@@ -343,30 +281,30 @@ inductive lemma BigStep_implies_SmallStepStar(c: com, s: state, t: state)
 }
 
 inductive lemma lemma_7_13(c0: com, s0: state, c: com, t: state, c1: com)
-  requires Total(s0) && small_step_star(c0, s0, c, t)
+  requires small_step_star(c0, s0, c, t)
   ensures small_step_star(Seq(c0, c1), s0, Seq(c, c1), t)
 {
   if c0 == c && s0 == t {
   } else {
-    var c', s' :| small_step(c0, s0, c', s') && (small_step_ends_in_Total_state(c0, s0, c', s'); small_step_star#[_k-1](c', s', c, t));
+    var c', s' :| small_step(c0, s0, c', s') && small_step_star#[_k-1](c', s', c, t);
     lemma_7_13(c', s', c, t, c1);
   }
 }
 
 inductive lemma SmallStepStar_implies_BigStep(c: com, s: state, t: state)
-  requires Total(s) && small_step_star(c, s, SKIP, t)
+  requires small_step_star(c, s, SKIP, t)
   ensures big_step(c, s, t)
 {
   if c == SKIP && s == t {
   } else {
-    var c', s' :| small_step(c, s, c', s') && (small_step_ends_in_Total_state(c, s, c', s'); small_step_star#[_k-1](c', s', SKIP, t));
+    var c', s' :| small_step(c, s, c', s') && small_step_star#[_k-1](c', s', SKIP, t);
     SmallStepStar_implies_BigStep(c', s', t);
     SmallStep_plus_BigStep(c, s, c', s', t);
   }
 }
 
 inductive lemma SmallStep_plus_BigStep(c: com, s: state, c': com, s': state, t: state)
-  requires Total(s) && Total(s') && small_step(c, s, c', s')
+  requires small_step(c, s, c', s')
   ensures big_step(c', s', t) ==> big_step(c, s, t)
 {
   match c
@@ -376,8 +314,7 @@ inductive lemma SmallStep_plus_BigStep(c: com, s: state, c': com, s': state, t: 
     } else {
       var c0' :| c' == Seq(c0', c1) && small_step(c0, s, c0', s');
       if big_step(c', s', t) {
-        var k: nat :| big_step#[k](Seq(c0', c1), s', t);
-        var s'' :| Total(s'') && big_step(c0', s', s'') && big_step(c1, s'', t);
+        var s'' :| big_step(c0', s', s'') && big_step(c1, s'', t);
         SmallStep_plus_BigStep(c0, s, c0', s', s'');
       }
     }
@@ -391,7 +328,6 @@ inductive lemma SmallStep_plus_BigStep(c: com, s: state, c': com, s': state, t: 
 
 // big-step and small-step semantics agree
 lemma BigStep_SmallStepStar_Same(c: com, s: state, t: state)
-  requires Total(s)
   ensures big_step(c, s, t) <==> small_step_star(c, s, SKIP, t)
 {
   if big_step(c, s, t) {
@@ -403,14 +339,12 @@ lemma BigStep_SmallStepStar_Same(c: com, s: state, t: state)
 }
 
 predicate final(c: com, s: state)
-  requires Total(s)
 {
   !exists c',s' :: small_step(c, s, c', s')
 }
 
 // lemma 7.17:
 lemma final_is_skip(c: com, s: state)
-  requires Total(s)
   ensures final(c, s) <==> c == SKIP
 {
   if c == SKIP {
@@ -420,7 +354,7 @@ lemma final_is_skip(c: com, s: state)
   }
 }
 lemma only_skip_has_no_next_state(c: com, s: state) returns (c': com, s': state)
-  requires Total(s) && c != SKIP
+  requires c != SKIP
   ensures small_step(c, s, c', s')
 {
   match c
@@ -441,15 +375,12 @@ lemma only_skip_has_no_next_state(c: com, s: state) returns (c': com, s': state)
 }
 
 lemma lemma_7_18(c: com, s: state)
-  requires Total(s)
   ensures (exists t :: big_step(c, s, t)) <==>
-          (exists c',s' :: small_step_star(c, s, c', s') &&
-              (small_step_star_ends_in_Total_state(c, s, c', s'); final(c', s')))
+          (exists c',s' :: small_step_star(c, s, c', s') && final(c', s'))
 {
   if exists t :: big_step(c, s, t) {
     var t :| big_step(c, s, t);
     BigStep_SmallStepStar_Same(c, s, t);
-    small_step_star_ends_in_Total_state(c, s, SKIP, t);
     calc ==> {
       true;
       big_step(c, s, t);
@@ -458,10 +389,8 @@ lemma lemma_7_18(c: com, s: state)
       small_step_star(c, s, SKIP, t) && final(SKIP, t);
     }
   }
-  if exists c',s' :: small_step_star(c, s, c', s') &&
-              (small_step_star_ends_in_Total_state(c, s, c', s'); final(c', s')) {
-    var c',s' :| small_step_star(c, s, c', s') &&
-              (small_step_star_ends_in_Total_state(c, s, c', s'); final(c', s'));
+  if exists c',s' :: small_step_star(c, s, c', s') && final(c', s') {
+    var c',s' :| small_step_star(c, s, c', s') && final(c', s');
     final_is_skip(c', s');
     BigStep_SmallStepStar_Same(c, s, s');
   }
