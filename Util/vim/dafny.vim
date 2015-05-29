@@ -13,7 +13,7 @@ syntax keyword dafnyConditional if then else match case
 syntax keyword dafnyRepeat while
 syntax keyword dafnyStatement assume assert return yield new print break label where calc modify
 syntax keyword dafnyKeyword var ghost returns yields null static protected this refines include
-syntax keyword dafnyType bool char nat int real set multiset seq string map imap object array array2 array3
+syntax keyword dafnyType bool char nat int real set iset multiset seq string map imap object array array2 array3
 syntax keyword dafnyLogic requires ensures modifies reads decreases invariant
 syntax keyword dafnyOperator forall exists old fresh
 syntax keyword dafnyBoolean true false

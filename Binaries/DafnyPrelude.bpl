@@ -20,6 +20,7 @@ const unique TInt  : Ty;
 const unique TNat  : Ty;
 const unique TReal : Ty;
 function TSet(Ty)      : Ty;
+function TISet(Ty)     : Ty;
 function TMultiSet(Ty) : Ty;
 function TSeq(Ty)      : Ty;
 function TMap(Ty, Ty)  : Ty;
@@ -27,6 +28,8 @@ function TIMap(Ty, Ty) : Ty;
 
 function Inv0_TSet(Ty) : Ty;
 axiom (forall t: Ty :: { TSet(t) } Inv0_TSet(TSet(t)) == t);
+function Inv0_TISet(Ty) : Ty;
+axiom (forall t: Ty :: { TISet(t) } Inv0_TISet(TISet(t)) == t);
 function Inv0_TSeq(Ty) : Ty;
 axiom (forall t: Ty :: { TSeq(t) } Inv0_TSeq(TSeq(t)) == t);
 function Inv0_TMultiSet(Ty) : Ty;
@@ -52,6 +55,7 @@ const unique TagInt      : TyTag;
 const unique TagNat      : TyTag;
 const unique TagReal     : TyTag;
 const unique TagSet      : TyTag;
+const unique TagISet     : TyTag;
 const unique TagMultiSet : TyTag;
 const unique TagSeq      : TyTag;
 const unique TagMap      : TyTag;
@@ -64,6 +68,7 @@ axiom Tag(TInt) == TagInt;
 axiom Tag(TNat) == TagNat;
 axiom Tag(TReal) == TagReal;
 axiom (forall t: Ty    :: { TSet(t) }      Tag(TSet(t))      == TagSet);
+axiom (forall t: Ty    :: { TISet(t) }     Tag(TISet(t))     == TagISet);
 axiom (forall t: Ty    :: { TMultiSet(t) } Tag(TMultiSet(t)) == TagMultiSet);
 axiom (forall t: Ty    :: { TSeq(t) }      Tag(TSeq(t))      == TagSeq);
 axiom (forall t, u: Ty :: { TMap(t,u) }    Tag(TMap(t,u))    == TagMap);
@@ -138,6 +143,9 @@ axiom (forall bx : Box, t : Ty ::
     { $IsBox(bx, TSet(t)) }
     ( $IsBox(bx, TSet(t)) ==> $Box($Unbox(bx) : Set Box) == bx && $Is($Unbox(bx) : Set Box, TSet(t))));
 axiom (forall bx : Box, t : Ty ::
+    { $IsBox(bx, TISet(t)) }
+    ( $IsBox(bx, TISet(t)) ==> $Box($Unbox(bx) : ISet Box) == bx && $Is($Unbox(bx) : ISet Box, TISet(t))));
+axiom (forall bx : Box, t : Ty ::
     { $IsBox(bx, TMultiSet(t)) }
     ( $IsBox(bx, TMultiSet(t)) ==> $Box($Unbox(bx) : MultiSet Box) == bx && $Is($Unbox(bx) : MultiSet Box, TMultiSet(t))));
 axiom (forall bx : Box, t : Ty ::
@@ -187,6 +195,10 @@ axiom (forall v: Set Box, t0: Ty :: { $Is(v, TSet(t0)) }
   $Is(v, TSet(t0)) <==>
   (forall bx: Box :: { v[bx] }
     v[bx] ==> $IsBox(bx, t0)));
+axiom (forall v: ISet Box, t0: Ty :: { $Is(v, TISet(t0)) }
+  $Is(v, TISet(t0)) <==>
+  (forall bx: Box :: { v[bx] }
+    v[bx] ==> $IsBox(bx, t0)));
 axiom (forall v: MultiSet Box, t0: Ty :: { $Is(v, TMultiSet(t0)) }
   $Is(v, TMultiSet(t0)) <==>
   (forall bx: Box :: { v[bx] }
@@ -200,6 +212,10 @@ axiom (forall v: Seq Box, t0: Ty :: { $Is(v, TSeq(t0)) }
 	$IsBox(Seq#Index(v, i), t0)));
 axiom (forall v: Set Box, t0: Ty, h: Heap :: { $IsAlloc(v, TSet(t0), h) }
   $IsAlloc(v, TSet(t0), h) <==>
+  (forall bx: Box :: { v[bx] }
+    v[bx] ==> $IsAllocBox(bx, t0, h)));
+axiom (forall v: ISet Box, t0: Ty, h: Heap :: { $IsAlloc(v, TISet(t0), h) }
+  $IsAlloc(v, TISet(t0), h) <==>
   (forall bx: Box :: { v[bx] }
     v[bx] ==> $IsAllocBox(bx, t0, h)));
 axiom (forall v: MultiSet Box, t0: Ty, h: Heap :: { $IsAlloc(v, TMultiSet(t0), h) }
@@ -543,6 +559,81 @@ axiom(forall<T> a: Set T, b: Set T :: { Set#Equal(a,b) }  // extensionality axio
 function Set#Disjoint<T>(Set T, Set T): bool;
 axiom (forall<T> a: Set T, b: Set T :: { Set#Disjoint(a,b) }
   Set#Disjoint(a,b) <==> (forall o: T :: {a[o]} {b[o]} !a[o] || !b[o]));
+
+// ---------------------------------------------------------------
+// -- Axiomatization of isets -------------------------------------
+// ---------------------------------------------------------------
+
+type ISet T = [T]bool;
+
+function ISet#Empty<T>(): Set T;
+axiom (forall<T> o: T :: { ISet#Empty()[o] } !ISet#Empty()[o]);
+
+// the empty set could be of anything
+//axiom (forall<T> t: Ty :: { $Is(ISet#Empty() : [T]bool, TISet(t)) } $Is(ISet#Empty() : [T]bool, TISet(t)));
+
+
+function ISet#UnionOne<T>(ISet T, T): ISet T;
+axiom (forall<T> a: ISet T, x: T, o: T :: { ISet#UnionOne(a,x)[o] }
+  ISet#UnionOne(a,x)[o] <==> o == x || a[o]);
+axiom (forall<T> a: ISet T, x: T :: { ISet#UnionOne(a, x) }
+  ISet#UnionOne(a, x)[x]);
+axiom (forall<T> a: ISet T, x: T, y: T :: { ISet#UnionOne(a, x), a[y] }
+  a[y] ==> ISet#UnionOne(a, x)[y]);
+
+function ISet#Union<T>(ISet T, ISet T): ISet T;
+axiom (forall<T> a: ISet T, b: ISet T, o: T :: { ISet#Union(a,b)[o] }
+  ISet#Union(a,b)[o] <==> a[o] || b[o]);
+axiom (forall<T> a, b: ISet T, y: T :: { ISet#Union(a, b), a[y] }
+  a[y] ==> ISet#Union(a, b)[y]);
+axiom (forall<T> a, b: Set T, y: T :: { ISet#Union(a, b), b[y] }
+  b[y] ==> ISet#Union(a, b)[y]);
+axiom (forall<T> a, b: ISet T :: { ISet#Union(a, b) }
+  ISet#Disjoint(a, b) ==>
+    ISet#Difference(ISet#Union(a, b), a) == b &&
+    ISet#Difference(ISet#Union(a, b), b) == a);
+// Follows from the general union axiom, but might be still worth including, because disjoint union is a common case:
+// axiom (forall<T> a, b: ISet T :: { ISet#Card(ISet#Union(a, b)) }
+//   ISet#Disjoint(a, b) ==>
+//     ISet#Card(ISet#Union(a, b)) == ISet#Card(a) + ISet#Card(b));
+
+function ISet#Intersection<T>(ISet T, ISet T): ISet T;
+axiom (forall<T> a: ISet T, b: ISet T, o: T :: { ISet#Intersection(a,b)[o] }
+  ISet#Intersection(a,b)[o] <==> a[o] && b[o]);
+
+axiom (forall<T> a, b: ISet T :: { ISet#Union(ISet#Union(a, b), b) }
+  ISet#Union(ISet#Union(a, b), b) == ISet#Union(a, b));
+axiom (forall<T> a, b: Set T :: { ISet#Union(a, ISet#Union(a, b)) }
+  ISet#Union(a, ISet#Union(a, b)) == ISet#Union(a, b));
+axiom (forall<T> a, b: ISet T :: { ISet#Intersection(ISet#Intersection(a, b), b) }
+  ISet#Intersection(ISet#Intersection(a, b), b) == ISet#Intersection(a, b));
+axiom (forall<T> a, b: ISet T :: { ISet#Intersection(a, ISet#Intersection(a, b)) }
+  ISet#Intersection(a, ISet#Intersection(a, b)) == ISet#Intersection(a, b));
+
+
+function ISet#Difference<T>(ISet T, ISet T): ISet T;
+axiom (forall<T> a: ISet T, b: ISet T, o: T :: { ISet#Difference(a,b)[o] }
+  ISet#Difference(a,b)[o] <==> a[o] && !b[o]);
+axiom (forall<T> a, b: ISet T, y: T :: { ISet#Difference(a, b), b[y] }
+  b[y] ==> !ISet#Difference(a, b)[y] );
+
+function ISet#Subset<T>(ISet T, ISet T): bool;
+axiom(forall<T> a: ISet T, b: ISet T :: { ISet#Subset(a,b) }
+  ISet#Subset(a,b) <==> (forall o: T :: {a[o]} {b[o]} a[o] ==> b[o]));
+// axiom(forall<T> a: ISet T, b: ISet T ::
+//   { ISet#Subset(a,b), ISet#Card(a), ISet#Card(b) }  // very restrictive trigger
+//   ISet#Subset(a,b) ==> ISet#Card(a) <= ISet#Card(b));
+
+
+function ISet#Equal<T>(ISet T, ISet T): bool;
+axiom(forall<T> a: ISet T, b: ISet T :: { ISet#Equal(a,b) }
+  ISet#Equal(a,b) <==> (forall o: T :: {a[o]} {b[o]} a[o] <==> b[o]));
+axiom(forall<T> a: ISet T, b: ISet T :: { ISet#Equal(a,b) }  // extensionality axiom for sets
+  ISet#Equal(a,b) ==> a == b);
+
+function ISet#Disjoint<T>(ISet T, ISet T): bool;
+axiom (forall<T> a: ISet T, b: ISet T :: { ISet#Disjoint(a,b) }
+  ISet#Disjoint(a,b) <==> (forall o: T :: {a[o]} {b[o]} !a[o] || !b[o]));
 
 // ---------------------------------------------------------------
 // -- Axiomatization of multisets --------------------------------

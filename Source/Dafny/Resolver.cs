@@ -597,18 +597,18 @@ namespace Microsoft.Dafny
         bvars.Add(oVar);
 
         return
-          new SetComprehension(e.tok, bvars,
+          new SetComprehension(e.tok, true, bvars,
             new BinaryExpr(e.tok, BinaryExpr.Opcode.In, obj,
               new ApplyExpr(e.tok, e, bexprs)
               {
-                Type = new SetType(new ObjectType())
+                Type = new SetType(true, new ObjectType())
               })
             {
               ResolvedOp = BinaryExpr.ResolvedOpcode.InSet,
               Type = Type.Bool
             }, obj, null)
           {
-            Type = new SetType(new ObjectType())
+            Type = new SetType(true, new ObjectType())
           };
       } else {
         return e;
@@ -646,8 +646,8 @@ namespace Microsoft.Dafny
             var sInE = new BinaryExpr(e.tok, BinaryExpr.Opcode.In, bvIE, e);
             sInE.ResolvedOp = BinaryExpr.ResolvedOpcode.InSeq;  // resolve here
             sInE.Type = Type.Bool;  // resolve here
-            var s = new SetComprehension(e.tok, new List<BoundVar>() { bv }, sInE, bvIE, null);
-            s.Type = new SetType(new ObjectType());  // resolve here
+            var s = new SetComprehension(e.tok, true, new List<BoundVar>() { bv }, sInE, bvIE, null);
+            s.Type = new SetType(true, new ObjectType());  // resolve here
             sets.Add(s);
           } else {
             // e is already a set
@@ -657,20 +657,20 @@ namespace Microsoft.Dafny
         }
       }
       if (singletons != null) {
-        Expression display = new SetDisplayExpr(singletons[0].tok, singletons);
-        display.Type = new SetType(new ObjectType());  // resolve here
+        Expression display = new SetDisplayExpr(singletons[0].tok, true, singletons);
+        display.Type = new SetType(true, new ObjectType());  // resolve here
         sets.Add(display);
       }
       if (sets.Count == 0) {
-        Expression emptyset = new SetDisplayExpr(Token.NoToken, new List<Expression>());
-        emptyset.Type = new SetType(new ObjectType());  // resolve here
+        Expression emptyset = new SetDisplayExpr(Token.NoToken, true, new List<Expression>());
+        emptyset.Type = new SetType(true, new ObjectType());  // resolve here
         return emptyset;
       } else {
         Expression s = sets[0];
         for (int i = 1; i < sets.Count; i++) {
           BinaryExpr union = new BinaryExpr(s.tok, BinaryExpr.Opcode.Add, s, sets[i]);
           union.ResolvedOp = BinaryExpr.ResolvedOpcode.Union;  // resolve here
-          union.Type = new SetType(new ObjectType());  // resolve here
+          union.Type = new SetType(true, new ObjectType());  // resolve here
           s = union;
         }
         return s;
@@ -961,9 +961,9 @@ namespace Microsoft.Dafny
             iter.Members.Add(f);
           });
           // add the additional special variables as fields
-          iter.Member_Reads = new SpecialField(iter.tok, "_reads", "_reads",          "", "", true, false, false, new SetType(new ObjectType()), null);
-          iter.Member_Modifies = new SpecialField(iter.tok, "_modifies", "_modifies", "", "", true, false, false, new SetType(new ObjectType()), null);
-          iter.Member_New = new SpecialField(iter.tok, "_new", "_new",                "", "", true, true, true, new SetType(new ObjectType()), null);
+          iter.Member_Reads = new SpecialField(iter.tok, "_reads", "_reads",          "", "", true, false, false, new SetType(true, new ObjectType()), null);
+          iter.Member_Modifies = new SpecialField(iter.tok, "_modifies", "_modifies", "", "", true, false, false, new SetType(true, new ObjectType()), null);
+          iter.Member_New = new SpecialField(iter.tok, "_new", "_new",                "", "", true, true, true, new SetType(true, new ObjectType()), null);
           foreach (var field in new List<Field>() { iter.Member_Reads, iter.Member_Modifies, iter.Member_New }) {
             field.EnclosingClass = iter;  // resolve here
             members.Add(field.Name, field);
@@ -2711,7 +2711,11 @@ namespace Microsoft.Dafny
         if (type is BasicType) {
           // fine
         } else if (type is SetType) {
-          var argType = ((SetType)type).Arg;
+          var st = (SetType)type;
+          var argType = st.Arg;
+          if (!st.Finite) {
+            Error(tok, "isets do not support equality: {0}", st);
+          }
           if (!argType.SupportsEquality) {
             Error(tok, "set argument type must support equality (got {0}){1}", argType, TypeEqualityErrorMessageHint(argType));
           }
@@ -3339,7 +3343,8 @@ namespace Microsoft.Dafny
                 (anotherIndDt != null && anotherIndDt.EqualitySupport == IndDatatypeDecl.ES.Never) ||
                 arg.Type.IsCoDatatype ||
                 arg.Type.IsArrowType ||
-                arg.Type.IsIMapType) {
+                arg.Type.IsIMapType ||
+                arg.Type.IsISetType) {
               // arg.Type is known never to support equality
               // So, go around the entire SCC and record what we learnt
               foreach (var ddtt in scc) {
@@ -3840,7 +3845,7 @@ namespace Microsoft.Dafny
       ens.Add(new MaybeFreeExpression(valid_call));
       // ensures this._reads == old(ReadsClause);
       var modSetSingletons = new List<Expression>();
-      Expression frameSet = new SetDisplayExpr(iter.tok, modSetSingletons);
+      Expression frameSet = new SetDisplayExpr(iter.tok, true, modSetSingletons);
       foreach (var fr in iter.Reads.Expressions) {
         if (fr.FieldName != null) {
           Error(fr.tok, "sorry, a reads clause for an iterator is not allowed to designate specific fields");
@@ -3855,7 +3860,7 @@ namespace Microsoft.Dafny
         new OldExpr(iter.tok, frameSet))));
       // ensures this._modifies == old(ModifiesClause);
       modSetSingletons = new List<Expression>();
-      frameSet = new SetDisplayExpr(iter.tok, modSetSingletons);
+      frameSet = new SetDisplayExpr(iter.tok, true, modSetSingletons);
       foreach (var fr in iter.Modifies.Expressions) {
         if (fr.FieldName != null) {
           Error(fr.tok, "sorry, a modifies clause for an iterator is not allowed to designate specific fields");
@@ -3871,7 +3876,7 @@ namespace Microsoft.Dafny
       // ensures this._new == {};
       ens.Add(new MaybeFreeExpression(new BinaryExpr(iter.tok, BinaryExpr.Opcode.Eq,
         new MemberSelectExpr(iter.tok, new ThisExpr(iter.tok), "_new"),
-        new SetDisplayExpr(iter.tok, new List<Expression>()))));
+        new SetDisplayExpr(iter.tok, true, new List<Expression>()))));
       // ensures this._decreases0 == old(DecreasesClause[0]) && ...;
       Contract.Assert(iter.Decreases.Expressions.Count == iter.DecreasesFields.Count);
       for (int i = 0; i < iter.Decreases.Expressions.Count; i++) {
@@ -4233,7 +4238,8 @@ namespace Microsoft.Dafny
       } else if (a is ObjectType) {
         return b is ObjectType;
       } else if (a is SetType) {
-        return b is SetType && UnifyTypes(((SetType)a).Arg, ((SetType)b).Arg);
+        return b is SetType && ((SetType)a).Finite == ((SetType)b).Finite &&
+               UnifyTypes(((SetType)a).Arg, ((SetType)b).Arg);
       } else if (a is MultiSetType) {
         return b is MultiSetType && UnifyTypes(((MultiSetType)a).Arg, ((MultiSetType)b).Arg);
       } else if (a is MapType) {
@@ -4354,7 +4360,9 @@ namespace Microsoft.Dafny
           // fine
         } else if (opProxy.AllowChar && t is CharType) {
           // fine
-        } else if (opProxy.AllowSetVarieties && (t is SetType || t is MultiSetType)) {
+        } else if (opProxy.AllowSetVarieties && ((t is SetType && ((SetType)t).Finite) || t is MultiSetType)) {
+          // fine
+        } else if (opProxy.AllowISet && (t is SetType && !((SetType)t).Finite)) {
           // fine
         } else if (opProxy.AllowSeq && t is SeqType) {
           // fine
@@ -4365,7 +4373,7 @@ namespace Microsoft.Dafny
       } else if (proxy is IndexableTypeProxy) {
         var iProxy = (IndexableTypeProxy)proxy;
         if (t is SeqType) {
-          if (!UnifyTypes(iProxy.Domain, new OperationTypeProxy(true, false, false, false, false))) {
+          if (!UnifyTypes(iProxy.Domain, new OperationTypeProxy(true, false, false, false, false, false))) {
             return false;
           } else if (!UnifyTypes(iProxy.Range, ((SeqType)t).Arg)) {
             return false;
@@ -4374,7 +4382,7 @@ namespace Microsoft.Dafny
           }
         } else if (iProxy.AllowArray && t.IsArrayType && t.AsArrayType.Dims == 1) {
           Type elType = UserDefinedType.ArrayElementType(t);
-          if (!UnifyTypes(iProxy.Domain, new OperationTypeProxy(true, false, false, false, false))) {
+          if (!UnifyTypes(iProxy.Domain, new OperationTypeProxy(true, false, false, false, false, false))) {
             return false;
           } else if (!UnifyTypes(iProxy.Range, elType)) {
             return false;
@@ -4400,7 +4408,7 @@ namespace Microsoft.Dafny
         } else if (t is MultiSetType) {
           if (!UnifyTypes(iProxy.Domain, ((MultiSetType)t).Arg)) {
             return false;
-          } else if (!UnifyTypes(iProxy.Range, new OperationTypeProxy(true, false, false, false, false))) {
+          } else if (!UnifyTypes(iProxy.Range, new OperationTypeProxy(true, false, false, false, false, false))) {
             return false;
           } else if (!UnifyTypes(iProxy.Arg, iProxy.Domain)) {
             return false;
@@ -4485,11 +4493,11 @@ namespace Microsoft.Dafny
           return UnifyTypes(((CollectionTypeProxy)a).Arg, ((CollectionTypeProxy)b).Arg);
         } else if (b is OperationTypeProxy) {
           var proxy = (OperationTypeProxy)b;
-          if (proxy.AllowSeq && proxy.AllowSetVarieties) {
+          if (proxy.AllowSeq && proxy.AllowSetVarieties && proxy.AllowISet) {
             b.T = a;  // a is a stronger constraint than b
           } else {
             // a says set<T>,seq<T> and b says numeric,set; the intersection is set<T>
-            var c = new SetType(((CollectionTypeProxy)a).Arg);
+            var c = new SetType(true, ((CollectionTypeProxy)a).Arg);
             return AssignProxyAfterCycleCheck(a, c) && AssignProxyAfterCycleCheck(b, c);
           }
           return true;
@@ -4497,7 +4505,7 @@ namespace Microsoft.Dafny
           var pa = (CollectionTypeProxy)a;
           var ib = (IndexableTypeProxy)b;
           // pa is:
-          //   set(Arg) or multiset(Arg) or seq(Arg) or map(Arg, anyRange) or imap(Arg, anyRange)
+          //   set(Arg) or iset(Arg) or multiset(Arg) or seq(Arg) or map(Arg, anyRange) or imap(Arg, anyRange)
           // ib is:
           //   multiset(Arg) or
           //   seq(Arg) or
@@ -4525,15 +4533,16 @@ namespace Microsoft.Dafny
           var h = pa.AllowChar && pb.AllowChar;
           var q = pa.AllowSeq && pb.AllowSeq;
           var s = pa.AllowSetVarieties && pb.AllowSetVarieties;
-          if (!i && !r && !h && !q && !s) {
+          var t = pa.AllowISet && pb.AllowISet;
+          if (!i && !r && !h && !q && !s && !t) {
             // over-constrained
             return false;
-          } else if (i == pa.AllowInts && r == pa.AllowReals && h == pa.AllowChar && q == pa.AllowSeq && s == pa.AllowSetVarieties) {
+          } else if (i == pa.AllowInts && r == pa.AllowReals && h == pa.AllowChar && q == pa.AllowSeq && s == pa.AllowSetVarieties && t == pa.AllowISet) {
             b.T = a;  // a has the stronger requirement
-          } else if (i == pb.AllowInts && r == pb.AllowReals && h == pb.AllowChar && q == pb.AllowSeq && s == pb.AllowSetVarieties) {
+          } else if (i == pb.AllowInts && r == pb.AllowReals && h == pb.AllowChar && q == pb.AllowSeq && s == pb.AllowSetVarieties && t == pb.AllowISet) {
             a.T = b;  // b has the stronger requirement
           } else {
-            Type c = !i && !r && h && !q && !s ? new CharType() : (Type)new OperationTypeProxy(i, r, h, q, s);
+            Type c = !i && !r && h && !q && !s && !t? new CharType() : (Type)new OperationTypeProxy(i, r, h, q, s, t);
             // the calls to AssignProxyAfterCycleCheck are needed only when c is a non-proxy type, but it doesn't
             // hurt to do them in both cases
             return AssignProxyAfterCycleCheck(a, c) && AssignProxyAfterCycleCheck(b, c);
@@ -6321,7 +6330,7 @@ namespace Microsoft.Dafny
           foreach (Expression dim in rr.ArrayDimensions) {
             Contract.Assert(dim != null);
             ResolveExpression(dim, new ResolveOpts(codeContext, true));
-            if (!UnifyTypes(dim.Type, new OperationTypeProxy(true, false, false, false, false))) {
+            if (!UnifyTypes(dim.Type, new OperationTypeProxy(true, false, false, false, false, false))) {
               Error(stmt, "new must use an integer-based expression for the array size (got {0} for index {1})", dim.Type, i);
             }
             i++;
@@ -6538,7 +6547,8 @@ namespace Microsoft.Dafny
         if (arg == t.Arg) {
           return type;
         } else if (type is SetType) {
-          return new SetType(arg);
+          var st = (SetType)type;
+          return new SetType(st.Finite, arg);
         } else if (type is MultiSetType) {
           return new MultiSetType(arg);
         } else if (type is SeqType) {
@@ -6744,9 +6754,9 @@ namespace Microsoft.Dafny
           if (e.Value == null) {
             e.Type = new ObjectTypeProxy();
           } else if (e.Value is BigInteger) {
-            e.Type = new OperationTypeProxy(true, false, false, false, false);
+            e.Type = new OperationTypeProxy(true, false, false, false, false, false);
           } else if (e.Value is Basetypes.BigDec) {
-            e.Type = new OperationTypeProxy(false, true, false, false, false);
+            e.Type = new OperationTypeProxy(false, true, false, false, false, false);
           } else if (e.Value is bool) {
             e.Type = Type.Bool;
           } else if (e is CharLiteralExpr) {
@@ -6800,7 +6810,8 @@ namespace Microsoft.Dafny
           }
         }
         if (expr is SetDisplayExpr) {
-          expr.Type = new SetType(elementType);
+          var se = (SetDisplayExpr)expr;
+          expr.Type = new SetType(se.Finite, elementType);
         } else if (expr is MultiSetDisplayExpr) {
           expr.Type = new MultiSetType(elementType);
         } else {
@@ -6911,7 +6922,7 @@ namespace Microsoft.Dafny
           Contract.Assert(idx != null);
           ResolveExpression(idx, opts);
           Contract.Assert(idx.Type != null);  // follows from postcondition of ResolveExpression
-          if (!UnifyTypes(idx.Type, new OperationTypeProxy(true, false, false, false, false))) {
+          if (!UnifyTypes(idx.Type, new OperationTypeProxy(true, false, false, false, false, false))) {
             Error(idx, "array selection requires integer-based numeric indices (got {0} for index {1})", idx.Type, i);
           }
           i++;
@@ -6963,7 +6974,7 @@ namespace Microsoft.Dafny
             Error(e.Index, "multiset update requires domain element to be of type {0} (got {1})", elementType, e.Index.Type);
           }
           ResolveExpression(e.Value, opts);
-          if (!UnifyTypes(e.Value.Type, new OperationTypeProxy(true, false, false, false, false))) {
+          if (!UnifyTypes(e.Value.Type, new OperationTypeProxy(true, false, false, false, false, false))) {
             Error(e.Value, "multiset update requires integer-based numeric value (got {0})", e.Value.Type);
           }
           expr.Type = e.Seq.Type;
@@ -7090,7 +7101,7 @@ namespace Microsoft.Dafny
       } else if (expr is MultiSetFormingExpr) {
         MultiSetFormingExpr e = (MultiSetFormingExpr)expr;
         ResolveExpression(e.E, opts);
-        if (!UnifyTypes(e.E.Type, new SetType(new InferredTypeProxy())) && !UnifyTypes(e.E.Type, new SeqType(new InferredTypeProxy()))) {
+        if (!UnifyTypes(e.E.Type, new SetType(true, new InferredTypeProxy())) && !UnifyTypes(e.E.Type, new SeqType(new InferredTypeProxy()))) {
           Error(e.tok, "can only form a multiset from a seq or set.");
         }
         expr.Type = new MultiSetType(e.E.Type.AsCollectionType.Arg);
@@ -7107,7 +7118,7 @@ namespace Microsoft.Dafny
             expr.Type = Type.Bool;
             break;
           case UnaryOpExpr.Opcode.Cardinality:
-            if (!UnifyTypes(e.E.Type, new CollectionTypeProxy(new InferredTypeProxy(), false))) {
+            if (!UnifyTypes(e.E.Type, new CollectionTypeProxy(new InferredTypeProxy(), false, false))) {
               Error(expr, "size operator expects a collection argument (instead got {0})", e.E.Type);
             }
             expr.Type = Type.Int;
@@ -7142,11 +7153,11 @@ namespace Microsoft.Dafny
         ResolveType(e.tok, e.ToType, opts.codeContext, new ResolveTypeOption(ResolveTypeOptionEnum.DontInfer), null);
         ResolveExpression(e.E, opts);
         if (e.ToType.IsNumericBased(Type.NumericPersuation.Int)) {
-          if (!UnifyTypes(e.E.Type, new OperationTypeProxy(true, true, false, false, false))) {
+          if (!UnifyTypes(e.E.Type, new OperationTypeProxy(true, true, false, false, false, false))) {
             Error(expr, "type conversion to an int-based type is allowed only from numeric types (got {0})", e.E.Type);
           }
         } else if (e.ToType.IsNumericBased(Type.NumericPersuation.Real)) {
-          if (!UnifyTypes(e.E.Type, new OperationTypeProxy(true, true, false, false, false))) {
+          if (!UnifyTypes(e.E.Type, new OperationTypeProxy(true, true, false, false, false, false))) {
             Error(expr, "type conversion to a real-based type is allowed only from numeric types (got {0})", e.E.Type);
           }
         } else {
@@ -7201,7 +7212,7 @@ namespace Microsoft.Dafny
             if (!UnifyTypes(e.E0.Type, e.E1.Type)) {
               Error(expr, "arguments must have the same type (got {0} and {1})", e.E0.Type, e.E1.Type);
             }
-            if (!UnifyTypes(e.E0.Type, new SetType(new InferredTypeProxy())) &&
+            if (!UnifyTypes(e.E0.Type, new SetType(true, new InferredTypeProxy())) &&
                 !UnifyTypes(e.E0.Type, new MultiSetType(new InferredTypeProxy())) &&
                 !UnifyTypes(e.E0.Type, new MapType(true, new InferredTypeProxy(), new InferredTypeProxy()))) {
               Error(expr, "arguments must be of a [multi]set or map type (got {0})", e.E0.Type);
@@ -7229,7 +7240,7 @@ namespace Microsoft.Dafny
               } else {
                 bool err = false;
                 bool isComparison = e.Op != BinaryExpr.Opcode.Add;
-                if (!UnifyTypes(e.E0.Type, new OperationTypeProxy(true, true, isComparison, true, true))) {
+                if (!UnifyTypes(e.E0.Type, new OperationTypeProxy(true, true, isComparison, true, true, true))) {
                   Error(expr, "arguments to {0} must be of a numeric type{2} or a collection type (instead got {1})", BinaryExpr.OpcodeString(e.Op), e.E0.Type,
                     isComparison ? ", char," : "");
                   err = true;
@@ -7268,7 +7279,7 @@ namespace Microsoft.Dafny
               } else {
                 bool err = false;
                 bool isComparison = e.Op == BinaryExpr.Opcode.Gt || e.Op == BinaryExpr.Opcode.Ge;
-                if (!UnifyTypes(e.E0.Type, new OperationTypeProxy(true, true, isComparison, false, true))) {
+                if (!UnifyTypes(e.E0.Type, new OperationTypeProxy(true, true, isComparison, false, true, true))) {
                   Error(expr, "arguments to {0} must be of a numeric type{2} or a set type (instead got {1})", BinaryExpr.OpcodeString(e.Op), e.E0.Type,
                     isComparison ? ", char, " : "");
                   err = true;
@@ -7288,14 +7299,14 @@ namespace Microsoft.Dafny
 
           case BinaryExpr.Opcode.In:
           case BinaryExpr.Opcode.NotIn:
-            if (!UnifyTypes(e.E1.Type, new CollectionTypeProxy(e.E0.Type, true))) {
+            if (!UnifyTypes(e.E1.Type, new CollectionTypeProxy(e.E0.Type, true, true))) {
               Error(expr, "second argument to \"{0}\" must be a set, multiset, or sequence with elements of type {1}, or a map with domain {1} (instead got {2})", BinaryExpr.OpcodeString(e.Op), e.E0.Type, e.E1.Type);
             }
             expr.Type = Type.Bool;
             break;
 
           case BinaryExpr.Opcode.Div:
-            if (!UnifyTypes(e.E0.Type, new OperationTypeProxy(true, true, false, false, false))) {
+            if (!UnifyTypes(e.E0.Type, new OperationTypeProxy(true, true, false, false, false, false))) {
               Error(expr, "first argument to {0} must be of numeric type (instead got {1})", BinaryExpr.OpcodeString(e.Op), e.E0.Type);
             }
             if (!UnifyTypes(e.E1.Type, e.E0.Type)) {
@@ -7305,7 +7316,7 @@ namespace Microsoft.Dafny
             break;
 
           case BinaryExpr.Opcode.Mod:
-            if (!UnifyTypes(e.E0.Type, new OperationTypeProxy(true, false, false, false, false))) {
+            if (!UnifyTypes(e.E0.Type, new OperationTypeProxy(true, false, false, false, false, false))) {
               Error(expr, "first argument to {0} must be of type int (instead got {1})", BinaryExpr.OpcodeString(e.Op), e.E0.Type);
             }
             if (!UnifyTypes(e.E1.Type, e.E0.Type)) {
@@ -7487,7 +7498,7 @@ namespace Microsoft.Dafny
 
         ResolveAttributes(e.Attributes, new ResolveOpts(opts, true));
         scope.PopMarker();
-        expr.Type = new SetType(e.Term.Type);
+        expr.Type = new SetType(e.Finite, e.Term.Type);
 
         if (opts.DontCareAboutCompilation && (e.Term.Type.IsRefType || e.Term.Type.IsBoolType) || e.Term.Type.IsCharType) {
           // ok, term type is finite and we're in a ghost context
@@ -7561,7 +7572,7 @@ namespace Microsoft.Dafny
         scope.PopMarker();
         expr.Type = new ArrowType(e.tok, Util.Map(e.BoundVars, v => v.Type), e.Body.Type, builtIns.SystemModule);
       } else if (expr is WildcardExpr) {
-        expr.Type = new SetType(new ObjectType());
+        expr.Type = new SetType(true, new ObjectType());
       } else if (expr is StmtExpr) {
         var e = (StmtExpr)expr;
         int prevErrorCount = ErrorCount;
@@ -9645,7 +9656,7 @@ namespace Microsoft.Dafny
       if (e.E1 != null) {
         ResolveExpression(e.E1, opts);
         Contract.Assert(e.E1.Type != null);  // follows from postcondition of ResolveExpression
-        var domType = e.E0 == null ? domainType : new OperationTypeProxy(true, false, false, false, false);  // reuse 'domainType' if .E0 did not use it; otherwise, create a new proxy to allow .E1 to be any integer-based numeric type, independent of the integer-based numeric type used by .E0
+        var domType = e.E0 == null ? domainType : new OperationTypeProxy(true, false, false, false, false, false);  // reuse 'domainType' if .E0 did not use it; otherwise, create a new proxy to allow .E1 to be any integer-based numeric type, independent of the integer-based numeric type used by .E0
         if (!UnifyTypes(e.E1.Type, domType)) {
           Error(e.E1, "sequence/array/multiset/map selection requires {1} indices (got {0})", e.E1.Type, domType);
         }

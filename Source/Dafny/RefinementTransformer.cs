@@ -452,7 +452,8 @@ namespace Microsoft.Dafny
       } else if (prev is ObjectType) {
         return next is ObjectType;
       } else if (prev is SetType) {
-        return next is SetType && ResolvedTypesAreTheSame(((SetType)prev).Arg, ((SetType)next).Arg);
+        return next is SetType && ((SetType)prev).Finite == ((SetType)next).Finite &&
+          ResolvedTypesAreTheSame(((SetType)prev).Arg, ((SetType)next).Arg);
       } else if (prev is MultiSetType) {
         return next is MultiSetType && ResolvedTypesAreTheSame(((MultiSetType)prev).Arg, ((MultiSetType)next).Arg);
       } else if (prev is MapType) {

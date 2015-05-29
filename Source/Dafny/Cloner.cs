@@ -160,7 +160,7 @@ namespace Microsoft.Dafny
         return t;
       } else if (t is SetType) {
         var tt = (SetType)t;
-        return new SetType(CloneType(tt.Arg));
+        return new SetType(tt.Finite, CloneType(tt.Arg));
       } else if (t is SeqType) {
         var tt = (SeqType)t;
         return new SeqType(CloneType(tt.Arg));
@@ -187,7 +187,7 @@ namespace Microsoft.Dafny
         return new InferredTypeProxy();
       } else if (t is OperationTypeProxy) {
         var p = (OperationTypeProxy)t;
-        return new OperationTypeProxy(p.AllowInts, p.AllowReals, p.AllowChar, p.AllowSeq, p.AllowSetVarieties);
+        return new OperationTypeProxy(p.AllowInts, p.AllowReals, p.AllowChar, p.AllowSeq, p.AllowSetVarieties, p.AllowISet);
       } else if (t is ParamTypeProxy) {
         return new ParamTypeProxy(CloneTypeParam(((ParamTypeProxy)t).orig));
       } else {
@@ -277,7 +277,7 @@ namespace Microsoft.Dafny
       } else if (expr is DisplayExpression) {
         DisplayExpression e = (DisplayExpression)expr;
         if (expr is SetDisplayExpr) {
-          return new SetDisplayExpr(Tok(e.tok), e.Elements.ConvertAll(CloneExpr));
+          return new SetDisplayExpr(Tok(e.tok), ((SetDisplayExpr)expr).Finite, e.Elements.ConvertAll(CloneExpr));
         } else if (expr is MultiSetDisplayExpr) {
           return new MultiSetDisplayExpr(Tok(e.tok), e.Elements.ConvertAll(CloneExpr));
         } else {
@@ -384,7 +384,8 @@ namespace Microsoft.Dafny
           return new LambdaExpr(tk, l.OneShot, bvs, range, l.Reads.ConvertAll(CloneFrameExpr), term);
         } else {
           Contract.Assert(e is SetComprehension);
-          return new SetComprehension(tk, bvs, range, term, CloneAttributes(e.Attributes));
+          var tt = (SetComprehension)e;
+          return new SetComprehension(tk, tt.Finite, bvs, range, term, CloneAttributes(e.Attributes));
         }
 
       } else if (expr is WildcardExpr) {

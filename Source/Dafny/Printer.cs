@@ -1346,7 +1346,11 @@ namespace Microsoft.Dafny {
 
       } else if (expr is DisplayExpression) {
         DisplayExpression e = (DisplayExpression)expr;
-        if (e is MultiSetDisplayExpr) wr.Write("multiset");
+        if (e is MultiSetDisplayExpr) {
+          wr.Write("multiset");
+        } else if (e is SetDisplayExpr && !((SetDisplayExpr)e).Finite) {
+          wr.Write("iset");
+        }
         wr.Write(e is SetDisplayExpr || e is MultiSetDisplayExpr ? "{" : "[");
         PrintExpressionList(e.Elements, false);
         wr.Write(e is SetDisplayExpr || e is MultiSetDisplayExpr ? "}" : "]");

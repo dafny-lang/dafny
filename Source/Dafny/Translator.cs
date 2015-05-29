@@ -137,6 +137,7 @@ namespace Microsoft.Dafny {
       public readonly Bpl.Type BoxType;
       public readonly Bpl.Type TickType;
       private readonly Bpl.TypeSynonymDecl setTypeCtor;
+      private readonly Bpl.TypeSynonymDecl isetTypeCtor;
       private readonly Bpl.TypeSynonymDecl multiSetTypeCtor;
       private readonly Bpl.TypeCtorDecl mapTypeCtor;
       private readonly Bpl.TypeCtorDecl imapTypeCtor;
@@ -183,12 +184,12 @@ namespace Microsoft.Dafny {
         Contract.Invariant(allocField != null);
       }
 
-      public Bpl.Type SetType(IToken tok, Bpl.Type ty) {
+      public Bpl.Type SetType(IToken tok, bool finite, Bpl.Type ty) {
         Contract.Requires(tok != null);
         Contract.Requires(ty != null);
         Contract.Ensures(Contract.Result<Bpl.Type>() != null);
 
-        return new Bpl.TypeSynonymAnnotation(Token.NoToken, setTypeCtor, new List<Bpl.Type> { ty });
+        return new Bpl.TypeSynonymAnnotation(Token.NoToken, finite ? setTypeCtor : isetTypeCtor, new List<Bpl.Type> { ty });
       }
 
       public Bpl.Type MultiSetType(IToken tok, Bpl.Type ty) {
@@ -229,7 +230,7 @@ namespace Microsoft.Dafny {
       }
 
       public PredefinedDecls(Bpl.TypeCtorDecl charType, Bpl.TypeCtorDecl refType, Bpl.TypeCtorDecl boxType, Bpl.TypeCtorDecl tickType,
-                             Bpl.TypeSynonymDecl setTypeCtor, Bpl.TypeSynonymDecl multiSetTypeCtor,
+                             Bpl.TypeSynonymDecl setTypeCtor, Bpl.TypeSynonymDecl isetTypeCtor, Bpl.TypeSynonymDecl multiSetTypeCtor,
                              Bpl.TypeCtorDecl mapTypeCtor, Bpl.TypeCtorDecl imapTypeCtor,
                              Bpl.Function arrayLength, Bpl.Function realTrunc, Bpl.TypeCtorDecl seqTypeCtor, Bpl.TypeCtorDecl fieldNameType,
                              Bpl.TypeCtorDecl tyType, Bpl.TypeCtorDecl tyTagType,
@@ -242,6 +243,7 @@ namespace Microsoft.Dafny {
         Contract.Requires(boxType != null);
         Contract.Requires(tickType != null);
         Contract.Requires(setTypeCtor != null);
+        Contract.Requires(isetTypeCtor != null);
         Contract.Requires(multiSetTypeCtor != null);
         Contract.Requires(mapTypeCtor != null);
         Contract.Requires(imapTypeCtor != null);
@@ -265,6 +267,7 @@ namespace Microsoft.Dafny {
         this.BoxType = new Bpl.CtorType(Token.NoToken, boxType, new List<Bpl.Type>());
         this.TickType = new Bpl.CtorType(Token.NoToken, tickType, new List<Bpl.Type>());
         this.setTypeCtor = setTypeCtor;
+        this.isetTypeCtor = isetTypeCtor;
         this.multiSetTypeCtor = multiSetTypeCtor;
         this.mapTypeCtor = mapTypeCtor;
         this.imapTypeCtor = imapTypeCtor;
@@ -298,6 +301,7 @@ namespace Microsoft.Dafny {
       Bpl.TypeCtorDecl charType = null;
       Bpl.TypeCtorDecl refType = null;
       Bpl.TypeSynonymDecl setTypeCtor = null;
+      Bpl.TypeSynonymDecl isetTypeCtor = null;
       Bpl.TypeSynonymDecl multiSetTypeCtor = null;
       Bpl.Function arrayLength = null;
       Bpl.Function realTrunc = null;
@@ -361,6 +365,9 @@ namespace Microsoft.Dafny {
           if (dt.Name == "MultiSet") {
             multiSetTypeCtor = dt;
           }
+          if (dt.Name == "ISet") {
+            isetTypeCtor = dt;
+          }
         } else if (d is Bpl.Constant) {
           Bpl.Constant c = (Bpl.Constant)d;
           if (c.Name == "alloc") {
@@ -384,6 +391,8 @@ namespace Microsoft.Dafny {
         Console.WriteLine("Error: Dafny prelude is missing declaration of type Seq");
       } else if (setTypeCtor == null) {
         Console.WriteLine("Error: Dafny prelude is missing declaration of type Set");
+      } else if (isetTypeCtor == null) {
+        Console.WriteLine("Error: Dafny prelude is missing declaration of type ISet");
       } else if (multiSetTypeCtor == null) {
         Console.WriteLine("Error: Dafny prelude is missing declaration of type MultiSet");
       } else if (mapTypeCtor == null) {
@@ -426,7 +435,7 @@ namespace Microsoft.Dafny {
         Console.WriteLine("Error: Dafny prelude is missing declaration of constant alloc");
       } else {
         return new PredefinedDecls(charType, refType, boxType, tickType,
-                                   setTypeCtor, multiSetTypeCtor,
+                                   setTypeCtor, isetTypeCtor, multiSetTypeCtor,
                                    mapTypeCtor, imapTypeCtor,
                                    arrayLength, realTrunc, seqTypeCtor, fieldNameType,
                                    tyType, tyTagType,
@@ -4846,7 +4855,7 @@ namespace Microsoft.Dafny {
         builder.Add(Assert(expr.tok, precond, "possible violation of function precondition"));
 
         if (options.DoReadsChecks) {
-          Type objset = new SetType(new ObjectType());
+          Type objset = new SetType(true, new ObjectType());
           Expression wrap = new BoogieWrapper(
             FunctionCall(e.tok, Reads(arity), TrType(objset), args),
             objset);
@@ -5540,7 +5549,7 @@ namespace Microsoft.Dafny {
           //   =  $Frame_F(args...)
 
           var fhandle = FunctionCall(f.tok, name, predef.HandleType, SnocSelf(args));
-          Bpl.Expr lhs_inner = FunctionCall(f.tok, Reads(arity), TrType(new SetType(new ObjectType())), Concat(tyargs, Cons(fhandle, Cons(h, lhs_args))));
+          Bpl.Expr lhs_inner = FunctionCall(f.tok, Reads(arity), TrType(new SetType(true, new ObjectType())), Concat(tyargs, Cons(fhandle, Cons(h, lhs_args))));
 
           Bpl.Expr bx; var bxVar = BplBoundVar("$bx", predef.BoxType, out bx);
           Bpl.Expr unboxBx = FunctionCall(f.tok, BuiltinFunction.Unbox, predef.RefType, bx);
@@ -5577,7 +5586,7 @@ namespace Microsoft.Dafny {
       // [Heap, Box, ..., Box] Bool
       var requires_ty = new Bpl.MapType(tok, new List<Bpl.TypeVariable>(), map_args, Bpl.Type.Bool);
       // Set Box
-      var objset_ty = TrType(new SetType(new ObjectType()));
+      var objset_ty = TrType(new SetType(true, new ObjectType()));
       // [Heap, Box, ..., Box] (Set Box)
       var reads_ty = new Bpl.MapType(tok, new List<Bpl.TypeVariable>(), map_args, objset_ty);
 
@@ -6689,7 +6698,7 @@ namespace Microsoft.Dafny {
       } else if (type.IsDatatype || type is DatatypeProxy) {
         return predef.DatatypeType;
       } else if (type is SetType) {
-        return predef.SetType(Token.NoToken, predef.BoxType);
+        return predef.SetType(Token.NoToken, ((SetType)type).Finite, predef.BoxType);
       } else if (type is MultiSetType) {
         return predef.MultiSetType(Token.NoToken, predef.BoxType);
       } else if (type is MapType) {
@@ -7543,7 +7552,7 @@ namespace Microsoft.Dafny {
           }
         }
       } else if (xType is SetType) {
-        var empty = new SetDisplayExpr(x.tok, new List<Expression>());
+        var empty = new SetDisplayExpr(x.tok, ((SetType)xType).Finite, new List<Expression>());
         empty.Type = xType;
         yield return empty;
       } else if (xType is MultiSetType) {
@@ -8150,7 +8159,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(locals != null);
       Contract.Requires(etran != null);
       // Add all newly allocated objects to the set this._new
-      var updatedSet = new Bpl.LocalVariable(iter.tok, new Bpl.TypedIdent(iter.tok, CurrentIdGenerator.FreshId("$iter_newUpdate"), predef.SetType(iter.tok, predef.BoxType)));
+      var updatedSet = new Bpl.LocalVariable(iter.tok, new Bpl.TypedIdent(iter.tok, CurrentIdGenerator.FreshId("$iter_newUpdate"), predef.SetType(iter.tok, true, predef.BoxType)));
       locals.Add(updatedSet);
       var updatedSetIE = new Bpl.IdentifierExpr(iter.tok, updatedSet);
       // call $iter_newUpdate := $IterCollectNewObjects(initHeap, $Heap, this, _new);
@@ -9043,9 +9052,9 @@ namespace Microsoft.Dafny {
         less = Bpl.Expr.Gt(e0, e1);
         atmost = Bpl.Expr.Ge(e0, e1);
 
-      } else if (ty0 is SetType || (ty0 is MapType && ((MapType)ty0).Finite)) {
+      } else if ((ty0 is SetType && ((SetType)ty0).Finite) || (ty0 is MapType && ((MapType)ty0).Finite)) {
         Bpl.Expr b0, b1;
-        if (ty0 is SetType) {
+        if (ty0 is SetType && ((SetType)ty0).Finite) {
           b0 = e0;
           b1 = e1;
         } else if (ty0 is MapType && ((MapType)ty0).Finite) {
@@ -9127,7 +9136,8 @@ namespace Microsoft.Dafny {
       type = type.NormalizeExpand();
 
       if (type is SetType) {
-        return FunctionCall(Token.NoToken, "TSet", predef.Ty, TypeToTy(((CollectionType)type).Arg));
+        bool finite = ((SetType)type).Finite;
+        return FunctionCall(Token.NoToken, finite ? "TSet" : "TISet", predef.Ty, TypeToTy(((CollectionType)type).Arg));
       } else if (type is MultiSetType) {
         return FunctionCall(Token.NoToken, "TMultiSet", predef.Ty, TypeToTy(((CollectionType)type).Arg));
       } else if (type is SeqType) {
@@ -10469,10 +10479,10 @@ namespace Microsoft.Dafny {
 
         } else if (expr is SetDisplayExpr) {
           SetDisplayExpr e = (SetDisplayExpr)expr;
-          Bpl.Expr s = translator.FunctionCall(expr.tok, BuiltinFunction.SetEmpty, predef.BoxType);
+          Bpl.Expr s = translator.FunctionCall(expr.tok, e.Finite ? BuiltinFunction.SetEmpty : BuiltinFunction.ISetEmpty, predef.BoxType);
           foreach (Expression ee in e.Elements) {
             Bpl.Expr ss = BoxIfNecessary(expr.tok, TrExpr(ee), cce.NonNull(ee.Type));
-            s = translator.FunctionCall(expr.tok, BuiltinFunction.SetUnionOne, predef.BoxType, s, ss);
+            s = translator.FunctionCall(expr.tok, e.Finite ? BuiltinFunction.SetUnionOne : BuiltinFunction.ISetUnionOne, predef.BoxType, s, ss);
           }
           return s;
 
@@ -10760,7 +10770,7 @@ namespace Microsoft.Dafny {
               var eType = e.E.Type.NormalizeExpand();
               if (eType is SeqType) {
                 return translator.FunctionCall(expr.tok, BuiltinFunction.SeqLength, null, arg);
-              } else if (eType is SetType) {
+              } else if (eType is SetType && ((SetType)eType).Finite) {
                 return translator.FunctionCall(expr.tok, BuiltinFunction.SetCard, null, arg);
               } else if (eType is MultiSetType) {
                 return translator.FunctionCall(expr.tok, BuiltinFunction.MultiSetCard, null, arg);
@@ -11011,31 +11021,55 @@ namespace Microsoft.Dafny {
                 return Bpl.Expr.Binary(expr.tok, bOp, operand0, operand1);
               }
 
-            case BinaryExpr.ResolvedOpcode.SetEq:
-              return translator.FunctionCall(expr.tok, BuiltinFunction.SetEqual, null, e0, e1);
-            case BinaryExpr.ResolvedOpcode.SetNeq:
-              return Bpl.Expr.Unary(expr.tok, UnaryOperator.Opcode.Not, translator.FunctionCall(expr.tok, BuiltinFunction.SetEqual, null, e0, e1));
-            case BinaryExpr.ResolvedOpcode.ProperSubset:
+            case BinaryExpr.ResolvedOpcode.SetEq: {
+              bool finite = e.E1.Type.AsSetType.Finite;
+              var f = finite ? BuiltinFunction.SetEqual : BuiltinFunction.ISetEqual;
+              return translator.FunctionCall(expr.tok, f, null, e0, e1);
+            }
+            case BinaryExpr.ResolvedOpcode.SetNeq: {
+              bool finite = e.E1.Type.AsSetType.Finite;
+              var f = finite ? BuiltinFunction.SetEqual : BuiltinFunction.ISetEqual;
+              return Bpl.Expr.Unary(expr.tok, UnaryOperator.Opcode.Not, translator.FunctionCall(expr.tok, f, null, e0, e1));
+            }
+            case BinaryExpr.ResolvedOpcode.ProperSubset: {
               return translator.ProperSubset(expr.tok, e0, e1);
-            case BinaryExpr.ResolvedOpcode.Subset:
-              return translator.FunctionCall(expr.tok, BuiltinFunction.SetSubset, null, e0, e1);
-            case BinaryExpr.ResolvedOpcode.Superset:
-              return translator.FunctionCall(expr.tok, BuiltinFunction.SetSubset, null, e1, e0);
+            }
+            case BinaryExpr.ResolvedOpcode.Subset: {
+              bool finite = e.E1.Type.AsSetType.Finite;
+              var f = finite ? BuiltinFunction.SetSubset : BuiltinFunction.ISetSubset;
+              return translator.FunctionCall(expr.tok, f, null, e0, e1);
+            }
+            case BinaryExpr.ResolvedOpcode.Superset: {
+              bool finite = e.E1.Type.AsSetType.Finite;
+              var f = finite ? BuiltinFunction.SetSubset : BuiltinFunction.ISetSubset;
+              return translator.FunctionCall(expr.tok, f, null, e1, e0);
+            }
             case BinaryExpr.ResolvedOpcode.ProperSuperset:
               return translator.ProperSubset(expr.tok, e1, e0);
-            case BinaryExpr.ResolvedOpcode.Disjoint:
-              return translator.FunctionCall(expr.tok, BuiltinFunction.SetDisjoint, null, e0, e1);
+            case BinaryExpr.ResolvedOpcode.Disjoint: {
+              bool finite = e.E1.Type.AsSetType.Finite;
+              var f = finite ? BuiltinFunction.SetDisjoint : BuiltinFunction.ISetDisjoint;
+              return translator.FunctionCall(expr.tok, f, null, e0, e1);
+            }
             case BinaryExpr.ResolvedOpcode.InSet:
               Contract.Assert(false); throw new cce.UnreachableException();  // this case handled above
             case BinaryExpr.ResolvedOpcode.NotInSet:
               Contract.Assert(false); throw new cce.UnreachableException();  // this case handled above
-            case BinaryExpr.ResolvedOpcode.Union:
-              return translator.FunctionCall(expr.tok, BuiltinFunction.SetUnion, translator.TrType(expr.Type.AsSetType.Arg), e0, e1);
-            case BinaryExpr.ResolvedOpcode.Intersection:
-              return translator.FunctionCall(expr.tok, BuiltinFunction.SetIntersection, translator.TrType(expr.Type.AsSetType.Arg), e0, e1);
-            case BinaryExpr.ResolvedOpcode.SetDifference:
-              return translator.FunctionCall(expr.tok, BuiltinFunction.SetDifference, translator.TrType(expr.Type.AsSetType.Arg), e0, e1);
-
+            case BinaryExpr.ResolvedOpcode.Union: {
+              bool finite = e.E1.Type.AsSetType.Finite;
+              var f = finite ? BuiltinFunction.SetUnion : BuiltinFunction.ISetUnion;
+              return translator.FunctionCall(expr.tok, f, translator.TrType(expr.Type.AsSetType.Arg), e0, e1);
+            }
+            case BinaryExpr.ResolvedOpcode.Intersection: {
+              bool finite = e.E1.Type.AsSetType.Finite;
+              var f = finite ? BuiltinFunction.SetIntersection : BuiltinFunction.ISetIntersection;
+              return translator.FunctionCall(expr.tok, f, translator.TrType(expr.Type.AsSetType.Arg), e0, e1);
+            }
+            case BinaryExpr.ResolvedOpcode.SetDifference: {
+              bool finite = e.E1.Type.AsSetType.Finite;
+              var f = finite ? BuiltinFunction.SetDifference : BuiltinFunction.ISetDifference;
+              return translator.FunctionCall(expr.tok, f, translator.TrType(expr.Type.AsSetType.Arg), e0, e1);
+            }
             case BinaryExpr.ResolvedOpcode.MultiSetEq:
               return translator.FunctionCall(expr.tok, BuiltinFunction.MultiSetEqual, null, e0, e1);
             case BinaryExpr.ResolvedOpcode.MultiSetNeq:
@@ -11712,6 +11746,15 @@ namespace Microsoft.Dafny {
       SetSubset,
       SetDisjoint,
 
+      ISetEmpty,
+      ISetUnionOne,
+      ISetUnion,
+      ISetIntersection,
+      ISetDifference,
+      ISetEqual,
+      ISetSubset,
+      ISetDisjoint,
+
       MultiSetCard,
       MultiSetEmpty,
       MultiSetUnionOne,
@@ -11891,25 +11934,25 @@ namespace Microsoft.Dafny {
         case BuiltinFunction.SetEmpty: {
           Contract.Assert(args.Length == 0);
           Contract.Assert(typeInstantiation != null);
-          Bpl.Type resultType = predef.SetType(tok, typeInstantiation);
+          Bpl.Type resultType = predef.SetType(tok, true, typeInstantiation);
           return Bpl.Expr.CoerceType(tok, FunctionCall(tok, "Set#Empty", resultType, args), resultType);
         }
         case BuiltinFunction.SetUnionOne:
           Contract.Assert(args.Length == 2);
           Contract.Assert(typeInstantiation != null);
-          return FunctionCall(tok, "Set#UnionOne", predef.SetType(tok, typeInstantiation), args);
+          return FunctionCall(tok, "Set#UnionOne", predef.SetType(tok, true, typeInstantiation), args);
         case BuiltinFunction.SetUnion:
           Contract.Assert(args.Length == 2);
           Contract.Assert(typeInstantiation != null);
-          return FunctionCall(tok, "Set#Union", predef.SetType(tok, typeInstantiation), args);
+          return FunctionCall(tok, "Set#Union", predef.SetType(tok, true, typeInstantiation), args);
         case BuiltinFunction.SetIntersection:
           Contract.Assert(args.Length == 2);
           Contract.Assert(typeInstantiation != null);
-          return FunctionCall(tok, "Set#Intersection", predef.SetType(tok, typeInstantiation), args);
+          return FunctionCall(tok, "Set#Intersection", predef.SetType(tok, true, typeInstantiation), args);
         case BuiltinFunction.SetDifference:
           Contract.Assert(args.Length == 2);
           Contract.Assert(typeInstantiation != null);
-          return FunctionCall(tok, "Set#Difference", predef.SetType(tok, typeInstantiation), args);
+          return FunctionCall(tok, "Set#Difference", predef.SetType(tok, true, typeInstantiation), args);
         case BuiltinFunction.SetEqual:
           Contract.Assert(args.Length == 2);
           Contract.Assert(typeInstantiation == null);
@@ -11922,7 +11965,40 @@ namespace Microsoft.Dafny {
           Contract.Assert(args.Length == 2);
           Contract.Assert(typeInstantiation == null);
           return FunctionCall(tok, "Set#Disjoint", Bpl.Type.Bool, args);
-
+        case BuiltinFunction.ISetEmpty: {
+            Contract.Assert(args.Length == 0);
+            Contract.Assert(typeInstantiation != null);
+            Bpl.Type resultType = predef.SetType(tok, false, typeInstantiation);
+            return Bpl.Expr.CoerceType(tok, FunctionCall(tok, "ISet#Empty", resultType, args), resultType);
+          }
+        case BuiltinFunction.ISetUnionOne:
+          Contract.Assert(args.Length == 2);
+          Contract.Assert(typeInstantiation != null);
+          return FunctionCall(tok, "ISet#UnionOne", predef.SetType(tok, false, typeInstantiation), args);
+        case BuiltinFunction.ISetUnion:
+          Contract.Assert(args.Length == 2);
+          Contract.Assert(typeInstantiation != null);
+          return FunctionCall(tok, "ISet#Union", predef.SetType(tok, false, typeInstantiation), args);
+        case BuiltinFunction.ISetIntersection:
+          Contract.Assert(args.Length == 2);
+          Contract.Assert(typeInstantiation != null);
+          return FunctionCall(tok, "ISet#Intersection", predef.SetType(tok, false, typeInstantiation), args);
+        case BuiltinFunction.ISetDifference:
+          Contract.Assert(args.Length == 2);
+          Contract.Assert(typeInstantiation != null);
+          return FunctionCall(tok, "ISet#Difference", predef.SetType(tok, false, typeInstantiation), args);
+        case BuiltinFunction.ISetEqual:
+          Contract.Assert(args.Length == 2);
+          Contract.Assert(typeInstantiation == null);
+          return FunctionCall(tok, "ISet#Equal", Bpl.Type.Bool, args);
+        case BuiltinFunction.ISetSubset:
+          Contract.Assert(args.Length == 2);
+          Contract.Assert(typeInstantiation == null);
+          return FunctionCall(tok, "ISet#Subset", Bpl.Type.Bool, args);
+        case BuiltinFunction.ISetDisjoint:
+          Contract.Assert(args.Length == 2);
+          Contract.Assert(typeInstantiation == null);
+          return FunctionCall(tok, "ISet#Disjoint", Bpl.Type.Bool, args);
         case BuiltinFunction.MultiSetCard:
           Contract.Assert(args.Length == 1);
           Contract.Assert(typeInstantiation == null);
@@ -13256,7 +13332,7 @@ namespace Microsoft.Dafny {
           List<Expression> newElements = SubstituteExprList(e.Elements);
           if (newElements != e.Elements) {
             if (expr is SetDisplayExpr) {
-              newExpr = new SetDisplayExpr(expr.tok, newElements);
+              newExpr = new SetDisplayExpr(expr.tok, ((SetDisplayExpr)expr).Finite, newElements);
             } else if (expr is MultiSetDisplayExpr) {
               newExpr = new MultiSetDisplayExpr(expr.tok, newElements);
             } else {
@@ -13488,7 +13564,7 @@ namespace Microsoft.Dafny {
           Attributes newAttrs = SubstAttributes(e.Attributes);
           if (newBoundVars != e.BoundVars || newRange != e.Range || newTerm != e.Term || newAttrs != e.Attributes) {
             if (e is SetComprehension) {
-              newExpr = new SetComprehension(expr.tok, newBoundVars, newRange, newTerm, newAttrs);
+              newExpr = new SetComprehension(expr.tok, ((SetComprehension)e).Finite, newBoundVars, newRange, newTerm, newAttrs);
             } else if (e is MapComprehension) {
               newExpr = new MapComprehension(expr.tok, ((MapComprehension)e).Finite, newBoundVars, newRange, newTerm, newAttrs);
             } else if (expr is ForallExpr) {
