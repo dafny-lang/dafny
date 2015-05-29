@@ -160,6 +160,7 @@ namespace DafnyLanguage
               }
               if (m is Dafny.Function && ((Dafny.Function)m).Body != null) {
                 var nm =
+                  m is Dafny.InductivePredicate ? "inductive predicate" :
                   m is Dafny.CoPredicate ? "copredicate" :
                   // m is Dafny.PrefixPredicate ? "prefix predicate" :  // this won't ever occur here
                   m is Dafny.Predicate ? "predicate" :

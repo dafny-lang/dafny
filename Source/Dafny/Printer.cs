@@ -345,7 +345,7 @@ namespace Microsoft.Dafny {
         if (m is Method) {
           if (state != 0) { wr.WriteLine(); }
           PrintMethod((Method)m, indent, false);
-          var com = m as CoLemma;
+          var com = m as FixpointLemma;
           if (com != null && com.PrefixLemma != null) {
             Indent(indent); wr.WriteLine("/***");
             PrintMethod(com.PrefixLemma, indent, false);
@@ -359,10 +359,10 @@ namespace Microsoft.Dafny {
         } else if (m is Function) {
           if (state != 0) { wr.WriteLine(); }
           PrintFunction((Function)m, indent, false);
-          var cop = m as CoPredicate;
-          if (cop != null && cop.PrefixPredicate != null) {
+          var fixp = m as FixpointPredicate;
+          if (fixp != null && fixp.PrefixPredicate != null) {
             Indent(indent); wr.WriteLine("/***");
-            PrintFunction(cop.PrefixPredicate, indent, false);
+            PrintFunction(fixp.PrefixPredicate, indent, false);
             Indent(indent); wr.WriteLine("***/");
           }
           state = 2;
@@ -476,7 +476,7 @@ namespace Microsoft.Dafny {
       if (PrintModeSkipFunctionOrMethod(f.IsGhost, f.Attributes, f.Name)) { return; }
       var isPredicate = f is Predicate || f is PrefixPredicate;
       Indent(indent);
-      string k = isPredicate ? "predicate" : f is CoPredicate ? "copredicate" : "function";
+      string k = isPredicate ? "predicate" : f is InductivePredicate ? "inductive predicate" : f is CoPredicate ? "copredicate" : "function";
       if (f.IsProtected) { k = "protected " + k; }
       if (f.HasStaticKeyword) { k = "static " + k; }
       if (!f.IsGhost) { k += " method"; }
@@ -546,9 +546,13 @@ namespace Microsoft.Dafny {
 
       if (PrintModeSkipFunctionOrMethod(method.IsGhost, method.Attributes, method.Name)) { return; }
       Indent(indent);
-      string k = method is Constructor ? "constructor" : method is CoLemma ? "colemma" : method is Lemma ? "lemma" : "method";
+      string k = method is Constructor ? "constructor" :
+        method is InductiveLemma ? "inductive lemma" :
+        method is CoLemma ? "colemma" :
+        method is Lemma ? "lemma" :
+        "method";
       if (method.HasStaticKeyword) { k = "static " + k; }
-      if (method.IsGhost && !(method is Lemma) && !(method is CoLemma)) { k = "ghost " + k; }
+      if (method.IsGhost && !(method is Lemma) && !(method is FixpointLemma)) { k = "ghost " + k; }
       string nm = method is Constructor && !((Constructor)method).HasName ? "" : method.Name;
       PrintClassMethodHelper(k, method.Attributes, nm, method.TypeArgs);
       if (method.SignatureIsOmitted) {
@@ -897,17 +901,7 @@ namespace Microsoft.Dafny {
           wr.WriteLine();
           Indent(caseInd);
           wr.Write("case {0}", mc.Id);
-          if (mc.Arguments.Count != 0) {
-            string sep = "(";
-            foreach (BoundVar bv in mc.Arguments) {
-              wr.Write("{0}{1}", sep, bv.DisplayName);
-              if (bv.Type is NonProxyType) {
-                wr.Write(": {0}", bv.Type);
-              }
-              sep = ", ";
-            }
-            wr.Write(")");
-          }
+          PrintMatchCaseArgument(mc);
           wr.Write(" =>");
           foreach (Statement bs in mc.Body) {
             wr.WriteLine();
@@ -1195,17 +1189,7 @@ namespace Microsoft.Dafny {
           bool isLastCase = i == e.Cases.Count - 1;
           Indent(ind);
           wr.Write("case {0}", mc.Id);
-          if (mc.Arguments.Count != 0) {
-            string sep = "(";
-            foreach (BoundVar bv in mc.Arguments) {
-              wr.Write("{0}{1}", sep, bv.DisplayName);
-              if (bv.Type is NonProxyType) {
-                wr.Write(": {0}", bv.Type);
-              }
-              sep = ", ";
-            }
-            wr.Write(")");
-          }
+          PrintMatchCaseArgument(mc);          
           wr.WriteLine(" =>");
           PrintExtendedExpr(mc.Body, ind + IndentAmount, isLastCase, isLastCase && (parensNeeded || endWithCloseParen));
           i++;
@@ -1239,6 +1223,33 @@ namespace Microsoft.Dafny {
         Indent(indent);
         PrintExpression(expr, false, indent);
         wr.WriteLine(endWithCloseParen ? ")" : "");
+      }
+    }
+
+    public void PrintMatchCaseArgument(MatchCase mc) {
+      if (mc.Arguments != null) {
+        if (mc.Arguments.Count != 0) {
+          string sep = "(";
+          foreach (BoundVar bv in mc.Arguments) {
+            wr.Write("{0}{1}", sep, bv.DisplayName);
+            if (bv.Type is NonProxyType) {
+              wr.Write(": {0}", bv.Type);
+            }
+            sep = ", ";
+          }
+          wr.Write(")");
+        }
+      } else {
+        Contract.Assert(mc.CasePatterns != null);
+        if (mc.CasePatterns.Count != 0) {
+          string sep = "(";
+          foreach (var cp in mc.CasePatterns) {
+            wr.Write(sep);
+            PrintCasePattern(cp);
+            sep = ", ";
+          }
+          wr.Write(")");
+        }
       }
     }
 
@@ -1855,14 +1866,7 @@ namespace Microsoft.Dafny {
         foreach (var mc in e.Cases) {
           bool isLastCase = i == e.Cases.Count - 1;
           wr.Write(" case {0}", mc.Id);
-          if (mc.Arguments.Count != 0) {
-            string sep = "(";
-            foreach (BoundVar bv in mc.Arguments) {
-              wr.Write("{0}{1}", sep, bv.DisplayName);
-              sep = ", ";
-            }
-            wr.Write(")");
-          }
+          PrintMatchCaseArgument(mc);
           wr.Write(" => ");
           PrintExpression(mc.Body, isRightmost && isLastCase, !parensNeeded && isFollowedBySemicolon);
           i++;

@@ -108,6 +108,19 @@ bool IsLoopSpec() {
   return la.kind == _invariant | la.kind == _decreases | la.kind == _modifies;
 }
 
+bool IsFunctionDecl() {
+  switch (la.kind) {
+    case _function:
+    case _predicate:
+    case _copredicate:
+      return true;
+    case _inductive:
+      return scanner.Peek().kind != _lemma;
+    default:
+      return false;
+  }
+}
+
 bool IsParenStar() {
   scanner.ResetPeek();
   Token x = scanner.Peek();
@@ -438,6 +451,11 @@ TOKENS
   else = "else".
   decreases = "decreases".
   invariant = "invariant".
+  function = "function".
+  predicate = "predicate".
+  inductive = "inductive".
+  lemma = "lemma".
+  copredicate = "copredicate".
   modifies = "modifies".
   reads = "reads".
   requires = "requires".
@@ -643,7 +661,8 @@ ClassMemberDecl<.List<MemberDecl> mm, bool allowConstructors, bool moduleLevelDe
        }
     .)
     FieldDecl<mmod, mm>
-  | (. if (moduleLevelDecl && staticToken != null) {
+  | IF(IsFunctionDecl())
+    (. if (moduleLevelDecl && staticToken != null) {
          errors.Warning(staticToken, "module-level functions are always non-instance, so the 'static' keyword is not allowed here");
          mmod.IsStatic = false;
        }
@@ -927,6 +946,7 @@ MethodDecl<MemberModifiers mmod, bool allowConstructor, out Method/*!*/ m>
      BlockStmt body = null;
      bool isLemma = false;
      bool isConstructor = false;
+     bool isIndLemma = false;
      bool isCoLemma = false;
      IToken signatureEllipsis = null;
      IToken bodyStart = Token.NoToken;
@@ -939,6 +959,7 @@ MethodDecl<MemberModifiers mmod, bool allowConstructor, out Method/*!*/ m>
   | "comethod"                      (. isCoLemma = true;
                                        errors.Warning(t, "the 'comethod' keyword has been deprecated; it has been renamed to 'colemma'");
                                     .)
+  | "inductive" "lemma"             (. isIndLemma = true; .)
   | "constructor"                   (. if (allowConstructor) {
                                          isConstructor = true;
                                        } else {
@@ -956,6 +977,10 @@ MethodDecl<MemberModifiers mmod, bool allowConstructor, out Method/*!*/ m>
        }
        if (mmod.IsStatic) {
          SemErr(t, "constructors cannot be declared 'static'");
+       }
+     } else if (isIndLemma) {
+       if (mmod.IsGhost) {
+         SemErr(t, "inductive lemmas cannot be declared 'ghost' (they are automatically 'ghost')");
        }
      } else if (isCoLemma) {
        if (mmod.IsGhost) {
@@ -993,6 +1018,9 @@ MethodDecl<MemberModifiers mmod, bool allowConstructor, out Method/*!*/ m>
      if (isConstructor) {
        m = new Constructor(tok, hasName ? id.val : "_ctor", typeArgs, ins,
                            req, new Specification<FrameExpression>(mod, modAttrs), ens, new Specification<Expression>(dec, decAttrs), body, attrs, signatureEllipsis);
+     } else if (isIndLemma) {
+       m = new InductiveLemma(tok, id.val, mmod.IsStatic, typeArgs, ins, outs,
+                              req, new Specification<FrameExpression>(mod, modAttrs), ens, new Specification<Expression>(dec, decAttrs), body, attrs, signatureEllipsis);
      } else if (isCoLemma) {
        m = new CoLemma(tok, id.val, mmod.IsStatic, typeArgs, ins, outs,
                        req, new Specification<FrameExpression>(mod, modAttrs), ens, new Specification<Expression>(dec, decAttrs), body, attrs, signatureEllipsis);
@@ -1211,7 +1239,7 @@ FunctionDecl<MemberModifiers mmod, out Function/*!*/ f>
      List<FrameExpression/*!*/> reads = new List<FrameExpression/*!*/>();
      List<Expression/*!*/> decreases;
      Expression body = null;
-     bool isPredicate = false;  bool isCoPredicate = false;
+     bool isPredicate = false; bool isIndPredicate = false; bool isCoPredicate = false;
      bool isFunctionMethod = false;
      IToken bodyStart = Token.NoToken;
      IToken bodyEnd = Token.NoToken;
@@ -1251,6 +1279,20 @@ FunctionDecl<MemberModifiers mmod, out Function/*!*/ f>
     | "..."                    (. signatureEllipsis = t; .)
     )
 
+  /* ----- inductive predicate ----- */
+  | "inductive" "predicate"    (. isIndPredicate = true; .)
+    (. if (mmod.IsGhost) { SemErr(t, "inductive predicates cannot be declared 'ghost' (they are ghost by default)"); }
+    .)
+    { Attribute<ref attrs> }
+    NoUSIdent<out id>
+    (
+      [ GenericParameters<typeArgs> ]
+      Formals<true, isFunctionMethod, formals>
+      [ ":"                    (. SemErr(t, "inductive predicates do not have an explicitly declared return type; it is always bool"); .)
+      ]
+    | "..."                    (. signatureEllipsis = t; .)
+    )
+
   /* ----- copredicate ----- */
   | "copredicate"              (. isCoPredicate = true; .)
     (. if (mmod.IsGhost) { SemErr(t, "copredicates cannot be declared 'ghost' (they are ghost by default)"); }
@@ -1258,16 +1300,15 @@ FunctionDecl<MemberModifiers mmod, out Function/*!*/ f>
     { Attribute<ref attrs> }
     NoUSIdent<out id>
     (
-      [ GenericParameters<typeArgs> ]                  (. missingOpenParen = true; .)
-      [ Formals<true, isFunctionMethod, formals>       (. missingOpenParen = false; .)
-      ]                                                (. if (missingOpenParen) { errors.Warning(t, "with the new support of higher-order functions in Dafny, parentheses-less co-predicates are no longer supported; in the new syntax, parentheses are required for the declaration and uses of predicates, even if the co-predicate takes no additional arguments"); } .)
+      [ GenericParameters<typeArgs> ]
+      Formals<true, isFunctionMethod, formals>
       [ ":"                    (. SemErr(t, "copredicates do not have an explicitly declared return type; it is always bool"); .)
       ]
     | "..."                    (. signatureEllipsis = t; .)
     )
   )
 
-  (. decreases = isCoPredicate ? null : new List<Expression/*!*/>(); .)
+  (. decreases = isIndPredicate || isCoPredicate ? null : new List<Expression/*!*/>(); .)
   { FunctionSpec<reqs, reads, ens, decreases> }
   [ FunctionBody<out body, out bodyStart, out bodyEnd>
   ]
@@ -1279,9 +1320,12 @@ FunctionDecl<MemberModifiers mmod, out Function/*!*/ f>
      if (isPredicate) {
         f = new Predicate(tok, id.val, mmod.IsStatic, mmod.IsProtected, !isFunctionMethod, typeArgs, formals,
                           reqs, reads, ens, new Specification<Expression>(decreases, null), body, Predicate.BodyOriginKind.OriginalOrInherited, attrs, signatureEllipsis);
+     } else if (isIndPredicate) {
+        f = new InductivePredicate(tok, id.val, mmod.IsStatic, mmod.IsProtected, typeArgs, formals,
+                                   reqs, reads, ens, body, attrs, signatureEllipsis);
      } else if (isCoPredicate) {
         f = new CoPredicate(tok, id.val, mmod.IsStatic, mmod.IsProtected, typeArgs, formals,
-                          reqs, reads, ens, body, attrs, signatureEllipsis);
+                            reqs, reads, ens, body, attrs, signatureEllipsis);
      } else {
         f = new Function(tok, id.val, mmod.IsStatic, mmod.IsProtected, !isFunctionMethod, typeArgs, formals, returnType,
                          reqs, reads, ens, new Specification<Expression>(decreases, null), body, attrs, signatureEllipsis);
@@ -1289,7 +1333,7 @@ FunctionDecl<MemberModifiers mmod, out Function/*!*/ f>
      f.BodyStartTok = bodyStart;
      f.BodyEndTok = bodyEnd;
      theBuiltIns.CreateArrowTypeDecl(formals.Count);
-     if (isCoPredicate) {
+     if (isIndPredicate || isCoPredicate) {
        // also create an arrow type for the corresponding prefix predicate
        theBuiltIns.CreateArrowTypeDecl(formals.Count + 1);
      }
@@ -1750,17 +1794,24 @@ MatchStmt<out Statement/*!*/ s>
 CaseStatement<out MatchCaseStmt/*!*/ c>
 = (. Contract.Ensures(Contract.ValueAtReturn(out c) != null);
      IToken/*!*/ x, id;
-     List<BoundVar/*!*/> arguments = new List<BoundVar/*!*/>();
-     BoundVar/*!*/ bv;
+     List<CasePattern/*!*/> arguments = new List<CasePattern/*!*/>();
+     CasePattern/*!*/ pat;
      List<Statement/*!*/> body = new List<Statement/*!*/>();
+     string/*!*/ name = "";
   .)
   "case"                      (. x = t; .)
-  Ident<out id>
-  [ "("
-    IdentTypeOptional<out bv>        (. arguments.Add(bv); .)
-    { "," IdentTypeOptional<out bv>  (. arguments.Add(bv); .)
-    }
-  ")" ]
+  ( Ident<out id>             (. name = id.val; .)
+    [ "("
+      CasePattern<out pat>        (. arguments.Add(pat); .)
+      { "," CasePattern<out pat>  (. arguments.Add(pat); .)
+      }
+    ")" ]
+  | "("
+      CasePattern<out pat>        (. arguments.Add(pat); .)
+      { "," CasePattern<out pat>  (. arguments.Add(pat); .)
+      }
+    ")"
+  )
   "=>"
     SYNC  /* this SYNC and the one inside the loop below are used to avoid problems with the IsNotEndOfCase test. The SYNC will
            * skip until the next symbol that can legally occur here, which is either the beginning of a Stmt or whatever is allowed
@@ -1770,7 +1821,7 @@ CaseStatement<out MatchCaseStmt/*!*/ c>
       Stmt<body>
       SYNC  /* see comment about SYNC above */
     }
-  (. c = new MatchCaseStmt(x, id.val, arguments, body); .)
+  (. c = new MatchCaseStmt(x, name, arguments, body); .)
   .
 /*------------------------------------------------------------------------*/
 AssertStmt<out Statement/*!*/ s>
@@ -2540,19 +2591,26 @@ MatchExpression<out Expression e, bool allowSemi, bool allowLambda>
   .
 CaseExpression<out MatchCaseExpr c, bool allowSemi, bool allowLambda>
 = (. Contract.Ensures(Contract.ValueAtReturn(out c) != null); IToken/*!*/ x, id;
-     List<BoundVar/*!*/> arguments = new List<BoundVar/*!*/>();
-     BoundVar/*!*/ bv;
+     List<CasePattern/*!*/> arguments = new List<CasePattern/*!*/>();
+     CasePattern/*!*/ pat;
      Expression/*!*/ body;
+     string/*!*/ name = "";
   .)
   "case"                      (. x = t; .)
-  Ident<out id>
-  [ "("
-    IdentTypeOptional<out bv>        (. arguments.Add(bv); .)
-    { "," IdentTypeOptional<out bv>  (. arguments.Add(bv); .)
-    }
-  ")" ]
+  ( Ident<out id>             (. name = id.val; .)
+    [ "("
+      CasePattern<out pat>        (. arguments.Add(pat); .)
+      { "," CasePattern<out pat>  (. arguments.Add(pat); .)
+      }
+    ")" ]
+  | "("
+      CasePattern<out pat>        (. arguments.Add(pat); .)
+      { "," CasePattern<out pat>  (. arguments.Add(pat); .)
+      }
+    ")"
+  )
   "=>"
-  Expression<out body, allowSemi, allowLambda>    (. c = new MatchCaseExpr(x, id.val, arguments, body); .)
+  Expression<out body, allowSemi, allowLambda>    (. c = new MatchCaseExpr(x, name, arguments, body); .)
   .
 CasePattern<out CasePattern pat>
 = (. IToken id;  List<CasePattern> arguments;
@@ -2567,7 +2625,18 @@ CasePattern<out CasePattern pat>
         }
       ]
     ")"                                (. pat = new CasePattern(id, id.val, arguments); .)
-
+  | "("                                (. id = t;                                                           
+                                          arguments = new List<CasePattern>(); 
+                                       .)
+      [ CasePattern<out pat>           (. arguments.Add(pat); .)
+        { "," CasePattern<out pat>     (. arguments.Add(pat); .)
+        }
+      ]
+    ")"                                (. // Parse parenthesis without an identifier as a built in tuple type.
+                                          theBuiltIns.TupleType(id, arguments.Count, true); // make sure the tuple type exists
+                                          string ctor = BuiltIns.TupleTypeCtorName;  //use the TupleTypeCtors
+                                          pat = new CasePattern(id, ctor, arguments); 
+                                       .)
   | IdentTypeOptional<out bv>          (. // This could be a BoundVar of a parameter-less constructor and we may not know until resolution.
                                           // Nevertheless, we do put the "bv" into the CasePattern here (even though it will get thrown out
                                           // later if resolution finds the CasePattern to denote a parameter-less constructor), because this

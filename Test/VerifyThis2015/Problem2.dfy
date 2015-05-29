@@ -2,7 +2,7 @@
 // RUN: %diff "%s.expect" "%t"
 
 // Rustan Leino
-// 13 April 2015
+// 13 April 2015, and many subsequent enhancements and revisions
 // VerifyThis 2015
 // Problem 2 -- Parallel GCD
 
@@ -109,7 +109,6 @@ method ParallelGcd_WithoutTermination(A: int, B: int) returns (gcd: int)
 method ParallelGcd(A: int, B: int) returns (gcd: int)
   requires A > 0 && B > 0
   ensures gcd == Gcd(A, B)
-  decreases *
 {
   var a, b := A, B;
   var pc0, pc1 := 0, 0;  // program counter for the two processes
@@ -127,12 +126,13 @@ method ParallelGcd(A: int, B: int) returns (gcd: int)
     invariant pc0 == 2 ==> b <= b0 && (b0 <= a0 ==> b0 == b)
     invariant pc1 == 2 ==> a <= a1 && (a1 <= b1 ==> a1 == a)
     invariant (pc0 == 3 ==> a == b) && (pc1 == 3 ==> a == b)
-    invariant 0 <= budget0 && 0 <= budget1 && 1 <= budget0 + budget1
+    invariant 0 <= budget0 && 0 <= budget1 && (pc0 == 3 || pc1 == 3 || 1 <= budget0 + budget1)
     // With the budgets, the program is guaranteed to terminate, as is proved by the following termination
-    // metric (which is a lexicographic triple):
-    decreases *, a + b,
-//              if a == b then 0 else if a < b then budget0 else budget1,
-              (if a0 < b0 then budget0 else 0) + (if b1 < a1 then budget1 else 0),
+    // metric (which is a lexicographic tuple):
+    decreases a + b,
+              FinalStretch(pc0, pc1, a0, b0, b) + FinalStretch(pc1, pc0, b1, a1, a),
+              (if pc0 == 2 && a0 < b0 && !(a < b) then 1 else 0) + (if pc1 == 2 && b1 < a1 && !(b < a) then 1 else 0),
+              (if a < b then budget0 else 0) + (if b < a then budget1 else 0),
               8 - pc0 - pc1
   {
     if {
@@ -166,15 +166,26 @@ method ParallelGcd(A: int, B: int) returns (gcd: int)
   gcd := a;
 }
 
+function FinalStretch(pcThis: int, pcThat: int, a0: int, b0: int, b: int): int
+{
+  if pcThat != 3 then 10  // we're not yet in the final stretch
+  else if pcThis == 3 then 0
+  else if pcThis == 2 && a0 == b0 then 1
+  else if pcThis == 1 && a0 == b then 2
+  else if pcThis == 0 then 3
+  else if pcThis == 2 && a0 < b0 then 4
+  else 5
+}
+
 method BudgetUpdate(inThis: int, inThat: int, pcThat: int) returns (outThis: int, outThat: int)
   requires pcThat == 3 || 0 < inThis
-  ensures pcThat == 3 ==> outThis == inThis && outThat == inThat
-  ensures pcThat != 3 ==> outThis == inThis - 1 && outThat > 0
+  ensures outThis == if 0 < inThis then inThis - 1 else inThis
+  ensures if pcThat == 3 then outThat == inThat else outThat > 0
 {
+  outThis := if 0 < inThis then inThis - 1 else inThis;
   if pcThat == 3 {
-    outThis, outThat := inThis, inThat;
+    outThat := inThat;
   } else {
-    outThis := inThis - 1;
     outThat :| outThat > 0;
   }
 }
@@ -295,11 +306,7 @@ lemma Symmetry(a: int, b: int)
   assert DividesBoth(k, a, b) && forall m :: DividesBoth(m, a, b) ==> m <= k;
   assert DividesBoth(l, b, a) && forall m :: DividesBoth(m, b, a) ==> m <= l;
   assert DividesBoth(l, a, b);
-  forall m | DividesBoth(m, b, a)
-    ensures m <= l && DividesBoth(m, a, b)
-  {
-  }
-  assert forall m :: DividesBoth(m, a, b) ==> m <= l;
+  assert forall m :: DividesBoth(m, b, a) ==> m <= l && DividesBoth(m, a, b);
   assert k == l;
 }
 

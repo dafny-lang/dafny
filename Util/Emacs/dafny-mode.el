@@ -31,7 +31,7 @@
 
    `(,(dafny-regexp-opt '(
         "class" "trait" "datatype" "codatatype" "newtype" "type" "iterator"
-        "function" "predicate" "copredicate"
+        "function" "predicate" "copredicate" "inductive"
         "var" "method" "constructor" "lemma" "colemma"
         "ghost" "static" "protected" "abstract"
 	"module" "import" "default" "as" "opened"
@@ -86,7 +86,7 @@
 ;; commands
 
 (defun dafny-command-line (file)
-  (concat "boogie " file))
+  (concat "dafny " file))
 
 (defun dafny-run-verifier ()
   "run Dafny verifier"

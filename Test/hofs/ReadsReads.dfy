@@ -28,12 +28,12 @@ module ReadsRequiresReads {
 
   function MyReadsBad(f : A -> B, a : A) : set<object>
   {
-    f.reads(a)
+    f.reads(a)  // error: MyReadsBad does not have permission to read what f.reads(a) reads
   }
 
   function MyReadsBad2(f : A -> B, a : A) : set<object>
   {
-    (f.reads)(a)
+    (f.reads)(a)  // error: MyReadsBad2 does not have permission to read what f.reads(a) reads
   }
 
   function MyReadsOk'(f : A -> B, a : A, o : object) : bool
@@ -44,7 +44,7 @@ module ReadsRequiresReads {
 
   function MyReadsBad'(f : A -> B, a : A, o : object) : bool
   {
-    o in f.reads(a)
+    o in f.reads(a)  // error: MyReadsBad' does not have permission to read what f.reads(a) reads
   }
 
   function MyRequiresOk(f : A -> B, a : A) : bool
@@ -55,7 +55,7 @@ module ReadsRequiresReads {
 
   function MyRequiresBad(f : A -> B, a : A) : bool
   {
-    f.requires(a)
+    f.requires(a)  // error: MyRequiresBad does not have permission to read what f.requires(a) reads
   }
 }
 
@@ -64,6 +64,7 @@ module WhatWeKnowAboutReads {
 
   lemma IndeedNothing() {
     assert ReadsNothing.reads() == {};
+    assert ((ReadsNothing).reads)() == {};
   }
 
   method NothingHere() {
@@ -83,9 +84,9 @@ module WhatWeKnowAboutReads {
     var s' := new S;
            if * { assert s in ReadsSomething.reads(s) || ReadsSomething.reads(s) == {};
     } else if * { assert s in ReadsSomething.reads(s);
-    } else if * { assert ReadsSomething.reads(s) == {};
+    } else if * { assert ReadsSomething.reads(s) == {};  // error
     } else if * { assert s' !in ReadsSomething.reads(s);
-    } else if * { assert s' in ReadsSomething.reads(s);
+    } else if * { assert s' in ReadsSomething.reads(s);  // error
     }
   }
 
@@ -95,9 +96,9 @@ module WhatWeKnowAboutReads {
     var f := (u) reads u => ();
            if * { assert s in f.reads(s) || f.reads(s) == {};
     } else if * { assert s in f.reads(s);
-    } else if * { assert f.reads(s) == {};
+    } else if * { assert f.reads(s) == {};  // error
     } else if * { assert s' !in f.reads(s);
-    } else if * { assert s' in f.reads(s);
+    } else if * { assert s' in f.reads(s);  // error
     }
   }
 }
@@ -129,5 +130,13 @@ module ReadsAll {
     requires forall x :: f.requires(x);
   {
     f(0) + f(1) + f(2)
+  }
+}
+
+module ReadsOnFunctions {
+  lemma Requires_Reads_What_Function_Reads(f: int -> int)
+  {
+    var g := f.requires;
+    assert g.reads(10) == f.reads(10);
   }
 }

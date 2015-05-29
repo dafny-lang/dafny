@@ -53,6 +53,12 @@ namespace DafnyLanguage.DafnyMenu
 
 
     void ShowErrorModel(IWpfTextView activeTextView);
+
+
+    bool DiagnoseTimeoutsCommandEnabled(IWpfTextView activeTextView);
+
+
+    void DiagnoseTimeouts(IWpfTextView activeTextView);
   }
 
 
@@ -88,6 +94,7 @@ namespace DafnyLanguage.DafnyMenu
     private OleMenuCommand toggleSnapshotVerificationCommand;
     private OleMenuCommand toggleMoreAdvancedSnapshotVerificationCommand;
     private OleMenuCommand toggleBVDCommand;
+    private OleMenuCommand diagnoseTimeoutsCommand;
 
     bool BVDDisabled;
 
@@ -156,6 +163,12 @@ namespace DafnyLanguage.DafnyMenu
         toggleBVDCommand.Enabled = true;
         toggleBVDCommand.BeforeQueryStatus += showErrorModelCommand_BeforeQueryStatus;
         mcs.AddCommand(toggleBVDCommand);
+
+        var diagnoseTimeoutsCommandID = new CommandID(GuidList.guidDafnyMenuCmdSet, (int)PkgCmdIDList.cmdidDiagnoseTimeouts);
+        diagnoseTimeoutsCommand = new OleMenuCommand(DiagnoseTimeoutsCallback, diagnoseTimeoutsCommandID);
+        diagnoseTimeoutsCommand.Enabled = true;
+        diagnoseTimeoutsCommand.BeforeQueryStatus += diagnoseTimeoutsCommand_BeforeQueryStatus;
+        mcs.AddCommand(diagnoseTimeoutsCommand);
 
         var menuCommandID = new CommandID(GuidList.guidDafnyMenuPkgSet, (int)PkgCmdIDList.cmdidMenu);
         menuCommand = new OleMenuCommand(new EventHandler((sender, e) => { }), menuCommandID);
@@ -301,6 +314,16 @@ namespace DafnyLanguage.DafnyMenu
       }
     }
 
+    void diagnoseTimeoutsCommand_BeforeQueryStatus(object sender, EventArgs e)
+    {
+      var atv = ActiveTextView;
+      if (MenuProxy != null && atv != null)
+      {
+        var visible = MenuProxy.DiagnoseTimeoutsCommandEnabled(atv);
+        diagnoseTimeoutsCommand.Visible = visible;
+      }
+    }
+
     private void toggleMoreAdvancedSnapshotVerificationCommand_BeforeQueryStatus(object sender, EventArgs e)
     {
       var atv = ActiveTextView;
@@ -315,6 +338,15 @@ namespace DafnyLanguage.DafnyMenu
     {
       BVDDisabled = !BVDDisabled;
       toggleBVDCommand.Text = (BVDDisabled ? "Enable" : "Disable") + " BVD";
+    }
+
+    void DiagnoseTimeoutsCallback(object sender, EventArgs e)
+    {
+      var atv = ActiveTextView;
+      if (MenuProxy != null && atv != null)
+      {
+        MenuProxy.DiagnoseTimeouts(atv);
+      }
     }
 
     public void ExecuteAsCompiling(Action action, TextWriter outputWriter)

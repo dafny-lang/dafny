@@ -129,7 +129,7 @@ module CoPredicateResolutionErrors {
   }
 
   ghost method Lemma(n: int)
-    ensures Even(Doubles(n));
+    ensures Even(Doubles(n))
   {
   }
 
@@ -184,3 +184,106 @@ module UnfruitfulCoLemmaConclusions {
   {
   }
 }
+
+// --------------- Inductive Predicates --------------------------
+
+module InductivePredicateResolutionErrors {
+
+  datatype List<T> = Nil | Cons(head: T, tail: List)
+  codatatype IList<T> = INil | ICons(head: T, tail: IList)
+
+  inductive predicate Pos(s: List<int>)
+  {
+    s.Cons? && 0 < s.head && Pos(s.tail) && Even(s)
+  }
+
+  inductive predicate Even(s: List<int>)
+  {
+    s.Cons? && s.head % 2 == 0 && Even(s.tail)
+    && (s.head == 17 ==> Pos(s))
+    && (Pos(s) ==> s.head == 17)  // error: cannot make recursive inductive-predicate call in negative position
+    && !Even(s)  // error: cannot make recursive inductive-predicate call in negative position
+    && (Even(s) <==> Even(s))  // error (x2): recursive inductive-predicate calls allowed only in positive positions
+  }
+
+  inductive predicate LetSuchThat(s: List<int>)
+  {
+    if s != Nil then true else
+      var h :| h == s.head;
+      h < 0 && LetSuchThat(s.tail)  // this is fine for an inductive predicate
+  }
+  copredicate CoLetSuchThat(s: IList<int>)
+  {
+    if s != INil then true else
+      var h :| h == s.head;
+      h < 0 && CoLetSuchThat(s.tail)  // error: recursive call to copredicate in body of let-such-that
+  }
+
+  inductive predicate NegatedLetSuchThat(s: List<int>)
+  {
+    if s != Nil then true else
+      !var h :| h == s.head;
+      h < 0 && !NegatedLetSuchThat(s.tail)  // error: recursive call to inductive predicate in body of let-such-that
+  }
+  copredicate NegatedCoLetSuchThat(s: IList<int>)
+  {
+    if s != INil then true else
+      !var h :| h == s.head;
+      h < 0 && !NegatedCoLetSuchThat(s.tail)  // this is fine for a coinductive predicate
+  }
+
+  inductive predicate CP(i: int)
+  {
+    CP(i) &&
+    !CP(i) &&  // error: not in a positive position
+    (exists j :: CP(j)) &&
+    (forall k :: 0 <= k < i*i ==> CP(k)) &&
+    (forall k :: 0 <= k ==> CP(k)) &&  // error: unbounded range
+    (forall k :: k < i*i ==> CP(k)) &&  // error: unbounded range
+    (forall l :: CP(l))  // error: unbounded range
+  }
+
+  inductive predicate CQ(i: int, j: int)
+  {
+    forall i :: i == 6 ==> if j % 2 == 0 then CQ(i, i) else CQ(j, j)
+  }
+
+  inductive predicate CR(i: int, j: int)
+  {
+    i == if CR(i, j) then 6 else j  // error: not allowed to call CR recursively here
+  }
+
+  inductive predicate CS(i: int, j: int)
+  {
+    forall i ::
+      i <= (if CS(i, j) then 6 else j) &&  // error: not allowed to call CS recursively here
+      (if CS(i, j) then 6 else j) <= i     // error: not allowed to call CS recursively here
+  }
+
+  inductive predicate Another(s: List<int>)
+  {
+    !Even(s)  // here, negation is fine
+  }
+
+  inductive predicate IndStmtExpr_Good(s: List<int>)
+  {
+    s.head > 0 && (MyLemma(s.head); IndStmtExpr_Good(s.tail))
+  }
+
+  lemma MyLemma(x: int)
+  {
+  }
+
+  inductive predicate IndStmtExpr_Bad(s: List<int>)
+  {
+    s.Cons? && s.head > 0 &&
+    (MyRecursiveLemma(s.head);  // error: cannot call method recursively from inductive predicate
+     IndStmtExpr_Bad(s.tail))
+  }
+
+  lemma MyRecursiveLemma(x: int)
+  {
+    var p := IndStmtExpr_Bad(Cons(x, Nil));
+  }
+}
+

@@ -300,9 +300,8 @@ namespace Microsoft.Dafny
         var e = (ExprDotName)expr;
         return new ExprDotName(Tok(e.tok), CloneExpr(e.Lhs), e.SuffixName, e.OptTypeArguments == null ? null : e.OptTypeArguments.ConvertAll(CloneType));
       } else if (expr is ApplySuffix) {
-        var e = (ApplySuffix)expr;
-        return new ApplySuffix(Tok(e.tok), CloneExpr(e.Lhs), e.Args.ConvertAll(CloneExpr));
-
+        var e = (ApplySuffix) expr;
+        return CloneApplySuffix(e);
       } else if (expr is MemberSelectExpr) {
         var e = (MemberSelectExpr)expr;
         return new MemberSelectExpr(Tok(e.tok), CloneExpr(e.Obj), e.MemberName);
@@ -411,7 +410,7 @@ namespace Microsoft.Dafny
       } else if (expr is MatchExpr) {
         var e = (MatchExpr)expr;
         return new MatchExpr(Tok(e.tok), CloneExpr(e.Source),
-          e.Cases.ConvertAll(c => new MatchCaseExpr(Tok(c.tok), c.Id, c.Arguments.ConvertAll(CloneBoundVar), CloneExpr(c.Body))), e.UsesOptionalBraces);
+          e.Cases.ConvertAll(CloneMatchCaseExpr), e.UsesOptionalBraces);
 
       } else if (expr is NegationExpression) {
         var e = (NegationExpression)expr;
@@ -420,6 +419,22 @@ namespace Microsoft.Dafny
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected expression
       }
+    }
+
+    public MatchCaseExpr CloneMatchCaseExpr(MatchCaseExpr c) {
+      Contract.Requires(c != null);
+      if (c.Arguments != null) {
+        Contract.Assert(c.CasePatterns == null);
+        return new MatchCaseExpr(Tok(c.tok), c.Id, c.Arguments.ConvertAll(CloneBoundVar), CloneExpr(c.Body));
+      } else {
+        Contract.Assert(c.Arguments == null);
+        Contract.Assert(c.CasePatterns != null);
+        return new MatchCaseExpr(Tok(c.tok), c.Id, c.CasePatterns.ConvertAll(CloneCasePattern), CloneExpr(c.Body));
+      }
+    }
+
+    public virtual Expression CloneApplySuffix(ApplySuffix e) {
+        return new ApplySuffix(Tok(e.tok), CloneExpr(e.Lhs), e.Args.ConvertAll(CloneExpr));
     }
 
     public virtual CasePattern CloneCasePattern(CasePattern pat) {
@@ -530,7 +545,7 @@ namespace Microsoft.Dafny
       } else if (stmt is MatchStmt) {
         var s = (MatchStmt)stmt;
         r = new MatchStmt(Tok(s.Tok), Tok(s.EndTok), CloneExpr(s.Source),
-          s.Cases.ConvertAll(c => new MatchCaseStmt(Tok(c.tok), c.Id, c.Arguments.ConvertAll(CloneBoundVar), c.Body.ConvertAll(CloneStmt))), s.UsesOptionalBraces);
+          s.Cases.ConvertAll(CloneMatchCaseStmt), s.UsesOptionalBraces);
 
       } else if (stmt is AssignSuchThatStmt) {
         var s = (AssignSuchThatStmt)stmt;
@@ -560,6 +575,18 @@ namespace Microsoft.Dafny
       r.Attributes = CloneAttributes(stmt.Attributes);
 
       return r;
+    }
+
+    public MatchCaseStmt CloneMatchCaseStmt(MatchCaseStmt c) {
+      Contract.Requires(c != null);
+      if (c.Arguments != null) {
+        Contract.Assert(c.CasePatterns == null);
+        return new MatchCaseStmt(Tok(c.tok), c.Id, c.Arguments.ConvertAll(CloneBoundVar), c.Body.ConvertAll(CloneStmt));
+      } else {
+        Contract.Assert(c.Arguments == null);
+        Contract.Assert(c.CasePatterns != null);
+        return new MatchCaseStmt(Tok(c.tok), c.Id, c.CasePatterns.ConvertAll(CloneCasePattern), c.Body.ConvertAll(CloneStmt));
+      }
     }
 
     public CalcStmt.CalcOp CloneCalcOp(CalcStmt.CalcOp op) {
@@ -604,6 +631,9 @@ namespace Microsoft.Dafny
       if (f is Predicate) {
         return new Predicate(Tok(f.tok), newName, f.HasStaticKeyword, f.IsProtected, f.IsGhost, tps, formals,
           req, reads, ens, decreases, body, Predicate.BodyOriginKind.OriginalOrInherited, CloneAttributes(f.Attributes), null);
+      } else if (f is InductivePredicate) {
+        return new InductivePredicate(Tok(f.tok), newName, f.HasStaticKeyword, f.IsProtected, tps, formals,
+          req, reads, ens, body, CloneAttributes(f.Attributes), null);
       } else if (f is CoPredicate) {
         return new CoPredicate(Tok(f.tok), newName, f.HasStaticKeyword, f.IsProtected, tps, formals,
           req, reads, ens, body, CloneAttributes(f.Attributes), null);
@@ -627,6 +657,9 @@ namespace Microsoft.Dafny
       var body = CloneBlockStmt(m.Body);
       if (m is Constructor) {
         return new Constructor(Tok(m.tok), m.Name, tps, ins,
+          req, mod, ens, decreases, body, CloneAttributes(m.Attributes), null);
+      } else if (m is InductiveLemma) {
+        return new InductiveLemma(Tok(m.tok), m.Name, m.HasStaticKeyword, tps, ins, m.Outs.ConvertAll(CloneFormal),
           req, mod, ens, decreases, body, CloneAttributes(m.Attributes), null);
       } else if (m is CoLemma) {
         return new CoLemma(Tok(m.tok), m.Name, m.HasStaticKeyword, tps, ins, m.Outs.ConvertAll(CloneFormal),
@@ -656,15 +689,15 @@ namespace Microsoft.Dafny
   }
 
   /// <summary>
-  /// Subclass of Cloner that collects some common functionality between CoLemmaPostconditionSubstituter and
-  /// CoLemmaBodyCloner.
+  /// Subclass of Cloner that collects some common functionality between FixpointLemmaSpecificationSubstituter and
+  /// FixpointLemmaBodyCloner.
   /// </summary>
-  abstract class CoCloner : Cloner
+  abstract class FixpointCloner : Cloner
   {
     protected readonly Expression k;
     readonly Resolver resolver;
     readonly string suffix;
-    protected CoCloner(Expression k, Resolver resolver)
+    protected FixpointCloner(Expression k, Resolver resolver)
     {
       Contract.Requires(k != null);
       Contract.Requires(resolver != null);
@@ -681,22 +714,25 @@ namespace Microsoft.Dafny
   }
 
   /// <summary>
-  /// The CoLemmaPostconditionSubstituter clones the postcondition declared on a colemma, but replaces
-  /// the calls and equalities in "coConclusions" with corresponding prefix versions.  The resulting
-  /// expression is then appropriate to be a postcondition of the colemma's corresponding prefix lemma.
+  /// The FixpointLemmaSpecificationSubstituter clones the precondition (or postcondition) declared
+  /// on an inductive lemma (resp. colemma), but replaces the calls and equalities in "coConclusions"
+  /// with corresponding prefix versions.  The resulting expression is then appropriate to be a
+  /// precondition (resp. postcondition) of the inductive lemma's (resp. colemma's) corresponding prefix lemma.
   /// It is assumed that the source expression has been resolved.  Note, the "k" given to the constructor
   /// is not cloned with each use; it is simply used as is.
   /// </summary>
-  class CoLemmaPostconditionSubstituter : CoCloner
+  class FixpointLemmaSpecificationSubstituter : FixpointCloner
   {
-    readonly ISet<Expression> coConclusions;
-    public CoLemmaPostconditionSubstituter(ISet<Expression> coConclusions, Expression k, Resolver resolver)
+    readonly bool isCoContext;
+    readonly ISet<Expression> friendlyCalls;
+    public FixpointLemmaSpecificationSubstituter(ISet<Expression> friendlyCalls, Expression k, Resolver resolver, bool isCoContext)
       : base(k, resolver)
     {
-      Contract.Requires(coConclusions != null);
+      Contract.Requires(friendlyCalls != null);
       Contract.Requires(k != null);
       Contract.Requires(resolver != null);
-      this.coConclusions = coConclusions;
+      this.isCoContext = isCoContext;
+      this.friendlyCalls = friendlyCalls;
     }
     public override Expression CloneExpr(Expression expr) {
       if (expr is ConcreteSyntaxExpression) {
@@ -706,7 +742,7 @@ namespace Microsoft.Dafny
         return CloneExpr(e.Resolved);
       } else if (expr is FunctionCallExpr) {
         var e = (FunctionCallExpr)expr;
-        if (coConclusions.Contains(e)) {
+        if (friendlyCalls.Contains(e)) {
           var receiver = CloneExpr(e.Receiver);
           var args = new List<Expression>();
           args.Add(k);
@@ -717,9 +753,9 @@ namespace Microsoft.Dafny
           ReportAdditionalInformation(e.tok, e.Name);
           return fexp;
         }
-      } else if (expr is BinaryExpr) {
+      } else if (expr is BinaryExpr && isCoContext) {
         var e = (BinaryExpr)expr;
-        if ((e.ResolvedOp == BinaryExpr.ResolvedOpcode.EqCommon || e.ResolvedOp == BinaryExpr.ResolvedOpcode.NeqCommon) && coConclusions.Contains(e)) {
+        if ((e.ResolvedOp == BinaryExpr.ResolvedOpcode.EqCommon || e.ResolvedOp == BinaryExpr.ResolvedOpcode.NeqCommon) && friendlyCalls.Contains(e)) {
           var op = e.ResolvedOp == BinaryExpr.ResolvedOpcode.EqCommon ? TernaryExpr.Opcode.PrefixEqOp : TernaryExpr.Opcode.PrefixNeqOp;
           var A = CloneExpr(e.E0);
           var B = CloneExpr(e.E1);
@@ -754,13 +790,13 @@ namespace Microsoft.Dafny
   }
 
   /// <summary>
-  /// The task of the CoLemmaBodyCloner is to fill in the implicit _k-1 arguments in corecursive colemma calls.
+  /// The task of the FixpointLemmaBodyCloner is to fill in the implicit _k-1 arguments in recursive inductive/co-lemma calls.
   /// The source statement and the given "k" are assumed to have been resolved.
   /// </summary>
-  class CoLemmaBodyCloner : CoCloner
+  class FixpointLemmaBodyCloner : FixpointCloner
   {
-    readonly CoLemma context;
-    public CoLemmaBodyCloner(CoLemma context, Expression k, Resolver resolver)
+    readonly FixpointLemma context;
+    public FixpointLemmaBodyCloner(FixpointLemma context, Expression k, Resolver resolver)
       : base(k, resolver)
     {
       Contract.Requires(context != null);
@@ -773,10 +809,10 @@ namespace Microsoft.Dafny
       if (r != null && r.Expr is ApplySuffix) {
         var apply = (ApplySuffix)r.Expr;
         var mse = apply.Lhs.Resolved as MemberSelectExpr;
-        if (mse != null && mse.Member is CoLemma && ModuleDefinition.InSameSCC(context, (CoLemma)mse.Member)) {
-          // we're looking at a recursive call to a colemma
+        if (mse != null && mse.Member is FixpointLemma && ModuleDefinition.InSameSCC(context, (FixpointLemma)mse.Member)) {
+          // we're looking at a recursive call to a fixpoint lemma
           Contract.Assert(apply.Lhs is NameSegment || apply.Lhs is ExprDotName);  // this is the only way a call statement can have been parsed
-          // clone "apply.Lhs", changing the co lemma to the prefix lemma; then clone "apply", adding in the extra argument
+          // clone "apply.Lhs", changing the inductive/co lemma to the prefix lemma; then clone "apply", adding in the extra argument
           Expression lhsClone;
           if (apply.Lhs is NameSegment) {
             var lhs = (NameSegment)apply.Lhs;

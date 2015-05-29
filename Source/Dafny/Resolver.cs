@@ -397,9 +397,9 @@ namespace Microsoft.Dafny
                 fn.IsRecursive = true;
               }
             }
-            if (fn.IsRecursive && fn is CoPredicate) {
+            if (fn.IsRecursive && fn is FixpointPredicate) {
               // this means the corresponding prefix predicate is also recursive
-              var prefixPred = ((CoPredicate)fn).PrefixPredicate;
+              var prefixPred = ((FixpointPredicate)fn).PrefixPredicate;
               if (prefixPred != null) {
                 prefixPred.IsRecursive = true;
               }
@@ -465,8 +465,8 @@ namespace Microsoft.Dafny
         foreach (var clbl in ModuleDefinition.AllCallables(module.TopLevelDecls)) {
           ICallable m;
           string s;
-          if (clbl is CoLemma) {
-            var prefixLemma = ((CoLemma)clbl).PrefixLemma;
+          if (clbl is FixpointLemma) {
+            var prefixLemma = ((FixpointLemma)clbl).PrefixLemma;
             m = prefixLemma;
             s = prefixLemma.Name + " ";
           } else {
@@ -495,7 +495,6 @@ namespace Microsoft.Dafny
                   sep = ", ";
                 }
               }
-              s += ";";  // always terminate with a semi-colon, even in the case of an empty decreases clause
               // Note, in the following line, we use the location information for "clbl", not "m".  These
               // are the same, except in the case where "clbl" is a CoLemma and "m" is a prefix lemma.
               ReportAdditionalInformation(clbl.Tok, s, clbl.Tok.val.Length);
@@ -513,8 +512,8 @@ namespace Microsoft.Dafny
     bool FillInDefaultDecreases(ICallable clbl, bool addPrefixInCoClusters) {
       Contract.Requires(clbl != null);
 
-      if (clbl is CoPredicate) {
-        // copredicates don't have decreases clauses
+      if (clbl is FixpointPredicate) {
+        // fixpoint-predicates don't have decreases clauses
         return false;
       }
       var anyChangeToDecreases = false;
@@ -1056,15 +1055,15 @@ namespace Microsoft.Dafny
                 } else {
                   cl.HasConstructor = true;
                 }
-              } else if (m is CoPredicate || m is CoLemma) {
+              } else if (m is FixpointPredicate || m is FixpointLemma) {
                 var extraName = m.Name + "#";
                 MemberDecl extraMember;
                 var cloner = new Cloner();
                 var formals = new List<Formal>();
                 var k = new ImplicitFormal(m.tok, "_k", new NatType(), true, false);
                 formals.Add(k);
-                if (m is CoPredicate) {
-                  var cop = (CoPredicate)m;
+                if (m is FixpointPredicate) {
+                  var cop = (FixpointPredicate)m;
                   formals.AddRange(cop.Formals.ConvertAll(cloner.CloneFormal));
 
                   List<TypeParameter> tyvars = cop.TypeArgs.ConvertAll(cloner.CloneTypeParam);
@@ -1083,7 +1082,7 @@ namespace Microsoft.Dafny
                   // In the call graph, add an edge from P# to P, since this will have the desired effect of detecting unwanted cycles.
                   moduleDef.CallGraph.AddEdge(cop.PrefixPredicate, cop);
                 } else {
-                  var com = (CoLemma)m;
+                  var com = (FixpointLemma)m;
                   // _k has already been added to 'formals', so append the original formals
                   formals.AddRange(com.Ins.ConvertAll(cloner.CloneFormal));
                   // prepend _k to the given decreases clause
@@ -1091,10 +1090,13 @@ namespace Microsoft.Dafny
                   decr.Add(new IdentifierExpr(com.tok, k.Name));
                   decr.AddRange(com.Decreases.Expressions.ConvertAll(cloner.CloneExpr));
                   // Create prefix lemma.  Note that the body is not cloned, but simply shared.
+                  // For a colemma, the postconditions are filled in after the colemma's postconditions have been resolved.
+                  // For an inductive lemma, the preconditions are filled in after the inductive lemma's preconditions have been resolved.
+                  var req = com is CoLemma ? com.Req.ConvertAll(cloner.CloneMayBeFreeExpr) : new List<MaybeFreeExpression>();
+                  var ens = com is CoLemma ? new List<MaybeFreeExpression>() : com.Ens.ConvertAll(cloner.CloneMayBeFreeExpr);
                   com.PrefixLemma = new PrefixLemma(com.tok, extraName, com.HasStaticKeyword,
                     com.TypeArgs.ConvertAll(cloner.CloneTypeParam), k, formals, com.Outs.ConvertAll(cloner.CloneFormal),
-                    com.Req.ConvertAll(cloner.CloneMayBeFreeExpr), cloner.CloneSpecFrameExpr(com.Mod),
-                    new List<MaybeFreeExpression>(),  // Note, the postconditions are filled in after the colemma's postconditions have been resolved
+                    req, cloner.CloneSpecFrameExpr(com.Mod), ens,
                     new Specification<Expression>(decr, null),
                     null, // Note, the body for the prefix method will be created once the call graph has been computed and the SCC for the colemma is known
                     cloner.CloneAttributes(com.Attributes), com);
@@ -1541,25 +1543,38 @@ namespace Microsoft.Dafny
 
       if (ErrorCount == prevErrorCount) {
         // fill in the postconditions and bodies of prefix lemmas
-        foreach (var com in ModuleDefinition.AllCoLemmas(declarations)) {
+        foreach (var com in ModuleDefinition.AllFixpointLemmas(declarations)) {
           var prefixLemma = com.PrefixLemma;
           if (prefixLemma == null) {
-            continue;  // something went wrong during registration of the prefix lemma (probably a duplicated colemma name)
+            continue;  // something went wrong during registration of the prefix lemma (probably a duplicated fixpoint-lemma name)
           }
-          Contract.Assume(prefixLemma.Ens.Count == 0 && prefixLemma.Body == null);  // these are not supposed to have been filled in before
-          // compute the postconditions of the prefix lemma
           var k = prefixLemma.Ins[0];
-          foreach (var p in com.Ens) {
-            var coConclusions = new HashSet<Expression>();
-            CheckCoLemmaConclusions(p.E, true, coConclusions);
-            var subst = new CoLemmaPostconditionSubstituter(coConclusions, new IdentifierExpr(k.tok, k.Name), this);
-            var post = subst.CloneExpr(p.E);
-            prefixLemma.Ens.Add(new MaybeFreeExpression(post, p.IsFree));
+          if (com is CoLemma) {
+            // compute the postconditions of the prefix lemma
+            Contract.Assume(prefixLemma.Ens.Count == 0);  // these are not supposed to have been filled in before
+            foreach (var p in com.Ens) {
+              var coConclusions = new HashSet<Expression>();
+              CollectFriendlyCallsInFixpointLemmaSpecification(p.E, true, coConclusions, true);
+              var subst = new FixpointLemmaSpecificationSubstituter(coConclusions, new IdentifierExpr(k.tok, k.Name), this, true);
+              var post = subst.CloneExpr(p.E);
+              prefixLemma.Ens.Add(new MaybeFreeExpression(post, p.IsFree));
+            }
+          } else {
+            // compute the preconditions of the prefix lemma
+            Contract.Assume(prefixLemma.Req.Count == 0);  // these are not supposed to have been filled in before
+            foreach (var p in com.Req) {
+              var antecedents = new HashSet<Expression>();
+              CollectFriendlyCallsInFixpointLemmaSpecification(p.E, true, antecedents, false);
+              var subst = new FixpointLemmaSpecificationSubstituter(antecedents, new IdentifierExpr(k.tok, k.Name), this, false);
+              var pre = subst.CloneExpr(p.E);
+              prefixLemma.Req.Add(new MaybeFreeExpression(pre, p.IsFree));
+            }
           }
           // Compute the statement body of the prefix lemma
+          Contract.Assume(prefixLemma.Body == null);  // this is not supposed to have been filled in before
           if (com.Body != null) {
             var kMinusOne = new BinaryExpr(com.tok, BinaryExpr.Opcode.Sub, new IdentifierExpr(k.tok, k.Name), new LiteralExpr(com.tok, 1));
-            var subst = new CoLemmaBodyCloner(com, kMinusOne, this);
+            var subst = new FixpointLemmaBodyCloner(com, kMinusOne, this);
             var mainBody = subst.CloneBlockStmt(com.Body);
             var kPositive = new BinaryExpr(com.tok, BinaryExpr.Opcode.Lt, new LiteralExpr(com.tok, 0), new IdentifierExpr(k.tok, k.Name));
             var condBody = new IfStmt(com.BodyStartTok, mainBody.EndTok, kPositive, mainBody, null);
@@ -1811,30 +1826,31 @@ namespace Microsoft.Dafny
             }
           }
         }
-        // Check that copredicates are not recursive with non-copredicate functions, and
+        // Check that fixpoint-predicates are not recursive with non-fixpoint-predicate functions (and only
+        // with fixpoint-predicates of the same polarity), and
         // check that colemmas are not recursive with non-colemma methods.
         // Also, check that newtypes sit in their own SSC.
         foreach (var d in declarations) {
           if (d is ClassDecl) {
             foreach (var member in ((ClassDecl)d).Members) {
-              if (member is CoPredicate) {
-                var fn = (CoPredicate)member;
+              if (member is FixpointPredicate) {
+                var fn = (FixpointPredicate)member;
                 // Check here for the presence of any 'ensures' clauses, which are not allowed (because we're not sure
                 // of their soundness)
                 if (fn.Ens.Count != 0) {
-                  Error(fn.Ens[0].tok, "a copredicate is not allowed to declare any ensures clause");
+                  Error(fn.Ens[0].tok, "a {0} is not allowed to declare any ensures clause", member.WhatKind);
                 }
                 // Also check for 'reads' clauses
                 if (fn.Reads.Count != 0) {
-                  Error(fn.Reads[0].tok, "a copredicate is not allowed to declare any reads clause");  // (why?)
+                  Error(fn.Reads[0].tok, "a {0} is not allowed to declare any reads clause", member.WhatKind);  // (why?)
                 }
                 if (fn.Body != null) {
-                  CoPredicateChecks(fn.Body, fn, CallingPosition.Positive);
+                  FixpointPredicateChecks(fn.Body, fn, CallingPosition.Positive);
                 }
-              } else if (member is CoLemma) {
-                var m = (CoLemma)member;
+              } else if (member is FixpointLemma) {
+                var m = (FixpointLemma)member;
                 if (m.Body != null) {
-                  CoLemmaChecks(m.Body, m);
+                  FixpointLemmaChecks(m.Body, m);
                 }
               }
             }
@@ -1953,8 +1969,8 @@ namespace Microsoft.Dafny
             Error(f.tok, "sorry, tail-call functions are not supported");
           }
         }
-        if (errorCount == ErrorCount && f is CoPredicate) {
-          var cop = (CoPredicate)f;
+        if (errorCount == ErrorCount && f is FixpointPredicate) {
+          var cop = (FixpointPredicate)f;
           CheckTypeInference_Member(cop.PrefixPredicate);
         }
       }
@@ -2320,9 +2336,9 @@ namespace Microsoft.Dafny
     #endregion CheckTailRecursive
 
     // ------------------------------------------------------------------------------------------------------
-    // ----- CoPredicateChecks ------------------------------------------------------------------------------
+    // ----- FixpointPredicateChecks ------------------------------------------------------------------------
     // ------------------------------------------------------------------------------------------------------
-    #region CoPredicateChecks
+    #region FixpointPredicateChecks
     enum CallingPosition { Positive, Negative, Neither }
     static CallingPosition Invert(CallingPosition cp) {
       switch (cp) {
@@ -2332,40 +2348,18 @@ namespace Microsoft.Dafny
       }
     }
 
-    class CoPredicateChecks_Visitor : ResolverTopDownVisitor<CallingPosition>
+    class FindFriendlyCalls_Visitor : ResolverTopDownVisitor<CallingPosition>
     {
-      public readonly CoPredicate context;
-      public CoPredicateChecks_Visitor(Resolver resolver, CoPredicate context)
+      public readonly bool IsCoContext;
+      public FindFriendlyCalls_Visitor(Resolver resolver, bool co)
         : base(resolver)
       {
         Contract.Requires(resolver != null);
-        Contract.Requires(context != null);
-        this.context = context;
+        this.IsCoContext = co;
       }
 
       protected override bool VisitOneExpr(Expression expr, ref CallingPosition cp) {
-        if (expr is FunctionCallExpr) {
-          var e = (FunctionCallExpr)expr;
-          if (ModuleDefinition.InSameSCC(context, e.Function)) {
-            // we're looking at a recursive call
-            if (!(e.Function is CoPredicate)) {
-              Error(e, "a recursive call from a copredicate can go only to other copredicates");
-            } else if (cp != CallingPosition.Positive) {
-              var msg = "a copredicate can be called recursively only in positive positions";
-              if (cp == CallingPosition.Neither) {
-                // this may be inside an existential quantifier
-                msg += " and cannot sit inside an unbounded existential quantifier";
-              } else {
-                // the co-call is not inside an existential quantifier, so don't bother mentioning the part of existentials in the error message
-              }
-              Error(e, msg);
-            } else {
-              e.CoCall = FunctionCallExpr.CoCallResolution.Yes;
-              ReportAdditionalInformation(e.tok, e.Function.Name + "#[_k - 1]", e.Function.Name.Length);
-            }
-          }
-          // fall through to do the subexpressions (with cp := Neither)
-        } else if (expr is UnaryOpExpr) {
+        if (expr is UnaryOpExpr) {
           var e = (UnaryOpExpr)expr;
           if (e.Op == UnaryOpExpr.Opcode.Not) {
             // for the sub-parts, use Invert(cp)
@@ -2402,14 +2396,24 @@ namespace Microsoft.Dafny
           foreach (var rhs in e.RHSs) {
             Visit(rhs, CallingPosition.Neither);
           }
-          // note, a let-such-that expression introduces an existential that may depend on the _k in a copredicate, so we disallow recursive copredicate calls in the body of the let-such-that
-          Visit(e.Body, e.Exact ? cp : CallingPosition.Neither);
+          var cpBody = cp;
+          if (!e.Exact) {
+            // a let-such-that expression introduces an existential that may depend on the _k in an inductive/co predicate, so we disallow recursive calls in the body of the let-such-that
+            if (IsCoContext && cp == CallingPosition.Positive) {
+              cpBody = CallingPosition.Neither;
+            } else if (!IsCoContext && cp == CallingPosition.Negative) {
+              cpBody = CallingPosition.Neither;
+            }
+          }
+          Visit(e.Body, cpBody);
           return false;
         } else if (expr is QuantifierExpr) {
           var e = (QuantifierExpr)expr;
-          if ((cp == CallingPosition.Positive && e is ExistsExpr) || (cp == CallingPosition.Negative && e is ForallExpr)) {
+          var cpos = IsCoContext ? cp : Invert(cp);
+          if ((cpos == CallingPosition.Positive && e is ExistsExpr) || (cpos == CallingPosition.Negative && e is ForallExpr)) {
             if (e.MissingBounds != null && e.MissingBounds.Count != 0) {
-              // Don't allow any co-recursive calls under an existential with an unbounded range, because that can be unsound.
+              // To ensure continuity of fixpoint predicates, don't allow calls under an existential (resp. universal) quantifier
+              // for co-predicates (resp. inductive predicates).
               cp = CallingPosition.Neither;
             }
           }
@@ -2428,13 +2432,52 @@ namespace Microsoft.Dafny
         cp = CallingPosition.Neither;
         return true;
       }
+    }
 
+    class FixpointPredicateChecks_Visitor : FindFriendlyCalls_Visitor
+    {
+      readonly FixpointPredicate context;
+      public FixpointPredicateChecks_Visitor(Resolver resolver, FixpointPredicate context)
+        : base(resolver, context is CoPredicate) {
+        Contract.Requires(resolver != null);
+        Contract.Requires(context != null);
+        this.context = context;
+      }
+      protected override bool VisitOneExpr(Expression expr, ref CallingPosition cp) {
+        if (expr is FunctionCallExpr) {
+          var e = (FunctionCallExpr)expr;
+          if (ModuleDefinition.InSameSCC(context, e.Function)) {
+            var article = context is InductivePredicate ? "an" : "a";
+            // we're looking at a recursive call
+            if (!(context is InductivePredicate ? e.Function is InductivePredicate : e.Function is CoPredicate)) {
+              Error(e, "a recursive call from {0} {1} can go only to other {1}s", article, context.WhatKind);
+            } else if (cp != CallingPosition.Positive) {
+              var msg = string.Format("{0} {1} can be called recursively only in positive positions", article, context.WhatKind);
+              if (cp == CallingPosition.Neither) {
+                // this may be inside an non-friendly quantifier
+                msg += string.Format(" and cannot sit inside an unbounded {0} quantifier", context is InductivePredicate ? "universal" : "existential");
+              } else {
+                // the fixpoint-call is not inside an quantifier, so don't bother mentioning the part of existentials/universals in the error message
+              }
+              Error(e, msg);
+            } else {
+              e.CoCall = FunctionCallExpr.CoCallResolution.Yes;
+              ReportAdditionalInformation(e.tok, e.Function.Name + "#[_k - 1]", e.Function.Name.Length);
+            }
+          }
+          // do the sub-parts with cp := Neither
+          cp = CallingPosition.Neither;
+          return true;
+        }
+        return base.VisitOneExpr(expr, ref cp);
+      }
       protected override bool VisitOneStmt(Statement stmt, ref CallingPosition st) {
         if (stmt is CallStmt) {
           var s = (CallStmt)stmt;
           if (ModuleDefinition.InSameSCC(context, s.Method)) {
             // we're looking at a recursive call
-            Error(stmt.Tok, "a recursive call from a copredicate can go only to other copredicates");
+            var article = context is InductivePredicate ? "an" : "a";
+            Error(stmt.Tok, "a recursive call from {0} {1} can go only to other {1}s", article, context.WhatKind);
           }
           // do the sub-parts with the same "cp"
           return true;
@@ -2444,22 +2487,22 @@ namespace Microsoft.Dafny
       }
     }
 
-    void CoPredicateChecks(Expression expr, CoPredicate context, CallingPosition cp) {
+    void FixpointPredicateChecks(Expression expr, FixpointPredicate context, CallingPosition cp) {
       Contract.Requires(expr != null);
       Contract.Requires(context != null);
-      var v = new CoPredicateChecks_Visitor(this, context);
+      var v = new FixpointPredicateChecks_Visitor(this, context);
       v.Visit(expr, cp);
     }
-    #endregion CoPredicateChecks
+    #endregion FixpointPredicateChecks
 
     // ------------------------------------------------------------------------------------------------------
-    // ----- CoLemmaChecks ----------------------------------------------------------------------------------
+    // ----- FixpointLemmaChecks ----------------------------------------------------------------------------
     // ------------------------------------------------------------------------------------------------------
-    #region CoLemmaChecks
-    class CoLemmaChecks_Visitor : ResolverBottomUpVisitor
+    #region FixpointLemmaChecks
+    class FixpointLemmaChecks_Visitor : ResolverBottomUpVisitor
     {
-      CoLemma context;
-      public CoLemmaChecks_Visitor(Resolver resolver, CoLemma context)
+      FixpointLemma context;
+      public FixpointLemmaChecks_Visitor(Resolver resolver, FixpointLemma context)
         : base(resolver) {
         Contract.Requires(resolver != null);
         Contract.Requires(context != null);
@@ -2468,13 +2511,14 @@ namespace Microsoft.Dafny
       protected override void VisitOneStmt(Statement stmt) {
         if (stmt is CallStmt) {
           var s = (CallStmt)stmt;
-          if (s.Method is CoLemma || s.Method is PrefixLemma) {
+          if (s.Method is FixpointLemma || s.Method is PrefixLemma) {
             // all is cool
           } else {
-            // the call goes from a colemma context to a non-colemma callee
+            // the call goes from a fixpoint-lemma context to a non-fixpoint-lemma callee
             if (ModuleDefinition.InSameSCC(context, s.Method)) {
-              // we're looking at a recursive call (to a non-colemma)
-              Error(s.Tok, "a recursive call from a colemma can go only to other colemmas and prefix lemmas");
+              // we're looking at a recursive call (to a non-fixpoint-lemma)
+              var article = context is InductiveLemma ? "an" : "a";
+              Error(s.Tok, "a recursive call from {0} {1} can go only to other {1}s and prefix lemmas", article, context.WhatKind);
             }
           }
         }
@@ -2491,13 +2535,13 @@ namespace Microsoft.Dafny
         }
       }
     }
-    void CoLemmaChecks(Statement stmt, CoLemma context) {
+    void FixpointLemmaChecks(Statement stmt, FixpointLemma context) {
       Contract.Requires(stmt != null);
       Contract.Requires(context != null);
-      var v = new CoLemmaChecks_Visitor(this, context);
+      var v = new FixpointLemmaChecks_Visitor(this, context);
       v.Visit(stmt);
     }
-    #endregion CoLemmaChecks
+    #endregion FixpointLemmaChecks
 
     // ------------------------------------------------------------------------------------------------------
     // ----- CheckEqualityTypes -----------------------------------------------------------------------------
@@ -2949,8 +2993,8 @@ namespace Microsoft.Dafny
           ResolveTypeParameters(f.TypeArgs, true, f);
           ResolveFunctionSignature(f);
           allTypeParameters.PopMarker();
-          if (f is CoPredicate && ec == ErrorCount) {
-            var ff = ((CoPredicate)f).PrefixPredicate;
+          if (f is FixpointPredicate && ec == ErrorCount) {
+            var ff = ((FixpointPredicate)f).PrefixPredicate;
             ff.EnclosingClass = cl;
             allTypeParameters.PushMarker();
             ResolveTypeParameters(ff.TypeArgs, true, ff);
@@ -2965,7 +3009,7 @@ namespace Microsoft.Dafny
           ResolveTypeParameters(m.TypeArgs, true, m);
           ResolveMethodSignature(m);
           allTypeParameters.PopMarker();
-          var com = m as CoLemma;
+          var com = m as FixpointLemma;
           if (com != null && com.PrefixLemma != null && ec == ErrorCount) {
             var mm = com.PrefixLemma;
             // resolve signature of the prefix lemma
@@ -3097,8 +3141,8 @@ namespace Microsoft.Dafny
           ResolveTypeParameters(f.TypeArgs, false, f);
           ResolveFunction(f);
           allTypeParameters.PopMarker();
-          if (f is CoPredicate && ec == ErrorCount) {
-            var ff = ((CoPredicate)f).PrefixPredicate;
+          if (f is FixpointPredicate && ec == ErrorCount) {
+            var ff = ((FixpointPredicate)f).PrefixPredicate;
             allTypeParameters.PushMarker();
             ResolveTypeParameters(ff.TypeArgs, false, ff);
             ResolveFunction(ff);
@@ -3586,10 +3630,8 @@ namespace Microsoft.Dafny
         ResolveAttributes(m.Mod.Attributes, new ResolveOpts(m, false, true));
         foreach (FrameExpression fe in m.Mod.Expressions) {
           ResolveFrameExpression(fe, false, m.IsGhost, m);
-          if (m is Lemma) {
-            Error(fe.tok, "lemmas are not allowed to have modifies clauses");
-          } else if (m is CoLemma) {
-            Error(fe.tok, "colemmas are not allowed to have modifies clauses");
+          if (m is Lemma || m is FixpointLemma) {
+            Error(fe.tok, "{0}s are not allowed to have modifies clauses", m.WhatKind);
           }
         }
         ResolveAttributes(m.Decreases.Attributes, new ResolveOpts(m, false, true));
@@ -3604,8 +3646,8 @@ namespace Microsoft.Dafny
         // Add out-parameters to a new scope that will also include the outermost-level locals of the body
         // Don't care about any duplication errors among the out-parameters, since they have already been reported
         scope.PushMarker();
-        if (m is CoLemma && m.Outs.Count != 0) {
-          Error(m.Outs[0].tok, "colemmas are not allowed to have out-parameters");
+        if (m is FixpointLemma && m.Outs.Count != 0) {
+          Error(m.Outs[0].tok, "{0}s are not allowed to have out-parameters", m.WhatKind);
         } else {
           foreach (Formal p in m.Outs) {
             scope.Push(p.Name, p);
@@ -3624,7 +3666,7 @@ namespace Microsoft.Dafny
 
         // Resolve body
         if (m.Body != null) {
-          var com = m as CoLemma;
+          var com = m as FixpointLemma;
           if (com != null && com.PrefixLemma != null) {
             // The body may mentioned the implicitly declared parameter _k.  Throw it into the
             // scope before resolving the body.
@@ -5141,96 +5183,7 @@ namespace Microsoft.Dafny
         Contract.Assert(prevErrorCount != ErrorCount || s.Steps.Count == s.Hints.Count);
 
       } else if (stmt is MatchStmt) {
-        MatchStmt s = (MatchStmt)stmt;
-        bool bodyIsSpecOnly = specContextOnly;
-        int prevErrorCount = ErrorCount;
-        ResolveExpression(s.Source, new ResolveOpts(codeContext, true, specContextOnly));
-        Contract.Assert(s.Source.Type != null);  // follows from postcondition of ResolveExpression
-        bool successfullyResolved = ErrorCount == prevErrorCount;
-        if (!specContextOnly && successfullyResolved) {
-          bodyIsSpecOnly = UsesSpecFeatures(s.Source);
-        }
-        UserDefinedType sourceType = null;
-        DatatypeDecl dtd = null;
-        if (s.Source.Type.IsDatatype) {
-          sourceType = (UserDefinedType)s.Source.Type.NormalizeExpand();
-          dtd = cce.NonNull((DatatypeDecl)sourceType.ResolvedClass);
-        }
-        var subst = new Dictionary<TypeParameter, Type>();
-        Dictionary<string, DatatypeCtor> ctors;
-        if (dtd == null) {
-          Error(s.Source, "the type of the match source expression must be a datatype (instead found {0})", s.Source.Type);
-          ctors = null;
-        } else {
-          Contract.Assert(sourceType != null);  // dtd and sourceType are set together above
-          ctors = datatypeCtors[dtd];
-          Contract.Assert(ctors != null);  // dtd should have been inserted into datatypeCtors during a previous resolution stage
-
-          // build the type-parameter substitution map for this use of the datatype
-          for (int i = 0; i < dtd.TypeArgs.Count; i++) {
-            subst.Add(dtd.TypeArgs[i], sourceType.TypeArgs[i]);
-          }
-        }
-        s.IsGhost = bodyIsSpecOnly;
-
-        ISet<string> memberNamesUsed = new HashSet<string>();
-        foreach (MatchCaseStmt mc in s.Cases) {
-          DatatypeCtor ctor = null;
-          if (ctors != null) {
-            Contract.Assert(dtd != null);
-            if (!ctors.TryGetValue(mc.Id, out ctor)) {
-              Error(mc.tok, "member {0} does not exist in datatype {1}", mc.Id, dtd.Name);
-            } else {
-              Contract.Assert(ctor != null);  // follows from postcondition of TryGetValue
-              mc.Ctor = ctor;
-              if (ctor.Formals.Count != mc.Arguments.Count) {
-                Error(mc.tok, "member {0} has wrong number of formals (found {1}, expected {2})", mc.Id, mc.Arguments.Count, ctor.Formals.Count);
-              }
-              if (memberNamesUsed.Contains(mc.Id)) {
-                Error(mc.tok, "member {0} appears in more than one case", mc.Id);
-              } else {
-                memberNamesUsed.Add(mc.Id);  // add mc.Id to the set of names used
-              }
-            }
-          }
-          scope.PushMarker();
-          int i = 0;
-          foreach (BoundVar v in mc.Arguments) {
-            if (!scope.Push(v.Name, v)) {
-              Error(v, "Duplicate parameter name: {0}", v.Name);
-            }
-            ResolveType(v.tok, v.Type, codeContext, ResolveTypeOptionEnum.InferTypeProxies, null);
-            if (ctor != null && i < ctor.Formals.Count) {
-              Formal formal = ctor.Formals[i];
-              Type st = SubstType(formal.Type, subst);
-              if (!UnifyTypes(v.Type, st)) {
-                Error(stmt, "the declared type of the formal ({0}) does not agree with the corresponding type in the constructor's signature ({1})", v.Type, st);
-              }
-              v.IsGhost = formal.IsGhost;
-            }
-            i++;
-          }
-          foreach (Statement ss in mc.Body) {
-            ResolveStatement(ss, bodyIsSpecOnly, codeContext);
-          }
-          scope.PopMarker();
-        }
-        if (dtd != null && memberNamesUsed.Count != dtd.Ctors.Count) {
-          // We could complain about the syntactic omission of constructors:
-          //   Error(stmt, "match statement does not cover all constructors");
-          // but instead we let the verifier do a semantic check.
-          // So, for now, record the missing constructors:
-          foreach (var ctr in dtd.Ctors) {
-            if (!memberNamesUsed.Contains(ctr.Name)) {
-              s.MissingCases.Add(ctr);
-            }
-          }
-          Contract.Assert(memberNamesUsed.Count + s.MissingCases.Count == dtd.Ctors.Count);
-        }
-        if (!s.IsGhost) {
-          s.IsGhost = s.Cases.All(cs => cs.Body.All(ss => ss.IsGhost));
-        }
-
+        ResolveMatchStmt(stmt, specContextOnly, codeContext);
       } else if (stmt is SkeletonStatement) {
         var s = (SkeletonStatement)stmt;
         Error(s.Tok, "skeleton statements are allowed only in refining methods");
@@ -5241,6 +5194,370 @@ namespace Microsoft.Dafny
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();
       }
+    }
+
+    void ResolveMatchStmt(Statement stmt, bool specContextOnly, ICodeContext codeContext) {
+      MatchStmt s = (MatchStmt)stmt;
+      DesugarMatchStmtWithTupleExpression(s);
+
+      bool bodyIsSpecOnly = specContextOnly;
+      int prevErrorCount = ErrorCount;
+      ResolveExpression(s.Source, new ResolveOpts(codeContext, true, specContextOnly));
+      Contract.Assert(s.Source.Type != null);  // follows from postcondition of ResolveExpression
+      bool successfullyResolved = ErrorCount == prevErrorCount;
+      if (!specContextOnly && successfullyResolved) {
+        bodyIsSpecOnly = UsesSpecFeatures(s.Source);
+      }
+      UserDefinedType sourceType = null;
+      DatatypeDecl dtd = null;
+      if (s.Source.Type.IsDatatype) {
+        sourceType = (UserDefinedType)s.Source.Type.NormalizeExpand();
+        dtd = cce.NonNull((DatatypeDecl)sourceType.ResolvedClass);
+      }
+      var subst = new Dictionary<TypeParameter, Type>();
+      Dictionary<string, DatatypeCtor> ctors;
+      if (dtd == null) {
+        Error(s.Source, "the type of the match source expression must be a datatype (instead found {0})", s.Source.Type);
+        ctors = null;
+      } else {
+        Contract.Assert(sourceType != null);  // dtd and sourceType are set together above
+        ctors = datatypeCtors[dtd];
+        Contract.Assert(ctors != null);  // dtd should have been inserted into datatypeCtors during a previous resolution stage
+
+        // build the type-parameter substitution map for this use of the datatype
+        for (int i = 0; i < dtd.TypeArgs.Count; i++) {
+          subst.Add(dtd.TypeArgs[i], sourceType.TypeArgs[i]);
+        }
+      }
+      s.IsGhost = bodyIsSpecOnly;
+
+      // convert CasePattern in MatchCaseExpr to BoundVar and flatten the MatchCaseExpr.
+      Type type = new InferredTypeProxy();
+      string name = FreshTempVarName("_mc#", codeContext);
+      BoundVar bv = new BoundVar(s.Tok, name, type);
+      List<CasePattern> patternSubst = new List<CasePattern>();
+      DesugarMatchCaseStmt(s, dtd, bv, patternSubst);
+
+      ISet<string> memberNamesUsed = new HashSet<string>();
+      foreach (MatchCaseStmt mc in s.Cases) {
+        DatatypeCtor ctor = null;
+        if (ctors != null) {
+          Contract.Assert(dtd != null);
+          if (!ctors.TryGetValue(mc.Id, out ctor)) {
+            Error(mc.tok, "member {0} does not exist in datatype {1}", mc.Id, dtd.Name);
+          } else {
+            Contract.Assert(ctor != null);  // follows from postcondition of TryGetValue
+            mc.Ctor = ctor;
+            if (ctor.Formals.Count != mc.Arguments.Count) {
+              Error(mc.tok, "member {0} has wrong number of formals (found {1}, expected {2})", mc.Id, mc.Arguments.Count, ctor.Formals.Count);
+            }
+            if (memberNamesUsed.Contains(mc.Id)) {
+              Error(mc.tok, "member {0} appears in more than one case", mc.Id);
+            } else {
+              memberNamesUsed.Add(mc.Id);  // add mc.Id to the set of names used
+            }
+          }
+        }
+        scope.PushMarker();
+        int i = 0;
+        foreach (BoundVar v in mc.Arguments) {
+          if (!scope.Push(v.Name, v)) {
+            Error(v, "Duplicate parameter name: {0}", v.Name);
+          }
+          ResolveType(v.tok, v.Type, codeContext, ResolveTypeOptionEnum.InferTypeProxies, null);
+          if (ctor != null && i < ctor.Formals.Count) {
+            Formal formal = ctor.Formals[i];
+            Type st = SubstType(formal.Type, subst);
+            if (!UnifyTypes(v.Type, st)) {
+              Error(stmt, "the declared type of the formal ({0}) does not agree with the corresponding type in the constructor's signature ({1})", v.Type, st);
+            }
+            v.IsGhost = formal.IsGhost;
+          }
+          i++;
+        }
+        foreach (Statement ss in mc.Body) {
+          ResolveStatement(ss, bodyIsSpecOnly, codeContext);
+        }
+        // substitute body to replace the case pat with v. This needs to happen
+        // after the body is resolved so we can scope the bv correctly.
+        if (patternSubst.Count > 0) {
+          MatchCaseExprSubstituteCloner cloner = new MatchCaseExprSubstituteCloner(patternSubst, bv);
+          List<Statement> list = new List<Statement>();
+          foreach (Statement ss in mc.Body) {
+            Statement clone = cloner.CloneStmt(ss);
+            // resolve it again since we just cloned it.
+            ResolveStatement(clone, bodyIsSpecOnly, codeContext);
+            list.Add(clone);
+          }
+          mc.UpdateBody(list);
+        }
+
+        scope.PopMarker();
+      }
+      if (dtd != null && memberNamesUsed.Count != dtd.Ctors.Count) {
+        // We could complain about the syntactic omission of constructors:
+        //   Error(stmt, "match statement does not cover all constructors");
+        // but instead we let the verifier do a semantic check.
+        // So, for now, record the missing constructors:
+        foreach (var ctr in dtd.Ctors) {
+          if (!memberNamesUsed.Contains(ctr.Name)) {
+            s.MissingCases.Add(ctr);
+          }
+        }
+        Contract.Assert(memberNamesUsed.Count + s.MissingCases.Count == dtd.Ctors.Count);
+      }
+      if (!s.IsGhost) {
+        s.IsGhost = s.Cases.All(cs => cs.Body.All(ss => ss.IsGhost));
+      }
+    }
+
+    /*
+     * Convert
+     *  match (x, y)
+     *    case (Zero, _) => Zero
+     *    case (Suc(_), Zero) => x
+     *    case (Suc(a), Suc(b)) => minus(a, b)
+     * To:  
+     *  match x
+     *    case Zero => match y
+     *        case _ => zero
+     *    case Suc(_) => match y
+     *        case Zero => x
+     *    case Suc(a) => match y
+      *        case (b) => minus(a,b)
+     */    
+    void DesugarMatchStmtWithTupleExpression(MatchStmt me) {
+      // (x, y) is treated as a 2-tuple constructor
+      if (me.Source is DatatypeValue) {
+        var e = (DatatypeValue)me.Source;
+        Contract.Assert(e.Arguments.Count >= 1);
+        Expression source = e.Arguments[0];
+        List<MatchCaseStmt> cases = new List<MatchCaseStmt>();
+        foreach (MatchCaseStmt mc in me.Cases) {
+          Contract.Assert(mc.CasePatterns != null);
+          Contract.Assert(mc.CasePatterns.Count == e.Arguments.Count);
+          CasePattern cp = mc.CasePatterns[0];
+          List<CasePattern> patterns;
+          if (cp.Arguments != null) {
+            patterns = cp.Arguments;
+          } else {
+            patterns = new List<CasePattern>();
+          }
+
+          List<Statement> body = mc.Body;
+          for (int i = e.Arguments.Count; 1 <= --i; ) {
+            // others go into the body
+            body = CreateMatchCaseStmtBody(mc.tok, e.Arguments[i], mc.CasePatterns[i], body);
+          }
+          cases.Add(new MatchCaseStmt(cp.tok, cp.Id, patterns, body));
+        }
+        me.UpdateSource(source);
+        me.UpdateCases(cases);
+      }
+    }
+
+    List<Statement> CreateMatchCaseStmtBody(Boogie.IToken tok, Expression source, CasePattern cp, List<Statement> body) {
+      List<MatchCaseStmt> cases = new List<MatchCaseStmt>();
+      List<CasePattern> patterns;
+      if (cp.Var != null) {
+        var bv = cp.Var;
+        if (LocalVariable.HasWildcardName(bv)) {
+          return body;
+        } else {
+          patterns = new List<CasePattern>();
+        }
+      } else {
+        patterns = cp.Arguments;
+      }
+      cases.Add(new MatchCaseStmt(cp.tok, cp.Id, patterns, body));
+      List<Statement> list = new List<Statement>();
+      // endTok??
+      list.Add(new MatchStmt(tok, tok, source, cases, false));
+      return list;
+    }
+  
+
+    /*
+     * Convert
+     *   match xs
+     *     case Cons(y, Cons(z, zs)) => last(Cons(z, zs))
+     *     case Cons(y, Nil) => y
+     * To
+     *   match xs
+     *     case Cons(y, ys) => match ys
+     *       case Nil => y
+     *       case Cons(z, zs) => last(ys)
+     */
+    void DesugarMatchCaseStmt(MatchStmt s, DatatypeDecl dtd, BoundVar sourceVar, List<CasePattern> patterns) {
+      Contract.Assert(dtd != null);
+      Dictionary<string, DatatypeCtor> ctors = datatypeCtors[dtd];
+      foreach (MatchCaseStmt mc in s.Cases) {
+        if (mc.Arguments != null) {
+          // already desugared. This happens during the second pass resolver after cloning.
+          Contract.Assert(mc.CasePatterns == null);
+          return;
+        }
+
+        Contract.Assert(mc.Arguments == null);
+        Contract.Assert(mc.CasePatterns != null);
+        DatatypeCtor ctor = null;
+        if (ctors != null) {
+          if (!ctors.TryGetValue(mc.Id, out ctor)) {
+            Error(mc.tok, "member {0} does not exist in datatype {1}", mc.Id, dtd.Name);
+          } else {
+            Contract.Assert(ctor != null);  // follows from postcondition of TryGetValue
+            mc.Ctor = ctor;
+            if (ctor.Formals.Count != mc.CasePatterns.Count) {
+              Error(mc.tok, "member {0} has wrong number of formals (found {1}, expected {2})", mc.Id, mc.Arguments.Count, ctor.Formals.Count);
+            }
+          }
+        }
+        scope.PushMarker();
+        List<BoundVar> arguments = new List<BoundVar>();
+        foreach (CasePattern pat in mc.CasePatterns) {
+          // Find the constructor in the given datatype
+          // If what was parsed was just an identifier, we will interpret it as a datatype constructor, if possible
+          ctor = null;
+          if (pat.Var == null || (pat.Var != null && pat.Var.Type is TypeProxy && dtd != null)) {
+            if (datatypeCtors[dtd].TryGetValue(pat.Id, out ctor)) {
+              pat.Ctor = ctor;
+              pat.Var = null;
+            }
+          }
+          if (pat.Var != null) {
+            BoundVar v = pat.Var;
+            arguments.Add(v);
+            if (!scope.Push(v.Name, v)) {
+              Error(v, "Duplicate name: {0}", v.Name);
+            }
+          } else {
+            DesugarMatchCasePattern(mc, pat, sourceVar);
+            patterns.Add(pat);
+            arguments.Add(sourceVar);
+          }
+        }
+        mc.Arguments = arguments;
+        mc.CasePatterns = null;
+        scope.PopMarker();
+      }
+
+      List<MatchCaseStmt> newCases = new List<MatchCaseStmt>();
+
+      // need to consolidate the cases.
+      // Convert 
+      //  match xs
+      //    case Cons(y, #mc#0) => match #mc#0
+      //                case Cons((z, zs) => body
+      //    case Cons(y, #mc#0) => match #mc#0
+      //                case Nil => y
+      // into
+      //  match xs
+      //    case Cons(y, #mc#0) => match #mc#0
+      //                case Cons((z, zs) => body
+      //                case Nil => y
+      bool thingsChanged = false;
+      Dictionary<string, MatchCaseStmt> caseMap = new Dictionary<string, MatchCaseStmt>();
+      List<MatchCaseStmt> mcWithWildCard = new List<MatchCaseStmt>();
+      foreach (MatchCaseStmt mc in s.Cases) {
+        // check each CasePattern to see if it has wildcard.
+        if (CaseExprHasWildCard(mc)) {
+          mcWithWildCard.Add(mc);
+        } else {
+          thingsChanged |= CombineMatchCaseStmt(mc, newCases, caseMap);
+        }
+      }
+
+      foreach (MatchCaseStmt mc in mcWithWildCard) {
+        // now process with cases with wildcard
+        thingsChanged |= CombineMatchCaseStmt(mc, newCases, caseMap);
+      }
+
+      if (thingsChanged) {
+        s.UpdateCases(newCases);
+      }
+    }
+
+    void DesugarMatchCasePattern(MatchCaseStmt mc, CasePattern pat, BoundVar v) {
+      // convert 
+      //    case Cons(y, Cons(z, zs)) => body
+      // to
+      //    case Cons(y, #mc#) => match #mc#
+      //            case Cons(z, zs) => body
+
+      Expression source = new NameSegment(pat.tok, v.Name, null);
+      List<MatchCaseStmt> cases = new List<MatchCaseStmt>();
+      cases.Add(new MatchCaseStmt(pat.tok, pat.Id, pat.Arguments == null ? new List<CasePattern>() : pat.Arguments, mc.Body));
+      List<Statement> list = new List<Statement>();
+      // endTok??
+      list.Add(new MatchStmt(pat.tok, pat.tok, source, cases, false));
+      mc.UpdateBody(list);
+    }
+
+    bool CombineMatchCaseStmt(MatchCaseStmt mc, List<MatchCaseStmt> newCases, Dictionary<string, MatchCaseStmt> caseMap) {
+      bool thingsChanged = false;
+      MatchCaseStmt old_mc;
+      if (caseMap.TryGetValue(mc.Id, out old_mc)) {
+        // already has a case with the same ctor, try to consolidate the body.
+        List<Statement> oldBody = old_mc.Body;
+        List<Statement> body = mc.Body;
+        if ((oldBody.Count == 1) && (oldBody[0] is MatchStmt)
+            && (body.Count == 1) && (body[0] is MatchStmt)) {
+          // both only have on statement and the statement is MatchStmt
+          MatchStmt old = (MatchStmt) oldBody[0];
+          MatchStmt current = (MatchStmt) body[0];
+          if (SameMatchCase(old_mc, mc)) {
+            foreach (MatchCaseStmt c in current.Cases) {
+              old.Cases.Add(c);
+            }
+            thingsChanged = true;
+          }
+        } else {
+          // duplicate cases, do nothing for now. The error will be reported during resolving
+        }
+      } else {
+        // it is a new case.
+        newCases.Add(mc);
+        caseMap.Add(mc.Id, mc);
+      }
+      return thingsChanged;
+    }
+
+    bool SameMatchCase(MatchCaseStmt one, MatchCaseStmt other) {
+      // this method is called after all the CasePattern in the match cases are converted
+      // into BoundVars.
+      Contract.Assert(one.CasePatterns == null && one.Arguments != null);
+      Contract.Assert(other.CasePatterns == null && other.Arguments != null);
+      // In order to combine the two match cases, the bodies need to be a MatchExpr and 
+      // the arguments and the source of the body are the same. 
+      // We do string equals since they should be in the same scope.
+      if (one.Arguments.Count != other.Arguments.Count) {
+        return false;
+      }
+      List<Statement> body1 = one.Body;
+      List<Statement> body2 = other.Body;
+      if ((body1.Count != 1) || (body2.Count != 1)) {
+        return false;
+      }
+      if (!(body1[0] is MatchStmt) || !(body2[0] is MatchStmt)) {
+       return false;
+      }
+      var source1 = ((MatchStmt)body1[0]).Source;
+      var source2 = ((MatchStmt)body2[0]).Source;
+      if (!(source1 is NameSegment) || !(source2 is NameSegment)) {
+        return false;
+      }
+      if (!((NameSegment)source1).Name.Equals(((NameSegment)source2).Name)) {
+        return false;
+      }
+      for (int i = 0; i < one.Arguments.Count; i++) {
+        BoundVar bv1 = one.Arguments[i];
+        BoundVar bv2 = other.Arguments[i];
+        if (!LocalVariable.HasWildcardName(bv1) && !LocalVariable.HasWildcardName(bv2) &&
+            !bv1.Name.Equals(bv2.Name)) {
+          return false;
+        }
+      }
+      return true;
     }
 
     void FillInDefaultLoopDecreases(LoopStmt loopStmt, Expression guard, List<Expression> theDecreases, ICallable enclosingMethod) {
@@ -7280,89 +7597,7 @@ namespace Microsoft.Dafny
         }
 
       } else if (expr is MatchExpr) {
-        var me = (MatchExpr)expr;
-        ResolveExpression(me.Source, opts);
-        Contract.Assert(me.Source.Type != null);  // follows from postcondition of ResolveExpression
-        UserDefinedType sourceType = null;
-        DatatypeDecl dtd = null;
-        if (me.Source.Type.IsDatatype) {
-          sourceType = (UserDefinedType)me.Source.Type.NormalizeExpand();
-          dtd = cce.NonNull((DatatypeDecl)sourceType.ResolvedClass);
-        }
-        var subst = new Dictionary<TypeParameter, Type>();
-        Dictionary<string, DatatypeCtor> ctors;
-        if (dtd == null) {
-          Error(me.Source, "the type of the match source expression must be a datatype (instead found {0})", me.Source.Type);
-          ctors = null;
-        } else {
-          Contract.Assert(sourceType != null);  // dtd and sourceType are set together above
-          ctors = datatypeCtors[dtd];
-          Contract.Assert(ctors != null);  // dtd should have been inserted into datatypeCtors during a previous resolution stage
-
-          // build the type-parameter substitution map for this use of the datatype
-          for (int i = 0; i < dtd.TypeArgs.Count; i++) {
-            subst.Add(dtd.TypeArgs[i], sourceType.TypeArgs[i]);
-          }
-        }
-
-        ISet<string> memberNamesUsed = new HashSet<string>();
-        expr.Type = new InferredTypeProxy();
-        foreach (MatchCaseExpr mc in me.Cases) {
-          DatatypeCtor ctor = null;
-          if (ctors != null) {
-            Contract.Assert(dtd != null);
-            if (!ctors.TryGetValue(mc.Id, out ctor)) {
-              Error(mc.tok, "member {0} does not exist in datatype {1}", mc.Id, dtd.Name);
-            } else {
-              Contract.Assert(ctor != null);  // follows from postcondition of TryGetValue
-              mc.Ctor = ctor;
-              if (ctor.Formals.Count != mc.Arguments.Count) {
-                Error(mc.tok, "member {0} has wrong number of formals (found {1}, expected {2})", mc.Id, mc.Arguments.Count, ctor.Formals.Count);
-              }
-              if (memberNamesUsed.Contains(mc.Id)) {
-                Error(mc.tok, "member {0} appears in more than one case", mc.Id);
-              } else {
-                memberNamesUsed.Add(mc.Id);  // add mc.Id to the set of names used
-              }
-            }
-          }
-          scope.PushMarker();
-          int i = 0;
-          foreach (BoundVar v in mc.Arguments) {
-            if (!scope.Push(v.Name, v)) {
-              Error(v, "Duplicate parameter name: {0}", v.Name);
-            }
-            ResolveType(v.tok, v.Type, opts.codeContext, ResolveTypeOptionEnum.InferTypeProxies, null);
-            if (ctor != null && i < ctor.Formals.Count) {
-              Formal formal = ctor.Formals[i];
-              Type st = SubstType(formal.Type, subst);
-              if (!UnifyTypes(v.Type, st)) {
-                Error(expr, "the declared type of the formal ({0}) does not agree with the corresponding type in the constructor's signature ({1})", v.Type, st);
-              }
-              v.IsGhost = formal.IsGhost;
-            }
-            i++;
-          }
-          ResolveExpression(mc.Body, opts);
-          Contract.Assert(mc.Body.Type != null);  // follows from postcondition of ResolveExpression
-          if (!UnifyTypes(expr.Type, mc.Body.Type)) {
-            Error(mc.Body.tok, "type of case bodies do not agree (found {0}, previous types {1})", mc.Body.Type, expr.Type);
-          }
-          scope.PopMarker();
-        }
-        if (dtd != null && memberNamesUsed.Count != dtd.Ctors.Count) {
-          // We could complain about the syntactic omission of constructors:
-          //   Error(expr, "match expression does not cover all constructors");
-          // but instead we let the verifier do a semantic check.
-          // So, for now, record the missing constructors:
-          foreach (var ctr in dtd.Ctors) {
-            if (!memberNamesUsed.Contains(ctr.Name)) {
-              me.MissingCases.Add(ctr);
-            }
-          }
-          Contract.Assert(memberNamesUsed.Count + me.MissingCases.Count == dtd.Ctors.Count);
-        }
-
+        ResolveMatchExpr(expr, opts);
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected expression
       }
@@ -7371,6 +7606,354 @@ namespace Microsoft.Dafny
         // some resolution error occurred
         expr.Type = new InferredTypeProxy();
       }
+    }
+
+    void ResolveMatchExpr(Expression expr, ResolveOpts opts) {
+      var me = (MatchExpr)expr;
+      DesugarMatchExprWithTupleExpression(me);
+
+      ResolveExpression(me.Source, opts);
+      Contract.Assert(me.Source.Type != null);  // follows from postcondition of ResolveExpression
+      UserDefinedType sourceType = null;
+      DatatypeDecl dtd = null;
+      if (me.Source.Type.IsDatatype) {
+        sourceType = (UserDefinedType)me.Source.Type.NormalizeExpand();
+        dtd = cce.NonNull((DatatypeDecl)sourceType.ResolvedClass);
+      }
+      var subst = new Dictionary<TypeParameter, Type>();
+      Dictionary<string, DatatypeCtor> ctors;
+      if (dtd == null) {
+        Error(me.Source, "the type of the match source expression must be a datatype (instead found {0})", me.Source.Type);
+        ctors = null;
+      } else {
+        Contract.Assert(sourceType != null);  // dtd and sourceType are set together above
+        ctors = datatypeCtors[dtd];
+        Contract.Assert(ctors != null);  // dtd should have been inserted into datatypeCtors during a previous resolution stage
+
+        // build the type-parameter substitution map for this use of the datatype
+        for (int i = 0; i < dtd.TypeArgs.Count; i++) {
+          subst.Add(dtd.TypeArgs[i], sourceType.TypeArgs[i]);
+        }
+      }
+
+      // convert CasePattern in MatchCaseExpr to BoundVar and flatten the MatchCaseExpr.
+      Type type = new InferredTypeProxy();
+      string name = FreshTempVarName("_mc#", opts.codeContext);
+      BoundVar bv = new BoundVar(me.tok, name, type);
+      List<CasePattern> patternSubst = new List<CasePattern>();
+      DesugarMatchCaseExpr(me, dtd, bv, patternSubst);
+
+      ISet<string> memberNamesUsed = new HashSet<string>();
+      expr.Type = new InferredTypeProxy();
+      foreach (MatchCaseExpr mc in me.Cases) {
+        DatatypeCtor ctor = null;
+        if (ctors != null) {
+          Contract.Assert(dtd != null);
+          if (!ctors.TryGetValue(mc.Id, out ctor)) {
+            Error(mc.tok, "member {0} does not exist in datatype {1}", mc.Id, dtd.Name);
+          } else {
+            Contract.Assert(ctor != null);  // follows from postcondition of TryGetValue
+            mc.Ctor = ctor;
+            if (ctor.Formals.Count != mc.Arguments.Count) {
+              Error(mc.tok, "member {0} has wrong number of formals (found {1}, expected {2})", mc.Id, mc.Arguments.Count, ctor.Formals.Count);
+            }
+            if (memberNamesUsed.Contains(mc.Id)) {
+              Error(mc.tok, "member {0} appears in more than one case", mc.Id);
+            } else {
+              memberNamesUsed.Add(mc.Id);  // add mc.Id to the set of names used
+            }
+          }
+        }
+        scope.PushMarker();
+        int i = 0;
+        foreach (BoundVar v in mc.Arguments) {
+          if (!scope.Push(v.Name, v)) {
+            Error(v, "Duplicate parameter name: {0}", v.Name);
+          }
+          ResolveType(v.tok, v.Type, opts.codeContext, ResolveTypeOptionEnum.InferTypeProxies, null);
+          if (ctor != null && i < ctor.Formals.Count) {
+            Formal formal = ctor.Formals[i];
+            Type st = SubstType(formal.Type, subst);
+            if (!UnifyTypes(v.Type, st)) {
+              Error(expr, "the declared type of the formal ({0}) does not agree with the corresponding type in the constructor's signature ({1})", v.Type, st);
+            }
+            v.IsGhost = formal.IsGhost;
+          }
+          i++;
+        }
+        ResolveExpression(mc.Body, opts);
+        // substitute body to replace the case pat with v. This needs to happen
+        // after the body is resolved so we can scope the bv correctly.
+        if (patternSubst.Count > 0) {
+          MatchCaseExprSubstituteCloner cloner = new MatchCaseExprSubstituteCloner(patternSubst, bv);
+          mc.UpdateBody(cloner.CloneExpr(mc.Body));
+          // resolve it again since we just cloned it.
+          ResolveExpression(mc.Body, opts);
+        }
+
+        Contract.Assert(mc.Body.Type != null);  // follows from postcondition of ResolveExpression
+        if (!UnifyTypes(expr.Type, mc.Body.Type)) {
+          Error(mc.Body.tok, "type of case bodies do not agree (found {0}, previous types {1})", mc.Body.Type, expr.Type);
+        }
+        scope.PopMarker();
+      }
+      if (dtd != null && memberNamesUsed.Count != dtd.Ctors.Count) {
+        // We could complain about the syntactic omission of constructors:
+        //   Error(expr, "match expression does not cover all constructors");
+        // but instead we let the verifier do a semantic check.
+        // So, for now, record the missing constructors:
+        foreach (var ctr in dtd.Ctors) {
+          if (!memberNamesUsed.Contains(ctr.Name)) {
+            me.MissingCases.Add(ctr);
+          }
+        }
+        Contract.Assert(memberNamesUsed.Count + me.MissingCases.Count == dtd.Ctors.Count);
+      }
+    }
+
+    /*
+     * Convert
+     *  match (x, y)
+     *    case (Zero, _) => Zero
+     *    case (Suc(_), Zero) => x
+     *    case (Suc(a), Suc(b)) => minus(a, b)
+     * To:  
+     *  match x
+     *    case Zero => match y
+     *        case _ => zero
+     *    case Suc(_) => match y
+     *        case Zero => x
+     *    case Suc(a) => match y
+      *        case (b) => minus(a,b)
+     */
+    private void DesugarMatchExprWithTupleExpression(MatchExpr me) {
+      // (x, y) is treated as a 2-tuple constructor
+      if (me.Source is DatatypeValue) {
+        var e = (DatatypeValue)me.Source;
+        Contract.Assert(e.Arguments.Count >= 1);
+        Expression source = e.Arguments[0];
+        List<MatchCaseExpr> cases = new List<MatchCaseExpr>();
+        foreach (MatchCaseExpr mc in me.Cases) {
+          Contract.Assert(mc.CasePatterns != null);
+          Contract.Assert(mc.CasePatterns.Count == e.Arguments.Count);
+          CasePattern cp = mc.CasePatterns[0];
+          List<CasePattern> patterns;
+          if (cp.Arguments != null) {
+            patterns = cp.Arguments;
+          } else {
+            patterns = new List<CasePattern>();
+          }
+
+          Expression body = mc.Body;
+          for (int i = e.Arguments.Count; 1 <= --i; ) {
+            // others go into the body
+            body = CreateMatchCaseExprBody(mc.tok, e.Arguments[i], mc.CasePatterns[i], body);
+          }
+          cases.Add(new MatchCaseExpr(cp.tok, cp.Id, patterns, body));
+        }
+        me.UpdateSource(source);
+        me.UpdateCases(cases);
+      }
+    }
+
+    Expression CreateMatchCaseExprBody(Boogie.IToken tok, Expression source, CasePattern cp, Expression body) {
+      List<MatchCaseExpr> cases = new List<MatchCaseExpr>();
+      List<CasePattern> patterns;
+      if (cp.Var != null) {
+        var bv = cp.Var;
+        if (LocalVariable.HasWildcardName(bv)) {
+          return body;
+        } else {
+          patterns = new List<CasePattern>();
+        }
+      } else {
+        patterns = cp.Arguments;
+      }
+      cases.Add(new MatchCaseExpr(cp.tok, cp.Id, patterns, body));
+      return new MatchExpr(tok, source, cases, false);
+    }
+
+    /*
+     * Convert
+     *   match xs
+     *     case Cons(y, Cons(z, zs)) => last(Cons(z, zs))
+     *     case Cons(y, Nil) => y
+     * To
+     *   match xs
+     *     case Cons(y, ys) => match ys
+     *       case Nil => y
+     *       case Cons(z, zs) => last(ys)
+     * */
+    void DesugarMatchCaseExpr(MatchExpr me, DatatypeDecl dtd, BoundVar sourceVar, List<CasePattern> patterns) {
+      Contract.Assert(dtd != null);
+      Dictionary<string, DatatypeCtor> ctors = datatypeCtors[dtd];
+      foreach (MatchCaseExpr mc in me.Cases) {
+        if (mc.Arguments != null) {
+          // already desugared. This happens during the second pass resolver after cloning.
+          Contract.Assert(mc.CasePatterns == null);
+          return;
+        }
+
+        Contract.Assert(mc.Arguments == null);
+        Contract.Assert(mc.CasePatterns != null);
+        DatatypeCtor ctor = null;
+        if (ctors != null) {
+          if (!ctors.TryGetValue(mc.Id, out ctor)) {
+            Error(mc.tok, "member {0} does not exist in datatype {1}", mc.Id, dtd.Name);
+          } else {
+            Contract.Assert(ctor != null);  // follows from postcondition of TryGetValue
+            mc.Ctor = ctor;
+            if (ctor.Formals.Count != mc.CasePatterns.Count) {
+              Error(mc.tok, "member {0} has wrong number of formals (found {1}, expected {2})", mc.Id, mc.CasePatterns.Count, ctor.Formals.Count);
+            }
+          }
+        }
+        scope.PushMarker();
+        List<BoundVar> arguments = new List<BoundVar>();
+        foreach (CasePattern pat in mc.CasePatterns) {
+          // Find the constructor in the given datatype
+          // If what was parsed was just an identifier, we will interpret it as a datatype constructor, if possible
+          ctor = null;
+          if (pat.Var == null || (pat.Var != null && pat.Var.Type is TypeProxy && dtd != null)) {
+            if (datatypeCtors[dtd].TryGetValue(pat.Id, out ctor)) {
+              pat.Ctor = ctor;
+              pat.Var = null;
+            }
+          }
+          if (pat.Var != null) {
+            BoundVar v = pat.Var;
+            arguments.Add(v);
+            if (!scope.Push(v.Name, v)) {
+              Error(v, "Duplicate name: {0}", v.Name);
+            }
+          } else {
+            DesugarMatchCasePattern(mc, pat, sourceVar);
+            patterns.Add(pat);
+            arguments.Add(sourceVar);
+          }
+        }
+
+        mc.Arguments = arguments;
+        mc.CasePatterns = null;
+        scope.PopMarker();
+      }
+
+      List<MatchCaseExpr> newCases = new List<MatchCaseExpr>();
+      
+      // need to consolidate the cases.
+      // Convert 
+      //  match xs
+      //    case Cons(y, #mc#0) => match #mc#0
+      //                case Cons((z, zs) => body
+      //    case Cons(y, #mc#0) => match #mc#0
+      //                case Nil => y
+      // into
+      //  match xs
+      //    case Cons(y, #mc#0) => match #mc#0
+      //                case Cons((z, zs) => body
+      //                case Nil => y
+      bool thingsChanged = false;      
+      Dictionary<string, MatchCaseExpr> caseMap = new Dictionary<string, MatchCaseExpr>();
+      List<MatchCaseExpr> mcWithWildCard = new List<MatchCaseExpr>();
+      foreach (MatchCaseExpr mc in me.Cases) {
+        // check each CasePattern to see if it has wildcard.
+        if (CaseExprHasWildCard(mc)) {
+          mcWithWildCard.Add(mc);
+        } else {
+          thingsChanged |= CombineMatchCaseExpr(mc, newCases, caseMap);
+        }
+      }
+
+      foreach (MatchCaseExpr mc in mcWithWildCard) {
+        // now process with cases with wildcard
+        thingsChanged |= CombineMatchCaseExpr(mc, newCases, caseMap);
+      }      
+
+      if (thingsChanged) {
+        me.UpdateCases(newCases);
+      }
+    }
+
+    void DesugarMatchCasePattern(MatchCaseExpr mc, CasePattern pat, BoundVar v) {
+      // convert 
+      //    case Cons(y, Cons(z, zs)) => body
+      // to
+      //    case Cons(y, #mc#) => match #mc#
+      //            case Cons(z, zs) => body
+
+      Expression source = new NameSegment(pat.tok, v.Name, null);
+      List<MatchCaseExpr> cases = new List<MatchCaseExpr>(); 
+      cases.Add(new MatchCaseExpr(pat.tok, pat.Id, pat.Arguments == null ? new List<CasePattern>() : pat.Arguments, mc.Body));
+      MatchExpr e = new MatchExpr(pat.tok, source, cases, false);
+      mc.UpdateBody(e);
+    }
+
+
+    bool CaseExprHasWildCard(MatchCase mc) {
+      foreach (BoundVar bv in mc.Arguments) {
+        if (LocalVariable.HasWildcardName(bv)) {
+          return true;
+        }
+      }
+      return false;
+    }
+
+    bool CombineMatchCaseExpr(MatchCaseExpr mc, List<MatchCaseExpr> newCases, Dictionary<string, MatchCaseExpr> caseMap) {
+      bool thingsChanged = false;
+      MatchCaseExpr old_mc;
+      if (caseMap.TryGetValue(mc.Id, out old_mc)) {
+        // already has a case with the same ctor, try to consolidate the body.
+        Expression oldBody = old_mc.Body;
+        Expression body = mc.Body;
+        if (SameMatchCase(old_mc, mc)) {
+          MatchExpr old = (MatchExpr)oldBody;
+          MatchExpr current = (MatchExpr)body;
+          foreach (MatchCaseExpr c in current.Cases) {
+            old.Cases.Add(c);
+          }
+          thingsChanged = true;
+        } else {
+          // duplicate cases, do nothing for now. The error will be reported during resolving
+        }
+      } else {
+        // it is a new case.
+        newCases.Add(mc);
+        caseMap.Add(mc.Id, mc);
+      }
+      return thingsChanged;
+    }
+
+    bool SameMatchCase(MatchCaseExpr one, MatchCaseExpr other) {
+      // this method is called after all the CasePattern in the match cases are converted
+      // into BoundVars.
+      Contract.Assert(one.CasePatterns == null && one.Arguments != null);
+      Contract.Assert(other.CasePatterns == null && other.Arguments != null);
+      // In order to combine the two match cases, the bodies need to be a MatchExpr and 
+      // the arguments and the source of the body are the same. 
+      // We do string equals since they should be in the same scope.
+      if (one.Arguments.Count != other.Arguments.Count) {
+        return false;
+      }
+      if (!(one.Body is MatchExpr) || !(other.Body is MatchExpr)) {
+        return false;
+      }
+      var source1 = ((MatchExpr)one.Body).Source;
+      var source2 = ((MatchExpr)other.Body).Source;
+      if (!(source1 is NameSegment) || !(source2 is NameSegment)) {
+        return false;
+      }
+      if (!((NameSegment)source1).Name.Equals(((NameSegment)source2).Name)) {
+        return false;       
+      }
+      for (int i = 0; i < one.Arguments.Count; i++) {
+        BoundVar bv1 = one.Arguments[i];
+        BoundVar bv2 = other.Arguments[i];
+        if (!LocalVariable.HasWildcardName(bv1) && !LocalVariable.HasWildcardName(bv2) &&
+            !bv1.Name.Equals(bv2.Name)) {
+          return false;
+        }
+      }
+      return true;
     }
 
     void ResolveCasePattern(CasePattern pat, Type sourceType, ICodeContext context) {
@@ -7419,13 +8002,15 @@ namespace Microsoft.Dafny
         }
         // recursively call ResolveCasePattern on each of the arguments
         var j = 0;
-        foreach (var arg in pat.Arguments) {
-          if (j < ctor.Formals.Count) {
-            var formal = ctor.Formals[j];
-            Type st = SubstType(formal.Type, subst);
-            ResolveCasePattern(arg, st, context);
+        if (pat.Arguments != null) {
+          foreach (var arg in pat.Arguments) {
+            if (j < ctor.Formals.Count) {
+              var formal = ctor.Formals[j];
+              Type st = SubstType(formal.Type, subst);
+              ResolveCasePattern(arg, st, context);
+            }
+            j++;
           }
-          j++;
         }
         if (j == ctor.Formals.Count) {
           pat.AssembleExpr(udt.TypeArgs);
@@ -8156,8 +8741,8 @@ namespace Microsoft.Dafny
               }
               rr.Type = SubstType(callee.ResultType, rr.TypeArgumentSubstitutions);
               // further bookkeeping
-              if (callee is CoPredicate) {
-                ((CoPredicate)callee).Uses.Add(rr);
+              if (callee is FixpointPredicate) {
+                ((FixpointPredicate)callee).Uses.Add(rr);
               }
               AddCallGraphEdge(opts.codeContext, callee, rr);
               r = rr;
@@ -8406,8 +8991,8 @@ namespace Microsoft.Dafny
       } else {
         Function function = (Function)member;
         e.Function = function;
-        if (function is CoPredicate) {
-          ((CoPredicate)function).Uses.Add(e);
+        if (function is FixpointPredicate) {
+          ((FixpointPredicate)function).Uses.Add(e);
         }
         if (e.Receiver is StaticReceiverExpr && !function.IsStatic) {
           Error(e, "an instance function must be selected via an object, not just a class name");
@@ -8965,8 +9550,10 @@ namespace Microsoft.Dafny
         var s = FreeVariables(e.Source);
         foreach (MatchCaseExpr mc in e.Cases) {
           var t = FreeVariables(mc.Body);
-          foreach (var bv in mc.Arguments) {
-            t.Remove(bv);
+          foreach (var cp in mc.CasePatterns) {
+            foreach (var bv in cp.Vars) {
+              t.Remove(bv);
+            }
           }
           s.UnionWith(t);
         }
@@ -9345,65 +9932,66 @@ namespace Microsoft.Dafny
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected expression
       }
-}
+    }
 
 
     /// <summary>
-    /// This method adds to "coConclusions" all copredicate calls and codatatype equalities that occur
-    /// in positive positions and not under existential quantification.  If "expr" is the postcondition
-    /// of a colemma, then the "coConclusions" are the subexpressions that need to be replaced in order
-    /// to create the postcondition of the corresponding prefix lemma.
+    /// This method adds to "friendlyCalls" all
+    ///     inductive calls                                   if !co
+    ///     copredicate calls and codatatype equalities       if co
+    /// that occur in positive positions and not under
+    ///     universal quantification                          if !co
+    ///     existential quantification.                       if co
+    /// If "expr" is the
+    ///     precondition of an inductive lemma                if !co
+    ///     postcondition of a colemma,                       if co
+    /// then the "friendlyCalls" are the subexpressions that need to be replaced in order
+    /// to create the
+    ///     precondition                                      if !co
+    ///     postcondition                                     if co
+    /// of the corresponding prefix lemma.
     /// </summary>
-    void CheckCoLemmaConclusions(Expression expr, bool position, ISet<Expression> coConclusions) {
+    void CollectFriendlyCallsInFixpointLemmaSpecification(Expression expr, bool position, ISet<Expression> friendlyCalls, bool co) {
       Contract.Requires(expr != null);
-      if (expr is ConcreteSyntaxExpression) {
-        var e = (ConcreteSyntaxExpression)expr;
-        CheckCoLemmaConclusions(e.ResolvedExpression, position, coConclusions);
+      Contract.Requires(friendlyCalls != null);
+      var visitor = new CollectFriendlyCallsInSpec_Visitor(this, friendlyCalls, co);
+      visitor.Visit(expr, position ? CallingPosition.Positive : CallingPosition.Negative);
+    }
 
-      } else if (expr is LetExpr) {
-        var e = (LetExpr)expr;
-        // For simplicity, only look in the body of the let expression, that is, ignoring the RHS of the
-        // binding and ignoring what that binding would expand to in the body.
-        CheckCoLemmaConclusions(e.Body, position, coConclusions);
-
-      } else if (expr is UnaryExpr) {
-        var e = (UnaryOpExpr)expr;
-        if (e.Op == UnaryOpExpr.Opcode.Not) {
-          CheckCoLemmaConclusions(e.E, !position, coConclusions);
+    class CollectFriendlyCallsInSpec_Visitor : FindFriendlyCalls_Visitor
+    {
+      readonly ISet<Expression> friendlyCalls;
+      public CollectFriendlyCallsInSpec_Visitor(Resolver resolver, ISet<Expression> friendlyCalls, bool co)
+        : base(resolver, co)
+      {
+        Contract.Requires(resolver != null);
+        Contract.Requires(friendlyCalls != null);
+        this.friendlyCalls = friendlyCalls;
+      }
+      protected override bool VisitOneExpr(Expression expr, ref CallingPosition cp) {
+        if (cp == CallingPosition.Neither) {
+          // no friendly calls in "expr"
+          return false;  // don't recurse into subexpressions
         }
-
-      } else if (expr is BinaryExpr) {
-        var bin = (BinaryExpr)expr;
-        if (bin.ResolvedOp == BinaryExpr.ResolvedOpcode.And || bin.ResolvedOp == BinaryExpr.ResolvedOpcode.Or) {
-          CheckCoLemmaConclusions(bin.E0, position, coConclusions);
-          CheckCoLemmaConclusions(bin.E1, position, coConclusions);
-        } else if (bin.ResolvedOp == BinaryExpr.ResolvedOpcode.Imp) {
-          CheckCoLemmaConclusions(bin.E0, !position, coConclusions);
-          CheckCoLemmaConclusions(bin.E1, position, coConclusions);
-        } else if (position && bin.ResolvedOp == BinaryExpr.ResolvedOpcode.EqCommon && bin.E0.Type.IsCoDatatype) {
-          coConclusions.Add(bin);
-        } else if (!position && bin.ResolvedOp == BinaryExpr.ResolvedOpcode.NeqCommon && bin.E0.Type.IsCoDatatype) {
-          coConclusions.Add(bin);
+        if (expr is FunctionCallExpr) {
+          if (cp == CallingPosition.Positive) {
+            var fexp = (FunctionCallExpr)expr;
+            if (IsCoContext ? fexp.Function is CoPredicate : fexp.Function is InductivePredicate) {
+              friendlyCalls.Add(fexp);
+            }
+          }
+          return false;  // don't explore subexpressions any further
+        } else if (expr is BinaryExpr && IsCoContext) {
+          var bin = (BinaryExpr)expr;
+          if (cp == CallingPosition.Positive && bin.ResolvedOp == BinaryExpr.ResolvedOpcode.EqCommon && bin.E0.Type.IsCoDatatype) {
+            friendlyCalls.Add(bin);
+            return false;  // don't explore subexpressions any further
+          } else if (cp == CallingPosition.Negative && bin.ResolvedOp == BinaryExpr.ResolvedOpcode.NeqCommon && bin.E0.Type.IsCoDatatype) {
+            friendlyCalls.Add(bin);
+            return false;  // don't explore subexpressions any further
+          }
         }
-
-      } else if (expr is ITEExpr) {
-        var ite = (ITEExpr)expr;
-        CheckCoLemmaConclusions(ite.Thn, position, coConclusions);
-        CheckCoLemmaConclusions(ite.Els, position, coConclusions);
-
-      } else if (expr is StmtExpr) {
-        var e = (StmtExpr)expr;
-        CheckCoLemmaConclusions(e.E, position, coConclusions);
-
-      } else if (expr is OldExpr) {
-        var e = (OldExpr)expr;
-        CheckCoLemmaConclusions(e.E, position, coConclusions);
-
-      } else if (expr is FunctionCallExpr && position) {
-        var fexp = (FunctionCallExpr)expr;
-        if (fexp.Function is CoPredicate) {
-          coConclusions.Add(fexp);
-        }
+        return base.VisitOneExpr(expr, ref cp);
       }
     }
   }

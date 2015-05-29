@@ -1118,6 +1118,58 @@ namespace Microsoft.Dafny
     }
 
   }
+
+
+  class MatchCaseExprSubstituteCloner : Cloner
+  {
+    private List<CasePattern> patternSubst;
+    private BoundVar var;
+
+    // the cloner is called after resolving the body of matchexpr, trying
+    // to replace casepattern in the body that has been replaced by bv
+    public MatchCaseExprSubstituteCloner(List<CasePattern> subst, BoundVar var) {
+      this.patternSubst = subst;
+      this.var = var;
+    }
+
+    public override Expression CloneApplySuffix(ApplySuffix e) {
+      // if the ApplySuffix matches the CasePattern, then replace it with the BoundVar.
+      if (FindMatchingPattern(e)) {
+        return new NameSegment(e.tok, this.var.Name, null);
+      } else {
+        return new ApplySuffix(Tok(e.tok), CloneExpr(e.Lhs), e.Args.ConvertAll(CloneExpr));
+      }
+    }
+
+    private bool FindMatchingPattern(ApplySuffix e) {
+      Expression lhs = e.Lhs;
+      if (!(lhs is NameSegment)) {
+        return false;
+      }
+      string applyName = ((NameSegment)lhs).Name;
+      foreach (CasePattern cp in patternSubst) {
+        string ctorName = cp.Id;
+        if (!(applyName.Equals(ctorName)) || (e.Args.Count != cp.Arguments.Count)) {
+          continue;
+        }
+        bool found = true;
+        for (int i = 0; i < e.Args.Count; i++) {
+          var arg1 = e.Args[i];
+          var arg2 = cp.Arguments[i];
+          if (arg1.Resolved is IdentifierExpr) {
+            var bv1 = ((IdentifierExpr)arg1.Resolved).Var;
+            if (bv1 != arg2.Var) {
+              found = false;
+            }
+          }
+        }
+        if (found) {
+          return true;
+        }
+      }
+      return false;
+    }
+  }
 }
 
 

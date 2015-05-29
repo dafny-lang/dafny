@@ -1385,10 +1385,10 @@ namespace Microsoft.Dafny {
               AddFunctionOverrideCheckImpl(f);
             }
           }
-          var cop = f as CoPredicate;
+          var cop = f as FixpointPredicate;
           if (cop != null) {
             AddClassMember_Function(cop.PrefixPredicate);
-            // skip the well-formedness check, because it has already been done for the copredicate
+            // skip the well-formedness check, because it has already been done for the fixpoint-predicate
           }
 
         } else if (member is Method) {
@@ -1413,10 +1413,10 @@ namespace Microsoft.Dafny {
           // the method spec itself
           sink.AddTopLevelDeclaration(AddMethod(m, MethodTranslationKind.InterModuleCall));
           sink.AddTopLevelDeclaration(AddMethod(m, MethodTranslationKind.IntraModuleCall));
-          if (m is CoLemma) {
+          if (m is FixpointLemma) {
             // Let the CoCall and Impl forms to use m.PrefixLemma signature and specification (and
             // note that m.PrefixLemma.Body == m.Body.
-            m = ((CoLemma)m).PrefixLemma;
+            m = ((FixpointLemma)m).PrefixLemma;
             sink.AddTopLevelDeclaration(AddMethod(m, MethodTranslationKind.CoCall));
           }
           if (m.Body != null && !(m.tok is IncludeToken)) {
@@ -1475,9 +1475,9 @@ namespace Microsoft.Dafny {
         var b = FunctionAxiom(f, FunctionAxiomVisibility.ForeignModuleOnly, null, null);
         Contract.Assert(b == null);
       }
-      // supply the connection between co-predicates and prefix predicates
-      if (f is CoPredicate) {
-        AddPrefixPredicateAxioms(((CoPredicate)f).PrefixPredicate);
+      // supply the connection between inductive/coinductive predicates and prefix predicates
+      if (f is FixpointPredicate) {
+        AddPrefixPredicateAxioms(((FixpointPredicate)f).PrefixPredicate);
       }
 
       Reset();
@@ -1875,7 +1875,7 @@ namespace Microsoft.Dafny {
       // TODO(namin) Is checking f.Reads.Count==0 excluding Valid() of BinaryTree in the right way?
       //             I don't see how this in the decreasing clause would help there.
       // danr: Let's create the literal function axioms if there is an arrow type in the signature
-      if (!(f is CoPredicate) && (f.Reads.Count == 0 || f.Formals.Exists(a => a.Type.IsArrowType))) {
+      if (!(f is FixpointPredicate) && (f.Reads.Count == 0 || f.Formals.Exists(a => a.Type.IsArrowType))) {
         var FVs = new HashSet<IVariable>();
         foreach (var e in f.Decreases.Expressions) {
           ComputeFreeVariables(e, FVs);
@@ -2269,26 +2269,27 @@ namespace Microsoft.Dafny {
     }
 
     /// <summary>
-    /// For a copredicate P, "pp" is the prefix predicate for P (such that P = pp.Co) and
+    /// For a fixpoint-predicate P, "pp" is the prefix predicate for P (such that P = pp.FixpointPred) and
     /// "body" is the body of P.  Return what would be the body of the prefix predicate pp.
     /// In particular, return
-    ///   0 LESS _k  IMPLIES  body'
+    ///   0 LESS _k  IMPLIES  body'                        // for co-inductive predicates
+    ///   0 LESS _k  AND  body'                            // for inductive predicates
     /// where body' is body with the formals of P replaced by the corresponding
-    /// formals of pp and with corecursive calls P(s) replaced by recursive calls to
+    /// formals of pp and with self-calls P(s) replaced by recursive calls to
     /// pp(_k - 1, s).
     /// </summary>
     Expression PrefixSubstitution(PrefixPredicate pp, Expression body) {
       Contract.Requires(pp != null);
 
-      var typeMap = Util.Dict<TypeParameter,Type>(pp.Co.TypeArgs, Map(pp.TypeArgs, x => new UserDefinedType(x)));
+      var typeMap = Util.Dict<TypeParameter,Type>(pp.FixpointPred.TypeArgs, Map(pp.TypeArgs, x => new UserDefinedType(x)));
 
       var paramMap = new Dictionary<IVariable, Expression>();
-      for (int i = 0; i < pp.Co.Formals.Count; i++) {
+      for (int i = 0; i < pp.FixpointPred.Formals.Count; i++) {
         var replacement = pp.Formals[i + 1];  // the +1 is to skip pp's _k parameter
         var param = new IdentifierExpr(replacement.tok, replacement.Name);
         param.Var = replacement;  // resolve here
         param.Type = replacement.Type;  // resolve here
-        paramMap.Add(pp.Co.Formals[i], param);
+        paramMap.Add(pp.FixpointPred.Formals[i], param);
       }
 
       var k = new IdentifierExpr(pp.tok, pp.K.Name);
@@ -2296,12 +2297,17 @@ namespace Microsoft.Dafny {
       k.Type = pp.K.Type;  // resolve here
       var kMinusOne = Expression.CreateSubtract(k, Expression.CreateIntLiteral(pp.tok, 1));
 
-      var s = new PrefixCallSubstituter(null, paramMap, typeMap, pp.Co, kMinusOne, this);
+      var s = new PrefixCallSubstituter(null, paramMap, typeMap, pp.FixpointPred, kMinusOne, this);
       body = s.Substitute(body);
 
-      // add antecedent "0 < _k ==>"
       var kIsPositive = Expression.CreateLess(Expression.CreateIntLiteral(pp.tok, 0), k);
-      return Expression.CreateImplies(kIsPositive, body);
+      if (pp.FixpointPred is CoPredicate) {
+        // add antecedent "0 < _k ==>"
+        return Expression.CreateImplies(kIsPositive, body);
+      } else {
+        // add initial conjunct "0 < _k &&"
+        return Expression.CreateAnd(kIsPositive, body);
+      }
     }
 
     void AddSynonymAxiom(Function f) {
@@ -2357,25 +2363,28 @@ namespace Microsoft.Dafny {
     }
 
     /// <summary>
+    /// In the following,
+    /// if "pp" is a co-predicate, then QQQ and NNN and HHH stand for "forall" and "" and "==>, and
+    /// if "pp" is an inductive predicate, then QQQ and NNN and HHH stand for "exists" and "!" and "&&".
+    /// ==========  For co-predicates:
     /// Add the axioms:
-    ///   forall args :: P(args) ==> forall k: nat :: P#[k](args)
-    ///   forall args :: (forall k: nat :: P#[k](args)) ==> P(args)
-    ///   forall args,k :: k == 0 ==> P#[k](args)
+    ///   forall args :: P(args) ==> QQQ k: nat :: P#[k](args)
+    ///   forall args :: (QQQ k: nat :: P#[k](args)) ==> P(args)
+    ///   forall args,k :: k == 0 ==> NNN P#[k](args)
     /// where "args" is "heap, formals".  In more details:
-    ///   AXIOM_ACTIVATION ==> forall args :: { P(args) } args-have-appropriate-values && P(args) ==> forall k { P#[k](args) } :: 0 ATMOST k ==> P#[k](args)
-    ///   AXIOM_ACTIVATION ==> forall args :: { P(args) } args-have-appropriate-values && (forall k :: 0 ATMOST k ==> P#[k](args)) ==> P(args)
-    ///   AXIOM_ACTIVATION ==> forall args,k :: args-have-appropriate-values && k == 0 ==> P#0#[k](args)
+    ///   AXIOM_ACTIVATION ==> forall args :: { P(args) } args-have-appropriate-values && P(args) ==> QQQ k { P#[k](args) } :: 0 ATMOST k HHH P#[k](args)
+    ///   AXIOM_ACTIVATION ==> forall args :: { P(args) } args-have-appropriate-values && (QQQ k :: 0 ATMOST k HHH P#[k](args)) ==> P(args)
+    ///   AXIOM_ACTIVATION ==> forall args,k :: args-have-appropriate-values && k == 0 ==> NNN P#0#[k](args)
     /// where
     /// AXIOM_ACTIVATION
     /// means:
     ///   mh LESS ModuleContextHeight ||
     ///   (mh == ModuleContextHeight && fh ATMOST FunctionContextHeight)
-
     /// </summary>
     void AddPrefixPredicateAxioms(PrefixPredicate pp) {
       Contract.Requires(pp != null);
       Contract.Requires(predef != null);
-      var co = pp.Co;
+      var co = pp.FixpointPred;
       var tok = pp.tok;
       var etran = new ExpressionTranslator(this, predef, tok);
 
@@ -2418,7 +2427,6 @@ namespace Microsoft.Dafny {
         ante = Bpl.Expr.And(ante, wh);
       }
 
-
       Bpl.Expr kWhere = null, kId = null;
       Bpl.Variable k = null;
 
@@ -2455,26 +2463,31 @@ namespace Microsoft.Dafny {
 
       var activation = AxiomActivation(pp, true, true, etran);
 
-      // forall args :: { P(args) } args-have-appropriate-values && P(args) ==> forall k { P#[k](args) } :: 0 ATMOST k ==> P#[k](args)
+      // forall args :: { P(args) } args-have-appropriate-values && P(args) ==> QQQ k { P#[k](args) } :: 0 ATMOST k ==> P#[k](args)
       var tr = new Bpl.Trigger(tok, true, new List<Bpl.Expr> { prefixAppl });
-      var allK = new Bpl.ForallExpr(tok, new List<Variable> { k }, tr, BplImp(kWhere, prefixAppl));
+      var qqqK = pp.FixpointPred is CoPredicate ?
+        (Bpl.Expr)new Bpl.ForallExpr(tok, new List<Variable> { k }, tr, BplImp(kWhere, prefixAppl)) :
+        (Bpl.Expr)new Bpl.ExistsExpr(tok, new List<Variable> { k }, tr, BplAnd(kWhere, prefixAppl));
       tr = new Bpl.Trigger(tok, true, new List<Bpl.Expr> { coAppl });
-      var allS = new Bpl.ForallExpr(tok, bvs, tr, BplImp(BplAnd(ante, coAppl), allK));
+      var allS = new Bpl.ForallExpr(tok, bvs, tr, BplImp(BplAnd(ante, coAppl), qqqK));
       sink.AddTopLevelDeclaration(new Bpl.Axiom(tok, Bpl.Expr.Imp(activation, allS),
         "1st prefix predicate axiom for " + pp.FullSanitizedName));
 
-      // forall args :: { P(args) } args-have-appropriate-values && (forall k :: 0 ATMOST k ==> P#[k](args)) ==> P(args)
-      allS = new Bpl.ForallExpr(tok, bvs, tr, BplImp(BplAnd(ante, allK), coAppl));
+      // forall args :: { P(args) } args-have-appropriate-values && (QQQ k :: 0 ATMOST k ==> P#[k](args)) ==> P(args)
+      allS = new Bpl.ForallExpr(tok, bvs, tr, BplImp(BplAnd(ante, qqqK), coAppl));
       sink.AddTopLevelDeclaration(new Bpl.Axiom(tok, Bpl.Expr.Imp(activation, allS),
         "2nd prefix predicate axiom"));
 
-      // forall args,k :: args-have-appropriate-values && k == 0 ==> P#0#[k](args)
+      // forall args,k :: args-have-appropriate-values && k == 0 ==> NNN P#0#[k](args)
       var moreBvs = new List<Variable>();
       moreBvs.AddRange(bvs);
       moreBvs.Add(k);
       var z = Bpl.Expr.Eq(kId, Bpl.Expr.Literal(0));
       funcID = new Bpl.IdentifierExpr(tok, pp.FullSanitizedName, TrType(pp.ResultType));
-      var prefixLimited = new Bpl.NAryExpr(tok, new Bpl.FunctionCall(funcID), prefixArgsLimited);
+      Bpl.Expr prefixLimited = new Bpl.NAryExpr(tok, new Bpl.FunctionCall(funcID), prefixArgsLimited);
+      if (pp.FixpointPred is InductivePredicate) {
+        prefixLimited = Bpl.Expr.Not(prefixLimited);
+      }
       var trueAtZero = new Bpl.ForallExpr(tok, moreBvs, BplImp(BplAnd(ante, z), prefixLimited));
       sink.AddTopLevelDeclaration(new Bpl.Axiom(tok, Bpl.Expr.Imp(activation, trueAtZero),
         "3rd prefix predicate axiom"));
@@ -2717,7 +2730,7 @@ namespace Microsoft.Dafny {
 
       Bpl.StmtList stmts;
       if (!wellformednessProc) {
-        if (3 <= DafnyOptions.O.Induction && m.IsGhost && m.Mod.Expressions.Count == 0 && m.Outs.Count == 0 && !(m is CoLemma)) {
+        if (3 <= DafnyOptions.O.Induction && m.IsGhost && m.Mod.Expressions.Count == 0 && m.Outs.Count == 0 && !(m is FixpointLemma)) {
           var posts = new List<Expression>();
           m.Ens.ForEach(mfe => posts.Add(mfe.E));
           var allIns = new List<Formal>();
@@ -3875,10 +3888,30 @@ namespace Microsoft.Dafny {
 #endif
     }
 
-    Bpl.Expr/*!*/ InRWClause(IToken tok, Bpl.Expr o, Bpl.Expr f, List<FrameExpression> rw, ExpressionTranslator etran,
-                             Expression receiverReplacement, Dictionary<IVariable,Expression> substMap) {
+    Bpl.Expr InRWClause(IToken tok, Bpl.Expr o, Bpl.Expr f, List<FrameExpression> rw, ExpressionTranslator etran,
+                        Expression receiverReplacement, Dictionary<IVariable, Expression> substMap) {
       Contract.Requires(tok != null);
       Contract.Requires(o != null);
+      // Contract.Requires(f != null); // f == null means approximate
+      Contract.Requires(etran != null);
+      Contract.Requires(cce.NonNullElements(rw));
+      Contract.Requires(substMap == null || cce.NonNullDictionaryAndValues(substMap));
+      Contract.Requires(predef != null);
+      Contract.Requires((receiverReplacement == null) == (substMap == null));
+      Contract.Ensures(Contract.Result<Bpl.Expr>() != null);
+      var boxO = FunctionCall(tok, BuiltinFunction.Box, null, o);
+      return InRWClause_Aux(tok, o, boxO, f, rw, etran, receiverReplacement, substMap);
+    }
+
+    /// <summary>
+    /// By taking both an "o" and a "boxO" parameter, the caller has a choice of passing in either
+    /// "o, Box(o)" for some "o" or "Unbox(bx), bx" for some "bx".
+    /// </summary>
+    Bpl.Expr InRWClause_Aux(IToken tok, Bpl.Expr o, Bpl.Expr boxO, Bpl.Expr f, List<FrameExpression> rw, ExpressionTranslator etran,
+                        Expression receiverReplacement, Dictionary<IVariable, Expression> substMap) {
+      Contract.Requires(tok != null);
+      Contract.Requires(o != null);
+      Contract.Requires(boxO != null);
       // Contract.Requires(f != null); // f == null means approximate
       Contract.Requires(etran != null);
       Contract.Requires(cce.NonNullElements(rw));
@@ -3905,11 +3938,10 @@ namespace Microsoft.Dafny {
         if (e is WildcardExpr) {
           disjunct = Bpl.Expr.True;
         } else if (eType is SetType) {
-          // old(e)[Box(o)]
-          disjunct = etran.TrInSet(tok, o, e, ((SetType)eType).Arg);
+          // e[Box(o)]
+          disjunct = etran.TrInSet_Aux(tok, o, boxO, e);
         } else if (eType is SeqType) {
-          // (exists i: int :: 0 <= i && i < Seq#Length(old(e)) && Seq#Index(old(e),i) == Box(o))
-          Bpl.Expr boxO = FunctionCall(tok, BuiltinFunction.Box, null, o);
+          // (exists i: int :: 0 <= i && i < Seq#Length(e) && Seq#Index(e,i) == Box(o))
           Bpl.Variable iVar = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, "$i", Bpl.Type.Int));
           Bpl.Expr i = new Bpl.IdentifierExpr(tok, iVar);
           Bpl.Expr iBounds = InSeqRange(tok, i, etran.TrExpr(e), true, null, false);
@@ -3917,7 +3949,7 @@ namespace Microsoft.Dafny {
           // TODO: the equality in the next line should be changed to one that understands extensionality
           disjunct = new Bpl.ExistsExpr(tok, new List<Variable> { iVar }, Bpl.Expr.And(iBounds, Bpl.Expr.Eq(XsubI, boxO)));
         } else {
-          // o == old(e)
+          // o == e
           disjunct = Bpl.Expr.Eq(o, etran.TrExpr(e));
         }
         if (rwComponent.Field != null && f != null) {
@@ -4911,7 +4943,7 @@ namespace Microsoft.Dafny {
         }
 
         Bpl.Expr allowance = null;
-        if (codeContext != null && e.CoCall != FunctionCallExpr.CoCallResolution.Yes && !(e.Function is CoPredicate)) {
+        if (codeContext != null && e.CoCall != FunctionCallExpr.CoCallResolution.Yes && !(e.Function is FixpointPredicate)) {
           // check that the decreases measure goes down
           if (ModuleDefinition.InSameSCC(e.Function, codeContext)) {
             List<Expression> contextDecreases = codeContext.Decreases.Expressions;
@@ -4951,8 +4983,8 @@ namespace Microsoft.Dafny {
                 Contract.Assert(false);  // unexpected CoCallResolution
                 goto case FunctionCallExpr.CoCallResolution.No;  // please the compiler
             }
-            CheckCallTermination(expr.tok, contextDecreases, calleeDecreases, allowance, e.Receiver, substMap, etran, etran, builder,
-              codeContext.InferredDecreases, hint);
+            CheckCallTermination(expr.tok, contextDecreases, calleeDecreases, allowance, e.Receiver, substMap, e.TypeArgumentSubstitutions,
+              etran, etran, builder, codeContext.InferredDecreases, hint);
           }
 
         }
@@ -5494,13 +5526,14 @@ namespace Microsoft.Dafny {
 
           var fhandle = FunctionCall(f.tok, name, predef.HandleType, SnocSelf(args));
           var lhs = FunctionCall(f.tok, Requires(arity), Bpl.Type.Bool, Concat(tyargs, Cons(fhandle, Cons(h, lhs_args))));
-          var rhs = BplOr(
-            FunctionCall(f.tok, RequiresName(f), Bpl.Type.Bool, Concat(SnocSelf(Snoc(args, h)), rhs_args)),
-            MakeScrambler(f.tok, f.FullSanitizedName + "#lessReq", Concat(vars, bvars)));
-
-          // In case this is the /requires/ or /reads/ function, then there is no precondition
+          Bpl.Expr rhs;
           if (fromArrowType) {
+            // In case this is the /requires/ or /reads/ function, then there is no precondition
             rhs = Bpl.Expr.True;
+          } else {
+            rhs = BplOr(
+              FunctionCall(f.tok, RequiresName(f), Bpl.Type.Bool, Concat(SnocSelf(Snoc(args, h)), rhs_args)),
+              MakeScrambler(f.tok, f.FullSanitizedName + "#lessReq", Concat(vars, bvars)));
           }
 
           sink.AddTopLevelDeclaration(new Axiom(f.tok,
@@ -5508,22 +5541,21 @@ namespace Microsoft.Dafny {
         }
 
         {
-          // Reads(Ty.., F#Handle( Ty1, ..., TyN, Layer, self), Heap, arg1, ..., argN)[Box(o)]
-          //   =  $Frame_F(args...)[o]
-          // //  && Scramble(...)
+          // Reads(Ty.., F#Handle( Ty1, ..., TyN, Layer, self), Heap, arg1, ..., argN)
+          //   =  $Frame_F(args...)
 
           var fhandle = FunctionCall(f.tok, name, predef.HandleType, SnocSelf(args));
-          Bpl.Expr o; var oVar = BplBoundVar("o", predef.RefType, out o);
-          Bpl.Expr lhs_inner = FunctionCall(f.tok, Reads(arity), Bpl.Type.Bool, Concat(tyargs, Cons(fhandle, Cons(h, lhs_args))));
-          Bpl.Expr lhs = new Bpl.NAryExpr(f.tok, new Bpl.MapSelect(f.tok, 1),
-            new List<Bpl.Expr> { lhs_inner, FunctionCall(f.tok, BuiltinFunction.Box, null, o) });
+          Bpl.Expr lhs_inner = FunctionCall(f.tok, Reads(arity), TrType(new SetType(new ObjectType())), Concat(tyargs, Cons(fhandle, Cons(h, lhs_args))));
+
+          Bpl.Expr bx; var bxVar = BplBoundVar("$bx", predef.BoxType, out bx);
+          Bpl.Expr unboxBx = FunctionCall(f.tok, BuiltinFunction.Unbox, predef.RefType, bx);
+          Bpl.Expr lhs = Bpl.Expr.SelectTok(f.tok, lhs_inner, bx);
 
           var et = new ExpressionTranslator(this, predef, h);
-          var rhs = InRWClause(f.tok, o, null, f.Reads, et, selfExpr, rhs_dict);
-                           // MakeScrambler(f.tok, f.FullSanitizedName + "#extraReads", Cons(oVar, Concat(vars, bvars))));
+          var rhs = InRWClause_Aux(f.tok, unboxBx, bx, null, f.Reads, et, selfExpr, rhs_dict);
 
           sink.AddTopLevelDeclaration(new Axiom(f.tok,
-            BplForall(Cons(oVar, Concat(vars, bvars)), BplTrigger(lhs), Bpl.Expr.Eq(lhs, rhs))));
+            BplForall(Cons(bxVar, Concat(vars, bvars)), BplTrigger(lhs), Bpl.Expr.Eq(lhs, rhs))));
         }
       }
       return name;
@@ -5616,8 +5648,8 @@ namespace Microsoft.Dafny {
           Func<Bpl.Expr, Bpl.Expr, Bpl.Expr> op = Bpl.Expr.Eq;
           if (selectorVar == "rd") {
             var bx = BplBoundVar("bx", predef.BoxType, bvars);
-            lhs = new Bpl.NAryExpr(tok, new Bpl.MapSelect(tok, 1), new List<Bpl.Expr> { lhs, bx });
-            rhs = new Bpl.NAryExpr(tok, new Bpl.MapSelect(tok, 1), new List<Bpl.Expr> { rhs, bx });
+            lhs = Bpl.Expr.SelectTok(tok, lhs, bx);
+            rhs = Bpl.Expr.SelectTok(tok, rhs, bx);
             // op = Bpl.Expr.Imp;
           }
           if (selectorVar == "r") {
@@ -8573,7 +8605,7 @@ namespace Microsoft.Dafny {
         // Note, prefix lemmas are not recorded in the call graph, but their corresponding colemmas are.
         // Similarly, an iterator is not recorded in the call graph, but its MoveNext method is.
         ICallable cllr =
-          codeContext is PrefixLemma ? ((PrefixLemma)codeContext).Co :
+          codeContext is PrefixLemma ? ((PrefixLemma)codeContext).FixpointLemma :
           codeContext is IteratorDecl ? ((IteratorDecl)codeContext).Member_MoveNext :
           codeContext;
         if (ModuleDefinition.InSameSCC(method, cllr)) {
@@ -8583,9 +8615,9 @@ namespace Microsoft.Dafny {
 
       MethodTranslationKind kind;
       var callee = method;
-      if (method is CoLemma && isRecursiveCall) {
+      if (method is FixpointLemma && isRecursiveCall) {
         kind = MethodTranslationKind.CoCall;
-        callee = ((CoLemma)method).PrefixLemma;
+        callee = ((FixpointLemma)method).PrefixLemma;
       } else if (method is PrefixLemma) {
         // an explicit call to a prefix lemma is allowed only inside the SCC of the corresponding colemma,
         // so we consider this to be a co-call
@@ -8626,13 +8658,13 @@ namespace Microsoft.Dafny {
 
         var param = (Bpl.IdentifierExpr)etran.TrExpr(ie);  // TODO: is this cast always justified?
         Bpl.Expr bActual;
-        if (i == 0 && method is CoLemma && isRecursiveCall) {
+        if (i == 0 && method is FixpointLemma && isRecursiveCall) {
           // Treat this call to M(args) as a call to the corresponding prefix lemma M#(_k - 1, args), so insert an argument here.
           var k = ((PrefixLemma)codeContext).K;
           bActual = Bpl.Expr.Sub(new Bpl.IdentifierExpr(k.tok, k.AssignUniqueName(currentDeclaration.IdGenerator), Bpl.Type.Int), Bpl.Expr.Literal(1));
         } else {
           Expression actual;
-          if (method is CoLemma && isRecursiveCall) {
+          if (method is FixpointLemma && isRecursiveCall) {
             actual = Args[i - 1];
           } else {
             actual = Args[i];
@@ -8659,7 +8691,7 @@ namespace Microsoft.Dafny {
         Contract.Assert(codeContext != null);
         List<Expression> contextDecreases = codeContext.Decreases.Expressions;
         List<Expression> calleeDecreases = callee.Decreases.Expressions;
-        CheckCallTermination(tok, contextDecreases, calleeDecreases, null, receiver, substMap, etran, etran.Old, builder, codeContext.InferredDecreases, null);
+        CheckCallTermination(tok, contextDecreases, calleeDecreases, null, receiver, substMap, tySubst, etran, etran.Old, builder, codeContext.InferredDecreases, null);
       }
 
       // Create variables to hold the output parameters of the call, so that appropriate unboxes can be introduced.
@@ -8770,6 +8802,7 @@ namespace Microsoft.Dafny {
     void CheckCallTermination(IToken tok, List<Expression> contextDecreases, List<Expression> calleeDecreases,
                               Bpl.Expr allowance,
                               Expression receiverReplacement, Dictionary<IVariable,Expression> substMap,
+                              Dictionary<TypeParameter, Type> typeMap,
                               ExpressionTranslator etranCurrent, ExpressionTranslator etranInitial, Bpl.StmtListBuilder builder, bool inferredDecreases, string hint) {
       Contract.Requires(tok != null);
       Contract.Requires(cce.NonNullElements(contextDecreases));
@@ -8801,7 +8834,7 @@ namespace Microsoft.Dafny {
         tok = new ForceCheckToken(tok);
       }
       for (int i = 0; i < N; i++) {
-        Expression e0 = Substitute(calleeDecreases[i], receiverReplacement, substMap);
+        Expression e0 = Substitute(calleeDecreases[i], receiverReplacement, substMap, typeMap);
         Expression e1 = contextDecreases[i];
         if (!CompatibleDecreasesTypes(e0.Type, e1.Type)) {
           N = i;
@@ -11513,18 +11546,32 @@ namespace Microsoft.Dafny {
         Contract.Requires(elmt != null);
         Contract.Requires(s != null);
         Contract.Requires(elmtType != null);
+        Contract.Ensures(Contract.Result<Bpl.Expr>() != null);
 
+        var elmtBox = BoxIfNecessary(tok, elmt, elmtType);
+        return TrInSet_Aux(tok, elmt, elmtBox, s);
+      }
+      /// <summary>
+      /// The worker routine for TrInSet.  This method takes both "elmt" and "elmtBox" as parameters,
+      /// using the former when the unboxed form is needed and the latter when the boxed form is needed.
+      /// This gives the caller the flexibility to pass in either "o, Box(o)" or "Unbox(bx), bx".
+      /// </summary>
+      public Bpl.Expr TrInSet_Aux(IToken tok, Bpl.Expr elmt, Bpl.Expr elmtBox, Expression s) {
+        Contract.Requires(tok != null);
+        Contract.Requires(elmt != null);
+        Contract.Requires(elmtBox != null);
+        Contract.Requires(s != null);
         Contract.Ensures(Contract.Result<Bpl.Expr>() != null);
 
         if (s is BinaryExpr) {
           BinaryExpr bin = (BinaryExpr)s;
           switch (bin.ResolvedOp) {
             case BinaryExpr.ResolvedOpcode.Union:
-              return Bpl.Expr.Or(TrInSet(tok, elmt, bin.E0, elmtType), TrInSet(tok, elmt, bin.E1, elmtType));
+              return Bpl.Expr.Or(TrInSet_Aux(tok, elmt, elmtBox, bin.E0), TrInSet_Aux(tok, elmt, elmtBox, bin.E1));
             case BinaryExpr.ResolvedOpcode.Intersection:
-              return Bpl.Expr.And(TrInSet(tok, elmt, bin.E0, elmtType), TrInSet(tok, elmt, bin.E1, elmtType));
+              return Bpl.Expr.And(TrInSet_Aux(tok, elmt, elmtBox, bin.E0), TrInSet_Aux(tok, elmt, elmtBox, bin.E1));
             case BinaryExpr.ResolvedOpcode.SetDifference:
-              return Bpl.Expr.And(TrInSet(tok, elmt, bin.E0, elmtType), Bpl.Expr.Not(TrInSet(tok, elmt, bin.E1, elmtType)));
+              return Bpl.Expr.And(TrInSet_Aux(tok, elmt, elmtBox, bin.E0), Bpl.Expr.Not(TrInSet_Aux(tok, elmt, elmtBox, bin.E1)));
             default:
               break;
           }
@@ -11545,7 +11592,7 @@ namespace Microsoft.Dafny {
             return disjunction;
           }
         }
-        return Bpl.Expr.SelectTok(tok, TrExpr(s), BoxIfNecessary(tok, elmt, elmtType));
+        return Bpl.Expr.SelectTok(tok, TrExpr(s), elmtBox);
       }
 
       /// <summary>
@@ -13151,23 +13198,23 @@ namespace Microsoft.Dafny {
     }
     public class PrefixCallSubstituter : Substituter
     {
-      readonly CoPredicate coPred;
-      readonly Expression coDepth;
+      readonly FixpointPredicate fixpointPred;
+      readonly Expression unrollDepth;
       readonly ModuleDefinition module;
-      public PrefixCallSubstituter(Expression receiverReplacement, Dictionary<IVariable, Expression/*!*/>/*!*/ substMap, Dictionary<TypeParameter, Type> tySubstMap, CoPredicate copred, Expression depth, Translator translator)
+      public PrefixCallSubstituter(Expression receiverReplacement, Dictionary<IVariable, Expression/*!*/>/*!*/ substMap, Dictionary<TypeParameter, Type> tySubstMap, FixpointPredicate fixpointpred, Expression depth, Translator translator)
         : base(receiverReplacement, substMap, tySubstMap, translator) {
-        Contract.Requires(copred != null);
+        Contract.Requires(fixpointpred != null);
         Contract.Requires(depth != null);
-        coPred = copred;
-        coDepth = depth;
-        module = copred.EnclosingClass.Module;
+        fixpointPred = fixpointpred;
+        unrollDepth = depth;
+        module = fixpointpred.EnclosingClass.Module;
       }
       public override Expression Substitute(Expression expr) {
         if (expr is FunctionCallExpr) {
           var e = (FunctionCallExpr)expr;
-          var cof = e.Function as CoPredicate;
-          if (cof != null && ModuleDefinition.InSameSCC(cof, coPred)) {
-            expr = cof.CreatePrefixPredicateCall(e, coDepth);
+          var cof = e.Function as FixpointPredicate;
+          if (cof != null && ModuleDefinition.InSameSCC(cof, fixpointPred)) {
+            expr = cof.CreatePrefixPredicateCall(e, unrollDepth);
           }
         }
         return base.Substitute(expr);

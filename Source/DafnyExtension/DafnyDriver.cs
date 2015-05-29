@@ -239,6 +239,11 @@ namespace DafnyLanguage
       return Dafny.DafnyOptions.Clo.VerifySnapshots;
     }
 
+    public static void SetDiagnoseTimeouts(bool v)
+    {
+      Dafny.DafnyOptions.Clo.RunDiagnosticsOnTimeout = v;
+    }
+
     public static int ChangeIncrementalVerification(int mode)
     {
       var old = Dafny.DafnyOptions.Clo.VerifySnapshots;

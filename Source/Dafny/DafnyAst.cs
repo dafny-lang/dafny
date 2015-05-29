@@ -633,7 +633,7 @@ namespace Microsoft.Dafny {
     /// </summary>
     public bool IsOrdered {
       get {
-        return !IsTypeParameter && !IsCoDatatype && !(this is MapType && ((MapType)this).Finite);
+        return !IsTypeParameter && !IsCoDatatype && !IsArrowType && !IsIMapType;
       }
     }
 
@@ -1793,12 +1793,12 @@ namespace Microsoft.Dafny {
       }
     }
 
-      public static IEnumerable<CoLemma> AllCoLemmas(List<TopLevelDecl> declarations) {
+      public static IEnumerable<FixpointLemma> AllFixpointLemmas(List<TopLevelDecl> declarations) {
       foreach (var d in declarations) {
         var cl = d as ClassDecl;
         if (cl != null) {
           foreach (var member in cl.Members) {
-            var m = member as CoLemma;
+            var m = member as FixpointLemma;
             if (m != null) {
               yield return m;
             }
@@ -2023,6 +2023,7 @@ namespace Microsoft.Dafny {
           TypeParametersUsedInConstructionByDefaultCtor[i] = true;
         }
       }
+      this.EqualitySupport = ES.ConsultTypeArguments;
     }
     private static List<TypeParameter> CreateTypeParameters(int dims) {
       Contract.Requires(0 <= dims);
@@ -2881,7 +2882,7 @@ namespace Microsoft.Dafny {
     }
 
     /// <summary>
-    /// The "AllCalls" field is used for non-CoPredicate, non-PrefixPredicate functions only (so its value should not be relied upon for CoPredicate and PrefixPredicate functions).
+    /// The "AllCalls" field is used for non-FixpointPredicate, non-PrefixPredicate functions only (so its value should not be relied upon for FixpointPredicate and PrefixPredicate functions).
     /// It records all function calls made by the Function, including calls made in the body as well as in the specification.
     /// The field is filled in during resolution (and used toward the end of resolution, to attach a helpful "decreases" prefix to functions in clusters
     /// with co-recursive calls.
@@ -2971,36 +2972,35 @@ namespace Microsoft.Dafny {
   }
 
   /// <summary>
-  /// An PrefixPredicate is the inductive unrolling P# implicitly declared for every copredicate P.
+  /// An PrefixPredicate is the inductive unrolling P# implicitly declared for every fixpoint-predicate P.
   /// </summary>
   public class PrefixPredicate : Function
   {
     public override string WhatKind { get { return "prefix predicate"; } }
     public readonly Formal K;
-    public readonly CoPredicate Co;
+    public readonly FixpointPredicate FixpointPred;
     public PrefixPredicate(IToken tok, string name, bool hasStaticKeyword, bool isProtected,
                      List<TypeParameter> typeArgs, Formal k, List<Formal> formals,
                      List<Expression> req, List<FrameExpression> reads, List<Expression> ens, Specification<Expression> decreases,
-                     Expression body, Attributes attributes, CoPredicate coPred)
+                     Expression body, Attributes attributes, FixpointPredicate fixpointPred)
       : base(tok, name, hasStaticKeyword, isProtected, true, typeArgs, formals, new BoolType(), req, reads, ens, decreases, body, attributes, null) {
       Contract.Requires(k != null);
-      Contract.Requires(coPred != null);
+      Contract.Requires(fixpointPred != null);
       Contract.Requires(formals != null && 1 <= formals.Count && formals[0] == k);
       K = k;
-      Co = coPred;
+      FixpointPred = fixpointPred;
     }
   }
 
-  public class CoPredicate : Function
+  public abstract class FixpointPredicate : Function
   {
-    public override string WhatKind { get { return "copredicate"; } }
     public readonly List<FunctionCallExpr> Uses = new List<FunctionCallExpr>();  // filled in during resolution, used by verifier
     public PrefixPredicate PrefixPredicate;  // filled in during resolution (name registration)
 
-    public CoPredicate(IToken tok, string name, bool hasStaticKeyword, bool isProtected,
-                     List<TypeParameter> typeArgs, List<Formal> formals,
-                     List<Expression> req, List<FrameExpression> reads, List<Expression> ens,
-                     Expression body, Attributes attributes, IToken signatureEllipsis)
+    public FixpointPredicate(IToken tok, string name, bool hasStaticKeyword, bool isProtected,
+                             List<TypeParameter> typeArgs, List<Formal> formals,
+                             List<Expression> req, List<FrameExpression> reads, List<Expression> ens,
+                             Expression body, Attributes attributes, IToken signatureEllipsis)
       : base(tok, name, hasStaticKeyword, isProtected, true, typeArgs, formals, new BoolType(),
              req, reads, ens, new Specification<Expression>(new List<Expression>(), null), body, attributes, signatureEllipsis) {
     }
@@ -3032,6 +3032,30 @@ namespace Microsoft.Dafny {
       prefixPredCall.Type = fexp.Type;  // resolve here
       prefixPredCall.CoCall = fexp.CoCall;  // resolve here
       return prefixPredCall;
+    }
+  }
+
+  public class InductivePredicate : FixpointPredicate
+  {
+    public override string WhatKind { get { return "inductive predicate"; } }
+    public InductivePredicate(IToken tok, string name, bool hasStaticKeyword, bool isProtected,
+                              List<TypeParameter> typeArgs, List<Formal> formals,
+                              List<Expression> req, List<FrameExpression> reads, List<Expression> ens,
+                              Expression body, Attributes attributes, IToken signatureEllipsis)
+      : base(tok, name, hasStaticKeyword, isProtected, typeArgs, formals,
+             req, reads, ens, body, attributes, signatureEllipsis) {
+    }
+  }
+
+  public class CoPredicate : FixpointPredicate
+  {
+    public override string WhatKind { get { return "copredicate"; } }
+    public CoPredicate(IToken tok, string name, bool hasStaticKeyword, bool isProtected,
+                       List<TypeParameter> typeArgs, List<Formal> formals,
+                       List<Expression> req, List<FrameExpression> reads, List<Expression> ens,
+                       Expression body, Attributes attributes, IToken signatureEllipsis)
+      : base(tok, name, hasStaticKeyword, isProtected, typeArgs, formals,
+             req, reads, ens, body, attributes, signatureEllipsis) {
     }
   }
 
@@ -3187,24 +3211,75 @@ namespace Microsoft.Dafny {
   {
     public override string WhatKind { get { return "prefix lemma"; } }
     public readonly Formal K;
-    public readonly CoLemma Co;
+    public readonly FixpointLemma FixpointLemma;
     public PrefixLemma(IToken tok, string name, bool hasStaticKeyword,
                        List<TypeParameter> typeArgs, Formal k, List<Formal> ins, List<Formal> outs,
                        List<MaybeFreeExpression> req, Specification<FrameExpression> mod, List<MaybeFreeExpression> ens, Specification<Expression> decreases,
-                       BlockStmt body, Attributes attributes, CoLemma co)
+                       BlockStmt body, Attributes attributes, FixpointLemma fixpointLemma)
       : base(tok, name, hasStaticKeyword, true, typeArgs, ins, outs, req, mod, ens, decreases, body, attributes, null) {
       Contract.Requires(k != null);
       Contract.Requires(ins != null && 1 <= ins.Count && ins[0] == k);
-      Contract.Requires(co != null);
+      Contract.Requires(fixpointLemma != null);
       K = k;
-      Co = co;
+      FixpointLemma = fixpointLemma;
     }
   }
 
-  public class CoLemma : Method
+  public abstract class FixpointLemma : Method
+  {
+    public PrefixLemma PrefixLemma;  // filled in during resolution (name registration)
+
+    public FixpointLemma(IToken tok, string name,
+                         bool hasStaticKeyword,
+                         List<TypeParameter> typeArgs,
+                         List<Formal> ins, [Captured] List<Formal> outs,
+                         List<MaybeFreeExpression> req, [Captured] Specification<FrameExpression> mod,
+                         List<MaybeFreeExpression> ens,
+                         Specification<Expression> decreases,
+                         BlockStmt body,
+                         Attributes attributes, IToken signatureEllipsis)
+      : base(tok, name, hasStaticKeyword, true, typeArgs, ins, outs, req, mod, ens, decreases, body, attributes, signatureEllipsis) {
+      Contract.Requires(tok != null);
+      Contract.Requires(name != null);
+      Contract.Requires(cce.NonNullElements(typeArgs));
+      Contract.Requires(cce.NonNullElements(ins));
+      Contract.Requires(cce.NonNullElements(outs));
+      Contract.Requires(cce.NonNullElements(req));
+      Contract.Requires(mod != null);
+      Contract.Requires(cce.NonNullElements(ens));
+      Contract.Requires(decreases != null);
+    }
+  }
+
+  public class InductiveLemma : FixpointLemma
+  {
+    public override string WhatKind { get { return "inductive lemma"; } }
+
+    public InductiveLemma(IToken tok, string name,
+                          bool hasStaticKeyword,
+                          List<TypeParameter> typeArgs,
+                          List<Formal> ins, [Captured] List<Formal> outs,
+                          List<MaybeFreeExpression> req, [Captured] Specification<FrameExpression> mod,
+                          List<MaybeFreeExpression> ens,
+                          Specification<Expression> decreases,
+                          BlockStmt body,
+                          Attributes attributes, IToken signatureEllipsis)
+      : base(tok, name, hasStaticKeyword, typeArgs, ins, outs, req, mod, ens, decreases, body, attributes, signatureEllipsis) {
+      Contract.Requires(tok != null);
+      Contract.Requires(name != null);
+      Contract.Requires(cce.NonNullElements(typeArgs));
+      Contract.Requires(cce.NonNullElements(ins));
+      Contract.Requires(cce.NonNullElements(outs));
+      Contract.Requires(cce.NonNullElements(req));
+      Contract.Requires(mod != null);
+      Contract.Requires(cce.NonNullElements(ens));
+      Contract.Requires(decreases != null);
+    }
+  }
+
+  public class CoLemma : FixpointLemma
   {
     public override string WhatKind { get { return "colemma"; } }
-    public PrefixLemma PrefixLemma;  // filled in during resolution (name registration)
 
     public CoLemma(IToken tok, string name,
                    bool hasStaticKeyword,
@@ -3215,7 +3290,7 @@ namespace Microsoft.Dafny {
                    Specification<Expression> decreases,
                    BlockStmt body,
                    Attributes attributes, IToken signatureEllipsis)
-      : base(tok, name, hasStaticKeyword, true, typeArgs, ins, outs, req, mod, ens, decreases, body, attributes, signatureEllipsis) {
+      : base(tok, name, hasStaticKeyword, typeArgs, ins, outs, req, mod, ens, decreases, body, attributes, signatureEllipsis) {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
       Contract.Requires(cce.NonNullElements(typeArgs));
@@ -4635,8 +4710,8 @@ namespace Microsoft.Dafny {
       Contract.Invariant(cce.NonNullElements(MissingCases));
     }
 
-    public readonly Expression Source;
-    public readonly List<MatchCaseStmt> Cases;
+    private Expression source;
+    private List<MatchCaseStmt> cases;
     public readonly List<DatatypeCtor> MissingCases = new List<DatatypeCtor>();  // filled in during resolution
     public readonly bool UsesOptionalBraces;
 
@@ -4646,14 +4721,31 @@ namespace Microsoft.Dafny {
       Contract.Requires(endTok != null);
       Contract.Requires(source != null);
       Contract.Requires(cce.NonNullElements(cases));
-      this.Source = source;
-      this.Cases = cases;
+      this.source = source;
+      this.cases = cases;
       this.UsesOptionalBraces = usesOptionalBraces;
+    }
+
+    public Expression Source {
+      get { return source; }
+    }
+
+    public List<MatchCaseStmt> Cases {
+      get { return cases; }
+    }
+
+    // should only be used in desugar in resolve to change the cases of the matchexpr
+    public void UpdateSource(Expression source) {
+      this.source = source;
+    }
+
+    public void UpdateCases(List<MatchCaseStmt> cases) {
+      this.cases = cases;
     }
 
     public override IEnumerable<Statement> SubStatements {
       get {
-        foreach (var kase in Cases) {
+        foreach (var kase in cases) {
           foreach (var s in kase.Body) {
             yield return s;
           }
@@ -4670,7 +4762,7 @@ namespace Microsoft.Dafny {
 
   public class MatchCaseStmt : MatchCase
   {
-    public readonly List<Statement> Body;
+    private List<Statement> body;
 
     [ContractInvariantMethod]
     void ObjectInvariant() {
@@ -4684,7 +4776,25 @@ namespace Microsoft.Dafny {
       Contract.Requires(id != null);
       Contract.Requires(cce.NonNullElements(arguments));
       Contract.Requires(cce.NonNullElements(body));
-      this.Body = body;
+      this.body = body;
+    }
+
+    public MatchCaseStmt(IToken tok, string id, [Captured] List<CasePattern> cps, [Captured] List<Statement> body)
+      : base(tok, id, cps) {
+      Contract.Requires(tok != null);
+      Contract.Requires(id != null);
+      Contract.Requires(cce.NonNullElements(cps));
+      Contract.Requires(cce.NonNullElements(body));
+      this.body = body;
+    }
+
+    public List<Statement> Body {
+      get { return body; }
+    }
+
+    // should only be called by resolve to reset the body of the MatchCaseExpr
+    public void UpdateBody(List<Statement> body) {
+      this.body = body;
     }
   }
 
@@ -6731,8 +6841,8 @@ namespace Microsoft.Dafny {
   }
 
   public class MatchExpr : Expression {  // a MatchExpr is an "extended expression" and is only allowed in certain places
-    public readonly Expression Source;
-    public readonly List<MatchCaseExpr> Cases;
+    private Expression source;
+    private List<MatchCaseExpr> cases;
     public readonly List<DatatypeCtor> MissingCases = new List<DatatypeCtor>();  // filled in during resolution
     public readonly bool UsesOptionalBraces;
 
@@ -6748,15 +6858,32 @@ namespace Microsoft.Dafny {
       Contract.Requires(tok != null);
       Contract.Requires(source != null);
       Contract.Requires(cce.NonNullElements(cases));
-      this.Source = source;
-      this.Cases = cases;
+      this.source = source;
+      this.cases = cases;
       this.UsesOptionalBraces = usesOptionalBraces;
+    }
+
+    public Expression Source {
+      get { return source; }
+    }
+
+    public List<MatchCaseExpr> Cases {
+      get { return cases; }
+    }
+
+    // should only be used in desugar in resolve to change the source and cases of the matchexpr
+    public void UpdateSource(Expression source) {
+      this.source = source;
+    }
+
+    public void UpdateCases(List<MatchCaseExpr> cases) {
+      this.cases = cases;
     }
 
     public override IEnumerable<Expression> SubExpressions {
       get {
         yield return Source;
-        foreach (var mc in Cases) {
+        foreach (var mc in cases) {
           yield return mc.Body;
         }
       }
@@ -6838,12 +6965,13 @@ namespace Microsoft.Dafny {
     public readonly IToken tok;
     public readonly string Id;
     public DatatypeCtor Ctor;  // filled in by resolution
-    public readonly List<BoundVar> Arguments;
+    public List<BoundVar> Arguments; // created by the resolver.
+    public List<CasePattern> CasePatterns; // generated from parsers. It should be converted to List<BoundVar> during resolver. Invariant:  CasePatterns != null ==> Arguments == null
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(tok != null);
       Contract.Invariant(Id != null);
-      Contract.Invariant(cce.NonNullElements(Arguments));
+      Contract.Invariant(cce.NonNullElements(Arguments) || cce.NonNullElements(CasePatterns));
     }
 
     public MatchCase(IToken tok, string id, [Captured] List<BoundVar> arguments) {
@@ -6854,24 +6982,51 @@ namespace Microsoft.Dafny {
       this.Id = id;
       this.Arguments = arguments;
     }
+
+    public MatchCase(IToken tok, string id, [Captured] List<CasePattern> cps) {
+      Contract.Requires(tok != null);
+      Contract.Requires(id != null);
+      Contract.Requires(cce.NonNullElements(cps));
+      this.tok = tok;
+      this.Id = id;
+      this.CasePatterns = cps;
+    }
   }
 
   public class MatchCaseExpr : MatchCase
   {
-    public readonly Expression Body;
+    private Expression body;
     [ContractInvariantMethod]
     void ObjectInvariant() {
-      Contract.Invariant(Body != null);
+      Contract.Invariant(body != null);
     }
 
     public MatchCaseExpr(IToken tok, string id, [Captured] List<BoundVar> arguments, Expression body)
-      : base(tok, id, arguments)
-    {
+      : base(tok, id, arguments) {
       Contract.Requires(tok != null);
       Contract.Requires(id != null);
       Contract.Requires(cce.NonNullElements(arguments));
       Contract.Requires(body != null);
-      this.Body = body;
+      this.body = body;
+    }
+
+    public MatchCaseExpr(IToken tok, string id, [Captured] List<CasePattern> cps, Expression body)
+      : base(tok, id, cps)
+    {
+      Contract.Requires(tok != null);
+      Contract.Requires(id != null);
+      Contract.Requires(cce.NonNullElements(cps));
+      Contract.Requires(body != null);
+      this.body = body;
+    }
+
+    public Expression Body {
+      get { return body; }
+    }
+
+    // should only be called by resolve to reset the body of the MatchCaseExpr
+    public void UpdateBody(Expression body) {
+      this.body = body;
     }
   }
 

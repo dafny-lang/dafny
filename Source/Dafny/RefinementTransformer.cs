@@ -378,11 +378,11 @@ namespace Microsoft.Dafny
           CheckAgreement_TypeParameters(nw.tok, f.TypeArgs, nw.TypeArgs, nw.Name, "predicate", false);
           CheckAgreementResolvedParameters(nw.tok, f.Formals, nw.Formals, nw.Name, "predicate", "parameter");
         }
-      } else if (f is CoPredicate) {
-        reporter.Error(nw, "refinement of co-predicates is not supported");
+      } else if (f is FixpointPredicate) {
+        reporter.Error(nw, "refinement of {0}s is not supported", f.WhatKind);
       } else {
         // f is a plain Function
-        if (nw is Predicate || nw is CoPredicate) {
+        if (nw is Predicate || nw is FixpointPredicate) {
           reporter.Error(nw, "a {0} declaration ({1}) can only be refined by a function or function method", nw.IsGhost ? "function" : "function method", nw.Name);
         } else {
           CheckAgreement_TypeParameters(nw.tok, f.TypeArgs, nw.TypeArgs, nw.Name, "function", false);
@@ -545,6 +545,9 @@ namespace Microsoft.Dafny
       if (f is Predicate) {
         return new Predicate(tok, f.Name, f.HasStaticKeyword, f.IsProtected, isGhost, tps, formals,
           req, reads, ens, decreases, body, bodyOrigin, refinementCloner.MergeAttributes(f.Attributes, moreAttributes), null);
+      } else if (f is InductivePredicate) {
+        return new InductivePredicate(tok, f.Name, f.HasStaticKeyword, f.IsProtected, tps, formals,
+          req, reads, ens, body, refinementCloner.MergeAttributes(f.Attributes, moreAttributes), null);
       } else if (f is CoPredicate) {
         return new CoPredicate(tok, f.Name, f.HasStaticKeyword, f.IsProtected, tps, formals,
           req, reads, ens, body, refinementCloner.MergeAttributes(f.Attributes, moreAttributes), null);
@@ -575,6 +578,9 @@ namespace Microsoft.Dafny
       var body = newBody ?? refinementCloner.CloneBlockStmt(m.Body);
       if (m is Constructor) {
         return new Constructor(new RefinementToken(m.tok, moduleUnderConstruction), m.Name, tps, ins,
+          req, mod, ens, decreases, body, refinementCloner.MergeAttributes(m.Attributes, moreAttributes), null);
+      } else if (m is InductiveLemma) {
+        return new InductiveLemma(new RefinementToken(m.tok, moduleUnderConstruction), m.Name, m.HasStaticKeyword, tps, ins, m.Outs.ConvertAll(refinementCloner.CloneFormal),
           req, mod, ens, decreases, body, refinementCloner.MergeAttributes(m.Attributes, moreAttributes), null);
       } else if (m is CoLemma) {
         return new CoLemma(new RefinementToken(m.tok, moduleUnderConstruction), m.Name, m.HasStaticKeyword, tps, ins, m.Outs.ConvertAll(refinementCloner.CloneFormal),
@@ -687,8 +693,12 @@ namespace Microsoft.Dafny
           } else if (nwMember is Function) {
             var f = (Function)nwMember;
             bool isPredicate = f is Predicate;
+            bool isIndPredicate = f is InductivePredicate;
             bool isCoPredicate = f is CoPredicate;
-            if (!(member is Function) || (isPredicate && !(member is Predicate)) || (isCoPredicate && !(member is CoPredicate))) {
+            if (!(member is Function) ||
+              (isPredicate && !(member is Predicate)) ||
+              (isIndPredicate && !(member is InductivePredicate)) ||
+              (isCoPredicate && !(member is CoPredicate))) {
               reporter.Error(nwMember, "a {0} declaration ({1}) can only refine a {0}", f.WhatKind, nwMember.Name);
             } else if (f.IsProtected != ((Function)member).IsProtected) {
               reporter.Error(f, "a {0} in a refinement module must be declared 'protected' if and only if the refined {0} is", f.WhatKind);
