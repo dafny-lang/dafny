@@ -1877,10 +1877,8 @@ namespace Microsoft.Dafny {
       // danr: Let's create the literal function axioms if there is an arrow type in the signature
       if (!(f is FixpointPredicate) && (f.Reads.Count == 0 || f.Formals.Exists(a => a.Type.IsArrowType))) {
         var FVs = new HashSet<IVariable>();
-        bool usesHeap = false, usesOldHeap = false;
-        Type usesThis = null;
         foreach (var e in f.Decreases.Expressions) {
-          ComputeFreeVariables(e, FVs, ref usesHeap, ref usesOldHeap, ref usesThis, false);
+          ComputeFreeVariables(e, FVs);
         }
         var decs = new List<Formal>();
         foreach (var formal in f.Formals) {
@@ -4980,8 +4978,8 @@ namespace Microsoft.Dafny {
                 Contract.Assert(false);  // unexpected CoCallResolution
                 goto case FunctionCallExpr.CoCallResolution.No;  // please the compiler
             }
-            CheckCallTermination(expr.tok, contextDecreases, calleeDecreases, allowance, e.Receiver, substMap, etran, etran, builder,
-              codeContext.InferredDecreases, hint);
+            CheckCallTermination(expr.tok, contextDecreases, calleeDecreases, allowance, e.Receiver, substMap, e.TypeArgumentSubstitutions,
+              etran, etran, builder, codeContext.InferredDecreases, hint);
           }
 
         }
@@ -8688,7 +8686,7 @@ namespace Microsoft.Dafny {
         Contract.Assert(codeContext != null);
         List<Expression> contextDecreases = codeContext.Decreases.Expressions;
         List<Expression> calleeDecreases = callee.Decreases.Expressions;
-        CheckCallTermination(tok, contextDecreases, calleeDecreases, null, receiver, substMap, etran, etran.Old, builder, codeContext.InferredDecreases, null);
+        CheckCallTermination(tok, contextDecreases, calleeDecreases, null, receiver, substMap, tySubst, etran, etran.Old, builder, codeContext.InferredDecreases, null);
       }
 
       // Create variables to hold the output parameters of the call, so that appropriate unboxes can be introduced.
@@ -8799,6 +8797,7 @@ namespace Microsoft.Dafny {
     void CheckCallTermination(IToken tok, List<Expression> contextDecreases, List<Expression> calleeDecreases,
                               Bpl.Expr allowance,
                               Expression receiverReplacement, Dictionary<IVariable,Expression> substMap,
+                              Dictionary<TypeParameter, Type> typeMap,
                               ExpressionTranslator etranCurrent, ExpressionTranslator etranInitial, Bpl.StmtListBuilder builder, bool inferredDecreases, string hint) {
       Contract.Requires(tok != null);
       Contract.Requires(cce.NonNullElements(contextDecreases));
@@ -8830,7 +8829,7 @@ namespace Microsoft.Dafny {
         tok = new ForceCheckToken(tok);
       }
       for (int i = 0; i < N; i++) {
-        Expression e0 = Substitute(calleeDecreases[i], receiverReplacement, substMap);
+        Expression e0 = Substitute(calleeDecreases[i], receiverReplacement, substMap, typeMap);
         Expression e1 = contextDecreases[i];
         if (!CompatibleDecreasesTypes(e0.Type, e1.Type)) {
           N = i;
@@ -9857,7 +9856,7 @@ namespace Microsoft.Dafny {
           var FVs = new HashSet<IVariable>();
           bool usesHeap = false, usesOldHeap = false;
           Type usesThis = null;
-          ComputeFreeVariables(e.RHSs[0], FVs, ref usesHeap, ref usesOldHeap, ref usesThis, false);
+          ComputeFreeVariables(e.RHSs[0], FVs, ref usesHeap, ref usesOldHeap, ref usesThis);
           foreach (var bv in e.BoundVars) {
             FVs.Remove(bv);
           }
@@ -13078,7 +13077,20 @@ namespace Microsoft.Dafny {
       ty.NormalizeExpand().TypeArgs.Iter(tt => ComputeFreeTypeVariables(tt, fvs));
     }
 
-    public static void ComputeFreeVariables(Expression expr, ISet<IVariable> fvs, ref bool usesHeap, ref bool usesOldHeap, ref Type usesThis, bool inOldContext) {
+    public static ISet<IVariable> ComputeFreeVariables(Expression expr) {
+      Contract.Requires(expr != null);
+      ISet<IVariable> fvs = new HashSet<IVariable>();
+      ComputeFreeVariables(expr, fvs);
+      return fvs;
+    }
+    public static void ComputeFreeVariables(Expression expr, ISet<IVariable> fvs) {
+      Contract.Requires(expr != null);
+      Contract.Requires(fvs != null);
+      bool dontCare0 = false, dontCare1 = false;
+      Type dontCareT = null;
+      ComputeFreeVariables(expr, fvs, ref dontCare0, ref dontCare1, ref dontCareT);
+    }
+    public static void ComputeFreeVariables(Expression expr, ISet<IVariable> fvs, ref bool usesHeap, ref bool usesOldHeap, ref Type usesThis) {
       Contract.Requires(expr != null);
 
       if (expr is ThisExpr) {
@@ -13089,13 +13101,6 @@ namespace Microsoft.Dafny {
         var e = (IdentifierExpr)expr;
         fvs.Add(e.Var);
         return;
-      } else if (expr is OldExpr) {
-        var e = (OldExpr)expr;
-        bool subUsesHeap = false;
-        ComputeFreeVariables(e.E, fvs, ref subUsesHeap, ref usesOldHeap, ref usesThis, true);
-        if (subUsesHeap) {
-          usesOldHeap = true;
-        }
       } else if (expr is MemberSelectExpr) {
         usesHeap = true;
       } else if (expr is SeqSelectExpr) {
@@ -13119,11 +13124,11 @@ namespace Microsoft.Dafny {
       // visit subexpressions
       bool uHeap = false, uOldHeap = false;
       Type uThis = null;
-      expr.SubExpressions.Iter(ee => ComputeFreeVariables(ee, fvs, ref uHeap, ref uOldHeap, ref uThis, inOldContext));
+      expr.SubExpressions.Iter(ee => ComputeFreeVariables(ee, fvs, ref uHeap, ref uOldHeap, ref uThis));
       Contract.Assert(usesThis == null || uThis == null || usesThis.Equals(uThis));
       usesThis = usesThis ?? uThis;
       usesHeap |= uHeap;
-      usesOldHeap |= uOldHeap;
+      usesOldHeap |= expr is OldExpr ? uHeap | uOldHeap : uOldHeap;
 
       if (expr is LetExpr) {
         var e = (LetExpr)expr;

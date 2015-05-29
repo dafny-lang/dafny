@@ -300,9 +300,8 @@ namespace Microsoft.Dafny
         var e = (ExprDotName)expr;
         return new ExprDotName(Tok(e.tok), CloneExpr(e.Lhs), e.SuffixName, e.OptTypeArguments == null ? null : e.OptTypeArguments.ConvertAll(CloneType));
       } else if (expr is ApplySuffix) {
-        var e = (ApplySuffix)expr;
-        return new ApplySuffix(Tok(e.tok), CloneExpr(e.Lhs), e.Args.ConvertAll(CloneExpr));
-
+        var e = (ApplySuffix) expr;
+        return CloneApplySuffix(e);
       } else if (expr is MemberSelectExpr) {
         var e = (MemberSelectExpr)expr;
         return new MemberSelectExpr(Tok(e.tok), CloneExpr(e.Obj), e.MemberName);
@@ -411,7 +410,7 @@ namespace Microsoft.Dafny
       } else if (expr is MatchExpr) {
         var e = (MatchExpr)expr;
         return new MatchExpr(Tok(e.tok), CloneExpr(e.Source),
-          e.Cases.ConvertAll(c => new MatchCaseExpr(Tok(c.tok), c.Id, c.Arguments.ConvertAll(CloneBoundVar), CloneExpr(c.Body))), e.UsesOptionalBraces);
+          e.Cases.ConvertAll(CloneMatchCaseExpr), e.UsesOptionalBraces);
 
       } else if (expr is NegationExpression) {
         var e = (NegationExpression)expr;
@@ -420,6 +419,22 @@ namespace Microsoft.Dafny
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected expression
       }
+    }
+
+    public MatchCaseExpr CloneMatchCaseExpr(MatchCaseExpr c) {
+      Contract.Requires(c != null);
+      if (c.Arguments != null) {
+        Contract.Assert(c.CasePatterns == null);
+        return new MatchCaseExpr(Tok(c.tok), c.Id, c.Arguments.ConvertAll(CloneBoundVar), CloneExpr(c.Body));
+      } else {
+        Contract.Assert(c.Arguments == null);
+        Contract.Assert(c.CasePatterns != null);
+        return new MatchCaseExpr(Tok(c.tok), c.Id, c.CasePatterns.ConvertAll(CloneCasePattern), CloneExpr(c.Body));
+      }
+    }
+
+    public virtual Expression CloneApplySuffix(ApplySuffix e) {
+        return new ApplySuffix(Tok(e.tok), CloneExpr(e.Lhs), e.Args.ConvertAll(CloneExpr));
     }
 
     public virtual CasePattern CloneCasePattern(CasePattern pat) {
@@ -530,7 +545,7 @@ namespace Microsoft.Dafny
       } else if (stmt is MatchStmt) {
         var s = (MatchStmt)stmt;
         r = new MatchStmt(Tok(s.Tok), Tok(s.EndTok), CloneExpr(s.Source),
-          s.Cases.ConvertAll(c => new MatchCaseStmt(Tok(c.tok), c.Id, c.Arguments.ConvertAll(CloneBoundVar), c.Body.ConvertAll(CloneStmt))), s.UsesOptionalBraces);
+          s.Cases.ConvertAll(CloneMatchCaseStmt), s.UsesOptionalBraces);
 
       } else if (stmt is AssignSuchThatStmt) {
         var s = (AssignSuchThatStmt)stmt;
@@ -560,6 +575,18 @@ namespace Microsoft.Dafny
       r.Attributes = CloneAttributes(stmt.Attributes);
 
       return r;
+    }
+
+    public MatchCaseStmt CloneMatchCaseStmt(MatchCaseStmt c) {
+      Contract.Requires(c != null);
+      if (c.Arguments != null) {
+        Contract.Assert(c.CasePatterns == null);
+        return new MatchCaseStmt(Tok(c.tok), c.Id, c.Arguments.ConvertAll(CloneBoundVar), c.Body.ConvertAll(CloneStmt));
+      } else {
+        Contract.Assert(c.Arguments == null);
+        Contract.Assert(c.CasePatterns != null);
+        return new MatchCaseStmt(Tok(c.tok), c.Id, c.CasePatterns.ConvertAll(CloneCasePattern), c.Body.ConvertAll(CloneStmt));
+      }
     }
 
     public CalcStmt.CalcOp CloneCalcOp(CalcStmt.CalcOp op) {

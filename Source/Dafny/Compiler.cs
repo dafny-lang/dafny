@@ -2863,11 +2863,8 @@ namespace Microsoft.Dafny {
 
       } else if (expr is LambdaExpr) {
         LambdaExpr e = (LambdaExpr)expr;
-        ISet<IVariable> fvs = new HashSet<IVariable>();
-        bool dontCare = false;
-        Type dontCareT = null;
 
-        Translator.ComputeFreeVariables(expr, fvs, ref dontCare, ref dontCare, ref dontCareT, false);
+        var fvs = Translator.ComputeFreeVariables(expr);
         var sm = new Dictionary<IVariable, Expression>();
 
         var bvars = new List<BoundVar>();

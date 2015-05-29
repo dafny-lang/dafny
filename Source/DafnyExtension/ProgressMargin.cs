@@ -197,6 +197,7 @@ namespace DafnyLanguage
     bool verificationInProgress;  // this field is protected by "this".  Invariant:  !verificationInProgress ==> bufferChangesPreVerificationStart.Count == 0
     System.Threading.Tasks.Task verificationTask;
     public bool VerificationDisabled { get; private set; }
+    bool isDiagnosingTimeouts;
     string lastRequestId;
 
     public static readonly IDictionary<ITextBuffer, ProgressTagger> ProgressTaggers = new ConcurrentDictionary<ITextBuffer, ProgressTagger>();
@@ -227,14 +228,21 @@ namespace DafnyLanguage
         if (prog == null || VerificationDisabled) return;
         // We have a successfully resolved program to verify
 
-        var resolvedVersion = snap.Version.VersionNumber;
-        if (bufferChangesPostVerificationStart.Count == 0) {
-          // Nothing new to verify.  No reason to start a new verification.
-          return;
-        } else if (!bufferChangesPostVerificationStart.TrueForAll(span => span.Snapshot.Version.VersionNumber <= resolvedVersion)) {
-          // There have been buffer changes since the program that was resolved.  Do nothing here,
-          // and instead just await the next resolved program.
-          return;
+        var dt = isDiagnosingTimeouts;
+        if (!dt)
+        {
+          var resolvedVersion = snap.Version.VersionNumber;
+          if (bufferChangesPostVerificationStart.Count == 0)
+          {
+            // Nothing new to verify.  No reason to start a new verification.
+            return;
+          }
+          else if (!bufferChangesPostVerificationStart.TrueForAll(span => span.Snapshot.Version.VersionNumber <= resolvedVersion))
+          {
+            // There have been buffer changes since the program that was resolved.  Do nothing here,
+            // and instead just await the next resolved program.
+            return;
+          }
         }
 
         // at this time, we're committed to running the verifier
@@ -254,10 +262,14 @@ namespace DafnyLanguage
         }
 
         verificationTask = System.Threading.Tasks.Task.Factory.StartNew(
-          () => RunVerifier(prog, snap, lastRequestId, resolver),
+          () => RunVerifier(prog, snap, lastRequestId, resolver, dt),
           TaskCreationOptions.LongRunning);
 
         verificationInProgress = true;
+        if (dt)
+        {
+          isDiagnosingTimeouts = false;
+        }
 
         // Change orange progress markers into yellow ones
         Contract.Assert(bufferChangesPreVerificationStart.Count == 0);  // follows from monitor invariant
@@ -293,7 +305,7 @@ namespace DafnyLanguage
       }
     }
 
-    public void StartVerification()
+    public void StartVerification(bool clearCache = true, bool diagnoseTimeouts = false)
     {
       lock (this)
       {
@@ -301,7 +313,11 @@ namespace DafnyLanguage
         bufferChangesPostVerificationStart.Clear();
         bufferChangesPostVerificationStart.Add(new SnapshotSpan(_buffer.CurrentSnapshot, 0, _buffer.CurrentSnapshot.Length));
         VerificationDisabled = false;
-        ClearCachedVerificationResults();
+        isDiagnosingTimeouts = diagnoseTimeouts;
+        if (clearCache)
+        {
+          ClearCachedVerificationResults();
+        }
         NotifyAboutChangedTags(_buffer.CurrentSnapshot);
       }
     }
@@ -314,7 +330,7 @@ namespace DafnyLanguage
       }
     }
 
-    void RunVerifier(Dafny.Program program, ITextSnapshot snapshot, string requestId, ResolverTagger errorListHolder) {
+    void RunVerifier(Dafny.Program program, ITextSnapshot snapshot, string requestId, ResolverTagger errorListHolder, bool diagnoseTimeouts) {
       Contract.Requires(program != null);
       Contract.Requires(snapshot != null);
       Contract.Requires(requestId != null);
@@ -331,6 +347,8 @@ namespace DafnyLanguage
         }
         _version++;
       }
+
+      DafnyDriver.SetDiagnoseTimeouts(diagnoseTimeouts);
 
       try
       {
@@ -368,6 +386,10 @@ namespace DafnyLanguage
       catch (Exception e)
       {
         errorListHolder.AddError(new DafnyError("$$program$$", 0, 0, ErrorCategory.InternalError, "Verification process error: " + e.Message, snapshot, false), "$$program$$", requestId);
+      }
+      finally
+      {
+        DafnyDriver.SetDiagnoseTimeouts(!diagnoseTimeouts);
       }
 
       lock (this) {

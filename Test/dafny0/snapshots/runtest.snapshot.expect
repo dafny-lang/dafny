@@ -6,12 +6,17 @@ Processing command (at Snapshots0.v0.dfy(4,10)) assert Lit(false);
   >>> DoNothingToAssert
 
 Dafny program verifier finished with 3 verified, 0 errors
+Processing implementation CheckWellformed$$_module.__default.bar (at Snapshots0.v1.dfy(7,8)):
+  >>> added axiom: ##extracted_function##1() == (0 == $ModuleContextHeight && 0 == $FunctionContextHeight)
+  >>> added after assuming the current precondition: a##cached##0 := a##cached##0 && ##extracted_function##1();
 Processing call to procedure IntraModuleCall$$_module.__default.bar in implementation Impl$$_module.__default.foo (at Snapshots0.v1.dfy(3,6)):
-  >>> added axiom: (forall call0old#AT#$Heap: Heap, $Heap: Heap :: {:weight 30} { ##extracted_function##1(call0old#AT#$Heap, $Heap) } ##extracted_function##1(call0old#AT#$Heap, $Heap) == (true && Lit(false) && (forall<alpha> $o: ref, $f: Field alpha :: { read($Heap, $o, $f) } $o != null && read(call0old#AT#$Heap, $o, alloc) ==> read($Heap, $o, $f) == read(call0old#AT#$Heap, $o, $f)) && $HeapSucc(call0old#AT#$Heap, $Heap)))
-  >>> added after: a##post##0 := a##post##0 && ##extracted_function##1(call0old#AT#$Heap, $Heap);
+  >>> added axiom: (forall call0old#AT#$Heap: Heap, $Heap: Heap :: {:weight 30} { ##extracted_function##2(call0old#AT#$Heap, $Heap) } ##extracted_function##2(call0old#AT#$Heap, $Heap) == (true && Lit(false) && (forall<alpha> $o: ref, $f: Field alpha :: { read($Heap, $o, $f) } $o != null && read(call0old#AT#$Heap, $o, alloc) ==> read($Heap, $o, $f) == read(call0old#AT#$Heap, $o, $f)) && $HeapSucc(call0old#AT#$Heap, $Heap)))
+  >>> added after: a##cached##0 := a##cached##0 && ##extracted_function##2(call0old#AT#$Heap, $Heap);
+Processing command (at <unknown location>) a##cached##0 := a##cached##0 && ##extracted_function##1();
+  >>> AssumeNegationOfAssumptionVariable
 Processing command (at Snapshots0.v1.dfy(3,6)) assert (forall<alpha> $o: ref, $f: Field alpha :: false ==> $_Frame[$o, $f]);
   >>> MarkAsFullyVerified
-Processing command (at <unknown location>) a##post##0 := a##post##0 && ##extracted_function##1(call0old#AT#$Heap, $Heap);
+Processing command (at <unknown location>) a##cached##0 := a##cached##0 && ##extracted_function##2(call0old#AT#$Heap, $Heap);
   >>> AssumeNegationOfAssumptionVariable
 Processing command (at Snapshots0.v1.dfy(4,10)) assert Lit(false);
   >>> MarkAsPartiallyVerified
@@ -31,7 +36,7 @@ Processing command (at Snapshots1.v0.dfy(12,3)) assert true;
 
 Dafny program verifier finished with 4 verified, 0 errors
 Processing call to procedure IntraModuleCall$$_module.__default.N in implementation Impl$$_module.__default.M (at Snapshots1.v1.dfy(3,4)):
-  >>> added after: a##post##0 := a##post##0 && false;
+  >>> added after: a##cached##0 := a##cached##0 && false;
 Processing command (at Snapshots1.v1.dfy(12,3)) assert true;
   >>> MarkAsFullyVerified
 Processing command (at Snapshots1.v1.dfy(3,4)) assert (forall<alpha> $o: ref, $f: Field alpha :: false ==> $_Frame[$o, $f]);
@@ -62,7 +67,11 @@ Processing command (at Snapshots2.v0.dfy(18,3)) assert true;
 
 Dafny program verifier finished with 6 verified, 0 errors
 Processing call to procedure IntraModuleCall$$_module.__default.N in implementation Impl$$_module.__default.M (at Snapshots2.v1.dfy(3,4)):
-  >>> added after: a##post##0 := a##post##0 && false;
+  >>> added after: a##cached##0 := a##cached##0 && false;
+Processing implementation CheckWellformed$$_module.__default.P (at Snapshots2.v1.dfy(10,11)):
+  >>> added after assuming the current precondition: a##cached##0 := a##cached##0 && false;
+Processing implementation CheckWellformed$$_module.__default.Q (at Snapshots2.v1.dfy(13,11)):
+  >>> added after assuming the current precondition: a##cached##0 := a##cached##0 && false;
 Processing command (at Snapshots2.v1.dfy(18,3)) assert true;
   >>> MarkAsFullyVerified
 Processing command (at Snapshots2.v1.dfy(3,4)) assert (forall<alpha> $o: ref, $f: Field alpha :: false ==> $_Frame[$o, $f]);
@@ -73,11 +82,11 @@ Snapshots2.v1.dfy(4,10): Error: assertion violation
 Execution trace:
     (0,0): anon0
 Processing command (at Snapshots2.v1.dfy(11,11)) assert true;
-  >>> MarkAsFullyVerified
+  >>> DoNothingToAssert
 Processing command (at Snapshots2.v1.dfy(11,15)) assert _module.__default.P($LS($LS($LZ)), $Heap) <==> _module.__default.Q($LS($LS($LZ)), $Heap);
   >>> DoNothingToAssert
 Processing command (at Snapshots2.v1.dfy(14,11)) assert true;
-  >>> MarkAsFullyVerified
+  >>> DoNothingToAssert
 Processing command (at Snapshots2.v1.dfy(14,15)) assert _module.__default.Q($LS($LS($LZ)), $Heap) <==> Lit(_module.__default.R($Heap));
   >>> DoNothingToAssert
 
@@ -171,8 +180,28 @@ Processing command (at Snapshots7.v0.dfy(19,14)) assert Lit(false);
   >>> DoNothingToAssert
 
 Dafny program verifier finished with 4 verified, 0 errors
+Processing implementation CheckWellformed$$_0_M0.C.Foo (at Snapshots7.v1.dfy(5,12)):
+  >>> added axiom: ##extracted_function##1() == (0 == $ModuleContextHeight && 0 == $FunctionContextHeight)
+  >>> added after assuming the current precondition: a##cached##0 := a##cached##0 && ##extracted_function##1();
+Processing implementation Impl$$_0_M0.C.Foo (at Snapshots7.v1.dfy(5,12)):
+  >>> added axiom: ##extracted_function##2() == (0 == $ModuleContextHeight && 0 == $FunctionContextHeight && Lit(false))
+  >>> added after assuming the current precondition: a##cached##0 := a##cached##0 && ##extracted_function##2();
+Processing implementation CheckWellformed$$_1_M1.C.Foo (at Snapshots7.v1.dfy[M1](5,12)):
+  >>> added axiom: ##extracted_function##3() == (1 == $ModuleContextHeight && 0 == $FunctionContextHeight)
+  >>> added after assuming the current precondition: a##cached##0 := a##cached##0 && ##extracted_function##3();
+Processing implementation Impl$$_1_M1.C.Foo (at Snapshots7.v1.dfy[M1](5,12)):
+  >>> added axiom: ##extracted_function##4() == (1 == $ModuleContextHeight && 0 == $FunctionContextHeight && Lit(false))
+  >>> added after assuming the current precondition: a##cached##0 := a##cached##0 && ##extracted_function##4();
+Processing command (at <unknown location>) a##cached##0 := a##cached##0 && ##extracted_function##1();
+  >>> AssumeNegationOfAssumptionVariable
+Processing command (at <unknown location>) a##cached##0 := a##cached##0 && ##extracted_function##2();
+  >>> AssumeNegationOfAssumptionVariable
+Processing command (at <unknown location>) a##cached##0 := a##cached##0 && ##extracted_function##3();
+  >>> AssumeNegationOfAssumptionVariable
+Processing command (at <unknown location>) a##cached##0 := a##cached##0 && ##extracted_function##4();
+  >>> AssumeNegationOfAssumptionVariable
 Processing command (at Snapshots7.v1.dfy(19,14)) assert Lit(false);
-  >>> DoNothingToAssert
+  >>> MarkAsPartiallyVerified
 Snapshots7.v1.dfy(19,14): Error: assertion violation
 Execution trace:
     (0,0): anon0
