@@ -1,7 +1,8 @@
 
-Dafny program verifier finished with 25 verified, 0 errors
+Dafny program verifier finished with 38 verified, 0 errors
 Program compiled successfully
 Running...
 
-Volvo: 10
-Fiat: 3
+Fiat: 6
+Volvo: 20
+Catacar: 26
