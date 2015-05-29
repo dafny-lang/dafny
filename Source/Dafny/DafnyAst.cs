@@ -165,7 +165,7 @@ namespace Microsoft.Dafny {
         var argExprs = args.ConvertAll(a =>
               (Expression)new IdentifierExpr(tok, a.Name) { Var = a, Type = a.Type });
         var readsIS = new FunctionCallExpr(tok, "reads", new ImplicitThisExpr(tok), tok, argExprs) {
-          Type = new SetType(new ObjectType()),
+          Type = new SetType(true, new ObjectType()),
         };
         var readsFrame = new List<FrameExpression> { new FrameExpression(tok, readsIS, null) };
         var req = new Function(tok, "requires", false, false, true,
@@ -174,7 +174,7 @@ namespace Microsoft.Dafny {
           new Specification<Expression>(new List<Expression>(), null),
           null, null, null);
         var reads = new Function(tok, "reads", false, false, true,
-          new List<TypeParameter>(), args, new SetType(new ObjectType()),
+          new List<TypeParameter>(), args, new SetType(true, new ObjectType()),
           new List<Expression>(), readsFrame, new List<Expression>(),
           new Specification<Expression>(new List<Expression>(), null),
           null, null, null);
@@ -535,6 +535,12 @@ namespace Microsoft.Dafny {
         return t != null && !t.Finite;
       }
     }
+    public bool IsISetType {
+      get {
+        var t = NormalizeExpand() as SetType;
+        return t != null && !t.Finite;
+      }
+    }
     public NewtypeDecl AsNewtype {
       get {
         var udt = NormalizeExpand() as UserDefinedType;
@@ -633,7 +639,7 @@ namespace Microsoft.Dafny {
     /// </summary>
     public bool IsOrdered {
       get {
-        return !IsTypeParameter && !IsCoDatatype && !IsArrowType && !IsIMapType;
+        return !IsTypeParameter && !IsCoDatatype && !IsArrowType && !IsIMapType && !IsISetType;
       }
     }
 
@@ -859,17 +865,25 @@ namespace Microsoft.Dafny {
   }
 
   public class SetType : CollectionType {
-    public SetType(Type arg) : base(arg) {
+    private bool finite;
+
+    public bool Finite {
+      get { return finite; }
+      set { finite = value; }
     }
-    public override string CollectionTypeName { get { return "set"; } }
+
+    public SetType(bool finite, Type arg) : base(arg) {
+      this.finite = finite;
+    }
+    public override string CollectionTypeName { get { return finite ? "set" : "iset"; } }
     [Pure]
     public override bool Equals(Type that) {
       var t = that.NormalizeExpand() as SetType;
-      return t != null && Arg.Equals(t.Arg);
+      return t != null && Finite == t.Finite && Arg.Equals(t.Arg);
     }
     public override bool PossiblyEquals_W(Type that) {
       var t = that as SetType;
-      return t != null && Arg.PossiblyEquals(t.Arg);
+      return t != null && Finite == t.Finite && Arg.PossiblyEquals(t.Arg);
     }
   }
 
@@ -1312,20 +1326,22 @@ namespace Microsoft.Dafny {
 
   /// <summary>
   /// This proxy stands for:
-  ///     set(Arg) or multiset(Arg) or seq(Arg) or map(Arg, anyRange) or imap(Arg, anyRange)
+  ///     set(Arg) or iset(Arg) or multiset(Arg) or seq(Arg) or map(Arg, anyRange) or imap(Arg, anyRange)
   /// </summary>
   public class CollectionTypeProxy : RestrictedTypeProxy {
     public readonly Type Arg;
     public readonly bool AllowIMap;
+    public readonly bool AllowISet;
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(Arg != null);
     }
 
-    public CollectionTypeProxy(Type arg, bool allowIMap) {
+    public CollectionTypeProxy(Type arg, bool allowIMap, bool allowISet) {
       Contract.Requires(arg != null);
       Arg = arg;
       AllowIMap = allowIMap;
+      AllowISet = allowISet;
     }
     public override int OrderID {
       get {
@@ -1338,6 +1354,7 @@ namespace Microsoft.Dafny {
   /// This proxy can stand for any numeric type.
   /// In addition, if AllowSeq, then it can stand for a seq.
   /// In addition, if AllowSetVarieties, it can stand for a set or multiset.
+  /// In addition, if AllowISet, then it can stand for a iset
   /// </summary>
   public class OperationTypeProxy : RestrictedTypeProxy {
     public readonly bool AllowInts;
@@ -1345,13 +1362,14 @@ namespace Microsoft.Dafny {
     public readonly bool AllowChar;
     public readonly bool AllowSeq;
     public readonly bool AllowSetVarieties;
+    public readonly bool AllowISet;
     public bool JustInts {
-      get { return AllowInts && !AllowReals && !AllowChar && !AllowSeq && !AllowSetVarieties; }
+      get { return AllowInts && !AllowReals && !AllowChar && !AllowSeq && !AllowSetVarieties && !AllowISet; }
     }
     public bool JustReals {
-      get { return !AllowInts && AllowReals && !AllowChar && !AllowSeq && !AllowSetVarieties; }
+      get { return !AllowInts && AllowReals && !AllowChar && !AllowSeq && !AllowSetVarieties && !AllowISet; }
     }
-    public OperationTypeProxy(bool allowInts, bool allowReals, bool allowChar, bool allowSeq, bool allowSetVarieties) {
+    public OperationTypeProxy(bool allowInts, bool allowReals, bool allowChar, bool allowSeq, bool allowSetVarieties, bool allowISet) {
       Contract.Requires(allowInts || allowReals || allowChar || allowSeq || allowSetVarieties);  // don't allow unsatisfiable constraint
       Contract.Requires(!(!allowInts && !allowReals && allowChar && !allowSeq && !allowSetVarieties));  // to constrain to just char, don't use a proxy
       AllowInts = allowInts;
@@ -1359,6 +1377,7 @@ namespace Microsoft.Dafny {
       AllowChar = allowChar;
       AllowSeq = allowSeq;
       AllowSetVarieties = allowSetVarieties;
+      AllowISet = allowISet;
     }
     public override int OrderID {
       get {
@@ -5691,10 +5710,12 @@ namespace Microsoft.Dafny {
   }
 
   public class SetDisplayExpr : DisplayExpression {
-    public SetDisplayExpr(IToken tok, List<Expression> elements)
+    public bool Finite;
+    public SetDisplayExpr(IToken tok, bool finite, List<Expression> elements)
       : base(tok, elements) {
       Contract.Requires(tok != null);
       Contract.Requires(cce.NonNullElements(elements));
+      Finite = finite;
     }
   }
 
@@ -6683,9 +6704,10 @@ namespace Microsoft.Dafny {
 
   public class SetComprehension : ComprehensionExpr
   {
+    public readonly bool Finite;
     public readonly bool TermIsImplicit;
 
-    public SetComprehension(IToken tok, List<BoundVar> bvars, Expression range, Expression term, Attributes attrs)
+    public SetComprehension(IToken tok, bool finite, List<BoundVar> bvars, Expression range, Expression term, Attributes attrs)
       : base(tok, bvars, range, term ?? new IdentifierExpr(tok, bvars[0].Name), attrs) {
       Contract.Requires(tok != null);
       Contract.Requires(cce.NonNullElements(bvars));
@@ -6693,6 +6715,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(range != null);
 
       TermIsImplicit = term == null;
+      Finite = finite;
     }
   }
   public class MapComprehension : ComprehensionExpr
