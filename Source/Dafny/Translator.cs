@@ -2505,7 +2505,6 @@ namespace Microsoft.Dafny {
     ///         ($IsAlloc(o, TClassA(G), h) // or h[o, alloc]
     ///           ==> $IsAlloc(h[o, f], TT(PP), h))
     ///       && $Is(h[o, f], TT(PP), h);
-    /// <summary>
     /// This can be optimised later to:
     ///     axiom (forall o: ref, h: Heap ::
     ///         { h[o, f] }
@@ -2513,6 +2512,7 @@ namespace Microsoft.Dafny {
     ///       ==>
     ///         (h[o, alloc] ==> $IsAlloc(h[o, f], TT(TClassA_Inv_i(dtype(o)),..), h))
     ///       && $Is(h[o, f], TT(TClassA_Inv_i(dtype(o)),..), h);
+    /// <summary>
     void AddAllocationAxiom(Field f, ClassDecl c, bool is_array = false)
     {
       // IFF you're adding the array axioms, then the field should be null
@@ -2547,12 +2547,7 @@ namespace Microsoft.Dafny {
       var tyvars = MkTyParamBinders(GetTypeParams(c), out tyexprs);
 
       Bpl.Expr o_ty = ClassTyCon(c, tyexprs);
-
-      // Bpl.Expr is_o      = MkIs(o, o_ty);         // $Is(o, ..)
-      // Changed to use dtype(o) == o_ty instead:
-      Bpl.Expr is_o      = DType(o, o_ty);
-      // Bpl.Expr isalloc_o = MkIsAlloc(o, o_ty, h); // $IsAlloc(o, ..)
-      // Changed to use h[o,alloc] instead:
+      Bpl.Expr is_o = c is TraitDecl ? MkIs(o, o_ty) : DType(o, o_ty);  // $Is(o, ..)  or  dtype(o) == o_ty
       Bpl.Expr isalloc_o = IsAlloced(c.tok, h, o);
 
       Bpl.Expr is_hf, isalloc_hf;
