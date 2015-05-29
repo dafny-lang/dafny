@@ -4903,14 +4903,12 @@ namespace Microsoft.Dafny
         WhileStmt s = (WhileStmt)stmt;
         bool bodyMustBeSpecOnly = specContextOnly;
         var fvs = new HashSet<IVariable>();
-        bool usesHeap = false, usesOldHeap = false;
-        Type usesThis = null;
         if (s.Guard != null) {
           int prevErrorCount = ErrorCount;
           ResolveExpression(s.Guard, new ResolveOpts(codeContext, true, specContextOnly));
           Contract.Assert(s.Guard.Type != null);  // follows from postcondition of ResolveExpression
           bool successfullyResolved = ErrorCount == prevErrorCount;
-          Translator.ComputeFreeVariables(s.Guard, fvs, ref usesHeap, ref usesOldHeap, ref usesThis, false);
+          Translator.ComputeFreeVariables(s.Guard, fvs);
           if (!UnifyTypes(s.Guard.Type, Type.Bool)) {
             Error(s.Guard, "condition is expected to be of type {0}, but is {1}", Type.Bool, s.Guard.Type);
           }
@@ -4923,7 +4921,7 @@ namespace Microsoft.Dafny
           ResolveAttributes(inv.Attributes, new ResolveOpts(codeContext, true, true));
           ResolveExpression(inv.E, new ResolveOpts(codeContext, true, true));
           Contract.Assert(inv.E.Type != null);  // follows from postcondition of ResolveExpression
-          Translator.ComputeFreeVariables(inv.E, fvs, ref usesHeap, ref usesOldHeap, ref usesThis, false);
+          Translator.ComputeFreeVariables(inv.E, fvs);
           if (!UnifyTypes(inv.E.Type, Type.Bool)) {
             Error(inv.E, "invariant is expected to be of type {0}, but is {1}", Type.Bool, inv.E.Type);
           }
@@ -4946,7 +4944,7 @@ namespace Microsoft.Dafny
           ResolveAttributes(s.Mod.Attributes, new ResolveOpts(codeContext, true, true));
           foreach (FrameExpression fe in s.Mod.Expressions) {
             ResolveFrameExpression(fe, false, bodyMustBeSpecOnly, codeContext);
-            Translator.ComputeFreeVariables(fe.E, fvs, ref usesHeap, ref usesOldHeap, ref usesThis, false);
+            Translator.ComputeFreeVariables(fe.E, fvs);
           }
         }
         s.IsGhost = s.Body == null || bodyMustBeSpecOnly;
