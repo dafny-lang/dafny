@@ -179,7 +179,9 @@ namespace DafnyLanguage
           } else if (d is ClassDecl) {
             var cl = (ClassDecl)d;
             foreach (var member in cl.Members) {
-              if (member is Function) {
+              if (Attributes.Contains(member.Attributes, "auto_generated")) {
+                // do nothing
+              } else  if (member is Function) {
                 var f = (Function)member;
                 foreach (var p in f.Formals) {
                   IdRegion.Add(newRegions, p.tok, p, true, module);

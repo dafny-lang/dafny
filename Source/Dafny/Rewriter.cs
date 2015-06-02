@@ -496,6 +496,7 @@ namespace Microsoft.Dafny
 
             // Annotate the new function so we remember that we introduced it
             fWithBody.Attributes = new Attributes("opaque_full", new List<Expression>(), fWithBody.Attributes);
+            fWithBody.Attributes = new Attributes("auto_generated", new List<Expression>(), fWithBody.Attributes);
 
             // Create a lemma to allow the user to selectively reveal the function's body          
             // That is, given:
@@ -505,7 +506,7 @@ namespace Microsoft.Dafny
             //     ensures foo(x, y) < 10;
             //   { x + y }
             // We produce:
-            //   lemma {:axiom} reveal_foo()
+            //   lemma {:axiom} {:auto_generated} reveal_foo()
             //     ensures forall x:int, y:int {:trigger foo(x,y)} :: 0 <= x < 5 && 0 <= y < 5 ==> foo(x,y) == foo_FULL(x,y);
             Expression reqExpr = new LiteralExpr(f.tok, true);
             foreach (Expression req in f.Req) {
@@ -518,10 +519,7 @@ namespace Microsoft.Dafny
               typeVars.Add(cloner.CloneTypeParam(tp));
             }
 
-            List<BoundVar> boundVars = new List<BoundVar>();
-            foreach (Formal formal in f.Formals) {
-              boundVars.Add(new BoundVar(f.tok, formal.Name, cloner.CloneType(formal.Type)));
-            }
+            var boundVars = f.Formals.ConvertAll(formal => new BoundVar(formal.tok, formal.Name, cloner.CloneType(formal.Type)));
 
             // Build the implication connecting the function's requires to the connection with the revealed-body version
             Func<Function, Expression> func_builder = func =>
@@ -552,6 +550,7 @@ namespace Microsoft.Dafny
 
             // Add an axiom attribute so that the compiler won't complain about the lemma's lack of a body
             Attributes lemma_attrs = new Attributes("axiom", new List<Expression>(), null);
+            lemma_attrs = new Attributes("auto_generated", new List<Expression>(), lemma_attrs);
 
             var reveal = new Lemma(f.tok, "reveal_" + f.Name, f.HasStaticKeyword, new List<TypeParameter>(), new List<Formal>(), new List<Formal>(), new List<MaybeFreeExpression>(),
                                     new Specification<FrameExpression>(new List<FrameExpression>(), null), newEnsuresList,
