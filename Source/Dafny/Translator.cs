@@ -1480,7 +1480,7 @@ namespace Microsoft.Dafny {
         AddFunctionAxiom(f, FunctionAxiomVisibility.ForeignModuleOnly, f.Body.Resolved);
       }
       // for body-less functions, at least generate its #requires function
-      if (f.Body == null) {
+      if (f.Body == null || IsOpaqueFunction(f)) {
         var b = FunctionAxiom(f, FunctionAxiomVisibility.ForeignModuleOnly, null, null);
         Contract.Assert(b == null);
       }
