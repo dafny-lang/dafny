@@ -104,9 +104,8 @@ namespace Microsoft.Dafny
           Console.WriteLine("Press Enter to exit.");
           Console.ReadLine();
         }
-        if (CommandLineOptions.Clo.UseBaseNameForFileName && exitValue != ExitValue.PREPROCESSING_ERROR)
+        if (!DafnyOptions.O.CountVerificationErrors && exitValue != ExitValue.PREPROCESSING_ERROR)
         {
-          // TODO(wuestholz): We should probably add a separate flag for this. This is currently only used by the new testing infrastructure.
           return 0;
         }
         //Console.ReadKey();
