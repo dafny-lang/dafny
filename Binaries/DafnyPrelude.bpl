@@ -836,7 +836,7 @@ function Seq#Contains<T>(Seq T, T): bool;
 axiom (forall<T> s: Seq T, x: T :: { Seq#Contains(s,x) }
   Seq#Contains(s,x) <==>
     (exists i: int :: { Seq#Index(s,i) } 0 <= i && i < Seq#Length(s) && Seq#Index(s,i) == x));
-axiom (forall x: ref ::
+axiom (forall<T> x: T ::
   { Seq#Contains(Seq#Empty(), x) }
   !Seq#Contains(Seq#Empty(), x));
 
