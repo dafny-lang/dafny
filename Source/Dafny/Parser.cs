@@ -3988,7 +3988,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 			Get();
 			S = Util.RemoveUnderscores(t.val);
 			try {
-			 n = BigInteger.Parse(S);
+             n = BigIntegerParser.Parse(S);
 			} catch (System.FormatException) {
 			 SemErr("incorrectly formatted number");
 			 n = BigInteger.Zero;
@@ -3999,7 +3999,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 			S = Util.RemoveUnderscores(t.val.Substring(2));
 			try {
 			 // note: leading 0 required when parsing positive hex numbers
-			 n = BigInteger.Parse("0" + S, System.Globalization.NumberStyles.HexNumber);
+             n = BigIntegerParser.Parse("0" + S, System.Globalization.NumberStyles.HexNumber);
 			} catch (System.FormatException) {
 			 SemErr("incorrectly formatted number");
 			 n = BigInteger.Zero;

@@ -145,6 +145,7 @@
     <Compile Include="Cloner.cs" />
     <Compile Include="Util.cs" />
     <Compile Include="Compiler.cs" />
+    <Compile Include="BigIntegerParser.cs" />
     <Compile Include="DafnyAst.cs" />
     <Compile Include="DafnyMain.cs" />
     <Compile Include="DafnyOptions.cs" />
