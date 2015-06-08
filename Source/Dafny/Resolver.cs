@@ -4129,7 +4129,8 @@ namespace Microsoft.Dafny
           } else if (r.Type is Resolver_IdentifierExpr.ResolverType_Type) {
             var d = r.Decl;
             if (d is OpaqueTypeDecl) {
-              t.ResolvedParam = ((OpaqueTypeDecl)d).TheType;  // resolve like a type parameter, and it may have type parameters if it's an opaque type
+              t.ResolvedParam = ((OpaqueTypeDecl)d).TheType;  // resolve like a type parameter, and it may have type parameters if it's an opaque type              
+              t.ResolvedClass = d;  // Store the decl, so the compiler will generate the fully qualified name
             } else if (d is NewtypeDecl) {
               var dd = (NewtypeDecl)d;
               var caller = context as ICallable;

@@ -1116,7 +1116,13 @@ namespace Microsoft.Dafny {
         return string.Format("new {0}()", s);
       } else if (type.IsTypeParameter) {
         var udt = (UserDefinedType)type;
-        return "default(@" + udt.FullCompileName + ")";
+        string s = "default(@" + udt.FullCompileName;
+        if (udt.TypeArgs.Count != 0)
+        {
+          s += "<" + TypeNames(udt.TypeArgs) + ">";
+        }
+        s += ")";
+        return s;
       } else if (type is SetType) {
         return DafnySetClass + "<" + TypeName(((SetType)type).Arg) + ">.Empty";
       } else if (type is MultiSetType) {
@@ -2959,6 +2965,10 @@ namespace Microsoft.Dafny {
         twr.Write(")");
       }
       twr.Write(".@{0}", f.CompileName);
+      if (f.TypeArgs.Count != 0) {
+          List<Type> typeArgs = f.TypeArgs.ConvertAll(ta => e.TypeArgumentSubstitutions[ta]);
+          twr.Write("<" + TypeNames(typeArgs) + ">");
+      }
       twr.Write("(");
       string sep = "";
       for (int i = 0; i < e.Args.Count; i++) {
