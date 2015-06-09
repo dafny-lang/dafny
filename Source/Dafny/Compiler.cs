@@ -441,19 +441,19 @@ namespace Microsoft.Dafny {
         wr.WriteLine(";");
         Indent(ind); wr.WriteLine("}");
 
-        // GetHashCode method
+        // GetHashCode method (Uses the djb2 algorithm)
         Indent(ind); wr.WriteLine("public override int GetHashCode() {");
-        Indent(ind + IndentAmount); wr.Write("return " + constructorIndex);
-
+        Indent(ind + IndentAmount); wr.WriteLine("ulong hash = 5381;");
+        Indent(ind + IndentAmount); wr.WriteLine("hash = ((hash << 5) + hash) + {0};", constructorIndex);
         i = 0;
         foreach (Formal arg in ctor.Formals) {
           if (!arg.IsGhost) {
             string nm = FormalName(arg, i);
-            wr.Write(" ^ this.@{0}.GetHashCode()", nm);
+            Indent(ind + IndentAmount); wr.WriteLine("hash = ((hash << 5) + hash) + ((ulong)this.@{0}.GetHashCode());", nm);
             i++;
           }
         }
-        wr.WriteLine(";");
+        Indent(ind + IndentAmount); wr.WriteLine("return (int) hash;");
         Indent(ind); wr.WriteLine("}");
 
         if (dt is IndDatatypeDecl) {
