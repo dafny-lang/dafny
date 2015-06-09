@@ -1,35 +1,35 @@
-LetExpr.dfy(108,23): Error: assertion violation
+LetExpr.dfy(109,23): Error: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon11_Then
-LetExpr.dfy(8,12): Error: assertion violation
+LetExpr.dfy(9,12): Error: assertion violation
 Execution trace:
     (0,0): anon0
-LetExpr.dfy(253,19): Error: value assigned to a nat must be non-negative
+LetExpr.dfy(254,19): Error: value assigned to a nat must be non-negative
 Execution trace:
     (0,0): anon0
     (0,0): anon5_Then
-LetExpr.dfy(256,19): Error: value assigned to a nat must be non-negative
+LetExpr.dfy(257,19): Error: value assigned to a nat must be non-negative
 Execution trace:
     (0,0): anon0
     (0,0): anon6_Then
-LetExpr.dfy(258,24): Error: value assigned to a nat must be non-negative
+LetExpr.dfy(259,24): Error: value assigned to a nat must be non-negative
 Execution trace:
     (0,0): anon0
     (0,0): anon6_Else
-LetExpr.dfy(287,14): Error: RHS is not certain to look like the pattern 'Agnes'
+LetExpr.dfy(288,14): Error: RHS is not certain to look like the pattern 'Agnes'
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Else
-LetExpr.dfy(304,42): Error: value assigned to a nat must be non-negative
+LetExpr.dfy(305,42): Error: value assigned to a nat must be non-negative
 Execution trace:
     (0,0): anon0
     (0,0): anon6_Else
-LetExpr.dfy(306,12): Error: assertion violation
+LetExpr.dfy(307,12): Error: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon6_Else
-LetExpr.dfy(316,12): Error: to be compilable, the value of a let-such-that expression must be uniquely determined
+LetExpr.dfy(317,12): Error: to be compilable, the value of a let-such-that expression must be uniquely determined
 Execution trace:
     (0,0): anon0
     (0,0): anon10_Then
