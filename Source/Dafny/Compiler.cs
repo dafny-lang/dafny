@@ -441,19 +441,19 @@ namespace Microsoft.Dafny {
         wr.WriteLine(";");
         Indent(ind); wr.WriteLine("}");
 
-        // GetHashCode method
+        // GetHashCode method (Uses the djb2 algorithm)
         Indent(ind); wr.WriteLine("public override int GetHashCode() {");
-        Indent(ind + IndentAmount); wr.Write("return " + constructorIndex);
-
+        Indent(ind + IndentAmount); wr.WriteLine("ulong hash = 5381;");
+        Indent(ind + IndentAmount); wr.WriteLine("hash = ((hash << 5) + hash) + {0};", constructorIndex);
         i = 0;
         foreach (Formal arg in ctor.Formals) {
           if (!arg.IsGhost) {
             string nm = FormalName(arg, i);
-            wr.Write(" ^ this.@{0}.GetHashCode()", nm);
+            Indent(ind + IndentAmount); wr.WriteLine("hash = ((hash << 5) + hash) + ((ulong)this.@{0}.GetHashCode());", nm);
             i++;
           }
         }
-        wr.WriteLine(";");
+        Indent(ind + IndentAmount); wr.WriteLine("return (int) hash;");
         Indent(ind); wr.WriteLine("}");
 
         if (dt is IndDatatypeDecl) {
@@ -1116,7 +1116,13 @@ namespace Microsoft.Dafny {
         return string.Format("new {0}()", s);
       } else if (type.IsTypeParameter) {
         var udt = (UserDefinedType)type;
-        return "default(@" + udt.FullCompileName + ")";
+        string s = "default(@" + udt.FullCompileName;
+        if (udt.TypeArgs.Count != 0)
+        {
+          s += "<" + TypeNames(udt.TypeArgs) + ">";
+        }
+        s += ")";
+        return s;
       } else if (type is SetType) {
         return DafnySetClass + "<" + TypeName(((SetType)type).Arg) + ">.Empty";
       } else if (type is MultiSetType) {
@@ -2959,6 +2965,10 @@ namespace Microsoft.Dafny {
         twr.Write(")");
       }
       twr.Write(".@{0}", f.CompileName);
+      if (f.TypeArgs.Count != 0) {
+          List<Type> typeArgs = f.TypeArgs.ConvertAll(ta => e.TypeArgumentSubstitutions[ta]);
+          twr.Write("<" + TypeNames(typeArgs) + ">");
+      }
       twr.Write("(");
       string sep = "";
       for (int i = 0; i < e.Args.Count; i++) {
