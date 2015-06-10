@@ -137,11 +137,9 @@ class Test:
     @staticmethod
     def summarize(results):
         debug(None, "")
+
         debug(Debug.INFO, "** Testing complete ({} tests) **".format(len(results)))
-
         if results:
-            debug(Debug.REPORT, "Testing took {:.2f}s on {} threads".format(results[0].suite_time, results[0].njobs))
-
             grouped = defaultdict(list)
             for t in results:
                 grouped[t.status].append(t)
@@ -149,6 +147,7 @@ class Test:
             for status, ts in sorted(grouped.items(), key=lambda x: x[0].index):
                 if ts:
                     debug(Debug.REPORT, "{}/{} -- {}".format(len(ts), len(results), ", ".join(t.name for t in ts)), headers=status)
+            debug(Debug.REPORT, "Testing took {:.2f}s on {} threads".format(results[0].suite_time, results[0].njobs))
 
     def run(self):
         debug(Debug.DEBUG, "Starting {}".format(self.name))
@@ -224,11 +223,11 @@ def setup_parser():
     parser.add_argument('paths', type=str, action='store', nargs='+',
                         help='Input files or folders. Folders are searched for .dfy files.')
 
-    parser.add_argument('--compiler', type=str, action='store', default='Dafny.exe',
-                        help='Command to use for %dafny.')
+    parser.add_argument('--compiler', type=str, action='store', default=None,
+                        help='Dafny executable.')
 
-    parser.add_argument('--more-flags', '-f', type=str, action='store', default='',
-                        help='Command used to run the tests.')
+    parser.add_argument('--flags', '-f', type=str, action='append', default=[],
+                        help='Arguments to pass to dafny. Multiple --flags are concatenated.')
 
     parser.add_argument('--njobs', '-j', action='store', type=int, default=None,
                         help='Number of test workers.')
@@ -247,6 +246,9 @@ def setup_parser():
 
     parser.add_argument('--compare', action='store_true',
                         help="Compare two previously generated reports.")
+
+    parser.add_argument('--time-failures', action='store_true',
+                        help="When comparing, include timings of failures.")
 
     parser.add_argument('--diff', '-d', action='store_const', const=True, default=False,
                         help="Don't run tests; show differences for one file.")
@@ -336,14 +338,19 @@ def run_tests(args):
         debug(Debug.ERROR, "Compiler not found: {}".format(compiler_bin))
         return
 
-    tests = list(find_tests(args.paths, args.compiler + ' ' + args.more_flags,
+    if args.compiler is None:
+        base_directory = os.path.dirname(os.path.realpath(__file__))
+        compiler = os.path.normpath(os.path.join(base_directory, "../Binaries/Dafny.exe"))
+
+    tests = list(find_tests(args.paths, compiler + ' ' + " ".join(args.flags),
                             args.exclude + ALWAYS_EXCLUDED, args.timeout))
     tests.sort(key=operator.attrgetter("name"))
 
     args.njobs = args.njobs or os.cpu_count() or 1
-    debug(Debug.INFO, "** Running {} tests on {} testing threads, timeout is {:.2f} **".format(len(tests), args.njobs, args.timeout))
+    debug(Debug.INFO, "** Running {} tests on {} testing threads, timeout is {:.2f}, started at {}**".format(len(tests), args.njobs, args.timeout, strftime("%H:%M:%S")))
+
     try:
-        pool = Pool(args.njobs) #, init_tester)
+        pool = Pool(args.njobs)
 
         start = time()
         results = []
@@ -378,7 +385,7 @@ def diff(paths, accept, difftool):
         else:
             call([difftool, test.expect_path, test.temp_output_path])
 
-def compare_results(globs):
+def compare_results(globs, time_failures):
     from glob import glob
     paths = [path for g in globs for path in glob(g)]
     reports = {path: Test.load_report(path) for path in paths}
@@ -404,7 +411,7 @@ def compare_results(globs):
             row.append(ref_duration)
             for path in paths[1:]:
                 test_status, test_duration = resultsets[path][name]
-                if test_status == ref_status:
+                if test_status == ref_status or (test_status == TestStatus.FAILED and time_failures):
                     result = "{:.2%}".format((test_duration - ref_duration) / ref_duration)
                 else:
                     result = test_status.name + "?!"
@@ -449,7 +456,7 @@ def main():
     elif args.open:
         os.startfile(args.paths[0])
     elif args.compare:
-        compare_results(args.paths)
+        compare_results(args.paths, args.time_failures)
     else:
         run_tests(args)
 
