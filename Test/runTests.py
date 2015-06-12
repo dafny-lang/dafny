@@ -80,7 +80,7 @@ class TestStatus(Enum):
 class Test:
     COLUMNS = ["name", "status", "start", "end", "duration", "returncodes", "suite_time", "njobs", "proc_info", "source_path", "temp_directory", "cmds", "expected", "output"]
 
-    def __init__(self, name, source_path, cmds, timeout):
+    def __init__(self, name, source_path, cmds, timeout, compiler_id):
         self.name = name
         self.source_path = source_path
         self.expect_path = Test.source_to_expect_path(self.source_path)
@@ -93,6 +93,7 @@ class Test:
 
         self.cmds = cmds
         self.timeout = timeout
+        self.compiler_id = compiler_id
         self.cmds = [cmd.replace("%s", self.source_path) for cmd in self.cmds]
         self.cmds = [cmd.replace("%t", self.temp_output_path) for cmd in self.cmds]
 
@@ -146,7 +147,7 @@ class Test:
 
             for status, ts in sorted(grouped.items(), key=lambda x: x[0].index):
                 if ts:
-                    debug(Debug.REPORT, "{}/{} -- {}".format(len(ts), len(results), ", ".join(t.name for t in ts)), headers=status)
+                    debug(Debug.REPORT, "{}/{} -- {}".format(len(ts), len(results), " ".join(t.name for t in ts)), headers=status)
             debug(Debug.REPORT, "Testing took {:.2f}s on {} threads".format(results[0].suite_time, results[0].njobs))
 
     def run(self):
@@ -197,8 +198,8 @@ class Test:
         self.output = Test.read_normalize(self.temp_output_path)
         self.status = TestStatus.PASSED if self.expected == self.output else TestStatus.FAILED
 
-    def report(self, tid):
-        debug(Debug.INFO, "{} ({})".format(self.name, tid), headers=self.status)
+    def report(self, tid, total):
+        debug(Debug.INFO, "[{}] [{:.2f}s] {} ({} of {})".format(self.compiler_id, self.duration, self.name, tid, total), headers=self.status)
 
     @staticmethod
     def write_bytes(base_directory, relative_path, extension, contents):
@@ -223,7 +224,7 @@ def setup_parser():
     parser.add_argument('paths', type=str, action='store', nargs='+',
                         help='Input files or folders. Folders are searched for .dfy files.')
 
-    parser.add_argument('--compiler', type=str, action='store', default=None,
+    parser.add_argument('--compiler', type=str, action='append', default=[],
                         help='Dafny executable.')
 
     parser.add_argument('--flags', '-f', type=str, action='append', default=[],
@@ -247,8 +248,8 @@ def setup_parser():
     parser.add_argument('--compare', action='store_true',
                         help="Compare two previously generated reports.")
 
-    parser.add_argument('--time-failures', action='store_true',
-                        help="When comparing, include timings of failures.")
+    parser.add_argument('--time-all', action='store_true',
+                        help="When comparing, include all timings.")
 
     parser.add_argument('--diff', '-d', action='store_const', const=True, default=False,
                         help="Don't run tests; show differences for one file.")
@@ -284,65 +285,63 @@ def run_one(test_args):
         test.status = TestStatus.UNKNOWN
     return test
 
-def read_one_test(name, fname, compiler_cmd, timeout):
-    source_path = os.path.realpath(fname)
-    with open(source_path, mode='r') as reader:
-        cmds = []
-        for line in reader:
-            line = line.strip()
-            match = re.match("^// *RUN: *(?!%diff)([^ ].*)$", line)
-            if match:
-                cmds.append(match.groups()[0].replace("%dafny", compiler_cmd))
+def read_one_test(name, fname, compiler_cmds, timeout):
+    for cid, compiler_cmd in enumerate(compiler_cmds):
+        source_path = os.path.realpath(fname)
+        with open(source_path, mode='r') as reader:
+            cmds = []
+            for line in reader:
+                line = line.strip()
+                match = re.match("^// *RUN: *(?!%diff)([^ ].*)$", line)
+                if match:
+                    cmds.append(match.groups()[0].replace("%dafny", compiler_cmd))
+                else:
+                    break
+        if cmds:
+            if os.path.exists(Test.source_to_expect_path(source_path)):
+                yield Test(name, source_path, cmds, timeout, cid)
             else:
-                break
-    if cmds:
-        if os.path.exists(Test.source_to_expect_path(source_path)):
-            return [Test(name, source_path, cmds, timeout)]
+                debug(Debug.DEBUG, "Test file {} has no .expect".format(fname))
         else:
-            debug(Debug.DEBUG, "Test file {} has no .expect".format(fname))
-    else:
-        debug(Debug.INFO, "Test file {} has no RUN specification".format(fname))
-
-    return []
+            debug(Debug.INFO, "Test file {} has no RUN specification".format(fname))
 
 
-def find_one(name, fname, compiler_cmd, timeout):
+def find_one(name, fname, compiler_cmds, timeout):
     name, ext = os.path.splitext(fname)
     if ext == ".dfy":
         if os.path.exists(fname):
             debug(Debug.TRACE, "Found test file: {}".format(fname))
-            yield from read_one_test(name, fname, compiler_cmd, timeout)
+            yield from read_one_test(name, fname, compiler_cmds, timeout)
         else:
             debug(Debug.ERROR, "Test file {} not found".format(fname))
     else:
         debug(Debug.TRACE, "Ignoring {}".format(fname))
 
 
-def find_tests(paths, compiler_cmd, excluded, timeout):
+def find_tests(paths, compiler_cmds, excluded, timeout):
     for path in paths:
         if os.path.isdir(path):
             debug(Debug.TRACE, "Searching for tests in {}".format(path))
             for base, dirnames, fnames in os.walk(path):
                 dirnames[:] = [d for d in dirnames if d not in excluded]
                 for fname in fnames:
-                    yield from find_one(fname, os.path.join(base, fname), compiler_cmd, timeout)
+                    yield from find_one(fname, os.path.join(base, fname), compiler_cmds, timeout)
         else:
-            yield from find_one(path, path, compiler_cmd, timeout)
+            yield from find_one(path, path, compiler_cmds, timeout)
 
 
 def run_tests(args):
-    compiler_cmd = shlex.split(args.compiler)
-    compiler_bin = compiler_cmd[0]
-
-    if not os.path.exists(compiler_cmd[0]):
-        debug(Debug.ERROR, "Compiler not found: {}".format(compiler_bin))
-        return
-
-    if args.compiler is None:
+    if args.compiler is []:
         base_directory = os.path.dirname(os.path.realpath(__file__))
-        compiler = os.path.normpath(os.path.join(base_directory, "../Binaries/Dafny.exe"))
+        args.compiler = [os.path.normpath(os.path.join(base_directory, "../Binaries/Dafny.exe"))]
 
-    tests = list(find_tests(args.paths, compiler + ' ' + " ".join(args.flags),
+    for compiler in args.compiler:
+        if not os.path.exists(compiler):
+            debug(Debug.ERROR, "Compiler not found: {}".format(compiler))
+            return
+
+    tests = list(find_tests(args.paths, [compiler + ' ' + " ".join(args.flags)
+                                         for compiler in args.compiler],
                             args.exclude + ALWAYS_EXCLUDED, args.timeout))
     tests.sort(key=operator.attrgetter("name"))
 
@@ -355,7 +354,7 @@ def run_tests(args):
         start = time()
         results = []
         for tid, test in enumerate(pool.imap_unordered(run_one, [(t, args) for t in tests], 1)):
-            test.report(tid + 1)
+            test.report(tid + 1, len(tests))
             results.append(test)
         pool.close()
         pool.join()
@@ -374,18 +373,22 @@ def run_tests(args):
 
 
 def diff(paths, accept, difftool):
-    if len(paths) > 1:
-        debug(Debug.ERROR, "Please specify a single path")
-    elif not os.path.exists(paths[0]):
-        debug(Debug.ERROR, "Not found: {}".format(paths[0]))
-    else:
-        test = Test(None, paths[0], [], None)
-        if accept:
-            shutil.copy(test.temp_output_path, test.expect_path)
-        else:
-            call([difftool, test.expect_path, test.temp_output_path])
+    for path in paths:
+        if not path.endswith(".dfy"):
+            path += ".dfy"
 
-def compare_results(globs, time_failures):
+        if not os.path.exists(path):
+            debug(Debug.ERROR, "Not found: {}".format(path))
+        else:
+            test = Test(None, path, [], None)
+            if not accept:
+                call([difftool, test.expect_path, test.temp_output_path])
+
+            if accept or input("Accept this change? (y/N)") == "y":
+                debug(Debug.INFO, path, "Accepted")
+                shutil.copy(test.temp_output_path, test.expect_path)
+
+def compare_results(globs, time_all):
     from glob import glob
     paths = [path for g in globs for path in glob(g)]
     reports = {path: Test.load_report(path) for path in paths}
@@ -410,8 +413,9 @@ def compare_results(globs, time_failures):
             row.append(name)
             row.append(ref_duration)
             for path in paths[1:]:
-                test_status, test_duration = resultsets[path][name]
-                if test_status == ref_status or (test_status == TestStatus.FAILED and time_failures):
+                res = resultsets[path].get(name)
+                test_status, test_duration = res if res else (TestStatus.UNKNOWN, None)
+                if res is not None and (test_status == ref_status or time_all):
                     result = "{:.2%}".format((test_duration - ref_duration) / ref_duration)
                 else:
                     result = test_status.name + "?!"
@@ -456,7 +460,7 @@ def main():
     elif args.open:
         os.startfile(args.paths[0])
     elif args.compare:
-        compare_results(args.paths, args.time_failures)
+        compare_results(args.paths, args.time_all)
     else:
         run_tests(args)
 
