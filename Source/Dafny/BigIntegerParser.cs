@@ -11,8 +11,8 @@ namespace Microsoft.Dafny {
         ///   Int64, and only falling back if needed.
         /// </summary>
         internal static BigInteger Parse(string str, NumberStyles style) {
-            Int64 parsed;
-            if (Int64.TryParse(str, style, NumberFormatInfo.CurrentInfo, out parsed)) {
+            UInt64 parsed;
+            if (UInt64.TryParse(str, style, NumberFormatInfo.CurrentInfo, out parsed)) {
                 return new BigInteger(parsed);
             } else {
                 // Throws on Mono 3.2.8
