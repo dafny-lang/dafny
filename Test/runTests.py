@@ -331,7 +331,7 @@ def find_tests(paths, compiler_cmds, excluded, timeout):
 
 
 def run_tests(args):
-    if args.compiler is []:
+    if args.compiler == []:
         base_directory = os.path.dirname(os.path.realpath(__file__))
         args.compiler = [os.path.normpath(os.path.join(base_directory, "../Binaries/Dafny.exe"))]
 
@@ -401,7 +401,6 @@ def compare_results(globs, time_all):
     for path, resultset in resultsets.items():
         resultset["$$TOTAL$$"] = None, sum(v[1] for v in resultset.values() if v[1] and v[0] != TestStatus.TIMEOUT)
 
-    print(all_tests)
     with open("compare.csv", mode='w', newline='') as writer:
         csv_writer = csv.writer(writer, dialect='excel')
         csv_writer.writerow(["Name"] + [os.path.split(path)[1].lstrip("0123456789-") for path in paths])
