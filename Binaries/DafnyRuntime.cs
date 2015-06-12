@@ -4,39 +4,42 @@ using System.Numerics;
 namespace Dafny
 {
   using System.Collections.Generic;
+// set this option if you want to use System.Collections.Immutable and if you know what you're doing.
+#if DAFNY_USE_SYSTEM_COLLECTIONS_IMMUTABLE
+  using System.Collections.Immutable;
+  using System.Linq;
 
   public class Set<T>
   {
-    Dictionary<T, bool> dict;
-    Set(Dictionary<T, bool> d) {
-      dict = d;
+    readonly ImmutableHashSet<T> setImpl;
+    Set(ImmutableHashSet<T> d) {
+      this.setImpl = d;
     }
-    public static Set<T> Empty {
-      get {
-        return new Set<T>(new Dictionary<T, bool>(0));
-      }
-    }
+    public static readonly Set<T> Empty = new Set<T>(ImmutableHashSet<T>.Empty);
     public static Set<T> FromElements(params T[] values) {
-      Dictionary<T, bool> d = new Dictionary<T, bool>(values.Length);
+      return FromElements((IEnumerable<T>)values);
+    }
+    public static Set<T> FromElements(IEnumerable<T> values) {
+      var d = ImmutableHashSet<T>.Empty.ToBuilder();
       foreach (T t in values)
-        d[t] = true;
-      return new Set<T>(d);
+        d.Add(t);
+      return new Set<T>(d.ToImmutable());
     }
     public static Set<T> FromCollection(ICollection<T> values) {
-      Dictionary<T, bool> d = new Dictionary<T, bool>();
+      var d = ImmutableHashSet<T>.Empty.ToBuilder();
       foreach (T t in values)
-        d[t] = true;
-      return new Set<T>(d);
+        d.Add(t);
+      return new Set<T>(d.ToImmutable());
     }
     public int Length {
-      get { return dict.Count; }
+      get { return this.setImpl.Count; }
     }
     public long LongLength {
-      get { return dict.Count; }
+      get { return this.setImpl.Count; }
     }
     public IEnumerable<T> Elements {
       get {
-        return dict.Keys;
+        return this.setImpl;
       }
     }
     /// <summary>
@@ -47,36 +50,37 @@ namespace Dafny
       get {
         // Start by putting all set elements into a list
         var elmts = new List<T>();
-        elmts.AddRange(dict.Keys);
+        elmts.AddRange(this.setImpl);
         var n = elmts.Count;
         var which = new bool[n];
-        var s = new Set<T>(new Dictionary<T, bool>(0));
+        var s = ImmutableHashSet<T>.Empty.ToBuilder();
         while (true) {
-          yield return s;
+          yield return new Set<T>(s.ToImmutable());
           // "add 1" to "which", as if doing a carry chain.  For every digit changed, change the membership of the corresponding element in "s".
           int i = 0;
           for (; i < n && which[i]; i++) {
             which[i] = false;
-            s.dict.Remove(elmts[i]);
+            s.Remove(elmts[i]);
           }
           if (i == n) {
             // we have cycled through all the subsets
             break;
           }
           which[i] = true;
-          s.dict.Add(elmts[i], true);
+          s.Add(elmts[i]);
         }
       }
     }
     public bool Equals(Set<T> other) {
-      return dict.Count == other.dict.Count && IsSubsetOf(other);
+        return this.setImpl.Equals(other.setImpl);
     }
     public override bool Equals(object other) {
-      return other is Set<T> && Equals((Set<T>)other);
+        var otherSet = other as Set<T>;
+        return otherSet != null && Equals(otherSet);
     }
     public override int GetHashCode() {
       var hashCode = 1;
-      foreach (var t in dict.Keys) {
+      foreach (var t in this.setImpl) {
         hashCode = hashCode * (t.GetHashCode()+3);
       }
       return hashCode;
@@ -84,20 +88,407 @@ namespace Dafny
     public override string ToString() {
       var s = "{";
       var sep = "";
-      foreach (var t in dict.Keys) {
+      foreach (var t in this.setImpl) {
         s += sep + t.ToString();
         sep = ", ";
       }
       return s + "}";
     }
     public bool IsProperSubsetOf(Set<T> other) {
-      return dict.Count < other.dict.Count && IsSubsetOf(other);
+        return IsProperSubsetOf(other);
     }
     public bool IsSubsetOf(Set<T> other) {
-      if (other.dict.Count < dict.Count)
-        return false;
+        return IsSubsetOf(other);
+    }
+    public bool IsSupersetOf(Set<T> other) {
+      return other.IsSupersetOf(this);
+    }
+    public bool IsProperSupersetOf(Set<T> other) {
+      return other.IsProperSupersetOf(this);
+    }
+    public bool IsDisjointFrom(Set<T> other) {
+      ImmutableHashSet<T> a, b;
+      if (this.setImpl.Count < other.setImpl.Count) {
+        a = this.setImpl; b = other.setImpl;
+      } else {
+        a = other.setImpl; b = this.setImpl;
+      }
+      foreach (T t in a) {
+        if (b.Contains(t))
+          return false;
+      }
+      return true;
+    }
+    public bool Contains(T t) {
+      return this.setImpl.Contains(t);
+    }
+    public Set<T> Union(Set<T> other) {
+        return new Set<T>(this.setImpl.Union(other.setImpl));
+    }
+    public Set<T> Intersect(Set<T> other) {
+      return new Set<T>(this.setImpl.Intersect(other.setImpl));
+    }
+    public Set<T> Difference(Set<T> other) {
+        return new Set<T>(this.setImpl.Except(other.setImpl));
+    }
+  }
+  public partial class MultiSet<T>
+  {
+
+    readonly ImmutableDictionary<T, int> dict;
+    MultiSet(ImmutableDictionary<T, int> d) {
+      dict = d;
+    }
+    public static readonly MultiSet<T> Empty = new MultiSet<T>(ImmutableDictionary<T, int>.Empty);
+    public static MultiSet<T> FromElements(params T[] values) {
+      var d = ImmutableDictionary<T, int>.Empty.ToBuilder();
+      foreach (T t in values) {
+        var i = 0;
+        if (!d.TryGetValue(t, out i)) {
+          i = 0;
+        }
+        d[t] = i + 1;
+      }
+      return new MultiSet<T>(d.ToImmutable());
+    }
+    public static MultiSet<T> FromCollection(ICollection<T> values) {
+      var d = ImmutableDictionary<T, int>.Empty.ToBuilder();
+      foreach (T t in values) {
+        var i = 0;
+        if (!d.TryGetValue(t, out i)) {
+          i = 0;
+        }
+        d[t] = i + 1;
+      }
+      return new MultiSet<T>(d.ToImmutable());
+    }
+    public static MultiSet<T> FromSeq(Sequence<T> values) {
+      var d = ImmutableDictionary<T, int>.Empty.ToBuilder();
+      foreach (T t in values.Elements) {
+        var i = 0;
+        if (!d.TryGetValue(t, out i)) {
+          i = 0;
+        }
+        d[t] = i + 1;
+      }
+      return new MultiSet<T>(d.ToImmutable());
+    }
+    public static MultiSet<T> FromSet(Set<T> values) {
+      var d = ImmutableDictionary<T, int>.Empty.ToBuilder();
+      foreach (T t in values.Elements) {
+        d[t] = 1;
+      }
+      return new MultiSet<T>(d.ToImmutable());
+    }
+
+    public bool Equals(MultiSet<T> other) {
+      return other.IsSubsetOf(this) && this.IsSubsetOf(other);
+    }
+    public override bool Equals(object other) {
+      return other is MultiSet<T> && Equals((MultiSet<T>)other);
+    }
+    public override int GetHashCode() {
+      var hashCode = 1;
+      foreach (var kv in dict) {
+        var key = kv.Key.GetHashCode();
+        key = (key << 3) | (key >> 29) ^ kv.Value.GetHashCode();
+        hashCode = hashCode * (key + 3);
+      }
+      return hashCode;
+    }
+    public override string ToString() {
+      var s = "multiset{";
+      var sep = "";
+      foreach (var kv in dict) {
+        var t = kv.Key.ToString();
+        for (int i = 0; i < kv.Value; i++) {
+          s += sep + t.ToString();
+          sep = ", ";
+        }
+      }
+      return s + "}";
+    }
+    public bool IsProperSubsetOf(MultiSet<T> other) {
+      return !Equals(other) && IsSubsetOf(other);
+    }
+    public bool IsSubsetOf(MultiSet<T> other) {
       foreach (T t in dict.Keys) {
-        if (!other.dict.ContainsKey(t))
+        if (!other.dict.ContainsKey(t) || other.dict[t] < dict[t])
+          return false;
+      }
+      return true;
+    }
+    public bool IsSupersetOf(MultiSet<T> other) {
+      return other.IsSubsetOf(this);
+    }
+    public bool IsProperSupersetOf(MultiSet<T> other) {
+      return other.IsProperSubsetOf(this);
+    }
+    public bool IsDisjointFrom(MultiSet<T> other) {
+      foreach (T t in dict.Keys) {
+        if (other.dict.ContainsKey(t))
+          return false;
+      }
+      foreach (T t in other.dict.Keys) {
+        if (dict.ContainsKey(t))
+          return false;
+      }
+      return true;
+    }
+    public bool Contains(T t) {
+      return dict.ContainsKey(t);
+    }
+    public MultiSet<T> Union(MultiSet<T> other) {
+      if (dict.Count == 0)
+        return other;
+      else if (other.dict.Count == 0)
+        return this;
+        var r = ImmutableDictionary<T, int>.Empty.ToBuilder();
+      foreach (T t in dict.Keys) {
+        var i = 0;
+        if (!r.TryGetValue(t, out i)) {
+          i = 0;
+        }
+        r[t] = i + dict[t];
+      }
+      foreach (T t in other.dict.Keys) {
+        var i = 0;
+        if (!r.TryGetValue(t, out i)) {
+          i = 0;
+        }
+        r[t] = i + other.dict[t];
+      }
+      return new MultiSet<T>(r.ToImmutable());
+    }
+    public MultiSet<T> Intersect(MultiSet<T> other) {
+      if (dict.Count == 0)
+        return this;
+      else if (other.dict.Count == 0)
+        return other;
+      var r = ImmutableDictionary<T, int>.Empty.ToBuilder();
+      foreach (T t in dict.Keys) {
+        if (other.dict.ContainsKey(t)) {
+          r[t] = other.dict[t] < dict[t] ? other.dict[t] : dict[t];
+        }
+      }
+      return new MultiSet<T>(r.ToImmutable());
+    }
+    public MultiSet<T> Difference(MultiSet<T> other) { // \result == this - other
+      if (dict.Count == 0)
+        return this;
+      else if (other.dict.Count == 0)
+        return this;
+      var r = ImmutableDictionary<T, int>.Empty.ToBuilder();
+      foreach (T t in dict.Keys) {
+        if (!other.dict.ContainsKey(t)) {
+          r[t] = dict[t];
+        } else if (other.dict[t] < dict[t]) {
+          r[t] = dict[t] - other.dict[t];
+        }
+      }
+      return new MultiSet<T>(r.ToImmutable());
+    }
+    public IEnumerable<T> Elements {
+      get {
+        foreach (T t in dict.Keys) {
+          int n;
+          dict.TryGetValue(t, out n);
+          for (int i = 0; i < n; i ++) {
+            yield return t;
+          }
+        }
+      }
+    }
+  }
+
+  public partial class Map<U, V>
+  {
+    readonly ImmutableDictionary<U, V> dict;
+    Map(ImmutableDictionary<U, V> d) {
+      dict = d;
+    }
+    public static readonly Map<U, V> Empty = new Map<U, V>(ImmutableDictionary<U, V>.Empty);
+    public static Map<U, V> FromElements(params Pair<U, V>[] values) {
+      var d = ImmutableDictionary<U, V>.Empty.ToBuilder();
+      foreach (Pair<U, V> p in values) {
+        d[p.Car] = p.Cdr;
+      }
+      return new Map<U, V>(d.ToImmutable());
+    }
+    public static Map<U, V> FromCollection(List<Pair<U, V>> values) {
+      var d = ImmutableDictionary<U, V>.Empty.ToBuilder();
+      foreach (Pair<U, V> p in values) {
+        d[p.Car] = p.Cdr;
+      }
+      return new Map<U, V>(d.ToImmutable());
+    }
+    public int Length {
+      get { return dict.Count; }
+    }
+    public long LongLength {
+      get { return dict.Count; }
+    }
+    public bool Equals(Map<U, V> other) {
+      foreach (U u in dict.Keys) {
+        V v1, v2;
+        if (!dict.TryGetValue(u, out v1)) {
+          return false; // this shouldn't happen
+        }
+        if (!other.dict.TryGetValue(u, out v2)) {
+          return false; // other dictionary does not contain this element
+        }
+        if (!v1.Equals(v2)) {
+          return false;
+        }
+      }
+      foreach (U u in other.dict.Keys) {
+        if (!dict.ContainsKey(u)) {
+          return false; // this shouldn't happen
+        }
+      }
+      return true;
+    }
+    public override bool Equals(object other) {
+      return other is Map<U, V> && Equals((Map<U, V>)other);
+    }
+    public override int GetHashCode() {
+      var hashCode = 1;
+      foreach (var kv in dict) {
+        var key = kv.Key.GetHashCode();
+        key = (key << 3) | (key >> 29) ^ kv.Value.GetHashCode();
+        hashCode = hashCode * (key + 3);
+      }
+      return hashCode;
+    }
+    public override string ToString() {
+      var s = "map[";
+      var sep = "";
+      foreach (var kv in dict) {
+        s += sep + kv.Key.ToString() + " := " + kv.Value.ToString();
+        sep = ", ";
+      }
+      return s + "]";
+    }
+    public bool IsDisjointFrom(Map<U, V> other) {
+      foreach (U u in dict.Keys) {
+        if (other.dict.ContainsKey(u))
+          return false;
+      }
+      foreach (U u in other.dict.Keys) {
+        if (dict.ContainsKey(u))
+          return false;
+      }
+      return true;
+    }
+    public bool Contains(U u) {
+      return dict.ContainsKey(u);
+    }
+    public V Select(U index) {
+      return dict[index];
+    }
+    public Map<U, V> Update(U index, V val) {
+      return new Map<U, V>(dict.SetItem(index, val));
+    }
+    public IEnumerable<U> Domain {
+      get {
+        return dict.Keys;
+      }
+    }
+  }
+#else // !def DAFNY_USE_SYSTEM_COLLECTIONS_IMMUTABLE
+  public class Set<T>
+  {
+    HashSet<T> set;
+    Set(HashSet<T> s) {
+      this.set = s;
+    }
+    public static Set<T> Empty {
+      get {
+        return new Set<T>(new HashSet<T>());
+      }
+    }
+    public static Set<T> FromElements(params T[] values) {
+      var s = new HashSet<T>();
+      foreach (T t in values)
+        s.Add(t);
+      return new Set<T>(s);
+    }
+    public static Set<T> FromCollection(ICollection<T> values) {
+      HashSet<T> s = new HashSet<T>();
+      foreach (T t in values)
+        s.Add(t);
+      return new Set<T>(s);
+    }
+    public int Length {
+      get { return this.set.Count; }
+    }
+    public long LongLength {
+      get { return this.set.Count; }
+    }
+    public IEnumerable<T> Elements {
+      get {
+        return this.set;
+      }
+    }
+    /// <summary>
+    /// This is an inefficient iterator for producing all subsets of "this".  Each set returned is the same
+    /// Set<T> object (but this Set<T> object is fresh; in particular, it is not "this").
+    /// </summary>
+    public IEnumerable<Set<T>> AllSubsets {
+      get {
+        // Start by putting all set elements into a list
+        var elmts = new List<T>();
+        elmts.AddRange(this.set);
+        var n = elmts.Count;
+        var which = new bool[n];
+        var s = new Set<T>(new HashSet<T>());
+        while (true) {
+          yield return s;
+          // "add 1" to "which", as if doing a carry chain.  For every digit changed, change the membership of the corresponding element in "s".
+          int i = 0;
+          for (; i < n && which[i]; i++) {
+            which[i] = false;
+            s.set.Remove(elmts[i]);
+          }
+          if (i == n) {
+            // we have cycled through all the subsets
+            break;
+          }
+          which[i] = true;
+          s.set.Add(elmts[i]);
+        }
+      }
+    }
+    public bool Equals(Set<T> other) {
+      return this.set.Count == other.set.Count && IsSubsetOf(other);
+    }
+    public override bool Equals(object other) {
+      return other is Set<T> && Equals((Set<T>)other);
+    }
+    public override int GetHashCode() {
+      var hashCode = 1;
+      foreach (var t in this.set) {
+        hashCode = hashCode * (t.GetHashCode()+3);
+      }
+      return hashCode;
+    }
+    public override string ToString() {
+      var s = "{";
+      var sep = "";
+      foreach (var t in this.set) {
+        s += sep + t.ToString();
+        sep = ", ";
+      }
+      return s + "}";
+    }
+    public bool IsProperSubsetOf(Set<T> other) {
+      return this.set.Count < other.set.Count && IsSubsetOf(other);
+    }
+    public bool IsSubsetOf(Set<T> other) {
+      if (other.set.Count < this.set.Count)
+        return false;
+      foreach (T t in this.set) {
+        if (!other.set.Contains(t))
           return false;
       }
       return true;
@@ -109,66 +500,66 @@ namespace Dafny
       return other.IsProperSubsetOf(this);
     }
     public bool IsDisjointFrom(Set<T> other) {
-      Dictionary<T, bool> a, b;
-      if (dict.Count < other.dict.Count) {
-        a = dict; b = other.dict;
+      HashSet<T> a, b;
+      if (this.set.Count < other.set.Count) {
+        a = this.set; b = other.set;
       } else {
-        a = other.dict; b = dict;
+        a = other.set; b = this.set;
       }
-      foreach (T t in a.Keys) {
-        if (b.ContainsKey(t))
+      foreach (T t in a) {
+        if (b.Contains(t))
           return false;
       }
       return true;
     }
     public bool Contains(T t) {
-      return dict.ContainsKey(t);
+      return this.set.Contains(t);
     }
     public Set<T> Union(Set<T> other) {
-      if (dict.Count == 0)
+      if (this.set.Count == 0)
         return other;
-      else if (other.dict.Count == 0)
+      else if (other.set.Count == 0)
         return this;
-      Dictionary<T, bool> a, b;
-      if (dict.Count < other.dict.Count) {
-        a = dict; b = other.dict;
+      HashSet<T> a, b;
+      if (this.set.Count < other.set.Count) {
+        a = this.set; b = other.set;
       } else {
-        a = other.dict; b = dict;
+        a = other.set; b = this.set;
       }
-      Dictionary<T, bool> r = new Dictionary<T, bool>();
-      foreach (T t in b.Keys)
-        r[t] = true;
-      foreach (T t in a.Keys)
-        r[t] = true;
+      var r = new HashSet<T>();
+      foreach (T t in b)
+        r.Add(t);
+      foreach (T t in a)
+        r.Add(t);
       return new Set<T>(r);
     }
     public Set<T> Intersect(Set<T> other) {
-      if (dict.Count == 0)
+      if (this.set.Count == 0)
         return this;
-      else if (other.dict.Count == 0)
+      else if (other.set.Count == 0)
         return other;
-      Dictionary<T, bool> a, b;
-      if (dict.Count < other.dict.Count) {
-        a = dict; b = other.dict;
+      HashSet<T> a, b;
+      if (this.set.Count < other.set.Count) {
+        a = this.set; b = other.set;
       } else {
-        a = other.dict; b = dict;
+        a = other.set; b = this.set;
       }
-      var r = new Dictionary<T, bool>();
-      foreach (T t in a.Keys) {
-        if (b.ContainsKey(t))
-          r.Add(t, true);
+      var r = new HashSet<T>();
+      foreach (T t in a) {
+        if (b.Contains(t))
+          r.Add(t);
       }
       return new Set<T>(r);
     }
     public Set<T> Difference(Set<T> other) {
-      if (dict.Count == 0)
+      if (this.set.Count == 0)
         return this;
-      else if (other.dict.Count == 0)
+      else if (other.set.Count == 0)
         return this;
-      var r = new Dictionary<T, bool>();
-      foreach (T t in dict.Keys) {
-        if (!other.dict.ContainsKey(t))
-          r.Add(t, true);
+      var r = new HashSet<T>();
+      foreach (T t in this.set) {
+        if (!other.set.Contains(t))
+          r.Add(t);
       }
       return new Set<T>(r);
     }
@@ -447,6 +838,7 @@ namespace Dafny
       }
     }
   }
+#endif
   public class Sequence<T>
   {
     T[] elmts;
