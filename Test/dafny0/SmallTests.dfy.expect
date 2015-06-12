@@ -9,15 +9,13 @@ SmallTests.dfy(66,51): Error: possible division by zero
 Execution trace:
     (0,0): anon0
     (0,0): anon12_Else
-    (0,0): anon3
     (0,0): anon13_Else
 SmallTests.dfy(67,22): Error: target object may be null
 Execution trace:
     (0,0): anon0
     (0,0): anon12_Then
-    (0,0): anon3
     (0,0): anon13_Then
-    (0,0): anon6
+    (0,0): anon14_Then
 SmallTests.dfy(86,24): Error: target object may be null
 Execution trace:
     (0,0): anon0

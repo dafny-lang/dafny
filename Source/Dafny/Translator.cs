@@ -1608,8 +1608,7 @@ namespace Microsoft.Dafny {
       Bpl.StmtList stmts;
       // check well-formedness of the preconditions, and then assume each one of them
       foreach (var p in iter.Requires) {
-        CheckWellformed(p.E, new WFOptions(), localVariables, builder, etran);
-        builder.Add(new Bpl.AssumeCmd(p.E.tok, etran.TrExpr(p.E)));
+        CheckWellformedAndAssume(p.E, new WFOptions(), localVariables, builder, etran);
       }
       // check well-formedness of the modifies and reads clauses
       CheckFrameWellFormed(new WFOptions(), iter.Modifies.Expressions, localVariables, builder, etran);
@@ -1651,8 +1650,7 @@ namespace Microsoft.Dafny {
 
       // check well-formedness of the user-defined part of the yield-requires
       foreach (var p in iter.YieldRequires) {
-        CheckWellformed(p.E, new WFOptions(), localVariables, builder, etran);
-        builder.Add(new Bpl.AssumeCmd(p.E.tok, etran.TrExpr(p.E)));
+        CheckWellformedAndAssume(p.E, new WFOptions(), localVariables, builder, etran);
       }
 
       // save the heap (representing the state where yield-requires holds):  $_OldIterHeap := Heap;
@@ -1704,12 +1702,10 @@ namespace Microsoft.Dafny {
       }
 
       foreach (var p in iter.YieldEnsures) {
-        CheckWellformed(p.E, new WFOptions(), localVariables, yeBuilder, yeEtran);
-        yeBuilder.Add(new Bpl.AssumeCmd(p.E.tok, yeEtran.TrExpr(p.E)));
+        CheckWellformedAndAssume(p.E, new WFOptions(), localVariables, yeBuilder, yeEtran);
       }
       foreach (var p in iter.Ensures) {
-        CheckWellformed(p.E, new WFOptions(), localVariables, endBuilder, yeEtran);
-        endBuilder.Add(new Bpl.AssumeCmd(p.E.tok, yeEtran.TrExpr(p.E)));
+        CheckWellformedAndAssume(p.E, new WFOptions(), localVariables, endBuilder, yeEtran);
       }
       builder.Add(new Bpl.IfCmd(iter.tok, null, yeBuilder.Collect(iter.tok), null, endBuilder.Collect(iter.tok)));
 
@@ -2863,8 +2859,7 @@ namespace Microsoft.Dafny {
       } else {
         // check well-formedness of the preconditions, and then assume each one of them
         foreach (MaybeFreeExpression p in m.Req) {
-          CheckWellformed(p.E, new WFOptions(), localVariables, builder, etran);
-          builder.Add(new Bpl.AssumeCmd(p.E.tok, etran.TrExpr(p.E)));
+          CheckWellformedAndAssume(p.E, new WFOptions(), localVariables, builder, etran);
         }
         // check well-formedness of the modifies clause
         CheckFrameWellFormed(new WFOptions(), m.Mod.Expressions, localVariables, builder, etran);
@@ -2902,8 +2897,7 @@ namespace Microsoft.Dafny {
 
         // check wellformedness of postconditions
         foreach (MaybeFreeExpression p in m.Ens) {
-          CheckWellformed(p.E, new WFOptions(), localVariables, builder, etran);
-          builder.Add(new Bpl.AssumeCmd(p.E.tok, etran.TrExpr(p.E)));
+          CheckWellformedAndAssume(p.E, new WFOptions(), localVariables, builder, etran);
         }
 
         stmts = builder.Collect(m.tok);
@@ -4045,8 +4039,7 @@ namespace Microsoft.Dafny {
       }
 
       foreach (Expression p in f.Req) {
-        CheckWellformed(p, new WFOptions(null, true /* do reads checks */), locals, builder, etran);
-        builder.Add(new Bpl.AssumeCmd(p.tok, etran.TrExpr(p)));
+        CheckWellformedAndAssume(p, new WFOptions(null, true /* do reads checks */), locals, builder, etran);
       }
 
       // check well-formedness of the decreases clauses (including termination, but no reads checks)
@@ -4090,9 +4083,8 @@ namespace Microsoft.Dafny {
       }
       // Now for the ensures clauses
       foreach (Expression p in f.Ens) {
-        CheckWellformed(p, new WFOptions(f, false), locals, postCheckBuilder, etran);
         // assume the postcondition for the benefit of checking the remaining postconditions
-        postCheckBuilder.Add(new Bpl.AssumeCmd(p.tok, etran.TrExpr(p)));
+        CheckWellformedAndAssume(p, new WFOptions(f, false), locals, postCheckBuilder, etran);
       }
       // Here goes the body (and include both termination checks and reads checks)
       StmtListBuilder bodyCheckBuilder = new StmtListBuilder();
@@ -4658,7 +4650,106 @@ namespace Microsoft.Dafny {
       builder.Add(new Bpl.AssumeCmd(expr.tok, CanCallAssumption(expr, etran)));
     }
 
+    void CheckWellformedAndAssume(Expression expr, WFOptions options, List<Variable> locals, Bpl.StmtListBuilder builder, ExpressionTranslator etran) {
+      Contract.Requires(expr != null);
+      Contract.Requires(expr.Type != null && expr.Type.IsBoolType);
+      Contract.Requires(options != null);
+      Contract.Requires(locals != null);
+      Contract.Requires(builder != null);
+      Contract.Requires(etran != null);
+      Contract.Requires(predef != null);
+      if (expr is BinaryExpr) {
+        var e = (BinaryExpr)expr;
+        switch (e.ResolvedOp) {
+          case BinaryExpr.ResolvedOpcode.And:
+            // WF[e0]; assume e0; WF[e1]; assume e1;
+            CheckWellformedAndAssume(e.E0, options, locals, builder, etran);
+            CheckWellformedAndAssume(e.E1, options, locals, builder, etran);
+            return;
+          case BinaryExpr.ResolvedOpcode.Imp: {
+              // if (*) {
+              //   WF[e0]; assume e0; WF[e1]; assume e1;
+              // } else {
+              //   assume e0 ==> e1;
+              // }
+              var bAnd = new Bpl.StmtListBuilder();
+              CheckWellformedAndAssume(e.E0, options, locals, bAnd, etran);
+              CheckWellformedAndAssume(e.E1, options, locals, bAnd, etran);
+              var bImp = new Bpl.StmtListBuilder();
+              bImp.Add(new Bpl.AssumeCmd(expr.tok, etran.TrExpr(expr)));
+              builder.Add(new Bpl.IfCmd(expr.tok, null, bAnd.Collect(expr.tok), null, bImp.Collect(expr.tok)));
+            }
+            return;
+          case BinaryExpr.ResolvedOpcode.Or: {
+              // if (*) {
+              //   WF[e0]; assume e0;
+              // } else {
+              //   assume !e0;
+              //   WF[e1]; assume e1;
+              // }
+              var b0 = new Bpl.StmtListBuilder();
+              CheckWellformedAndAssume(e.E0, options, locals, b0, etran);
+              var b1 = new Bpl.StmtListBuilder();
+              b1.Add(new Bpl.AssumeCmd(expr.tok, Bpl.Expr.Not(etran.TrExpr(e.E0))));
+              CheckWellformedAndAssume(e.E1, options, locals, b1, etran);
+              builder.Add(new Bpl.IfCmd(expr.tok, null, b0.Collect(expr.tok), null, b1.Collect(expr.tok)));
+            }
+            return;
+          default:
+            break;
+        }
+      } else if (expr is ITEExpr) {
+        var e = (ITEExpr)expr;
+        // if (*) {
+        //   WF[test]; assume test;
+        //   WF[thn]; assume thn;
+        // } else {
+        //   assume !test;
+        //   WF[els]; assume els;
+        // }
+        var bThn = new Bpl.StmtListBuilder();
+        CheckWellformedAndAssume(e.Test, options, locals, bThn, etran);
+        CheckWellformedAndAssume(e.Thn, options, locals, bThn, etran);
+        var bEls = new Bpl.StmtListBuilder();
+        bEls.Add(new Bpl.AssumeCmd(expr.tok, Bpl.Expr.Not(etran.TrExpr(e.Test))));
+        CheckWellformedAndAssume(e.Els, options, locals, bEls, etran);
+        builder.Add(new Bpl.IfCmd(expr.tok, null, bThn.Collect(expr.tok), null, bEls.Collect(expr.tok)));
+        return;
+      } else if (expr is QuantifierExpr) {
+        var e = (QuantifierExpr)expr;
+        // For (Q x :: body(x)), introduce fresh local variable x'.  Then:
+        //   havoc x'
+        //   WF[body(x')]; assume body(x');
+        // If the quantifier is universal, then continue as:
+        //   assume (\forall x :: body(x));
+        var typeMap = new Dictionary<TypeParameter, Type>();
+        var copies = new List<TypeParameter>();
+        copies = Map(e.TypeArgs, tp => e.Refresh(tp, CurrentIdGenerator));
+        typeMap = Util.Dict(e.TypeArgs, Map(copies, tp => (Type)new UserDefinedType(tp)));
+        var newLocals = Map(copies, tp => new Bpl.LocalVariable(tp.tok, new TypedIdent(tp.tok, nameTypeParam(tp), predef.Ty)));
+        locals.AddRange(newLocals);
+        var substMap = SetupBoundVarsAsLocals(e.BoundVars, builder, locals, etran, typeMap);  // ??
+        var s = new Substituter(null, substMap, typeMap, this);
+        var body = Substitute(e.LogicalBody(), null, substMap, typeMap);
+        builder.Add(new Bpl.HavocCmd(expr.tok, newLocals.ConvertAll(v => new Bpl.IdentifierExpr(v.tok, v))));
+        CheckWellformedAndAssume(body, options, locals, builder, etran);
+        if (e is ForallExpr) {
+          builder.Add(new Bpl.AssumeCmd(expr.tok, etran.TrExpr(expr)));
+        }
+        return;
+      }
+      // resort to the behavior of simply checking well-formedness followed by assuming the translated expression
+      CheckWellformedWithResult(expr, options, null, null, locals, builder, etran);
+      builder.Add(new Bpl.AssumeCmd(expr.tok, etran.TrExpr(expr)));
+    }
+
     void CheckWellformed(Expression expr, WFOptions options, List<Variable> locals, Bpl.StmtListBuilder builder, ExpressionTranslator etran) {
+      Contract.Requires(expr != null);
+      Contract.Requires(options != null);
+      Contract.Requires(locals != null);
+      Contract.Requires(builder != null);
+      Contract.Requires(etran != null);
+      Contract.Requires(predef != null);
       CheckWellformedWithResult(expr, options, null, null, locals, builder, etran);
     }
 

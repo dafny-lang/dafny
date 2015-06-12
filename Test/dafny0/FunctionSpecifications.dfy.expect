@@ -10,19 +10,19 @@ FunctionSpecifications.dfy(45,3): Error BP5003: A postcondition might not hold o
 FunctionSpecifications.dfy(40,24): Related location: This is the postcondition that might not hold.
 Execution trace:
     (0,0): anon0
-    (0,0): anon11_Else
-    (0,0): anon14_Else
-    (0,0): anon15_Then
+    (0,0): anon13_Else
+    (0,0): anon16_Else
+    (0,0): anon17_Then
 FunctionSpecifications.dfy(53,11): Error: cannot prove termination; try supplying a decreases clause
 Execution trace:
     (0,0): anon0
-    (0,0): anon8_Then
-    (0,0): anon3
+    (0,0): anon9_Then
+    (0,0): anon4
 FunctionSpecifications.dfy(59,10): Error BP5003: A postcondition might not hold on this return path.
 FunctionSpecifications.dfy(60,22): Related location: This is the postcondition that might not hold.
 Execution trace:
     (0,0): anon0
-    (0,0): anon5_Else
+    (0,0): anon6_Else
 FunctionSpecifications.dfy(108,23): Error: assertion violation
 Execution trace:
     (0,0): anon0
@@ -49,9 +49,7 @@ FunctionSpecifications.dfy(135,20): Error BP5003: A postcondition might not hold
 FunctionSpecifications.dfy(137,29): Related location: This is the postcondition that might not hold.
 Execution trace:
     (0,0): anon0
-    (0,0): anon5_Then
-    (0,0): anon2
-    (0,0): anon6_Else
+    (0,0): anon3_Else
 FunctionSpecifications.dfy(146,3): Error: failure to decrease termination measure
 Execution trace:
     (0,0): anon0

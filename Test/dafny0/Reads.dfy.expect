@@ -1,22 +1,18 @@
 Reads.dfy(9,30): Error: insufficient reads clause to read field
 Execution trace:
     (0,0): anon0
-    (0,0): anon5_Then
 Reads.dfy(18,30): Error: insufficient reads clause to read field
 Execution trace:
     (0,0): anon0
-    (0,0): anon11_Then
-    (0,0): anon12_Then
+    (0,0): anon9_Then
+    (0,0): anon3
 Reads.dfy(28,50): Error: insufficient reads clause to read field
 Execution trace:
     (0,0): anon0
-    (0,0): anon7_Then
-    (0,0): anon8_Then
 Reads.dfy(37,43): Error: insufficient reads clause to read field
 Execution trace:
     (0,0): anon0
-    (0,0): anon7_Then
-    (0,0): anon8_Then
+    (0,0): anon6_Then
 Reads.dfy(51,30): Error: insufficient reads clause to read field
 Execution trace:
     (0,0): anon0
