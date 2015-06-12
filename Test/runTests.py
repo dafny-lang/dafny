@@ -80,7 +80,7 @@ class TestStatus(Enum):
 class Test:
     COLUMNS = ["name", "status", "start", "end", "duration", "returncodes", "suite_time", "njobs", "proc_info", "source_path", "temp_directory", "cmds", "expected", "output"]
 
-    def __init__(self, name, source_path, cmds, timeout, compiler_id):
+    def __init__(self, name, source_path, cmds, timeout, compiler_id = 0):
         self.name = name
         self.source_path = source_path
         self.expect_path = Test.source_to_expect_path(self.source_path)
