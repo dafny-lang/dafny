@@ -55,6 +55,7 @@ namespace Microsoft.Dafny
     public bool ignoreAutoReq = false;
     public bool AllowGlobals = false;
     public bool CountVerificationErrors = true;
+    public bool Optimize = false;
 
     protected override bool ParseOption(string name, Bpl.CommandLineOptionEngine.CommandLineParseState ps) {
       var args = ps.args;  // convenient synonym
@@ -180,6 +181,11 @@ namespace Microsoft.Dafny
           return true;
         }
 
+        case "optimize": {
+            Optimize = true;
+            return true;
+        }
+
         default:
           break;
       }
@@ -270,6 +276,12 @@ namespace Microsoft.Dafny
                     of verification errors.
                 1 (default) - If preprocessing succeeds, set exit code to the number of
                               verification errors.
+  /optimize     Produce optimized C# code, meaning:
+                  - selects optimized C# prelude by passing 
+                    /define:DAFNY_USE_SYSTEM_COLLECTIONS_IMMUTABLE to csc.exe (requires 
+                    System.Collections.Immutable.dll in the source directory to successfully 
+                    compile).
+                  - passes /optimize flag to csc.exe.
 ");
       base.Usage();  // also print the Boogie options
     }

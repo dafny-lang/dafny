@@ -15,6 +15,8 @@ namespace Microsoft.Dafny
   using System.Collections.Generic;
   using System.Diagnostics.Contracts;
   using System.IO;
+  using System.Reflection;
+
   using Microsoft.Boogie;
   using Bpl = Microsoft.Boogie;
 
@@ -330,7 +332,7 @@ namespace Microsoft.Dafny
       }
       else
       {
-        var provider = CodeDomProvider.CreateProvider("CSharp");
+        var provider = CodeDomProvider.CreateProvider("CSharp", new Dictionary<string, string> { { "CompilerVersion", "v4.0" } });
         var cp = new System.CodeDom.Compiler.CompilerParameters();
         cp.GenerateExecutable = hasMain;
         if (DafnyOptions.O.RunAfterCompile) {
@@ -344,6 +346,15 @@ namespace Microsoft.Dafny
         }
         cp.CompilerOptions = "/debug /nowarn:0164 /nowarn:0219";  // warning CS0164 complains about unreferenced labels, CS0219 is about unused variables
         cp.ReferencedAssemblies.Add("System.Numerics.dll");
+        cp.ReferencedAssemblies.Add("System.Core.dll");
+        cp.ReferencedAssemblies.Add("System.dll");
+
+        if (DafnyOptions.O.Optimize) {
+          var libPath = Path.GetDirectoryName(dafnyProgramName);
+          cp.CompilerOptions += string.Format(" /optimize /define:DAFNY_USE_SYSTEM_COLLECTIONS_IMMUTABLE /lib:{0}", libPath);
+          cp.ReferencedAssemblies.Add("System.Collections.Immutable.dll");
+          cp.ReferencedAssemblies.Add("System.Runtime.dll");
+        }
 
         var cr = provider.CompileAssemblyFromSource(cp, csharpProgram);
         var assemblyName = Path.GetFileName(cr.PathToAssembly);
