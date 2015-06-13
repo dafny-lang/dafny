@@ -4722,16 +4722,15 @@ namespace Microsoft.Dafny {
         //   WF[body(x')]; assume body(x');
         // If the quantifier is universal, then continue as:
         //   assume (\forall x :: body(x));
-        var typeMap = new Dictionary<TypeParameter, Type>();
-        var copies = new List<TypeParameter>();
-        copies = Map(e.TypeArgs, tp => e.Refresh(tp, CurrentIdGenerator));
-        typeMap = Util.Dict(e.TypeArgs, Map(copies, tp => (Type)new UserDefinedType(tp)));
-        var newLocals = Map(copies, tp => new Bpl.LocalVariable(tp.tok, new TypedIdent(tp.tok, nameTypeParam(tp), predef.Ty)));
+        // Create local variables corresponding to the type arguments:
+        var typeArgumentCopies = Map(e.TypeArgs, tp => e.Refresh(tp, CurrentIdGenerator));
+        var typeMap = Util.Dict(e.TypeArgs, Map(typeArgumentCopies, tp => (Type)new UserDefinedType(tp)));
+        var newLocals = Map(typeArgumentCopies, tp => new Bpl.LocalVariable(tp.tok, new TypedIdent(tp.tok, nameTypeParam(tp), predef.Ty)));
         locals.AddRange(newLocals);
-        var substMap = SetupBoundVarsAsLocals(e.BoundVars, builder, locals, etran, typeMap);  // ??
-        var s = new Substituter(null, substMap, typeMap, this);
+        // Create local variables corresponding to the in-parameters:
+        var substMap = SetupBoundVarsAsLocals(e.BoundVars, builder, locals, etran, typeMap);
+        // Get the body of the quantifier and suitably substitute for the type variables and bound variables
         var body = Substitute(e.LogicalBody(), null, substMap, typeMap);
-        builder.Add(new Bpl.HavocCmd(expr.tok, newLocals.ConvertAll(v => new Bpl.IdentifierExpr(v.tok, v))));
         CheckWellformedAndAssume(body, options, locals, builder, etran);
         if (e is ForallExpr) {
           builder.Add(new Bpl.AssumeCmd(expr.tok, etran.TrExpr(expr)));
