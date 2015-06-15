@@ -4112,7 +4112,9 @@ namespace Microsoft.Dafny {
                                            * makes reads clauses also guard the requires */
                    , null);
 
-        CheckWellformedWithResult(f.Body, new WFOptions(null, true), funcAppl, f.ResultType, locals, bodyCheckBuilder, etran);
+        wfo = new WFOptions(null, true, true /* do delayed reads checks */);
+        CheckWellformedWithResult(f.Body, wfo, funcAppl, f.ResultType, locals, bodyCheckBuilder, etran);
+        wfo.ProcessSavedReadsChecks(locals, builderInitializationArea, bodyCheckBuilder);
       }
       // Combine the two, letting the postcondition be checked on after the "bodyCheckBuilder" branch
       postCheckBuilder.Add(new Bpl.AssumeCmd(f.tok, Bpl.Expr.False));

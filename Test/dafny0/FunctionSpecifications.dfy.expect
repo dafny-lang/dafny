@@ -1,22 +1,24 @@
-FunctionSpecifications.dfy(35,25): Error BP5003: A postcondition might not hold on this return path.
+FunctionSpecifications.dfy(29,10): Error BP5003: A postcondition might not hold on this return path.
 FunctionSpecifications.dfy(31,13): Related location: This is the postcondition that might not hold.
 Execution trace:
     (0,0): anon0
-    (0,0): anon9_Else
     (0,0): anon10_Else
-    (0,0): anon11_Then
-    (0,0): anon12_Else
-FunctionSpecifications.dfy(45,3): Error BP5003: A postcondition might not hold on this return path.
+    (0,0): anon11_Else
+    (0,0): anon12_Then
+    (0,0): anon13_Else
+    (0,0): anon9
+FunctionSpecifications.dfy(38,10): Error BP5003: A postcondition might not hold on this return path.
 FunctionSpecifications.dfy(40,24): Related location: This is the postcondition that might not hold.
 Execution trace:
     (0,0): anon0
-    (0,0): anon14_Else
-    (0,0): anon17_Else
-    (0,0): anon18_Then
+    (0,0): anon15_Else
+    (0,0): anon18_Else
+    (0,0): anon19_Then
+    (0,0): anon14
 FunctionSpecifications.dfy(53,11): Error: cannot prove termination; try supplying a decreases clause
 Execution trace:
     (0,0): anon0
-    (0,0): anon10_Then
+    (0,0): anon11_Then
     (0,0): anon5
 FunctionSpecifications.dfy(59,10): Error BP5003: A postcondition might not hold on this return path.
 FunctionSpecifications.dfy(60,22): Related location: This is the postcondition that might not hold.

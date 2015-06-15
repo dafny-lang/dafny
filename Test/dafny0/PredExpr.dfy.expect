@@ -5,8 +5,8 @@ Execution trace:
 PredExpr.dfy(39,15): Error: value assigned to a nat must be non-negative
 Execution trace:
     (0,0): anon0
-    (0,0): anon6_Else
     (0,0): anon7_Else
+    (0,0): anon8_Else
 PredExpr.dfy(52,17): Error: assertion violation
 Execution trace:
     (0,0): anon0

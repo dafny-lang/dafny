@@ -31,9 +31,5 @@ Execution trace:
 Reads.dfy(120,38): Error: insufficient reads clause to invoke function
 Execution trace:
     (0,0): anon0
-Reads.dfy(126,26): Error: insufficient reads clause to invoke function
-Execution trace:
-    (0,0): anon0
-    (0,0): anon8_Else
 
-Dafny program verifier finished with 15 verified, 10 errors
+Dafny program verifier finished with 16 verified, 9 errors

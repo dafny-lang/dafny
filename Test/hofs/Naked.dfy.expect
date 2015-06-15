@@ -1,20 +1,20 @@
 Naked.dfy(9,16): Error: cannot use naked function in recursive setting. Possible solution: eta expansion.
 Execution trace:
     (0,0): anon0
-    (0,0): anon8_Else
     (0,0): anon9_Else
-    (0,0): anon10_Then
+    (0,0): anon10_Else
+    (0,0): anon11_Then
 Naked.dfy(12,8): Error: cannot use naked function in recursive setting. Possible solution: eta expansion.
 Execution trace:
     (0,0): anon0
-    (0,0): anon8_Else
     (0,0): anon9_Else
     (0,0): anon10_Else
+    (0,0): anon11_Else
 Naked.dfy(17,53): Error: cannot use naked function in recursive setting. Possible solution: eta expansion.
 Execution trace:
     (0,0): anon0
-    (0,0): anon6_Else
     (0,0): anon7_Else
+    (0,0): anon8_Else
 Naked.dfy(22,13): Error: cannot use naked function in recursive setting. Possible solution: eta expansion.
 Execution trace:
     (0,0): anon0

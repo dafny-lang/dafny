@@ -123,6 +123,6 @@ function FunctionInQuantifier2(): int
   requires exists f: int -> int :: f.reads(10) == {} && f.requires(10) && f(10) == 100
   ensures FunctionInQuantifier2() == 100
 {
-  var f: int -> int :| f.reads(10) == {} && f.requires(10) && f(10) == 100;  // error: insufficient reads for f.reads(10)
+  var f: int -> int :| f.reads(10) == {} && f.requires(10) && f(10) == 100;  // fine :) :)
   f(10)
 }
