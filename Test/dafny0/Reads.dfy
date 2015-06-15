@@ -55,3 +55,39 @@ function ok5(r : R):()
   reads if r != null then {r, r.r} else {};
 {()}
 
+// Reads checking where there are circularities among the expressions
+
+class CircularChecking {
+  var Repr: set<object>
+    
+  function F(): int
+    reads this, Repr
+
+  function F'(): int
+    reads Repr, this  // this is also fine
+
+  function G0(): int
+    reads this
+    requires Repr == {} && F() == 100
+
+  function G1(): int
+    reads this
+    requires F() == 100  // error: it is not known (yet) that the rest of what F() reads (namely, Repr) is empty
+    requires Repr == {}
+
+  function H0(cell: Cell): int
+    reads Repr  // error: reads is not self-framing (unless "this in Repr")
+    requires this in Repr  // lo and behold!  So, reads clause is fine, if we can assume the precondition
+
+  function H1(cell: Cell): int
+    reads this, Repr
+    requires cell in Repr
+    requires cell != null && cell.data == 10
+
+  function H2(cell: Cell): int
+    reads this, Repr
+    requires cell != null && cell.data == 10  // error: it is not known (yet) that "cell in Repr"
+    requires cell in Repr
+}
+
+class Cell { var data: int }
