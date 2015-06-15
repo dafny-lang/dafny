@@ -91,3 +91,24 @@ class CircularChecking {
 }
 
 class Cell { var data: int }
+
+// Test the benefits of the new reads checking for function checking
+
+function ApplyToSet<X>(S: set<X>, f: X -> X): set<X>
+  requires forall x :: x in S ==> f.reads(x) == {} && f.requires(x)
+{
+  if S == {} then {} else
+    var x :| x in S;
+    ApplyToSet(S - {x}, f) + {f(x)}
+}
+
+function ApplyToSet_AltSignature0<X>(S: set<X>, f: X -> X): set<X>
+  requires forall x :: x in S ==> f.requires(x) && f.reads(x) == {}
+
+function ApplyToSet_AltSignature1<X>(S: set<X>, f: X -> X): set<X>
+  requires forall x :: x in S ==> f.reads(x) == {}
+  requires forall x :: x in S ==> f.requires(x)
+
+function ApplyToSet_AltSignature2<X>(S: set<X>, f: X -> X): set<X>
+  requires (forall x :: x in S ==> f.reads(x) == {}) ==> forall x :: x in S ==> f.requires(x)
+  // (this precondition would not be good enough to check the body above)
