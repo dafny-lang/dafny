@@ -26,11 +26,11 @@ Execution trace:
 ControlStructures.dfy(54,3): Error: missing case in case statement: Red
 Execution trace:
     (0,0): anon0
-    (0,0): anon8_Else
     (0,0): anon9_Else
     (0,0): anon10_Else
     (0,0): anon11_Else
-    (0,0): anon12_Then
+    (0,0): anon12_Else
+    (0,0): anon13_Then
 ControlStructures.dfy(75,3): Error: alternative cases fail to cover all possibilties
 Execution trace:
     (0,0): anon0

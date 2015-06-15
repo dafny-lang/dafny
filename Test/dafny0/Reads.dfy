@@ -72,7 +72,7 @@ class CircularChecking {
 
   function G1(): int
     reads this
-    requires F() == 100  // error: it is not known (yet) that the rest of what F() reads (namely, Repr) is empty
+    requires F() == 100  // fine, since the next line tells us that Repr is empty
     requires Repr == {}
 
   function H0(cell: Cell): int
@@ -86,7 +86,7 @@ class CircularChecking {
 
   function H2(cell: Cell): int
     reads this, Repr
-    requires cell != null && cell.data == 10  // error: it is not known (yet) that "cell in Repr"
+    requires cell != null && cell.data == 10  // this is okay, too, since reads checks are postponed
     requires cell in Repr
 }
 

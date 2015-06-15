@@ -4,18 +4,18 @@ Execution trace:
 SmallTests.dfy(65,36): Error: possible division by zero
 Execution trace:
     (0,0): anon0
-    (0,0): anon12_Then
+    (0,0): anon13_Then
 SmallTests.dfy(66,51): Error: possible division by zero
 Execution trace:
     (0,0): anon0
-    (0,0): anon12_Else
     (0,0): anon13_Else
+    (0,0): anon14_Else
 SmallTests.dfy(67,22): Error: target object may be null
 Execution trace:
     (0,0): anon0
-    (0,0): anon12_Then
     (0,0): anon13_Then
     (0,0): anon14_Then
+    (0,0): anon15_Then
 SmallTests.dfy(86,24): Error: target object may be null
 Execution trace:
     (0,0): anon0
@@ -91,7 +91,7 @@ Execution trace:
 SmallTests.dfy(386,6): Error: cannot prove termination; try supplying a decreases clause
 Execution trace:
     (0,0): anon0
-    (0,0): anon3_Else
+    (0,0): anon4_Else
 SmallTests.dfy(691,14): Error: assertion violation
 Execution trace:
     (0,0): anon0
@@ -125,12 +125,12 @@ Execution trace:
 SmallTests.dfy(354,4): Error: cannot prove termination; try supplying a decreases clause
 Execution trace:
     (0,0): anon0
-    (0,0): anon3_Else
+    (0,0): anon4_Else
 SmallTests.dfy(398,10): Error BP5003: A postcondition might not hold on this return path.
 SmallTests.dfy(401,41): Related location: This is the postcondition that might not hold.
 Execution trace:
     (0,0): anon0
-    (0,0): anon6_Else
+    (0,0): anon7_Else
 SmallTests.dfy(562,12): Error: assertion violation
 Execution trace:
     (0,0): anon0

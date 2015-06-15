@@ -1,8 +1,8 @@
 Backticks.dfy(38,5): Error: insufficient reads clause to invoke function
 Execution trace:
     (0,0): anon0
-    (0,0): anon5_Else
     (0,0): anon6_Else
+    (0,0): anon7_Else
 Backticks.dfy(77,8): Error: call may violate context's modifies clause
 Execution trace:
     (0,0): anon0

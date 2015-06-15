@@ -4,9 +4,9 @@ Execution trace:
 Termination.dfy(361,47): Error: failure to decrease termination measure
 Execution trace:
     (0,0): anon0
-    (0,0): anon7_Else
-    (0,0): anon8_Then
-    (0,0): anon9_Else
+    (0,0): anon8_Else
+    (0,0): anon9_Then
+    (0,0): anon10_Else
 Termination.dfy(108,3): Error: cannot prove termination; try supplying a decreases clause for the loop
 Execution trace:
     (0,0): anon0
@@ -44,9 +44,9 @@ Execution trace:
 Termination.dfy(255,35): Error: cannot prove termination; try supplying a decreases clause
 Execution trace:
     (0,0): anon0
-    (0,0): anon6_Else
     (0,0): anon7_Else
-    (0,0): anon8_Then
+    (0,0): anon8_Else
+    (0,0): anon9_Then
 Termination.dfy(296,3): Error: decreases expression might not decrease
 Execution trace:
     Termination.dfy(296,3): anon9_LoopHead

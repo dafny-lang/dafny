@@ -1,11 +1,11 @@
 ComputationsLoop2.dfy(6,3): Error: cannot prove termination; try supplying a decreases clause
 Execution trace:
     (0,0): anon0
-    (0,0): anon3_Else
+    (0,0): anon4_Else
 ComputationsLoop2.dfy(11,3): Error: cannot prove termination; try supplying a decreases clause
 Execution trace:
     (0,0): anon0
-    (0,0): anon3_Else
+    (0,0): anon4_Else
 ComputationsLoop2.dfy(16,26): Error: assertion violation
 Execution trace:
     (0,0): anon0

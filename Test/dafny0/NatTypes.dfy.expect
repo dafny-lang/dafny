@@ -32,12 +32,12 @@ Execution trace:
 NatTypes.dfy(109,45): Error: value assigned to a nat must be non-negative
 Execution trace:
     (0,0): anon0
-    (0,0): anon6_Else
     (0,0): anon7_Else
-    (0,0): anon8_Then
+    (0,0): anon8_Else
+    (0,0): anon9_Then
 NatTypes.dfy(132,35): Error: value assigned to a nat must be non-negative
 Execution trace:
     (0,0): anon0
-    (0,0): anon3_Then
+    (0,0): anon4_Then
 
 Dafny program verifier finished with 15 verified, 9 errors
