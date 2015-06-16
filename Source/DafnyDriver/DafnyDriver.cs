@@ -349,10 +349,13 @@ namespace Microsoft.Dafny
         cp.ReferencedAssemblies.Add("System.Core.dll");
         cp.ReferencedAssemblies.Add("System.dll");
 
+        var libPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + Path.DirectorySeparatorChar;
+        var immutableDllFileName = "System.Collections.Immutable.dll";
+        var immutableDllPath = libPath + immutableDllFileName;
+
         if (DafnyOptions.O.Optimize) {
-          var libPath = Path.GetDirectoryName(dafnyProgramName);
-          cp.CompilerOptions += string.Format(" /optimize /define:DAFNY_USE_SYSTEM_COLLECTIONS_IMMUTABLE /lib:{0}", libPath);
-          cp.ReferencedAssemblies.Add("System.Collections.Immutable.dll");
+          cp.CompilerOptions += " /optimize /define:DAFNY_USE_SYSTEM_COLLECTIONS_IMMUTABLE";
+          cp.ReferencedAssemblies.Add(immutableDllPath);
           cp.ReferencedAssemblies.Add("System.Runtime.dll");
         }
 
@@ -375,6 +378,15 @@ namespace Microsoft.Dafny
           }
         } else if (cr.Errors.Count == 0) {
           outputWriter.WriteLine("Compiled assembly into {0}", assemblyName);
+          if (DafnyOptions.O.Optimize) {
+            var outputDir = Path.GetDirectoryName(dafnyProgramName);
+            if (string.IsNullOrWhiteSpace(outputDir)) {
+              outputDir = ".";
+            }
+            var destPath = outputDir + Path.DirectorySeparatorChar + immutableDllFileName;
+            File.Copy(immutableDllPath, destPath, true);
+            outputWriter.WriteLine("Copied /optimize dependency {0} to {1}", immutableDllFileName, outputDir);
+          }
         } else {
           outputWriter.WriteLine("Errors compiling program into {0}", assemblyName);
           foreach (var ce in cr.Errors) {
