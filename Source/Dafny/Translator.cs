@@ -1608,8 +1608,7 @@ namespace Microsoft.Dafny {
       Bpl.StmtList stmts;
       // check well-formedness of the preconditions, and then assume each one of them
       foreach (var p in iter.Requires) {
-        CheckWellformed(p.E, new WFOptions(), localVariables, builder, etran);
-        builder.Add(new Bpl.AssumeCmd(p.E.tok, etran.TrExpr(p.E)));
+        CheckWellformedAndAssume(p.E, new WFOptions(), localVariables, builder, etran);
       }
       // check well-formedness of the modifies and reads clauses
       CheckFrameWellFormed(new WFOptions(), iter.Modifies.Expressions, localVariables, builder, etran);
@@ -1651,8 +1650,7 @@ namespace Microsoft.Dafny {
 
       // check well-formedness of the user-defined part of the yield-requires
       foreach (var p in iter.YieldRequires) {
-        CheckWellformed(p.E, new WFOptions(), localVariables, builder, etran);
-        builder.Add(new Bpl.AssumeCmd(p.E.tok, etran.TrExpr(p.E)));
+        CheckWellformedAndAssume(p.E, new WFOptions(), localVariables, builder, etran);
       }
 
       // save the heap (representing the state where yield-requires holds):  $_OldIterHeap := Heap;
@@ -1704,12 +1702,10 @@ namespace Microsoft.Dafny {
       }
 
       foreach (var p in iter.YieldEnsures) {
-        CheckWellformed(p.E, new WFOptions(), localVariables, yeBuilder, yeEtran);
-        yeBuilder.Add(new Bpl.AssumeCmd(p.E.tok, yeEtran.TrExpr(p.E)));
+        CheckWellformedAndAssume(p.E, new WFOptions(), localVariables, yeBuilder, yeEtran);
       }
       foreach (var p in iter.Ensures) {
-        CheckWellformed(p.E, new WFOptions(), localVariables, endBuilder, yeEtran);
-        endBuilder.Add(new Bpl.AssumeCmd(p.E.tok, yeEtran.TrExpr(p.E)));
+        CheckWellformedAndAssume(p.E, new WFOptions(), localVariables, endBuilder, yeEtran);
       }
       builder.Add(new Bpl.IfCmd(iter.tok, null, yeBuilder.Collect(iter.tok), null, endBuilder.Collect(iter.tok)));
 
@@ -2863,8 +2859,7 @@ namespace Microsoft.Dafny {
       } else {
         // check well-formedness of the preconditions, and then assume each one of them
         foreach (MaybeFreeExpression p in m.Req) {
-          CheckWellformed(p.E, new WFOptions(), localVariables, builder, etran);
-          builder.Add(new Bpl.AssumeCmd(p.E.tok, etran.TrExpr(p.E)));
+          CheckWellformedAndAssume(p.E, new WFOptions(), localVariables, builder, etran);
         }
         // check well-formedness of the modifies clause
         CheckFrameWellFormed(new WFOptions(), m.Mod.Expressions, localVariables, builder, etran);
@@ -2902,8 +2897,7 @@ namespace Microsoft.Dafny {
 
         // check wellformedness of postconditions
         foreach (MaybeFreeExpression p in m.Ens) {
-          CheckWellformed(p.E, new WFOptions(), localVariables, builder, etran);
-          builder.Add(new Bpl.AssumeCmd(p.E.tok, etran.TrExpr(p.E)));
+          CheckWellformedAndAssume(p.E, new WFOptions(), localVariables, builder, etran);
         }
 
         stmts = builder.Collect(m.tok);
@@ -4027,27 +4021,28 @@ namespace Microsoft.Dafny {
       var implInParams = Bpl.Formal.StripWhereClauses(inParams);
       var locals = new List<Variable>();
       var builder = new Bpl.StmtListBuilder();
+      var builderInitializationArea = new Bpl.StmtListBuilder();
       builder.Add(new CommentCmd("AddWellformednessCheck for function " + f));
       builder.Add(CaptureState(f.tok, false, "initial state"));
 
       DefineFrame(f.tok, f.Reads, builder, locals, null);
 
-      // check well-formedness of the preconditions (including termination, and reads checks), and then
-      // assume each one of them
-      var wfo = new WFOptions(null, true, true /* do delayed reads checks over requires */);
-
-      // check well-formedness of the reads clause
-      CheckFrameWellFormed(wfo, f.Reads, locals, builder, etran);
-
-      // check the reads of the preconditions now
-      foreach (var a in wfo.Asserts) {
-        builder.Add(a);
-      }
-
+      // Check well-formedness of the preconditions (including termination), and then
+      // assume each one of them.  After all that (in particular, after assuming all
+      // of them), do the postponed reads checks.
+      var wfo = new WFOptions(null, true, true /* do delayed reads checks */);
       foreach (Expression p in f.Req) {
-        CheckWellformed(p, new WFOptions(null, true /* do reads checks */), locals, builder, etran);
-        builder.Add(new Bpl.AssumeCmd(p.tok, etran.TrExpr(p)));
+        CheckWellformedAndAssume(p, wfo, locals, builder, etran);
       }
+      wfo.ProcessSavedReadsChecks(locals, builderInitializationArea, builder);
+
+      // Check well-formedness of the reads clause.  Note that this is done after assuming
+      // the preconditions.  In other words, the well-formedness of the reads clause is
+      // allowed to assume the precondition (yet, the requires clause is checked to
+      // read only those things indicated in the reads clause).
+      wfo = new WFOptions(null, true, true /* do delayed reads checks */);
+      CheckFrameWellFormed(wfo, f.Reads, locals, builder, etran);
+      wfo.ProcessSavedReadsChecks(locals, builderInitializationArea, builder);
 
       // check well-formedness of the decreases clauses (including termination, but no reads checks)
       foreach (Expression p in f.Decreases.Expressions)
@@ -4090,9 +4085,8 @@ namespace Microsoft.Dafny {
       }
       // Now for the ensures clauses
       foreach (Expression p in f.Ens) {
-        CheckWellformed(p, new WFOptions(f, false), locals, postCheckBuilder, etran);
         // assume the postcondition for the benefit of checking the remaining postconditions
-        postCheckBuilder.Add(new Bpl.AssumeCmd(p.tok, etran.TrExpr(p)));
+        CheckWellformedAndAssume(p, new WFOptions(f, false), locals, postCheckBuilder, etran);
       }
       // Here goes the body (and include both termination checks and reads checks)
       StmtListBuilder bodyCheckBuilder = new StmtListBuilder();
@@ -4121,22 +4115,20 @@ namespace Microsoft.Dafny {
                                            * makes reads clauses also guard the requires */
                    , null);
 
-        CheckWellformedWithResult(f.Body, new WFOptions(null, true), funcAppl, f.ResultType, locals, bodyCheckBuilder, etran);
+        wfo = new WFOptions(null, true, true /* do delayed reads checks */);
+        CheckWellformedWithResult(f.Body, wfo, funcAppl, f.ResultType, locals, bodyCheckBuilder, etran);
+        wfo.ProcessSavedReadsChecks(locals, builderInitializationArea, bodyCheckBuilder);
       }
       // Combine the two, letting the postcondition be checked on after the "bodyCheckBuilder" branch
       postCheckBuilder.Add(new Bpl.AssumeCmd(f.tok, Bpl.Expr.False));
       builder.Add(new Bpl.IfCmd(f.tok, null, postCheckBuilder.Collect(f.tok), null, bodyCheckBuilder.Collect(f.tok)));
 
-      // var b$reads_guards_requires#0 : bool
-      locals.AddRange(wfo.Locals);
-      // This ugly way seems to be the way to add things at the start of a builder:
-      StmtList sl = builder.Collect(f.tok);
-      // b$reads_guards_requires#0 := true   ...
-      sl.BigBlocks[0].simpleCmds.InsertRange(0, wfo.AssignLocals);
-
+      var s0 = builderInitializationArea.Collect(f.tok);
+      var s1 = builder.Collect(f.tok);
+      var implBody = new StmtList(new List<BigBlock>(s0.BigBlocks.Concat(s1.BigBlocks)), f.tok);
       Bpl.Implementation impl = new Bpl.Implementation(f.tok, proc.Name,
         typeParams, Concat(typeInParams, implInParams), new List<Variable>(),
-        locals, sl, etran.TrAttributes(f.Attributes, null));
+        locals, implBody, etran.TrAttributes(f.Attributes, null));
       sink.AddTopLevelDeclaration(impl);
 
       if (InsertChecksums)
@@ -4590,7 +4582,11 @@ namespace Microsoft.Dafny {
     /// like it.  This is useful in function postconditions, where the result of the function is
     /// syntactically given as what looks like a recursive call with the same arguments.
     /// "DoReadsChecks" indicates whether or not to perform reads checks.  If so, the generated code
-    /// will make references to $_Frame.
+    /// will make references to $_Frame.  If "saveReadsChecks" is true, then the reads checks will
+    /// be recorded but postponsed.  In particular, CheckWellformed will append to .Locals a list of
+    /// fresh local variables and will append to .Assert assertions with appropriate error messages
+    /// that can be used later.  As a convenience, the ProcessSavedReadsChecks will make use of .Locals
+    /// and .Asserts (and AssignLocals) and update a given StmtListBuilder.
     /// </summary>
     private class WFOptions
     {
@@ -4604,6 +4600,7 @@ namespace Microsoft.Dafny {
       }
 
       public WFOptions(Function selfCallsAllowance, bool doReadsChecks, bool saveReadsChecks = false) {
+        Contract.Requires(!saveReadsChecks || doReadsChecks);  // i.e., saveReadsChecks ==> doReadsChecks
         SelfCallsAllowance = selfCallsAllowance;
         DoReadsChecks = doReadsChecks;
         if (saveReadsChecks) {
@@ -4637,6 +4634,24 @@ namespace Microsoft.Dafny {
             );
         }
       }
+
+      public void ProcessSavedReadsChecks(List<Variable> locals, StmtListBuilder builderInitializationArea, StmtListBuilder builder) {
+        Contract.Requires(locals != null);
+        Contract.Requires(builderInitializationArea != null);
+        Contract.Requires(builder != null);
+        Contract.Requires(Locals != null && Asserts != null);  // ProcessSavedReadsChecks should be called only if the constructor was called with saveReadsChecks
+
+        // var b$reads_guards#0 : bool  ...
+        locals.AddRange(Locals);
+        // b$reads_guards#0 := true   ...
+        foreach (var cmd in AssignLocals) {
+          builderInitializationArea.Add(cmd);
+        }
+        // assert b$reads_guards#0;  ...
+        foreach (var a in Asserts) {
+          builder.Add(a);
+        }
+      }
     }
 
     void TrStmt_CheckWellformed(Expression expr, Bpl.StmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran, bool subsumption) {
@@ -4644,6 +4659,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(builder != null);
       Contract.Requires(locals != null);
       Contract.Requires(etran != null);
+      Contract.Requires(predef != null);
 
       Bpl.QKeyValue kv;
       if (subsumption) {
@@ -4658,7 +4674,108 @@ namespace Microsoft.Dafny {
       builder.Add(new Bpl.AssumeCmd(expr.tok, CanCallAssumption(expr, etran)));
     }
 
+    void CheckWellformedAndAssume(Expression expr, WFOptions options, List<Variable> locals, Bpl.StmtListBuilder builder, ExpressionTranslator etran) {
+      Contract.Requires(expr != null);
+      Contract.Requires(expr.Type != null && expr.Type.IsBoolType);
+      Contract.Requires(options != null);
+      Contract.Requires(locals != null);
+      Contract.Requires(builder != null);
+      Contract.Requires(etran != null);
+      Contract.Requires(predef != null);
+      if (expr is BinaryExpr) {
+        var e = (BinaryExpr)expr;
+        switch (e.ResolvedOp) {
+          case BinaryExpr.ResolvedOpcode.And:
+            // WF[e0]; assume e0; WF[e1]; assume e1;
+            CheckWellformedAndAssume(e.E0, options, locals, builder, etran);
+            CheckWellformedAndAssume(e.E1, options, locals, builder, etran);
+            return;
+          case BinaryExpr.ResolvedOpcode.Imp: {
+              // if (*) {
+              //   WF[e0]; assume e0; WF[e1]; assume e1;
+              // } else {
+              //   assume e0 ==> e1;
+              // }
+              var bAnd = new Bpl.StmtListBuilder();
+              CheckWellformedAndAssume(e.E0, options, locals, bAnd, etran);
+              CheckWellformedAndAssume(e.E1, options, locals, bAnd, etran);
+              var bImp = new Bpl.StmtListBuilder();
+              bImp.Add(new Bpl.AssumeCmd(expr.tok, etran.TrExpr(expr)));
+              builder.Add(new Bpl.IfCmd(expr.tok, null, bAnd.Collect(expr.tok), null, bImp.Collect(expr.tok)));
+            }
+            return;
+          case BinaryExpr.ResolvedOpcode.Or: {
+              // if (*) {
+              //   WF[e0]; assume e0;
+              // } else {
+              //   assume !e0;
+              //   WF[e1]; assume e1;
+              // }
+              var b0 = new Bpl.StmtListBuilder();
+              CheckWellformedAndAssume(e.E0, options, locals, b0, etran);
+              var b1 = new Bpl.StmtListBuilder();
+              b1.Add(new Bpl.AssumeCmd(expr.tok, Bpl.Expr.Not(etran.TrExpr(e.E0))));
+              CheckWellformedAndAssume(e.E1, options, locals, b1, etran);
+              builder.Add(new Bpl.IfCmd(expr.tok, null, b0.Collect(expr.tok), null, b1.Collect(expr.tok)));
+            }
+            return;
+          default:
+            break;
+        }
+      } else if (expr is ITEExpr) {
+        var e = (ITEExpr)expr;
+        // if (*) {
+        //   WF[test]; assume test;
+        //   WF[thn]; assume thn;
+        // } else {
+        //   assume !test;
+        //   WF[els]; assume els;
+        // }
+        var bThn = new Bpl.StmtListBuilder();
+        CheckWellformedAndAssume(e.Test, options, locals, bThn, etran);
+        CheckWellformedAndAssume(e.Thn, options, locals, bThn, etran);
+        var bEls = new Bpl.StmtListBuilder();
+        bEls.Add(new Bpl.AssumeCmd(expr.tok, Bpl.Expr.Not(etran.TrExpr(e.Test))));
+        CheckWellformedAndAssume(e.Els, options, locals, bEls, etran);
+        builder.Add(new Bpl.IfCmd(expr.tok, null, bThn.Collect(expr.tok), null, bEls.Collect(expr.tok)));
+        return;
+      } else if (expr is QuantifierExpr) {
+        var e = (QuantifierExpr)expr;
+        // For (Q x :: body(x)), introduce fresh local variable x'.  Then:
+        //   havoc x'
+        //   WF[body(x')]; assume body(x');
+        // If the quantifier is universal, then continue as:
+        //   assume (\forall x :: body(x));
+        // Create local variables corresponding to the type arguments:
+        var typeArgumentCopies = Map(e.TypeArgs, tp => e.Refresh(tp, CurrentIdGenerator));
+        var typeMap = Util.Dict(e.TypeArgs, Map(typeArgumentCopies, tp => (Type)new UserDefinedType(tp)));
+        var newLocals = Map(typeArgumentCopies, tp => new Bpl.LocalVariable(tp.tok, new TypedIdent(tp.tok, nameTypeParam(tp), predef.Ty)));
+        locals.AddRange(newLocals);
+        // Create local variables corresponding to the in-parameters:
+        var substMap = SetupBoundVarsAsLocals(e.BoundVars, builder, locals, etran, typeMap);
+        // Get the body of the quantifier and suitably substitute for the type variables and bound variables
+        var body = Substitute(e.LogicalBody(), null, substMap, typeMap);
+        CheckWellformedAndAssume(body, options, locals, builder, etran);
+        if (e is ForallExpr) {
+          builder.Add(new Bpl.AssumeCmd(expr.tok, etran.TrExpr(expr)));
+        }
+        return;
+      }
+      // resort to the behavior of simply checking well-formedness followed by assuming the translated expression
+      CheckWellformed(expr, options, locals, builder, etran);
+      builder.Add(new Bpl.AssumeCmd(expr.tok, etran.TrExpr(expr)));
+    }
+
+    /// <summary>
+    /// Check the well-formedness of "expr" (but don't leave hanging around any assumptions that affect control flow)
+    /// </summary>
     void CheckWellformed(Expression expr, WFOptions options, List<Variable> locals, Bpl.StmtListBuilder builder, ExpressionTranslator etran) {
+      Contract.Requires(expr != null);
+      Contract.Requires(options != null);
+      Contract.Requires(locals != null);
+      Contract.Requires(builder != null);
+      Contract.Requires(etran != null);
+      Contract.Requires(predef != null);
       CheckWellformedWithResult(expr, options, null, null, locals, builder, etran);
     }
 
@@ -5202,21 +5319,9 @@ namespace Microsoft.Dafny {
 
             // Check frame WF and that it read covers itself
             newOptions = new WFOptions(options.SelfCallsAllowance, true /* check reads clauses */, true /* delay reads checks */);
-
             CheckFrameWellFormed(newOptions, reads, locals, newBuilder, newEtran);
-
             // new options now contains the delayed reads checks
-            locals.AddRange(newOptions.Locals);
-            // assign locals to true, but at a scope above
-            Contract.Assert(newBuilder != builder);
-            foreach (var a in newOptions.AssignLocals) {
-              builder.Add(a);
-            }
-
-            // add asserts to the current builder (right after frame WF)
-            foreach (var a in newOptions.Asserts) {
-              newBuilder.Add(a);
-            }
+            newOptions.ProcessSavedReadsChecks(locals, builder, newBuilder);
 
             // continue doing reads checks, but don't delay them
             newOptions = new WFOptions(options.SelfCallsAllowance, true, false);

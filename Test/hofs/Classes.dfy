@@ -30,15 +30,14 @@ function B(t : T) : int -> int
 }
 
 function J(t : T) : int
-  requires t != null;
-  requires t.h.reads(0) == {};
-  reads t;
-  reads if t != null then t.h.reads(0) else {};
+  requires t != null
+  reads t
+  reads t.h.reads(0)
 {
   if t.h.requires(0) then
     B(t)(0)
   else
-    B(t)(0)  // fail
+    B(t)(0)  // error: precondition violation
 }
 
 method U(t : T)

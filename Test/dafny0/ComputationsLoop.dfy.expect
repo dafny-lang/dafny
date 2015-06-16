@@ -1,7 +1,7 @@
 ComputationsLoop.dfy(7,3): Error: failure to decrease termination measure
 Execution trace:
     (0,0): anon0
-    (0,0): anon3_Else
+    (0,0): anon4_Else
 ComputationsLoop.dfy(12,26): Error: assertion violation
 Execution trace:
     (0,0): anon0

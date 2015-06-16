@@ -24,11 +24,11 @@ Execution trace:
 LetExpr.dfy(305,42): Error: value assigned to a nat must be non-negative
 Execution trace:
     (0,0): anon0
-    (0,0): anon6_Else
+    (0,0): anon7_Else
 LetExpr.dfy(307,12): Error: assertion violation
 Execution trace:
     (0,0): anon0
-    (0,0): anon6_Else
+    (0,0): anon7_Else
 LetExpr.dfy(317,12): Error: to be compilable, the value of a let-such-that expression must be uniquely determined
 Execution trace:
     (0,0): anon0

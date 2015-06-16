@@ -14,7 +14,7 @@ Superposition.dfy(27,15): Error BP5003: A postcondition might not hold on this r
 Superposition.dfy(28,26): Related location: This is the postcondition that might not hold.
 Execution trace:
     (0,0): anon0
-    (0,0): anon5_Else
+    (0,0): anon7_Else
 
 Verifying CheckWellformed$$_0_M0.C.R ...
   [5 proof obligations]  error
@@ -22,7 +22,7 @@ Superposition.dfy(33,15): Error BP5003: A postcondition might not hold on this r
 Superposition.dfy(34,26): Related location: This is the postcondition that might not hold.
 Execution trace:
     (0,0): anon0
-    (0,0): anon5_Else
+    (0,0): anon7_Else
 
 Verifying CheckWellformed$$_1_M1.C.M ...
   [0 proof obligations]  verified
@@ -36,9 +36,9 @@ Superposition.dfy(50,25): Error BP5003: A postcondition might not hold on this r
 Superposition.dfy[M1](22,26): Related location: This is the postcondition that might not hold.
 Execution trace:
     (0,0): anon0
-    (0,0): anon7_Else
-    (0,0): anon9_Then
-    (0,0): anon6
+    (0,0): anon9_Else
+    (0,0): anon11_Then
+    (0,0): anon8
 
 Verifying CheckWellformed$$_1_M1.C.Q ...
   [0 proof obligations]  verified

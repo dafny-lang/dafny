@@ -1,6 +1,6 @@
 DeterministicPick.dfy(13,5): Error: to be compilable, the value of a let-such-that expression must be uniquely determined
 Execution trace:
     (0,0): anon0
-    (0,0): anon3_Else
+    (0,0): anon4_Else
 
 Dafny program verifier finished with 6 verified, 1 error

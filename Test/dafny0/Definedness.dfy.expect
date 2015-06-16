@@ -1,7 +1,7 @@
 Definedness.dfy(11,7): Error: possible division by zero
 Execution trace:
     (0,0): anon0
-    (0,0): anon3_Else
+    (0,0): anon4_Else
 Definedness.dfy(18,16): Error: possible division by zero
 Execution trace:
     (0,0): anon0
@@ -161,19 +161,15 @@ Definedness.dfy(215,10): Error BP5003: A postcondition might not hold on this re
 Definedness.dfy(217,46): Related location: This is the postcondition that might not hold.
 Execution trace:
     (0,0): anon0
-    (0,0): anon5_Else
+    (0,0): anon4_Else
 Definedness.dfy(224,22): Error: target object may be null
 Execution trace:
     (0,0): anon0
-    (0,0): anon5_Then
-    (0,0): anon2
-    (0,0): anon6_Then
+    (0,0): anon4_Then
 Definedness.dfy(237,10): Error BP5003: A postcondition might not hold on this return path.
 Definedness.dfy(240,24): Related location: This is the postcondition that might not hold.
 Execution trace:
     (0,0): anon0
-    (0,0): anon7_Then
-    (0,0): anon2
-    (0,0): anon8_Else
+    (0,0): anon4_Else
 
 Dafny program verifier finished with 21 verified, 37 errors

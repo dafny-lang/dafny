@@ -11,11 +11,11 @@ Execution trace:
 StatementExpressions.dfy(77,6): Error: possible division by zero
 Execution trace:
     (0,0): anon0
-    (0,0): anon3_Else
+    (0,0): anon4_Else
 StatementExpressions.dfy(88,5): Error: value assigned to a nat must be non-negative
 Execution trace:
     (0,0): anon0
-    (0,0): anon3_Else
+    (0,0): anon4_Else
 StatementExpressions.dfy(98,18): Error: cannot prove termination; try supplying a decreases clause
 Execution trace:
     (0,0): anon0

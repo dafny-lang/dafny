@@ -5,7 +5,7 @@ Execution trace:
 Twice.dfy(35,32): Error: possible violation of function precondition
 Execution trace:
     (0,0): anon0
-    (0,0): anon9_Else
-    (0,0): anon10_Then
+    (0,0): anon10_Else
+    (0,0): anon11_Then
 
 Dafny program verifier finished with 4 verified, 2 errors

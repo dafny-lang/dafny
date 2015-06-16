@@ -1,13 +1,13 @@
 Simple.dfy(14,10): Error: possible division by zero
 Execution trace:
     (0,0): anon0
-    (0,0): anon5_Else
-    (0,0): anon6_Then
+    (0,0): anon6_Else
+    (0,0): anon7_Then
 Simple.dfy(27,10): Error: possible division by zero
 Execution trace:
     (0,0): anon0
-    (0,0): anon5_Else
-    (0,0): anon6_Then
+    (0,0): anon6_Else
+    (0,0): anon7_Then
 Simple.dfy(37,9): Error: possible violation of function precondition
 Execution trace:
     (0,0): anon0
