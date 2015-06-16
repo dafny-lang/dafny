@@ -58,7 +58,7 @@ function ok5(r : R):()
 // Reads checking where there are circularities among the expressions
 
 class CircularChecking {
-  var Repr: set<object>
+  ghost var Repr: set<object>
     
   function F(): int
     reads this, Repr
@@ -76,8 +76,8 @@ class CircularChecking {
     requires Repr == {}
 
   function H0(cell: Cell): int
-    reads Repr  // error: reads is not self-framing (unless "this in Repr")
-    requires this in Repr  // lo and behold!  So, reads clause is fine, if we can assume the precondition
+    reads Repr  // by itself, this reads is not self-framing
+    requires this in Repr  // lo and behold!  So, reads clause is fine after all
 
   function H1(cell: Cell): int
     reads this, Repr
@@ -125,4 +125,14 @@ function FunctionInQuantifier2(): int
 {
   var f: int -> int :| f.reads(10) == {} && f.requires(10) && f(10) == 100;  // fine :) :)
   f(10)
+}
+
+class DynamicFramesIdiom {
+  ghost var Repr: set<object>
+  predicate IllFormed_Valid()
+    reads Repr  // error: reads is not self framing (notice the absence of "this")
+  {
+    this in Repr  // this says that the predicate returns true if "this in Repr", but the
+                  // predicate can also be invoked in a state where its body will evaluate to false
+  }
 }

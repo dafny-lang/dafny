@@ -4027,18 +4027,21 @@ namespace Microsoft.Dafny {
 
       DefineFrame(f.tok, f.Reads, builder, locals, null);
 
-      // check well-formedness of the preconditions (including termination, and reads checks), and then
-      // assume each one of them
-
-      // check well-formedness of the reads clause
-      var wfo = new WFOptions(null, true, true /* do delayed reads checks over requires */);
-      CheckFrameWellFormed(wfo, f.Reads, locals, builder, etran);
-      wfo.ProcessSavedReadsChecks(locals, builderInitializationArea, builder);
-
-      wfo = new WFOptions(null, true, true /* do delayed reads checks */);
+      // Check well-formedness of the preconditions (including termination), and then
+      // assume each one of them.  After all that (in particular, after assuming all
+      // of them), do the postponed reads checks.
+      var wfo = new WFOptions(null, true, true /* do delayed reads checks */);
       foreach (Expression p in f.Req) {
         CheckWellformedAndAssume(p, wfo, locals, builder, etran);
       }
+      wfo.ProcessSavedReadsChecks(locals, builderInitializationArea, builder);
+
+      // Check well-formedness of the reads clause.  Note that this is done after assuming
+      // the preconditions.  In other words, the well-formedness of the reads clause is
+      // allowed to assume the precondition (yet, the requires clause is checked to
+      // read only those things indicated in the reads clause).
+      wfo = new WFOptions(null, true, true /* do delayed reads checks */);
+      CheckFrameWellFormed(wfo, f.Reads, locals, builder, etran);
       wfo.ProcessSavedReadsChecks(locals, builderInitializationArea, builder);
 
       // check well-formedness of the decreases clauses (including termination, but no reads checks)
