@@ -5246,7 +5246,9 @@ namespace Microsoft.Dafny
       string name = FreshTempVarName("_mc#", codeContext);
       BoundVar bv = new BoundVar(s.Tok, name, type);
       List<CasePattern> patternSubst = new List<CasePattern>();
-      DesugarMatchCaseStmt(s, dtd, bv, patternSubst);
+      if (dtd != null) {
+        DesugarMatchCaseStmt(s, dtd, bv, patternSubst, codeContext);
+      }
 
       ISet<string> memberNamesUsed = new HashSet<string>();
       foreach (MatchCaseStmt mc in s.Cases) {
@@ -5270,20 +5272,20 @@ namespace Microsoft.Dafny
         }
         scope.PushMarker();
         int i = 0;
-        foreach (BoundVar v in mc.Arguments) {
-          if (!scope.Push(v.Name, v)) {
-            Error(v, "Duplicate parameter name: {0}", v.Name);
-          }
-          ResolveType(v.tok, v.Type, codeContext, ResolveTypeOptionEnum.InferTypeProxies, null);
-          if (ctor != null && i < ctor.Formals.Count) {
-            Formal formal = ctor.Formals[i];
-            Type st = SubstType(formal.Type, subst);
-            if (!UnifyTypes(v.Type, st)) {
-              Error(stmt, "the declared type of the formal ({0}) does not agree with the corresponding type in the constructor's signature ({1})", v.Type, st);
+        if (mc.Arguments != null) {
+          foreach (BoundVar v in mc.Arguments) {
+            scope.Push(v.Name, v);
+            ResolveType(v.tok, v.Type, codeContext, ResolveTypeOptionEnum.InferTypeProxies, null);
+            if (ctor != null && i < ctor.Formals.Count) {
+              Formal formal = ctor.Formals[i];
+              Type st = SubstType(formal.Type, subst);
+              if (!UnifyTypes(v.Type, st)) {
+                Error(stmt, "the declared type of the formal ({0}) does not agree with the corresponding type in the constructor's signature ({1})", v.Type, st);
+              }
+              v.IsGhost = formal.IsGhost;
             }
-            v.IsGhost = formal.IsGhost;
+            i++;
           }
-          i++;
         }
         foreach (Statement ss in mc.Body) {
           ResolveStatement(ss, bodyIsSpecOnly, codeContext);
@@ -5340,29 +5342,34 @@ namespace Microsoft.Dafny
       // (x, y) is treated as a 2-tuple constructor
       if (me.Source is DatatypeValue) {
         var e = (DatatypeValue)me.Source;
-        Contract.Assert(e.Arguments.Count >= 1);
-        Expression source = e.Arguments[0];
-        List<MatchCaseStmt> cases = new List<MatchCaseStmt>();
-        foreach (MatchCaseStmt mc in me.Cases) {
-          Contract.Assert(mc.CasePatterns != null);
-          Contract.Assert(mc.CasePatterns.Count == e.Arguments.Count);
-          CasePattern cp = mc.CasePatterns[0];
-          List<CasePattern> patterns;
-          if (cp.Arguments != null) {
-            patterns = cp.Arguments;
-          } else {
-            patterns = new List<CasePattern>();
-          }
+        if (e.Arguments.Count < 1) {
+          Error(me.Tok, "match source tuple needs at least 1 argument");
+        } else {
+          Expression source = e.Arguments[0];
+          List<MatchCaseStmt> cases = new List<MatchCaseStmt>();
+          foreach (MatchCaseStmt mc in me.Cases) {
+            if (mc.CasePatterns == null || mc.CasePatterns.Count != e.Arguments.Count) {
+              Error(mc.tok, "case arguments count does not match source arguments count");
+            } else {
+              CasePattern cp = mc.CasePatterns[0];
+              List<CasePattern> patterns;
+              if (cp.Arguments != null) {
+                patterns = cp.Arguments;
+              } else {
+                patterns = new List<CasePattern>();
+              }
 
-          List<Statement> body = mc.Body;
-          for (int i = e.Arguments.Count; 1 <= --i; ) {
-            // others go into the body
-            body = CreateMatchCaseStmtBody(mc.tok, e.Arguments[i], mc.CasePatterns[i], body);
+              List<Statement> body = mc.Body;
+              for (int i = e.Arguments.Count; 1 <= --i; ) {
+                // others go into the body
+                body = CreateMatchCaseStmtBody(me.Tok, e.Arguments[i], mc.CasePatterns[i], body);
+              }
+              cases.Add(new MatchCaseStmt(cp.tok, cp.Id, patterns, body));
+            }
           }
-          cases.Add(new MatchCaseStmt(cp.tok, cp.Id, patterns, body));
+          me.UpdateSource(source);
+          me.UpdateCases(cases);
         }
-        me.UpdateSource(source);
-        me.UpdateCases(cases);
       }
     }
 
@@ -5398,9 +5405,14 @@ namespace Microsoft.Dafny
      *       case Nil => y
      *       case Cons(z, zs) => last(ys)
      */
-    void DesugarMatchCaseStmt(MatchStmt s, DatatypeDecl dtd, BoundVar sourceVar, List<CasePattern> patterns) {
+    void DesugarMatchCaseStmt(MatchStmt s, DatatypeDecl dtd, BoundVar sourceVar, List<CasePattern> patterns, ICodeContext codeContext) {
       Contract.Assert(dtd != null);
       Dictionary<string, DatatypeCtor> ctors = datatypeCtors[dtd];
+      if (ctors == null) {
+        // there is no constructor, no need to desugar
+        return;
+      }
+
       foreach (MatchCaseStmt mc in s.Cases) {
         if (mc.Arguments != null) {
           // already desugared. This happens during the second pass resolver after cloning.
@@ -5410,46 +5422,31 @@ namespace Microsoft.Dafny
 
         Contract.Assert(mc.Arguments == null);
         Contract.Assert(mc.CasePatterns != null);
+        Contract.Assert(ctors != null);
         DatatypeCtor ctor = null;
-        if (ctors != null) {
-          if (!ctors.TryGetValue(mc.Id, out ctor)) {
-            Error(mc.tok, "member {0} does not exist in datatype {1}", mc.Id, dtd.Name);
-          } else {
-            Contract.Assert(ctor != null);  // follows from postcondition of TryGetValue
-            mc.Ctor = ctor;
-            if (ctor.Formals.Count != mc.CasePatterns.Count) {
-              Error(mc.tok, "member {0} has wrong number of formals (found {1}, expected {2})", mc.Id, mc.Arguments.Count, ctor.Formals.Count);
+
+        if (ctors.TryGetValue(mc.Id, out ctor)) {
+          scope.PushMarker();
+          foreach (CasePattern pat in mc.CasePatterns) {
+            FindDuplicateIdentifier(pat, ctors, true);
+          }
+          List<BoundVar> arguments = new List<BoundVar>();
+          foreach (CasePattern pat in mc.CasePatterns) {
+            if (pat.Var != null) {
+              BoundVar v = pat.Var;
+              arguments.Add(v);
+            } else {
+              DesugarMatchCasePattern(mc, pat, sourceVar);
+              patterns.Add(pat);
+              arguments.Add(sourceVar);
             }
           }
+          mc.Arguments = arguments;
+          mc.CasePatterns = null;
+          scope.PopMarker();
         }
-        scope.PushMarker();
-        List<BoundVar> arguments = new List<BoundVar>();
-        foreach (CasePattern pat in mc.CasePatterns) {
-          // Find the constructor in the given datatype
-          // If what was parsed was just an identifier, we will interpret it as a datatype constructor, if possible
-          ctor = null;
-          if (pat.Var == null || (pat.Var != null && pat.Var.Type is TypeProxy && dtd != null)) {
-            if (datatypeCtors[dtd].TryGetValue(pat.Id, out ctor)) {
-              pat.Ctor = ctor;
-              pat.Var = null;
-            }
-          }
-          if (pat.Var != null) {
-            BoundVar v = pat.Var;
-            arguments.Add(v);
-            if (!scope.Push(v.Name, v)) {
-              Error(v, "Duplicate name: {0}", v.Name);
-            }
-          } else {
-            DesugarMatchCasePattern(mc, pat, sourceVar);
-            patterns.Add(pat);
-            arguments.Add(sourceVar);
-          }
-        }
-        mc.Arguments = arguments;
-        mc.CasePatterns = null;
-        scope.PopMarker();
       }
+      
 
       List<MatchCaseStmt> newCases = new List<MatchCaseStmt>();
 
@@ -5473,17 +5470,48 @@ namespace Microsoft.Dafny
         if (CaseExprHasWildCard(mc)) {
           mcWithWildCard.Add(mc);
         } else {
-          thingsChanged |= CombineMatchCaseStmt(mc, newCases, caseMap);
+          thingsChanged |= CombineMatchCaseStmt(mc, newCases, caseMap, codeContext);
         }
       }
 
       foreach (MatchCaseStmt mc in mcWithWildCard) {
         // now process with cases with wildcard
-        thingsChanged |= CombineMatchCaseStmt(mc, newCases, caseMap);
+        thingsChanged |= CombineMatchCaseStmt(mc, newCases, caseMap, codeContext);
       }
 
       if (thingsChanged) {
         s.UpdateCases(newCases);
+      }
+    }
+
+    void FindDuplicateIdentifier(CasePattern pat, Dictionary<string, DatatypeCtor> ctors, bool topLevel) {
+      Contract.Assert(ctors != null);
+      DatatypeCtor ctor = null;
+      // Find the constructor in the given datatype
+      // If what was parsed was just an identifier, we will interpret it as a datatype constructor, if possible
+      if (pat.Var == null || (pat.Var != null && pat.Var.Type is TypeProxy)) {
+        if (ctors.TryGetValue(pat.Id, out ctor)) {
+          pat.Ctor = ctor;
+          pat.Var = null;
+        }
+      }
+      if (pat.Var != null) {
+        BoundVar v = pat.Var;
+        if (topLevel) {
+          if (!scope.Push(v.Name, v)) {
+            Error(v, "Duplicate parameter name: {0}", v.Name);
+          }
+        } else {
+          if (scope.Find(v.Name) != null) {
+            Error(v, "Duplicate parameter name: {0}", v.Name);
+          }
+        }
+      } else {
+        if (pat.Arguments != null) {
+          foreach (CasePattern cp in pat.Arguments) {
+            FindDuplicateIdentifier(cp, ctors, false);
+          }
+        }
       }
     }
 
@@ -5503,7 +5531,7 @@ namespace Microsoft.Dafny
       mc.UpdateBody(list);
     }
 
-    bool CombineMatchCaseStmt(MatchCaseStmt mc, List<MatchCaseStmt> newCases, Dictionary<string, MatchCaseStmt> caseMap) {
+    bool CombineMatchCaseStmt(MatchCaseStmt mc, List<MatchCaseStmt> newCases, Dictionary<string, MatchCaseStmt> caseMap, ICodeContext codeContext) {
       bool thingsChanged = false;
       MatchCaseStmt old_mc;
       if (caseMap.TryGetValue(mc.Id, out old_mc)) {
@@ -5513,9 +5541,9 @@ namespace Microsoft.Dafny
         if ((oldBody.Count == 1) && (oldBody[0] is MatchStmt)
             && (body.Count == 1) && (body[0] is MatchStmt)) {
           // both only have on statement and the statement is MatchStmt
-          MatchStmt old = (MatchStmt) oldBody[0];
-          MatchStmt current = (MatchStmt) body[0];
-          if (SameMatchCase(old_mc, mc)) {
+          if (SameMatchCaseStmt(old_mc, mc, codeContext)) {
+            MatchStmt old = (MatchStmt)old_mc.Body[0];
+            MatchStmt current = (MatchStmt)mc.Body[0];
             foreach (MatchCaseStmt c in current.Cases) {
               old.Cases.Add(c);
             }
@@ -5532,7 +5560,7 @@ namespace Microsoft.Dafny
       return thingsChanged;
     }
 
-    bool SameMatchCase(MatchCaseStmt one, MatchCaseStmt other) {
+    bool SameMatchCaseStmt(MatchCaseStmt one, MatchCaseStmt other, ICodeContext codeContext) {
       // this method is called after all the CasePattern in the match cases are converted
       // into BoundVars.
       Contract.Assert(one.CasePatterns == null && one.Arguments != null);
@@ -5562,12 +5590,41 @@ namespace Microsoft.Dafny
       for (int i = 0; i < one.Arguments.Count; i++) {
         BoundVar bv1 = one.Arguments[i];
         BoundVar bv2 = other.Arguments[i];
-        if (!LocalVariable.HasWildcardName(bv1) && !LocalVariable.HasWildcardName(bv2) &&
-            !bv1.Name.Equals(bv2.Name)) {
-          return false;
+        if (!LocalVariable.HasWildcardName(bv1) && !LocalVariable.HasWildcardName(bv2)) {
+          if (!bv1.Name.Equals(bv2.Name)) {
+            // need to substitute bv2 with bv1 in the matchstmt body
+            // what if match body already has the bv?? need to make a new bv
+            Type type = new InferredTypeProxy();
+            string name = FreshTempVarName("_mc#", codeContext);
+            BoundVar bv = new BoundVar(one.tok, name, type);
+            SubstituteMatchCaseBoundVar(one, bv1, bv);
+            SubstituteMatchCaseBoundVar(other, bv2, bv);
+          }
         }
       }
       return true;
+    }
+
+    void SubstituteMatchCaseBoundVar(MatchCaseStmt mc, BoundVar oldBv, BoundVar newBv) {
+      List<BoundVar> arguments = new List<BoundVar>();
+      for (int i = 0; i < mc.Arguments.Count; i++) {
+        BoundVar bv = mc.Arguments[i];
+        if (bv == oldBv) {
+          arguments.Add(newBv);
+        } else {
+          arguments.Add(bv);
+        }
+      }
+      mc.Arguments = arguments;
+
+      // substitue the oldBv with newBv in the body
+      MatchCaseExprSubstituteCloner cloner = new MatchCaseExprSubstituteCloner(oldBv, newBv);
+      List<Statement> list = new List<Statement>();
+      foreach (Statement ss in mc.Body) {
+        Statement clone = cloner.CloneStmt(ss);
+        list.Add(clone);
+      }
+      mc.UpdateBody(list);
     }
 
     void FillInDefaultLoopDecreases(LoopStmt loopStmt, Expression guard, List<Expression> theDecreases, ICallable enclosingMethod) {
@@ -7653,7 +7710,9 @@ namespace Microsoft.Dafny
       string name = FreshTempVarName("_mc#", opts.codeContext);
       BoundVar bv = new BoundVar(me.tok, name, type);
       List<CasePattern> patternSubst = new List<CasePattern>();
-      DesugarMatchCaseExpr(me, dtd, bv, patternSubst);
+      if (dtd != null) {
+        DesugarMatchCaseExpr(me, dtd, bv, patternSubst, opts.codeContext);
+      }
 
       ISet<string> memberNamesUsed = new HashSet<string>();
       expr.Type = new InferredTypeProxy();
@@ -7678,20 +7737,20 @@ namespace Microsoft.Dafny
         }
         scope.PushMarker();
         int i = 0;
-        foreach (BoundVar v in mc.Arguments) {
-          if (!scope.Push(v.Name, v)) {
-            Error(v, "Duplicate parameter name: {0}", v.Name);
-          }
-          ResolveType(v.tok, v.Type, opts.codeContext, ResolveTypeOptionEnum.InferTypeProxies, null);
-          if (ctor != null && i < ctor.Formals.Count) {
-            Formal formal = ctor.Formals[i];
-            Type st = SubstType(formal.Type, subst);
-            if (!UnifyTypes(v.Type, st)) {
-              Error(expr, "the declared type of the formal ({0}) does not agree with the corresponding type in the constructor's signature ({1})", v.Type, st);
+        if (mc.Arguments != null) {
+          foreach (BoundVar v in mc.Arguments) {
+            scope.Push(v.Name, v);
+            ResolveType(v.tok, v.Type, opts.codeContext, ResolveTypeOptionEnum.InferTypeProxies, null);
+            if (ctor != null && i < ctor.Formals.Count) {
+              Formal formal = ctor.Formals[i];
+              Type st = SubstType(formal.Type, subst);
+              if (!UnifyTypes(v.Type, st)) {
+                Error(expr, "the declared type of the formal ({0}) does not agree with the corresponding type in the constructor's signature ({1})", v.Type, st);
+              }
+              v.IsGhost = formal.IsGhost;
             }
-            v.IsGhost = formal.IsGhost;
+            i++;
           }
-          i++;
         }
         ResolveExpression(mc.Body, opts);
         // substitute body to replace the case pat with v. This needs to happen
@@ -7742,29 +7801,34 @@ namespace Microsoft.Dafny
       // (x, y) is treated as a 2-tuple constructor
       if (me.Source is DatatypeValue) {
         var e = (DatatypeValue)me.Source;
-        Contract.Assert(e.Arguments.Count >= 1);
-        Expression source = e.Arguments[0];
-        List<MatchCaseExpr> cases = new List<MatchCaseExpr>();
-        foreach (MatchCaseExpr mc in me.Cases) {
-          Contract.Assert(mc.CasePatterns != null);
-          Contract.Assert(mc.CasePatterns.Count == e.Arguments.Count);
-          CasePattern cp = mc.CasePatterns[0];
-          List<CasePattern> patterns;
-          if (cp.Arguments != null) {
-            patterns = cp.Arguments;
-          } else {
-            patterns = new List<CasePattern>();
-          }
+        if (e.Arguments.Count < 1) {
+          Error(me.tok, "match source tuple needs at least 1 argument");
+        } else {
+          Expression source = e.Arguments[0];
+          List<MatchCaseExpr> cases = new List<MatchCaseExpr>();
+          foreach (MatchCaseExpr mc in me.Cases) {
+            if (mc.CasePatterns == null || mc.CasePatterns.Count != e.Arguments.Count) {
+              Error(mc.tok, "case arguments count does not match source arguments count");
+            } else {
+              CasePattern cp = mc.CasePatterns[0];
+              List<CasePattern> patterns;
+              if (cp.Arguments != null) {
+                patterns = cp.Arguments;
+              } else {
+                patterns = new List<CasePattern>();
+              }
 
-          Expression body = mc.Body;
-          for (int i = e.Arguments.Count; 1 <= --i; ) {
-            // others go into the body
-            body = CreateMatchCaseExprBody(mc.tok, e.Arguments[i], mc.CasePatterns[i], body);
+              Expression body = mc.Body;
+              for (int i = e.Arguments.Count; 1 <= --i; ) {
+                // others go into the body
+                body = CreateMatchCaseExprBody(me.tok, e.Arguments[i], mc.CasePatterns[i], body);
+              }
+              cases.Add(new MatchCaseExpr(cp.tok, cp.Id, patterns, body));
+            }
           }
-          cases.Add(new MatchCaseExpr(cp.tok, cp.Id, patterns, body));
+          me.UpdateSource(source);
+          me.UpdateCases(cases);
         }
-        me.UpdateSource(source);
-        me.UpdateCases(cases);
       }
     }
 
@@ -7796,9 +7860,14 @@ namespace Microsoft.Dafny
      *       case Nil => y
      *       case Cons(z, zs) => last(ys)
      * */
-    void DesugarMatchCaseExpr(MatchExpr me, DatatypeDecl dtd, BoundVar sourceVar, List<CasePattern> patterns) {
+    void DesugarMatchCaseExpr(MatchExpr me, DatatypeDecl dtd, BoundVar sourceVar, List<CasePattern> patterns, ICodeContext codeContext) {
       Contract.Assert(dtd != null);
       Dictionary<string, DatatypeCtor> ctors = datatypeCtors[dtd];
+      if (ctors == null) {
+        // no constructors, there is no need to desugar
+        return;
+      }
+
       foreach (MatchCaseExpr mc in me.Cases) {
         if (mc.Arguments != null) {
           // already desugared. This happens during the second pass resolver after cloning.
@@ -7808,47 +7877,30 @@ namespace Microsoft.Dafny
 
         Contract.Assert(mc.Arguments == null);
         Contract.Assert(mc.CasePatterns != null);
+        Contract.Assert(ctors != null);
         DatatypeCtor ctor = null;
-        if (ctors != null) {
-          if (!ctors.TryGetValue(mc.Id, out ctor)) {
-            Error(mc.tok, "member {0} does not exist in datatype {1}", mc.Id, dtd.Name);
-          } else {
-            Contract.Assert(ctor != null);  // follows from postcondition of TryGetValue
-            mc.Ctor = ctor;
-            if (ctor.Formals.Count != mc.CasePatterns.Count) {
-              Error(mc.tok, "member {0} has wrong number of formals (found {1}, expected {2})", mc.Id, mc.CasePatterns.Count, ctor.Formals.Count);
+        if (ctors.TryGetValue(mc.Id, out ctor)) {
+          scope.PushMarker();
+          foreach (CasePattern pat in mc.CasePatterns) {
+            FindDuplicateIdentifier(pat, ctors, true);
+          }
+          List<BoundVar> arguments = new List<BoundVar>();
+          foreach (CasePattern pat in mc.CasePatterns) {
+            if (pat.Var != null) {
+              BoundVar v = pat.Var;
+              arguments.Add(v);
+            } else {
+              DesugarMatchCasePattern(mc, pat, sourceVar);
+              patterns.Add(pat);
+              arguments.Add(sourceVar);
             }
           }
+          mc.Arguments = arguments;
+          mc.CasePatterns = null;
+          scope.PopMarker();
         }
-        scope.PushMarker();
-        List<BoundVar> arguments = new List<BoundVar>();
-        foreach (CasePattern pat in mc.CasePatterns) {
-          // Find the constructor in the given datatype
-          // If what was parsed was just an identifier, we will interpret it as a datatype constructor, if possible
-          ctor = null;
-          if (pat.Var == null || (pat.Var != null && pat.Var.Type is TypeProxy && dtd != null)) {
-            if (datatypeCtors[dtd].TryGetValue(pat.Id, out ctor)) {
-              pat.Ctor = ctor;
-              pat.Var = null;
-            }
-          }
-          if (pat.Var != null) {
-            BoundVar v = pat.Var;
-            arguments.Add(v);
-            if (!scope.Push(v.Name, v)) {
-              Error(v, "Duplicate name: {0}", v.Name);
-            }
-          } else {
-            DesugarMatchCasePattern(mc, pat, sourceVar);
-            patterns.Add(pat);
-            arguments.Add(sourceVar);
-          }
-        }
-
-        mc.Arguments = arguments;
-        mc.CasePatterns = null;
-        scope.PopMarker();
       }
+      
 
       List<MatchCaseExpr> newCases = new List<MatchCaseExpr>();
       
@@ -7872,13 +7924,13 @@ namespace Microsoft.Dafny
         if (CaseExprHasWildCard(mc)) {
           mcWithWildCard.Add(mc);
         } else {
-          thingsChanged |= CombineMatchCaseExpr(mc, newCases, caseMap);
+          thingsChanged |= CombineMatchCaseExpr(mc, newCases, caseMap, codeContext);
         }
       }
 
       foreach (MatchCaseExpr mc in mcWithWildCard) {
         // now process with cases with wildcard
-        thingsChanged |= CombineMatchCaseExpr(mc, newCases, caseMap);
+        thingsChanged |= CombineMatchCaseExpr(mc, newCases, caseMap, codeContext);
       }      
 
       if (thingsChanged) {
@@ -7902,24 +7954,24 @@ namespace Microsoft.Dafny
 
 
     bool CaseExprHasWildCard(MatchCase mc) {
-      foreach (BoundVar bv in mc.Arguments) {
-        if (LocalVariable.HasWildcardName(bv)) {
-          return true;
+      if (mc.Arguments != null) {
+        foreach (BoundVar bv in mc.Arguments) {
+          if (LocalVariable.HasWildcardName(bv)) {
+            return true;
+          }
         }
       }
       return false;
     }
 
-    bool CombineMatchCaseExpr(MatchCaseExpr mc, List<MatchCaseExpr> newCases, Dictionary<string, MatchCaseExpr> caseMap) {
+    bool CombineMatchCaseExpr(MatchCaseExpr mc, List<MatchCaseExpr> newCases, Dictionary<string, MatchCaseExpr> caseMap, ICodeContext codeContext) {
       bool thingsChanged = false;
       MatchCaseExpr old_mc;
       if (caseMap.TryGetValue(mc.Id, out old_mc)) {
         // already has a case with the same ctor, try to consolidate the body.
-        Expression oldBody = old_mc.Body;
-        Expression body = mc.Body;
-        if (SameMatchCase(old_mc, mc)) {
-          MatchExpr old = (MatchExpr)oldBody;
-          MatchExpr current = (MatchExpr)body;
+        if (SameMatchCaseExpr(old_mc, mc, codeContext)) {
+          MatchExpr old = (MatchExpr)old_mc.Body;
+          MatchExpr current = (MatchExpr)mc.Body;
           foreach (MatchCaseExpr c in current.Cases) {
             old.Cases.Add(c);
           }
@@ -7935,7 +7987,7 @@ namespace Microsoft.Dafny
       return thingsChanged;
     }
 
-    bool SameMatchCase(MatchCaseExpr one, MatchCaseExpr other) {
+    bool SameMatchCaseExpr(MatchCaseExpr one, MatchCaseExpr other, ICodeContext codeContext) {
       // this method is called after all the CasePattern in the match cases are converted
       // into BoundVars.
       Contract.Assert(one.CasePatterns == null && one.Arguments != null);
@@ -7960,12 +8012,37 @@ namespace Microsoft.Dafny
       for (int i = 0; i < one.Arguments.Count; i++) {
         BoundVar bv1 = one.Arguments[i];
         BoundVar bv2 = other.Arguments[i];
-        if (!LocalVariable.HasWildcardName(bv1) && !LocalVariable.HasWildcardName(bv2) &&
-            !bv1.Name.Equals(bv2.Name)) {
-          return false;
+        if (!LocalVariable.HasWildcardName(bv1) && !LocalVariable.HasWildcardName(bv2)) {
+          if (!bv1.Name.Equals(bv2.Name)) {
+            // need to substitute bv2 with bv1 in the matchstmt body
+            // what if match body already has the bv?? need to make a new bv
+            Type type = new InferredTypeProxy();
+            string name = FreshTempVarName("_mc#", codeContext);
+            BoundVar bv = new BoundVar(one.tok, name, type);
+            SubstituteMatchCaseBoundVar(one, bv1, bv);
+            SubstituteMatchCaseBoundVar(other, bv2, bv);
+          }
         }
       }
       return true;
+    }
+
+    void SubstituteMatchCaseBoundVar(MatchCaseExpr mc, BoundVar oldBv, BoundVar newBv) {
+      List<BoundVar> arguments = new List<BoundVar>();
+      for (int i = 0; i < mc.Arguments.Count; i++) {
+        BoundVar bv = mc.Arguments[i];
+        if (bv == oldBv) {
+          arguments.Add(newBv);
+        } else {
+          arguments.Add(bv);
+        }
+      }
+      mc.Arguments = arguments;
+
+      // substitue the oldBv with newBv in the body
+      MatchCaseExprSubstituteCloner cloner = new MatchCaseExprSubstituteCloner(oldBv, newBv);
+      Expression clone = cloner.CloneExpr(mc.Body);
+      mc.UpdateBody(clone);
     }
 
     void ResolveCasePattern(CasePattern pat, Type sourceType, ICodeContext context) {

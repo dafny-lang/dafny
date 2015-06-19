@@ -1122,13 +1122,42 @@ namespace Microsoft.Dafny
   class MatchCaseExprSubstituteCloner : Cloner
   {
     private List<CasePattern> patternSubst;
+    private BoundVar oldvar;
     private BoundVar var;
 
     // the cloner is called after resolving the body of matchexpr, trying
     // to replace casepattern in the body that has been replaced by bv
     public MatchCaseExprSubstituteCloner(List<CasePattern> subst, BoundVar var) {
       this.patternSubst = subst;
+      this.oldvar = null;
       this.var = var;
+    }
+
+    public MatchCaseExprSubstituteCloner(BoundVar oldvar, BoundVar var) {
+      this.patternSubst = null;
+      this.oldvar = oldvar;
+      this.var = var;
+    }
+
+    public override BoundVar CloneBoundVar(BoundVar bv) {
+      // replace bv with this.var is bv == oldvar
+      BoundVar bvNew;
+      if (oldvar != null && bv.Name.Equals(oldvar.Name)) {
+        bvNew = new BoundVar(Tok(bv.tok), oldvar.Name, CloneType(bv.Type));
+      } else {
+        bvNew = new BoundVar(Tok(bv.tok), bv.Name, CloneType(bv.Type));
+      }
+      bvNew.IsGhost = bv.IsGhost;
+      return bvNew;
+    }
+
+    public override NameSegment CloneNameSegment(Expression expr) {
+      var e = (NameSegment)expr;
+      if (oldvar != null && e.Name.Equals(oldvar.Name)) {
+        return new NameSegment(Tok(e.tok), var.Name, e.OptTypeArguments == null ? null : e.OptTypeArguments.ConvertAll(CloneType));
+      } else {
+        return new NameSegment(Tok(e.tok), e.Name, e.OptTypeArguments == null ? null : e.OptTypeArguments.ConvertAll(CloneType));
+      }
     }
 
     public override Expression CloneApplySuffix(ApplySuffix e) {
@@ -1141,6 +1170,9 @@ namespace Microsoft.Dafny
     }
 
     private bool FindMatchingPattern(ApplySuffix e) {
+      if (patternSubst == null) {
+        return false;
+      }
       Expression lhs = e.Lhs;
       if (!(lhs is NameSegment)) {
         return false;
@@ -1160,6 +1192,8 @@ namespace Microsoft.Dafny
             if (bv1 != arg2.Var) {
               found = false;
             }
+          } else {
+            found = false;
           }
         }
         if (found) {
