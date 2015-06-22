@@ -8059,12 +8059,15 @@ namespace Microsoft.Dafny
       // Find the constructor in the given datatype
       // If what was parsed was just an identifier, we will interpret it as a datatype constructor, if possible
       DatatypeCtor ctor = null;
-      if (pat.Var == null || (pat.Var != null && pat.Var.Type is TypeProxy && dtd != null)) {
-        if (datatypeCtors[dtd].TryGetValue(pat.Id, out ctor)) {
-          pat.Ctor = ctor;
-          pat.Var = null;
+      if (dtd != null) {
+        if (pat.Var == null || (pat.Var != null && pat.Var.Type is TypeProxy)) {
+          if (datatypeCtors[dtd].TryGetValue(pat.Id, out ctor)) {
+            pat.Ctor = ctor;
+            pat.Var = null;
+          }
         }
       }
+        
 
       if (pat.Var != null) {
         // this is a simple resolution
