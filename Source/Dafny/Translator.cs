@@ -1761,7 +1761,7 @@ namespace Microsoft.Dafny {
       var oih = new Bpl.IdentifierExpr(iter.tok, "$_OldIterHeap", predef.HeapType);
       Bpl.Expr wh = BplAnd(
         FunctionCall(iter.tok, BuiltinFunction.IsGoodHeap, null, oih),
-        FunctionCall(iter.tok, BuiltinFunction.HeapSucc, null, oih, etran.HeapExpr));
+        HeapSucc(oih, etran.HeapExpr));
       localVariables.Add(new Bpl.LocalVariable(iter.tok, new Bpl.TypedIdent(iter.tok, "$_OldIterHeap", predef.HeapType, wh)));
 
       // do an initial YieldHavoc
@@ -3692,9 +3692,9 @@ namespace Microsoft.Dafny {
     /// <summary>
     /// Generates:
     ///   axiom (forall s, h0: HeapType, h1: HeapType, formals... ::
-    ///        { HeapSucc(h0,h1), F(s,h1,formals) }
+    ///        { IsHeapAnchor(h0), HeapSucc(h0,h1), F(s,h1,formals) }
     ///        heaps are well-formed and formals are allocated AND
-    ///        HeapSucc(h0,h1)
+    ///        IsHeapAnchor(h0) AND HeapSucc(h0,h1)
     ///        AND
     ///        (forall(alpha) o: ref, f: Field alpha ::
     ///            o != null AND h0[o,alloc] AND h1[o,alloc] AND
@@ -3813,7 +3813,8 @@ namespace Microsoft.Dafny {
         Bpl.Expr oNotNullAlloced = Bpl.Expr.And(oNotNull, Bpl.Expr.And(etran0.IsAlloced(f.tok, o), etran1.IsAlloced(f.tok, o)));
         Bpl.Expr unchanged = Bpl.Expr.Eq(ReadHeap(f.tok, h0, o, field), ReadHeap(f.tok, h1, o, field));
 
-        Bpl.Expr heapSucc = FunctionCall(f.tok, BuiltinFunction.HeapSucc, null, h0, h1);
+        Bpl.Expr h0IsHeapAnchor = FunctionCall(h0.tok, BuiltinFunction.IsHeapAnchor, null, h0);
+        Bpl.Expr heapSucc = HeapSucc(h0, h1);
         Bpl.Expr r0 = InRWClause(f.tok, o, field, f.Reads, etran0, null, null);
         Bpl.Expr q0 = new Bpl.ForallExpr(f.tok, new List<TypeVariable> { alpha }, new List<Variable> { oVar, fieldVar },
           Bpl.Expr.Imp(Bpl.Expr.And(oNotNullAlloced, r0), unchanged));
@@ -3873,11 +3874,11 @@ namespace Microsoft.Dafny {
         var F0 = new Bpl.NAryExpr(f.tok, fn, f0args);
         var F1 = new Bpl.NAryExpr(f.tok, fn, f1args);
         var eq = Bpl.Expr.Eq(F0, F1);
-        var tr = new Bpl.Trigger(f.tok, true, new List<Bpl.Expr> { heapSucc, F1 });
+        var tr = new Bpl.Trigger(f.tok, true, new List<Bpl.Expr> { h0IsHeapAnchor, heapSucc, F1 });
 
         var typeParams = TrTypeParamDecls(f.TypeArgs);
         var ax = new Bpl.ForallExpr(f.tok, typeParams, bvars, null, tr,
-          Bpl.Expr.Imp(Bpl.Expr.And(wellFormed, heapSucc),
+          Bpl.Expr.Imp(Bpl.Expr.And(wellFormed, Bpl.Expr.And(h0IsHeapAnchor, heapSucc)),
           Bpl.Expr.Imp(q0, eq)));
         sink.AddTopLevelDeclaration(new Bpl.Axiom(f.tok, ax, comment));
 #endif
@@ -5829,7 +5830,7 @@ namespace Microsoft.Dafny {
 
           var h0 = BplBoundVar("h0", predef.HeapType, bvars);
           var h1 = BplBoundVar("h1", predef.HeapType, bvars);
-          var heapSucc = FunctionCall(tok, BuiltinFunction.HeapSucc, null, h0, h1);
+          var heapSucc = HeapSucc(h0, h1);
           var goodHeaps = BplAnd(
             FunctionCall(tok, BuiltinFunction.IsGoodHeap, null, h0),
             FunctionCall(tok, BuiltinFunction.IsGoodHeap, null, h1));
@@ -6683,7 +6684,7 @@ namespace Microsoft.Dafny {
         // the frame condition, which is free since it is checked with every heap update and call
         boilerplate.Add(new BoilerplateTriple(tok, true, FrameCondition(tok, modifiesClause, isGhostContext, etranPre, etran, etranMod), null, "frame condition"));
         // HeapSucc(S1, S2) or HeapSuccGhost(S1, S2)
-        Bpl.Expr heapSucc = FunctionCall(tok, isGhostContext ? BuiltinFunction.HeapSuccGhost : BuiltinFunction.HeapSucc, null, etranPre.HeapExpr, etran.HeapExpr);
+        Bpl.Expr heapSucc = HeapSucc(etranPre.HeapExpr, etran.HeapExpr, isGhostContext);
         boilerplate.Add(new BoilerplateTriple(tok, true, heapSucc, null, "boilerplate"));
       }
       return boilerplate;
@@ -7316,7 +7317,7 @@ namespace Microsoft.Dafny {
           // havoc $Heap;
           builder.Add(new Bpl.HavocCmd(s.Tok, new List<Bpl.IdentifierExpr> { (Bpl.IdentifierExpr/*TODO: this cast is rather dubious*/)etran.HeapExpr }));
           // assume $HeapSucc(preModifyHeap, $Heap);   OR $HeapSuccGhost
-          builder.Add(new Bpl.AssumeCmd(s.Tok, FunctionCall(s.Tok, s.IsGhost ? BuiltinFunction.HeapSuccGhost : BuiltinFunction.HeapSucc, null, preModifyHeap, etran.HeapExpr)));
+          builder.Add(new Bpl.AssumeCmd(s.Tok, HeapSucc(preModifyHeap, etran.HeapExpr, s.IsGhost)));
           // assume nothing outside the frame was changed
           var etranPreLoop = new ExpressionTranslator(this, predef, preModifyHeap);
           var updatedFrameEtran = new ExpressionTranslator(etran, modifyFrameName);
@@ -7867,7 +7868,7 @@ namespace Microsoft.Dafny {
       var prevEtran = new ExpressionTranslator(this, predef, prevHeap);
       updater.Add(Bpl.Cmd.SimpleAssign(s.Tok, prevHeap, etran.HeapExpr));
       updater.Add(new Bpl.HavocCmd(s.Tok, new List<Bpl.IdentifierExpr> { (Bpl.IdentifierExpr/*TODO: this cast is rather dubious*/)etran.HeapExpr }));
-      updater.Add(new Bpl.AssumeCmd(s.Tok, FunctionCall(s.Tok, BuiltinFunction.HeapSucc, null, prevHeap, etran.HeapExpr)));
+      updater.Add(new Bpl.AssumeCmd(s.Tok, HeapSucc(prevHeap, etran.HeapExpr)));
 
       // Here comes:
       //   assume (forall<alpha> o: ref, f: Field alpha ::
@@ -11913,6 +11914,7 @@ namespace Microsoft.Dafny {
       IntToReal,
 
       IsGoodHeap,
+      IsHeapAnchor,
       HeapSucc,
       HeapSuccGhost,
 
@@ -12293,6 +12295,10 @@ namespace Microsoft.Dafny {
           Contract.Assert(args.Length == 1);
           Contract.Assert(typeInstantiation == null);
           return FunctionCall(tok, "$IsGoodHeap", Bpl.Type.Bool, args);
+        case BuiltinFunction.IsHeapAnchor:
+          Contract.Assert(args.Length == 1);
+          Contract.Assert(typeInstantiation == null);
+          return FunctionCall(tok, "$IsHeapAnchor", Bpl.Type.Bool, args);
         case BuiltinFunction.HeapSucc:
           Contract.Assert(args.Length == 2);
           Contract.Assert(typeInstantiation == null);
@@ -14130,6 +14136,9 @@ namespace Microsoft.Dafny {
       return Bpl.Expr.Or(
         Bpl.Expr.Eq(oldHeap, newHeap),
         FunctionCall(newHeap.tok, BuiltinFunction.HeapSucc, null, oldHeap, newHeap));
+    }
+    Bpl.Expr HeapSucc(Bpl.Expr oldHeap, Bpl.Expr newHeap, bool useGhostHeapSucc = false) {
+      return FunctionCall(newHeap.tok, useGhostHeapSucc ? BuiltinFunction.HeapSuccGhost : BuiltinFunction.HeapSucc, null, oldHeap, newHeap);
     }
 
     // Bpl-making-utilities

@@ -398,7 +398,8 @@ function {:inline true} read<alpha>(H:Heap, r:ref, f:Field alpha): alpha { H[r, 
 function {:inline true} update<alpha>(H:Heap, r:ref, f:Field alpha, v:alpha): Heap { H[r,f := v] }
 
 function $IsGoodHeap(Heap): bool;
-var $Heap: Heap where $IsGoodHeap($Heap);
+function $IsHeapAnchor(Heap): bool;
+var $Heap: Heap where $IsGoodHeap($Heap) && $IsHeapAnchor($Heap);
 
 function $HeapSucc(Heap, Heap): bool;
 axiom (forall<alpha> h: Heap, r: ref, f: Field alpha, x: alpha :: { update(h, r, f, x) }

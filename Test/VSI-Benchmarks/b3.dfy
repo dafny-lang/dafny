@@ -96,7 +96,7 @@ class Benchmark3 {
       if x < m { k := j; m := x; }
       j := j+1;
     }
-    
+
     j := 0;
     while j < k
       invariant j <= k;
@@ -108,10 +108,16 @@ class Benchmark3 {
       RotationLemma(old(q.contents), j, qc0, q.contents);
       j := j+1;
     }
-  
+
     assert j == k;  
     assert q.contents == old(q.contents)[k..] + old(q.contents)[..k];
+    ghost var qq := q.contents;
     m := q.Dequeue();
+    assert q.contents == qq[1..] && m == qq[0];
+    assert [m] + q.contents == qq;
+    assert |old(q.contents)| == |q.contents| + 1;
+
+    assert q.contents == old(q.contents)[k+1..] + old(q.contents)[..k];  
   }
 
   lemma RotationLemma(O: seq, j: nat, A: seq, C: seq)
