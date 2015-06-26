@@ -294,8 +294,7 @@ namespace Microsoft.Dafny
         return new MapDisplayExpr(Tok(expr.tok), e.Finite, pp);
 
       } else if (expr is NameSegment) {
-        var e = (NameSegment)expr;
-        return new NameSegment(Tok(e.tok), e.Name, e.OptTypeArguments == null ? null : e.OptTypeArguments.ConvertAll(CloneType));
+        return CloneNameSegment(expr);
       } else if (expr is ExprDotName) {
         var e = (ExprDotName)expr;
         return new ExprDotName(Tok(e.tok), CloneExpr(e.Lhs), e.SuffixName, e.OptTypeArguments == null ? null : e.OptTypeArguments.ConvertAll(CloneType));
@@ -447,6 +446,11 @@ namespace Microsoft.Dafny
       } else {
         return new CasePattern(pat.tok, pat.Id, pat.Arguments.ConvertAll(CloneCasePattern));
       }
+    }
+
+    public virtual NameSegment CloneNameSegment(Expression expr) {
+      var e = (NameSegment)expr;
+      return new NameSegment(Tok(e.tok), e.Name, e.OptTypeArguments == null ? null : e.OptTypeArguments.ConvertAll(CloneType));
     }
 
     public virtual AssignmentRhs CloneRHS(AssignmentRhs rhs) {
