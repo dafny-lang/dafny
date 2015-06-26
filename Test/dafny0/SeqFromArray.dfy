@@ -83,8 +83,8 @@ method M(a: array<int>, c: array<int>, m: nat, n: nat, k: nat, l: nat)
     case l+m <= c.Length && forall i :: 0 <= i < m ==> a[i] == c[l+i] =>
       assert a[..m] == c[l..l+m];
     case l+a.Length <= c.Length && forall i :: k <= i < a.Length ==> a[i] == c[l+i] =>
-      assert a[k..] == c[l+k..l+a.Length];	   
+      assert a[k..] == c[l+k..l+a.Length];
     case l+k+m <= c.Length && forall i :: k <= i < k+m ==> a[i] == c[l+i] =>
-	  assert a[k..k+m] == c[l+k..l+k+m];
+      assert a[k..k+m] == c[l+k..l+k+m];
   }
 }

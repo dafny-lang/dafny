@@ -34,14 +34,14 @@ method OneShot(n: int) {
 
 method HeapQuant(n: int) {
   var f : int -> int := x => x;
-  var i := new Ref<int>;
+  var i := new Ref;
   ghost var r := 0;
   i.val := 0;
-  while (i.val < n)
-    invariant forall u {:heapQuantifier} :: f.requires(u);
-    invariant forall u {:heapQuantifier} :: f.reads(u) == {};
+  while i.val < n
+    invariant forall u :: f.requires(u);
+    invariant forall u :: f.reads(u) == {};
     invariant r == i.val;
-    invariant forall u {:heapQuantifier} :: f(u) == u + r;
+    invariant forall u :: f(u) == u + r;
   {
     i.val, r := i.val + 1, r + 1;
     f := x => f(x) + 1;
