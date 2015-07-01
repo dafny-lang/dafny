@@ -5713,11 +5713,9 @@ namespace Microsoft.Dafny {
 
       {
         // forall t1, .., tN+1 : Ty, p: [Heap, Box, ..., Box] Box, heap : Heap, b1, ..., bN : Box
-        //      :: RequriesN(...) ==> ApplyN(t1, .. tN+1, HandleN(h, r, rd), heap, b1, ..., bN) = h[heap, b1, ..., bN]
-        //
-        // no precondition for these, but:
-        // for requires, we add: RequiresN(...) <== r[heap, b1, ..., bN]
-        // for reads, we could:  ReadsN(...)[bx] ==> rd[heap, b1, ..., bN][bx] , but we don't
+        //      :: ApplyN(t1, .. tN+1, HandleN(h, r, rd), heap, b1, ..., bN) == h[heap, b1, ..., bN]
+        //      :: RequiresN(t1, .. tN+1, HandleN(h, r, rd), heap, b1, ..., bN) <== r[heap, b1, ..., bN]
+        //      :: ReadsN(t1, .. tN+1, HandleN(h, r, rd), heap, b1, ..., bN) == rd[heap, b1, ..., bN]
         Action<string, Bpl.Type, string, Bpl.Type, string, Bpl.Type> SelectorSemantics = (selector, selectorTy, selectorVar, selectorVarTy, precond, precondTy) => {
           Contract.Assert((precond == null) == (precondTy == null));
           var bvars = new List<Bpl.Variable>();
@@ -5919,7 +5917,7 @@ namespace Microsoft.Dafny {
       var inner_name = GetClass(td).TypedIdent.Name;
       string name = "T" + inner_name;
       // Create the type constructor
-      {
+      if (td.Name != "object") {  // the type constructor for "object" is in DafnyPrelude.bpl
         Bpl.Variable tyVarOut = BplFormalVar(null, predef.Ty, false);
         List<Bpl.Variable> args = new List<Bpl.Variable>(
           Enumerable.Range(0, arity).Select(i =>
@@ -11462,10 +11460,10 @@ namespace Microsoft.Dafny {
         }
 
         var rdvars = new List<Bpl.Variable>();
-        var o = translator.UnboxIfBoxed(BplBoundVar(varNameGen.FreshId("#o#"), predef.BoxType, rdvars), new ObjectType());
-
+        var o = BplBoundVar(varNameGen.FreshId("#o#"), predef.RefType, rdvars);
         Bpl.Expr rdbody = new Bpl.LambdaExpr(e.tok, new List<TypeVariable>(), rdvars, null,
           translator.InRWClause(e.tok, o, null, e.Reads.ConvertAll(su.SubstFrameExpr), et, null, null));
+        rdbody = translator.FunctionCall(e.tok, "SetRef_to_SetBox", predef.SetType(e.tok, true, predef.BoxType), rdbody);
 
         return translator.Lit(
           translator.FunctionCall(e.tok, BuiltinFunction.AtLayer, predef.HandleType,
@@ -14220,7 +14218,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(b != null);
       Contract.Ensures(Contract.Result<Bpl.Expr>() != null);
 
-      if (a == Bpl.Expr.True || b == Bpl.Expr.True || b == Bpl.Expr.False) {
+      if (a == Bpl.Expr.True || b == Bpl.Expr.True) {
         return b;
       } else if (a == Bpl.Expr.False) {
         return Bpl.Expr.True;

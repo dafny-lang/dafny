@@ -273,6 +273,8 @@ const unique class._System.set: ClassName;
 const unique class._System.seq: ClassName;
 const unique class._System.multiset: ClassName;
 
+function Tclass._System.object(): Ty;
+
 function /*{:never_pattern true}*/ dtype(ref): Ty; // changed from ClassName to Ty
 
 function TypeTuple(a: ClassName, b: ClassName): ClassName;
@@ -286,6 +288,12 @@ axiom (forall a: ClassName, b: ClassName :: { TypeTuple(a,b) }
 // -- Function handles -------------------------------------------
 
 type HandleType;
+
+function SetRef_to_SetBox(s: [ref]bool): Set Box;
+axiom (forall s: [ref]bool, bx: Box :: { SetRef_to_SetBox(s)[bx] }
+  SetRef_to_SetBox(s)[bx] == s[$Unbox(bx): ref]);
+axiom (forall s: [ref]bool :: { SetRef_to_SetBox(s) }
+  $Is(SetRef_to_SetBox(s), TSet(Tclass._System.object())));
 
 // ---------------------------------------------------------------
 // -- Datatypes --------------------------------------------------
