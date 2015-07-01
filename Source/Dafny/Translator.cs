@@ -2176,13 +2176,6 @@ namespace Microsoft.Dafny {
       foreach (Expression req in f.Req) {
         pre = BplAnd(pre, etran.TrExpr(Substitute(req, null, substMap)));
       }
-      // useViaContext: (mh != ModuleContextHeight || fh != FunctionContextHeight)
-      ModuleDefinition mod = f.EnclosingClass.Module;
-      Bpl.Expr useViaContext = visibility == FunctionAxiomVisibility.ForeignModuleOnly ? (Bpl.Expr)Bpl.Expr.True :
-        Bpl.Expr.Neq(Bpl.Expr.Literal(mod.CallGraph.GetSCCRepresentativeId(f)), etran.FunctionContextHeight());
-
-      // ante := (useViaContext && typeAnte && pre)
-      ante = BplAnd(useViaContext, BplAnd(ante, pre));
 
       // Add the precondition function and its axiom (which is equivalent to the ante)
       if (body == null || (visibility == FunctionAxiomVisibility.IntraModuleOnly && lits == null)) {
@@ -2195,13 +2188,20 @@ namespace Microsoft.Dafny {
         }
         var appl = FunctionCall(f.tok, RequiresName(f), Bpl.Type.Bool,
           formals.ConvertAll(x => (Bpl.Expr)(new Bpl.IdentifierExpr(f.tok, x))));
-        sink.AddTopLevelDeclaration(new Axiom(f.tok, BplForall(formals, BplTrigger(appl), Bpl.Expr.Eq(appl, ante))));
-        // you could use it to check that it always works, but it makes VSI-Benchmarks/b3.dfy time out:
-        // ante = appl;
+        // axiom (forall params :: { f#requires(params) }  ante ==> f#requires(params) == pre);
+        sink.AddTopLevelDeclaration(new Axiom(f.tok, BplForall(formals, BplTrigger(appl),
+          BplImp(ante, Bpl.Expr.Eq(appl, pre)))));
         if (body == null) {
           return null;
         }
       }
+
+      // useViaContext: (mh != ModuleContextHeight || fh != FunctionContextHeight)
+      ModuleDefinition mod = f.EnclosingClass.Module;
+      Bpl.Expr useViaContext = visibility == FunctionAxiomVisibility.ForeignModuleOnly ? (Bpl.Expr)Bpl.Expr.True :
+        Bpl.Expr.Neq(Bpl.Expr.Literal(mod.CallGraph.GetSCCRepresentativeId(f)), etran.FunctionContextHeight());
+      // ante := (useViaContext && typeAnte && pre)
+      ante = BplAnd(useViaContext, BplAnd(ante, pre));
 
       // useViaCanCall: f#canCall(args)
       Bpl.IdentifierExpr canCallFuncID = new Bpl.IdentifierExpr(f.tok, f.FullSanitizedName + "#canCall", Bpl.Type.Bool);
@@ -5632,7 +5632,6 @@ namespace Microsoft.Dafny {
         {
           // Requires(Ty.., F#Handle( Ty1, ..., TyN, Layer, self), Heap, arg1, ..., argN)
           //   = F#Requires(Ty1, .., TyN, Layer, Heap, self, [Unbox] arg1, .., [Unbox] argN)
-          //   || Scramble(...)
 
           var fhandle = FunctionCall(f.tok, name, predef.HandleType, SnocSelf(args));
           var lhs = FunctionCall(f.tok, Requires(arity), Bpl.Type.Bool, Concat(tyargs, Cons(fhandle, Cons(h, lhs_args))));
@@ -5641,9 +5640,7 @@ namespace Microsoft.Dafny {
             // In case this is the /requires/ or /reads/ function, then there is no precondition
             rhs = Bpl.Expr.True;
           } else {
-            rhs = BplOr(
-              FunctionCall(f.tok, RequiresName(f), Bpl.Type.Bool, Concat(SnocSelf(Snoc(args, h)), rhs_args)),
-              MakeScrambler(f.tok, f.FullSanitizedName + "#lessReq", Concat(vars, bvars)));
+            rhs = FunctionCall(f.tok, RequiresName(f), Bpl.Type.Bool, Concat(SnocSelf(Snoc(args, h)), rhs_args));
           }
 
           sink.AddTopLevelDeclaration(new Axiom(f.tok,
@@ -5669,15 +5666,6 @@ namespace Microsoft.Dafny {
         }
       }
       return name;
-    }
-
-    public Bpl.Expr MakeScrambler(IToken tk, string name, List<Variable> bvars) {
-      var f = new Bpl.Function(tk, name,
-        bvars.ConvertAll(bv => (Bpl.Variable)BplFormalVar(null, bv.TypedIdent.Type, true)),
-        BplFormalVar(null, Bpl.Type.Bool, false));
-
-      sink.AddTopLevelDeclaration(f);
-      return FunctionCall(tk, name, Bpl.Type.Bool, bvars.ConvertAll(bv => (Bpl.Expr)new Bpl.IdentifierExpr(tk, bv)));
     }
 
     private void AddArrowTypeAxioms(ArrowTypeDecl ad) {
@@ -11476,11 +11464,8 @@ namespace Microsoft.Dafny {
         var rdvars = new List<Bpl.Variable>();
         var o = translator.UnboxIfBoxed(BplBoundVar(varNameGen.FreshId("#o#"), predef.BoxType, rdvars), new ObjectType());
 
-        Bpl.Expr ante = Bpl.Expr.And(Bpl.Expr.Neq(o, predef.Null), et.IsAlloced(e.tok, o));
-        Bpl.Expr consequent = translator.InRWClause(e.tok, o, null, e.Reads.ConvertAll(su.SubstFrameExpr), et, null, null);
-        Bpl.Expr rdbody =
-          new Bpl.LambdaExpr(e.tok, new List<TypeVariable>(), rdvars, null,
-            BplImp(ante, consequent));
+        Bpl.Expr rdbody = new Bpl.LambdaExpr(e.tok, new List<TypeVariable>(), rdvars, null,
+          translator.InRWClause(e.tok, o, null, e.Reads.ConvertAll(su.SubstFrameExpr), et, null, null));
 
         return translator.Lit(
           translator.FunctionCall(e.tok, BuiltinFunction.AtLayer, predef.HandleType,
@@ -14267,7 +14252,7 @@ namespace Microsoft.Dafny {
 
     /// Makes a simple trigger
     static Bpl.Trigger BplTrigger(Bpl.Expr e) {
-      return new Trigger(e.tok, true, new List<Bpl.Expr> { e });
+      return new Bpl.Trigger(e.tok, true, new List<Bpl.Expr> { e });
     }
 
     static Bpl.Axiom BplAxiom(Bpl.Expr e) {
