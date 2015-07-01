@@ -2399,7 +2399,6 @@ namespace Microsoft.Dafny
       }
 
       protected override bool VisitOneStmt(Statement stmt, ref FuelAdjustment_Context st) {
-        Contract.Requires(stmt != null);
         Resolver.CheckForFuelAdjustments(stmt.Tok, stmt.Attributes, st.currentModule, st.reporter);
         return true;
       }

@@ -2987,6 +2987,7 @@ namespace Microsoft.Dafny {
     ModuleDefinition ICodeContext.EnclosingModule { get { return this.EnclosingClass.Module; } }
     bool ICodeContext.MustReverify { get { return false; } }
 
+    [Pure]
     public bool IsFuelAware() { return IsRecursive || IsFueled; }
   }
 
