@@ -940,13 +940,142 @@ namespace Microsoft.Dafny {
       }
     }
 
+    void TrCasePatternOpt(CasePattern pat, Expression rhs, string rhs_string, int indent) {
+      Contract.Requires(pat != null);
+      Contract.Requires(rhs != null);
+      if (pat.Var != null) {
+        // The trivial Dafny "pattern" expression
+        //    var x := G
+        // is translated into C# as:
+        // var x := G;
+        var bv = pat.Var;
+        if (!bv.IsGhost) {
+          Indent(indent);
+          wr.Write("{0} {1} = ", TypeName(bv.Type), "@" + bv.CompileName);
+          if (rhs != null) {
+            TrExpr(rhs);
+          } else {
+            wr.Write(rhs_string);
+          }
+          wr.Write(";\n");
+        }
+      } else if (pat.Arguments != null) {
+        // The Dafny "pattern" expression
+        //    var Pattern(x,y) := G
+        // is translated into C# as:
+        // var tmp := G;
+        // var x := dtorX(tmp);
+        // var y := dtorY(tmp);
+        var ctor = pat.Ctor;
+        Contract.Assert(ctor != null);  // follows from successful resolution
+        Contract.Assert(pat.Arguments.Count == ctor.Formals.Count);  // follows from successful resolution
+
+        // Create the temporary variable to hold G
+        var tmp_name = idGenerator.FreshId("_let_tmp_rhs");
+        Indent(indent);
+        wr.Write("{0} {1} = ", TypeName(rhs.Type), tmp_name);
+        TrExpr(rhs);
+        wr.WriteLine(";");
+
+        var k = 0;  // number of non-ghost formals processed
+        for (int i = 0; i < pat.Arguments.Count; i++) {
+          var arg = pat.Arguments[i];
+          var formal = ctor.Formals[i];
+          if (formal.IsGhost) {
+            // nothing to compile, but do a sanity check
+            Contract.Assert(!Contract.Exists(arg.Vars, bv => !bv.IsGhost));
+          } else {            
+            TrCasePatternOpt(arg, null, string.Format("(({0})({1})._D).@{2}", DtCtorName(ctor, ((DatatypeValue)pat.Expr).InferredTypeArgs), tmp_name, FormalName(formal, k)), indent);
+            k++;
+          }
+        }
+      }
+    }
+
+    void ReturnExpr(Expression expr, int indent) {
+      Indent(indent);
+      wr.Write("return ");
+      TrExpr(expr);
+      wr.WriteLine(";");
+    }
+
+    void TrExprOpt(Expression expr, int indent) {
+      Contract.Requires(expr != null);
+      if (expr is LetExpr) {
+        var e = (LetExpr)expr;
+        if (e.Exact) {
+          for (int i = 0; i < e.LHSs.Count; i++) {
+            var lhs = e.LHSs[i];
+            if (Contract.Exists(lhs.Vars, bv => !bv.IsGhost)) {
+              TrCasePatternOpt(lhs, e.RHSs[i], null, indent);
+            }            
+          }
+          TrExprOpt(e.Body, indent);
+        } else {
+          // We haven't optimized the other cases, so fallback to normal compilation
+          ReturnExpr(e, indent);
+        }
+      } else if (expr is ITEExpr) {
+        ITEExpr e = (ITEExpr)expr;
+        Indent(indent);
+        wr.Write("if (");
+        TrExpr(e.Test);
+        wr.Write(") {\n");
+        TrExprOpt(e.Thn, indent + IndentAmount);
+        Indent(indent);
+        wr.WriteLine("} else {");
+        TrExprOpt(e.Els, indent + IndentAmount);
+        Indent(indent);
+        wr.WriteLine("}");
+      } else if (expr is MatchExpr) {
+        var e = (MatchExpr)expr;   
+        //   var _source = E;
+        //   if (source.is_Ctor0) {
+        //     FormalType f0 = ((Dt_Ctor0)source._D).a0;
+        //     ...
+        //     return Body0;
+        //   } else if (...) {
+        //     ...
+        //   } else if (true) {
+        //     ...
+        //   }
+        string source = idGenerator.FreshId("_source");
+        Indent(indent);
+        wr.Write("{0} {1} = ", TypeName(e.Source.Type), source);
+        TrExpr(e.Source);
+        wr.WriteLine(";");        
+
+        if (e.Cases.Count == 0) {
+          // the verifier would have proved we never get here; still, we need some code that will compile
+          wr.Write("throw new System.Exception();");
+        } else {
+          int i = 0;
+          var sourceType = (UserDefinedType)e.Source.Type.NormalizeExpand();
+          foreach (MatchCaseExpr mc in e.Cases) {
+            //Indent(indent);
+            MatchCasePrelude(source, sourceType, cce.NonNull(mc.Ctor), mc.Arguments, i, e.Cases.Count, indent);
+            TrExprOpt(mc.Body, indent + IndentAmount);
+            i++;
+          }
+          Indent(indent);
+          wr.WriteLine("}");
+        }        
+      }  else if (expr is StmtExpr) {
+        var e = (StmtExpr)expr;
+        TrExprOpt(e.E, indent);
+      } else {
+        // We haven't optimized any other cases, so fallback to normal compilation
+        ReturnExpr(expr, indent);
+      }
+    }
+
     void CompileReturnBody(Expression body, int indent) {
       Contract.Requires(0 <= indent);
       body = body.Resolved;
-      Indent(indent);
-      wr.Write("return ");
-      TrExpr(body);
-      wr.WriteLine(";");
+      //Indent(indent);
+      //wr.Write("return ");
+      TrExprOpt(body, indent);
+      //wr.WriteLine(";");
     }
 
     // ----- Type ---------------------------------------------------------------------------------
