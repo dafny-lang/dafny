@@ -6,8 +6,8 @@ namespace Microsoft.Dafny {
 
   public class Graph<Node> where Node : class
   {
-    enum VisitedStatus { Unvisited, OnStack, Visited }
-    class Vertex {
+    public enum VisitedStatus { Unvisited, OnStack, Visited }
+    public class Vertex {
       public readonly Node N;
       public readonly List<Vertex/*!*/>/*!*/ Successors = new List<Vertex/*!*/>();
       public List<Vertex/*!*/> SccMembers;  // non-null only for the representative of the SCC
@@ -65,6 +65,10 @@ namespace Microsoft.Dafny {
     {
     }
 
+    public IEnumerable<Vertex> GetVertices() {
+      return vertices.Values;
+    }
+
     /// <summary>
     /// Idempotently adds a vertex 'n' to the graph.
     /// </summary>
@@ -97,7 +101,7 @@ namespace Microsoft.Dafny {
     /// <summary>
     /// Returns the vertex for 'n' if 'n' is in the graph.  Otherwise, returns null.
     /// </summary>
-    Vertex FindVertex(Node n) {
+    public Vertex FindVertex(Node n) {
       Vertex v;
       if (vertices.TryGetValue(n, out v)) {
         Contract.Assert(v != null);  // follows from postcondition of TryGetValue (since 'vertices' maps to the type Vertex!)

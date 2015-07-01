@@ -8,7 +8,7 @@ using Microsoft.Boogie;
 
 
 namespace Microsoft.Dafny {
-  class Util
+  public class Util
   {
     public static string Comma<T>(IEnumerable<T> l, Func<T, string> f) {
       return Comma(",", l, f);
@@ -175,5 +175,152 @@ namespace Microsoft.Dafny {
       }
     }
 
+    /// <summary>
+    /// Class dedicated to traversing the function call graph
+    /// </summary>
+    class FunctionCallFinder : TopDownVisitor<List<Function>> {
+      protected override bool VisitOneExpr(Expression expr, ref List<Function> calls) {
+        if (expr is FunctionCallExpr) {
+          calls.Add(((FunctionCallExpr)expr).Function);
+        }
+        return true;
+      }
+    }
+
+    static Graph<Function> BuildFunctionCallGraph(Dafny.Program program) {
+      Graph<Function> functionCallGraph = new Graph<Function>();
+      FunctionCallFinder callFinder = new FunctionCallFinder();
+
+      foreach (var module in program.Modules) {
+        foreach (var decl in module.TopLevelDecls) {
+          if (decl is ClassDecl) {
+            var c = (ClassDecl)decl;
+            foreach (var member in c.Members) {
+              if (member is Function) {
+                var f = (Function)member;
+
+                List<Function> calls = new List<Function>();
+                foreach (var e in f.Reads) { if (e != null && e.E != null) { callFinder.Visit(e.E, calls); } }
+                foreach (var e in f.Req) { if (e != null) { callFinder.Visit(e, calls); } }
+                foreach (var e in f.Ens) { if (e != null) { callFinder.Visit(e, calls); } }
+                if (f.Body != null) {
+                  callFinder.Visit(f.Body, calls);
+                }
+
+                foreach (var callee in calls) {
+                  functionCallGraph.AddEdge(f, callee);
+                }
+              }
+            }
+          }
+        }
+      }
+
+      return functionCallGraph;
+    }
+
+    /// <summary>
+    /// Prints the program's function call graph in a format suitable for consumption in other tools
+    /// </summary>
+    public static void PrintFunctionCallGraph(Dafny.Program program) {
+      var functionCallGraph = BuildFunctionCallGraph(program);
+
+      foreach (var vertex in functionCallGraph.GetVertices()) {
+        var func = vertex.N;
+        Console.Write("{0},{1}=", func.CompileName, func.EnclosingClass.Module.CompileName);
+        foreach (var callee in vertex.Successors) {
+          Console.Write("{0} ", callee.N.CompileName);
+        }
+        Console.Write("\n");
+      }
+    }
+
+    /// <summary>
+    /// Generic statistic counter
+    /// </summary>
+    static void IncrementStat(IDictionary<string, ulong> stats, string stat) {
+      ulong currentValue;
+      if (stats.TryGetValue(stat, out currentValue)) {
+        stats[stat] += 1;
+      } else {
+        stats.Add(stat, 1);
+      }
+    }
+
+    /// <summary>
+    /// Track the maximum value of some statistic
+    /// </summary>
+    static void UpdateMax(IDictionary<string, ulong> stats, string stat, ulong val) {
+      ulong currentValue;
+      if (stats.TryGetValue(stat, out currentValue)) {
+        if (val > currentValue) {
+          stats[stat] = val;
+        }
+      } else {
+        stats.Add(stat, val);
+      }
+    }
+
+    /// <summary>
+    /// Compute various interesting statistics about the Dafny program
+    /// </summary>
+    public static void PrintStats(Dafny.Program program) {
+      SortedDictionary<string, ulong> stats = new SortedDictionary<string, ulong>();
+
+      foreach (var module in program.Modules) {
+        IncrementStat(stats, "Modules");
+        UpdateMax(stats, "Module height (max)", (ulong)module.Height);
+
+        ulong num_scc = (ulong)module.CallGraph.TopologicallySortedComponents().Count;
+        UpdateMax(stats, "Call graph width (max)", num_scc);
+
+        foreach (var decl in module.TopLevelDecls) {
+          if (decl is DatatypeDecl) {
+            IncrementStat(stats, "Datatypes");
+          } else if (decl is ClassDecl) {
+            var c = (ClassDecl)decl;
+            if (c.Name != "_default") {
+              IncrementStat(stats, "Classes");
+            }
+
+            foreach (var member in c.Members) {
+              if (member is Function) {
+                IncrementStat(stats, "Functions (total)");
+                var f = (Function)member;
+                if (f.IsRecursive) {
+                  IncrementStat(stats, "Functions recursive");
+                }
+              } else if (member is Method) {
+                IncrementStat(stats, "Methods (total)");
+                var method = (Method)member;
+                if (method.IsRecursive) {
+                  IncrementStat(stats, "Methods recursive");
+                }
+                if (method.IsGhost) {
+                  IncrementStat(stats, "Methods ghost");
+                }
+              }
+            }
+          }
+        }
+      }
+
+      // Print out the results, with some nice formatting
+      Console.WriteLine("");
+      Console.WriteLine("Statistics");
+      Console.WriteLine("----------");
+
+      int max_key_length = 0;
+      foreach (var key in stats.Keys) {
+        if (key.Length > max_key_length) {
+          max_key_length = key.Length;
+        }
+      }
+
+      foreach (var keypair in stats) {
+        string keyString = keypair.Key.PadRight(max_key_length + 2);
+        Console.WriteLine("{0} {1,4}", keyString, keypair.Value);
+      }
+    }
   }
 }

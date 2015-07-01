@@ -199,6 +199,13 @@ namespace Microsoft.Dafny
           }
           exitValue = allOk ? ExitValue.VERIFIED : ExitValue.NOT_VERIFIED;
         }
+
+        if (err == null && dafnyProgram != null && DafnyOptions.O.PrintStats) {
+          Util.PrintStats(dafnyProgram);
+        }
+        if (err == null && dafnyProgram != null && DafnyOptions.O.PrintFunctionCallGraph) {
+          Util.PrintFunctionCallGraph(dafnyProgram);
+        }
       }
       return exitValue;
     }

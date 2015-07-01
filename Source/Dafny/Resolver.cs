@@ -455,6 +455,25 @@ namespace Microsoft.Dafny
           }
         }
       }
+
+      // Determine, for each function, whether someone tries to adjust its fuel parameter
+      foreach (var module in prog.Modules) {
+        CheckForFuelAdjustments(module.tok, module.Attributes, module, this);
+        foreach (var clbl in ModuleDefinition.AllItersAndCallables(module.TopLevelDecls)) {
+          Statement body = null;
+          if (clbl is Method) {
+            body = ((Method)clbl).Body;
+            CheckForFuelAdjustments(clbl.Tok,((Method)clbl).Attributes, module, this);
+          } else if (clbl is IteratorDecl) {
+            body = ((IteratorDecl)clbl).Body;
+            CheckForFuelAdjustments(clbl.Tok, ((IteratorDecl)clbl).Attributes, module, this);
+          }
+          if (body != null) {
+            var c = new FuelAdjustment_Visitor(this);
+            c.Visit(body, new FuelAdjustment_Context(module, this));
+          }
+        }
+      }
     }
 
     void FillInDefaultDecreasesClauses(Program prog)
@@ -683,8 +702,8 @@ namespace Microsoft.Dafny
       var datatypeDependencies = new Graph<IndDatatypeDecl>();
       var codatatypeDependencies = new Graph<CoDatatypeDecl>();
       int prevErrorCount = ErrorCount;
-      ResolveAttributes(m.Attributes, new ResolveOpts(new NoContext(m.Module), false));
       ResolveTopLevelDecls_Signatures(m, m.TopLevelDecls, datatypeDependencies, codatatypeDependencies);
+      ResolveAttributes(m.Attributes, new ResolveOpts(new NoContext(m.Module), false)); // Must follow ResolveTopLevelDecls_Signatures, in case attributes refer to members
       if (ErrorCount == prevErrorCount) {
         ResolveTopLevelDecls_Meat(m.TopLevelDecls, datatypeDependencies, codatatypeDependencies);
       }
@@ -2334,6 +2353,59 @@ namespace Microsoft.Dafny
       return TailRecursionStatus.CanBeFollowedByAnything;
     }
     #endregion CheckTailRecursive
+
+    // ------------------------------------------------------------------------------------------------------
+    // ----- FuelAdjustmentChecks ---------------------------------------------------------------------------
+    // ------------------------------------------------------------------------------------------------------
+    #region FuelAdjustmentChecks
+
+    protected static void CheckForFuelAdjustments(IToken tok, Attributes attrs, ModuleDefinition currentModule, ResolutionErrorReporter reporter) {
+      List<List<Expression>> results = Attributes.FindAllExpressions(attrs, "fuel");
+
+      if (results != null) {
+        foreach (List<Expression> args in results) {
+          if (args != null && args.Count >= 2) {
+            // Try to extract the function from the first argument
+            MemberSelectExpr selectExpr = args[0].Resolved as MemberSelectExpr;
+            if (selectExpr != null) {
+              Function f = selectExpr.Member as Function;
+              if (f != null) {
+                f.IsFueled = true;
+                if (f.IsProtected && currentModule != f.EnclosingClass.Module) {
+                  reporter.Error(tok, "cannot adjust fuel for protected function {0} from another module", f.Name);
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+
+    public class FuelAdjustment_Context
+    {
+      public ModuleDefinition currentModule;
+      public ResolutionErrorReporter reporter;
+      public FuelAdjustment_Context(ModuleDefinition currentModule, ResolutionErrorReporter reporter) {
+        this.currentModule = currentModule;
+        this.reporter = reporter;
+      }
+    }
+
+    class FuelAdjustment_Visitor : ResolverTopDownVisitor<FuelAdjustment_Context>
+    {
+      public FuelAdjustment_Visitor(Resolver resolver)
+        : base(resolver) {
+        Contract.Requires(resolver != null);
+      }
+
+      protected override bool VisitOneStmt(Statement stmt, ref FuelAdjustment_Context st) {
+        Contract.Requires(stmt != null);
+        Resolver.CheckForFuelAdjustments(stmt.Tok, stmt.Attributes, st.currentModule, st.reporter);
+        return true;
+      }
+    }
+
+    #endregion FuelAdjustmentChecks
 
     // ------------------------------------------------------------------------------------------------------
     // ----- FixpointPredicateChecks ------------------------------------------------------------------------

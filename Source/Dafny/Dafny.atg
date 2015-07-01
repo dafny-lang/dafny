@@ -1965,6 +1965,7 @@ ModifyStmt<out Statement s>
 CalcStmt<out Statement s>
 = (. Contract.Ensures(Contract.ValueAtReturn(out s) != null);
      Token x;
+     Attributes attrs = null;
      CalcStmt.CalcOp op, calcOp = Microsoft.Dafny.CalcStmt.DefaultOp, resOp = Microsoft.Dafny.CalcStmt.DefaultOp;
      var lines = new List<Expression>();
      var hints = new List<BlockStmt>();
@@ -1976,6 +1977,7 @@ CalcStmt<out Statement s>
      IToken danglingOperator = null;
   .)
   "calc"                                                  (. x = t; .)
+  { IF(IsAttribute()) Attribute<ref attrs> }
   [ CalcOp<out opTok, out calcOp>                         (. maybeOp = calcOp.ResultOp(calcOp); // guard against non-transitive calcOp (like !=)
                                                              if (maybeOp == null) {
                                                                SemErr(opTok, "the main operator of a calculation must be transitive");
@@ -2024,7 +2026,7 @@ CalcStmt<out Statement s>
       // Repeat the last line to create a dummy line for the dangling hint
       lines.Add(lines[lines.Count - 1]);
     }
-    s = new CalcStmt(x, t, calcOp, lines, hints, stepOps, resOp);
+    s = new CalcStmt(x, t, calcOp, lines, hints, stepOps, resOp, attrs);
   .)
   .
 CalcOp<out IToken x, out CalcStmt.CalcOp/*!*/ op>

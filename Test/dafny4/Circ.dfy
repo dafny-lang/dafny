@@ -16,6 +16,7 @@ function zip(a: Stream, b: Stream): Stream { Cons(a.head, zip(b, a.tail)) }
 colemma BlinkZipProperty()
   ensures zip(zeros(), ones()) == blink();
 {
+    BlinkZipProperty();
 }
 
 // ----- Thue-Morse sequence -----
@@ -75,6 +76,7 @@ colemma FProperty(s: Stream<Bit>)
     // def. zip
     Cons(s.head, Cons(not(s).head, zip(s.tail, not(s).tail)));
   }
+  FProperty(s.tail);
 }
 
 // The fix-point theorem now follows easily.

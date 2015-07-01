@@ -114,6 +114,7 @@ namespace Microsoft.Dafny {
     readonly Dictionary<string, Bpl.Constant> fieldConstants = new Dictionary<string,Constant>();
     readonly ISet<string> abstractTypes = new HashSet<string>();
     readonly ISet<string> opaqueTypes = new HashSet<string>();
+    FuelContext fuelContext = null;
     Program program;
 
     [ContractInvariantMethod]
@@ -625,6 +626,11 @@ namespace Microsoft.Dafny {
     }
     void AddTypeDecl(NewtypeDecl dd) {
       Contract.Requires(dd != null);
+      Contract.Ensures(fuelContext == Contract.OldValue(fuelContext));      
+
+      FuelContext oldFuelContext = this.fuelContext;
+      this.fuelContext = FuelSetting.NewFuelContext(dd);
+
       AddTypeDecl_Aux(dd.tok, dd.FullName, new List<TypeParameter>());
       AddWellformednessCheck(dd);
       // Add $Is and $IsAlloc axioms for the newtype
@@ -667,6 +673,7 @@ namespace Microsoft.Dafny {
 
         sink.AddTopLevelDeclaration(new Bpl.Axiom(dd.tok, BplForall(vars, BplTrigger(is_o), body), name));
       });
+      this.fuelContext = oldFuelContext;
     }
     void AddTypeDecl_Aux(IToken tok, string nm, List<TypeParameter> typeArgs) {
       Contract.Requires(tok != null);
@@ -1181,7 +1188,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    Bpl.Expr LayerSucc(Bpl.Expr e, int amt = 1) {
+    public Bpl.Expr LayerSucc(Bpl.Expr e, int amt = 1) {
       if (amt == 0) {
         return e;
       } else if (amt > 0) {
@@ -1301,6 +1308,7 @@ namespace Microsoft.Dafny {
     {
       Contract.Requires(sink != null && predef != null);
       Contract.Requires(c != null);
+      Contract.Ensures(fuelContext == Contract.OldValue(fuelContext));
 
       sink.AddTopLevelDeclaration(GetClass(c));
       if (c is ArrayClassDecl) {
@@ -1387,6 +1395,9 @@ namespace Microsoft.Dafny {
 
         } else if (member is Function) {
           var f = (Function)member;
+          FuelContext oldFuelContext = this.fuelContext;
+          this.fuelContext = FuelSetting.NewFuelContext(f);
+
           AddClassMember_Function(f);
           if (!IsOpaqueFunction(f) && !f.IsBuiltin && !(f.tok is IncludeToken)) { // Opaque function's well-formedness is checked on the full version
             AddWellformednessCheck(f);
@@ -1399,9 +1410,11 @@ namespace Microsoft.Dafny {
             AddClassMember_Function(cop.PrefixPredicate);
             // skip the well-formedness check, because it has already been done for the fixpoint-predicate
           }
-
+          this.fuelContext = oldFuelContext;
         } else if (member is Method) {
           Method m = (Method)member;
+          FuelContext oldFuelContext = this.fuelContext;
+          this.fuelContext = FuelSetting.NewFuelContext(m);
 
           // wellformedness check for method specification
           if (m.EnclosingClass is IteratorDecl && m == ((IteratorDecl)m.EnclosingClass).Member_MoveNext) {
@@ -1434,7 +1447,7 @@ namespace Microsoft.Dafny {
             sink.AddTopLevelDeclaration(proc);
             AddMethodImpl(m, proc, false);
           }
-
+          this.fuelContext = oldFuelContext;
         } else {
           Contract.Assert(false); throw new cce.UnreachableException();  // unexpected member
         }
@@ -1467,7 +1480,7 @@ namespace Microsoft.Dafny {
       // declare function
       AddFunction(f);
       // add synonym axiom
-      if (f.IsRecursive) {
+      if (f.IsFuelAware()) {
         AddSynonymAxiom(f);
       }
       // add frame axiom
@@ -1494,6 +1507,10 @@ namespace Microsoft.Dafny {
 
     void AddIteratorSpecAndBody(IteratorDecl iter) {
       Contract.Requires(iter != null);
+      Contract.Ensures(fuelContext == Contract.OldValue(fuelContext));
+
+      FuelContext oldFuelContext = this.fuelContext;      
+      this.fuelContext = FuelSetting.NewFuelContext(iter);
 
       // wellformedness check for method specification
       Bpl.Procedure proc = AddIteratorProc(iter, MethodTranslationKind.SpecWellformedness);
@@ -1506,6 +1523,7 @@ namespace Microsoft.Dafny {
         // ...and its implementation
         AddIteratorImpl(iter, proc);
       }
+      this.fuelContext = oldFuelContext;
     }
 
     Bpl.Procedure AddIteratorProc(IteratorDecl iter, MethodTranslationKind kind) {
@@ -1950,7 +1968,7 @@ namespace Microsoft.Dafny {
       var formals = MkTyParamBinders(GetTypeParams(f), out tyargs);
       var args = new List<Bpl.Expr>();
       Bpl.BoundVariable layer;
-      if (f.IsRecursive) {
+      if (f.IsFuelAware()) {
         layer = new Bpl.BoundVariable(f.tok, new Bpl.TypedIdent(f.tok, "$ly", predef.LayerType));
         formals.Add(layer);
         // Note, "layer" is not added to "args" here; rather, that's done below, as needed
@@ -2121,7 +2139,7 @@ namespace Microsoft.Dafny {
       var formals = MkTyParamBinders(GetTypeParams(f), out tyargs);
 
       Bpl.BoundVariable layer;
-      if (f.IsRecursive) {
+      if (f.IsFuelAware()) {
         layer = new Bpl.BoundVariable(f.tok, new Bpl.TypedIdent(f.tok, "$ly", predef.LayerType));
         formals.Add(layer);
         // Note, "layer" is not added to "args" here; rather, that's done below, as needed
@@ -2317,7 +2335,7 @@ namespace Microsoft.Dafny {
 
     void AddSynonymAxiom(Function f) {
       Contract.Requires(f != null);
-      Contract.Requires(f.IsRecursive);
+      Contract.Requires(f.IsFuelAware());
       Contract.Requires(sink != null && predef != null);
       // axiom  // layer synonym axiom
       //   (forall s, $Heap, formals ::
@@ -2400,7 +2418,7 @@ namespace Microsoft.Dafny {
       var coArgs = new List<Bpl.Expr>(tyexprs);
       var prefixArgs = new List<Bpl.Expr>(tyexprs);
       var prefixArgsLimited = new List<Bpl.Expr>(tyexprs);
-      if (pp.IsRecursive) {
+      if (pp.IsFuelAware()) {
         var sV = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, "$ly", predef.LayerType));
         var s = new Bpl.IdentifierExpr(tok, sV);
         var succS = FunctionCall(tok, BuiltinFunction.LayerSucc, null, s);
@@ -3073,13 +3091,13 @@ namespace Microsoft.Dafny {
         Bpl.FunctionCall funcIdT = new Bpl.FunctionCall(new Bpl.IdentifierExpr(f.OverriddenFunction.tok, f.OverriddenFunction.FullSanitizedName, TrType(f.OverriddenFunction.ResultType)));
         List<Bpl.Expr> argsC = new List<Bpl.Expr>();
         List<Bpl.Expr> argsT = new List<Bpl.Expr>();
-        if (f.IsRecursive)
+        if (f.IsFuelAware())
         {
-            argsC.Add(etran.LayerN(1));
+            argsC.Add(etran.layerInterCluster.GetFunctionFuel(f));
         }
-        if (f.OverriddenFunction.IsRecursive)
+        if (f.OverriddenFunction.IsFuelAware())
         {
-            argsT.Add(etran.LayerN(1));
+          argsT.Add(etran.layerInterCluster.GetFunctionFuel(f));
         }
         argsC.Add(etran.HeapExpr);
         argsT.Add(etran.HeapExpr);
@@ -3726,7 +3744,7 @@ namespace Microsoft.Dafny {
         var typeParams = TrTypeParamDecls(f.TypeArgs);
         {
           var formals = new List<Variable>();
-          if (f.IsRecursive) {
+          if (f.IsFuelAware()) {
             formals.Add(new Bpl.Formal(f.tok, new Bpl.TypedIdent(f.tok, "$ly", predef.LayerType), true));
           }
           if (!f.IsStatic) {
@@ -3750,7 +3768,7 @@ namespace Microsoft.Dafny {
         List<Bpl.Expr> argsF = new List<Bpl.Expr>();
         List<Bpl.Expr> argsFFrame = new List<Bpl.Expr>();
         List<Bpl.Expr> argsCanCall = new List<Bpl.Expr>();
-        if (f.IsRecursive) {
+        if (f.IsFuelAware()) {
           var sV = new Bpl.BoundVariable(f.tok, new Bpl.TypedIdent(f.tok, "$ly", predef.LayerType));
           var s = new Bpl.IdentifierExpr(f.tok, sV);
           bvars.Add(sV);
@@ -3795,7 +3813,7 @@ namespace Microsoft.Dafny {
         sink.AddTopLevelDeclaration(new Bpl.Axiom(f.tok, ax));
       } else {
 #else
-        // This is the general case
+      // This is the general case
         Bpl.Expr h0; var h0Var = BplBoundVar("$h0", predef.HeapType, out h0);
         Bpl.Expr h1; var h1Var = BplBoundVar("$h1", predef.HeapType, out h1);
 
@@ -3825,7 +3843,7 @@ namespace Microsoft.Dafny {
         var f1args = new List<Bpl.Expr>(tyexprs);
         var f0argsCanCall = new List<Bpl.Expr>(tyexprs);
         var f1argsCanCall = new List<Bpl.Expr>(tyexprs);
-        if (f.IsRecursive) {
+        if (f.IsFuelAware()) {
           Bpl.Expr s; var sV = BplBoundVar("$ly", predef.LayerType, out s);
           bvars.Add(sV);
           f0args.Add(s); f1args.Add(s);  // but don't add to f0argsCanCall or f1argsCanCall
@@ -4066,8 +4084,8 @@ namespace Microsoft.Dafny {
         foreach (var p in GetTypeParams(f)) {
           args.Add(trTypeParam(p, null));
         }
-        if (f.IsRecursive) {
-          args.Add(etran.LayerN(1));
+        if (f.IsFuelAware()) {
+          args.Add(etran.layerInterCluster.GetFunctionFuel(f));
         }
         args.Add(etran.HeapExpr);
         if (!f.IsStatic) {
@@ -4100,8 +4118,8 @@ namespace Microsoft.Dafny {
         foreach (var p in GetTypeParams(f)) {
           args.Add(trTypeParam(p, null));
         }
-        if (f.IsRecursive) {
-          args.Add(etran.LayerN(1));
+        if (f.IsFuelAware()) {
+          args.Add(etran.layerInterCluster.GetFunctionFuel(f));
         }
         args.Add(etran.HeapExpr);
         foreach (Variable p in implInParams) {
@@ -5572,7 +5590,7 @@ namespace Microsoft.Dafny {
           tyargs.Add(TypeToTy(fm.Type));
         }
         tyargs.Add(TypeToTy(f.ResultType));
-        if (f.IsRecursive) {
+        if (f.IsFuelAware()) {
           Bpl.Expr ly; vars.Add(BplBoundVar("$ly", predef.LayerType, out ly)); args.Add(ly);
           formals.Add(BplFormalVar(null, predef.LayerType, true));
         }
@@ -6121,7 +6139,7 @@ namespace Microsoft.Dafny {
         var typeParams = TrTypeParamDecls(f.TypeArgs);
         var formals = new List<Variable>();
         formals.AddRange(MkTyParamFormals(GetTypeParams(f)));
-        if (f.IsRecursive) {
+        if (f.IsFuelAware()) {
           formals.Add(new Bpl.Formal(f.tok, new Bpl.TypedIdent(f.tok, "$ly", predef.LayerType), true));
         }
         formals.Add(new Bpl.Formal(f.tok, new Bpl.TypedIdent(f.tok, "$heap", predef.HeapType), true));
@@ -6198,7 +6216,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(predef != null);
       Contract.Requires(currentModule == null && codeContext == null);
       Contract.Ensures(currentModule == null && codeContext == null);
-      Contract.Ensures(Contract.Result<Bpl.Procedure>() != null);
+      Contract.Ensures(Contract.Result<Bpl.Procedure>() != null);      
 
       currentModule = m.EnclosingClass.Module;
       codeContext = m;
@@ -6481,7 +6499,7 @@ namespace Microsoft.Dafny {
       // parameters of the procedure
       List<Variable> inParams = new List<Variable>();
       Bpl.Formal layer;
-      if (f.IsRecursive) {
+      if (f.IsFuelAware()) {
         layer = new Bpl.Formal(f.tok, new Bpl.TypedIdent(f.tok, "$ly", predef.LayerType), true);
         inParams.Add(layer);
       } else {
@@ -7004,9 +7022,11 @@ namespace Microsoft.Dafny {
       Contract.Requires(locals != null);
       Contract.Requires(etran != null);
       Contract.Requires(codeContext != null && predef != null);
+      Contract.Ensures(fuelContext == Contract.OldValue(fuelContext));
       if (stmt is PredicateStmt) {
+        this.fuelContext = FuelSetting.ExpandFuelContext(stmt.Attributes, this.fuelContext);
         if (stmt is AssertStmt || DafnyOptions.O.DisallowSoundnessCheating) {
-          AddComment(builder, stmt, "assert statement");
+          AddComment(builder, stmt, "assert statement");          
           PredicateStmt s = (PredicateStmt)stmt;
           TrStmt_CheckWellformed(s.Expr, builder, locals, etran, false);
           IToken enclosingToken = null;
@@ -7026,13 +7046,14 @@ namespace Microsoft.Dafny {
               }
             }
             builder.Add(new Bpl.AssumeCmd(stmt.Tok, etran.TrExpr(s.Expr)));
-          }
+          }          
         } else if (stmt is AssumeStmt) {
           AddComment(builder, stmt, "assume statement");
           AssumeStmt s = (AssumeStmt)stmt;
           TrStmt_CheckWellformed(s.Expr, builder, locals, etran, false);
           builder.Add(new Bpl.AssumeCmd(stmt.Tok, etran.TrExpr(s.Expr), etran.TrAttributes(stmt.Attributes, null)));
         }
+        this.fuelContext = FuelSetting.PopFuelContext();
       } else if (stmt is PrintStmt) {
         AddComment(builder, stmt, "print statement");
         PrintStmt s = (PrintStmt)stmt;
@@ -7265,6 +7286,7 @@ namespace Microsoft.Dafny {
 
       } else if (stmt is WhileStmt) {
         AddComment(builder, stmt, "while statement");
+        this.fuelContext = FuelSetting.ExpandFuelContext(stmt.Attributes, this.fuelContext);
         var s = (WhileStmt)stmt;
         BodyTranslator bodyTr = null;
         if (s.Body != null) {
@@ -7275,7 +7297,7 @@ namespace Microsoft.Dafny {
           };
         }
         TrLoop(s, s.Guard, bodyTr, builder, locals, etran);
-
+        this.fuelContext = FuelSetting.PopFuelContext();
       } else if (stmt is AlternativeLoopStmt) {
         AddComment(builder, stmt, "alternative loop statement");
         var s = (AlternativeLoopStmt)stmt;
@@ -7317,6 +7339,7 @@ namespace Microsoft.Dafny {
 
       } else if (stmt is ForallStmt) {
         var s = (ForallStmt)stmt;
+        this.fuelContext = FuelSetting.ExpandFuelContext(stmt.Attributes, this.fuelContext);
         if (s.Kind == ForallStmt.ParBodyKind.Assign) {
           AddComment(builder, stmt, "forall statement (assign)");
           Contract.Assert(s.Ens.Count == 0);
@@ -7360,7 +7383,7 @@ namespace Microsoft.Dafny {
         } else {
           Contract.Assert(false);  // unexpected kind
         }
-
+        this.fuelContext = FuelSetting.PopFuelContext();
       } else if (stmt is CalcStmt) {
         /* Translate into:
         if (*) {
@@ -7383,9 +7406,10 @@ namespace Microsoft.Dafny {
         }
         assume line<0> op line<n>;
         */
-        var s = (CalcStmt)stmt;
+        var s = (CalcStmt)stmt;        
         Contract.Assert(s.Steps.Count == s.Hints.Count); // established by the resolver
         AddComment(builder, stmt, "calc statement");
+        this.fuelContext = FuelSetting.ExpandFuelContext(stmt.Attributes, this.fuelContext);
         CurrentIdGenerator.Push();  // put the entire calc statement within its own sub-branch
         if (s.Lines.Count > 0) {
           Bpl.IfCmd ifCmd = null;
@@ -7450,7 +7474,7 @@ namespace Microsoft.Dafny {
           }
         }
         CurrentIdGenerator.Pop();
-
+        this.fuelContext = FuelSetting.PopFuelContext();
       } else if (stmt is MatchStmt) {
         var s = (MatchStmt)stmt;
         TrStmt_CheckWellformed(s.Source, builder, locals, etran, true);
@@ -10248,6 +10272,227 @@ namespace Microsoft.Dafny {
       }
     }
 
+    internal class FuelSettingPair 
+    {
+      public int low;
+      public int high;
+
+      public FuelSettingPair(int low = (int)FuelSetting.FuelAmount.LOW, int high = (int)FuelSetting.FuelAmount.HIGH) {
+        this.low = low;
+        this.high = high;
+      }
+    }
+
+    // C#'s version of a type alias
+    internal class FuelContext : Dictionary<Function, FuelSettingPair> { }
+
+    internal class FuelSetting
+    {
+      public enum FuelAmount { NONE, LOW, HIGH };
+      public static Stack<FuelContext> SavedContexts = new Stack<FuelContext>();
+
+      private static FuelSettingPair FuelAttrib(Function f) {
+        Contract.Requires(f != null);
+        Contract.Ensures(Contract.Result<FuelSettingPair>() != null);
+        FuelSettingPair setting = new FuelSettingPair();
+
+        if (f.Attributes != null) {
+          List<Expression> args = Attributes.FindExpressions(f.Attributes, "fuel");
+          if (args != null && args.Count >= 2) {
+            LiteralExpr literalLow = args[0] as LiteralExpr;
+            LiteralExpr literalHigh = args[1] as LiteralExpr;
+
+            if (literalLow != null && literalLow.Value is BigInteger && literalHigh != null && literalHigh.Value is BigInteger) {
+              setting.low = (int)((BigInteger)literalLow.Value);
+              setting.high = (int)((BigInteger)literalHigh.Value);
+            }
+          } else if (args != null && args.Count >= 1) {
+            LiteralExpr literal = args[0] as LiteralExpr;
+            if (literal != null && literal.Value is BigInteger) {
+              setting.low = (int)((BigInteger)literal.Value);
+              setting.high = setting.low + 1;
+            }
+          }
+        }
+
+        return setting;
+      }
+
+      public int amount;        // Amount of fuel above that represented by start
+      private Bpl.Expr start;   // Starting fuel argument (null indicates LZ)      
+      private Translator translator;
+
+      public FuelSetting(Translator translator, int amount, Bpl.Expr start = null) {
+        this.translator = translator;
+        this.amount = amount;
+        this.start = start;
+      }
+
+      public FuelSetting Offset(int offset) {
+        return new FuelSetting(translator, this.amount + offset, start);
+      }
+
+      public Bpl.Expr LayerZero() {
+        Contract.Ensures(Contract.Result<Bpl.Expr>() != null);
+        return new Bpl.IdentifierExpr(Token.NoToken, "$LZ", translator.predef.LayerType);
+      }
+
+      public Bpl.Expr LayerN(int n) {
+        Contract.Requires(0 <= n);
+        Contract.Ensures(Contract.Result<Bpl.Expr>() != null);
+        return translator.LayerSucc(LayerZero(), n);
+      }
+
+      private Bpl.Expr ToExpr(int amount) {
+        if (start == null) {
+          return LayerN(amount);
+        } else {
+          return translator.LayerSucc(start, amount);
+        }
+      }
+
+      public Bpl.Expr ToExpr() {
+        return this.ToExpr(this.amount);
+      }
+
+      /// <summary>
+      /// Get the fuel value for this function, given the ambient environment (represented by the fuel setting)
+      /// the function itself, and the function call's context (if any)
+      /// </summary>      
+      public Bpl.Expr GetFunctionFuel(Function f) {
+        Contract.Requires(f != null);
+        if (this.amount == (int)FuelAmount.NONE) {
+          return this.ToExpr();
+        } else {
+          FuelSettingPair setting = null;
+          var found = translator.fuelContext.TryGetValue(f, out setting);
+
+          if (!found) {  // If the context doesn't define fuel for this function, check for a fuel attribute (which supplies a default value if none is found)
+            setting = FuelAttrib(f);
+          }
+
+          if (this.amount == (int)FuelAmount.LOW) {
+            return ToExpr(setting.low);
+          } else if (this.amount == (int)FuelAmount.HIGH) {
+            return ToExpr(setting.high);
+          } else {
+            Contract.Assert(false); // Should not reach here
+            return null;
+          }
+        }
+      }
+
+
+      /// <summary>
+      /// Finds all fuel related attributes of the form {:fuel function low [high]}
+      /// Adds the setting to the context _if_ the context does not already have a setting for that function.
+      /// In other words, it should be called in order from most to least specific contenxt scope.
+      /// </summary>    
+      private static void FindFuelAttributes(Attributes attribs, FuelContext fuelContext) {
+        Function f = null;
+        FuelSettingPair setting = null;
+
+        if (attribs != null) {
+          List<List<Expression>> results = Attributes.FindAllExpressions(attribs, "fuel");
+
+          if (results != null) {
+            foreach (List<Expression> args in results) {
+              if (args != null && args.Count >= 2) {
+                // Try to extract the function from the first argument
+                MemberSelectExpr selectExpr = args[0].Resolved as MemberSelectExpr;
+                if (selectExpr != null) {
+                  f = selectExpr.Member as Function;
+                }
+
+                // Try to extract the lower fuel setting
+                LiteralExpr literalLow = args[1] as LiteralExpr;
+                if (literalLow != null && literalLow.Value is BigInteger) {
+                  setting = new FuelSettingPair();
+                  setting.low = (int)((BigInteger)literalLow.Value);
+                }
+
+                // The user may supply an additional high argument; if not, it defaults to low + 1
+                if (f != null && args.Count >= 3) {
+                  LiteralExpr literalHigh = args[2] as LiteralExpr;
+                  if (setting != null && literalHigh != null && literalHigh.Value is BigInteger) {
+                    setting.high = (int)((BigInteger)literalHigh.Value);
+                    if (!fuelContext.ContainsKey(f)) {
+                      fuelContext.Add(f, setting);
+                    }
+                  }
+                } else if (f != null && setting != null) {
+                  setting.high = setting.low + 1;
+                  if (!fuelContext.ContainsKey(f)) {
+                    fuelContext.Add(f, setting);
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+
+      /// <summary>
+      /// Extend the given context with fuel information from the declaration itself, and enclosing modules
+      /// </summary>
+      private static void AddFuelContext(FuelContext context, TopLevelDecl decl) {
+        FindFuelAttributes(decl.Attributes, context);
+
+        var module = decl.Module;
+        while (module != null) {
+          FindFuelAttributes(module.Attributes, context);
+          module = module.Module;
+        }
+      }
+
+      /// <summary>
+      /// Creates a summary of all fuel settings in scope, starting from the given class declaration
+      /// </summary>      
+      public static FuelContext NewFuelContext(TopLevelDecl decl) {
+        FuelContext context = new FuelContext();
+        AddFuelContext(context, decl);
+        return context;
+      }
+
+      /// <summary>
+      /// Creates a summary of all fuel settings in scope, starting from the given member declaration      
+      /// </summary>      
+      public static FuelContext NewFuelContext(MemberDecl decl) {
+        FuelContext context = new FuelContext();
+
+        FindFuelAttributes(decl.Attributes, context);
+        AddFuelContext(context, decl.EnclosingClass);
+        
+        return context;
+      }
+
+      /// <summary>
+      /// Extends the given fuel context with any new fuel settings found in attribs
+      /// </summary>    
+      public static FuelContext ExpandFuelContext(Attributes attribs, FuelContext oldFuelContext) {
+        Contract.Ensures(SavedContexts.Count == Contract.OldValue(SavedContexts.Count) + 1);
+        FuelContext newContext = new FuelContext();
+        FindFuelAttributes(attribs, newContext);
+        if (newContext.Count > 0) {
+          foreach (var pair in oldFuelContext) {
+            if (!newContext.ContainsKey(pair.Key)) {    // Local setting takes precedence over old context
+              newContext.Add(pair.Key, pair.Value);              
+            }
+          }          
+        } else {
+          newContext = oldFuelContext;
+        }
+        SavedContexts.Push(oldFuelContext);
+        return newContext;
+      }
+
+      public static FuelContext PopFuelContext() {
+        Contract.Requires(SavedContexts.Count > 0);
+        return SavedContexts.Pop();
+      }
+
+    }
+
     internal class ExpressionTranslator
     {
       public readonly Bpl.Expr HeapExpr;
@@ -10256,8 +10501,8 @@ namespace Microsoft.Dafny {
       public readonly string This;
       public readonly string modifiesFrame; // the name of the context's frame variable.
       readonly Function applyLimited_CurrentFunction;
-      public readonly Bpl.Expr layerInterCluster;
-      public readonly Bpl.Expr layerIntraCluster = null;  // a value of null says to do the same as for inter-cluster calls
+      public readonly FuelSetting layerInterCluster;
+      public readonly FuelSetting layerIntraCluster = null;  // a value of null says to do the same as for inter-cluster calls
       public int Statistics_CustomLayerFunctionCount = 0;
       public readonly bool ProducingCoCertificates = false;
       [ContractInvariantMethod]
@@ -10274,40 +10519,16 @@ namespace Microsoft.Dafny {
       }
 
       /// <summary>
-      /// This is a general constructor, but takes the layerInterCluster as an int.
-      /// </summary>
-      ExpressionTranslator(Translator translator, PredefinedDecls predef, Bpl.Expr heap, string thisVar,
-        Function applyLimited_CurrentFunction, int layerInterCluster, Bpl.Expr layerIntraCluster, string modifiesFrame) {
-
-        Contract.Requires(translator != null);
-        Contract.Requires(predef != null);
-        Contract.Requires(heap != null);
-        Contract.Requires(thisVar != null);
-        Contract.Requires(0 <= layerInterCluster);
-        Contract.Requires(modifiesFrame != null);
-
-        this.translator = translator;
-        this.predef = predef;
-        this.HeapExpr = heap;
-        this.This = thisVar;
-        this.applyLimited_CurrentFunction = applyLimited_CurrentFunction;
-        this.layerInterCluster = LayerN(layerInterCluster);
-        this.layerIntraCluster = layerIntraCluster;
-        this.modifiesFrame = modifiesFrame;
-      }
-
-      /// <summary>
       /// This is the most general constructor.  It is private and takes all the parameters.  Whenever
       /// one ExpressionTranslator is constructed from another, unchanged parameters are just copied in.
       /// </summary>
       ExpressionTranslator(Translator translator, PredefinedDecls predef, Bpl.Expr heap, string thisVar,
-        Function applyLimited_CurrentFunction, Bpl.Expr layerInterCluster, Bpl.Expr layerIntraCluster, string modifiesFrame) {
+        Function applyLimited_CurrentFunction, FuelSetting layerInterCluster, FuelSetting layerIntraCluster, string modifiesFrame) {
 
         Contract.Requires(translator != null);
         Contract.Requires(predef != null);
         Contract.Requires(heap != null);
-        Contract.Requires(thisVar != null);
-        Contract.Requires(layerInterCluster != null);
+        Contract.Requires(thisVar != null);       
         Contract.Requires(modifiesFrame != null);
 
         this.translator = translator;
@@ -10315,7 +10536,7 @@ namespace Microsoft.Dafny {
         this.HeapExpr = heap;
         this.This = thisVar;
         this.applyLimited_CurrentFunction = applyLimited_CurrentFunction;
-        this.layerInterCluster = layerInterCluster;
+        this.layerInterCluster = layerInterCluster;        
         if (layerIntraCluster == null) {
           this.layerIntraCluster = layerInterCluster;
         } else {
@@ -10351,7 +10572,7 @@ namespace Microsoft.Dafny {
       }
 
       public ExpressionTranslator(Translator translator, PredefinedDecls predef, Bpl.Expr heap, string thisVar)
-        : this(translator, predef, heap, thisVar, null, 1, null, "$_Frame") {
+        : this(translator, predef, heap, thisVar, null, new FuelSetting(translator, 1), null, "$_Frame") {
         Contract.Requires(translator != null);
         Contract.Requires(predef != null);
         Contract.Requires(heap != null);
@@ -10395,7 +10616,7 @@ namespace Microsoft.Dafny {
         Contract.Requires(layerArgument != null);
         Contract.Ensures(Contract.Result<ExpressionTranslator>() != null);
 
-        return new ExpressionTranslator(translator, predef, HeapExpr, This, null, layerArgument, layerArgument, modifiesFrame);
+        return new ExpressionTranslator(translator, predef, HeapExpr, This, null, new FuelSetting(translator, 0, layerArgument), new FuelSetting(translator, 0, layerArgument), modifiesFrame);
       }
 
       public ExpressionTranslator LimitedFunctions(Function applyLimited_CurrentFunction, Bpl.Expr layerArgument) {
@@ -10403,16 +10624,16 @@ namespace Microsoft.Dafny {
         Contract.Requires(layerArgument != null);
         Contract.Ensures(Contract.Result<ExpressionTranslator>() != null);
 
-        return new ExpressionTranslator(translator, predef, HeapExpr, This, applyLimited_CurrentFunction, /* layerArgument */ layerInterCluster, layerArgument, modifiesFrame);
+        return new ExpressionTranslator(translator, predef, HeapExpr, This, applyLimited_CurrentFunction, /* layerArgument */ layerInterCluster, new FuelSetting(translator, 0, layerArgument), modifiesFrame);
       }
 
       public ExpressionTranslator LayerOffset(int offset) {
         Contract.Requires(0 <= offset);
         Contract.Ensures(Contract.Result<ExpressionTranslator>() != null);
 
-        var et = new ExpressionTranslator(translator, predef, HeapExpr, This, applyLimited_CurrentFunction, translator.LayerSucc(layerInterCluster, offset), layerIntraCluster, modifiesFrame);
+        var et = new ExpressionTranslator(translator, predef, HeapExpr, This, applyLimited_CurrentFunction, layerInterCluster.Offset(offset), layerIntraCluster, modifiesFrame);
         if (this.oldEtran != null) {
-          var etOld = new ExpressionTranslator(translator, predef, Old.HeapExpr, This, applyLimited_CurrentFunction, translator.LayerSucc(layerInterCluster, offset), layerIntraCluster, modifiesFrame);
+          var etOld = new ExpressionTranslator(translator, predef, Old.HeapExpr, This, applyLimited_CurrentFunction, layerInterCluster.Offset(offset), layerIntraCluster, modifiesFrame);
           etOld.oldEtran = etOld;
           et.oldEtran = etOld;
         }
@@ -10449,17 +10670,6 @@ namespace Microsoft.Dafny {
         } else {
           return bx;
         }
-      }
-
-      public Bpl.Expr LayerZero() {
-        Contract.Ensures(Contract.Result<Bpl.Expr>() != null);
-        return new Bpl.IdentifierExpr(Token.NoToken, "$LZ", predef.LayerType);
-      }
-
-      public Bpl.Expr LayerN(int n) {
-        Contract.Requires(0 <= n);
-        Contract.Ensures(Contract.Result<Bpl.Expr>() != null);
-        return translator.LayerSucc(LayerZero(), n);
       }
 
       public Bpl.IdentifierExpr ModuleContextHeight() {
@@ -10635,8 +10845,8 @@ namespace Microsoft.Dafny {
             },
             fn => {
               var args = e.TypeApplication.ConvertAll(translator.TypeToTy);
-              if (fn.IsRecursive) {
-                args.Add(layerInterCluster);
+              if (fn.IsFuelAware()) {
+                args.Add(this.layerInterCluster.GetFunctionFuel(fn));
               }
               if (!fn.IsStatic) {
                 args.Add(/* translator.BoxIfUnboxed */(TrExpr(e.Obj)/*, e.Type */));
@@ -10792,15 +11002,15 @@ namespace Microsoft.Dafny {
         } else if (expr is FunctionCallExpr) {
           FunctionCallExpr e = (FunctionCallExpr)expr;
           Bpl.Expr layerArgument;
-          if (e.Function.IsRecursive) {
+          if (e.Function.IsFuelAware()) {
             Statistics_CustomLayerFunctionCount++;
             ModuleDefinition module = e.Function.EnclosingClass.Module;
             if (this.applyLimited_CurrentFunction != null &&
               this.layerIntraCluster != null &&
               ModuleDefinition.InSameSCC(e.Function, applyLimited_CurrentFunction)) {
-              layerArgument = this.layerIntraCluster;
+              layerArgument = this.layerIntraCluster.GetFunctionFuel(e.Function);
             } else {
-              layerArgument = this.layerInterCluster;
+              layerArgument = this.layerInterCluster.GetFunctionFuel(e.Function);
             }
           } else {
             layerArgument = null;
@@ -10978,7 +11188,7 @@ namespace Microsoft.Dafny {
               if (cot != null) {
                 var e0args = e.E0.Type.NormalizeExpand().TypeArgs;
                 var e1args = e.E1.Type.NormalizeExpand().TypeArgs;
-                return translator.CoEqualCall(cot, e0args, e1args, null, LayerN(2), e0, e1, expr.tok);
+                return translator.CoEqualCall(cot, e0args, e1args, null, this.layerInterCluster.LayerN((int)FuelSetting.FuelAmount.HIGH), e0, e1, expr.tok);
               }
               typ = Bpl.Type.Bool;
               bOpcode = BinaryOperator.Opcode.Eq; break;
@@ -10987,7 +11197,7 @@ namespace Microsoft.Dafny {
               if (cotx != null) {
                 var e0args = e.E0.Type.NormalizeExpand().TypeArgs;
                 var e1args = e.E1.Type.NormalizeExpand().TypeArgs;
-                var x = translator.CoEqualCall(cotx, e0args, e1args, null, LayerN(2), e0, e1, expr.tok);
+                var x = translator.CoEqualCall(cotx, e0args, e1args, null, this.layerInterCluster.LayerN((int)FuelSetting.FuelAmount.HIGH), e0, e1, expr.tok);
                 return Bpl.Expr.Unary(expr.tok, UnaryOperator.Opcode.Not, x);
               }
               typ = Bpl.Type.Bool;
@@ -11268,7 +11478,7 @@ namespace Microsoft.Dafny {
               var e2type = e.E2.Type.NormalizeExpand();
               var cot = e1type.AsCoDatatype;
               Contract.Assert(cot != null);  // the argument types of prefix equality (and prefix disequality) are codatatypes
-              var r = translator.CoEqualCall(cot, e1type.TypeArgs, e2type.TypeArgs, e0, LayerN(2), e1, e2);
+              var r = translator.CoEqualCall(cot, e1type.TypeArgs, e2type.TypeArgs, e0, this.layerInterCluster.LayerN((int)FuelSetting.FuelAmount.HIGH), e1, e2);
               if (e.Op == TernaryExpr.Opcode.PrefixEqOp) {
                 return r;
               } else {
@@ -11301,8 +11511,7 @@ namespace Microsoft.Dafny {
           if (Attributes.ContainsBool(e.Attributes, "layerQuantifier", ref _scratch)) {
             // If this is a layer quantifier, quantify over layers here, and use $LS(ly) layers in the translation of the body
             var ly = BplBoundVar(e.Refresh("q$ly#", translator.CurrentIdGenerator), predef.LayerType, bvars);
-            Expr layer = translator.LayerSucc(ly);
-            bodyEtran = new ExpressionTranslator(translator, predef, HeapExpr, This, applyLimited_CurrentFunction, layer, layer, modifiesFrame);
+            bodyEtran = new ExpressionTranslator(translator, predef, HeapExpr, This, applyLimited_CurrentFunction, new FuelSetting(translator, 1, ly), new FuelSetting(translator, 1, ly), modifiesFrame);
           }
           if (Attributes.ContainsBool(e.Attributes, "heapQuantifier", ref _scratch)) {
             var h = BplBoundVar(e.Refresh("q$heap#", translator.CurrentIdGenerator), predef.HeapType, bvars);
@@ -11472,7 +11681,7 @@ namespace Microsoft.Dafny {
                 new Bpl.LambdaExpr(e.tok, new List<TypeVariable>(), bvars, null, ebody),
                 new Bpl.LambdaExpr(e.tok, new List<TypeVariable>(), bvars, null, reqbody),
                 new Bpl.LambdaExpr(e.tok, new List<TypeVariable>(), bvars, null, rdbody))),
-            layerIntraCluster ?? layerInterCluster),
+                layerIntraCluster != null ? layerIntraCluster.ToExpr() : layerInterCluster.ToExpr()),
           predef.HandleType);
       }
 
@@ -12565,15 +12774,14 @@ namespace Microsoft.Dafny {
           //   checked $PrefixEqual#Dt(k, A, B) || (0 < k ==> A.Cons? ==> B.Cons? && A.head == B.head && $PrefixEqual#2#Dt(k - 1, A.tail, B.tail))  // note the #2 in the recursive call, just like for user-defined predicates that are inlined by TrSplitExpr
           //   free $PrefixEqual#Dt(k, A, B);
           var kPos = Bpl.Expr.Lt(Bpl.Expr.Literal(0), k);
-          var prefixEqK = CoEqualCall(codecl, e1type.TypeArgs, e2type.TypeArgs, k, etran.LayerN(2), A, B); // FunctionCall(expr.tok, CoPrefixName(codecl, 1), Bpl.Type.Bool, k, A, B);
+          var prefixEqK = CoEqualCall(codecl, e1type.TypeArgs, e2type.TypeArgs, k, etran.layerInterCluster.LayerN((int)FuelSetting.FuelAmount.HIGH), A, B); // FunctionCall(expr.tok, CoPrefixName(codecl, 1), Bpl.Type.Bool, k, A, B);
           var kMinusOne = Bpl.Expr.Sub(k, Bpl.Expr.Literal(1));
           // for the inlining of the definition of prefix equality, translate the two main equality operands arguments with a higher offset (to obtain #2 functions)
           var etran2 = etran.LayerOffset(1);
           var A2 = etran2.TrExpr(e.E1);
           var B2 = etran2.TrExpr(e.E2);
           var needsTokenAdjust = TrSplitNeedsTokenAdjustment(expr);
-          // Dan: dafny4/Circ.dfy needs this one to be 2+, rather than 1+
-          Bpl.Expr layer = LayerSucc(etran.layerInterCluster, 2);
+          Bpl.Expr layer = etran.layerInterCluster.LayerN((int)FuelSetting.FuelAmount.HIGH);
           foreach (var c in CoPrefixEquality(needsTokenAdjust ? new ForceCheckToken(expr.tok) : expr.tok, codecl, e1type.TypeArgs, e2type.TypeArgs, kMinusOne, layer, A2, B2, true)) {
             var p = Bpl.Expr.Binary(c.tok, BinaryOperator.Opcode.Or, prefixEqK, Bpl.Expr.Imp(kPos, c));
             splits.Add(new SplitExprInfo(SplitExprInfo.K.Checked, p));
@@ -13927,7 +14135,7 @@ namespace Microsoft.Dafny {
           r = rr;
         } else if (stmt is CalcStmt) {
           var s = (CalcStmt)stmt;
-          var rr = new CalcStmt(s.Tok, s.EndTok, SubstCalcOp(s.Op), s.Lines.ConvertAll(Substitute), s.Hints.ConvertAll(SubstBlockStmt), s.StepOps.ConvertAll(SubstCalcOp), SubstCalcOp(s.ResultOp));
+          var rr = new CalcStmt(s.Tok, s.EndTok, SubstCalcOp(s.Op), s.Lines.ConvertAll(Substitute), s.Hints.ConvertAll(SubstBlockStmt), s.StepOps.ConvertAll(SubstCalcOp), SubstCalcOp(s.ResultOp), SubstAttributes(s.Attributes));
           rr.Steps.AddRange(s.Steps.ConvertAll(Substitute));
           rr.Result = Substitute(s.Result);
           r = rr;
