@@ -217,7 +217,7 @@ public class Scanner {
 
 	[ContractInvariantMethod]
 	void objectInvariant(){
-		Contract.Invariant(this._buffer != null);
+		Contract.Invariant(buffer!=null);
 		Contract.Invariant(t != null);
 		Contract.Invariant(start != null);
 		Contract.Invariant(tokens != null);
@@ -227,18 +227,7 @@ public class Scanner {
 		Contract.Invariant(errorHandler != null);
 	}
 
-	private Buffer/*!*/ _buffer; // scanner buffer
-
-	public Buffer/*!*/ buffer {
-		get {
-			Contract.Ensures(Contract.Result<Buffer>() != null);
-			return this._buffer;
-		}
-		set {
-			Contract.Requires(value != null);
-			this._buffer = value;
-		}
-	}
+	public Buffer/*!*/ buffer; // scanner buffer
 
 	Token/*!*/ t;          // current token
 	int ch;           // current input character
@@ -310,7 +299,7 @@ public class Scanner {
 	}
 
 //	[NotDelayed]
-	public Scanner (string/*!*/ fileName, Errors/*!*/ errorHandler, bool useBaseName = false) : base() {
+	public Scanner (string/*!*/ fileName, Errors/*!*/ errorHandler) : base() {
 	  Contract.Requires(fileName != null);
 	  Contract.Requires(errorHandler != null);
 		this.errorHandler = errorHandler;
@@ -318,8 +307,8 @@ public class Scanner {
 		t = new Token(); // dummy because t is a non-null field
 		try {
 			Stream stream = new FileStream(fileName, FileMode.Open, FileAccess.Read, FileShare.Read);
-			this._buffer = new Buffer(stream, false);
-			Filename = useBaseName? GetBaseName(fileName): fileName;
+			buffer = new Buffer(stream, false);
+			Filename = fileName;
 			Init();
 		} catch (IOException) {
 			throw new FatalError("Cannot open file " + fileName);
@@ -327,21 +316,17 @@ public class Scanner {
 	}
 
 //	[NotDelayed]
-	public Scanner (Stream/*!*/ s, Errors/*!*/ errorHandler, string/*!*/ fileName, bool useBaseName = false) : base() {
+	public Scanner (Stream/*!*/ s, Errors/*!*/ errorHandler, string/*!*/ fileName) : base() {
 	  Contract.Requires(s != null);
 	  Contract.Requires(errorHandler != null);
 	  Contract.Requires(fileName != null);
 		pt = tokens = new Token();  // first token is a dummy
 		t = new Token(); // dummy because t is a non-null field
-		this._buffer = new Buffer(s, true);
+		buffer = new Buffer(s, true);
 		this.errorHandler = errorHandler;
-		this.Filename = useBaseName? GetBaseName(fileName) : fileName;
+		this.Filename = fileName;
 		Init();
 	}
-
-    string GetBaseName(string fileName) {
-        return System.IO.Path.GetFileName(fileName); // Return basename
-    }
 
 	void Init() {
 		pos = -1; line = 1; col = 0;

@@ -314,6 +314,22 @@ namespace Microsoft.Dafny {
       return null;
     }
 
+
+    /// <summary>
+    /// Same as FindExpressions, but returns all matches
+    /// </summary>
+    public static List<List<Expression>> FindAllExpressions(Attributes attrs, string nm) {
+      Contract.Requires(nm != null);
+      List<List<Expression>> ret = null;
+      for (; attrs != null; attrs = attrs.Prev) {
+        if (attrs.Name == nm) {
+          ret = ret ?? new List<List<Expression>>();   // Avoid allocating the list in the common case where we don't find nm
+          ret.Add(attrs.Args);
+        }
+      }
+      return ret;
+    }
+
     /// <summary>
     /// Returns true if "nm" is a specified attribute whose arguments match the "allowed" parameter.
     /// - if "nm" is not found in attrs, return false and leave value unmodified.  Otherwise,
@@ -2874,6 +2890,7 @@ namespace Microsoft.Dafny {
     public override string WhatKind { get { return "function"; } }
     public readonly bool IsProtected;
     public bool IsRecursive;  // filled in during resolution
+    public bool IsFueled;  // filled in during resolution if anyone tries to adjust this function's fuel
     public readonly List<TypeParameter> TypeArgs;
     public readonly List<Formal> Formals;
     public readonly Type ResultType;
@@ -2899,7 +2916,7 @@ namespace Microsoft.Dafny {
         return Contract.Exists(Decreases.Expressions, e => e is WildcardExpr);
       }
     }
-
+    
     /// <summary>
     /// The "AllCalls" field is used for non-FixpointPredicate, non-PrefixPredicate functions only (so its value should not be relied upon for FixpointPredicate and PrefixPredicate functions).
     /// It records all function calls made by the Function, including calls made in the body as well as in the specification.
@@ -2944,6 +2961,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(cce.NonNullElements(ens));
       Contract.Requires(decreases != null);
       this.IsProtected = isProtected;
+      this.IsFueled = false;  // Defaults to false.  Only set to true if someone mentions this function in a fuel annotation
       this.TypeArgs = typeArgs;
       this.Formals = formals;
       this.ResultType = resultType;
@@ -2968,6 +2986,8 @@ namespace Microsoft.Dafny {
     }
     ModuleDefinition ICodeContext.EnclosingModule { get { return this.EnclosingClass.Module; } }
     bool ICodeContext.MustReverify { get { return false; } }
+
+    public bool IsFuelAware() { return IsRecursive || IsFueled; }
   }
 
   public class Predicate : Function
@@ -4640,7 +4660,7 @@ namespace Microsoft.Dafny {
       Contract.Invariant(StepOps.Count == Hints.Count);
     }
 
-    public CalcStmt(IToken tok, IToken endTok, CalcOp op, List<Expression> lines, List<BlockStmt> hints, List<CalcOp> stepOps, CalcOp resultOp)
+    public CalcStmt(IToken tok, IToken endTok, CalcOp op, List<Expression> lines, List<BlockStmt> hints, List<CalcOp> stepOps, CalcOp resultOp, Attributes attrs)
       : base(tok, endTok)
     {
       Contract.Requires(tok != null);
@@ -4665,6 +4685,7 @@ namespace Microsoft.Dafny {
       }
       this.Steps = new List<Expression>();
       this.Result = null;
+      this.Attributes = attrs;
     }
 
     public override IEnumerable<Statement> SubStatements
