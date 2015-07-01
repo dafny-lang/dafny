@@ -47,3 +47,20 @@ method U(t : T)
   t.h := x => x;
   assert J(t) == 0; // ok
 }
+
+class MyClass {
+  var data: int
+	function method F(): int
+	  reads this
+	{
+	  data
+	}	
+  method M(that: MyClass)
+	  requires that != null
+	{
+	  var fn := that.F;  // "that" is captured into the closure
+	  var d := fn();
+		assert d == that.data;  // yes
+		assert d == this.data;  // error: no reason to believe that this would hold
+	}	
+}
