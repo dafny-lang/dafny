@@ -56,6 +56,8 @@ namespace Microsoft.Dafny
     public bool AllowGlobals = false;
     public bool CountVerificationErrors = true;
     public bool Optimize = false;
+    public bool PrintStats = false;
+    public bool PrintFunctionCallGraph = false;
 
     protected override bool ParseOption(string name, Bpl.CommandLineOptionEngine.CommandLineParseState ps) {
       var args = ps.args;  // convenient synonym
@@ -172,6 +174,14 @@ namespace Microsoft.Dafny
         case "allowGlobals":
           AllowGlobals = true;
           return true;
+        
+        case "stats":
+          PrintStats = true;
+          return true;
+
+        case "funcCallGraph":
+          PrintFunctionCallGraph = true;
+          return true;
 
         case "countVerificationErrors": {
           int countErrors = 1; // defaults to reporting verification errors
@@ -267,7 +277,7 @@ namespace Microsoft.Dafny
   /noAutoReq    Ignore autoReq attributes
   /allowGlobals Allow the implicit class '_default' to contain fields, instance functions,
                 and instance methods.  These class members are declared at the module scope,
-                outside of explicit classes.  This command-line option is provided to simply
+                outside of explicit classes.  This command-line option is provided to simplify
                 a transition from the behavior in the language prior to version 1.9.3, from
                 which point onward all functions and methods declared at the module scope are
                 implicitly static and fields declarations are not allowed at the module scope.
@@ -282,6 +292,8 @@ namespace Microsoft.Dafny
                     System.Collections.Immutable.dll in the source directory to successfully 
                     compile).
                   - passes /optimize flag to csc.exe.
+  /stats        Print interesting statistics about the Dafny files supplied.
+  /funcCallGraph Print out the function call graph.  Format is: func,mod=callee*
 ");
       base.Usage();  // also print the Boogie options
     }
