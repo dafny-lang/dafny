@@ -131,6 +131,12 @@ lemma AsimpCorrect(a: aexp, s: state)
   forall a' | a' < a { AsimpCorrect(a', s); }
 }
 
+// The following lemma is not in the Nipkow and Klein book, but it's a fun one to prove.
+lemma ASimplInvolutive(a: aexp)
+  ensures asimp(asimp(a)) == asimp(a)
+{
+}
+
 // ----- boolean expressions -----
 
 datatype bexp = Bc(v: bool) | Not(bexp) | And(bexp, bexp) | Less(aexp, aexp)
