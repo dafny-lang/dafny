@@ -942,7 +942,7 @@ namespace Microsoft.Dafny {
 
     void TrCasePatternOpt(CasePattern pat, Expression rhs, string rhs_string, int indent) {
       Contract.Requires(pat != null);
-      Contract.Requires(rhs != null);
+      Contract.Requires(pat.Var != null || rhs != null);
       if (pat.Var != null) {
         // The trivial Dafny "pattern" expression
         //    var x := G
