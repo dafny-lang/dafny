@@ -86,7 +86,7 @@ namespace Microsoft.Dafny {
 
   public class BuiltIns
   {
-    public readonly ModuleDefinition SystemModule = new ModuleDefinition(Token.NoToken, "_System", false, false, null, null, null, true);
+    public readonly ModuleDefinition SystemModule = new ModuleDefinition(Token.NoToken, "_System", false, false, /*isExclusiveRefinement:*/ false, null, null, null, true);
     readonly Dictionary<int, ClassDecl> arrayTypeDecls = new Dictionary<int, ClassDecl>();
     readonly Dictionary<int, ArrowTypeDecl> arrowTypeDecls = new Dictionary<int, ArrowTypeDecl>();
     readonly Dictionary<int, TupleTypeDecl> tupleTypeDecls = new Dictionary<int, TupleTypeDecl>();
@@ -1486,6 +1486,8 @@ namespace Microsoft.Dafny {
     IToken INamedRegion.BodyEndTok { get { return BodyEndTok; } }
     string INamedRegion.Name { get { return Name; } }
     string compileName;
+    private readonly Declaration clonedFrom;
+
     public virtual string CompileName {
       get {
         if (compileName == null) {
@@ -1496,12 +1498,19 @@ namespace Microsoft.Dafny {
     }
     public Attributes Attributes;  // readonly, except during class merging in the refinement transformations
 
-    public Declaration(IToken tok, string name, Attributes attributes) {
+    public Declaration(IToken tok, string name, Attributes attributes, Declaration clonedFrom) {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
       this.tok = tok;
       this.Name = name;
       this.Attributes = attributes;
+      this.clonedFrom = clonedFrom;
+    }
+
+    public Declaration ClonedFrom { 
+      get {
+        return this.clonedFrom;
+      } 
     }
 
     [Pure]
@@ -1513,12 +1522,10 @@ namespace Microsoft.Dafny {
     internal FreshIdGenerator IdGenerator = new FreshIdGenerator();
   }
 
-  public class OpaqueType_AsParameter : TypeParameter
-  {
+  public class OpaqueType_AsParameter : TypeParameter {
     public readonly List<TypeParameter> TypeArgs;
     public OpaqueType_AsParameter(IToken tok, string name, EqualitySupportValue equalitySupport, List<TypeParameter> typeArgs)
-      : base(tok, name, equalitySupport)
-    {
+      : base(tok, name, equalitySupport) {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
       Contract.Requires(typeArgs != null);
@@ -1566,8 +1573,8 @@ namespace Microsoft.Dafny {
     }
     public int PositionalIndex; // which type parameter this is (ie. in C<S, T, U>, S is 0, T is 1 and U is 2).
 
-    public TypeParameter(IToken tok, string name, EqualitySupportValue equalitySupport = EqualitySupportValue.Unspecified)
-      : base(tok, name, null) {
+    public TypeParameter(IToken tok, string name, EqualitySupportValue equalitySupport = EqualitySupportValue.Unspecified, Declaration clonedFrom = null)
+      : base(tok, name, null, clonedFrom) {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
       EqualitySupport = equalitySupport;
@@ -1642,7 +1649,7 @@ namespace Microsoft.Dafny {
   }
 
   public class ModuleSignature {
-
+    private ModuleDefinition exclusiveRefinement = null;
     public readonly Dictionary<string, TopLevelDecl> TopLevels = new Dictionary<string, TopLevelDecl>();
     public readonly Dictionary<string, Tuple<DatatypeCtor, bool>> Ctors = new Dictionary<string, Tuple<DatatypeCtor, bool>>();
     public readonly Dictionary<string, MemberDecl> StaticMembers = new Dictionary<string, MemberDecl>();
@@ -1663,6 +1670,25 @@ namespace Microsoft.Dafny {
         return false;
       }
     }
+
+    public ModuleDefinition ExclusiveRefinement {
+      get {
+        if (null == exclusiveRefinement) {
+          return ModuleDef == null ? null : ModuleDef.ExclusiveRefinement;          
+        } else {
+          return exclusiveRefinement;
+        }
+      }
+
+      set {
+        if (null == ExclusiveRefinement) {
+          exclusiveRefinement = null;
+        } else {
+          throw new InvalidOperationException("An exclusive refinement relationship cannot be amended.");
+        }
+      }
+    }
+
   }
 
   public class ModuleDefinition : INamedRegion
@@ -1678,22 +1704,64 @@ namespace Microsoft.Dafny {
     public readonly Attributes Attributes;
     public readonly List<IToken> RefinementBaseName;  // null if no refinement base
     public ModuleDecl RefinementBaseRoot; // filled in early during resolution, corresponds to RefinementBaseName[0]
-    public ModuleDefinition RefinementBase;  // filled in during resolution (null if no refinement base)
+
     public List<Include> Includes;
 
     public readonly List<TopLevelDecl> TopLevelDecls = new List<TopLevelDecl>();  // filled in by the parser; readonly after that
     public readonly Graph<ICallable> CallGraph = new Graph<ICallable>();  // filled in during resolution
     public int Height;  // height in the topological sorting of modules; filled in during resolution
     public readonly bool IsAbstract;
+    public readonly bool IsExclusiveRefinement;
     public readonly bool IsFacade; // True iff this module represents a module facade (that is, an abstract interface)
     private readonly bool IsBuiltinName; // true if this is something like _System that shouldn't have it's name mangled.
+
+    private ModuleDefinition exclusiveRefinement;
+
+    public ModuleDefinition ExclusiveRefinement {
+      get { return exclusiveRefinement; }
+      set {
+        if (null == exclusiveRefinement) {
+          if (!value.IsExclusiveRefinement) {
+            throw new ArgumentException(
+              string.Format("Exclusive refinement of {0} with 'new' module {0} is disallowed.",
+              Name,
+              value.Name));
+          }
+          // todo: validate state of `value`.
+          exclusiveRefinement = value;
+        } else {
+          throw new InvalidOperationException(string.Format("Exclusive refinement of {0} has already been established {1}; cannot reestabilish as {2}.", Name, exclusiveRefinement.Name, value.Name));
+        }
+      }
+    }
+
+    public int ExclusiveRefinementCount { get; set; }
+
+    private ModuleDefinition refinementBase; // filled in during resolution via RefinementBase property (null if no refinement base yet or at all).
+
+    public ModuleDefinition RefinementBase {
+        get {
+           return refinementBase;
+        }
+
+        set {
+          // the refinementBase member may only be changed once.
+          if (null != refinementBase) {
+              throw new InvalidOperationException(string.Format("This module ({0}) already has a refinement base ({1}).", Name, refinementBase.Name));
+          }
+          refinementBase = value;
+        }
+    }
+
+    public ModuleDefinition ClonedFrom { get; set; }
+
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(cce.NonNullElements(TopLevelDecls));
       Contract.Invariant(CallGraph != null);
     }
 
-    public ModuleDefinition(IToken tok, string name, bool isAbstract, bool isFacade, List<IToken> refinementBase, ModuleDefinition parent, Attributes attributes, bool isBuiltinName)
+    public ModuleDefinition(IToken tok, string name, bool isAbstract, bool isFacade, bool isExclusiveRefinement, List<IToken> refinementBase, ModuleDefinition parent, Attributes attributes, bool isBuiltinName, Parser parser = null)
     {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
@@ -1704,8 +1772,9 @@ namespace Microsoft.Dafny {
       RefinementBaseName = refinementBase;
       IsAbstract = isAbstract;
       IsFacade = isFacade;
+      IsExclusiveRefinement = isExclusiveRefinement;
       RefinementBaseRoot = null;
-      RefinementBase = null;
+      this.refinementBase = null;
       Includes = new List<Include>();
       IsBuiltinName = isBuiltinName;
     }
@@ -1844,7 +1913,9 @@ namespace Microsoft.Dafny {
   }
 
   public class DefaultModuleDecl : ModuleDefinition {
-    public DefaultModuleDecl() : base(Token.NoToken, "_module", false, false, null, null, null, true) {
+      public DefaultModuleDecl()
+          : base(Token.NoToken, "_module", false, false, /*isExclusiveRefinement:*/ false, null, null, null, true)
+      {
     }
     public override bool IsDefaultModule {
       get {
@@ -1862,8 +1933,8 @@ namespace Microsoft.Dafny {
       Contract.Invariant(cce.NonNullElements(TypeArgs));
     }
 
-    public TopLevelDecl(IToken tok, string name, ModuleDefinition module, List<TypeParameter> typeArgs, Attributes attributes)
-      : base(tok, name, attributes) {
+    public TopLevelDecl(IToken tok, string name, ModuleDefinition module, List<TypeParameter> typeArgs, Attributes attributes, Declaration clonedFrom = null)
+      : base(tok, name, attributes, clonedFrom) {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
       Contract.Requires(cce.NonNullElements(typeArgs));
@@ -2116,7 +2187,7 @@ namespace Microsoft.Dafny {
     public List<DatatypeDestructor> Destructors = new List<DatatypeDestructor>();  // contents filled in during resolution; includes both implicit (not mentionable in source) and explicit destructors
 
     public DatatypeCtor(IToken tok, string name, [Captured] List<Formal> formals, Attributes attributes)
-      : base(tok, name, attributes) {
+      : base(tok, name, attributes, null) {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
       Contract.Requires(cce.NonNullElements(formals));
@@ -2326,7 +2397,7 @@ namespace Microsoft.Dafny {
     public TopLevelDecl EnclosingClass;  // filled in during resolution
     public MemberDecl RefinementBase;  // filled in during the pre-resolution refinement transformation; null if the member is new here
     public MemberDecl(IToken tok, string name, bool hasStaticKeyword, bool isGhost, Attributes attributes)
-      : base(tok, name, attributes) {
+      : base(tok, name, attributes, null) {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
       HasStaticKeyword = hasStaticKeyword;
@@ -2463,8 +2534,8 @@ namespace Microsoft.Dafny {
       Contract.Invariant(TheType != null && Name == TheType.Name);
     }
 
-    public OpaqueTypeDecl(IToken tok, string name, ModuleDefinition module, TypeParameter.EqualitySupportValue equalitySupport, List<TypeParameter> typeArgs, Attributes attributes)
-      : base(tok, name, module, typeArgs, attributes) {
+    public OpaqueTypeDecl(IToken tok, string name, ModuleDefinition module, TypeParameter.EqualitySupportValue equalitySupport, List<TypeParameter> typeArgs, Attributes attributes, Declaration clonedFrom = null)
+      : base(tok, name, module, typeArgs, attributes, clonedFrom) {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
       Contract.Requires(module != null);
@@ -3063,7 +3134,7 @@ namespace Microsoft.Dafny {
       prefixPredCall.TypeArgumentSubstitutions = new Dictionary<TypeParameter, Type>();
       var old_to_new = new Dictionary<TypeParameter, TypeParameter>();
       for (int i = 0; i < this.TypeArgs.Count; i++) {
-	 old_to_new[this.TypeArgs[i]] = this.PrefixPredicate.TypeArgs[i];
+   old_to_new[this.TypeArgs[i]] = this.PrefixPredicate.TypeArgs[i];
       }
       foreach (var p in fexp.TypeArgumentSubstitutions) {
         prefixPredCall.TypeArgumentSubstitutions[old_to_new[p.Key]] = p.Value;
@@ -5578,8 +5649,8 @@ namespace Microsoft.Dafny {
       Contract.Invariant(cce.NonNullElements(Arguments));
       Contract.Invariant(cce.NonNullElements(InferredTypeArgs));
       Contract.Invariant(
-	Ctor == null ||
-	InferredTypeArgs.Count == Ctor.EnclosingDatatype.TypeArgs.Count);
+  Ctor == null ||
+  InferredTypeArgs.Count == Ctor.EnclosingDatatype.TypeArgs.Count);
     }
 
     public DatatypeValue(IToken tok, string datatypeName, string memberName, [Captured] List<Expression> arguments)
@@ -6009,10 +6080,10 @@ namespace Microsoft.Dafny {
         Function == null || TypeArgumentSubstitutions == null ||
         Contract.ForAll(
           Function.TypeArgs,
-        	  a => TypeArgumentSubstitutions.ContainsKey(a)) &&
+            a => TypeArgumentSubstitutions.ContainsKey(a)) &&
         Contract.ForAll(
           TypeArgumentSubstitutions.Keys,
-        	  a => Function.TypeArgs.Contains(a) || Function.EnclosingClass.TypeArgs.Contains(a)));
+            a => Function.TypeArgs.Contains(a) || Function.EnclosingClass.TypeArgs.Contains(a)));
     }
 
     public Function Function;  // filled in by resolution
