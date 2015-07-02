@@ -69,7 +69,7 @@ method MethodG<T>(xs: List<T>) returns (xxs: List<List<T>>)
   case Cons(h, Cons(ht, tt)) => 
 }
 
-method AssertionFailure(xs: List<T>)
+method AssertionFailure(xs: List)
 {
   match xs
   case (Nil) =>  // BUG: this line causes an assertion in the Dafny implementation (what should happen is that "(Nil)" should not be allowed here)
@@ -100,7 +100,7 @@ method DuplicateIdentifierInPattern2<T>(xs: List<T>)
   case Cons(h, Cons(e, e)) =>  // BUG:  here, the duplicate identifier is detected, but the error message is shown 3 times, which is less than ideal
 }
 
-method Tuples0(xs: List<T>, ys: List<T>)
+method Tuples0(xs: List, ys: List)
 {
   match (xs, ys)
   case (Nil, Nil) =>
@@ -110,14 +110,14 @@ method Tuples0(xs: List<T>, ys: List<T>)
                                     // only the identifiers in the last constructors are
 }
 
-method Tuples1(xs: List<T>, ys: List<T>)
+method Tuples1(xs: List, ys: List)
 {
   match (xs, ys, 4)
   case (Nil, Nil) =>  // BUG: the mismatch of 3 versus 2 arguments in the previous line and this line causes Dafny to crash with an
                       // assertion failure "mc.CasePatterns.Count == e.Arguments.Count"
 }
 
-method Tuples2(xs: List<T>, ys: List<T>)
+method Tuples2(xs: List, ys: List)
 {
   match (xs, ys, ())
   case (Nil, Nil, ()) =>  // BUG: Dafny crashes with an assertion failure "e.Arguments.Count >= 1"

@@ -71,16 +71,17 @@ module X1 {
 }
 
 module X2 {
+  import opened X1
   class MyClass2 {
-    method Down(x1: MyClass1, x0: MyClass0) {
+    method Down(x1: MyClass1, x0: X0'.MyClass0) {
       x1.Down(x0);
     }
-    method WayDown(x0: MyClass0) {
+    method WayDown(x0: X0'.MyClass0) {
       x0.Down();
     }
     method Up() {
     }
-    method Somewhere(y: MyClassY) {
+    method Somewhere(y: MyClassY) {  // error: no such type in scope
       y.M();
     }
   }
@@ -97,8 +98,7 @@ module YY {
 class ClassG {
   method T() { }
   function method TFunc(): int { 10 }
-  method V(y: MyClassY) {  // Note, MyClassY is in scope, since we are in the _default
-                           // module, which imports everything
+  method V(y: MyClassY) {
     y.M();
   }
 }
@@ -141,10 +141,10 @@ class AClassWithSomeField {
     SomeField := SomeField + 4;
     var a := old(SomeField);  // error: old can only be used in ghost contexts
     var b := fresh(this);  // error: fresh can only be used in ghost contexts
-    var c := allocated(this);  // error: allocated can only be used in ghost contexts
+//    var c := allocated(this);  // error: allocated can only be used in ghost contexts
     if (fresh(this)) {  // this guard makes the if statement a ghost statement
       ghost var x := old(SomeField);  // this is a ghost context, so it's okay
-      ghost var y := allocated(this);  // this is a ghost context, so it's okay
+//      ghost var y := allocated(this);  // this is a ghost context, so it's okay
     }
   }
 }

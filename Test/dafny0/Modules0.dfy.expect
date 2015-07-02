@@ -9,13 +9,8 @@ Modules0.dfy(15,11): Error: Duplicate name of top-level declaration: WazzupB
 Modules0.dfy(56,21): Error: Undeclared top-level type or type parameter: MyClass1 (did you forget to qualify a name?)
 Modules0.dfy(57,21): Error: Undeclared top-level type or type parameter: MyClass2 (did you forget to qualify a name?)
 Modules0.dfy(68,21): Error: Undeclared top-level type or type parameter: MyClass2 (did you forget to qualify a name?)
-Modules0.dfy(76,9): Error: type MyClass1 does not have a member Down
-Modules0.dfy(76,13): Error: expected method call, found expression
-Modules0.dfy(79,9): Error: type MyClass0 does not have a member Down
-Modules0.dfy(79,13): Error: expected method call, found expression
-Modules0.dfy(84,8): Error: type MyClassY does not have a member M
-Modules0.dfy(84,9): Error: expected method call, found expression
-Modules0.dfy(92,19): Error: Undeclared top-level type or type parameter: ClassG (did you forget to qualify a name?)
+Modules0.dfy(84,24): Error: Undeclared top-level type or type parameter: MyClassY (did you forget to qualify a name?)
+Modules0.dfy(93,19): Error: Undeclared top-level type or type parameter: ClassG (did you forget to qualify a name?)
 Modules0.dfy(226,15): Error: Undeclared top-level type or type parameter: X (did you forget to qualify a name?)
 Modules0.dfy(226,8): Error: new can be applied only to reference types (got X)
 Modules0.dfy(235,13): Error: module 'B' does not declare a type 'X'
@@ -35,11 +30,5 @@ Modules0.dfy(320,11): Error: Undeclared top-level type or type parameter: Wazzup
 Modules0.dfy(321,17): Error: module 'Q_Imp' does not declare a type 'Edon'
 Modules0.dfy(323,10): Error: new can be applied only to reference types (got Q_Imp.List<?>)
 Modules0.dfy(324,30): Error: member Create does not exist in class Klassy
-Modules0.dfy(102,6): Error: type MyClassY does not have a member M
-Modules0.dfy(102,7): Error: expected method call, found expression
-Modules0.dfy(127,11): Error: ghost variables are allowed only in specification contexts
-Modules0.dfy(142,13): Error: old expressions are allowed only in specification and ghost contexts
-Modules0.dfy(143,13): Error: fresh expressions are allowed only in specification and ghost contexts
-Modules0.dfy(144,13): Error: unresolved identifier: allocated
-Modules0.dfy(147,21): Error: unresolved identifier: allocated
-42 resolution/type errors detected in Modules0.dfy
+Modules0.dfy(101,14): Error: Undeclared top-level type or type parameter: MyClassY (did you forget to qualify a name?)
+31 resolution/type errors detected in Modules0.dfy

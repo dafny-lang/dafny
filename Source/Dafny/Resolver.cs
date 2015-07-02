@@ -8469,12 +8469,6 @@ namespace Microsoft.Dafny
           r = ResolveExprDotCall(expr.tok, receiver, member, expr.OptTypeArguments, opts.codeContext, allowMethodCall);
         }
 #endif
-      } else if (option.Opt == ResolveTypeOptionEnum.AllowPrefixExtend && expr.OptTypeArguments == null) {
-        // it woulc plausibly be a type parameter, but isn't; we will declare it automatically
-        tp = new TypeParameter(expr.tok, expr.Name, defaultTypeArguments.Count, option.Parent);
-        defaultTypeArguments.Add(tp);
-        r = new Resolver_IdentifierExpr(expr.tok, tp);
-        allTypeParameters.Push(expr.Name, tp);
       } else {
         // ----- None of the above
         Error(expr.tok, "Undeclared top-level type or type parameter: {0} (did you forget to qualify a name?)", expr.Name);
