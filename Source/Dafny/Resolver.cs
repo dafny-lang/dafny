@@ -305,6 +305,33 @@ namespace Microsoft.Dafny
 
       systemNameInfo = RegisterTopLevelDecls(prog.BuiltIns.SystemModule, false);
       prog.CompileModules.Add(prog.BuiltIns.SystemModule);
+
+      // first, we need to detect which top-level modules have exclusive refinement relationships.
+      foreach (ModuleDecl decl in sortedDecls) {
+        if (decl is LiteralModuleDecl) {
+          var literalDecl = (LiteralModuleDecl)decl;
+          var m = literalDecl.ModuleDef;
+          if (m.RefinementBaseRoot != null) {
+            if (m.IsExclusiveRefinement) {
+              foreach (var d in sortedDecls) {
+                // refinement dependencies won't be later in the sorted module list than the one we're looking at.
+                if (Object.ReferenceEquals(d, decl)) {
+                  break;
+                }
+                if (d is LiteralModuleDecl) {
+                  var ld = (LiteralModuleDecl)d;
+                  // currently, only exclusive refinements of top-level modules are supported.
+                  if (string.Equals(m.RefinementBaseName[0].val, m.RefinementBaseRoot.Name, StringComparison.InvariantCulture)
+                      && string.Equals(m.RefinementBaseName[0].val, ld.ModuleDef.Name, StringComparison.InvariantCulture)) {
+                    ld.ModuleDef.ExclusiveRefinementCount += 1;
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+
       foreach (var decl in sortedDecls) {
         if (decl is LiteralModuleDecl) {
           // The declaration is a literal module, so it has members and such that we need
@@ -360,20 +387,27 @@ namespace Microsoft.Dafny
           var abs = (ModuleFacadeDecl)decl;
           ModuleSignature p;
           if (ResolvePath(abs.Root, abs.Path, out p, this)) {
-            abs.Signature = MakeAbstractSignature(p, abs.FullCompileName, abs.Height, prog.Modules);
             abs.OriginalSignature = p;
-            ModuleSignature compileSig;
-            if (abs.CompilePath != null) {
-              if (ResolvePath(abs.CompileRoot, abs.CompilePath, out compileSig, this)) {
-                if (refinementTransformer.CheckIsRefinement(compileSig, p)) {
-                  abs.Signature.CompileSignature = compileSig;
-                } else {
-                  Error(abs.CompilePath[0],
-                  "module " + Util.Comma(".", abs.CompilePath, x => x.val) + " must be a refinement of " + Util.Comma(".", abs.Path, x => x.val));
+            // ModuleDefinition.ExclusiveRefinement may not be set at this point but ExclusiveRefinementCount will be.
+            if (0 == abs.Root.Signature.ModuleDef.ExclusiveRefinementCount) {
+              abs.Signature = MakeAbstractSignature(p, abs.FullCompileName, abs.Height, prog.Modules);
+              ModuleSignature compileSig;
+              if (abs.CompilePath != null) {
+                if (ResolvePath(abs.CompileRoot, abs.CompilePath, out compileSig, this)) {
+                  if (refinementTransformer.CheckIsRefinement(compileSig, p)) {
+                    abs.Signature.CompileSignature = compileSig;
+                  } else {
+                    Error(
+                      abs.CompilePath[0],
+                      "module " + Util.Comma(".", abs.CompilePath, x => x.val) + " must be a refinement of "
+                      + Util.Comma(".", abs.Path, x => x.val));
+                  }
+                  abs.Signature.IsGhost = compileSig.IsGhost;
+                  // always keep the ghost information, to supress a spurious error message when the compile module isn't actually a refinement
                 }
-                abs.Signature.IsGhost = compileSig.IsGhost;
-                // always keep the ghost information, to supress a spurious error message when the compile module isn't actually a refinement
               }
+            } else {
+              abs.Signature = p;
             }
           } else {
             abs.Signature = new ModuleSignature(); // there was an error, give it a valid but empty signature
@@ -1198,7 +1232,8 @@ namespace Microsoft.Dafny
     }
 
     private ModuleSignature MakeAbstractSignature(ModuleSignature p, string Name, int Height, List<ModuleDefinition> mods) {
-      var mod = new ModuleDefinition(Token.NoToken, Name + ".Abs", true, true, null, null, null, false);
+      var mod = new ModuleDefinition(Token.NoToken, Name + ".Abs", true, true, /*isExclusiveRefinement:*/ false, null, null, null, false);
+      mod.ClonedFrom = p.ModuleDef;
       mod.Height = Height;
       foreach (var kv in p.TopLevels) {
         mod.TopLevelDecls.Add(CloneDeclaration(kv.Value, mod, mods, Name));
@@ -1207,6 +1242,7 @@ namespace Microsoft.Dafny
       sig.Refines = p.Refines;
       sig.CompileSignature = p;
       sig.IsGhost = p.IsGhost;
+      sig.ExclusiveRefinement = p.ExclusiveRefinement;
       mods.Add(mod);
       ResolveModuleDefinition(mod, sig);
       return sig;
@@ -4225,8 +4261,15 @@ namespace Microsoft.Dafny
           } else if (r.Type is Resolver_IdentifierExpr.ResolverType_Type) {
             var d = r.Decl;
             if (d is OpaqueTypeDecl) {
-              t.ResolvedParam = ((OpaqueTypeDecl)d).TheType;  // resolve like a type parameter, and it may have type parameters if it's an opaque type              
-              t.ResolvedClass = d;  // Store the decl, so the compiler will generate the fully qualified name
+              var dd = (OpaqueTypeDecl)d;
+              if (dd.Module.ClonedFrom != null && dd.Module.ClonedFrom.ExclusiveRefinement != null) {
+                t.ResolvedParam = ((OpaqueTypeDecl)dd.ClonedFrom).TheType;
+                t.ResolvedClass = d;  // Store the decl, so the compiler will generate the fully qualified name
+              } else {
+                t.ResolvedParam = ((OpaqueTypeDecl)d).TheType;
+                // resolve like a type parameter, and it may have type parameters if it's an opaque type
+                t.ResolvedClass = d;  // Store the decl, so the compiler will generate the fully qualified name
+              }
             } else if (d is NewtypeDecl) {
               var dd = (NewtypeDecl)d;
               var caller = context as ICallable;

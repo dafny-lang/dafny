@@ -542,6 +542,7 @@ SubModuleDecl<ModuleDefinition parent, out ModuleDecl submodule>
      ModuleDecl sm;
      submodule = null; // appease compiler
      bool isAbstract = false;
+     bool isExclusively = false;
      bool opened = false;
   .)
   ( [ "abstract"  (. isAbstract = true; .) ]
@@ -549,7 +550,9 @@ SubModuleDecl<ModuleDefinition parent, out ModuleDecl submodule>
     { Attribute<ref attrs> }
     NoUSIdent<out id>
 
-      [ "refines" QualifiedModuleName<out idRefined> ] (. module = new ModuleDefinition(id, id.val, isAbstract, false, idRefined == null ? null : idRefined, parent, attrs, false); .)
+      [ "exclusively" "refines" QualifiedModuleName<out idRefined> (. isExclusively = true; .)  
+      | "refines" QualifiedModuleName<out idRefined> (. isExclusively = false; .) ] 
+            (. module = new ModuleDefinition(id, id.val, isAbstract, false, isExclusively, idRefined == null ? null : idRefined, parent, attrs, false, this); .)  
        "{"                                             (. module.BodyStartTok = t; .)
         { SubModuleDecl<module, out sm>                (. module.TopLevelDecls.Add(sm); .)
         | ClassDecl<module, out c>                     (. module.TopLevelDecls.Add(c); .)

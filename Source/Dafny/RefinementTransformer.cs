@@ -86,6 +86,15 @@ namespace Microsoft.Dafny
         if (Resolver.ResolvePath(m.RefinementBaseRoot, m.RefinementBaseName, out RefinedSig, reporter)) {
           if (RefinedSig.ModuleDef != null) {
             m.RefinementBase = RefinedSig.ModuleDef;
+            if (m.IsExclusiveRefinement) {
+              if (null == m.RefinementBase.ExclusiveRefinement) {
+                m.RefinementBase.ExclusiveRefinement = m;
+              } else {
+                this.reporter.Error(
+                    m.tok,
+                    "no more than one exclusive refinement may exist for a given module.");
+              }
+            }
             PreResolveWorker(m);
           } else {
             reporter.Error(m.RefinementBaseName[0], "module ({0}) named as refinement base is not a literal module or simple reference to a literal module", Util.Comma(".", m.RefinementBaseName, x => x.val));

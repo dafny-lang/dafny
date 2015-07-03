@@ -6250,9 +6250,7 @@ namespace Microsoft.Dafny {
           } else {
             bool splitHappened;  // we actually don't care
             foreach (var s in TrSplitExpr(p.E, etran, kind == MethodTranslationKind.InterModuleCall ? 0 : int.MaxValue, true /* kind == MethodTranslationKind.Implementation */, out splitHappened)) {
-              if ((kind == MethodTranslationKind.IntraModuleCall || kind == MethodTranslationKind.CoCall) && RefinementToken.IsInherited(s.E.tok, currentModule)) {
-                // this precondition was inherited into this module, so just ignore it
-              } else if (s.IsOnlyChecked && bodyKind) {
+              if (s.IsOnlyChecked && bodyKind) {
                 // don't include in split
               } else if (s.IsOnlyFree && !bodyKind) {
                 // don't include in split -- it would be ignored, anyhow
