@@ -50,15 +50,27 @@ namespace Microsoft.Dafny
       Contract.Requires(msg != null);
       Error(e.tok, msg, args);
     }
+
+    private bool reportWarnings = true;
+    /// <summary>
+    /// Set whether or not to report warnings. Return the state of the previous behavior.
+    /// </summary>
+    public bool ReportWarnings(bool b) {
+      var old = reportWarnings;
+      reportWarnings = b;
+      return old;
+    }
     public void Warning(IToken tok, string msg, params object[] args) {
       Contract.Requires(tok != null);
       Contract.Requires(msg != null);
-      ConsoleColor col = Console.ForegroundColor;
-      Console.ForegroundColor = ConsoleColor.Yellow;
-      Console.WriteLine("{0}({1},{2}): Warning: {3}",
-          DafnyOptions.Clo.UseBaseNameForFileName ? System.IO.Path.GetFileName(tok.filename) : tok.filename, tok.line, tok.col - 1,
-          string.Format(msg, args));
-      Console.ForegroundColor = col;
+      if (reportWarnings) {
+        ConsoleColor col = Console.ForegroundColor;
+        Console.ForegroundColor = ConsoleColor.Yellow;
+        Console.WriteLine("{0}({1},{2}): Warning: {3}",
+            DafnyOptions.Clo.UseBaseNameForFileName ? System.IO.Path.GetFileName(tok.filename) : tok.filename, tok.line, tok.col - 1,
+            string.Format(msg, args));
+        Console.ForegroundColor = col;
+      }
     }
   }
 
@@ -366,6 +378,7 @@ namespace Microsoft.Dafny
             // compilation should only proceed if everything is good, including the signature (which preResolveErrorCount does not include);
             Contract.Assert(!useCompileSignatures);
             useCompileSignatures = true;  // set Resolver-global flag to indicate that Signatures should be followed to their CompiledSignature
+            var oldWarnings = ReportWarnings(false);  // turn off warning reporting for the clone
             var nw = new Cloner().CloneModuleDefinition(m, m.CompileName + "_Compile");
             var compileSig = RegisterTopLevelDecls(nw, true);
             compileSig.Refines = refinementTransformer.RefinedSig;
@@ -373,6 +386,7 @@ namespace Microsoft.Dafny
             ResolveModuleDefinition(nw, compileSig);
             prog.CompileModules.Add(nw);
             useCompileSignatures = false;  // reset the flag
+            ReportWarnings(oldWarnings);
           }
         } else if (decl is AliasModuleDecl) {
           var alias = (AliasModuleDecl)decl;
