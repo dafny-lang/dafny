@@ -1271,6 +1271,11 @@ namespace Microsoft.Dafny {
       PrintExpr(expr, 0, false, true, isFollowedBySemicolon, indent);
     }
 
+    private bool ParensNeeded(int opBindingStrength, int contextBindingStrength, bool fragileContext) {
+      return opBindingStrength < contextBindingStrength ||
+             (fragileContext && opBindingStrength == contextBindingStrength);
+    }
+
     /// <summary>
     /// An indent of -1 means print the entire expression on one line.
     /// </summary>
@@ -1368,15 +1373,14 @@ namespace Microsoft.Dafny {
         PrintTypeInstantiation(e.OptTypeArguments);
 
       } else if (expr is ExprDotName) {
-        var e = (ExprDotName)expr;
+        var e = (ExprDotName)expr; //CLEMENT: Check the newly added Implicit parameter to make sure that we don't print "_default." DONE in FunctionCall. Where else?
         // determine if parens are needed
         int opBindingStrength = 0x70;
-        bool parensNeeded = !(e.Lhs is ImplicitThisExpr) &&
-          opBindingStrength < contextBindingStrength ||
-          (fragileContext && opBindingStrength == contextBindingStrength);
+        bool parensNeeded = !e.Lhs.IsImplicit && // KRML: I think that this never holds
+          ParensNeeded(opBindingStrength, contextBindingStrength, fragileContext);
 
         if (parensNeeded) { wr.Write("("); }
-        if (!(e.Lhs is ImplicitThisExpr)) {
+        if (!e.Lhs.IsImplicit) {
           PrintExpr(e.Lhs, opBindingStrength, false, false, !parensNeeded && isFollowedBySemicolon, -1);
           wr.Write(".");
         }
@@ -1388,9 +1392,8 @@ namespace Microsoft.Dafny {
         var e = (ApplySuffix)expr;
         // determine if parens are needed
         int opBindingStrength = 0x70;
-        bool parensNeeded = !(e.Lhs is ImplicitThisExpr) &&
-          opBindingStrength < contextBindingStrength ||
-          (fragileContext && opBindingStrength == contextBindingStrength);
+        bool parensNeeded = !e.Lhs.IsImplicit &&  // KRML: I think that this never holds
+          ParensNeeded(opBindingStrength, contextBindingStrength, fragileContext);
 
         if (parensNeeded) { wr.Write("("); }
         if (ParensMayMatter(e.Lhs)) {
@@ -1409,12 +1412,11 @@ namespace Microsoft.Dafny {
         MemberSelectExpr e = (MemberSelectExpr)expr;
         // determine if parens are needed
         int opBindingStrength = 0x70;
-        bool parensNeeded = !(e.Obj is ImplicitThisExpr) &&
-          opBindingStrength < contextBindingStrength ||
-          (fragileContext && opBindingStrength == contextBindingStrength);
+        bool parensNeeded = !e.Obj.IsImplicit &&
+          ParensNeeded(opBindingStrength, contextBindingStrength, fragileContext);
 
         if (parensNeeded) { wr.Write("("); }
-        if (!(e.Obj is ImplicitThisExpr)) {
+        if (!(e.Obj.IsImplicit)) {
           PrintExpr(e.Obj, opBindingStrength, false, false, !parensNeeded && isFollowedBySemicolon, -1);
           wr.Write(".");
         }
@@ -1425,8 +1427,7 @@ namespace Microsoft.Dafny {
         SeqSelectExpr e = (SeqSelectExpr)expr;
         // determine if parens are needed
         int opBindingStrength = 0x70;
-        bool parensNeeded = opBindingStrength < contextBindingStrength ||
-          (fragileContext && opBindingStrength == contextBindingStrength);
+        bool parensNeeded = ParensNeeded(opBindingStrength, contextBindingStrength, fragileContext);
 
         if (parensNeeded) { wr.Write("("); }
         PrintExpr(e.Seq, 0x00, false, false, !parensNeeded && isFollowedBySemicolon, indent);  // BOGUS: fix me
@@ -1450,8 +1451,7 @@ namespace Microsoft.Dafny {
         MultiSelectExpr e = (MultiSelectExpr)expr;
         // determine if parens are needed
         int opBindingStrength = 0x70;
-        bool parensNeeded = opBindingStrength < contextBindingStrength ||
-          (fragileContext && opBindingStrength == contextBindingStrength);
+        bool parensNeeded = ParensNeeded(opBindingStrength, contextBindingStrength, fragileContext);
 
         if (parensNeeded) { wr.Write("("); }
         PrintExpr(e.Array, 0x00, false, false, !parensNeeded && isFollowedBySemicolon, indent);  // BOGUS: fix me
@@ -1475,8 +1475,7 @@ namespace Microsoft.Dafny {
         {
           // determine if parens are needed
           int opBindingStrength = 0x70;
-          bool parensNeeded = opBindingStrength < contextBindingStrength ||
-            (fragileContext && opBindingStrength == contextBindingStrength);
+          bool parensNeeded = ParensNeeded(opBindingStrength, contextBindingStrength, fragileContext);
 
           if (parensNeeded) { wr.Write("("); }
           PrintExpr(e.Seq, 00, false, false, !parensNeeded && isFollowedBySemicolon, indent);  // BOGUS: fix me
@@ -1491,9 +1490,7 @@ namespace Microsoft.Dafny {
         var e = (ApplyExpr)expr;
         // determine if parens are needed
         int opBindingStrength = 0x70;
-        bool parensNeeded =
-          opBindingStrength < contextBindingStrength ||
-          (fragileContext && opBindingStrength == contextBindingStrength);
+        bool parensNeeded = ParensNeeded(opBindingStrength, contextBindingStrength, fragileContext);
 
         if (parensNeeded) { wr.Write("("); }
 
@@ -1508,12 +1505,11 @@ namespace Microsoft.Dafny {
         var e = (FunctionCallExpr)expr;
         // determine if parens are needed
         int opBindingStrength = 0x70;
-        bool parensNeeded = !(e.Receiver is ImplicitThisExpr) &&
-          opBindingStrength < contextBindingStrength ||
-          (fragileContext && opBindingStrength == contextBindingStrength);
+        bool parensNeeded = !(e.Receiver.IsImplicit) &&
+          ParensNeeded(opBindingStrength, contextBindingStrength, fragileContext);
 
         if (parensNeeded) { wr.Write("("); }
-        if (!(e.Receiver is ImplicitThisExpr)) {
+        if (!e.Receiver.IsImplicit) {
           PrintExpr(e.Receiver, opBindingStrength, false, false, !parensNeeded && isFollowedBySemicolon, -1);
           wr.Write(".");
         }
@@ -1562,8 +1558,7 @@ namespace Microsoft.Dafny {
             default:
               Contract.Assert(false); throw new cce.UnreachableException();  // unexpected unary opcode
           }
-          bool parensNeeded = opBindingStrength < contextBindingStrength ||
-            (fragileContext && opBindingStrength == contextBindingStrength);
+          bool parensNeeded = ParensNeeded(opBindingStrength, contextBindingStrength, fragileContext);
 
           bool containsNestedNot = e.E is ParensExpression &&
                                 ((ParensExpression)e.E).E is UnaryExpr &&
@@ -1849,8 +1844,7 @@ namespace Microsoft.Dafny {
         var e = (NegationExpression)expr;
         string op = "-";
         int opBindingStrength = 0x60;
-        bool parensNeeded = opBindingStrength < contextBindingStrength ||
-          (fragileContext && opBindingStrength == contextBindingStrength);
+        bool parensNeeded = ParensNeeded(opBindingStrength, contextBindingStrength, fragileContext);
 
         bool containsNestedNegation = e.E is ParensExpression && ((ParensExpression)e.E).E is NegationExpression;
 

@@ -243,7 +243,7 @@ namespace Microsoft.Dafny
         var e = (LiteralExpr)expr;
         if (e is StaticReceiverExpr) {
           var ee = (StaticReceiverExpr)e;
-          return new StaticReceiverExpr(e.tok, CloneType(ee.UnresolvedType));
+          return new StaticReceiverExpr(e.tok, CloneType(ee.UnresolvedType), ee.IsImplicit);
         } else if (e.Value == null) {          
           return new LiteralExpr(Tok(e.tok));
         } else if (e.Value is bool) {

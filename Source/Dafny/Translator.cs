@@ -2781,7 +2781,7 @@ namespace Microsoft.Dafny {
             if (receiverReplacement != null) {
               recursiveCallReceiver = receiverReplacement;
             } else if (m.IsStatic) {
-              recursiveCallReceiver = new StaticReceiverExpr(m.tok, (ClassDecl)m.EnclosingClass);  // this also resolves it
+              recursiveCallReceiver = new StaticReceiverExpr(m.tok, (ClassDecl)m.EnclosingClass, true);  // this also resolves it
             } else {
               recursiveCallReceiver = new ImplicitThisExpr(m.tok);
               recursiveCallReceiver.Type = Resolver.GetThisType(m.tok, (ClassDecl)m.EnclosingClass);  // resolve here

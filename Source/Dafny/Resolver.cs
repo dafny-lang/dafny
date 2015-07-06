@@ -97,7 +97,7 @@ namespace Microsoft.Dafny
     {
       Contract.Requires(token != null);
       Contract.Requires(text != null);
-      Contract.Requires(0 <= length);
+      Contract.Requires(0 <= length); //FIXME: KRML: This should (probably) be the length of the token
       if (AdditionalInformationReporter != null) {
         AdditionalInformationReporter(new AdditionalInformation { Token = token, Text = text, Length = length });
       }
@@ -8172,7 +8172,7 @@ namespace Microsoft.Dafny
         // ----- 1. member of the enclosing class
         Expression receiver;
         if (member.IsStatic) {
-          receiver = new StaticReceiverExpr(expr.tok, (ClassDecl)member.EnclosingClass);
+          receiver = new StaticReceiverExpr(expr.tok, (ClassDecl)member.EnclosingClass, true);
         } else {
           if (!scope.AllowInstance) {
             Error(expr.tok, "'this' is not allowed in a 'static' context");
@@ -8220,7 +8220,7 @@ namespace Microsoft.Dafny
           var ambiguousMember = (AmbiguousMemberDecl)member;
           Error(expr.tok, "The name {0} ambiguously refers to a static member in one of the modules {1} (try qualifying the member name with the module name)", expr.Name, ambiguousMember.ModuleNames());
         } else {
-          var receiver = new StaticReceiverExpr(expr.tok, (ClassDecl)member.EnclosingClass);
+          var receiver = new StaticReceiverExpr(expr.tok, (ClassDecl)member.EnclosingClass, true);
           r = ResolveExprDotCall(expr.tok, receiver, member, expr.OptTypeArguments, opts.codeContext, allowMethodCall);
         }
 
@@ -8461,7 +8461,7 @@ namespace Microsoft.Dafny
             var ambiguousMember = (AmbiguousMemberDecl)member;
             Error(expr.tok, "The name {0} ambiguously refers to a static member in one of the modules {1} (try qualifying the member name with the module name)", expr.SuffixName, ambiguousMember.ModuleNames());
           } else {
-            var receiver = new StaticReceiverExpr(expr.tok, (ClassDecl)member.EnclosingClass);
+            var receiver = new StaticReceiverExpr(expr.tok, (ClassDecl)member.EnclosingClass, true);
             r = ResolveExprDotCall(expr.tok, receiver, member, expr.OptTypeArguments, opts.codeContext, allowMethodCall);
           }
         } else {
@@ -8484,10 +8484,10 @@ namespace Microsoft.Dafny
           Dictionary<string, MemberDecl> members;
           if (classMembers.TryGetValue(cd, out members) && members.TryGetValue(expr.SuffixName, out member)) {
             if (!member.IsStatic) {
-              Error(expr.tok, "accessing member '{0}' requires an instance expression", expr.SuffixName);
+              Error(expr.tok, "accessing member '{0}' requires an instance expression", expr.SuffixName); //FIXME Unify with similar error message
               // nevertheless, continue creating an expression that approximates a correct one
             }
-            var receiver = new StaticReceiverExpr(expr.tok, (UserDefinedType)ty.NormalizeExpand(), (ClassDecl)member.EnclosingClass);
+            var receiver = new StaticReceiverExpr(expr.tok, (UserDefinedType)ty.NormalizeExpand(), (ClassDecl)member.EnclosingClass, false);
             r = ResolveExprDotCall(expr.tok, receiver, member, expr.OptTypeArguments, opts.codeContext, allowMethodCall);
           }
         } else if (ty.IsDatatype) {
@@ -8522,7 +8522,7 @@ namespace Microsoft.Dafny
             receiver = expr.Lhs;
           } else {
             Contract.Assert(expr.Lhs.Type.IsRefType);  // only reference types have static methods
-            receiver = new StaticReceiverExpr(expr.tok, (UserDefinedType)expr.Lhs.Type.NormalizeExpand(), (ClassDecl)member.EnclosingClass);
+            receiver = new StaticReceiverExpr(expr.tok, (UserDefinedType)expr.Lhs.Type.NormalizeExpand(), (ClassDecl)member.EnclosingClass, false);
           }
           r = ResolveExprDotCall(expr.tok, receiver, member, expr.OptTypeArguments, opts.codeContext, allowMethodCall);
         }

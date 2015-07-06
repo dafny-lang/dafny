@@ -5015,6 +5015,10 @@ namespace Microsoft.Dafny {
       get { yield break; }
     }
 
+    public virtual bool IsImplicit {
+      get { return false; }
+    }
+
     public static IEnumerable<Expression> Conjuncts(Expression expr) {
       Contract.Requires(expr != null);
       Contract.Requires(expr.Type.IsBoolType);
@@ -5391,19 +5395,21 @@ namespace Microsoft.Dafny {
   public class StaticReceiverExpr : LiteralExpr
   {
     public readonly Type UnresolvedType;
+    private bool Implicit;
 
-    public StaticReceiverExpr(IToken tok, Type t)
+    public StaticReceiverExpr(IToken tok, Type t, bool isImplicit)
       : base(tok) {
       Contract.Requires(tok != null);
       Contract.Requires(t != null);
       UnresolvedType = t;
+      Implicit = isImplicit;
     }
     
     /// <summary>
     /// Constructs a resolved LiteralExpr representing the 'null' literal whose type is "cl"
     /// parameterized by the type arguments of "cl" itself.
     /// </summary>
-    public StaticReceiverExpr(IToken tok, ClassDecl cl)
+    public StaticReceiverExpr(IToken tok, ClassDecl cl, bool isImplicit)
       : base(tok)
     {
       Contract.Requires(tok != null);
@@ -5411,6 +5417,7 @@ namespace Microsoft.Dafny {
       var typeArgs = cl.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp));
       Type = new UserDefinedType(tok, cl.Name, cl, typeArgs);
       UnresolvedType = Type;
+      Implicit = isImplicit;
     }
 
     /// <summary>
@@ -5427,7 +5434,7 @@ namespace Microsoft.Dafny {
     ///   a trait that in turn extends trait "W(g(Y))".  If "t" denotes type "C(G)" and "cl" denotes "W",
     ///   then type of the StaticReceiverExpr will be "T(g(f(G)))".
     /// </summary>
-    public StaticReceiverExpr(IToken tok, UserDefinedType t, ClassDecl cl)
+    public StaticReceiverExpr(IToken tok, UserDefinedType t, ClassDecl cl, bool isImplicit)
       : base(tok) {
       Contract.Requires(tok != null);
       Contract.Requires(t.ResolvedClass != null);
@@ -5441,6 +5448,11 @@ namespace Microsoft.Dafny {
       }
       Type = t;
       UnresolvedType = Type;
+      Implicit = isImplicit;
+    }
+
+    public override bool IsImplicit {
+      get { return Implicit; }
     }
   }
 
@@ -5596,6 +5608,10 @@ namespace Microsoft.Dafny {
     public ImplicitThisExpr(IToken tok)
       : base(tok) {
       Contract.Requires(tok != null);
+    }
+
+    public override bool IsImplicit {
+      get { return true; }
     }
   }
 
@@ -6534,7 +6550,7 @@ namespace Microsoft.Dafny {
       Contract.Invariant(Term != null);
     }
 
-    public readonly Attributes Attributes;
+    public Attributes Attributes;
 
     public abstract class BoundedPool {
       public virtual bool IsFinite {
