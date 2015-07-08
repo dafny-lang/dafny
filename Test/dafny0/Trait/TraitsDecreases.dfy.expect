@@ -1,3 +1,21 @@
+TraitsDecreases.dfy(117,15): Error: predicate's decreases clause must be below or equal to that in the trait
+Execution trace:
+    (0,0): anon0
+TraitsDecreases.dfy(124,15): Error: predicate's decreases clause must be below or equal to that in the trait
+Execution trace:
+    (0,0): anon0
+TraitsDecreases.dfy(131,15): Error: predicate's decreases clause must be below or equal to that in the trait
+Execution trace:
+    (0,0): anon0
+TraitsDecreases.dfy(138,15): Error: predicate's decreases clause must be below or equal to that in the trait
+Execution trace:
+    (0,0): anon0
+TraitsDecreases.dfy(145,15): Error: predicate's decreases clause must be below or equal to that in the trait
+Execution trace:
+    (0,0): anon0
+TraitsDecreases.dfy(152,12): Error: method's decreases clause must be below or equal to that in the trait
+Execution trace:
+    (0,0): anon0
 TraitsDecreases.dfy(57,10): Error: method's decreases clause must be below or equal to that in the trait
 Execution trace:
     (0,0): anon0
@@ -14,4 +32,4 @@ TraitsDecreases.dfy(88,10): Error: method's decreases clause must be below or eq
 Execution trace:
     (0,0): anon0
 
-Dafny program verifier finished with 63 verified, 5 errors
+Dafny program verifier finished with 75 verified, 11 errors

@@ -100,7 +100,7 @@ method ExpliesAssociativityM(A: bool, B: bool, C: bool) {
   }
 }
 
-method ExpliesShortCircuiting(a: array<T>)
+method ExpliesShortCircuiting(a: array)
 {
   assert a == null || 0 <= a.Length;  // (W)
   assert a != null ==> 0 <= a.Length;  // (X) -- same as (W)

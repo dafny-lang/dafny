@@ -58,6 +58,7 @@ namespace Microsoft.Dafny
     public bool Optimize = false;
     public bool PrintStats = false;
     public bool PrintFunctionCallGraph = false;
+    public bool WarnShadowing = false;
 
     protected override bool ParseOption(string name, Bpl.CommandLineOptionEngine.CommandLineParseState ps) {
       var args = ps.args;  // convenient synonym
@@ -183,6 +184,10 @@ namespace Microsoft.Dafny
           PrintFunctionCallGraph = true;
           return true;
 
+        case "warnShadowing":
+          WarnShadowing = true;
+          return true;
+
         case "countVerificationErrors": {
           int countErrors = 1; // defaults to reporting verification errors
           if (ps.GetNumericArgument(ref countErrors, 2)) {
@@ -294,6 +299,8 @@ namespace Microsoft.Dafny
                   - passes /optimize flag to csc.exe.
   /stats        Print interesting statistics about the Dafny files supplied.
   /funcCallGraph Print out the function call graph.  Format is: func,mod=callee*
+  /warnShadowing  Emits a warning if the name of a declared variable caused another variable
+                to be shadowed
 ");
       base.Usage();  // also print the Boogie options
     }

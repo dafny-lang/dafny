@@ -50,7 +50,7 @@ method Main() {
 }
 
 function method succ(x : int) : int
-  requires x > 0;
+  requires x > 0
 {
   x + 1
 }
@@ -74,24 +74,24 @@ method Main3() {
 }
 
 
-function P(f: A -> B, x : A): B
-  reads (f.reads)(x);
-  requires (f.requires)(x);
+function P<A,B>(f: A -> B, x : A): B
+  reads (f.reads)(x)
+  requires (f.requires)(x)
 {
   f(x)
 }
 
 
-function Q(f: U -> V, x : U): V
-  reads P.reads(f,x);
-  requires f.requires(x);  // would be nice to be able to write P.requires(f,x)
+function Q<U,V>(f: U -> V, x : U): V
+  reads P.reads(f,x)
+  requires f.requires(x)  // would be nice to be able to write P.requires(f,x)
 {
   P(f,x)
 }
 
-function QQ(f: U -> V, x : U): V
-  reads ((() => ((()=>f)()).reads)())((()=>x)());
-  requires ((() => ((()=>f)()).requires)())((()=>x)());
+function QQ<U,V>(f: U -> V, x : U): V
+  reads ((() => ((()=>f)()).reads)())((()=>x)())
+  requires ((() => ((()=>f)()).requires)())((()=>x)())
 {
   ((() => P)())((()=>f)(),(()=>x)())
 }

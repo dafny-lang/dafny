@@ -2223,6 +2223,7 @@ namespace Microsoft.Dafny {
   public interface ICallable : ICodeContext
   {
     IToken Tok { get; }
+    string WhatKind { get; }
     string NameRelativeToModule { get; }
     Specification<Expression> Decreases { get; }
     /// <summary>
@@ -2234,6 +2235,7 @@ namespace Microsoft.Dafny {
   }
   public class DontUseICallable : ICallable
   {
+    public string WhatKind { get { throw new cce.UnreachableException(); } }
     public bool IsGhost { get { throw new cce.UnreachableException(); } }
     public List<TypeParameter> TypeArgs { get { throw new cce.UnreachableException(); } }
     public List<Formal> Ins { get { throw new cce.UnreachableException(); } }

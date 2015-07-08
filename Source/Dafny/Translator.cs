@@ -3018,7 +3018,7 @@ namespace Microsoft.Dafny {
         AddFunctionOverrideReqsChk(f, builder, etran, substMap);
 
         //adding assert R <= Rank’;
-        AddFunctionOverrideTerminationChk(f, builder, etran, substMap);
+        AddOverrideTerminationChk(f, f.OverriddenFunction, builder, etran, substMap);
 
         //adding assert W <= Frame’
         AddFunctionOverrideSubsetChk(f, builder, etran, localVariables, substMap);
@@ -3181,35 +3181,6 @@ namespace Microsoft.Dafny {
         builder.Add(Assert(tok, q, "expression may read an object not in the parent trait context's reads clause", kv));
     }
 
-    private void AddFunctionOverrideTerminationChk(Function f, StmtListBuilder builder, ExpressionTranslator etran, Dictionary<IVariable, Expression> substMap)
-    {
-        var decrToks = new List<IToken>();
-        var decrTypes1 = new List<Type>();
-        var decrTypes2 = new List<Type>();
-        var decrClass = new List<Expr>();
-        var decrTrait = new List<Expr>();
-        if (f.Decreases != null)
-        {
-            foreach (var decC in f.Decreases.Expressions)
-            {
-                decrToks.Add(decC.tok);
-                decrTypes1.Add(decC.Type);
-                decrClass.Add(etran.TrExpr(decC));
-            }
-        }
-        if (f.OverriddenFunction.Decreases != null)
-        {
-            foreach (var decT in f.OverriddenFunction.Decreases.Expressions)
-            {
-                var decCNew = Substitute(decT, null, substMap);
-                decrTypes2.Add(decCNew.Type);
-                decrTrait.Add(etran.TrExpr(decCNew));
-            }
-        }
-        var decrChk = DecreasesCheck(decrToks, decrTypes1, decrTypes2, decrClass, decrTrait, null, null, true, false);
-        builder.Add(new Bpl.AssertCmd(f.tok, decrChk));
-    }
-
     private void AddFunctionOverrideReqsChk(Function f, StmtListBuilder builder, ExpressionTranslator etran, Dictionary<IVariable, Expression> substMap)
     {
         //generating trait pre-conditions with class variables
@@ -3277,7 +3248,7 @@ namespace Microsoft.Dafny {
         AddMethodOverrideReqsChk(m, builder, etran, substMap);
 
         //adding assert R <= Rank’;
-        AddMethodOverrideTerminationChk(m, builder, etran, substMap);
+        AddOverrideTerminationChk(m, m.OverriddenMethod, builder, etran, substMap);
 
         //adding assert W <= Frame’
         AddMethodOverrideSubsetChk(m, builder, etran, localVariables, substMap);
@@ -3364,14 +3335,15 @@ namespace Microsoft.Dafny {
         }
     }
 
-    private void AddMethodOverrideTerminationChk(Method m, Bpl.StmtListBuilder builder, ExpressionTranslator etran, Dictionary<IVariable, Expression> substMap) {
-      Contract.Requires(m != null);
+    private void AddOverrideTerminationChk(ICallable original, ICallable overryd, Bpl.StmtListBuilder builder, ExpressionTranslator etran, Dictionary<IVariable, Expression> substMap) {
+      Contract.Requires(original != null);
+      Contract.Requires(overryd != null);
       Contract.Requires(builder != null);
       Contract.Requires(etran != null);
       Contract.Requires(substMap != null);
       // Note, it is as if the trait's method is calling the class's method.
-      var contextDecreases = m.OverriddenMethod.Decreases.Expressions;
-      var calleeDecreases = m.Decreases.Expressions;
+      var contextDecreases = overryd.Decreases.Expressions;
+      var calleeDecreases = original.Decreases.Expressions;
       // We want to check:  calleeDecreases <= contextDecreases (note, we can allow equality, since there is a bounded, namely 1, number of dynamic dispatches)
       if (Contract.Exists(contextDecreases, e => e is WildcardExpr)) {
         // no check needed
@@ -3392,7 +3364,7 @@ namespace Microsoft.Dafny {
           N = i;
           break;
         }
-        toks.Add(new NestedToken(m.tok, e1.tok));
+        toks.Add(new NestedToken(original.Tok, e1.tok));
         types0.Add(e0.Type.NormalizeExpand());
         types1.Add(e1.Type.NormalizeExpand());
         callee.Add(etran.TrExpr(e0));
@@ -3425,7 +3397,7 @@ namespace Microsoft.Dafny {
       //   as "false".
       bool allowNoChange = N == decrCountT && decrCountT <= decrCountC;
       var decrChk = DecreasesCheck(toks, types0, types1, callee, caller, null, null, allowNoChange, false);
-      builder.Add(Assert(m.tok, decrChk, "method's decreases clause must be below or equal to that in the trait"));
+      builder.Add(Assert(original.Tok, decrChk, string.Format("{0}'s decreases clause must be below or equal to that in the trait", original.WhatKind)));
     }
 
     private void AddMethodOverrideSubsetChk(Method m, Bpl.StmtListBuilder builder, ExpressionTranslator etran, List<Variable> localVariables, Dictionary<IVariable, Expression> substMap)

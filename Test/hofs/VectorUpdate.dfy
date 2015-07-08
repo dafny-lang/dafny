@@ -1,25 +1,56 @@
 // RUN: %dafny /compile:3 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
-method VectorUpdate(N: int, a : array<A>, f : (int,A) -> A)
-  requires a != null;
-  requires N == a.Length;
-  requires forall j :: 0 <= j < N ==> f.requires(j,a[j]);
-  requires forall j :: 0 <= j < N ==> a !in f.reads(j,a[j]);
-  modifies a;
-  ensures forall j :: 0 <= j < N ==> a[j] == f(j,old(a[j]));
+// this is a rather verbose version of the VectorUpdate method
+method VectorUpdate<A>(N: int, a : array<A>, f : (int,A) -> A)
+  requires a != null
+  requires N == a.Length
+  requires forall j :: 0 <= j < N ==> f.requires(j,a[j])
+  requires forall j :: 0 <= j < N ==> a !in f.reads(j,a[j])
+  modifies a
+  ensures forall j :: 0 <= j < N ==> a[j] == f(j,old(a[j]))
 {
   var i := 0;
-  while (i < N)
-    invariant 0 <= i <= N;
-    invariant forall j :: i <= j < N ==> f.requires(j,a[j]);
-    invariant forall j :: 0 <= j < N ==> f.requires(j,old(a[j]));
-    invariant forall j :: i <= j < N ==> a !in f.reads(j,a[j]);
-    invariant forall j :: i <= j < N ==> a[j] == old(a[j]);
-    invariant forall j :: 0 <= j < i ==> a[j] == f(j,old(a[j]));
+  while i < N
+    invariant 0 <= i <= N
+    invariant forall j :: i <= j < N ==> f.requires(j,a[j])
+    invariant forall j :: 0 <= j < N ==> f.requires(j,old(a[j]))
+    invariant forall j :: i <= j < N ==> a !in f.reads(j,a[j])
+    invariant forall j :: i <= j < N ==> a[j] == old(a[j])
+    invariant forall j :: 0 <= j < i ==> a[j] == f(j,old(a[j]))
   {
     a[i] := f(i,a[i]);
     i := i + 1;
+  }
+}
+
+// here's a shorter version of the method above
+method VectorUpdate'<A>(a : array<A>, f : (int,A) -> A)
+  requires a != null
+  requires forall j :: 0 <= j < a.Length ==> a !in f.reads(j,a[j]) && f.requires(j,a[j])
+  modifies a
+  ensures forall j :: 0 <= j < a.Length ==> a[j] == f(j,old(a[j]))
+{
+  var i := 0;
+  while i < a.Length
+    invariant 0 <= i <= a.Length
+    invariant forall j :: i <= j < a.Length ==> a[j] == old(a[j])
+    invariant forall j :: 0 <= j < i ==> a[j] == f(j,old(a[j]))
+  {
+    a[i] := f(i,a[i]);
+    i := i + 1;
+  }
+}
+
+// here's yet another version
+method VectorUpdate''<A>(a : array<A>, f : (int,A) -> A)
+  requires a != null
+  requires forall j :: 0 <= j < a.Length ==> a !in f.reads(j,a[j]) && f.requires(j,a[j])
+  modifies a
+  ensures forall j :: 0 <= j < a.Length ==> a[j] == f(j,old(a[j]))
+{
+  forall i | 0 <= i < a.Length {
+    a[i] := f(i,a[i]);
   }
 }
 
@@ -46,11 +77,11 @@ method Main()
 }
 
 method PrintArray(a : array<int>)
-  requires a != null;
+  requires a != null
 {
   var i := 0;
-  while (i < a.Length) {
-    if (i != 0) {
+  while i < a.Length {
+    if i != 0 {
 	  print ", ";
 	}
     print a[i];

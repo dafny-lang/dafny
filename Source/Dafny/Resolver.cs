@@ -50,15 +50,27 @@ namespace Microsoft.Dafny
       Contract.Requires(msg != null);
       Error(e.tok, msg, args);
     }
+
+    private bool reportWarnings = true;
+    /// <summary>
+    /// Set whether or not to report warnings. Return the state of the previous behavior.
+    /// </summary>
+    public bool ReportWarnings(bool b) {
+      var old = reportWarnings;
+      reportWarnings = b;
+      return old;
+    }
     public void Warning(IToken tok, string msg, params object[] args) {
       Contract.Requires(tok != null);
       Contract.Requires(msg != null);
-      ConsoleColor col = Console.ForegroundColor;
-      Console.ForegroundColor = ConsoleColor.Yellow;
-      Console.WriteLine("{0}({1},{2}): Warning: {3}",
-          DafnyOptions.Clo.UseBaseNameForFileName ? System.IO.Path.GetFileName(tok.filename) : tok.filename, tok.line, tok.col - 1,
-          string.Format(msg, args));
-      Console.ForegroundColor = col;
+      if (reportWarnings) {
+        ConsoleColor col = Console.ForegroundColor;
+        Console.ForegroundColor = ConsoleColor.Yellow;
+        Console.WriteLine("{0}({1},{2}): Warning: {3}",
+            DafnyOptions.Clo.UseBaseNameForFileName ? System.IO.Path.GetFileName(tok.filename) : tok.filename, tok.line, tok.col - 1,
+            string.Format(msg, args));
+        Console.ForegroundColor = col;
+      }
     }
   }
 
@@ -366,6 +378,7 @@ namespace Microsoft.Dafny
             // compilation should only proceed if everything is good, including the signature (which preResolveErrorCount does not include);
             Contract.Assert(!useCompileSignatures);
             useCompileSignatures = true;  // set Resolver-global flag to indicate that Signatures should be followed to their CompiledSignature
+            var oldWarnings = ReportWarnings(false);  // turn off warning reporting for the clone
             var nw = new Cloner().CloneModuleDefinition(m, m.CompileName + "_Compile");
             var compileSig = RegisterTopLevelDecls(nw, true);
             compileSig.Refines = refinementTransformer.RefinedSig;
@@ -373,6 +386,7 @@ namespace Microsoft.Dafny
             ResolveModuleDefinition(nw, compileSig);
             prog.CompileModules.Add(nw);
             useCompileSignatures = false;  // reset the flag
+            ReportWarnings(oldWarnings);
           }
         } else if (decl is AliasModuleDecl) {
           var alias = (AliasModuleDecl)decl;
@@ -1410,7 +1424,7 @@ namespace Microsoft.Dafny
             Contract.Assert(dd.Constraint != null);  // follows from NewtypeDecl invariant
             scope.PushMarker();
             var added = scope.Push(dd.Var.Name, dd.Var);
-            Contract.Assert(added);
+            Contract.Assert(added == Scope<IVariable>.PushResult.Success);
             ResolveType(dd.Var.tok, dd.Var.Type, dd, ResolveTypeOptionEnum.DontInfer, null);
             ResolveExpression(dd.Constraint, new ResolveOpts(dd, false, true));
             Contract.Assert(dd.Constraint.Type != null);  // follows from postcondition of ResolveExpression
@@ -3569,9 +3583,40 @@ namespace Microsoft.Dafny
           tp.Parent = parent;
           tp.PositionalIndex = index;
         }
-        if (!allTypeParameters.Push(tp.Name, tp) && emitErrors) {
-          Error(tp, "Duplicate type-parameter name: {0}", tp.Name);
+        var r = allTypeParameters.Push(tp.Name, tp);
+        if (emitErrors) {
+          if (r == Scope<TypeParameter>.PushResult.Duplicate) {
+            Error(tp, "Duplicate type-parameter name: {0}", tp.Name);
+          } else if (r == Scope<TypeParameter>.PushResult.Shadow) {
+            Warning(tp.tok, "Shadowed type-parameter name: {0}", tp.Name);
+          }
         }
+      }
+    }
+
+    void ScopePushAndReport(Scope<IVariable> scope, IVariable v, string kind) {
+      Contract.Requires(scope != null);
+      Contract.Requires(v != null);
+      Contract.Requires(kind != null);
+      ScopePushAndReport(scope, v.Name, v, v.Tok, kind);
+    }
+
+    void ScopePushAndReport<Thing>(Scope<Thing> scope, string name, Thing thing, IToken tok, string kind) where Thing : class {
+      Contract.Requires(scope != null);
+      Contract.Requires(name != null);
+      Contract.Requires(thing != null);
+      Contract.Requires(tok != null);
+      Contract.Requires(kind != null);
+      var r = scope.Push(name, thing);
+      switch (r) {
+        case Scope<Thing>.PushResult.Success:
+          break;
+        case Scope<Thing>.PushResult.Duplicate:
+          Error(tok, "Duplicate {0} name: {1}", kind, name);
+          break;
+        case Scope<Thing>.PushResult.Shadow:
+          Warning(tok, "Shadowed {0} name: {1}", kind, name);
+          break;
       }
     }
 
@@ -3586,9 +3631,7 @@ namespace Microsoft.Dafny
       }
       var option = f.TypeArgs.Count == 0 ? new ResolveTypeOption(f) : new ResolveTypeOption(ResolveTypeOptionEnum.AllowPrefix);
       foreach (Formal p in f.Formals) {
-        if (!scope.Push(p.Name, p)) {
-          Error(p, "Duplicate parameter name: {0}", p.Name);
-        }
+        ScopePushAndReport(scope, p, "parameter");
         ResolveType(p.tok, p.Type, f, option, f.TypeArgs);
       }
       ResolveType(f.tok, f.ResultType, f, option, f.TypeArgs);
@@ -3696,16 +3739,12 @@ namespace Microsoft.Dafny
       var option = m.TypeArgs.Count == 0 ? new ResolveTypeOption(m) : new ResolveTypeOption(ResolveTypeOptionEnum.AllowPrefix);
       // resolve in-parameters
       foreach (Formal p in m.Ins) {
-        if (!scope.Push(p.Name, p)) {
-          Error(p, "Duplicate parameter name: {0}", p.Name);
-        }
+        ScopePushAndReport(scope, p, "parameter");
         ResolveType(p.tok, p.Type, m, option, m.TypeArgs);
       }
       // resolve out-parameters
       foreach (Formal p in m.Outs) {
-        if (!scope.Push(p.Name, p)) {
-          Error(p, "Duplicate parameter name: {0}", p.Name);
-        }
+        ScopePushAndReport(scope, p, "parameter");
         ResolveType(p.tok, p.Type, m, option, m.TypeArgs);
       }
       scope.PopMarker();
@@ -4871,9 +4910,7 @@ namespace Microsoft.Dafny
         }
         // Add the locals to the scope
         foreach (var local in s.Locals) {
-          if (!scope.Push(local.Name, local)) {
-            Error(local.Tok, "Duplicate local-variable name: {0}", local.Name);
-          }
+          ScopePushAndReport(scope, local, "local-variable");
         }
         // With the new locals in scope, it's now time to resolve the attributes on all the locals
         foreach (var local in s.Locals) {
@@ -5164,9 +5201,7 @@ namespace Microsoft.Dafny
         int prevErrorCount = ErrorCount;
         scope.PushMarker();
         foreach (BoundVar v in s.BoundVars) {
-          if (!scope.Push(v.Name, v)) {
-            Error(v, "Duplicate bound-variable name: {0}", v.Name);
-          }
+          ScopePushAndReport(scope, v, "local-variable");
           ResolveType(v.tok, v.Type, codeContext, ResolveTypeOptionEnum.InferTypeProxies, null);
         }
         ResolveExpression(s.Range, new ResolveOpts(codeContext, true, specContextOnly));
@@ -5629,9 +5664,7 @@ namespace Microsoft.Dafny
       if (pat.Var != null) {
         BoundVar v = pat.Var;
         if (topLevel) {
-          if (!scope.Push(v.Name, v)) {
-            Error(v, "Duplicate parameter name: {0}", v.Name);
-          }
+          ScopePushAndReport(scope, v, "parameter");
         } else {
           if (scope.Find(v.Name) != null) {
             Error(v, "Duplicate parameter name: {0}", v.Name);
@@ -6245,8 +6278,8 @@ namespace Microsoft.Dafny
           } else if (prev != null) {
             Error(lnode.Tok, "label shadows an enclosing label");
           } else {
-            bool b = labeledStatements.Push(lnode.Name, ss);
-            Contract.Assert(b);  // since we just checked for duplicates, we expect the Push to succeed
+            var r = labeledStatements.Push(lnode.Name, ss);
+            Contract.Assert(r == Scope<Statement>.PushResult.Success);  // since we just checked for duplicates, we expect the Push to succeed
             if (l == ss.Labels) {  // add it only once
               inSpecOnlyContext.Add(ss, specContextOnly);
             }
@@ -7584,9 +7617,7 @@ namespace Microsoft.Dafny
             // Check for duplicate names now, because not until after resolving the case pattern do we know if identifiers inside it refer to bound variables or nullary constructors
             var c = 0;
             foreach (var v in lhs.Vars) {
-              if (!scope.Push(v.Name, v)) {
-                Error(v, "Duplicate let-variable name: {0}", v.Name);
-              }
+              ScopePushAndReport(scope, v, "let-variable");
               c++;
             }
             if (c == 0) {
@@ -7605,9 +7636,7 @@ namespace Microsoft.Dafny
           foreach (var lhs in e.LHSs) {
             Contract.Assert(lhs.Var != null);  // the parser already checked that every LHS is a BoundVar, not a general pattern
             var v = lhs.Var;
-            if (!scope.Push(v.Name, v)) {
-              Error(v, "Duplicate let-variable name: {0}", v.Name);
-            }
+            ScopePushAndReport(scope, v, "let-variable");
             ResolveType(v.tok, v.Type, opts.codeContext, ResolveTypeOptionEnum.InferTypeProxies, null);
           }
           foreach (var rhs in e.RHSs) {
@@ -7639,9 +7668,7 @@ namespace Microsoft.Dafny
         ResolveTypeParameters(e.TypeArgs, true, e);
         scope.PushMarker();
         foreach (BoundVar v in e.BoundVars) {
-          if (!scope.Push(v.Name, v)) {
-            Error(v, "Duplicate bound-variable name: {0}", v.Name);
-          }
+          ScopePushAndReport(scope, v, "bound-variable");
           var option = typeQuantifier ? new ResolveTypeOption(e) : new ResolveTypeOption(ResolveTypeOptionEnum.InferTypeProxies);
           ResolveType(v.tok, v.Type, opts.codeContext, option, typeQuantifier ? e.TypeArgs : null);
         }
@@ -7695,9 +7722,7 @@ namespace Microsoft.Dafny
         int prevErrorCount = ErrorCount;
         scope.PushMarker();
         foreach (BoundVar v in e.BoundVars) {
-          if (!scope.Push(v.Name, v)) {
-            Error(v, "Duplicate bound-variable name: {0}", v.Name);
-          }
+          ScopePushAndReport(scope, v, "bound-variable");
           ResolveType(v.tok, v.Type, opts.codeContext, ResolveTypeOptionEnum.InferTypeProxies, null);
         }
         ResolveExpression(e.Range, opts);
@@ -7726,9 +7751,7 @@ namespace Microsoft.Dafny
           Error(e.tok, "a map comprehension must have exactly one bound variable.");
         }
         foreach (BoundVar v in e.BoundVars) {
-          if (!scope.Push(v.Name, v)) {
-            Error(v, "Duplicate bound-variable name: {0}", v.Name);
-          }
+          ScopePushAndReport(scope, v, "bound-variable");
           ResolveType(v.tok, v.Type, opts.codeContext, ResolveTypeOptionEnum.InferTypeProxies, null);
         }
         ResolveExpression(e.Range, opts);
@@ -7761,9 +7784,7 @@ namespace Microsoft.Dafny
         int prevErrorCount = ErrorCount;
         scope.PushMarker();
         foreach (BoundVar v in e.BoundVars) {
-          if (!scope.Push(v.Name, v)) {
-            Error(v, "Duplicate bound-variable name: {0}", v.Name);
-          }
+          ScopePushAndReport(scope, v, "bound-variable");
           ResolveType(v.tok, v.Type, opts.codeContext, ResolveTypeOptionEnum.InferTypeProxies, null);
         }
 
@@ -8512,12 +8533,6 @@ namespace Microsoft.Dafny
           r = ResolveExprDotCall(expr.tok, receiver, member, expr.OptTypeArguments, opts.codeContext, allowMethodCall);
         }
 #endif
-      } else if (option.Opt == ResolveTypeOptionEnum.AllowPrefixExtend && expr.OptTypeArguments == null) {
-        // it woulc plausibly be a type parameter, but isn't; we will declare it automatically
-        tp = new TypeParameter(expr.tok, expr.Name, defaultTypeArguments.Count, option.Parent);
-        defaultTypeArguments.Add(tp);
-        r = new Resolver_IdentifierExpr(expr.tok, tp);
-        allTypeParameters.Push(expr.Name, tp);
       } else {
         // ----- None of the above
         Error(expr.tok, "Undeclared top-level type or type parameter: {0} (did you forget to qualify a name?)", expr.Name);
@@ -10488,17 +10503,27 @@ namespace Microsoft.Dafny
       }
     }
 
-    // Pushes name-->thing association and returns "true", if name has not already been pushed since the last marker.
-    // If name already has been pushed since the last marker, does nothing and returns "false".
-    public bool Push(string name, Thing thing) {
+    public enum PushResult { Duplicate, Shadow, Success }
+
+    /// <summary>
+    /// Pushes name-->thing association and returns "Success", if name has not already been pushed since the last marker.
+    /// If name already has been pushed since the last marker, does nothing and returns "Duplicate".
+    /// If the appropriate command-line option is supplied, then this method will also check if "name" shadows a previous
+    /// name; if it does, then it will return "Shadow" instead of "Success".
+    /// </summary>
+    public PushResult Push(string name, Thing thing) {
       Contract.Requires(name != null);
       Contract.Requires(thing != null);
       if (Find(name, true) != null) {
-        return false;
+        return PushResult.Duplicate;
       } else {
+        var r = PushResult.Success;
+        if (DafnyOptions.O.WarnShadowing && Find(name, false) != null) {
+          r = PushResult.Shadow;
+        }
         names.Add(name);
         things.Add(thing);
-        return true;
+        return r;
       }
     }
 

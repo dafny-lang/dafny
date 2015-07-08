@@ -1253,14 +1253,14 @@ module SignatureCompletion {
   datatype Dt = Ctor(X -> Dt)  // error: X is not a declared type
   datatype Et<Y> = Ctor(X -> Et, Y)  // error: X is not a declared type
 
-  // For methods and functions, signatures can auto-declare type parameters
-  method My0(s: set, x: A -> B)
-  method My1(x: A -> B, s: set)
+
+  method My0<A,B>(s: set, x: A -> B)
+  method My1<A,B>(x: A -> B, s: set)
   method My2<A,B>(s: set, x: A -> B)
   method My3<A,B>(x: A -> B, s: set)
 
-  function F0(s: set, x: A -> B): int
-  function F1(x: A -> B, s: set): int
+  function F0<A,B>(s: set, x: A -> B): int
+  function F1<A,B>(x: A -> B, s: set): int
   function F2<A,B>(s: set, x: A -> B): int
   function F3<A,B>(x: A -> B, s: set): int
 }

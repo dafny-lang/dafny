@@ -3,9 +3,9 @@
 
 
 method ResolutionErrors() {
-    var x;
-    var g5 := x, y => (y, x);   // fail at resolution
-    var g6 := x, (y => (y, x)); // fail at resolution
+  var x;
+  var g5 := x, y => (y, x);   // fail at resolution
+  var g6 := x, (y => (y, x)); // fail at resolution
 }
 
 // cannot assign functions
@@ -23,20 +23,20 @@ method Nope3() {
 
 method RequiresFail(f : int -> int)
   // ok
-  requires f(0) == 0;
-  requires f.requires(0);
-  requires f.reads(0) == {};
+  requires f(0) == 0
+  requires f.requires(0)
+  requires f.reads(0) == {}
 
   // fail
-  requires f(0) == true;
-  requires f(1,2) == 0;
-  requires f(true) == 0;
-  requires f.requires(true);
-  requires f.requires(1) == 0;
-  requires f.requires(1,2);
-  requires f.reads(true) == {};
-  requires f.reads(1) == 0;
-  requires f.reads(1,2) == {};
+  requires f(0) == true
+  requires f(1,2) == 0
+  requires f(true) == 0
+  requires f.requires(true)
+  requires f.requires(1) == 0
+  requires f.requires(1,2)
+  requires f.reads(true) == {}
+  requires f.reads(1) == 0
+  requires f.reads(1,2) == {}
 {
 }
 
@@ -56,7 +56,7 @@ method Bla() {
   assert Bool;
 }
 
-method Pli(f : A -> B) requires f != null;
+method Pli<A,B>(f : A -> B) requires f != null
 {
   var o : object;
   assert f != o;
@@ -102,7 +102,7 @@ module AritySituations {
     w := V;  // error
   }
 
-  method P(r: T -> U, x: T) returns (u: U)
+  method P<T,U>(r: T -> U, x: T) returns (u: U)
     requires r.requires(x);
   {
     u := r(x);
