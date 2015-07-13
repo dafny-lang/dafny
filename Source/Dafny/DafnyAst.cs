@@ -1777,6 +1777,14 @@ namespace Microsoft.Dafny {
       this.refinementBase = null;
       Includes = new List<Include>();
       IsBuiltinName = isBuiltinName;
+
+      if (isExclusiveRefinement && !DafnyOptions.O.IronDafny) {
+        parser.errors.SynErr(
+          tok.filename,
+          tok.line,
+          tok.col,
+          "The exclusively keyword is experimental and only available when IronDafny features are enabled (/ironDafny).");
+      }
     }
     public virtual bool IsDefaultModule {
       get {
@@ -1990,8 +1998,8 @@ namespace Microsoft.Dafny {
     }
 
     public ClassDecl(IToken tok, string name, ModuleDefinition module,
-      List<TypeParameter> typeArgs, [Captured] List<MemberDecl> members, Attributes attributes, List<Type> traits)
-      : base(tok, name, module, typeArgs, attributes) {
+      List<TypeParameter> typeArgs, [Captured] List<MemberDecl> members, Attributes attributes, List<Type> traits, ClassDecl clonedFrom = null)
+      : base(tok, name, module, typeArgs, attributes, clonedFrom) {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
       Contract.Requires(module != null);
@@ -2003,6 +2011,12 @@ namespace Microsoft.Dafny {
     public virtual bool IsDefaultClass {
       get {
         return false;
+      }
+    }
+
+    public new ClassDecl ClonedFrom {
+      get {
+        return (ClassDecl)base.ClonedFrom; 
       }
     }
   }
@@ -2067,8 +2081,8 @@ namespace Microsoft.Dafny {
     }
 
     public DatatypeDecl(IToken tok, string name, ModuleDefinition module, List<TypeParameter> typeArgs,
-      [Captured] List<DatatypeCtor> ctors, Attributes attributes)
-      : base(tok, name, module, typeArgs, attributes) {
+      [Captured] List<DatatypeCtor> ctors, Attributes attributes, DatatypeDecl clonedFrom = null)
+      : base(tok, name, module, typeArgs, attributes, clonedFrom) {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
       Contract.Requires(module != null);
@@ -2080,6 +2094,12 @@ namespace Microsoft.Dafny {
     public bool HasFinitePossibleValues {
       get {
         return (TypeArgs.Count == 0 && Ctors.TrueForAll(ctr => ctr.Formals.Count == 0));
+      }
+    }
+
+    public new DatatypeDecl ClonedFrom {
+      get {
+        return (DatatypeDecl)base.ClonedFrom; 
       }
     }
   }
@@ -2094,14 +2114,20 @@ namespace Microsoft.Dafny {
     public ES EqualitySupport = ES.NotYetComputed;
 
     public IndDatatypeDecl(IToken tok, string name, ModuleDefinition module, List<TypeParameter> typeArgs,
-      [Captured] List<DatatypeCtor> ctors, Attributes attributes)
-      : base(tok, name, module, typeArgs, ctors, attributes) {
+      [Captured] List<DatatypeCtor> ctors, Attributes attributes, IndDatatypeDecl clonedFrom = null)
+      : base(tok, name, module, typeArgs, ctors, attributes, clonedFrom) {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
       Contract.Requires(module != null);
       Contract.Requires(cce.NonNullElements(typeArgs));
       Contract.Requires(cce.NonNullElements(ctors));
       Contract.Requires(1 <= ctors.Count);
+    }
+
+    public new IndDatatypeDecl ClonedFrom {
+      get {
+        return (IndDatatypeDecl)base.ClonedFrom;
+      }
     }
   }
 
@@ -2578,16 +2604,16 @@ namespace Microsoft.Dafny {
     public readonly BoundVar Var;  // can be null (if non-null, then object.ReferenceEquals(Var.Type, BaseType))
     public readonly Expression Constraint;  // is null iff Var is
     public NativeType NativeType; // non-null for fixed-size representations (otherwise, use BigIntegers for integers)
-    public NewtypeDecl(IToken tok, string name, ModuleDefinition module, Type baseType, Attributes attributes)
-      : base(tok, name, module, new List<TypeParameter>(), attributes) {
+    public NewtypeDecl(IToken tok, string name, ModuleDefinition module, Type baseType, Attributes attributes, NewtypeDecl clonedFrom = null)
+      : base(tok, name, module, new List<TypeParameter>(), attributes, clonedFrom) {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
       Contract.Requires(module != null);
       Contract.Requires(baseType != null);
       BaseType = baseType;
     }
-    public NewtypeDecl(IToken tok, string name, ModuleDefinition module, BoundVar bv, Expression constraint, Attributes attributes)
-      : base(tok, name, module, new List<TypeParameter>(), attributes) {
+    public NewtypeDecl(IToken tok, string name, ModuleDefinition module, BoundVar bv, Expression constraint, Attributes attributes, NewtypeDecl clonedFrom = null)
+      : base(tok, name, module, new List<TypeParameter>(), attributes, clonedFrom) {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
       Contract.Requires(module != null);
@@ -2617,6 +2643,12 @@ namespace Microsoft.Dafny {
     bool ICallable.InferredDecreases {
       get { throw new cce.UnreachableException(); }  // see comment above about ICallable.Decreases
       set { throw new cce.UnreachableException(); }  // see comment above about ICallable.Decreases
+    }
+
+    public new NewtypeDecl ClonedFrom {
+      get {
+        return (NewtypeDecl)base.ClonedFrom;
+      }
     }
   }
 

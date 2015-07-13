@@ -576,7 +576,7 @@ bool IsType(ref IToken pt) {
 				break;
 			}
 			case 37: case 38: case 39: case 40: case 41: case 72: case 73: case 74: case 77: case 83: case 84: case 85: case 86: {
-				ClassMemberDecl(membersDefaultClass, false, !DafnyOptions.O.AllowGlobals);
+				ClassMemberDecl(membersDefaultClass, false, !DafnyOptions.O.AllowGlobals, false);
 				break;
 			}
 			}
@@ -672,7 +672,7 @@ bool IsType(ref IToken pt) {
 					break;
 				}
 				case 37: case 38: case 39: case 40: case 41: case 72: case 73: case 74: case 77: case 83: case 84: case 85: case 86: {
-					ClassMemberDecl(namedModuleDefaultClassMembers, false, !DafnyOptions.O.AllowGlobals);
+					ClassMemberDecl(namedModuleDefaultClassMembers, false, !DafnyOptions.O.AllowGlobals, true);
 					break;
 				}
 				}
@@ -750,7 +750,7 @@ bool IsType(ref IToken pt) {
 		Expect(45);
 		bodyStart = t;  
 		while (StartOf(2)) {
-			ClassMemberDecl(members, true, false);
+			ClassMemberDecl(members, true, false, false);
 		}
 		Expect(46);
 		c = new ClassDecl(id, id.val, module, typeArgs, members, attrs, traits);
@@ -961,7 +961,7 @@ bool IsType(ref IToken pt) {
 		Expect(45);
 		bodyStart = t; 
 		while (StartOf(2)) {
-			ClassMemberDecl(members, true, false);
+			ClassMemberDecl(members, true, false, false);
 		}
 		Expect(46);
 		trait = new TraitDecl(id, id.val, module, typeArgs, members, attrs);
@@ -970,7 +970,7 @@ bool IsType(ref IToken pt) {
 		
 	}
 
-	void ClassMemberDecl(List<MemberDecl> mm, bool allowConstructors, bool moduleLevelDecl) {
+	void ClassMemberDecl(List<MemberDecl> mm, bool allowConstructors, bool moduleLevelDecl, bool permitAbstractDecl) {
 		Contract.Requires(cce.NonNullElements(mm));
 		Method/*!*/ m;
 		Function/*!*/ f;
@@ -1015,7 +1015,7 @@ bool IsType(ref IToken pt) {
 			 mmod.IsProtected = false;
 			}
 			
-			MethodDecl(mmod, allowConstructors, out m);
+			MethodDecl(mmod, allowConstructors, permitAbstractDecl, out m);
 			mm.Add(m); 
 		} else SynErr(151);
 	}
@@ -1273,7 +1273,7 @@ bool IsType(ref IToken pt) {
 		
 	}
 
-	void MethodDecl(MemberModifiers mmod, bool allowConstructor, out Method/*!*/ m) {
+	void MethodDecl(MemberModifiers mmod, bool allowConstructor, bool permitAbstractDecl, out Method/*!*/ m) {
 		Contract.Ensures(Contract.ValueAtReturn(out m) !=null);
 		IToken/*!*/ id = Token.NoToken;
 		bool hasName = false;  IToken keywordToken;
@@ -1393,7 +1393,7 @@ bool IsType(ref IToken pt) {
 		if (la.kind == 45) {
 			BlockStmt(out body, out bodyStart, out bodyEnd);
 		}
-		if (DafnyOptions.O.DisallowSoundnessCheating && body == null && ens.Count > 0 && !Attributes.Contains(attrs, "axiom") && !Attributes.Contains(attrs, "imported") && !Attributes.Contains(attrs, "decl") && theVerifyThisFile) {
+		if (!permitAbstractDecl && DafnyOptions.O.DisallowSoundnessCheating && body == null && ens.Count > 0 && !Attributes.Contains(attrs, "axiom") && !Attributes.Contains(attrs, "imported") && !Attributes.Contains(attrs, "decl") && theVerifyThisFile) {
 		  SemErr(t, "a method with an ensures clause must have a body, unless given the :axiom attribute");
 		}
 		

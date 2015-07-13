@@ -515,7 +515,7 @@ Dafny
   | OtherTypeDecl<defaultModule, out td>        (. defaultModule.TopLevelDecls.Add(td); .)
   | IteratorDecl<defaultModule, out iter>       (. defaultModule.TopLevelDecls.Add(iter); .)
   | TraitDecl<defaultModule, out trait>    (. defaultModule.TopLevelDecls.Add(trait); .)
-  | ClassMemberDecl<membersDefaultClass, false, !DafnyOptions.O.AllowGlobals>
+  | ClassMemberDecl<membersDefaultClass, false, !DafnyOptions.O.AllowGlobals, false>
   }
   (. // find the default class in the default module, then append membersDefaultClass to its member list
      DefaultClassDecl defaultClass = null;
@@ -561,7 +561,7 @@ SubModuleDecl<ModuleDefinition parent, out ModuleDecl submodule>
         | NewtypeDecl<module, out td>                  (. module.TopLevelDecls.Add(td); .)
         | OtherTypeDecl<module, out td>                (. module.TopLevelDecls.Add(td); .)
         | IteratorDecl<module, out iter>               (. module.TopLevelDecls.Add(iter); .)
-        | ClassMemberDecl<namedModuleDefaultClassMembers, false, !DafnyOptions.O.AllowGlobals>
+        | ClassMemberDecl<namedModuleDefaultClassMembers, false, !DafnyOptions.O.AllowGlobals, true>
         }
       "}"                                  (. module.BodyEndTok = t;
                                               module.TopLevelDecls.Add(new DefaultClassDecl(module, namedModuleDefaultClassMembers));
@@ -618,7 +618,7 @@ ClassDecl<ModuleDefinition/*!*/ module, out ClassDecl/*!*/ c>
   {"," Type<out trait>  (. traits.Add(trait); .) }
   ]         
   "{"                                            (. bodyStart = t;  .)
-  { ClassMemberDecl<members, true, false>
+  { ClassMemberDecl<members, true, false, false>
   }
   "}"
   (. c = new ClassDecl(id, id.val, module, typeArgs, members, attrs, traits);
@@ -642,7 +642,7 @@ ClassDecl<ModuleDefinition/*!*/ module, out ClassDecl/*!*/ c>
 	NoUSIdent<out id>
 	[ GenericParameters<typeArgs> ]
 	"{"                                            (. bodyStart = t; .)
-    { ClassMemberDecl<members, true, false>
+    { ClassMemberDecl<members, true, false, false>
     }
     "}"
 	(. trait = new TraitDecl(id, id.val, module, typeArgs, members, attrs);
@@ -651,7 +651,7 @@ ClassDecl<ModuleDefinition/*!*/ module, out ClassDecl/*!*/ c>
     .)
 	.
 
-ClassMemberDecl<.List<MemberDecl> mm, bool allowConstructors, bool moduleLevelDecl.>
+ClassMemberDecl<.List<MemberDecl> mm, bool allowConstructors, bool moduleLevelDecl, bool permitAbstractDecl.>
 = (. Contract.Requires(cce.NonNullElements(mm));
      Method/*!*/ m;
      Function/*!*/ f;
@@ -685,7 +685,7 @@ ClassMemberDecl<.List<MemberDecl> mm, bool allowConstructors, bool moduleLevelDe
          mmod.IsProtected = false;
        }
     .)
-    MethodDecl<mmod, allowConstructors, out m>  (. mm.Add(m); .)
+    MethodDecl<mmod, allowConstructors, permitAbstractDecl, out m>  (. mm.Add(m); .)
   )
   .
 DatatypeDecl<ModuleDefinition/*!*/ module, out DatatypeDecl/*!*/ dt>
@@ -937,7 +937,7 @@ GenericParameters<.List<TypeParameter/*!*/>/*!*/ typeArgs.>
   ">"
   .
 /*------------------------------------------------------------------------*/
-MethodDecl<MemberModifiers mmod, bool allowConstructor, out Method/*!*/ m>
+MethodDecl<MemberModifiers mmod, bool allowConstructor, bool permitAbstractDecl, out Method/*!*/ m>
 = (. Contract.Ensures(Contract.ValueAtReturn(out m) !=null);
      IToken/*!*/ id = Token.NoToken;
      bool hasName = false;  IToken keywordToken;
@@ -1018,7 +1018,7 @@ MethodDecl<MemberModifiers mmod, bool allowConstructor, out Method/*!*/ m>
   [ BlockStmt<out body, out bodyStart, out bodyEnd>
   ]
   (.
-     if (DafnyOptions.O.DisallowSoundnessCheating && body == null && ens.Count > 0 && !Attributes.Contains(attrs, "axiom") && !Attributes.Contains(attrs, "imported") && !Attributes.Contains(attrs, "decl") && theVerifyThisFile) {
+     if (!permitAbstractDecl && DafnyOptions.O.DisallowSoundnessCheating && body == null && ens.Count > 0 && !Attributes.Contains(attrs, "axiom") && !Attributes.Contains(attrs, "imported") && !Attributes.Contains(attrs, "decl") && theVerifyThisFile) {
         SemErr(t, "a method with an ensures clause must have a body, unless given the :axiom attribute");
      }
 

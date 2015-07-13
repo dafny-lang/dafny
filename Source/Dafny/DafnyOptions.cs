@@ -15,7 +15,11 @@ namespace Microsoft.Dafny
 
     public override string VersionNumber {
       get {
-        return System.Diagnostics.FileVersionInfo.GetVersionInfo(System.Reflection.Assembly.GetExecutingAssembly().Location).FileVersion;
+        return System.Diagnostics.FileVersionInfo.GetVersionInfo(System.Reflection.Assembly.GetExecutingAssembly().Location).FileVersion
+#if ENABLE_IRONDAFNY
+          + "[IronDafny]"
+#endif
+          ;
       }
     }
     public override string VersionSuffix {
@@ -59,6 +63,13 @@ namespace Microsoft.Dafny
     public bool PrintStats = false;
     public bool PrintFunctionCallGraph = false;
     public bool WarnShadowing = false;
+    public bool IronDafny = 
+#if ENABLE_IRONDAFNY 
+      true
+#else
+      false
+#endif
+    ;
 
     protected override bool ParseOption(string name, Bpl.CommandLineOptionEngine.CommandLineParseState ps) {
       var args = ps.args;  // convenient synonym
@@ -201,6 +212,16 @@ namespace Microsoft.Dafny
             return true;
         }
 
+        case "noIronDafny": {
+            IronDafny = false;
+            return true;
+        }
+
+        case "ironDafny": {
+            IronDafny = true;
+            return true;
+        }
+
         default:
           break;
       }
@@ -301,6 +322,10 @@ namespace Microsoft.Dafny
   /funcCallGraph Print out the function call graph.  Format is: func,mod=callee*
   /warnShadowing  Emits a warning if the name of a declared variable caused another variable
                 to be shadowed
+  /ironDafny    Enable experimental features needed to support Ironclad/Ironfleet. Use of
+                these features may cause your code to become incompatible with future
+                releases of Dafny.
+  /noIronDafny  Disable Ironclad/Ironfleet features, if enabled by default.
 ");
       base.Usage();  // also print the Boogie options
     }

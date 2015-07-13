@@ -919,20 +919,27 @@ namespace Microsoft.Dafny
       sig.IsGhost = moduleDef.IsAbstract;
       List<TopLevelDecl> declarations = moduleDef.TopLevelDecls;
 
-      if (useImports) {
-        // First go through and add anything from the opened imports
-        foreach (var im in declarations) {
-          if (im is ModuleDecl && ((ModuleDecl)im).Opened) {
-            var s = GetSignature(((ModuleDecl)im).Signature);
+      // First go through and add anything from the opened imports
+      foreach (var im in declarations) {
+        if (im is ModuleDecl && ((ModuleDecl)im).Opened) {
+          var s = GetSignature(((ModuleDecl)im).Signature);
+
+          if (useImports || DafnyOptions.O.IronDafny) {
             // classes:
             foreach (var kv in s.TopLevels) {
-              TopLevelDecl d;
-              if (sig.TopLevels.TryGetValue(kv.Key, out d)) {
-                sig.TopLevels[kv.Key] = AmbiguousTopLevelDecl.Create(moduleDef, d, kv.Value);
-              } else {
-                sig.TopLevels.Add(kv.Key, kv.Value);
+              // IronDafny: we need to pull the members of the opened module's _default class in so that they can be merged.
+              if (useImports || string.Equals(kv.Key, "_default", StringComparison.InvariantCulture)) {
+                TopLevelDecl d;
+                if (sig.TopLevels.TryGetValue(kv.Key, out d)) {
+                  sig.TopLevels[kv.Key] = AmbiguousTopLevelDecl.Create(moduleDef, d, kv.Value);
+                } else {
+                  sig.TopLevels.Add(kv.Key, kv.Value);
+                }
               }
             }
+          }
+
+          if (useImports) {
             // constructors:
             foreach (var kv in s.Ctors) {
               Tuple<DatatypeCtor, bool> pair;
@@ -948,6 +955,9 @@ namespace Microsoft.Dafny
                 sig.Ctors.Add(kv.Key, kv.Value);
               }
             }
+          }
+
+          if (useImports || DafnyOptions.O.IronDafny) {
             // static members:
             foreach (var kv in s.StaticMembers) {
               MemberDecl md;
@@ -957,7 +967,7 @@ namespace Microsoft.Dafny
                 // add new
                 sig.StaticMembers.Add(kv.Key, kv.Value);
               }
-            }
+            }              
           }
         }
       }
@@ -4406,8 +4416,23 @@ namespace Microsoft.Dafny
           return false;
         }
         var aa = (UserDefinedType)a;
+        var rca = aa.ResolvedClass;
         var bb = (UserDefinedType)b;
-        if (aa.ResolvedClass != null && aa.ResolvedClass == bb.ResolvedClass) {
+        var rcb = bb.ResolvedClass;
+        if (DafnyOptions.O.IronDafny)
+        {
+          while (rca != null && rca.Module.IsAbstract && rca.ClonedFrom != null)
+          {
+            // todo: should ClonedFrom be a TopLevelDecl?
+            // todo: should ClonedFrom be moved to TopLevelDecl?
+            rca = (TopLevelDecl)rca.ClonedFrom;
+          }
+          while (rcb != null && rcb.Module.IsAbstract && rcb.ClonedFrom != null)
+          {
+            rcb = (TopLevelDecl)rcb.ClonedFrom;
+          }
+        }
+        if (rca != null && rca == rcb) {
           // these are both resolved class/datatype types
           Contract.Assert(aa.TypeArgs.Count == bb.TypeArgs.Count);
           bool successSoFar = true;
@@ -4416,12 +4441,12 @@ namespace Microsoft.Dafny
           }
           return successSoFar;
         }
-        else if ((bb.ResolvedClass is TraitDecl) && (aa.ResolvedClass is TraitDecl)) {
-            return ((TraitDecl)bb.ResolvedClass).FullCompileName == ((TraitDecl)aa.ResolvedClass).FullCompileName;
-        } else if ((bb.ResolvedClass is ClassDecl) && (aa.ResolvedClass is TraitDecl)) {
-            return ((ClassDecl)bb.ResolvedClass).TraitsObj.Any(tr => tr.FullCompileName == ((TraitDecl)aa.ResolvedClass).FullCompileName);
-        } else if ((aa.ResolvedClass is ClassDecl) && (bb.ResolvedClass is TraitDecl)) {
-            return ((ClassDecl)aa.ResolvedClass).TraitsObj.Any(tr => tr.FullCompileName == ((TraitDecl)bb.ResolvedClass).FullCompileName);
+        else if ((rcb is TraitDecl) && (rca is TraitDecl)) {
+            return ((TraitDecl)rcb).FullCompileName == ((TraitDecl)rca).FullCompileName;
+        } else if ((rcb is ClassDecl) && (rca is TraitDecl)) {
+            return ((ClassDecl)rcb).TraitsObj.Any(tr => tr.FullCompileName == ((TraitDecl)rca).FullCompileName);
+        } else if ((rca is ClassDecl) && (rcb is TraitDecl)) {
+            return ((ClassDecl)rca).TraitsObj.Any(tr => tr.FullCompileName == ((TraitDecl)rcb).FullCompileName);
         } else if (aa.ResolvedParam != null && aa.ResolvedParam == bb.ResolvedParam) {
           // type parameters
           if (aa.TypeArgs.Count != bb.TypeArgs.Count) {
