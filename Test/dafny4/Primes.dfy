@@ -110,6 +110,13 @@ lemma RemoveFactor(x: int, s: set<int>)
       x * y * product(s - {y} - {x});
       { assert s - {y} - {x} == s - {x} - {y}; }
       x * y * product(s - {x} - {y});
+      /* FIXME: This annotation wasn't needed before the introduction
+       * of auto-triggers. It's not needed if one adds {:no_trigger}
+       * to the forall y :: y in s ==> y <= x part of PickLargest, but that
+       * boils down to z3 picking $Box(...) as good trigger
+       */
+      // FIXME: the parens shouldn't be needed around (s - {x})
+      { assert y in (s - {x}); }
       { assert y == PickLargest(s - {x}); }
       x * product(s - {x});
     }

@@ -29,6 +29,7 @@ module Attempt_Smallest refines Specification {
     var z :| z in s;
     if s != {z} {
       var s' := s - {z};
+      assert forall y :: y in s ==> y in s' || y == z;
       ASmallestToPick(s');
     }
   }

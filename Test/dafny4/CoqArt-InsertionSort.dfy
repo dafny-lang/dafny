@@ -151,6 +151,7 @@ lemma existence_proof(l: List<int>)
 {
   match l {
     case Nil =>
+      assert sorted(Nil);
     case Cons(x, m) =>
       existence_proof(m);
       var m' :| equiv(m, m') && sorted(m');

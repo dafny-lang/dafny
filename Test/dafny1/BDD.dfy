@@ -55,6 +55,7 @@ module SimpleBDD
 		 node := if s[n-i] then node.t else node.f;
 		 i := i - 1;
 	   }
+           assert s[n-i..] == [];
 	   b := node.b;
 	 }
    }

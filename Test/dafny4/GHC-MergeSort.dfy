@@ -412,11 +412,8 @@ lemma sorted_replaceSuffix(xs: List<G>, ys: List<G>, zs: List<G>)
   match xs {
     case Nil =>
     case Cons(c, xs') =>
-      forall a,b | a in multiset_of(xs') && b in multiset_of(Cons(c, zs))
-        ensures Below(a, b);
-      {
-        sorted_reverse(xs', Cons(c, ys));
-      }
+      sorted_reverse(xs, ys);
+      sorted_reverse(xs', Cons(c, ys));
       sorted_replaceSuffix(xs', Cons(c, ys), Cons(c, zs));
   }
 }

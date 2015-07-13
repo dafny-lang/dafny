@@ -117,6 +117,7 @@ inductive lemma lemma_7_6(b: bexp, c: com, c': com, s: state, t: state)
   } else {
     var s' :| big_step#[_k-1](c, s, s') && big_step#[_k-1](While(b, c), s', t);
     lemma_7_6(b, c, c', s', t);  // induction hypothesis
+    assert big_step(While(b, c'), s', t);
   }
 }
 
