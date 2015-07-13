@@ -3429,9 +3429,9 @@ namespace Microsoft.Dafny
       Contract.Requires(opts != null);
       Contract.Requires(opts.DontCareAboutCompilation);  // attributes are never compiled
       // order does not matter much for resolution, so resolve them in reverse order
-      for (; attrs != null; attrs = attrs.Prev) {
-        if (attrs.Args != null) {
-          ResolveAttributeArgs(attrs.Args, opts, true);
+      foreach (var attr in attrs.AsEnumerable()) {
+        if (attr.Args != null) {
+          ResolveAttributeArgs(attr.Args, opts, true);
         }
       }
     }

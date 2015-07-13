@@ -1087,15 +1087,15 @@ namespace Microsoft.Dafny
               // Check for the timeLimitMultiplier attribute
               if (Attributes.Contains(member.Attributes, "timeLimitMultiplier")) {
                 Attributes attrs = member.Attributes;
-                for (; attrs != null; attrs = attrs.Prev) {
-                  if (attrs.Name == "timeLimitMultiplier") {
-                    if (attrs.Args.Count == 1 && attrs.Args[0] is LiteralExpr) {
-                      var arg = attrs.Args[0] as LiteralExpr;
+                foreach (var attr in attrs.AsEnumerable()) {
+                  if (attr.Name == "timeLimitMultiplier") {
+                    if (attr.Args.Count == 1 && attr.Args[0] is LiteralExpr) {
+                      var arg = attr.Args[0] as LiteralExpr;
                       System.Numerics.BigInteger value = (System.Numerics.BigInteger)arg.Value;
                       if (value.Sign > 0) {
                         int current_limit = DafnyOptions.O.ProverKillTime > 0 ? DafnyOptions.O.ProverKillTime : 10;  // Default to 10 seconds
-                        attrs.Args[0] = new LiteralExpr(attrs.Args[0].tok, value * current_limit);
-                        attrs.Name = "timeLimit";
+                        attr.Args[0] = new LiteralExpr(attr.Args[0].tok, value * current_limit);
+                        attr.Name = "timeLimit";
                       }
                     }
                   }

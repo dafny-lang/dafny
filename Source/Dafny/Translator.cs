@@ -11774,13 +11774,13 @@ namespace Microsoft.Dafny {
 
       public Bpl.QKeyValue TrAttributes(Attributes attrs, string skipThisAttribute) {
         Bpl.QKeyValue kv = null;
-        for ( ; attrs != null; attrs = attrs.Prev) {
-          if (attrs.Name == skipThisAttribute
-           || attrs.Name == "axiom") {  // Dafny's axiom attribute clashes with Boogie's axiom keyword
+        foreach (var attr in attrs.AsEnumerable()) {
+          if (attr.Name == skipThisAttribute
+           || attr.Name == "axiom") {  // Dafny's axiom attribute clashes with Boogie's axiom keyword
             continue;
           }
           List<object> parms = new List<object>();
-          foreach (var arg in attrs.Args) {
+          foreach (var arg in attr.Args) {
             var s = arg.AsStringLiteral();
             if (s != null) {
               // pass string literals down to Boogie as string literals, not as their expression translation
@@ -11791,7 +11791,7 @@ namespace Microsoft.Dafny {
               parms.Add(e);
             }
           }
-          kv = new Bpl.QKeyValue(Token.NoToken, attrs.Name, parms, kv);
+          kv = new Bpl.QKeyValue(Token.NoToken, attr.Name, parms, kv);
         }
         return kv;
       }
@@ -12470,18 +12470,16 @@ namespace Microsoft.Dafny {
     Bpl.Trigger TrTrigger(ExpressionTranslator etran, Attributes attribs, IToken tok, Dictionary<IVariable, Expression> substMap = null)
     {
       Bpl.Trigger tr = null;
-      for (Attributes aa = attribs; aa != null; aa = aa.Prev) {
-        if (aa.Name == "trigger") {
-          List<Bpl.Expr> tt = new List<Bpl.Expr>();
-          foreach (var arg in aa.Args) {
-            if (substMap == null) {
-              tt.Add(etran.TrExpr(arg));
-            } else {
-              tt.Add(etran.TrExpr(Substitute(arg, null, substMap)));
-            }
+      foreach (var trigger in attribs.AsEnumerable().Where(aa => aa.Name == "trigger").Select(aa => aa.Args)) {
+        List<Bpl.Expr> tt = new List<Bpl.Expr>();
+        foreach (var arg in trigger) {
+          if (substMap == null) {
+            tt.Add(etran.TrExpr(arg));
+          } else {
+            tt.Add(etran.TrExpr(Substitute(arg, null, substMap)));
           }
-          tr = new Bpl.Trigger(tok, true, tt, tr);
         }
+        tr = new Bpl.Trigger(tok, true, tt, tr);
       }
       return tr;
     }
@@ -12920,7 +12918,7 @@ namespace Microsoft.Dafny {
         return new List<VarType>();  // don't apply induction
       }
 
-      for (var a = attributes; a != null; a = a.Prev) {
+      foreach (var a in attributes.AsEnumerable()) {
         if (a.Name == "induction") {
           // Here are the supported forms of the :induction attribute.
           //    :induction           -- apply induction to all bound variables

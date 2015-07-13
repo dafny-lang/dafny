@@ -10,6 +10,7 @@ using System.Diagnostics.Contracts;
 using System.Numerics;
 using System.Linq;
 using Microsoft.Boogie;
+using System.Diagnostics;
 
 namespace Microsoft.Dafny {
   public class Program {
@@ -232,21 +233,12 @@ namespace Microsoft.Dafny {
     }
 
     public static IEnumerable<Expression> SubExpressions(Attributes attrs) {
-      for (; attrs != null; attrs = attrs.Prev) {
-        foreach (var arg in attrs.Args) {
-          yield return arg;
-        }
-      }
+      return attrs.AsEnumerable().SelectMany(aa => attrs.Args);
     }
 
     public static bool Contains(Attributes attrs, string nm) {
       Contract.Requires(nm != null);
-      for (; attrs != null; attrs = attrs.Prev) {
-        if (attrs.Name == nm) {
-          return true;
-        }
-      }
-      return false;
+      return attrs.AsEnumerable().Any(aa => aa.Name == nm);
     }
 
     /// <summary>
@@ -258,10 +250,10 @@ namespace Microsoft.Dafny {
     [Pure]
     public static bool ContainsBool(Attributes attrs, string nm, ref bool value) {
       Contract.Requires(nm != null);
-      for (; attrs != null; attrs = attrs.Prev) {
-        if (attrs.Name == nm) {
-          if (attrs.Args.Count == 1) {
-            var arg = attrs.Args[0] as LiteralExpr;
+      foreach (var attr in attrs.AsEnumerable()) {
+        if (attr.Name == nm) {
+          if (attr.Args.Count == 1) {
+            var arg = attr.Args[0] as LiteralExpr;
             if (arg != null && arg.Value is bool) {
               value = (bool)arg.Value;
             }
@@ -306,9 +298,9 @@ namespace Microsoft.Dafny {
     /// </summary>
     public static List<Expression> FindExpressions(Attributes attrs, string nm) {
       Contract.Requires(nm != null);
-      for (; attrs != null; attrs = attrs.Prev) {
-        if (attrs.Name == nm) {
-          return attrs.Args;
+      foreach (var attr in attrs.AsEnumerable()) {
+        if (attr.Name == nm) {
+          return attr.Args;
         }
       }
       return null;
@@ -362,6 +354,15 @@ namespace Microsoft.Dafny {
       } else {
         errorReporter("Attribute " + nm + " cannot have more than one argument");
         return false;
+      }
+    }
+  }
+
+  internal static class AttributesExtensions {
+    public static IEnumerable<Attributes> AsEnumerable(this Attributes attr) {
+      while (attr != null) {
+        yield return attr;
+        attr = attr.Prev;
       }
     }
   }
@@ -3042,7 +3043,7 @@ namespace Microsoft.Dafny {
       prefixPredCall.TypeArgumentSubstitutions = new Dictionary<TypeParameter, Type>();
       var old_to_new = new Dictionary<TypeParameter, TypeParameter>();
       for (int i = 0; i < this.TypeArgs.Count; i++) {
-	 old_to_new[this.TypeArgs[i]] = this.PrefixPredicate.TypeArgs[i];
+   old_to_new[this.TypeArgs[i]] = this.PrefixPredicate.TypeArgs[i];
       }
       foreach (var p in fexp.TypeArgumentSubstitutions) {
         prefixPredCall.TypeArgumentSubstitutions[old_to_new[p.Key]] = p.Value;
@@ -4950,7 +4951,7 @@ namespace Microsoft.Dafny {
   }
 
   // ------------------------------------------------------------------------------------------------------
-
+  [DebuggerDisplay("{Printer.ExprToString(this)}")]
   public abstract class Expression
   {
     public readonly IToken tok;
@@ -5568,8 +5569,8 @@ namespace Microsoft.Dafny {
       Contract.Invariant(cce.NonNullElements(Arguments));
       Contract.Invariant(cce.NonNullElements(InferredTypeArgs));
       Contract.Invariant(
-	Ctor == null ||
-	InferredTypeArgs.Count == Ctor.EnclosingDatatype.TypeArgs.Count);
+  Ctor == null ||
+  InferredTypeArgs.Count == Ctor.EnclosingDatatype.TypeArgs.Count);
     }
 
     public DatatypeValue(IToken tok, string datatypeName, string memberName, [Captured] List<Expression> arguments)
@@ -6003,10 +6004,10 @@ namespace Microsoft.Dafny {
         Function == null || TypeArgumentSubstitutions == null ||
         Contract.ForAll(
           Function.TypeArgs,
-        	  a => TypeArgumentSubstitutions.ContainsKey(a)) &&
+            a => TypeArgumentSubstitutions.ContainsKey(a)) &&
         Contract.ForAll(
           TypeArgumentSubstitutions.Keys,
-        	  a => Function.TypeArgs.Contains(a) || Function.EnclosingClass.TypeArgs.Contains(a)));
+            a => Function.TypeArgs.Contains(a) || Function.EnclosingClass.TypeArgs.Contains(a)));
     }
 
     public Function Function;  // filled in by resolution
