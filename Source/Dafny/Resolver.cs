@@ -25,7 +25,7 @@ namespace Microsoft.Dafny
       ConsoleColor col = Console.ForegroundColor;
       Console.ForegroundColor = ConsoleColor.Red;
       Console.WriteLine("{0}({1},{2}): Error: {3}",
-          DafnyOptions.Clo.UseBaseNameForFileName ? System.IO.Path.GetFileName(tok.filename) : tok.filename, tok.line, tok.col - 1,
+          DafnyOptions.Clo.UseBaseNameForFileName ? System.IO.Path.GetFileName(tok.filename) : tok.filename, tok.line, tok.col,
           string.Format(msg, args));
       Console.ForegroundColor = col;
       ErrorCount++;
@@ -254,6 +254,10 @@ namespace Microsoft.Dafny
       // Populate the members of the basic types
       var trunc = new SpecialField(Token.NoToken, "Trunc", "ToBigInteger()", "", "", false, false, false, Type.Int, null);
       basicTypeMembers[(int)BasicTypeVariety.Real].Add(trunc.Name, trunc);
+
+      if (DafnyOptions.O.PrintTooltips) {
+        AdditionalInformationReporter = DefaultInformationReporter;
+      }
     }
 
     [ContractInvariantMethod]
@@ -262,6 +266,12 @@ namespace Microsoft.Dafny
       Contract.Invariant(cce.NonNullElements(dependencies));
       Contract.Invariant(cce.NonNullDictionaryAndValues(classMembers) && Contract.ForAll(classMembers.Values, v => cce.NonNullDictionaryAndValues(v)));
       Contract.Invariant(cce.NonNullDictionaryAndValues(datatypeCtors) && Contract.ForAll(datatypeCtors.Values, v => cce.NonNullDictionaryAndValues(v)));
+    }
+
+    public void DefaultInformationReporter(AdditionalInformation info) {
+      Console.WriteLine("{0}({1},{2}): Info: {3}",
+                        DafnyOptions.Clo.UseBaseNameForFileName ? System.IO.Path.GetFileName(info.Token.filename) : info.Token.filename,
+                        info.Token.line, info.Token.col, info.Text);
     }
 
     public void ResolveProgram(Program prog) {
@@ -302,6 +312,10 @@ namespace Microsoft.Dafny
       rewriters.Add(new AutoReqFunctionRewriter(this, opaqueRewriter));
       rewriters.Add(opaqueRewriter);
       rewriters.Add(new TimeLimitRewriter());
+
+      if (DafnyOptions.O.AutoTriggers) {
+        rewriters.Add(new TriggersRewriter(this));
+      }
 
       systemNameInfo = RegisterTopLevelDecls(prog.BuiltIns.SystemModule, false);
       prog.CompileModules.Add(prog.BuiltIns.SystemModule);
@@ -2048,7 +2062,7 @@ namespace Microsoft.Dafny
           foreach (var p in e.TypeArgumentSubstitutions) {
             if (!IsDetermined(p.Value.Normalize())) {
               Error(e.tok, "type variable '{0}' in the function call to '{1}' could not be determined{2}", p.Key.Name, e.Name,
-                (e.Name.Contains("reveal_") || e.Name.Contains("_FULL"))
+                (e.Name.Contains("reveal_") || e.Name.Contains("_FULL")) //CLEMENT should this be StartsWith and EndsWith?
                 ? ". If you are making an opaque function, make sure that the function can be called."
                 : ""
               );
@@ -8135,7 +8149,7 @@ namespace Microsoft.Dafny
       Contract.Requires(!expr.WasResolved());
       Contract.Requires(opts != null);
       Contract.Ensures(Contract.Result<Expression>() == null || args != null);
-
+      
       if (expr.OptTypeArguments != null) {
         foreach (var ty in expr.OptTypeArguments) {
           ResolveType(expr.tok, ty, opts.codeContext, ResolveTypeOptionEnum.InferTypeProxies, null);
@@ -8175,7 +8189,7 @@ namespace Microsoft.Dafny
           receiver = new StaticReceiverExpr(expr.tok, (ClassDecl)member.EnclosingClass, true);
         } else {
           if (!scope.AllowInstance) {
-            Error(expr.tok, "'this' is not allowed in a 'static' context");
+            Error(expr.tok, "'this' is not allowed in a 'static' context"); //FIXME: Rephrase this
             // nevertheless, set "receiver" to a value so we can continue resolution
           }
           receiver = new ImplicitThisExpr(expr.tok);

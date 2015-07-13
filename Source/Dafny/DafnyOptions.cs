@@ -56,6 +56,8 @@ namespace Microsoft.Dafny
     public bool AllowGlobals = false;
     public bool CountVerificationErrors = true;
     public bool Optimize = false;
+    public bool AutoTriggers = true;
+    public bool PrintTooltips = false;
 
     protected override bool ParseOption(string name, Bpl.CommandLineOptionEngine.CommandLineParseState ps) {
       var args = ps.args;  // convenient synonym
@@ -181,6 +183,18 @@ namespace Microsoft.Dafny
           return true;
         }
 
+        case "printTooltips":
+          PrintTooltips = true;
+          return true;
+
+        case "autoTriggers": {
+            int autoTriggers = 1; // defaults to reporting verification errors
+            if (ps.GetNumericArgument(ref autoTriggers, 2)) {
+              AutoTriggers = autoTriggers == 1;
+            }
+            return true;
+          }
+
         case "optimize": {
             Optimize = true;
             return true;
@@ -276,12 +290,19 @@ namespace Microsoft.Dafny
                     of verification errors.
                 1 (default) - If preprocessing succeeds, set exit code to the number of
                               verification errors.
+  /autoTriggers:<n>
+                0 - Do not generate {:trigger} annotations for user-level quantifiers.
+                1 (default) - Add a {:trigger} to each user-level quantifier. Existing
+                              annotations are preserved.
   /optimize     Produce optimized C# code, meaning:
                   - selects optimized C# prelude by passing 
                     /define:DAFNY_USE_SYSTEM_COLLECTIONS_IMMUTABLE to csc.exe (requires 
                     System.Collections.Immutable.dll in the source directory to successfully 
                     compile).
                   - passes /optimize flag to csc.exe.
+  /printTooltips    
+                Dump additional positional information (displayed as mouse-over tooltips by 
+                the VS plugin) to stdout as 'Info' messages.
 ");
       base.Usage();  // also print the Boogie options
     }
