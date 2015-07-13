@@ -36,6 +36,35 @@ namespace Microsoft.Dafny
     }
   }
 
+  public class TriggersRewriter : IRewriter {
+    Resolver Resolver;
+
+    internal TriggersRewriter(Resolver resolver) {
+      Contract.Requires(Resolver != null);
+      this.Resolver = resolver;
+    }
+
+    public void PreResolve(ModuleDefinition m) { }
+
+    public void PostResolve(ModuleDefinition m) {
+      foreach (var decl in ModuleDefinition.AllCallables(m.TopLevelDecls)) {
+        if (decl is Function) {
+          var function = (Function)decl;
+          TriggerGenerator.AddTriggers(function.Ens, Resolver);
+          TriggerGenerator.AddTriggers(function.Req, Resolver);
+          TriggerGenerator.AddTriggers(function.Body, Resolver);
+        } else if (decl is Method) {
+          var method = (Method)decl;
+          TriggerGenerator.AddTriggers(method.Ens, Resolver);
+          TriggerGenerator.AddTriggers(method.Req, Resolver);
+          TriggerGenerator.AddTriggers(method.Body, Resolver);
+        }
+      }
+    }
+
+    public void PostCyclicityResolve(ModuleDefinition m) { }
+  }
+
   /// <summary>
   /// AutoContracts is an experimental feature that will fill much of the dynamic-frames boilerplate
   /// into a class.  From the user's perspective, what needs to be done is simply:
