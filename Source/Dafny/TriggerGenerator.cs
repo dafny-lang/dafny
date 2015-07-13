@@ -28,36 +28,90 @@ namespace Microsoft.Dafny {
   class TriggerCandidate { // TODO Hashing is broken (duplicates can pop up)
     internal Expression Expr;
     internal ISet<IVariable> Variables;
-    internal Expression[] PotentialMatchingLoops;
+    internal List<Expression> PotentialMatchingLoops;
 
     public override string ToString() {
       return Printer.ExprToString(Expr);
     }
   }
-  
-  struct MultiTriggerCandidate {
-    internal ISet<TriggerCandidate> Candidates;
+
+  class TriggerCandidateComparer : IEqualityComparer<TriggerCandidate> {
+    private static TriggerCandidateComparer singleton;
+    internal static TriggerCandidateComparer Instance {
+      get { return singleton == null ? (singleton = new TriggerCandidateComparer()) : singleton; }
+    }
+
+    private TriggerCandidateComparer() { }
+
+    public bool Equals(TriggerCandidate x, TriggerCandidate y) {
+      return x == null && y == null ||
+        x != null && y != null && x.Expr.ExpressionEq(y.Expr);
+    }
+
+    public int GetHashCode(TriggerCandidate obj) {
+      return 1; // FIXME: Force collisions. Use until we have a proper hashing strategy for expressions.
+    }
+  }
+
+  class MultiTriggerCandidate {
+    internal List<TriggerCandidate> Candidates;
+    internal List<string> Tags;
     internal double Score;
+    
+    private List<Expression> potentialMatchingLoops;
+    internal List<Expression> PotentialMatchingLoops {
+      get {
+        if (potentialMatchingLoops == null) {
+          //FIXME could be optimized by looking at the bindings instead of doing full equality
+          var candidates = Candidates.Distinct(TriggerCandidateComparer.Instance);
+          potentialMatchingLoops = candidates.SelectMany(candidate => candidate.PotentialMatchingLoops)
+            .Distinct(ExprExtensions.EqExpressionComparer.Instance).Where(e => !candidates.Any(c => c.Expr.ExpressionEq(e))).ToList();
+        }
+        
+        return potentialMatchingLoops;
+      }
+    }
+
+    internal MultiTriggerCandidate(List<TriggerCandidate> candidates) {
+      Candidates = candidates;
+      Tags = new List<string>();
+    }
+
+    internal bool MentionsAll(List<BoundVar> vars) {
+      var candidates = Candidates;
+      return vars.All(x => candidates.Any(candidate => candidate.Variables.Contains(x))); //TODO Perfs?
+    }
 
     public override string ToString() {
       return String.Format("[{0:G2}] {1}", Score, String.Join(", ", Candidates));
     }
+
+    public String AsDafnyAttributeString(bool wrap = true, bool includeTags = false) {
+      var repr = String.Join(", ", Candidates.Select(t => Printer.ExprToString(t.Expr)));
+      if (wrap) {
+        repr = "{:trigger " + repr + "}";
+      }
+      if (includeTags && Tags != null) {
+        repr += " (" + String.Join("; ", Tags) + ")";
+      }
+      return repr;
+    }
   }
+  
 
   class TriggerAnnotation {
     internal bool IsTriggerKiller;
     internal ISet<IVariable> Variables;
-    internal readonly HashSet<TriggerCandidate> PrivateCandidates;
-    internal readonly HashSet<TriggerCandidate> ExportedCandidates;
+    internal readonly List<TriggerCandidate> PrivateCandidates;
+    internal readonly List<TriggerCandidate> ExportedCandidates; //FIXME using a hashset is useless here
 
     internal TriggerAnnotation(bool IsTriggerKiller, IEnumerable<IVariable> Variables, 
                                IEnumerable<TriggerCandidate> AllCandidates, IEnumerable<TriggerCandidate> PrivateCandidates = null) {
       this.IsTriggerKiller = IsTriggerKiller;
       this.Variables = new HashSet<IVariable>(Variables);
 
-      this.ExportedCandidates = new HashSet<TriggerCandidate>(AllCandidates == null ? Enumerable.Empty<TriggerCandidate>() : AllCandidates);
-      this.PrivateCandidates = new HashSet<TriggerCandidate>(PrivateCandidates == null ? Enumerable.Empty<TriggerCandidate>() : PrivateCandidates);
-      this.ExportedCandidates.ExceptWith(this.PrivateCandidates);
+      this.PrivateCandidates = new List<TriggerCandidate>(PrivateCandidates == null ? Enumerable.Empty<TriggerCandidate>() : PrivateCandidates);
+      this.ExportedCandidates = new List<TriggerCandidate>(AllCandidates == null ? Enumerable.Empty<TriggerCandidate>() : AllCandidates.Except(this.PrivateCandidates));
     }
 
     public override string ToString() {
@@ -100,6 +154,13 @@ namespace Microsoft.Dafny {
       this.Resolver = resolver;
     }
 
+    private List<T> MergeAlterFirst<T>(List<T> a, List<T> b) {
+      Contract.Requires(a != null);
+      Contract.Requires(b != null);
+      a.AddRange(b);
+      return a;
+    }
+
     private ISet<T> MergeAlterFirst<T>(ISet<T> a, ISet<T> b) {
       Contract.Requires(a != null);
       Contract.Requires(b != null);
@@ -107,19 +168,13 @@ namespace Microsoft.Dafny {
       return a;
     }
 
-    private ISet<T> WithOneExtraElement<T>(ISet<T> set, T elem) {
-      Contract.Requires(set != null);
-      set.Add(elem);
-      return set;
-    }
-
     private T ReduceAnnotatedSubExpressions<T>(Expression expr, T seed, Func<TriggerAnnotation, T> map, Func<T, T, T> reduce) {
       return expr.SubExpressions.Select(e => map(Annotate(e)))
                                 .Aggregate(seed, (acc, e) => reduce(acc, e));
     }
 
-    private ISet<TriggerCandidate> CollectExportedCandidates(Expression expr) {
-      return ReduceAnnotatedSubExpressions<ISet<TriggerCandidate>>(expr, new HashSet<TriggerCandidate>(), a => a.ExportedCandidates, MergeAlterFirst);
+    private List<TriggerCandidate> CollectExportedCandidates(Expression expr) {
+      return ReduceAnnotatedSubExpressions<List<TriggerCandidate>>(expr, new List<TriggerCandidate>(), a => a.ExportedCandidates, MergeAlterFirst);
     }
 
     private ISet<IVariable> CollectVariables(Expression expr) {
@@ -130,7 +185,7 @@ namespace Microsoft.Dafny {
       return ReduceAnnotatedSubExpressions(expr, false, a => a.IsTriggerKiller, (a, b) => a || b);
     }
 
-    private IEnumerable<TriggerCandidate> OnlyPrivateCandidates(ISet<TriggerCandidate> candidates, IEnumerable<IVariable> privateVars) {
+    private IEnumerable<TriggerCandidate> OnlyPrivateCandidates(List<TriggerCandidate> candidates, IEnumerable<IVariable> privateVars) {
       return candidates.Where(c => privateVars.Intersect(c.Variables).Any()); //TODO Check perf
     }
 
@@ -222,12 +277,12 @@ namespace Microsoft.Dafny {
       var new_expr = CleanupExpr(expr, out expr_is_killer);
       var new_candidate = new TriggerCandidate { Expr = new_expr, Variables = CollectVariables(expr) }; 
 
-      ISet<TriggerCandidate> collected_candidates = CollectExportedCandidates(expr);
+      List<TriggerCandidate> collected_candidates = CollectExportedCandidates(expr);
       var children_contain_killers = CollectIsKiller(expr);
 
       if (!children_contain_killers) {
         // Add only if the children are not killers; the head has been cleaned up into non-killer form
-        collected_candidates = WithOneExtraElement(collected_candidates, new_candidate);
+        collected_candidates.Add(new_candidate);
       }
 
       // This new node is a killer if its children were killers, or if it's non-cleaned-up head is a killer
@@ -242,7 +297,8 @@ namespace Microsoft.Dafny {
       // candidate matching its direct subexpression if needed. Not that function calls are not the 
       // only possible child here; there can be DatatypeValue nodes, for example (see vstte2012/Combinators.dfy).
       var annotation = AnnotatePotentialCandidate(expr);
-      annotation.ExportedCandidates.RemoveWhere(candidate => expr.SubExpressions.Contains(candidate.Expr));
+      // Comparing by reference is fine here. Using sets could yield a small speedup
+      annotation.ExportedCandidates.RemoveAll(candidate => expr.SubExpressions.Contains(candidate.Expr));
       return annotation;
     }
 
@@ -286,39 +342,30 @@ namespace Microsoft.Dafny {
       }
     }
 
-    private static IEnumerable<ISet<T>> AllSubsets<T>(IEnumerable<T> source) {
+    private static IEnumerable<List<T>> AllNonEmptySubsets<T>(IEnumerable<T> source) {
       List<T> all = new List<T>(source);
       foreach (var subset in AllSubsets(all, 0)) {
-        yield return new HashSet<T>(subset);
+        if (subset.Count > 0) {
+          yield return subset;
+        }
       }
-    }
-
-    private static bool MentionsAll(ISet<TriggerCandidate> multiCandidate, List<BoundVar> vars) {
-      return vars.All(x => multiCandidate.Any(candidate => candidate.Variables.Contains(x))); //TODO Perfs?
     }
 
     private static bool DefaultCandidateFilteringFunction(TriggerCandidate candidate, QuantifierExpr quantifier) {
       //FIXME this will miss rewritten expressions (CleanupExpr)
-      //FIXME does PotentialMatchingLoops really need to be a field?
-
+      candidate.PotentialMatchingLoops = ExprExtensions.SubexpressionsMatchingTrigger(candidate.Expr, quantifier).ToList();
       return true;
+    }
 
-
-      candidate.PotentialMatchingLoops = ExprExtensions.CouldCauseCycle(candidate.Expr, quantifier).ToArray(); 
-      if (candidate.PotentialMatchingLoops.Any()) {
-         DebugTriggers("Trigger {0} for quantifier {1} could cause a matching loop, due to terms {2}.", 
-         Printer.ExprToString(candidate.Expr), Printer.ExprToString(quantifier), 
-           String.Join(", ", candidate.PotentialMatchingLoops.Select(e => Printer.ExprToString(e))));
+    private static bool DefaultMultiCandidateFilteringFunction(MultiTriggerCandidate multiCandidate, QuantifierExpr quantifier) {
+      if (multiCandidate.PotentialMatchingLoops.Any()) {
+        multiCandidate.Tags.Add(String.Format("matching loop with {0}", String.Join(", ", multiCandidate.PotentialMatchingLoops.Select(Printer.ExprToString))));
       }
-      return !candidate.PotentialMatchingLoops.Any();
+      return multiCandidate.MentionsAll(quantifier.BoundVars) && !multiCandidate.PotentialMatchingLoops.Any();
     }
 
-    private static bool DefaultMultiCandidateFilteringFunction(ISet<TriggerCandidate> multiCandidate, QuantifierExpr quantifier) {
-      return MentionsAll(multiCandidate, quantifier.BoundVars);
-    }
-
-    private static double DefaultMultiCandidateScoringFunction(ISet<TriggerCandidate> multi_candidates) {
-      return 1;
+    private static double DefaultMultiCandidateScoringFunction(MultiTriggerCandidate multi_candidate) {
+      return 1.0;
     }
 
     private static IEnumerable<MultiTriggerCandidate> DefaultMultiCandidateSelectionFunction(List<MultiTriggerCandidate> multi_candidates) {
@@ -327,23 +374,23 @@ namespace Microsoft.Dafny {
 
     // CLEMENT: Make these customizable
     internal Func<TriggerCandidate, QuantifierExpr, bool> CandidateFilteringFunction = DefaultCandidateFilteringFunction;
-    internal Func<ISet<TriggerCandidate>, QuantifierExpr, bool> MultiCandidateFilteringFunction = DefaultMultiCandidateFilteringFunction;
-    internal Func<ISet<TriggerCandidate>, double> MultiCandidateScoringFunction = DefaultMultiCandidateScoringFunction;
+    internal Func<MultiTriggerCandidate, QuantifierExpr, bool> MultiCandidateFilteringFunction = DefaultMultiCandidateFilteringFunction;
+    internal Func<MultiTriggerCandidate, double> MultiCandidateScoringFunction = DefaultMultiCandidateScoringFunction;
     internal Func<List<MultiTriggerCandidate>, IEnumerable<MultiTriggerCandidate>> MultiCandidateSelectionFunction = DefaultMultiCandidateSelectionFunction;
 
     struct MultiCandidatesCollection {
-      internal ISet<TriggerCandidate> AllCandidates;
+      internal List<TriggerCandidate> AllCandidates;
       internal List<TriggerCandidate> SelectedCandidates;
       internal List<TriggerCandidate> RejectedCandidates;
-      internal List<ISet<TriggerCandidate>> FilteredMultiCandidates;
-      internal List<MultiTriggerCandidate> ScoredMultiCandidates;
       internal List<MultiTriggerCandidate> SelectedMultiCandidates;
+      internal List<MultiTriggerCandidate> RejectedMultiCandidates;
+      internal List<MultiTriggerCandidate> FinalMultiCandidates;
 
       public MultiCandidatesCollection(QuantifierExpr quantifier,
         TriggerAnnotation annotation,
         Func<TriggerCandidate, QuantifierExpr, bool> CandidateFilteringFunction,
-        Func<ISet<TriggerCandidate>, QuantifierExpr, bool> MultiCandidateFilteringFunction,
-        Func<ISet<TriggerCandidate>, double> MultiCandidateScoringFunction,
+        Func<MultiTriggerCandidate, QuantifierExpr, bool> MultiCandidateFilteringFunction,
+        Func<MultiTriggerCandidate, double> MultiCandidateScoringFunction,
         Func<List<MultiTriggerCandidate>, IEnumerable<MultiTriggerCandidate>> MultiCandidateSelectionFunction) {
 
         Contract.Requires(annotation != null);
@@ -353,18 +400,20 @@ namespace Microsoft.Dafny {
         Contract.Requires(MultiCandidateScoringFunction != null);
         Contract.Requires(MultiCandidateSelectionFunction != null);
 
-        AllCandidates = annotation.PrivateCandidates;
-        Partition(AllCandidates, x => CandidateFilteringFunction(x, quantifier), out SelectedCandidates, out RejectedCandidates);
-        FilteredMultiCandidates = AllSubsets(SelectedCandidates).Where(t => MultiCandidateFilteringFunction(t, quantifier)).ToList();
-        ScoredMultiCandidates = FilteredMultiCandidates.Select(candidates => new MultiTriggerCandidate { Candidates = candidates, Score = MultiCandidateScoringFunction(candidates) }).ToList();
-        SelectedMultiCandidates = MultiCandidateSelectionFunction(ScoredMultiCandidates).ToList();
+        AllCandidates = annotation.PrivateCandidates.Distinct(TriggerCandidateComparer.Instance).ToList();
+        Partition(AllCandidates, 
+          x => CandidateFilteringFunction(x, quantifier), out SelectedCandidates, out RejectedCandidates);
+        Partition(AllNonEmptySubsets(SelectedCandidates).Select(s => new MultiTriggerCandidate(s)), 
+          x => MultiCandidateFilteringFunction(x, quantifier), out SelectedMultiCandidates, out RejectedMultiCandidates);
+        SelectedMultiCandidates.Iter(x => x.Score = MultiCandidateScoringFunction(x));
+        FinalMultiCandidates = MultiCandidateSelectionFunction(SelectedMultiCandidates).ToList();
       }
 
-      private static void Partition<T>(IEnumerable<T> AllCandidates, Func<T, bool> CandidateFilteringFunction, out List<T> SelectedCandidates, out List<T> RejectedCandidates) {
-        SelectedCandidates = new List<T>();
-        RejectedCandidates = new List<T>();
-        foreach (var c in AllCandidates) {
-          (CandidateFilteringFunction(c) ? SelectedCandidates : RejectedCandidates).Add(c);
+      private static void Partition<T>(IEnumerable<T> elements, Func<T, bool> predicate, out List<T> positive, out List<T> negative) {
+        positive = new List<T>();
+        negative = new List<T>();
+        foreach (var c in elements) {
+          (predicate(c) ? positive : negative).Add(c);
         }
       }
 
@@ -372,11 +421,11 @@ namespace Microsoft.Dafny {
         if (AllCandidates.Count == 0) {
           return "No triggers found in the body of this quantifier.";
         } else if (SelectedCandidates.Count == 0) {
-          return String.Format("No suitable triggers found. Candidate building blocks for a good trigger where [{0}], but no subset of these terms passed the initial selection stage.", String.Join(", ", SelectedCandidates));
-        } else if (FilteredMultiCandidates.Count == 0) {
-          return String.Format("No suitable set of triggers found. Candidate building blocks for a good trigger where [{0}], but no subset of these terms passed the subset selection stage.", String.Join(", ", SelectedCandidates));
+          return String.Format("No suitable triggers found. Candidate building blocks for a good trigger where [{0}], but none these terms passed the initial selection stage.", String.Join(", ", AllCandidates));
         } else if (SelectedMultiCandidates.Count == 0) {
-          return String.Format("No suitable set of triggers found. Candidates where [{0}], but none passed the final selection stage.", String.Join(", ", ScoredMultiCandidates));
+          return String.Format("No suitable set of triggers found. Candidate building blocks for a good trigger where [{0}], but no subset of these terms passed the subset selection stage.", String.Join(", ", SelectedCandidates));
+        } else if (FinalMultiCandidates.Count == 0) {
+          return String.Format("No suitable set of triggers found. Candidates where [{0}], but none passed the final selection stage.", String.Join(", ", SelectedMultiCandidates));
         } else {
           return null;
         }
@@ -402,14 +451,14 @@ namespace Microsoft.Dafny {
         var indent = "      ";
         repr.Append("    All:");
         WriteListOfCandidates(repr, indent, AllCandidates);
+        repr.Append("    Selected1:");
+        WriteListOfCandidates(repr, indent, SelectedCandidates);
         repr.Append("    PreFilter:");
-        WriteListOfCandidates(repr, indent, AllSubsets(AllCandidates).Select(c => String.Join(", ", c)));
-        repr.Append("    Filtered:");
-        WriteListOfCandidates(repr, indent, FilteredMultiCandidates.Select(c => String.Join(", ", c))); 
-        repr.Append("    Scored:");
-        WriteListOfCandidates(repr, indent, ScoredMultiCandidates);
-        repr.Append("    Selected:");
-        WriteListOfCandidates(repr, indent, SelectedMultiCandidates);
+        WriteListOfCandidates(repr, indent, AllNonEmptySubsets(AllCandidates).Select(c => String.Join(", ", c)));
+        repr.Append("    SelectedMulti:");
+        WriteListOfCandidates(repr, indent, SelectedMultiCandidates.Select(c => String.Join(", ", c)));
+        repr.Append("    Final:");
+        WriteListOfCandidates(repr, indent, FinalMultiCandidates);
         return repr.ToString();
       }
     }
@@ -430,20 +479,18 @@ namespace Microsoft.Dafny {
       }
 
       var multi_candidates = PickMultiTriggers(quantifier);
-      foreach (var multi_candidate in multi_candidates.SelectedMultiCandidates) { //TODO: error message for when no triggers found
+      foreach (var multi_candidate in multi_candidates.FinalMultiCandidates) { //TODO: error message for when no triggers found
         quantifier.Attributes = new Attributes("trigger", multi_candidate.Candidates.Select(t => t.Expr).ToList(), quantifier.Attributes);
       }
 
-      // FIXME: Cleanup
-      if (multi_candidates.RejectedCandidates.Any()) {
-        var tooltip = "Rejected: " + String.Join(Environment.NewLine + "          ", multi_candidates.RejectedCandidates.Select(
-          candidate => "{:trigger " + Printer.ExprToString(candidate.Expr) + "} (could loop with " + Printer.ExprToString(candidate.PotentialMatchingLoops[0]) + ")"));
+      if (multi_candidates.RejectedMultiCandidates.Any()) {
+        var tooltip = JoinStringsWithHeader("Rejected: ", multi_candidates.RejectedMultiCandidates.Where(candidate => candidate.Tags != null)
+          .Select(candidate => candidate.AsDafnyAttributeString(true, true)));
         Resolver.ReportAdditionalInformation(quantifier.tok, tooltip, quantifier.tok.val.Length); //CLEMENT Check this
       }
 
-      if (multi_candidates.SelectedMultiCandidates.Any()) {
-        var tooltip = "Triggers: " + String.Join(Environment.NewLine + "          ", multi_candidates.SelectedMultiCandidates.Select(
-          multi_candidate => "{:trigger " + String.Join(", ", multi_candidate.Candidates.Select(t => Printer.ExprToString(t.Expr))) + "}"));
+      if (multi_candidates.FinalMultiCandidates.Any()) {
+        var tooltip = JoinStringsWithHeader("Triggers: ", multi_candidates.FinalMultiCandidates.Select(multi_candidate => multi_candidate.AsDafnyAttributeString()));
         Resolver.ReportAdditionalInformation(quantifier.tok, tooltip, quantifier.tok.val.Length); //CLEMENT Check this
       }
 
@@ -451,6 +498,10 @@ namespace Microsoft.Dafny {
       if (warning != null) {
         // FIXME reenable Resolver.Warning(quantifier.tok, warning);
       }
+    }
+
+    private string JoinStringsWithHeader(string header, IEnumerable<string> lines) {
+      return header + String.Join(Environment.NewLine + new String(' ', header.Length), lines);
     }
 
     private void AddTriggers_Internal() {
@@ -543,7 +594,25 @@ namespace Microsoft.Dafny {
       }
     }
 
-    private static bool ExpressionEq(this Expression expr1, Expression expr2) {
+    internal class EqExpressionComparer : IEqualityComparer<Expression> { //FIXME
+      private static EqExpressionComparer singleton;
+      internal static EqExpressionComparer Instance { 
+        get { return singleton == null ? (singleton = new EqExpressionComparer()) : singleton; }
+      }
+
+      private EqExpressionComparer() { }
+
+      public bool Equals(Expression x, Expression y) {
+        return x == null && y == null ||
+               x != null && y != null && x.ExpressionEq(y);
+      }
+
+      public int GetHashCode(Expression obj) {
+        return 1;
+      }
+    }
+
+    internal static bool ExpressionEq(this Expression expr1, Expression expr2) {
       expr1 = GetResolved(expr1);
       expr2 = GetResolved(expr2);
       
@@ -575,12 +644,17 @@ namespace Microsoft.Dafny {
       return expr.MatchesTrigger(trigger, holes, new Dictionary<IVariable, Expression>());
     }
 
-    internal static IEnumerable<Expression> CouldCauseCycle(Expression trigger, QuantifierExpr quantifier) { //FIXME Term or bound?
-      //FIXME could be optimized by looking at the bindings instead of doing full equality
-      return quantifier.Term.AllSubExpressions().Where(e => e.MatchesTrigger(trigger, new HashSet<BoundVar>(quantifier.BoundVars)) && !e.ExpressionEq(trigger));
+    internal static IEnumerable<Expression> SubexpressionsMatchingTrigger(Expression trigger, QuantifierExpr quantifier) {
+      return quantifier.Term.AllSubExpressions().Where(e => e.MatchesTrigger(trigger, new HashSet<BoundVar>(quantifier.BoundVars)));
     }
 
     private static bool SameLists<T>(IEnumerable<T> list1, IEnumerable<T> list2, Func<T, T, bool> comparer) {
+      if (ReferenceEquals(list1, list2)) {
+        return true;
+      } else if ((list1 == null) != (list2 == null)) {
+        return false;
+      }
+
       var it1 = list1.GetEnumerator();
       var it2 = list2.GetEnumerator();
       bool it1_has, it2_has;
