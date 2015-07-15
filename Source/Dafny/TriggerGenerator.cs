@@ -1,4 +1,4 @@
-﻿#define DEBUG_AUTO_TRIGGERS
+﻿// #define DEBUG_AUTO_TRIGGERS
 #define THROW_UNSUPPORTED_COMPARISONS
 
 using System;
@@ -28,7 +28,7 @@ namespace Microsoft.Dafny {
   class TriggerCandidate { // TODO Hashing is broken (duplicates can pop up)
     internal Expression Expr;
     internal ISet<IVariable> Variables;
-    internal List<Expression> PotentialMatchingLoops;
+    internal List<ExprExtensions.TriggerMatch> MatchesInQuantifierBody;
 
     public override string ToString() {
       return Printer.ExprToString(Expr);
@@ -57,15 +57,15 @@ namespace Microsoft.Dafny {
     internal List<TriggerCandidate> Candidates;
     internal List<string> Tags;
     internal double Score;
-    
-    private List<Expression> potentialMatchingLoops;
-    internal List<Expression> PotentialMatchingLoops {
+
+    private List<ExprExtensions.TriggerMatch> potentialMatchingLoops;
+    internal List<ExprExtensions.TriggerMatch> PotentialMatchingLoops {
       get {
         if (potentialMatchingLoops == null) {
           //FIXME could be optimized by looking at the bindings instead of doing full equality
           var candidates = Candidates.Distinct(TriggerCandidateComparer.Instance);
-          potentialMatchingLoops = candidates.SelectMany(candidate => candidate.PotentialMatchingLoops)
-            .Distinct(ExprExtensions.EqExpressionComparer.Instance).Where(e => !candidates.Any(c => c.Expr.ExpressionEq(e))).ToList();
+          potentialMatchingLoops = candidates.SelectMany(candidate => candidate.MatchesInQuantifierBody)
+            .Distinct(ExprExtensions.TriggerMatchComparer.Instance).Where(tm => tm.CouldCauseLoops(candidates)).ToList();
         }
         
         return potentialMatchingLoops;
@@ -353,13 +353,13 @@ namespace Microsoft.Dafny {
 
     private static bool DefaultCandidateFilteringFunction(TriggerCandidate candidate, QuantifierExpr quantifier) {
       //FIXME this will miss rewritten expressions (CleanupExpr)
-      candidate.PotentialMatchingLoops = ExprExtensions.SubexpressionsMatchingTrigger(candidate.Expr, quantifier).ToList();
+      candidate.MatchesInQuantifierBody = quantifier.SubexpressionsMatchingTrigger(candidate.Expr).ToList();
       return true;
     }
 
     private static bool DefaultMultiCandidateFilteringFunction(MultiTriggerCandidate multiCandidate, QuantifierExpr quantifier) {
       if (multiCandidate.PotentialMatchingLoops.Any()) {
-        multiCandidate.Tags.Add(String.Format("matching loop with {0}", String.Join(", ", multiCandidate.PotentialMatchingLoops.Select(Printer.ExprToString))));
+        multiCandidate.Tags.Add(String.Format("matching loop with {0}", String.Join(", ", multiCandidate.PotentialMatchingLoops.Select(tm => Printer.ExprToString(tm.Expr)))));
       }
       return multiCandidate.MentionsAll(quantifier.BoundVars) && !multiCandidate.PotentialMatchingLoops.Any();
     }
@@ -616,11 +616,39 @@ namespace Microsoft.Dafny {
       }
     }
 
+    internal class TriggerMatchComparer : IEqualityComparer<TriggerMatch> { //FIXME
+      private static TriggerMatchComparer singleton;
+      internal static TriggerMatchComparer Instance {
+        get { return singleton == null ? (singleton = new TriggerMatchComparer()) : singleton; }
+      }
+
+      private TriggerMatchComparer() { }
+
+      public bool Equals(TriggerMatch x, TriggerMatch y) {
+        return ExpressionEq(x.Expr, y.Expr);
+      }
+
+      public int GetHashCode(TriggerMatch obj) {
+        return 1;
+      }
+    }
+
     internal static bool ExpressionEq(this Expression expr1, Expression expr2) {
       expr1 = GetResolved(expr1);
       expr2 = GetResolved(expr2);
-      
+
       return ShallowEq_Top(expr1, expr2) && SameLists(expr1.SubExpressions, expr2.SubExpressions, (e1, e2) => ExpressionEq(e1, e2));
+    }
+
+    internal static bool ExpressionEqModuloVariableNames(this Expression expr1, Expression expr2) {
+      expr1 = GetResolved(expr1);
+      expr2 = GetResolved(expr2);
+
+      if (expr1 is IdentifierExpr) {
+        return expr2 is IdentifierExpr;
+      }
+
+      return ShallowEq_Top(expr1, expr2) && SameLists(expr1.SubExpressions, expr2.SubExpressions, (e1, e2) => ExpressionEqModuloVariableNames(e1, e2));
     }
 
     private static bool MatchesTrigger(this Expression expr, Expression trigger, ISet<BoundVar> holes, Dictionary<IVariable, Expression> bindings) {
@@ -644,12 +672,36 @@ namespace Microsoft.Dafny {
       return ShallowEq_Top(expr, trigger) && SameLists(expr.SubExpressions, trigger.SubExpressions, (e1, e2) => MatchesTrigger(e1, e2, holes, bindings));
     }
 
-    private static bool MatchesTrigger(this Expression expr, Expression trigger, ISet<BoundVar> holes) {
-      return expr.MatchesTrigger(trigger, holes, new Dictionary<IVariable, Expression>());
+    internal struct TriggerMatch {
+      internal Expression Expr;
+      internal Dictionary<IVariable, Expression> Bindings;
+
+      internal bool CouldCauseLoops(IEnumerable<TriggerCandidate> candidates) {
+        // A match for a trigger in the body of a quantifier can be a problem if 
+        // it yields to a matching loop: for example, f(x) is a bad trigger in 
+        //   forall x, y :: f(x) = f(f(x))
+        // In general, any such match can lead to a loop, but two special cases 
+        // will only lead to a finite number of instantiations:
+        // 1. The match equals one of the triggers in the set of triggers under
+        //    consideration. For example, { f(x) } a bad trigger above, but the
+        //    pair { f(x), f(f(x)) } is fine (instantiating won't yield new 
+        //    matches)
+        // 2. The match only differs from one of these triggers by variable 
+        //    names. This is a superset of the previous case.
+        var expr = Expr;
+        return !candidates.Any(c => c.Expr.ExpressionEqModuloVariableNames(expr));
+      }
     }
 
-    internal static IEnumerable<Expression> SubexpressionsMatchingTrigger(Expression trigger, QuantifierExpr quantifier) {
-      return quantifier.Term.AllSubExpressions().Where(e => e.MatchesTrigger(trigger, new HashSet<BoundVar>(quantifier.BoundVars)));
+    private static TriggerMatch? MatchAgainst(this Expression expr, Expression trigger, ISet<BoundVar> holes) {
+      var bindings = new Dictionary<IVariable, Expression>();
+      return expr.MatchesTrigger(trigger, holes, bindings) ? new TriggerMatch { Expr = expr, Bindings = bindings } : (TriggerMatch?)null;
+    }
+
+    internal static IEnumerable<TriggerMatch> SubexpressionsMatchingTrigger(this QuantifierExpr quantifier, Expression trigger) {
+      return quantifier.Term.AllSubExpressions()
+        .Select(e => e.MatchAgainst(trigger, new HashSet<BoundVar>(quantifier.BoundVars)))
+        .Where(e => e.HasValue).Select(e => e.Value);
     }
 
     private static bool SameLists<T>(IEnumerable<T> list1, IEnumerable<T> list2, Func<T, T, bool> comparer) {
