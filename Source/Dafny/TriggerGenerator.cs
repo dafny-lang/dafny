@@ -145,13 +145,13 @@ namespace Microsoft.Dafny {
     List<QuantifierExpr> quantifiers;
     Dictionary<Expression, TriggerAnnotation> annotations;
 
-    Resolver Resolver;
+    Action<IToken, string, int> AdditionalInformationReporter;
 
-    private TriggerGenerator(Resolver resolver) {
-      Contract.Requires(Resolver != null);
+    private TriggerGenerator(Action<IToken, string, int> additionalInformationReporter) {
+      Contract.Requires(additionalInformationReporter != null);
       this.quantifiers = new List<QuantifierExpr>();
       this.annotations = new Dictionary<Expression, TriggerAnnotation>();
-      this.Resolver = resolver;
+      this.AdditionalInformationReporter = additionalInformationReporter;
     }
 
     private List<T> MergeAlterFirst<T>(List<T> a, List<T> b) {
@@ -470,7 +470,6 @@ namespace Microsoft.Dafny {
     }
 
     private void AddTrigger(QuantifierExpr quantifier) {
-      // This call is elided when triggers debugging is disabled.
       DebugTriggers("  Final results:\n{0}", PickMultiTriggers(quantifier));
 
       if (quantifier.Attributes.AsEnumerable().Any(aa => aa.Name == "trigger" || aa.Name == "no_trigger")) {
@@ -486,18 +485,23 @@ namespace Microsoft.Dafny {
       if (multi_candidates.RejectedMultiCandidates.Any()) {
         var tooltip = JoinStringsWithHeader("Rejected: ", multi_candidates.RejectedMultiCandidates.Where(candidate => candidate.Tags != null)
           .Select(candidate => candidate.AsDafnyAttributeString(true, true)));
-        Resolver.ReportAdditionalInformation(quantifier.tok, tooltip, quantifier.tok.val.Length); //CLEMENT Check this
+        AdditionalInformationReporter(quantifier.tok, tooltip, quantifier.tok.val.Length); //CLEMENT Check this
       }
 
       if (multi_candidates.FinalMultiCandidates.Any()) {
         var tooltip = JoinStringsWithHeader("Triggers: ", multi_candidates.FinalMultiCandidates.Select(multi_candidate => multi_candidate.AsDafnyAttributeString()));
-        Resolver.ReportAdditionalInformation(quantifier.tok, tooltip, quantifier.tok.val.Length); //CLEMENT Check this
+        AdditionalInformationReporter(quantifier.tok, tooltip, quantifier.tok.val.Length); //CLEMENT Check this
       }
 
       string warning = multi_candidates.Warning();
       if (warning != null) {
         // FIXME reenable Resolver.Warning(quantifier.tok, warning);
       }
+    }
+
+    internal static bool IsTriggerKiller(Expression expr) {
+      var annotation = new TriggerGenerator((x, y, z) => { }).Annotate(expr);
+      return annotation.IsTriggerKiller;
     }
 
     private string JoinStringsWithHeader(string header, IEnumerable<string> lines) {
@@ -525,7 +529,7 @@ namespace Microsoft.Dafny {
         return;
 
       DebugTriggers("== From {0} visiting expr: {1}", new StackFrame(1).GetMethod().Name, Printer.ExprToString(root));
-      TriggerGenerator generator = new TriggerGenerator(resolver);
+      TriggerGenerator generator = new TriggerGenerator(resolver.ReportAdditionalInformation);
       generator.AddTriggers_Internal(root);
     }
 
@@ -534,7 +538,7 @@ namespace Microsoft.Dafny {
         return;
 
       DebugTriggers("== From {0} visiting statement: {1}", new StackFrame(1).GetMethod().Name, Printer.StatementToString(root));
-      TriggerGenerator generator = new TriggerGenerator(resolver);
+      TriggerGenerator generator = new TriggerGenerator(resolver.ReportAdditionalInformation);
       generator.AddTriggers_Internal(root);
     }
 
@@ -596,7 +600,7 @@ namespace Microsoft.Dafny {
 
     internal class EqExpressionComparer : IEqualityComparer<Expression> { //FIXME
       private static EqExpressionComparer singleton;
-      internal static EqExpressionComparer Instance { 
+      internal static EqExpressionComparer Instance {
         get { return singleton == null ? (singleton = new EqExpressionComparer()) : singleton; }
       }
 

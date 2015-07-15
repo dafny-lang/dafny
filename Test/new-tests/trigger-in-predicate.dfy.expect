@@ -1,0 +1,4 @@
+c:/MSR/dafny-triggers/Test/new-tests/trigger-in-predicate.dfy(9,21): Info: This call cannot be safely inlined.
+c:/MSR/dafny-triggers/Test/new-tests/trigger-in-predicate.dfy(9,21): Info: This call cannot be safely inlined.
+
+Dafny program verifier finished with 8 verified, 0 errors

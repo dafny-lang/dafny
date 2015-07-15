@@ -12699,9 +12699,8 @@ namespace Microsoft.Dafny {
             // that needed to be proved about the function was proved already in the previous module, even without the body definition).
           } else if (!FunctionBodyIsAvailable(f, currentModule)) {
             // Don't inline opaque functions or foreign protected functions
-          } else {
+          } else if (CanSafelyInline(fexp, f)) {
             // inline this body
-            // CLEMENT: This is a problem for triggers
             var body = GetSubstitutedBody(fexp, f, false);
             var typeSpecializedBody = GetSubstitutedBody(fexp, f, true);
             var typeSpecializedResultType = Resolver.SubstType(f.ResultType, fexp.TypeArgumentSubstitutions);
@@ -12762,6 +12761,15 @@ namespace Microsoft.Dafny {
             splits.Add(new SplitExprInfo(SplitExprInfo.K.Free, fr));
 
             return true;
+          } else {
+            // Skip inlining, as it would cause arbitrary expressions to pop up in the trigger
+            // CLEMENT: Report inlining issue in a VS plugin friendly way
+            var info = new AdditionalInformation {
+              Token = fexp.tok,
+              Length = fexp.tok.val.Length,
+              Text = "This call cannot be safely inlined.",
+            };
+            Resolver.DefaultInformationReporter(info);
           }
         }
 
@@ -12900,6 +12908,53 @@ namespace Microsoft.Dafny {
       }
       splits.Add(new SplitExprInfo(SplitExprInfo.K.Both, translatedExpression));
       return splitHappened;
+    }
+
+    private bool CanSafelyInline(FunctionCallExpr fexp, Function f) {
+      var visitor = new TriggersExplorer();
+
+      visitor.Visit(f.Body);
+      foreach (var expr in f.Ens) { visitor.Visit(expr); }
+      foreach (var expr in f.Req) { visitor.Visit(expr); }
+      // CLEMENT: Anything else?
+
+      return f.Formals.Zip(fexp.Args).All(formal_concrete => CanSafelySubstitute(visitor.TriggerVariables, formal_concrete.Item1, formal_concrete.Item2));
+    }
+
+    private bool CanSafelySubstitute(ISet<IVariable> protectedVariables, IVariable variable, Expression substitution) {
+      return !(protectedVariables.Contains(variable) && TriggerGenerator.IsTriggerKiller(substitution));
+    }
+
+    private class VariablesCollector: BottomUpVisitor {
+      internal ISet<IVariable> variables;
+
+      internal VariablesCollector() {
+        this.variables = new HashSet<IVariable>();
+      }
+
+      protected override void VisitOneExpr(Expression expr) {
+        if (expr is IdentifierExpr) {
+          variables.Add((expr as IdentifierExpr).Var);
+        }
+      }
+    }
+
+    private class TriggersExplorer : BottomUpVisitor {
+      VariablesCollector collector;
+
+      internal ISet<IVariable> TriggerVariables { get { return collector.variables; } }
+
+      internal TriggersExplorer() {
+        collector = new VariablesCollector();
+      }
+
+      protected override void VisitOneExpr(Expression expr) {
+        if (expr is QuantifierExpr) {
+          foreach (var trigger in (expr as QuantifierExpr).Attributes.AsEnumerable().Where(a => a.Name == "trigger").SelectMany(a => a.Args)) {
+            collector.Visit(trigger);
+          }
+        }
+      }
     }
 
     private Expression GetSubstitutedBody(FunctionCallExpr fexp, Function f, bool specializeTypeParameters) {

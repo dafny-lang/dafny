@@ -268,7 +268,7 @@ namespace Microsoft.Dafny
       Contract.Invariant(cce.NonNullDictionaryAndValues(datatypeCtors) && Contract.ForAll(datatypeCtors.Values, v => cce.NonNullDictionaryAndValues(v)));
     }
 
-    public void DefaultInformationReporter(AdditionalInformation info) {
+    public static void DefaultInformationReporter(AdditionalInformation info) {
       Console.WriteLine("{0}({1},{2}): Info: {3}",
                         DafnyOptions.Clo.UseBaseNameForFileName ? System.IO.Path.GetFileName(info.Token.filename) : info.Token.filename,
                         info.Token.line, info.Token.col, info.Text);
