@@ -931,7 +931,11 @@ namespace Microsoft.Dafny
               if (useImports || string.Equals(kv.Key, "_default", StringComparison.InvariantCulture)) {
                 TopLevelDecl d;
                 if (sig.TopLevels.TryGetValue(kv.Key, out d)) {
-                  sig.TopLevels[kv.Key] = AmbiguousTopLevelDecl.Create(moduleDef, d, kv.Value);
+                  if (DafnyOptions.O.IronDafny && kv.Value.ClonedFrom == d) {
+                    sig.TopLevels[kv.Key] = kv.Value;
+                  } else {
+                    sig.TopLevels[kv.Key] = AmbiguousTopLevelDecl.Create(moduleDef, d, kv.Value);
+                  }
                 } else {
                   sig.TopLevels.Add(kv.Key, kv.Value);
                 }
