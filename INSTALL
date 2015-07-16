@@ -1,0 +1,34 @@
+Building on Linux
+=================
+
+1. Create an empty base directory
+
+    mkdir BASE-DRIECTORY
+    cd BASE-DRIECTORY
+
+2. Download and build Boogie:
+
+    git clone https://github.com/boogie-org/boogie
+    cd boogie
+    mozroots --import --sync
+    wget https://nuget.org/nuget.exe
+    mono ./nuget.exe restore Source/Boogie.sln
+    xbuild Source/Boogie.sln
+
+3. Download and build Dafny:
+
+   hg clone https://hg.codeplex.com/dafny
+   cd dafny/Sources/
+   xbuild Dafny.sln
+
+4. Download and build Z3
+
+   git clone https://github.com/Z3Prover/z3.git
+   cd z3
+   ./configure && make && sudo make install
+
+5. Symlink the z3 binaries so that Boogie and Z3 can find them:
+
+   cd BASE-DIRECTORY
+   ln -s /usr/bin/z3 boogie/Binaries/z3.exe
+   ln -s /usr/bin/z3 dafny/Binaries/z3.exe
