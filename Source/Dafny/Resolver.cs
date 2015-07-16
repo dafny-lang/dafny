@@ -2180,7 +2180,8 @@ namespace Microsoft.Dafny
           proxy.T = new ObjectType();
           return true;
         }
-        return !(t is TypeProxy);  // all other proxies indicate the type has not yet been determined
+        // all other proxies indicate the type has not yet been determined, provided their type parameters have been
+        return !(t is TypeProxy) && t.TypeArgs.All(tt => IsDetermined(tt.Normalize()));
       }
       ISet<TypeProxy> UnderspecifiedTypeProxies = new HashSet<TypeProxy>();
       bool CheckTypeIsDetermined(IToken tok, Type t, string what) {
@@ -2752,6 +2753,14 @@ namespace Microsoft.Dafny
           foreach (var v in s.BoundVars) {
             CheckEqualityTypes_Type(v.Tok, v.Type);
           }
+          // do substatements and subexpressions, except attributes and ensures clauses, since they are not compiled
+          foreach (var ss in s.SubStatements) {
+            Visit(ss, st);
+          }
+          if (s.Range != null) {
+            Visit(s.Range, st);
+          }
+          return false;  // we're done
         }
         return true;
       }
@@ -2810,6 +2819,18 @@ namespace Microsoft.Dafny
           foreach (var bv in e.BoundVars) {
             CheckEqualityTypes_Type(bv.tok, bv.Type);
           }
+        } else if (expr is MemberSelectExpr) {
+          var e = (MemberSelectExpr)expr;
+          if (e.Member is Function || e.Member is Method) {
+            var i = 0;
+            foreach (var tp in ((ICallable)e.Member).TypeArgs) {
+              var actualTp = e.TypeApplication[e.Member.EnclosingClass.TypeArgs.Count + i];
+              if (tp.MustSupportEquality && !actualTp.SupportsEquality) {
+                Error(e.tok, "type parameter {0} ({1}) passed to {5} '{2}' must support equality (got {3}){4}", i, tp.Name, e.Member.Name, actualTp, TypeEqualityErrorMessageHint(actualTp), e.Member.WhatKind);
+              }
+              i++;
+            }
+          }
         } else if (expr is FunctionCallExpr) {
           var e = (FunctionCallExpr)expr;
           Contract.Assert(e.Function.TypeArgs.Count <= e.TypeArgumentSubstitutions.Count);
@@ -2832,7 +2853,7 @@ namespace Microsoft.Dafny
             i++;
           }
           return false;  // we've done what there is to be done
-        } else if (expr is SetDisplayExpr || expr is MultiSetDisplayExpr || expr is MapDisplayExpr || expr is MultiSetFormingExpr) {
+        } else if (expr is SetDisplayExpr || expr is MultiSetDisplayExpr || expr is MapDisplayExpr || expr is MultiSetFormingExpr || expr is StaticReceiverExpr) {
           // This catches other expressions whose type may potentially be illegal
           CheckEqualityTypes_Type(expr.tok, expr.Type);
         }
@@ -2848,11 +2869,8 @@ namespace Microsoft.Dafny
         } else if (type is SetType) {
           var st = (SetType)type;
           var argType = st.Arg;
-          if (!st.Finite) {
-            Error(tok, "isets do not support equality: {0}", st);
-          }
           if (!argType.SupportsEquality) {
-            Error(tok, "set argument type must support equality (got {0}){1}", argType, TypeEqualityErrorMessageHint(argType));
+            Error(tok, "{2}set argument type must support equality (got {0}){1}", argType, TypeEqualityErrorMessageHint(argType), st.Finite ? "" : "i");
           }
           CheckEqualityTypes_Type(tok, argType);
 
@@ -2865,11 +2883,8 @@ namespace Microsoft.Dafny
 
         } else if (type is MapType) {
           var mt = (MapType)type;
-          if (!mt.Finite) {
-            Error(tok, "imaps do not support equality: {0}", mt);
-          }
           if (!mt.Domain.SupportsEquality) {
-            Error(tok, "map domain type must support equality (got {0}){1}", mt.Domain, TypeEqualityErrorMessageHint(mt.Domain));
+            Error(tok, "{2}map domain type must support equality (got {0}){1}", mt.Domain, TypeEqualityErrorMessageHint(mt.Domain), mt.Finite ? "" : "i");
           }
           CheckEqualityTypes_Type(tok, mt.Domain);
           CheckEqualityTypes_Type(tok, mt.Range);

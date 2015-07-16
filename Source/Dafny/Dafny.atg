@@ -299,6 +299,9 @@ bool IsGenericInstantiation() {
       return false;
   }
 }
+/* Returns true if the next thing is of the form:
+ *     "<" Type { "," Type } ">"
+ */
 bool IsTypeList(ref IToken pt) {
   if (pt.kind != _openAngleBracket) {
     return false;
@@ -306,6 +309,10 @@ bool IsTypeList(ref IToken pt) {
   pt = scanner.Peek();
   return IsTypeSequence(ref pt, _closeAngleBracket);
 }
+/* Returns true if the next thing is of the form:
+ *     Type { "," Type }
+ * followed by an endBracketKind.
+ */
 bool IsTypeSequence(ref IToken pt, int endBracketKind) {
   while (true) {
     if (!IsType(ref pt)) {
@@ -343,7 +350,7 @@ bool IsType(ref IToken pt) {
     case _map:
     case _imap:
       pt = scanner.Peek();
-      return IsTypeList(ref pt);
+      return pt.kind != _openAngleBracket || IsTypeList(ref pt);
     case _ident:
       while (true) {
         // invariant: next token is an ident
@@ -362,6 +369,11 @@ bool IsType(ref IToken pt) {
       }
     case _openparen:
       pt = scanner.Peek();
+      if (pt.kind == _closeparen) {
+        // end of type list
+        pt = scanner.Peek();
+        return true;
+      }
       return IsTypeSequence(ref pt, _closeparen);
     default:
       return false;
