@@ -502,6 +502,10 @@ namespace Microsoft.Dafny {
     }
 
     internal static bool IsTriggerKiller(Expression expr) {
+      // CLEMENT: This should be removed once trigger generation becomes the default
+      if (!DafnyOptions.O.AutoTriggers) {
+        return false;
+      }
       var annotation = new TriggerGenerator((x, y, z) => { }).Annotate(expr);
       return annotation.IsTriggerKiller;
     }
