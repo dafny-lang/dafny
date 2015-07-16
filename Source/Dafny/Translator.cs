@@ -10302,7 +10302,8 @@ namespace Microsoft.Dafny {
       public readonly Bpl.Expr layerInterCluster;
       public readonly Bpl.Expr layerIntraCluster = null;  // a value of null says to do the same as for inter-cluster calls
       public int Statistics_CustomLayerFunctionCount = 0;
-      public readonly bool ProducingCoCertificates = false;
+      public readonly bool ProducingCoCertificates = false; // CLEMENT Where is this used?
+      public readonly bool stripLits = false;
       [ContractInvariantMethod]
       void ObjectInvariant()
       {
@@ -10320,7 +10321,7 @@ namespace Microsoft.Dafny {
       /// This is a general constructor, but takes the layerInterCluster as an int.
       /// </summary>
       ExpressionTranslator(Translator translator, PredefinedDecls predef, Bpl.Expr heap, string thisVar,
-        Function applyLimited_CurrentFunction, int layerInterCluster, Bpl.Expr layerIntraCluster, string modifiesFrame) {
+        Function applyLimited_CurrentFunction, int layerInterCluster, Bpl.Expr layerIntraCluster, string modifiesFrame, bool stripLits) {
 
         Contract.Requires(translator != null);
         Contract.Requires(predef != null);
@@ -10337,6 +10338,7 @@ namespace Microsoft.Dafny {
         this.layerInterCluster = LayerN(layerInterCluster);
         this.layerIntraCluster = layerIntraCluster;
         this.modifiesFrame = modifiesFrame;
+        this.stripLits = stripLits;
       }
 
       /// <summary>
@@ -10344,7 +10346,7 @@ namespace Microsoft.Dafny {
       /// one ExpressionTranslator is constructed from another, unchanged parameters are just copied in.
       /// </summary>
       ExpressionTranslator(Translator translator, PredefinedDecls predef, Bpl.Expr heap, string thisVar,
-        Function applyLimited_CurrentFunction, Bpl.Expr layerInterCluster, Bpl.Expr layerIntraCluster, string modifiesFrame) {
+        Function applyLimited_CurrentFunction, Bpl.Expr layerInterCluster, Bpl.Expr layerIntraCluster, string modifiesFrame, bool stripLits) {
 
         Contract.Requires(translator != null);
         Contract.Requires(predef != null);
@@ -10365,6 +10367,7 @@ namespace Microsoft.Dafny {
           this.layerIntraCluster = layerIntraCluster;
         }
         this.modifiesFrame = modifiesFrame;
+        this.stripLits = stripLits;
       }
 
       public ExpressionTranslator(Translator translator, PredefinedDecls predef, IToken heapToken)
@@ -10394,7 +10397,7 @@ namespace Microsoft.Dafny {
       }
 
       public ExpressionTranslator(Translator translator, PredefinedDecls predef, Bpl.Expr heap, string thisVar)
-        : this(translator, predef, heap, thisVar, null, 1, null, "$_Frame") {
+        : this(translator, predef, heap, thisVar, null, 1, null, "$_Frame", false) {
         Contract.Requires(translator != null);
         Contract.Requires(predef != null);
         Contract.Requires(heap != null);
@@ -10402,14 +10405,14 @@ namespace Microsoft.Dafny {
       }
 
       public ExpressionTranslator(ExpressionTranslator etran, Bpl.Expr heap)
-        : this(etran.translator, etran.predef, heap, etran.This, etran.applyLimited_CurrentFunction, etran.layerInterCluster, etran.layerIntraCluster, etran.modifiesFrame)
+        : this(etran.translator, etran.predef, heap, etran.This, etran.applyLimited_CurrentFunction, etran.layerInterCluster, etran.layerIntraCluster, etran.modifiesFrame, etran.stripLits)
       {
         Contract.Requires(etran != null);
         Contract.Requires(heap != null);
       }
 
       public ExpressionTranslator(ExpressionTranslator etran, string modifiesFrame)
-        : this(etran.translator, etran.predef, etran.HeapExpr, etran.This, etran.applyLimited_CurrentFunction, etran.layerInterCluster, etran.layerIntraCluster, modifiesFrame) {
+        : this(etran.translator, etran.predef, etran.HeapExpr, etran.This, etran.applyLimited_CurrentFunction, etran.layerInterCluster, etran.layerIntraCluster, modifiesFrame, etran.stripLits) {
         Contract.Requires(etran != null);
         Contract.Requires(modifiesFrame != null);
       }
@@ -10420,7 +10423,7 @@ namespace Microsoft.Dafny {
           Contract.Ensures(Contract.Result<ExpressionTranslator>() != null);
 
           if (oldEtran == null) {
-            oldEtran = new ExpressionTranslator(translator, predef, new Bpl.OldExpr(HeapExpr.tok, HeapExpr), This, applyLimited_CurrentFunction, layerInterCluster, layerIntraCluster, modifiesFrame);
+            oldEtran = new ExpressionTranslator(translator, predef, new Bpl.OldExpr(HeapExpr.tok, HeapExpr), This, applyLimited_CurrentFunction, layerInterCluster, layerIntraCluster, modifiesFrame, stripLits);
             oldEtran.oldEtran = oldEtran;
           }
           return oldEtran;
@@ -10438,7 +10441,12 @@ namespace Microsoft.Dafny {
         Contract.Requires(layerArgument != null);
         Contract.Ensures(Contract.Result<ExpressionTranslator>() != null);
 
-        return new ExpressionTranslator(translator, predef, HeapExpr, This, null, layerArgument, layerArgument, modifiesFrame);
+        return new ExpressionTranslator(translator, predef, HeapExpr, This, null, layerArgument, layerArgument, modifiesFrame, stripLits);
+      }
+
+      public ExpressionTranslator WithNoLits() {
+        Contract.Ensures(Contract.Result<ExpressionTranslator>() != null);
+        return new ExpressionTranslator(translator, predef, HeapExpr, This, null, layerInterCluster, layerIntraCluster, modifiesFrame, true);
       }
 
       public ExpressionTranslator LimitedFunctions(Function applyLimited_CurrentFunction, Bpl.Expr layerArgument) {
@@ -10446,16 +10454,16 @@ namespace Microsoft.Dafny {
         Contract.Requires(layerArgument != null);
         Contract.Ensures(Contract.Result<ExpressionTranslator>() != null);
 
-        return new ExpressionTranslator(translator, predef, HeapExpr, This, applyLimited_CurrentFunction, /* layerArgument */ layerInterCluster, layerArgument, modifiesFrame);
+        return new ExpressionTranslator(translator, predef, HeapExpr, This, applyLimited_CurrentFunction, /* layerArgument */ layerInterCluster, layerArgument, modifiesFrame, stripLits);
       }
 
       public ExpressionTranslator LayerOffset(int offset) {
         Contract.Requires(0 <= offset);
         Contract.Ensures(Contract.Result<ExpressionTranslator>() != null);
 
-        var et = new ExpressionTranslator(translator, predef, HeapExpr, This, applyLimited_CurrentFunction, translator.LayerSucc(layerInterCluster, offset), layerIntraCluster, modifiesFrame);
+        var et = new ExpressionTranslator(translator, predef, HeapExpr, This, applyLimited_CurrentFunction, translator.LayerSucc(layerInterCluster, offset), layerIntraCluster, modifiesFrame, stripLits);
         if (this.oldEtran != null) {
-          var etOld = new ExpressionTranslator(translator, predef, Old.HeapExpr, This, applyLimited_CurrentFunction, translator.LayerSucc(layerInterCluster, offset), layerIntraCluster, modifiesFrame);
+          var etOld = new ExpressionTranslator(translator, predef, Old.HeapExpr, This, applyLimited_CurrentFunction, translator.LayerSucc(layerInterCluster, offset), layerIntraCluster, modifiesFrame, stripLits);
           etOld.oldEtran = etOld;
           et.oldEtran = etOld;
         }
@@ -10538,6 +10546,14 @@ namespace Microsoft.Dafny {
         return translator.Substitute(e.Body, null, substMap);
       }
 
+      public Expr MaybeLit(Expr expr, Bpl.Type type) {
+        return stripLits ? expr : translator.Lit(expr, type);
+      }
+
+      public Expr MaybeLit(Expr expr) {
+        return stripLits ? expr : translator.Lit(expr);
+      }
+
       /// <summary>
       /// Translates Dafny expression "expr" into a Boogie expression.  If the type of "expr" can be a boolean, then the
       /// token (source location) of the resulting expression is filled in (it wouldn't hurt if the token were always
@@ -10554,7 +10570,7 @@ namespace Microsoft.Dafny {
           if (e.Value == null) {
             return predef.Null;
           } else if (e.Value is bool) {
-            return translator.Lit(new Bpl.LiteralExpr(e.tok, (bool)e.Value));
+            return MaybeLit(new Bpl.LiteralExpr(e.tok, (bool)e.Value));
           } else if (e is CharLiteralExpr) {
             // we expect e.Value to be a string representing exactly one char
             Bpl.Expr rawElement = null;  // assignment to please compiler's definite assignment rule
@@ -10563,7 +10579,7 @@ namespace Microsoft.Dafny {
               rawElement = translator.FunctionCall(expr.tok, BuiltinFunction.CharFromInt, null, Bpl.Expr.Literal((int)ch));
             }
             Contract.Assert(rawElement != null);  // there should have been an iteration of the loop above
-            return translator.Lit(rawElement, predef.CharType);
+            return MaybeLit(rawElement, predef.CharType);
           } else if (e is StringLiteralExpr) {
             var str = (StringLiteralExpr)e;
             Bpl.Expr seq = translator.FunctionCall(expr.tok, BuiltinFunction.SeqEmpty, predef.BoxType);
@@ -10572,11 +10588,11 @@ namespace Microsoft.Dafny {
               Bpl.Expr elt = BoxIfNecessary(expr.tok, rawElement, Type.Char);
               seq = translator.FunctionCall(expr.tok, BuiltinFunction.SeqBuild, predef.BoxType, seq, elt);
             }
-            return translator.Lit(seq, translator.TrType(new SeqType(Type.Char)));
+            return MaybeLit(seq, translator.TrType(new SeqType(Type.Char)));
           } else if (e.Value is BigInteger) {
-            return translator.Lit(Bpl.Expr.Literal(Microsoft.Basetypes.BigNum.FromBigInt((BigInteger)e.Value)));
+            return MaybeLit(Bpl.Expr.Literal(Microsoft.Basetypes.BigNum.FromBigInt((BigInteger)e.Value)));
           } else if (e.Value is Basetypes.BigDec) {
-            return translator.Lit(Bpl.Expr.Literal((Basetypes.BigDec)e.Value));
+            return MaybeLit(Bpl.Expr.Literal((Basetypes.BigDec)e.Value));
           } else {
             Contract.Assert(false); throw new cce.UnreachableException();  // unexpected literal
           }
@@ -10642,7 +10658,7 @@ namespace Microsoft.Dafny {
             s = translator.FunctionCall(expr.tok, BuiltinFunction.SeqBuild, predef.BoxType, s, elt);
           }
           if (isLit) {
-            s = translator.Lit(s, predef.BoxType);
+            s = MaybeLit(s, predef.BoxType);
           }
           return s;
 
@@ -10671,7 +10687,7 @@ namespace Microsoft.Dafny {
                   new List<Bpl.Expr> {obj});
                 result = translator.CondApplyUnbox(expr.tok, result, field.Type, expr.Type);
                 if (translator.IsLit(obj)) {
-                  result = translator.Lit(result, translator.TrType(expr.Type));
+                  result = MaybeLit(result, translator.TrType(expr.Type));
                 }
                 return result;
               }
@@ -10746,7 +10762,7 @@ namespace Microsoft.Dafny {
             // if e0 == null && e1 == null, then we have the identity operation seq[..] == seq;
             if (isLit && (e0 != null || e1 != null)) {
               // Lit-lift the expression
-              seq = translator.Lit(seq, translator.TrType(expr.Type));
+              seq = MaybeLit(seq, translator.TrType(expr.Type));
             }
             return seq;
           }
@@ -10857,7 +10873,7 @@ namespace Microsoft.Dafny {
           Expr result = new Bpl.NAryExpr(e.tok, new Bpl.FunctionCall(id), args);
           result = translator.CondApplyUnbox(e.tok, result, e.Function.ResultType, e.Type);
           if (returnLit && Translator.FunctionBodyIsAvailable(e.Function, translator.currentModule)) {
-            result = translator.Lit(result, ty);
+            result = MaybeLit(result, ty);
           }
           return result;
         } else if (expr is DatatypeValue) {
@@ -10875,7 +10891,7 @@ namespace Microsoft.Dafny {
           Bpl.IdentifierExpr id = new Bpl.IdentifierExpr(dtv.tok, dtv.Ctor.FullName, predef.DatatypeType);
           Bpl.Expr ret = new Bpl.NAryExpr(dtv.tok, new Bpl.FunctionCall(id), args);
           if (isLit) {
-            ret = translator.Lit(ret, predef.DatatypeType);
+            ret = MaybeLit(ret, predef.DatatypeType);
           }
           return ret;
         } else if (expr is OldExpr) {
@@ -10898,7 +10914,7 @@ namespace Microsoft.Dafny {
           Bpl.Expr arg = TrExpr(e.E);
           switch (e.Op) {
             case UnaryOpExpr.Opcode.Lit:
-              return translator.Lit(arg);
+              return MaybeLit(arg);
             case UnaryOpExpr.Opcode.Not:
               return Bpl.Expr.Unary(expr.tok, UnaryOperator.Opcode.Not, arg);
             case UnaryOpExpr.Opcode.Cardinality:
@@ -10999,7 +11015,7 @@ namespace Microsoft.Dafny {
           bool liftLit = lit0 != null && lit1 != null;
           // NOTE(namin): We usually avoid keeping literals, because their presence might mess up triggers that do not expect them.
           //              Still for equality-related operations, it's useful to keep them instead of lifting them, so that they can be propagated.
-          bool keepLits = false;
+          bool keepLits = false; // CLEMENT: I don't really understand this
           if (lit0 != null) {
             e0 = lit0;
           }
@@ -11301,7 +11317,7 @@ namespace Microsoft.Dafny {
           var ae1 = keepLits ? oe1 : e1;
           Bpl.Expr re = Bpl.Expr.Binary(expr.tok, bOpcode, ae0, ae1);
           if (liftLit) {
-            re = translator.Lit(re, typ);
+            re = MaybeLit(re, typ);
           }
           return re;
         } else if (expr is TernaryExpr) {
@@ -11350,7 +11366,7 @@ namespace Microsoft.Dafny {
             // If this is a layer quantifier, quantify over layers here, and use $LS(ly) layers in the translation of the body
             var ly = BplBoundVar(e.Refresh("q$ly#", translator.CurrentIdGenerator), predef.LayerType, bvars);
             Expr layer = translator.LayerSucc(ly);
-            bodyEtran = new ExpressionTranslator(translator, predef, HeapExpr, This, applyLimited_CurrentFunction, layer, layer, modifiesFrame);
+            bodyEtran = new ExpressionTranslator(translator, predef, HeapExpr, This, applyLimited_CurrentFunction, layer, layer, modifiesFrame, stripLits);
           }
           if (Attributes.ContainsBool(e.Attributes, "heapQuantifier", ref _scratch)) {
             var h = BplBoundVar(e.Refresh("q$heap#", translator.CurrentIdGenerator), predef.HeapType, bvars);
@@ -11366,11 +11382,12 @@ namespace Microsoft.Dafny {
 
           Bpl.QKeyValue kv = TrAttributes(e.Attributes, "trigger");
           Bpl.Trigger tr = null;
+          var argsEtran = bodyEtran.WithNoLits();
           foreach (var aa in e.Attributes.AsEnumerable()) {
             if (aa.Name == "trigger") {
               List<Bpl.Expr> tt = new List<Bpl.Expr>();
               foreach (var arg in aa.Args) {
-                tt.Add(bodyEtran.TrExpr(arg));
+                tt.Add(argsEtran.TrExpr(arg));
               }
               tr = new Bpl.Trigger(expr.tok, true, tt, tr);
             }
@@ -11516,7 +11533,7 @@ namespace Microsoft.Dafny {
           new Bpl.LambdaExpr(e.tok, new List<TypeVariable>(), rdvars, null,
             BplImp(ante, consequent));
 
-        return translator.Lit(
+        return MaybeLit(
           translator.FunctionCall(e.tok, BuiltinFunction.AtLayer, predef.HandleType,
             new Bpl.LambdaExpr(e.tok, new List<TypeVariable>(), lvars, null,
               translator.FunctionCall(e.tok, translator.Handle(e.BoundVars.Count), predef.BoxType,
@@ -11821,7 +11838,7 @@ namespace Microsoft.Dafny {
               parms.Add(s);
             } else {
               var e = TrExpr(arg);
-              e = translator.RemoveLit(e);
+              e = translator.RemoveLit(e); // CLEMENT: Why?
               parms.Add(e);
             }
           }
@@ -12503,14 +12520,15 @@ namespace Microsoft.Dafny {
 
     Bpl.Trigger TrTrigger(ExpressionTranslator etran, Attributes attribs, IToken tok, Dictionary<IVariable, Expression> substMap = null)
     {
+      var argsEtran = etran.WithNoLits();
       Bpl.Trigger tr = null;
       foreach (var trigger in attribs.AsEnumerable().Where(aa => aa.Name == "trigger").Select(aa => aa.Args)) {
         List<Bpl.Expr> tt = new List<Bpl.Expr>();
         foreach (var arg in trigger) {
           if (substMap == null) {
-            tt.Add(etran.TrExpr(arg));
+            tt.Add(argsEtran.TrExpr(arg));
           } else {
-            tt.Add(etran.TrExpr(Substitute(arg, null, substMap)));
+            tt.Add(argsEtran.TrExpr(Substitute(arg, null, substMap)));
           }
         }
         tr = new Bpl.Trigger(tok, true, tt, tr);
