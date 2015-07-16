@@ -87,7 +87,7 @@ namespace Microsoft.Dafny {
     }
 
     public String AsDafnyAttributeString(bool wrap = true, bool includeTags = false) {
-      var repr = String.Join(", ", Candidates.Select(t => Printer.ExprToString(t.Expr)));
+      var repr = Candidates.MapConcat(t => Printer.ExprToString(t.Expr), ", ");
       if (wrap) {
         repr = "{:trigger " + repr + "}";
       }
@@ -358,10 +358,12 @@ namespace Microsoft.Dafny {
     }
 
     private static bool DefaultMultiCandidateFilteringFunction(MultiTriggerCandidate multiCandidate, QuantifierExpr quantifier) {
-      if (multiCandidate.PotentialMatchingLoops.Any()) {
-        multiCandidate.Tags.Add(String.Format("matching loop with {0}", String.Join(", ", multiCandidate.PotentialMatchingLoops.Select(tm => Printer.ExprToString(tm.Expr)))));
+      var allowsLoops = quantifier.Attributes.AsEnumerable().Any(a => a.Name == "loop");
+
+      if (!allowsLoops && multiCandidate.PotentialMatchingLoops.Any()) {
+        multiCandidate.Tags.Add(String.Format("matching loop with {0}", multiCandidate.PotentialMatchingLoops.MapConcat(tm => Printer.ExprToString(tm.Expr), ", ")));
       }
-      return multiCandidate.MentionsAll(quantifier.BoundVars) && !multiCandidate.PotentialMatchingLoops.Any();
+      return multiCandidate.MentionsAll(quantifier.BoundVars) && (allowsLoops || !multiCandidate.PotentialMatchingLoops.Any());
     }
 
     private static double DefaultMultiCandidateScoringFunction(MultiTriggerCandidate multi_candidate) {
@@ -544,7 +546,7 @@ namespace Microsoft.Dafny {
 
     internal static void AddTriggers(IEnumerable<Expression> roots, Resolver resolver) {
       DebugTriggers("== From {0} visiting expressions: {1}", new StackFrame(1).GetMethod().Name, 
-        String.Join(", ", roots.Select(root => Printer.ExprToString(root))));
+        roots.MapConcat(Printer.ExprToString, ", "));
       foreach (var expr in roots) {
         AddTriggers(expr, resolver);
       }
@@ -552,7 +554,7 @@ namespace Microsoft.Dafny {
 
     internal static void AddTriggers(IEnumerable<MaybeFreeExpression> roots, Resolver resolver) {
       DebugTriggers("== From {0} visiting expressions: {1}", new StackFrame(1).GetMethod().Name,
-        String.Join(", ", roots.Select(root => Printer.ExprToString(root.E))));
+        roots.MapConcat(root => Printer.ExprToString(root.E), ", "));
       foreach (var expr in roots) {
         AddTriggers(expr.E, resolver);
       }
