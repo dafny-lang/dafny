@@ -25,7 +25,7 @@ namespace Microsoft.Dafny
       ConsoleColor col = Console.ForegroundColor;
       Console.ForegroundColor = ConsoleColor.Red;
       Console.WriteLine("{0}({1},{2}): Error: {3}",
-          DafnyOptions.Clo.UseBaseNameForFileName ? System.IO.Path.GetFileName(tok.filename) : tok.filename, tok.line, tok.col,
+          DafnyOptions.Clo.UseBaseNameForFileName ? System.IO.Path.GetFileName(tok.filename) : tok.filename, tok.line, tok.col - 1,
           string.Format(msg, args));
       Console.ForegroundColor = col;
       ErrorCount++;
@@ -271,7 +271,7 @@ namespace Microsoft.Dafny
     public static void DefaultInformationReporter(AdditionalInformation info) {
       Console.WriteLine("{0}({1},{2}): Info: {3}",
                         DafnyOptions.Clo.UseBaseNameForFileName ? System.IO.Path.GetFileName(info.Token.filename) : info.Token.filename,
-                        info.Token.line, info.Token.col, info.Text);
+                        info.Token.line, info.Token.col - 1, info.Text);
     }
 
     public void ResolveProgram(Program prog) {
