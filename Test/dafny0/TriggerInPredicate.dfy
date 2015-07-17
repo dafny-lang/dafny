@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:0 /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %dafny /compile:0 /dprint:"%t.dprint" /autoTriggers:1 /printTooltips "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 predicate A(x: bool, y: bool) { x }
@@ -13,3 +13,7 @@ method C'() requires B(true, true) {}
 
 // Inlining should work fine here
 method C''() requires B(true, true && false) {}
+
+// Local Variables:
+// dafny-prover-local-args: ("/autoTriggers:1")
+// End:
