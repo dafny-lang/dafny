@@ -2,7 +2,6 @@ import os
 import re
 import sys
 import csv
-import shlex
 import shutil
 import argparse
 import operator
@@ -17,10 +16,15 @@ from subprocess import Popen, call, PIPE, TimeoutExpired
 
 # c:/Python34/python.exe runTests.py --compare ../TestStable/results/SequenceAxioms/2015-06-06-00-54-52--PrettyPrinted.report.csv ../TestStable/results/SequenceAxioms/*.csv
 
+VERBOSITY = None
+KILLED = False
 ANSI = False
+
 try:
     import colorama
-    colorama.init()
+    no_native_ansi = os.name == 'nt' and os.environ.get("TERM") in [None, "cygwin"]
+    tty = all(hasattr(stream, 'isatty') and stream.isatty() for stream in (sys.stdout, sys.stderr))
+    colorama.init(strip=no_native_ansi, convert=no_native_ansi and tty)
     ANSI = True
 except ImportError:
     try:
@@ -29,25 +33,28 @@ except ImportError:
     except ImportError:
         pass
 
-VERBOSITY = None
-KILLED = False
-
-ALWAYS_EXCLUDED = ["Output", "snapshots", "sandbox"]
-
+class Defaults:
+    ALWAYS_EXCLUDED = ["Output", "snapshots", "sandbox", "desktop"]
+    DAFNY_BIN = os.path.realpath(os.path.join(os.path.dirname(__file__), "../Binaries/Dafny.exe"))
+    COMPILER = [DAFNY_BIN]
+    FLAGS = ["/useBaseNameForFileName", "/compile:1", "/nologo", "/timeLimit:120"]
 
 class Debug(Enum):
     ERROR  = (-1, '\033[91m')
-    REPORT = (0, '\033[0m')
-    INFO   = (1, '\033[0m')
+    REPORT = (0, '\033[0m', True)
+    INFO   = (1, '\033[0m', True)
     DEBUG  = (2, '\033[0m')
     TRACE  = (3, '\033[0m')
 
-    def __init__(self, index, color):
+    def __init__(self, index, color, elide=False):
         self.index = index
         self.color = color
+        self.elide = elide
 
-def wrap_color(string, color):
-    if ANSI:
+def wrap_color(string, color, silent=False):
+    if silent:
+        return " " * len(string)
+    elif ANSI:
         return color + string + '\033[0m'
     else:
         return string
@@ -60,10 +67,14 @@ def debug(level, *args, **kwargs):
     if isinstance(headers, Enum):
         headers = [headers]
 
+    silentheaders = kwargs.pop("silentheaders", False)
+
     if level and level.index <= VERBOSITY:
         if level:
-           headers = [level] + headers
-        headers = tuple("[" + wrap_color("{: ^8}".format(h.name), h.color) + "]" for h in headers)
+            headers = [level] + headers
+
+        headers = tuple(wrap_color("{: <8}".format("[" + h.name + "]"), h.color, silent = silentheaders)
+                        for h in headers if not h.elide)
         print(*(headers + args), **kwargs)
 
 class TestStatus(Enum):
@@ -76,13 +87,15 @@ class TestStatus(Enum):
     def __init__(self, index, color):
         self.index = index
         self.color = color
+        self.elide = False
 
 class Test:
     COLUMNS = ["name", "status", "start", "end", "duration", "returncodes", "suite_time", "njobs", "proc_info", "source_path", "temp_directory", "cmds", "expected", "output"]
 
     def __init__(self, name, source_path, cmds, timeout, compiler_id = 0):
         self.name = name
-        self.source_path = source_path
+        self.dfy = None if self.name is None else (self.name + ".dfy")
+        self.source_path = Test.uncygdrive(source_path)
         self.expect_path = Test.source_to_expect_path(self.source_path)
         self.source_directory, self.fname = os.path.split(self.source_path)
         self.temp_directory = os.path.join(self.source_directory, "Output")
@@ -106,6 +119,10 @@ class Test:
     @staticmethod
     def source_to_expect_path(source):
         return source + ".expect"
+
+    @staticmethod
+    def uncygdrive(path):
+        return re.sub("^/cygdrive/([a-zA-Z])/", r"\1:/", path)
 
     @staticmethod
     def read_normalize(path):
@@ -137,22 +154,26 @@ class Test:
 
     @staticmethod
     def summarize(results):
-        debug(None, "")
+        debug(Debug.INFO, "\nTesting complete ({} test(s))".format(len(results)))
 
-        debug(Debug.INFO, "** Testing complete ({} tests) **".format(len(results)))
         if results:
             grouped = defaultdict(list)
-            for t in results:
-                grouped[t.status].append(t)
+            for test in results:
+                grouped[test.status].append(test)
 
-            for status, ts in sorted(grouped.items(), key=lambda x: x[0].index):
-                if ts:
-                    debug(Debug.REPORT, "{}/{} -- {}".format(len(ts), len(results), " ".join(t.name for t in ts)), headers=status)
-            debug(Debug.REPORT, "Testing took {:.2f}s on {} threads".format(results[0].suite_time, results[0].njobs))
+            for status, tests in sorted(grouped.items(), key=lambda x: x[0].index):
+                if tests:
+                    debug(Debug.REPORT, "{} of {}".format(len(tests), len(results)), headers=status)
+                    if status != TestStatus.PASSED:
+                        for test in tests:
+                            debug(Debug.REPORT, "* " + test.dfy, headers=status, silentheaders=True)
+
+            debug(Debug.REPORT, "Testing took {:.2f}s on {} thread(s)".format(results[0].suite_time, results[0].njobs))
+
 
     def run(self):
-        debug(Debug.DEBUG, "Starting {}".format(self.name))
-        os.makedirs(self.temp_directory, exist_ok = True)
+        debug(Debug.DEBUG, "Starting {}".format(self.dfy))
+        os.makedirs(self.temp_directory, exist_ok=True)
         # os.chdir(self.source_directory)
 
         stdout, stderr = b'', b''
@@ -162,7 +183,6 @@ class Test:
             for cmd in self.cmds:
                 debug(Debug.DEBUG, "> {}".format(cmd))
                 try:
-                    #, timeout = 60*60)
                     proc = Popen(cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE, shell=True)
                     _stdout, _stderr = proc.communicate(timeout=self.timeout)
                     stdout, stderr = stdout + _stdout, stderr + _stderr
@@ -182,7 +202,7 @@ class Test:
 
             stdout, stderr = stdout.strip(), stderr.strip()
             if stdout != b"" or stderr != b"":
-                debug(Debug.TRACE, "Writing the output of {} to {}".format(self.name, self.temp_output_path))
+                debug(Debug.TRACE, "Writing the output of {} to {}".format(self.dfy, self.temp_output_path))
                 with open(self.temp_output_path, mode='ab') as writer:
                     writer.write(stdout + stderr)
             if stderr != b"":
@@ -199,7 +219,7 @@ class Test:
         self.status = TestStatus.PASSED if self.expected == self.output else TestStatus.FAILED
 
     def report(self, tid, total):
-        debug(Debug.INFO, "[{}] [{:.2f}s] {} ({} of {})".format(self.compiler_id, self.duration, self.name, tid, total), headers=self.status)
+        debug(Debug.INFO, "[{:5.2f}s] {} ({} of {})".format(self.duration, self.dfy, tid, total), headers=self.status)
 
     @staticmethod
     def write_bytes(base_directory, relative_path, extension, contents):
@@ -224,17 +244,20 @@ def setup_parser():
     parser.add_argument('paths', type=str, action='store', nargs='+',
                         help='Input files or folders. Folders are searched for .dfy files.')
 
-    parser.add_argument('--compiler', type=str, action='append', default=[],
-                        help='Dafny executable.')
+    parser.add_argument('--compiler', type=str, action='append', default=None,
+                        help='Dafny executable. Default: {}'.format(Defaults.DAFNY_BIN))
+
+    parser.add_argument('--base-flags', type=str, action='append', default=None,
+                        help='Arguments to pass to dafny. Multiple --flags are concatenated. Default: {}'.format(Defaults.FLAGS))
 
     parser.add_argument('--flags', '-f', type=str, action='append', default=[],
-                        help='Arguments to pass to dafny. Multiple --flags are concatenated.')
+                        help='Additional arguments to pass to dafny. Useful to override some of the defaults found in --base-flags.')
 
     parser.add_argument('--njobs', '-j', action='store', type=int, default=None,
                         help='Number of test workers.')
 
     parser.add_argument('--exclude', action='append', type=str, default=[],
-                        help='Excluded directories. {} are automatically added.'.format(ALWAYS_EXCLUDED))
+                        help='Excluded directories. {} are automatically added.'.format(Defaults.ALWAYS_EXCLUDED))
 
     parser.add_argument('--verbosity', action='store', type=int, default=1,
                         help='Set verbosity level. 0: Minimal; 1: Some info; 2: More info.')
@@ -261,7 +284,8 @@ def setup_parser():
                         help="Used in conjuction with --diff, accept the new output.")
 
     parser.add_argument('--difftool', action='store', type=str, default="diff",
-                        help='Diff command line.')
+                        help='Diff program. Default: diff.')
+
     return parser
 
 
@@ -281,7 +305,7 @@ def run_one(test_args):
         # ignore further work once you receive a kill signal
         KILLED = True
     except Exception as e:
-        debug(Debug.ERROR, "For file {}".format(test.name), e)
+        debug(Debug.ERROR, "[{}] {}".format(test.dfy, e))
         test.status = TestStatus.UNKNOWN
     return test
 
@@ -331,22 +355,23 @@ def find_tests(paths, compiler_cmds, excluded, timeout):
 
 
 def run_tests(args):
-    if args.compiler == []:
-        base_directory = os.path.dirname(os.path.realpath(__file__))
-        args.compiler = [os.path.normpath(os.path.join(base_directory, "../Binaries/Dafny.exe"))]
+    if args.compiler is None:
+        args.compiler = Defaults.COMPILER
+    if args.base_flags is None:
+        args.base_flags = Defaults.FLAGS
 
     for compiler in args.compiler:
         if not os.path.exists(compiler):
             debug(Debug.ERROR, "Compiler not found: {}".format(compiler))
             return
 
-    tests = list(find_tests(args.paths, [compiler + ' ' + " ".join(args.flags)
+    tests = list(find_tests(args.paths, [compiler + ' ' + " ".join(args.base_flags + args.flags)
                                          for compiler in args.compiler],
-                            args.exclude + ALWAYS_EXCLUDED, args.timeout))
+                            args.exclude + Defaults.ALWAYS_EXCLUDED, args.timeout))
     tests.sort(key=operator.attrgetter("name"))
 
-    args.njobs = args.njobs or os.cpu_count() or 1
-    debug(Debug.INFO, "** Running {} tests on {} testing threads, timeout is {:.2f}, started at {}**".format(len(tests), args.njobs, args.timeout, strftime("%H:%M:%S")))
+    args.njobs = min(args.njobs or os.cpu_count() or 1, len(tests))
+    debug(Debug.INFO, "\nRunning {} test(s) on {} testing thread(s), timeout is {:.2f}s, started at {}".format(len(tests), args.njobs, args.timeout, strftime("%H:%M:%S")))
 
     try:
         pool = Pool(args.njobs)
@@ -384,7 +409,7 @@ def diff(paths, accept, difftool):
             if not accept:
                 call([difftool, test.expect_path, test.temp_output_path])
 
-            if accept or input("Accept this change? (y/N)") == "y":
+            if accept or input("Accept this change? (y/N) ") == "y":
                 debug(Debug.INFO, path, "Accepted")
                 shutil.copy(test.temp_output_path, test.expect_path)
 
@@ -392,7 +417,7 @@ def compare_results(globs, time_all):
     from glob import glob
     paths = [path for g in globs for path in glob(g)]
     reports = {path: Test.load_report(path) for path in paths}
-    resultsets = {path: {test.name: (test.status, test.duration) for test in report}
+    resultsets = {path: {test.dfy: (test.status, test.duration) for test in report}
                   for path, report in reports.items()}
 
     all_tests = set(name for resultset in resultsets.values() for name in resultset.keys())
@@ -421,32 +446,6 @@ def compare_results(globs, time_all):
                 row.append(result)
 
             csv_writer.writerow(row)
-
-
-# def compare_results(globs):
-#     from glob import glob
-#     baseline = dict()
-#     results = defaultdict(dict)
-#     paths = [p for g in globs for p in glob(g)]
-
-#     for path in paths:
-#         report = Test.load_report(path)
-#         for test in report:  # FIXME add return codes (once we have them)
-#             if test.duration:
-#                 bl = baseline.setdefault(test.name, float(test.duration))
-#                 result = "timeout" if test.status == TestStatus.TIMEOUT else (float(test.duration) - bl) / bl
-#             else:
-#                 result = "???"
-#             results[test.name][path] = result, test.duration, test.status.name
-
-#     with open("compare.csv", mode='w', newline='') as writer:
-#         csv_writer = csv.writer(writer, dialect='excel')
-#         csv_writer.writerow(["Name"] + [os.path.split(path)[1].lstrip("0123456789-") for path in paths])
-#         for name, tresults in sorted(results.items()):
-#             res = [tresults.get(path) for path in paths]
-#             csv_writer.writerow([name] + [r[0] for r in res])
-#             csv_writer.writerow([name + "*"] + [r[1:] for r in res])
-
 
 def main():
     global VERBOSITY
