@@ -25,7 +25,7 @@ using System.Diagnostics;
  */
 
 namespace Microsoft.Dafny {
-  class TriggerCandidate { // TODO Hashing is broken (duplicates can pop up)
+  class TriggerCandidate {
     internal Expression Expr;
     internal ISet<IVariable> Variables;
     internal List<ExprExtensions.TriggerMatch> MatchesInQuantifierBody;
@@ -35,7 +35,7 @@ namespace Microsoft.Dafny {
     }
   }
 
-  class TriggerCandidateComparer : IEqualityComparer<TriggerCandidate> {
+  class TriggerCandidateComparer : IEqualityComparer<TriggerCandidate> { //FIXME: There is a bunch of these comparers.
     private static TriggerCandidateComparer singleton;
     internal static TriggerCandidateComparer Instance {
       get { return singleton == null ? (singleton = new TriggerCandidateComparer()) : singleton; }

@@ -56,7 +56,7 @@ namespace Microsoft.Dafny
     public bool AllowGlobals = false;
     public bool CountVerificationErrors = true;
     public bool Optimize = false;
-    public bool AutoTriggers = true;
+    public bool AutoTriggers = false;
     public bool PrintTooltips = false;
 
     protected override bool ParseOption(string name, Bpl.CommandLineOptionEngine.CommandLineParseState ps) {
@@ -188,7 +188,7 @@ namespace Microsoft.Dafny
           return true;
 
         case "autoTriggers": {
-            int autoTriggers = 1; // defaults to reporting verification errors
+            int autoTriggers = 0;
             if (ps.GetNumericArgument(ref autoTriggers, 2)) {
               AutoTriggers = autoTriggers == 1;
             }
@@ -291,8 +291,8 @@ namespace Microsoft.Dafny
                 1 (default) - If preprocessing succeeds, set exit code to the number of
                               verification errors.
   /autoTriggers:<n>
-                0 - Do not generate {:trigger} annotations for user-level quantifiers.
-                1 (default) - Add a {:trigger} to each user-level quantifier. Existing
+                0 (default) - Do not generate {:trigger} annotations for user-level quantifiers.
+                1 - Add a {:trigger} to each user-level quantifier. Existing
                               annotations are preserved.
   /optimize     Produce optimized C# code, meaning:
                   - selects optimized C# prelude by passing 
