@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:0 /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %dafny /compile:0 /dprint:"%t.dprint" /autoTriggers:1 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // Imported from bug 76. LitInt would be triggered on, causing matching failures.
@@ -33,3 +33,7 @@ lemma L4(x:int, y:int)
 {
     assert P(x, y + 1);
 }
+
+// Local Variables:
+// dafny-prover-local-args: ("/autoTriggers:1")
+// End:

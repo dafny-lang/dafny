@@ -1,5 +1,7 @@
-// RUN: %dafny /compile:3 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %dafny /compile:3 /print:"%t.print" /dprint:"%t.dprint" /autoTriggers:1 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
+
+// /autoTriggers:1 added to suppress instabilities
 
 method Main() { }
 
@@ -88,3 +90,7 @@ method M(a: array<int>, c: array<int>, m: nat, n: nat, k: nat, l: nat)
       assert a[k..k+m] == c[l+k..l+k+m];
   }
 }
+
+// Local Variables:
+// dafny-prover-local-args: ("/autoTriggers:1")
+// End:

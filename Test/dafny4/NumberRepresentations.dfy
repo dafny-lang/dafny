@@ -293,3 +293,7 @@ lemma MulInverse(x: int, a: int, b: int, y: int)
   ensures a == b;
 {
 }
+
+// Local Variables:
+// dafny-prover-local-args: ("/vcsMaxKeepGoingSplits:5")
+// End:
