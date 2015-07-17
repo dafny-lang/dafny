@@ -731,7 +731,8 @@ namespace Microsoft.Dafny {
             var constructor_call = FunctionCall(ctor.tok, ctor.FullName, predef.DatatypeType, args);
             var lhs = FunctionCall(ctor.tok, BuiltinFunction.DatatypeCtorId, null, constructor_call);
             Bpl.Expr q = Bpl.Expr.Eq(lhs, c);
-            sink.AddTopLevelDeclaration(new Bpl.Axiom(ctor.tok, BplForall(bvs, BplTrigger(constructor_call), q), "Constructor identifier")); // NEW_TRIGGER
+            var trigger = BplTrigger(constructor_call); // NEW_TRIGGER
+            sink.AddTopLevelDeclaration(new Bpl.Axiom(ctor.tok, BplForall(bvs, trigger, q), "Constructor identifier"));
           }
 
           {
@@ -762,10 +763,12 @@ namespace Microsoft.Dafny {
           Bpl.Expr q = Bpl.Expr.Eq(dId, lhs);
           if (bvs.Count != 0) {
             // TRIG (exists a#6#0#0: Box, a#6#1#0: DatatypeType :: d == #OnceBuggy.MyDt.Cons(a#6#0#0, a#6#1#0))'
-            q = new Bpl.ExistsExpr(ctor.tok, bvs, BplTrigger(lhs), q);  // NEW_TRIGGER
+            var trigger = BplTrigger(lhs); // NEW_TRIGGER
+            q = new Bpl.ExistsExpr(ctor.tok, bvs, trigger, q);
           }
           Bpl.Expr dtq = FunctionCall(ctor.tok, ctor.QueryField.FullSanitizedName, Bpl.Type.Bool, dId);
-          q = BplForall(dBv, BplTrigger(dtq), BplImp(dtq, q)); // NEW_TRIGGER
+          var triggerb = BplTrigger(dtq);
+          q = BplForall(dBv, triggerb, BplImp(dtq, q)); // NEW_TRIGGER
           sink.AddTopLevelDeclaration(new Bpl.Axiom(ctor.tok, q, "Constructor questionmark has arguments"));
         }
 
@@ -857,8 +860,8 @@ namespace Microsoft.Dafny {
               Bpl.Expr rhs = FunctionCall(ctor.tok, ctor.FullName, predef.DatatypeType, args);
               rhs = FunctionCall(ctor.tok, BuiltinFunction.DtRank, null, rhs);
               // TRIG (forall a#11#0#0: Box, a#11#1#0: DatatypeType :: BoxRank(a#11#0#0) < DtRank(#_module.List.Cons(a#11#0#0, a#11#1#0)))
-              var trigger = new Bpl.Trigger(ctor.tok, true, new List<Bpl.Expr> { lhs, rhs }); // TRIGGERS: THIS IS BROKEN
-              q = new Bpl.ForallExpr(ctor.tok, bvs, null, Bpl.Expr.Lt(lhs, rhs));  // NEW_TRIGGER // CLEMENT: Trigger not use because breaks termination checks for match statements
+              var trigger = (Trigger)null; // FIXME new Bpl.Trigger(ctor.tok, true, new List<Bpl.Expr> { lhs, rhs }); // TRIGGERS: THIS IS BROKEN // NEW_TRIGGER 
+              q = new Bpl.ForallExpr(ctor.tok, bvs, trigger, Bpl.Expr.Lt(lhs, rhs)); // CLEMENT: Trigger not is use, because it breaks termination checks for match statements
               sink.AddTopLevelDeclaration(new Bpl.Axiom(ctor.tok, q, "Inductive rank"));
             } else if (argType is SeqType) {
               // axiom (forall params, i: int :: 0 <= i && i < |arg| ==> DtRank(arg[i]) < DtRank(#dt.ctor(params)));
@@ -883,7 +886,8 @@ namespace Microsoft.Dafny {
               lhs = FunctionCall(ctor.tok, BuiltinFunction.SeqRank, null, args[i]);
               rhs = FunctionCall(ctor.tok, ctor.FullName, predef.DatatypeType, args);
               rhs = FunctionCall(ctor.tok, BuiltinFunction.DtRank, null, rhs);
-              q = new Bpl.ForallExpr(ctor.tok, bvs, new Trigger(lhs.tok, true, new List<Bpl.Expr> { lhs, rhs }), Bpl.Expr.Lt(lhs, rhs));  // NEW_TRIGGER
+              var trigger = new Trigger(lhs.tok, true, new List<Bpl.Expr> { lhs, rhs }); // NEW_TRIGGER
+              q = new Bpl.ForallExpr(ctor.tok, bvs, trigger, Bpl.Expr.Lt(lhs, rhs));
               sink.AddTopLevelDeclaration(new Bpl.Axiom(ctor.tok, q, "Inductive seq rank"));
             } else if (argType is SetType) {
               // axiom (forall params, d: Datatype :: arg[d] ==> DtRank(d) < DtRank(#dt.ctor(params)));
@@ -898,8 +902,8 @@ namespace Microsoft.Dafny {
               Bpl.Expr rhs = FunctionCall(ctor.tok, ctor.FullName, predef.DatatypeType, args);
               rhs = FunctionCall(ctor.tok, BuiltinFunction.DtRank, null, rhs);
               // TRIG (forall a#50#0#0: Set Box, d: DatatypeType :: a#50#0#0[$Box(d)] ==> DtRank(d) < DtRank(#_module.d3.B3(a#50#0#0)))
-              var trigger = new Bpl.Trigger(ctor.tok, true, new List<Bpl.Expr> { lhs, rhs }); //TRIGGERS: Should this mention the precondition ("ante") too?
-              q = new Bpl.ForallExpr(ctor.tok, bvs, trigger, Bpl.Expr.Imp(ante, Bpl.Expr.Lt(lhs, rhs)));  // NEW_TRIGGER
+              var trigger = new Bpl.Trigger(ctor.tok, true, new List<Bpl.Expr> { lhs, rhs }); // NEW_TRIGGER //TRIGGERS: Should this mention the precondition ("ante") too?
+              q = new Bpl.ForallExpr(ctor.tok, bvs, trigger, Bpl.Expr.Imp(ante, Bpl.Expr.Lt(lhs, rhs)));
               sink.AddTopLevelDeclaration(new Bpl.Axiom(ctor.tok, q, "Inductive set rank"));
             } else if (argType is MultiSetType) {
               // axiom (forall params, d: Datatype :: 0 < arg[d] ==> DtRank(d) < DtRank(#dt.ctor(params)));
@@ -1120,9 +1124,9 @@ namespace Microsoft.Dafny {
         CoAxHelper(true, (tyargs, vars, lexprs, rexprs, kVar, k, kGtZero, ly, d0, d1) => {
           var equal = Bpl.Expr.Eq(d0, d1);
           var PEq = CoEqualCall(codecl, lexprs, rexprs, k, LayerSucc(ly), d0, d1);
+          var trigger = BplTrigger(PEq);
           sink.AddTopLevelDeclaration(new Axiom(dt.tok,
-            BplForall(vars, BplTrigger(PEq), BplImp(BplAnd(equal, kGtZero), PEq)),
-            "Prefix equality shortcut")); // NEW_TRIGGER
+            BplForall(vars, trigger, BplImp(BplAnd(equal, kGtZero), PEq)), "Prefix equality shortcut")); // NEW_TRIGGER
         });
       }
     }
@@ -2499,8 +2503,9 @@ namespace Microsoft.Dafny {
       funcID = new Bpl.IdentifierExpr(tok, pp.FullSanitizedName, TrType(pp.ResultType));
       Bpl.Expr prefixLimitedBody = new Bpl.NAryExpr(tok, new Bpl.FunctionCall(funcID), prefixArgsLimited);
       Bpl.Expr prefixLimited = pp.FixpointPred is InductivePredicate ? Bpl.Expr.Not(prefixLimitedBody) : prefixLimitedBody;
-      
-      var trueAtZero = new Bpl.ForallExpr(tok, moreBvs, BplTrigger(prefixLimitedBody), BplImp(BplAnd(ante, z), prefixLimited));  // NEW_TRIGGER
+
+      var trigger = BplTrigger(prefixLimitedBody); // NEW_TRIGGER
+      var trueAtZero = new Bpl.ForallExpr(tok, moreBvs, trigger, BplImp(BplAnd(ante, z), prefixLimited));
       sink.AddTopLevelDeclaration(new Bpl.Axiom(tok, Bpl.Expr.Imp(activation, trueAtZero),
         "3rd prefix predicate axiom"));
     }
@@ -4896,7 +4901,8 @@ namespace Microsoft.Dafny {
             var allowedToRead = Bpl.Expr.SelectTok(e.tok, etran.TheFrame(e.tok), seq, fieldName);
             //TRIG (forall $i: int :: read($Heap, this, _module.RingBuffer.start) <= $i && $i < read($Heap, this, _module.RingBuffer.start) + read($Heap, this, _module.RingBuffer.len) ==> $_Frame[read($Heap, this, _module.RingBuffer.data), IndexField($i)])
             //TRIGGERS: Should this be more specific?
-            var qq = new Bpl.ForallExpr(e.tok, new List<Variable> { iVar }, BplTrigger(fieldName), Bpl.Expr.Imp(range, allowedToRead));  // NEW_TRIGGER
+            var trigger = BplTrigger(fieldName); // NEW_TRIGGER
+            var qq = new Bpl.ForallExpr(e.tok, new List<Variable> { iVar }, trigger, Bpl.Expr.Imp(range, allowedToRead));
             options.AssertSink(this, builder)(expr.tok, qq, "insufficient reads clause to read the indicated range of array elements", options.AssertKv);
           }
         }
@@ -6125,7 +6131,8 @@ namespace Microsoft.Dafny {
           Bpl.IdentifierExpr o = new Bpl.IdentifierExpr(f.tok, oVar);
           var rhs = new Bpl.NAryExpr(f.tok, new Bpl.FunctionCall(ff), new List<Bpl.Expr> { o });
           Bpl.Expr body = Bpl.Expr.Le(Bpl.Expr.Literal(0), rhs);
-          Bpl.Expr qq = new Bpl.ForallExpr(f.tok, new List<Variable> { oVar }, BplTrigger(rhs), body);  // NEW_TRIGGER
+          var trigger = BplTrigger(rhs); // NEW_TRIGGER
+          Bpl.Expr qq = new Bpl.ForallExpr(f.tok, new List<Variable> { oVar }, trigger, body);
           sink.AddTopLevelDeclaration(new Bpl.Axiom(f.tok, qq));
         }
       }
@@ -10944,7 +10951,8 @@ namespace Microsoft.Dafny {
                 // TRIGGERS: Does this make sense? VSI-Benchmarks\b7
                 // TRIG (forall $o: ref :: $o != null && read($Heap, this, _module.List.Repr)[$Box($o)] && $o != this ==> !read(old($Heap), $o, alloc))
                 // TRIG (forall $o: ref :: $o != null && read($Heap, this, _module.Stream.footprint)[$Box($o)] && $o != this ==> !read(old($Heap), $o, alloc))
-                return new Bpl.ForallExpr(expr.tok, new List<Variable> { oVar }, BplTrigger(oNotFresh), body); // NEW_TRIGGER
+                var trigger = BplTrigger(oNotFresh); // NEW_TRIGGER
+                return new Bpl.ForallExpr(expr.tok, new List<Variable> { oVar }, trigger, body);
               } else if (eeType is SeqType) {
                 // generate:  (forall $i: int :: 0 <= $i && $i < Seq#Length(X) && Unbox(Seq#Index(X,$i)) != null ==> !old($Heap)[Unbox(Seq#Index(X,$i)),alloc])
                 Bpl.Variable iVar = new Bpl.BoundVariable(expr.tok, new Bpl.TypedIdent(expr.tok, "$i", Bpl.Type.Int));
@@ -10957,8 +10965,9 @@ namespace Microsoft.Dafny {
                 Bpl.Expr xsubiNotNull = Bpl.Expr.Neq(XsubI, predef.Null);
                 Bpl.Expr body = Bpl.Expr.Imp(Bpl.Expr.And(iBounds, xsubiNotNull), oIsFresh);
                 //TRIGGERS: Does this make sense? dafny0\SmallTests
+                // BROKEN // NEW_TRIGGER
                 //TRIG (forall $i: int :: 0 <= $i && $i < Seq#Length(Q#0) && $Unbox(Seq#Index(Q#0, $i)): ref != null ==> !read(old($Heap), $Unbox(Seq#Index(Q#0, $i)): ref, alloc))
-                return new Bpl.ForallExpr(expr.tok, new List<Variable> { iVar }, body); // NEW_TRIGGER
+                return new Bpl.ForallExpr(expr.tok, new List<Variable> { iVar }, body); 
               } else if (eeType.IsDatatype) {
                 // translator.FunctionCall(e.tok, BuiltinFunction.DtAlloc, null, TrExpr(e.E), Old.HeapExpr);
                 Bpl.Expr alloc = translator.MkIsAlloc(TrExpr(e.E), eeType, Old.HeapExpr);
@@ -13327,7 +13336,8 @@ namespace Microsoft.Dafny {
               i++;
             }
             // TRIG (exists a#0#0#0: Box :: $IsBox(a#0#0#0, _module.DatatypeInduction$T) && $IsAllocBox(a#0#0#0, _module.DatatypeInduction$T, $Heap) && #_module.Tree.Leaf(a#0#0#0) == t#1)
-            q = new Bpl.ExistsExpr(ctor.tok, bvs, BplTrigger(ct), BplAnd(typeAntecedent, q));  // NEW_TRIGGER
+            var trigger = BplTrigger(ct); // NEW_TRIGGER
+            q = new Bpl.ExistsExpr(ctor.tok, bvs, trigger, BplAnd(typeAntecedent, q));
           }
           yield return q;
         }
