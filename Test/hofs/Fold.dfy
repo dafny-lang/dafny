@@ -13,7 +13,7 @@ function method Eval(e : Expr): int
     case Lit(i)  => i
 }
 
-function method Fold(xs : List<A>, unit : B, f : (A,B) -> B): B
+function method Fold<A,B>(xs : List<A>, unit : B, f : (A,B) -> B): B
   reads f.reads;
   requires forall x, y :: x < xs ==> f.requires(x,y);
 {

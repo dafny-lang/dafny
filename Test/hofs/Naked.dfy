@@ -19,17 +19,17 @@ module Functions {
 
 module Requires {
   function t(x: nat): nat
-  requires !t.requires(x);
+  requires !t.requires(x);  // error: use of naked function in its own SCC
   { x }
 
   function g(x: nat): nat
-  requires !(g).requires(x);
+  requires !(g).requires(x);  // error: use of naked function in its own SCC
   { x }
 
-  function g2(x: int): int { h(x) }
-
+  function D(x: int): int  // used so termination errors don't mask other errors
+  function g2(x: int): int decreases D(x) { h(x) }  // error: precondition violation
   function h(x: int): int
-    requires !g2.requires(x);
+    requires !g2.requires(x);  // error: use of naked function in its own SCC
   { x }
 }
 

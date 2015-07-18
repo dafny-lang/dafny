@@ -1,0 +1,9 @@
+
+Dafny program verifier finished with 13 verified, 0 errors
+Program compiled successfully
+Running...
+
+HI.foo(h1) => True
+HI.foo(h2) => True
+PI.orange(1) => 2
+PI.apple(2) => 3

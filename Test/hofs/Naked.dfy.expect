@@ -21,11 +21,7 @@ Execution trace:
 Naked.dfy(26,14): Error: cannot use naked function in recursive setting. Possible solution: eta expansion.
 Execution trace:
     (0,0): anon0
-Naked.dfy(29,30): Error: cannot prove termination; try supplying a decreases clause
-Execution trace:
-    (0,0): anon0
-    (0,0): anon4_Else
-Naked.dfy(29,30): Error: possible violation of function precondition
+Naked.dfy(30,45): Error: possible violation of function precondition
 Naked.dfy(32,14): Related location
 Execution trace:
     (0,0): anon0
@@ -47,4 +43,4 @@ Naked.dfy(48,11): Error: cannot use naked function in recursive setting. Possibl
 Execution trace:
     (0,0): anon0
 
-Dafny program verifier finished with 1 verified, 12 errors
+Dafny program verifier finished with 2 verified, 11 errors

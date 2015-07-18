@@ -50,15 +50,27 @@ namespace Microsoft.Dafny
       Contract.Requires(msg != null);
       Error(e.tok, msg, args);
     }
+
+    private bool reportWarnings = true;
+    /// <summary>
+    /// Set whether or not to report warnings. Return the state of the previous behavior.
+    /// </summary>
+    public bool ReportWarnings(bool b) {
+      var old = reportWarnings;
+      reportWarnings = b;
+      return old;
+    }
     public void Warning(IToken tok, string msg, params object[] args) {
       Contract.Requires(tok != null);
       Contract.Requires(msg != null);
-      ConsoleColor col = Console.ForegroundColor;
-      Console.ForegroundColor = ConsoleColor.Yellow;
-      Console.WriteLine("{0}({1},{2}): Warning: {3}",
-          DafnyOptions.Clo.UseBaseNameForFileName ? System.IO.Path.GetFileName(tok.filename) : tok.filename, tok.line, tok.col - 1,
-          string.Format(msg, args));
-      Console.ForegroundColor = col;
+      if (reportWarnings) {
+        ConsoleColor col = Console.ForegroundColor;
+        Console.ForegroundColor = ConsoleColor.Yellow;
+        Console.WriteLine("{0}({1},{2}): Warning: {3}",
+            DafnyOptions.Clo.UseBaseNameForFileName ? System.IO.Path.GetFileName(tok.filename) : tok.filename, tok.line, tok.col - 1,
+            string.Format(msg, args));
+        Console.ForegroundColor = col;
+      }
     }
   }
 
@@ -319,6 +331,33 @@ namespace Microsoft.Dafny
 
       systemNameInfo = RegisterTopLevelDecls(prog.BuiltIns.SystemModule, false);
       prog.CompileModules.Add(prog.BuiltIns.SystemModule);
+
+      // first, we need to detect which top-level modules have exclusive refinement relationships.
+      foreach (ModuleDecl decl in sortedDecls) {
+        if (decl is LiteralModuleDecl) {
+          var literalDecl = (LiteralModuleDecl)decl;
+          var m = literalDecl.ModuleDef;
+          if (m.RefinementBaseRoot != null) {
+            if (m.IsExclusiveRefinement) {
+              foreach (var d in sortedDecls) {
+                // refinement dependencies won't be later in the sorted module list than the one we're looking at.
+                if (Object.ReferenceEquals(d, decl)) {
+                  break;
+                }
+                if (d is LiteralModuleDecl) {
+                  var ld = (LiteralModuleDecl)d;
+                  // currently, only exclusive refinements of top-level modules are supported.
+                  if (string.Equals(m.RefinementBaseName[0].val, m.RefinementBaseRoot.Name, StringComparison.InvariantCulture)
+                      && string.Equals(m.RefinementBaseName[0].val, ld.ModuleDef.Name, StringComparison.InvariantCulture)) {
+                    ld.ModuleDef.ExclusiveRefinementCount += 1;
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+
       foreach (var decl in sortedDecls) {
         if (decl is LiteralModuleDecl) {
           // The declaration is a literal module, so it has members and such that we need
@@ -353,6 +392,7 @@ namespace Microsoft.Dafny
             // compilation should only proceed if everything is good, including the signature (which preResolveErrorCount does not include);
             Contract.Assert(!useCompileSignatures);
             useCompileSignatures = true;  // set Resolver-global flag to indicate that Signatures should be followed to their CompiledSignature
+            var oldWarnings = ReportWarnings(false);  // turn off warning reporting for the clone
             var nw = new Cloner().CloneModuleDefinition(m, m.CompileName + "_Compile");
             var compileSig = RegisterTopLevelDecls(nw, true);
             compileSig.Refines = refinementTransformer.RefinedSig;
@@ -360,6 +400,7 @@ namespace Microsoft.Dafny
             ResolveModuleDefinition(nw, compileSig);
             prog.CompileModules.Add(nw);
             useCompileSignatures = false;  // reset the flag
+            ReportWarnings(oldWarnings);
           }
         } else if (decl is AliasModuleDecl) {
           var alias = (AliasModuleDecl)decl;
@@ -374,20 +415,27 @@ namespace Microsoft.Dafny
           var abs = (ModuleFacadeDecl)decl;
           ModuleSignature p;
           if (ResolvePath(abs.Root, abs.Path, out p, this)) {
-            abs.Signature = MakeAbstractSignature(p, abs.FullCompileName, abs.Height, prog.Modules);
             abs.OriginalSignature = p;
-            ModuleSignature compileSig;
-            if (abs.CompilePath != null) {
-              if (ResolvePath(abs.CompileRoot, abs.CompilePath, out compileSig, this)) {
-                if (refinementTransformer.CheckIsRefinement(compileSig, p)) {
-                  abs.Signature.CompileSignature = compileSig;
-                } else {
-                  Error(abs.CompilePath[0],
-                  "module " + Util.Comma(".", abs.CompilePath, x => x.val) + " must be a refinement of " + Util.Comma(".", abs.Path, x => x.val));
+            // ModuleDefinition.ExclusiveRefinement may not be set at this point but ExclusiveRefinementCount will be.
+            if (0 == abs.Root.Signature.ModuleDef.ExclusiveRefinementCount) {
+              abs.Signature = MakeAbstractSignature(p, abs.FullCompileName, abs.Height, prog.Modules);
+              ModuleSignature compileSig;
+              if (abs.CompilePath != null) {
+                if (ResolvePath(abs.CompileRoot, abs.CompilePath, out compileSig, this)) {
+                  if (refinementTransformer.CheckIsRefinement(compileSig, p)) {
+                    abs.Signature.CompileSignature = compileSig;
+                  } else {
+                    Error(
+                      abs.CompilePath[0],
+                      "module " + Util.Comma(".", abs.CompilePath, x => x.val) + " must be a refinement of "
+                      + Util.Comma(".", abs.Path, x => x.val));
+                  }
+                  abs.Signature.IsGhost = compileSig.IsGhost;
+                  // always keep the ghost information, to supress a spurious error message when the compile module isn't actually a refinement
                 }
-                abs.Signature.IsGhost = compileSig.IsGhost;
-                // always keep the ghost information, to supress a spurious error message when the compile module isn't actually a refinement
               }
+            } else {
+              abs.Signature = p;
             }
           } else {
             abs.Signature = new ModuleSignature(); // there was an error, give it a valid but empty signature
@@ -466,6 +514,25 @@ namespace Microsoft.Dafny
           if (body != null) {
             var c = new ReportOtherAdditionalInformation_Visitor(this);
             c.Visit(body);
+          }
+        }
+      }
+
+      // Determine, for each function, whether someone tries to adjust its fuel parameter
+      foreach (var module in prog.Modules) {
+        CheckForFuelAdjustments(module.tok, module.Attributes, module, this);
+        foreach (var clbl in ModuleDefinition.AllItersAndCallables(module.TopLevelDecls)) {
+          Statement body = null;
+          if (clbl is Method) {
+            body = ((Method)clbl).Body;
+            CheckForFuelAdjustments(clbl.Tok,((Method)clbl).Attributes, module, this);
+          } else if (clbl is IteratorDecl) {
+            body = ((IteratorDecl)clbl).Body;
+            CheckForFuelAdjustments(clbl.Tok, ((IteratorDecl)clbl).Attributes, module, this);
+          }
+          if (body != null) {
+            var c = new FuelAdjustment_Visitor(this);
+            c.Visit(body, new FuelAdjustment_Context(module, this));
           }
         }
       }
@@ -697,8 +764,8 @@ namespace Microsoft.Dafny
       var datatypeDependencies = new Graph<IndDatatypeDecl>();
       var codatatypeDependencies = new Graph<CoDatatypeDecl>();
       int prevErrorCount = ErrorCount;
-      ResolveAttributes(m.Attributes, new ResolveOpts(new NoContext(m.Module), false));
       ResolveTopLevelDecls_Signatures(m, m.TopLevelDecls, datatypeDependencies, codatatypeDependencies);
+      ResolveAttributes(m.Attributes, new ResolveOpts(new NoContext(m.Module), false)); // Must follow ResolveTopLevelDecls_Signatures, in case attributes refer to members
       if (ErrorCount == prevErrorCount) {
         ResolveTopLevelDecls_Meat(m.TopLevelDecls, datatypeDependencies, codatatypeDependencies);
       }
@@ -866,20 +933,31 @@ namespace Microsoft.Dafny
       sig.IsGhost = moduleDef.IsAbstract;
       List<TopLevelDecl> declarations = moduleDef.TopLevelDecls;
 
-      if (useImports) {
-        // First go through and add anything from the opened imports
-        foreach (var im in declarations) {
-          if (im is ModuleDecl && ((ModuleDecl)im).Opened) {
-            var s = GetSignature(((ModuleDecl)im).Signature);
+      // First go through and add anything from the opened imports
+      foreach (var im in declarations) {
+        if (im is ModuleDecl && ((ModuleDecl)im).Opened) {
+          var s = GetSignature(((ModuleDecl)im).Signature);
+
+          if (useImports || DafnyOptions.O.IronDafny) {
             // classes:
             foreach (var kv in s.TopLevels) {
-              TopLevelDecl d;
-              if (sig.TopLevels.TryGetValue(kv.Key, out d)) {
-                sig.TopLevels[kv.Key] = AmbiguousTopLevelDecl.Create(moduleDef, d, kv.Value);
-              } else {
-                sig.TopLevels.Add(kv.Key, kv.Value);
+              // IronDafny: we need to pull the members of the opened module's _default class in so that they can be merged.
+              if (useImports || string.Equals(kv.Key, "_default", StringComparison.InvariantCulture)) {
+                TopLevelDecl d;
+                if (sig.TopLevels.TryGetValue(kv.Key, out d)) {
+                  if (DafnyOptions.O.IronDafny && kv.Value.ClonedFrom == d) {
+                    sig.TopLevels[kv.Key] = kv.Value;
+                  } else {
+                    sig.TopLevels[kv.Key] = AmbiguousTopLevelDecl.Create(moduleDef, d, kv.Value);
+                  }
+                } else {
+                  sig.TopLevels.Add(kv.Key, kv.Value);
+                }
               }
             }
+          }
+
+          if (useImports) {
             // constructors:
             foreach (var kv in s.Ctors) {
               Tuple<DatatypeCtor, bool> pair;
@@ -895,6 +973,9 @@ namespace Microsoft.Dafny
                 sig.Ctors.Add(kv.Key, kv.Value);
               }
             }
+          }
+
+          if (useImports || DafnyOptions.O.IronDafny) {
             // static members:
             foreach (var kv in s.StaticMembers) {
               MemberDecl md;
@@ -904,7 +985,7 @@ namespace Microsoft.Dafny
                 // add new
                 sig.StaticMembers.Add(kv.Key, kv.Value);
               }
-            }
+            }              
           }
         }
       }
@@ -1193,7 +1274,8 @@ namespace Microsoft.Dafny
     }
 
     private ModuleSignature MakeAbstractSignature(ModuleSignature p, string Name, int Height, List<ModuleDefinition> mods) {
-      var mod = new ModuleDefinition(Token.NoToken, Name + ".Abs", true, true, null, null, null, false);
+      var mod = new ModuleDefinition(Token.NoToken, Name + ".Abs", true, true, /*isExclusiveRefinement:*/ false, null, null, null, false);
+      mod.ClonedFrom = p.ModuleDef;
       mod.Height = Height;
       foreach (var kv in p.TopLevels) {
         mod.TopLevelDecls.Add(CloneDeclaration(kv.Value, mod, mods, Name));
@@ -1202,6 +1284,7 @@ namespace Microsoft.Dafny
       sig.Refines = p.Refines;
       sig.CompileSignature = p;
       sig.IsGhost = p.IsGhost;
+      sig.ExclusiveRefinement = p.ExclusiveRefinement;
       mods.Add(mod);
       ResolveModuleDefinition(mod, sig);
       return sig;
@@ -1369,7 +1452,7 @@ namespace Microsoft.Dafny
             Contract.Assert(dd.Constraint != null);  // follows from NewtypeDecl invariant
             scope.PushMarker();
             var added = scope.Push(dd.Var.Name, dd.Var);
-            Contract.Assert(added);
+            Contract.Assert(added == Scope<IVariable>.PushResult.Success);
             ResolveType(dd.Var.tok, dd.Var.Type, dd, ResolveTypeOptionEnum.DontInfer, null);
             ResolveExpression(dd.Constraint, new ResolveOpts(dd, false, true));
             Contract.Assert(dd.Constraint.Type != null);  // follows from postcondition of ResolveExpression
@@ -2111,7 +2194,8 @@ namespace Microsoft.Dafny
           proxy.T = new ObjectType();
           return true;
         }
-        return !(t is TypeProxy);  // all other proxies indicate the type has not yet been determined
+        // all other proxies indicate the type has not yet been determined, provided their type parameters have been
+        return !(t is TypeProxy) && t.TypeArgs.All(tt => IsDetermined(tt.Normalize()));
       }
       ISet<TypeProxy> UnderspecifiedTypeProxies = new HashSet<TypeProxy>();
       bool CheckTypeIsDetermined(IToken tok, Type t, string what) {
@@ -2348,6 +2432,58 @@ namespace Microsoft.Dafny
       return TailRecursionStatus.CanBeFollowedByAnything;
     }
     #endregion CheckTailRecursive
+
+    // ------------------------------------------------------------------------------------------------------
+    // ----- FuelAdjustmentChecks ---------------------------------------------------------------------------
+    // ------------------------------------------------------------------------------------------------------
+    #region FuelAdjustmentChecks
+
+    protected static void CheckForFuelAdjustments(IToken tok, Attributes attrs, ModuleDefinition currentModule, ResolutionErrorReporter reporter) {
+      List<List<Expression>> results = Attributes.FindAllExpressions(attrs, "fuel");
+
+      if (results != null) {
+        foreach (List<Expression> args in results) {
+          if (args != null && args.Count >= 2) {
+            // Try to extract the function from the first argument
+            MemberSelectExpr selectExpr = args[0].Resolved as MemberSelectExpr;
+            if (selectExpr != null) {
+              Function f = selectExpr.Member as Function;
+              if (f != null) {
+                f.IsFueled = true;
+                if (f.IsProtected && currentModule != f.EnclosingClass.Module) {
+                  reporter.Error(tok, "cannot adjust fuel for protected function {0} from another module", f.Name);
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+
+    public class FuelAdjustment_Context
+    {
+      public ModuleDefinition currentModule;
+      public ResolutionErrorReporter reporter;
+      public FuelAdjustment_Context(ModuleDefinition currentModule, ResolutionErrorReporter reporter) {
+        this.currentModule = currentModule;
+        this.reporter = reporter;
+      }
+    }
+
+    class FuelAdjustment_Visitor : ResolverTopDownVisitor<FuelAdjustment_Context>
+    {
+      public FuelAdjustment_Visitor(Resolver resolver)
+        : base(resolver) {
+        Contract.Requires(resolver != null);
+      }
+
+      protected override bool VisitOneStmt(Statement stmt, ref FuelAdjustment_Context st) {
+        Resolver.CheckForFuelAdjustments(stmt.Tok, stmt.Attributes, st.currentModule, st.reporter);
+        return true;
+      }
+    }
+
+    #endregion FuelAdjustmentChecks
 
     // ------------------------------------------------------------------------------------------------------
     // ----- FixpointPredicateChecks ------------------------------------------------------------------------
@@ -2631,6 +2767,14 @@ namespace Microsoft.Dafny
           foreach (var v in s.BoundVars) {
             CheckEqualityTypes_Type(v.Tok, v.Type);
           }
+          // do substatements and subexpressions, except attributes and ensures clauses, since they are not compiled
+          foreach (var ss in s.SubStatements) {
+            Visit(ss, st);
+          }
+          if (s.Range != null) {
+            Visit(s.Range, st);
+          }
+          return false;  // we're done
         }
         return true;
       }
@@ -2689,6 +2833,18 @@ namespace Microsoft.Dafny
           foreach (var bv in e.BoundVars) {
             CheckEqualityTypes_Type(bv.tok, bv.Type);
           }
+        } else if (expr is MemberSelectExpr) {
+          var e = (MemberSelectExpr)expr;
+          if (e.Member is Function || e.Member is Method) {
+            var i = 0;
+            foreach (var tp in ((ICallable)e.Member).TypeArgs) {
+              var actualTp = e.TypeApplication[e.Member.EnclosingClass.TypeArgs.Count + i];
+              if (tp.MustSupportEquality && !actualTp.SupportsEquality) {
+                Error(e.tok, "type parameter {0} ({1}) passed to {5} '{2}' must support equality (got {3}){4}", i, tp.Name, e.Member.Name, actualTp, TypeEqualityErrorMessageHint(actualTp), e.Member.WhatKind);
+              }
+              i++;
+            }
+          }
         } else if (expr is FunctionCallExpr) {
           var e = (FunctionCallExpr)expr;
           Contract.Assert(e.Function.TypeArgs.Count <= e.TypeArgumentSubstitutions.Count);
@@ -2711,7 +2867,7 @@ namespace Microsoft.Dafny
             i++;
           }
           return false;  // we've done what there is to be done
-        } else if (expr is SetDisplayExpr || expr is MultiSetDisplayExpr || expr is MapDisplayExpr || expr is MultiSetFormingExpr) {
+        } else if (expr is SetDisplayExpr || expr is MultiSetDisplayExpr || expr is MapDisplayExpr || expr is MultiSetFormingExpr || expr is StaticReceiverExpr) {
           // This catches other expressions whose type may potentially be illegal
           CheckEqualityTypes_Type(expr.tok, expr.Type);
         }
@@ -2727,11 +2883,8 @@ namespace Microsoft.Dafny
         } else if (type is SetType) {
           var st = (SetType)type;
           var argType = st.Arg;
-          if (!st.Finite) {
-            Error(tok, "isets do not support equality: {0}", st);
-          }
           if (!argType.SupportsEquality) {
-            Error(tok, "set argument type must support equality (got {0}){1}", argType, TypeEqualityErrorMessageHint(argType));
+            Error(tok, "{2}set argument type must support equality (got {0}){1}", argType, TypeEqualityErrorMessageHint(argType), st.Finite ? "" : "i");
           }
           CheckEqualityTypes_Type(tok, argType);
 
@@ -2744,11 +2897,8 @@ namespace Microsoft.Dafny
 
         } else if (type is MapType) {
           var mt = (MapType)type;
-          if (!mt.Finite) {
-            Error(tok, "imaps do not support equality: {0}", mt);
-          }
           if (!mt.Domain.SupportsEquality) {
-            Error(tok, "map domain type must support equality (got {0}){1}", mt.Domain, TypeEqualityErrorMessageHint(mt.Domain));
+            Error(tok, "{2}map domain type must support equality (got {0}){1}", mt.Domain, TypeEqualityErrorMessageHint(mt.Domain), mt.Finite ? "" : "i");
           }
           CheckEqualityTypes_Type(tok, mt.Domain);
           CheckEqualityTypes_Type(tok, mt.Range);
@@ -3476,9 +3626,40 @@ namespace Microsoft.Dafny
           tp.Parent = parent;
           tp.PositionalIndex = index;
         }
-        if (!allTypeParameters.Push(tp.Name, tp) && emitErrors) {
-          Error(tp, "Duplicate type-parameter name: {0}", tp.Name);
+        var r = allTypeParameters.Push(tp.Name, tp);
+        if (emitErrors) {
+          if (r == Scope<TypeParameter>.PushResult.Duplicate) {
+            Error(tp, "Duplicate type-parameter name: {0}", tp.Name);
+          } else if (r == Scope<TypeParameter>.PushResult.Shadow) {
+            Warning(tp.tok, "Shadowed type-parameter name: {0}", tp.Name);
+          }
         }
+      }
+    }
+
+    void ScopePushAndReport(Scope<IVariable> scope, IVariable v, string kind) {
+      Contract.Requires(scope != null);
+      Contract.Requires(v != null);
+      Contract.Requires(kind != null);
+      ScopePushAndReport(scope, v.Name, v, v.Tok, kind);
+    }
+
+    void ScopePushAndReport<Thing>(Scope<Thing> scope, string name, Thing thing, IToken tok, string kind) where Thing : class {
+      Contract.Requires(scope != null);
+      Contract.Requires(name != null);
+      Contract.Requires(thing != null);
+      Contract.Requires(tok != null);
+      Contract.Requires(kind != null);
+      var r = scope.Push(name, thing);
+      switch (r) {
+        case Scope<Thing>.PushResult.Success:
+          break;
+        case Scope<Thing>.PushResult.Duplicate:
+          Error(tok, "Duplicate {0} name: {1}", kind, name);
+          break;
+        case Scope<Thing>.PushResult.Shadow:
+          Warning(tok, "Shadowed {0} name: {1}", kind, name);
+          break;
       }
     }
 
@@ -3493,9 +3674,7 @@ namespace Microsoft.Dafny
       }
       var option = f.TypeArgs.Count == 0 ? new ResolveTypeOption(f) : new ResolveTypeOption(ResolveTypeOptionEnum.AllowPrefix);
       foreach (Formal p in f.Formals) {
-        if (!scope.Push(p.Name, p)) {
-          Error(p, "Duplicate parameter name: {0}", p.Name);
-        }
+        ScopePushAndReport(scope, p, "parameter");
         ResolveType(p.tok, p.Type, f, option, f.TypeArgs);
       }
       ResolveType(f.tok, f.ResultType, f, option, f.TypeArgs);
@@ -3603,16 +3782,12 @@ namespace Microsoft.Dafny
       var option = m.TypeArgs.Count == 0 ? new ResolveTypeOption(m) : new ResolveTypeOption(ResolveTypeOptionEnum.AllowPrefix);
       // resolve in-parameters
       foreach (Formal p in m.Ins) {
-        if (!scope.Push(p.Name, p)) {
-          Error(p, "Duplicate parameter name: {0}", p.Name);
-        }
+        ScopePushAndReport(scope, p, "parameter");
         ResolveType(p.tok, p.Type, m, option, m.TypeArgs);
       }
       // resolve out-parameters
       foreach (Formal p in m.Outs) {
-        if (!scope.Push(p.Name, p)) {
-          Error(p, "Duplicate parameter name: {0}", p.Name);
-        }
+        ScopePushAndReport(scope, p, "parameter");
         ResolveType(p.tok, p.Type, m, option, m.TypeArgs);
       }
       scope.PopMarker();
@@ -4143,8 +4318,15 @@ namespace Microsoft.Dafny
           } else if (r.Type is Resolver_IdentifierExpr.ResolverType_Type) {
             var d = r.Decl;
             if (d is OpaqueTypeDecl) {
-              t.ResolvedParam = ((OpaqueTypeDecl)d).TheType;  // resolve like a type parameter, and it may have type parameters if it's an opaque type              
-              t.ResolvedClass = d;  // Store the decl, so the compiler will generate the fully qualified name
+              var dd = (OpaqueTypeDecl)d;
+              if (dd.Module.ClonedFrom != null && dd.Module.ClonedFrom.ExclusiveRefinement != null) {
+                t.ResolvedParam = ((OpaqueTypeDecl)dd.ClonedFrom).TheType;
+                t.ResolvedClass = d;  // Store the decl, so the compiler will generate the fully qualified name
+              } else {
+                t.ResolvedParam = ((OpaqueTypeDecl)d).TheType;
+                // resolve like a type parameter, and it may have type parameters if it's an opaque type
+                t.ResolvedClass = d;  // Store the decl, so the compiler will generate the fully qualified name
+              }
             } else if (d is NewtypeDecl) {
               var dd = (NewtypeDecl)d;
               var caller = context as ICallable;
@@ -4267,8 +4449,23 @@ namespace Microsoft.Dafny
           return false;
         }
         var aa = (UserDefinedType)a;
+        var rca = aa.ResolvedClass;
         var bb = (UserDefinedType)b;
-        if (aa.ResolvedClass != null && aa.ResolvedClass == bb.ResolvedClass) {
+        var rcb = bb.ResolvedClass;
+        if (DafnyOptions.O.IronDafny)
+        {
+          while (rca != null && rca.Module.IsAbstract && rca.ClonedFrom != null)
+          {
+            // todo: should ClonedFrom be a TopLevelDecl?
+            // todo: should ClonedFrom be moved to TopLevelDecl?
+            rca = (TopLevelDecl)rca.ClonedFrom;
+          }
+          while (rcb != null && rcb.Module.IsAbstract && rcb.ClonedFrom != null)
+          {
+            rcb = (TopLevelDecl)rcb.ClonedFrom;
+          }
+        }
+        if (rca != null && rca == rcb) {
           // these are both resolved class/datatype types
           Contract.Assert(aa.TypeArgs.Count == bb.TypeArgs.Count);
           bool successSoFar = true;
@@ -4277,12 +4474,12 @@ namespace Microsoft.Dafny
           }
           return successSoFar;
         }
-        else if ((bb.ResolvedClass is TraitDecl) && (aa.ResolvedClass is TraitDecl)) {
-            return ((TraitDecl)bb.ResolvedClass).FullCompileName == ((TraitDecl)aa.ResolvedClass).FullCompileName;
-        } else if ((bb.ResolvedClass is ClassDecl) && (aa.ResolvedClass is TraitDecl)) {
-            return ((ClassDecl)bb.ResolvedClass).TraitsObj.Any(tr => tr.FullCompileName == ((TraitDecl)aa.ResolvedClass).FullCompileName);
-        } else if ((aa.ResolvedClass is ClassDecl) && (bb.ResolvedClass is TraitDecl)) {
-            return ((ClassDecl)aa.ResolvedClass).TraitsObj.Any(tr => tr.FullCompileName == ((TraitDecl)bb.ResolvedClass).FullCompileName);
+        else if ((rcb is TraitDecl) && (rca is TraitDecl)) {
+            return ((TraitDecl)rcb).FullCompileName == ((TraitDecl)rca).FullCompileName;
+        } else if ((rcb is ClassDecl) && (rca is TraitDecl)) {
+            return ((ClassDecl)rcb).TraitsObj.Any(tr => tr.FullCompileName == ((TraitDecl)rca).FullCompileName);
+        } else if ((rca is ClassDecl) && (rcb is TraitDecl)) {
+            return ((ClassDecl)rca).TraitsObj.Any(tr => tr.FullCompileName == ((TraitDecl)rcb).FullCompileName);
         } else if (aa.ResolvedParam != null && aa.ResolvedParam == bb.ResolvedParam) {
           // type parameters
           if (aa.TypeArgs.Count != bb.TypeArgs.Count) {
@@ -4771,9 +4968,7 @@ namespace Microsoft.Dafny
         }
         // Add the locals to the scope
         foreach (var local in s.Locals) {
-          if (!scope.Push(local.Name, local)) {
-            Error(local.Tok, "Duplicate local-variable name: {0}", local.Name);
-          }
+          ScopePushAndReport(scope, local, "local-variable");
         }
         // With the new locals in scope, it's now time to resolve the attributes on all the locals
         foreach (var local in s.Locals) {
@@ -5064,9 +5259,7 @@ namespace Microsoft.Dafny
         int prevErrorCount = ErrorCount;
         scope.PushMarker();
         foreach (BoundVar v in s.BoundVars) {
-          if (!scope.Push(v.Name, v)) {
-            Error(v, "Duplicate bound-variable name: {0}", v.Name);
-          }
+          ScopePushAndReport(scope, v, "local-variable");
           ResolveType(v.tok, v.Type, codeContext, ResolveTypeOptionEnum.InferTypeProxies, null);
         }
         ResolveExpression(s.Range, new ResolveOpts(codeContext, true, specContextOnly));
@@ -5258,7 +5451,8 @@ namespace Microsoft.Dafny
       // convert CasePattern in MatchCaseExpr to BoundVar and flatten the MatchCaseExpr.
       Type type = new InferredTypeProxy();
       string name = FreshTempVarName("_mc#", codeContext);
-      BoundVar bv = new BoundVar(s.Tok, name, type);
+      MatchCaseToken mcToken = new MatchCaseToken(s.Tok);
+      BoundVar bv = new BoundVar(mcToken, name, type);
       List<CasePattern> patternSubst = new List<CasePattern>();
       if (dtd != null) {
         DesugarMatchCaseStmt(s, dtd, bv, patternSubst, codeContext);
@@ -5297,6 +5491,14 @@ namespace Microsoft.Dafny
                 Error(stmt, "the declared type of the formal ({0}) does not agree with the corresponding type in the constructor's signature ({1})", v.Type, st);
               }
               v.IsGhost = formal.IsGhost;
+
+              // update the type of the boundvars in the MatchCaseToken
+              if (v.tok is MatchCaseToken) {
+                MatchCaseToken mt = (MatchCaseToken)v.tok;
+                foreach (Tuple<IToken, BoundVar, bool> entry in mt.varList) {
+                  UnifyTypes(entry.Item2.Type, v.Type);
+                }
+              }
             }
             i++;
           }
@@ -5345,11 +5547,11 @@ namespace Microsoft.Dafny
      *    case (Suc(a), Suc(b)) => minus(a, b)
      * To:  
      *  match x
-     *    case Zero => match y
+     *    case Zero => match y (originalToken)
      *        case _ => zero
-     *    case Suc(_) => match y
+     *    case Suc(_) => match y (AutoGeneratedToken)
      *        case Zero => x
-     *    case Suc(a) => match y
+     *    case Suc(a) => match y (AutoGeneratedToken)
       *        case (b) => minus(a,b)
      */    
     void DesugarMatchStmtWithTupleExpression(MatchStmt me) {
@@ -5361,6 +5563,9 @@ namespace Microsoft.Dafny
         } else {
           Expression source = e.Arguments[0];
           List<MatchCaseStmt> cases = new List<MatchCaseStmt>();
+          // only keep the token for the first appearance, use autogenerated for the rest, otherwise more than one hovertext
+          // will show up in the IDE.
+          bool keepOrigToken = true; 
           foreach (MatchCaseStmt mc in me.Cases) {
             if (mc.CasePatterns == null || mc.CasePatterns.Count != e.Arguments.Count) {
               Error(mc.tok, "case arguments count does not match source arguments count");
@@ -5376,9 +5581,10 @@ namespace Microsoft.Dafny
               List<Statement> body = mc.Body;
               for (int i = e.Arguments.Count; 1 <= --i; ) {
                 // others go into the body
-                body = CreateMatchCaseStmtBody(me.Tok, e.Arguments[i], mc.CasePatterns[i], body);
+                body = CreateMatchCaseStmtBody(me.Tok, e.Arguments[i], mc.CasePatterns[i], body, keepOrigToken);
               }
               cases.Add(new MatchCaseStmt(cp.tok, cp.Id, patterns, body));
+              keepOrigToken = false;
             }
           }
           me.UpdateSource(source);
@@ -5387,7 +5593,7 @@ namespace Microsoft.Dafny
       }
     }
 
-    List<Statement> CreateMatchCaseStmtBody(Boogie.IToken tok, Expression source, CasePattern cp, List<Statement> body) {
+    List<Statement> CreateMatchCaseStmtBody(Boogie.IToken tok, Expression source, CasePattern cp, List<Statement> body, bool keepToken) {
       List<MatchCaseStmt> cases = new List<MatchCaseStmt>();
       List<CasePattern> patterns;
       if (cp.Var != null) {
@@ -5401,6 +5607,10 @@ namespace Microsoft.Dafny
         patterns = cp.Arguments;
       }
       cases.Add(new MatchCaseStmt(cp.tok, cp.Id, patterns, body));
+      if (!keepToken) {
+        AutoGeneratedTokenCloner cloner = new AutoGeneratedTokenCloner();
+        source = cloner.CloneExpr(source);
+      }
       List<Statement> list = new List<Statement>();
       // endTok??
       list.Add(new MatchStmt(tok, tok, source, cases, false));
@@ -5512,9 +5722,7 @@ namespace Microsoft.Dafny
       if (pat.Var != null) {
         BoundVar v = pat.Var;
         if (topLevel) {
-          if (!scope.Push(v.Name, v)) {
-            Error(v, "Duplicate parameter name: {0}", v.Name);
-          }
+          ScopePushAndReport(scope, v, "parameter");
         } else {
           if (scope.Find(v.Name) != null) {
             Error(v, "Duplicate parameter name: {0}", v.Name);
@@ -5536,7 +5744,7 @@ namespace Microsoft.Dafny
       //    case Cons(y, #mc#) => match #mc#
       //            case Cons(z, zs) => body
 
-      Expression source = new NameSegment(pat.tok, v.Name, null);
+      Expression source = new NameSegment(new AutoGeneratedToken(pat.tok), v.Name, null);
       List<MatchCaseStmt> cases = new List<MatchCaseStmt>();
       cases.Add(new MatchCaseStmt(pat.tok, pat.Id, pat.Arguments == null ? new List<CasePattern>() : pat.Arguments, mc.Body));
       List<Statement> list = new List<Statement>();
@@ -5561,6 +5769,27 @@ namespace Microsoft.Dafny
             foreach (MatchCaseStmt c in current.Cases) {
               old.Cases.Add(c);
             }
+            // add the token from mc to old_mc so the identifiers will show correctly in the IDE
+            List<BoundVar> arguments = new List<BoundVar>();
+            Contract.Assert(old_mc.Arguments.Count == mc.Arguments.Count);
+            for (int i = 0; i < old_mc.Arguments.Count; i++) {
+              var bv = old_mc.Arguments[i];
+              MatchCaseToken mcToken;
+              if (!(bv.tok is MatchCaseToken)) {
+                // create a MatchCaseToken
+                mcToken = new MatchCaseToken(bv.tok);
+                // clone the bv but with the MatchCaseToken
+                var bvNew = new BoundVar(mcToken, bv.Name, bv.Type);
+                bvNew.IsGhost = bv.IsGhost;
+                arguments.Add(bvNew);
+              } else {
+                mcToken = (MatchCaseToken)bv.tok;
+                arguments.Add(bv);
+              }
+              mcToken.AddVar(bv.tok, bv, true);
+              mcToken.AddVar(mc.Arguments[i].tok, mc.Arguments[i], true);
+            }
+            old_mc.Arguments = arguments;
             thingsChanged = true;
           }
         } else {
@@ -5610,7 +5839,9 @@ namespace Microsoft.Dafny
             // what if match body already has the bv?? need to make a new bv
             Type type = new InferredTypeProxy();
             string name = FreshTempVarName("_mc#", codeContext);
-            BoundVar bv = new BoundVar(one.tok, name, type);
+            BoundVar bv = new BoundVar(new MatchCaseToken(one.tok), name, type);
+            ((MatchCaseToken)bv.tok).AddVar(bv1.tok, bv1, true);
+            ((MatchCaseToken)bv.tok).AddVar(bv2.tok, bv2, true);
             SubstituteMatchCaseBoundVar(one, bv1, bv);
             SubstituteMatchCaseBoundVar(other, bv2, bv);
           }
@@ -6105,8 +6336,8 @@ namespace Microsoft.Dafny
           } else if (prev != null) {
             Error(lnode.Tok, "label shadows an enclosing label");
           } else {
-            bool b = labeledStatements.Push(lnode.Name, ss);
-            Contract.Assert(b);  // since we just checked for duplicates, we expect the Push to succeed
+            var r = labeledStatements.Push(lnode.Name, ss);
+            Contract.Assert(r == Scope<Statement>.PushResult.Success);  // since we just checked for duplicates, we expect the Push to succeed
             if (l == ss.Labels) {  // add it only once
               inSpecOnlyContext.Add(ss, specContextOnly);
             }
@@ -7444,9 +7675,7 @@ namespace Microsoft.Dafny
             // Check for duplicate names now, because not until after resolving the case pattern do we know if identifiers inside it refer to bound variables or nullary constructors
             var c = 0;
             foreach (var v in lhs.Vars) {
-              if (!scope.Push(v.Name, v)) {
-                Error(v, "Duplicate let-variable name: {0}", v.Name);
-              }
+              ScopePushAndReport(scope, v, "let-variable");
               c++;
             }
             if (c == 0) {
@@ -7465,9 +7694,7 @@ namespace Microsoft.Dafny
           foreach (var lhs in e.LHSs) {
             Contract.Assert(lhs.Var != null);  // the parser already checked that every LHS is a BoundVar, not a general pattern
             var v = lhs.Var;
-            if (!scope.Push(v.Name, v)) {
-              Error(v, "Duplicate let-variable name: {0}", v.Name);
-            }
+            ScopePushAndReport(scope, v, "let-variable");
             ResolveType(v.tok, v.Type, opts.codeContext, ResolveTypeOptionEnum.InferTypeProxies, null);
           }
           foreach (var rhs in e.RHSs) {
@@ -7499,9 +7726,7 @@ namespace Microsoft.Dafny
         ResolveTypeParameters(e.TypeArgs, true, e);
         scope.PushMarker();
         foreach (BoundVar v in e.BoundVars) {
-          if (!scope.Push(v.Name, v)) {
-            Error(v, "Duplicate bound-variable name: {0}", v.Name);
-          }
+          ScopePushAndReport(scope, v, "bound-variable");
           var option = typeQuantifier ? new ResolveTypeOption(e) : new ResolveTypeOption(ResolveTypeOptionEnum.InferTypeProxies);
           ResolveType(v.tok, v.Type, opts.codeContext, option, typeQuantifier ? e.TypeArgs : null);
         }
@@ -7555,9 +7780,7 @@ namespace Microsoft.Dafny
         int prevErrorCount = ErrorCount;
         scope.PushMarker();
         foreach (BoundVar v in e.BoundVars) {
-          if (!scope.Push(v.Name, v)) {
-            Error(v, "Duplicate bound-variable name: {0}", v.Name);
-          }
+          ScopePushAndReport(scope, v, "bound-variable");
           ResolveType(v.tok, v.Type, opts.codeContext, ResolveTypeOptionEnum.InferTypeProxies, null);
         }
         ResolveExpression(e.Range, opts);
@@ -7586,9 +7809,7 @@ namespace Microsoft.Dafny
           Error(e.tok, "a map comprehension must have exactly one bound variable.");
         }
         foreach (BoundVar v in e.BoundVars) {
-          if (!scope.Push(v.Name, v)) {
-            Error(v, "Duplicate bound-variable name: {0}", v.Name);
-          }
+          ScopePushAndReport(scope, v, "bound-variable");
           ResolveType(v.tok, v.Type, opts.codeContext, ResolveTypeOptionEnum.InferTypeProxies, null);
         }
         ResolveExpression(e.Range, opts);
@@ -7621,9 +7842,7 @@ namespace Microsoft.Dafny
         int prevErrorCount = ErrorCount;
         scope.PushMarker();
         foreach (BoundVar v in e.BoundVars) {
-          if (!scope.Push(v.Name, v)) {
-            Error(v, "Duplicate bound-variable name: {0}", v.Name);
-          }
+          ScopePushAndReport(scope, v, "bound-variable");
           ResolveType(v.tok, v.Type, opts.codeContext, ResolveTypeOptionEnum.InferTypeProxies, null);
         }
 
@@ -7722,7 +7941,7 @@ namespace Microsoft.Dafny
       // convert CasePattern in MatchCaseExpr to BoundVar and flatten the MatchCaseExpr.
       Type type = new InferredTypeProxy();
       string name = FreshTempVarName("_mc#", opts.codeContext);
-      BoundVar bv = new BoundVar(me.tok, name, type);
+      BoundVar bv = new BoundVar(new MatchCaseToken(me.tok), name, type);
       List<CasePattern> patternSubst = new List<CasePattern>();
       if (dtd != null) {
         DesugarMatchCaseExpr(me, dtd, bv, patternSubst, opts.codeContext);
@@ -7762,6 +7981,14 @@ namespace Microsoft.Dafny
                 Error(expr, "the declared type of the formal ({0}) does not agree with the corresponding type in the constructor's signature ({1})", v.Type, st);
               }
               v.IsGhost = formal.IsGhost;
+
+              // update the type of the boundvars in the MatchCaseToken
+              if (v.tok is MatchCaseToken) {
+                MatchCaseToken mt = (MatchCaseToken)v.tok;
+                foreach (Tuple<IToken, BoundVar, bool> entry in mt.varList) {
+                  UnifyTypes(entry.Item2.Type, v.Type);
+                }
+              }
             }
             i++;
           }
@@ -7959,7 +8186,7 @@ namespace Microsoft.Dafny
       //    case Cons(y, #mc#) => match #mc#
       //            case Cons(z, zs) => body
 
-      Expression source = new NameSegment(pat.tok, v.Name, null);
+      Expression source = new NameSegment(new AutoGeneratedToken(pat.tok), v.Name, null);
       List<MatchCaseExpr> cases = new List<MatchCaseExpr>(); 
       cases.Add(new MatchCaseExpr(pat.tok, pat.Id, pat.Arguments == null ? new List<CasePattern>() : pat.Arguments, mc.Body));
       MatchExpr e = new MatchExpr(pat.tok, source, cases, false);
@@ -7989,6 +8216,27 @@ namespace Microsoft.Dafny
           foreach (MatchCaseExpr c in current.Cases) {
             old.Cases.Add(c);
           }
+          // add the token from mc to old_mc so the identifiers will show correctly in the IDE
+          List<BoundVar> arguments = new List<BoundVar>();
+          Contract.Assert(old_mc.Arguments.Count == mc.Arguments.Count);
+          for (int i = 0; i < old_mc.Arguments.Count; i++) {
+            var bv = old_mc.Arguments[i];
+            MatchCaseToken mcToken;
+            if (!(bv.tok is MatchCaseToken)) {
+              // create a MatchCaseToken
+              mcToken = new MatchCaseToken(bv.tok);
+              // clone the bv but with the MatchCaseToken
+              var bvNew = new BoundVar(mcToken, bv.Name, bv.Type);
+              bvNew.IsGhost = bv.IsGhost;
+              arguments.Add(bvNew);
+            } else {
+              mcToken = (MatchCaseToken)bv.tok;
+              arguments.Add(bv);
+            }
+            mcToken.AddVar(bv.tok, bv, true);
+            mcToken.AddVar(mc.Arguments[i].tok, mc.Arguments[i], true);
+          }
+          old_mc.Arguments = arguments;
           thingsChanged = true;
         } else {
           // duplicate cases, do nothing for now. The error will be reported during resolving
@@ -8000,6 +8248,7 @@ namespace Microsoft.Dafny
       }
       return thingsChanged;
     }
+
 
     bool SameMatchCaseExpr(MatchCaseExpr one, MatchCaseExpr other, ICodeContext codeContext) {
       // this method is called after all the CasePattern in the match cases are converted
@@ -8032,7 +8281,11 @@ namespace Microsoft.Dafny
             // what if match body already has the bv?? need to make a new bv
             Type type = new InferredTypeProxy();
             string name = FreshTempVarName("_mc#", codeContext);
-            BoundVar bv = new BoundVar(one.tok, name, type);
+            MatchCaseToken mcToken = new MatchCaseToken(one.tok);
+            BoundVar bv = new BoundVar(mcToken, name, type);
+            mcToken.AddVar(bv1.tok, bv1, true);
+            mcToken.AddVar(bv2.tok, bv2, true);
+            // substitute the appeareance of old bv with the new bv in the match case
             SubstituteMatchCaseBoundVar(one, bv1, bv);
             SubstituteMatchCaseBoundVar(other, bv2, bv);
           }
@@ -8338,12 +8591,6 @@ namespace Microsoft.Dafny
           r = ResolveExprDotCall(expr.tok, receiver, member, expr.OptTypeArguments, opts.codeContext, allowMethodCall);
         }
 #endif
-      } else if (option.Opt == ResolveTypeOptionEnum.AllowPrefixExtend && expr.OptTypeArguments == null) {
-        // it woulc plausibly be a type parameter, but isn't; we will declare it automatically
-        tp = new TypeParameter(expr.tok, expr.Name, defaultTypeArguments.Count, option.Parent);
-        defaultTypeArguments.Add(tp);
-        r = new Resolver_IdentifierExpr(expr.tok, tp);
-        allTypeParameters.Push(expr.Name, tp);
       } else {
         // ----- None of the above
         Error(expr.tok, "Undeclared top-level type or type parameter: {0} (did you forget to qualify a name?)", expr.Name);
@@ -10314,17 +10561,27 @@ namespace Microsoft.Dafny
       }
     }
 
-    // Pushes name-->thing association and returns "true", if name has not already been pushed since the last marker.
-    // If name already has been pushed since the last marker, does nothing and returns "false".
-    public bool Push(string name, Thing thing) {
+    public enum PushResult { Duplicate, Shadow, Success }
+
+    /// <summary>
+    /// Pushes name-->thing association and returns "Success", if name has not already been pushed since the last marker.
+    /// If name already has been pushed since the last marker, does nothing and returns "Duplicate".
+    /// If the appropriate command-line option is supplied, then this method will also check if "name" shadows a previous
+    /// name; if it does, then it will return "Shadow" instead of "Success".
+    /// </summary>
+    public PushResult Push(string name, Thing thing) {
       Contract.Requires(name != null);
       Contract.Requires(thing != null);
       if (Find(name, true) != null) {
-        return false;
+        return PushResult.Duplicate;
       } else {
+        var r = PushResult.Success;
+        if (DafnyOptions.O.WarnShadowing && Find(name, false) != null) {
+          r = PushResult.Shadow;
+        }
         names.Add(name);
         things.Add(thing);
-        return true;
+        return r;
       }
     }
 

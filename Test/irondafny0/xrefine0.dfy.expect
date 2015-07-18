@@ -1,0 +1,2 @@
+xrefine0.dfy(6,7): Error: no more than one exclusive refinement may exist for a given module.
+1 resolution/type errors detected in xrefine0.dfy

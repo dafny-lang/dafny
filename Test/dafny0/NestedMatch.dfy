@@ -28,7 +28,7 @@ function last<T>(xs: List<T>): T
   case Cons(y, Cons(z, zs)) => last(Cons(z, zs))
 }
 
-method checkLast(y: T) {
+method checkLast<T>(y: T) {
   assert last(Cons(y, Nil)) == y;
   assert last(Cons(y, Cons(y, Nil))) == last(Cons(y, Nil));
 }

@@ -15,7 +15,11 @@ namespace Microsoft.Dafny
 
     public override string VersionNumber {
       get {
-        return System.Diagnostics.FileVersionInfo.GetVersionInfo(System.Reflection.Assembly.GetExecutingAssembly().Location).FileVersion;
+        return System.Diagnostics.FileVersionInfo.GetVersionInfo(System.Reflection.Assembly.GetExecutingAssembly().Location).FileVersion
+#if ENABLE_IRONDAFNY
+          + "[IronDafny]"
+#endif
+          ;
       }
     }
     public override string VersionSuffix {
@@ -58,6 +62,16 @@ namespace Microsoft.Dafny
     public bool Optimize = false;
     public bool AutoTriggers = false;
     public bool PrintTooltips = false;
+    public bool PrintStats = false;
+    public bool PrintFunctionCallGraph = false;
+    public bool WarnShadowing = false;
+    public bool IronDafny = 
+#if ENABLE_IRONDAFNY 
+      true
+#else
+      false
+#endif
+    ;
 
     protected override bool ParseOption(string name, Bpl.CommandLineOptionEngine.CommandLineParseState ps) {
       var args = ps.args;  // convenient synonym
@@ -174,6 +188,18 @@ namespace Microsoft.Dafny
         case "allowGlobals":
           AllowGlobals = true;
           return true;
+        
+        case "stats":
+          PrintStats = true;
+          return true;
+
+        case "funcCallGraph":
+          PrintFunctionCallGraph = true;
+          return true;
+
+        case "warnShadowing":
+          WarnShadowing = true;
+          return true;
 
         case "countVerificationErrors": {
           int countErrors = 1; // defaults to reporting verification errors
@@ -197,6 +223,16 @@ namespace Microsoft.Dafny
 
         case "optimize": {
             Optimize = true;
+            return true;
+        }
+
+        case "noIronDafny": {
+            IronDafny = false;
+            return true;
+        }
+
+        case "ironDafny": {
+            IronDafny = true;
             return true;
         }
 
@@ -281,7 +317,7 @@ namespace Microsoft.Dafny
   /noAutoReq    Ignore autoReq attributes
   /allowGlobals Allow the implicit class '_default' to contain fields, instance functions,
                 and instance methods.  These class members are declared at the module scope,
-                outside of explicit classes.  This command-line option is provided to simply
+                outside of explicit classes.  This command-line option is provided to simplify
                 a transition from the behavior in the language prior to version 1.9.3, from
                 which point onward all functions and methods declared at the module scope are
                 implicitly static and fields declarations are not allowed at the module scope.
@@ -300,6 +336,14 @@ namespace Microsoft.Dafny
                     System.Collections.Immutable.dll in the source directory to successfully 
                     compile).
                   - passes /optimize flag to csc.exe.
+  /stats        Print interesting statistics about the Dafny files supplied.
+  /funcCallGraph Print out the function call graph.  Format is: func,mod=callee*
+  /warnShadowing  Emits a warning if the name of a declared variable caused another variable
+                to be shadowed
+  /ironDafny    Enable experimental features needed to support Ironclad/Ironfleet. Use of
+                these features may cause your code to become incompatible with future
+                releases of Dafny.
+  /noIronDafny  Disable Ironclad/Ironfleet features, if enabled by default.
   /printTooltips    
                 Dump additional positional information (displayed as mouse-over tooltips by 
                 the VS plugin) to stdout as 'Info' messages.

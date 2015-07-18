@@ -4,29 +4,29 @@
 abstract module Monad {
   type M<A>
 
-  function method Return(x: A): M<A>
-  function method Bind(m: M<A>, f:A -> M<B>):M<B>
-    reads f.reads;
-    requires forall a :: f.requires(a);
+  function method Return<A>(x: A): M<A>
+  function method Bind<A,B>(m: M<A>, f:A -> M<B>):M<B>
+    reads f.reads
+    requires forall a :: f.requires(a)
 
   // return x >>= f = f x
-  lemma LeftIdentity(x : A, f : A -> M<B>)
-    requires forall a :: f.requires(a);
-    ensures Bind(Return(x),f) == f(x);
+  lemma LeftIdentity<A,B>(x : A, f : A -> M<B>)
+    requires forall a :: f.requires(a)
+    ensures Bind(Return(x),f) == f(x)
 
   // m >>= return = m
-  lemma RightIdentity(m : M<A>)
-    ensures Bind(m,Return) == m;
+  lemma RightIdentity<A>(m : M<A>)
+    ensures Bind(m,Return) == m
 
   // (m >>= f) >>= g = m >>= (x => f(x) >>= g)
-  lemma Associativity(m : M<A>, f:A -> M<B>, g: B -> M<C>)
-    requires forall a :: f.requires(a);
-    requires forall b :: g.requires(b);
+  lemma Associativity<A,B,C>(m : M<A>, f:A -> M<B>, g: B -> M<C>)
+    requires forall a :: f.requires(a)
+    requires forall b :: g.requires(b)
 	ensures Bind(Bind(m,f),g) ==
 	        Bind(m,x reads f.reads(x)
 	                 reads g.reads
 					 requires f.requires(x)
-					 requires forall b :: g.requires(b) => Bind(f(x),g));
+					 requires forall b :: g.requires(b) => Bind(f(x),g))
 }
 
 module Identity refines Monad {
@@ -101,21 +101,21 @@ module List refines Monad {
   function method Return<A>(x: A): M<A>
   { Cons(x,Nil) }
 
-  function method Concat(xs: M<A>, ys: M<A>): M<A>
+  function method Concat<A>(xs: M<A>, ys: M<A>): M<A>
   {
     match xs
 	  case Nil => ys
 	  case Cons(x,xs) => Cons(x,Concat(xs,ys))
   }
 
-  function method Join(xss: M<M<A>>) : M<A>
+  function method Join<A>(xss: M<M<A>>) : M<A>
   {
     match xss
 	  case Nil => Nil
 	  case Cons(xs,xss) => Concat(xs,Join(xss))
   }
 
-  function method Map(xs: M<A>, f: A -> B):M<B>
+  function method Map<A,B>(xs: M<A>, f: A -> B):M<B>
     reads f.reads;
 	requires forall a :: f.requires(a);
   {
@@ -170,7 +170,7 @@ module List refines Monad {
     ensures Concat(Concat(xs,ys),zs) == Concat(xs,Concat(ys,zs));
   {}
 
-  lemma BindMorphism(xs : M<A>, ys: M<A>, f : A -> M<B>)
+  lemma BindMorphism<A,B>(xs : M<A>, ys: M<A>, f : A -> M<B>)
     requires forall a :: f.requires(a);
 	ensures Bind(Concat(xs,ys),f) == Concat(Bind(xs,f),Bind(ys,f));
   {

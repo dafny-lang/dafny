@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:0 /vcsMaxKeepGoingSplits:5 /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %dafny /compile:0 /dprint:"%t.dprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // We consider a number representation that consists of a sequence of digits.  The least

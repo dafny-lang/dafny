@@ -2,58 +2,58 @@
 // RUN: %diff "%s.expect" "%t"
 
 module ReadsRequiresReads {
-  function MyReadsOk(f : A -> B, a : A) : set<object>
-    reads f.reads(a);
+  function MyReadsOk<A,B>(f : A -> B, a : A) : set<object>
+    reads f.reads(a)
   {
     f.reads(a)
   }
 
-  function MyReadsOk2(f : A -> B, a : A) : set<object>
-    reads f.reads(a);
+  function MyReadsOk2<A,B>(f : A -> B, a : A) : set<object>
+    reads f.reads(a)
   {
     (f.reads)(a)
   }
 
-  function MyReadsOk3(f : A -> B, a : A) : set<object>
-    reads (f.reads)(a);
+  function MyReadsOk3<A,B>(f : A -> B, a : A) : set<object>
+    reads (f.reads)(a)
   {
     f.reads(a)
   }
 
-  function MyReadsOk4(f : A -> B, a : A) : set<object>
-    reads (f.reads)(a);
+  function MyReadsOk4<A,B>(f : A -> B, a : A) : set<object>
+    reads (f.reads)(a)
   {
     (f.reads)(a)
   }
 
-  function MyReadsBad(f : A -> B, a : A) : set<object>
+  function MyReadsBad<A,B>(f : A -> B, a : A) : set<object>
   {
     f.reads(a)  // error: MyReadsBad does not have permission to read what f.reads(a) reads
   }
 
-  function MyReadsBad2(f : A -> B, a : A) : set<object>
+  function MyReadsBad2<A,B>(f : A -> B, a : A) : set<object>
   {
     (f.reads)(a)  // error: MyReadsBad2 does not have permission to read what f.reads(a) reads
   }
 
-  function MyReadsOk'(f : A -> B, a : A, o : object) : bool
-    reads f.reads(a);
+  function MyReadsOk'<A,B>(f : A -> B, a : A, o : object) : bool
+    reads f.reads(a)
   {
     o in f.reads(a)
   }
 
-  function MyReadsBad'(f : A -> B, a : A, o : object) : bool
+  function MyReadsBad'<A,B>(f : A -> B, a : A, o : object) : bool
   {
     o in f.reads(a)  // error: MyReadsBad' does not have permission to read what f.reads(a) reads
   }
 
-  function MyRequiresOk(f : A -> B, a : A) : bool
-    reads f.reads(a);
+  function MyRequiresOk<A,B>(f : A -> B, a : A) : bool
+    reads f.reads(a)
   {
     f.requires(a)
   }
 
-  function MyRequiresBad(f : A -> B, a : A) : bool
+  function MyRequiresBad<A,B>(f : A -> B, a : A) : bool
   {
     f.requires(a)  // error: MyRequiresBad does not have permission to read what f.requires(a) reads
   }
@@ -72,11 +72,11 @@ module WhatWeKnowAboutReads {
   }
 
   class S {
-    var s : S;
+    var s : S
   }
 
   function ReadsSomething(s : S):()
-    reads s;
+    reads s
   {()}
 
   method MaybeSomething() {
@@ -105,29 +105,29 @@ module WhatWeKnowAboutReads {
 
 module ReadsAll {
   function A(f: int -> int) : int
-    reads set o,x | o in f.reads(x) :: o;
-    requires forall x :: f.requires(x);
+    reads set o,x | o in f.reads(x) :: o
+    requires forall x :: f.requires(x)
   {
     f(0) + f(1) + f(2)
   }
 
   function method B(f: int -> int) : int
-    reads set o,x | o in f.reads(x) :: o;
-    requires forall x :: f.requires(x);
+    reads set o,x | o in f.reads(x) :: o
+    requires forall x :: f.requires(x)
   {
     f(0) + f(1) + f(2)
   }
 
   function C(f: int -> int) : int
-    reads f.reads;
-    requires forall x :: f.requires(x);
+    reads f.reads
+    requires forall x :: f.requires(x)
   {
     f(0) + f(1) + f(2)
   }
 
   function method D(f: int -> int) : int
-    reads f.reads;
-    requires forall x :: f.requires(x);
+    reads f.reads
+    requires forall x :: f.requires(x)
   {
     f(0) + f(1) + f(2)
   }

@@ -106,3 +106,49 @@ class CC extends TT {
     decreases *
   { }
 }
+
+
+// The following module contains various regression tests
+module More {
+  trait A0 {
+    predicate P() decreases 5
+  }
+  class B0 extends A0 {
+    predicate P()  // error: rank is not lower
+  }
+
+  trait A1 {
+    predicate P() decreases 5
+  }
+  class B1 extends A1 {
+    predicate P() reads this  // error: rank is not lower
+  }
+
+  trait A2 {
+    predicate P(x: int)
+  }
+  class B2 extends A2 {
+    predicate P(x: int) reads this  // error: rank is not lower
+  }
+
+  trait A3 {
+    predicate P() reads this
+  }
+  class B3 extends A3 {
+    predicate P()  // error: rank is not lower
+  }
+
+  trait A4 {
+    predicate P(x: int) decreases 5
+  }
+  class B4 extends A4 {
+    predicate P(x: int)  // error: rank is not lower
+  }
+
+  trait A5 {
+    method M(x: int) decreases 5
+  }
+  class B5 extends A5 {
+    method M(x: int)  // error: rank is not lower
+  }
+}

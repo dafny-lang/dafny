@@ -270,7 +270,17 @@ namespace DafnyLanguage
       } else if (expr is MatchExpr) {
         var e = (MatchExpr)expr;
         foreach (var kase in e.Cases) {
-          kase.Arguments.ForEach(bv => IdRegion.Add(regions, bv.tok, bv, true, module));
+          kase.Arguments.ForEach(bv => {
+            IdRegion.Add(regions, bv.tok, bv, true, module);
+            // if the arguments is an encapsulation of different boundvars from nested match cases,
+            // add the boundvars so that they can show up in the IDE correctly
+            if (bv.tok is MatchCaseToken) {
+              MatchCaseToken mt = (MatchCaseToken)bv.tok;
+              foreach(Tuple<Bpl.IToken, BoundVar, bool> entry in mt.varList) {
+                IdRegion.Add(regions, entry.Item1, entry.Item2, entry.Item3, module);
+              }
+            }
+          });
         }
       } else if (expr is ChainingExpression) {
         var e = (ChainingExpression)expr;
@@ -313,7 +323,17 @@ namespace DafnyLanguage
       } else if (stmt is MatchStmt) {
         var s = (MatchStmt)stmt;
         foreach (var kase in s.Cases) {
-          kase.Arguments.ForEach(bv => IdRegion.Add(regions, bv.tok, bv, true, module));
+          kase.Arguments.ForEach(bv => {
+            IdRegion.Add(regions, bv.tok, bv, true, module);
+            // if the arguments is an encapsulation of different boundvars from nested match cases,
+            // add the boundvars so that they can show up in the IDE correctly
+            if (bv.tok is MatchCaseToken) {
+              MatchCaseToken mt = (MatchCaseToken)bv.tok;
+              foreach (Tuple<Bpl.IToken, BoundVar, bool> entry in mt.varList) {
+                IdRegion.Add(regions, entry.Item1, entry.Item2, entry.Item3, module);
+              }
+            }              
+          });
         }
       } else if (stmt is LoopStmt) {
         var s = (LoopStmt)stmt;

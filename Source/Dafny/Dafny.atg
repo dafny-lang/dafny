@@ -299,6 +299,9 @@ bool IsGenericInstantiation() {
       return false;
   }
 }
+/* Returns true if the next thing is of the form:
+ *     "<" Type { "," Type } ">"
+ */
 bool IsTypeList(ref IToken pt) {
   if (pt.kind != _openAngleBracket) {
     return false;
@@ -306,6 +309,10 @@ bool IsTypeList(ref IToken pt) {
   pt = scanner.Peek();
   return IsTypeSequence(ref pt, _closeAngleBracket);
 }
+/* Returns true if the next thing is of the form:
+ *     Type { "," Type }
+ * followed by an endBracketKind.
+ */
 bool IsTypeSequence(ref IToken pt, int endBracketKind) {
   while (true) {
     if (!IsType(ref pt)) {
@@ -343,7 +350,7 @@ bool IsType(ref IToken pt) {
     case _map:
     case _imap:
       pt = scanner.Peek();
-      return IsTypeList(ref pt);
+      return pt.kind != _openAngleBracket || IsTypeList(ref pt);
     case _ident:
       while (true) {
         // invariant: next token is an ident
@@ -362,6 +369,11 @@ bool IsType(ref IToken pt) {
       }
     case _openparen:
       pt = scanner.Peek();
+      if (pt.kind == _closeparen) {
+        // end of type list
+        pt = scanner.Peek();
+        return true;
+      }
       return IsTypeSequence(ref pt, _closeparen);
     default:
       return false;
@@ -515,7 +527,7 @@ Dafny
   | OtherTypeDecl<defaultModule, out td>        (. defaultModule.TopLevelDecls.Add(td); .)
   | IteratorDecl<defaultModule, out iter>       (. defaultModule.TopLevelDecls.Add(iter); .)
   | TraitDecl<defaultModule, out trait>    (. defaultModule.TopLevelDecls.Add(trait); .)
-  | ClassMemberDecl<membersDefaultClass, false, !DafnyOptions.O.AllowGlobals>
+  | ClassMemberDecl<membersDefaultClass, false, !DafnyOptions.O.AllowGlobals, false>
   }
   (. // find the default class in the default module, then append membersDefaultClass to its member list
      DefaultClassDecl defaultClass = null;
@@ -542,6 +554,7 @@ SubModuleDecl<ModuleDefinition parent, out ModuleDecl submodule>
      ModuleDecl sm;
      submodule = null; // appease compiler
      bool isAbstract = false;
+     bool isExclusively = false;
      bool opened = false;
   .)
   ( [ "abstract"  (. isAbstract = true; .) ]
@@ -549,7 +562,9 @@ SubModuleDecl<ModuleDefinition parent, out ModuleDecl submodule>
     { Attribute<ref attrs> }
     NoUSIdent<out id>
 
-      [ "refines" QualifiedModuleName<out idRefined> ] (. module = new ModuleDefinition(id, id.val, isAbstract, false, idRefined == null ? null : idRefined, parent, attrs, false); .)
+      [ "exclusively" "refines" QualifiedModuleName<out idRefined> (. isExclusively = true; .)  
+      | "refines" QualifiedModuleName<out idRefined> (. isExclusively = false; .) ] 
+            (. module = new ModuleDefinition(id, id.val, isAbstract, false, isExclusively, idRefined == null ? null : idRefined, parent, attrs, false, this); .)  
        "{"                                             (. module.BodyStartTok = t; .)
         { SubModuleDecl<module, out sm>                (. module.TopLevelDecls.Add(sm); .)
         | ClassDecl<module, out c>                     (. module.TopLevelDecls.Add(c); .)
@@ -558,7 +573,7 @@ SubModuleDecl<ModuleDefinition parent, out ModuleDecl submodule>
         | NewtypeDecl<module, out td>                  (. module.TopLevelDecls.Add(td); .)
         | OtherTypeDecl<module, out td>                (. module.TopLevelDecls.Add(td); .)
         | IteratorDecl<module, out iter>               (. module.TopLevelDecls.Add(iter); .)
-        | ClassMemberDecl<namedModuleDefaultClassMembers, false, !DafnyOptions.O.AllowGlobals>
+        | ClassMemberDecl<namedModuleDefaultClassMembers, false, !DafnyOptions.O.AllowGlobals, true>
         }
       "}"                                  (. module.BodyEndTok = t;
                                               module.TopLevelDecls.Add(new DefaultClassDecl(module, namedModuleDefaultClassMembers));
@@ -615,7 +630,7 @@ ClassDecl<ModuleDefinition/*!*/ module, out ClassDecl/*!*/ c>
   {"," Type<out trait>  (. traits.Add(trait); .) }
   ]         
   "{"                                            (. bodyStart = t;  .)
-  { ClassMemberDecl<members, true, false>
+  { ClassMemberDecl<members, true, false, false>
   }
   "}"
   (. c = new ClassDecl(id, id.val, module, typeArgs, members, attrs, traits);
@@ -639,7 +654,7 @@ ClassDecl<ModuleDefinition/*!*/ module, out ClassDecl/*!*/ c>
 	NoUSIdent<out id>
 	[ GenericParameters<typeArgs> ]
 	"{"                                            (. bodyStart = t; .)
-    { ClassMemberDecl<members, true, false>
+    { ClassMemberDecl<members, true, false, false>
     }
     "}"
 	(. trait = new TraitDecl(id, id.val, module, typeArgs, members, attrs);
@@ -648,7 +663,7 @@ ClassDecl<ModuleDefinition/*!*/ module, out ClassDecl/*!*/ c>
     .)
 	.
 
-ClassMemberDecl<.List<MemberDecl> mm, bool allowConstructors, bool moduleLevelDecl.>
+ClassMemberDecl<.List<MemberDecl> mm, bool allowConstructors, bool moduleLevelDecl, bool permitAbstractDecl.>
 = (. Contract.Requires(cce.NonNullElements(mm));
      Method/*!*/ m;
      Function/*!*/ f;
@@ -682,7 +697,7 @@ ClassMemberDecl<.List<MemberDecl> mm, bool allowConstructors, bool moduleLevelDe
          mmod.IsProtected = false;
        }
     .)
-    MethodDecl<mmod, allowConstructors, out m>  (. mm.Add(m); .)
+    MethodDecl<mmod, allowConstructors, permitAbstractDecl, out m>  (. mm.Add(m); .)
   )
   .
 DatatypeDecl<ModuleDefinition/*!*/ module, out DatatypeDecl/*!*/ dt>
@@ -934,7 +949,7 @@ GenericParameters<.List<TypeParameter/*!*/>/*!*/ typeArgs.>
   ">"
   .
 /*------------------------------------------------------------------------*/
-MethodDecl<MemberModifiers mmod, bool allowConstructor, out Method/*!*/ m>
+MethodDecl<MemberModifiers mmod, bool allowConstructor, bool permitAbstractDecl, out Method/*!*/ m>
 = (. Contract.Ensures(Contract.ValueAtReturn(out m) !=null);
      IToken/*!*/ id = Token.NoToken;
      bool hasName = false;  IToken keywordToken;
@@ -1015,7 +1030,7 @@ MethodDecl<MemberModifiers mmod, bool allowConstructor, out Method/*!*/ m>
   [ BlockStmt<out body, out bodyStart, out bodyEnd>
   ]
   (.
-     if (DafnyOptions.O.DisallowSoundnessCheating && body == null && ens.Count > 0 && !Attributes.Contains(attrs, "axiom") && !Attributes.Contains(attrs, "imported") && !Attributes.Contains(attrs, "decl") && theVerifyThisFile) {
+     if (!permitAbstractDecl && DafnyOptions.O.DisallowSoundnessCheating && body == null && ens.Count > 0 && !Attributes.Contains(attrs, "axiom") && !Attributes.Contains(attrs, "imported") && !Attributes.Contains(attrs, "decl") && theVerifyThisFile) {
         SemErr(t, "a method with an ensures clause must have a body, unless given the :axiom attribute");
      }
 
@@ -1965,6 +1980,7 @@ ModifyStmt<out Statement s>
 CalcStmt<out Statement s>
 = (. Contract.Ensures(Contract.ValueAtReturn(out s) != null);
      Token x;
+     Attributes attrs = null;
      CalcStmt.CalcOp op, calcOp = Microsoft.Dafny.CalcStmt.DefaultOp, resOp = Microsoft.Dafny.CalcStmt.DefaultOp;
      var lines = new List<Expression>();
      var hints = new List<BlockStmt>();
@@ -1976,6 +1992,7 @@ CalcStmt<out Statement s>
      IToken danglingOperator = null;
   .)
   "calc"                                                  (. x = t; .)
+  { IF(IsAttribute()) Attribute<ref attrs> }
   [ CalcOp<out opTok, out calcOp>                         (. maybeOp = calcOp.ResultOp(calcOp); // guard against non-transitive calcOp (like !=)
                                                              if (maybeOp == null) {
                                                                SemErr(opTok, "the main operator of a calculation must be transitive");
@@ -2024,7 +2041,7 @@ CalcStmt<out Statement s>
       // Repeat the last line to create a dummy line for the dangling hint
       lines.Add(lines[lines.Count - 1]);
     }
-    s = new CalcStmt(x, t, calcOp, lines, hints, stepOps, resOp);
+    s = new CalcStmt(x, t, calcOp, lines, hints, stepOps, resOp, attrs);
   .)
   .
 CalcOp<out IToken x, out CalcStmt.CalcOp/*!*/ op>

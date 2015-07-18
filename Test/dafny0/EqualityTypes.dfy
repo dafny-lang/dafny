@@ -241,3 +241,115 @@ module Deep {
     var m1 := map[ko := 5];  // error: bad type
   }
 }
+
+//--------------------------
+
+module UnderspecifiedTypeParameters {
+  method UP<T>()
+  function method UG<T>(): int
+  method Callee<T(==)>()
+  class TakesParam<U> { }
+  
+  method MPG()
+  {
+    var g := UG();  // error: type parameter underspecified
+    UP();  // error: type parameter underspecified
+  }
+  method M() {
+    var zs: set;  // error: type is underspecified
+    Callee<(int)>();
+    Callee<set>();  // error: type is underspecified
+    Callee<()>();
+    // The following 
+    Callee<TakesParam>();  // error: type is underspecified
+  }
+}
+
+module EqualitySupportingTypes {
+  method P<T>()
+  function method G<T>(): int
+  class AClass<V(==),Y> {
+    static function method H<W,X(==)>(): bool
+    static method Q<A,B(==)>()
+  }
+
+  method Callee<T(==)>()
+  function method FCallee<T>(): T
+
+  datatype Dt = Dt(f: int -> int)
+  codatatype Stream<T> = Cons(T, Stream)
+
+  method M<ArbitraryTypeArg>()
+  {
+    Callee<Dt>();  // error:  Dt is not an equality-supporting type
+    Callee<Stream<int>>();  // error: specified type does not support equality
+
+    // set<X> is allowed in a non-ghost context only if X is equality supporting.
+    // Ditto for multiset<X> and map<X,Y>.
+    var s3x: set<Dt>;  // error: this type not allowed in a non-ghost context
+    var is3x: iset<Dt>;  // error: this type not allowed in a non-ghost context
+    var mast: multiset<ArbitraryTypeArg>;  // error: this type not allowed in a non-ghost context
+    var qt: seq<Stream<int>>;  // allowed
+    var mp0: map<Dt,int>;  // error: this type not allowed in a non-ghost context
+    var mp1: map<int,Dt>;  // allowed
+    var imp0: imap<Dt,int>;  // error: this type not allowed in a non-ghost context
+    var imp1: imap<int,Dt>;  // allowed
+
+    var S := FCallee<set>();  // this gives s:set<?>
+    if 4 in S {              // this constrains the type further to be s:set<int>
+    }
+
+    var xy: set<set<int>>;
+    var xz: set<set<Stream<int>>>;  // error: set type argument must support equality
+    
+    Callee<set<Stream<int>>>();  // bogus: a set shouldn't ever be allowed to take a Stream as an argument (this check seems to be missing for explicit type arguments)  -- Note: language definition should be changed, because it doesn't make sense for it to talk about a type appearing in a ghost or non-ghost context. Instead, set/iset/multiset/map/imap should always be allowed to take any type argument, but these types may or may not support equality.
+    var xg := G<set<Stream<int>>>();
+    
+    var ac0: AClass<int,int>;
+    var ac1: AClass<Stream<int>,int>;  // error: type parameter 0 is required to support equality
+    var ac2: AClass<int,Stream<int>>;
+    var xd0 := ac0.H<real,real>();
+    var xd1 := ac1.H<Stream<real>,real>();  // error (remnant of the fact that the type of ac1 is not allowed)
+    var xd2 := ac2.H<real,Stream<real>>();  // error: type parameter 1 is required to support equality
+    var xe0 := ac0.H<real,real>;
+    var xe1 := ac1.H<Stream<real>,real>;  // error (remnant of the fact that the type of ac1 is not allowed)
+    var xe2 := ac2.H<real,Stream<real>>;  // error: type parameter 1 is required to support equality
+    var xh0 := AClass<int,int>.H<real,real>();
+    var xh1 := AClass<int,int>.H<Stream<real>,real>();
+    var xh2 := AClass<int,int>.H<real,Stream<real>>();  // error: type parameter 1 is required to support equality
+    var xk0 := AClass<real,real>.H<int,int>;
+    var xk1 := AClass<Stream<real>,real>.H<int,int>;  // error: class type param 0 wants an equality-supporting type
+    var xk2 := AClass<real,Stream<real>>.H<int,int>;
+    AClass<Stream<int>,int>.Q<real,real>();  // error: class type param 0 wants an equality-supporting type
+    AClass<int,Stream<int>>.Q<real,real>();
+    AClass<int,Stream<int>>.Q<Stream<real>,real>();
+    AClass<int,Stream<int>>.Q<real,Stream<real>>();  // error: method type param 1 wants an equality-supporting type
+  
+/*************************** TESTS YET TO COME
+    var ac8: AClass<real,real>;
+    var xd8 := (if 5/0 == 3 then ac0 else ac8).H<real,real>();  // error: this should be checked by the verifier
+
+    AClass<int,set<Stream<int>>>.Q<real,real>();  // error: cannot utter "set<Stream<int>>"   Or is that okay???
+    AClass<int,int>.Q<set<Stream<real>>,real>();  // error: cannot utter "set<Stream<real>>"   Or is that okay???
+    var xi0 := AClass<int,set<Stream<int>>>.H<real,real>();  // error: cannot utter "set<Stream<int>>"   Or is that okay???
+    var xi1 := AClass<int,int>.H<real,set<Stream<real>>>();  // error: cannot utter "set<Stream<real>>"   Or is that okay???
+
+    var x, t, s: seq<int -> int>, fii: int -> int;
+    if s == t {
+      x := 5;  // error: assigning to non-ghost variable in ghost context
+    }
+    if fii in s {
+      x := 4;  // error: assigning to non-ghost variable in ghost context
+    }
+    if !(fii in s) {
+      x := 3;  // error: assigning to non-ghost variable in ghost context
+    }
+
+    ghost var ghostset: set<Stream<int>> := {};  // fine, since this is ghost
+    forall u | 0 <= u < 100
+      ensures var lets: set<Stream<int>> := {}; lets == lets  // this is ghost, so the equality requirement doesn't apply
+    {
+    }
+*********************************************/
+  }
+}
