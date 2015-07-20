@@ -8593,7 +8593,7 @@ namespace Microsoft.Dafny
 #endif
       } else {
         // ----- None of the above
-        Error(expr.tok, "Undeclared top-level type or type parameter: {0} (did you forget to qualify a name?)", expr.Name);
+        Error(expr.tok, "Undeclared top-level type or type parameter: {0} (did you forget to qualify a name or declare a module import 'opened?')", expr.Name);
       }
 
       if (r == null) {
