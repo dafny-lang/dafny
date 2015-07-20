@@ -8,8 +8,8 @@ import operator
 import platform
 from enum import Enum
 from time import time, strftime
-from multiprocessing import Pool
 from collections import defaultdict
+from multiprocessing import Pool, Manager
 from subprocess import Popen, call, PIPE, TimeoutExpired
 
 # C:/Python34/python.exe runTests.py --compiler "c:/MSR/dafny/Binaries/Dafny.exe /useBaseNameForFileName /compile:1 /nologo" --difftool "C:\Program Files (x86)\Meld\Meld.exe" -j4 -f "/dprelude preludes\AlmostAllTriggers.bpl" dafny0\SeqFromArray.dfy
@@ -39,12 +39,21 @@ class Defaults:
     COMPILER = [DAFNY_BIN]
     FLAGS = ["/useBaseNameForFileName", "/compile:1", "/nologo", "/timeLimit:120"]
 
+class Colors:
+    RED = '\033[91m'
+    GREEN = '\033[92m'
+    YELLOW = '\033[93m'
+    BRIGHT = '\033[1m'
+    DIM = '\033[2m'
+    RESET = '\033[0m'
+
 class Debug(Enum):
-    ERROR  = (-1, '\033[91m')
-    REPORT = (0, '\033[0m', True)
-    INFO   = (1, '\033[0m', True)
-    DEBUG  = (2, '\033[0m')
-    TRACE  = (3, '\033[0m')
+    ERROR   = (-1, Colors.RED)
+    WARNING = (-1, Colors.YELLOW)
+    REPORT  = (0, Colors.RESET, True)
+    INFO    = (1, Colors.RESET, True)
+    DEBUG   = (2, Colors.RESET)
+    TRACE   = (3, Colors.RESET)
 
     def __init__(self, index, color, elide=False):
         self.index = index
@@ -55,7 +64,7 @@ def wrap_color(string, color, silent=False):
     if silent:
         return " " * len(string)
     elif ANSI:
-        return color + string + '\033[0m'
+        return color + string + Colors.RESET
     else:
         return string
 
@@ -78,11 +87,11 @@ def debug(level, *args, **kwargs):
         print(*(headers + args), **kwargs)
 
 class TestStatus(Enum):
-    PENDING = (0, '\033[0m')
-    PASSED  = (1, '\033[92m')
-    FAILED  = (2, '\033[91m')
-    UNKNOWN = (3, '\033[91m')
-    TIMEOUT = (4, '\033[91m')
+    PENDING = (0, Colors.RESET)
+    PASSED  = (1, Colors.GREEN)
+    FAILED  = (2, Colors.RED)
+    UNKNOWN = (3, Colors.RED)
+    TIMEOUT = (4, Colors.RED)
 
     def __init__(self, index, color):
         self.index = index
@@ -117,6 +126,7 @@ class Test:
 
         self.time, self.suite_time = None, None
         self.njobs, self.returncodes = None, []
+        self.start, self.end, self.duration = None, None, None
 
     @staticmethod
     def source_to_expect_path(source):
@@ -142,7 +152,7 @@ class Test:
 
         with open(name + ".csv", mode='w', newline='') as writer:
             csv_writer = csv.DictWriter(writer, Test.COLUMNS, dialect='excel')
-            csv_writer.writeheader()  # TODO enable later
+            csv_writer.writeheader()
             for test in tests:
                 test.serialize(csv_writer)
 
@@ -220,8 +230,17 @@ class Test:
         self.output = Test.read_normalize(self.temp_output_path)
         self.status = TestStatus.PASSED if self.expected == self.output else TestStatus.FAILED
 
-    def report(self, tid, total):
-        debug(Debug.INFO, "[{:5.2f}s] {} ({} of {})".format(self.duration, self.dfy, tid, total), headers=self.status)
+    def report(self, tid, running, alltests):
+        running = [alltests[rid].fname for rid in running]
+        # running = ", ".join(running if len(running) <= 2 else (running[:2] + ["..."]))
+        if running:
+            running = "; oldest thread: {}".format(wrap_color(running[0], Colors.DIM))
+
+        fstring = "[{:5.2f}s] {} ({} of {}{})"
+        message = fstring.format(self.duration, wrap_color(self.dfy, Colors.BRIGHT),
+                                 tid, len(alltests), running)
+
+        debug(Debug.INFO, message, headers=self.status)
 
     @staticmethod
     def write_bytes(base_directory, relative_path, extension, contents):
@@ -290,26 +309,30 @@ def setup_parser():
 
     return parser
 
-
-def run_one(test_args):
+def run_one_internal(test, test_id, args, running):
     global KILLED
     global VERBOSITY
-
-    test, args = test_args
     VERBOSITY = args.verbosity
 
-    try:
-        if not KILLED:
+    if not KILLED:
+        try:
+            running.append(test_id)
             test.run()
-    except KeyboardInterrupt:
-        # There's no reliable way to handle this cleanly on Windows: if one
-        # of the worker dies, it gets respawned. The reliable solution is to
-        # ignore further work once you receive a kill signal
-        KILLED = True
-    except Exception as e:
-        debug(Debug.ERROR, "[{}] {}".format(test.dfy, e))
-        test.status = TestStatus.UNKNOWN
+        except KeyboardInterrupt:
+            # There's no reliable way to handle this cleanly on Windows: if one
+            # of the worker dies, it gets respawned. The reliable solution is to
+            # ignore further work once you receive a kill signal
+            KILLED = True
+        except Exception as e:
+            debug(Debug.ERROR, "[{}] {}".format(test.dfy, e))
+            test.status = TestStatus.UNKNOWN
+        finally:
+            running.remove(test_id)
+
     return test
+
+def run_one(args):
+    return run_one_internal(*args)
 
 def read_one_test(name, fname, compiler_cmds, timeout):
     for cid, compiler_cmd in enumerate(compiler_cmds):
@@ -378,13 +401,16 @@ def run_tests(args):
     try:
         pool = Pool(args.njobs)
 
-        start = time()
         results = []
-        for tid, test in enumerate(pool.imap_unordered(run_one, [(t, args) for t in tests], 1)):
-            test.report(tid + 1, len(tests))
-            results.append(test)
-        pool.close()
-        pool.join()
+        start = time()
+        with Manager() as manager:
+            running = manager.list()
+            payloads = [(t, tid, args, running) for (tid, t) in enumerate(tests)]
+            for tid, test in enumerate(pool.imap_unordered(run_one, payloads, 1)):
+                test.report(tid + 1, running, tests)
+                results.append(test)
+            pool.close()
+            pool.join()
         suite_time = time() - start
 
         for t in results:
@@ -394,8 +420,11 @@ def run_tests(args):
         Test.summarize(results)
         Test.build_report(results, args.report)
     except KeyboardInterrupt:
-        pool.terminate()
-        pool.join()
+        try:
+            pool.terminate()
+            pool.join()
+        except (FileNotFoundError, EOFError, ConnectionAbortedError):
+            pass
         debug(Debug.ERROR, "Testing interrupted")
 
 
@@ -454,6 +483,9 @@ def main():
     parser = setup_parser()
     args = parser.parse_args()
     VERBOSITY = args.verbosity
+
+    if os.name != 'nt' and os.environ.get("TERM") == "cygwin":
+        debug(Debug.WARNING, "If you run into issues, try using Windows' Python instead of Cygwin's")
 
     if args.diff:
         diff(args.paths, args.accept, args.difftool)
