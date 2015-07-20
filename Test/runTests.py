@@ -34,7 +34,7 @@ except ImportError:
         pass
 
 class Defaults:
-    ALWAYS_EXCLUDED = ["Output", "snapshots", "sandbox", "desktop"]
+    ALWAYS_EXCLUDED = ["Inputs", "Output", "sandbox", "desktop"]
     DAFNY_BIN = os.path.realpath(os.path.join(os.path.dirname(__file__), "../Binaries/Dafny.exe"))
     COMPILER = [DAFNY_BIN]
     FLAGS = ["/useBaseNameForFileName", "/compile:1", "/nologo", "/timeLimit:120"]
@@ -108,7 +108,9 @@ class Test:
         self.timeout = timeout
         self.compiler_id = compiler_id
         self.cmds = [cmd.replace("%s", self.source_path) for cmd in self.cmds]
+        self.cmds = [cmd.replace("%S", self.source_directory) for cmd in self.cmds]
         self.cmds = [cmd.replace("%t", self.temp_output_path) for cmd in self.cmds]
+        self.cmds = [cmd.replace("%T", self.temp_directory) for cmd in self.cmds]
 
         self.status = TestStatus.PENDING
         self.proc_info = platform.processor()

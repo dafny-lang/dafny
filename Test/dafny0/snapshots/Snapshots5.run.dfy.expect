@@ -1,0 +1,26 @@
+Processing command (at Snapshots5.v0.dfy(3,4)) assert (forall<alpha> $o: ref, $f: Field alpha :: false ==> $_Frame[$o, $f]);
+  >>> DoNothingToAssert
+Processing command (at Snapshots5.v0.dfy(10,40)) assert (forall b#1: bool :: true ==> b#1 || !b#1) || 0 != 0;
+  >>> DoNothingToAssert
+Processing command (at Snapshots5.v0.dfy(12,4)) assert (forall<alpha> $o: ref, $f: Field alpha :: false ==> $_Frame[$o, $f]);
+  >>> DoNothingToAssert
+Processing command (at Snapshots5.v0.dfy(13,38)) assert (forall b#3: bool :: true ==> b#3 || !b#3) || 3 != 3;
+  >>> DoNothingToAssert
+Processing command (at Snapshots5.v0.dfy(20,40)) assert (forall b#5: bool :: true ==> b#5 || !b#5) || 1 != 1;
+  >>> DoNothingToAssert
+
+Dafny program verifier finished with 3 verified, 0 errors
+Processing command (at Snapshots5.v1.dfy(3,4)) assert (forall<alpha> $o: ref, $f: Field alpha :: false ==> $_Frame[$o, $f]);
+  >>> MarkAsFullyVerified
+Processing command (at Snapshots5.v1.dfy(10,40)) assert (forall b#1: bool :: true ==> b#1 || !b#1) || 0 != 0;
+  >>> MarkAsFullyVerified
+Processing command (at Snapshots5.v1.dfy(12,4)) assert (forall<alpha> $o: ref, $f: Field alpha :: false ==> $_Frame[$o, $f]);
+  >>> MarkAsFullyVerified
+Processing command (at Snapshots5.v1.dfy(13,38)) assert (forall b#3: bool :: true ==> b#3 || !b#3) || 3 != 3;
+  >>> MarkAsFullyVerified
+Processing command (at Snapshots5.v1.dfy(20,40)) assert (exists b#5: bool :: b#5 || !b#5) || 4 != 4;
+  >>> DoNothingToAssert
+Processing command (at Snapshots5.v1.dfy(22,38)) assert (exists b#7: bool :: b#7 || !b#7) || 5 != 5;
+  >>> DoNothingToAssert
+
+Dafny program verifier finished with 3 verified, 0 errors

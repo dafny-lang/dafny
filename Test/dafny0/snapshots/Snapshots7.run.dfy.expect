@@ -1,0 +1,31 @@
+Processing command (at Snapshots7.v0.dfy(19,14)) assert Lit(false);
+  >>> DoNothingToAssert
+
+Dafny program verifier finished with 4 verified, 0 errors
+Processing implementation CheckWellformed$$_0_M0.C.Foo (at Snapshots7.v1.dfy(5,12)):
+  >>> added axiom: ##extracted_function##1() == (0 == $ModuleContextHeight && 0 == $FunctionContextHeight)
+  >>> added after assuming the current precondition: a##cached##0 := a##cached##0 && ##extracted_function##1();
+Processing implementation Impl$$_0_M0.C.Foo (at Snapshots7.v1.dfy(5,12)):
+  >>> added axiom: ##extracted_function##2() == (0 == $ModuleContextHeight && 0 == $FunctionContextHeight && Lit(false))
+  >>> added after assuming the current precondition: a##cached##0 := a##cached##0 && ##extracted_function##2();
+Processing implementation CheckWellformed$$_1_M1.C.Foo (at Snapshots7.v1.dfy[M1](5,12)):
+  >>> added axiom: ##extracted_function##3() == (1 == $ModuleContextHeight && 0 == $FunctionContextHeight)
+  >>> added after assuming the current precondition: a##cached##0 := a##cached##0 && ##extracted_function##3();
+Processing implementation Impl$$_1_M1.C.Foo (at Snapshots7.v1.dfy[M1](5,12)):
+  >>> added axiom: ##extracted_function##4() == (1 == $ModuleContextHeight && 0 == $FunctionContextHeight && Lit(false))
+  >>> added after assuming the current precondition: a##cached##0 := a##cached##0 && ##extracted_function##4();
+Processing command (at <unknown location>) a##cached##0 := a##cached##0 && ##extracted_function##1();
+  >>> AssumeNegationOfAssumptionVariable
+Processing command (at <unknown location>) a##cached##0 := a##cached##0 && ##extracted_function##2();
+  >>> AssumeNegationOfAssumptionVariable
+Processing command (at <unknown location>) a##cached##0 := a##cached##0 && ##extracted_function##3();
+  >>> AssumeNegationOfAssumptionVariable
+Processing command (at <unknown location>) a##cached##0 := a##cached##0 && ##extracted_function##4();
+  >>> AssumeNegationOfAssumptionVariable
+Processing command (at Snapshots7.v1.dfy(19,14)) assert Lit(false);
+  >>> MarkAsPartiallyVerified
+Snapshots7.v1.dfy(19,14): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+
+Dafny program verifier finished with 3 verified, 1 error
