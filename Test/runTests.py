@@ -370,7 +370,7 @@ def run_tests(args):
                             args.exclude + Defaults.ALWAYS_EXCLUDED, args.timeout))
     tests.sort(key=operator.attrgetter("name"))
 
-    args.njobs = min(args.njobs or os.cpu_count() or 1, len(tests))
+    args.njobs = max(1, min(args.njobs or os.cpu_count() or 1, len(tests)))
     debug(Debug.INFO, "\nRunning {} test(s) on {} testing thread(s), timeout is {:.2f}s, started at {}".format(len(tests), args.njobs, args.timeout, strftime("%H:%M:%S")))
 
     try:
