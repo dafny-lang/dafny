@@ -41,7 +41,7 @@ namespace Microsoft.Dafny
     Resolver Resolver;
 
     internal TriggersRewriter(Resolver resolver) {
-      Contract.Requires(Resolver != null);
+      Contract.Requires(resolver != null);
       this.Resolver = resolver;
     }
 

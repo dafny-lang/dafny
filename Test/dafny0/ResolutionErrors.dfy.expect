@@ -58,8 +58,8 @@ ResolutionErrors.dfy(987,11): Error: Wrong number of type arguments (2 instead o
 ResolutionErrors.dfy(988,11): Error: Wrong number of type arguments (2 instead of 1) passed to class: C
 ResolutionErrors.dfy(999,7): Error: Duplicate name of top-level declaration: BadSyn2
 ResolutionErrors.dfy(996,17): Error: Wrong number of type arguments (0 instead of 1) passed to datatype: List
-ResolutionErrors.dfy(997,17): Error: Undeclared top-level type or type parameter: badName (did you forget to qualify a name?)
-ResolutionErrors.dfy(998,22): Error: Undeclared top-level type or type parameter: X (did you forget to qualify a name?)
+ResolutionErrors.dfy(997,17): Error: Undeclared top-level type or type parameter: badName (did you forget to qualify a name or declare a module import 'opened?')
+ResolutionErrors.dfy(998,22): Error: Undeclared top-level type or type parameter: X (did you forget to qualify a name or declare a module import 'opened?')
 ResolutionErrors.dfy(1005,7): Error: Cycle among redirecting types (newtypes, type synonyms): A -> A
 ResolutionErrors.dfy(1008,7): Error: Cycle among redirecting types (newtypes, type synonyms): A -> B -> A
 ResolutionErrors.dfy(1012,7): Error: Cycle among redirecting types (newtypes, type synonyms): A -> B -> A
@@ -68,7 +68,7 @@ ResolutionErrors.dfy(1024,7): Error: Cycle among redirecting types (newtypes, ty
 ResolutionErrors.dfy(1029,7): Error: Cycle among redirecting types (newtypes, type synonyms): A -> B -> A
 ResolutionErrors.dfy(1048,21): Error: unresolved identifier: x
 ResolutionErrors.dfy(1055,35): Error: Wrong number of type arguments (2 instead of 1) passed to opaque type: P
-ResolutionErrors.dfy(1067,13): Error: Undeclared top-level type or type parameter: BX (did you forget to qualify a name?)
+ResolutionErrors.dfy(1067,13): Error: Undeclared top-level type or type parameter: BX (did you forget to qualify a name or declare a module import 'opened?')
 ResolutionErrors.dfy(1077,6): Error: RHS (of type P<int>) not assignable to LHS (of type P<bool>)
 ResolutionErrors.dfy(1082,6): Error: RHS (of type P<A>) not assignable to LHS (of type P<B>)
 ResolutionErrors.dfy(1087,6): Error: RHS (of type P<A>) not assignable to LHS (of type P<int>)
@@ -82,8 +82,8 @@ ResolutionErrors.dfy(1225,26): Error: the type of this variable is underspecifie
 ResolutionErrors.dfy(1226,31): Error: the type of this variable is underspecified
 ResolutionErrors.dfy(1227,29): Error: the type of this variable is underspecified
 ResolutionErrors.dfy(1237,34): Error: the type of this variable is underspecified
-ResolutionErrors.dfy(1253,21): Error: Undeclared top-level type or type parameter: X (did you forget to qualify a name?)
-ResolutionErrors.dfy(1254,24): Error: Undeclared top-level type or type parameter: X (did you forget to qualify a name?)
+ResolutionErrors.dfy(1253,21): Error: Undeclared top-level type or type parameter: X (did you forget to qualify a name or declare a module import 'opened?')
+ResolutionErrors.dfy(1254,24): Error: Undeclared top-level type or type parameter: X (did you forget to qualify a name or declare a module import 'opened?')
 ResolutionErrors.dfy(1291,16): Error: in a ghost context, only ghost fields can be mentioned as modifies frame targets (y)
 ResolutionErrors.dfy(1301,18): Error: in a ghost context, only ghost fields can be mentioned as modifies frame targets (x)
 ResolutionErrors.dfy(1329,15): Error: The name Inner ambiguously refers to a type in one of the modules A, B (try qualifying the type name with the module name)
