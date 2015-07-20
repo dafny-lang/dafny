@@ -4807,6 +4807,8 @@ namespace Microsoft.Dafny {
     {
       get {
         foreach (var e in base.SubExpressions) { yield return e; }
+        foreach (var e in Attributes.SubExpressions(Attributes)) { yield return e; }
+        
         foreach (var l in Lines) {
           yield return l;
         }
