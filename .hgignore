@@ -6,6 +6,7 @@ syntax: regexp
 Test/.*/Output
 Test/desktop/.*
 Test/([^/]*)/([^/]*)\.sx
+^Test/sandbox/.*
 syntax: glob
 *.exe
 *.pdb
