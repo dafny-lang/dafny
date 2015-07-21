@@ -233,8 +233,7 @@ class Test:
     def report(self, tid, running, alltests):
         running = [alltests[rid].fname for rid in running]
         # running = ", ".join(running if len(running) <= 2 else (running[:2] + ["..."]))
-        if running:
-            running = "; oldest thread: {}".format(wrap_color(running[0], Colors.DIM))
+        running = "; oldest thread: {}".format(wrap_color(running[0], Colors.DIM)) if running else ""
 
         fstring = "[{:5.2f}s] {} ({} of {}{})"
         message = fstring.format(self.duration, wrap_color(self.dfy, Colors.BRIGHT),
