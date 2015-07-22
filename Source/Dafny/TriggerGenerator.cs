@@ -9,8 +9,7 @@ using System.Diagnostics.Contracts;
 using System.Text;
 using System.Diagnostics;
 
-//FIXME No LitInts in triggers
-//FIXME Generated triggers should be _triggers, and if a predicate is called with something that can't be a trigger head we shouldn't inline it (see .\Test\dafny2\SnapshotableTrees.dfy)
+//FIXME Generated triggers should be _triggers
 //FIXME: When scoring, do not consider old(x) to be higher than x.
 
 /* High level note: There are really two processes going on here. One is finding quantifiers; 
@@ -35,24 +34,6 @@ namespace Microsoft.Dafny {
     }
   }
 
-  class TriggerCandidateComparer : IEqualityComparer<TriggerCandidate> { //FIXME: There is a bunch of these comparers.
-    private static TriggerCandidateComparer singleton;
-    internal static TriggerCandidateComparer Instance {
-      get { return singleton == null ? (singleton = new TriggerCandidateComparer()) : singleton; }
-    }
-
-    private TriggerCandidateComparer() { }
-
-    public bool Equals(TriggerCandidate x, TriggerCandidate y) {
-      return x == null && y == null ||
-        x != null && y != null && x.Expr.ExpressionEq(y.Expr);
-    }
-
-    public int GetHashCode(TriggerCandidate obj) {
-      return 1; // FIXME: Force collisions. Use until we have a proper hashing strategy for expressions.
-    }
-  }
-
   class MultiTriggerCandidate {
     internal List<TriggerCandidate> Candidates;
     internal List<string> Tags;
@@ -63,9 +44,9 @@ namespace Microsoft.Dafny {
       get {
         if (potentialMatchingLoops == null) {
           //FIXME could be optimized by looking at the bindings instead of doing full equality
-          var candidates = Candidates.Distinct(TriggerCandidateComparer.Instance);
+          var candidates = Candidates.Deduplicate((x, y) => ExprExtensions.ExpressionEq(x.Expr, y.Expr));
           potentialMatchingLoops = candidates.SelectMany(candidate => candidate.MatchesInQuantifierBody)
-            .Distinct(ExprExtensions.TriggerMatchComparer.Instance).Where(tm => tm.CouldCauseLoops(candidates)).ToList();
+            .Deduplicate((x, y) => ExprExtensions.ExpressionEq(x.Expr, y.Expr)).Where(tm => tm.CouldCauseLoops(candidates)).ToList();
         }
         
         return potentialMatchingLoops;
@@ -103,7 +84,7 @@ namespace Microsoft.Dafny {
     internal bool IsTriggerKiller;
     internal ISet<IVariable> Variables;
     internal readonly List<TriggerCandidate> PrivateCandidates;
-    internal readonly List<TriggerCandidate> ExportedCandidates; //FIXME using a hashset is useless here
+    internal readonly List<TriggerCandidate> ExportedCandidates;
 
     internal TriggerAnnotation(bool IsTriggerKiller, IEnumerable<IVariable> Variables, 
                                IEnumerable<TriggerCandidate> AllCandidates, IEnumerable<TriggerCandidate> PrivateCandidates = null) {
@@ -214,6 +195,7 @@ namespace Microsoft.Dafny {
                  expr is LiteralExpr ||
                  expr is OldExpr ||
                  expr is ThisExpr ||
+                 expr is BoxingCastExpr ||
                  expr is DatatypeValue) {
         annotation = AnnotateOther(expr, false);
       } else {
@@ -352,7 +334,7 @@ namespace Microsoft.Dafny {
     }
 
     private static bool DefaultCandidateFilteringFunction(TriggerCandidate candidate, QuantifierExpr quantifier) {
-      //FIXME this will miss rewritten expressions (CleanupExpr)
+      //FIXME this will miss rewritten expressions (CleanupExpr). Should introduce an OriginalExpr to compare.
       candidate.MatchesInQuantifierBody = quantifier.SubexpressionsMatchingTrigger(candidate.Expr).ToList();
       return true;
     }
@@ -402,7 +384,7 @@ namespace Microsoft.Dafny {
         Contract.Requires(MultiCandidateScoringFunction != null);
         Contract.Requires(MultiCandidateSelectionFunction != null);
 
-        AllCandidates = annotation.PrivateCandidates.Distinct(TriggerCandidateComparer.Instance).ToList();
+        AllCandidates = annotation.PrivateCandidates.Deduplicate((x, y) => ExprExtensions.ExpressionEq(x.Expr, y.Expr));
         Partition(AllCandidates, 
           x => CandidateFilteringFunction(x, quantifier), out SelectedCandidates, out RejectedCandidates);
         Partition(AllNonEmptySubsets(SelectedCandidates).Select(s => new MultiTriggerCandidate(s)), 
@@ -487,12 +469,12 @@ namespace Microsoft.Dafny {
       if (multi_candidates.RejectedMultiCandidates.Any()) {
         var tooltip = JoinStringsWithHeader("Rejected: ", multi_candidates.RejectedMultiCandidates.Where(candidate => candidate.Tags != null)
           .Select(candidate => candidate.AsDafnyAttributeString(true, true)));
-        AdditionalInformationReporter(quantifier.tok, tooltip, quantifier.tok.val.Length); //CLEMENT Check this
+        AdditionalInformationReporter(quantifier.tok, tooltip, quantifier.tok.val.Length);
       }
 
       if (multi_candidates.FinalMultiCandidates.Any()) {
         var tooltip = JoinStringsWithHeader("Triggers: ", multi_candidates.FinalMultiCandidates.Select(multi_candidate => multi_candidate.AsDafnyAttributeString()));
-        AdditionalInformationReporter(quantifier.tok, tooltip, quantifier.tok.val.Length); //CLEMENT Check this
+        AdditionalInformationReporter(quantifier.tok, tooltip, quantifier.tok.val.Length);
       }
 
       string warning = multi_candidates.Warning();
@@ -502,10 +484,6 @@ namespace Microsoft.Dafny {
     }
 
     internal static bool IsTriggerKiller(Expression expr) {
-      // CLEMENT: This should be removed once trigger generation becomes the default
-      if (!DafnyOptions.O.AutoTriggers) {
-        return false;
-      }
       var annotation = new TriggerGenerator((x, y, z) => { }).Annotate(expr);
       return annotation.IsTriggerKiller;
     }
@@ -569,6 +547,20 @@ namespace Microsoft.Dafny {
     }
   }
 
+  internal static class DeduplicateExtension {
+    public static List<T> Deduplicate<T>(this IEnumerable<T> seq, Func<T, T, bool> eq) {
+      List<T> deduplicated = new List<T>();
+
+      foreach (var elem in seq) {
+        if (!deduplicated.Any(other => eq(elem, other))) {
+          deduplicated.Add(elem);
+        }
+      }
+
+      return deduplicated;
+    }
+  }
+
   static class ExprExtensions {
     static IEnumerable<Expression> AllSubExpressions(this Expression expr, bool strict = false) {
       foreach (var subexpr in expr.SubExpressions) {
@@ -601,41 +593,6 @@ namespace Microsoft.Dafny {
         foreach (var r_subexpr in AllSubExpressions(substmt, false)) {
           yield return r_subexpr;
         }
-      }
-    }
-
-    internal class EqExpressionComparer : IEqualityComparer<Expression> { //FIXME
-      private static EqExpressionComparer singleton;
-      internal static EqExpressionComparer Instance {
-        get { return singleton == null ? (singleton = new EqExpressionComparer()) : singleton; }
-      }
-
-      private EqExpressionComparer() { }
-
-      public bool Equals(Expression x, Expression y) {
-        return x == null && y == null ||
-               x != null && y != null && x.ExpressionEq(y);
-      }
-
-      public int GetHashCode(Expression obj) {
-        return 1;
-      }
-    }
-
-    internal class TriggerMatchComparer : IEqualityComparer<TriggerMatch> { //FIXME
-      private static TriggerMatchComparer singleton;
-      internal static TriggerMatchComparer Instance {
-        get { return singleton == null ? (singleton = new TriggerMatchComparer()) : singleton; }
-      }
-
-      private TriggerMatchComparer() { }
-
-      public bool Equals(TriggerMatch x, TriggerMatch y) {
-        return ExpressionEq(x.Expr, y.Expr);
-      }
-
-      public int GetHashCode(TriggerMatch obj) {
-        return 1;
       }
     }
 
@@ -819,7 +776,7 @@ namespace Microsoft.Dafny {
         return ShallowEq((SeqSelectExpr)expr1, (SeqSelectExpr)expr2);
       } else if (expr1 is MemberSelectExpr && expr2 is MemberSelectExpr) {
         return ShallowEq((MemberSelectExpr)expr1, (MemberSelectExpr)expr2);
-      } else if (expr1 is MapDisplayExpr && expr2 is MapDisplayExpr) {
+      } else if (expr1 is MapDisplayExpr && expr2 is MapDisplayExpr) { //Note: MapDisplayExpr is not a DisplayExpression
         return ShallowEq((MapDisplayExpr)expr1, (MapDisplayExpr)expr2);
       } else if (expr1 is DisplayExpression && expr2 is DisplayExpression) {
         return ShallowEq((DisplayExpression)expr1, (DisplayExpression)expr2);
@@ -1030,7 +987,7 @@ namespace Microsoft.Dafny {
     private static bool ShallowEq(DisplayExpression expr1, DisplayExpression expr2) {
       if (expr1 is SeqDisplayExpr && expr2 is SeqDisplayExpr) {
         return ShallowEq((SeqDisplayExpr)expr1, (SeqDisplayExpr)expr2);
-      } else if (expr1 is MultiSetDisplayExpr && expr2 is MultiSetDisplayExpr) { //FIXME MultiSetDisplayExpr is not a DisplayExpression ??!
+      } else if (expr1 is MultiSetDisplayExpr && expr2 is MultiSetDisplayExpr) {
         return ShallowEq((MultiSetDisplayExpr)expr1, (MultiSetDisplayExpr)expr2);
       } else if (expr1 is SetDisplayExpr && expr2 is SetDisplayExpr) {
         return ShallowEq((SetDisplayExpr)expr1, (SetDisplayExpr)expr2);
