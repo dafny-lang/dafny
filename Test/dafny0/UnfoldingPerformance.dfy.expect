@@ -1,0 +1,11 @@
+UnfoldingPerformance.dfy(23,11): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+UnfoldingPerformance.dfy(30,11): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+UnfoldingPerformance.dfy(51,11): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+
+Dafny program verifier finished with 11 verified, 3 errors
