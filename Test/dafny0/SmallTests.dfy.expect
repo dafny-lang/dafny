@@ -1,41 +1,41 @@
-SmallTests.dfy(34,11): Error: index out of range
+SmallTests.dfy(34,10): Error: index out of range
 Execution trace:
     (0,0): anon0
-SmallTests.dfy(65,36): Error: possible division by zero
+SmallTests.dfy(65,35): Error: possible division by zero
 Execution trace:
     (0,0): anon0
     (0,0): anon13_Then
-SmallTests.dfy(66,51): Error: possible division by zero
+SmallTests.dfy(66,50): Error: possible division by zero
 Execution trace:
     (0,0): anon0
     (0,0): anon13_Else
     (0,0): anon14_Else
-SmallTests.dfy(67,22): Error: target object may be null
+SmallTests.dfy(67,21): Error: target object may be null
 Execution trace:
     (0,0): anon0
     (0,0): anon13_Then
     (0,0): anon14_Then
     (0,0): anon15_Then
-SmallTests.dfy(86,24): Error: target object may be null
+SmallTests.dfy(86,23): Error: target object may be null
 Execution trace:
     (0,0): anon0
     SmallTests.dfy(85,5): anon8_LoopHead
     (0,0): anon8_LoopBody
     (0,0): anon9_Then
-SmallTests.dfy(120,6): Error: call may violate context's modifies clause
+SmallTests.dfy(120,5): Error: call may violate context's modifies clause
 Execution trace:
     (0,0): anon0
     (0,0): anon4_Else
     (0,0): anon3
-SmallTests.dfy(133,10): Error: call may violate context's modifies clause
+SmallTests.dfy(133,9): Error: call may violate context's modifies clause
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Then
-SmallTests.dfy(135,10): Error: call may violate context's modifies clause
+SmallTests.dfy(135,9): Error: call may violate context's modifies clause
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Else
-SmallTests.dfy(175,9): Error: assignment may update an object field not in the enclosing context's modifies clause
+SmallTests.dfy(175,8): Error: assignment may update an object field not in the enclosing context's modifies clause
 Execution trace:
     (0,0): anon0
     (0,0): anon22_Else
@@ -44,23 +44,23 @@ Execution trace:
     (0,0): anon28_Then
     (0,0): anon29_Then
     (0,0): anon19
-SmallTests.dfy(199,14): Error: assertion violation
+SmallTests.dfy(199,13): Error: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon9_Then
-SmallTests.dfy(206,14): Error: assertion violation
+SmallTests.dfy(206,13): Error: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon9_Else
     (0,0): anon3
     (0,0): anon10_Then
-SmallTests.dfy(208,14): Error: assertion violation
+SmallTests.dfy(208,13): Error: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon9_Else
     (0,0): anon3
     (0,0): anon10_Else
-SmallTests.dfy(213,14): Error: assertion violation
+SmallTests.dfy(213,13): Error: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon9_Else
@@ -68,7 +68,7 @@ Execution trace:
     (0,0): anon10_Then
     (0,0): anon6
     (0,0): anon11_Then
-SmallTests.dfy(215,14): Error: assertion violation
+SmallTests.dfy(215,13): Error: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon9_Else
@@ -76,37 +76,37 @@ Execution trace:
     (0,0): anon10_Then
     (0,0): anon6
     (0,0): anon11_Else
-SmallTests.dfy(261,24): Error BP5002: A precondition for this call might not hold.
-SmallTests.dfy(239,30): Related location: This is the precondition that might not hold.
+SmallTests.dfy(261,23): Error BP5002: A precondition for this call might not hold.
+SmallTests.dfy(239,29): Related location: This is the precondition that might not hold.
 Execution trace:
     (0,0): anon0
     SmallTests.dfy(256,19): anon3_Else
     (0,0): anon2
-SmallTests.dfy(367,12): Error: assertion violation
+SmallTests.dfy(367,11): Error: assertion violation
 Execution trace:
     (0,0): anon0
-SmallTests.dfy(377,12): Error: assertion violation
+SmallTests.dfy(377,11): Error: assertion violation
 Execution trace:
     (0,0): anon0
-SmallTests.dfy(387,6): Error: cannot prove termination; try supplying a decreases clause
+SmallTests.dfy(387,5): Error: cannot prove termination; try supplying a decreases clause
 Execution trace:
     (0,0): anon0
     (0,0): anon4_Else
-SmallTests.dfy(692,14): Error: assertion violation
+SmallTests.dfy(692,13): Error: assertion violation
 Execution trace:
     (0,0): anon0
     SmallTests.dfy(689,5): anon7_LoopHead
     (0,0): anon7_LoopBody
     SmallTests.dfy(689,5): anon8_Else
     (0,0): anon9_Then
-SmallTests.dfy(713,14): Error: assertion violation
+SmallTests.dfy(713,13): Error: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon7_Then
     (0,0): anon8_Then
     (0,0): anon3
-SmallTests.dfy(296,3): Error BP5003: A postcondition might not hold on this return path.
-SmallTests.dfy(290,11): Related location: This is the postcondition that might not hold.
+SmallTests.dfy(296,2): Error BP5003: A postcondition might not hold on this return path.
+SmallTests.dfy(290,10): Related location: This is the postcondition that might not hold.
 Execution trace:
     (0,0): anon0
     (0,0): anon18_Else
@@ -114,29 +114,29 @@ Execution trace:
     (0,0): anon24_Then
     (0,0): anon15
     (0,0): anon25_Else
-SmallTests.dfy(338,12): Error: assertion violation
+SmallTests.dfy(338,11): Error: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon8_Then
     (0,0): anon7
-SmallTests.dfy(345,10): Error: assertion violation
+SmallTests.dfy(345,9): Error: assertion violation
 Execution trace:
     (0,0): anon0
-SmallTests.dfy(355,4): Error: cannot prove termination; try supplying a decreases clause
+SmallTests.dfy(355,3): Error: cannot prove termination; try supplying a decreases clause
 Execution trace:
     (0,0): anon0
     (0,0): anon4_Else
-SmallTests.dfy(399,10): Error BP5003: A postcondition might not hold on this return path.
-SmallTests.dfy(402,41): Related location: This is the postcondition that might not hold.
+SmallTests.dfy(399,9): Error BP5003: A postcondition might not hold on this return path.
+SmallTests.dfy(402,40): Related location: This is the postcondition that might not hold.
 Execution trace:
     (0,0): anon0
     (0,0): anon7_Else
-SmallTests.dfy(563,12): Error: assertion violation
+SmallTests.dfy(563,11): Error: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Then
     (0,0): anon2
-SmallTests.dfy(577,20): Error: left-hand sides 0 and 1 may refer to the same location
+SmallTests.dfy(577,19): Error: left-hand sides 0 and 1 may refer to the same location
 Execution trace:
     (0,0): anon0
     (0,0): anon27_Then
@@ -148,7 +148,7 @@ Execution trace:
     (0,0): anon31_Then
     (0,0): anon32_Then
     (0,0): anon12
-SmallTests.dfy(579,15): Error: left-hand sides 1 and 2 may refer to the same location
+SmallTests.dfy(579,14): Error: left-hand sides 1 and 2 may refer to the same location
 Execution trace:
     (0,0): anon0
     (0,0): anon27_Then
@@ -163,16 +163,16 @@ Execution trace:
     (0,0): anon37_Then
     (0,0): anon22
     (0,0): anon38_Then
-SmallTests.dfy(586,25): Error: target object may be null
+SmallTests.dfy(586,24): Error: target object may be null
 Execution trace:
     (0,0): anon0
-SmallTests.dfy(599,10): Error: assertion violation
+SmallTests.dfy(599,9): Error: assertion violation
 Execution trace:
     (0,0): anon0
-SmallTests.dfy(623,5): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
+SmallTests.dfy(623,4): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
 Execution trace:
     (0,0): anon0
-SmallTests.dfy(646,23): Error: assertion violation
+SmallTests.dfy(646,22): Error: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon8_Then
@@ -180,17 +180,17 @@ Execution trace:
     (0,0): anon4
     (0,0): anon10_Then
     (0,0): anon7
-SmallTests.dfy(660,10): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
+SmallTests.dfy(660,9): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
 Execution trace:
     (0,0): anon0
     (0,0): anon5_Then
     (0,0): anon6_Then
     (0,0): anon3
-SmallTests.dfy(662,10): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
+SmallTests.dfy(662,9): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
 Execution trace:
     (0,0): anon0
     (0,0): anon5_Else
-SmallTests.dfy(675,9): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
+SmallTests.dfy(675,8): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
 Execution trace:
     (0,0): anon0
 

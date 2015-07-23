@@ -1,5 +1,5 @@
-Skeletons.dfy(45,3): Error BP5003: A postcondition might not hold on this return path.
-Skeletons.dfy(44,15): Related location: This is the postcondition that might not hold.
+Skeletons.dfy(45,2): Error BP5003: A postcondition might not hold on this return path.
+Skeletons.dfy(44,14): Related location: This is the postcondition that might not hold.
 Execution trace:
     (0,0): anon0
     Skeletons.dfy[C0](32,5): anon11_LoopHead

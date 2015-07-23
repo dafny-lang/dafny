@@ -4429,8 +4429,8 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 public class Errors {
 	public int count = 0;                                    // number of errors detected
 	public System.IO.TextWriter/*!*/ errorStream = Console.Out;   // error messages go to this stream
-	public string errMsgFormat = "{0}({1},{2}): error: {3}"; // 0=filename, 1=line, 2=column, 3=text
-	public string warningMsgFormat = "{0}({1},{2}): warning: {3}"; // 0=filename, 1=line, 2=column, 3=text
+	public string errMsgFormat = "{0}({1},{2}): Error: {3}"; // 0=filename, 1=line, 2=column, 3=text
+	public string warningMsgFormat = "{0}({1},{2}): Warning: {3}"; // 0=filename, 1=line, 2=column, 3=text
 
 	public void SynErr(string filename, int line, int col, int n) {
 		SynErr(filename, line, col, GetSyntaxErrorString(n));
@@ -4438,7 +4438,7 @@ public class Errors {
 
 	public virtual void SynErr(string filename, int line, int col, string/*!*/ msg) {
 		Contract.Requires(msg != null);
-		errorStream.WriteLine(errMsgFormat, filename, line, col, msg);
+		errorStream.WriteLine(errMsgFormat, filename, line, col - 1, msg);
 		count++;
 	}
 
@@ -4701,7 +4701,7 @@ public class Errors {
 
 	public virtual void SemErr(string filename, int line, int col, string/*!*/ msg) {
 		Contract.Requires(msg != null);
-		errorStream.WriteLine(errMsgFormat, filename, line, col, msg);
+		errorStream.WriteLine(errMsgFormat, filename, line, col - 1, msg);
 		count++;
 	}
 
@@ -4713,7 +4713,7 @@ public class Errors {
 
 	public virtual void Warning(string filename, int line, int col, string msg) {
 		Contract.Requires(msg != null);
-		errorStream.WriteLine(warningMsgFormat, filename, line, col, msg);
+		errorStream.WriteLine(warningMsgFormat, filename, line, col - 1, msg);
 	}
 } // Errors
 
@@ -4721,6 +4721,4 @@ public class Errors {
 public class FatalError: Exception {
 	public FatalError(string m): base(m) {}
 }
-
-
 }

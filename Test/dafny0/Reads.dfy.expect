@@ -1,32 +1,32 @@
-Reads.dfy(133,11): Error: insufficient reads clause to read field
+Reads.dfy(133,10): Error: insufficient reads clause to read field
 Execution trace:
     (0,0): anon0
-Reads.dfy(9,30): Error: insufficient reads clause to read field
+Reads.dfy(9,29): Error: insufficient reads clause to read field
 Execution trace:
     (0,0): anon0
-Reads.dfy(18,30): Error: insufficient reads clause to read field
+Reads.dfy(18,29): Error: insufficient reads clause to read field
 Execution trace:
     (0,0): anon0
-Reads.dfy(28,50): Error: insufficient reads clause to read field
+Reads.dfy(28,49): Error: insufficient reads clause to read field
 Execution trace:
     (0,0): anon0
-Reads.dfy(37,43): Error: insufficient reads clause to read field
+Reads.dfy(37,42): Error: insufficient reads clause to read field
 Execution trace:
     (0,0): anon0
     (0,0): anon7_Then
     (0,0): anon4
-Reads.dfy(51,30): Error: insufficient reads clause to read field
+Reads.dfy(51,29): Error: insufficient reads clause to read field
 Execution trace:
     (0,0): anon0
     (0,0): anon10_Then
     (0,0): anon4
-Reads.dfy(117,36): Error: insufficient reads clause to invoke function
+Reads.dfy(117,35): Error: insufficient reads clause to invoke function
 Execution trace:
     (0,0): anon0
-Reads.dfy(117,36): Error: possible violation of function precondition
+Reads.dfy(117,35): Error: possible violation of function precondition
 Execution trace:
     (0,0): anon0
-Reads.dfy(120,38): Error: insufficient reads clause to invoke function
+Reads.dfy(120,37): Error: insufficient reads clause to invoke function
 Execution trace:
     (0,0): anon0
 

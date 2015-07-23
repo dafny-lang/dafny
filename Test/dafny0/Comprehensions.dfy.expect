@@ -1,4 +1,4 @@
-Comprehensions.dfy(12,14): Error: assertion violation
+Comprehensions.dfy(12,13): Error: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon9_Then

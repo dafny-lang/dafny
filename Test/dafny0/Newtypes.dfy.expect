@@ -1,54 +1,54 @@
-Newtypes.dfy(74,11): Error: cannot find witness that shows type is inhabited (sorry, for now, only tried 0)
+Newtypes.dfy(74,10): Error: cannot find witness that shows type is inhabited (sorry, for now, only tried 0)
 Execution trace:
     (0,0): anon0
-Newtypes.dfy(76,45): Error: possible division by zero
-Execution trace:
-    (0,0): anon0
-    (0,0): anon3_Then
-Newtypes.dfy(87,14): Error: result of operation might violate newtype constraint
-Execution trace:
-    (0,0): anon0
-Newtypes.dfy(95,12): Error: result of operation might violate newtype constraint
+Newtypes.dfy(76,44): Error: possible division by zero
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Then
-Newtypes.dfy(97,14): Error: result of operation might violate newtype constraint
+Newtypes.dfy(87,13): Error: result of operation might violate newtype constraint
+Execution trace:
+    (0,0): anon0
+Newtypes.dfy(95,11): Error: result of operation might violate newtype constraint
+Execution trace:
+    (0,0): anon0
+    (0,0): anon3_Then
+Newtypes.dfy(97,13): Error: result of operation might violate newtype constraint
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Else
-Newtypes.dfy(104,16): Error: result of operation might violate newtype constraint
+Newtypes.dfy(104,15): Error: result of operation might violate newtype constraint
 Execution trace:
     (0,0): anon0
-Newtypes.dfy(177,14): Error: result of operation might violate newtype constraint
+Newtypes.dfy(177,13): Error: result of operation might violate newtype constraint
 Execution trace:
     (0,0): anon0
-Newtypes.dfy(193,64): Error: index 0 out of range
+Newtypes.dfy(193,63): Error: index 0 out of range
 Execution trace:
     (0,0): anon0
     (0,0): anon32_Then
     (0,0): anon33_Then
     (0,0): anon16
-Newtypes.dfy(194,67): Error: index 1 out of range
+Newtypes.dfy(194,66): Error: index 1 out of range
 Execution trace:
     (0,0): anon0
     (0,0): anon34_Then
     (0,0): anon35_Then
     (0,0): anon19
-Newtypes.dfy(222,16): Error: new number of occurrences might be negative
+Newtypes.dfy(222,15): Error: new number of occurrences might be negative
 Execution trace:
     (0,0): anon0
     (0,0): anon6_Then
-Newtypes.dfy(225,40): Error: result of operation might violate newtype constraint
+Newtypes.dfy(225,39): Error: result of operation might violate newtype constraint
 Execution trace:
     (0,0): anon0
     (0,0): anon8_Then
-Newtypes.dfy(237,19): Error: result of operation might violate newtype constraint
+Newtypes.dfy(237,18): Error: result of operation might violate newtype constraint
 Execution trace:
     (0,0): anon0
     Newtypes.dfy(236,5): anon9_LoopHead
     (0,0): anon9_LoopBody
     (0,0): anon10_Then
-Newtypes.dfy(277,19): Error: result of operation might violate newtype constraint
+Newtypes.dfy(277,18): Error: result of operation might violate newtype constraint
 Execution trace:
     (0,0): anon0
     Newtypes.dfy(276,5): anon9_LoopHead

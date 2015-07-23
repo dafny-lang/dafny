@@ -1,17 +1,17 @@
-MoreInduction.dfy(78,1): Error BP5003: A postcondition might not hold on this return path.
-MoreInduction.dfy(77,11): Related location: This is the postcondition that might not hold.
+MoreInduction.dfy(78,0): Error BP5003: A postcondition might not hold on this return path.
+MoreInduction.dfy(77,10): Related location: This is the postcondition that might not hold.
 Execution trace:
     (0,0): anon0
-MoreInduction.dfy(83,1): Error BP5003: A postcondition might not hold on this return path.
-MoreInduction.dfy(82,21): Related location: This is the postcondition that might not hold.
+MoreInduction.dfy(83,0): Error BP5003: A postcondition might not hold on this return path.
+MoreInduction.dfy(82,20): Related location: This is the postcondition that might not hold.
 Execution trace:
     (0,0): anon0
-MoreInduction.dfy(88,1): Error BP5003: A postcondition might not hold on this return path.
-MoreInduction.dfy(87,11): Related location: This is the postcondition that might not hold.
+MoreInduction.dfy(88,0): Error BP5003: A postcondition might not hold on this return path.
+MoreInduction.dfy(87,10): Related location: This is the postcondition that might not hold.
 Execution trace:
     (0,0): anon0
-MoreInduction.dfy(93,1): Error BP5003: A postcondition might not hold on this return path.
-MoreInduction.dfy(92,22): Related location: This is the postcondition that might not hold.
+MoreInduction.dfy(93,0): Error BP5003: A postcondition might not hold on this return path.
+MoreInduction.dfy(92,21): Related location: This is the postcondition that might not hold.
 Execution trace:
     (0,0): anon0
 

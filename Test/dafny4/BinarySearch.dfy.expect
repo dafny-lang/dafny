@@ -1,4 +1,4 @@
-BinarySearch.dfy(44,20): Error: result of operation might violate newtype constraint
+BinarySearch.dfy(44,19): Error: result of operation might violate newtype constraint
 Execution trace:
     (0,0): anon0
     BinarySearch.dfy(40,3): anon18_LoopHead

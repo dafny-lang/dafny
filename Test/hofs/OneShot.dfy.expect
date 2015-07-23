@@ -1,16 +1,16 @@
-OneShot.dfy(20,12): Error: possible violation of function precondition
+OneShot.dfy(20,11): Error: possible violation of function precondition
 Execution trace:
     (0,0): anon0
     (0,0): anon5_Then
     OneShot.dfy(13,8): anon5_Else
     (0,0): anon6_Then
-OneShot.dfy(22,12): Error: assertion violation
+OneShot.dfy(22,11): Error: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon5_Then
     OneShot.dfy(13,8): anon5_Else
     (0,0): anon6_Else
-OneShot.dfy(22,13): Error: possible violation of function precondition
+OneShot.dfy(22,12): Error: possible violation of function precondition
 Execution trace:
     (0,0): anon0
     (0,0): anon5_Then

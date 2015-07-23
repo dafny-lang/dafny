@@ -1,43 +1,43 @@
-AutoReq.dfy(247,5): Error: possible violation of function precondition
-AutoReq.dfy(239,14): Related location
+AutoReq.dfy(247,4): Error: possible violation of function precondition
+AutoReq.dfy(239,13): Related location
 Execution trace:
     (0,0): anon0
     (0,0): anon4_Else
-AutoReq.dfy(13,3): Error: possible violation of function precondition
-AutoReq.dfy(5,14): Related location
+AutoReq.dfy(13,2): Error: possible violation of function precondition
+AutoReq.dfy(5,13): Related location
 Execution trace:
     (0,0): anon0
     (0,0): anon4_Else
-AutoReq.dfy(25,3): Error: possible violation of function precondition
-AutoReq.dfy(5,14): Related location
+AutoReq.dfy(25,2): Error: possible violation of function precondition
+AutoReq.dfy(5,13): Related location
 Execution trace:
     (0,0): anon0
     (0,0): anon4_Else
-AutoReq.dfy(38,12): Error: assertion violation
-AutoReq.dfy(31,13): Related location
-AutoReq.dfy(7,5): Related location
+AutoReq.dfy(38,11): Error: assertion violation
+AutoReq.dfy(31,12): Related location
+AutoReq.dfy(7,4): Related location
 Execution trace:
     (0,0): anon0
     (0,0): anon9_Then
-AutoReq.dfy(38,12): Error: possible violation of function precondition
-AutoReq.dfy(5,14): Related location
+AutoReq.dfy(38,11): Error: possible violation of function precondition
+AutoReq.dfy(5,13): Related location
 Execution trace:
     (0,0): anon0
     (0,0): anon9_Then
-AutoReq.dfy(40,12): Error: assertion violation
-AutoReq.dfy(31,27): Related location
-AutoReq.dfy(7,5): Related location
+AutoReq.dfy(40,11): Error: assertion violation
+AutoReq.dfy(31,26): Related location
+AutoReq.dfy(7,4): Related location
 Execution trace:
     (0,0): anon0
     (0,0): anon10_Then
-AutoReq.dfy(40,12): Error: possible violation of function precondition
-AutoReq.dfy(5,14): Related location
+AutoReq.dfy(40,11): Error: possible violation of function precondition
+AutoReq.dfy(5,13): Related location
 Execution trace:
     (0,0): anon0
     (0,0): anon10_Then
-AutoReq.dfy(45,12): Error: assertion violation
-AutoReq.dfy(31,13): Related location
-AutoReq.dfy(7,5): Related location
+AutoReq.dfy(45,11): Error: assertion violation
+AutoReq.dfy(31,12): Related location
+AutoReq.dfy(7,4): Related location
 Execution trace:
     (0,0): anon0
     (0,0): anon11_Then
