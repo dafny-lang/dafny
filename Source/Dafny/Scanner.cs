@@ -224,6 +224,7 @@ public class Scanner {
 		Contract.Invariant(pt != null);
 		Contract.Invariant(tval != null);
 		Contract.Invariant(Filename != null);
+		Contract.Invariant(FullFilename != null);
 		Contract.Invariant(errorHandler != null);
 	}
 
@@ -257,6 +258,8 @@ public class Scanner {
 
 	private string/*!*/ Filename;
 	private Errors/*!*/ errorHandler;
+
+	internal string/*!*/ FullFilename { get; private set; }
 
 	static Scanner() {
 		start = new Hashtable(128);
@@ -310,7 +313,7 @@ public class Scanner {
 	}
 
 //	[NotDelayed]
-	public Scanner (string/*!*/ fileName, Errors/*!*/ errorHandler, bool useBaseName = false) : base() {
+	public Scanner (string/*!*/ fullFilename, string/*!*/ fileName, Errors/*!*/ errorHandler, bool useBaseName = false) : base() {
 	  Contract.Requires(fileName != null);
 	  Contract.Requires(errorHandler != null);
 		this.errorHandler = errorHandler;
@@ -319,6 +322,7 @@ public class Scanner {
 		try {
 			Stream stream = new FileStream(fileName, FileMode.Open, FileAccess.Read, FileShare.Read);
 			this._buffer = new Buffer(stream, false);
+			this.FullFilename = fullFilename;
 			Filename = useBaseName? GetBaseName(fileName): fileName;
 			Init();
 		} catch (IOException) {
@@ -327,7 +331,7 @@ public class Scanner {
 	}
 
 //	[NotDelayed]
-	public Scanner (Stream/*!*/ s, Errors/*!*/ errorHandler, string/*!*/ fileName, bool useBaseName = false) : base() {
+	public Scanner (Stream/*!*/ s, Errors/*!*/ errorHandler, string/*!*/ fullFilename, string/*!*/ fileName, bool useBaseName = false) : base() {
 	  Contract.Requires(s != null);
 	  Contract.Requires(errorHandler != null);
 	  Contract.Requires(fileName != null);
@@ -335,6 +339,7 @@ public class Scanner {
 		t = new Token(); // dummy because t is a non-null field
 		this._buffer = new Buffer(s, true);
 		this.errorHandler = errorHandler;
+		this.FullFilename = fullFilename;
 		this.Filename = useBaseName? GetBaseName(fileName) : fileName;
 		Init();
 	}
