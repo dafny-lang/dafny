@@ -1,8 +1,8 @@
-InductivePredicates.dfy(64,10): Error: assertion violation
+InductivePredicates.dfy(64,9): Error: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Then
-InductivePredicates.dfy(76,11): Error: assertion violation
+InductivePredicates.dfy(76,10): Error: assertion violation
 Execution trace:
     (0,0): anon0
 

@@ -182,6 +182,13 @@ namespace DafnyLanguage
         dd.RecordError(tok.filename, tok.line - 1, tok.col - 1, ErrorCategory.ResolveError, s);
         ErrorCount++;
       }
+
+      public override void Warning(IToken tok, string msg, params object[] args) {
+        if (reportWarnings) {
+          string s = string.Format(msg, args);
+          dd.RecordError(tok.filename, tok.line - 1, tok.col - 1, ErrorCategory.ResolveWarning, s);
+        }
+      }
     }
 
     #endregion

@@ -41,11 +41,11 @@ public static int Parse (string/*!*/ filename, ModuleDecl module, BuiltIns built
   string s;
   if (filename == "stdin.dfy") {
     s = Microsoft.Boogie.ParserHelper.Fill(System.Console.In, new List<string>());
-    return Parse(s, filename, module, builtIns, errors, verifyThisFile);
+    return Parse(s, filename, filename, module, builtIns, errors, verifyThisFile);
   } else {
     using (System.IO.StreamReader reader = new System.IO.StreamReader(filename)) {
       s = Microsoft.Boogie.ParserHelper.Fill(reader, new List<string>());
-      return Parse(s, DafnyOptions.Clo.UseBaseNameForFileName ? Path.GetFileName(filename) : filename, module, builtIns, errors, verifyThisFile);
+      return Parse(s, filename, DafnyOptions.Clo.UseBaseNameForFileName ? Path.GetFileName(filename) : filename, module, builtIns, errors, verifyThisFile);
     }
   }
 }
@@ -55,12 +55,12 @@ public static int Parse (string/*!*/ filename, ModuleDecl module, BuiltIns built
 /// Returns the number of parsing errors encountered.
 /// Note: first initialize the Scanner.
 ///</summary>
-public static int Parse (string/*!*/ s, string/*!*/ filename, ModuleDecl module, BuiltIns builtIns, bool verifyThisFile=true) {
+public static int Parse (string/*!*/ s, string/*!*/ fullFilename, string/*!*/ filename, ModuleDecl module, BuiltIns builtIns, bool verifyThisFile=true) {
   Contract.Requires(s != null);
   Contract.Requires(filename != null);
   Contract.Requires(module != null);
   Errors errors = new Errors();
-  return Parse(s, filename, module, builtIns, errors, verifyThisFile);
+  return Parse(s, fullFilename, filename, module, builtIns, errors, verifyThisFile);
 }
 ///<summary>
 /// Parses top-level things (modules, classes, datatypes, class members)
@@ -68,15 +68,15 @@ public static int Parse (string/*!*/ s, string/*!*/ filename, ModuleDecl module,
 /// Returns the number of parsing errors encountered.
 /// Note: first initialize the Scanner with the given Errors sink.
 ///</summary>
-public static int Parse (string/*!*/ s, string/*!*/ filename, ModuleDecl module, BuiltIns builtIns,
-                         Errors/*!*/ errors, bool verifyThisFile=true) {
+public static int Parse (string/*!*/ s, string/*!*/ fullFilename, string/*!*/ filename, ModuleDecl module,
+                         BuiltIns builtIns, Errors/*!*/ errors, bool verifyThisFile=true) {
   Contract.Requires(s != null);
   Contract.Requires(filename != null);
   Contract.Requires(module != null);
   Contract.Requires(errors != null);
   byte[]/*!*/ buffer = cce.NonNull( UTF8Encoding.Default.GetBytes(s));
   MemoryStream ms = new MemoryStream(buffer,false);
-  Scanner scanner = new Scanner(ms, errors, filename);
+  Scanner scanner = new Scanner(ms, errors, fullFilename, filename);
   Parser parser = new Parser(scanner, errors, module, builtIns, verifyThisFile);
   parser.Parse();
   return parser.errors.count;
@@ -506,7 +506,7 @@ Dafny
      Contract.Assert(defaultModule != null);
   .)
   { "include" stringToken               (. {
-                                             string parsedFile = t.filename;
+                                             string parsedFile = scanner.FullFilename;
                                              bool isVerbatimString;
                                              string includedFile = Util.RemoveParsedStringQuotes(t.val, out isVerbatimString);
                                              includedFile = Util.RemoveEscaping(includedFile, isVerbatimString);
@@ -573,7 +573,7 @@ SubModuleDecl<ModuleDefinition parent, out ModuleDecl submodule>
         | NewtypeDecl<module, out td>                  (. module.TopLevelDecls.Add(td); .)
         | OtherTypeDecl<module, out td>                (. module.TopLevelDecls.Add(td); .)
         | IteratorDecl<module, out iter>               (. module.TopLevelDecls.Add(iter); .)
-        | ClassMemberDecl<namedModuleDefaultClassMembers, false, !DafnyOptions.O.AllowGlobals, true>
+        | ClassMemberDecl<namedModuleDefaultClassMembers, false, !DafnyOptions.O.AllowGlobals, DafnyOptions.O.IronDafny && isAbstract>
         }
       "}"                                  (. module.BodyEndTok = t;
                                               module.TopLevelDecls.Add(new DefaultClassDecl(module, namedModuleDefaultClassMembers));
@@ -663,7 +663,7 @@ ClassDecl<ModuleDefinition/*!*/ module, out ClassDecl/*!*/ c>
     .)
 	.
 
-ClassMemberDecl<.List<MemberDecl> mm, bool allowConstructors, bool moduleLevelDecl, bool permitAbstractDecl.>
+ClassMemberDecl<.List<MemberDecl> mm, bool allowConstructors, bool moduleLevelDecl, bool isWithinAbstractModule.>
 = (. Contract.Requires(cce.NonNullElements(mm));
      Method/*!*/ m;
      Function/*!*/ f;
@@ -687,7 +687,7 @@ ClassMemberDecl<.List<MemberDecl> mm, bool allowConstructors, bool moduleLevelDe
          mmod.IsStatic = false;
        }
     .)
-    FunctionDecl<mmod, out f>                   (. mm.Add(f); .)
+    FunctionDecl<mmod, isWithinAbstractModule, out f>                   (. mm.Add(f); .)
   | (. if (moduleLevelDecl && staticToken != null) {
          errors.Warning(staticToken, "module-level methods are always non-instance, so the 'static' keyword is not allowed here");
          mmod.IsStatic = false;
@@ -697,7 +697,7 @@ ClassMemberDecl<.List<MemberDecl> mm, bool allowConstructors, bool moduleLevelDe
          mmod.IsProtected = false;
        }
     .)
-    MethodDecl<mmod, allowConstructors, permitAbstractDecl, out m>  (. mm.Add(m); .)
+    MethodDecl<mmod, allowConstructors, isWithinAbstractModule, out m>  (. mm.Add(m); .)
   )
   .
 DatatypeDecl<ModuleDefinition/*!*/ module, out DatatypeDecl/*!*/ dt>
@@ -949,7 +949,7 @@ GenericParameters<.List<TypeParameter/*!*/>/*!*/ typeArgs.>
   ">"
   .
 /*------------------------------------------------------------------------*/
-MethodDecl<MemberModifiers mmod, bool allowConstructor, bool permitAbstractDecl, out Method/*!*/ m>
+MethodDecl<MemberModifiers mmod, bool allowConstructor, bool isWithinAbstractModule, out Method/*!*/ m>
 = (. Contract.Ensures(Contract.ValueAtReturn(out m) !=null);
      IToken/*!*/ id = Token.NoToken;
      bool hasName = false;  IToken keywordToken;
@@ -1030,7 +1030,7 @@ MethodDecl<MemberModifiers mmod, bool allowConstructor, bool permitAbstractDecl,
   [ BlockStmt<out body, out bodyStart, out bodyEnd>
   ]
   (.
-     if (!permitAbstractDecl && DafnyOptions.O.DisallowSoundnessCheating && body == null && ens.Count > 0 && !Attributes.Contains(attrs, "axiom") && !Attributes.Contains(attrs, "imported") && !Attributes.Contains(attrs, "decl") && theVerifyThisFile) {
+     if (!isWithinAbstractModule && DafnyOptions.O.DisallowSoundnessCheating && body == null && ens.Count > 0 && !Attributes.Contains(attrs, "axiom") && !Attributes.Contains(attrs, "imported") && !Attributes.Contains(attrs, "decl") && theVerifyThisFile) {
         SemErr(t, "a method with an ensures clause must have a body, unless given the :axiom attribute");
      }
 
@@ -1253,7 +1253,7 @@ GenericInstantiation<.List<Type/*!*/>/*!*/ gt.>
   ">"
   .
 /*------------------------------------------------------------------------*/
-FunctionDecl<MemberModifiers mmod, out Function/*!*/ f>
+FunctionDecl<MemberModifiers mmod, bool isWithinAbstractModule, out Function/*!*/ f>
 = (. Contract.Ensures(Contract.ValueAtReturn(out f)!=null);
      Attributes attrs = null;
      IToken/*!*/ id = Token.NoToken;  // to please compiler
@@ -1338,7 +1338,7 @@ FunctionDecl<MemberModifiers mmod, out Function/*!*/ f>
   { FunctionSpec<reqs, reads, ens, decreases> }
   [ FunctionBody<out body, out bodyStart, out bodyEnd>
   ]
-  (. if (DafnyOptions.O.DisallowSoundnessCheating && body == null && ens.Count > 0 && !Attributes.Contains(attrs, "axiom") && !Attributes.Contains(attrs, "imported")) {
+  (. if (!isWithinAbstractModule && DafnyOptions.O.DisallowSoundnessCheating && body == null && ens.Count > 0 && !Attributes.Contains(attrs, "axiom") && !Attributes.Contains(attrs, "imported")) {
         SemErr(t, "a function with an ensures clause must have a body, unless given the :axiom attribute");
      }
 

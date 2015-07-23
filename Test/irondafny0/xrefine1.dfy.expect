@@ -1,5 +1,5 @@
-xrefine1.dfy(71,13): Error BP5002: A precondition for this call might not hold.
-xrefine1.dfy[MainImpl](49,29): Related location: This is the precondition that might not hold.
+xrefine1.dfy(71,12): Error BP5002: A precondition for this call might not hold.
+xrefine1.dfy[MainImpl](49,28): Related location: This is the precondition that might not hold.
 Execution trace:
     (0,0): anon0
 

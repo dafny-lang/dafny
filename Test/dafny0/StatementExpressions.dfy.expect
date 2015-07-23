@@ -1,22 +1,22 @@
-StatementExpressions.dfy(55,12): Error: cannot prove termination; try supplying a decreases clause
+StatementExpressions.dfy(55,11): Error: cannot prove termination; try supplying a decreases clause
 Execution trace:
     (0,0): anon0
     (0,0): anon6_Then
     (0,0): anon8_Then
-StatementExpressions.dfy(59,14): Error: assertion violation
+StatementExpressions.dfy(59,13): Error: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon6_Then
     StatementExpressions.dfy(53,7): anon8_Else
-StatementExpressions.dfy(77,6): Error: possible division by zero
+StatementExpressions.dfy(77,5): Error: possible division by zero
 Execution trace:
     (0,0): anon0
     (0,0): anon4_Else
-StatementExpressions.dfy(88,5): Error: value assigned to a nat must be non-negative
+StatementExpressions.dfy(88,4): Error: value assigned to a nat must be non-negative
 Execution trace:
     (0,0): anon0
     (0,0): anon4_Else
-StatementExpressions.dfy(98,18): Error: cannot prove termination; try supplying a decreases clause
+StatementExpressions.dfy(98,17): Error: cannot prove termination; try supplying a decreases clause
 Execution trace:
     (0,0): anon0
     (0,0): anon6_Then

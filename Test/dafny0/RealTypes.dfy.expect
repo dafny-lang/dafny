@@ -1,22 +1,22 @@
-RealTypes.dfy(12,16): Error: the real-based number must be an integer (if you want truncation, apply .Trunc to the real-based number)
+RealTypes.dfy(12,15): Error: the real-based number must be an integer (if you want truncation, apply .Trunc to the real-based number)
 Execution trace:
     (0,0): anon0
     (0,0): anon6_Then
-RealTypes.dfy(14,28): Error: assertion violation
+RealTypes.dfy(14,27): Error: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon7_Then
-RealTypes.dfy(21,12): Error: possible division by zero
+RealTypes.dfy(21,11): Error: possible division by zero
 Execution trace:
     (0,0): anon0
     RealTypes.dfy(20,23): anon3_Else
     (0,0): anon2
-RealTypes.dfy(21,20): Error: assertion violation
+RealTypes.dfy(21,19): Error: assertion violation
 Execution trace:
     (0,0): anon0
     RealTypes.dfy(20,23): anon3_Else
     (0,0): anon2
-RealTypes.dfy(29,12): Error: assertion violation
+RealTypes.dfy(29,11): Error: assertion violation
 Execution trace:
     (0,0): anon0
 

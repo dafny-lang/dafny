@@ -12,7 +12,7 @@ from collections import defaultdict
 from multiprocessing import Pool, Manager
 from subprocess import Popen, call, PIPE, TimeoutExpired
 
-# C:/Python34/python.exe runTests.py --compiler "c:/MSR/dafny/Binaries/Dafny.exe /useBaseNameForFileName /compile:1 /nologo" --difftool "C:\Program Files (x86)\Meld\Meld.exe" -j4 -f "/dprelude preludes\AlmostAllTriggers.bpl" dafny0\SeqFromArray.dfy
+# C:/Python34/python.exe runTests.py --compiler "c:/MSR/dafny/Binaries/Dafny.exe" --flags "/useBaseNameForFileName /compile:1 /nologo" --difftool "C:\Program Files (x86)\Meld\Meld.exe" -j4 --flags "/dprelude preludes\AlmostAllTriggers.bpl" dafny0\SeqFromArray.dfy
 
 # c:/Python34/python.exe runTests.py --compare ../TestStable/results/SequenceAxioms/2015-06-06-00-54-52--PrettyPrinted.report.csv ../TestStable/results/SequenceAxioms/*.csv
 
@@ -37,7 +37,7 @@ class Defaults:
     ALWAYS_EXCLUDED = ["Inputs", "Output", "sandbox", "desktop"]
     DAFNY_BIN = os.path.realpath(os.path.join(os.path.dirname(__file__), "../Binaries/Dafny.exe"))
     COMPILER = [DAFNY_BIN]
-    FLAGS = ["/useBaseNameForFileName", "/compile:1", "/nologo", "/timeLimit:120"]
+    FLAGS = ["/useBaseNameForFileName", "/compile:1", "/nologo", "/timeLimit:300"]
 
 class Colors:
     RED = '\033[91m'
@@ -138,8 +138,12 @@ class Test:
 
     @staticmethod
     def read_normalize(path):
-        with open(path, mode="rb") as reader:
-            return reader.read().replace(b'\r\n', b'\n').replace(b'\r', b'\n')
+        try:
+            with open(path, mode="rb") as reader:
+                return reader.read().replace(b'\r\n', b'\n').replace(b'\r', b'\n')
+        except FileNotFoundError:
+            debug(Debug.WARNING, "{} not found".format(path))
+            return ""
 
     @staticmethod
     def build_report(tests, name):
@@ -232,12 +236,12 @@ class Test:
 
     def report(self, tid, running, alltests):
         running = [alltests[rid].fname for rid in running]
-        # running = ", ".join(running if len(running) <= 2 else (running[:2] + ["..."]))
-        running = "; oldest thread: {}".format(wrap_color(running[0], Colors.DIM)) if running else ""
+        running = "; oldest: {}".format(running[0]) if running else ""
 
-        fstring = "[{:5.2f}s] {} ({} of {}{})"
+        fstring = "[{:5.2f}s] {} ({}{})"
+        progress = "{}/{}".format(tid, len(alltests))
         message = fstring.format(self.duration, wrap_color(self.dfy, Colors.BRIGHT),
-                                 tid, len(alltests), running)
+                                 wrap_color(progress, Colors.BRIGHT), running)
 
         debug(Debug.INFO, message, headers=self.status)
 
@@ -295,13 +299,13 @@ def setup_parser():
                         help="When comparing, include all timings.")
 
     parser.add_argument('--diff', '-d', action='store_const', const=True, default=False,
-                        help="Don't run tests; show differences for one file.")
+                        help="Don't run tests; show differences between outputs and .expect files, optionally overwritting .expect files.")
+
+    parser.add_argument('--accept', '-a', action='store_const', const=True, default=False,
+                        help="Don't run tests; copy outputs to .expect files.")
 
     parser.add_argument('--open', '-o', action='store_const', const=True, default=False,
                         help="Don't run tests; open one file.")
-
-    parser.add_argument('--accept', '-a', action='store_const', const=True, default=False,
-                        help="Used in conjuction with --diff, accept the new output.")
 
     parser.add_argument('--difftool', action='store', type=str, default="diff",
                         help='Diff program. Default: diff.')
@@ -346,10 +350,7 @@ def read_one_test(name, fname, compiler_cmds, timeout):
                 else:
                     break
         if cmds:
-            if os.path.exists(Test.source_to_expect_path(source_path)):
-                yield Test(name, source_path, cmds, timeout, cid)
-            else:
-                debug(Debug.DEBUG, "Test file {} has no .expect".format(fname))
+            yield Test(name, source_path, cmds, timeout, cid)
         else:
             debug(Debug.INFO, "Test file {} has no RUN specification".format(fname))
 
@@ -436,12 +437,16 @@ def diff(paths, accept, difftool):
             debug(Debug.ERROR, "Not found: {}".format(path))
         else:
             test = Test(None, path, [], None)
+
             if not accept:
                 call([difftool, test.expect_path, test.temp_output_path])
+                accept = input("Accept this change? (y/N) ") == "y"
 
-            if accept or input("Accept this change? (y/N) ") == "y":
-                debug(Debug.INFO, path, "Accepted")
+            if accept:
+                debug(Debug.INFO, path, "accepted.")
                 shutil.copy(test.temp_output_path, test.expect_path)
+            else:
+                debug(Debug.INFO, path, "not accepted.")
 
 def compare_results(globs, time_all):
     from glob import glob
@@ -486,7 +491,7 @@ def main():
     if os.name != 'nt' and os.environ.get("TERM") == "cygwin":
         debug(Debug.WARNING, "If you run into issues, try using Windows' Python instead of Cygwin's")
 
-    if args.diff:
+    if args.diff or args.accept:
         diff(args.paths, args.accept, args.difftool)
     elif args.open:
         os.startfile(args.paths[0])

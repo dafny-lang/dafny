@@ -1,4 +1,4 @@
-IMaps.dfy(52,8): Error: element may not be in domain
+IMaps.dfy(52,7): Error: element may not be in domain
 Execution trace:
     (0,0): anon0
     (0,0): anon5_Then

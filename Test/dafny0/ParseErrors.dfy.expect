@@ -1,17 +1,17 @@
-ParseErrors.dfy(7,19): error: a chain cannot have more than one != operator
-ParseErrors.dfy(9,37): error: this operator chain cannot continue with a descending operator
-ParseErrors.dfy(10,38): error: this operator chain cannot continue with an ascending operator
-ParseErrors.dfy(15,24): error: this operator chain cannot continue with a descending operator
-ParseErrors.dfy(18,18): error: this operator cannot be part of a chain
-ParseErrors.dfy(19,19): error: this operator cannot be part of a chain
-ParseErrors.dfy(20,18): error: this operator cannot be part of a chain
-ParseErrors.dfy(21,18): error: chaining not allowed from the previous operator
-ParseErrors.dfy(28,19): error: chaining not allowed from the previous operator
-ParseErrors.dfy(31,20): error: can only chain disjoint (!!) with itself.
-ParseErrors.dfy(58,8): error: the main operator of a calculation must be transitive
-ParseErrors.dfy(74,2): error: this operator cannot continue this calculation
-ParseErrors.dfy(75,2): error: this operator cannot continue this calculation
-ParseErrors.dfy(80,2): error: this operator cannot continue this calculation
-ParseErrors.dfy(81,2): error: this operator cannot continue this calculation
-ParseErrors.dfy(87,2): error: this operator cannot continue this calculation
+ParseErrors.dfy(7,18): Error: a chain cannot have more than one != operator
+ParseErrors.dfy(9,36): Error: this operator chain cannot continue with a descending operator
+ParseErrors.dfy(10,37): Error: this operator chain cannot continue with an ascending operator
+ParseErrors.dfy(15,23): Error: this operator chain cannot continue with a descending operator
+ParseErrors.dfy(18,17): Error: this operator cannot be part of a chain
+ParseErrors.dfy(19,18): Error: this operator cannot be part of a chain
+ParseErrors.dfy(20,17): Error: this operator cannot be part of a chain
+ParseErrors.dfy(21,17): Error: chaining not allowed from the previous operator
+ParseErrors.dfy(28,18): Error: chaining not allowed from the previous operator
+ParseErrors.dfy(31,19): Error: can only chain disjoint (!!) with itself.
+ParseErrors.dfy(58,7): Error: the main operator of a calculation must be transitive
+ParseErrors.dfy(74,1): Error: this operator cannot continue this calculation
+ParseErrors.dfy(75,1): Error: this operator cannot continue this calculation
+ParseErrors.dfy(80,1): Error: this operator cannot continue this calculation
+ParseErrors.dfy(81,1): Error: this operator cannot continue this calculation
+ParseErrors.dfy(87,1): Error: this operator cannot continue this calculation
 16 parse errors detected in ParseErrors.dfy

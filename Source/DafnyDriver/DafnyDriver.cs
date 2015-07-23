@@ -273,7 +273,13 @@ namespace Microsoft.Dafny
     {
       public override void ReportBplError(IToken tok, string message, bool error, TextWriter tw, string category = null)
       {
-        base.ReportBplError(tok, message, error, tw, category);
+        // Dafny has 0-indexed columns, but Boogie counts from 1
+        var realigned_tok = new Token(tok.line, tok.col - 1);
+        realigned_tok.kind = tok.kind;
+        realigned_tok.pos = tok.pos;
+        realigned_tok.val = tok.val;
+        realigned_tok.filename = tok.filename;
+        base.ReportBplError(realigned_tok, message, error, tw, category);
 
         if (tok is Dafny.NestedToken)
         {

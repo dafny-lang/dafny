@@ -51,7 +51,7 @@ namespace Microsoft.Dafny
       Error(e.tok, msg, args);
     }
 
-    private bool reportWarnings = true;
+    protected bool reportWarnings = true;
     /// <summary>
     /// Set whether or not to report warnings. Return the state of the previous behavior.
     /// </summary>
@@ -60,7 +60,7 @@ namespace Microsoft.Dafny
       reportWarnings = b;
       return old;
     }
-    public void Warning(IToken tok, string msg, params object[] args) {
+    public virtual void Warning(IToken tok, string msg, params object[] args) {
       Contract.Requires(tok != null);
       Contract.Requires(msg != null);
       if (reportWarnings) {

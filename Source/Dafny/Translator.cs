@@ -10824,6 +10824,7 @@ namespace Microsoft.Dafny {
             s = translator.FunctionCall(expr.tok, BuiltinFunction.SeqBuild, predef.BoxType, s, elt);
           }
           if (isLit) {
+            // Lit-lifting: All elements are lit, so the sequence is Lit too
             s = MaybeLit(s, predef.BoxType);
           }
           return s;
@@ -11033,30 +11034,37 @@ namespace Microsoft.Dafny {
 
           var ty = translator.TrType(e.Type);
           var id = new Bpl.IdentifierExpr(e.tok, e.Function.FullSanitizedName, ty);
-          bool returnLit;
-          var args = FunctionInvocationArguments(e, layerArgument, out returnLit);
 
+          bool argsAreLit;
+          var args = FunctionInvocationArguments(e, layerArgument, out argsAreLit);
           Expr result = new Bpl.NAryExpr(e.tok, new Bpl.FunctionCall(id), args);
           result = translator.CondApplyUnbox(e.tok, result, e.Function.ResultType, e.Type);
-          if (returnLit && Translator.FunctionBodyIsAvailable(e.Function, translator.currentModule)) {
+          
+          bool callIsLit = argsAreLit 
+            && Translator.FunctionBodyIsAvailable(e.Function, translator.currentModule)
+            && !e.Function.Reads.Any(); // Function could depend on external values
+          if (callIsLit) {
             result = MaybeLit(result, ty);
           }
+
           return result;
         } else if (expr is DatatypeValue) {
           DatatypeValue dtv = (DatatypeValue)expr;
           Contract.Assert(dtv.Ctor != null);  // since dtv has been successfully resolved
           List<Bpl.Expr> args = new List<Bpl.Expr>();
-          bool isLit = true;
+
+          bool argsAreLit = true;
           for (int i = 0; i < dtv.Arguments.Count; i++) {
             Expression arg = dtv.Arguments[i];
             Type t = dtv.Ctor.Formals[i].Type;
             var bArg = TrExpr(arg);
-            isLit = isLit && translator.IsLit(bArg);
+            argsAreLit = argsAreLit && translator.IsLit(bArg);
             args.Add(translator.CondApplyBox(expr.tok, bArg, cce.NonNull(arg.Type), t));
           }
           Bpl.IdentifierExpr id = new Bpl.IdentifierExpr(dtv.tok, dtv.Ctor.FullName, predef.DatatypeType);
           Bpl.Expr ret = new Bpl.NAryExpr(dtv.tok, new Bpl.FunctionCall(id), args);
-          if (isLit) {
+          if (argsAreLit) {
+            // If all arguments are Lit, so is the whole expression
             ret = MaybeLit(ret, predef.DatatypeType);
           }
           return ret;
@@ -11806,11 +11814,11 @@ namespace Microsoft.Dafny {
       }
 
       public List<Expr> FunctionInvocationArguments(FunctionCallExpr e, Bpl.Expr layerArgument) {
-        bool returnLit;
-        return FunctionInvocationArguments(e, layerArgument, out returnLit);
+        bool dummy;
+        return FunctionInvocationArguments(e, layerArgument, out dummy);
       }
 
-      public List<Expr> FunctionInvocationArguments(FunctionCallExpr e, Bpl.Expr layerArgument, out bool returnLit) {
+      public List<Expr> FunctionInvocationArguments(FunctionCallExpr e, Bpl.Expr layerArgument, out bool argsAreLit) {
         Contract.Requires(e != null);
         Contract.Ensures(Contract.Result<List<Bpl.Expr>>() != null);
 
@@ -11829,12 +11837,12 @@ namespace Microsoft.Dafny {
         if (!e.Function.IsStatic) {
           args.Add(TrExpr(e.Receiver));
         }
-        returnLit = true;
+        argsAreLit = true;
         for (int i = 0; i < e.Args.Count; i++) {
           Expression ee = e.Args[i];
           Type t = e.Function.Formals[i].Type;
           Expr tr_ee = TrExpr(ee);
-          returnLit = returnLit && translator.IsLit(tr_ee);
+          argsAreLit = argsAreLit && translator.IsLit(tr_ee);
           args.Add(translator.CondApplyBox(e.tok, tr_ee, cce.NonNull(ee.Type), t));
         }
         return args;
