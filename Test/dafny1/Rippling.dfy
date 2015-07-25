@@ -300,244 +300,244 @@ function AlwaysTrueFunction(): FunctionValue
 // The theorems to be proved
 // -----------------------------------------------------------------------------------
 
-ghost method P1()
+lemma P1()
   ensures forall n, xs :: concat(take(n, xs), drop(n, xs)) == xs;
 {
 }
 
-ghost method P2()
+lemma P2()
   ensures forall n, xs, ys :: add(count(n, xs), count(n, ys)) == count(n, concat(xs, ys));
 {
 }
 
-ghost method P3()
+lemma P3()
   ensures forall n, xs, ys :: leq(count(n, xs), count(n, concat(xs, ys))) == True;
 {
 }
 
-ghost method P4()
+lemma P4()
   ensures forall n, xs :: add(Suc(Zero), count(n, xs)) == count(n, Cons(n, xs));
 {
 }
 
-ghost method P5()
+lemma P5()
   ensures forall n, xs, x ::
     add(Suc(Zero), count(n, xs)) == count(n, Cons(x, xs))
     ==> n == x;
 {
 }
 
-ghost method P6()
+lemma P6()
   ensures forall m, n :: minus(n, add(n, m)) == Zero;
 {
 }
 
-ghost method P7()
+lemma P7()
   ensures forall m, n :: minus(add(n, m), n) == m;
 {
 }
 
-ghost method P8()
+lemma P8()
   ensures forall k, m, n :: minus(add(k, m), add(k, n)) == minus(m, n);
 {
 }
 
-ghost method P9()
+lemma P9()
   ensures forall i, j, k :: minus(minus(i, j), k) == minus(i, add(j, k));
 {
 }
 
-ghost method P10()
+lemma P10()
   ensures forall m :: minus(m, m) == Zero;
 {
 }
 
-ghost method P11()
+lemma P11()
   ensures forall xs :: drop(Zero, xs) == xs;
 {
 }
 
-ghost method P12()
+lemma P12()
   ensures forall n, xs, f :: drop(n, apply(f, xs)) == apply(f, drop(n, xs));
 {
 }
 
-ghost method P13()
+lemma P13()
   ensures forall n, x, xs :: drop(Suc(n), Cons(x, xs)) == drop(n, xs);
 {
 }
 
-ghost method P14()
+lemma P14()
   ensures forall xs, ys, p :: filter(p, concat(xs, ys)) == concat(filter(p, xs), filter(p, ys));
 {
 }
 
-ghost method P15()
+lemma P15()
   ensures forall x, xs :: len(ins(x, xs)) == Suc(len(xs));
 {
 }
 
-ghost method P16()
+lemma P16()
   ensures forall x, xs :: xs == Nil ==> last(Cons(x, xs)) == x;
 {
 }
 
-ghost method P17()
+lemma P17()
   ensures forall n :: leq(n, Zero) == True <==> n == Zero;
 {
 }
 
-ghost method P18()
+lemma P18()
   ensures forall i, m :: less(i, Suc(add(i, m))) == True;
 {
 }
 
-ghost method P19()
+lemma P19()
   ensures forall n, xs :: len(drop(n, xs)) == minus(len(xs), n);
 {
 }
 
-ghost method P20()
+lemma P20()
   ensures forall xs :: len(sort(xs)) == len(xs);
 {
   // the proof of this theorem requires a lemma about "insort"
   assert forall x, xs :: len(insort(x, xs)) == Suc(len(xs));
 }
 
-ghost method P21()
+lemma P21()
   ensures forall n, m :: leq(n, add(n, m)) == True;
 {
 }
 
-ghost method P22()
+lemma P22()
   ensures forall a, b, c :: max(max(a, b), c) == max(a, max(b, c));
 {
 }
 
-ghost method P23()
+lemma P23()
   ensures forall a, b :: max(a, b) == max(b, a);
 {
 }
 
-ghost method P24()
+lemma P24()
   ensures forall a, b :: max(a, b) == a <==> leq(b, a) == True;
 {
 }
 
-ghost method P25()
+lemma P25()
   ensures forall a, b :: max(a, b) == b <==> leq(a, b) == True;
 {
 }
 
-ghost method P26()
+lemma P26()
   ensures forall x, xs, ys :: mem(x, xs) == True ==> mem(x, concat(xs, ys)) == True;
 {
 }
 
-ghost method P27()
+lemma P27()
   ensures forall x, xs, ys :: mem(x, ys) == True ==> mem(x, concat(xs, ys)) == True;
 {
 }
 
-ghost method P28()
+lemma P28()
   ensures forall x, xs :: mem(x, concat(xs, Cons(x, Nil))) == True;
 {
 }
 
-ghost method P29()
+lemma P29()
   ensures forall x, xs :: mem(x, ins1(x, xs)) == True;
 {
 }
 
-ghost method P30()
+lemma P30()
   ensures forall x, xs :: mem(x, ins(x, xs)) == True;
 {
 }
 
-ghost method P31()
+lemma P31()
   ensures forall a, b, c :: min(min(a, b), c) == min(a, min(b, c));
 {
 }
 
-ghost method P32()
+lemma P32()
   ensures forall a, b :: min(a, b) == min(b, a);
 {
 }
 
-ghost method P33()
+lemma P33()
   ensures forall a, b :: min(a, b) == a <==> leq(a, b) == True;
 {
 }
 
-ghost method P34()
+lemma P34()
   ensures forall a, b :: min(a, b) == b <==> leq(b, a) == True;
 {
 }
 
-ghost method P35()
+lemma P35()
   ensures forall xs :: dropWhileAlways(AlwaysFalseFunction(), xs) == xs;
 {
 }
 
-ghost method P36()
+lemma P36()
   ensures forall xs :: takeWhileAlways(AlwaysTrueFunction(), xs) == xs;
 {
 }
 
-ghost method P37()
+lemma P37()
   ensures forall x, xs :: not(mem(x, delete(x, xs))) == True;
 {
 }
 
-ghost method P38()
+lemma P38()
   ensures forall n, xs :: count(n, concat(xs, Cons(n, Nil))) == Suc(count(n, xs));
 {
 }
 
-ghost method P39()
+lemma P39()
   ensures forall n, x, xs ::
             add(count(n, Cons(x, Nil)), count(n, xs)) == count(n, Cons(x, xs));
 {
 }
 
-ghost method P40()
+lemma P40()
   ensures forall xs :: take(Zero, xs) == Nil;
 {
 }
 
-ghost method P41()
+lemma P41()
   ensures forall n, xs, f :: take(n, apply(f, xs)) == apply(f, take(n, xs));
 {
 }
 
-ghost method P42()
+lemma P42()
   ensures forall n, x, xs :: take(Suc(n), Cons(x, xs)) == Cons(x, take(n, xs));
 {
 }
 
-ghost method P43(p: FunctionValue)
+lemma P43(p: FunctionValue)
   ensures forall xs :: concat(takeWhileAlways(p, xs), dropWhileAlways(p, xs)) == xs;
 {
 }
 
-ghost method P44()
+lemma P44()
   ensures forall x, xs, ys :: zip(Cons(x, xs), ys) == zipConcat(x, xs, ys);
 {
 }
 
-ghost method P45()
+lemma P45()
   ensures forall x, xs, y, ys ::
             zip(Cons(x, xs), Cons(y, ys)) ==
             PCons(Pair.Pair(x, y), zip(xs, ys));
 {
 }
 
-ghost method P46()
+lemma P46()
   ensures forall ys :: zip(Nil, ys) == PNil;
 {
 }
 
-ghost method P47()
+lemma P47()
   ensures forall a :: height(mirror(a)) == height(a);
 {
   // proving this theorem requires a previously proved lemma:
@@ -546,7 +546,7 @@ ghost method P47()
 
 // ...
 
-ghost method P54()
+lemma P54()
   ensures forall m, n :: minus(add(m, n), n) == m;
 {
   // the proof of this theorem follows from two lemmas:
@@ -554,7 +554,7 @@ ghost method P54()
   assert forall m, n :: add(m, n) == add(n, m);
 }
 
-ghost method P65()
+lemma P65()
   ensures forall i, m :: less(i, Suc(add(m, i))) == True;
 {
   if (*) {
@@ -567,7 +567,7 @@ ghost method P65()
   }
 }
 
-ghost method P67()
+lemma P67()
   ensures forall m, n :: leq(n, add(m, n)) == True;
 {
   if (*) {
@@ -583,19 +583,19 @@ ghost method P67()
 // ---------
 // Here is a alternate way of writing down the proof obligations:
 
-ghost method P1_alt(n: Nat, xs: List)
+lemma P1_alt(n: Nat, xs: List)
   ensures concat(take(n, xs), drop(n, xs)) == xs;
 {
 }
 
-ghost method P2_alt(n: Nat, xs: List, ys: List)
+lemma P2_alt(n: Nat, xs: List, ys: List)
   ensures add(count(n, xs), count(n, ys)) == count(n, (concat(xs, ys)));
 {
 }
 
 // ---------
 
-ghost method Lemma_RevConcat(xs: List, ys: List)
+lemma Lemma_RevConcat(xs: List, ys: List)
   ensures reverse(concat(xs, ys)) == concat(reverse(ys), reverse(xs));
 {
   match (xs) {
@@ -606,7 +606,7 @@ ghost method Lemma_RevConcat(xs: List, ys: List)
   }
 }
 
-ghost method Theorem(xs: List)
+lemma Theorem(xs: List)
   ensures reverse(reverse(xs)) == xs;
 {
   match (xs) {
