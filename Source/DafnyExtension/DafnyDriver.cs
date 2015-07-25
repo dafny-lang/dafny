@@ -116,7 +116,7 @@ namespace DafnyLanguage
       Dafny.ModuleDecl module = new Dafny.LiteralModuleDecl(new Dafny.DefaultModuleDecl(), null);
       Dafny.BuiltIns builtIns = new Dafny.BuiltIns();
       Dafny.Errors parseErrors = new VSErrors(this);
-      int errorCount = Dafny.Parser.Parse(_snapshot.GetText(), _filename, module, builtIns, parseErrors);
+      int errorCount = Dafny.Parser.Parse(_snapshot.GetText(), _filename, _filename, module, builtIns, parseErrors);
       string errString = Dafny.Main.ParseIncludes(module, builtIns, new List<string>(), parseErrors);
       if (errorCount != 0 || errString != null)
         return false;
