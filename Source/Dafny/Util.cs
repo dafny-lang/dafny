@@ -95,13 +95,7 @@ namespace Microsoft.Dafny {
     /// </summary>
     public static string RemoveUnderscores(string s) {
       Contract.Requires(s != null);
-      while (true) {
-        var j = s.IndexOf('_');
-        if (j == -1) {
-          return s;
-        }
-        s = s.Substring(0, j) + s.Substring(j + 1);
-      }
+      return s.Replace("_", "");
     }
 
     /// <summary>
