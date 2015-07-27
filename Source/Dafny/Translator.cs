@@ -12956,12 +12956,8 @@ namespace Microsoft.Dafny {
           } else {
             // Skip inlining, as it would cause arbitrary expressions to pop up in the trigger
             // CLEMENT: Report inlining issue in a VS plugin friendly way
-            var info = new AdditionalInformation {
-              Token = fexp.tok,
-              Length = fexp.tok.val.Length,
-              Text = "This call cannot be safely inlined.",
-            };
-            Resolver.DefaultInformationReporter(info);
+            //CLEMENT this should appear at the outmost call site, not at the innermost. See SnapshotableTrees.dfy
+            Dafny.Util.ReportIssue("Info", fexp.tok, "Some instances of this call cannot safely be inlined.");
           }
         }
 
