@@ -24,9 +24,7 @@ namespace Microsoft.Dafny
       Contract.Requires(msg != null);
       ConsoleColor col = Console.ForegroundColor;
       Console.ForegroundColor = ConsoleColor.Red;
-      Console.WriteLine("{0}({1},{2}): Error: {3}",
-          DafnyOptions.Clo.UseBaseNameForFileName ? System.IO.Path.GetFileName(tok.filename) : tok.filename, tok.line, tok.col - 1,
-          string.Format(msg, args));
+      Dafny.Util.ReportIssue("Error", tok, msg, args);
       Console.ForegroundColor = col;
       ErrorCount++;
     }
@@ -66,9 +64,7 @@ namespace Microsoft.Dafny
       if (reportWarnings) {
         ConsoleColor col = Console.ForegroundColor;
         Console.ForegroundColor = ConsoleColor.Yellow;
-        Console.WriteLine("{0}({1},{2}): Warning: {3}",
-            DafnyOptions.Clo.UseBaseNameForFileName ? System.IO.Path.GetFileName(tok.filename) : tok.filename, tok.line, tok.col - 1,
-            string.Format(msg, args));
+        Dafny.Util.ReportIssue("Warning", tok, msg, args);
         Console.ForegroundColor = col;
       }
     }
@@ -281,9 +277,7 @@ namespace Microsoft.Dafny
     }
 
     public static void DefaultInformationReporter(AdditionalInformation info) {
-      Console.WriteLine("{0}({1},{2}): Info: {3}",
-                        DafnyOptions.Clo.UseBaseNameForFileName ? System.IO.Path.GetFileName(info.Token.filename) : info.Token.filename,
-                        info.Token.line, info.Token.col - 1, info.Text);
+      Dafny.Util.ReportIssue("Info", info.Token, info.Text);
     }
 
     public void ResolveProgram(Program prog) {

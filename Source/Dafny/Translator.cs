@@ -3609,7 +3609,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(tok != null);
       Contract.Ensures(Contract.Result<Bpl.Cmd>() != null);
       var col = tok.col + (isEndToken ? tok.val.Length : 0);
-      string description = string.Format("{0}({1},{2}){3}{4}", tok.filename, tok.line, col, additionalInfo == null ? "" : ": ", additionalInfo ?? "");
+      string description = Util.ReportIssueToString_Bare(additionalInfo == null ? "" : ": ", tok.filename, tok.line, tok.col, additionalInfo ?? "");
       QKeyValue kv = new QKeyValue(tok, "captureState", new List<object>() { description }, null);
       return new Bpl.AssumeCmd(tok, Bpl.Expr.True, kv);
     }
