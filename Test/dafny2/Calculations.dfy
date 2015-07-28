@@ -41,12 +41,12 @@ function qreverse(l: List): List
 
 // Here are two lemmas about the List functions.
 
-ghost method Lemma_ConcatNil(xs : List)
+lemma Lemma_ConcatNil(xs : List)
   ensures concat(xs, Nil) == xs;
 {
 }
 
-ghost method Lemma_RevCatCommute(xs : List)
+lemma Lemma_RevCatCommute(xs : List)
   ensures forall ys, zs :: revacc(xs, concat(ys, zs)) == concat(revacc(xs, ys), zs);
 {
 }
@@ -55,7 +55,7 @@ ghost method Lemma_RevCatCommute(xs : List)
 // is given in a calculational style.  The proof is not minimal--some lines can be omitted
 // and Dafny will still fill in the details.
 
-ghost method Theorem_QReverseIsCorrect_Calc(l: List)
+lemma Theorem_QReverseIsCorrect_Calc(l: List)
   ensures qreverse(l) == reverse(l);
 {
   calc {
@@ -69,7 +69,7 @@ ghost method Theorem_QReverseIsCorrect_Calc(l: List)
   }
 }
 
-ghost method Lemma_Revacc_calc(xs: List, ys: List)
+lemma Lemma_Revacc_calc(xs: List, ys: List)
   ensures revacc(xs, ys) == concat(reverse(xs), ys);
 {
   match (xs) {
@@ -93,7 +93,7 @@ ghost method Lemma_Revacc_calc(xs: List, ys: List)
 
 // Here is a version of the same proof, as it was constructed before Dafny's "calc" construct.
 
-ghost method Theorem_QReverseIsCorrect(l: List)
+lemma Theorem_QReverseIsCorrect(l: List)
   ensures qreverse(l) == reverse(l);
 {
   assert qreverse(l)
@@ -105,7 +105,7 @@ ghost method Theorem_QReverseIsCorrect(l: List)
   Lemma_ConcatNil(reverse(l));
 }
 
-ghost method Lemma_Revacc(xs: List, ys: List)
+lemma Lemma_Revacc(xs: List, ys: List)
   ensures revacc(xs, ys) == concat(reverse(xs), ys);
 {
   match (xs) {
@@ -140,7 +140,7 @@ function Fib(n: nat): nat
   if n < 2 then n else Fib(n - 2) + Fib(n - 1)
 }
 
-ghost method Lemma_Fib()
+lemma Lemma_Fib()
   ensures Fib(5) < 6;
 {
   calc {
@@ -160,11 +160,11 @@ ghost method Lemma_Fib()
 /* List length */
 // Here are some proofs that show the use of nested calculations.
 
-ghost method Lemma_Concat_Length(xs: List, ys: List)
+lemma Lemma_Concat_Length(xs: List, ys: List)
   ensures length(concat(xs, ys)) == length(xs) + length(ys);
 {}
 
-ghost method Lemma_Reverse_Length(xs: List)
+lemma Lemma_Reverse_Length(xs: List)
   ensures length(xs) == length(reverse(xs));
 {
   match (xs) {
@@ -193,7 +193,7 @@ ghost method Lemma_Reverse_Length(xs: List)
   }
 }
 
-ghost method Window(xs: List, ys: List)
+lemma Window(xs: List, ys: List)
   ensures length(xs) == length(ys) ==> length(reverse(xs)) == length(reverse(ys));
 {
   calc {
@@ -221,11 +221,11 @@ function ith<a>(xs: List, i: nat): a
   case Cons(x, xrest) => if i == 0 then x else ith(xrest, i - 1)
 }
 
-ghost method lemma_zero_length(xs: List)
+lemma lemma_zero_length(xs: List)
   ensures length(xs) == 0 <==> xs.Nil?;
 {}
 
-ghost method lemma_extensionality(xs: List, ys: List)
+lemma lemma_extensionality(xs: List, ys: List)
   requires length(xs) == length(ys); // (0)
   requires forall i: nat | i < length(xs) :: ith(xs, i) == ith(ys, i); // (1)
   ensures xs == ys;
