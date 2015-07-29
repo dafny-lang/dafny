@@ -4702,7 +4702,7 @@ public class Errors {
 		count++;
 	}
 
-	public void Warning(IToken tok, string msg) {  // warnings
+	public virtual void Warning(IToken tok, string msg) {  // warnings
 		Contract.Requires(tok != null);
 		Contract.Requires(msg != null);
 		Dafny.Util.ReportIssue("Warning", tok, msg);

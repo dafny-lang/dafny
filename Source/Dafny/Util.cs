@@ -67,26 +67,26 @@ namespace Microsoft.Dafny {
       return res;
     }
 
-    internal static void ReportIssue(string header, IToken tok, string msg, params object[] args) {
+    public static void ReportIssue(string header, IToken tok, string msg, params object[] args) {
       ReportIssue(header, tok, String.Format(msg, args));
     }
 
-    internal static void ReportIssue(string header, IToken tok, string msg) {
+    public static void ReportIssue(string header, IToken tok, string msg) {
       ReportIssue(header, tok.filename, tok.line, tok.col, msg);
     }
 
-    internal static void ReportIssue(string header, string filename, int line, int column, string msg) {
+    public static void ReportIssue(string header, string filename, int line, int column, string msg) {
       Console.WriteLine(ReportIssueToString(header, filename, line, column, msg));
     }
 
-    internal static string ReportIssueToString(string header, string filename, int line, int column, string msg) {
+    public static string ReportIssueToString(string header, string filename, int line, int column, string msg) {
       Contract.Requires(header != null);
       Contract.Requires(filename != null);
       Contract.Requires(msg != null);
       return ReportIssueToString_Bare(": " + header, filename, line, column, ": " + msg);
     }
 
-    internal static string ReportIssueToString_Bare(string header, string filename, int line, int column, string msg) {
+    public static string ReportIssueToString_Bare(string header, string filename, int line, int column, string msg) {
       return String.Format("{0}({1},{2}){3}{4}", filename, line, column - 1, header, msg ?? "");
     }
 
