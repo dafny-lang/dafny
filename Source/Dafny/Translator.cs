@@ -10623,7 +10623,7 @@ namespace Microsoft.Dafny {
       
       public ExpressionTranslator WithNoLits() {
         Contract.Ensures(Contract.Result<ExpressionTranslator>() != null);
-        return new ExpressionTranslator(translator, predef, HeapExpr, This, null, layerInterCluster, layerIntraCluster, modifiesFrame, true);
+        return new ExpressionTranslator(translator, predef, HeapExpr, This, applyLimited_CurrentFunction, layerInterCluster, layerIntraCluster, modifiesFrame, true);
       }
 
       public ExpressionTranslator LimitedFunctions(Function applyLimited_CurrentFunction, Bpl.Expr layerArgument) {
@@ -13035,9 +13035,10 @@ namespace Microsoft.Dafny {
           typeAntecedent = etran.TrBoundVariables(e.BoundVars, bvars);
           foreach (var kase in caseProduct) {
             var ante = BplAnd(BplAnd(typeAntecedent, ih), kase);
-            var bdy = etran.LayerOffset(1).TrExpr(e.LogicalBody());
+            var etranBody = etran.LayerOffset(1);
+            var bdy = etranBody.TrExpr(e.LogicalBody());
             Bpl.Expr q;
-            var trig = TrTrigger(etran, e.Attributes, expr.tok);
+            var trig = TrTrigger(etranBody, e.Attributes, expr.tok);
             if (position) {
               q = new Bpl.ForallExpr(kase.tok, bvars, trig, Bpl.Expr.Imp(ante, bdy));
             } else {

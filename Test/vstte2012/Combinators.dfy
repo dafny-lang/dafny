@@ -170,7 +170,7 @@ function IsTerminal(t: Term): bool
 
 // The following theorem states the correctness of the FindAndStep function:
 
-ghost method Theorem_FindAndStep(t: Term)
+lemma Theorem_FindAndStep(t: Term)
   // If FindAndStep returns the term it started from, then there is no
   // way to take a step.  More precisely, there is no C[u] == t for which the
   // Step applies to "u".
@@ -194,7 +194,7 @@ ghost method Theorem_FindAndStep(t: Term)
 // computes the value of FindAndStep(t) as it goes along and it returns
 // that value.
 
-ghost method Lemma_FindAndStep(t: Term) returns (r: Term, C: Context, u: Term)
+lemma Lemma_FindAndStep(t: Term) returns (r: Term, C: Context, u: Term)
   ensures r == FindAndStep(t);
   ensures r == t ==> IsTerminal(t);
   ensures r != t ==>
@@ -255,7 +255,7 @@ ghost method Lemma_FindAndStep(t: Term) returns (r: Term, C: Context, u: Term)
 // The proof of the lemma above used one more lemma, namely one that enumerates
 // lays out the options for how to represent a term as a C[u] pair.
 
-ghost method Lemma_ContextPossibilities(t: Term)
+lemma Lemma_ContextPossibilities(t: Term)
   ensures forall C,u :: IsContext(C) && t == EvalExpr(C, u) ==>
     (C == Hole && t == u) ||
     (t.Apply? && exists D :: C == C_term(D, t.cdr) && t.car == EvalExpr(D, u)) ||
@@ -442,7 +442,7 @@ function method ks(n: nat): Term
 // VerificationTask2) it computes the same thing as method VerificationTask2
 // does.
 
-ghost method VerificationTask3()
+lemma VerificationTask3()
   ensures forall n: nat ::
     TerminatingReduction(ks(n)) == if n % 2 == 0 then K else Apply(K, K);
 {
@@ -451,13 +451,13 @@ ghost method VerificationTask3()
   }
 }
 
-ghost method VT3(n: nat)
+lemma VT3(n: nat)
   ensures TerminatingReduction(ks(n)) == if n % 2 == 0 then K else Apply(K, K);
 {
   // Dafny's (way cool) induction tactic kicks in and proves the following
   // assertion automatically:
   assert forall p :: 2 <= p ==> FindAndStep(ks(p)) == ks(p-2);
-  // And then Dafny's (cool beyond words) induction tactic for ghost methods kicks
+  // And then Dafny's (cool beyond words) induction tactic for lemmas kicks
   // in to prove the postcondition.  (If this got you curious, scope out Leino's
   // VMCAI 2012 paper "Automating Induction with an SMT Solver".)
 }

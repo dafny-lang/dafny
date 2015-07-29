@@ -165,7 +165,7 @@ method SearchForWinner<Candidate(==)>(a: seq<Candidate>, ghost hasWinner: bool, 
 
 // Here are two lemmas about Count that are used in the methods above.
 
-ghost method Lemma_Split<T>(a: seq<T>, s: int, t: int, u: int, x: T)
+lemma Lemma_Split<T>(a: seq<T>, s: int, t: int, u: int, x: T)
   requires 0 <= s <= t <= u <= |a|;
   ensures Count(a, s, t, x) + Count(a, t, u, x) == Count(a, s, u, x);
 {
@@ -178,7 +178,7 @@ ghost method Lemma_Split<T>(a: seq<T>, s: int, t: int, u: int, x: T)
   */
 }
 
-ghost method Lemma_Unique<T>(a: seq<T>, s: int, t: int, x: T, y: T)
+lemma Lemma_Unique<T>(a: seq<T>, s: int, t: int, x: T, y: T)
   requires 0 <= s <= t <= |a|;
   ensures x != y ==> Count(a, s, t, x) + Count(a, s, t, y) <= t - s;
 {

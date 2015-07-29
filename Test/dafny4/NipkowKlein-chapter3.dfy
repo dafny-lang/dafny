@@ -195,9 +195,12 @@ lemma BsimpCorrect(b: bexp, s: state)
   ensures bval(bsimp(b), s) == bval(b, s)
 {
 /*  Here is one proof, which uses the induction hypothesis any anything smaller than b and also invokes
-    the lemma AsimpCorrect on anything smaller than b.
+    the lemma AsimpCorrect on every arithmetic expression.
   forall b' | b' < b { BsimpCorrect(b', s); } 
-  forall a' | a' < b { AsimpCorrect(a', s); }
+  forall a { AsimpCorrect(a, s); }
+    Yet another possibility is to mark the lemma with {:induction b} and to use the following line in
+    the body:
+  forall a { AsimpCorrect(a, s); }
 */
   // Here is another proof, which makes explicit the uses of the induction hypothesis and the other lemma.
   match b

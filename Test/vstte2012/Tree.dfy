@@ -75,7 +75,7 @@ function method build(s: seq<int>): Result
 }
 
 
-// This ghost methods encodes the main lemma for the
+// This is the main lemma for the
 // completeness theorem. If a sequence s starts with a
 // valid encoding of a tree t then build_rec yields a
 // result (i.e., does not fail) and the rest of the sequence.
@@ -83,8 +83,8 @@ function method build(s: seq<int>): Result
 // induction on t. Dafny proves termination (using the
 // height of the term t as termination measure), which
 // ensures that the induction hypothesis is applied
-// correctly (encoded by calls to this ghost method).
-ghost method lemma0(t: Tree, d: int, s: seq<int>)
+// correctly (encoded by calls to this lemma).
+lemma lemma0(t: Tree, d: int, s: seq<int>)
   ensures build_rec(d, toList(d, t) + s).Res? &&
           build_rec(d, toList(d, t) + s).sOut == s;
 {
@@ -100,13 +100,13 @@ ghost method lemma0(t: Tree, d: int, s: seq<int>)
 }
 
 
-// This ghost method encodes a lemma that states the
+// This lemma states the
 // completeness property. It is proved by applying the
 // main lemma (lemma0). In this lemma, the bound variables
 // of the completeness theorem are passed as arguments;
-// the following two ghost methods replace these arguments
+// the following two lemmas replace these arguments
 // by quantified variables.
-ghost method lemma1(t: Tree, s:seq<int>)
+lemma lemma1(t: Tree, s:seq<int>)
   requires s == toList(0, t) + [];
   ensures  build(s).Res?;
 {
@@ -114,9 +114,9 @@ ghost method lemma1(t: Tree, s:seq<int>)
 }
 
 
-// This ghost method encodes a lemma that introduces the
-// existential quantifier in the completeness property.
-ghost method lemma2(s: seq<int>)
+// This lemma introduces the existential quantifier in the completeness
+// property.
+lemma lemma2(s: seq<int>)
   ensures (exists t: Tree :: toList(0,t) == s) ==> build(s).Res?;
 {
   forall t | toList(0,t) == s {
@@ -125,12 +125,12 @@ ghost method lemma2(s: seq<int>)
 }
 
 
-// This ghost method encodes the completeness theorem.
+// This lemma encodes the completeness theorem.
 // For each sequence for which there is a corresponding
 // tree, function build yields a result different from Fail.
 // The body of the method converts the argument of lemma2
 // into a universally quantified variable.
-ghost method completeness()
+lemma completeness()
   ensures forall s: seq<int> :: ((exists t: Tree :: toList(0,t) == s) ==> build(s).Res?);
 {
   forall s {
@@ -147,19 +147,6 @@ method harness0()
   ensures build([1,3,3,2]).Res? &&
           build([1,3,3,2]).t == Node(Leaf, Node(Node(Leaf, Leaf), Leaf));
 {
-  assert build_rec(2, [2]) ==
-         Res(Leaf, []);
-  assert build_rec(2, [3,3,2]) ==
-         Res(Node(Leaf, Leaf), [2]);
-  assert build_rec(1, [3,3,2]) ==
-         Res(Node(Node(Leaf, Leaf), Leaf), []);
-  assert build_rec(1, [1,3,3,2]) ==
-         Res(Leaf, [3,3,2]);
-  assert build_rec(0, [1,3,3,2]) ==
-         Res(
-           Node(build_rec(1, [1,3,3,2]).t,
-                build_rec(1, [3,3,2]).t),
-           []);
 }
 
 
@@ -170,8 +157,4 @@ method harness0()
 method harness1()
   ensures build([1,3,2,2]).Fail?;
 {
-  assert build_rec(1,[1,3,2,2]) == Res(Leaf, [3,2,2]);
-  assert build_rec(3,[2,2]).Fail?;
-  assert build_rec(2,[3,2,2]).Fail?;
-  assert build_rec(1,[3,2,2]).Fail?;
 }

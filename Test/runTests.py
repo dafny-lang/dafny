@@ -367,7 +367,7 @@ def read_one_test(name, fname, compiler_cmds, timeout):
             debug(Debug.INFO, "Test file {} has no RUN specification".format(fname))
 
 
-def find_one(name, fname, compiler_cmds, timeout):
+def find_one(name, fname, compiler_cmds, timeout, allow_lst=False):
     name, ext = os.path.splitext(fname)
     if ext == ".dfy":
         if os.path.exists(fname):
@@ -375,7 +375,7 @@ def find_one(name, fname, compiler_cmds, timeout):
             yield from read_one_test(name, fname, compiler_cmds, timeout)
         else:
             debug(Debug.ERROR, "Test file {} not found".format(fname))
-    elif ext == ".lst":
+    elif ext == ".lst" and allow_lst: #lst files are only read if explicitly listed on the CLI
         debug(Debug.INFO, "Loading tests from {}".format(fname))
         with open(fname) as reader:
             for line in reader:
@@ -394,7 +394,7 @@ def find_tests(paths, compiler_cmds, excluded, timeout):
                 for fname in fnames:
                     yield from find_one(fname, os.path.join(base, fname), compiler_cmds, timeout)
         else:
-            yield from find_one(path, path, compiler_cmds, timeout)
+            yield from find_one(path, path, compiler_cmds, timeout, True)
 
 
 def run_tests(args):

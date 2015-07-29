@@ -42,13 +42,13 @@ function ToSeq<X>(list: List<X>): seq<X>
     case Nary(nn) => ToSeq(nn) + ToSeq(rest)
 }
 
-ghost method Theorem<X>(list: List<X>)
+lemma Theorem<X>(list: List<X>)
   ensures ToSeq(list) == ToSeq(FlattenMain(list));
 {
   Lemma(list, Nil);
 }
 
-ghost method Lemma<X>(list: List<X>, ext: List<X>)
+lemma Lemma<X>(list: List<X>, ext: List<X>)
   requires IsFlat(ext);
   ensures ToSeq(list) + ToSeq(ext) == ToSeq(Flatten(list, ext));
 {
@@ -73,27 +73,27 @@ function NegFac(n: int): int
   if -1 <= n then -1 else - NegFac(n+1) * n
 }
 
-ghost method LemmaAll()
+lemma LemmaAll()
   ensures forall n :: NegFac(n) <= -1;  // error: induction heuristic does not give a useful well-founded order, and thus this fails to verify
 {
 }
 
-ghost method LemmaOne(n: int)
+lemma LemmaOne(n: int)
   ensures NegFac(n) <= -1;  // error: induction heuristic does not give a useful well-founded order, and thus this fails to verify
 {
 }
 
-ghost method LemmaAll_Neg()
+lemma LemmaAll_Neg()
   ensures forall n :: NegFac(-n) <= -1;  // error: fails to verify because of the minus in the trigger
 {
 }
 
-ghost method LemmaOne_Neg(n: int)
+lemma LemmaOne_Neg(n: int)
   ensures NegFac(-n) <= -1;  // error: fails to verify because of the minus in the trigger
 {
 }
 
-ghost method LemmaOneWithDecreases(n: int)
+lemma LemmaOneWithDecreases(n: int)
   ensures NegFac(n) <= -1;  // here, the programmer gives a good well-founded order, so this verifies
   decreases -n;
 {
