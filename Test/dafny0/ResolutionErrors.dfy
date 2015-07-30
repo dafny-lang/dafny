@@ -1349,3 +1349,27 @@ module TupleEqualitySupport {
   datatype GoodRecord = GoodRecord(set<(int,int)>)
   datatype BadRecord = BadRecord(set<(int, int->bool)>)  // error: this tuple type does not support equality
 }
+
+// ------------------- non-type variable names -------------------
+
+module NonTypeVariableNames {
+  type X = int
+
+  module Y { }
+
+  method M(m: map<real,string>)
+  {
+    assert X == X;  // error (x2): type name used as variable
+    assert Y == Y;  // error (x2): module name used as variable
+    assert X in m;  // error (x2): type name used as variable
+    assert Y in m;  // error (x2): module name used as variable
+  }
+
+  method N(k: int)
+  {
+    assert k == X;  // error (x2): type name used as variable
+    assert k == Y;  // error (x2): module name used as variable
+    X := k;  // error: type name used as variable
+    Y := k;  // error: module name used as variable
+  }
+}

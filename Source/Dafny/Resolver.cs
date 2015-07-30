@@ -4491,6 +4491,10 @@ namespace Microsoft.Dafny
           // something is wrong; either aa or bb wasn't properly resolved, or they don't unify
           return false;
         }
+      } else if (a is Resolver_IdentifierExpr.ResolverType_Type) {
+        return b is Resolver_IdentifierExpr.ResolverType_Type;
+      } else if (a is Resolver_IdentifierExpr.ResolverType_Module) {
+        return b is Resolver_IdentifierExpr.ResolverType_Module;
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected type
       }
