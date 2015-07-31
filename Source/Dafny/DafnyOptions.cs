@@ -11,6 +11,7 @@ namespace Microsoft.Dafny
   {
     public DafnyOptions()
       : base("Dafny", "Dafny program verifier") {
+        SetZ3ExecutableName();
     }
 
     public override string VersionNumber {
@@ -253,6 +254,15 @@ namespace Microsoft.Dafny
 
     public override void AttributeUsage() {
       // TODO: provide attribute help here
+    }
+
+    private void SetZ3ExecutableName() {
+      var platform = (int)System.Environment.OSVersion.Platform;
+      var isLinux = platform == 4 || platform ==  128; // http://www.mono-project.com/docs/faq/technical/
+
+      //TODO should we also vendor an OSX build?
+      var binDir = System.IO.Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
+      Z3ExecutablePath = System.IO.Path.Combine(binDir, isLinux ? "z3" : "z3.exe");
     }
 
     public override void Usage() {
