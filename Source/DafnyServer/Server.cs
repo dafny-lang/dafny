@@ -22,7 +22,7 @@ namespace Microsoft.Dafny {
       if (hasArg && args[0] == "selftest") {
         VerificationTask.SelfTest();
       } else if (hasArg && File.Exists(arg)) {
-        Console.WriteLine("# Reading from {0}", arg);
+        Console.WriteLine("# Reading from {0}", Path.GetFileName(arg));
         Console.SetIn(new StreamReader(arg));
         server.Loop();
       } else {
