@@ -114,6 +114,9 @@ namespace Microsoft.Dafny {
       if (args.Length > 0) {
         if (args[0] == "selftest") {
           VerificationTask.SelfTest();
+        } else if (File.Exists(args[0])) {
+          Console.SetIn(new StreamReader(args[0]));
+          server.Loop();
         } else {
           Console.WriteLine("Not sure what to do with '{0}'", String.Join(" ", args));
         }
@@ -248,15 +251,14 @@ namespace Microsoft.Dafny {
       return true;
     }
 
-    // FIXME var boogieFilename = Path.Combine(Path.GetTempPath(), Path.ChangeExtension(Path.GetFileName(fname), "bpl"));
     private bool Boogie() {
-      if (boogieProgram.Resolve() == 0 && boogieProgram.Typecheck() == 0) {
+      if (boogieProgram.Resolve() == 0 && boogieProgram.Typecheck() == 0) { //FIXME ResolveAndTypecheck?
         ExecutionEngine.EliminateDeadVariables(boogieProgram);
         ExecutionEngine.CollectModSets(boogieProgram);
         ExecutionEngine.CoalesceBlocks(boogieProgram);
         ExecutionEngine.Inline(boogieProgram);
 
-        switch (ExecutionEngine.InferAndVerify(boogieProgram, new PipelineStatistics(), null, null, DateTime.UtcNow.Ticks.ToString())) { // FIXME check if null is ok for programId and error delegate
+        switch (ExecutionEngine.InferAndVerify(boogieProgram, new PipelineStatistics(), "ServerProgram", null, DateTime.UtcNow.Ticks.ToString())) { // FIXME check if null is ok for error delegate
           case PipelineOutcome.Done:
           case PipelineOutcome.VerificationCompleted:
             return true;
