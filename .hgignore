@@ -7,6 +7,7 @@ Test/.*/Output
 Test/desktop/.*
 Test/([^/]*)/([^/]*)\.sx
 ^Test/sandbox/.*
+^Test/.*\.csv
 syntax: glob
 *.exe
 *.pdb
@@ -14,3 +15,4 @@ syntax: glob
 *.tmp
 *.tmp.dfy
 Source/DafnyExtension/DafnyRuntime.cs
+Test/failing.lst
