@@ -1373,3 +1373,18 @@ module NonTypeVariableNames {
     Y := k;  // error: module name used as variable
   }
 }
+
+// ------------------- assign-such-that and let-such-that -------------------
+
+module SuchThat {
+  method M() {
+    var x: int;
+    x :| 5 + 7;  // error: constraint should be boolean
+    x :| x;  // error: constraint should be boolean
+    var y :| 4;  // error: constraint should be boolean
+  }
+  function F(): int {
+    var w :| 6 + 8;  // error: constraint should be boolean
+    w
+  }
+}

@@ -6100,6 +6100,9 @@ namespace Microsoft.Dafny
       s.IsGhost = s.Lhss.TrueForAll(AssignStmt.LhsIsToGhost);
       var ec = ErrorCount;
       ResolveExpression(s.Expr, new ResolveOpts(codeContext, true, specContextOnly));
+      if (!UnifyTypes(s.Expr.Type, Type.Bool)) {
+        Error(s.Expr, "type of RHS of assign-such-that statement must be boolean (got {0})", s.Expr.Type);
+      }
       if (ec == ErrorCount && !s.IsGhost && s.AssumeToken == null && !specContextOnly) {
         CheckIsNonGhost(s.Expr);
 
