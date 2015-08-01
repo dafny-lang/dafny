@@ -38,6 +38,7 @@ class Defaults:
     DAFNY_BIN = os.path.realpath(os.path.join(os.path.dirname(__file__), "../Binaries/Dafny.exe"))
     COMPILER = [DAFNY_BIN]
     FLAGS = ["/useBaseNameForFileName", "/compile:1", "/nologo", "/timeLimit:300"]
+    EXTENSIONS = [".dfy", ".transcript"]
 
 class Colors:
     RED = '\033[91m'
@@ -103,7 +104,6 @@ class Test:
 
     def __init__(self, name, source_path, cmds, timeout, compiler_id = 0):
         self.name = name
-        self.dfy = None if self.name is None else (self.name + ".dfy")
         self.source_path = Test.uncygdrive(source_path)
         self.expect_path = Test.source_to_expect_path(self.source_path)
         self.source_directory, self.fname = os.path.split(self.source_path)
@@ -182,7 +182,7 @@ class Test:
                     debug(Debug.REPORT, "{} of {}".format(len(tests), len(results)), headers=status)
                     if status != TestStatus.PASSED:
                         for test in tests:
-                            debug(Debug.REPORT, "* " + test.dfy, headers=status, silentheaders=True)
+                            debug(Debug.REPORT, "* " + test.name, headers=status, silentheaders=True)
 
             debug(Debug.REPORT)
 
@@ -190,14 +190,14 @@ class Test:
             if failing:
                 with open("failing.lst", mode='w') as writer:
                     for t in failing:
-                        writer.write("{}\t{}\n".format(t.name, t.source_path))
+                        writer.write("{}\n".format(t.name))
                 debug(Debug.REPORT, "Some tests failed: use [runTests.py failing.lst] to rerun the failing tests")
 
             debug(Debug.REPORT, "Testing took {:.2f}s on {} thread(s)".format(results[0].suite_time, results[0].njobs))
 
 
     def run(self):
-        debug(Debug.DEBUG, "Starting {}".format(self.dfy))
+        debug(Debug.DEBUG, "Starting {}".format(self.name))
         os.makedirs(self.temp_directory, exist_ok=True)
         # os.chdir(self.source_directory)
 
@@ -227,7 +227,7 @@ class Test:
 
             stdout, stderr = stdout.strip(), stderr.strip()
             if stdout != b"" or stderr != b"":
-                debug(Debug.TRACE, "Writing the output of {} to {}".format(self.dfy, self.temp_output_path))
+                debug(Debug.TRACE, "Writing the output of {} to {}".format(self.name, self.temp_output_path))
                 with open(self.temp_output_path, mode='ab') as writer:
                     writer.write(stdout + stderr)
             if stderr != b"":
@@ -249,7 +249,7 @@ class Test:
 
         fstring = "[{:5.2f}s] {} ({}{})"
         progress = "{}/{}".format(tid, len(alltests))
-        message = fstring.format(self.duration, wrap_color(self.dfy, Colors.BRIGHT),
+        message = fstring.format(self.duration, wrap_color(self.name, Colors.BRIGHT),
                                  wrap_color(progress, Colors.BRIGHT), running)
 
         debug(Debug.INFO, message, headers=self.status)
@@ -275,7 +275,7 @@ def setup_parser():
     parser = argparse.ArgumentParser(description='Run the Dafny test suite.')
 
     parser.add_argument('path', type=str, action='store', nargs='+',
-                        help='Input files or folders. Folders are searched for .dfy files. Lists of files can also be specified by passing a .lst file (for an example of such a file, look at failing.lst after running failing tests.')
+                        help='Input files or folders. Folders are searched for test files. Lists of files can also be specified by passing a .lst file (for an example of such a file, look at failing.lst after running failing tests.')
 
     parser.add_argument('--compiler', type=str, action='append', default=None,
                         help='Dafny executable. Default: {}'.format(Defaults.DAFNY_BIN))
@@ -293,10 +293,13 @@ def setup_parser():
                         help='Excluded directories. {} are automatically added.'.format(Defaults.ALWAYS_EXCLUDED))
 
     parser.add_argument('--verbosity', action='store', type=int, default=1,
-                        help='Set verbosity level. 0: Minimal; 1: Some info; 2: More info.')
+                        help='Set verbosity level. 0: Minimal; 1: Some info; 2: More info; 3: Trace.')
 
     parser.add_argument('-v', action='store_const', default=1, dest="verbosity", const=2,
                         help='Short for --verbosity 2.')
+
+    parser.add_argument('-vv', action='store_const', default=1, dest="verbosity", const=3,
+                        help='Short for --verbosity 3.')
 
     parser.add_argument('--report', '-r', action='store', type=str, default=None,
                         help='Give an explicit name to the report file. Defaults to the current date and time.')
@@ -339,7 +342,7 @@ def run_one_internal(test, test_id, args, running):
             # ignore further work once you receive a kill signal
             KILLED = True
         except Exception as e:
-            debug(Debug.ERROR, "[{}] {}".format(test.dfy, e))
+            debug(Debug.ERROR, "[{}] {}".format(test.name, e))
             test.status = TestStatus.UNKNOWN
         finally:
             running.remove(test_id)
@@ -349,53 +352,71 @@ def run_one_internal(test, test_id, args, running):
 def run_one(args):
     return run_one_internal(*args)
 
-def read_one_test(name, fname, compiler_cmds, timeout):
+def get_server_path(compiler):
+    REGEXP = r"\bDafny.exe\b.*"
+    if re.search(REGEXP, compiler):
+        return re.sub(REGEXP, "DafnyServer.exe", compiler)
+    else:
+        return None
+
+def substitute_binaries(cmd, compiler):
+    cmd = cmd.replace("%dafny", compiler)
+    cmd = cmd.replace("%server", get_server_path(compiler))
+    return cmd
+
+def read_one_test(fname, compiler_cmds, timeout):
     for cid, compiler_cmd in enumerate(compiler_cmds):
         source_path = os.path.realpath(fname)
         with open(source_path, mode='r') as reader:
             cmds = []
             for line in reader:
                 line = line.strip()
-                match = re.match("^// *RUN: *(?!%diff)([^ ].*)$", line)
+                match = re.match("^[/# ]*RUN: *(?!%diff)([^ ].*)$", line)
                 if match:
-                    cmds.append(match.groups()[0].replace("%dafny", compiler_cmd))
+                    debug(Debug.TRACE, "Found RUN spec: {}".format(line))
+                    cmds.append(substitute_binaries(match.groups()[0], compiler_cmd))
                 else:
                     break
         if cmds:
-            yield Test(name, source_path, cmds, timeout, cid)
+            yield Test(fname, source_path, cmds, timeout, cid)
         else:
-            debug(Debug.INFO, "Test file {} has no RUN specification".format(fname))
+            debug(Debug.WARNING, "Test file {} has no RUN specification".format(fname))
 
 
-def find_one(name, fname, compiler_cmds, timeout, allow_lst=False):
-    name, ext = os.path.splitext(fname)
-    if ext == ".dfy":
+def find_one(fname, compiler_cmds, timeout):
+    _, ext = os.path.splitext(fname)
+    if ext in Defaults.EXTENSIONS:
         if os.path.exists(fname):
             debug(Debug.TRACE, "Found test file: {}".format(fname))
-            yield from read_one_test(name, fname, compiler_cmds, timeout)
+            yield from read_one_test(fname, compiler_cmds, timeout)
         else:
             debug(Debug.ERROR, "Test file {} not found".format(fname))
-    elif ext == ".lst" and allow_lst: #lst files are only read if explicitly listed on the CLI
-        debug(Debug.INFO, "Loading tests from {}".format(fname))
-        with open(fname) as reader:
-            for line in reader:
-                _name, _path = line.strip().split()
-                yield from find_one(_name, _path, compiler_cmds, timeout)
     else:
         debug(Debug.TRACE, "Ignoring {}".format(fname))
 
 
-def find_tests(paths, compiler_cmds, excluded, timeout):
+def expand_lsts(paths):
     for path in paths:
+        _, ext = os.path.splitext(path)
+        if ext == ".lst": #lst files are only read if explicitly listed on the CLI
+            debug(Debug.INFO, "Loading tests from {}".format(path))
+            with open(path) as reader:
+                for line in reader:
+                    _path = line.strip()
+                    yield _path
+        else:
+            yield path
+
+def find_tests(paths, compiler_cmds, excluded, timeout):
+    for path in expand_lsts(paths):
         if os.path.isdir(path):
             debug(Debug.TRACE, "Searching for tests in {}".format(path))
             for base, dirnames, fnames in os.walk(path):
                 dirnames[:] = [d for d in dirnames if d not in excluded]
                 for fname in fnames:
-                    yield from find_one(fname, os.path.join(base, fname), compiler_cmds, timeout)
+                    yield from find_one(os.path.join(base, fname), compiler_cmds, timeout)
         else:
-            yield from find_one(path, path, compiler_cmds, timeout, True)
-
+            yield from find_one(path, compiler_cmds, timeout)
 
 def run_tests(args):
     if args.compiler is None:
@@ -404,12 +425,15 @@ def run_tests(args):
         args.base_flags = Defaults.FLAGS
 
     for compiler in args.compiler:
+        server = get_server_path(compiler)
         if not os.path.exists(compiler):
             debug(Debug.ERROR, "Compiler not found: {}".format(compiler))
             return
+        if not os.path.exists(server):
+            debug(Debug.WARNING, "Server not found")
 
     tests = list(find_tests(args.path, [compiler + ' ' + " ".join(args.base_flags + args.flags)
-                                         for compiler in args.compiler],
+                                        for compiler in args.compiler],
                             args.exclude + Defaults.ALWAYS_EXCLUDED, args.timeout))
     tests.sort(key=operator.attrgetter("name"))
 
@@ -447,10 +471,7 @@ def run_tests(args):
 
 
 def diff(paths, accept, difftool):
-    for path in paths:
-        if not path.endswith(".dfy"):
-            path += ".dfy"
-
+    for path in expand_lsts(paths):
         if not os.path.exists(path):
             debug(Debug.ERROR, "Not found: {}".format(path))
         else:
@@ -470,7 +491,7 @@ def compare_results(globs, time_all):
     from glob import glob
     paths = [path for g in globs for path in glob(g)]
     reports = {path: Test.load_report(path) for path in paths}
-    resultsets = {path: {test.dfy: (test.status, test.duration) for test in report}
+    resultsets = {path: {test.name: (test.status, test.duration) for test in report}
                   for path, report in reports.items()}
 
     all_tests = set(name for resultset in resultsets.values() for name in resultset.keys())

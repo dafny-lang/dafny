@@ -1,6 +1,12 @@
 Building on Linux
 =================
 
+(Tested on a fresh Linux Mint 17.2)
+
+0. Dependencies
+
+    apt install mono-devel g++
+
 1. Create an empty base directory
 
     mkdir BASE-DRIECTORY
@@ -14,21 +20,27 @@ Building on Linux
     wget https://nuget.org/nuget.exe
     mono ./nuget.exe restore Source/Boogie.sln
     xbuild Source/Boogie.sln
+    cd ..
 
 3. Download and build Dafny:
 
    hg clone https://hg.codeplex.com/dafny
-   cd dafny/Sources/
-   xbuild Dafny.sln
+   xbuild dafny/Source/Dafny.sln
+   xbuild dafny/Source/DafnyServer.sln
 
 4. Download and build Z3
 
    git clone https://github.com/Z3Prover/z3.git
    cd z3
-   ./configure && make && sudo make install
+   git checkout z3-4.4.0
+   ./configure
+   cd build
+   make -j4
+   cd ../..
 
-5. Symlink the z3 binaries so that Boogie and Z3 can find them:
+5. Copy (or symlink) the z3 binary so that Dafny and Boogie can find it:
 
    cd BASE-DIRECTORY
-   ln -s /usr/bin/z3 boogie/Binaries/z3.exe
-   ln -s /usr/bin/z3 dafny/Binaries/z3.exe
+   rm dafny/Binaries/z3 # Dafny already packages z3
+   cp z3/build/z3 dafny/Binaries/z3
+   cp z3/build/z3 boogie/Binaries/z3.exe
