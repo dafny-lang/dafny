@@ -59,3 +59,40 @@ module BB refines B {
     { 10 }
   }
 }
+
+module Forall0 {
+  class C {
+    var a: int
+    method M()
+      modifies this
+    {
+    }
+    lemma Lemma(x: int)
+    {
+    }
+  }
+}
+module Forall1 refines Forall0 {
+  class C {
+    var b: int
+    method M...
+    {
+      forall x { Lemma(x); }  // allowed
+      var s := {4};
+      forall x | x in s ensures x == 4 { }  // allowed
+      forall x {  // allowed
+        calc {
+          x in s;
+        ==
+          x == 4;
+        }
+      }
+      forall c | c in {this} {
+        c.b := 17;  // allowed
+      }
+      forall c | c in {this} {
+        c.a := 17;  // error: not allowed to update previously defined field
+      }
+    }
+  }
+}

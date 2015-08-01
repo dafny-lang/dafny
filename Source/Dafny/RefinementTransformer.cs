@@ -1532,9 +1532,6 @@ namespace Microsoft.Dafny
         });
       } else if (s is CallStmt) {
         reporter.Error(s.Tok, "cannot have call statement");
-      } else if (s is ForallStmt) {
-        if (((ForallStmt)s).Kind == ForallStmt.ParBodyKind.Assign) // allow Proof and Call (as neither touch any existing state)
-          reporter.Error(s.Tok, "cannot have forall statement");
       } else {
         if (s is WhileStmt || s is AlternativeLoopStmt) {
           loopLevels++;
