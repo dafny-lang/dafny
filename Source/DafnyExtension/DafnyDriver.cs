@@ -151,8 +151,8 @@ namespace DafnyLanguage
         dd.RecordError(filename, line - 1, col - 1, ErrorCategory.ResolveError, msg);
         count++;
       }
-      public override void Warning(string filename, int line, int col, string msg) {
-        dd.RecordError(filename, line - 1, col - 1, ErrorCategory.ParseWarning, msg);
+      public override void Warning(IToken tok, string msg) {
+        dd.RecordError(tok.filename, tok.line - 1, tok.col - 1, ErrorCategory.ParseWarning, msg);
       }
     }
 

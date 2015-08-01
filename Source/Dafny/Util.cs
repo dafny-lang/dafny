@@ -67,18 +67,35 @@ namespace Microsoft.Dafny {
       return res;
     }
 
+    public static void ReportIssue(string header, IToken tok, string msg, params object[] args) {
+      ReportIssue(header, tok, String.Format(msg, args));
+    }
+
+    public static void ReportIssue(string header, IToken tok, string msg) {
+      ReportIssue(header, tok.filename, tok.line, tok.col, msg);
+    }
+
+    public static void ReportIssue(string header, string filename, int line, int column, string msg) {
+      Console.WriteLine(ReportIssueToString(header, filename, line, column, msg));
+    }
+
+    public static string ReportIssueToString(string header, string filename, int line, int column, string msg) {
+      Contract.Requires(header != null);
+      Contract.Requires(filename != null);
+      Contract.Requires(msg != null);
+      return ReportIssueToString_Bare(": " + header, filename, line, column, ": " + msg);
+    }
+
+    public static string ReportIssueToString_Bare(string header, string filename, int line, int column, string msg) {
+      return String.Format("{0}({1},{2}){3}{4}", filename, line, column - 1, header, msg ?? "");
+    }
+
     /// <summary>
     /// Returns s but with all occurrences of '_' removed.
     /// </summary>
     public static string RemoveUnderscores(string s) {
       Contract.Requires(s != null);
-      while (true) {
-        var j = s.IndexOf('_');
-        if (j == -1) {
-          return s;
-        }
-        s = s.Substring(0, j) + s.Substring(j + 1);
-      }
+      return s.Replace("_", "");
     }
 
     /// <summary>

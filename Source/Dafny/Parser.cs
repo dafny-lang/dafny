@@ -78,11 +78,11 @@ public class Parser {
 	const bool _x = false;
 	const int minErrDist = 2;
 
-	public Scanner/*!*/ scanner;
-	public Errors/*!*/  errors;
+	public Scanner scanner;
+	public Errors  errors;
 
-	public Token/*!*/ t;    // last recognized token
-	public Token/*!*/ la;   // lookahead token
+	public Token t;    // last recognized token
+	public Token la;   // lookahead token
 	int errDist = minErrDist;
 
 readonly Expression/*!*/ dummyExpr;
@@ -454,10 +454,10 @@ bool IsType(ref IToken pt) {
 /*--------------------------------------------------------------------------*/
 
 
-	public Parser(Scanner/*!*/ scanner, Errors/*!*/ errors) {
+	public Parser(Scanner scanner, Errors errors) {
 		this.scanner = scanner;
 		this.errors = errors;
-		Token/*!*/ tok = new Token();
+		Token tok = new Token();
 		tok.val = "";
 		this.la = tok;
 		this.t = new Token(); // just to satisfy its non-null constraint
@@ -468,13 +468,13 @@ bool IsType(ref IToken pt) {
 		errDist = 0;
 	}
 
-	public void SemErr (string/*!*/ msg) {
+	public void SemErr (string msg) {
 		Contract.Requires(msg != null);
 		if (errDist >= minErrDist) errors.SemErr(t, msg);
 		errDist = 0;
 	}
 
-	public void SemErr(IToken/*!*/ tok, string/*!*/ msg) {
+	public void SemErr(IToken tok, string msg) {
 	  Contract.Requires(tok != null);
 	  Contract.Requires(msg != null);
 	  errors.SemErr(tok, msg);
@@ -4385,10 +4385,9 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 		Dafny();
 		Expect(0);
 
-		Expect(0);
 	}
 
-	static readonly bool[,]/*!*/ set = {
+	static readonly bool[,] set = {
 		{_T,_T,_T,_T, _T,_x,_x,_x, _T,_x,_T,_x, _x,_x,_x,_x, _x,_x,_x,_T, _T,_x,_x,_T, _x,_x,_x,_T, _x,_x,_T,_T, _T,_x,_x,_T, _T,_x,_x,_T, _T,_x,_T,_T, _T,_T,_T,_x, _x,_T,_x,_x, _x,_x,_x,_x, _x,_x,_T,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_T,_x,_T, _T,_x,_x,_T, _T,_T,_x,_x, _T,_x,_x,_T, _T,_T,_T,_T, _T,_T,_x,_T, _T,_x,_x,_T, _x,_x,_T,_T, _T,_T,_T,_T, _T,_T,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_T, _T,_T,_T,_T, _T,_x,_x,_x},
 		{_x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_T,_T,_T, _T,_T,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _T,_T,_x,_x, _T,_x,_x,_x, _x,_T,_x,_T, _T,_T,_T,_T, _T,_T,_T,_T, _T,_x,_x,_T, _T,_T,_T,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x},
 		{_x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_T,_T,_T, _T,_T,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _T,_T,_T,_x, _x,_T,_x,_x, _x,_x,_x,_T, _T,_T,_T,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x},
@@ -4428,17 +4427,14 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 
 public class Errors {
 	public int count = 0;                                    // number of errors detected
-	public System.IO.TextWriter/*!*/ errorStream = Console.Out;   // error messages go to this stream
-	public string errMsgFormat = "{0}({1},{2}): Error: {3}"; // 0=filename, 1=line, 2=column, 3=text
-	public string warningMsgFormat = "{0}({1},{2}): Warning: {3}"; // 0=filename, 1=line, 2=column, 3=text
 
 	public void SynErr(string filename, int line, int col, int n) {
 		SynErr(filename, line, col, GetSyntaxErrorString(n));
 	}
 
-	public virtual void SynErr(string filename, int line, int col, string/*!*/ msg) {
+	public virtual void SynErr(string filename, int line, int col, string msg) {
 		Contract.Requires(msg != null);
-		errorStream.WriteLine(errMsgFormat, filename, line, col - 1, msg);
+		Dafny.Util.ReportIssue("Error", filename, line, col, msg);
 		count++;
 	}
 
@@ -4693,27 +4689,23 @@ public class Errors {
 		return s;
 	}
 
-	public void SemErr(IToken/*!*/ tok, string/*!*/ msg) {  // semantic errors
+	public void SemErr(IToken tok, string msg) {  // semantic errors
 		Contract.Requires(tok != null);
 		Contract.Requires(msg != null);
-		SemErr(tok.filename, tok.line, tok.col, msg);
-	}
-
-	public virtual void SemErr(string filename, int line, int col, string/*!*/ msg) {
-		Contract.Requires(msg != null);
-		errorStream.WriteLine(errMsgFormat, filename, line, col - 1, msg);
+		Dafny.Util.ReportIssue("Error", tok, msg);
 		count++;
 	}
 
-	public void Warning(IToken/*!*/ tok, string/*!*/ msg) {  // warnings
-		Contract.Requires(tok != null);
+	public virtual void SemErr(string filename, int line, int col, string msg) {
 		Contract.Requires(msg != null);
-		Warning(tok.filename, tok.line, tok.col, msg);
+		Dafny.Util.ReportIssue("Error", filename, line, col, msg);
+		count++;
 	}
 
-	public virtual void Warning(string filename, int line, int col, string msg) {
+	public virtual void Warning(IToken tok, string msg) {  // warnings
+		Contract.Requires(tok != null);
 		Contract.Requires(msg != null);
-		errorStream.WriteLine(warningMsgFormat, filename, line, col - 1, msg);
+		Dafny.Util.ReportIssue("Warning", tok, msg);
 	}
 } // Errors
 

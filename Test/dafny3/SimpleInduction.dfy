@@ -13,7 +13,7 @@ function Fib(n: nat): nat
   decreases n;
 { if n < 2 then n else Fib(n-2) + Fib(n-1) }
 
-ghost method FibLemma(n: nat)
+lemma FibLemma(n: nat)
   ensures Fib(n) % 2 == 0 <==> n % 3 == 0;
   decreases n;
 {
@@ -30,7 +30,7 @@ ghost method FibLemma(n: nat)
   satisfying 0 <= k < n, and in the second example, to all non-negative n. 
 */
 
-ghost method FibLemma_Alternative(n: nat)
+lemma FibLemma_Alternative(n: nat)
   ensures Fib(n) % 2 == 0 <==> n % 3 == 0;
 {
   forall k | 0 <= k < n {
@@ -38,7 +38,7 @@ ghost method FibLemma_Alternative(n: nat)
   }
 }
 
-ghost method FibLemma_All()
+lemma FibLemma_All()
   ensures forall n :: 0 <= n ==> (Fib(n) % 2 == 0 <==> n % 3 == 0);
 {
   forall n | 0 <= n {
@@ -48,8 +48,8 @@ ghost method FibLemma_All()
 
 /*
   A standard inductive definition of a generic List type and a function Append
-  that concatenates two lists.  The ghost method states the lemma that Append
-  is associative, and its recursive body gives the inductive proof. 
+  that concatenates two lists.  The lemma states that Append is associative,
+  and its recursive body gives the inductive proof.
   
   We omitted the explicit declaration and uses of the List type parameter in
   the signature of the method, since in simple cases like this, Dafny is able
@@ -68,7 +68,7 @@ function Append<T>(xs: List<T>, ys: List<T>): List<T>
 
 // The {:induction false} attribute disables automatic induction tactic,
 // so we can make the proof explicit.
-ghost method {:induction false} AppendIsAssociative(xs: List, ys: List, zs: List)
+lemma {:induction false} AppendIsAssociative(xs: List, ys: List, zs: List)
   ensures Append(Append(xs, ys), zs) == Append(xs, Append(ys, zs));
   decreases xs;
 {
@@ -81,7 +81,7 @@ ghost method {:induction false} AppendIsAssociative(xs: List, ys: List, zs: List
 
 // Here the proof is fully automatic - the body of the method is empty,
 // yet still verifies.
-ghost method AppendIsAssociative_Auto(xs: List, ys: List, zs: List)
+lemma AppendIsAssociative_Auto(xs: List, ys: List, zs: List)
   ensures Append(Append(xs, ys), zs) == Append(xs, Append(ys, zs));
 {
 }

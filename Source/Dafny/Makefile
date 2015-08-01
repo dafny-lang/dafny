@@ -4,7 +4,7 @@
 # from http://boogiepartners.codeplex.com/. Update the FRAME_DIR variable to
 # point to whatever directory you install that into.
 # ###############################################################################
-COCO_EXE_DIR = ..\..\..\boogie-partners\CocoRdownload
+COCO_EXE_DIR = ..\..\..\boogie-partners\CocoR\bin
 FRAME_DIR = ..\..\..\boogie-partners\CocoR\Modified
 COCO = $(COCO_EXE_DIR)\Coco.exe
 

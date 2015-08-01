@@ -1,4 +1,4 @@
-TriggerInPredicate.dfy(9,20): Info: This call cannot be safely inlined.
-TriggerInPredicate.dfy(9,20): Info: This call cannot be safely inlined.
+TriggerInPredicate.dfy(9,20): Info: Some instances of this call cannot safely be inlined.
+TriggerInPredicate.dfy(9,20): Info: Some instances of this call cannot safely be inlined.
 
 Dafny program verifier finished with 8 verified, 0 errors

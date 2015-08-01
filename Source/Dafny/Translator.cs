@@ -3609,7 +3609,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(tok != null);
       Contract.Ensures(Contract.Result<Bpl.Cmd>() != null);
       var col = tok.col + (isEndToken ? tok.val.Length : 0);
-      string description = string.Format("{0}({1},{2}){3}{4}", tok.filename, tok.line, col, additionalInfo == null ? "" : ": ", additionalInfo ?? "");
+      string description = Util.ReportIssueToString_Bare(additionalInfo == null ? "" : ": ", tok.filename, tok.line, tok.col, additionalInfo ?? "");
       QKeyValue kv = new QKeyValue(tok, "captureState", new List<object>() { description }, null);
       return new Bpl.AssumeCmd(tok, Bpl.Expr.True, kv);
     }
@@ -12956,12 +12956,8 @@ namespace Microsoft.Dafny {
           } else {
             // Skip inlining, as it would cause arbitrary expressions to pop up in the trigger
             // CLEMENT: Report inlining issue in a VS plugin friendly way
-            var info = new AdditionalInformation {
-              Token = fexp.tok,
-              Length = fexp.tok.val.Length,
-              Text = "This call cannot be safely inlined.",
-            };
-            Resolver.DefaultInformationReporter(info);
+            //CLEMENT this should appear at the outmost call site, not at the innermost. See SnapshotableTrees.dfy
+            Dafny.Util.ReportIssue("Info", fexp.tok, "Some instances of this call cannot safely be inlined.");
           }
         }
 

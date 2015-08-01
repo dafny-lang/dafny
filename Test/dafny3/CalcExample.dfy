@@ -3,14 +3,14 @@
 
 function f(x: int, y: int): int
 
-ghost method Associativity(x: int, y: int, z: int)
+lemma Associativity(x: int, y: int, z: int)
   ensures f(x, f(y, z)) == f(f(x, y), z);
 
-ghost method Monotonicity(y: int, z: int)
+lemma Monotonicity(y: int, z: int)
   requires y <= z;
   ensures forall x :: f(x, y) <= f(x, z);
 
-ghost method DiagonalIdentity(x: int)
+lemma DiagonalIdentity(x: int)
   ensures f(x, x) == x;
 
 method M(a: int, b: int, c: int, x: int)

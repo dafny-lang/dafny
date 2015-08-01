@@ -184,6 +184,15 @@ class Test:
                         for test in tests:
                             debug(Debug.REPORT, "* " + test.dfy, headers=status, silentheaders=True)
 
+            debug(Debug.REPORT)
+
+            failing = [t for t in results if t.status != TestStatus.PASSED]
+            if failing:
+                with open("failing.lst", mode='w') as writer:
+                    for t in failing:
+                        writer.write("{}\t{}\n".format(t.name, t.source_path))
+                debug(Debug.REPORT, "Some tests failed: use [runTests.py failing.lst] to rerun the failing tests")
+
             debug(Debug.REPORT, "Testing took {:.2f}s on {} thread(s)".format(results[0].suite_time, results[0].njobs))
 
 
@@ -265,8 +274,8 @@ class Test:
 def setup_parser():
     parser = argparse.ArgumentParser(description='Run the Dafny test suite.')
 
-    parser.add_argument('paths', type=str, action='store', nargs='+',
-                        help='Input files or folders. Folders are searched for .dfy files.')
+    parser.add_argument('path', type=str, action='store', nargs='+',
+                        help='Input files or folders. Folders are searched for .dfy files. Lists of files can also be specified by passing a .lst file (for an example of such a file, look at failing.lst after running failing tests.')
 
     parser.add_argument('--compiler', type=str, action='append', default=None,
                         help='Dafny executable. Default: {}'.format(Defaults.DAFNY_BIN))
@@ -286,6 +295,9 @@ def setup_parser():
     parser.add_argument('--verbosity', action='store', type=int, default=1,
                         help='Set verbosity level. 0: Minimal; 1: Some info; 2: More info.')
 
+    parser.add_argument('-v', action='store_const', default=1, dest="verbosity", const=2,
+                        help='Short for --verbosity 2.')
+
     parser.add_argument('--report', '-r', action='store', type=str, default=None,
                         help='Give an explicit name to the report file. Defaults to the current date and time.')
 
@@ -298,13 +310,13 @@ def setup_parser():
     parser.add_argument('--time-all', action='store_true',
                         help="When comparing, include all timings.")
 
-    parser.add_argument('--diff', '-d', action='store_const', const=True, default=False,
+    parser.add_argument('--diff', '-d', action='store_true',
                         help="Don't run tests; show differences between outputs and .expect files, optionally overwritting .expect files.")
 
-    parser.add_argument('--accept', '-a', action='store_const', const=True, default=False,
+    parser.add_argument('--accept', '-a', action='store_true',
                         help="Don't run tests; copy outputs to .expect files.")
 
-    parser.add_argument('--open', '-o', action='store_const', const=True, default=False,
+    parser.add_argument('--open', '-o', action='store_true',
                         help="Don't run tests; open one file.")
 
     parser.add_argument('--difftool', action='store', type=str, default="diff",
@@ -355,7 +367,7 @@ def read_one_test(name, fname, compiler_cmds, timeout):
             debug(Debug.INFO, "Test file {} has no RUN specification".format(fname))
 
 
-def find_one(name, fname, compiler_cmds, timeout):
+def find_one(name, fname, compiler_cmds, timeout, allow_lst=False):
     name, ext = os.path.splitext(fname)
     if ext == ".dfy":
         if os.path.exists(fname):
@@ -363,6 +375,12 @@ def find_one(name, fname, compiler_cmds, timeout):
             yield from read_one_test(name, fname, compiler_cmds, timeout)
         else:
             debug(Debug.ERROR, "Test file {} not found".format(fname))
+    elif ext == ".lst" and allow_lst: #lst files are only read if explicitly listed on the CLI
+        debug(Debug.INFO, "Loading tests from {}".format(fname))
+        with open(fname) as reader:
+            for line in reader:
+                _name, _path = line.strip().split()
+                yield from find_one(_name, _path, compiler_cmds, timeout)
     else:
         debug(Debug.TRACE, "Ignoring {}".format(fname))
 
@@ -376,7 +394,7 @@ def find_tests(paths, compiler_cmds, excluded, timeout):
                 for fname in fnames:
                     yield from find_one(fname, os.path.join(base, fname), compiler_cmds, timeout)
         else:
-            yield from find_one(path, path, compiler_cmds, timeout)
+            yield from find_one(path, path, compiler_cmds, timeout, True)
 
 
 def run_tests(args):
@@ -390,7 +408,7 @@ def run_tests(args):
             debug(Debug.ERROR, "Compiler not found: {}".format(compiler))
             return
 
-    tests = list(find_tests(args.paths, [compiler + ' ' + " ".join(args.base_flags + args.flags)
+    tests = list(find_tests(args.path, [compiler + ' ' + " ".join(args.base_flags + args.flags)
                                          for compiler in args.compiler],
                             args.exclude + Defaults.ALWAYS_EXCLUDED, args.timeout))
     tests.sort(key=operator.attrgetter("name"))
@@ -492,11 +510,11 @@ def main():
         debug(Debug.WARNING, "If you run into issues, try using Windows' Python instead of Cygwin's")
 
     if args.diff or args.accept:
-        diff(args.paths, args.accept, args.difftool)
+        diff(args.path, args.accept, args.difftool)
     elif args.open:
-        os.startfile(args.paths[0])
+        os.startfile(args.path[0])
     elif args.compare:
-        compare_results(args.paths, args.time_all)
+        compare_results(args.path, args.time_all)
     else:
         run_tests(args)
 

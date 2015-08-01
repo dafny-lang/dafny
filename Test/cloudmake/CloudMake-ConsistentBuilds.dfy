@@ -23,7 +23,7 @@ function Union(st: State, st': State): State
       (p in DomSt(st) ==> GetSt(p, result) == GetSt(p, st)) &&
       (p in DomSt(st') ==> GetSt(p, result) == GetSt(p, st'));
 
-ghost method StateEqualityProperty(st: State, st': State)
+lemma StateEqualityProperty(st: State, st': State)
   requires DomSt(st) == DomSt(st');
   requires forall p :: p in DomSt(st) ==> GetSt(p, st) == GetSt(p, st');
   ensures st == st';
@@ -60,7 +60,7 @@ function UpdateC(cmd: Expression, deps: Expression, exts: Expression, stC: State
     UpdateC(cmd, deps, exts', S(stC.st, c'))
 }
 
-ghost method UpdateCLemma(cmd: Expression, deps: Expression, exts: Expression, stC: StateC)
+lemma UpdateCLemma(cmd: Expression, deps: Expression, exts: Expression, stC: StateC)
   requires
     cmd.exprLiteral? && cmd.lit.litString? &&
     deps.exprLiteral? && deps.lit.litArrOfPaths? &&
@@ -136,7 +136,7 @@ function CombineC(stsC: set<StateC>): StateC
     UnionC(stC, CombineC(stsC - {stC}))
 }
 
-ghost method CombineCLemma(stsC: set<StateC>)
+lemma CombineCLemma(stsC: set<StateC>)
   requires stsC != {};
   requires forall stC :: stC in stsC ==> ConsistentCache(stC);
   ensures
@@ -174,7 +174,7 @@ function SetEnv(id: Identifier, expr: Expression, env: Env): Env
 /******* Primitive function 'exec' *******/
 function exec(cmd: Expression, deps: Expression, exts: Expression, st: State): Tuple<Expression, State>
 
-ghost method ExecProperty(cmd: Expression, deps: Expression, exts: Expression, st: State)
+lemma ExecProperty(cmd: Expression, deps: Expression, exts: Expression, st: State)
   requires
     cmd.exprLiteral? && cmd.lit.litString? &&
     deps.exprLiteral? && deps.lit.litArrOfPaths? &&
@@ -244,7 +244,7 @@ function execC(cmd: Expression, deps: Expression, exts: Expression, stC: StateC)
     Pair(expr', stC')
 }
 
-ghost method ExecCProperty(cmd: Expression, deps: Expression, exts: Expression, stC: StateC)
+lemma ExecCProperty(cmd: Expression, deps: Expression, exts: Expression, stC: StateC)
   requires
     cmd.exprLiteral? && cmd.lit.litString? &&
     deps.exprLiteral? && deps.lit.litArrOfPaths? &&
@@ -305,7 +305,7 @@ predicate PostC(cmd: Expression, deps: Expression, exts: Expression, stC: StateC
 
 function Hash(p: Path): HashValue
 
-ghost method HashProperty(cmd: Expression, deps: Expression, ext: string, cmd': Expression, deps': Expression, ext': string)
+lemma HashProperty(cmd: Expression, deps: Expression, ext: string, cmd': Expression, deps': Expression, ext': string)
   requires Hash(Loc(cmd, deps, ext)) == Hash(Loc(cmd', deps', ext'));
   ensures cmd == cmd' && deps == deps' && ext == ext';
 
@@ -509,7 +509,7 @@ predicate ValidArgsC(prim: Primitive, args: seq<Expression>, stC: StateC)
 }
 
 /******* {consistent_cache} buildC {no_bad_cache_error /\ consistent_cache} *******/
-ghost method CachedBuildsTheorem(prog: Program, stC: StateC)
+lemma CachedBuildsTheorem(prog: Program, stC: StateC)
   requires Legal(prog.stmts);
   requires ConsistentCache(stC);
   ensures
@@ -521,7 +521,7 @@ ghost method CachedBuildsTheorem(prog: Program, stC: StateC)
   BuildCLemma(prog, stC);
 }
 
-ghost method BuildCLemma(prog: Program, stC: StateC)
+lemma BuildCLemma(prog: Program, stC: StateC)
   requires Legal(prog.stmts);
   requires ConsistentCache(stC);
   ensures
@@ -532,7 +532,7 @@ ghost method BuildCLemma(prog: Program, stC: StateC)
   DoCLemma(prog.stmts, stC, EmptyEnv());
 }
 
-ghost method DoCLemma(stmts: seq<Statement>, stC: StateC, env: Env)
+lemma DoCLemma(stmts: seq<Statement>, stC: StateC, env: Env)
   requires Legal(stmts);
   requires ConsistentCache(stC);
   ensures
@@ -558,7 +558,7 @@ ghost method DoCLemma(stmts: seq<Statement>, stC: StateC, env: Env)
   }
 }
 
-ghost method {:induction expr} EvalCLemma(expr: Expression, stC: StateC, env: Env)
+lemma {:induction expr} EvalCLemma(expr: Expression, stC: StateC, env: Env)
   requires ConsistentCache(stC);
   ensures
     var result := evalC(expr, stC, env);
@@ -627,7 +627,7 @@ ghost method {:induction expr} EvalCLemma(expr: Expression, stC: StateC, env: En
   } else { }
 }
 
-ghost method EvalArgsCLemma(expr: Expression, args: seq<Expression>, stC: StateC, env: Env)
+lemma EvalArgsCLemma(expr: Expression, args: seq<Expression>, stC: StateC, env: Env)
   requires ConsistentCache(stC);
   requires forall arg :: arg in args ==> arg < expr;
   ensures
@@ -640,7 +640,7 @@ ghost method EvalArgsCLemma(expr: Expression, args: seq<Expression>, stC: StateC
   EvalArgsC'Lemma(expr, args, stC, env, [], {});
 }
 
-ghost method EvalArgsC'Lemma(expr: Expression, args: seq<Expression>, stC: StateC, env: Env,
+lemma EvalArgsC'Lemma(expr: Expression, args: seq<Expression>, stC: StateC, env: Env,
                              args': seq<Expression>, stsC': set<StateC>)
   requires ConsistentCache(stC);
   requires forall stC' :: stC' in stsC' ==> ConsistentCache(stC');
