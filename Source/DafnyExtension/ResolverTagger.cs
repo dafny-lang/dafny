@@ -529,7 +529,7 @@ namespace DafnyLanguage
              else
              {
                var line = Math.Max(0, int.Parse(match.Groups[1].Value) - 1);
-               var column = Math.Max(0, int.Parse(match.Groups[2].Value) - 1);
+               var column = Math.Max(0, int.Parse(match.Groups[2].Value));
                var sLine = Snapshot.GetLineFromLineNumber(line);
                Contract.Assert(column <= sLine.Length);
                var sLength = Math.Max(0, Math.Min(sLine.Length - column, 0));
