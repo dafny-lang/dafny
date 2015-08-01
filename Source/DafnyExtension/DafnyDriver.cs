@@ -134,7 +134,7 @@ namespace DafnyLanguage
 
     void RecordError(string filename, int line, int col, ErrorCategory cat, string msg, bool isRecycled = false)
     {
-      _errors.Add(new DafnyError(filename, line, col, cat, msg, _snapshot, isRecycled, null, System.IO.Path.GetFullPath(this._filename) == filename));
+      _errors.Add(new DafnyError(filename, line - 1, col - 1, cat, msg, _snapshot, isRecycled, null, System.IO.Path.GetFullPath(this._filename) == filename));
     }
 
     class VSErrors : Dafny.Errors
@@ -144,15 +144,15 @@ namespace DafnyLanguage
         this.dd = dd;
       }
       public override void SynErr(string filename, int line, int col, string msg) {
-        dd.RecordError(filename, line - 1, col - 1, ErrorCategory.ParseError, msg);
+        dd.RecordError(filename, line, col, ErrorCategory.ParseError, msg);
         count++;
       }
       public override void SemErr(string filename, int line, int col, string msg) {
-        dd.RecordError(filename, line - 1, col - 1, ErrorCategory.ResolveError, msg);
+        dd.RecordError(filename, line, col, ErrorCategory.ResolveError, msg);
         count++;
       }
       public override void Warning(IToken tok, string msg) {
-        dd.RecordError(tok.filename, tok.line - 1, tok.col - 1, ErrorCategory.ParseWarning, msg);
+        dd.RecordError(tok.filename, tok.line, tok.col, ErrorCategory.ParseWarning, msg);
       }
     }
 
@@ -179,14 +179,14 @@ namespace DafnyLanguage
 
       public override void Error(Bpl.IToken tok, string msg, params object[] args) {
         string s = string.Format(msg, args);
-        dd.RecordError(tok.filename, tok.line - 1, tok.col - 1, ErrorCategory.ResolveError, s);
+        dd.RecordError(tok.filename, tok.line, tok.col, ErrorCategory.ResolveError, s);
         ErrorCount++;
       }
 
       public override void Warning(IToken tok, string msg, params object[] args) {
         if (reportWarnings) {
           string s = string.Format(msg, args);
-          dd.RecordError(tok.filename, tok.line - 1, tok.col - 1, ErrorCategory.ResolveWarning, s);
+          dd.RecordError(tok.filename, tok.line, tok.col, ErrorCategory.ResolveWarning, s);
         }
       }
     }
