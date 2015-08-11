@@ -109,6 +109,15 @@ namespace Microsoft.Dafny {
       }
     }
 
+    public static string OneAttributeToString(Attributes a) {
+      Contract.Requires(a != null);
+      using (var wr = new System.IO.StringWriter()) {
+        var pr = new Printer(wr);
+        pr.PrintOneAttribute(a);
+        return ToStringWithoutNewline(wr);
+      }
+    }
+
     public static string ToStringWithoutNewline(System.IO.StringWriter wr) {
       Contract.Requires(wr != null);
       var sb = wr.GetStringBuilder();
@@ -429,14 +438,16 @@ namespace Microsoft.Dafny {
     public void PrintAttributes(Attributes a) {
       if (a != null) {
         PrintAttributes(a.Prev);
-
-        wr.Write(" {{:{0}", a.Name);
-        if (a.Args != null)
-        {
-          PrintAttributeArgs(a.Args, false);
-        }
-        wr.Write("}");
+        PrintOneAttribute(a);
       }
+    }
+    public void PrintOneAttribute(Attributes a) {
+      Contract.Requires(a != null);
+      wr.Write(" {{:{0}", a.Name);
+      if (a.Args != null) {
+        PrintAttributeArgs(a.Args, false);
+      }
+      wr.Write("}");
     }
 
     public void PrintAttributeArgs(List<Expression> args, bool isFollowedBySemicolon) {

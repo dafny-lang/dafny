@@ -5761,6 +5761,16 @@ namespace Microsoft.Dafny {
       Contract.Requires(name != null);
       Name = name;
     }
+    /// <summary>
+    /// Constructs a resolved IdentifierExpr.
+    /// </summary>
+    public IdentifierExpr(IVariable v)
+      : base(v.Tok) {
+      Contract.Requires(v != null);
+      Name = v.Name;
+      Var = v;
+      Type = v.Type;
+    }
   }
 
   /// <summary>
