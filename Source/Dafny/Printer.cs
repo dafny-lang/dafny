@@ -443,11 +443,13 @@ namespace Microsoft.Dafny {
     }
     public void PrintOneAttribute(Attributes a, string nameSubstitution = null) {
       Contract.Requires(a != null);
-      wr.Write(" {{:{0}", nameSubstitution ?? a.Name);
+      var name = nameSubstitution ?? a.Name;
+      var usAttribute = name.StartsWith("_");
+      wr.Write(" {1}{{:{0}", name, usAttribute ? "/*" : "");
       if (a.Args != null) {
         PrintAttributeArgs(a.Args, false);
       }
-      wr.Write("}");
+      wr.Write("}}{0}", usAttribute ? "*/" : "");
     }
 
     public void PrintAttributeArgs(List<Expression> args, bool isFollowedBySemicolon) {
