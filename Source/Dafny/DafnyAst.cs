@@ -6764,13 +6764,14 @@ namespace Microsoft.Dafny {
   }
 
   public abstract class QuantifierExpr : ComprehensionExpr, TypeParameter.ParentType {
+    private readonly int UniqueId;
     public List<TypeParameter> TypeArgs;
     private static int currentQuantId = -1;
-    static int FreshQuantId()
-    {
+
+    static int FreshQuantId() {
       return System.Threading.Interlocked.Increment(ref currentQuantId);
     }
-    private readonly int UniqueId;
+    
     public string FullName {
       get {
         return "q$" + UniqueId;
@@ -7615,6 +7616,18 @@ namespace Microsoft.Dafny {
       stmt.SubStatements.Iter(Visit);
       VisitOneStmt(stmt);
     }
+    public void Visit(IEnumerable<Expression> exprs) {
+      exprs.Iter(Visit);
+    }
+    public void Visit(IEnumerable<Statement> stmts) {
+      stmts.Iter(Visit);
+    }
+    public void Visit(MaybeFreeExpression expr) {
+      Visit(expr.E);
+    }
+    public void Visit(IEnumerable<MaybeFreeExpression> exprs) {
+      exprs.Iter(Visit);
+    }
     protected virtual void VisitOneExpr(Expression expr) {
       Contract.Requires(expr != null);
       // by default, do nothing
@@ -7645,6 +7658,18 @@ namespace Microsoft.Dafny {
         stmt.SubExpressions.Iter(e => Visit(e, st));
         stmt.SubStatements.Iter(s => Visit(s, st));
       }
+    }
+    public void Visit(IEnumerable<Expression> exprs, State st) {
+      exprs.Iter(e => Visit(e, st));
+    }
+    public void Visit(IEnumerable<Statement> stmts, State st) {
+      stmts.Iter(e => Visit(e, st));
+    }
+    public void Visit(MaybeFreeExpression expr, State st) {
+      Visit(expr.E, st);
+    }
+    public void Visit(IEnumerable<MaybeFreeExpression> exprs, State st) {
+      exprs.Iter(e => Visit(e, st));
     }
     /// <summary>
     /// Visit one expression proper.  This method is invoked before it is invoked on the
