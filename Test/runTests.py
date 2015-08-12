@@ -231,7 +231,7 @@ class Test:
                 with open(self.temp_output_path, mode='ab') as writer:
                     writer.write(stdout + stderr)
             if stderr != b"":
-                debug(Debug.TRACE, stderr)
+                debug(Debug.TRACE, stderr.decode("utf-8"))
 
             self.update_status()
         except TimeoutExpired:
