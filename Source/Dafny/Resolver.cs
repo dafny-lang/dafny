@@ -322,6 +322,7 @@ namespace Microsoft.Dafny
       if (DafnyOptions.O.AutoTriggers) {
         rewriters.Add(new TriggersRewriter(this));
       }
+      rewriters.Add(new InductionRewriter(this));
 
       systemNameInfo = RegisterTopLevelDecls(prog.BuiltIns.SystemModule, false);
       prog.CompileModules.Add(prog.BuiltIns.SystemModule);

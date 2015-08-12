@@ -312,7 +312,7 @@ namespace Microsoft.Dafny
                 2 - apply induction as requested (by attributes) and also
                     for heuristically chosen quantifiers
                 3 (default) - apply induction as requested, and for
-                    heuristically chosen quantifiers and ghost methods
+                    heuristically chosen quantifiers and lemmas
   /inductionHeuristic:<n>
                 0 - least discriminating induction heuristic (that is, lean
                     toward applying induction more often)

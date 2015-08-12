@@ -109,11 +109,11 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public static string OneAttributeToString(Attributes a) {
+    public static string OneAttributeToString(Attributes a, string nameSubstitution = null) {
       Contract.Requires(a != null);
       using (var wr = new System.IO.StringWriter()) {
         var pr = new Printer(wr);
-        pr.PrintOneAttribute(a);
+        pr.PrintOneAttribute(a, nameSubstitution);
         return ToStringWithoutNewline(wr);
       }
     }
@@ -441,9 +441,9 @@ namespace Microsoft.Dafny {
         PrintOneAttribute(a);
       }
     }
-    public void PrintOneAttribute(Attributes a) {
+    public void PrintOneAttribute(Attributes a, string nameSubstitution = null) {
       Contract.Requires(a != null);
-      wr.Write(" {{:{0}", a.Name);
+      wr.Write(" {{:{0}", nameSubstitution ?? a.Name);
       if (a.Args != null) {
         PrintAttributeArgs(a.Args, false);
       }
