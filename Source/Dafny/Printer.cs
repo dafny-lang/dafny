@@ -1443,7 +1443,7 @@ namespace Microsoft.Dafny {
         bool parensNeeded = ParensNeeded(opBindingStrength, contextBindingStrength, fragileContext);
 
         if (parensNeeded) { wr.Write("("); }
-        PrintExpr(e.Seq, 0x00, false, false, !parensNeeded && isFollowedBySemicolon, indent);  // BOGUS: fix me
+        PrintExpr(e.Seq, opBindingStrength, false, false, !parensNeeded && isFollowedBySemicolon, indent);
         wr.Write("[");
         if (e.SelectOne) {
           Contract.Assert( e.E0 != null);
@@ -1467,7 +1467,7 @@ namespace Microsoft.Dafny {
         bool parensNeeded = ParensNeeded(opBindingStrength, contextBindingStrength, fragileContext);
 
         if (parensNeeded) { wr.Write("("); }
-        PrintExpr(e.Array, 0x00, false, false, !parensNeeded && isFollowedBySemicolon, indent);  // BOGUS: fix me
+        PrintExpr(e.Array, opBindingStrength, false, false, !parensNeeded && isFollowedBySemicolon, indent);
         string prefix = "[";
         foreach (Expression idx in e.Indices) {
           Contract.Assert(idx != null);
@@ -1491,7 +1491,7 @@ namespace Microsoft.Dafny {
           bool parensNeeded = ParensNeeded(opBindingStrength, contextBindingStrength, fragileContext);
 
           if (parensNeeded) { wr.Write("("); }
-          PrintExpr(e.Seq, 00, false, false, !parensNeeded && isFollowedBySemicolon, indent);  // BOGUS: fix me
+          PrintExpr(e.Seq, opBindingStrength, false, false, !parensNeeded && isFollowedBySemicolon, indent);
           wr.Write("[");
           PrintExpression(e.Index, false);
           wr.Write(" := ");
@@ -1804,9 +1804,12 @@ namespace Microsoft.Dafny {
 
       } else if (expr is LambdaExpr) {
         var e = (LambdaExpr)expr;
-        wr.Write("(");
-        wr.Write(Util.Comma(e.BoundVars, bv => bv.DisplayName + ":" + bv.Type));
-        wr.Write(")");
+        bool parensNeeded = !isRightmost;
+        if (parensNeeded) { wr.Write("("); }
+        var skipSignatureParens = e.BoundVars.Count == 1 && e.BoundVars[0].Type is InferredTypeProxy;
+        if (!skipSignatureParens) { wr.Write("("); }
+        wr.Write(Util.Comma(", ", e.BoundVars, bv => bv.DisplayName + (bv.Type is InferredTypeProxy ? "" : ": " + bv.Type)));
+        if (!skipSignatureParens) { wr.Write(")"); }
         if (e.Range != null) {
           wr.Write(" requires ");
           PrintExpression(e.Range, false);
@@ -1817,6 +1820,7 @@ namespace Microsoft.Dafny {
         }
         wr.Write(e.OneShot ? " -> " : " => ");
         PrintExpression(e.Body, isFollowedBySemicolon);
+        if (parensNeeded) { wr.Write(")"); }
 
       } else if (expr is WildcardExpr) {
         wr.Write("*");

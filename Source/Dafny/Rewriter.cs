@@ -839,7 +839,7 @@ namespace Microsoft.Dafny
       }
 
       if (!tip.Equals("")) {
-        resolver.ReportAdditionalInformation(f.tok, tip, f.tok.val.Length);
+        resolver.ReportAdditionalInformation(f.tok, tip);
         if (DafnyOptions.O.AutoReqPrintFile != null) {
           using (System.IO.TextWriter writer = new System.IO.StreamWriter(DafnyOptions.O.AutoReqPrintFile, true)) {
             writer.WriteLine(f.Name);
@@ -866,7 +866,7 @@ namespace Microsoft.Dafny
       }
 
       if (!tip.Equals("")) {
-        resolver.ReportAdditionalInformation(method.tok, tip, method.tok.val.Length);
+        resolver.ReportAdditionalInformation(method.tok, tip);
         if (DafnyOptions.O.AutoReqPrintFile != null) {
           using (System.IO.TextWriter writer = new System.IO.StreamWriter(DafnyOptions.O.AutoReqPrintFile, true)) {
             writer.WriteLine(method.Name);
@@ -1061,7 +1061,7 @@ namespace Microsoft.Dafny
             Expression allReqsSatisfied = andify(e.Term.tok, auto_reqs);
             Expression allReqsSatisfiedAndTerm = Expression.CreateAnd(allReqsSatisfied, e.Term);
             e.UpdateTerm(allReqsSatisfiedAndTerm);
-            resolver.ReportAdditionalInformation(e.tok, "autoreq added (" + Printer.ExtendedExprToString(allReqsSatisfied) + ") &&", e.tok.val.Length);
+            resolver.ReportAdditionalInformation(e.tok, "autoreq added (" + Printer.ExtendedExprToString(allReqsSatisfied) + ") &&");
         }
       } else if (expr is SetComprehension) {
         var e = (SetComprehension)expr;
@@ -1410,7 +1410,7 @@ namespace Microsoft.Dafny
         attributes = new Attributes("_induction", inductionVariables, attributes);
         // And since we're inferring something, let's also report that in a hover text.
         var s = Printer.OneAttributeToString(attributes, "induction");
-        Resolver.ReportAdditionalInformation(tok, s, s.Length);
+        Resolver.ReportAdditionalInformation(tok, s);
       }
     }
     class Induction_Visitor : BottomUpVisitor

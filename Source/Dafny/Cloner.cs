@@ -720,7 +720,7 @@ namespace Microsoft.Dafny
     {
       Contract.Requires(tok != null);
       Contract.Requires(s != null);
-      resolver.ReportAdditionalInformation(tok, s + suffix, s.Length);
+      resolver.ReportAdditionalInformation(tok, s + suffix);
     }
   }
 
