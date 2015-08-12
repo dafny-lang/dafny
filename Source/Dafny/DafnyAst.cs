@@ -2964,19 +2964,6 @@ namespace Microsoft.Dafny {
     }
   }
 
-  /// <summary>
-  /// A "ThisSurrogate" is used during translation time to make the treatment of the receiver more similar to
-  /// the treatment of other in-parameters.
-  /// </summary>
-  public class ThisSurrogate : Formal
-  {
-    public ThisSurrogate(IToken tok, Type type)
-      : base(tok, "this", type, true, false) {
-      Contract.Requires(tok != null);
-      Contract.Requires(type != null);
-    }
-  }
-
   public class BoundVar : NonglobalVariable {
     public override bool IsMutable {
       get {

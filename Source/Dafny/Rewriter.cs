@@ -1475,9 +1475,7 @@ namespace Microsoft.Dafny
       // The following variable is what gets passed down to recursive calls if the subexpression does not itself acquire prominent status.
       var subExprIsProminent = DafnyOptions.O.InductionHeuristic == 2 || DafnyOptions.O.InductionHeuristic == 4 ? /*once prominent, always prominent*/exprIsProminent : /*reset the prominent status*/false;
 
-      if (expr is ThisExpr) {
-        return exprIsProminent && n is ThisSurrogate;
-      } else if (expr is IdentifierExpr) {
+      if (expr is IdentifierExpr) {
         var e = (IdentifierExpr)expr;
         return exprIsProminent && e.Var == n;
       } else if (expr is SeqSelectExpr) {

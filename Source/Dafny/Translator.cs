@@ -2778,27 +2778,19 @@ namespace Microsoft.Dafny {
           }
 
           var parBoundVars = new List<BoundVar>();
-          Expression receiverReplacement = null;
           var substMap = new Dictionary<IVariable, Expression>();
           foreach (var iv in inductionVars) {
             BoundVar bv;
             IdentifierExpr ie;
             CloneVariableAsBoundVar(iv.tok, iv, "$ih#" + iv.Name, out bv, out ie);
             parBoundVars.Add(bv);
-            if (iv is ThisSurrogate) {
-              Contract.Assert(receiverReplacement == null && substMap.Count == 0);  // the receiver comes first, if at all
-              receiverReplacement = ie;
-            } else {
-              substMap.Add(iv, ie);
-            }
+            substMap.Add(iv, ie);
           }
 
 
           // Generate a CallStmt for the recursive call
           Expression recursiveCallReceiver;
-          if (receiverReplacement != null) {
-            recursiveCallReceiver = receiverReplacement;
-          } else if (m.IsStatic) {
+          if (m.IsStatic) {
             recursiveCallReceiver = new StaticReceiverExpr(m.tok, (ClassDecl)m.EnclosingClass, true);  // this also resolves it
           } else {
             recursiveCallReceiver = new ImplicitThisExpr(m.tok);
@@ -2827,18 +2819,9 @@ namespace Microsoft.Dafny {
 
           Expression parRange = new LiteralExpr(m.tok, true);
           parRange.Type = Type.Bool;  // resolve here
-          if (receiverReplacement != null) {
-            // add "this' != null" to the range
-            var nil = new LiteralExpr(receiverReplacement.tok);
-            nil.Type = receiverReplacement.Type;  // resolve here
-            var neqNull = new BinaryExpr(receiverReplacement.tok, BinaryExpr.Opcode.Neq, receiverReplacement, nil);
-            neqNull.ResolvedOp = BinaryExpr.ResolvedOpcode.NeqCommon;  // resolve here
-            neqNull.Type = Type.Bool;  // resolve here
-            parRange = Expression.CreateAnd(parRange, neqNull);
-          }
           foreach (var pre in m.Req) {
             if (!pre.IsFree) {
-              parRange = Expression.CreateAnd(parRange, Substitute(pre.E, receiverReplacement, substMap));
+              parRange = Expression.CreateAnd(parRange, Substitute(pre.E, null, substMap));
             }
           }
           // construct an expression (generator) for:  VF' << VF
@@ -2851,7 +2834,7 @@ namespace Microsoft.Dafny {
               decrToks.Add(ee.tok);
               decrTypes.Add(ee.Type.NormalizeExpand());
               decrCaller.Add(exprTran.TrExpr(ee));
-              Expression es = Substitute(ee, receiverReplacement, substMap);
+              Expression es = Substitute(ee, null, substMap);
               es = Substitute(es, null, decrSubstMap);
               decrCallee.Add(exprTran.TrExpr(es));
             }
@@ -13230,7 +13213,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(lookForReceiver || v != null);
 
       if (expr is ThisExpr) {
-        return lookForReceiver || v is ThisSurrogate;
+        return lookForReceiver;
       } else if (expr is IdentifierExpr) {
         IdentifierExpr e = (IdentifierExpr)expr;
         return e.Var == v;
