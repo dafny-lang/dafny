@@ -9,8 +9,8 @@ Building on Linux
 
 1. Create an empty base directory
 
-    mkdir BASE-DRIECTORY
-    cd BASE-DRIECTORY
+    mkdir BASE-DIRECTORY
+    cd BASE-DIRECTORY
 
 2. Download and build Boogie:
 
@@ -25,8 +25,8 @@ Building on Linux
 3. Download and build Dafny:
 
    hg clone https://hg.codeplex.com/dafny
-   xbuild dafny/Source/Dafny.sln
-   xbuild dafny/Source/DafnyServer.sln
+   cd dafny/Sources/
+   xbuild Dafny.sln
 
 4. Download and build Z3
 
@@ -38,9 +38,23 @@ Building on Linux
    make -j4
    cd ../..
 
-5. Copy (or symlink) the z3 binary so that Dafny and Boogie can find it:
+5. Copy (or symlink) the z3 binary so that Dafny can find it:
 
    cd BASE-DIRECTORY
-   rm dafny/Binaries/z3 # Dafny already packages z3
-   cp z3/build/z3 dafny/Binaries/z3
-   cp z3/build/z3 boogie/Binaries/z3.exe
+   rm -f dafny/Binaries/z3
+   rm -f boogie/Binaries/z3.exe
+   ln -s /usr/bin/z3 dafny/Binaries/z3
+   ln -s /usr/bin/z3 boogie/Binaries/z3.exe
+
+6. Run Dafny using the `dafny` shell script in the Binaries directory.
+
+Editing in Emacs
+================
+
+The README at https://github.com/boogie-org/boogie-friends has plenty of
+information on how to set-up Emacs to work with Dafny. In short, it boils down
+to running [M-x package-install RET boogie-friends RET] and adding the following
+to your .emacs:
+  (setq flycheck-dafny-executable "BASE-DIRECTORy/dafny/")
+
+Do look at the README, though! It's full of useful tips.
