@@ -35,7 +35,7 @@ lemma Lemma_TailSubStreamK(s: Stream, u: Stream, k: nat)  // this lemma could ha
 {
   if k != 0 {
     Lemma_InTail(s.head, u);
-    Lemma_TailSubStreamK(s.tail, u, k-1);
+    //Lemma_TailSubStreamK(s.tail, u, k-1);
   }
 }
 lemma Lemma_InSubStream<T>(x: T, s: Stream<T>, u: Stream<T>)
@@ -193,10 +193,10 @@ lemma FS_Ping<T>(s: Stream<T>, h: PredicateHandle, x: T)
 }
 
 lemma FS_Pong<T>(s: Stream<T>, h: PredicateHandle, x: T, k: nat)
-  requires AlwaysAnother(s, h) && In(x, s) && P(x, h);
-  requires Tail(s, k).head == x;
-  ensures In(x, Filter(s, h));
-  decreases k;
+  requires AlwaysAnother(s, h) && In(x, s) && P(x, h)
+  requires Tail(s, k).head == x
+  ensures In(x, Filter(s, h))
+  decreases k
 {
   var fs := Filter(s, h);
   if s.head == x {
@@ -205,14 +205,14 @@ lemma FS_Pong<T>(s: Stream<T>, h: PredicateHandle, x: T, k: nat)
     assert fs == Cons(s.head, Filter(s.tail, h));  // reminder of where we are
     calc {
       true;
-    ==  { FS_Pong(s.tail, h, x, k-1); }
+    //==  { FS_Pong(s.tail, h, x, k-1); }
       In(x, Filter(s.tail, h));
     ==> { assert fs.head != x;  Lemma_InTail(x, fs); }
       In(x, fs);
     }
   } else {
-    assert fs == Filter(s.tail, h);  // reminder of where we are
-    FS_Pong(s.tail, h, x, k-1);
+    //assert fs == Filter(s.tail, h);  // reminder of where we are
+    //FS_Pong(s.tail, h, x, k-1);
   }
 }
 

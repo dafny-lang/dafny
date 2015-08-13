@@ -1336,25 +1336,25 @@ namespace Microsoft.Dafny
     }
     void ComputeLemmaInduction(Method method) {
       Contract.Requires(method != null);
-      if (method.IsGhost && method.Mod.Expressions.Count == 0 && method.Outs.Count == 0 && !(method is FixpointLemma)) {
-        var posts = new List<Expression>();
-        method.Ens.ForEach(mfe => posts.Add(mfe.E));
-        ComputeInductionVariables(method.tok, method.Ins, posts, ref method.Attributes);
+      if (method.Body != null && method.IsGhost && method.Mod.Expressions.Count == 0 && method.Outs.Count == 0 && !(method is FixpointLemma)) {
+        var specs = new List<Expression>();
+        method.Req.ForEach(mfe => specs.Add(mfe.E));
+        method.Ens.ForEach(mfe => specs.Add(mfe.E));
+        ComputeInductionVariables(method.tok, method.Ins, specs, method, ref method.Attributes);
       }
     }
-    void ComputeInductionVariables<VarType>(IToken tok, List<VarType> boundVars, List<Expression> searchExprs, ref Attributes attributes) where VarType : class, IVariable {
+    void ComputeInductionVariables<VarType>(IToken tok, List<VarType> boundVars, List<Expression> searchExprs, Method lemma, ref Attributes attributes) where VarType : class, IVariable {
       Contract.Requires(tok != null);
       Contract.Requires(boundVars != null);
       Contract.Requires(searchExprs != null);
       Contract.Requires(DafnyOptions.O.Induction != 0);
-      bool forLemma = boundVars is List<Formal>;
 
       var args = Attributes.FindExpressions(attributes, "induction");  // we only look at the first one we find, since it overrides any other ones
       if (args == null) {
         if (DafnyOptions.O.Induction < 2) {
           // No explicit induction variables and we're asked not to infer anything, so we're done
           return;
-        } else if (DafnyOptions.O.Induction == 2 && forLemma) {
+        } else if (DafnyOptions.O.Induction == 2 && lemma != null) {
           // We're asked to infer induction variables only for quantifiers, not for lemmas
           return;
         }
@@ -1384,13 +1384,13 @@ namespace Microsoft.Dafny
             }
             if (0 <= boundVars.FindIndex(v => v == ie.Var)) {
               Resolver.Warning(arg.tok, "{0}s given as :induction arguments must be given in the same order as in the {1}; ignoring attribute",
-                forLemma ? "lemma parameter" : "bound variable", forLemma ? "lemma" : "quantifier");
+                lemma != null ? "lemma parameter" : "bound variable", lemma != null ? "lemma" : "quantifier");
               return;
             }
           }
           Resolver.Warning(arg.tok, "invalid :induction attribute argument; expected {0}{1}; ignoring attribute",
             i == 0 ? "'false' or 'true' or " : "",
-            forLemma ? "lemma parameter" : "bound variable");
+            lemma != null ? "lemma parameter" : "bound variable");
           return;
         }
         // The argument list was legal, so let's use it for the _induction attribute
@@ -1410,6 +1410,9 @@ namespace Microsoft.Dafny
         attributes = new Attributes("_induction", inductionVariables, attributes);
         // And since we're inferring something, let's also report that in a hover text.
         var s = Printer.OneAttributeToString(attributes, "induction");
+        if (lemma is PrefixLemma) {
+          s = lemma.Name + " " + s;
+        }
         Resolver.ReportAdditionalInformation(tok, s);
       }
     }
@@ -1423,7 +1426,7 @@ namespace Microsoft.Dafny
       protected override void VisitOneExpr(Expression expr) {
         var q = expr as QuantifierExpr;
         if (q != null) {
-          IndRewriter.ComputeInductionVariables(q.tok, q.BoundVars, new List<Expression>() { q.LogicalBody() }, ref q.Attributes);
+          IndRewriter.ComputeInductionVariables(q.tok, q.BoundVars, new List<Expression>() { q.LogicalBody() }, null, ref q.Attributes);
         }
       }
       void VisitInductionStmt(Statement stmt) {

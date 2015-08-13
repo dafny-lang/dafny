@@ -438,6 +438,7 @@ namespace Microsoft.Dafny {
     public void PrintAttributes(Attributes a) {
       if (a != null) {
         PrintAttributes(a.Prev);
+        wr.Write(" ");
         PrintOneAttribute(a);
       }
     }
@@ -445,7 +446,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(a != null);
       var name = nameSubstitution ?? a.Name;
       var usAttribute = name.StartsWith("_");
-      wr.Write(" {1}{{:{0}", name, usAttribute ? "/*" : "");
+      wr.Write("{1}{{:{0}", name, usAttribute ? "/*" : "");
       if (a.Args != null) {
         PrintAttributeArgs(a.Args, false);
       }

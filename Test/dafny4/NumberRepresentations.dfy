@@ -234,17 +234,16 @@ lemma UniqueRepresentation(a: seq<int>, b: seq<int>, lowDigit: int, base: nat)
 }
 
 lemma ZeroIsUnique(a: seq<int>, lowDigit: int, base: nat)
-  requires 2 <= base && lowDigit <= 0 < lowDigit + base;
-  requires a == trim(a);
-  requires IsSkewNumber(a, lowDigit, base);
-  requires eval(a, base) == 0;
-  ensures a == [];
+  requires 2 <= base && lowDigit <= 0 < lowDigit + base
+  requires a == trim(a)
+  requires IsSkewNumber(a, lowDigit, base)
+  requires eval(a, base) == 0
+  ensures a == []
 {
   if a != [] {
-    assert eval(a, base) == a[0] + base * eval(a[1..], base);
     if eval(a[1..], base) == 0 {
       TrimProperty(a);
-      ZeroIsUnique(a[1..], lowDigit, base);
+      // ZeroIsUnique(a[1..], lowDigit, base);
     }
     assert false;
   }

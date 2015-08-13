@@ -7,25 +7,25 @@ abstract module TotalOrder {
   // Three properties of total orders.  Here, they are given as unproved
   // lemmas, that is, as axioms.
   lemma Antisymmetry(a: T, b: T)
-    requires Leq(a, b) && Leq(b, a);
-    ensures a == b;
+    requires Leq(a, b) && Leq(b, a)
+    ensures a == b
   lemma Transitivity(a: T, b: T, c: T)
-    requires Leq(a, b) && Leq(b, c);
-    ensures Leq(a, c);
+    requires Leq(a, b) && Leq(b, c)
+    ensures Leq(a, c)
   lemma Totality(a: T, b: T)
-    ensures Leq(a, b) || Leq(b, a);
+    ensures Leq(a, b) || Leq(b, a)
 }
 
 abstract module Sort {
   import O as TotalOrder  // let O denote some module that has the members of TotalOrder
 
   predicate Sorted(a: array<O.T>, low: int, high: int)
-    requires a != null && 0 <= low <= high <= a.Length;
-    reads a;
+    requires a != null && 0 <= low <= high <= a.Length
+    reads a
     // The body of the predicate is hidden outside the module, but the postcondition is
     // "exported" (that is, visible, known) outside the module.  Here, we choose the
     // export the following property:
-    ensures Sorted(a, low, high) ==> forall i, j :: low <= i < j < high ==> O.Leq(a[i], a[j]);
+    ensures Sorted(a, low, high) ==> forall i, j :: low <= i < j < high ==> O.Leq(a[i], a[j])
   {
     forall i, j :: low <= i < j < high ==> O.Leq(a[i], a[j])
   }
@@ -33,18 +33,18 @@ abstract module Sort {
   // In the insertion sort routine below, it's more convenient to keep track of only that
   // neighboring elements of the array are sorted...
   predicate NeighborSorted(a: array<O.T>, low: int, high: int)
-    requires a != null && 0 <= low <= high <= a.Length;
-    reads a;
+    requires a != null && 0 <= low <= high <= a.Length
+    reads a
   {
     forall i :: low < i < high ==> O.Leq(a[i-1], a[i])
   }
   // ...but we show that property to imply all pairs to be sorted.  The proof of this
   // lemma uses the transitivity property.
   lemma NeighborSorted_implies_Sorted(a: array<O.T>, low: int, high: int)
-    requires a != null && 0 <= low <= high <= a.Length;
-    requires NeighborSorted(a, low, high);
-    ensures Sorted(a, low, high);
-    decreases high - low;
+    requires a != null && 0 <= low <= high <= a.Length
+    requires NeighborSorted(a, low, high)
+    ensures Sorted(a, low, high)
+    decreases high - low
   {
     if low != high {
       NeighborSorted_implies_Sorted(a, low+1, high);
@@ -57,25 +57,25 @@ abstract module Sort {
 
   // Standard insertion sort method
   method InsertionSort(a: array<O.T>)
-    requires a != null;
-    modifies a;
-    ensures Sorted(a, 0, a.Length);
-    ensures multiset(a[..]) == old(multiset(a[..]));
+    requires a != null
+    modifies a
+    ensures Sorted(a, 0, a.Length)
+    ensures multiset(a[..]) == old(multiset(a[..]))
   {
     if a.Length == 0 { return; }
     var i := 1;
     while i < a.Length
-      invariant 0 < i <= a.Length;
-      invariant NeighborSorted(a, 0, i);
-      invariant multiset(a[..]) == old(multiset(a[..]));
+      invariant 0 < i <= a.Length
+      invariant NeighborSorted(a, 0, i)
+      invariant multiset(a[..]) == old(multiset(a[..]))
     {
       var j := i;
       while 0 < j && !O.Leq(a[j-1], a[j])
-        invariant 0 <= j <= i;
-        invariant NeighborSorted(a, 0, j);
-        invariant NeighborSorted(a, j, i+1);
-        invariant 0 < j < i ==> O.Leq(a[j-1], a[j+1]);
-        invariant multiset(a[..]) == old(multiset(a[..]));
+        invariant 0 <= j <= i
+        invariant NeighborSorted(a, 0, j)
+        invariant NeighborSorted(a, j, i+1)
+        invariant 0 < j < i ==> O.Leq(a[j-1], a[j+1])
+        invariant multiset(a[..]) == old(multiset(a[..]))
       {
         // The proof of correctness uses the totality property here.
         // It implies that if two elements are not previously in
@@ -97,7 +97,7 @@ module IntOrder refines TotalOrder {
   datatype T = Int(i: int)
   // Define the ordering on these integers
   predicate method Leq ...
-    ensures Leq(a, b) ==> a.i <= b.i;
+    ensures Leq(a, b) ==> a.i <= b.i
   {
     a.i <= b.i
   }
@@ -156,7 +156,7 @@ module intOrder refines TotalOrder {
   type T = int
   // Define the ordering on these integers
   predicate method Leq ...
-    ensures Leq(a, b) ==> a <= b;
+    ensures Leq(a, b) ==> a <= b
   {
     a <= b
   }
