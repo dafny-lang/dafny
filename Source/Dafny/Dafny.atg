@@ -2915,10 +2915,10 @@ Expressions<.List<Expression> args.>
   .
 /*------------------------------------------------------------------------*/
 Attribute<ref Attributes attrs>
-= (. string name;
+= (. IToken x; string name;
      var args = new List<Expression>();
   .)
-  "{" ":" ident                            (. name = t.val; .)
+  "{" ":" NoUSIdent<out x>                          (. name = x.val; .)
   [ Expressions<args> ]
   "}"
   (. attrs = new Attributes(name, args, attrs); .)

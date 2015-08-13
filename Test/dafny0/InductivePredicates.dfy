@@ -18,7 +18,7 @@ lemma M(x: natinf)
 }
 
 // yay!  my first proof involving an inductive predicate :)
-lemma M'(k: nat, x: natinf)
+lemma {:induction false} M'(k: nat, x: natinf)
   requires Even#[k](x)
   ensures x.N? && x.n % 2 == 0
 {
@@ -32,8 +32,14 @@ lemma M'(k: nat, x: natinf)
   }
 }
 
+lemma M'_auto(k: nat, x: natinf)
+  requires Even#[k](x)
+  ensures x.N? && x.n % 2 == 0
+{
+}
+
 // Here is the same proof as in M / M', but packaged into a single "inductive lemma":
-inductive lemma IL(x: natinf)
+inductive lemma {:induction false} IL(x: natinf)
   requires Even(x)
   ensures x.N? && x.n % 2 == 0
 {
@@ -45,7 +51,7 @@ inductive lemma IL(x: natinf)
   }
 }
 
-inductive lemma IL_EvenBetter(x: natinf)
+inductive lemma {:induction false} IL_EvenBetter(x: natinf)
   requires Even(x)
   ensures x.N? && x.n % 2 == 0
 {
@@ -55,6 +61,12 @@ inductive lemma IL_EvenBetter(x: natinf)
     case x.N? && 2 <= x.n && Even(N(x.n - 2)) =>
       IL_EvenBetter(N(x.n - 2));
   }
+}
+
+inductive lemma IL_Best(x: natinf)
+  requires Even(x)
+  ensures x.N? && x.n % 2 == 0
+{
 }
 
 inductive lemma IL_Bad(x: natinf)
@@ -107,7 +119,7 @@ module Alt {
   {
     match x
     case N(n) => N(n+1)
-   case Inf => Inf
+    case Inf => Inf
   }
 
   inductive predicate Even(x: natinf)
@@ -116,7 +128,7 @@ module Alt {
     exists y :: x == S(S(y)) && Even(y)
   }
 
-  inductive lemma MyLemma_NotSoNice(x: natinf)
+  inductive lemma {:induction false} MyLemma_NotSoNice(x: natinf)
     requires Even(x)
     ensures x.N? && x.n % 2 == 0
   {
@@ -130,7 +142,7 @@ module Alt {
     }
   }
 
-  inductive lemma MyLemma_NiceButNotFast(x: natinf)
+  inductive lemma {:induction false} MyLemma_NiceButNotFast(x: natinf)
     requires Even(x)
     ensures x.N? && x.n % 2 == 0
   {
@@ -143,7 +155,13 @@ module Alt {
         assert x.n == y.n + 2;
     }
   }
-
+  
+  inductive lemma MyLemma_RealNice_AndFastToo(x: natinf)
+    requires Even(x)
+    ensures x.N? && x.n % 2 == 0
+  {
+  }
+  
   lemma InfNotEven()
     ensures !Even(Inf)
   {
@@ -156,15 +174,6 @@ module Alt {
     requires Even(Inf)
     ensures false
   {
-    var x := Inf;
-    if {
-      case x.N? && x.n == 0 =>
-        assert false;  // this case is absurd
-      case exists y :: x == S(S(y)) && Even(y) =>
-        var y :| x == S(S(y)) && Even(y);
-        assert y == Inf;
-        InfNotEven_Aux();
-    }
   }
 
   lemma NextEven(x: natinf)

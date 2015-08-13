@@ -101,13 +101,11 @@ namespace Microsoft.Dafny
 
     public Action<AdditionalInformation> AdditionalInformationReporter;
 
-    internal void ReportAdditionalInformation(IToken token, string text, int length)
-    {
+    internal void ReportAdditionalInformation(IToken token, string text) {
       Contract.Requires(token != null);
       Contract.Requires(text != null);
-      Contract.Requires(0 <= length); //FIXME: KRML: This should (probably) be the length of the token
       if (AdditionalInformationReporter != null) {
-        AdditionalInformationReporter(new AdditionalInformation { Token = token, Text = text, Length = length });
+        AdditionalInformationReporter(new AdditionalInformation { Token = token, Text = text, Length = token.val.Length });
       }
     }
 
@@ -322,6 +320,7 @@ namespace Microsoft.Dafny
       if (DafnyOptions.O.AutoTriggers) {
         rewriters.Add(new TriggersRewriter(this));
       }
+      rewriters.Add(new InductionRewriter(this));
 
       systemNameInfo = RegisterTopLevelDecls(prog.BuiltIns.SystemModule, false);
       prog.CompileModules.Add(prog.BuiltIns.SystemModule);
@@ -493,7 +492,7 @@ namespace Microsoft.Dafny
       }
       foreach (var module in prog.Modules) {
         foreach (var iter in ModuleDefinition.AllIteratorDecls(module.TopLevelDecls)) {
-          ReportAdditionalInformation(iter.tok, Printer.IteratorClassToString(iter), iter.Name.Length);
+          ReportAdditionalInformation(iter.tok, Printer.IteratorClassToString(iter));
         }
       }
       // fill in other additional information
@@ -562,17 +561,10 @@ namespace Microsoft.Dafny
               showIt = ((Method)m).IsRecursive;
             }
             if (showIt) {
-              s += "decreases ";
-              if (m.Decreases.Expressions.Count != 0) {
-                string sep = "";
-                foreach (var d in m.Decreases.Expressions) {
-                  s += sep + Printer.ExprToString(d);
-                  sep = ", ";
-                }
-              }
+              s += "decreases " + Util.Comma(", ", m.Decreases.Expressions, Printer.ExprToString);
               // Note, in the following line, we use the location information for "clbl", not "m".  These
               // are the same, except in the case where "clbl" is a CoLemma and "m" is a prefix lemma.
-              ReportAdditionalInformation(clbl.Tok, s, clbl.Tok.val.Length);
+              ReportAdditionalInformation(clbl.Tok, s);
             }
           }
         }
@@ -1625,7 +1617,7 @@ namespace Microsoft.Dafny
                   "Hint: try writing a newtype constraint of the form 'i:int | lowerBound <= i < upperBound && (...any additional constraints...)'");
               }
               if (dd.NativeType != null && stringNativeType == null) {
-                ReportAdditionalInformation(dd.tok, "{:nativeType \"" + dd.NativeType.Name + "\"}", dd.tok.val.Length);
+                ReportAdditionalInformation(dd.tok, "{:nativeType \"" + dd.NativeType.Name + "\"}");
               }
             }
           }
@@ -1734,7 +1726,7 @@ namespace Microsoft.Dafny
               foreach (var c in coCandidates) {
                 c.CandidateCall.CoCall = FunctionCallExpr.CoCallResolution.Yes;
                 c.EnclosingCoConstructor.IsCoCall = true;
-                ReportAdditionalInformation(c.CandidateCall.tok, "co-recursive call", c.CandidateCall.Name.Length);
+                ReportAdditionalInformation(c.CandidateCall.tok, "co-recursive call");
               }
               // Finally, fill in the CoClusterTarget field
               // Start by setting all the CoClusterTarget fields to CoRecursiveTargetAllTheWay.
@@ -2001,10 +1993,10 @@ namespace Microsoft.Dafny
         Contract.Requires(args != null);
         Error(expr.tok, msg, args);
       }
-      protected void ReportAdditionalInformation(IToken tok, string text, int length)
+      protected void ReportAdditionalInformation(IToken tok, string text)
       {
         Contract.Requires(tok != null);
-        resolver.ReportAdditionalInformation(tok, text, length);
+        resolver.ReportAdditionalInformation(tok, text);
       }
     }
     #endregion Visitors
@@ -2040,7 +2032,7 @@ namespace Microsoft.Dafny
                 m.IsTailRecursive = true;
                 if (tailCall != null) {
                   // this means there was at least one recursive call
-                  ReportAdditionalInformation(m.tok, "tail recursive", m.Name.Length);
+                  ReportAdditionalInformation(m.tok, "tail recursive");
                 }
               }
             }
@@ -2606,7 +2598,7 @@ namespace Microsoft.Dafny
               Error(e, msg);
             } else {
               e.CoCall = FunctionCallExpr.CoCallResolution.Yes;
-              ReportAdditionalInformation(e.tok, e.Function.Name + "#[_k - 1]", e.Function.Name.Length);
+              ReportAdditionalInformation(e.tok, e.Function.Name + "#[_k - 1]");
             }
           }
           // do the sub-parts with cp := Neither
@@ -3010,7 +3002,7 @@ namespace Microsoft.Dafny
             var substituter = new Translator.AlphaConverting_Substituter(cs.Receiver, argsSubstMap, new Dictionary<TypeParameter, Type>(), new Translator());
             foreach (var ens in cs.Method.Ens) {
               var p = substituter.Substitute(ens.E);  // substitute the call's actuals for the method's formals
-              resolver.ReportAdditionalInformation(s.Tok, "ensures " + Printer.ExprToString(p) + ";", s.Tok.val.Length);
+              resolver.ReportAdditionalInformation(s.Tok, "ensures " + Printer.ExprToString(p));
             }
           }
         }
@@ -5216,16 +5208,8 @@ namespace Microsoft.Dafny
           ResolveStatement(s.Body, bodyMustBeSpecOnly, codeContext);
           loopStack.RemoveAt(loopStack.Count - 1);  // pop
         } else {
-          string text = "havoc {";
-          if (fvs.Count != 0) {
-            string sep = "";
-            foreach (var fv in fvs) {
-              text += sep + fv.Name;
-              sep = ", ";
-            }
-          }
-          text += "};";  // always terminate with a semi-colon
-          ReportAdditionalInformation(s.Tok, text, s.Tok.val.Length);
+          string text = "havoc {" + Util.Comma(", ", fvs, fv => fv.Name) + "};";  // always terminate with a semi-colon
+          ReportAdditionalInformation(s.Tok, text);
         }
 
       } else if (stmt is AlternativeLoopStmt) {
@@ -5323,7 +5307,7 @@ namespace Microsoft.Dafny
               // add the conclusion of the calc as a free postcondition
               var result = ((CalcStmt)s0).Result;
               s.Ens.Add(new MaybeFreeExpression(result, true));
-              ReportAdditionalInformation(s.Tok, "ensures " + Printer.ExprToString(result) + ";", s.Tok.val.Length);
+              ReportAdditionalInformation(s.Tok, "ensures " + Printer.ExprToString(result));
             } else {
               s.Kind = ForallStmt.ParBodyKind.Proof;
               if (s.Body is BlockStmt && ((BlockStmt)s.Body).Body.Count == 0) {
@@ -5929,16 +5913,8 @@ namespace Microsoft.Dafny
         loopStmt.InferredDecreases = true;
       }
       if (loopStmt.InferredDecreases) {
-        string s = "decreases ";
-        if (theDecreases.Count != 0) {
-          string sep = "";
-          foreach (var d in theDecreases) {
-            s += sep + Printer.ExprToString(d);
-            sep = ", ";
-          }
-        }
-        s += ";";  // always terminate with a semi-colon, even in the case of an empty decreases clause
-        ReportAdditionalInformation(loopStmt.Tok, s, loopStmt.Tok.val.Length);
+        string s = "decreases " + Util.Comma(", ", theDecreases, Printer.ExprToString);
+        ReportAdditionalInformation(loopStmt.Tok, s);
       }
     }
     private void ResolveConcreteUpdateStmt(ConcreteUpdateStatement s, bool specContextOnly, ICodeContext codeContext) {
@@ -10485,7 +10461,7 @@ namespace Microsoft.Dafny
             // this call is disqualified from being a co-call, because it has a postcondition
             // (a postcondition could be allowed, as long as it does not get to be used with
             // co-recursive calls, because that could be unsound; for example, consider
-            // "ensures false;")
+            // "ensures false")
             if (!dealsWithCodatatypes) {
               e.CoCall = FunctionCallExpr.CoCallResolution.No;
             } else {

@@ -126,9 +126,9 @@ namespace Microsoft.Dafny {
     List<QuantifierExpr> quantifiers;
     Dictionary<Expression, TriggerAnnotation> annotations;
 
-    Action<IToken, string, int> AdditionalInformationReporter;
+    Action<IToken, string> AdditionalInformationReporter;
 
-    private TriggerGenerator(Action<IToken, string, int> additionalInformationReporter) {
+    private TriggerGenerator(Action<IToken, string> additionalInformationReporter) {
       Contract.Requires(additionalInformationReporter != null);
       this.quantifiers = new List<QuantifierExpr>();
       this.annotations = new Dictionary<Expression, TriggerAnnotation>();
@@ -469,12 +469,12 @@ namespace Microsoft.Dafny {
       if (multi_candidates.RejectedMultiCandidates.Any()) {
         var tooltip = JoinStringsWithHeader("Rejected: ", multi_candidates.RejectedMultiCandidates.Where(candidate => candidate.Tags != null)
           .Select(candidate => candidate.AsDafnyAttributeString(true, true)));
-        AdditionalInformationReporter(quantifier.tok, tooltip, quantifier.tok.val.Length);
+        AdditionalInformationReporter(quantifier.tok, tooltip);
       }
 
       if (multi_candidates.FinalMultiCandidates.Any()) {
         var tooltip = JoinStringsWithHeader("Triggers: ", multi_candidates.FinalMultiCandidates.Select(multi_candidate => multi_candidate.AsDafnyAttributeString()));
-        AdditionalInformationReporter(quantifier.tok, tooltip, quantifier.tok.val.Length);
+        AdditionalInformationReporter(quantifier.tok, tooltip);
       }
 
       string warning = multi_candidates.Warning();
@@ -484,7 +484,7 @@ namespace Microsoft.Dafny {
     }
 
     internal static bool IsTriggerKiller(Expression expr) {
-      var annotation = new TriggerGenerator((x, y, z) => { }).Annotate(expr);
+      var annotation = new TriggerGenerator((x, y) => { }).Annotate(expr);
       return annotation.IsTriggerKiller;
     }
 

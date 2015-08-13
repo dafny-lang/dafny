@@ -286,7 +286,7 @@ lemma Theorem1_Lemma(t: Tree, n: nat, p: Stream<int>)
         LowerThan(ch, n);
       ==>  // def. LowerThan
         LowerThan(ch.head.children, n-1);
-      ==>  { Theorem1_Lemma(ch.head, n-1, tail); }
+      ==>  //{ Theorem1_Lemma(ch.head, n-1, tail); }
         !IsNeverEndingStream(tail);
       ==>  // def. IsNeverEndingStream
         !IsNeverEndingStream(p);
@@ -374,30 +374,30 @@ lemma Proposition3b()
   }
 }
 lemma Proposition3b_Lemma(t: Tree, h: nat, p: Stream<int>)
-  requires LowerThan(t.children, h) && ValidPath(t, p);
-  ensures !IsNeverEndingStream(p);
-  decreases h;
+  requires LowerThan(t.children, h) && ValidPath(t, p)
+  ensures !IsNeverEndingStream(p)
+  decreases h
 {
   match p {
     case Nil =>
     case Cons(index, tail) =>
       // From the definition of ValidPath(t, p), we get the following:
       var ch := Tail(t.children, index);
-      assert ch.Cons? && ValidPath(ch.head, tail);
+      // assert ch.Cons? && ValidPath(ch.head, tail);
       // From the definition of LowerThan(t.children, h), we get the following:
       match t.children {
         case Nil =>
           ValidPath_Lemma(p);
           assert false;  // absurd case
         case Cons(_, _) =>
-          assert 1 <= h;
+          // assert 1 <= h;
           LowerThan_Lemma(t.children, index, h);
-          assert LowerThan(ch, h);
+          // assert LowerThan(ch, h);
       }
       // Putting these together, by ch.Cons? and the definition of LowerThan(ch, h), we get:
-      assert LowerThan(ch.head.children, h-1);
+      // assert LowerThan(ch.head.children, h-1);
       // And now we can invoke the induction hypothesis:
-      Proposition3b_Lemma(ch.head, h-1, tail);
+      // Proposition3b_Lemma(ch.head, h-1, tail);
   }
 }
 
@@ -627,30 +627,10 @@ colemma Path_Lemma2'(p: Stream<int>)
   }
 }
 colemma Path_Lemma2''(p: Stream<int>, n: nat, tail: Stream<int>)
-  requires IsNeverEndingStream(p) && p.tail == tail;
-  ensures InfinitePath'(S2N'(n, tail));
+  requires IsNeverEndingStream(p) && p.tail == tail
+  ensures InfinitePath'(S2N'(n, tail))
 {
-  if n <= 0 {
-    calc {
-      InfinitePath'#[_k](S2N'(n, tail));
-      // def. S2N'
-      InfinitePath'#[_k](Zero(S2N(tail)));
-      // def. InfinitePath'
-      InfinitePath#[_k-1](S2N(tail));
-      { Path_Lemma2'(tail); }
-      true;
-    }
-  } else {
-    calc {
-      InfinitePath'#[_k](S2N'(n, tail));
-      // def. S2N'
-      InfinitePath'#[_k](Succ(S2N'(n-1, tail)));
-      // def. InfinitePath'
-      InfinitePath'#[_k-1](S2N'(n-1, tail));
-      { Path_Lemma2''(p, n-1, tail); }
-      true;
-    }
-  }
+  Path_Lemma2'(tail);
 }
 lemma Path_Lemma3(r: CoOption<Number>)
   ensures InfinitePath(r) ==> IsNeverEndingStream(N2S(r));

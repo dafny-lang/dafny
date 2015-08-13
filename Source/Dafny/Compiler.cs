@@ -1201,13 +1201,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(cce.NonNullElements(targs));
       Contract.Ensures(Contract.Result<string>() != null);
 
-      string s = "";
-      string sep = "";
-      foreach (TypeParameter tp in targs) {
-        s += sep + "@" + tp.CompileName;
-        sep = ",";
-      }
-      return s;
+      return Util.Comma(targs, tp => "@" + tp.CompileName);
     }
 
     string DefaultValue(Type type)

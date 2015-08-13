@@ -25,8 +25,8 @@ copredicate LexLess(s: Stream<int>, t: Stream<int>)
 
 // A co-lemma is used to establish the truth of a co-predicate.
 colemma Theorem1_LexLess_Is_Transitive(s: Stream<int>, t: Stream<int>, u: Stream<int>)
-  requires LexLess(s, t) && LexLess(t, u);
-  ensures LexLess(s, u);
+  requires LexLess(s, t) && LexLess(t, u)
+  ensures LexLess(s, u)
 {
   // Here is the proof, which is actually a body of code.  It lends itself to a
   // simple, intuitive co-inductive reading.  For a theorem this simple, this simple
@@ -36,6 +36,14 @@ colemma Theorem1_LexLess_Is_Transitive(s: Stream<int>, t: Stream<int>, u: Stream
   if s.hd == u.hd {
     Theorem1_LexLess_Is_Transitive(s.tl, t.tl, u.tl);
   }
+}
+
+// Actually, Dafny can do the proof of the previous lemma completely automatically.  Here it is:
+colemma Theorem1_LexLess_Is_Transitive_Automatic(s: Stream<int>, t: Stream<int>, u: Stream<int>)
+  requires LexLess(s, t) && LexLess(t, u)
+  ensures LexLess(s, u)
+{
+  // no manual proof needed, so the body of the co-lemma is empty
 }
 
 // The following predicate captures the (inductively defined) negation of (the
@@ -51,7 +59,7 @@ predicate NotLexLess'(k: nat, s: Stream<int>, t: Stream<int>)
 }
 
 lemma EquivalenceTheorem(s: Stream<int>, t: Stream<int>)
-  ensures LexLess(s, t) <==> !NotLexLess(s, t);
+  ensures LexLess(s, t) <==> !NotLexLess(s, t)
 {
   if !NotLexLess(s, t) {
     EquivalenceTheorem0(s, t);
@@ -61,8 +69,8 @@ lemma EquivalenceTheorem(s: Stream<int>, t: Stream<int>)
   }
 }
 colemma EquivalenceTheorem0(s: Stream<int>, t: Stream<int>)
-  requires !NotLexLess(s, t);
-  ensures LexLess(s, t);
+  requires !NotLexLess(s, t)
+  ensures LexLess(s, t)
 {
   // Here, more needs to be said about the way Dafny handles co-lemmas.
   // The way a co-lemma establishes a co-predicate is to prove, by induction,
@@ -74,14 +82,14 @@ colemma EquivalenceTheorem0(s: Stream<int>, t: Stream<int>)
 // indicates a finite unrolling of a co-inductive predicate.  In particular,
 // LexLess#[k] refers to k unrollings of LexLess.
 lemma EquivalenceTheorem0_Lemma(k: nat, s: Stream<int>, t: Stream<int>)
-  requires !NotLexLess'(k, s, t);
-  ensures LexLess#[k](s, t);
+  requires !NotLexLess'(k, s, t)
+  ensures LexLess#[k](s, t)
 {
   // This simple inductive proof is done completely automatically by Dafny.
 }
 lemma EquivalenceTheorem1(s: Stream<int>, t: Stream<int>)
-  requires LexLess(s, t);
-  ensures !NotLexLess(s, t);
+  requires LexLess(s, t)
+  ensures !NotLexLess(s, t)
 {
   // The forall statement in Dafny is used, here, as universal introduction:
   // what EquivalenceTheorem1_Lemma establishes for one k, the forall
@@ -91,22 +99,22 @@ lemma EquivalenceTheorem1(s: Stream<int>, t: Stream<int>)
   }
 }
 lemma EquivalenceTheorem1_Lemma(k: nat, s: Stream<int>, t: Stream<int>)
-  requires LexLess(s, t);
-  ensures !NotLexLess'(k, s, t);
+  requires LexLess(s, t)
+  ensures !NotLexLess'(k, s, t)
 {
 }
 
 lemma Theorem1_Alt(s: Stream<int>, t: Stream<int>, u: Stream<int>)
-  requires NotLexLess(s, u);
-  ensures NotLexLess(s, t) || NotLexLess(t, u);
+  requires NotLexLess(s, u)
+  ensures NotLexLess(s, t) || NotLexLess(t, u)
 {
   forall k: nat | NotLexLess'(k, s, u) {
     Theorem1_Alt_Lemma(k, s, t, u);
   }
 }
 lemma Theorem1_Alt_Lemma(k: nat, s: Stream<int>, t: Stream<int>, u: Stream<int>)
-  requires NotLexLess'(k, s, u);
-  ensures NotLexLess'(k, s, t) || NotLexLess'(k, t, u);
+  requires NotLexLess'(k, s, u)
+  ensures NotLexLess'(k, s, t) || NotLexLess'(k, t, u)
 {
 }
 
@@ -116,8 +124,8 @@ function PointwiseAdd(s: Stream<int>, t: Stream<int>): Stream<int>
 }
 
 colemma Theorem2_Pointwise_Addition_Is_Monotone(s: Stream<int>, t: Stream<int>, u: Stream<int>, v: Stream<int>)
-  requires LexLess(s, t) && LexLess(u, v);
-  ensures LexLess(PointwiseAdd(s, u), PointwiseAdd(t, v));
+  requires LexLess(s, t) && LexLess(u, v)
+  ensures LexLess(PointwiseAdd(s, u), PointwiseAdd(t, v))
 {
   // The co-lemma will establish the co-inductive predicate by establishing
   // all finite unrollings thereof.  Each finite unrolling is proved by
@@ -148,15 +156,9 @@ copredicate Subtype(a: RecType, b: RecType)
 }
 
 colemma Theorem3_Subtype_Is_Transitive(a: RecType, b: RecType, c: RecType)
-  requires Subtype(a, b) && Subtype(b, c);
-  ensures Subtype(a, c);
+  requires Subtype(a, b) && Subtype(b, c)
+  ensures Subtype(a, c)
 {
-  if a == Bottom || c == Top {
-    // done
-  } else {
-    Theorem3_Subtype_Is_Transitive(c.dom, b.dom, a.dom);
-    Theorem3_Subtype_Is_Transitive(a.ran, b.ran, c.ran);
-  }
 }
 
 // --------------------------------------------------------------------------
@@ -184,16 +186,16 @@ copredicate ValBelow(u: Val, v: Val)
 }
 
 colemma Theorem4a_ClEnvBelow_Is_Transitive(c: ClEnv, d: ClEnv, e: ClEnv)
-  requires ClEnvBelow(c, d) && ClEnvBelow(d, e);
-  ensures ClEnvBelow(c, e);
+  requires ClEnvBelow(c, d) && ClEnvBelow(d, e)
+  ensures ClEnvBelow(c, e)
 {
   forall y | y in c.m {
     Theorem4b_ValBelow_Is_Transitive#[_k-1](c.m[y], d.m[y], e.m[y]);
   }
 }
 colemma Theorem4b_ValBelow_Is_Transitive(u: Val, v: Val, w: Val)
-  requires ValBelow(u, v) && ValBelow(v, w);
-  ensures ValBelow(u, w);
+  requires ValBelow(u, v) && ValBelow(v, w)
+  ensures ValBelow(u, w)
 {
   if u.ValCl? {
     Theorem4a_ClEnvBelow_Is_Transitive(u.cl.env, v.cl.env, w.cl.env);
@@ -209,7 +211,7 @@ predicate IsCapsule(cap: Capsule)
 }
 
 function ClosureConversion(cap: Capsule): Cl
-  requires IsCapsule(cap);
+  requires IsCapsule(cap)
 {
   Closure(cap.e.abs, ClosureConvertedMap(cap.s))
   // In the Kozen and Silva paper, there are more conditions, having to do with free variables,
@@ -229,8 +231,8 @@ predicate CapsuleEnvironmentBelow(s: map<Var, ConstOrAbs>, t: map<Var, ConstOrAb
 }
 
 colemma Theorem5_ClosureConversion_Is_Monotone(s: map<Var, ConstOrAbs>, t: map<Var, ConstOrAbs>)
-  requires CapsuleEnvironmentBelow(s, t);
-  ensures ClEnvBelow(ClosureConvertedMap(s), ClosureConvertedMap(t));
+  requires CapsuleEnvironmentBelow(s, t)
+  ensures ClEnvBelow(ClosureConvertedMap(s), ClosureConvertedMap(t))
 {
 }
 
@@ -251,8 +253,8 @@ copredicate Bisim(s: Stream, t: Stream)
 }
 
 colemma Theorem6_Bisim_Is_Symmetric(s: Stream, t: Stream)
-  requires Bisim(s, t);
-  ensures Bisim(t, s);
+  requires Bisim(s, t)
+  ensures Bisim(t, s)
 {
   // proof is automatic
 }
@@ -270,8 +272,8 @@ function merge(s: Stream, t: Stream): Stream
 // In general, the termination argument needs to be supplied explicitly in terms
 // of a metric, rank, variant function, or whatever you want to call it--a
 // "decreases" clause in Dafny.  Dafny provides some help in making up "decreases"
-// clauses, and in this case it automatically adds "decreases 0;" to SplitLeft
-// and "decreases 1;" to SplitRight.  With these "decreases" clauses, the
+// clauses, and in this case it automatically adds "decreases 0" to SplitLeft
+// and "decreases 1" to SplitRight.  With these "decreases" clauses, the
 // termination check of SplitRight's call to SplitLeft will simply be "0 < 1",
 // which is trivial to check.
 function SplitLeft(s: Stream): Stream
@@ -284,7 +286,7 @@ function SplitRight(s: Stream): Stream
 }
 
 colemma Theorem7_Merge_Is_Left_Inverse_Of_Split_Bisim(s: Stream)
-  ensures Bisim(merge(SplitLeft(s), SplitRight(s)), s);
+  ensures Bisim(merge(SplitLeft(s), SplitRight(s)), s)
 {
   var LHS := merge(SplitLeft(s), SplitRight(s));
   // The construct that follows is a "calc" statement.  It gives a way to write an
@@ -318,7 +320,7 @@ colemma Theorem7_Merge_Is_Left_Inverse_Of_Split_Bisim(s: Stream)
 }
 
 colemma Theorem7_Merge_Is_Left_Inverse_Of_Split_Equal(s: Stream)
-  ensures merge(SplitLeft(s), SplitRight(s)) == s;
+  ensures merge(SplitLeft(s), SplitRight(s)) == s
 {
   // The proof of this co-lemma is actually done completely automatically (so the
   // body of this co-lemma can be empty).  However, just to show what the calculations

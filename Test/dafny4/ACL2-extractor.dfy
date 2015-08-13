@@ -116,9 +116,9 @@ lemma RevLength(xs: List)
 // you can prove two lists equal by proving their elements equal
 
 lemma EqualElementsMakeEqualLists(xs: List, ys: List)
-  requires length(xs) == length(ys);
-  requires forall i :: 0 <= i < length(xs) ==> nth(i, xs) == nth(i, ys);
-  ensures xs == ys;
+  requires length(xs) == length(ys)
+  requires forall i :: 0 <= i < length(xs) ==> nth(i, xs) == nth(i, ys)
+  ensures xs == ys
 {
   match xs {
     case Nil =>
@@ -132,7 +132,7 @@ lemma EqualElementsMakeEqualLists(xs: List, ys: List)
           nth(i+1, xs) == nth(i+1, ys);
         }
       }
-      EqualElementsMakeEqualLists(xs.tail, ys.tail);
+      // EqualElementsMakeEqualLists(xs.tail, ys.tail);
   }
 }
 

@@ -161,18 +161,13 @@ lemma Same2<T>(pat: seq<T>, a: seq<T>)
   ensures IRP_Alt(pat, a)
 {
   if pat == [] {
-    assert pat <= a;
   } else if a != [] && pat[0] == a[0] {
-    assert IsRelaxedPrefixAux(pat[1..], a[1..], 1);
-    Same2(pat[1..], a[1..]);
     if pat[1..] <= a[1..] {
-      assert pat <= a;
     } else {
       var k :| 0 <= k < |pat[1..]| && pat[1..][..k] + pat[1..][k+1..] <= a[1..];
       assert 0 <= k+1 < |pat| && pat[..k+1] + pat[k+2..] <= a;
     }
   } else {
-    assert IsRelaxedPrefixAux(pat[1..], a, 0);
     Same2_Prefix(pat[1..], a);
     assert pat[1..] <= a;
     assert 0 <= 0 < |pat| && pat[..0] + pat[0+1..] <= a;
@@ -182,7 +177,4 @@ lemma Same2_Prefix<T>(pat: seq<T>, a: seq<T>)
   requires IsRelaxedPrefixAux(pat, a, 0)
   ensures pat <= a
 {
-  if pat != [] {
-    Same2_Prefix(pat[1..], a[1..]);
-  }
 }
