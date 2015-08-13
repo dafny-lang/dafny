@@ -49,9 +49,10 @@ namespace Microsoft.Dafny {
       if (CommandLineOptions.Clo.Parse(args)) {
         // Dafny.DafnyOptions.O.ErrorTrace = 0; //FIXME
         // Dafny.DafnyOptions.O.ModelViewFile = "-";
-        Dafny.DafnyOptions.O.ProverKillTime = 10;
-        Dafny.DafnyOptions.O.VcsCores = Math.Max(1, System.Environment.ProcessorCount - 1);
+        Dafny.DafnyOptions.O.ProverKillTime = 20; //FIXME: Should this explicitly override user prefs?
+        Dafny.DafnyOptions.O.VcsCores = Math.Max(1, System.Environment.ProcessorCount - 1); //FIXME
         Dafny.DafnyOptions.O.VerifySnapshots = 2;
+        Dafny.DafnyOptions.O.Trace = true;
       } else {
         throw new ServerException("Invalid command line options");
       }

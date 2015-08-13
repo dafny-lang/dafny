@@ -62,7 +62,7 @@ namespace Microsoft.Dafny {
     }
 
     private bool Translate() {
-      var translator = new Dafny.Translator() { InsertChecksums = true, UniqueIdPrefix = null }; //FIXME check if null is OK for UniqueIdPrefix
+      var translator = new Dafny.Translator() { InsertChecksums = true, UniqueIdPrefix = fname };
       boogieProgram = translator.Translate(dafnyProgram); // FIXME how are translation errors reported?
       return true;
     }
