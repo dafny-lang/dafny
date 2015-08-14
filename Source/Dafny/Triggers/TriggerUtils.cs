@@ -15,21 +15,23 @@ namespace Microsoft.Dafny.Triggers {
       return copy;
     }
 
-    internal static IEnumerable<List<T>> AllSubsets<T>(IList<T> source, int offset) {
+    internal static IEnumerable<List<T>> AllSubsets<T>(IList<T> source, Func<List<T>, T, bool> predicate, int offset) {
       if (offset >= source.Count) {
         yield return new List<T>();
         yield break;
       }
 
-      foreach (var subset in AllSubsets<T>(source, offset + 1)) {
-        yield return CopyAndAdd(subset, source[offset]);
+      foreach (var subset in AllSubsets<T>(source, predicate, offset + 1)) {
+        if (predicate(subset, source[offset])) {
+          yield return CopyAndAdd(subset, source[offset]);
+        }
         yield return new List<T>(subset);
       }
     }
 
-    internal static IEnumerable<List<T>> AllNonEmptySubsets<T>(IEnumerable<T> source) {
+    internal static IEnumerable<List<T>> AllNonEmptySubsets<T>(IEnumerable<T> source, Func<List<T>, T, bool> predicate) {
       List<T> all = new List<T>(source);
-      foreach (var subset in AllSubsets(all, 0)) {
+      foreach (var subset in AllSubsets(all, predicate, 0)) {
         if (subset.Count > 0) {
           yield return subset;
         }
@@ -72,6 +74,17 @@ namespace Microsoft.Dafny.Triggers {
       } while (it1_has && it2_has);
 
       return it1_has == it2_has && acc;
+    }
+
+    internal static IEnumerable<T> Filter<T>(IEnumerable<T> elements, Func<T, bool> predicate, Action<T> reject) {
+      var positive = new List<T>();
+      foreach (var c in elements) {
+        if (predicate(c)) {
+          yield return c;
+        } else {
+          reject(c);
+        }
+      }
     }
 
     internal static bool SameNullity<T>(T x1, T x2) where T : class {

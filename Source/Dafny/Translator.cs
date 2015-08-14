@@ -13107,8 +13107,10 @@ namespace Microsoft.Dafny {
       return f.Formals.Zip(fexp.Args).All(formal_concrete => CanSafelySubstitute(visitor.TriggerVariables, formal_concrete.Item1, formal_concrete.Item2));
     }
 
+    Triggers.TriggersCollector triggersCollector = new Triggers.TriggersCollector();
+
     private bool CanSafelySubstitute(ISet<IVariable> protectedVariables, IVariable variable, Expression substitution) {
-      return !(protectedVariables.Contains(variable) && Dafny.Triggers.TriggersCollector.IsTriggerKiller(substitution));
+      return !(protectedVariables.Contains(variable) && triggersCollector.IsTriggerKiller(substitution));
     }
 
     private class VariablesCollector: BottomUpVisitor {

@@ -22,6 +22,20 @@ namespace Microsoft.Dafny.Triggers {
     }
   }
 
+  internal struct TriggerMatch {
+    internal Expression Expr;
+    internal Dictionary<IVariable, Expression> Bindings;
+
+    internal static bool Eq(TriggerMatch t1, TriggerMatch t2) {
+      return ExprExtensions.ExpressionEq(t1.Expr, t2.Expr);
+    }
+
+    internal bool CouldCauseLoops(List<TriggerTerm> terms) {
+      var expr = Expr;
+      return !terms.Any(term => term.Expr.ExpressionEqModuloVariableNames(expr));
+    }
+  }
+
   internal static class ExprExtensions {
     internal static IEnumerable<Expression> AllSubExpressions(this Expression expr, bool strict = false) {
       foreach (var subexpr in expr.SubExpressions) {
@@ -75,7 +89,7 @@ namespace Microsoft.Dafny.Triggers {
       return ShallowEq_Top(expr1, expr2) && TriggerUtils.SameLists(expr1.SubExpressions, expr2.SubExpressions, (e1, e2) => ExpressionEqModuloVariableNames(e1, e2));
     }
 
-    private static bool MatchesTrigger(this Expression expr, Expression trigger, ISet<BoundVar> holes, Dictionary<IVariable, Expression> bindings) {
+    internal static bool MatchesTrigger(this Expression expr, Expression trigger, ISet<BoundVar> holes, Dictionary<IVariable, Expression> bindings) {
       expr = expr.Resolved;
       trigger = trigger.Resolved;
 
@@ -94,27 +108,6 @@ namespace Microsoft.Dafny.Triggers {
       }
 
       return ShallowEq_Top(expr, trigger) && TriggerUtils.SameLists(expr.SubExpressions, trigger.SubExpressions, (e1, e2) => MatchesTrigger(e1, e2, holes, bindings));
-    }
-
-    internal struct TriggerMatch {
-      internal Expression Expr;
-      internal Dictionary<IVariable, Expression> Bindings;
-
-      internal bool CouldCauseLoops(IEnumerable<TriggerCandidate> candidates) {
-        // A match for a trigger in the body of a quantifier can be a problem if 
-        // it yields to a matching loop: for example, f(x) is a bad trigger in 
-        //   forall x, y :: f(x) = f(f(x))
-        // In general, any such match can lead to a loop, but two special cases 
-        // will only lead to a finite number of instantiations:
-        // 1. The match equals one of the triggers in the set of triggers under
-        //    consideration. For example, { f(x) } a bad trigger above, but the
-        //    pair { f(x), f(f(x)) } is fine (instantiating won't yield new 
-        //    matches)
-        // 2. The match only differs from one of these triggers by variable 
-        //    names. This is a superset of the previous case.
-        var expr = Expr;
-        return !candidates.Any(c => c.Expr.ExpressionEqModuloVariableNames(expr));
-      }
     }
 
     private static TriggerMatch? MatchAgainst(this Expression expr, Expression trigger, ISet<BoundVar> holes) {

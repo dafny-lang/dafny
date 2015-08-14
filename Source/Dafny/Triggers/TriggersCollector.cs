@@ -7,52 +7,68 @@ using System.Diagnostics.Contracts;
 using System.Diagnostics;
 
 namespace Microsoft.Dafny.Triggers {
-  struct TriggerCandidate {
+  class TriggerTerm {
     internal Expression Expr { get; set; }
     internal ISet<IVariable> Variables { get; set; }
 
     public override string ToString() {
       return Printer.ExprToString(Expr);
     }
+
+    internal static bool Eq(TriggerTerm t1, TriggerTerm t2) {
+      return ExprExtensions.ExpressionEq(t1.Expr, t2.Expr);
+    }
   }
 
-  class MultiTriggerCandidate {
-    internal List<TriggerCandidate> terms { get; set; }
+  class TriggerCandidate {
+    internal List<TriggerTerm> Terms { get; set; }
+    internal string Annotation { get; set; }
 
-    internal MultiTriggerCandidate(List<TriggerCandidate> candidates) {
-      this.terms = candidates;
+    internal TriggerCandidate(List<TriggerTerm> terms) {
+      this.Terms = terms;
+    }
+
+    public TriggerCandidate(TriggerCandidate mc, string annotation) {
+      this.Terms = mc.Terms;
+      this.Annotation = annotation;
     }
 
     internal bool MentionsAll(List<BoundVar> vars) {
-      return vars.All(x => terms.Any(candidate => candidate.Variables.Contains(x)));
+      return vars.All(x => Terms.Any(term => term.Variables.Contains(x)));
     }
+
+    private string Repr { get { return Terms.MapConcat(t => Printer.ExprToString(t.Expr), ", "); } }
 
     public override string ToString() {
-      return String.Join(", ", terms);
+      return "{" + Repr + "}" + (String.IsNullOrWhiteSpace(Annotation) ? "" : " (" + Annotation + ")");
     }
 
-    public String AsDafnyAttributeString(bool wrap = true, bool includeTags = false) {
-      var repr = terms.MapConcat(t => Printer.ExprToString(t.Expr), ", ");
-      if (wrap) {
-        repr = "{:trigger " + repr + "}";
-      }
-      return repr;
+    internal IEnumerable<TriggerMatch> LoopingSubterms(QuantifierExpr quantifier) {
+      var matchingSubterms = MatchingSubterms(quantifier);
+      return matchingSubterms.Where(tm => tm.CouldCauseLoops(Terms));
+    }
+
+    internal List<TriggerMatch> MatchingSubterms(QuantifierExpr quantifier) {
+      //FIXME this will miss rewritten expressions (CleanupExpr). Should introduce an OriginalExpr to compare against.
+      return Terms.SelectMany(term => quantifier.SubexpressionsMatchingTrigger(term.Expr)).Deduplicate(TriggerMatch.Eq);
+    }
+
+    public String AsDafnyAttributeString() {
+      return "{:trigger " + Repr + "}";
     }
   }
 
   class TriggerAnnotation {
     internal bool IsTriggerKiller;
     internal ISet<IVariable> Variables;
-    internal readonly List<TriggerCandidate> PrivateTerms;
-    internal readonly List<TriggerCandidate> ExportedTerms;
+    internal readonly List<TriggerTerm> PrivateTerms;
+    internal readonly List<TriggerTerm> ExportedTerms;
 
-    internal TriggerAnnotation(bool IsTriggerKiller, IEnumerable<IVariable> Variables,
-                                IEnumerable<TriggerCandidate> AllCandidates, IEnumerable<TriggerCandidate> PrivateCandidates = null) {
+    internal TriggerAnnotation(bool IsTriggerKiller, IEnumerable<IVariable> Variables, IEnumerable<TriggerTerm> AllTerms, IEnumerable<TriggerTerm> PrivateTerms = null) {
       this.IsTriggerKiller = IsTriggerKiller;
       this.Variables = new HashSet<IVariable>(Variables);
-
-      this.PrivateTerms = new List<TriggerCandidate>(PrivateCandidates == null ? Enumerable.Empty<TriggerCandidate>() : PrivateCandidates);
-      this.ExportedTerms = new List<TriggerCandidate>(AllCandidates == null ? Enumerable.Empty<TriggerCandidate>() : AllCandidates.Except(this.PrivateTerms));
+      this.PrivateTerms = new List<TriggerTerm>(PrivateTerms == null ? Enumerable.Empty<TriggerTerm>() : PrivateTerms);
+      this.ExportedTerms = new List<TriggerTerm>(AllTerms == null ? Enumerable.Empty<TriggerTerm>() : AllTerms.Except(this.PrivateTerms));
     }
 
     public override string ToString() {
@@ -66,15 +82,15 @@ namespace Microsoft.Dafny.Triggers {
         sb.AppendFormat(subindent, bv.Name);
       }
 
-      sb.AppendFormat(nindent, "Exported candidates:");
-      foreach (var candidate in ExportedTerms) {
-        sb.AppendFormat(subindent, candidate);
+      sb.AppendFormat(nindent, "Exported terms:");
+      foreach (var term in ExportedTerms) {
+        sb.AppendFormat(subindent, term);
       }
 
       if (PrivateTerms.Any()) {
-        sb.AppendFormat(nindent, "Private candidates:");
-        foreach (var candidate in PrivateTerms) {
-          sb.AppendFormat(subindent, candidate);
+        sb.AppendFormat(nindent, "Private terms:");
+        foreach (var term in PrivateTerms) {
+          sb.AppendFormat(subindent, term);
         }
       }
 
@@ -85,9 +101,7 @@ namespace Microsoft.Dafny.Triggers {
   public class TriggersCollector {
     Dictionary<Expression, TriggerAnnotation> cache;
 
-    private static TriggersCollector instance = new TriggersCollector();
-
-    private TriggersCollector() {
+    internal TriggersCollector() {
       this.cache = new Dictionary<Expression, TriggerAnnotation>();
     }
 
@@ -96,8 +110,8 @@ namespace Microsoft.Dafny.Triggers {
                                 .Aggregate(seed, (acc, e) => reduce(acc, e));
     }
 
-    private List<TriggerCandidate> CollectExportedCandidates(Expression expr) {
-      return ReduceAnnotatedSubExpressions<List<TriggerCandidate>>(expr, new List<TriggerCandidate>(), a => a.ExportedTerms, TriggerUtils.MergeAlterFirst);
+    private List<TriggerTerm> CollectExportedCandidates(Expression expr) {
+      return ReduceAnnotatedSubExpressions<List<TriggerTerm>>(expr, new List<TriggerTerm>(), a => a.ExportedTerms, TriggerUtils.MergeAlterFirst);
     }
 
     private ISet<IVariable> CollectVariables(Expression expr) {
@@ -108,8 +122,8 @@ namespace Microsoft.Dafny.Triggers {
       return ReduceAnnotatedSubExpressions(expr, false, a => a.IsTriggerKiller, (a, b) => a || b);
     }
 
-    private IEnumerable<TriggerCandidate> OnlyPrivateCandidates(List<TriggerCandidate> candidates, IEnumerable<IVariable> privateVars) {
-      return candidates.Where(c => privateVars.Intersect(c.Variables).Any()); //TODO Check perf
+    private IEnumerable<TriggerTerm> OnlyPrivateCandidates(List<TriggerTerm> terms, IEnumerable<IVariable> privateVars) {
+      return terms.Where(c => privateVars.Intersect(c.Variables).Any()); //TODO Check perf
     }
 
     private TriggerAnnotation Annotate(Expression expr) {
@@ -195,18 +209,18 @@ namespace Microsoft.Dafny.Triggers {
     private TriggerAnnotation AnnotatePotentialCandidate(Expression expr) {
       bool expr_is_killer = false;
       var new_expr = CleanupExpr(expr, out expr_is_killer);
-      var new_candidate = new TriggerCandidate { Expr = new_expr, Variables = CollectVariables(expr) };
+      var new_term = new TriggerTerm { Expr = new_expr, Variables = CollectVariables(expr) };
 
-      List<TriggerCandidate> collected_candidates = CollectExportedCandidates(expr);
+      List<TriggerTerm> collected_terms = CollectExportedCandidates(expr);
       var children_contain_killers = CollectIsKiller(expr);
 
       if (!children_contain_killers) {
         // Add only if the children are not killers; the head has been cleaned up into non-killer form
-        collected_candidates.Add(new_candidate);
+        collected_terms.Add(new_term);
       }
 
       // This new node is a killer if its children were killers, or if it's non-cleaned-up head is a killer
-      return new TriggerAnnotation(children_contain_killers || expr_is_killer, new_candidate.Variables, collected_candidates);
+      return new TriggerAnnotation(children_contain_killers || expr_is_killer, new_term.Variables, collected_terms);
     }
 
     private TriggerAnnotation AnnotateApplySuffix(ApplySuffix expr) {
@@ -218,13 +232,13 @@ namespace Microsoft.Dafny.Triggers {
       // only possible child here; there can be DatatypeValue nodes, for example (see vstte2012/Combinators.dfy).
       var annotation = AnnotatePotentialCandidate(expr);
       // Comparing by reference is fine here. Using sets could yield a small speedup
-      annotation.ExportedTerms.RemoveAll(candidate => expr.SubExpressions.Contains(candidate.Expr));
+      annotation.ExportedTerms.RemoveAll(term => expr.SubExpressions.Contains(term.Expr));
       return annotation;
     }
 
     private TriggerAnnotation AnnotateQuantifierOrLetExpr(Expression expr, IEnumerable<BoundVar> boundVars) {
-      var candidates = CollectExportedCandidates(expr);
-      return new TriggerAnnotation(true, CollectVariables(expr), candidates, OnlyPrivateCandidates(candidates, boundVars));
+      var terms = CollectExportedCandidates(expr);
+      return new TriggerAnnotation(true, CollectVariables(expr), terms, OnlyPrivateCandidates(terms, boundVars));
     }
 
     private TriggerAnnotation AnnotateQuantifier(QuantifierExpr expr) {
@@ -244,13 +258,13 @@ namespace Microsoft.Dafny.Triggers {
     }
 
     // FIXME document that this will contain duplicates
-    internal static List<TriggerCandidate> CollectTriggers(QuantifierExpr quantifier) {
+    internal List<TriggerTerm> CollectTriggers(QuantifierExpr quantifier) {
       // TODO could check for existing triggers and return that instead, but that require a bit of work to extract the expressions
-      return instance.Annotate(quantifier).PrivateTerms;
+      return Annotate(quantifier).PrivateTerms;
     }
 
-    internal static bool IsTriggerKiller(Expression expr) {
-      return instance.Annotate(expr).IsTriggerKiller;
+    internal bool IsTriggerKiller(Expression expr) {
+      return Annotate(expr).IsTriggerKiller;
     }
   }
 }

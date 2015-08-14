@@ -6,59 +6,76 @@ using System.Text;
 
 namespace Microsoft.Dafny.Triggers {
   class QuantifierSplitter : BottomUpVisitor {
-    internal enum Quantifier { Forall, Exists }
+    private static BinaryExpr.Opcode FlipOpcode(BinaryExpr.Opcode opCode) {
+      if (opCode == BinaryExpr.Opcode.And) {
+        return BinaryExpr.Opcode.Or;
+      } else if (opCode == BinaryExpr.Opcode.Or) {
+        return BinaryExpr.Opcode.And;
+      } else {
+        throw new ArgumentException();
+      } 
+    }
 
-    internal static IEnumerable<Expression> BreakQuantifier(Expression expr, Quantifier quantifier) {
+    // NOTE: If we wanted to split quantifiers as far as possible, it would be
+    // enough to put the formulas in DNF (for foralls) or CNF (for exists).
+    // Unfortunately, this would cause ill-behaved quantifiers to produce
+    // exponentially many smaller quantifiers.
+
+    internal static IEnumerable<Expression> SplitExpr(Expression expr, BinaryExpr.Opcode separator) {
       expr = expr.Resolved;
+      var unary = expr as UnaryOpExpr;
       var binary = expr as BinaryExpr;
 
-      if (binary == null) {
-        yield return expr;
-        yield break;
+      if (unary != null && unary.Op == UnaryOpExpr.Opcode.Not) {
+        foreach (var e in SplitExpr(unary.E, FlipOpcode(separator))) { yield return new UnaryOpExpr(unary.tok, UnaryOpExpr.Opcode.Not, e); }
+      } else if (binary != null && binary.Op == separator) {
+        foreach (var e in SplitExpr(binary.E0, separator)) { yield return e; }
+        foreach (var e in SplitExpr(binary.E1, separator)) { yield return e; }
+      } else if (binary != null && binary.Op == BinaryExpr.Opcode.Imp && separator == BinaryExpr.Opcode.Or) {
+        foreach (var e in SplitExpr(new UnaryOpExpr(unary.tok, UnaryOpExpr.Opcode.Not, binary.E0), separator)) { yield return e; }
+        foreach (var e in SplitExpr(binary.E1, separator)) { yield return e; }
       }
+    }
 
-      var e0 = binary.E0;
-      var e1 = binary.E1;
+    internal static IEnumerable<Expression> SplitAndStich(BinaryExpr pair, BinaryExpr.Opcode separator) {
+      foreach (var e1 in SplitExpr(pair.E1, separator)) { 
+        yield return new BinaryExpr(pair.tok, pair.Op, pair.E0, e1);
+      }
+    }
 
-      if ((quantifier == Quantifier.Forall && binary.Op == BinaryExpr.Opcode.And) ||
-          (quantifier == Quantifier.Exists && binary.Op == BinaryExpr.Opcode.Or)) {
-        foreach (var e in BreakQuantifier(e0, quantifier)) { yield return e; }
-        foreach (var e in BreakQuantifier(e1, quantifier)) { yield return e; }
-      } else if (binary.Op == BinaryExpr.Opcode.Imp) {
-        if (quantifier == Quantifier.Forall) {
-          foreach (var e in BreakImplication(e0, e1, quantifier, expr.tok)) { yield return e; }
+    internal static IEnumerable<Expression> SplitQuantifier(QuantifierExpr quantifier) {
+      var body = quantifier.LogicalBody();
+      var binary = body as BinaryExpr;
+
+      if (quantifier is ForallExpr) {
+        IEnumerable<Expression> stream;
+        if (binary != null && (binary.Op == BinaryExpr.Opcode.Imp || binary.Op == BinaryExpr.Opcode.Or)) {
+          stream = SplitAndStich(binary, BinaryExpr.Opcode.And);
         } else {
-          yield return new UnaryOpExpr(e1.tok, UnaryOpExpr.Opcode.Not, e1); // FIXME should be broken further
-          foreach (var e in BreakQuantifier(e1, quantifier)) { yield return e; }
+          stream = SplitExpr(body, BinaryExpr.Opcode.And);
+        }
+        foreach (var e in stream) {
+          yield return new ForallExpr(quantifier.tok, quantifier.BoundVars, quantifier.Range, quantifier.Term, quantifier.Attributes);
+        }
+      } else if (quantifier is ExistsExpr) {
+        IEnumerable<Expression> stream;
+        if (binary != null && binary.Op == BinaryExpr.Opcode.And) {
+          stream = SplitAndStich(binary, BinaryExpr.Opcode.Or);
+        } else {
+          stream = SplitExpr(body, BinaryExpr.Opcode.Or);
+        }
+        foreach (var e in stream) {
+          yield return new ExistsExpr(quantifier.tok, quantifier.BoundVars, quantifier.Range, quantifier.Term, quantifier.Attributes);
         }
       } else {
-        yield return expr;
+        yield return quantifier;
       }
     }
-
-    internal static IEnumerable<Expression> BreakImplication(Expression ante, Expression post, Quantifier quantifier, IToken tok) { // FIXME: should work for exists and &&
-      foreach (var small_post in BreakQuantifier(post, quantifier)) {
-        var bin_post = small_post as BinaryExpr;
-        if (bin_post == null || bin_post.Op != BinaryExpr.Opcode.Imp) {
-          yield return new BinaryExpr(tok, BinaryExpr.Opcode.Imp, ante, small_post);
-        } else { // bin_post is an implication
-          var large_ante = new BinaryExpr(ante.tok, BinaryExpr.Opcode.And, ante, bin_post.E0);
-          foreach (var imp in BreakImplication(large_ante, bin_post.E1, quantifier, tok)) {
-            yield return imp;
-          }
-        }
-      }
-    }
-    
+        
     protected override void VisitOneExpr(Expression expr) { //FIXME: This doesn't save the rewritten quantifier
-      var forall = expr as ForallExpr;
-      var exists = expr as ExistsExpr;
-
-      if (forall != null && TriggerUtils.NeedsAutoTriggers(forall)) {
-        var rew = BreakQuantifier(forall.LogicalBody(), Quantifier.Forall);
-        //Console.WriteLine("!!! {0} => {1}", Printer.ExprToString(expr), rew.MapConcat(Printer.ExprToString, " ||| "));
-      } else if (exists != null && TriggerUtils.NeedsAutoTriggers(exists)) {
-        var rew = BreakQuantifier(exists.LogicalBody(), Quantifier.Exists);
+      var quantifier = expr as QuantifierExpr;
+      if (quantifier != null) {
+        var rew = SplitQuantifier(quantifier);
         //Console.WriteLine("!!! {0} => {1}", Printer.ExprToString(expr), rew.MapConcat(Printer.ExprToString, " ||| "));
       }
     }
