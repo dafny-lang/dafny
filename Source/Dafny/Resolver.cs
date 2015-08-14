@@ -237,6 +237,7 @@ namespace Microsoft.Dafny
       rewriters.Add(new TimeLimitRewriter(reporter));
 
       if (DafnyOptions.O.AutoTriggers) {
+        rewriters.Add(new QuantifierSplittingRewriter(this.reporter));
         rewriters.Add(new TriggerGeneratingRewriter(this.reporter));
       }
 
