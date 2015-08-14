@@ -39,15 +39,14 @@ namespace Microsoft.Dafny
   }
 
   public class TriggerGeneratingRewriter : IRewriter {
-    Triggers.QuantifierCollectionsFinder finder;
-
     internal TriggerGeneratingRewriter(ErrorReporter reporter) : base(reporter) {
       Contract.Requires(reporter != null);
-      this.finder = new Triggers.QuantifierCollectionsFinder(reporter);
     }
 
     internal override void PostResolve(ModuleDefinition m) {
-      foreach (var decl in ModuleDefinition.AllCallables(m.TopLevelDecls)) { //CLEMENT
+      var finder = new Triggers.QuantifierCollectionsFinder(reporter);
+
+      foreach (var decl in ModuleDefinition.AllCallables(m.TopLevelDecls)) {
         if (decl is Function) {
           var function = (Function)decl;
           finder.Visit(function.Ens, null);
@@ -63,6 +62,12 @@ namespace Microsoft.Dafny
             finder.Visit(method.Body, null);
           }
         }
+      }
+      
+      var triggersCollector = new Triggers.TriggersCollector();
+      foreach (var quantifierCollection in finder.quantifierCollections) {
+        quantifierCollection.ComputeTriggers(triggersCollector);
+        quantifierCollection.CommitTriggers();
       }
     }
   }
