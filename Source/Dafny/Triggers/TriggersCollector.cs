@@ -44,11 +44,13 @@ namespace Microsoft.Dafny.Triggers {
     }
 
     internal IEnumerable<TriggerMatch> LoopingSubterms(QuantifierExpr quantifier) {
+      Contract.Requires(quantifier.SplitQuantifier == null); // Don't call this on a quantifier with a Split clause: it's not a real quantifier
       var matchingSubterms = MatchingSubterms(quantifier);
       return matchingSubterms.Where(tm => tm.CouldCauseLoops(Terms));
     }
 
     internal List<TriggerMatch> MatchingSubterms(QuantifierExpr quantifier) {
+      Contract.Requires(quantifier.SplitQuantifier == null); // Don't call this on a quantifier with a Split clause: it's not a real quantifier
       //FIXME this will miss rewritten expressions (CleanupExpr). Should introduce an OriginalExpr to compare against.
       return Terms.SelectMany(term => quantifier.SubexpressionsMatchingTrigger(term.Expr)).Deduplicate(TriggerMatch.Eq);
     }
@@ -139,7 +141,7 @@ namespace Microsoft.Dafny.Triggers {
           (expr is UnaryOpExpr && (((UnaryOpExpr)expr).Op == UnaryOpExpr.Opcode.Cardinality)) || // FIXME || ((UnaryOpExpr)expr).Op == UnaryOpExpr.Opcode.Fresh doesn't work, as fresh is a pretty tricky predicate when it's not about datatypes. See translator.cs:10944
           (expr is BinaryExpr && (((BinaryExpr)expr).Op == BinaryExpr.Opcode.NotIn || ((BinaryExpr)expr).Op == BinaryExpr.Opcode.In))) {
         annotation = AnnotatePotentialCandidate(expr);
-      } else if (expr is QuantifierExpr) {
+      } else if (expr is QuantifierExpr && ((QuantifierExpr)expr).SplitQuantifier == null) {
         annotation = AnnotateQuantifier((QuantifierExpr)expr);
       } else if (expr is LetExpr) {
         annotation = AnnotateLetExpr((LetExpr)expr);
@@ -259,6 +261,7 @@ namespace Microsoft.Dafny.Triggers {
 
     // FIXME document that this will contain duplicates
     internal List<TriggerTerm> CollectTriggers(QuantifierExpr quantifier) {
+      Contract.Requires(quantifier.SplitQuantifier == null); // Don't call this on a quantifier with a Split clause: it's not a real quantifier
       // TODO could check for existing triggers and return that instead, but that require a bit of work to extract the expressions
       return Annotate(quantifier).PrivateTerms;
     }

@@ -272,6 +272,14 @@ namespace Microsoft.Dafny.Triggers {
     }
 
     private static bool ShallowEq(QuantifierExpr expr1, QuantifierExpr expr2) { //FIXME are these TypeArgs still useful?
+      if (!TriggerUtils.SameNullity(expr1.SplitQuantifier, expr2.SplitQuantifier)) {
+        return false;
+      }
+
+      if (expr1.SplitQuantifier != null && expr2.SplitQuantifier != null) {
+        return ShallowEq_Top(expr1.SplitQuantifierExpression, expr2.SplitQuantifierExpression);
+      }
+
       if (expr1.TypeArgs.Count != expr2.TypeArgs.Count ||
           !TriggerUtils.SameNullity(expr1.Range, expr2.Range)) {
         return false;

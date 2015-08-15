@@ -1555,7 +1555,7 @@ namespace Microsoft.Dafny {
         // BUGBUG:  The following line is a workaround to tell the verifier that 'value' is not of an Immutable type.
         // A proper solution would be to be able to express that in the program (in a specification or attribute) or
         // to be able to declare 'parent' as [PeerOrImmutable].
-        Contract.Requires(value is TopLevelDecl || value is Function || value is Method || value is DatatypeCtor || value is QuantifierExpr);
+        Contract.Requires(value is TopLevelDecl || value is Function || value is Method || value is DatatypeCtor || (value is QuantifierExpr && ((QuantifierExpr)value).SplitQuantifier == null));
         //modifies parent;
         parent = value;
       }
@@ -6552,6 +6552,15 @@ namespace Microsoft.Dafny {
       }
     }
 
+    /// <summary>
+    /// Returns a resolved binary expression
+    /// </summary>
+    public BinaryExpr(Boogie.IToken tok, BinaryExpr.ResolvedOpcode rop, Expression e0, Expression e1)
+    : this(tok, BinaryExpr.ResolvedOp2SyntacticOp(rop), e0, e1) {
+      ResolvedOp = rop;
+      Type = Type.Bool;
+    }
+
     public override IEnumerable<Expression> SubExpressions {
       get {
         yield return E0;
@@ -6770,6 +6779,8 @@ namespace Microsoft.Dafny {
     public List<TypeParameter> TypeArgs;
     private static int currentQuantId = -1;
 
+    protected abstract BinaryExpr.ResolvedOpcode SplitResolvedOp { get; }
+
     static int FreshQuantId() {
       return System.Threading.Interlocked.Increment(ref currentQuantId);
     }
@@ -6800,10 +6811,47 @@ namespace Microsoft.Dafny {
       this.TypeArgs = tvars;
       this.UniqueId = FreshQuantId();
     }
+
+    private Expression SplitQuantifierToExpression() {
+      Contract.Requires(SplitQuantifier != null && SplitQuantifier.Any());
+      Expression accumulator = SplitQuantifier[0];
+      for (int tid = 1; tid < SplitQuantifier.Count; tid++) {
+        var newAcc = new BinaryExpr(Term.tok, SplitResolvedOp, accumulator, SplitQuantifier[tid]);
+        accumulator = newAcc;
+      }
+      return accumulator;
+    }
+
+    private List<Expression> _SplitQuantifier;
+    public List<Expression> SplitQuantifier {
+      get {
+        return _SplitQuantifier;
+      }
+      set {
+        _SplitQuantifier = value;
+        SplitQuantifierExpression = SplitQuantifierToExpression();
+      }
+    }
+
+    internal Expression SplitQuantifierExpression { get; private set; }
+
     public abstract Expression LogicalBody();
+
+    public override IEnumerable<Expression> SubExpressions {
+      get {
+        if (SplitQuantifier == null) {
+          return base.SubExpressions;
+        } else {
+          return SplitQuantifier;
+        }
+      }
+    }
   }
 
   public class ForallExpr : QuantifierExpr {
+    protected override BinaryExpr.Opcode SplitOp { get { return BinaryExpr.Opcode.And; } }
+    protected override BinaryExpr.ResolvedOpcode SplitResolvedOp { get { return BinaryExpr.ResolvedOpcode.And; } }
+
     public ForallExpr(IToken tok, List<BoundVar> bvars, Expression range, Expression term, Attributes attrs)
       : this(tok, new List<TypeParameter>(), bvars, range, term, attrs) {
       Contract.Requires(cce.NonNullElements(bvars));
@@ -6817,6 +6865,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(term != null);
     }
     public override Expression LogicalBody() {
+      Contract.Assert(SplitQuantifier == null); // Don't call this on a quantifier with a Split clause: it's not a real quantifier
       if (Range == null) {
         return Term;
       }
@@ -6828,6 +6877,9 @@ namespace Microsoft.Dafny {
   }
 
   public class ExistsExpr : QuantifierExpr {
+    protected override BinaryExpr.Opcode SplitOp { get { return BinaryExpr.Opcode.Or; } }
+    protected override BinaryExpr.ResolvedOpcode SplitResolvedOp { get { return BinaryExpr.ResolvedOpcode.Or; } }
+
     public ExistsExpr(IToken tok, List<BoundVar> bvars, Expression range, Expression term, Attributes attrs)
       : this(tok, new List<TypeParameter>(), bvars, range, term, attrs) {
       Contract.Requires(cce.NonNullElements(bvars));

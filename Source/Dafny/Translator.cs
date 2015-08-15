@@ -4465,6 +4465,11 @@ namespace Microsoft.Dafny {
         var e = (ComprehensionExpr)expr;
         var canCall = CanCallAssumption(e.Term, etran);
         var q = e as QuantifierExpr;
+
+        if (q != null && q.SplitQuantifier != null) {
+          return CanCallAssumption(q.SplitQuantifierExpression, etran);
+        }
+
         var tyvars = MkTyParamBinders(q != null ? q.TypeArgs : new List<TypeParameter>());
         if (e.Range != null) {
           canCall = BplAnd(CanCallAssumption(e.Range, etran), BplImp(etran.TrExpr(e.Range), canCall));
@@ -4758,6 +4763,12 @@ namespace Microsoft.Dafny {
         // If the quantifier is universal, then continue as:
         //   assume (\forall x :: body(x));
         // Create local variables corresponding to the type arguments:
+
+        if (e.SplitQuantifier != null) {
+          CheckWellformedAndAssume(e.SplitQuantifierExpression, options, locals, builder, etran);
+          return;
+        }
+
         var typeArgumentCopies = Map(e.TypeArgs, tp => e.Refresh(tp, CurrentIdGenerator));
         var typeMap = Util.Dict(e.TypeArgs, Map(typeArgumentCopies, tp => (Type)new UserDefinedType(tp)));
         var newLocals = Map(typeArgumentCopies, tp => new Bpl.LocalVariable(tp.tok, new TypedIdent(tp.tok, nameTypeParam(tp), predef.Ty)));
@@ -5292,6 +5303,10 @@ namespace Microsoft.Dafny {
         var e = (ComprehensionExpr)expr;
         var q = e as QuantifierExpr;
         var lam = e as LambdaExpr;
+
+        if (q != null && q.SplitQuantifier != null) {
+          CheckWellformedWithResult(q.SplitQuantifierExpression, options, result, resultType, locals, builder, etran);
+        }
 
         var typeMap = new Dictionary<TypeParameter, Type>();
         var copies = new List<TypeParameter>();
@@ -11534,56 +11549,60 @@ namespace Microsoft.Dafny {
           return TrExpr(((NamedExpr)expr).Body);
         } else if (expr is QuantifierExpr) {
           QuantifierExpr e = (QuantifierExpr)expr;
-          List<Variable> tyvars = translator.MkTyParamBinders(e.TypeArgs);
-          List<Variable> bvars = new List<Variable>();
 
-          var initEtran = this;
-          var bodyEtran = this;
-          bool _scratch = true;
+          if (e.SplitQuantifier != null) {
+            return TrExpr(e.SplitQuantifierExpression);
+          } else {
+            List<Variable> tyvars = translator.MkTyParamBinders(e.TypeArgs);
+            List<Variable> bvars = new List<Variable>();
 
-          Bpl.Expr antecedent = Bpl.Expr.True;
+            var initEtran = this;
+            var bodyEtran = this;
+            bool _scratch = true;
 
-          if (Attributes.ContainsBool(e.Attributes, "layerQuantifier", ref _scratch)) {
-            // If this is a layer quantifier, quantify over layers here, and use $LS(ly) layers in the translation of the body
-            var ly = BplBoundVar(e.Refresh("q$ly#", translator.CurrentIdGenerator), predef.LayerType, bvars);
-            bodyEtran = new ExpressionTranslator(translator, predef, HeapExpr, This, applyLimited_CurrentFunction, new FuelSetting(translator, 1, ly), new FuelSetting(translator, 1, ly), modifiesFrame, stripLits);
-          }
-          if (Attributes.ContainsBool(e.Attributes, "heapQuantifier", ref _scratch)) {
-            var h = BplBoundVar(e.Refresh("q$heap#", translator.CurrentIdGenerator), predef.HeapType, bvars);
-            bodyEtran = new ExpressionTranslator(bodyEtran, h);
-            antecedent = BplAnd(new List<Bpl.Expr> {
-              antecedent,
-              translator.FunctionCall(e.tok, BuiltinFunction.IsGoodHeap, null, h),
-              translator.HeapSameOrSucc(initEtran.HeapExpr, h)
-            });
-          }
+            Bpl.Expr antecedent = Bpl.Expr.True;
 
-          antecedent = BplAnd(antecedent, bodyEtran.TrBoundVariables(e.BoundVars, bvars));
+            if (Attributes.ContainsBool(e.Attributes, "layerQuantifier", ref _scratch)) {
+              // If this is a layer quantifier, quantify over layers here, and use $LS(ly) layers in the translation of the body
+              var ly = BplBoundVar(e.Refresh("q$ly#", translator.CurrentIdGenerator), predef.LayerType, bvars);
+              bodyEtran = new ExpressionTranslator(translator, predef, HeapExpr, This, applyLimited_CurrentFunction, new FuelSetting(translator, 1, ly), new FuelSetting(translator, 1, ly), modifiesFrame, stripLits);
+            }
+            if (Attributes.ContainsBool(e.Attributes, "heapQuantifier", ref _scratch)) {
+              var h = BplBoundVar(e.Refresh("q$heap#", translator.CurrentIdGenerator), predef.HeapType, bvars);
+              bodyEtran = new ExpressionTranslator(bodyEtran, h);
+              antecedent = BplAnd(new List<Bpl.Expr> {
+                antecedent,
+                translator.FunctionCall(e.tok, BuiltinFunction.IsGoodHeap, null, h),
+                translator.HeapSameOrSucc(initEtran.HeapExpr, h)
+              });
+            }
 
-          Bpl.QKeyValue kv = TrAttributes(e.Attributes, "trigger");
-          Bpl.Trigger tr = null;
-          var argsEtran = bodyEtran.WithNoLits();
-          foreach (var aa in e.Attributes.AsEnumerable()) {
-            if (aa.Name == "trigger") {
-              List<Bpl.Expr> tt = new List<Bpl.Expr>();
-              foreach (var arg in aa.Args) {
-                tt.Add(argsEtran.TrExpr(arg));
+            antecedent = BplAnd(antecedent, bodyEtran.TrBoundVariables(e.BoundVars, bvars));
+
+            Bpl.QKeyValue kv = TrAttributes(e.Attributes, "trigger");
+            Bpl.Trigger tr = null;
+            var argsEtran = bodyEtran.WithNoLits();
+            foreach (var aa in e.Attributes.AsEnumerable()) {
+              if (aa.Name == "trigger") {
+                List<Bpl.Expr> tt = new List<Bpl.Expr>();
+                foreach (var arg in aa.Args) {
+                  tt.Add(argsEtran.TrExpr(arg));
+                }
+                tr = new Bpl.Trigger(expr.tok, true, tt, tr);
               }
-              tr = new Bpl.Trigger(expr.tok, true, tt, tr);
+            }
+            if (e.Range != null) {
+              antecedent = BplAnd(antecedent, bodyEtran.TrExpr(e.Range));
+            }
+            Bpl.Expr body = bodyEtran.TrExpr(e.Term);
+          
+            if (e is ForallExpr) {
+              return new Bpl.ForallExpr(expr.tok, new List<TypeVariable>(), Concat(tyvars, bvars), kv, tr, Bpl.Expr.Imp(antecedent, body));
+            } else {
+              Contract.Assert(e is ExistsExpr);
+              return new Bpl.ExistsExpr(expr.tok, new List<TypeVariable>(), Concat(tyvars, bvars), kv, tr, Bpl.Expr.And(antecedent, body));
             }
           }
-          if (e.Range != null) {
-            antecedent = BplAnd(antecedent, bodyEtran.TrExpr(e.Range));
-          }
-          Bpl.Expr body = bodyEtran.TrExpr(e.Term);
-          
-          if (e is ForallExpr) {
-            return new Bpl.ForallExpr(expr.tok, new List<TypeVariable>(), Concat(tyvars, bvars), kv, tr, Bpl.Expr.Imp(antecedent, body));
-          } else {
-            Contract.Assert(e is ExistsExpr);
-            return new Bpl.ExistsExpr(expr.tok, new List<TypeVariable>(), Concat(tyvars, bvars), kv, tr, Bpl.Expr.And(antecedent, body));
-          }
-
         } else if (expr is SetComprehension) {
           var e = (SetComprehension)expr;
           // Translate "set xs | R :: T" into "lambda y: BoxType :: (exists xs :: CorrectType(xs) && R && y==Box(T))".
@@ -12966,9 +12985,11 @@ namespace Microsoft.Dafny {
           }
         }
 
+      } else if (expr is QuantifierExpr && ((QuantifierExpr)expr).SplitQuantifier != null) {
+        return TrSplitExpr(((QuantifierExpr)expr).SplitQuantifierExpression, splits, position, heightLimit, apply_induction, etran);
       } else if (((position && expr is ForallExpr) || (!position && expr is ExistsExpr))
-          /* NB: only for type arg less quantifiers for now: */
-             && ((QuantifierExpr)expr).TypeArgs.Count == 0) {
+        /* NB: only for type arg less quantifiers for now: */
+            && ((QuantifierExpr)expr).TypeArgs.Count == 0) {
         var e = (QuantifierExpr)expr;
         var inductionVariables = ApplyInduction(e);
         if (apply_induction && 2 <= DafnyOptions.O.Induction && inductionVariables.Count != 0) {
@@ -13138,8 +13159,11 @@ namespace Microsoft.Dafny {
 
       protected override void VisitOneExpr(Expression expr) {
         if (expr is QuantifierExpr) {
-          foreach (var trigger in (expr as QuantifierExpr).Attributes.AsEnumerable().Where(a => a.Name == "trigger").SelectMany(a => a.Args)) {
-            collector.Visit(trigger);
+          var e = (QuantifierExpr)expr;
+          if (e.SplitQuantifier == null) {
+            foreach (var trigger in (expr as QuantifierExpr).Attributes.AsEnumerable().Where(a => a.Name == "trigger").SelectMany(a => a.Args)) {
+              collector.Visit(trigger);
+            }
           }
         }
       }
@@ -13173,6 +13197,7 @@ namespace Microsoft.Dafny {
     }
 
     List<BoundVar> ApplyInduction(QuantifierExpr e) {
+      Contract.Requires(e.SplitQuantifier == null); // Don't call this on a quantifier with a Split clause: it's not a real quantifier
       Contract.Requires(e.TypeArgs.Count == 0);
       return ApplyInduction(e.BoundVars, e.Attributes, new List<Expression>() { e.LogicalBody() },
         delegate(System.IO.TextWriter wr) { new Printer(wr).PrintExpression(e, true); });
@@ -13946,6 +13971,12 @@ namespace Microsoft.Dafny {
           var e = (ComprehensionExpr)expr;
           // For quantifiers and setComprehesion we want to make sure that we don't introduce name clashes with
           // the enclosing scopes.
+
+          var q = e as QuantifierExpr;
+          if (q != null && q.SplitQuantifier != null) {
+            return Substitute(q.SplitQuantifierExpression);
+          }
+
           var newBoundVars = CreateBoundVarSubstitutions(e.BoundVars, expr is ForallExpr || expr is ExistsExpr || expr is SetComprehension);
           Expression newRange = e.Range == null ? null : Substitute(e.Range);
           Expression newTerm = Substitute(e.Term);

@@ -2816,6 +2816,12 @@ namespace Microsoft.Dafny {
 
       } else if (expr is QuantifierExpr) {
         var e = (QuantifierExpr)expr;
+
+        if (e.SplitQuantifier != null) { //TODO CLEMENT TRIGGERS: Do we compile a split quantifier in its original form, or in its split form?
+          TrExpr(e.SplitQuantifierExpression);
+          return;
+        }
+        
         Contract.Assert(e.Bounds != null);  // for non-ghost quantifiers, the resolver would have insisted on finding bounds
         var n = e.BoundVars.Count;
         Contract.Assert(e.Bounds.Count == n);

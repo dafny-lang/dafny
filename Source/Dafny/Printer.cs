@@ -1729,6 +1729,13 @@ namespace Microsoft.Dafny {
 
       } else if (expr is QuantifierExpr) {
         QuantifierExpr e = (QuantifierExpr)expr;
+
+        if (e.SplitQuantifier != null) {
+          // CLEMENT TODO TRIGGERS: Should (do) we have a setting to print the original forms instead of rewritten forms?
+          PrintExpr(e.SplitQuantifierExpression, contextBindingStrength, fragileContext, isRightmost, isFollowedBySemicolon, indent, resolv_count);
+          return;
+        }
+
         bool parensNeeded = !isRightmost;
         if (parensNeeded) { wr.Write("("); }
         wr.Write(e is ForallExpr ? "forall" : "exists");

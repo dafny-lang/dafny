@@ -305,7 +305,7 @@ namespace Microsoft.Dafny
             Contract.Assert(!useCompileSignatures);
             useCompileSignatures = true;  // set Resolver-global flag to indicate that Signatures should be followed to their CompiledSignature
             var oldErrorsOnly = reporter.ErrorsOnly;
-            reporter.ErrorsOnly = true; // turn off warning reporting for the clone
+            reporter.ErrorsOnly = true; // turn off warning reporter for the clone
             var nw = new Cloner().CloneModuleDefinition(m, m.CompileName + "_Compile");
             var compileSig = RegisterTopLevelDecls(nw, true);
             compileSig.Refines = refinementTransformer.RefinedSig;
@@ -338,7 +338,7 @@ namespace Microsoft.Dafny
                   if (refinementTransformer.CheckIsRefinement(compileSig, p)) {
                     abs.Signature.CompileSignature = compileSig;
                   } else {
-                    reporter.Error(MessageSource.Resolver,
+                    reporter.Error(MessageSource.Resolver, 
                       abs.CompilePath[0],
                       "module " + Util.Comma(".", abs.CompilePath, x => x.val) + " must be a refinement of "
                       + Util.Comma(".", abs.Path, x => x.val));
@@ -2438,6 +2438,7 @@ namespace Microsoft.Dafny
           return false;
         } else if (expr is QuantifierExpr) {
           var e = (QuantifierExpr)expr;
+          Contract.Assert(e.SplitQuantifier == null); // No split quantifiers during resolution
           var cpos = IsCoContext ? cp : Invert(cp);
           if ((cpos == CallingPosition.Positive && e is ExistsExpr) || (cpos == CallingPosition.Negative && e is ForallExpr)) {
             if (e.MissingBounds != null && e.MissingBounds.Count != 0) {
@@ -6962,7 +6963,7 @@ namespace Microsoft.Dafny
           reporter.Error(MessageSource.Resolver, expr, "'this' is not allowed in a 'static' context");
         }
         if (currentClass != null) {
-          expr.Type = GetThisType(expr.tok, currentClass);  // do this regardless of scope.AllowInstance, for better error reporting
+          expr.Type = GetThisType(expr.tok, currentClass);  // do this regardless of scope.AllowInstance, for better error reporter
         }
 
       } else if (expr is IdentifierExpr) {
@@ -7605,6 +7606,7 @@ namespace Microsoft.Dafny
         e.Type = e.Body.Type;
       } else if (expr is QuantifierExpr) {
         QuantifierExpr e = (QuantifierExpr)expr;
+        Contract.Assert(e.SplitQuantifier == null); // No split quantifiers during resolution
         int prevErrorCount = reporter.Count(ErrorLevel.Error);
         bool _val = true;
         bool typeQuantifier = Attributes.ContainsBool(e.Attributes, "typeQuantifier", ref _val) && _val;
@@ -9177,6 +9179,7 @@ namespace Microsoft.Dafny
         return;
       } else if (expr is QuantifierExpr) {
         var e = (QuantifierExpr)expr;
+        Contract.Assert(e.SplitQuantifier == null); // No split quantifiers during resolution
         if (e.MissingBounds != null) {
           foreach (var bv in e.MissingBounds) {
             reporter.Error(MessageSource.Resolver, expr, "quantifiers in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce a bounded set of values for '{0}'", bv.Name);
@@ -9774,10 +9777,13 @@ namespace Microsoft.Dafny
 
       if (expr is IdentifierExpr) {
         var e = (IdentifierExpr)expr;
+
         return new HashSet<IVariable>() { e.Var };
 
       } else if (expr is QuantifierExpr) {
         var e = (QuantifierExpr)expr;
+        Contract.Assert(e.SplitQuantifier == null); // No split quantifiers during resolution
+
         var s = FreeVariables(e.LogicalBody());
         foreach (var bv in e.BoundVars) {
           s.Remove(bv);
@@ -10139,7 +10145,9 @@ namespace Microsoft.Dafny
       } else if (expr is NamedExpr) {
         return moduleInfo.IsGhost ? false : UsesSpecFeatures(((NamedExpr)expr).Body);
       } else if (expr is ComprehensionExpr) {
-        if (expr is QuantifierExpr && ((QuantifierExpr)expr).Bounds == null) {
+        var q = expr as QuantifierExpr;
+        Contract.Assert(q == null || q.SplitQuantifier == null); // No split quantifiers during resolution
+        if (q != null && q.Bounds == null) {
           return true;  // the quantifier cannot be compiled if the resolver found no bounds
         }
         return Contract.Exists(expr.SubExpressions, se => UsesSpecFeatures(se));

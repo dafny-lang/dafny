@@ -19,9 +19,13 @@ namespace Microsoft.Dafny.Triggers { //FIXME rename this file
     protected override bool VisitOneExpr(Expression expr, ref object st) {
       var quantifier = expr as QuantifierExpr;
       if (quantifier != null) {
-        quantifierCollections.Add(new QuantifiersCollection(Enumerable.Repeat(quantifier, 1), reporter));
-      } //FIXME handle the case of groups of quantifiers resulting from a split
-
+        if (quantifier.SplitQuantifier != null) {
+          var collection = quantifier.SplitQuantifier.Select(q => q as QuantifierExpr).Where(q => q != null);
+          quantifierCollections.Add(new QuantifiersCollection(collection, reporter));
+        } else {
+          quantifierCollections.Add(new QuantifiersCollection(Enumerable.Repeat(quantifier, 1), reporter));
+        }
+      }
       return true;
     }
   }

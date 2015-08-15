@@ -43,9 +43,9 @@ namespace Microsoft.Dafny
       Contract.Requires(reporter != null);
     }
 
-    internal override void PostResolve(ModuleDefinition m) {
+    internal override void PostCyclicityResolve(ModuleDefinition m) {
       var finder = new Triggers.QuantifierCollectionsFinder(reporter);
-
+        
       foreach (var decl in ModuleDefinition.AllCallables(m.TopLevelDecls)) {
         if (decl is Function) {
           var function = (Function)decl;

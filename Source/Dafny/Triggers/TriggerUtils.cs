@@ -101,6 +101,7 @@ namespace Microsoft.Dafny.Triggers {
     }
 
     internal static bool NeedsAutoTriggers(QuantifierExpr quantifier) {
+      Contract.Requires(quantifier.SplitQuantifier == null); // Don't call this on a quantifier with a Split clause: it's not a real quantifier
       return quantifier.Attributes.AsEnumerable().All(aa => aa.Name != "trigger" && aa.Name != "no_trigger");
     }
   }

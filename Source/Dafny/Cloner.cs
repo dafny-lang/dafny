@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Numerics;
 using System.Diagnostics.Contracts;
 using IToken = Microsoft.Boogie.IToken;
+using System.Linq;
 
 namespace Microsoft.Dafny
 {
@@ -373,13 +374,18 @@ namespace Microsoft.Dafny
         if (e is QuantifierExpr) {
           var q = (QuantifierExpr)e;
           var tvs = q.TypeArgs.ConvertAll(CloneTypeParam);
+          QuantifierExpr cloned;
           if (e is ForallExpr) {
-            return new ForallExpr(tk, tvs, bvs, range, term, CloneAttributes(e.Attributes));
+            cloned = new ForallExpr(tk, tvs, bvs, range, term, CloneAttributes(e.Attributes));
           } else if (e is ExistsExpr) {
-            return new ExistsExpr(tk, tvs, bvs, range, term, CloneAttributes(e.Attributes));
+            cloned = new ExistsExpr(tk, tvs, bvs, range, term, CloneAttributes(e.Attributes));
           } else {
             Contract.Assert(false); throw new cce.UnreachableException();  // unexpected quantifier expression
           }
+          if (q.SplitQuantifier != null) { //TODO CLEMENT TRIGGERS: Should we clone the quantifier as a quantifier in this case? Or should we just replace entirely?
+            cloned.SplitQuantifier = q.SplitQuantifier.Select(CloneExpr).ToList();
+          }
+          return cloned;
         } else if (e is MapComprehension) {
           return new MapComprehension(tk, ((MapComprehension)e).Finite, bvs, range, term, CloneAttributes(e.Attributes));
         } else if (e is LambdaExpr) {
