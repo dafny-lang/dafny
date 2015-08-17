@@ -5306,6 +5306,7 @@ namespace Microsoft.Dafny {
 
         if (q != null && q.SplitQuantifier != null) {
           CheckWellformedWithResult(q.SplitQuantifierExpression, options, result, resultType, locals, builder, etran);
+          return;
         }
 
         var typeMap = new Dictionary<TypeParameter, Type>();

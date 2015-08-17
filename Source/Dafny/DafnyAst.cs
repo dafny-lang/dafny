@@ -1552,11 +1552,6 @@ namespace Microsoft.Dafny {
       set {
         Contract.Requires(Parent == null);  // set it only once
         Contract.Requires(value != null);
-        // BUGBUG:  The following line is a workaround to tell the verifier that 'value' is not of an Immutable type.
-        // A proper solution would be to be able to express that in the program (in a specification or attribute) or
-        // to be able to declare 'parent' as [PeerOrImmutable].
-        Contract.Requires(value is TopLevelDecl || value is Function || value is Method || value is DatatypeCtor || (value is QuantifierExpr && ((QuantifierExpr)value).SplitQuantifier == null));
-        //modifies parent;
         parent = value;
       }
     }
@@ -6816,8 +6811,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(SplitQuantifier != null && SplitQuantifier.Any());
       Expression accumulator = SplitQuantifier[0];
       for (int tid = 1; tid < SplitQuantifier.Count; tid++) {
-        var newAcc = new BinaryExpr(Term.tok, SplitResolvedOp, accumulator, SplitQuantifier[tid]);
-        accumulator = newAcc;
+        accumulator = new BinaryExpr(Term.tok, SplitResolvedOp, accumulator, SplitQuantifier[tid]);
       }
       return accumulator;
     }
@@ -6835,7 +6829,11 @@ namespace Microsoft.Dafny {
 
     internal Expression SplitQuantifierExpression { get; private set; }
 
-    public abstract Expression LogicalBody();
+    public virtual Expression LogicalBody(bool bypassSplitQuantifier = false) {
+      // Don't call this on a quantifier with a Split clause: it's not a real quantifier. The only exception is the Compiler.
+      Contract.Requires(bypassSplitQuantifier || SplitQuantifier == null);
+      throw new cce.UnreachableException(); // This body is just here for the "Requires" clause
+    }
 
     public override IEnumerable<Expression> SubExpressions {
       get {
@@ -6847,9 +6845,8 @@ namespace Microsoft.Dafny {
       }
     }
   }
-
+  
   public class ForallExpr : QuantifierExpr {
-    protected override BinaryExpr.Opcode SplitOp { get { return BinaryExpr.Opcode.And; } }
     protected override BinaryExpr.ResolvedOpcode SplitResolvedOp { get { return BinaryExpr.ResolvedOpcode.And; } }
 
     public ForallExpr(IToken tok, List<BoundVar> bvars, Expression range, Expression term, Attributes attrs)
@@ -6864,8 +6861,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(tok != null);
       Contract.Requires(term != null);
     }
-    public override Expression LogicalBody() {
-      Contract.Assert(SplitQuantifier == null); // Don't call this on a quantifier with a Split clause: it's not a real quantifier
+    public override Expression LogicalBody(bool bypassSplitQuantifier = false) {
       if (Range == null) {
         return Term;
       }
@@ -6877,7 +6873,6 @@ namespace Microsoft.Dafny {
   }
 
   public class ExistsExpr : QuantifierExpr {
-    protected override BinaryExpr.Opcode SplitOp { get { return BinaryExpr.Opcode.Or; } }
     protected override BinaryExpr.ResolvedOpcode SplitResolvedOp { get { return BinaryExpr.ResolvedOpcode.Or; } }
 
     public ExistsExpr(IToken tok, List<BoundVar> bvars, Expression range, Expression term, Attributes attrs)
@@ -6892,7 +6887,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(tok != null);
       Contract.Requires(term != null);
     }
-    public override Expression LogicalBody() {
+    public override Expression LogicalBody(bool bypassSplitQuantifier = false) {
       if (Range == null) {
         return Term;
       }

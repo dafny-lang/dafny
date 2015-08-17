@@ -1730,8 +1730,7 @@ namespace Microsoft.Dafny {
       } else if (expr is QuantifierExpr) {
         QuantifierExpr e = (QuantifierExpr)expr;
 
-        if (e.SplitQuantifier != null) {
-          // CLEMENT TODO TRIGGERS: Should (do) we have a setting to print the original forms instead of rewritten forms?
+        if (DafnyOptions.O.DafnyPrintResolvedFile != null && e.SplitQuantifier != null) {
           PrintExpr(e.SplitQuantifierExpression, contextBindingStrength, fragileContext, isRightmost, isFollowedBySemicolon, indent, resolv_count);
           return;
         }
