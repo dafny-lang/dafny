@@ -837,7 +837,7 @@ namespace Microsoft.Dafny
           apply.Args.ForEach(arg => args.Add(CloneExpr(arg)));
           var applyClone = new ApplySuffix(Tok(apply.tok), lhsClone, args);
           var c = new ExprRhs(applyClone);
-          ReportAdditionalInformation(apply.tok, mse.Member.Name);
+          ReportAdditionalInformation(apply.Lhs.tok, mse.Member.Name);
           return c;
         }
       }
