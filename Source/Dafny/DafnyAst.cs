@@ -3937,6 +3937,9 @@ namespace Microsoft.Dafny {
       public override bool IsFinite {
         get { return false; }
       }
+      public override int Preference() {
+        return 0;
+      }
     }
 
     /// <summary>
@@ -6683,9 +6686,33 @@ namespace Microsoft.Dafny {
       public virtual bool IsFinite {
         get { return true; }  // most bounds are finite
       }
+      public abstract int Preference(); // higher is better
+      
+      public static BoundedPool GetBest(List<BoundedPool> bounds) {
+        Contract.Requires(bounds != null && bounds.Count > 0);
+        var ret = bounds[0];
+        foreach (var bound in bounds) {
+          if (bound.Preference() > ret.Preference()) {
+            ret = bound;
+          } else {            
+            var retInt = ret as ComprehensionExpr.IntBoundedPool;
+            if (retInt != null && (retInt.LowerBound == null || retInt.UpperBound == null)) {
+              var boundInt = bound as ComprehensionExpr.IntBoundedPool;
+              if (boundInt != null) {
+                ret = new ComprehensionExpr.IntBoundedPool(retInt.LowerBound ?? boundInt.LowerBound, 
+                                                           retInt.UpperBound ?? boundInt.UpperBound);
+              }
+            }         
+          }
+        }
+        return ret;
+      }
     }
     public class BoolBoundedPool : BoundedPool
     {
+      public override int Preference() {
+        return 5;
+      }
     }
     public class IntBoundedPool : BoundedPool
     {
@@ -6700,36 +6727,57 @@ namespace Microsoft.Dafny {
           return LowerBound != null && UpperBound != null;
         }
       }
+      public override int Preference() {
+        return 1;
+      }
     }
     public class SetBoundedPool : BoundedPool
     {
       public readonly Expression Set;
       public SetBoundedPool(Expression set) { Set = set; }
+      public override int Preference() {
+        return 10;
+      }
     }
     public class SubSetBoundedPool : BoundedPool
     {
       public readonly Expression UpperBound;
       public SubSetBoundedPool(Expression set) { UpperBound = set; }
+      public override int Preference() {
+        return 1;
+      }
     }
     public class SuperSetBoundedPool : BoundedPool
     {
       public readonly Expression LowerBound;
       public SuperSetBoundedPool(Expression set) { LowerBound = set; }
+      public override int Preference() {
+        return 0;
+      }
     }
     public class MapBoundedPool : BoundedPool
     {
       public readonly Expression Map;
       public MapBoundedPool(Expression map) { Map = map; }
+      public override int Preference() {
+        return 10;
+      }
     }
     public class SeqBoundedPool : BoundedPool
     {
       public readonly Expression Seq;
       public SeqBoundedPool(Expression seq) { Seq = seq; }
+      public override int Preference() {
+        return 10;
+      }
     }
     public class DatatypeBoundedPool : BoundedPool
     {
       public readonly DatatypeDecl Decl;
       public DatatypeBoundedPool(DatatypeDecl d) { Decl = d; }
+      public override int Preference() {
+        return 5;
+      }
     }
 
     public List<BoundedPool> Bounds;  // initialized and filled in by resolver
