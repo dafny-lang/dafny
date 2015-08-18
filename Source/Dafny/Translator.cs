@@ -13126,6 +13126,8 @@ namespace Microsoft.Dafny {
       visitor.Visit(f.Body);
       foreach (var expr in f.Ens) { visitor.Visit(expr); }
       foreach (var expr in f.Req) { visitor.Visit(expr); }
+      foreach (var expr in f.Reads) { visitor.Visit(expr); }
+      foreach (var expr in f.Decreases.Expressions) { visitor.Visit(expr); }
 
       return f.Formals.Zip(fexp.Args).All(formal_concrete => CanSafelySubstitute(visitor.TriggerVariables, formal_concrete.Item1, formal_concrete.Item2));
     }

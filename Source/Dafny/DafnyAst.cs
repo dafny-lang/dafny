@@ -7674,6 +7674,9 @@ namespace Microsoft.Dafny {
     public void Visit(MaybeFreeExpression expr) {
       Visit(expr.E);
     }
+    public void Visit(FrameExpression expr) {
+      Visit(expr.E);
+    }
     public void Visit(IEnumerable<MaybeFreeExpression> exprs) {
       exprs.Iter(Visit);
     }
@@ -7715,6 +7718,9 @@ namespace Microsoft.Dafny {
       stmts.Iter(e => Visit(e, st));
     }
     public void Visit(MaybeFreeExpression expr, State st) {
+      Visit(expr.E, st);
+    }
+    public void Visit(FrameExpression expr, State st) {
       Visit(expr.E, st);
     }
     public void Visit(IEnumerable<MaybeFreeExpression> exprs, State st) {
