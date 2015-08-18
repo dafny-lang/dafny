@@ -44,15 +44,15 @@ namespace Microsoft.Dafny {
         source = "method selftest() { assert true; }"
       };
       try {
-        task.Run();
+        task.Run(false);
         Interaction.EOM(Interaction.SUCCESS, null);
       } catch (Exception ex) {
         Interaction.EOM(Interaction.FAILURE, ex);
       }
     }
 
-    internal void Run() {
-      ServerUtils.ApplyArgs(args);
+    internal void Run(bool trace = true) {
+      ServerUtils.ApplyArgs(args, trace);
       new DafnyHelper(filename, ProgramSource).Verify();
     }
   }

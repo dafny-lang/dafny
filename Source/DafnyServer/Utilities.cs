@@ -43,7 +43,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    internal static void ApplyArgs(string[] args) {
+    internal static void ApplyArgs(string[] args, bool trace) {
       Dafny.DafnyOptions.Install(new Dafny.DafnyOptions());
       Dafny.DafnyOptions.O.ProverKillTime = 10;
 
@@ -53,6 +53,7 @@ namespace Microsoft.Dafny {
         Dafny.DafnyOptions.O.UnicodeOutput = true;
         Dafny.DafnyOptions.O.VerifySnapshots = 2;
         Dafny.DafnyOptions.O.VcsCores = Math.Max(1, System.Environment.ProcessorCount - 1);
+        Dafny.DafnyOptions.Clo.Trace = trace;
       } else {
         throw new ServerException("Invalid command line options");
       }

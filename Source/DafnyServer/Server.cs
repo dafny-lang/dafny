@@ -11,6 +11,7 @@ using Microsoft.Boogie;
 
 namespace Microsoft.Dafny {
   class Server {
+    private bool trace;
     private bool running;
 
     static void Main(string[] args) {
@@ -23,33 +24,40 @@ namespace Microsoft.Dafny {
         VerificationTask.SelfTest();
       } else if (hasArg && File.Exists(arg)) {
         Console.WriteLine("# Reading from {0}", Path.GetFileName(arg));
-        Console.SetIn(new StreamReader(arg));
+        Console.SetIn(new StreamReader(arg, Encoding.UTF8));
+        server.trace = false;
         server.Loop();
       } else {
         server.Loop();
       }
     }
 
+    private void SetupConsole() {
+      var utf8 = new UTF8Encoding(false, true);
+      Console.OutputEncoding = utf8;
+      Console.OutputEncoding = utf8;
+      Console.CancelKeyPress += CancelKeyPress;
+    }
+
     public Server() {
+      this.trace = true;
       this.running = true;
-      Console.CancelKeyPress += this.CancelKeyPress;
-      Console.InputEncoding = System.Text.Encoding.UTF8;
-      Console.OutputEncoding = System.Text.Encoding.UTF8;
       ExecutionEngine.printer = new DafnyConsolePrinter();
+      SetupConsole();
     }
 
     void CancelKeyPress(object sender, ConsoleCancelEventArgs e) {
       // e.Cancel = true;
       // FIXME TerminateProver and RunningProverFromCommandLine
-      // Cancel the current verification? TerminateProver() ? Or kill entirely?
+      // Cancel the current verification? TerminateProver()? Or kill entirely?
     }
 
-    static bool EndOfPayload(out string line) {
+    bool EndOfPayload(out string line) {
       line = Console.ReadLine();
       return line == null || line == Interaction.CLIENT_EOM_TAG;
     }
 
-    static string ReadPayload() {
+    string ReadPayload() {
       StringBuilder buffer = new StringBuilder();
       string line = null;
       while (!EndOfPayload(out line)) {
@@ -78,7 +86,7 @@ namespace Microsoft.Dafny {
         if (verb == "verify") {
           ServerUtils.checkArgs(command, 0);
           var payload = ReadPayload();
-          VerificationTask.ReadTask(payload).Run();
+          VerificationTask.ReadTask(payload).Run(trace);
         } else if (verb == "quit") {
           ServerUtils.checkArgs(command, 0);
           Exit();
