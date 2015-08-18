@@ -6453,7 +6453,7 @@ namespace Microsoft.Dafny {
       }
 
       // Make the call
-      builder.Add(new Bpl.CallCmd(method.tok, method.FullSanitizedName, ins, outs));
+      builder.Add(Call(method.tok, method.FullSanitizedName, ins, outs));
 
       for (int i = 0; i < m.Outs.Count; i++) {
         var bLhs = m.Outs[i];
@@ -6482,6 +6482,18 @@ namespace Microsoft.Dafny {
       sink.AddTopLevelDeclaration(impl);
 
       Reset();
+    }
+
+    private static CallCmd Call(IToken tok, string methodName, List<Expr> ins, List<Bpl.IdentifierExpr> outs) {
+      Contract.Requires(tok != null);
+      Contract.Requires(methodName != null);
+      Contract.Requires(ins != null);
+      Contract.Requires(outs != null);
+
+      CallCmd call;
+      call = new CallCmd(tok, methodName, ins, outs);
+      // CLEMENT enable this: call.ErrorData = "possible violation of function precondition";
+      return call;
     }
 
     private static QKeyValue ErrorMessageAttribute(IToken t, string error) {
@@ -7977,13 +7989,6 @@ namespace Microsoft.Dafny {
       }
     }
 
-    //CLEMENT: Remove
-    //public static Expr PrintAndDie(Expr expr, [System.Runtime.CompilerServices.CallerMemberName] string caller = "", [System.Runtime.CompilerServices.CallerLineNumber] int linum = 0) {
-    //  Console.Error.WriteLine("In {0} at line {1}: {2}", caller, linum, expr.ToString());
-    //  Environment.Exit(1);
-    //  return expr;
-    //}
-
     /// <summary>
     /// Generate:
     ///   assume (forall x,y :: Range(x,y)[$Heap:=oldHeap] ==>
@@ -8854,7 +8859,7 @@ namespace Microsoft.Dafny {
 
       builder.Add(new CommentCmd("ProcessCallStmt: Make the call"));
       // Make the call
-      Bpl.CallCmd call = new Bpl.CallCmd(tok, MethodName(callee, kind), ins, outs);
+      Bpl.CallCmd call = Call(tok, MethodName(callee, kind), ins, outs);
       if (module != currentModule && RefinementToken.IsInherited(tok, currentModule) && (codeContext == null || !codeContext.MustReverify)) {
         // The call statement is inherited, so the refined module already checked that the precondition holds.  Note,
         // preconditions are not allowed to be strengthened, except if they use a predicate whose body has been strengthened.
@@ -10524,7 +10529,6 @@ namespace Microsoft.Dafny {
       public readonly FuelSetting layerInterCluster;
       public readonly FuelSetting layerIntraCluster = null;  // a value of null says to do the same as for inter-cluster calls
       public int Statistics_CustomLayerFunctionCount = 0;
-      public readonly bool ProducingCoCertificates = false; // CLEMENT Where is this used?
       public readonly bool stripLits = false;
       [ContractInvariantMethod]
       void ObjectInvariant()
@@ -11212,7 +11216,7 @@ namespace Microsoft.Dafny {
           bool liftLit = lit0 != null && lit1 != null;
           // NOTE(namin): We usually avoid keeping literals, because their presence might mess up triggers that do not expect them.
           //              Still for equality-related operations, it's useful to keep them instead of lifting them, so that they can be propagated.
-          bool keepLits = false; // CLEMENT: I don't really understand this
+          bool keepLits = false;
           if (lit0 != null) {
             e0 = lit0;
           }
@@ -11583,14 +11587,12 @@ namespace Microsoft.Dafny {
             Bpl.QKeyValue kv = TrAttributes(e.Attributes, "trigger");
             Bpl.Trigger tr = null;
             var argsEtran = bodyEtran.WithNoLits();
-            foreach (var aa in e.Attributes.AsEnumerable()) {
-              if (aa.Name == "trigger") {
-                List<Bpl.Expr> tt = new List<Bpl.Expr>();
-                foreach (var arg in aa.Args) {
-                  tt.Add(argsEtran.TrExpr(arg));
-                }
-                tr = new Bpl.Trigger(expr.tok, true, tt, tr);
+            foreach (var aa in e.Attributes.AsEnumerable().Where(aa => aa.Name == "trigger")) {
+              List<Bpl.Expr> tt = new List<Bpl.Expr>();
+              foreach (var arg in aa.Args) {
+                tt.Add(argsEtran.TrExpr(arg));
               }
+              tr = new Bpl.Trigger(expr.tok, true, tt, tr);
             }
             if (e.Range != null) {
               antecedent = BplAnd(antecedent, bodyEtran.TrExpr(e.Range));
@@ -12035,7 +12037,7 @@ namespace Microsoft.Dafny {
               parms.Add(s);
             } else {
               var e = TrExpr(arg);
-              e = translator.RemoveLit(e); // CLEMENT: Why?
+              e = translator.RemoveLit(e);
               parms.Add(e);
             }
           }
@@ -12981,7 +12983,7 @@ namespace Microsoft.Dafny {
             return true;
           } else {
             // Skip inlining, as it would cause arbitrary expressions to pop up in the trigger
-            // CLEMENT this should appear at the outmost call site, not at the innermost. See SnapshotableTrees.dfy
+            // TODO this should appear at the outmost call site, not at the innermost. See SnapshotableTrees.dfy
             reporter.Info(MessageSource.Translator, fexp.tok, "Some instances of this call cannot safely be inlined.");
           }
         }
@@ -13124,7 +13126,6 @@ namespace Microsoft.Dafny {
       visitor.Visit(f.Body);
       foreach (var expr in f.Ens) { visitor.Visit(expr); }
       foreach (var expr in f.Req) { visitor.Visit(expr); }
-      // CLEMENT: Anything else?
 
       return f.Formals.Zip(fexp.Args).All(formal_concrete => CanSafelySubstitute(visitor.TriggerVariables, formal_concrete.Item1, formal_concrete.Item2));
     }
@@ -14452,12 +14453,12 @@ namespace Microsoft.Dafny {
 
     // Bpl-making-utilities
 
-    static Bpl.Expr BplForall(IEnumerable<Bpl.Variable> args_in, Bpl.Expr body) {  // NO_TRIGGER
+    static Bpl.Expr BplForall(IEnumerable<Bpl.Variable> args_in, Bpl.Expr body) {
       Contract.Requires(args_in != null);
       Contract.Requires(body != null);
       Contract.Ensures(Contract.Result<Bpl.Expr>() != null);
       var args = new List<Bpl.Variable>(args_in);
-      if (args.Count == 0) { // CLEMENT don't add quantifiers if the body is trivial
+      if (args.Count == 0) {
         return body;
       } else {
         return new Bpl.ForallExpr(body.tok, args, body); // NO_TRIGGER

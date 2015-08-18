@@ -1373,7 +1373,7 @@ namespace Microsoft.Dafny {
         PrintTypeInstantiation(e.OptTypeArguments);
 
       } else if (expr is ExprDotName) {
-        var e = (ExprDotName)expr; //CLEMENT: Check the newly added Implicit parameter to make sure that we don't print "_default." DONE in FunctionCall. Where else?
+        var e = (ExprDotName)expr;
         // determine if parens are needed
         int opBindingStrength = 0x70;
         bool parensNeeded = !e.Lhs.IsImplicit && // KRML: I think that this never holds

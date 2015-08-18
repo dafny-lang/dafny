@@ -305,7 +305,7 @@ namespace Microsoft.Dafny
             Contract.Assert(!useCompileSignatures);
             useCompileSignatures = true;  // set Resolver-global flag to indicate that Signatures should be followed to their CompiledSignature
             var oldErrorsOnly = reporter.ErrorsOnly;
-            reporter.ErrorsOnly = true; // turn off warning reporter for the clone
+            reporter.ErrorsOnly = true; // turn off warning reporting for the clone
             var nw = new Cloner().CloneModuleDefinition(m, m.CompileName + "_Compile");
             var compileSig = RegisterTopLevelDecls(nw, true);
             compileSig.Refines = refinementTransformer.RefinedSig;
@@ -2026,7 +2026,7 @@ namespace Microsoft.Dafny
           foreach (var p in e.TypeArgumentSubstitutions) {
             if (!IsDetermined(p.Value.Normalize())) {
               resolver.reporter.Error(MessageSource.Resolver, e.tok, "type variable '{0}' in the function call to '{1}' could not be determined{2}", p.Key.Name, e.Name,
-                (e.Name.Contains("reveal_") || e.Name.Contains("_FULL")) //CLEMENT should this be StartsWith and EndsWith?
+                (e.Name.StartsWith("reveal_") || e.Name.EndsWith("_FULL"))
                 ? ". If you are making an opaque function, make sure that the function can be called."
                 : ""
               );
@@ -6963,7 +6963,7 @@ namespace Microsoft.Dafny
           reporter.Error(MessageSource.Resolver, expr, "'this' is not allowed in a 'static' context");
         }
         if (currentClass != null) {
-          expr.Type = GetThisType(expr.tok, currentClass);  // do this regardless of scope.AllowInstance, for better error reporter
+          expr.Type = GetThisType(expr.tok, currentClass);  // do this regardless of scope.AllowInstance, for better error reporting
         }
 
       } else if (expr is IdentifierExpr) {
