@@ -55,7 +55,9 @@ namespace Microsoft.Dafny.Triggers {
       // restricts subsets of terms so that we only generate sets of terms where each
       // element contributes at least one variable. In the example above, we'll only
       // get 5 triggers.
-      return additionalTerm.Variables.Where(v => !terms.Any(t => t.Variables.Contains(v))).Any();
+      // Note that this may still be an over-approximation, as in the following example:
+      // forall a, b :: forall x :: a[x] || b[x] > 0.
+      return additionalTerm.Variables.Where(v => v is BoundVar && !terms.Any(t => t.Variables.Contains(v))).Any();
     }
 
     //FIXME document that this assumes that the quantifiers live in the same context and share the same variables
