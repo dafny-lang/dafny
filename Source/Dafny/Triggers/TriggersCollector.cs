@@ -9,10 +9,11 @@ using System.Diagnostics;
 namespace Microsoft.Dafny.Triggers {
   class TriggerTerm {
     internal Expression Expr { get; set; }
+    internal Expression OriginalExpr { get; set; }
     internal ISet<IVariable> Variables { get; set; }
 
     public override string ToString() {
-      return Printer.ExprToString(Expr);
+      return Printer.ExprToString(OriginalExpr);
     }
 
     internal static bool Eq(TriggerTerm t1, TriggerTerm t2) {
@@ -28,16 +29,15 @@ namespace Microsoft.Dafny.Triggers {
       this.Terms = terms;
     }
 
-    public TriggerCandidate(TriggerCandidate mc, string annotation) {
-      this.Terms = mc.Terms;
-      this.Annotation = annotation;
+    public TriggerCandidate(TriggerCandidate candidate) {
+      this.Terms = candidate.Terms;
     }
 
     internal bool MentionsAll(List<BoundVar> vars) {
       return vars.All(x => Terms.Any(term => term.Variables.Contains(x)));
     }
 
-    private string Repr { get { return Terms.MapConcat(t => Printer.ExprToString(t.Expr), ", "); } }
+    private string Repr { get { return String.Join(", ", Terms); } }
 
     public override string ToString() {
       return "{" + Repr + "}" + (String.IsNullOrWhiteSpace(Annotation) ? "" : " (" + Annotation + ")");
@@ -51,7 +51,6 @@ namespace Microsoft.Dafny.Triggers {
 
     internal List<TriggerMatch> MatchingSubterms(QuantifierExpr quantifier) {
       Contract.Requires(quantifier.SplitQuantifier == null); // Don't call this on a quantifier with a Split clause: it's not a real quantifier
-      //FIXME this will miss rewritten expressions (CleanupExpr). Should introduce an OriginalExpr to compare against.
       return Terms.SelectMany(term => quantifier.SubexpressionsMatchingTrigger(term.Expr)).Deduplicate(TriggerMatch.Eq);
     }
 
@@ -166,52 +165,10 @@ namespace Microsoft.Dafny.Triggers {
       return annotation;
     }
 
-    private BinaryExpr.ResolvedOpcode RemoveNotInBinaryExprIn(BinaryExpr.ResolvedOpcode opcode) {
-      switch (opcode) {
-        case BinaryExpr.ResolvedOpcode.NotInMap:
-          return BinaryExpr.ResolvedOpcode.InMap;
-        case BinaryExpr.ResolvedOpcode.NotInSet:
-          return BinaryExpr.ResolvedOpcode.InSet;
-        case BinaryExpr.ResolvedOpcode.NotInSeq:
-          return BinaryExpr.ResolvedOpcode.InSeq;
-        case BinaryExpr.ResolvedOpcode.NotInMultiSet:
-          return BinaryExpr.ResolvedOpcode.InMultiSet;
-      }
-
-      Contract.Assert(false);
-      throw new ArgumentException();
-    }
-
-    private Expression CleanupExpr(Expression expr, out bool isKiller) {
-      isKiller = false;
-
-      if (!(expr is BinaryExpr)) {
-        return expr;
-      }
-
-      var bexpr = expr as BinaryExpr;
-
-      BinaryExpr new_expr = bexpr;
-      if (bexpr.Op == BinaryExpr.Opcode.NotIn) {
-        new_expr = new BinaryExpr(bexpr.tok, BinaryExpr.Opcode.In, bexpr.E0, bexpr.E1);
-        new_expr.ResolvedOp = RemoveNotInBinaryExprIn(bexpr.ResolvedOp);
-        new_expr.Type = bexpr.Type;
-      }
-
-      Expression returned_expr = new_expr;
-      if (new_expr.ResolvedOp == BinaryExpr.ResolvedOpcode.InMultiSet) {
-        returned_expr = new SeqSelectExpr(new_expr.tok, true, new_expr.E1, new_expr.E0, null);
-        returned_expr.Type = bexpr.Type;
-        isKiller = true; // [a in s] becomes [s[a] > 0], which is a trigger killer
-      }
-
-      return returned_expr;
-    }
-
     private TriggerAnnotation AnnotatePotentialCandidate(Expression expr) {
       bool expr_is_killer = false;
-      var new_expr = CleanupExpr(expr, out expr_is_killer);
-      var new_term = new TriggerTerm { Expr = new_expr, Variables = CollectVariables(expr) };
+      var new_expr = TriggerUtils.CleanupExprForInclusionInTrigger(expr, out expr_is_killer);
+      var new_term = new TriggerTerm { Expr = new_expr, OriginalExpr = expr, Variables = CollectVariables(expr) };
 
       List<TriggerTerm> collected_terms = CollectExportedCandidates(expr);
       var children_contain_killers = CollectIsKiller(expr);

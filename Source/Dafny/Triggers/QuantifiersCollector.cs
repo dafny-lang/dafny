@@ -7,11 +7,11 @@ using System.Collections.ObjectModel;
 using System.Diagnostics.Contracts;
 
 namespace Microsoft.Dafny.Triggers { //FIXME rename this file
-  internal class QuantifierCollectionsFinder : TopDownVisitor<object> {
+  internal class QuantifierCollector : TopDownVisitor<object> {
     readonly ErrorReporter reporter;
     internal List<QuantifiersCollection> quantifierCollections = new List<QuantifiersCollection>();
 
-    public QuantifierCollectionsFinder(ErrorReporter reporter) {
+    public QuantifierCollector(ErrorReporter reporter) {
       Contract.Requires(reporter != null);
       this.reporter = reporter;
     }
@@ -22,6 +22,7 @@ namespace Microsoft.Dafny.Triggers { //FIXME rename this file
         if (quantifier.SplitQuantifier != null) {
           var collection = quantifier.SplitQuantifier.Select(q => q as QuantifierExpr).Where(q => q != null);
           quantifierCollections.Add(new QuantifiersCollection(collection, reporter));
+          return false;
         } else {
           quantifierCollections.Add(new QuantifiersCollection(Enumerable.Repeat(quantifier, 1), reporter));
         }

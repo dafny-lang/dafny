@@ -17,7 +17,7 @@ namespace Microsoft.Dafny.Triggers {
     internal List<TriggerCandidate> Candidates;
     internal List<TriggerCandidate> RejectedCandidates;
 
-    internal bool AllowsLoops { get { return quantifier.Attributes.AsEnumerable().Any(a => a.Name == "loop"); } }
+    internal bool AllowsLoops { get { return TriggerUtils.AllowsMatchingLoops(quantifier); } }
     internal bool CouldSuppressLoops { get; set; }
 
     internal QuantifierWithTriggers(QuantifierExpr quantifier) {
@@ -65,8 +65,8 @@ namespace Microsoft.Dafny.Triggers {
       var multiPool = TriggerUtils.AllNonEmptySubsets(distinctPool, SubsetGenerationPredicate).Select(candidates => new TriggerCandidate(candidates)).ToList();
 
       foreach (var q in quantifiers) {
-        q.CandidateTerms = distinctPool;
-        q.Candidates = multiPool;
+        q.CandidateTerms = distinctPool; //Candidate terms are immutable: no copy needed
+        q.Candidates = multiPool.Select(candidate => new TriggerCandidate(candidate)).ToList();
       }
     }
 
@@ -116,7 +116,7 @@ namespace Microsoft.Dafny.Triggers {
           c => !loopingSubterms[c].Any(),
           c => {
             looping.Add(c);
-            c.Annotation = "loop with " + loopingSubterms[c].MapConcat(t => Printer.ExprToString(t.Expr), ", ");
+            c.Annotation = "loops with " + loopingSubterms[c].MapConcat(t => Printer.ExprToString(t.Expr), ", ");
           }).ToList();
 
         q.CouldSuppressLoops = safe.Count > 0;

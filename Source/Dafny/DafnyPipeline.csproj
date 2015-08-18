@@ -147,7 +147,7 @@
     <Compile Include="Triggers\QuantifiersCollection.cs" />
     <Compile Include="Triggers\QuantifierSplitter.cs" />
     <Compile Include="Triggers\TriggerExtensions.cs" />
-    <Compile Include="Triggers\TriggerGenerator.cs" />
+    <Compile Include="Triggers\QuantifiersCollector.cs" />
     <Compile Include="Triggers\TriggersCollector.cs" />
     <Compile Include="Triggers\TriggerUtils.cs" />
     <Compile Include="Util.cs" />

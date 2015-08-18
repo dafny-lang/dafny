@@ -100,9 +100,63 @@ namespace Microsoft.Dafny.Triggers {
       Console.Error.WriteLine(format, more);
     }
 
+    internal static bool AllowsMatchingLoops(QuantifierExpr quantifier) {
+      Contract.Requires(quantifier.SplitQuantifier == null); // Don't call this on a quantifier with a Split clause: it's not a real quantifier
+      return Attributes.Contains(quantifier.Attributes, "matchingloop");
+    }
+
     internal static bool NeedsAutoTriggers(QuantifierExpr quantifier) {
       Contract.Requires(quantifier.SplitQuantifier == null); // Don't call this on a quantifier with a Split clause: it's not a real quantifier
-      return quantifier.Attributes.AsEnumerable().All(aa => aa.Name != "trigger" && aa.Name != "no_trigger");
+      bool wantsAutoTriggers = true;
+      return !Attributes.Contains(quantifier.Attributes, "trigger") && 
+        (!Attributes.ContainsBool(quantifier.Attributes, "autotriggers", ref wantsAutoTriggers) || wantsAutoTriggers);
+    }
+
+    internal static BinaryExpr.ResolvedOpcode RemoveNotInBinaryExprIn(BinaryExpr.ResolvedOpcode opcode) {
+      switch (opcode) {
+        case BinaryExpr.ResolvedOpcode.NotInMap:
+          return BinaryExpr.ResolvedOpcode.InMap;
+        case BinaryExpr.ResolvedOpcode.NotInSet:
+          return BinaryExpr.ResolvedOpcode.InSet;
+        case BinaryExpr.ResolvedOpcode.NotInSeq:
+          return BinaryExpr.ResolvedOpcode.InSeq;
+        case BinaryExpr.ResolvedOpcode.NotInMultiSet:
+          return BinaryExpr.ResolvedOpcode.InMultiSet;
+      }
+
+      Contract.Assert(false);
+      throw new ArgumentException();
+    }
+
+    internal static Expression CleanupExprForInclusionInTrigger(Expression expr, out bool isKiller) {
+      isKiller = false;
+
+      if (!(expr is BinaryExpr)) {
+        return expr;
+      }
+
+      var bexpr = expr as BinaryExpr;
+
+      BinaryExpr new_expr = bexpr;
+      if (bexpr.Op == BinaryExpr.Opcode.NotIn) {
+        new_expr = new BinaryExpr(bexpr.tok, BinaryExpr.Opcode.In, bexpr.E0, bexpr.E1);
+        new_expr.ResolvedOp = RemoveNotInBinaryExprIn(bexpr.ResolvedOp);
+        new_expr.Type = bexpr.Type;
+      }
+
+      Expression returned_expr = new_expr;
+      if (new_expr.ResolvedOp == BinaryExpr.ResolvedOpcode.InMultiSet) {
+        returned_expr = new SeqSelectExpr(new_expr.tok, true, new_expr.E1, new_expr.E0, null);
+        returned_expr.Type = bexpr.Type;
+        isKiller = true; // [a in s] becomes [s[a] > 0], which is a trigger killer
+      }
+
+      return returned_expr;
+    }
+
+    internal static Expression CleanupExprForInclusionInTrigger(Expression expr) {
+      bool _;
+      return CleanupExprForInclusionInTrigger(expr, out _);
     }
   }
 }

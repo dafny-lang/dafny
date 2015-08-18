@@ -110,14 +110,18 @@ namespace Microsoft.Dafny.Triggers {
       return ShallowEq_Top(expr, trigger) && TriggerUtils.SameLists(expr.SubExpressions, trigger.SubExpressions, (e1, e2) => MatchesTrigger(e1, e2, holes, bindings));
     }
 
-    private static TriggerMatch? MatchAgainst(this Expression expr, Expression trigger, ISet<BoundVar> holes) {
+    private static TriggerMatch? MatchAgainst(this Expression expr, Expression trigger, IEnumerable<BoundVar> holes) {
       var bindings = new Dictionary<IVariable, Expression>();
-      return expr.MatchesTrigger(trigger, holes, bindings) ? new TriggerMatch { Expr = expr, Bindings = bindings } : (TriggerMatch?)null;
+      if (expr.MatchesTrigger(trigger, new HashSet<BoundVar>(holes), bindings)) {
+        return new TriggerMatch { Expr = expr, Bindings = bindings };
+      } else {
+        return null;
+      }
     }
 
     internal static IEnumerable<TriggerMatch> SubexpressionsMatchingTrigger(this QuantifierExpr quantifier, Expression trigger) {
       return quantifier.Term.AllSubExpressions()
-        .Select(e => e.MatchAgainst(trigger, new HashSet<BoundVar>(quantifier.BoundVars)))
+        .Select(e => TriggerUtils.CleanupExprForInclusionInTrigger(e).MatchAgainst(trigger, quantifier.BoundVars))
         .Where(e => e.HasValue).Select(e => e.Value);
     }
 
@@ -136,7 +140,8 @@ namespace Microsoft.Dafny.Triggers {
               arg1.DisplayName == arg2.DisplayName &&
               arg1.UniqueName == arg2.UniqueName &&
               arg1.IsGhost == arg2.IsGhost &&
-              arg1.IsMutable == arg2.IsMutable); //FIXME compare types?
+              arg1.IsMutable == arg2.IsMutable &&
+              ((arg1.Type == null && arg2.Type == null) || arg1.Type.Equals(arg2.Type))); 
     }
 
     /// <summary>
@@ -271,7 +276,7 @@ namespace Microsoft.Dafny.Triggers {
       return true;
     }
 
-    private static bool ShallowEq(QuantifierExpr expr1, QuantifierExpr expr2) { //FIXME are these TypeArgs still useful?
+    private static bool ShallowEq(QuantifierExpr expr1, QuantifierExpr expr2) {
       if (!TriggerUtils.SameNullity(expr1.SplitQuantifier, expr2.SplitQuantifier)) {
         return false;
       }
