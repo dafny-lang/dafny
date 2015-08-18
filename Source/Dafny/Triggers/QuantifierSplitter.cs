@@ -19,7 +19,9 @@ namespace Microsoft.Dafny.Triggers {
     // NOTE: If we wanted to split quantifiers as far as possible, it would be
     // enough to put the formulas in DNF (for foralls) or CNF (for exists).
     // Unfortunately, this would cause ill-behaved quantifiers to produce
-    // exponentially many smaller quantifiers.
+    // exponentially many smaller quantifiers. Thus we only do one step of 
+    // distributing, which takes care of the usual precondition case:
+    //   forall x :: P(x) ==> (Q(x) && R(x))
 
     private static UnaryOpExpr Not(Expression expr) {
       var not = new UnaryOpExpr(expr.tok, UnaryOpExpr.Opcode.Not, expr) { Type = expr.Type };
@@ -62,7 +64,8 @@ namespace Microsoft.Dafny.Triggers {
           stream = SplitExpr(body, BinaryExpr.Opcode.And);
         }
         foreach (var e in stream) {
-          yield return new ForallExpr(quantifier.tok, quantifier.BoundVars, quantifier.Range, e, quantifier.Attributes) { Type = quantifier.Type };
+          var tok = new NestedToken(quantifier.tok, e.tok);
+          yield return new ForallExpr(tok, quantifier.TypeArgs, quantifier.BoundVars, quantifier.Range, e, quantifier.Attributes) { Type = quantifier.Type };
         }
       } else if (quantifier is ExistsExpr) {
         IEnumerable<Expression> stream;
@@ -72,13 +75,14 @@ namespace Microsoft.Dafny.Triggers {
           stream = SplitExpr(body, BinaryExpr.Opcode.Or);
         }
         foreach (var e in stream) {
-          yield return new ExistsExpr(quantifier.tok, quantifier.BoundVars, quantifier.Range, e, quantifier.Attributes) { Type = quantifier.Type };
+          var tok = new NestedToken(quantifier.tok, e.tok);
+          yield return new ExistsExpr(tok, quantifier.TypeArgs, quantifier.BoundVars, quantifier.Range, e, quantifier.Attributes) { Type = quantifier.Type };
         }
       } else {
         yield return quantifier;
       }
     }
-        
+
     protected override void VisitOneExpr(Expression expr) {
       var quantifier = expr as QuantifierExpr;
       if (quantifier != null) {
