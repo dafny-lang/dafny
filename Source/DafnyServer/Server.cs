@@ -33,11 +33,13 @@ namespace Microsoft.Dafny {
     public Server() {
       this.running = true;
       Console.CancelKeyPress += this.CancelKeyPress;
+      Console.InputEncoding = System.Text.Encoding.UTF8;
+      Console.OutputEncoding = System.Text.Encoding.UTF8;
       ExecutionEngine.printer = new DafnyConsolePrinter();
     }
 
     void CancelKeyPress(object sender, ConsoleCancelEventArgs e) {
-      e.Cancel = true;
+      // e.Cancel = true;
       // FIXME TerminateProver and RunningProverFromCommandLine
       // Cancel the current verification? TerminateProver() ? Or kill entirely?
     }

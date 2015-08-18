@@ -132,55 +132,63 @@ namespace Microsoft.Dafny.Triggers {
       //FIXME
     }
 
-    private void CommitOne(QuantifierWithTriggers q, object conjunctId) {
+    private void CommitOne(QuantifierWithTriggers q, bool addHeader) {
       var errorLevel = ErrorLevel.Info;
       var msg = new StringBuilder();
-      var indent = conjunctId != null ? "    " : "  ";
-      var header = conjunctId != null ? String.Format("  For conjunct {0}:{1}", conjunctId, Environment.NewLine) : "";
+      var indent = addHeader ? "   " : " "; //FIXME if multiline messages were properly supported, this indentation wouldn't be needed
 
-      if (!TriggerUtils.NeedsAutoTriggers(q.quantifier)) { //FIXME: no_trigger is passed down to Boogie
-        msg.Append(indent).AppendLine("Not generating triggers for this quantifier.");
+      if (!TriggerUtils.NeedsAutoTriggers(q.quantifier)) { //FIXME: matchingloop and autotriggers attributes are passed down to Boogie
+        msg.AppendFormat("  Not generating triggers for {{{0}}}.", Printer.ExprToString(q.quantifier.Term)).AppendLine(); 
+        // FIXME This shouldn't be printed for autoReqs. (see autoReq.dfy)
+        // FIXME typeQuantifier?
       } else {
-        foreach (var candidate in q.Candidates) {
+        if (addHeader) {
+          msg.AppendFormat("  For expression {{{0}}}:", Printer.ExprToString(q.quantifier.Term)).AppendLine();
+        }
+
+        foreach (var candidate in q.Candidates) { //FIXME make this _trigger instead of trigger
           q.quantifier.Attributes = new Attributes("trigger", candidate.Terms.Select(t => t.Expr).ToList(), q.quantifier.Attributes);
         }
 
-        if (q.Candidates.Any()) {
-          msg.Append(indent).AppendLine("Selected triggers:");
-          foreach (var mc in q.Candidates) {
-            msg.Append(indent).Append("  ").AppendLine(mc.ToString());
-          }
-        }
-
-        if (q.RejectedCandidates.Any()) {
-          msg.Append(indent).AppendLine("Rejected triggers:");
-          foreach (var mc in q.RejectedCandidates) {
-            msg.Append(indent).Append("  ").AppendLine(mc.ToString());
-          }
-        }
+        AddTriggersToMessage("Selected triggers:", q.Candidates, msg, indent);
+        AddTriggersToMessage("Rejected triggers:", q.RejectedCandidates, msg, indent, true);
 
 #if QUANTIFIER_WARNINGS
+        string WARN = DafnyOptions.O.UnicodeOutput ? "⚠ " : "(!) "; //FIXME set unicodeoutput in extension
         if (!q.CandidateTerms.Any()) {
           errorLevel = ErrorLevel.Warning;
-          msg.Append(indent).AppendLine("No terms found to trigger on.");
+          msg.Append(indent).Append(WARN).AppendLine("No terms found to trigger on.");
         } else if (!q.Candidates.Any()) {
           errorLevel = ErrorLevel.Warning;
-          msg.Append(indent).AppendLine("No trigger covering all quantified variables found.");
-        } else if (!q.CouldSuppressLoops) {
+          msg.Append(indent).Append(WARN).AppendLine("No trigger covering all quantified variables found.");
+        } else if (!q.CouldSuppressLoops && !q.AllowsLoops) {
           errorLevel = ErrorLevel.Warning;
-          msg.Append(indent).AppendLine("Suppressing loops would leave this quantifier without triggers.");
+          msg.Append(indent).Append(WARN).AppendLine("Suppressing loops would leave this expression without triggers.");
         }
 #endif
       }
-
+      
       if (msg.Length > 0) {
-        reporter.Message(MessageSource.Rewriter, errorLevel, q.quantifier.tok, header + msg.ToString());
+        reporter.Message(MessageSource.Rewriter, errorLevel, q.quantifier.tok, msg.ToString().TrimEnd("\r\n".ToCharArray()));
+      }
+    }
+
+    private static void AddTriggersToMessage<T>(string header, List<T> triggers, StringBuilder msg, string indent, bool newlines = false) {
+      if (triggers.Any()) {
+        msg.Append(indent).Append(header);
+        if (triggers.Count == 1) {
+          msg.Append(" ");
+        } else if (triggers.Count > 1) {
+          msg.AppendLine().Append(indent).Append("  ");
+        }
+        var separator = newlines && triggers.Count > 1 ? Environment.NewLine + indent + "  " : ", ";
+        msg.AppendLine(String.Join(separator, triggers));
       }
     }
 
     internal void CommitTriggers() {
       foreach (var q in quantifiers) {
-        CommitOne(q, quantifiers.Count > 1 ? q.quantifier : null);
+        CommitOne(q, quantifiers.Count > 1);
       }
     }
   }

@@ -40,6 +40,7 @@ namespace Microsoft.Dafny
       Bpl.CommandLineOptions.Install(options);
     }
 
+    public bool UnicodeOutput = false;
     public bool DisallowSoundnessCheating = false;
     public bool Dafnycc = false;
     public int Induction = 3;

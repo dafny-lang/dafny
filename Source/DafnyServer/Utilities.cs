@@ -45,13 +45,14 @@ namespace Microsoft.Dafny {
 
     internal static void ApplyArgs(string[] args) {
       Dafny.DafnyOptions.Install(new Dafny.DafnyOptions());
+      Dafny.DafnyOptions.O.ProverKillTime = 10;
 
       if (CommandLineOptions.Clo.Parse(args)) {
         // Dafny.DafnyOptions.O.ErrorTrace = 0; //FIXME
         // Dafny.DafnyOptions.O.ModelViewFile = "-";
-        Dafny.DafnyOptions.O.ProverKillTime = 10;
-        Dafny.DafnyOptions.O.VcsCores = Math.Max(1, System.Environment.ProcessorCount - 1);
+        Dafny.DafnyOptions.O.UnicodeOutput = true;
         Dafny.DafnyOptions.O.VerifySnapshots = 2;
+        Dafny.DafnyOptions.O.VcsCores = Math.Max(1, System.Environment.ProcessorCount - 1);
       } else {
         throw new ServerException("Invalid command line options");
       }
