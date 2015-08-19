@@ -148,12 +148,12 @@ class Test:
 
     @staticmethod
     def build_report(tests, name):
-        time = strftime("%Y-%m-%d-%H-%M-%S")
+        now = strftime("%Y-%m-%d-%H-%M-%S")
         if name:
             directory, fname = os.path.split(name)
-            name = os.path.join(directory, time + "--" + fname)
+            name = os.path.join(directory, now + "--" + fname)
         else:
-            name = time
+            name = now
 
         with open(name + ".csv", mode='w', newline='') as writer:
             csv_writer = csv.DictWriter(writer, Test.COLUMNS, dialect='excel')
@@ -172,7 +172,7 @@ class Test:
     @staticmethod
     def mean_duration(results, margin):
         durations = sorted(result.duration for result in results
-                           if result.status == TestStatus.PASSED)
+                           if result.status in (TestStatus.PASSED, TestStatus.FAILED))
         if len(durations) >= 15:
             lq = durations[floor(0.25 * len(durations))]
             hq = durations[ceil(0.85 * len(durations))]
