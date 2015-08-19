@@ -138,12 +138,12 @@ namespace Microsoft.Dafny.Triggers {
       var indent = addHeader ? "   " : " "; //FIXME if multiline messages were properly supported, this indentation wouldn't be needed
 
       if (!TriggerUtils.NeedsAutoTriggers(q.quantifier)) { //FIXME: matchingloop and autotriggers attributes are passed down to Boogie
-        msg.AppendFormat("  Not generating triggers for {{{0}}}.", Printer.ExprToString(q.quantifier.Term)).AppendLine(); 
+        msg.AppendFormat("Not generating triggers for {{{0}}}.", Printer.ExprToString(q.quantifier.Term)).AppendLine(); 
         // FIXME This shouldn't be printed for autoReqs. (see autoReq.dfy)
         // FIXME typeQuantifier?
       } else {
         if (addHeader) {
-          msg.AppendFormat("  For expression {{{0}}}:", Printer.ExprToString(q.quantifier.Term)).AppendLine();
+          msg.AppendFormat("For expression {{{0}}}:", Printer.ExprToString(q.quantifier.Term)).AppendLine();
         }
 
         foreach (var candidate in q.Candidates) { //FIXME make this _trigger instead of trigger
@@ -154,16 +154,16 @@ namespace Microsoft.Dafny.Triggers {
         AddTriggersToMessage("Rejected triggers:", q.RejectedCandidates, msg, indent, true);
 
 #if QUANTIFIER_WARNINGS
-        string WARN = DafnyOptions.O.UnicodeOutput ? "⚠ " : "(!) "; //FIXME set unicodeoutput in extension
+        string WARN = (msg.Length > 0 ? indent : "") + (DafnyOptions.O.UnicodeOutput ? "⚠ " : "(!) "); //FIXME set unicodeoutput in extension
         if (!q.CandidateTerms.Any()) {
           errorLevel = ErrorLevel.Warning;
-          msg.Append(indent).Append(WARN).AppendLine("No terms found to trigger on.");
+          msg.Append(WARN).AppendLine("No terms found to trigger on.");
         } else if (!q.Candidates.Any()) {
           errorLevel = ErrorLevel.Warning;
-          msg.Append(indent).Append(WARN).AppendLine("No trigger covering all quantified variables found.");
+          msg.Append(WARN).AppendLine("No trigger covering all quantified variables found.");
         } else if (!q.CouldSuppressLoops && !q.AllowsLoops) {
           errorLevel = ErrorLevel.Warning;
-          msg.Append(indent).Append(WARN).AppendLine("Suppressing loops would leave this expression without triggers.");
+          msg.Append(WARN).AppendLine("Suppressing loops would leave this expression without triggers.");
         }
 #endif
       }
