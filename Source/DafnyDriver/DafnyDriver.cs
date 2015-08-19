@@ -22,7 +22,6 @@ namespace Microsoft.Dafny
 
   public class DafnyDriver
   {
-
     enum ExitValue { VERIFIED = 0, PREPROCESSING_ERROR, DAFNY_ERROR, NOT_VERIFIED }
 
 
@@ -42,8 +41,7 @@ namespace Microsoft.Dafny
     {
       Contract.Requires(cce.NonNullElements(args));
          
-      printer = new DafnyConsolePrinter();
-      ExecutionEngine.printer = printer;
+      ExecutionEngine.printer = new DafnyConsolePrinter(); // For boogie errors
 
       DafnyOptions.Install(new DafnyOptions());
 
@@ -57,14 +55,14 @@ namespace Microsoft.Dafny
 
       if (CommandLineOptions.Clo.Files.Count == 0)
       {
-        printer.ErrorWriteLine(Console.Out, "*** Error: No input files were specified.");
+        ExecutionEngine.printer.ErrorWriteLine(Console.Out, "*** Error: No input files were specified.");
         exitValue = ExitValue.PREPROCESSING_ERROR;
         goto END;
       }
       if (CommandLineOptions.Clo.XmlSink != null) {
         string errMsg = CommandLineOptions.Clo.XmlSink.Open();
         if (errMsg != null) {
-          printer.ErrorWriteLine(Console.Out, "*** Error: " + errMsg);
+          ExecutionEngine.printer.ErrorWriteLine(Console.Out, "*** Error: " + errMsg);
           exitValue = ExitValue.PREPROCESSING_ERROR;
           goto END;
         }
@@ -87,12 +85,11 @@ namespace Microsoft.Dafny
       {Contract.Assert(file != null);
         string extension = Path.GetExtension(file);
         if (extension != null) { extension = extension.ToLower(); }
-        if (extension != ".dfy")
-        {
-            printer.ErrorWriteLine(Console.Out, "*** Error: '{0}': Filename extension '{1}' is not supported. Input files must be Dafny programs (.dfy).", file,
-                extension == null ? "" : extension);
-            exitValue = ExitValue.PREPROCESSING_ERROR;
-            goto END;
+        if (extension != ".dfy") {
+          ExecutionEngine.printer.ErrorWriteLine(Console.Out, "*** Error: '{0}': Filename extension '{1}' is not supported. Input files must be Dafny programs (.dfy).", file,
+            extension == null ? "" : extension);
+          exitValue = ExitValue.PREPROCESSING_ERROR;
+          goto END;
         }
       }
       exitValue = ProcessFiles(CommandLineOptions.Clo.Files);
@@ -156,14 +153,15 @@ namespace Microsoft.Dafny
       
       using (XmlFileScope xf = new XmlFileScope(CommandLineOptions.Clo.XmlSink, fileNames[fileNames.Count-1])) {
         Dafny.Program dafnyProgram;
+        ErrorReporter reporter = new ConsoleErrorReporter();
         string programName = fileNames.Count == 1 ? fileNames[0] : "the program";
-        string err = Dafny.Main.ParseCheck(fileNames, programName, out dafnyProgram);
+        string err = Dafny.Main.ParseCheck(fileNames, programName, reporter, out dafnyProgram);
         if (err != null) {
           exitValue = ExitValue.DAFNY_ERROR;
-          printer.ErrorWriteLine(Console.Out, err);
+          ExecutionEngine.printer.ErrorWriteLine(Console.Out, err);
         } else if (dafnyProgram != null && !CommandLineOptions.Clo.NoResolve && !CommandLineOptions.Clo.NoTypecheck
             && DafnyOptions.O.DafnyVerify) {
-          Dafny.Translator translator = new Dafny.Translator();
+          Dafny.Translator translator = new Dafny.Translator(dafnyProgram.reporter);
           Bpl.Program boogieProgram = translator.Translate(dafnyProgram);
           if (CommandLineOptions.Clo.PrintFile != null)
           {
@@ -184,12 +182,12 @@ namespace Microsoft.Dafny
           var allOk = stats.ErrorCount == 0 && stats.InconclusiveCount == 0 && stats.TimeoutCount == 0 && stats.OutOfMemoryCount == 0;
           switch (oc) {
             case PipelineOutcome.VerificationCompleted:
-              printer.WriteTrailer(stats);
+              ExecutionEngine.printer.WriteTrailer(stats);
               if ((DafnyOptions.O.Compile && allOk && CommandLineOptions.Clo.ProcsToCheck == null) || DafnyOptions.O.ForceCompile)
                 CompileDafnyProgram(dafnyProgram, fileNames[0]);
               break;
             case PipelineOutcome.Done:
-              printer.WriteTrailer(stats);
+              ExecutionEngine.printer.WriteTrailer(stats);
               if (DafnyOptions.O.ForceCompile)
                 CompileDafnyProgram(dafnyProgram, fileNames[0]);
               break;
@@ -265,10 +263,7 @@ namespace Microsoft.Dafny
 
 
     #region Output
-
-    static OutputPrinter printer;
-
-
+    
     class DafnyConsolePrinter : ConsolePrinter
     {
       public override void ReportBplError(IToken tok, string message, bool error, TextWriter tw, string category = null)

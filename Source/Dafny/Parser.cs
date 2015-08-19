@@ -126,11 +126,11 @@ public static int Parse (string/*!*/ filename, ModuleDecl module, BuiltIns built
 /// Returns the number of parsing errors encountered.
 /// Note: first initialize the Scanner.
 ///</summary>
-public static int Parse (string/*!*/ s, string/*!*/ fullFilename, string/*!*/ filename, ModuleDecl module, BuiltIns builtIns, bool verifyThisFile=true) {
+public static int Parse (string/*!*/ s, string/*!*/ fullFilename, string/*!*/ filename, ModuleDecl module, BuiltIns builtIns, ErrorReporter reporter, bool verifyThisFile=true) {
   Contract.Requires(s != null);
   Contract.Requires(filename != null);
   Contract.Requires(module != null);
-  Errors errors = new Errors();
+  Errors errors = new Errors(reporter);
   return Parse(s, fullFilename, filename, module, builtIns, errors, verifyThisFile);
 }
 ///<summary>
@@ -150,7 +150,7 @@ public static int Parse (string/*!*/ s, string/*!*/ fullFilename, string/*!*/ fi
   Scanner scanner = new Scanner(ms, errors, fullFilename, filename);
   Parser parser = new Parser(scanner, errors, module, builtIns, verifyThisFile);
   parser.Parse();
-  return parser.errors.count;
+  return parser.errors.ErrorCount;
 }
 public Parser(Scanner/*!*/ scanner, Errors/*!*/ errors, ModuleDecl module, BuiltIns builtIns, bool verifyThisFile=true)
   : this(scanner, errors)  // the real work
@@ -4426,16 +4426,22 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 
 
 public class Errors {
-	public int count = 0;                                    // number of errors detected
+    readonly ErrorReporter reporter;
+	public int ErrorCount;
+
+    public Errors(ErrorReporter reporter) {
+        Contract.Requires(reporter != null);
+        this.reporter = reporter;
+	}
 
 	public void SynErr(string filename, int line, int col, int n) {
 		SynErr(filename, line, col, GetSyntaxErrorString(n));
 	}
 
-	public virtual void SynErr(string filename, int line, int col, string msg) {
+	public void SynErr(string filename, int line, int col, string msg) {
 		Contract.Requires(msg != null);
-		Dafny.Util.ReportIssue("Error", filename, line, col, msg);
-		count++;
+		ErrorCount++;
+        reporter.Error(MessageSource.Parser, filename, line, col, msg);
 	}
 
 	string GetSyntaxErrorString(int n) {
@@ -4692,20 +4698,20 @@ public class Errors {
 	public void SemErr(IToken tok, string msg) {  // semantic errors
 		Contract.Requires(tok != null);
 		Contract.Requires(msg != null);
-		Dafny.Util.ReportIssue("Error", tok, msg);
-		count++;
+		ErrorCount++;
+        reporter.Error(MessageSource.Parser, tok, msg);
 	}
 
-	public virtual void SemErr(string filename, int line, int col, string msg) {
+	public void SemErr(string filename, int line, int col, string msg) {
 		Contract.Requires(msg != null);
-		Dafny.Util.ReportIssue("Error", filename, line, col, msg);
-		count++;
+		ErrorCount++;
+        reporter.Error(MessageSource.Parser, filename, line, col, msg);
 	}
 
-	public virtual void Warning(IToken tok, string msg) {  // warnings
+	public void Warning(IToken tok, string msg) {
 		Contract.Requires(tok != null);
 		Contract.Requires(msg != null);
-		Dafny.Util.ReportIssue("Warning", tok, msg);
+        reporter.Warning(MessageSource.Parser, tok, msg);
 	}
 } // Errors
 

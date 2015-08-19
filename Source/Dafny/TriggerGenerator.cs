@@ -513,7 +513,7 @@ namespace Microsoft.Dafny {
         return;
 
       DebugTriggers("== From {0} visiting expr: {1}", new StackFrame(1).GetMethod().Name, Printer.ExprToString(root));
-      TriggerGenerator generator = new TriggerGenerator(resolver.ReportAdditionalInformation);
+      TriggerGenerator generator = new TriggerGenerator(null);
       generator.AddTriggers_Internal(root);
     }
 
@@ -522,7 +522,7 @@ namespace Microsoft.Dafny {
         return;
 
       DebugTriggers("== From {0} visiting statement: {1}", new StackFrame(1).GetMethod().Name, Printer.StatementToString(root));
-      TriggerGenerator generator = new TriggerGenerator(resolver.ReportAdditionalInformation);
+      TriggerGenerator generator = new TriggerGenerator(null);
       generator.AddTriggers_Internal(root);
     }
 

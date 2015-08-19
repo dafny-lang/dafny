@@ -27,20 +27,22 @@ namespace Microsoft.Dafny {
     public List<ModuleDefinition> CompileModules; // filled in during resolution.
                                                   // Contains the definitions to be used for compilation.
 
-    List<AdditionalInformation> _additionalInformation = new List<AdditionalInformation>();
-    public List<AdditionalInformation> AdditionalInformation { get { return _additionalInformation; } }
     public readonly ModuleDecl DefaultModule;
     public readonly ModuleDefinition DefaultModuleDef;
     public readonly BuiltIns BuiltIns;
     public readonly List<TranslationTask> TranslationTasks;
-    public Program(string name, [Captured] ModuleDecl module, [Captured] BuiltIns builtIns) {
+    public readonly ErrorReporter reporter;
+
+    public Program(string name, [Captured] ModuleDecl module, [Captured] BuiltIns builtIns, ErrorReporter reporter) {
       Contract.Requires(name != null);
       Contract.Requires(module != null);
       Contract.Requires(module is LiteralModuleDecl);
+      Contract.Requires(reporter != null);
       FullName = name;
       DefaultModule = module;
       DefaultModuleDef = (DefaultModuleDecl)((LiteralModuleDecl)module).ModuleDef;
       BuiltIns = builtIns;
+      this.reporter = reporter;
       Modules = new List<ModuleDefinition>();
       CompileModules = new List<ModuleDefinition>();
       TranslationTasks = new List<TranslationTask>();
@@ -330,13 +332,13 @@ namespace Microsoft.Dafny {
     /// - if "allowed" contains Int and Args contains one BigInteger literal, return true and set value to the BigInteger literal.  Otherwise,
     /// - if "allowed" contains String and Args contains one string literal, return true and set value to the string literal.  Otherwise,
     /// - if "allowed" contains Expression and Args contains one element, return true and set value to the one element (of type Expression).  Otherwise,
-    /// - return false, leave value unmodified, and call errorReporter with an error string.
+    /// - return false, leave value unmodified, and call reporter with an error string.
     /// </summary>
     public enum MatchingValueOption { Empty, Bool, Int, String, Expression }
-    public static bool ContainsMatchingValue(Attributes attrs, string nm, ref object value, IEnumerable<MatchingValueOption> allowed, Action<string> errorReporter) {
+    public static bool ContainsMatchingValue(Attributes attrs, string nm, ref object value, IEnumerable<MatchingValueOption> allowed, Action<string> reporter) {
       Contract.Requires(nm != null);
       Contract.Requires(allowed != null);
-      Contract.Requires(errorReporter != null);
+      Contract.Requires(reporter != null);
       List<Expression> args = FindExpressions(attrs, nm);
       if (args == null) {
         return false;
@@ -344,7 +346,7 @@ namespace Microsoft.Dafny {
         if (allowed.Contains(MatchingValueOption.Empty)) {
           return true;
         } else {
-          errorReporter("Attribute " + nm + " requires one argument");
+          reporter("Attribute " + nm + " requires one argument");
           return false;
         }
       } else if (args.Count == 1) {
@@ -364,11 +366,11 @@ namespace Microsoft.Dafny {
           value = arg;
           return true;
         } else {
-          errorReporter("Attribute " + nm + " expects an argument in one of the following categories: " + String.Join(", ", allowed));
+          reporter("Attribute " + nm + " expects an argument in one of the following categories: " + String.Join(", ", allowed));
           return false;
         }
       } else {
-        errorReporter("Attribute " + nm + " cannot have more than one argument");
+        reporter("Attribute " + nm + " cannot have more than one argument");
         return false;
       }
     }

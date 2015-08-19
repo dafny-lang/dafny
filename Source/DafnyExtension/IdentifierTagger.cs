@@ -136,9 +136,9 @@ namespace DafnyLanguage
 
       List<IdRegion> newRegions = new List<IdRegion>();
 
-      foreach (var addInfo in program.AdditionalInformation)
+      foreach (var info in program.reporter.AllMessages[ErrorLevel.Info])
       {
-        IdRegion.Add(newRegions, addInfo.Token, addInfo.Text, addInfo.Length);
+        IdRegion.Add(newRegions, info.token, info.message, info.token.val.Length);
       }
 
       foreach (var module in program.Modules) {

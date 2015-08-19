@@ -93,9 +93,13 @@ namespace Microsoft.Dafny {
   }
 
   public class Translator {
+    readonly ErrorReporter reporter;
 
     [NotDelayed]
-    public Translator() {
+    public Translator(ErrorReporter reporter) {
+      Contract.Requires(reporter != null);
+      
+      this.reporter = reporter;
       InsertChecksums = 0 < CommandLineOptions.Clo.VerifySnapshots;
       Bpl.Program boogieProgram = ReadPrelude();
       if (boogieProgram != null) {
@@ -3609,7 +3613,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(tok != null);
       Contract.Ensures(Contract.Result<Bpl.Cmd>() != null);
       var col = tok.col + (isEndToken ? tok.val.Length : 0);
-      string description = Util.ReportIssueToString_Bare(additionalInfo == null ? "" : ": ", tok.filename, tok.line, tok.col, additionalInfo ?? "");
+      string description = reporter.ErrorToString_Internal(additionalInfo == null ? "" : ": ", tok.filename, tok.line, tok.col, additionalInfo ?? "");
       QKeyValue kv = new QKeyValue(tok, "captureState", new List<object>() { description }, null);
       return new Bpl.AssumeCmd(tok, Bpl.Expr.True, kv);
     }
@@ -7679,7 +7683,7 @@ namespace Microsoft.Dafny {
       }
 
       var missingBounds = new List<BoundVar>();
-      var bounds = Resolver.DiscoverBounds(x.tok, new List<BoundVar>() { x }, expr, true, true, missingBounds);
+      var bounds = Resolver.DiscoverBounds(x.tok, new List<BoundVar>() { x }, expr, true, true, missingBounds, reporter);
       if (missingBounds.Count == 0) {
         foreach (var bound in bounds) {
           if (bound is ComprehensionExpr.IntBoundedPool) {
@@ -12955,9 +12959,8 @@ namespace Microsoft.Dafny {
             return true;
           } else {
             // Skip inlining, as it would cause arbitrary expressions to pop up in the trigger
-            // CLEMENT: Report inlining issue in a VS plugin friendly way
-            //CLEMENT this should appear at the outmost call site, not at the innermost. See SnapshotableTrees.dfy
-            Dafny.Util.ReportIssue("Info", fexp.tok, "Some instances of this call cannot safely be inlined.");
+            // CLEMENT this should appear at the outmost call site, not at the innermost. See SnapshotableTrees.dfy
+            reporter.Info(MessageSource.Translator, fexp.tok, "Some instances of this call cannot safely be inlined.");
           }
         }
 

@@ -314,8 +314,8 @@ public class Scanner {
 
 //	[NotDelayed]
 	public Scanner (string/*!*/ fullFilename, string/*!*/ fileName, Errors/*!*/ errorHandler, bool useBaseName = false) : base() {
-	  Contract.Requires(fileName != null);
-	  Contract.Requires(errorHandler != null);
+		Contract.Requires(fileName != null);
+		Contract.Requires(errorHandler != null);
 		this.errorHandler = errorHandler;
 		pt = tokens = new Token();  // first token is a dummy
 		t = new Token(); // dummy because t is a non-null field
@@ -332,9 +332,9 @@ public class Scanner {
 
 //	[NotDelayed]
 	public Scanner (Stream/*!*/ s, Errors/*!*/ errorHandler, string/*!*/ fullFilename, string/*!*/ fileName, bool useBaseName = false) : base() {
-	  Contract.Requires(s != null);
-	  Contract.Requires(errorHandler != null);
-	  Contract.Requires(fileName != null);
+		Contract.Requires(s != null);
+		Contract.Requires(errorHandler != null);
+		Contract.Requires(fileName != null);
 		pt = tokens = new Token();  // first token is a dummy
 		t = new Token(); // dummy because t is a non-null field
 		this._buffer = new Buffer(s, true);
@@ -344,9 +344,9 @@ public class Scanner {
 		Init();
 	}
 
-    string GetBaseName(string fileName) {
-        return System.IO.Path.GetFileName(fileName); // Return basename
-    }
+	string GetBaseName(string fileName) {
+		return System.IO.Path.GetFileName(fileName); // Return basename
+	}
 
 	void Init() {
 		pos = -1; line = 1; col = 0;
@@ -991,6 +991,4 @@ public class Scanner {
 } // end Scanner
 
 public delegate void ErrorProc(int n, string filename, int line, int col);
-
-
 }

@@ -115,19 +115,21 @@ namespace DafnyLanguage
     bool ParseAndTypeCheck() {
       Dafny.ModuleDecl module = new Dafny.LiteralModuleDecl(new Dafny.DefaultModuleDecl(), null);
       Dafny.BuiltIns builtIns = new Dafny.BuiltIns();
-      Dafny.Errors parseErrors = new VSErrors(this);
+
+      var errorReporter = new VSErrorReporter(this);
+      var parseErrors = new Dafny.Errors(errorReporter);
+
       int errorCount = Dafny.Parser.Parse(_snapshot.GetText(), _filename, _filename, module, builtIns, parseErrors);
       string errString = Dafny.Main.ParseIncludes(module, builtIns, new List<string>(), parseErrors);
       if (errorCount != 0 || errString != null)
         return false;
-      Dafny.Program program = new Dafny.Program(_filename, module, builtIns);
+      Dafny.Program program = new Dafny.Program(_filename, module, builtIns, errorReporter);
 
-      var r = new VSResolver(program, this);
+      var r = new Resolver(program);
       r.ResolveProgram(program);
-      if (r.ErrorCount != 0)
+      if (errorReporter.Count(ErrorLevel.Error) != 0)
         return false;
 
-      program.AdditionalInformation.AddRange(r.AdditionalInformation);
       _program = program;
       return true;  // success
     }
@@ -137,56 +139,31 @@ namespace DafnyLanguage
       _errors.Add(new DafnyError(filename, line - 1, col - 1, cat, msg, _snapshot, isRecycled, null, System.IO.Path.GetFullPath(this._filename) == filename));
     }
 
-    class VSErrors : Dafny.Errors
+    class VSErrorReporter : Dafny.ErrorReporter
     {
       DafnyDriver dd;
-      public VSErrors(DafnyDriver dd) {
+
+      public VSErrorReporter(DafnyDriver dd) {
         this.dd = dd;
       }
-      public override void SynErr(string filename, int line, int col, string msg) {
-        dd.RecordError(filename, line, col, ErrorCategory.ParseError, msg);
-        count++;
-      }
-      public override void SemErr(string filename, int line, int col, string msg) {
-        dd.RecordError(filename, line, col, ErrorCategory.ResolveError, msg);
-        count++;
-      }
-      public override void Warning(IToken tok, string msg) {
-        dd.RecordError(tok.filename, tok.line, tok.col, ErrorCategory.ParseWarning, msg);
-      }
-    }
 
-    class VSResolver : Dafny.Resolver
-    {
-      DafnyDriver dd;
-      Dictionary<IToken, HashSet<AdditionalInformation>> _additionalInformation = new Dictionary<IToken, HashSet<AdditionalInformation>>();
-      public List<AdditionalInformation> AdditionalInformation { get { return _additionalInformation.Values.SelectMany(i => i).ToList(); } }
-
-      public VSResolver(Dafny.Program program, DafnyDriver dd)
-        : base(program) {
-        this.dd = dd;
-
-        AdditionalInformationReporter =
-          (addinfo)
-            =>
-            {
-              if (!_additionalInformation.ContainsKey(addinfo.Token)) {
-                _additionalInformation.Add(addinfo.Token, new HashSet<AdditionalInformation>());
-              }
-              _additionalInformation[addinfo.Token].Add(addinfo);
-            };
-      }
-
-      public override void Error(Bpl.IToken tok, string msg, params object[] args) {
-        string s = string.Format(msg, args);
-        dd.RecordError(tok.filename, tok.line, tok.col, ErrorCategory.ResolveError, s);
-        ErrorCount++;
-      }
-
-      public override void Warning(IToken tok, string msg, params object[] args) {
-        if (reportWarnings) {
-          string s = string.Format(msg, args);
-          dd.RecordError(tok.filename, tok.line, tok.col, ErrorCategory.ResolveWarning, s);
+      // TODO: The error tracking could be made better to track the full information returned by Dafny
+      public override bool Message(MessageSource source, ErrorLevel level, IToken tok, string msg) {
+        if (base.Message(source, level, tok, msg)) {
+          switch (level) {
+            case ErrorLevel.Error:
+              dd.RecordError(tok.filename, tok.line, tok.col, source == MessageSource.Parser ? ErrorCategory.ParseError : ErrorCategory.ResolveError, msg);
+              break;
+            case ErrorLevel.Warning:
+              dd.RecordError(tok.filename, tok.line, tok.col, source == MessageSource.Parser ? ErrorCategory.ParseWarning : ErrorCategory.ResolveWarning, msg);
+              break;
+            case ErrorLevel.Info:
+              // The AllMessages variable already keeps track of this
+              break;
+          }
+          return true;
+        } else {
+          return false;
         }
       }
     }
@@ -273,7 +250,7 @@ namespace DafnyLanguage
     }
 
     public static bool Verify(Dafny.Program dafnyProgram, ResolverTagger resolver, string uniqueIdPrefix, string requestId, ErrorReporterDelegate er) {
-      Dafny.Translator translator = new Dafny.Translator();
+      Dafny.Translator translator = new Dafny.Translator(dafnyProgram.reporter);
       translator.InsertChecksums = true;
       translator.UniqueIdPrefix = uniqueIdPrefix;
       Bpl.Program boogieProgram = translator.Translate(dafnyProgram);

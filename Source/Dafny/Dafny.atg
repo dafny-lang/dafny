@@ -55,11 +55,11 @@ public static int Parse (string/*!*/ filename, ModuleDecl module, BuiltIns built
 /// Returns the number of parsing errors encountered.
 /// Note: first initialize the Scanner.
 ///</summary>
-public static int Parse (string/*!*/ s, string/*!*/ fullFilename, string/*!*/ filename, ModuleDecl module, BuiltIns builtIns, bool verifyThisFile=true) {
+public static int Parse (string/*!*/ s, string/*!*/ fullFilename, string/*!*/ filename, ModuleDecl module, BuiltIns builtIns, ErrorReporter reporter, bool verifyThisFile=true) {
   Contract.Requires(s != null);
   Contract.Requires(filename != null);
   Contract.Requires(module != null);
-  Errors errors = new Errors();
+  Errors errors = new Errors(reporter);
   return Parse(s, fullFilename, filename, module, builtIns, errors, verifyThisFile);
 }
 ///<summary>
@@ -79,7 +79,7 @@ public static int Parse (string/*!*/ s, string/*!*/ fullFilename, string/*!*/ fi
   Scanner scanner = new Scanner(ms, errors, fullFilename, filename);
   Parser parser = new Parser(scanner, errors, module, builtIns, verifyThisFile);
   parser.Parse();
-  return parser.errors.count;
+  return parser.errors.ErrorCount;
 }
 public Parser(Scanner/*!*/ scanner, Errors/*!*/ errors, ModuleDecl module, BuiltIns builtIns, bool verifyThisFile=true)
   : this(scanner, errors)  // the real work
