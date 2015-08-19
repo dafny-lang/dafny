@@ -477,7 +477,7 @@ namespace Microsoft.Dafny.Triggers {
     }
 
     private static bool ShallowEq(LiteralExpr expr1, LiteralExpr expr2) {
-      if (expr1.Value != expr2.Value) {
+      if (!TriggerUtils.SameNullity(expr1.Value, expr2.Value) || (expr1.Value != null && !expr1.Value.Equals(expr2.Value))) {
         return false;
       }
 
