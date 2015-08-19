@@ -12895,6 +12895,8 @@ namespace Microsoft.Dafny {
             // that needed to be proved about the function was proved already in the previous module, even without the body definition).
           } else if (!FunctionBodyIsAvailable(f, currentModule)) {
             // Don't inline opaque functions or foreign protected functions
+          } else if (Attributes.Contains(f.Attributes, "no_inline")) {
+            // User manually prevented inlining
           } else if (CanSafelyInline(fexp, f)) {
             // inline this body
             var body = GetSubstitutedBody(fexp, f, false);
@@ -13106,7 +13108,7 @@ namespace Microsoft.Dafny {
     }
 
     private bool CanSafelySubstitute(ISet<IVariable> protectedVariables, IVariable variable, Expression substitution) {
-      return !(protectedVariables.Contains(variable) && TriggerGenerator.IsTriggerKiller(substitution));
+      return !(protectedVariables.Contains(variable) && Dafny.Triggers.TriggersCollector.IsTriggerKiller(substitution));
     }
 
     private class VariablesCollector: BottomUpVisitor {

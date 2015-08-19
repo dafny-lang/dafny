@@ -39,22 +39,56 @@ namespace Microsoft.Dafny
   }
 
   public class TriggerGeneratingRewriter : IRewriter {
+    Triggers.QuantifierCollectionsFinder finder;
+
     internal TriggerGeneratingRewriter(ErrorReporter reporter) : base(reporter) {
+      Contract.Requires(reporter != null);
+      this.finder = new Triggers.QuantifierCollectionsFinder(reporter);
+    }
+
+    internal override void PostResolve(ModuleDefinition m) {
+      foreach (var decl in ModuleDefinition.AllCallables(m.TopLevelDecls)) { //CLEMENT
+        if (decl is Function) {
+          var function = (Function)decl;
+          finder.Visit(function.Ens, null);
+          finder.Visit(function.Req, null);
+          if (function.Body != null) {
+            finder.Visit(function.Body, null);
+          }
+        } else if (decl is Method) {
+          var method = (Method)decl;
+          finder.Visit(method.Ens, null);
+          finder.Visit(method.Req, null);
+          if (method.Body != null) {
+            finder.Visit(method.Body, null);
+          }
+        }
+      }
+    }
+  }
+
+  internal class QuantifierSplittingRewriter : IRewriter {
+    internal QuantifierSplittingRewriter(ErrorReporter reporter) : base(reporter) {
       Contract.Requires(reporter != null);
     }
 
     internal override void PostResolve(ModuleDefinition m) {
+      var splitter = new Triggers.QuantifierSplitter();
       foreach (var decl in ModuleDefinition.AllCallables(m.TopLevelDecls)) {
         if (decl is Function) {
           var function = (Function)decl;
-          //TriggerGenerator.AddTriggers(function.Ens, Resolver);
-          //TriggerGenerator.AddTriggers(function.Req, Resolver);
-          //TriggerGenerator.AddTriggers(function.Body, Resolver);
+          splitter.Visit(function.Ens);
+          splitter.Visit(function.Req);
+          if (function.Body != null) {
+            splitter.Visit(function.Body);
+          }
         } else if (decl is Method) {
           var method = (Method)decl;
-          //TriggerGenerator.AddTriggers(method.Ens, Resolver);
-          //TriggerGenerator.AddTriggers(method.Req, Resolver);
-          //TriggerGenerator.AddTriggers(method.Body, Resolver);
+          splitter.Visit(method.Ens);
+          splitter.Visit(method.Req);
+          if (method.Body != null) {
+            splitter.Visit(method.Body);
+          }
         }
       }
     }

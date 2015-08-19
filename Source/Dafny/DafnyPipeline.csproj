@@ -144,7 +144,12 @@
   <ItemGroup>
     <Compile Include="Cloner.cs" />
     <Compile Include="Reporting.cs" />
-    <Compile Include="TriggerGenerator.cs" />
+    <Compile Include="Triggers\QuantifiersCollection.cs" />
+    <Compile Include="Triggers\QuantifierSplitter.cs" />
+    <Compile Include="Triggers\TriggerExtensions.cs" />
+    <Compile Include="Triggers\TriggerGenerator.cs" />
+    <Compile Include="Triggers\TriggersCollector.cs" />
+    <Compile Include="Triggers\TriggerUtils.cs" />
     <Compile Include="Util.cs" />
     <Compile Include="Compiler.cs" />
     <Compile Include="BigIntegerParser.cs" />
