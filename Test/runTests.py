@@ -491,12 +491,13 @@ def run_tests(args):
         debug(Debug.ERROR, "Testing interrupted")
 
 
-def diff(paths, accept, difftool):
+def diff(paths, force_accept, difftool):
     for path in expand_lsts(paths):
         if not os.path.exists(path):
             debug(Debug.ERROR, "Not found: {}".format(path))
         else:
             test = Test(None, path, [], None)
+            accept = force_accept
 
             if not accept:
                 call([difftool, test.expect_path, test.temp_output_path])
