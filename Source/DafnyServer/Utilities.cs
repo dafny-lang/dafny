@@ -50,10 +50,11 @@ namespace Microsoft.Dafny {
       if (CommandLineOptions.Clo.Parse(args)) {
         // Dafny.DafnyOptions.O.ErrorTrace = 0; //FIXME
         // Dafny.DafnyOptions.O.ModelViewFile = "-";
-        Dafny.DafnyOptions.O.UnicodeOutput = true;
-        Dafny.DafnyOptions.O.VerifySnapshots = 2;
-        Dafny.DafnyOptions.O.VcsCores = Math.Max(1, System.Environment.ProcessorCount - 1);
-        Dafny.DafnyOptions.O.Trace = trace;
+        DafnyOptions.O.PrintTooltips = true;
+        DafnyOptions.O.UnicodeOutput = true;
+        DafnyOptions.O.VerifySnapshots = 2;
+        DafnyOptions.O.VcsCores = Math.Max(1, System.Environment.ProcessorCount - 1);
+        DafnyOptions.O.Trace = trace;
       } else {
         throw new ServerException("Invalid command line options");
       }
