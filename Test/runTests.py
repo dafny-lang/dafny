@@ -6,6 +6,7 @@ import shutil
 import argparse
 import operator
 import platform
+from math import floor, ceil
 from enum import Enum
 from time import time, strftime
 from collections import defaultdict
@@ -169,6 +170,25 @@ class Test:
         return results
 
     @staticmethod
+    def mean_duration(results, margin):
+        durations = sorted(result.duration for result in results
+                           if result.status == TestStatus.PASSED)
+        if len(durations) >= 15:
+            lq = durations[floor(0.25 * len(durations))]
+            hq = durations[ceil(0.85 * len(durations))]
+            iqr = hq - lq
+            filtered = [d for d in durations if (lq - margin * iqr) <= d <= (hq + margin * iqr)]
+            if filtered:
+                avg = sum(durations) / len(durations)
+                trimmed_avg = sum(filtered) / len(filtered)
+                outliers_count = len(durations) - len(filtered)
+                msg = "mean completion time: {:.2f}s".format(avg)
+                if outliers_count > 0:
+                    msg += "; ignoring {} outliers: {:.2f}s".format(outliers_count, trimmed_avg)
+                return " ({})".format(msg)
+        return ""
+
+    @staticmethod
     def summarize(results):
         debug(Debug.INFO, "\nTesting complete ({} test(s))".format(len(results)))
 
@@ -193,7 +213,8 @@ class Test:
                         writer.write("{}\n".format(t.name))
                 debug(Debug.REPORT, "Some tests failed: use [runTests.py failing.lst] to rerun the failing tests")
 
-            debug(Debug.REPORT, "Testing took {:.2f}s on {} thread(s)".format(results[0].suite_time, results[0].njobs))
+            debug(Debug.REPORT, "Testing took {:.2f}s on {} thread(s){}".format(
+                results[0].suite_time, results[0].njobs, Test.mean_duration(results, 1.5)))
 
 
     def run(self):
