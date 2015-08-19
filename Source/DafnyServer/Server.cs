@@ -11,7 +11,6 @@ using Microsoft.Boogie;
 
 namespace Microsoft.Dafny {
   class Server {
-    private bool trace;
     private bool running;
 
     static void Main(string[] args) {
@@ -25,7 +24,6 @@ namespace Microsoft.Dafny {
       } else if (hasArg && File.Exists(arg)) {
         Console.WriteLine("# Reading from {0}", Path.GetFileName(arg));
         Console.SetIn(new StreamReader(arg, Encoding.UTF8));
-        server.trace = false;
         server.Loop();
       } else {
         server.Loop();
@@ -40,7 +38,6 @@ namespace Microsoft.Dafny {
     }
 
     public Server() {
-      this.trace = true;
       this.running = true;
       ExecutionEngine.printer = new DafnyConsolePrinter();
       SetupConsole();
@@ -86,7 +83,7 @@ namespace Microsoft.Dafny {
         if (verb == "verify") {
           ServerUtils.checkArgs(command, 0);
           var payload = ReadPayload();
-          VerificationTask.ReadTask(payload).Run(trace);
+          VerificationTask.ReadTask(payload).Run();
         } else if (verb == "quit") {
           ServerUtils.checkArgs(command, 0);
           Exit();

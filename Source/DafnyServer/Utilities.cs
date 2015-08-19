@@ -43,18 +43,18 @@ namespace Microsoft.Dafny {
       }
     }
 
-    internal static void ApplyArgs(string[] args, bool trace) {
+    internal static void ApplyArgs(string[] args) {
       Dafny.DafnyOptions.Install(new Dafny.DafnyOptions());
       Dafny.DafnyOptions.O.ProverKillTime = 10;
 
       if (CommandLineOptions.Clo.Parse(args)) {
         // Dafny.DafnyOptions.O.ErrorTrace = 0; //FIXME
         // Dafny.DafnyOptions.O.ModelViewFile = "-";
-        DafnyOptions.O.PrintTooltips = true;
-        DafnyOptions.O.UnicodeOutput = true;
-        DafnyOptions.O.VerifySnapshots = 2;
-        DafnyOptions.O.VcsCores = Math.Max(1, System.Environment.ProcessorCount - 1);
-        DafnyOptions.O.Trace = trace;
+        DafnyOptions.O.VerifySnapshots = 2; // Use caching
+        DafnyOptions.O.VcsCores = Math.Max(1, System.Environment.ProcessorCount - 1); //FIXME
+        DafnyOptions.O.PrintTooltips = true; // Dump tooptips (ErrorLevel.Info) to stdout
+        DafnyOptions.O.UnicodeOutput = true; // Use pretty warning signs
+        DafnyOptions.O.TraceProofObligations = true; // Show which method is being verified, but don't show duration of verification
       } else {
         throw new ServerException("Invalid command line options");
       }

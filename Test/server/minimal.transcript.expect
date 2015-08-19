@@ -1,0 +1,14 @@
+# Reading from minimal.transcript
+
+Verifying CheckWellformed$$_module.__default.A ...
+  [0 proof obligations]  verified
+
+Verifying Impl$$_module.__default.A ...
+  [2 proof obligations]  error
+transcript(3,9): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+Verification completed successfully!
+[SUCCESS] [[DAFNY-SERVER: EOM]]
+Verification completed successfully!
+[SUCCESS] [[DAFNY-SERVER: EOM]]
