@@ -156,7 +156,7 @@ namespace Microsoft.Dafny.Triggers {
         AddTriggersToMessage("Rejected triggers:", q.RejectedCandidates, msg, indent, true);
 
 #if QUANTIFIER_WARNINGS
-        string WARN = (msg.Length > 0 ? indent : "") + (DafnyOptions.O.UnicodeOutput ? "⚠ " : "(!) "); //FIXME set unicodeoutput in extension
+        string WARN = (msg.Length > 0 ? indent : "") + (DafnyOptions.O.UnicodeOutput ? "⚠ " : "(!) ");
         if (!q.CandidateTerms.Any()) {
           errorLevel = ErrorLevel.Warning;
           msg.Append(WARN).AppendLine("No terms found to trigger on.");

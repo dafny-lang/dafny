@@ -403,7 +403,7 @@ namespace DafnyLanguage
         chng(this, new SnapshotSpanEventArgs(new SnapshotSpan(snapshot, 0, snapshot.Length)));
     }
 
-    static TaskErrorCategory CategoryConversion(ErrorCategory cat) //CLEMENT: We've lost that info
+    static TaskErrorCategory CategoryConversion(ErrorCategory cat)
     {
       switch (cat)
       {

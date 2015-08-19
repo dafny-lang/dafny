@@ -40,6 +40,7 @@ namespace DafnyLanguage
         options.ErrorTrace = 0;
         options.VcsCores = Math.Max(1, System.Environment.ProcessorCount - 1);
         options.ModelViewFile = "-";
+        options.UnicodeOutput = true;
         Dafny.DafnyOptions.Install(options);
 
         // Read additional options from DafnyOptions.txt
