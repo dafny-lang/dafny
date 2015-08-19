@@ -109,6 +109,15 @@ namespace Microsoft.Dafny {
       }
     }
 
+    public static string OneAttributeToString(Attributes a, string nameSubstitution = null) {
+      Contract.Requires(a != null);
+      using (var wr = new System.IO.StringWriter()) {
+        var pr = new Printer(wr);
+        pr.PrintOneAttribute(a, nameSubstitution);
+        return ToStringWithoutNewline(wr);
+      }
+    }
+
     public static string ToStringWithoutNewline(System.IO.StringWriter wr) {
       Contract.Requires(wr != null);
       var sb = wr.GetStringBuilder();
@@ -429,14 +438,19 @@ namespace Microsoft.Dafny {
     public void PrintAttributes(Attributes a) {
       if (a != null) {
         PrintAttributes(a.Prev);
-
-        wr.Write(" {{:{0}", a.Name);
-        if (a.Args != null)
-        {
-          PrintAttributeArgs(a.Args, false);
-        }
-        wr.Write("}");
+        wr.Write(" ");
+        PrintOneAttribute(a);
       }
+    }
+    public void PrintOneAttribute(Attributes a, string nameSubstitution = null) {
+      Contract.Requires(a != null);
+      var name = nameSubstitution ?? a.Name;
+      var usAttribute = name.StartsWith("_");
+      wr.Write("{1}{{:{0}", name, usAttribute ? "/*" : "");
+      if (a.Args != null) {
+        PrintAttributeArgs(a.Args, false);
+      }
+      wr.Write("}}{0}", usAttribute ? "*/" : "");
     }
 
     public void PrintAttributeArgs(List<Expression> args, bool isFollowedBySemicolon) {
@@ -1430,7 +1444,7 @@ namespace Microsoft.Dafny {
         bool parensNeeded = ParensNeeded(opBindingStrength, contextBindingStrength, fragileContext);
 
         if (parensNeeded) { wr.Write("("); }
-        PrintExpr(e.Seq, 0x00, false, false, !parensNeeded && isFollowedBySemicolon, indent);  // BOGUS: fix me
+        PrintExpr(e.Seq, opBindingStrength, false, false, !parensNeeded && isFollowedBySemicolon, indent);
         wr.Write("[");
         if (e.SelectOne) {
           Contract.Assert( e.E0 != null);
@@ -1454,7 +1468,7 @@ namespace Microsoft.Dafny {
         bool parensNeeded = ParensNeeded(opBindingStrength, contextBindingStrength, fragileContext);
 
         if (parensNeeded) { wr.Write("("); }
-        PrintExpr(e.Array, 0x00, false, false, !parensNeeded && isFollowedBySemicolon, indent);  // BOGUS: fix me
+        PrintExpr(e.Array, opBindingStrength, false, false, !parensNeeded && isFollowedBySemicolon, indent);
         string prefix = "[";
         foreach (Expression idx in e.Indices) {
           Contract.Assert(idx != null);
@@ -1478,7 +1492,7 @@ namespace Microsoft.Dafny {
           bool parensNeeded = ParensNeeded(opBindingStrength, contextBindingStrength, fragileContext);
 
           if (parensNeeded) { wr.Write("("); }
-          PrintExpr(e.Seq, 00, false, false, !parensNeeded && isFollowedBySemicolon, indent);  // BOGUS: fix me
+          PrintExpr(e.Seq, opBindingStrength, false, false, !parensNeeded && isFollowedBySemicolon, indent);
           wr.Write("[");
           PrintExpression(e.Index, false);
           wr.Write(" := ");
@@ -1797,9 +1811,12 @@ namespace Microsoft.Dafny {
 
       } else if (expr is LambdaExpr) {
         var e = (LambdaExpr)expr;
-        wr.Write("(");
-        wr.Write(Util.Comma(e.BoundVars, bv => bv.DisplayName + ":" + bv.Type));
-        wr.Write(")");
+        bool parensNeeded = !isRightmost;
+        if (parensNeeded) { wr.Write("("); }
+        var skipSignatureParens = e.BoundVars.Count == 1 && e.BoundVars[0].Type is InferredTypeProxy;
+        if (!skipSignatureParens) { wr.Write("("); }
+        wr.Write(Util.Comma(", ", e.BoundVars, bv => bv.DisplayName + (bv.Type is InferredTypeProxy ? "" : ": " + bv.Type)));
+        if (!skipSignatureParens) { wr.Write(")"); }
         if (e.Range != null) {
           wr.Write(" requires ");
           PrintExpression(e.Range, false);
@@ -1810,6 +1827,7 @@ namespace Microsoft.Dafny {
         }
         wr.Write(e.OneShot ? " -> " : " => ");
         PrintExpression(e.Body, isFollowedBySemicolon);
+        if (parensNeeded) { wr.Write(")"); }
 
       } else if (expr is WildcardExpr) {
         wr.Write("*");

@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using System.Numerics;
 using System.Diagnostics.Contracts;
 using IToken = Microsoft.Boogie.IToken;
-using System.Linq;
 
 namespace Microsoft.Dafny
 {
@@ -229,6 +228,9 @@ namespace Microsoft.Dafny
     public Attributes CloneAttributes(Attributes attrs) {
       if (attrs == null) {
         return null;
+      } else if (attrs.Name.StartsWith("_")) {
+        // skip this attribute, since it would have been produced during resolution
+        return CloneAttributes(attrs.Prev);
       } else {
         return new Attributes(attrs.Name, attrs.Args.ConvertAll(CloneExpr), CloneAttributes(attrs.Prev));
       }
@@ -366,7 +368,6 @@ namespace Microsoft.Dafny
         return new NamedExpr(Tok(e.tok), e.Name, CloneExpr(e.Body));
       } else if (expr is ComprehensionExpr) {
         var e = (ComprehensionExpr)expr;
-
         var tk = Tok(e.tok);
         var bvs = e.BoundVars.ConvertAll(CloneBoundVar);
         var range = CloneExpr(e.Range);
@@ -830,7 +831,7 @@ namespace Microsoft.Dafny
           apply.Args.ForEach(arg => args.Add(CloneExpr(arg)));
           var applyClone = new ApplySuffix(Tok(apply.tok), lhsClone, args);
           var c = new ExprRhs(applyClone);
-          reporter.Info(MessageSource.Cloner, apply.tok, mse.Member.Name);
+          reporter.Info(MessageSource.Cloner, apply.Lhs.tok, mse.Member.Name);
           return c;
         }
       }

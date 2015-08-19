@@ -112,13 +112,6 @@ inductive lemma lemma_7_6(b: bexp, c: com, c': com, s: state, t: state)
   requires big_step(While(b, c), s, t) && equiv_c(c, c')
   ensures big_step(While(b, c'), s, t)
 {
-  if !bval(b, s) {
-    // trivial
-  } else {
-    var s' :| big_step#[_k-1](c, s, s') && big_step#[_k-1](While(b, c), s', t);
-    lemma_7_6(b, c, c', s', t);  // induction hypothesis
-    assert big_step(While(b, c'), s', t);
-  }
 }
 
 // equiv_c is an equivalence relation
@@ -139,27 +132,7 @@ inductive lemma IMP_is_deterministic(c: com, s: state, t: state, t': state)
   requires big_step(c, s, t) && big_step(c, s, t')
   ensures t == t'
 {
-  match c
-  case SKIP =>
-    // trivial
-  case Assign(x, a) =>
-    // trivial
-  case Seq(c0, c1) =>
-    var s' :| big_step#[_k-1](c0, s, s') && big_step#[_k-1](c1, s', t);
-    var s'' :| big_step#[_k-1](c0, s, s'') && big_step#[_k-1](c1, s'', t');
-    IMP_is_deterministic(c0, s, s', s'');
-    IMP_is_deterministic(c1, s', t, t');
-  case If(b, thn, els) =>
-    IMP_is_deterministic(if bval(b, s) then thn else els, s, t, t');
-  case While(b, body) =>
-    if !bval(b, s) {
-      // trivial
-    } else {
-      var s' :| big_step#[_k-1](body, s, s') && big_step#[_k-1](While(b, body), s', t);
-      var s'' :| big_step#[_k-1](body, s, s'') && big_step#[_k-1](While(b, body), s'', t');
-      IMP_is_deterministic(body, s, s', s'');
-      IMP_is_deterministic(While(b, body), s', t, t');
-    }
+  // Dafny totally rocks!
 }
 
 // ----- Small-step semantics -----
@@ -214,12 +187,6 @@ inductive lemma star_transitive_aux(c0: com, s0: state, c1: com, s1: state, c2: 
   requires small_step_star(c0, s0, c1, s1)
   ensures small_step_star(c1, s1, c2, s2) ==> small_step_star(c0, s0, c2, s2)
 {
-  if c0 == c1 && s0 == s1 {
-  } else {
-    var c', s' :|
-      small_step(c0, s0, c', s') && small_step_star#[_k-1](c', s', c1, s1);
-      star_transitive_aux(c', s', c1, s1, c2, s2);
-  }
 }
 
 // The big-step semantics can be simulated by some number of small steps
@@ -240,15 +207,14 @@ inductive lemma BigStep_implies_SmallStepStar(c: com, s: state, t: state)
       small_step_star(Seq(c0, c1), s, Seq(SKIP, c1), s') && small_step_star(Seq(SKIP, c1), s', SKIP, t);
       { lemma_7_13(c0, s, SKIP, s', c1); }
       small_step_star(c0, s, SKIP, s') && small_step_star(Seq(SKIP, c1), s', SKIP, t);
-      { BigStep_implies_SmallStepStar(c0, s, s'); }
+      //{ BigStep_implies_SmallStepStar(c0, s, s'); }
       small_step_star(Seq(SKIP, c1), s', SKIP, t);
       { assert small_step(Seq(SKIP, c1), s', c1, s'); }
       small_step_star(c1, s', SKIP, t);
-      { BigStep_implies_SmallStepStar(c1, s', t); }
+      //{ BigStep_implies_SmallStepStar(c1, s', t); }
       true;
     }
   case If(b, thn, els) =>
-    BigStep_implies_SmallStepStar(if bval(b, s) then thn else els, s, t);
   case While(b, body) =>
     if !bval(b, s) && s == t {
       calc <== {
@@ -271,11 +237,11 @@ inductive lemma BigStep_implies_SmallStepStar(c: com, s: state, t: state)
         small_step_star(Seq(body, While(b, body)), s, Seq(SKIP, While(b, body)), s') && small_step_star(Seq(SKIP, While(b, body)), s', SKIP, t);
         { lemma_7_13(body, s, SKIP, s', While(b, body)); }
         small_step_star(body, s, SKIP, s') && small_step_star(Seq(SKIP, While(b, body)), s', SKIP, t);
-        { BigStep_implies_SmallStepStar(body, s, s'); }
+        //{ BigStep_implies_SmallStepStar(body, s, s'); }
         small_step_star(Seq(SKIP, While(b, body)), s', SKIP, t);
         { assert small_step(Seq(SKIP, While(b, body)), s', While(b, body), s'); }
         small_step_star(While(b, body), s', SKIP, t);
-        { BigStep_implies_SmallStepStar(While(b, body), s', t); }
+        //{ BigStep_implies_SmallStepStar(While(b, body), s', t); }
         true;
       }
     }
@@ -299,7 +265,6 @@ inductive lemma SmallStepStar_implies_BigStep(c: com, s: state, t: state)
   if c == SKIP && s == t {
   } else {
     var c', s' :| small_step(c, s, c', s') && small_step_star#[_k-1](c', s', SKIP, t);
-    SmallStepStar_implies_BigStep(c', s', t);
     SmallStep_plus_BigStep(c, s, c', s', t);
   }
 }
@@ -316,7 +281,6 @@ inductive lemma SmallStep_plus_BigStep(c: com, s: state, c': com, s': state, t: 
       var c0' :| c' == Seq(c0', c1) && small_step(c0, s, c0', s');
       if big_step(c', s', t) {
         var s'' :| big_step(c0', s', s'') && big_step(c1, s'', t);
-        SmallStep_plus_BigStep(c0, s, c0', s', s'');
       }
     }
   case If(b, thn, els) =>

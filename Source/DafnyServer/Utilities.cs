@@ -53,7 +53,7 @@ namespace Microsoft.Dafny {
         Dafny.DafnyOptions.O.UnicodeOutput = true;
         Dafny.DafnyOptions.O.VerifySnapshots = 2;
         Dafny.DafnyOptions.O.VcsCores = Math.Max(1, System.Environment.ProcessorCount - 1);
-        Dafny.DafnyOptions.Clo.Trace = trace;
+        Dafny.DafnyOptions.O.Trace = trace;
       } else {
         throw new ServerException("Invalid command line options");
       }

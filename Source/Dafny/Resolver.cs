@@ -237,9 +237,11 @@ namespace Microsoft.Dafny
       rewriters.Add(new TimeLimitRewriter(reporter));
 
       if (DafnyOptions.O.AutoTriggers) {
-        rewriters.Add(new QuantifierSplittingRewriter(this.reporter));
-        rewriters.Add(new TriggerGeneratingRewriter(this.reporter));
+        rewriters.Add(new QuantifierSplittingRewriter(reporter));
+        rewriters.Add(new TriggerGeneratingRewriter(reporter));
       }
+
+      rewriters.Add(new InductionRewriter(reporter));
 
       systemNameInfo = RegisterTopLevelDecls(prog.BuiltIns.SystemModule, false);
       prog.CompileModules.Add(prog.BuiltIns.SystemModule);
@@ -481,14 +483,7 @@ namespace Microsoft.Dafny
               showIt = ((Method)m).IsRecursive;
             }
             if (showIt) {
-              s += "decreases ";
-              if (m.Decreases.Expressions.Count != 0) {
-                string sep = "";
-                foreach (var d in m.Decreases.Expressions) {
-                  s += sep + Printer.ExprToString(d);
-                  sep = ", ";
-                }
-              }
+              s += "decreases " + Util.Comma(", ", m.Decreases.Expressions, Printer.ExprToString);
               // Note, in the following line, we use the location information for "clbl", not "m".  These
               // are the same, except in the case where "clbl" is a CoLemma and "m" is a prefix lemma.
               reporter.Info(MessageSource.Resolver, clbl.Tok, s);
@@ -5102,15 +5097,7 @@ namespace Microsoft.Dafny
           ResolveStatement(s.Body, bodyMustBeSpecOnly, codeContext);
           loopStack.RemoveAt(loopStack.Count - 1);  // pop
         } else {
-          string text = "havoc {";
-          if (fvs.Count != 0) {
-            string sep = "";
-            foreach (var fv in fvs) {
-              text += sep + fv.Name;
-              sep = ", ";
-            }
-          }
-          text += "};";  // always terminate with a semi-colon
+          string text = "havoc {" + Util.Comma(", ", fvs, fv => fv.Name) + "};";  // always terminate with a semi-colon
           reporter.Info(MessageSource.Resolver, s.Tok, text);
         }
 
@@ -5209,7 +5196,7 @@ namespace Microsoft.Dafny
               // add the conclusion of the calc as a free postcondition
               var result = ((CalcStmt)s0).Result;
               s.Ens.Add(new MaybeFreeExpression(result, true));
-              reporter.Info(MessageSource.Resolver, s.Tok, "ensures " + Printer.ExprToString(result) + ";");
+              reporter.Info(MessageSource.Resolver, s.Tok, "ensures " + Printer.ExprToString(result));
             } else {
               s.Kind = ForallStmt.ParBodyKind.Proof;
               if (s.Body is BlockStmt && ((BlockStmt)s.Body).Body.Count == 0) {
@@ -5408,7 +5395,7 @@ namespace Microsoft.Dafny
       }
       if (dtd != null && memberNamesUsed.Count != dtd.Ctors.Count) {
         // We could complain about the syntactic omission of constructors:
-        //   Error(stmt, "match statement does not cover all constructors");
+        //   reporter.Error(MessageSource.Resolver, stmt, "match statement does not cover all constructors");
         // but instead we let the verifier do a semantic check.
         // So, for now, record the missing constructors:
         foreach (var ctr in dtd.Ctors) {
@@ -5815,15 +5802,7 @@ namespace Microsoft.Dafny
         loopStmt.InferredDecreases = true;
       }
       if (loopStmt.InferredDecreases) {
-        string s = "decreases ";
-        if (theDecreases.Count != 0) {
-          string sep = "";
-          foreach (var d in theDecreases) {
-            s += sep + Printer.ExprToString(d);
-            sep = ", ";
-          }
-        }
-        s += ";";  // always terminate with a semi-colon, even in the case of an empty decreases clause
+        string s = "decreases " + Util.Comma(", ", theDecreases, Printer.ExprToString);
         reporter.Info(MessageSource.Resolver, loopStmt.Tok, s);
       }
     }
@@ -6002,8 +5981,7 @@ namespace Microsoft.Dafny
           s.Bounds = new List<ComprehensionExpr.BoundedPool>();
           foreach (var pair in allBounds) {
             Contract.Assert(1 <= pair.Item2.Count);
-            // TODO: The following could be improved by picking the bound that is most likely to give rise to an efficient compiled program
-            s.Bounds.Add(pair.Item2[0]);
+            s.Bounds.Add(ComprehensionExpr.BoundedPool.GetBest(pair.Item2));
           }
         }
       }
@@ -7899,7 +7877,7 @@ namespace Microsoft.Dafny
       }
       if (dtd != null && memberNamesUsed.Count != dtd.Ctors.Count) {
         // We could complain about the syntactic omission of constructors:
-        //   Error(expr, "match expression does not cover all constructors");
+        //   reporter.Error(MessageSource.Resolver, expr, "match expression does not cover all constructors");
         // but instead we let the verifier do a semantic check.
         // So, for now, record the missing constructors:
         foreach (var ctr in dtd.Ctors) {
@@ -8447,7 +8425,7 @@ namespace Microsoft.Dafny
           receiver = new StaticReceiverExpr(expr.tok, (ClassDecl)member.EnclosingClass);
         } else {
           if (!scope.AllowInstance) {
-            Error(expr.tok, "'this' is not allowed in a 'static' context");
+            reporter.Error(MessageSource.Resolver, expr.tok, "'this' is not allowed in a 'static' context");
             // nevertheless, set "receiver" to a value so we can continue resolution
           }
           receiver = new ImplicitThisExpr(expr.tok);
@@ -8473,7 +8451,7 @@ namespace Microsoft.Dafny
         // ----- 3. static member of the enclosing module
         Contract.Assert(member.IsStatic); // moduleInfo.StaticMembers is supposed to contain only static members of the module's implicit class _default
         if (ReallyAmbiguousThing(ref member)) {
-          Error(expr.tok, "The name {0} ambiguously refers to a static member in one of the modules {1} (try qualifying the member name with the module name)", expr.Name, ((AmbiguousMemberDecl)member).ModuleNames());
+          reporter.Error(MessageSource.Resolver, expr.tok, "The name {0} ambiguously refers to a static member in one of the modules {1} (try qualifying the member name with the module name)", expr.Name, ((AmbiguousMemberDecl)member).ModuleNames());
         } else {
           var receiver = new StaticReceiverExpr(expr.tok, (ClassDecl)member.EnclosingClass);
           r = ResolveExprDotCall(expr.tok, receiver, member, expr.OptTypeArguments, opts.codeContext, allowMethodCall);
@@ -8749,7 +8727,7 @@ namespace Microsoft.Dafny
           // ----- 1. static member of the specified module
           Contract.Assert(member.IsStatic); // moduleInfo.StaticMembers is supposed to contain only static members of the module's implicit class _default
           if (ReallyAmbiguousThing(ref member)) {
-            Error(expr.tok, "The name {0} ambiguously refers to a static member in one of the modules {1} (try qualifying the member name with the module name)", expr.SuffixName, ((AmbiguousMemberDecl)member).ModuleNames());
+            reporter.Error(MessageSource.Resolver, expr.tok, "The name {0} ambiguously refers to a static member in one of the modules {1} (try qualifying the member name with the module name)", expr.SuffixName, ((AmbiguousMemberDecl)member).ModuleNames());
           } else {
             var receiver = new StaticReceiverExpr(expr.tok, (ClassDecl)member.EnclosingClass);
             r = ResolveExprDotCall(expr.tok, receiver, member, expr.OptTypeArguments, opts.codeContext, allowMethodCall);
@@ -9375,136 +9353,148 @@ namespace Microsoft.Dafny
         expr = polarity ? Expression.CreateAnd(c, expr) : Expression.CreateImplies(c, expr);
       }
       for (int j = 0; j < bvars.Count; j++) {
-        var bv = bvars[j];
-        var bounds = new List<ComprehensionExpr.BoundedPool>();
-        if (bv.Type.IsBoolType) {
-          // easy
-          bounds.Add(new ComprehensionExpr.BoolBoundedPool());
-        } else {
-          bool foundBoundsForBv = false;
-          if (bv.Type.IsIndDatatype && bv.Type.AsIndDatatype.HasFinitePossibleValues) {
-            bounds.Add(new ComprehensionExpr.DatatypeBoundedPool(bv.Type.AsIndDatatype));
-            foundBoundsForBv = true;
-          }
-          // Go through the conjuncts of the range expression to look for bounds.
-          Expression lowerBound = null;
-          Expression upperBound = null;
-          if (returnAllBounds && lowerBound != null) {
-            bounds.Add(new ComprehensionExpr.IntBoundedPool(lowerBound, upperBound));
-            lowerBound = null;
-            foundBoundsForBv = true;
-          }
-          foreach (var conjunct in NormalizedConjuncts(expr, polarity)) {
-            var c = conjunct as BinaryExpr;
-            if (c == null) {
-              goto CHECK_NEXT_CONJUNCT;
-            }
-            var e0 = c.E0;
-            var e1 = c.E1;
-            int whereIsBv = SanitizeForBoundDiscovery(bvars, j, c.ResolvedOp, ref e0, ref e1);
-            if (whereIsBv < 0) {
-              goto CHECK_NEXT_CONJUNCT;
-            }
-            switch (c.ResolvedOp) {
-              case BinaryExpr.ResolvedOpcode.InSet:
-                if (whereIsBv == 0) {
-                  bounds.Add(new ComprehensionExpr.SetBoundedPool(e1));
-                  foundBoundsForBv = true;
-                  if (!returnAllBounds) goto CHECK_NEXT_BOUND_VARIABLE;
-                }
-                break;
-              case BinaryExpr.ResolvedOpcode.Subset:
-                if (returnAllBounds) {
-                  if (whereIsBv == 0) {
-                    bounds.Add(new ComprehensionExpr.SubSetBoundedPool(e1));
-                  } else {
-                    bounds.Add(new ComprehensionExpr.SuperSetBoundedPool(e0));
-                  }
-                  foundBoundsForBv = true;
-                }
-                break;
-              case BinaryExpr.ResolvedOpcode.InMultiSet:
-                if (whereIsBv == 0) {
-                  bounds.Add(new ComprehensionExpr.SetBoundedPool(e1));
-                  foundBoundsForBv = true;
-                  if (!returnAllBounds) goto CHECK_NEXT_BOUND_VARIABLE;
-                }
-                break;
-              case BinaryExpr.ResolvedOpcode.InSeq:
-                if (whereIsBv == 0) {
-                  bounds.Add(new ComprehensionExpr.SeqBoundedPool(e1));
-                  foundBoundsForBv = true;
-                  if (!returnAllBounds) goto CHECK_NEXT_BOUND_VARIABLE;
-                }
-                break;
-              case BinaryExpr.ResolvedOpcode.InMap:
-                if (whereIsBv == 0 && e1.Type.AsMapType.Finite) {
-                  bounds.Add(new ComprehensionExpr.MapBoundedPool(e1));
-                  foundBoundsForBv = true;
-                  if (!returnAllBounds) goto CHECK_NEXT_BOUND_VARIABLE;
-                }
-                break;
-              case BinaryExpr.ResolvedOpcode.EqCommon:
-                if (bv.Type is IntType) {
-                  var otherOperand = whereIsBv == 0 ? e1 : e0;
-                  bounds.Add(new ComprehensionExpr.IntBoundedPool(otherOperand, Expression.CreateIncrement(otherOperand, 1)));
-                  foundBoundsForBv = true;
-                  if (!returnAllBounds) goto CHECK_NEXT_BOUND_VARIABLE;
-                } else if (returnAllBounds && bv.Type is SetType) {
-                  var otherOperand = whereIsBv == 0 ? e1 : e0;
-                  bounds.Add(new ComprehensionExpr.SubSetBoundedPool(otherOperand));
-                  foundBoundsForBv = true;
-                }
-                break;
-              case BinaryExpr.ResolvedOpcode.Gt:
-              case BinaryExpr.ResolvedOpcode.Ge:
-                Contract.Assert(false); throw new cce.UnreachableException();  // promised by postconditions of NormalizedConjunct
-              case BinaryExpr.ResolvedOpcode.Lt:
-                if (e0.Type.IsNumericBased(Type.NumericPersuation.Int)) {
-                  if (whereIsBv == 0 && upperBound == null) {
-                    upperBound = e1;  // bv < E
-                  } else if (whereIsBv == 1 && lowerBound == null) {
-                    lowerBound = Expression.CreateIncrement(e0, 1);  // E < bv
-                  }
-                }
-                break;
-              case BinaryExpr.ResolvedOpcode.Le:
-                if (e0.Type.IsNumericBased(Type.NumericPersuation.Int)) {
-                  if (whereIsBv == 0 && upperBound == null) {
-                    upperBound = Expression.CreateIncrement(e1, 1);  // bv <= E
-                  } else if (whereIsBv == 1 && lowerBound == null) {
-                    lowerBound = e0;  // E <= bv
-                  }
-                }
-                break;
-              default:
-                break;
-            }
-            if ((lowerBound != null && upperBound != null) ||
-                (returnAllBounds && (lowerBound != null || upperBound != null))) {
-              // we have found two halves (or, in the case of returnAllBounds, we have found some bound)
-              bounds.Add(new ComprehensionExpr.IntBoundedPool(lowerBound, upperBound));
-              lowerBound = null;
-              upperBound = null;
-              foundBoundsForBv = true;
-              if (!returnAllBounds) goto CHECK_NEXT_BOUND_VARIABLE;
-            }
-          CHECK_NEXT_CONJUNCT: ;
-          }
-          if (!foundBoundsForBv) {
-            // we have checked every conjunct in the range expression and still have not discovered good bounds
-            if (allowAnyIntegers && bv.Type is IntType) {
-              bounds.Add(new AssignSuchThatStmt.WiggleWaggleBound());
-            } else {
-              missingBounds.Add(bv);  // record failing bound variable
-              foundError = true;
-            }
-          }
+        VT bv;
+        List<ComprehensionExpr.BoundedPool> bounds;
+        foundError = DiscoverAuxSingle<VT>(bvars, expr, polarity, returnAllBounds, true, allowAnyIntegers, missingBounds, foundError, j, out bv, out bounds);
+        if (!returnAllBounds && bounds.Count > 1) {
+          var best = ComprehensionExpr.BoundedPool.GetBest(bounds);
+          bounds = new List<ComprehensionExpr.BoundedPool>() { best };
         }
-      CHECK_NEXT_BOUND_VARIABLE: ;  // should goto here only if the bound for the current variable has been discovered (otherwise, return with null from this method)
-      allBounds.Add(new Tuple<VT, List<ComprehensionExpr.BoundedPool>>(bv, bounds));
+
+        allBounds.Add(new Tuple<VT, List<ComprehensionExpr.BoundedPool>>(bv, bounds));
       }
       return foundError ? null : allBounds;
+    }
+
+    private static bool DiscoverAuxSingle<VT>(List<VT> bvars, Expression expr, bool polarity, bool allowPartialBounds, bool returnAllBounds, bool allowAnyIntegers, List<VT> missingBounds, bool foundError, int j, out VT bv, out List<ComprehensionExpr.BoundedPool> bounds) where VT : IVariable {
+      bv = bvars[j];
+      bounds = new List<ComprehensionExpr.BoundedPool>();
+      if (bv.Type.IsBoolType) {
+        // easy
+        bounds.Add(new ComprehensionExpr.BoolBoundedPool());
+      } else {
+        bool foundBoundsForBv = false;
+        if (bv.Type.IsIndDatatype && bv.Type.AsIndDatatype.HasFinitePossibleValues) {
+          bounds.Add(new ComprehensionExpr.DatatypeBoundedPool(bv.Type.AsIndDatatype));
+          foundBoundsForBv = true;
+        }
+        // Go through the conjuncts of the range expression to look for bounds.
+        Expression lowerBound = null;
+        Expression upperBound = null;
+        if ((allowPartialBounds || returnAllBounds) && lowerBound != null) {
+          bounds.Add(new ComprehensionExpr.IntBoundedPool(lowerBound, upperBound));
+          lowerBound = null;
+          foundBoundsForBv = true;
+        }
+        foreach (var conjunct in NormalizedConjuncts(expr, polarity)) {
+          var c = conjunct as BinaryExpr;
+          if (c == null) {
+            goto CHECK_NEXT_CONJUNCT;
+          }
+          var e0 = c.E0;
+          var e1 = c.E1;
+          int whereIsBv = SanitizeForBoundDiscovery(bvars, j, c.ResolvedOp, ref e0, ref e1);
+          if (whereIsBv < 0) {
+            goto CHECK_NEXT_CONJUNCT;
+          }
+          switch (c.ResolvedOp) {
+            case BinaryExpr.ResolvedOpcode.InSet:
+              if (whereIsBv == 0) {
+                bounds.Add(new ComprehensionExpr.SetBoundedPool(e1));
+                foundBoundsForBv = true;
+                if (!returnAllBounds) goto CHECK_NEXT_BOUND_VARIABLE;
+              }
+              break;
+            case BinaryExpr.ResolvedOpcode.Subset:
+              if (returnAllBounds) {
+                if (whereIsBv == 0) {
+                  bounds.Add(new ComprehensionExpr.SubSetBoundedPool(e1));
+                } else {
+                  bounds.Add(new ComprehensionExpr.SuperSetBoundedPool(e0));
+                }
+                foundBoundsForBv = true;
+              }
+              break;
+            case BinaryExpr.ResolvedOpcode.InMultiSet:
+              if (whereIsBv == 0) {
+                bounds.Add(new ComprehensionExpr.SetBoundedPool(e1));
+                foundBoundsForBv = true;
+                if (!returnAllBounds) goto CHECK_NEXT_BOUND_VARIABLE;
+              }
+              break;
+            case BinaryExpr.ResolvedOpcode.InSeq:
+              if (whereIsBv == 0) {
+                bounds.Add(new ComprehensionExpr.SeqBoundedPool(e1));
+                foundBoundsForBv = true;
+                if (!returnAllBounds) goto CHECK_NEXT_BOUND_VARIABLE;
+              }
+              break;
+            case BinaryExpr.ResolvedOpcode.InMap:
+              if (whereIsBv == 0 && e1.Type.AsMapType.Finite) {
+                bounds.Add(new ComprehensionExpr.MapBoundedPool(e1));
+                foundBoundsForBv = true;
+                if (!returnAllBounds) goto CHECK_NEXT_BOUND_VARIABLE;
+              }
+              break;
+            case BinaryExpr.ResolvedOpcode.EqCommon:
+              if (bv.Type is IntType) {
+                var otherOperand = whereIsBv == 0 ? e1 : e0;
+                bounds.Add(new ComprehensionExpr.IntBoundedPool(otherOperand, Expression.CreateIncrement(otherOperand, 1)));
+                foundBoundsForBv = true;
+                if (!returnAllBounds) goto CHECK_NEXT_BOUND_VARIABLE;
+              } else if (returnAllBounds && bv.Type is SetType) {
+                var otherOperand = whereIsBv == 0 ? e1 : e0;
+                bounds.Add(new ComprehensionExpr.SubSetBoundedPool(otherOperand));
+                foundBoundsForBv = true;
+              }
+              break;
+            case BinaryExpr.ResolvedOpcode.Gt:
+            case BinaryExpr.ResolvedOpcode.Ge:
+              Contract.Assert(false); throw new cce.UnreachableException();  // promised by postconditions of NormalizedConjunct
+            case BinaryExpr.ResolvedOpcode.Lt:
+              if (e0.Type.IsNumericBased(Type.NumericPersuation.Int)) {
+                if (whereIsBv == 0 && upperBound == null) {
+                  upperBound = e1;  // bv < E
+                } else if (whereIsBv == 1 && lowerBound == null) {
+                  lowerBound = Expression.CreateIncrement(e0, 1);  // E < bv
+                }
+              }
+              break;
+            case BinaryExpr.ResolvedOpcode.Le:
+              if (e0.Type.IsNumericBased(Type.NumericPersuation.Int)) {
+                if (whereIsBv == 0 && upperBound == null) {
+                  upperBound = Expression.CreateIncrement(e1, 1);  // bv <= E
+                } else if (whereIsBv == 1 && lowerBound == null) {
+                  lowerBound = e0;  // E <= bv
+                }
+              }
+              break;
+            default:
+              break;
+          }
+          if ((lowerBound != null && upperBound != null) ||
+              (allowPartialBounds && (lowerBound != null || upperBound != null))) {
+            // we have found two halves (or, in the case of returnAllBounds, we have found some bound)
+            bounds.Add(new ComprehensionExpr.IntBoundedPool(lowerBound, upperBound));
+            lowerBound = null;
+            upperBound = null;
+            foundBoundsForBv = true;
+            if (!returnAllBounds) goto CHECK_NEXT_BOUND_VARIABLE;
+          }
+        CHECK_NEXT_CONJUNCT: ;
+        }
+        if (!foundBoundsForBv) {
+          // we have checked every conjunct in the range expression and still have not discovered good bounds
+          if (allowAnyIntegers && bv.Type is IntType) {
+            bounds.Add(new AssignSuchThatStmt.WiggleWaggleBound());
+          } else {
+            missingBounds.Add(bv);  // record failing bound variable
+            foundError = true;
+          }
+        }
+      }
+    CHECK_NEXT_BOUND_VARIABLE: ;  // should goto here only if the bound for the current variable has been discovered (otherwise, return with null from this method)
+      return foundError;
     }
 
     static Expression TypeConstraint(IVariable bv, Type ty, ErrorReporter reporter) {
@@ -9777,7 +9767,6 @@ namespace Microsoft.Dafny
 
       if (expr is IdentifierExpr) {
         var e = (IdentifierExpr)expr;
-
         return new HashSet<IVariable>() { e.Var };
 
       } else if (expr is QuantifierExpr) {
@@ -10378,7 +10367,7 @@ namespace Microsoft.Dafny
             // this call is disqualified from being a co-call, because it has a postcondition
             // (a postcondition could be allowed, as long as it does not get to be used with
             // co-recursive calls, because that could be unsound; for example, consider
-            // "ensures false;")
+            // "ensures false")
             if (!dealsWithCodatatypes) {
               e.CoCall = FunctionCallExpr.CoCallResolution.No;
             } else {

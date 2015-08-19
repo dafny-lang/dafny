@@ -1033,13 +1033,13 @@ bool IsType(ref IToken pt) {
 	}
 
 	void Attribute(ref Attributes attrs) {
-		string name;
+		IToken x; string name;
 		var args = new List<Expression>();
 		
 		Expect(45);
 		Expect(21);
-		Expect(1);
-		name = t.val; 
+		NoUSIdent(out x);
+		name = x.val; 
 		if (StartOf(7)) {
 			Expressions(args);
 		}
