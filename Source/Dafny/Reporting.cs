@@ -122,15 +122,15 @@ namespace Microsoft.Dafny {
       Info(source, tok, String.Format(msg, args));
     }
 
-    public string ErrorToString(ErrorLevel header, IToken tok, string msg) {
+    public static string ErrorToString(ErrorLevel header, IToken tok, string msg) {
       return ErrorToString_Internal(": " + header.ToString(), tok.filename, tok.line, tok.col, ": " + msg);
     }
 
-    public string ErrorToString(ErrorLevel header, string filename, int oneBasedLine, int oneBasedColumn, string msg) {
+    public static string ErrorToString(ErrorLevel header, string filename, int oneBasedLine, int oneBasedColumn, string msg) {
       return ErrorToString_Internal(": " + header.ToString(), filename, oneBasedLine, oneBasedColumn, ": " + msg);
     }
 
-    public string ErrorToString_Internal(string header, string filename, int oneBasedLine, int oneBasedColumn, string msg) {
+    public static string ErrorToString_Internal(string header, string filename, int oneBasedLine, int oneBasedColumn, string msg) {
       return String.Format("{0}({1},{2}){3}{4}", filename, oneBasedLine, oneBasedColumn - 1, header, msg ?? "");
     }
   }
