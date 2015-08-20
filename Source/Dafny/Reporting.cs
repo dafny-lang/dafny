@@ -34,21 +34,14 @@ namespace Microsoft.Dafny {
       AllMessages[ErrorLevel.Info] = new List<ErrorMessage>();
     }
 
-    protected bool ShouldDiscard(MessageSource source, ErrorLevel level) {
-      return ((ErrorsOnly && level != ErrorLevel.Error) ||
-              (!DafnyOptions.O.PrintTooltips && level == ErrorLevel.Info));
-    }
-
     // This is the only thing that needs to be overriden
     public virtual bool Message(MessageSource source, ErrorLevel level, IToken tok, string msg) {
-      var discard = ShouldDiscard(source, level);
-
+      bool discard = (ErrorsOnly && level != ErrorLevel.Error) || // Discard non-errors if ErrorsOnly is set
+                     (tok is TokenWrapper && !(tok is NestedToken)); // Discard wrapped tokens, except for nested ones
       if (!discard) {
         AllMessages[level].Add(new ErrorMessage { token = tok, message = msg });
-        return true;
       }
-
-      return false;
+      return !discard;
     }
 
     public int Count(ErrorLevel level) {
