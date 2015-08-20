@@ -2978,6 +2978,7 @@ namespace Microsoft.Dafny {
           TrExpr(b.Seq);
           wr.Write(").Elements) { ");
         } else {
+          // TODO: handle ComprehensionExpr.SubSetBoundedPool
           Contract.Assert(false); throw new cce.UnreachableException();  // unexpected BoundedPool type
         }
         wr.Write("if (");

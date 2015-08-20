@@ -6688,24 +6688,56 @@ namespace Microsoft.Dafny {
       }
       public abstract int Preference(); // higher is better
       
-      public static BoundedPool GetBest(List<BoundedPool> bounds) {
-        Contract.Requires(bounds != null && bounds.Count > 0);
-        var ret = bounds[0];
+      public static BoundedPool GetBest(List<BoundedPool> bounds, bool onlyFiniteBounds) {
+        Contract.Requires(bounds != null);
+        bounds = CombineIntegerBounds(bounds);
+        BoundedPool best = null;
         foreach (var bound in bounds) {
-          if (bound.Preference() > ret.Preference()) {
-            ret = bound;
-          } else {            
-            var retInt = ret as ComprehensionExpr.IntBoundedPool;
-            if (retInt != null && (retInt.LowerBound == null || retInt.UpperBound == null)) {
-              var boundInt = bound as ComprehensionExpr.IntBoundedPool;
-              if (boundInt != null) {
-                ret = new ComprehensionExpr.IntBoundedPool(retInt.LowerBound ?? boundInt.LowerBound, 
-                                                           retInt.UpperBound ?? boundInt.UpperBound);
-              }
-            }         
+          if (!onlyFiniteBounds || bound.IsFinite) {
+            if (best == null || bound.Preference() > best.Preference()) {
+              best = bound;
+            }
           }
         }
-        return ret;
+        return best;
+      }
+      static List<BoundedPool> CombineIntegerBounds(List<BoundedPool> bounds) {
+        var lowerBounds = new List<IntBoundedPool>();
+        var upperBounds = new List<IntBoundedPool>();
+        var others = new List<BoundedPool>();
+        foreach (var b in bounds) {
+          var ib = b as IntBoundedPool;
+          if (ib != null && ib.UpperBound == null) {
+            lowerBounds.Add(ib);
+          } else if (ib != null && ib.LowerBound == null) {
+            upperBounds.Add(ib);
+          } else {
+            others.Add(b);
+          }
+        }
+        // pair up the bounds
+        var n = Math.Min(lowerBounds.Count, upperBounds.Count);
+        for (var i = 0; i < n; i++) {
+          others.Add(new IntBoundedPool(lowerBounds[i].LowerBound, upperBounds[i].UpperBound));
+        }
+        for (var i = n; i < lowerBounds.Count; i++) {
+          others.Add(lowerBounds[i]);
+        }
+        for (var i = n; i < upperBounds.Count; i++) {
+          others.Add(upperBounds[i]);
+        }
+        return others;
+      }
+    }
+    public class ExactBoundedPool : BoundedPool
+    {
+      public readonly Expression E;
+      public ExactBoundedPool(Expression e) {
+        Contract.Requires(e != null);
+        E = e;
+      }
+      public override int Preference() {
+        return 20;  // the best of all bounds
       }
     }
     public class BoolBoundedPool : BoundedPool
@@ -6753,6 +6785,9 @@ namespace Microsoft.Dafny {
       public SuperSetBoundedPool(Expression set) { LowerBound = set; }
       public override int Preference() {
         return 0;
+      }
+      public override bool IsFinite {
+        get { return false; }
       }
     }
     public class MapBoundedPool : BoundedPool
