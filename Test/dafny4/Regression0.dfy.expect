@@ -1,0 +1,4 @@
+Regression0.dfy(7,15): Error: All elements of display must be of the same type (got string, but type of previous elements is int)
+Regression0.dfy(9,28): Error: the type of this variable is underspecified
+Regression0.dfy(11,15): Error: second argument to "in" must be a set, multiset, or sequence with elements of type string, or a map with domain string (instead got ?)
+3 resolution/type errors detected in Regression0.dfy

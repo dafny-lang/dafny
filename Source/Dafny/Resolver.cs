@@ -4574,8 +4574,11 @@ namespace Microsoft.Dafny
 
       } else if (a is CollectionTypeProxy) {
         if (b is CollectionTypeProxy) {
-          a.T = b;
-          return UnifyTypes(((CollectionTypeProxy)a).Arg, ((CollectionTypeProxy)b).Arg);
+          var argUnificationSuccess = UnifyTypes(((CollectionTypeProxy)a).Arg, ((CollectionTypeProxy)b).Arg);
+          if (argUnificationSuccess) {
+            a.T = b;
+          }
+          return argUnificationSuccess;
         } else if (b is OperationTypeProxy) {
           var proxy = (OperationTypeProxy)b;
           if (proxy.AllowSeq && proxy.AllowSetVarieties && proxy.AllowISet) {
