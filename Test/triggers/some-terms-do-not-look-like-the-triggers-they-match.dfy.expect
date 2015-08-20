@@ -1,4 +1,4 @@
-some-terms-do-not-look-like-the-triggers-they-match.dfy(12,17): Warning:  Selected triggers: {s[x]} (loops with {s[x + 1]})
+some-terms-do-not-look-like-the-triggers-they-match.dfy(12,17): Warning: Selected triggers: {s[x]} (loops with {s[x + 1]})
  (!) Suppressing loops would leave this expression without triggers.
 some-terms-do-not-look-like-the-triggers-they-match.dfy(15,17): Warning: For expression {x in s ==> s[x + 1] > 0}:
    Selected triggers: {s[x]} (loops with {s[x + 1]})

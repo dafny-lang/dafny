@@ -137,9 +137,9 @@ namespace Microsoft.Dafny.Triggers {
     private void CommitOne(QuantifierWithTriggers q, bool addHeader) {
       var errorLevel = ErrorLevel.Info;
       var msg = new StringBuilder();
-      var indent = addHeader ? "   " : " "; //FIXME if multiline messages were properly supported, this indentation wouldn't be needed
+      var indent = addHeader ? "  " : "";
 
-      if (!TriggerUtils.NeedsAutoTriggers(q.quantifier)) { //FIXME: matchingloop and autotriggers attributes are passed down to Boogie
+      if (!TriggerUtils.NeedsAutoTriggers(q.quantifier)) { //FIXME: matchingloop, split and autotriggers attributes are passed down to Boogie
         msg.AppendFormat("Not generating triggers for {{{0}}}.", Printer.ExprToString(q.quantifier.Term)).AppendLine(); 
         // FIXME This shouldn't be printed for autoReqs. (see autoReq.dfy)
         // FIXME typeQuantifier?
@@ -156,7 +156,7 @@ namespace Microsoft.Dafny.Triggers {
         AddTriggersToMessage("Rejected triggers:", q.RejectedCandidates, msg, indent, true);
 
 #if QUANTIFIER_WARNINGS
-        string WARN = (msg.Length > 0 ? indent : "") + (DafnyOptions.O.UnicodeOutput ? "⚠ " : "(!) ");
+        string WARN = indent + (DafnyOptions.O.UnicodeOutput ? "⚠ " : "(!) ");
         if (!q.CandidateTerms.Any()) {
           errorLevel = ErrorLevel.Warning;
           msg.Append(WARN).AppendLine("No terms found to trigger on.");
@@ -171,7 +171,9 @@ namespace Microsoft.Dafny.Triggers {
       }
       
       if (msg.Length > 0) {
-        reporter.Message(MessageSource.Rewriter, errorLevel, q.quantifier.tok, msg.ToString().TrimEnd("\r\n".ToCharArray()));
+        // Extra indent added to make it easier to distinguish multiline error messages
+        var msgStr = msg.ToString().Replace(Environment.NewLine, Environment.NewLine + " ").TrimEnd("\r\n ".ToCharArray());
+        reporter.Message(MessageSource.Rewriter, errorLevel, q.quantifier.tok, msgStr);
       }
     }
 
