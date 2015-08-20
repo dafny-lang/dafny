@@ -13,7 +13,11 @@ namespace Microsoft.Dafny.Triggers {
     internal ISet<IVariable> Variables { get; set; }
 
     public override string ToString() {
-      return Printer.ExprToString(OriginalExpr);
+      return Printer.ExprToString(Expr); 
+      // NOTE: Using OriginalExpr here could cause some confusion: 
+      // for example, {a !in b} is a binary expression, yielding 
+      // trigger {a in b}. Saying the trigger is a !in b would be 
+      // rather misleading.
     }
 
     internal static bool Eq(TriggerTerm t1, TriggerTerm t2) {
@@ -45,7 +49,7 @@ namespace Microsoft.Dafny.Triggers {
 
     internal IEnumerable<TriggerMatch> LoopingSubterms(QuantifierExpr quantifier) {
       Contract.Requires(quantifier.SplitQuantifier == null); // Don't call this on a quantifier with a Split clause: it's not a real quantifier
-      var matchingSubterms = MatchingSubterms(quantifier);
+      var matchingSubterms = this.MatchingSubterms(quantifier);
       return matchingSubterms.Where(tm => tm.CouldCauseLoops(Terms));
     }
 

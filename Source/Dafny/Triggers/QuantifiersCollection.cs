@@ -118,7 +118,7 @@ namespace Microsoft.Dafny.Triggers {
           c => !loopingSubterms[c].Any(),
           c => {
             looping.Add(c);
-            c.Annotation = "loops with " + loopingSubterms[c].MapConcat(t => Printer.ExprToString(t.Expr), ", ");
+            c.Annotation = "loops with " + loopingSubterms[c].MapConcat(t => "{" + Printer.ExprToString(t.OriginalExpr) + "}", ", ");
           }).ToList();
 
         q.CouldSuppressLoops = safe.Count > 0;
