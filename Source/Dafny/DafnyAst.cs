@@ -7725,6 +7725,33 @@ namespace Microsoft.Dafny {
     public void Visit(IEnumerable<MaybeFreeExpression> exprs) {
       exprs.Iter(Visit);
     }
+    public void Visit(IEnumerable<FrameExpression> exprs) {
+      exprs.Iter(Visit);
+    }
+    public void Visit(ICallable decl) {
+      if (decl is Function) {
+        Visit((Function)decl);
+      } else if (decl is Method) {
+        Visit((Method)decl);
+      }
+      //FIXME More?
+    }
+    public void Visit(Method method) {
+      Visit(method.Ens);
+      Visit(method.Req);
+      Visit(method.Mod.Expressions);
+      Visit(method.Decreases.Expressions);
+      if (method.Body != null) { Visit(method.Body); }
+      //FIXME More?
+    }
+    public void Visit(Function function) {
+      Visit(function.Ens);
+      Visit(function.Req);
+      Visit(function.Reads);
+      Visit(function.Decreases.Expressions);
+      if (function.Body != null) { Visit(function.Body); }
+      //FIXME More?
+    }
     protected virtual void VisitOneExpr(Expression expr) {
       Contract.Requires(expr != null);
       // by default, do nothing
@@ -7770,6 +7797,33 @@ namespace Microsoft.Dafny {
     }
     public void Visit(IEnumerable<MaybeFreeExpression> exprs, State st) {
       exprs.Iter(e => Visit(e, st));
+    }
+    public void Visit(IEnumerable<FrameExpression> exprs, State st) {
+      exprs.Iter(e => Visit(e, st));
+    }
+    public void Visit(ICallable decl, State st) {
+      if (decl is Function) {
+        Visit((Function)decl, st);
+      } else if (decl is Method) {
+        Visit((Method)decl, st);
+      }
+      //FIXME More?
+    }
+    public void Visit(Method method, State st) {
+      Visit(method.Ens, st);
+      Visit(method.Req, st);
+      Visit(method.Mod.Expressions, st);
+      Visit(method.Decreases.Expressions, st);
+      if (method.Body != null) { Visit(method.Body, st); }
+      //FIXME More?
+    }
+    public void Visit(Function function, State st) {
+      Visit(function.Ens, st);
+      Visit(function.Req, st);
+      Visit(function.Reads, st);
+      Visit(function.Decreases.Expressions, st);
+      if (function.Body != null) { Visit(function.Body, st); }
+      //FIXME More?
     }
     /// <summary>
     /// Visit one expression proper.  This method is invoked before it is invoked on the
