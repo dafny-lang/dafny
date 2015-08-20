@@ -1387,7 +1387,7 @@ namespace Microsoft.Dafny {
         PrintTypeInstantiation(e.OptTypeArguments);
 
       } else if (expr is ExprDotName) {
-        var e = (ExprDotName)expr; //CLEMENT: Check the newly added Implicit parameter to make sure that we don't print "_default." DONE in FunctionCall. Where else?
+        var e = (ExprDotName)expr;
         // determine if parens are needed
         int opBindingStrength = 0x70;
         bool parensNeeded = !e.Lhs.IsImplicit && // KRML: I think that this never holds
@@ -1743,6 +1743,12 @@ namespace Microsoft.Dafny {
 
       } else if (expr is QuantifierExpr) {
         QuantifierExpr e = (QuantifierExpr)expr;
+
+        if (DafnyOptions.O.DafnyPrintResolvedFile != null && e.SplitQuantifier != null) {
+          PrintExpr(e.SplitQuantifierExpression, contextBindingStrength, fragileContext, isRightmost, isFollowedBySemicolon, indent, resolv_count);
+          return;
+        }
+
         bool parensNeeded = !isRightmost;
         if (parensNeeded) { wr.Write("("); }
         wr.Write(e is ForallExpr ? "forall" : "exists");

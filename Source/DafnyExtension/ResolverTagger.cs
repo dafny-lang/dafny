@@ -74,10 +74,10 @@ namespace DafnyLanguage
       switch (err.Category) {
         case ErrorCategory.ProcessError:
         case ErrorCategory.ParseError:
-        case ErrorCategory.ParseWarning:
           return "syntax error";  // COLOR: red
         case ErrorCategory.ResolveError:
           return "compiler error";  // COLOR: blue
+        case ErrorCategory.ParseWarning:
         case ErrorCategory.ResolveWarning:
           return "compiler warning";  // COLOR: blue
         case ErrorCategory.InternalError:

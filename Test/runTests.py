@@ -6,6 +6,7 @@ import shutil
 import argparse
 import operator
 import platform
+from math import floor, ceil
 from enum import Enum
 from time import time, strftime
 from collections import defaultdict
@@ -147,12 +148,12 @@ class Test:
 
     @staticmethod
     def build_report(tests, name):
-        time = strftime("%Y-%m-%d-%H-%M-%S")
+        now = strftime("%Y-%m-%d-%H-%M-%S")
         if name:
             directory, fname = os.path.split(name)
-            name = os.path.join(directory, time + "--" + fname)
+            name = os.path.join(directory, now + "--" + fname)
         else:
-            name = time
+            name = now
 
         with open(name + ".csv", mode='w', newline='') as writer:
             csv_writer = csv.DictWriter(writer, Test.COLUMNS, dialect='excel')
@@ -167,6 +168,25 @@ class Test:
             for row in csv.DictReader(csvfile):  #, fieldnames=Test.COLUMNS):
                 results.append(Test.deserialize(row))
         return results
+
+    @staticmethod
+    def mean_duration(results, margin):
+        durations = sorted(result.duration for result in results
+                           if result.status in (TestStatus.PASSED, TestStatus.FAILED))
+        if len(durations) >= 15:
+            lq = durations[floor(0.25 * len(durations))]
+            hq = durations[ceil(0.85 * len(durations))]
+            iqr = hq - lq
+            filtered = [d for d in durations if (lq - margin * iqr) <= d <= (hq + margin * iqr)]
+            if filtered:
+                avg = sum(durations) / len(durations)
+                trimmed_avg = sum(filtered) / len(filtered)
+                outliers_count = len(durations) - len(filtered)
+                msg = "mean completion time: {:.2f}s".format(avg)
+                if outliers_count > 0:
+                    msg += "; ignoring {} outliers: {:.2f}s".format(outliers_count, trimmed_avg)
+                return " ({})".format(msg)
+        return ""
 
     @staticmethod
     def summarize(results):
@@ -193,7 +213,8 @@ class Test:
                         writer.write("{}\n".format(t.name))
                 debug(Debug.REPORT, "Some tests failed: use [runTests.py failing.lst] to rerun the failing tests")
 
-            debug(Debug.REPORT, "Testing took {:.2f}s on {} thread(s)".format(results[0].suite_time, results[0].njobs))
+            debug(Debug.REPORT, "Testing took {:.2f}s on {} thread(s){}".format(
+                results[0].suite_time, results[0].njobs, Test.mean_duration(results, 1.5)))
 
 
     def run(self):
@@ -231,7 +252,7 @@ class Test:
                 with open(self.temp_output_path, mode='ab') as writer:
                     writer.write(stdout + stderr)
             if stderr != b"":
-                debug(Debug.TRACE, stderr)
+                debug(Debug.TRACE, stderr.decode("utf-8"))
 
             self.update_status()
         except TimeoutExpired:
@@ -470,12 +491,13 @@ def run_tests(args):
         debug(Debug.ERROR, "Testing interrupted")
 
 
-def diff(paths, accept, difftool):
+def diff(paths, force_accept, difftool):
     for path in expand_lsts(paths):
         if not os.path.exists(path):
             debug(Debug.ERROR, "Not found: {}".format(path))
         else:
             test = Test(None, path, [], None)
+            accept = force_accept
 
             if not accept:
                 call([difftool, test.expect_path, test.temp_output_path])

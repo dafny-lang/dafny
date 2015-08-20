@@ -706,21 +706,15 @@ namespace Microsoft.Dafny
   abstract class FixpointCloner : Cloner
   {
     protected readonly Expression k;
-    readonly Resolver resolver;
+    protected readonly ErrorReporter reporter;
     readonly string suffix;
-    protected FixpointCloner(Expression k, Resolver resolver)
+    protected FixpointCloner(Expression k, ErrorReporter reporter)
     {
       Contract.Requires(k != null);
-      Contract.Requires(resolver != null);
+      Contract.Requires(reporter != null);
       this.k = k;
-      this.resolver = resolver;
+      this.reporter = reporter;
       this.suffix = string.Format("#[{0}]", Printer.ExprToString(k));
-    }
-    protected void ReportAdditionalInformation(IToken tok, string s)
-    {
-      Contract.Requires(tok != null);
-      Contract.Requires(s != null);
-      resolver.ReportAdditionalInformation(tok, s + suffix);
     }
   }
 
@@ -736,12 +730,12 @@ namespace Microsoft.Dafny
   {
     readonly bool isCoContext;
     readonly ISet<Expression> friendlyCalls;
-    public FixpointLemmaSpecificationSubstituter(ISet<Expression> friendlyCalls, Expression k, Resolver resolver, bool isCoContext)
-      : base(k, resolver)
+    public FixpointLemmaSpecificationSubstituter(ISet<Expression> friendlyCalls, Expression k, ErrorReporter reporter, bool isCoContext)
+      : base(k, reporter)
     {
       Contract.Requires(friendlyCalls != null);
       Contract.Requires(k != null);
-      Contract.Requires(resolver != null);
+      Contract.Requires(reporter != null);
       this.isCoContext = isCoContext;
       this.friendlyCalls = friendlyCalls;
     }
@@ -761,7 +755,7 @@ namespace Microsoft.Dafny
             args.Add(CloneExpr(arg));
           }
           var fexp = new FunctionCallExpr(Tok(e.tok), e.Name + "#", receiver, e.OpenParen, args);
-          ReportAdditionalInformation(e.tok, e.Name);
+          reporter.Info(MessageSource.Cloner, e.tok, e.Name);
           return fexp;
         }
       } else if (expr is BinaryExpr && isCoContext) {
@@ -772,7 +766,7 @@ namespace Microsoft.Dafny
           var B = CloneExpr(e.E1);
           var teq = new TernaryExpr(Tok(e.tok), op, k, A, B);
           var opString = op == TernaryExpr.Opcode.PrefixEqOp ? "==" : "!=";
-          ReportAdditionalInformation(e.tok, opString);
+          reporter.Info(MessageSource.Cloner, e.tok, opString);
           return teq;
         }
       }
@@ -807,12 +801,12 @@ namespace Microsoft.Dafny
   class FixpointLemmaBodyCloner : FixpointCloner
   {
     readonly FixpointLemma context;
-    public FixpointLemmaBodyCloner(FixpointLemma context, Expression k, Resolver resolver)
-      : base(k, resolver)
+    public FixpointLemmaBodyCloner(FixpointLemma context, Expression k, ErrorReporter reporter)
+      : base(k, reporter)
     {
       Contract.Requires(context != null);
       Contract.Requires(k != null);
-      Contract.Requires(resolver != null);
+      Contract.Requires(reporter != null);
       this.context = context;
     }
     public override AssignmentRhs CloneRHS(AssignmentRhs rhs) {
@@ -837,7 +831,7 @@ namespace Microsoft.Dafny
           apply.Args.ForEach(arg => args.Add(CloneExpr(arg)));
           var applyClone = new ApplySuffix(Tok(apply.tok), lhsClone, args);
           var c = new ExprRhs(applyClone);
-          ReportAdditionalInformation(apply.Lhs.tok, mse.Member.Name);
+          reporter.Info(MessageSource.Cloner, apply.Lhs.tok, mse.Member.Name);
           return c;
         }
       }

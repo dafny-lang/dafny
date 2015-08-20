@@ -30,14 +30,14 @@ namespace Microsoft.Dafny {
     private string fname;
     private string source;
 
-    private Dafny.Errors errors;
+    private readonly Dafny.ErrorReporter reporter;
     private Dafny.Program dafnyProgram;
     private Bpl.Program boogieProgram;
 
     public DafnyHelper(string fname, string source) {
       this.fname = fname;
       this.source = source;
-      this.errors = new Dafny.Errors();
+      this.reporter = new Dafny.ConsoleErrorReporter();
     }
 
     public bool Verify() {
@@ -47,10 +47,10 @@ namespace Microsoft.Dafny {
     private bool Parse() {
       Dafny.ModuleDecl module = new Dafny.LiteralModuleDecl(new Dafny.DefaultModuleDecl(), null);
       Dafny.BuiltIns builtIns = new Dafny.BuiltIns();
-      var success = (Dafny.Parser.Parse(source, fname, fname, module, builtIns, errors) == 0 &&
-                     Dafny.Main.ParseIncludes(module, builtIns, new List<string>(), errors) == null);
+      var success = (Dafny.Parser.Parse(source, fname, fname, module, builtIns, new Dafny.Errors(reporter)) == 0 &&
+                     Dafny.Main.ParseIncludes(module, builtIns, new List<string>(), new Dafny.Errors(reporter)) == null);
       if (success) {
-        dafnyProgram = new Dafny.Program(fname, module, builtIns);
+        dafnyProgram = new Dafny.Program(fname, module, builtIns, reporter);
       }
       return success;
     }
@@ -58,11 +58,11 @@ namespace Microsoft.Dafny {
     private bool Resolve() {
       var resolver = new Dafny.Resolver(dafnyProgram);
       resolver.ResolveProgram(dafnyProgram);
-      return resolver.ErrorCount == 0;
+      return reporter.Count(ErrorLevel.Error) == 0;
     }
 
     private bool Translate() {
-      var translator = new Dafny.Translator() { InsertChecksums = true, UniqueIdPrefix = fname };
+      var translator = new Dafny.Translator(reporter) { InsertChecksums = true, UniqueIdPrefix = fname };
       boogieProgram = translator.Translate(dafnyProgram); // FIXME how are translation errors reported?
       return true;
     }
@@ -74,7 +74,8 @@ namespace Microsoft.Dafny {
         ExecutionEngine.CoalesceBlocks(boogieProgram);
         ExecutionEngine.Inline(boogieProgram);
 
-        switch (ExecutionEngine.InferAndVerify(boogieProgram, new PipelineStatistics(), "ServerProgram", null, DateTime.UtcNow.Ticks.ToString())) { // FIXME check if null is ok for error delegate
+        //FIXME Could capture errors instead of printing them (pass a delegate instead of null)
+        switch (ExecutionEngine.InferAndVerify(boogieProgram, new PipelineStatistics(), "ServerProgram", null, DateTime.UtcNow.Ticks.ToString())) {
           case PipelineOutcome.Done:
           case PipelineOutcome.VerificationCompleted:
             return true;

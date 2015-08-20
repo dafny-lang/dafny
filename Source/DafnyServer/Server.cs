@@ -23,31 +23,38 @@ namespace Microsoft.Dafny {
         VerificationTask.SelfTest();
       } else if (hasArg && File.Exists(arg)) {
         Console.WriteLine("# Reading from {0}", Path.GetFileName(arg));
-        Console.SetIn(new StreamReader(arg));
+        Console.SetIn(new StreamReader(arg, Encoding.UTF8));
         server.Loop();
       } else {
         server.Loop();
       }
     }
 
+    private void SetupConsole() {
+      var utf8 = new UTF8Encoding(false, true);
+      Console.OutputEncoding = utf8;
+      Console.OutputEncoding = utf8;
+      Console.CancelKeyPress += CancelKeyPress;
+    }
+
     public Server() {
       this.running = true;
-      Console.CancelKeyPress += this.CancelKeyPress;
       ExecutionEngine.printer = new DafnyConsolePrinter();
+      SetupConsole();
     }
 
     void CancelKeyPress(object sender, ConsoleCancelEventArgs e) {
-      e.Cancel = true;
+      // e.Cancel = true;
       // FIXME TerminateProver and RunningProverFromCommandLine
-      // Cancel the current verification? TerminateProver() ? Or kill entirely?
+      // Cancel the current verification? TerminateProver()? Or kill entirely?
     }
 
-    static bool EndOfPayload(out string line) {
+    bool EndOfPayload(out string line) {
       line = Console.ReadLine();
       return line == null || line == Interaction.CLIENT_EOM_TAG;
     }
 
-    static string ReadPayload() {
+    string ReadPayload() {
       StringBuilder buffer = new StringBuilder();
       string line = null;
       while (!EndOfPayload(out line)) {

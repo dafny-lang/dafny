@@ -27,20 +27,22 @@ namespace Microsoft.Dafny {
     public List<ModuleDefinition> CompileModules; // filled in during resolution.
                                                   // Contains the definitions to be used for compilation.
 
-    List<AdditionalInformation> _additionalInformation = new List<AdditionalInformation>();
-    public List<AdditionalInformation> AdditionalInformation { get { return _additionalInformation; } }
     public readonly ModuleDecl DefaultModule;
     public readonly ModuleDefinition DefaultModuleDef;
     public readonly BuiltIns BuiltIns;
     public readonly List<TranslationTask> TranslationTasks;
-    public Program(string name, [Captured] ModuleDecl module, [Captured] BuiltIns builtIns) {
+    public readonly ErrorReporter reporter;
+
+    public Program(string name, [Captured] ModuleDecl module, [Captured] BuiltIns builtIns, ErrorReporter reporter) {
       Contract.Requires(name != null);
       Contract.Requires(module != null);
       Contract.Requires(module is LiteralModuleDecl);
+      Contract.Requires(reporter != null);
       FullName = name;
       DefaultModule = module;
       DefaultModuleDef = (DefaultModuleDecl)((LiteralModuleDecl)module).ModuleDef;
       BuiltIns = builtIns;
+      this.reporter = reporter;
       Modules = new List<ModuleDefinition>();
       CompileModules = new List<ModuleDefinition>();
       TranslationTasks = new List<TranslationTask>();
@@ -330,13 +332,13 @@ namespace Microsoft.Dafny {
     /// - if "allowed" contains Int and Args contains one BigInteger literal, return true and set value to the BigInteger literal.  Otherwise,
     /// - if "allowed" contains String and Args contains one string literal, return true and set value to the string literal.  Otherwise,
     /// - if "allowed" contains Expression and Args contains one element, return true and set value to the one element (of type Expression).  Otherwise,
-    /// - return false, leave value unmodified, and call errorReporter with an error string.
+    /// - return false, leave value unmodified, and call reporter with an error string.
     /// </summary>
     public enum MatchingValueOption { Empty, Bool, Int, String, Expression }
-    public static bool ContainsMatchingValue(Attributes attrs, string nm, ref object value, IEnumerable<MatchingValueOption> allowed, Action<string> errorReporter) {
+    public static bool ContainsMatchingValue(Attributes attrs, string nm, ref object value, IEnumerable<MatchingValueOption> allowed, Action<string> reporter) {
       Contract.Requires(nm != null);
       Contract.Requires(allowed != null);
-      Contract.Requires(errorReporter != null);
+      Contract.Requires(reporter != null);
       List<Expression> args = FindExpressions(attrs, nm);
       if (args == null) {
         return false;
@@ -344,7 +346,7 @@ namespace Microsoft.Dafny {
         if (allowed.Contains(MatchingValueOption.Empty)) {
           return true;
         } else {
-          errorReporter("Attribute " + nm + " requires one argument");
+          reporter("Attribute " + nm + " requires one argument");
           return false;
         }
       } else if (args.Count == 1) {
@@ -364,11 +366,11 @@ namespace Microsoft.Dafny {
           value = arg;
           return true;
         } else {
-          errorReporter("Attribute " + nm + " expects an argument in one of the following categories: " + String.Join(", ", allowed));
+          reporter("Attribute " + nm + " expects an argument in one of the following categories: " + String.Join(", ", allowed));
           return false;
         }
       } else {
-        errorReporter("Attribute " + nm + " cannot have more than one argument");
+        reporter("Attribute " + nm + " cannot have more than one argument");
         return false;
       }
     }
@@ -1550,11 +1552,6 @@ namespace Microsoft.Dafny {
       set {
         Contract.Requires(Parent == null);  // set it only once
         Contract.Requires(value != null);
-        // BUGBUG:  The following line is a workaround to tell the verifier that 'value' is not of an Immutable type.
-        // A proper solution would be to be able to express that in the program (in a specification or attribute) or
-        // to be able to declare 'parent' as [PeerOrImmutable].
-        Contract.Requires(value is TopLevelDecl || value is Function || value is Method || value is DatatypeCtor || value is QuantifierExpr);
-        //modifies parent;
         parent = value;
       }
     }
@@ -6550,6 +6547,15 @@ namespace Microsoft.Dafny {
       }
     }
 
+    /// <summary>
+    /// Returns a resolved binary expression
+    /// </summary>
+    public BinaryExpr(Boogie.IToken tok, BinaryExpr.ResolvedOpcode rop, Expression e0, Expression e1)
+    : this(tok, BinaryExpr.ResolvedOp2SyntacticOp(rop), e0, e1) {
+      ResolvedOp = rop;
+      Type = Type.Bool;
+    }
+
     public override IEnumerable<Expression> SubExpressions {
       get {
         yield return E0;
@@ -6844,13 +6850,16 @@ namespace Microsoft.Dafny {
   }
 
   public abstract class QuantifierExpr : ComprehensionExpr, TypeParameter.ParentType {
+    private readonly int UniqueId;
     public List<TypeParameter> TypeArgs;
     private static int currentQuantId = -1;
-    static int FreshQuantId()
-    {
+
+    protected abstract BinaryExpr.ResolvedOpcode SplitResolvedOp { get; }
+
+    static int FreshQuantId() {
       return System.Threading.Interlocked.Increment(ref currentQuantId);
     }
-    private readonly int UniqueId;
+    
     public string FullName {
       get {
         return "q$" + UniqueId;
@@ -6877,10 +6886,49 @@ namespace Microsoft.Dafny {
       this.TypeArgs = tvars;
       this.UniqueId = FreshQuantId();
     }
-    public abstract Expression LogicalBody();
-  }
 
+    private Expression SplitQuantifierToExpression() {
+      Contract.Requires(SplitQuantifier != null && SplitQuantifier.Any());
+      Expression accumulator = SplitQuantifier[0];
+      for (int tid = 1; tid < SplitQuantifier.Count; tid++) {
+        accumulator = new BinaryExpr(Term.tok, SplitResolvedOp, accumulator, SplitQuantifier[tid]);
+      }
+      return accumulator;
+    }
+
+    private List<Expression> _SplitQuantifier;
+    public List<Expression> SplitQuantifier {
+      get {
+        return _SplitQuantifier;
+      }
+      set {
+        _SplitQuantifier = value;
+        SplitQuantifierExpression = SplitQuantifierToExpression();
+      }
+    }
+
+    internal Expression SplitQuantifierExpression { get; private set; }
+
+    public virtual Expression LogicalBody(bool bypassSplitQuantifier = false) {
+      // Don't call this on a quantifier with a Split clause: it's not a real quantifier. The only exception is the Compiler.
+      Contract.Requires(bypassSplitQuantifier || SplitQuantifier == null);
+      throw new cce.UnreachableException(); // This body is just here for the "Requires" clause
+    }
+
+    public override IEnumerable<Expression> SubExpressions {
+      get {
+        if (SplitQuantifier == null) {
+          return base.SubExpressions;
+        } else {
+          return SplitQuantifier;
+        }
+      }
+    }
+  }
+  
   public class ForallExpr : QuantifierExpr {
+    protected override BinaryExpr.ResolvedOpcode SplitResolvedOp { get { return BinaryExpr.ResolvedOpcode.And; } }
+
     public ForallExpr(IToken tok, List<BoundVar> bvars, Expression range, Expression term, Attributes attrs)
       : this(tok, new List<TypeParameter>(), bvars, range, term, attrs) {
       Contract.Requires(cce.NonNullElements(bvars));
@@ -6893,7 +6941,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(tok != null);
       Contract.Requires(term != null);
     }
-    public override Expression LogicalBody() {
+    public override Expression LogicalBody(bool bypassSplitQuantifier = false) {
       if (Range == null) {
         return Term;
       }
@@ -6905,6 +6953,8 @@ namespace Microsoft.Dafny {
   }
 
   public class ExistsExpr : QuantifierExpr {
+    protected override BinaryExpr.ResolvedOpcode SplitResolvedOp { get { return BinaryExpr.ResolvedOpcode.Or; } }
+
     public ExistsExpr(IToken tok, List<BoundVar> bvars, Expression range, Expression term, Attributes attrs)
       : this(tok, new List<TypeParameter>(), bvars, range, term, attrs) {
       Contract.Requires(cce.NonNullElements(bvars));
@@ -6917,7 +6967,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(tok != null);
       Contract.Requires(term != null);
     }
-    public override Expression LogicalBody() {
+    public override Expression LogicalBody(bool bypassSplitQuantifier = false) {
       if (Range == null) {
         return Term;
       }
@@ -7695,6 +7745,21 @@ namespace Microsoft.Dafny {
       stmt.SubStatements.Iter(Visit);
       VisitOneStmt(stmt);
     }
+    public void Visit(IEnumerable<Expression> exprs) {
+      exprs.Iter(Visit);
+    }
+    public void Visit(IEnumerable<Statement> stmts) {
+      stmts.Iter(Visit);
+    }
+    public void Visit(MaybeFreeExpression expr) {
+      Visit(expr.E);
+    }
+    public void Visit(FrameExpression expr) {
+      Visit(expr.E);
+    }
+    public void Visit(IEnumerable<MaybeFreeExpression> exprs) {
+      exprs.Iter(Visit);
+    }
     protected virtual void VisitOneExpr(Expression expr) {
       Contract.Requires(expr != null);
       // by default, do nothing
@@ -7725,6 +7790,21 @@ namespace Microsoft.Dafny {
         stmt.SubExpressions.Iter(e => Visit(e, st));
         stmt.SubStatements.Iter(s => Visit(s, st));
       }
+    }
+    public void Visit(IEnumerable<Expression> exprs, State st) {
+      exprs.Iter(e => Visit(e, st));
+    }
+    public void Visit(IEnumerable<Statement> stmts, State st) {
+      stmts.Iter(e => Visit(e, st));
+    }
+    public void Visit(MaybeFreeExpression expr, State st) {
+      Visit(expr.E, st);
+    }
+    public void Visit(FrameExpression expr, State st) {
+      Visit(expr.E, st);
+    }
+    public void Visit(IEnumerable<MaybeFreeExpression> exprs, State st) {
+      exprs.Iter(e => Visit(e, st));
     }
     /// <summary>
     /// Visit one expression proper.  This method is invoked before it is invoked on the

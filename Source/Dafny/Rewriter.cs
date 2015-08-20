@@ -6,24 +6,25 @@ using IToken = Microsoft.Boogie.IToken;
 
 namespace Microsoft.Dafny
 {
-  [ContractClass(typeof(IRewriterContracts))]
-  public interface IRewriter
+  public abstract class IRewriter
   {
-    void PreResolve(ModuleDefinition m);
-    void PostResolve(ModuleDefinition m);
+    protected readonly ErrorReporter reporter;
+
+    public IRewriter(ErrorReporter reporter) {
+      Contract.Requires(reporter != null);
+      this.reporter = reporter;
+    }
+
+    internal virtual void PreResolve(ModuleDefinition m) {
+      Contract.Requires(m != null);
+    }
+
+    internal virtual void PostResolve(ModuleDefinition m) {
+      Contract.Requires(m != null);
+    }
+
     // After SCC/Cyclicity/Recursivity analysis:
-    void PostCyclicityResolve(ModuleDefinition m);
-  }
-  [ContractClassFor(typeof(IRewriter))]
-  abstract class IRewriterContracts : IRewriter
-  {
-    public void PreResolve(ModuleDefinition m) {
-      Contract.Requires(m != null);
-    }
-    public void PostResolve(ModuleDefinition m) {
-      Contract.Requires(m != null);
-    }
-    public void PostCyclicityResolve(ModuleDefinition m) {
+    internal virtual void PostCyclicityResolve(ModuleDefinition m) {
       Contract.Requires(m != null);
     }
   }
@@ -37,33 +38,65 @@ namespace Microsoft.Dafny
     }
   }
 
-  public class TriggersRewriter : IRewriter {
-    Resolver Resolver;
-
-    internal TriggersRewriter(Resolver resolver) {
-      Contract.Requires(resolver != null);
-      this.Resolver = resolver;
+  public class TriggerGeneratingRewriter : IRewriter {
+    internal TriggerGeneratingRewriter(ErrorReporter reporter) : base(reporter) {
+      Contract.Requires(reporter != null);
     }
 
-    public void PreResolve(ModuleDefinition m) { }
-
-    public void PostResolve(ModuleDefinition m) {
+    internal override void PostCyclicityResolve(ModuleDefinition m) {
+      var finder = new Triggers.QuantifierCollector(reporter);
+        
       foreach (var decl in ModuleDefinition.AllCallables(m.TopLevelDecls)) {
         if (decl is Function) {
           var function = (Function)decl;
-          TriggerGenerator.AddTriggers(function.Ens, Resolver);
-          TriggerGenerator.AddTriggers(function.Req, Resolver);
-          TriggerGenerator.AddTriggers(function.Body, Resolver);
+          finder.Visit(function.Ens, null);
+          finder.Visit(function.Req, null);
+          if (function.Body != null) {
+            finder.Visit(function.Body, null);
+          }
         } else if (decl is Method) {
           var method = (Method)decl;
-          TriggerGenerator.AddTriggers(method.Ens, Resolver);
-          TriggerGenerator.AddTriggers(method.Req, Resolver);
-          TriggerGenerator.AddTriggers(method.Body, Resolver);
+          finder.Visit(method.Ens, null);
+          finder.Visit(method.Req, null);
+          if (method.Body != null) {
+            finder.Visit(method.Body, null);
+          }
+        }
+      }
+      
+      var triggersCollector = new Triggers.TriggersCollector();
+      foreach (var quantifierCollection in finder.quantifierCollections) {
+        quantifierCollection.ComputeTriggers(triggersCollector);
+        quantifierCollection.CommitTriggers();
+      }
+    }
+  }
+
+  internal class QuantifierSplittingRewriter : IRewriter {
+    internal QuantifierSplittingRewriter(ErrorReporter reporter) : base(reporter) {
+      Contract.Requires(reporter != null);
+    }
+
+    internal override void PostResolve(ModuleDefinition m) {
+      var splitter = new Triggers.QuantifierSplitter();
+      foreach (var decl in ModuleDefinition.AllCallables(m.TopLevelDecls)) {
+        if (decl is Function) {
+          var function = (Function)decl;
+          splitter.Visit(function.Ens);
+          splitter.Visit(function.Req);
+          if (function.Body != null) {
+            splitter.Visit(function.Body);
+          }
+        } else if (decl is Method) {
+          var method = (Method)decl;
+          splitter.Visit(method.Ens);
+          splitter.Visit(method.Req);
+          if (method.Body != null) {
+            splitter.Visit(method.Body);
+          }
         }
       }
     }
-
-    public void PostCyclicityResolve(ModuleDefinition m) { }
   }
 
   /// <summary>
@@ -106,7 +139,12 @@ namespace Microsoft.Dafny
   /// </summary>
   public class AutoContractsRewriter : IRewriter
   {
-    public void PreResolve(ModuleDefinition m) {
+    public AutoContractsRewriter(ErrorReporter reporter)
+      : base(reporter) {
+      Contract.Requires(reporter != null);
+    }
+
+    internal override void PreResolve(ModuleDefinition m) {
       foreach (var d in m.TopLevelDecls) {
         bool sayYes = true;
         if (d is ClassDecl && Attributes.ContainsBool(d.Attributes, "autocontracts", ref sayYes) && sayYes) {
@@ -162,16 +200,13 @@ namespace Microsoft.Dafny
       }
     }
 
-    public void PostResolve(ModuleDefinition m) {
+    internal override void PostResolve(ModuleDefinition m) {
       foreach (var d in m.TopLevelDecls) {
         bool sayYes = true;
         if (d is ClassDecl && Attributes.ContainsBool(d.Attributes, "autocontracts", ref sayYes) && sayYes) {
           ProcessClassPostResolve((ClassDecl)d);
         }
       }
-    }
-
-    public void PostCyclicityResolve(ModuleDefinition m) { 
     }
 
     void ProcessClassPostResolve(ClassDecl cl) {
@@ -416,20 +451,20 @@ namespace Microsoft.Dafny
   /// specifically asks to see it via the reveal_foo() lemma
   /// </summary>
   public class OpaqueFunctionRewriter : IRewriter {
-    readonly ResolutionErrorReporter reporter;
     protected Dictionary<Function, Function> fullVersion; // Given an opaque function, retrieve the full
     protected Dictionary<Function, Function> original;    // Given a full version of an opaque function, find the original opaque version
     protected Dictionary<Lemma, Function> revealOriginal; // Map reveal_* lemmas back to their original functions
 
-    public OpaqueFunctionRewriter(ResolutionErrorReporter reporter)
-      : base() {
-      this.reporter = reporter;
+    public OpaqueFunctionRewriter(ErrorReporter reporter)
+      : base(reporter) {
+      Contract.Requires(reporter != null);
+
       fullVersion = new Dictionary<Function, Function>();
       original = new Dictionary<Function, Function>();
       revealOriginal = new Dictionary<Lemma, Function>();
     }
 
-    public void PreResolve(ModuleDefinition m) {
+    internal override void PreResolve(ModuleDefinition m) {
       foreach (var d in m.TopLevelDecls) {
         if (d is ClassDecl) {
           DuplicateOpaqueClassFunctions((ClassDecl)d);
@@ -437,7 +472,7 @@ namespace Microsoft.Dafny
       }
     }    
 
-    public void PostResolve(ModuleDefinition m) {
+    internal override void PostResolve(ModuleDefinition m) {
       // Fix up the ensures clause of the full version of the function,
       // since it may refer to the original opaque function      
       foreach (var fn in ModuleDefinition.AllFunctions(m.TopLevelDecls)) {        
@@ -462,7 +497,7 @@ namespace Microsoft.Dafny
       }
     }
 
-    public void PostCyclicityResolve(ModuleDefinition m) {
+    internal override void PostCyclicityResolve(ModuleDefinition m) {
       // Add layer quantifier if the function is recursive 
       foreach (var decl in ModuleDefinition.AllCallables(m.TopLevelDecls)) {
         if (decl is Lemma) {
@@ -507,7 +542,7 @@ namespace Microsoft.Dafny
           if (!Attributes.Contains(f.Attributes, "opaque")) {
             // Nothing to do
           } else if (f.IsProtected) {
-            reporter.Error(f.tok, ":opaque is not allowed to be applied to protected functions (this will be allowed when the language introduces 'opaque'/'reveal' as keywords)");
+            reporter.Error(MessageSource.Rewriter, f.tok, ":opaque is not allowed to be applied to protected functions (this will be allowed when the language introduces 'opaque'/'reveal' as keywords)");
           } else if (!RefinementToken.IsInherited(f.tok, c.Module)) {
             // Create a copy, which will be the internal version with a full body
             // which will allow us to verify that the ensures are true
@@ -721,19 +756,16 @@ namespace Microsoft.Dafny
   /// </summary>
   public class AutoReqFunctionRewriter : IRewriter {
     Function parentFunction;
-    Resolver resolver;
     OpaqueFunctionRewriter opaqueInfo;
     bool containsMatch; // TODO: Track this per-requirement, rather than per-function
 
-    public AutoReqFunctionRewriter(Resolver r, OpaqueFunctionRewriter o) {
-      this.resolver = r;
+    public AutoReqFunctionRewriter(ErrorReporter reporter, OpaqueFunctionRewriter o)
+      : base(reporter) {
+      Contract.Requires(reporter != null);
       this.opaqueInfo = o;
     }
 
-    public void PreResolve(ModuleDefinition m) { 
-    }    
-
-    public void PostResolve(ModuleDefinition m) {
+    internal override void PostResolve(ModuleDefinition m) {
       var components = m.CallGraph.TopologicallySortedComponents();
 
       foreach (var scComponent in components) {  // Visit the call graph bottom up, so anything we call already has its prequisites calculated
@@ -806,9 +838,6 @@ namespace Microsoft.Dafny
       }
     }
 
-    public void PostCyclicityResolve(ModuleDefinition m) { 
-    }
-
     Expression subVars(List<Formal> formals, List<Expression> values, Expression e, Expression f_this) {
       Contract.Assert(formals != null);
       Contract.Assert(values != null);
@@ -839,7 +868,7 @@ namespace Microsoft.Dafny
       }
 
       if (!tip.Equals("")) {
-        resolver.ReportAdditionalInformation(f.tok, tip);
+        reporter.Info(MessageSource.Rewriter, f.tok, tip);
         if (DafnyOptions.O.AutoReqPrintFile != null) {
           using (System.IO.TextWriter writer = new System.IO.StreamWriter(DafnyOptions.O.AutoReqPrintFile, true)) {
             writer.WriteLine(f.Name);
@@ -866,7 +895,7 @@ namespace Microsoft.Dafny
       }
 
       if (!tip.Equals("")) {
-        resolver.ReportAdditionalInformation(method.tok, tip);
+        reporter.Info(MessageSource.Rewriter, method.tok, tip);
         if (DafnyOptions.O.AutoReqPrintFile != null) {
           using (System.IO.TextWriter writer = new System.IO.StreamWriter(DafnyOptions.O.AutoReqPrintFile, true)) {
             writer.WriteLine(method.Name);
@@ -1061,7 +1090,7 @@ namespace Microsoft.Dafny
             Expression allReqsSatisfied = andify(e.Term.tok, auto_reqs);
             Expression allReqsSatisfiedAndTerm = Expression.CreateAnd(allReqsSatisfied, e.Term);
             e.UpdateTerm(allReqsSatisfiedAndTerm);
-            resolver.ReportAdditionalInformation(e.tok, "autoreq added (" + Printer.ExtendedExprToString(allReqsSatisfied) + ") &&");
+            reporter.Info(MessageSource.Rewriter, e.tok, "autoreq added (" + Printer.ExtendedExprToString(allReqsSatisfied) + ") &&");
         }
       } else if (expr is SetComprehension) {
         var e = (SetComprehension)expr;
@@ -1108,7 +1137,12 @@ namespace Microsoft.Dafny
   /// </summary>
   public class TimeLimitRewriter : IRewriter
   {
-    public void PreResolve(ModuleDefinition m) {
+    public TimeLimitRewriter(ErrorReporter reporter)
+      : base(reporter) {
+      Contract.Requires(reporter != null);
+    }
+
+    internal override void PreResolve(ModuleDefinition m) {
       foreach (var d in m.TopLevelDecls) {
         if (d is ClassDecl) {
           var c = (ClassDecl)d;
@@ -1136,16 +1170,6 @@ namespace Microsoft.Dafny
         }
       }
     }
-
-    public void PostResolve(ModuleDefinition m)
-    {
-      // Nothing to do here
-    }
-
-    public void PostCyclicityResolve(ModuleDefinition m) {
-      // Nothing to do here
-    }
-
   }
 
 
@@ -1269,18 +1293,12 @@ namespace Microsoft.Dafny
 
   // ===========================================================================================
 
-  public class InductionRewriter : IRewriter
-  {
-    Resolver Resolver;
-    internal InductionRewriter(Resolver resolver) {
-      Contract.Requires(resolver != null);
-      this.Resolver = resolver;
+  public class InductionRewriter : IRewriter {
+    internal InductionRewriter(ErrorReporter reporter) : base(reporter) {
+      Contract.Requires(reporter != null);
     }
-    public void PreResolve(ModuleDefinition m) {
-    }
-    public void PostResolve(ModuleDefinition m) {
-    }
-    public void PostCyclicityResolve(ModuleDefinition m) {
+
+    internal override void PostCyclicityResolve(ModuleDefinition m) {
       if (DafnyOptions.O.Induction == 0) {
         // Don't bother inferring :induction attributes.  This will also have the effect of not warning about malformed :induction attributes
       } else {
@@ -1316,6 +1334,7 @@ namespace Microsoft.Dafny
         }
       }
     }
+
     void ProcessMethodExpressions(Method method) {
       Contract.Requires(method != null);
       var visitor = new Induction_Visitor(this);
@@ -1325,6 +1344,7 @@ namespace Microsoft.Dafny
         visitor.Visit(method.Body);
       }
     }
+
     void ProcessFunctionExpressions(Function function) {
       Contract.Requires(function != null);
       var visitor = new Induction_Visitor(this);
@@ -1334,6 +1354,7 @@ namespace Microsoft.Dafny
         visitor.Visit(function.Body);
       }
     }
+
     void ComputeLemmaInduction(Method method) {
       Contract.Requires(method != null);
       if (method.Body != null && method.IsGhost && method.Mod.Expressions.Count == 0 && method.Outs.Count == 0 && !(method is FixpointLemma)) {
@@ -1343,6 +1364,7 @@ namespace Microsoft.Dafny
         ComputeInductionVariables(method.tok, method.Ins, specs, method, ref method.Attributes);
       }
     }
+
     void ComputeInductionVariables<VarType>(IToken tok, List<VarType> boundVars, List<Expression> searchExprs, Method lemma, ref Attributes attributes) where VarType : class, IVariable {
       Contract.Requires(tok != null);
       Contract.Requires(boundVars != null);
@@ -1383,12 +1405,12 @@ namespace Microsoft.Dafny
               continue;
             }
             if (0 <= boundVars.FindIndex(v => v == ie.Var)) {
-              Resolver.Warning(arg.tok, "{0}s given as :induction arguments must be given in the same order as in the {1}; ignoring attribute",
+              reporter.Warning(MessageSource.Rewriter, arg.tok, "{0}s given as :induction arguments must be given in the same order as in the {1}; ignoring attribute",
                 lemma != null ? "lemma parameter" : "bound variable", lemma != null ? "lemma" : "quantifier");
               return;
             }
           }
-          Resolver.Warning(arg.tok, "invalid :induction attribute argument; expected {0}{1}; ignoring attribute",
+          reporter.Warning(MessageSource.Rewriter, arg.tok, "invalid :induction attribute argument; expected {0}{1}; ignoring attribute",
             i == 0 ? "'false' or 'true' or " : "",
             lemma != null ? "lemma parameter" : "bound variable");
           return;
@@ -1413,7 +1435,7 @@ namespace Microsoft.Dafny
         if (lemma is PrefixLemma) {
           s = lemma.Name + " " + s;
         }
-        Resolver.ReportAdditionalInformation(tok, s);
+        reporter.Info(MessageSource.Rewriter, tok, s);
       }
     }
     class Induction_Visitor : BottomUpVisitor
@@ -1425,7 +1447,7 @@ namespace Microsoft.Dafny
       }
       protected override void VisitOneExpr(Expression expr) {
         var q = expr as QuantifierExpr;
-        if (q != null) {
+        if (q != null && q.SplitQuantifier == null) {
           IndRewriter.ComputeInductionVariables(q.tok, q.BoundVars, new List<Expression>() { q.LogicalBody() }, null, ref q.Attributes);
         }
       }
@@ -1610,4 +1632,5 @@ namespace Microsoft.Dafny
     }
   }
 }
+
 

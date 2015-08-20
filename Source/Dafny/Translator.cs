@@ -93,9 +93,11 @@ namespace Microsoft.Dafny {
   }
 
   public class Translator {
+    ErrorReporter reporter;
 
     [NotDelayed]
-    public Translator() {
+    public Translator(ErrorReporter reporter) {
+      this.reporter = reporter;
       InsertChecksums = 0 < CommandLineOptions.Clo.VerifySnapshots;
       Bpl.Program boogieProgram = ReadPrelude();
       if (boogieProgram != null) {
@@ -3583,7 +3585,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(tok != null);
       Contract.Ensures(Contract.Result<Bpl.Cmd>() != null);
       var col = tok.col + (isEndToken ? tok.val.Length : 0);
-      string description = Util.ReportIssueToString_Bare(additionalInfo == null ? "" : ": ", tok.filename, tok.line, tok.col, additionalInfo ?? "");
+      string description = reporter.ErrorToString_Internal(additionalInfo == null ? "" : ": ", tok.filename, tok.line, tok.col, additionalInfo ?? "");
       QKeyValue kv = new QKeyValue(tok, "captureState", new List<object>() { description }, null);
       return new Bpl.AssumeCmd(tok, Bpl.Expr.True, kv);
     }
@@ -4435,6 +4437,11 @@ namespace Microsoft.Dafny {
         var e = (ComprehensionExpr)expr;
         var canCall = CanCallAssumption(e.Term, etran);
         var q = e as QuantifierExpr;
+
+        if (q != null && q.SplitQuantifier != null) {
+          return CanCallAssumption(q.SplitQuantifierExpression, etran);
+        }
+
         var tyvars = MkTyParamBinders(q != null ? q.TypeArgs : new List<TypeParameter>());
         if (e.Range != null) {
           canCall = BplAnd(CanCallAssumption(e.Range, etran), BplImp(etran.TrExpr(e.Range), canCall));
@@ -4728,6 +4735,12 @@ namespace Microsoft.Dafny {
         // If the quantifier is universal, then continue as:
         //   assume (\forall x :: body(x));
         // Create local variables corresponding to the type arguments:
+
+        if (e.SplitQuantifier != null) {
+          CheckWellformedAndAssume(e.SplitQuantifierExpression, options, locals, builder, etran);
+          return;
+        }
+
         var typeArgumentCopies = Map(e.TypeArgs, tp => e.Refresh(tp, CurrentIdGenerator));
         var typeMap = Util.Dict(e.TypeArgs, Map(typeArgumentCopies, tp => (Type)new UserDefinedType(tp)));
         var newLocals = Map(typeArgumentCopies, tp => new Bpl.LocalVariable(tp.tok, new TypedIdent(tp.tok, nameTypeParam(tp), predef.Ty)));
@@ -5262,6 +5275,11 @@ namespace Microsoft.Dafny {
         var e = (ComprehensionExpr)expr;
         var q = e as QuantifierExpr;
         var lam = e as LambdaExpr;
+
+        if (q != null && q.SplitQuantifier != null) {
+          CheckWellformedWithResult(q.SplitQuantifierExpression, options, result, resultType, locals, builder, etran);
+          return;
+        }
 
         var typeMap = new Dictionary<TypeParameter, Type>();
         var copies = new List<TypeParameter>();
@@ -6407,7 +6425,7 @@ namespace Microsoft.Dafny {
       }
 
       // Make the call
-      builder.Add(new Bpl.CallCmd(method.tok, method.FullSanitizedName, ins, outs));
+      builder.Add(Call(method.tok, method.FullSanitizedName, ins, outs));
 
       for (int i = 0; i < m.Outs.Count; i++) {
         var bLhs = m.Outs[i];
@@ -6436,6 +6454,18 @@ namespace Microsoft.Dafny {
       sink.AddTopLevelDeclaration(impl);
 
       Reset();
+    }
+
+    private static CallCmd Call(IToken tok, string methodName, List<Expr> ins, List<Bpl.IdentifierExpr> outs) {
+      Contract.Requires(tok != null);
+      Contract.Requires(methodName != null);
+      Contract.Requires(ins != null);
+      Contract.Requires(outs != null);
+
+      CallCmd call;
+      call = new CallCmd(tok, methodName, ins, outs);
+      // CLEMENT enable this: call.ErrorData = "possible violation of function precondition";
+      return call;
     }
 
     private static QKeyValue ErrorMessageAttribute(IToken t, string error) {
@@ -7929,13 +7959,6 @@ namespace Microsoft.Dafny {
       }
     }
 
-    //CLEMENT: Remove
-    //public static Expr PrintAndDie(Expr expr, [System.Runtime.CompilerServices.CallerMemberName] string caller = "", [System.Runtime.CompilerServices.CallerLineNumber] int linum = 0) {
-    //  Console.Error.WriteLine("In {0} at line {1}: {2}", caller, linum, expr.ToString());
-    //  Environment.Exit(1);
-    //  return expr;
-    //}
-
     /// <summary>
     /// Generate:
     ///   assume (forall x,y :: Range(x,y)[$Heap:=oldHeap] ==>
@@ -8806,7 +8829,7 @@ namespace Microsoft.Dafny {
 
       builder.Add(new CommentCmd("ProcessCallStmt: Make the call"));
       // Make the call
-      Bpl.CallCmd call = new Bpl.CallCmd(tok, MethodName(callee, kind), ins, outs);
+      Bpl.CallCmd call = Call(tok, MethodName(callee, kind), ins, outs);
       if (module != currentModule && RefinementToken.IsInherited(tok, currentModule) && (codeContext == null || !codeContext.MustReverify)) {
         // The call statement is inherited, so the refined module already checked that the precondition holds.  Note,
         // preconditions are not allowed to be strengthened, except if they use a predicate whose body has been strengthened.
@@ -10476,7 +10499,6 @@ namespace Microsoft.Dafny {
       public readonly FuelSetting layerInterCluster;
       public readonly FuelSetting layerIntraCluster = null;  // a value of null says to do the same as for inter-cluster calls
       public int Statistics_CustomLayerFunctionCount = 0;
-      public readonly bool ProducingCoCertificates = false; // CLEMENT Where is this used?
       public readonly bool stripLits = false;
       [ContractInvariantMethod]
       void ObjectInvariant()
@@ -11164,7 +11186,7 @@ namespace Microsoft.Dafny {
           bool liftLit = lit0 != null && lit1 != null;
           // NOTE(namin): We usually avoid keeping literals, because their presence might mess up triggers that do not expect them.
           //              Still for equality-related operations, it's useful to keep them instead of lifting them, so that they can be propagated.
-          bool keepLits = false; // CLEMENT: I don't really understand this
+          bool keepLits = false;
           if (lit0 != null) {
             e0 = lit0;
           }
@@ -11983,7 +12005,7 @@ namespace Microsoft.Dafny {
               parms.Add(s);
             } else {
               var e = TrExpr(arg);
-              e = translator.RemoveLit(e); // CLEMENT: Why?
+              e = translator.RemoveLit(e);
               parms.Add(e);
             }
           }
@@ -12863,6 +12885,8 @@ namespace Microsoft.Dafny {
             // that needed to be proved about the function was proved already in the previous module, even without the body definition).
           } else if (!FunctionBodyIsAvailable(f, currentModule)) {
             // Don't inline opaque functions or foreign protected functions
+          } else if (Attributes.Contains(f.Attributes, "no_inline")) {
+            // User manually prevented inlining
           } else if (CanSafelyInline(fexp, f)) {
             // inline this body
             var body = GetSubstitutedBody(fexp, f, false);
@@ -12927,15 +12951,16 @@ namespace Microsoft.Dafny {
             return true;
           } else {
             // Skip inlining, as it would cause arbitrary expressions to pop up in the trigger
-            // CLEMENT: Report inlining issue in a VS plugin friendly way
-            //CLEMENT this should appear at the outmost call site, not at the innermost. See SnapshotableTrees.dfy
-            Dafny.Util.ReportIssue("Info", fexp.tok, "Some instances of this call cannot safely be inlined.");
+            // TODO this should appear at the outmost call site, not at the innermost. See SnapshotableTrees.dfy
+            reporter.Info(MessageSource.Translator, fexp.tok, "Some instances of this call cannot safely be inlined.");
           }
         }
 
+      } else if (expr is QuantifierExpr && ((QuantifierExpr)expr).SplitQuantifier != null) {
+        return TrSplitExpr(((QuantifierExpr)expr).SplitQuantifierExpression, splits, position, heightLimit, apply_induction, etran);
       } else if (((position && expr is ForallExpr) || (!position && expr is ExistsExpr))
-          /* NB: only for type arg less quantifiers for now: */
-             && ((QuantifierExpr)expr).TypeArgs.Count == 0) {
+        /* NB: only for type arg less quantifiers for now: */
+            && ((QuantifierExpr)expr).TypeArgs.Count == 0) {
         var e = (QuantifierExpr)expr;
         var inductionVariables = ApplyInduction(e.BoundVars, e.Attributes);
         if (apply_induction && inductionVariables.Count != 0) {
@@ -13069,13 +13094,16 @@ namespace Microsoft.Dafny {
       visitor.Visit(f.Body);
       foreach (var expr in f.Ens) { visitor.Visit(expr); }
       foreach (var expr in f.Req) { visitor.Visit(expr); }
-      // CLEMENT: Anything else?
+      foreach (var expr in f.Reads) { visitor.Visit(expr); }
+      foreach (var expr in f.Decreases.Expressions) { visitor.Visit(expr); }
 
       return f.Formals.Zip(fexp.Args).All(formal_concrete => CanSafelySubstitute(visitor.TriggerVariables, formal_concrete.Item1, formal_concrete.Item2));
     }
 
+    Triggers.TriggersCollector triggersCollector = new Triggers.TriggersCollector();
+
     private bool CanSafelySubstitute(ISet<IVariable> protectedVariables, IVariable variable, Expression substitution) {
-      return !(protectedVariables.Contains(variable) && TriggerGenerator.IsTriggerKiller(substitution));
+      return !(protectedVariables.Contains(variable) && triggersCollector.IsTriggerKiller(substitution));
     }
 
     private class VariablesCollector: BottomUpVisitor {
@@ -13103,8 +13131,11 @@ namespace Microsoft.Dafny {
 
       protected override void VisitOneExpr(Expression expr) {
         if (expr is QuantifierExpr) {
-          foreach (var trigger in (expr as QuantifierExpr).Attributes.AsEnumerable().Where(a => a.Name == "trigger").SelectMany(a => a.Args)) {
-            collector.Visit(trigger);
+          var e = (QuantifierExpr)expr;
+          if (e.SplitQuantifier == null) {
+            foreach (var trigger in (expr as QuantifierExpr).Attributes.AsEnumerable().Where(a => a.Name == "trigger").SelectMany(a => a.Args)) {
+              collector.Visit(trigger);
+            }
           }
         }
       }
@@ -13643,6 +13674,12 @@ namespace Microsoft.Dafny {
           var e = (ComprehensionExpr)expr;
           // For quantifiers and setComprehesion we want to make sure that we don't introduce name clashes with
           // the enclosing scopes.
+
+          var q = e as QuantifierExpr;
+          if (q != null && q.SplitQuantifier != null) {
+            return Substitute(q.SplitQuantifierExpression);
+          }
+
           var newBoundVars = CreateBoundVarSubstitutions(e.BoundVars, expr is ForallExpr || expr is ExistsExpr || expr is SetComprehension);
           Expression newRange = e.Range == null ? null : Substitute(e.Range);
           Expression newTerm = Substitute(e.Term);
@@ -14117,12 +14154,12 @@ namespace Microsoft.Dafny {
 
     // Bpl-making-utilities
 
-    static Bpl.Expr BplForall(IEnumerable<Bpl.Variable> args_in, Bpl.Expr body) {  // NO_TRIGGER
+    static Bpl.Expr BplForall(IEnumerable<Bpl.Variable> args_in, Bpl.Expr body) {
       Contract.Requires(args_in != null);
       Contract.Requires(body != null);
       Contract.Ensures(Contract.Result<Bpl.Expr>() != null);
       var args = new List<Bpl.Variable>(args_in);
-      if (args.Count == 0) { // CLEMENT don't add quantifiers if the body is trivial
+      if (args.Count == 0) {
         return body;
       } else {
         return new Bpl.ForallExpr(body.tok, args, body); // NO_TRIGGER
