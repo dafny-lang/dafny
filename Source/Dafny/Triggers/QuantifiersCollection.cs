@@ -171,8 +171,7 @@ namespace Microsoft.Dafny.Triggers {
       }
       
       if (msg.Length > 0) {
-        // Extra indent added to make it easier to distinguish multiline error messages
-        var msgStr = msg.ToString().Replace(Environment.NewLine, Environment.NewLine + " ").TrimEnd("\r\n ".ToCharArray());
+        var msgStr = msg.ToString().TrimEnd("\r\n ".ToCharArray());
         reporter.Message(MessageSource.Rewriter, errorLevel, q.quantifier.tok, msgStr);
       }
     }

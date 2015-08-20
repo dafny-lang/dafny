@@ -143,7 +143,10 @@ namespace Microsoft.Dafny {
     }
 
     public override bool Message(MessageSource source, ErrorLevel level, IToken tok, string msg) {
-      if (base.Message(source, level, tok, msg)) {
+      if (base.Message(source, level, tok, msg) && (DafnyOptions.O.PrintTooltips || level != ErrorLevel.Info)) {
+        // Extra indent added to make it easier to distinguish multiline error messages for clients that rely on the CLI
+        msg = msg.Replace(Environment.NewLine, Environment.NewLine + " ");
+
         ConsoleColor previousColor = Console.ForegroundColor;
         Console.ForegroundColor = ColorForLevel(level);
         Console.WriteLine(ErrorToString(level, tok, msg));
