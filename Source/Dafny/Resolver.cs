@@ -1398,13 +1398,15 @@ namespace Microsoft.Dafny
 
       if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
         foreach (var e in needFiniteBoundsChecks_SetComprehension) {
-          var missingBounds = new List<BoundVar>();
           CheckTypeInference(e.Range);  // we need to resolve operators before the call to DiscoverBounds
-          e.Bounds = DiscoverBounds(e.tok, e.BoundVars, e.Range, true, false, missingBounds, reporter);
+          List<BoundVar> missingBounds;
+          e.Bounds = DiscoverBestBounds_MultipleVars(e.BoundVars, e.Range, true, true, out missingBounds);
           if (missingBounds.Count != 0) {
             e.MissingBounds = missingBounds;
-            foreach (var bv in e.MissingBounds) {
+            if (e.Finite) {
+              foreach (var bv in e.MissingBounds) {
               reporter.Error(MessageSource.Resolver, e, "a set comprehension must produce a finite set, but Dafny's heuristics can't figure out how to produce a bounded set of values for '{0}'", bv.Name);
+              }
             }
           }
         }
@@ -1412,21 +1414,17 @@ namespace Microsoft.Dafny
           Contract.Assert(!e.Exact);  // only let-such-that expressions are ever added to the list
           Contract.Assert(e.RHSs.Count == 1);  // if we got this far, the resolver will have checked this condition successfully
           var constraint = e.RHSs[0];
-          var missingBounds = new List<IVariable>();
           CheckTypeInference(constraint);  // we need to resolve operators before the call to DiscoverBounds
-          var allBounds = DiscoverBoundsAux(e.tok, new List<IVariable>(e.BoundVars), constraint, true, true, true, missingBounds, reporter);
+          List<IVariable> missingBounds;
+          var vars = new List<IVariable>(e.BoundVars);
+          var bestBounds = DiscoverBestBounds_MultipleVars(vars, constraint, true, false, out missingBounds);
           if (missingBounds.Count != 0) {
             e.Constraint_MissingBounds = missingBounds;
             foreach (var bv in e.Constraint_MissingBounds) {
               reporter.Error(MessageSource.Resolver, e, "a non-ghost let-such-that constraint must be compilable, but Dafny's heuristics can't figure out how to produce a bounded set of values for '{0}'", bv.Name);
             }
           } else {
-            e.Constraint_Bounds = new List<ComprehensionExpr.BoundedPool>();
-            foreach (var pair in allBounds) {
-              Contract.Assert(1 <= pair.Item2.Count);
-              // TODO: The following could be improved by picking the bound that is most likely to give rise to an efficient compiled program
-              e.Constraint_Bounds.Add(pair.Item2[0]);
-            }
+            e.Constraint_Bounds = bestBounds;
           }
         }
       }
@@ -1499,38 +1497,34 @@ namespace Microsoft.Dafny
                 }
                 return null;
               };
-              var missingBounds = new List<BoundVar>();
-              var bounds = DiscoverBounds(dd.Constraint.tok, new List<BoundVar> { dd.Var }, dd.Constraint,
-                true, true, missingBounds, reporter);
+              var bounds = DiscoverAllBounds_SingleVar(dd.Var, dd.Constraint);
               List<NativeType> potentialNativeTypes =
                 (stringNativeType != null) ? new List<NativeType> { stringNativeType } :
                 (boolNativeType == false) ? new List<NativeType>() :
                 NativeTypes;
               foreach (var nt in potentialNativeTypes) {
-                if (missingBounds.Count == 0) {
-                  bool lowerOk = false;
-                  bool upperOk = false;
-                  foreach (var bound in bounds) {
-                    if (bound is ComprehensionExpr.IntBoundedPool) {
-                      var bnd = (ComprehensionExpr.IntBoundedPool)bound;
-                      if (bnd.LowerBound != null) {
-                        BigInteger? lower = GetConst(bnd.LowerBound);
-                        if (lower != null && nt.LowerBound <= lower) {
-                          lowerOk = true;
-                        }
+                bool lowerOk = false;
+                bool upperOk = false;
+                foreach (var bound in bounds) {
+                  if (bound is ComprehensionExpr.IntBoundedPool) {
+                    var bnd = (ComprehensionExpr.IntBoundedPool)bound;
+                    if (bnd.LowerBound != null) {
+                      BigInteger? lower = GetConst(bnd.LowerBound);
+                      if (lower != null && nt.LowerBound <= lower) {
+                        lowerOk = true;
                       }
-                      if (bnd.UpperBound != null) {
-                        BigInteger? upper = GetConst(bnd.UpperBound);
-                        if (upper != null && upper <= nt.UpperBound) {
-                          upperOk = true;
-                        }
+                    }
+                    if (bnd.UpperBound != null) {
+                      BigInteger? upper = GetConst(bnd.UpperBound);
+                      if (upper != null && upper <= nt.UpperBound) {
+                        upperOk = true;
                       }
                     }
                   }
-                  if (lowerOk && upperOk) {
-                    dd.NativeType = nt;
-                    break;
-                  }
+                }
+                if (lowerOk && upperOk) {
+                  dd.NativeType = nt;
+                  break;
                 }
               }
               if (dd.NativeType == null && (boolNativeType == true || stringNativeType != null)) {
@@ -4580,8 +4574,11 @@ namespace Microsoft.Dafny
 
       } else if (a is CollectionTypeProxy) {
         if (b is CollectionTypeProxy) {
-          a.T = b;
-          return UnifyTypes(((CollectionTypeProxy)a).Arg, ((CollectionTypeProxy)b).Arg);
+          var argUnificationSuccess = UnifyTypes(((CollectionTypeProxy)a).Arg, ((CollectionTypeProxy)b).Arg);
+          if (argUnificationSuccess) {
+            a.T = b;
+          }
+          return argUnificationSuccess;
         } else if (b is OperationTypeProxy) {
           var proxy = (OperationTypeProxy)b;
           if (proxy.AllowSeq && proxy.AllowSetVarieties && proxy.AllowISet) {
@@ -5151,9 +5148,9 @@ namespace Microsoft.Dafny
 
         bool bodyMustBeSpecOnly = specContextOnly || (prevErrorCount == reporter.Count(ErrorLevel.Error) && UsesSpecFeatures(s.Range));
         if (!bodyMustBeSpecOnly && prevErrorCount == reporter.Count(ErrorLevel.Error)) {
-          var missingBounds = new List<BoundVar>();
           CheckTypeInference(s.Range);  // we need to resolve operators before the call to DiscoverBounds
-          s.Bounds = DiscoverBounds(s.Tok, s.BoundVars, s.Range, true, false, missingBounds, reporter);
+          List<BoundVar> missingBounds;
+          s.Bounds = DiscoverBestBounds_MultipleVars(s.BoundVars, s.Range, true, true, out missingBounds);
           if (missingBounds.Count != 0) {
             bodyMustBeSpecOnly = true;
           }
@@ -5971,18 +5968,14 @@ namespace Microsoft.Dafny
       if (ec == reporter.Count(ErrorLevel.Error) && !s.IsGhost && s.AssumeToken == null && !specContextOnly) {
         CheckIsNonGhost(s.Expr);
 
-        var missingBounds = new List<IVariable>();
         CheckTypeInference(s.Expr);  // we need to resolve operators before the call to DiscoverBoundsAux
-        var allBounds = DiscoverBoundsAux(s.Tok, varLhss, s.Expr, true, true, true, missingBounds, reporter);
+        List<IVariable> missingBounds;
+        var bestBounds = DiscoverBestBounds_MultipleVars(varLhss, s.Expr, true, false, out missingBounds);
         if (missingBounds.Count != 0) {
           s.MissingBounds = missingBounds;  // so that an error message can be produced during compilation
         } else {
-          Contract.Assert(allBounds != null);
-          s.Bounds = new List<ComprehensionExpr.BoundedPool>();
-          foreach (var pair in allBounds) {
-            Contract.Assert(1 <= pair.Item2.Count);
-            s.Bounds.Add(ComprehensionExpr.BoundedPool.GetBest(pair.Item2));
-          }
+          Contract.Assert(bestBounds != null);
+          s.Bounds = bestBounds;
         }
       }
     }
@@ -7583,7 +7576,7 @@ namespace Microsoft.Dafny
         if (e.Contract != null) ResolveExpression(e.Contract, opts);
         e.Type = e.Body.Type;
       } else if (expr is QuantifierExpr) {
-        QuantifierExpr e = (QuantifierExpr)expr;
+        var e = (QuantifierExpr)expr;
         Contract.Assert(e.SplitQuantifier == null); // No split quantifiers during resolution
         int prevErrorCount = reporter.Count(ErrorLevel.Error);
         bool _val = true;
@@ -7619,9 +7612,9 @@ namespace Microsoft.Dafny
         expr.Type = Type.Bool;
 
         if (prevErrorCount == reporter.Count(ErrorLevel.Error)) {
-          var missingBounds = new List<BoundVar>();
           CheckTypeInference(e.LogicalBody());  // we need to resolve operators before the call to DiscoverBounds
-          e.Bounds = DiscoverBounds(e.tok, e.BoundVars, e.LogicalBody(), e is ExistsExpr, false, missingBounds, reporter);
+          List<BoundVar> missingBounds;
+          e.Bounds = DiscoverBestBounds_MultipleVars(e.BoundVars, e.LogicalBody(), e is ExistsExpr, true, out missingBounds);
           if (missingBounds.Count != 0) {
             // Report errors here about quantifications that depend on the allocation state.
             var mb = missingBounds;
@@ -7691,9 +7684,9 @@ namespace Microsoft.Dafny
         expr.Type = new MapType(e.Finite, e.BoundVars[0].Type, e.Term.Type);
 
         if (prevErrorCount == reporter.Count(ErrorLevel.Error)) {
-          var missingBounds = new List<BoundVar>();
           CheckTypeInference(e.Range);  // we need to resolve operators before the call to DiscoverBounds
-          e.Bounds = DiscoverBounds(e.tok, e.BoundVars, e.Range, true, false, missingBounds, reporter);
+          List<BoundVar> missingBounds;
+          e.Bounds = DiscoverBestBounds_MultipleVars(e.BoundVars, e.Range, true, true, out missingBounds);
           if (missingBounds.Count != 0) {
             e.MissingBounds = missingBounds;
             if (e.Finite) {
@@ -9299,202 +9292,138 @@ namespace Microsoft.Dafny
     }
 
     /// <summary>
-    /// For a description, see DiscoverBoundsAux.
+    /// For a list of variables "bvars", returns a list of best bounds for each respective variable.  If no bound is found for a variable "v", then the bound for
+    /// "v" in the returned list is set to "null" and "v" is added to "missingBounds".
     /// </summary>
-    public static List<ComprehensionExpr.BoundedPool> DiscoverBounds<VT>(IToken tok, List<VT> bvars, Expression expr, bool polarity, bool returnAllBounds, List<VT> missingBounds, ErrorReporter reporter) where VT : IVariable {
-      var pairs = DiscoverBoundsAux(tok, bvars, expr, polarity, returnAllBounds, false, missingBounds, reporter);
-      if (pairs == null) {
-        return null;
+    public static List<ComprehensionExpr.BoundedPool> DiscoverBestBounds_MultipleVars<VT>(List<VT> bvars, Expression expr, bool polarity, bool onlyFiniteBounds, out List<VT> missingBounds) where VT : IVariable {
+      foreach (var bv in bvars) {
+        var c = TypeConstraint(bv, bv.Type, null);
+        expr = polarity ? Expression.CreateAnd(c, expr) : Expression.CreateImplies(c, expr);
       }
-      var bounds = new List<ComprehensionExpr.BoundedPool>();
-      foreach (var pr in pairs) {
-        Contract.Assert(1 <= pr.Item2.Count);
-        bounds.AddRange(pr.Item2);
+      var all = DiscoverAllBounds_Aux_MultipleVars(bvars, expr, polarity);
+      var bests = all.ConvertAll(tup => ComprehensionExpr.BoundedPool.GetBest(tup.Item2, onlyFiniteBounds));
+      missingBounds = new List<VT>();
+      for (var i = 0; i < bvars.Count; i++) {
+        if (bests[i] == null) {
+          missingBounds.Add(bvars[i]);
+        }
       }
-      return bounds;
+      return bests;
+    }
+
+    public static List<ComprehensionExpr.BoundedPool> DiscoverAllBounds_SingleVar<VT>(VT v, Expression expr) where VT : IVariable {
+      expr = Expression.CreateAnd(TypeConstraint(v, v.Type, null), expr);
+      return DiscoverAllBounds_Aux_SingleVar(new List<VT> { v }, 0, expr, true);
+    }
+
+    private static List<Tuple<VT, List<ComprehensionExpr.BoundedPool>>> DiscoverAllBounds_Aux_MultipleVars<VT>(List<VT> bvars, Expression expr, bool polarity) where VT : IVariable {
+      Contract.Requires(bvars != null);
+      Contract.Requires(expr != null);
+      var bb = new List<Tuple<VT, List<ComprehensionExpr.BoundedPool>>>();
+      for (var j = 0; j < bvars.Count; j++) {
+        var bounds = DiscoverAllBounds_Aux_SingleVar(bvars, j, expr, polarity);
+        bb.Add(new Tuple<VT, List<ComprehensionExpr.BoundedPool>>(bvars[j], bounds));
+      }
+      return bb;
     }
 
     /// <summary>
-    /// Tries to find a bounded pool for each of the bound variables "bvars" of "expr".  If this process
-    /// fails, then "null" is returned and the bound variables for which the process fails are added to "missingBounds".
-    /// If "returnAllBounds" is false, then:
-    ///   -- at most one BoundedPool per variable is returned
-    ///   -- every IntBoundedPool returned has both a lower and an upper bound
-    ///   -- no SubSetBoundedPool or SuperSetBoundedPool is returned
-    /// If "returnAllBounds" is true, then:
-    ///   -- a variable may give rise to several BoundedPool's
-    ///   -- IntBoundedPool bounds may have just one component
-    ///   -- a non-null return value means that some bound were found for each variable (but, for example, perhaps one
-    ///      variable only has lower bounds, no upper bounds)
-    /// Requires "expr" to be successfully resolved.
-    /// If "allowAnyIntegers", then integer variables will always be given a bound, but this bound may be WiggleWaggle if
-    /// there is no better bound.
+    /// Returns a list of (possibly partial) bounds for "bvars[j]", each of which can be written without mentioning any variable in "bvars[j..]".
     /// </summary>
-    public static List<Tuple<VT, List<ComprehensionExpr.BoundedPool>>> DiscoverBoundsAux<VT>(IToken tok, List<VT> bvars, Expression expr, bool polarity, bool returnAllBounds, bool allowAnyIntegers, List<VT> missingBounds, ErrorReporter reporter) where VT : IVariable {
-      Contract.Requires(tok != null);
+    private static List<ComprehensionExpr.BoundedPool> DiscoverAllBounds_Aux_SingleVar<VT>(List<VT> bvars, int j, Expression expr, bool polarity) where VT : IVariable {
       Contract.Requires(bvars != null);
-      Contract.Requires(missingBounds != null);
+      Contract.Requires(0 <= j && j < bvars.Count);
       Contract.Requires(expr != null);
-      Contract.Requires(expr.Type != null);  // a sanity check (but not a complete proof) that "expr" has been resolved
-      Contract.Ensures(
-        (returnAllBounds && Contract.OldValue(missingBounds.Count) <= missingBounds.Count) ||
-        (!returnAllBounds &&
-         Contract.Result<List<Tuple<VT, List<ComprehensionExpr.BoundedPool>>>>() != null &&
-         Contract.Result<List<Tuple<VT, List<ComprehensionExpr.BoundedPool>>>>().Count == bvars.Count &&
-         Contract.OldValue(missingBounds.Count) == missingBounds.Count) ||
-        (!returnAllBounds &&
-         Contract.Result<List<Tuple<VT, List<ComprehensionExpr.BoundedPool>>>>() == null &&
-         Contract.OldValue(missingBounds.Count) < missingBounds.Count));
+      var bv = bvars[j];
+      var bounds = new List<ComprehensionExpr.BoundedPool>();
 
-      var allBounds = new List<Tuple<VT, List<ComprehensionExpr.BoundedPool>>>();
-      bool foundError = false;
-      foreach (var bv in bvars) {
-        var c = TypeConstraint(bv, bv.Type, reporter);
-        expr = polarity ? Expression.CreateAnd(c, expr) : Expression.CreateImplies(c, expr);
-      }
-      for (int j = 0; j < bvars.Count; j++) {
-        VT bv;
-        List<ComprehensionExpr.BoundedPool> bounds;
-        foundError = DiscoverAuxSingle<VT>(bvars, expr, polarity, returnAllBounds, true, allowAnyIntegers, missingBounds, foundError, j, out bv, out bounds);
-        if (!returnAllBounds && bounds.Count > 1) {
-          var best = ComprehensionExpr.BoundedPool.GetBest(bounds);
-          bounds = new List<ComprehensionExpr.BoundedPool>() { best };
-        }
-
-        allBounds.Add(new Tuple<VT, List<ComprehensionExpr.BoundedPool>>(bv, bounds));
-      }
-      return foundError ? null : allBounds;
-    }
-
-    private static bool DiscoverAuxSingle<VT>(List<VT> bvars, Expression expr, bool polarity, bool allowPartialBounds, bool returnAllBounds, bool allowAnyIntegers, List<VT> missingBounds, bool foundError, int j, out VT bv, out List<ComprehensionExpr.BoundedPool> bounds) where VT : IVariable {
-      bv = bvars[j];
-      bounds = new List<ComprehensionExpr.BoundedPool>();
+      // Maybe the type itself gives a bound
       if (bv.Type.IsBoolType) {
         // easy
         bounds.Add(new ComprehensionExpr.BoolBoundedPool());
-      } else {
-        bool foundBoundsForBv = false;
-        if (bv.Type.IsIndDatatype && bv.Type.AsIndDatatype.HasFinitePossibleValues) {
-          bounds.Add(new ComprehensionExpr.DatatypeBoundedPool(bv.Type.AsIndDatatype));
-          foundBoundsForBv = true;
+      } else if (bv.Type.IsIndDatatype && bv.Type.AsIndDatatype.HasFinitePossibleValues) {
+        bounds.Add(new ComprehensionExpr.DatatypeBoundedPool(bv.Type.AsIndDatatype));
+      } else if (bv.Type.IsNumericBased(Type.NumericPersuation.Int)) {
+        bounds.Add(new AssignSuchThatStmt.WiggleWaggleBound());
+      }
+
+      // Go through the conjuncts of the range expression to look for bounds.
+      foreach (var conjunct in NormalizedConjuncts(expr, polarity)) {
+        var c = conjunct as BinaryExpr;
+        if (c == null) {
+          // We only know what to do with binary expressions
+          continue;
         }
-        // Go through the conjuncts of the range expression to look for bounds.
-        Expression lowerBound = null;
-        Expression upperBound = null;
-        if ((allowPartialBounds || returnAllBounds) && lowerBound != null) {
-          bounds.Add(new ComprehensionExpr.IntBoundedPool(lowerBound, upperBound));
-          lowerBound = null;
-          foundBoundsForBv = true;
+        var e0 = c.E0;
+        var e1 = c.E1;
+        int whereIsBv = SanitizeForBoundDiscovery(bvars, j, c.ResolvedOp, ref e0, ref e1);
+        if (whereIsBv < 0) {
+          continue;
         }
-        foreach (var conjunct in NormalizedConjuncts(expr, polarity)) {
-          var c = conjunct as BinaryExpr;
-          if (c == null) {
-            goto CHECK_NEXT_CONJUNCT;
-          }
-          var e0 = c.E0;
-          var e1 = c.E1;
-          int whereIsBv = SanitizeForBoundDiscovery(bvars, j, c.ResolvedOp, ref e0, ref e1);
-          if (whereIsBv < 0) {
-            goto CHECK_NEXT_CONJUNCT;
-          }
-          switch (c.ResolvedOp) {
-            case BinaryExpr.ResolvedOpcode.InSet:
-              if (whereIsBv == 0) {
-                bounds.Add(new ComprehensionExpr.SetBoundedPool(e1));
-                foundBoundsForBv = true;
-                if (!returnAllBounds) goto CHECK_NEXT_BOUND_VARIABLE;
+        switch (c.ResolvedOp) {
+          case BinaryExpr.ResolvedOpcode.InSet:
+            if (whereIsBv == 0 && e1.Type.AsSetType.Finite) {
+              bounds.Add(new ComprehensionExpr.SetBoundedPool(e1));
+            }
+            break;
+          case BinaryExpr.ResolvedOpcode.Subset:
+            if (whereIsBv == 0) {
+              bounds.Add(new ComprehensionExpr.SubSetBoundedPool(e1));
+            } else {
+              bounds.Add(new ComprehensionExpr.SuperSetBoundedPool(e0));
+            }
+            break;
+          case BinaryExpr.ResolvedOpcode.InMultiSet:
+            if (whereIsBv == 0) {
+              bounds.Add(new ComprehensionExpr.SetBoundedPool(e1));
+            }
+            break;
+          case BinaryExpr.ResolvedOpcode.InSeq:
+            if (whereIsBv == 0) {
+              bounds.Add(new ComprehensionExpr.SeqBoundedPool(e1));
+            }
+            break;
+          case BinaryExpr.ResolvedOpcode.InMap:
+            if (whereIsBv == 0 && e1.Type.AsMapType.Finite) {
+              bounds.Add(new ComprehensionExpr.MapBoundedPool(e1));
+            }
+            break;
+          case BinaryExpr.ResolvedOpcode.EqCommon:
+            // TODO: Use the new ComprehensionExpr.ExactBoundedPool
+            if (bv.Type.IsNumericBased(Type.NumericPersuation.Int)) {
+              var otherOperand = whereIsBv == 0 ? e1 : e0;
+              bounds.Add(new ComprehensionExpr.IntBoundedPool(otherOperand, Expression.CreateIncrement(otherOperand, 1)));
+            } else if (bv.Type is SetType) {
+              var otherOperand = whereIsBv == 0 ? e1 : e0;
+              bounds.Add(new ComprehensionExpr.SubSetBoundedPool(otherOperand));
+            }
+            break;
+          case BinaryExpr.ResolvedOpcode.Gt:
+          case BinaryExpr.ResolvedOpcode.Ge:
+            Contract.Assert(false); throw new cce.UnreachableException();  // promised by postconditions of NormalizedConjunct
+          case BinaryExpr.ResolvedOpcode.Lt:
+            if (e0.Type.IsNumericBased(Type.NumericPersuation.Int)) {
+              if (whereIsBv == 0) {  // bv < E
+                bounds.Add(new ComprehensionExpr.IntBoundedPool(null, e1));
+              } else {  // E < bv
+                bounds.Add(new ComprehensionExpr.IntBoundedPool(Expression.CreateIncrement(e0, 1), null));
               }
-              break;
-            case BinaryExpr.ResolvedOpcode.Subset:
-              if (returnAllBounds) {
-                if (whereIsBv == 0) {
-                  bounds.Add(new ComprehensionExpr.SubSetBoundedPool(e1));
-                } else {
-                  bounds.Add(new ComprehensionExpr.SuperSetBoundedPool(e0));
-                }
-                foundBoundsForBv = true;
+            }
+            break;
+          case BinaryExpr.ResolvedOpcode.Le:
+            if (e0.Type.IsNumericBased(Type.NumericPersuation.Int)) {
+              if (whereIsBv == 0) {  // bv <= E
+                bounds.Add(new ComprehensionExpr.IntBoundedPool(null, Expression.CreateIncrement(e1, 1)));
+              } else {  // E <= bv
+                bounds.Add(new ComprehensionExpr.IntBoundedPool(e0, null));
               }
-              break;
-            case BinaryExpr.ResolvedOpcode.InMultiSet:
-              if (whereIsBv == 0) {
-                bounds.Add(new ComprehensionExpr.SetBoundedPool(e1));
-                foundBoundsForBv = true;
-                if (!returnAllBounds) goto CHECK_NEXT_BOUND_VARIABLE;
-              }
-              break;
-            case BinaryExpr.ResolvedOpcode.InSeq:
-              if (whereIsBv == 0) {
-                bounds.Add(new ComprehensionExpr.SeqBoundedPool(e1));
-                foundBoundsForBv = true;
-                if (!returnAllBounds) goto CHECK_NEXT_BOUND_VARIABLE;
-              }
-              break;
-            case BinaryExpr.ResolvedOpcode.InMap:
-              if (whereIsBv == 0 && e1.Type.AsMapType.Finite) {
-                bounds.Add(new ComprehensionExpr.MapBoundedPool(e1));
-                foundBoundsForBv = true;
-                if (!returnAllBounds) goto CHECK_NEXT_BOUND_VARIABLE;
-              }
-              break;
-            case BinaryExpr.ResolvedOpcode.EqCommon:
-              if (bv.Type is IntType) {
-                var otherOperand = whereIsBv == 0 ? e1 : e0;
-                bounds.Add(new ComprehensionExpr.IntBoundedPool(otherOperand, Expression.CreateIncrement(otherOperand, 1)));
-                foundBoundsForBv = true;
-                if (!returnAllBounds) goto CHECK_NEXT_BOUND_VARIABLE;
-              } else if (returnAllBounds && bv.Type is SetType) {
-                var otherOperand = whereIsBv == 0 ? e1 : e0;
-                bounds.Add(new ComprehensionExpr.SubSetBoundedPool(otherOperand));
-                foundBoundsForBv = true;
-              }
-              break;
-            case BinaryExpr.ResolvedOpcode.Gt:
-            case BinaryExpr.ResolvedOpcode.Ge:
-              Contract.Assert(false); throw new cce.UnreachableException();  // promised by postconditions of NormalizedConjunct
-            case BinaryExpr.ResolvedOpcode.Lt:
-              if (e0.Type.IsNumericBased(Type.NumericPersuation.Int)) {
-                if (whereIsBv == 0 && upperBound == null) {
-                  upperBound = e1;  // bv < E
-                } else if (whereIsBv == 1 && lowerBound == null) {
-                  lowerBound = Expression.CreateIncrement(e0, 1);  // E < bv
-                }
-              }
-              break;
-            case BinaryExpr.ResolvedOpcode.Le:
-              if (e0.Type.IsNumericBased(Type.NumericPersuation.Int)) {
-                if (whereIsBv == 0 && upperBound == null) {
-                  upperBound = Expression.CreateIncrement(e1, 1);  // bv <= E
-                } else if (whereIsBv == 1 && lowerBound == null) {
-                  lowerBound = e0;  // E <= bv
-                }
-              }
-              break;
-            default:
-              break;
-          }
-          if ((lowerBound != null && upperBound != null) ||
-              (allowPartialBounds && (lowerBound != null || upperBound != null))) {
-            // we have found two halves (or, in the case of returnAllBounds, we have found some bound)
-            bounds.Add(new ComprehensionExpr.IntBoundedPool(lowerBound, upperBound));
-            lowerBound = null;
-            upperBound = null;
-            foundBoundsForBv = true;
-            if (!returnAllBounds) goto CHECK_NEXT_BOUND_VARIABLE;
-          }
-        CHECK_NEXT_CONJUNCT: ;
-        }
-        if (!foundBoundsForBv) {
-          // we have checked every conjunct in the range expression and still have not discovered good bounds
-          if (allowAnyIntegers && bv.Type is IntType) {
-            bounds.Add(new AssignSuchThatStmt.WiggleWaggleBound());
-          } else {
-            missingBounds.Add(bv);  // record failing bound variable
-            foundError = true;
-          }
+            }
+            break;
+          default:
+            break;
         }
       }
-    CHECK_NEXT_BOUND_VARIABLE: ;  // should goto here only if the bound for the current variable has been discovered (otherwise, return with null from this method)
-      return foundError;
+      return bounds;
     }
 
     static Expression TypeConstraint(IVariable bv, Type ty, ErrorReporter reporter) {
@@ -10136,7 +10065,7 @@ namespace Microsoft.Dafny
       } else if (expr is ComprehensionExpr) {
         var q = expr as QuantifierExpr;
         Contract.Assert(q == null || q.SplitQuantifier == null); // No split quantifiers during resolution
-        if (q != null && q.Bounds == null) {
+        if (q != null && q.Bounds.Contains(null)) {
           return true;  // the quantifier cannot be compiled if the resolver found no bounds
         }
         return Contract.Exists(expr.SubExpressions, se => UsesSpecFeatures(se));

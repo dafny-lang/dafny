@@ -7683,39 +7683,37 @@ namespace Microsoft.Dafny {
       }
 
       var missingBounds = new List<BoundVar>();
-      var bounds = Resolver.DiscoverBounds(x.tok, new List<BoundVar>() { x }, expr, true, true, missingBounds, reporter);
-      if (missingBounds.Count == 0) {
-        foreach (var bound in bounds) {
-          if (bound is ComprehensionExpr.IntBoundedPool) {
-            var bnd = (ComprehensionExpr.IntBoundedPool)bound;
-            if (bnd.LowerBound != null) yield return bnd.LowerBound;
-            if (bnd.UpperBound != null) yield return Expression.CreateDecrement(bnd.UpperBound, 1);
-          } else if (bound is ComprehensionExpr.SubSetBoundedPool) {
-            var bnd = (ComprehensionExpr.SubSetBoundedPool)bound;
-            yield return bnd.UpperBound;
-          } else if (bound is ComprehensionExpr.SuperSetBoundedPool) {
-            var bnd = (ComprehensionExpr.SuperSetBoundedPool)bound;
-            yield return bnd.LowerBound;
-          } else if (bound is ComprehensionExpr.SetBoundedPool) {
-            var st = ((ComprehensionExpr.SetBoundedPool)bound).Set.Resolved;
-            if (st is DisplayExpression) {
-              var display = (DisplayExpression)st;
-              foreach (var el in display.Elements) {
-                yield return el;
-              }
-            } else if (st is MapDisplayExpr) {
-              var display = (MapDisplayExpr)st;
-              foreach (var maplet in display.Elements) {
-                yield return maplet.A;
-              }
+      var bounds = Resolver.DiscoverAllBounds_SingleVar(x, expr);
+      foreach (var bound in bounds) {
+        if (bound is ComprehensionExpr.IntBoundedPool) {
+          var bnd = (ComprehensionExpr.IntBoundedPool)bound;
+          if (bnd.LowerBound != null) yield return bnd.LowerBound;
+          if (bnd.UpperBound != null) yield return Expression.CreateDecrement(bnd.UpperBound, 1);
+        } else if (bound is ComprehensionExpr.SubSetBoundedPool) {
+          var bnd = (ComprehensionExpr.SubSetBoundedPool)bound;
+          yield return bnd.UpperBound;
+        } else if (bound is ComprehensionExpr.SuperSetBoundedPool) {
+          var bnd = (ComprehensionExpr.SuperSetBoundedPool)bound;
+          yield return bnd.LowerBound;
+        } else if (bound is ComprehensionExpr.SetBoundedPool) {
+          var st = ((ComprehensionExpr.SetBoundedPool)bound).Set.Resolved;
+          if (st is DisplayExpression) {
+            var display = (DisplayExpression)st;
+            foreach (var el in display.Elements) {
+              yield return el;
             }
-          } else if (bound is ComprehensionExpr.SeqBoundedPool) {
-            var sq = ((ComprehensionExpr.SeqBoundedPool)bound).Seq.Resolved;
-            var display = sq as DisplayExpression;
-            if (display != null) {
-              foreach (var el in display.Elements) {
-                yield return el;
-              }
+          } else if (st is MapDisplayExpr) {
+            var display = (MapDisplayExpr)st;
+            foreach (var maplet in display.Elements) {
+              yield return maplet.A;
+            }
+          }
+        } else if (bound is ComprehensionExpr.SeqBoundedPool) {
+          var sq = ((ComprehensionExpr.SeqBoundedPool)bound).Seq.Resolved;
+          var display = sq as DisplayExpression;
+          if (display != null) {
+            foreach (var el in display.Elements) {
+              yield return el;
             }
           }
         }
@@ -11629,8 +11627,8 @@ namespace Microsoft.Dafny {
 
         } else if (expr is LambdaExpr) {
           var e = (LambdaExpr)expr;
-
           return TrLambdaExpr(e);
+
         } else if (expr is StmtExpr) {
           var e = (StmtExpr)expr;
           return TrExpr(e.E);
