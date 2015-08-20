@@ -20,6 +20,20 @@ namespace Microsoft.Dafny.Triggers {
       // rather misleading.
     }
 
+    internal enum TermComparison {
+      SameStrength = 0, Stronger = 1, NotStronger = -1
+    }
+
+    internal TermComparison CompareTo(TriggerTerm other) {
+      if (this == other) {
+        return TermComparison.SameStrength;
+      } else if (Expr.AllSubExpressions(true).Any(other.Expr.ExpressionEq)) {
+        return TermComparison.Stronger;
+      } else {
+        return TermComparison.NotStronger;
+      }
+    }
+
     internal static bool Eq(TriggerTerm t1, TriggerTerm t2) {
       return ExprExtensions.ExpressionEq(t1.Expr, t2.Expr);
     }
@@ -41,7 +55,7 @@ namespace Microsoft.Dafny.Triggers {
       return vars.All(x => Terms.Any(term => term.Variables.Contains(x)));
     }
 
-    private string Repr { get { return String.Join(", ", Terms); } }
+    internal string Repr { get { return String.Join(", ", Terms); } }
 
     public override string ToString() {
       return "{" + Repr + "}" + (String.IsNullOrWhiteSpace(Annotation) ? "" : " (" + Annotation + ")");
@@ -58,8 +72,23 @@ namespace Microsoft.Dafny.Triggers {
       return Terms.SelectMany(term => quantifier.SubexpressionsMatchingTrigger(term.Expr)).Deduplicate(TriggerMatch.Eq);
     }
 
-    public String AsDafnyAttributeString() {
-      return "{:trigger " + Repr + "}";
+    internal bool IsStrongerThan(TriggerCandidate that) {
+      if (this == that) {
+        return false; 
+      }
+
+      var hasStrictlyStrongerTerm = false;
+      foreach (var t in Terms) {
+        var comparison = that.Terms.Select(t.CompareTo).Max();
+
+        // All terms of `this` must be at least as strong as a term of `that`
+        if (comparison == TriggerTerm.TermComparison.NotStronger) { return false; }
+
+        // Did we find a strictly stronger term?
+        hasStrictlyStrongerTerm = hasStrictlyStrongerTerm || comparison == TriggerTerm.TermComparison.Stronger;
+      }
+
+      return hasStrictlyStrongerTerm;
     }
   }
 

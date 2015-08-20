@@ -7,7 +7,6 @@ using System.Text;
 using Microsoft.Boogie;
 using System.Diagnostics.Contracts;
 
-//FIXME Generated triggers should be _triggers
 //FIXME: When scoring, do not consider old(x) to be higher than x.
 
 namespace Microsoft.Dafny.Triggers {
@@ -28,7 +27,7 @@ namespace Microsoft.Dafny.Triggers {
     internal void TrimInvalidTriggers() {
       Contract.Requires(CandidateTerms != null);
       Contract.Requires(Candidates != null);
-      Candidates = TriggerUtils.Filter(Candidates, tr => tr.MentionsAll(quantifier.BoundVars), tr => { }).ToList();
+      Candidates = TriggerUtils.Filter(Candidates, tr => tr, (tr, _) => tr.MentionsAll(quantifier.BoundVars), (tr, _) => { }).ToList();
     }
   }
 
@@ -60,7 +59,13 @@ namespace Microsoft.Dafny.Triggers {
       return additionalTerm.Variables.Where(v => v is BoundVar && !terms.Any(t => t.Variables.Contains(v))).Any();
     }
 
-    //FIXME document that this assumes that the quantifiers live in the same context and share the same variables
+    /// <summary>
+    /// Collect triggers from the body of each quantifier, and share them
+    /// between all quantifiers. This method assumes that all quantifiers
+    /// actually come from the same context, and were the result of a split that
+    /// gave them all the same variables.
+    /// </summary>
+    /// <param name="triggersCollector"></param>
     void CollectAndShareTriggers(TriggersCollector triggersCollector) {
       var pool = quantifiers.SelectMany(q => triggersCollector.CollectTriggers(q.quantifier));
       var distinctPool = pool.Deduplicate(TriggerTerm.Eq);
@@ -79,13 +84,10 @@ namespace Microsoft.Dafny.Triggers {
     }
 
     void BuildDependenciesGraph() {
-      // FIXME: Think more about multi-quantifier dependencies
-      //class QuantifierDependency {
-      //  QuantifierWithTriggers Cause;
-      //  QuantifierWithTriggers Consequence;
-      //  List<TriggerCandidate> Triggers;
-      //  List<Expression> MatchingTerm;
-      //}
+      // The problem of finding matching loops between multiple-triggers is hard; it
+      // seems to require one to track exponentially-sized dependencies between parts
+      // of triggers and quantifiers. For now, we only do single-quantifier loop
+      // detection
     }
 
     void SuppressMatchingLoops() {
@@ -111,14 +113,14 @@ namespace Microsoft.Dafny.Triggers {
 
       foreach (var q in quantifiers) {
         var looping = new List<TriggerCandidate>();
-        var loopingSubterms = q.Candidates.ToDictionary(candidate => candidate, candidate => candidate.LoopingSubterms(q.quantifier).ToList());
 
         var safe = TriggerUtils.Filter(
           q.Candidates,
-          c => !loopingSubterms[c].Any(),
-          c => {
-            looping.Add(c);
-            c.Annotation = "loops with " + loopingSubterms[c].MapConcat(t => "{" + Printer.ExprToString(t.OriginalExpr) + "}", ", ");
+          candidate => candidate.LoopingSubterms(q.quantifier).ToList(),
+          (candidate, loopingSubterms) => !loopingSubterms.Any(),
+          (candidate, loopingSubterms) => {
+            looping.Add(candidate);
+            candidate.Annotation = "loops with " + loopingSubterms.MapConcat(t => "{" + Printer.ExprToString(t.OriginalExpr) + "}", ", ");
           }).ToList();
 
         q.CouldSuppressLoops = safe.Count > 0;
@@ -131,7 +133,15 @@ namespace Microsoft.Dafny.Triggers {
     }
 
     void SelectTriggers() {
-      //FIXME
+      foreach (var q in quantifiers) { //FIXME Check whether this makes verification faster
+        q.Candidates = TriggerUtils.Filter(q.Candidates,
+          candidate => q.Candidates.Where(candidate.IsStrongerThan).ToList(),
+          (candidate, weakerCandidates) => !weakerCandidates.Any(),
+          (candidate, weakerCandidates) => {
+            q.RejectedCandidates.Add(candidate);
+            candidate.Annotation = "stronger than " + String.Join(", ", weakerCandidates);
+          }).ToList();
+      }
     }
 
     private void CommitOne(QuantifierWithTriggers q, bool addHeader) {
