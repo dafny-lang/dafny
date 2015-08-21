@@ -249,10 +249,12 @@ namespace Microsoft.Dafny.Triggers {
       return new TriggerAnnotation(isTriggerKiller || CollectIsKiller(expr), CollectVariables(expr), CollectExportedCandidates(expr));
     }
 
-    // FIXME document that this will contain duplicates
+    /// <summary>
+    /// Collect terms in the body of the subexpressions of the argument that look like quantifiers. The results of this function can contain duplicate terms.
+    /// </summary>
     internal List<TriggerTerm> CollectTriggers(QuantifierExpr quantifier) {
       Contract.Requires(quantifier.SplitQuantifier == null); // Don't call this on a quantifier with a Split clause: it's not a real quantifier
-      // TODO could check for existing triggers and return that instead, but that require a bit of work to extract the expressions
+      // NOTE: We could check for existing trigger attributes and return that instead
       return Annotate(quantifier).PrivateTerms;
     }
 

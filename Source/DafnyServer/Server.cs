@@ -32,21 +32,14 @@ namespace Microsoft.Dafny {
 
     private void SetupConsole() {
       var utf8 = new UTF8Encoding(false, true);
+      Console.InputEncoding = utf8;
       Console.OutputEncoding = utf8;
-      Console.OutputEncoding = utf8;
-      Console.CancelKeyPress += CancelKeyPress;
     }
 
     public Server() {
       this.running = true;
       ExecutionEngine.printer = new DafnyConsolePrinter();
       SetupConsole();
-    }
-
-    void CancelKeyPress(object sender, ConsoleCancelEventArgs e) {
-      // e.Cancel = true;
-      // FIXME TerminateProver and RunningProverFromCommandLine
-      // Cancel the current verification? TerminateProver()? Or kill entirely?
     }
 
     bool EndOfPayload(out string line) {

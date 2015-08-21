@@ -7,8 +7,6 @@ using System.Text;
 using Microsoft.Boogie;
 using System.Diagnostics.Contracts;
 
-//FIXME: When scoring, do not consider old(x) to be higher than x.
-
 namespace Microsoft.Dafny.Triggers {
   class QuantifierWithTriggers {
     internal QuantifierExpr quantifier;
@@ -149,16 +147,14 @@ namespace Microsoft.Dafny.Triggers {
       var msg = new StringBuilder();
       var indent = addHeader ? "  " : "";
 
-      if (!TriggerUtils.NeedsAutoTriggers(q.quantifier)) { //FIXME: matchingloop, split and autotriggers attributes are passed down to Boogie
+      if (!TriggerUtils.NeedsAutoTriggers(q.quantifier)) { // NOTE: matchingloop, split and autotriggers attributes are passed down to Boogie
         msg.AppendFormat("Not generating triggers for {{{0}}}.", Printer.ExprToString(q.quantifier.Term)).AppendLine(); 
-        // FIXME This shouldn't be printed for autoReqs. (see autoReq.dfy)
-        // FIXME typeQuantifier?
       } else {
         if (addHeader) {
           msg.AppendFormat("For expression {{{0}}}:", Printer.ExprToString(q.quantifier.Term)).AppendLine();
         }
 
-        foreach (var candidate in q.Candidates) { //FIXME make this _trigger instead of trigger
+        foreach (var candidate in q.Candidates) {
           q.quantifier.Attributes = new Attributes("trigger", candidate.Terms.Select(t => t.Expr).ToList(), q.quantifier.Attributes);
         }
 

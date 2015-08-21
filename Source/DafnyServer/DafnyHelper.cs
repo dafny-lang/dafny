@@ -74,7 +74,7 @@ namespace Microsoft.Dafny {
         ExecutionEngine.CoalesceBlocks(boogieProgram);
         ExecutionEngine.Inline(boogieProgram);
 
-        //FIXME Could capture errors instead of printing them (pass a delegate instead of null)
+        //NOTE: We could capture errors instead of printing them (pass a delegate instead of null)
         switch (ExecutionEngine.InferAndVerify(boogieProgram, new PipelineStatistics(), "ServerProgram", null, DateTime.UtcNow.Ticks.ToString())) {
           case PipelineOutcome.Done:
           case PipelineOutcome.VerificationCompleted:

@@ -199,7 +199,7 @@ namespace Microsoft.Dafny
 
     public void ResolveProgram(Program prog) {
       Contract.Requires(prog != null);
-      var origErrorCount = reporter.Count(ErrorLevel.Error); //FIXME (Clement): This is used further below, but not in the >0 comparisons in the next few lines. Is that right?
+      var origErrorCount = reporter.Count(ErrorLevel.Error); //TODO: This is used further below, but not in the >0 comparisons in the next few lines. Is that right?
       var bindings = new ModuleBindings(null);
       var b = BindModuleNames(prog.DefaultModuleDef, bindings);
       bindings.BindName("_module", prog.DefaultModule, b);
@@ -8301,7 +8301,7 @@ namespace Microsoft.Dafny
           receiver = new StaticReceiverExpr(expr.tok, (ClassDecl)member.EnclosingClass, true);
         } else {
           if (!scope.AllowInstance) {
-            reporter.Error(MessageSource.Resolver, expr.tok, "'this' is not allowed in a 'static' context"); //FIXME: Rephrase this
+            reporter.Error(MessageSource.Resolver, expr.tok, "'this' is not allowed in a 'static' context"); //TODO: Rephrase this
             // nevertheless, set "receiver" to a value so we can continue resolution
           }
           receiver = new ImplicitThisExpr(expr.tok);
@@ -8604,7 +8604,7 @@ namespace Microsoft.Dafny
           Dictionary<string, MemberDecl> members;
           if (classMembers.TryGetValue(cd, out members) && members.TryGetValue(expr.SuffixName, out member)) {
             if (!member.IsStatic) {
-              reporter.Error(MessageSource.Resolver, expr.tok, "accessing member '{0}' requires an instance expression", expr.SuffixName); //FIXME Unify with similar error message
+              reporter.Error(MessageSource.Resolver, expr.tok, "accessing member '{0}' requires an instance expression", expr.SuffixName); //TODO Unify with similar error messages
               // nevertheless, continue creating an expression that approximates a correct one
             }
             var receiver = new StaticReceiverExpr(expr.tok, (UserDefinedType)ty.NormalizeExpand(), (ClassDecl)member.EnclosingClass, false);

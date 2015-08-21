@@ -7769,7 +7769,7 @@ namespace Microsoft.Dafny {
       } else if (decl is Method) {
         Visit((Method)decl);
       }
-      //FIXME More?
+      //TODO More?
     }
     public void Visit(Method method) {
       Visit(method.Ens);
@@ -7777,7 +7777,7 @@ namespace Microsoft.Dafny {
       Visit(method.Mod.Expressions);
       Visit(method.Decreases.Expressions);
       if (method.Body != null) { Visit(method.Body); }
-      //FIXME More?
+      //TODO More?
     }
     public void Visit(Function function) {
       Visit(function.Ens);
@@ -7785,7 +7785,7 @@ namespace Microsoft.Dafny {
       Visit(function.Reads);
       Visit(function.Decreases.Expressions);
       if (function.Body != null) { Visit(function.Body); }
-      //FIXME More?
+      //TODO More?
     }
     protected virtual void VisitOneExpr(Expression expr) {
       Contract.Requires(expr != null);
@@ -7842,7 +7842,7 @@ namespace Microsoft.Dafny {
       } else if (decl is Method) {
         Visit((Method)decl, st);
       }
-      //FIXME More?
+      //TODO More?
     }
     public void Visit(Method method, State st) {
       Visit(method.Ens, st);
@@ -7850,7 +7850,7 @@ namespace Microsoft.Dafny {
       Visit(method.Mod.Expressions, st);
       Visit(method.Decreases.Expressions, st);
       if (method.Body != null) { Visit(method.Body, st); }
-      //FIXME More?
+      //TODO More?
     }
     public void Visit(Function function, State st) {
       Visit(function.Ens, st);
@@ -7858,7 +7858,7 @@ namespace Microsoft.Dafny {
       Visit(function.Reads, st);
       Visit(function.Decreases.Expressions, st);
       if (function.Body != null) { Visit(function.Body, st); }
-      //FIXME More?
+      //TODO More?
     }
     /// <summary>
     /// Visit one expression proper.  This method is invoked before it is invoked on the
