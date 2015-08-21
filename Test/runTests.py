@@ -35,7 +35,8 @@ except ImportError:
         pass
 
 class Defaults:
-    ALWAYS_EXCLUDED = ["Inputs", "Output", "sandbox", "desktop"]
+    EXCLUDED_FILES = ["^flycheck_"]
+    EXCLUDED_FOLDERS = ["Inputs", "Output", "sandbox", "desktop"]
     DAFNY_BIN = os.path.realpath(os.path.join(os.path.dirname(__file__), "../Binaries/Dafny.exe"))
     COMPILER = [DAFNY_BIN]
     FLAGS = ["/useBaseNameForFileName", "/compile:1", "/nologo", "/timeLimit:300"]
@@ -311,7 +312,7 @@ def setup_parser():
                         help='Number of test workers.')
 
     parser.add_argument('--exclude', action='append', type=str, default=[],
-                        help='Excluded directories. {} are automatically added.'.format(Defaults.ALWAYS_EXCLUDED))
+                        help='Excluded directories. {} are automatically added.'.format(Defaults.EXCLUDED_FOLDERS))
 
     parser.add_argument('--verbosity', action='store', type=int, default=1,
                         help='Set verbosity level. 0: Minimal; 1: Some info; 2: More info; 3: Trace.')
@@ -405,8 +406,9 @@ def read_one_test(fname, compiler_cmds, timeout):
 
 
 def find_one(fname, compiler_cmds, timeout):
-    _, ext = os.path.splitext(fname)
-    if ext in Defaults.EXTENSIONS:
+    _, name = os.path.split(fname)
+    _, ext = os.path.splitext(name)
+    if ext in Defaults.EXTENSIONS and not any(re.search(pattern, name, re.IGNORECASE) for pattern in Defaults.EXCLUDED_FILES):
         if os.path.exists(fname):
             debug(Debug.TRACE, "Found test file: {}".format(fname))
             yield from read_one_test(fname, compiler_cmds, timeout)
@@ -455,7 +457,7 @@ def run_tests(args):
 
     tests = list(find_tests(args.path, [compiler + ' ' + " ".join(args.base_flags + args.flags)
                                         for compiler in args.compiler],
-                            args.exclude + Defaults.ALWAYS_EXCLUDED, args.timeout))
+                            args.exclude + Defaults.EXCLUDED_FOLDERS, args.timeout))
     tests.sort(key=operator.attrgetter("name"))
 
     args.njobs = max(1, min(args.njobs or os.cpu_count() or 1, len(tests)))
