@@ -15,7 +15,6 @@ using Microsoft.VisualStudio.Text.Tagging;
 using Microsoft.VisualStudio.Utilities;
 using Bpl = Microsoft.Boogie;
 
-
 namespace DafnyLanguage
 {
 
@@ -136,8 +135,7 @@ namespace DafnyLanguage
 
       List<IdRegion> newRegions = new List<IdRegion>();
 
-      foreach (var info in program.reporter.AllMessages[ErrorLevel.Info])
-      {
+      foreach (var info in program.reporter.AllMessages[ErrorLevel.Info]) {
         IdRegion.Add(newRegions, info.token, info.message, info.token.val.Length);
       }
 
@@ -368,11 +366,6 @@ namespace DafnyLanguage
       public readonly OccurrenceKind Kind;
       public readonly IVariable Variable;
 
-      static bool SurfaceSyntaxToken(Bpl.IToken tok) {
-        Contract.Requires(tok != null);
-        return !(tok is TokenWrapper);
-      }
-
       public static void Add(List<IdRegion> regions, Bpl.IToken tok, IVariable v, bool isDefinition, ModuleDefinition context) {
         Contract.Requires(regions != null);
         Contract.Requires(tok != null);
@@ -383,27 +376,21 @@ namespace DafnyLanguage
         Contract.Requires(regions != null);
         Contract.Requires(tok != null);
         Contract.Requires(v != null);
-        if (SurfaceSyntaxToken(tok)) {
-          regions.Add(new IdRegion(tok, v, isDefinition, kind, context));
-        }
+        regions.Add(new IdRegion(tok, v, isDefinition, kind, context));
       }
       public static void Add(List<IdRegion> regions, Bpl.IToken tok, Field decl, Microsoft.Dafny.Type showType, string kind, bool isDefinition, ModuleDefinition context) {
         Contract.Requires(regions != null);
         Contract.Requires(tok != null);
         Contract.Requires(decl != null);
         Contract.Requires(kind != null);
-        if (SurfaceSyntaxToken(tok)) {
-          regions.Add(new IdRegion(tok, decl, showType, kind, isDefinition, context));
-        }
+        regions.Add(new IdRegion(tok, decl, showType, kind, isDefinition, context));
       }
 
       public static void Add(List<IdRegion> regions, Bpl.IToken tok, string text, int length) {
         Contract.Requires(regions != null);
         Contract.Requires(tok != null);
         Contract.Requires(text != null);
-        if (SurfaceSyntaxToken(tok)) {
-          regions.Add(new IdRegion(tok, OccurrenceKind.AdditionalInformation, text, length));
-        }
+        regions.Add(new IdRegion(tok, OccurrenceKind.AdditionalInformation, text, length));
       }
 
       private IdRegion(Bpl.IToken tok, IVariable v, bool isDefinition, string kind, ModuleDefinition context) {

@@ -85,10 +85,12 @@ namespace Microsoft.Dafny.Triggers {
 
     protected override void VisitOneExpr(Expression expr) {
       var quantifier = expr as QuantifierExpr;
-      if (quantifier != null) {
-        var split = SplitQuantifier(quantifier).ToList();
-        quantifier.SplitQuantifier = split;
-        //Console.WriteLine("!!! {0} => {1}", Printer.ExprToString(expr), rew.MapConcat(Printer.ExprToString, " ||| "));
+      if (quantifier != null && quantifier.SplitQuantifier == null) {
+        bool splitAttr = true;
+        if (!Attributes.ContainsBool(quantifier.Attributes, "split", ref splitAttr) || splitAttr) {
+          var split = SplitQuantifier(quantifier).ToList();
+          quantifier.SplitQuantifier = split;
+        }
       }
     }
   }

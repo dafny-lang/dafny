@@ -47,21 +47,7 @@ namespace Microsoft.Dafny
       var finder = new Triggers.QuantifierCollector(reporter);
         
       foreach (var decl in ModuleDefinition.AllCallables(m.TopLevelDecls)) {
-        if (decl is Function) {
-          var function = (Function)decl;
-          finder.Visit(function.Ens, null);
-          finder.Visit(function.Req, null);
-          if (function.Body != null) {
-            finder.Visit(function.Body, null);
-          }
-        } else if (decl is Method) {
-          var method = (Method)decl;
-          finder.Visit(method.Ens, null);
-          finder.Visit(method.Req, null);
-          if (method.Body != null) {
-            finder.Visit(method.Body, null);
-          }
-        }
+        finder.Visit(decl, null);
       }
       
       var triggersCollector = new Triggers.TriggersCollector();
@@ -80,21 +66,7 @@ namespace Microsoft.Dafny
     internal override void PostResolve(ModuleDefinition m) {
       var splitter = new Triggers.QuantifierSplitter();
       foreach (var decl in ModuleDefinition.AllCallables(m.TopLevelDecls)) {
-        if (decl is Function) {
-          var function = (Function)decl;
-          splitter.Visit(function.Ens);
-          splitter.Visit(function.Req);
-          if (function.Body != null) {
-            splitter.Visit(function.Body);
-          }
-        } else if (decl is Method) {
-          var method = (Method)decl;
-          splitter.Visit(method.Ens);
-          splitter.Visit(method.Req);
-          if (method.Body != null) {
-            splitter.Visit(method.Body);
-          }
-        }
+        splitter.Visit(decl);
       }
     }
   }

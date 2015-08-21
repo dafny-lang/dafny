@@ -6,6 +6,9 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DafnyPipeline", "Dafny\DafnyPipeline.csproj", "{FE44674A-1633-4917-99F4-57635E6FA740}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DafnyServer", "DafnyServer\DafnyServer.csproj", "{AC9B21AE-EBC1-4A27-AD11-ED031FC7B4A2}"
+	ProjectSection(ProjectDependencies) = postProject
+		{FE44674A-1633-4917-99F4-57635E6FA740} = {FE44674A-1633-4917-99F4-57635E6FA740}
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

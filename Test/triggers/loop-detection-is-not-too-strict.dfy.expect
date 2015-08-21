@@ -1,0 +1,4 @@
+loop-detection-is-not-too-strict.dfy(20,9): Warning: Selected triggers: {P(x, y)} (loops with {P(x, y + 1)})
+ (!) Suppressing loops would leave this expression without triggers.
+
+Dafny program verifier finished with 3 verified, 0 errors

@@ -34,21 +34,14 @@ namespace Microsoft.Dafny {
       AllMessages[ErrorLevel.Info] = new List<ErrorMessage>();
     }
 
-    protected bool ShouldDiscard(MessageSource source, ErrorLevel level) {
-      return ((ErrorsOnly && level != ErrorLevel.Error) ||
-              (!DafnyOptions.O.PrintTooltips && level == ErrorLevel.Info));
-    }
-
     // This is the only thing that needs to be overriden
     public virtual bool Message(MessageSource source, ErrorLevel level, IToken tok, string msg) {
-      var discard = ShouldDiscard(source, level);
-
+      bool discard = (ErrorsOnly && level != ErrorLevel.Error) || // Discard non-errors if ErrorsOnly is set
+                     (tok is TokenWrapper && !(tok is NestedToken)); // Discard wrapped tokens, except for nested ones
       if (!discard) {
         AllMessages[level].Add(new ErrorMessage { token = tok, message = msg });
-        return true;
       }
-
-      return false;
+      return !discard;
     }
 
     public int Count(ErrorLevel level) {
@@ -122,15 +115,15 @@ namespace Microsoft.Dafny {
       Info(source, tok, String.Format(msg, args));
     }
 
-    public string ErrorToString(ErrorLevel header, IToken tok, string msg) {
+    public static string ErrorToString(ErrorLevel header, IToken tok, string msg) {
       return ErrorToString_Internal(": " + header.ToString(), tok.filename, tok.line, tok.col, ": " + msg);
     }
 
-    public string ErrorToString(ErrorLevel header, string filename, int oneBasedLine, int oneBasedColumn, string msg) {
+    public static string ErrorToString(ErrorLevel header, string filename, int oneBasedLine, int oneBasedColumn, string msg) {
       return ErrorToString_Internal(": " + header.ToString(), filename, oneBasedLine, oneBasedColumn, ": " + msg);
     }
 
-    public string ErrorToString_Internal(string header, string filename, int oneBasedLine, int oneBasedColumn, string msg) {
+    public static string ErrorToString_Internal(string header, string filename, int oneBasedLine, int oneBasedColumn, string msg) {
       return String.Format("{0}({1},{2}){3}{4}", filename, oneBasedLine, oneBasedColumn - 1, header, msg ?? "");
     }
   }
@@ -150,7 +143,10 @@ namespace Microsoft.Dafny {
     }
 
     public override bool Message(MessageSource source, ErrorLevel level, IToken tok, string msg) {
-      if (base.Message(source, level, tok, msg)) {
+      if (base.Message(source, level, tok, msg) && (DafnyOptions.O.PrintTooltips || level != ErrorLevel.Info)) {
+        // Extra indent added to make it easier to distinguish multiline error messages for clients that rely on the CLI
+        msg = msg.Replace(Environment.NewLine, Environment.NewLine + " ");
+
         ConsoleColor previousColor = Console.ForegroundColor;
         Console.ForegroundColor = ColorForLevel(level);
         Console.WriteLine(ErrorToString(level, tok, msg));

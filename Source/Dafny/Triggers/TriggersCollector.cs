@@ -13,7 +13,25 @@ namespace Microsoft.Dafny.Triggers {
     internal ISet<IVariable> Variables { get; set; }
 
     public override string ToString() {
-      return Printer.ExprToString(OriginalExpr);
+      return Printer.ExprToString(Expr); 
+      // NOTE: Using OriginalExpr here could cause some confusion: 
+      // for example, {a !in b} is a binary expression, yielding 
+      // trigger {a in b}. Saying the trigger is a !in b would be 
+      // rather misleading.
+    }
+
+    internal enum TermComparison {
+      SameStrength = 0, Stronger = 1, NotStronger = -1
+    }
+
+    internal TermComparison CompareTo(TriggerTerm other) {
+      if (this == other) {
+        return TermComparison.SameStrength;
+      } else if (Expr.AllSubExpressions(true).Any(other.Expr.ExpressionEq)) {
+        return TermComparison.Stronger;
+      } else {
+        return TermComparison.NotStronger;
+      }
     }
 
     internal static bool Eq(TriggerTerm t1, TriggerTerm t2) {
@@ -37,7 +55,7 @@ namespace Microsoft.Dafny.Triggers {
       return vars.All(x => Terms.Any(term => term.Variables.Contains(x)));
     }
 
-    private string Repr { get { return String.Join(", ", Terms); } }
+    internal string Repr { get { return String.Join(", ", Terms); } }
 
     public override string ToString() {
       return "{" + Repr + "}" + (String.IsNullOrWhiteSpace(Annotation) ? "" : " (" + Annotation + ")");
@@ -45,7 +63,7 @@ namespace Microsoft.Dafny.Triggers {
 
     internal IEnumerable<TriggerMatch> LoopingSubterms(QuantifierExpr quantifier) {
       Contract.Requires(quantifier.SplitQuantifier == null); // Don't call this on a quantifier with a Split clause: it's not a real quantifier
-      var matchingSubterms = MatchingSubterms(quantifier);
+      var matchingSubterms = this.MatchingSubterms(quantifier);
       return matchingSubterms.Where(tm => tm.CouldCauseLoops(Terms));
     }
 
@@ -54,8 +72,23 @@ namespace Microsoft.Dafny.Triggers {
       return Terms.SelectMany(term => quantifier.SubexpressionsMatchingTrigger(term.Expr)).Deduplicate(TriggerMatch.Eq);
     }
 
-    public String AsDafnyAttributeString() {
-      return "{:trigger " + Repr + "}";
+    internal bool IsStrongerThan(TriggerCandidate that) {
+      if (this == that) {
+        return false; 
+      }
+
+      var hasStrictlyStrongerTerm = false;
+      foreach (var t in Terms) {
+        var comparison = that.Terms.Select(t.CompareTo).Max();
+
+        // All terms of `this` must be at least as strong as a term of `that`
+        if (comparison == TriggerTerm.TermComparison.NotStronger) { return false; }
+
+        // Did we find a strictly stronger term?
+        hasStrictlyStrongerTerm = hasStrictlyStrongerTerm || comparison == TriggerTerm.TermComparison.Stronger;
+      }
+
+      return hasStrictlyStrongerTerm;
     }
   }
 

@@ -24,6 +24,7 @@ namespace Microsoft.Dafny.Triggers {
 
   internal struct TriggerMatch {
     internal Expression Expr;
+    internal Expression OriginalExpr;
     internal Dictionary<IVariable, Expression> Bindings;
 
     internal static bool Eq(TriggerMatch t1, TriggerMatch t2) {
@@ -110,10 +111,10 @@ namespace Microsoft.Dafny.Triggers {
       return ShallowEq_Top(expr, trigger) && TriggerUtils.SameLists(expr.SubExpressions, trigger.SubExpressions, (e1, e2) => MatchesTrigger(e1, e2, holes, bindings));
     }
 
-    private static TriggerMatch? MatchAgainst(this Expression expr, Expression trigger, IEnumerable<BoundVar> holes) {
+    private static TriggerMatch? MatchAgainst(this Expression expr, Expression trigger, IEnumerable<BoundVar> holes, Expression originalExpr) {
       var bindings = new Dictionary<IVariable, Expression>();
       if (expr.MatchesTrigger(trigger, new HashSet<BoundVar>(holes), bindings)) {
-        return new TriggerMatch { Expr = expr, Bindings = bindings };
+        return new TriggerMatch { Expr = expr, OriginalExpr = originalExpr ?? expr, Bindings = bindings };
       } else {
         return null;
       }
@@ -121,7 +122,7 @@ namespace Microsoft.Dafny.Triggers {
 
     internal static IEnumerable<TriggerMatch> SubexpressionsMatchingTrigger(this QuantifierExpr quantifier, Expression trigger) {
       return quantifier.Term.AllSubExpressions()
-        .Select(e => TriggerUtils.CleanupExprForInclusionInTrigger(e).MatchAgainst(trigger, quantifier.BoundVars))
+        .Select(e => TriggerUtils.CleanupExprForInclusionInTrigger(e).MatchAgainst(trigger, quantifier.BoundVars, e))
         .Where(e => e.HasValue).Select(e => e.Value);
     }
 

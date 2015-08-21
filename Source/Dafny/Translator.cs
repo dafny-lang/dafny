@@ -3585,7 +3585,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(tok != null);
       Contract.Ensures(Contract.Result<Bpl.Cmd>() != null);
       var col = tok.col + (isEndToken ? tok.val.Length : 0);
-      string description = reporter.ErrorToString_Internal(additionalInfo == null ? "" : ": ", tok.filename, tok.line, tok.col, additionalInfo ?? "");
+      string description = ErrorReporter.ErrorToString_Internal(additionalInfo == null ? "" : ": ", tok.filename, tok.line, tok.col, additionalInfo ?? "");
       QKeyValue kv = new QKeyValue(tok, "captureState", new List<object>() { description }, null);
       return new Bpl.AssumeCmd(tok, Bpl.Expr.True, kv);
     }
@@ -11524,56 +11524,60 @@ namespace Microsoft.Dafny {
           return TrExpr(((NamedExpr)expr).Body);
         } else if (expr is QuantifierExpr) {
           QuantifierExpr e = (QuantifierExpr)expr;
-          List<Variable> tyvars = translator.MkTyParamBinders(e.TypeArgs);
-          List<Variable> bvars = new List<Variable>();
 
-          var initEtran = this;
-          var bodyEtran = this;
-          bool _scratch = true;
+          if (e.SplitQuantifier != null) {
+            return TrExpr(e.SplitQuantifierExpression);
+          } else {
+            List<Variable> tyvars = translator.MkTyParamBinders(e.TypeArgs);
+            List<Variable> bvars = new List<Variable>();
 
-          Bpl.Expr antecedent = Bpl.Expr.True;
+            var initEtran = this;
+            var bodyEtran = this;
+            bool _scratch = true;
 
-          if (Attributes.ContainsBool(e.Attributes, "layerQuantifier", ref _scratch)) {
-            // If this is a layer quantifier, quantify over layers here, and use $LS(ly) layers in the translation of the body
-            var ly = BplBoundVar(e.Refresh("q$ly#", translator.CurrentIdGenerator), predef.LayerType, bvars);
-            bodyEtran = new ExpressionTranslator(translator, predef, HeapExpr, This, applyLimited_CurrentFunction, new FuelSetting(translator, 1, ly), new FuelSetting(translator, 1, ly), modifiesFrame, stripLits);
-          }
-          if (Attributes.ContainsBool(e.Attributes, "heapQuantifier", ref _scratch)) {
-            var h = BplBoundVar(e.Refresh("q$heap#", translator.CurrentIdGenerator), predef.HeapType, bvars);
-            bodyEtran = new ExpressionTranslator(bodyEtran, h);
-            antecedent = BplAnd(new List<Bpl.Expr> {
+            Bpl.Expr antecedent = Bpl.Expr.True;
+
+            if (Attributes.ContainsBool(e.Attributes, "layerQuantifier", ref _scratch)) {
+              // If this is a layer quantifier, quantify over layers here, and use $LS(ly) layers in the translation of the body
+              var ly = BplBoundVar(e.Refresh("q$ly#", translator.CurrentIdGenerator), predef.LayerType, bvars);
+              bodyEtran = new ExpressionTranslator(translator, predef, HeapExpr, This, applyLimited_CurrentFunction, new FuelSetting(translator, 1, ly), new FuelSetting(translator, 1, ly), modifiesFrame, stripLits);
+            }
+            if (Attributes.ContainsBool(e.Attributes, "heapQuantifier", ref _scratch)) {
+              var h = BplBoundVar(e.Refresh("q$heap#", translator.CurrentIdGenerator), predef.HeapType, bvars);
+              bodyEtran = new ExpressionTranslator(bodyEtran, h);
+              antecedent = BplAnd(new List<Bpl.Expr> {
               antecedent,
               translator.FunctionCall(e.tok, BuiltinFunction.IsGoodHeap, null, h),
               translator.HeapSameOrSucc(initEtran.HeapExpr, h)
             });
-          }
+            }
 
-          antecedent = BplAnd(antecedent, bodyEtran.TrBoundVariables(e.BoundVars, bvars));
+            antecedent = BplAnd(antecedent, bodyEtran.TrBoundVariables(e.BoundVars, bvars));
 
-          Bpl.QKeyValue kv = TrAttributes(e.Attributes, "trigger");
-          Bpl.Trigger tr = null;
-          var argsEtran = bodyEtran.WithNoLits();
-          foreach (var aa in e.Attributes.AsEnumerable()) {
-            if (aa.Name == "trigger") {
-              List<Bpl.Expr> tt = new List<Bpl.Expr>();
-              foreach (var arg in aa.Args) {
-                tt.Add(argsEtran.TrExpr(arg));
+            Bpl.QKeyValue kv = TrAttributes(e.Attributes, "trigger");
+            Bpl.Trigger tr = null;
+            var argsEtran = bodyEtran.WithNoLits();
+            foreach (var aa in e.Attributes.AsEnumerable()) {
+              if (aa.Name == "trigger") {
+                List<Bpl.Expr> tt = new List<Bpl.Expr>();
+                foreach (var arg in aa.Args) {
+                  tt.Add(argsEtran.TrExpr(arg));
+                }
+                tr = new Bpl.Trigger(expr.tok, true, tt, tr);
               }
-              tr = new Bpl.Trigger(expr.tok, true, tt, tr);
+            }
+            if (e.Range != null) {
+              antecedent = BplAnd(antecedent, bodyEtran.TrExpr(e.Range));
+            }
+            Bpl.Expr body = bodyEtran.TrExpr(e.Term);
+
+            if (e is ForallExpr) {
+              return new Bpl.ForallExpr(expr.tok, new List<TypeVariable>(), Concat(tyvars, bvars), kv, tr, Bpl.Expr.Imp(antecedent, body));
+            } else {
+              Contract.Assert(e is ExistsExpr);
+              return new Bpl.ExistsExpr(expr.tok, new List<TypeVariable>(), Concat(tyvars, bvars), kv, tr, Bpl.Expr.And(antecedent, body));
             }
           }
-          if (e.Range != null) {
-            antecedent = BplAnd(antecedent, bodyEtran.TrExpr(e.Range));
-          }
-          Bpl.Expr body = bodyEtran.TrExpr(e.Term);
-          
-          if (e is ForallExpr) {
-            return new Bpl.ForallExpr(expr.tok, new List<TypeVariable>(), Concat(tyvars, bvars), kv, tr, Bpl.Expr.Imp(antecedent, body));
-          } else {
-            Contract.Assert(e is ExistsExpr);
-            return new Bpl.ExistsExpr(expr.tok, new List<TypeVariable>(), Concat(tyvars, bvars), kv, tr, Bpl.Expr.And(antecedent, body));
-          }
-
         } else if (expr is SetComprehension) {
           var e = (SetComprehension)expr;
           // Translate "set xs | R :: T" into "lambda y: BoxType :: (exists xs :: CorrectType(xs) && R && y==Box(T))".
@@ -13090,13 +13094,7 @@ namespace Microsoft.Dafny {
 
     private bool CanSafelyInline(FunctionCallExpr fexp, Function f) {
       var visitor = new TriggersExplorer();
-
-      visitor.Visit(f.Body);
-      foreach (var expr in f.Ens) { visitor.Visit(expr); }
-      foreach (var expr in f.Req) { visitor.Visit(expr); }
-      foreach (var expr in f.Reads) { visitor.Visit(expr); }
-      foreach (var expr in f.Decreases.Expressions) { visitor.Visit(expr); }
-
+      visitor.Visit(f);
       return f.Formals.Zip(fexp.Args).All(formal_concrete => CanSafelySubstitute(visitor.TriggerVariables, formal_concrete.Item1, formal_concrete.Item2));
     }
 
