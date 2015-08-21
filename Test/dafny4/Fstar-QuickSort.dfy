@@ -6,8 +6,6 @@
 // Dafny needs help with a couple of lemmas in places where F* does not need them.
 // Comments below show differences between the F* and Dafny versions.
 
-datatype Pair<T, U> = P(T, U)
-
 datatype List<T> = Nil | Cons(T, List)
 
 function length(list: List): nat  // for termination proof
@@ -26,7 +24,7 @@ function In(x: int, list: List<int>): nat
 }
 
 predicate SortedRange(m: int, n: int, list: List<int>)
-  decreases list;  // for termination proof
+  decreases list  // for termination proof
 {
   match list
   case Nil => m <= n
@@ -34,45 +32,45 @@ predicate SortedRange(m: int, n: int, list: List<int>)
 }
 
 function append(n0: int, n1: int, n2: int, n3: int, i: List<int>, j: List<int>): List<int>
-  requires n0 <= n1 <= n2 <= n3;
-  requires SortedRange(n0, n1, i) && SortedRange(n2, n3, j);
-  ensures SortedRange(n0, n3, append(n0, n1, n2, n3, i, j));
-  ensures forall x :: In(x, append(n0, n1, n2, n3, i, j)) == In(x, i) + In(x, j);
-  decreases i;  // for termination proof
+  requires n0 <= n1 <= n2 <= n3
+  requires SortedRange(n0, n1, i) && SortedRange(n2, n3, j)
+  ensures SortedRange(n0, n3, append(n0, n1, n2, n3, i, j))
+  ensures forall x :: In(x, append(n0, n1, n2, n3, i, j)) == In(x, i) + In(x, j)
+  decreases i  // for termination proof
 {
   match i
   case Nil => j
   case Cons(hd, tl) => Cons(hd, append(hd, n1, n2, n3, tl, j))
 }
 
-function partition(x: int, l: List<int>): Pair<List<int>, List<int>>
-  ensures var P(lo, hi) := partition(x, l);
+function partition(x: int, l: List<int>): (List<int>, List<int>)
+  ensures var (lo, hi) := partition(x, l);
     (forall y :: In(y, lo) == if y <= x then In(y, l) else 0) &&
     (forall y :: In(y, hi) == if x < y then In(y, l) else 0) &&
-    length(l) == length(lo) + length(hi);  // for termination proof
+    length(l) == length(lo) + length(hi)  // for termination proof
 {
   match l
-  case Nil => P(Nil, Nil)
+  case Nil => (Nil, Nil)
   case Cons(hd, tl) =>
-    var P(lo, hi) := partition(x, tl);
+    var (lo, hi) := partition(x, tl);
     if hd <= x then
-      P(Cons(hd, lo), hi)
+      (Cons(hd, lo), hi)
     else
-      P(lo, Cons(hd, hi))
+      (lo, Cons(hd, hi))
 }
 
 function sort(min: int, max: int, i: List<int>): List<int>
-  requires min <= max;
-  requires forall x :: In(x, i) != 0 ==> min <= x <= max;
-  ensures SortedRange(min, max, sort(min, max, i));
-  ensures forall x :: In(x, i) == In(x, sort(min, max, i));
-  decreases length(i);  // for termination proof
+  requires min <= max
+  requires forall x :: In(x, i) != 0 ==> min <= x <= max
+  ensures SortedRange(min, max, sort(min, max, i))
+  ensures forall x :: In(x, i) == In(x, sort(min, max, i))
+  decreases length(i)  // for termination proof
 {
   match i
   case Nil => Nil
   case Cons(hd, tl) =>
     assert In(hd, i) != 0;  // this proof line not needed in F*
-    var P(lo, hi) := partition(hd, tl);
+    var (lo, hi) := partition(hd, tl);
     assert forall y :: In(y, lo) <= In(y, i);  // this proof line not needed in F*
     var i' := sort(min, hd, lo);
     var j' := sort(hd, max, hi);
