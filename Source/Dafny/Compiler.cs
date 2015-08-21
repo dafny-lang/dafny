@@ -687,14 +687,11 @@ namespace Microsoft.Dafny {
       return formal.HasName ? formal.CompileName : "_a" + i;
     }
 
-    string DtName(DatatypeDecl decl) {
-      return decl.FullCompileName;
-    }
     string DtCtorName(DatatypeCtor ctor) {
       Contract.Requires(ctor != null);
       Contract.Ensures(Contract.Result<string>() != null);
 
-      return DtName(ctor.EnclosingDatatype) + "_" + ctor.CompileName;
+      return ctor.EnclosingDatatype.FullCompileName + "_" + ctor.CompileName;
     }
     string DtCtorDeclartionName(DatatypeCtor ctor) {
       Contract.Requires(ctor != null);
@@ -2390,7 +2387,7 @@ namespace Microsoft.Dafny {
         Contract.Assert(dtv.Ctor != null);  // since dtv has been successfully resolved
         var typeParams = dtv.InferredTypeArgs.Count == 0 ? "" : string.Format("<{0}>", TypeNames(dtv.InferredTypeArgs));
 
-        wr.Write("new {0}{1}(", DtName(dtv.Ctor.EnclosingDatatype), typeParams);
+        wr.Write("new {0}{1}(", dtv.Ctor.EnclosingDatatype.FullCompileName, typeParams);
         if (!dtv.IsCoCall) {
           // For an ordinary constructor (that is, one that does not guard any co-recursive calls), generate:
           //   new Dt_Cons<T>( args )
@@ -2860,7 +2857,7 @@ namespace Microsoft.Dafny {
             var b = (ComprehensionExpr.DatatypeBoundedPool)bound;
             wr.Write("Dafny.Helpers.QuantDatatype(");
 
-            wr.Write("{0}.AllSingletonConstructors, ", DtName(b.Decl));
+            wr.Write("{0}.AllSingletonConstructors, ", b.Decl.FullCompileName);
           } else {
             Contract.Assert(false); throw new cce.UnreachableException();  // unexpected BoundedPool type
           }
