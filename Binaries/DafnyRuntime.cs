@@ -1060,6 +1060,11 @@ namespace Dafny
         }
       }
     }
+    public static IEnumerable<BigInteger> IntegerRange(BigInteger lo, BigInteger hi) {
+      for (var j = lo; j < hi; j++) {
+        yield return j;
+      }
+    }
     // pre: b != 0
     // post: result == a/b, as defined by Euclidean Division (http://en.wikipedia.org/wiki/Modulo_operation)
     public static sbyte EuclideanDivision_sbyte(sbyte a, sbyte b) {
