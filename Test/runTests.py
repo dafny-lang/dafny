@@ -248,12 +248,12 @@ class Test:
             self.duration = self.end - self.start
 
             stdout, stderr = stdout.strip(), stderr.strip()
-            if stdout != b"" or stderr != b"":
+            if stdout != b"":
                 debug(Debug.TRACE, "Writing the output of {} to {}".format(self.name, self.temp_output_path))
                 with open(self.temp_output_path, mode='ab') as writer:
-                    writer.write(stdout + stderr)
+                    writer.write(stdout)
             if stderr != b"":
-                debug(Debug.TRACE, stderr.decode("utf-8"))
+                debug(Debug.INFO, stderr.decode("utf-8"))
 
             self.update_status()
         except TimeoutExpired:
