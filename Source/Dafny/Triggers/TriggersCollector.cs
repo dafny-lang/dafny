@@ -169,7 +169,7 @@ namespace Microsoft.Dafny.Triggers {
       expr.SubExpressions.Iter(e => Annotate(e));
 
       TriggerAnnotation annotation; // TODO: Using ApplySuffix fixes the unresolved members problem in GenericSort
-      if (expr is FunctionCallExpr || expr is SeqSelectExpr || expr is MemberSelectExpr || expr is OldExpr || expr is ApplyExpr ||
+      if (expr is FunctionCallExpr || expr is SeqSelectExpr || expr is MemberSelectExpr || expr is OldExpr || expr is ApplyExpr || expr is DisplayExpression ||
           (expr is UnaryOpExpr && (((UnaryOpExpr)expr).Op == UnaryOpExpr.Opcode.Cardinality)) || // FIXME || ((UnaryOpExpr)expr).Op == UnaryOpExpr.Opcode.Fresh doesn't work, as fresh is a pretty tricky predicate when it's not about datatypes. See translator.cs:10944
           (expr is BinaryExpr && (((BinaryExpr)expr).Op == BinaryExpr.Opcode.NotIn || ((BinaryExpr)expr).Op == BinaryExpr.Opcode.In))) {
         annotation = AnnotatePotentialCandidate(expr);
@@ -186,8 +186,7 @@ namespace Microsoft.Dafny.Triggers {
                  expr is OldExpr ||
                  expr is ThisExpr ||
                  expr is BoxingCastExpr ||
-                 expr is DatatypeValue ||
-                 expr is SeqDisplayExpr) { //FIXME what abvout other display expressions?
+                 expr is DatatypeValue) {
         annotation = AnnotateOther(expr, false);
       } else {
         annotation = AnnotateOther(expr, true);
