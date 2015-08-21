@@ -1,4 +1,4 @@
-// RUN: %dafny /printTooltips /compile:0 /print:"%t.print" /dprint:"%t.dprint" /autoTriggers:1 "%s" > "%t"
+// RUN: %dafny /compile:0 /print:"%t.print" /dprint:"%t.dprint" /autoTriggers:1 /printTooltips "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // This file ensures that Dafny does get rid of redundant triggers before
