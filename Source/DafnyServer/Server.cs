@@ -31,9 +31,8 @@ namespace Microsoft.Dafny {
     }
 
     private void SetupConsole() {
-      var utf8 = new UTF8Encoding(false, true);
-      Console.InputEncoding = utf8;
-      Console.OutputEncoding = utf8;
+      // Setting InputEncoding to UTF8 causes z3 to choke.
+      Console.OutputEncoding = new UTF8Encoding(false, true);
     }
 
     public Server() {
