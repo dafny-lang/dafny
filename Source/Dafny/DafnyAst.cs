@@ -1967,7 +1967,11 @@ namespace Microsoft.Dafny {
     }
     public string FullCompileName {
       get {
-        return Module.CompileName + ".@" + CompileName;
+        if (!Module.IsDefaultModule) {
+          return Module.CompileName + ".@" + CompileName;
+        } else {
+          return CompileName;
+        }
       }
     }
   }

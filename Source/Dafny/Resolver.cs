@@ -4342,13 +4342,12 @@ namespace Microsoft.Dafny
             successSoFar = UnifyTypes(aa.TypeArgs[i], bb.TypeArgs[i]);
           }
           return successSoFar;
-        }
-        else if ((rcb is TraitDecl) && (rca is TraitDecl)) {
-            return ((TraitDecl)rcb).FullCompileName == ((TraitDecl)rca).FullCompileName;
-        } else if ((rcb is ClassDecl) && (rca is TraitDecl)) {
-            return ((ClassDecl)rcb).TraitsObj.Any(tr => tr.FullCompileName == ((TraitDecl)rca).FullCompileName);
-        } else if ((rca is ClassDecl) && (rcb is TraitDecl)) {
-            return ((ClassDecl)rca).TraitsObj.Any(tr => tr.FullCompileName == ((TraitDecl)rcb).FullCompileName);
+        } else if (rcb is TraitDecl && rca is TraitDecl) {
+          return rca == rcb;
+        } else if (rcb is ClassDecl && rca is TraitDecl) {
+          return ((ClassDecl)rcb).TraitsObj.Contains(rca);
+        } else if (rca is ClassDecl && rcb is TraitDecl) {
+            return ((ClassDecl)rca).TraitsObj.Contains(rcb);
         } else if (aa.ResolvedParam != null && aa.ResolvedParam == bb.ResolvedParam) {
           // type parameters
           if (aa.TypeArgs.Count != bb.TypeArgs.Count) {

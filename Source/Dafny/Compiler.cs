@@ -117,7 +117,19 @@ namespace Microsoft.Dafny {
           } else if (d is TypeSynonymDecl) {
             // do nothing, just bypass type synonyms in the compiler
           } else if (d is NewtypeDecl) {
-            // do nothing, just bypass newtypes in the compiler
+            var nt = (NewtypeDecl)d;
+            Indent(indent);
+            wr.WriteLine("public class @{0} {{", nt.CompileName);
+            if (nt.NativeType != null) {
+              Indent(indent + IndentAmount);
+              wr.WriteLine("public static System.Collections.Generic.IEnumerable<{0}> IntegerRange(BigInteger lo, BigInteger hi) {{", nt.NativeType.Name);
+              Indent(indent + 2 * IndentAmount);
+              wr.WriteLine("for (var j = lo; j < hi; j++) {{ yield return ({0})j; }}", nt.NativeType.Name);
+              Indent(indent + IndentAmount);
+              wr.WriteLine("}");
+            }
+            Indent(indent);
+            wr.WriteLine("}");
           } else if (d is DatatypeDecl) {
             var dt = (DatatypeDecl)d;
             Indent(indent);
@@ -675,14 +687,11 @@ namespace Microsoft.Dafny {
       return formal.HasName ? formal.CompileName : "_a" + i;
     }
 
-    string DtName(DatatypeDecl decl) {
-      return decl.Module.IsDefaultModule ? decl.CompileName : decl.FullCompileName;
-    }
     string DtCtorName(DatatypeCtor ctor) {
       Contract.Requires(ctor != null);
       Contract.Ensures(Contract.Result<string>() != null);
 
-      return DtName(ctor.EnclosingDatatype) + "_" + ctor.CompileName;
+      return ctor.EnclosingDatatype.FullCompileName + "_" + ctor.CompileName;
     }
     string DtCtorDeclartionName(DatatypeCtor ctor) {
       Contract.Requires(ctor != null);
@@ -1560,11 +1569,15 @@ namespace Microsoft.Dafny {
           } else if (bound is ComprehensionExpr.IntBoundedPool) {
             var b = (ComprehensionExpr.IntBoundedPool)bound;
             Indent(ind);
-            wr.Write("for (var @{0} = ", bv.CompileName);
+            if (AsNativeType(bv.Type) != null) {
+              wr.Write("foreach (var @{0} in @{1}.IntegerRange(", bv.CompileName, bv.Type.AsNewtype.FullCompileName);
+            } else {
+              wr.Write("foreach (var @{0} in Dafny.Helpers.IntegerRange(", bv.CompileName);
+            }
             TrExpr(b.LowerBound);
-            wr.Write("; @{0} < ", bv.CompileName);
+            wr.Write(", ");
             TrExpr(b.UpperBound);
-            wr.Write("; @{0}++) {{ ", bv.CompileName);
+            wr.Write(")) { ");
           } else if (bound is ComprehensionExpr.SetBoundedPool) {
             var b = (ComprehensionExpr.SetBoundedPool)bound;
             Indent(ind);
@@ -1766,27 +1779,23 @@ namespace Microsoft.Dafny {
           wr.WriteLine("foreach (var {0} in Dafny.Helpers.AllBooleans) {{ @{1} = {0};", tmpVar, bv.CompileName);
         } else if (bound is ComprehensionExpr.IntBoundedPool) {
           var b = (ComprehensionExpr.IntBoundedPool)bound;
-          // (tmpVar is not used in this case)
-          if (b.LowerBound != null) {
-            wr.Write("@{0} = ", bv.CompileName);
-            TrExpr(b.LowerBound);
-            wr.WriteLine(";");
-            Indent(ind);
-            if (b.UpperBound != null) {
-              wr.Write("for (; @{0} < ", bv.CompileName);
-              TrExpr(b.UpperBound);
-              wr.WriteLine("; @{0}++) {{ ", bv.CompileName);
-            } else {
-              wr.WriteLine("for (;; @{0}++) {{ ", bv.CompileName);
-            }
+          if (AsNativeType(bv.Type) != null) {
+            wr.Write("foreach (var @{0} in @{1}.IntegerRange(", tmpVar, bv.Type.AsNewtype.FullCompileName);
           } else {
-            Contract.Assert(b.UpperBound != null);
-            wr.Write("@{0} = ", bv.CompileName);
-            TrExpr(b.UpperBound);
-            wr.WriteLine(";");
-            Indent(ind);
-            wr.WriteLine("for (;; @{0}--) {{ ", bv.CompileName);
+            wr.Write("foreach (var @{0} in Dafny.Helpers.IntegerRange(", tmpVar);
           }
+          if (b.LowerBound == null) {
+            wr.Write("null");
+          } else {
+            TrExpr(b.LowerBound);
+          }
+          wr.Write(", ");
+          if (b.UpperBound == null) {
+            wr.Write("null");
+          } else {
+            TrExpr(b.UpperBound);
+          }
+          wr.WriteLine(")) {{ @{1} = {0};", tmpVar, bv.CompileName);
         } else if (bound is AssignSuchThatStmt.WiggleWaggleBound) {
           wr.WriteLine("foreach (var {0} in Dafny.Helpers.AllIntegers) {{ @{1} = {0};", tmpVar, bv.CompileName);
         } else if (bound is ComprehensionExpr.SetBoundedPool) {
@@ -2378,7 +2387,7 @@ namespace Microsoft.Dafny {
         Contract.Assert(dtv.Ctor != null);  // since dtv has been successfully resolved
         var typeParams = dtv.InferredTypeArgs.Count == 0 ? "" : string.Format("<{0}>", TypeNames(dtv.InferredTypeArgs));
 
-        wr.Write("new {0}{1}(", DtName(dtv.Ctor.EnclosingDatatype), typeParams);
+        wr.Write("new {0}{1}(", dtv.Ctor.EnclosingDatatype.FullCompileName, typeParams);
         if (!dtv.IsCoCall) {
           // For an ordinary constructor (that is, one that does not guard any co-recursive calls), generate:
           //   new Dt_Cons<T>( args )
@@ -2848,7 +2857,7 @@ namespace Microsoft.Dafny {
             var b = (ComprehensionExpr.DatatypeBoundedPool)bound;
             wr.Write("Dafny.Helpers.QuantDatatype(");
 
-            wr.Write("{0}.AllSingletonConstructors, ", DtName(b.Decl));
+            wr.Write("{0}.AllSingletonConstructors, ", b.Decl.FullCompileName);
           } else {
             Contract.Assert(false); throw new cce.UnreachableException();  // unexpected BoundedPool type
           }
@@ -2891,11 +2900,15 @@ namespace Microsoft.Dafny {
             wr.Write("foreach (var @{0} in Dafny.Helpers.AllBooleans) {{ ", bv.CompileName);
           } else if (bound is ComprehensionExpr.IntBoundedPool) {
             var b = (ComprehensionExpr.IntBoundedPool)bound;
-            wr.Write("for (var @{0} = ", bv.CompileName);
+            if (AsNativeType(bv.Type) != null) {
+              wr.Write("foreach (var @{0} in @{1}.IntegerRange(", bv.CompileName, bv.Type.AsNewtype.FullCompileName);
+            } else {
+              wr.Write("foreach (var @{0} in Dafny.Helpers.IntegerRange(", bv.CompileName);
+            }
             TrExpr(b.LowerBound);
-            wr.Write("; @{0} < ", bv.CompileName);
+            wr.Write(", ");
             TrExpr(b.UpperBound);
-            wr.Write("; @{0}++) {{ ", bv.CompileName);
+            wr.Write(")) { ");
           } else if (bound is ComprehensionExpr.SetBoundedPool) {
             var b = (ComprehensionExpr.SetBoundedPool)bound;
             wr.Write("foreach (var @{0} in (", bv.CompileName);
@@ -2960,11 +2973,15 @@ namespace Microsoft.Dafny {
           wr.Write("foreach (var @{0} in Dafny.Helpers.AllBooleans) {{ ", bv.CompileName);
         } else if (bound is ComprehensionExpr.IntBoundedPool) {
           var b = (ComprehensionExpr.IntBoundedPool)bound;
-          wr.Write("for (var @{0} = ", bv.CompileName);
+          if (AsNativeType(bv.Type) != null) {
+            wr.Write("foreach (var @{0} in @{1}.IntegerRange(", bv.CompileName, bv.Type.AsNewtype.FullCompileName);
+          } else {
+            wr.Write("foreach (var @{0} in Dafny.Helpers.IntegerRange(", bv.CompileName);
+          }
           TrExpr(b.LowerBound);
-          wr.Write("; @{0} < ", bv.CompileName);
+          wr.Write(", ");
           TrExpr(b.UpperBound);
-          wr.Write("; @{0}++) {{ ", bv.CompileName);
+          wr.Write(")) { ");
         } else if (bound is ComprehensionExpr.SetBoundedPool) {
           var b = (ComprehensionExpr.SetBoundedPool)bound;
           wr.Write("foreach (var @{0} in (", bv.CompileName);
