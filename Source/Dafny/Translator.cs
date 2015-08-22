@@ -4437,7 +4437,7 @@ namespace Microsoft.Dafny {
         var e = (ComprehensionExpr)expr;
         var canCall = CanCallAssumption(e.Term, etran);
         var q = e as QuantifierExpr;
-
+        
         if (q != null && q.SplitQuantifier != null) {
           return CanCallAssumption(q.SplitQuantifierExpression, etran);
         }
@@ -4735,12 +4735,7 @@ namespace Microsoft.Dafny {
         // If the quantifier is universal, then continue as:
         //   assume (\forall x :: body(x));
         // Create local variables corresponding to the type arguments:
-
-        if (e.SplitQuantifier != null) {
-          CheckWellformedAndAssume(e.SplitQuantifierExpression, options, locals, builder, etran);
-          return;
-        }
-
+        
         var typeArgumentCopies = Map(e.TypeArgs, tp => e.Refresh(tp, CurrentIdGenerator));
         var typeMap = Util.Dict(e.TypeArgs, Map(typeArgumentCopies, tp => (Type)new UserDefinedType(tp)));
         var newLocals = Map(typeArgumentCopies, tp => new Bpl.LocalVariable(tp.tok, new TypedIdent(tp.tok, nameTypeParam(tp), predef.Ty)));
@@ -4748,15 +4743,24 @@ namespace Microsoft.Dafny {
         // Create local variables corresponding to the in-parameters:
         var substMap = SetupBoundVarsAsLocals(e.BoundVars, builder, locals, etran, typeMap);
         // Get the body of the quantifier and suitably substitute for the type variables and bound variables
-        var body = Substitute(e.LogicalBody(), null, substMap, typeMap);
+        var body = Substitute(e.LogicalBody(true), null, substMap, typeMap);
         CheckWellformedAndAssume(body, options, locals, builder, etran);
+        
         if (e is ForallExpr) {
-          builder.Add(new Bpl.AssumeCmd(expr.tok, etran.TrExpr(expr)));
+          // Although we do the WF check on the original quantifier, we assume the split one.
+          // This ensures that cases like forall x :: x != null && f(x.a) do not fail to verify.
+          builder.Add(new Bpl.AssumeCmd(expr.tok, etran.TrExpr(e.SplitQuantifierExpression ?? e)));
         }
         return;
       }
+
       // resort to the behavior of simply checking well-formedness followed by assuming the translated expression
       CheckWellformed(expr, options, locals, builder, etran);
+
+      // NOTE: If the CheckWellformed call above found a split quantifier, it ignored
+      //       the splitting and proceeded to decompose the full quantifier as
+      //       normal. This call to TrExpr, on the other hand, will indeed use the
+      //       split quantifier.
       builder.Add(new Bpl.AssumeCmd(expr.tok, etran.TrExpr(expr)));
     }
 
@@ -5276,10 +5280,8 @@ namespace Microsoft.Dafny {
         var q = e as QuantifierExpr;
         var lam = e as LambdaExpr;
 
-        if (q != null && q.SplitQuantifier != null) {
-          CheckWellformedWithResult(q.SplitQuantifierExpression, options, result, resultType, locals, builder, etran);
-          return;
-        }
+        // This is a WF check, so we look at the original quantifier, not the split one.
+        // This ensures that cases like forall x :: x != null && f(x.a) do not fail to verify.
 
         var typeMap = new Dictionary<TypeParameter, Type>();
         var copies = new List<TypeParameter>();
@@ -5298,7 +5300,6 @@ namespace Microsoft.Dafny {
         var newEtran = etran;
         builder.Add(new Bpl.CommentCmd("Begin Comprehension WF check"));
         BplIfIf(e.tok, lam != null, null, builder, newBuilder => {
-
           if (lam != null) {
             // Havoc heap, unless oneShot
             if (!lam.OneShot) {
@@ -13098,7 +13099,8 @@ namespace Microsoft.Dafny {
       return f.Formals.Zip(fexp.Args).All(formal_concrete => CanSafelySubstitute(visitor.TriggerVariables, formal_concrete.Item1, formal_concrete.Item2));
     }
 
-    Triggers.TriggersCollector triggersCollector = new Triggers.TriggersCollector();
+    // Using an empty set of old expressions is ok here; the only uses of the triggersCollector will be to check for trigger killers.
+    Triggers.TriggersCollector triggersCollector = new Triggers.TriggersCollector(new HashSet<Expression>());
 
     private bool CanSafelySubstitute(ISet<IVariable> protectedVariables, IVariable variable, Expression substitution) {
       return !(protectedVariables.Contains(variable) && triggersCollector.IsTriggerKiller(substitution));
