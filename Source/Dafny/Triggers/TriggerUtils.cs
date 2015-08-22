@@ -129,35 +129,52 @@ namespace Microsoft.Dafny.Triggers {
       throw new ArgumentException();
     }
 
-    internal static Expression CleanupExprForInclusionInTrigger(Expression expr, out bool isKiller) {
+    internal static Expression PrepareExprForInclusionInTrigger(Expression expr, out bool isKiller) {
       isKiller = false;
 
-      if (!(expr is BinaryExpr)) {
-        return expr;
+      var ret = expr;
+      if (ret is BinaryExpr) {
+        ret = PrepareInMultisetForInclusionInTrigger(PrepareNotInForInclusionInTrigger((BinaryExpr)ret), ref isKiller);
       }
 
-      var bexpr = expr as BinaryExpr;
-
-      BinaryExpr new_expr = bexpr;
-      if (bexpr.Op == BinaryExpr.Opcode.NotIn) {
-        new_expr = new BinaryExpr(bexpr.tok, BinaryExpr.Opcode.In, bexpr.E0, bexpr.E1);
-        new_expr.ResolvedOp = RemoveNotInBinaryExprIn(bexpr.ResolvedOp);
-        new_expr.Type = bexpr.Type;
-      }
-
-      Expression returned_expr = new_expr;
-      if (new_expr.ResolvedOp == BinaryExpr.ResolvedOpcode.InMultiSet) {
-        returned_expr = new SeqSelectExpr(new_expr.tok, true, new_expr.E1, new_expr.E0, null);
-        returned_expr.Type = bexpr.Type;
-        isKiller = true; // [a in s] becomes [s[a] > 0], which is a trigger killer
-      }
-
-      return returned_expr;
+      return ret;
     }
 
-    internal static Expression CleanupExprForInclusionInTrigger(Expression expr) {
+    private static BinaryExpr PrepareNotInForInclusionInTrigger(BinaryExpr bexpr) {
+      if (bexpr.Op == BinaryExpr.Opcode.NotIn) {
+        var new_expr = new BinaryExpr(bexpr.tok, BinaryExpr.Opcode.In, bexpr.E0, bexpr.E1);
+        new_expr.ResolvedOp = RemoveNotInBinaryExprIn(bexpr.ResolvedOp);
+        new_expr.Type = bexpr.Type;
+        return new_expr;
+      } else {
+        return bexpr;
+      }
+    }
+
+    private static Expression PrepareInMultisetForInclusionInTrigger(BinaryExpr bexpr, ref bool isKiller) {
+      if (bexpr.ResolvedOp == BinaryExpr.ResolvedOpcode.InMultiSet) {
+        var new_expr = new SeqSelectExpr(bexpr.tok, true, bexpr.E1, bexpr.E0, null);
+        new_expr.Type = bexpr.Type;
+        isKiller = true; // [a in s] becomes [s[a] > 0], which is a trigger killer
+        return new_expr;
+      } else {
+        return bexpr;
+      }
+    }
+
+    internal static Expression PrepareExprForInclusionInTrigger(Expression expr) {
       bool _;
-      return CleanupExprForInclusionInTrigger(expr, out _);
+      return PrepareExprForInclusionInTrigger(expr, out _);
+    }
+
+    internal static Expression MaybeWrapInOld(Expression expr, bool wrap) {
+      if (wrap && !(expr is NameSegment) && !(expr is IdentifierExpr)) {
+        var newExpr = new OldExpr(expr.tok, expr);
+        newExpr.Type = expr.Type;
+        return newExpr;
+      } else {
+        return expr;
+      }
     }
   }
 }

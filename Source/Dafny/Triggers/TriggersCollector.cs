@@ -27,7 +27,7 @@ namespace Microsoft.Dafny.Triggers {
     internal TermComparison CompareTo(TriggerTerm other) {
       if (this == other) {
         return TermComparison.SameStrength;
-      } else if (Expr.AllSubExpressions(true).Any(other.Expr.ExpressionEq)) {
+      } else if (Expr.AllSubExpressions(true, true).Any(other.Expr.ExpressionEq)) {
         return TermComparison.Stronger;
       } else {
         return TermComparison.NotStronger;
@@ -92,7 +92,7 @@ namespace Microsoft.Dafny.Triggers {
     }
   }
 
-  class TriggerAnnotation {
+  internal class TriggerAnnotation {
     internal bool IsTriggerKiller;
     internal ISet<IVariable> Variables;
     internal readonly List<TriggerTerm> PrivateTerms;
@@ -132,11 +132,27 @@ namespace Microsoft.Dafny.Triggers {
     }
   }
 
-  public class TriggersCollector {
-    Dictionary<Expression, TriggerAnnotation> cache;
+  internal class TriggerAnnotationsCache {
+    public readonly HashSet<Expression> exprsInOldContext;
+    public readonly Dictionary<Expression, TriggerAnnotation> annotations;
 
-    internal TriggersCollector() {
-      this.cache = new Dictionary<Expression, TriggerAnnotation>();
+    /// <summary>
+    /// For certain operations, the TriggersCollector class needs to know whether 
+    /// an particular expression is under an old(...) wrapper. This is in particular 
+    /// true for generating trigger terms (but it is not for checking wehter something 
+    /// is a trigger killer, so passing an empty set here for that case would be fine.
+    /// </summary>
+    public TriggerAnnotationsCache(HashSet<Expression> exprsInOldContext) {
+      this.exprsInOldContext = exprsInOldContext;
+      annotations = new Dictionary<Expression, TriggerAnnotation>();
+    }
+  }
+
+  internal class TriggersCollector {
+    TriggerAnnotationsCache cache;
+
+    internal TriggersCollector(HashSet<Expression> exprsInOldContext) {
+      this.cache = new TriggerAnnotationsCache(exprsInOldContext);
     }
 
     private T ReduceAnnotatedSubExpressions<T>(Expression expr, T seed, Func<TriggerAnnotation, T> map, Func<T, T, T> reduce) {
@@ -162,7 +178,7 @@ namespace Microsoft.Dafny.Triggers {
 
     private TriggerAnnotation Annotate(Expression expr) {
       TriggerAnnotation cached;
-      if (cache.TryGetValue(expr, out cached)) {
+      if (cache.annotations.TryGetValue(expr, out cached)) {
         return cached;
       }
 
@@ -193,13 +209,13 @@ namespace Microsoft.Dafny.Triggers {
       }
 
       TriggerUtils.DebugTriggers("{0} ({1})\n{2}", Printer.ExprToString(expr), expr.GetType(), annotation);
-      cache[expr] = annotation;
+      cache.annotations[expr] = annotation;
       return annotation;
     }
 
     private TriggerAnnotation AnnotatePotentialCandidate(Expression expr) {
       bool expr_is_killer = false;
-      var new_expr = TriggerUtils.CleanupExprForInclusionInTrigger(expr, out expr_is_killer);
+      var new_expr = TriggerUtils.MaybeWrapInOld(TriggerUtils.PrepareExprForInclusionInTrigger(expr, out expr_is_killer), cache.exprsInOldContext.Contains(expr));
       var new_term = new TriggerTerm { Expr = new_expr, OriginalExpr = expr, Variables = CollectVariables(expr) };
 
       List<TriggerTerm> collected_terms = CollectExportedCandidates(expr);

@@ -6,18 +6,19 @@ using Microsoft.Boogie;
 using System.Collections.ObjectModel;
 using System.Diagnostics.Contracts;
 
-namespace Microsoft.Dafny.Triggers { //FIXME rename this file
-  internal class QuantifierCollector : TopDownVisitor<object> {
+namespace Microsoft.Dafny.Triggers {
+  internal class QuantifierCollector : TopDownVisitor<bool> {
     readonly ErrorReporter reporter;
-    private HashSet<Expression> quantifiers = new HashSet<Expression>();
-    internal List<QuantifiersCollection> quantifierCollections = new List<QuantifiersCollection>();
+    private readonly HashSet<Expression> quantifiers = new HashSet<Expression>();
+    internal readonly HashSet<Expression> exprsInOldContext = new HashSet<Expression>();
+    internal readonly List<QuantifiersCollection> quantifierCollections = new List<QuantifiersCollection>();
 
     public QuantifierCollector(ErrorReporter reporter) {
       Contract.Requires(reporter != null);
       this.reporter = reporter;
     }
 
-    protected override bool VisitOneExpr(Expression expr, ref object _) {
+    protected override bool VisitOneExpr(Expression expr, ref bool inOldContext) {
       var quantifier = expr as QuantifierExpr;
 
       if (quantifier != null && !quantifiers.Contains(quantifier)) {
@@ -29,6 +30,12 @@ namespace Microsoft.Dafny.Triggers { //FIXME rename this file
         } else {
           quantifierCollections.Add(new QuantifiersCollection(Enumerable.Repeat(quantifier, 1), reporter));
         }
+      }
+
+      if (expr is OldExpr) {
+        inOldContext = true;
+      } else if (inOldContext) { // FIXME be more restrctive on the type of stuff that we annotate
+        exprsInOldContext.Add(expr);
       }
 
       return true;

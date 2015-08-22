@@ -47,10 +47,10 @@ namespace Microsoft.Dafny
       var finder = new Triggers.QuantifierCollector(reporter);
         
       foreach (var decl in ModuleDefinition.AllCallables(m.TopLevelDecls)) {
-        finder.Visit(decl, null);
+        finder.Visit(decl, false);
       }
       
-      var triggersCollector = new Triggers.TriggersCollector();
+      var triggersCollector = new Triggers.TriggersCollector(finder.exprsInOldContext);
       foreach (var quantifierCollection in finder.quantifierCollections) {
         quantifierCollection.ComputeTriggers(triggersCollector);
         quantifierCollection.CommitTriggers();

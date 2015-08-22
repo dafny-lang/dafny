@@ -38,17 +38,18 @@ namespace Microsoft.Dafny.Triggers {
   }
 
   internal static class ExprExtensions {
-    internal static IEnumerable<Expression> AllSubExpressions(this Expression expr, bool strict = false) {
+    internal static IEnumerable<Expression> AllSubExpressions(this Expression expr, bool wrapOld, bool strict) {
+      bool isOld = expr is OldExpr;
+
       foreach (var subexpr in expr.SubExpressions) {
-        foreach (var r_subexpr in AllSubExpressions(subexpr, false)) {
-          yield return r_subexpr;
+        foreach (var r_subexpr in AllSubExpressions(subexpr, wrapOld, false)) {
+          yield return TriggerUtils.MaybeWrapInOld(r_subexpr, isOld);
         }
-        yield return subexpr;
       }
 
       if (expr is StmtExpr) {
-        foreach (var r_subexpr in AllSubExpressions(((StmtExpr)expr).S, false)) {
-          yield return r_subexpr;
+        foreach (var r_subexpr in AllSubExpressions(((StmtExpr)expr).S, wrapOld, false)) {
+          yield return TriggerUtils.MaybeWrapInOld(r_subexpr, isOld);
         }
       }
 
@@ -57,16 +58,15 @@ namespace Microsoft.Dafny.Triggers {
       }
     }
 
-    internal static IEnumerable<Expression> AllSubExpressions(this Statement stmt, bool strict = false) {
+    internal static IEnumerable<Expression> AllSubExpressions(this Statement stmt, bool wrapOld, bool strict) {
       foreach (var subexpr in stmt.SubExpressions) {
-        foreach (var r_subexpr in AllSubExpressions(subexpr, false)) {
+        foreach (var r_subexpr in AllSubExpressions(subexpr, wrapOld, false)) {
           yield return r_subexpr;
         }
-        yield return subexpr;
       }
 
       foreach (var substmt in stmt.SubStatements) {
-        foreach (var r_subexpr in AllSubExpressions(substmt, false)) {
+        foreach (var r_subexpr in AllSubExpressions(substmt, wrapOld, false)) {
           yield return r_subexpr;
         }
       }
@@ -121,8 +121,8 @@ namespace Microsoft.Dafny.Triggers {
     }
 
     internal static IEnumerable<TriggerMatch> SubexpressionsMatchingTrigger(this QuantifierExpr quantifier, Expression trigger) {
-      return quantifier.Term.AllSubExpressions()
-        .Select(e => TriggerUtils.CleanupExprForInclusionInTrigger(e).MatchAgainst(trigger, quantifier.BoundVars, e))
+      return quantifier.Term.AllSubExpressions(true, false) //FIXME should loop detection actually pass true here?
+        .Select(e => TriggerUtils.PrepareExprForInclusionInTrigger(e).MatchAgainst(trigger, quantifier.BoundVars, e))
         .Where(e => e.HasValue).Select(e => e.Value);
     }
 
