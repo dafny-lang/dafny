@@ -137,7 +137,7 @@ namespace Microsoft.Dafny.Triggers {
           (candidate, weakerCandidates) => !weakerCandidates.Any(),
           (candidate, weakerCandidates) => {
             q.RejectedCandidates.Add(candidate);
-            candidate.Annotation = "stronger than " + String.Join(", ", weakerCandidates);
+            candidate.Annotation = "more specific than " + String.Join(", ", weakerCandidates);
           }).ToList();
       }
     }
