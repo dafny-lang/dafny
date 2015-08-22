@@ -121,7 +121,7 @@ namespace Microsoft.Dafny.Triggers {
     }
 
     internal static IEnumerable<TriggerMatch> SubexpressionsMatchingTrigger(this QuantifierExpr quantifier, Expression trigger) {
-      return quantifier.Term.AllSubExpressions(true, false) //FIXME should loop detection actually pass true here?
+      return quantifier.AllSubExpressions(true, true)
         .Select(e => TriggerUtils.PrepareExprForInclusionInTrigger(e).MatchAgainst(trigger, quantifier.BoundVars, e))
         .Where(e => e.HasValue).Select(e => e.Value);
     }
