@@ -8,6 +8,8 @@ Test/desktop/.*
 Test/([^/]*)/([^/]*)\.sx
 ^Test/sandbox/.*
 ^Test/.*\.csv
+Test/.*/flycheck_.*
+.*\.orig
 syntax: glob
 *.exe
 *.pdb
