@@ -10,6 +10,7 @@ Test/([^/]*)/([^/]*)\.sx
 ^Test/.*\.csv
 Test/.*/flycheck_.*
 .*\.orig
+Test/.*\.bpl
 syntax: glob
 *.exe
 *.pdb
