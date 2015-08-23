@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %dafny /compile:0 /print:"%t.print" /dprint:"%t.dprint" /autoTriggers:1 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 function f(x:int) : bool
@@ -313,3 +313,8 @@ module OpaqueTest {
   }
 
 }
+
+// autoTriggers added because it causes an extra error message related to
+// violated preconditions to appear. That extra message is due to the extra
+// precondition involving a split quantifier: the user now gets two traces, one
+// for each conjunct.

@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %dafny /compile:0 /print:"%t.print" /dprint:"%t.dprint" /autoTriggers:1 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // This identity function is used to so that if the occurrence of i below
@@ -110,3 +110,6 @@ method RotateD<T>(a: array<T>) returns (r: array<T>)
     r[if a.Length - 1 == i then 0 else i + 1] := a[Id(i)];  // yes, Dafny can invert this one
   }
 }
+
+// autoTriggers added because it causes a slight rephrasing of an error
+// message.
