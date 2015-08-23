@@ -17,9 +17,9 @@ method M()
   }
   else
   {
-    assert (exists b: bool :: b || !b) || 4 != 4;
+    assert (exists b: bool :: true) || 4 != 4;
   }
-  assert (exists b: bool :: b || !b) || 5 != 5;
+  assert (exists b: bool :: true) || 5 != 5;
 }
 
 
