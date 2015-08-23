@@ -66,7 +66,7 @@ namespace Microsoft.Dafny.Triggers {
         }
         foreach (var e in stream) {
           var tok = new NestedToken(quantifier.tok, e.tok);
-          yield return new ForallExpr(tok, quantifier.TypeArgs, quantifier.BoundVars, quantifier.Range, e, quantifier.Attributes) { Type = quantifier.Type };
+          yield return new ForallExpr(tok, quantifier.TypeArgs, quantifier.BoundVars, quantifier.Range, e, CopyAttributes(quantifier.Attributes)) { Type = quantifier.Type };
         }
       } else if (quantifier is ExistsExpr) {
         IEnumerable<Expression> stream;
@@ -77,7 +77,7 @@ namespace Microsoft.Dafny.Triggers {
         }
         foreach (var e in stream) {
           var tok = new NestedToken(quantifier.tok, e.tok);
-          yield return new ExistsExpr(tok, quantifier.TypeArgs, quantifier.BoundVars, quantifier.Range, e, quantifier.Attributes) { Type = quantifier.Type };
+          yield return new ExistsExpr(tok, quantifier.TypeArgs, quantifier.BoundVars, quantifier.Range, e, CopyAttributes(quantifier.Attributes)) { Type = quantifier.Type };
         }
       } else {
         yield return quantifier;
