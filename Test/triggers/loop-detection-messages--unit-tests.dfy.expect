@@ -1,21 +1,21 @@
 loop-detection-messages--unit-tests.dfy(11,9): Info: Selected triggers: {f(f(i))}
- Rejected triggers: {f(i)} (loops with {f(f(i))})
-loop-detection-messages--unit-tests.dfy(12,9): Warning: Selected triggers: {f(i)} (loops with {f(i + 1)})
+ Rejected triggers: {f(i)} (may loop with {f(f(i))})
+loop-detection-messages--unit-tests.dfy(12,9): Warning: Selected triggers: {f(i)} (may loop with {f(i + 1)})
  (!) Suppressing loops would leave this expression without triggers.
-loop-detection-messages--unit-tests.dfy(13,9): Info: Selected triggers: {f(i)} (loops with {f(i + 1)})
+loop-detection-messages--unit-tests.dfy(13,9): Info: Selected triggers: {f(i)} (may loop with {f(i + 1)})
 loop-detection-messages--unit-tests.dfy(15,9): Info: For expression {false ==> f(i) == f(i + 1)}:
    Selected triggers: {g(i)}
-   Rejected triggers: {f(i)} (loops with {f(i + 1)})
+   Rejected triggers: {f(i)} (may loop with {f(i + 1)})
 loop-detection-messages--unit-tests.dfy(15,9): Info: For expression {false ==> f(i) == g(i)}:
    Selected triggers:
      {g(i)}, {f(i)}
 loop-detection-messages--unit-tests.dfy(16,9): Warning: For expression {false ==> f(i) == f(i + 1)}:
-   Selected triggers: {f(i)} (loops with {f(i + 1)})
+   Selected triggers: {f(i)} (may loop with {f(i + 1)})
    (!) Suppressing loops would leave this expression without triggers.
 loop-detection-messages--unit-tests.dfy(16,9): Info: For expression {false ==> f(i) == f(i)}:
    Selected triggers: {f(i)}
 loop-detection-messages--unit-tests.dfy(17,9): Info: For expression {false ==> f(i) == f(i + 1)}:
-   Selected triggers: {f(i)} (loops with {f(i + 1)})
+   Selected triggers: {f(i)} (may loop with {f(i + 1)})
 loop-detection-messages--unit-tests.dfy(17,9): Info: For expression {false ==> f(i) == f(i)}:
    Selected triggers: {f(i)}
 loop-detection-messages--unit-tests.dfy(19,9): Info: Selected triggers: {f(i)}
