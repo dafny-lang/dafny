@@ -5182,6 +5182,7 @@ namespace Microsoft.Dafny {
       return s;
     }
 
+
     /// <summary>
     /// Create a resolved expression of the form "CVT(e0) - CVT(e1)", where "CVT" is either "int" (if
     /// e0.Type is an integer-based numeric type) or "real" (if e0.Type is a real-based numeric type).
@@ -5195,11 +5196,19 @@ namespace Microsoft.Dafny {
       Contract.Ensures(Contract.Result<Expression>() != null);
 
       Type toType = e0.Type.IsNumericBased(Type.NumericPersuation.Int) ? (Type)Type.Int : Type.Real;
-      e0 = new ConversionExpr(e0.tok, e0, toType);
-      e0.Type = toType;
-      e1 = new ConversionExpr(e1.tok, e1, toType);
-      e1.Type = toType;
+      e0 = CastIfNeeded(e0, toType);
+      e1 = CastIfNeeded(e1, toType);
       return CreateSubtract(e0, e1);
+    }
+
+    private static Expression CastIfNeeded(Expression expr, Type toType) {
+      if (!expr.Type.Equals(toType)) {
+        var cast = new ConversionExpr(expr.tok, expr, toType);
+        cast.Type = toType;
+        return cast;
+      } else {
+        return expr;
+      }
     }
 
     /// <summary>

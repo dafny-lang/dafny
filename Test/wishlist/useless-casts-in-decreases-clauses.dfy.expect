@@ -1,3 +1,0 @@
-useless-casts-in-decreases-clauses.dfy(6,2): Info: decreases int(pos) - int(0)
-
-Dafny program verifier finished with 2 verified, 0 errors
