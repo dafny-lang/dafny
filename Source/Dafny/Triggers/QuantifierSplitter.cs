@@ -1,11 +1,19 @@
 ﻿using Microsoft.Boogie;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.Contracts;
 using System.Linq;
 using System.Text;
 
 namespace Microsoft.Dafny.Triggers {
   class QuantifierSplitter : BottomUpVisitor {
+    /// This cache was introduced because some statements (notably calc) return the same SubExpression multiple times.
+    /// This ended up causing an inconsistent situation when the calc statement's subexpressions contained the same quantifier 
+    /// twice: on the first pass that quantifier got its SplitQuantifiers generated, and on the the second pass these 
+    /// split quantifiers got re-split, creating a situation where the direct children of a split quantifier were 
+    /// also split quantifiers.
+    private Dictionary<QuantifierExpr, List<Expression>> splits = new Dictionary<QuantifierExpr, List<Expression>>();
+
     private static BinaryExpr.Opcode FlipOpcode(BinaryExpr.Opcode opCode) {
       if (opCode == BinaryExpr.Opcode.And) {
         return BinaryExpr.Opcode.Or;
@@ -24,8 +32,15 @@ namespace Microsoft.Dafny.Triggers {
     //   forall x :: P(x) ==> (Q(x) && R(x))
 
     private static UnaryOpExpr Not(Expression expr) {
-      var not = new UnaryOpExpr(expr.tok, UnaryOpExpr.Opcode.Not, expr) { Type = expr.Type };
-      return not;
+      return new UnaryOpExpr(expr.tok, UnaryOpExpr.Opcode.Not, expr) { Type = expr.Type };
+    }
+
+    private static Attributes CopyAttributes(Attributes source) {
+      if (source == null) {
+        return null;
+      } else {
+        return new Attributes(source.Name, source.Args, CopyAttributes(source.Prev));
+      }
     }
 
     internal static IEnumerable<Expression> SplitExpr(Expression expr, BinaryExpr.Opcode separator) {
@@ -83,15 +98,28 @@ namespace Microsoft.Dafny.Triggers {
         yield return quantifier;
       }
     }
+    
+    private static bool AllowsSplitting(QuantifierExpr quantifier) {
+      bool splitAttr = true;
+      return !Attributes.ContainsBool(quantifier.Attributes, "split", ref splitAttr) || splitAttr;
+    }
 
     protected override void VisitOneExpr(Expression expr) {
       var quantifier = expr as QuantifierExpr;
-      if (quantifier != null && quantifier.SplitQuantifier == null) {
-        bool splitAttr = true;
-        if (!Attributes.ContainsBool(quantifier.Attributes, "split", ref splitAttr) || splitAttr) {
-          var split = SplitQuantifier(quantifier).ToList();
-          quantifier.SplitQuantifier = split;
+      if (quantifier != null) {
+        Contract.Assert(quantifier.SplitQuantifier == null);
+        if (!splits.ContainsKey(quantifier) && AllowsSplitting(quantifier)) {
+          splits[quantifier] = SplitQuantifier(quantifier).ToList();
         }
+      }
+    }
+
+    /// <summary>
+    /// See comments above definition of splits for reason why this method exists
+    /// </summary>
+    internal void Commit() {
+      foreach (var quantifier in splits.Keys) {
+        quantifier.SplitQuantifier = splits[quantifier];
       }
     }
   }

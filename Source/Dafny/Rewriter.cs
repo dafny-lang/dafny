@@ -68,6 +68,7 @@ namespace Microsoft.Dafny
       foreach (var decl in ModuleDefinition.AllCallables(m.TopLevelDecls)) {
         splitter.Visit(decl);
       }
+      splitter.Commit();
     }
   }
 

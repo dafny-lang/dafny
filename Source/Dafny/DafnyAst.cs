@@ -4796,7 +4796,7 @@ namespace Microsoft.Dafny {
     }
     public override IEnumerable<Expression> SubExpressions
     {
-      get {
+      get { // FIXME: This can return duplicates; this could confuse BottomUpVisitors that modify the AST in place
         foreach (var e in base.SubExpressions) { yield return e; }
         foreach (var e in Attributes.SubExpressions(Attributes)) { yield return e; }
         
