@@ -1,0 +1,12 @@
+Matrix-OOB.dfy(12,26): Error: index 0 out of range
+Execution trace:
+    (0,0): anon0
+Matrix-OOB.dfy(12,26): Error: index 1 out of range
+Execution trace:
+    (0,0): anon0
+Matrix-OOB.dfy(13,0): Error BP5003: A postcondition might not hold on this return path.
+Matrix-OOB.dfy(12,10): Related location: This is the postcondition that might not hold.
+Execution trace:
+    (0,0): anon0
+
+Dafny program verifier finished with 0 verified, 3 errors

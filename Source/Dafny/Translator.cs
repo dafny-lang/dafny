@@ -4885,16 +4885,17 @@ namespace Microsoft.Dafny {
         MultiSelectExpr e = (MultiSelectExpr)expr;
         CheckWellformed(e.Array, options, locals, builder, etran);
         Bpl.Expr array = etran.TrExpr(e.Array);
-        int i = 0;
-        foreach (Expression idx in e.Indices) {
+        for (int idxId = 0; idxId < e.Indices.Count; idxId++) {
+          var idx = e.Indices[idxId];
           CheckWellformed(idx, options, locals, builder, etran);
 
-          Bpl.Expr index = etran.TrExpr(idx);
-          Bpl.Expr lower = Bpl.Expr.Le(Bpl.Expr.Literal(0), index);
-          Bpl.Expr length = ArrayLength(idx.tok, array, e.Indices.Count, i);
-          Bpl.Expr upper = Bpl.Expr.Lt(index, length);
-          builder.Add(Assert(idx.tok, Bpl.Expr.And(lower, upper), "index " + i + " out of range", options.AssertKv));
-          i++;
+          var index = etran.TrExpr(idx);
+          var lower = Bpl.Expr.Le(Bpl.Expr.Literal(0), index);
+          var length = ArrayLength(idx.tok, array, e.Indices.Count, idxId);
+          var upper = Bpl.Expr.Lt(index, length);
+          var tok = idx is IdentifierExpr ? e.tok : idx.tok; // TODO: Reusing the token of an identifier expression would underline its definition. but this is still not perfect.
+
+          builder.Add(Assert(tok, Bpl.Expr.And(lower, upper), String.Format("index {0} out of range", idxId), options.AssertKv));
         }
       } else if (expr is SeqUpdateExpr) {
         SeqUpdateExpr e = (SeqUpdateExpr)expr;
