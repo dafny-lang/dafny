@@ -26,7 +26,7 @@ namespace Microsoft.Dafny.Triggers {
         if (quantifier.SplitQuantifier != null) {
           var collection = quantifier.SplitQuantifier.Select(q => q as QuantifierExpr).Where(q => q != null);
           quantifierCollections.Add(new QuantifiersCollection(collection, reporter));
-          foreach (var q in quantifier.SplitQuantifier) { quantifiers.Add(q); }
+          quantifiers.UnionWith(quantifier.SplitQuantifier);
         } else {
           quantifierCollections.Add(new QuantifiersCollection(Enumerable.Repeat(quantifier, 1), reporter));
         }
