@@ -11,6 +11,8 @@ Test/([^/]*)/([^/]*)\.sx
 Test/.*/flycheck_.*
 .*\.orig
 Test/.*\.bpl
+Test/.*/axiom-profiler.html
+Test/.*/z3.log
 syntax: glob
 *.exe
 *.pdb
