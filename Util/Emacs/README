@@ -1,0 +1,2 @@
+Emacs support for dafny is provided by the boogie-friends package, available from MELPA.
+See https://github.com/boogie-org/boogie-friends for setup instructions and tips.
