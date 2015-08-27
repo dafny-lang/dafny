@@ -8,6 +8,7 @@ Test/desktop/.*
 Test/([^/]*)/([^/]*)\.sx
 ^Test/sandbox/.*
 ^Test/.*\.csv
+Package/.*
 Test/.*/flycheck_.*
 .*\.orig
 Test/.*\.bpl
