@@ -1,7 +1,7 @@
 // RUN: %dafny /compile:0 /print:"%t.print" /dprint:"%t.dprint" /autoTriggers:1 /printTooltips "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
-// This tests checks for tricky cases of redundancy suppression when building
+// This test checks for tricky cases of redundancy suppression when building
 // triggers.
 
 predicate P(x: int, y: int)

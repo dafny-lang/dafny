@@ -33,7 +33,7 @@ namespace Microsoft.Dafny.Triggers {
 
     internal bool CouldCauseLoops(List<TriggerTerm> terms) {
       var expr = Expr;
-      return !terms.Any(term => term.Expr.ExpressionEqModuloVariableNames(expr));
+      return !terms.Any(term => term.Expr.ExpressionEqModuloVariableNamesAndConstants(expr));
     }
   }
 
@@ -79,15 +79,15 @@ namespace Microsoft.Dafny.Triggers {
       return ShallowEq_Top(expr1, expr2) && TriggerUtils.SameLists(expr1.SubExpressions, expr2.SubExpressions, (e1, e2) => ExpressionEq(e1, e2));
     }
 
-    internal static bool ExpressionEqModuloVariableNames(this Expression expr1, Expression expr2) {
+    internal static bool ExpressionEqModuloVariableNamesAndConstants(this Expression expr1, Expression expr2) {
       expr1 = expr1.Resolved;
       expr2 = expr2.Resolved;
 
       if (expr1 is IdentifierExpr) {
-        return expr2 is IdentifierExpr;
+        return expr2 is IdentifierExpr || expr2 is LiteralExpr;
       }
 
-      return ShallowEq_Top(expr1, expr2) && TriggerUtils.SameLists(expr1.SubExpressions, expr2.SubExpressions, (e1, e2) => ExpressionEqModuloVariableNames(e1, e2));
+      return ShallowEq_Top(expr1, expr2) && TriggerUtils.SameLists(expr1.SubExpressions, expr2.SubExpressions, (e1, e2) => ExpressionEqModuloVariableNamesAndConstants(e1, e2));
     }
 
     internal static bool MatchesTrigger(this Expression expr, Expression trigger, ISet<BoundVar> holes, Dictionary<IVariable, Expression> bindings) {
