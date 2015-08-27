@@ -2965,6 +2965,7 @@ namespace Microsoft.Dafny {
     }
   }
 
+  [DebuggerDisplay("Bound<{name}>")]
   public class BoundVar : NonglobalVariable {
     public override bool IsMutable {
       get {

@@ -11,6 +11,11 @@ namespace Microsoft.Dafny.Triggers {
     internal Expression Expr { get; set; }
     internal Expression OriginalExpr { get; set; }
     internal ISet<IVariable> Variables { get; set; }
+    internal IEnumerable<BoundVar> BoundVars {
+      get {
+        return Variables.Select(v => v as BoundVar).Where(v => v != null);
+      }
+    }
 
     public override string ToString() {
       return Printer.ExprToString(Expr); 
