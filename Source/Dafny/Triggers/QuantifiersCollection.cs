@@ -47,15 +47,9 @@ namespace Microsoft.Dafny.Triggers {
       SelectTriggers();
     }
     
-    private bool SubsetGenerationPredicate(List<TriggerTerm> terms, TriggerTerm additionalTerm) {
-      // Simple formulas like [P0(i) && P1(i) && P2(i) && P3(i) && P4(i)] yield very
-      // large numbers of multi-triggers, most of which are useless. This filter
-      // restricts subsets of terms so that we only generate sets of terms where each
-      // element contributes at least one variable. In the example above, we'll only
-      // get 5 triggers.
-      // Note that this may still be an over-approximation, as in the following example:
-      // forall a, b :: forall x :: a[x] || b[x] > 0.
-      return additionalTerm.Variables.Where(v => v is BoundVar && !terms.Any(t => t.Variables.Contains(v))).Any();
+    private bool SubsetGenerationPredicate(TriggerUtils.SetOfTerms terms, TriggerTerm additionalTerm) {
+      return true; // FIXME Remove this
+      //return additionalTerm.Variables.Where(v => v is BoundVar && !terms.Any(t => t.Variables.Contains(v))).Any();
     }
 
     /// <summary>
@@ -68,11 +62,10 @@ namespace Microsoft.Dafny.Triggers {
     void CollectAndShareTriggers(TriggersCollector triggersCollector) {
       var pool = quantifiers.SelectMany(q => triggersCollector.CollectTriggers(q.quantifier));
       var distinctPool = pool.Deduplicate(TriggerTerm.Eq);
-      var multiPool = TriggerUtils.AllNonEmptySubsets(distinctPool, SubsetGenerationPredicate).Select(candidates => new TriggerCandidate(candidates)).ToList();
 
       foreach (var q in quantifiers) {
-        q.CandidateTerms = distinctPool; //Candidate terms are immutable: no copy needed
-        q.Candidates = multiPool.Select(candidate => new TriggerCandidate(candidate)).ToList();
+        q.CandidateTerms = distinctPool; // The list of candidate terms is immutable
+        q.Candidates = TriggerUtils.AllNonEmptySubsets(distinctPool, SubsetGenerationPredicate, q.quantifier.BoundVars).Select(set => set.ToTriggerCandidate()).ToList();
       }
     }
 
@@ -107,7 +100,12 @@ namespace Microsoft.Dafny.Triggers {
       // quantifier that matches one of the terms of the trigger (this ensures that
       // [∀ x {f(x), f(f(x))} ⋅ f(x) = f(f(x))] is not a loop). And we even
       // ignore terms that almost match a trigger term, modulo a single variable
-      // (this ensures that [∀ x y {a(x, y)} ⋅ a(x, y) == a(y, x)] is not a loop).
+      // (this ensures that [∀ x y {a(x, y)} ⋅ a(x, y) == a(y, x)] is not a loop). 
+      // In addition, we ignore cases where the only differences between a trigger
+      // and a trigger match are places where a variable is replaced with an 
+      // expression whose free variables do not intersect that of the quantifier 
+      // in which that expression is found. For examples of this behavious, see
+      // triggers/literals-do-not-cause-loops.
       // This ignoring logic is implemented by the CouldCauseLoops method.
 
       foreach (var q in quantifiers) {

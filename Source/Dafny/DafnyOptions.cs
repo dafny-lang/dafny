@@ -9,8 +9,11 @@ namespace Microsoft.Dafny
 {
   public class DafnyOptions : Bpl.CommandLineOptions
   {
-    public DafnyOptions()
+    private ErrorReporter errorReporter;
+
+    public DafnyOptions(ErrorReporter errorReporter = null)
       : base("Dafny", "Dafny program verifier") {
+        this.errorReporter = errorReporter;
         SetZ3ExecutableName();
     }
 
@@ -257,13 +260,37 @@ namespace Microsoft.Dafny
       // TODO: provide attribute help here
     }
 
+    
+    /// <summary>
+    /// Dafny comes with it's own copy of z3, to save new users the trouble of having to install extra dependency. 
+    /// For this to work, Dafny makes the Z3ExecutablePath point to the path were Z3 is put by our release script.
+    /// For developers though (and people getting this from source), it's convenient to be able to run right away, 
+    /// so we vendor a Windows version.
+    /// </summary>
     private void SetZ3ExecutableName() {
       var platform = (int)System.Environment.OSVersion.Platform;
-      var isLinux = platform == 4 || platform ==  128; // http://www.mono-project.com/docs/faq/technical/
 
-      //TODO should we also vendor an OSX build?
-      var binDir = System.IO.Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
-      Z3ExecutablePath = System.IO.Path.Combine(binDir, isLinux ? "z3" : "z3.exe");
+      // http://www.mono-project.com/docs/faq/technical/
+      var isUnix = platform == 4 || platform == 128;
+      
+      var z3binName = isUnix ? "z3" : "z3.exe";
+      var dafnyBinDir = System.IO.Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
+      var z3BinDir = System.IO.Path.Combine(dafnyBinDir, "z3", "bin");
+      var z3BinPath = System.IO.Path.Combine(z3BinDir, z3binName);
+
+      if (!System.IO.File.Exists(z3BinPath) && !isUnix) {
+        // This is most likely a Windows user running from source without downloading z3 
+        // separately; this is ok, since we vendor z3.exe.
+        z3BinPath = System.IO.Path.Combine(dafnyBinDir, z3binName);
+      }
+      
+      if (!System.IO.File.Exists(z3BinPath) && errorReporter != null) {
+        var tok = new Bpl.Token(1, 1) { filename = "*** " };
+        errorReporter.Warning(MessageSource.Other, tok, "Could not find '{0}' in '{1}'.{2}Downloading and extracting a Z3 distribution to Dafny's 'Binaries' folder would solve this issue; for now, we'll rely on Boogie to find Z3.", 
+          z3binName, z3BinDir, System.Environment.NewLine);
+      } else {
+        Z3ExecutablePath = z3BinPath;
+      }
     }
 
     public override void Usage() {

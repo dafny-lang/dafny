@@ -15,29 +15,109 @@ namespace Microsoft.Dafny.Triggers {
       return copy;
     }
 
-    internal static IEnumerable<List<T>> AllSubsets<T>(IList<T> source, Func<List<T>, T, bool> predicate, int offset) {
-      if (offset >= source.Count) {
-        yield return new List<T>();
-        yield break;
+    internal class SetOfTerms {
+      internal bool IsRedundant { get; private set; }
+      internal List<TriggerTerm> Terms { get; set; }
+
+      private ISet<BoundVar> variables;
+      private Dictionary<BoundVar, TriggerTerm> termOwningAUniqueVar;
+      private Dictionary<TriggerTerm, ISet<BoundVar>> uniqueVarsOwnedByATerm;
+
+      public int Count { get { return Terms.Count; } }
+
+      private SetOfTerms() { }
+
+      internal TriggerCandidate ToTriggerCandidate() {
+        return new TriggerCandidate(Terms);
+      }
+      
+      internal static SetOfTerms Empty() {
+        var newSet = new SetOfTerms();
+        newSet.IsRedundant = false;
+        newSet.Terms = new List<TriggerTerm>();
+        newSet.variables = new HashSet<BoundVar>();
+        newSet.termOwningAUniqueVar = new Dictionary<BoundVar, TriggerTerm>();
+        newSet.uniqueVarsOwnedByATerm = new Dictionary<TriggerTerm, ISet<BoundVar>>();
+        return newSet;
       }
 
-      foreach (var subset in AllSubsets<T>(source, predicate, offset + 1)) {
-        if (predicate(subset, source[offset])) {
-          yield return CopyAndAdd(subset, source[offset]);
+      /// <summary>
+      /// Simple formulas like [P0(i) && P1(i) && P2(i) && P3(i) && P4(i)] yield very
+      /// large numbers of multi-triggers, most of which are useless. As it copies its
+      /// argument, this method updates various datastructures that allow it to
+      /// efficiently track ownership relations between formulae and bound variables,
+      /// and sets the IsRedundant flag of the returned set, allowing the caller to
+      /// discard that set of terms, and the ones that would have been built on top of
+      /// it, thus ensuring that the only sets of terms produced in the end are sets
+      /// of terms in which each element contributes (owns) at least one variable.
+      ///
+      /// Note that this is trickier than just checking every term for new variables;
+      /// indeed, a new term that does bring new variables in can make an existing
+      /// term redundant (see redundancy-detection-does-its-job-properly.dfy).
+      /// </summary>
+      internal SetOfTerms CopyWithAdd(TriggerTerm term, ISet<BoundVar> relevantVariables) {
+        var copy = new SetOfTerms();
+        copy.Terms = new List<TriggerTerm>(Terms);
+        copy.variables = new HashSet<BoundVar>(variables);
+        copy.termOwningAUniqueVar = new Dictionary<BoundVar, TriggerTerm>(termOwningAUniqueVar);
+        copy.uniqueVarsOwnedByATerm = new Dictionary<TriggerTerm, ISet<BoundVar>>(uniqueVarsOwnedByATerm);
+
+        copy.Terms.Add(term);
+
+        var varsInNewTerm = new HashSet<BoundVar>(term.BoundVars);
+        varsInNewTerm.IntersectWith(relevantVariables);
+
+        var ownedByNewTerm = new HashSet<BoundVar>();
+
+        // Check #0: does this term bring anything new?
+        copy.IsRedundant = IsRedundant || varsInNewTerm.All(bv => copy.variables.Contains(bv));
+        copy.variables.UnionWith(varsInNewTerm);
+        
+        // Check #1: does this term claiming ownership of all its variables cause another term to become useless?
+        foreach (var v in varsInNewTerm) {
+          TriggerTerm originalOwner;
+          if (copy.termOwningAUniqueVar.TryGetValue(v, out originalOwner)) {
+            var alsoOwnedByOriginalOwner = copy.uniqueVarsOwnedByATerm[originalOwner];
+            alsoOwnedByOriginalOwner.Remove(v);
+            if (!alsoOwnedByOriginalOwner.Any()) {
+              copy.IsRedundant = true;
+            }
+          } else {
+            ownedByNewTerm.Add(v);
+            copy.termOwningAUniqueVar[v] = term;
+          }
         }
-        yield return new List<T>(subset);
+
+        // Actually claim ownership
+        copy.uniqueVarsOwnedByATerm[term] = ownedByNewTerm;
+
+        return copy;
       }
     }
 
-    internal static IEnumerable<List<T>> AllNonEmptySubsets<T>(IEnumerable<T> source, Func<List<T>, T, bool> predicate) {
-      List<T> all = new List<T>(source);
-      foreach (var subset in AllSubsets(all, predicate, 0)) {
+    internal static IEnumerable<SetOfTerms> AllSubsets(IList<TriggerTerm> source, Func<SetOfTerms, TriggerTerm, bool> predicate, int offset, ISet<BoundVar> relevantVariables) {
+      if (offset >= source.Count) {
+        yield return SetOfTerms.Empty();
+        yield break;
+      }
+
+      foreach (var subset in AllSubsets(source, predicate, offset + 1, relevantVariables)) {
+        var newSet = subset.CopyWithAdd(source[offset], relevantVariables);
+        if (!newSet.IsRedundant && predicate(subset, source[offset])) { // Fixme remove the predicate?
+          yield return newSet;
+        }
+        yield return subset;
+      }
+    }
+
+    internal static IEnumerable<SetOfTerms> AllNonEmptySubsets(IList<TriggerTerm> source, Func<SetOfTerms, TriggerTerm, bool> predicate, IEnumerable<BoundVar> relevantVariables) {
+      foreach (var subset in AllSubsets(source, predicate, 0, new HashSet<BoundVar>(relevantVariables))) {
         if (subset.Count > 0) {
           yield return subset;
         }
       }
     }
-
+    
     internal static List<T> MergeAlterFirst<T>(List<T> a, List<T> b) {
       Contract.Requires(a != null);
       Contract.Requires(b != null);

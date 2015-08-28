@@ -1,25 +1,39 @@
+from fnmatch import fnmatch
+from os import path
 import argparse
 import json
 import os
-from os import path
 import re
-import urllib.request
-import sys
-import zipfile
-import subprocess
 import shutil
+import subprocess
+import sys
+import urllib.request
+import zipfile
 
 # Configuration
 
+## Where do we fetch the list of releases from?
 RELEASES_URL = "https://api.github.com/repos/Z3Prover/z3/releases/latest"
-RELEASE_REGEXP = r"^(?P<directory>z3-[0-9\.]+-(?P<platform>x86|x64)-(?P<os>[a-z0-9\.\-]+)).zip$"
+## How do we extract info from the name of a release file?
+RELEASE_REGEXP = re.compile(r"^(?P<directory>z3-[0-9\.]+-(?P<platform>x86|x64)-(?P<os>[a-z0-9\.\-]+)).zip$", re.IGNORECASE)
 
+## Where are the sources?
 SOURCE_DIRECTORY = "Source"
+## Where do the binaries get put?
 BINARIES_DIRECTORY = "Binaries"
+## Where do we store the built packages and cache files?
 DESTINATION_DIRECTORY = "Package"
 
-Z3_ARCHIVE_PREFIX = path.join("z3", "bin")
+## What sub-folder of the packages does z3 go into?
+Z3_PACKAGE_PREFIX = path.join("z3")
 
+## What do we take from the z3 archive? (Glob syntax)
+Z3_INTERESTING_FILES = ["LICENSE.txt", "bin/*"]
+
+## On unix system, which Dafny files should be marked as executable? (Glob syntax; Z3's permissions are preserved)
+UNIX_EXECUTABLES = ["dafny"]
+
+## What do we take from Dafny's Binaries folder?
 DLLs = ["AbsInt",
         "Basetypes",
         "CodeContractsExtender",
@@ -48,8 +62,6 @@ BINARIES_DIRECTORY = path.join(ROOT_DIRECTORY, BINARIES_DIRECTORY)
 DESTINATION_DIRECTORY = path.join(ROOT_DIRECTORY, DESTINATION_DIRECTORY)
 CACHE_DIRECTORY = path.join(DESTINATION_DIRECTORY, "cache")
 
-RELEASE_REGEXP = re.compile(RELEASE_REGEXP, re.IGNORECASE)
-
 MONO = sys.platform not in ("win32", "cygwin")
 DLL_PDB_EXT = ".dll.mdb" if MONO else ".pdb"
 EXE_PDB_EXT = ".exe.mdb" if MONO else ".pdb"
@@ -77,8 +89,6 @@ class Release:
         self.url = js["browser_download_url"]
         self.platform, self.os, self.directory = Release.parse_zip_name(js["name"])
         self.z3_zip = path.join(CACHE_DIRECTORY, self.z3_name)
-        self.z3_directory = path.join(CACHE_DIRECTORY, self.directory)
-        self.z3_bin_directory = path.join(self.z3_directory, "bin")
         self.dafny_name = "dafny-{}-{}-{}.zip".format(version, self.platform, self.os)
         self.dafny_zip = path.join(DESTINATION_DIRECTORY, self.dafny_name)
 
@@ -100,12 +110,6 @@ class Release:
                     writer.write(reader.read())
             flush("done!")
 
-    def unpack(self):
-        shutil.rmtree(self.z3_directory)
-        with zipfile.ZipFile(self.z3_zip) as archive:
-            archive.extractall(CACHE_DIRECTORY)
-            flush("done!")
-
     def pack(self):
         try:
             os.remove(self.dafny_zip)
@@ -113,24 +117,32 @@ class Release:
             pass
         missing = []
         with zipfile.ZipFile(self.dafny_zip, 'w',  zipfile.ZIP_DEFLATED) as archive:
-            for root, _, files in os.walk(self.z3_bin_directory):
-                for f in files:
-                    fpath = path.join(root, f)
-                    arcpath = path.join(Z3_ARCHIVE_PREFIX, path.relpath(fpath, self.z3_bin_directory))
-                    archive.write(fpath, arcpath)
+            with zipfile.ZipFile(self.z3_zip) as Z3_archive:
+                z3_files_count = 0
+                for fileinfo in Z3_archive.infolist():
+                    fname = path.relpath(fileinfo.filename, self.directory)
+                    if any(fnmatch(fname, pattern) for pattern in Z3_INTERESTING_FILES):
+                        z3_files_count += 1
+                        contents = Z3_archive.read(fileinfo)
+                        fileinfo.filename = path.join(Z3_PACKAGE_PREFIX, fname)
+                        archive.writestr(fileinfo, contents)
             for fname in ARCHIVE_FNAMES:
                 fpath = path.join(BINARIES_DIRECTORY, fname)
                 if path.exists(fpath):
+                    fileinfo = zipfile.ZipInfo(fname)
+                    if any(fnmatch(fname, pattern) for pattern in UNIX_EXECUTABLES):
+                        # http://stackoverflow.com/questions/434641/
+                        fileinfo.external_attr = 0o777 << 16
                     archive.write(fpath, fname)
                 else:
                     missing.append(fname)
-        flush("done!")
+        flush("done! (imported {} files from z3's sources)".format(z3_files_count))
         if missing:
             flush("      WARNING: Not all files were found: {} were missing".format(", ".join(missing)))
 
 def discover(version):
     flush("  - Getting information about latest release")
-    with urllib.request.urlopen("https://api.github.com/repos/Z3Prover/z3/releases/latest") as reader:
+    with urllib.request.urlopen(RELEASES_URL) as reader:
         js = json.loads(reader.read().decode("utf-8"))
 
         for release_js in js["assets"]:
@@ -147,17 +159,11 @@ def download(releases):
         flush("    + {}:".format(release.z3_name), end=' ')
         release.download()
 
-def unpack(releases):
-    flush("  - Unpacking {} z3 archives".format(len(releases)))
-    for release in releases:
-        flush("    + {}:".format(release.z3_name), end=' ')
-        release.unpack()
-
 def run(cmd):
     flush("    + {}...".format(" ".join(cmd)), end=' ')
     retv = subprocess.call(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     if retv != 0:
-        flush("failed!")
+        flush("failed! (Is Dafny or the Dafny server running?)")
         sys.exit(1)
     else:
         flush("done!")
@@ -165,9 +171,13 @@ def run(cmd):
 def build():
     os.chdir(ROOT_DIRECTORY)
     flush("  - Building")
-    builder = "xbuild" if MONO else "xbuild"
-    run([builder, "Source/Dafny.sln", "/t:Clean"])
-    run([builder, "Source/Dafny.sln", "/p:Configuration=Checked", "/t:Rebuild"])
+    builder = "xbuild" if MONO else "msbuild"
+    try:
+        run([builder, "Source/Dafny.sln", "/p:Configuration=Checked", "/p:Platform=Any CPU", "/t:Clean"])
+        run([builder, "Source/Dafny.sln", "/p:Configuration=Checked", "/p:Platform=Any CPU", "/t:Rebuild"])
+    except FileNotFoundError:
+        flush("Could not find '{}'! On Windows, you need to run this from the VS native tools command prompt.".format(builder))
+        sys.exit(1)
 
 def pack(releases):
     flush("  - Packaging {} Dafny archives".format(len(releases)))
@@ -185,10 +195,9 @@ def main():
     os.makedirs(CACHE_DIRECTORY, exist_ok=True)
 
     # Z3
-    flush("* Finding, downloading, and unpacking Z3 releases")
+    flush("* Finding and downloading Z3 releases")
     releases = list(discover(args.version))
     download(releases)
-    unpack(releases)
 
     flush("* Building and packaging Dafny")
     build()

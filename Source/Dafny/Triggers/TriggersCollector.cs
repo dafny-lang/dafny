@@ -11,6 +11,11 @@ namespace Microsoft.Dafny.Triggers {
     internal Expression Expr { get; set; }
     internal Expression OriginalExpr { get; set; }
     internal ISet<IVariable> Variables { get; set; }
+    internal IEnumerable<BoundVar> BoundVars {
+      get {
+        return Variables.Select(v => v as BoundVar).Where(v => v != null);
+      }
+    }
 
     public override string ToString() {
       return Printer.ExprToString(Expr); 
@@ -64,7 +69,8 @@ namespace Microsoft.Dafny.Triggers {
     internal IEnumerable<TriggerMatch> LoopingSubterms(QuantifierExpr quantifier) {
       Contract.Requires(quantifier.SplitQuantifier == null); // Don't call this on a quantifier with a Split clause: it's not a real quantifier
       var matchingSubterms = this.MatchingSubterms(quantifier);
-      return matchingSubterms.Where(tm => tm.CouldCauseLoops(Terms));
+      var boundVars = new HashSet<BoundVar>(quantifier.BoundVars);
+      return matchingSubterms.Where(tm => tm.CouldCauseLoops(Terms, boundVars));
     }
 
     internal List<TriggerMatch> MatchingSubterms(QuantifierExpr quantifier) {
@@ -185,8 +191,13 @@ namespace Microsoft.Dafny.Triggers {
       expr.SubExpressions.Iter(e => Annotate(e));
 
       TriggerAnnotation annotation; // TODO: Using ApplySuffix fixes the unresolved members problem in GenericSort
-      if (expr is FunctionCallExpr || expr is SeqSelectExpr || expr is MultiSelectExpr || expr is MemberSelectExpr || 
-          expr is OldExpr || expr is ApplyExpr || expr is DisplayExpression ||
+      if (expr is FunctionCallExpr || 
+          expr is SeqSelectExpr || 
+          expr is MultiSelectExpr || 
+          expr is MemberSelectExpr || 
+          expr is OldExpr || 
+          expr is ApplyExpr || 
+          expr is DisplayExpression ||
           (expr is UnaryOpExpr && (((UnaryOpExpr)expr).Op == UnaryOpExpr.Opcode.Cardinality)) || // FIXME || ((UnaryOpExpr)expr).Op == UnaryOpExpr.Opcode.Fresh doesn't work, as fresh is a pretty tricky predicate when it's not about datatypes. See translator.cs:10944
           (expr is BinaryExpr && (((BinaryExpr)expr).Op == BinaryExpr.Opcode.NotIn || ((BinaryExpr)expr).Op == BinaryExpr.Opcode.In))) {
         annotation = AnnotatePotentialCandidate(expr);

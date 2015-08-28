@@ -8,6 +8,6 @@ function-applications-are-triggers.dfy(10,9): Info: For expression {P(f) ==> f(1
 function-applications-are-triggers.dfy(11,9): Info: Selected triggers:
    {f(10)}, {f.requires(10)}
 function-applications-are-triggers.dfy(12,5): Info: Selected triggers:
-   {g(x), f(x)}, {g(x), f.requires(x)}, {g(x)}, {f(x)}, {g.requires(x), f.requires(x)}, {g.requires(x)}, {f.requires(x)}
+   {g(x)}, {f(x)}, {g.requires(x)}, {f.requires(x)}
 
 Dafny program verifier finished with 2 verified, 0 errors
