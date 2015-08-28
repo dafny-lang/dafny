@@ -69,7 +69,8 @@ namespace Microsoft.Dafny.Triggers {
     internal IEnumerable<TriggerMatch> LoopingSubterms(QuantifierExpr quantifier) {
       Contract.Requires(quantifier.SplitQuantifier == null); // Don't call this on a quantifier with a Split clause: it's not a real quantifier
       var matchingSubterms = this.MatchingSubterms(quantifier);
-      return matchingSubterms.Where(tm => tm.CouldCauseLoops(Terms));
+      var boundVars = new HashSet<BoundVar>(quantifier.BoundVars);
+      return matchingSubterms.Where(tm => tm.CouldCauseLoops(Terms, boundVars));
     }
 
     internal List<TriggerMatch> MatchingSubterms(QuantifierExpr quantifier) {

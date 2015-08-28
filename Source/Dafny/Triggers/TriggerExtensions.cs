@@ -31,9 +31,15 @@ namespace Microsoft.Dafny.Triggers {
       return ExprExtensions.ExpressionEq(t1.Expr, t2.Expr);
     }
 
-    internal bool CouldCauseLoops(List<TriggerTerm> terms) {
+    /// <summary>
+    ///  This method checks whether this match could actually cause a loop, given a set of terms participating in a trigger; 
+    ///  to compute an answer, we match the Expr of this match against the Exprs of each of these term, allowing for harmless 
+    ///  variations. If any of these tests does match, this term likely won't cause a loop.
+    ///  The boundVars list is useful to determine that forall x :: P(x) == P(y+z) does not loop.
+    /// </summary>
+    internal bool CouldCauseLoops(List<TriggerTerm> terms, ISet<BoundVar> boundVars) {
       var expr = Expr;
-      return !terms.Any(term => term.Expr.ExpressionEqModuloVariableNamesAndConstants(expr));
+      return !terms.Any(term => term.Expr.ExpressionEqModuloExpressionsNotInvolvingBoundVariables(expr, boundVars));
     }
   }
 
@@ -79,15 +85,22 @@ namespace Microsoft.Dafny.Triggers {
       return ShallowEq_Top(expr1, expr2) && TriggerUtils.SameLists(expr1.SubExpressions, expr2.SubExpressions, (e1, e2) => ExpressionEq(e1, e2));
     }
 
-    internal static bool ExpressionEqModuloVariableNamesAndConstants(this Expression expr1, Expression expr2) {
+    internal static bool ExpressionEqModuloExpressionsNotInvolvingBoundVariables(this Expression expr1, Expression expr2, ISet<BoundVar> boundVars) {
       expr1 = expr1.Resolved;
       expr2 = expr2.Resolved;
 
       if (expr1 is IdentifierExpr) {
-        return expr2 is IdentifierExpr || expr2 is LiteralExpr;
+        if (expr2 is IdentifierExpr) {
+          return true;
+        } else {
+          var freeInE2 = Translator.ComputeFreeVariables(expr2);
+          freeInE2.IntersectWith(boundVars);
+          return !freeInE2.Any();
+        }
       }
 
-      return ShallowEq_Top(expr1, expr2) && TriggerUtils.SameLists(expr1.SubExpressions, expr2.SubExpressions, (e1, e2) => ExpressionEqModuloVariableNamesAndConstants(e1, e2));
+      return ShallowEq_Top(expr1, expr2) && TriggerUtils.SameLists(expr1.SubExpressions, 
+        expr2.SubExpressions, (e1, e2) => ExpressionEqModuloExpressionsNotInvolvingBoundVariables(e1, e2, boundVars));
     }
 
     internal static bool MatchesTrigger(this Expression expr, Expression trigger, ISet<BoundVar> holes, Dictionary<IVariable, Expression> bindings) {

@@ -101,8 +101,11 @@ namespace Microsoft.Dafny.Triggers {
       // [∀ x {f(x), f(f(x))} ⋅ f(x) = f(f(x))] is not a loop). And we even
       // ignore terms that almost match a trigger term, modulo a single variable
       // (this ensures that [∀ x y {a(x, y)} ⋅ a(x, y) == a(y, x)] is not a loop). 
-      // The last thing that we ignore is matching variables against constants, 
-      // to ensure that P(x) is not flagged as looping with P(0).
+      // In addition, we ignore cases where the only differences between a trigger
+      // and a trigger match are places where a variable is replaced with an 
+      // expression whose free variables do not intersect that of the quantifier 
+      // in which that expression is found. For examples of this behavious, see
+      // triggers/literals-do-not-cause-loops.
       // This ignoring logic is implemented by the CouldCauseLoops method.
 
       foreach (var q in quantifiers) {
