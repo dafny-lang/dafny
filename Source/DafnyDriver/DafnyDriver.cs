@@ -40,10 +40,11 @@ namespace Microsoft.Dafny
     public static int ThreadMain(string[] args)
     {
       Contract.Requires(cce.NonNullElements(args));
-         
+
+      ErrorReporter reporter = new ConsoleErrorReporter();
       ExecutionEngine.printer = new DafnyConsolePrinter(); // For boogie errors
 
-      DafnyOptions.Install(new DafnyOptions());
+      DafnyOptions.Install(new DafnyOptions(reporter));
 
       ExitValue exitValue = ExitValue.VERIFIED;
       CommandLineOptions.Clo.RunningBoogieFromCommandLine = true;
@@ -92,7 +93,7 @@ namespace Microsoft.Dafny
           goto END;
         }
       }
-      exitValue = ProcessFiles(CommandLineOptions.Clo.Files);
+      exitValue = ProcessFiles(CommandLineOptions.Clo.Files, reporter);
 
       END:
         if (CommandLineOptions.Clo.XmlSink != null) {
@@ -112,7 +113,7 @@ namespace Microsoft.Dafny
     }
 
 
-    static ExitValue ProcessFiles(IList<string/*!*/>/*!*/ fileNames, bool lookForSnapshots = true, string programId = null)
+    static ExitValue ProcessFiles(IList<string/*!*/>/*!*/ fileNames, ErrorReporter reporter, bool lookForSnapshots = true, string programId = null)
     {
       Contract.Requires(cce.NonNullElements(fileNames));
 
@@ -128,7 +129,7 @@ namespace Microsoft.Dafny
         {
           Console.WriteLine();
           Console.WriteLine("-------------------- {0} --------------------", f);
-          var ev = ProcessFiles(new List<string> { f }, lookForSnapshots, f);
+          var ev = ProcessFiles(new List<string> { f }, reporter, lookForSnapshots, f);
           if (exitValue != ev && ev != ExitValue.VERIFIED)
           {
             exitValue = ev;
@@ -142,7 +143,7 @@ namespace Microsoft.Dafny
         var snapshotsByVersion = ExecutionEngine.LookForSnapshots(fileNames);
         foreach (var s in snapshotsByVersion)
         {
-          var ev = ProcessFiles(new List<string>(s), false, programId);
+          var ev = ProcessFiles(new List<string>(s), reporter, false, programId);
           if (exitValue != ev && ev != ExitValue.VERIFIED)
           {
             exitValue = ev;
@@ -153,7 +154,6 @@ namespace Microsoft.Dafny
       
       using (XmlFileScope xf = new XmlFileScope(CommandLineOptions.Clo.XmlSink, fileNames[fileNames.Count-1])) {
         Dafny.Program dafnyProgram;
-        ErrorReporter reporter = new ConsoleErrorReporter();
         string programName = fileNames.Count == 1 ? fileNames[0] : "the program";
         string err = Dafny.Main.ParseCheck(fileNames, programName, reporter, out dafnyProgram);
         if (err != null) {

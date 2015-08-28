@@ -29,18 +29,21 @@ namespace Microsoft.Dafny {
   class DafnyHelper {
     private string fname;
     private string source;
+    private string[] args;
 
     private readonly Dafny.ErrorReporter reporter;
     private Dafny.Program dafnyProgram;
     private Bpl.Program boogieProgram;
 
-    public DafnyHelper(string fname, string source) {
+    public DafnyHelper(string[] args, string fname, string source) {
+      this.args = args;
       this.fname = fname;
       this.source = source;
       this.reporter = new Dafny.ConsoleErrorReporter();
     }
 
     public bool Verify() {
+      ServerUtils.ApplyArgs(args, reporter);
       return Parse() && Resolve() && Translate() && Boogie();
     }
 

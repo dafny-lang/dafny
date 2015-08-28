@@ -52,8 +52,7 @@ namespace Microsoft.Dafny {
     }
 
     internal void Run() {
-      ServerUtils.ApplyArgs(args);
-      new DafnyHelper(filename, ProgramSource).Verify();
+      new DafnyHelper(args, filename, ProgramSource).Verify();
     }
   }
 }
