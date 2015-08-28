@@ -163,7 +163,7 @@ def run(cmd):
     flush("    + {}...".format(" ".join(cmd)), end=' ')
     retv = subprocess.call(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     if retv != 0:
-        flush("failed!")
+        flush("failed! (Is Dafny or the Dafny server running?)")
         sys.exit(1)
     else:
         flush("done!")
