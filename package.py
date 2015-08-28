@@ -30,6 +30,9 @@ Z3_PACKAGE_PREFIX = path.join("z3")
 ## What do we take from the z3 archive? (Glob syntax)
 Z3_INTERESTING_FILES = ["LICENSE.txt", "bin/*"]
 
+## On unix system, which Dafny files should be marked as executable? (Glob syntax; Z3's permissions are preserved)
+UNIX_EXECUTABLES = ["dafny"]
+
 ## What do we take from Dafny's Binaries folder?
 DLLs = ["AbsInt",
         "Basetypes",
@@ -86,7 +89,6 @@ class Release:
         self.url = js["browser_download_url"]
         self.platform, self.os, self.directory = Release.parse_zip_name(js["name"])
         self.z3_zip = path.join(CACHE_DIRECTORY, self.z3_name)
-        self.z3_directory = path.join(CACHE_DIRECTORY, self.directory)
         self.dafny_name = "dafny-{}-{}-{}.zip".format(version, self.platform, self.os)
         self.dafny_zip = path.join(DESTINATION_DIRECTORY, self.dafny_name)
 
@@ -108,15 +110,6 @@ class Release:
                     writer.write(reader.read())
             flush("done!")
 
-    def unpack(self):
-        try:
-            shutil.rmtree(self.z3_directory)
-        except FileNotFoundError:
-            pass
-        with zipfile.ZipFile(self.z3_zip) as archive:
-            archive.extractall(CACHE_DIRECTORY)
-            flush("done!")
-
     def pack(self):
         try:
             os.remove(self.dafny_zip)
@@ -124,18 +117,22 @@ class Release:
             pass
         missing = []
         with zipfile.ZipFile(self.dafny_zip, 'w',  zipfile.ZIP_DEFLATED) as archive:
-            z3_files_count = 0
-            for root, _, files in os.walk(self.z3_directory):
-                for f in files:
-                    fpath = path.join(root, f)
-                    relpath = path.relpath(fpath, self.z3_directory)
-                    if any(fnmatch(relpath, pattern) for pattern in Z3_INTERESTING_FILES):
-                        arcpath = path.join(Z3_PACKAGE_PREFIX, relpath)
-                        archive.write(fpath, arcpath)
+            with zipfile.ZipFile(self.z3_zip) as Z3_archive:
+                z3_files_count = 0
+                for fileinfo in Z3_archive.infolist():
+                    fname = path.relpath(fileinfo.filename, self.directory)
+                    if any(fnmatch(fname, pattern) for pattern in Z3_INTERESTING_FILES):
                         z3_files_count += 1
+                        contents = Z3_archive.read(fileinfo)
+                        fileinfo.filename = path.join(Z3_PACKAGE_PREFIX, fname)
+                        archive.writestr(fileinfo, contents)
             for fname in ARCHIVE_FNAMES:
                 fpath = path.join(BINARIES_DIRECTORY, fname)
                 if path.exists(fpath):
+                    fileinfo = zipfile.ZipInfo(fname)
+                    if any(fnmatch(fname, pattern) for pattern in UNIX_EXECUTABLES):
+                        # http://stackoverflow.com/questions/434641/
+                        fileinfo.external_attr = 0o777 << 16
                     archive.write(fpath, fname)
                 else:
                     missing.append(fname)
@@ -161,12 +158,6 @@ def download(releases):
     for release in releases:
         flush("    + {}:".format(release.z3_name), end=' ')
         release.download()
-
-def unpack(releases):
-    flush("  - Unpacking {} z3 archives".format(len(releases)))
-    for release in releases:
-        flush("    + {}:".format(release.z3_name), end=' ')
-        release.unpack()
 
 def run(cmd):
     flush("    + {}...".format(" ".join(cmd)), end=' ')
@@ -204,10 +195,9 @@ def main():
     os.makedirs(CACHE_DIRECTORY, exist_ok=True)
 
     # Z3
-    flush("* Finding, downloading, and unpacking Z3 releases")
+    flush("* Finding and downloading Z3 releases")
     releases = list(discover(args.version))
     download(releases)
-    unpack(releases)
 
     flush("* Building and packaging Dafny")
     build()
