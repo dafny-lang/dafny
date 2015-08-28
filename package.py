@@ -1,25 +1,36 @@
+from fnmatch import fnmatch
+from os import path
 import argparse
 import json
 import os
-from os import path
 import re
-import urllib.request
-import sys
-import zipfile
-import subprocess
 import shutil
+import subprocess
+import sys
+import urllib.request
+import zipfile
 
 # Configuration
 
+## Where do we fetch the list of releases from?
 RELEASES_URL = "https://api.github.com/repos/Z3Prover/z3/releases/latest"
-RELEASE_REGEXP = r"^(?P<directory>z3-[0-9\.]+-(?P<platform>x86|x64)-(?P<os>[a-z0-9\.\-]+)).zip$"
+## How do we extract info from the name of a release file?
+RELEASE_REGEXP = re.compile(r"^(?P<directory>z3-[0-9\.]+-(?P<platform>x86|x64)-(?P<os>[a-z0-9\.\-]+)).zip$", re.IGNORECASE)
 
+## Where are the sources?
 SOURCE_DIRECTORY = "Source"
+## Where do the binaries get put?
 BINARIES_DIRECTORY = "Binaries"
+## Where do we store the built packages and cache files?
 DESTINATION_DIRECTORY = "Package"
 
-Z3_ARCHIVE_PREFIX = path.join("z3", "bin")
+## What sub-folder of the packages does z3 go into?
+Z3_PACKAGE_PREFIX = path.join("z3")
 
+## What do we take from the z3 archive? (Glob syntax)
+Z3_INTERESTING_FILES = ["LICENSE.txt", "bin/*"]
+
+## What do we take from Dafny's Binaries folder?
 DLLs = ["AbsInt",
         "Basetypes",
         "CodeContractsExtender",
@@ -47,8 +58,6 @@ SOURCE_DIRECTORY = path.join(ROOT_DIRECTORY, SOURCE_DIRECTORY)
 BINARIES_DIRECTORY = path.join(ROOT_DIRECTORY, BINARIES_DIRECTORY)
 DESTINATION_DIRECTORY = path.join(ROOT_DIRECTORY, DESTINATION_DIRECTORY)
 CACHE_DIRECTORY = path.join(DESTINATION_DIRECTORY, "cache")
-
-RELEASE_REGEXP = re.compile(RELEASE_REGEXP, re.IGNORECASE)
 
 MONO = sys.platform not in ("win32", "cygwin")
 DLL_PDB_EXT = ".dll.mdb" if MONO else ".pdb"
@@ -78,7 +87,6 @@ class Release:
         self.platform, self.os, self.directory = Release.parse_zip_name(js["name"])
         self.z3_zip = path.join(CACHE_DIRECTORY, self.z3_name)
         self.z3_directory = path.join(CACHE_DIRECTORY, self.directory)
-        self.z3_bin_directory = path.join(self.z3_directory, "bin")
         self.dafny_name = "dafny-{}-{}-{}.zip".format(version, self.platform, self.os)
         self.dafny_zip = path.join(DESTINATION_DIRECTORY, self.dafny_name)
 
@@ -116,24 +124,28 @@ class Release:
             pass
         missing = []
         with zipfile.ZipFile(self.dafny_zip, 'w',  zipfile.ZIP_DEFLATED) as archive:
-            for root, _, files in os.walk(self.z3_bin_directory):
+            z3_files_count = 0
+            for root, _, files in os.walk(self.z3_directory):
                 for f in files:
                     fpath = path.join(root, f)
-                    arcpath = path.join(Z3_ARCHIVE_PREFIX, path.relpath(fpath, self.z3_bin_directory))
-                    archive.write(fpath, arcpath)
+                    relpath = path.relpath(fpath, self.z3_directory)
+                    if any(fnmatch(relpath, pattern) for pattern in Z3_INTERESTING_FILES):
+                        arcpath = path.join(Z3_PACKAGE_PREFIX, relpath)
+                        archive.write(fpath, arcpath)
+                        z3_files_count += 1
             for fname in ARCHIVE_FNAMES:
                 fpath = path.join(BINARIES_DIRECTORY, fname)
                 if path.exists(fpath):
                     archive.write(fpath, fname)
                 else:
                     missing.append(fname)
-        flush("done!")
+        flush("done! (imported {} files from z3's sources)".format(z3_files_count))
         if missing:
             flush("      WARNING: Not all files were found: {} were missing".format(", ".join(missing)))
 
 def discover(version):
     flush("  - Getting information about latest release")
-    with urllib.request.urlopen("https://api.github.com/repos/Z3Prover/z3/releases/latest") as reader:
+    with urllib.request.urlopen(RELEASES_URL) as reader:
         js = json.loads(reader.read().decode("utf-8"))
 
         for release_js in js["assets"]:
