@@ -101,7 +101,10 @@ class Release:
             flush("done!")
 
     def unpack(self):
-        shutil.rmtree(self.z3_directory)
+        try:
+            shutil.rmtree(self.z3_directory)
+        except FileNotFoundError:
+            pass
         with zipfile.ZipFile(self.z3_zip) as archive:
             archive.extractall(CACHE_DIRECTORY)
             flush("done!")
@@ -165,9 +168,13 @@ def run(cmd):
 def build():
     os.chdir(ROOT_DIRECTORY)
     flush("  - Building")
-    builder = "xbuild" if MONO else "xbuild"
-    run([builder, "Source/Dafny.sln", "/t:Clean"])
-    run([builder, "Source/Dafny.sln", "/p:Configuration=Checked", "/t:Rebuild"])
+    builder = "xbuild" if MONO else "msbuild"
+    try:
+        run([builder, "Source/Dafny.sln", "/p:Configuration=Checked", "/p:Platform=Any CPU", "/t:Clean"])
+        run([builder, "Source/Dafny.sln", "/p:Configuration=Checked", "/p:Platform=Any CPU", "/t:Rebuild"])
+    except FileNotFoundError:
+        flush("Could not find '{}'! On Windows, you need to run this from the VS native tools command prompt.".format(builder))
+        sys.exit(1)
 
 def pack(releases):
     flush("  - Packaging {} Dafny archives".format(len(releases)))
