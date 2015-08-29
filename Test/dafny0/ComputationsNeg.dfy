@@ -16,7 +16,7 @@ predicate ThProperty(step: nat, t: Nat, r: nat)
 {
   match t
   case Zero => true
-  case Succ(o) => step>0 && exists ro:nat :: ThProperty(step-1, o, ro)
+  case Succ(o) => step>0 && exists ro:nat, ss :: ss == step-1 ==> ThProperty(ss, o, ro) // WISH: auto-generate ss
 }
 ghost method test_ThProperty()
   ensures ThProperty(10, Succ(Zero), 0);

@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %dafny /compile:0 /print:"%t.print" /dprint:"%t.dprint" /autoTriggers:0 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 method test1()
@@ -295,3 +295,6 @@ lemma Set_and_Multiset_Cardinalities(x: int, y: int)
     assert |multiset{x,y}| == 2;
   }
 }
+
+// AutoTriggers explicitly removed, as simplifications of set expressions such
+// as x in {1,2} cause invalid terms to appear in the triggers
