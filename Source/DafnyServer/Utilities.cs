@@ -45,7 +45,7 @@ namespace Microsoft.Dafny {
 
     internal static void ApplyArgs(string[] args, ErrorReporter reporter) {
       Dafny.DafnyOptions.Install(new Dafny.DafnyOptions(reporter));
-      Dafny.DafnyOptions.O.ProverKillTime = 15; //This is just a default; it can be overriden
+      Dafny.DafnyOptions.O.ProverKillTime = 10; //This is just a default; it can be overriden
 
       if (CommandLineOptions.Clo.Parse(args)) {
         DafnyOptions.O.VerifySnapshots = 2; // Use caching
