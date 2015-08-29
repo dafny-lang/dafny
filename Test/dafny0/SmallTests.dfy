@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:0 /print:"%t.print" /dprint:"%t.dprint.dfy" "%s" > "%t"
+// RUN: %dafny /compile:0 /print:"%t.print" /dprint:"%t.dprint.dfy" /autoTriggers:1 "%s" > "%t"
 // RUN: %dafny /noVerify /compile:0 "%t.dprint.dfy" >> "%t"
 // RUN: %diff "%s.expect" "%t"
 
@@ -35,11 +35,11 @@ class Node {
   }
 
   method Sequence(s: seq<bool>, j: int, b: bool, c: bool) returns (t: seq<bool>)
-    requires 10 <= |s|;
-    requires 8 <= j && j < |s|;
-    ensures |t| == |s|;
-    ensures t[8] == s[8] || t[9] == s[9];
-    ensures t[j] == b;
+    requires 10 <= |s|
+    requires 8 <= j < |s|
+    ensures |t| == |s|
+    ensures t[8] == s[8] || t[9] == s[9]
+    ensures t[j] == b
   {
     if (c) {
       t := s[j := b];
@@ -49,14 +49,14 @@ class Node {
   }
 
   method Max0(x: int, y: int) returns (r: int)
-    ensures r == (if x < y then y else x);
+    ensures r == (if x < y then y else x)
   {
     if (x < y) { r := y; } else { r := x; }
   }
 
   method Max1(x: int, y: int) returns (r: int)
-    ensures r == x || r == y;
-    ensures x <= r && y <= r;
+    ensures r == x || r == y
+    ensures x <= r && y <= r
   {
     r := if x < y then y else x;
   }
@@ -122,12 +122,12 @@ class Modifies {
 
   method C(b: bool)
     modifies this;
-    ensures !b ==> x == old(x) && next == old(next);
+    ensures !b ==> x == old(x) && next == old(next)
   {
   }
 
   method D(p: Modifies, y: int)
-    requires p != null;
+    requires p != null
   {
     if (y == 3) {
       p.C(true);  // error: may violate modifies clause
@@ -230,15 +230,15 @@ class InitCalls {
 
   method Init(y: int)
     modifies this;
-    ensures z == y;
+    ensures z == y
   {
     z := y;
   }
 
   method InitFromReference(q: InitCalls)
-    requires q != null && 15 <= q.z;
+    requires q != null && 15 <= q.z
     modifies this;
-    ensures p == q;
+    ensures p == q
   {
     p := q;
   }
@@ -265,35 +265,35 @@ class InitCalls {
 // --------------- some tests with quantifiers and ranges ----------------------
 
 method QuantifierRange0<T>(a: seq<T>, x: T, y: T, N: int)
-  requires 0 <= N && N <= |a|;
-  requires forall k | 0 <= k && k < N :: a[k] != x;
-  requires exists k | 0 <= k && k < N :: a[k] == y;
-  ensures forall k :: 0 <= k && k < N ==> a[k] != x;  // same as the precondition, but using ==> instead of |
-  ensures exists k :: 0 <= k && k < N && a[k] == y;  // same as the precondition, but using && instead of |
+  requires 0 <= N <= |a|
+  requires forall k | 0 <= k < N :: a[k] != x
+  requires exists k | 0 <= k < N :: a[k] == y
+  ensures forall k :: 0 <= k < N ==> a[k] != x;  // same as the precondition, but using ==> instead of |
+  ensures exists k :: 0 <= k < N && a[k] == y;  // same as the precondition, but using && instead of |
 {
   assert x != y;
 }
 
 method QuantifierRange1<T>(a: seq<T>, x: T, y: T, N: int)
-  requires 0 <= N && N <= |a|;
-  requires forall k :: 0 <= k && k < N ==> a[k] != x;
-  requires exists k :: 0 <= k && k < N && a[k] == y;
-  ensures forall k | 0 <= k && k < N :: a[k] != x;  // same as the precondition, but using | instead of ==>
-  ensures exists k | 0 <= k && k < N :: a[k] == y;  // same as the precondition, but using | instead of &&
+  requires 0 <= N <= |a|
+  requires forall k :: 0 <= k < N ==> a[k] != x
+  requires exists k :: 0 <= k < N && a[k] == y
+  ensures forall k | 0 <= k < N :: a[k] != x;  // same as the precondition, but using | instead of ==>
+  ensures exists k | 0 <= k < N :: a[k] == y;  // same as the precondition, but using | instead of &&
 {
   assert x != y;
 }
 
 method QuantifierRange2<T(==)>(a: seq<T>, x: T, y: T, N: int)
-  requires 0 <= N && N <= |a|;
-  requires exists k | 0 <= k && k < N :: a[k] == y;
-  ensures forall k | 0 <= k && k < N :: a[k] == y;  // error
+  requires 0 <= N <= |a|
+  requires exists k | 0 <= k < N :: a[k] == y
+  ensures forall k | 0 <= k < N :: a[k] == y;  // error
 {
   assert N != 0;
   if (N == 1) {
-    assert forall k | a[if 0 <= k && k < N then k else 0] != y :: k < 0 || N <= k;  // in this case, the precondition holds trivially
+    assert forall k {:nowarn} | a[if 0 <= k < N then k else 0] != y :: k < 0 || N <= k;  // in this case, the precondition holds trivially
   }
-  if (forall k | 0 <= k && k < N :: a[k] == x) {
+  if (forall k | 0 <= k < N :: a[k] == x) {
     assert x == y;
   }
 }
@@ -301,8 +301,8 @@ method QuantifierRange2<T(==)>(a: seq<T>, x: T, y: T, N: int)
 // ----------------------- tests that involve sequences of boxes --------
 
 ghost method M(zeros: seq<bool>, Z: bool)
-  requires 1 <= |zeros| && Z == false;
-  requires forall k :: 0 <= k && k < |zeros| ==> zeros[k] == Z;
+  requires 1 <= |zeros| && Z == false
+  requires forall k :: 0 <= k < |zeros| ==> zeros[k] == Z
 {
   var x := [Z];
   assert zeros[0..1] == [Z];
@@ -312,7 +312,7 @@ class SomeType
 {
   var x: int;
   method DoIt(stack: seq<SomeType>)
-    requires null !in stack;
+    requires null !in stack
     modifies stack;
   {
     forall n | n in stack {
@@ -333,7 +333,7 @@ method TestSequences0()
   } else {
     assert 2 in s;
     assert 0 in s;
-    assert exists n :: n in s && -3 <= n && n < 2;
+    assert exists n :: n in s && -3 <= n < 2;
   }
   assert 7 in s;  // error
 }
@@ -399,7 +399,7 @@ class Test {
 function F(b: bool): int
   // The if-then-else in the following line was once translated incorrectly,
   // incorrectly causing the postcondition to verify
-  ensures if b then F(b) == 5 else F(b) == 6;
+  ensures if b then F(b) == 5 else F(b) == 6
 {
   5
 }
@@ -430,10 +430,10 @@ class AttributeTests {
   }
 
   method testAttributes0() returns (r: AttributeTests)
-    ensures {:boolAttr true} true;
-    ensures {:boolAttr false} true;
-    ensures {:intAttr 0} true;
-    ensures {:intAttr 1} true;
+    ensures {:boolAttr true} true
+    ensures {:boolAttr false} true
+    ensures {:intAttr 0} true
+    ensures {:intAttr 1} true
     modifies {:boolAttr true} this`f;
     modifies {:boolAttr false} this`f;
     modifies {:intAttr 0} this`f;
@@ -541,7 +541,7 @@ method TestNotNot()
 // ----------------------- Assign-such-that statements -------
 
 method AssignSuchThat0(a: int, b: int) returns (x: int, y: int)
-  ensures x == a && y == b;
+  ensures x == a && y == b
 {
   if (*) {
     x, y :| a <= x < a + 1 && b + a <= y + a && y <= b;
@@ -635,7 +635,7 @@ method AssignSuchThat9() returns (q: QuiteFinite)
 function method LetSuchThat_P(x: int): bool
 
 method LetSuchThat0(ghost g: int)
-  requires LetSuchThat_P(g);
+  requires LetSuchThat_P(g)
 {
   var t :| LetSuchThat_P(t);  // assign-such-that statement
   ghost var u := var q :| LetSuchThat_P(q); q + 1;  // let-such-that expression
@@ -710,10 +710,10 @@ class GT {
   {
     if (*) {
       P0();
-      assert forall x: GT :: x != null ==> !fresh(x);  // error: method P2 may have allocated stuff
+      assert forall x: GT {:nowarn} :: x != null ==> !fresh(x);  // error: method P2 may have allocated stuff
     } else {
       P1();
-      assert forall x: GT :: x != null ==> !fresh(x);  // fine, because the ghost method does not allocate anything
+      assert forall x: GT {:nowarn} :: x != null ==> !fresh(x);  // fine, because the ghost method does not allocate anything
     }
   }
 }
@@ -777,20 +777,20 @@ module GenericPick {
     var x :| x in s; x
   }
   function SeqPick3<U>(s: seq<U>): U
-    requires exists i :: 0 <= i < |s|
+    requires exists i {:nowarn} :: 0 <= i < |s|
   {
     EquivalentWaysOfSayingSequenceIsNonempty(s);  // I wish this wasn't needed; see comment near Seq#Length axioms in DafnyPrelude.bpl
     var x :| x in s; x
   }
   function SeqPick4<U>(s: seq<U>): U
-    requires exists i :: 0 <= i < |s|
+    requires exists i {:nowarn} :: 0 <= i < |s|
   {
     var i :| 0 <= i < |s|; s[i]
   }
   lemma EquivalentWaysOfSayingSequenceIsNonempty<U>(s: seq<U>)
     requires s != []
           || |s| != 0
-          || exists i :: 0 <= i < |s|
+          || exists i {:nowarn} :: 0 <= i < |s|
     ensures exists x :: x in s
   {
     assert s[0] in s;

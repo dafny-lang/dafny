@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %dafny /compile:0 /print:"%t.print" /dprint:"%t.dprint" /autoTriggers:1 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 method M()
@@ -19,18 +19,18 @@ datatype D = A | B
 // have to run the resulting program to check that the compiler is doing the right thing.
 method Main()
 {
-  var q := set i,j | 0 <= i && i < 10 && 0 <= j && j < 3 :: i+j;
+  var q := set i,j | 0 <= i < 10 && 0 <= j < 3 :: i+j;
   PrintSet(q);
   q := set b: bool | true :: if b then 3 else 7;
   var d := set b:D | true;
-  var test := forall d:D :: d == A || d == B;
+  var test := forall d:D {:nowarn} :: d == A || d == B; // Ignoring the warning as we're only compiling here
   PrintSet(q);
   var m := set k | k in q :: 2*k;
   PrintSet(m);
   PrintSet(set k | k in q && k % 2 == 0);
   var sq := [30, 40, 20];
-  PrintSet(set k, i | k in sq && 0 <= i && i < k && i % 7 == 0 :: k + i);
-  var bb := forall k, i | k in sq && 0 <= i && i < k && i % 7 == 0 :: k + i == 17;
+  PrintSet(set k, i | k in sq && 0 <= i < k && i % 7 == 0 :: k + i);
+  var bb := forall k, i {:nowarn} | k in sq && 0 <= i < k && i % 7 == 0 :: k + i == 17; // Ignoring the warning as we're only compiling here
 }
 
 method PrintSet<T>(s: set<T>) {

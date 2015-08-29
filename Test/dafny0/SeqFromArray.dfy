@@ -53,7 +53,7 @@ method L(a: array<int>, c: array<int>, n: nat)
     case A == C =>
       assert forall i :: 0 <= i < h ==> A[i] == C[i];
     case A == C =>
-      assert forall i :: 0 <= i < h ==> a[n+i] == c[n+i];
+      assert forall i :: n <= i < n + h ==> a[i] == c[i];
     case true =>
   }
 }
@@ -73,13 +73,13 @@ method M(a: array<int>, c: array<int>, m: nat, n: nat, k: nat, l: nat)
         } else if * {
           assert forall i :: 0 <= i < n ==> A[i] == C[i];
         } else if * {
-          assert forall i :: k <= i < k+n ==> A[i-k] == C[i-k];
+          assert forall i {:nowarn} :: k <= i < k+n ==> A[i-k] == C[i-k];
         } else if * {
           assert forall i :: 0 <= i < n ==> A[i] == a[k+i];
         } else if * {
           assert forall i :: 0 <= i < n ==> C[i] == c[l+i];
         } else if * {
-          assert forall i :: 0 <= i < n ==> a[k+i] == c[l+i];
+          assert forall i {:nowarn} :: 0 <= i < n ==> a[k+i] == c[l+i];
         }
       }
     case l+m <= c.Length && forall i :: 0 <= i < m ==> a[i] == c[l+i] =>

@@ -210,7 +210,7 @@ class TwoState_C { ghost var data: int }
 // contexts are not allowed to allocate state.  Callers of this ghost method will know
 // that the postcondition is tantamount to 'false'.
 ghost method TwoState0(y: int)
-  ensures exists o: TwoState_C :: o != null && fresh(o)
+  ensures exists o: TwoState_C {:nowarn} :: o != null && fresh(o)
 
 method TwoState_Main0() {
   forall x { TwoState0(x); }
@@ -236,7 +236,7 @@ method X_Legit(c: TwoState_C)
 method TwoState_Main2()
 {
   forall x: int
-    ensures exists o: TwoState_C :: o != null && fresh(o)
+    ensures exists o: TwoState_C {:nowarn} :: o != null && fresh(o)
   {
     TwoState0(x);
   }
@@ -252,7 +252,7 @@ method TwoState_Main2()
 method TwoState_Main3()
 {
   forall x: int
-    ensures exists o: TwoState_C :: o != null && fresh(o)
+    ensures exists o: TwoState_C {:nowarn} :: o != null && fresh(o)
   {
     assume false;  // (there's no other way to achieve this forall-statement postcondition)
   }
@@ -309,12 +309,12 @@ predicate ThProperty(step: nat, t: Nat, r: nat)
 {
   match t
   case Zero => true
-  case Succ(o) => step>0 && exists ro:nat :: ThProperty(step-1, o, ro)
+  case Succ(o) => step>0 && exists ro:nat, ss | ss == step-1 :: ThProperty(ss, o, ro) //WISH: ss should be autogrnerated. Note that step is not a bound variable.
 }
 
 lemma Th(step: nat, t: Nat, r: nat)
   requires t.Succ? && ThProperty(step, t, r)
   // the next line follows from the precondition and the definition of ThProperty
-  ensures exists ro:nat :: ThProperty(step-1, t.tail, ro)
+  ensures exists ro:nat, ss | ss == step-1 :: ThProperty(ss, t.tail, ro) //WISH same as above
 {
 }
