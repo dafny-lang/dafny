@@ -21,5 +21,5 @@ method InSeqTriggers(s: seq<int>, i: nat)
 method InSeqNoAutoTriggers(s: seq<int>, i: nat)
   requires forall x {:autotriggers false} :: x in s ==> x > 0;
   requires |s| > 0 {
-    assert s[0] > 0; // Works
+    assert s[0] > 0; // Works (Z3 matches on $Box above)
 }
