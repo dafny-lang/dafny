@@ -1,14 +1,14 @@
-splitting-picks-the-right-tokens.dfy(9,11): Info: For expression {Id(x) > 1}:
+splitting-picks-the-right-tokens.dfy(9,11): Info: For expression "Id(x) > 1":
    Selected triggers: {Id(x)}
-splitting-picks-the-right-tokens.dfy(9,11): Info: For expression {x > 2}:
+splitting-picks-the-right-tokens.dfy(9,11): Info: For expression "x > 2":
    Selected triggers: {Id(x)}
-splitting-picks-the-right-tokens.dfy(9,11): Info: For expression {x > -1}:
+splitting-picks-the-right-tokens.dfy(9,11): Info: For expression "x > -1":
    Selected triggers: {Id(x)}
-splitting-picks-the-right-tokens.dfy(16,11): Info: For expression {x > 0 ==> Id(x) > 1}:
+splitting-picks-the-right-tokens.dfy(16,11): Info: For expression "x > 0 ==> Id(x) > 1":
    Selected triggers: {Id(x)}
-splitting-picks-the-right-tokens.dfy(16,11): Info: For expression {x > 0 ==> x > 2}:
+splitting-picks-the-right-tokens.dfy(16,11): Info: For expression "x > 0 ==> x > 2":
    Selected triggers: {Id(x)}
-splitting-picks-the-right-tokens.dfy(16,11): Info: For expression {x > 0 ==> x > -1}:
+splitting-picks-the-right-tokens.dfy(16,11): Info: For expression "x > 0 ==> x > -1":
    Selected triggers: {Id(x)}
 splitting-picks-the-right-tokens.dfy(20,12): Error BP5002: A precondition for this call might not hold.
 splitting-picks-the-right-tokens.dfy(16,11): Related location: This is the precondition that might not hold.
