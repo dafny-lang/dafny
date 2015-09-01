@@ -667,13 +667,17 @@ namespace Microsoft.Dafny
     }
 
     private void ResolveModuleDefinition(ModuleDefinition m, ModuleSignature sig) {
+      Contract.Requires(AllTypeConstraints.Count == 0);
+      Contract.Ensures(AllTypeConstraints.Count == 0);
       moduleInfo = MergeSignature(sig, systemNameInfo);
       // resolve
       var datatypeDependencies = new Graph<IndDatatypeDecl>();
       var codatatypeDependencies = new Graph<CoDatatypeDecl>();
       int prevErrorCount = reporter.Count(ErrorLevel.Error);
       ResolveTopLevelDecls_Signatures(m, m.TopLevelDecls, datatypeDependencies, codatatypeDependencies);
+      Contract.Assert(AllTypeConstraints.Count == 0);  // signature resolution does not add any type constraints
       ResolveAttributes(m.Attributes, new ResolveOpts(new NoContext(m.Module), false)); // Must follow ResolveTopLevelDecls_Signatures, in case attributes refer to members
+      SolveAllTypeConstraints();  // solve any type constraints entailed by the attributes
       if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
         ResolveTopLevelDecls_Core(m.TopLevelDecls, datatypeDependencies, codatatypeDependencies);
       }
@@ -1334,7 +1338,9 @@ namespace Microsoft.Dafny
       Contract.Requires(cce.NonNullElements(datatypeDependencies));
       Contract.Requires(cce.NonNullElements(codatatypeDependencies));
       Contract.Requires(NFBC_Count == 0);
+      Contract.Requires(AllTypeConstraints.Count == 0);
       Contract.Ensures(NFBC_Count == 0);
+      Contract.Ensures(AllTypeConstraints.Count == 0);
 
       int prevErrorCount = reporter.Count(ErrorLevel.Error);
 
@@ -1363,9 +1369,8 @@ namespace Microsoft.Dafny
             ResolveType(dd.Var.tok, dd.Var.Type, dd, ResolveTypeOptionEnum.DontInfer, null);
             ResolveExpression(dd.Constraint, new ResolveOpts(dd, false, true));
             Contract.Assert(dd.Constraint.Type != null);  // follows from postcondition of ResolveExpression
-            if (!UnifyTypes(dd.Constraint.Type, Type.Bool)) {
-              reporter.Error(MessageSource.Resolver, dd.Constraint, "newtype constraint must be of type bool (instead got {0})", dd.Constraint.Type);
-            }
+            ConstrainTypes(dd.Constraint.Type, Type.Bool, dd.Constraint, "newtype constraint must be of type bool (instead got {0})", dd.Constraint.Type);
+            SolveAllTypeConstraints();
             if (!CheckTypeInference_Visitor.IsDetermined(dd.BaseType.NormalizeExpand())) {
               reporter.Error(MessageSource.Resolver, dd.tok, "newtype's base type is not fully determined; add an explicit type for '{0}'", dd.Var.Name);
             }
@@ -1376,6 +1381,7 @@ namespace Microsoft.Dafny
       }
       // Now, we're ready for the other declarations.
       foreach (TopLevelDecl d in declarations) {
+        Contract.Assert(AllTypeConstraints.Count == 0);
         if (d is TraitDecl && d.TypeArgs.Count > 0) {
           reporter.Error(MessageSource.Resolver, d, "sorry, traits with type parameters are not supported");
         }
@@ -1394,6 +1400,7 @@ namespace Microsoft.Dafny
           ResolveClassMemberBodies(cl);
         }
         allTypeParameters.PopMarker();
+        SolveAllTypeConstraints();
       }
 
       if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
@@ -1863,6 +1870,135 @@ namespace Microsoft.Dafny
       }
     }
 
+    /// <summary>
+    /// Adds the type constraint ty==expected, eventually printing the error message "msg" if this is found to be
+    /// untenable.  If this is immediately known not to be untenable, false is returned.
+    /// </summary>
+    private bool ConstrainTypes(Type ty, Type expected, TopLevelDecl declForToken, string msg, params object[] args) {
+      Contract.Requires(ty != null);
+      Contract.Requires(expected != null);
+      Contract.Requires(declForToken != null);
+      Contract.Requires(msg != null);
+      Contract.Requires(args != null);
+      return ConstrainTypes(ty, expected, declForToken.tok, msg, args);
+    }
+    /// <summary>
+    /// Adds the type constraint ty==expected, eventually printing the error message "msg" if this is found to be
+    /// untenable.  If this is immediately known not to be untenable, false is returned.
+    /// </summary>
+    private bool ConstrainTypes(Type ty, Type expected, MemberDecl declForToken, string msg, params object[] args) {
+      Contract.Requires(ty != null);
+      Contract.Requires(expected != null);
+      Contract.Requires(declForToken != null);
+      Contract.Requires(msg != null);
+      Contract.Requires(args != null);
+      return ConstrainTypes(ty, expected, declForToken.tok, msg, args);
+    }
+    /// <summary>
+    /// Adds the type constraint ty==expected, eventually printing the error message "msg" if this is found to be
+    /// untenable.  If this is immediately known not to be untenable, false is returned.
+    /// </summary>
+    private bool ConstrainTypes(Type ty, Type expected, Statement stmtForToken, string msg, params object[] args) {
+      Contract.Requires(ty != null);
+      Contract.Requires(expected != null);
+      Contract.Requires(stmtForToken != null);
+      Contract.Requires(msg != null);
+      Contract.Requires(args != null);
+      return ConstrainTypes(ty, expected, stmtForToken.Tok, msg, args);
+    }
+    /// <summary>
+    /// Adds the type constraint ty==expected, eventually printing the error message "msg" if this is found to be
+    /// untenable.  If this is immediately known not to be untenable, false is returned.
+    /// </summary>
+    private bool ConstrainTypes(Type ty, Type expected, Expression exprForToken, string msg, params object[] args) {
+      Contract.Requires(ty != null);
+      Contract.Requires(expected != null);
+      Contract.Requires(exprForToken != null);
+      Contract.Requires(msg != null);
+      Contract.Requires(args != null);
+      return ConstrainTypes(ty, expected, exprForToken.tok, msg, args);
+    }
+    /// <summary>
+    /// Adds the type constraint ty==expected, eventually printing the error message "msg" if this is found to be
+    /// untenable.  If this is immediately known not to be untenable, false is returned.
+    /// </summary>
+    private bool ConstrainTypes(Type ty, Type expected, IToken tok, string msg, params object[] args) {
+      Contract.Requires(ty != null);
+      Contract.Requires(expected != null);
+      Contract.Requires(tok != null);
+      Contract.Requires(msg != null);
+      Contract.Requires(args != null);
+#if LAZY_TYPE_CHECKING
+      var c = new TypeConstraint(ty, expected, tok, msg, args);
+      AllTypeConstraints.Add(c);
+      return true;
+#else
+      if (!UnifyTypes(ty, expected)) {
+        reporter.Error(MessageSource.Resolver, tok, msg, args);
+        return false;
+      }
+      return true;
+#endif
+    }
+
+    public List<TypeConstraint> AllTypeConstraints = new List<TypeConstraint>();
+
+    /// <summary>
+    /// Solves or simplifies as many type constraints as possible
+    /// </summary>
+    void PartiallySolveTypeConstraints() {
+      var remainingConstraints = new List<TypeConstraint>();
+      foreach (var constraint in AllTypeConstraints) {
+        if (!constraint.CheckTenable(this)) {
+          remainingConstraints.Add(constraint);
+        }
+      }
+      AllTypeConstraints = remainingConstraints;
+    }
+
+    /// <summary>
+    /// Attempts to fully solve all type constraints.  Upon success, returns "true".
+    /// Upon failure, reports errors and returns "false".
+    /// Clears all constraints.
+    /// </summary>
+    bool SolveAllTypeConstraints() {
+      PartiallySolveTypeConstraints();
+      foreach (var constraint in AllTypeConstraints) {
+        constraint.ReportAsError(reporter);
+      }
+      var success = AllTypeConstraints.Count == 0;
+      AllTypeConstraints.Clear();
+      return success;
+    }
+
+    public class TypeConstraint
+    {
+      readonly Type Ty;
+      readonly Type Expected;
+      readonly IToken Tok;
+      readonly string Msg;
+      readonly object[] MsgArgs;
+      public TypeConstraint(Type ty, Type expected, IToken tok, string msg, object[] msgArgs) {
+        Ty = ty;
+        Expected = expected;
+        Tok = tok;
+        Msg = msg;
+        MsgArgs = msgArgs;
+      }
+      /// <summary>
+      /// Returns "true" if constraint is tenable, "false" otherwise.
+      /// </summary>
+      /// <returns></returns>
+      public bool CheckTenable(Resolver resolver) {
+        Contract.Requires(resolver != null);
+        return resolver.UnifyTypes(Ty, Expected);
+      }
+      public void ReportAsError(ErrorReporter reporter) {
+        Contract.Requires(reporter != null);
+        reporter.Error(MessageSource.Resolver, Tok, Msg, MsgArgs);
+      }
+    }
+
     // ------------------------------------------------------------------------------------------------------
     // ----- Visitors ---------------------------------------------------------------------------------------
     // ------------------------------------------------------------------------------------------------------
@@ -1965,6 +2101,7 @@ namespace Microsoft.Dafny
     }
     void CheckTypeInference(Expression expr) {
       Contract.Requires(expr != null);
+      PartiallySolveTypeConstraints();
       var c = new CheckTypeInference_Visitor(this);
       c.Visit(expr);
     }
@@ -3566,9 +3703,7 @@ namespace Microsoft.Dafny
       foreach (Expression r in f.Req) {
         ResolveExpression(r, new ResolveOpts(f, false, true));
         Contract.Assert(r.Type != null);  // follows from postcondition of ResolveExpression
-        if (!UnifyTypes(r.Type, Type.Bool)) {
-          reporter.Error(MessageSource.Resolver, r, "Precondition must be a boolean (got {0})", r.Type);
-        }
+        ConstrainTypes(r.Type, Type.Bool, r, "Precondition must be a boolean (got {0})", r.Type);
       }
       foreach (FrameExpression fr in f.Reads) {
         ResolveFrameExpression(fr, true, f.IsGhost, f);
@@ -3576,9 +3711,7 @@ namespace Microsoft.Dafny
       foreach (Expression r in f.Ens) {
         ResolveExpression(r, new ResolveOpts(f, false, true));  // since this is a function, the postcondition is still a one-state predicate
         Contract.Assert(r.Type != null);  // follows from postcondition of ResolveExpression
-        if (!UnifyTypes(r.Type, Type.Bool)) {
-          reporter.Error(MessageSource.Resolver, r, "Postcondition must be a boolean (got {0})", r.Type);
-        }
+        ConstrainTypes(r.Type, Type.Bool, r, "Postcondition must be a boolean (got {0})", r.Type);
       }
       ResolveAttributes(f.Decreases.Attributes, new ResolveOpts(f, false, true));
       foreach (Expression r in f.Decreases.Expressions) {
@@ -3592,9 +3725,7 @@ namespace Microsoft.Dafny
           CheckIsNonGhost(f.Body);
         }
         Contract.Assert(f.Body.Type != null);  // follows from postcondition of ResolveExpression
-        if (!UnifyTypes(f.Body.Type, f.ResultType)) {
-          reporter.Error(MessageSource.Resolver, f, "Function body type mismatch (expected {0}, got {1})", f.ResultType, f.Body.Type);
-        }
+        ConstrainTypes(f.Body.Type, f.ResultType, f, "Function body type mismatch (expected {0}, got {1})", f.ResultType, f.Body.Type);
       }
       scope.PopMarker();
     }
@@ -3620,8 +3751,7 @@ namespace Microsoft.Dafny
       if (collType != null) {
         t = collType.Arg;
       }
-      if (!UnifyTypes(t, new ObjectType())) {
-        reporter.Error(MessageSource.Resolver, fe.E, "a {0}-clause expression must denote an object or a collection of objects (instead got {1})", readsFrame ? "reads" : "modifies", fe.E.Type);
+      if (!ConstrainTypes(t, new ObjectType(), fe.E, "a {0}-clause expression must denote an object or a collection of objects (instead got {1})", readsFrame ? "reads" : "modifies", fe.E.Type)) {
       } else if (fe.FieldName != null) {
         NonProxyType nptype;
         MemberDecl member = ResolveMember(fe.E.tok, t, fe.FieldName, out nptype);
@@ -3686,9 +3816,7 @@ namespace Microsoft.Dafny
           ResolveAttributes(e.Attributes, new ResolveOpts(m, false, true));
           ResolveExpression(e.E, new ResolveOpts(m, false, true));
           Contract.Assert(e.E.Type != null);  // follows from postcondition of ResolveExpression
-          if (!UnifyTypes(e.E.Type, Type.Bool)) {
-            reporter.Error(MessageSource.Resolver, e.E, "Precondition must be a boolean (got {0})", e.E.Type);
-          }
+          ConstrainTypes(e.E.Type, Type.Bool, e.E, "Precondition must be a boolean (got {0})", e.E.Type);
         }
         ResolveAttributes(m.Mod.Attributes, new ResolveOpts(m, false, true));
         foreach (FrameExpression fe in m.Mod.Expressions) {
@@ -3722,9 +3850,7 @@ namespace Microsoft.Dafny
           ResolveAttributes(e.Attributes, new ResolveOpts(m, true, true));
           ResolveExpression(e.E, new ResolveOpts(m, true, true));
           Contract.Assert(e.E.Type != null);  // follows from postcondition of ResolveExpression
-          if (!UnifyTypes(e.E.Type, Type.Bool)) {
-            reporter.Error(MessageSource.Resolver, e.E, "Postcondition must be a boolean (got {0})", e.E.Type);
-          }
+          ConstrainTypes(e.E.Type, Type.Bool, e.E, "Postcondition must be a boolean (got {0})", e.E.Type);
         }
 
         // Resolve body
@@ -3810,10 +3936,8 @@ namespace Microsoft.Dafny
         ResolveExpression(e, new ResolveOpts(iter, false, true));
         // any type is fine, but associate this type with the corresponding _decreases<n> field
         var d = iter.DecreasesFields[i];
-        if (!UnifyTypes(d.Type, e.Type)) {
-          // bummer, there was a use--and a bad use--of the field before, so this won't be the best of error messages
-          reporter.Error(MessageSource.Resolver, e, "type of field {0} is {1}, but has been constrained elsewhere to be of type {2}", d.Name, e.Type, d.Type);
-        }
+        // If the following type constraint does not hold, then: Bummer, there was a use--and a bad use--of the field before, so this won't be the best of error messages
+        ConstrainTypes(d.Type, e.Type, e, "type of field {0} is {1}, but has been constrained elsewhere to be of type {2}", d.Name, e.Type, d.Type);
       }
       foreach (FrameExpression fe in iter.Reads.Expressions) {
         ResolveFrameExpression(fe, true, false, iter);
@@ -3824,9 +3948,7 @@ namespace Microsoft.Dafny
       foreach (MaybeFreeExpression e in iter.Requires) {
         ResolveExpression(e.E, new ResolveOpts(iter, false, true));
         Contract.Assert(e.E.Type != null);  // follows from postcondition of ResolveExpression
-        if (!UnifyTypes(e.E.Type, Type.Bool)) {
-          reporter.Error(MessageSource.Resolver, e.E, "Precondition must be a boolean (got {0})", e.E.Type);
-        }
+        ConstrainTypes(e.E.Type, Type.Bool, e.E, "Precondition must be a boolean (got {0})", e.E.Type);
       }
 
       scope.PopMarker();  // for the in-parameters
@@ -3840,23 +3962,17 @@ namespace Microsoft.Dafny
       foreach (MaybeFreeExpression e in iter.YieldRequires) {
         ResolveExpression(e.E, new ResolveOpts(iter, false, true));
         Contract.Assert(e.E.Type != null);  // follows from postcondition of ResolveExpression
-        if (!UnifyTypes(e.E.Type, Type.Bool)) {
-          reporter.Error(MessageSource.Resolver, e.E, "Yield precondition must be a boolean (got {0})", e.E.Type);
-        }
+        ConstrainTypes(e.E.Type, Type.Bool, e.E, "Yield precondition must be a boolean (got {0})", e.E.Type);
       }
       foreach (MaybeFreeExpression e in iter.YieldEnsures) {
         ResolveExpression(e.E, new ResolveOpts(iter, true, true));
         Contract.Assert(e.E.Type != null);  // follows from postcondition of ResolveExpression
-        if (!UnifyTypes(e.E.Type, Type.Bool)) {
-          reporter.Error(MessageSource.Resolver, e.E, "Yield postcondition must be a boolean (got {0})", e.E.Type);
-        }
+        ConstrainTypes(e.E.Type, Type.Bool, e.E, "Yield postcondition must be a boolean (got {0})", e.E.Type);
       }
       foreach (MaybeFreeExpression e in iter.Ensures) {
         ResolveExpression(e.E, new ResolveOpts(iter, true, true));
         Contract.Assert(e.E.Type != null);  // follows from postcondition of ResolveExpression
-        if (!UnifyTypes(e.E.Type, Type.Bool)) {
-          reporter.Error(MessageSource.Resolver, e.E, "Postcondition must be a boolean (got {0})", e.E.Type);
-        }
+        ConstrainTypes(e.E.Type, Type.Bool, e.E, "Postcondition must be a boolean (got {0})", e.E.Type);
       }
 
       ResolveAttributes(iter.Attributes, new ResolveOpts(iter, false, true));
@@ -4715,9 +4831,7 @@ namespace Microsoft.Dafny
         s.IsGhost = true;
         ResolveExpression(s.Expr, new ResolveOpts(codeContext, true, true));
         Contract.Assert(s.Expr.Type != null);  // follows from postcondition of ResolveExpression
-        if (!UnifyTypes(s.Expr.Type, Type.Bool)) {
-          reporter.Error(MessageSource.Resolver, s.Expr, "condition is expected to be of type {0}, but is {1}", Type.Bool, s.Expr.Type);
-        }
+        ConstrainTypes(s.Expr.Type, Type.Bool, s.Expr, "condition is expected to be of type {0}, but is {1}", Type.Bool, s.Expr.Type);
 
       } else if (stmt is PrintStmt) {
         PrintStmt s = (PrintStmt)stmt;
@@ -4963,9 +5077,7 @@ namespace Microsoft.Dafny
             CheckIsNonGhost(rr.Expr);
           }
           Contract.Assert(rr.Expr.Type != null);  // follows from postcondition of ResolveExpression
-          if (!UnifyTypes(lhsType, rr.Expr.Type)) {
-            reporter.Error(MessageSource.Resolver, stmt, "RHS (of type {0}) not assignable to LHS (of type {1})", rr.Expr.Type, lhsType);
-          }
+          ConstrainTypes(lhsType, rr.Expr.Type, stmt, "RHS (of type {0}) not assignable to LHS (of type {1})", rr.Expr.Type, lhsType);
         } else if (s.Rhs is TypeRhs) {
           TypeRhs rr = (TypeRhs)s.Rhs;
           Type t = ResolveTypeRhs(rr, stmt, lvalueIsGhost, codeContext);
@@ -4981,9 +5093,7 @@ namespace Microsoft.Dafny
               }
             }
           }
-          if (!UnifyTypes(lhsType, t)) {
-            reporter.Error(MessageSource.Resolver, stmt, "type {0} is not assignable to LHS (of type {1})", t, lhsType);
-          }
+          ConstrainTypes(lhsType, t, stmt, "type {0} is not assignable to LHS (of type {1})", t, lhsType);
         } else if (s.Rhs is HavocRhs) {
           // nothing else to do
         } else {
@@ -5011,9 +5121,7 @@ namespace Microsoft.Dafny
           ResolveExpression(s.Guard, new ResolveOpts(codeContext, true, specContextOnly));
           Contract.Assert(s.Guard.Type != null);  // follows from postcondition of ResolveExpression
           bool successfullyResolved = reporter.Count(ErrorLevel.Error) == prevErrorCount;
-          if (!UnifyTypes(s.Guard.Type, Type.Bool)) {
-            reporter.Error(MessageSource.Resolver, s.Guard, "condition is expected to be of type {0}, but is {1}", Type.Bool, s.Guard.Type);
-          }
+          ConstrainTypes(s.Guard.Type, Type.Bool, s.Guard, "condition is expected to be of type {0}, but is {1}", Type.Bool, s.Guard.Type);
           if (!specContextOnly && successfullyResolved) {
             branchesAreSpecOnly = UsesSpecFeatures(s.Guard);
           }
@@ -5045,9 +5153,7 @@ namespace Microsoft.Dafny
           Contract.Assert(s.Guard.Type != null);  // follows from postcondition of ResolveExpression
           bool successfullyResolved = reporter.Count(ErrorLevel.Error) == prevErrorCount;
           Translator.ComputeFreeVariables(s.Guard, fvs);
-          if (!UnifyTypes(s.Guard.Type, Type.Bool)) {
-            reporter.Error(MessageSource.Resolver, s.Guard, "condition is expected to be of type {0}, but is {1}", Type.Bool, s.Guard.Type);
-          }
+          ConstrainTypes(s.Guard.Type, Type.Bool, s.Guard, "condition is expected to be of type {0}, but is {1}", Type.Bool, s.Guard.Type);
           if (!specContextOnly && successfullyResolved) {
             bodyMustBeSpecOnly = UsesSpecFeatures(s.Guard);
           }
@@ -5058,9 +5164,7 @@ namespace Microsoft.Dafny
           ResolveExpression(inv.E, new ResolveOpts(codeContext, true, true));
           Contract.Assert(inv.E.Type != null);  // follows from postcondition of ResolveExpression
           Translator.ComputeFreeVariables(inv.E, fvs);
-          if (!UnifyTypes(inv.E.Type, Type.Bool)) {
-            reporter.Error(MessageSource.Resolver, inv.E, "invariant is expected to be of type {0}, but is {1}", Type.Bool, inv.E.Type);
-          }
+          ConstrainTypes(inv.E.Type, Type.Bool, inv.E, "invariant is expected to be of type {0}, but is {1}", Type.Bool, inv.E.Type);
         }
 
         ResolveAttributes(s.Decreases.Attributes, new ResolveOpts(codeContext, true, true));
@@ -5103,9 +5207,7 @@ namespace Microsoft.Dafny
         foreach (MaybeFreeExpression inv in s.Invariants) {
           ResolveExpression(inv.E, new ResolveOpts(codeContext, true, true));
           Contract.Assert(inv.E.Type != null);  // follows from postcondition of ResolveExpression
-          if (!UnifyTypes(inv.E.Type, Type.Bool)) {
-            reporter.Error(MessageSource.Resolver, inv.E, "invariant is expected to be of type {0}, but is {1}", Type.Bool, inv.E.Type);
-          }
+          ConstrainTypes(inv.E.Type, Type.Bool, inv.E, "invariant is expected to be of type {0}, but is {1}", Type.Bool, inv.E.Type);
         }
 
         foreach (Expression e in s.Decreases.Expressions) {
@@ -5131,15 +5233,11 @@ namespace Microsoft.Dafny
         }
         ResolveExpression(s.Range, new ResolveOpts(codeContext, true, specContextOnly));
         Contract.Assert(s.Range.Type != null);  // follows from postcondition of ResolveExpression
-        if (!UnifyTypes(s.Range.Type, Type.Bool)) {
-          reporter.Error(MessageSource.Resolver, stmt, "range restriction in forall statement must be of type bool (instead got {0})", s.Range.Type);
-        }
+        ConstrainTypes(s.Range.Type, Type.Bool, stmt, "range restriction in forall statement must be of type bool (instead got {0})", s.Range.Type);
         foreach (var ens in s.Ens) {
           ResolveExpression(ens.E, new ResolveOpts(codeContext, true, true));
           Contract.Assert(ens.E.Type != null);  // follows from postcondition of ResolveExpression
-          if (!UnifyTypes(ens.E.Type, Type.Bool)) {
-            reporter.Error(MessageSource.Resolver, ens.E, "ensures condition is expected to be of type {0}, but is {1}", Type.Bool, ens.E.Type);
-          }
+          ConstrainTypes(ens.E.Type, Type.Bool, ens.E, "ensures condition is expected to be of type {0}, but is {1}", Type.Bool, ens.E.Type);
         }
         // Since the range and postconditions are more likely to infer the types of the bound variables, resolve them
         // first (above) and only then resolve the attributes (below).
@@ -5232,8 +5330,7 @@ namespace Microsoft.Dafny
               var e1 = s.Lines[i];
               ResolveExpression(e1, new ResolveOpts(codeContext, true, true));
               Contract.Assert(e1.Type != null);  // follows from postcondition of ResolveExpression
-              if (!UnifyTypes(e0.Type, e1.Type)) {
-                reporter.Error(MessageSource.Resolver, e1, "all lines in a calculation must have the same type (got {0} after {1})", e1.Type, e0.Type);
+              if (!ConstrainTypes(e0.Type, e1.Type, e1, "all lines in a calculation must have the same type (got {0} after {1})", e1.Type, e0.Type)) {
               } else {
                 var step = s.StepOps[i - 1].StepExpr(e0, e1); // Use custom line operator
                 ResolveExpression(step, new ResolveOpts(codeContext, true, true));
@@ -5354,16 +5451,14 @@ namespace Microsoft.Dafny
             if (ctor != null && i < ctor.Formals.Count) {
               Formal formal = ctor.Formals[i];
               Type st = SubstType(formal.Type, subst);
-              if (!UnifyTypes(v.Type, st)) {
-                reporter.Error(MessageSource.Resolver, stmt, "the declared type of the formal ({0}) does not agree with the corresponding type in the constructor's signature ({1})", v.Type, st);
-              }
+              ConstrainTypes(v.Type, st, stmt, "the declared type of the formal ({0}) does not agree with the corresponding type in the constructor's signature ({1})", v.Type, st);
               v.IsGhost = formal.IsGhost;
 
               // update the type of the boundvars in the MatchCaseToken
               if (v.tok is MatchCaseToken) {
                 MatchCaseToken mt = (MatchCaseToken)v.tok;
                 foreach (Tuple<IToken, BoundVar, bool> entry in mt.varList) {
-                  UnifyTypes(entry.Item2.Type, v.Type);
+                  UnifyTypes(entry.Item2.Type, v.Type);  // TODO: What if this unification fails? Can it?  --KRML
                 }
               }
             }
@@ -5961,9 +6056,7 @@ namespace Microsoft.Dafny
       s.IsGhost = s.Lhss.TrueForAll(AssignStmt.LhsIsToGhost);
       var ec = reporter.Count(ErrorLevel.Error);
       ResolveExpression(s.Expr, new ResolveOpts(codeContext, true, specContextOnly));
-      if (!UnifyTypes(s.Expr.Type, Type.Bool)) {
-        reporter.Error(MessageSource.Resolver, s.Expr, "type of RHS of assign-such-that statement must be boolean (got {0})", s.Expr.Type);
-      }
+      ConstrainTypes(s.Expr.Type, Type.Bool, s.Expr, "type of RHS of assign-such-that statement must be boolean (got {0})", s.Expr.Type);
       if (ec == reporter.Count(ErrorLevel.Error) && !s.IsGhost && s.AssumeToken == null && !specContextOnly) {
         CheckIsNonGhost(s.Expr);
 
@@ -5990,9 +6083,7 @@ namespace Microsoft.Dafny
         ResolveExpression(alternative.Guard, new ResolveOpts(codeContext, true, specContextOnly));
         Contract.Assert(alternative.Guard.Type != null);  // follows from postcondition of ResolveExpression
         bool successfullyResolved = reporter.Count(ErrorLevel.Error) == prevErrorCount;
-        if (!UnifyTypes(alternative.Guard.Type, Type.Bool)) {
-          reporter.Error(MessageSource.Resolver, alternative.Guard, "condition is expected to be of type {0}, but is {1}", Type.Bool, alternative.Guard.Type);
-        }
+        ConstrainTypes(alternative.Guard.Type, Type.Bool, alternative.Guard, "condition is expected to be of type {0}, but is {1}", Type.Bool, alternative.Guard.Type);
         if (!specContextOnly && successfullyResolved) {
           isGhost = isGhost || UsesSpecFeatures(alternative.Guard);
         }
@@ -6082,15 +6173,12 @@ namespace Microsoft.Dafny
         // type check the arguments
         for (int i = 0; i < callee.Ins.Count; i++) {
           Type st = SubstType(callee.Ins[i].Type, s.MethodSelect.TypeArgumentSubstitutions());
-          if (!UnifyTypes(cce.NonNull(s.Args[i].Type), st)) {
-            reporter.Error(MessageSource.Resolver, s, "incorrect type of method in-parameter {0} (expected {1}, got {2})", i, st, s.Args[i].Type);
-          }
+          ConstrainTypes(s.Args[i].Type, st, s, "incorrect type of method in-parameter {0} (expected {1}, got {2})", i, st, s.Args[i].Type);
         }
         for (int i = 0; i < callee.Outs.Count; i++) {
           Type st = SubstType(callee.Outs[i].Type, s.MethodSelect.TypeArgumentSubstitutions());
           var lhs = s.Lhs[i];
-          if (!UnifyTypes(cce.NonNull(lhs.Type), st)) {
-            reporter.Error(MessageSource.Resolver, s, "incorrect type of method out-parameter {0} (expected {1}, got {2})", i, st, lhs.Type);
+          if (!ConstrainTypes(lhs.Type, st, s, "incorrect type of method out-parameter {0} (expected {1}, got {2})", i, st, lhs.Type)) {
           } else {
             var resolvedLhs = lhs.Resolved;
             if (!specContextOnly && (s.IsGhost || callee.Outs[i].IsGhost)) {
@@ -6164,9 +6252,7 @@ namespace Microsoft.Dafny
         }
       } else if (lhs is SeqSelectExpr) {
         var ll = (SeqSelectExpr)lhs;
-        if (!UnifyTypes(ll.Seq.Type, ResolvedArrayType(ll.Seq.tok, 1, new InferredTypeProxy(), codeContext))) {
-          reporter.Error(MessageSource.Resolver, ll.Seq, "LHS of array assignment must denote an array element (found {0})", ll.Seq.Type);
-        }
+        ConstrainTypes(ll.Seq.Type, ResolvedArrayType(ll.Seq.tok, 1, new InferredTypeProxy(), codeContext), ll.Seq, "LHS of array assignment must denote an array element (found {0})", ll.Seq.Type);
         if (!ll.SelectOne) {
           reporter.Error(MessageSource.Resolver, ll.Seq, "cannot assign to a range of array elements (try the 'forall' statement)");
         }
@@ -6490,9 +6576,7 @@ namespace Microsoft.Dafny
           foreach (Expression dim in rr.ArrayDimensions) {
             Contract.Assert(dim != null);
             ResolveExpression(dim, new ResolveOpts(codeContext, true));
-            if (!UnifyTypes(dim.Type, new OperationTypeProxy(true, false, false, false, false, false))) {
-              reporter.Error(MessageSource.Resolver, stmt, "new must use an integer-based expression for the array size (got {0} for index {1})", dim.Type, i);
-            }
+            ConstrainTypes(dim.Type, new OperationTypeProxy(true, false, false, false, false, false), stmt, "new must use an integer-based expression for the array size (got {0} for index {1})", dim.Type, i);
             i++;
           }
           rr.Type = ResolvedArrayType(stmt.Tok, rr.ArrayDimensions.Count, rr.EType, codeContext);
@@ -6573,6 +6657,8 @@ namespace Microsoft.Dafny
       Contract.Requires(receiverType != null);
       Contract.Requires(memberName != null);
       Contract.Ensures(Contract.Result<MemberDecl>() == null || Contract.ValueAtReturn(out nptype) != null);
+
+      PartiallySolveTypeConstraints();  // so that we can try to pick up the type of the receiver
 
       nptype = null;  // prepare for the worst
       receiverType = receiverType.NormalizeExpand();
@@ -6965,9 +7051,7 @@ namespace Microsoft.Dafny
         foreach (Expression ee in e.Elements) {
           ResolveExpression(ee, opts);
           Contract.Assert(ee.Type != null);  // follows from postcondition of ResolveExpression
-          if (!UnifyTypes(elementType, ee.Type)) {
-            reporter.Error(MessageSource.Resolver, ee, "All elements of display must be of the same type (got {0}, but type of previous elements is {1})", ee.Type, elementType);
-          }
+          ConstrainTypes(elementType, ee.Type, ee, "All elements of display must be of the same type (got {0}, but type of previous elements is {1})", ee.Type, elementType);
         }
         if (expr is SetDisplayExpr) {
           var se = (SetDisplayExpr)expr;
@@ -6984,14 +7068,10 @@ namespace Microsoft.Dafny
         foreach (ExpressionPair p in e.Elements) {
           ResolveExpression(p.A, opts);
           Contract.Assert(p.A.Type != null);  // follows from postcondition of ResolveExpression
-          if (!UnifyTypes(domainType, p.A.Type)) {
-            reporter.Error(MessageSource.Resolver, p.A, "All elements of display must be of the same type (got {0}, but type of previous elements is {1})", p.A.Type, domainType);
-          }
+          ConstrainTypes(domainType, p.A.Type, p.A, "All elements of display must be of the same type (got {0}, but type of previous elements is {1})", p.A.Type, domainType);
           ResolveExpression(p.B, opts);
           Contract.Assert(p.B.Type != null);  // follows from postcondition of ResolveExpression
-          if (!UnifyTypes(rangeType, p.B.Type)) {
-            reporter.Error(MessageSource.Resolver, p.B, "All elements of display must be of the same type (got {0}, but type of previous elements is {1})", p.B.Type, rangeType);
-          }
+          ConstrainTypes(rangeType, p.B.Type, p.B, "All elements of display must be of the same type (got {0}, but type of previous elements is {1})", p.B.Type, rangeType);
         }
         expr.Type = new MapType(e.Finite, domainType, rangeType);
       } else if (expr is NameSegment) {
@@ -7074,17 +7154,13 @@ namespace Microsoft.Dafny
         ResolveExpression(e.Array, opts);
         Contract.Assert(e.Array.Type != null);  // follows from postcondition of ResolveExpression
         Type elementType = new InferredTypeProxy();
-        if (!UnifyTypes(e.Array.Type, ResolvedArrayType(e.Array.tok, e.Indices.Count, elementType, opts.codeContext))) {
-          reporter.Error(MessageSource.Resolver, e.Array, "array selection requires an array{0} (got {1})", e.Indices.Count, e.Array.Type);
-        }
+        ConstrainTypes(e.Array.Type, ResolvedArrayType(e.Array.tok, e.Indices.Count, elementType, opts.codeContext), e.Array, "array selection requires an array{0} (got {1})", e.Indices.Count, e.Array.Type);
         int i = 0;
         foreach (Expression idx in e.Indices) {
           Contract.Assert(idx != null);
           ResolveExpression(idx, opts);
           Contract.Assert(idx.Type != null);  // follows from postcondition of ResolveExpression
-          if (!UnifyTypes(idx.Type, new OperationTypeProxy(true, false, false, false, false, false))) {
-            reporter.Error(MessageSource.Resolver, idx, "array selection requires integer-based numeric indices (got {0} for index {1})", idx.Type, i);
-          }
+          ConstrainTypes(idx.Type, new OperationTypeProxy(true, false, false, false, false, false), idx, "array selection requires integer-based numeric indices (got {0} for index {1})", idx.Type, i);
           i++;
         }
         e.Type = elementType;
@@ -7099,44 +7175,28 @@ namespace Microsoft.Dafny
         if (UnifyTypes(e.Seq.Type, new SeqType(elementType))) {
           ResolveExpression(e.Index, opts);
           Contract.Assert(e.Index.Type != null);  // follows from postcondition of ResolveExpression
-          if (!UnifyTypes(e.Index.Type, Type.Int)) {
-            reporter.Error(MessageSource.Resolver, e.Index, "sequence update requires integer index (got {0})", e.Index.Type);
-          }
+          ConstrainTypes(e.Index.Type, Type.Int, e.Index, "sequence update requires integer index (got {0})", e.Index.Type);
           ResolveExpression(e.Value, opts);
           Contract.Assert(e.Value.Type != null);  // follows from postcondition of ResolveExpression
-          if (!UnifyTypes(e.Value.Type, elementType)) {
-            reporter.Error(MessageSource.Resolver, e.Value, "sequence update requires the value to have the element type of the sequence (got {0})", e.Value.Type);
-          }
+          ConstrainTypes(e.Value.Type, elementType, e.Value, "sequence update requires the value to have the element type of the sequence (got {0})", e.Value.Type);
           expr.Type = e.Seq.Type;
         } else if (UnifyTypes(e.Seq.Type, new MapType(true, domainType, rangeType))) {
           ResolveExpression(e.Index, opts);
-          if (!UnifyTypes(e.Index.Type, domainType)) {
-            reporter.Error(MessageSource.Resolver, e.Index, "map update requires domain element to be of type {0} (got {1})", domainType, e.Index.Type);
-          }
+          ConstrainTypes(e.Index.Type, domainType, e.Index, "map update requires domain element to be of type {0} (got {1})", domainType, e.Index.Type);
           ResolveExpression(e.Value, opts);
-          if (!UnifyTypes(e.Value.Type, rangeType)) {
-            reporter.Error(MessageSource.Resolver, e.Value, "map update requires the value to have the range type {0} (got {1})", rangeType, e.Value.Type);
-          }
+          ConstrainTypes(e.Value.Type, rangeType, e.Value, "map update requires the value to have the range type {0} (got {1})", rangeType, e.Value.Type);
           expr.Type = e.Seq.Type;
         } else if (UnifyTypes(e.Seq.Type, new MapType(false, domainType, rangeType))) {
           ResolveExpression(e.Index, opts);
-          if (!UnifyTypes(e.Index.Type, domainType)) {
-            reporter.Error(MessageSource.Resolver, e.Index, "imap update requires domain element to be of type {0} (got {1})", domainType, e.Index.Type);
-          }
+          ConstrainTypes(e.Index.Type, domainType, e.Index, "imap update requires domain element to be of type {0} (got {1})", domainType, e.Index.Type);
           ResolveExpression(e.Value, opts);
-          if (!UnifyTypes(e.Value.Type, rangeType)) {
-            reporter.Error(MessageSource.Resolver, e.Value, "imap update requires the value to have the range type {0} (got {1})", rangeType, e.Value.Type);
-          }
+          ConstrainTypes(e.Value.Type, rangeType, e.Value, "imap update requires the value to have the range type {0} (got {1})", rangeType, e.Value.Type);
           expr.Type = e.Seq.Type;
         } else if (UnifyTypes(e.Seq.Type, new MultiSetType(elementType))) {
           ResolveExpression(e.Index, opts);
-          if (!UnifyTypes(e.Index.Type, elementType)) {
-            reporter.Error(MessageSource.Resolver, e.Index, "multiset update requires domain element to be of type {0} (got {1})", elementType, e.Index.Type);
-          }
+          ConstrainTypes(e.Index.Type, elementType, e.Index, "multiset update requires domain element to be of type {0} (got {1})", elementType, e.Index.Type);
           ResolveExpression(e.Value, opts);
-          if (!UnifyTypes(e.Value.Type, new OperationTypeProxy(true, false, false, false, false, false))) {
-            reporter.Error(MessageSource.Resolver, e.Value, "multiset update requires integer-based numeric value (got {0})", e.Value.Type);
-          }
+          ConstrainTypes(e.Value.Type, new OperationTypeProxy(true, false, false, false, false, false), e.Value, "multiset update requires integer-based numeric value (got {0})", e.Value.Type);
           expr.Type = e.Seq.Type;
 
         } else if (e.Seq.Type.IsDatatype) {
@@ -7243,9 +7303,7 @@ namespace Microsoft.Dafny
           reporter.Error(MessageSource.Resolver, e.tok, "wrong number of arguments to function application (function type '{0}' expects {1}, got {2})", fnType, fnType.Arity, e.Args.Count);
         } else {
           for (var i = 0; i < fnType.Arity; i++) {
-            if (!UnifyTypes(fnType.Args[i], e.Args[i].Type)) {
-              reporter.Error(MessageSource.Resolver, e.Args[i].tok, "type mismatch for argument {0} (function expects {1}, got {2})", i, fnType.Args[i], e.Args[i].Type);
-            }
+            ConstrainTypes(fnType.Args[i], e.Args[i].Type, e.Args[i].tok, "type mismatch for argument {0} (function expects {1}, got {2})", i, fnType.Args[i], e.Args[i].Type);
           }
         }
         expr.Type = fnType == null ? new InferredTypeProxy() : fnType.Result;
@@ -7272,15 +7330,11 @@ namespace Microsoft.Dafny
         Contract.Assert(e.E.Type != null);  // follows from postcondition of ResolveExpression
         switch (e.Op) {
           case UnaryOpExpr.Opcode.Not:
-            if (!UnifyTypes(e.E.Type, Type.Bool)) {
-              reporter.Error(MessageSource.Resolver, expr, "logical negation expects a boolean argument (instead got {0})", e.E.Type);
-            }
+            ConstrainTypes(e.E.Type, Type.Bool, expr, "logical negation expects a boolean argument (instead got {0})", e.E.Type);
             expr.Type = Type.Bool;
             break;
           case UnaryOpExpr.Opcode.Cardinality:
-            if (!UnifyTypes(e.E.Type, new CollectionTypeProxy(new InferredTypeProxy(), false, false))) {
-              reporter.Error(MessageSource.Resolver, expr, "size operator expects a collection argument (instead got {0})", e.E.Type);
-            }
+            ConstrainTypes(e.E.Type, new CollectionTypeProxy(new InferredTypeProxy(), false, false), expr, "size operator expects a collection argument (instead got {0})", e.E.Type);
             expr.Type = Type.Int;
             break;
           case UnaryOpExpr.Opcode.Fresh:
@@ -7313,13 +7367,9 @@ namespace Microsoft.Dafny
         ResolveType(e.tok, e.ToType, opts.codeContext, new ResolveTypeOption(ResolveTypeOptionEnum.DontInfer), null);
         ResolveExpression(e.E, opts);
         if (e.ToType.IsNumericBased(Type.NumericPersuation.Int)) {
-          if (!UnifyTypes(e.E.Type, new OperationTypeProxy(true, true, false, false, false, false))) {
-            reporter.Error(MessageSource.Resolver, expr, "type conversion to an int-based type is allowed only from numeric types (got {0})", e.E.Type);
-          }
+          ConstrainTypes(e.E.Type, new OperationTypeProxy(true, true, false, false, false, false), expr, "type conversion to an int-based type is allowed only from numeric types (got {0})", e.E.Type);
         } else if (e.ToType.IsNumericBased(Type.NumericPersuation.Real)) {
-          if (!UnifyTypes(e.E.Type, new OperationTypeProxy(true, true, false, false, false, false))) {
-            reporter.Error(MessageSource.Resolver, expr, "type conversion to a real-based type is allowed only from numeric types (got {0})", e.E.Type);
-          }
+          ConstrainTypes(e.E.Type, new OperationTypeProxy(true, true, false, false, false, false), expr, "type conversion to a real-based type is allowed only from numeric types (got {0})", e.E.Type);
         } else {
           reporter.Error(MessageSource.Resolver, expr, "type conversions are not supported to this type (got {0})", e.ToType);
         }
@@ -7337,12 +7387,8 @@ namespace Microsoft.Dafny
           case BinaryExpr.Opcode.Exp:
           case BinaryExpr.Opcode.And:
           case BinaryExpr.Opcode.Or:
-            if (!UnifyTypes(e.E0.Type, Type.Bool)) {
-              reporter.Error(MessageSource.Resolver, expr, "first argument to {0} must be of type bool (instead got {1})", BinaryExpr.OpcodeString(e.Op), e.E0.Type);
-            }
-            if (!UnifyTypes(e.E1.Type, Type.Bool)) {
-              reporter.Error(MessageSource.Resolver, expr, "second argument to {0} must be of type bool (instead got {1})", BinaryExpr.OpcodeString(e.Op), e.E1.Type);
-            }
+            ConstrainTypes(e.E0.Type, Type.Bool, expr, "first argument to {0} must be of type bool (instead got {1})", BinaryExpr.OpcodeString(e.Op), e.E0.Type);
+            ConstrainTypes(e.E1.Type, Type.Bool, expr, "second argument to {0} must be of type bool (instead got {1})", BinaryExpr.OpcodeString(e.Op), e.E1.Type);
             expr.Type = Type.Bool;
             break;
 
@@ -7369,9 +7415,7 @@ namespace Microsoft.Dafny
 
           case BinaryExpr.Opcode.Disjoint:
             // TODO: the error messages are backwards from what (ideally) they should be. this is necessary because UnifyTypes can't backtrack.
-            if (!UnifyTypes(e.E0.Type, e.E1.Type)) {
-              reporter.Error(MessageSource.Resolver, expr, "arguments must have the same type (got {0} and {1})", e.E0.Type, e.E1.Type);
-            }
+            ConstrainTypes(e.E0.Type, e.E1.Type, expr, "arguments must have the same type (got {0} and {1})", e.E0.Type, e.E1.Type);
             if (!UnifyTypes(e.E0.Type, new SetType(true, new InferredTypeProxy())) &&
                 !UnifyTypes(e.E0.Type, new MultiSetType(new InferredTypeProxy())) &&
                 !UnifyTypes(e.E0.Type, new MapType(true, new InferredTypeProxy(), new InferredTypeProxy()))) {
@@ -7384,34 +7428,25 @@ namespace Microsoft.Dafny
           case BinaryExpr.Opcode.Le:
           case BinaryExpr.Opcode.Add: {
               if (e.Op == BinaryExpr.Opcode.Lt && (e.E0.Type.NormalizeExpand().IsIndDatatype || e.E0.Type.IsTypeParameter)) {
-                if (UnifyTypes(e.E1.Type, new DatatypeProxy(false, false))) {
+                if (ConstrainTypes(e.E1.Type, new DatatypeProxy(false, false), expr, "arguments to rank comparison must be datatypes (instead of {0})", e.E1.Type)) {
                   e.ResolvedOp = BinaryExpr.ResolvedOpcode.RankLt;
-                } else {
-                  reporter.Error(MessageSource.Resolver, expr, "arguments to rank comparison must be datatypes (instead of {0})", e.E1.Type);
                 }
                 expr.Type = Type.Bool;
               } else if (e.Op == BinaryExpr.Opcode.Lt && e.E1.Type.NormalizeExpand().IsIndDatatype) {
-                if (UnifyTypes(e.E0.Type, new DatatypeProxy(false, true))) {
+                if (ConstrainTypes(e.E0.Type, new DatatypeProxy(false, true), expr, "arguments to rank comparison must be datatypes (instead of {0})", e.E0.Type)) {
                   e.ResolvedOp = BinaryExpr.ResolvedOpcode.RankLt;
-                } else {
-                  reporter.Error(MessageSource.Resolver, expr, "arguments to rank comparison must be datatypes (instead of {0})", e.E0.Type);
                 }
                 expr.Type = Type.Bool;
               } else {
-                bool err = false;
                 bool isComparison = e.Op != BinaryExpr.Opcode.Add;
-                if (!UnifyTypes(e.E0.Type, new OperationTypeProxy(true, true, isComparison, true, true, true))) {
-                  reporter.Error(MessageSource.Resolver, expr, "arguments to {0} must be of a numeric type{2} or a collection type (instead got {1})", BinaryExpr.OpcodeString(e.Op), e.E0.Type,
-                    isComparison ? ", char," : "");
-                  err = true;
-                }
-                if (!UnifyTypes(e.E1.Type, e.E0.Type)) {
-                  reporter.Error(MessageSource.Resolver, expr, "arguments to {0} must have the same type (got {1} and {2})", BinaryExpr.OpcodeString(e.Op), e.E0.Type, e.E1.Type);
-                  err = true;
-                }
+                var good0 = ConstrainTypes(e.E0.Type, new OperationTypeProxy(true, true, isComparison, true, true, true),
+                  expr, "arguments to {0} must be of a numeric type{2} or a collection type (instead got {1})",
+                  BinaryExpr.OpcodeString(e.Op), e.E0.Type, isComparison ? ", char," : "");
+                var good1 = ConstrainTypes(e.E1.Type, e.E0.Type,
+                  expr, "arguments to {0} must have the same type (got {1} and {2})", BinaryExpr.OpcodeString(e.Op), e.E0.Type, e.E1.Type);
                 if (isComparison) {
                   expr.Type = Type.Bool;
-                } else if (!err) {
+                } else if (good0 && good1) {
                   expr.Type = e.E0.Type;
                 }
               }
@@ -7423,34 +7458,24 @@ namespace Microsoft.Dafny
           case BinaryExpr.Opcode.Gt:
           case BinaryExpr.Opcode.Ge: {
               if (e.Op == BinaryExpr.Opcode.Gt && e.E0.Type.NormalizeExpand().IsIndDatatype) {
-                if (UnifyTypes(e.E1.Type, new DatatypeProxy(false, true))) {
+                if (ConstrainTypes(e.E1.Type, new DatatypeProxy(false, true), expr, "arguments to rank comparison must be datatypes (instead of {0})", e.E1.Type)) {
                   e.ResolvedOp = BinaryExpr.ResolvedOpcode.RankGt;
-                } else {
-                  reporter.Error(MessageSource.Resolver, expr, "arguments to rank comparison must be datatypes (instead of {0})", e.E1.Type);
                 }
                 expr.Type = Type.Bool;
               } else if (e.Op == BinaryExpr.Opcode.Gt && (e.E1.Type.NormalizeExpand().IsIndDatatype || e.E1.Type.IsTypeParameter)) {
-                if (UnifyTypes(e.E0.Type, new DatatypeProxy(false, false))) {
+                if (ConstrainTypes(e.E0.Type, new DatatypeProxy(false, false), expr, "arguments to rank comparison must be datatypes (instead of {0})", e.E0.Type)) {
                   e.ResolvedOp = BinaryExpr.ResolvedOpcode.RankGt;
-                } else {
-                  reporter.Error(MessageSource.Resolver, expr, "arguments to rank comparison must be datatypes (instead of {0})", e.E0.Type);
                 }
                 expr.Type = Type.Bool;
               } else {
-                bool err = false;
                 bool isComparison = e.Op == BinaryExpr.Opcode.Gt || e.Op == BinaryExpr.Opcode.Ge;
-                if (!UnifyTypes(e.E0.Type, new OperationTypeProxy(true, true, isComparison, false, true, true))) {
-                  reporter.Error(MessageSource.Resolver, expr, "arguments to {0} must be of a numeric type{2} or a set type (instead got {1})", BinaryExpr.OpcodeString(e.Op), e.E0.Type,
-                    isComparison ? ", char, " : "");
-                  err = true;
-                }
-                if (!UnifyTypes(e.E1.Type, e.E0.Type)) {
-                  reporter.Error(MessageSource.Resolver, expr, "arguments to {0} must have the same type (got {1} and {2})", BinaryExpr.OpcodeString(e.Op), e.E0.Type, e.E1.Type);
-                  err = true;
-                }
+                var good0 = ConstrainTypes(e.E0.Type, new OperationTypeProxy(true, true, isComparison, false, true, true),
+                  expr, "arguments to {0} must be of a numeric type{2} or a set type (instead got {1})",
+                  BinaryExpr.OpcodeString(e.Op), e.E0.Type, isComparison ? ", char, " : "");
+                var good1 = ConstrainTypes(e.E1.Type, e.E0.Type, expr, "arguments to {0} must have the same type (got {1} and {2})", BinaryExpr.OpcodeString(e.Op), e.E0.Type, e.E1.Type);
                 if (isComparison) {
                   expr.Type = Type.Bool;
-                } else if (!err) {
+                } else if (good0 && good1) {
                   expr.Type = e.E0.Type;
                 }
               }
@@ -7459,29 +7484,23 @@ namespace Microsoft.Dafny
 
           case BinaryExpr.Opcode.In:
           case BinaryExpr.Opcode.NotIn:
-            if (!UnifyTypes(e.E1.Type, new CollectionTypeProxy(e.E0.Type, true, true))) {
-              reporter.Error(MessageSource.Resolver, expr, "second argument to \"{0}\" must be a set, multiset, or sequence with elements of type {1}, or a map with domain {1} (instead got {2})", BinaryExpr.OpcodeString(e.Op), e.E0.Type, e.E1.Type);
-            }
+            ConstrainTypes(e.E1.Type, new CollectionTypeProxy(e.E0.Type, true, true), expr, "second argument to \"{0}\" must be a set, multiset, or sequence with elements of type {1}, or a map with domain {1} (instead got {2})", BinaryExpr.OpcodeString(e.Op), e.E0.Type, e.E1.Type);
             expr.Type = Type.Bool;
             break;
 
           case BinaryExpr.Opcode.Div:
-            if (!UnifyTypes(e.E0.Type, new OperationTypeProxy(true, true, false, false, false, false))) {
-              reporter.Error(MessageSource.Resolver, expr, "first argument to {0} must be of numeric type (instead got {1})", BinaryExpr.OpcodeString(e.Op), e.E0.Type);
-            }
-            if (!UnifyTypes(e.E1.Type, e.E0.Type)) {
-              reporter.Error(MessageSource.Resolver, expr, "arguments to {0} must have the same type (got {1} and {2})", BinaryExpr.OpcodeString(e.Op), e.E0.Type, e.E1.Type);
-            }
+            ConstrainTypes(e.E0.Type, new OperationTypeProxy(true, true, false, false, false, false),
+              expr, "first argument to {0} must be of numeric type (instead got {1})", BinaryExpr.OpcodeString(e.Op), e.E0.Type);
+            ConstrainTypes(e.E1.Type, e.E0.Type,
+              expr, "arguments to {0} must have the same type (got {1} and {2})", BinaryExpr.OpcodeString(e.Op), e.E0.Type, e.E1.Type);
             expr.Type = e.E0.Type;
             break;
 
           case BinaryExpr.Opcode.Mod:
-            if (!UnifyTypes(e.E0.Type, new OperationTypeProxy(true, false, false, false, false, false))) {
-              reporter.Error(MessageSource.Resolver, expr, "first argument to {0} must be of type int (instead got {1})", BinaryExpr.OpcodeString(e.Op), e.E0.Type);
-            }
-            if (!UnifyTypes(e.E1.Type, e.E0.Type)) {
-              reporter.Error(MessageSource.Resolver, expr, "second argument to {0} must be of type int (instead got {1})", BinaryExpr.OpcodeString(e.Op), e.E1.Type);
-            }
+            ConstrainTypes(e.E0.Type, new OperationTypeProxy(true, false, false, false, false, false),
+              expr, "first argument to {0} must be of type int (instead got {1})", BinaryExpr.OpcodeString(e.Op), e.E0.Type);
+            ConstrainTypes(e.E1.Type, e.E0.Type,
+              expr, "second argument to {0} must be of type int (instead got {1})", BinaryExpr.OpcodeString(e.Op), e.E1.Type);
             expr.Type = e.E0.Type;
             break;
 
@@ -7499,15 +7518,12 @@ namespace Microsoft.Dafny
         switch (e.Op) {
           case TernaryExpr.Opcode.PrefixEqOp:
           case TernaryExpr.Opcode.PrefixNeqOp:
-            if (!UnifyTypes(e.E0.Type, Type.Int)) {
-              reporter.Error(MessageSource.Resolver, e.E0, "prefix-equality limit argument must be an integer expression (got {0})", e.E0.Type);
-            }
-            if (!UnifyTypes(e.E1.Type, new DatatypeProxy(true))) {
-              reporter.Error(MessageSource.Resolver, expr, "arguments to prefix equality must be codatatypes (instead of {0})", e.E1.Type);
-            }
-            if (!UnifyTypes(e.E1.Type, e.E2.Type)) {
-              reporter.Error(MessageSource.Resolver, expr, "arguments must have the same type (got {0} and {1})", e.E1.Type, e.E2.Type);
-            }
+            ConstrainTypes(e.E0.Type, Type.Int,
+              e.E0, "prefix-equality limit argument must be an integer expression (got {0})", e.E0.Type);
+            ConstrainTypes(e.E1.Type, new DatatypeProxy(true),
+              expr, "arguments to prefix equality must be codatatypes (instead of {0})", e.E1.Type);
+            ConstrainTypes(e.E1.Type, e.E2.Type,
+              expr, "arguments must have the same type (got {0} and {1})", e.E1.Type, e.E2.Type);
             expr.Type = Type.Bool;
             break;
           default:
@@ -7556,9 +7572,7 @@ namespace Microsoft.Dafny
           }
           foreach (var rhs in e.RHSs) {
             ResolveExpression(rhs, opts);
-            if (!UnifyTypes(rhs.Type, Type.Bool)) {
-              reporter.Error(MessageSource.Resolver, rhs.tok, "type of RHS of let-such-that expression must be boolean (got {0})", rhs.Type);
-            }
+            ConstrainTypes(rhs.Type, Type.Bool, rhs.tok, "type of RHS of let-such-that expression must be boolean (got {0})", rhs.Type);
           }
           if (!opts.DontCareAboutCompilation && !e.BoundVars.All(bv => bv.IsGhost)) {
             needFiniteBoundsChecks_LetSuchThatExpr.Add(e);
@@ -7594,15 +7608,11 @@ namespace Microsoft.Dafny
         if (e.Range != null) {
           ResolveExpression(e.Range, new ResolveOpts(opts, true));
           Contract.Assert(e.Range.Type != null);  // follows from postcondition of ResolveExpression
-          if (!UnifyTypes(e.Range.Type, Type.Bool)) {
-            reporter.Error(MessageSource.Resolver, expr, "range of quantifier must be of type bool (instead got {0})", e.Range.Type);
-          }
+          ConstrainTypes(e.Range.Type, Type.Bool, expr, "range of quantifier must be of type bool (instead got {0})", e.Range.Type);
         }
         ResolveExpression(e.Term, new ResolveOpts(opts, true));
         Contract.Assert(e.Term.Type != null);  // follows from postcondition of ResolveExpression
-        if (!UnifyTypes(e.Term.Type, Type.Bool)) {
-          reporter.Error(MessageSource.Resolver, expr, "body of quantifier must be of type bool (instead got {0})", e.Term.Type);
-        }
+        ConstrainTypes(e.Term.Type, Type.Bool, expr, "body of quantifier must be of type bool (instead got {0})", e.Term.Type);
         // Since the body is more likely to infer the types of the bound variables, resolve it
         // first (above) and only then resolve the attributes (below).
         ResolveAttributes(e.Attributes, new ResolveOpts(opts, true));
@@ -7643,9 +7653,7 @@ namespace Microsoft.Dafny
         }
         ResolveExpression(e.Range, opts);
         Contract.Assert(e.Range.Type != null);  // follows from postcondition of ResolveExpression
-        if (!UnifyTypes(e.Range.Type, Type.Bool)) {
-          reporter.Error(MessageSource.Resolver, expr, "range of comprehension must be of type bool (instead got {0})", e.Range.Type);
-        }
+        ConstrainTypes(e.Range.Type, Type.Bool, expr, "range of comprehension must be of type bool (instead got {0})", e.Range.Type);
         ResolveExpression(e.Term, opts);
         Contract.Assert(e.Term.Type != null);  // follows from postcondition of ResolveExpression
 
@@ -7672,9 +7680,7 @@ namespace Microsoft.Dafny
         }
         ResolveExpression(e.Range, opts);
         Contract.Assert(e.Range.Type != null);  // follows from postcondition of ResolveExpression
-        if (!UnifyTypes(e.Range.Type, Type.Bool)) {
-          reporter.Error(MessageSource.Resolver, expr, "range of comprehension must be of type bool (instead got {0})", e.Range.Type);
-        }
+        ConstrainTypes(e.Range.Type, Type.Bool, expr, "range of comprehension must be of type bool (instead got {0})", e.Range.Type);
         ResolveExpression(e.Term, opts);
         Contract.Assert(e.Term.Type != null);  // follows from postcondition of ResolveExpression
 
@@ -7707,9 +7713,7 @@ namespace Microsoft.Dafny
         if (e.Range != null) {
           ResolveExpression(e.Range, opts);
           Contract.Assert(e.Range.Type != null);  // follows from postcondition of ResolveExpression
-          if (!UnifyTypes(e.Range.Type, Type.Bool)) {
-            reporter.Error(MessageSource.Resolver, expr, "Precondition must be boolean (got {0})", e.Range.Type);
-          }
+          ConstrainTypes(e.Range.Type, Type.Bool, expr, "Precondition must be boolean (got {0})", e.Range.Type);
         }
 
         foreach (var read in e.Reads) {
@@ -7747,13 +7751,9 @@ namespace Microsoft.Dafny
         Contract.Assert(e.Thn.Type != null);  // follows from postcondition of ResolveExpression
         ResolveExpression(e.Els, opts);
         Contract.Assert(e.Els.Type != null);  // follows from postcondition of ResolveExpression
-        if (!UnifyTypes(e.Test.Type, Type.Bool)) {
-          reporter.Error(MessageSource.Resolver, expr, "guard condition in if-then-else expression must be a boolean (instead got {0})", e.Test.Type);
-        }
-        if (UnifyTypes(e.Thn.Type, e.Els.Type)) {
+        ConstrainTypes(e.Test.Type, Type.Bool, expr, "guard condition in if-then-else expression must be a boolean (instead got {0})", e.Test.Type);
+        if (ConstrainTypes(e.Thn.Type, e.Els.Type, expr, "the two branches of an if-then-else expression must have the same type (got {0} and {1})", e.Thn.Type, e.Els.Type)) {
           expr.Type = e.Thn.Type;
-        } else {
-          reporter.Error(MessageSource.Resolver, expr, "the two branches of an if-then-else expression must have the same type (got {0} and {1})", e.Thn.Type, e.Els.Type);
         }
 
       } else if (expr is MatchExpr) {
@@ -7835,16 +7835,15 @@ namespace Microsoft.Dafny
             if (ctor != null && i < ctor.Formals.Count) {
               Formal formal = ctor.Formals[i];
               Type st = SubstType(formal.Type, subst);
-              if (!UnifyTypes(v.Type, st)) {
-                reporter.Error(MessageSource.Resolver, expr, "the declared type of the formal ({0}) does not agree with the corresponding type in the constructor's signature ({1})", v.Type, st);
-              }
+              ConstrainTypes(v.Type, st,
+                expr, "the declared type of the formal ({0}) does not agree with the corresponding type in the constructor's signature ({1})", v.Type, st);
               v.IsGhost = formal.IsGhost;
 
               // update the type of the boundvars in the MatchCaseToken
               if (v.tok is MatchCaseToken) {
                 MatchCaseToken mt = (MatchCaseToken)v.tok;
                 foreach (Tuple<IToken, BoundVar, bool> entry in mt.varList) {
-                  UnifyTypes(entry.Item2.Type, v.Type);
+                  UnifyTypes(entry.Item2.Type, v.Type);  // TODO: What to do if this unification fails? Or can it?  --KRML
                 }
               }
             }
@@ -7862,9 +7861,7 @@ namespace Microsoft.Dafny
         }
 
         Contract.Assert(mc.Body.Type != null);  // follows from postcondition of ResolveExpression
-        if (!UnifyTypes(expr.Type, mc.Body.Type)) {
-          reporter.Error(MessageSource.Resolver, mc.Body.tok, "type of case bodies do not agree (found {0}, previous types {1})", mc.Body.Type, expr.Type);
-        }
+        ConstrainTypes(expr.Type, mc.Body.Type, mc.Body.tok, "type of case bodies do not agree (found {0}, previous types {1})", mc.Body.Type, expr.Type);
         scope.PopMarker();
       }
       if (dtd != null && memberNamesUsed.Count != dtd.Ctors.Count) {
@@ -8198,9 +8195,7 @@ namespace Microsoft.Dafny
         // this is a simple resolution
         var v = pat.Var;
         ResolveType(v.tok, v.Type, context, ResolveTypeOptionEnum.InferTypeProxies, null);
-        if (!UnifyTypes(v.Type, sourceType)) {
-          reporter.Error(MessageSource.Resolver, v.tok, "type of corresponding source/RHS ({0}) does not match type of bound variable ({1})", sourceType, v.Type);
-        }
+        ConstrainTypes(v.Type, sourceType, v.tok, "type of corresponding source/RHS ({0}) does not match type of bound variable ({1})", sourceType, v.Type);
         pat.AssembleExpr(null);
       } else if (dtd == null) {
         reporter.Error(MessageSource.Resolver, pat.tok, "to use a pattern, the type of the source/RHS expression must be a datatype (instead found {0})", sourceType);
@@ -8918,9 +8913,8 @@ namespace Microsoft.Dafny
             reporter.Error(MessageSource.Resolver, e.tok, "wrong number of arguments to function application ({0} expects {1}, got {2})", what, fnType.Arity, e.Args.Count);
           } else {
             for (var i = 0; i < fnType.Arity; i++) {
-              if (!UnifyTypes(fnType.Args[i], e.Args[i].Type)) {
-                reporter.Error(MessageSource.Resolver, e.Args[i].tok, "type mismatch for argument {0} (function expects {1}, got {2})", i, fnType.Args[i], e.Args[i].Type);
-              }
+              ConstrainTypes(fnType.Args[i], e.Args[i].Type,
+                e.Args[i].tok, "type mismatch for argument {0} (function expects {1}, got {2})", i, fnType.Args[i], e.Args[i].Type);
             }
             if (errorCount != reporter.Count(ErrorLevel.Error)) {
               // do nothing else; error has been reported
@@ -8946,9 +8940,7 @@ namespace Microsoft.Dafny
                 ResolveExpression(farg, opts);
                 Contract.Assert(farg.Type != null);  // follows from postcondition of ResolveExpression
                 Type s = SubstType(callee.Formals[i].Type, rr.TypeArgumentSubstitutions);
-                if (!UnifyTypes(farg.Type, s)) {
-                  reporter.Error(MessageSource.Resolver, rr, "incorrect type of function argument {0} (expected {1}, got {2})", i, s, farg.Type);
-                }
+                ConstrainTypes(farg.Type, s, rr, "incorrect type of function argument {0} (expected {1}, got {2})", i, s, farg.Type);
               }
               rr.Type = SubstType(callee.ResultType, rr.TypeArgumentSubstitutions);
               // further bookkeeping
@@ -9004,9 +8996,7 @@ namespace Microsoft.Dafny
         Contract.Assert(arg.Type != null);  // follows from postcondition of ResolveExpression
         if (formal != null) {
           Type st = SubstType(formal.Type, subst);
-          if (!UnifyTypes(arg.Type, st)) {
-            reporter.Error(MessageSource.Resolver, arg.tok, "incorrect type of datatype constructor argument (found {0}, expected {1})", arg.Type, st);
-          }
+          ConstrainTypes(arg.Type, st, arg.tok, "incorrect type of datatype constructor argument (found {0}, expected {1})", arg.Type, st);
         }
         j++;
       }
@@ -9241,9 +9231,7 @@ namespace Microsoft.Dafny
             ResolveExpression(farg, opts);
             Contract.Assert(farg.Type != null);  // follows from postcondition of ResolveExpression
             Type s = SubstType(function.Formals[i].Type, e.TypeArgumentSubstitutions);
-            if (!UnifyTypes(farg.Type, s)) {
-              reporter.Error(MessageSource.Resolver, e, "incorrect type of function argument {0} (expected {1}, got {2})", i, s, farg.Type);
-            }
+            ConstrainTypes(farg.Type, s, e, "incorrect type of function argument {0} (expected {1}, got {2})", i, s, farg.Type);
           }
           e.Type = SubstType(function.ResultType, e.TypeArgumentSubstitutions);
         }
@@ -9296,7 +9284,7 @@ namespace Microsoft.Dafny
     /// </summary>
     public static List<ComprehensionExpr.BoundedPool> DiscoverBestBounds_MultipleVars<VT>(List<VT> bvars, Expression expr, bool polarity, bool onlyFiniteBounds, out List<VT> missingBounds) where VT : IVariable {
       foreach (var bv in bvars) {
-        var c = TypeConstraint(bv, bv.Type, null);
+        var c = GetImpliedTypeConstraint(bv, bv.Type, null);
         expr = polarity ? Expression.CreateAnd(c, expr) : Expression.CreateImplies(c, expr);
       }
       var all = DiscoverAllBounds_Aux_MultipleVars(bvars, expr, polarity);
@@ -9311,7 +9299,7 @@ namespace Microsoft.Dafny
     }
 
     public static List<ComprehensionExpr.BoundedPool> DiscoverAllBounds_SingleVar<VT>(VT v, Expression expr) where VT : IVariable {
-      expr = Expression.CreateAnd(TypeConstraint(v, v.Type, null), expr);
+      expr = Expression.CreateAnd(GetImpliedTypeConstraint(v, v.Type, null), expr);
       return DiscoverAllBounds_Aux_SingleVar(new List<VT> { v }, 0, expr, true);
     }
 
@@ -9425,13 +9413,13 @@ namespace Microsoft.Dafny
       return bounds;
     }
 
-    static Expression TypeConstraint(IVariable bv, Type ty, ErrorReporter reporter) {
+    static Expression GetImpliedTypeConstraint(IVariable bv, Type ty, ErrorReporter reporter) {
       Contract.Requires(bv != null);
       Contract.Requires(ty != null);
       ty = ty.NormalizeExpand();
       var dd = ty.AsNewtype;
       if (dd != null) {
-        var c = TypeConstraint(bv, dd.BaseType, reporter);
+        var c = GetImpliedTypeConstraint(bv, dd.BaseType, reporter);
         if (dd.Var != null) {
           c = Expression.CreateAnd(c, new Translator(reporter).Substitute(dd.Constraint, dd.Var, Expression.CreateIdentExpr(bv)));
         }
@@ -9778,17 +9766,14 @@ namespace Microsoft.Dafny
       Type argType = new InferredTypeProxy();
 
       IndexableTypeProxy expectedType = new IndexableTypeProxy(domainType, elementType, argType, true, true, true);
-      if (!UnifyTypes(e.Seq.Type, expectedType)) {
-        reporter.Error(MessageSource.Resolver, e, "sequence/array/multiset/map selection requires a sequence, array, multiset, or map (got {0})", e.Seq.Type);
+      if (!ConstrainTypes(e.Seq.Type, expectedType, e, "sequence/array/multiset/map selection requires a sequence, array, multiset, or map (got {0})", e.Seq.Type)) {
         seqErr = true;
       }
       if (!e.SelectOne)  // require sequence or array
       {
         if (!allowNonUnitArraySelection) {
           // require seq
-          if (!UnifyTypes(expectedType, new SeqType(new InferredTypeProxy()))) {
-            reporter.Error(MessageSource.Resolver, e, "selection requires a sequence (got {0})", e.Seq.Type);
-          }
+          ConstrainTypes(expectedType, new SeqType(new InferredTypeProxy()), e, "selection requires a sequence (got {0})", e.Seq.Type);
         } else {
           if (UnifyTypes(expectedType, new MapType(true, new InferredTypeProxy(), new InferredTypeProxy()))) {
             reporter.Error(MessageSource.Resolver, e, "cannot multiselect a map (got {0} as map type)", e.Seq.Type);
@@ -9800,17 +9785,13 @@ namespace Microsoft.Dafny
       if (e.E0 != null) {
         ResolveExpression(e.E0, opts);
         Contract.Assert(e.E0.Type != null);  // follows from postcondition of ResolveExpression
-        if (!UnifyTypes(e.E0.Type, domainType)) {
-          reporter.Error(MessageSource.Resolver, e.E0, "sequence/array/multiset/map selection requires {1} indices (got {0})", e.E0.Type, domainType);
-        }
+        ConstrainTypes(e.E0.Type, domainType, e.E0, "sequence/array/multiset/map selection requires {1} indices (got {0})", e.E0.Type, domainType);
       }
       if (e.E1 != null) {
         ResolveExpression(e.E1, opts);
         Contract.Assert(e.E1.Type != null);  // follows from postcondition of ResolveExpression
         var domType = e.E0 == null ? domainType : new OperationTypeProxy(true, false, false, false, false, false);  // reuse 'domainType' if .E0 did not use it; otherwise, create a new proxy to allow .E1 to be any integer-based numeric type, independent of the integer-based numeric type used by .E0
-        if (!UnifyTypes(e.E1.Type, domType)) {
-          reporter.Error(MessageSource.Resolver, e.E1, "sequence/array/multiset/map selection requires {1} indices (got {0})", e.E1.Type, domType);
-        }
+        ConstrainTypes(e.E1.Type, domType, e.E1, "sequence/array/multiset/map selection requires {1} indices (got {0})", e.E1.Type, domType);
       }
       if (!seqErr) {
         if (e.SelectOne) {
