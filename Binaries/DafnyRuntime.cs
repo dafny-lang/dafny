@@ -72,11 +72,11 @@ namespace Dafny
       }
     }
     public bool Equals(Set<T> other) {
-        return this.setImpl.Equals(other.setImpl);
+        return this.setImpl.SetEquals(other.setImpl);
     }
     public override bool Equals(object other) {
         var otherSet = other as Set<T>;
-        return otherSet != null && Equals(otherSet);
+        return otherSet != null && this.Equals(otherSet);
     }
     public override int GetHashCode() {
       var hashCode = 1;

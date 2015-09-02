@@ -56,7 +56,7 @@ lemma lemma_ping(j: nat, n: nat)
   }
 }
 
-// The other directorion: f(n) <= n
+// The other direction: f(n) <= n
 lemma lemma_pong(n: nat)
   requires P()
   ensures f(n) <= n
