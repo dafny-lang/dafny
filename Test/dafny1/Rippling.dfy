@@ -550,7 +550,7 @@ lemma P54()
   ensures forall m, n :: minus(add(m, n), n) == m;
 {
   // the proof of this theorem follows from two lemmas:
-  assert forall m, n :: minus(add(n, m), n) == m;
+  assert forall m, n {:autotriggers false} :: minus(add(n, m), n) == m; // FIXME: Why does Autotriggers false make things verify?
   assert forall m, n :: add(m, n) == add(n, m);
 }
 
@@ -559,7 +559,7 @@ lemma P65()
 {
   if (*) {
     // the proof of this theorem follows from two lemmas:
-    assert forall i, m :: less(i, Suc(add(i, m))) == True;
+    assert forall i, m {:autotriggers false} :: less(i, Suc(add(i, m))) == True; // FIXME: Why does Autotriggers false make things verify?
     assert forall m, n :: add(m, n) == add(n, m);
   } else {
     // a different way to prove it uses the following lemma:
@@ -572,7 +572,7 @@ lemma P67()
 {
   if (*) {
     // the proof of this theorem follows from two lemmas:
-    assert forall m, n :: leq(n, add(n, m)) == True;
+    assert forall m, n {:autotriggers false} :: leq(n, add(n, m)) == True; // FIXME: Why does Autotriggers false make things verify?
     assert forall m, n :: add(m, n) == add(n, m);
   } else {
     // a different way to prove it uses the following lemma:

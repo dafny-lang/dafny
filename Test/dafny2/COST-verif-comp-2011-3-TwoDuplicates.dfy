@@ -93,8 +93,8 @@ method Search(a: array<int>) returns (p: int, q: int)
     invariant forall j :: 0 <= j < d.Length ==>
                 (d[j] == -1 && forall k :: 0 <= k < i ==> a[k] != j) ||
                 (0 <= d[j] < i && a[d[j]] == j);
-    invariant p == q ==> IsDuplicate(a, p);
-    invariant forall k :: 0 <= k < i && IsPrefixDuplicate(a, i, a[k]) ==> p == q == a[k];
+    invariant p == q ==> IsDuplicate(a, p); //WISH remove the trigger on the next line
+    invariant forall k {:trigger old(a[k])} :: 0 <= k < i && IsPrefixDuplicate(a, i, a[k]) ==> p == q == a[k];
     decreases a.Length - i;
   {
     var k := d[a[i]];

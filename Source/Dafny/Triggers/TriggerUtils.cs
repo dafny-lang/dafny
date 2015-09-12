@@ -183,14 +183,19 @@ namespace Microsoft.Dafny.Triggers {
 
     internal static bool AllowsMatchingLoops(QuantifierExpr quantifier) {
       Contract.Requires(quantifier.SplitQuantifier == null); // Don't call this on a quantifier with a Split clause: it's not a real quantifier
+      // This is different from nowarn: it won't remove loops at all, even if another trigger is available.
       return Attributes.Contains(quantifier.Attributes, "matchingloop");
+    }
+
+    internal static bool WantsAutoTriggers(QuantifierExpr quantifier) {
+      Contract.Requires(quantifier.SplitQuantifier == null); // Don't call this on a quantifier with a Split clause: it's not a real quantifier
+      bool wantsAutoTriggers = true;
+      return !Attributes.ContainsBool(quantifier.Attributes, "autotriggers", ref wantsAutoTriggers) || wantsAutoTriggers;
     }
 
     internal static bool NeedsAutoTriggers(QuantifierExpr quantifier) {
       Contract.Requires(quantifier.SplitQuantifier == null); // Don't call this on a quantifier with a Split clause: it's not a real quantifier
-      bool wantsAutoTriggers = true;
-      return !Attributes.Contains(quantifier.Attributes, "trigger") && 
-        (!Attributes.ContainsBool(quantifier.Attributes, "autotriggers", ref wantsAutoTriggers) || wantsAutoTriggers);
+      return !Attributes.Contains(quantifier.Attributes, "trigger") && WantsAutoTriggers(quantifier);
     }
 
     internal static BinaryExpr.ResolvedOpcode RemoveNotInBinaryExprIn(BinaryExpr.ResolvedOpcode opcode) {

@@ -13,4 +13,4 @@ if [[ ! -x "$DAFNY" ]]; then
     exit 1
 fi
 
-"$MONO" "$DAFNY"
+"$MONO" "$DAFNY" "$@"

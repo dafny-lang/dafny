@@ -8,6 +8,6 @@ method M()
 
 method Client()
 {
-  assume forall o: object :: o != null ==> false;
+  assume forall o: object {:nowarn} :: o != null ==> false;
   M();
 }

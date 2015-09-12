@@ -180,7 +180,7 @@ class Main {
     ensures forall n :: n in S && n.marked ==>
                 forall ch :: ch in n.children && ch != null ==> ch.marked
     // every marked node was reachable from 'root' in the pre-state:
-    ensures forall n :: n in S && n.marked ==> old(Reachable(root, n, S))
+    ensures forall n {:autotriggers false} :: n in S && n.marked ==> old(Reachable(root, n, S))
     // the structure of the graph has not changed:
     ensures forall n :: n in S ==>
                 n.childrenVisited == old(n.childrenVisited) &&
@@ -207,7 +207,7 @@ class Main {
                   forall j :: 0 <= j < n.childrenVisited ==>
                     n.children[j] == null || n.children[j].marked
       invariant forall n :: n in stackNodes ==> n.childrenVisited < |n.children|
-      invariant forall n :: n in S && n.marked && n !in stackNodes && n != t ==>
+      invariant forall n {:autotriggers false} :: n in S && n.marked && n !in stackNodes && n != t ==>
                   forall ch :: ch in n.children && ch != null ==> ch.marked
       invariant forall n :: n in S && n !in stackNodes && n != t ==>
                   n.childrenVisited == old(n.childrenVisited)
@@ -219,7 +219,7 @@ class Main {
       // every marked node is reachable:
       invariant !fresh(path);  // needed to show 'path' worthy as argument to old(Reachable(...))
       invariant old(ReachableVia(root, path, t, S));
-      invariant forall n, pth :: n in S && n.marked && pth == n.pathFromRoot ==> !fresh(pth)
+      invariant forall n, pth {:nowarn} :: n in S && n.marked && pth == n.pathFromRoot ==> !fresh(pth)
       invariant forall n, pth :: n in S && n.marked && pth == n.pathFromRoot ==>
                   old(ReachableVia(root, pth, n, S))
       invariant forall n :: n in S && n.marked ==> old(Reachable(root, n, S))

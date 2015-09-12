@@ -9,5 +9,5 @@ method Main()
     print (s, m), "\n";
     print (|s|, |m|), "\n";
     print(set s | s in m), "\n";
-    print (forall x :: x in (map [1:=10, 2:=20]) ==> x > 0), "\n";
+    print (forall x {:nowarn} :: x in (map [1:=10, 2:=20]) ==> x > 0), "\n";
 }

@@ -315,7 +315,7 @@ lemma GcdDecrease(a: int, b: int)
   ensures Gcd(a, b) == Gcd(a - b, b)
 {
   var k := Gcd(a - b, b);
-  assert DividesBoth(k, a-b, b) && forall m :: DividesBoth(m, a-b, b) ==> m <= k;
+  assert DividesBoth(k, a-b, b) && forall m, mm :: mm == a - b ==> DividesBoth(m, mm, b) ==> m <= k; // WISH: auto-generate 'mm'
   var n := DividesProperty(k, a-b);
   assert n*k == a-b;
   var p := DividesProperty(k, b);

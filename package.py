@@ -24,6 +24,8 @@ BINARIES_DIRECTORY = "Binaries"
 ## Where do we store the built packages and cache files?
 DESTINATION_DIRECTORY = "Package"
 
+## What's the root folder of the archive?
+DAFNY_PACKAGE_PREFIX = path.join("dafny")
 ## What sub-folder of the packages does z3 go into?
 Z3_PACKAGE_PREFIX = path.join("z3")
 
@@ -124,7 +126,7 @@ class Release:
                     if any(fnmatch(fname, pattern) for pattern in Z3_INTERESTING_FILES):
                         z3_files_count += 1
                         contents = Z3_archive.read(fileinfo)
-                        fileinfo.filename = path.join(Z3_PACKAGE_PREFIX, fname)
+                        fileinfo.filename = path.join(DAFNY_PACKAGE_PREFIX, Z3_PACKAGE_PREFIX, fname)
                         archive.writestr(fileinfo, contents)
             for fname in ARCHIVE_FNAMES:
                 fpath = path.join(BINARIES_DIRECTORY, fname)
@@ -133,7 +135,7 @@ class Release:
                     if any(fnmatch(fname, pattern) for pattern in UNIX_EXECUTABLES):
                         # http://stackoverflow.com/questions/434641/
                         fileinfo.external_attr = 0o777 << 16
-                    archive.write(fpath, fname)
+                    archive.write(fpath, path.join(DAFNY_PACKAGE_PREFIX, fname))
                 else:
                     missing.append(fname)
         flush("done! (imported {} files from z3's sources)".format(z3_files_count))

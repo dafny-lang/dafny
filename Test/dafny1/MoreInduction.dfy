@@ -83,12 +83,12 @@ lemma LemmaOne(n: int)
 {
 }
 
-lemma LemmaAll_Neg()
-  ensures forall n :: NegFac(-n) <= -1;  // error: fails to verify because of the minus in the trigger
+lemma LemmaAll_Neg() //FIXME I don't understand the comment below; what trigger?
+  ensures forall n {:nowarn} :: NegFac(-n) <= -1;  // error: fails to verify because of the minus in the trigger
 {
 }
 
-lemma LemmaOne_Neg(n: int)
+lemma LemmaOne_Neg(n: int) //FIXME What trigger?
   ensures NegFac(-n) <= -1;  // error: fails to verify because of the minus in the trigger
 {
 }

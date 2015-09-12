@@ -5,11 +5,11 @@ useless-triggers-are-removed.dfy(16,11): Info: Selected triggers: {f(x)}
    {h(f(x))} (more specific than {f(x)})
    {g(f(x))} (more specific than {f(x)})
 useless-triggers-are-removed.dfy(20,11): Info: Selected triggers: {f(f(x))}
- Rejected triggers: {f(x)} (may loop with {f(f(x))})
+ Rejected triggers: {f(x)} (may loop with "f(f(x))")
 useless-triggers-are-removed.dfy(23,11): Info: Selected triggers:
    {g(f(x)), g(y)}, {f(y), f(x)}
  Rejected triggers:
-   {g(y), f(x)} (may loop with {g(f(y))}, {g(f(x))})
+   {g(y), f(x)} (may loop with "g(f(y))", "g(f(x))")
    {g(f(x)), g(f(y))} (more specific than {g(f(x)), f(y)}, {g(f(y)), f(x)}, {f(y), f(x)})
    {g(f(x)), f(y)} (more specific than {f(y), f(x)})
    {g(f(y)), f(x)} (more specific than {f(y), f(x)})

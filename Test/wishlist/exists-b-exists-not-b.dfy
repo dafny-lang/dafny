@@ -5,6 +5,6 @@
 // otherwise, trigger splitting prevents `exists b :: b || not b` from verifying
 
 method M() {
-  assert exists b: bool :: b; // WISH
-  assert exists b: bool :: !b; // WISH
+  assert exists b : bool {:nowarn} :: b; // WISH
+  assert exists b : bool {:nowarn} :: !b; // WISH
 }

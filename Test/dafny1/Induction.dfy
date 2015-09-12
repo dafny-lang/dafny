@@ -53,7 +53,7 @@ class IntegerInduction {
   }
 
   lemma DoItAllInOneGo()
-    ensures (forall n :: 0 <= n ==>
+    ensures (forall n {:split false} :: 0 <= n ==> // WISH reenable quantifier splitting here. This will only work once we generate induction hypotheses at the Dafny level.
                 SumOfCubes(n) == Gauss(n) * Gauss(n) &&
                 2 * Gauss(n) == n*(n+1));
   {
@@ -148,11 +148,11 @@ class IntegerInduction {
   // Proving the "<==" case is simple; it's the "==>" case that requires induction.
   // The example uses an attribute that requests induction on just "j".  However, the proof also
   // goes through by applying induction on both bound variables.
-  function method IsSorted(s: seq<int>): bool
-    ensures IsSorted(s) ==> (forall i,j {:induction j} :: 0 <= i && i < j && j < |s| ==> s[i] <= s[j]);
+  function method IsSorted(s: seq<int>): bool //WISH remove autotriggers false
+    ensures IsSorted(s) ==> (forall i,j {:induction j} {:autotriggers false} :: 0 <= i < j < |s| ==> s[i] <= s[j]);
     ensures (forall i,j :: 0 <= i && i < j && j < |s| ==> s[i] <= s[j]) ==> IsSorted(s);
   {
-    (forall i :: 1 <= i && i < |s| ==> s[i-1] <= s[i])
+    (forall i {:nowarn} :: 1 <= i && i < |s| ==> s[i-1] <= s[i])
   }
 }
 

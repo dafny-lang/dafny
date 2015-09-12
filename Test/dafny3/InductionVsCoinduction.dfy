@@ -80,7 +80,7 @@ lemma SAppendIsAssociative(a:Stream, b:Stream, c:Stream)
 {
   forall k:nat { SAppendIsAssociativeK(k, a, b, c); }
   // assert for clarity only, postcondition follows directly from it
-  assert (forall k:nat :: SAppend(SAppend(a, b), c) ==#[k] SAppend(a, SAppend(b, c)));
+  assert (forall k:nat {:autotriggers false} :: SAppend(SAppend(a, b), c) ==#[k] SAppend(a, SAppend(b, c))); //FIXME: Should Dafny generate a trigger here? If so then which one?
 }
 
 // Equivalent proof using the colemma syntax.
