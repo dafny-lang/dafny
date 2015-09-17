@@ -135,7 +135,7 @@ namespace Microsoft.Dafny {
         wr.WriteLine("// " + Bpl.CommandLineOptions.Clo.Environment);
       }
       wr.WriteLine("// {0}", prog.Name);
-      if (DafnyOptions.O.DafnyPrintResolvedFile != null) {
+      if (DafnyOptions.O.DafnyPrintResolvedFile != null && DafnyOptions.O.PrintMode == DafnyOptions.PrintModes.Everything) {
         wr.WriteLine();
         wr.WriteLine("/*");
         PrintModuleDefinition(prog.BuiltIns.SystemModule, 0, Path.GetFullPath(DafnyOptions.O.DafnyPrintResolvedFile));
@@ -150,8 +150,8 @@ namespace Microsoft.Dafny {
     public void PrintCallGraph(ModuleDefinition module, int indent) {
       Contract.Requires(module != null);
       Contract.Requires(0 <= indent);
-      if (DafnyOptions.O.DafnyPrintResolvedFile != null) {
-        // print call graph
+      if (DafnyOptions.O.DafnyPrintResolvedFile != null && DafnyOptions.O.PrintMode == DafnyOptions.PrintModes.Everything) {
+         // print call graph
         Indent(indent); wr.WriteLine("/* CALL GRAPH for module {0}:", module.Name);
         var SCCs = module.CallGraph.TopologicallySortedComponents();
         SCCs.Reverse();
