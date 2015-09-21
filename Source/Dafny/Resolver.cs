@@ -853,9 +853,34 @@ namespace Microsoft.Dafny
               if (useImports || string.Equals(kv.Key, "_default", StringComparison.InvariantCulture)) {
                 TopLevelDecl d;
                 if (sig.TopLevels.TryGetValue(kv.Key, out d)) {
-                  if (DafnyOptions.O.IronDafny && kv.Value.ClonedFrom == d) {
+                  bool resolved = false;
+                  if (DafnyOptions.O.IronDafny) {
+                    // sometimes, we need to compare two type synonyms in order to come up with a decision regarding substitution.
+                    var aliased1 = Object.ReferenceEquals(kv.Value, d);
+                    if (!aliased1) {
+                      var a = d;
+                      while (a.ExclusiveRefinement != null) {
+                        a = a.ExclusiveRefinement;
+                      }
+                      var b = kv.Value;
+                      while (b.ExclusiveRefinement != null) {
+                        b = b.ExclusiveRefinement;
+                      }
+                      if (a is TypeSynonymDecl && b is TypeSynonymDecl) {
+                        aliased1 = UnifyTypes(((TypeSynonymDecl)a).Rhs, ((TypeSynonymDecl)b).Rhs);
+                      } else {
+                        aliased1 = Object.ReferenceEquals(a, b);
+                      }
+                    }
+                    if (aliased1 ||
+                      Object.ReferenceEquals(kv.Value.ClonedFrom, d) ||
+                      Object.ReferenceEquals(d.ClonedFrom, kv.Value) ||
+                      Object.ReferenceEquals(kv.Value.ExclusiveRefinement, d)) {
                     sig.TopLevels[kv.Key] = kv.Value;
-                  } else {
+                      resolved = true;
+                    }
+                  }
+                  if (!resolved) {
                     sig.TopLevels[kv.Key] = AmbiguousTopLevelDecl.Create(moduleDef, d, kv.Value);
                   }
                 } else {
@@ -872,7 +897,10 @@ namespace Microsoft.Dafny
               if (sig.Ctors.TryGetValue(kv.Key, out pair)) {
                 // The same ctor can be imported from two different imports (e.g "diamond" imports), in which case, 
                 // they are not duplicates.
-                if (kv.Value.Item1 != pair.Item1) {
+                if (!Object.ReferenceEquals(kv.Value.Item1, pair.Item1) &&
+                    (!DafnyOptions.O.IronDafny ||
+                        (!Object.ReferenceEquals(kv.Value.Item1.ClonedFrom, pair.Item1) &&
+                        !Object.ReferenceEquals(kv.Value.Item1, pair.Item1.ClonedFrom)))) {
                   // mark it as a duplicate
                   sig.Ctors[kv.Key] = new Tuple<DatatypeCtor, bool>(pair.Item1, true);
                 }
@@ -888,7 +916,48 @@ namespace Microsoft.Dafny
             foreach (var kv in s.StaticMembers) {
               MemberDecl md;
               if (sig.StaticMembers.TryGetValue(kv.Key, out md)) {
+                var resolved = false;
+                if (DafnyOptions.O.IronDafny) {
+                  var aliased0 = Object.ReferenceEquals(kv.Value, md) || Object.ReferenceEquals(kv.Value.ClonedFrom, md) || Object.ReferenceEquals(md.ClonedFrom, kv.Value);
+                  var aliased1 = aliased0;
+                  if (!aliased0) {
+                    var a = kv.Value.EnclosingClass;
+                    while (a != null && 
+                        (a.ExclusiveRefinement != null || a.ClonedFrom != null)) {
+                      if (a.ClonedFrom != null) {
+                        a = (TopLevelDecl)a.ClonedFrom;
+                      } else {
+                        Contract.Assert(a.ExclusiveRefinement != null);
+                        a = a.ExclusiveRefinement;
+                      }
+                    }
+                    var b = md.EnclosingClass;
+                    while (b != null && 
+                            (b.ExclusiveRefinement != null || b.ClonedFrom != null)) {
+                      if (b.ClonedFrom != null) {
+                        b = (TopLevelDecl)b.ClonedFrom;
+                      } else {
+                        Contract.Assert(b.ExclusiveRefinement != null);
+                        b = b.ExclusiveRefinement;
+                      }
+                    }
+                    aliased1 = Object.ReferenceEquals(a, b);
+                  }
+                  if (aliased0 || aliased1) {
+                    if (kv.Value.EnclosingClass != null && 
+                        md.EnclosingClass != null &&
+                        md.EnclosingClass.ExclusiveRefinement != null &&
+                        !Object.ReferenceEquals(
+                            kv.Value.EnclosingClass.ExclusiveRefinement, 
+                            md.EnclosingClass)) {
+                      sig.StaticMembers[kv.Key] = kv.Value;
+                    }
+                    resolved = true;
+                  }
+                }
+                if (!resolved) {
                 sig.StaticMembers[kv.Key] = AmbiguousMemberDecl.Create(moduleDef, md, kv.Value);
+                }
               } else {
                 // add new
                 sig.StaticMembers.Add(kv.Key, kv.Value);
@@ -1245,6 +1314,14 @@ namespace Microsoft.Dafny
 
       var typeRedirectionDependencies = new Graph<RedirectingTypeDecl>();
       foreach (TopLevelDecl d in declarations) {
+        if (DafnyOptions.O.IronDafny && d.Module.IsExclusiveRefinement) {
+          var refinementOf =
+            def.RefinementBase.TopLevelDecls.Find(
+              i => String.Equals(i.Name, d.Name, StringComparison.InvariantCulture));
+          if (refinementOf != null && refinementOf.ExclusiveRefinement == null) {
+            refinementOf.ExclusiveRefinement = d;
+          }      
+        }
         Contract.Assert(d != null);
         allTypeParameters.PushMarker();
         ResolveTypeParameters(d.TypeArgs, true, d);
@@ -1277,9 +1354,13 @@ namespace Microsoft.Dafny
           if (!def.IsAbstract) {
             if (decl.Signature.IsGhost)
               {
-                if (!(def.IsDefaultModule)) // _module is allowed to contain abstract modules, but not be abstract itself. Note this presents a challenge to
+                if (// _module is allowed to contain abstract modules, but not be abstract itself. Note this presents a challenge to
                                             // trusted verification, as toplevels can't be trusted if they invoke abstract module members.
-                  reporter.Error(MessageSource.Resolver, d.tok, "an abstract module can only be imported into other abstract modules, not a concrete one.");
+                    !def.IsDefaultModule 
+                    // [IronDafny] it's possbile for an abstract module to have an exclusive refinement, so it no longer makes sense to disallow this.
+                    && !DafnyOptions.O.IronDafny) 
+                                            
+                reporter.Error(MessageSource.Resolver, d.tok, "an abstract module can only be imported into other abstract modules, not a concrete one.");
               } else {
                 // physical modules are allowed everywhere
               }
@@ -4198,6 +4279,11 @@ namespace Microsoft.Dafny
               }
             } else if (d is NewtypeDecl) {
               var dd = (NewtypeDecl)d;
+              if (DafnyOptions.O.IronDafny) {
+                while (dd.ClonedFrom != null) {
+                  dd = (NewtypeDecl)d.ClonedFrom;
+                }
+              }
               var caller = context as ICallable;
               if (caller != null) {
                 caller.EnclosingModule.CallGraph.AddEdge(caller, dd);
@@ -4313,28 +4399,60 @@ namespace Microsoft.Dafny
                UnifyTypes(((MapType)a).Domain, ((MapType)b).Domain) && UnifyTypes(((MapType)a).Range, ((MapType)b).Range);
       } else if (a is SeqType) {
         return b is SeqType && UnifyTypes(((SeqType)a).Arg, ((SeqType)b).Arg);
-      } else if (a is UserDefinedType) {
-        if (!(b is UserDefinedType)) {
-          return false;
+      } else if (a is UserDefinedType || b is UserDefinedType) {
+        if (!(a is UserDefinedType) && b is UserDefinedType) {
+          var x = a;
+          a = b;
+          b = x;
         }
+
         var aa = (UserDefinedType)a;
         var rca = aa.ResolvedClass;
-        var bb = (UserDefinedType)b;
-        var rcb = bb.ResolvedClass;
-        if (DafnyOptions.O.IronDafny)
-        {
-          while (rca != null && rca.Module.IsAbstract && rca.ClonedFrom != null)
-          {
-            // todo: should ClonedFrom be a TopLevelDecl?
-            // todo: should ClonedFrom be moved to TopLevelDecl?
-            rca = (TopLevelDecl)rca.ClonedFrom;
-          }
-          while (rcb != null && rcb.Module.IsAbstract && rcb.ClonedFrom != null)
-          {
-            rcb = (TopLevelDecl)rcb.ClonedFrom;
+        // traits are currently unfriendly to irondafny features.
+        if (DafnyOptions.O.IronDafny && !(rca is TraitDecl)) { 
+          if (rca != null) {
+            while (rca.ClonedFrom != null || rca.ExclusiveRefinement != null) {
+              if (rca.ClonedFrom != null) {
+                rca = (TopLevelDecl)rca.ClonedFrom;                
+              } else {
+                Contract.Assert(rca.ExclusiveRefinement != null);
+                rca = rca.ExclusiveRefinement;
+              }
+            }
           }
         }
-        if (rca != null && rca == rcb) {
+
+        if (!(b is UserDefinedType)) {
+          return DafnyOptions.O.IronDafny && rca is TypeSynonymDecl && UnifyTypes(((TypeSynonymDecl)rca).Rhs, b);
+        }
+
+        var bb = (UserDefinedType)b;
+        var rcb = bb.ResolvedClass;
+        // traits are currently unfriendly to irondafny features.
+        if (DafnyOptions.O.IronDafny && !(rca is TraitDecl) && !(rcb is TraitDecl)) {
+          if (rcb != null) {
+            while (rcb.ClonedFrom != null || rcb.ExclusiveRefinement != null) {
+              if (rcb.ClonedFrom != null) {
+                rcb = (TopLevelDecl)rcb.ClonedFrom;                
+              } else {
+                Contract.Assert(rcb.ExclusiveRefinement != null);
+                rcb = rcb.ExclusiveRefinement;
+              }
+            }
+          }
+          if (rca is TypeSynonymDecl || rcb is TypeSynonymDecl) {
+            var aaa = a;
+            var bbb = b;
+            if (rca is TypeSynonymDecl) {
+              aaa = ((TypeSynonymDecl)rca).Rhs;
+            }
+            if (rcb is TypeSynonymDecl) {
+              bbb = ((TypeSynonymDecl)rcb).Rhs;
+          }
+            return UnifyTypes(aaa, bbb);
+          }
+        }
+        if (rca != null && Object.ReferenceEquals(rca, rcb)) {
           // these are both resolved class/datatype types
           Contract.Assert(aa.TypeArgs.Count == bb.TypeArgs.Count);
           bool successSoFar = true;
