@@ -238,7 +238,7 @@ class GhostTests {
       p := p + 1;
     }
   }
-/***KRML  method BreakMayNotBeFineHere_Ghost(ghost t: int)
+method BreakMayNotBeFineHere_Ghost(ghost t: int)
   {
     var n := 0;
     ghost var k := 0;
@@ -295,7 +295,7 @@ class GhostTests {
       n := n + 1;
       p := p + 1;
     }
-  }****/
+  }
 }
 
 method DuplicateLabels(n: int) {
@@ -364,7 +364,7 @@ method DatatypeDestructors(d: DTD_List) {
   }
 }
 method DatatypeDestructors_Ghost(d: DTD_List) {
-//KRML  var g1 := d.g;  // error: cannot use ghost member in non-ghost code
+  var g1 := d.g;  // error: cannot use ghost member in non-ghost code
 }
 
 // ------------------- print statements ---------------------------------------
@@ -439,7 +439,7 @@ method TestCalc_Ghost(m: int, n: int, a: bool, b: bool)
 {
   calc {
     n + m;
-//KRML    { print n + m; } // error: non-ghost statements are not allowed in hints
+    { print n + m; } // error: non-ghost statements are not allowed in hints
     m + n;
   }
 }
@@ -605,7 +605,7 @@ method LetSuchThat(ghost z: int, n: nat)
 }
 method LetSuchThat_Ghost(ghost z: int, n: nat)
 {
-//KRML  var x := var y :| y < z; y;  // error: contraint depend on ghost (z)
+  var x := var y :| y < z; y;  // error: contraint depend on ghost (z)
 }
 
 // ------------ quantified variables whose types are not inferred ----------
