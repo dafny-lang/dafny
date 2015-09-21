@@ -195,7 +195,6 @@ class GhostTests {
       decreases 112 - n;
     {
       label MyStructure: {
-//KRML(ghost)        if (k % 17 == 0) { break MyStructure; }  // error: break from ghost to non-ghost point
         k := k + 1;
       }
       label MyOtherStructure:
@@ -218,7 +217,6 @@ class GhostTests {
               case true => break LoopLabel1;  // fine
             }
           } else if (m % 101 == 0) {
-//KRML(ghost)            break break;  // error: break out of non-ghost loop from ghost context
           }
           m := m + 3;
         }
@@ -231,20 +229,73 @@ class GhostTests {
             break break;  // fine, since this is not a ghost context
           } else if (*) {
             break break break;  // error: tries to break out of more loop levels than there are
-          } else if (*) {
-//KRML(ghost)            break break;  // fine, since this is not a ghost context
-          } else if (k == 67) {
-//KRML(ghost)            break break;  // error, because this is a ghost context
           }
           q := q + 1;
         }
       } else if (n == t) {
-//KRML(ghost)        return;  // error: this is a ghost context trying to return from a non-ghost method
       }
       n := n + 1;
       p := p + 1;
     }
   }
+/***KRML  method BreakMayNotBeFineHere_Ghost(ghost t: int)
+  {
+    var n := 0;
+    ghost var k := 0;
+    var p := 0;
+    while (true)
+      invariant n <= 112;
+      decreases 112 - n;
+    {
+      label MyStructure: {
+        if (k % 17 == 0) { break MyStructure; }  // error: break from ghost to non-ghost point
+        k := k + 1;
+      }
+      label MyOtherStructure:
+      if (k % 17 == 0) {
+        break MyOtherStructure;  // this break is fine
+      } else {
+        k := k + 1;
+      }
+
+      var dontKnow;
+      if (n == 112) {
+        ghost var m := 0;
+        label LoopLabel0:
+        label LoopLabel1:
+        while (m < 200) {
+          if (m % 103 == 0) {
+            if {
+              case true => break;  // fine, since this breaks out of the enclosing ghost loop
+              case true => break LoopLabel0;  // fine
+              case true => break LoopLabel1;  // fine
+            }
+          } else if (m % 101 == 0) {
+            break break;  // error: break out of non-ghost loop from ghost context
+          }
+          m := m + 3;
+        }
+        break;
+      } else if (dontKnow == 708) {
+        var q := 0;
+        while (q < 1) {
+          label IfNest:
+          if (p == 67) {
+            break break;  // fine, since this is not a ghost context
+          } else if (*) {
+            break break;  // fine, since this is not a ghost context
+          } else if (k == 67) {
+            break break;  // error, because this is a ghost context
+          }
+          q := q + 1;
+        }
+      } else if (n == t) {
+        return;  // error: this is a ghost context trying to return from a non-ghost method
+      }
+      n := n + 1;
+      p := p + 1;
+    }
+  }****/
 }
 
 method DuplicateLabels(n: int) {
@@ -310,8 +361,10 @@ method DatatypeDestructors(d: DTD_List) {
       assert d.DTD_Cons? == d.Car;  // type error
       assert d == DTD_Cons(hd, tl, 5);
       ghost var g0 := d.g;  // fine
-//KRML(ghost)      var g1 := d.g;  // error: cannot use ghost member in non-ghost code
   }
+}
+method DatatypeDestructors_Ghost(d: DTD_List) {
+//KRML  var g1 := d.g;  // error: cannot use ghost member in non-ghost code
 }
 
 // ------------------- print statements ---------------------------------------
@@ -381,9 +434,12 @@ method TestCalc(m: int, n: int, a: bool, b: bool)
     n + m + 1;
     ==> n + m + 2; // error: ==> operator requires boolean lines
   }
+}
+method TestCalc_Ghost(m: int, n: int, a: bool, b: bool)
+{
   calc {
     n + m;
-//KRML(ghost)    { print n + m; } // error: non-ghost statements are not allowed in hints
+//KRML    { print n + m; } // error: non-ghost statements are not allowed in hints
     m + n;
   }
 }
@@ -543,11 +599,13 @@ method LetSuchThat(ghost z: int, n: nat)
   var x: int;
   x := var y :| y < 0; y;  // fine for the resolver (but would give a verification error for not being deterministic)
 
-//KRML(ghost)  x := var y :| y < z; y;  // error: contraint depend on ghost (z)
-
   x := var w :| w == 2*w; w;  // fine (even for the verifier, this one)
   x := var w := 2*w; w;  // error: the 'w' in the RHS of the assignment is not in scope
   ghost var xg := var w :| w == 2*w; w;
+}
+method LetSuchThat_Ghost(ghost z: int, n: nat)
+{
+//KRML  var x := var y :| y < z; y;  // error: contraint depend on ghost (z)
 }
 
 // ------------ quantified variables whose types are not inferred ----------
