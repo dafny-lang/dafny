@@ -18,19 +18,19 @@ ResolutionErrors.dfy(620,17): Error: 'new' is not allowed in ghost contexts
 ResolutionErrors.dfy(622,29): Error: only ghost methods can be called from this context
 ResolutionErrors.dfy(624,17): Error: calls to methods with side-effects are not allowed inside a hint
 ResolutionErrors.dfy(642,21): Error: the type of this variable is underspecified
-ResolutionErrors.dfy(680,13): Error: calls to methods with side-effects are not allowed inside a hint
-ResolutionErrors.dfy(690,17): Error: only ghost methods can be called from this context
-ResolutionErrors.dfy(693,15): Error: 'decreases *' is not allowed on ghost loops
-ResolutionErrors.dfy(704,11): Error: a hint is not allowed to update heap locations
-ResolutionErrors.dfy(705,16): Error: a hint is not allowed to update heap locations
-ResolutionErrors.dfy(706,13): Error: calls to methods with side-effects are not allowed inside a hint
-ResolutionErrors.dfy(709,14): Error: a while statement used inside a hint is not allowed to have a modifies clause
-ResolutionErrors.dfy(728,17): Error: only ghost methods can be called from this context
-ResolutionErrors.dfy(731,15): Error: 'decreases *' is not allowed on ghost loops
-ResolutionErrors.dfy(736,11): Error: a hint is not allowed to update heap locations
-ResolutionErrors.dfy(737,16): Error: a hint is not allowed to update heap locations
-ResolutionErrors.dfy(738,4): Error: calls to methods with side-effects are not allowed inside a hint
-ResolutionErrors.dfy(741,14): Error: a while statement used inside a hint is not allowed to have a modifies clause
+ResolutionErrors.dfy(680,20): Error: calls to methods with side-effects are not allowed inside a hint
+ResolutionErrors.dfy(690,24): Error: only ghost methods can be called from this context
+ResolutionErrors.dfy(693,22): Error: 'decreases *' is not allowed on ghost loops
+ResolutionErrors.dfy(704,18): Error: a hint is not allowed to update heap locations
+ResolutionErrors.dfy(705,23): Error: a hint is not allowed to update heap locations
+ResolutionErrors.dfy(706,20): Error: calls to methods with side-effects are not allowed inside a hint
+ResolutionErrors.dfy(709,21): Error: a while statement used inside a hint is not allowed to have a modifies clause
+ResolutionErrors.dfy(728,24): Error: only ghost methods can be called from this context
+ResolutionErrors.dfy(731,22): Error: 'decreases *' is not allowed on ghost loops
+ResolutionErrors.dfy(736,18): Error: a hint is not allowed to update heap locations
+ResolutionErrors.dfy(737,23): Error: a hint is not allowed to update heap locations
+ResolutionErrors.dfy(738,11): Error: calls to methods with side-effects are not allowed inside a hint
+ResolutionErrors.dfy(741,21): Error: a while statement used inside a hint is not allowed to have a modifies clause
 ResolutionErrors.dfy(766,19): Error: calls to methods with side-effects are not allowed inside a statement expression
 ResolutionErrors.dfy(767,20): Error: only ghost methods can be called from this context
 ResolutionErrors.dfy(768,20): Error: wrong number of method result arguments (got 0, expected 1)

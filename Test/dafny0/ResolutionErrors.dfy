@@ -91,9 +91,9 @@ class EE {
     var b3 := Benny;
     var d0 := David(20);  // error: constructor name David is ambiguous
     var d1 := David;  // error: constructor name David is ambiguous (never mind that the signature does
-		      // not match either of them)
+          // not match either of them)
     var d2 := David(20, 40);  // error: constructor name Davis is ambiguous (never mind that the given
-			      // parameters match the signature of only one of those constructors)
+            // parameters match the signature of only one of those constructors)
     var d3 := Abc.David(20, 40);  // error: wrong number of parameters
     var d4 := Rst.David(20, 40);
     var e := Eleanor;  // this resolves to the field, not the Abc datatype constructor
@@ -412,8 +412,8 @@ class SideEffectChecks {
       { x := 1; }     // updates to locals defined outside of the hint are not allowed
       x;
       {
-	var x: int;
-	x := 1;       // this is OK
+        var x: int;
+        x := 1;       // this is OK
       }
       1;
     }
@@ -676,42 +676,42 @@ module StatementsInExpressions {
       modifies this;
     {
       calc {
-	5;
-	{ SideEffect(); }  // error: cannot call method with side effects
-	5;
+        5;
+        { SideEffect(); }  // error: cannot call method with side effects
+        5;
       }
     }
 
     function F(): int
     {
       calc {
-	6;
-	{ assert 6 < 8; }
-	{ NonGhostMethod(); }  // error: cannot call non-ghost method
-	{ var x := 8;
-	  while x != 0
-	    decreases *;  // error: cannot use 'decreases *' in a ghost context
-	  {
-	    x := x - 1;
-	  }
-	}
-	{ var x := 8;
-	  while x != 0
-	  {
-	    x := x - 1;
-	  }
-	}
-	{ MyField := 12; }  // error: cannot assign to a field
-	{ MyGhostField := 12; }  // error: cannot assign to any field
-	{ SideEffect(); }  // error: cannot call (ghost) method with a modifies clause
-	{ var x := 8;
-	  while x != 0
-	    modifies this;  // error: cannot use a modifies clause on a loop
-	  {
-	    x := x - 1;
-	  }
-	}
-	6;
+        6;
+        { assert 6 < 8; }
+        { NonGhostMethod(); }  // error: cannot call non-ghost method
+        { var x := 8;
+          while x != 0
+            decreases *;  // error: cannot use 'decreases *' in a ghost context
+          {
+            x := x - 1;
+          }
+        }
+        { var x := 8;
+          while x != 0
+          {
+            x := x - 1;
+          }
+        }
+        { MyField := 12; }  // error: cannot assign to a field
+        { MyGhostField := 12; }  // error: cannot assign to any field
+        { SideEffect(); }  // error: cannot call (ghost) method with a modifies clause
+        { var x := 8;
+          while x != 0
+            modifies this;  // error: cannot use a modifies clause on a loop
+          {
+            x := x - 1;
+          }
+        }
+        6;
       }
       5
     }
@@ -723,33 +723,33 @@ module StatementsInExpressions {
     {
       var y :=
       calc {
-	6;
-	{ assert 6 < 8; }
-	{ NonGhostMethod(); }  // error: cannot call non-ghost method
-	{ var x := 8;
-	  while x != 0
-	    decreases *;  // error: cannot use 'decreases *' in a ghost context
-	  {
-	    x := x - 1;
-	  }
-	}
-	{ MyField := 12; }  // error: cannot assign to a field
-	{ MyGhostField := 12; }  // error: cannot assign to any field
-	{ M(); }  // error: cannot call (ghost) method with a modifies clause
-	{ var x := 8;
-	  while x != 0
-	    modifies this;  // error: cannot use a modifies clause on a loop
-	  {
-	    x := x - 1;
-	  }
-	}
-	{ var x := 8;
-	  while x != 0
-	  {
-	    x := x - 1;
-	  }
-	}
-	6;
+        6;
+        { assert 6 < 8; }
+        { NonGhostMethod(); }  // error: cannot call non-ghost method
+        { var x := 8;
+          while x != 0
+            decreases *;  // error: cannot use 'decreases *' in a ghost context
+          {
+            x := x - 1;
+          }
+        }
+        { MyField := 12; }  // error: cannot assign to a field
+        { MyGhostField := 12; }  // error: cannot assign to any field
+        { M(); }  // error: cannot call (ghost) method with a modifies clause
+        { var x := 8;
+          while x != 0
+            modifies this;  // error: cannot use a modifies clause on a loop
+          {
+            x := x - 1;
+          }
+        }
+        { var x := 8;
+          while x != 0
+          {
+            x := x - 1;
+          }
+        }
+        6;
       }
       5;
     }
