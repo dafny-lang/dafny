@@ -6,7 +6,7 @@ method test0(x: int)
   ghost var {:assumption} a0 := false;  // error
   ghost var a1, {:assumption} a2 := true, false;  // error
   ghost var {:assumption} a3: bool;
-  var {:assumption} a4;  // 2 errors
+  ghost var {:assumption} a4;  // error: type must be bool
 
   a0 := a0 && (0 < x);
 
@@ -54,7 +54,7 @@ method test2()
 
       if (false)
       {
-        var {:assumption} a0: bool;  // error
+        ghost var {:assumption} a0: bool;
 
         if (false)
         {
@@ -72,4 +72,8 @@ method test2()
       }
     }
   }
+}
+
+method test3() {
+  var {:assumption} a: bool;  // error: assumption variable must be ghost
 }

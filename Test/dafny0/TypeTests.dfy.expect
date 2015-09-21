@@ -56,7 +56,7 @@ TypeTests.dfy(151,13): Error: sorry, cannot instantiate type parameter with a su
 TypeTests.dfy(152,2): Error: sorry, cannot instantiate type parameter with a subrange type
 TypeTests.dfy(153,16): Error: sorry, cannot instantiate type parameter with a subrange type
 TypeTests.dfy(154,14): Error: sorry, cannot instantiate type parameter with a subrange type
-TypeTests.dfy(177,15): Error: ghost variables are allowed only in specification contexts
+TypeTests.dfy(177,5): Error: non-ghost variable cannot be assigned a value that depends on a ghost
 TypeTests.dfy(187,4): Error: cannot assign to non-ghost variable in a ghost context
 TypeTests.dfy(188,7): Error: cannot assign to non-ghost variable in a ghost context
 TypeTests.dfy(21,9): Error: because of cyclic dependencies among constructor argument types, no instances of datatype 'NeverendingList' can be constructed

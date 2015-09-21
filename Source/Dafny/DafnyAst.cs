@@ -1655,7 +1655,7 @@ namespace Microsoft.Dafny {
                                               // it is abstract). Otherwise, it points to that definition.
     public ModuleSignature CompileSignature = null; // This is the version of the signature that should be used at compile time.
     public ModuleSignature Refines = null;
-    public bool IsGhost = false;
+    public bool IsAbstract = false;
     public ModuleSignature() {}
 
     public bool FindSubmodule(string name, out ModuleSignature pp) {
@@ -3461,7 +3461,23 @@ namespace Microsoft.Dafny {
       Contract.Invariant(EndTok != null);
     }
 
+#if OLD_GHOST_HANDLING
     public bool IsGhost;  // filled in by resolution
+#else
+    public static bool ReadyToDealWithGhostField = true;
+    private bool izzaGhost;
+    public bool IsGhost {
+      get {
+        Contract.Requires(ReadyToDealWithGhostField);
+        return izzaGhost;
+      }
+      set {
+        Contract.Requires(ReadyToDealWithGhostField);
+        izzaGhost = value;
+      }
+    }
+    public bool C_IsGhost;  // new ghost computation
+#endif
 
     public Statement(IToken tok, IToken endTok, Attributes attrs) {
       Contract.Requires(tok != null);
@@ -4052,17 +4068,41 @@ namespace Microsoft.Dafny {
     /// </summary>
     public static bool LhsIsToGhost(Expression lhs) {
       Contract.Requires(lhs != null);
+      return LhsIsToGhost_Which(lhs) == NonGhostKind.IsGhost;
+    }
+    public enum NonGhostKind { IsGhost, Variable, Field, ArrayElement }
+    public static string NonGhostKind_To_String(NonGhostKind gk) {
+      Contract.Requires(gk != NonGhostKind.IsGhost);
+      switch (gk) {
+        case NonGhostKind.Variable: return "non-ghost variable";
+        case NonGhostKind.Field: return "non-ghost field";
+        case NonGhostKind.ArrayElement: return "array element";
+        default:
+          Contract.Assume(false);  // unexpected NonGhostKind
+          throw new cce.UnreachableException();  // please compiler
+      }
+    }
+    /// <summary>
+    /// This method assumes "lhs" has been successfully resolved.
+    /// </summary>
+    public static NonGhostKind LhsIsToGhost_Which(Expression lhs) {
+      Contract.Requires(lhs != null);
       lhs = lhs.Resolved;
       if (lhs is IdentifierExpr) {
         var x = (IdentifierExpr)lhs;
-        return x.Var.IsGhost;
+        if (!x.Var.IsGhost) {
+          return NonGhostKind.Variable;
+        }
       } else if (lhs is MemberSelectExpr) {
         var x = (MemberSelectExpr)lhs;
-        return x.Member.IsGhost;
+        if (!x.Member.IsGhost) {
+          return NonGhostKind.Field;
+        }
       } else {
         // LHS denotes an array element, which is always non-ghost
-        return false;
+        return NonGhostKind.ArrayElement;
       }
+      return NonGhostKind.IsGhost;
     }
   }
 
@@ -7741,24 +7781,6 @@ namespace Microsoft.Dafny {
 
   public class BottomUpVisitor
   {
-    public void Visit(Expression expr) {
-      Contract.Requires(expr != null);
-      // recursively visit all subexpressions and all substatements
-      expr.SubExpressions.Iter(Visit);
-      if (expr is StmtExpr) {
-        // a StmtExpr also has a sub-statement
-        var e = (StmtExpr)expr;
-        Visit(e.S);
-      }
-      VisitOneExpr(expr);
-    }
-    public void Visit(Statement stmt) {
-      Contract.Requires(stmt != null);
-      // recursively visit all subexpressions and all substatements
-      stmt.SubExpressions.Iter(Visit);
-      stmt.SubStatements.Iter(Visit);
-      VisitOneStmt(stmt);
-    }
     public void Visit(IEnumerable<Expression> exprs) {
       exprs.Iter(Visit);
     }
@@ -7800,6 +7822,24 @@ namespace Microsoft.Dafny {
       Visit(function.Decreases.Expressions);
       if (function.Body != null) { Visit(function.Body); }
       //TODO More?
+    }
+    public void Visit(Expression expr) {
+      Contract.Requires(expr != null);
+      // recursively visit all subexpressions and all substatements
+      expr.SubExpressions.Iter(Visit);
+      if (expr is StmtExpr) {
+        // a StmtExpr also has a sub-statement
+        var e = (StmtExpr)expr;
+        Visit(e.S);
+      }
+      VisitOneExpr(expr);
+    }
+    public void Visit(Statement stmt) {
+      Contract.Requires(stmt != null);
+      // recursively visit all subexpressions and all substatements
+      stmt.SubExpressions.Iter(Visit);
+      stmt.SubStatements.Iter(Visit);
+      VisitOneStmt(stmt);
     }
     protected virtual void VisitOneExpr(Expression expr) {
       Contract.Requires(expr != null);

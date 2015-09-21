@@ -345,7 +345,7 @@ namespace Microsoft.Dafny
                       "module " + Util.Comma(".", abs.CompilePath, x => x.val) + " must be a refinement of "
                       + Util.Comma(".", abs.Path, x => x.val));
                   }
-                  abs.Signature.IsGhost = compileSig.IsGhost;
+                  abs.Signature.IsAbstract = compileSig.IsAbstract;
                   // always keep the ghost information, to supress a spurious error message when the compile module isn't actually a refinement
                 }
               }
@@ -835,14 +835,14 @@ namespace Microsoft.Dafny
       foreach (var kv in m.StaticMembers) {
         info.StaticMembers[kv.Key] = kv.Value;
       }
-      info.IsGhost = m.IsGhost;
+      info.IsAbstract = m.IsAbstract;
       return info;
     }
     ModuleSignature RegisterTopLevelDecls(ModuleDefinition moduleDef, bool useImports) {
       Contract.Requires(moduleDef != null);
       var sig = new ModuleSignature();
       sig.ModuleDef = moduleDef;
-      sig.IsGhost = moduleDef.IsAbstract;
+      sig.IsAbstract = moduleDef.IsAbstract;
       List<TopLevelDecl> declarations = moduleDef.TopLevelDecls;
 
       // First go through and add anything from the opened imports
@@ -1195,7 +1195,7 @@ namespace Microsoft.Dafny
       var sig = RegisterTopLevelDecls(mod, false);
       sig.Refines = p.Refines;
       sig.CompileSignature = p;
-      sig.IsGhost = p.IsGhost;
+      sig.IsAbstract = p.IsAbstract;
       sig.ExclusiveRefinement = p.ExclusiveRefinement;
       mods.Add(mod);
       ResolveModuleDefinition(mod, sig);
@@ -1279,7 +1279,7 @@ namespace Microsoft.Dafny
         } else if (d is ModuleDecl) {
           var decl = (ModuleDecl)d;
           if (!def.IsAbstract) {
-            if (decl.Signature.IsGhost)
+            if (decl.Signature.IsAbstract)
               {
                 if (!(def.IsDefaultModule)) // _module is allowed to contain abstract modules, but not be abstract itself. Note this presents a challenge to
                                             // trusted verification, as toplevels can't be trusted if they invoke abstract module members.
@@ -1400,43 +1400,7 @@ namespace Microsoft.Dafny
           ResolveClassMemberBodies(cl);
         }
         allTypeParameters.PopMarker();
-        SolveAllTypeConstraints();
       }
-
-      if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
-        foreach (var e in needFiniteBoundsChecks_SetComprehension) {
-          CheckTypeInference(e.Range);  // we need to resolve operators before the call to DiscoverBounds
-          List<BoundVar> missingBounds;
-          e.Bounds = DiscoverBestBounds_MultipleVars(e.BoundVars, e.Range, true, true, out missingBounds);
-          if (missingBounds.Count != 0) {
-            e.MissingBounds = missingBounds;
-            if (e.Finite) {
-              foreach (var bv in e.MissingBounds) {
-              reporter.Error(MessageSource.Resolver, e, "a set comprehension must produce a finite set, but Dafny's heuristics can't figure out how to produce a bounded set of values for '{0}'", bv.Name);
-              }
-            }
-          }
-        }
-        foreach (var e in needFiniteBoundsChecks_LetSuchThatExpr) {
-          Contract.Assert(!e.Exact);  // only let-such-that expressions are ever added to the list
-          Contract.Assert(e.RHSs.Count == 1);  // if we got this far, the resolver will have checked this condition successfully
-          var constraint = e.RHSs[0];
-          CheckTypeInference(constraint);  // we need to resolve operators before the call to DiscoverBounds
-          List<IVariable> missingBounds;
-          var vars = new List<IVariable>(e.BoundVars);
-          var bestBounds = DiscoverBestBounds_MultipleVars(vars, constraint, true, false, out missingBounds);
-          if (missingBounds.Count != 0) {
-            e.Constraint_MissingBounds = missingBounds;
-            foreach (var bv in e.Constraint_MissingBounds) {
-              reporter.Error(MessageSource.Resolver, e, "a non-ghost let-such-that constraint must be compilable, but Dafny's heuristics can't figure out how to produce a bounded set of values for '{0}'", bv.Name);
-            }
-          } else {
-            e.Constraint_Bounds = bestBounds;
-          }
-        }
-      }
-      needFiniteBoundsChecks_SetComprehension.Clear();
-      needFiniteBoundsChecks_LetSuchThatExpr.Clear();
 
       Dictionary<string, NativeType> nativeTypeMap = new Dictionary<string, NativeType>();
       foreach (var nativeType in NativeTypes) {
@@ -1545,6 +1509,42 @@ namespace Microsoft.Dafny
           }
         }
       }
+
+      if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
+        // At this point, it is necessary to know for each statement and expression if it is ghost or not
+        foreach (var e in needFiniteBoundsChecks_SetComprehension) {
+          CheckTypeInference(e.Range);  // we need to resolve operators before the call to DiscoverBounds
+          List<BoundVar> missingBounds;
+          e.Bounds = DiscoverBestBounds_MultipleVars(e.BoundVars, e.Range, true, true, out missingBounds);
+          if (missingBounds.Count != 0) {
+            e.MissingBounds = missingBounds;
+            if (e.Finite) {
+              foreach (var bv in e.MissingBounds) {
+                reporter.Error(MessageSource.Resolver, e, "a set comprehension must produce a finite set, but Dafny's heuristics can't figure out how to produce a bounded set of values for '{0}'", bv.Name);
+              }
+            }
+          }
+        }
+        foreach (var e in needFiniteBoundsChecks_LetSuchThatExpr) {
+          Contract.Assert(!e.Exact);  // only let-such-that expressions are ever added to the list
+          Contract.Assert(e.RHSs.Count == 1);  // if we got this far, the resolver will have checked this condition successfully
+          var constraint = e.RHSs[0];
+          CheckTypeInference(constraint);  // we need to resolve operators before the call to DiscoverBounds
+          List<IVariable> missingBounds;
+          var vars = new List<IVariable>(e.BoundVars);
+          var bestBounds = DiscoverBestBounds_MultipleVars(vars, constraint, true, false, out missingBounds);
+          if (missingBounds.Count != 0) {
+            e.Constraint_MissingBounds = missingBounds;
+            foreach (var bv in e.Constraint_MissingBounds) {
+              reporter.Error(MessageSource.Resolver, e, "a non-ghost let-such-that constraint must be compilable, but Dafny's heuristics can't figure out how to produce a bounded set of values for '{0}'", bv.Name);
+            }
+          } else {
+            e.Constraint_Bounds = bestBounds;
+          }
+        }
+      }
+      needFiniteBoundsChecks_SetComprehension.Clear();
+      needFiniteBoundsChecks_LetSuchThatExpr.Clear();
 
       if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
         // fill in the postconditions and bodies of prefix lemmas
@@ -2973,6 +2973,294 @@ namespace Microsoft.Dafny
     #endregion CheckEqualityTypes
 
     // ------------------------------------------------------------------------------------------------------
+    // ----- ComputeGhostInterest ---------------------------------------------------------------------------
+    // ------------------------------------------------------------------------------------------------------
+    #region ComputeGhostInterest
+    public void ComputeGhostInterest(Statement stmt, ICodeContext codeContext) {
+      Contract.Requires(stmt != null);
+      Contract.Requires(codeContext != null);
+      var visitor = new GhostInterest_Visitor(codeContext, this);
+      visitor.Visit(stmt, codeContext.IsGhost);
+    }
+    class GhostInterest_Visitor
+    {
+      readonly ICodeContext codeContext;
+      readonly Resolver resolver;
+      public GhostInterest_Visitor(ICodeContext codeContext, Resolver resolver) {
+        Contract.Requires(codeContext != null);
+        Contract.Requires(resolver != null);
+        this.codeContext = codeContext;
+        this.resolver = resolver;
+      }
+      protected void Error(Statement stmt, string msg, params object[] msgArgs) {
+        Contract.Requires(stmt != null);
+        Contract.Requires(msg != null);
+        Contract.Requires(msgArgs != null);
+        resolver.reporter.Error(MessageSource.Resolver, stmt, msg, msgArgs);
+      }
+      protected void Error(Expression expr, string msg, params object[] msgArgs) {
+        Contract.Requires(expr != null);
+        Contract.Requires(msg != null);
+        Contract.Requires(msgArgs != null);
+        resolver.reporter.Error(MessageSource.Resolver, expr, msg, msgArgs);
+      }
+      protected void Error(IToken tok, string msg, params object[] msgArgs) {
+        Contract.Requires(tok != null);
+        Contract.Requires(msg != null);
+        Contract.Requires(msgArgs != null);
+        resolver.reporter.Error(MessageSource.Resolver, tok, msg, msgArgs);
+      }
+      /// <summary>
+      /// This method does three things:
+      /// 0. Reports an error if "mustBeErasable" and the statement assigns to a non-ghost field
+      /// 1. Reports an error if the statement assigns to a non-ghost field and the right-hand side
+      ///    depends on a ghost.
+      /// 2. Sets to "true" the .IsGhost field of the statement if it should be erased during compilation.
+      ///    In that case, substatements should be visited with "mustBeErasable".
+      /// Note that the method called by a StmtExpr must be ghost; however, this is checked elsewhere.  For
+      /// this reason, it is not necessary to visit all subexpressions, unless the subexpression
+      /// matter for the ghost checking/recording of "stmt".
+      /// Note, it is important to set the statement's ghost status before descending into its sub-statements,
+      /// because break statements look at the ghost status of its enclosing statements.
+      /// </summary>
+      public void Visit(Statement stmt, bool mustBeErasable) {
+        Contract.Assume(!codeContext.IsGhost || mustBeErasable);  // (this is really a precondition) codeContext.IsGhost ==> mustBeErasable
+        stmt.IsGhost = false;  // DEBUG
+
+        if (stmt is PredicateStmt) {
+          stmt.C_IsGhost = true;
+
+        } else if (stmt is PrintStmt) {
+          var s = (PrintStmt)stmt;
+          if (mustBeErasable) {
+            Error(stmt, "print statement is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)");
+          } else {
+            s.Args.Iter(resolver.CheckIsNonGhost);
+          }
+
+        } else if (stmt is BreakStmt) {
+          var s = (BreakStmt)stmt;
+          if (mustBeErasable) {
+            if (!s.TargetStmt.C_IsGhost && !resolver.inSpecOnlyContext[s.TargetStmt]) {  // TODO: inSpecOnlyContext should probably move from Resolver to GhostInterest_Visitor
+              var targetIsLoop = s.TargetStmt is WhileStmt || s.TargetStmt is AlternativeLoopStmt;
+              Error(stmt, "ghost-context break statement is not allowed to break out of non-ghost " + (targetIsLoop ? "loop" : "structure"));
+            }
+          }
+
+        } else if (stmt is ProduceStmt) {
+          var s = (ProduceStmt)stmt;
+          var kind = stmt is YieldStmt ? "yield" : "return";
+          if (mustBeErasable && !codeContext.IsGhost) {
+            Error(stmt, "{0} statement is not allowed in this context (because it is guarded by a specification-only expression)", kind);
+          }
+          if (s.hiddenUpdate != null) {
+            Visit(s.hiddenUpdate, mustBeErasable);
+          }
+
+        } else if (stmt is AssignSuchThatStmt) {
+          var s = (AssignSuchThatStmt)stmt;
+          s.C_IsGhost = mustBeErasable || s.AssumeToken != null || s.Lhss.Any(AssignStmt.LhsIsToGhost);
+          if (mustBeErasable && !codeContext.IsGhost) {
+            foreach (var lhs in s.Lhss) {
+              var gk = AssignStmt.LhsIsToGhost_Which(lhs);
+              if (gk != AssignStmt.NonGhostKind.IsGhost) {
+                Error(lhs, "cannot assign to {0} in a ghost context", AssignStmt.NonGhostKind_To_String(gk));
+              }
+            }
+          } else if (!mustBeErasable && s.AssumeToken == null && resolver.UsesSpecFeatures(s.Expr)) {
+            foreach (var lhs in s.Lhss) {
+              var gk = AssignStmt.LhsIsToGhost_Which(lhs);
+              if (gk != AssignStmt.NonGhostKind.IsGhost) {
+                Error(lhs, "{0} cannot be assigned a value that depends on a ghost", AssignStmt.NonGhostKind_To_String(gk));
+              }
+            }
+          }
+
+        } else if (stmt is UpdateStmt) {
+          var s = (UpdateStmt)stmt;
+          s.ResolvedStatements.Iter(ss => Visit(ss, mustBeErasable));
+          s.C_IsGhost = s.ResolvedStatements.All(ss => ss.C_IsGhost);
+
+        } else if (stmt is VarDeclStmt) {
+          var s = (VarDeclStmt)stmt;
+          if (mustBeErasable) {
+            foreach (var local in s.Locals) {
+              // a local variable in a specification-only context might as well be ghost
+              local.IsGhost = true;
+            }
+          }
+          foreach (var local in s.Locals) {
+            if (Attributes.Contains(local.Attributes, "assumption")) {
+              if (!local.IsGhost) {
+                Error(local.Tok, "assumption variable must be ghost");
+              }
+            }
+          }
+          s.C_IsGhost = (s.Update == null || s.Update.C_IsGhost) && s.Locals.All(v => v.IsGhost);
+          if (s.Update != null) {
+            Visit(s.Update, mustBeErasable);
+          }
+
+        } else if (stmt is AssignStmt) {
+          var s = (AssignStmt)stmt;
+          var lhs = s.Lhs.Resolved;
+          var gk = AssignStmt.LhsIsToGhost_Which(lhs);
+          if (gk == AssignStmt.NonGhostKind.IsGhost) {
+            s.C_IsGhost = true;
+          } else if (gk == AssignStmt.NonGhostKind.Variable && codeContext.IsGhost) {
+            // cool
+          } else if (mustBeErasable) {
+            Error(stmt, "Assignment to {0} is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)",
+              AssignStmt.NonGhostKind_To_String(gk));
+          } else if (s.Rhs is ExprRhs) {
+            var rhs = (ExprRhs)s.Rhs;
+            resolver.CheckIsNonGhost(rhs.Expr);
+          } else if (s.Rhs is HavocRhs) {
+            // cool
+          } else {
+            var rhs = (TypeRhs)s.Rhs;
+            if (rhs.ArrayDimensions != null) {
+              foreach (var dim in rhs.ArrayDimensions) {
+                resolver.CheckIsNonGhost(dim);
+              }
+            }
+            if (rhs.InitCall != null) {
+              foreach (var arg in rhs.InitCall.Args) {
+                resolver.CheckIsNonGhost(arg);
+              }
+            }
+          }
+
+        } else if (stmt is CallStmt) {
+          var s = (CallStmt)stmt;
+          var callee = s.Method;
+          Contract.Assert(callee != null);  // follows from the invariant of CallStmt
+          s.C_IsGhost = callee.IsGhost;
+          // check in-parameters
+          if (mustBeErasable) {
+            if (!s.C_IsGhost) {
+              Error(s, "only ghost methods can be called from this context");
+            }
+          } else {
+            resolver.CheckIsNonGhost(s.Receiver);
+            int j;
+            if (!callee.IsGhost) {
+              j = 0;
+              foreach (var e in s.Args) {
+                Contract.Assume(j < callee.Ins.Count);  // this should have already been checked by the resolver
+                if (!callee.Ins[j].IsGhost) {
+                  resolver.CheckIsNonGhost(e);
+                }
+                j++;
+              }
+            }
+            j = 0;
+            foreach (var e in s.Lhs) {
+              var resolvedLhs = e.Resolved;
+              if (callee.IsGhost || callee.Outs[j].IsGhost) {
+                // LHS must denote a ghost
+                if (resolvedLhs is IdentifierExpr) {
+                  var ll = (IdentifierExpr)resolvedLhs;
+                  if (!ll.Var.IsGhost) {
+                    if (ll is AutoGhostIdentifierExpr && ll.Var is LocalVariable) {
+                      // the variable was actually declared in this statement, so auto-declare it as ghost
+                      ((LocalVariable)ll.Var).MakeGhost();
+                    } else {
+                      Error(s, "actual out-parameter {0} is required to be a ghost variable", j);
+                    }
+                  }
+                } else if (resolvedLhs is MemberSelectExpr) {
+                  var ll = (MemberSelectExpr)resolvedLhs;
+                  if (!ll.Member.IsGhost) {
+                    Error(s, "actual out-parameter {0} is required to be a ghost field", j);
+                  }
+                } else {
+                  // this is an array update, and arrays are always non-ghost
+                  Error(s, "actual out-parameter {0} is required to be a ghost variable", j);
+                }
+              }
+              j++;
+            }
+          }
+
+        } else if (stmt is BlockStmt) {
+          var s = (BlockStmt)stmt;
+          s.Body.Iter(ss => Visit(ss, mustBeErasable));
+          s.C_IsGhost = s.Body.All(ss => ss.C_IsGhost);  // mark the block statement as ghost if all its substatements are ghost
+
+        } else if (stmt is IfStmt) {
+          var s = (IfStmt)stmt;
+          s.C_IsGhost = mustBeErasable || (s.Guard != null && resolver.UsesSpecFeatures(s.Guard));
+          Visit(s.Thn, s.C_IsGhost);
+          if (s.Els != null) {
+            Visit(s.Els, s.C_IsGhost);
+          }
+          // if both branches were all ghost, then we can mark the enclosing statement as ghost as well
+          s.C_IsGhost = s.C_IsGhost || (s.Thn.C_IsGhost && (s.Els == null || s.Els.C_IsGhost));
+
+        } else if (stmt is AlternativeStmt) {
+          var s = (AlternativeStmt)stmt;
+          s.C_IsGhost = mustBeErasable || s.Alternatives.Exists(alt => resolver.UsesSpecFeatures(alt.Guard));
+          s.Alternatives.Iter(alt => alt.Body.Iter(ss => Visit(ss, s.C_IsGhost)));
+          s.C_IsGhost = s.C_IsGhost || s.Alternatives.All(alt => alt.Body.All(ss => ss.C_IsGhost));
+
+        } else if (stmt is WhileStmt) {
+          var s = (WhileStmt)stmt;
+          s.C_IsGhost = mustBeErasable || (s.Guard != null && resolver.UsesSpecFeatures(s.Guard));
+          if (s.Body != null) {
+            Visit(s.Body, s.C_IsGhost);
+          }
+          s.C_IsGhost = s.C_IsGhost || s.Body == null || (!s.Decreases.Expressions.Exists(e => e is WildcardExpr) && s.Body.C_IsGhost);
+
+        } else if (stmt is AlternativeLoopStmt) {
+          var s = (AlternativeLoopStmt)stmt;
+          s.C_IsGhost = mustBeErasable || s.Alternatives.Exists(alt => resolver.UsesSpecFeatures(alt.Guard));
+          s.Alternatives.Iter(alt => alt.Body.Iter(ss => Visit(ss, s.C_IsGhost)));
+          s.C_IsGhost = s.C_IsGhost || (!s.Decreases.Expressions.Exists(e => e is WildcardExpr) && s.Alternatives.All(alt => alt.Body.All(ss => ss.C_IsGhost)));
+
+        } else if (stmt is ForallStmt) {
+          var s = (ForallStmt)stmt;
+          s.C_IsGhost = mustBeErasable || s.Kind != ForallStmt.ParBodyKind.Assign || resolver.UsesSpecFeatures(s.Range);
+          if (s.Body != null) {
+            Visit(s.Body, s.C_IsGhost);
+          }
+          s.C_IsGhost = s.C_IsGhost || s.Body == null || s.Body.C_IsGhost;
+
+        } else if (stmt is ModifyStmt) {
+          var s = (ModifyStmt)stmt;
+          if (s.Body != null) {
+            Visit(s.Body, mustBeErasable);
+          }
+          s.C_IsGhost = mustBeErasable;
+
+        } else if (stmt is CalcStmt) {
+          var s = (CalcStmt)stmt;
+          s.C_IsGhost = true;
+          foreach (var h in s.Hints) {
+            Visit(h, true);
+          }
+
+        } else if (stmt is MatchStmt) {
+          var s = (MatchStmt)stmt;
+          var mbe = mustBeErasable || resolver.UsesSpecFeatures(s.Source);
+          s.Cases.Iter(kase => kase.Body.Iter(ss => Visit(ss, mbe)));
+          s.C_IsGhost = mbe || s.Cases.All(kase => kase.Body.All(ss => ss.C_IsGhost));
+
+        } else if (stmt is SkeletonStatement) {
+          var s = (SkeletonStatement)stmt;
+          if (s.S != null) {
+            Visit(s.S, mustBeErasable);
+          }
+
+        } else {
+          Contract.Assert(false); throw new cce.UnreachableException();
+        }
+        stmt.IsGhost = stmt.C_IsGhost;  // DEBUG
+      }
+    }
+    #endregion
+
+    // ------------------------------------------------------------------------------------------------------
     // ----- FillInDefaultLoopDecreases ---------------------------------------------------------------------
     // ------------------------------------------------------------------------------------------------------
     #region FillInDefaultLoopDecreases
@@ -3601,22 +3889,14 @@ namespace Microsoft.Dafny
       // order does not matter much for resolution, so resolve them in reverse order
       foreach (var attr in attrs.AsEnumerable()) {
         if (attr.Args != null) {
-          ResolveAttributeArgs(attr.Args, opts, true);
-        }
-      }
-    }
-
-    void ResolveAttributeArgs(List<Expression> args, ResolveOpts opts, bool allowGhosts) {
-      Contract.Requires(args != null);
-      foreach (var arg in args) {
-        Contract.Assert(arg != null);
-        int prevErrors = reporter.Count(ErrorLevel.Error);
-        ResolveExpression(arg, opts);
-        if (!allowGhosts) {
-          CheckIsNonGhost(arg);
-        }
-        if (prevErrors == reporter.Count(ErrorLevel.Error)) {
-          CheckTypeInference(arg);
+          foreach (var arg in attr.Args) {
+            Contract.Assert(arg != null);
+            int prevErrors = reporter.Count(ErrorLevel.Error);
+            ResolveExpression(arg, opts);
+            if (prevErrors == reporter.Count(ErrorLevel.Error)) {
+              CheckTypeInference(arg);
+            }
+          }
         }
       }
     }
@@ -3718,9 +3998,11 @@ namespace Microsoft.Dafny
         ResolveExpression(r, new ResolveOpts(f, false, true));
         // any type is fine
       }
+      SolveAllTypeConstraints();
       if (f.Body != null) {
         var prevErrorCount = reporter.Count(ErrorLevel.Error);
         ResolveExpression(f.Body, new ResolveOpts(f, false));
+        SolveAllTypeConstraints();
         if (!f.IsGhost && prevErrorCount == reporter.Count(ErrorLevel.Error)) {
           CheckIsNonGhost(f.Body);
         }
@@ -3852,6 +4134,7 @@ namespace Microsoft.Dafny
           Contract.Assert(e.E.Type != null);  // follows from postcondition of ResolveExpression
           ConstrainTypes(e.E.Type, Type.Bool, e.E, "Postcondition must be a boolean (got {0})", e.E.Type);
         }
+        SolveAllTypeConstraints();
 
         // Resolve body
         if (m.Body != null) {
@@ -3862,8 +4145,12 @@ namespace Microsoft.Dafny
             var k = com.PrefixLemma.Ins[0];
             scope.Push(k.Name, k);  // we expect no name conflict for _k
           }
-          var codeContext = m;
-          ResolveBlockStatement(m.Body, m.IsGhost, codeContext);
+          var prevErrorCount = reporter.Count(ErrorLevel.Error);
+          ResolveBlockStatement(m.Body, m.IsGhost, m);
+          SolveAllTypeConstraints();
+          if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
+            ComputeGhostInterest(m.Body, m);
+          }
         }
 
         // attributes are allowed to mention both in- and out-parameters (including the implicit _k, for colemmas)
@@ -3982,6 +4269,9 @@ namespace Microsoft.Dafny
       // Resolve body
       if (iter.Body != null) {
         ResolveBlockStatement(iter.Body, false, iter);
+        if (reporter.Count(ErrorLevel.Error) == postSpecErrorCount) {
+          ComputeGhostInterest(iter.Body, iter);
+        }
       }
 
       currentClass = null;
@@ -4834,11 +5124,15 @@ namespace Microsoft.Dafny
         ConstrainTypes(s.Expr.Type, Type.Bool, s.Expr, "condition is expected to be of type {0}, but is {1}", Type.Bool, s.Expr.Type);
 
       } else if (stmt is PrintStmt) {
-        PrintStmt s = (PrintStmt)stmt;
-        ResolveAttributeArgs(s.Args, new ResolveOpts(codeContext, false, specContextOnly), false);
+        var s = (PrintStmt)stmt;
+        var opts = new ResolveOpts(codeContext, false, specContextOnly);
+        s.Args.Iter(e => ResolveExpression(e, opts));
+#if OLD_GHOST_HANDLING
+        ResolveAttributeArgs(s.Args, new ResolveOpts(codeContext, false, specContextOnly));
         if (specContextOnly) {
           reporter.Error(MessageSource.Resolver, stmt, "print statement is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)");
         }
+#endif
 
       } else if (stmt is BreakStmt) {
         var s = (BreakStmt)stmt;
@@ -4848,10 +5142,12 @@ namespace Microsoft.Dafny
             reporter.Error(MessageSource.Resolver, s, "break label is undefined or not in scope: {0}", s.TargetLabel);
           } else {
             s.TargetStmt = target;
+#if OLD_GHOST_HANDLING
             bool targetIsLoop = target is WhileStmt || target is AlternativeLoopStmt;
             if (specContextOnly && !s.TargetStmt.IsGhost && !inSpecOnlyContext[s.TargetStmt]) {
               reporter.Error(MessageSource.Resolver, stmt, "ghost-context break statement is not allowed to break out of non-ghost " + (targetIsLoop ? "loop" : "structure"));
             }
+#endif
           }
         } else {
           if (loopStack.Count < s.BreakCount) {
@@ -4863,9 +5159,11 @@ namespace Microsoft.Dafny
               target.Labels = new LList<Label>(new Label(target.Tok, null), null);
             }
             s.TargetStmt = target;
+#if OLD_GHOST_HANDLING
             if (specContextOnly && !target.IsGhost && !inSpecOnlyContext[target]) {
               reporter.Error(MessageSource.Resolver, stmt, "ghost-context break statement is not allowed to break out of non-ghost loop");
             }
+#endif
           }
         }
 
@@ -4875,8 +5173,10 @@ namespace Microsoft.Dafny
           reporter.Error(MessageSource.Resolver, stmt, "yield statement is allowed only in iterators");
         } else if (stmt is ReturnStmt && !(codeContext is Method)) {
           reporter.Error(MessageSource.Resolver, stmt, "return statement is allowed only in method");
+#if OLD_GHOST_HANDLING
         } else if (specContextOnly && !codeContext.IsGhost) {
           reporter.Error(MessageSource.Resolver, stmt, "{0} statement is not allowed in this context (because it is guarded by a specification-only expression)", kind);
+#endif
         }
         var s = (ProduceStmt)stmt;
         if (s.rhss != null) {
@@ -4935,10 +5235,12 @@ namespace Microsoft.Dafny
         foreach (var local in s.Locals) {
           ResolveType(local.Tok, local.OptionalType, codeContext, ResolveTypeOptionEnum.InferTypeProxies, null);
           local.type = local.OptionalType;
+#if OLD_GHOST_HANDLING
           if (specContextOnly) {
             // a local variable in a specification-only context might as well be ghost
             local.IsGhost = true;
           }
+#endif
         }
         // Resolve the UpdateStmt, if any
         if (s.Update is UpdateStmt) {
@@ -4979,10 +5281,12 @@ namespace Microsoft.Dafny
             {
               reporter.Error(MessageSource.Resolver, local.Tok, "assumption variable can only be declared in a method");
             }
-            if (!local.IsGhost)
+#if OLD_GHOST_HANDLING
+            if (!specContextOnly && !local.IsGhost)
             {
               reporter.Error(MessageSource.Resolver, local.Tok, "assumption variable must be ghost");
             }
+#endif
             if (!(local.Type.IsBoolType))
             {
               reporter.Error(MessageSource.Resolver, s, "assumption variable must be of type 'bool'");
@@ -5006,9 +5310,11 @@ namespace Microsoft.Dafny
           } else {
             lvalueIsGhost = var.IsGhost || codeContext.IsGhost;
             CheckIsLvalue(lhs, codeContext);
+#if OLD_GHOST_HANDLING
             if (!lvalueIsGhost && specContextOnly) {
               reporter.Error(MessageSource.Resolver, stmt, "Assignment to non-ghost variable is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)");
             }
+#endif
 
             var localVar = var as LocalVariable;
             if (localVar != null && currentMethod != null && Attributes.Contains(localVar.Attributes, "assumption"))
@@ -5034,6 +5340,7 @@ namespace Microsoft.Dafny
           var fse = (MemberSelectExpr)lhs;
           if (fse.Member != null) {  // otherwise, an error was reported above
             lvalueIsGhost = fse.Member.IsGhost;
+#if OLD_GHOST_HANDLING
             if (!lvalueIsGhost) {
               if (specContextOnly) {
                 reporter.Error(MessageSource.Resolver, stmt, "Assignment to non-ghost field is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)");
@@ -5045,6 +5352,7 @@ namespace Microsoft.Dafny
                 }
               }
             }
+#endif
             CheckIsLvalue(fse, codeContext);
           }
         } else if (lhs is SeqSelectExpr) {
@@ -5052,16 +5360,20 @@ namespace Microsoft.Dafny
           // LHS is fine, provided the "sequence" is really an array
           if (lhsResolvedSuccessfully) {
             Contract.Assert(slhs.Seq.Type != null);
+#if OLD_GHOST_HANDLING
             if (specContextOnly) {
               reporter.Error(MessageSource.Resolver, stmt, "Assignment to array element is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)");
             }
+#endif
             CheckIsLvalue(slhs, codeContext);
           }
 
         } else if (lhs is MultiSelectExpr) {
+#if OLD_GHOST_HANDLING
           if (specContextOnly) {
             reporter.Error(MessageSource.Resolver, stmt, "Assignment to array element is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)");
           }
+#endif
           CheckIsLvalue(lhs, codeContext);
 
         } else {
@@ -5073,14 +5385,17 @@ namespace Microsoft.Dafny
         if (s.Rhs is ExprRhs) {
           ExprRhs rr = (ExprRhs)s.Rhs;
           ResolveExpression(rr.Expr, new ResolveOpts(codeContext, true, specContextOnly));
+#if OLD_GHOST_HANDLING
           if (!lvalueIsGhost) {
             CheckIsNonGhost(rr.Expr);
           }
+#endif
           Contract.Assert(rr.Expr.Type != null);  // follows from postcondition of ResolveExpression
           ConstrainTypes(lhsType, rr.Expr.Type, stmt, "RHS (of type {0}) not assignable to LHS (of type {1})", rr.Expr.Type, lhsType);
         } else if (s.Rhs is TypeRhs) {
           TypeRhs rr = (TypeRhs)s.Rhs;
           Type t = ResolveTypeRhs(rr, stmt, lvalueIsGhost, codeContext);
+#if OLD_GHOST_HANDLING
           if (!lvalueIsGhost) {
             if (rr.ArrayDimensions != null) {
               foreach (var dim in rr.ArrayDimensions) {
@@ -5093,6 +5408,7 @@ namespace Microsoft.Dafny
               }
             }
           }
+#endif
           ConstrainTypes(lhsType, t, stmt, "type {0} is not assignable to LHS (of type {1})", t, lhsType);
         } else if (s.Rhs is HavocRhs) {
           // nothing else to do
@@ -5909,9 +6225,11 @@ namespace Microsoft.Dafny
         var ec = reporter.Count(ErrorLevel.Error);
         ResolveExpression(lhs, new ResolveOpts(codeContext, true, specContextOnly));
         if (ec == reporter.Count(ErrorLevel.Error)) {
+#if OLD_GHOST_HANDLING
           if (update == null && specContextOnly && !AssignStmt.LhsIsToGhost(lhs) && !codeContext.IsGhost) {
             reporter.Error(MessageSource.Resolver, lhs, "cannot assign to non-ghost variable in a ghost context");
           }
+#endif
           if (lhs is SeqSelectExpr && !((SeqSelectExpr)lhs).SelectOne) {
             reporter.Error(MessageSource.Resolver, lhs, "cannot assign to a range of array elements (try the 'forall' statement)");
           }
@@ -6058,8 +6376,10 @@ namespace Microsoft.Dafny
       ResolveExpression(s.Expr, new ResolveOpts(codeContext, true, specContextOnly));
       ConstrainTypes(s.Expr.Type, Type.Bool, s.Expr, "type of RHS of assign-such-that statement must be boolean (got {0})", s.Expr.Type);
       if (ec == reporter.Count(ErrorLevel.Error) && !s.IsGhost && s.AssumeToken == null && !specContextOnly) {
+#if OLD_GHOST_HANDLING
         CheckIsNonGhost(s.Expr);
 
+#endif
         CheckTypeInference(s.Expr);  // we need to resolve operators before the call to DiscoverBoundsAux
         List<IVariable> missingBounds;
         var bestBounds = DiscoverBestBounds_MultipleVars(varLhss, s.Expr, true, false, out missingBounds);
@@ -6141,9 +6461,11 @@ namespace Microsoft.Dafny
         bool allowGhost = s.IsGhost || callee.Ins.Count <= j || callee.Ins[j].IsGhost;
         var ec = reporter.Count(ErrorLevel.Error);
         ResolveExpression(e, new ResolveOpts(codeContext, true, allowGhost));
+#if OLD_GHOST_HANDLING
         if (ec == reporter.Count(ErrorLevel.Error) && !allowGhost) {
           CheckIsNonGhost(e);
         }
+#endif
         j++;
       }
 
@@ -6181,6 +6503,7 @@ namespace Microsoft.Dafny
           if (!ConstrainTypes(lhs.Type, st, s, "incorrect type of method out-parameter {0} (expected {1}, got {2})", i, st, lhs.Type)) {
           } else {
             var resolvedLhs = lhs.Resolved;
+#if OLD_GHOST_HANDLING
             if (!specContextOnly && (s.IsGhost || callee.Outs[i].IsGhost)) {
               // LHS must denote a ghost
               if (resolvedLhs is IdentifierExpr) {
@@ -6203,6 +6526,7 @@ namespace Microsoft.Dafny
                 reporter.Error(MessageSource.Resolver, s, "actual out-parameter {0} is required to be a ghost variable", i);
               }
             }
+#endif
             // LHS must denote a mutable field.
             CheckIsLvalue(resolvedLhs, codeContext);
           }
@@ -9155,7 +9479,7 @@ namespace Microsoft.Dafny
           return;
         }
       } else if (expr is NamedExpr) {
-        if (!moduleInfo.IsGhost)
+        if (!moduleInfo.IsAbstract)
           CheckIsNonGhost(((NamedExpr)expr).Body);
         return;
       } else if (expr is ChainingExpression) {
@@ -9967,8 +10291,15 @@ namespace Microsoft.Dafny
         IdentifierExpr e = (IdentifierExpr)expr;
         return cce.NonNull(e.Var).IsGhost;
       } else if (expr is DatatypeValue) {
-        DatatypeValue dtv = (DatatypeValue)expr;
-        return dtv.Arguments.Exists(arg => UsesSpecFeatures(arg));
+        var e = (DatatypeValue)expr;
+        // check all NON-ghost arguments
+        // note that if resolution is successful, then |e.Arguments| == |e.Ctor.Formals|
+        for (int i = 0; i < e.Arguments.Count; i++) {
+          if (!e.Ctor.Formals[i].IsGhost && UsesSpecFeatures(e.Arguments[i])) {
+            return true;
+          }
+        }
+        return false;
       } else if (expr is DisplayExpression) {
         DisplayExpression e = (DisplayExpression)expr;
         return e.Elements.Exists(ee => UsesSpecFeatures(ee));
@@ -9996,11 +10327,20 @@ namespace Microsoft.Dafny
                UsesSpecFeatures(e.Index) ||
                UsesSpecFeatures(e.Value);
       } else if (expr is FunctionCallExpr) {
-        FunctionCallExpr e = (FunctionCallExpr)expr;
-        if (cce.NonNull(e.Function).IsGhost) {
+        var e = (FunctionCallExpr)expr;
+        if (e.Function.IsGhost) {
           return true;
         }
-        return e.Args.Exists(arg => UsesSpecFeatures(arg));
+        // check all NON-ghost arguments
+        if (UsesSpecFeatures(e.Receiver)) {
+          return true;
+        }
+        for (int i = 0; i < e.Function.Formals.Count; i++) {
+          if (!e.Function.Formals[i].IsGhost && UsesSpecFeatures(e.Args[i])) {
+            return true;
+          }
+        }
+        return false;
       } else if (expr is ApplyExpr) {
         ApplyExpr e = (ApplyExpr)expr;
         return UsesSpecFeatures(e.Function) || e.Args.Exists(UsesSpecFeatures);
@@ -10041,7 +10381,7 @@ namespace Microsoft.Dafny
           return true;  // let-such-that is always ghost
         }
       } else if (expr is NamedExpr) {
-        return moduleInfo.IsGhost ? false : UsesSpecFeatures(((NamedExpr)expr).Body);
+        return moduleInfo.IsAbstract ? false : UsesSpecFeatures(((NamedExpr)expr).Body);
       } else if (expr is ComprehensionExpr) {
         var q = expr as QuantifierExpr;
         Contract.Assert(q == null || q.SplitQuantifier == null); // No split quantifiers during resolution

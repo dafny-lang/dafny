@@ -40,8 +40,8 @@ method M0(IS: set<int>)
   {
     var x := i;
     x := x + 1;
-    y := 18;  // (this statement is not allowed, since y is declared outside the forall, but that check happens only if the first resolution pass of the forall statement passes, which it doesn't in this case because of the next line)
-    z := 20;  // error: assigning to a non-ghost variable inside a ghost forall block
+    y := 18;  // error: assigning to a (ghost) variable inside a ghost forall block
+    z := 20;  // error: assigning to a (non-ghost) variable inside a ghost forall block
   }
 
   forall (i | 0 <= i)
