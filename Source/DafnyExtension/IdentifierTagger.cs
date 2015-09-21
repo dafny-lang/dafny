@@ -77,7 +77,7 @@ namespace DafnyLanguage
       int start = entire.Start;
       int end = entire.End;
       foreach (var r in _regions) {
-        if (0 <= r.Length && r.Start <= end && start <= r.Start + r.Length) {
+        if (0 <= r.Length && r.Start >= start && r.Start + r.Length <= end) {
           DafnyTokenKind kind;
           switch (r.Kind) {
             case IdRegion.OccurrenceKind.Use:
