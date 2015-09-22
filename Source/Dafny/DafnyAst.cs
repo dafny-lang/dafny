@@ -3461,23 +3461,7 @@ namespace Microsoft.Dafny {
       Contract.Invariant(EndTok != null);
     }
 
-#if OLD_GHOST_HANDLING
     public bool IsGhost;  // filled in by resolution
-#else
-    public static bool ReadyToDealWithGhostField = true;
-    private bool izzaGhost;
-    public bool IsGhost {
-      get {
-        Contract.Requires(ReadyToDealWithGhostField);
-        return izzaGhost;
-      }
-      set {
-        Contract.Requires(ReadyToDealWithGhostField);
-        izzaGhost = value;
-      }
-    }
-    public bool C_IsGhost;  // new ghost computation
-#endif
 
     public Statement(IToken tok, IToken endTok, Attributes attrs) {
       Contract.Requires(tok != null);
