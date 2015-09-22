@@ -1314,6 +1314,7 @@ namespace Microsoft.Dafny
     }
 
     private readonly List<SetComprehension> needFiniteBoundsChecks_SetComprehension = new List<SetComprehension>();
+    private readonly List<AssignSuchThatStmt> needBoundsDiscovery_AssignSuchThatStmt = new List<AssignSuchThatStmt>();
     private readonly List<LetExpr> needFiniteBoundsChecks_LetSuchThatExpr = new List<LetExpr>();
     public int NFBC_Count {
       // provided just for the purpose of conveniently writing contracts for ResolveTopLevelDecl_Meat
@@ -1419,6 +1420,12 @@ namespace Microsoft.Dafny
           } else if (d is ClassDecl) {
             var cl = (ClassDecl)d;
             cl.Members.Iter(CheckTypeInference_Member);
+            foreach (var member in cl.Members) {
+              var m = member as Method;
+              if (m != null && m.Body != null) {
+                DetermineTailRecursion(m);
+              }
+            }
           } else if (d is NewtypeDecl) {
             var dd = (NewtypeDecl)d;
             bool? boolNativeType = null;
@@ -1523,6 +1530,23 @@ namespace Microsoft.Dafny
                 reporter.Error(MessageSource.Resolver, e, "a set comprehension must produce a finite set, but Dafny's heuristics can't figure out how to produce a bounded set of values for '{0}'", bv.Name);
               }
             }
+          }
+        }
+        foreach (AssignSuchThatStmt s in needBoundsDiscovery_AssignSuchThatStmt) {
+          Contract.Assert(!s.C_IsGhost);
+          var varLhss = new List<IVariable>();
+          foreach (var lhs in s.Lhss) {
+            var ide = (IdentifierExpr)lhs.Resolved;  // successful resolution above implies all LHS's are IdentifierExpr's
+            varLhss.Add(ide.Var);
+          }
+
+          List<IVariable> missingBounds;
+          var bestBounds = DiscoverBestBounds_MultipleVars(varLhss, s.Expr, true, false, out missingBounds);
+          if (missingBounds.Count != 0) {
+            s.MissingBounds = missingBounds;  // so that an error message can be produced during compilation
+          } else {
+            Contract.Assert(bestBounds != null);
+            s.Bounds = bestBounds;
           }
         }
         foreach (var e in needFiniteBoundsChecks_LetSuchThatExpr) {
@@ -2034,29 +2058,6 @@ namespace Microsoft.Dafny
         CheckTypeInference_Specification_Expr(m.Decreases);
         if (m.Body != null) {
           CheckTypeInference(m.Body);
-          bool tail = true;
-          bool hasTailRecursionPreference = Attributes.ContainsBool(m.Attributes, "tailrecursion", ref tail);
-          if (hasTailRecursionPreference && !tail) {
-            // the user specifically requested no tail recursion, so do nothing else
-          } else if (hasTailRecursionPreference && tail && m.IsGhost) {
-            reporter.Error(MessageSource.Resolver, m.tok, "tail recursion can be specified only for methods that will be compiled, not for ghost methods");
-          } else {
-            var module = m.EnclosingClass.Module;
-            var sccSize = module.CallGraph.GetSCCSize(m);
-            if (hasTailRecursionPreference && 2 <= sccSize) {
-              reporter.Error(MessageSource.Resolver, m.tok, "sorry, tail-call optimizations are not supported for mutually recursive methods");
-            } else if (hasTailRecursionPreference || sccSize == 1) {
-              CallStmt tailCall = null;
-              var status = CheckTailRecursive(m.Body.Body, m, ref tailCall, hasTailRecursionPreference);
-              if (status != TailRecursionStatus.NotTailRecursive) {
-                m.IsTailRecursive = true;
-                if (tailCall != null) {
-                  // this means there was at least one recursive call
-                  reporter.Info(MessageSource.Resolver, m.tok, "tail recursive");
-                }
-              }
-            }
-          }
         }
       } else if (member is Function) {
         var f = (Function)member;
@@ -2067,10 +2068,6 @@ namespace Microsoft.Dafny
         CheckTypeInference_Specification_Expr(f.Decreases);
         if (f.Body != null) {
           CheckTypeInference(f.Body);
-          bool tail = true;
-          if (Attributes.ContainsBool(f.Attributes, "tailrecursion", ref tail) && tail) {
-            reporter.Error(MessageSource.Resolver, f.tok, "sorry, tail-call functions are not supported");
-          }
         }
         if (errorCount == reporter.Count(ErrorLevel.Error) && f is FixpointPredicate) {
           var cop = (FixpointPredicate)f;
@@ -2078,6 +2075,7 @@ namespace Microsoft.Dafny
         }
       }
     }
+
     private void CheckTypeInference_MaybeFreeExpression(MaybeFreeExpression mfe) {
       Contract.Requires(mfe != null);
       foreach (var e in Attributes.SubExpressions(mfe.Attributes)) {
@@ -2298,6 +2296,41 @@ namespace Microsoft.Dafny
         }
       }
       return status;
+    }
+
+    void DetermineTailRecursion(Function f) {
+      Contract.Requires(f != null);
+      bool tail = true;
+      if (Attributes.ContainsBool(f.Attributes, "tailrecursion", ref tail) && tail) {
+        reporter.Error(MessageSource.Resolver, f.tok, "sorry, tail-call functions are not supported");
+      }
+    }
+
+    void DetermineTailRecursion(Method m) {
+      Contract.Requires(m != null);
+      bool tail = true;
+      bool hasTailRecursionPreference = Attributes.ContainsBool(m.Attributes, "tailrecursion", ref tail);
+      if (hasTailRecursionPreference && !tail) {
+        // the user specifically requested no tail recursion, so do nothing else
+      } else if (hasTailRecursionPreference && tail && m.IsGhost) {
+        reporter.Error(MessageSource.Resolver, m.tok, "tail recursion can be specified only for methods that will be compiled, not for ghost methods");
+      } else {
+        var module = m.EnclosingClass.Module;
+        var sccSize = module.CallGraph.GetSCCSize(m);
+        if (hasTailRecursionPreference && 2 <= sccSize) {
+          reporter.Error(MessageSource.Resolver, m.tok, "sorry, tail-call optimizations are not supported for mutually recursive methods");
+        } else if (hasTailRecursionPreference || sccSize == 1) {
+          CallStmt tailCall = null;
+          var status = CheckTailRecursive(m.Body.Body, m, ref tailCall, hasTailRecursionPreference);
+          if (status != TailRecursionStatus.NotTailRecursive) {
+            m.IsTailRecursive = true;
+            if (tailCall != null) {
+              // this means there was at least one recursive call
+              reporter.Info(MessageSource.Resolver, m.tok, "tail recursive");
+            }
+          }
+        }
+      }
     }
 
     /// <summary>
@@ -3025,7 +3058,6 @@ namespace Microsoft.Dafny
       /// </summary>
       public void Visit(Statement stmt, bool mustBeErasable) {
         Contract.Assume(!codeContext.IsGhost || mustBeErasable);  // (this is really a precondition) codeContext.IsGhost ==> mustBeErasable
-        stmt.IsGhost = false;  // DEBUG
 
         if (stmt is PredicateStmt) {
           stmt.C_IsGhost = true;
@@ -3074,6 +3106,9 @@ namespace Microsoft.Dafny
                 Error(lhs, "{0} cannot be assigned a value that depends on a ghost", AssignStmt.NonGhostKind_To_String(gk));
               }
             }
+          }
+          if (!s.C_IsGhost) {
+            resolver.needBoundsDiscovery_AssignSuchThatStmt.Add(s);
           }
 
         } else if (stmt is UpdateStmt) {
@@ -3207,6 +3242,9 @@ namespace Microsoft.Dafny
         } else if (stmt is WhileStmt) {
           var s = (WhileStmt)stmt;
           s.C_IsGhost = mustBeErasable || (s.Guard != null && resolver.UsesSpecFeatures(s.Guard));
+          if (s.C_IsGhost && s.Decreases.Expressions.Exists(e => e is WildcardExpr)) {
+            Error(s, "'decreases *' is not allowed on ghost loops");
+          }
           if (s.Body != null) {
             Visit(s.Body, s.C_IsGhost);
           }
@@ -4010,6 +4048,7 @@ namespace Microsoft.Dafny
         ConstrainTypes(f.Body.Type, f.ResultType, f, "Function body type mismatch (expected {0}, got {1})", f.ResultType, f.Body.Type);
       }
       scope.PopMarker();
+      DetermineTailRecursion(f);
     }
 
     /// <summary>
@@ -4080,6 +4119,10 @@ namespace Microsoft.Dafny
     void ResolveMethod(Method m) {
       Contract.Requires(m != null);
 
+#if !OLD_GH
+      var oldx = Statement.ReadyToDealWithGhostField;
+      Statement.ReadyToDealWithGhostField = false;
+#endif
       try
       {
         currentMethod = m;
@@ -4149,6 +4192,7 @@ namespace Microsoft.Dafny
           ResolveBlockStatement(m.Body, m.IsGhost, m);
           SolveAllTypeConstraints();
           if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
+            Statement.ReadyToDealWithGhostField = true;
             ComputeGhostInterest(m.Body, m);
           }
         }
@@ -4162,6 +4206,9 @@ namespace Microsoft.Dafny
       finally
       {
         currentMethod = null;
+#if !OLD_GH
+        Statement.ReadyToDealWithGhostField = oldx;
+#endif
       }
     }
 
@@ -5118,7 +5165,9 @@ namespace Microsoft.Dafny
       }
       if (stmt is PredicateStmt) {
         PredicateStmt s = (PredicateStmt)stmt;
+#if OLD_GH
         s.IsGhost = true;
+#endif
         ResolveExpression(s.Expr, new ResolveOpts(codeContext, true, true));
         Contract.Assert(s.Expr.Type != null);  // follows from postcondition of ResolveExpression
         ConstrainTypes(s.Expr.Type, Type.Bool, s.Expr, "condition is expected to be of type {0}, but is {1}", Type.Bool, s.Expr.Type);
@@ -5270,9 +5319,11 @@ namespace Microsoft.Dafny
           ResolveConcreteUpdateStmt(s.Update, specContextOnly, codeContext);
         }
         // Update the VarDeclStmt's ghost status according to its components
+#if OLD_GH
         if (!s.IsGhost) {
           s.IsGhost = (s.Update == null || s.Update.IsGhost) && s.Locals.All(v => v.IsGhost);
         }
+#endif
         foreach (var local in s.Locals)
         {
           if (Attributes.Contains(local.Attributes, "assumption"))
@@ -5380,7 +5431,9 @@ namespace Microsoft.Dafny
           CheckIsLvalue(lhs, codeContext);
         }
 
+#if OLD_GH
         s.IsGhost = lvalueIsGhost;
+#endif
         Type lhsType = s.Lhs.Type;
         if (s.Rhs is ExprRhs) {
           ExprRhs rr = (ExprRhs)s.Rhs;
@@ -5424,9 +5477,11 @@ namespace Microsoft.Dafny
         var s = (BlockStmt)stmt;
         scope.PushMarker();
         ResolveBlockStatement(s, specContextOnly, codeContext);
+#if OLD_GH
         if (!s.IsGhost) {
           s.IsGhost = s.Body.All(ss => ss.IsGhost);  // mark the block statement as ghost if all its substatements are ghost
         }
+#endif
         scope.PopMarker();
 
       } else if (stmt is IfStmt) {
@@ -5442,22 +5497,29 @@ namespace Microsoft.Dafny
             branchesAreSpecOnly = UsesSpecFeatures(s.Guard);
           }
         }
+#if OLD_GH
         s.IsGhost = branchesAreSpecOnly;
+#endif
         ResolveStatement(s.Thn, branchesAreSpecOnly, codeContext);
         if (s.Els != null) {
           ResolveStatement(s.Els, branchesAreSpecOnly, codeContext);
         }
+#if OLD_GH
         if (!s.IsGhost && s.Thn.IsGhost && (s.Els == null || s.Els.IsGhost)) {
           // mark the entire 'if' statement as ghost if its branches are ghost
           s.IsGhost = true;
         }
+#endif
 
       } else if (stmt is AlternativeStmt) {
         var s = (AlternativeStmt)stmt;
-        s.IsGhost = ResolveAlternatives(s.Alternatives, specContextOnly, null, codeContext);
+        ResolveAlternatives(s.Alternatives, specContextOnly, null, codeContext);
+#if OLD_GH
+        s.IsGhost = g;
         if (!s.IsGhost) {
           s.IsGhost = s.Alternatives.All(alt => alt.Body.All(ss => ss.IsGhost));
         }
+#endif
 
       } else if (stmt is WhileStmt) {
         WhileStmt s = (WhileStmt)stmt;
@@ -5503,7 +5565,9 @@ namespace Microsoft.Dafny
             Translator.ComputeFreeVariables(fe.E, fvs);
           }
         }
+#if OLD_GH
         s.IsGhost = s.Body == null || bodyMustBeSpecOnly;
+#endif
         if (s.Body != null) {
           loopStack.Add(s);  // push
           if (s.Labels == null) {  // otherwise, "s" is already in "inSpecOnlyContext" map
@@ -5519,7 +5583,7 @@ namespace Microsoft.Dafny
 
       } else if (stmt is AlternativeLoopStmt) {
         var s = (AlternativeLoopStmt)stmt;
-        s.IsGhost = ResolveAlternatives(s.Alternatives, specContextOnly, s, codeContext);
+        ResolveAlternatives(s.Alternatives, specContextOnly, s, codeContext);
         foreach (MaybeFreeExpression inv in s.Invariants) {
           ResolveExpression(inv.E, new ResolveOpts(codeContext, true, true));
           Contract.Assert(inv.E.Type != null);  // follows from postcondition of ResolveExpression
@@ -5529,9 +5593,12 @@ namespace Microsoft.Dafny
         foreach (Expression e in s.Decreases.Expressions) {
           ResolveExpression(e, new ResolveOpts(codeContext, true, true));
           if (e is WildcardExpr) {
+#if OLD_GHOST_HANDLING
             if (s.IsGhost) {
               reporter.Error(MessageSource.Resolver, e, "'decreases *' is not allowed on ghost loops");
-            } else if (!codeContext.AllowsNontermination && !DafnyOptions.O.Dafnycc) {
+            } else
+#endif
+            if (!codeContext.AllowsNontermination && !DafnyOptions.O.Dafnycc) {
               reporter.Error(MessageSource.Resolver, e, "a possibly infinite loop is allowed only if the enclosing method is declared (with 'decreases *') to be possibly non-terminating");
             }
           }
@@ -5568,7 +5635,9 @@ namespace Microsoft.Dafny
             bodyMustBeSpecOnly = true;
           }
         }
+#if OLD_GH
         s.IsGhost = s.Body == null || bodyMustBeSpecOnly;
+#endif
 
         if (s.Body != null) {
           // clear the labels for the duration of checking the body, because break statements are not allowed to leave a forall statement
@@ -5631,12 +5700,16 @@ namespace Microsoft.Dafny
         if (s.Body != null) {
           ResolveBlockStatement(s.Body, specContextOnly, codeContext);
         }
+#if OLD_GH
         s.IsGhost = specContextOnly;
+#endif
 
       } else if (stmt is CalcStmt) {
         var prevErrorCount = reporter.Count(ErrorLevel.Error);
         CalcStmt s = (CalcStmt)stmt;
+#if OLD_GH
         s.IsGhost = true;
+#endif
         if (s.Lines.Count > 0) {
           var e0 = s.Lines.First();
           ResolveExpression(e0, new ResolveOpts(codeContext, true, true));
@@ -5726,7 +5799,9 @@ namespace Microsoft.Dafny
           subst.Add(dtd.TypeArgs[i], sourceType.TypeArgs[i]);
         }
       }
+#if OLD_GH
       s.IsGhost = bodyIsSpecOnly;
+#endif
 
       // convert CasePattern in MatchCaseExpr to BoundVar and flatten the MatchCaseExpr.
       Type type = new InferredTypeProxy();
@@ -5812,9 +5887,11 @@ namespace Microsoft.Dafny
         }
         Contract.Assert(memberNamesUsed.Count + s.MissingCases.Count == dtd.Ctors.Count);
       }
+#if OLD_GH
       if (!s.IsGhost) {
         s.IsGhost = s.Cases.All(cs => cs.Body.All(ss => ss.IsGhost));
       }
+#endif
     }
 
     /*
@@ -6351,7 +6428,9 @@ namespace Microsoft.Dafny
       foreach (var a in update.ResolvedStatements) {
         ResolveStatement(a, specContextOnly, codeContext);
       }
+#if OLD_GH
       update.IsGhost = update.ResolvedStatements.TrueForAll(ss => ss.IsGhost);
+#endif
     }
 
     private void ResolveAssignSuchThatStmt(AssignSuchThatStmt s, bool specContextOnly, ICodeContext codeContext) {
@@ -6371,15 +6450,16 @@ namespace Microsoft.Dafny
         }
       }
 
+#if OLD_GH
       s.IsGhost = s.Lhss.TrueForAll(AssignStmt.LhsIsToGhost);
+#endif
       var ec = reporter.Count(ErrorLevel.Error);
       ResolveExpression(s.Expr, new ResolveOpts(codeContext, true, specContextOnly));
       ConstrainTypes(s.Expr.Type, Type.Bool, s.Expr, "type of RHS of assign-such-that statement must be boolean (got {0})", s.Expr.Type);
-      if (ec == reporter.Count(ErrorLevel.Error) && !s.IsGhost && s.AssumeToken == null && !specContextOnly) {
 #if OLD_GHOST_HANDLING
+      if (ec == reporter.Count(ErrorLevel.Error) && !s.IsGhost && s.AssumeToken == null && !specContextOnly) {
         CheckIsNonGhost(s.Expr);
 
-#endif
         CheckTypeInference(s.Expr);  // we need to resolve operators before the call to DiscoverBoundsAux
         List<IVariable> missingBounds;
         var bestBounds = DiscoverBestBounds_MultipleVars(varLhss, s.Expr, true, false, out missingBounds);
@@ -6390,13 +6470,13 @@ namespace Microsoft.Dafny
           s.Bounds = bestBounds;
         }
       }
+#endif
     }
 
-    bool ResolveAlternatives(List<GuardedAlternative> alternatives, bool specContextOnly, AlternativeLoopStmt loopToCatchBreaks, ICodeContext codeContext) {
+    void ResolveAlternatives(List<GuardedAlternative> alternatives, bool specContextOnly, AlternativeLoopStmt loopToCatchBreaks, ICodeContext codeContext) {
       Contract.Requires(alternatives != null);
       Contract.Requires(codeContext != null);
 
-      bool isGhost = specContextOnly;
       // first, resolve the guards, which tells us whether or not the entire statement is a ghost statement
       foreach (var alternative in alternatives) {
         int prevErrorCount = reporter.Count(ErrorLevel.Error);
@@ -6404,9 +6484,11 @@ namespace Microsoft.Dafny
         Contract.Assert(alternative.Guard.Type != null);  // follows from postcondition of ResolveExpression
         bool successfullyResolved = reporter.Count(ErrorLevel.Error) == prevErrorCount;
         ConstrainTypes(alternative.Guard.Type, Type.Bool, alternative.Guard, "condition is expected to be of type {0}, but is {1}", Type.Bool, alternative.Guard.Type);
+#if OLD_GHOST_HANDLING
         if (!specContextOnly && successfullyResolved) {
           isGhost = isGhost || UsesSpecFeatures(alternative.Guard);
         }
+#endif
       }
 
       if (loopToCatchBreaks != null) {
@@ -6418,15 +6500,13 @@ namespace Microsoft.Dafny
       foreach (var alternative in alternatives) {
         scope.PushMarker();
         foreach (Statement ss in alternative.Body) {
-          ResolveStatement(ss, isGhost, codeContext);
+          ResolveStatement(ss, specContextOnly, codeContext);
         }
         scope.PopMarker();
       }
       if (loopToCatchBreaks != null) {
         loopStack.RemoveAt(loopStack.Count - 1);  // pop
       }
-
-      return isGhost;
     }
 
     /// <summary>
@@ -6443,7 +6523,9 @@ namespace Microsoft.Dafny
       if (!isInitCall && callee is Constructor) {
         reporter.Error(MessageSource.Resolver, s, "a constructor is allowed to be called only when an object is being allocated");
       }
+#if OLD_GH
       s.IsGhost = callee.IsGhost;
+#endif
       if (specContextOnly && !callee.IsGhost) {
         reporter.Error(MessageSource.Resolver, s, "only ghost methods can be called from this context");
       }
@@ -6453,13 +6535,21 @@ namespace Microsoft.Dafny
         Contract.Assume(lhs.Type != null);  // a sanity check that LHSs have already been resolved
       }
       // resolve arguments
+#if OLD_GH
       if (!s.IsGhost && s.Receiver.WasResolved()) {
         CheckIsNonGhost(s.Receiver);
       }
+#endif
       int j = 0;
       foreach (Expression e in s.Args) {
+#if OLD_GHOST_HANDLING
         bool allowGhost = s.IsGhost || callee.Ins.Count <= j || callee.Ins[j].IsGhost;
+#else
+        bool allowGhost = callee.Ins.Count <= j || callee.Ins[j].IsGhost;
+#endif
+#if OLD_GHOST_HANDLING
         var ec = reporter.Count(ErrorLevel.Error);
+#endif
         ResolveExpression(e, new ResolveOpts(codeContext, true, allowGhost));
 #if OLD_GHOST_HANDLING
         if (ec == reporter.Count(ErrorLevel.Error) && !allowGhost) {
