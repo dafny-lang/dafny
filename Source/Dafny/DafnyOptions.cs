@@ -177,7 +177,7 @@ namespace Microsoft.Dafny
 
         case "noNLarith":
           DisableNLarith = true;
-          this.AddZ3Option("NL_ARITH=false");
+          this.AddZ3Option("smt.arith.nl=false");
           return true;
 
         case "autoReqPrint":
