@@ -5223,7 +5223,9 @@ namespace Microsoft.Dafny {
     public static Expression CreateAdd(Expression e0, Expression e1) {
       Contract.Requires(e0 != null);
       Contract.Requires(e1 != null);
-      Contract.Requires((e0.Type.IsIntegerType && e1.Type.IsIntegerType) || (e0.Type.IsRealType && e1.Type.IsRealType));
+      Contract.Requires(
+        (e0.Type.IsNumericBased(Type.NumericPersuation.Int) && e1.Type.IsNumericBased(Type.NumericPersuation.Int)) ||
+        (e0.Type.IsNumericBased(Type.NumericPersuation.Real) && e1.Type.IsNumericBased(Type.NumericPersuation.Real)));
       Contract.Ensures(Contract.Result<Expression>() != null);
       var s = new BinaryExpr(e0.tok, BinaryExpr.Opcode.Add, e0, e1);
       s.ResolvedOp = BinaryExpr.ResolvedOpcode.Add;  // resolve here
@@ -5265,8 +5267,12 @@ namespace Microsoft.Dafny {
     /// </summary>
     public static Expression CreateSubtract(Expression e0, Expression e1) {
       Contract.Requires(e0 != null);
+      Contract.Requires(e0.Type != null);
       Contract.Requires(e1 != null);
-      Contract.Requires((e0.Type.IsIntegerType && e1.Type.IsIntegerType) || (e0.Type.IsRealType && e1.Type.IsRealType));
+      Contract.Requires(e1.Type != null);
+      Contract.Requires(
+        (e0.Type.IsNumericBased(Type.NumericPersuation.Int) && e1.Type.IsNumericBased(Type.NumericPersuation.Int)) ||
+        (e0.Type.IsNumericBased(Type.NumericPersuation.Real) && e1.Type.IsNumericBased(Type.NumericPersuation.Real)));
       Contract.Ensures(Contract.Result<Expression>() != null);
       var s = new BinaryExpr(e0.tok, BinaryExpr.Opcode.Sub, e0, e1);
       s.ResolvedOp = BinaryExpr.ResolvedOpcode.Sub;  // resolve here
@@ -5279,7 +5285,8 @@ namespace Microsoft.Dafny {
     /// </summary>
     public static Expression CreateIncrement(Expression e, int n) {
       Contract.Requires(e != null);
-      Contract.Requires(e.Type.IsIntegerType);
+      Contract.Requires(e.Type != null);
+      Contract.Requires(e.Type.IsNumericBased(Type.NumericPersuation.Int));
       Contract.Requires(0 <= n);
       Contract.Ensures(Contract.Result<Expression>() != null);
       if (n == 0) {
@@ -5294,7 +5301,7 @@ namespace Microsoft.Dafny {
     /// </summary>
     public static Expression CreateDecrement(Expression e, int n) {
       Contract.Requires(e != null);
-      Contract.Requires(e.Type.IsIntegerType);
+      Contract.Requires(e.Type.IsNumericBased(Type.NumericPersuation.Int));
       Contract.Requires(0 <= n);
       Contract.Ensures(Contract.Result<Expression>() != null);
       if (n == 0) {
@@ -5353,7 +5360,7 @@ namespace Microsoft.Dafny {
     public static Expression CreateLess(Expression e0, Expression e1) {
       Contract.Requires(e0 != null);
       Contract.Requires(e1 != null);
-      Contract.Requires(e0.Type.IsIntegerType && e1.Type.IsIntegerType);
+      Contract.Requires(e0.Type.IsNumericBased(Type.NumericPersuation.Int) && e1.Type.IsNumericBased(Type.NumericPersuation.Int));
       Contract.Ensures(Contract.Result<Expression>() != null);
       var s = new BinaryExpr(e0.tok, BinaryExpr.Opcode.Lt, e0, e1);
       s.ResolvedOp = BinaryExpr.ResolvedOpcode.Lt;  // resolve here
@@ -5367,7 +5374,9 @@ namespace Microsoft.Dafny {
     public static Expression CreateAtMost(Expression e0, Expression e1) {
       Contract.Requires(e0 != null);
       Contract.Requires(e1 != null);
-      Contract.Requires((e0.Type.IsIntegerType && e1.Type.IsIntegerType) || (e0.Type.IsRealType && e1.Type.IsRealType));
+      Contract.Requires(
+        (e0.Type.IsNumericBased(Type.NumericPersuation.Int) && e1.Type.IsNumericBased(Type.NumericPersuation.Int)) ||
+        (e0.Type.IsNumericBased(Type.NumericPersuation.Real) && e1.Type.IsNumericBased(Type.NumericPersuation.Real)));
       Contract.Ensures(Contract.Result<Expression>() != null);
       var s = new BinaryExpr(e0.tok, BinaryExpr.Opcode.Le, e0, e1);
       s.ResolvedOp = BinaryExpr.ResolvedOpcode.Le;  // resolve here

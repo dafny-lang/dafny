@@ -7305,41 +7305,43 @@ namespace Microsoft.Dafny
             }
             eIter = ei.Seq;
           }
-          var e0 = eIter;
+          if (ctor != null) {
+            var e0 = eIter;
 
-          // Rewrite an update of the form "dt[dtor := E]" to be "let d' := dt in dtCtr(E, d'.dtor2, d'.dtor3,...)"
-          // Wrapping it in a let expr avoids exponential growth in the size of the expression
-          // More generally, rewrite "E0[dtor1 := E1][dtor2 := E2]...[dtorn := En]" to
-          //   "let d' := E0 in dtCtr(...mixtures of Ek and d'.dtorj...)"
+            // Rewrite an update of the form "dt[dtor := E]" to be "let d' := dt in dtCtr(E, d'.dtor2, d'.dtor3,...)"
+            // Wrapping it in a let expr avoids exponential growth in the size of the expression
+            // More generally, rewrite "E0[dtor1 := E1][dtor2 := E2]...[dtorn := En]" to
+            //   "let d' := E0 in dtCtr(...mixtures of Ek and d'.dtorj...)"
 
-          // Create a unique name for d', the variable we introduce in the let expression
-          string tmpName = FreshTempVarName("dt_update_tmp#", opts.codeContext);
-          IdentifierExpr tmpVarIdExpr = new IdentifierExpr(e0.tok, tmpName);
-          BoundVar tmpVarBv = new BoundVar(e0.tok, tmpName, e0.Type);
+            // Create a unique name for d', the variable we introduce in the let expression
+            string tmpName = FreshTempVarName("dt_update_tmp#", opts.codeContext);
+            IdentifierExpr tmpVarIdExpr = new IdentifierExpr(e0.tok, tmpName);
+            BoundVar tmpVarBv = new BoundVar(e0.tok, tmpName, e0.Type);
 
-          // Build the arguments to the datatype constructor, using the updated value in the appropriate slot
-          List<Expression> ctor_args = new List<Expression>();
-          foreach (Formal d in ctor.Formals) {
-            Expression v = null;
-            foreach (var dvPair in IndexToValue.Values) {
-              var destructor = dvPair.Item1;
-              if (d == destructor.CorrespondingFormal) {
-                Contract.Assert(v == null);
-                v = dvPair.Item2;
+            // Build the arguments to the datatype constructor, using the updated value in the appropriate slot
+            List<Expression> ctor_args = new List<Expression>();
+            foreach (Formal d in ctor.Formals) {
+              Expression v = null;
+              foreach (var dvPair in IndexToValue.Values) {
+                var destructor = dvPair.Item1;
+                if (d == destructor.CorrespondingFormal) {
+                  Contract.Assert(v == null);
+                  v = dvPair.Item2;
+                }
               }
+              ctor_args.Add(v ?? new ExprDotName(expr.tok, tmpVarIdExpr, d.Name, null));
             }
-            ctor_args.Add(v ?? new ExprDotName(expr.tok, tmpVarIdExpr, d.Name, null));
+
+            DatatypeValue ctor_call = new DatatypeValue(expr.tok, ctor.EnclosingDatatype.Name, ctor.Name, ctor_args);
+
+            CasePattern tmpVarPat = new CasePattern(e0.tok, tmpVarBv);
+            LetExpr let = new LetExpr(e0.tok, new List<CasePattern>() { tmpVarPat }, new List<Expression>() { e0 }, ctor_call, true);
+
+            ResolveExpression(let, opts);
+            e.ResolvedUpdateExpr = let;
+
+            expr.Type = e0.Type;
           }
-
-          DatatypeValue ctor_call = new DatatypeValue(expr.tok, ctor.EnclosingDatatype.Name, ctor.Name, ctor_args);
-
-          CasePattern tmpVarPat = new CasePattern(e0.tok, tmpVarBv);
-          LetExpr let = new LetExpr(e0.tok, new List<CasePattern>() { tmpVarPat }, new List<Expression>() { e0 }, ctor_call, true);
-
-          ResolveExpression(let, opts);
-          e.ResolvedUpdateExpr = let;
-
-          expr.Type = e0.Type;
         } else {
           reporter.Error(MessageSource.Resolver, expr, "update requires a sequence, map, or datatype (got {0})", e.Seq.Type);
         }
