@@ -9,9 +9,9 @@ method GhostDivergentLoop()
    a[1] := -1;
    ghost var i := 0;
    while (i < 2)
-      decreases *; // error: not allowed on a ghost loop
-      invariant i <= 2;
-      invariant (forall j :: 0 <= j && j < i ==> a[j] > 0);
+      decreases * // error: not allowed on a ghost loop
+      invariant i <= 2
+      invariant (forall j :: 0 <= j && j < i ==> a[j] > 0)
    {
      i := 0;
    }
@@ -613,7 +613,42 @@ module GhostAllocationTests {
     p := new G;  // error: ditto
   }
 
-  method GhostNew1(n: nat)
+  method GhostNew1(n: nat, ghost g: int) returns (t: G, z: int)
+  {
+    if n < 0 {
+      z, t := 5, new G;  // fine
+    }
+    if n < g {
+      var zz, tt := 5, new G;  // error: 'new' not allowed in ghost contexts
+    }
+  }
+
+  method GhostNew2(ghost b: bool)
+  {
+    if (b) {
+      var y := new GIter();  // error: 'new' not allowed in ghost contexts (and a non-ghost method is not allowed to be called here either)
+    }
+  }
+
+  method GhostNew3(n: nat)
+  {
+    var g := new G;
+    calc {
+      5;
+      { var y := new G; }  // error: 'new' not allowed in ghost contexts
+      2 + 3;
+    }
+  }
+
+  ghost method GhostNew4(g: G)
+    modifies g;
+  {
+  }
+}
+
+module NewForall {
+  class G { }
+  method NewForallTest(n: nat)
   {
     var a := new G[n];
     forall i | 0 <= i < n {
@@ -624,38 +659,6 @@ module GhostAllocationTests {
     {
       a[i] := new G;  // error: 'new' not allowed in ghost contexts, and proof-forall cannot update state
     }
-  }
-
-  method GhostNew2(n: nat, ghost g: int) returns (t: G, z: int)
-  {
-    if n < 0 {
-      z, t := 5, new G;  // fine
-    }
-    if n < g {
-      var zz, tt := 5, new G;  // error: 'new' not allowed in ghost contexts
-    }
-  }
-
-  method GhostNew3(ghost b: bool)
-  {
-    if (b) {
-      var y := new GIter();  // error: 'new' not allowed in ghost contexts (and a non-ghost method is not allowed to be called here either)
-    }
-  }
-
-  method GhostNew4(n: nat)
-  {
-    var g := new G;
-    calc {
-      5;
-      { var y := new G; }  // error: 'new' not allowed in ghost contexts
-      2 + 3;
-    }
-  }
-
-  ghost method GhostNew5(g: G)
-    modifies g;
-  {
   }
 }
 
@@ -706,7 +709,7 @@ module StatementsInExpressions {
         { assert 6 < 8; }
         { var x := 8;
           while x != 0
-            decreases *;  // error: cannot use 'decreases *' in a ghost context
+            decreases *  // error: cannot use 'decreases *' here
           {
             x := x - 1;
           }
@@ -739,7 +742,7 @@ module StatementsInExpressions {
         { assert 6 < 8; }
         { var x := 8;
           while x != 0
-            decreases *;  // error: cannot use 'decreases *' in a ghost context
+            decreases *  // error: cannot use 'decreases *' here
           {
             x := x - 1;
           }
@@ -852,40 +855,48 @@ class ModifyStatementClass {
   ghost method G0()
     modifies `g;
     modifies `x;  // error: non-ghost field mentioned in ghost context
-  {
-    modify `g;
-    modify `x;  // error: non-ghost field mentioned in ghost context
-  }
-  method G1()
-    modifies this;
-  {
-    modify `x;
-    if g < 100 {
-      // we are now in a ghost context
+}
+module ModifyStatementClass_More {
+  class C {
+    var x: int;
+    ghost var g: int;
+    ghost method G0()
+      modifies `g;
+    {
+      modify `g;
       modify `x;  // error: non-ghost field mentioned in ghost context
     }
-  }
-  method G2(y: nat)
-    modifies this;
-  {
-    if g < 100 {
-      // we're now in a ghost context
-      var n := 0;
-      while n < y
-        modifies `x;  // error: non-ghost field mentioned in ghost context
-      {
-        if * {
-          g := g + 1;  // if we got as far as verification, this would be flagged as an error too
-        }
-        n := n + 1;
+    method G1()
+      modifies this;
+    {
+      modify `x;
+      if g < 100 {
+        // we are now in a ghost context
+        modify `x;  // error: non-ghost field mentioned in ghost context
       }
     }
-    modify `x;  // fine
-    ghost var i := 0;
-    while i < y
-      modifies `x;  // error: non-ghost field mentioned in ghost context
+    method G2(y: nat)
+      modifies this;
     {
-      i := i + 1;
+      if g < 100 {
+        // we're now in a ghost context
+        var n := 0;
+        while n < y
+          modifies `x;  // error: non-ghost field mentioned in ghost context
+        {
+          if * {
+            g := g + 1;  // if we got as far as verification, this would be flagged as an error too
+          }
+          n := n + 1;
+        }
+      }
+      modify `x;  // fine
+      ghost var i := 0;
+      while i < y
+        modifies `x;  // error: non-ghost field mentioned in ghost context
+      {
+        i := i + 1;
+      }
     }
   }
 }
@@ -1298,7 +1309,7 @@ module FrameTargetFields {
       modifies `z  // cool
     {
     }
-
+} } module FrameTargetFields_More {  class C {    var x: int    var y: int    ghost var z: int
     method P()
       modifies this
     {
@@ -1400,20 +1411,20 @@ module SuchThat {
 module GhostTests {
   class G { }
   
-  method GhostNew4(n: nat)
+  method GhostNew3(n: nat)
   {
     var g := new G;
     calc {
       5;
       2 + 3;
-      { if n != 0 { GhostNew4(n-1); } }  // error: cannot call non-ghost method in a ghost context
+      { if n != 0 { GhostNew3(n-1); } }  // error: cannot call non-ghost method in a ghost context
       1 + 4;
-      { GhostNew5(g); }  // error: cannot call method with nonempty modifies
+      { GhostNew4(g); }  // error: cannot call method with nonempty modifies
       -5 + 10;
     }
   }
 
-  ghost method GhostNew5(g: G)
+  ghost method GhostNew4(g: G)
     modifies g;
   {
   }
@@ -1524,7 +1535,7 @@ module EvenMoreGhostTests {
     ensures false;
   {
     while (true)
-      decreases *;  // error:  not allowed in ghost context
+      decreases *  // error:  not allowed here
     {
     }
   }
@@ -1546,20 +1557,6 @@ module EvenMoreGhostTests {
           }
         }
       }
-    }
-  }
-  ghost method Bad()
-  {
-    var x: int;
-    calc {
-      1;
-//******      { x := 1; }     // error: updates to locals defined outside of the hint are not allowed
-      x;
-      {
-        var x: int;
-        x := 1;       // this is OK
-      }
-      1;
     }
   }
 }
@@ -1616,6 +1613,82 @@ module UnderspecifiedTypedShouldBeResolvedOnlyOnce {
     calc {
       2;
       var t :| true; 2;  // error: type of 't' is underspecified
+    }
+  }
+}
+
+module LoopResolutionTests {
+  class C {
+    var x: int
+    ghost var y: int
+  }
+
+  ghost method M(c: C)
+    requires c != null
+    modifies c
+  {
+    var n := 0;
+    while n < 100
+      modifies c`y
+      modifies c`x  // error: not allowed to mention non-ghost field in modifies clause of ghost loops
+    {
+      c.x := c.x + 1;  // error: assignment to non-ghost field not allowed here
+    }
+  }
+
+  method MM(c: C)
+    requires c != null
+    modifies c
+  {
+    var n := 0;
+    while
+      invariant n <= 100
+      modifies c  // regression test
+    {
+      case n < 100 =>  n := n + 1;
+    }
+  }
+
+  method MMX(c: C, ghost g: int)
+    requires c != null
+    modifies c
+  {
+    var n := 0;
+    while
+      invariant n <= 100
+      modifies c`y
+      modifies c`x  // error: not allowed to mention non-ghost field in modifies clause of ghost loops
+    {
+      case n < 100 =>  n := n + 1;  // error: cannot assign to non-ghost in a ghost loop
+      case g < 56 && n != 100 => n := n + 1;  // error: cannot assign to non-ghost in a ghost loop
+    }
+  }
+
+  method MD0(c: C, ghost g: nat)
+    requires c != null
+    modifies c
+    decreases *
+  {
+    var n := 0;
+    while n + g < 100
+      invariant n <= 100
+      decreases *  // error: disallowed on ghost loops
+    {
+      n := n + 1;  // error: cannot assign to non-ghost in a ghost loop
+    }
+  }
+
+  method MD1(c: C, ghost g: nat)
+    requires c != null
+    modifies c
+    decreases *
+  {
+    var n := 0;
+    while
+      invariant n <= 100
+      decreases *  // error: disallowed on ghost loops
+    {
+      case n + g < 100 =>  n := n + 1;  // error: cannot assign to non-ghost in a ghost loop
     }
   }
 }
