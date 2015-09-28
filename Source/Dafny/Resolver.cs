@@ -3136,17 +3136,23 @@ namespace Microsoft.Dafny
         resolver.reporter.Error(MessageSource.Resolver, tok, msg, msgArgs);
       }
       /// <summary>
-      /// This method does three things:
-      /// 0. Reports an error if "mustBeErasable" and the statement assigns to a non-ghost field
-      /// 1. Reports an error if the statement assigns to a non-ghost field and the right-hand side
-      ///    depends on a ghost.
-      /// 2. Sets to "true" the .IsGhost field of the statement if it should be erased during compilation.
-      ///    In that case, substatements should be visited with "mustBeErasable".
-      /// Note that the method called by a StmtExpr must be ghost; however, this is checked elsewhere.  For
-      /// this reason, it is not necessary to visit all subexpressions, unless the subexpression
-      /// matter for the ghost checking/recording of "stmt".
-      /// Note, it is important to set the statement's ghost status before descending into its sub-statements,
-      /// because break statements look at the ghost status of its enclosing statements.
+      /// This method does three things, in order:
+      /// 0. Sets .IsGhost to "true" if the statement is ghost.  This often depends on some guard of the statement
+      ///    (like the guard of an "if" statement) or the LHS of the statement (if it is an assignment).
+      ///    Note, if "mustBeErasable", then the statement is already in a ghost context.
+      ///    statement itself is ghost) or and the statement assigns to a non-ghost field
+      /// 1. Determines if the statement and all its subparts are legal under its computed .IsGhost setting.
+      /// 2. ``Upgrades'' .IsGhost to "true" if, after investigation of the substatements of the statement, it
+      ///    turns out that the statement can be erased during compilation.
+      /// Notes:
+      /// * Both step (0) and step (2) sets the .IsGhost field.  What step (0) does affects only the
+      ///   rules of resolution, whereas step (2) makes a note for the later compilation phase.
+      /// * It is important to do step (0) before step (1)--that is, it is important to set the statement's ghost
+      ///   status before descending into its sub-statements--because break statements look at the ghost status of
+      ///   its enclosing statements.
+      /// * The method called by a StmtExpr must be ghost; however, this is checked elsewhere.  For
+      ///   this reason, it is not necessary to visit all subexpressions, unless the subexpression
+      ///   matter for the ghost checking/recording of "stmt".
       /// </summary>
       public void Visit(Statement stmt, bool mustBeErasable) {
         Contract.Requires(stmt != null);
@@ -3165,11 +3171,10 @@ namespace Microsoft.Dafny
 
         } else if (stmt is BreakStmt) {
           var s = (BreakStmt)stmt;
-          if (mustBeErasable) {
-            if (!s.TargetStmt.IsGhost && !resolver.inSpecOnlyContext[s.TargetStmt]) {  // TODO: inSpecOnlyContext should probably move from Resolver to GhostInterest_Visitor
-              var targetIsLoop = s.TargetStmt is WhileStmt || s.TargetStmt is AlternativeLoopStmt;
-              Error(stmt, "ghost-context break statement is not allowed to break out of non-ghost " + (targetIsLoop ? "loop" : "structure"));
-            }
+          s.IsGhost = mustBeErasable;
+          if (s.IsGhost && !s.TargetStmt.IsGhost) {
+            var targetIsLoop = s.TargetStmt is WhileStmt || s.TargetStmt is AlternativeLoopStmt;
+            Error(stmt, "ghost-context break statement is not allowed to break out of non-ghost " + (targetIsLoop ? "loop" : "structure"));
           }
 
         } else if (stmt is ProduceStmt) {
@@ -3306,8 +3311,9 @@ namespace Microsoft.Dafny
 
         } else if (stmt is BlockStmt) {
           var s = (BlockStmt)stmt;
+          s.IsGhost = mustBeErasable;  // set .IsGhost before descending into substatements (since substatements may do a 'break' out of this block)
           s.Body.Iter(ss => Visit(ss, mustBeErasable));
-          s.IsGhost = s.Body.All(ss => ss.IsGhost);  // mark the block statement as ghost if all its substatements are ghost
+          s.IsGhost = s.IsGhost || s.Body.All(ss => ss.IsGhost);  // mark the block statement as ghost if all its substatements are ghost
 
         } else if (stmt is IfStmt) {
           var s = (IfStmt)stmt;
@@ -3378,14 +3384,16 @@ namespace Microsoft.Dafny
 
         } else if (stmt is MatchStmt) {
           var s = (MatchStmt)stmt;
-          var mbe = mustBeErasable || resolver.UsesSpecFeatures(s.Source);
-          s.Cases.Iter(kase => kase.Body.Iter(ss => Visit(ss, mbe)));
-          s.IsGhost = mbe || s.Cases.All(kase => kase.Body.All(ss => ss.IsGhost));
+          s.IsGhost = mustBeErasable || resolver.UsesSpecFeatures(s.Source);
+          s.Cases.Iter(kase => kase.Body.Iter(ss => Visit(ss, s.IsGhost)));
+          s.IsGhost = s.IsGhost || s.Cases.All(kase => kase.Body.All(ss => ss.IsGhost));
 
         } else if (stmt is SkeletonStatement) {
           var s = (SkeletonStatement)stmt;
+          s.IsGhost = mustBeErasable;
           if (s.S != null) {
             Visit(s.S, mustBeErasable);
+            s.IsGhost = s.IsGhost || s.S.IsGhost;
           }
 
         } else {
@@ -3509,7 +3517,6 @@ namespace Microsoft.Dafny
     readonly Scope<IVariable>/*!*/ scope = new Scope<IVariable>();
     Scope<Statement>/*!*/ labeledStatements = new Scope<Statement>();
     List<Statement> loopStack = new List<Statement>();  // the enclosing loops (from which it is possible to break out)
-    readonly Dictionary<Statement, bool> inSpecOnlyContext = new Dictionary<Statement, bool>();  // invariant: domain contain union of the domains of "labeledStatements" and "loopStack"
 
     /// <summary>
     /// This method resolves the types that have been given after the 'extends' keyword.  Then, it populates
@@ -5519,10 +5526,6 @@ namespace Microsoft.Dafny
 
         if (s.Body != null) {
           loopStack.Add(s);  // push
-          if (s.Labels == null) {  // otherwise, "s" is already in "inSpecOnlyContext" map
-            inSpecOnlyContext.Add(s, specContextOnly);
-          }
-
           ResolveStatement(s.Body, bodyMustBeSpecOnly, codeContext);
           loopStack.RemoveAt(loopStack.Count - 1);  // pop
         } else {
@@ -6405,9 +6408,6 @@ namespace Microsoft.Dafny
 
       if (loopToCatchBreaks != null) {
         loopStack.Add(loopToCatchBreaks);  // push
-        if (loopToCatchBreaks.Labels == null) {  // otherwise, "loopToCatchBreak" is already in "inSpecOnlyContext" map
-          inSpecOnlyContext.Add(loopToCatchBreaks, specContextOnly);
-        }
       }
       foreach (var alternative in alternatives) {
         scope.PushMarker();
@@ -6559,9 +6559,6 @@ namespace Microsoft.Dafny
           } else {
             var r = labeledStatements.Push(lnode.Name, ss);
             Contract.Assert(r == Scope<Statement>.PushResult.Success);  // since we just checked for duplicates, we expect the Push to succeed
-            if (l == ss.Labels) {  // add it only once
-              inSpecOnlyContext.Add(ss, specContextOnly);
-            }
           }
         }
         ResolveStatement(ss, specContextOnly, codeContext);
