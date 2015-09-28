@@ -8,152 +8,152 @@ ResolutionErrors.dfy(137,4): Error: ghost variables are allowed only in specific
 ResolutionErrors.dfy(141,21): Error: ghost variables are allowed only in specification contexts
 ResolutionErrors.dfy(142,35): Error: ghost variables are allowed only in specification contexts
 ResolutionErrors.dfy(151,10): Error: only ghost methods can be called from this context
-ResolutionErrors.dfy(251,27): Error: ghost-context break statement is not allowed to break out of non-ghost structure
-ResolutionErrors.dfy(274,12): Error: ghost-context break statement is not allowed to break out of non-ghost loop
-ResolutionErrors.dfy(288,12): Error: ghost-context break statement is not allowed to break out of non-ghost loop
-ResolutionErrors.dfy(293,8): Error: return statement is not allowed in this context (because it is guarded by a specification-only expression)
-ResolutionErrors.dfy(375,15): Error: ghost variables are allowed only in specification contexts
-ResolutionErrors.dfy(464,11): Error: calls to methods with side-effects are not allowed inside a hint
-ResolutionErrors.dfy(466,14): Error: a hint is not allowed to update heap locations
-ResolutionErrors.dfy(468,10): Error: a hint is not allowed to update a variable declared outside the hint
-ResolutionErrors.dfy(558,7): Error: RHS (of type List<A>) not assignable to LHS (of type List<B>)
-ResolutionErrors.dfy(563,7): Error: RHS (of type List<A>) not assignable to LHS (of type List<B>)
-ResolutionErrors.dfy(577,23): Error: type of case bodies do not agree (found Tree<_T1,_T0>, previous types Tree<_T0,_T1>)
-ResolutionErrors.dfy(589,24): Error: Wrong number of type arguments (0 instead of 2) passed to datatype: Tree
-ResolutionErrors.dfy(619,25): Error: the type of this variable is underspecified
-ResolutionErrors.dfy(619,23): Error: type variable 'T' in the function call to 'P' could not be determined
-ResolutionErrors.dfy(626,25): Error: the type of this variable is underspecified
-ResolutionErrors.dfy(626,23): Error: type variable 'T' in the function call to 'P' could not be determined
-ResolutionErrors.dfy(639,13): Error: 'new' is not allowed in ghost contexts
-ResolutionErrors.dfy(640,9): Error: 'new' is not allowed in ghost contexts
-ResolutionErrors.dfy(647,14): Error: new allocation not supported in forall statements
-ResolutionErrors.dfy(652,11): Error: the body of the enclosing forall statement is not allowed to update heap locations
-ResolutionErrors.dfy(652,14): Error: new allocation not allowed in ghost context
-ResolutionErrors.dfy(662,23): Error: 'new' is not allowed in ghost contexts
-ResolutionErrors.dfy(669,15): Error: 'new' is not allowed in ghost contexts
-ResolutionErrors.dfy(678,17): Error: 'new' is not allowed in ghost contexts
-ResolutionErrors.dfy(700,21): Error: the type of this variable is underspecified
-ResolutionErrors.dfy(751,22): Error: 'decreases *' is not allowed on ghost loops
-ResolutionErrors.dfy(789,22): Error: 'decreases *' is not allowed on ghost loops
-ResolutionErrors.dfy(824,19): Error: calls to methods with side-effects are not allowed inside a statement expression
-ResolutionErrors.dfy(826,20): Error: wrong number of method result arguments (got 0, expected 1)
-ResolutionErrors.dfy(838,23): Error: function calls are allowed only in specification contexts (consider declaring the function a 'function method')
-ResolutionErrors.dfy(848,4): Error: ghost variables are allowed only in specification contexts
-ResolutionErrors.dfy(859,36): Error: ghost variables are allowed only in specification contexts
-ResolutionErrors.dfy(868,17): Error: function calls are allowed only in specification contexts (consider declaring the function a 'function method')
-ResolutionErrors.dfy(882,6): Error: RHS (of type B) not assignable to LHS (of type object)
-ResolutionErrors.dfy(883,6): Error: RHS (of type int) not assignable to LHS (of type object)
-ResolutionErrors.dfy(884,6): Error: RHS (of type B) not assignable to LHS (of type object)
-ResolutionErrors.dfy(889,6): Error: RHS (of type G) not assignable to LHS (of type object)
-ResolutionErrors.dfy(890,6): Error: RHS (of type Dt) not assignable to LHS (of type object)
-ResolutionErrors.dfy(891,6): Error: RHS (of type CoDt) not assignable to LHS (of type object)
-ResolutionErrors.dfy(953,4): Error: LHS of array assignment must denote an array element (found seq<int>)
-ResolutionErrors.dfy(954,4): Error: LHS of array assignment must denote an array element (found seq<int>)
-ResolutionErrors.dfy(959,10): Error: LHS of assignment must denote a mutable field
-ResolutionErrors.dfy(960,10): Error: LHS of assignment must denote a mutable field
-ResolutionErrors.dfy(961,9): Error: cannot assign to a range of array elements (try the 'forall' statement)
-ResolutionErrors.dfy(962,9): Error: cannot assign to a range of array elements (try the 'forall' statement)
-ResolutionErrors.dfy(963,5): Error: cannot assign to a range of array elements (try the 'forall' statement)
-ResolutionErrors.dfy(964,5): Error: cannot assign to a range of array elements (try the 'forall' statement)
-ResolutionErrors.dfy(1045,11): Error: Wrong number of type arguments (2 instead of 1) passed to array type: array3
-ResolutionErrors.dfy(1046,11): Error: Wrong number of type arguments (2 instead of 1) passed to class: C
-ResolutionErrors.dfy(1057,7): Error: Duplicate name of top-level declaration: BadSyn2
-ResolutionErrors.dfy(1054,17): Error: Wrong number of type arguments (0 instead of 1) passed to datatype: List
-ResolutionErrors.dfy(1055,17): Error: Undeclared top-level type or type parameter: badName (did you forget to qualify a name or declare a module import 'opened?')
-ResolutionErrors.dfy(1056,22): Error: Undeclared top-level type or type parameter: X (did you forget to qualify a name or declare a module import 'opened?')
-ResolutionErrors.dfy(1063,7): Error: Cycle among redirecting types (newtypes, type synonyms): A -> A
-ResolutionErrors.dfy(1066,7): Error: Cycle among redirecting types (newtypes, type synonyms): A -> B -> A
-ResolutionErrors.dfy(1070,7): Error: Cycle among redirecting types (newtypes, type synonyms): A -> B -> A
-ResolutionErrors.dfy(1079,11): Error: because of cyclic dependencies among constructor argument types, no instances of datatype 'D' can be constructed
-ResolutionErrors.dfy(1082,7): Error: Cycle among redirecting types (newtypes, type synonyms): A -> B -> A
-ResolutionErrors.dfy(1087,7): Error: Cycle among redirecting types (newtypes, type synonyms): A -> B -> A
-ResolutionErrors.dfy(1106,21): Error: unresolved identifier: x
-ResolutionErrors.dfy(1113,35): Error: Wrong number of type arguments (2 instead of 1) passed to opaque type: P
-ResolutionErrors.dfy(1125,13): Error: Undeclared top-level type or type parameter: BX (did you forget to qualify a name or declare a module import 'opened?')
-ResolutionErrors.dfy(1135,6): Error: RHS (of type P<int>) not assignable to LHS (of type P<bool>)
-ResolutionErrors.dfy(1140,6): Error: RHS (of type P<A>) not assignable to LHS (of type P<B>)
-ResolutionErrors.dfy(1145,6): Error: RHS (of type P<A>) not assignable to LHS (of type P<int>)
-ResolutionErrors.dfy(1146,6): Error: RHS (of type P<int>) not assignable to LHS (of type P<A>)
-ResolutionErrors.dfy(1151,13): Error: arguments must have the same type (got P<int> and P<X>)
-ResolutionErrors.dfy(1152,13): Error: arguments must have the same type (got P<bool> and P<X>)
-ResolutionErrors.dfy(1153,13): Error: arguments must have the same type (got P<int> and P<bool>)
-ResolutionErrors.dfy(1176,38): Error: set comprehensions in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce or compile a bounded set of values for 'o'
-ResolutionErrors.dfy(1178,24): Error: set comprehensions in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce or compile a bounded set of values for 'o'
-ResolutionErrors.dfy(1283,26): Error: the type of this variable is underspecified
-ResolutionErrors.dfy(1284,31): Error: the type of this variable is underspecified
-ResolutionErrors.dfy(1285,29): Error: the type of this variable is underspecified
-ResolutionErrors.dfy(1295,34): Error: the type of this variable is underspecified
-ResolutionErrors.dfy(1311,21): Error: Undeclared top-level type or type parameter: X (did you forget to qualify a name or declare a module import 'opened?')
-ResolutionErrors.dfy(1312,24): Error: Undeclared top-level type or type parameter: X (did you forget to qualify a name or declare a module import 'opened?')
-ResolutionErrors.dfy(1349,16): Error: in a ghost context, only ghost fields can be mentioned as modifies frame targets (y)
-ResolutionErrors.dfy(1359,18): Error: in a ghost context, only ghost fields can be mentioned as modifies frame targets (x)
-ResolutionErrors.dfy(1387,15): Error: The name Inner ambiguously refers to a type in one of the modules A, B (try qualifying the type name with the module name)
-ResolutionErrors.dfy(1397,29): Error: ghost variables are allowed only in specification contexts
-ResolutionErrors.dfy(1399,49): Error: ghost variables are allowed only in specification contexts
-ResolutionErrors.dfy(1399,54): Error: ghost variables are allowed only in specification contexts
-ResolutionErrors.dfy(1420,11): Error: name of type (X) is used as a variable
-ResolutionErrors.dfy(1420,16): Error: name of type (X) is used as a variable
-ResolutionErrors.dfy(1421,11): Error: name of module (Y) is used as a variable
-ResolutionErrors.dfy(1421,16): Error: name of module (Y) is used as a variable
-ResolutionErrors.dfy(1422,11): Error: name of type (X) is used as a variable
-ResolutionErrors.dfy(1422,13): Error: second argument to "in" must be a set, multiset, or sequence with elements of type #type, or a map with domain #type (instead got map<real, string>)
-ResolutionErrors.dfy(1423,11): Error: name of module (Y) is used as a variable
-ResolutionErrors.dfy(1423,13): Error: second argument to "in" must be a set, multiset, or sequence with elements of type #module, or a map with domain #module (instead got map<real, string>)
-ResolutionErrors.dfy(1428,16): Error: name of type (X) is used as a variable
-ResolutionErrors.dfy(1428,13): Error: arguments must have the same type (got int and #type)
-ResolutionErrors.dfy(1429,16): Error: name of module (Y) is used as a variable
-ResolutionErrors.dfy(1429,13): Error: arguments must have the same type (got int and #module)
-ResolutionErrors.dfy(1430,4): Error: name of type (X) is used as a variable
-ResolutionErrors.dfy(1431,4): Error: name of module (Y) is used as a variable
-ResolutionErrors.dfy(1440,11): Error: type of RHS of assign-such-that statement must be boolean (got int)
-ResolutionErrors.dfy(1441,9): Error: type of RHS of assign-such-that statement must be boolean (got int)
-ResolutionErrors.dfy(1442,13): Error: type of RHS of assign-such-that statement must be boolean (got int)
-ResolutionErrors.dfy(1445,15): Error: type of RHS of let-such-that expression must be boolean (got int)
-ResolutionErrors.dfy(1488,20): Error: calls to methods with side-effects are not allowed inside a hint
-ResolutionErrors.dfy(1510,18): Error: a hint is not allowed to update heap locations
-ResolutionErrors.dfy(1511,23): Error: a hint is not allowed to update heap locations
-ResolutionErrors.dfy(1512,20): Error: calls to methods with side-effects are not allowed inside a hint
-ResolutionErrors.dfy(1515,21): Error: a while statement used inside a hint is not allowed to have a modifies clause
-ResolutionErrors.dfy(1497,24): Error: only ghost methods can be called from this context
-ResolutionErrors.dfy(1510,18): Error: Assignment to non-ghost field is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)
-ResolutionErrors.dfy(1539,18): Error: a hint is not allowed to update heap locations
-ResolutionErrors.dfy(1540,23): Error: a hint is not allowed to update heap locations
-ResolutionErrors.dfy(1541,11): Error: calls to methods with side-effects are not allowed inside a hint
-ResolutionErrors.dfy(1544,21): Error: a while statement used inside a hint is not allowed to have a modifies clause
-ResolutionErrors.dfy(1532,24): Error: only ghost methods can be called from this context
-ResolutionErrors.dfy(1539,18): Error: Assignment to non-ghost field is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)
-ResolutionErrors.dfy(1568,20): Error: only ghost methods can be called from this context
-ResolutionErrors.dfy(1461,29): Error: only ghost methods can be called from this context
-ResolutionErrors.dfy(1463,17): Error: calls to methods with side-effects are not allowed inside a hint
-ResolutionErrors.dfy(1579,16): Error: 'decreases *' is not allowed on ghost loops
-ResolutionErrors.dfy(1597,12): Error: trying to break out of more loop levels than there are enclosing loops
-ResolutionErrors.dfy(1623,16): Error: ghost fields are allowed only in specification contexts
-ResolutionErrors.dfy(1630,9): Error: ghost variables are allowed only in specification contexts
-ResolutionErrors.dfy(1636,4): Error: non-ghost variable cannot be assigned a value that depends on a ghost
-ResolutionErrors.dfy(1653,8): Error: print statement is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)
-ResolutionErrors.dfy(1662,26): Error: ghost variables are allowed only in specification contexts
-ResolutionErrors.dfy(488,2): Error: More than one anonymous constructor
+ResolutionErrors.dfy(241,27): Error: ghost-context break statement is not allowed to break out of non-ghost structure
+ResolutionErrors.dfy(264,12): Error: ghost-context break statement is not allowed to break out of non-ghost loop
+ResolutionErrors.dfy(278,12): Error: ghost-context break statement is not allowed to break out of non-ghost loop
+ResolutionErrors.dfy(283,8): Error: return statement is not allowed in this context (because it is guarded by a specification-only expression)
+ResolutionErrors.dfy(362,15): Error: ghost variables are allowed only in specification contexts
+ResolutionErrors.dfy(444,13): Error: calls to methods with side-effects are not allowed inside a hint
+ResolutionErrors.dfy(446,16): Error: a hint is not allowed to update heap locations
+ResolutionErrors.dfy(448,12): Error: a hint is not allowed to update a variable declared outside the hint
+ResolutionErrors.dfy(535,7): Error: RHS (of type List<A>) not assignable to LHS (of type List<B>)
+ResolutionErrors.dfy(540,7): Error: RHS (of type List<A>) not assignable to LHS (of type List<B>)
+ResolutionErrors.dfy(554,23): Error: type of case bodies do not agree (found Tree<_T1,_T0>, previous types Tree<_T0,_T1>)
+ResolutionErrors.dfy(566,24): Error: Wrong number of type arguments (0 instead of 2) passed to datatype: Tree
+ResolutionErrors.dfy(592,25): Error: the type of this variable is underspecified
+ResolutionErrors.dfy(592,23): Error: type variable 'T' in the function call to 'P' could not be determined
+ResolutionErrors.dfy(599,25): Error: the type of this variable is underspecified
+ResolutionErrors.dfy(599,23): Error: type variable 'T' in the function call to 'P' could not be determined
+ResolutionErrors.dfy(612,13): Error: 'new' is not allowed in ghost contexts
+ResolutionErrors.dfy(613,9): Error: 'new' is not allowed in ghost contexts
+ResolutionErrors.dfy(620,14): Error: new allocation not supported in forall statements
+ResolutionErrors.dfy(625,11): Error: the body of the enclosing forall statement is not allowed to update heap locations
+ResolutionErrors.dfy(625,14): Error: new allocation not allowed in ghost context
+ResolutionErrors.dfy(635,23): Error: 'new' is not allowed in ghost contexts
+ResolutionErrors.dfy(642,15): Error: 'new' is not allowed in ghost contexts
+ResolutionErrors.dfy(651,17): Error: 'new' is not allowed in ghost contexts
+ResolutionErrors.dfy(669,21): Error: the type of this variable is underspecified
+ResolutionErrors.dfy(709,22): Error: 'decreases *' is not allowed on ghost loops
+ResolutionErrors.dfy(742,22): Error: 'decreases *' is not allowed on ghost loops
+ResolutionErrors.dfy(773,19): Error: calls to methods with side-effects are not allowed inside a statement expression
+ResolutionErrors.dfy(774,20): Error: wrong number of method result arguments (got 0, expected 1)
+ResolutionErrors.dfy(786,23): Error: function calls are allowed only in specification contexts (consider declaring the function a 'function method')
+ResolutionErrors.dfy(796,4): Error: ghost variables are allowed only in specification contexts
+ResolutionErrors.dfy(807,36): Error: ghost variables are allowed only in specification contexts
+ResolutionErrors.dfy(816,17): Error: function calls are allowed only in specification contexts (consider declaring the function a 'function method')
+ResolutionErrors.dfy(830,6): Error: RHS (of type B) not assignable to LHS (of type object)
+ResolutionErrors.dfy(831,6): Error: RHS (of type int) not assignable to LHS (of type object)
+ResolutionErrors.dfy(832,6): Error: RHS (of type B) not assignable to LHS (of type object)
+ResolutionErrors.dfy(837,6): Error: RHS (of type G) not assignable to LHS (of type object)
+ResolutionErrors.dfy(838,6): Error: RHS (of type Dt) not assignable to LHS (of type object)
+ResolutionErrors.dfy(839,6): Error: RHS (of type CoDt) not assignable to LHS (of type object)
+ResolutionErrors.dfy(901,4): Error: LHS of array assignment must denote an array element (found seq<int>)
+ResolutionErrors.dfy(902,4): Error: LHS of array assignment must denote an array element (found seq<int>)
+ResolutionErrors.dfy(907,10): Error: LHS of assignment must denote a mutable field
+ResolutionErrors.dfy(908,10): Error: LHS of assignment must denote a mutable field
+ResolutionErrors.dfy(909,9): Error: cannot assign to a range of array elements (try the 'forall' statement)
+ResolutionErrors.dfy(910,9): Error: cannot assign to a range of array elements (try the 'forall' statement)
+ResolutionErrors.dfy(911,5): Error: cannot assign to a range of array elements (try the 'forall' statement)
+ResolutionErrors.dfy(912,5): Error: cannot assign to a range of array elements (try the 'forall' statement)
+ResolutionErrors.dfy(993,11): Error: Wrong number of type arguments (2 instead of 1) passed to array type: array3
+ResolutionErrors.dfy(994,11): Error: Wrong number of type arguments (2 instead of 1) passed to class: C
+ResolutionErrors.dfy(1005,7): Error: Duplicate name of top-level declaration: BadSyn2
+ResolutionErrors.dfy(1002,17): Error: Wrong number of type arguments (0 instead of 1) passed to datatype: List
+ResolutionErrors.dfy(1003,17): Error: Undeclared top-level type or type parameter: badName (did you forget to qualify a name or declare a module import 'opened?')
+ResolutionErrors.dfy(1004,22): Error: Undeclared top-level type or type parameter: X (did you forget to qualify a name or declare a module import 'opened?')
+ResolutionErrors.dfy(1011,7): Error: Cycle among redirecting types (newtypes, type synonyms): A -> A
+ResolutionErrors.dfy(1014,7): Error: Cycle among redirecting types (newtypes, type synonyms): A -> B -> A
+ResolutionErrors.dfy(1018,7): Error: Cycle among redirecting types (newtypes, type synonyms): A -> B -> A
+ResolutionErrors.dfy(1027,11): Error: because of cyclic dependencies among constructor argument types, no instances of datatype 'D' can be constructed
+ResolutionErrors.dfy(1030,7): Error: Cycle among redirecting types (newtypes, type synonyms): A -> B -> A
+ResolutionErrors.dfy(1035,7): Error: Cycle among redirecting types (newtypes, type synonyms): A -> B -> A
+ResolutionErrors.dfy(1054,21): Error: unresolved identifier: x
+ResolutionErrors.dfy(1061,35): Error: Wrong number of type arguments (2 instead of 1) passed to opaque type: P
+ResolutionErrors.dfy(1073,13): Error: Undeclared top-level type or type parameter: BX (did you forget to qualify a name or declare a module import 'opened?')
+ResolutionErrors.dfy(1083,6): Error: RHS (of type P<int>) not assignable to LHS (of type P<bool>)
+ResolutionErrors.dfy(1088,6): Error: RHS (of type P<A>) not assignable to LHS (of type P<B>)
+ResolutionErrors.dfy(1093,6): Error: RHS (of type P<A>) not assignable to LHS (of type P<int>)
+ResolutionErrors.dfy(1094,6): Error: RHS (of type P<int>) not assignable to LHS (of type P<A>)
+ResolutionErrors.dfy(1099,13): Error: arguments must have the same type (got P<int> and P<X>)
+ResolutionErrors.dfy(1100,13): Error: arguments must have the same type (got P<bool> and P<X>)
+ResolutionErrors.dfy(1101,13): Error: arguments must have the same type (got P<int> and P<bool>)
+ResolutionErrors.dfy(1124,38): Error: set comprehensions in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce or compile a bounded set of values for 'o'
+ResolutionErrors.dfy(1126,24): Error: set comprehensions in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce or compile a bounded set of values for 'o'
+ResolutionErrors.dfy(1231,26): Error: the type of this variable is underspecified
+ResolutionErrors.dfy(1232,31): Error: the type of this variable is underspecified
+ResolutionErrors.dfy(1233,29): Error: the type of this variable is underspecified
+ResolutionErrors.dfy(1243,34): Error: the type of this variable is underspecified
+ResolutionErrors.dfy(1259,21): Error: Undeclared top-level type or type parameter: X (did you forget to qualify a name or declare a module import 'opened?')
+ResolutionErrors.dfy(1260,24): Error: Undeclared top-level type or type parameter: X (did you forget to qualify a name or declare a module import 'opened?')
+ResolutionErrors.dfy(1297,16): Error: in a ghost context, only ghost fields can be mentioned as modifies frame targets (y)
+ResolutionErrors.dfy(1307,18): Error: in a ghost context, only ghost fields can be mentioned as modifies frame targets (x)
+ResolutionErrors.dfy(1335,15): Error: The name Inner ambiguously refers to a type in one of the modules A, B (try qualifying the type name with the module name)
+ResolutionErrors.dfy(1345,29): Error: ghost variables are allowed only in specification contexts
+ResolutionErrors.dfy(1347,49): Error: ghost variables are allowed only in specification contexts
+ResolutionErrors.dfy(1347,54): Error: ghost variables are allowed only in specification contexts
+ResolutionErrors.dfy(1368,11): Error: name of type (X) is used as a variable
+ResolutionErrors.dfy(1368,16): Error: name of type (X) is used as a variable
+ResolutionErrors.dfy(1369,11): Error: name of module (Y) is used as a variable
+ResolutionErrors.dfy(1369,16): Error: name of module (Y) is used as a variable
+ResolutionErrors.dfy(1370,11): Error: name of type (X) is used as a variable
+ResolutionErrors.dfy(1370,13): Error: second argument to "in" must be a set, multiset, or sequence with elements of type #type, or a map with domain #type (instead got map<real, string>)
+ResolutionErrors.dfy(1371,11): Error: name of module (Y) is used as a variable
+ResolutionErrors.dfy(1371,13): Error: second argument to "in" must be a set, multiset, or sequence with elements of type #module, or a map with domain #module (instead got map<real, string>)
+ResolutionErrors.dfy(1376,16): Error: name of type (X) is used as a variable
+ResolutionErrors.dfy(1376,13): Error: arguments must have the same type (got int and #type)
+ResolutionErrors.dfy(1377,16): Error: name of module (Y) is used as a variable
+ResolutionErrors.dfy(1377,13): Error: arguments must have the same type (got int and #module)
+ResolutionErrors.dfy(1378,4): Error: name of type (X) is used as a variable
+ResolutionErrors.dfy(1379,4): Error: name of module (Y) is used as a variable
+ResolutionErrors.dfy(1388,11): Error: type of RHS of assign-such-that statement must be boolean (got int)
+ResolutionErrors.dfy(1389,9): Error: type of RHS of assign-such-that statement must be boolean (got int)
+ResolutionErrors.dfy(1390,13): Error: type of RHS of assign-such-that statement must be boolean (got int)
+ResolutionErrors.dfy(1393,15): Error: type of RHS of let-such-that expression must be boolean (got int)
+ResolutionErrors.dfy(1436,20): Error: calls to methods with side-effects are not allowed inside a hint
+ResolutionErrors.dfy(1458,18): Error: a hint is not allowed to update heap locations
+ResolutionErrors.dfy(1459,23): Error: a hint is not allowed to update heap locations
+ResolutionErrors.dfy(1460,20): Error: calls to methods with side-effects are not allowed inside a hint
+ResolutionErrors.dfy(1463,21): Error: a while statement used inside a hint is not allowed to have a modifies clause
+ResolutionErrors.dfy(1445,24): Error: only ghost methods can be called from this context
+ResolutionErrors.dfy(1458,18): Error: Assignment to non-ghost field is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)
+ResolutionErrors.dfy(1487,18): Error: a hint is not allowed to update heap locations
+ResolutionErrors.dfy(1488,23): Error: a hint is not allowed to update heap locations
+ResolutionErrors.dfy(1489,11): Error: calls to methods with side-effects are not allowed inside a hint
+ResolutionErrors.dfy(1492,21): Error: a while statement used inside a hint is not allowed to have a modifies clause
+ResolutionErrors.dfy(1480,24): Error: only ghost methods can be called from this context
+ResolutionErrors.dfy(1487,18): Error: Assignment to non-ghost field is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)
+ResolutionErrors.dfy(1516,20): Error: only ghost methods can be called from this context
+ResolutionErrors.dfy(1409,29): Error: only ghost methods can be called from this context
+ResolutionErrors.dfy(1411,17): Error: calls to methods with side-effects are not allowed inside a hint
+ResolutionErrors.dfy(1527,16): Error: 'decreases *' is not allowed on ghost loops
+ResolutionErrors.dfy(1545,12): Error: trying to break out of more loop levels than there are enclosing loops
+ResolutionErrors.dfy(1571,16): Error: ghost fields are allowed only in specification contexts
+ResolutionErrors.dfy(1578,9): Error: ghost variables are allowed only in specification contexts
+ResolutionErrors.dfy(1584,4): Error: non-ghost variable cannot be assigned a value that depends on a ghost
+ResolutionErrors.dfy(1601,8): Error: print statement is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)
+ResolutionErrors.dfy(1610,26): Error: ghost variables are allowed only in specification contexts
+ResolutionErrors.dfy(469,2): Error: More than one anonymous constructor
 ResolutionErrors.dfy(50,13): Error: 'this' is not allowed in a 'static' context
 ResolutionErrors.dfy(87,14): Error: the name 'Benny' denotes a datatype constructor, but does not do so uniquely; add an explicit qualification (for example, 'Abc.Benny')
 ResolutionErrors.dfy(92,14): Error: the name 'David' denotes a datatype constructor, but does not do so uniquely; add an explicit qualification (for example, 'Abc.David')
 ResolutionErrors.dfy(93,14): Error: the name 'David' denotes a datatype constructor, but does not do so uniquely; add an explicit qualification (for example, 'Abc.David')
 ResolutionErrors.dfy(95,14): Error: the name 'David' denotes a datatype constructor, but does not do so uniquely; add an explicit qualification (for example, 'Abc.David')
 ResolutionErrors.dfy(97,18): Error: wrong number of arguments to datatype constructor David (found 2, expected 1)
-ResolutionErrors.dfy(494,14): Error: when allocating an object of type 'YHWH', one of its constructor methods must be called
-ResolutionErrors.dfy(499,6): Error: when allocating an object of type 'Lucifer', one of its constructor methods must be called
-ResolutionErrors.dfy(500,6): Error: when allocating an object of type 'Lucifer', one of its constructor methods must be called
-ResolutionErrors.dfy(502,9): Error: class Lamb does not have an anonymous constructor
-ResolutionErrors.dfy(902,11): Error: a modifies-clause expression must denote an object or a collection of objects (instead got int)
-ResolutionErrors.dfy(906,14): Error: in a ghost context, only ghost fields can be mentioned as modifies frame targets (x)
-ResolutionErrors.dfy(909,12): Error: in a ghost context, only ghost fields can be mentioned as modifies frame targets (x)
-ResolutionErrors.dfy(917,14): Error: in a ghost context, only ghost fields can be mentioned as modifies frame targets (x)
-ResolutionErrors.dfy(927,18): Error: in a ghost context, only ghost fields can be mentioned as modifies frame targets (x)
-ResolutionErrors.dfy(938,16): Error: in a ghost context, only ghost fields can be mentioned as modifies frame targets (x)
-ResolutionErrors.dfy(1094,23): Error: unresolved identifier: x
-ResolutionErrors.dfy(1097,20): Error: unresolved identifier: x
-ResolutionErrors.dfy(1100,23): Error: unresolved identifier: x
-ResolutionErrors.dfy(1102,19): Error: unresolved identifier: x
-ResolutionErrors.dfy(1104,19): Error: unresolved identifier: x
+ResolutionErrors.dfy(475,14): Error: when allocating an object of type 'YHWH', one of its constructor methods must be called
+ResolutionErrors.dfy(480,6): Error: when allocating an object of type 'Lucifer', one of its constructor methods must be called
+ResolutionErrors.dfy(481,6): Error: when allocating an object of type 'Lucifer', one of its constructor methods must be called
+ResolutionErrors.dfy(483,9): Error: class Lamb does not have an anonymous constructor
+ResolutionErrors.dfy(850,11): Error: a modifies-clause expression must denote an object or a collection of objects (instead got int)
+ResolutionErrors.dfy(854,14): Error: in a ghost context, only ghost fields can be mentioned as modifies frame targets (x)
+ResolutionErrors.dfy(857,12): Error: in a ghost context, only ghost fields can be mentioned as modifies frame targets (x)
+ResolutionErrors.dfy(865,14): Error: in a ghost context, only ghost fields can be mentioned as modifies frame targets (x)
+ResolutionErrors.dfy(875,18): Error: in a ghost context, only ghost fields can be mentioned as modifies frame targets (x)
+ResolutionErrors.dfy(886,16): Error: in a ghost context, only ghost fields can be mentioned as modifies frame targets (x)
+ResolutionErrors.dfy(1042,23): Error: unresolved identifier: x
+ResolutionErrors.dfy(1045,20): Error: unresolved identifier: x
+ResolutionErrors.dfy(1048,23): Error: unresolved identifier: x
+ResolutionErrors.dfy(1050,19): Error: unresolved identifier: x
+ResolutionErrors.dfy(1052,19): Error: unresolved identifier: x
 ResolutionErrors.dfy(12,16): Error: 'decreases *' is not allowed on ghost loops
 ResolutionErrors.dfy(24,11): Error: array selection requires an array2 (got array3<T>)
 ResolutionErrors.dfy(25,12): Error: sequence/array/multiset/map selection requires a sequence, array, multiset, or map (got array3<T>)
@@ -167,36 +167,36 @@ ResolutionErrors.dfy(62,14): Error: accessing member 'M' requires an instance ex
 ResolutionErrors.dfy(63,7): Error: unresolved identifier: N
 ResolutionErrors.dfy(66,8): Error: non-function expression (of type int) is called with parameters
 ResolutionErrors.dfy(67,14): Error: member 'z' does not exist in type 'Global'
-ResolutionErrors.dfy(311,4): Error: label shadows an enclosing label
-ResolutionErrors.dfy(316,2): Error: duplicate label
-ResolutionErrors.dfy(342,4): Error: when allocating an object of type 'ClassWithConstructor', one of its constructor methods must be called
-ResolutionErrors.dfy(343,4): Error: when allocating an object of type 'ClassWithConstructor', one of its constructor methods must be called
-ResolutionErrors.dfy(345,9): Error: a constructor is allowed to be called only when an object is being allocated
-ResolutionErrors.dfy(359,16): Error: arguments must have the same type (got int and DTD_List)
-ResolutionErrors.dfy(360,16): Error: arguments must have the same type (got DTD_List and int)
-ResolutionErrors.dfy(361,25): Error: arguments must have the same type (got bool and int)
-ResolutionErrors.dfy(400,5): Error: incorrect type of method in-parameter 1 (expected GenericClass<int>, got GenericClass<bool>)
-ResolutionErrors.dfy(412,18): Error: incorrect type of datatype constructor argument (found GList<_T0>, expected GList<int>)
-ResolutionErrors.dfy(420,6): Error: arguments to + must be of a numeric type or a collection type (instead got bool)
-ResolutionErrors.dfy(425,6): Error: all lines in a calculation must have the same type (got int after bool)
-ResolutionErrors.dfy(428,6): Error: first argument to ==> must be of type bool (instead got int)
-ResolutionErrors.dfy(428,6): Error: second argument to ==> must be of type bool (instead got int)
-ResolutionErrors.dfy(429,10): Error: first argument to ==> must be of type bool (instead got int)
-ResolutionErrors.dfy(429,10): Error: second argument to ==> must be of type bool (instead got int)
-ResolutionErrors.dfy(434,10): Error: first argument to ==> must be of type bool (instead got int)
-ResolutionErrors.dfy(434,10): Error: second argument to ==> must be of type bool (instead got int)
-ResolutionErrors.dfy(603,18): Error: unresolved identifier: w
-ResolutionErrors.dfy(714,11): Error: lemmas are not allowed to have modifies clauses
-ResolutionErrors.dfy(976,9): Error: unresolved identifier: s
-ResolutionErrors.dfy(987,32): Error: RHS (of type (int,int,real)) not assignable to LHS (of type (int,real,int))
-ResolutionErrors.dfy(988,37): Error: RHS (of type (int,real,int)) not assignable to LHS (of type (int,real,int,real))
-ResolutionErrors.dfy(994,16): Error: condition is expected to be of type bool, but is int
-ResolutionErrors.dfy(995,16): Error: member 3 does not exist in datatype _tuple#3
-ResolutionErrors.dfy(995,26): Error: member x does not exist in datatype _tuple#2
-ResolutionErrors.dfy(1018,15): Error: arguments to / must have the same type (got real and int)
-ResolutionErrors.dfy(1019,10): Error: second argument to % must be of type int (instead got real)
-ResolutionErrors.dfy(1164,8): Error: new cannot be applied to a trait
-ResolutionErrors.dfy(1185,13): Error: first argument to / must be of numeric type (instead got set<bool>)
-ResolutionErrors.dfy(1192,18): Error: a call to a possibly non-terminating method is allowed only if the calling method is also declared (with 'decreases *') to be possibly non-terminating
-ResolutionErrors.dfy(1207,14): Error: a possibly infinite loop is allowed only if the enclosing method is declared (with 'decreases *') to be possibly non-terminating
+ResolutionErrors.dfy(301,4): Error: label shadows an enclosing label
+ResolutionErrors.dfy(306,2): Error: duplicate label
+ResolutionErrors.dfy(332,4): Error: when allocating an object of type 'ClassWithConstructor', one of its constructor methods must be called
+ResolutionErrors.dfy(333,4): Error: when allocating an object of type 'ClassWithConstructor', one of its constructor methods must be called
+ResolutionErrors.dfy(335,9): Error: a constructor is allowed to be called only when an object is being allocated
+ResolutionErrors.dfy(349,16): Error: arguments must have the same type (got int and DTD_List)
+ResolutionErrors.dfy(350,16): Error: arguments must have the same type (got DTD_List and int)
+ResolutionErrors.dfy(351,25): Error: arguments must have the same type (got bool and int)
+ResolutionErrors.dfy(387,5): Error: incorrect type of method in-parameter 1 (expected GenericClass<int>, got GenericClass<bool>)
+ResolutionErrors.dfy(399,18): Error: incorrect type of datatype constructor argument (found GList<_T0>, expected GList<int>)
+ResolutionErrors.dfy(407,6): Error: arguments to + must be of a numeric type or a collection type (instead got bool)
+ResolutionErrors.dfy(412,6): Error: all lines in a calculation must have the same type (got int after bool)
+ResolutionErrors.dfy(415,6): Error: first argument to ==> must be of type bool (instead got int)
+ResolutionErrors.dfy(415,6): Error: second argument to ==> must be of type bool (instead got int)
+ResolutionErrors.dfy(416,10): Error: first argument to ==> must be of type bool (instead got int)
+ResolutionErrors.dfy(416,10): Error: second argument to ==> must be of type bool (instead got int)
+ResolutionErrors.dfy(421,10): Error: first argument to ==> must be of type bool (instead got int)
+ResolutionErrors.dfy(421,10): Error: second argument to ==> must be of type bool (instead got int)
+ResolutionErrors.dfy(580,18): Error: unresolved identifier: w
+ResolutionErrors.dfy(683,11): Error: lemmas are not allowed to have modifies clauses
+ResolutionErrors.dfy(924,9): Error: unresolved identifier: s
+ResolutionErrors.dfy(935,32): Error: RHS (of type (int,int,real)) not assignable to LHS (of type (int,real,int))
+ResolutionErrors.dfy(936,37): Error: RHS (of type (int,real,int)) not assignable to LHS (of type (int,real,int,real))
+ResolutionErrors.dfy(942,16): Error: condition is expected to be of type bool, but is int
+ResolutionErrors.dfy(943,16): Error: member 3 does not exist in datatype _tuple#3
+ResolutionErrors.dfy(943,26): Error: member x does not exist in datatype _tuple#2
+ResolutionErrors.dfy(966,15): Error: arguments to / must have the same type (got real and int)
+ResolutionErrors.dfy(967,10): Error: second argument to % must be of type int (instead got real)
+ResolutionErrors.dfy(1112,8): Error: new cannot be applied to a trait
+ResolutionErrors.dfy(1133,13): Error: first argument to / must be of numeric type (instead got set<bool>)
+ResolutionErrors.dfy(1140,18): Error: a call to a possibly non-terminating method is allowed only if the calling method is also declared (with 'decreases *') to be possibly non-terminating
+ResolutionErrors.dfy(1155,14): Error: a possibly infinite loop is allowed only if the enclosing method is declared (with 'decreases *') to be possibly non-terminating
 201 resolution/type errors detected in ResolutionErrors.dfy

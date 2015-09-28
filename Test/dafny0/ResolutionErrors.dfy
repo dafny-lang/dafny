@@ -150,14 +150,6 @@ class GhostTests {
     r := r + g;  // fine, for the same reason
     r := N(20, 20);  // error: call to non-ghost method from ghost method is not okay
   }
-  ghost method NiceTry()
-    ensures false;
-  {
-    while (true)
-//KRML-confirmed      decreases *;  // error:  not allowed in ghost context
-    {
-    }
-  }
   ghost method BreaksAreFineHere(t: int)
   {
     var n := 0;
@@ -227,8 +219,6 @@ class GhostTests {
           label IfNest:
           if (p == 67) {
             break break;  // fine, since this is not a ghost context
-          } else if (*) {
-//KRML-confirmed            break break break;  // error: tries to break out of more loop levels than there are
           }
           q := q + 1;
         }
@@ -363,9 +353,6 @@ method DatatypeDestructors(d: DTD_List) {
       ghost var g0 := d.g;  // fine
   }
 }
-method DatatypeDestructors_Ghost(d: DTD_List) {
-  var g1 := d.g;  // error: cannot use ghost member in non-ghost code//KRML-confirmed
-}
 
 // ------------------- print statements ---------------------------------------
 module GhostPrintAttempts {
@@ -435,47 +422,41 @@ method TestCalc(m: int, n: int, a: bool, b: bool)
     ==> n + m + 2; // error: ==> operator requires boolean lines
   }
 }
-method TestCalc_Ghost(m: int, n: int, a: bool, b: bool)
-{
-  calc {
-    n + m;
-    { print n + m; } // error: non-ghost statements are not allowed in hints//KRML-confirmed
-    m + n;
-  }
-}
+
 module MyOwnModule {
-class SideEffectChecks {
-  ghost var ycalc: int;
+  class SideEffectChecks {
+    ghost var ycalc: int;
 
-  ghost method Mod(a: int)
-    modifies this;
-    ensures ycalc == a;
-  {
-    ycalc := a;
-  }
+    ghost method Mod(a: int)
+      modifies this;
+      ensures ycalc == a;
+    {
+      ycalc := a;
+    }
 
-  ghost method Bad()
-    modifies this;
-    ensures 0 == 1;
-  {
-    var x: int;
-    calc {
-      0;
-      { Mod(0); }     // error: methods with side-effects are not allowed
-      ycalc;
-      { ycalc := 1; } // error: heap updates are not allowed
-      1;
-      { x := 1; }     // error: updates to locals defined outside of the hint are not allowed
-      x;
-      {
-        var x: int;
-        x := 1;       // this is OK
+    ghost method Bad()
+      modifies this;
+      ensures 0 == 1;
+    {
+      var x: int;
+      calc {
+        0;
+        { Mod(0); }     // error: methods with side-effects are not allowed
+        ycalc;
+        { ycalc := 1; } // error: heap updates are not allowed
+        1;
+        { x := 1; }     // error: updates to locals defined outside of the hint are not allowed
+        x;
+        {
+          var x: int;
+          x := 1;       // this is OK
+        }
+        1;
       }
-      1;
     }
   }
 }
-}
+  
 // ------------------- nameless constructors ------------------------------
 
 class YHWH {
@@ -523,13 +504,9 @@ method AssignSuchThatFromGhost()
   var x: int;
   ghost var g: int;
 
-  x := g;  // error: ghost cannot flow into non-ghost//KRML-confirmed
-
   x := *;
   assume x == g;  // this mix of ghosts and non-ghosts is cool (but, of course,
                   // the compiler will complain)
-
-  x :| x == g;  // error: left-side has non-ghost, so RHS must be non-ghost as well//KRML-confirmed
 
   x :| assume x == g;  // this is cool, since it's an assume (but, of course, the
                        // compiler will complain)
@@ -603,10 +580,6 @@ method LetSuchThat(ghost z: int, n: nat)
   x := var w := 2*w; w;  // error: the 'w' in the RHS of the assignment is not in scope
   ghost var xg := var w :| w == 2*w; w;
 }
-method LetSuchThat_Ghost(ghost z: int, n: nat)
-{
-  var x := var y :| y < z; y;  // error: contraint depend on ghost (z)//KRML-confirmed
-}
 
 // ------------ quantified variables whose types are not inferred ----------
 
@@ -677,10 +650,6 @@ module GhostAllocationTests {
       5;
       { var y := new G; }  // error: 'new' not allowed in ghost contexts
       2 + 3;
-      { if n != 0 { GhostNew4(n-1); } }  // error: cannot call non-ghost method in a ghost context//KRML-confirmed
-      1 + 4;
-      { GhostNew5(g); }  // error: cannot call method with nonempty modifies//KRML-confirmed
-      -5 + 10;
     }
   }
 
@@ -730,22 +699,11 @@ module StatementsInExpressions {
     {
     }
 
-    ghost method M()
-      modifies this;
-    {
-      calc {
-        5;
-        { SideEffect(); }  // error: cannot call method with side effects//KRML
-        5;
-      }
-    }
-
     function F(): int
     {
       calc {
         6;
         { assert 6 < 8; }
-        { NonGhostMethod(); }  // error: cannot call non-ghost method//KRML-confirmed
         { var x := 8;
           while x != 0
             decreases *;  // error: cannot use 'decreases *' in a ghost context
@@ -759,12 +717,8 @@ module StatementsInExpressions {
             x := x - 1;
           }
         }
-        { MyField := 12; }  // error: cannot assign to a field//KRML-confirmed
-        { MyGhostField := 12; }  // error: cannot assign to any field//KRML-confirmed
-        { SideEffect(); }  // error: cannot call (ghost) method with a modifies clause//KRML-confirmed
         { var x := 8;
           while x != 0
-            modifies this;  // error: cannot use a modifies clause on a loop//KRML-confirmed
           {
             x := x - 1;
           }
@@ -783,7 +737,6 @@ module StatementsInExpressions {
       calc {
         6;
         { assert 6 < 8; }
-        { NonGhostMethod(); }  // error: cannot call non-ghost method//KRML-confirmed
         { var x := 8;
           while x != 0
             decreases *;  // error: cannot use 'decreases *' in a ghost context
@@ -791,12 +744,8 @@ module StatementsInExpressions {
             x := x - 1;
           }
         }
-        { MyField := 12; }  // error: cannot assign to a field//KRML-confirmed
-        { MyGhostField := 12; }  // error: cannot assign to any field//KRML-confirmed
-        { M(); }  // error: cannot call (ghost) method with a modifies clause//KRML-confirmed
         { var x := 8;
           while x != 0
-            modifies this;  // error: cannot use a modifies clause on a loop//KRML-confirmed
           {
             x := x - 1;
           }
@@ -822,7 +771,6 @@ module StatementsInExpressions {
     {
       MyLemma();
       MyGhostMethod();   // error: modifi2es state
-      OrdinaryMethod();  // error: not a ghost//KRML-confirmed
       OutParamMethod();  // error: has out-parameters
       10
     }
@@ -1458,9 +1406,9 @@ module GhostTests {
     calc {
       5;
       2 + 3;
-      { if n != 0 { GhostNew4(n-1); } }  // error: cannot call non-ghost method in a ghost context//ADD:680
+      { if n != 0 { GhostNew4(n-1); } }  // error: cannot call non-ghost method in a ghost context
       1 + 4;
-      { GhostNew5(g); }  // error: cannot call method with nonempty modifies//ADD:682
+      { GhostNew5(g); }  // error: cannot call method with nonempty modifies
       -5 + 10;
     }
   }
@@ -1485,7 +1433,7 @@ module GhostTests {
     {
       calc {
         5;
-        { SideEffect(); }  // error: cannot call method with side effects//ADD:738
+        { SideEffect(); }  // error: cannot call method with side effects
         5;
       }
     }
@@ -1494,7 +1442,7 @@ module GhostTests {
       calc {
         6;
         { assert 6 < 8; }
-        { NonGhostMethod(); }  // error: cannot call non-ghost method//ADD:748
+        { NonGhostMethod(); }  // error: cannot call non-ghost method
         { var x := 8;
           while x != 0
           {
@@ -1507,12 +1455,12 @@ module GhostTests {
             x := x - 1;
           }
         }
-        { MyField := 12; }  // error: cannot assign to a field, and especially not a non-ghost field//ADD:762
-        { MyGhostField := 12; }  // error: cannot assign to any field//ADD:763
-        { SideEffect(); }  // error: cannot call (ghost) method with a modifies clause//ADD:764
+        { MyField := 12; }  // error: cannot assign to a field, and especially not a non-ghost field
+        { MyGhostField := 12; }  // error: cannot assign to any field
+        { SideEffect(); }  // error: cannot call (ghost) method with a modifies clause
         { var x := 8;
           while x != 0
-            modifies this;  // error: cannot use a modifies clause on a loop//ADD:767
+            modifies this;  // error: cannot use a modifies clause on a loop
           {
             x := x - 1;
           }
@@ -1529,19 +1477,19 @@ module GhostTests {
       calc {
         6;
         { assert 6 < 8; }
-        { NonGhostMethod(); }  // error: cannot call non-ghost method//ADD:786
+        { NonGhostMethod(); }  // error: cannot call non-ghost method
         { var x := 8;
           while x != 0
           {
             x := x - 1;
           }
         }
-        { MyField := 12; }  // error: cannot assign to a field, and especially not a non-ghost field//ADD:794
-        { MyGhostField := 12; }  // error: cannot assign to any field//ADD:795
-        { M(); }  // error: cannot call (ghost) method with a modifies clause//ADD:796
+        { MyField := 12; }  // error: cannot assign to a field, and especially not a non-ghost field
+        { MyGhostField := 12; }  // error: cannot assign to any field
+        { M(); }  // error: cannot call (ghost) method with a modifies clause
         { var x := 8;
           while x != 0
-            modifies this;  // error: cannot use a modifies clause on a loop//ADD:799
+            modifies this;  // error: cannot use a modifies clause on a loop
           {
             x := x - 1;
           }
@@ -1565,7 +1513,7 @@ module GhostTests {
     function UseLemma(): int
     {
       MyLemma();
-      OrdinaryMethod();  // error: not a ghost//ADD:825
+      OrdinaryMethod();  // error: not a ghost
       10
     }
   }
@@ -1576,7 +1524,7 @@ module EvenMoreGhostTests {
     ensures false;
   {
     while (true)
-      decreases *;  // error:  not allowed in ghost context//ADD:157
+      decreases *;  // error:  not allowed in ghost context
     {
     }
   }
@@ -1594,7 +1542,7 @@ module EvenMoreGhostTests {
           if (p == 67) {
             break break;  // fine, since this is not a ghost context
           } else if (*) {
-            break break break;  // error: tries to break out of more loop levels than there are//ADD:231
+            break break break;  // error: tries to break out of more loop levels than there are
           }
         }
       }
@@ -1620,20 +1568,20 @@ module BadGhostTransfer {
   datatype DTD_List = DTD_Nil | DTD_Cons(Car: int, Cdr: DTD_List, ghost g: int)
 
   method DatatypeDestructors_Ghost(d: DTD_List) {
-    var g1 := d.g;  // error: cannot use ghost member in non-ghost code//ADD:367
+    var g1 := d.g;  // error: cannot use ghost member in non-ghost code
   }
   method AssignSuchThatFromGhost()
   {
     var x: int;
     ghost var g: int;
 
-    x := g;  // error: ghost cannot flow into non-ghost//ADD:526
+    x := g;  // error: ghost cannot flow into non-ghost
 
     x := *;
     assume x == g;  // this mix of ghosts and non-ghosts is cool (but, of course,
                     // the compiler will complain)
 
-    x :| x == g;  // error: left-side has non-ghost, so RHS must be non-ghost as well//ADD:532
+    x :| x == g;  // error: left-side has non-ghost, so RHS must be non-ghost as well
 
     x :| assume x == g;  // this is cool, since it's an assume (but, of course, the
                          // compiler will complain)
@@ -1650,7 +1598,7 @@ module MoreGhostPrintAttempts {
   {
     calc {
       n + m;
-      { print n + m; } // error: non-ghost statements are not allowed in hints//ADD:442
+      { print n + m; } // error: non-ghost statements are not allowed in hints
       m + n;
     }
   }
@@ -1659,6 +1607,6 @@ module MoreGhostPrintAttempts {
 module MoreLetSuchThatExpr {
   method LetSuchThat_Ghost(ghost z: int, n: nat)
   {
-    var x := var y :| y < z; y;  // error: contraint depend on ghost (z)//ADD:608
+    var x := var y :| y < z; y;  // error: contraint depend on ghost (z)
   }
 }
