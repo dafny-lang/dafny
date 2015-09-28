@@ -36,7 +36,6 @@ colemma NatCasesAux(a: Nat)
   ensures IsInfinity(a)
 {
   assert a != Num(0);
-  assert a != Z;
   if IsFinite(a.pred) {
     // going for a contradiction
     var m:nat :| a.pred == Num(m);
@@ -158,25 +157,18 @@ lemma CoLeq1'(a: Nat, b: Nat) returns (m: nat, n: nat)
   if !IsInfinity(b) {
     NatCases(b);
     n :| b == Num(n);
-    CoLeq1Aux(a, n);
-    m :| a == Num(m) && m <= n;
+    m := CoLeq1Aux(a, n);
   }
 }
 
-lemma CoLeq1Aux(a: Nat, n: nat)
+lemma CoLeq1Aux(a: Nat, n: nat) returns (m: nat)
   requires CoLeq(a, Num(n))
-  ensures exists m:nat :: a == Num(m) && m <= n
+  ensures a == Num(m) && m <= n
 {
-  var b := Num(n);
-  assert a == Z ||
-         (a.S? && b.S? && CoLeq(a.pred, b.pred));
   if a == Z {
-    assert a == Num(0);
+    m := 0;
   } else {
-    assert b.pred == Num(n-1);
-    assert a.S? && b.S? && CoLeq(a.pred, b.pred);
-    CoLeq1Aux(a.pred, n-1);
-    var m:nat :| a.pred == Num(m) && m <= n-1;
-    assert a == Num(m+1) && m+1 <= n-1+1;
+    m := CoLeq1Aux(a.pred, n-1);
+    m := m + 1;
   }
 }
