@@ -39,7 +39,7 @@ datatype ReverseOrder_TheCounterpart<T> =
 
 // ---------------------
 
-class ArrayTests {
+module ArrayTests {
   ghost method G(a: array<int>)
     requires a != null && 10 <= a.Length;
     modifies a;
@@ -167,31 +167,33 @@ module Expl_Module {
 
 // --------------------- more ghost tests, for assign-such-that statements
 
-method M()
-{
-  ghost var b: bool;
-  ghost var k: int, l: int;
-  var m: int;
+module MoreGhostTests {
+  method M()
+  {
+    ghost var b: bool;
+    ghost var k: int, l: int;
+    var m: int;
 
-  k :| k < 10;
-  k, m :| 0 <= k < m;  // error: LHS has non-ghost and RHS has ghost
-  m :| m < 10;
+    k :| k < 10;
+    k, m :| 0 <= k < m;  // error: LHS has non-ghost and RHS has ghost
+    m :| m < 10;
 
-  // Because of the ghost guard, these 'if' statements are ghost contexts, so only
-  // assignments to ghosts are allowed.
-  if (b) {
-    k :| k < 10;  // should be allowed
-    k, l :| 0 <= k < l;  // ditto
+    // Because of the ghost guard, these 'if' statements are ghost contexts, so only
+    // assignments to ghosts are allowed.
+    if (b) {
+      k :| k < 10;  // should be allowed
+      k, l :| 0 <= k < l;  // ditto
+    }
+    if (b) {
+      m :| m < 10;  // error: not allowed in ghost context
+      k, m :| 0 <= k < m;  // error: not allowed in ghost context
+    }
   }
-  if (b) {
-    m :| m < 10;  // error: not allowed in ghost context
-    k, m :| 0 <= k < m;  // error: not allowed in ghost context
-  }
-}
 
-ghost method GhostM() returns (x: int)
-{
-  x :| true;  // no problem (but there once was a problem with this case, where an error was generated for no reason)
+  ghost method GhostM() returns (x: int)
+  {
+    x :| true;  // no problem (but there once was a problem with this case, where an error was generated for no reason)
+  }
 }
 
 // ------------------ cycles that could arise from proxy assignments ---------

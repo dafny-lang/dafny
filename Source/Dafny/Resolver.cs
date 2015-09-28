@@ -1313,16 +1313,6 @@ namespace Microsoft.Dafny
       }
     }
 
-    private readonly List<SetComprehension> needFiniteBoundsChecks_SetComprehension = new List<SetComprehension>();
-    private readonly List<AssignSuchThatStmt> needBoundsDiscovery_AssignSuchThatStmt = new List<AssignSuchThatStmt>();
-    private readonly List<LetExpr> needFiniteBoundsChecks_LetSuchThatExpr = new List<LetExpr>();
-    public int NFBC_Count {
-      // provided just for the purpose of conveniently writing contracts for ResolveTopLevelDecl_Meat
-      get {
-        return needFiniteBoundsChecks_SetComprehension.Count + needFiniteBoundsChecks_LetSuchThatExpr.Count;
-      }
-    }
-
     static readonly List<NativeType> NativeTypes = new List<NativeType>() {
       new NativeType("byte", 0, 0x100, "", true),
       new NativeType("sbyte", -0x80, 0x80, "", true),
@@ -1338,12 +1328,22 @@ namespace Microsoft.Dafny
       Contract.Requires(declarations != null);
       Contract.Requires(cce.NonNullElements(datatypeDependencies));
       Contract.Requires(cce.NonNullElements(codatatypeDependencies));
-      Contract.Requires(NFBC_Count == 0);
       Contract.Requires(AllTypeConstraints.Count == 0);
-      Contract.Ensures(NFBC_Count == 0);
       Contract.Ensures(AllTypeConstraints.Count == 0);
 
       int prevErrorCount = reporter.Count(ErrorLevel.Error);
+
+      // ---------------------------------- Pass 0 ----------------------------------
+      // This pass resolves names, introduces (and may solve) type constraints, and
+      // builds the module's call graph.
+      // Some bounds are discovered during this pass [is this necessary? can they be
+      // moved to pass 1 like the other bounds discovery? --KRML], namely:
+      //   - forall statements
+      //   - quantifier expressions
+      //   - map comprehensions
+      // For 'newtype' declarations, it also checks that all types were fully
+      // determined.
+      // ----------------------------------------------------------------------------
 
       // Resolve the meat of classes and iterators, the definitions of type synonyms, and the type parameters of all top-level type declarations
       // First, resolve the newtype declarations and the constraint clauses, including filling in .ResolvedOp fields.  This is needed for the
@@ -1403,172 +1403,80 @@ namespace Microsoft.Dafny
         allTypeParameters.PopMarker();
       }
 
+      // ---------------------------------- Pass 1 ----------------------------------
+      // This pass:
+      // * checks that type inference was able to determine all types
+      // * fills in the .ResolvedOp field of binary expressions
+      // * discovers bounds for:
+      //     - set comprehensions
+      //     - assign-such-that statements
+      //     - compilable let-such-that expressions
+      //     - newtype constraints
+      // For each statement body that it successfully typed, this pass also:
+      // * computes ghost interests
+      // * determines/checks tail-recursion.
+      // ----------------------------------------------------------------------------
+
       Dictionary<string, NativeType> nativeTypeMap = new Dictionary<string, NativeType>();
       foreach (var nativeType in NativeTypes) {
         nativeTypeMap.Add(nativeType.Name, nativeType);
       }
-
       if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
         // Check that type inference went well everywhere; this will also fill in the .ResolvedOp field in binary expressions
         foreach (TopLevelDecl d in declarations) {
           if (d is IteratorDecl) {
             var iter = (IteratorDecl)d;
+            var prevErrCnt = reporter.Count(ErrorLevel.Error);
             iter.Members.Iter(CheckTypeInference_Member);
+            if (prevErrCnt == reporter.Count(ErrorLevel.Error)) {
+              iter.SubExpressions.Iter(e => CheckExpression(e, this, iter));
+            }
             if (iter.Body != null) {
               CheckTypeInference(iter.Body);
+              if (prevErrCnt == reporter.Count(ErrorLevel.Error)) {
+                ComputeGhostInterest(iter.Body, false, iter);
+                CheckExpression(iter.Body, this, iter);
+              }
             }
           } else if (d is ClassDecl) {
             var cl = (ClassDecl)d;
-            cl.Members.Iter(CheckTypeInference_Member);
             foreach (var member in cl.Members) {
-              var m = member as Method;
-              if (m != null && m.Body != null) {
-                DetermineTailRecursion(m);
+              var prevErrCnt = reporter.Count(ErrorLevel.Error);
+              CheckTypeInference_Member(member);
+              if (prevErrCnt == reporter.Count(ErrorLevel.Error)) {
+                if (member is Method) {
+                  var m = (Method)member;
+                  if (m.Body != null) {
+                    ComputeGhostInterest(m.Body, m.IsGhost, m);
+                    CheckExpression(m.Body, this, m);
+                    DetermineTailRecursion(m);
+                  }
+                } else if (member is Function) {
+                  var f = (Function)member;
+                  if (!f.IsGhost && f.Body != null) {
+                    CheckIsNonGhost(f.Body);
+                  }
+                  DetermineTailRecursion(f);
+                }
+                if (prevErrCnt == reporter.Count(ErrorLevel.Error) && member is ICodeContext) {
+                  member.SubExpressions.Iter(e => CheckExpression(e, this, (ICodeContext)member));
+                }
               }
             }
           } else if (d is NewtypeDecl) {
             var dd = (NewtypeDecl)d;
-            bool? boolNativeType = null;
-            NativeType stringNativeType = null;
-            object nativeTypeAttr = true;
-            bool hasNativeTypeAttr = Attributes.ContainsMatchingValue(dd.Attributes, "nativeType", ref nativeTypeAttr,
-              new Attributes.MatchingValueOption[] {
-                Attributes.MatchingValueOption.Empty,
-                Attributes.MatchingValueOption.Bool,
-                Attributes.MatchingValueOption.String },
-              err => reporter.Error(MessageSource.Resolver, dd, err));
-            if (hasNativeTypeAttr) {
-              if (nativeTypeAttr is bool) {
-                boolNativeType = (bool)nativeTypeAttr;
-              } else {
-                string keyString = (string)nativeTypeAttr;
-                if (nativeTypeMap.ContainsKey(keyString)) {
-                  stringNativeType = nativeTypeMap[keyString];
-                } else {
-                  reporter.Error(MessageSource.Resolver, dd, "Unsupported nativeType {0}", keyString);
-                }
-              }
-            }
-            if (stringNativeType != null || boolNativeType == true) {
-              if (!dd.BaseType.IsNumericBased(Type.NumericPersuation.Int)) {
-                reporter.Error(MessageSource.Resolver, dd, "nativeType can only be used on integral types");
-              }
-              if (dd.Var == null) {
-                reporter.Error(MessageSource.Resolver, dd, "nativeType can only be used if newtype specifies a constraint");
-              }
-            }
             if (dd.Var != null) {
               Contract.Assert(dd.Constraint != null);
-              CheckTypeInference(dd.Constraint);
-
-              Func<Expression, BigInteger?> GetConst = null;
-              GetConst = (Expression e) => {
-                int m = 1;
-                BinaryExpr bin = e as BinaryExpr;
-                if (bin != null && bin.Op == BinaryExpr.Opcode.Sub && GetConst(bin.E0) == BigInteger.Zero) {
-                  m = -1;
-                  e = bin.E1;
-                }
-                LiteralExpr l = e as LiteralExpr;
-                if (l != null && l.Value is BigInteger) {
-                  return m * (BigInteger)l.Value;
-                }
-                return null;
-              };
-              var bounds = DiscoverAllBounds_SingleVar(dd.Var, dd.Constraint);
-              List<NativeType> potentialNativeTypes =
-                (stringNativeType != null) ? new List<NativeType> { stringNativeType } :
-                (boolNativeType == false) ? new List<NativeType>() :
-                NativeTypes;
-              foreach (var nt in potentialNativeTypes) {
-                bool lowerOk = false;
-                bool upperOk = false;
-                foreach (var bound in bounds) {
-                  if (bound is ComprehensionExpr.IntBoundedPool) {
-                    var bnd = (ComprehensionExpr.IntBoundedPool)bound;
-                    if (bnd.LowerBound != null) {
-                      BigInteger? lower = GetConst(bnd.LowerBound);
-                      if (lower != null && nt.LowerBound <= lower) {
-                        lowerOk = true;
-                      }
-                    }
-                    if (bnd.UpperBound != null) {
-                      BigInteger? upper = GetConst(bnd.UpperBound);
-                      if (upper != null && upper <= nt.UpperBound) {
-                        upperOk = true;
-                      }
-                    }
-                  }
-                }
-                if (lowerOk && upperOk) {
-                  dd.NativeType = nt;
-                  break;
-                }
-              }
-              if (dd.NativeType == null && (boolNativeType == true || stringNativeType != null)) {
-                reporter.Error(MessageSource.Resolver, dd, "Dafny's heuristics cannot find a compatible native type.  " +
-                  "Hint: try writing a newtype constraint of the form 'i:int | lowerBound <= i < upperBound && (...any additional constraints...)'");
-              }
-              if (dd.NativeType != null && stringNativeType == null) {
-                reporter.Info(MessageSource.Resolver, dd.tok, "{:nativeType \"" + dd.NativeType.Name + "\"}");
-              }
+              CheckExpression(dd.Constraint, this, dd);
             }
+            FigureOutNativeType(dd, nativeTypeMap);
           }
         }
       }
 
-      if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
-        // At this point, it is necessary to know for each statement and expression if it is ghost or not
-        foreach (var e in needFiniteBoundsChecks_SetComprehension) {
-          CheckTypeInference(e.Range);  // we need to resolve operators before the call to DiscoverBounds
-          List<BoundVar> missingBounds;
-          e.Bounds = DiscoverBestBounds_MultipleVars(e.BoundVars, e.Range, true, true, out missingBounds);
-          if (missingBounds.Count != 0) {
-            e.MissingBounds = missingBounds;
-            if (e.Finite) {
-              foreach (var bv in e.MissingBounds) {
-                reporter.Error(MessageSource.Resolver, e, "a set comprehension must produce a finite set, but Dafny's heuristics can't figure out how to produce a bounded set of values for '{0}'", bv.Name);
-              }
-            }
-          }
-        }
-        foreach (AssignSuchThatStmt s in needBoundsDiscovery_AssignSuchThatStmt) {
-          Contract.Assert(!s.IsGhost);
-          var varLhss = new List<IVariable>();
-          foreach (var lhs in s.Lhss) {
-            var ide = (IdentifierExpr)lhs.Resolved;  // successful resolution above implies all LHS's are IdentifierExpr's
-            varLhss.Add(ide.Var);
-          }
-
-          List<IVariable> missingBounds;
-          var bestBounds = DiscoverBestBounds_MultipleVars(varLhss, s.Expr, true, false, out missingBounds);
-          if (missingBounds.Count != 0) {
-            s.MissingBounds = missingBounds;  // so that an error message can be produced during compilation
-          } else {
-            Contract.Assert(bestBounds != null);
-            s.Bounds = bestBounds;
-          }
-        }
-        foreach (var e in needFiniteBoundsChecks_LetSuchThatExpr) {
-          Contract.Assert(!e.Exact);  // only let-such-that expressions are ever added to the list
-          Contract.Assert(e.RHSs.Count == 1);  // if we got this far, the resolver will have checked this condition successfully
-          var constraint = e.RHSs[0];
-          CheckTypeInference(constraint);  // we need to resolve operators before the call to DiscoverBounds
-          List<IVariable> missingBounds;
-          var vars = new List<IVariable>(e.BoundVars);
-          var bestBounds = DiscoverBestBounds_MultipleVars(vars, constraint, true, false, out missingBounds);
-          if (missingBounds.Count != 0) {
-            e.Constraint_MissingBounds = missingBounds;
-            foreach (var bv in e.Constraint_MissingBounds) {
-              reporter.Error(MessageSource.Resolver, e, "a non-ghost let-such-that constraint must be compilable, but Dafny's heuristics can't figure out how to produce a bounded set of values for '{0}'", bv.Name);
-            }
-          } else {
-            e.Constraint_Bounds = bestBounds;
-          }
-        }
-      }
-      needFiniteBoundsChecks_SetComprehension.Clear();
-      needFiniteBoundsChecks_LetSuchThatExpr.Clear();
+      // ---------------------------------- Pass 2 ----------------------------------
+      // This pass fills in various additional information.
+      // ----------------------------------------------------------------------------
 
       if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
         // fill in the postconditions and bodies of prefix lemmas
@@ -1894,6 +1802,93 @@ namespace Microsoft.Dafny
       }
     }
 
+    private void FigureOutNativeType(NewtypeDecl dd, Dictionary<string, NativeType> nativeTypeMap) {
+      Contract.Requires(dd != null);
+      Contract.Requires(nativeTypeMap != null);
+      bool? boolNativeType = null;
+      NativeType stringNativeType = null;
+      object nativeTypeAttr = true;
+      bool hasNativeTypeAttr = Attributes.ContainsMatchingValue(dd.Attributes, "nativeType", ref nativeTypeAttr,
+        new Attributes.MatchingValueOption[] {
+                Attributes.MatchingValueOption.Empty,
+                Attributes.MatchingValueOption.Bool,
+                Attributes.MatchingValueOption.String },
+        err => reporter.Error(MessageSource.Resolver, dd, err));
+      if (hasNativeTypeAttr) {
+        if (nativeTypeAttr is bool) {
+          boolNativeType = (bool)nativeTypeAttr;
+        } else {
+          string keyString = (string)nativeTypeAttr;
+          if (nativeTypeMap.ContainsKey(keyString)) {
+            stringNativeType = nativeTypeMap[keyString];
+          } else {
+            reporter.Error(MessageSource.Resolver, dd, "Unsupported nativeType {0}", keyString);
+          }
+        }
+      }
+      if (stringNativeType != null || boolNativeType == true) {
+        if (!dd.BaseType.IsNumericBased(Type.NumericPersuation.Int)) {
+          reporter.Error(MessageSource.Resolver, dd, "nativeType can only be used on integral types");
+        }
+        if (dd.Var == null) {
+          reporter.Error(MessageSource.Resolver, dd, "nativeType can only be used if newtype specifies a constraint");
+        }
+      }
+      if (dd.Var != null) {
+        Func<Expression, BigInteger?> GetConst = null;
+        GetConst = (Expression e) => {
+          int m = 1;
+          BinaryExpr bin = e as BinaryExpr;
+          if (bin != null && bin.Op == BinaryExpr.Opcode.Sub && GetConst(bin.E0) == BigInteger.Zero) {
+            m = -1;
+            e = bin.E1;
+          }
+          LiteralExpr l = e as LiteralExpr;
+          if (l != null && l.Value is BigInteger) {
+            return m * (BigInteger)l.Value;
+          }
+          return null;
+        };
+        var bounds = DiscoverAllBounds_SingleVar(dd.Var, dd.Constraint);
+        List<NativeType> potentialNativeTypes =
+          (stringNativeType != null) ? new List<NativeType> { stringNativeType } :
+          (boolNativeType == false) ? new List<NativeType>() :
+          NativeTypes;
+        foreach (var nt in potentialNativeTypes) {
+          bool lowerOk = false;
+          bool upperOk = false;
+          foreach (var bound in bounds) {
+            if (bound is ComprehensionExpr.IntBoundedPool) {
+              var bnd = (ComprehensionExpr.IntBoundedPool)bound;
+              if (bnd.LowerBound != null) {
+                BigInteger? lower = GetConst(bnd.LowerBound);
+                if (lower != null && nt.LowerBound <= lower) {
+                  lowerOk = true;
+                }
+              }
+              if (bnd.UpperBound != null) {
+                BigInteger? upper = GetConst(bnd.UpperBound);
+                if (upper != null && upper <= nt.UpperBound) {
+                  upperOk = true;
+                }
+              }
+            }
+          }
+          if (lowerOk && upperOk) {
+            dd.NativeType = nt;
+            break;
+          }
+        }
+        if (dd.NativeType == null && (boolNativeType == true || stringNativeType != null)) {
+          reporter.Error(MessageSource.Resolver, dd, "Dafny's heuristics cannot find a compatible native type.  " +
+            "Hint: try writing a newtype constraint of the form 'i:int | lowerBound <= i < upperBound && (...any additional constraints...)'");
+        }
+        if (dd.NativeType != null && stringNativeType == null) {
+          reporter.Info(MessageSource.Resolver, dd.tok, "{:nativeType \"" + dd.NativeType.Name + "\"}");
+        }
+      }
+    }
+
     /// <summary>
     /// Adds the type constraint ty==expected, eventually printing the error message "msg" if this is found to be
     /// untenable.  If this is immediately known not to be untenable, false is returned.
@@ -2123,16 +2118,60 @@ namespace Microsoft.Dafny
         } else if (stmt is ForallStmt) {
           var s = (ForallStmt)stmt;
           s.BoundVars.Iter(bv => CheckTypeIsDetermined(bv.tok, bv.Type, "bound variable"));
+        } else if (stmt is AssignSuchThatStmt) {
+          var s = (AssignSuchThatStmt)stmt;
+          if (s.AssumeToken == null) {
+            var varLhss = new List<IVariable>();
+            foreach (var lhs in s.Lhss) {
+              var ide = (IdentifierExpr)lhs.Resolved;  // successful resolution implies all LHS's are IdentifierExpr's
+              varLhss.Add(ide.Var);
+            }
+            List<IVariable> missingBounds;
+            var bestBounds = DiscoverBestBounds_MultipleVars(varLhss, s.Expr, true, false, out missingBounds);
+            if (missingBounds.Count != 0) {
+              s.MissingBounds = missingBounds;  // so that an error message can be produced during compilation
+            } else {
+              Contract.Assert(bestBounds != null);
+              s.Bounds = bestBounds;
+            }
+          }
+        } else if (stmt is CalcStmt) {
+          var s = (CalcStmt)stmt;
+          // The resolution of the calc statement builds up .Steps and .Result, which are of the form E0 OP E1, where
+          // E0 and E1 are expressions from .Lines.  These additional expressions still need to have their .ResolvedOp
+          // fields filled in, so we visit them (but not their subexpressions) here.
+          foreach (var e in s.Steps) {
+            VisitOneExpr(e);
+          }
+          VisitOneExpr(s.Result);
         }
       }
       protected override void VisitOneExpr(Expression expr) {
         if (expr is ComprehensionExpr) {
           var e = (ComprehensionExpr)expr;
-          if (e != null) {
-            foreach (var bv in e.BoundVars) {
-              if (!IsDetermined(bv.Type.Normalize())) {
-                resolver.reporter.Error(MessageSource.Resolver, bv.tok, "type of bound variable '{0}' could not be determined; please specify the type explicitly",
-                  bv.Name);
+          foreach (var bv in e.BoundVars) {
+            if (!IsDetermined(bv.Type.Normalize())) {
+              resolver.reporter.Error(MessageSource.Resolver, bv.tok, "type of bound variable '{0}' could not be determined; please specify the type explicitly", bv.Name);
+            }
+          }
+          if (e is SetComprehension) {
+            var sc = (SetComprehension)e;
+            if (sc.Finite) {
+              // A set must be finite.  Discover bounds for the Range expression, but report an error only if the Term is not
+              // of a finite-individuals type.
+              List<BoundVar> missingBounds;
+              sc.Bounds = DiscoverBestBounds_MultipleVars(sc.BoundVars, sc.Range, true, true, out missingBounds);
+              if (missingBounds.Count != 0) {
+                sc.MissingBounds = missingBounds;
+                if (sc.Type.HasFinitePossibleValues) {
+                  // This means the set is finite, regardless of if the Range is bounded.  So, we don't give any error here.
+                  // However, if this expression is used in a non-ghost context (which is not yet known at this stage of
+                  // resolution), the resolver will generate an error about that later.
+                } else {
+                  foreach (var bv in sc.MissingBounds) {
+                    resolver.reporter.Error(MessageSource.Resolver, sc, "a set comprehension must produce a finite set, but Dafny's heuristics can't figure out how to produce a bounded set of values for '{0}'", bv.Name);
+                  }
+                }
               }
             }
           }
@@ -2172,6 +2211,7 @@ namespace Microsoft.Dafny
           var bin = expr as BinaryExpr;
           if (bin != null) {
             bin.ResolvedOp = ResolveOp(bin.Op, bin.E1.Type);
+          
           }
         }
       }
@@ -2248,6 +2288,58 @@ namespace Microsoft.Dafny
       }
     }
     #endregion CheckTypeInference
+
+    // ------------------------------------------------------------------------------------------------------
+    // ----- CheckExpression --------------------------------------------------------------------------------
+    // ------------------------------------------------------------------------------------------------------
+    #region CheckExpression
+    /// <summary>
+    /// This method computes ghost interests in the statement portion of StmtExpr's and
+    /// checks for hint restrictions in any CalcStmt.
+    /// </summary>
+    void CheckExpression(Expression expr, Resolver resolver, ICodeContext codeContext) {
+      Contract.Requires(expr != null);
+      Contract.Requires(resolver != null);
+      Contract.Requires(codeContext != null);
+      var v = new CheckExpression_Visitor(resolver, codeContext);
+      v.Visit(expr);
+    }
+    /// <summary>
+    /// This method computes ghost interests in the statement portion of StmtExpr's and
+    /// checks for hint restrictions in any CalcStmt.
+    /// </summary>
+    void CheckExpression(Statement stmt, Resolver resolver, ICodeContext codeContext) {
+      Contract.Requires(stmt != null);
+      Contract.Requires(resolver != null);
+      Contract.Requires(codeContext != null);
+      var v = new CheckExpression_Visitor(resolver, codeContext);
+      v.Visit(stmt);
+    }
+    class CheckExpression_Visitor : ResolverBottomUpVisitor
+    {
+      readonly ICodeContext CodeContext;
+      public CheckExpression_Visitor(Resolver resolver, ICodeContext codeContext)
+        : base(resolver) {
+        Contract.Requires(resolver != null);
+        Contract.Requires(codeContext != null);
+        CodeContext = codeContext;
+      }
+      protected override void VisitOneExpr(Expression expr) {
+        if (expr is StmtExpr) {
+          var e = (StmtExpr)expr;
+          resolver.ComputeGhostInterest(e.S, true, CodeContext);
+        }
+      }
+      protected override void VisitOneStmt(Statement stmt) {
+        if (stmt is CalcStmt) {
+          var s = (CalcStmt)stmt;
+          foreach (var h in s.Hints) {
+            resolver.CheckHintRestrictions(h, new HashSet<LocalVariable>());
+          }
+        }
+      }
+    }
+    #endregion
 
     // ------------------------------------------------------------------------------------------------------
     // ----- CheckTailRecursive -----------------------------------------------------------------------------
@@ -3009,11 +3101,11 @@ namespace Microsoft.Dafny
     // ----- ComputeGhostInterest ---------------------------------------------------------------------------
     // ------------------------------------------------------------------------------------------------------
     #region ComputeGhostInterest
-    public void ComputeGhostInterest(Statement stmt, ICodeContext codeContext) {
+    public void ComputeGhostInterest(Statement stmt, bool mustBeErasable, ICodeContext codeContext) {
       Contract.Requires(stmt != null);
       Contract.Requires(codeContext != null);
       var visitor = new GhostInterest_Visitor(codeContext, this);
-      visitor.Visit(stmt, codeContext.IsGhost);
+      visitor.Visit(stmt, mustBeErasable);
     }
     class GhostInterest_Visitor
     {
@@ -3037,12 +3129,6 @@ namespace Microsoft.Dafny
         Contract.Requires(msgArgs != null);
         resolver.reporter.Error(MessageSource.Resolver, expr, msg, msgArgs);
       }
-      protected void Error(IToken tok, string msg, params object[] msgArgs) {
-        Contract.Requires(tok != null);
-        Contract.Requires(msg != null);
-        Contract.Requires(msgArgs != null);
-        resolver.reporter.Error(MessageSource.Resolver, tok, msg, msgArgs);
-      }
       /// <summary>
       /// This method does three things:
       /// 0. Reports an error if "mustBeErasable" and the statement assigns to a non-ghost field
@@ -3057,6 +3143,7 @@ namespace Microsoft.Dafny
       /// because break statements look at the ghost status of its enclosing statements.
       /// </summary>
       public void Visit(Statement stmt, bool mustBeErasable) {
+        Contract.Requires(stmt != null);
         Contract.Assume(!codeContext.IsGhost || mustBeErasable);  // (this is really a precondition) codeContext.IsGhost ==> mustBeErasable
 
         if (stmt is PredicateStmt) {
@@ -3107,9 +3194,6 @@ namespace Microsoft.Dafny
               }
             }
           }
-          if (!s.IsGhost) {
-            resolver.needBoundsDiscovery_AssignSuchThatStmt.Add(s);
-          }
 
         } else if (stmt is UpdateStmt) {
           var s = (UpdateStmt)stmt;
@@ -3122,13 +3206,6 @@ namespace Microsoft.Dafny
             foreach (var local in s.Locals) {
               // a local variable in a specification-only context might as well be ghost
               local.IsGhost = true;
-            }
-          }
-          foreach (var local in s.Locals) {
-            if (Attributes.Contains(local.Attributes, "assumption")) {
-              if (!local.IsGhost) {
-                Error(local.Tok, "assumption variable must be ghost");
-              }
             }
           }
           s.IsGhost = (s.Update == null || s.Update.IsGhost) && s.Locals.All(v => v.IsGhost);
@@ -4040,14 +4117,10 @@ namespace Microsoft.Dafny
         var prevErrorCount = reporter.Count(ErrorLevel.Error);
         ResolveExpression(f.Body, new ResolveOpts(f, false));
         SolveAllTypeConstraints();
-        if (!f.IsGhost && prevErrorCount == reporter.Count(ErrorLevel.Error)) {
-          CheckIsNonGhost(f.Body);
-        }
         Contract.Assert(f.Body.Type != null);  // follows from postcondition of ResolveExpression
         ConstrainTypes(f.Body.Type, f.ResultType, f, "Function body type mismatch (expected {0}, got {1})", f.ResultType, f.Body.Type);
       }
       scope.PopMarker();
-      DetermineTailRecursion(f);
     }
 
     /// <summary>
@@ -4187,7 +4260,7 @@ namespace Microsoft.Dafny
           ResolveBlockStatement(m.Body, m.IsGhost, m);
           SolveAllTypeConstraints();
           if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
-            ComputeGhostInterest(m.Body, m);
+//KRML            ComputeGhostInterest(m.Body, m);
           }
         }
 
@@ -4308,7 +4381,7 @@ namespace Microsoft.Dafny
       if (iter.Body != null) {
         ResolveBlockStatement(iter.Body, false, iter);
         if (reporter.Count(ErrorLevel.Error) == postSpecErrorCount) {
-          ComputeGhostInterest(iter.Body, iter);
+          //KRML          ComputeGhostInterest(iter.Body, iter);
         }
       }
 
@@ -5290,7 +5363,10 @@ namespace Microsoft.Dafny
             }
             if (!(local.Type.IsBoolType))
             {
-              reporter.Error(MessageSource.Resolver, s, "assumption variable must be of type 'bool'");
+              reporter.Error(MessageSource.Resolver, local.Tok, "assumption variable must be of type 'bool'");
+            }
+            if (!local.IsGhost) {
+              reporter.Error(MessageSource.Resolver, local.Tok, "assumption variable must be ghost");
             }
           }
         }
@@ -5599,7 +5675,6 @@ namespace Microsoft.Dafny
           loopStack = new List<Statement>();
           foreach (var h in s.Hints) {
             ResolveStatement(h, true, codeContext);
-            CheckHintRestrictions(h);
           }
           labeledStatements = prevLblStmts;
           loopStack = prevLoopStack;
@@ -6347,9 +6422,6 @@ namespace Microsoft.Dafny
       if (!isInitCall && callee is Constructor) {
         reporter.Error(MessageSource.Resolver, s, "a constructor is allowed to be called only when an object is being allocated");
       }
-      if (specContextOnly && !callee.IsGhost) {
-        reporter.Error(MessageSource.Resolver, s, "only ghost methods can be called from this context");
-      }
 
       // resolve left-hand sides
       foreach (var lhs in s.Lhs) {
@@ -6633,8 +6705,9 @@ namespace Microsoft.Dafny
     /// Check that a statment is a valid hint for a calculation.
     /// ToDo: generalize the part for compound statements to take a delegate?
     /// </summary>
-    public void CheckHintRestrictions(Statement stmt) {
+    public void CheckHintRestrictions(Statement stmt, ISet<LocalVariable> localsAllowedInUpdates) {
       Contract.Requires(stmt != null);
+      Contract.Requires(localsAllowedInUpdates != null);
       if (stmt is PredicateStmt) {
         // cool
       } else if (stmt is PrintStmt) {
@@ -6648,11 +6721,11 @@ namespace Microsoft.Dafny
       } else if (stmt is AssignSuchThatStmt) {
         var s = (AssignSuchThatStmt)stmt;
         foreach (var lhs in s.Lhss) {
-          CheckHintLhs(s.Tok, lhs.Resolved);
+          CheckHintLhs(s.Tok, lhs.Resolved, localsAllowedInUpdates);
         }
       } else if (stmt is AssignStmt) {
         var s = (AssignStmt)stmt;
-        CheckHintLhs(s.Tok, s.Lhs.Resolved);
+        CheckHintLhs(s.Tok, s.Lhs.Resolved, localsAllowedInUpdates);
       } else if (stmt is CallStmt) {
         var s = (CallStmt)stmt;
         if (s.Method.Mod.Expressions.Count != 0) {
@@ -6661,33 +6734,33 @@ namespace Microsoft.Dafny
       } else if (stmt is UpdateStmt) {
         var s = (UpdateStmt)stmt;
         foreach (var ss in s.ResolvedStatements) {
-          CheckHintRestrictions(ss);
+          CheckHintRestrictions(ss, localsAllowedInUpdates);
         }
       } else if (stmt is VarDeclStmt) {
         var s = (VarDeclStmt)stmt;
+        s.Locals.Iter(local => localsAllowedInUpdates.Add(local));
         if (s.Update != null) {
-          CheckHintRestrictions(s.Update);
+          CheckHintRestrictions(s.Update, localsAllowedInUpdates);
         }
       } else if (stmt is BlockStmt) {
         var s = (BlockStmt)stmt;
-        scope.PushMarker();
+        var newScopeForLocals = new HashSet<LocalVariable>(localsAllowedInUpdates);
         foreach (var ss in s.Body) {
-          CheckHintRestrictions(ss);
+          CheckHintRestrictions(ss, newScopeForLocals);
         }
-        scope.PopMarker();
 
       } else if (stmt is IfStmt) {
         var s = (IfStmt)stmt;
-        CheckHintRestrictions(s.Thn);
+        CheckHintRestrictions(s.Thn, localsAllowedInUpdates);
         if (s.Els != null) {
-          CheckHintRestrictions(s.Els);
+          CheckHintRestrictions(s.Els, localsAllowedInUpdates);
         }
 
       } else if (stmt is AlternativeStmt) {
         var s = (AlternativeStmt)stmt;
         foreach (var alt in s.Alternatives) {
           foreach (var ss in alt.Body) {
-            CheckHintRestrictions(ss);
+            CheckHintRestrictions(ss, localsAllowedInUpdates);
           }
         }
 
@@ -6697,14 +6770,14 @@ namespace Microsoft.Dafny
           reporter.Error(MessageSource.Resolver, s.Mod.Expressions[0].tok, "a while statement used inside a hint is not allowed to have a modifies clause");
         }
         if (s.Body != null) {
-          CheckHintRestrictions(s.Body);
+          CheckHintRestrictions(s.Body, localsAllowedInUpdates);
         }
 
       } else if (stmt is AlternativeLoopStmt) {
         var s = (AlternativeLoopStmt)stmt;
         foreach (var alt in s.Alternatives) {
           foreach (var ss in alt.Body) {
-            CheckHintRestrictions(ss);
+            CheckHintRestrictions(ss, localsAllowedInUpdates);
           }
         }
 
@@ -6726,14 +6799,14 @@ namespace Microsoft.Dafny
       } else if (stmt is CalcStmt) {
         var s = (CalcStmt)stmt;
         foreach (var h in s.Hints) {
-          CheckHintRestrictions(h);
+          CheckHintRestrictions(h, new HashSet<LocalVariable>());
         }
 
       } else if (stmt is MatchStmt) {
         var s = (MatchStmt)stmt;
         foreach (var kase in s.Cases) {
           foreach (var ss in kase.Body) {
-            CheckHintRestrictions(ss);
+            CheckHintRestrictions(ss, localsAllowedInUpdates);
           }
         }
 
@@ -6742,11 +6815,14 @@ namespace Microsoft.Dafny
       }
     }
 
-    void CheckHintLhs(IToken tok, Expression lhs) {
+    void CheckHintLhs(IToken tok, Expression lhs, ISet<LocalVariable> localsAllowedInUpdates) {
+      Contract.Requires(tok != null);
+      Contract.Requires(lhs != null);
+      Contract.Requires(localsAllowedInUpdates != null);
       var idExpr = lhs as IdentifierExpr;
       if (idExpr == null) {
         reporter.Error(MessageSource.Resolver, tok, "a hint is not allowed to update heap locations");
-      } else if (scope.ContainsDecl(idExpr.Var)) {
+      } else if (!localsAllowedInUpdates.Contains(idExpr.Var)) {
         reporter.Error(MessageSource.Resolver, tok, "a hint is not allowed to update a variable declared outside the hint");
       }
     }
@@ -7768,9 +7844,6 @@ namespace Microsoft.Dafny
             ResolveExpression(rhs, opts);
             ConstrainTypes(rhs.Type, Type.Bool, rhs.tok, "type of RHS of let-such-that expression must be boolean (got {0})", rhs.Type);
           }
-          if (!opts.DontCareAboutCompilation && !e.BoundVars.All(bv => bv.IsGhost)) {
-            needFiniteBoundsChecks_LetSuchThatExpr.Add(e);
-          }
         }
         ResolveExpression(e.Body, opts);
         ResolveAttributes(e.Attributes, new ResolveOpts(opts, true));
@@ -7819,20 +7892,16 @@ namespace Microsoft.Dafny
           List<BoundVar> missingBounds;
           e.Bounds = DiscoverBestBounds_MultipleVars(e.BoundVars, e.LogicalBody(), e is ExistsExpr, true, out missingBounds);
           if (missingBounds.Count != 0) {
-            // Report errors here about quantifications that depend on the allocation state.
-            var mb = missingBounds;
-            if (opts.codeContext is Function) {
-              mb = new List<BoundVar>();  // (who cares if we allocate another array; this happens only in the case of a resolution error anyhow)
-              foreach (var bv in missingBounds) {
-                if (bv.Type.IsRefType) {
-                  reporter.Error(MessageSource.Resolver, expr, "a quantifier involved in a function definition is not allowed to depend on the set of allocated references; Dafny's heuristics can't figure out a bound for the values of '{0}'", bv.Name);
-                } else {
-                  mb.Add(bv);
-                }
+            e.MissingBounds = missingBounds;
+          }
+          if (opts.codeContext is Function && e.Bounds != null) {
+            Contract.Assert(e.Bounds.Count == e.BoundVars.Count);
+            for (int i = 0; i < e.Bounds.Count; i++) {
+              var bound = e.Bounds[i] as ComprehensionExpr.RefBoundedPool;
+              if (bound != null) {
+                var bv = e.BoundVars[i];
+                reporter.Error(MessageSource.Resolver, expr, "a quantifier involved in a function definition is not allowed to depend on the set of allocated references; Dafny's heuristics can't figure out a bound for the values of '{0}'", bv.Name);
               }
-            }
-            if (mb.Count != 0) {
-              e.MissingBounds = mb;
             }
           }
         }
@@ -7854,12 +7923,6 @@ namespace Microsoft.Dafny
         ResolveAttributes(e.Attributes, new ResolveOpts(opts, true));
         scope.PopMarker();
         expr.Type = new SetType(e.Finite, e.Term.Type);
-
-        if (opts.DontCareAboutCompilation && (e.Term.Type.IsRefType || e.Term.Type.IsBoolType) || e.Term.Type.IsCharType) {
-          // ok, term type is finite and we're in a ghost context
-        } else {
-          needFiniteBoundsChecks_SetComprehension.Add(e);
-        }
 
       } else if (expr is MapComprehension) {
         var e = (MapComprehension)expr;
@@ -9329,17 +9392,47 @@ namespace Microsoft.Dafny
             CheckIsNonGhost(e.RHSs[0]);
           }
           CheckIsNonGhost(e.Body);
+
+          // fill in bounds for this to-be-compiled let-such-that expression
+          Contract.Assert(e.RHSs.Count == 1);  // if we got this far, the resolver will have checked this condition successfully
+          var constraint = e.RHSs[0];
+          List<IVariable> missingBounds;
+          var vars = new List<IVariable>(e.BoundVars);
+          var bestBounds = DiscoverBestBounds_MultipleVars(vars, constraint, true, false, out missingBounds);
+          if (missingBounds.Count != 0) {
+            e.Constraint_MissingBounds = missingBounds;
+            foreach (var bv in e.Constraint_MissingBounds) {
+              reporter.Error(MessageSource.Resolver, e, "a non-ghost let-such-that constraint must be compilable, but Dafny's heuristics can't figure out how to produce a bounded set of values for '{0}'", bv.Name);
+            }
+          } else {
+            e.Constraint_Bounds = bestBounds;
+          }
         }
         return;
-      } else if (expr is QuantifierExpr) {
-        var e = (QuantifierExpr)expr;
-        Contract.Assert(e.SplitQuantifier == null); // No split quantifiers during resolution
-        if (e.MissingBounds != null) {
-          foreach (var bv in e.MissingBounds) {
-            reporter.Error(MessageSource.Resolver, expr, "quantifiers in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce a bounded set of values for '{0}'", bv.Name);
+      } else if (expr is LambdaExpr) {
+        var e = expr as LambdaExpr;
+        CheckIsNonGhost(e.Body);
+        return;
+      } else if (expr is ComprehensionExpr) {
+        var e = (ComprehensionExpr)expr;
+        var uncompilableBoundVars = e.UncompilableBoundVars();
+        if (uncompilableBoundVars.Count != 0) {
+          string what;
+          if (e is SetComprehension) {
+            what = "set comprehensions";
+          } else if (e is MapComprehension) {
+            what = "map comprehensions";
+          } else {
+            Contract.Assume(e is QuantifierExpr);  // otherwise, unexpected ComprehensionExpr (since LambdaExpr is handled separately above)
+            Contract.Assert(((QuantifierExpr)e).SplitQuantifier == null); // No split quantifiers during resolution
+            what = "quantifiers";
+          }
+          foreach (var bv in uncompilableBoundVars) {
+            reporter.Error(MessageSource.Resolver, expr, "{0} in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce or compile a bounded set of values for '{1}'", what, bv.Name);
           }
           return;
         }
+
       } else if (expr is MapComprehension) {
         var e = (MapComprehension)expr;
         if (e.MissingBounds != null && !e.Finite) {
@@ -9357,10 +9450,6 @@ namespace Microsoft.Dafny
         // the chaining expression
         var e = (ChainingExpression)expr;
         e.Operands.ForEach(CheckIsNonGhost);
-        return;
-      } else if (expr is LambdaExpr) {
-        var e = expr as LambdaExpr;
-        CheckIsNonGhost(e.Body);
         return;
       }
 
@@ -9520,8 +9609,11 @@ namespace Microsoft.Dafny
 
       // Maybe the type itself gives a bound
       if (bv.Type.IsBoolType) {
-        // easy
         bounds.Add(new ComprehensionExpr.BoolBoundedPool());
+      } else if (bv.Type.IsCharType) {
+        bounds.Add(new ComprehensionExpr.CharBoundedPool());
+      } else if (bv.Type.IsRefType) {
+        bounds.Add(new ComprehensionExpr.RefBoundedPool(bv.Type));
       } else if (bv.Type.IsIndDatatype && bv.Type.AsIndDatatype.HasFinitePossibleValues) {
         bounds.Add(new ComprehensionExpr.DatatypeBoundedPool(bv.Type.AsIndDatatype));
       } else if (bv.Type.IsNumericBased(Type.NumericPersuation.Int)) {

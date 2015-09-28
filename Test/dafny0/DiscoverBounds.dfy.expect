@@ -1,4 +1,4 @@
-DiscoverBounds.dfy(36,7): Error: quantifiers in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce a bounded set of values for 'o''
-DiscoverBounds.dfy(39,7): Error: quantifiers in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce a bounded set of values for 'r'
-DiscoverBounds.dfy(40,7): Error: quantifiers in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce a bounded set of values for 'r''
+DiscoverBounds.dfy(36,7): Error: quantifiers in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce or compile a bounded set of values for 'o''
+DiscoverBounds.dfy(39,7): Error: quantifiers in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce or compile a bounded set of values for 'r'
+DiscoverBounds.dfy(40,7): Error: quantifiers in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce or compile a bounded set of values for 'r''
 3 resolution/type errors detected in DiscoverBounds.dfy

@@ -509,6 +509,27 @@ namespace Microsoft.Dafny {
       }
     }
 
+    public bool HasFinitePossibleValues {
+      get {
+        if (IsBoolType || IsCharType || IsRefType) {
+          return true;
+        }
+        var st = AsSetType;
+        if (st != null && st.Arg.HasFinitePossibleValues) {
+          return true;
+        }
+        var mt = AsMapType;
+        if (mt != null && mt.Domain.HasFinitePossibleValues) {
+          return true;
+        }
+        var dt = AsDatatype;
+        if (dt != null && dt.HasFinitePossibleValues) {
+          return true;
+        }
+        return false;
+      }
+    }
+
     public CollectionType AsCollectionType { get { return NormalizeExpand() as CollectionType; } }
     public SetType AsSetType { get { return NormalizeExpand() as SetType; } }
     public MultiSetType AsMultiSetType { get { return NormalizeExpand() as MultiSetType; } }
@@ -2377,6 +2398,48 @@ namespace Microsoft.Dafny {
     }
 
     /// <summary>
+    /// Returns the non-null expressions of this declaration proper (that is, do not include the expressions of substatements).
+    /// Does not include the generated class members.
+    /// </summary>
+    public virtual IEnumerable<Expression> SubExpressions {
+      get {
+        foreach (var e in Attributes.SubExpressions(Attributes)) {
+          yield return e;
+        }
+        foreach (var e in Attributes.SubExpressions(Reads.Attributes)) {
+          yield return e;
+        }
+        foreach (var e in Reads.Expressions) {
+          yield return e.E;
+        }
+        foreach (var e in Attributes.SubExpressions(Modifies.Attributes)) {
+          yield return e;
+        }
+        foreach (var e in Modifies.Expressions) {
+          yield return e.E;
+        }
+        foreach (var e in Attributes.SubExpressions(Decreases.Attributes)) {
+          yield return e;
+        }
+        foreach (var e in Decreases.Expressions) {
+          yield return e;
+        }
+        foreach (var e in Requires) {
+          yield return e.E;
+        }
+        foreach (var e in Ensures) {
+          yield return e.E;
+        }
+        foreach (var e in YieldRequires) {
+          yield return e.E;
+        }
+        foreach (var e in YieldEnsures) {
+          yield return e.E;
+        }
+      }
+    }
+
+    /// <summary>
     /// This Dafny type exists only for the purpose of giving the yield-count variable a type, so
     /// that the type can be recognized during translation of Dafny into Boogie.  It represents
     /// an integer component in a "decreases" clause whose order is (\lambda x,y :: x GREATER y),
@@ -2473,6 +2536,11 @@ namespace Microsoft.Dafny {
         Contract.Ensures(Contract.Result<string>() != null);
 
         return EnclosingClass.FullCompileName + ".@" + CompileName;
+      }
+    }
+    public virtual IEnumerable<Expression> SubExpressions {
+      get {
+        yield break;
       }
     }
   }
@@ -2999,6 +3067,26 @@ namespace Microsoft.Dafny {
     public bool IsBuiltin;
     public Function OverriddenFunction;
 
+    public override IEnumerable<Expression> SubExpressions {
+      get {
+        foreach (var e in Req) {
+          yield return e;
+        }
+        foreach (var e in Reads) {
+          yield return e.E;
+        }
+        foreach (var e in Ens) {
+          yield return e;
+        }
+        foreach (var e in Decreases.Expressions) {
+          yield return e;
+        }
+        if (Body != null) {
+          yield return Body;
+        }
+      }
+    }
+
     public Type Type {
       get {
         // Note, the following returned type can contain type parameters from the function and its enclosing class
@@ -3212,6 +3300,24 @@ namespace Microsoft.Dafny {
     public bool IsTailRecursive;  // filled in during resolution
     public readonly ISet<IVariable> AssignedAssumptionVariables = new HashSet<IVariable>();
     public Method OverriddenMethod;
+
+    public override IEnumerable<Expression> SubExpressions {
+      get {
+        foreach (var e in Req) {
+          yield return e.E;
+        }
+        foreach (var e in Mod.Expressions) {
+          yield return e.E;
+        }
+        foreach (var e in Ens) {
+          yield return e.E;
+        }
+        foreach (var e in Decreases.Expressions) {
+          yield return e;
+        }
+      }
+    }
+
 
     [ContractInvariantMethod]
     void ObjectInvariant() {
@@ -4821,18 +4927,32 @@ namespace Microsoft.Dafny {
     }
     public override IEnumerable<Expression> SubExpressions
     {
-      get { // FIXME: This can return duplicates; this could confuse BottomUpVisitors that modify the AST in place
+      get {
         foreach (var e in base.SubExpressions) { yield return e; }
         foreach (var e in Attributes.SubExpressions(Attributes)) { yield return e; }
-        
-        foreach (var l in Lines) {
-          yield return l;
+
+        for (int i = 0; i < Lines.Count - 1; i++) {  // note, we skip the duplicated line at the end
+          yield return Lines[i];
         }
-        foreach (var e in Steps) {
-          yield return e;
+        foreach (var calcop in AllCalcOps) {
+          var o3 = calcop as TernaryCalcOp;
+          if (o3 != null) {
+            yield return o3.Index;
+          }
         }
-        if (Result != null) {
-          yield return Result;
+      }
+    }
+
+    IEnumerable<CalcOp> AllCalcOps {
+      get {
+        if (Op != null) {
+          yield return Op;
+        }
+        foreach (var stepop in StepOps) {
+          yield return stepop;
+        }
+        if (ResultOp != null) {
+          yield return ResultOp;
         }
       }
     }
@@ -6637,7 +6757,7 @@ namespace Microsoft.Dafny {
     public readonly Expression Body;
     public readonly bool Exact;  // Exact==true means a regular let expression; Exact==false means an assign-such-that expression
     public readonly Attributes Attributes;
-    public List<ComprehensionExpr.BoundedPool> Constraint_Bounds;  // initialized and filled in by resolver; null for Exact=true and for a ghost statement
+    public List<ComprehensionExpr.BoundedPool> Constraint_Bounds;  // initialized and filled in by resolver; null for Exact=true and for when expression is in a ghost context
     // invariant Constraint_Bounds == null || Constraint_Bounds.Count == BoundVars.Count;
     public List<IVariable> Constraint_MissingBounds;  // filled in during resolution; remains "null" if Exact==true or if bounds can be found
     // invariant Constraint_Bounds == null || Constraint_MissingBounds == null;
@@ -6790,6 +6910,22 @@ namespace Microsoft.Dafny {
         return 5;
       }
     }
+    public class CharBoundedPool : BoundedPool
+    {
+      public override int Preference() {
+        return 4;
+      }
+    }
+    public class RefBoundedPool : BoundedPool
+    {
+      public Type Type;
+      public RefBoundedPool(Type t) {
+        Type = t;
+      }
+      public override int Preference() {
+        return 2;
+      }
+    }
     public class IntBoundedPool : BoundedPool
     {
       public readonly Expression LowerBound;
@@ -6863,6 +6999,24 @@ namespace Microsoft.Dafny {
     // invariant Bounds == null || Bounds.Count == BoundVars.Count;
     public List<BoundVar> MissingBounds;  // filled in during resolution; remains "null" if bounds can be found
     // invariant Bounds == null || MissingBounds == null;
+
+    public List<BoundVar> UncompilableBoundVars() {
+      var bvs = new List<BoundVar>();
+      if (MissingBounds != null) {
+        bvs.AddRange(MissingBounds);
+      }
+      if (Bounds != null) {
+        Contract.Assert(Bounds.Count == BoundVars.Count);
+        for (int i = 0; i < Bounds.Count; i++) {
+          var bound = Bounds[i];
+          if (bound is RefBoundedPool) {
+            // yes, this is in principle a bound, but it's not one we'd like to compile
+            bvs.Add(BoundVars[i]);
+          }
+        }
+      }
+      return bvs;
+    }
 
     public ComprehensionExpr(IToken tok, List<BoundVar> bvars, Expression range, Expression term, Attributes attrs)
       : base(tok) {

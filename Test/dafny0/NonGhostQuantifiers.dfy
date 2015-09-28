@@ -181,6 +181,12 @@ module DependencyOnAllAllocatedObjects {
     forall c: SomeClass :: true  // error: not allowed to dependend on which objects are allocated
   }
 
+  class SomeClass {
+    var f: int;
+  }
+}
+
+module DependencyOnAllAllocatedObjects_More {
   method M()
   {
     var b := forall c: SomeClass :: c != null ==> c.f == 0;  // error: non-ghost code requires bounds
@@ -192,3 +198,4 @@ module DependencyOnAllAllocatedObjects {
     var f: int;
   }
 }
+

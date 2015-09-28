@@ -1566,6 +1566,9 @@ namespace Microsoft.Dafny {
           if (bound is ComprehensionExpr.BoolBoundedPool) {
             Indent(ind);
             wr.Write("foreach (var @{0} in Dafny.Helpers.AllBooleans) {{ ", bv.CompileName);
+          } else if (bound is ComprehensionExpr.CharBoundedPool) {
+            Indent(ind);
+            wr.Write("foreach (var @{0} in Dafny.Helpers.AllChars) {{ ", bv.CompileName);
           } else if (bound is ComprehensionExpr.IntBoundedPool) {
             var b = (ComprehensionExpr.IntBoundedPool)bound;
             Indent(ind);
@@ -1777,6 +1780,8 @@ namespace Microsoft.Dafny {
         Indent(ind);
         if (bound is ComprehensionExpr.BoolBoundedPool) {
           wr.WriteLine("foreach (var {0} in Dafny.Helpers.AllBooleans) {{ @{1} = {0};", tmpVar, bv.CompileName);
+        } else if (bound is ComprehensionExpr.CharBoundedPool) {
+          wr.WriteLine("foreach (var {0} in Dafny.Helpers.AllChars) {{ @{1} = {0};", tmpVar, bv.CompileName);
         } else if (bound is ComprehensionExpr.IntBoundedPool) {
           var b = (ComprehensionExpr.IntBoundedPool)bound;
           if (AsNativeType(bv.Type) != null) {
@@ -2831,6 +2836,8 @@ namespace Microsoft.Dafny {
           // emit:  Dafny.Helpers.QuantX(boundsInformation, isForall, bv => body)
           if (bound is ComprehensionExpr.BoolBoundedPool) {
             wr.Write("Dafny.Helpers.QuantBool(");
+          } else if (bound is ComprehensionExpr.CharBoundedPool) {
+            wr.Write("Dafny.Helpers.QuantChar(");
           } else if (bound is ComprehensionExpr.IntBoundedPool) {
             var b = (ComprehensionExpr.IntBoundedPool)bound;
             wr.Write("Dafny.Helpers.QuantInt(");
@@ -2898,6 +2905,8 @@ namespace Microsoft.Dafny {
           var bv = e.BoundVars[i];
           if (bound is ComprehensionExpr.BoolBoundedPool) {
             wr.Write("foreach (var @{0} in Dafny.Helpers.AllBooleans) {{ ", bv.CompileName);
+          } else if (bound is ComprehensionExpr.CharBoundedPool) {
+            wr.Write("foreach (var @{0} in Dafny.Helpers.AllChars) {{ ", bv.CompileName);
           } else if (bound is ComprehensionExpr.IntBoundedPool) {
             var b = (ComprehensionExpr.IntBoundedPool)bound;
             if (AsNativeType(bv.Type) != null) {
@@ -2971,6 +2980,8 @@ namespace Microsoft.Dafny {
         var bv = e.BoundVars[0];
         if (bound is ComprehensionExpr.BoolBoundedPool) {
           wr.Write("foreach (var @{0} in Dafny.Helpers.AllBooleans) {{ ", bv.CompileName);
+        } else if (bound is ComprehensionExpr.CharBoundedPool) {
+          wr.Write("foreach (var @{0} in Dafny.Helpers.AllChars) {{ ", bv.CompileName);
         } else if (bound is ComprehensionExpr.IntBoundedPool) {
           var b = (ComprehensionExpr.IntBoundedPool)bound;
           if (AsNativeType(bv.Type) != null) {

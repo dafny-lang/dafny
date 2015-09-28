@@ -7,7 +7,6 @@ class C {
   ghost method Init_ModifyNothing() { }
   ghost method Init_ModifyThis() modifies this;
   {
-    data := 6;  // error: assignment to a non-ghost field
     gdata := 7;
   }
   ghost method Init_ModifyStuff(c: C) modifies this, c; { }
@@ -118,5 +117,17 @@ method M3(c: C)
     ensures true;
   {
     c.GhostMethodWithModifies(x);  // error: not allowed to call method with nonempty modifies clause
+  }
+}
+
+module AnotherModule {
+  class C {
+    var data: int;
+    ghost var gdata: int;
+    ghost method Init_ModifyThis() modifies this;
+    {
+      data := 6;  // error: assignment to a non-ghost field
+      gdata := 7;
+    }
   }
 }
