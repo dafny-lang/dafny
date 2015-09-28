@@ -1454,7 +1454,7 @@ namespace Microsoft.Dafny
                 } else if (member is Function) {
                   var f = (Function)member;
                   if (!f.IsGhost && f.Body != null) {
-                    CheckIsNonGhost(f.Body);
+                    CheckIsCompilable(f.Body);
                   }
                   DetermineTailRecursion(f);
                 }
@@ -3160,7 +3160,7 @@ namespace Microsoft.Dafny
           if (mustBeErasable) {
             Error(stmt, "print statement is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)");
           } else {
-            s.Args.Iter(resolver.CheckIsNonGhost);
+            s.Args.Iter(resolver.CheckIsCompilable);
           }
 
         } else if (stmt is BreakStmt) {
@@ -3235,19 +3235,19 @@ namespace Microsoft.Dafny
               AssignStmt.NonGhostKind_To_String(gk));
           } else if (s.Rhs is ExprRhs) {
             var rhs = (ExprRhs)s.Rhs;
-            resolver.CheckIsNonGhost(rhs.Expr);
+            resolver.CheckIsCompilable(rhs.Expr);
           } else if (s.Rhs is HavocRhs) {
             // cool
           } else {
             var rhs = (TypeRhs)s.Rhs;
             if (rhs.ArrayDimensions != null) {
               foreach (var dim in rhs.ArrayDimensions) {
-                resolver.CheckIsNonGhost(dim);
+                resolver.CheckIsCompilable(dim);
               }
             }
             if (rhs.InitCall != null) {
               foreach (var arg in rhs.InitCall.Args) {
-                resolver.CheckIsNonGhost(arg);
+                resolver.CheckIsCompilable(arg);
               }
             }
           }
@@ -3263,14 +3263,14 @@ namespace Microsoft.Dafny
               Error(s, "only ghost methods can be called from this context");
             }
           } else {
-            resolver.CheckIsNonGhost(s.Receiver);
+            resolver.CheckIsCompilable(s.Receiver);
             int j;
             if (!callee.IsGhost) {
               j = 0;
               foreach (var e in s.Args) {
                 Contract.Assume(j < callee.Ins.Count);  // this should have already been checked by the resolver
                 if (!callee.Ins[j].IsGhost) {
-                  resolver.CheckIsNonGhost(e);
+                  resolver.CheckIsCompilable(e);
                 }
                 j++;
               }
@@ -9283,7 +9283,7 @@ namespace Microsoft.Dafny
     /// Generate an error for every non-ghost feature used in "expr".
     /// Requires "expr" to have been successfully resolved.
     /// </summary>
-    void CheckIsNonGhost(Expression expr) {
+    void CheckIsCompilable(Expression expr) {
       Contract.Requires(expr != null);
       Contract.Requires(expr.WasResolved());  // this check approximates the requirement that "expr" be resolved
 
@@ -9309,10 +9309,10 @@ namespace Microsoft.Dafny
             return;
           }
           // function is okay, so check all NON-ghost arguments
-          CheckIsNonGhost(e.Receiver);
+          CheckIsCompilable(e.Receiver);
           for (int i = 0; i < e.Function.Formals.Count; i++) {
             if (!e.Function.Formals[i].IsGhost) {
-              CheckIsNonGhost(e.Args[i]);
+              CheckIsCompilable(e.Args[i]);
             }
           }
         }
@@ -9324,7 +9324,7 @@ namespace Microsoft.Dafny
         // note that if resolution is successful, then |e.Arguments| == |e.Ctor.Formals|
         for (int i = 0; i < e.Arguments.Count; i++) {
           if (!e.Ctor.Formals[i].IsGhost) {
-            CheckIsNonGhost(e.Arguments[i]);
+            CheckIsCompilable(e.Arguments[i]);
           }
         }
         return;
@@ -9343,7 +9343,7 @@ namespace Microsoft.Dafny
       } else if (expr is StmtExpr) {
         var e = (StmtExpr)expr;
         // ignore the statement
-        CheckIsNonGhost(e.E);
+        CheckIsCompilable(e.E);
         return;
 
       } else if (expr is BinaryExpr) {
@@ -9374,18 +9374,18 @@ namespace Microsoft.Dafny
           var i = 0;
           foreach (var ee in e.RHSs) {
             if (!e.LHSs[i].Vars.All(bv => bv.IsGhost)) {
-              CheckIsNonGhost(ee);
+              CheckIsCompilable(ee);
             }
             i++;
           }
-          CheckIsNonGhost(e.Body);
+          CheckIsCompilable(e.Body);
         } else {
           Contract.Assert(e.RHSs.Count == 1);
           var lhsVarsAreAllGhost = e.BoundVars.All(bv => bv.IsGhost);
           if (!lhsVarsAreAllGhost) {
-            CheckIsNonGhost(e.RHSs[0]);
+            CheckIsCompilable(e.RHSs[0]);
           }
-          CheckIsNonGhost(e.Body);
+          CheckIsCompilable(e.Body);
 
           // fill in bounds for this to-be-compiled let-such-that expression
           Contract.Assert(e.RHSs.Count == 1);  // if we got this far, the resolver will have checked this condition successfully
@@ -9405,7 +9405,7 @@ namespace Microsoft.Dafny
         return;
       } else if (expr is LambdaExpr) {
         var e = expr as LambdaExpr;
-        CheckIsNonGhost(e.Body);
+        CheckIsCompilable(e.Body);
         return;
       } else if (expr is ComprehensionExpr) {
         var e = (ComprehensionExpr)expr;
@@ -9437,18 +9437,18 @@ namespace Microsoft.Dafny
         }
       } else if (expr is NamedExpr) {
         if (!moduleInfo.IsAbstract)
-          CheckIsNonGhost(((NamedExpr)expr).Body);
+          CheckIsCompilable(((NamedExpr)expr).Body);
         return;
       } else if (expr is ChainingExpression) {
         // We don't care about the different operators; we only want the operands, so let's get them directly from
         // the chaining expression
         var e = (ChainingExpression)expr;
-        e.Operands.ForEach(CheckIsNonGhost);
+        e.Operands.ForEach(CheckIsCompilable);
         return;
       }
 
       foreach (var ee in expr.SubExpressions) {
-        CheckIsNonGhost(ee);
+        CheckIsCompilable(ee);
       }
     }
 
