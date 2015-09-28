@@ -1610,3 +1610,12 @@ module MoreLetSuchThatExpr {
     var x := var y :| y < z; y;  // error: contraint depend on ghost (z)
   }
 }
+
+module UnderspecifiedTypedShouldBeResolvedOnlyOnce {
+  method CalcTest0(s: seq<int>) {
+    calc {
+      2;
+      var t :| true; 2;  // error: type of 't' is underspecified
+    }
+  }
+}

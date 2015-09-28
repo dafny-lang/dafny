@@ -192,3 +192,35 @@ module Recursion {
     }
   }
 }
+
+module PrefixEquality {
+  codatatype Stream<T> = Cons(head: T, Stream)
+    
+  colemma Test0(s: Stream, t: Stream)
+    requires s.head == t.head
+  {
+    calc {
+      s;
+      ==#[_k-1]
+      t;  // error: this step might not hold
+      ==#[if 2 <= _k then _k-2 else _k-1]
+      s;  // error: this step might not hold
+      ==#[0]
+      t;
+    }
+  }
+
+  colemma Test1(s: Stream, t: Stream)
+    requires s == t
+  {
+    calc {
+      s;
+      ==#[_k-1]
+      t;
+      ==#[_k-2]  // error: prefix-equality limit must be at least 0
+      s;
+      ==#[0]
+      t;
+    }
+  }
+}

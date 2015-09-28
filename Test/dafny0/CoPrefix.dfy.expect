@@ -12,6 +12,21 @@ CoPrefix.dfy(176,10): Error: cannot prove termination; try supplying a decreases
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Then
+CoPrefix.dfy(205,6): Error: the calculation step between the previous line and this line might not hold
+Execution trace:
+    (0,0): anon0
+    (0,0): anon8_Then
+    (0,0): anon10_Then
+CoPrefix.dfy(207,6): Error: the calculation step between the previous line and this line might not hold
+Execution trace:
+    (0,0): anon0
+    (0,0): anon8_Then
+    (0,0): anon11_Then
+CoPrefix.dfy(220,12): Error: prefix-equality limit must be at least 0
+Execution trace:
+    (0,0): anon0
+    (0,0): anon8_Then
+    (0,0): anon11_Then
 CoPrefix.dfy(63,56): Error: failure to decrease termination measure
 Execution trace:
     (0,0): anon0
@@ -47,4 +62,4 @@ Execution trace:
     (0,0): anon0
     (0,0): anon3_Else
 
-Dafny program verifier finished with 41 verified, 9 errors
+Dafny program verifier finished with 43 verified, 12 errors
