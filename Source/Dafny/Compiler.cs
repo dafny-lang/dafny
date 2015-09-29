@@ -102,7 +102,11 @@ namespace Microsoft.Dafny {
         }
         int indent = 0;
         if (!m.IsDefaultModule) {
-          wr.WriteLine("namespace @{0} {{", m.CompileName);
+          var m_prime = m;
+          while (DafnyOptions.O.IronDafny && m_prime.ClonedFrom != null) {
+            m_prime = m.ClonedFrom;
+          }
+          wr.WriteLine("namespace @{0} {{", m_prime.CompileName);
           indent += IndentAmount;
         }
         foreach (TopLevelDecl d in m.TopLevelDecls) {
@@ -687,11 +691,18 @@ namespace Microsoft.Dafny {
       return formal.HasName ? formal.CompileName : "_a" + i;
     }
 
+    string DtName(DatatypeDecl decl) {
+        var d = (TopLevelDecl)decl;
+        while (DafnyOptions.O.IronDafny && d.ClonedFrom != null) {
+          d = (TopLevelDecl)d.ClonedFrom;
+        }
+      return d.Module.IsDefaultModule ? d.CompileName : d.FullCompileName;
+    }
     string DtCtorName(DatatypeCtor ctor) {
       Contract.Requires(ctor != null);
       Contract.Ensures(Contract.Result<string>() != null);
 
-      return ctor.EnclosingDatatype.FullCompileName + "_" + ctor.CompileName;
+      return DtName(ctor.EnclosingDatatype) + "_" + ctor.CompileName;
     }
     string DtCtorDeclartionName(DatatypeCtor ctor) {
       Contract.Requires(ctor != null);
@@ -1123,61 +1134,78 @@ namespace Microsoft.Dafny {
       Contract.Requires(type != null);
       Contract.Ensures(Contract.Result<string>() != null);
 
-      type = type.NormalizeExpand();
-      if (type is TypeProxy) {
+      var xType = type.NormalizeExpand();
+      if (xType is TypeProxy) {
         // unresolved proxy; just treat as ref, since no particular type information is apparently needed for this type
         return "object";
       }
 
-      if (type is BoolType) {
+      if (xType is BoolType) {
         return "bool";
-      } else if (type is CharType) {
+      } else if (xType is CharType) {
         return "char";
-      } else if (type is IntType) {
+      } else if (xType is IntType) {
         return "BigInteger";
-      } else if (type is RealType) {
+      } else if (xType is RealType) {
         return "Dafny.BigRational";
-      } else if (type.AsNewtype != null) {
-        NativeType nativeType = type.AsNewtype.NativeType;
+      } else if (xType.AsNewtype != null) {
+        NativeType nativeType = xType.AsNewtype.NativeType;
         if (nativeType != null) {
           return nativeType.Name;
         }
-        return TypeName(type.AsNewtype.BaseType);
-      } else if (type is ObjectType) {
+        return TypeName(xType.AsNewtype.BaseType);
+      } else if (xType is ObjectType) {
         return "object";
-      } else if (type.IsArrayType) {
-        ArrayClassDecl at = type.AsArrayType;
+      } else if (xType.IsArrayType) {
+        ArrayClassDecl at = xType.AsArrayType;
         Contract.Assert(at != null);  // follows from type.IsArrayType
-        Type elType = UserDefinedType.ArrayElementType(type);
+        Type elType = UserDefinedType.ArrayElementType(xType);
         string name = TypeName(elType) + "[";
         for (int i = 1; i < at.Dims; i++) {
           name += ",";
         }
         return name + "]";
-      } else if (type is UserDefinedType) {
-        var udt = (UserDefinedType)type;
-        return TypeName_UDT(udt.FullCompileName, udt.TypeArgs);
-      } else if (type is SetType) {
-        Type argType = ((SetType)type).Arg;
+      } else if (xType is UserDefinedType) {
+        var udt = (UserDefinedType)xType;
+        var s = udt.FullCompileName;
+        var rc = udt.ResolvedClass;
+        if (DafnyOptions.O.IronDafny && 
+            !(xType is ArrowType) &&
+            rc != null &&
+            rc.Module != null &&
+            !rc.Module.IsDefaultModule) {
+          while (rc.ClonedFrom != null || rc.ExclusiveRefinement != null) {
+            if (rc.ClonedFrom != null) {
+              rc = (TopLevelDecl)rc.ClonedFrom;
+            } else {
+              Contract.Assert(rc.ExclusiveRefinement != null);
+              rc = rc.ExclusiveRefinement;
+            }
+          }
+          s = rc.FullCompileName;
+        }
+        return TypeName_UDT(s, udt.TypeArgs);
+      } else if (xType is SetType) {
+        Type argType = ((SetType)xType).Arg;
         if (argType is ObjectType) {
           Error("compilation of set<object> is not supported; consider introducing a ghost");
         }
         return DafnySetClass + "<" + TypeName(argType) + ">";
-      } else if (type is SeqType) {
-        Type argType = ((SeqType)type).Arg;
+      } else if (xType is SeqType) {
+        Type argType = ((SeqType)xType).Arg;
         if (argType is ObjectType) {
           Error("compilation of seq<object> is not supported; consider introducing a ghost");
         }
         return DafnySeqClass + "<" + TypeName(argType) + ">";
-      } else if (type is MultiSetType) {
-        Type argType = ((MultiSetType)type).Arg;
+      } else if (xType is MultiSetType) {
+        Type argType = ((MultiSetType)xType).Arg;
         if (argType is ObjectType) {
           Error("compilation of seq<object> is not supported; consider introducing a ghost");
         }
         return DafnyMultiSetClass + "<" + TypeName(argType) + ">";
-      } else if (type is MapType) {
-        Type domType = ((MapType)type).Domain;
-        Type ranType = ((MapType)type).Range;
+      } else if (xType is MapType) {
+        Type domType = ((MapType)xType).Domain;
+        Type ranType = ((MapType)xType).Range;
         if (domType is ObjectType || ranType is ObjectType) {
           Error("compilation of map<object, _> or map<_, object> is not supported; consider introducing a ghost");
         }
@@ -1218,36 +1246,52 @@ namespace Microsoft.Dafny {
       Contract.Requires(type != null);
       Contract.Ensures(Contract.Result<string>() != null);
 
-      type = type.NormalizeExpand();
-      if (type is TypeProxy) {
+      var xType = type.NormalizeExpand();
+      if (xType is TypeProxy) {
         // unresolved proxy; just treat as ref, since no particular type information is apparently needed for this type
         return "null";
       }
 
-      if (type is BoolType) {
+      if (xType is BoolType) {
         return "false";
-      } else if (type is CharType) {
+      } else if (xType is CharType) {
         return "'D'";
-      } else if (type is IntType) {
+      } else if (xType is IntType) {
         return "BigInteger.Zero";
-      } else if (type is RealType) {
+      } else if (xType is RealType) {
         return "Dafny.BigRational.ZERO";
-      } else if (type.AsNewtype != null) {
-        if (type.AsNewtype.NativeType != null) {
+      } else if (xType.AsNewtype != null) {
+        if (xType.AsNewtype.NativeType != null) {
           return "0";
         }
-        return DefaultValue(type.AsNewtype.BaseType);
-      } else if (type.IsRefType) {
-        return string.Format("({0})null", TypeName(type));
-      } else if (type.IsDatatype) {
-        UserDefinedType udt = (UserDefinedType)type;
-        string s = "@" + udt.FullCompileName;
+        return DefaultValue(xType.AsNewtype.BaseType);
+      } else if (xType.IsRefType) {
+        return string.Format("({0})null", TypeName(xType));
+      } else if (xType.IsDatatype) {
+        var udt = (UserDefinedType)xType;
+        var s = "@" + udt.FullCompileName;
+        var rc = udt.ResolvedClass;
+        if (DafnyOptions.O.IronDafny && 
+            !(xType is ArrowType) &&
+            rc != null &&
+            rc.Module != null &&
+            !rc.Module.IsDefaultModule) {
+          while (rc.ClonedFrom != null || rc.ExclusiveRefinement != null) {
+            if (rc.ClonedFrom != null) {
+              rc = (TopLevelDecl)rc.ClonedFrom;
+            } else {
+              Contract.Assert(rc.ExclusiveRefinement != null);
+              rc = rc.ExclusiveRefinement;
+            }
+          }
+          s = "@" + rc.FullCompileName;
+        }
         if (udt.TypeArgs.Count != 0) {
           s += "<" + TypeNames(udt.TypeArgs) + ">";
         }
         return string.Format("new {0}()", s);
-      } else if (type.IsTypeParameter) {
-        var udt = (UserDefinedType)type;
+      } else if (xType.IsTypeParameter) {
+        var udt = (UserDefinedType)xType;
         string s = "default(@" + udt.FullCompileName;
         if (udt.TypeArgs.Count != 0)
         {
@@ -1255,15 +1299,15 @@ namespace Microsoft.Dafny {
         }
         s += ")";
         return s;
-      } else if (type is SetType) {
-        return DafnySetClass + "<" + TypeName(((SetType)type).Arg) + ">.Empty";
-      } else if (type is MultiSetType) {
-        return DafnyMultiSetClass + "<" + TypeName(((MultiSetType)type).Arg) + ">.Empty";
-      } else if (type is SeqType) {
-        return DafnySeqClass + "<" + TypeName(((SeqType)type).Arg) + ">.Empty";
-      } else if (type is MapType) {
-        return TypeName(type)+".Empty";
-      } else if (type is ArrowType) {
+      } else if (xType is SetType) {
+        return DafnySetClass + "<" + TypeName(((SetType)xType).Arg) + ">.Empty";
+      } else if (xType is MultiSetType) {
+        return DafnyMultiSetClass + "<" + TypeName(((MultiSetType)xType).Arg) + ">.Empty";
+      } else if (xType is SeqType) {
+        return DafnySeqClass + "<" + TypeName(((SeqType)xType).Arg) + ">.Empty";
+      } else if (xType is MapType) {
+        return TypeName(xType)+".Empty";
+      } else if (xType is ArrowType) {
         return "null";
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected type
@@ -2387,7 +2431,7 @@ namespace Microsoft.Dafny {
         Contract.Assert(dtv.Ctor != null);  // since dtv has been successfully resolved
         var typeParams = dtv.InferredTypeArgs.Count == 0 ? "" : string.Format("<{0}>", TypeNames(dtv.InferredTypeArgs));
 
-        wr.Write("new {0}{1}(", dtv.Ctor.EnclosingDatatype.FullCompileName, typeParams);
+        wr.Write("new {0}{1}(", DtName(dtv.Ctor.EnclosingDatatype), typeParams);
         if (!dtv.IsCoCall) {
           // For an ordinary constructor (that is, one that does not guard any co-recursive calls), generate:
           //   new Dt_Cons<T>( args )
@@ -2857,7 +2901,7 @@ namespace Microsoft.Dafny {
             var b = (ComprehensionExpr.DatatypeBoundedPool)bound;
             wr.Write("Dafny.Helpers.QuantDatatype(");
 
-            wr.Write("{0}.AllSingletonConstructors, ", b.Decl.FullCompileName);
+            wr.Write("{0}.AllSingletonConstructors, ", DtName(b.Decl));
           } else {
             Contract.Assert(false); throw new cce.UnreachableException();  // unexpected BoundedPool type
           }
