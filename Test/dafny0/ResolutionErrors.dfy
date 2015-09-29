@@ -586,16 +586,16 @@ method LetSuchThat(ghost z: int, n: nat)
 module NonInferredType {
   predicate P<T>(x: T)
 
-  method NonInferredType0(x: int)
+  method InferredType(x: int)
   {
     var t;
-    assume forall z :: P(z) && z == t;  // It would be nice to allow the following example, but the implementation calls DiscoverBounds before CheckInference for quantifiers.
+    assume forall z :: P(z) && z == t;
     assume t == x;  // this statement determines the type of t and z
   }
 
-  method NonInferredType1(x: int)
+  method NonInferredType(x: int)
   {
-    var t;
+    var t;  // error: the type of t is not determined
     assume forall z :: P(z) && z == t;  // error: the type of z is not determined
   }
 }
@@ -1126,15 +1126,15 @@ method TraitSynonym()
 // ----- set comprehensions where the term type is finite -----
 
 module ObjectSetComprehensions {
-  // allowed in non-ghost context:
-  function A() : set<object> { set o : object | true :: o }
+  // the following set comprehensions are known to be finite
+  function A() : set<object> { set o : object | true :: o }  // error: a function is not allowed to depend on the allocated state
 
-  lemma B() { var x := set o : object | true :: o; }
+  function method B() : set<object> { set o : object | true :: o }  // error: a function is not allowed to depend on the allocated state
 
-  // not allowed in non-ghost context:
-  function method C() : set<object> { set o : object | true :: o }
+  // outside functions, the comprehension is permitted, but it cannot be compiled
+  lemma C() { var x := set o : object | true :: o; }
 
-  method D() { var x := set o : object | true :: o; }
+  method D() { var x := set o : object | true :: o; }  // error: not (easily) compilable
 }
 
 // ------ regression test for type checking of integer division -----
@@ -1228,9 +1228,9 @@ module NonInferredTypeVariables {
   method BadClient(n: nat)
   {
     var p := P(n);  // error: cannot infer the type argument for P
-    ghost var q := Q(n);  // error: cannot infer the type argument for Q
+    ghost var q := Q(n);  // error: cannot infer the type argument for Q (and thus q's type cannot be determined either)
     M(n);  // error: cannot infer the type argument for M
-    var x := N(n);  // error: cannot infer the type argument for N
+    var x := N(n);  // error: cannot infer the type argument for N (and thus x's type cannot be determined either)
     var a := new array;  // error: cannot infer the type argument for 'array'
     var c := new C;  // error: cannot infer the type argument for 'C'
     var s: set;  // type argument for 'set' 
@@ -1248,7 +1248,7 @@ module NonInferredTypeVariables {
     ghost var d0 := forall s :: s == {7} ==> s != {};
     var d1 := forall s: set :: s in S ==> s == {};
     var ggcc0: C;
-    var ggcc1: C;
+    var ggcc1: C;  // error: full type cannot be determined
     ghost var d2 := forall c: C :: c != null ==> c.f == 10;
     ghost var d2' := forall c :: c == ggcc0 && c != null ==> c.f == 10;
     ghost var d2'' := forall c :: c == ggcc1 && c != null ==> c.f == c.f; // error: here, type of c is not determined

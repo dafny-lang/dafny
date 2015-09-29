@@ -22,7 +22,7 @@ method O() returns (ghost p: set<object>)
 
 method P() returns (p: set<object>)
 {
-  p := set o: object | true;  // not allowed -- not in a ghost context
+  p := set o: object | true;  // error: not (easily) compilable
 }
 
 ghost method Q() returns (p: set<object>)
@@ -30,26 +30,54 @@ ghost method Q() returns (p: set<object>)
   p := set o: object | true;  // allowed, since the whole method is ghost
 }
 
-function F(): int
-  requires null in set o: object | true  // allowed
-  ensures null in set o: object | true  // allowed
-  reads set o: object | true  // allowed
-  decreases set o: object | true  // allowed
+function F(p: object): int
+  requires p in set o: object | true  // error: function is not allowed to depend on allocation state
+  ensures p in set o: object | true  // error: ditto (although one could argue that this would be okay)
+  reads set o: object | true  // error: same as for 'requires'
+  decreases set o: object | true  // error: same as for 'ensures'
 {
-  if null in set o: object | true then  // allowed -- in a ghost context
-    F()
+  if p in set o: object | true then  // error: function is not allowed to depend on allocation state
+    F(p)
   else
     0
 }
 
-function method G(): int
-  requires null in set o: object | true  // (X) allowed
-  ensures null in set o: object | true  // (X) allowed
-  reads set o: object | true  // allowed
-  decreases set o: object | true  // (X) allowed
+function method G(p: object): int
+  requires p in set o: object | true  // error (see F)
+  ensures p in set o: object | true  // error (see F)
+  reads set o: object | true  // error (see F)
+  decreases set o: object | true  // error (see F)
 {
-  if null in set o: object | true then  // not allowed, since this is not a ghost context
-    G()
+  if p in set o: object | true then  // error (see F)
+    G(p)
   else
     0
+}
+
+method M0() returns (ghost r: int, s: int)
+  requires null in set o: object | true  // allowed
+  ensures null in set o: object | true  // allowed
+  modifies set o: object | true  // allowed
+  decreases set o: object | true  // allowed
+{
+  if null in set o: object | true {  // this makes the "if" a ghost
+    r := G(null);
+    s := G(null);  // error: assignment of non-ghost not allowed inside ghost "if"
+  } else {
+    r := 0;
+  }
+}
+
+method M1() returns (ghost r: int, s: int)
+  requires null in set o: object | true  // (X) allowed
+  ensures null in set o: object | true  // (X) allowed
+  modifies set o: object | true  // allowed
+  decreases set o: object | true  // (X) allowed
+{
+  if null in set o: object | true {  // this makes the "if" a ghost
+    r := G(null);
+    s := G(null);  // error: assignment of non-ghost not allowed inside ghost "if"
+  } else {
+    r := 0;
+  }
 }

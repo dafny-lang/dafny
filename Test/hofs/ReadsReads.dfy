@@ -105,14 +105,14 @@ module WhatWeKnowAboutReads {
 
 module ReadsAll {
   function A(f: int -> int) : int
-    reads set o,x | o in f.reads(x) :: o
+    reads set x,o | o in f.reads(x) :: o  // note, with "set o,x ..." instead, Dafny complains (this is perhaps less than ideal)
     requires forall x :: f.requires(x)
   {
     f(0) + f(1) + f(2)
   }
 
   function method B(f: int -> int) : int
-    reads set o,x | o in f.reads(x) :: o
+    reads set x,o | o in f.reads(x) :: o  // note, with "set o,x ..." instead, Dafny complains (this is perhaps less than ideal)
     requires forall x :: f.requires(x)
   {
     f(0) + f(1) + f(2)

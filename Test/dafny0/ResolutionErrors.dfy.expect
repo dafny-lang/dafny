@@ -20,10 +20,9 @@ ResolutionErrors.dfy(535,7): Error: RHS (of type List<A>) not assignable to LHS 
 ResolutionErrors.dfy(540,7): Error: RHS (of type List<A>) not assignable to LHS (of type List<B>)
 ResolutionErrors.dfy(554,23): Error: type of case bodies do not agree (found Tree<_T1,_T0>, previous types Tree<_T0,_T1>)
 ResolutionErrors.dfy(566,24): Error: Wrong number of type arguments (0 instead of 2) passed to datatype: Tree
-ResolutionErrors.dfy(592,25): Error: the type of this variable is underspecified
-ResolutionErrors.dfy(592,23): Error: type variable 'T' in the function call to 'P' could not be determined
-ResolutionErrors.dfy(599,25): Error: the type of this variable is underspecified
+ResolutionErrors.dfy(598,8): Error: the type of this local variable is underspecified
 ResolutionErrors.dfy(599,23): Error: type variable 'T' in the function call to 'P' could not be determined
+ResolutionErrors.dfy(599,18): Error: type of bound variable 'z' could not be determined; please specify the type explicitly
 ResolutionErrors.dfy(612,13): Error: 'new' is not allowed in ghost contexts
 ResolutionErrors.dfy(613,9): Error: 'new' is not allowed in ghost contexts
 ResolutionErrors.dfy(622,23): Error: 'new' is not allowed in ghost contexts
@@ -81,12 +80,28 @@ ResolutionErrors.dfy(1105,6): Error: RHS (of type P<int>) not assignable to LHS 
 ResolutionErrors.dfy(1110,13): Error: arguments must have the same type (got P<int> and P<X>)
 ResolutionErrors.dfy(1111,13): Error: arguments must have the same type (got P<bool> and P<X>)
 ResolutionErrors.dfy(1112,13): Error: arguments must have the same type (got P<int> and P<bool>)
-ResolutionErrors.dfy(1135,38): Error: set comprehensions in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce or compile a bounded set of values for 'o'
+ResolutionErrors.dfy(1130,31): Error: a set comprehension involved in a function definition is not allowed to depend on the set of allocated references; Dafny's heuristics can't figure out a bound for the values of 'o'
+ResolutionErrors.dfy(1132,38): Error: a set comprehension involved in a function definition is not allowed to depend on the set of allocated references; Dafny's heuristics can't figure out a bound for the values of 'o'
 ResolutionErrors.dfy(1137,24): Error: set comprehensions in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce or compile a bounded set of values for 'o'
+ResolutionErrors.dfy(1230,13): Error: type variable 'PT' in the function call to 'P' could not be determined
+ResolutionErrors.dfy(1231,14): Error: the type of this variable is underspecified
+ResolutionErrors.dfy(1231,19): Error: type variable 'QT' in the function call to 'Q' could not be determined
+ResolutionErrors.dfy(1232,4): Error: type '?' to the method 'M' is not determined
+ResolutionErrors.dfy(1233,8): Error: the type of this variable is underspecified
+ResolutionErrors.dfy(1233,13): Error: type '?' to the method 'N' is not determined
+ResolutionErrors.dfy(1234,8): Error: the type of this variable is underspecified
+ResolutionErrors.dfy(1235,8): Error: the type of this variable is underspecified
+ResolutionErrors.dfy(1236,8): Error: the type of this local variable is underspecified
+ResolutionErrors.dfy(1237,8): Error: the type of this variable is underspecified
+ResolutionErrors.dfy(1238,8): Error: the type of this local variable is underspecified
 ResolutionErrors.dfy(1242,26): Error: the type of this variable is underspecified
+ResolutionErrors.dfy(1242,21): Error: type of bound variable 's' could not be determined; please specify the type explicitly
 ResolutionErrors.dfy(1243,31): Error: the type of this variable is underspecified
+ResolutionErrors.dfy(1243,21): Error: type of bound variable 's' could not be determined; please specify the type explicitly
 ResolutionErrors.dfy(1244,29): Error: the type of this variable is underspecified
-ResolutionErrors.dfy(1254,34): Error: the type of this variable is underspecified
+ResolutionErrors.dfy(1244,21): Error: type of bound variable 'c' could not be determined; please specify the type explicitly
+ResolutionErrors.dfy(1251,8): Error: the type of this local variable is underspecified
+ResolutionErrors.dfy(1254,29): Error: type of bound variable 'c' could not be determined; please specify the type explicitly
 ResolutionErrors.dfy(1270,21): Error: Undeclared top-level type or type parameter: X (did you forget to qualify a name or declare a module import 'opened?')
 ResolutionErrors.dfy(1271,24): Error: Undeclared top-level type or type parameter: X (did you forget to qualify a name or declare a module import 'opened?')
 ResolutionErrors.dfy(1308,16): Error: in a ghost context, only ghost fields can be mentioned as modifies frame targets (y)
@@ -209,4 +224,4 @@ ResolutionErrors.dfy(1123,8): Error: new cannot be applied to a trait
 ResolutionErrors.dfy(1144,13): Error: first argument to / must be of numeric type (instead got set<bool>)
 ResolutionErrors.dfy(1151,18): Error: a call to a possibly non-terminating method is allowed only if the calling method is also declared (with 'decreases *') to be possibly non-terminating
 ResolutionErrors.dfy(1166,14): Error: a possibly infinite loop is allowed only if the enclosing method is declared (with 'decreases *') to be possibly non-terminating
-211 resolution/type errors detected in ResolutionErrors.dfy
+226 resolution/type errors detected in ResolutionErrors.dfy
