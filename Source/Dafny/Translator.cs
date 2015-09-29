@@ -9246,41 +9246,41 @@ namespace Microsoft.Dafny {
       Contract.Requires(type != null);
       Contract.Ensures(Contract.Result<Bpl.Expr>() != null);
 
-      type = type.NormalizeExpand();
+      var normType = type.NormalizeExpand();
 
-      if (type is SetType) {
-        bool finite = ((SetType)type).Finite;
-        return FunctionCall(Token.NoToken, finite ? "TSet" : "TISet", predef.Ty, TypeToTy(((CollectionType)type).Arg));
-      } else if (type is MultiSetType) {
-        return FunctionCall(Token.NoToken, "TMultiSet", predef.Ty, TypeToTy(((CollectionType)type).Arg));
-      } else if (type is SeqType) {
-        return FunctionCall(Token.NoToken, "TSeq", predef.Ty, TypeToTy(((CollectionType)type).Arg));
-      } else if (type is MapType) {
-        bool finite = ((MapType)type).Finite;
+      if (normType is SetType) {
+        bool finite = ((SetType)normType).Finite;
+        return FunctionCall(Token.NoToken, finite ? "TSet" : "TISet", predef.Ty, TypeToTy(((CollectionType)normType).Arg));
+      } else if (normType is MultiSetType) {
+        return FunctionCall(Token.NoToken, "TMultiSet", predef.Ty, TypeToTy(((CollectionType)normType).Arg));
+      } else if (normType is SeqType) {
+        return FunctionCall(Token.NoToken, "TSeq", predef.Ty, TypeToTy(((CollectionType)normType).Arg));
+      } else if (normType is MapType) {
+        bool finite = ((MapType)normType).Finite;
         return FunctionCall(Token.NoToken, finite ? "TMap" : "TIMap", predef.Ty,
-          TypeToTy(((MapType)type).Domain),
-          TypeToTy(((MapType)type).Range));
-      } else if (type is BoolType) {
+          TypeToTy(((MapType)normType).Domain),
+          TypeToTy(((MapType)normType).Range));
+      } else if (normType is BoolType) {
         return new Bpl.IdentifierExpr(Token.NoToken, "TBool", predef.Ty);
-      } else if (type is CharType) {
+      } else if (normType is CharType) {
         return new Bpl.IdentifierExpr(Token.NoToken, "TChar", predef.Ty);
-      } else if (type is RealType) {
+      } else if (normType is RealType) {
         return new Bpl.IdentifierExpr(Token.NoToken, "TReal", predef.Ty);
-      } else if (type is NatType) {
+      } else if (normType is NatType) {
         // (Nat needs to come before Int)
         return new Bpl.IdentifierExpr(Token.NoToken, "TNat", predef.Ty);
-      } else if (type is IntType) {
+      } else if (normType is IntType) {
         return new Bpl.IdentifierExpr(Token.NoToken, "TInt", predef.Ty);
-      } else if (type.IsTypeParameter) {
-        return trTypeParam(type.AsTypeParameter, type.TypeArgs);
-      } else if (type is ObjectType) {
+      } else if (normType.IsTypeParameter) {
+        return trTypeParam(normType.AsTypeParameter, normType.TypeArgs);
+      } else if (normType is ObjectType) {
         return ClassTyCon(program.BuiltIns.ObjectDecl, new List<Bpl.Expr>());
-      } else if (type is UserDefinedType) {
+      } else if (normType is UserDefinedType) {
         // Classes, (co-)datatypes
-        var args = type.TypeArgs.ConvertAll(TypeToTy);
-        return ClassTyCon(((UserDefinedType)type), args);
-      } else if (type is ParamTypeProxy) {
-        return trTypeParam(((ParamTypeProxy)type).orig, null);
+        var args = normType.TypeArgs.ConvertAll(TypeToTy);
+        return ClassTyCon(((UserDefinedType)normType), args);
+      } else if (normType is ParamTypeProxy) {
+        return trTypeParam(((ParamTypeProxy)normType).orig, null);
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected type
       }
@@ -9383,19 +9383,19 @@ namespace Microsoft.Dafny {
       Contract.Requires(etran != null);
       Contract.Requires(predef != null);
 
-      type = type.NormalizeExpand();
-      if (type is TypeProxy) {
+      var normType = type.NormalizeExpand();
+      if (normType is TypeProxy) {
         // Unresolved proxy
         // Omit where clause (in other places, unresolved proxies are treated as a reference type; we could do that here too, but
         // we might as well leave out the where clause altogether).
         return null;
       }
 
-      if (type is NatType) {
+      if (normType is NatType) {
         // nat:
         // 0 <= x
         return Bpl.Expr.Le(Bpl.Expr.Literal(0), x);
-      } else if (type is BoolType || type is IntType || type is RealType) {
+      } else if (normType is BoolType || normType is IntType || normType is RealType) {
         // nothing to do
         return null;
       /* } else if (type is ArrowType) {
@@ -9403,7 +9403,7 @@ namespace Microsoft.Dafny {
         return null;
         */
       } else {
-        return BplAnd(MkIs(x, type), MkIsAlloc(x, type, etran.HeapExpr));
+        return BplAnd(MkIs(x, normType), MkIsAlloc(x, normType, etran.HeapExpr));
       }
     }
 
@@ -11029,7 +11029,11 @@ namespace Microsoft.Dafny {
           }
 
           var ty = translator.TrType(e.Type);
-          var id = new Bpl.IdentifierExpr(e.tok, e.Function.FullSanitizedName, ty);
+          var name = e.Function.FullSanitizedName;
+          if (DafnyOptions.O.IronDafny) {
+            name = e.Function.FullSanitizedRefinementName;
+          }
+          var id = new Bpl.IdentifierExpr(e.tok, name, ty);
 
           bool argsAreLit;
           var args = FunctionInvocationArguments(e, layerArgument, out argsAreLit);

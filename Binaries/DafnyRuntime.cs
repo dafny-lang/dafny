@@ -1191,7 +1191,7 @@ namespace Dafny
       }
     }
     public static Sequence<T> SeqFromArray<T>(T[] array) {
-      return new Sequence<T>(array);
+      return new Sequence<T>((T[])array.Clone());
     }
     // In .NET version 4.5, it it possible to mark a method with "AggressiveInlining", which says to inline the
     // method if possible.  Method "ExpressionSequence" would be a good candidate for it:

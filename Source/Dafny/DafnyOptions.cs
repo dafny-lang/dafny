@@ -51,7 +51,7 @@ namespace Microsoft.Dafny
     public string DafnyPrelude = null;
     public string DafnyPrintFile = null;
     public enum PrintModes { Everything, NoIncludes, NoGhost };
-    public PrintModes PrintMode;
+    public PrintModes PrintMode = PrintModes.Everything;  // Default to printing everything
     public bool DafnyVerify = true;
     public string DafnyPrintResolvedFile = null;
     public bool Compile = true;
@@ -177,7 +177,7 @@ namespace Microsoft.Dafny
 
         case "noNLarith":
           DisableNLarith = true;
-          this.AddZ3Option("NL_ARITH=false");
+          this.AddZ3Option("smt.arith.nl=false");
           return true;
 
         case "autoReqPrint":
@@ -305,6 +305,7 @@ namespace Microsoft.Dafny
                 print Dafny program after parsing it
                 (use - as <file> to print to console)
   /printMode:<Everything|NoIncludes|NoGhost>
+                Everything is the default.
                 NoIncludes disables printing of {:verify false} methods incorporated via the
                 include mechanism, as well as datatypes and fields included from other files.
                 NoGhost disables printing of functions, ghost methods, and proof statements in

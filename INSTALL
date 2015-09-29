@@ -27,7 +27,7 @@ Dafny's sources.
 3. Download and build Dafny:
 
    hg clone https://hg.codeplex.com/dafny
-   cd dafny/Sources/
+   cd dafny/Source/
    xbuild Dafny.sln
 
 4. Download and unpack z3 (Dafny looks for `z3` in Binaries/z3/bin/)
