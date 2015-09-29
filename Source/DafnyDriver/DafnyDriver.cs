@@ -226,8 +226,8 @@ namespace Microsoft.Dafny
 
       stats = new PipelineStatistics();
       LinearTypeChecker ltc;
-      MoverTypeChecker mtc;
-      PipelineOutcome oc = ExecutionEngine.ResolveAndTypecheck(program, bplFileName, out ltc, out mtc);
+      CivlTypeChecker ctc;
+      PipelineOutcome oc = ExecutionEngine.ResolveAndTypecheck(program, bplFileName, out ltc, out ctc);
       switch (oc) {
         case PipelineOutcome.Done:
           return oc;
@@ -244,7 +244,7 @@ namespace Microsoft.Dafny
             fileNames.Add(bplFileName);
             Bpl.Program reparsedProgram = ExecutionEngine.ParseBoogieProgram(fileNames, true);
             if (reparsedProgram != null) {
-              ExecutionEngine.ResolveAndTypecheck(reparsedProgram, bplFileName, out ltc, out mtc);
+              ExecutionEngine.ResolveAndTypecheck(reparsedProgram, bplFileName, out ltc, out ctc);
             }
           }
           return oc;
