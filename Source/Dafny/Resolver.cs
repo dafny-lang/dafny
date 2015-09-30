@@ -4406,12 +4406,8 @@ namespace Microsoft.Dafny
             var k = com.PrefixLemma.Ins[0];
             scope.Push(k.Name, k);  // we expect no name conflict for _k
           }
-          var prevErrorCount = reporter.Count(ErrorLevel.Error);
           ResolveBlockStatement(m.Body, m);
           SolveAllTypeConstraints();
-          if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
-//KRML            ComputeGhostInterest(m.Body, m);
-          }
         }
 
         // attributes are allowed to mention both in- and out-parameters (including the implicit _k, for colemmas)
@@ -4530,9 +4526,6 @@ namespace Microsoft.Dafny
       // Resolve body
       if (iter.Body != null) {
         ResolveBlockStatement(iter.Body, iter);
-        if (reporter.Count(ErrorLevel.Error) == postSpecErrorCount) {
-          //KRML          ComputeGhostInterest(iter.Body, iter);
-        }
       }
 
       currentClass = null;
