@@ -80,7 +80,7 @@ namespace DafnyLanguage
       if (start == end) yield break;
 
       foreach (var r in _regions) {
-        if (0 <= r.Length && r.Start >= start && r.Start + r.Length <= end) {
+        if (0 <= r.Length && r.Start <= end && start <= r.Start + r.Length) {
           yield return new TagSpan<OutliningRegionTag>(
             new SnapshotSpan(_snapshot, r.Start, r.Length),
             new OutliningRegionTag(false, false, "...", r.HoverText));
@@ -130,18 +130,18 @@ namespace DafnyLanguage
           if (module.IsAbstract) {
             nm = "abstract " + nm;
           }
-          newRegions.Add(new OutliningRegion(module, nm));
+          OutliningRegion.Add(newRegions, program, module, nm);
         }
         foreach (Dafny.TopLevelDecl d in module.TopLevelDecls) {
           if (!HasBodyTokens(d) && !(d is Dafny.ClassDecl)) {
             continue;
           }
           if (d is Dafny.OpaqueTypeDecl) {
-            newRegions.Add(new OutliningRegion(d, "type"));
+            OutliningRegion.Add(newRegions, program, d, "type");
           } else if (d is Dafny.CoDatatypeDecl) {
-            newRegions.Add(new OutliningRegion(d, "codatatype"));
+            OutliningRegion.Add(newRegions, program, d, "codatatype");
           } else if (d is Dafny.DatatypeDecl) {
-            newRegions.Add(new OutliningRegion(d, "datatype"));
+            OutliningRegion.Add(newRegions, program, d, "datatype");
           } else if (d is Dafny.ModuleDecl) {
             // do nothing here, since the outer loop handles modules
           } else {
@@ -149,9 +149,9 @@ namespace DafnyLanguage
             if (cl.IsDefaultClass) {
               // do nothing
             } else if (cl is Dafny.IteratorDecl) {
-              newRegions.Add(new OutliningRegion(cl, "iterator"));
+              OutliningRegion.Add(newRegions, program, cl, "iterator");
             } else {
-              newRegions.Add(new OutliningRegion(cl, "class"));
+              OutliningRegion.Add(newRegions, program, cl, "class");
             }
             // do the class members (in particular, functions and methods)
             foreach (Dafny.MemberDecl m in cl.Members) {
@@ -168,7 +168,7 @@ namespace DafnyLanguage
                 if (!m.IsGhost) {
                   nm += " method";
                 }
-                newRegions.Add(new OutliningRegion(m, nm));
+                OutliningRegion.Add(newRegions, program, m, nm);
               } else if (m is Dafny.Method && ((Dafny.Method)m).Body != null) {
                 var nm =
                   m is Dafny.Constructor ? "constructor" :
@@ -179,7 +179,7 @@ namespace DafnyLanguage
                 if (m.IsGhost && !(m is Dafny.CoLemma)) {
                   nm = "ghost " + nm;
                 }
-                newRegions.Add(new OutliningRegion(m, nm));
+                OutliningRegion.Add(newRegions, program, m, nm);
               }
             }
           }
@@ -196,12 +196,20 @@ namespace DafnyLanguage
       return decl.BodyStartTok != Bpl.Token.NoToken && decl.BodyEndTok != Bpl.Token.NoToken;
     }
 
-    class OutliningRegion
+    class OutliningRegion : DafnyRegion
     {
+      public static void Add(List<OutliningRegion> regions, Microsoft.Dafny.Program prog, Dafny.INamedRegion decl, string kind) {
+        Contract.Requires(regions != null);
+        Contract.Requires(prog != null);
+        if (InMainFile(prog, decl.BodyStartTok)) {
+          regions.Add(new OutliningRegion(decl, kind));
+        }
+      }
+
       public readonly int Start;
       public readonly int Length;
       public readonly string HoverText;
-      public OutliningRegion(Dafny.INamedRegion decl, string kind) {
+      private OutliningRegion(Dafny.INamedRegion decl, string kind) {
         int startPosition = decl.BodyStartTok.pos + 1;  // skip the open-curly brace itself
         int length = decl.BodyEndTok.pos - startPosition;
         Start = startPosition;
