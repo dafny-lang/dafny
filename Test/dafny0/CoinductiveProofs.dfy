@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %dafny /compile:0 /print:"%t.print" /dprint:"%t.dprint" /rewriteFocalPredicates:1 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 codatatype Stream<T> = Cons(head: T, tail: Stream)
@@ -12,6 +12,7 @@ copredicate Pos(s: Stream<int>)
 {
   0 < s.head && Pos(s.tail)
 }
+predicate FullPos(s: Stream<int>) { Pos(s) }  // a way in the test file to sidestep focal-predicate rewrites
 
 colemma {:induction false} PosLemma0(n: int)
   requires 1 <= n;
@@ -26,7 +27,25 @@ colemma {:induction false} PosLemma1(n: int)
 {
   PosLemma1(n + 1);
   if (*) {
-    assert Pos(Upward(n + 1));  // error: cannot conclude this here, because we only have prefix predicates
+    assert FullPos(Upward(n + 1));  // error: cannot conclude this here, because we only have prefix predicates
+  }
+}
+
+colemma {:induction false} PosLemma2(n: int)
+  requires 1 <= n;
+  ensures Pos(Upward(n));
+{
+  PosLemma2(n + 1);
+  if (*) {
+    assert Pos(Upward(n + 1));  // Pos gets rewritten to Pos#[_k-1], which does hold
+  } else if (*) {
+    assert Pos#[_k-1](Upward(n + 1));  // explicitly saying Pos#[_k-1] also holds
+  } else if (*) {
+    assert Pos#[_k](Upward(n + 1));  // error: this is not known to hold for _k and n+1
+  } else if (*) {
+    assert Pos#[_k](Upward(n));  // but it does hold with Pos#[_k] and n (which is the postcondition of the prefix lemma)
+  } else if (*) {
+    assert Pos#[_k+1](Upward(n));  // error: this is too much to ask for
   }
 }
 
@@ -65,13 +84,29 @@ colemma {:induction false} AlwaysLemma_X1(s: Stream)
 {
   AlwaysLemma_X1(s);  // this is the right proof
 }
+predicate FullX(s: Stream) { X(s) }  // a way in the test file to sidestep focal-predicate rewrites
 
 colemma {:induction false} AlwaysLemma_X2(s: Stream)
   ensures X(s);
 {
   AlwaysLemma_X2(s);
   if (*) {
-    assert X(s);  // error: cannot conclude the full predicate here
+    assert FullX(s);  // error: cannot conclude the full predicate here
+  }
+}
+
+colemma {:induction false} AlwaysLemma_X3(s: Stream)
+  ensures X(s);
+{
+  AlwaysLemma_X3(s);
+  if (*) {
+    assert X(s);  // holds, because it gets rewritten to X#[_k-1]
+  } else if (*) {
+    assert X#[_k-1](s);  // explicitly saying X#[_k-1] also holds
+  } else if (*) {
+    assert X#[_k](s);  // in fact, X#[_k] holds, too (which is the postcondition of the prefix lemma)
+  } else if (*) {
+    assert X#[_k+1](s);  // as it turns out, this holds too, since the definition of X makes X#[_k+1] equal X#[_k]
   }
 }
 
@@ -79,6 +114,7 @@ copredicate Y(s: Stream)  // this is equivalent to always returning 'true'
 {
   Y(s.tail)
 }
+predicate FullY(s: Stream) { Y(s) }  // a way in the test file to sidestep focal-predicate rewrites
 
 colemma {:induction false} AlwaysLemma_Y0(s: Stream)
   ensures Y(s);  // prove that Y(s) really is always 'true'
@@ -97,7 +133,24 @@ colemma {:induction false} AlwaysLemma_Y2(s: Stream)
 {
   AlwaysLemma_Y2(s.tail);
   if (*) {
-    assert Y(s.tail);  // error: not provable here
+    assert FullY(s.tail);  // error: not provable here
+  }
+}
+
+colemma {:induction false} AlwaysLemma_Y3(s: Stream)
+  ensures Y(s);
+{
+  AlwaysLemma_Y3(s.tail);
+  if (*) {
+    assert Y(s.tail);  // this holds, because it's rewritten to Y#[_k-1]
+  } else if (*) {
+    assert Y#[_k-1](s.tail);
+  } else if (*) {
+    assert Y#[_k](s.tail);  // error: not known to hold for _k and s.tail
+  } else if (*) {
+    assert Y#[_k](s);  // this is also the postcondition of the prefix lemma
+  } else if (*) {
+    assert Y#[_k+1](s);  // error: this is too much to ask for
   }
 }
 

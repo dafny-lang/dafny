@@ -715,7 +715,7 @@ namespace Microsoft.Dafny
   {
     protected readonly Expression k;
     protected readonly ErrorReporter reporter;
-    readonly string suffix;
+    protected readonly string suffix;
     protected FixpointCloner(Expression k, ErrorReporter reporter)
     {
       Contract.Requires(k != null);
@@ -723,6 +723,18 @@ namespace Microsoft.Dafny
       this.k = k;
       this.reporter = reporter;
       this.suffix = string.Format("#[{0}]", Printer.ExprToString(k));
+    }
+    protected Expression CloneCallAndAddK(FunctionCallExpr e) {
+      Contract.Requires(e != null);
+      var receiver = CloneExpr(e.Receiver);
+      var args = new List<Expression>();
+      args.Add(k);
+      foreach (var arg in e.Args) {
+        args.Add(CloneExpr(arg));
+      }
+      var fexp = new FunctionCallExpr(Tok(e.tok), e.Name + "#", receiver, e.OpenParen, args);
+      reporter.Info(MessageSource.Cloner, e.tok, e.Name + suffix);
+      return fexp;
     }
   }
 
@@ -733,6 +745,7 @@ namespace Microsoft.Dafny
   /// precondition (resp. postcondition) of the inductive lemma's (resp. colemma's) corresponding prefix lemma.
   /// It is assumed that the source expression has been resolved.  Note, the "k" given to the constructor
   /// is not cloned with each use; it is simply used as is.
+  /// The resulting expression needs to be resolved by the caller.
   /// </summary>
   class FixpointLemmaSpecificationSubstituter : FixpointCloner
   {
@@ -756,15 +769,7 @@ namespace Microsoft.Dafny
       } else if (expr is FunctionCallExpr) {
         var e = (FunctionCallExpr)expr;
         if (friendlyCalls.Contains(e)) {
-          var receiver = CloneExpr(e.Receiver);
-          var args = new List<Expression>();
-          args.Add(k);
-          foreach (var arg in e.Args) {
-            args.Add(CloneExpr(arg));
-          }
-          var fexp = new FunctionCallExpr(Tok(e.tok), e.Name + "#", receiver, e.OpenParen, args);
-          reporter.Info(MessageSource.Cloner, e.tok, e.Name);
-          return fexp;
+          return CloneCallAndAddK(e);
         }
       } else if (expr is BinaryExpr && isCoContext) {
         var e = (BinaryExpr)expr;
@@ -774,7 +779,7 @@ namespace Microsoft.Dafny
           var B = CloneExpr(e.E1);
           var teq = new TernaryExpr(Tok(e.tok), op, k, A, B);
           var opString = op == TernaryExpr.Opcode.PrefixEqOp ? "==" : "!=";
-          reporter.Info(MessageSource.Cloner, e.tok, opString);
+          reporter.Info(MessageSource.Cloner, e.tok, opString + suffix);
           return teq;
         }
       }
@@ -803,19 +808,77 @@ namespace Microsoft.Dafny
   }
 
   /// <summary>
-  /// The task of the FixpointLemmaBodyCloner is to fill in the implicit _k-1 arguments in recursive inductive/co-lemma calls.
+  /// The task of the FixpointLemmaBodyCloner is to fill in the implicit _k-1 arguments in recursive inductive/co-lemma calls
+  /// and in calls to the focal predicates.
   /// The source statement and the given "k" are assumed to have been resolved.
   /// </summary>
   class FixpointLemmaBodyCloner : FixpointCloner
   {
     readonly FixpointLemma context;
-    public FixpointLemmaBodyCloner(FixpointLemma context, Expression k, ErrorReporter reporter)
+    readonly ISet<FixpointPredicate> focalPredicates;
+    public FixpointLemmaBodyCloner(FixpointLemma context, Expression k, ISet<FixpointPredicate> focalPredicates, ErrorReporter reporter)
       : base(k, reporter)
     {
       Contract.Requires(context != null);
       Contract.Requires(k != null);
       Contract.Requires(reporter != null);
       this.context = context;
+      this.focalPredicates = focalPredicates;
+    }
+    public override Expression CloneExpr(Expression expr) {
+      if (DafnyOptions.O.RewriteFocalPredicates) {
+        if (expr is FunctionCallExpr) {
+          var e = (FunctionCallExpr)expr;
+#if DEBUG_PRINT
+          if (e.Function.Name.EndsWith("#") && Contract.Exists(focalPredicates, p => e.Function.Name == p.Name + "#")) {
+            Console.WriteLine("{0}({1},{2}): DEBUG: Possible opportunity to rely on new rewrite: {3}", e.tok.filename, e.tok.line, e.tok.col, Printer.ExprToString(e));
+          }
+#endif
+          // Note, we don't actually ever get here, because all calls will have been parsed as ApplySuffix.
+          // However, if something changes in the future (for example, some rewrite that changing an ApplySuffix
+          // to its resolved FunctionCallExpr), then we do want this code, so with the hope of preventing
+          // some error in the future, this case is included.  (Of course, it is currently completely untested!)
+          var f = e.Function as FixpointPredicate;
+          if (f != null && focalPredicates.Contains(f)) {
+#if DEBUG_PRINT
+            var r = CloneCallAndAddK(e);
+            Console.WriteLine("{0}({1},{2}): DEBUG: Rewrote extreme predicate into prefix predicate: {3}", e.tok.filename, e.tok.line, e.tok.col, Printer.ExprToString(r));
+            return r;
+#else
+            return CloneCallAndAddK(e);
+#endif
+          }
+        } else if (expr is ApplySuffix) {
+          var apply = (ApplySuffix)expr;
+          if (!apply.WasResolved()) {
+            // Since we're assuming the enclosing statement to have been resolved, this ApplySuffix must
+            // be part of an ExprRhs that actually designates a method call.  Such an ApplySuffix does
+            // not get listed as being resolved, but its components (like its .Lhs) are resolved.
+            var mse = (MemberSelectExpr)apply.Lhs.Resolved;
+            Contract.Assume(mse.Member is Method);
+          } else {
+            var fce = apply.Resolved as FunctionCallExpr;
+            if (fce != null) {
+#if DEBUG_PRINT
+              if (fce.Function.Name.EndsWith("#") && Contract.Exists(focalPredicates, p => fce.Function.Name == p.Name + "#")) {
+                Console.WriteLine("{0}({1},{2}): DEBUG: Possible opportunity to rely on new rewrite: {3}", fce.tok.filename, fce.tok.line, fce.tok.col, Printer.ExprToString(fce));
+              }
+#endif
+              var f = fce.Function as FixpointPredicate;
+              if (f != null && focalPredicates.Contains(f)) {
+#if DEBUG_PRINT
+                var r = CloneCallAndAddK(fce);
+                Console.WriteLine("{0}({1},{2}): DEBUG: Rewrote extreme predicate into prefix predicate: {3}", fce.tok.filename, fce.tok.line, fce.tok.col, Printer.ExprToString(r));
+                return r;
+#else
+                return CloneCallAndAddK(fce);
+#endif
+              }
+            }
+          }
+        }
+      }
+      return base.CloneExpr(expr);
     }
     public override AssignmentRhs CloneRHS(AssignmentRhs rhs) {
       var r = rhs as ExprRhs;
@@ -839,7 +902,7 @@ namespace Microsoft.Dafny
           apply.Args.ForEach(arg => args.Add(CloneExpr(arg)));
           var applyClone = new ApplySuffix(Tok(apply.tok), lhsClone, args);
           var c = new ExprRhs(applyClone);
-          reporter.Info(MessageSource.Cloner, apply.Lhs.tok, mse.Member.Name);
+          reporter.Info(MessageSource.Cloner, apply.Lhs.tok, mse.Member.Name + suffix);
           return c;
         }
       }

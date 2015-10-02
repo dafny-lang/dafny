@@ -1565,6 +1565,7 @@ namespace Microsoft.Dafny
             continue;  // something went wrong during registration of the prefix lemma (probably a duplicated fixpoint-lemma name)
           }
           var k = prefixLemma.Ins[0];
+          var focalPredicates = new HashSet<FixpointPredicate>();
           if (com is CoLemma) {
             // compute the postconditions of the prefix lemma
             Contract.Assume(prefixLemma.Ens.Count == 0);  // these are not supposed to have been filled in before
@@ -1574,6 +1575,12 @@ namespace Microsoft.Dafny
               var subst = new FixpointLemmaSpecificationSubstituter(coConclusions, new IdentifierExpr(k.tok, k.Name), this.reporter, true);
               var post = subst.CloneExpr(p.E);
               prefixLemma.Ens.Add(new MaybeFreeExpression(post, p.IsFree));
+              foreach (var e in coConclusions) {
+                var fce = e as FunctionCallExpr;
+                if (fce != null) {  // the other possibility is that "e" is a BinaryExpr
+                  focalPredicates.Add((CoPredicate)fce.Function);
+                }
+              }
             }
           } else {
             // compute the preconditions of the prefix lemma
@@ -1584,13 +1591,18 @@ namespace Microsoft.Dafny
               var subst = new FixpointLemmaSpecificationSubstituter(antecedents, new IdentifierExpr(k.tok, k.Name), this.reporter, false);
               var pre = subst.CloneExpr(p.E);
               prefixLemma.Req.Add(new MaybeFreeExpression(pre, p.IsFree));
+              foreach (var e in antecedents) {
+                var fce = (FunctionCallExpr)e;  // we expect "antecedents" to contain only FunctionCallExpr's
+                focalPredicates.Add((InductivePredicate)fce.Function);
+              }
             }
           }
+          reporter.Info(MessageSource.Resolver, com.tok, string.Format("{0} specialized for {1}", com.PrefixLemma.Name, Util.Comma(focalPredicates, p => p.Name)));
           // Compute the statement body of the prefix lemma
           Contract.Assume(prefixLemma.Body == null);  // this is not supposed to have been filled in before
           if (com.Body != null) {
             var kMinusOne = new BinaryExpr(com.tok, BinaryExpr.Opcode.Sub, new IdentifierExpr(k.tok, k.Name), new LiteralExpr(com.tok, 1));
-            var subst = new FixpointLemmaBodyCloner(com, kMinusOne, this.reporter);
+            var subst = new FixpointLemmaBodyCloner(com, kMinusOne, focalPredicates, this.reporter);
             var mainBody = subst.CloneBlockStmt(com.Body);
             var kPositive = new BinaryExpr(com.tok, BinaryExpr.Opcode.Lt, new LiteralExpr(com.tok, 0), new IdentifierExpr(k.tok, k.Name));
             var condBody = new IfStmt(com.BodyStartTok, mainBody.EndTok, kPositive, mainBody, null);
@@ -3571,7 +3583,7 @@ namespace Microsoft.Dafny
             var substituter = new Translator.AlphaConverting_Substituter(cs.Receiver, argsSubstMap, new Dictionary<TypeParameter, Type>(), new Translator(resolver.reporter));
             foreach (var ens in cs.Method.Ens) {
               var p = substituter.Substitute(ens.E);  // substitute the call's actuals for the method's formals
-              resolver.reporter.Info(MessageSource.Resolver, s.Tok, "ensures " + Printer.ExprToString(p) + ";");
+              resolver.reporter.Info(MessageSource.Resolver, s.Tok, "ensures " + Printer.ExprToString(p));
             }
           }
         }

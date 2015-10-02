@@ -1,7 +1,0 @@
-tooltips-on-inductive-lemmas.dfy(5,11): Info: Q
-tooltips-on-inductive-lemmas.dfy(7,2): Info: P
-tooltips-on-inductive-lemmas.dfy(11,2): Info: Q#[_k - 1]
-tooltips-on-inductive-lemmas.dfy(4,16): Info: P# {:induction _k}
-tooltips-on-inductive-lemmas.dfy(4,16): Info: P# decreases _k
-
-Dafny program verifier finished with 3 verified, 0 errors
