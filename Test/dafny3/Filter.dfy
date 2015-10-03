@@ -157,11 +157,11 @@ colemma Filter_IsSubStream(s: Stream, P: Predicate)
     calc {
       true;
     ==  { Filter_IsSubStream(s.tail, P); }  // induction hypothesis
-      IsSubStream#[_k-1](Filter(s.tail, P), s.tail);
+      IsSubStream(Filter(s.tail, P), s.tail);
     == // { assert Filter(s.tail, h) == Filter(s, h).tail; }
-      IsSubStream#[_k-1](Filter(s, P).tail, s.tail);
+      IsSubStream(Filter(s, P).tail, s.tail);
     ==> { Lemma_TailSubStreamK(Filter(s, P).tail, s, _k-1); }
-      IsSubStream#[_k-1](Filter(s, P).tail, s);
+      IsSubStream(Filter(s, P).tail, s);
     }
     calc {
       In(Filter(s, P).head, s);

@@ -66,7 +66,7 @@ namespace Microsoft.Dafny
     public bool CountVerificationErrors = true;
     public bool Optimize = false;
     public bool AutoTriggers = false;
-    public bool RewriteFocalPredicates = false;
+    public bool RewriteFocalPredicates = true;
     public bool PrintTooltips = false;
     public bool PrintStats = false;
     public bool PrintFunctionCallGraph = false;
@@ -379,9 +379,9 @@ namespace Microsoft.Dafny
                 1 - Add a {:trigger} to each user-level quantifier. Existing
                               annotations are preserved.
   /rewriteFocalPredicates:<n>
-                0 (default) - Don't rewrite predicates in the body of prefix lemmas.
-                1 - In the body of prefix lemmas, rewrite any use of a focal predicate
-                    P to P#[_k-1].
+                0 - Don't rewrite predicates in the body of prefix lemmas.
+                1 (default) - In the body of prefix lemmas, rewrite any use of a focal predicate
+                              P to P#[_k-1].
   /optimize     Produce optimized C# code, meaning:
                   - selects optimized C# prelude by passing 
                     /define:DAFNY_USE_SYSTEM_COLLECTIONS_IMMUTABLE to csc.exe (requires 

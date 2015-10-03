@@ -58,7 +58,7 @@ inductive lemma {:induction false} IL_EvenBetter(x: natinf)
   if {
     case x.N? && x.n == 0 =>
       // trivial
-    case x.N? && 2 <= x.n && Even(N(x.n - 2)) =>
+    case x.N? && 2 <= x.n && Even(N(x.n - 2)) =>  // syntactic rewrite makes this like in IL
       IL_EvenBetter(N(x.n - 2));
   }
 }
@@ -142,7 +142,7 @@ module Alt {
     }
   }
 
-  inductive lemma {:induction false} MyLemma_NiceButNotFast(x: natinf)
+  inductive lemma {:induction false} MyLemma_Nicer(x: natinf)  // same as MyLemma_NotSoNice but relying on syntactic rewrites
     requires Even(x)
     ensures x.N? && x.n % 2 == 0
   {
@@ -151,7 +151,7 @@ module Alt {
         // trivial
       case exists y :: x == S(S(y)) && Even(y) =>
         var y :| x == S(S(y)) && Even(y);
-        MyLemma_NiceButNotFast(y);
+        MyLemma_Nicer(y);
         assert x.n == y.n + 2;
     }
   }

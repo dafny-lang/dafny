@@ -162,8 +162,8 @@ inductive lemma SmallStep_is_deterministic(cs: (com, state), cs': (com, state), 
   case Seq(c0, c1) =>
     if c0 == SKIP {
     } else {
-      var c0' :| cs'.0 == Seq(c0', c1) && small_step#[_k-1](c0, cs.1, c0', cs'.1);
-      var c0'' :| cs''.0 == Seq(c0'', c1) && small_step#[_k-1](c0, cs.1, c0'', cs''.1);
+      var c0' :| cs'.0 == Seq(c0', c1) && small_step(c0, cs.1, c0', cs'.1);
+      var c0'' :| cs''.0 == Seq(c0'', c1) && small_step(c0, cs.1, c0'', cs''.1);
       SmallStep_is_deterministic((c0, cs.1), (c0', cs'.1), (c0'', cs''.1));
     }
   case If(b, thn, els) =>
@@ -200,7 +200,7 @@ inductive lemma BigStep_implies_SmallStepStar(c: com, s: state, t: state)
   case Assign(x, a) =>
     assert small_step_star(SKIP, t, SKIP, t);
   case Seq(c0, c1) =>
-    var s' :| big_step#[_k-1](c0, s, s') && big_step#[_k-1](c1, s', t);
+    var s' :| big_step(c0, s, s') && big_step(c1, s', t);
     calc <== {
       small_step_star(c, s, SKIP, t);
       { star_transitive(Seq(c0, c1), s, Seq(SKIP, c1), s', SKIP, t); }
@@ -226,7 +226,7 @@ inductive lemma BigStep_implies_SmallStepStar(c: com, s: state, t: state)
         true;
       }
     } else {
-      var s' :| big_step#[_k-1](body, s, s') && big_step#[_k-1](While(b, body), s', t);
+      var s' :| big_step(body, s, s') && big_step(While(b, body), s', t);
       calc <== {
         small_step_star(c, s, SKIP, t);
         { assert small_step(c, s, If(b, Seq(body, While(b, body)), SKIP), s); }
@@ -253,7 +253,7 @@ inductive lemma lemma_7_13(c0: com, s0: state, c: com, t: state, c1: com)
 {
   if c0 == c && s0 == t {
   } else {
-    var c', s' :| small_step(c0, s0, c', s') && small_step_star#[_k-1](c', s', c, t);
+    var c', s' :| small_step(c0, s0, c', s') && small_step_star(c', s', c, t);
     lemma_7_13(c', s', c, t, c1);
   }
 }
@@ -264,7 +264,7 @@ inductive lemma SmallStepStar_implies_BigStep(c: com, s: state, t: state)
 {
   if c == SKIP && s == t {
   } else {
-    var c', s' :| small_step(c, s, c', s') && small_step_star#[_k-1](c', s', SKIP, t);
+    var c', s' :| small_step(c, s, c', s') && small_step_star(c', s', SKIP, t);
     SmallStep_plus_BigStep(c, s, c', s', t);
   }
 }
