@@ -13936,7 +13936,7 @@ namespace Microsoft.Dafny {
           r = SubstBlockStmt((BlockStmt)stmt);
         } else if (stmt is IfStmt) {
           var s = (IfStmt)stmt;
-          r = new IfStmt(s.Tok, s.EndTok, Substitute(s.Guard), SubstBlockStmt(s.Thn), SubstStmt(s.Els));
+          r = new IfStmt(s.Tok, s.EndTok, s.IsExistentialGuard, Substitute(s.Guard), SubstBlockStmt(s.Thn), SubstStmt(s.Els));
         } else if (stmt is AlternativeStmt) {
           var s = (AlternativeStmt)stmt;
           r = new AlternativeStmt(s.Tok, s.EndTok, s.Alternatives.ConvertAll(SubstGuardedAlternative));
@@ -14025,7 +14025,7 @@ namespace Microsoft.Dafny {
 
       protected GuardedAlternative SubstGuardedAlternative(GuardedAlternative alt) {
         Contract.Requires(alt != null);
-        return new GuardedAlternative(alt.Tok, Substitute(alt.Guard), alt.Body.ConvertAll(SubstStmt));
+        return new GuardedAlternative(alt.Tok, alt.IsExistentialGuard, Substitute(alt.Guard), alt.Body.ConvertAll(SubstStmt));
       }
 
       protected MaybeFreeExpression SubstMayBeFreeExpr(MaybeFreeExpression expr) {

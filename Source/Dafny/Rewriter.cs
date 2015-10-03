@@ -356,7 +356,7 @@ namespace Microsoft.Dafny
         e = BinBoolExpr(tok, BinaryExpr.ResolvedOpcode.NeqCommon, F, cNull);
         var thn = new BlockStmt(tok, tok, new List<Statement>() { s });
         thn.IsGhost = true;
-        s = new IfStmt(tok, tok, e, thn, null);
+        s = new IfStmt(tok, tok, false, e, thn, null);
         s.IsGhost = true;
         // finally, add s to the body
         bodyStatements.Add(s);

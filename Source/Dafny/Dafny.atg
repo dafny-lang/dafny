@@ -104,6 +104,25 @@ bool IsAlternative() {
   return la.kind == _lbrace && x.kind == _case;
 }
 
+// an existential guard starts with an identifier and is then followed by
+// * a colon (if the first identifier is given an explicit type),
+// * a comma (if there's a list a bound variables and the first one is not given an explicit type),
+// * a start-attribute (if there's one bound variable and it is not given an explicit type and there are attributes), or
+// * a bored smiley (if there's one bound variable and it is not given an explicit type).
+bool IsExistentialGuard() {
+  scanner.ResetPeek();
+  if (la.kind == _ident) {
+    Token x = scanner.Peek();
+    if (x.kind == _colon || x.kind == _comma || x.kind == _boredSmiley) {
+      return true;
+    } else if (x.kind == _lbrace) {
+      x = scanner.Peek();
+      return x.kind == _colon;
+    }
+  }
+  return false;
+}
+
 bool IsLoopSpec() {
   return la.kind == _invariant | la.kind == _decreases | la.kind == _modifies;
 }
@@ -456,6 +475,7 @@ TOKENS
   comma = ','.
   verticalbar = '|'.
   doublecolon = "::".
+  boredSmiley = ":|".
   bullet = '\u2022'.
   dot = '.'.
   semi = ';'.
@@ -1651,7 +1671,7 @@ VarDeclStatement<.out Statement/*!*/ s.>
   .
 IfStmt<out Statement/*!*/ ifStmt>
 = (. Contract.Ensures(Contract.ValueAtReturn(out ifStmt) != null); IToken/*!*/ x;
-     Expression guard = null;  IToken guardEllipsis = null;
+     Expression guard = null;  IToken guardEllipsis = null;  bool isExistentialGuard = false;
      BlockStmt/*!*/ thn;
      BlockStmt/*!*/ bs;
      Statement/*!*/ s;
@@ -1663,11 +1683,13 @@ IfStmt<out Statement/*!*/ ifStmt>
   "if"                       (. x = t; .)
   (
     IF(IsAlternative())
-    AlternativeBlock<out alternatives, out endTok>
+    AlternativeBlock<true, out alternatives, out endTok>
     (. ifStmt = new AlternativeStmt(x, endTok, alternatives); .)
   |
-    ( Guard<out guard>
-    | "..."                  (. guardEllipsis = t; .)
+    ( IF(IsExistentialGuard())
+      ExistentialGuard<out guard, true>  (. isExistentialGuard = true; .)
+    | Guard<out guard>
+    | "..."                              (. guardEllipsis = t; .)
     )
     BlockStmt<out thn, out bodyStart, out bodyEnd>    (. endTok = thn.EndTok; .)
     [ "else"
@@ -1676,26 +1698,29 @@ IfStmt<out Statement/*!*/ ifStmt>
       )
     ]
     (. if (guardEllipsis != null) {
-         ifStmt = new SkeletonStatement(new IfStmt(x, endTok, guard, thn, els), guardEllipsis, null);
+         ifStmt = new SkeletonStatement(new IfStmt(x, endTok, isExistentialGuard, guard, thn, els), guardEllipsis, null);
        } else {
-         ifStmt = new IfStmt(x, endTok, guard, thn, els);
+         ifStmt = new IfStmt(x, endTok, isExistentialGuard, guard, thn, els);
        }
     .)
   )
   .
-AlternativeBlock<.out List<GuardedAlternative> alternatives, out IToken endTok.>
+AlternativeBlock<.bool allowExistentialGuards, out List<GuardedAlternative> alternatives, out IToken endTok.>
 = (. alternatives = new List<GuardedAlternative>();
      IToken x;
-     Expression e;
+     Expression e; bool isExistentialGuard;
      List<Statement> body;
   .)
   "{"
-  { "case"                      (. x = t; .)
-    Expression<out e, true, false> // NB: don't allow lambda here
+  { "case"                             (. x = t; isExistentialGuard = false; e = dummyExpr; .)
+    ( IF(allowExistentialGuards && IsExistentialGuard())
+      ExistentialGuard<out e, false >  (. isExistentialGuard = true; .)  // NB: don't allow lambda here
+    | Expression<out e, true, false> // NB: don't allow lambda here
+    )
     "=>"
     (. body = new List<Statement>(); .)
     { Stmt<body> }
-    (. alternatives.Add(new GuardedAlternative(x, e, body)); .)
+    (. alternatives.Add(new GuardedAlternative(x, isExistentialGuard, e, body)); .)
   }
   "}"                           (. endTok = t; .)
   .
@@ -1719,7 +1744,7 @@ WhileStmt<out Statement stmt>
   (
     IF(IsLoopSpec() || IsAlternative())
     { LoopSpec<invariants, decreases, ref mod, ref decAttrs, ref modAttrs> }
-    AlternativeBlock<out alternatives, out endTok>
+    AlternativeBlock<false, out alternatives, out endTok>
     (. stmt = new AlternativeLoopStmt(x, endTok, invariants, new Specification<Expression>(decreases, decAttrs), new Specification<FrameExpression>(mod, modAttrs), alternatives); .)
   |
     ( Guard<out guard>           (. Contract.Assume(guard == null || cce.Owner.None(guard)); .)
@@ -1798,6 +1823,21 @@ Guard<out Expression e>   /* null represents demonic-choice */
   | IF(IsParenStar())  "(" "*" ")"  (. e = null; .)
   | Expression<out ee, true, true>        (. e = ee; .)
   )
+  .
+ExistentialGuard<out Expression e, bool allowLambda>
+= (. var bvars = new List<BoundVar>();
+     BoundVar bv;  IToken x;
+     Attributes attrs = null;
+     Expression body;
+  .)
+  IdentTypeOptional<out bv>                    (. bvars.Add(bv); x = bv.tok; .)
+  { ","
+    IdentTypeOptional<out bv>                  (. bvars.Add(bv); .)
+  }
+  { Attribute<ref attrs> }
+  ":|"
+  Expression<out body, true, allowLambda>
+  (. e = new ExistsExpr(x, bvars, null, body, attrs); .)
   .
 MatchStmt<out Statement/*!*/ s>
 = (. Contract.Ensures(Contract.ValueAtReturn(out s) != null);

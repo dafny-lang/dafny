@@ -531,7 +531,7 @@ namespace Microsoft.Dafny
 
       } else if (stmt is IfStmt) {
         var s = (IfStmt)stmt;
-        r = new IfStmt(Tok(s.Tok), Tok(s.EndTok), CloneExpr(s.Guard), CloneBlockStmt(s.Thn), CloneStmt(s.Els));
+        r = new IfStmt(Tok(s.Tok), Tok(s.EndTok), s.IsExistentialGuard, CloneExpr(s.Guard), CloneBlockStmt(s.Thn), CloneStmt(s.Els));
 
       } else if (stmt is AlternativeStmt) {
         var s = (AlternativeStmt)stmt;
@@ -631,7 +631,7 @@ namespace Microsoft.Dafny
     }
 
     public GuardedAlternative CloneGuardedAlternative(GuardedAlternative alt) {
-      return new GuardedAlternative(Tok(alt.Tok), CloneExpr(alt.Guard), alt.Body.ConvertAll(CloneStmt));
+      return new GuardedAlternative(Tok(alt.Tok), alt.IsExistentialGuard, CloneExpr(alt.Guard), alt.Body.ConvertAll(CloneStmt));
     }
 
     public Function CloneFunction(Function f, string newName = null) {

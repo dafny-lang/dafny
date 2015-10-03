@@ -74,3 +74,30 @@ class CF {
   static protected function method I(): real
   protected static predicate method J()
 }
+
+// test printing of various if statements, including with omitted guards
+module A {
+  method P(x: int, y: int) {
+    if x==2 {
+    } else if * {
+    }
+    if x==10 {
+    }
+    if y==0 {
+    } else if y==1 {
+    } else if * {
+    } else if y==2 {
+    } else if (*) {
+    } else if y == 3 {
+    } else {
+    }
+  }
+}
+module B refines A {
+  method P... {
+    if ... {
+    } else if x==3 {
+    }
+    ...;
+  }
+}

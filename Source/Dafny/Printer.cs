@@ -38,10 +38,11 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public static string GuardToString(Expression expr) {
+    public static string GuardToString(bool isExistentialGuard, Expression expr) {
+      Contract.Requires(!isExistentialGuard || (expr is ExistsExpr && ((ExistsExpr)expr).Range == null));
       using (var wr = new System.IO.StringWriter()) {
         var pr = new Printer(wr);
-        pr.PrintGuard(expr);
+        pr.PrintGuard(isExistentialGuard, expr);
         return wr.ToString();
       }
     }
@@ -1045,25 +1046,17 @@ namespace Microsoft.Dafny {
     }
 
     void PrintIfStatement(int indent, IfStmt s, bool omitGuard) {
-      while (true) {
-        if (omitGuard) {
-          wr.Write("if ... ");
-        } else {
-          wr.Write("if ");
-          PrintGuard(s.Guard);
-          wr.Write(" ");
-        }
-        PrintStatement(s.Thn, indent);
-        if (s.Els == null) {
-          break;
-        }
+      if (omitGuard) {
+        wr.Write("if ... ");
+      } else {
+        wr.Write("if ");
+        PrintGuard(s.IsExistentialGuard, s.Guard);
+        wr.Write(" ");
+      }
+      PrintStatement(s.Thn, indent);
+      if (s.Els != null) {
         wr.Write(" else ");
-        if (s.Els is IfStmt) {
-          s = (IfStmt)s.Els;
-        } else {
-          PrintStatement(s.Els, indent);
-          break;
-        }
+        PrintStatement(s.Els, indent);
       }
     }
 
@@ -1073,7 +1066,7 @@ namespace Microsoft.Dafny {
         wr.WriteLine("while ...");
       } else {
         wr.Write("while ");
-        PrintGuard(s.Guard);
+        PrintGuard(false, s.Guard);
         wr.WriteLine();
       }
 
@@ -1095,7 +1088,12 @@ namespace Microsoft.Dafny {
       foreach (var alternative in alternatives) {
         Indent(caseInd);
         wr.Write("case ");
-        PrintExpression(alternative.Guard, false);
+        if (alternative.IsExistentialGuard) {
+          var exists = (ExistsExpr)alternative.Guard;
+          PrintExistentialGuard(exists);
+        } else {
+          PrintExpression(alternative.Guard, false);
+        }
         wr.WriteLine(" =>");
         foreach (Statement s in alternative.Body) {
           Indent(caseInd + IndentAmount);
@@ -1142,12 +1140,24 @@ namespace Microsoft.Dafny {
       }
     }
 
-    void PrintGuard(Expression guard) {
+    void PrintGuard(bool isExistentialGuard, Expression guard) {
+      Contract.Requires(!isExistentialGuard || (guard is ExistsExpr && ((ExistsExpr)guard).Range == null));
       if (guard == null) {
         wr.Write("*");
+      } else if (isExistentialGuard) {
+        var exists = (ExistsExpr)guard;
+        PrintExistentialGuard(exists);
       } else {
         PrintExpression(guard, false);
       }
+    }
+
+    void PrintExistentialGuard(ExistsExpr guard) {
+      Contract.Requires(guard != null);
+      Contract.Requires(guard.Range == null);
+      PrintQuantifierDomain(guard.BoundVars, guard.Attributes, null);
+      wr.Write(" :| ");
+      PrintExpression(guard.Term, false);
     }
 
     void PrintCalcOp(CalcStmt.CalcOp op) {

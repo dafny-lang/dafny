@@ -1120,9 +1120,9 @@ namespace Microsoft.Dafny
                 var resultingThen = MergeBlockStmt(skel.Thn, oldIf.Thn);
                 var resultingElse = MergeElse(skel.Els, oldIf.Els);
                 var e = refinementCloner.CloneExpr(oldIf.Guard);
-                var r = new IfStmt(skel.Tok, skel.EndTok, e, resultingThen, resultingElse);
+                var r = new IfStmt(skel.Tok, skel.EndTok, oldIf.IsExistentialGuard, e, resultingThen, resultingElse);
                 body.Add(r);
-                reporter.Info(MessageSource.RefinementTransformer, c.ConditionEllipsis, Printer.GuardToString(e));
+                reporter.Info(MessageSource.RefinementTransformer, c.ConditionEllipsis, Printer.GuardToString(oldIf.IsExistentialGuard, e));
                 i++; j++;
               }
 
@@ -1136,7 +1136,7 @@ namespace Microsoft.Dafny
                 Expression guard;
                 if (c.ConditionOmitted) {
                   guard = refinementCloner.CloneExpr(oldWhile.Guard);
-                  reporter.Info(MessageSource.RefinementTransformer, c.ConditionEllipsis, Printer.GuardToString(oldWhile.Guard));
+                  reporter.Info(MessageSource.RefinementTransformer, c.ConditionEllipsis, Printer.GuardToString(false, oldWhile.Guard));
                 } else {
                   if (oldWhile.Guard != null) {
                     reporter.Error(MessageSource.RefinementTransformer, skel.Guard.tok, "a skeleton while statement with a guard can only replace a while statement with a non-deterministic guard");
@@ -1287,7 +1287,7 @@ namespace Microsoft.Dafny
             var cNew = (IfStmt)cur;
             var cOld = oldS as IfStmt;
             if (cOld != null && cOld.Guard == null) {
-              var r = new IfStmt(cNew.Tok, cNew.EndTok, cNew.Guard, MergeBlockStmt(cNew.Thn, cOld.Thn), MergeElse(cNew.Els, cOld.Els));
+              var r = new IfStmt(cNew.Tok, cNew.EndTok, cNew.IsExistentialGuard, cNew.Guard, MergeBlockStmt(cNew.Thn, cOld.Thn), MergeElse(cNew.Els, cOld.Els));
               body.Add(r);
               i++; j++;
             } else {
