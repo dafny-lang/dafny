@@ -1,4 +1,4 @@
-// RUN: %dafny "%s" > "%t"
+// RUN: %dafny /compile:3 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // The tests in this file are designed to run through the compiler.  They contain
@@ -43,6 +43,8 @@ module CoRecursion {
   //   40
   //   41
   //   42
+  //   9
+  //   9
   method Main() {
     var m := 17;
     var cell := new Cell;
@@ -57,6 +59,37 @@ module CoRecursion {
       match (l) { case Cons(x,y) => }
       print l.car, "\n";
       l := l.cdr;
+    }
+    var nio := OneLess(0, 10);
+    print nio, "\n";
+    nio := OneLess'(0, 10);
+    print nio, "\n";
+  }
+
+  method OneLess(lo: int, hi: int) returns (m: int)
+    requires lo < hi
+    // This method ensures m == hi - 1, but we don't care to prove it
+    decreases hi - lo
+  {
+    if y :| lo < y < hi {
+      m := OneLess(y, hi);
+    } else {
+      m := lo;
+    }
+  }
+
+  method OneLess'(lo: int, hi: int) returns (m: int)
+    requires lo < hi
+    // This method ensures m == hi - 1, but we don't care to prove it
+    decreases hi - lo
+  {
+    if {
+      case y :| lo < y < hi =>
+        m := OneLess'(y, hi);
+      case lo+1 < hi =>
+        m := OneLess'(lo+1, hi);
+      case lo + 1 == hi =>
+        m := lo;
     }
   }
 }

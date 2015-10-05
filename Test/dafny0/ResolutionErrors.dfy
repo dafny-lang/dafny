@@ -1692,3 +1692,23 @@ module LoopResolutionTests {
     }
   }
 }
+
+module UnderspecifiedTypesInAttributes {
+  function method P<T>(x: T): int
+  method M() {
+    var {:myattr var u :| true; 6} v: int;  // error: type of u is underspecified
+    var j {:myattr var u :| true; 6} :| 0 <= j < 100;  // error: type of u is underspecified
+
+    var a := new int[100];
+    forall lp {:myattr var u :| true; 6} | 0 <= lp < 100 {  // error: type of u is underspecified
+      a[lp] := 0;
+    }
+
+    modify {:myattr P(10)} {:myattr var u :| true; 6} a;  // error: type of u is underspecified
+
+    calc {:myattr P(10)} {:myattr var u :| true; 6} // error: type of u is underspecified
+    {
+      5;
+    }
+  }
+}

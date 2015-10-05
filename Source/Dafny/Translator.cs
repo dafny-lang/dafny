@@ -4740,7 +4740,7 @@ namespace Microsoft.Dafny {
         var typeMap = Util.Dict(e.TypeArgs, Map(typeArgumentCopies, tp => (Type)new UserDefinedType(tp)));
         var newLocals = Map(typeArgumentCopies, tp => new Bpl.LocalVariable(tp.tok, new TypedIdent(tp.tok, nameTypeParam(tp), predef.Ty)));
         locals.AddRange(newLocals);
-        // Create local variables corresponding to the in-parameters:
+        // Create local variables corresponding to the bound variables:
         var substMap = SetupBoundVarsAsLocals(e.BoundVars, builder, locals, etran, typeMap);
         // Get the body of the quantifier and suitably substitute for the type variables and bound variables
         var body = Substitute(e.LogicalBody(true), null, substMap, typeMap);
@@ -7244,24 +7244,30 @@ namespace Microsoft.Dafny {
       } else if (stmt is IfStmt) {
         AddComment(builder, stmt, "if statement");
         IfStmt s = (IfStmt)stmt;
-        Bpl.Expr guard;
+        Expression guard;
         if (s.Guard == null) {
           guard = null;
         } else {
-          TrStmt_CheckWellformed(s.Guard, builder, locals, etran, true);
-          guard = etran.TrExpr(s.Guard);
+          guard = s.IsExistentialGuard ? AlphaRename((ExistsExpr)s.Guard, "eg$", this) : s.Guard;
+          TrStmt_CheckWellformed(guard, builder, locals, etran, true);
         }
         Bpl.StmtListBuilder b = new Bpl.StmtListBuilder();
         CurrentIdGenerator.Push();
+        if (s.IsExistentialGuard) {
+          var exists = (ExistsExpr)s.Guard;  // the original (that is, not alpha-renamed) guard
+          IntroduceAndAssignExistentialVars(exists, b, builder, locals, etran);
+        }
         Bpl.StmtList thn = TrStmt2StmtList(b, s.Thn, locals, etran);
         CurrentIdGenerator.Pop();
         Bpl.StmtList els;
         Bpl.IfCmd elsIf = null;
+        b = new Bpl.StmtListBuilder();
+        if (s.IsExistentialGuard) {
+          b.Add(new Bpl.AssumeCmd(guard.tok, Bpl.Expr.Not(etran.TrExpr(guard))));
+        }
         if (s.Els == null) {
-          b = new Bpl.StmtListBuilder();
           els = b.Collect(s.Tok);
         } else {
-          b = new Bpl.StmtListBuilder();
           els = TrStmt2StmtList(b, s.Els, locals, etran);
           if (els.BigBlocks.Count == 1) {
             Bpl.BigBlock bb = els.BigBlocks[0];
@@ -7271,7 +7277,7 @@ namespace Microsoft.Dafny {
             }
           }
         }
-        builder.Add(new Bpl.IfCmd(stmt.Tok, guard, thn, elsIf, els));
+        builder.Add(new Bpl.IfCmd(stmt.Tok, guard == null || s.IsExistentialGuard ? null : etran.TrExpr(guard), thn, elsIf, els));
 
       } else if (stmt is AlternativeStmt) {
         AddComment(builder, stmt, "alternative statement");
@@ -7551,6 +7557,26 @@ namespace Microsoft.Dafny {
       }
     }
 
+    private void IntroduceAndAssignExistentialVars(ExistsExpr exists, Bpl.StmtListBuilder builder, Bpl.StmtListBuilder builderOutsideIfConstruct, List<Variable> locals, ExpressionTranslator etran) {
+      Contract.Requires(exists != null);
+      Contract.Requires(exists.Range == null);
+      Contract.Requires(builder != null);
+      Contract.Requires(builderOutsideIfConstruct != null);
+      Contract.Requires(locals != null);
+      Contract.Requires(etran != null);
+      // declare and havoc the bound variables of 'exists' as local variables
+      var iesForHavoc = new List<Bpl.IdentifierExpr>();
+      foreach (var bv in exists.BoundVars) {
+        Bpl.Type varType = TrType(bv.Type);
+        Bpl.Expr wh = GetWhereClause(bv.Tok, new Bpl.IdentifierExpr(bv.Tok, bv.AssignUniqueName(currentDeclaration.IdGenerator), varType), bv.Type, etran);
+        Bpl.Variable local = new Bpl.LocalVariable(bv.Tok, new Bpl.TypedIdent(bv.Tok, bv.AssignUniqueName(currentDeclaration.IdGenerator), varType, wh));
+        locals.Add(local);
+        iesForHavoc.Add(new Bpl.IdentifierExpr(local.tok, local));
+      }
+      builderOutsideIfConstruct.Add(new Bpl.HavocCmd(exists.tok, iesForHavoc));
+      builder.Add(new Bpl.AssumeCmd(exists.tok, etran.TrExpr(exists.Term)));
+    }
+
     void TrStmtList(List<Statement> stmts, Bpl.StmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran) {
       Contract.Requires(stmts != null);
       Contract.Requires(builder != null);
@@ -7562,6 +7588,46 @@ namespace Microsoft.Dafny {
           builder.AddLabelCmd("after_" + ss.Labels.Data.AssignUniqueId("after_", CurrentIdGenerator));
         }
       }
+    }
+
+    /// <summary>
+    /// Returns an expression like 'exists' but where the bound variables have been renamed to have
+    /// 'prefix' as a prefix to their previous names.
+    /// Assumes the expression has been resolved.
+    /// </summary>
+    public static Expression AlphaRename(ExistsExpr exists, string prefix, Translator translator) {
+      Contract.Requires(exists != null);
+      Contract.Requires(prefix != null);
+      Contract.Requires(translator != null);
+
+      if (exists.SplitQuantifier != null) {
+        // TODO: what to do?  Substitute(exists.SplitQuantifierExpression);
+      }
+
+      var substMap = new Dictionary<IVariable, Expression>();
+      var var4var = new Dictionary<BoundVar, BoundVar>();
+      var bvars = new List<BoundVar>();
+      foreach (var bv in exists.BoundVars) {
+        var newBv = new BoundVar(bv.tok, prefix + bv.Name, bv.Type);
+        bvars.Add(newBv);
+        var4var.Add(bv, newBv);
+        var ie = new IdentifierExpr(newBv.tok, newBv.Name);
+        ie.Var = newBv;  // resolve here
+        ie.Type = newBv.Type;  // resolve here
+        substMap.Add(bv, ie);
+      }
+      var s = new Substituter(null, substMap, new Dictionary<TypeParameter, Type>(), translator);
+      var range = exists.Range == null ? null : s.Substitute(exists.Range);
+      var term = s.Substitute(exists.Term);
+      var attrs = s.SubstAttributes(exists.Attributes);
+      var ex = new ExistsExpr(exists.tok, exists.TypeArgs, bvars, range, term, attrs);
+      if (exists.Bounds != null) {
+        ex.Bounds = exists.Bounds.ConvertAll(bound => s.SubstituteBoundedPool(bound));
+      }
+      if (exists.MissingBounds != null) {
+        ex.MissingBounds = exists.MissingBounds.ConvertAll(bv => var4var[bv]);
+      }
+      return ex;
     }
 
     /// <summary>
@@ -8569,7 +8635,7 @@ namespace Microsoft.Dafny {
     void TrAlternatives(List<GuardedAlternative> alternatives, Bpl.Cmd elseCase0, Bpl.StructuredCmd elseCase1,
                         Bpl.StmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran) {
       Contract.Requires(alternatives != null);
-      Contract.Requires((elseCase0 != null) == (elseCase1 == null));  // ugly way of doing a type union
+      Contract.Requires((elseCase0 == null) != (elseCase1 == null));  // ugly way of doing a type union
       Contract.Requires(builder != null);
       Contract.Requires(locals != null);
       Contract.Requires(etran != null);
@@ -8583,10 +8649,13 @@ namespace Microsoft.Dafny {
         return;
       }
 
+      // alpha-rename any existential guards
+      var guards = alternatives.ConvertAll(alt => alt.IsExistentialGuard ? AlphaRename((ExistsExpr)alt.Guard, "eg$", this) : alt.Guard);
+
       // build the negation of the disjunction of all guards (that is, the conjunction of their negations)
       Bpl.Expr noGuard = Bpl.Expr.True;
-      foreach (var alternative in alternatives) {
-        noGuard = BplAnd(noGuard, Bpl.Expr.Not(etran.TrExpr(alternative.Guard)));
+      foreach (var g in guards) {
+        noGuard = BplAnd(noGuard, Bpl.Expr.Not(etran.TrExpr(g)));
       }
 
       var b = new Bpl.StmtListBuilder();
@@ -8605,8 +8674,13 @@ namespace Microsoft.Dafny {
         CurrentIdGenerator.Push();
         var alternative = alternatives[i];
         b = new Bpl.StmtListBuilder();
-        TrStmt_CheckWellformed(alternative.Guard, b, locals, etran, true);
-        b.Add(new AssumeCmd(alternative.Guard.tok, etran.TrExpr(alternative.Guard)));
+        TrStmt_CheckWellformed(guards[i], b, locals, etran, true);
+        if (alternative.IsExistentialGuard) {
+          var exists = (ExistsExpr)alternative.Guard;  // the original (that is, not alpha-renamed) guard
+          IntroduceAndAssignExistentialVars(exists, b, builder, locals, etran);
+        } else {
+          b.Add(new AssumeCmd(alternative.Guard.tok, etran.TrExpr(alternative.Guard)));
+        }
         foreach (var s in alternative.Body) {
           TrStmt(s, b, locals, etran);
         }
@@ -13705,6 +13779,9 @@ namespace Microsoft.Dafny {
               Contract.Assert(false);  // unexpected ComprehensionExpr
             }
           }
+          if (e.Bounds != null) {
+            ((ComprehensionExpr)newExpr).Bounds = e.Bounds.ConvertAll(bound => SubstituteBoundedPool(bound));
+          }
           // undo any changes to substMap (could be optimized to do this only if newBoundVars != e.BoundVars)
           foreach (var bv in e.BoundVars) {
             substMap.Remove(bv);
@@ -13758,6 +13835,44 @@ namespace Microsoft.Dafny {
         } else {
           newExpr.Type = Resolver.SubstType(expr.Type, typeMap);  // resolve on the fly (any additional resolution must be done above)
           return newExpr;
+        }
+      }
+
+      public ComprehensionExpr.BoundedPool SubstituteBoundedPool(ComprehensionExpr.BoundedPool bound) {
+        if (bound == null) {
+          return null;
+        } else if (bound is ComprehensionExpr.ExactBoundedPool) {
+          var b = (ComprehensionExpr.ExactBoundedPool)bound;
+          return new ComprehensionExpr.ExactBoundedPool(Substitute(b.E));
+        } else if (bound is ComprehensionExpr.BoolBoundedPool) {
+          return bound;  // nothing to substitute
+        } else if (bound is ComprehensionExpr.CharBoundedPool) {
+          return bound;  // nothing to substitute
+        } else if (bound is ComprehensionExpr.RefBoundedPool) {
+          return bound;  // nothing to substitute
+        } else if (bound is ComprehensionExpr.IntBoundedPool) {
+          var b = (ComprehensionExpr.IntBoundedPool)bound;
+          return new ComprehensionExpr.IntBoundedPool(b.LowerBound == null ? null : Substitute(b.LowerBound), b.UpperBound == null ? null : Substitute(b.UpperBound));
+        } else if (bound is ComprehensionExpr.SetBoundedPool) {
+          var b = (ComprehensionExpr.SetBoundedPool)bound;
+          return new ComprehensionExpr.SetBoundedPool(Substitute(b.Set));
+        } else if (bound is ComprehensionExpr.SubSetBoundedPool) {
+          var b = (ComprehensionExpr.SubSetBoundedPool)bound;
+          return new ComprehensionExpr.SubSetBoundedPool(Substitute(b.UpperBound));
+        } else if (bound is ComprehensionExpr.SuperSetBoundedPool) {
+          var b = (ComprehensionExpr.SuperSetBoundedPool)bound;
+          return new ComprehensionExpr.SuperSetBoundedPool(Substitute(b.LowerBound));
+        } else if (bound is ComprehensionExpr.MapBoundedPool) {
+          var b = (ComprehensionExpr.MapBoundedPool)bound;
+          return new ComprehensionExpr.MapBoundedPool(Substitute(b.Map));
+        } else if (bound is ComprehensionExpr.SeqBoundedPool) {
+          var b = (ComprehensionExpr.SeqBoundedPool)bound;
+          return new ComprehensionExpr.SeqBoundedPool(Substitute(b.Seq));
+        } else if (bound is ComprehensionExpr.DatatypeBoundedPool) {
+          return bound;  // nothing to substitute
+        } else {
+          Contract.Assume(false);  // unexpected ComprehensionExpr.BoundedPool
+          throw new cce.UnreachableException();  // to please compiler
         }
       }
 

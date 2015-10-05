@@ -3903,7 +3903,7 @@ namespace Microsoft.Dafny {
       Contract.Invariant(Expr != null);
     }
 
-    public ExprRhs(Expression expr, Attributes attrs = null)
+    public ExprRhs(Expression expr, Attributes attrs = null)  // TODO: these 'attrs' apparently aren't handled correctly in the Cloner, and perhaps not in various visitors either (for example, CheckIsCompilable should not go into attributes)
       : base(expr.tok, attrs)
     {
       Contract.Requires(expr != null);
@@ -7175,9 +7175,16 @@ namespace Microsoft.Dafny {
     public override IEnumerable<Expression> SubExpressions {
       get {
         if (SplitQuantifier == null) {
-          return base.SubExpressions;
+          foreach (var e in base.SubExpressions) {
+            yield return e;
+          }
         } else {
-          return SplitQuantifier;
+          foreach (var e in Attributes.SubExpressions(Attributes)) {
+            yield return e;
+          }
+          foreach (var e in SplitQuantifier) {
+            yield return e;
+          }
         }
       }
     }

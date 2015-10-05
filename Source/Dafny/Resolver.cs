@@ -2264,12 +2264,14 @@ namespace Microsoft.Dafny
             what = "quantifier";
             whereToLookForBounds = ((QuantifierExpr)e).LogicalBody();
             polarity = e is ExistsExpr;
-          } else if (e is SetComprehension && ((SetComprehension)e).Finite) {
+          } else if (e is SetComprehension) {
             what = "set comprehension";
             whereToLookForBounds = e.Range;
-          } else if (e is MapComprehension && ((MapComprehension)e).Finite) {
+          } else if (e is MapComprehension) {
             what = "map comprehension";
             whereToLookForBounds = e.Range;
+          } else {
+            Contract.Assume(e is LambdaExpr);  // otherwise, unexpected ComprehensionExpr
           }
           if (whereToLookForBounds != null) {
             List<BoundVar> missingBounds;
@@ -2278,9 +2280,9 @@ namespace Microsoft.Dafny
               e.MissingBounds = missingBounds;
 
               if ((e is SetComprehension && !((SetComprehension)e).Finite) || (e is MapComprehension && !((MapComprehension)e).Finite)) {
-                // a possibly infinite set/map has no restrictions on its range
+                // a possibly infinite set/map has no restrictions on its range (unless it's used in a compilable context, which is checked later)
               } else if (e is QuantifierExpr) {
-                // don't report any errors at this time (instead, wait to see if the quantifier is used in a non-ghost context)
+                // a quantifier has no restrictions on its range (unless it's used in a compilable context, which is checked later)
               } else if (e is SetComprehension && e.Type.HasFinitePossibleValues) {
                 // This means the set is finite, regardless of if the Range is bounded.  So, we don't give any error here.
                 // However, if this expression is used in a non-ghost context (which is not yet known at this stage of
@@ -2341,7 +2343,6 @@ namespace Microsoft.Dafny
           var bin = expr as BinaryExpr;
           if (bin != null) {
             bin.ResolvedOp = ResolveOp(bin.Op, bin.E1.Type);
-          
           }
         }
       }
@@ -5647,7 +5648,17 @@ namespace Microsoft.Dafny
           Contract.Assert(s.Guard.Type != null);  // follows from postcondition of ResolveExpression
           ConstrainTypes(s.Guard.Type, Type.Bool, s.Guard, "condition is expected to be of type {0}, but is {1}", Type.Bool, s.Guard.Type);
         }
-        ResolveStatement(s.Thn, codeContext);
+
+        scope.PushMarker();
+        if (s.IsExistentialGuard) {
+          var exists = (ExistsExpr)s.Guard;
+          foreach (var v in exists.BoundVars) {
+            ScopePushAndReport(scope, v, "bound-variable");
+          }
+        }
+        ResolveBlockStatement(s.Thn, codeContext);
+        scope.PopMarker();
+
         if (s.Els != null) {
           ResolveStatement(s.Els, codeContext);
         }
@@ -6525,7 +6536,7 @@ namespace Microsoft.Dafny
       Contract.Requires(alternatives != null);
       Contract.Requires(codeContext != null);
 
-      // first, resolve the guards, which tells us whether or not the entire statement is a ghost statement
+      // first, resolve the guards
       foreach (var alternative in alternatives) {
         int prevErrorCount = reporter.Count(ErrorLevel.Error);
         ResolveExpression(alternative.Guard, new ResolveOpts(codeContext, true));
@@ -6539,6 +6550,12 @@ namespace Microsoft.Dafny
       }
       foreach (var alternative in alternatives) {
         scope.PushMarker();
+        if (alternative.IsExistentialGuard) {
+          var exists = (ExistsExpr)alternative.Guard;
+          foreach (var v in exists.BoundVars) {
+            ScopePushAndReport(scope, v, "bound-variable");
+          }
+        }
         foreach (Statement ss in alternative.Body) {
           ResolveStatement(ss, codeContext);
         }
@@ -9508,9 +9525,9 @@ namespace Microsoft.Dafny
         if (uncompilableBoundVars.Count != 0) {
           string what;
           if (e is SetComprehension) {
-            what = "set comprehensions";
+            what = ((SetComprehension)e).Finite ? "set comprehensions" : "iset comprehensions";
           } else if (e is MapComprehension) {
-            what = "map comprehensions";
+            what = ((MapComprehension)e).Finite ? "map comprehensions" : "imap comprehensions";
           } else {
             Contract.Assume(e is QuantifierExpr);  // otherwise, unexpected ComprehensionExpr (since LambdaExpr is handled separately above)
             Contract.Assert(((QuantifierExpr)e).SplitQuantifier == null); // No split quantifiers during resolution
@@ -9521,15 +9538,11 @@ namespace Microsoft.Dafny
           }
           return;
         }
+        // don't recurse down any attributes
+        if (e.Range != null) { CheckIsCompilable(e.Range); }
+        CheckIsCompilable(e.Term);
+        return;
 
-      } else if (expr is MapComprehension) {
-        var e = (MapComprehension)expr;
-        if (e.MissingBounds != null && !e.Finite) {
-          foreach (var bv in e.MissingBounds) {
-            reporter.Error(MessageSource.Resolver, expr, "imaps in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce a bounded set of values for '{0}'", bv.Name);
-          }
-          return;
-        }
       } else if (expr is NamedExpr) {
         if (!moduleInfo.IsAbstract)
           CheckIsCompilable(((NamedExpr)expr).Body);
@@ -10436,7 +10449,7 @@ namespace Microsoft.Dafny
       } else if (expr is QuantifierExpr) {
         var e = (QuantifierExpr)expr;
         Contract.Assert(e.SplitQuantifier == null); // No split quantifiers during resolution
-        return e.UncompilableBoundVars().Count != 0;
+        return e.UncompilableBoundVars().Count != 0 || UsesSpecFeatures(e.LogicalBody());
       } else if (expr is SetComprehension) {
         var e = (SetComprehension)expr;
         return !e.Finite || e.UncompilableBoundVars().Count != 0 || (e.Range != null && UsesSpecFeatures(e.Range)) || (e.Term != null && UsesSpecFeatures(e.Term));

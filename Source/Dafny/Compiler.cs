@@ -1455,10 +1455,17 @@ namespace Microsoft.Dafny {
           }
         } else {
           Indent(indent);  wr.Write("if (");
-          TrExpr(s.Guard);
+          TrExpr(s.IsExistentialGuard ? Translator.AlphaRename((ExistsExpr)s.Guard, "eg_d", new Translator(null)) : s.Guard);
           wr.WriteLine(")");
 
-          TrStmt(s.Thn, indent);
+          // We'd like to do "TrStmt(s.Thn, indent)", except we want the scope of any existential variables to come inside the block
+          Indent(indent); wr.WriteLine("{");
+          if (s.IsExistentialGuard) {
+            IntroduceAndAssignBoundVars(indent + IndentAmount, (ExistsExpr)s.Guard);
+          }
+          TrStmtList(s.Thn.Body, indent);
+          Indent(indent); wr.WriteLine("}");
+
           if (s.Els != null) {
             Indent(indent);  wr.WriteLine("else");
             TrStmt(s.Els, indent);
@@ -1467,13 +1474,14 @@ namespace Microsoft.Dafny {
 
       } else if (stmt is AlternativeStmt) {
         var s = (AlternativeStmt)stmt;
-        foreach (var alternative in s.Alternatives) {
-        }
         Indent(indent);
         foreach (var alternative in s.Alternatives) {
           wr.Write("if (");
-          TrExpr(alternative.Guard);
+          TrExpr(alternative.IsExistentialGuard ? Translator.AlphaRename((ExistsExpr)alternative.Guard, "eg_d", new Translator(null)) : alternative.Guard);
           wr.WriteLine(") {");
+          if (alternative.IsExistentialGuard) {
+            IntroduceAndAssignBoundVars(indent + IndentAmount, (ExistsExpr)alternative.Guard);
+          }
           TrStmtList(alternative.Body, indent);
           Indent(indent);
           wr.Write("} else ");
@@ -1764,6 +1772,18 @@ namespace Microsoft.Dafny {
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected statement
       }
+    }
+
+    private void IntroduceAndAssignBoundVars(int indent, ExistsExpr exists) {
+      Contract.Requires(0 <= indent);
+      Contract.Requires(exists != null);
+      Contract.Assume(exists.Bounds != null);  // follows from successful resolution
+      Contract.Assert(exists.Range == null);  // follows from invariant of class IfStmt
+      foreach (var bv in exists.BoundVars) {
+        TrLocalVar(bv, false, indent);
+      }
+      var ivars = exists.BoundVars.ConvertAll(bv => (IVariable)bv);
+      TrAssignSuchThat(indent, ivars, exists.Term, exists.Bounds, exists.tok.line);
     }
 
     private void TrAssignSuchThat(int indent, List<IVariable> lhss, Expression constraint, List<ComprehensionExpr.BoundedPool> bounds, int debuginfoLine) {
@@ -2155,18 +2175,18 @@ namespace Microsoft.Dafny {
       }
     }
 
-    void TrLocalVar(LocalVariable s, bool alwaysInitialize, int indent) {
-      Contract.Requires(s != null);
-      if (s.IsGhost) {
+    void TrLocalVar(IVariable v, bool alwaysInitialize, int indent) {
+      Contract.Requires(v != null);
+      if (v.IsGhost) {
         // only emit non-ghosts (we get here only for local variables introduced implicitly by call statements)
         return;
       }
 
       Indent(indent);
-      wr.Write("{0} @{1}", TypeName(s.Type), s.CompileName);
+      wr.Write("{0} @{1}", TypeName(v.Type), v.CompileName);
       if (alwaysInitialize) {
         // produce a default value
-        wr.WriteLine(" = {0};", DefaultValue(s.Type));
+        wr.WriteLine(" = {0};", DefaultValue(v.Type));
       } else {
         wr.WriteLine(";");
       }
