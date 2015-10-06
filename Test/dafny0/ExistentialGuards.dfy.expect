@@ -1,5 +1,3 @@
-// Dafny program verifier version 1.9.5.20511, Copyright (c) 2003-2015, Microsoft.
-// Command Line Options: -nologo -countVerificationErrors:0 -useBaseNameForFileName /dprint:- C:\dafny\Test\dafny0\ExistentialGuards.dfy
 // ExistentialGuards.dfy
 
 predicate P(n: int)
