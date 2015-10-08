@@ -189,7 +189,7 @@ namespace DafnyLanguage
     {
       get
       {
-        return _verificationErrors.Values.Where(ec => ec.RequestId == MostRecentRequestId).SelectMany(ec => ec.Errors.Reverse());
+        return _verificationErrors.Values.Where(ec => ec.RequestId == MostRecentRequestId).SelectMany(ec => ec.Errors.Reverse()).ToList();
       }
     }
 
@@ -354,49 +354,46 @@ namespace DafnyLanguage
 
     public void UpdateErrorList(ITextSnapshot snapshot)
     {
-      lock (this) 
+      if (_errorProvider != null && !m_disposed)
       {
-        if (_errorProvider != null && !m_disposed)
-        {
-          _errorProvider.SuspendRefresh();  // reduce flickering
-          _errorProvider.Tasks.Clear();
-          foreach (var err in AllErrors)
-          { 
-            var lineNum = 0;
-            var columnNum = 0;
-            if (err.Span != null) {
-              var span = err.Span.GetSpan(snapshot);
-              lineNum = snapshot.GetLineNumberFromPosition(span.Start.Position);
-              var line = snapshot.GetLineFromPosition(span.Start.Position);
-              columnNum = span.Start - line.Start;
-            } else {
-              lineNum = err.Line;
-              columnNum = err.Column;
-            }
-            
-            ErrorTask task = new ErrorTask()
-            {
-              Category = TaskCategory.BuildCompile,
-              ErrorCategory = CategoryConversion(err.Category),
-              Text = err.Message,
-              Line = lineNum,
-              Column = columnNum
-            };
-            if (err.Filename != null) {
-              task.Document = err.Filename;
-            } 
-            else if (_document != null)
-            {
-              task.Document = _document.FilePath;
-            }
-            if (err.Category != ErrorCategory.ProcessError && err.Category != ErrorCategory.InternalError)
-            {
-              task.Navigate += new EventHandler(NavigateHandler);
-            }
-            _errorProvider.Tasks.Add(task);
+        _errorProvider.SuspendRefresh();  // reduce flickering
+        _errorProvider.Tasks.Clear();
+        foreach (var err in AllErrors)
+        { 
+          var lineNum = 0;
+          var columnNum = 0;
+          if (err.Span != null) {
+            var span = err.Span.GetSpan(snapshot);
+            lineNum = snapshot.GetLineNumberFromPosition(span.Start.Position);
+            var line = snapshot.GetLineFromPosition(span.Start.Position);
+            columnNum = span.Start - line.Start;
+          } else {
+            lineNum = err.Line;
+            columnNum = err.Column;
           }
-          _errorProvider.ResumeRefresh();
+          
+          ErrorTask task = new ErrorTask()
+          {
+            Category = TaskCategory.BuildCompile,
+            ErrorCategory = CategoryConversion(err.Category),
+            Text = err.Message,
+            Line = lineNum,
+            Column = columnNum
+          };
+          if (err.Filename != null) {
+            task.Document = err.Filename;
+          } 
+          else if (_document != null)
+          {
+            task.Document = _document.FilePath;
+          }
+          if (err.Category != ErrorCategory.ProcessError && err.Category != ErrorCategory.InternalError)
+          {
+            task.Navigate += new EventHandler(NavigateHandler);
+          }
+          _errorProvider.Tasks.Add(task);
         }
+        _errorProvider.ResumeRefresh();
       }
       var chng = TagsChanged;
       if (chng != null)
