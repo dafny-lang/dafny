@@ -1,4 +1,4 @@
-// ExistentialGuardsResolution.dfy
+// BindingGuardsResolution.dfy
 
 
 module TypesNotFullyDetermined {
@@ -151,15 +151,15 @@ method P1(m: int, n: int)
     case m < n =>
   }
 }
-ExistentialGuardsResolution.dfy(109,7): Error: type of bound variable 'x' could not be determined; please specify the type explicitly
-ExistentialGuardsResolution.dfy(130,8): Error: Assignment to non-ghost variable is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)
-ExistentialGuardsResolution.dfy(132,8): Error: Assignment to non-ghost variable is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)
-ExistentialGuardsResolution.dfy(140,8): Error: Assignment to non-ghost variable is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)
-ExistentialGuardsResolution.dfy(142,8): Error: Assignment to non-ghost variable is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)
-ExistentialGuardsResolution.dfy(146,8): Error: Assignment to non-ghost variable is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)
-ExistentialGuardsResolution.dfy(149,37): Error: function calls are allowed only in specification contexts (consider declaring the function a 'function method')
-ExistentialGuardsResolution.dfy(12,8): Error: Duplicate local-variable name: x
-ExistentialGuardsResolution.dfy(19,4): Error: LHS of assignment must denote a mutable variable
-ExistentialGuardsResolution.dfy(39,6): Error: Duplicate local-variable name: x
-ExistentialGuardsResolution.dfy(84,6): Error: LHS of assignment must denote a mutable variable
-11 resolution/type errors detected in ExistentialGuardsResolution.dfy
+BindingGuardsResolution.dfy(109,7): Error: type of bound variable 'x' could not be determined; please specify the type explicitly
+BindingGuardsResolution.dfy(130,8): Error: Assignment to non-ghost variable is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)
+BindingGuardsResolution.dfy(132,8): Error: Assignment to non-ghost variable is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)
+BindingGuardsResolution.dfy(140,8): Error: Assignment to non-ghost variable is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)
+BindingGuardsResolution.dfy(142,8): Error: Assignment to non-ghost variable is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)
+BindingGuardsResolution.dfy(146,8): Error: Assignment to non-ghost variable is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)
+BindingGuardsResolution.dfy(149,37): Error: function calls are allowed only in specification contexts (consider declaring the function a 'function method')
+BindingGuardsResolution.dfy(12,8): Error: Duplicate local-variable name: x
+BindingGuardsResolution.dfy(19,4): Error: LHS of assignment must denote a mutable variable
+BindingGuardsResolution.dfy(39,6): Error: Duplicate local-variable name: x
+BindingGuardsResolution.dfy(84,6): Error: LHS of assignment must denote a mutable variable
+11 resolution/type errors detected in BindingGuardsResolution.dfy

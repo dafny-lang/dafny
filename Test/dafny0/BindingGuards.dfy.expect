@@ -1,4 +1,4 @@
-// ExistentialGuards.dfy
+// BindingGuards.dfy
 
 predicate P(n: int)
 {
@@ -156,26 +156,26 @@ method P3(m: int, n: int)
     case x :| m <= x < n && P(x) =>
   }
 }
-ExistentialGuards.dfy(85,10): Error BP5003: A postcondition might not hold on this return path.
-ExistentialGuards.dfy(71,12): Related location: This is the postcondition that might not hold.
+BindingGuards.dfy(85,10): Error BP5003: A postcondition might not hold on this return path.
+BindingGuards.dfy(71,12): Related location: This is the postcondition that might not hold.
 Execution trace:
     (0,0): anon0
     (0,0): anon12_Then
     (0,0): anon9
     (0,0): anon16_Then
-ExistentialGuards.dfy(134,9): Error: assertion violation
-ExistentialGuards.dfy(6,8): Related location
+BindingGuards.dfy(134,9): Error: assertion violation
+BindingGuards.dfy(6,8): Related location
 Execution trace:
     (0,0): anon0
     (0,0): anon20_Then
     (0,0): anon21_Then
     (0,0): anon5
     (0,0): anon17
-ExistentialGuards.dfy(139,2): Error: alternative cases fail to cover all possibilties
+BindingGuards.dfy(139,2): Error: alternative cases fail to cover all possibilties
 Execution trace:
     (0,0): anon0
     (0,0): anon7_Else
-ExistentialGuards.dfy(147,2): Error: alternative cases fail to cover all possibilties
+BindingGuards.dfy(147,2): Error: alternative cases fail to cover all possibilties
 Execution trace:
     (0,0): anon0
     (0,0): anon7_Else
