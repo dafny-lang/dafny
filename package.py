@@ -1,12 +1,14 @@
+#!/usr/bin/env python3
+
 from fnmatch import fnmatch
 from os import path
 import argparse
 import json
 import os
 import re
-import shutil
 import subprocess
 import sys
+import time
 import urllib.request
 import zipfile
 
@@ -53,7 +55,7 @@ DLLs = ["AbsInt",
         "VCExpr",
         "VCGeneration"]
 EXEs = ["Dafny", "DafnyServer"]
-ETCs = ["dafny", "DafnyPrelude.bpl", "DafnyRuntime.cs"]
+ETCs = ["dafny", "DafnyPrelude.bpl", "DafnyRuntime.cs", "DafnyLanguageService.vsix"]
 
 # Constants
 
@@ -112,6 +114,11 @@ class Release:
                     writer.write(reader.read())
             flush("done!")
 
+    @staticmethod
+    def zipify_path(fpath):
+        """Zip entries always use '/' as the path separator."""
+        return fpath.replace(os.path.sep, '/')
+
     def pack(self):
         try:
             os.remove(self.dafny_zip)
@@ -126,16 +133,19 @@ class Release:
                     if any(fnmatch(fname, pattern) for pattern in Z3_INTERESTING_FILES):
                         z3_files_count += 1
                         contents = Z3_archive.read(fileinfo)
-                        fileinfo.filename = path.join(DAFNY_PACKAGE_PREFIX, Z3_PACKAGE_PREFIX, fname)
+                        fileinfo.filename = Release.zipify_path(path.join(DAFNY_PACKAGE_PREFIX, Z3_PACKAGE_PREFIX, fname))
                         archive.writestr(fileinfo, contents)
             for fname in ARCHIVE_FNAMES:
                 fpath = path.join(BINARIES_DIRECTORY, fname)
                 if path.exists(fpath):
-                    fileinfo = zipfile.ZipInfo(fname)
+                    fileinfo = zipfile.ZipInfo(fname, time.localtime(os.stat(fpath).st_mtime)[:6])
                     if any(fnmatch(fname, pattern) for pattern in UNIX_EXECUTABLES):
                         # http://stackoverflow.com/questions/434641/
                         fileinfo.external_attr = 0o777 << 16
-                    archive.write(fpath, path.join(DAFNY_PACKAGE_PREFIX, fname))
+                    contents = open(fpath, mode='rb').read()
+                    fileinfo.compress_type = zipfile.ZIP_DEFLATED
+                    fileinfo.filename = Release.zipify_path(path.join(DAFNY_PACKAGE_PREFIX, fname))
+                    archive.writestr(fileinfo, contents)
                 else:
                     missing.append(fname)
         flush("done! (imported {} files from z3's sources)".format(z3_files_count))
