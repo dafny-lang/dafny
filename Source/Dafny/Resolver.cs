@@ -444,6 +444,13 @@ namespace Microsoft.Dafny
           } else if (clbl is IteratorDecl) {
             body = ((IteratorDecl)clbl).Body;
             CheckForFuelAdjustments(clbl.Tok, ((IteratorDecl)clbl).Attributes, module);
+          } else if (clbl is Function) {            
+            CheckForFuelAdjustments(clbl.Tok, ((Function)clbl).Attributes, module);
+            var c = new FuelAdjustment_Visitor(this);
+            var bodyExpr = ((Function)clbl).Body;
+            if (bodyExpr != null) {
+              c.Visit(bodyExpr, new FuelAdjustment_Context(module));
+            }
           }
           if (body != null) {
             var c = new FuelAdjustment_Visitor(this);

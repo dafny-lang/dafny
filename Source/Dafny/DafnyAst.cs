@@ -3202,7 +3202,27 @@ namespace Microsoft.Dafny {
       this.Decreases = decreases;
       this.Body = body;
       this.SignatureEllipsis = signatureEllipsis;
+
+      if (attributes != null) {
+        List<Expression> args = Attributes.FindExpressions(attributes, "fuel");
+        if (args != null) {
+          if (args.Count == 1) {
+            LiteralExpr literal = args[0] as LiteralExpr;
+            if (literal != null && literal.Value is BigInteger) {
+              this.IsFueled = true;
+            }
+          } else if (args.Count == 2) {
+            LiteralExpr literalLow = args[0] as LiteralExpr;
+            LiteralExpr literalHigh = args[1] as LiteralExpr;
+
+            if (literalLow != null && literalLow.Value is BigInteger && literalHigh != null && literalHigh.Value is BigInteger) {
+              this.IsFueled = true;
+            }
+          }
+        }
+      }
     }
+          
 
     bool ICodeContext.IsGhost { get { return this.IsGhost; } }
     List<TypeParameter> ICodeContext.TypeArgs { get { return this.TypeArgs; } }

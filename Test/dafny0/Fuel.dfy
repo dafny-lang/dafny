@@ -421,3 +421,42 @@ module TestModule9 {
     }
 }
 
+// Test fuel when it's applied to a non-recursive function directly (to simulate opaque)
+module TestModule10 {
+    function {:fuel 0,0} abs(x:int) : int
+    {
+        if x < 0 then -1 * x else x
+    }
+
+    method test1(y:int, z:int)
+        requires y > 5;
+        requires z < 0;
+    {
+        assert abs(z) == -1*z;  // error: Cannot see the body of abs
+        assert abs(y) == y;     // error: Cannot see the body of abs
+        assert abs(-1) == 1;    // lit bypasses fuel, so this should succeed
+    }
+}
+
+// Test fuel when it's mentioned in other functions function to simulate a local opaque
+module TestModule11 {
+    function abs(x:int) : int
+    {
+        if x < 0 then -1 * x else x
+    }
+
+    function {:fuel abs,0,0} abs'(x:int) : int
+    {
+        abs(x)
+    }
+
+    method test1(y:int, z:int)
+        requires y > 5;
+        requires z < 0;
+    {
+        assert abs'(z) == -1*z;  // error: Cannot see the body of abs
+        assert abs'(y) == y;     // error: Cannot see the body of abs
+        assert abs'(-1) == 1;    // lit bypasses fuel, so this should succeed
+    }
+}
+
