@@ -7613,90 +7613,29 @@ namespace Microsoft.Dafny
           expr.Type = e.Seq.Type;
 
         } else if (e.Seq.Type.IsDatatype) {
-          var dt = e.Seq.Type.AsDatatype;
-          DatatypeCtor ctor = null;
-
-          // Let en = e and e(n-1) = en.Seq
-          // We're currently looking at e = e(n-1)[en.Index := en.Value]
-          // Let e(n-2) = e(n-1).Seq, e(n-3) = e(n-2).Seq, etc.
-          // Let's extract e = e0[e1.Index := e1.Value]...[en.Index := en.Value]
-          var IndexToValue = new Dictionary<string,Tuple<DatatypeDestructor,Expression>>();
+          // combine a nest of datatype updates into one single DatatypeUpdate expression
+          var memberUpdates = new List<Tuple<IToken, string, Expression>>();
           Expression eIter = e;
           while (eIter is SeqUpdateExpr) {
             var ei = (SeqUpdateExpr)eIter;
-
-            if (!(ei.Index is NameSegment|| (ei.Index is LiteralExpr && ((LiteralExpr)ei.Index).Value is BigInteger))) {
-              reporter.Error(MessageSource.Resolver, expr, "datatype updates must be to datatype destructors");
+            if (ei.Index is NameSegment) {
+              var seg = (NameSegment)ei.Index;
+              memberUpdates.Add(new Tuple<IToken,string,Expression>(ei.Index.tok, seg.Name, ei.Value));
+            } else if (ei.Index is LiteralExpr && ((LiteralExpr)ei.Index).Value is BigInteger) {
+              var lit = (LiteralExpr)ei.Index;
+              var nm = lit.tok.val;  // note, take the string of digits, not the parsed integer
+              memberUpdates.Add(new Tuple<IToken,string,Expression>(ei.Index.tok, nm, ei.Value));
             } else {
-              string destructor_str = null;
-
-              if (ei.Index is NameSegment) {
-                var seg = (NameSegment)ei.Index;
-                destructor_str = seg.Name;
-              } else {
-                Contract.Assert(ei.Index is LiteralExpr && ((LiteralExpr)ei.Index).Value is BigInteger);
-                destructor_str = ((LiteralExpr)ei.Index).tok.val;  // note, take the string of digits, not the parsed integer
-              }
-
-              Contract.Assert(destructor_str != null);
-              if (IndexToValue.ContainsKey(destructor_str)) {
-                // Don't bother trying to optimize this case; we'd have to drop one of the updates,
-                // which makes resolving the dropped update an annoyance.
-                reporter.Warning(MessageSource.Resolver, ei.tok, "update to {0} overwritten by another update to {1}", destructor_str, destructor_str);
-                break;
-              }
-              MemberDecl member;
-              if (!datatypeMembers[dt].TryGetValue(destructor_str, out member)) {
-                reporter.Error(MessageSource.Resolver, expr, "member {0} does not exist in datatype {1}", destructor_str, dt.Name);
-              } else {
-                DatatypeDestructor destructor = (DatatypeDestructor)member;
-                if (ctor != null && ctor != destructor.EnclosingCtor) {
-                  // Don't bother optimizing case where destructors come from different constructors
-                  break;
-                }
-                IndexToValue.Add(destructor_str, Tuple.Create(destructor, ei.Value));
-                ctor = destructor.EnclosingCtor;
-              }
+              reporter.Error(MessageSource.Resolver, expr, "datatype updates must be to datatype destructors");
             }
             eIter = ei.Seq;
           }
-          if (ctor != null) {
-            var e0 = eIter;
-
-            // Rewrite an update of the form "dt[dtor := E]" to be "let d' := dt in dtCtr(E, d'.dtor2, d'.dtor3,...)"
-            // Wrapping it in a let expr avoids exponential growth in the size of the expression
-            // More generally, rewrite "E0[dtor1 := E1][dtor2 := E2]...[dtorn := En]" to
-            //   "let d' := E0 in dtCtr(...mixtures of Ek and d'.dtorj...)"
-
-            // Create a unique name for d', the variable we introduce in the let expression
-            string tmpName = FreshTempVarName("dt_update_tmp#", opts.codeContext);
-            IdentifierExpr tmpVarIdExpr = new IdentifierExpr(e0.tok, tmpName);
-            BoundVar tmpVarBv = new BoundVar(e0.tok, tmpName, e0.Type);
-
-            // Build the arguments to the datatype constructor, using the updated value in the appropriate slot
-            List<Expression> ctor_args = new List<Expression>();
-            foreach (Formal d in ctor.Formals) {
-              Expression v = null;
-              foreach (var dvPair in IndexToValue.Values) {
-                var destructor = dvPair.Item1;
-                if (d == destructor.CorrespondingFormal) {
-                  Contract.Assert(v == null);
-                  v = dvPair.Item2;
-                }
-              }
-              ctor_args.Add(v ?? new ExprDotName(expr.tok, tmpVarIdExpr, d.Name, null));
-            }
-
-            DatatypeValue ctor_call = new DatatypeValue(expr.tok, ctor.EnclosingDatatype.Name, ctor.Name, ctor_args);
-
-            CasePattern tmpVarPat = new CasePattern(e0.tok, tmpVarBv);
-            LetExpr let = new LetExpr(e0.tok, new List<CasePattern>() { tmpVarPat }, new List<Expression>() { e0 }, ctor_call, true);
-
-            ResolveExpression(let, opts);
+          var let = ResolveDatatypeUpdate(expr.tok, eIter, e.Seq.Type.AsDatatype, memberUpdates, true, opts);
+          if (let != null) {
             e.ResolvedUpdateExpr = let;
-
-            expr.Type = e0.Type;
+            expr.Type = e.Seq.Type;
           }
+
         } else {
           reporter.Error(MessageSource.Resolver, expr, "update requires a sequence, map, or datatype (got {0})", e.Seq.Type);
         }
@@ -8136,6 +8075,88 @@ namespace Microsoft.Dafny
         // some resolution error occurred
         expr.Type = new InferredTypeProxy();
       }
+    }
+
+    /// <summary>
+    /// Attempts to produce a let expression from the given datatype updates.  Returns that let expression upon success, and null otherwise.
+    /// </summary>
+    Expression ResolveDatatypeUpdate(IToken tok, Expression orig, DatatypeDecl dt, List<Tuple<IToken, string, Expression>> memberUpdates, bool sequentialUpdates, ResolveOpts opts) {
+      Contract.Requires(tok != null);
+      Contract.Requires(orig != null);
+      Contract.Requires(dt != null);
+      Contract.Requires(memberUpdates != null);
+      Contract.Requires(opts != null);
+
+      // Let en = e and e(n-1) = en.Seq
+      // We're currently looking at e = e(n-1)[en.Index := en.Value]
+      // Let e(n-2) = e(n-1).Seq, e(n-3) = e(n-2).Seq, etc.
+      // Let's extract e = e0[e1.Index := e1.Value]...[en.Index := en.Value]
+      DatatypeCtor ctor = null;
+      Tuple<IToken, string, Expression> ctorSource = default(Tuple<IToken, string, Expression>);  // relevant only if "ctor" is non-null
+      var memberNames = new HashSet<string>();
+      var updates = new Dictionary<Formal, Expression>();
+      foreach (var entry in memberUpdates) {
+        var destructor_str = entry.Item2;
+        if (memberNames.Contains(destructor_str)) {
+          if (sequentialUpdates) {
+            reporter.Warning(MessageSource.Resolver, entry.Item1, "update to '{0}' overwritten by another update to '{0}'", destructor_str);
+          } else {
+            reporter.Error(MessageSource.Resolver, entry.Item1, "duplicate update member '{0}'", destructor_str);
+          }
+        } else {
+          memberNames.Add(destructor_str);
+          MemberDecl member;
+          if (!datatypeMembers[dt].TryGetValue(destructor_str, out member)) {
+            reporter.Error(MessageSource.Resolver, entry.Item1, "member '{0}' does not exist in datatype '{1}'", destructor_str, dt.Name);
+          } else {
+            var destructor = (DatatypeDestructor)member;
+            if (ctor != null && ctor != destructor.EnclosingCtor) {
+              if (sequentialUpdates) {
+                // This would eventually give rise to a verification error.  However, since the 'sequentialUpdates' case is being depricated,
+                // we don't mind giving resolution error about this now.
+              }
+              reporter.Error(MessageSource.Resolver, entry.Item1, "updated datatype members must belong to the same constructor " +
+                "('{0}' belongs to '{1}' and '{2}' belongs to '{3}'", entry.Item2, destructor.EnclosingCtor.Name, ctorSource.Item2, ctor.Name);
+            } else {
+              updates.Add(destructor.CorrespondingFormal, entry.Item3);
+              ctor = destructor.EnclosingCtor;
+              ctorSource = entry;
+            }
+          }
+        }
+      }
+
+      if (ctor != null) {
+        // Rewrite an update of the form "dt[dtor := E]" to be "let d' := dt in dtCtr(E, d'.dtor2, d'.dtor3,...)"
+        // Wrapping it in a let expr avoids exponential growth in the size of the expression
+        // More generally, rewrite "E0[dtor1 := E1][dtor2 := E2]...[dtorn := En]" where "E0" is "orig" to
+        //   "let d' := E0 in dtCtr(...mixtures of Ek and d'.dtorj...)"
+
+        // Create a unique name for d', the variable we introduce in the let expression
+        var tmpName = FreshTempVarName("dt_update_tmp#", opts.codeContext);
+        var tmpVarIdExpr = new IdentifierExpr(tok, tmpName);
+        var tmpVarBv = new BoundVar(tok, tmpName, orig.Type);
+
+        // Build the arguments to the datatype constructor, using the updated value in the appropriate slot
+        var ctor_args = new List<Expression>();
+        foreach (Formal d in ctor.Formals) {
+          Expression v;
+          if (updates.TryGetValue(d, out v)) {
+            ctor_args.Add(v);
+          } else {
+            ctor_args.Add(new ExprDotName(tok, tmpVarIdExpr, d.Name, null));
+          }
+        }
+
+        DatatypeValue ctor_call = new DatatypeValue(tok, ctor.EnclosingDatatype.Name, ctor.Name, ctor_args);
+
+        CasePattern tmpVarPat = new CasePattern(tok, tmpVarBv);
+        LetExpr let = new LetExpr(tok, new List<CasePattern>() { tmpVarPat }, new List<Expression>() { orig }, ctor_call, true);
+
+        ResolveExpression(let, opts);
+        return let;
+      }
+      return null;
     }
 
     void ResolveMatchExpr(Expression expr, ResolveOpts opts) {
