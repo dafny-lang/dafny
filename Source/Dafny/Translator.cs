@@ -13760,9 +13760,9 @@ namespace Microsoft.Dafny {
           }
 
           var newBoundVars = CreateBoundVarSubstitutions(e.BoundVars, expr is ForallExpr || expr is ExistsExpr || expr is SetComprehension);
-          Expression newRange = e.Range == null ? null : Substitute(e.Range);
-          Expression newTerm = Substitute(e.Term);
-          Attributes newAttrs = SubstAttributes(e.Attributes);
+          var newRange = e.Range == null ? null : Substitute(e.Range);
+          var newTerm = Substitute(e.Term);
+          var newAttrs = SubstAttributes(e.Attributes);
           if (newBoundVars != e.BoundVars || newRange != e.Range || newTerm != e.Term || newAttrs != e.Attributes) {
             if (e is SetComprehension) {
               newExpr = new SetComprehension(expr.tok, ((SetComprehension)e).Finite, newBoundVars, newRange, newTerm, newAttrs);
@@ -13778,9 +13778,9 @@ namespace Microsoft.Dafny {
             } else {
               Contract.Assert(false);  // unexpected ComprehensionExpr
             }
-          }
-          if (e.Bounds != null) {
-            ((ComprehensionExpr)newExpr).Bounds = e.Bounds.ConvertAll(bound => SubstituteBoundedPool(bound));
+            if (e.Bounds != null) {
+              ((ComprehensionExpr)newExpr).Bounds = e.Bounds.ConvertAll(bound => SubstituteBoundedPool(bound));
+            }
           }
           // undo any changes to substMap (could be optimized to do this only if newBoundVars != e.BoundVars)
           foreach (var bv in e.BoundVars) {
