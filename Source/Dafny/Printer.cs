@@ -1510,6 +1510,25 @@ namespace Microsoft.Dafny {
           wr.Write("]");
           if (parensNeeded) { wr.Write(")"); }
         }
+
+      } else if (expr is DatatypeUpdateExpr) {
+        var e = (DatatypeUpdateExpr)expr;
+        // determine if parens are needed
+        int opBindingStrength = 0x70;
+        bool parensNeeded = ParensNeeded(opBindingStrength, contextBindingStrength, fragileContext);
+
+        if (parensNeeded) { wr.Write("("); }
+        PrintExpr(e.Root, opBindingStrength, false, false, !parensNeeded && isFollowedBySemicolon, indent);
+        wr.Write(".(");
+        var sep = "";
+        foreach (var update in e.Updates) {
+          wr.Write("{0}{1} := ", sep, update.Item2);
+          PrintExpression(update.Item3, false);
+          sep = ", ";
+        }
+        wr.Write(")");
+        if (parensNeeded) { wr.Write(")"); }
+
       } else if (expr is ApplyExpr) {
         var e = (ApplyExpr)expr;
         // determine if parens are needed

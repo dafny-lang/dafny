@@ -959,6 +959,10 @@ namespace Microsoft.Dafny
         reqs.AddRange(generateAutoReqs(e.Seq));
         reqs.AddRange(generateAutoReqs(e.Index));
         reqs.AddRange(generateAutoReqs(e.Value));
+      } else if (expr is DatatypeUpdateExpr) {
+        foreach (var ee in expr.SubExpressions) {
+          reqs.AddRange(generateAutoReqs(ee));
+        }
       } else if (expr is FunctionCallExpr) {
         FunctionCallExpr e = (FunctionCallExpr)expr;
 

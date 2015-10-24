@@ -16,7 +16,7 @@ COMPILER Dafny
 /*--------------------------------------------------------------------------*/
 readonly Expression/*!*/ dummyExpr;
 readonly AssignmentRhs/*!*/ dummyRhs;
-readonly FrameExpression/*!*/ dummyFrameExpr;
+readonly FrameExpression/*!*/ dummyFrameExpr;  
 readonly Statement/*!*/ dummyStmt;
 readonly ModuleDecl theModule;
 readonly BuiltIns theBuiltIns;
@@ -2791,8 +2791,17 @@ Suffix<ref Expression e>
      Expression e0 = null;  Expression e1 = null;  Expression ee;  bool anyDots = false;
      List<Expression> multipleLengths = null; bool takeRest = false; // takeRest is relevant only if multipleLengths is non-null
      List<Expression> multipleIndices = null;
+     List<Tuple<IToken, string, Expression>> updates;
+     Expression v;
   .)
-  ( DotSuffix<out id, out x>                   (. if (x != null) {
+  ( "."
+    ( "("                                             (. x = t; updates = new List<Tuple<IToken, string, Expression>>(); .)
+        MemberBindingUpdate<out id, out v>            (. updates.Add(Tuple.Create(id, id.val, v)); .)
+        { "," MemberBindingUpdate<out id, out v>      (. updates.Add(Tuple.Create(id, id.val, v)); .)
+        }
+      ")"
+      (. e = new DatatypeUpdateExpr(x, e, updates); .)
+    | DotSuffix<out id, out x>                 (. if (x != null) {
                                                     // process id as a Suffix in its own right
                                                     e = new ExprDotName(id, e, id.val, null);
                                                     id = x;  // move to the next Suffix
@@ -2801,17 +2810,18 @@ Suffix<ref Expression e>
                                                .)
 
 
-    ( IF(IsGenericInstantiation())
-      (. typeArgs = new List<Type>(); .)
-      GenericInstantiation<typeArgs>
-    | HashCall<id, out openParen, out typeArgs, out args>
-    | /* empty */
+      ( IF(IsGenericInstantiation())
+        (. typeArgs = new List<Type>(); .)
+        GenericInstantiation<typeArgs>
+      | HashCall<id, out openParen, out typeArgs, out args>
+      | /* empty */
+      )
+      (. e = new ExprDotName(id, e, id.val, typeArgs);
+         if (openParen != null) {
+           e = new ApplySuffix(openParen, e, args);
+         }
+      .)
     )
-    (. e = new ExprDotName(id, e, id.val, typeArgs);
-       if (openParen != null) {
-         e = new ApplySuffix(openParen, e, args);
-       }
-    .)
   | "["                                        (. x = t; .)
       ( Expression<out ee, true, true>         (. e0 = ee; .)
         ( ".."                                 (. anyDots = true; .)
@@ -2969,10 +2979,10 @@ Ident<out IToken/*!*/ x>
   ident            (. x = t; .)
   .
 // Identifier or sequence of digits
-// Parse one of the following:
-//      . ident
-//      . digits
-//      . digits . digits
+// Parse one of the following, which are supposed to follow a ".":
+//        ident
+//        digits
+//        digits . digits
 // In the first two cases, x returns as the token for the ident/digits and y returns as null.
 // In the third case, x and y return as the tokens for the first and second digits.
 // This parser production solves a problem where the scanner might parse a real number instead
@@ -2982,7 +2992,6 @@ DotSuffix<out IToken x, out IToken y>
      x = Token.NoToken;
      y = null;
   .)
-  "."
   ( ident          (. x = t; .)
   | digits         (. x = t; .)
   | decimaldigits  (. x = t;
@@ -3008,6 +3017,15 @@ DotSuffix<out IToken x, out IToken y>
   | "reads"       (. x = t; .)
   )
   .
+MemberBindingUpdate<out IToken id, out Expression e>
+= (. id = Token.NoToken; e = dummyExpr; .)
+  ( ident          (. id = t; .)
+  | digits         (. id = t; .)
+  )
+  ":="
+  Expression<out e, true, true>
+  .
+
 // Identifier, disallowing leading underscores
 NoUSIdent<out IToken/*!*/ x>
 = (. Contract.Ensures(Contract.ValueAtReturn(out x) != null); .)

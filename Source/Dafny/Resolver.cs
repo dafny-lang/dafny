@@ -7632,12 +7632,27 @@ namespace Microsoft.Dafny
           }
           var let = ResolveDatatypeUpdate(expr.tok, eIter, e.Seq.Type.AsDatatype, memberUpdates, true, opts);
           if (let != null) {
+            reporter.Warning(MessageSource.Resolver, expr.tok, "datatype update syntax D[f := E] is deprecated; the new syntax is D.(f := E)");
             e.ResolvedUpdateExpr = let;
             expr.Type = e.Seq.Type;
           }
 
         } else {
-          reporter.Error(MessageSource.Resolver, expr, "update requires a sequence, map, or datatype (got {0})", e.Seq.Type);
+          reporter.Error(MessageSource.Resolver, expr, "update requires a sequence, map, multiset, or datatype (got {0})", e.Seq.Type);
+        }
+
+      } else if (expr is DatatypeUpdateExpr) {
+        var e = (DatatypeUpdateExpr)expr;
+        ResolveExpression(e.Root, opts);
+        var ty = e.Root.Type;
+        if (!ty.IsDatatype) {
+          reporter.Error(MessageSource.Resolver, expr, "datatype update expression requires a root expression of a datatype (got {0})", ty);
+        } else {
+          var let = ResolveDatatypeUpdate(expr.tok, e.Root, ty.AsDatatype, e.Updates, false, opts);
+          if (let != null) {
+            e.ResolvedExpression = let;
+            expr.Type = ty;
+          }
         }
 
       } else if (expr is FunctionCallExpr) {
@@ -8080,9 +8095,9 @@ namespace Microsoft.Dafny
     /// <summary>
     /// Attempts to produce a let expression from the given datatype updates.  Returns that let expression upon success, and null otherwise.
     /// </summary>
-    Expression ResolveDatatypeUpdate(IToken tok, Expression orig, DatatypeDecl dt, List<Tuple<IToken, string, Expression>> memberUpdates, bool sequentialUpdates, ResolveOpts opts) {
+    Expression ResolveDatatypeUpdate(IToken tok, Expression root, DatatypeDecl dt, List<Tuple<IToken, string, Expression>> memberUpdates, bool sequentialUpdates, ResolveOpts opts) {
       Contract.Requires(tok != null);
-      Contract.Requires(orig != null);
+      Contract.Requires(root != null);
       Contract.Requires(dt != null);
       Contract.Requires(memberUpdates != null);
       Contract.Requires(opts != null);
@@ -8129,13 +8144,13 @@ namespace Microsoft.Dafny
       if (ctor != null) {
         // Rewrite an update of the form "dt[dtor := E]" to be "let d' := dt in dtCtr(E, d'.dtor2, d'.dtor3,...)"
         // Wrapping it in a let expr avoids exponential growth in the size of the expression
-        // More generally, rewrite "E0[dtor1 := E1][dtor2 := E2]...[dtorn := En]" where "E0" is "orig" to
+        // More generally, rewrite "E0[dtor1 := E1][dtor2 := E2]...[dtorn := En]" where "E0" is "root" to
         //   "let d' := E0 in dtCtr(...mixtures of Ek and d'.dtorj...)"
 
         // Create a unique name for d', the variable we introduce in the let expression
         var tmpName = FreshTempVarName("dt_update_tmp#", opts.codeContext);
         var tmpVarIdExpr = new IdentifierExpr(tok, tmpName);
-        var tmpVarBv = new BoundVar(tok, tmpName, orig.Type);
+        var tmpVarBv = new BoundVar(tok, tmpName, root.Type);
 
         // Build the arguments to the datatype constructor, using the updated value in the appropriate slot
         var ctor_args = new List<Expression>();
@@ -8151,7 +8166,7 @@ namespace Microsoft.Dafny
         DatatypeValue ctor_call = new DatatypeValue(tok, ctor.EnclosingDatatype.Name, ctor.Name, ctor_args);
 
         CasePattern tmpVarPat = new CasePattern(tok, tmpVarBv);
-        LetExpr let = new LetExpr(tok, new List<CasePattern>() { tmpVarPat }, new List<Expression>() { orig }, ctor_call, true);
+        LetExpr let = new LetExpr(tok, new List<CasePattern>() { tmpVarPat }, new List<Expression>() { root }, ctor_call, true);
 
         ResolveExpression(let, opts);
         return let;

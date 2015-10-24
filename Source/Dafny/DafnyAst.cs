@@ -6204,7 +6204,6 @@ namespace Microsoft.Dafny {
       }
     }
 
-
     public override IEnumerable<Expression> SubExpressions {
       get { yield return Obj; }
     }
@@ -7781,6 +7780,30 @@ namespace Microsoft.Dafny {
         return e;
       } else {
         return new TypeExpr(e.tok, e, t);
+      }
+    }
+  }
+
+  public class DatatypeUpdateExpr : ConcreteSyntaxExpression
+  {
+    public readonly Expression Root;
+    public readonly List<Tuple<IToken, string, Expression>> Updates;
+    public DatatypeUpdateExpr(IToken tok, Expression root, List<Tuple<IToken, string, Expression>> updates)
+      : base(tok) {
+      Contract.Requires(tok != null);
+      Contract.Requires(root != null);
+      Contract.Requires(updates != null);
+      Contract.Requires(updates.Count != 0);
+      Root = root;
+      Updates = updates;
+    }
+
+    public override IEnumerable<Expression> SubExpressions {
+      get {
+        yield return Root;
+        foreach (var update in Updates) {
+          yield return update.Item3;
+        }
       }
     }
   }
