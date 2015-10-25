@@ -199,13 +199,19 @@ namespace DafnyLanguage
       {
         lock (this)
         {
-          if (_resolutionErrors != null && _resolutionErrors.Any())
-          {
-            return _resolutionErrors;
+          bool anyResolutionErrors = false;
+          if (_resolutionErrors != null) {
+            foreach (var err in _resolutionErrors) {
+              if (CategoryConversion(err.Category) == TaskErrorCategory.Error) {
+                anyResolutionErrors = true;
+              }
+              yield return err;
+            }
           }
-          else
-          {
-            return VerificationErrors;
+          if (!anyResolutionErrors) {
+            foreach (var err in VerificationErrors) {
+              yield return err;
+            }
           }
         }
       }
