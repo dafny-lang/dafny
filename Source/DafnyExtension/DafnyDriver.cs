@@ -37,6 +37,7 @@ namespace DafnyLanguage
       if (Dafny.DafnyOptions.O == null) {
         var options = new Dafny.DafnyOptions();
         options.ProverKillTime = 10;
+        options.AutoTriggers = true;
         options.ErrorTrace = 0;
         options.VcsCores = Math.Max(1, System.Environment.ProcessorCount - 1);
         options.ModelViewFile = "-";
