@@ -33,6 +33,14 @@ namespace DafnyLanguage
              && 0 < DafnyDriver.IncrementalVerificationMode();
     }
 
+    public bool ToggleAutomaticInduction(IWpfTextView activeTextView) {
+      return DafnyDriver.ChangeAutomaticInduction();
+    }
+
+    public bool AutomaticInductionCommandEnabled(IWpfTextView activeTextView) {
+      return activeTextView != null;
+    }
+
     public bool StopVerifierCommandEnabled(IWpfTextView activeTextView)
     {
       DafnyLanguage.ProgressTagger tagger;
