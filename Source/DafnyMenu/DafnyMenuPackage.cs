@@ -28,6 +28,12 @@ namespace DafnyLanguage.DafnyMenu
     bool MoreAdvancedSnapshotVerificationCommandEnabled(IWpfTextView activeTextView);
 
 
+    bool ToggleAutomaticInduction(IWpfTextView activeTextView);
+
+
+    bool AutomaticInductionCommandEnabled(IWpfTextView activeTextView);
+
+    
     bool StopVerifierCommandEnabled(IWpfTextView activeTextView);
 
 
@@ -93,6 +99,7 @@ namespace DafnyLanguage.DafnyMenu
     private OleMenuCommand stopVerifierCommand;
     private OleMenuCommand toggleSnapshotVerificationCommand;
     private OleMenuCommand toggleMoreAdvancedSnapshotVerificationCommand;
+    private OleMenuCommand toggleAutomaticInductionCommand;
     private OleMenuCommand toggleBVDCommand;
     private OleMenuCommand diagnoseTimeoutsCommand;
 
@@ -157,6 +164,12 @@ namespace DafnyLanguage.DafnyMenu
         toggleMoreAdvancedSnapshotVerificationCommand.Enabled = true;
         toggleMoreAdvancedSnapshotVerificationCommand.BeforeQueryStatus += toggleMoreAdvancedSnapshotVerificationCommand_BeforeQueryStatus;
         mcs.AddCommand(toggleMoreAdvancedSnapshotVerificationCommand);
+
+        var toggleAutomaticInductionCommandID = new CommandID(GuidList.guidDafnyMenuCmdSet, (int)PkgCmdIDList.cmdidToggleAutomaticInduction);
+        toggleAutomaticInductionCommand = new OleMenuCommand(ToggleAutomaticInductionCallback, toggleAutomaticInductionCommandID);
+        toggleAutomaticInductionCommand.Enabled = true;
+        toggleAutomaticInductionCommand.BeforeQueryStatus += toggleAutomaticInductionCommand_BeforeQueryStatus;
+        mcs.AddCommand(toggleAutomaticInductionCommand);
 
         var showErrorModelCommandID = new CommandID(GuidList.guidDafnyMenuCmdSet, (int)PkgCmdIDList.cmdidToggleBVD);
         toggleBVDCommand = new OleMenuCommand(ToggleBVDCallback, showErrorModelCommandID);
@@ -231,6 +244,14 @@ namespace DafnyLanguage.DafnyMenu
         var mode = MenuProxy.ToggleMoreAdvancedSnapshotVerification(atv);
         toggleSnapshotVerificationCommand.Text = (mode != 0 ? "Disable" : "Enable") + " on-demand re-verification";
         toggleMoreAdvancedSnapshotVerificationCommand.Text = (mode == 2 ? "Disable" : "Enable") + " more advanced on-demand re-verification";
+      }
+    }
+
+    void ToggleAutomaticInductionCallback(object sender, EventArgs e) {
+      var atv = ActiveTextView;
+      if (MenuProxy != null && atv != null) {
+        var nowAutomatic = MenuProxy.ToggleAutomaticInduction(atv);
+        toggleAutomaticInductionCommand.Text = (nowAutomatic ? "Disable" : "Enable") + " automatic induction";
       }
     }
 
@@ -334,6 +355,14 @@ namespace DafnyLanguage.DafnyMenu
       }
     }
 
+    private void toggleAutomaticInductionCommand_BeforeQueryStatus(object sender, EventArgs e) {
+      var atv = ActiveTextView;
+      if (MenuProxy != null && atv != null) {
+        var visible = MenuProxy.AutomaticInductionCommandEnabled(atv);
+        toggleAutomaticInductionCommand.Visible = visible;
+      }
+    }
+
     void ToggleBVDCallback(object sender, EventArgs e)
     {
       BVDDisabled = !BVDDisabled;
@@ -379,7 +408,7 @@ namespace DafnyLanguage.DafnyMenu
         var window = this.FindToolWindow(typeof(BvdToolWindow), 0, true);
         if ((window == null) || (window.Frame == null))
         {
-          throw new NotSupportedException("Can not create BvdToolWindow.");
+          throw new NotSupportedException("Cannot create BvdToolWindow.");
         }
 
         BvdToolWindow.BVD.HideMenuStrip();

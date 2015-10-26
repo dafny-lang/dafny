@@ -251,6 +251,13 @@ namespace DafnyLanguage
       return Dafny.DafnyOptions.Clo.VerifySnapshots;
     }
 
+    public static bool ChangeAutomaticInduction() {
+      var old = Dafny.DafnyOptions.O.Induction;
+      // toggle between modes 1 and 3
+      Dafny.DafnyOptions.O.Induction = old == 1 ? 3 : 1;
+      return Dafny.DafnyOptions.O.Induction == 3;
+    }
+
     public static bool Verify(Dafny.Program dafnyProgram, ResolverTagger resolver, string uniqueIdPrefix, string requestId, ErrorReporterDelegate er) {
       Dafny.Translator translator = new Dafny.Translator(dafnyProgram.reporter);
       translator.InsertChecksums = true;

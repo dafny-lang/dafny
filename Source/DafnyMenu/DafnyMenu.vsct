@@ -112,6 +112,15 @@
         </Strings>
       </Button>
 
+      <Button guid="guidDafnyMenuCmdSet" id="cmdidToggleAutomaticInduction" priority="0x0106" type="Button">
+        <Parent guid="guidDafnyMenuCmdSet" id="DafnyMenuGroup" />
+        <CommandFlag>DynamicVisibility</CommandFlag>
+        <CommandFlag>TextChanges</CommandFlag>
+        <Strings>
+          <ButtonText>Disable automatic induction</ButtonText>
+        </Strings>
+      </Button>
+
       <Button guid="guidDafnyMenuCmdSet" id="cmdidToggleBVD" priority="0x010a" type="Button">
         <Parent guid="guidDafnyMenuCmdSet" id="DafnyMenuGroup" />
         <CommandFlag>DynamicVisibility</CommandFlag>
@@ -122,7 +131,7 @@
         </Strings>
       </Button>
 
-      <Button guid="guidDafnyMenuCmdSet" id="cmdidDiagnoseTimeouts" priority="0x0106" type="Button">
+      <Button guid="guidDafnyMenuCmdSet" id="cmdidDiagnoseTimeouts" priority="0x0107" type="Button">
         <Parent guid="guidDafnyMenuCmdSet" id="DafnyMenuGroup" />
         <CommandFlag>DynamicVisibility</CommandFlag>
         <CommandFlag>DefaultInvisible</CommandFlag>
@@ -164,7 +173,8 @@
       <IDSymbol name="cmdidToggleSnapshotVerification" value="0x0103" />
       <IDSymbol name="cmdidToggleBVD" value="0x0104" />
       <IDSymbol name="cmdidToggleMoreAdvancedSnapshotVerification" value="0x0105" />
-      <IDSymbol name="cmdidDiagnoseTimeouts" value="0x0106" />
+      <IDSymbol name="cmdidToggleAutomaticInduction" value="0x0106" />
+      <IDSymbol name="cmdidDiagnoseTimeouts" value="0x0107" />
     </GuidSymbol>
 
     <!--
