@@ -9715,8 +9715,28 @@ namespace Microsoft.Dafny
         var c = GetImpliedTypeConstraint(bv, bv.Type, null);
         expr = polarity ? Expression.CreateAnd(c, expr) : Expression.CreateImplies(c, expr);
       }
-      var all = DiscoverAllBounds_Aux_MultipleVars(bvars, expr, polarity);
-      var bests = all.ConvertAll(tup => ComprehensionExpr.BoundedPool.GetBest(tup.Item2, onlyFiniteBounds));
+      List<ComprehensionExpr.BoundedPool> knownBounds = null;
+      var orgCount = bvars.Count;
+      var bests = new List<ComprehensionExpr.BoundedPool>();
+      bool changed = true;
+      // compute the bounds of the BV until no new information is obtained.
+      while (changed) {
+        changed = false;
+        var all = DiscoverAllBounds_Aux_MultipleVars(bvars, expr, polarity, knownBounds);
+        bests = all.ConvertAll(tup => ComprehensionExpr.BoundedPool.GetBest(tup.Item2, onlyFiniteBounds));
+        // check to see if we found new bounds in this iteration
+        int count = 0;
+        for (int i = 0; i < bests.Count; i++) {
+          if (bests[i] == null) {
+            count++;
+          }
+        }
+        if (count >0 && count != orgCount) {
+          changed = true;
+          knownBounds = bests;
+          orgCount = count;
+        }
+      }
       missingBounds = new List<VT>();
       for (var i = 0; i < bvars.Count; i++) {
         if (bests[i] == null) {
@@ -9728,24 +9748,24 @@ namespace Microsoft.Dafny
 
     public static List<ComprehensionExpr.BoundedPool> DiscoverAllBounds_SingleVar<VT>(VT v, Expression expr) where VT : IVariable {
       expr = Expression.CreateAnd(GetImpliedTypeConstraint(v, v.Type, null), expr);
-      return DiscoverAllBounds_Aux_SingleVar(new List<VT> { v }, 0, expr, true);
+      return DiscoverAllBounds_Aux_SingleVar(new List<VT> { v }, 0, expr, true, null);
     }
 
-    private static List<Tuple<VT, List<ComprehensionExpr.BoundedPool>>> DiscoverAllBounds_Aux_MultipleVars<VT>(List<VT> bvars, Expression expr, bool polarity) where VT : IVariable {
+    private static List<Tuple<VT, List<ComprehensionExpr.BoundedPool>>> DiscoverAllBounds_Aux_MultipleVars<VT>(List<VT> bvars, Expression expr, bool polarity, List<ComprehensionExpr.BoundedPool> knownBounds) where VT : IVariable {
       Contract.Requires(bvars != null);
       Contract.Requires(expr != null);
       var bb = new List<Tuple<VT, List<ComprehensionExpr.BoundedPool>>>();
       for (var j = 0; j < bvars.Count; j++) {
-        var bounds = DiscoverAllBounds_Aux_SingleVar(bvars, j, expr, polarity);
+        var bounds = DiscoverAllBounds_Aux_SingleVar(bvars, j, expr, polarity, knownBounds);
         bb.Add(new Tuple<VT, List<ComprehensionExpr.BoundedPool>>(bvars[j], bounds));
       }
       return bb;
     }
 
     /// <summary>
-    /// Returns a list of (possibly partial) bounds for "bvars[j]", each of which can be written without mentioning any variable in "bvars[j..]".
+    /// Returns a list of (possibly partial) bounds for "bvars[j]", each of which can be written without mentioning any variable in "bvars[j..]" that is not bounded.
     /// </summary>
-    private static List<ComprehensionExpr.BoundedPool> DiscoverAllBounds_Aux_SingleVar<VT>(List<VT> bvars, int j, Expression expr, bool polarity) where VT : IVariable {
+    private static List<ComprehensionExpr.BoundedPool> DiscoverAllBounds_Aux_SingleVar<VT>(List<VT> bvars, int j, Expression expr, bool polarity, List<ComprehensionExpr.BoundedPool> knownBounds) where VT : IVariable {
       Contract.Requires(bvars != null);
       Contract.Requires(0 <= j && j < bvars.Count);
       Contract.Requires(expr != null);
@@ -9774,7 +9794,7 @@ namespace Microsoft.Dafny
         }
         var e0 = c.E0;
         var e1 = c.E1;
-        int whereIsBv = SanitizeForBoundDiscovery(bvars, j, c.ResolvedOp, ref e0, ref e1);
+        int whereIsBv = SanitizeForBoundDiscovery(bvars, j, c.ResolvedOp, knownBounds, ref e0, ref e1);
         if (whereIsBv < 0) {
           continue;
         }
@@ -9870,7 +9890,7 @@ namespace Microsoft.Dafny
     /// The other of "e0" and "e1" is an expression whose free variables are not among "boundVars[bvi..]".
     /// Ensures that the resulting "e0" and "e1" are not ConcreteSyntaxExpression's.
     /// </summary>
-    static int SanitizeForBoundDiscovery<VT>(List<VT> boundVars, int bvi, BinaryExpr.ResolvedOpcode op, ref Expression e0, ref Expression e1) where VT : IVariable {
+    static int SanitizeForBoundDiscovery<VT>(List<VT> boundVars, int bvi, BinaryExpr.ResolvedOpcode op, List<ComprehensionExpr.BoundedPool> knownBounds, ref Expression e0, ref Expression e1) where VT : IVariable {
       Contract.Requires(e0 != null);
       Contract.Requires(e1 != null);
       Contract.Requires(boundVars != null);
@@ -9965,10 +9985,10 @@ namespace Microsoft.Dafny
       }
 
       // Finally, check that the other side does not contain "bv" or any of the bound variables
-      // listed after "bv" in the quantifier.
+      // listed after "bv" in the quantifier that is not bounded.
       var fv = FreeVariables(thatSide);
       for (int i = bvi; i < boundVars.Count; i++) {
-        if (fv.Contains(boundVars[i])) {
+        if (fv.Contains(boundVars[i]) && (knownBounds == null || knownBounds[i] == null)) {
           return -1;
         }
       }
