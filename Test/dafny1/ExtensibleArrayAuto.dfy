@@ -2,12 +2,12 @@
 // RUN: %diff "%s.expect" "%t"
 
 class {:autocontracts} ExtensibleArray<T> {
-  ghost var Contents: seq<T>;
+  ghost var Contents: seq<T>
 
-  var elements: array<T>;
-  var more: ExtensibleArray<array<T>>;
-  var length: int;
-  var M: int;  // shorthand for:  if more == null then 0 else 256 * |more.Contents|
+  var elements: array<T>
+  var more: ExtensibleArray<array<T>>
+  var length: int
+  var M: int  // shorthand for:  if more == null then 0 else 256 * |more.Contents|
 
   predicate Valid()
   {
@@ -35,7 +35,7 @@ class {:autocontracts} ExtensibleArray<T> {
   }
 
   constructor Init()
-    ensures Contents == [];
+    ensures Contents == []
   {
     elements := new T[256];
     more := null;
@@ -46,11 +46,11 @@ class {:autocontracts} ExtensibleArray<T> {
   }
 
   method Get(i: int) returns (t: T)
-    requires 0 <= i < |Contents|;
-    ensures t == Contents[i];
-    decreases Repr;
+    requires 0 <= i < |Contents|
+    ensures t == Contents[i]
+    decreases Repr
   {
-    if (M <= i) {
+    if M <= i {
       t := elements[i - M];
     } else {
       var arr := more.Get(i / 256);
@@ -59,10 +59,10 @@ class {:autocontracts} ExtensibleArray<T> {
   }
 
   method Set(i: int, t: T)
-    requires 0 <= i < |Contents|;
-    ensures Contents == old(Contents)[i := t];
+    requires 0 <= i < |Contents|
+    ensures Contents == old(Contents)[i := t]
   {
-    if (M <= i) {
+    if M <= i {
       elements[i - M] := t;
     } else {
       var arr := more.Get(i / 256);
@@ -72,14 +72,14 @@ class {:autocontracts} ExtensibleArray<T> {
   }
 
   method Append(t: T)
-    ensures Contents == old(Contents) + [t];
-    decreases |Contents|;
+    ensures Contents == old(Contents) + [t]
+    decreases |Contents|
   {
-    if (length == 0 || length % 256 != 0) {
+    if length == 0 || length % 256 != 0 {
       // there is room in "elements"
       elements[length - M] := t;
     } else {
-      if (more == null) {
+      if more == null {
         more := new ExtensibleArray<array<T>>.Init();
         Repr := Repr + {more} + more.Repr;
       }
@@ -99,7 +99,7 @@ class {:autocontracts} ExtensibleArray<T> {
 method Main() {
   var a := new ExtensibleArray<int>.Init();
   var n := 0;
-  while (n < 256*256+600)
+  while n < 256*256+600
     invariant a.Valid() && fresh(a.Repr);
     invariant |a.Contents| == n;
   {
