@@ -201,7 +201,7 @@ namespace DafnyLanguage
       public static void Add(List<OutliningRegion> regions, Microsoft.Dafny.Program prog, Dafny.INamedRegion decl, string kind) {
         Contract.Requires(regions != null);
         Contract.Requires(prog != null);
-        if (InMainFile(prog, decl.BodyStartTok)) {
+        if (InMainFileAndUserDefined(prog, decl.BodyStartTok)) {
           regions.Add(new OutliningRegion(decl, kind));
         }
       }
