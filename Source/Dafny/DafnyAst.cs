@@ -7800,9 +7800,15 @@ namespace Microsoft.Dafny {
 
     public override IEnumerable<Expression> SubExpressions {
       get {
-        yield return Root;
-        foreach (var update in Updates) {
-          yield return update.Item3;
+        if (ResolvedExpression == null) {
+          yield return Root;
+          foreach (var update in Updates) {
+            yield return update.Item3;
+          }
+        } else {
+          foreach (var e in ResolvedExpression.SubExpressions) {
+            yield return e;
+          }
         }
       }
     }

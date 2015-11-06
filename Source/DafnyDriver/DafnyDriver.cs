@@ -300,14 +300,14 @@ namespace Microsoft.Dafny
 
       // Compile the Dafny program into a string that contains the C# program
       StringWriter sw = new StringWriter();
-      Dafny.Compiler compiler = new Dafny.Compiler(sw);
+      Dafny.Compiler compiler = new Dafny.Compiler();
       compiler.ErrorWriter = outputWriter;
       var hasMain = compiler.HasMain(dafnyProgram);
       if (DafnyOptions.O.RunAfterCompile && !hasMain) {
         // do no more
         return;
       }
-      compiler.Compile(dafnyProgram);
+      compiler.Compile(dafnyProgram, sw);
       var csharpProgram = sw.ToString();
       bool completeProgram = compiler.ErrorCount == 0;
 

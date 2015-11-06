@@ -1,6 +1,6 @@
 syntax: regexp
 ^Source/.*\.(user|suo|cache|vs10x)$
-^Binaries/.*\.(dll|pdb|exe|manifest|config|smt2|vsix|vsixmanifest|bpl|pkgdef)$
+^Binaries/.*\.(dll|pdb|exe|manifest|config|smt2|vsix|vsixmanifest|bpl|pkgdef|xml)$
 ^Source/.*\.(smt2|bpl)$
 ^.*(bin|obj)/([^/]*/)?(Debug|Release|Checked|Debug All|DEBUG ALL)/.*$
 Test/.*/Output
@@ -21,4 +21,6 @@ syntax: glob
 *.tmp
 *.tmp.dfy
 Source/DafnyExtension/DafnyRuntime.cs
+Source/DafnyExtension/Z3-LICENSE.txt
 Test/failing.lst
+packages/*
