@@ -3267,12 +3267,13 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 				ExpliesOp();
 				x = t; 
 				LogicalExpression(out e1, allowSemi, allowLambda);
-				e0 = new BinaryExpr(x, BinaryExpr.Opcode.Exp, e0, e1); 
+				e0 = new BinaryExpr(x, BinaryExpr.Opcode.Exp, e1, e0); 
 				while (IsExpliesOp()) {
 					ExpliesOp();
 					x = t; 
 					LogicalExpression(out e1, allowSemi, allowLambda);
-					e0 = new BinaryExpr(x, BinaryExpr.Opcode.Exp, e0, e1); 
+					e0 = new BinaryExpr(x, BinaryExpr.Opcode.Exp, e1, e0); 
+					
 				}
 			} else SynErr(219);
 		}

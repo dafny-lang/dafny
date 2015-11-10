@@ -4885,7 +4885,12 @@ namespace Microsoft.Dafny {
 
       public override Expression StepExpr(Expression line0, Expression line1)
       {
-        return new BinaryExpr(line0.tok, Op, line0, line1);
+        if (Op == BinaryExpr.Opcode.Exp) {
+          // The order of operands is reversed so that it can be turned into implication during resolution 
+          return new BinaryExpr(line0.tok, Op, line1, line0);
+        } else {
+          return new BinaryExpr(line0.tok, Op, line0, line1);
+        }
       }
 
       public override string ToString()
@@ -6779,14 +6784,8 @@ namespace Microsoft.Dafny {
       Contract.Requires(e0 != null);
       Contract.Requires(e1 != null);
       this.Op = op;
-      if (op == Opcode.Exp) {
-        // The order of operands is reversed so that it can be turned into implication during resolution
-        this.E0 = e1;
-        this.E1 = e0;
-      } else {
-        this.E0 = e0;
-        this.E1 = e1;
-      }
+      this.E0 = e0;
+      this.E1 = e1;
     }
 
     /// <summary>
