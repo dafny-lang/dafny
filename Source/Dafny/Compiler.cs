@@ -2637,27 +2637,27 @@ namespace Microsoft.Dafny {
             opString = "&&";  break;
 
           case BinaryExpr.ResolvedOpcode.EqCommon: {
-            if (e.E0.Type.IsDatatype || e.E0.Type.IsTypeParameter || e.E0.Type.SupportsEquality) {
-              callString = "Equals";
-            } else if (e.E0.Type.IsRefType) {
+            if (e.E0.Type.IsRefType) {
               // Dafny's type rules are slightly different C#, so we may need a cast here.
               // For example, Dafny allows x==y if x:array<T> and y:array<int> and T is some
               // type parameter.
               opString = "== (object)";
+            } else if (e.E0.Type.IsDatatype || e.E0.Type.IsTypeParameter || e.E0.Type.SupportsEquality) {
+              callString = "Equals";
             } else {
               opString = "==";
             }
             break;
           }
           case BinaryExpr.ResolvedOpcode.NeqCommon: {
-            if (e.E0.Type.IsDatatype || e.E0.Type.IsTypeParameter || e.E0.Type.SupportsEquality) {
-              preOpString = "!";
-              callString = "Equals";
-            } else if (e.E0.Type.IsRefType) {
+            if (e.E0.Type.IsRefType) {
               // Dafny's type rules are slightly different C#, so we may need a cast here.
               // For example, Dafny allows x==y if x:array<T> and y:array<int> and T is some
               // type parameter.
               opString = "!= (object)";
+            } else if (e.E0.Type.IsDatatype || e.E0.Type.IsTypeParameter || e.E0.Type.SupportsEquality) {
+              preOpString = "!";
+              callString = "Equals";
             } else {
               opString = "!=";
             }

@@ -45,7 +45,7 @@ module CoRecursion {
   //   42
   //   9
   //   9
-  method Main() {
+  method TestMain() {
     var m := 17;
     var cell := new Cell;
     cell.data := 40;
@@ -258,5 +258,58 @@ class DigitUnderscore_Names {
     this.10 := 0x0000_0009;
     assert this.0_1_0 == int(00_07.0_0) && this.010 == 8 && this.10 == 9;
     this.10 := 20;
+  }
+}
+
+// ------------------------------------------------------------------
+
+method Main()
+{
+  CoRecursion.TestMain();
+  EqualityTests.TestMain();
+}
+
+// ------------------------------------------------------------------
+
+module EqualityTests {
+  class C<T> {
+  }
+
+  method TestMain()
+  {
+    // regression tests:
+    var a: C<int>, b: C<int> := null, null;
+    if a == null {
+      print "a is null\n";
+    }
+    if a != null {
+      print "a is not null\n";
+    }
+    if a == b {
+      print "a and b are equal\n";
+    }
+    if a != b {
+      print "a and b are not equal\n";
+    }
+
+    var H := new real[10];
+    ArrayTests(H);
+  }
+
+  method ArrayTests<T>(H: array<T>)
+  {
+    var G := new int[10];
+    if G == H {  // this comparison is allowed in Dafny, but requires a cast in C#
+      print "this would be highly suspicious\n";
+    }
+    if G != H {  // this comparison is allowed in Dafny, but requires a cast in C#
+      print "good world order\n";
+    }
+    if null == H {
+      print "given array is null\n";
+    }
+    if null != H {
+      print "given array is non-null\n";
+    }
   }
 }

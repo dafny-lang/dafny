@@ -1,5 +1,5 @@
 
-Dafny program verifier finished with 50 verified, 0 errors
+Dafny program verifier finished with 56 verified, 0 errors
 Program compiled successfully
 Running...
 
@@ -10,3 +10,7 @@ Running...
 42
 9
 9
+a is null
+a and b are equal
+good world order
+given array is non-null
