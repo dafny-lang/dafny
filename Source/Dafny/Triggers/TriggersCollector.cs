@@ -201,8 +201,8 @@ namespace Microsoft.Dafny.Triggers {
           (expr is UnaryOpExpr && (((UnaryOpExpr)expr).Op == UnaryOpExpr.Opcode.Cardinality)) || // FIXME || ((UnaryOpExpr)expr).Op == UnaryOpExpr.Opcode.Fresh doesn't work, as fresh is a pretty tricky predicate when it's not about datatypes. See translator.cs:10944
           (expr is BinaryExpr && (((BinaryExpr)expr).Op == BinaryExpr.Opcode.NotIn || ((BinaryExpr)expr).Op == BinaryExpr.Opcode.In))) {
         annotation = AnnotatePotentialCandidate(expr);
-      } else if (expr is QuantifierExpr && ((QuantifierExpr)expr).SplitQuantifier == null) {
-        annotation = AnnotateQuantifier((QuantifierExpr)expr);
+      } else if (expr is QuantifierExpr) {
+          annotation = AnnotateQuantifier((QuantifierExpr)expr);
       } else if (expr is LetExpr) {
         annotation = AnnotateLetExpr((LetExpr)expr);
       } else if (expr is IdentifierExpr) {

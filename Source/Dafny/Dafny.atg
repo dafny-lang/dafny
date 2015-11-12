@@ -2175,10 +2175,13 @@ ImpliesExpliesExpression<out Expression e0, bool allowSemi, bool allowLambda>
     ( ImpliesOp                                               (. x = t; .)
       ImpliesExpression<out e1, allowSemi, allowLambda>       (. e0 = new BinaryExpr(x, BinaryExpr.Opcode.Imp, e0, e1); .)
     | ExpliesOp                                               (. x = t; .)
-      LogicalExpression<out e1, allowSemi, allowLambda>       (. e0 = new BinaryExpr(x, BinaryExpr.Opcode.Exp, e0, e1); .)
+      LogicalExpression<out e1, allowSemi, allowLambda>       (. // The order of operands is reversed so that it can be turned into implication during resolution 
+			                                                           e0 = new BinaryExpr(x, BinaryExpr.Opcode.Exp, e1, e0); .)
       { IF(IsExpliesOp())  /* read a reverse implication as far as possible */
         ExpliesOp                                             (. x = t; .)
-        LogicalExpression<out e1, allowSemi, allowLambda>     (. e0 = new BinaryExpr(x, BinaryExpr.Opcode.Exp, e0, e1); .)
+        LogicalExpression<out e1, allowSemi, allowLambda>     (. //The order of operands is reversed so that it can be turned into implication during resolution
+				                                                         e0 = new BinaryExpr(x, BinaryExpr.Opcode.Exp, e1, e0); 
+																															.)
       }
     )
   ]
