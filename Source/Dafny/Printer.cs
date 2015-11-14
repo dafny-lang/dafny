@@ -963,6 +963,19 @@ namespace Microsoft.Dafny {
         }
         wr.Write(";");
 
+      } else if (stmt is LetStmt) {
+        var s = (LetStmt)stmt;
+        wr.Write("var");
+        string sep = "";
+        foreach (var lhs in s.LHSs) {
+          wr.Write(sep);
+          PrintCasePattern(lhs);
+          sep = ", ";
+        }
+        wr.Write(" := ");
+        PrintExpressionList(s.RHSs, true);
+        wr.WriteLine(";");
+
       } else if (stmt is SkeletonStatement) {
         var s = (SkeletonStatement)stmt;
         if (s.S == null) {

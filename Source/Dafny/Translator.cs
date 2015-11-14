@@ -5214,6 +5214,7 @@ namespace Microsoft.Dafny {
           }
           CheckWellformedWithResult(Substitute(e.Body, null, substMap), options, result, resultType, locals, builder, etran);
           result = null;
+
         } else {
           // CheckWellformed(var b :| RHS(b); Body(b)) =
           //   var b where typeAntecedent;
@@ -7549,7 +7550,32 @@ namespace Microsoft.Dafny {
         if (s.Update != null) {
           TrStmt(s.Update, builder, locals, etran);
         }
-
+      } else if (stmt is LetStmt) {
+        var s = (LetStmt)stmt;
+        foreach (var bv in s.BoundVars) {
+          Bpl.LocalVariable bvar = new Bpl.LocalVariable(bv.Tok, new Bpl.TypedIdent(bv.Tok, bv.AssignUniqueName(currentDeclaration.IdGenerator), TrType(bv.Type)));
+          locals.Add(bvar);
+          var bIe = new Bpl.IdentifierExpr(bvar.tok, bvar);
+          builder.Add(new Bpl.HavocCmd(bv.Tok, new List<Bpl.IdentifierExpr> { bIe }));
+          Bpl.Expr wh = GetWhereClause(bv.Tok, bIe, bv.Type, etran);
+          if (wh != null) {
+            builder.Add(new Bpl.AssumeCmd(bv.Tok, wh));
+          }
+        }
+        Contract.Assert(s.LHSs.Count == s.RHSs.Count);  // checked by resolution
+        var varNameGen = CurrentIdGenerator.NestedFreshIdGenerator("let#");
+        for (int i = 0; i < s.LHSs.Count; i++) {
+          var pat = s.LHSs[i];
+          var rhs = s.RHSs[i];
+          var nm = varNameGen.FreshId(string.Format("#{0}#", i));
+          var r = new Bpl.LocalVariable(pat.tok, new Bpl.TypedIdent(pat.tok, nm, TrType(rhs.Type)));
+          locals.Add(r);
+          var rIe = new Bpl.IdentifierExpr(pat.tok, r);
+          TrStmt_CheckWellformed(s.RHSs[i], builder, locals, etran, false);
+          CheckWellformedWithResult(s.RHSs[i], new WFOptions(null, false, false), rIe, pat.Expr.Type, locals, builder, etran);
+          CheckCasePatternShape(pat, rIe, builder);
+          builder.Add(new Bpl.AssumeCmd(pat.tok, Bpl.Expr.Eq(etran.TrExpr(pat.Expr), rIe)));
+        }
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected statement
       }
@@ -13700,6 +13726,7 @@ namespace Microsoft.Dafny {
             if (newCasePatterns != e.LHSs) {
               anythingChanged = true;
             }
+
             var body = Substitute(e.Body);
             // undo any changes to substMap (could be optimized to do this only if newBoundVars != e.Vars)
             foreach (var bv in e.BoundVars) {

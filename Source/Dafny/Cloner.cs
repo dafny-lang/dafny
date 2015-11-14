@@ -583,6 +583,10 @@ namespace Microsoft.Dafny
         var lhss = s.Locals.ConvertAll(c => new LocalVariable(Tok(c.Tok), Tok(c.EndTok), c.Name, CloneType(c.OptionalType), c.IsGhost));
         r = new VarDeclStmt(Tok(s.Tok), Tok(s.EndTok), lhss, (ConcreteUpdateStatement)CloneStmt(s.Update));
 
+      } else if (stmt is LetStmt) {
+        var s = (LetStmt) stmt;
+        r = new LetStmt(Tok(s.Tok), Tok(s.EndTok), s.LHSs.ConvertAll(CloneCasePattern), s.RHSs.ConvertAll(CloneExpr));
+
       } else if (stmt is ModifyStmt) {
         var s = (ModifyStmt)stmt;
         var mod = CloneSpecFrameExpr(s.Mod);

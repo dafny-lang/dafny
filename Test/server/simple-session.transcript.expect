@@ -136,7 +136,7 @@ Retrieving cached verification result for implementation Impl$$_module.__default
   [0 proof obligations]  verified
 Verification completed successfully!
 [SUCCESS] [[DAFNY-SERVER: EOM]]
-transcript(7,0): Error: ident expected
+transcript(7,0): Error: invalid VarDeclStatement
 Verification completed successfully!
 [SUCCESS] [[DAFNY-SERVER: EOM]]
 

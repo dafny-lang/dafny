@@ -2221,6 +2221,10 @@ namespace Microsoft.Dafny
           foreach (var local in s.Locals) {
             CheckTypeIsDetermined(local.Tok, local.Type, "local variable");
           }
+        } else if (stmt is LetStmt) {
+          var s = (LetStmt)stmt;
+          s.BoundVars.Iter(bv => CheckTypeIsDetermined(bv.tok, bv.Type, "bound variable"));
+
         } else if (stmt is ForallStmt) {
           var s = (ForallStmt)stmt;
           s.BoundVars.Iter(bv => CheckTypeIsDetermined(bv.tok, bv.Type, "bound variable"));
@@ -2696,6 +2700,7 @@ namespace Microsoft.Dafny
         if (s.Update != null) {
           return CheckTailRecursive(s.Update, enclosingMethod, ref tailCall, reportErrors);
         }
+      } else if (stmt is LetStmt) {
       } else {
         Contract.Assert(false);  // unexpected statement type
       }
@@ -2978,6 +2983,11 @@ namespace Microsoft.Dafny
         } else if (stmt is VarDeclStmt) {
           var s = (VarDeclStmt)stmt;
           foreach (var v in s.Locals) {
+            CheckEqualityTypes_Type(v.Tok, v.Type);
+          }
+        } else if (stmt is LetStmt) {
+          var s = (LetStmt)stmt;
+          foreach (var v in s.BoundVars) {
             CheckEqualityTypes_Type(v.Tok, v.Type);
           }
         } else if (stmt is WhileStmt) {
@@ -3361,6 +3371,15 @@ namespace Microsoft.Dafny
           if (s.Update != null) {
             Visit(s.Update, mustBeErasable);
           }
+
+        } else if (stmt is LetStmt) {
+          var s = (LetStmt)stmt;
+          if (mustBeErasable) {
+            foreach (var bv in s.BoundVars) {
+              bv.IsGhost = true;
+            }
+          }
+          s.IsGhost = s.BoundVars.All(v => v.IsGhost);
 
         } else if (stmt is AssignStmt) {
           var s = (AssignStmt)stmt;
@@ -5566,7 +5585,30 @@ namespace Microsoft.Dafny
             }
           }
         }
-
+      } else if (stmt is LetStmt) {
+        LetStmt s = (LetStmt)stmt;
+        foreach (var rhs in s.RHSs) {
+          ResolveExpression(rhs, new ResolveOpts(codeContext, true));
+        }
+        if (s.LHSs.Count != s.RHSs.Count) {
+          reporter.Error(MessageSource.Resolver, stmt, "let statement must have same number of LHSs (found {0}) as RHSs (found {1})", s.LHSs.Count, s.RHSs.Count);
+        }
+        var i = 0;
+        foreach (var lhs in s.LHSs) {
+          var rhsType = i < s.RHSs.Count ? s.RHSs[i].Type : new InferredTypeProxy();
+          ResolveCasePattern(lhs, rhsType, codeContext);
+          // Check for duplicate names now, because not until after resolving the case pattern do we know if identifiers inside it refer to bound variables or nullary constructors
+          var c = 0;
+          foreach (var bv in lhs.Vars) {
+            ScopePushAndReport(scope, bv, "local_variable");
+            c++;
+          }
+          if (c == 0) {
+            // Every identifier-looking thing in the pattern resolved to a constructor; that is, this LHS is a constant literal
+            reporter.Error(MessageSource.Resolver, lhs.tok, "LHS is a constant literal; to be legal, it must introduce at least one bound variable");
+          }
+          i++;
+        }
       } else if (stmt is AssignStmt) {
         AssignStmt s = (AssignStmt)stmt;
         int prevErrorCount = reporter.Count(ErrorLevel.Error);
@@ -6748,6 +6790,8 @@ namespace Microsoft.Dafny
         if (s.Update != null) {
           CheckForallStatementBodyRestrictions(s.Update, kind);
         }
+      } else if (stmt is LetStmt) {
+        // Are we fine?
       } else if (stmt is AssignStmt) {
         var s = (AssignStmt)stmt;
         CheckForallStatementBodyLhs(s.Tok, s.Lhs.Resolved, kind);
@@ -6903,6 +6947,8 @@ namespace Microsoft.Dafny
         if (s.Update != null) {
           CheckHintRestrictions(s.Update, localsAllowedInUpdates);
         }
+      } else if (stmt is LetStmt) {
+        // Are we fine?
       } else if (stmt is BlockStmt) {
         var s = (BlockStmt)stmt;
         var newScopeForLocals = new HashSet<LocalVariable>(localsAllowedInUpdates);
@@ -7948,7 +7994,6 @@ namespace Microsoft.Dafny
         ResolveAttributes(e.Attributes, opts);
         scope.PopMarker();
         expr.Type = e.Body.Type;
-
       } else if (expr is NamedExpr) {
         var e = (NamedExpr)expr;
         ResolveExpression(e.Body, opts);

@@ -1764,6 +1764,14 @@ namespace Microsoft.Dafny {
           wr.Write(TrStmt(s.Update, indent).ToString());
         }
 
+      } else if (stmt is LetStmt) {
+        var s = (LetStmt)stmt;
+        for (int i = 0; i < s.LHSs.Count; i++) {
+          var lhs = s.LHSs[i];
+          if (Contract.Exists(lhs.Vars, bv => !bv.IsGhost)) {
+            TrCasePatternOpt(lhs, s.RHSs[i], null, indent, wr, false);
+          }
+        }
       } else if (stmt is ModifyStmt) {
         var s = (ModifyStmt)stmt;
         if (s.Body != null) {

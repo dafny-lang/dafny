@@ -1628,46 +1628,74 @@ VarDeclStatement<.out Statement/*!*/ s.>
      Expression suchThat = null;
      Attributes attrs = null;
      IToken endTok;
+     s = dummyStmt;
   .)
   [ "ghost"                                 (. isGhost = true;  x = t; .)
   ]
   "var"                                     (. if (!isGhost) { x = t; } .)
-  { Attribute<ref attrs> }
-  LocalIdentTypeOptional<out d, isGhost>    (. lhss.Add(d); d.Attributes = attrs; attrs = null; .)
-  { ","
-    { Attribute<ref attrs> }
-    LocalIdentTypeOptional<out d, isGhost>  (. lhss.Add(d); d.Attributes = attrs; attrs = null; .)
-  }
-  [ ":="                           (. assignTok = t; .)
-    Rhs<out r>                     (. rhss.Add(r); .)
-    { "," Rhs<out r>               (. rhss.Add(r); .)
+  ( { Attribute<ref attrs> }
+    LocalIdentTypeOptional<out d, isGhost>    (. lhss.Add(d); d.Attributes = attrs; attrs = null; .)
+    { ","
+      { Attribute<ref attrs> }
+      LocalIdentTypeOptional<out d, isGhost>  (. lhss.Add(d); d.Attributes = attrs; attrs = null; .)
     }
-  | { Attribute<ref attrs> }
-    ":|"                           (. assignTok = t; .)
-    [ IF(la.kind == _assume)       /* an Expression can also begin with an "assume", so this says to resolve it to pick up any "assume" here */
-      "assume"                     (. suchThatAssume = t; .)
+    [ ":="                           (. assignTok = t; .)
+      Rhs<out r>                     (. rhss.Add(r); .)
+      { "," Rhs<out r>               (. rhss.Add(r); .)
+      }
+    | { Attribute<ref attrs> }
+      ":|"                           (. assignTok = t; .)
+      [ IF(la.kind == _assume)       /* an Expression can also begin with an "assume", so this says to resolve it to pick up any "assume" here */
+        "assume"                     (. suchThatAssume = t; .)
+      ]
+      Expression<out suchThat, false, true>
     ]
-    Expression<out suchThat, false, true>
-  ]
-  SYNC ";"                         (. endTok = t; .)
-  (. ConcreteUpdateStatement update;
-     if (suchThat != null) {
-       var ies = new List<Expression>();
-       foreach (var lhs in lhss) {
-         ies.Add(new IdentifierExpr(lhs.Tok, lhs.Name));
+    SYNC ";"                         (. endTok = t; .)
+    (. ConcreteUpdateStatement update;
+       if (suchThat != null) {
+         var ies = new List<Expression>();
+         foreach (var lhs in lhss) {
+           ies.Add(new IdentifierExpr(lhs.Tok, lhs.Name));
+         }
+         update = new AssignSuchThatStmt(assignTok, endTok, ies, suchThat, suchThatAssume, attrs);
+       } else if (rhss.Count == 0) {
+         update = null;
+       } else {
+         var ies = new List<Expression>();
+         foreach (var lhs in lhss) {
+           ies.Add(new AutoGhostIdentifierExpr(lhs.Tok, lhs.Name));
+         }
+         update = new UpdateStmt(assignTok, endTok, ies, rhss);
        }
-       update = new AssignSuchThatStmt(assignTok, endTok, ies, suchThat, suchThatAssume, attrs);
-     } else if (rhss.Count == 0) {
-       update = null;
-     } else {
-       var ies = new List<Expression>();
-       foreach (var lhs in lhss) {
-         ies.Add(new AutoGhostIdentifierExpr(lhs.Tok, lhs.Name));
-       }
-       update = new UpdateStmt(assignTok, endTok, ies, rhss);
-     }
-     s = new VarDeclStmt(x, endTok, lhss, update);
-  .)
+       s = new VarDeclStmt(x, endTok, lhss, update);
+    .)
+  | "("                             (. var letLHSs = new List<CasePattern>();
+                                       var letRHSs = new List<Expression>();
+                                       List<CasePattern> arguments = new List<CasePattern>();
+                                       CasePattern pat;
+                                       Expression e = dummyExpr;
+                                       IToken id = t;
+                                    .)
+      [ CasePattern<out pat>            (. arguments.Add(pat); .)
+        { "," CasePattern<out pat>      (. arguments.Add(pat); .)
+        }
+      ]
+    ")"                             (. // Parse parenthesis without an identifier as a built in tuple type.
+                                       theBuiltIns.TupleType(id, arguments.Count, true); // make sure the tuple type exists
+                                       string ctor = BuiltIns.TupleTypeCtorName;  //use the TupleTypeCtors
+                                       pat = new CasePattern(id, ctor, arguments); 
+                                       if (isGhost) { pat.Vars.Iter(bv => bv.IsGhost = true); }
+                                       letLHSs.Add(pat);
+                                    .)
+    ( ":="
+    | { Attribute<ref attrs> }
+      ":|"                          (.  SemErr(pat.tok, "LHS of assign-such-that expression must be variables, not general patterns"); .)
+    )
+    Expression<out e, false, true>        (. letRHSs.Add(e); .)
+    
+    ";"
+    (. s = new LetStmt(e.tok, e.tok, letLHSs, letRHSs); .)
+  )
   .
 IfStmt<out Statement/*!*/ ifStmt>
 = (. Contract.Ensures(Contract.ValueAtReturn(out ifStmt) != null); IToken/*!*/ x;

@@ -4084,6 +4084,28 @@ namespace Microsoft.Dafny {
     }
   }
 
+  public class LetStmt : Statement 
+  {
+    public readonly List<CasePattern> LHSs;
+    public readonly List<Expression> RHSs;
+
+    public LetStmt(IToken tok, IToken endTok, List<CasePattern> lhss, List<Expression> rhss)
+      : base(tok, endTok) {
+      LHSs = lhss;
+      RHSs = rhss;
+    }
+
+   public IEnumerable<BoundVar> BoundVars {
+      get {
+        foreach (var lhs in LHSs) {
+          foreach (var bv in lhs.Vars) {
+           yield return bv;
+          }
+        }
+      }
+    }
+  }
+
   /// <summary>
   /// Common superclass of UpdateStmt and AssignSuchThatStmt.
   /// </summary>
