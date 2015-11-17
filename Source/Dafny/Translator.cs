@@ -5604,14 +5604,24 @@ namespace Microsoft.Dafny {
         var bvars = new List<Bpl.Variable>();
         var lhs_args = new List<Bpl.Expr>();
         var rhs_args = new List<Bpl.Expr>();
-
+        var func_vars = new List<Bpl.Variable>();
+        var func_args = new List<Bpl.Expr>();
+        var boxed_func_args = new List<Bpl.Expr>();
+        
         var idGen = f.IdGenerator.NestedFreshIdGenerator("$fh$");
         foreach (var fm in f.Formals) {
-          var fe = BplBoundVar(idGen.FreshId("x#"), predef.BoxType, bvars);
+          string fm_name = idGen.FreshId("x#");
+          // Box and its [Unbox]args
+          var fe = BplBoundVar(fm_name, predef.BoxType, bvars);
           lhs_args.Add(fe);
           var be = UnboxIfBoxed(fe, fm.Type);
           rhs_args.Add(be);
           rhs_dict[fm] = new BoogieWrapper(be, fm.Type);
+          // args and its [Box]args
+          var arg = BplBoundVar(fm_name, TrType(fm.Type), func_vars);
+          func_args.Add(arg);
+          var boxed = BoxIfUnboxed(arg, fm.Type);
+          boxed_func_args.Add(boxed);     
         }
 
         var h = BplBoundVar("$heap", predef.HeapType, vars);
@@ -5665,6 +5675,19 @@ namespace Microsoft.Dafny {
 
           sink.AddTopLevelDeclaration(new Axiom(f.tok,
             BplForall(Cons(bxVar, Concat(vars, bvars)), BplTrigger(lhs), Bpl.Expr.Eq(lhs, rhs))));
+        }
+
+        {
+          // F(Ty1, .., TyN, Layer, Heap, self, arg1, .., argN)
+          // = [Unbox]Apply1(Ty.., F#Handle( Ty1, ..., TyN, Layer, self), Heap, [Box]arg1, ..., [Box]argN)
+
+          var fhandle = FunctionCall(f.tok, name, predef.HandleType, SnocSelf(args));
+          var lhs = FunctionCall(f.tok, f.FullSanitizedName, TrType(f.ResultType), Concat(SnocSelf(Snoc(args, h)), func_args));
+          var rhs = FunctionCall(f.tok, Apply(arity), TrType(f.ResultType), Concat(tyargs, Cons(fhandle, Cons(h, boxed_func_args))));
+          var rhs_unboxed = UnboxIfBoxed(rhs, f.ResultType);
+          
+          sink.AddTopLevelDeclaration(new Axiom(f.tok,
+            BplForall(Concat(vars, func_vars), BplTrigger(lhs), Bpl.Expr.Eq(lhs, rhs_unboxed))));
         }
       }
       return name;
