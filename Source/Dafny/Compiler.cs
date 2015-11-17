@@ -2310,7 +2310,9 @@ namespace Microsoft.Dafny {
       Contract.Requires(expr != null);
       if (expr is LiteralExpr) {
         LiteralExpr e = (LiteralExpr)expr;
-        if (e.Value == null) {
+        if (e is StaticReceiverExpr) {
+          wr.Write(TypeName(e.Type, wr));
+        } else if (e.Value == null) {
           wr.Write("({0})null", TypeName(e.Type, wr));
         } else if (e.Value is bool) {
           wr.Write((bool)e.Value ? "true" : "false");
@@ -2394,7 +2396,7 @@ namespace Microsoft.Dafny {
           wr.Write(".@{0}", sf.CompiledName);
           wr.Write(sf.PostString);
         } else {
-          TrParenExpr(e.Obj, wr, inLetExprBody);
+          TrExpr(e.Obj, wr, inLetExprBody);
           wr.Write(".@{0}", e.Member.CompileName);
         }
 
