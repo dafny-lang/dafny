@@ -2993,8 +2993,9 @@ namespace Microsoft.Dafny {
         // })()
         Contract.Assert(e.Bounds != null);  // the resolver would have insisted on finding bounds
         var typeName = TypeName(e.Type.AsSetType.Arg, wr);
+        var collection_name = idGenerator.FreshId("_coll");
         wr.Write("((Dafny.Helpers.ComprehensionDelegate<{0}>)delegate() {{ ", typeName);
-        wr.Write("var _coll = new System.Collections.Generic.List<{0}>(); ", typeName);
+        wr.Write("var {0} = new System.Collections.Generic.List<{1}>(); ", collection_name, typeName);
         var n = e.BoundVars.Count;
         Contract.Assert(e.Bounds.Count == n);
         for (int i = 0; i < n; i++) {
@@ -3039,13 +3040,14 @@ namespace Microsoft.Dafny {
         }
         wr.Write("if (");
         TrExpr(e.Range, wr, inLetExprBody);
-        wr.Write(") { _coll.Add(");
+        wr.Write(") {");
+        wr.Write("{0}.Add(", collection_name);
         TrExpr(e.Term, wr, inLetExprBody);
         wr.Write("); }");
         for (int i = 0; i < n; i++) {
           wr.Write("}");
         }
-        wr.Write("return Dafny.Set<{0}>.FromCollection(_coll); ", typeName);
+        wr.Write("return Dafny.Set<{0}>.FromCollection({1}); ", typeName, collection_name);
         wr.Write("})()");
 
       } else if (expr is MapComprehension) {
@@ -3069,8 +3071,9 @@ namespace Microsoft.Dafny {
         Contract.Assert(e.Bounds != null);  // the resolver would have insisted on finding bounds
         var domtypeName = TypeName(e.Type.AsMapType.Domain, wr);
         var rantypeName = TypeName(e.Type.AsMapType.Range, wr);
+        var collection_name = idGenerator.FreshId("_coll");
         wr.Write("((Dafny.Helpers.MapComprehensionDelegate<{0},{1}>)delegate() {{ ", domtypeName, rantypeName);
-        wr.Write("var _coll = new System.Collections.Generic.List<Dafny.Pair<{0},{1}>>(); ", domtypeName, rantypeName);
+        wr.Write("var {0} = new System.Collections.Generic.List<Dafny.Pair<{1},{2}>>(); ", collection_name, domtypeName, rantypeName);
         var n = e.BoundVars.Count;
         Contract.Assert(e.Bounds.Count == n && n == 1);
         var bound = e.Bounds[0];
@@ -3112,11 +3115,11 @@ namespace Microsoft.Dafny {
         wr.Write("if (");
         TrExpr(e.Range, wr, inLetExprBody);
         wr.Write(") { ");
-        wr.Write("_coll.Add(new Dafny.Pair<{0},{1}>(@{2},", domtypeName, rantypeName, bv.CompileName);
+        wr.Write("{0}.Add(new Dafny.Pair<{1},{2}>(@{3},", collection_name, domtypeName, rantypeName, bv.CompileName);
         TrExpr(e.Term, wr, inLetExprBody);
         wr.Write(")); }");
         wr.Write("}");
-        wr.Write("return Dafny.Map<{0},{1}>.FromCollection(_coll); ", domtypeName, rantypeName);
+        wr.Write("return Dafny.Map<{0},{1}>.FromCollection({2}); ", domtypeName, rantypeName, collection_name);
         wr.Write("})()");
 
       } else if (expr is LambdaExpr) {
