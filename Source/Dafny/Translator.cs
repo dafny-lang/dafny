@@ -94,6 +94,8 @@ namespace Microsoft.Dafny {
 
   public class Translator {
     ErrorReporter reporter;
+    // TODO(wuestholz): Enable this once Dafny's recommended Z3 version includes changeset 0592e765744497a089c42021990740f303901e67.
+    public bool UseOptimizationInZ3 { get; set; }
 
     [NotDelayed]
     public Translator(ErrorReporter reporter) {
@@ -2756,6 +2758,18 @@ namespace Microsoft.Dafny {
       List<Variable> localVariables = new List<Variable>();
       GenerateImplPrelude(m, wellformednessProc, inParams, outParams, builder, localVariables);
 
+      if (UseOptimizationInZ3 && m.Ins != null)
+      {
+        // We ask Z3 to minimize all parameters of type 'nat'.
+        foreach (var f in m.Ins)
+        {
+          if (f.Type is NatType)
+          {
+            builder.Add(optimizeExpr(true, new IdentifierExpr(f), f.Tok, etran));
+          }
+        }
+      }
+
       Bpl.StmtList stmts;
       if (!wellformednessProc) {
         var inductionVars = ApplyInduction(m.Ins, m.Attributes);
@@ -2918,6 +2932,17 @@ namespace Microsoft.Dafny {
       }
 
       Reset();
+    }
+
+    internal static AssumeCmd optimizeExpr(bool minimize, Expression expr, IToken tok, ExpressionTranslator etran)
+    {
+      Contract.Requires(expr != null);
+      Contract.Requires(expr.Type.IsIntegerType || expr.Type.IsRealType);
+      Contract.Requires(tok != null && etran != null);
+
+      var assumeCmd = new AssumeCmd(tok, Expr.True);
+      assumeCmd.Attributes = new QKeyValue(expr.tok, (minimize ? "minimize" : "maximize"), new List<object> { etran.TrExpr(expr) }, null);
+      return assumeCmd;
     }
 
     private void AddFunctionOverrideCheckImpl(Function f)
