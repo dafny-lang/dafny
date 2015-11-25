@@ -842,10 +842,21 @@ namespace Microsoft.Dafny {
 
       } else if (stmt is ForallStmt) {
         var s = (ForallStmt)stmt;
+        Attributes attributes = s.Attributes;
+        if (attributes == null && s.ForallExpressions != null) {
+          foreach (Expression expr in s.ForallExpressions) {
+            ForallExpr e = (ForallExpr)expr;
+            while (e != null && attributes == null) {
+              attributes = e.Attributes;
+              e = (ForallExpr)e.SplitQuantifierExpression;
+            }
+            if (attributes != null) { break; }
+          }
+        }
         wr.Write("forall");
         if (s.BoundVars.Count != 0) {
           wr.Write(" ");
-          PrintQuantifierDomain(s.BoundVars, s.Attributes, s.Range);
+          PrintQuantifierDomain(s.BoundVars, attributes, s.Range);
         }
         if (s.Ens.Count == 0) {
           wr.Write(" ");
