@@ -1,3 +1,4 @@
+SmallTests.dfy(507,4): Warning: /!\ No trigger covering all quantified variables found.
 SmallTests.dfy(34,10): Error: index out of range
 Execution trace:
     (0,0): anon0

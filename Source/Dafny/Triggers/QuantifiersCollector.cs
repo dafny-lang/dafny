@@ -40,5 +40,18 @@ namespace Microsoft.Dafny.Triggers {
 
       return true;
     }
+
+    protected override bool VisitOneStmt(Statement stmt, ref bool st) {
+      Contract.Requires(stmt != null);
+      if (stmt is ForallStmt) {
+        ForallStmt s = (ForallStmt)stmt;
+        if (s.ForallExpressions != null) {
+          foreach (Expression expr in s.ForallExpressions) {
+            VisitOneExpr(expr, ref st);
+          }
+        }
+      }
+      return true;
+    }
   }
 }

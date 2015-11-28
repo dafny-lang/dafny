@@ -235,6 +235,7 @@ namespace Microsoft.Dafny
       rewriters.Add(new AutoReqFunctionRewriter(this.reporter, opaqueRewriter));
       rewriters.Add(opaqueRewriter);
       rewriters.Add(new TimeLimitRewriter(reporter));
+      rewriters.Add(new ForallStmtRewriter(reporter));
 
       if (DafnyOptions.O.AutoTriggers) {
         rewriters.Add(new QuantifierSplittingRewriter(reporter));

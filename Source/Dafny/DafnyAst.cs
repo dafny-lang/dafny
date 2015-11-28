@@ -4693,6 +4693,7 @@ namespace Microsoft.Dafny {
     public readonly Expression Range;
     public readonly List<MaybeFreeExpression> Ens;
     public readonly Statement Body;
+    public List<Expression> ForallExpressions;   // fill in by rewriter.
 
     public List<ComprehensionExpr.BoundedPool> Bounds;  // initialized and filled in by resolver
     // invariant: if successfully resolved, Bounds.Count == BoundVars.Count;
