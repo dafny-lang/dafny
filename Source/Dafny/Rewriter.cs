@@ -81,10 +81,10 @@ namespace Microsoft.Dafny
   /// AutoContracts will then:
   ///
   /// Declare:
-  ///    ghost var Repr: set(object);
+  ///    ghost var Repr: set(object)
   ///
   /// For function/predicate Valid(), insert:
-  ///    reads this, Repr;
+  ///    reads this, Repr
   /// Into body of Valid(), insert (at the beginning of the body):
   ///    this in Repr && null !in Repr
   /// and also insert, for every array-valued field A declared in the class:
@@ -96,19 +96,23 @@ namespace Microsoft.Dafny
   ///
   /// For every constructor, add:
   ///    modifies this;
-  ///    ensures Valid() && fresh(Repr - {this});
+  ///    ensures Valid() && fresh(Repr - {this})
   /// At the end of the body of the constructor, add:
   ///    Repr := {this};
   ///    if (A != null) { Repr := Repr + {A}; }
   ///    if (F != null) { Repr := Repr + {F} + F.Repr; }
   ///
-  /// For every method, add:
-  ///    requires Valid();
-  ///    modifies Repr;
-  ///    ensures Valid() && fresh(Repr - old(Repr));
+  /// For every non-static non-ghost method that is not a "simple query method",
+  /// add:
+  ///    requires Valid()
+  ///    modifies Repr
+  ///    ensures Valid() && fresh(Repr - old(Repr))
   /// At the end of the body of the method, add:
   ///    if (A != null) { Repr := Repr + {A}; }
   ///    if (F != null) { Repr := Repr + {F} + F.Repr; }
+  /// For every non-static method that is either ghost or is a "simple query method",
+  /// add:
+  ///    requires Valid()
   /// </summary>
   public class AutoContractsRewriter : IRewriter
   {
@@ -293,7 +297,7 @@ namespace Microsoft.Dafny
             AddSubobjectReprs(tok, subobjects, bodyStatements, self, implicitSelf, cNull, Repr);
           }
 
-        } else if (member is Method && !member.IsStatic) {
+        } else if (member is Method && !member.IsStatic && !member.IsGhost) {
           var m = (Method)member;
           if (Valid != null && !IsSimpleQueryMethod(m)) {
             if (member.RefinementBase == null) {
