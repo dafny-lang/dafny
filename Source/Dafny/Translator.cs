@@ -3510,10 +3510,13 @@ namespace Microsoft.Dafny {
 
     private void InsertChecksum(Function f, Bpl.Declaration decl, bool specificationOnly = false)
     {
+      Contract.Requires(f != null);
+      Contract.Requires(decl != null);
       byte[] data;
       using (var writer = new System.IO.StringWriter())
       {
         var printer = new Printer(writer);
+        writer.Write(f.IsGhost ? "function" : "function method");
         printer.PrintAttributes(f.Attributes);
         printer.PrintFormals(f.Formals);
         writer.Write(": ");
@@ -3534,6 +3537,8 @@ namespace Microsoft.Dafny {
 
     private void InsertChecksum(Bpl.Declaration decl, byte[] data)
     {
+      Contract.Requires(decl != null);
+      Contract.Requires(data != null);
       var md5 = System.Security.Cryptography.MD5.Create();
       var hashedData = md5.ComputeHash(data);
       var checksum = BitConverter.ToString(hashedData);
