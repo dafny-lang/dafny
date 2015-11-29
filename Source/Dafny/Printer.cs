@@ -846,10 +846,7 @@ namespace Microsoft.Dafny {
         if (attributes == null && s.ForallExpressions != null) {
           foreach (Expression expr in s.ForallExpressions) {
             ForallExpr e = (ForallExpr)expr;
-            while (e != null && attributes == null) {
-              attributes = e.Attributes;
-              e = (ForallExpr)e.SplitQuantifierExpression;
-            }
+            attributes = GetSomeAttributes(e);
             if (attributes != null) { break; }
           }
         }
@@ -1010,6 +1007,20 @@ namespace Microsoft.Dafny {
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected statement
       }
+    }
+
+    private static Attributes GetSomeAttributes(Expression expr) {
+      if (expr is ForallExpr) {
+        var e = (ForallExpr)expr;
+        if (e.Attributes != null) {
+          return e.Attributes;
+        }
+        return GetSomeAttributes(e.SplitQuantifierExpression);
+      } else if (expr is BinaryExpr) {
+        var e = (BinaryExpr)expr;
+        return GetSomeAttributes(e.E0) ?? GetSomeAttributes(e.E1);
+      }
+      return null;
     }
 
     private void PrintModifyStmt(int indent, ModifyStmt s, bool omitFrame) {
