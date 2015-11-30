@@ -5950,13 +5950,9 @@ namespace Microsoft.Dafny
       }
 
       // convert CasePattern in MatchCaseExpr to BoundVar and flatten the MatchCaseExpr.
-      Type type = new InferredTypeProxy();
-      string name = FreshTempVarName("_mc#", codeContext);
-      MatchCaseToken mcToken = new MatchCaseToken(s.Tok);
-      BoundVar bv = new BoundVar(mcToken, name, type);
-      List<CasePattern> patternSubst = new List<CasePattern>();
+      List<Tuple<CasePattern, BoundVar>> patternSubst = new List<Tuple<CasePattern, BoundVar>>(); 
       if (dtd != null) {
-        DesugarMatchCaseStmt(s, dtd, bv, patternSubst, codeContext);
+        DesugarMatchCaseStmt(s, dtd, patternSubst, codeContext);
       }
 
       ISet<string> memberNamesUsed = new HashSet<string>();
@@ -6008,7 +6004,7 @@ namespace Microsoft.Dafny
         // substitute body to replace the case pat with v. This needs to happen
         // after the body is resolved so we can scope the bv correctly.
         if (patternSubst.Count > 0) {
-          MatchCaseExprSubstituteCloner cloner = new MatchCaseExprSubstituteCloner(patternSubst, bv);
+          MatchCaseExprSubstituteCloner cloner = new MatchCaseExprSubstituteCloner(patternSubst);
           List<Statement> list = new List<Statement>();
           foreach (Statement ss in mc.Body) {
             Statement clone = cloner.CloneStmt(ss);
@@ -6125,7 +6121,7 @@ namespace Microsoft.Dafny
      *       case Nil => y
      *       case Cons(z, zs) => last(ys)
      */
-    void DesugarMatchCaseStmt(MatchStmt s, DatatypeDecl dtd, BoundVar sourceVar, List<CasePattern> patterns, ICodeContext codeContext) {
+    void DesugarMatchCaseStmt(MatchStmt s, DatatypeDecl dtd, List<Tuple<CasePattern, BoundVar>> patterns, ICodeContext codeContext) {
       Contract.Assert(dtd != null);
       Dictionary<string, DatatypeCtor> ctors = datatypeCtors[dtd];
       if (ctors == null) {
@@ -6133,6 +6129,8 @@ namespace Microsoft.Dafny
         return;
       }
 
+      Type type = new InferredTypeProxy();
+      string name = FreshTempVarName("_mc#", codeContext);
       foreach (MatchCaseStmt mc in s.Cases) {
         if (mc.Arguments != null) {
           // already desugared. This happens during the second pass resolver after cloning.
@@ -6140,6 +6138,7 @@ namespace Microsoft.Dafny
           return;
         }
 
+        BoundVar sourceVar = new BoundVar(new MatchCaseToken(s.Tok), name, type);
         Contract.Assert(mc.Arguments == null);
         Contract.Assert(mc.CasePatterns != null);
         Contract.Assert(ctors != null);
@@ -6157,7 +6156,7 @@ namespace Microsoft.Dafny
               arguments.Add(v);
             } else {
               DesugarMatchCasePattern(mc, pat, sourceVar);
-              patterns.Add(pat);
+              patterns.Add(new Tuple<CasePattern, BoundVar>(pat, sourceVar));
               arguments.Add(sourceVar);
             }
           }
@@ -8249,12 +8248,9 @@ namespace Microsoft.Dafny
       }
 
       // convert CasePattern in MatchCaseExpr to BoundVar and flatten the MatchCaseExpr.
-      Type type = new InferredTypeProxy();
-      string name = FreshTempVarName("_mc#", opts.codeContext);
-      BoundVar bv = new BoundVar(new MatchCaseToken(me.tok), name, type);
-      List<CasePattern> patternSubst = new List<CasePattern>();
+      List<Tuple<CasePattern, BoundVar>> patternSubst = new List<Tuple<CasePattern, BoundVar>>(); 
       if (dtd != null) {
-        DesugarMatchCaseExpr(me, dtd, bv, patternSubst, opts.codeContext);
+        DesugarMatchCaseExpr(me, dtd, patternSubst, opts.codeContext);
       }
 
       ISet<string> memberNamesUsed = new HashSet<string>();
@@ -8306,7 +8302,7 @@ namespace Microsoft.Dafny
         // substitute body to replace the case pat with v. This needs to happen
         // after the body is resolved so we can scope the bv correctly.
         if (patternSubst.Count > 0) {
-          MatchCaseExprSubstituteCloner cloner = new MatchCaseExprSubstituteCloner(patternSubst, bv);
+          MatchCaseExprSubstituteCloner cloner = new MatchCaseExprSubstituteCloner(patternSubst);
           mc.UpdateBody(cloner.CloneExpr(mc.Body));
           // resolve it again since we just cloned it.
           ResolveExpression(mc.Body, opts);
@@ -8408,7 +8404,7 @@ namespace Microsoft.Dafny
      *       case Nil => y
      *       case Cons(z, zs) => last(ys)
      * */
-    void DesugarMatchCaseExpr(MatchExpr me, DatatypeDecl dtd, BoundVar sourceVar, List<CasePattern> patterns, ICodeContext codeContext) {
+    void DesugarMatchCaseExpr(MatchExpr me, DatatypeDecl dtd, List<Tuple<CasePattern, BoundVar>> patterns, ICodeContext codeContext) {
       Contract.Assert(dtd != null);
       Dictionary<string, DatatypeCtor> ctors = datatypeCtors[dtd];
       if (ctors == null) {
@@ -8416,6 +8412,8 @@ namespace Microsoft.Dafny
         return;
       }
 
+      Type type = new InferredTypeProxy();
+      string name = FreshTempVarName("_mc#", codeContext);
       foreach (MatchCaseExpr mc in me.Cases) {
         if (mc.Arguments != null) {
           // already desugared. This happens during the second pass resolver after cloning.
@@ -8423,6 +8421,7 @@ namespace Microsoft.Dafny
           return;
         }
 
+        BoundVar sourceVar = new BoundVar(new MatchCaseToken(me.tok), name, type);
         Contract.Assert(mc.Arguments == null);
         Contract.Assert(mc.CasePatterns != null);
         Contract.Assert(ctors != null);
@@ -8439,7 +8438,7 @@ namespace Microsoft.Dafny
               arguments.Add(v);
             } else {
               DesugarMatchCasePattern(mc, pat, sourceVar);
-              patterns.Add(pat);
+              patterns.Add(new Tuple<CasePattern, BoundVar>(pat, sourceVar));
               arguments.Add(sourceVar);
             }
           }
