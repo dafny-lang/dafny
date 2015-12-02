@@ -1269,7 +1269,7 @@ namespace Microsoft.Dafny
       foreach (var kv in p.TopLevels) {
         mod.TopLevelDecls.Add(CloneDeclaration(kv.Value, mod, mods, Name));
       }
-      var sig = RegisterTopLevelDecls(mod, false);
+      var sig = RegisterTopLevelDecls(mod, true);
       sig.Refines = p.Refines;
       sig.CompileSignature = p;
       sig.IsAbstract = p.IsAbstract;
