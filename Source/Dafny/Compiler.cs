@@ -473,28 +473,48 @@ namespace Microsoft.Dafny {
           } else {
             nm = (dt.Module.IsDefaultModule ? "" : dt.Module.CompileName + ".") + dt.CompileName + "." + ctor.CompileName;
           }
-          Indent(ind + IndentAmount, wr); wr.WriteLine("string s = \"{0}\";", nm);
+          var tempVar = GenVarName("s", ctor.Formals);
+          Indent(ind + IndentAmount, wr); wr.WriteLine("string {0} = \"{1}\";", tempVar, nm);
           if (ctor.Formals.Count != 0) {
-            Indent(ind + IndentAmount, wr); wr.WriteLine("s += \"(\";");
+            Indent(ind + IndentAmount, wr); wr.WriteLine("{0} += \"(\";", tempVar);
             i = 0;
             foreach (var arg in ctor.Formals) {
               if (!arg.IsGhost) {
                 if (i != 0) {
-                  Indent(ind + IndentAmount, wr); wr.WriteLine("s += \", \";");
+                  Indent(ind + IndentAmount, wr); wr.WriteLine("{0} += \", \";", tempVar);
                 }
-                Indent(ind + IndentAmount, wr); wr.WriteLine("s += @{0}.ToString();", FormalName(arg, i));
+                Indent(ind + IndentAmount, wr); wr.WriteLine("{0} += @{1}.ToString();", tempVar,FormalName(arg, i));
                 i++;
               }
             }
-            Indent(ind + IndentAmount, wr); wr.WriteLine("s += \")\";");
+            Indent(ind + IndentAmount, wr); wr.WriteLine("{0} += \")\";", tempVar);
           }
-          Indent(ind + IndentAmount, wr); wr.WriteLine("return s;");
+          Indent(ind + IndentAmount, wr); wr.WriteLine("return {0};", tempVar);
           Indent(ind, wr); wr.WriteLine("}");
         }
 
         Indent(indent, wr); wr.WriteLine("}");
       }
       constructorIndex++;
+    }
+
+    // create a varName that is not a duplicate of formals' name
+    string GenVarName(string root, List<Formal> formals) {
+      bool finished = false;
+      while (!finished) {
+        finished = true;
+        int i = 0;
+        foreach (var arg in formals) {
+          if (!arg.IsGhost) {
+            if (root.Equals(FormalName(arg, i))) {
+              root += root;
+              finished = false;
+            }
+            i++;
+          }
+        }
+      }
+      return root;
     }
 
     void CompileDatatypeStruct(DatatypeDecl dt, int indent, TextWriter wr) {
