@@ -209,6 +209,8 @@ namespace Microsoft.Dafny.Triggers {
         annotation = AnnotateIdentifier((IdentifierExpr)expr);
       } else if (expr is ApplySuffix) {
         annotation = AnnotateApplySuffix((ApplySuffix)expr);
+      } else if (expr is ComprehensionExpr) {
+        annotation = AnnotateComprehensionExpr((ComprehensionExpr)expr);
       } else if (expr is ConcreteSyntaxExpression ||
                  expr is LiteralExpr ||
                  expr is OldExpr ||
@@ -270,6 +272,11 @@ namespace Microsoft.Dafny.Triggers {
 
     private TriggerAnnotation AnnotateIdentifier(IdentifierExpr expr) {
       return new TriggerAnnotation(false, Enumerable.Repeat(expr.Var, 1), null);
+    }
+
+    private TriggerAnnotation AnnotateComprehensionExpr(ComprehensionExpr expr) {
+      var terms = CollectExportedCandidates(expr);
+      return new TriggerAnnotation(true, CollectVariables(expr), terms,  OnlyPrivateCandidates(terms, expr.BoundVars));
     }
 
     private TriggerAnnotation AnnotateOther(Expression expr, bool isTriggerKiller) {
