@@ -2507,8 +2507,7 @@ namespace Microsoft.Dafny {
         DatatypeValue dtv = (DatatypeValue)expr;
         Contract.Assert(dtv.Ctor != null);  // since dtv has been successfully resolved
         var typeParams = dtv.InferredTypeArgs.Count == 0 ? "" : string.Format("<{0}>", TypeNames(dtv.InferredTypeArgs, wr));
-
-        wr.Write("new {0}{1}(", DtName(dtv.Ctor.EnclosingDatatype), typeParams);
+        wr.Write("new @{0}{1}(", DtName(dtv.Ctor.EnclosingDatatype), typeParams);
         if (!dtv.IsCoCall) {
           // For an ordinary constructor (that is, one that does not guard any co-recursive calls), generate:
           //   new Dt_Cons<T>( args )
