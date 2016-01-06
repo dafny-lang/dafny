@@ -70,17 +70,37 @@ namespace DafnyLanguage
     }
   }
 
+
   internal sealed class DafnyTokenTagger : ITagger<DafnyTokenTag>, IDisposable
   {
+    internal sealed class ScanResult
+    {
+      internal ITextSnapshot _oldSnapshot; 
+      internal ITextSnapshot _newSnapshot; 
+      internal List<TokenRegion> _regions; // the regions computed for the _newSnapshot
+      internal NormalizedSnapshotSpanCollection _difference; // the difference between _oldSnapshot and _newSnapshot
+
+      internal ScanResult(ITextSnapshot oldSnapshot, ITextSnapshot newSnapshot, List<TokenRegion> regions, NormalizedSnapshotSpanCollection diffs) {
+        _oldSnapshot = oldSnapshot;
+        _newSnapshot = newSnapshot;
+        _regions = regions;
+        _difference = diffs;
+      }
+    }
+
     ITextBuffer _buffer;
     ITextSnapshot _snapshot;
     List<TokenRegion> _regions;
+    // TODO: instead of storing the scan result in the static field and shared by the different
+    // instances of DafnyTokenTagger, could it be associated to the TextBuffer using 
+    // ITextBuffer.Properties.GetOrCreateSingletonProperty?
+    static ScanResult _scanResult = null;
     bool _disposed;
 
     internal DafnyTokenTagger(ITextBuffer buffer) {
       _buffer = buffer;
       _snapshot = buffer.CurrentSnapshot;
-      _regions = Rescan(_snapshot);
+      _regions = Scan(_snapshot);
 
       _buffer.Changed += new EventHandler<TextContentChangedEventArgs>(ReparseFile);
     }
@@ -92,6 +112,7 @@ namespace DafnyLanguage
           _buffer = null;
           _snapshot = null;
           _regions = null;
+          _scanResult = null;
           _disposed = true;
         }
       }
@@ -127,24 +148,92 @@ namespace DafnyLanguage
       ITextSnapshot snapshot = _buffer.CurrentSnapshot;
       if (snapshot == _snapshot)
         return;  // we've already computed the regions for this snapshot
+      
+      NormalizedSnapshotSpanCollection difference = new NormalizedSnapshotSpanCollection();
+      if (DafnyTokenTagger._scanResult != null &&
+        DafnyTokenTagger._scanResult._oldSnapshot == _snapshot &&
+        DafnyTokenTagger._scanResult._newSnapshot == snapshot) {
+        difference = DafnyTokenTagger._scanResult._difference;
+        // save the new baseline
+        _regions = DafnyTokenTagger._scanResult._regions;
+        _snapshot = snapshot;
+      } else {
+        List<TokenRegion>  regions = new List<TokenRegion>();
+        List<SnapshotSpan> rescannedRegions = new List<SnapshotSpan>();
 
-      // get all of the outline regions in the snapshot
-      List<TokenRegion> newRegions = Rescan(snapshot);
+        // loop through the changes and check for changes in comments first. If 
+        // the change is in a comments, we need to rescan starting from the 
+        // beginning of the comments (which in multi-lined comments, it can
+        // be a line that the changes are not on), otherwise, we can just rescan the lines
+        // that the changes are on.
+        bool done;
+        SnapshotPoint start, end;
+        for (int i = 0; i < args.Changes.Count; i++) {
+          done = false;
+          // get the span of the lines that the change is on.
+          int cStart = args.Changes[i].NewSpan.Start;
+          int cEnd = args.Changes[i].NewSpan.End;
+          start = snapshot.GetLineFromPosition(cStart).Start;
+          end = snapshot.GetLineFromPosition(cEnd).End;
+          SnapshotSpan newSpan = new SnapshotSpan(start, end);
+          foreach (TokenRegion r in _regions) {
+            if (r.Kind == DafnyTokenKind.Comment) {
+              // if the change is in the comments, we want to start scanning from the
+              // the beginning of the comments instead.
+              SnapshotSpan span = r.Span.TranslateTo(snapshot, SpanTrackingMode.EdgeExclusive);
+              if (span.IntersectsWith(newSpan)) {
+                start = span.Start.Position < newSpan.Start.Position ? span.Start : newSpan.Start;
+                end = span.End.Position > newSpan.End.Position ? span.End : newSpan.End;
+                end = Scan(snapshot.GetText(new SnapshotSpan(start, end)), start, regions, snapshot);
+                // record the regions that we rescanned.
+                rescannedRegions.Add(new SnapshotSpan(start, end));
+                done = true;
+                break;
+              }
+            }
+          }
+          if (!done) {
+            // scan the lines that the change is on to generate the new regions.
+            end = Scan(snapshot.GetText(new SnapshotSpan(start, end)), start, regions, snapshot);
+            // record the span that we rescanned.
+            rescannedRegions.Add(new SnapshotSpan(start, end));
+          }
+        }
 
-      // determine the changed span, and send a changed event with the new spans
-      List<SnapshotSpan> oldSpans = new List<SnapshotSpan>(_regions.Select(r =>
-        r.Span.TranslateTo(snapshot, SpanTrackingMode.EdgeExclusive)));
+        List<SnapshotSpan> oldSpans = new List<SnapshotSpan>();
+        List<SnapshotSpan> newSpans = new List<SnapshotSpan>();
+        // record the newly created spans.
+        foreach (TokenRegion r in regions) {
+          newSpans.Add(r.Span);
+        }
+        // loop through the old scan results and remove the ones that 
+        // are in the regions that are rescanned.
+        foreach (TokenRegion r in _regions) {
+          SnapshotSpan origSpan = r.Span.TranslateTo(snapshot, SpanTrackingMode.EdgeExclusive);
+          bool obsolete = false;
+          foreach (SnapshotSpan span in rescannedRegions) {
+            if (origSpan.IntersectsWith(span)) {
+              oldSpans.Add(span);
+              obsolete = true;
+              break;
+            }
+          }
+          if (!obsolete) {
+            TokenRegion region = new TokenRegion(origSpan.Start, origSpan.End, r.Kind);
+            regions.Add(region);
+          }
+        }
+        
+        NormalizedSnapshotSpanCollection oldSpanCollection = new NormalizedSnapshotSpanCollection(oldSpans);
+        NormalizedSnapshotSpanCollection newSpanCollection = new NormalizedSnapshotSpanCollection(newSpans);
+        difference = SymmetricDifference(oldSpanCollection, newSpanCollection);
 
-      List<SnapshotSpan> newSpans = new List<SnapshotSpan>(newRegions.Select(r => r.Span));
-
-      NormalizedSnapshotSpanCollection oldSpanCollection = new NormalizedSnapshotSpanCollection(oldSpans);
-      NormalizedSnapshotSpanCollection newSpanCollection = new NormalizedSnapshotSpanCollection(newSpans);
-
-      NormalizedSnapshotSpanCollection difference = SymmetricDifference(oldSpanCollection, newSpanCollection);
-
-      // save the new baseline
-      _snapshot = snapshot;
-      _regions = newRegions;
+        // save the scan result
+        DafnyTokenTagger._scanResult = new ScanResult(_snapshot, snapshot, regions, difference);
+        // save the new baseline
+        _snapshot = snapshot;
+        _regions = regions;
+      }
 
       var chng = TagsChanged;
       if (chng != null) {
@@ -160,38 +249,35 @@ namespace DafnyLanguage
           NormalizedSnapshotSpanCollection.Difference(second, first));
     }
 
-    private static List<TokenRegion> Rescan(ITextSnapshot newSnapshot) {
-      List<TokenRegion> newRegions = new List<TokenRegion>();
-
+    private static SnapshotPoint Scan(string txt, SnapshotPoint start, List<TokenRegion> newRegions, ITextSnapshot newSnapshot) {
       int longCommentDepth = 0;
-      SnapshotPoint commentStart = new SnapshotPoint();  // used only when longCommentDepth != 0
+      SnapshotPoint commentStart = new SnapshotPoint();
       SnapshotPoint commentEndAsWeKnowIt = new SnapshotPoint();  // used only when longCommentDepth != 0
-      foreach (ITextSnapshotLine line in newSnapshot.Lines) {
-        string txt = line.GetText();  // the current line (without linebreak characters)
-        int N = txt.Length;  // length of the current line
-        int cur = 0;  // offset into the current line
-
+      int N = txt.Length;
+      bool done = false;
+      while (!done) {
+        N = txt.Length;  // length of the current buffer
+        int cur = 0;  // offset into the current buffer
         if (longCommentDepth != 0) {
           ScanForEndOfComment(txt, ref longCommentDepth, ref cur);
           if (longCommentDepth == 0) {
             // we just finished parsing a long comment
-            newRegions.Add(new TokenRegion(commentStart, new SnapshotPoint(newSnapshot, line.Start + cur), DafnyTokenKind.Comment));
+            newRegions.Add(new TokenRegion(commentStart, new SnapshotPoint(newSnapshot, start + cur), DafnyTokenKind.Comment));
           } else {
             // we're still parsing the long comment
             Contract.Assert(cur == txt.Length);
-            commentEndAsWeKnowIt = new SnapshotPoint(newSnapshot, line.Start + cur);
+            commentEndAsWeKnowIt = new SnapshotPoint(newSnapshot, start + cur);
             goto OUTER_CONTINUE;
           }
         }
-
-        // repeatedly get the remaining tokens from this line
-        int end;  // offset into the current line
+        // repeatedly get the remaining tokens from this buffer
+        int end;  // offset into the current buffer
         for (; ; cur = end) {
           // advance to the first character of a keyword or token
           DafnyTokenKind ty = DafnyTokenKind.Keyword;
           for (; ; cur++) {
             if (N <= cur) {
-              // we've looked at everything in this line
+              // we've looked at everything in this buffer
               goto OUTER_CONTINUE;
             }
             char ch = txt[cur];
@@ -204,7 +290,7 @@ namespace DafnyLanguage
           }
 
           // advance to the end of the token
-          end = cur + 1;  // offset into the current line
+          end = cur + 1;  // offset into the current buffer
           if (ty == DafnyTokenKind.Number) {
             // scan the rest of this number
             for (; end < N; end++) {
@@ -213,7 +299,7 @@ namespace DafnyLanguage
               } else break;
             }
           } else if (ty == DafnyTokenKind.String) {
-            // scan the rest of this string, but not past the end-of-line
+            // scan the rest of this string, but not past the end-of-buffer
             for (; end < N; end++) {
               char ch = txt[end];
               if (ch == '"') {
@@ -233,20 +319,20 @@ namespace DafnyLanguage
             if (end == N) continue;  // this was not the start of a comment; it was just a single "/" and we don't care to color it
             char ch = txt[end];
             if (ch == '/') {
-              // a short comment
-              end = N;
+              // a short comment, to the end of the line.
+              end = newSnapshot.GetLineFromPosition(start + end).End.Position - start;
             } else if (ch == '*') {
               // a long comment; find the matching "*/"
               end++;
-              commentStart = new SnapshotPoint(newSnapshot, line.Start + cur);
+              commentStart = new SnapshotPoint(newSnapshot, start + cur);
               Contract.Assert(longCommentDepth == 0);
               longCommentDepth = 1;
               ScanForEndOfComment(txt, ref longCommentDepth, ref end);
               if (longCommentDepth == 0) {
                 // we finished scanning a long comment, and "end" is set to right after it
-                newRegions.Add(new TokenRegion(commentStart, new SnapshotPoint(newSnapshot, line.Start + end), DafnyTokenKind.Comment));
+                newRegions.Add(new TokenRegion(commentStart, new SnapshotPoint(newSnapshot, start + end), DafnyTokenKind.Comment));
               } else {
-                commentEndAsWeKnowIt = new SnapshotPoint(newSnapshot, line.Start + end);
+                commentEndAsWeKnowIt = new SnapshotPoint(newSnapshot, start + end);
               }
               continue;
             } else {
@@ -358,21 +444,53 @@ namespace DafnyLanguage
               }
             }
           }
-
-          newRegions.Add(new TokenRegion(new SnapshotPoint(newSnapshot, line.Start + cur), new SnapshotPoint(newSnapshot, line.Start + end), ty));
+          newRegions.Add(new TokenRegion(new SnapshotPoint(newSnapshot, start + cur), new SnapshotPoint(newSnapshot, start + end), ty));
         }
-      OUTER_CONTINUE: ;
+      OUTER_CONTINUE:
+        done = true;
+        if (longCommentDepth != 0) {
+          // we need to look into the next line
+          ITextSnapshotLine currLine = newSnapshot.GetLineFromPosition(start + N);
+          if ((currLine.LineNumber + 1) < newSnapshot.LineCount) {
+            ITextSnapshotLine nextLine = newSnapshot.GetLineFromLineNumber(currLine.LineNumber + 1);
+            txt = nextLine.GetText();
+            start = nextLine.Start;
+            // we are done scanning the current buffer, but not the whole file yet.
+            // we need to continue to find the enclosing "*/", or until the end of the file.
+            done = false;
+          } else {
+            // This was a malformed comment, running to the end of the buffer.  Above, we let "commentEndAsWeKnowIt" be the end of the
+            // last line, so we can use it here.
+            newRegions.Add(new TokenRegion(commentStart, commentEndAsWeKnowIt, DafnyTokenKind.Comment));
+          }
+        }
       }
+      return new SnapshotPoint(newSnapshot, start + N);
+    }
 
-      if (longCommentDepth != 0) {
-        // This was a malformed comment, running to the end of the buffer.  Above, we let "commentEndAsWeKnowIt" be the end of the
-        // last line, so we can use it here.
-        newRegions.Add(new TokenRegion(commentStart, commentEndAsWeKnowIt, DafnyTokenKind.Comment));
+    private static List<TokenRegion> Scan(ITextSnapshot newSnapshot) {
+      List<TokenRegion> newRegions; 
+      if (DafnyTokenTagger._scanResult != null &&
+        DafnyTokenTagger._scanResult._newSnapshot == newSnapshot) {
+        newRegions = DafnyTokenTagger._scanResult._regions;
+      } else {
+        newRegions = new List<TokenRegion>();
+        int nextLineNumber = -1;
+        foreach (ITextSnapshotLine line in newSnapshot.Lines) {
+          if (line.LineNumber <= nextLineNumber) {
+            // the line is already processed.
+            continue;
+          }
+          string txt = line.GetText();  // the current line (without linebreak characters)
+          SnapshotPoint end = Scan(txt, line.Start, newRegions, newSnapshot);
+          nextLineNumber = newSnapshot.GetLineFromPosition(end).LineNumber;
+        }
+        DafnyTokenTagger._scanResult = new ScanResult(null, newSnapshot, newRegions, null);
       }
-
       return newRegions;
     }
 
+    
     /// <summary>
     /// Scans "txt" beginning with depth "depth", which is assumed to be non-0.  Any occurrences of "/*" or "*/"
     /// increment or decrement "depth".  If "depth" ever reaches 0, then "end" returns as the number of characters
