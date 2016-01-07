@@ -114,7 +114,7 @@ method ParallelGcd(A: int, B: int) returns (gcd: int)
   var pc0, pc1 := 0, 0;  // program counter for the two processes
   var a0, b0, a1, b1;  // local variables for the two processes
   // To model fairness of scheduling, these "budget" variable give a bound on the number of times the
-  // scheduler will repeatedly schedule on process to execute its "compare a and b" test.  When a
+  // scheduler will repeatedly schedule one process to execute its "compare a and b" test.  When a
   // process executes its comparison, its budget is decreased and the budget for the other process
   // is set to some arbitrary positive amount.
   var budget0, budget1 :| budget0 > 0 && budget1 > 0;
