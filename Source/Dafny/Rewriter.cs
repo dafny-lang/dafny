@@ -89,7 +89,6 @@ namespace Microsoft.Dafny
     internal class ForAllStmtVisitor : TopDownVisitor<bool>
     {
       protected override bool VisitOneStmt(Statement stmt, ref bool st) {
-        Contract.Requires(stmt != null);
         if (stmt is ForallStmt) {
           ForallStmt s = (ForallStmt)stmt;
           if (s.Kind == ForallStmt.ParBodyKind.Proof) {

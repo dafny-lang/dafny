@@ -42,7 +42,6 @@ namespace Microsoft.Dafny.Triggers {
     }
 
     protected override bool VisitOneStmt(Statement stmt, ref bool st) {
-      Contract.Requires(stmt != null);
       if (stmt is ForallStmt) {
         ForallStmt s = (ForallStmt)stmt;
         if (s.ForallExpressions != null) {
