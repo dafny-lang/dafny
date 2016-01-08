@@ -9771,11 +9771,14 @@ namespace Microsoft.Dafny
         bests = all.ConvertAll(tup => ComprehensionExpr.BoundedPool.GetBest(tup.Item2, onlyFiniteBounds));
         // check to see if we found new bounds in this iteration
         int count = 0;
+        // figure out how many bounds are not determined yet.
         for (int i = 0; i < bests.Count; i++) {
-          if (bests[i] == null) {
+          if (bests[i] == null || (bests[i] is ComprehensionExpr.RefBoundedPool)) {
             count++;
           }
         }
+        // if there are bounds that are not determined yet and the number of undetermined bounds
+        // changed, we will need to do another iteration.
         if (count >0 && count != orgCount) {
           changed = true;
           knownBounds = bests;
