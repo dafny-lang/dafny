@@ -1,0 +1,3 @@
+Bug117.dfy(28,7): Error: AM1 in ConcreteModule2 must be imported with "opened"  to match the corresponding import in its refinement base AbstractModule2.
+Bug117.dfy(33,7): Error: AM1 in ConcreteModule3 cannot be imported with "opened" because it does not match the corresponding import in the refinement base AbstractModule3 
+2 resolution/type errors detected in Bug117.dfy

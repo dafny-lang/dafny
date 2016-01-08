@@ -88,6 +88,27 @@ namespace Microsoft.Dafny
                     "no more than one exclusive refinement may exist for a given module.");
               }
             }
+            // check that the openess in the imports between refinement and its base matches
+            List<TopLevelDecl> declarations = m.TopLevelDecls;
+            List<TopLevelDecl> baseDeclarations = m.RefinementBase.TopLevelDecls;
+            foreach (var im in declarations) {
+              if (im is ModuleDecl) {
+                ModuleDecl mdecl = (ModuleDecl)im;
+                //find the matching import from the base
+                foreach (var bim in baseDeclarations) {
+                  if (bim is ModuleDecl && ((ModuleDecl)bim).Name.Equals(mdecl.Name)) {
+                    if (mdecl.Opened != ((ModuleDecl)bim).Opened) {
+                      string message = mdecl.Opened ? 
+                        "{0} in {1} cannot be imported with \"opened\" because it does not match the corresponding import in the refinement base {2} " :
+                        "{0} in {1} must be imported with \"opened\"  to match the corresponding import in its refinement base {2}.";
+                        reporter.Error(MessageSource.RefinementTransformer,m.tok, message, im.Name, m.Name, m.RefinementBase.Name);
+                    }
+                    break;
+                  }
+                }
+              }
+            }
+            
             PreResolveWorker(m);
           } else {
             reporter.Error(MessageSource.RefinementTransformer, m.RefinementBaseName[0], "module ({0}) named as refinement base is not a literal module or simple reference to a literal module", Util.Comma(".", m.RefinementBaseName, x => x.val));
