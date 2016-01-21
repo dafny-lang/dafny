@@ -18,13 +18,16 @@ namespace DafnyLanguage
   {
     readonly string _filename;
     readonly ITextSnapshot _snapshot;
+    readonly ITextBuffer _buffer;
     Dafny.Program _program;
+    static object bufferDafnyKey = new object();
 
     List<DafnyError> _errors = new List<DafnyError>();
     public List<DafnyError> Errors { get { return _errors; } }
 
-    public DafnyDriver(ITextSnapshot snapshot, string filename) {
-      _snapshot = snapshot;
+    public DafnyDriver(ITextBuffer buffer, string filename) {
+      _buffer = buffer;
+      _snapshot = buffer.CurrentSnapshot;
       _filename = filename;
     }
 
@@ -107,25 +110,42 @@ namespace DafnyLanguage
 
     #region Parsing and type checking
 
-    internal Dafny.Program ProcessResolution() {
-      if (!ParseAndTypeCheck()) {
+    internal Dafny.Program ProcessResolution(bool runResolver) {
+      if (!ParseAndTypeCheck(runResolver)) {
         return null;
       }
       return _program;
     }
 
-    bool ParseAndTypeCheck() {
-      Dafny.ModuleDecl module = new Dafny.LiteralModuleDecl(new Dafny.DefaultModuleDecl(), null);
-      Dafny.BuiltIns builtIns = new Dafny.BuiltIns();
-
+    bool ParseAndTypeCheck(bool runResolver) {
+      Tuple<ITextSnapshot, Dafny.Program, List<DafnyError>> parseResult;
+      Dafny.Program program;
       var errorReporter = new VSErrorReporter(this);
-      var parseErrors = new Dafny.Errors(errorReporter);
+      if (_buffer.Properties.TryGetProperty(bufferDafnyKey, out parseResult) &&
+         (parseResult.Item1 == _snapshot)) {
+        // already parsed;
+        program = parseResult.Item2;
+        _errors = parseResult.Item3;
+        if (program == null)
+          runResolver = false;
+      } else {
+        Dafny.ModuleDecl module = new Dafny.LiteralModuleDecl(new Dafny.DefaultModuleDecl(), null);
+        Dafny.BuiltIns builtIns = new Dafny.BuiltIns();
+        var parseErrors = new Dafny.Errors(errorReporter);
+        int errorCount = Dafny.Parser.Parse(_snapshot.GetText(), _filename, _filename, module, builtIns, parseErrors);
+        string errString = Dafny.Main.ParseIncludes(module, builtIns, new List<string>(), parseErrors);
 
-      int errorCount = Dafny.Parser.Parse(_snapshot.GetText(), _filename, _filename, module, builtIns, parseErrors);
-      string errString = Dafny.Main.ParseIncludes(module, builtIns, new List<string>(), parseErrors);
-      if (errorCount != 0 || errString != null)
+        if (errorCount != 0 || errString != null) {
+          runResolver = false;
+          program = null;
+        } else {
+          program = new Dafny.Program(_filename, module, builtIns, errorReporter);
+        }
+        _buffer.Properties[bufferDafnyKey] = new Tuple<ITextSnapshot, Dafny.Program, List<DafnyError>>(_snapshot, program, _errors);
+      }
+      if (!runResolver) {
         return false;
-      Dafny.Program program = new Dafny.Program(_filename, module, builtIns, errorReporter);
+      }
 
       var r = new Resolver(program);
       r.ResolveProgram(program);
@@ -135,6 +155,7 @@ namespace DafnyLanguage
       _program = program;
       return true;  // success
     }
+
 
     void RecordError(string filename, int line, int col, ErrorCategory cat, string msg, bool isRecycled = false)
     {

@@ -15,6 +15,7 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using System.Windows.Shapes;
 using Microsoft.VisualStudio;
+using System.Windows.Threading;
 using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.Shell.Interop;
 using Microsoft.VisualStudio.Text;
@@ -129,6 +130,8 @@ namespace DafnyLanguage
     ErrorListProvider _errorProvider;
     private bool m_disposed;
 
+    readonly DispatcherTimer timer;
+
     // The 'Snapshot' and 'Program' fields should be updated and read together, so they are protected by "this"
     public ITextSnapshot Snapshot;  // may be null
     public Dafny.Program Program;  // non-null only if the snapshot contains a Dafny program that type checks
@@ -227,7 +230,13 @@ namespace DafnyLanguage
       Snapshot = null;  // this makes sure the next snapshot will look different
       _errorProvider = new ErrorListProvider(serviceProvider);
 
-      BufferIdleEventUtil.AddBufferIdleEventListener(_buffer, ResolveBuffer);
+      BufferIdleEventUtil.AddBufferIdleEventListener(_buffer, UponIdle);
+
+      // keep track idle time after BufferIdleEvent has been handled.
+      timer = new DispatcherTimer(DispatcherPriority.ApplicationIdle);
+      timer.Interval = TimeSpan.FromMilliseconds(5000);
+      timer.Tick += new EventHandler(ResolveBuffer);
+      buffer.Changed += BufferChanged;
     }
 
     public void Dispose()
@@ -257,7 +266,9 @@ namespace DafnyLanguage
               _errorProvider.Dispose();
               _errorProvider = null;
             }
-            BufferIdleEventUtil.RemoveBufferIdleEventListener(_buffer, ResolveBuffer);
+            BufferIdleEventUtil.RemoveBufferIdleEventListener(_buffer, UponIdle);
+            timer.Tick -= ResolveBuffer;
+            _buffer.Changed -= BufferChanged;
             if (_document != null && _document.TextBuffer != null)
             {
               ResolverTaggers.Remove(_document.TextBuffer);
@@ -319,17 +330,28 @@ namespace DafnyLanguage
     /// </summary>
     void ResolveBuffer(object sender, EventArgs args)
     {
+      timer.Stop();
+      ParseAndResolveBuffer(sender, args, true);
+    }
+
+    void UponIdle(object sender, EventArgs args) {
+      timer.Stop();
+      ParseAndResolveBuffer(sender, args, false);
+      timer.Start();
+    }
+
+    void ParseAndResolveBuffer(object sender, EventArgs args, bool runResolver) {
       ITextSnapshot snapshot = _buffer.CurrentSnapshot;
-      if (snapshot == Snapshot)
+      if (snapshot == Snapshot && !runResolver)
         return;  // we've already done this snapshot
 
       string filename = _document != null ? _document.FilePath : "<program>";
-      var driver = new DafnyDriver(snapshot, filename);
+      var driver = new DafnyDriver(_buffer, filename);
       List<DafnyError> newErrors;
       Dafny.Program program;
       try
       {
-        program = driver.ProcessResolution();
+        program = driver.ProcessResolution(runResolver);
         newErrors = driver.Errors;
       }
       catch (Exception e)
@@ -356,6 +378,11 @@ namespace DafnyLanguage
       _resolutionErrors = newErrors;
 
       UpdateErrorList(snapshot);
+    }
+
+    void BufferChanged(object sender, TextContentChangedEventArgs e) {
+      timer.Stop();
+      timer.Start();
     }
 
     public void UpdateErrorList(ITextSnapshot snapshot)

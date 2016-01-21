@@ -91,10 +91,7 @@ namespace DafnyLanguage
     ITextBuffer _buffer;
     ITextSnapshot _snapshot;
     List<TokenRegion> _regions;
-    // TODO: instead of storing the scan result in the static field and shared by the different
-    // instances of DafnyTokenTagger, could it be associated to the TextBuffer using 
-    // ITextBuffer.Properties.GetOrCreateSingletonProperty?
-    static ScanResult _scanResult = null;
+    static object bufferTokenTaggerKey = new object();
     bool _disposed;
 
     internal DafnyTokenTagger(ITextBuffer buffer) {
@@ -109,10 +106,10 @@ namespace DafnyLanguage
       lock (this) {
         if (!_disposed) {
           _buffer.Changed -= ReparseFile;
+          _buffer.Properties.RemoveProperty(bufferTokenTaggerKey);
           _buffer = null;
           _snapshot = null;
           _regions = null;
-          _scanResult = null;
           _disposed = true;
         }
       }
@@ -150,12 +147,13 @@ namespace DafnyLanguage
         return;  // we've already computed the regions for this snapshot
       
       NormalizedSnapshotSpanCollection difference = new NormalizedSnapshotSpanCollection();
-      if (DafnyTokenTagger._scanResult != null &&
-        DafnyTokenTagger._scanResult._oldSnapshot == _snapshot &&
-        DafnyTokenTagger._scanResult._newSnapshot == snapshot) {
-        difference = DafnyTokenTagger._scanResult._difference;
+      ScanResult result;
+      if (_buffer.Properties.TryGetProperty(bufferTokenTaggerKey, out result) &&
+          (result._oldSnapshot == _snapshot) &&
+          (result._newSnapshot == snapshot)) {
+        difference = result._difference;
         // save the new baseline
-        _regions = DafnyTokenTagger._scanResult._regions;
+        _regions = result._regions;
         _snapshot = snapshot;
       } else {
         List<TokenRegion>  regions = new List<TokenRegion>();
@@ -229,7 +227,7 @@ namespace DafnyLanguage
         difference = SymmetricDifference(oldSpanCollection, newSpanCollection);
 
         // save the scan result
-        DafnyTokenTagger._scanResult = new ScanResult(_snapshot, snapshot, regions, difference);
+        _buffer.Properties[bufferTokenTaggerKey] = new ScanResult(_snapshot, snapshot, regions, difference);
         // save the new baseline
         _snapshot = snapshot;
         _regions = regions;
@@ -468,11 +466,12 @@ namespace DafnyLanguage
       return new SnapshotPoint(newSnapshot, start + N);
     }
 
-    private static List<TokenRegion> Scan(ITextSnapshot newSnapshot) {
+    private List<TokenRegion> Scan(ITextSnapshot newSnapshot) {      
       List<TokenRegion> newRegions; 
-      if (DafnyTokenTagger._scanResult != null &&
-        DafnyTokenTagger._scanResult._newSnapshot == newSnapshot) {
-        newRegions = DafnyTokenTagger._scanResult._regions;
+      ScanResult result;
+      if (_buffer.Properties.TryGetProperty(bufferTokenTaggerKey, out result) &&         
+        result._newSnapshot == newSnapshot) {
+        newRegions = result._regions;
       } else {
         newRegions = new List<TokenRegion>();
         int nextLineNumber = -1;
@@ -485,7 +484,7 @@ namespace DafnyLanguage
           SnapshotPoint end = Scan(txt, line.Start, newRegions, newSnapshot);
           nextLineNumber = newSnapshot.GetLineFromPosition(end).LineNumber;
         }
-        DafnyTokenTagger._scanResult = new ScanResult(null, newSnapshot, newRegions, null);
+        _buffer.Properties[bufferTokenTaggerKey] = new ScanResult(null, newSnapshot, newRegions, null);
       }
       return newRegions;
     }
