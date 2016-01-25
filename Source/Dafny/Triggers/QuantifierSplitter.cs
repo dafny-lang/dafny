@@ -100,8 +100,9 @@ namespace Microsoft.Dafny.Triggers {
     }
     
     private static bool AllowsSplitting(QuantifierExpr quantifier) {
-      bool splitAttr = true;
-      return !Attributes.ContainsBool(quantifier.Attributes, "split", ref splitAttr) || splitAttr;
+      // allow split if attributes doesn't contains "split" or it is "split: true" and it is not an empty QuantifierExpr (boundvar.count>0)
+      bool splitAttr = true; 
+      return (!Attributes.ContainsBool(quantifier.Attributes, "split", ref splitAttr) || splitAttr) && (quantifier.BoundVars.Count > 0);
     }
 
     protected override void VisitOneExpr(Expression expr) {
