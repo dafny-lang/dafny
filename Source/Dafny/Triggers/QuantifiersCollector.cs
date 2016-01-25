@@ -21,7 +21,8 @@ namespace Microsoft.Dafny.Triggers {
     protected override bool VisitOneExpr(Expression expr, ref bool inOldContext) {
       var quantifier = expr as QuantifierExpr;
 
-      if (quantifier != null && !quantifiers.Contains(quantifier)) {
+      // only consider quantifiers that are not empty (Bound.Vars.Count > 0)
+      if (quantifier != null && (quantifier.BoundVars.Count > 0) && !quantifiers.Contains(quantifier)) {
         quantifiers.Add(quantifier);
         if (quantifier.SplitQuantifier != null) {
           var collection = quantifier.SplitQuantifier.Select(q => q as QuantifierExpr).Where(q => q != null);
