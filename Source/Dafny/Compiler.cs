@@ -254,7 +254,7 @@ namespace Microsoft.Dafny {
           else if (d is ClassDecl) {
             var cl = (ClassDecl)d;
             Indent(indent, wr);
-            wr.Write("public class @{0}", cl.CompileName);
+            wr.Write("public partial class @{0}", cl.CompileName);
             if (cl.TypeArgs.Count != 0) {
               wr.Write("<{0}>", TypeParameters(cl.TypeArgs));
             }

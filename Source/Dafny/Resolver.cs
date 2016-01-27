@@ -197,6 +197,33 @@ namespace Microsoft.Dafny
       Contract.Invariant(cce.NonNullDictionaryAndValues(datatypeCtors) && Contract.ForAll(datatypeCtors.Values, v => cce.NonNullDictionaryAndValues(v)));
     }
 
+    /// <summary>
+    /// Check that now two modules that are being compiled have the same CompileName.
+    /// 
+    /// This could happen if they are given the same name using the 'extern' declaration modifier.
+    /// </summary>
+    /// <param name="prog">The Dafny program being compiled.</param>
+    void CheckDupModuleNames(Program prog)
+    {
+      // Check that none of the modules have the same CompileName.
+      Dictionary<string, ModuleDefinition> compileNameMap = new Dictionary<string, ModuleDefinition>();
+      foreach (ModuleDefinition m in prog.CompileModules) {
+        if (m.IsAbstract) {
+          // the purpose of an abstract module is to skip compilation
+          continue;
+        }
+        string compileName = m.CompileName;
+        ModuleDefinition priorModDef;
+        if (compileNameMap.TryGetValue(compileName, out priorModDef)) {
+          reporter.Error(MessageSource.Resolver, m.tok, 
+            "Modules '{0}' and '{1}' both have CompileName '{2}'.",
+            priorModDef.tok.val, m.tok.val, compileName);
+        }
+        else {
+          compileNameMap.Add(compileName, m);
+        }
+      }
+    }
     public void ResolveProgram(Program prog) {
       Contract.Requires(prog != null);
       var origErrorCount = reporter.Count(ErrorLevel.Error); //TODO: This is used further below, but not in the >0 comparisons in the next few lines. Is that right?
@@ -459,6 +486,8 @@ namespace Microsoft.Dafny
           }
         }
       }
+
+      CheckDupModuleNames(prog);
     }
 
     void FillInDefaultDecreasesClauses(Program prog)

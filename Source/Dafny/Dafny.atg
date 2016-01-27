@@ -23,10 +23,113 @@ readonly BuiltIns theBuiltIns;
 readonly bool theVerifyThisFile;
 int anonymousIds = 0;
 
-struct MemberModifiers {
+/// <summary>
+/// Holds the modifiers given for a declaration
+///
+/// Not all modifiers are applicable to all kinds of declarations.
+/// Errors are given when a modify does not apply.
+/// We also record the tokens for the specified modifiers so that
+/// they can be used in error messages.
+/// </summary>
+struct DeclModifierData {
+  public bool IsAbstract;
+  public IToken AbstractToken;
   public bool IsGhost;
+  public IToken GhostToken;
   public bool IsStatic;
+  public IToken StaticToken;
   public bool IsProtected;
+  public IToken ProtectedToken;
+  public bool IsExtern;
+  public IToken ExternToken;
+  public StringLiteralExpr ExternName;
+
+}
+
+// Check that token has not been set, then set it.
+public void CheckAndSetToken(ref IToken token)
+{
+    if (token != null) {
+      SemErr(t, "Duplicate declaration modifier: " + t.val);
+    }
+    token = t;
+}
+
+/// <summary>
+// A flags type used to tell what declaration modifiers are allowed for a declaration.
+/// </summary>
+[Flags]
+enum AllowedDeclModifiers {
+  None = 0,
+  Abstract = 1,
+  Ghost = 2,
+
+  // Means ghost not allowed because already implicitly ghost.
+  AlreadyGhost = 4,
+  Static = 8,
+  Protected = 16, 
+  Extern = 32
+};
+
+/// <summary>
+/// Check the declaration modifiers against those that are allowed.
+///
+/// The 'allowed' parameter specifies which declaratio modifiers are allowed.
+/// The 'declCaption' parameter should be a string describing the kind of declaration. 
+/// It is used in error messages.
+/// Any declaration modifiers that are present but not allowed are cleared.
+///</summary>
+void CheckDeclModifiers(DeclModifierData dmod, string declCaption, AllowedDeclModifiers allowed)
+{
+  if (dmod.IsAbstract && ((allowed & AllowedDeclModifiers.Abstract) == 0)) {
+    SemErr(dmod.AbstractToken, declCaption + " cannot be declared 'abstract'.");
+    dmod.IsAbstract = false;
+  }
+  if (dmod.IsGhost) {
+    if ((allowed & AllowedDeclModifiers.AlreadyGhost) != 0) {
+      SemErr(dmod.GhostToken, declCaption + " cannot be declared ghost (they are 'ghost' by default).");
+      dmod.IsGhost = false;
+    } else if ((allowed & AllowedDeclModifiers.Ghost) == 0) {
+      SemErr(dmod.GhostToken, declCaption + " cannot be declared 'ghost'.");
+      dmod.IsGhost = false;
+    }
+  }
+  if (dmod.IsStatic && ((allowed & AllowedDeclModifiers.Static) == 0)) {
+    SemErr(dmod.StaticToken, declCaption + " cannot be declared 'static'.");
+    dmod.IsStatic = false;
+  }
+  if (dmod.IsProtected && ((allowed & AllowedDeclModifiers.Protected) == 0)) {
+    SemErr(dmod.ProtectedToken, declCaption + " cannot be declared 'protected'.");
+    dmod.IsProtected = false;
+  }
+  if (dmod.IsExtern && ((allowed & AllowedDeclModifiers.Extern) == 0)) {
+    SemErr(dmod.ExternToken, declCaption + " cannot be declared 'extern'.");
+    dmod.IsExtern = false;
+  }
+}
+
+/// <summary>
+/// Encode an 'extern' declaration modifier as an {:extern name} attribute.
+///
+/// We also include an {:axiom} attribute since the specification of an
+/// external entity is assumed to hold, but only for methods or functions.
+///</summary>
+static void EncodeExternAsAttribute(DeclModifierData dmod, ref Attributes attrs, IToken/*!*/ id, bool needAxiom) {
+  if (dmod.IsExtern) {
+    StringLiteralExpr name = dmod.ExternName;
+    if (name == null) {
+      bool isVerbatimString = false;
+      name = new StringLiteralExpr(id, id.val, isVerbatimString);
+    }
+    var args = new List<Expression>();
+    args.Add(name);
+    attrs = new Attributes("extern", args, attrs);
+
+    // Also 'extern' implies 'axiom' for methods or functions.
+    if (needAxiom) {
+      attrs = new Attributes("axiom", new List<Expression>(), attrs);
+    }
+  }
 }
 
 ///<summary>
@@ -516,13 +619,10 @@ IGNORE cr + lf + tab
 /*------------------------------------------------------------------------*/
 PRODUCTIONS
 Dafny
-= (. ClassDecl/*!*/ c; DatatypeDecl/*!*/ dt; TopLevelDecl td; IteratorDecl iter;
-     List<MemberDecl/*!*/> membersDefaultClass = new List<MemberDecl/*!*/>();
-     ModuleDecl submodule;
+= (. List<MemberDecl/*!*/> membersDefaultClass = new List<MemberDecl/*!*/>();
      // to support multiple files, create a default module only if theModule is null
      DefaultModuleDecl defaultModule = (DefaultModuleDecl)((LiteralModuleDecl)theModule).ModuleDef;
      // theModule should be a DefaultModuleDecl (actually, the singular DefaultModuleDecl)
-	 TraitDecl/*!*/ trait;
      Contract.Assert(defaultModule != null);
   .)
   { "include" stringToken               (. {
@@ -540,15 +640,7 @@ Dafny
                                            }
                                         .)
   }
-  { SubModuleDecl<defaultModule, out submodule> (. defaultModule.TopLevelDecls.Add(submodule); .)
-  | ClassDecl<defaultModule, out c>             (. defaultModule.TopLevelDecls.Add(c); .)
-  | DatatypeDecl<defaultModule, out dt>         (. defaultModule.TopLevelDecls.Add(dt); .)
-  | NewtypeDecl<defaultModule, out td>          (. defaultModule.TopLevelDecls.Add(td); .)
-  | OtherTypeDecl<defaultModule, out td>        (. defaultModule.TopLevelDecls.Add(td); .)
-  | IteratorDecl<defaultModule, out iter>       (. defaultModule.TopLevelDecls.Add(iter); .)
-  | TraitDecl<defaultModule, out trait>    (. defaultModule.TopLevelDecls.Add(trait); .)
-  | ClassMemberDecl<membersDefaultClass, false, !DafnyOptions.O.AllowGlobals, false>
-  }
+  TopDecls<defaultModule, membersDefaultClass, /* isTopLevel */ true, /* isAbstract */ false>
   (. // find the default class in the default module, then append membersDefaultClass to its member list
      DefaultClassDecl defaultClass = null;
      foreach (TopLevelDecl topleveldecl in defaultModule.TopLevelDecls) {
@@ -564,43 +656,71 @@ Dafny
      } .)
   EOF
   .
-SubModuleDecl<ModuleDefinition parent, out ModuleDecl submodule>
-= (. ClassDecl/*!*/ c; DatatypeDecl/*!*/ dt; TopLevelDecl td; IteratorDecl iter;
-     Attributes attrs = null;  IToken/*!*/ id;
-     TraitDecl/*!*/ trait;
-	 List<MemberDecl/*!*/> namedModuleDefaultClassMembers = new List<MemberDecl>();;
+
+TopDecls<. ModuleDefinition module, List<MemberDecl/*!*/> membersDefaultClass, bool isTopLevel, bool isAbstract .>
+= { TopDecl<module, membersDefaultClass, isTopLevel, isAbstract> }
+  .
+
+DeclModifiers<out DeclModifierData dmod>
+= (. dmod = new DeclModifierData(); .)
+  { "abstract"                             (. dmod.IsAbstract = true;  CheckAndSetToken(ref dmod.AbstractToken); .)
+  | "ghost"                                (. dmod.IsGhost = true;  CheckAndSetToken(ref dmod.GhostToken); .)
+  | "static"                               (. dmod.IsStatic = true; CheckAndSetToken(ref dmod.StaticToken); .)
+  | "protected"                            (. dmod.IsProtected = true; CheckAndSetToken(ref dmod.ProtectedToken); .)
+  | "extern"                               (. dmod.IsExtern = true; CheckAndSetToken(ref dmod.ExternToken); .)
+    [ stringToken                          (. bool isVerbatimString;
+                                              string s = Util.RemoveParsedStringQuotes(t.val, out isVerbatimString);
+                                              dmod.ExternName = new StringLiteralExpr(t, s, isVerbatimString);
+                                           .)
+    ]
+  }
+  .
+
+TopDecl<. ModuleDefinition module, List<MemberDecl/*!*/> membersDefaultClass, bool isTopLevel, bool isAbstract .>
+= (. DeclModifierData dmod; ModuleDecl submodule;
+     ClassDecl/*!*/ c; DatatypeDecl/*!*/ dt; TopLevelDecl td; IteratorDecl iter;
+  	 TraitDecl/*!*/ trait;
+  .)
+  DeclModifiers<out dmod>
+  ( SubModuleDecl<dmod, module, out submodule> (. module.TopLevelDecls.Add(submodule); .)
+  | ClassDecl<dmod, module, out c>             (. module.TopLevelDecls.Add(c); .)
+  | DatatypeDecl<dmod, module, out dt>         (. module.TopLevelDecls.Add(dt); .)
+  | NewtypeDecl<dmod, module, out td>          (. module.TopLevelDecls.Add(td); .)
+  | OtherTypeDecl<dmod, module, out td>        (. module.TopLevelDecls.Add(td); .)
+  | IteratorDecl<dmod, module, out iter>       (. module.TopLevelDecls.Add(iter); .)
+  | TraitDecl<dmod, module, out trait>         (. module.TopLevelDecls.Add(trait); .)
+  | ClassMemberDecl<dmod, membersDefaultClass, false, !DafnyOptions.O.AllowGlobals, 
+                    !isTopLevel && DafnyOptions.O.IronDafny && isAbstract>
+  ) .
+
+SubModuleDecl<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl submodule>
+= (. Attributes attrs = null;  IToken/*!*/ id;
+	   List<MemberDecl/*!*/> namedModuleDefaultClassMembers = new List<MemberDecl>();;
      List<IToken> idRefined = null, idPath = null, idAssignment = null;
      ModuleDefinition module;
-     ModuleDecl sm;
      submodule = null; // appease compiler
-     bool isAbstract = false;
+     bool isAbstract = dmod.IsAbstract;
      bool isExclusively = false;
      bool opened = false;
+     CheckDeclModifiers(dmod, "Modules", AllowedDeclModifiers.Abstract | AllowedDeclModifiers.Extern);
   .)
-  ( [ "abstract"  (. isAbstract = true; .) ]
-    "module"
+  ( "module"
     { Attribute<ref attrs> }
     NoUSIdent<out id>
+    (. EncodeExternAsAttribute(dmod, ref attrs, id, /* needAxiom */ false); .)
 
       [ "exclusively" "refines" QualifiedModuleName<out idRefined> (. isExclusively = true; .)  
       | "refines" QualifiedModuleName<out idRefined> (. isExclusively = false; .) ] 
             (. module = new ModuleDefinition(id, id.val, isAbstract, false, isExclusively, idRefined == null ? null : idRefined, parent, attrs, false, this); .)  
        "{"                                             (. module.BodyStartTok = t; .)
-        { SubModuleDecl<module, out sm>                (. module.TopLevelDecls.Add(sm); .)
-        | ClassDecl<module, out c>                     (. module.TopLevelDecls.Add(c); .)
-        | TraitDecl<module, out trait>                 (. module.TopLevelDecls.Add(trait); .)
-		| DatatypeDecl<module, out dt>                 (. module.TopLevelDecls.Add(dt); .)
-        | NewtypeDecl<module, out td>                  (. module.TopLevelDecls.Add(td); .)
-        | OtherTypeDecl<module, out td>                (. module.TopLevelDecls.Add(td); .)
-        | IteratorDecl<module, out iter>               (. module.TopLevelDecls.Add(iter); .)
-        | ClassMemberDecl<namedModuleDefaultClassMembers, false, !DafnyOptions.O.AllowGlobals, DafnyOptions.O.IronDafny && isAbstract>
-        }
-      "}"                                  (. module.BodyEndTok = t;
+            TopDecls<module, namedModuleDefaultClassMembers, /* isTopLevel */ false, isAbstract>
+       "}"                                 (. module.BodyEndTok = t;
                                               module.TopLevelDecls.Add(new DefaultClassDecl(module, namedModuleDefaultClassMembers));
                                               submodule = new LiteralModuleDecl(module, parent); .)
   |
     "import" ["opened" (.opened = true;.)]
     NoUSIdent<out id>
+    (. EncodeExternAsAttribute(dmod, ref attrs, id, /* needAxiom */ false); .)
     [ "=" QualifiedModuleName<out idPath>
       (. submodule = new AliasModuleDecl(idPath, id, parent, opened); .)
     | "as" QualifiedModuleName<out idPath>  ["default" QualifiedModuleName<out idAssignment> ]
@@ -629,7 +749,7 @@ QualifiedModuleName<.out List<IToken> ids.>
   }
   .
 
-ClassDecl<ModuleDefinition/*!*/ module, out ClassDecl/*!*/ c>
+ClassDecl<DeclModifierData dmodClass, ModuleDefinition/*!*/ module, out ClassDecl/*!*/ c>
 = (. Contract.Requires(module != null);
      Contract.Ensures(Contract.ValueAtReturn(out c) != null);
      IToken/*!*/ id;
@@ -639,18 +759,21 @@ ClassDecl<ModuleDefinition/*!*/ module, out ClassDecl/*!*/ c>
      List<TypeParameter/*!*/> typeArgs = new List<TypeParameter/*!*/>();
      List<MemberDecl/*!*/> members = new List<MemberDecl/*!*/>();
      IToken bodyStart;
+     CheckDeclModifiers(dmodClass, "Classes", AllowedDeclModifiers.Extern);
+     DeclModifierData dmod; 
   .)
   SYNC
   "class"
   { Attribute<ref attrs> }
   NoUSIdent<out id>
+  (. EncodeExternAsAttribute(dmodClass, ref attrs, id, /* needAxiom */ false); .)
   [ GenericParameters<typeArgs> ]
   ["extends" 
   Type<out trait>		(. traits.Add(trait); .) 
   {"," Type<out trait>  (. traits.Add(trait); .) }
   ]         
   "{"                                            (. bodyStart = t;  .)
-  { ClassMemberDecl<members, true, false, false>
+  { DeclModifiers<out dmod> ClassMemberDecl<dmod, members, true, false, false>
   }
   "}"
   (. c = new ClassDecl(id, id.val, module, typeArgs, members, attrs, traits);
@@ -659,14 +782,16 @@ ClassDecl<ModuleDefinition/*!*/ module, out ClassDecl/*!*/ c>
   .)
   .
 
-    TraitDecl<ModuleDefinition/*!*/ module, out TraitDecl/*!*/ trait>
-  = (. Contract.Requires(module != null);
+TraitDecl<DeclModifierData dmodIn, ModuleDefinition/*!*/ module, out TraitDecl/*!*/ trait>
+  = (. Contract.Requires(module != null);     
+     CheckDeclModifiers(dmodIn, "Traits", AllowedDeclModifiers.None);
 	   Contract.Ensures(Contract.ValueAtReturn(out trait) != null);
 	   IToken/*!*/ id;
 	   Attributes attrs = null;
 	   List<TypeParameter/*!*/> typeArgs = new List<TypeParameter/*!*/>(); //traits should not support type parameters at the moment
 	   List<MemberDecl/*!*/> members = new List<MemberDecl/*!*/>();
 	   IToken bodyStart;
+     DeclModifierData dmod; 
     .)
 	SYNC
 	"trait"
@@ -674,7 +799,7 @@ ClassDecl<ModuleDefinition/*!*/ module, out ClassDecl/*!*/ c>
 	NoUSIdent<out id>
 	[ GenericParameters<typeArgs> ]
 	"{"                                            (. bodyStart = t; .)
-    { ClassMemberDecl<members, true, false, false>
+    { DeclModifiers<out dmod> ClassMemberDecl<dmod, members, true, false, false>
     }
     "}"
 	(. trait = new TraitDecl(id, id.val, module, typeArgs, members, attrs);
@@ -683,44 +808,33 @@ ClassDecl<ModuleDefinition/*!*/ module, out ClassDecl/*!*/ c>
     .)
 	.
 
-ClassMemberDecl<.List<MemberDecl> mm, bool allowConstructors, bool moduleLevelDecl, bool isWithinAbstractModule.>
+ClassMemberDecl<. DeclModifierData dmod, List<MemberDecl> mm, bool allowConstructors, bool moduleLevelDecl, bool isWithinAbstractModule.>
 = (. Contract.Requires(cce.NonNullElements(mm));
      Method/*!*/ m;
      Function/*!*/ f;
-     MemberModifiers mmod = new MemberModifiers();
-     IToken staticToken = null, protectedToken = null;
   .)
-  { "ghost"                                (. mmod.IsGhost = true; .)
-  | "static"                               (. mmod.IsStatic = true; staticToken = t; .)
-  | "protected"                            (. mmod.IsProtected = true; protectedToken = t; .)
-  }
   ( (. if (moduleLevelDecl) {
          SemErr(la, "fields are not allowed to be declared at the module level; instead, wrap the field in a 'class' declaration");
-         mmod.IsStatic = false;
-         mmod.IsProtected = false;
+         dmod.IsStatic = false;
        }
     .)
-    FieldDecl<mmod, mm>
+    FieldDecl<dmod, mm>
   | IF(IsFunctionDecl())
-    (. if (moduleLevelDecl && staticToken != null) {
-         errors.Warning(staticToken, "module-level functions are always non-instance, so the 'static' keyword is not allowed here");
-         mmod.IsStatic = false;
+    (. if (moduleLevelDecl && dmod.StaticToken != null) {
+         errors.Warning(dmod.StaticToken, "module-level functions are always non-instance, so the 'static' keyword is not allowed here");
+         dmod.IsStatic = false;
        }
     .)
-    FunctionDecl<mmod, isWithinAbstractModule, out f>                   (. mm.Add(f); .)
-  | (. if (moduleLevelDecl && staticToken != null) {
-         errors.Warning(staticToken, "module-level methods are always non-instance, so the 'static' keyword is not allowed here");
-         mmod.IsStatic = false;
-       }
-       if (protectedToken != null) {
-         SemErr(protectedToken, "only functions, not methods, can be declared 'protected'");
-         mmod.IsProtected = false;
+    FunctionDecl<dmod, isWithinAbstractModule, out f>                   (. mm.Add(f); .)
+  | (. if (moduleLevelDecl && dmod.StaticToken != null) {
+         errors.Warning(dmod.StaticToken, "module-level methods are always non-instance, so the 'static' keyword is not allowed here");
+         dmod.IsStatic = false;
        }
     .)
-    MethodDecl<mmod, allowConstructors, isWithinAbstractModule, out m>  (. mm.Add(m); .)
+    MethodDecl<dmod, allowConstructors, isWithinAbstractModule, out m>  (. mm.Add(m); .)
   )
   .
-DatatypeDecl<ModuleDefinition/*!*/ module, out DatatypeDecl/*!*/ dt>
+DatatypeDecl<DeclModifierData dmod, ModuleDefinition/*!*/ module, out DatatypeDecl/*!*/ dt>
 = (. Contract.Requires(module != null);
      Contract.Ensures(Contract.ValueAtReturn(out dt)!=null);
      IToken/*!*/ id;
@@ -729,6 +843,7 @@ DatatypeDecl<ModuleDefinition/*!*/ module, out DatatypeDecl/*!*/ dt>
      List<DatatypeCtor/*!*/> ctors = new List<DatatypeCtor/*!*/>();
      IToken bodyStart = Token.NoToken;  // dummy assignment
      bool co = false;
+     CheckDeclModifiers(dmod, "Datatypes or codatatypes", AllowedDeclModifiers.None);
   .)
   SYNC
   ( "datatype"
@@ -766,27 +881,27 @@ DatatypeMemberDecl<.List<DatatypeCtor/*!*/>/*!*/ ctors.>
   [ FormalsOptionalIds<formals> ]
   (. ctors.Add(new DatatypeCtor(id, id.val, formals, attrs)); .)
   .
-FieldDecl<.MemberModifiers mmod, List<MemberDecl/*!*/>/*!*/ mm.>
+FieldDecl<.DeclModifierData dmod, List<MemberDecl/*!*/>/*!*/ mm.>
 = (. Contract.Requires(cce.NonNullElements(mm));
      Attributes attrs = null;
      IToken/*!*/ id;  Type/*!*/ ty;
+     CheckDeclModifiers(dmod, "Fields", AllowedDeclModifiers.Ghost);
   .)
   SYNC
   "var"
-  (. if (mmod.IsStatic) { SemErr(t, "fields cannot be declared 'static'"); }
-  .)
   { Attribute<ref attrs> }
-  FIdentType<out id, out ty>                        (. mm.Add(new Field(id, id.val, mmod.IsGhost, ty, attrs)); .)
-  { "," FIdentType<out id, out ty>                  (. mm.Add(new Field(id, id.val, mmod.IsGhost, ty, attrs)); .)
+  FIdentType<out id, out ty>                        (. mm.Add(new Field(id, id.val, dmod.IsGhost, ty, attrs)); .)
+  { "," FIdentType<out id, out ty>                  (. mm.Add(new Field(id, id.val, dmod.IsGhost, ty, attrs)); .)
   }
   OldSemi
   .
-NewtypeDecl<ModuleDefinition module, out TopLevelDecl td>
+NewtypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl td>
 = (. IToken id, bvId;
      Attributes attrs = null;
      td = null;
      Type baseType = null;
      Expression wh;
+     CheckDeclModifiers(dmod, "Newtypes", AllowedDeclModifiers.None);
   .)
   "newtype"
   { Attribute<ref attrs> }
@@ -800,13 +915,14 @@ NewtypeDecl<ModuleDefinition module, out TopLevelDecl td>
   | Type<out baseType>               (. td = new NewtypeDecl(theVerifyThisFile ? id : new IncludeToken(id), id.val, module, baseType, attrs); .)
   )
   .
-OtherTypeDecl<ModuleDefinition module, out TopLevelDecl td>
+OtherTypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl td>
 = (. IToken id;
      Attributes attrs = null;
      var eqSupport = TypeParameter.EqualitySupportValue.Unspecified;
      var typeArgs = new List<TypeParameter>();
      td = null;
      Type ty;
+     CheckDeclModifiers(dmod, "Type aliases", AllowedDeclModifiers.None);
   .)
   "type"
   { Attribute<ref attrs> }
@@ -902,7 +1018,7 @@ TypeIdentOptional<out IToken/*!*/ id, out string/*!*/ identName, out Type/*!*/ t
   .)
   .
 /*------------------------------------------------------------------------*/
-IteratorDecl<ModuleDefinition module, out IteratorDecl/*!*/ iter>
+IteratorDecl<DeclModifierData dmod, ModuleDefinition module, out IteratorDecl/*!*/ iter>
 = (. Contract.Ensures(Contract.ValueAtReturn(out iter) != null);
      IToken/*!*/ id;
      Attributes attrs = null;
@@ -924,6 +1040,7 @@ IteratorDecl<ModuleDefinition module, out IteratorDecl/*!*/ iter>
      IToken signatureEllipsis = null;
      IToken bodyStart = Token.NoToken;
      IToken bodyEnd = Token.NoToken;
+     CheckDeclModifiers(dmod, "Iterators", AllowedDeclModifiers.None);
   .)
   SYNC
   "iterator"
@@ -969,7 +1086,7 @@ GenericParameters<.List<TypeParameter/*!*/>/*!*/ typeArgs.>
   ">"
   .
 /*------------------------------------------------------------------------*/
-MethodDecl<MemberModifiers mmod, bool allowConstructor, bool isWithinAbstractModule, out Method/*!*/ m>
+MethodDecl<DeclModifierData dmod, bool allowConstructor, bool isWithinAbstractModule, out Method/*!*/ m>
 = (. Contract.Ensures(Contract.ValueAtReturn(out m) !=null);
      IToken/*!*/ id = Token.NoToken;
      bool hasName = false;  IToken keywordToken;
@@ -991,43 +1108,36 @@ MethodDecl<MemberModifiers mmod, bool allowConstructor, bool isWithinAbstractMod
      IToken signatureEllipsis = null;
      IToken bodyStart = Token.NoToken;
      IToken bodyEnd = Token.NoToken;
+     AllowedDeclModifiers allowed = AllowedDeclModifiers.None;
+     string caption = "";
   .)
   SYNC
-  ( "method"
-  | "lemma"                         (. isLemma = true; .)
-  | "colemma"                       (. isCoLemma = true; .)
-  | "comethod"                      (. isCoLemma = true;
+  ( "method"                        (. caption = "Methods";
+                                       allowed = AllowedDeclModifiers.Ghost | AllowedDeclModifiers.Static 
+                                         | AllowedDeclModifiers.Extern; .)
+  | "lemma"                         (. isLemma = true; caption = "Lemmas";
+                                       allowed = AllowedDeclModifiers.AlreadyGhost | AllowedDeclModifiers.Static 
+                                         | AllowedDeclModifiers.Protected; .)
+  | "colemma"                       (. isCoLemma = true; caption = "Colemmas";
+                                       allowed = AllowedDeclModifiers.AlreadyGhost | AllowedDeclModifiers.Static 
+                                         | AllowedDeclModifiers.Protected; .)
+  | "comethod"                      (. isCoLemma = true; caption = "Comethods";
+                                       allowed = AllowedDeclModifiers.AlreadyGhost | AllowedDeclModifiers.Static 
+                                         | AllowedDeclModifiers.Protected;
                                        errors.Warning(t, "the 'comethod' keyword has been deprecated; it has been renamed to 'colemma'");
                                     .)
-  | "inductive" "lemma"             (. isIndLemma = true; .)
+  | "inductive" "lemma"             (. isIndLemma = true;  caption = "Inductive lemmas";
+                                       allowed = AllowedDeclModifiers.AlreadyGhost | AllowedDeclModifiers.Static;.)
   | "constructor"                   (. if (allowConstructor) {
                                          isConstructor = true;
                                        } else {
                                          SemErr(t, "constructors are allowed only in classes");
-                                       }
+                                       } 
+                                       caption = "Constructors";
+                                       allowed = AllowedDeclModifiers.None;
                                     .)
-  )                                 (. keywordToken = t; .)
-  (. if (isLemma) {
-       if (mmod.IsGhost) {
-         SemErr(t, "lemmas cannot be declared 'ghost' (they are automatically 'ghost')");
-       }
-     } else if (isConstructor) {
-       if (mmod.IsGhost) {
-         SemErr(t, "constructors cannot be declared 'ghost'");
-       }
-       if (mmod.IsStatic) {
-         SemErr(t, "constructors cannot be declared 'static'");
-       }
-     } else if (isIndLemma) {
-       if (mmod.IsGhost) {
-         SemErr(t, "inductive lemmas cannot be declared 'ghost' (they are automatically 'ghost')");
-       }
-     } else if (isCoLemma) {
-       if (mmod.IsGhost) {
-         SemErr(t, "colemmas cannot be declared 'ghost' (they are automatically 'ghost')");
-       }
-     }
-  .)
+  )                                 (. keywordToken = t; 
+                                       CheckDeclModifiers(dmod, caption, allowed); .)
   { Attribute<ref attrs> }
   [ NoUSIdent<out id>               (. hasName = true; .)
   ]
@@ -1037,12 +1147,13 @@ MethodDecl<MemberModifiers mmod, bool allowConstructor, bool isWithinAbstractMod
          SemErr(la, "a method must be given a name (expecting identifier)");
        }
      }
+     EncodeExternAsAttribute(dmod, ref attrs, id, /* needAxiom */ true);
   .)
   (
     [ GenericParameters<typeArgs> ]
-    Formals<true, !mmod.IsGhost, ins>
+    Formals<true, !dmod.IsGhost, ins>
     [ "returns"                                 (. if (isConstructor) { SemErr(t, "constructors cannot have out-parameters"); } .)
-      Formals<false, !mmod.IsGhost, outs>
+      Formals<false, !dmod.IsGhost, outs>
     ]
   | "..."                                       (. signatureEllipsis = t; .)
   )
@@ -1059,16 +1170,16 @@ MethodDecl<MemberModifiers mmod, bool allowConstructor, bool isWithinAbstractMod
        m = new Constructor(tok, hasName ? id.val : "_ctor", typeArgs, ins,
                            req, new Specification<FrameExpression>(mod, modAttrs), ens, new Specification<Expression>(dec, decAttrs), body, attrs, signatureEllipsis);
      } else if (isIndLemma) {
-       m = new InductiveLemma(tok, id.val, mmod.IsStatic, typeArgs, ins, outs,
+       m = new InductiveLemma(tok, id.val, dmod.IsStatic, typeArgs, ins, outs,
                               req, new Specification<FrameExpression>(mod, modAttrs), ens, new Specification<Expression>(dec, decAttrs), body, attrs, signatureEllipsis);
      } else if (isCoLemma) {
-       m = new CoLemma(tok, id.val, mmod.IsStatic, typeArgs, ins, outs,
+       m = new CoLemma(tok, id.val, dmod.IsStatic, typeArgs, ins, outs,
                        req, new Specification<FrameExpression>(mod, modAttrs), ens, new Specification<Expression>(dec, decAttrs), body, attrs, signatureEllipsis);
      } else if (isLemma) {
-       m = new Lemma(tok, id.val, mmod.IsStatic, typeArgs, ins, outs,
+       m = new Lemma(tok, id.val, dmod.IsStatic, typeArgs, ins, outs,
                      req, new Specification<FrameExpression>(mod, modAttrs), ens, new Specification<Expression>(dec, decAttrs), body, attrs, signatureEllipsis);
      } else {
-       m = new Method(tok, id.val, mmod.IsStatic, mmod.IsGhost, typeArgs, ins, outs,
+       m = new Method(tok, id.val, dmod.IsStatic, dmod.IsGhost, typeArgs, ins, outs,
                       req, new Specification<FrameExpression>(mod, modAttrs), ens, new Specification<Expression>(dec, decAttrs), body, attrs, signatureEllipsis);
      }
      m.BodyStartTok = bodyStart;
@@ -1273,7 +1384,7 @@ GenericInstantiation<.List<Type/*!*/>/*!*/ gt.>
   ">"
   .
 /*------------------------------------------------------------------------*/
-FunctionDecl<MemberModifiers mmod, bool isWithinAbstractModule, out Function/*!*/ f>
+FunctionDecl<DeclModifierData dmod, bool isWithinAbstractModule, out Function/*!*/ f>
 = (. Contract.Ensures(Contract.ValueAtReturn(out f)!=null);
      Attributes attrs = null;
      IToken/*!*/ id = Token.NoToken;  // to please compiler
@@ -1296,7 +1407,13 @@ FunctionDecl<MemberModifiers mmod, bool isWithinAbstractModule, out Function/*!*
   ( "function"
     [ "method"                 (. isFunctionMethod = true; .)
     ]
-    (. if (mmod.IsGhost) { SemErr(t, "functions cannot be declared 'ghost' (they are ghost by default)"); }
+    (. AllowedDeclModifiers allowed = AllowedDeclModifiers.AlreadyGhost | AllowedDeclModifiers.Static | AllowedDeclModifiers.Protected;
+       string caption = "Functions";
+       if (isFunctionMethod) { 
+         allowed |= AllowedDeclModifiers.Extern; 
+         caption = "Function methods";
+       }
+       CheckDeclModifiers(dmod, caption, allowed);
     .)
     { Attribute<ref attrs> }
     NoUSIdent<out id>
@@ -1312,7 +1429,13 @@ FunctionDecl<MemberModifiers mmod, bool isWithinAbstractModule, out Function/*!*
   | "predicate"                (. isPredicate = true; .)
     [ "method"                 (. isFunctionMethod = true; .)
     ]
-    (. if (mmod.IsGhost) { SemErr(t, "predicates cannot be declared 'ghost' (they are ghost by default)"); }
+    (. AllowedDeclModifiers allowed = AllowedDeclModifiers.AlreadyGhost | AllowedDeclModifiers.Static | AllowedDeclModifiers.Protected;
+       string caption = "Predicates";
+       if (isFunctionMethod) { 
+         allowed |= AllowedDeclModifiers.Extern; 
+         caption = "Predicate methods";
+       }
+       CheckDeclModifiers(dmod, caption, allowed);
     .)
     { Attribute<ref attrs> }
     NoUSIdent<out id>
@@ -1327,7 +1450,8 @@ FunctionDecl<MemberModifiers mmod, bool isWithinAbstractModule, out Function/*!*
 
   /* ----- inductive predicate ----- */
   | "inductive" "predicate"    (. isIndPredicate = true; .)
-    (. if (mmod.IsGhost) { SemErr(t, "inductive predicates cannot be declared 'ghost' (they are ghost by default)"); }
+    (. CheckDeclModifiers(dmod, "Inductive predicates",
+         AllowedDeclModifiers.AlreadyGhost | AllowedDeclModifiers.Static | AllowedDeclModifiers.Protected);
     .)
     { Attribute<ref attrs> }
     NoUSIdent<out id>
@@ -1341,7 +1465,8 @@ FunctionDecl<MemberModifiers mmod, bool isWithinAbstractModule, out Function/*!*
 
   /* ----- copredicate ----- */
   | "copredicate"              (. isCoPredicate = true; .)
-    (. if (mmod.IsGhost) { SemErr(t, "copredicates cannot be declared 'ghost' (they are ghost by default)"); }
+    (. CheckDeclModifiers(dmod, "Copredicates",
+         AllowedDeclModifiers.AlreadyGhost | AllowedDeclModifiers.Static | AllowedDeclModifiers.Protected);
     .)
     { Attribute<ref attrs> }
     NoUSIdent<out id>
@@ -1358,22 +1483,23 @@ FunctionDecl<MemberModifiers mmod, bool isWithinAbstractModule, out Function/*!*
   { FunctionSpec<reqs, reads, ens, decreases> }
   [ FunctionBody<out body, out bodyStart, out bodyEnd>
   ]
-  (. if (!isWithinAbstractModule && DafnyOptions.O.DisallowSoundnessCheating && body == null && ens.Count > 0 && !Attributes.Contains(attrs, "axiom") && !Attributes.Contains(attrs, "imported")) {
+  (. if (!isWithinAbstractModule && DafnyOptions.O.DisallowSoundnessCheating && body == null && ens.Count > 0 &&
+         !Attributes.Contains(attrs, "axiom") && !Attributes.Contains(attrs, "imported")) {
         SemErr(t, "a function with an ensures clause must have a body, unless given the :axiom attribute");
      }
-
+     EncodeExternAsAttribute(dmod, ref attrs, id, /* needAxiom */ true);
      IToken tok = theVerifyThisFile ? id : new IncludeToken(id);
      if (isPredicate) {
-        f = new Predicate(tok, id.val, mmod.IsStatic, mmod.IsProtected, !isFunctionMethod, typeArgs, formals,
+        f = new Predicate(tok, id.val, dmod.IsStatic, dmod.IsProtected, !isFunctionMethod, typeArgs, formals,
                           reqs, reads, ens, new Specification<Expression>(decreases, null), body, Predicate.BodyOriginKind.OriginalOrInherited, attrs, signatureEllipsis);
      } else if (isIndPredicate) {
-        f = new InductivePredicate(tok, id.val, mmod.IsStatic, mmod.IsProtected, typeArgs, formals,
+        f = new InductivePredicate(tok, id.val, dmod.IsStatic, dmod.IsProtected, typeArgs, formals,
                                    reqs, reads, ens, body, attrs, signatureEllipsis);
      } else if (isCoPredicate) {
-        f = new CoPredicate(tok, id.val, mmod.IsStatic, mmod.IsProtected, typeArgs, formals,
+        f = new CoPredicate(tok, id.val, dmod.IsStatic, dmod.IsProtected, typeArgs, formals,
                             reqs, reads, ens, body, attrs, signatureEllipsis);
      } else {
-        f = new Function(tok, id.val, mmod.IsStatic, mmod.IsProtected, !isFunctionMethod, typeArgs, formals, returnType,
+        f = new Function(tok, id.val, dmod.IsStatic, dmod.IsProtected, !isFunctionMethod, typeArgs, formals, returnType,
                          reqs, reads, ens, new Specification<Expression>(decreases, null), body, attrs, signatureEllipsis);
      }
      f.BodyStartTok = bodyStart;

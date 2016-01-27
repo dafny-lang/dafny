@@ -1,0 +1,3 @@
+ExternNegative.dfy(11,11): Error: Function methods cannot be declared 'abstract'.
+ExternNegative.dfy(16,11): Error: Duplicate declaration modifier: static
+2 parse errors detected in ExternNegative.dfy

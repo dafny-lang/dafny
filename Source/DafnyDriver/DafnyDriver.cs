@@ -13,6 +13,7 @@ namespace Microsoft.Dafny
   using System;
   using System.CodeDom.Compiler;
   using System.Collections.Generic;
+  using System.Collections.ObjectModel;
   using System.Diagnostics.Contracts;
   using System.IO;
   using System.Reflection;
@@ -82,18 +83,27 @@ namespace Microsoft.Dafny
         Console.WriteLine("--------------------");
       }
 
+      var dafnyFiles = new List<string>();
+      var otherFiles = new List<string>();
+
       foreach (string file in CommandLineOptions.Clo.Files)
-      {Contract.Assert(file != null);
+      { Contract.Assert(file != null);
         string extension = Path.GetExtension(file);
         if (extension != null) { extension = extension.ToLower(); }
-        if (extension != ".dfy") {
-          ExecutionEngine.printer.ErrorWriteLine(Console.Out, "*** Error: '{0}': Filename extension '{1}' is not supported. Input files must be Dafny programs (.dfy).", file,
+        if (extension == ".dfy") {
+          dafnyFiles.Add(file);
+        }
+        else if ((extension == ".cs") || (extension == ".dll")) {
+          otherFiles.Add(file);
+        }
+        else {
+          ExecutionEngine.printer.ErrorWriteLine(Console.Out, "*** Error: '{0}': Filename extension '{1}' is not supported. Input files must be Dafny programs (.dfy) or C# files (.cs) or managed DLLS (.dll)", file,
             extension == null ? "" : extension);
           exitValue = ExitValue.PREPROCESSING_ERROR;
           goto END;
         }
       }
-      exitValue = ProcessFiles(CommandLineOptions.Clo.Files, reporter);
+      exitValue = ProcessFiles(dafnyFiles, otherFiles.AsReadOnly(), reporter);
 
       END:
         if (CommandLineOptions.Clo.XmlSink != null) {
@@ -113,9 +123,10 @@ namespace Microsoft.Dafny
     }
 
 
-    static ExitValue ProcessFiles(IList<string/*!*/>/*!*/ fileNames, ErrorReporter reporter, bool lookForSnapshots = true, string programId = null)
-    {
-      Contract.Requires(cce.NonNullElements(fileNames));
+    static ExitValue ProcessFiles(IList<string/*!*/>/*!*/ dafnyFileNames, ReadOnlyCollection<string> otherFileNames, 
+                                  ErrorReporter reporter, bool lookForSnapshots = true, string programId = null)
+   {
+      Contract.Requires(cce.NonNullElements(dafnyFileNames));
 
       if (programId == null)
       {
@@ -123,13 +134,18 @@ namespace Microsoft.Dafny
       }
 
       ExitValue exitValue = ExitValue.VERIFIED;
-      if (CommandLineOptions.Clo.VerifySeparately && 1 < fileNames.Count)
+      if (CommandLineOptions.Clo.VerifySeparately && 1 < dafnyFileNames.Count)
       {
-        foreach (var f in fileNames)
+        foreach (var f in dafnyFileNames)
         {
+          string extension = Path.GetExtension(f);
+          if (extension != null) { extension = extension.ToLower(); }
+          if (extension != ".dfy"){
+            continue;
+          }
           Console.WriteLine();
           Console.WriteLine("-------------------- {0} --------------------", f);
-          var ev = ProcessFiles(new List<string> { f }, reporter, lookForSnapshots, f);
+          var ev = ProcessFiles(new List<string> { f }, new List<string>().AsReadOnly(), reporter, lookForSnapshots, f);
           if (exitValue != ev && ev != ExitValue.VERIFIED)
           {
             exitValue = ev;
@@ -140,10 +156,10 @@ namespace Microsoft.Dafny
 
       if (0 <= CommandLineOptions.Clo.VerifySnapshots && lookForSnapshots)
       {
-        var snapshotsByVersion = ExecutionEngine.LookForSnapshots(fileNames);
+        var snapshotsByVersion = ExecutionEngine.LookForSnapshots(dafnyFileNames);
         foreach (var s in snapshotsByVersion)
         {
-          var ev = ProcessFiles(new List<string>(s), reporter, false, programId);
+          var ev = ProcessFiles(new List<string>(s), new List<string>().AsReadOnly(), reporter, false, programId);
           if (exitValue != ev && ev != ExitValue.VERIFIED)
           {
             exitValue = ev;
@@ -152,10 +168,10 @@ namespace Microsoft.Dafny
         return exitValue;
       }
       
-      using (XmlFileScope xf = new XmlFileScope(CommandLineOptions.Clo.XmlSink, fileNames[fileNames.Count-1])) {
+      using (XmlFileScope xf = new XmlFileScope(CommandLineOptions.Clo.XmlSink, dafnyFileNames[dafnyFileNames.Count-1])) {
         Dafny.Program dafnyProgram;
-        string programName = fileNames.Count == 1 ? fileNames[0] : "the program";
-        string err = Dafny.Main.ParseCheck(fileNames, programName, reporter, out dafnyProgram);
+        string programName = dafnyFileNames.Count == 1 ? dafnyFileNames[0] : "the program";
+        string err = Dafny.Main.ParseCheck(dafnyFileNames, programName, reporter, out dafnyProgram);
         if (err != null) {
           exitValue = ExitValue.DAFNY_ERROR;
           ExecutionEngine.printer.ErrorWriteLine(Console.Out, err);
@@ -172,7 +188,7 @@ namespace Microsoft.Dafny
           if (CommandLineOptions.Clo.PrintFile != null) {
             bplFilename = CommandLineOptions.Clo.PrintFile;
           } else {
-            string baseName = cce.NonNull(Path.GetFileName(fileNames[fileNames.Count-1]));
+            string baseName = cce.NonNull(Path.GetFileName(dafnyFileNames[dafnyFileNames.Count-1]));
             baseName = cce.NonNull(Path.ChangeExtension(baseName, "bpl"));
             bplFilename = Path.Combine(Path.GetTempPath(), baseName);
           }
@@ -184,12 +200,12 @@ namespace Microsoft.Dafny
             case PipelineOutcome.VerificationCompleted:
               ExecutionEngine.printer.WriteTrailer(stats);
               if ((DafnyOptions.O.Compile && allOk && CommandLineOptions.Clo.ProcsToCheck == null) || DafnyOptions.O.ForceCompile)
-                CompileDafnyProgram(dafnyProgram, fileNames[0]);
+                CompileDafnyProgram(dafnyProgram, dafnyFileNames[0], otherFileNames);
               break;
             case PipelineOutcome.Done:
               ExecutionEngine.printer.WriteTrailer(stats);
               if (DafnyOptions.O.ForceCompile)
-                CompileDafnyProgram(dafnyProgram, fileNames[0]);
+                CompileDafnyProgram(dafnyProgram, dafnyFileNames[0], otherFileNames);
               break;
             default:
               // error has already been reported to user
@@ -289,7 +305,23 @@ namespace Microsoft.Dafny
 
     #region Compilation
 
-    public static void CompileDafnyProgram(Dafny.Program dafnyProgram, string dafnyProgramName, TextWriter outputWriter = null)
+    static string WriteDafnyProgramToFile(string dafnyProgramName, string csharpProgram, bool completeProgram, TextWriter outputWriter)
+    {
+      string targetFilename = Path.ChangeExtension(dafnyProgramName, "cs");
+      using (TextWriter target = new StreamWriter(new FileStream(targetFilename, System.IO.FileMode.Create))) {
+        target.Write(csharpProgram);
+        if (completeProgram) {
+          outputWriter.WriteLine("Compiled program written to {0}", targetFilename);
+        }
+        else {
+          outputWriter.WriteLine("File {0} contains the partially compiled program", targetFilename);
+        }
+      }
+      return targetFilename;
+    }
+
+    public static void CompileDafnyProgram(Dafny.Program dafnyProgram, string dafnyProgramName,
+                                           ReadOnlyCollection<string> otherFileNames, TextWriter outputWriter = null)
     {
       Contract.Requires(dafnyProgram != null);
 
@@ -311,22 +343,11 @@ namespace Microsoft.Dafny
       var csharpProgram = sw.ToString();
       bool completeProgram = compiler.ErrorCount == 0;
 
-      // blurt out the code to a file
-      if (DafnyOptions.O.SpillTargetCode)
+      // blurt out the code to a file, if requested, or if other files were specified for the C# command line.
+      string targetFilename = null;
+      if (DafnyOptions.O.SpillTargetCode || (otherFileNames.Count > 0))
       {
-        string targetFilename = Path.ChangeExtension(dafnyProgramName, "cs");
-        using (TextWriter target = new StreamWriter(new FileStream(targetFilename, System.IO.FileMode.Create)))
-        {
-          target.Write(csharpProgram);
-          if (completeProgram)
-          {
-            outputWriter.WriteLine("Compiled program written to {0}", targetFilename);
-          }
-          else
-          {
-            outputWriter.WriteLine("File {0} contains the partially compiled program", targetFilename);
-          }
-        }
+        targetFilename = WriteDafnyProgramToFile(dafnyProgramName, csharpProgram, completeProgram, outputWriter);
       }
 
       // compile the program into an assembly
@@ -367,7 +388,37 @@ namespace Microsoft.Dafny
           cp.ReferencedAssemblies.Add("System.Runtime.dll");
         }
 
-        var cr = provider.CompileAssemblyFromSource(cp, csharpProgram);
+        int numOtherSourceFiles = 0;
+        if (otherFileNames.Count > 0) {
+          foreach (var file in otherFileNames) {
+            string extension = Path.GetExtension(file);
+            if (extension != null) { extension = extension.ToLower(); }
+            if (extension == ".cs") {
+              numOtherSourceFiles++;
+            }
+            else if (extension == ".dll") {
+              cp.ReferencedAssemblies.Add(file);
+            }
+          }
+        }
+
+        CompilerResults cr;
+        if (numOtherSourceFiles > 0) {
+          string[] sourceFiles = new string[numOtherSourceFiles + 1];
+          sourceFiles[0] = targetFilename;
+          int index = 1;
+          foreach (var file in otherFileNames) {
+            string extension = Path.GetExtension(file);
+            if (extension != null) { extension = extension.ToLower(); }
+            if (extension == ".cs") {
+              sourceFiles[index++] = file;
+            }
+          }
+          cr = provider.CompileAssemblyFromFile(cp, sourceFiles);
+        }
+        else {
+          cr = provider.CompileAssemblyFromSource(cp, csharpProgram);
+        }
         var assemblyName = Path.GetFileName(cr.PathToAssembly);
         if (DafnyOptions.O.RunAfterCompile && cr.Errors.Count == 0) {
           outputWriter.WriteLine("Program compiled successfully");

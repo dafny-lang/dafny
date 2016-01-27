@@ -1059,7 +1059,7 @@ namespace Microsoft.Dafny {
     public virtual string FullCompileName {
       get {
         if (ResolvedClass != null && !ResolvedClass.Module.IsDefaultModule) {
-          return ResolvedClass.Module.CompileName + ".@" + CompileName;
+          return ResolvedClass.Module.CompileName + ".@" + ResolvedClass.CompileName;
         } else {
           return CompileName;
         }
@@ -1536,7 +1536,17 @@ namespace Microsoft.Dafny {
     public virtual string CompileName {
       get {
         if (compileName == null) {
-          compileName = NonglobalVariable.CompilerizeName(Name);
+          object externValue = "";
+          string errorMessage = "";
+          bool isExternal = Attributes.ContainsMatchingValue(this.Attributes, "extern", ref externValue,
+            new Attributes.MatchingValueOption[] { Attributes.MatchingValueOption.String },
+            err => errorMessage = err);
+          if (isExternal) {
+            compileName = (string)externValue;
+          }
+          else {
+            compileName = NonglobalVariable.CompilerizeName(Name);
+          }
         }
         return compileName;
       }
@@ -1835,10 +1845,19 @@ namespace Microsoft.Dafny {
     public string CompileName {
       get {
         if (compileName == null) {
-          if (IsBuiltinName)
-            compileName = Name;
-          else
-            compileName = "_" + Height.ToString() + "_" + NonglobalVariable.CompilerizeName(Name);
+          object externValue = "";
+          string errorMessage = "";
+          bool isExternal = Attributes.ContainsMatchingValue(this.Attributes, "extern", ref externValue,
+            new Attributes.MatchingValueOption[] { Attributes.MatchingValueOption.String },
+            err => errorMessage = err);
+          if (isExternal) {
+            compileName = (string)externValue;
+          } else {
+            if (IsBuiltinName)
+              compileName = Name;
+            else
+              compileName = "_" + Height.ToString() + "_" + NonglobalVariable.CompilerizeName(Name);
+          }
         }
         return compileName;
       }
