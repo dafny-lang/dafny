@@ -310,11 +310,12 @@ namespace Microsoft.Dafny
       string targetFilename = Path.ChangeExtension(dafnyProgramName, "cs");
       using (TextWriter target = new StreamWriter(new FileStream(targetFilename, System.IO.FileMode.Create))) {
         target.Write(csharpProgram);
+        string relativeTarget = Path.GetFileName(targetFilename);
         if (completeProgram) {
-          outputWriter.WriteLine("Compiled program written to {0}", targetFilename);
+          outputWriter.WriteLine("Compiled program written to {0}", relativeTarget);
         }
         else {
-          outputWriter.WriteLine("File {0} contains the partially compiled program", targetFilename);
+          outputWriter.WriteLine("File {0} contains the partially compiled program", relativeTarget);
         }
       }
       return targetFilename;

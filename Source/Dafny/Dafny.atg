@@ -640,7 +640,7 @@ Dafny
                                            }
                                         .)
   }
-  TopDecls<defaultModule, membersDefaultClass, /* isTopLevel */ true, /* isAbstract */ false>
+  { TopDecl<defaultModule, membersDefaultClass, /* isTopLevel */ true, /* isAbstract */ false> }
   (. // find the default class in the default module, then append membersDefaultClass to its member list
      DefaultClassDecl defaultClass = null;
      foreach (TopLevelDecl topleveldecl in defaultModule.TopLevelDecls) {
@@ -657,13 +657,8 @@ Dafny
   EOF
   .
 
-TopDecls<. ModuleDefinition module, List<MemberDecl/*!*/> membersDefaultClass, bool isTopLevel, bool isAbstract .>
-= { TopDecl<module, membersDefaultClass, isTopLevel, isAbstract> }
-  .
-
-DeclModifiers<out DeclModifierData dmod>
-= (. dmod = new DeclModifierData(); .)
-  { "abstract"                             (. dmod.IsAbstract = true;  CheckAndSetToken(ref dmod.AbstractToken); .)
+DeclModifier<ref DeclModifierData dmod>
+= ( "abstract"                             (. dmod.IsAbstract = true;  CheckAndSetToken(ref dmod.AbstractToken); .)
   | "ghost"                                (. dmod.IsGhost = true;  CheckAndSetToken(ref dmod.GhostToken); .)
   | "static"                               (. dmod.IsStatic = true; CheckAndSetToken(ref dmod.StaticToken); .)
   | "protected"                            (. dmod.IsProtected = true; CheckAndSetToken(ref dmod.ProtectedToken); .)
@@ -673,15 +668,15 @@ DeclModifiers<out DeclModifierData dmod>
                                               dmod.ExternName = new StringLiteralExpr(t, s, isVerbatimString);
                                            .)
     ]
-  }
+  )
   .
 
 TopDecl<. ModuleDefinition module, List<MemberDecl/*!*/> membersDefaultClass, bool isTopLevel, bool isAbstract .>
-= (. DeclModifierData dmod; ModuleDecl submodule;
+= (. DeclModifierData dmod = new DeclModifierData(); ModuleDecl submodule;
      ClassDecl/*!*/ c; DatatypeDecl/*!*/ dt; TopLevelDecl td; IteratorDecl iter;
   	 TraitDecl/*!*/ trait;
   .)
-  DeclModifiers<out dmod>
+  { DeclModifier<ref dmod> }
   ( SubModuleDecl<dmod, module, out submodule> (. module.TopLevelDecls.Add(submodule); .)
   | ClassDecl<dmod, module, out c>             (. module.TopLevelDecls.Add(c); .)
   | DatatypeDecl<dmod, module, out dt>         (. module.TopLevelDecls.Add(dt); .)
@@ -713,7 +708,7 @@ SubModuleDecl<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl sub
       | "refines" QualifiedModuleName<out idRefined> (. isExclusively = false; .) ] 
             (. module = new ModuleDefinition(id, id.val, isAbstract, false, isExclusively, idRefined == null ? null : idRefined, parent, attrs, false, this); .)  
        "{"                                             (. module.BodyStartTok = t; .)
-            TopDecls<module, namedModuleDefaultClassMembers, /* isTopLevel */ false, isAbstract>
+            { TopDecl<module, namedModuleDefaultClassMembers, /* isTopLevel */ false, isAbstract> }
        "}"                                 (. module.BodyEndTok = t;
                                               module.TopLevelDecls.Add(new DefaultClassDecl(module, namedModuleDefaultClassMembers));
                                               submodule = new LiteralModuleDecl(module, parent); .)
@@ -773,7 +768,9 @@ ClassDecl<DeclModifierData dmodClass, ModuleDefinition/*!*/ module, out ClassDec
   {"," Type<out trait>  (. traits.Add(trait); .) }
   ]         
   "{"                                            (. bodyStart = t;  .)
-  { DeclModifiers<out dmod> ClassMemberDecl<dmod, members, true, false, false>
+  { (. dmod = new DeclModifierData(); .)
+    { DeclModifier<ref dmod> }
+    ClassMemberDecl<dmod, members, true, false, false>
   }
   "}"
   (. c = new ClassDecl(id, id.val, module, typeArgs, members, attrs, traits);
@@ -784,8 +781,8 @@ ClassDecl<DeclModifierData dmodClass, ModuleDefinition/*!*/ module, out ClassDec
 
 TraitDecl<DeclModifierData dmodIn, ModuleDefinition/*!*/ module, out TraitDecl/*!*/ trait>
   = (. Contract.Requires(module != null);     
-     CheckDeclModifiers(dmodIn, "Traits", AllowedDeclModifiers.None);
 	   Contract.Ensures(Contract.ValueAtReturn(out trait) != null);
+     CheckDeclModifiers(dmodIn, "Traits", AllowedDeclModifiers.None);
 	   IToken/*!*/ id;
 	   Attributes attrs = null;
 	   List<TypeParameter/*!*/> typeArgs = new List<TypeParameter/*!*/>(); //traits should not support type parameters at the moment
@@ -798,9 +795,11 @@ TraitDecl<DeclModifierData dmodIn, ModuleDefinition/*!*/ module, out TraitDecl/*
 	{ Attribute<ref attrs> }
 	NoUSIdent<out id>
 	[ GenericParameters<typeArgs> ]
-	"{"                                            (. bodyStart = t; .)
-    { DeclModifiers<out dmod> ClassMemberDecl<dmod, members, true, false, false>
-    }
+  	"{"                                            (. bodyStart = t; .)
+      {                                            (. dmod  = new DeclModifierData(); .)
+        { DeclModifier<ref dmod> }
+        ClassMemberDecl<dmod, members, true, false, false>
+      }
     "}"
 	(. trait = new TraitDecl(id, id.val, module, typeArgs, members, attrs);
      trait.BodyStartTok = bodyStart;
