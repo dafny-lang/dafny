@@ -1,0 +1,4 @@
+{ "name": "dafnyx",
+  "extend": "dafny",
+  "extraKeywords": ["inductive"]
+}
