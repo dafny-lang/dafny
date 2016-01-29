@@ -1662,6 +1662,8 @@ namespace Microsoft.Dafny {
   public class LiteralModuleDecl : ModuleDecl
   {
     public readonly ModuleDefinition ModuleDef;
+    public ModuleSignature DefaultExport;  // the default export of the module. fill in by the resolver.
+
     public LiteralModuleDecl(ModuleDefinition module, ModuleDefinition parent)
       : base(module.tok, module.Name, parent, false) {
       ModuleDef = module;
@@ -1680,6 +1682,7 @@ namespace Microsoft.Dafny {
     }
     public override object Dereference() { return Signature.ModuleDef; }
   }
+
   // Represents "module name as path [ = compilePath];", where name is a identifier and path is a possibly qualified name.
   public class ModuleFacadeDecl : ModuleDecl
   {
@@ -1696,6 +1699,39 @@ namespace Microsoft.Dafny {
       CompilePath = compilePath;
     }
     public override object Dereference() { return this; }
+  }
+
+  // Represents the exports of a module. 
+  public class ModuleExportDecl : ModuleDecl
+  {
+    public bool IsDefault;
+    public List<ExportSignature> Exports; // list of TopLevelDecl that are included in the export
+    public List<string> Extends; // list of exports that are extended
+    public readonly List<ModuleExportDecl> ExtendDecls = new List<ModuleExportDecl>(); // fill in by the resolver
+
+    public ModuleExportDecl(IToken tok, ModuleDefinition parent, bool isDefault, 
+      List<ExportSignature> exports, List<string> extends) 
+      : base(tok, tok.val, parent, false) {
+      IsDefault = isDefault;
+      Exports = exports;
+      Extends = extends;
+    }
+
+    public override object Dereference() { return this; }
+  }
+
+  public class ExportSignature
+  {
+    public bool IncludeBody;
+    public IToken Id;
+    public string Name;
+    public Declaration Decl;  // fill in  by the resolver
+
+    public ExportSignature(IToken id, bool includeBody) {
+      Id = id;
+      Name = id.val;
+      IncludeBody = includeBody;
+    }
   }
 
   public class ModuleSignature {

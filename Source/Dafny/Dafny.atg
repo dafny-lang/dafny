@@ -502,6 +502,13 @@ bool IsType(ref IToken pt) {
   }
 }
 
+
+bool IsDefaultImport() {
+  scanner.ResetPeek();  
+  Token x = scanner.Peek();  // lookahead token again 
+  return la.val == "default" && x.val != "export";
+}
+
 /*--------------------------------------------------------------------------*/
 CHARACTERS
   letter = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz".
@@ -708,7 +715,7 @@ SubModuleDecl<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl sub
       | "refines" QualifiedModuleName<out idRefined> (. isExclusively = false; .) ] 
             (. module = new ModuleDefinition(id, id.val, isAbstract, false, isExclusively, idRefined == null ? null : idRefined, parent, attrs, false, this); .)  
        "{"                                             (. module.BodyStartTok = t; .)
-            { TopDecl<module, namedModuleDefaultClassMembers, /* isTopLevel */ false, isAbstract> }
+            { TopDecl<module, namedModuleDefaultClassMembers, /* isTopLevel */ false, isAbstract>}
        "}"                                 (. module.BodyEndTok = t;
                                               module.TopLevelDecls.Add(new DefaultClassDecl(module, namedModuleDefaultClassMembers));
                                               submodule = new LiteralModuleDecl(module, parent); .)
@@ -718,8 +725,16 @@ SubModuleDecl<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl sub
     (. EncodeExternAsAttribute(dmod, ref attrs, id, /* needAxiom */ false); .)
     [ "=" QualifiedModuleName<out idPath>
       (. submodule = new AliasModuleDecl(idPath, id, parent, opened); .)
-    | "as" QualifiedModuleName<out idPath>  ["default" QualifiedModuleName<out idAssignment> ]
+    | "as" QualifiedModuleName<out idPath> [IF(IsDefaultImport()) "default" QualifiedModuleName<out idAssignment> ]
+      (. submodule = new ModuleFacadeDecl(idPath, id, parent, idAssignment, opened); 
+         //errors.Warning(t, "\"import A as B\" has been deprecated; in the new syntax, it is \"import A:B\"");
+      .)
+    | ":" QualifiedModuleName<out idPath>
       (. submodule = new ModuleFacadeDecl(idPath, id, parent, idAssignment, opened); .)
+    | "." QualifiedModuleName<out idPath>
+      (. idPath.Insert(0, id);
+			   submodule = new AliasModuleDecl(idPath, id, parent, opened); 
+      .)
     ]
     [ SYNC ";"
         // This semi-colon used to be required, but it seems silly to have it.
@@ -733,6 +748,33 @@ SubModuleDecl<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl sub
          submodule = new AliasModuleDecl(idPath, id, parent, opened);
        }
     .)
+	| (. 		 
+		  bool isDefault = false;
+			bool includeBody;
+			IToken exportId;
+			List<ExportSignature> exports = new List<ExportSignature>();;
+      List<string> extends = new List<string>(); 
+		.)
+	  ["default"  (. isDefault = true; .) ]
+		"export"
+		NoUSIdent<out exportId>
+		["extends" 
+     NoUSIdent<out id>(. extends.Add(id.val); .) 
+     {"," NoUSIdent<out id>  (. extends.Add(id.val); .) }
+    ] 
+		"{"
+		   NoUSIdent<out id>   (. includeBody = false; .)
+			 ['+' (. includeBody = true; .)]
+			 (. exports.Add(new ExportSignature(id, includeBody)); .)
+       { ","
+         NoUSIdent<out id> (. includeBody = false; .)
+			   ['+' (. includeBody = true; .)]
+			   (. exports.Add(new ExportSignature(id, includeBody)); .)
+       }
+		"}"
+		(.
+		   submodule = new ModuleExportDecl(exportId, parent, isDefault, exports, extends);
+		.)
   )
 .
 
@@ -743,6 +785,7 @@ QualifiedModuleName<.out List<IToken> ids.>
   { "." Ident<out id>                         (. ids.Add(id); .)
   }
   .
+
 
 ClassDecl<DeclModifierData dmodClass, ModuleDefinition/*!*/ module, out ClassDecl/*!*/ c>
 = (. Contract.Requires(module != null);

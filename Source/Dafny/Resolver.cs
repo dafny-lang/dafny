@@ -324,6 +324,7 @@ namespace Microsoft.Dafny
           // set up environment
           var preResolveErrorCount = reporter.Count(ErrorLevel.Error);
           ResolveModuleDefinition(m, sig);
+          ResolveModuleExport(literalDecl, sig);
           foreach (var r in rewriters) {
             if (reporter.Count(ErrorLevel.Error) != preResolveErrorCount) {
               break;
@@ -368,7 +369,7 @@ namespace Microsoft.Dafny
                   if (refinementTransformer.CheckIsRefinement(compileSig, p)) {
                     abs.Signature.CompileSignature = compileSig;
                   } else {
-                    reporter.Error(MessageSource.Resolver, 
+                    reporter.Error(MessageSource.Resolver,
                       abs.CompilePath[0],
                       "module " + Util.Comma(".", abs.CompilePath, x => x.val) + " must be a refinement of "
                       + Util.Comma(".", abs.Path, x => x.val));
@@ -383,6 +384,11 @@ namespace Microsoft.Dafny
           } else {
             abs.Signature = new ModuleSignature(); // there was an error, give it a valid but empty signature
           }
+        } else if (decl is ModuleExportDecl) {
+          ModuleExportDecl export = (ModuleExportDecl)decl;
+          export.Signature = new ModuleSignature();
+          export.Signature.IsAbstract = false;
+          export.Signature.ModuleDef = null;
         } else { Contract.Assert(false); }
         Contract.Assert(decl.Signature != null);
       }
@@ -720,6 +726,96 @@ namespace Microsoft.Dafny
       }
     }
 
+    // Resolve the exports and detect cycles.
+    private void ResolveModuleExport(LiteralModuleDecl literalDecl, ModuleSignature sig) {
+      ModuleDefinition m = literalDecl.ModuleDef;
+      literalDecl.DefaultExport = sig;
+      Graph<ModuleExportDecl> exportDependencies = new Graph<ModuleExportDecl>();
+      foreach (TopLevelDecl toplevel in m.TopLevelDecls) {
+        if (toplevel is ModuleExportDecl) {
+          ModuleExportDecl d = (ModuleExportDecl) toplevel;
+          exportDependencies.AddVertex(d);
+          foreach (string s in d.Extends) {
+            TopLevelDecl top;
+            if (sig.TopLevels.TryGetValue(s, out top) && top is ModuleExportDecl) {
+              ModuleExportDecl extend = (ModuleExportDecl) top;
+              d.ExtendDecls.Add(extend);
+              exportDependencies.AddEdge(d, extend);
+            } else {
+              reporter.Error(MessageSource.Resolver, m.tok, s + " must be an export of" + m + " to be extended");
+            }
+          }
+          foreach (ExportSignature export in d.Exports) {
+            // check to see if it is a datatype or a member or
+            // static function or method in the enclosing module or its imports
+            TopLevelDecl decl;
+            MemberDecl member;
+            string name = export.Name;
+            if (sig.TopLevels.TryGetValue(name, out decl)) {
+              // Member of the enclosing module
+              export.Decl = decl;
+            } else if (sig.StaticMembers.TryGetValue(name, out member)) {
+              export.Decl = member;
+            } else {
+              reporter.Error(MessageSource.Resolver, d.tok, name + " must be a member of " + m + " to be exported");
+            }
+          }
+        }
+      }
+
+      // detect cycles in the extend
+      var cycle = exportDependencies.TryFindCycle();
+      if (cycle != null) {
+        var cy = Util.Comma(" -> ", cycle, c => c.Name);
+        reporter.Error(MessageSource.Resolver, cycle[0], "module export contains a cycle: {0}", cy);
+        return;
+      }
+
+      // fill in the exports for the extends.
+      List<ModuleExportDecl> sortedDecls = exportDependencies.TopologicallySortedComponents();
+      ModuleExportDecl defaultExport = null;
+      foreach (ModuleExportDecl decl in sortedDecls) {
+        if (decl.IsDefault) {
+          if (defaultExport == null) {
+            defaultExport = decl;
+          } else {
+            reporter.Error(MessageSource.Resolver, m.tok, "more than one default export declared: {0}, {1}", defaultExport, decl);
+          }
+        }
+        // fill in export signature
+        ModuleSignature signature = decl.Signature;
+        foreach (ModuleExportDecl extend in decl.ExtendDecls) {
+          ModuleSignature s = extend.Signature;
+          foreach (var kv in s.TopLevels) {
+            if (!signature.TopLevels.ContainsKey(kv.Key)) {
+              signature.TopLevels.Add(kv.Key, kv.Value);
+            }
+          }
+          foreach (var kv in s.Ctors) {
+            if (!signature.Ctors.ContainsKey(kv.Key)) {
+              signature.Ctors.Add(kv.Key, kv.Value);
+            }
+          }
+          foreach (var kv in s.StaticMembers) {
+            if (!signature.StaticMembers.ContainsKey(kv.Key)) {
+              signature.StaticMembers.Add(kv.Key, kv.Value);
+            }
+          }
+        }
+        foreach (ExportSignature export in decl.Exports) {
+          if (export.Decl is TopLevelDecl) {
+            signature.TopLevels.Add(export.Name, (TopLevelDecl)export.Decl);
+          } else if (export.Decl is MemberDecl) {
+            signature.StaticMembers.Add(export.Name, (MemberDecl)export.Decl);
+          }
+        }
+      }
+
+      // set the default export if it exists, otherwise, default is export everything     
+      if (defaultExport != null) {
+        literalDecl.DefaultExport = defaultExport.Signature;
+      }
+    }
 
     public class ModuleBindings
     {
@@ -1326,6 +1422,13 @@ namespace Microsoft.Dafny
 
 
     public static bool ResolvePath(ModuleDecl root, List<IToken> Path, out ModuleSignature p, ErrorReporter reporter) {
+      if (Path.Count == 1 && root is LiteralModuleDecl) {
+        // use the default export when the importing the root
+        LiteralModuleDecl decl = (LiteralModuleDecl)root;
+        p = decl.DefaultExport;
+        return true;
+      }
+
       p = root.Signature;
       int i = 1;
       while (i < Path.Count) {
@@ -1589,6 +1692,7 @@ namespace Microsoft.Dafny
           }
         }
       }
+
 
       // ---------------------------------- Pass 2 ----------------------------------
       // This pass fills in various additional information.

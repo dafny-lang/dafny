@@ -126,6 +126,11 @@ namespace Microsoft.Dafny
           abs.Signature = a.Signature;
           abs.OriginalSignature = a.OriginalSignature;
           return abs;
+        } else if (d is ModuleExportDecl) {
+          var a = (ModuleExportDecl)d;
+          var export = new ModuleExportDecl(a.tok, m, a.IsDefault, a.Exports, a.Extends);
+          export.Signature = a.Signature;
+          return export;
         } else {
           Contract.Assert(false);  // unexpected declaration
           return null;  // to please compiler

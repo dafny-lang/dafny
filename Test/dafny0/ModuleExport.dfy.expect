@@ -1,0 +1,9 @@
+ModuleExport.dfy(30,11): Error: unresolved identifier: g
+ModuleExport.dfy(31,11): Error: unresolved identifier: k
+ModuleExport.dfy(32,4): Error: unresolved identifier: T
+ModuleExport.dfy(32,7): Error: expected method call, found expression
+ModuleExport.dfy(42,11): Error: unresolved identifier: k
+ModuleExport.dfy(52,9): Error: unresolved identifier: g
+ModuleExport.dfy(53,9): Error: unresolved identifier: k
+ModuleExport.dfy(66,2): Error: member Orang does not exist in datatype Data
+8 resolution/type errors detected in ModuleExport.dfy
