@@ -17,6 +17,6 @@ abstract module Queue {
 }
 
 abstract module MainSpec {
-    import Q as Queue
+    import Q : Queue
 }
 

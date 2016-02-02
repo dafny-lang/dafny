@@ -109,8 +109,8 @@ module T refines S {
   }
 }
 module A {
-   import X as S default T
-   import Y as S default T
+   import X : T
+   import Y : T
    import Z = T
    method run() {
      var x := new X.C;
@@ -128,7 +128,7 @@ method NotMain() {
 
 
 abstract module S1 {
-  import B as S default T
+  import B : T
   method do()
 }
 
@@ -138,7 +138,7 @@ module T1 refines S1 {
   }
 }
 module A1 {
-   import X as S1 default T1
+   import X : T1
    method run() {
      X.do();
      var x := new X.B.C;

@@ -44,7 +44,7 @@ module A' refines A {
 }
 
 module B {
-  import X as A
+  import X : A
   method Main() {
     var c := new X.C();
     c.M();  // fine
@@ -68,7 +68,7 @@ module B {
   }
 }
 module B_direct {
-  import X as A'
+  import X : A'
   method Main() {
     var c := new X.C();
     c.M();  // fine

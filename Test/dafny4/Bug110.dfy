@@ -27,5 +27,5 @@ abstract module Host {
 }
 
 abstract module Main {
-    import H as Host
+    import H : Host
 }

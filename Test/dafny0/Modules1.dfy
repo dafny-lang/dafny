@@ -130,6 +130,6 @@ abstract module Regression {
 
   abstract module B
   {
-    import X as A
+    import X : A
   }
 }

@@ -9,7 +9,7 @@ abstract module ProtocolSpec {
 
 abstract module HostSpec {
     type HostT
-    import P as ProtocolSpec
+    import P : ProtocolSpec
 
     function method foo(h:HostT) : P.ProtoT
 }
@@ -42,8 +42,8 @@ module HostImpl exclusively refines HostSpec {
 }
 
 abstract module MainSpec {
-    import HI as HostSpec
-    import PI as ProtocolSpec
+    import HI : HostSpec
+    import PI : ProtocolSpec
 
     method Test(h1:HI.HostT, h2:HI.HostT) 
         requires HI.foo(h1) == HI.foo(h2);

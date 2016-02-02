@@ -8,14 +8,14 @@ abstract module AbstractModule1
 
 abstract module AbstractModule2 
 {
-	import opened AM1 as AbstractModule1
+	import opened AM1 : AbstractModule1
 	
 	datatype AbstractType2 = AbstractType2(x:AbstractType1)
 } 
 
 abstract module AbstractModule3 
 {
-	import AM1 as AbstractModule1
+	import AM1 : AbstractModule1
 	
 	datatype AbstractType2 = AbstractType2(x:AM1.AbstractType1)
 } 

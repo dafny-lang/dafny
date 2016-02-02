@@ -31,7 +31,7 @@ module Test {
 }
 
 module Test2 {
-  import opened B as A
+  import opened B : A
   method m() {
     var c := new C;   // fine, as A was opened
     var c' := new B.C;// also fine, as A is bound

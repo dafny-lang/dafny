@@ -727,7 +727,7 @@ SubModuleDecl<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl sub
       (. submodule = new AliasModuleDecl(idPath, id, parent, opened); .)
     | "as" QualifiedModuleName<out idPath> [IF(IsDefaultImport()) "default" QualifiedModuleName<out idAssignment> ]
       (. submodule = new ModuleFacadeDecl(idPath, id, parent, idAssignment, opened); 
-         //errors.Warning(t, "\"import A as B\" has been deprecated; in the new syntax, it is \"import A:B\"");
+         errors.Warning(t, "\"import A as B\" has been deprecated; in the new syntax, it is \"import A:B\"");
       .)
     | ":" QualifiedModuleName<out idPath>
       (. submodule = new ModuleFacadeDecl(idPath, id, parent, idAssignment, opened); .)

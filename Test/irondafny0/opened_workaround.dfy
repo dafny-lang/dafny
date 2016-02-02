@@ -17,5 +17,5 @@ abstract module B {
 }
 
 abstract module C {
-    import Bee as B       // Works
+    import Bee : B       // Works
 }

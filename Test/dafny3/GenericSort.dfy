@@ -17,7 +17,7 @@ abstract module TotalOrder {
 }
 
 abstract module Sort {
-  import O as TotalOrder  // let O denote some module that has the members of TotalOrder
+  import O : TotalOrder  // let O denote some module that has the members of TotalOrder
 
   predicate Sorted(a: array<O.T>, low: int, high: int)
     requires a != null && 0 <= low <= high <= a.Length

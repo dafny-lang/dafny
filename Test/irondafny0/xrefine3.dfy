@@ -12,7 +12,7 @@ abstract module AlphaSpec {
 
 abstract module BetaSpec {
     type Beta
-    import A as AlphaSpec
+    import A : AlphaSpec
 
     predicate IsValid(b:Beta)
 
@@ -49,8 +49,8 @@ module BetaImpl exclusively refines BetaSpec {
 }
 
 abstract module MainSpec {
-    import A as AlphaSpec
-    import B as BetaSpec
+    import A : AlphaSpec
+    import B : BetaSpec
 
     method Main()
     {

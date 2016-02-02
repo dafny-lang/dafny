@@ -835,7 +835,7 @@ bool IsDefaultImport() {
 						QualifiedModuleName(out idAssignment);
 					}
 					submodule = new ModuleFacadeDecl(idPath, id, parent, idAssignment, opened); 
-					//errors.Warning(t, "\"import A as B\" has been deprecated; in the new syntax, it is \"import A:B\"");
+					errors.Warning(t, "\"import A as B\" has been deprecated; in the new syntax, it is \"import A:B\"");
 					
 				} else if (la.kind == 21) {
 					Get();
