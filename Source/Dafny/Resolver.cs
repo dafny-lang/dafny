@@ -4171,23 +4171,36 @@ namespace Microsoft.Dafny
       Contract.Ensures(!Contract.Result<bool>() || dt.DefaultCtor != null);
 
       // Stated differently, check that there is some constuctor where no argument type goes to the same stratum.
+      DatatypeCtor defaultCtor = null;
+      List<TypeParameter> lastTypeParametersUsed = null;
       foreach (DatatypeCtor ctor in dt.Ctors) {
-        var typeParametersUsed = new List<TypeParameter>();
+        List<TypeParameter>  typeParametersUsed = new List<TypeParameter>();
         foreach (Formal p in ctor.Formals) {
           if (!CheckCanBeConstructed(p.Type, typeParametersUsed)) {
             // the argument type (has a component which) is not yet known to be constructable
             goto NEXT_OUTER_ITERATION;
           }
         }
-        // this constructor satisfies the requirements, so the datatype is allowed
-        dt.DefaultCtor = ctor;
-        dt.TypeParametersUsedInConstructionByDefaultCtor = new bool[dt.TypeArgs.Count];
-        for (int i = 0; i < dt.TypeArgs.Count; i++) {
-          dt.TypeParametersUsedInConstructionByDefaultCtor[i] = typeParametersUsed.Contains(dt.TypeArgs[i]);
+        // this constructor satisfies the requirements, check to see if it is a better fit than the 
+        // one found so far. By "better" it means fewer type arguments. Between the ones with
+        // the same number of the type arguments, pick the one shows first.
+        if (defaultCtor == null || typeParametersUsed.Count < lastTypeParametersUsed.Count)  { 
+          defaultCtor = ctor;
+          lastTypeParametersUsed = typeParametersUsed;
         }
-        return true;
+
       NEXT_OUTER_ITERATION: { }
       }
+
+      if (defaultCtor != null) {
+        dt.DefaultCtor = defaultCtor;
+        dt.TypeParametersUsedInConstructionByDefaultCtor = new bool[dt.TypeArgs.Count];
+        for (int i = 0; i < dt.TypeArgs.Count; i++) {
+          dt.TypeParametersUsedInConstructionByDefaultCtor[i] = lastTypeParametersUsed.Contains(dt.TypeArgs[i]);
+        }
+        return true;
+      }
+
       // no constructor satisfied the requirements, so this is an illegal datatype declaration
       return false;
     }
