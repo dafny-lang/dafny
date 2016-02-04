@@ -1956,6 +1956,8 @@ namespace Microsoft.Dafny {
         PrintExpr(e.E, contextBindingStrength, fragileContext, isRightmost, isFollowedBySemicolon, indent, keyword);
       } else if (expr is Translator.BoogieWrapper) {
         wr.Write("[BoogieWrapper]");  // this is somewhat unexpected, but we can get here if the /trace switch is used, so it seems best to cover this case here
+      } else if (expr is Translator.BoogieFunctionCall) {
+        wr.Write("[BoogieFunctionCall]");  // this prevents debugger watch window crash
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected expression
       }

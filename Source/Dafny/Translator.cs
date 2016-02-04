@@ -4413,23 +4413,25 @@ namespace Microsoft.Dafny {
           var canCallBody = CanCallAssumption(Substitute(e.Body, null, substMap), etran);
           return BplAnd(canCallRHS, canCallBody);
         } else {
-          // CanCall[[ var b :| RHS(b,g); Body(b,g,h) ]] =
-          //   (forall b :: typeAntecedent ==>
-          //       CanCall[[ RHS(b,g) ]] &&
-          //       (RHS(b,g) ==> CanCall[[ Body(b,g,h) ]]) &&
-          //       $let$canCall(b,g))
-          var bvars = new List<Variable>();
-          Bpl.Expr typeAntecedent = etran.TrBoundVariables(e.BoundVars.ToList<BoundVar>(), bvars);
-          Contract.Assert(e.RHSs.Count == 1);  // this is true of all successfully resolved let-such-that expressions
-          var canCallRHS = CanCallAssumption(e.RHSs[0], etran);
-          var canCallBody = Bpl.Expr.Imp(etran.TrExpr(e.RHSs[0]), CanCallAssumption(e.Body, etran));
-          var d = LetDesugaring(e);  // call LetDesugaring to prepare the desugaring and populate letSuchThatExprInfo with something for e
+          // CanCall[[ var b0,b1 :| RHS(b0,b1,g); Body(b0,b1,g,h) ]] =
+          //   $let$canCall(g) &&
+          //   CanCall[[ Body($let$b0(g), $let$b1(g), h) ]]
+          LetDesugaring(e);  // call LetDesugaring to prepare the desugaring and populate letSuchThatExprInfo with something for e
           var info = letSuchThatExprInfo[e];
-          var canCallFunction = info.CanCallFunctionCall(this, etran);
-          //TRIG (forall d#0: int :: true ==> _module.__default.DividesBoth#canCall($Heap, d#0, a#0, b#0) && (_module.__default.DividesBoth($Heap, d#0, a#0, b#0) ==> (forall m#1: int :: true ==> _module.__default.DividesBoth#canCall($Heap, m#1, a#0, b#0) && (_module.__default.DividesBoth($Heap, m#1, a#0, b#0) ==> true))) && (_module.__default.DividesBoth($Heap, d#0, a#0, b#0) && (forall m#1: int :: true ==> _module.__default.DividesBoth($Heap, m#1, a#0, b#0) ==> m#1 <= d#0) ==> true) && $let#0$canCall($Heap, a#0, b#0))
-          //TRIG (forall g#0: int :: true ==> (x#0 == g#0 ==> true) && $let#0$canCall($Heap, x#0))
-          //TRIGGERS: Not clear what would be good here
-          var cc = new Bpl.ForallExpr(e.tok, bvars, Bpl.Expr.Imp(typeAntecedent, BplAnd(BplAnd(canCallRHS, canCallBody), canCallFunction)));  // LL_TRIGGER
+          // $let$canCall(g)
+          //var canCall = FunctionCall(e.tok, info.CanCallFunctionName(), Bpl.Type.Bool, gExprs);
+          var canCall = info.CanCallFunctionCall(this, etran);         
+          Dictionary<IVariable, Expression> substMap = new Dictionary<IVariable, Expression>();
+          foreach (var bv in e.BoundVars) {
+            // create a call to $let$x(g)
+            //var call = FunctionCall(e.tok, info.SkolemFunctionName(bv), TrType(bv.Type), gExprs);
+            var args = info.SkolemFunctionArgs(bv, this, etran);
+            var call = new BoogieFunctionCall(bv.tok, info.SkolemFunctionName(bv), info.UsesHeap, info.UsesOldHeap, args.Item1, args.Item2);
+            call.Type = bv.Type;
+            substMap.Add(bv, call);
+          }
+          var p = Substitute(e.Body, null, substMap);
+          var cc = BplAnd(canCall, CanCallAssumption(p, etran));
           return cc;
         }
 
