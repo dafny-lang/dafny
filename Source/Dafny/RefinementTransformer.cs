@@ -141,99 +141,117 @@ namespace Microsoft.Dafny
       }
 
       // Merge the declarations of prev into the declarations of m
+      List<string> processedDecl = new List<string>();
       foreach (var d in prev.TopLevelDecls) {
         int index;
+        processedDecl.Add(d.Name);
         if (!declaredNames.TryGetValue(d.Name, out index)) {
           m.TopLevelDecls.Add(refinementCloner.CloneDeclaration(d, m));
         } else {
           var nw = m.TopLevelDecls[index];
-          if (d is ModuleDecl) {
-            if (!(nw is ModuleDecl)) {
-              reporter.Error(MessageSource.RefinementTransformer, nw, "a module ({0}) must refine another module", nw.Name);
-            } else if (!(d is ModuleFacadeDecl)) {
-              reporter.Error(MessageSource.RefinementTransformer, nw, "a module ({0}) can only refine a module facade", nw.Name);
-            } else {
-              ModuleSignature original = ((ModuleFacadeDecl)d).OriginalSignature;
-              ModuleSignature derived = null;
-              if (nw is AliasModuleDecl) {
-                derived = ((AliasModuleDecl)nw).Signature;
-              } else if (nw is ModuleFacadeDecl) {
-                derived = ((ModuleFacadeDecl)nw).Signature;
-              } else {
-                reporter.Error(MessageSource.RefinementTransformer, nw, "a module ({0}) can only be refined by an alias module or a module facade", d.Name);
-              }
-              if (derived != null) {
-                // check that the new module refines the previous declaration
-                if (!CheckIsRefinement(derived, original))
-                  reporter.Error(MessageSource.RefinementTransformer, nw.tok, "a module ({0}) can only be replaced by a refinement of the original module", d.Name);
-              }
-            }
-          } else if (d is OpaqueTypeDecl) {
-            if (nw is ModuleDecl) {
-              reporter.Error(MessageSource.RefinementTransformer, nw, "a module ({0}) must refine another module", nw.Name);
-            } else {
-              bool dDemandsEqualitySupport = ((OpaqueTypeDecl)d).MustSupportEquality;
-              if (nw is OpaqueTypeDecl) {
-                if (dDemandsEqualitySupport != ((OpaqueTypeDecl)nw).MustSupportEquality) {
-                  reporter.Error(MessageSource.RefinementTransformer, nw, "type declaration '{0}' is not allowed to change the requirement of supporting equality", nw.Name);
-                }
-                if (nw.TypeArgs.Count != d.TypeArgs.Count) {
-                  reporter.Error(MessageSource.RefinementTransformer, nw, "type '{0}' is not allowed to change its number of type parameters (got {1}, expected {2})", nw.Name, nw.TypeArgs.Count, d.TypeArgs.Count);
-                }
-              } else if (dDemandsEqualitySupport) {
-                if (nw is ClassDecl) {
-                  // fine, as long as "nw" takes the right number of type parameters
-                  if (nw.TypeArgs.Count != d.TypeArgs.Count) {
-                    reporter.Error(MessageSource.RefinementTransformer, nw, "opaque type '{0}' is not allowed to be replaced by a class that takes a different number of type parameters (got {1}, expected {2})", nw.Name, nw.TypeArgs.Count, d.TypeArgs.Count);
-                  }
-                } else if (nw is NewtypeDecl) {
-                  // fine, as long as "nw" does not take any type parameters
-                  if (nw.TypeArgs.Count != 0) {
-                    reporter.Error(MessageSource.RefinementTransformer, nw, "opaque type '{0}', which has {1} type argument{2}, is not allowed to be replaced by a newtype, which takes none", nw.Name, d.TypeArgs.Count, d.TypeArgs.Count == 1 ? "" : "s");
-                  }
-                } else if (nw is CoDatatypeDecl) {
-                  reporter.Error(MessageSource.RefinementTransformer, nw, "a type declaration that requires equality support cannot be replaced by a codatatype");
-                } else {
-                  Contract.Assert(nw is IndDatatypeDecl || nw is TypeSynonymDecl);
-                  if (nw.TypeArgs.Count != d.TypeArgs.Count) {
-                    reporter.Error(MessageSource.RefinementTransformer, nw, "opaque type '{0}' is not allowed to be replaced by a type that takes a different number of type parameters (got {1}, expected {2})", nw.Name, nw.TypeArgs.Count, d.TypeArgs.Count);
-                  } else {
-                    // Here, we need to figure out if the new type supports equality.  But we won't know about that until resolution has
-                    // taken place, so we defer it until the PostResolve phase.
-                    var udt = UserDefinedType.FromTopLevelDecl(nw.tok, nw);
-                    postTasks.Enqueue(() => {
-                      if (!udt.SupportsEquality) {
-                        reporter.Error(MessageSource.RefinementTransformer, udt.tok, "type '{0}' is used to refine an opaque type with equality support, but '{0}' does not support equality", udt.Name);
-                      }
-                    });
-                  }
-                }
-              } else if (d.TypeArgs.Count != nw.TypeArgs.Count) {
-                reporter.Error(MessageSource.RefinementTransformer, nw, "opaque type '{0}' is not allowed to be replaced by a type that takes a different number of type parameters (got {1}, expected {2})", nw.Name, nw.TypeArgs.Count, d.TypeArgs.Count);
-              }
-            }
-          } else if (nw is OpaqueTypeDecl) {
-            reporter.Error(MessageSource.RefinementTransformer, nw, "an opaque type declaration ({0}) in a refining module cannot replace a more specific type declaration in the refinement base", nw.Name);
-          } else if (nw is DatatypeDecl) {
-            reporter.Error(MessageSource.RefinementTransformer, nw, "a datatype declaration ({0}) in a refinement module can only replace an opaque type declaration", nw.Name);
-          } else if (nw is IteratorDecl) {
-            if (d is IteratorDecl) {
-              m.TopLevelDecls[index] = MergeIterator((IteratorDecl)nw, (IteratorDecl)d);
-            } else {
-              reporter.Error(MessageSource.RefinementTransformer, nw, "an iterator declaration ({0}) is a refining module cannot replace a different kind of declaration in the refinement base", nw.Name);
-            }
-          } else {
-            Contract.Assert(nw is ClassDecl);
-            if (d is DatatypeDecl) {
-              reporter.Error(MessageSource.RefinementTransformer, nw, "a class declaration ({0}) in a refining module cannot replace a different kind of declaration in the refinement base", nw.Name);
-            } else {
-              m.TopLevelDecls[index] = MergeClass((ClassDecl)nw, (ClassDecl)d);
-            }
-          }
+          MergeTopLevelDecls(m, nw, d, index);
         }
       }
 
+      // Merge the imports of prev 
+      var prevTopLevelDecls = RefinedSig.TopLevels.Values;
+      foreach (var d in prevTopLevelDecls) {
+        int index;
+        if (!processedDecl.Contains(d.Name) && (declaredNames.TryGetValue(d.Name, out index))) {
+          // if it is redefined, we need to merge them.
+          var nw = m.TopLevelDecls[index];
+          MergeTopLevelDecls(m, nw, d, index);
+        }
+      }
+      m.RefinementBaseSig = RefinedSig;
+
       Contract.Assert(moduleUnderConstruction == m);  // this should be as it was set earlier in this method
+    }
+
+    private void MergeTopLevelDecls(ModuleDefinition m, TopLevelDecl nw, TopLevelDecl d, int index) {
+      if (d is ModuleDecl) {
+        if (!(nw is ModuleDecl)) {
+          reporter.Error(MessageSource.RefinementTransformer, nw, "a module ({0}) must refine another module", nw.Name);
+        } else if (!(d is ModuleFacadeDecl)) {
+          reporter.Error(MessageSource.RefinementTransformer, nw, "a module ({0}) can only refine a module facade", nw.Name);
+        } else {
+          ModuleSignature original = ((ModuleFacadeDecl)d).OriginalSignature;
+          ModuleSignature derived = null;
+          if (nw is AliasModuleDecl) {
+            derived = ((AliasModuleDecl)nw).Signature;
+          } else if (nw is ModuleFacadeDecl) {
+            derived = ((ModuleFacadeDecl)nw).Signature;
+          } else {
+            reporter.Error(MessageSource.RefinementTransformer, nw, "a module ({0}) can only be refined by an alias module or a module facade", d.Name);
+          }
+          if (derived != null) {
+            // check that the new module refines the previous declaration
+            if (!CheckIsRefinement(derived, original))
+              reporter.Error(MessageSource.RefinementTransformer, nw.tok, "a module ({0}) can only be replaced by a refinement of the original module", d.Name);
+          }
+        }
+      } else if (d is OpaqueTypeDecl) {
+        if (nw is ModuleDecl) {
+          reporter.Error(MessageSource.RefinementTransformer, nw, "a module ({0}) must refine another module", nw.Name);
+        } else {
+          bool dDemandsEqualitySupport = ((OpaqueTypeDecl)d).MustSupportEquality;
+          if (nw is OpaqueTypeDecl) {
+            if (dDemandsEqualitySupport != ((OpaqueTypeDecl)nw).MustSupportEquality) {
+              reporter.Error(MessageSource.RefinementTransformer, nw, "type declaration '{0}' is not allowed to change the requirement of supporting equality", nw.Name);
+            }
+            if (nw.TypeArgs.Count != d.TypeArgs.Count) {
+              reporter.Error(MessageSource.RefinementTransformer, nw, "type '{0}' is not allowed to change its number of type parameters (got {1}, expected {2})", nw.Name, nw.TypeArgs.Count, d.TypeArgs.Count);
+            }
+          } else if (dDemandsEqualitySupport) {
+            if (nw is ClassDecl) {
+              // fine, as long as "nw" takes the right number of type parameters
+              if (nw.TypeArgs.Count != d.TypeArgs.Count) {
+                reporter.Error(MessageSource.RefinementTransformer, nw, "opaque type '{0}' is not allowed to be replaced by a class that takes a different number of type parameters (got {1}, expected {2})", nw.Name, nw.TypeArgs.Count, d.TypeArgs.Count);
+              }
+            } else if (nw is NewtypeDecl) {
+              // fine, as long as "nw" does not take any type parameters
+              if (nw.TypeArgs.Count != 0) {
+                reporter.Error(MessageSource.RefinementTransformer, nw, "opaque type '{0}', which has {1} type argument{2}, is not allowed to be replaced by a newtype, which takes none", nw.Name, d.TypeArgs.Count, d.TypeArgs.Count == 1 ? "" : "s");
+              }
+            } else if (nw is CoDatatypeDecl) {
+              reporter.Error(MessageSource.RefinementTransformer, nw, "a type declaration that requires equality support cannot be replaced by a codatatype");
+            } else {
+              Contract.Assert(nw is IndDatatypeDecl || nw is TypeSynonymDecl);
+              if (nw.TypeArgs.Count != d.TypeArgs.Count) {
+                reporter.Error(MessageSource.RefinementTransformer, nw, "opaque type '{0}' is not allowed to be replaced by a type that takes a different number of type parameters (got {1}, expected {2})", nw.Name, nw.TypeArgs.Count, d.TypeArgs.Count);
+              } else {
+                // Here, we need to figure out if the new type supports equality.  But we won't know about that until resolution has
+                // taken place, so we defer it until the PostResolve phase.
+                var udt = UserDefinedType.FromTopLevelDecl(nw.tok, nw);
+                postTasks.Enqueue(() => {
+                  if (!udt.SupportsEquality) {
+                    reporter.Error(MessageSource.RefinementTransformer, udt.tok, "type '{0}' is used to refine an opaque type with equality support, but '{0}' does not support equality", udt.Name);
+                  }
+                });
+              }
+            }
+          } else if (d.TypeArgs.Count != nw.TypeArgs.Count) {
+            reporter.Error(MessageSource.RefinementTransformer, nw, "opaque type '{0}' is not allowed to be replaced by a type that takes a different number of type parameters (got {1}, expected {2})", nw.Name, nw.TypeArgs.Count, d.TypeArgs.Count);
+          }
+        }
+      } else if (nw is OpaqueTypeDecl) {
+        reporter.Error(MessageSource.RefinementTransformer, nw, "an opaque type declaration ({0}) in a refining module cannot replace a more specific type declaration in the refinement base", nw.Name);
+      } else if (nw is DatatypeDecl) {
+        reporter.Error(MessageSource.RefinementTransformer, nw, "a datatype declaration ({0}) in a refinement module can only replace an opaque type declaration", nw.Name);
+      } else if (nw is IteratorDecl) {
+        if (d is IteratorDecl) {
+          m.TopLevelDecls[index] = MergeIterator((IteratorDecl)nw, (IteratorDecl)d);
+        } else {
+          reporter.Error(MessageSource.RefinementTransformer, nw, "an iterator declaration ({0}) is a refining module cannot replace a different kind of declaration in the refinement base", nw.Name);
+        }
+      } else {
+        Contract.Assert(nw is ClassDecl);
+        if (d is DatatypeDecl) {
+          reporter.Error(MessageSource.RefinementTransformer, nw, "a class declaration ({0}) in a refining module cannot replace a different kind of declaration in the refinement base", nw.Name);
+        } else {
+          m.TopLevelDecls[index] = MergeClass((ClassDecl)nw, (ClassDecl)d);
+        }
+      }
     }
 
     public bool CheckIsRefinement(ModuleSignature derived, ModuleSignature original) {

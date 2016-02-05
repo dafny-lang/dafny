@@ -1823,6 +1823,21 @@ namespace Microsoft.Dafny {
 
     public int ExclusiveRefinementCount { get; set; }
 
+    private ModuleSignature refinementBaseSig; // module signature of the refinementBase.
+    public ModuleSignature RefinementBaseSig {
+      get {
+        return refinementBaseSig;
+      }
+
+      set {
+        // the refinementBase member may only be changed once.
+        if (null != refinementBaseSig) {
+          throw new InvalidOperationException(string.Format("This module ({0}) already has a refinement base ({1}).", Name, refinementBase.Name));
+        }
+        refinementBaseSig = value;
+      }
+    }
+
     private ModuleDefinition refinementBase; // filled in during resolution via RefinementBase property (null if no refinement base yet or at all).
 
     public ModuleDefinition RefinementBase {

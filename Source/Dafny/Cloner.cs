@@ -23,7 +23,10 @@ namespace Microsoft.Dafny
         nw.TopLevelDecls.Add(CloneDeclaration(d, nw));
       }
       if (null != m.RefinementBase) {
-          nw.RefinementBase = m.RefinementBase;
+        nw.RefinementBase = m.RefinementBase;
+      }
+      if (null != m.RefinementBaseSig) {
+        nw.RefinementBaseSig = m.RefinementBaseSig;
       }
       nw.ClonedFrom = m;
       nw.Height = m.Height;

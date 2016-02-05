@@ -37,7 +37,7 @@ namespace Microsoft.Dafny {
     // This is the only thing that needs to be overriden
     public virtual bool Message(MessageSource source, ErrorLevel level, IToken tok, string msg) {
       bool discard = (ErrorsOnly && level != ErrorLevel.Error) || // Discard non-errors if ErrorsOnly is set
-                     (tok is TokenWrapper && !(tok is NestedToken)); // Discard wrapped tokens, except for nested ones
+                     (tok is TokenWrapper && !(tok is NestedToken) && !(tok is RefinementToken)); // Discard wrapped tokens, except for nested and refinement
       if (!discard) {
         AllMessages[level].Add(new ErrorMessage { token = tok, message = msg });
       }

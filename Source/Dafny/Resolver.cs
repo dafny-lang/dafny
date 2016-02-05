@@ -1103,6 +1103,17 @@ namespace Microsoft.Dafny
           }
         }
       }
+
+      // second go through and overriding anything from the opened imports with the ones from the refinementBase
+      if (useImports && moduleDef.RefinementBaseSig != null) {
+        foreach (var kv in moduleDef.RefinementBaseSig.TopLevels) {
+          sig.TopLevels[kv.Key] = kv.Value;
+        }
+        foreach (var kv in moduleDef.RefinementBaseSig.StaticMembers) {
+          sig.StaticMembers[kv.Key] = kv.Value;
+        }
+      }
+
       // This is solely used to detect duplicates amongst the various e
       Dictionary<string, TopLevelDecl> toplevels = new Dictionary<string, TopLevelDecl>();
       // Now add the things present

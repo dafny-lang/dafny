@@ -30,5 +30,6 @@ Modules0.dfy(320,11): Error: Undeclared top-level type or type parameter: Wazzup
 Modules0.dfy(321,17): Error: module 'Q_Imp' does not declare a type 'Edon'
 Modules0.dfy(323,10): Error: new can be applied only to reference types (got Q_Imp.List<?>)
 Modules0.dfy(324,30): Error: member Create does not exist in class Klassy
+Modules0.dfy(348,11): Error: a datatype declaration (T) in a refinement module can only replace an opaque type declaration
 Modules0.dfy(101,14): Error: Undeclared top-level type or type parameter: MyClassY (did you forget to qualify a name or declare a module import 'opened?')
-31 resolution/type errors detected in Modules0.dfy
+32 resolution/type errors detected in Modules0.dfy

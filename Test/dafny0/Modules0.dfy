@@ -335,3 +335,15 @@ module TopLevelStatics {
   static method M()  // error/warning: static keyword does not belong here
   { }
 }
+
+module Library {
+  class T { }
+}
+
+module AA {
+ import opened Library
+}
+
+module B refines AA {
+  datatype T = MakeT(int)  // illegal
+}
