@@ -56,27 +56,3 @@ module S refines R {
    assert G.f(20); // should be LibA.G.f
   }
 } 
-
-
-module Library {
-
-  class T { }
-
-}
-
- 
-
-module A {
-
-  import opened Library
-	class T {
-	}
-}
-
- 
-
-module B refines A {
-
-  datatype T = MakeT(int)  // illegal for the same reason as above, but Dafny fails to issue an error
-
-}
