@@ -198,6 +198,7 @@ namespace Microsoft.Dafny.Triggers {
           expr is OldExpr || 
           expr is ApplyExpr || 
           expr is DisplayExpression ||
+          TranslateToFunctionCall(expr) ||
           (expr is UnaryOpExpr && (((UnaryOpExpr)expr).Op == UnaryOpExpr.Opcode.Cardinality)) || // FIXME || ((UnaryOpExpr)expr).Op == UnaryOpExpr.Opcode.Fresh doesn't work, as fresh is a pretty tricky predicate when it's not about datatypes. See translator.cs:10944
           (expr is BinaryExpr && (((BinaryExpr)expr).Op == BinaryExpr.Opcode.NotIn || ((BinaryExpr)expr).Op == BinaryExpr.Opcode.In))) {
         annotation = AnnotatePotentialCandidate(expr);
@@ -227,6 +228,31 @@ namespace Microsoft.Dafny.Triggers {
       return annotation;
     }
 
+    // math operations can be turned into a Boogie-level function as in the 
+    // case with /noNLarith.
+    public bool TranslateToFunctionCall(Expression expr) {
+      if (!(expr is BinaryExpr)) {
+        return false;
+      }
+      BinaryExpr e = (BinaryExpr) expr;
+      bool isReal = e.E0.Type.IsNumericBased(Type.NumericPersuation.Real);
+      switch (e.ResolvedOp) {
+        case BinaryExpr.ResolvedOpcode.Lt:
+        case BinaryExpr.ResolvedOpcode.Le:
+        case BinaryExpr.ResolvedOpcode.Ge:
+        case BinaryExpr.ResolvedOpcode.Gt:
+        case BinaryExpr.ResolvedOpcode.Add:
+        case BinaryExpr.ResolvedOpcode.Sub:
+        case BinaryExpr.ResolvedOpcode.Mul:
+        case BinaryExpr.ResolvedOpcode.Div:
+        case BinaryExpr.ResolvedOpcode.Mod:
+          if (!isReal && DafnyOptions.O.DisableNLarith) {
+            return true;
+          }
+          break;
+      }
+      return false;
+    }
     private TriggerAnnotation AnnotatePotentialCandidate(Expression expr) {
       bool expr_is_killer = false;
       var new_expr = TriggerUtils.MaybeWrapInOld(TriggerUtils.PrepareExprForInclusionInTrigger(expr, out expr_is_killer), cache.exprsInOldContext.Contains(expr));
