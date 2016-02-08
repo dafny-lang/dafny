@@ -11222,7 +11222,7 @@ namespace Microsoft.Dafny {
                 bOpcode = BinaryOperator.Opcode.Lt;
                 break;
               } else {
-                return translator.FunctionCall(expr.tok, "INTERNAL_lt_boogie", Bpl.Type.Int, e0, e1);
+                return TrToFunctionCall(expr.tok, "INTERNAL_lt_boogie", Bpl.Type.Int, e0, e1, liftLit);
               }
 
             case BinaryExpr.ResolvedOpcode.Le:
@@ -11232,7 +11232,7 @@ namespace Microsoft.Dafny {
                 bOpcode = BinaryOperator.Opcode.Le;
                 break;
               } else {
-                return translator.FunctionCall(expr.tok, "INTERNAL_le_boogie", Bpl.Type.Int, e0, e1);
+                return TrToFunctionCall(expr.tok, "INTERNAL_le_boogie", Bpl.Type.Int, e0, e1, false);
               }
             case BinaryExpr.ResolvedOpcode.Ge:
               keepLits = true;
@@ -11241,7 +11241,7 @@ namespace Microsoft.Dafny {
                 bOpcode = BinaryOperator.Opcode.Ge;
                 break;
               } else {
-                return translator.FunctionCall(expr.tok, "INTERNAL_ge_boogie", Bpl.Type.Int, e0, e1);
+                return TrToFunctionCall(expr.tok, "INTERNAL_ge_boogie", Bpl.Type.Int, e0, e1, false);
               }
             case BinaryExpr.ResolvedOpcode.Gt:
               if (isReal || !DafnyOptions.O.DisableNLarith) {
@@ -11249,7 +11249,7 @@ namespace Microsoft.Dafny {
                 bOpcode = BinaryOperator.Opcode.Gt;
                 break;
               } else {
-                return translator.FunctionCall(expr.tok, "INTERNAL_gt_boogie", Bpl.Type.Int, e0, e1);
+                return TrToFunctionCall(expr.tok, "INTERNAL_gt_boogie", Bpl.Type.Int, e0, e1, liftLit);
               }
             case BinaryExpr.ResolvedOpcode.Add:
               if (!DafnyOptions.O.DisableNLarith) {
@@ -11261,7 +11261,7 @@ namespace Microsoft.Dafny {
                   bOpcode = BinaryOperator.Opcode.Add;
                   break;
                 } else {
-                  return translator.FunctionCall(expr.tok, "INTERNAL_add_boogie", Bpl.Type.Int, e0, e1);
+                  return TrToFunctionCall(expr.tok, "INTERNAL_add_boogie", Bpl.Type.Int, e0, e1, liftLit);
                 }
               }
             case BinaryExpr.ResolvedOpcode.Sub:
@@ -11274,7 +11274,7 @@ namespace Microsoft.Dafny {
                   bOpcode = BinaryOperator.Opcode.Sub;
                   break;
                 } else {
-                  return translator.FunctionCall(expr.tok, "INTERNAL_sub_boogie", Bpl.Type.Int, e0, e1);
+                  return TrToFunctionCall(expr.tok, "INTERNAL_sub_boogie", Bpl.Type.Int, e0, e1, liftLit);
                 }
               }
             case BinaryExpr.ResolvedOpcode.Mul:
@@ -11287,7 +11287,7 @@ namespace Microsoft.Dafny {
                   bOpcode = BinaryOperator.Opcode.Mul;
                   break;
                 } else {
-                  return translator.FunctionCall(expr.tok, "INTERNAL_mul_boogie", Bpl.Type.Int, e0, e1);
+                  return TrToFunctionCall(expr.tok, "INTERNAL_mul_boogie", Bpl.Type.Int, e0, e1, liftLit);
                 }
               }
 
@@ -11300,7 +11300,7 @@ namespace Microsoft.Dafny {
                   typ = Bpl.Type.Int;
                   bOpcode = BinaryOperator.Opcode.Div; break;
                 } else {
-                  return translator.FunctionCall(expr.tok, "INTERNAL_div_boogie", Bpl.Type.Int, e0, e1);
+                  return TrToFunctionCall(expr.tok, "INTERNAL_div_boogie", Bpl.Type.Int, e0, e1, liftLit);
                 }
               }
             case BinaryExpr.ResolvedOpcode.Mod:
@@ -11313,7 +11313,7 @@ namespace Microsoft.Dafny {
                   bOpcode = BinaryOperator.Opcode.Mod;
                   break;
                 } else {
-                  return translator.FunctionCall(expr.tok, "INTERNAL_mod_boogie", Bpl.Type.Int, e0, e1);
+                  return TrToFunctionCall(expr.tok, "INTERNAL_mod_boogie", Bpl.Type.Int, e0, e1, liftLit);
                 }
               }
 
@@ -11649,6 +11649,14 @@ namespace Microsoft.Dafny {
         } else {
           Contract.Assert(false); throw new cce.UnreachableException();  // unexpected expression
         }
+      }
+
+      private Expr TrToFunctionCall(IToken tok, string function, Bpl.Type returnType, Bpl.Expr e0, Bpl.Expr e1, bool liftLit) {
+        Bpl.Expr re = translator.FunctionCall(tok, function, returnType, e0, e1);
+        if (liftLit) {
+          re = MaybeLit(re, returnType);
+        }
+        return re;
       }
 
       private Expr TrLambdaExpr(LambdaExpr e) {
