@@ -459,7 +459,7 @@ module MyOwnModule {
   
 // ------------------- nameless constructors ------------------------------
 
-class YHWH {
+class Y {
   var data: int;
   constructor (x: int)
     modifies this;
@@ -470,22 +470,22 @@ class YHWH {
   {
   }
   method Test() {
-    var IAmWhoIAm := new YHWH(5);
-    IAmWhoIAm := new YHWH._ctor(7);  // but, in fact, it is also possible to use the underlying name
-    IAmWhoIAm := new YHWH;  // error: the class has a constructor, so one must be used
-    var s := new Lucifer.Init(5);
-    s := new Lucifer.FromArray(null);
-    s := new Lucifer(false);
-    s := new Lucifer._ctor(false);
-    s := new Lucifer.M();  // error: there is a constructor, so one must be called
-    s := new Lucifer;  // error: there is a constructor, so one must be called
+    var i := new Y(5);
+    i := new Y._ctor(7);  // but, in fact, it is also possible to use the underlying name
+    i := new Y;  // error: the class has a constructor, so one must be used
+    var s := new Luci.Init(5);
+    s := new Luci.FromArray(null);
+    s := new Luci(false);
+    s := new Luci._ctor(false);
+    s := new Luci.M();  // error: there is a constructor, so one must be called
+    s := new Luci;  // error: there is a constructor, so one must be called
     var l := new Lamb;
     l := new Lamb();  // error: there is no default constructor
     l := new Lamb.Gwen();
   }
 }
 
-class Lucifer {
+class Luci {
   constructor Init(y: int) { }
   constructor (nameless: bool) { }
   constructor FromArray(a: array<int>) { }
@@ -493,7 +493,7 @@ class Lucifer {
 }
 
 class Lamb {
-  method Jesus() { }
+  method Jess() { }
   method Gwen() { }
 }
 

@@ -1,7 +1,7 @@
 // RUN: %dafny /compile:0 /print:"%t.print" /dprint:"%t.dprint" /autoTriggers:1 /printTooltips "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
-// The examples below work nicely with /autoTriggers:0, but break when we ass
+// The examples below work nicely with /autoTriggers:0, but break when we use
 // /autoTriggers.
 
 // The issue is that the axioms for sequences are missing a number of facts,
