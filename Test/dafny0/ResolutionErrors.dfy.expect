@@ -173,9 +173,9 @@ ResolutionErrors.dfy(92,14): Error: the name 'David' denotes a datatype construc
 ResolutionErrors.dfy(93,14): Error: the name 'David' denotes a datatype constructor, but does not do so uniquely; add an explicit qualification (for example, 'Abc.David')
 ResolutionErrors.dfy(95,14): Error: the name 'David' denotes a datatype constructor, but does not do so uniquely; add an explicit qualification (for example, 'Abc.David')
 ResolutionErrors.dfy(97,18): Error: wrong number of arguments to datatype constructor David (found 2, expected 1)
-ResolutionErrors.dfy(475,14): Error: when allocating an object of type 'YHWH', one of its constructor methods must be called
-ResolutionErrors.dfy(480,6): Error: when allocating an object of type 'Lucifer', one of its constructor methods must be called
-ResolutionErrors.dfy(481,6): Error: when allocating an object of type 'Lucifer', one of its constructor methods must be called
+ResolutionErrors.dfy(475,6): Error: when allocating an object of type 'Y', one of its constructor methods must be called
+ResolutionErrors.dfy(480,6): Error: when allocating an object of type 'Luci', one of its constructor methods must be called
+ResolutionErrors.dfy(481,6): Error: when allocating an object of type 'Luci', one of its constructor methods must be called
 ResolutionErrors.dfy(483,9): Error: class Lamb does not have an anonymous constructor
 ResolutionErrors.dfy(853,11): Error: a modifies-clause expression must denote an object or a collection of objects (instead got int)
 ResolutionErrors.dfy(857,14): Error: in a ghost context, only ghost fields can be mentioned as modifies frame targets (x)
