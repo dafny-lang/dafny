@@ -7282,7 +7282,7 @@ namespace Microsoft.Dafny
       return rr.Type;
     }
 
-    MemberDecl ResolveMember(IToken tok, Type receiverType, string memberName, out NonProxyType nptype) {
+    MemberDecl ResolveMember(IToken tok, Type receiverType, string memberName, out NonProxyType nptype, bool classMembersOnly = false) {
       Contract.Requires(tok != null);
       Contract.Requires(receiverType != null);
       Contract.Requires(memberName != null);
@@ -7319,7 +7319,7 @@ namespace Microsoft.Dafny
             reporter.Error(MessageSource.Resolver, tok, "{0} {1} does not have an anonymous constructor", kind, ctype.Name);
           } else {
             // search the static members of the enclosing module or its imports
-            if (moduleInfo.StaticMembers.TryGetValue(memberName, out member)) {
+            if (!classMembersOnly && moduleInfo.StaticMembers.TryGetValue(memberName, out member)) {
               Contract.Assert(member.IsStatic); // moduleInfo.StaticMembers is supposed to contain only static members of the module's implicit class _default
               if (member is AmbiguousMemberDecl) {
                 var ambiguousMember = (AmbiguousMemberDecl)member;
@@ -9236,8 +9236,9 @@ namespace Microsoft.Dafny
         }
       } else if (lhs != null) {
         // ----- 4. Look up name in the type of the Lhs
+        bool classMemberOnly = UserDefinedType.DenotesClass(expr.Lhs.Type) == null ? false : true;
         NonProxyType nptype;
-        member = ResolveMember(expr.tok, expr.Lhs.Type, expr.SuffixName, out nptype);
+        member = ResolveMember(expr.tok, expr.Lhs.Type, expr.SuffixName, out nptype, classMemberOnly);
         if (member != null) {
           Expression receiver;
           if (!member.IsStatic) {
