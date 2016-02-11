@@ -11222,7 +11222,7 @@ namespace Microsoft.Dafny {
                 bOpcode = BinaryOperator.Opcode.Lt;
                 break;
               } else {
-                return TrToFunctionCall(expr.tok, "INTERNAL_lt_boogie", Bpl.Type.Int, e0, e1, liftLit);
+                return TrToFunctionCall(expr.tok, "INTERNAL_lt_boogie", Bpl.Type.Bool, e0, e1, liftLit);
               }
 
             case BinaryExpr.ResolvedOpcode.Le:
@@ -11232,7 +11232,7 @@ namespace Microsoft.Dafny {
                 bOpcode = BinaryOperator.Opcode.Le;
                 break;
               } else {
-                return TrToFunctionCall(expr.tok, "INTERNAL_le_boogie", Bpl.Type.Int, e0, e1, false);
+                return TrToFunctionCall(expr.tok, "INTERNAL_le_boogie", Bpl.Type.Bool, e0, e1, false);
               }
             case BinaryExpr.ResolvedOpcode.Ge:
               keepLits = true;
@@ -11241,7 +11241,7 @@ namespace Microsoft.Dafny {
                 bOpcode = BinaryOperator.Opcode.Ge;
                 break;
               } else {
-                return TrToFunctionCall(expr.tok, "INTERNAL_ge_boogie", Bpl.Type.Int, e0, e1, false);
+                return TrToFunctionCall(expr.tok, "INTERNAL_ge_boogie", Bpl.Type.Bool, e0, e1, false);
               }
             case BinaryExpr.ResolvedOpcode.Gt:
               if (isReal || !DafnyOptions.O.DisableNLarith) {
@@ -11249,7 +11249,7 @@ namespace Microsoft.Dafny {
                 bOpcode = BinaryOperator.Opcode.Gt;
                 break;
               } else {
-                return TrToFunctionCall(expr.tok, "INTERNAL_gt_boogie", Bpl.Type.Int, e0, e1, liftLit);
+                return TrToFunctionCall(expr.tok, "INTERNAL_gt_boogie", Bpl.Type.Bool, e0, e1, liftLit);
               }
             case BinaryExpr.ResolvedOpcode.Add:
               if (!DafnyOptions.O.DisableNLarith) {
