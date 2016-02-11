@@ -54,6 +54,7 @@ namespace Microsoft.Dafny
     public PrintModes PrintMode = PrintModes.Everything;  // Default to printing everything
     public bool DafnyVerify = true;
     public string DafnyPrintResolvedFile = null;
+    public List<string> DafnyPrintExportedViews = new List<string>();
     public bool Compile = true;
     public bool ForceCompile = false;
     public bool RunAfterCompile = false;
@@ -118,6 +119,11 @@ namespace Microsoft.Dafny
         case "rprint":
           if (ps.ConfirmArgumentCount(1)) {
             DafnyPrintResolvedFile = args[ps.i];
+          }
+          return true;
+        case "view":
+          if (ps.ConfirmArgumentCount(1)) {
+            DafnyPrintExportedViews = args[ps.i].Split(',').ToList();
           }
           return true;
 
@@ -322,6 +328,11 @@ namespace Microsoft.Dafny
   /rprint:<file>
                 print Dafny program after resolving it
                 (use - as <file> to print to console)
+  /view:<view1, view2>
+                print the filtered views of a module after it is resolved (/rprint).
+                if print before the module is resolved (/dprint), then everthing in the module is printed
+                if no view is specified, then everything in the module is printed. 
+                
   /dafnyVerify:<n>
                 0 - stop after typechecking
                 1 - continue on to translation, verification, and compilation

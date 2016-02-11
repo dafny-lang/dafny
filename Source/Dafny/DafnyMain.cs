@@ -12,7 +12,7 @@ using Bpl = Microsoft.Boogie;
 namespace Microsoft.Dafny {
   public class Main {
 
-      private static void MaybePrintProgram(Program program, string filename)
+      private static void MaybePrintProgram(Program program, string filename, bool afterResolver)
       {
           if (filename != null) {
               TextWriter tw;
@@ -22,7 +22,7 @@ namespace Microsoft.Dafny {
                   tw = new System.IO.StreamWriter(filename);
               }
               Printer pr = new Printer(tw, DafnyOptions.O.PrintMode);
-              pr.PrintProgram(program);
+              pr.PrintProgram(program, afterResolver);
           }
       }
    
@@ -62,13 +62,13 @@ namespace Microsoft.Dafny {
 
       program = new Program(programName, module, builtIns, reporter);
 
-      MaybePrintProgram(program, DafnyOptions.O.DafnyPrintFile);
+      MaybePrintProgram(program, DafnyOptions.O.DafnyPrintFile, false);
 
       if (Bpl.CommandLineOptions.Clo.NoResolve || Bpl.CommandLineOptions.Clo.NoTypecheck) { return null; }
 
       Dafny.Resolver r = new Dafny.Resolver(program);
       r.ResolveProgram(program);
-      MaybePrintProgram(program, DafnyOptions.O.DafnyPrintResolvedFile);
+      MaybePrintProgram(program, DafnyOptions.O.DafnyPrintResolvedFile, true);
 
       if (reporter.Count(ErrorLevel.Error) != 0) {
         return string.Format("{0} resolution/type errors detected in {1}", reporter.Count(ErrorLevel.Error), program.Name);

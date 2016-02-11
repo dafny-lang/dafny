@@ -15,6 +15,7 @@ namespace Microsoft.Dafny {
   public class Printer {
     TextWriter wr;
     DafnyOptions.PrintModes printMode;
+    bool afterResolver;
 
     [ContractInvariantMethod]
     void ObjectInvariant()
@@ -129,8 +130,9 @@ namespace Microsoft.Dafny {
       return sb.ToString(0, len);
     }
 
-    public void PrintProgram(Program prog) {
+    public void PrintProgram(Program prog, bool afterResolver) {
       Contract.Requires(prog != null);
+      this.afterResolver = afterResolver;
       if (Bpl.CommandLineOptions.Clo.ShowEnv != Bpl.CommandLineOptions.ShowEnvironment.Never) {
         wr.WriteLine("// " + Bpl.CommandLineOptions.Clo.Version);
         wr.WriteLine("// " + Bpl.CommandLineOptions.Clo.Environment);
@@ -253,11 +255,35 @@ namespace Microsoft.Dafny {
             wr.Write("import"); if (((ModuleFacadeDecl)d).Opened) wr.Write(" opened");
             wr.Write(" {0} ", ((ModuleFacadeDecl)d).Name);
             wr.WriteLine("as {0}", Util.Comma(".", ((ModuleFacadeDecl)d).Path, id => id.val));
+          } else if (d is ModuleExportDecl) {
+            ModuleExportDecl e = (ModuleExportDecl)d;
+            if (e.IsDefault) wr.Write("default ");
+            wr.Write("export {0}", e.Name);
+            if (e.Extends.Count > 0) wr.Write(" extends {0}", Util.Comma(e.Extends, id => id));
+            PrintModuleExportDecl(e, indent, fileBeingPrinted);
           }
 
         } else {
           Contract.Assert(false);  // unexpected TopLevelDecl
         }
+      }
+    }
+
+    void PrintModuleExportDecl(ModuleExportDecl m, int indent, string fileBeingPrinted) {
+      ModuleSignature sig = m.Signature;
+      if (sig == null) {
+        wr.Write(" {");
+        // has been resolved yet, just print the strings
+        wr.Write("{0}", Util.Comma(m.Exports, id => id.Name));
+        wr.Write("}");
+      } else {
+        wr.WriteLine(" {");
+        // print the decls and members in the module
+        List<TopLevelDecl> decls = sig.TopLevels.Values.ToList();
+        List<MemberDecl> members = sig.StaticMembers.Values.ToList();
+        PrintTopLevelDecls(decls, indent + IndentAmount, fileBeingPrinted);
+        PrintMembers(members, indent + IndentAmount, fileBeingPrinted);
+        Indent(indent);  wr.WriteLine("}");
       }
     }
 
@@ -278,10 +304,27 @@ namespace Microsoft.Dafny {
       } else {
         wr.WriteLine("{");
         PrintCallGraph(module, indent + IndentAmount);
-        PrintTopLevelDecls(module.TopLevelDecls, indent + IndentAmount, fileBeingPrinted);
+        PrintTopLevelDeclsOrExportedView(module, indent, fileBeingPrinted);
         Indent(indent);
         wr.WriteLine("}");
       }
+    }
+
+    void PrintTopLevelDeclsOrExportedView(ModuleDefinition module, int indent, string fileBeingPrinted) {
+      bool printViewsOnly = false;
+      List<TopLevelDecl> decls = new List<TopLevelDecl>();
+      // only filter based on view name after resolver. 
+      if (afterResolver) {
+        foreach (var nameOfView in DafnyOptions.O.DafnyPrintExportedViews) {
+          foreach (var decl in module.TopLevelDecls) {
+            if (decl.FullName.Equals(nameOfView)) {
+              printViewsOnly = true;
+              decls.Add(decl);
+            }
+          }
+        }
+      }
+      PrintTopLevelDecls(printViewsOnly ? decls : module.TopLevelDecls, indent + IndentAmount, fileBeingPrinted);
     }
 
     void PrintIteratorSignature(IteratorDecl iter, int indent) {
