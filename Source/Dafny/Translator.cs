@@ -5045,8 +5045,11 @@ namespace Microsoft.Dafny {
           CheckSubrange(ee.tok, etran.TrExpr(ee), et, builder);
           Bpl.Cmd cmd = Bpl.Cmd.SimpleAssign(p.tok, lhs, CondApplyBox(p.tok, etran.TrExpr(ee), cce.NonNull(ee.Type), et));
           builder.Add(cmd);
-          builder.Add(new Bpl.CommentCmd("assume allocatedness for argument to function"));
-          builder.Add(new Bpl.AssumeCmd(e.Args[i].tok, MkIsAlloc(lhs, et, etran.HeapExpr)));
+          if (!etran.UsesOldHeap) {
+            // the argument can't be assumed to be allocated for the old heap
+            builder.Add(new Bpl.CommentCmd("assume allocatedness for argument to function"));
+            builder.Add(new Bpl.AssumeCmd(e.Args[i].tok, MkIsAlloc(lhs, et, etran.HeapExpr)));
+          }
         }
         // Check that every parameter is available in the state in which the function is invoked; this means checking that it has
         // the right type and is allocated.  These checks usually hold trivially, on account of that the Dafny language only gives
