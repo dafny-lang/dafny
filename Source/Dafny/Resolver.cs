@@ -5057,7 +5057,7 @@ namespace Microsoft.Dafny
               var dd = (NewtypeDecl)d;
               if (DafnyOptions.O.IronDafny) {
                 while (dd.ClonedFrom != null) {
-                  dd = (NewtypeDecl)d.ClonedFrom;
+                  dd = (NewtypeDecl)dd.ClonedFrom;
                 }
               }
               var caller = context as ICallable;

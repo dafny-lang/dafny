@@ -1,0 +1,4 @@
+Bug134.dfy(16,20): Warning: "import A as B" has been deprecated; in the new syntax, it is "import A:B"
+Bug134.dfy(21,20): Warning: "import A as B" has been deprecated; in the new syntax, it is "import A:B"
+
+Dafny program verifier finished with 4 verified, 0 errors
