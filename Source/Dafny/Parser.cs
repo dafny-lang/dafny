@@ -3244,12 +3244,14 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 			name = id.val; 
 			if (la.kind == 50) {
 				Get();
-				CasePattern(out pat);
-				arguments.Add(pat); 
-				while (la.kind == 22) {
-					Get();
+				if (la.kind == 1 || la.kind == 50) {
 					CasePattern(out pat);
 					arguments.Add(pat); 
+					while (la.kind == 22) {
+						Get();
+						CasePattern(out pat);
+						arguments.Add(pat); 
+					}
 				}
 				Expect(51);
 			}
@@ -4562,12 +4564,14 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 			name = id.val; 
 			if (la.kind == 50) {
 				Get();
-				CasePattern(out pat);
-				arguments.Add(pat); 
-				while (la.kind == 22) {
-					Get();
+				if (la.kind == 1 || la.kind == 50) {
 					CasePattern(out pat);
 					arguments.Add(pat); 
+					while (la.kind == 22) {
+						Get();
+						CasePattern(out pat);
+						arguments.Add(pat); 
+					}
 				}
 				Expect(51);
 			}
