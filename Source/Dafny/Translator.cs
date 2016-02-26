@@ -4293,12 +4293,7 @@ namespace Microsoft.Dafny {
         return CanCallAssumption(l, etran);
       } else if (expr is MemberSelectExpr) {
         MemberSelectExpr e = (MemberSelectExpr)expr;
-        Bpl.Expr r;
-        if (e.Obj is ThisExpr) {
-          r = Bpl.Expr.True;
-        } else {
-          r = CanCallAssumption(e.Obj, etran);
-        }
+        var r = CanCallAssumption(e.Obj, etran);
         if (e.Member is DatatypeDestructor) {
           var dtor = (DatatypeDestructor)e.Member;
           if (dtor.EnclosingCtor.EnclosingDatatype.Ctors.Count == 1) {
@@ -4311,10 +4306,7 @@ namespace Microsoft.Dafny {
       } else if (expr is SeqSelectExpr) {
         SeqSelectExpr e = (SeqSelectExpr)expr;
         Bpl.Expr total = CanCallAssumption(e.Seq, etran);
-        Bpl.Expr seq = etran.TrExpr(e.Seq);
-        Bpl.Expr e0 = null;
         if (e.E0 != null) {
-          e0 = etran.TrExpr(e.E0);
           total = BplAnd(total, CanCallAssumption(e.E0, etran));
         }
         if (e.E1 != null) {
@@ -4335,8 +4327,6 @@ namespace Microsoft.Dafny {
           return CanCallAssumption(e.ResolvedUpdateExpr, etran);
         }
         Bpl.Expr total = CanCallAssumption(e.Seq, etran);
-        Bpl.Expr seq = etran.TrExpr(e.Seq);
-        Bpl.Expr index = etran.TrExpr(e.Index);
         total = BplAnd(total, CanCallAssumption(e.Index, etran));
         total = BplAnd(total, CanCallAssumption(e.Value, etran));
         return total;
@@ -4347,18 +4337,13 @@ namespace Microsoft.Dafny {
           e.Args.ConvertAll(ee => CanCallAssumption(ee, etran))));
       } else if (expr is FunctionCallExpr) {
         FunctionCallExpr e = (FunctionCallExpr)expr;
-        // check well-formedness of receiver
         Bpl.Expr r = CanCallAssumption(e.Receiver, etran);
-        // check well-formedness of the other parameters
         r = BplAnd(r, CanCallAssumption(e.Args, etran));
- //       if (e.Name != "requires" && e.Name != "reads") {
-          Contract.Assert(e.Function != null);  // follows from the fact that expr has been successfully resolved
-          // get to assume canCall
-          Bpl.IdentifierExpr canCallFuncID = new Bpl.IdentifierExpr(expr.tok, e.Function.FullSanitizedName + "#canCall", Bpl.Type.Bool);
-          List<Bpl.Expr> args = etran.FunctionInvocationArguments(e, null);
-          Bpl.Expr canCallFuncAppl = new Bpl.NAryExpr(expr.tok, new Bpl.FunctionCall(canCallFuncID), args);
-          r = BplAnd(r, canCallFuncAppl);
-  //      }
+        // get to assume canCall
+        Bpl.IdentifierExpr canCallFuncID = new Bpl.IdentifierExpr(expr.tok, e.Function.FullSanitizedName + "#canCall", Bpl.Type.Bool);
+        List<Bpl.Expr> args = etran.FunctionInvocationArguments(e, null);
+        Bpl.Expr canCallFuncAppl = new Bpl.NAryExpr(expr.tok, new Bpl.FunctionCall(canCallFuncID), args);
+        r = BplAnd(r, canCallFuncAppl);
         return r;
       } else if (expr is DatatypeValue) {
         DatatypeValue dtv = (DatatypeValue)expr;
@@ -4379,10 +4364,10 @@ namespace Microsoft.Dafny {
         switch (e.ResolvedOp) {
           case BinaryExpr.ResolvedOpcode.And:
           case BinaryExpr.ResolvedOpcode.Imp:
-            t1 = Bpl.Expr.Imp(etran.TrExpr(e.E0), t1);
+            t1 = BplImp(etran.TrExpr(e.E0), t1);
             break;
           case BinaryExpr.ResolvedOpcode.Or:
-            t1 = Bpl.Expr.Imp(Bpl.Expr.Not(etran.TrExpr(e.E0)), t1);
+            t1 = BplImp(Bpl.Expr.Not(etran.TrExpr(e.E0)), t1);
             break;
           default:
             break;
@@ -4419,12 +4404,10 @@ namespace Microsoft.Dafny {
           LetDesugaring(e);  // call LetDesugaring to prepare the desugaring and populate letSuchThatExprInfo with something for e
           var info = letSuchThatExprInfo[e];
           // $let$canCall(g)
-          //var canCall = FunctionCall(e.tok, info.CanCallFunctionName(), Bpl.Type.Bool, gExprs);
           var canCall = info.CanCallFunctionCall(this, etran);         
           Dictionary<IVariable, Expression> substMap = new Dictionary<IVariable, Expression>();
           foreach (var bv in e.BoundVars) {
             // create a call to $let$x(g)
-            //var call = FunctionCall(e.tok, info.SkolemFunctionName(bv), TrType(bv.Type), gExprs);
             var args = info.SkolemFunctionArgs(bv, this, etran);
             var call = new BoogieFunctionCall(bv.tok, info.SkolemFunctionName(bv), info.UsesHeap, info.UsesOldHeap, args.Item1, args.Item2);
             call.Type = bv.Type;
@@ -4441,54 +4424,64 @@ namespace Microsoft.Dafny {
         if (e.Contract != null)
           return BplAnd(canCall, CanCallAssumption(e.Contract, etran));
         else return canCall;
+
       } else if (expr is LambdaExpr) {
         var e = (LambdaExpr)expr;
 
-        List<Bpl.Variable> bvars = new List<Bpl.Variable>();
-        
+        var bvarsAndAntecedents = new List<Tuple<Bpl.Variable, Bpl.Expr>>();
         var varNameGen = CurrentIdGenerator.NestedFreshIdGenerator("$l#");
 
         Bpl.Expr heap; var hVar = BplBoundVar(varNameGen.FreshId("#heap#"), predef.HeapType, out heap);
-        bvars.Add(hVar);
+        var et = new ExpressionTranslator(etran, heap);
 
         Dictionary<IVariable, Expression> subst = new Dictionary<IVariable,Expression>();
         foreach (var bv in e.BoundVars) {
           Bpl.Expr ve; var yVar = BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), TrType(bv.Type), out ve);
-          bvars.Add(yVar);
+          var wh = GetWhereClause(bv.tok, new Bpl.IdentifierExpr(bv.tok, yVar), bv.Type, et);
+          bvarsAndAntecedents.Add(Tuple.Create<Bpl.Variable, Bpl.Expr>(yVar, wh));
           subst[bv] = new BoogieWrapper(ve, bv.Type);
         }
 
-        ExpressionTranslator et = new ExpressionTranslator(etran, heap);
-        var ebody = CanCallAssumption(Substitute(e.Body, null, subst), et);
+        var canCall = CanCallAssumption(Substitute(e.Body, null, subst), et);
+        if (e.Range != null) {
+          var range = Substitute(e.Range, null, subst);
+          canCall = BplAnd(CanCallAssumption(range, etran), BplImp(etran.TrExpr(range), canCall));
+        }
+
+        // It's important to add the heap last to "bvarsAndAntecedents", because the heap may occur in the antecedents of
+        // the other variables and BplForallTrim processes the given tuples in order.
+        var goodHeap = FunctionCall(e.tok, BuiltinFunction.IsGoodHeap, null, heap);
+        bvarsAndAntecedents.Add(Tuple.Create<Bpl.Variable, Bpl.Expr>(hVar, goodHeap));
 
         //TRIG (forall $l#0#heap#0: Heap, $l#0#x#0: int :: true)
         //TRIG (forall $l#0#heap#0: Heap, $l#0#t#0: DatatypeType :: _module.__default.TMap#canCall(_module._default.TMap$A, _module._default.TMap$B, $l#0#heap#0, $l#0#t#0, f#0))
         //TRIG (forall $l#4#heap#0: Heap, $l#4#x#0: Box :: _0_Monad.__default.Bind#canCall(Monad._default.Associativity$B, Monad._default.Associativity$C, $l#4#heap#0, Apply1(Monad._default.Associativity$A, #$M$B, f#0, $l#4#heap#0, $l#4#x#0), g#0))
-        return BplForall(bvars, ebody); // L_TRIGGER
+        return BplForallTrim(bvarsAndAntecedents, null, canCall); // L_TRIGGER
+
       } else if (expr is ComprehensionExpr) {
         var e = (ComprehensionExpr)expr;
-        var canCall = CanCallAssumption(e.Term, etran);
         var q = e as QuantifierExpr;
-        
         if (q != null && q.SplitQuantifier != null) {
           return CanCallAssumption(q.SplitQuantifierExpression, etran);
         }
 
-        var tyvars = MkTyParamBinders(q != null ? q.TypeArgs : new List<TypeParameter>());
+        // Determine the CanCall's for the range and term
+        var canCall = CanCallAssumption(e.Term, etran);
         if (e.Range != null) {
           canCall = BplAnd(CanCallAssumption(e.Range, etran), BplImp(etran.TrExpr(e.Range), canCall));
         }
-        if (canCall != Bpl.Expr.True) {
-          List<Variable> bvars = new List<Variable>();
-          Bpl.Expr typeAntecedent = etran.TrBoundVariables(e.BoundVars, bvars);
-          if (Attributes.Contains(e.Attributes, "trigger")) {
-            Bpl.Trigger tr = TrTrigger(etran, e.Attributes, expr.tok);
-            canCall = new Bpl.ForallExpr(expr.tok, Concat(tyvars, bvars), tr, Bpl.Expr.Imp(typeAntecedent, canCall));
-          } else {
-            canCall = new Bpl.ForallExpr(expr.tok, Concat(tyvars, bvars), Bpl.Expr.Imp(typeAntecedent, canCall));  // SMART_TRIGGER
+        // Create a list of all possible bound variables
+        var bvarsAndAntecedents = etran.TrBoundVariables_SeparateWhereClauses(e.BoundVars);
+        if (q != null) {
+          var tyvars = MkTyParamBinders(q.TypeArgs);
+          foreach (var tv in tyvars) {
+            bvarsAndAntecedents.Add(Tuple.Create<Bpl.Variable, Bpl.Expr>(tv, null));
           }
         }
-        return canCall;
+        // Produce the quantified CanCall expression, with a suitably reduced set of bound variables
+        var tr = TrTrigger(etran, e.Attributes, expr.tok);
+        return BplForallTrim(bvarsAndAntecedents, tr, canCall);
+
       } else if (expr is StmtExpr) {
         var e = (StmtExpr)expr;
         return CanCallAssumption(e.E, etran);
@@ -4496,8 +4489,8 @@ namespace Microsoft.Dafny {
         ITEExpr e = (ITEExpr)expr;
         Bpl.Expr total = CanCallAssumption(e.Test, etran);
         Bpl.Expr test = etran.TrExpr(e.Test);
-        total = BplAnd(total, Bpl.Expr.Imp(test, CanCallAssumption(e.Thn, etran)));
-        total = BplAnd(total, Bpl.Expr.Imp(Bpl.Expr.Not(test), CanCallAssumption(e.Els, etran)));
+        total = BplAnd(total, BplImp(test, CanCallAssumption(e.Thn, etran)));
+        total = BplAnd(total, BplImp(Bpl.Expr.Not(test), CanCallAssumption(e.Els, etran)));
         return total;
       } else if (expr is ConcreteSyntaxExpression) {
         var e = (ConcreteSyntaxExpression)expr;
@@ -4909,7 +4902,7 @@ namespace Microsoft.Dafny {
             var fieldName = FunctionCall(e.tok, BuiltinFunction.IndexField, null, i);
             var allowedToRead = Bpl.Expr.SelectTok(e.tok, etran.TheFrame(e.tok), seq, fieldName);
             var trigger = BplTrigger(allowedToRead); // Note, the assertion we're about to produce only seems useful in the check-only mode (that is, with subsumption 0), but if it were to be assumed, we'll use this entire RHS as the trigger
-            var qq = new Bpl.ForallExpr(e.tok, new List<Variable> { iVar }, trigger, Bpl.Expr.Imp(range, allowedToRead));
+            var qq = new Bpl.ForallExpr(e.tok, new List<Variable> { iVar }, trigger, BplImp(range, allowedToRead));
             options.AssertSink(this, builder)(expr.tok, qq, "insufficient reads clause to read the indicated range of array elements", options.AssertKv);
           }
         }
@@ -11789,6 +11782,20 @@ namespace Microsoft.Dafny {
         return typeAntecedent;
       }
 
+      public List<Tuple<Bpl.Variable, Bpl.Expr>> TrBoundVariables_SeparateWhereClauses(List<BoundVar/*!*/> boundVars) {
+        Contract.Requires(boundVars != null);
+        Contract.Ensures(Contract.Result<List<Tuple<Bpl.Variable, Bpl.Expr>>>() != null);
+
+        var varsAndAntecedents = new List<Tuple<Bpl.Variable, Bpl.Expr>>();
+        foreach (BoundVar bv in boundVars) {
+          var tid = new Bpl.TypedIdent(bv.tok, bv.AssignUniqueName(translator.currentDeclaration.IdGenerator), translator.TrType(bv.Type));
+          var bvar = new Bpl.BoundVariable(bv.tok, tid);
+          var wh = translator.GetWhereClause(bv.tok, new Bpl.IdentifierExpr(bv.tok, bvar), bv.Type, this);
+          varsAndAntecedents.Add(Tuple.Create<Bpl.Variable, Bpl.Expr>(bvar, wh));
+        }
+        return varsAndAntecedents;
+      }
+
       public Bpl.Expr TrBoundVariablesRename(List<BoundVar> boundVars, List<Variable> bvars, out Dictionary<IVariable, Expression> substMap) {
         Contract.Requires(boundVars != null);
         Contract.Requires(bvars != null);
@@ -14204,6 +14211,69 @@ namespace Microsoft.Dafny {
     }
 
     // Bpl-making-utilities
+
+    /// <summary>
+    /// Create a Boogie quantifier with body "A ==> body" and triggers "trg", but use only the subset of bound
+    /// variables from "varsAndAntecedents" that actually occur free in "body" or "trg", and "A" is the conjunction of
+    /// antecedents for those corresponding bound variables.  If none of the bound variables is used, "body"
+    /// is returned.
+    /// The order of the contents of "varsAndAntecedents" matters: For any index "i" into "varsAndAntecedents", the
+    /// antecedent varsAndAntecedents[i].Item2 may depend on a variable varsAndAntecedents[j].Item1 if "j GREATER-OR-EQUAL i"
+    /// but not if "j LESS i".
+    /// Caution: if "trg" is null, makes a forall without any triggers.
+    /// </summary>
+    static Bpl.Expr BplForallTrim(IEnumerable<Tuple<Bpl.Variable, Bpl.Expr/*?*/>> varsAndAntecedents, Bpl.Trigger trg, Bpl.Expr body) {
+      Contract.Requires(varsAndAntecedents != null);
+      Contract.Requires(body != null);
+
+      // We'd like to compute the free variables if "body" and "trg". It would be nice to use the Boogie
+      // routine Bpl.Expr.ComputeFreeVariables for this purpose. However, calling it requires the Boogie
+      // expression to be resolved. Instead, we do the cheesy thing of computing the set of names of
+      // free variables in "body" and "trg".
+      var vis = new VariableNameVisitor();
+      vis.Visit(body);
+      for (var tt = trg; tt != null; tt = tt.Next) {
+        tt.Tr.Iter(ee => vis.Visit(ee));
+      }
+
+      var args = new List<Bpl.Variable>();
+      Bpl.Expr typeAntecedent = Bpl.Expr.True;
+      foreach (var pair in varsAndAntecedents) {
+        var bv = pair.Item1;
+        var wh = pair.Item2;
+        if (vis.Names.Contains(bv.Name)) {
+          args.Add(bv);
+          if (wh != null) {
+            typeAntecedent = BplAnd(typeAntecedent, wh);
+            vis.Visit(wh);  // this adds to "vis.Names" the free variables of "wh"
+          }
+        }
+      }
+      if (args.Count == 0) {
+        return body;
+      } else {
+        return new Bpl.ForallExpr(body.tok, args, trg, BplImp(typeAntecedent, body));
+      }
+    }
+    class VariableNameVisitor : Boogie.StandardVisitor
+    {
+      public readonly HashSet<string> Names = new HashSet<string>();
+      public override Expr VisitIdentifierExpr(Bpl.IdentifierExpr node) {
+        Names.Add(node.Name);
+        return base.VisitIdentifierExpr(node);
+      }
+      public override BinderExpr VisitBinderExpr(BinderExpr node) {
+        var vis = new VariableNameVisitor();
+        vis.Visit(node.Body);
+        var dummyNames = new HashSet<string>(node.Dummies.Select(v => v.Name));
+        foreach (var nm in vis.Names) {
+          if (!dummyNames.Contains(nm)) {
+            Names.Add(nm);
+          }
+        }
+        return base.VisitBinderExpr(node);
+      }
+    }
 
     static Bpl.Expr BplForall(IEnumerable<Bpl.Variable> args_in, Bpl.Expr body) {
       Contract.Requires(args_in != null);
