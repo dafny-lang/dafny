@@ -937,10 +937,10 @@ namespace Microsoft.Dafny {
         Error("Method {0} has no body", wr, m.FullName);
       } else {
         if (m.IsTailRecursive) {
-          Indent(indent, wr); wr.WriteLine("TAIL_CALL_START: ;");
           if (!m.IsStatic) {
             Indent(indent + IndentAmount, wr); wr.WriteLine("var _this = this;");
           }
+          Indent(indent, wr); wr.WriteLine("TAIL_CALL_START: ;");
         }
         Contract.Assert(enclosingMethod == null);
         enclosingMethod = m;

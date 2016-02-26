@@ -1,6 +1,6 @@
 Processing command (at Snapshots1.v0.dfy(3,4)) assert (forall<alpha> $o: ref, $f: Field alpha :: false ==> $_Frame[$o, $f]);
   >>> DoNothingToAssert
-Processing command (at Snapshots1.v0.dfy(4,10)) assert Lit(false);
+Processing command (at Snapshots1.v0.dfy(4,10)) assert false;
   >>> DoNothingToAssert
 Processing command (at Snapshots1.v0.dfy(12,3)) assert true;
   >>> DoNothingToAssert
@@ -12,7 +12,7 @@ Processing command (at Snapshots1.v1.dfy(12,3)) assert true;
   >>> MarkAsFullyVerified
 Processing command (at Snapshots1.v1.dfy(3,4)) assert (forall<alpha> $o: ref, $f: Field alpha :: false ==> $_Frame[$o, $f]);
   >>> MarkAsFullyVerified
-Processing command (at Snapshots1.v1.dfy(4,10)) assert Lit(false);
+Processing command (at Snapshots1.v1.dfy(4,10)) assert false;
   >>> DoNothingToAssert
 Snapshots1.v1.dfy(4,9): Error: assertion violation
 Execution trace:

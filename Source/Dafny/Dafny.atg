@@ -2064,9 +2064,10 @@ CaseStatement<out MatchCaseStmt/*!*/ c>
   "case"                      (. x = t; .)
   ( Ident<out id>             (. name = id.val; .)
     [ "("
-      CasePattern<out pat>        (. arguments.Add(pat); .)
-      { "," CasePattern<out pat>  (. arguments.Add(pat); .)
-      }
+       [ CasePattern<out pat>        (. arguments.Add(pat); .)
+         { "," CasePattern<out pat>  (. arguments.Add(pat); .)
+         }
+       ]
     ")" ]
   | "("
       CasePattern<out pat>        (. arguments.Add(pat); .)
@@ -2881,9 +2882,10 @@ CaseExpression<out MatchCaseExpr c, bool allowSemi, bool allowLambda>
   "case"                      (. x = t; .)
   ( Ident<out id>             (. name = id.val; .)
     [ "("
-      CasePattern<out pat>        (. arguments.Add(pat); .)
-      { "," CasePattern<out pat>  (. arguments.Add(pat); .)
-      }
+       [ CasePattern<out pat>        (. arguments.Add(pat); .)
+         { "," CasePattern<out pat>  (. arguments.Add(pat); .)
+         }
+       ]
     ")" ]
   | "("
       CasePattern<out pat>        (. arguments.Add(pat); .)
