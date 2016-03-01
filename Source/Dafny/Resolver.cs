@@ -6376,7 +6376,12 @@ namespace Microsoft.Dafny
         if (topLevel) {
           ScopePushAndReport(scope, v, "parameter");
         } else {
-          if (scope.Find(v.Name) != null) {
+          // For cons(a, const(b, c)):
+          // this handles check to see if 'b' or 'c' is duplicate with 'a',
+          // the duplication check between 'b' and 'c' is handled in the desugared
+          // form (to avoid reporting the same error twice), that is why we don't 
+          // push 'b' and 'c' onto the scope, only find.
+          if (scope.FindInCurrentScope(v.Name) != null) {
             reporter.Error(MessageSource.Resolver, v, "Duplicate parameter name: {0}", v.Name);
           }
         }
@@ -11067,6 +11072,11 @@ namespace Microsoft.Dafny
     public Thing Find(string name) {
       Contract.Requires(name != null);
       return Find(name, false);
+    }
+
+    public Thing FindInCurrentScope(string name) {
+      Contract.Requires(name != null);
+      return Find(name, true);
     }
 
     public bool ContainsDecl(Thing t) {
