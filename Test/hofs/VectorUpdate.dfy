@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:3 "%s" > "%t"
+// RUN: %dafny /compile:3 /autoTriggers:1 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // this is a rather verbose version of the VectorUpdate method

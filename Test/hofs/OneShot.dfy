@@ -10,16 +10,15 @@ method OneShot() {
   var i : Ref<int>;
   i := new Ref;
 
-  g := () -> true;
-
+  g := () reads i -> true;  // using a (deprecated) one-shot arrow here means "g" acquires
+                           // a precondition that says it can only be applied in this heap
   assert g();
 
   i.val := i.val + 1; // heap changes
 
   if * {
-    assert g();         // should fail
+    assert g();         // error: precondition violation
   } else {
-    assert !g();        // should fail
+    assert !g();        // error: precondition violation
   }
 }
-

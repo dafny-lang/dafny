@@ -5893,15 +5893,14 @@ namespace Microsoft.Dafny {
             var fld = BplBoundVar("fld", predef.FieldName(tok, a), ivars);
 
             var inner_forall = new Bpl.ForallExpr(tok, Singleton(a), ivars, BplImp(
-              BplAnd(new List<Expr> {
+              BplAnd(
                 Bpl.Expr.Neq(o, predef.Null),
-                IsAlloced(tok, h0, o),
-                IsAlloced(tok, h1, o),
+                // Note, the MkIsAlloc conjunct of "isness" implies that everything in the reads frame is allocated in "h0", which by HeapSucc(h0,h1) also implies the frame is allocated in "h1"
                 new Bpl.NAryExpr(tok, new Bpl.MapSelect(tok, 1), new List<Bpl.Expr> {
                   FunctionCall(tok, Reads(ad.Arity), objset_ty, Concat(types, Cons(f, Cons(hN, boxes)))),
                   FunctionCall(tok, BuiltinFunction.Box, null, o)
                 })
-              }),
+              ),
               Bpl.Expr.Eq(ReadHeap(tok, h0, o, fld), ReadHeap(tok, h1, o, fld))));
 
             Func<Bpl.Expr, Bpl.Expr> fn = h => FunctionCall(tok, fname, Bpl.Type.Bool, Concat(types, Cons(f, Cons<Bpl.Expr>(h, boxes))));
@@ -5922,42 +5921,86 @@ namespace Microsoft.Dafny {
           AddFrameForFunction(h1, Apply(ad.Arity));
         }
 
-        // consequence axiom
+        // $Is and $IsAlloc axioms
         /*
-
-          forall t0..tN+1 : Ty, h : Heap, f : Handle, bx1 .. bxN : Box,
-            GoodHeap(h)
-            && Is&IsAllocBox(bxI, tI, h)
-            && Is&IsAlloc(f, Func(t1,..,tN, tN+1), h)
-          ==> Is&IsAllocBox(Apply(f,h0,bxs)))
-
-         */
+          axiom (forall f: HandleType, t0: Ty, t1: Ty ::
+            { $Is(f, Tclass._System.___hFunc1(t0, t1)) }
+            $Is(f, Tclass._System.___hFunc1(t0, t1))
+               <==> (forall h: Heap, bx0: Box ::
+                 { Apply1(t0, t1, f, h, bx0) }
+                 $IsGoodHeap(h) && $IsBox(bx0, t0)
+                 && precondition of f(bx0) holds in h
+                 ==> $IsBox(Apply1(t0, t1, f, h, bx0), t1)));
+        */
         {
-          var bvars = new List<Bpl.Variable>();
+          var bvarsOuter = new List<Bpl.Variable>();
+          var f = BplBoundVar("f", predef.HandleType, bvarsOuter);
+          var types = Map(Enumerable.Range(0, arity + 1), i => BplBoundVar("t" + i, predef.Ty, bvarsOuter));
+          var Is = MkIs(f, ClassTyCon(ad, types));
 
-          var types = Map(Enumerable.Range(0, arity + 1), i => BplBoundVar("t" + i, predef.Ty, bvars));
-
-          var h = BplBoundVar("h", predef.HeapType, bvars);
+          var bvarsInner = new List<Bpl.Variable>();
+          var h = BplBoundVar("h", predef.HeapType, bvarsInner);
+          var boxes = Map(Enumerable.Range(0, arity), i => BplBoundVar("bx" + i, predef.BoxType, bvarsInner));
           var goodHeap = FunctionCall(tok, BuiltinFunction.IsGoodHeap, null, h);
-
-          var f = BplBoundVar("f", predef.HandleType, bvars);
-          var boxes = Map(Enumerable.Range(0, arity), i => BplBoundVar("bx" + i, predef.BoxType, bvars));
-
-          var isness = BplAnd(
-            Snoc(Map(Enumerable.Range(0, arity), i =>
-              BplAnd(MkIs(boxes[i], types[i], true),
-                     MkIsAlloc(boxes[i], types[i], h, true))),
-            BplAnd(MkIs(f, ClassTyCon(ad, types)),
-                   MkIsAlloc(f, ClassTyCon(ad, types), h))));
-
+          var isBoxes = BplAnd(Map(Enumerable.Range(0, arity), i => MkIs(boxes[i], types[i], true)));
+          var pre = FunctionCall(tok, Requires(ad.Arity), predef.BoxType, Concat(types, Cons(f, Cons<Bpl.Expr>(h, boxes))));
           var applied = FunctionCall(tok, Apply(ad.Arity), predef.BoxType, Concat(types, Cons(f, Cons<Bpl.Expr>(h, boxes))));
-
-          var applied_is = BplAnd(MkIs(applied, types[ad.Arity], true), MkIsAlloc(applied, types[ad.Arity], h, true));
+          var applied_is = MkIs(applied, types[ad.Arity], true);
 
           sink.AddTopLevelDeclaration(new Axiom(tok,
-            BplForall(bvars,
-              new Bpl.Trigger(tok, true, new List<Bpl.Expr> {applied}),
-              BplImp(BplAnd(goodHeap, isness), applied_is))));
+            BplForall(bvarsOuter, BplTrigger(Is),
+              BplIff(Is,
+                BplForall(bvarsInner, BplTrigger(applied),
+                  BplImp(BplAnd(BplAnd(goodHeap, isBoxes), pre), applied_is))))));
+        }
+        /*
+          axiom (forall f: HandleType, t0: Ty, t1: Ty, h: Heap ::
+            { $IsAlloc(f, Tclass._System.___hFunc1(t0, t1), h) }
+            $IsGoodHeap(h)
+            ==>
+            (
+              $IsAlloc(f, Tclass._System.___hFunc1(t0, t1), h)
+                <==>
+                (forall bx0: Box ::
+                  { Apply1(t0, t1, f, h, bx0) } { Reads1(t0, t1, f, h, bx0) }
+                  $IsAllocBox(bx0, t0, h)
+                  && precondition of f(bx0) holds in h
+                  ==>
+                    (everything in reads set of f(bx0) is allocated in h) &&
+                    $IsAllocBox(Apply1(t0, t1, f, h, bx0), t1, h))
+            ));
+        */
+        {
+          var bvarsOuter = new List<Bpl.Variable>();
+          var f = BplBoundVar("f", predef.HandleType, bvarsOuter);
+          var types = Map(Enumerable.Range(0, arity + 1), i => BplBoundVar("t" + i, predef.Ty, bvarsOuter));
+          var h = BplBoundVar("h", predef.HeapType, bvarsOuter);
+          var goodHeap = FunctionCall(tok, BuiltinFunction.IsGoodHeap, null, h);
+          var isAlloc = MkIsAlloc(f, ClassTyCon(ad, types), h);
+
+          var bvarsInner = new List<Bpl.Variable>();
+          var boxes = Map(Enumerable.Range(0, arity), i => BplBoundVar("bx" + i, predef.BoxType, bvarsInner));
+          var isAllocBoxes = BplAnd(Map(Enumerable.Range(0, arity), i => MkIsAlloc(boxes[i], types[i], h, true)));
+          var pre = FunctionCall(tok, Requires(ad.Arity), predef.BoxType, Concat(types, Cons(f, Cons<Bpl.Expr>(h, boxes))));
+          var applied = FunctionCall(tok, Apply(ad.Arity), predef.BoxType, Concat(types, Cons(f, Cons<Bpl.Expr>(h, boxes))));
+          var applied_isAlloc = MkIsAlloc(applied, types[ad.Arity], h, true);
+
+          // (forall r: ref :: {Reads1(t0, t1, f, h, bx0)[$Box(r)]}  r != null && Reads1(t0, t1, f, h, bx0)[$Box(r)] ==> h[r, alloc])
+          var bvarsR = new List<Bpl.Variable>();
+          var r = BplBoundVar("r", predef.RefType, bvarsR);
+          var rNonNull = Bpl.Expr.Neq(r, predef.Null);
+          var reads = FunctionCall(tok, Reads(ad.Arity), predef.BoxType, Concat(types, Cons(f, Cons<Bpl.Expr>(h, boxes))));
+          var rInReads = Bpl.Expr.Select(reads, FunctionCall(tok, BuiltinFunction.Box, null, r));
+          var rAlloc = IsAlloced(tok, h, r);
+          var isAllocReads = BplForall(bvarsR, BplTrigger(rInReads), BplImp(BplAnd(rNonNull, rInReads), rAlloc));
+
+          sink.AddTopLevelDeclaration(new Axiom(tok,
+            BplForall(bvarsOuter, BplTrigger(isAlloc),
+              BplImp(goodHeap,
+                BplIff(isAlloc,
+                  BplForall(bvarsInner,
+                    new Bpl.Trigger(tok, true, new List<Bpl.Expr> { applied }, BplTrigger(reads)),
+                    BplImp(BplAnd(isAllocBoxes, pre), BplAnd(isAllocReads, applied_isAlloc))))))));
         }
       }
     }
