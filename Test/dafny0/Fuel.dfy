@@ -126,7 +126,7 @@ module TestModule4 {
         requires y > 5;
         requires z < 0;
     {
-        assert {:fuel pos,0,0} pos(z) == 0;               // error: Should fail due to "opaque" fuel setting
+        assert {:fuel pos,0,0} pos(z) == 0;               // error: fuel can't be decreased
         assert pos(-1) == 0;
         if (*) {
             assert pos(y) == 3 + pos(y - 3);  // error: Should fail without extra fuel setting
@@ -404,7 +404,7 @@ module TestModule9 {
         requires y > 5;
         requires z < 0;
     {
-        assert {:fuel abs,0,0} abs(z) == -1*z;  // error: Cannot see the body of abs
+        assert {:fuel abs,0,0} abs(z) == -1*z;  // error: fuel can't be decreased
         assert abs(y) == y;     // Normal success
         assert abs(-1) == 1;    // lit bypasses fuel, so this should succeed
     }
