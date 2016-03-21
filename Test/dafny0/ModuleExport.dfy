@@ -66,3 +66,40 @@ module E {
 		case Orang => 8  // error
   } 
 }
+
+module F {
+  default export Public { f, h}
+	default export E1 { f, g}
+	export E2 extends Public2, E1 {T}		// error: Public2 is not a exported view of F
+  export Friend extends Public {g2, T}  // error: g2 is not a member of F
+	export Fruit {Data}
+
+  method h() {}
+  function f(): int { 818 }
+  function g() : int { 819 }
+	function k() : int { 820 }
+  
+	class T 
+	{
+	  static method l() {}
+	}
+
+	datatype Data = Lemon | Kiwi(int)
+}
+
+module G {
+  export Public { f, h}
+
+	method h() {}
+  function f(): int { 818 }
+  function g() : int { 819 }
+	function k() : int { 820 }
+}
+
+module H {
+  import G  // error: G has no default export
+}
+
+module I {
+  import G.Public  // OK
+}

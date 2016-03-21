@@ -742,7 +742,7 @@ namespace Microsoft.Dafny
               d.ExtendDecls.Add(extend);
               exportDependencies.AddEdge(d, extend);
             } else {
-              reporter.Error(MessageSource.Resolver, m.tok, s + " must be an export of" + m + " to be extended");
+              reporter.Error(MessageSource.Resolver, m.tok, s + " must be an export of " + m.Name + " to be extended");
             }
           }
           foreach (ExportSignature export in d.Exports) {
@@ -757,7 +757,7 @@ namespace Microsoft.Dafny
             } else if (sig.StaticMembers.TryGetValue(name, out member)) {
               export.Decl = member;
             } else {
-              reporter.Error(MessageSource.Resolver, d.tok, name + " must be a member of " + m + " to be exported");
+              reporter.Error(MessageSource.Resolver, d.tok, name + " must be a member of " + m.Name + " to be exported");
             }
           }
         }
@@ -779,7 +779,7 @@ namespace Microsoft.Dafny
           if (defaultExport == null) {
             defaultExport = decl;
           } else {
-            reporter.Error(MessageSource.Resolver, m.tok, "more than one default export declared: {0}, {1}", defaultExport, decl);
+            reporter.Error(MessageSource.Resolver, m.tok, "more than one default export declared in module {0}", m.Name);
           }
         }
         // fill in export signature
@@ -811,9 +811,14 @@ namespace Microsoft.Dafny
         }
       }
 
-      // set the default export if it exists, otherwise, default is export everything     
+      // set the default export if it exists
       if (defaultExport != null) {
         literalDecl.DefaultExport = defaultExport.Signature;
+      } else {
+        // if there is at least one exported view, but no exported view marked as default, then defaultExport should be null.
+        if (sortedDecls.Count > 0) {
+          literalDecl.DefaultExport = null;       
+        }
       }
     }
 
@@ -1437,6 +1442,11 @@ namespace Microsoft.Dafny
         // use the default export when the importing the root
         LiteralModuleDecl decl = (LiteralModuleDecl)root;
         p = decl.DefaultExport;
+        if (p == null) {
+          // no default view is specified. 
+          reporter.Error(MessageSource.Resolver, decl.tok, "no default export declared in module: {0}", decl.Name);
+          return false;
+        }
         return true;
       }
 
