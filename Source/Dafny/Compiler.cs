@@ -757,34 +757,63 @@ namespace Microsoft.Dafny {
     }
 
     public bool HasMain(Program program) {
+      Method mainMethod = null;
+      bool hasMain = false;
       foreach (var module in program.Modules) {
+        if (module.IsAbstract) {
+          // the purpose of an abstract module is to skip compilation
+          continue;
+        }
         foreach (var decl in module.TopLevelDecls) {
           var c = decl as ClassDecl;
           if (c != null) {
             foreach (var member in c.Members) {
               var m = member as Method;
               if (m != null && IsMain(m)) {
-                  return true;
+                if (mainMethod == null) {
+                  mainMethod = m;
+                  hasMain = true;
+                } else {
+                  // more than one main in the program
+                  ErrorWriter.WriteLine("More than one method is declared as \"main\"");
+                  ErrorCount++;
+                  hasMain = false;
+                }
               }
             }
           }
         }
       }
-      return false;
+      return hasMain;
     }
 
     public static bool IsMain(Method m) {
       // In order to be a legal Main() method, the following must be true:
-      //    The method takes no parameters 
+      //    The method takes no parameters
       //    The method is not a ghost method 
       //    The method has no requires clause 
       //    The method has no modifies clause 
       //    If the method is an instance (that is, non-static) method in a class, then the enclosing class must not declare any constructor
-      if (!m.IsGhost && m.Name == "Main" && m.TypeArgs.Count == 0 && m.Ins.Count == 0 && m.Outs.Count == 0 && m.Req.Count == 0 
+      // Or if a method is annotated with {:main} and the above restrictions apply, except it is allowed to take ghost arguments, 
+      //    and it is allowed to have preconditions.  This lets the programmer add some explicit assumptions about the outside world, 
+      //    modeled, for example, via ghost parameters.
+      if (!m.IsGhost && m.Name == "Main" && m.TypeArgs.Count == 0 && m.Ins.Count == 0 && m.Outs.Count == 0 && m.Req.Count == 0
             && m.Mod.Expressions.Count == 0 && (m.IsStatic || (((ClassDecl)m.EnclosingClass) == null) || !((ClassDecl)m.EnclosingClass).HasConstructor)) {
         return true;
-      }
-      else {
+      } else if (Attributes.Contains(m.Attributes, "main") && !m.IsGhost && m.TypeArgs.Count == 0 && m.Outs.Count == 0
+            && m.Mod.Expressions.Count == 0 && (m.IsStatic || (((ClassDecl)m.EnclosingClass) == null) || !((ClassDecl)m.EnclosingClass).HasConstructor)) {
+        if (m.Ins.Count == 0) {
+          return true;
+        } else {
+          bool isGhost = true;
+          foreach (var arg in m.Ins) {
+            if (!arg.IsGhost) {
+              isGhost = false;
+            }
+          }
+          return isGhost;
+        }
+      } else {
         return false;
       }
     }
@@ -951,24 +980,28 @@ namespace Microsoft.Dafny {
       Indent(indent, wr); wr.WriteLine("}");
 
       // allow the Main method to be an instance method
-      if (!m.IsStatic && IsMain(m)) {
+      if (IsMain(m) && (!m.IsStatic || m.CompileName != "Main")) {
         Indent(indent, wr);
         wr.WriteLine("public static void Main(string[] args) {");
-        Contract.Assert(m.EnclosingClass == c);
-        Indent(indent + IndentAmount, wr);
-        wr.Write("@{0} b = new @{0}", c.CompileName);
-        if (c.TypeArgs.Count != 0) {
-          // instantiate every parameter, it doesn't particularly matter how
-          wr.Write("<");
-          string sep = "";
-          for (int i = 0; i < c.TypeArgs.Count; i++) {
-            wr.Write("{0}int", sep);
-            sep = ", ";
+        if (!m.IsStatic) {
+          Contract.Assert(m.EnclosingClass == c);
+          Indent(indent + IndentAmount, wr);
+          wr.Write("@{0} b = new @{0}", c.CompileName);
+          if (c.TypeArgs.Count != 0) {
+            // instantiate every parameter, it doesn't particularly matter how
+            wr.Write("<");
+            string sep = "";
+            for (int i = 0; i < c.TypeArgs.Count; i++) {
+              wr.Write("{0}int", sep);
+              sep = ", ";
+            }
+            wr.Write(">");
           }
-          wr.Write(">");
+          wr.WriteLine("();");
+          Indent(indent + IndentAmount, wr); wr.WriteLine("b.@{0}();", m.CompileName);
+        } else {
+          Indent(indent + IndentAmount, wr); wr.WriteLine("@{0}();", m.CompileName);
         }
-        wr.WriteLine("();");
-        Indent(indent + IndentAmount, wr); wr.WriteLine("b.@Main();");
         Indent(indent, wr); wr.WriteLine("}");
       }
     }
