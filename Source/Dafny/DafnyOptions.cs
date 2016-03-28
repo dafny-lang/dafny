@@ -66,7 +66,7 @@ namespace Microsoft.Dafny
     public bool AllowGlobals = false;
     public bool CountVerificationErrors = true;
     public bool Optimize = false;
-    public bool AutoTriggers = false;
+    public bool AutoTriggers = true;
     public bool RewriteFocalPredicates = true;
     public bool PrintTooltips = false;
     public bool PrintStats = false;
@@ -386,8 +386,8 @@ namespace Microsoft.Dafny
                 1 (default) - If preprocessing succeeds, set exit code to the number of
                               verification errors.
   /autoTriggers:<n>
-                0 (default) - Do not generate {:trigger} annotations for user-level quantifiers.
-                1 - Add a {:trigger} to each user-level quantifier. Existing
+                0 - Do not generate {:trigger} annotations for user-level quantifiers.
+                1 (default) - Add a {:trigger} to each user-level quantifier. Existing
                               annotations are preserved.
   /rewriteFocalPredicates:<n>
                 0 - Don't rewrite predicates in the body of prefix lemmas.

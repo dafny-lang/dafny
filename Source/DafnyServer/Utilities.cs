@@ -51,7 +51,7 @@ namespace Microsoft.Dafny {
         DafnyOptions.O.VerifySnapshots = 2; // Use caching
         DafnyOptions.O.VcsCores = Math.Max(1, System.Environment.ProcessorCount / 2); // Don't use too many cores
         DafnyOptions.O.PrintTooltips = true; // Dump tooptips (ErrorLevel.Info) to stdout
-        DafnyOptions.O.UnicodeOutput = true; // Use pretty warning signs
+        //DafnyOptions.O.UnicodeOutput = true; // Use pretty warning signs
         DafnyOptions.O.TraceProofObligations = true; // Show which method is being verified, but don't show duration of verification
       } else {
         throw new ServerException("Invalid command line options");

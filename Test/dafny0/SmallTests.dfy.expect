@@ -197,5 +197,6 @@ Execution trace:
     (0,0): anon0
 
 Dafny program verifier finished with 104 verified, 35 errors
+SmallTests.dfy.tmp.dprint.dfy(369,4): Warning: /!\ No trigger covering all quantified variables found.
 
 Dafny program verifier finished with 0 verified, 0 errors

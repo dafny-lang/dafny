@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:2 /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %dafny /compile:2 /dprint:"%t.dprint" /autoTriggers:0 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // Rustan Leino, September 2011.

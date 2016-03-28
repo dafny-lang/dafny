@@ -346,6 +346,7 @@ transcript(10,27): Error: invalid UnaryExpression
 Verification completed successfully!
 [SUCCESS] [[DAFNY-SERVER: EOM]]
 transcript(5,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
+transcript(10,9): Warning: /!\ No terms found to trigger on.
 
 Verifying CheckWellformed$$_module.__default.A ...
 Retrieving cached verification result for implementation CheckWellformed$$_module.__default.A...
@@ -366,6 +367,7 @@ Execution trace:
 Verification completed successfully!
 [SUCCESS] [[DAFNY-SERVER: EOM]]
 transcript(5,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
+transcript(10,9): Warning: /!\ No terms found to trigger on.
 
 Verifying CheckWellformed$$_module.__default.A ...
 Retrieving cached verification result for implementation CheckWellformed$$_module.__default.A...
@@ -383,6 +385,7 @@ Verifying Impl$$_module.__default.M_k ...
 Verification completed successfully!
 [SUCCESS] [[DAFNY-SERVER: EOM]]
 transcript(5,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
+transcript(10,9): Warning: /!\ No terms found to trigger on.
 
 Verifying CheckWellformed$$_module.__default.A ...
 Retrieving cached verification result for implementation CheckWellformed$$_module.__default.A...
@@ -406,6 +409,7 @@ transcript(12,0): Error: invalid UpdateStmt
 Verification completed successfully!
 [SUCCESS] [[DAFNY-SERVER: EOM]]
 transcript(5,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
+transcript(10,9): Warning: /!\ No terms found to trigger on.
 
 Verifying CheckWellformed$$_module.__default.A ...
 Retrieving cached verification result for implementation CheckWellformed$$_module.__default.A...
@@ -423,6 +427,7 @@ Verifying Impl$$_module.__default.M_k ...
 Verification completed successfully!
 [SUCCESS] [[DAFNY-SERVER: EOM]]
 transcript(5,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
+transcript(10,9): Warning: /!\ No terms found to trigger on.
 
 Verifying CheckWellformed$$_module.__default.A ...
 Retrieving cached verification result for implementation CheckWellformed$$_module.__default.A...
@@ -498,6 +503,10 @@ transcript(5,0): Warning: module-level methods are always non-instance, so the '
 transcript(15,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
 transcript(24,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
 transcript(33,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
+transcript(10,9): Warning: /!\ No terms found to trigger on.
+transcript(20,9): Warning: /!\ No terms found to trigger on.
+transcript(29,9): Warning: /!\ No terms found to trigger on.
+transcript(38,9): Warning: /!\ No terms found to trigger on.
 
 Verifying CheckWellformed$$_module.__default.A ...
 Retrieving cached verification result for implementation CheckWellformed$$_module.__default.A...
@@ -538,6 +547,10 @@ transcript(5,0): Warning: module-level methods are always non-instance, so the '
 transcript(15,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
 transcript(24,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
 transcript(33,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
+transcript(10,9): Warning: /!\ No terms found to trigger on.
+transcript(20,9): Warning: /!\ No terms found to trigger on.
+transcript(29,9): Warning: /!\ No terms found to trigger on.
+transcript(38,9): Warning: /!\ No terms found to trigger on.
 
 Verifying CheckWellformed$$_module.__default.A ...
 Retrieving cached verification result for implementation CheckWellformed$$_module.__default.A...
@@ -584,6 +597,10 @@ transcript(5,0): Warning: module-level methods are always non-instance, so the '
 transcript(15,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
 transcript(24,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
 transcript(33,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
+transcript(10,9): Warning: /!\ No terms found to trigger on.
+transcript(20,9): Warning: /!\ No terms found to trigger on.
+transcript(29,9): Warning: /!\ No terms found to trigger on.
+transcript(38,9): Warning: /!\ No terms found to trigger on.
 
 Verifying CheckWellformed$$_module.__default.A ...
 Retrieving cached verification result for implementation CheckWellformed$$_module.__default.A...
@@ -638,6 +655,10 @@ transcript(5,0): Warning: module-level methods are always non-instance, so the '
 transcript(15,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
 transcript(24,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
 transcript(33,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
+transcript(10,9): Warning: /!\ No terms found to trigger on.
+transcript(20,9): Warning: /!\ No terms found to trigger on.
+transcript(29,9): Warning: /!\ No terms found to trigger on.
+transcript(38,9): Warning: /!\ No terms found to trigger on.
 
 Verifying CheckWellformed$$_module.__default.A ...
 Retrieving cached verification result for implementation CheckWellformed$$_module.__default.A...
@@ -685,6 +706,10 @@ transcript(5,0): Warning: module-level methods are always non-instance, so the '
 transcript(15,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
 transcript(24,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
 transcript(33,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
+transcript(10,9): Warning: /!\ No terms found to trigger on.
+transcript(20,9): Warning: /!\ No terms found to trigger on.
+transcript(29,9): Warning: /!\ No terms found to trigger on.
+transcript(38,9): Warning: /!\ No terms found to trigger on.
 
 Verifying CheckWellformed$$_module.__default.A ...
 Retrieving cached verification result for implementation CheckWellformed$$_module.__default.A...
@@ -729,6 +754,10 @@ transcript(5,0): Warning: module-level methods are always non-instance, so the '
 transcript(15,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
 transcript(24,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
 transcript(33,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
+transcript(10,9): Warning: /!\ No terms found to trigger on.
+transcript(20,9): Warning: /!\ No terms found to trigger on.
+transcript(29,9): Warning: /!\ No terms found to trigger on.
+transcript(38,9): Warning: /!\ No terms found to trigger on.
 
 Verifying CheckWellformed$$_module.__default.A ...
 Retrieving cached verification result for implementation CheckWellformed$$_module.__default.A...
@@ -796,6 +825,10 @@ transcript(5,0): Warning: module-level methods are always non-instance, so the '
 transcript(15,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
 transcript(24,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
 transcript(33,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
+transcript(10,9): Warning: /!\ No terms found to trigger on.
+transcript(20,9): Warning: /!\ No terms found to trigger on.
+transcript(29,9): Warning: /!\ No terms found to trigger on.
+transcript(38,9): Warning: /!\ No terms found to trigger on.
 
 Verifying CheckWellformed$$_module.__default.A ...
 Retrieving cached verification result for implementation CheckWellformed$$_module.__default.A...
@@ -861,6 +894,10 @@ transcript(5,0): Warning: module-level methods are always non-instance, so the '
 transcript(15,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
 transcript(24,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
 transcript(33,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
+transcript(10,9): Warning: /!\ No terms found to trigger on.
+transcript(20,9): Warning: /!\ No terms found to trigger on.
+transcript(29,9): Warning: /!\ No terms found to trigger on.
+transcript(38,9): Warning: /!\ No terms found to trigger on.
 
 Verifying CheckWellformed$$_module.__default.A ...
 Retrieving cached verification result for implementation CheckWellformed$$_module.__default.A...
@@ -905,6 +942,10 @@ transcript(5,0): Warning: module-level methods are always non-instance, so the '
 transcript(15,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
 transcript(24,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
 transcript(33,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
+transcript(10,9): Warning: /!\ No terms found to trigger on.
+transcript(20,9): Warning: /!\ No terms found to trigger on.
+transcript(29,9): Warning: /!\ No terms found to trigger on.
+transcript(38,9): Warning: /!\ No terms found to trigger on.
 
 Verifying CheckWellformed$$_module.__default.A ...
 Retrieving cached verification result for implementation CheckWellformed$$_module.__default.A...
