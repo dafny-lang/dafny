@@ -34,8 +34,8 @@ Z3_PACKAGE_PREFIX = path.join("z3")
 ## What do we take from the z3 archive? (Glob syntax)
 Z3_INTERESTING_FILES = ["LICENSE.txt", "bin/*"]
 
-## On unix system, which Dafny files should be marked as executable? (Glob syntax; Z3's permissions are preserved)
-UNIX_EXECUTABLES = ["dafny"]
+## On unix systems, which Dafny files should be marked as executable? (Glob syntax; Z3's permissions are preserved)
+UNIX_EXECUTABLES = ["dafny", "dafny-server"]
 
 ## What do we take from Dafny's Binaries folder?
 DLLs = ["AbsInt",
@@ -55,7 +55,7 @@ DLLs = ["AbsInt",
         "VCExpr",
         "VCGeneration"]
 EXEs = ["Dafny", "DafnyServer"]
-ETCs = ["dafny", "DafnyPrelude.bpl", "DafnyRuntime.cs", "DafnyLanguageService.vsix"]
+ETCs = UNIX_EXECUTABLES + ["DafnyPrelude.bpl", "DafnyRuntime.cs", "DafnyLanguageService.vsix"]
 
 # Constants
 
