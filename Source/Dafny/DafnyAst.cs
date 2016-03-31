@@ -2375,6 +2375,7 @@ namespace Microsoft.Dafny {
     bool MustReverify { get; }
     string FullSanitizedName { get; }
     bool AllowsNontermination { get; }
+    bool ContainsQuantifier { get;  set; }
   }
   /// <summary>
   /// An ICallable is a Function, Method, IteratorDecl, or RedirectingTypeDecl.
@@ -2392,6 +2393,7 @@ namespace Microsoft.Dafny {
     /// </summary>
     bool InferredDecreases { get; set; }
   }
+
   public class DontUseICallable : ICallable
   {
     public string WhatKind { get { throw new cce.UnreachableException(); } }
@@ -2406,6 +2408,10 @@ namespace Microsoft.Dafny {
     public string NameRelativeToModule { get { throw new cce.UnreachableException(); } }
     public Specification<Expression> Decreases { get { throw new cce.UnreachableException(); } }
     public bool InferredDecreases {
+      get { throw new cce.UnreachableException(); }
+      set { throw new cce.UnreachableException(); }
+    }
+    public bool ContainsQuantifier {
       get { throw new cce.UnreachableException(); }
       set { throw new cce.UnreachableException(); }
     }
@@ -2437,6 +2443,11 @@ namespace Microsoft.Dafny {
     bool ICodeContext.MustReverify { get { Contract.Assume(false, "should not be called on NoContext"); throw new cce.UnreachableException(); } }
     public string FullSanitizedName { get { Contract.Assume(false, "should not be called on NoContext"); throw new cce.UnreachableException(); } }
     public bool AllowsNontermination { get { Contract.Assume(false, "should not be called on NoContext"); throw new cce.UnreachableException(); } }
+    public bool ContainsQuantifier { 
+      get { Contract.Assume(false, "should not be called on NoContext"); throw new cce.UnreachableException(); }
+      set { Contract.Assume(false, "should not be called on NoContext"); throw new cce.UnreachableException(); }
+    }
+    
   }
 
   public class IteratorDecl : ClassDecl, IMethodCodeContext
@@ -2464,6 +2475,8 @@ namespace Microsoft.Dafny {
     public Predicate Member_Valid;  // created during registration phase of resolution; its specification is filled in during resolution
     public Method Member_MoveNext;  // created during registration phase of resolution; its specification is filled in during resolution
     public readonly LocalVariable YieldCountVariable;
+    bool containsQuantifier;
+
     public IteratorDecl(IToken tok, string name, ModuleDefinition module, List<TypeParameter> typeArgs,
                         List<Formal> ins, List<Formal> outs,
                         Specification<FrameExpression> reads, Specification<FrameExpression> mod, Specification<Expression> decreases,
@@ -2578,6 +2591,10 @@ namespace Microsoft.Dafny {
     bool ICallable.InferredDecreases {
       set { _inferredDecr = value; }
       get { return _inferredDecr; }
+    }
+    bool ICodeContext.ContainsQuantifier {
+      set { containsQuantifier = value; }
+      get { return containsQuantifier; }
     }
     ModuleDefinition ICodeContext.EnclosingModule { get { return this.Module; } }
     bool ICodeContext.MustReverify { get { return false; } }
@@ -2832,7 +2849,10 @@ namespace Microsoft.Dafny {
       get { throw new cce.UnreachableException(); }  // see comment above about ICallable.Decreases
       set { throw new cce.UnreachableException(); }  // see comment above about ICallable.Decreases
     }
-
+    bool ICodeContext.ContainsQuantifier {
+      get { throw new cce.UnreachableException(); }
+      set { throw new cce.UnreachableException(); }
+    }
     public new NewtypeDecl ClonedFrom {
       get {
         return (NewtypeDecl)base.ClonedFrom;
@@ -2889,6 +2909,10 @@ namespace Microsoft.Dafny {
     bool ICallable.InferredDecreases {
       get { throw new cce.UnreachableException(); }  // see comment above about ICallable.Decreases
       set { throw new cce.UnreachableException(); }  // see comment above about ICallable.Decreases
+    }
+    bool ICodeContext.ContainsQuantifier {
+      get { throw new cce.UnreachableException(); }
+      set { throw new cce.UnreachableException(); }
     }
   }
 
@@ -3184,6 +3208,11 @@ namespace Microsoft.Dafny {
     public readonly IToken SignatureEllipsis;
     public bool IsBuiltin;
     public Function OverriddenFunction;
+    public bool containsQuantifier;
+    public bool ContainsQuantifier { 
+      set { containsQuantifier = value; }
+      get { return containsQuantifier;  }
+    }
 
     public override IEnumerable<Expression> SubExpressions {
       get {
@@ -3438,6 +3467,7 @@ namespace Microsoft.Dafny {
     public bool IsTailRecursive;  // filled in during resolution
     public readonly ISet<IVariable> AssignedAssumptionVariables = new HashSet<IVariable>();
     public Method OverriddenMethod;
+    public bool containsQuantifier;
 
     public override IEnumerable<Expression> SubExpressions {
       get {
@@ -3512,6 +3542,11 @@ namespace Microsoft.Dafny {
       set { _inferredDecr = value; }
       get { return _inferredDecr; }
     }
+    bool ICodeContext.ContainsQuantifier {
+      set { containsQuantifier = value; }
+      get { return containsQuantifier; }
+    }
+
     ModuleDefinition ICodeContext.EnclosingModule {
       get {
         Contract.Assert(this.EnclosingClass != null);  // this getter is supposed to be called only after signature-resolution is complete

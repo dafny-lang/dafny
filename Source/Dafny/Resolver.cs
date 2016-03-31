@@ -8173,6 +8173,7 @@ namespace Microsoft.Dafny
         e.Type = e.Body.Type;
       } else if (expr is QuantifierExpr) {
         var e = (QuantifierExpr)expr;
+        opts.codeContext.ContainsQuantifier = true;
         Contract.Assert(e.SplitQuantifier == null); // No split quantifiers during resolution
         int prevErrorCount = reporter.Count(ErrorLevel.Error);
         bool _val = true;
