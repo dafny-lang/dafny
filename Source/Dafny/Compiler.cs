@@ -795,13 +795,13 @@ namespace Microsoft.Dafny {
       //    The method has no modifies clause 
       //    If the method is an instance (that is, non-static) method in a class, then the enclosing class must not declare any constructor
       // Or if a method is annotated with {:main} and the above restrictions apply, except it is allowed to take ghost arguments, 
-      //    and it is allowed to have preconditions.  This lets the programmer add some explicit assumptions about the outside world, 
+      //    and it is allowed to have preconditions and modifies.  This lets the programmer add some explicit assumptions about the outside world, 
       //    modeled, for example, via ghost parameters.
       if (!m.IsGhost && m.Name == "Main" && m.TypeArgs.Count == 0 && m.Ins.Count == 0 && m.Outs.Count == 0 && m.Req.Count == 0
             && m.Mod.Expressions.Count == 0 && (m.IsStatic || (((ClassDecl)m.EnclosingClass) == null) || !((ClassDecl)m.EnclosingClass).HasConstructor)) {
         return true;
       } else if (Attributes.Contains(m.Attributes, "main") && !m.IsGhost && m.TypeArgs.Count == 0 && m.Outs.Count == 0
-            && m.Mod.Expressions.Count == 0 && (m.IsStatic || (((ClassDecl)m.EnclosingClass) == null) || !((ClassDecl)m.EnclosingClass).HasConstructor)) {
+            && (m.IsStatic || (((ClassDecl)m.EnclosingClass) == null) || !((ClassDecl)m.EnclosingClass).HasConstructor)) {
         if (m.Ins.Count == 0) {
           return true;
         } else {
