@@ -113,7 +113,7 @@ namespace Microsoft.Dafny {
     readonly Dictionary<TopLevelDecl, string>/*!*/ classConstants = new Dictionary<TopLevelDecl, string>();
     readonly Dictionary<int, string> functionConstants = new Dictionary<int, string>();
     readonly Dictionary<Function, string> functionHandles = new Dictionary<Function, string>();
-    readonly static List<FuelConstant> FunctionFuel = new List<FuelConstant>();
+    readonly List<FuelConstant> functionFuel = new List<FuelConstant>();
     readonly Dictionary<Field/*!*/,Bpl.Constant/*!*/>/*!*/ fields = new Dictionary<Field/*!*/,Bpl.Constant/*!*/>();
     readonly Dictionary<Field/*!*/, Bpl.Function/*!*/>/*!*/ fieldFunctions = new Dictionary<Field/*!*/, Bpl.Function/*!*/>();
     readonly Dictionary<string, Bpl.Constant> fieldConstants = new Dictionary<string,Constant>();
@@ -603,7 +603,7 @@ namespace Microsoft.Dafny {
                   Bpl.Constant startFuelAssert = new Bpl.Constant(f.tok, new Bpl.TypedIdent(f.tok, "StartFuelAssert_" + f.FullName, predef.LayerType), false);
                   sink.AddTopLevelDeclaration(startFuelAssert);
                   Bpl.Expr startFuelAssert_expr = new Bpl.IdentifierExpr(f.tok, startFuelAssert);
-                  Translator.FunctionFuel.Add(new FuelConstant(f, baseFuel_expr, startFuel_expr, startFuelAssert_expr));
+                  this.functionFuel.Add(new FuelConstant(f, baseFuel_expr, startFuel_expr, startFuelAssert_expr));
                 }
               }
             }
@@ -2971,9 +2971,11 @@ namespace Microsoft.Dafny {
     }
 
     void InitializeFuelConstant(IToken tok, Bpl.StmtListBuilder builder, ExpressionTranslator etran) {
-      builder.Add(new CommentCmd("initialize fuel constant"));
+      if (this.functionFuel.Count > 0) {
+        builder.Add(new CommentCmd("initialize fuel constant"));
+      }
       FuelContext fuelContext = this.fuelContext;
-      foreach (FuelConstant fuelConstant in Translator.FunctionFuel) {
+      foreach (FuelConstant fuelConstant in this.functionFuel) {
         Function f = fuelConstant.f;
         Bpl.Expr baseFuel = fuelConstant.baseFuel;
         Bpl.Expr startFuel = fuelConstant.startFuel;
@@ -3001,7 +3003,7 @@ namespace Microsoft.Dafny {
       foreach (KeyValuePair<Function, FuelSettingPair> fuel in fuelContext) {
         Function f = fuel.Key;
         FuelSettingPair settings = fuel.Value;
-        FuelConstant fuelConstant = Translator.FunctionFuel.Find(x => x.f == f);
+        FuelConstant fuelConstant = this.functionFuel.Find(x => x.f == f);
         if (fuelConstant != null) {
           Bpl.Expr startFuel = fuelConstant.startFuel;
           Bpl.Expr startFuelAssert = fuelConstant.startFuelAssert;
@@ -10530,7 +10532,7 @@ namespace Microsoft.Dafny {
             setting = FuelAttrib(f, out found);
           }
 
-          FuelConstant fuelConstant = Translator.FunctionFuel.Find(x => x.f == f);
+          FuelConstant fuelConstant = translator.functionFuel.Find(x => x.f == f);
           if (this.amount == (int)FuelAmount.LOW) {
             return GetFunctionFuel(setting.low, found, fuelConstant);
           } else if (this.amount == (int)FuelAmount.HIGH) {
