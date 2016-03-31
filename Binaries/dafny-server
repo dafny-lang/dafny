@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+
+MONO=$(which mono)
+DAFNYSERVER=$(dirname "${BASH_SOURCE[0]}")/DafnyServer.exe
+
+if [[ ! -x "$MONO" ]]; then
+    echo "Error: Dafny requires Mono to run on non-Windows systems."
+    exit 1
+fi
+
+if [[ ! -x "$DAFNYSERVER" ]]; then
+    echo "Error: DafnyServer.exe not found at $DAFNYSERVER."
+    exit 1
+fi
+
+"$MONO" "$DAFNYSERVER" "$@"
