@@ -1253,13 +1253,13 @@ namespace Dafny
       int asign = this.num.Sign;
       int bsign = that.num.Sign;
       if (asign < 0 && 0 <= bsign) {
-        return 1;
+        return -1;
       } else if (asign <= 0 && 0 < bsign) {
-        return 1;
+        return -1;
       } else if (bsign < 0 && 0 <= asign) {
-        return -1;
+        return 1;
       } else if (bsign <= 0 && 0 < asign) {
-        return -1;
+        return 1;
       }
       BigInteger aa, bb, dd;
       Normalize(this, that, out aa, out bb, out dd);
