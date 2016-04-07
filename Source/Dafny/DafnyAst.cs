@@ -4200,11 +4200,22 @@ namespace Microsoft.Dafny {
       RHSs = rhss;
     }
 
-   public IEnumerable<BoundVar> BoundVars {
+    public override IEnumerable<Expression> SubExpressions {
+      get {
+        foreach (var e in Attributes.SubExpressions(Attributes)) {
+          yield return e;
+        }
+        foreach (var rhs in RHSs) {
+          yield return rhs;
+        }
+      }
+    }
+
+    public IEnumerable<BoundVar> BoundVars {
       get {
         foreach (var lhs in LHSs) {
           foreach (var bv in lhs.Vars) {
-           yield return bv;
+            yield return bv;
           }
         }
       }
