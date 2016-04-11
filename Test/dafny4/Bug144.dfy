@@ -12,3 +12,17 @@ method m2()
   m1();
   assert exists i :: p(i); // FAILS
 }
+
+class Test
+{
+    var arr : array<int>;
+    predicate p(i: int)
+    method foo()
+        requires arr != null && arr.Length > 0
+        modifies arr
+    {
+        assume exists i :: p(i);
+        arr[0] := 1;
+        assert exists i :: p(i);  // FAILS
+    }
+}
