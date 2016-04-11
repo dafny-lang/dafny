@@ -10698,6 +10698,7 @@ namespace Microsoft.Dafny {
       public readonly FuelSetting layerInterCluster;
       public readonly FuelSetting layerIntraCluster = null;  // a value of null says to do the same as for inter-cluster calls
       public int Statistics_CustomLayerFunctionCount = 0;
+      public int Statistics_HeapAsQuantifierCount = 0;
       public readonly bool stripLits = false;
       [ContractInvariantMethod]
       void ObjectInvariant()
@@ -11768,15 +11769,34 @@ namespace Microsoft.Dafny {
             Bpl.QKeyValue kv = TrAttributes(e.Attributes, "trigger");
             Bpl.Trigger tr = null;
             var argsEtran = bodyEtran.WithNoLits();
+            // translate the triggers once to see if heap is used as quantifier boundvar
+            foreach (var aa in e.Attributes.AsEnumerable()) {
+              if (aa.Name == "trigger") {
+                foreach (var arg in aa.Args) {
+                  argsEtran.TrExpr(arg, initEtran, existEtran, existEtran);
+                }
+              }
+            }
+            bool useHeapAsQuantifier = false;
+            if (argsEtran.Statistics_HeapAsQuantifierCount > 0) {
+              var heapExpr = BplBoundVar(e.Refresh("tr$heap#", translator.CurrentIdGenerator), predef.HeapType, bvars);
+              argsEtran = new ExpressionTranslator(argsEtran, heapExpr);
+              useHeapAsQuantifier = true;
+            }
+            // now translate it with the correct heapExpr.
             foreach (var aa in e.Attributes.AsEnumerable()) {
               if (aa.Name == "trigger") {
                 List<Bpl.Expr> tt = new List<Bpl.Expr>();
                 foreach (var arg in aa.Args) {
                   tt.Add(argsEtran.TrExpr(arg, initEtran, existEtran, existEtran));
                 }
+                if (useHeapAsQuantifier) {
+                  tt.Add(translator.FunctionCall(expr.tok, BuiltinFunction.IsGoodHeap, null, argsEtran.HeapExpr));
+                }
                 tr = new Bpl.Trigger(expr.tok, true, tt, tr);
               }
             }
+            
             if (e.Range != null) {
               antecedent = BplAnd(antecedent, etran.TrExpr(e.Range, initEtran, existEtran, existEtran));
             }
@@ -12065,6 +12085,7 @@ namespace Microsoft.Dafny {
           args.Add(layerArgument);
         }
         args.Add(HeapExpr);
+        Statistics_HeapAsQuantifierCount++;
         if (!e.Function.IsStatic) {
           args.Add(TrExpr(e.Receiver));
         }
