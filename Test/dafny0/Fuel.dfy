@@ -460,3 +460,22 @@ module TestModule11 {
     }
 }
 
+module TestModule12 {
+		function pos3(x:int) : int 
+		{
+				if x < 0 then 0
+				else 1 + pos4(x - 1)
+		}
+
+		function pos4(x:int) : int 
+		{
+				if x < 0 then 0
+				else 1 + pos3(x - 1)
+		}
+
+		method {:fuel pos3,2,3} {:fuel pos4,2,3} test (y:int)
+			requires y > 3;
+		{
+				assert pos3(y) == 3 + pos4(y - 3); 
+		}
+}

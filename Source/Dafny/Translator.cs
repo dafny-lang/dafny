@@ -1530,7 +1530,8 @@ namespace Microsoft.Dafny {
       AddFunction(f);
       // add synonym axiom
       if (f.IsFuelAware()) {
-        AddSynonymAxiom(f);
+        AddLayerSynonymAxiom(f);
+        AddFuelSynonymAxiom(f);
       }
       // add frame axiom
       AddFrameAxiom(f);
@@ -2380,7 +2381,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    void AddSynonymAxiom(Function f) {
+    void AddLayerSynonymAxiom(Function f) {
       Contract.Requires(f != null);
       Contract.Requires(f.IsFuelAware());
       Contract.Requires(sink != null && predef != null);
@@ -2430,6 +2431,64 @@ namespace Microsoft.Dafny {
       Bpl.Trigger tr = new Bpl.Trigger(f.tok, true, new List<Bpl.Expr> { funcAppl1 });
       Bpl.Expr ax = new Bpl.ForallExpr(f.tok, typeParams, formals, null, tr, Bpl.Expr.Eq(funcAppl1, funcAppl0));
       sink.AddTopLevelDeclaration(new Bpl.Axiom(f.tok, ax, "layer synonym axiom"));
+    }
+
+    void AddFuelSynonymAxiom(Function f) {
+      // axiom  // fuel axiom
+      //   (forall s, $Heap, formals ::
+      //       { f(IsFuelBottom(s), $Heap, formals) }
+      //       f(s, $Heap, formals) == f($LZ, $Heap, formals));
+      Contract.Requires(f != null);
+      Contract.Requires(f.IsFuelAware());
+      Contract.Requires(sink != null && predef != null);
+
+      List<Bpl.Expr> tyargs;
+      var formals = MkTyParamBinders(GetTypeParams(f), out tyargs);
+      var args2 = new List<Bpl.Expr>(tyargs);
+      var args1 = new List<Bpl.Expr>(tyargs);
+      var args0 = new List<Bpl.Expr>(tyargs);
+
+      var bv = new Bpl.BoundVariable(f.tok, new Bpl.TypedIdent(f.tok, "$ly", predef.LayerType));
+      formals.Add(bv);
+      var s = new Bpl.IdentifierExpr(f.tok, bv);
+      args2.Add(FunctionCall(f.tok, BuiltinFunction.IsFuelBottom, null, s));
+      args1.Add(s);
+      args0.Add(new Bpl.IdentifierExpr(f.tok, "$LZ",predef.LayerType)); // $LZ
+
+      bv = new Bpl.BoundVariable(f.tok, new Bpl.TypedIdent(f.tok, predef.HeapVarName, predef.HeapType));
+      formals.Add(bv);
+      s = new Bpl.IdentifierExpr(f.tok, bv);
+      args2.Add(s);
+      args1.Add(s);
+      args0.Add(s);
+
+      if (!f.IsStatic) {
+        bv = new Bpl.BoundVariable(f.tok, new Bpl.TypedIdent(f.tok, "this", predef.RefType));
+        formals.Add(bv);
+        s = new Bpl.IdentifierExpr(f.tok, bv);
+        args2.Add(s);
+        args1.Add(s);
+        args0.Add(s);
+      }
+      foreach (var p in f.Formals) {
+        bv = new Bpl.BoundVariable(p.tok, new Bpl.TypedIdent(p.tok, p.AssignUniqueName(f.IdGenerator), TrType(p.Type)));
+        formals.Add(bv);
+        s = new Bpl.IdentifierExpr(f.tok, bv);
+        args2.Add(s);
+        args1.Add(s);
+        args0.Add(s);
+      }
+
+      var funcID = new Bpl.FunctionCall(new Bpl.IdentifierExpr(f.tok, f.FullSanitizedName, TrType(f.ResultType)));
+      var funcAppl2 = new Bpl.NAryExpr(f.tok, funcID, args2);
+      var funcAppl1 = new Bpl.NAryExpr(f.tok, funcID, args1);
+      var funcAppl0 = new Bpl.NAryExpr(f.tok, funcID, args0);
+
+      var typeParams = TrTypeParamDecls(f.TypeArgs);
+
+      Bpl.Trigger tr = new Bpl.Trigger(f.tok, true, new List<Bpl.Expr> { funcAppl2 });
+      Bpl.Expr ax = new Bpl.ForallExpr(f.tok, typeParams, formals, null, tr, Bpl.Expr.Eq(funcAppl1, funcAppl0));
+      sink.AddTopLevelDeclaration(new Bpl.Axiom(f.tok, ax, "fuel synonym axiom"));
     }
 
     /// <summary>
@@ -2992,6 +3051,8 @@ namespace Microsoft.Dafny {
         Bpl.Expr layerAssert = etran.layerInterCluster.LayerN(settings.high, baseFuel);
         builder.Add(TrAssumeCmd(tok, Bpl.Expr.Eq(startFuel, layer)));
         builder.Add(TrAssumeCmd(tok, Bpl.Expr.Eq(startFuelAssert, layerAssert)));
+        // assume IsFuelBottom(BaseFuel_F) == BaseFuel_F;
+        builder.Add(TrAssumeCmd(tok, Bpl.Expr.Eq(FunctionCall(f.tok, BuiltinFunction.IsFuelBottom, null, baseFuel), baseFuel)));
       }
     }
 
@@ -12310,6 +12371,7 @@ namespace Microsoft.Dafny {
       LitInt,
       LitReal,
       LayerSucc,
+      IsFuelBottom,
       CharFromInt,
       CharToInt,
 
@@ -12478,7 +12540,10 @@ namespace Microsoft.Dafny {
           Contract.Assert(args.Length == 1);
           Contract.Assert(typeInstantiation == null);
           return FunctionCall(tok, "$LS", predef.LayerType, args);
-
+        case BuiltinFunction.IsFuelBottom:
+          Contract.Assert(args.Length == 1);
+          Contract.Assert(typeInstantiation == null);
+          return FunctionCall(tok, "IsFuelBottom", predef.LayerType, args);
         case BuiltinFunction.CharFromInt:
           Contract.Assert(args.Length == 1);
           Contract.Assert(typeInstantiation == null);
