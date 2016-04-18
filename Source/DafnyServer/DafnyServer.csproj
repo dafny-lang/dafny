@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
   <PropertyGroup>
@@ -67,14 +67,14 @@
     <CodeContractsAnalysisWarningLevel>0</CodeContractsAnalysisWarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="Core">
-      <HintPath>..\..\..\boogie\Binaries\Core.dll</HintPath>
+    <Reference Include="BoogieCore">
+      <HintPath>..\..\..\boogie\Binaries\BoogieCore.dll</HintPath>
     </Reference>
-    <Reference Include="ExecutionEngine">
-      <HintPath>..\..\..\boogie\Binaries\ExecutionEngine.dll</HintPath>
+    <Reference Include="BoogieExecutionEngine">
+      <HintPath>..\..\..\boogie\Binaries\BoogieExecutionEngine.dll</HintPath>
     </Reference>
-    <Reference Include="ParserHelper">
-      <HintPath>..\..\..\boogie\Binaries\ParserHelper.dll</HintPath>
+    <Reference Include="BoogieParserHelper">
+      <HintPath>..\..\..\boogie\Binaries\BoogieParserHelper.dll</HintPath>
     </Reference>
     <Reference Include="Provers.SMTLib">
       <HintPath>..\..\..\boogie\Binaries\Provers.SMTLib.dll</HintPath>

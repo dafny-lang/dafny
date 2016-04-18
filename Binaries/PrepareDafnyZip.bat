@@ -7,24 +7,24 @@ if exist %DEST_DIR% del /q %DEST_DIR%\*
 if not exist %DEST_DIR% mkdir %DEST_DIR%
 
 for %%f in (
-  AbsInt.dll                          AbsInt.pdb
-  Basetypes.dll                       Basetypes.pdb
-  CodeContractsExtender.dll           CodeContractsExtender.pdb
-  Concurrency.dll                     Concurrency.pdb
-  Core.dll                            Core.pdb
-  Dafny.exe                           Dafny.pdb
-  DafnyPipeline.dll                   DafnyPipeline.pdb
-  DafnyPrelude.bpl                    DafnyRuntime.cs
-  Doomed.dll                          Doomed.pdb
-  ExecutionEngine.dll                 ExecutionEngine.pdb
-  Graph.dll                           Graph.pdb
-  Houdini.dll                         Houdini.pdb
-  Model.dll                           Model.pdb
-  ModelViewer.dll                     ModelViewer.pdb
-  ParserHelper.dll                    ParserHelper.pdb
-  Provers.SMTLib.dll                  Provers.SMTLib.pdb
-  VCExpr.dll                          VCExpr.pdb
-  VCGeneration.dll                    VCGeneration.pdb
+  BoogieAbsInt.dll                          BoogieAbsInt.pdb
+  BoogieBasetypes.dll                       BoogieBasetypes.pdb
+  BoogieCodeContractsExtender.dll           BoogieCodeContractsExtender.pdb
+  BoogieConcurrency.dll                     BoogieConcurrency.pdb
+  BoogieCore.dll                            BoogieCore.pdb
+  Dafny.exe                                 Dafny.pdb
+  DafnyPipeline.dll                         DafnyPipeline.pdb
+  DafnyPrelude.bpl                          DafnyRuntime.cs
+  BoogieDoomed.dll                          BoogieDoomed.pdb
+  BoogieExecutionEngine.dll                 BoogieExecutionEngine.pdb
+  BoogieGraph.dll                           BoogieGraph.pdb
+  BoogieHoudini.dll                         BoogieHoudini.pdb
+  BoogieModel.dll                           BoogieModel.pdb
+  BoogieModelViewer.dll                     BoogieModelViewer.pdb
+  BoogieParserHelper.dll                    BoogieParserHelper.pdb
+  Provers.SMTLib.dll                        Provers.SMTLib.pdb
+  BoogieVCExpr.dll                          BoogieVCExpr.pdb
+  BoogieVCGeneration.dll                    BoogieVCGeneration.pdb
   Z3.exe
   Z3-LICENSE.txt
   DafnyLanguageService.vsix

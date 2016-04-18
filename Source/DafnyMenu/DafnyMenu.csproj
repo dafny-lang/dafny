@@ -53,11 +53,11 @@
     <Reference Include="DafnyPipeline">
       <HintPath>..\..\Binaries\DafnyPipeline.dll</HintPath>
     </Reference>
-    <Reference Include="Model">
-      <HintPath>..\..\..\boogie\Binaries\Model.dll</HintPath>
+    <Reference Include="BoogieModel">
+      <HintPath>..\..\..\boogie\Binaries\BoogieModel.dll</HintPath>
     </Reference>
-    <Reference Include="ModelViewer">
-      <HintPath>..\..\..\boogie\Binaries\ModelViewer.dll</HintPath>
+    <Reference Include="BoogieModelViewer">
+      <HintPath>..\..\..\boogie\Binaries\BoogieModelViewer.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>

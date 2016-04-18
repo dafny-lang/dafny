@@ -124,27 +124,27 @@
     <CodeContractsAnalysisWarningLevel>0</CodeContractsAnalysisWarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="AbsInt">
-      <HintPath>..\..\..\boogie\Binaries\AbsInt.dll</HintPath>
+    <Reference Include="BoogieAbsInt">
+      <HintPath>..\..\..\boogie\Binaries\BoogieAbsInt.dll</HintPath>
     </Reference>
-    <Reference Include="Concurrency">
-      <HintPath>..\..\..\boogie\Binaries\Concurrency.dll</HintPath>
+    <Reference Include="BoogieConcurrency">
+      <HintPath>..\..\..\boogie\Binaries\BoogieConcurrency.dll</HintPath>
     </Reference>
-    <Reference Include="Core">
-      <HintPath>..\..\..\boogie\Binaries\Core.dll</HintPath>
+    <Reference Include="BoogieCore">
+      <HintPath>..\..\..\boogie\Binaries\BoogieCore.dll</HintPath>
     </Reference>
-    <Reference Include="ExecutionEngine">
-      <HintPath>..\..\..\boogie\Binaries\ExecutionEngine.dll</HintPath>
+    <Reference Include="BoogieExecutionEngine">
+      <HintPath>..\..\..\boogie\Binaries\BoogieExecutionEngine.dll</HintPath>
     </Reference>
-    <Reference Include="ParserHelper">
-      <HintPath>..\..\..\boogie\Binaries\ParserHelper.dll</HintPath>
+    <Reference Include="BoogieParserHelper">
+      <HintPath>..\..\..\boogie\Binaries\BoogieParserHelper.dll</HintPath>
     </Reference>
     <Reference Include="Provers.SMTLib">
       <HintPath>..\..\..\boogie\Binaries\Provers.SMTLib.dll</HintPath>
     </Reference>
     <Reference Include="System" />
-    <Reference Include="VCGeneration">
-      <HintPath>..\..\..\boogie\Binaries\VCGeneration.dll</HintPath>
+    <Reference Include="BoogieVCGeneration">
+      <HintPath>..\..\..\boogie\Binaries\BoogieVCGeneration.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>
