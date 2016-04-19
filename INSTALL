@@ -1,3 +1,4 @@
+-*- mode: markdown -*-
 Building on Linux
 =================
 
@@ -27,8 +28,7 @@ Dafny's sources.
 3. Download and build Dafny:
 
    hg clone https://hg.codeplex.com/dafny
-   cd dafny/Source/
-   xbuild Dafny.sln
+   xbuild dafny/Source/Dafny.sln
 
 4. Download and unpack z3 (Dafny looks for `z3` in Binaries/z3/bin/)
 
