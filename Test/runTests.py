@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import os
 import re
 import sys
@@ -242,6 +243,7 @@ class Test:
                     self.status = TestStatus.TIMEOUT
                     self.end = self.start + self.timeout
                     self.duration = self.timeout
+                    proc.kill()
                     return
 
             self.end = time()
