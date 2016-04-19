@@ -668,15 +668,19 @@ namespace Microsoft.Dafny
               singletons = new List<Expression>();
             }
             singletons.Add(e);
-          } else if (eType is SeqType) {
-            // e represents a sequence
+          } else if (eType is SeqType || eType is MultiSetType) {
+            // e represents a sequence or multiset
             // Add:  set x :: x in e
-            var bv = new BoundVar(e.tok, idGen.FreshId("_s2s_"), ((SeqType)eType).Arg);
+            var bv = new BoundVar(e.tok, idGen.FreshId("_s2s_"), ((CollectionType)eType).Arg);
             var bvIE = new IdentifierExpr(e.tok, bv.Name);
             bvIE.Var = bv;  // resolve here
             bvIE.Type = bv.Type;  // resolve here
             var sInE = new BinaryExpr(e.tok, BinaryExpr.Opcode.In, bvIE, e);
-            sInE.ResolvedOp = BinaryExpr.ResolvedOpcode.InSeq;  // resolve here
+            if (eType is SeqType) { 
+              sInE.ResolvedOp = BinaryExpr.ResolvedOpcode.InSeq;  // resolve here
+            } else {
+              sInE.ResolvedOp = BinaryExpr.ResolvedOpcode.InMultiSet; // resolve here
+            }
             sInE.Type = Type.Bool;  // resolve here
             var s = new SetComprehension(e.tok, true, new List<BoundVar>() { bv }, sInE, bvIE, null);
             s.Type = new SetType(true, new ObjectType());  // resolve here

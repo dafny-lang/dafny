@@ -4088,6 +4088,9 @@ namespace Microsoft.Dafny {
         } else if (eType is SetType) {
           // e[Box(o)]
           disjunct = etran.TrInSet_Aux(tok, o, boxO, e);
+        } else if (eType is MultiSetType) {
+          // e[Box(o)] > 0
+          disjunct = etran.TrInMultiSet_Aux(tok, o, boxO, e);
         } else if (eType is SeqType) {
           // (exists i: int :: 0 <= i && i < Seq#Length(e) && Seq#Index(e,i) == Box(o))
           Bpl.Variable iVar = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, "$i", Bpl.Type.Int));
@@ -12278,14 +12281,24 @@ namespace Microsoft.Dafny {
         Contract.Requires(elmtType != null);
 
         Contract.Ensures(Contract.Result<Bpl.Expr>() != null);
+        var elmtBox = BoxIfNecessary(tok, elmt, elmtType);
+        return TrInMultiSet_Aux(tok, elmt, elmtBox, s);
+      }
+      public Bpl.Expr TrInMultiSet_Aux(IToken tok, Bpl.Expr elmt, Bpl.Expr elmtBox, Expression s) {
+        Contract.Requires(tok != null);
+        Contract.Requires(elmt != null);
+        Contract.Requires(s != null);
+        Contract.Requires(elmtBox != null);
+
+        Contract.Ensures(Contract.Result<Bpl.Expr>() != null);
 
         if (s is BinaryExpr) {
           BinaryExpr bin = (BinaryExpr)s;
           switch (bin.ResolvedOp) {
             case BinaryExpr.ResolvedOpcode.MultiSetUnion:
-              return Bpl.Expr.Binary(tok, BinaryOperator.Opcode.Or, TrInMultiSet(tok, elmt, bin.E0, elmtType), TrInMultiSet(tok, elmt, bin.E1, elmtType));
+              return Bpl.Expr.Binary(tok, BinaryOperator.Opcode.Or, TrInMultiSet_Aux(tok, elmt, elmtBox, bin.E0), TrInMultiSet_Aux(tok, elmt, elmtBox, bin.E1));
             case BinaryExpr.ResolvedOpcode.MultiSetIntersection:
-              return Bpl.Expr.Binary(tok, BinaryOperator.Opcode.And, TrInMultiSet(tok, elmt, bin.E0, elmtType), TrInMultiSet(tok, elmt, bin.E1, elmtType));
+              return Bpl.Expr.Binary(tok, BinaryOperator.Opcode.And, TrInMultiSet_Aux(tok, elmt, elmtBox, bin.E0), TrInMultiSet_Aux(tok, elmt, elmtBox, bin.E1));
             default:
               break;
           }
@@ -12306,7 +12319,7 @@ namespace Microsoft.Dafny {
             return disjunction;
           }
         }
-        return Bpl.Expr.Gt(Bpl.Expr.SelectTok(tok, TrExpr(s), BoxIfNecessary(tok, elmt, elmtType)), Bpl.Expr.Literal(0));
+        return Bpl.Expr.Gt(Bpl.Expr.SelectTok(tok, TrExpr(s), elmtBox), Bpl.Expr.Literal(0));
       }
 
       public Bpl.QKeyValue TrAttributes(Attributes attrs, string skipThisAttribute) {
