@@ -38,22 +38,22 @@ Z3_INTERESTING_FILES = ["LICENSE.txt", "bin/*"]
 UNIX_EXECUTABLES = ["dafny", "dafny-server"]
 
 ## What do we take from Dafny's Binaries folder?
-DLLs = ["AbsInt",
-        "Basetypes",
-        "CodeContractsExtender",
-        "Concurrency",
-        "Core",
+DLLs = ["BoogieAbsInt",
+        "BoogieBasetypes",
+        "BoogieCodeContractsExtender",
+        "BoogieConcurrency",
+        "BoogieCore",
         "DafnyPipeline",
-        "Doomed",
-        "ExecutionEngine",
-        "Graph",
-        "Houdini",
-        "Model",
-        "ModelViewer",
-        "ParserHelper",
+        "BoogieDoomed",
+        "BoogieExecutionEngine",
+        "BoogieGraph",
+        "BoogieHoudini",
+        "BoogieModel",
+        "BoogieModelViewer",
+        "BoogieParserHelper",
         "Provers.SMTLib",
-        "VCExpr",
-        "VCGeneration"]
+        "BoogieVCExpr",
+        "BoogieVCGeneration"]
 EXEs = ["Dafny", "DafnyServer"]
 ETCs = UNIX_EXECUTABLES + ["DafnyPrelude.bpl", "DafnyRuntime.cs", "DafnyLanguageService.vsix"]
 
