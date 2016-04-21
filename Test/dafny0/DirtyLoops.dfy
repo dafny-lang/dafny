@@ -33,4 +33,13 @@ class MyClass {
       decreases f;
       modifies `f;
   }
+
+  predicate P(y: int)
+    
+  method M4() {
+    forall y: int  // this once used to crash Dafny
+      ensures P(y)
+
+    forall x: int  // this once used to crash Dafny
+  }
 }

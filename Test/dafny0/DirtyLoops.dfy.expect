@@ -1,4 +1,8 @@
+DirtyLoops.dfy(43,4): Warning: the conclusion of the body of this forall statement will not be known outside the forall statement; consider using an 'ensures' clause
+DirtyLoops.dfy(43,4): Warning: /!\ No terms found to trigger on.
 
-Dafny program verifier finished with 8 verified, 0 errors
+Dafny program verifier finished with 11 verified, 0 errors
+DirtyLoops.dfy.tmp.dprint.dfy(45,4): Warning: the conclusion of the body of this forall statement will not be known outside the forall statement; consider using an 'ensures' clause
+DirtyLoops.dfy.tmp.dprint.dfy(45,4): Warning: /!\ No terms found to trigger on.
 
 Dafny program verifier finished with 0 verified, 0 errors

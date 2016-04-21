@@ -97,7 +97,7 @@ namespace Microsoft.Dafny
         if (stmt is ForallStmt) {
           ForallStmt s = (ForallStmt)stmt;
           if (s.Kind == ForallStmt.ParBodyKind.Proof) {
-            Expression term = s.Ens.Count != 0 ? s.Ens[0].E : new LiteralExpr(s.Tok, true);
+            Expression term = s.Ens.Count != 0 ? s.Ens[0].E : Expression.CreateBoolLiteral(s.Tok, true);
             for (int i = 1; i < s.Ens.Count; i++) {
               term = new BinaryExpr(s.Tok, BinaryExpr.ResolvedOpcode.And, term, s.Ens[i].E);
             }
