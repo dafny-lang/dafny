@@ -5905,6 +5905,7 @@ namespace Microsoft.Dafny
           ResolveStatement(s.Body, codeContext);
           loopStack.RemoveAt(loopStack.Count - 1);  // pop
         } else {
+          reporter.Warning(MessageSource.Resolver, s.Tok, "note, this loop has no body");
           string text = "havoc {" + Util.Comma(", ", fvs, fv => fv.Name) + "};";  // always terminate with a semi-colon
           reporter.Info(MessageSource.Resolver, s.Tok, text);
         }
@@ -5944,6 +5945,8 @@ namespace Microsoft.Dafny
           ResolveStatement(s.Body, codeContext);
           labeledStatements = prevLblStmts;
           loopStack = prevLoopStack;
+        } else {
+          reporter.Warning(MessageSource.Resolver, s.Tok, "note, this forall statement has no body");
         }
         scope.PopMarker();
 

@@ -217,6 +217,7 @@ ResolutionErrors.dfy(421,10): Error: first argument to ==> must be of type bool 
 ResolutionErrors.dfy(421,10): Error: second argument to ==> must be of type bool (instead got int)
 ResolutionErrors.dfy(580,18): Error: unresolved identifier: w
 ResolutionErrors.dfy(686,11): Error: lemmas are not allowed to have modifies clauses
+ResolutionErrors.dfy(934,2): Warning: note, this forall statement has no body
 ResolutionErrors.dfy(935,9): Error: unresolved identifier: s
 ResolutionErrors.dfy(946,32): Error: RHS (of type (int,int,real)) not assignable to LHS (of type (int,real,int))
 ResolutionErrors.dfy(947,37): Error: RHS (of type (int,real,int)) not assignable to LHS (of type (int,real,int,real))
