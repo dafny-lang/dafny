@@ -80,7 +80,7 @@ namespace Microsoft.Dafny
     }
 
     internal override void PostResolve(ModuleDefinition m) {
-      var forallvisiter = new ForAllStmtVisitor();
+      var forallvisiter = new ForAllStmtVisitor(reporter);
       foreach (var decl in ModuleDefinition.AllCallables(m.TopLevelDecls)) {
         forallvisiter.Visit(decl, true);
       }
@@ -88,6 +88,11 @@ namespace Microsoft.Dafny
 
     internal class ForAllStmtVisitor : TopDownVisitor<bool>
     {
+      readonly ErrorReporter reporter;
+      public ForAllStmtVisitor(ErrorReporter reporter) {
+        Contract.Requires(reporter != null);
+        this.reporter = reporter;
+      }
       protected override bool VisitOneStmt(Statement stmt, ref bool st) {
         if (stmt is ForallStmt) {
           ForallStmt s = (ForallStmt)stmt;
@@ -135,10 +140,11 @@ namespace Microsoft.Dafny
                 var rhs = ((ExprRhs)s0.Rhs).Expr;
                 bool usedInversion = false;
                 if (Fi != null) {
-                  var j = new BoundVar(i.tok, i.Name + "#inv", Fi.Type);
+                  var j = new BoundVar(i.tok, i.Name + "#inv", Fi.Type is NatType ? Type.Int : Fi.Type);
                   var jj = Expression.CreateIdentExpr(j);
                   var jList = new List<BoundVar>() { j };
-                  var vals = InvertExpression(i, j, s.Range, Fi);
+                  var range = i.Type is NatType ? Expression.CreateAnd(Expression.CreateAtMost(Expression.CreateIntLiteral(jj.tok, 0), jj), s.Range) : s.Range;
+                  var vals = InvertExpression(i, j, range, Fi);
 #if DEBUG_PRINT
           Console.WriteLine("DEBUG: Trying to invert:");
           Console.WriteLine("DEBUG:   " + Printer.ExprToString(s.Range) + " && " + j.Name + " == " + Printer.ExprToString(Fi));
@@ -155,7 +161,17 @@ namespace Microsoft.Dafny
                     foreach (var val in vals) {
                       lhs = lhsBuilder(jj);
                       Attributes attributes = new Attributes("trigger", new List<Expression>() { lhs }, s.Attributes);
-                      var expr = new ForallExpr(s.Tok, jList, val.Range, new BinaryExpr(s.Tok, BinaryExpr.ResolvedOpcode.EqCommon, lhs, Substitute(rhs, i, val.FInverse)), attributes);
+                      var newRhs = Substitute(rhs, i, val.FInverse);
+                      var msg = string.Format("rewrite: forall {0}: {1} {2}| {3} {{ {4} := {5}; }}",
+                        j.Name,
+                        j.Type.ToString(),
+                        Printer.AttributesToString(attributes),
+                        Printer.ExprToString(val.Range),
+                        Printer.ExprToString(lhs),
+                        Printer.ExprToString(newRhs));
+                      reporter.Info(MessageSource.Resolver, stmt.Tok, msg);
+
+                      var expr = new ForallExpr(s.Tok, jList, val.Range, new BinaryExpr(s.Tok, BinaryExpr.ResolvedOpcode.EqCommon, lhs, newRhs), attributes);
                       expr.Type = Type.Bool; //resolve here
                       exprList.Add(expr);
                     }
@@ -309,7 +325,7 @@ namespace Microsoft.Dafny
             } else if (!Translator.ContainsFreeVariable(bin.E0, false, i)) {
               // We're looking at:  R(i) && j == K - f(i)
               // Recurse on f(i) and then replace j := K - j
-              var kMinusJ = Expression.CreateAdd(Expression.CreateIdentExpr(j), bin.E0);
+              var kMinusJ = Expression.CreateSubtract(bin.E0, Expression.CreateIdentExpr(j));
               foreach (var val in InvertExpression(i, j, R, bin.E1)) {
                 yield return val.Subst(j, kMinusJ);
               }

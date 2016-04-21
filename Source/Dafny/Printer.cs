@@ -111,6 +111,18 @@ namespace Microsoft.Dafny {
       }
     }
 
+    /// <summary>
+    /// Returns a string for all attributes on the list "a".  Each attribute is
+    /// followed by a space.
+    /// </summary>
+    public static string AttributesToString(Attributes a) {
+      if (a == null) {
+        return "";
+      } else {
+        return AttributesToString(a.Prev) + OneAttributeToString(a) + " ";
+      }
+    }
+
     public static string OneAttributeToString(Attributes a, string nameSubstitution = null) {
       Contract.Requires(a != null);
       using (var wr = new System.IO.StringWriter()) {

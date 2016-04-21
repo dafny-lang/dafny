@@ -10,5 +10,10 @@ Inverses.dfy(82,66): Related location
 Execution trace:
     (0,0): anon0
     (0,0): anon9_Else
+Inverses.dfy(198,0): Error BP5003: A postcondition might not hold on this return path.
+Inverses.dfy(197,15): Related location: This is the postcondition that might not hold.
+Execution trace:
+    (0,0): anon0
+    (0,0): anon4_Else
 
-Dafny program verifier finished with 17 verified, 2 errors
+Dafny program verifier finished with 32 verified, 3 errors
