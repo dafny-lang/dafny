@@ -45,7 +45,7 @@ namespace Microsoft.Dafny {
       };
       try {
         task.Run();
-        Interaction.EOM(Interaction.SUCCESS, null);
+        Interaction.EOM(Interaction.SUCCESS, (string)null);
       } catch (Exception ex) {
         Interaction.EOM(Interaction.FAILURE, ex);
       }
