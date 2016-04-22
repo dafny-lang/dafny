@@ -4450,6 +4450,12 @@ namespace Microsoft.Dafny
         scope.Push(p.Name, p);
       }
       ResolveAttributes(f.Attributes, new ResolveOpts(f, false));
+      // take care of the warnShadowing attribute
+      bool warnShadowingOption = DafnyOptions.O.WarnShadowing;  // save the original warnShadowing value
+      bool warnShadowing = false;
+      if (Attributes.ContainsBool(f.Attributes, "warnShadowing", ref warnShadowing)) {
+        DafnyOptions.O.WarnShadowing = warnShadowing;  // set the value according to the attribute
+      }
       foreach (Expression r in f.Req) {
         ResolveExpression(r, new ResolveOpts(f, false));
         Contract.Assert(r.Type != null);  // follows from postcondition of ResolveExpression
@@ -4477,6 +4483,8 @@ namespace Microsoft.Dafny
         ConstrainTypes(f.Body.Type, f.ResultType, f, "Function body type mismatch (expected {0}, got {1})", f.ResultType, f.Body.Type);
       }
       scope.PopMarker();
+
+      DafnyOptions.O.WarnShadowing = warnShadowingOption; // restore the original warnShadowing value
     }
 
     /// <summary>
