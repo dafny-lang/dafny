@@ -8255,8 +8255,8 @@ namespace Microsoft.Dafny {
         foreach (ForallExpr expr in s.ForallExpressions) {
           BinaryExpr term = (BinaryExpr)expr.Term;
           Contract.Assert(term != null);
-          var e0 = Substitute(((BinaryExpr)term).E0.Resolved, null, substMap);
-          var e1 = Substitute(((BinaryExpr)term).E1, null, substMap);
+          var e0 = ((BinaryExpr)term).E0.Resolved;
+          var e1 = ((BinaryExpr)term).E1;
           qq = TrForall_NewValueAssumption(expr.tok, expr.BoundVars, expr.Range, e0, e1, expr.Attributes, etran, prevEtran);
           updater.Add(TrAssumeCmd(s.Tok, qq));
         }
