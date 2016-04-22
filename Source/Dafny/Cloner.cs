@@ -239,6 +239,9 @@ namespace Microsoft.Dafny
       } else if (attrs.Name.StartsWith("_")) {
         // skip this attribute, since it would have been produced during resolution
         return CloneAttributes(attrs.Prev);
+      } else if (attrs is UserSuppliedAttributes) {
+        var usa = (UserSuppliedAttributes)attrs;
+        return new UserSuppliedAttributes(Tok(usa.tok), Tok(usa.OpenBrace), Tok(usa.Colon), Tok(usa.CloseBrace), attrs.Args.ConvertAll(CloneExpr), CloneAttributes(attrs.Prev));
       } else {
         return new Attributes(attrs.Name, attrs.Args.ConvertAll(CloneExpr), CloneAttributes(attrs.Prev));
       }

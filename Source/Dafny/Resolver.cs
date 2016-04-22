@@ -723,7 +723,7 @@ namespace Microsoft.Dafny
       int prevErrorCount = reporter.Count(ErrorLevel.Error);
       ResolveTopLevelDecls_Signatures(m, m.TopLevelDecls, datatypeDependencies, codatatypeDependencies);
       Contract.Assert(AllTypeConstraints.Count == 0);  // signature resolution does not add any type constraints
-      ResolveAttributes(m.Attributes, new ResolveOpts(new NoContext(m.Module), false)); // Must follow ResolveTopLevelDecls_Signatures, in case attributes refer to members
+      ResolveAttributes(m.Attributes, m, new ResolveOpts(new NoContext(m.Module), false)); // Must follow ResolveTopLevelDecls_Signatures, in case attributes refer to members
       SolveAllTypeConstraints();  // solve any type constraints entailed by the attributes
       if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
         ResolveTopLevelDecls_Core(m.TopLevelDecls, datatypeDependencies, codatatypeDependencies);
@@ -1596,7 +1596,7 @@ namespace Microsoft.Dafny
         Contract.Assert(d != null);
         if (d is NewtypeDecl) {
           var dd = (NewtypeDecl)d;
-          ResolveAttributes(d.Attributes, new ResolveOpts(new NoContext(d.Module), false));
+          ResolveAttributes(d.Attributes, d, new ResolveOpts(new NoContext(d.Module), false));
           // this check can be done only after it has been determined that the redirected types do not involve cycles
           if (!dd.BaseType.IsNumericBased()) {
             reporter.Error(MessageSource.Resolver, dd.tok, "newtypes must be based on some numeric type (got {0})", dd.BaseType);
@@ -1631,7 +1631,7 @@ namespace Microsoft.Dafny
         ResolveTypeParameters(d.TypeArgs, false, d);
         if (!(d is IteratorDecl)) {
           // Note, attributes of iterators are resolved by ResolvedIterator, after registering any names in the iterator signature
-          ResolveAttributes(d.Attributes, new ResolveOpts(new NoContext(d.Module), false));
+          ResolveAttributes(d.Attributes, d, new ResolveOpts(new NoContext(d.Module), false));
         }
         if (d is IteratorDecl) {
           var iter = (IteratorDecl)d;
@@ -4051,7 +4051,7 @@ namespace Microsoft.Dafny
       currentClass = cl;
       foreach (MemberDecl member in cl.Members) {
         if (member is Field) {
-          ResolveAttributes(member.Attributes, new ResolveOpts(new NoContext(currentClass.Module), false));
+          ResolveAttributes(member.Attributes, member, new ResolveOpts(new NoContext(currentClass.Module), false));
           // nothing more to do
 
         } else if (member is Function) {
@@ -4354,10 +4354,14 @@ namespace Microsoft.Dafny
       }
     }
 
-    void ResolveAttributes(Attributes attrs, ResolveOpts opts) {
+    void ResolveAttributes(Attributes attrs, IAttributeBearingDeclaration attributeHost, ResolveOpts opts) {
       Contract.Requires(opts != null);
       // order does not matter much for resolution, so resolve them in reverse order
       foreach (var attr in attrs.AsEnumerable()) {
+        if (attributeHost != null && attr is UserSuppliedAttributes) {
+          var usa = (UserSuppliedAttributes)attr;
+          usa.Recognized = IsRecognizedAttribute(usa, attributeHost);
+        }
         if (attr.Args != null) {
           foreach (var arg in attr.Args) {
             Contract.Assert(arg != null);
@@ -4368,6 +4372,33 @@ namespace Microsoft.Dafny
             }
           }
         }
+      }
+    }
+
+    /// <summary>
+    /// Check to see if the attribute is one that is supported by Dafny.  What check performed here is,
+    /// unfortunately, just an approximation, since the usage rules of a particular attribute is checked
+    /// elsewhere (for example, in the compiler or verifier).  It would be nice to improve this.
+    /// </summary>
+    bool IsRecognizedAttribute(UserSuppliedAttributes a, IAttributeBearingDeclaration host) {
+      Contract.Requires(a != null);
+      Contract.Requires(host != null);
+      switch (a.Name) {
+        case "opaque":
+          return host is Function && !(host is FixpointPredicate);
+        case "trigger":
+          return host is ComprehensionExpr || host is SetComprehension || host is MapComprehension;
+        case "timeLimit":
+        case "timeLimitMultiplier":
+          return host is TopLevelDecl;
+        case "tailrecursive":
+          return host is Method && !((Method)host).IsGhost;
+        case "autocontracts":
+          return host is ClassDecl;
+        case "autoreq":
+          return host is Function;
+        default:
+          return false;
       }
     }
 
@@ -4449,7 +4480,7 @@ namespace Microsoft.Dafny
       foreach (Formal p in f.Formals) {
         scope.Push(p.Name, p);
       }
-      ResolveAttributes(f.Attributes, new ResolveOpts(f, false));
+      ResolveAttributes(f.Attributes, f, new ResolveOpts(f, false));
       foreach (Expression r in f.Req) {
         ResolveExpression(r, new ResolveOpts(f, false));
         Contract.Assert(r.Type != null);  // follows from postcondition of ResolveExpression
@@ -4463,7 +4494,7 @@ namespace Microsoft.Dafny
         Contract.Assert(r.Type != null);  // follows from postcondition of ResolveExpression
         ConstrainTypes(r.Type, Type.Bool, r, "Postcondition must be a boolean (got {0})", r.Type);
       }
-      ResolveAttributes(f.Decreases.Attributes, new ResolveOpts(f, false));
+      ResolveAttributes(f.Decreases.Attributes, null, new ResolveOpts(f, false));
       foreach (Expression r in f.Decreases.Expressions) {
         ResolveExpression(r, new ResolveOpts(f, false));
         // any type is fine
@@ -4568,12 +4599,12 @@ namespace Microsoft.Dafny
 
         // Start resolving specification...
         foreach (MaybeFreeExpression e in m.Req) {
-          ResolveAttributes(e.Attributes, new ResolveOpts(m, false));
+          ResolveAttributes(e.Attributes, null, new ResolveOpts(m, false));
           ResolveExpression(e.E, new ResolveOpts(m, false));
           Contract.Assert(e.E.Type != null);  // follows from postcondition of ResolveExpression
           ConstrainTypes(e.E.Type, Type.Bool, e.E, "Precondition must be a boolean (got {0})", e.E.Type);
         }
-        ResolveAttributes(m.Mod.Attributes, new ResolveOpts(m, false));
+        ResolveAttributes(m.Mod.Attributes, null, new ResolveOpts(m, false));
         foreach (FrameExpression fe in m.Mod.Expressions) {
           ResolveFrameExpression(fe, false, m);
           if (m is Lemma || m is FixpointLemma) {
@@ -4582,7 +4613,7 @@ namespace Microsoft.Dafny
             DisallowNonGhostFieldSpecifiers(fe);
           }
         }
-        ResolveAttributes(m.Decreases.Attributes, new ResolveOpts(m, false));
+        ResolveAttributes(m.Decreases.Attributes, null, new ResolveOpts(m, false));
         foreach (Expression e in m.Decreases.Expressions) {
           ResolveExpression(e, new ResolveOpts(m, false));
           // any type is fine
@@ -4601,7 +4632,7 @@ namespace Microsoft.Dafny
 
         // ... continue resolving specification
         foreach (MaybeFreeExpression e in m.Ens) {
-          ResolveAttributes(e.Attributes, new ResolveOpts(m, true));
+          ResolveAttributes(e.Attributes, null, new ResolveOpts(m, true));
           ResolveExpression(e.E, new ResolveOpts(m, true));
           Contract.Assert(e.E.Type != null);  // follows from postcondition of ResolveExpression
           ConstrainTypes(e.E.Type, Type.Bool, e.E, "Postcondition must be a boolean (got {0})", e.E.Type);
@@ -4622,7 +4653,7 @@ namespace Microsoft.Dafny
         }
 
         // attributes are allowed to mention both in- and out-parameters (including the implicit _k, for colemmas)
-        ResolveAttributes(m.Attributes, new ResolveOpts(m, false));
+        ResolveAttributes(m.Attributes, m, new ResolveOpts(m, false));
 
         scope.PopMarker();  // for the out-parameters and outermost-level locals
         scope.PopMarker();  // for the in-parameters
@@ -4730,7 +4761,7 @@ namespace Microsoft.Dafny
         ConstrainTypes(e.E.Type, Type.Bool, e.E, "Postcondition must be a boolean (got {0})", e.E.Type);
       }
 
-      ResolveAttributes(iter.Attributes, new ResolveOpts(iter, false));
+      ResolveAttributes(iter.Attributes, iter, new ResolveOpts(iter, false));
 
       var postSpecErrorCount = reporter.Count(ErrorLevel.Error);
 
@@ -5612,7 +5643,7 @@ namespace Microsoft.Dafny
       Contract.Requires(stmt != null);
       Contract.Requires(codeContext != null);
       if (!(stmt is ForallStmt)) {  // forall statements do their own attribute resolution below
-        ResolveAttributes(stmt.Attributes, new ResolveOpts(codeContext, true));
+        ResolveAttributes(stmt.Attributes, stmt, new ResolveOpts(codeContext, true));
       }
       if (stmt is PredicateStmt) {
         PredicateStmt s = (PredicateStmt)stmt;
@@ -5733,7 +5764,7 @@ namespace Microsoft.Dafny
         }
         // With the new locals in scope, it's now time to resolve the attributes on all the locals
         foreach (var local in s.Locals) {
-          ResolveAttributes(local.Attributes, new ResolveOpts(codeContext, true));
+          ResolveAttributes(local.Attributes, local, new ResolveOpts(codeContext, true));
         }
         // Resolve the AssignSuchThatStmt, if any
         if (s.Update is AssignSuchThatStmt) {
@@ -5934,7 +5965,7 @@ namespace Microsoft.Dafny
         }
         // Since the range and postconditions are more likely to infer the types of the bound variables, resolve them
         // first (above) and only then resolve the attributes (below).
-        ResolveAttributes(s.Attributes, new ResolveOpts(codeContext, true));
+        ResolveAttributes(s.Attributes, s, new ResolveOpts(codeContext, true));
 
         if (s.Body != null) {
           // clear the labels for the duration of checking the body, because break statements are not allowed to leave a forall statement
@@ -5991,7 +6022,7 @@ namespace Microsoft.Dafny
 
       } else if (stmt is ModifyStmt) {
         var s = (ModifyStmt)stmt;
-        ResolveAttributes(s.Mod.Attributes, new ResolveOpts(codeContext, true));
+        ResolveAttributes(s.Mod.Attributes, null, new ResolveOpts(codeContext, true));
         foreach (FrameExpression fe in s.Mod.Expressions) {
           ResolveFrameExpression(fe, false, codeContext);
         }
@@ -6064,7 +6095,7 @@ namespace Microsoft.Dafny
       Contract.Requires(codeContext != null);
 
       foreach (MaybeFreeExpression inv in invariants) {
-        ResolveAttributes(inv.Attributes, new ResolveOpts(codeContext, true));
+        ResolveAttributes(inv.Attributes, null, new ResolveOpts(codeContext, true));
         ResolveExpression(inv.E, new ResolveOpts(codeContext, true));
         Contract.Assert(inv.E.Type != null);  // follows from postcondition of ResolveExpression
         if (fvs != null) {
@@ -6073,7 +6104,7 @@ namespace Microsoft.Dafny
         ConstrainTypes(inv.E.Type, Type.Bool, inv.E, "invariant is expected to be of type {0}, but is {1}", Type.Bool, inv.E.Type);
       }
 
-      ResolveAttributes(decreases.Attributes, new ResolveOpts(codeContext, true));
+      ResolveAttributes(decreases.Attributes, null, new ResolveOpts(codeContext, true));
       foreach (Expression e in decreases.Expressions) {
         ResolveExpression(e, new ResolveOpts(codeContext, true));
         if (e is WildcardExpr) {
@@ -6084,7 +6115,7 @@ namespace Microsoft.Dafny
         // any type is fine
       }
 
-      ResolveAttributes(modifies.Attributes, new ResolveOpts(codeContext, true));
+      ResolveAttributes(modifies.Attributes, null, new ResolveOpts(codeContext, true));
       if (modifies.Expressions != null) {
         foreach (FrameExpression fe in modifies.Expressions) {
           ResolveFrameExpression(fe, false, codeContext);
@@ -6634,7 +6665,7 @@ namespace Microsoft.Dafny
       } else {
         ResolveUpdateStmt(update, codeContext, errorCountBeforeCheckingLhs);
       }
-      ResolveAttributes(s.Attributes, new ResolveOpts(codeContext, true));
+      ResolveAttributes(s.Attributes, s, new ResolveOpts(codeContext, true));
     }
     /// <summary>
     /// Resolve the RHSs and entire UpdateStmt (LHSs should already have been checked by the caller).
@@ -8170,7 +8201,7 @@ namespace Microsoft.Dafny
           }
         }
         ResolveExpression(e.Body, opts);
-        ResolveAttributes(e.Attributes, opts);
+        ResolveAttributes(e.Attributes, e, opts);
         scope.PopMarker();
         expr.Type = e.Body.Type;
       } else if (expr is NamedExpr) {
@@ -8206,7 +8237,7 @@ namespace Microsoft.Dafny
         ConstrainTypes(e.Term.Type, Type.Bool, expr, "body of quantifier must be of type bool (instead got {0})", e.Term.Type);
         // Since the body is more likely to infer the types of the bound variables, resolve it
         // first (above) and only then resolve the attributes (below).
-        ResolveAttributes(e.Attributes, opts);
+        ResolveAttributes(e.Attributes, e, opts);
         scope.PopMarker();
         allTypeParameters.PopMarker();
         expr.Type = Type.Bool;
@@ -8225,7 +8256,7 @@ namespace Microsoft.Dafny
         ResolveExpression(e.Term, opts);
         Contract.Assert(e.Term.Type != null);  // follows from postcondition of ResolveExpression
 
-        ResolveAttributes(e.Attributes, opts);
+        ResolveAttributes(e.Attributes, e, opts);
         scope.PopMarker();
         expr.Type = new SetType(e.Finite, e.Term.Type);
 
@@ -8246,7 +8277,7 @@ namespace Microsoft.Dafny
         ResolveExpression(e.Term, opts);
         Contract.Assert(e.Term.Type != null);  // follows from postcondition of ResolveExpression
 
-        ResolveAttributes(e.Attributes, opts);
+        ResolveAttributes(e.Attributes, e, opts);
         scope.PopMarker();
         expr.Type = new MapType(e.Finite, e.BoundVars[0].Type, e.Term.Type);
 

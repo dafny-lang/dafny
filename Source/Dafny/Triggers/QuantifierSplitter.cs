@@ -38,6 +38,9 @@ namespace Microsoft.Dafny.Triggers {
     private static Attributes CopyAttributes(Attributes source) {
       if (source == null) {
         return null;
+      } else if (source is UserSuppliedAttributes) {
+        var usa = (UserSuppliedAttributes)source;
+        return new UserSuppliedAttributes(usa.tok, usa.OpenBrace, usa.Colon, usa.CloseBrace, source.Args, CopyAttributes(source.Prev));
       } else {
         return new Attributes(source.Name, source.Args, CopyAttributes(source.Prev));
       }

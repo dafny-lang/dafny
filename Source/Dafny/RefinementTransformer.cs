@@ -1644,6 +1644,9 @@ namespace Microsoft.Dafny
     public virtual Attributes MergeAttributes(Attributes prevAttrs, Attributes moreAttrs) {
       if (moreAttrs == null) {
         return CloneAttributes(prevAttrs);
+      } else if (moreAttrs is UserSuppliedAttributes) {
+        var usa = (UserSuppliedAttributes)moreAttrs;
+        return new UserSuppliedAttributes(Tok(usa.tok), Tok(usa.OpenBrace), Tok(usa.Colon), Tok(usa.CloseBrace), moreAttrs.Args.ConvertAll(CloneExpr), MergeAttributes(prevAttrs, moreAttrs.Prev));
       } else {
         return new Attributes(moreAttrs.Name, moreAttrs.Args.ConvertAll(CloneExpr), MergeAttributes(prevAttrs, moreAttrs.Prev));
       }

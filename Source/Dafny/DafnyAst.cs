@@ -214,6 +214,13 @@ namespace Microsoft.Dafny {
     public const string TupleTypeCtorName = "_#Make";  // the printer wants this name to be uniquely recognizable
   }
 
+  /// <summary>
+  /// A class implementing this interface is one that can carry attributes.
+  /// </summary>
+  public interface IAttributeBearingDeclaration
+  {
+  }
+
   public class Attributes {
     [ContractInvariantMethod]
     void ObjectInvariant() {
@@ -376,12 +383,36 @@ namespace Microsoft.Dafny {
     }
   }
 
-  internal static class AttributesExtensions {
+  public static class AttributesExtensions {
+    /// <summary>
+    /// By making this an extension method, it can also be invoked for a null receiver.
+    /// </summary>
     public static IEnumerable<Attributes> AsEnumerable(this Attributes attr) {
       while (attr != null) {
         yield return attr;
         attr = attr.Prev;
       }
+    }
+  }
+
+  public class UserSuppliedAttributes : Attributes
+  {
+    public readonly IToken tok;  // may be null, if the attribute was constructed internally
+    public readonly IToken OpenBrace;
+    public readonly IToken Colon;
+    public readonly IToken CloseBrace;
+    public bool Recognized;  // set to true to indicate an attribute that is processed by some part of Dafny; this allows it to be colored in the IDE
+    public UserSuppliedAttributes(IToken tok, IToken openBrace, IToken colon, IToken closeBrace, List<Expression> args, Attributes prev)
+      : base(tok.val, args, prev) {
+      Contract.Requires(tok != null);
+      Contract.Requires(openBrace != null);
+      Contract.Requires(colon != null);
+      Contract.Requires(closeBrace != null);
+      Contract.Requires(args != null);
+      this.tok = tok;
+      OpenBrace = openBrace;
+      Colon = colon;
+      CloseBrace = closeBrace;
     }
   }
 
@@ -1516,7 +1547,8 @@ namespace Microsoft.Dafny {
     string Name { get; }
   }
 
-  public abstract class Declaration : INamedRegion {
+  public abstract class Declaration : INamedRegion, IAttributeBearingDeclaration
+  {
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(tok != null);
@@ -1777,7 +1809,7 @@ namespace Microsoft.Dafny {
 
   }
 
-  public class ModuleDefinition : INamedRegion
+  public class ModuleDefinition : INamedRegion, IAttributeBearingDeclaration
   {
     public readonly IToken tok;
     public IToken BodyStartTok = Token.NoToken;
@@ -3719,7 +3751,8 @@ namespace Microsoft.Dafny {
 
   // ------------------------------------------------------------------------------------------------------
 
-  public abstract class Statement {
+  public abstract class Statement : IAttributeBearingDeclaration
+  {
     public readonly IToken Tok;
     public readonly IToken EndTok;  // typically a terminating semi-colon or end-curly-brace
     public LList<Label> Labels;  // mutable during resolution
@@ -4402,7 +4435,7 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public class LocalVariable : IVariable {
+  public class LocalVariable : IVariable, IAttributeBearingDeclaration {
     public readonly IToken Tok;
     public readonly IToken EndTok;  // typically a terminating semi-colon or end-curly-brace
     readonly string name;
@@ -6972,7 +7005,7 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public class LetExpr : Expression
+  public class LetExpr : Expression, IAttributeBearingDeclaration
   {
     public readonly List<CasePattern> LHSs;
     public readonly List<Expression> RHSs;
@@ -7050,7 +7083,8 @@ namespace Microsoft.Dafny {
   /// where "Attributes" is optional, and "| Range(x)" is optional and defaults to "true".
   /// Currently, BINDER is one of the logical quantifiers "exists" or "forall".
   /// </summary>
-  public abstract class ComprehensionExpr : Expression {
+  public abstract class ComprehensionExpr : Expression, IAttributeBearingDeclaration
+  {
     public readonly List<BoundVar> BoundVars;
     public readonly Expression Range;
     private Expression term;

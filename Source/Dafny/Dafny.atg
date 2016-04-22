@@ -3166,13 +3166,15 @@ Expressions<.List<Expression> args.>
   .
 /*------------------------------------------------------------------------*/
 Attribute<ref Attributes attrs>
-= (. IToken x; string name;
+= (. IToken openBrace, colon, x, closeBrace;
      var args = new List<Expression>();
   .)
-  "{" ":" NoUSIdent<out x>                          (. name = x.val; .)
+  "{"                         (. openBrace = t; .)
+  ":"                         (. colon = t; .)
+  NoUSIdent<out x>
   [ Expressions<args> ]
-  "}"
-  (. attrs = new Attributes(name, args, attrs); .)
+  "}"                         (. closeBrace = t; .)
+  (. attrs = new UserSuppliedAttributes(x, openBrace, colon, closeBrace, args, attrs); .)
   .
 /*------------------------------------------------------------------------*/
 Ident<out IToken/*!*/ x>

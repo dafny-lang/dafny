@@ -1209,18 +1209,20 @@ bool IsDefaultImport() {
 	}
 
 	void Attribute(ref Attributes attrs) {
-		IToken x; string name;
+		IToken openBrace, colon, x, closeBrace;
 		var args = new List<Expression>();
 		
 		Expect(46);
+		openBrace = t; 
 		Expect(21);
+		colon = t; 
 		NoUSIdent(out x);
-		name = x.val; 
 		if (StartOf(9)) {
 			Expressions(args);
 		}
 		Expect(47);
-		attrs = new Attributes(name, args, attrs); 
+		closeBrace = t; 
+		attrs = new UserSuppliedAttributes(x, openBrace, colon, closeBrace, args, attrs); 
 	}
 
 	void NoUSIdent(out IToken/*!*/ x) {

@@ -88,6 +88,10 @@ namespace DafnyLanguage
               kind = DafnyTokenKind.Keyword; break;
             case IdRegion.OccurrenceKind.AdditionalInformation:
               kind = DafnyTokenKind.AdditionalInformation; break;
+            case IdRegion.OccurrenceKind.Attribute:
+              kind = DafnyTokenKind.Attribute; break;
+            case IdRegion.OccurrenceKind.RecognizedAttributeId:
+              kind = DafnyTokenKind.RecognizedAttributeId; break;
             default:
               Contract.Assert(false);  // unexpected OccurrenceKind
               goto case IdRegion.OccurrenceKind.Use;  // to please compiler
@@ -144,6 +148,7 @@ namespace DafnyLanguage
           continue;
         }
         foreach (var d in module.TopLevelDecls) {
+          IdRegion.AddRecognizedAttributes(d.Attributes, newRegions, program);
           if (d is DatatypeDecl) {
             var dt = (DatatypeDecl)d;
             foreach (var ctor in dt.Ctors) {
@@ -177,6 +182,7 @@ namespace DafnyLanguage
           } else if (d is ClassDecl) {
             var cl = (ClassDecl)d;
             foreach (var member in cl.Members) {
+              IdRegion.AddRecognizedAttributes(member.Attributes, newRegions, program);
               if (Attributes.Contains(member.Attributes, "auto_generated")) {
                 // do nothing
               } else  if (member is Function) {
@@ -259,11 +265,13 @@ namespace DafnyLanguage
         }
       } else if (expr is LetExpr) {
         var e = (LetExpr)expr;
+        IdRegion.AddRecognizedAttributes(e.Attributes, regions, prog);
         foreach (var bv in e.BoundVars) {
           IdRegion.Add(regions, prog, bv.tok, bv, true, module);
         }
       } else if (expr is ComprehensionExpr) {
         var e = (ComprehensionExpr)expr;
+        IdRegion.AddRecognizedAttributes(e.Attributes, regions, prog);
         foreach (var bv in e.BoundVars) {
           IdRegion.Add(regions, prog, bv.tok, bv, true, module);
         }
@@ -297,10 +305,12 @@ namespace DafnyLanguage
       Contract.Requires(stmt != null);
       Contract.Requires(regions != null);
       Contract.Requires(prog != null);
+      IdRegion.AddRecognizedAttributes(stmt.Attributes, regions, prog);
       if (stmt is VarDeclStmt) {
         var s = (VarDeclStmt)stmt;
         // Add the variables here, once, and then go directly to the RHS's (without letting the sub-statements re-do the LHS's)
         foreach (var local in s.Locals) {
+          IdRegion.AddRecognizedAttributes(local.Attributes, regions, prog);
           IdRegion.Add(regions, prog, local.Tok, local, true, module);
         }
         if (s.Update == null) {
@@ -365,7 +375,7 @@ namespace DafnyLanguage
       public readonly int Start;
       public readonly int Length;
       public readonly string HoverText;
-      public enum OccurrenceKind { Use, Definition, WildDefinition, AdditionalInformation }
+      public enum OccurrenceKind { Use, Definition, WildDefinition, AdditionalInformation, Attribute, RecognizedAttributeId }
       public readonly OccurrenceKind Kind;
       public readonly IVariable Variable;
 
@@ -403,6 +413,26 @@ namespace DafnyLanguage
         Contract.Requires(text != null);
         if (InMainFileAndUserDefined(prog, tok)) {
           regions.Add(new IdRegion(tok, OccurrenceKind.AdditionalInformation, text, length));
+        }
+      }
+
+      public static void AddRecognizedAttributes(Attributes attrs, List<IdRegion> regions, Microsoft.Dafny.Program prog) {
+        Contract.Requires(regions != null);
+        Contract.Requires(prog != null);
+        foreach (var a in attrs.AsEnumerable()) {
+          var usa = a as UserSuppliedAttributes;
+          if (usa != null && InMainFileAndUserDefined(prog, usa.tok)) {
+            regions.Add(new IdRegion(usa.OpenBrace, usa.CloseBrace, OccurrenceKind.Attribute));
+            if (usa.Recognized) {
+              if (usa.Colon.pos + usa.Colon.val.Length == usa.tok.pos) {
+                // just do one highlight
+                regions.Add(new IdRegion(usa.Colon, OccurrenceKind.RecognizedAttributeId, null, usa.Colon.val.Length + usa.tok.val.Length));
+              } else {
+                regions.Add(new IdRegion(usa.Colon, OccurrenceKind.RecognizedAttributeId, null, usa.Colon.val.Length));
+                regions.Add(new IdRegion(usa.tok, OccurrenceKind.RecognizedAttributeId, null, usa.tok.val.Length));
+              }
+            }
+          }
         }
       }
 
@@ -451,6 +481,16 @@ namespace DafnyLanguage
         this.Length = length;
         this.Kind = occurrenceKind;
         this.HoverText = info;
+      }
+
+      /// <summary>
+      /// The following constructor is suitable for recognized attributes.
+      /// </summary>
+      private IdRegion(Bpl.IToken from, Bpl.IToken thru, OccurrenceKind occurrenceKind) {
+        this.Start = from.pos;
+        this.Length = thru.pos + thru.val.Length - from.pos;
+        this.Kind = occurrenceKind;
+        this.HoverText = null;
       }
     }
   }

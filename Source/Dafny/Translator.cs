@@ -14490,7 +14490,12 @@ namespace Microsoft.Dafny {
 
           Attributes prev = SubstAttributes(attrs.Prev);
           if (newArgs != attrs.Args || prev != attrs.Prev) {
-            return new Attributes(attrs.Name, newArgs, prev);
+            if (attrs is UserSuppliedAttributes) {
+              var usa = (UserSuppliedAttributes)attrs;
+              return new UserSuppliedAttributes(usa.tok, usa.OpenBrace, usa.Colon, usa.CloseBrace, newArgs, prev);
+            } else {
+              return new Attributes(attrs.Name, newArgs, prev);
+            }
           }
         }
         return attrs;

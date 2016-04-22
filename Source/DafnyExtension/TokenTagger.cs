@@ -32,7 +32,7 @@ namespace DafnyLanguage
   {
     Keyword, Number, String, Comment,
     VariableIdentifier, VariableIdentifierDefinition,
-    AdditionalInformation
+    AdditionalInformation, Attribute, RecognizedAttributeId
   }
 
   public class DafnyTokenTag : ITag

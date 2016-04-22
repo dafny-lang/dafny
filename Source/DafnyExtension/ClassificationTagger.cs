@@ -61,6 +61,8 @@ namespace DafnyLanguage
       _typeMap[DafnyTokenKind.VariableIdentifier] = standards.Identifier;
       _typeMap[DafnyTokenKind.AdditionalInformation] = standards.Other;
       _typeMap[DafnyTokenKind.VariableIdentifierDefinition] = typeService.GetClassificationType("Dafny identifier");
+      _typeMap[DafnyTokenKind.Attribute] = typeService.GetClassificationType("Dafny attribute");
+      _typeMap[DafnyTokenKind.RecognizedAttributeId] = typeService.GetClassificationType("Dafny recognized attribute");
 
       if (DafnyMenuPackage == null)
       {
@@ -128,6 +130,61 @@ namespace DafnyLanguage
     /// </summary>
     [Export(typeof(ClassificationTypeDefinition))]
     [Name("Dafny identifier")]
+    internal static ClassificationTypeDefinition UserType = null;
+  }
+
+
+  /// <summary>
+  /// Defines an editor format for user-defined type.
+  /// </summary>
+  [Export(typeof(EditorFormatDefinition))]
+  [ClassificationType(ClassificationTypeNames = "Dafny attribute")]
+  [Name("Dafny attribute")]
+  [UserVisible(true)]
+  //set the priority to be after the default classifiers
+  [Order(Before = Priority.Default)]
+  internal sealed class DafnyTypeFormat_Attribute : ClassificationFormatDefinition
+  {
+    public DafnyTypeFormat_Attribute() {
+      this.DisplayName = "Dafny attribute"; //human readable version of the name
+      this.IsItalic = true;
+    }
+  }
+
+  internal static class ClassificationDefinition_Attribute
+  {
+    /// <summary>
+    /// Defines the "ordinary" classification type.
+    /// </summary>
+    [Export(typeof(ClassificationTypeDefinition))]
+    [Name("Dafny attribute")]
+    internal static ClassificationTypeDefinition UserType = null;
+  }
+
+  /// <summary>
+  /// Defines an editor format for user-defined type.
+  /// </summary>
+  [Export(typeof(EditorFormatDefinition))]
+  [ClassificationType(ClassificationTypeNames = "Dafny recognized attribute")]
+  [Name("Dafny recognized attribute")]
+  [UserVisible(true)]
+  //set the priority to be after the default classifiers
+  [Order(Before = Priority.Default)]
+  internal sealed class DafnyTypeFormat_RecognizedAttribute : ClassificationFormatDefinition
+  {
+    public DafnyTypeFormat_RecognizedAttribute() {
+      this.DisplayName = "Dafny recognized attribute"; //human readable version of the name
+      this.ForegroundColor = Colors.SaddleBrown;
+    }
+  }
+
+  internal static class ClassificationDefinition_RecognizedAttribute
+  {
+    /// <summary>
+    /// Defines the "ordinary" classification type.
+    /// </summary>
+    [Export(typeof(ClassificationTypeDefinition))]
+    [Name("Dafny recognized attribute")]
     internal static ClassificationTypeDefinition UserType = null;
   }
 
