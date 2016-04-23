@@ -30,7 +30,7 @@ namespace DafnyLanguage
 
   public enum DafnyTokenKind
   {
-    Keyword, Number, String, Comment,
+    Keyword, SpecificationClause, BuiltInType, Number, String, Char, Comment,
     VariableIdentifier, VariableIdentifierDefinition,
     AdditionalInformation, Attribute, RecognizedAttributeId
   }
@@ -282,13 +282,58 @@ namespace DafnyLanguage
             if ('a' <= ch && ch <= 'z') break;
             if ('A' <= ch && ch <= 'Z') break;
             if ('0' <= ch && ch <= '9') { ty = DafnyTokenKind.Number; break; }
-            if (ch == '\'' || ch == '_' || ch == '?' || ch == '\\') break;  // parts of identifiers
+            if (ch == '_' || ch == '?' || ch == '\\') break;  // parts of identifiers
+            if (ch == '\'') { ty = DafnyTokenKind.Char; break; }  // part character literal or identifier
             if (ch == '"') { ty = DafnyTokenKind.String; break; }
             if (ch == '/') { ty = DafnyTokenKind.Comment; break; }
           }
 
           // advance to the end of the token
           end = cur + 1;  // offset into the current buffer
+          // first investigate if this is really a character literal
+          if (ty == DafnyTokenKind.Char) {
+            ty = DafnyTokenKind.Keyword;
+            // we've seen a starting single-quote already
+            if (cur + 3 <= N && txt[cur + 2] == '\'') {
+              char cx = txt[cur + 1];
+              if (cx != '\'' && cx != '\\' && cx != '\n' && cx != '\r') {
+                if (cur + 3 == N) {
+                  ty = DafnyTokenKind.Char;
+                  end = cur + 3;
+                } else {
+                  // check if the next character is an identifier character
+                  cx = txt[cur + 3];
+                  if ('a' <= cx && cx <= 'z') {
+                  } else if ('A' <= cx && cx <= 'Z') {
+                  } else if ('0' <= cx && cx <= '9') {
+                  } else if (cx == '\'' || cx == '_' || cx == '?' || cx == '\\') {
+                  } else {
+                    ty = DafnyTokenKind.Char;
+                    end = cur + 3;
+                  }
+                }
+              }
+            } else if (cur + 4 <= N && txt[cur + 1] == '\\' && txt[cur + 3] == '\'') {
+              char cx = txt[cur + 2];
+              if (cx == '\'' || cx == '\"' || cx == '\\' || cx == '0' || cx == 'n' || cx == 'r' || cx == 't') {
+                ty = DafnyTokenKind.Char;
+                end = cur + 4;
+              }
+            } else if (cur + 7 <= N && txt[cur + 1] == '\\' && txt[cur + 6] == '\'') {
+              var numberOfHexDigits = 0;
+              for (int i = 2; i < 6; i++) {
+                char cx = txt[cur + i];
+                if (('0' <= cx && cx <= '9') || ('a' <= cx && cx <= 'f') || ('A' <= cx && cx <= 'F')) {
+                  numberOfHexDigits++;
+                }
+              }
+              if (numberOfHexDigits == 4) {
+                ty = DafnyTokenKind.Char;
+                end = cur + 7;
+              }
+            }
+          }
+
           if (ty == DafnyTokenKind.Number) {
             // scan the rest of this number
             for (; end < N; end++) {
@@ -296,6 +341,8 @@ namespace DafnyLanguage
               if ('0' <= ch && ch <= '9') {
               } else break;
             }
+          } else if (ty == DafnyTokenKind.Char) {
+            // we already did the work above
           } else if (ty == DafnyTokenKind.String) {
             // scan the rest of this string, but not past the end-of-buffer
             for (; end < N; end++) {
@@ -354,20 +401,18 @@ namespace DafnyLanguage
             // we have a keyword or an identifier
             string s = txt.Substring(cur, end - cur);
             if (0 < trailingDigits && s.Length == 5 + trailingDigits && s.StartsWith("array") && s[5] != '0' && (trailingDigits != 1 || s[5] != '1')) {
-              // this is a keyword (array2, array3, ...)
+              // this is a keyword for a built-in type (array2, array3, ...)
+              ty = DafnyTokenKind.BuiltInType;
             } else {
               switch (s) {
                 #region keywords
                 case "abstract":
-                case "array":
                 case "as":
                 case "assert":
                 case "assume":
-                case "bool":
                 case "break":
                 case "calc":
                 case "case":
-                case "char":
                 case "class":
                 case "trait":
                 case "extends":
@@ -376,56 +421,38 @@ namespace DafnyLanguage
                 case "constructor":
                 case "copredicate":
                 case "datatype":
-                case "decreases":
                 case "default":
                 case "else":
-                case "ensures":
                 case "exists":
                 case "false":
                 case "forall":
-                case "free":
                 case "fresh":
                 case "function":
                 case "ghost":
                 case "if":
-                case "imap":
-                case "iset":
                 case "import":
                 case "in":
                 case "include":
                 case "inductive":
-                case "int":
-                case "invariant":
                 case "iterator":
                 case "label":
                 case "lemma":
-                case "map":
                 case "match":
                 case "method":
-                case "modifies":
                 case "modify":
                 case "module":
-                case "multiset":
-                case "nat":
                 case "new":
                 case "newtype":
                 case "null":
-                case "object":
                 case "old":
                 case "opened":
                 case "predicate":
                 case "print":
                 case "protected":
-                case "reads":
-                case "real":
                 case "refines":
-                case "requires":
                 case "return":
                 case "returns":
-                case "seq":
-                case "set":
                 case "static":
-                case "string":
                 case "then":
                 case "this":
                 case "true":
@@ -436,6 +463,36 @@ namespace DafnyLanguage
                 case "yield":
                 case "yields":
                 #endregion
+                  break;
+                #region keywords in specification clauses
+                case "requires":
+                case "decreases":
+                case "ensures":
+                case "free":
+                case "invariant":
+                case "modifies":
+                case "reads":
+                // "yields" plays a dual role
+                #endregion
+                  ty = DafnyTokenKind.SpecificationClause;
+                  break;
+                #region keywords for built-in types
+                case "array":
+                case "bool":
+                case "char":
+                case "imap":
+                case "iset":
+                case "int":
+                case "map":
+                case "multiset":
+                case "nat":
+                case "object":
+                case "real":
+                case "seq":
+                case "set":
+                case "string":
+                #endregion
+                  ty = DafnyTokenKind.BuiltInType;
                   break;
                 default:
                   continue;  // it was an identifier, so we don't color it

@@ -55,8 +55,11 @@ namespace DafnyLanguage
       // use built-in classification types:
       _typeMap = new Dictionary<DafnyTokenKind, IClassificationType>();
       _typeMap[DafnyTokenKind.Keyword] = standards.Keyword;
+      _typeMap[DafnyTokenKind.SpecificationClause] = typeService.GetClassificationType("Dafny specification clause");
+      _typeMap[DafnyTokenKind.BuiltInType] = standards.Keyword;
       _typeMap[DafnyTokenKind.Number] = standards.NumberLiteral;
       _typeMap[DafnyTokenKind.String] = standards.StringLiteral;
+      _typeMap[DafnyTokenKind.Char] = standards.CharacterLiteral;
       _typeMap[DafnyTokenKind.Comment] = standards.Comment;
       _typeMap[DafnyTokenKind.VariableIdentifier] = standards.Identifier;
       _typeMap[DafnyTokenKind.AdditionalInformation] = standards.Other;
@@ -185,6 +188,33 @@ namespace DafnyLanguage
     /// </summary>
     [Export(typeof(ClassificationTypeDefinition))]
     [Name("Dafny recognized attribute")]
+    internal static ClassificationTypeDefinition UserType = null;
+  }
+
+  /// <summary>
+  /// Defines an editor format for user-defined type.
+  /// </summary>
+  [Export(typeof(EditorFormatDefinition))]
+  [ClassificationType(ClassificationTypeNames = "Dafny specification clause")]
+  [Name("Dafny specification clause")]
+  [UserVisible(true)]
+  //set the priority to be after the default classifiers
+  [Order(Before = Priority.Default)]
+  internal sealed class DafnyTypeFormat_SpecificationClause : ClassificationFormatDefinition
+  {
+    public DafnyTypeFormat_SpecificationClause() {
+      this.DisplayName = "Dafny specification clause"; //human readable version of the name
+      this.ForegroundColor = Colors.Purple;
+    }
+  }
+
+  internal static class ClassificationDefinition_SpecificationClause
+  {
+    /// <summary>
+    /// Defines the "ordinary" classification type.
+    /// </summary>
+    [Export(typeof(ClassificationTypeDefinition))]
+    [Name("Dafny specification clause")]
     internal static ClassificationTypeDefinition UserType = null;
   }
 
