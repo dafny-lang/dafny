@@ -295,13 +295,15 @@ namespace DafnyLanguage
             ty = DafnyTokenKind.Keyword;
             // we've seen a starting single-quote already
             if (cur + 3 <= N && txt[cur + 2] == '\'') {
+              // Look for a simple character literal, like 'a'
               char cx = txt[cur + 1];
               if (cx != '\'' && cx != '\\' && cx != '\n' && cx != '\r') {
                 if (cur + 3 == N) {
                   ty = DafnyTokenKind.Char;
                   end = cur + 3;
                 } else {
-                  // check if the next character is an identifier character
+                  // check if the next character is an identifier character, because then what we've seen was
+                  // really just part of that identifier
                   cx = txt[cur + 3];
                   if ('a' <= cx && cx <= 'z') {
                   } else if ('A' <= cx && cx <= 'Z') {
@@ -314,14 +316,16 @@ namespace DafnyLanguage
                 }
               }
             } else if (cur + 4 <= N && txt[cur + 1] == '\\' && txt[cur + 3] == '\'') {
+              // Look for an escaped character literal, like '\n' (note, a \ cannot be part of an identifier)
               char cx = txt[cur + 2];
               if (cx == '\'' || cx == '\"' || cx == '\\' || cx == '0' || cx == 'n' || cx == 'r' || cx == 't') {
                 ty = DafnyTokenKind.Char;
                 end = cur + 4;
               }
-            } else if (cur + 7 <= N && txt[cur + 1] == '\\' && txt[cur + 6] == '\'') {
+            } else if (cur + 8 <= N && txt[cur + 1] == '\\' && txt[cur + 2] == 'u' && txt[cur + 7] == '\'') {
+              // Look for a unicode character literal, like '\u40fE' (note, a \ cannot be part of an identifier)
               var numberOfHexDigits = 0;
-              for (int i = 2; i < 6; i++) {
+              for (int i = 3; i < 7; i++) {
                 char cx = txt[cur + i];
                 if (('0' <= cx && cx <= '9') || ('a' <= cx && cx <= 'f') || ('A' <= cx && cx <= 'F')) {
                   numberOfHexDigits++;
@@ -329,7 +333,7 @@ namespace DafnyLanguage
               }
               if (numberOfHexDigits == 4) {
                 ty = DafnyTokenKind.Char;
-                end = cur + 7;
+                end = cur + 8;
               }
             }
           }

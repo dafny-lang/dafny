@@ -59,7 +59,7 @@ namespace DafnyLanguage
       _typeMap[DafnyTokenKind.BuiltInType] = standards.Keyword;
       _typeMap[DafnyTokenKind.Number] = standards.NumberLiteral;
       _typeMap[DafnyTokenKind.String] = standards.StringLiteral;
-      _typeMap[DafnyTokenKind.Char] = standards.CharacterLiteral;
+      _typeMap[DafnyTokenKind.Char] = standards.StringLiteral;
       _typeMap[DafnyTokenKind.Comment] = standards.Comment;
       _typeMap[DafnyTokenKind.VariableIdentifier] = standards.Identifier;
       _typeMap[DafnyTokenKind.AdditionalInformation] = standards.Other;
