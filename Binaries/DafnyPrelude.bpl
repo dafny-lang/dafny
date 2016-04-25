@@ -324,7 +324,7 @@ const $FunctionContextHeight: int;
 type LayerType;
 const $LZ: LayerType;
 function $LS(LayerType): LayerType;
-function IsFuelBottom(LayerType) : LayerType;
+function AsFuelBottom(LayerType) : LayerType;
 
 function AtLayer<A>([LayerType]A, LayerType): A;
 axiom (forall<A> f : [LayerType]A, ly : LayerType :: { AtLayer(f,ly) } AtLayer(f,ly) == f[ly]);

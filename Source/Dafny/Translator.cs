@@ -2436,7 +2436,7 @@ namespace Microsoft.Dafny {
     void AddFuelSynonymAxiom(Function f) {
       // axiom  // fuel axiom
       //   (forall s, $Heap, formals ::
-      //       { f(IsFuelBottom(s), $Heap, formals) }
+      //       { f(AsFuelBottom(s), $Heap, formals) }
       //       f(s, $Heap, formals) == f($LZ, $Heap, formals));
       Contract.Requires(f != null);
       Contract.Requires(f.IsFuelAware());
@@ -2451,7 +2451,7 @@ namespace Microsoft.Dafny {
       var bv = new Bpl.BoundVariable(f.tok, new Bpl.TypedIdent(f.tok, "$ly", predef.LayerType));
       formals.Add(bv);
       var s = new Bpl.IdentifierExpr(f.tok, bv);
-      args2.Add(FunctionCall(f.tok, BuiltinFunction.IsFuelBottom, null, s));
+      args2.Add(FunctionCall(f.tok, BuiltinFunction.AsFuelBottom, null, s));
       args1.Add(s);
       args0.Add(new Bpl.IdentifierExpr(f.tok, "$LZ",predef.LayerType)); // $LZ
 
@@ -3051,8 +3051,8 @@ namespace Microsoft.Dafny {
         Bpl.Expr layerAssert = etran.layerInterCluster.LayerN(settings.high, baseFuel);
         builder.Add(TrAssumeCmd(tok, Bpl.Expr.Eq(startFuel, layer)));
         builder.Add(TrAssumeCmd(tok, Bpl.Expr.Eq(startFuelAssert, layerAssert)));
-        // assume IsFuelBottom(BaseFuel_F) == BaseFuel_F;
-        builder.Add(TrAssumeCmd(tok, Bpl.Expr.Eq(FunctionCall(f.tok, BuiltinFunction.IsFuelBottom, null, baseFuel), baseFuel)));
+        // assume AsFuelBottom(BaseFuel_F) == BaseFuel_F;
+        builder.Add(TrAssumeCmd(tok, Bpl.Expr.Eq(FunctionCall(f.tok, BuiltinFunction.AsFuelBottom, null, baseFuel), baseFuel)));
       }
     }
 
@@ -12384,7 +12384,7 @@ namespace Microsoft.Dafny {
       LitInt,
       LitReal,
       LayerSucc,
-      IsFuelBottom,
+      AsFuelBottom,
       CharFromInt,
       CharToInt,
 
@@ -12553,10 +12553,10 @@ namespace Microsoft.Dafny {
           Contract.Assert(args.Length == 1);
           Contract.Assert(typeInstantiation == null);
           return FunctionCall(tok, "$LS", predef.LayerType, args);
-        case BuiltinFunction.IsFuelBottom:
+        case BuiltinFunction.AsFuelBottom:
           Contract.Assert(args.Length == 1);
           Contract.Assert(typeInstantiation == null);
-          return FunctionCall(tok, "IsFuelBottom", predef.LayerType, args);
+          return FunctionCall(tok, "AsFuelBottom", predef.LayerType, args);
         case BuiltinFunction.CharFromInt:
           Contract.Assert(args.Length == 1);
           Contract.Assert(typeInstantiation == null);
