@@ -12266,6 +12266,26 @@ namespace Microsoft.Dafny {
           } else {
             return disjunction;
           }
+        } else if (s is SetComprehension) {
+          var compr = (SetComprehension)s;
+          // Translate "elmt in set xs | R :: T" into:
+          //     exists xs :: CorrectType(xs) && R && elmt==T
+          // or if "T" is "xs", then:
+          //     CorrectType(elmt) && R[xs := elmt]
+          if (compr.TermIsImplicit) {
+            // CorrectType(elmt) && R[xs := elmt]
+            Bpl.Expr typeAntecedent = translator.GetWhereClause(compr.tok, elmt, compr.BoundVars[0].Type, this) ?? Bpl.Expr.True;
+            var range = translator.Substitute(compr.Range, compr.BoundVars[0], new BoogieWrapper(elmt, compr.BoundVars[0].Type));
+            return BplAnd(typeAntecedent, TrExpr(range));
+          } else {
+            // exists xs :: CorrectType(xs) && R && elmt==T
+            var bvars = new List<Variable>();
+            Bpl.Expr typeAntecedent = TrBoundVariables(compr.BoundVars, bvars) ?? Bpl.Expr.True;
+            var eq = Bpl.Expr.Eq(elmtBox, BoxIfNecessary(compr.tok, TrExpr(compr.Term), compr.Term.Type));
+            var ebody = Bpl.Expr.And(BplAnd(typeAntecedent, TrExpr(compr.Range)), eq);
+            var triggers = translator.TrTrigger(this, compr.Attributes, compr.tok);
+            return new Bpl.ExistsExpr(compr.tok, bvars, triggers, ebody);
+          }
         }
         return Bpl.Expr.SelectTok(tok, TrExpr(s), elmtBox);
       }
