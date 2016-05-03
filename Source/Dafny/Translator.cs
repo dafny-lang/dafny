@@ -11890,20 +11890,32 @@ namespace Microsoft.Dafny {
           }
         } else if (expr is SetComprehension) {
           var e = (SetComprehension)expr;
-          // Translate "set xs | R :: T" into "lambda y: BoxType :: (exists xs :: CorrectType(xs) && R && y==Box(T))".
-          List<Variable> bvars = new List<Variable>();
-          Bpl.Expr typeAntecedent = TrBoundVariables(e.BoundVars, bvars);
-          Bpl.QKeyValue kv = TrAttributes(e.Attributes, "trigger");
-
+          // Translate "set xs | R :: T" into:
+          //     lambda y: BoxType :: (exists xs :: CorrectType(xs) && R && y==Box(T))
+          // or if "T" is "xs", then:
+          //     lambda y: BoxType :: CorrectType(y) && R[xs := Unbox(y)]
           var yVar = new Bpl.BoundVariable(expr.tok, new Bpl.TypedIdent(expr.tok, translator.CurrentIdGenerator.FreshId("$y#"), predef.BoxType));
           Bpl.Expr y = new Bpl.IdentifierExpr(expr.tok, yVar);
+          Bpl.Expr lbody;
+          if (e.TermIsSimple) {
+            // lambda y: BoxType :: CorrectType(yUnboxed) && R[xs := yUnboxed]
+            var bv = e.BoundVars[0];
+            var yUnboxed = translator.UnboxIfBoxed(new Bpl.IdentifierExpr(expr.tok, yVar), bv.Type);
+            Bpl.Expr typeAntecedent = translator.GetWhereClause(e.tok, yUnboxed, bv.Type, this) ?? Bpl.Expr.True;
+            var range = translator.Substitute(e.Range, bv, new BoogieWrapper(yUnboxed, bv.Type));
+            lbody = BplAnd(typeAntecedent, TrExpr(range));
+          } else {
+            // lambda y: BoxType :: (exists xs :: CorrectType(xs) && R && y==Box(T))
+          List<Variable> bvars = new List<Variable>();
+          Bpl.Expr typeAntecedent = TrBoundVariables(e.BoundVars, bvars);
 
           var eq = Bpl.Expr.Eq(y, BoxIfNecessary(expr.tok, TrExpr(e.Term, initEtran, funcEtran, existEtran), e.Term.Type));
           var ebody = Bpl.Expr.And(BplAnd(typeAntecedent, TrExpr(e.Range, initEtran, funcEtran, existEtran)), eq);
           var triggers = translator.TrTrigger(this, e.Attributes, e.tok);
-          var exst = new Bpl.ExistsExpr(expr.tok, bvars, triggers, ebody);
-
-          return new Bpl.LambdaExpr(expr.tok, new List<TypeVariable>(), new List<Variable> { yVar }, kv, exst);
+            lbody = new Bpl.ExistsExpr(expr.tok, bvars, triggers, ebody);
+          }
+          Bpl.QKeyValue kv = TrAttributes(e.Attributes, "trigger");
+          return new Bpl.LambdaExpr(expr.tok, new List<TypeVariable>(), new List<Variable> { yVar }, kv, lbody);
 
         } else if (expr is MapComprehension) {
           var e = (MapComprehension)expr;
@@ -12287,7 +12299,7 @@ namespace Microsoft.Dafny {
           //     exists xs :: CorrectType(xs) && R && elmt==T
           // or if "T" is "xs", then:
           //     CorrectType(elmt) && R[xs := elmt]
-          if (compr.TermIsImplicit) {
+          if (compr.TermIsSimple) {
             // CorrectType(elmt) && R[xs := elmt]
             Bpl.Expr typeAntecedent = translator.GetWhereClause(compr.tok, elmt, compr.BoundVars[0].Type, this) ?? Bpl.Expr.True;
             var range = translator.Substitute(compr.Range, compr.BoundVars[0], new BoogieWrapper(elmt, compr.BoundVars[0].Type));

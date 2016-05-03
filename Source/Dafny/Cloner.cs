@@ -405,7 +405,7 @@ namespace Microsoft.Dafny
         } else {
           Contract.Assert(e is SetComprehension);
           var tt = (SetComprehension)e;
-          return new SetComprehension(tk, tt.Finite, bvs, range, term, CloneAttributes(e.Attributes));
+          return new SetComprehension(tk, tt.Finite, bvs, range, tt.TermIsImplicit ? null : term, CloneAttributes(e.Attributes));
         }
 
       } else if (expr is WildcardExpr) {

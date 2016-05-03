@@ -139,7 +139,7 @@ class Map<Key(==),Value> {
   }
 
   // Removes key from the domain of M (and does nothing if key wasn't in M to begin with)
-  method {:timeLimit 100} Remove(key: Key)
+  method Remove(key: Key)
     requires Valid()
     modifies Repr
     ensures Valid() && fresh(Repr - old(Repr))

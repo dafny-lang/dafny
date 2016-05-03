@@ -42,3 +42,45 @@ lemma TestsWhereTriggersMatter<T>(t: T, uu: seq<T>) returns (z: bool)
 
 function Id<T>(t: T): T { t }
 predicate Even(x: int) { x % 2 == 0 }
+
+class Container<T> {
+  ghost var Contents: set<T>
+  var elems: seq<T>
+    
+  method Add(t: T)
+    requires Contents == set x | x in elems
+    modifies this
+    ensures Contents == set x | x in elems
+  {
+    elems := elems + [t];
+    Contents := Contents + {t};
+  }
+}
+
+class IntContainer {
+  ghost var Contents: set<int>
+  var elems: seq<int>
+    
+  method Add(t: int)
+    requires Contents == set x | x in elems
+    modifies this
+    ensures Contents == set x | x in elems
+  {
+    elems := elems + [t];
+    Contents := Contents + {t};
+  }
+}
+
+method UnboxedBoundVariables(si: seq<int>)
+{
+  var iii := set x | x in si;
+  var ti := si + [115];
+  var jjj := set y | y in ti;
+  assert iii + {115} == jjj;
+
+  var nnn := set n: nat | n in si;
+  if forall i :: 0 <= i < |si| ==> 0 <= si[i] {
+    assert nnn == iii;
+  }
+}
+

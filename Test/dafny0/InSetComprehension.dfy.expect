@@ -1,2 +1,3 @@
+InSetComprehension.dfy(82,5): Info: Selected triggers: {si[i]}
 
-Dafny program verifier finished with 6 verified, 0 errors
+Dafny program verifier finished with 12 verified, 0 errors
