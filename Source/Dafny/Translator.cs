@@ -10016,10 +10016,8 @@ namespace Microsoft.Dafny {
           int i = 0;
           foreach (Expression dim in tRhs.ArrayDimensions) {
             CheckWellformed(dim, new WFOptions(), locals, builder, etran);
-            if (tRhs.ArrayDimensions.Count == 1) {
-              builder.Add(Assert(tok, Bpl.Expr.Le(Bpl.Expr.Literal(0), etran.TrExpr(dim)),
-                tRhs.ArrayDimensions.Count == 1 ? "array size might be negative" : string.Format("array size (dimension {0}) might be negative", i)));
-            }
+            builder.Add(Assert(tok, Bpl.Expr.Le(Bpl.Expr.Literal(0), etran.TrExpr(dim)),
+              tRhs.ArrayDimensions.Count == 1 ? "array size might be negative" : string.Format("array size (dimension {0}) might be negative", i)));
             i++;
           }
         }
