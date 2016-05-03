@@ -1,63 +1,104 @@
-// RUN: %dafny /compile:0 "%s" > "%t"
+// RUN: %dafny /compile:0 /autoTriggers:1 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
-/*
-	This test works with Z3 4.3 (on Win8 x64). Other versions ... who knows.
-*/
-
 // Note: We are using the built-in equality to compare keys.
-// Note: The abstract specifications would do well with a map from keys
-// to values.  However, Dafny does not support maps.  Instead, such a
-// map is modeled by two sequences, one for the keys and one for the values.
-// The indices in these sequences correspond, so the dictionary maps
-// Keys[i] to Values[i].
+//
 // The implementation uses a linked list, which isn't the most efficient
 // representation of a dictionary.  However, for the benchmark, it shows
 // that the specification can use mathematical sequences while the
 // implementation uses a linked list.
 
 class Map<Key(==),Value> {
-  ghost var Keys: seq<Key>;
-  ghost var Values: seq<Value>;
-  ghost var Repr: set<object>;
+  ghost var M: map<Key,Value>
+  ghost var Repr: set<object>
 
-  var head: Node<Key,Value>;
-  ghost var nodes: seq<Node<Key,Value>>;
+  var head: Node<Key,Value>
+  ghost var Spine: set<Node<Key,Value>>
 
-  function Valid(): bool
-    reads this, Repr;
+  predicate Valid()
+    reads this, Repr
   {
-    this in Repr &&
-    |Keys| == |Values| && |nodes| == |Keys| + 1 &&
-    head == nodes[0] &&
-    (forall i :: 0 <= i < |Keys| ==>
-        nodes[i] != null &&
-        nodes[i] in Repr &&
-        nodes[i].key == Keys[i] && nodes[i].key !in Keys[i+1..] &&
-        nodes[i].val == Values[i] &&
-        nodes[i].next == nodes[i+1]) &&
-    nodes[|nodes|-1] == null
+    this in Repr && null !in Repr && Spine <= Repr &&
+    SpineValid(Spine, head) &&
+    (forall k :: k in M ==> exists n :: n in Spine && n.key == k) &&
+    (forall n :: n in Spine ==> n.key in M && n.val == M[n.key]) &&
+    (forall n,n' :: n in Spine && n' in Spine && n != n' ==> n.key != n'.key) &&
+    (forall n :: n in Spine ==> n.next != head) &&
+    (forall n,n' :: n in Spine && n' in Spine && n.next == n'.next ==> n == n')
+  }
+  static predicate SpineValid(spine: set<Node<Key,Value>>, n: Node<Key,Value>)
+    reads spine
+  {
+    (n == null && spine == {}) ||
+    (n != null && n in spine && n.Spine == spine - {n} && SpineValid(n.Spine, n.next))
+  }
+  static predicate SpineValid_One(spine: set<Node<Key,Value>>, n: Node<Key,Value>)
+    reads spine
+  {
+    (n == null && spine == {}) ||
+    (n != null && n in spine && n.Spine == spine - {n})
+  }
+  lemma SpineValidSplit(spine: set<Node<Key,Value>>, p: Node<Key,Value>)
+    requires null !in spine
+    requires SpineValid(spine, p)
+    ensures SpineValid_One(spine, p)
+    ensures forall n :: n in spine ==> SpineValid_One(n.Spine, n.next)
+    ensures forall n :: n in spine ==> n.next == null || n.next in spine
+  {
+  }
+  lemma SpineValidCombine(spine: set<Node<Key,Value>>, p: Node<Key,Value>)
+    requires null !in spine
+    requires SpineValid_One(spine, p)
+    requires forall n :: n in spine ==> SpineValid_One(n.Spine, n.next)
+    ensures SpineValid(spine, p)
+  {
   }
 
+
   method Init()
-    modifies this;
-    ensures Valid() && fresh(Repr - {this});
-    ensures |Keys| == 0;
+    modifies this
+    ensures Valid() && fresh(Repr - {this})
+    ensures M == map[]
   {
-    Keys := [];
-    Values := [];
-    Repr := {this};
-    head := null;
-    nodes := [null];
+    head, Spine := null, {};
+    M, Repr := map[], {this};
+  }
+
+  /*private*/ method FindIndex(key: Key) returns (prev: Node<Key,Value>, p: Node<Key,Value>)
+    requires Valid()
+    ensures p == null ==> key !in M
+    ensures p != null ==>
+              key in M &&
+              p in Spine && p.key == key &&
+              (p == head ==> prev == null) &&
+              (p != head ==> prev in Spine && prev.next == p)
+  {
+    prev, p := null, head;
+    ghost var spine := Spine;
+    while p != null
+      invariant SpineValid(spine, p)
+      invariant p != null ==> p in spine
+      invariant p == head ==> prev == null
+      invariant p != head ==> prev in Spine && prev.next == p && head !in spine
+      invariant key in M ==> exists n :: n in spine && n.key == key;
+      decreases spine
+    {
+      if p.key == key {
+        return;
+      } else {
+        spine := p.Spine;
+        prev, p := p, p.next;
+      }
+    }
   }
 
   method Find(key: Key) returns (present: bool, val: Value)
-    requires Valid();
-    ensures !present ==> key !in Keys;
-    ensures present ==> exists i :: 0 <= i < |Keys| && Keys[i] == key && Values[i] == val;
+    requires Valid()
+    ensures !present ==> key !in M
+    ensures present ==> key in M && val == M[key]
   {
-    var p, n, prev := FindIndex(key);
-    if (p == null) {
+    var prev, p := FindIndex(key);
+    if p == null {
       present := false;
     } else {
       val := p.val;
@@ -65,95 +106,93 @@ class Map<Key(==),Value> {
     }
   }
 
+  // If key is not already in M, add [key := val].
+  // If key is already in M, change M[key] to val.
   method Add(key: Key, val: Value)
-    requires Valid();
-    modifies Repr;
-    ensures Valid() && fresh(Repr - old(Repr));
-    ensures forall i :: 0 <= i < |old(Keys)| && old(Keys)[i] == key ==>
-                |Keys| == |old(Keys)| &&
-                Keys[i] == key && Values[i] == val &&
-                (forall j :: 0 <= j < |Values| && i != j ==>
-                    Keys[j] == old(Keys)[j] && Values[j] == old(Values)[j]);
-    ensures key !in old(Keys) ==> Keys == [key] + old(Keys) && Values == [val] + old(Values);
+    requires Valid()
+    modifies Repr
+    ensures Valid() && fresh(Repr - old(Repr))
+    ensures M == old(M)[key := val]
   {
-    var p, n, prev := FindIndex(key);
-    if (p == null) {
-      var h := new Node<Key,Value>;
-      h.key := key;  h.val := val;  h.next := head;
-      head := h;
-      Keys := [key] + Keys;  Values := [val] + Values;
-      nodes := [h] + nodes;
-      Repr := Repr + {h};
+    var prev, p := FindIndex(key);
+    if p == null {
+      var h := new Node;
+      h.key, h.val, h.next, h.Spine := key, val, head, Spine;
+      head, Spine, Repr := h, Spine + {h}, Repr + {h};
+      M := M[key := val];
     } else {
       p.val := val;
-      Values := Values[n := val];
-    }
-  }
-
-  method Remove(key: Key)// returns (ghost h: int)
-    requires Valid();
-    modifies Repr;
-    ensures Valid() && fresh(Repr - old(Repr));
-    // no key is introduced:
-    ensures (forall k :: k in Keys ==> k in old(Keys));
-    // at most one key is removed:
-    ensures (forall k :: k in old(Keys) ==> k in Keys || k == key);
-    // other values don't change:
-    ensures key !in old(Keys) ==> Keys == old(Keys) && Values == old(Values);
-    ensures key in old(Keys) ==>
-            |Keys| == |old(Keys)| - 1 && key !in Keys &&
-            (exists h ::
-              0 <= h < |old(Keys)| &&
-              Keys[..h] == old(Keys)[..h] &&
-              Values[..h] == old(Values)[..h] &&
-              Keys[h..] == old(Keys)[h+1..] &&
-              Values[h..] == old(Values)[h+1..]);
-  {
-    var p, n, prev := FindIndex(key);
-    if (p != null) {
-      Keys := Keys[..n] + Keys[n+1..];
-      Values := Values[..n] + Values[n+1..];
-
-      nodes := nodes[..n] + nodes[n+1..];
-      if (prev == null) {
-        head := head.next;
-      } else {
-        prev.next := p.next;
+      M := M[key := val];
+      // prove that SpineValid(Spine, head) has not changed
+      // TODO: This is wonderful, but how come this actually works?
+      // NOTE: This is a place where a two-state lemma would be highly useful
+      ghost var s', p' := Spine, head;
+      while p' != null
+        invariant !fresh(p')
+        invariant old(SpineValid(s', p'))
+        invariant old(SpineValid(Spine, head)) ==> SpineValid(Spine, head) || !SpineValid(s', p')
+        decreases s'
+      {
+        s', p' := p'.Spine, p'.next;
       }
     }
   }
 
-  /*private*/ method FindIndex(key: Key) returns (p: Node<Key,Value>, ghost n: int, prev: Node<Key,Value>)
-    requires Valid();
-    ensures p == null ==> key !in Keys;
-    ensures p != null ==>
-              0 <= n && n < |Keys| && Keys[n] == key &&
-              key !in Keys[..n] && key !in Keys[n+1..] &&
-              p == nodes[n] &&
-              ((n == 0 && prev == null) || (0 < n && prev == nodes[n-1]));
+  // Removes key from the domain of M (and does nothing if key wasn't in M to begin with)
+  method {:timeLimit 100} Remove(key: Key)
+    requires Valid()
+    modifies Repr
+    ensures Valid() && fresh(Repr - old(Repr))
+    ensures M == map k | k in old(M) && k != key :: old(M)[k]
   {
-    n := 0;
-    prev := null;
-    p := head;
-    while (p != null)
-      invariant n <= |Keys| && p == nodes[n];
-      invariant key !in Keys[..n];
-      invariant (n == 0 && prev == null) || (0 < n && prev == nodes[n-1]);
-      decreases |Keys| - n;
-    {
-      if (p.key == key) {
-        return;
+    var prev, p := FindIndex(key);
+    if p != null {
+      if prev == null {
+        Spine, head := head.Spine, head.next;
+        M := map k | k in M && k != key :: M[k];
+        forall k | k in M
+          ensures exists n :: n in Spine && n.key == k
+        {
+          if k != key {
+            assert k in old(M);
+            var n :| n in old(Spine) && old(n.key) == k;
+            assert n.key == old(n.key);          
+          }
+        }
       } else {
-        n := n + 1;
-        prev := p;
-        p := p.next;
+        SpineValidSplit(Spine, head);
+
+        prev.next := p.next;
+        forall n | n in Spine {
+          n.Spine := n.Spine - {p};
+        }
+        Spine := Spine - {p};
+        M := map k | k in M && k != key :: M[k];
+
+        forall k | k in M
+          ensures exists n :: n in Spine && n.key == k
+        {
+          assert k in old(M) && k != key;
+          var n :| n in old(Spine) && old(n.key) == k;
+          assert n.key == old(n.key);
+        }
+
+        forall n | n in Spine
+          ensures SpineValid_One(n.Spine, n.next)
+        {
+          if n != prev && n.next != null {
+            assert n.next in n.Spine && n.next.Spine == n.Spine - {n.next};
+          }
+        }
+        SpineValidCombine(Spine, head);
       }
     }
   }
 }
 
 class Node<Key,Value> {
-  var key: Key;
-  var val: Value;
-  var next: Node<Key,Value>;
+  var key: Key
+  var val: Value
+  var next: Node<Key,Value>
+  ghost var Spine: set<Node<Key,Value>>
 }
