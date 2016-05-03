@@ -9511,22 +9511,8 @@ namespace Microsoft.Dafny {
       var nm = nameTypeParam(x);
       var opaqueType = x as OpaqueType_AsParameter;
       if (tyArguments != null && tyArguments.Count != 0) {    
-        if (opaqueType != null) {
-          for (int i = 0; i < tyArguments.Count; i++) {
-            if (tyArguments[i].IsTypeParameter) {
-              nm = nm + "$" + (tyArguments[i].AsTypeParameter).Name;
-            }
-          }
-          if (!opaqueTypes.Contains(nm)) {
-            opaqueTypes.Add(nm);
-            sink.AddTopLevelDeclaration(new Bpl.Constant(x.tok,
-              new TypedIdent(x.tok, nm, predef.Ty), false /* not unique */));
-          }
-          return new Bpl.IdentifierExpr(x.tok, nm, predef.Ty);
-        } else {
           List<Bpl.Expr> args = tyArguments.ConvertAll(TypeToTy);
           return FunctionCall(x.tok, nm, predef.Ty, args);
-        }
       } else {
         // return an identifier denoting a constant
         return new Bpl.IdentifierExpr(x.tok, nm, predef.Ty);
@@ -10566,6 +10552,10 @@ namespace Microsoft.Dafny {
         return new FuelSetting(translator, this.amount + offset, start);
       }
 
+      public FuelSetting WithLayer(Bpl.Expr layer) {
+        return new FuelSetting(translator, amount, layer);
+      }
+
       public Bpl.Expr LayerZero() {
         Contract.Ensures(Contract.Result<Bpl.Expr>() != null);
         return new Bpl.IdentifierExpr(Token.NoToken, "$LZ", translator.predef.LayerType);
@@ -10888,12 +10878,21 @@ namespace Microsoft.Dafny {
 
       public ExpressionTranslator WithLayer(Bpl.Expr layerArgument)
       {
+        // different layer and 0 fuel amount.
         Contract.Requires(layerArgument != null);
         Contract.Ensures(Contract.Result<ExpressionTranslator>() != null);
 
         return new ExpressionTranslator(translator, predef, HeapExpr, This, null, new FuelSetting(translator, 0, layerArgument), new FuelSetting(translator, 0, layerArgument), modifiesFrame, stripLits);
       }
-      
+
+      public ExpressionTranslator ReplaceLayer(Bpl.Expr layerArgument) {
+        // different layer with same fuel amount.
+        Contract.Requires(layerArgument != null);
+        Contract.Ensures(Contract.Result<ExpressionTranslator>() != null);
+
+        return new ExpressionTranslator(translator, predef, HeapExpr, This, applyLimited_CurrentFunction, layerInterCluster.WithLayer(layerArgument), layerIntraCluster.WithLayer(layerArgument), modifiesFrame, stripLits);
+       }
+
       public ExpressionTranslator WithNoLits() {
         Contract.Ensures(Contract.Result<ExpressionTranslator>() != null);
         return new ExpressionTranslator(translator, predef, HeapExpr, This, applyLimited_CurrentFunction, layerInterCluster, layerIntraCluster, modifiesFrame, true);
@@ -11831,11 +11830,13 @@ namespace Microsoft.Dafny {
             if (Attributes.ContainsBool(e.Attributes, "layerQuantifier", ref _scratch)) {
               // If this is a layer quantifier, quantify over layers here, and use $LS(ly) layers in the translation of the body
               var ly = BplBoundVar(e.Refresh("q$ly#", translator.CurrentIdGenerator), predef.LayerType, bvars);
-              bodyEtran = new ExpressionTranslator(translator, predef, HeapExpr, This, applyLimited_CurrentFunction, new FuelSetting(translator, 1, ly), new FuelSetting(translator, 1, ly), modifiesFrame, stripLits);
+              bodyEtran = bodyEtran.ReplaceLayer(ly);
+              existEtran = existEtran.ReplaceLayer(ly);
             }
             if (Attributes.ContainsBool(e.Attributes, "heapQuantifier", ref _scratch)) {
               var h = BplBoundVar(e.Refresh("q$heap#", translator.CurrentIdGenerator), predef.HeapType, bvars);
               bodyEtran = new ExpressionTranslator(bodyEtran, h);
+              existEtran = new ExpressionTranslator(existEtran, h);
               antecedent = BplAnd(new List<Bpl.Expr> {
               antecedent,
               translator.FunctionCall(e.tok, BuiltinFunction.IsGoodHeap, null, h),

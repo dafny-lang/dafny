@@ -1,0 +1,8 @@
+Bug160.dfy(28,18): Error BP5003: A postcondition might not hold on this return path.
+Bug160.dfy(29,13): Related location: This is the postcondition that might not hold.
+Bug160.dfy(29,29): Related location
+Execution trace:
+    (0,0): anon0
+    (0,0): anon4_Else
+
+Dafny program verifier finished with 7 verified, 1 error
