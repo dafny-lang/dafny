@@ -7072,6 +7072,21 @@ namespace Microsoft.Dafny {
       Contract.Ensures(Contract.Result<Bpl.Expr>() != null);
 
       if (!ModeledAsBoxType(fromType) && (toType == null || ModeledAsBoxType(toType))) {
+        // if "e" denotes "Unbox(E): T", then just return "E"
+        var coerce = e as Bpl.NAryExpr;
+        if (coerce != null && coerce.Fun is Bpl.TypeCoercion) {
+          Contract.Assert(coerce.Args.Count == 1);
+          Contract.Assert(Bpl.Type.Equals(((Bpl.TypeCoercion)coerce.Fun).Type, TrType(fromType))); ;
+          var call = coerce.Args[0] as Bpl.NAryExpr;
+          if (call != null && call.Fun is Bpl.FunctionCall) {
+            var fn = (Bpl.FunctionCall)call.Fun;
+            if (fn.FunctionName == "$Unbox") {
+              Contract.Assert(call.Args.Count == 1);
+              return call.Args[0];
+            }
+          }
+        }
+        // return "Box(e)"
         return FunctionCall(tok, BuiltinFunction.Box, null, e);
       } else {
         return e;
