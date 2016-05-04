@@ -5070,6 +5070,10 @@ namespace Microsoft.Dafny {
 
           builder.Add(Assert(tok, Bpl.Expr.And(lower, upper), String.Format("index {0} out of range", idxId), options.AssertKv));
         }
+        if (options.DoReadsChecks) {
+          Bpl.Expr fieldName = etran.GetArrayIndexFieldName(e.tok, e.Indices);
+          options.AssertSink(this, builder)(expr.tok, Bpl.Expr.SelectTok(expr.tok, etran.TheFrame(expr.tok), array, fieldName), "insufficient reads clause to read array element", options.AssertKv);
+        }
       } else if (expr is SeqUpdateExpr) {
         SeqUpdateExpr e = (SeqUpdateExpr)expr;
         if (e.ResolvedUpdateExpr != null)
