@@ -4271,9 +4271,7 @@ namespace Microsoft.Dafny
             if (arg.IsGhost ||
                 (anotherIndDt != null && anotherIndDt.EqualitySupport == IndDatatypeDecl.ES.Never) ||
                 arg.Type.IsCoDatatype ||
-                arg.Type.IsArrowType ||
-                arg.Type.IsIMapType ||
-                arg.Type.IsISetType) {
+                arg.Type.IsArrowType) {
               // arg.Type is known never to support equality
               // So, go around the entire SCC and record what we learnt
               foreach (var ddtt in scc) {
