@@ -66,14 +66,14 @@ namespace Microsoft.Dafny.Triggers {
       return "{" + Repr + "}" + (String.IsNullOrWhiteSpace(Annotation) ? "" : " (" + Annotation + ")");
     }
 
-    internal IEnumerable<TriggerMatch> LoopingSubterms(QuantifierExpr quantifier) {
+    internal IEnumerable<TriggerMatch> LoopingSubterms(ComprehensionExpr quantifier) {
       Contract.Requires(quantifier.SplitQuantifier == null); // Don't call this on a quantifier with a Split clause: it's not a real quantifier
       var matchingSubterms = this.MatchingSubterms(quantifier);
       var boundVars = new HashSet<BoundVar>(quantifier.BoundVars);
       return matchingSubterms.Where(tm => tm.CouldCauseLoops(Terms, boundVars));
     }
 
-    internal List<TriggerMatch> MatchingSubterms(QuantifierExpr quantifier) {
+    internal List<TriggerMatch> MatchingSubterms(ComprehensionExpr quantifier) {
       Contract.Requires(quantifier.SplitQuantifier == null); // Don't call this on a quantifier with a Split clause: it's not a real quantifier
       return Terms.SelectMany(term => quantifier.SubexpressionsMatchingTrigger(term.Expr)).Deduplicate(TriggerMatch.Eq);
     }
@@ -312,7 +312,7 @@ namespace Microsoft.Dafny.Triggers {
     /// <summary>
     /// Collect terms in the body of the subexpressions of the argument that look like quantifiers. The results of this function can contain duplicate terms.
     /// </summary>
-    internal List<TriggerTerm> CollectTriggers(QuantifierExpr quantifier) {
+    internal List<TriggerTerm> CollectTriggers(ComprehensionExpr quantifier) {
       Contract.Requires(quantifier.SplitQuantifier == null); // Don't call this on a quantifier with a Split clause: it's not a real quantifier
       // NOTE: We could check for existing trigger attributes and return that instead
       return Annotate(quantifier).PrivateTerms;

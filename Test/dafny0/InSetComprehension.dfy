@@ -15,7 +15,7 @@ lemma Tests<T>(t: T, uu: seq<T>) returns (z: bool)
     case true =>
       z := t !in set u | u in uu;
     case true =>
-      z := t !in set u | u in uu :: Id(u);
+      z := t !in set u {:autotriggers false} | u in uu :: Id(u);
   }
 }
 
@@ -36,7 +36,7 @@ lemma TestsWhereTriggersMatter<T>(t: T, uu: seq<T>) returns (z: bool)
     case true =>
       z := t in set u | u in uu;
     case true =>
-      z := t in set u | u in uu :: Id(u);
+      z := t in set u {:autotriggers false} | u in uu :: Id(u);
   }
 }
 

@@ -9,7 +9,7 @@ using System.Diagnostics.Contracts;
 
 namespace Microsoft.Dafny.Triggers {
   class QuantifierWithTriggers {
-    internal QuantifierExpr quantifier;
+    internal ComprehensionExpr quantifier;
     internal List<TriggerTerm> CandidateTerms;
     internal List<TriggerCandidate> Candidates;
     internal List<TriggerCandidate> RejectedCandidates;
@@ -17,7 +17,7 @@ namespace Microsoft.Dafny.Triggers {
     internal bool AllowsLoops { get { return TriggerUtils.AllowsMatchingLoops(quantifier); } }
     internal bool CouldSuppressLoops { get; set; }
 
-    internal QuantifierWithTriggers(QuantifierExpr quantifier) {
+    internal QuantifierWithTriggers(ComprehensionExpr quantifier) {
       this.quantifier = quantifier;
       this.RejectedCandidates = new List<TriggerCandidate>();
     }
@@ -33,7 +33,7 @@ namespace Microsoft.Dafny.Triggers {
     readonly ErrorReporter reporter;
     readonly List<QuantifierWithTriggers> quantifiers;
    
-    internal QuantifiersCollection(IEnumerable<QuantifierExpr> quantifiers, ErrorReporter reporter) {
+    internal QuantifiersCollection(IEnumerable<ComprehensionExpr> quantifiers, ErrorReporter reporter) {
       Contract.Requires(quantifiers.All(q => q.SplitQuantifier == null));
       this.reporter = reporter;
       this.quantifiers = quantifiers.Select(q => new QuantifierWithTriggers(q)).ToList();

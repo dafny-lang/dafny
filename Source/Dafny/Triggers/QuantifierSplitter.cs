@@ -12,7 +12,7 @@ namespace Microsoft.Dafny.Triggers {
     /// twice: on the first pass that quantifier got its SplitQuantifiers generated, and on the the second pass these 
     /// split quantifiers got re-split, creating a situation where the direct children of a split quantifier were 
     /// also split quantifiers.
-    private Dictionary<QuantifierExpr, List<Expression>> splits = new Dictionary<QuantifierExpr, List<Expression>>();
+    private Dictionary<ComprehensionExpr, List<Expression>> splits = new Dictionary<ComprehensionExpr, List<Expression>>();
 
     private static BinaryExpr.Opcode FlipOpcode(BinaryExpr.Opcode opCode) {
       if (opCode == BinaryExpr.Opcode.And) {
@@ -38,9 +38,6 @@ namespace Microsoft.Dafny.Triggers {
     private static Attributes CopyAttributes(Attributes source) {
       if (source == null) {
         return null;
-      } else if (source is UserSuppliedAttributes) {
-        var usa = (UserSuppliedAttributes)source;
-        return new UserSuppliedAttributes(usa.tok, usa.OpenBrace, usa.Colon, usa.CloseBrace, source.Args, CopyAttributes(source.Prev));
       } else {
         return new Attributes(source.Name, source.Args, CopyAttributes(source.Prev));
       }
@@ -71,7 +68,7 @@ namespace Microsoft.Dafny.Triggers {
       }
     }
 
-    internal static IEnumerable<Expression> SplitQuantifier(QuantifierExpr quantifier) {
+    internal static IEnumerable<Expression> SplitQuantifier(ComprehensionExpr quantifier) {
       var body = quantifier.Term;
       var binary = body as BinaryExpr;
 
@@ -84,7 +81,7 @@ namespace Microsoft.Dafny.Triggers {
         }
         foreach (var e in stream) {
           var tok = new NestedToken(quantifier.tok, e.tok);
-          yield return new ForallExpr(tok, quantifier.TypeArgs, quantifier.BoundVars, quantifier.Range, e, CopyAttributes(quantifier.Attributes)) { Type = quantifier.Type };
+          yield return new ForallExpr(tok, ((ForallExpr)quantifier).TypeArgs, quantifier.BoundVars, quantifier.Range, e, CopyAttributes(quantifier.Attributes)) { Type = quantifier.Type };
         }
       } else if (quantifier is ExistsExpr) {
         IEnumerable<Expression> stream;
@@ -95,21 +92,21 @@ namespace Microsoft.Dafny.Triggers {
         }
         foreach (var e in stream) {
           var tok = new NestedToken(quantifier.tok, e.tok);
-          yield return new ExistsExpr(tok, quantifier.TypeArgs, quantifier.BoundVars, quantifier.Range, e, CopyAttributes(quantifier.Attributes)) { Type = quantifier.Type };
+          yield return new ExistsExpr(tok, ((ExistsExpr)quantifier).TypeArgs, quantifier.BoundVars, quantifier.Range, e, CopyAttributes(quantifier.Attributes)) { Type = quantifier.Type };
         }
       } else {
         yield return quantifier;
       }
     }
     
-    private static bool AllowsSplitting(QuantifierExpr quantifier) {
-      // allow split if attributes doesn't contains "split" or it is "split: true" and it is not an empty QuantifierExpr (boundvar.count>0)
+    private static bool AllowsSplitting(ComprehensionExpr quantifier) {
+      // allow split if attributes doesn't contains "split" or it is "split: true" and it is not an empty ComprehensionExpr (boundvar.count>0)
       bool splitAttr = true; 
       return (!Attributes.ContainsBool(quantifier.Attributes, "split", ref splitAttr) || splitAttr) && (quantifier.BoundVars.Count > 0);
     }
 
     protected override void VisitOneExpr(Expression expr) {
-      var quantifier = expr as QuantifierExpr;
+      var quantifier = expr as ComprehensionExpr;
       if (quantifier != null) {
         Contract.Assert(quantifier.SplitQuantifier == null);
         if (!splits.ContainsKey(quantifier) && AllowsSplitting(quantifier)) {

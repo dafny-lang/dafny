@@ -19,13 +19,15 @@ namespace Microsoft.Dafny.Triggers {
     }
 
     protected override bool VisitOneExpr(Expression expr, ref bool inOldContext) {
-      var quantifier = expr as QuantifierExpr;
+      var quantifier = expr as ComprehensionExpr;
 
       // only consider quantifiers that are not empty (Bound.Vars.Count > 0)
-      if (quantifier != null && (quantifier.BoundVars.Count > 0) && !quantifiers.Contains(quantifier)) {
+      if (quantifier != null &&
+        ((expr is SetComprehension) || (expr is MapComprehension) || (expr is ForallExpr) || (expr is ExistsExpr)) &&
+        (quantifier.BoundVars.Count > 0) && !quantifiers.Contains(quantifier)) {
         quantifiers.Add(quantifier);
         if (quantifier.SplitQuantifier != null) {
-          var collection = quantifier.SplitQuantifier.Select(q => q as QuantifierExpr).Where(q => q != null);
+          var collection = quantifier.SplitQuantifier.Select(q => q as ComprehensionExpr).Where(q => q != null);
           quantifierCollections.Add(new QuantifiersCollection(collection, reporter));
           quantifiers.UnionWith(quantifier.SplitQuantifier);
         } else {

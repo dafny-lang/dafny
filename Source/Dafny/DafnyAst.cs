@@ -7094,6 +7094,35 @@ namespace Microsoft.Dafny {
         term = newTerm;
     }
 
+    protected virtual BinaryExpr.ResolvedOpcode SplitResolvedOp { get { return BinaryExpr.ResolvedOpcode.Or; } }
+
+    private Expression SplitQuantifierToExpression() {
+      Contract.Requires(SplitQuantifier != null && SplitQuantifier.Any());
+      Expression accumulator = SplitQuantifier[0];
+      for (int tid = 1; tid < SplitQuantifier.Count; tid++) {
+        accumulator = new BinaryExpr(Term.tok, SplitResolvedOp, accumulator, SplitQuantifier[tid]);
+      }
+      return accumulator;
+    }
+
+    private List<Expression> _SplitQuantifier;
+    public List<Expression> SplitQuantifier {
+      get {
+        return _SplitQuantifier;
+      }
+      set {
+        _SplitQuantifier = value;
+        SplitQuantifierExpression = SplitQuantifierToExpression();
+      }
+    }
+
+    internal Expression SplitQuantifierExpression { get; private set; }
+
+    public String Refresh(string prefix, FreshIdGenerator idGen) {
+      return idGen.FreshId(prefix);
+    }
+
+
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(BoundVars != null);
@@ -7302,8 +7331,6 @@ namespace Microsoft.Dafny {
     public List<TypeParameter> TypeArgs;
     private static int currentQuantId = -1;
 
-    protected abstract BinaryExpr.ResolvedOpcode SplitResolvedOp { get; }
-
     static int FreshQuantId() {
       return System.Threading.Interlocked.Increment(ref currentQuantId);
     }
@@ -7313,9 +7340,7 @@ namespace Microsoft.Dafny {
         return "q$" + UniqueId;
       }
     }
-    public String Refresh(string prefix, FreshIdGenerator idGen) {
-      return idGen.FreshId(prefix);
-    }
+  
     public TypeParameter Refresh(TypeParameter p, FreshIdGenerator idGen) {
       var cp = new TypeParameter(p.tok, idGen.FreshId(p.Name + "#"), p.EqualitySupport);
       cp.Parent = this;
@@ -7334,28 +7359,6 @@ namespace Microsoft.Dafny {
       this.TypeArgs = tvars;
       this.UniqueId = FreshQuantId();
     }
-
-    private Expression SplitQuantifierToExpression() {
-      Contract.Requires(SplitQuantifier != null && SplitQuantifier.Any());
-      Expression accumulator = SplitQuantifier[0];
-      for (int tid = 1; tid < SplitQuantifier.Count; tid++) {
-        accumulator = new BinaryExpr(Term.tok, SplitResolvedOp, accumulator, SplitQuantifier[tid]);
-      }
-      return accumulator;
-    }
-
-    private List<Expression> _SplitQuantifier;
-    public List<Expression> SplitQuantifier {
-      get {
-        return _SplitQuantifier;
-      }
-      set {
-        _SplitQuantifier = value;
-        SplitQuantifierExpression = SplitQuantifierToExpression();
-      }
-    }
-
-    internal Expression SplitQuantifierExpression { get; private set; }
 
     public virtual Expression LogicalBody(bool bypassSplitQuantifier = false) {
       // Don't call this on a quantifier with a Split clause: it's not a real quantifier. The only exception is the Compiler.
