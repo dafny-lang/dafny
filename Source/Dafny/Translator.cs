@@ -10223,11 +10223,18 @@ namespace Microsoft.Dafny {
           }
           Bpl.Trigger tr = null;
           Dictionary<IVariable, Expression> substMap = new Dictionary<IVariable, Expression>();
+          Bpl.Expr antecedent = Bpl.Expr.True;
           foreach (var bv in e.BoundVars) {
             // create a call to $let$x(g)
             var call = FunctionCall(e.tok, info.SkolemFunctionName(bv), TrType(bv.Type), gExprs);
             tr = new Bpl.Trigger(e.tok, true, new List<Bpl.Expr> { call }, tr);
             substMap.Add(bv, new BoogieWrapper(call, bv.Type));
+            if (!(bv.Type.IsTypeParameter)) {
+              Bpl.Expr wh = GetWhereClause(bv.tok, call, bv.Type, etranCC);
+              if (wh != null) {
+                antecedent = BplAnd(antecedent, wh);
+              }
+            }
           }
           var i = info.FTVs.Count + (info.UsesHeap ? 1 : 0) + (info.UsesOldHeap ? 1 : 0);
           Expression receiverReplacement;
@@ -10244,7 +10251,7 @@ namespace Microsoft.Dafny {
           }
           var canCall = FunctionCall(e.tok, info.CanCallFunctionName(), Bpl.Type.Bool, gExprs);
           var p = Substitute(e.RHSs[0], receiverReplacement, substMap);
-          Bpl.Expr ax = Bpl.Expr.Imp(canCall, etranCC.TrExpr(p));
+          Bpl.Expr ax = Bpl.Expr.Imp(canCall, BplAnd(antecedent, etranCC.TrExpr(p)));
           ax = BplForall(gg, tr, ax);
           sink.AddTopLevelDeclaration(new Bpl.Axiom(e.tok, ax));
         }
