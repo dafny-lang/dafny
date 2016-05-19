@@ -5296,7 +5296,14 @@ namespace Microsoft.Dafny {
         List<Bpl.Expr> args = etran.FunctionInvocationArguments(e, null);
         Bpl.Expr canCallFuncAppl = new Bpl.NAryExpr(expr.tok, new Bpl.FunctionCall(canCallFuncID), args);
         builder.Add(TrAssumeCmd(expr.tok, allowance == null ? canCallFuncAppl : Bpl.Expr.Or(allowance, canCallFuncAppl)));
-
+ 
+        var returnType = e.Type.AsDatatype;
+        if (returnType != null && returnType.Ctors.Count == 1) {
+          var correctConstructor = FunctionCall(e.tok, returnType.Ctors[0].QueryField.FullSanitizedName, Bpl.Type.Bool, etran.TrExpr(e));
+          // There is only one constructor, so the value must be been constructed by it; might as well assume that here.
+          builder.Add(TrAssumeCmd(expr.tok, correctConstructor));
+        }
+        
       } else if (expr is DatatypeValue) {
         DatatypeValue dtv = (DatatypeValue)expr;
         for (int i = 0; i < dtv.Ctor.Formals.Count; i++) {
@@ -13528,8 +13535,6 @@ namespace Microsoft.Dafny {
         translatedExpression = etran.TrExpr(expr);
         splitHappened = false;
       } else {
-        // for quantifierExpr, we don't want to increase fuel in assert context
-        var existEtran = etran;
         etran = etran.LayerOffset(1);
         translatedExpression = etran.TrExpr(expr);
         splitHappened = etran.Statistics_CustomLayerFunctionCount != 0;  // return true if the LayerOffset(1) came into play
