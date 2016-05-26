@@ -217,7 +217,8 @@ namespace Microsoft.Dafny.Triggers {
                  expr is OldExpr ||
                  expr is ThisExpr ||
                  expr is BoxingCastExpr ||
-                 expr is DatatypeValue) {
+                 expr is DatatypeValue ||
+                 expr is MultiSetFormingExpr) {
         annotation = AnnotateOther(expr, false);
       } else {
         annotation = AnnotateOther(expr, true);
