@@ -52,6 +52,9 @@
       <Group guid="guidDafnyMenuCmdSet" id="DafnyMenuGroup" priority="0x0600">
         <Parent guid="guidDafnyMenuPkg" id="DafnyMenu"/>
       </Group>
+      <Group guid="guidDanfyContextMenuCmdSet" id="ContextMenuGroup" priority="0x0600">
+       <Parent guid="guidSHLMainMenu" id="IDM_VS_CTXT_CODEWIN"/>
+      </Group>
     </Groups>
 
     <!--Buttons section. -->
@@ -140,9 +143,16 @@
           <ButtonText>Re-verify to diagnose timeouts</ButtonText>
         </Strings>
       </Button>
+      
+      <Button guid="guidDanfyContextMenuCmdSet" id="cmdidGoToDefinition" priority="0x0108" type="Button">
+        <Parent guid="guidDanfyContextMenuCmdSet" id="ContextMenuGroup" />
+        <Strings>
+          <ButtonText>GoTo Definition</ButtonText>
+        </Strings>
+      </Button>
 
     </Buttons>
-
+  
     <!--The bitmaps section is used to define the bitmaps that are used for the commands.-->
     <Bitmaps>
       <!--  The bitmap id is defined in a way that is a little bit different from the others: 
@@ -177,6 +187,10 @@
       <IDSymbol name="cmdidDiagnoseTimeouts" value="0x0107" />
     </GuidSymbol>
 
+    <GuidSymbol name="guidDanfyContextMenuCmdSet" value="{5FC4BE4C-AB07-4FD2-A255-6E69E049C113}">
+      <IDSymbol name="ContextMenuGroup" value="0x01019" />
+      <IDSymbol name="cmdidGoToDefinition" value="0x0108" />
+    </GuidSymbol>
     <!--
     <GuidSymbol name="guidImages" value="{0176b216-66c6-49f6-a97d-0273c57a7da6}" >
       <IDSymbol name="bmpPic1" value="1" />

@@ -50,13 +50,18 @@ namespace DafnyLanguage
     ITextSnapshot _snapshot;  // the most recent snapshot of _buffer that we have been informed about
     Microsoft.Dafny.Program _program;  // the program parsed from _snapshot
     List<IdRegion> _regions = new List<IdRegion>();  // the regions generated from _program
+    public Dictionary<SnapshotSpan, Bpl.IToken> _definitions = new Dictionary<SnapshotSpan, Bpl.IToken>();
     ITagAggregator<IDafnyResolverTag> _aggregator;
+
+    public static readonly IDictionary<ITextBuffer, IdentifierTagger> IdentifierTaggers = new Dictionary<ITextBuffer, IdentifierTagger>();
+
 
     internal IdentifierTagger(ITextBuffer buffer, ITagAggregator<IDafnyResolverTag> tagAggregator) {
       _buffer = buffer;
       _snapshot = _buffer.CurrentSnapshot;
       _aggregator = tagAggregator;
       _aggregator.TagsChanged += new EventHandler<TagsChangedEventArgs>(_aggregator_TagsChanged);
+      IdentifierTaggers[_buffer] = this;
     }
 
     /// <summary>
@@ -137,6 +142,7 @@ namespace DafnyLanguage
       if (program == _program)
         return false;  // no new regions
 
+      _snapshot = snapshot;
       List<IdRegion> newRegions = new List<IdRegion>();
 
       foreach (var info in program.reporter.AllMessages[ErrorLevel.Info]) {
@@ -228,13 +234,12 @@ namespace DafnyLanguage
           }
         }
       }
-      _snapshot = snapshot;
       _regions = newRegions;
       _program = program;
       return true;
     }
 
-    static void FrameExprRegions(FrameExpression fe, List<IdRegion> regions, bool descendIntoExpressions, Microsoft.Dafny.Program prog, ModuleDefinition module) {
+    void FrameExprRegions(FrameExpression fe, List<IdRegion> regions, bool descendIntoExpressions, Microsoft.Dafny.Program prog, ModuleDefinition module) {
       Contract.Requires(fe != null);
       Contract.Requires(regions != null);
       Contract.Requires(prog != null);
@@ -244,10 +249,11 @@ namespace DafnyLanguage
       if (fe.Field != null) {
         Microsoft.Dafny.Type showType = null;  // TODO: if we had the instantiated type of this field, that would have been nice to use here (but the Resolver currently does not compute or store the instantiated type for a FrameExpression)
         IdRegion.Add(regions, prog, fe.tok, fe.Field, showType, "field", false, module);
+        RecordUseAndDef(fe.tok, fe.Field.Name.Length, fe.Field.tok);
       }
     }
 
-    static void ExprRegions(Microsoft.Dafny.Expression expr, List<IdRegion> regions, Microsoft.Dafny.Program prog, ModuleDefinition module) {
+    void ExprRegions(Microsoft.Dafny.Expression expr, List<IdRegion> regions, Microsoft.Dafny.Program prog, ModuleDefinition module) {
       Contract.Requires(expr != null);
       Contract.Requires(regions != null);
       Contract.Requires(prog != null);
@@ -262,6 +268,20 @@ namespace DafnyLanguage
         var field = e.Member as Field;
         if (field != null) {
           IdRegion.Add(regions, prog, e.tok, field, e.Type, "field", false, module);
+        }
+        if (e.Member != null) {
+          RecordUseAndDef(e.tok, e.Member.Name.Length, e.Member.tok);
+        }
+      } else if (expr is FunctionCallExpr) {
+        var e = (FunctionCallExpr)expr;
+        var func = e.Function;
+        if (func != null) {
+          RecordUseAndDef(e.tok, func.Name.Length, func.tok);
+        }
+      } else if (expr is ApplySuffix) {
+        var e = (ApplySuffix)expr;
+        if (e.Lhs != null) {
+          ExprRegions(e.Lhs, regions, prog, module);
         }
       } else if (expr is LetExpr) {
         var e = (LetExpr)expr;
@@ -301,7 +321,33 @@ namespace DafnyLanguage
       }
     }
 
-    static void StatementRegions(Statement stmt, List<IdRegion> regions, Microsoft.Dafny.Program prog, ModuleDefinition module) {
+    void RecordUseAndDef(Bpl.IToken useTok, int length, Bpl.IToken defTok) {
+      // add to the definition table so we know where the definition for this expr is
+      SnapshotSpan span = new SnapshotSpan(this._snapshot, useTok.pos, length);
+      if (!_definitions.ContainsKey(span)) {
+        _definitions.Add(span, defTok);
+      }
+    }
+
+    public bool FindDefinition(int caretPos, out string fileName, out int lineNumber, out int offset) {
+      foreach (var use in _definitions.Keys) {
+        if (caretPos >= use.Start && caretPos <= use.End) {
+          // go to the source
+          Bpl.IToken tok;
+          if (_definitions.TryGetValue(use, out tok)) {
+            fileName = tok.filename;
+            lineNumber = tok.line - 1;
+            offset = tok.col - 1;
+            return true;
+          }
+        }
+      }
+      fileName = null;
+      lineNumber = offset = 0;
+      return false;
+    }
+
+    void StatementRegions(Statement stmt, List<IdRegion> regions, Microsoft.Dafny.Program prog, ModuleDefinition module) {
       Contract.Requires(stmt != null);
       Contract.Requires(regions != null);
       Contract.Requires(prog != null);
@@ -320,6 +366,20 @@ namespace DafnyLanguage
           foreach (var rhs in upd.Rhss) {
             foreach (var ee in rhs.SubExpressions) {
               ExprRegions(ee, regions, prog, module);
+            }
+            if (rhs is TypeRhs) {
+              CallStmt call = ((TypeRhs)rhs).InitCall;
+              if (call != null) {
+                var method = call.Method;
+                if (method != null) {
+                  if (method is Constructor) {
+                    // call token starts at the beginning of "new C()", so we need to add 4 to the length.
+                    RecordUseAndDef(call.Tok, method.EnclosingClass.Name.Length+4, method.EnclosingClass.tok);
+                  } else {
+                    RecordUseAndDef(call.Tok, method.Name.Length, method.tok);
+                  }
+                }
+              }
             }
           }
         } else {
@@ -361,6 +421,12 @@ namespace DafnyLanguage
           StatementRegions(ss, regions, prog, module);
         }
         return;
+      } else if (stmt is CallStmt) {
+        var s = (CallStmt)stmt;
+        var method = s.Method;
+        if (method != null) {
+          RecordUseAndDef(s.Tok, method.Name.Length, method.tok);
+        }
       }
       foreach (var ee in stmt.SubExpressions) {
         ExprRegions(ee, regions, prog, module);
@@ -505,5 +571,4 @@ namespace DafnyLanguage
   }
 
   #endregion
-
 }

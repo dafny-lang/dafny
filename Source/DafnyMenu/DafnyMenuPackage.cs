@@ -6,12 +6,14 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
+using Microsoft.VisualStudio;
 using Microsoft.VisualStudio.ComponentModelHost;
 using Microsoft.VisualStudio.Editor;
 using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.Shell.Interop;
 using Microsoft.VisualStudio.Text.Editor;
 using Microsoft.VisualStudio.TextManager.Interop;
+using OLEServiceProvider = Microsoft.VisualStudio.OLE.Interop.IServiceProvider;
 
 
 namespace DafnyLanguage.DafnyMenu
@@ -65,6 +67,8 @@ namespace DafnyLanguage.DafnyMenu
 
 
     void DiagnoseTimeouts(IWpfTextView activeTextView);
+
+    void GoToDefinition(IWpfTextView activeTextView);
   }
 
 
@@ -102,6 +106,7 @@ namespace DafnyLanguage.DafnyMenu
     private OleMenuCommand toggleAutomaticInductionCommand;
     private OleMenuCommand toggleBVDCommand;
     private OleMenuCommand diagnoseTimeoutsCommand;
+    private OleMenuCommand gotoDefinitionCommand;
 
     bool BVDDisabled;
 
@@ -188,6 +193,12 @@ namespace DafnyLanguage.DafnyMenu
         menuCommand.BeforeQueryStatus += menuCommand_BeforeQueryStatus;
         menuCommand.Enabled = true;
         mcs.AddCommand(menuCommand);
+
+        var gotoDefinitionCommandID = new CommandID(GuidList.guidDanfyContextMenuCmdSet, (int)PkgCmdIDList.cmdidGoToDefinition);
+        gotoDefinitionCommand = new OleMenuCommand(GotoDefinitionCallback, gotoDefinitionCommandID);
+        gotoDefinitionCommand.Enabled = true;
+        mcs.AddCommand(gotoDefinitionCommand);
+
       }
     }
 
@@ -363,6 +374,14 @@ namespace DafnyLanguage.DafnyMenu
       }
     }
 
+    void GotoDefinitionCallback(object sender, EventArgs e) {
+      var atv = ActiveTextView;
+      if (MenuProxy != null && atv != null)
+      {
+        MenuProxy.GoToDefinition(atv);
+      }
+    }
+
     void ToggleBVDCallback(object sender, EventArgs e)
     {
       BVDDisabled = !BVDDisabled;
@@ -438,6 +457,52 @@ namespace DafnyLanguage.DafnyMenu
         }
       }
       return result;
+    }
+    public int GoToDefinition(string filePath, int lineNumber, int offset) {
+      return (OpenFile(filePath) && GoToSource(filePath, lineNumber, offset)) ? VSConstants.S_OK : VSConstants.E_FAIL;
+    }
+
+    private bool OpenFile(string filePath) {
+      var shellOpenDocumentService = (IVsUIShellOpenDocument)GetService(typeof(SVsUIShellOpenDocument));
+      var guidTextView = VSConstants.LOGVIEWID.TextView_guid;
+
+      uint itemid;
+      IVsUIHierarchy hierarchy;
+      OLEServiceProvider serviceProvider;
+      IVsWindowFrame window;
+      if (shellOpenDocumentService.OpenDocumentViaProject(filePath, ref guidTextView, out serviceProvider, out hierarchy, out itemid, out window) == VSConstants.S_OK) {
+        window.Show();
+        return true;
+      }
+      return false;
+    }
+
+    private bool GoToSource(string filePath, int lineNumber, int offset) {
+      IVsRunningDocumentTable runningDoc = (IVsRunningDocumentTable)GetService(typeof(SVsRunningDocumentTable));
+      IntPtr ptr;
+      IVsHierarchy hierarchy;
+      uint cookie;
+      uint id;
+
+      if (runningDoc.FindAndLockDocument((uint)_VSRDTFLAGS.RDT_NoLock, filePath, out hierarchy, out id, out ptr, out cookie) != VSConstants.S_OK) {
+        return false;
+      }
+      try {
+        var lines = Marshal.GetObjectForIUnknown(ptr) as IVsTextLines;
+        if (lines == null) {
+          return false;
+        }
+        var textManager = (IVsTextManager)GetService(typeof(SVsTextManager));
+        if (textManager == null) {
+          return false;
+        }
+        return textManager.NavigateToLineAndColumn(
+            lines, VSConstants.LOGVIEWID.TextView_guid, lineNumber, offset, lineNumber, offset) == VSConstants.S_OK;
+      } finally {
+        if (ptr != IntPtr.Zero) {
+          Marshal.Release(ptr);
+        }
+      }
     }
 
     #endregion

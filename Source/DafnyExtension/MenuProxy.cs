@@ -143,5 +143,19 @@ namespace DafnyLanguage
         }
       }
     }
+
+    public void GoToDefinition(IWpfTextView activeTextView) {
+      int caretPos = activeTextView.Caret.Position.BufferPosition.Position;
+      string fileName;
+      int lineNumber;
+      int offset;
+      DafnyLanguage.IdentifierTagger tagger;
+      if (activeTextView != null && DafnyLanguage.IdentifierTagger.IdentifierTaggers.TryGetValue(activeTextView.TextBuffer, out tagger)) {
+        if (tagger.FindDefinition(caretPos, out fileName, out lineNumber, out offset)) {
+          DafnyMenuPackage.GoToDefinition(fileName, lineNumber, offset);
+        }
+      }
+
+    }
   }
 }

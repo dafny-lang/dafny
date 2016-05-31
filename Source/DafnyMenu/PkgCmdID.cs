@@ -15,5 +15,6 @@ namespace DafnyLanguage.DafnyMenu
     public static uint cmdidToggleMoreAdvancedSnapshotVerification = 0x105;
     public static uint cmdidToggleAutomaticInduction = 0x106;
     public static uint cmdidDiagnoseTimeouts = 0x107;
+    public static uint cmdidGoToDefinition = 0x108;
   };
 }
