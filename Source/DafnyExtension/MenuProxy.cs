@@ -5,6 +5,8 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.VisualStudio.Text.Editor;
+using Microsoft.VisualStudio.Shell;
+using Microsoft.VisualStudio.Shell.Interop;
 
 namespace DafnyLanguage
 {
@@ -54,6 +56,7 @@ namespace DafnyLanguage
       DafnyLanguage.ProgressTagger tagger;
       if (activeTextView != null && DafnyLanguage.ProgressTagger.ProgressTaggers.TryGetValue(activeTextView.TextBuffer, out tagger))
       {
+        MenuProxy.Output("verifier manually stopped\n");
         tagger.StopVerification();
       }
     }
@@ -71,6 +74,7 @@ namespace DafnyLanguage
       DafnyLanguage.ProgressTagger tagger;
       if (activeTextView != null && DafnyLanguage.ProgressTagger.ProgressTaggers.TryGetValue(activeTextView.TextBuffer, out tagger))
       {
+        MenuProxy.Output("verifier manually started\n");
         tagger.StartVerification();
       }
     }
@@ -155,7 +159,20 @@ namespace DafnyLanguage
           DafnyMenuPackage.GoToDefinition(fileName, lineNumber, offset);
         }
       }
+    }
 
+    public static void Output(string msg) {
+      // Get the output window
+      var outputWindow = Package.GetGlobalService(typeof(SVsOutputWindow)) as IVsOutputWindow;
+
+      // Ensure that the desired pane is visible
+      var paneGuid = Microsoft.VisualStudio.VSConstants.OutputWindowPaneGuid.GeneralPane_guid;
+      IVsOutputWindowPane pane;
+      outputWindow.CreatePane(paneGuid, "Dafny", 1, 0);
+      outputWindow.GetPane(paneGuid, out pane);
+
+      // Output the message
+      pane.OutputString(msg);
     }
   }
 }

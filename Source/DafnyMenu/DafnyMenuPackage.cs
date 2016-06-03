@@ -106,7 +106,6 @@ namespace DafnyLanguage.DafnyMenu
     private OleMenuCommand toggleAutomaticInductionCommand;
     private OleMenuCommand toggleBVDCommand;
     private OleMenuCommand diagnoseTimeoutsCommand;
-    private OleMenuCommand gotoDefinitionCommand;
 
     bool BVDDisabled;
 
@@ -193,11 +192,6 @@ namespace DafnyLanguage.DafnyMenu
         menuCommand.BeforeQueryStatus += menuCommand_BeforeQueryStatus;
         menuCommand.Enabled = true;
         mcs.AddCommand(menuCommand);
-
-        var gotoDefinitionCommandID = new CommandID(GuidList.guidDanfyContextMenuCmdSet, (int)PkgCmdIDList.cmdidGoToDefinition);
-        gotoDefinitionCommand = new OleMenuCommand(GotoDefinitionCallback, gotoDefinitionCommandID);
-        gotoDefinitionCommand.Enabled = true;
-        mcs.AddCommand(gotoDefinitionCommand);
 
       }
     }

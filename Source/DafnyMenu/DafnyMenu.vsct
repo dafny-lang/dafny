@@ -52,11 +52,8 @@
       <Group guid="guidDafnyMenuCmdSet" id="DafnyMenuGroup" priority="0x0600">
         <Parent guid="guidDafnyMenuPkg" id="DafnyMenu"/>
       </Group>
-      <Group guid="guidDanfyContextMenuCmdSet" id="ContextMenuGroup" priority="0x0600">
-       <Parent guid="guidSHLMainMenu" id="IDM_VS_CTXT_CODEWIN"/>
-      </Group>
     </Groups>
-
+    
     <!--Buttons section. -->
     <!--This section defines the elements the user can interact with, like a menu command or a button 
         or combo box in a toolbar. -->
@@ -85,7 +82,7 @@
         <CommandFlag>DefaultInvisible</CommandFlag>
         <CommandFlag>DynamicVisibility</CommandFlag>
         <Strings>
-          <ButtonText>Run verifier</ButtonText>
+          <ButtonText>Run verifier (F5)</ButtonText>
         </Strings>
       </Button>
 
@@ -94,7 +91,7 @@
         <CommandFlag>DefaultInvisible</CommandFlag>
         <CommandFlag>DynamicVisibility</CommandFlag>
         <Strings>
-          <ButtonText>Stop verifier</ButtonText>
+          <ButtonText>Stop verifier (F5)</ButtonText>
         </Strings>
       </Button>
 
@@ -143,13 +140,6 @@
           <ButtonText>Re-verify to diagnose timeouts</ButtonText>
         </Strings>
       </Button>
-      
-      <Button guid="guidDanfyContextMenuCmdSet" id="cmdidGoToDefinition" priority="0x0108" type="Button">
-        <Parent guid="guidDanfyContextMenuCmdSet" id="ContextMenuGroup" />
-        <Strings>
-          <ButtonText>GoTo Definition</ButtonText>
-        </Strings>
-      </Button>
 
     </Buttons>
   
@@ -185,11 +175,6 @@
       <IDSymbol name="cmdidToggleMoreAdvancedSnapshotVerification" value="0x0105" />
       <IDSymbol name="cmdidToggleAutomaticInduction" value="0x0106" />
       <IDSymbol name="cmdidDiagnoseTimeouts" value="0x0107" />
-    </GuidSymbol>
-
-    <GuidSymbol name="guidDanfyContextMenuCmdSet" value="{5FC4BE4C-AB07-4FD2-A255-6E69E049C113}">
-      <IDSymbol name="ContextMenuGroup" value="0x01019" />
-      <IDSymbol name="cmdidGoToDefinition" value="0x0108" />
     </GuidSymbol>
     <!--
     <GuidSymbol name="guidImages" value="{0176b216-66c6-49f6-a97d-0273c57a7da6}" >
