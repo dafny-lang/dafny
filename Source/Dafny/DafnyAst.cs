@@ -7704,7 +7704,7 @@ namespace Microsoft.Dafny {
         ie.Var = this.Var; ie.Type = this.Var.Type;  // resolve here
         this.Expr = ie;
       } else {
-        var dtValue = new DatatypeValue(this.tok, this.Ctor.EnclosingDatatype.Name, this.Id, this.Arguments.ConvertAll(arg => arg.Expr));
+        var dtValue = new DatatypeValue(this.tok, this.Ctor.EnclosingDatatype.Name, this.Id, this.Arguments == null ? new List<Expression>() : this.Arguments.ConvertAll(arg => arg.Expr));
         dtValue.Ctor = this.Ctor;  // resolve here
         dtValue.InferredTypeArgs.AddRange(dtvTypeArgs);  // resolve here
         dtValue.Type = new UserDefinedType(this.tok, this.Ctor.EnclosingDatatype.Name, this.Ctor.EnclosingDatatype, dtvTypeArgs);
@@ -7717,9 +7717,11 @@ namespace Microsoft.Dafny {
         if (Var != null) {
           yield return Var;
         } else {
-          foreach (var arg in Arguments) {
-            foreach (var bv in arg.Vars) {
-              yield return bv;
+          if (Arguments != null) {
+            foreach (var arg in Arguments) {
+              foreach (var bv in arg.Vars) {
+                yield return bv;
+              }
             }
           }
         }
