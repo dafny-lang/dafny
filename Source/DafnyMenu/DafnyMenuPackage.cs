@@ -48,6 +48,17 @@ namespace DafnyLanguage.DafnyMenu
     void RunVerifier(IWpfTextView activeTextView);
 
 
+    bool StopResolverCommandEnabled(IWpfTextView activeTextView);
+
+
+    void StopResolver(IWpfTextView activeTextView);
+
+
+    bool RunResolverCommandEnabled(IWpfTextView activeTextView);
+
+
+    void RunResolver(IWpfTextView activeTextView);
+
     bool MenuEnabled(IWpfTextView activeTextView);
 
 
@@ -101,6 +112,8 @@ namespace DafnyLanguage.DafnyMenu
     private OleMenuCommand menuCommand;
     private OleMenuCommand runVerifierCommand;
     private OleMenuCommand stopVerifierCommand;
+    private OleMenuCommand runResolverCommand;
+    private OleMenuCommand stopResolverCommand;
     private OleMenuCommand toggleSnapshotVerificationCommand;
     private OleMenuCommand toggleMoreAdvancedSnapshotVerificationCommand;
     private OleMenuCommand toggleAutomaticInductionCommand;
@@ -158,6 +171,18 @@ namespace DafnyLanguage.DafnyMenu
         stopVerifierCommand.Enabled = true;
         stopVerifierCommand.BeforeQueryStatus += stopVerifierCommand_BeforeQueryStatus;
         mcs.AddCommand(stopVerifierCommand);
+
+        var runResolverCommandID = new CommandID(GuidList.guidDafnyMenuCmdSet, (int)PkgCmdIDList.cmdidRunResolver);
+        runResolverCommand = new OleMenuCommand(RunResolverCallback, runResolverCommandID);
+        runResolverCommand.Enabled = true;
+        runResolverCommand.BeforeQueryStatus += runResolverCommand_BeforeQueryStatus;
+        mcs.AddCommand(runResolverCommand);
+
+        var stopResolverCommandID = new CommandID(GuidList.guidDafnyMenuCmdSet, (int)PkgCmdIDList.cmdidStopResolver);
+        stopResolverCommand = new OleMenuCommand(StopResolverCallback, stopResolverCommandID);
+        stopResolverCommand.Enabled = true;
+        stopResolverCommand.BeforeQueryStatus += stopResolverCommand_BeforeQueryStatus;
+        mcs.AddCommand(stopResolverCommand);
 
         var toggleSnapshotVerificationCommandID = new CommandID(GuidList.guidDafnyMenuCmdSet, (int)PkgCmdIDList.cmdidToggleSnapshotVerification);
         toggleSnapshotVerificationCommand = new OleMenuCommand(ToggleSnapshotVerificationCallback, toggleSnapshotVerificationCommandID);
@@ -265,9 +290,9 @@ namespace DafnyLanguage.DafnyMenu
       var atv = ActiveTextView;
       if (MenuProxy != null && atv != null)
       {
-        var disabled = MenuProxy.StopVerifierCommandEnabled(atv);
-        stopVerifierCommand.Visible = !disabled;
-        stopVerifierCommand.Enabled = !disabled;
+        var enabled = MenuProxy.StopVerifierCommandEnabled(atv);
+        stopVerifierCommand.Visible = enabled;
+        stopVerifierCommand.Enabled = enabled;
       }
     }
 
@@ -297,6 +322,37 @@ namespace DafnyLanguage.DafnyMenu
       if (MenuProxy != null && atv != null)
       {
         MenuProxy.RunVerifier(atv);
+      }
+    }
+
+    void stopResolverCommand_BeforeQueryStatus(object sender, EventArgs e) {
+      var atv = ActiveTextView;
+      if (MenuProxy != null && atv != null) {
+        var enabled = MenuProxy.StopResolverCommandEnabled(atv);
+        stopResolverCommand.Visible = enabled;
+        stopResolverCommand.Enabled = enabled;
+      }
+    }
+
+    void StopResolverCallback(object sender, EventArgs e) {
+      var atv = ActiveTextView;
+      if (MenuProxy != null && atv != null) {
+        MenuProxy.StopResolver(atv);
+      }
+    }
+    void runResolverCommand_BeforeQueryStatus(object sender, EventArgs e) {
+      var atv = ActiveTextView;
+      if (MenuProxy != null && atv != null) {
+        var enabled = MenuProxy.RunResolverCommandEnabled(atv);
+        runResolverCommand.Visible = enabled;
+        runResolverCommand.Enabled = enabled;
+      }
+    }
+
+    void RunResolverCallback(object sender, EventArgs e) {
+      var atv = ActiveTextView;
+      if (MenuProxy != null && atv != null) {
+        MenuProxy.RunResolver(atv);
       }
     }
 

@@ -33,6 +33,7 @@ namespace DafnyLanguage
           switch (prgCmds[0].cmdID) {
             case (uint)VSConstants.VSStd97CmdID.GotoDefn: // F12
             case (uint)VSConstants.VSStd97CmdID.Start:    // F5
+            case (uint)VSConstants.VSStd97CmdID.StepInto: // F11 
               prgCmds[0].cmdf = (uint) OLECMDF.OLECMDF_SUPPORTED;
               prgCmds[0].cmdf |= (uint)OLECMDF.OLECMDF_ENABLED;
               return VSConstants.S_OK;
@@ -46,10 +47,17 @@ namespace DafnyLanguage
       if (pguidCmdGroup == typeof(VSConstants.VSStd97CmdID).GUID) {
         switch (nCmdID) {
           case (uint)VSConstants.VSStd97CmdID.Start:    // F5
-            if (!DafnyClassifier.DafnyMenuPackage.MenuProxy.StopVerifierCommandEnabled(m_textView)) {
+            if (DafnyClassifier.DafnyMenuPackage.MenuProxy.StopVerifierCommandEnabled(m_textView)) {
               DafnyClassifier.DafnyMenuPackage.MenuProxy.StopVerifier(m_textView);
             } else {
               DafnyClassifier.DafnyMenuPackage.MenuProxy.RunVerifier(m_textView);
+            }
+            return VSConstants.S_OK;
+          case (uint)VSConstants.VSStd97CmdID.StepInto:
+            if (DafnyClassifier.DafnyMenuPackage.MenuProxy.StopResolverCommandEnabled(m_textView)) {
+              DafnyClassifier.DafnyMenuPackage.MenuProxy.StopResolver(m_textView);
+            } else {
+              DafnyClassifier.DafnyMenuPackage.MenuProxy.RunResolver(m_textView);
             }
             return VSConstants.S_OK;
           case (uint)VSConstants.VSStd97CmdID.GotoDefn: // F12

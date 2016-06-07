@@ -47,8 +47,9 @@ namespace DafnyLanguage
     {
       DafnyLanguage.ProgressTagger tagger;
       return activeTextView != null
+                    && StopResolverCommandEnabled(activeTextView) // verifier can start/stop only when resolver is running.
                     && DafnyLanguage.ProgressTagger.ProgressTaggers.TryGetValue(activeTextView.TextBuffer, out tagger)
-                    && tagger != null && tagger.VerificationDisabled;
+                    && tagger != null && !tagger.VerificationDisabled;
     }
 
     public void StopVerifier(IWpfTextView activeTextView)
@@ -65,6 +66,7 @@ namespace DafnyLanguage
     {
       DafnyLanguage.ProgressTagger tagger;
       return activeTextView != null
+                 && StopResolverCommandEnabled(activeTextView) // verifier can start/stop only when resolver is running.       
                  && DafnyLanguage.ProgressTagger.ProgressTaggers.TryGetValue(activeTextView.TextBuffer, out tagger)
                  && tagger != null && tagger.VerificationDisabled;
     }
@@ -75,6 +77,46 @@ namespace DafnyLanguage
       if (activeTextView != null && DafnyLanguage.ProgressTagger.ProgressTaggers.TryGetValue(activeTextView.TextBuffer, out tagger))
       {
         MenuProxy.Output("verifier manually started\n");
+        tagger.StartVerification();
+      }
+    }
+
+    public bool StopResolverCommandEnabled(IWpfTextView activeTextView) {
+      DafnyLanguage.ResolverTagger resolver;
+      return activeTextView != null
+                    && DafnyLanguage.ResolverTagger.ResolverTaggers.TryGetValue(activeTextView.TextBuffer, out resolver)
+                    && resolver != null && resolver.RunResolver;
+    }
+
+    public void StopResolver(IWpfTextView activeTextView) {
+      DafnyLanguage.ResolverTagger resolver;
+      if (activeTextView != null && DafnyLanguage.ResolverTagger.ResolverTaggers.TryGetValue(activeTextView.TextBuffer, out resolver)) {
+        MenuProxy.Output("resolver and verifier manually stopped\n");
+        resolver.RunResolver = false;
+        resolver.Program = null;
+      }
+      DafnyLanguage.ProgressTagger tagger;
+      if (activeTextView != null && DafnyLanguage.ProgressTagger.ProgressTaggers.TryGetValue(activeTextView.TextBuffer, out tagger)) {
+        tagger.StartVerification();
+      }
+    }
+
+    public bool RunResolverCommandEnabled(IWpfTextView activeTextView) {
+      DafnyLanguage.ResolverTagger resolver;
+      return activeTextView != null
+                 && DafnyLanguage.ResolverTagger.ResolverTaggers.TryGetValue(activeTextView.TextBuffer, out resolver)
+                 && resolver != null && !resolver.RunResolver;
+    }
+
+    public void RunResolver(IWpfTextView activeTextView) {
+      DafnyLanguage.ResolverTagger resolver;
+      if (activeTextView != null && DafnyLanguage.ResolverTagger.ResolverTaggers.TryGetValue(activeTextView.TextBuffer, out resolver)) {
+        MenuProxy.Output("resolver and verifier manually started\n");
+        resolver.RunResolver = true;
+        resolver.ResolveBuffer(null, null);
+      }
+      DafnyLanguage.ProgressTagger tagger;
+      if (activeTextView != null && DafnyLanguage.ProgressTagger.ProgressTaggers.TryGetValue(activeTextView.TextBuffer, out tagger)) {
         tagger.StartVerification();
       }
     }
