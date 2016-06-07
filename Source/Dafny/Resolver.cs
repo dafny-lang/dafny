@@ -884,12 +884,22 @@ namespace Microsoft.Dafny
         } else if (tld is ModuleFacadeDecl) {
           var subdecl = (ModuleFacadeDecl)tld;
           if (!bindings.BindName(subdecl.Name, subdecl, null)) {
-            reporter.Error(MessageSource.Resolver, subdecl.tok, "Duplicate module name: {0}", subdecl.Name);
+            if (tld.Module.IsDefaultModule) {
+              // the import is not in a module.
+              reporter.Error(MessageSource.Resolver, subdecl.tok, "Can't import module {0} when not inside of a module", subdecl.Name);
+            } else {
+              reporter.Error(MessageSource.Resolver, subdecl.tok, "Duplicate module name: {0}", subdecl.Name);
+            }
           }
         } else if (tld is AliasModuleDecl) {
           var subdecl = (AliasModuleDecl)tld;
           if (!bindings.BindName(subdecl.Name, subdecl, null)) {
-            reporter.Error(MessageSource.Resolver, subdecl.tok, "Duplicate module name: {0}", subdecl.Name);
+            if (tld.Module.IsDefaultModule) {
+              // the import is not in a module.
+              reporter.Error(MessageSource.Resolver, subdecl.tok, "Can't import module {0} when not inside of a module", subdecl.Name);
+            } else {
+              reporter.Error(MessageSource.Resolver, subdecl.tok, "Duplicate module name: {0}", subdecl.Name);
+            }
           }
         }
       }
