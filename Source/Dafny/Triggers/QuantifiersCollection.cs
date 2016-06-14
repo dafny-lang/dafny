@@ -60,7 +60,17 @@ namespace Microsoft.Dafny.Triggers {
     /// </summary>
     /// <param name="triggersCollector"></param>
     void CollectAndShareTriggers(TriggersCollector triggersCollector) {
-      var pool = quantifiers.SelectMany(q => triggersCollector.CollectTriggers(q.quantifier));
+      List<TriggerTerm> pool = new List<TriggerTerm>();
+      foreach (var q in quantifiers) {
+        var candidates = triggersCollector.CollectTriggers(q.quantifier).Deduplicate(TriggerTerm.Eq);
+        // filter out the candidates that was "second-class"
+        var filtered = TriggerUtils.Filter(candidates, tr => tr, (tr, _) => !tr.IsTranslatedToFunctionCall(), (tr, _) => { }).ToList();
+        // if there are only "second-class" candidates, add them back.
+        if (filtered.Count == 0) {
+          filtered = candidates;
+        }
+        pool.AddRange(filtered);
+      }
       var distinctPool = pool.Deduplicate(TriggerTerm.Eq);
 
       foreach (var q in quantifiers) {

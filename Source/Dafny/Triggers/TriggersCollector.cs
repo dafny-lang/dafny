@@ -42,6 +42,11 @@ namespace Microsoft.Dafny.Triggers {
     internal static bool Eq(TriggerTerm t1, TriggerTerm t2) {
       return ExprExtensions.ExpressionEq(t1.Expr, t2.Expr);
     }
+
+    internal bool IsTranslatedToFunctionCall() {
+      return (TriggersCollector.TranslateToFunctionCall(this.Expr)) ? true : false;
+    }
+
   }
 
   class TriggerCandidate {
@@ -231,7 +236,7 @@ namespace Microsoft.Dafny.Triggers {
 
     // math operations can be turned into a Boogie-level function as in the 
     // case with /noNLarith.
-    public bool TranslateToFunctionCall(Expression expr) {
+    public static bool TranslateToFunctionCall(Expression expr) {
       if (!(expr is BinaryExpr)) {
         return false;
       }
