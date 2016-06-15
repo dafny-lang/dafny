@@ -83,7 +83,12 @@ namespace Microsoft.Dafny
       var forallvisiter = new ForAllStmtVisitor(reporter);
       foreach (var decl in ModuleDefinition.AllCallables(m.TopLevelDecls)) {
         forallvisiter.Visit(decl, true);
+        if (decl is FixpointLemma) {
+          var prefixLemma = ((FixpointLemma)decl).PrefixLemma;
+          forallvisiter.Visit(prefixLemma, true);
+        }
       }
+      
     }
 
     internal class ForAllStmtVisitor : TopDownVisitor<bool>

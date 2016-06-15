@@ -6034,6 +6034,12 @@ namespace Microsoft.Dafny
           if (s.Body != null) {
             CheckForallStatementBodyRestrictions(s.Body, s.Kind);
           }
+
+          if (s.ForallExpressions != null) {
+            foreach (Expression expr in s.ForallExpressions) {
+              ResolveExpression(expr, new ResolveOpts(codeContext, true));
+            }
+          }
         }
 
       } else if (stmt is ModifyStmt) {
