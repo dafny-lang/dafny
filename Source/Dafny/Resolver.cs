@@ -1754,7 +1754,15 @@ namespace Microsoft.Dafny
               foreach (var e in coConclusions) {
                 var fce = e as FunctionCallExpr;
                 if (fce != null) {  // the other possibility is that "e" is a BinaryExpr
-                  focalPredicates.Add((CoPredicate)fce.Function);
+                  CoPredicate predicate = (CoPredicate)fce.Function;
+                  focalPredicates.Add(predicate);
+                  // For every focal predicate P in S, add to S all co-predicates in the same strongly connected 
+                  // component (in the call graph) as P 
+                  foreach (var node in predicate.EnclosingClass.Module.CallGraph.GetSCC(predicate)) {
+                    if (node is CoPredicate) {
+                      focalPredicates.Add((CoPredicate)node);
+                    }
+                  }
                 }
               }
             }
@@ -1769,7 +1777,15 @@ namespace Microsoft.Dafny
               prefixLemma.Req.Add(new MaybeFreeExpression(pre, p.IsFree));
               foreach (var e in antecedents) {
                 var fce = (FunctionCallExpr)e;  // we expect "antecedents" to contain only FunctionCallExpr's
-                focalPredicates.Add((InductivePredicate)fce.Function);
+                InductivePredicate predicate = (InductivePredicate)fce.Function;
+                focalPredicates.Add(predicate);
+                // For every focal predicate P in S, add to S all inductive predicates in the same strongly connected 
+                // component (in the call graph) as P 
+                foreach (var node in predicate.EnclosingClass.Module.CallGraph.GetSCC(predicate)) {
+                  if (node is InductivePredicate) {
+                    focalPredicates.Add((InductivePredicate)node);
+                  }
+                }
               }
             }
           }
