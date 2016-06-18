@@ -16,6 +16,17 @@ See [installation instructions](https://github.com/Microsoft/dafny/wiki/INSTALL)
 
 # Read more
 
+Here are some ways to get started with Dafny:
+
+* [Online tutorial](http://rise4fun.com/Dafny/tutorial/guide), focusing mostly on simple imperative programs 
+* [3-page tutorial notes](http://research.microsoft.com/en-us/um/people/leino/papers/krml233.pdf) with examples (ICSE 2013) 
+* Dafny [Quick Reference](http://research.microsoft.com/en-us/projects/dafny/reference.aspx)
+* Language reference for the [Dafny type system](http://research.microsoft.com/en-us/um/people/leino/papers/krml243.html), which also describes available expressions for each type 
+* [Cheatsheet](https://docs.google.com/document/d/1kz5_yqzhrEyXII96eCF1YoHZhnb_6dzv-K3u79bMMis/edit?pref=2&pli=1): basic Dafny syntax on two pages 
+* Videos at [Verification Corner](https://www.youtube.com/channel/UCP2eLEql4tROYmIYm5mA27A)
+
+Notes on installation:
+
 * How to [install Dafny](http://dafny.codeplex.com/wikipage?title=Binaries&referringTitle=Home)
 * How to install the new [Dafny mode for Emacs](https://github.com/boogie-org/boogie-friends)
 * For more papers on Dafny, see the Dafny section of Rustan Leino's [paper page](http://research.microsoft.com/en-us/um/people/leino/papers.html)
