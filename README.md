@@ -1,4 +1,4 @@
-![Dafny](dafny-thumbnail.jpg)
+![Dafny](dafny-banner.png)
 
 Dafny is a programming language with a program verifier. As you type in your program, the verifier constantly looks over your shoulders and flags any errors. Dafny is currently spread across 3 sites:
 
