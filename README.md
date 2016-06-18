@@ -3,7 +3,7 @@
 Dafny is a programming language with a program verifier. As you type in your program, the verifier constantly looks over your shoulders and flags any errors. Dafny is currently spread across 3 sites:
 
 * [Dafny's homepage](http://research.microsoft.com/dafny), which contains some information about Dafny.
-* This site, which includes sources, [binary downloads](https://github.com/Microsoft/dafny/releases) for Windows, GNU/Linux and FreeBSD, sources, and the issue tracker (old issues are on [codeplex](https://dafny.codeplex.com/workitem/list/basic)).
+* This site, which includes sources, [binary downloads](https://github.com/Microsoft/dafny/releases) for Windows, Mac, GNU/Linux, and FreeBSD, sources, and the issue tracker (old issues are on [codeplex](https://dafny.codeplex.com/workitem/list/basic)).
 * The [Rise4fun site](http://rise4fun.com/dafny), where you can verify Dafny programs in your web browser.
 
 # Try Dafny
