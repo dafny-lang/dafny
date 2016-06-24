@@ -2751,6 +2751,7 @@ namespace Microsoft.Dafny {
     bool assertAsAssume = false; // generate assume statements instead of assert statements
     public enum StmtType { NONE, ASSERT, ASSUME, FORALL };
     public StmtType stmtContext = StmtType.NONE;  // the Statement that is currently being translated
+    public bool adjustFuelForExists = true;  // fuel need to be adjusted for exists based on whether exists is in assert or assume stmt. 
     
     public readonly FreshIdGenerator defaultIdGenerator = new FreshIdGenerator();
     
@@ -7290,6 +7291,7 @@ namespace Microsoft.Dafny {
       Contract.Ensures(fuelContext == Contract.OldValue(fuelContext));
 
       stmtContext = StmtType.NONE;
+      adjustFuelForExists = true;  // fuel for exists might need to be adjusted based on whether it's in an assert or assume stmt.
       if (stmt is PredicateStmt) {
         var stmtBuilder = new Bpl.StmtListBuilder();
         this.fuelContext = FuelSetting.ExpandFuelContext(stmt.Attributes, stmt.Tok, this.fuelContext, this.reporter);
@@ -7319,13 +7321,21 @@ namespace Microsoft.Dafny {
             }
             stmtContext = StmtType.NONE; // done with translating assert stmt
             if (!defineFuel) {
+              // Adding the assume stmt, resetting the stmtContext
+              stmtContext = StmtType.ASSUME;
+              adjustFuelForExists = true;
               b.Add(TrAssumeCmd(stmt.Tok, etran.TrExpr(s.Expr)));
+              stmtContext = StmtType.NONE;
             }
           }
           if (defineFuel) {
             var ifCmd = new Bpl.IfCmd(s.Tok, null, b.Collect(s.Tok), null, null);
             builder.Add(ifCmd);
+            // Adding the assume stmt, resetting the stmtContext
+            stmtContext = StmtType.ASSUME;
+            adjustFuelForExists = true;
             builder.Add(TrAssumeCmd(stmt.Tok, etran.TrExpr(s.Expr)));
+            stmtContext = StmtType.NONE;
           }
         } else if (stmt is AssumeStmt) {
           AddComment(builder, stmt, "assume statement");
@@ -11336,9 +11346,10 @@ namespace Microsoft.Dafny {
           FunctionCallExpr e = (FunctionCallExpr)expr;
           Bpl.Expr layerArgument;
           var etran = this;
-          if (e.Function.ContainsQuantifier && translator.stmtContext == StmtType.ASSUME) {
+          if (e.Function.ContainsQuantifier && translator.stmtContext == StmtType.ASSUME && translator.adjustFuelForExists) {
             // we need to increase fuel functions that contain quantifier expr in the assume context.
             etran =  etran.LayerOffset(1);
+            translator.adjustFuelForExists = false;
           } 
           if (e.Function.IsFuelAware()) {
             Statistics_CustomLayerFunctionCount++;
@@ -11863,13 +11874,18 @@ namespace Microsoft.Dafny {
             List<Variable> tyvars = translator.MkTyParamBinders(e.TypeArgs);
             List<Variable> bvars = new List<Variable>();
             var bodyEtran = this;
-            if (e is ExistsExpr && translator.stmtContext == StmtType.ASSERT) {
+            if (e is ExistsExpr && translator.stmtContext == StmtType.ASSERT && translator.adjustFuelForExists) {
               // assert exists need decrease fuel by 1
               bodyEtran = bodyEtran.DecreaseFuel(1);
-            } else if (e is ExistsExpr && translator.stmtContext == StmtType.ASSUME) {
+              // set adjustFuelForExists to false so that we don't keep decrease the fuel in cases like the expr below.
+              // assert exists p:int :: exists t:T :: ToInt(t) > 0;
+              translator.adjustFuelForExists = false;
+            } else if (e is ExistsExpr && translator.stmtContext == StmtType.ASSUME && translator.adjustFuelForExists) {
               // assume exists need increase fuel by 1
               bodyEtran = bodyEtran.LayerOffset(1);
+              translator.adjustFuelForExists = false;
             }
+            
             var etran = translator.stmtContext == StmtType.FORALL ? this.Old : this;
             bool _scratch = true;
 
@@ -13512,6 +13528,7 @@ namespace Microsoft.Dafny {
             && ((QuantifierExpr)expr).TypeArgs.Count == 0) {
         // produce two translated versions of the quantifier, one that uses #1 functions (that is, layerOffset 0)
         // for checking and one that uses #2 functions (that is, layerOffset 1) for assuming.
+        adjustFuelForExists = false; // based on the above comment, we use the etran with correct fuel amount already. No need to adjust anymore.
         var etranBoost = etran.LayerOffset(1);
         var r = etran.TrExpr(expr);
         var needsTokenAdjustment = TrSplitNeedsTokenAdjustment(expr);
