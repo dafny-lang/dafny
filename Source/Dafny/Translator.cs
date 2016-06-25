@@ -5386,79 +5386,8 @@ namespace Microsoft.Dafny {
         }
 
       } else if (expr is LetExpr) {
-        var e = (LetExpr)expr;
-        if (e.Exact) {
-          var substMap = SetupBoundVarsAsLocals(e.BoundVars.ToList<BoundVar>(), builder, locals, etran);
-          Contract.Assert(e.LHSs.Count == e.RHSs.Count);  // checked by resolution
-          var varNameGen = CurrentIdGenerator.NestedFreshIdGenerator("let#");
-          for (int i = 0; i < e.LHSs.Count; i++) {
-            var pat = e.LHSs[i];
-            var rhs = e.RHSs[i];
-            var nm = varNameGen.FreshId(string.Format("#{0}#", i));
-            var r = new Bpl.LocalVariable(pat.tok, new Bpl.TypedIdent(pat.tok, nm, TrType(rhs.Type)));
-            locals.Add(r);
-            var rIe = new Bpl.IdentifierExpr(pat.tok, r);
-            CheckWellformedWithResult(e.RHSs[i], options, rIe, pat.Expr.Type, locals, builder, etran);
-            CheckCasePatternShape(pat, rIe, builder);
-            builder.Add(TrAssumeCmd(pat.tok, Bpl.Expr.Eq(etran.TrExpr(Substitute(pat.Expr, null, substMap)), rIe)));
-          }
-          CheckWellformedWithResult(Substitute(e.Body, null, substMap), options, result, resultType, locals, builder, etran);
-          result = null;
-
-        } else {
-          // CheckWellformed(var b :| RHS(b); Body(b)) =
-          //   var b where typeAntecedent;
-          //   CheckWellformed(RHS(b));
-          //   assert (exists b' :: typeAntecedent' && RHS(b'));
-          //   assume RHS(b);
-          //   CheckWellformed(Body(b));
-          //   If non-ghost:  var b' where typeAntecedent; assume RHS(b'); assert Body(b) == Body(b');
-          Contract.Assert(e.RHSs.Count == 1);  // this is true of all successfully resolved let-such-that expressions
-          List<BoundVar> lhsVars = e.BoundVars.ToList<BoundVar>();
-          var substMap = SetupBoundVarsAsLocals(lhsVars, builder, locals, etran);
-          var rhs = Substitute(e.RHSs[0], null, substMap);
-          CheckWellformed(rhs, options, locals, builder, etran);
-          List<Tuple<List<BoundVar>, Expression>> partialGuesses = GeneratePartialGuesses(lhsVars, e.RHSs[0]);
-          Bpl.Expr w = Bpl.Expr.False;
-          foreach (var tup in partialGuesses) {
-            var body = etran.TrExpr(tup.Item2);
-            if (tup.Item1.Count != 0) {
-              var bvs = new List<Variable>();
-              var typeAntecedent = etran.TrBoundVariables(tup.Item1, bvs);
-              var triggers = TrTrigger(etran, e.Attributes, e.tok);
-              body = new Bpl.ExistsExpr(e.tok, bvs, triggers, BplAnd(typeAntecedent, body));
-            }
-            w = BplOr(body, w);
-          }
-          builder.Add(Assert(e.tok, w, "cannot establish the existence of LHS values that satisfy the such-that predicate"));
-          builder.Add(TrAssumeCmd(e.tok, etran.TrExpr(rhs)));
-          var letBody = Substitute(e.Body, null, substMap);
-          CheckWellformed(letBody, options, locals, builder, etran);
-          if (e.Constraint_Bounds != null) {
-            Contract.Assert(!e.BoundVars.All(bv => bv.IsGhost));
-            var substMap_prime = SetupBoundVarsAsLocals(lhsVars, builder, locals, etran);
-            var rhs_prime = Substitute(e.RHSs[0], null, substMap_prime);
-            var letBody_prime = Substitute(e.Body, null, substMap_prime);
-            builder.Add(TrAssumeCmd(e.tok, CanCallAssumption(rhs_prime, etran)));
-            builder.Add(TrAssumeCmd(e.tok, etran.TrExpr(rhs_prime)));
-            builder.Add(TrAssumeCmd(e.tok, CanCallAssumption(letBody_prime, etran)));
-            var eq = Expression.CreateEq(letBody, letBody_prime, e.Body.Type);
-            builder.Add(Assert(e.tok, etran.TrExpr(eq), "to be compilable, the value of a let-such-that expression must be uniquely determined"));
-          }
-          // If we are supposed to assume "result" to equal this expression, then use the body of the let-such-that, not the generated $let#... function
-          if (result != null) {
-            Contract.Assert(resultType != null);
-            var bResult = etran.TrExpr(letBody);
-            CheckSubrange(letBody.tok, bResult, resultType, builder);
-            builder.Add(TrAssumeCmd(letBody.tok, Bpl.Expr.Eq(result, bResult)));
-            builder.Add(TrAssumeCmd(letBody.tok, CanCallAssumption(letBody, etran)));
-            builder.Add(new CommentCmd("CheckWellformedWithResult: Let expression"));
-            builder.Add(TrAssumeCmd(letBody.tok, MkIsAlloc(result, resultType, etran.HeapExpr)));
-            builder.Add(TrAssumeCmd(letBody.tok, MkIs(result, resultType)));
-            result = null;
-          }
-        }
-
+        result = CheckWellformedLetExprWithResult((LetExpr)expr, options, result, resultType, locals, builder, etran, true);
+      
       } else if (expr is NamedExpr) {
         var e = (NamedExpr)expr;
         CheckWellformedWithResult(e.Body, options, result, resultType, locals, builder, etran);
@@ -5550,7 +5479,16 @@ namespace Microsoft.Dafny {
         CheckWellformed(e.Test, options, locals, builder, etran);
         var bThen = new Bpl.StmtListBuilder();
         var bElse = new Bpl.StmtListBuilder();
-        CheckWellformedWithResult(e.Thn, options, result, resultType, locals, bThen, etran);
+        if (e.IsExistentialGuard) {
+          // if it is ExistentialGuard, e.Thn is a let-such-that created from the ExistentialGuard.
+          // We don't need to do well-formedness check on the Rhs of the LetExpr since it
+          // has already been checked in e.Test
+          var letExpr = (LetExpr)e.Thn;
+          Contract.Assert(letExpr != null);
+          CheckWellformedLetExprWithResult(letExpr, options, result, resultType, locals, bThen, etran, false);
+        } else {
+          CheckWellformedWithResult(e.Thn, options, result, resultType, locals, bThen, etran);
+        }
         CheckWellformedWithResult(e.Els, options, result, resultType, locals, bElse, etran);
         builder.Add(new Bpl.IfCmd(expr.tok, etran.TrExpr(e.Test), bThen.Collect(expr.tok), null, bElse.Collect(expr.tok)));
         result = null;
@@ -5621,6 +5559,84 @@ namespace Microsoft.Dafny {
         builder.Add(TrAssumeCmd(expr.tok, MkIsAlloc(result, resultType, etran.HeapExpr)));
         builder.Add(TrAssumeCmd(expr.tok, MkIs(result, resultType)));
       }
+    }
+
+    Bpl.Expr CheckWellformedLetExprWithResult(LetExpr e, WFOptions options, Bpl.Expr result, Type resultType, List<Bpl.Variable> locals,
+                                Bpl.StmtListBuilder builder, ExpressionTranslator etran, bool checkRhs) {
+      if (e.Exact) {
+        var substMap = SetupBoundVarsAsLocals(e.BoundVars.ToList<BoundVar>(), builder, locals, etran);
+        Contract.Assert(e.LHSs.Count == e.RHSs.Count);  // checked by resolution
+        var varNameGen = CurrentIdGenerator.NestedFreshIdGenerator("let#");
+        for (int i = 0; i < e.LHSs.Count; i++) {
+          var pat = e.LHSs[i];
+          var rhs = e.RHSs[i];
+          var nm = varNameGen.FreshId(string.Format("#{0}#", i));
+          var r = new Bpl.LocalVariable(pat.tok, new Bpl.TypedIdent(pat.tok, nm, TrType(rhs.Type)));
+          locals.Add(r);
+          var rIe = new Bpl.IdentifierExpr(pat.tok, r);
+          CheckWellformedWithResult(e.RHSs[i], options, rIe, pat.Expr.Type, locals, builder, etran);
+          CheckCasePatternShape(pat, rIe, builder);
+          builder.Add(TrAssumeCmd(pat.tok, Bpl.Expr.Eq(etran.TrExpr(Substitute(pat.Expr, null, substMap)), rIe)));
+        }
+        CheckWellformedWithResult(Substitute(e.Body, null, substMap), options, result, resultType, locals, builder, etran);
+        result = null;
+
+      } else {
+        // CheckWellformed(var b :| RHS(b); Body(b)) =
+        //   var b where typeAntecedent;
+        //   CheckWellformed(RHS(b));
+        //   assert (exists b' :: typeAntecedent' && RHS(b'));
+        //   assume RHS(b);
+        //   CheckWellformed(Body(b));
+        //   If non-ghost:  var b' where typeAntecedent; assume RHS(b'); assert Body(b) == Body(b');
+        Contract.Assert(e.RHSs.Count == 1);  // this is true of all successfully resolved let-such-that expressions
+        List<BoundVar> lhsVars = e.BoundVars.ToList<BoundVar>();
+        var substMap = SetupBoundVarsAsLocals(lhsVars, builder, locals, etran);
+        var rhs = Substitute(e.RHSs[0], null, substMap);
+        if (checkRhs) {
+          CheckWellformed(rhs, options, locals, builder, etran);
+          List<Tuple<List<BoundVar>, Expression>> partialGuesses = GeneratePartialGuesses(lhsVars, e.RHSs[0]);
+          Bpl.Expr w = Bpl.Expr.False;
+          foreach (var tup in partialGuesses) {
+            var body = etran.TrExpr(tup.Item2);
+            if (tup.Item1.Count != 0) {
+              var bvs = new List<Variable>();
+              var typeAntecedent = etran.TrBoundVariables(tup.Item1, bvs);
+              var triggers = TrTrigger(etran, e.Attributes, e.tok);
+              body = new Bpl.ExistsExpr(e.tok, bvs, triggers, BplAnd(typeAntecedent, body));
+            }
+            w = BplOr(body, w);
+          }
+          builder.Add(Assert(e.tok, w, "cannot establish the existence of LHS values that satisfy the such-that predicate"));
+        }
+        builder.Add(TrAssumeCmd(e.tok, etran.TrExpr(rhs)));
+        var letBody = Substitute(e.Body, null, substMap);
+        CheckWellformed(letBody, options, locals, builder, etran);
+        if (e.Constraint_Bounds != null) {
+          Contract.Assert(!e.BoundVars.All(bv => bv.IsGhost));
+          var substMap_prime = SetupBoundVarsAsLocals(lhsVars, builder, locals, etran);
+          var rhs_prime = Substitute(e.RHSs[0], null, substMap_prime);
+          var letBody_prime = Substitute(e.Body, null, substMap_prime);
+          builder.Add(TrAssumeCmd(e.tok, CanCallAssumption(rhs_prime, etran)));
+          builder.Add(TrAssumeCmd(e.tok, etran.TrExpr(rhs_prime)));
+          builder.Add(TrAssumeCmd(e.tok, CanCallAssumption(letBody_prime, etran)));
+          var eq = Expression.CreateEq(letBody, letBody_prime, e.Body.Type);
+          builder.Add(Assert(e.tok, etran.TrExpr(eq), "to be compilable, the value of a let-such-that expression must be uniquely determined"));
+        }
+        // If we are supposed to assume "result" to equal this expression, then use the body of the let-such-that, not the generated $let#... function
+        if (result != null) {
+          Contract.Assert(resultType != null);
+          var bResult = etran.TrExpr(letBody);
+          CheckSubrange(letBody.tok, bResult, resultType, builder);
+          builder.Add(TrAssumeCmd(letBody.tok, Bpl.Expr.Eq(result, bResult)));
+          builder.Add(TrAssumeCmd(letBody.tok, CanCallAssumption(letBody, etran)));
+          builder.Add(new CommentCmd("CheckWellformedWithResult: Let expression"));
+          builder.Add(TrAssumeCmd(letBody.tok, MkIsAlloc(result, resultType, etran.HeapExpr)));
+          builder.Add(TrAssumeCmd(letBody.tok, MkIs(result, resultType)));
+          result = null;
+        }
+      }
+      return result;
     }
 
     void CheckResultToBeInType(IToken tok, Expression expr, Type toType, List<Bpl.Variable> locals, StmtListBuilder builder, ExpressionTranslator etran) {
@@ -12148,7 +12164,7 @@ namespace Microsoft.Dafny {
             var test = new MemberSelectExpr(mc.tok, e.Source, mc.Ctor.QueryField.Name);
             test.Member = mc.Ctor.QueryField;  // resolve here
             test.Type = Type.Bool;  // resolve here
-            var ite = new ITEExpr(mc.tok, test, c, r);
+            var ite = new ITEExpr(mc.tok, false, test, c, r);
             ite.Type = e.Type;
             r = ite;
           }
@@ -14190,7 +14206,7 @@ namespace Microsoft.Dafny {
           Expression thn = Substitute(e.Thn);
           Expression els = Substitute(e.Els);
           if (test != e.Test || thn != e.Thn || els != e.Els) {
-            newExpr = new ITEExpr(expr.tok, test, thn, els);
+            newExpr = new ITEExpr(expr.tok, e.IsExistentialGuard, test, thn, els);
           }
 
         } else if (expr is ConcreteSyntaxExpression) {

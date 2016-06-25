@@ -5095,7 +5095,7 @@ namespace Microsoft.Dafny {
         } else if (other is TernaryCalcOp) {
           var a = Index;
           var b = ((TernaryCalcOp) other).Index;
-          var minIndex = new ITEExpr(a.tok, new BinaryExpr(a.tok, BinaryExpr.Opcode.Le, a, b), a, b);
+          var minIndex = new ITEExpr(a.tok, false, new BinaryExpr(a.tok, BinaryExpr.Opcode.Le, a, b), a, b);
           return new TernaryCalcOp(minIndex); // ToDo: if we could compare expressions for syntactic equalty, we could use this here to optimize
         } else {
           Contract.Assert(false);
@@ -5800,7 +5800,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(e1 != null);
       Contract.Requires(test.Type.IsBoolType && e0.Type.Equals(e1.Type));
       Contract.Ensures(Contract.Result<Expression>() != null);
-      var ite = new ITEExpr(test.tok, test, e0, e1);
+      var ite = new ITEExpr(test.tok, false, test, e0, e1);
       ite.Type = e0.type;  // resolve here
       return ite;
     }
@@ -7577,6 +7577,7 @@ namespace Microsoft.Dafny {
 
   public class ITEExpr : Expression
   {
+    public readonly bool IsExistentialGuard;
     public readonly Expression Test;
     public readonly Expression Thn;
     public readonly Expression Els;
@@ -7587,12 +7588,13 @@ namespace Microsoft.Dafny {
       Contract.Invariant(Els != null);
     }
 
-    public ITEExpr(IToken tok, Expression test, Expression thn, Expression els)
+    public ITEExpr(IToken tok, bool isExistentialGuard, Expression test, Expression thn, Expression els)
       : base(tok) {
       Contract.Requires(tok != null);
       Contract.Requires(test != null);
       Contract.Requires(thn != null);
       Contract.Requires(els != null);
+      this.IsExistentialGuard = isExistentialGuard;
       this.Test = test;
       this.Thn = thn;
       this.Els = els;
