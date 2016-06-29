@@ -425,7 +425,7 @@ namespace DafnyLanguage
         var s = (CallStmt)stmt;
         var method = s.Method;
         if (method != null) {
-          RecordUseAndDef(s.Tok, method.Name.Length, method.tok);
+          RecordUseAndDef(s.MethodSelect.tok, method.Name.Length, method.tok);
         }
       }
       foreach (var ee in stmt.SubExpressions) {
