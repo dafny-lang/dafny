@@ -1516,7 +1516,12 @@ namespace Microsoft.Dafny {
     static bool IsOpaqueFunction(Function f) {
       Contract.Requires(f != null);
       return Attributes.Contains(f.Attributes, "opaque") &&
-            !Attributes.Contains(f.Attributes, "opaque_full");  // The full version has both attributes
+            !Attributes.Contains(f.Attributes, "opaque_full") && // The full version has both attributes
+            !OpaqueFunctionRewriter.RewriteUseFuel(f);  // if it is not rewrite as fuel
+    }
+    static bool IsOpaqueRevealLemma(Method m) {
+      Contract.Requires(m != null);
+      return Attributes.Contains(m.Attributes, "opaque_reveal");
     }
 
     private void AddClassMember_Function(Function f) {
@@ -2016,7 +2021,7 @@ namespace Microsoft.Dafny {
       var formals = MkTyParamBinders(GetTypeParams(f), out tyargs);
       var args = new List<Bpl.Expr>();
       Bpl.BoundVariable layer;
-      if (f.IsFuelAware()) {
+      if (f.IsFuelAware() && !f.IsFueled) {
         layer = new Bpl.BoundVariable(f.tok, new Bpl.TypedIdent(f.tok, "$ly", predef.LayerType));
         formals.Add(layer);
         // Note, "layer" is not added to "args" here; rather, that's done below, as needed
@@ -2057,9 +2062,11 @@ namespace Microsoft.Dafny {
         var funcID = new Bpl.IdentifierExpr(f.tok, f.FullSanitizedName, TrType(f.ResultType));
         var funcArgs = new List<Bpl.Expr>();
         funcArgs.AddRange(tyargs);
-        if (layer != null) {
-          var ly = new Bpl.IdentifierExpr(f.tok, layer);
-          funcArgs.Add(FunctionCall(f.tok, BuiltinFunction.LayerSucc, null, ly));
+        if (f.IsFueled) {
+            funcArgs.Add(etran.layerInterCluster.GetFunctionFuel(f));
+        } else if (layer != null) {
+           var ly = new Bpl.IdentifierExpr(f.tok, layer);
+           funcArgs.Add(FunctionCall(f.tok, BuiltinFunction.LayerSucc, null, ly));
         }
         funcArgs.AddRange(args);
         funcAppl = new Bpl.NAryExpr(f.tok, new Bpl.FunctionCall(funcID), funcArgs);
@@ -6544,6 +6551,27 @@ namespace Microsoft.Dafny {
         }
         foreach (BoilerplateTriple tri in GetTwoStateBoilerplate(m.tok, m.Mod.Expressions, m.IsGhost, etran.Old, etran, etran.Old)) {
           ens.Add(Ensures(tri.tok, tri.IsFree, tri.Expr, tri.ErrorMessage, tri.Comment));
+        }
+        
+        // add the fuel assumption for the reveal method of a opaque method
+        if (IsOpaqueRevealLemma(m)) {
+          List<Expression> args = Attributes.FindExpressions(m.Attributes, "fuel");
+          if (args != null) {
+            MemberSelectExpr selectExpr = args[0].Resolved as MemberSelectExpr;
+            if (selectExpr != null) {
+              Function f = selectExpr.Member as Function;
+              FuelConstant fuelConstant = this.functionFuel.Find(x => x.f == f);
+              if (fuelConstant != null) {
+                Bpl.Expr startFuel = fuelConstant.startFuel;
+                Bpl.Expr startFuelAssert = fuelConstant.startFuelAssert;
+                Bpl.Expr moreFuel_expr = fuelConstant.MoreFuel(sink, predef, f.IdGenerator);
+                Bpl.Expr layer = etran.layerInterCluster.LayerN(1, moreFuel_expr);
+                Bpl.Expr layerAssert = etran.layerInterCluster.LayerN(2, moreFuel_expr);
+                ens.Add(Ensures(m.tok, true, Bpl.Expr.Eq(startFuel, layer), null, null));
+                ens.Add(Ensures(m.tok, true, Bpl.Expr.Eq(startFuelAssert, layerAssert), null, null));
+              }
+            }
+          }
         }
       }
 

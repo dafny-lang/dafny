@@ -734,18 +734,27 @@ namespace Microsoft.Dafny
       revealOriginal = new Dictionary<Lemma, Function>();
     }
 
+    public static bool RewriteUseFuel(Function f) {
+      bool rewriteUseFuel = true;
+      if (!Attributes.ContainsBool(f.Attributes, "rewriteOpaqueUseFuel", ref rewriteUseFuel)) {
+        return DafnyOptions.O.RewriteOpaqueUseFuel;
+      } else {
+        return rewriteUseFuel;
+      }
+    }
+
     internal override void PreResolve(ModuleDefinition m) {
       foreach (var d in m.TopLevelDecls) {
         if (d is ClassDecl) {
           DuplicateOpaqueClassFunctions((ClassDecl)d);
         }
       }
-    }    
+    }
 
     internal override void PostResolve(ModuleDefinition m) {
       // Fix up the ensures clause of the full version of the function,
       // since it may refer to the original opaque function      
-      foreach (var fn in ModuleDefinition.AllFunctions(m.TopLevelDecls)) {        
+      foreach (var fn in ModuleDefinition.AllFunctions(m.TopLevelDecls)) {
         if (isFullVersion(fn)) {  // Is this a function we created to supplement an opaque function?                  
           OpaqueFunctionVisitor visitor = new OpaqueFunctionVisitor();
           var context = new OpaqueFunctionContext(original[fn], fn);
@@ -753,18 +762,53 @@ namespace Microsoft.Dafny
           foreach (Expression ens in fn.Ens) {
             visitor.Visit(ens, context);
           }
-        } 
+        }
       }
 
       foreach (var decl in ModuleDefinition.AllCallables(m.TopLevelDecls)) {
         if (decl is Lemma) {
           var lem = (Lemma)decl;
           if (revealOriginal.ContainsKey(lem)) {
-            fixupRevealLemma(lem, revealOriginal[lem]);
-            fixupTypeArguments(lem, revealOriginal[lem]);
+            Function fn = revealOriginal[lem];
+            if (RewriteUseFuel(fn)) {
+              AnnotateRevealFunction(lem, fn);
+            } else {
+              fixupRevealLemma(lem, fn);
+              fixupTypeArguments(lem, fn);
+            }
           }
         }
       }
+    }
+
+    protected void AnnotateRevealFunction(Lemma lemma, Function f) {
+      Expression receiver;
+      if (f.IsStatic) {
+        receiver = new StaticReceiverExpr(f.tok, (ClassDecl)f.EnclosingClass, true);
+      } else {
+        receiver = new ImplicitThisExpr(f.tok);
+        //receiver.Type = GetThisType(expr.tok, (ClassDecl)member.EnclosingClass);  // resolve here
+      }
+      List<Type> typeApplication = new List<Type>();
+      for (int i = 0; i < f.TypeArgs.Count; i++) {
+        // doesn't matter what type, just so we have it to make the resolver happy when resolving function member of
+        // the fuel attribute. This might not be needed after fixing codeplex issue #172.
+        typeApplication.Add(new IntType());
+      }
+      var nameSegment = new NameSegment(f.tok, f.Name, typeApplication);
+      var rr = new MemberSelectExpr(f.tok, receiver, f.Name);
+      rr.Member = f;
+      rr.TypeApplication = typeApplication;
+      List<Type> args = new List<Type>();
+      for (int i = 0; i < f.Formals.Count; i++) {
+        args.Add(new IntType());
+      }
+      rr.Type = new ArrowType(f.tok, args, new IntType());
+      nameSegment.ResolvedExpression = rr;
+      nameSegment.Type = rr.Type;
+      LiteralExpr low = new LiteralExpr(f.tok, 1);
+      LiteralExpr hi = new LiteralExpr(f.tok, 2);
+      lemma.Attributes = new Attributes("fuel", new List<Expression>() { nameSegment, low, hi }, lemma.Attributes);
     }
 
     internal override void PostCyclicityResolve(ModuleDefinition m) {
@@ -773,7 +817,10 @@ namespace Microsoft.Dafny
         if (decl is Lemma) {
           var lem = (Lemma)decl;
           if (revealOriginal.ContainsKey(lem)) {
-            needsLayerQuantifier(lem, revealOriginal[lem]);
+            Function fn = revealOriginal[lem];
+            if (!RewriteUseFuel(fn)) {
+              needsLayerQuantifier(lem, fn);
+            }
           }
         }
       }
@@ -814,92 +861,164 @@ namespace Microsoft.Dafny
           } else if (f.IsProtected) {
             reporter.Error(MessageSource.Rewriter, f.tok, ":opaque is not allowed to be applied to protected functions (this will be allowed when the language introduces 'opaque'/'reveal' as keywords)");
           } else if (!RefinementToken.IsInherited(f.tok, c.Module)) {
-            // Create a copy, which will be the internal version with a full body
-            // which will allow us to verify that the ensures are true
-            var cloner = new Cloner();
-            var fWithBody = cloner.CloneFunction(f, "#" + f.Name + "_FULL");  
-            newDecls.Add(fWithBody);
-            fullVersion.Add(f, fWithBody);
-            original.Add(fWithBody, f);
-
-            var newToken = new Boogie.Token(f.tok.line, f.tok.col);
-            newToken.filename = f.tok.filename;
-            newToken._val = fWithBody.Name;
-            newToken._kind = f.tok.kind;
-            newToken._pos = f.tok.pos;
-            fWithBody.tok = (f.tok is IncludeToken) ? new IncludeToken(newToken) : (Boogie.IToken)newToken;
-
-            // Annotate the new function so we remember that we introduced it
-            fWithBody.Attributes = new Attributes("opaque_full", new List<Expression>(), fWithBody.Attributes);
-            fWithBody.Attributes = new Attributes("auto_generated", new List<Expression>(), fWithBody.Attributes);
-
-            // Create a lemma to allow the user to selectively reveal the function's body          
-            // That is, given:
-            //   function {:opaque} foo(x:int, y:int) : int
-            //     requires 0 <= x < 5;
-            //     requires 0 <= y < 5;
-            //     ensures foo(x, y) < 10;
-            //   { x + y }
-            // We produce:
-            //   lemma {:axiom} {:auto_generated} reveal_foo()
-            //     ensures forall x:int, y:int {:trigger foo(x,y)} :: 0 <= x < 5 && 0 <= y < 5 ==> foo(x,y) == foo_FULL(x,y);
-            Expression reqExpr = new LiteralExpr(f.tok, true);
-            foreach (Expression req in f.Req) {
-              Expression newReq = cloner.CloneExpr(req);
-              reqExpr = new BinaryExpr(f.tok, BinaryExpr.Opcode.And, reqExpr, newReq);
-            }
-
-            List<TypeParameter> typeVars = new List<TypeParameter>();
-            foreach (TypeParameter tp in f.TypeArgs) {
-              typeVars.Add(cloner.CloneTypeParam(tp));
-            }
-
-            var boundVars = f.Formals.ConvertAll(formal => new BoundVar(formal.tok, formal.Name, cloner.CloneType(formal.Type)));
-
-            // Build the implication connecting the function's requires to the connection with the revealed-body version
-            Func<Function, Expression> func_builder = func =>
-              new ApplySuffix(func.tok,
-                new NameSegment(func.tok, func.Name, null),
-                func.Formals.ConvertAll(x => (Expression)new IdentifierExpr(func.tok, x.Name)));
-            var oldEqualsNew = new BinaryExpr(f.tok, BinaryExpr.Opcode.Eq, func_builder(f), func_builder(fWithBody));
-            var requiresImpliesOldEqualsNew = new BinaryExpr(f.tok, BinaryExpr.Opcode.Imp, reqExpr, oldEqualsNew);            
-
-            MaybeFreeExpression newEnsures;
-            if (f.Formals.Count > 0) {
-              // Build an explicit trigger for the forall, so Z3 doesn't get confused
-              Expression trigger = func_builder(f);
-              List<Expression> args = new List<Expression>();
-              args.Add(trigger);
-              Attributes attrs = new Attributes("trigger", args, null);
-
-              // Also specify that this is a type quantifier
-              attrs = new Attributes("typeQuantifier", new List<Expression>(), attrs);
-
-              newEnsures = new MaybeFreeExpression(new ForallExpr(f.tok, typeVars, boundVars, null, requiresImpliesOldEqualsNew, attrs));
+            if (RewriteUseFuel(f)) {
+              RewriteOpaqueFunctionUseFuel(f, newDecls);
             } else {
-              // No need for a forall
-              newEnsures = new MaybeFreeExpression(oldEqualsNew);
+              DuplicateOpaqueFunction(f, newDecls);
             }
-            var newEnsuresList = new List<MaybeFreeExpression>();
-            newEnsuresList.Add(newEnsures);
-
-            // Add an axiom attribute so that the compiler won't complain about the lemma's lack of a body
-            Attributes lemma_attrs = new Attributes("axiom", new List<Expression>(), null);
-            lemma_attrs = new Attributes("auto_generated", new List<Expression>(), lemma_attrs);
-
-            var reveal = new Lemma(f.tok, "reveal_" + f.Name, f.HasStaticKeyword, new List<TypeParameter>(), new List<Formal>(), new List<Formal>(), new List<MaybeFreeExpression>(),
-                                    new Specification<FrameExpression>(new List<FrameExpression>(), null), newEnsuresList,
-                                    new Specification<Expression>(new List<Expression>(), null), null, lemma_attrs, null);
-            newDecls.Add(reveal);
-            revealOriginal[reveal] = f;
-
-            // Update f's body to simply call the full version, so we preserve recursion checks, decreases clauses, etc.
-            f.Body = func_builder(fWithBody);
           }
         }
       }
       c.Members.AddRange(newDecls);
-    }    
+    }
+
+    private void RewriteOpaqueFunctionUseFuel(Function f, List<MemberDecl> newDecls) {
+      // mark the opaque function with {:fuel, 0, 0}
+      LiteralExpr amount = new LiteralExpr(f.tok, 0);
+      f.Attributes = new Attributes("fuel", new List<Expression>() { amount, amount }, f.Attributes);
+
+      // That is, given:
+      //   function {:opaque} foo(x:int, y:int) : int
+      //     requires 0 <= x < 5;
+      //     requires 0 <= y < 5;
+      //     ensures foo(x, y) < 10;
+      //   { x + y }
+      // We produce:
+      //   lemma {:axiom} {:auto_generated} {:fuel foo, 1, 2 } reveal_foo()
+      //     ensures forall x:int, y:int {:trigger foo(x,y)} :: 0 <= x < 5 && 0 <= y < 5 ==> foo(x,y) == foo(x,y);
+      var cloner = new Cloner();
+
+      List<TypeParameter> typeVars = new List<TypeParameter>();
+      List<Type> optTypeArgs = new List<Type>();
+      foreach (TypeParameter tp in f.TypeArgs) {
+        typeVars.Add(cloner.CloneTypeParam(tp));
+        // doesn't matter what type, just so we have it to make the resolver happy when resolving function member of
+        // the fuel attribute. This might not be needed after fixing codeplex issue #172.
+        optTypeArgs.Add(new IntType()); 
+      }
+
+      /* var boundVars = f.Formals.ConvertAll(formal => new BoundVar(formal.tok, formal.Name, cloner.CloneType(formal.Type)));
+
+      // Build the implication connecting the function's requires to the connection with the revealed-body version
+      Func<Function, Expression> func_builder = func =>
+        new ApplySuffix(func.tok,
+          new NameSegment(func.tok, func.Name, null),
+          func.Formals.ConvertAll(x => (Expression)new IdentifierExpr(func.tok, x.Name)));
+      var oldEqualsNew = new BinaryExpr(f.tok, BinaryExpr.Opcode.Eq, func_builder(f), func_builder(f));
+
+      MaybeFreeExpression newEnsures;
+      if (f.Formals.Count > 0) {
+        // Build an explicit trigger for the forall, so Z3 doesn't get confused
+        Expression trigger = func_builder(f);
+        List<Expression> args = new List<Expression>();
+        args.Add(trigger);
+        Attributes attrs = new Attributes("trigger", args, null);
+
+        // Also specify that this is a type quantifier
+        attrs = new Attributes("typeQuantifier", new List<Expression>(), attrs);
+
+        newEnsures = new MaybeFreeExpression(new ForallExpr(f.tok, typeVars, boundVars, null, oldEqualsNew, attrs));
+      } else {
+        // No need for a forall
+        newEnsures = new MaybeFreeExpression(oldEqualsNew);
+      }
+      var newEnsuresList = new List<MaybeFreeExpression>();
+      newEnsuresList.Add(newEnsures);
+      */
+      // Add an axiom attribute so that the compiler won't complain about the lemma's lack of a body
+      Attributes lemma_attrs = new Attributes("axiom", new List<Expression>(), null);
+      lemma_attrs = new Attributes("auto_generated", new List<Expression>(), lemma_attrs);
+      lemma_attrs = new Attributes("opaque_reveal", new List<Expression>(), lemma_attrs);
+      var reveal = new Lemma(f.tok, "reveal_" + f.Name, f.HasStaticKeyword, new List<TypeParameter>(), new List<Formal>(), new List<Formal>(), new List<MaybeFreeExpression>(),
+                              new Specification<FrameExpression>(new List<FrameExpression>(), null), /* newEnsuresList*/new List<MaybeFreeExpression>(),
+                              new Specification<Expression>(new List<Expression>(), null), null, lemma_attrs, null);
+      newDecls.Add(reveal);
+      revealOriginal[reveal] = f;
+    }
+
+    private void DuplicateOpaqueFunction(Function f, List<MemberDecl> newDecls) {
+      // Create a copy, which will be the internal version with a full body
+      // which will allow us to verify that the ensures are true
+      var cloner = new Cloner();
+      var fWithBody = cloner.CloneFunction(f, "#" + f.Name + "_FULL");
+      newDecls.Add(fWithBody);
+      fullVersion.Add(f, fWithBody);
+      original.Add(fWithBody, f);
+
+      var newToken = new Boogie.Token(f.tok.line, f.tok.col);
+      newToken.filename = f.tok.filename;
+      newToken._val = fWithBody.Name;
+      newToken._kind = f.tok.kind;
+      newToken._pos = f.tok.pos;
+      fWithBody.tok = (f.tok is IncludeToken) ? new IncludeToken(newToken) : (Boogie.IToken)newToken;
+
+      // Annotate the new function so we remember that we introduced it
+      fWithBody.Attributes = new Attributes("opaque_full", new List<Expression>(), fWithBody.Attributes);
+      fWithBody.Attributes = new Attributes("auto_generated", new List<Expression>(), fWithBody.Attributes);
+
+      // Create a lemma to allow the user to selectively reveal the function's body          
+      // That is, given:
+      //   function {:opaque} foo(x:int, y:int) : int
+      //     requires 0 <= x < 5;
+      //     requires 0 <= y < 5;
+      //     ensures foo(x, y) < 10;
+      //   { x + y }
+      // We produce:
+      //   lemma {:axiom} {:auto_generated} reveal_foo()
+      //     ensures forall x:int, y:int {:trigger foo(x,y)} :: 0 <= x < 5 && 0 <= y < 5 ==> foo(x,y) == foo_FULL(x,y);
+      Expression reqExpr = new LiteralExpr(f.tok, true);
+      foreach (Expression req in f.Req) {
+        Expression newReq = cloner.CloneExpr(req);
+        reqExpr = new BinaryExpr(f.tok, BinaryExpr.Opcode.And, reqExpr, newReq);
+      }
+
+      List<TypeParameter> typeVars = new List<TypeParameter>();
+      foreach (TypeParameter tp in f.TypeArgs) {
+        typeVars.Add(cloner.CloneTypeParam(tp));
+      }
+
+      var boundVars = f.Formals.ConvertAll(formal => new BoundVar(formal.tok, formal.Name, cloner.CloneType(formal.Type)));
+
+      // Build the implication connecting the function's requires to the connection with the revealed-body version
+      Func<Function, Expression> func_builder = func =>
+        new ApplySuffix(func.tok,
+          new NameSegment(func.tok, func.Name, null),
+          func.Formals.ConvertAll(x => (Expression)new IdentifierExpr(func.tok, x.Name)));
+      var oldEqualsNew = new BinaryExpr(f.tok, BinaryExpr.Opcode.Eq, func_builder(f), func_builder(fWithBody));
+      var requiresImpliesOldEqualsNew = new BinaryExpr(f.tok, BinaryExpr.Opcode.Imp, reqExpr, oldEqualsNew);
+
+      MaybeFreeExpression newEnsures;
+      if (f.Formals.Count > 0) {
+        // Build an explicit trigger for the forall, so Z3 doesn't get confused
+        Expression trigger = func_builder(f);
+        List<Expression> args = new List<Expression>();
+        args.Add(trigger);
+        Attributes attrs = new Attributes("trigger", args, null);
+
+        // Also specify that this is a type quantifier
+        attrs = new Attributes("typeQuantifier", new List<Expression>(), attrs);
+
+        newEnsures = new MaybeFreeExpression(new ForallExpr(f.tok, typeVars, boundVars, null, requiresImpliesOldEqualsNew, attrs));
+      } else {
+        // No need for a forall
+        newEnsures = new MaybeFreeExpression(oldEqualsNew);
+      }
+      var newEnsuresList = new List<MaybeFreeExpression>();
+      newEnsuresList.Add(newEnsures);
+
+      // Add an axiom attribute so that the compiler won't complain about the lemma's lack of a body
+      Attributes lemma_attrs = new Attributes("axiom", new List<Expression>(), null);
+      lemma_attrs = new Attributes("auto_generated", new List<Expression>(), lemma_attrs);
+
+      var reveal = new Lemma(f.tok, "reveal_" + f.Name, f.HasStaticKeyword, new List<TypeParameter>(), new List<Formal>(), new List<Formal>(), new List<MaybeFreeExpression>(),
+                              new Specification<FrameExpression>(new List<FrameExpression>(), null), newEnsuresList,
+                              new Specification<Expression>(new List<Expression>(), null), null, lemma_attrs, null);
+      newDecls.Add(reveal);
+      revealOriginal[reveal] = f;
+
+      // Update f's body to simply call the full version, so we preserve recursion checks, decreases clauses, etc.
+      f.Body = func_builder(fWithBody);
+    }
 
     protected class OpaqueFunctionContext {
       public Function original;   // The original declaration of the opaque function

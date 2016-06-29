@@ -68,6 +68,7 @@ namespace Microsoft.Dafny
     public bool CountVerificationErrors = true;
     public bool Optimize = false;
     public bool AutoTriggers = true;
+    public bool RewriteOpaqueUseFuel = true;
     public bool RewriteFocalPredicates = true;
     public bool PrintTooltips = false;
     public bool PrintStats = false;
@@ -236,6 +237,14 @@ namespace Microsoft.Dafny
             int autoTriggers = 0;
             if (ps.GetNumericArgument(ref autoTriggers, 2)) {
               AutoTriggers = autoTriggers == 1;
+            }
+            return true;
+          }
+
+        case "rewriteOpaqueUseFuel": {
+            int rewriteOpaque = 0;
+            if (ps.GetNumericArgument(ref rewriteOpaque, 2)) {
+              RewriteOpaqueUseFuel = rewriteOpaque == 1;
             }
             return true;
           }
