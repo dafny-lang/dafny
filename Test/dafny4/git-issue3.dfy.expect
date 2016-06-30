@@ -1,0 +1,5 @@
+git-issue3.dfy(4,8): Error: cannot find witness that shows type is inhabited (sorry, for now, only tried 0)
+Execution trace:
+    (0,0): anon0
+
+Dafny program verifier finished with 0 verified, 1 error
