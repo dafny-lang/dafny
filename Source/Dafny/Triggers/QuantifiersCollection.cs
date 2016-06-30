@@ -34,7 +34,7 @@ namespace Microsoft.Dafny.Triggers {
     readonly List<QuantifierWithTriggers> quantifiers;
    
     internal QuantifiersCollection(IEnumerable<ComprehensionExpr> quantifiers, ErrorReporter reporter) {
-      Contract.Requires(quantifiers.All(q => q.SplitQuantifier == null));
+      Contract.Requires(quantifiers.All(q => !(q is QuantifierExpr) || ((QuantifierExpr)q).SplitQuantifier == null));
       this.reporter = reporter;
       this.quantifiers = quantifiers.Select(q => new QuantifierWithTriggers(q)).ToList();
     }

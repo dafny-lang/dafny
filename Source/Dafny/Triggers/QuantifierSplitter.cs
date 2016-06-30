@@ -12,7 +12,7 @@ namespace Microsoft.Dafny.Triggers {
     /// twice: on the first pass that quantifier got its SplitQuantifiers generated, and on the the second pass these 
     /// split quantifiers got re-split, creating a situation where the direct children of a split quantifier were 
     /// also split quantifiers.
-    private Dictionary<ComprehensionExpr, List<Expression>> splits = new Dictionary<ComprehensionExpr, List<Expression>>();
+    private Dictionary<QuantifierExpr, List<Expression>> splits = new Dictionary<QuantifierExpr, List<Expression>>();
 
     private static BinaryExpr.Opcode FlipOpcode(BinaryExpr.Opcode opCode) {
       if (opCode == BinaryExpr.Opcode.And) {
@@ -100,13 +100,13 @@ namespace Microsoft.Dafny.Triggers {
     }
     
     private static bool AllowsSplitting(ComprehensionExpr quantifier) {
-      // allow split if attributes doesn't contains "split" or it is "split: true" and it is not an empty ComprehensionExpr (boundvar.count>0)
+      // allow split if attributes doesn't contains "split" or it is "split: true" and it is not an empty QuantifierExpr (boundvar.count>0)
       bool splitAttr = true; 
       return (!Attributes.ContainsBool(quantifier.Attributes, "split", ref splitAttr) || splitAttr) && (quantifier.BoundVars.Count > 0);
     }
 
     protected override void VisitOneExpr(Expression expr) {
-      var quantifier = expr as ComprehensionExpr;
+      var quantifier = expr as QuantifierExpr;
       if (quantifier != null) {
         Contract.Assert(quantifier.SplitQuantifier == null);
         if (!splits.ContainsKey(quantifier) && AllowsSplitting(quantifier)) {
