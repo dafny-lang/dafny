@@ -15,6 +15,14 @@ namespace Microsoft.Dafny.Triggers {
       return copy;
     }
 
+    public static Attributes CopyAttributes(Attributes source) {
+      if (source == null) {
+        return null;
+      } else {
+        return new Attributes(source.Name, source.Args, CopyAttributes(source.Prev));
+      }
+    }
+
     internal class SetOfTerms {
       internal bool IsRedundant { get; private set; }
       internal List<TriggerTerm> Terms { get; set; }

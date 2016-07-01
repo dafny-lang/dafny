@@ -25,16 +25,16 @@ namespace Microsoft.Dafny.Triggers {
       if (e != null && (e.BoundVars.Count > 0) && !quantifiers.Contains(e)) {
         if (e is SetComprehension || e is MapComprehension) {
           quantifiers.Add(e);
-          quantifierCollections.Add(new QuantifiersCollection(Enumerable.Repeat(e, 1), reporter));
+          quantifierCollections.Add(new QuantifiersCollection(e, Enumerable.Repeat(e, 1), reporter));
         } else if (e is ForallExpr || e is ExistsExpr) {
           var quantifier = e as QuantifierExpr;
           quantifiers.Add(quantifier);
           if (quantifier.SplitQuantifier != null) {
             var collection = quantifier.SplitQuantifier.Select(q => q as ComprehensionExpr).Where(q => q != null);
-            quantifierCollections.Add(new QuantifiersCollection(collection, reporter));
+            quantifierCollections.Add(new QuantifiersCollection(e, collection, reporter));
             quantifiers.UnionWith(quantifier.SplitQuantifier);
           } else {
-            quantifierCollections.Add(new QuantifiersCollection(Enumerable.Repeat(quantifier, 1), reporter));
+            quantifierCollections.Add(new QuantifiersCollection(e, Enumerable.Repeat(quantifier, 1), reporter));
           }
         }
       }
