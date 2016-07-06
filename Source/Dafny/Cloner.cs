@@ -131,7 +131,7 @@ namespace Microsoft.Dafny
           return abs;
         } else if (d is ModuleExportDecl) {
           var a = (ModuleExportDecl)d;
-          var export = new ModuleExportDecl(a.tok, m, a.IsDefault, a.Exports, a.Extends);
+          var export = new ModuleExportDecl(a.tok, m, a.Exports, a.Extends);
           export.Signature = a.Signature;
           return export;
         } else {

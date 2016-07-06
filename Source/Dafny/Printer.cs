@@ -283,21 +283,43 @@ namespace Microsoft.Dafny {
 
     void PrintModuleExportDecl(ModuleExportDecl m, int indent, string fileBeingPrinted) {
       ModuleSignature sig = m.Signature;
-      if (sig == null) {
-        wr.Write(" {");
-        // has been resolved yet, just print the strings
-        wr.Write("{0}", Util.Comma(m.Exports, id => id.Name));
-        wr.Write("}");
-      } else {
-        wr.WriteLine(" {");
-        // print the decls and members in the module
-        List<TopLevelDecl> decls = sig.TopLevels.Values.ToList();
-        List<MemberDecl> members = sig.StaticMembers.Values.ToList();
-        PrintTopLevelDecls(decls, indent + IndentAmount, fileBeingPrinted);
-        PrintMembers(members, indent + IndentAmount, fileBeingPrinted);
-        Indent(indent);  wr.WriteLine("}");
+      // has been resolved yet, just print the strings
+      string bodyKind = "";
+      string opaque = "opaque";
+      string reveal = "reveal";
+      string delimeter = " ";
+
+      foreach (ExportSignature id in m.Exports) {
+        delimeter = ",";
+
+        if (!id.IncludeBody && bodyKind != opaque) {
+          bodyKind = opaque;
+          wr.Write(" " + bodyKind);
+          delimeter = " ";
+        } else if (id.IncludeBody && bodyKind != reveal) {
+          bodyKind = reveal;
+          wr.Write(" " + bodyKind);
+          delimeter = " ";
+        }
+        wr.Write(delimeter + "{0}", id.Name);
+        if (id.Decl != null) {
+          wr.WriteLine();
+          Indent(indent + IndentAmount);
+          wr.WriteLine("/*");
+          if (id.Decl is TopLevelDecl) {
+            PrintTopLevelDecls(new List<TopLevelDecl> { (TopLevelDecl)id.Decl }, indent + IndentAmount, fileBeingPrinted);
+          } else if (id.Decl is MemberDecl) {
+            PrintMembers(new List<MemberDecl> { (MemberDecl)id.Decl }, indent + IndentAmount, fileBeingPrinted);
+          }
+
+          Indent(indent + IndentAmount);
+          wr.WriteLine("*/");
+          Indent(indent + IndentAmount);
+        }
       }
+      wr.WriteLine();
     }
+
 
     void PrintModuleDefinition(ModuleDefinition module, int indent, string fileBeingPrinted) {
       Contract.Requires(module != null);

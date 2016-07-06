@@ -1,12 +1,12 @@
-// RUN: %dafny /compile:0 "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %dafny /env:0 /dprint:"%t.dfy" /compile:0 "%s" > "%t.result"
+// RUN: %diff "%s.expect" "%t.result"
 
 module A {
-	default export Public { f, h}
-	export E1 { f, g}
-	export E2 extends Public, E1 {T}
-  export Friend extends Public {g, T}
-	export Fruit {Data}
+	export A reveal f opaque h
+	export E1 opaque f reveal g
+	export E2 extends A, E1 reveal T
+  export Friend extends A reveal g, T
+	export Fruit reveal Data
 
   method h() {}
   function f(): int { 818 }
@@ -23,7 +23,7 @@ module A {
 }
 
 module B {
-  import X = A.Public
+  import X = A
 	method m() {
 	  X.h();  // OK
 	  assert X.f() == 818; // OK
@@ -68,11 +68,11 @@ module E {
 }
 
 module F {
-  default export Public { f, h}
-	default export E1 { f, g}
-	export E2 extends Public2, E1 {T}		// error: Public2 is not a exported view of F
-  export Friend extends Public {g2, T}  // error: g2 is not a member of F
-	export Fruit {Data}
+  export F reveal f, h
+	export E1 reveal f, g
+	export E2 extends Public2, E1 reveal T		// error: Public2 is not a exported view of F
+  export Friend extends F reveal g2, T  // error: g2 is not a member of F
+	export Fruit reveal Data
 
   method h() {}
   function f(): int { 818 }
@@ -88,7 +88,7 @@ module F {
 }
 
 module G {
-  export Public { f, h}
+  export Public reveal f, h
 
 	method h() {}
   function f(): int { 818 }

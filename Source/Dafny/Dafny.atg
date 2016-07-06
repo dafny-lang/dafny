@@ -502,12 +502,27 @@ bool IsType(ref IToken pt) {
   }
 }
 
+//Requires CheckLiteral to be public
+/*
+void ConvertKeywordTokenToIdent() {
+  var oldKind = la.kind;
+  la.kind = _ident;
 
-bool IsDefaultImport() {
-  scanner.ResetPeek();  
-  Token x = scanner.Peek();  // lookahead token again 
-  return la.val == "default" && x.val != "export";
+  // call CheckLiteral with la
+  var origT = t;
+  t = la;
+  scanner.CheckLiteral();
+  t = origT;
+
+  if (la.kind != _ident) {
+    // it has been changed by CheckLiteral, which means it was a keyword
+    la.kind = _ident;  // convert it to an ident
+  } else {
+    // la was something other than a keyword
+    la.kind = oldKind;
+  }
 }
+*/
 
 /*--------------------------------------------------------------------------*/
 CHARACTERS
@@ -725,7 +740,7 @@ SubModuleDecl<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl sub
     (. EncodeExternAsAttribute(dmod, ref attrs, id, /* needAxiom */ false); .)
     [ "=" QualifiedModuleName<out idPath>
       (. submodule = new AliasModuleDecl(idPath, id, parent, opened); .)
-    | "as" QualifiedModuleName<out idPath> [IF(IsDefaultImport()) "default" QualifiedModuleName<out idAssignment> ]
+    | "as" QualifiedModuleName<out idPath> ["default" QualifiedModuleName<out idAssignment> ]
       (. submodule = new ModuleFacadeDecl(idPath, id, parent, idAssignment, opened); 
          errors.Warning(t, "\"import A as B\" has been deprecated; in the new syntax, it is \"import A:B\"");
       .)
@@ -749,31 +764,27 @@ SubModuleDecl<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl sub
        }
     .)
 	| (. 		 
-		  bool isDefault = false;
-			bool includeBody;
 			IToken exportId;
 			List<ExportSignature> exports = new List<ExportSignature>();;
       List<string> extends = new List<string>(); 
 		.)
-	  ["default"  (. isDefault = true; .) ]
 		"export"
 		NoUSIdent<out exportId>
-		["extends" 
-     NoUSIdent<out id>(. extends.Add(id.val); .) 
-     {"," NoUSIdent<out id>  (. extends.Add(id.val); .) }
-    ] 
-		"{"
-		   NoUSIdent<out id>   (. includeBody = false; .)
-			 ['+' (. includeBody = true; .)]
-			 (. exports.Add(new ExportSignature(id, includeBody)); .)
-       { ","
-         NoUSIdent<out id> (. includeBody = false; .)
-			   ['+' (. includeBody = true; .)]
-			   (. exports.Add(new ExportSignature(id, includeBody)); .)
-       }
-		"}"
+    {
+       "opaque"
+       NoUSIdent<out id> 
+       (. exports.Add(new ExportSignature(id, false)); .)
+       {"," NoUSIdent<out id>  (. exports.Add(new ExportSignature(id, false)); .) }
+     | "reveal" 
+       NoUSIdent<out id> 
+       (. exports.Add(new ExportSignature(id, true)); .)
+       {"," NoUSIdent<out id>  (. exports.Add(new ExportSignature(id, true)); .) }
+     | "extends" 
+       NoUSIdent<out id>(. extends.Add(id.val); .) 
+       {"," NoUSIdent<out id>  (. extends.Add(id.val); .) }
+    }
 		(.
-		   submodule = new ModuleExportDecl(exportId, parent, isDefault, exports, extends);
+		   submodule = new ModuleExportDecl(exportId, parent, exports, extends);
 		.)
   )
 .
@@ -3179,12 +3190,14 @@ Expressions<.List<Expression> args.>
   .
 /*------------------------------------------------------------------------*/
 Attribute<ref Attributes attrs>
-= (. IToken openBrace, colon, x, closeBrace;
+= (. IToken openBrace, colon, closeBrace;
+     IToken x = null;
      var args = new List<Expression>();
   .)
   "{"                         (. openBrace = t; .)
   ":"                         (. colon = t; .)
-  NoUSIdent<out x>
+  //(. ConvertKeywordTokenToIdent(); .)
+  ( NoUSIdent<out x> | "opaque" (. x = t; .) )
   [ Expressions<args> ]
   "}"                         (. closeBrace = t; .)
   (. attrs = new UserSuppliedAttributes(x, openBrace, colon, closeBrace, args, attrs); .)

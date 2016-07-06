@@ -1736,15 +1736,15 @@ namespace Microsoft.Dafny {
   // Represents the exports of a module. 
   public class ModuleExportDecl : ModuleDecl
   {
-    public bool IsDefault;
+    public readonly bool IsDefault;
     public List<ExportSignature> Exports; // list of TopLevelDecl that are included in the export
     public List<string> Extends; // list of exports that are extended
     public readonly List<ModuleExportDecl> ExtendDecls = new List<ModuleExportDecl>(); // fill in by the resolver
 
-    public ModuleExportDecl(IToken tok, ModuleDefinition parent, bool isDefault, 
+    public ModuleExportDecl(IToken tok, ModuleDefinition parent, 
       List<ExportSignature> exports, List<string> extends) 
       : base(tok, tok.val, parent, false) {
-      IsDefault = isDefault;
+      IsDefault = tok.val == parent.Name;
       Exports = exports;
       Extends = extends;
     }
