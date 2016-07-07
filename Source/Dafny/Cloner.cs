@@ -430,8 +430,7 @@ namespace Microsoft.Dafny
 
       } else if (expr is MatchExpr) {
         var e = (MatchExpr)expr;
-        return new MatchExpr(Tok(e.tok), CloneExpr(e.Source),
-          e.Cases.ConvertAll(CloneMatchCaseExpr), e.UsesOptionalBraces);
+        return new MatchExpr(Tok(e.tok), CloneExpr(e.Source), e.Cases.ConvertAll(CloneMatchCaseExpr), e.UsesOptionalBraces);
 
       } else if (expr is NegationExpression) {
         var e = (NegationExpression)expr;
@@ -580,8 +579,7 @@ namespace Microsoft.Dafny
 
       } else if (stmt is MatchStmt) {
         var s = (MatchStmt)stmt;
-        r = new MatchStmt(Tok(s.Tok), Tok(s.EndTok), CloneExpr(s.Source),
-        s.Cases.ConvertAll(CloneMatchCaseStmt), s.UsesOptionalBraces);
+        r = new MatchStmt(Tok(s.Tok), Tok(s.EndTok), CloneExpr(s.Source), s.Cases.ConvertAll(CloneMatchCaseStmt), s.UsesOptionalBraces);
 
       } else if (stmt is AssignSuchThatStmt) {
         var s = (AssignSuchThatStmt)stmt;
@@ -725,6 +723,29 @@ namespace Microsoft.Dafny
 
     public override BlockStmt CloneBlockStmt(BlockStmt stmt) {
       return null;
+    }
+  }
+
+  class ClonerButUseOriginalMatchConstructs : Cloner
+  {
+    public ClonerButUseOriginalMatchConstructs()
+      : base() {
+    }
+
+    public override Expression CloneExpr(Expression expr) {
+      var me = expr as MatchExpr;
+      if (me != null && me.OrigUnresolved != null) {
+        return CloneExpr(me.OrigUnresolved);
+      }
+      return base.CloneExpr(expr);
+    }
+
+    public override Statement CloneStmt(Statement stmt) {
+      var s = stmt as MatchStmt;
+      if (s != null && s.OrigUnresolved != null) {
+        return CloneStmt(s.OrigUnresolved);
+      }
+      return base.CloneStmt(stmt);
     }
   }
 

@@ -5885,6 +5885,7 @@ namespace Microsoft.Dafny {
     private List<MatchCaseStmt> cases;
     public readonly List<DatatypeCtor> MissingCases = new List<DatatypeCtor>();  // filled in during resolution
     public readonly bool UsesOptionalBraces;
+    public MatchStmt OrigUnresolved;  // the resolver makes this clone of the MatchStmt before it starts desugaring it
 
     public MatchStmt(IToken tok, IToken endTok, Expression source, [Captured] List<MatchCaseStmt> cases, bool usesOptionalBraces)
       : base(tok, endTok) {
@@ -8284,6 +8285,7 @@ namespace Microsoft.Dafny {
     private List<MatchCaseExpr> cases;
     public readonly List<DatatypeCtor> MissingCases = new List<DatatypeCtor>();  // filled in during resolution
     public readonly bool UsesOptionalBraces;
+    public MatchExpr OrigUnresolved;  // the resolver makes this clone of the MatchExpr before it starts desugaring it
 
     [ContractInvariantMethod]
     void ObjectInvariant() {

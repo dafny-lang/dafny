@@ -339,7 +339,7 @@ namespace Microsoft.Dafny
             useCompileSignatures = true;  // set Resolver-global flag to indicate that Signatures should be followed to their CompiledSignature
             var oldErrorsOnly = reporter.ErrorsOnly;
             reporter.ErrorsOnly = true; // turn off warning reporting for the clone
-            var nw = new Cloner().CloneModuleDefinition(m, m.CompileName + "_Compile");
+            var nw = new ClonerButUseOriginalMatchConstructs().CloneModuleDefinition(m, m.CompileName + "_Compile");
             var compileSig = RegisterTopLevelDecls(nw, true);
             compileSig.Refines = refinementTransformer.RefinedSig;
             sig.CompileSignature = compileSig;
@@ -7536,7 +7536,7 @@ namespace Microsoft.Dafny
         Contract.Assert(prevErrorCount != reporter.Count(ErrorLevel.Error) || s.Steps.Count == s.Hints.Count);
 
       } else if (stmt is MatchStmt) {
-        ResolveMatchStmt(stmt, codeContext);
+        ResolveMatchStmt((MatchStmt)stmt, codeContext);
       } else if (stmt is SkeletonStatement) {
         var s = (SkeletonStatement)stmt;
         reporter.Error(MessageSource.Resolver, s.Tok, "skeleton statements are allowed only in refining methods");
@@ -7587,10 +7587,14 @@ namespace Microsoft.Dafny
       }
     }
 
-    void ResolveMatchStmt(Statement stmt, ICodeContext codeContext) {
-      Contract.Requires(stmt != null);
+    void ResolveMatchStmt(MatchStmt s, ICodeContext codeContext) {
+      Contract.Requires(s != null);
       Contract.Requires(codeContext != null);
-      var s = (MatchStmt)stmt;
+      Contract.Requires(s.OrigUnresolved == null);
+
+      // first, clone the original expression
+      s.OrigUnresolved = (MatchStmt)new Cloner().CloneStmt(s);
+
       DesugarMatchStmtWithTupleExpression(s);
 
       ResolveExpression(s.Source, new ResolveOpts(codeContext, true));
@@ -7653,7 +7657,7 @@ namespace Microsoft.Dafny
             if (ctor != null && i < ctor.Formals.Count) {
               Formal formal = ctor.Formals[i];
               Type st = SubstType(formal.Type, subst);
-              ConstrainSubtypeRelation(v.Type, st, stmt.Tok,
+              ConstrainSubtypeRelation(v.Type, st, s.Tok,
                 "the declared type of the formal ({0}) does not agree with the corresponding type in the constructor's signature ({1})", v.Type, st);
               v.IsGhost = formal.IsGhost;
 
@@ -7661,11 +7665,7 @@ namespace Microsoft.Dafny
               if (v.tok is MatchCaseToken) {
                 MatchCaseToken mt = (MatchCaseToken)v.tok;
                 foreach (Tuple<IToken, BoundVar, bool> entry in mt.varList) {
-#if SOON
                   ConstrainSubtypeRelation(entry.Item2.Type, v.Type, entry.Item1, "incorrect type for bound match-case variable (expected {0}, got {1})", v.Type, entry.Item2.Type);
-#else
-                  UnifyTypes(entry.Item2.Type, v.Type);
-#endif
                 }
               }
             }
@@ -9838,7 +9838,7 @@ namespace Microsoft.Dafny
         ConstrainSubtypeRelation(expr.Type, e.Els.Type, expr, "the two branches of an if-then-else expression must have the same type (got {0} and {1})", e.Thn.Type, e.Els.Type);
 
       } else if (expr is MatchExpr) {
-        ResolveMatchExpr(expr, opts);
+        ResolveMatchExpr((MatchExpr)expr, opts);
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected expression
       }
@@ -9977,8 +9977,14 @@ namespace Microsoft.Dafny
       return null;
     }
 
-    void ResolveMatchExpr(Expression expr, ResolveOpts opts) {
-      var me = (MatchExpr)expr;
+    void ResolveMatchExpr(MatchExpr me, ResolveOpts opts) {
+      Contract.Requires(me != null);
+      Contract.Requires(opts != null);
+      Contract.Requires(me.OrigUnresolved == null);
+
+      // first, clone the original expression
+      me.OrigUnresolved = (MatchExpr)new Cloner().CloneExpr(me);
+
       DesugarMatchExprWithTupleExpression(me);
 
       ResolveExpression(me.Source, opts);
@@ -10013,7 +10019,7 @@ namespace Microsoft.Dafny
       }
 
       ISet<string> memberNamesUsed = new HashSet<string>();
-      expr.Type = new InferredTypeProxy();
+      me.Type = new InferredTypeProxy();
       foreach (MatchCaseExpr mc in me.Cases) {
         DatatypeCtor ctor = null;
         if (ctors != null) {
@@ -10042,7 +10048,7 @@ namespace Microsoft.Dafny
             if (ctor != null && i < ctor.Formals.Count) {
               Formal formal = ctor.Formals[i];
               Type st = SubstType(formal.Type, subst);
-              ConstrainSubtypeRelation(v.Type, st, expr,
+              ConstrainSubtypeRelation(v.Type, st, me,
                 "the declared type of the formal ({0}) does not agree with the corresponding type in the constructor's signature ({1})", v.Type, st);
               v.IsGhost = formal.IsGhost;
 
@@ -10050,11 +10056,7 @@ namespace Microsoft.Dafny
               if (v.tok is MatchCaseToken) {
                 MatchCaseToken mt = (MatchCaseToken)v.tok;
                 foreach (Tuple<IToken, BoundVar, bool> entry in mt.varList) {
-#if SOON
                   ConstrainSubtypeRelation(entry.Item2.Type, v.Type, entry.Item1, "incorrect type for bound match-case variable (expected {0}, got {1})", v.Type, entry.Item2.Type);
-#else
-                  UnifyTypes(entry.Item2.Type, v.Type);
-#endif
                 }
               }
             }
@@ -10072,7 +10074,7 @@ namespace Microsoft.Dafny
         }
 
         Contract.Assert(mc.Body.Type != null);  // follows from postcondition of ResolveExpression
-        ConstrainSubtypeRelation(expr.Type, mc.Body.Type, mc.Body.tok, "type of case bodies do not agree (found {0}, previous types {1})", mc.Body.Type, expr.Type);
+        ConstrainSubtypeRelation(me.Type, mc.Body.Type, mc.Body.tok, "type of case bodies do not agree (found {0}, previous types {1})", mc.Body.Type, me.Type);
         scope.PopMarker();
       }
       if (dtd != null && memberNamesUsed.Count != dtd.Ctors.Count) {
