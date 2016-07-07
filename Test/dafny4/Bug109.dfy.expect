@@ -1,0 +1,2 @@
+Bug109.dfy(9,14): Error: Can't import module Mod1 when not inside of a module
+1 resolution/type errors detected in Bug109.dfy

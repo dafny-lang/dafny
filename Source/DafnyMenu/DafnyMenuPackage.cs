@@ -6,12 +6,14 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
+using Microsoft.VisualStudio;
 using Microsoft.VisualStudio.ComponentModelHost;
 using Microsoft.VisualStudio.Editor;
 using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.Shell.Interop;
 using Microsoft.VisualStudio.Text.Editor;
 using Microsoft.VisualStudio.TextManager.Interop;
+using OLEServiceProvider = Microsoft.VisualStudio.OLE.Interop.IServiceProvider;
 
 
 namespace DafnyLanguage.DafnyMenu
@@ -46,6 +48,17 @@ namespace DafnyLanguage.DafnyMenu
     void RunVerifier(IWpfTextView activeTextView);
 
 
+    bool StopResolverCommandEnabled(IWpfTextView activeTextView);
+
+
+    void StopResolver(IWpfTextView activeTextView);
+
+
+    bool RunResolverCommandEnabled(IWpfTextView activeTextView);
+
+
+    void RunResolver(IWpfTextView activeTextView);
+
     bool MenuEnabled(IWpfTextView activeTextView);
 
 
@@ -65,6 +78,8 @@ namespace DafnyLanguage.DafnyMenu
 
 
     void DiagnoseTimeouts(IWpfTextView activeTextView);
+
+    void GoToDefinition(IWpfTextView activeTextView);
   }
 
 
@@ -97,6 +112,8 @@ namespace DafnyLanguage.DafnyMenu
     private OleMenuCommand menuCommand;
     private OleMenuCommand runVerifierCommand;
     private OleMenuCommand stopVerifierCommand;
+    private OleMenuCommand runResolverCommand;
+    private OleMenuCommand stopResolverCommand;
     private OleMenuCommand toggleSnapshotVerificationCommand;
     private OleMenuCommand toggleMoreAdvancedSnapshotVerificationCommand;
     private OleMenuCommand toggleAutomaticInductionCommand;
@@ -155,6 +172,18 @@ namespace DafnyLanguage.DafnyMenu
         stopVerifierCommand.BeforeQueryStatus += stopVerifierCommand_BeforeQueryStatus;
         mcs.AddCommand(stopVerifierCommand);
 
+        var runResolverCommandID = new CommandID(GuidList.guidDafnyMenuCmdSet, (int)PkgCmdIDList.cmdidRunResolver);
+        runResolverCommand = new OleMenuCommand(RunResolverCallback, runResolverCommandID);
+        runResolverCommand.Enabled = true;
+        runResolverCommand.BeforeQueryStatus += runResolverCommand_BeforeQueryStatus;
+        mcs.AddCommand(runResolverCommand);
+
+        var stopResolverCommandID = new CommandID(GuidList.guidDafnyMenuCmdSet, (int)PkgCmdIDList.cmdidStopResolver);
+        stopResolverCommand = new OleMenuCommand(StopResolverCallback, stopResolverCommandID);
+        stopResolverCommand.Enabled = true;
+        stopResolverCommand.BeforeQueryStatus += stopResolverCommand_BeforeQueryStatus;
+        mcs.AddCommand(stopResolverCommand);
+
         var toggleSnapshotVerificationCommandID = new CommandID(GuidList.guidDafnyMenuCmdSet, (int)PkgCmdIDList.cmdidToggleSnapshotVerification);
         toggleSnapshotVerificationCommand = new OleMenuCommand(ToggleSnapshotVerificationCallback, toggleSnapshotVerificationCommandID);
         mcs.AddCommand(toggleSnapshotVerificationCommand);
@@ -188,6 +217,7 @@ namespace DafnyLanguage.DafnyMenu
         menuCommand.BeforeQueryStatus += menuCommand_BeforeQueryStatus;
         menuCommand.Enabled = true;
         mcs.AddCommand(menuCommand);
+
       }
     }
 
@@ -260,9 +290,9 @@ namespace DafnyLanguage.DafnyMenu
       var atv = ActiveTextView;
       if (MenuProxy != null && atv != null)
       {
-        var disabled = MenuProxy.StopVerifierCommandEnabled(atv);
-        stopVerifierCommand.Visible = !disabled;
-        stopVerifierCommand.Enabled = !disabled;
+        var enabled = MenuProxy.StopVerifierCommandEnabled(atv);
+        stopVerifierCommand.Visible = enabled;
+        stopVerifierCommand.Enabled = enabled;
       }
     }
 
@@ -292,6 +322,37 @@ namespace DafnyLanguage.DafnyMenu
       if (MenuProxy != null && atv != null)
       {
         MenuProxy.RunVerifier(atv);
+      }
+    }
+
+    void stopResolverCommand_BeforeQueryStatus(object sender, EventArgs e) {
+      var atv = ActiveTextView;
+      if (MenuProxy != null && atv != null) {
+        var enabled = MenuProxy.StopResolverCommandEnabled(atv);
+        stopResolverCommand.Visible = enabled;
+        stopResolverCommand.Enabled = enabled;
+      }
+    }
+
+    void StopResolverCallback(object sender, EventArgs e) {
+      var atv = ActiveTextView;
+      if (MenuProxy != null && atv != null) {
+        MenuProxy.StopResolver(atv);
+      }
+    }
+    void runResolverCommand_BeforeQueryStatus(object sender, EventArgs e) {
+      var atv = ActiveTextView;
+      if (MenuProxy != null && atv != null) {
+        var enabled = MenuProxy.RunResolverCommandEnabled(atv);
+        runResolverCommand.Visible = enabled;
+        runResolverCommand.Enabled = enabled;
+      }
+    }
+
+    void RunResolverCallback(object sender, EventArgs e) {
+      var atv = ActiveTextView;
+      if (MenuProxy != null && atv != null) {
+        MenuProxy.RunResolver(atv);
       }
     }
 
@@ -360,6 +421,14 @@ namespace DafnyLanguage.DafnyMenu
       if (MenuProxy != null && atv != null) {
         var visible = MenuProxy.AutomaticInductionCommandEnabled(atv);
         toggleAutomaticInductionCommand.Visible = visible;
+      }
+    }
+
+    void GotoDefinitionCallback(object sender, EventArgs e) {
+      var atv = ActiveTextView;
+      if (MenuProxy != null && atv != null)
+      {
+        MenuProxy.GoToDefinition(atv);
       }
     }
 
@@ -438,6 +507,52 @@ namespace DafnyLanguage.DafnyMenu
         }
       }
       return result;
+    }
+    public int GoToDefinition(string filePath, int lineNumber, int offset) {
+      return (OpenFile(filePath) && GoToSource(filePath, lineNumber, offset)) ? VSConstants.S_OK : VSConstants.E_FAIL;
+    }
+
+    private bool OpenFile(string filePath) {
+      var shellOpenDocumentService = (IVsUIShellOpenDocument)GetService(typeof(SVsUIShellOpenDocument));
+      var guidTextView = VSConstants.LOGVIEWID.TextView_guid;
+
+      uint itemid;
+      IVsUIHierarchy hierarchy;
+      OLEServiceProvider serviceProvider;
+      IVsWindowFrame window;
+      if (shellOpenDocumentService.OpenDocumentViaProject(filePath, ref guidTextView, out serviceProvider, out hierarchy, out itemid, out window) == VSConstants.S_OK) {
+        window.Show();
+        return true;
+      }
+      return false;
+    }
+
+    private bool GoToSource(string filePath, int lineNumber, int offset) {
+      IVsRunningDocumentTable runningDoc = (IVsRunningDocumentTable)GetService(typeof(SVsRunningDocumentTable));
+      IntPtr ptr;
+      IVsHierarchy hierarchy;
+      uint cookie;
+      uint id;
+
+      if (runningDoc.FindAndLockDocument((uint)_VSRDTFLAGS.RDT_NoLock, filePath, out hierarchy, out id, out ptr, out cookie) != VSConstants.S_OK) {
+        return false;
+      }
+      try {
+        var lines = Marshal.GetObjectForIUnknown(ptr) as IVsTextLines;
+        if (lines == null) {
+          return false;
+        }
+        var textManager = (IVsTextManager)GetService(typeof(SVsTextManager));
+        if (textManager == null) {
+          return false;
+        }
+        return textManager.NavigateToLineAndColumn(
+            lines, VSConstants.LOGVIEWID.TextView_guid, lineNumber, offset, lineNumber, offset) == VSConstants.S_OK;
+      } finally {
+        if (ptr != IntPtr.Zero) {
+          Marshal.Release(ptr);
+        }
+      }
     }
 
     #endregion

@@ -6,7 +6,9 @@ namespace DafnyLanguage.DafnyMenu
 {
   static class PkgCmdIDList
   {
-    public const uint cmdidCompile = 0x100;
+    public const uint cmdidCompile = 0x10;
+    public const uint cmdidRunResolver = 0x11;
+    public const uint cmdidStopResolver = 0x12;
     public const uint cmdidRunVerifier = 0x101;
     public const uint cmdidStopVerifier = 0x102;
     public const uint cmdidMenu = 0x1021;

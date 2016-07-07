@@ -53,7 +53,7 @@
         <Parent guid="guidDafnyMenuPkg" id="DafnyMenu"/>
       </Group>
     </Groups>
-
+    
     <!--Buttons section. -->
     <!--This section defines the elements the user can interact with, like a menu command or a button 
         or combo box in a toolbar. -->
@@ -67,7 +67,7 @@
               <CommandFlag>DynamicVisibility</CommandFlag>
           If you do not want an image next to your command, remove the Icon node /> -->
 
-      <Button guid="guidDafnyMenuCmdSet" id="cmdidCompile" priority="0x0100" type="Button">
+      <Button guid="guidDafnyMenuCmdSet" id="cmdidCompile" priority="0x010" type="Button">
         <Parent guid="guidDafnyMenuCmdSet" id="DafnyMenuGroup" />
         <!--
         <Icon guid="guidImages" id="bmpPic1" />
@@ -77,12 +77,30 @@
         </Strings>
       </Button>
 
+      <Button guid="guidDafnyMenuCmdSet" id="cmdidRunResolver" priority="0x011" type="Button">
+        <Parent guid="guidDafnyMenuCmdSet" id="DafnyMenuGroup" />
+        <CommandFlag>DefaultInvisible</CommandFlag>
+        <CommandFlag>DynamicVisibility</CommandFlag>
+        <Strings>
+          <ButtonText>Run resolver (F11)</ButtonText>
+        </Strings>
+      </Button>
+
+      <Button guid="guidDafnyMenuCmdSet" id="cmdidStopResolver" priority="0x012" type="Button">
+        <Parent guid="guidDafnyMenuCmdSet" id="DafnyMenuGroup" />
+        <CommandFlag>DefaultInvisible</CommandFlag>
+        <CommandFlag>DynamicVisibility</CommandFlag>
+        <Strings>
+          <ButtonText>Stop Resolver (F11)</ButtonText>
+        </Strings>
+      </Button>
+
       <Button guid="guidDafnyMenuCmdSet" id="cmdidRunVerifier" priority="0x0101" type="Button">
         <Parent guid="guidDafnyMenuCmdSet" id="DafnyMenuGroup" />
         <CommandFlag>DefaultInvisible</CommandFlag>
         <CommandFlag>DynamicVisibility</CommandFlag>
         <Strings>
-          <ButtonText>Run verifier</ButtonText>
+          <ButtonText>Run verifier (F5)</ButtonText>
         </Strings>
       </Button>
 
@@ -91,7 +109,7 @@
         <CommandFlag>DefaultInvisible</CommandFlag>
         <CommandFlag>DynamicVisibility</CommandFlag>
         <Strings>
-          <ButtonText>Stop verifier</ButtonText>
+          <ButtonText>Stop verifier (F5)</ButtonText>
         </Strings>
       </Button>
 
@@ -142,7 +160,7 @@
       </Button>
 
     </Buttons>
-
+  
     <!--The bitmaps section is used to define the bitmaps that are used for the commands.-->
     <Bitmaps>
       <!--  The bitmap id is defined in a way that is a little bit different from the others: 
@@ -167,7 +185,9 @@
     <!-- This is the guid used to group the menu commands together -->
     <GuidSymbol name="guidDafnyMenuCmdSet" value="{393ad46d-e125-41ce-84ee-b4d552d5ba16}">
       <IDSymbol name="DafnyMenuGroup" value="0x1020" />
-      <IDSymbol name="cmdidCompile" value="0x0100" />
+      <IDSymbol name="cmdidCompile" value="0x010" />
+      <IDSymbol name="cmdidRunResolver" value="0x011" />
+      <IDSymbol name="cmdidStopResolver" value="0x012" />
       <IDSymbol name="cmdidRunVerifier" value="0x0101" />
       <IDSymbol name="cmdidStopVerifier" value="0x0102" />
       <IDSymbol name="cmdidToggleSnapshotVerification" value="0x0103" />
@@ -176,7 +196,6 @@
       <IDSymbol name="cmdidToggleAutomaticInduction" value="0x0106" />
       <IDSymbol name="cmdidDiagnoseTimeouts" value="0x0107" />
     </GuidSymbol>
-
     <!--
     <GuidSymbol name="guidImages" value="{0176b216-66c6-49f6-a97d-0273c57a7da6}" >
       <IDSymbol name="bmpPic1" value="1" />

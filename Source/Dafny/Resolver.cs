@@ -886,12 +886,22 @@ namespace Microsoft.Dafny
         } else if (tld is ModuleFacadeDecl) {
           var subdecl = (ModuleFacadeDecl)tld;
           if (!bindings.BindName(subdecl.Name, subdecl, null)) {
-            reporter.Error(MessageSource.Resolver, subdecl.tok, "Duplicate module name: {0}", subdecl.Name);
+            if (tld.Module.IsDefaultModule) {
+              // the import is not in a module.
+              reporter.Error(MessageSource.Resolver, subdecl.tok, "Can't import module {0} when not inside of a module", subdecl.Name);
+            } else {
+              reporter.Error(MessageSource.Resolver, subdecl.tok, "Duplicate module name: {0}", subdecl.Name);
+            }
           }
         } else if (tld is AliasModuleDecl) {
           var subdecl = (AliasModuleDecl)tld;
           if (!bindings.BindName(subdecl.Name, subdecl, null)) {
-            reporter.Error(MessageSource.Resolver, subdecl.tok, "Duplicate module name: {0}", subdecl.Name);
+            if (tld.Module.IsDefaultModule) {
+              // the import is not in a module.
+              reporter.Error(MessageSource.Resolver, subdecl.tok, "Can't import module {0} when not inside of a module", subdecl.Name);
+            } else {
+              reporter.Error(MessageSource.Resolver, subdecl.tok, "Duplicate module name: {0}", subdecl.Name);
+            }
           }
         }
       }
@@ -1750,7 +1760,15 @@ namespace Microsoft.Dafny
               foreach (var e in coConclusions) {
                 var fce = e as FunctionCallExpr;
                 if (fce != null) {  // the other possibility is that "e" is a BinaryExpr
-                  focalPredicates.Add((CoPredicate)fce.Function);
+                  CoPredicate predicate = (CoPredicate)fce.Function;
+                  focalPredicates.Add(predicate);
+                  // For every focal predicate P in S, add to S all co-predicates in the same strongly connected 
+                  // component (in the call graph) as P 
+                  foreach (var node in predicate.EnclosingClass.Module.CallGraph.GetSCC(predicate)) {
+                    if (node is CoPredicate) {
+                      focalPredicates.Add((CoPredicate)node);
+                    }
+                  }
                 }
               }
             }
@@ -1765,7 +1783,15 @@ namespace Microsoft.Dafny
               prefixLemma.Req.Add(new MaybeFreeExpression(pre, p.IsFree));
               foreach (var e in antecedents) {
                 var fce = (FunctionCallExpr)e;  // we expect "antecedents" to contain only FunctionCallExpr's
-                focalPredicates.Add((InductivePredicate)fce.Function);
+                InductivePredicate predicate = (InductivePredicate)fce.Function;
+                focalPredicates.Add(predicate);
+                // For every focal predicate P in S, add to S all inductive predicates in the same strongly connected 
+                // component (in the call graph) as P 
+                foreach (var node in predicate.EnclosingClass.Module.CallGraph.GetSCC(predicate)) {
+                  if (node is InductivePredicate) {
+                    focalPredicates.Add((InductivePredicate)node);
+                  }
+                }
               }
             }
           }
@@ -6297,7 +6323,7 @@ namespace Microsoft.Dafny
       for (int i = 0; i < iter.OutsFields.Count; i++) {
         var y = iter.OutsFields[i];
         var ys = iter.OutsHistoryFields[i];
-        var ite = new ITEExpr(iter.tok, new IdentifierExpr(iter.tok, "more"),
+        var ite = new ITEExpr(iter.tok, false, new IdentifierExpr(iter.tok, "more"),
           new BinaryExpr(iter.tok, BinaryExpr.Opcode.Add,
             new OldExpr(iter.tok, new MemberSelectExpr(iter.tok, new ThisExpr(iter.tok), ys.Name)),
             new SeqDisplayExpr(iter.tok, new List<Expression>() { new MemberSelectExpr(iter.tok, new ThisExpr(iter.tok), y.Name) })),
@@ -7477,6 +7503,12 @@ namespace Microsoft.Dafny
           }
           if (s.Body != null) {
             CheckForallStatementBodyRestrictions(s.Body, s.Kind);
+          }
+
+          if (s.ForallExpressions != null) {
+            foreach (Expression expr in s.ForallExpressions) {
+              ResolveExpression(expr, new ResolveOpts(codeContext, true));
+            }
           }
         }
 
@@ -9714,7 +9746,9 @@ namespace Microsoft.Dafny
         e.Type = e.Body.Type;
       } else if (expr is QuantifierExpr) {
         var e = (QuantifierExpr)expr;
-        opts.codeContext.ContainsQuantifier = true;
+        if (opts.codeContext is Function) {
+          ((Function)opts.codeContext).ContainsQuantifier = true;
+        }
         Contract.Assert(e.SplitQuantifier == null); // No split quantifiers during resolution
         int prevErrorCount = reporter.Count(ErrorLevel.Error);
         bool _val = true;

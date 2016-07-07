@@ -1,16 +1,5 @@
-splitting-triggers-yields-better-precondition-related-errors.dfy(7,11): Warning: For expression "y > 0":
-   /!\ No terms found to trigger on.
-splitting-triggers-yields-better-precondition-related-errors.dfy(7,11): Warning: For expression "y < 0":
-   /!\ No terms found to trigger on.
-splitting-triggers-yields-better-precondition-related-errors.dfy(15,11): Warning: For expression "y > 0":
-   /!\ No terms found to trigger on.
-splitting-triggers-yields-better-precondition-related-errors.dfy(15,11): Warning: For expression "y < 0":
-   /!\ No terms found to trigger on.
-splitting-triggers-yields-better-precondition-related-errors.dfy(11,3): Error BP5002: A precondition for this call might not hold.
-splitting-triggers-yields-better-precondition-related-errors.dfy(7,11): Related location: This is the precondition that might not hold.
-splitting-triggers-yields-better-precondition-related-errors.dfy(7,34): Related location
-Execution trace:
-    (0,0): anon0
+splitting-triggers-yields-better-precondition-related-errors.dfy(7,11): Warning: /!\ No terms found to trigger on.
+splitting-triggers-yields-better-precondition-related-errors.dfy(15,11): Warning: /!\ No terms found to trigger on.
 splitting-triggers-yields-better-precondition-related-errors.dfy(11,3): Error BP5002: A precondition for this call might not hold.
 splitting-triggers-yields-better-precondition-related-errors.dfy(7,11): Related location: This is the precondition that might not hold.
 splitting-triggers-yields-better-precondition-related-errors.dfy(7,25): Related location
@@ -18,15 +7,9 @@ Execution trace:
     (0,0): anon0
 splitting-triggers-yields-better-precondition-related-errors.dfy(20,2): Error: possible violation of function precondition
 splitting-triggers-yields-better-precondition-related-errors.dfy(15,11): Related location
-splitting-triggers-yields-better-precondition-related-errors.dfy(15,34): Related location
-Execution trace:
-    (0,0): anon0
-    (0,0): anon4_Else
-splitting-triggers-yields-better-precondition-related-errors.dfy(20,2): Error: possible violation of function precondition
-splitting-triggers-yields-better-precondition-related-errors.dfy(15,11): Related location
 splitting-triggers-yields-better-precondition-related-errors.dfy(15,25): Related location
 Execution trace:
     (0,0): anon0
     (0,0): anon4_Else
 
-Dafny program verifier finished with 4 verified, 4 errors
+Dafny program verifier finished with 4 verified, 2 errors

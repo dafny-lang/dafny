@@ -196,16 +196,17 @@ namespace Microsoft.Dafny
           PipelineStatistics stats = null;
           PipelineOutcome oc = BoogiePipelineWithRerun(boogieProgram, bplFilename, out stats, 1 < Dafny.DafnyOptions.Clo.VerifySnapshots ? programId : null);
           var allOk = stats.ErrorCount == 0 && stats.InconclusiveCount == 0 && stats.TimeoutCount == 0 && stats.OutOfMemoryCount == 0;
+          var resultFileName = DafnyOptions.O.DafnyPrintCompiledFile ?? dafnyFileNames[0];
           switch (oc) {
             case PipelineOutcome.VerificationCompleted:
               ExecutionEngine.printer.WriteTrailer(stats);
               if ((DafnyOptions.O.Compile && allOk && CommandLineOptions.Clo.ProcsToCheck == null) || DafnyOptions.O.ForceCompile)
-                CompileDafnyProgram(dafnyProgram, dafnyFileNames[0], otherFileNames);
+                CompileDafnyProgram(dafnyProgram, resultFileName, otherFileNames);
               break;
             case PipelineOutcome.Done:
               ExecutionEngine.printer.WriteTrailer(stats);
               if (DafnyOptions.O.ForceCompile)
-                CompileDafnyProgram(dafnyProgram, dafnyFileNames[0], otherFileNames);
+                CompileDafnyProgram(dafnyProgram, resultFileName, otherFileNames);
               break;
             default:
               // error has already been reported to user

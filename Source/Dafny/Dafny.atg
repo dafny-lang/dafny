@@ -2775,12 +2775,25 @@ EndlessExpression<out Expression e, bool allowSemi, bool allowLambda>
 = (. IToken/*!*/ x;
      Expression e0, e1;
      Statement s;
+     bool isExistentialGuard = false;
      e = dummyExpr;
   .)
   ( "if"                            (. x = t; .)
-    Expression<out e, true, true>
+    ( IF(IsExistentialGuard())
+      ExistentialGuard<out e, true>  (. isExistentialGuard = true; .)
+    | Expression<out e, true, true>
+    )
     "then" Expression<out e0, true, true>
-    "else" Expression<out e1, allowSemi, allowLambda>    (. e = new ITEExpr(x, e, e0, e1); .)
+    "else" Expression<out e1, allowSemi, allowLambda>    (.  if (isExistentialGuard) {
+                                                               var exists = (ExistsExpr) e;
+                                                               List<CasePattern> LHSs = new List<CasePattern>();
+                                                               foreach (var v in exists.BoundVars) {
+                                                                 LHSs.Add(new CasePattern(e.tok, v));
+                                                               }
+                                                               e0 = new LetExpr(e.tok, LHSs, new List<Expression>() { exists.Term }, e0, false);	                                                         
+                                                             }
+                                                             e = new ITEExpr(x, isExistentialGuard, e, e0, e1);
+                                                         .)
   | MatchExpression<out e, allowSemi, allowLambda>
   | QuantifierGuts<out e, allowSemi, allowLambda>
   | "set"                           (. x = t; .)

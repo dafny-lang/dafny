@@ -56,6 +56,7 @@ namespace Microsoft.Dafny
     public string DafnyPrintResolvedFile = null;
     public List<string> DafnyPrintExportedViews = new List<string>();
     public bool Compile = true;
+    public string DafnyPrintCompiledFile = null;
     public bool ForceCompile = false;
     public bool RunAfterCompile = false;
     public bool SpillTargetCode = false;
@@ -67,6 +68,7 @@ namespace Microsoft.Dafny
     public bool CountVerificationErrors = true;
     public bool Optimize = false;
     public bool AutoTriggers = true;
+    public bool RewriteOpaqueUseFuel = true;
     public bool RewriteFocalPredicates = true;
     public bool PrintTooltips = false;
     public bool PrintStats = false;
@@ -154,6 +156,12 @@ namespace Microsoft.Dafny
             }
             return true;
           }
+        case "out": {
+            if (ps.ConfirmArgumentCount(1)) {
+              DafnyPrintCompiledFile = args[ps.i];
+            }
+            return true;
+          }
 
         case "dafnycc":
           Dafnycc = true;
@@ -229,6 +237,14 @@ namespace Microsoft.Dafny
             int autoTriggers = 0;
             if (ps.GetNumericArgument(ref autoTriggers, 2)) {
               AutoTriggers = autoTriggers == 1;
+            }
+            return true;
+          }
+
+        case "rewriteOpaqueUseFuel": {
+            int rewriteOpaque = 0;
+            if (ps.GetNumericArgument(ref rewriteOpaque, 2)) {
+              RewriteOpaqueUseFuel = rewriteOpaque == 1;
             }
             return true;
           }
@@ -351,6 +367,8 @@ namespace Microsoft.Dafny
                 0 (default) - don't write the compiled Dafny program (but
                     still compile it, if /compile indicates to do so)
                 1 - write the compiled Dafny program as a .cs file
+  /out:<file>
+                filename and location for the generated .cs, .dll or .exe files 
   /dafnycc      Disable features not supported by DafnyCC
   /noCheating:<n>
                 0 (default) - allow assume statements and free invariants

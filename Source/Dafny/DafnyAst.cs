@@ -3040,7 +3040,6 @@ namespace Microsoft.Dafny {
     bool MustReverify { get; }
     string FullSanitizedName { get; }
     bool AllowsNontermination { get; }
-    bool ContainsQuantifier { get;  set; }
   }
   /// <summary>
   /// An ICallable is a Function, Method, IteratorDecl, or RedirectingTypeDecl.
@@ -3076,10 +3075,6 @@ namespace Microsoft.Dafny {
       get { throw new cce.UnreachableException(); }
       set { throw new cce.UnreachableException(); }
     }
-    public bool ContainsQuantifier {
-      get { throw new cce.UnreachableException(); }
-      set { throw new cce.UnreachableException(); }
-    }
   }
   /// <summary>
   /// An IMethodCodeContext is a Method or IteratorDecl.
@@ -3108,11 +3103,6 @@ namespace Microsoft.Dafny {
     bool ICodeContext.MustReverify { get { Contract.Assume(false, "should not be called on NoContext"); throw new cce.UnreachableException(); } }
     public string FullSanitizedName { get { Contract.Assume(false, "should not be called on NoContext"); throw new cce.UnreachableException(); } }
     public bool AllowsNontermination { get { Contract.Assume(false, "should not be called on NoContext"); throw new cce.UnreachableException(); } }
-    public bool ContainsQuantifier { 
-      get { Contract.Assume(false, "should not be called on NoContext"); throw new cce.UnreachableException(); }
-      set { Contract.Assume(false, "should not be called on NoContext"); throw new cce.UnreachableException(); }
-    }
-    
   }
 
   public class IteratorDecl : ClassDecl, IMethodCodeContext
@@ -3140,8 +3130,7 @@ namespace Microsoft.Dafny {
     public Predicate Member_Valid;  // created during registration phase of resolution; its specification is filled in during resolution
     public Method Member_MoveNext;  // created during registration phase of resolution; its specification is filled in during resolution
     public readonly LocalVariable YieldCountVariable;
-    bool containsQuantifier;
-
+    
     public IteratorDecl(IToken tok, string name, ModuleDefinition module, List<TypeParameter> typeArgs,
                         List<Formal> ins, List<Formal> outs,
                         Specification<FrameExpression> reads, Specification<FrameExpression> mod, Specification<Expression> decreases,
@@ -3257,10 +3246,7 @@ namespace Microsoft.Dafny {
       set { _inferredDecr = value; }
       get { return _inferredDecr; }
     }
-    bool ICodeContext.ContainsQuantifier {
-      set { containsQuantifier = value; }
-      get { return containsQuantifier; }
-    }
+
     ModuleDefinition ICodeContext.EnclosingModule { get { return this.Module; } }
     bool ICodeContext.MustReverify { get { return false; } }
     public bool AllowsNontermination {
@@ -3514,10 +3500,6 @@ namespace Microsoft.Dafny {
       get { throw new cce.UnreachableException(); }  // see comment above about ICallable.Decreases
       set { throw new cce.UnreachableException(); }  // see comment above about ICallable.Decreases
     }
-    bool ICodeContext.ContainsQuantifier {
-      get { throw new cce.UnreachableException(); }
-      set { throw new cce.UnreachableException(); }
-    }
     public new NewtypeDecl ClonedFrom {
       get {
         return (NewtypeDecl)base.ClonedFrom;
@@ -3574,10 +3556,6 @@ namespace Microsoft.Dafny {
     bool ICallable.InferredDecreases {
       get { throw new cce.UnreachableException(); }  // see comment above about ICallable.Decreases
       set { throw new cce.UnreachableException(); }  // see comment above about ICallable.Decreases
-    }
-    bool ICodeContext.ContainsQuantifier {
-      get { throw new cce.UnreachableException(); }
-      set { throw new cce.UnreachableException(); }
     }
   }
 
@@ -4132,8 +4110,7 @@ namespace Microsoft.Dafny {
     public bool IsTailRecursive;  // filled in during resolution
     public readonly ISet<IVariable> AssignedAssumptionVariables = new HashSet<IVariable>();
     public Method OverriddenMethod;
-    public bool containsQuantifier;
-
+    
     public override IEnumerable<Expression> SubExpressions {
       get {
         foreach (var e in Req) {
@@ -4206,10 +4183,6 @@ namespace Microsoft.Dafny {
     bool ICallable.InferredDecreases {
       set { _inferredDecr = value; }
       get { return _inferredDecr; }
-    }
-    bool ICodeContext.ContainsQuantifier {
-      set { containsQuantifier = value; }
-      get { return containsQuantifier; }
     }
 
     ModuleDefinition ICodeContext.EnclosingModule {
@@ -5728,7 +5701,7 @@ namespace Microsoft.Dafny {
         } else if (other is TernaryCalcOp) {
           var a = Index;
           var b = ((TernaryCalcOp) other).Index;
-          var minIndex = new ITEExpr(a.tok, new BinaryExpr(a.tok, BinaryExpr.Opcode.Le, a, b), a, b);
+          var minIndex = new ITEExpr(a.tok, false, new BinaryExpr(a.tok, BinaryExpr.Opcode.Le, a, b), a, b);
           return new TernaryCalcOp(minIndex); // ToDo: if we could compare expressions for syntactic equalty, we could use this here to optimize
         } else {
           Contract.Assert(false);
@@ -6441,7 +6414,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(e1 != null);
       Contract.Requires(test.Type.IsBoolType && e0.Type.Equals(e1.Type));
       Contract.Ensures(Contract.Result<Expression>() != null);
-      var ite = new ITEExpr(test.tok, test, e0, e1);
+      var ite = new ITEExpr(test.tok, false, test, e0, e1);
       ite.Type = e0.type;  // resolve here
       return ite;
     }
@@ -7978,38 +7951,7 @@ namespace Microsoft.Dafny {
     public List<TypeParameter> TypeArgs;
     private static int currentQuantId = -1;
 
-    protected abstract BinaryExpr.ResolvedOpcode SplitResolvedOp { get; }
-
-    static int FreshQuantId() {
-      return System.Threading.Interlocked.Increment(ref currentQuantId);
-    }
-    
-    public string FullName {
-      get {
-        return "q$" + UniqueId;
-      }
-    }
-    public String Refresh(string prefix, FreshIdGenerator idGen) {
-      return idGen.FreshId(prefix);
-    }
-    public TypeParameter Refresh(TypeParameter p, FreshIdGenerator idGen) {
-      var cp = new TypeParameter(p.tok, idGen.FreshId(p.Name + "#"), p.EqualitySupport);
-      cp.Parent = this;
-      return cp;
-    }
-    [ContractInvariantMethod]
-    void ObjectInvariant() {
-      var _scratch = true;
-      Contract.Invariant(Attributes.ContainsBool(Attributes, "typeQuantifier", ref _scratch) || TypeArgs.Count == 0);
-    }
-    public QuantifierExpr(IToken tok, List<TypeParameter> tvars, List<BoundVar> bvars, Expression range, Expression term, Attributes attrs)
-      : base(tok, bvars, range, term, attrs) {
-      Contract.Requires(tok != null);
-      Contract.Requires(cce.NonNullElements(bvars));
-      Contract.Requires(term != null);
-      this.TypeArgs = tvars;
-      this.UniqueId = FreshQuantId();
-    }
+    protected virtual BinaryExpr.ResolvedOpcode SplitResolvedOp { get { return BinaryExpr.ResolvedOpcode.Or; } }
 
     private Expression SplitQuantifierToExpression() {
       Contract.Requires(SplitQuantifier != null && SplitQuantifier.Any());
@@ -8032,6 +7974,39 @@ namespace Microsoft.Dafny {
     }
 
     internal Expression SplitQuantifierExpression { get; private set; }
+
+    static int FreshQuantId() {
+      return System.Threading.Interlocked.Increment(ref currentQuantId);
+    }
+    
+    public string FullName {
+      get {
+        return "q$" + UniqueId;
+      }
+    }
+
+    public String Refresh(string prefix, FreshIdGenerator idGen) {
+      return idGen.FreshId(prefix);
+    }
+  
+    public TypeParameter Refresh(TypeParameter p, FreshIdGenerator idGen) {
+      var cp = new TypeParameter(p.tok, idGen.FreshId(p.Name + "#"), p.EqualitySupport);
+      cp.Parent = this;
+      return cp;
+    }
+    [ContractInvariantMethod]
+    void ObjectInvariant() {
+      var _scratch = true;
+      Contract.Invariant(Attributes.ContainsBool(Attributes, "typeQuantifier", ref _scratch) || TypeArgs.Count == 0);
+    }
+    public QuantifierExpr(IToken tok, List<TypeParameter> tvars, List<BoundVar> bvars, Expression range, Expression term, Attributes attrs)
+      : base(tok, bvars, range, term, attrs) {
+      Contract.Requires(tok != null);
+      Contract.Requires(cce.NonNullElements(bvars));
+      Contract.Requires(term != null);
+      this.TypeArgs = tvars;
+      this.UniqueId = FreshQuantId();
+    }
 
     public virtual Expression LogicalBody(bool bypassSplitQuantifier = false) {
       // Don't call this on a quantifier with a Split clause: it's not a real quantifier. The only exception is the Compiler.
@@ -8250,6 +8225,7 @@ namespace Microsoft.Dafny {
 
   public class ITEExpr : Expression
   {
+    public readonly bool IsExistentialGuard;
     public readonly Expression Test;
     public readonly Expression Thn;
     public readonly Expression Els;
@@ -8260,12 +8236,13 @@ namespace Microsoft.Dafny {
       Contract.Invariant(Els != null);
     }
 
-    public ITEExpr(IToken tok, Expression test, Expression thn, Expression els)
+    public ITEExpr(IToken tok, bool isExistentialGuard, Expression test, Expression thn, Expression els)
       : base(tok) {
       Contract.Requires(tok != null);
       Contract.Requires(test != null);
       Contract.Requires(thn != null);
       Contract.Requires(els != null);
+      this.IsExistentialGuard = isExistentialGuard;
       this.Test = test;
       this.Thn = thn;
       this.Els = els;
@@ -8378,7 +8355,7 @@ namespace Microsoft.Dafny {
         ie.Var = this.Var; ie.Type = this.Var.Type;  // resolve here
         this.Expr = ie;
       } else {
-        var dtValue = new DatatypeValue(this.tok, this.Ctor.EnclosingDatatype.Name, this.Id, this.Arguments.ConvertAll(arg => arg.Expr));
+        var dtValue = new DatatypeValue(this.tok, this.Ctor.EnclosingDatatype.Name, this.Id, this.Arguments == null ? new List<Expression>() : this.Arguments.ConvertAll(arg => arg.Expr));
         dtValue.Ctor = this.Ctor;  // resolve here
         dtValue.InferredTypeArgs.AddRange(dtvTypeArgs);  // resolve here
         dtValue.Type = new UserDefinedType(this.tok, this.Ctor.EnclosingDatatype.Name, this.Ctor.EnclosingDatatype, dtvTypeArgs);
@@ -8391,9 +8368,11 @@ namespace Microsoft.Dafny {
         if (Var != null) {
           yield return Var;
         } else {
-          foreach (var arg in Arguments) {
-            foreach (var bv in arg.Vars) {
-              yield return bv;
+          if (Arguments != null) {
+            foreach (var arg in Arguments) {
+              foreach (var bv in arg.Vars) {
+                yield return bv;
+              }
             }
           }
         }

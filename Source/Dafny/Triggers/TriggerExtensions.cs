@@ -133,7 +133,7 @@ namespace Microsoft.Dafny.Triggers {
       }
     }
 
-    internal static IEnumerable<TriggerMatch> SubexpressionsMatchingTrigger(this QuantifierExpr quantifier, Expression trigger) {
+    internal static IEnumerable<TriggerMatch> SubexpressionsMatchingTrigger(this ComprehensionExpr quantifier, Expression trigger) {
       return quantifier.AllSubExpressions(true, true)
         .Select(e => TriggerUtils.PrepareExprForInclusionInTrigger(e).MatchAgainst(trigger, quantifier.BoundVars, e))
         .Where(e => e.HasValue).Select(e => e.Value);

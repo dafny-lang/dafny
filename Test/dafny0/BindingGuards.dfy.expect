@@ -156,6 +156,15 @@ method P3(m: int, n: int)
     case x :| m <= x < n && P(x) =>
   }
 }
+
+function f(s: set<int>): int
+{
+  if exists x :: x in s then
+    var x :| x in s;
+    x
+  else
+    0
+}
 BindingGuards.dfy(85,10): Error BP5003: A postcondition might not hold on this return path.
 BindingGuards.dfy(71,12): Related location: This is the postcondition that might not hold.
 Execution trace:
@@ -180,4 +189,4 @@ Execution trace:
     (0,0): anon0
     (0,0): anon7_Else
 
-Dafny program verifier finished with 24 verified, 4 errors
+Dafny program verifier finished with 25 verified, 4 errors

@@ -5,6 +5,8 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.VisualStudio.Text.Editor;
+using Microsoft.VisualStudio.Shell;
+using Microsoft.VisualStudio.Shell.Interop;
 
 namespace DafnyLanguage
 {
@@ -45,8 +47,9 @@ namespace DafnyLanguage
     {
       DafnyLanguage.ProgressTagger tagger;
       return activeTextView != null
+                    && StopResolverCommandEnabled(activeTextView) // verifier can start/stop only when resolver is running.
                     && DafnyLanguage.ProgressTagger.ProgressTaggers.TryGetValue(activeTextView.TextBuffer, out tagger)
-                    && tagger != null && tagger.VerificationDisabled;
+                    && tagger != null && !tagger.VerificationDisabled;
     }
 
     public void StopVerifier(IWpfTextView activeTextView)
@@ -54,6 +57,7 @@ namespace DafnyLanguage
       DafnyLanguage.ProgressTagger tagger;
       if (activeTextView != null && DafnyLanguage.ProgressTagger.ProgressTaggers.TryGetValue(activeTextView.TextBuffer, out tagger))
       {
+        MenuProxy.Output("verifier manually stopped\n");
         tagger.StopVerification();
       }
     }
@@ -62,6 +66,7 @@ namespace DafnyLanguage
     {
       DafnyLanguage.ProgressTagger tagger;
       return activeTextView != null
+                 && StopResolverCommandEnabled(activeTextView) // verifier can start/stop only when resolver is running.       
                  && DafnyLanguage.ProgressTagger.ProgressTaggers.TryGetValue(activeTextView.TextBuffer, out tagger)
                  && tagger != null && tagger.VerificationDisabled;
     }
@@ -71,6 +76,47 @@ namespace DafnyLanguage
       DafnyLanguage.ProgressTagger tagger;
       if (activeTextView != null && DafnyLanguage.ProgressTagger.ProgressTaggers.TryGetValue(activeTextView.TextBuffer, out tagger))
       {
+        MenuProxy.Output("verifier manually started\n");
+        tagger.StartVerification();
+      }
+    }
+
+    public bool StopResolverCommandEnabled(IWpfTextView activeTextView) {
+      DafnyLanguage.ResolverTagger resolver;
+      return activeTextView != null
+                    && DafnyLanguage.ResolverTagger.ResolverTaggers.TryGetValue(activeTextView.TextBuffer, out resolver)
+                    && resolver != null && resolver.RunResolver;
+    }
+
+    public void StopResolver(IWpfTextView activeTextView) {
+      DafnyLanguage.ResolverTagger resolver;
+      if (activeTextView != null && DafnyLanguage.ResolverTagger.ResolverTaggers.TryGetValue(activeTextView.TextBuffer, out resolver)) {
+        MenuProxy.Output("resolver and verifier manually stopped\n");
+        resolver.RunResolver = false;
+        resolver.Program = null;
+      }
+      DafnyLanguage.ProgressTagger tagger;
+      if (activeTextView != null && DafnyLanguage.ProgressTagger.ProgressTaggers.TryGetValue(activeTextView.TextBuffer, out tagger)) {
+        tagger.StartVerification();
+      }
+    }
+
+    public bool RunResolverCommandEnabled(IWpfTextView activeTextView) {
+      DafnyLanguage.ResolverTagger resolver;
+      return activeTextView != null
+                 && DafnyLanguage.ResolverTagger.ResolverTaggers.TryGetValue(activeTextView.TextBuffer, out resolver)
+                 && resolver != null && !resolver.RunResolver;
+    }
+
+    public void RunResolver(IWpfTextView activeTextView) {
+      DafnyLanguage.ResolverTagger resolver;
+      if (activeTextView != null && DafnyLanguage.ResolverTagger.ResolverTaggers.TryGetValue(activeTextView.TextBuffer, out resolver)) {
+        MenuProxy.Output("resolver and verifier manually started\n");
+        resolver.RunResolver = true;
+        resolver.ResolveBuffer(null, null);
+      }
+      DafnyLanguage.ProgressTagger tagger;
+      if (activeTextView != null && DafnyLanguage.ProgressTagger.ProgressTaggers.TryGetValue(activeTextView.TextBuffer, out tagger)) {
         tagger.StartVerification();
       }
     }
@@ -142,6 +188,33 @@ namespace DafnyLanguage
           DafnyMenuPackage.ShowErrorModelInBVD(selectedError.ModelText, selectedError.SelectedStateId);
         }
       }
+    }
+
+    public void GoToDefinition(IWpfTextView activeTextView) {
+      int caretPos = activeTextView.Caret.Position.BufferPosition.Position;
+      string fileName;
+      int lineNumber;
+      int offset;
+      DafnyLanguage.IdentifierTagger tagger;
+      if (activeTextView != null && DafnyLanguage.IdentifierTagger.IdentifierTaggers.TryGetValue(activeTextView.TextBuffer, out tagger)) {
+        if (tagger.FindDefinition(caretPos, out fileName, out lineNumber, out offset)) {
+          DafnyMenuPackage.GoToDefinition(fileName, lineNumber, offset);
+        }
+      }
+    }
+
+    public static void Output(string msg) {
+      // Get the output window
+      var outputWindow = Package.GetGlobalService(typeof(SVsOutputWindow)) as IVsOutputWindow;
+
+      // Ensure that the desired pane is visible
+      var paneGuid = Microsoft.VisualStudio.VSConstants.OutputWindowPaneGuid.GeneralPane_guid;
+      IVsOutputWindowPane pane;
+      outputWindow.CreatePane(paneGuid, "Dafny", 1, 0);
+      outputWindow.GetPane(paneGuid, out pane);
+
+      // Output the message
+      pane.OutputString(msg);
     }
   }
 }

@@ -6,10 +6,7 @@ splitting-triggers-recovers-expressivity.dfy(26,10): Info: Selected triggers: {Q
  Rejected triggers: {P(i)} (may loop with "P(i + 1)")
 splitting-triggers-recovers-expressivity.dfy(33,11): Info: Selected triggers: {Q(j)}
  Rejected triggers: {P(j)} (may loop with "P(j + 1)")
-splitting-triggers-recovers-expressivity.dfy(44,10): Info: For expression "P(i)":
-   Selected triggers:
-     {Q(i)}, {P(i)}
-splitting-triggers-recovers-expressivity.dfy(44,10): Info: For expression "!Q(i)":
+splitting-triggers-recovers-expressivity.dfy(44,10): Info: For expression "P(i) || !Q(i)":
    Selected triggers:
      {Q(i)}, {P(i)}
 splitting-triggers-recovers-expressivity.dfy(44,10): Info: For expression "P(i + 1)":
@@ -21,12 +18,8 @@ splitting-triggers-recovers-expressivity.dfy(49,11): Info: For expression "j >= 
 splitting-triggers-recovers-expressivity.dfy(49,11): Info: For expression "j >= 0 ==> Q(j) ==> P(j + 1)":
    Selected triggers: {Q(j)}
    Rejected triggers: {P(j)} (may loop with "P(j + 1)")
-splitting-triggers-recovers-expressivity.dfy(58,11): Info: For expression "i >= 0 ==> Q(i)":
-   Selected triggers:
-     {P(i)}, {Q(i)}
-splitting-triggers-recovers-expressivity.dfy(58,11): Info: For expression "i >= 0 ==> P(i) ==> P(i + 1)":
-   Selected triggers:
-     {P(i)} (may loop with "P(i + 1)"), {Q(i)}
+splitting-triggers-recovers-expressivity.dfy(58,11): Info: Selected triggers:
+   {P(i)}, {Q(i)}
 splitting-triggers-recovers-expressivity.dfy(12,63): Error BP5003: A postcondition might not hold on this return path.
 splitting-triggers-recovers-expressivity.dfy(12,10): Related location: This is the postcondition that might not hold.
 Execution trace:

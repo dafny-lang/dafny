@@ -157,3 +157,8 @@ method P3(m: int, n: int)
     case x :| m <= x < n && P(x) =>
   }
 }
+
+function f(s:set<int>):int
+{
+  if x :| x in s then x else 0
+}

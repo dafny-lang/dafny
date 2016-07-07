@@ -132,6 +132,7 @@ namespace DafnyLanguage
     // The 'Snapshot' and 'Program' fields should be updated and read together, so they are protected by "this"
     public ITextSnapshot Snapshot;  // may be null
     public Dafny.Program Program;  // non-null only if the snapshot contains a Dafny program that type checks
+    public bool RunResolver { get; set; }  // whether the resolver should be run
 
     List<DafnyError> _resolutionErrors = new List<DafnyError>();  // if nonempty, then _snapshot is the snapshot from which the errors were produced
 
@@ -228,6 +229,7 @@ namespace DafnyLanguage
       _errorProvider = new ErrorListProvider(serviceProvider);
 
       BufferIdleEventUtil.AddBufferIdleEventListener(_buffer, ResolveBuffer);
+      this.RunResolver = true;
     }
 
     public void Dispose()
@@ -317,7 +319,7 @@ namespace DafnyLanguage
     /// <summary>
     /// Calls the Dafny parser/resolver/type checker on the contents of the buffer, updates the Error List accordingly.
     /// </summary>
-    void ResolveBuffer(object sender, EventArgs args) {
+    public void ResolveBuffer(object sender, EventArgs args) {
       ITextSnapshot snapshot = _buffer.CurrentSnapshot;
       if (snapshot == Snapshot)
         return;  // we've already done this snapshot
@@ -328,7 +330,7 @@ namespace DafnyLanguage
       Dafny.Program program;
       try
       {
-        program = driver.ProcessResolution(true);
+        program = driver.ProcessResolution(RunResolver);
         newErrors = driver.Errors;
       }
       catch (Exception e)
