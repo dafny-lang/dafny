@@ -1073,9 +1073,20 @@ namespace Dafny
         }
       }
     }
-    public static IEnumerable<BigInteger> IntegerRange(BigInteger lo, BigInteger hi) {
-      for (var j = lo; j < hi; j++) {
-        yield return j;
+    public static IEnumerable<BigInteger> IntegerRange(Nullable<BigInteger> lo, Nullable<BigInteger> hi) {
+      if (lo == null) {
+        for (var j = (BigInteger)hi; true; ) {
+          j--;
+          yield return j;
+        }
+      } else if (hi == null) {
+        for (var j = (BigInteger)lo; true; j++) {
+          yield return j;
+        }
+      } else {
+        for (var j = (BigInteger)lo; j < hi; j++) {
+          yield return j;
+        }
       }
     }
     // pre: b != 0

@@ -313,3 +313,12 @@ module EqualityTests {
     }
   }
 }
+
+// -------------------------------------------------
+// Once buggy
+
+method N()
+{
+  var z: nat :| true;
+  assert 0 <= z;
+}
