@@ -1023,7 +1023,7 @@ bool IsDefaultImport() {
 				Get();
 				Type(out baseType);
 			}
-			if (baseType == null) { baseType = new OperationTypeProxy(true, true, false, false, false, false); } 
+			if (baseType == null) { baseType = new InferredTypeProxy(); } 
 			Expect(23);
 			Expression(out wh, false, true);
 			td = new NewtypeDecl(theVerifyThisFile ? id : new IncludeToken(id), id.val, module, new BoundVar(bvId, bvId.val, baseType), wh, attrs); 

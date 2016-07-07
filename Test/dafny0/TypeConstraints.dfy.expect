@@ -1,19 +1,21 @@
-TypeConstraints.dfy(41,6): Error: RHS (of type int) not assignable to LHS (of type bool)
-TypeConstraints.dfy(49,6): Error: RHS (of type bool) not assignable to LHS (of type int)
-TypeConstraints.dfy(57,6): Error: RHS (of type int) not assignable to LHS (of type bool)
-TypeConstraints.dfy(67,6): Error: RHS (of type int) not assignable to LHS (of type bool)
-TypeConstraints.dfy(77,6): Error: RHS (of type MyInt) not assignable to LHS (of type int)
-TypeConstraints.dfy(78,6): Error: RHS (of type int) not assignable to LHS (of type MyInt)
-TypeConstraints.dfy(79,6): Error: RHS (of type MyInt) not assignable to LHS (of type int)
-TypeConstraints.dfy(80,6): Error: RHS (of type int) not assignable to LHS (of type MyInt)
-TypeConstraints.dfy(93,8): Error: the type of this local variable is underspecified
-TypeConstraints.dfy(93,11): Error: the type of this local variable is underspecified
-TypeConstraints.dfy(93,14): Error: the type of this local variable is underspecified
-TypeConstraints.dfy(149,6): Error: RHS (of type C) not assignable to LHS (of type R)
-TypeConstraints.dfy(155,6): Error: RHS (of type object) not assignable to LHS (of type C)
-TypeConstraints.dfy(161,6): Error: RHS (of type object) not assignable to LHS (of type R)
-// Dafny program verifier version 1.9.7.30401, Copyright (c) 2003-2016, Microsoft.
-// Command Line Options: -nologo -countVerificationErrors:0 -useBaseNameForFileName /compile:0 /print:C:\dafny\Test\dafny0\Output\TypeConstraints.dfy.tmp.print /rprint:- C:\dafny\Test\dafny0\TypeConstraints.dfy
+TypeConstraints.dfy(42,6): Error: RHS (of type int) not assignable to LHS (of type bool)
+TypeConstraints.dfy(50,6): Error: RHS (of type bool) not assignable to LHS (of type int)
+TypeConstraints.dfy(58,6): Error: RHS (of type int) not assignable to LHS (of type bool)
+TypeConstraints.dfy(68,6): Error: RHS (of type int) not assignable to LHS (of type bool)
+TypeConstraints.dfy(78,6): Error: RHS (of type MyInt) not assignable to LHS (of type int)
+TypeConstraints.dfy(79,6): Error: RHS (of type int) not assignable to LHS (of type MyInt)
+TypeConstraints.dfy(80,6): Error: RHS (of type MyInt) not assignable to LHS (of type int)
+TypeConstraints.dfy(81,6): Error: RHS (of type int) not assignable to LHS (of type MyInt)
+TypeConstraints.dfy(94,8): Error: the type of this local variable is underspecified
+TypeConstraints.dfy(94,11): Error: the type of this local variable is underspecified
+TypeConstraints.dfy(94,14): Error: the type of this local variable is underspecified
+TypeConstraints.dfy(134,16): Error: type of + must be of a numeric type, a sequence type, or a set-like type (instead got bool)
+TypeConstraints.dfy(143,16): Error: type of + must be of a numeric type, a sequence type, or a set-like type (instead got map<bool, int>)
+TypeConstraints.dfy(145,16): Error: type of + must be of a numeric type, a sequence type, or a set-like type (instead got C)
+TypeConstraints.dfy(147,16): Error: type of + must be of a numeric type, a sequence type, or a set-like type (instead got C)
+TypeConstraints.dfy(174,6): Error: RHS (of type C) not assignable to LHS (of type R)
+TypeConstraints.dfy(180,6): Error: RHS (of type object) not assignable to LHS (of type C)
+TypeConstraints.dfy(186,6): Error: RHS (of type object) not assignable to LHS (of type R)
 // TypeConstraints.dfy
 
 /*
@@ -61,10 +63,11 @@ class CC {
     var a: int := f;
     var b: int := g;
     var c: int := F();
-    var d: int := N();
+    var w: int;
+    var d: int := N(w);
   }
 
-  method N() returns (n: nat)
+  method N(m: nat) returns (n: nat)
 }
 
 module HereAreErrors {
@@ -143,7 +146,7 @@ module PlusTests {
 
   method Plus0()
   {
-    var a: ?30, b: ?31, c: ?32;
+    var a, b, c;
   }
 
   method Plus1()
@@ -178,6 +181,38 @@ module PlusTests {
     var a: MyInt, b: MyInt, c: MyInt;
     a := b + c;
     a := y;
+  }
+}
+
+module MorePlusTests {
+  /* CALL GRAPH for module MorePlusTests:
+   * SCC at height 1:
+   *   _default.Plusses
+   * SCC at height 0:
+   *   MyInt
+   */
+  newtype MyInt = x: int | true
+
+  class C { }
+
+  method Plusses(b: bool, i: int, j: MyInt, r: real)
+  {
+    var ii: int := i + i;
+    var jj: MyInt := j + j;
+    var bb: bool := b + b;
+    var rr: real := r + r;
+    var s: set<bool> := {false};
+    var ss: set<bool> := s + s;
+    var m: multiset<bool> := multiset{false, false};
+    var mm: multiset<bool> := m + m;
+    var q: seq<bool> := [false];
+    var qq: seq<bool> := q + q;
+    var p: map<bool, int> := map[false:=17];
+    var pp: map<bool, int> := p + p;
+    var n: C := null;
+    var nn: C := n + n;
+    var c: C := new C;
+    var cc: C := c + c;
   }
 }
 
@@ -242,6 +277,7 @@ module SimpleClassesAndTraits {
   trait M { }
 
   method Infer(c: C, o: object, k: K, d: D)
+      returns (k': K)
   {
     var delayme: object := c;
     var x: C := c;
@@ -261,6 +297,8 @@ module SimpleClassesAndTraits {
     var n: object := null;
     var n': K := null;
     n' := k;
+    var n'': K := null;
+    k' := n'';
   }
 }
 
@@ -460,4 +498,4 @@ method PlainLiterals()
   var x: int := 0;
   var r: real := 0.0;
 }
-14 resolution/type errors detected in TypeConstraints.dfy
+18 resolution/type errors detected in TypeConstraints.dfy

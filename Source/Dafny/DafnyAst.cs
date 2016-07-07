@@ -732,92 +732,168 @@ namespace Microsoft.Dafny {
     }
 
     /// <summary>
-    /// Returns "true" iff "a" is a subtype of "b".
+    /// Returns "true" iff "sub" is a subtype of "super".
     /// </summary>
-    public static bool IsSubtype(Type a, Type b) {
-      Contract.Requires(a != null);
-      Contract.Requires(b != null);
-      a = a.NormalizeExpand();
-      b = b.NormalizeExpand();
-      if (a.IsBoolType || a.IsCharType || a.IsNumericBased() || a.IsTypeParameter || a is TypeProxy) {
-        return a.Equals(b);
-      } else if (a is IntVarietiesSupertype) {
-        return b.IsNumericBased(NumericPersuation.Int);
-      } else if (a is RealVarietiesSupertype) {
-        return b.IsNumericBased(NumericPersuation.Real);
-      } else if (a is SetType) {
-        var aa = (SetType)a;
-        var bb = b as SetType;
+    public static bool IsSupertype(Type super, Type sub) {
+      Contract.Requires(super != null);
+      Contract.Requires(sub != null);
+      super = super.NormalizeExpand();
+      sub = sub.NormalizeExpand();
+      if (super.IsBoolType || super.IsCharType || super.IsNumericBased() || super.IsTypeParameter || super is TypeProxy) {
+        return super.Equals(sub);
+      } else if (super is IntVarietiesSupertype) {
+        return sub.IsNumericBased(NumericPersuation.Int);
+      } else if (super is RealVarietiesSupertype) {
+        return sub.IsNumericBased(NumericPersuation.Real);
+      } else if (super is SetType) {
+        var aa = (SetType)super;
+        var bb = sub as SetType;
         // sets are co-variant in their argument type
-        return bb != null && aa.Finite == bb.Finite && IsSubtype(a.TypeArgs[0], b.TypeArgs[0]);
-      } else if (a is MultiSetType) {
-        var aa = (MultiSetType)a;
-        var bb = b as MultiSetType;
+        return bb != null && aa.Finite == bb.Finite && IsSupertype(super.TypeArgs[0], sub.TypeArgs[0]);
+      } else if (super is MultiSetType) {
+        var aa = (MultiSetType)super;
+        var bb = sub as MultiSetType;
         // multisets are co-variant in their argument type
-        return bb != null && IsSubtype(a.TypeArgs[0], b.TypeArgs[0]);
-      } else if (a is SeqType) {
-        var aa = (SeqType)a;
-        var bb = b as SeqType;
+        return bb != null && IsSupertype(super.TypeArgs[0], sub.TypeArgs[0]);
+      } else if (super is SeqType) {
+        var aa = (SeqType)super;
+        var bb = sub as SeqType;
         // sequences are co-variant in their argument type
-        return bb != null && IsSubtype(a.TypeArgs[0], b.TypeArgs[0]);
-      } else if (a is MapType) {
-        var aa = (MapType)a;
-        var bb = b as MapType;
+        return bb != null && IsSupertype(super.TypeArgs[0], sub.TypeArgs[0]);
+      } else if (super is MapType) {
+        var aa = (MapType)super;
+        var bb = sub as MapType;
         // maps are co-variant in both argument types
-        return bb != null && aa.Finite == bb.Finite && IsSubtype(a.TypeArgs[0], b.TypeArgs[0]) && IsSubtype(a.TypeArgs[1], b.TypeArgs[1]);
-      } else if (a.IsDatatype) {
-        var aa = a.AsDatatype;
-        if (aa != b.AsDatatype) {
+        return bb != null && aa.Finite == bb.Finite && IsSupertype(super.TypeArgs[0], sub.TypeArgs[0]) && IsSupertype(super.TypeArgs[1], sub.TypeArgs[1]);
+      } else if (super.IsDatatype) {
+        var aa = super.AsDatatype;
+        if (aa != sub.AsDatatype) {
           return false;
         }
-        Contract.Assert(a.TypeArgs.Count == b.TypeArgs.Count);
-        for (int i = 0; i < a.TypeArgs.Count; i++) {
-          if (!IsSubtype(a.TypeArgs[i], b.TypeArgs[i])) {  // datatypes are co-variant in their argument types
+        Contract.Assert(super.TypeArgs.Count == sub.TypeArgs.Count);
+        for (int i = 0; i < super.TypeArgs.Count; i++) {
+          if (!IsSupertype(super.TypeArgs[i], sub.TypeArgs[i])) {  // datatypes are co-variant in their argument types
             return false;
           }
         }
         return true;
-      } else if (a.AsArrowType != null) {
-        var aa = a.AsArrowType;
-        var bb = b.AsArrowType;
+      } else if (super.AsArrowType != null) {
+        var aa = super.AsArrowType;
+        var bb = sub.AsArrowType;
         if (bb == null || aa.Arity != bb.Arity) {
           return false;
         }
         int n = aa.Arity;
-        Contract.Assert(a.TypeArgs.Count == n + 1);
-        Contract.Assert(b.TypeArgs.Count == n + 1);
+        Contract.Assert(super.TypeArgs.Count == n + 1);
+        Contract.Assert(sub.TypeArgs.Count == n + 1);
         for (int i = 0; i < n; i++) {
-          if (!IsSubtype(b.TypeArgs[i], a.TypeArgs[i])) {  // arrow types are contra-variant in the argument types
+          if (!IsSupertype(sub.TypeArgs[i], super.TypeArgs[i])) {  // arrow types are contra-variant in the argument types
             return false;
           }
         }
-        return IsSubtype(a.TypeArgs[n], b.TypeArgs[n]);  // arrow types are co-variant in the result type
-      } else if (b is ObjectType) {
-        return a.IsRefType;
-      } else if (a is ObjectType) {
+        return IsSupertype(super.TypeArgs[n], sub.TypeArgs[n]);  // arrow types are co-variant in the result type
+      } else if (super is ObjectType) {
+        return sub.IsRefType;
+      } else if (sub is ObjectType) {
         return false;
       } else {
         // "a" is a class, trait, or opaque type
-        var aa = ((UserDefinedType)a).ResolvedClass;
+        var aa = ((UserDefinedType)super).ResolvedClass;
         Contract.Assert(aa != null);
-        if (!(b is UserDefinedType)) {
+        if (!(sub is UserDefinedType)) {
           return false;
         }
-        var bb = ((UserDefinedType)b).ResolvedClass;
+        var bb = ((UserDefinedType)sub).ResolvedClass;
         if (aa == bb) {
-          Contract.Assert(a.TypeArgs.Count == b.TypeArgs.Count);
-          for (int i = 0; i < a.TypeArgs.Count; i++) {
-            if (!a.TypeArgs[i].Equals(b.TypeArgs[i])) {  // type arguments of classes, traits, and opaque types are invariant
+          Contract.Assert(super.TypeArgs.Count == sub.TypeArgs.Count);
+          for (int i = 0; i < super.TypeArgs.Count; i++) {
+            if (!super.TypeArgs[i].Equals(sub.TypeArgs[i])) {  // type arguments of classes, traits, and opaque types are invariant
               return false;
             }
           }
           return true;
-        } else if (aa is ClassDecl && ((ClassDecl)aa).DerivesFrom(bb)) {
-          Contract.Assert(bb is TraitDecl && b.TypeArgs.Count == 0);
+        } else if (bb is ClassDecl && ((ClassDecl)bb).DerivesFrom(aa)) {
+          Contract.Assert(aa is TraitDecl && super.TypeArgs.Count == 0);
           return true;
         } else {
           return false;
         }
+      }
+    }
+
+    /// <summary>
+    /// Returns "true" iff the head symbols of "sub" can be a subtype of the head symbol of "super".
+    /// </summary>
+    public static bool IsHeadSupertype(Type super, Type sub) {
+      Contract.Requires(super != null && !(super is TypeProxy) && !(super is ArtificialType));
+      Contract.Requires(sub != null && !(sub is TypeProxy) && !(sub is ArtificialType));
+      if (super.IsBoolType || super.IsCharType || super.IsNumericBased() || super.IsTypeParameter) {
+        return super.Equals(sub);
+      } else if (super is SetType) {
+        var aa = (SetType)super;
+        var bb = sub as SetType;
+        return bb != null && aa.Finite == bb.Finite;
+      } else if (super is MultiSetType) {
+        return sub is MultiSetType;
+      } else if (super is SeqType) {
+        return sub is SeqType;
+      } else if (super is MapType) {
+        var aa = (MapType)super;
+        var bb = sub as MapType;
+        // maps are co-variant in both argument types
+        return bb != null && aa.Finite == bb.Finite;
+      } else if (super.IsDatatype) {
+        return super.AsDatatype == sub.AsDatatype;
+      } else if (super.AsArrowType != null) {
+        var aa = super.AsArrowType;
+        var bb = sub.AsArrowType;
+        return bb != null && aa.Arity == bb.Arity;
+      } else if (super is ObjectType) {
+        return sub.IsRefType;
+      } else if (sub is ObjectType) {
+        return false;
+      } else {
+        // "a" is a class, trait, or opaque type
+        var aa = ((UserDefinedType)super).ResolvedClass;
+        Contract.Assert(aa != null);
+        if (!(sub is UserDefinedType)) {
+          return false;
+        }
+        var bb = ((UserDefinedType)sub).ResolvedClass;
+        if (aa == bb) {
+          return true;
+        } else if (bb is ClassDecl && ((ClassDecl)bb).DerivesFrom(aa)) {
+          Contract.Assert(aa is TraitDecl && super.TypeArgs.Count == 0);
+          return true;
+        } else {
+          return false;
+        }
+      }
+    }
+
+    public static Type HeadWithProxyArgs(Type t) {
+      Contract.Requires(t != null);
+      Contract.Requires(!(t is TypeProxy));
+      if (t.TypeArgs.Count == 0) {
+        return t;
+      } else if (t is SetType) {
+        var s = (SetType)t;
+        return new SetType(s.Finite, new InferredTypeProxy());
+      } else if (t is MultiSetType) {
+        return new MultiSetType(new InferredTypeProxy());
+      } else if (t is SeqType) {
+        return new SeqType(new InferredTypeProxy());
+      } else if (t is MapType) {
+        var s = (MapType)t;
+        return new MapType(s.Finite, new InferredTypeProxy(), new InferredTypeProxy());
+      } else if (t is ArrowType) {
+        var s = (ArrowType)t;
+        var args = s.TypeArgs.ConvertAll(_ => (Type)new InferredTypeProxy());
+        return new ArrowType(s.tok, (ArrowTypeDecl)s.ResolvedClass, args);
+      } else {
+        var s = (UserDefinedType)t;
+        var args = s.TypeArgs.ConvertAll(_ => (Type)new InferredTypeProxy());
+        return new UserDefinedType(s.tok, s.Name, s.ResolvedClass, args);
       }
     }
 
@@ -1364,15 +1440,25 @@ namespace Microsoft.Dafny {
       }
     }  // denotes the Domain type for a Map
     private Type arg;
-    // The following two methods, HasTypeArg and SetTypeArg, are to be called during resolution to make sure that "arg" becomes set.
+    // The following methods, HasTypeArg and SetTypeArg/SetTypeArgs, are to be called during resolution to make sure that "arg" becomes set.
     public bool HasTypeArg() {
       return arg != null;
     }
     public void SetTypeArg(Type arg) {
       Contract.Requires(arg != null);
+      Contract.Requires(1 <= this.TypeArgs.Count);  // this is actually an invariant of all collection types
       Contract.Assume(this.arg == null);  // Can only set it once.  This is really a precondition.
       this.arg = arg;
-      this.TypeArgs = new List<Type> { arg };
+      this.TypeArgs[0] = arg;
+    }
+    public virtual void SetTypeArgs(Type arg, Type other) {
+      Contract.Requires(arg != null);
+      Contract.Requires(other != null);
+      Contract.Requires(this.TypeArgs.Count == 2);
+      Contract.Assume(this.arg == null);  // Can only set it once.  This is really a precondition.
+      this.arg = arg;
+      this.TypeArgs[0] = arg;
+      this.TypeArgs[1] = other;
     }
     [ContractInvariantMethod]
     void ObjectInvariant() {
@@ -1380,9 +1466,19 @@ namespace Microsoft.Dafny {
       // After resolution, the following is invariant:  Contract.Invariant(Arg != null);
       // However, it may not be true until then.
     }
-    public CollectionType(Type arg) {
+    /// <summary>
+    /// This constructor is a collection types with 1 type argument
+    /// </summary>
+    protected CollectionType(Type arg) {
       this.arg = arg;
       this.TypeArgs = new List<Type> { arg };
+    }
+    /// <summary>
+    /// This constructor is a collection types with 2 type arguments
+    /// </summary>
+    protected CollectionType(Type arg, Type other) {
+      this.arg = arg;
+      this.TypeArgs = new List<Type> { arg, other };
     }
     public override bool SupportsEquality {
       get {
@@ -1453,28 +1549,20 @@ namespace Microsoft.Dafny {
     private bool finite;
     public Type Range {
       get { return range; }
-      set {
-        range = Range;
-        TypeArgs = new List<Type> { Arg, range };
-      }
     }
     private Type range;
-    public void SetRangetype(Type range) {
-      Contract.Requires(range != null);
+    public override void SetTypeArgs(Type domain, Type range) {
+      base.SetTypeArgs(domain, range);
       Contract.Assume(this.range == null);  // Can only set once.  This is really a precondition.
       this.range = range;
     }
-    public MapType(bool finite, Type domain, Type range) : base(domain) {
+    public MapType(bool finite, Type domain, Type range) : base(domain, range) {
       Contract.Requires((domain == null && range == null) || (domain != null && range != null));
       this.finite = finite;
       this.range = range;
-      this.TypeArgs = new List<Type> {domain,range};
     }
     public Type Domain {
       get { return Arg; }
-      set {
-        TypeArgs = new List<Type> { Domain, range };
-      }
     }
     public override string CollectionTypeName { get { return finite ? "map" : "imap"; } }
     [Pure]
@@ -1626,15 +1714,37 @@ namespace Microsoft.Dafny {
     }
 
     /// <summary>
-    /// This constructor constructs a resolved type parameter
+    /// This constructor constructs a resolved type parameter (but shouldn't be called if "tp" denotes
+    /// the .TheType of an opaque type -- use the (OpaqueType_AsParameter, OpaqueTypeDecl, List(Type))
+    /// constructor for that).
     /// </summary>
     public UserDefinedType(IToken tok, TypeParameter tp) {
       Contract.Requires(tok != null);
       Contract.Requires(tp != null);
+      Contract.Requires(!(tp is OpaqueType_AsParameter));
       this.tok = tok;
       this.Name = tp.Name;
       this.TypeArgs = new List<Type>();
       this.ResolvedParam = tp;
+      var ns = new NameSegment(tok, tp.Name, null);
+      var r = new Resolver_IdentifierExpr(tok, tp);
+      ns.ResolvedExpression = r;
+      ns.Type = r.Type;
+      this.NamePath = ns;
+    }
+
+    /// <summary>
+    /// Constructs a resolve type for an opaque type.
+    /// </summary>
+    public UserDefinedType(OpaqueType_AsParameter tp, OpaqueTypeDecl decl, List<Type> typeArgs) {
+      Contract.Requires(tp != null);
+      Contract.Requires(decl != null && decl.TheType == tp);
+      Contract.Requires(typeArgs != null);
+      this.tok = tp.tok;
+      this.Name = tp.Name;
+      this.ResolvedParam = tp;
+      this.ResolvedClass = decl;
+      this.TypeArgs = typeArgs;
       var ns = new NameSegment(tok, tp.Name, null);
       var r = new Resolver_IdentifierExpr(tok, tp);
       ns.ResolvedExpression = r;
@@ -1647,9 +1757,7 @@ namespace Microsoft.Dafny {
       if (i is UserDefinedType) {
         var ii = (UserDefinedType)i;
         var t = that.NormalizeExpand() as UserDefinedType;
-        if (ii.ResolvedParam != null) {
-          return t != null && t.ResolvedParam == ii.ResolvedParam;
-        } else if (t == null || ii.ResolvedClass != t.ResolvedClass || ii.TypeArgs.Count != t.TypeArgs.Count) {
+        if (t == null || ii.ResolvedParam != t.ResolvedParam || ii.ResolvedClass != t.ResolvedClass || ii.TypeArgs.Count != t.TypeArgs.Count) {
           return false;
         } else {
           for (int j = 0; j < ii.TypeArgs.Count; j++) {
@@ -1792,7 +1900,7 @@ namespace Microsoft.Dafny {
     public enum Family { Unknown, Bool, Char, IntLike, RealLike, ValueType, Ref, Opaque }
     public Family family = Family.Unknown;
     public static Family GetFamily(Type t) {
-      Contract.Ensures(Contract.Result<Family>() != Family.Unknown || t is TypeProxy);  // return Unknown ==> t is TypeProxy
+      Contract.Ensures(Contract.Result<Family>() != Family.Unknown || t is TypeProxy || t is Resolver_IdentifierExpr.ResolverType);  // return Unknown ==> t is TypeProxy || t is ResolverType
       if (t.IsBoolType) {
         return Family.Bool;
       } else if (t.IsCharType) {
@@ -1817,7 +1925,7 @@ namespace Microsoft.Dafny {
     internal TypeProxy() {
     }
 
-#if DEBUG
+#if DEBUG_PRINT
     static int _id = 0;
     int id = _id++;
 #endif
@@ -1825,7 +1933,7 @@ namespace Microsoft.Dafny {
     public override string TypeName(ModuleDefinition context) {
       Contract.Ensures(Contract.Result<string>() != null);
 
-#if DEBUG
+#if DEBUG_PRINT
       return T == null ? "?" + id : T.TypeName(context);
 #else
       return T == null ? "?" : T.TypeName(context);
@@ -1851,6 +1959,25 @@ namespace Microsoft.Dafny {
     }
     public override bool PossiblyEquals_W(Type that) {
       return false;  // we don't consider unresolved proxies as worthy of "possibly equals" status
+    }
+
+    [Pure]
+    internal static bool IsSupertypeOfLiteral(Type t) {
+      Contract.Requires(t != null);
+      return t is ArtificialType;
+    }
+    internal bool IsSubtypeOfArtificial() {
+      return AsSubtypeOfArtificial() != null;
+    }
+    internal Type AsSubtypeOfArtificial() {
+      foreach (var c in SupertypeConstraints) {
+        if (c.Super is IntVarietiesSupertype) {
+          return Type.Int;
+        } else if (c.Super is RealVarietiesSupertype) {
+          return Type.Real;
+        }
+      }
+      return null;
     }
   }
 
@@ -2032,22 +2159,6 @@ namespace Microsoft.Dafny {
     public override int OrderID {
       get {
         return 4;
-      }
-    }
-  }
-
-  public class SubSuperTypeProxy : RestrictedTypeProxy
-  {
-    public SubSuperTypeProxy(Type super, IToken tok, string msg) {
-      Contract.Requires(super != null);
-      Contract.Requires(tok != null);
-      Contract.Requires(msg != null);
-      var c = new Resolver.TypeConstraint(super, this, new Resolver.TypeConstraint.ErrorMsg(tok, msg, this));
-      AddSupertype(c);
-    }
-    public override int OrderID {
-      get {
-        return 5;
       }
     }
   }
@@ -6011,11 +6122,18 @@ namespace Microsoft.Dafny {
         Contract.Requires(WasResolved());  // should be called only on resolved expressions; this approximates that precondition
         Expression r = this;
         while (true) {
+          Contract.Assert(r.WasResolved());  // this.WasResolved() implies anything it reaches is also resolved
           var rr = r as ConcreteSyntaxExpression;
-          if (rr == null) { break; }
+          if (rr == null) {
+            return r;
+          }
           r = rr.ResolvedExpression;
+          if (r == null) {
+            // for a NegationExpression, we're willing to return its non-ResolveExpression form (since it is filled in
+            // during a resolution phase after type checking and we may be called here during type checking)
+            return rr is NegationExpression ? rr : null;
+          }
         }
-        return r;
       }
     }
 
@@ -6732,7 +6850,10 @@ namespace Microsoft.Dafny {
       Contract.Invariant(Type == null || (Type is ResolverType_Module && TypeParamDecl == null) || Type is ResolverType_Type);
     }
 
-    public class ResolverType_Module : Type
+    public abstract class ResolverType : Type
+    {
+    }
+    public class ResolverType_Module : ResolverType
     {
       [Pure]
       public override string TypeName(ModuleDefinition context) {
@@ -6745,7 +6866,7 @@ namespace Microsoft.Dafny {
         return false;
       }
     }
-    public class ResolverType_Type : Type {
+    public class ResolverType_Type : ResolverType {
       [Pure]
       public override string TypeName(ModuleDefinition context) {
         return "#type";
@@ -6842,24 +6963,26 @@ namespace Microsoft.Dafny {
     public readonly Expression Obj;
     public readonly string MemberName;
     public MemberDecl Member;          // filled in by resolution, will be a Field or Function
-    public List<Type> TypeApplication; // If Member is a Function or Method, then TypeApplication is the list of type arguments used with the enclosing class and the function/method itself
+    public List<Type> TypeApplication; // If Member is a Function or Method, then TypeApplication is the list of type arguments used with the enclosing class and the function/method itself; if it is a Field, then TypeApplication is the list of type arguments used with the enclosing class
 
     public Dictionary<TypeParameter, Type> TypeArgumentSubstitutions() {
       Contract.Requires(WasResolved());
-      Contract.Requires(Member is ICallable);
       Contract.Ensures(Contract.Result<Dictionary<TypeParameter, Type>>() != null);
       Contract.Ensures(Contract.Result<Dictionary<TypeParameter, Type>>().Count == TypeApplication.Count);
 
-      Contract.Assert(Member.EnclosingClass.TypeArgs.Count + ((ICallable)Member).TypeArgs.Count == TypeApplication.Count);  // a consequence of proper resolution
+      var icallable = Member as ICallable;
+      Contract.Assert(Member.EnclosingClass.TypeArgs.Count + (icallable == null ? 0 : icallable.TypeArgs.Count) == TypeApplication.Count);  // a consequence of proper resolution
       var subst = new Dictionary<TypeParameter, Type>();
       var i = 0;
       foreach (var tp in Member.EnclosingClass.TypeArgs) {
         subst.Add(tp, TypeApplication[i]);
         i++;
       }
-      foreach (var tp in ((ICallable)Member).TypeArgs) {
-        subst.Add(tp, TypeApplication[i]);
-        i++;
+      if (icallable != null) {
+        foreach (var tp in icallable.TypeArgs) {
+          subst.Add(tp, TypeApplication[i]);
+          i++;
+        }
       }
       return subst;
     }
@@ -6868,7 +6991,7 @@ namespace Microsoft.Dafny {
     void ObjectInvariant() {
       Contract.Invariant(Obj != null);
       Contract.Invariant(MemberName != null);
-      Contract.Invariant((Member is Function || Member is Method) == (TypeApplication != null));
+      Contract.Invariant((Member != null) == (TypeApplication != null));  // TypeApplication is set whenever Member is set
     }
 
     public MemberSelectExpr(IToken tok, Expression obj, string memberName)
@@ -6878,6 +7001,36 @@ namespace Microsoft.Dafny {
       Contract.Requires(memberName != null);
       this.Obj = obj;
       this.MemberName = memberName;
+    }
+
+    /// <summary>
+    /// Returns a resolved MemberSelectExpr for a field.
+    /// </summary>
+    public MemberSelectExpr(IToken tok, Expression obj, Field field)
+      : this(tok, obj, field.Name)
+    {
+      Contract.Requires(tok != null);
+      Contract.Requires(obj != null);
+      Contract.Requires(field != null);
+      Contract.Requires(obj.Type != null);  // "obj" is required to be resolved
+      this.Member = field;  // resolve here
+      if (field.EnclosingClass is TraitDecl) {
+        // It could be that the type of "obj" is a class that implements the trait.  If so,
+        // it would be necessary to map the class type instantiation to a type instantiation
+        // of the trait.  However, at present in Dafny, traits take no type arguments, so
+        // our job is easy.
+        Contract.Assert(field.EnclosingClass.TypeArgs.Count == 0);
+        this.TypeApplication = new List<Type>();
+      } else {
+        var receiverType = obj.Type.NormalizeExpand();
+        this.TypeApplication = receiverType.TypeArgs;  // resolve here
+      }
+      Contract.Assert(this.TypeApplication.Count == field.EnclosingClass.TypeArgs.Count);
+      var subst = new Dictionary<TypeParameter, Type>();
+      for (int i = 0; i < field.EnclosingClass.TypeArgs.Count; i++) {
+        subst.Add(field.EnclosingClass.TypeArgs[i], this.TypeApplication[i]);
+      }
+      this.Type = Resolver.SubstType(field.Type, subst);  // resolve here
     }
 
     public void MemberSelectCase(Action<Field> fieldK, Action<Function> functionK) {
@@ -8559,6 +8712,18 @@ namespace Microsoft.Dafny {
       Contract.Requires(tok != null);
       Contract.Requires(e != null);
       E = e;
+    }
+    public override IEnumerable<Expression> SubExpressions {
+      get {
+        if (ResolvedExpression == null) {
+          // the expression hasn't yet been turned into a resolved expression, so use .E as the subexpression
+          yield return E;
+        } else {
+          foreach (var ee in base.SubExpressions) {
+            yield return ee;
+          }
+        }
+      }
     }
   }
 

@@ -951,7 +951,7 @@ NewtypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl td>
   "="
   ( IF(IsIdentColonOrBar())
     NoUSIdent<out bvId>
-    [ ":" Type<out baseType> ]       (. if (baseType == null) { baseType = new OperationTypeProxy(true, true, false, false, false, false); } .)
+    [ ":" Type<out baseType> ]       (. if (baseType == null) { baseType = new InferredTypeProxy(); } .)
     "|"
     Expression<out wh, false, true>  (. td = new NewtypeDecl(theVerifyThisFile ? id : new IncludeToken(id), id.val, module, new BoundVar(bvId, bvId.val, baseType), wh, attrs); .)
   | Type<out baseType>               (. td = new NewtypeDecl(theVerifyThisFile ? id : new IncludeToken(id), id.val, module, baseType, attrs); .)

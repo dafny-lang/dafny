@@ -7,15 +7,15 @@ class C {
   method M(v: Stack)
     requires v != null
   {
-    var o: object := v;
-    assert o !in n;  // should be known from the types involved
+    var n': set<object> := n;
+    assert v !in n';  // should be known from the types involved
   }
 
   method N(v: Stack)
     /* this time without the precondition */
   {
-    var o: object := v;
-    assert o !in n;  // error: v may be null
+    var n': set<object> := n;
+    assert v !in n';  // error: v may be null
   }
 
   method A0(a: CP<int,C>, b: CP<int,object>)

@@ -99,7 +99,7 @@ class Main {
   {
     var t := root;
     t.marked := true;
-    var stackNodes := [];
+    var stackNodes: seq<Node> := [];
     ghost var unmarkedNodes := S - {t};
     while true
       invariant root.marked && t in S && t !in stackNodes
@@ -191,7 +191,7 @@ class Main {
     ghost var path := Path.Empty;
     t.marked := true;
     t.pathFromRoot := path;
-    ghost var stackNodes := [];
+    ghost var stackNodes: seq<Node> := [];
     ghost var unmarkedNodes := S - {t};
     while true
       invariant root.marked && t != null && t in S && t !in stackNodes
@@ -206,7 +206,7 @@ class Main {
                   0 <= n.childrenVisited <= |n.children| &&
                   forall j :: 0 <= j < n.childrenVisited ==>
                     n.children[j] == null || n.children[j].marked
-      invariant forall n :: n in stackNodes ==> n.childrenVisited < |n.children|
+      invariant forall n: Node :: n in stackNodes ==> n.childrenVisited < |n.children|
       invariant forall n {:autotriggers false} :: n in S && n.marked && n !in stackNodes && n != t ==>
                   forall ch :: ch in n.children && ch != null ==> ch.marked
       invariant forall n :: n in S && n !in stackNodes && n != t ==>

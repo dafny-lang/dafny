@@ -1,17 +1,18 @@
-// RUN: %dafny /compile:0 /print:"%t.print" /rprint:- "%s" > "%t"
+// RUN: %dafny /compile:0 /print:"%t.print" /env:0 /rprint:- "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 class CC {
   var f: nat
-    var g: int
+  var g: int
   function method F(): nat
   method M() {
     var a := f;  // int
     var b := g;  // int
     var c := F();  // int (not nat)
-    var d := N();  // int (not nat)
+    var w;  // int (not nat)
+    var d := N(w);  // int (not nat)
   }
-  method N() returns (n: nat)
+  method N(m: nat) returns (n: nat)
 }
 
 method ChainOfAssignments() returns (x: int, y: int, n: nat)
@@ -123,6 +124,30 @@ module PlusTests {
   }
 }
 
+module MorePlusTests {
+  newtype MyInt = x: int | true
+  class C { }
+
+  method Plusses(b: bool, i: int, j: MyInt, r: real) {
+    var ii := i + i;
+    var jj := j + j;
+    var bb := b + b;  // error: bool is not plussable
+    var rr := r + r;
+    var s := {false};
+    var ss := s + s;
+    var m := multiset{false, false};
+    var mm := m + m;
+    var q := [false];
+    var qq := q + q;
+    var p := map[false := 17];
+    var pp := p + p;  // error: map is not plussable
+    var n: C := null;
+    var nn := n + n;  // error: references types are not plussable
+    var c := new C;
+    var cc := c + c;  // error: class types are not plussable
+  }
+}
+
 module References {
   class C extends K, M { }
   trait R { }
@@ -169,7 +194,7 @@ module SimpleClassesAndTraits {
   trait K { var h: int }
   trait M { }
 
-  method Infer(c: C, o: object, k: K, d: D) {
+  method Infer(c: C, o: object, k: K, d: D) returns (k': K) {
     var delayme := c;  // object
 
     var x := c;  // C
@@ -192,8 +217,10 @@ module SimpleClassesAndTraits {
     var d: C := y;
 
     var n := null;   // object
-    var n' := null;  // K
+    var n' := null;  // K (or object would be alright, too)
     n' := k;
+    var n'' := null;  // K
+    k' := n'';
   }
 }
 

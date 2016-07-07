@@ -774,9 +774,11 @@ namespace Microsoft.Dafny {
     public void PrintType(string prefix, Type ty) {
       Contract.Requires(prefix != null);
       Contract.Requires(ty != null);
-      string s = ty.ToString();
-      if (s != "?") {
-        wr.Write("{0}{1}", prefix, s);
+      if (DafnyOptions.O.DafnyPrintResolvedFile != null) {
+        ty = ty.NormalizeExpand();
+      }
+      if (!(ty is TypeProxy)) {
+        wr.Write("{0}{1}", prefix, ty);
       }
     }
 

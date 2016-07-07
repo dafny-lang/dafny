@@ -1692,12 +1692,8 @@ namespace Microsoft.Dafny {
       // play havoc with the heap, except at the locations prescribed by (this._reads - this._modifies - {this})
       var th = new ThisExpr(iter.tok);
       th.Type = Resolver.GetThisType(iter.tok, iter);  // resolve here
-      var rds = new MemberSelectExpr(iter.tok, th, iter.Member_Reads.Name);
-      rds.Member = iter.Member_Reads;  // resolve here
-      rds.Type = iter.Member_Reads.Type;  // resolve here
-      var mod = new MemberSelectExpr(iter.tok, th, iter.Member_Modifies.Name);
-      mod.Member = iter.Member_Modifies;  // resolve here
-      mod.Type = iter.Member_Modifies.Type;  // resolve here
+      var rds = new MemberSelectExpr(iter.tok, th, iter.Member_Reads);
+      var mod = new MemberSelectExpr(iter.tok, th, iter.Member_Modifies);
       builder.Add(new Bpl.CallCmd(iter.tok, "$IterHavoc0",
         new List<Bpl.Expr>() { etran.TrExpr(th), etran.TrExpr(rds), etran.TrExpr(mod) },
         new List<Bpl.IdentifierExpr>()));
@@ -1724,9 +1720,7 @@ namespace Microsoft.Dafny {
       localVariables.Add(oldIterHeap);
       builder.Add(Bpl.Cmd.SimpleAssign(iter.tok, new Bpl.IdentifierExpr(iter.tok, oldIterHeap), etran.HeapExpr));
       // simulate a modifies this, this._modifies, this._new;
-      var nw = new MemberSelectExpr(iter.tok, th, iter.Member_New.Name);
-      nw.Member = iter.Member_New;  // resolve here
-      nw.Type = iter.Member_New.Type;  // resolve here
+      var nw = new MemberSelectExpr(iter.tok, th, iter.Member_New);
       builder.Add(new Bpl.CallCmd(iter.tok, "$IterHavoc1",
         new List<Bpl.Expr>() { etran.TrExpr(th), etran.TrExpr(mod), etran.TrExpr(nw) },
         new List<Bpl.IdentifierExpr>()));
@@ -1750,10 +1744,8 @@ namespace Microsoft.Dafny {
       for (int i = 0; i < iter.OutsFields.Count; i++) {
         var y = iter.OutsFields[i];
         var ys = iter.OutsHistoryFields[i];
-        var thisY = new MemberSelectExpr(iter.tok, th, y.Name);
-        thisY.Member = y; thisY.Type = y.Type;  // resolve here
-        var thisYs = new MemberSelectExpr(iter.tok, th, ys.Name);
-        thisYs.Member = ys; thisYs.Type = ys.Type;  // resolve here
+        var thisY = new MemberSelectExpr(iter.tok, th, y);
+        var thisYs = new MemberSelectExpr(iter.tok, th, ys);
         var oldThisYs = new OldExpr(iter.tok, thisYs);
         oldThisYs.Type = thisYs.Type;  // resolve here
         var singleton = new SeqDisplayExpr(iter.tok, new List<Expression>() { thisY });
@@ -7359,11 +7351,9 @@ namespace Microsoft.Dafny {
         Contract.Assert(iter.OutsFields.Count == iter.OutsHistoryFields.Count);
         for (int i = 0; i < iter.OutsFields.Count; i++) {
           var y = iter.OutsFields[i];
-          var dafnyY = new MemberSelectExpr(s.Tok, th, y.Name);
-          dafnyY.Member = y; dafnyY.Type = y.Type;  // resolve here
+          var dafnyY = new MemberSelectExpr(s.Tok, th, y);
           var ys = iter.OutsHistoryFields[i];
-          var dafnyYs = new MemberSelectExpr(s.Tok, th, ys.Name);
-          dafnyYs.Member = ys; dafnyYs.Type = ys.Type;  // resolve here
+          var dafnyYs = new MemberSelectExpr(s.Tok, th, ys);
           var dafnySingletonY = new SeqDisplayExpr(s.Tok, new List<Expression>() { dafnyY });
           dafnySingletonY.Type = ys.Type;  // resolve here
           var rhs = new BinaryExpr(s.Tok, BinaryExpr.Opcode.Add, dafnyYs, dafnySingletonY);
@@ -7949,12 +7939,8 @@ namespace Microsoft.Dafny {
       // havoc Heap \ {this} \ _reads \ _new;
       var th = new ThisExpr(tok);
       th.Type = Resolver.GetThisType(tok, iter);  // resolve here
-      var rds = new MemberSelectExpr(tok, th, iter.Member_Reads.Name);
-      rds.Member = iter.Member_Reads;  // resolve here
-      rds.Type = iter.Member_Reads.Type;  // resolve here
-      var nw = new MemberSelectExpr(tok, th, iter.Member_New.Name);
-      nw.Member = iter.Member_New;  // resolve here
-      nw.Type = iter.Member_New.Type;  // resolve here
+      var rds = new MemberSelectExpr(tok, th, iter.Member_Reads);
+      var nw = new MemberSelectExpr(tok, th, iter.Member_New);
       builder.Add(new Bpl.CallCmd(tok, "$YieldHavoc",
         new List<Bpl.Expr>() { etran.TrExpr(th), etran.TrExpr(rds), etran.TrExpr(nw) },
         new List<Bpl.IdentifierExpr>()));
@@ -9656,18 +9642,21 @@ namespace Microsoft.Dafny {
         Contract.Assume(!(lhs is ConcreteSyntaxExpression));
         Contract.Assume(!(lhs is SeqSelectExpr && !((SeqSelectExpr)lhs).SelectOne));  // array-range assignments are not allowed
 
-        Type lhsType;
+        Type lhsType, rhsTypeConstraint;
         if (lhs is IdentifierExpr) {
-          lhsType = lhs.Type;
+          lhsType = ((IdentifierExpr)lhs).Var.Type;
+          rhsTypeConstraint = lhsType;
         } else if (lhs is MemberSelectExpr) {
           var fse = (MemberSelectExpr)lhs;
           var field = (Field)fse.Member;
           lhsType = field.Type;
+          rhsTypeConstraint = Resolver.SubstType(lhsType, fse.TypeArgumentSubstitutions());
         } else {
           Contract.Assert(lhs is SeqSelectExpr || lhs is MultiSelectExpr);
           lhsType = null;  // for an array update, always make sure the value assigned is boxed
+          rhsTypeConstraint = lhs.Type;
         }
-        var bRhs = TrAssignmentRhs(rhss[i].Tok, bLhss[i], lhsType, rhss[i], lhs.Type, builder, locals, etran);
+        var bRhs = TrAssignmentRhs(rhss[i].Tok, bLhss[i], lhsType, rhss[i], rhsTypeConstraint, builder, locals, etran);
         if (bLhss[i] != null) {
           Contract.Assert(bRhs == bLhss[i]);  // this is what the postcondition of TrAssignmentRhs promises
           // assignment has already been done by TrAssignmentRhs
@@ -9701,18 +9690,21 @@ namespace Microsoft.Dafny {
         Contract.Assume(!(lhs is ConcreteSyntaxExpression));
         Contract.Assume(!(lhs is SeqSelectExpr && !((SeqSelectExpr)lhs).SelectOne));  // array-range assignments are not allowed
 
-        Type lhsType;
+        Type lhsType, rhsTypeConstraint;
         if (lhs is IdentifierExpr) {
-          lhsType = lhs.Type;
+          lhsType = ((IdentifierExpr)lhs).Var.Type;
+          rhsTypeConstraint = lhsType;
         } else if (lhs is MemberSelectExpr) {
           var fse = (MemberSelectExpr)lhs;
           var field = (Field)fse.Member;
           lhsType = field.Type;
+          rhsTypeConstraint = Resolver.SubstType(lhsType, fse.TypeArgumentSubstitutions());
         } else {
           Contract.Assert(lhs is SeqSelectExpr || lhs is MultiSelectExpr);
           lhsType = null;  // for an array update, always make sure the value assigned is boxed
+          rhsTypeConstraint = lhs.Type;
         }
-        var bRhs = TrAssignmentRhs(rhss[i].Tok, null, lhsType, rhss[i], lhs.Type, builder, locals, etran);
+        var bRhs = TrAssignmentRhs(rhss[i].Tok, null, lhsType, rhss[i], rhsTypeConstraint, builder, locals, etran);
         finalRhss.Add(bRhs);
       }
       return finalRhss;
@@ -9951,14 +9943,14 @@ namespace Microsoft.Dafny {
 
     /// <summary>
     /// if "bGivenLhs" is non-null, generates an assignment of the translation of "rhs" to "bGivenLhs" and then returns "bGivenLhs".
-    /// If "bGivenLhs" is null, then this method will an expression that in a stable way denotes the translation of "rhs";
+    /// If "bGivenLhs" is null, then this method will return an expression that in a stable way denotes the translation of "rhs";
     /// this is achieved by creating a new temporary Boogie variable to hold the result and returning an expression that mentions
     /// that new temporary variable.
     /// 
     /// Before the assignment, the generated code will check that "rhs" obeys any subrange requirements entailed by "rhsTypeConstraint".
     /// 
     /// The purpose of "lhsType" is to determine if the expression should be boxed before doing the assignment.  It is allowed to be null,
-    /// which indicates that the result should always be a box.  Note that "lhsType" may refer to a formal type parameter that is not in\
+    /// which indicates that the result should always be a box.  Note that "lhsType" may refer to a formal type parameter that is not in
     /// scope; this is okay, since the purpose of "lhsType" is just to say whether or not the result should be boxed.
     /// </summary>
     Bpl.Expr TrAssignmentRhs(IToken tok, Bpl.IdentifierExpr bGivenLhs, Type lhsType, AssignmentRhs rhs, Type rhsTypeConstraint,
@@ -12081,9 +12073,7 @@ namespace Microsoft.Dafny {
           foreach (var bv in mc.Arguments) {
             if (!LocalVariable.HasWildcardName(bv)) {
               var dtor = mc.Ctor.Destructors[argIndex];
-              var dv = new MemberSelectExpr(bv.tok, e.Source, dtor.Name);
-              dv.Member = dtor;  // resolve here
-              dv.Type = bv.Type;  // resolve here
+              var dv = new MemberSelectExpr(bv.tok, e.Source, dtor);
               substMap.Add(bv, dv);
             }
             argIndex++;
@@ -12092,9 +12082,7 @@ namespace Microsoft.Dafny {
           if (r == null) {
             r = c;
           } else {
-            var test = new MemberSelectExpr(mc.tok, e.Source, mc.Ctor.QueryField.Name);
-            test.Member = mc.Ctor.QueryField;  // resolve here
-            test.Type = Type.Bool;  // resolve here
+            var test = new MemberSelectExpr(mc.tok, e.Source, mc.Ctor.QueryField);
             var ite = new ITEExpr(mc.tok, test, c, r);
             ite.Type = e.Type;
             r = ite;
@@ -13875,9 +13863,7 @@ namespace Microsoft.Dafny {
           Expression substE = Substitute(fse.Obj);
           MemberSelectExpr fseNew = new MemberSelectExpr(fse.tok, substE, fse.MemberName);
           fseNew.Member = fse.Member;
-          fseNew.TypeApplication = fse.TypeApplication == null
-            ? null
-            : fse.TypeApplication.ConvertAll(t => Resolver.SubstType(t, typeMap));
+          fseNew.TypeApplication = fse.TypeApplication.ConvertAll(t => Resolver.SubstType(t, typeMap));
           newExpr = fseNew;
         } else if (expr is SeqSelectExpr) {
           SeqSelectExpr sse = (SeqSelectExpr)expr;

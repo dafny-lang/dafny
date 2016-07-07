@@ -68,7 +68,7 @@ class Composite {
     // sets child.parent to this:
     ensures child.parent == this;
     // leaves everything in S+U valid:
-    ensures (forall c {:autotriggers false} :: c in S+U ==> c.Valid(S+U)); // We can't generate a trigger for this at the moment; if we did, we would still need to prevent TrSplitExpr from translating c in S+U to S[c] || U[c].
+    ensures (forall c: Composite {:autotriggers false} :: c in S+U ==> c.Valid(S+U)); // We can't generate a trigger for this at the moment; if we did, we would still need to prevent TrSplitExpr from translating c in S+U to S[c] || U[c].
   {
     if (left == null) {
       left := child;

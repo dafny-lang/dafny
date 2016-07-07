@@ -57,8 +57,8 @@ abstract module M0 {
     decreases *  // leave termination checking for a later refinement
   {
     root.marked := true;
-    var t, p := root, null;
-    ghost var stackNodes := [];
+    var t, p: Node := root, null;
+    ghost var stackNodes: seq<Node> := [];
     while true
       // stackNodes is a sequence of nodes from S:
       invariant forall n :: n in stackNodes ==> n in S

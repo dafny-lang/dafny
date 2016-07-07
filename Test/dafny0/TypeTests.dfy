@@ -10,9 +10,9 @@ class C {
   { }
 
   method Caller()
-  {
-    var m,n := M(true);  // error on in-parameter
-    n,m := M(m);  // 2 errors on out-parameters
+  { // The following two lines should give rise to a total of 3 error messages
+    var m,n := M(true);  // error (or 2) on in-parameter
+    n,m := M(m);  // error (or 2) on out-parameters
   }
 }
 
