@@ -731,9 +731,450 @@ namespace Microsoft.Dafny {
       }
     }
 
+    /// <summary>
+    /// Returns "true" iff "a" is a subtype of "b".
+    /// </summary>
+    public static bool IsSubtype(Type a, Type b) {
+      Contract.Requires(a != null);
+      Contract.Requires(b != null);
+      a = a.NormalizeExpand();
+      b = b.NormalizeExpand();
+      if (a.IsBoolType || a.IsCharType || a.IsNumericBased() || a.IsTypeParameter || a is TypeProxy) {
+        return a.Equals(b);
+      } else if (a is IntVarietiesSupertype) {
+        return b.IsNumericBased(NumericPersuation.Int);
+      } else if (a is RealVarietiesSupertype) {
+        return b.IsNumericBased(NumericPersuation.Real);
+      } else if (a is SetType) {
+        var aa = (SetType)a;
+        var bb = b as SetType;
+        // sets are co-variant in their argument type
+        return bb != null && aa.Finite == bb.Finite && IsSubtype(a.TypeArgs[0], b.TypeArgs[0]);
+      } else if (a is MultiSetType) {
+        var aa = (MultiSetType)a;
+        var bb = b as MultiSetType;
+        // multisets are co-variant in their argument type
+        return bb != null && IsSubtype(a.TypeArgs[0], b.TypeArgs[0]);
+      } else if (a is SeqType) {
+        var aa = (SeqType)a;
+        var bb = b as SeqType;
+        // sequences are co-variant in their argument type
+        return bb != null && IsSubtype(a.TypeArgs[0], b.TypeArgs[0]);
+      } else if (a is MapType) {
+        var aa = (MapType)a;
+        var bb = b as MapType;
+        // maps are co-variant in both argument types
+        return bb != null && aa.Finite == bb.Finite && IsSubtype(a.TypeArgs[0], b.TypeArgs[0]) && IsSubtype(a.TypeArgs[1], b.TypeArgs[1]);
+      } else if (a.IsDatatype) {
+        var aa = a.AsDatatype;
+        if (aa != b.AsDatatype) {
+          return false;
+        }
+        Contract.Assert(a.TypeArgs.Count == b.TypeArgs.Count);
+        for (int i = 0; i < a.TypeArgs.Count; i++) {
+          if (!IsSubtype(a.TypeArgs[i], b.TypeArgs[i])) {  // datatypes are co-variant in their argument types
+            return false;
+          }
+        }
+        return true;
+      } else if (a.AsArrowType != null) {
+        var aa = a.AsArrowType;
+        var bb = b.AsArrowType;
+        if (bb == null || aa.Arity != bb.Arity) {
+          return false;
+        }
+        int n = aa.Arity;
+        Contract.Assert(a.TypeArgs.Count == n + 1);
+        Contract.Assert(b.TypeArgs.Count == n + 1);
+        for (int i = 0; i < n; i++) {
+          if (!IsSubtype(b.TypeArgs[i], a.TypeArgs[i])) {  // arrow types are contra-variant in the argument types
+            return false;
+          }
+        }
+        return IsSubtype(a.TypeArgs[n], b.TypeArgs[n]);  // arrow types are co-variant in the result type
+      } else if (b is ObjectType) {
+        return a.IsRefType;
+      } else if (a is ObjectType) {
+        return false;
+      } else {
+        // "a" is a class, trait, or opaque type
+        var aa = ((UserDefinedType)a).ResolvedClass;
+        Contract.Assert(aa != null);
+        if (!(b is UserDefinedType)) {
+          return false;
+        }
+        var bb = ((UserDefinedType)b).ResolvedClass;
+        if (aa == bb) {
+          Contract.Assert(a.TypeArgs.Count == b.TypeArgs.Count);
+          for (int i = 0; i < a.TypeArgs.Count; i++) {
+            if (!a.TypeArgs[i].Equals(b.TypeArgs[i])) {  // type arguments of classes, traits, and opaque types are invariant
+              return false;
+            }
+          }
+          return true;
+        } else if (aa is ClassDecl && ((ClassDecl)aa).DerivesFrom(bb)) {
+          Contract.Assert(bb is TraitDecl && b.TypeArgs.Count == 0);
+          return true;
+        } else {
+          return false;
+        }
+      }
+    }
+
+    /// <summary>
+    /// For each i, computes some combination of a[i] and b[i], according to direction[i].
+    /// For a negative direction, computes Meet(a[i], b[i]), provided this meet exists.
+    /// For a zero direction, uses a[i], provided a[i] and b[i] are equal.
+    /// For a positive direction, computes Join(a[i], b[i]), provided this join exists.
+    /// Returns null if any operation fails.
+    /// </summary>
+    public static List<Type> ComputeExtrema(List<int> directions, List<Type> a, List<Type> b) {
+      Contract.Requires(directions != null);
+      Contract.Requires(a != null);
+      Contract.Requires(b != null);
+      Contract.Requires(directions.Count == a.Count);
+      Contract.Requires(directions.Count == b.Count);
+      var n = directions.Count;
+      var r = new List<Type>(n);
+      for (int i = 0; i < n; i++) {
+        if (directions[i] == 0) {
+          if (a[i].Equals(b[i])) {
+            r.Add(a[i]);
+          } else {
+            return null;
+          }
+        } else {
+          var t = directions[i] < 0 ? Meet(a[i], b[i]) : Join(a[i], b[i]);
+          if (t == null) {
+            return null;
+          }
+          r.Add(t);
+        }
+      }
+      return r;
+    }
+
+    /// <summary>
+    /// Does a best-effort to compute the meet of "a" and "b", returning "null" if not successful.
+    /// </summary>
+    public static Type Meet(Type a, Type b) {
+      Contract.Requires(a != null);
+      Contract.Requires(b != null);
+      a = a.NormalizeExpand();
+      b = b.NormalizeExpand();
+      if (a.IsBoolType || a.IsCharType || a.IsTypeParameter || a is TypeProxy) {
+        return a.Equals(b) ? a : null;
+      } else if (a.IsNumericBased()) {
+        // Note, for meet, we choose not to step down to IntVarietiesSupertype or RealVarietiesSupertype
+        return a.Equals(b) ? a : null;
+      } else if (a is SetType) {
+        var aa = (SetType)a;
+        var bb = b as SetType;
+        if (bb == null || aa.Finite != bb.Finite) {
+          return null;
+        }
+        // sets are co-variant in their argument type
+        var typeArg = Meet(a.TypeArgs[0], b.TypeArgs[0]);
+        return typeArg == null ? null : new SetType(aa.Finite, typeArg);
+      } else if (a is MultiSetType) {
+        var aa = (MultiSetType)a;
+        var bb = b as MultiSetType;
+        if (bb == null) {
+          return null;
+        }
+        // multisets are co-variant in their argument type
+        var typeArg = Meet(a.TypeArgs[0], b.TypeArgs[0]);
+        return typeArg == null ? null : new MultiSetType(typeArg);
+      } else if (a is SeqType) {
+        var aa = (SeqType)a;
+        var bb = b as SeqType;
+        if (bb == null) {
+          return null;
+        }
+        // sequences are co-variant in their argument type
+        var typeArg = Meet(a.TypeArgs[0], b.TypeArgs[0]);
+        return typeArg == null ? null : new SeqType(typeArg);
+      } else if (a is MapType) {
+        var aa = (MapType)a;
+        var bb = b as MapType;
+        if (bb == null || aa.Finite != bb.Finite) {
+          return null;
+        }
+        // maps are co-variant in both argument types
+        var typeArgDomain = Meet(a.TypeArgs[0], b.TypeArgs[0]);
+        var typeArgRange = Meet(a.TypeArgs[1], b.TypeArgs[1]);
+        return typeArgDomain == null || typeArgRange == null ? null : new MapType(aa.Finite, typeArgDomain, typeArgRange);
+      } else if (a.IsDatatype) {
+        var aa = a.AsDatatype;
+        if (aa != b.AsDatatype) {
+          return null;
+        }
+        if (a.Equals(b)) {  // optimization for a special case, which applies for example when there are no arguments or when the types happen to be the same
+          return a;
+        }
+        Contract.Assert(a.TypeArgs.Count == b.TypeArgs.Count);
+        var n = a.TypeArgs.Count;
+        var directions = new List<int>();
+        for (int i = 0; i < n; i++) {
+          directions.Add(-1);  // datatypes are co-variant in their argument types, so compute meets
+        }
+        var typeArgs = ComputeExtrema(directions, a.TypeArgs, b.TypeArgs);
+        if (typeArgs == null) {
+          return null;
+        }
+        var udf = (UserDefinedType)a;
+        return new UserDefinedType(udf.tok, udf.Name, aa, typeArgs);
+      } else if (a.AsArrowType != null) {
+        var aa = a.AsArrowType;
+        var bb = b.AsArrowType;
+        if (bb == null || aa.Arity != bb.Arity) {
+          return null;
+        }
+        int n = aa.Arity;
+        Contract.Assert(a.TypeArgs.Count == n + 1);
+        Contract.Assert(b.TypeArgs.Count == n + 1);
+        Contract.Assert(((ArrowType)a).ResolvedClass == ((ArrowType)b).ResolvedClass);
+        var directions = new List<int>();
+        for (int i = 0; i < n; i++) {
+          directions.Add(-1);  // arrow types are contra-variant in the argument types, so compute joins of these
+        }
+        directions.Add(1);  // arrow types are co-variant in the result type, so compute the meet of these
+        var typeArgs = ComputeExtrema(directions, a.TypeArgs, b.TypeArgs);
+        if (typeArgs == null) {
+          return null;
+        }
+        var arr = (ArrowType)aa;
+        return new ArrowType(arr.tok, (ArrowTypeDecl)arr.ResolvedClass, typeArgs);
+      } else if (b is ObjectType) {
+        return a.IsRefType ? b : null;
+      } else if (a is ObjectType) {
+        return b.IsRefType ? a : null;
+      } else {
+        // "a" is a class, trait, or opaque type
+        var aa = ((UserDefinedType)a).ResolvedClass;
+        Contract.Assert(aa != null);
+        if (!(b is UserDefinedType)) {
+          return null;
+        }
+        var bb = ((UserDefinedType)b).ResolvedClass;
+        if (a.Equals(b)) {  // optimization for a special case, which applies for example when there are no arguments or when the types happen to be the same
+          return a;
+        } else if (aa == bb) {
+          var n = a.TypeArgs.Count;
+          Contract.Assert(a.TypeArgs.Count == b.TypeArgs.Count);
+          var directions = new List<int>();
+          for (int i = 0; i < n; i++) {
+            directions.Add(0);  // type arguments of classes, traits, and opaque types are invariant
+          }
+          var typeArgs = ComputeExtrema(directions, a.TypeArgs, b.TypeArgs);
+          if (typeArgs == null) {
+            return null;
+          }
+          var udf = (UserDefinedType)a;
+          return new UserDefinedType(udf.tok, udf.Name, aa, typeArgs);
+        } else if (aa is ClassDecl && bb is ClassDecl) {
+          var A = (ClassDecl)aa;
+          var B = (ClassDecl)bb;
+          // Here are the assumptions about the type system that the rest of this code depends on:
+          Contract.Assert(!(A is TraitDecl) || (A.TypeArgs.Count == 0 && ((TraitDecl)A).TraitsTyp.Count == 0));
+          Contract.Assert(!(B is TraitDecl) || (B.TypeArgs.Count == 0 && ((TraitDecl)B).TraitsTyp.Count == 0));
+          if (A.DerivesFrom(B)) {
+            return b;
+          } else if (B.DerivesFrom(A)) {
+            return a;
+          } else if (A is TraitDecl || B is TraitDecl) {
+            return new ObjectType();
+          }
+          // A and B are classes. They always have object as a common supertype, but they may also both be extending some other
+          // trait.  If such a trait is unique, pick it. (Unfortunately, this makes the meet operation not associative.)
+          var commonTraits = new List<Type>();
+          foreach (var at in A.TraitsTyp) {
+            if (B.TraitsTyp.Exists(bt => at.Equals(bt))) {
+              commonTraits.Add(at);
+            }
+          }
+          if (commonTraits.Count == 1) {
+            return commonTraits[0];
+          } else {
+            // the unfortunate part is when commonTraits.Count > 1 here :(
+            return new ObjectType();
+          }
+        } else {
+          return null;
+        }
+      }
+    }
+
+    /// <summary>
+    /// Does a best-effort to compute the join of "a" and "b", returning "null" if not successful.
+    /// </summary>
+    public static Type Join(Type a, Type b) {
+      Contract.Requires(a != null);
+      Contract.Requires(b != null);
+      a = a.NormalizeExpand();
+      b = b.NormalizeExpand();
+      if (a.IsBoolType || a.IsCharType || a.IsTypeParameter || a is TypeProxy) {
+        return a.Equals(b) ? a : null;
+      } else if (a is IntVarietiesSupertype) {
+        return b is IntVarietiesSupertype || b.IsNumericBased(NumericPersuation.Int) ? b : null;
+      } else if (b is IntVarietiesSupertype) {
+        return a.IsNumericBased(NumericPersuation.Int) ? a : null;
+      } else if (a is RealVarietiesSupertype) {
+        return b is RealVarietiesSupertype || b.IsNumericBased(NumericPersuation.Real) ? b : null;
+      } else if (b is RealVarietiesSupertype) {
+        return a.IsNumericBased(NumericPersuation.Real) ? a : null;
+      } else if (a.IsNumericBased()) {
+        return a.Equals(b) ? a : null;
+      } else if (a is SetType) {
+        var aa = (SetType)a;
+        var bb = b as SetType;
+        if (bb == null || aa.Finite != bb.Finite) {
+          return null;
+        }
+        // sets are co-variant in their argument type
+        var typeArg = Join(a.TypeArgs[0], b.TypeArgs[0]);
+        return typeArg == null ? null : new SetType(aa.Finite, typeArg);
+      } else if (a is MultiSetType) {
+        var aa = (MultiSetType)a;
+        var bb = b as MultiSetType;
+        if (bb == null) {
+          return null;
+        }
+        // multisets are co-variant in their argument type
+        var typeArg = Join(a.TypeArgs[0], b.TypeArgs[0]);
+        return typeArg == null ? null : new MultiSetType(typeArg);
+      } else if (a is SeqType) {
+        var aa = (SeqType)a;
+        var bb = b as SeqType;
+        if (bb == null) {
+          return null;
+        }
+        // sequences are co-variant in their argument type
+        var typeArg = Join(a.TypeArgs[0], b.TypeArgs[0]);
+        return typeArg == null ? null : new SeqType(typeArg);
+      } else if (a is MapType) {
+        var aa = (MapType)a;
+        var bb = b as MapType;
+        if (bb == null || aa.Finite != bb.Finite) {
+          return null;
+        }
+        // maps are co-variant in both argument types
+        var typeArgDomain = Join(a.TypeArgs[0], b.TypeArgs[0]);
+        var typeArgRange = Join(a.TypeArgs[1], b.TypeArgs[1]);
+        return typeArgDomain == null || typeArgRange == null ? null : new MapType(aa.Finite, typeArgDomain, typeArgRange);
+      } else if (a.IsDatatype) {
+        var aa = a.AsDatatype;
+        if (aa != b.AsDatatype) {
+          return null;
+        }
+        if (a.Equals(b)) {  // optimization for a special case, which applies for example when there are no arguments or when the types happen to be the same
+          return a;
+        }
+        Contract.Assert(a.TypeArgs.Count == b.TypeArgs.Count);
+        var n = a.TypeArgs.Count;
+        var directions = new List<int>();
+        for (int i = 0; i < n; i++) {
+          directions.Add(1);  // datatypes are co-variant in their argument types, so compute joins
+        }
+        var typeArgs = ComputeExtrema(directions, a.TypeArgs, b.TypeArgs);
+        if (typeArgs == null) {
+          return null;
+        }
+        var udf = (UserDefinedType)a;
+        return new UserDefinedType(udf.tok, udf.Name, aa, typeArgs);
+      } else if (a.AsArrowType != null) {
+        var aa = a.AsArrowType;
+        var bb = b.AsArrowType;
+        if (bb == null || aa.Arity != bb.Arity) {
+          return null;
+        }
+        int n = aa.Arity;
+        Contract.Assert(a.TypeArgs.Count == n + 1);
+        Contract.Assert(b.TypeArgs.Count == n + 1);
+        Contract.Assert(((ArrowType)a).ResolvedClass == ((ArrowType)b).ResolvedClass);
+        var directions = new List<int>();
+        for (int i = 0; i < n; i++) {
+          directions.Add(1);  // arrow types are contra-variant in the argument types, so compute meets of these
+        }
+        directions.Add(-1);  // arrow types are co-variant in the result type, so compute the join of these
+        var typeArgs = ComputeExtrema(directions, a.TypeArgs, b.TypeArgs);
+        if (typeArgs == null) {
+          return null;
+        }
+        var arr = (ArrowType)aa;
+        return new ArrowType(arr.tok, (ArrowTypeDecl)arr.ResolvedClass, typeArgs);
+      } else if (b is ObjectType) {
+        return a.IsRefType ? a : null;
+      } else if (a is ObjectType) {
+        return b.IsRefType ? b : null;
+      } else {
+        // "a" is a class, trait, or opaque type
+        var aa = ((UserDefinedType)a).ResolvedClass;
+        Contract.Assert(aa != null);
+        if (!(b is UserDefinedType)) {
+          return null;
+        }
+        var bb = ((UserDefinedType)b).ResolvedClass;
+        if (a.Equals(b)) {  // optimization for a special case, which applies for example when there are no arguments or when the types happen to be the same
+          return a;
+        } else if (aa == bb) {
+          var n = a.TypeArgs.Count;
+          Contract.Assert(a.TypeArgs.Count == b.TypeArgs.Count);
+          var directions = new List<int>();
+          for (int i = 0; i < n; i++) {
+            directions.Add(0);  // type arguments of classes, traits, and opaque types are invariant
+          }
+          var typeArgs = ComputeExtrema(directions, a.TypeArgs, b.TypeArgs);
+          if (typeArgs == null) {
+            return null;
+          }
+          var udf = (UserDefinedType)a;
+          return new UserDefinedType(udf.tok, udf.Name, aa, typeArgs);
+        } else if (aa is ClassDecl && ((ClassDecl)aa).DerivesFrom(bb)) {
+          Contract.Assert(bb is TraitDecl && b.TypeArgs.Count == 0);
+          return a;
+        } else if (bb is ClassDecl && ((ClassDecl)bb).DerivesFrom(aa)) {
+          Contract.Assert(aa is TraitDecl && a.TypeArgs.Count == 0);
+          return b;
+        } else {
+          return null;
+        }
+      }
+    }
+
     public void ForeachTypeComponent(Action<Type> action) {
       action(this);
       TypeArgs.ForEach(action);
+    }
+  }
+
+  /// <summary>
+  /// An ArtificialType is only used during type checking. It should never be assigned as the type of any expression.
+  /// </summary>
+  public abstract class ArtificialType : Type
+  {
+    public override bool PossiblyEquals_W(Type that) {
+      return Equals(that);
+    }
+  }
+  public class IntVarietiesSupertype : ArtificialType
+  {
+    [Pure]
+    public override string TypeName(ModuleDefinition context) {
+      return "int";
+    }
+    public override bool Equals(Type that) {
+      return that is IntVarietiesSupertype;
+    }
+  }
+  public class RealVarietiesSupertype : ArtificialType
+  {
+    [Pure]
+    public override string TypeName(ModuleDefinition context) {
+      return "real";
+    }
+    public override bool Equals(Type that) {
+      return that is RealVarietiesSupertype;
     }
   }
 
@@ -1321,14 +1762,74 @@ namespace Microsoft.Dafny {
 
   public abstract class TypeProxy : Type {
     public Type T;  // filled in during resolution
+    public readonly List<Resolver.TypeConstraint> SupertypeConstraints = new List<Resolver.TypeConstraint>();
+    public readonly List<Resolver.TypeConstraint> SubtypeConstraints = new List<Resolver.TypeConstraint>();
+    public IEnumerable<Type> Supertypes {
+      get {
+        foreach (var c in SupertypeConstraints) {
+          yield return c.Super.NormalizeExpand();
+        }
+      }
+    }
+    public void AddSupertype(Resolver.TypeConstraint c) {
+      Contract.Requires(c != null);
+      Contract.Requires(c.Sub == this);
+      SupertypeConstraints.Add(c);
+    }
+    public IEnumerable<Type> Subtypes {
+      get {
+        foreach (var c in SubtypeConstraints) {
+          yield return c.Sub.NormalizeExpand();
+        }
+      }
+    }
+    public void AddSubtype(Resolver.TypeConstraint c) {
+      Contract.Requires(c != null);
+      Contract.Requires(c.Super == this);
+      SubtypeConstraints.Add(c);
+    }
+
+    public enum Family { Unknown, Bool, Char, IntLike, RealLike, ValueType, Ref, Opaque }
+    public Family family = Family.Unknown;
+    public static Family GetFamily(Type t) {
+      Contract.Ensures(Contract.Result<Family>() != Family.Unknown || t is TypeProxy);  // return Unknown ==> t is TypeProxy
+      if (t.IsBoolType) {
+        return Family.Bool;
+      } else if (t.IsCharType) {
+        return Family.Char;
+      } else if (t.IsNumericBased(NumericPersuation.Int) || t is IntVarietiesSupertype) {
+        return Family.IntLike;
+      } else if (t.IsNumericBased(NumericPersuation.Real) || t is RealVarietiesSupertype) {
+        return Family.RealLike;
+      } else if (t.AsCollectionType != null || t.AsArrowType != null || t.IsDatatype) {
+        return Family.ValueType;
+      } else if (t.IsRefType) {
+        return Family.Ref;
+      } else if (t.IsTypeParameter) {
+        return Family.Opaque;
+      } else if (t is TypeProxy) {
+        return ((TypeProxy)t).family;
+      } else {
+        return Family.Unknown;
+      }
+    }
+
     internal TypeProxy() {
     }
 
+#if DEBUG
+    static int _id = 0;
+    int id = _id++;
+#endif
     [Pure]
     public override string TypeName(ModuleDefinition context) {
       Contract.Ensures(Contract.Result<string>() != null);
 
+#if DEBUG
+      return T == null ? "?" + id : T.TypeName(context);
+#else
       return T == null ? "?" : T.TypeName(context);
+#endif
     }
     public override bool SupportsEquality {
       get {
@@ -1531,6 +2032,22 @@ namespace Microsoft.Dafny {
     public override int OrderID {
       get {
         return 4;
+      }
+    }
+  }
+
+  public class SubSuperTypeProxy : RestrictedTypeProxy
+  {
+    public SubSuperTypeProxy(Type super, IToken tok, string msg) {
+      Contract.Requires(super != null);
+      Contract.Requires(tok != null);
+      Contract.Requires(msg != null);
+      var c = new Resolver.TypeConstraint(super, this, new Resolver.TypeConstraint.ErrorMsg(tok, msg, this));
+      AddSupertype(c);
+    }
+    public override int OrderID {
+      get {
+        return 5;
       }
     }
   }
@@ -2183,6 +2700,11 @@ namespace Microsoft.Dafny {
       get {
         return (ClassDecl)base.ClonedFrom; 
       }
+    }
+
+    internal bool DerivesFrom(TopLevelDecl b) {
+      Contract.Requires(b != null);
+      return this == b || this.TraitsObj.Exists(tr => tr.DerivesFrom(b));
     }
   }
 
