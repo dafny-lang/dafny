@@ -1015,7 +1015,9 @@ namespace Microsoft.Dafny
                         b = b.ExclusiveRefinement;
                       }
                       if (a is TypeSynonymDecl && b is TypeSynonymDecl) {
-                        aliased1 = UnifyTypes(((TypeSynonymDecl)a).Rhs, ((TypeSynonymDecl)b).Rhs);
+                        var aa = ((TypeSynonymDecl)a).Rhs;
+                        var bb = ((TypeSynonymDecl)b).Rhs;
+                        aliased1 = aa.Equals(bb);
                       } else {
                         aliased1 = Object.ReferenceEquals(a, b);
                       }
