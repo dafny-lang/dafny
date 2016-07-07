@@ -31,11 +31,13 @@ namespace Microsoft.Dafny.Triggers {
 
   class QuantifiersCollection {
     readonly ErrorReporter reporter;
-    readonly List<QuantifierWithTriggers> quantifiers;
+    readonly ComprehensionExpr expr;  //  the expression where the splits are originated from
+    List<QuantifierWithTriggers> quantifiers;
    
-    internal QuantifiersCollection(IEnumerable<ComprehensionExpr> quantifiers, ErrorReporter reporter) {
-      Contract.Requires(quantifiers.All(q => q.SplitQuantifier == null));
+    internal QuantifiersCollection(ComprehensionExpr expr, IEnumerable<ComprehensionExpr> quantifiers, ErrorReporter reporter) {
+      Contract.Requires(quantifiers.All(q => !(q is QuantifierExpr) || ((QuantifierExpr)q).SplitQuantifier == null));
       this.reporter = reporter;
+      this.expr = expr; 
       this.quantifiers = quantifiers.Select(q => new QuantifierWithTriggers(q)).ToList();
     }
 
@@ -45,6 +47,7 @@ namespace Microsoft.Dafny.Triggers {
       BuildDependenciesGraph();
       SuppressMatchingLoops();
       SelectTriggers();
+      CombineSplitQuantifier();
     }
     
     private bool SubsetGenerationPredicate(TriggerUtils.SetOfTerms terms, TriggerTerm additionalTerm) {
@@ -149,6 +152,80 @@ namespace Microsoft.Dafny.Triggers {
             candidate.Annotation = "more specific than " + String.Join(", ", weakerCandidates);
           }).ToList();
       }
+    }
+
+    internal class QuantifierGroup
+    {
+      internal QuantifierWithTriggers quantifier;
+      internal List<ComprehensionExpr> expressions;
+
+      public QuantifierGroup(QuantifierWithTriggers q, List<ComprehensionExpr> expressions) {
+        this.quantifier = q;
+        this.expressions = expressions;
+      }
+    }
+
+    // group split quantifier by what triggers they got, and merged them back into one quantifier.
+    private void CombineSplitQuantifier() {
+      if (quantifiers.Count > 1) {
+        List<QuantifierGroup> groups = new List<QuantifierGroup>();
+        groups.Add(new QuantifierGroup(quantifiers[0], new List<ComprehensionExpr> { quantifiers[0].quantifier }));
+        for (int i = 1; i < quantifiers.Count; i++) {
+          bool found = false;
+          for (int j = 0; j < groups.Count; j++) {
+            if (HasSameTriggers(quantifiers[i], groups[j].quantifier)) {
+              // belong to the same group
+              groups[j].expressions.Add(quantifiers[i].quantifier);
+              found = true;
+              break;
+            } 
+          }
+          if (!found) {
+            // start a new group
+            groups.Add(new QuantifierGroup(quantifiers[i], new List<ComprehensionExpr> { quantifiers[i].quantifier }));
+          }
+        }
+        if (groups.Count == quantifiers.Count) {
+          // have the same number of splits, so no splits are combined.
+          return;
+        }
+        // merge expressions in each group back to one quantifier.
+        List<QuantifierWithTriggers> list = new List<QuantifierWithTriggers>();
+        List<Expression> splits = new List<Expression>();
+        foreach (var group in groups) {
+          QuantifierWithTriggers q = group.quantifier;
+          if (q.quantifier is ForallExpr) {
+            ForallExpr quantifier = (ForallExpr)q.quantifier;
+            Expression expr = QuantifiersToExpression(quantifier.tok, BinaryExpr.ResolvedOpcode.And, group.expressions);
+            q.quantifier = new ForallExpr(quantifier.tok, quantifier.TypeArgs, quantifier.BoundVars, quantifier.Range, expr, TriggerUtils.CopyAttributes(quantifier.Attributes)) { Type = quantifier.Type };
+          } else if (q.quantifier is ExistsExpr) {
+            ExistsExpr quantifier = (ExistsExpr)q.quantifier;
+            Expression expr = QuantifiersToExpression(quantifier.tok, BinaryExpr.ResolvedOpcode.Or, group.expressions);
+            q.quantifier = new ExistsExpr(quantifier.tok, quantifier.TypeArgs, quantifier.BoundVars, quantifier.Range, expr, TriggerUtils.CopyAttributes(quantifier.Attributes)) { Type = quantifier.Type };
+          }
+          list.Add(q);
+          splits.Add(q.quantifier);
+        }
+        this.quantifiers = list;
+        Contract.Assert(this.expr is QuantifierExpr); // only QuantifierExpr has SplitQuantifier
+        ((QuantifierExpr)this.expr).SplitQuantifier = splits;
+      }
+    }
+
+    private bool HasSameTriggers(QuantifierWithTriggers one, QuantifierWithTriggers other) {
+      return TriggerUtils.SameLists(one.Candidates, other.Candidates, SameTriggerCandidate);
+    }
+
+    private static bool SameTriggerCandidate(TriggerCandidate arg1, TriggerCandidate arg2) {
+      return TriggerUtils.SameLists(arg1.Terms, arg2.Terms, TriggerTerm.Eq); 
+    }
+
+    private Expression QuantifiersToExpression(IToken tok, BinaryExpr.ResolvedOpcode op, List<ComprehensionExpr> expressions) {
+      var expr = expressions[0].Term;
+      for (int i = 1; i < expressions.Count; i++) {
+        expr = new BinaryExpr(tok, op, expr, expressions[i].Term);
+      }
+      return expr;
     }
 
     private void CommitOne(QuantifierWithTriggers q, bool addHeader) {

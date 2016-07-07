@@ -2407,7 +2407,6 @@ namespace Microsoft.Dafny {
     bool MustReverify { get; }
     string FullSanitizedName { get; }
     bool AllowsNontermination { get; }
-    bool ContainsQuantifier { get;  set; }
   }
   /// <summary>
   /// An ICallable is a Function, Method, IteratorDecl, or RedirectingTypeDecl.
@@ -2443,10 +2442,6 @@ namespace Microsoft.Dafny {
       get { throw new cce.UnreachableException(); }
       set { throw new cce.UnreachableException(); }
     }
-    public bool ContainsQuantifier {
-      get { throw new cce.UnreachableException(); }
-      set { throw new cce.UnreachableException(); }
-    }
   }
   /// <summary>
   /// An IMethodCodeContext is a Method or IteratorDecl.
@@ -2475,11 +2470,6 @@ namespace Microsoft.Dafny {
     bool ICodeContext.MustReverify { get { Contract.Assume(false, "should not be called on NoContext"); throw new cce.UnreachableException(); } }
     public string FullSanitizedName { get { Contract.Assume(false, "should not be called on NoContext"); throw new cce.UnreachableException(); } }
     public bool AllowsNontermination { get { Contract.Assume(false, "should not be called on NoContext"); throw new cce.UnreachableException(); } }
-    public bool ContainsQuantifier { 
-      get { Contract.Assume(false, "should not be called on NoContext"); throw new cce.UnreachableException(); }
-      set { Contract.Assume(false, "should not be called on NoContext"); throw new cce.UnreachableException(); }
-    }
-    
   }
 
   public class IteratorDecl : ClassDecl, IMethodCodeContext
@@ -2507,8 +2497,7 @@ namespace Microsoft.Dafny {
     public Predicate Member_Valid;  // created during registration phase of resolution; its specification is filled in during resolution
     public Method Member_MoveNext;  // created during registration phase of resolution; its specification is filled in during resolution
     public readonly LocalVariable YieldCountVariable;
-    bool containsQuantifier;
-
+    
     public IteratorDecl(IToken tok, string name, ModuleDefinition module, List<TypeParameter> typeArgs,
                         List<Formal> ins, List<Formal> outs,
                         Specification<FrameExpression> reads, Specification<FrameExpression> mod, Specification<Expression> decreases,
@@ -2624,10 +2613,7 @@ namespace Microsoft.Dafny {
       set { _inferredDecr = value; }
       get { return _inferredDecr; }
     }
-    bool ICodeContext.ContainsQuantifier {
-      set { containsQuantifier = value; }
-      get { return containsQuantifier; }
-    }
+
     ModuleDefinition ICodeContext.EnclosingModule { get { return this.Module; } }
     bool ICodeContext.MustReverify { get { return false; } }
     public bool AllowsNontermination {
@@ -2881,10 +2867,6 @@ namespace Microsoft.Dafny {
       get { throw new cce.UnreachableException(); }  // see comment above about ICallable.Decreases
       set { throw new cce.UnreachableException(); }  // see comment above about ICallable.Decreases
     }
-    bool ICodeContext.ContainsQuantifier {
-      get { throw new cce.UnreachableException(); }
-      set { throw new cce.UnreachableException(); }
-    }
     public new NewtypeDecl ClonedFrom {
       get {
         return (NewtypeDecl)base.ClonedFrom;
@@ -2941,10 +2923,6 @@ namespace Microsoft.Dafny {
     bool ICallable.InferredDecreases {
       get { throw new cce.UnreachableException(); }  // see comment above about ICallable.Decreases
       set { throw new cce.UnreachableException(); }  // see comment above about ICallable.Decreases
-    }
-    bool ICodeContext.ContainsQuantifier {
-      get { throw new cce.UnreachableException(); }
-      set { throw new cce.UnreachableException(); }
     }
   }
 
@@ -3499,8 +3477,7 @@ namespace Microsoft.Dafny {
     public bool IsTailRecursive;  // filled in during resolution
     public readonly ISet<IVariable> AssignedAssumptionVariables = new HashSet<IVariable>();
     public Method OverriddenMethod;
-    public bool containsQuantifier;
-
+    
     public override IEnumerable<Expression> SubExpressions {
       get {
         foreach (var e in Req) {
@@ -3573,10 +3550,6 @@ namespace Microsoft.Dafny {
     bool ICallable.InferredDecreases {
       set { _inferredDecr = value; }
       get { return _inferredDecr; }
-    }
-    bool ICodeContext.ContainsQuantifier {
-      set { containsQuantifier = value; }
-      get { return containsQuantifier; }
     }
 
     ModuleDefinition ICodeContext.EnclosingModule {
@@ -7094,35 +7067,6 @@ namespace Microsoft.Dafny {
         term = newTerm;
     }
 
-    protected virtual BinaryExpr.ResolvedOpcode SplitResolvedOp { get { return BinaryExpr.ResolvedOpcode.Or; } }
-
-    private Expression SplitQuantifierToExpression() {
-      Contract.Requires(SplitQuantifier != null && SplitQuantifier.Any());
-      Expression accumulator = SplitQuantifier[0];
-      for (int tid = 1; tid < SplitQuantifier.Count; tid++) {
-        accumulator = new BinaryExpr(Term.tok, SplitResolvedOp, accumulator, SplitQuantifier[tid]);
-      }
-      return accumulator;
-    }
-
-    private List<Expression> _SplitQuantifier;
-    public List<Expression> SplitQuantifier {
-      get {
-        return _SplitQuantifier;
-      }
-      set {
-        _SplitQuantifier = value;
-        SplitQuantifierExpression = SplitQuantifierToExpression();
-      }
-    }
-
-    internal Expression SplitQuantifierExpression { get; private set; }
-
-    public String Refresh(string prefix, FreshIdGenerator idGen) {
-      return idGen.FreshId(prefix);
-    }
-
-
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(BoundVars != null);
@@ -7331,6 +7275,30 @@ namespace Microsoft.Dafny {
     public List<TypeParameter> TypeArgs;
     private static int currentQuantId = -1;
 
+    protected virtual BinaryExpr.ResolvedOpcode SplitResolvedOp { get { return BinaryExpr.ResolvedOpcode.Or; } }
+
+    private Expression SplitQuantifierToExpression() {
+      Contract.Requires(SplitQuantifier != null && SplitQuantifier.Any());
+      Expression accumulator = SplitQuantifier[0];
+      for (int tid = 1; tid < SplitQuantifier.Count; tid++) {
+        accumulator = new BinaryExpr(Term.tok, SplitResolvedOp, accumulator, SplitQuantifier[tid]);
+      }
+      return accumulator;
+    }
+
+    private List<Expression> _SplitQuantifier;
+    public List<Expression> SplitQuantifier {
+      get {
+        return _SplitQuantifier;
+      }
+      set {
+        _SplitQuantifier = value;
+        SplitQuantifierExpression = SplitQuantifierToExpression();
+      }
+    }
+
+    internal Expression SplitQuantifierExpression { get; private set; }
+
     static int FreshQuantId() {
       return System.Threading.Interlocked.Increment(ref currentQuantId);
     }
@@ -7339,6 +7307,10 @@ namespace Microsoft.Dafny {
       get {
         return "q$" + UniqueId;
       }
+    }
+
+    public String Refresh(string prefix, FreshIdGenerator idGen) {
+      return idGen.FreshId(prefix);
     }
   
     public TypeParameter Refresh(TypeParameter p, FreshIdGenerator idGen) {

@@ -5,14 +5,16 @@ using System.Diagnostics.Contracts;
 using System.Linq;
 using System.Text;
 
-namespace Microsoft.Dafny.Triggers {
-  class QuantifierSplitter : BottomUpVisitor {
+namespace Microsoft.Dafny.Triggers
+{
+  class QuantifierSplitter : BottomUpVisitor
+  {
     /// This cache was introduced because some statements (notably calc) return the same SubExpression multiple times.
     /// This ended up causing an inconsistent situation when the calc statement's subexpressions contained the same quantifier 
     /// twice: on the first pass that quantifier got its SplitQuantifiers generated, and on the the second pass these 
     /// split quantifiers got re-split, creating a situation where the direct children of a split quantifier were 
     /// also split quantifiers.
-    private Dictionary<ComprehensionExpr, List<Expression>> splits = new Dictionary<ComprehensionExpr, List<Expression>>();
+    private Dictionary<QuantifierExpr, List<Expression>> splits = new Dictionary<QuantifierExpr, List<Expression>>();
 
     private static BinaryExpr.Opcode FlipOpcode(BinaryExpr.Opcode opCode) {
       if (opCode == BinaryExpr.Opcode.And) {
@@ -21,7 +23,7 @@ namespace Microsoft.Dafny.Triggers {
         return BinaryExpr.Opcode.And;
       } else {
         throw new ArgumentException();
-      } 
+      }
     }
 
     // NOTE: If we wanted to split quantifiers as far as possible, it would be
@@ -33,14 +35,6 @@ namespace Microsoft.Dafny.Triggers {
 
     private static UnaryOpExpr Not(Expression expr) {
       return new UnaryOpExpr(expr.tok, UnaryOpExpr.Opcode.Not, expr) { Type = expr.Type };
-    }
-
-    private static Attributes CopyAttributes(Attributes source) {
-      if (source == null) {
-        return null;
-      } else {
-        return new Attributes(source.Name, source.Args, CopyAttributes(source.Prev));
-      }
     }
 
     internal static IEnumerable<Expression> SplitExpr(Expression expr, BinaryExpr.Opcode separator) {
@@ -81,7 +75,7 @@ namespace Microsoft.Dafny.Triggers {
         }
         foreach (var e in stream) {
           var tok = new NestedToken(quantifier.tok, e.tok);
-          yield return new ForallExpr(tok, ((ForallExpr)quantifier).TypeArgs, quantifier.BoundVars, quantifier.Range, e, CopyAttributes(quantifier.Attributes)) { Type = quantifier.Type };
+          yield return new ForallExpr(tok, ((ForallExpr)quantifier).TypeArgs, quantifier.BoundVars, quantifier.Range, e, TriggerUtils.CopyAttributes(quantifier.Attributes)) { Type = quantifier.Type };
         }
       } else if (quantifier is ExistsExpr) {
         IEnumerable<Expression> stream;
@@ -92,21 +86,21 @@ namespace Microsoft.Dafny.Triggers {
         }
         foreach (var e in stream) {
           var tok = new NestedToken(quantifier.tok, e.tok);
-          yield return new ExistsExpr(tok, ((ExistsExpr)quantifier).TypeArgs, quantifier.BoundVars, quantifier.Range, e, CopyAttributes(quantifier.Attributes)) { Type = quantifier.Type };
+          yield return new ExistsExpr(tok, ((ExistsExpr)quantifier).TypeArgs, quantifier.BoundVars, quantifier.Range, e, TriggerUtils.CopyAttributes(quantifier.Attributes)) { Type = quantifier.Type };
         }
       } else {
         yield return quantifier;
       }
     }
-    
+
     private static bool AllowsSplitting(ComprehensionExpr quantifier) {
-      // allow split if attributes doesn't contains "split" or it is "split: true" and it is not an empty ComprehensionExpr (boundvar.count>0)
-      bool splitAttr = true; 
+      // allow split if attributes doesn't contains "split" or it is "split: true" and it is not an empty QuantifierExpr (boundvar.count>0)
+      bool splitAttr = true;
       return (!Attributes.ContainsBool(quantifier.Attributes, "split", ref splitAttr) || splitAttr) && (quantifier.BoundVars.Count > 0);
     }
 
     protected override void VisitOneExpr(Expression expr) {
-      var quantifier = expr as ComprehensionExpr;
+      var quantifier = expr as QuantifierExpr;
       if (quantifier != null) {
         Contract.Assert(quantifier.SplitQuantifier == null);
         if (!splits.ContainsKey(quantifier) && AllowsSplitting(quantifier)) {

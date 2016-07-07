@@ -1,17 +1,6 @@
-wf-checks-use-the-original-quantifier.dfy(26,11): Info: For expression "0 <= f(n)":
-   Selected triggers: {f(n)}
-   Rejected triggers: {P(f(n))} (more specific than {f(n)})
-wf-checks-use-the-original-quantifier.dfy(26,11): Info: For expression "P(f(n))":
-   Selected triggers: {f(n)}
-   Rejected triggers: {P(f(n))} (more specific than {f(n)})
-wf-checks-use-the-original-quantifier.dfy(27,11): Info: For expression "c != null":
-   Selected triggers:
-     {c'.x, c.x}, {c'.x, c in s}, {c.x, c' in s}, {c' in s, c in s}
-wf-checks-use-the-original-quantifier.dfy(27,11): Info: For expression "c' != null":
-   Selected triggers:
-     {c'.x, c.x}, {c'.x, c in s}, {c.x, c' in s}, {c' in s, c in s}
-wf-checks-use-the-original-quantifier.dfy(27,11): Info: For expression "c.x == c'.x":
-   Selected triggers:
-     {c'.x, c.x}, {c'.x, c in s}, {c.x, c' in s}, {c' in s, c in s}
+wf-checks-use-the-original-quantifier.dfy(26,11): Info: Selected triggers: {f(n)}
+ Rejected triggers: {P(f(n))} (more specific than {f(n)})
+wf-checks-use-the-original-quantifier.dfy(27,11): Info: Selected triggers:
+   {c'.x, c.x}, {c'.x, c in s}, {c.x, c' in s}, {c' in s, c in s}
 
 Dafny program verifier finished with 4 verified, 0 errors

@@ -789,16 +789,19 @@ namespace Microsoft.Dafny
         receiver = new ImplicitThisExpr(f.tok);
         //receiver.Type = GetThisType(expr.tok, (ClassDecl)member.EnclosingClass);  // resolve here
       }
-      List<Type> typeApplication = new List<Type>();
-      for (int i = 0; i < f.TypeArgs.Count; i++) {
-        // doesn't matter what type, just so we have it to make the resolver happy when resolving function member of
-        // the fuel attribute. This might not be needed after fixing codeplex issue #172.
-        typeApplication.Add(new IntType());
+      List<Type> typeApplication = null;
+      if (f.TypeArgs.Count > 0) {
+        typeApplication = new List<Type>();
+        for (int i = 0; i < f.TypeArgs.Count; i++) {
+          // doesn't matter what type, just so we have it to make the resolver happy when resolving function member of
+          // the fuel attribute. This might not be needed after fixing codeplex issue #172.
+          typeApplication.Add(new IntType());
+        }
       }
       var nameSegment = new NameSegment(f.tok, f.Name, typeApplication);
       var rr = new MemberSelectExpr(f.tok, receiver, f.Name);
       rr.Member = f;
-      rr.TypeApplication = typeApplication;
+      rr.TypeApplication = typeApplication ?? new List<Type>();
       List<Type> args = new List<Type>();
       for (int i = 0; i < f.Formals.Count; i++) {
         args.Add(new IntType());

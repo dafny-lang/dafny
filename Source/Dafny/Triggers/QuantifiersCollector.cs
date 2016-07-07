@@ -19,19 +19,23 @@ namespace Microsoft.Dafny.Triggers {
     }
 
     protected override bool VisitOneExpr(Expression expr, ref bool inOldContext) {
-      var quantifier = expr as ComprehensionExpr;
+      var e = expr as ComprehensionExpr;
 
       // only consider quantifiers that are not empty (Bound.Vars.Count > 0)
-      if (quantifier != null &&
-        ((expr is SetComprehension) || (expr is MapComprehension) || (expr is ForallExpr) || (expr is ExistsExpr)) &&
-        (quantifier.BoundVars.Count > 0) && !quantifiers.Contains(quantifier)) {
-        quantifiers.Add(quantifier);
-        if (quantifier.SplitQuantifier != null) {
-          var collection = quantifier.SplitQuantifier.Select(q => q as ComprehensionExpr).Where(q => q != null);
-          quantifierCollections.Add(new QuantifiersCollection(collection, reporter));
-          quantifiers.UnionWith(quantifier.SplitQuantifier);
-        } else {
-          quantifierCollections.Add(new QuantifiersCollection(Enumerable.Repeat(quantifier, 1), reporter));
+      if (e != null && (e.BoundVars.Count > 0) && !quantifiers.Contains(e)) {
+        if (e is SetComprehension || e is MapComprehension) {
+          quantifiers.Add(e);
+          quantifierCollections.Add(new QuantifiersCollection(e, Enumerable.Repeat(e, 1), reporter));
+        } else if (e is ForallExpr || e is ExistsExpr) {
+          var quantifier = e as QuantifierExpr;
+          quantifiers.Add(quantifier);
+          if (quantifier.SplitQuantifier != null) {
+            var collection = quantifier.SplitQuantifier.Select(q => q as ComprehensionExpr).Where(q => q != null);
+            quantifierCollections.Add(new QuantifiersCollection(e, collection, reporter));
+            quantifiers.UnionWith(quantifier.SplitQuantifier);
+          } else {
+            quantifierCollections.Add(new QuantifiersCollection(e, Enumerable.Repeat(quantifier, 1), reporter));
+          }
         }
       }
 
