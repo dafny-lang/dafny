@@ -509,7 +509,7 @@ public class Scanner {
 	}
 
 
-	void CheckLiteral() {
+	public void CheckLiteral() {
 		switch (t.val) {
 			case "bool": t.kind = 6; break;
 			case "char": t.kind = 7; break;
