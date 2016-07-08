@@ -23,7 +23,7 @@ abstract module M0 {
     reads S
     requires null !in S
   {
-    exists via: Path :: ReachableVia(source, via, sink, S)
+    exists via :: ReachableVia(source, via, sink, S)
   }
 
   predicate ReachableVia(source: Node, p: Path, sink: Node, S: set<Node>)
