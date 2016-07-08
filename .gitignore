@@ -1,0 +1,17 @@
+*.config
+*.manifest
+*.vsix
+*~
+*.pkgdef
+*.vsixmanifest
+Source/*/obj/*
+Source/DafnyExtension/DafnyPrelude.bpl
+Source/DafnyExtension/DafnyRuntime.cs
+Source/DafnyExtension/Z3-LICENSE.txt
+Source/packages/*
+Test/*/Output/*
+Test/*/*/Output/*
+Test/desktop/*
+Test/dafny0/Extern.cs
+Source/Dafny/Parser.cs.old
+Source/Dafny/Scanner.cs.old
