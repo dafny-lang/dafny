@@ -502,8 +502,7 @@ bool IsType(ref IToken pt) {
   }
 }
 
-//Requires CheckLiteral to be public
-/*
+
 void ConvertKeywordTokenToIdent() {
   var oldKind = la.kind;
   la.kind = _ident;
@@ -522,7 +521,7 @@ void ConvertKeywordTokenToIdent() {
     la.kind = oldKind;
   }
 }
-*/
+
 
 /*--------------------------------------------------------------------------*/
 CHARACTERS
@@ -3196,8 +3195,8 @@ Attribute<ref Attributes attrs>
   .)
   "{"                         (. openBrace = t; .)
   ":"                         (. colon = t; .)
-  //(. ConvertKeywordTokenToIdent(); .)
-  ( NoUSIdent<out x> | "opaque" (. x = t; .) )
+  (. ConvertKeywordTokenToIdent(); .)
+  NoUSIdent<out x>
   [ Expressions<args> ]
   "}"                         (. closeBrace = t; .)
   (. attrs = new UserSuppliedAttributes(x, openBrace, colon, closeBrace, args, attrs); .)
