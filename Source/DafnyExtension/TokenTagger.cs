@@ -466,6 +466,9 @@ namespace DafnyLanguage
                 case "while":
                 case "yield":
                 case "yields":
+                case "reveal":
+                case "opaque":
+                case "export":
                 #endregion
                   break;
                 #region keywords in specification clauses
