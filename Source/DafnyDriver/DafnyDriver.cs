@@ -381,6 +381,8 @@ namespace Microsoft.Dafny
         cp.ReferencedAssemblies.Add("System.dll");
 
         var libPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + Path.DirectorySeparatorChar;
+        cp.ReferencedAssemblies.Add(libPath + "DafnyRuntime.dll");
+
         var immutableDllFileName = "System.Collections.Immutable.dll";
         var immutableDllPath = libPath + immutableDllFileName;
 

@@ -12,6 +12,7 @@ using System.Diagnostics.Contracts;
 using Bpl = Microsoft.Boogie;
 using System.Text;
 
+
 namespace Microsoft.Dafny {
   public class Compiler {
     public Compiler() {
@@ -67,6 +68,13 @@ namespace Microsoft.Dafny {
       }
     }
 
+    void EmitDafnySourceAttribute(TextWriter wr) {
+      wr.WriteLine("[AttributeUsage(AttributeTargets.Assembly)]");
+      wr.WriteLine("public class DafnySourceAttribute : Attribute {");
+      Indent(2, wr);
+      wr.WriteLine("string dafnySourceText");
+    }
+
     readonly int IndentAmount = 2;
     void Indent(int ind, TextWriter wr) {
       Contract.Requires(0 <= ind);
@@ -85,7 +93,10 @@ namespace Microsoft.Dafny {
       wr.WriteLine("// You might also want to include compiler switches like:");
       wr.WriteLine("//     /debug /nowarn:0164 /nowarn:0219");
       wr.WriteLine();
-      ReadRuntimeSystem(wr);
+      //ReadRuntimeSystem(wr);
+      wr.WriteLine("using System;");
+      wr.WriteLine("using System.Numerics;");
+
       CompileBuiltIns(program.BuiltIns, wr);
 
       foreach (ModuleDefinition m in program.CompileModules) {
@@ -279,7 +290,7 @@ namespace Microsoft.Dafny {
     void CompileBuiltIns(BuiltIns builtIns, TextWriter wr) {
       wr.WriteLine("namespace Dafny {");
       Indent(IndentAmount, wr);
-      wr.WriteLine("public partial class Helpers {");
+      wr.WriteLine("internal class ArrayHelpers {");
       foreach (var decl in builtIns.SystemModule.TopLevelDecls) {
         if (decl is ArrayClassDecl) {
           int dims = ((ArrayClassDecl)decl).Dims;
@@ -2209,7 +2220,7 @@ namespace Microsoft.Dafny {
           if (tp.EType.IsIntegerType || tp.EType.IsTypeParameter) {
             // Because the default constructor for BigInteger does not generate a valid BigInteger, we have
             // to excplicitly initialize the elements of an integer array.  This is all done in a helper routine.
-            wr.Write("Dafny.Helpers.InitNewArray{0}<{1}>", tp.ArrayDimensions.Count, TypeName(tp.EType, wr));
+            wr.Write("Dafny.ArrayHelpers.InitNewArray{0}<{1}>", tp.ArrayDimensions.Count, TypeName(tp.EType, wr));
             string prefix = "(";
             foreach (Expression dim in tp.ArrayDimensions) {
               wr.Write(prefix);

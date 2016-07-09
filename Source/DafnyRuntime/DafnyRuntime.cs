@@ -4,7 +4,15 @@ using System.Numerics;
 namespace Dafny
 {
   using System.Collections.Generic;
-// set this option if you want to use System.Collections.Immutable and if you know what you're doing.
+
+  [AttributeUsage(AttributeTargets.Assembly)]
+  public class DafnySourceAttribute : Attribute
+  {
+    string dafnySourceText;
+    public DafnySourceAttribute(string txt) { dafnySourceText = txt; }
+  }
+
+  // set this option if you want to use System.Collections.Immutable and if you know what you're doing.
 #if DAFNY_USE_SYSTEM_COLLECTIONS_IMMUTABLE
   using System.Collections.Immutable;
   using System.Linq;
@@ -1003,7 +1011,7 @@ namespace Dafny
       this.Cdr = b;
     }
   }
-  public partial class Helpers {
+  public class Helpers {
     // Computing forall/exists quantifiers
     public static bool QuantBool(bool frall, System.Predicate<bool> pred) {
       if (frall) {
