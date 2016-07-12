@@ -191,6 +191,12 @@
       <Install>true</Install>
     </BootstrapperPackage>
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\DafnyRuntime\DafnyRuntime.csproj">
+      <Project>{3e2944e9-3e1d-4e03-a881-fb04a7a6ed67}</Project>
+      <Name>DafnyRuntime</Name>
+    </ProjectReference>
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it.
        Other similar extension points exist, see Microsoft.Common.targets.

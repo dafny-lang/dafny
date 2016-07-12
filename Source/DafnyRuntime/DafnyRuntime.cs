@@ -1,16 +1,18 @@
 ﻿using System; // for Func
 using System.Numerics;
 
+namespace DafnyAssembly {
+  [AttributeUsage(AttributeTargets.Assembly)]
+  public class DafnySourceAttribute : Attribute {
+    public readonly string dafnySourceText;
+    public DafnySourceAttribute(string txt) { dafnySourceText = txt; }
+  }
+}
+
 namespace Dafny
 {
   using System.Collections.Generic;
 
-  [AttributeUsage(AttributeTargets.Assembly)]
-  public class DafnySourceAttribute : Attribute
-  {
-    string dafnySourceText;
-    public DafnySourceAttribute(string txt) { dafnySourceText = txt; }
-  }
 
   // set this option if you want to use System.Collections.Immutable and if you know what you're doing.
 #if DAFNY_USE_SYSTEM_COLLECTIONS_IMMUTABLE

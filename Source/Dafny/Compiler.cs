@@ -68,11 +68,17 @@ namespace Microsoft.Dafny {
       }
     }
 
-    void EmitDafnySourceAttribute(TextWriter wr) {
-      wr.WriteLine("[AttributeUsage(AttributeTargets.Assembly)]");
-      wr.WriteLine("public class DafnySourceAttribute : Attribute {");
-      Indent(2, wr);
-      wr.WriteLine("string dafnySourceText");
+    void EmitDafnySourceAttribute(Program program, TextWriter wr) {
+      Contract.Requires(program != null);
+
+      wr.WriteLine("[assembly: DafnyAssembly.DafnySourceAttribute(@\"");
+
+      var strwr = new StringWriter();
+      strwr.NewLine = wr.NewLine;
+      new Printer(strwr, DafnyOptions.PrintModes.Everything).PrintProgram(program, true);
+
+      wr.Write(strwr.GetStringBuilder().Replace("\"", "\"\"").ToString());
+      wr.WriteLine("\")]");
     }
 
     readonly int IndentAmount = 2;
@@ -96,6 +102,8 @@ namespace Microsoft.Dafny {
       //ReadRuntimeSystem(wr);
       wr.WriteLine("using System;");
       wr.WriteLine("using System.Numerics;");
+      EmitDafnySourceAttribute(program, wr);
+
 
       CompileBuiltIns(program.BuiltIns, wr);
 

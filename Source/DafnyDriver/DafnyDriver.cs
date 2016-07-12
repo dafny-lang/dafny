@@ -20,11 +20,11 @@ namespace Microsoft.Dafny
 
   using Microsoft.Boogie;
   using Bpl = Microsoft.Boogie;
+  using DafnyAssembly;
 
   public class DafnyDriver
   {
     enum ExitValue { VERIFIED = 0, PREPROCESSING_ERROR, DAFNY_ERROR, NOT_VERIFIED }
-
 
     public static int Main(string[] args)
     {
@@ -83,24 +83,24 @@ namespace Microsoft.Dafny
         Console.WriteLine("--------------------");
       }
 
-      var dafnyFiles = new List<string>();
+      var dafnyFiles = new List<DafnyFile>();
       var otherFiles = new List<string>();
 
-      foreach (string file in CommandLineOptions.Clo.Files)
-      { Contract.Assert(file != null);
+      foreach (string file in CommandLineOptions.Clo.Files) {
+        Contract.Assert(file != null);
         string extension = Path.GetExtension(file);
         if (extension != null) { extension = extension.ToLower(); }
-        if (extension == ".dfy") {
-          dafnyFiles.Add(file);
-        }
-        else if ((extension == ".cs") || (extension == ".dll")) {
-          otherFiles.Add(file);
-        }
-        else {
-          ExecutionEngine.printer.ErrorWriteLine(Console.Out, "*** Error: '{0}': Filename extension '{1}' is not supported. Input files must be Dafny programs (.dfy) or C# files (.cs) or managed DLLS (.dll)", file,
-            extension == null ? "" : extension);
-          exitValue = ExitValue.PREPROCESSING_ERROR;
-          goto END;
+
+        try { dafnyFiles.Add(new DafnyFile(file)); } catch (IllegalDafnyFile) {
+
+          if ((extension == ".cs") || (extension == ".dll")) {
+            otherFiles.Add(file);
+          } else {
+            ExecutionEngine.printer.ErrorWriteLine(Console.Out, "*** Error: '{0}': Filename extension '{1}' is not supported. Input files must be Dafny programs (.dfy) or C# files (.cs) or managed DLLS (.dll)", file,
+              extension == null ? "" : extension);
+            exitValue = ExitValue.PREPROCESSING_ERROR;
+            goto END;
+          }
         }
       }
       exitValue = ProcessFiles(dafnyFiles, otherFiles.AsReadOnly(), reporter);
@@ -123,10 +123,11 @@ namespace Microsoft.Dafny
     }
 
 
-    static ExitValue ProcessFiles(IList<string/*!*/>/*!*/ dafnyFileNames, ReadOnlyCollection<string> otherFileNames, 
+    static ExitValue ProcessFiles(IList<DafnyFile/*!*/>/*!*/ dafnyFiles, ReadOnlyCollection<string> otherFileNames, 
                                   ErrorReporter reporter, bool lookForSnapshots = true, string programId = null)
    {
-      Contract.Requires(cce.NonNullElements(dafnyFileNames));
+      Contract.Requires(cce.NonNullElements(dafnyFiles));
+      var dafnyFileNames = DafnyFile.fileNames(dafnyFiles);
 
       if (programId == null)
       {
@@ -134,18 +135,13 @@ namespace Microsoft.Dafny
       }
 
       ExitValue exitValue = ExitValue.VERIFIED;
-      if (CommandLineOptions.Clo.VerifySeparately && 1 < dafnyFileNames.Count)
+      if (CommandLineOptions.Clo.VerifySeparately && 1 < dafnyFiles.Count)
       {
-        foreach (var f in dafnyFileNames)
+        foreach (var f in dafnyFiles)
         {
-          string extension = Path.GetExtension(f);
-          if (extension != null) { extension = extension.ToLower(); }
-          if (extension != ".dfy"){
-            continue;
-          }
           Console.WriteLine();
           Console.WriteLine("-------------------- {0} --------------------", f);
-          var ev = ProcessFiles(new List<string> { f }, new List<string>().AsReadOnly(), reporter, lookForSnapshots, f);
+          var ev = ProcessFiles(new List<DafnyFile> { f }, new List<string>().AsReadOnly(), reporter, lookForSnapshots, f.FilePath);
           if (exitValue != ev && ev != ExitValue.VERIFIED)
           {
             exitValue = ev;
@@ -159,7 +155,11 @@ namespace Microsoft.Dafny
         var snapshotsByVersion = ExecutionEngine.LookForSnapshots(dafnyFileNames);
         foreach (var s in snapshotsByVersion)
         {
-          var ev = ProcessFiles(new List<string>(s), new List<string>().AsReadOnly(), reporter, false, programId);
+          var snapshots = new List<DafnyFile>();
+          foreach (var f in s) {
+            snapshots.Add(new DafnyFile(f));
+          }
+          var ev = ProcessFiles(snapshots, new List<string>().AsReadOnly(), reporter, false, programId);
           if (exitValue != ev && ev != ExitValue.VERIFIED)
           {
             exitValue = ev;
@@ -167,11 +167,11 @@ namespace Microsoft.Dafny
         }
         return exitValue;
       }
-      
-      using (XmlFileScope xf = new XmlFileScope(CommandLineOptions.Clo.XmlSink, dafnyFileNames[dafnyFileNames.Count-1])) {
+
+      using (XmlFileScope xf = new XmlFileScope(CommandLineOptions.Clo.XmlSink, dafnyFileNames[dafnyFileNames.Count - 1])) {
         Dafny.Program dafnyProgram;
         string programName = dafnyFileNames.Count == 1 ? dafnyFileNames[0] : "the program";
-        string err = Dafny.Main.ParseCheck(dafnyFileNames, programName, reporter, out dafnyProgram);
+        string err = Dafny.Main.ParseCheck(dafnyFiles, programName, reporter, out dafnyProgram);
         if (err != null) {
           exitValue = ExitValue.DAFNY_ERROR;
           ExecutionEngine.printer.ErrorWriteLine(Console.Out, err);
