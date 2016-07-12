@@ -1832,6 +1832,7 @@ namespace Microsoft.Dafny {
         var e = (LetExpr)expr;
         bool parensNeeded = !isRightmost;
         if (parensNeeded) { wr.Write("("); }
+        if (e.LHSs.Exists(lhs => lhs.Var.IsGhost)) { wr.Write("ghost "); }
         wr.Write("var ");
         string sep = "";
         foreach (var lhs in e.LHSs) {
