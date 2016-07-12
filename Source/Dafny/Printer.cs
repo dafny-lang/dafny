@@ -318,6 +318,7 @@ namespace Microsoft.Dafny {
         }
       }
       wr.WriteLine();
+
     }
 
 
