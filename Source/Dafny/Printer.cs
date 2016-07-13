@@ -456,7 +456,11 @@ namespace Microsoft.Dafny {
 
     private void PrintTypeParams(List<TypeParameter> typeArgs) {
       Contract.Requires(typeArgs != null);
-      if (typeArgs.Count != 0) {
+      Contract.Requires(
+        typeArgs.All(tp => tp.Name.StartsWith("_")) || 
+        typeArgs.All(tp => !tp.Name.StartsWith("_")));
+
+      if (typeArgs.Count != 0 && !typeArgs[0].Name.StartsWith("_")) {
         wr.Write("<" +
                  Util.Comma(", ", typeArgs,
                    tp => tp.Name + EqualitySupportSuffix(tp.EqualitySupport))
@@ -466,9 +470,7 @@ namespace Microsoft.Dafny {
 
     private void PrintTypeInstantiation(List<Type> typeArgs) {
       Contract.Requires(typeArgs == null || typeArgs.Count != 0);
-      if (typeArgs != null) {
-        wr.Write("<{0}>", Util.Comma(",", typeArgs, ty => ty.ToString()));
-      }
+      wr.Write(Type.TypeArgsToString(typeArgs));
     }
 
     public void PrintDatatype(DatatypeDecl dt, int indent) {
@@ -775,7 +777,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(prefix != null);
       Contract.Requires(ty != null);
       string s = ty.ToString();
-      if (s != "?") {
+      if (s != "?" && !s.StartsWith("_")) {
         wr.Write("{0}{1}", prefix, s);
       }
     }
@@ -1330,8 +1332,9 @@ namespace Microsoft.Dafny {
           string sep = "(";
           foreach (BoundVar bv in mc.Arguments) {
             wr.Write("{0}{1}", sep, bv.DisplayName);
-            if (bv.Type is NonProxyType) {
-              wr.Write(": {0}", bv.Type);
+            string typeName = bv.Type.ToString();
+            if (bv.Type is NonProxyType && !typeName.StartsWith("_")) {
+              wr.Write(": {0}", typeName);
             }
             sep = ", ";
           }

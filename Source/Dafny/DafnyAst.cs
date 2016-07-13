@@ -424,6 +424,25 @@ namespace Microsoft.Dafny {
     public static readonly IntType Int = new IntType();
     public static readonly RealType Real = new RealType();
 
+    public static string TypeArgsToString(ModuleDefinition/*?*/ context, List<Type> typeArgs) {
+      Contract.Requires(typeArgs == null ||
+        typeArgs.All(ty => ty.TypeName(context).StartsWith("_")) ||
+        typeArgs.All(ty => !ty.TypeName(context).StartsWith("_")));
+
+      if (typeArgs != null && typeArgs.Count > 0 && !typeArgs[0].TypeName(context).StartsWith("_")){
+        return String.Format("<{0}>",Util.Comma(",", typeArgs, ty => ty.TypeName(context)));
+      }
+      return String.Empty;
+    }
+
+    public static string TypeArgsToString(List<Type> typeArgs) {
+      return TypeArgsToString(null, typeArgs);
+    }
+
+    public string TypeArgsToString(ModuleDefinition/*?*/ context) {
+      return Type.TypeArgsToString(context, this.TypeArgs);
+    }
+
     // Type arguments to the type
     public List<Type> TypeArgs = new List<Type> { };
 
@@ -912,7 +931,7 @@ namespace Microsoft.Dafny {
     public abstract string CollectionTypeName { get; }
     public override string TypeName(ModuleDefinition context) {
       Contract.Ensures(Contract.Result<string>() != null);
-      var targs = HasTypeArg() ? "<" + Arg.TypeName(context) + ">" : "";
+      var targs = this.TypeArgsToString(context);
       return CollectionTypeName + targs;
     }
     public Type Arg {
@@ -1039,7 +1058,7 @@ namespace Microsoft.Dafny {
     [Pure]
     public override string TypeName(ModuleDefinition context) {
       Contract.Ensures(Contract.Result<string>() != null);
-      var targs = HasTypeArg() ? "<" + Domain.TypeName(context) + ", " + Range.TypeName(context) + ">" : "";
+      var targs = this.TypeArgsToString(context);
       return CollectionTypeName + targs;
     }
     public override bool Equals(Type that) {
@@ -1279,7 +1298,7 @@ namespace Microsoft.Dafny {
         if (ResolvedClass != null) {
           var optionalTypeArgs = NamePath is NameSegment ? ((NameSegment)NamePath).OptTypeArguments : ((ExprDotName)NamePath).OptTypeArguments;
           if (optionalTypeArgs == null && TypeArgs != null && TypeArgs.Count != 0) {
-            s += "<" + Util.Comma(",", TypeArgs, ty => ty.TypeName(context)) + ">";
+            s += this.TypeArgsToString(context);
           }
         }
         return s;
