@@ -524,10 +524,6 @@ namespace Microsoft.Dafny {
     }
     public bool IsNumericBased() {
       var t = NormalizeExpand();
-      var opProxy = t as OperationTypeProxy;
-      if (opProxy != null) {
-        return (opProxy.AllowInts || opProxy.AllowReals) && !opProxy.AllowChar && !opProxy.AllowSeq && !opProxy.AllowSetVarieties;
-      }
       return t.IsIntegerType || t.IsRealType || t.AsNewtype != null;
     }
     public enum NumericPersuation { Int, Real }
@@ -540,14 +536,6 @@ namespace Microsoft.Dafny {
           return p == NumericPersuation.Int;
         } else if (t.IsRealType) {
           return p == NumericPersuation.Real;
-        }
-        var proxy = t as OperationTypeProxy;
-        if (proxy != null) {
-          if (proxy.JustInts) {
-            return p == NumericPersuation.Int;
-          } else if (proxy.JustReals) {
-            return p == NumericPersuation.Real;
-          }
         }
         var d = t.AsNewtype;
         if (d == null) {
@@ -1981,19 +1969,16 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public abstract class UnrestrictedTypeProxy : TypeProxy {
-  }
-
   /// <summary>
   /// This proxy stands for any type.
   /// </summary>
-  public class InferredTypeProxy : UnrestrictedTypeProxy {
+  public class InferredTypeProxy : TypeProxy {
   }
 
   /// <summary>
   /// This proxy stands for any type, but it originates from an instantiated type parameter.
   /// </summary>
-  public class ParamTypeProxy : UnrestrictedTypeProxy {
+  public class ParamTypeProxy : TypeProxy {
     public TypeParameter orig;
     [ContractInvariantMethod]
     void ObjectInvariant() {
@@ -2003,163 +1988,6 @@ namespace Microsoft.Dafny {
     public ParamTypeProxy(TypeParameter orig) {
       Contract.Requires(orig != null);
       this.orig = orig;
-    }
-  }
-
-  public abstract class RestrictedTypeProxy : TypeProxy {
-    /// <summary>
-    /// The OrderID is used to simplify the unification code.  Each restricted type proxy should use its
-    /// own OrderID.
-    /// </summary>
-    public abstract int OrderID {
-      get;
-    }
-  }
-
-  /// <summary>
-  /// This proxy stands for any datatype.
-  /// </summary>
-  public class DatatypeProxy : RestrictedTypeProxy {
-    public readonly bool Co;  // false means only inductive datatypes; true means only co-inductive datatypes
-    public readonly bool TypeVariableOK;
-    public DatatypeProxy(bool co, bool typeVariableOk = false) {
-      Co = co;
-      TypeVariableOK = typeVariableOk;
-    }
-    public override int OrderID {
-      get {
-        return 0;
-      }
-    }
-  }
-
-  /// <summary>
-  /// This proxy stands for object or any class/array type.
-  /// </summary>
-  public class ObjectTypeProxy : RestrictedTypeProxy {
-    public override int OrderID {
-      get {
-        return 1;
-      }
-    }
-  }
-
-  /// <summary>
-  /// This proxy stands for:
-  ///     set(Arg) or iset(Arg) or multiset(Arg) or seq(Arg) or map(Arg, anyRange) or imap(Arg, anyRange)
-  /// </summary>
-  public class CollectionTypeProxy : RestrictedTypeProxy {
-    public readonly Type Arg;
-    public readonly bool AllowIMap;
-    public readonly bool AllowISet;
-    [ContractInvariantMethod]
-    void ObjectInvariant() {
-      Contract.Invariant(Arg != null);
-    }
-
-    public CollectionTypeProxy(Type arg, bool allowIMap, bool allowISet) {
-      Contract.Requires(arg != null);
-      Arg = arg;
-      AllowIMap = allowIMap;
-      AllowISet = allowISet;
-    }
-    public override int OrderID {
-      get {
-        return 2;
-      }
-    }
-  }
-
-  /// <summary>
-  /// This proxy can stand for any numeric type.
-  /// In addition, if AllowSeq, then it can stand for a seq.
-  /// In addition, if AllowSetVarieties, it can stand for a set or multiset.
-  /// In addition, if AllowISet, then it can stand for a iset
-  /// </summary>
-  public class OperationTypeProxy : RestrictedTypeProxy {
-    public readonly bool AllowInts;
-    public readonly bool AllowReals;
-    public readonly bool AllowChar;
-    public readonly bool AllowSeq;
-    public readonly bool AllowSetVarieties;
-    public readonly bool AllowISet;
-    public bool JustInts {
-      get { return AllowInts && !AllowReals && !AllowChar && !AllowSeq && !AllowSetVarieties && !AllowISet; }
-    }
-    public bool JustReals {
-      get { return !AllowInts && AllowReals && !AllowChar && !AllowSeq && !AllowSetVarieties && !AllowISet; }
-    }
-    public OperationTypeProxy(bool allowInts, bool allowReals, bool allowChar, bool allowSeq, bool allowSetVarieties, bool allowISet) {
-      Contract.Requires(allowInts || allowReals || allowChar || allowSeq || allowSetVarieties);  // don't allow unsatisfiable constraint
-      Contract.Requires(!(!allowInts && !allowReals && allowChar && !allowSeq && !allowSetVarieties));  // to constrain to just char, don't use a proxy
-      AllowInts = allowInts;
-      AllowReals = allowReals;
-      AllowChar = allowChar;
-      AllowSeq = allowSeq;
-      AllowSetVarieties = allowSetVarieties;
-      AllowISet = allowISet;
-    }
-    public override int OrderID {
-      get {
-        return 3;
-      }
-    }
-    [Pure]
-    public override string TypeName(ModuleDefinition context) {
-      Contract.Ensures(Contract.Result<string>() != null);
-
-      if (T == null) {
-        if (JustInts) {
-          return "int";
-        } else if (JustReals) {
-          return "real";
-        }
-      }
-      return base.TypeName(context);
-    }
-  }
-
-  /// <summary>
-  /// Domain and Range refer to the types of the indexing operation.  That is, in A[i],
-  /// i is of type Domain and A[i] is of type Range.
-  /// Arg is either Domain or Range, depending on what type it is.  Arg is the type
-  /// one would use in an expression "x in C", whereas
-  /// This proxy stands for one of:
-  ///   seq(T)       Domain,Range,Arg := integer,T,T
-  ///   multiset(T)  Domain,Range,Arg := T,integer,T
-  ///   if AllowMap, may also be:
-  ///   map(T,U)     Domain,Range,Arg := T,U,T
-  ///   if AllowArray, may also be:
-  ///   array(T)     Domain,Range,Arg := integer,T,T
-  /// where "integer" refers to any integer-based numeric type.
-  /// </summary>
-  public class IndexableTypeProxy : RestrictedTypeProxy {
-    public readonly bool AllowMap;
-    public readonly bool AllowIMap;
-    public readonly bool AllowArray;
-    public readonly Type Domain, Range, Arg;
-    [ContractInvariantMethod]
-    void ObjectInvariant() {
-      Contract.Invariant(Domain != null);
-      Contract.Invariant(Range != null);
-      Contract.Invariant(Arg != null);
-    }
-
-    public IndexableTypeProxy(Type domain, Type range, Type arg, bool allowMap, bool allowIMap, bool allowArray) {
-      Contract.Requires(domain != null);
-      Contract.Requires(range != null);
-      Contract.Requires(arg != null);
-      Domain = domain;
-      Range = range;
-      Arg = arg;
-      AllowMap = allowMap;
-      AllowIMap = allowIMap;
-      AllowArray = allowArray;
-    }
-    public override int OrderID {
-      get {
-        return 4;
-      }
     }
   }
 

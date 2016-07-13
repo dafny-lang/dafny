@@ -7091,7 +7091,7 @@ namespace Microsoft.Dafny {
       } else if (type.IsRefType) {
         // object and class types translate to ref
         return predef.RefType;
-      } else if (type.IsDatatype || type is DatatypeProxy) {
+      } else if (type.IsDatatype) {
         return predef.DatatypeType;
       } else if (type is SetType) {
         return predef.SetType(Token.NoToken, ((SetType)type).Finite, predef.BoxType);

@@ -204,9 +204,6 @@ namespace Microsoft.Dafny
         return new UserDefinedType(Tok(tt.tok), CloneExpr(tt.NamePath));
       } else if (t is InferredTypeProxy) {
         return new InferredTypeProxy();
-      } else if (t is OperationTypeProxy) {
-        var p = (OperationTypeProxy)t;
-        return new OperationTypeProxy(p.AllowInts, p.AllowReals, p.AllowChar, p.AllowSeq, p.AllowSetVarieties, p.AllowISet);
       } else if (t is ParamTypeProxy) {
         return new ParamTypeProxy(CloneTypeParam(((ParamTypeProxy)t).orig));
       } else {
