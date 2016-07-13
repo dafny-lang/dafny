@@ -423,34 +423,36 @@ namespace Microsoft.Dafny {
     public static readonly CharType Char = new CharType();
     public static readonly IntType Int = new IntType();
     public static readonly RealType Real = new RealType();
-
-    public static string TypeArgsToString(ModuleDefinition/*?*/ context, List<Type> typeArgs) {
+    
+    public static string TypeArgsToString(ModuleDefinition/*?*/ context, List<Type> typeArgs, bool parseAble = false) {
       Contract.Requires(typeArgs == null ||
-        typeArgs.All(ty => ty.TypeName(context).StartsWith("_")) ||
-        typeArgs.All(ty => !ty.TypeName(context).StartsWith("_")));
+        (typeArgs.All(ty => ty != null && ty.TypeName(context, parseAble) != null) &&
+         (typeArgs.All(ty => ty.TypeName(context, parseAble).StartsWith("_")) ||
+          typeArgs.All(ty => !ty.TypeName(context, parseAble).StartsWith("_")))));
 
-      if (typeArgs != null && typeArgs.Count > 0 && !typeArgs[0].TypeName(context).StartsWith("_")){
-        return String.Format("<{0}>",Util.Comma(",", typeArgs, ty => ty.TypeName(context)));
+      if (typeArgs != null && typeArgs.Count > 0 && 
+          (!parseAble || !typeArgs[0].TypeName(context, parseAble).StartsWith("_"))){
+        return String.Format("<{0}>",Util.Comma(", ", typeArgs, ty => ty.TypeName(context, parseAble)));
       }
       return String.Empty;
     }
 
-    public static string TypeArgsToString(List<Type> typeArgs) {
-      return TypeArgsToString(null, typeArgs);
+    public static string TypeArgsToString(List<Type> typeArgs, bool parseAble = false) {
+      return TypeArgsToString(null, typeArgs, parseAble);
     }
 
-    public string TypeArgsToString(ModuleDefinition/*?*/ context) {
-      return Type.TypeArgsToString(context, this.TypeArgs);
+    public string TypeArgsToString(ModuleDefinition/*?*/ context, bool parseAble = false) {
+      return Type.TypeArgsToString(context, this.TypeArgs, parseAble);
     }
 
     // Type arguments to the type
     public List<Type> TypeArgs = new List<Type> { };
 
     [Pure]
-    public abstract string TypeName(ModuleDefinition/*?*/ context);
+    public abstract string TypeName(ModuleDefinition/*?*/ context, bool parseAble = false);
     [Pure]
     public override string ToString() {
-      return TypeName(null);
+      return TypeName(null, false);
     }
 
     /// <summary>
@@ -772,7 +774,7 @@ namespace Microsoft.Dafny {
 
   public class BoolType : BasicType {
     [Pure]
-    public override string TypeName(ModuleDefinition context) {
+    public override string TypeName(ModuleDefinition context, bool parseAble) {
       return "bool";
     }
     public override bool Equals(Type that) {
@@ -783,7 +785,7 @@ namespace Microsoft.Dafny {
   public class CharType : BasicType
   {
     [Pure]
-    public override string TypeName(ModuleDefinition context) {
+    public override string TypeName(ModuleDefinition context, bool parseAble) {
       return "char";
     }
     public override bool Equals(Type that) {
@@ -794,7 +796,7 @@ namespace Microsoft.Dafny {
   public class IntType : BasicType
   {
     [Pure]
-    public override string TypeName(ModuleDefinition context) {
+    public override string TypeName(ModuleDefinition context, bool parseAble) {
       return "int";
     }
     public override bool Equals(Type that) {
@@ -805,14 +807,14 @@ namespace Microsoft.Dafny {
   public class NatType : IntType
   {
     [Pure]
-    public override string TypeName(ModuleDefinition context) {
+    public override string TypeName(ModuleDefinition context, bool parseAble) {
       return "nat";
     }
   }
 
   public class RealType : BasicType {
     [Pure]
-    public override string TypeName(ModuleDefinition context) {
+    public override string TypeName(ModuleDefinition context, bool parseAble) {
       return "real";
     }
     public override bool Equals(Type that) {
@@ -823,7 +825,7 @@ namespace Microsoft.Dafny {
   public class ObjectType : BasicType
   {
     [Pure]
-    public override string TypeName(ModuleDefinition context) {
+    public override string TypeName(ModuleDefinition context, bool parseAble) {
       return "object";
     }
     public override bool Equals(Type that) {
@@ -891,7 +893,7 @@ namespace Microsoft.Dafny {
       return s.StartsWith("_#Func");
     }
 
-    public override string TypeName(ModuleDefinition context) {
+    public override string TypeName(ModuleDefinition context, bool parseAble) {
       var domainNeedsParens = false;
       if (Arity != 1) {
         // 0 or 2-or-more arguments:  need parentheses
@@ -912,10 +914,10 @@ namespace Microsoft.Dafny {
       }
       string s = "";
       if (domainNeedsParens) { s += "("; }
-      s += Util.Comma(Args, arg => arg.TypeName(context));
+      s += Util.Comma(Args, arg => arg.TypeName(context, parseAble));
       if (domainNeedsParens) { s += ")"; }
       s += " -> ";
-      s += Result.TypeName(context);
+      s += Result.TypeName(context, parseAble);
       return s;
     }
 
@@ -929,9 +931,9 @@ namespace Microsoft.Dafny {
   public abstract class CollectionType : NonProxyType
   {
     public abstract string CollectionTypeName { get; }
-    public override string TypeName(ModuleDefinition context) {
+    public override string TypeName(ModuleDefinition context, bool parseAble) {
       Contract.Ensures(Contract.Result<string>() != null);
-      var targs = this.TypeArgsToString(context);
+      var targs = HasTypeArg() ? this.TypeArgsToString(context, parseAble) : "";
       return CollectionTypeName + targs;
     }
     public Type Arg {
@@ -1056,9 +1058,9 @@ namespace Microsoft.Dafny {
     }
     public override string CollectionTypeName { get { return finite ? "map" : "imap"; } }
     [Pure]
-    public override string TypeName(ModuleDefinition context) {
+    public override string TypeName(ModuleDefinition context, bool parseAble) {
       Contract.Ensures(Contract.Result<string>() != null);
-      var targs = this.TypeArgsToString(context);
+      var targs = HasTypeArg() ? this.TypeArgsToString(context, parseAble) : "";
       return CollectionTypeName + targs;
     }
     public override bool Equals(Type that) {
@@ -1284,10 +1286,10 @@ namespace Microsoft.Dafny {
     }
 
     [Pure]
-    public override string TypeName(ModuleDefinition context) {
+    public override string TypeName(ModuleDefinition context, bool parseAble) {
       Contract.Ensures(Contract.Result<string>() != null);
       if (BuiltIns.IsTupleTypeName(Name)) {
-        return "(" + Util.Comma(",", TypeArgs, ty => ty.TypeName(context)) + ")";
+        return "(" + Util.Comma(",", TypeArgs, ty => ty.TypeName(context, parseAble)) + ")";
       } else {
 #if TEST_TYPE_SYNONYM_TRANSPARENCY
         if (Name == "type#synonym#transparency#test" && ResolvedClass is TypeSynonymDecl) {
@@ -1298,7 +1300,7 @@ namespace Microsoft.Dafny {
         if (ResolvedClass != null) {
           var optionalTypeArgs = NamePath is NameSegment ? ((NameSegment)NamePath).OptTypeArguments : ((ExprDotName)NamePath).OptTypeArguments;
           if (optionalTypeArgs == null && TypeArgs != null && TypeArgs.Count != 0) {
-            s += this.TypeArgsToString(context);
+            s += this.TypeArgsToString(context, parseAble);
           }
         }
         return s;
@@ -1344,10 +1346,10 @@ namespace Microsoft.Dafny {
     }
 
     [Pure]
-    public override string TypeName(ModuleDefinition context) {
+    public override string TypeName(ModuleDefinition context, bool parseAble) {
       Contract.Ensures(Contract.Result<string>() != null);
 
-      return T == null ? "?" : T.TypeName(context);
+      return T == null ? "?" : T.TypeName(context, parseAble);
     }
     public override bool SupportsEquality {
       get {
@@ -1496,7 +1498,7 @@ namespace Microsoft.Dafny {
       }
     }
     [Pure]
-    public override string TypeName(ModuleDefinition context) {
+    public override string TypeName(ModuleDefinition context, bool parseAble) {
       Contract.Ensures(Contract.Result<string>() != null);
 
       if (T == null) {
@@ -1506,7 +1508,7 @@ namespace Microsoft.Dafny {
           return "real";
         }
       }
-      return base.TypeName(context);
+      return base.TypeName(context, parseAble);
     }
   }
 
@@ -2611,7 +2613,9 @@ namespace Microsoft.Dafny {
     public class EverIncreasingType : BasicType
     {
       [Pure]
-      public override string TypeName(ModuleDefinition context) {
+      public override string TypeName(ModuleDefinition context, bool parseAble) {
+        Contract.Assert(parseAble == false);
+
         return "_increasingInt";
       }
       public override bool Equals(Type that) {
@@ -6205,7 +6209,8 @@ namespace Microsoft.Dafny {
     public class ResolverType_Module : Type
     {
       [Pure]
-      public override string TypeName(ModuleDefinition context) {
+      public override string TypeName(ModuleDefinition context, bool parseAble) {
+        Contract.Assert(parseAble == false);
         return "#module";
       }
       public override bool Equals(Type that) {
@@ -6217,7 +6222,8 @@ namespace Microsoft.Dafny {
     }
     public class ResolverType_Type : Type {
       [Pure]
-      public override string TypeName(ModuleDefinition context) {
+      public override string TypeName(ModuleDefinition context, bool parseAble) {
+        Contract.Assert(parseAble == false);
         return "#type";
       }
       public override bool Equals(Type that) {

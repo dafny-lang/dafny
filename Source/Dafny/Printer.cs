@@ -149,7 +149,9 @@ namespace Microsoft.Dafny {
         wr.WriteLine("// " + Bpl.CommandLineOptions.Clo.Version);
         wr.WriteLine("// " + Bpl.CommandLineOptions.Clo.Environment);
       }
-      wr.WriteLine("// {0}", prog.Name);
+      if (DafnyOptions.O.PrintMode != DafnyOptions.PrintModes.DllEmbed) {
+        wr.WriteLine("// {0}", prog.Name);
+      }
       if (DafnyOptions.O.DafnyPrintResolvedFile != null && DafnyOptions.O.PrintMode == DafnyOptions.PrintModes.Everything) {
         wr.WriteLine();
         wr.WriteLine("/*");
@@ -770,13 +772,13 @@ namespace Microsoft.Dafny {
 
     public void PrintType(Type ty) {
       Contract.Requires(ty != null);
-      wr.Write(ty.ToString());
+      wr.Write(ty.TypeName(null, true));
     }
 
     public void PrintType(string prefix, Type ty) {
       Contract.Requires(prefix != null);
       Contract.Requires(ty != null);
-      string s = ty.ToString();
+      string s = ty.TypeName(null, true);
       if (s != "?" && !s.StartsWith("_")) {
         wr.Write("{0}{1}", prefix, s);
       }
@@ -1332,7 +1334,7 @@ namespace Microsoft.Dafny {
           string sep = "(";
           foreach (BoundVar bv in mc.Arguments) {
             wr.Write("{0}{1}", sep, bv.DisplayName);
-            string typeName = bv.Type.ToString();
+            string typeName = bv.Type.TypeName(null, true);
             if (bv.Type is NonProxyType && !typeName.StartsWith("_")) {
               wr.Write(": {0}", typeName);
             }

@@ -4,7 +4,7 @@ class MyClass<T, U> {
   var x: int
 
   method M(s: bool, lotsaObjects: set<object>)
-      returns (t: object, u: set<int>, v: seq<MyClass<bool,U>>)
+      returns (t: object, u: set<int>, v: seq<MyClass<bool, U>>)
     requires s
     modifies this, lotsaObjects
     ensures t == t
@@ -21,7 +21,7 @@ class MyClass<T, U> {
         this.x := x + 0;
       }
       t, u, v := M(true, lotsaObjects);
-      var to: MyClass<T,U>;
+      var to: MyClass<T, U>;
       to, u, v := this.M(true, lotsaObjects);
       to, u, v := to.M(true, lotsaObjects);
       assert v[x] != null ==> null !in v[2 .. x][1..][5 := v[this.x]][..10];
