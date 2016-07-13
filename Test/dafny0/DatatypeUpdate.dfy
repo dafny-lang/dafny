@@ -83,3 +83,17 @@ method MultipleUpdates(nn: NumericNames, y: int) returns (pp: NumericNames)
   }
 }
 }
+
+module Regression0 {
+  datatype SystemState = SS(connections: map<int,Connection>)
+  datatype Connection = C(acceptor: Actor)
+  type Actor
+  
+  method M(ls: SystemState, actor: Actor, conn_id: int)
+    requires conn_id in ls.connections
+  {
+    var x := ls.connections[conn_id];
+    var y := x.(acceptor := actor);
+  }
+}
+  

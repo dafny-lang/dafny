@@ -9472,6 +9472,7 @@ namespace Microsoft.Dafny
         var e = (DatatypeUpdateExpr)expr;
         ResolveExpression(e.Root, opts);
         var ty = e.Root.Type;
+        PartiallyResolveTypeForMemberSelection(expr.tok, ty);
         if (!ty.IsDatatype) {
           reporter.Error(MessageSource.Resolver, expr, "datatype update expression requires a root expression of a datatype (got {0})", ty);
         } else {
