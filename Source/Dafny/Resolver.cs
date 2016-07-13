@@ -338,7 +338,7 @@ namespace Microsoft.Dafny
             useCompileSignatures = true;  // set Resolver-global flag to indicate that Signatures should be followed to their CompiledSignature
             var oldErrorsOnly = reporter.ErrorsOnly;
             reporter.ErrorsOnly = true; // turn off warning reporting for the clone
-            var nw = new ClonerButUseOriginalMatchConstructs().CloneModuleDefinition(m, m.CompileName + "_Compile");
+            var nw = new ClonerButUseOriginalMatchConstructsAndDontRecordFromFrom().CloneModuleDefinition(m, m.CompileName + "_Compile");
             var compileSig = RegisterTopLevelDecls(nw, true);
             compileSig.Refines = refinementTransformer.RefinedSig;
             sig.CompileSignature = compileSig;
@@ -1422,7 +1422,7 @@ namespace Microsoft.Dafny
 
     private ModuleSignature MakeAbstractSignature(ModuleSignature p, string Name, int Height, List<ModuleDefinition> mods) {
       var mod = new ModuleDefinition(Token.NoToken, Name + ".Abs", true, true, /*isExclusiveRefinement:*/ false, null, null, null, false);
-      mod.ClonedFrom = p.ModuleDef;
+      mod.ClonedFrom = new ClonerButUseOriginalMatchConstructsAndDontRecordFromFrom().CloneFromValue_Module(p.ModuleDef);
       mod.Height = Height;
       foreach (var kv in p.TopLevels) {
         mod.TopLevelDecls.Add(CloneDeclaration(kv.Value, mod, mods, Name));

@@ -28,7 +28,7 @@ namespace Microsoft.Dafny
       if (null != m.RefinementBaseSig) {
         nw.RefinementBaseSig = m.RefinementBaseSig;
       }
-      nw.ClonedFrom = m;
+      nw.ClonedFrom = CloneFromValue_Module(m);
       nw.Height = m.Height;
       return nw;
     }
@@ -39,17 +39,17 @@ namespace Microsoft.Dafny
 
       if (d is OpaqueTypeDecl) {
         var dd = (OpaqueTypeDecl)d;
-        return new OpaqueTypeDecl(Tok(dd.tok), dd.Name, m, dd.EqualitySupport, dd.TypeArgs.ConvertAll(CloneTypeParam), CloneAttributes(dd.Attributes), d);
+        return new OpaqueTypeDecl(Tok(dd.tok), dd.Name, m, dd.EqualitySupport, dd.TypeArgs.ConvertAll(CloneTypeParam), CloneAttributes(dd.Attributes), CloneFromValue(d));
       } else if (d is TypeSynonymDecl) {
         var dd = (TypeSynonymDecl)d;
         var tps = dd.TypeArgs.ConvertAll(CloneTypeParam);
-        return new TypeSynonymDecl(Tok(dd.tok), dd.Name, tps, m, CloneType(dd.Rhs), CloneAttributes(dd.Attributes), dd);
+        return new TypeSynonymDecl(Tok(dd.tok), dd.Name, tps, m, CloneType(dd.Rhs), CloneAttributes(dd.Attributes), CloneFromValue(dd));
       } else if (d is NewtypeDecl) {
         var dd = (NewtypeDecl)d;
         if (dd.Var == null) {
-          return new NewtypeDecl(Tok(dd.tok), dd.Name, m, CloneType(dd.BaseType), CloneAttributes(dd.Attributes), dd);
+          return new NewtypeDecl(Tok(dd.tok), dd.Name, m, CloneType(dd.BaseType), CloneAttributes(dd.Attributes), CloneFromValue(dd));
         } else {
-          return new NewtypeDecl(Tok(dd.tok), dd.Name, m, CloneBoundVar(dd.Var), CloneExpr(dd.Constraint), CloneAttributes(dd.Attributes), dd);
+          return new NewtypeDecl(Tok(dd.tok), dd.Name, m, CloneBoundVar(dd.Var), CloneExpr(dd.Constraint), CloneAttributes(dd.Attributes), CloneFromValue(dd));
         }
       } else if (d is TupleTypeDecl) {
         var dd = (TupleTypeDecl)d;
@@ -58,13 +58,13 @@ namespace Microsoft.Dafny
         var dd = (IndDatatypeDecl)d;
         var tps = dd.TypeArgs.ConvertAll(CloneTypeParam);
         var ctors = dd.Ctors.ConvertAll(CloneCtor);
-        var dt = new IndDatatypeDecl(Tok(dd.tok), dd.Name, m, tps, ctors, CloneAttributes(dd.Attributes), dd);
+        var dt = new IndDatatypeDecl(Tok(dd.tok), dd.Name, m, tps, ctors, CloneAttributes(dd.Attributes), CloneFromValue(dd));
         return dt;
       } else if (d is CoDatatypeDecl) {
         var dd = (CoDatatypeDecl)d;
         var tps = dd.TypeArgs.ConvertAll(CloneTypeParam);
         var ctors = dd.Ctors.ConvertAll(CloneCtor);
-        var dt = new CoDatatypeDecl(Tok(dd.tok), dd.Name, m, tps, ctors, CloneAttributes(dd.Attributes), dd);
+        var dt = new CoDatatypeDecl(Tok(dd.tok), dd.Name, m, tps, ctors, CloneAttributes(dd.Attributes), CloneFromValue(dd));
         return dt;
       } else if (d is IteratorDecl) {
         var dd = (IteratorDecl)d;
@@ -100,7 +100,7 @@ namespace Microsoft.Dafny
               var dd = (TraitDecl)d;
               var tps = dd.TypeArgs.ConvertAll(CloneTypeParam);
               var mm = dd.Members.ConvertAll(CloneMember);
-              var cl = new TraitDecl(Tok(dd.tok), dd.Name, m, tps, mm, CloneAttributes(dd.Attributes), dd);
+              var cl = new TraitDecl(Tok(dd.tok), dd.Name, m, tps, mm, CloneAttributes(dd.Attributes), CloneFromValue(dd));
               return cl;
           }
       }
@@ -109,9 +109,9 @@ namespace Microsoft.Dafny
         var tps = dd.TypeArgs.ConvertAll(CloneTypeParam);
         var mm = dd.Members.ConvertAll(CloneMember);
         if (d is DefaultClassDecl) {
-          return new DefaultClassDecl(m, mm, ((DefaultClassDecl)d));
+          return new DefaultClassDecl(m, mm, CloneFromValue((DefaultClassDecl)d));
         } else {
-          return new ClassDecl(Tok(dd.tok), dd.Name, m, tps, mm, CloneAttributes(dd.Attributes), dd.TraitsTyp.ConvertAll(CloneType), dd);
+          return new ClassDecl(Tok(dd.tok), dd.Name, m, tps, mm, CloneAttributes(dd.Attributes), dd.TraitsTyp.ConvertAll(CloneType), CloneFromValue(dd));
         }
       } else if (d is ModuleDecl) {
         if (d is LiteralModuleDecl) {
@@ -142,6 +142,14 @@ namespace Microsoft.Dafny
         Contract.Assert(false);  // unexpected declaration
         return null;  // to please compiler
       }
+    }
+
+    public virtual T CloneFromValue<T>(T d) where T : TopLevelDecl {
+      return d;
+    }
+
+    public virtual ModuleDefinition CloneFromValue_Module(ModuleDefinition m) {
+      return m;
     }
 
     public DatatypeCtor CloneCtor(DatatypeCtor ct) {
@@ -726,9 +734,9 @@ namespace Microsoft.Dafny
     }
   }
 
-  class ClonerButUseOriginalMatchConstructs : Cloner
+  class ClonerButUseOriginalMatchConstructsAndDontRecordFromFrom : Cloner
   {
-    public ClonerButUseOriginalMatchConstructs()
+    public ClonerButUseOriginalMatchConstructsAndDontRecordFromFrom()
       : base() {
     }
 
@@ -746,6 +754,14 @@ namespace Microsoft.Dafny
         return CloneStmt(s.OrigUnresolved);
       }
       return base.CloneStmt(stmt);
+    }
+
+    public override T CloneFromValue<T>(T d) {
+      return null;
+    }
+
+    public override ModuleDefinition CloneFromValue_Module(ModuleDefinition m) {
+      return null;
     }
   }
 
