@@ -1,4 +1,3 @@
-#define ERASE_CASE_PATTERNS
 //#define DEBUG_PRINT
 //-----------------------------------------------------------------------------
 //
@@ -7869,9 +7868,7 @@ namespace Microsoft.Dafny
             }
           }
           mc.Arguments = arguments;
-#if ERASE_CASE_PATTERNS
           mc.CasePatterns = null;
-#endif
           scope.PopMarker();
         }
       }
@@ -10245,9 +10242,7 @@ namespace Microsoft.Dafny
             }
           }
           mc.Arguments = arguments;
-#if ERASE_CASE_PATTERNS
           mc.CasePatterns = null;
-#endif
           scope.PopMarker();
         }
       }
