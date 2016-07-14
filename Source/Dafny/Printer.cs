@@ -420,9 +420,11 @@ namespace Microsoft.Dafny {
           }
           state = 2;
         } else if (m is Field) {
-          if (state == 2) { wr.WriteLine(); }
-          PrintField((Field)m, indent);
-          state = 1;
+          if (m.RefinementBase == null || !m.RefinementBase.IsGhost && m.IsGhost) {
+            if (state == 2) { wr.WriteLine(); }
+            PrintField((Field)m, indent);
+            state = 1;
+          }
         } else if (m is Function) {
           if (state != 0) { wr.WriteLine(); }
           PrintFunction((Function)m, indent, false);
@@ -594,6 +596,16 @@ namespace Microsoft.Dafny {
       }
     }
 
+    private void commentOutIf(bool condition, int indent, Action<int> act) {
+      var thisIndent = indent;
+      if (condition) {
+        Indent(indent);
+        wr.Write("//");
+        thisIndent = 0;
+      }
+      act(thisIndent);
+    }
+
     private bool PrintModeSkipFunctionOrMethod(bool IsGhost, Attributes attributes, string name)
     {
       if (printMode == DafnyOptions.PrintModes.NoGhost && IsGhost)
@@ -650,7 +662,8 @@ namespace Microsoft.Dafny {
       PrintSpec("requires", method.Req, ind);
       if (method.Mod.Expressions != null)
       {
-        PrintFrameSpecLine("modifies", method.Mod.Expressions, ind, method.Mod.HasAttributes() ? method.Mod.Attributes : null);
+        commentOutIf(method.RefinementBase != null, ind, ind2 =>
+         PrintFrameSpecLine("modifies", method.Mod.Expressions, ind2, method.Mod.HasAttributes() ? method.Mod.Attributes : null));
       }
       PrintSpec("ensures", method.Ens, ind);
       PrintDecreasesSpec(method.Decreases, ind);
