@@ -583,6 +583,19 @@ bool IsDefaultImport() {
   return la.val == "default" && x.val != "export";
 }
 
+int StringToInt(string s, int defaultValue, string errString) {
+  Contract.Requires(s != null);
+  Contract.Requires(errString != null);
+  try {
+    if (s != "") {
+      defaultValue = int.Parse(s);
+    }
+  } catch (System.OverflowException) {
+    SemErr(string.Format("sorry, {0}  ({1}) are not supported", errString, s));
+  }
+  return defaultValue;
+}
+
 /*--------------------------------------------------------------------------*/
 
 
@@ -1807,8 +1820,7 @@ bool IsDefaultImport() {
 		case 6: {
 			Get();
 			tok = t;
-			int w = int.Parse(tok.val.Substring(2));
-			Contract.Assert(0 <= w);
+			int w = StringToInt(tok.val.Substring(2), 0, "bitvectors that wide");
 			ty = new BitvectorType(w);
 			
 			break;
@@ -1916,7 +1928,7 @@ bool IsDefaultImport() {
 				gt = new List<Type>(); 
 				GenericInstantiation(gt);
 			}
-			int dims = tok.val.Length == 5 ? 1 : int.Parse(tok.val.Substring(5));
+			int dims = StringToInt(tok.val.Substring(5), 1, "arrays of that many dimensions");
 			ty = theBuiltIns.ArrayType(tok, dims, gt, true);
 			
 			break;
