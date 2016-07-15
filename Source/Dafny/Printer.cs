@@ -652,7 +652,7 @@ namespace Microsoft.Dafny {
       PrintSpec("requires", method.Req, ind);
       if (method.Mod.Expressions != null)
       {
-        if (method.RefinementBase != null) {
+        if (method.RefinementBase == null) {
           PrintFrameSpecLine("modifies", method.Mod.Expressions, ind, method.Mod.HasAttributes() ? method.Mod.Attributes : null);
         }
       }
