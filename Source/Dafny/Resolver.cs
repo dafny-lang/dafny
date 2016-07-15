@@ -2180,7 +2180,9 @@ namespace Microsoft.Dafny
     TypeProxy NewIntegerBasedProxy(IToken tok) {
       Contract.Requires(tok != null);
       var proxy = new InferredTypeProxy();
-      ConstrainSubtypeRelation(new IntVarietiesSupertype(), proxy, tok, "expected integer-based argument (got {0})", proxy);
+      // Note: the expectation is that the following error message will never be displayed, because there is special handling
+      // or error messages for constraints that involve an ArtificialType.
+      ConstrainSubtypeRelation(new IntVarietiesSupertype(), proxy, tok, "type of integer literal is used as {0}", proxy);
       return proxy;
     }
 
@@ -2262,6 +2264,7 @@ namespace Microsoft.Dafny
             headSymbolsAgree = sub.Equals(super);
             break;
           case TypeProxy.Family.IntLike:
+          case TypeProxy.Family.BitVector:
             headSymbolsAgree = super is IntVarietiesSupertype || sub.Equals(super);
             break;
           case TypeProxy.Family.RealLike:
@@ -2325,7 +2328,7 @@ namespace Microsoft.Dafny
     void CheckEnds(Type t, out bool isRoot, out bool isLeaf, out bool headIsRoot, out bool headIsLeaf) {
       Contract.Requires(t != null);
       Contract.Requires(!(t is TypeProxy) || ((TypeProxy)t).T == null);  // caller is expected to call NormalizeExpand
-      if (t.IsBoolType || t.IsCharType || t.IsNumericBased()) {
+      if (t.IsBoolType || t.IsCharType || t.IsNumericBased() || t.IsBitVectorType) {
         isRoot = true; isLeaf = true;
         headIsRoot = true; headIsLeaf = true;
       } else if (t is ArtificialType) {
@@ -2438,7 +2441,7 @@ namespace Microsoft.Dafny
       var followedRequestedAssignment = true;
       foreach (var su in proxy.Supertypes) {
         if (su is IntVarietiesSupertype) {
-          if (TypeProxy.GetFamily(t) == TypeProxy.Family.IntLike) {
+          if (TypeProxy.GetFamily(t) == TypeProxy.Family.IntLike || TypeProxy.GetFamily(t) == TypeProxy.Family.BitVector) {
             // good, let's continue with the request to equate the proxy with t
           } else {
             // hijack the setting of proxy; to do that, we decide on a particular int variety now
@@ -2551,22 +2554,26 @@ namespace Microsoft.Dafny
     private List<int> ConstrainTypeHead(Type super, Type sub) {
       Contract.Requires(super != null && !(super is TypeProxy));
       Contract.Requires(sub != null && !(sub is TypeProxy));
+      if (super is IntVarietiesSupertype) {
+        if (TypeProxy.GetFamily(sub) == TypeProxy.Family.IntLike || TypeProxy.GetFamily(sub) == TypeProxy.Family.BitVector || super.Equals(sub)) {
+          return new List<int>();
+        } else {
+          return null;
+        }
+      } else if (super is RealVarietiesSupertype) {
+        if (TypeProxy.GetFamily(sub) == TypeProxy.Family.RealLike || super.Equals(sub)) {
+          return new List<int>();
+        } else {
+          return null;
+        }
+      }
       switch (TypeProxy.GetFamily(super)) {
         case TypeProxy.Family.Bool:
         case TypeProxy.Family.Char:
-          if (super.Equals(sub)) {
-            return new List<int>();
-          } else {
-            return null;
-          }
         case TypeProxy.Family.IntLike:
-          if ((super is IntVarietiesSupertype && TypeProxy.GetFamily(sub) == TypeProxy.Family.IntLike) || super.Equals(sub)) {
-            return new List<int>();
-          } else {
-            return null;
-          }
         case TypeProxy.Family.RealLike:
-          if ((super is RealVarietiesSupertype && TypeProxy.GetFamily(sub) == TypeProxy.Family.RealLike) || super.Equals(sub)) {
+        case TypeProxy.Family.BitVector:
+          if (super.Equals(sub)) {
             return new List<int>();
           } else {
             return null;
@@ -2655,6 +2662,7 @@ namespace Microsoft.Dafny
         case TypeProxy.Family.Char:
         case TypeProxy.Family.IntLike:
         case TypeProxy.Family.RealLike:
+        case TypeProxy.Family.BitVector:
         case TypeProxy.Family.Unknown:
           return a.Equals(b) ? 0 : -1;
         case TypeProxy.Family.ValueType:
@@ -2726,6 +2734,7 @@ namespace Microsoft.Dafny
         case TypeProxy.Family.Bool:
         case TypeProxy.Family.Char:
         case TypeProxy.Family.IntLike:
+        case TypeProxy.Family.BitVector:
         case TypeProxy.Family.RealLike:
           return a.Equals(b) ? 0 : -1;
         case TypeProxy.Family.ValueType:
@@ -2842,6 +2851,9 @@ namespace Microsoft.Dafny
           case "NumericType":
             satisfied = t.IsNumericBased();
             break;
+          case "IntegerType":
+            satisfied = t.IsNumericBased(Type.NumericPersuation.Int);
+            break;
           case "Orderable_Lt":
             satisfied = t.IsNumericBased() || t.IsCharType || t is SeqType || t is SetType || t is MultiSetType;
             break;
@@ -2945,7 +2957,9 @@ namespace Microsoft.Dafny
               } else if (t is MultiSetType) {
                 var s = (MultiSetType)t;
                 resolver.ConstrainSubtypeRelation(s.Arg, index.Type, index, "multiset update requires domain element to be of type {0} (got {1})", s.Arg, index.Type);
+                // we do two constraints for the index; the first can aid in determining types, but allows bit-vectors; the second excludes bit-vectors
                 resolver.ConstrainSubtypeRelation(new IntVarietiesSupertype(), value.Type, value, "multiset update requires integer-based numeric value (got {0})", value.Type);
+                resolver.AddXConstraint(value.tok, "IntegerType", value.Type, "multiset update requires integer-based numeric value (got {0})");
               } else {
                 satisfied = false;
                 break;
@@ -3154,6 +3168,7 @@ namespace Microsoft.Dafny
           case TypeProxy.Family.Char:
           case TypeProxy.Family.IntLike:
           case TypeProxy.Family.RealLike:
+          case TypeProxy.Family.BitVector:
             return true;
           case TypeProxy.Family.ValueType:
           case TypeProxy.Family.Ref:
@@ -3870,7 +3885,17 @@ namespace Microsoft.Dafny
         }
       }
       protected override void VisitOneExpr(Expression expr) {
-        if (expr is ComprehensionExpr) {
+        if (expr is LiteralExpr) {
+          var e = (LiteralExpr)expr;
+          var t = e.Type as BitvectorType;
+          if (t != null) {
+            var n = (BigInteger)e.Value;
+            // check that the given literal fits into the bitvector width
+            if (BigInteger.Pow(2, t.Width) <= n) {
+              resolver.reporter.Error(MessageSource.Resolver, e.tok, "bitvector literal ({0}) is too large for the type {1}", e.Value, t);
+            }
+          }
+        } else if (expr is ComprehensionExpr) {
           var e = (ComprehensionExpr)expr;
           foreach (var bv in e.BoundVars) {
             if (!IsDetermined(bv.Type.Normalize())) {
@@ -8311,8 +8336,10 @@ namespace Microsoft.Dafny
           foreach (Expression dim in rr.ArrayDimensions) {
             Contract.Assert(dim != null);
             ResolveExpression(dim, new ResolveOpts(codeContext, true));
-            ConstrainSubtypeRelation(new IntVarietiesSupertype(), dim.Type, stmt.Tok,
-              "new must use an integer-based expression for the array size (got {0}{1})", dim.Type, rr.ArrayDimensions.Count == 1 ? "" : " for index " + i);
+            // we do two constraints for the index; the first can aid in determining types, but allows bit-vectors; the second excludes bit-vectors
+            var errFormat = "new must use an integer-based expression for the array size (got {0}" + (rr.ArrayDimensions.Count == 1 ? ")" : " for index " + i + ")");
+            ConstrainSubtypeRelation(new IntVarietiesSupertype(), dim.Type, stmt.Tok, errFormat);
+            AddXConstraint(stmt.Tok, "IntegerType", dim.Type, errFormat);
             i++;
           }
           rr.Type = ResolvedArrayType(stmt.Tok, rr.ArrayDimensions.Count, rr.EType, codeContext);
@@ -9000,7 +9027,10 @@ namespace Microsoft.Dafny
           Contract.Assert(idx != null);
           ResolveExpression(idx, opts);
           Contract.Assert(idx.Type != null);  // follows from postcondition of ResolveExpression
-          ConstrainSubtypeRelation(new IntVarietiesSupertype(), idx.Type, idx, "array selection requires integer-based numeric indices (got {0} for index {1})", idx.Type, i);
+          // we do two constraints for the index; the first can aid in determining types, but allows bit-vectors; the second excludes bit-vectors
+          var errFormat = "array selection requires integer-based numeric indices (got {0} for index " + i + ")";
+          ConstrainSubtypeRelation(new IntVarietiesSupertype(), idx.Type, idx, errFormat, idx.Type);
+          AddXConstraint(idx.tok, "IntegerType", idx.Type, errFormat);
           i++;
         }
         e.Type = elementType;

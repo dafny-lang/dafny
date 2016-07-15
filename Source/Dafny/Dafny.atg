@@ -465,6 +465,7 @@ bool IsType(ref IToken pt) {
       pt = scanner.Peek();
       return true;
     case _arrayToken:
+    case _bvToken:
     case _set:
     case _iset:
     case _multiset:
@@ -525,10 +526,11 @@ CHARACTERS
   idchar = nondigit + digit.
   nonidchar = ANY - idchar.
   /* exclude the characters in 'array' and '\'' */
-  nondigitMinusATick = nondigit - 'a' - '\''.
+  nondigitMinusABTick = nondigit - 'a' - 'b' - '\''.
   idcharMinusA = idchar - 'a'.
   idcharMinusR = idchar - 'r'.
   idcharMinusY = idchar - 'y'.
+  idcharMinusV = idchar - 'v'.
   idcharMinusPosDigit = idchar - posDigit.
   idcharMinusTick = idchar - '\''.
   /* string literals */
@@ -538,13 +540,17 @@ CHARACTERS
 
 /*------------------------------------------------------------------------*/
 TOKENS
-  ident =  nondigitMinusATick {idchar}        /* if char 0 is not an 'a' or '\'', then anything else is fine */
+  ident =  nondigitMinusABTick {idchar}       /* if char 0 is not an 'a' or '\'', then anything else is fine */
         |  'a' [ idcharMinusR {idchar} ]      /* if char 0 is an 'a', then either there is no char 1 or char 1 is not an 'r' */
         |  'a' 'r' [ idcharMinusR {idchar} ]  /* etc. */
         |  'a' 'r' 'r' [ idcharMinusA {idchar} ]
         |  'a' 'r' 'r' 'a' [ idcharMinusY {idchar} ]
         |  'a' 'r' 'r' 'a' 'y' idcharMinusPosDigit {idchar}
         |  'a' 'r' 'r' 'a' 'y' posDigit {idchar} nondigit {idchar}
+        |  'b' [ idcharMinusV {idchar} ]
+        |  'b' 'v' [ nondigit {idchar} ]
+        |  'b' 'v' '0' idchar {idchar}
+        |  'b' 'v' posDigit {idchar} nondigit {idchar}
         |  "'" [ idchar ]                        /* if char 0 is a '\'' and length is 1 or 2, then it is an identifier */
         |  "'" idchar idcharMinusTick            /* if char 0 is '\'' and length is 3, then it is an identifier provided char 2 is not '\'' */
         |  "'" idchar idchar idchar { idchar }   /* if char 0 is '\'' and length exceeds 3, then it is an identifier */
@@ -553,6 +559,7 @@ TOKENS
   hexdigits = "0x" hexdigit {['_'] hexdigit}.
   decimaldigits = digit {['_'] digit} '.' digit {['_'] digit}.
   arrayToken = "array" [posDigit {digit}].
+  bvToken = "bv" ( '0' | posDigit {digit} ).
   bool = "bool".
   char = "char".
   int = "int".
@@ -1327,6 +1334,11 @@ TypeAndToken<out IToken tok, out Type ty>
   | "nat"                           (. tok = t;  ty = new NatType(); .)
   | "int"                           (. tok = t;  ty = new IntType(); .)
   | "real"                          (. tok = t;  ty = new RealType(); .)
+  | bvToken                         (. tok = t;
+                                       int w = int.Parse(tok.val.Substring(2));
+                                       Contract.Assert(0 <= w);
+                                       ty = new BitvectorType(w);
+                                    .)
   | "object"                        (. tok = t;  ty = new ObjectType(); .)
   | "set"                           (. tok = t;  gt = new List<Type>(); .)
     [ GenericInstantiation<gt> ]    (. if (gt.Count > 1) {

@@ -7082,6 +7082,9 @@ namespace Microsoft.Dafny {
         return Bpl.Type.Int;
       } else if (type is RealType) {
         return Bpl.Type.Real;
+      } else if (type is BitvectorType) {
+        var t = (BitvectorType)type;
+        return Bpl.Type.GetBvType(t.Width);
       } else if (type is IteratorDecl.EverIncreasingType) {
         return Bpl.Type.Int;
       } else if (type is ArrowType) {
@@ -9539,6 +9542,9 @@ namespace Microsoft.Dafny {
         return new Bpl.IdentifierExpr(Token.NoToken, "TChar", predef.Ty);
       } else if (normType is RealType) {
         return new Bpl.IdentifierExpr(Token.NoToken, "TReal", predef.Ty);
+      } else if (normType is BitvectorType) {
+        var t = (BitvectorType)normType;
+        return FunctionCall(Token.NoToken, "TBitvector", predef.Ty, Bpl.Expr.Literal(t.Width));
       } else if (normType is NatType) {
         // (Nat needs to come before Int)
         return new Bpl.IdentifierExpr(Token.NoToken, "TNat", predef.Ty);
@@ -11119,7 +11125,12 @@ namespace Microsoft.Dafny {
             }
             return MaybeLit(seq, translator.TrType(new SeqType(Type.Char)));
           } else if (e.Value is BigInteger) {
-            return MaybeLit(Bpl.Expr.Literal(Microsoft.Basetypes.BigNum.FromBigInt((BigInteger)e.Value)));
+            var n = Microsoft.Basetypes.BigNum.FromBigInt((BigInteger)e.Value);
+            if (e.Type is BitvectorType) {
+              return MaybeLit(new Bpl.LiteralExpr(e.tok, n, ((BitvectorType)e.Type).Width));
+            } else {
+              return MaybeLit(Bpl.Expr.Literal(n));
+            }
           } else if (e.Value is Basetypes.BigDec) {
             return MaybeLit(Bpl.Expr.Literal((Basetypes.BigDec)e.Value));
           } else {

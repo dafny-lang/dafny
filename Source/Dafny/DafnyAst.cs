@@ -1,3 +1,4 @@
+//#define DEBUG_PRINT
 //-----------------------------------------------------------------------------
 //
 // Copyright (C) Microsoft Corporation.  All Rights Reserved.
@@ -519,6 +520,7 @@ namespace Microsoft.Dafny {
     public bool IsCharType { get { return NormalizeExpand() is CharType; } }
     public bool IsIntegerType { get { return NormalizeExpand() is IntType; } }
     public bool IsRealType { get { return NormalizeExpand() is RealType; } }
+    public bool IsBitVectorType { get { return NormalizeExpand() is BitvectorType; } }
     public bool IsSubrangeType {
       get { return NormalizeExpand() is NatType; }
     }
@@ -730,7 +732,7 @@ namespace Microsoft.Dafny {
       if (super.IsBoolType || super.IsCharType || super.IsNumericBased() || super.IsTypeParameter || super is TypeProxy) {
         return super.Equals(sub);
       } else if (super is IntVarietiesSupertype) {
-        return sub.IsNumericBased(NumericPersuation.Int);
+        return sub.IsNumericBased(NumericPersuation.Int) || sub.IsBitVectorType;
       } else if (super is RealVarietiesSupertype) {
         return sub.IsNumericBased(NumericPersuation.Real);
       } else if (super is SetType) {
@@ -1080,7 +1082,7 @@ namespace Microsoft.Dafny {
       if (a.IsBoolType || a.IsCharType || a.IsTypeParameter || a is TypeProxy) {
         return a.Equals(b) ? a : null;
       } else if (a is IntVarietiesSupertype) {
-        return b is IntVarietiesSupertype || b.IsNumericBased(NumericPersuation.Int) ? b : null;
+        return b is IntVarietiesSupertype || b.IsNumericBased(NumericPersuation.Int) || b.IsBitVectorType ? b : null;
       } else if (b is IntVarietiesSupertype) {
         return a.IsNumericBased(NumericPersuation.Int) ? a : null;
       } else if (a is RealVarietiesSupertype) {
@@ -1221,6 +1223,10 @@ namespace Microsoft.Dafny {
       return Equals(that);
     }
   }
+  /// <summary>
+  /// The type "IntVarietiesSupertype" is used to denote a decimal-less number type, namely an int-based type
+  /// or a bitvector type.
+  /// </summary>
   public class IntVarietiesSupertype : ArtificialType
   {
     [Pure]
@@ -1303,6 +1309,24 @@ namespace Microsoft.Dafny {
     }
     public override bool Equals(Type that) {
       return that.IsRealType;
+    }
+  }
+
+  public class BitvectorType : BasicType
+  {
+    public readonly int Width;
+    public BitvectorType(int width)
+      : base() {
+      Contract.Requires(0 <= width);
+      Width = width;
+    }
+    [Pure]
+    public override string TypeName(ModuleDefinition context) {
+      return "bv" + Width;
+    }
+    public override bool Equals(Type that) {
+      var bv = that.NormalizeExpand() as BitvectorType;
+      return bv != null && bv.Width == Width;
     }
   }
 
@@ -1885,7 +1909,7 @@ namespace Microsoft.Dafny {
       SubtypeConstraints.Add(c);
     }
 
-    public enum Family { Unknown, Bool, Char, IntLike, RealLike, ValueType, Ref, Opaque }
+    public enum Family { Unknown, Bool, Char, IntLike, RealLike, BitVector, ValueType, Ref, Opaque }
     public Family family = Family.Unknown;
     public static Family GetFamily(Type t) {
       Contract.Ensures(Contract.Result<Family>() != Family.Unknown || t is TypeProxy || t is Resolver_IdentifierExpr.ResolverType);  // return Unknown ==> t is TypeProxy || t is ResolverType
@@ -1897,6 +1921,8 @@ namespace Microsoft.Dafny {
         return Family.IntLike;
       } else if (t.IsNumericBased(NumericPersuation.Real) || t is RealVarietiesSupertype) {
         return Family.RealLike;
+      } else if (t.IsBitVectorType) {
+        return Family.BitVector;
       } else if (t.AsCollectionType != null || t.AsArrowType != null || t.IsDatatype) {
         return Family.ValueType;
       } else if (t.IsRefType) {
