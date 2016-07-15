@@ -149,7 +149,9 @@ namespace Microsoft.Dafny {
         wr.WriteLine("// " + Bpl.CommandLineOptions.Clo.Version);
         wr.WriteLine("// " + Bpl.CommandLineOptions.Clo.Environment);
       }
-      wr.WriteLine("// {0}", prog.Name);
+      if (DafnyOptions.O.PrintMode != DafnyOptions.PrintModes.DllEmbed) {
+        wr.WriteLine("// {0}", prog.Name);
+      }
       if (DafnyOptions.O.DafnyPrintResolvedFile != null && DafnyOptions.O.PrintMode == DafnyOptions.PrintModes.Everything) {
         wr.WriteLine();
         wr.WriteLine("/*");
@@ -441,9 +443,11 @@ namespace Microsoft.Dafny {
           }
           state = 2;
         } else if (m is Field) {
-          if (state == 2) { wr.WriteLine(); }
-          PrintField((Field)m, indent);
-          state = 1;
+          if (m.RefinementBase == null || !m.RefinementBase.IsGhost && m.IsGhost) {
+            if (state == 2) { wr.WriteLine(); }
+            PrintField((Field)m, indent);
+            state = 1;
+          }
         } else if (m is Function) {
           if (state != 0) { wr.WriteLine(); }
           PrintFunction((Function)m, indent, false);
@@ -479,7 +483,11 @@ namespace Microsoft.Dafny {
 
     private void PrintTypeParams(List<TypeParameter> typeArgs) {
       Contract.Requires(typeArgs != null);
-      if (typeArgs.Count != 0) {
+      Contract.Requires(
+        typeArgs.All(tp => tp.Name.StartsWith("_")) || 
+        typeArgs.All(tp => !tp.Name.StartsWith("_")));
+
+      if (typeArgs.Count != 0 && !typeArgs[0].Name.StartsWith("_")) {
         wr.Write("<" +
                  Util.Comma(", ", typeArgs,
                    tp => tp.Name + EqualitySupportSuffix(tp.EqualitySupport))
@@ -489,9 +497,7 @@ namespace Microsoft.Dafny {
 
     private void PrintTypeInstantiation(List<Type> typeArgs) {
       Contract.Requires(typeArgs == null || typeArgs.Count != 0);
-      if (typeArgs != null) {
-        wr.Write("<{0}>", Util.Comma(",", typeArgs, ty => ty.ToString()));
-      }
+      wr.Write(Type.TypeArgsToString(typeArgs));
     }
 
     public void PrintDatatype(DatatypeDecl dt, int indent) {
@@ -669,7 +675,9 @@ namespace Microsoft.Dafny {
       PrintSpec("requires", method.Req, ind);
       if (method.Mod.Expressions != null)
       {
-        PrintFrameSpecLine("modifies", method.Mod.Expressions, ind, method.Mod.HasAttributes() ? method.Mod.Attributes : null);
+        if (method.RefinementBase != null) {
+          PrintFrameSpecLine("modifies", method.Mod.Expressions, ind, method.Mod.HasAttributes() ? method.Mod.Attributes : null);
+        }
       }
       PrintSpec("ensures", method.Ens, ind);
       PrintDecreasesSpec(method.Decreases, ind);
@@ -791,14 +799,14 @@ namespace Microsoft.Dafny {
 
     public void PrintType(Type ty) {
       Contract.Requires(ty != null);
-      wr.Write(ty.ToString());
+      wr.Write(ty.TypeName(null, true));
     }
 
     public void PrintType(string prefix, Type ty) {
       Contract.Requires(prefix != null);
       Contract.Requires(ty != null);
-      string s = ty.ToString();
-      if (s != "?") {
+      string s = ty.TypeName(null, true);
+      if (s != "?" && !s.StartsWith("_")) {
         wr.Write("{0}{1}", prefix, s);
       }
     }
@@ -1353,8 +1361,9 @@ namespace Microsoft.Dafny {
           string sep = "(";
           foreach (BoundVar bv in mc.Arguments) {
             wr.Write("{0}{1}", sep, bv.DisplayName);
-            if (bv.Type is NonProxyType) {
-              wr.Write(": {0}", bv.Type);
+            string typeName = bv.Type.TypeName(null, true);
+            if (bv.Type is NonProxyType && !typeName.StartsWith("_")) {
+              wr.Write(": {0}", typeName);
             }
             sep = ", ";
           }
@@ -1855,7 +1864,7 @@ namespace Microsoft.Dafny {
         var e = (LetExpr)expr;
         bool parensNeeded = !isRightmost;
         if (parensNeeded) { wr.Write("("); }
-        if (e.LHSs.Exists(lhs => lhs.Var.IsGhost)) { wr.Write("ghost "); }
+        if (e.LHSs.Exists(lhs => lhs != null && lhs.Var != null && lhs.Var.IsGhost)) { wr.Write("ghost "); }
         wr.Write("var ");
         string sep = "";
         foreach (var lhs in e.LHSs) {
