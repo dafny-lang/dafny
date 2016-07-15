@@ -3079,8 +3079,9 @@ namespace Microsoft.Dafny {
           Bpl.Expr startFuel = fuelConstant.startFuel;
           Bpl.Expr startFuelAssert = fuelConstant.startFuelAssert;
           Bpl.Expr moreFuel_expr = fuelConstant.MoreFuel(sink, predef, f.IdGenerator);
+          Bpl.Expr moreFuelAssert_expr = fuelConstant.MoreFuel(sink, predef, f.IdGenerator);
           Bpl.Expr layer = etran.layerInterCluster.LayerN(settings.low, moreFuel_expr);
-          Bpl.Expr layerAssert = etran.layerInterCluster.LayerN(settings.high, moreFuel_expr);
+          Bpl.Expr layerAssert = etran.layerInterCluster.LayerN(settings.high, moreFuelAssert_expr);
           builder.Add(TrAssumeCmd(tok, Bpl.Expr.Eq(startFuel, layer)));
           builder.Add(TrAssumeCmd(tok, Bpl.Expr.Eq(startFuelAssert, layerAssert)));
           defineFuel = true;
@@ -6565,10 +6566,15 @@ namespace Microsoft.Dafny {
                 Bpl.Expr startFuel = fuelConstant.startFuel;
                 Bpl.Expr startFuelAssert = fuelConstant.startFuelAssert;
                 Bpl.Expr moreFuel_expr = fuelConstant.MoreFuel(sink, predef, f.IdGenerator);
+                Bpl.Expr moreFuelAssert_expr = fuelConstant.MoreFuel(sink, predef, f.IdGenerator);
                 Bpl.Expr layer = etran.layerInterCluster.LayerN(1, moreFuel_expr);
-                Bpl.Expr layerAssert = etran.layerInterCluster.LayerN(2, moreFuel_expr);
+                Bpl.Expr layerAssert = etran.layerInterCluster.LayerN(2, moreFuelAssert_expr);
+
                 ens.Add(Ensures(m.tok, true, Bpl.Expr.Eq(startFuel, layer), null, null));
                 ens.Add(Ensures(m.tok, true, Bpl.Expr.Eq(startFuelAssert, layerAssert), null, null));
+
+                ens.Add(Ensures(m.tok, true, Bpl.Expr.Eq(FunctionCall(f.tok, BuiltinFunction.AsFuelBottom, null, moreFuel_expr), moreFuel_expr), null, "Shortcut to LZ"));
+                ens.Add(Ensures(m.tok, true, Bpl.Expr.Eq(FunctionCall(f.tok, BuiltinFunction.AsFuelBottom, null, moreFuelAssert_expr), moreFuelAssert_expr), null, "Shortcut to LZ"));
               }
             }
           }
