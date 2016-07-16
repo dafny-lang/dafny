@@ -64,30 +64,35 @@ namespace Microsoft.Dafny {
     public void Error(MessageSource source, IToken tok, string msg, params object[] args) {
       Contract.Requires(tok != null);
       Contract.Requires(msg != null);
+      Contract.Requires(args != null);
       Error(source, tok, String.Format(msg, args));
     }
 
     public void Error(MessageSource source, Declaration d, string msg, params object[] args) {
       Contract.Requires(d != null);
       Contract.Requires(msg != null);
+      Contract.Requires(args != null);
       Error(source, d.tok, msg, args);
     }
 
     public void Error(MessageSource source, Statement s, string msg, params object[] args) {
       Contract.Requires(s != null);
       Contract.Requires(msg != null);
+      Contract.Requires(args != null);
       Error(source, s.Tok, msg, args);
     }
 
     public void Error(MessageSource source, NonglobalVariable v, string msg, params object[] args) {
       Contract.Requires(v != null);
       Contract.Requires(msg != null);
+      Contract.Requires(args != null);
       Error(source, v.tok, msg, args);
     }
 
     public void Error(MessageSource source, Expression e, string msg, params object[] args) {
       Contract.Requires(e != null);
       Contract.Requires(msg != null);
+      Contract.Requires(args != null);
       Error(source, e.tok, msg, args);
     }
 
@@ -100,6 +105,7 @@ namespace Microsoft.Dafny {
     public void Warning(MessageSource source, IToken tok, string msg, params object[] args) {
       Contract.Requires(tok != null);
       Contract.Requires(msg != null);
+      Contract.Requires(args != null);
       Warning(source, tok, String.Format(msg, args));
     }
 
@@ -112,6 +118,7 @@ namespace Microsoft.Dafny {
     public void Info(MessageSource source, IToken tok, string msg, params object[] args) {
       Contract.Requires(tok != null);
       Contract.Requires(msg != null);
+      Contract.Requires(args != null);
       Info(source, tok, String.Format(msg, args));
     }
 
