@@ -1775,15 +1775,15 @@ namespace Microsoft.Dafny {
 
   public class ExportSignature
   {
-    public bool IncludeBody;
+    public bool Opaque;
     public IToken Id;
     public string Name;
     public Declaration Decl;  // fill in  by the resolver
 
-    public ExportSignature(IToken id, bool includeBody) {
+    public ExportSignature(IToken id, bool opaque) {
       Id = id;
       Name = id.val;
-      IncludeBody = includeBody;
+      Opaque = opaque;
     }
   }
 

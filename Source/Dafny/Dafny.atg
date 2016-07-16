@@ -772,12 +772,12 @@ SubModuleDecl<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl sub
     {
        "opaque"
        NoUSIdent<out id> 
-       (. exports.Add(new ExportSignature(id, false)); .)
-       {"," NoUSIdent<out id>  (. exports.Add(new ExportSignature(id, false)); .) }
-     | "reveal" 
-       NoUSIdent<out id> 
        (. exports.Add(new ExportSignature(id, true)); .)
        {"," NoUSIdent<out id>  (. exports.Add(new ExportSignature(id, true)); .) }
+     | "reveal"
+       NoUSIdent<out id>
+       (. exports.Add(new ExportSignature(id, false)); .)
+       {"," NoUSIdent<out id>  (. exports.Add(new ExportSignature(id, false)); .) }
      | "extends" 
        NoUSIdent<out id>(. extends.Add(id.val); .) 
        {"," NoUSIdent<out id>  (. extends.Add(id.val); .) }

@@ -294,11 +294,11 @@ namespace Microsoft.Dafny {
       foreach (ExportSignature id in m.Exports) {
         delimeter = ",";
 
-        if (!id.IncludeBody && bodyKind != opaque) {
+        if (id.Opaque && bodyKind != opaque) {
           bodyKind = opaque;
           wr.Write(" " + bodyKind);
           delimeter = " ";
-        } else if (id.IncludeBody && bodyKind != reveal) {
+        } else if (!id.Opaque && bodyKind != reveal) {
           bodyKind = reveal;
           wr.Write(" " + bodyKind);
           delimeter = " ";

@@ -36,7 +36,7 @@ namespace Microsoft.Dafny {
       var extension = Path.GetExtension(filePath);
       if (extension != null) { extension = extension.ToLower(); }
 
-      if (extension == ".dfy") {
+      if (extension == ".dfy" || extension == ".dfyi") {
         isPrecompiled = false;
         SourceFileName = filePath;
       } else if (extension == ".dll") {
@@ -174,7 +174,12 @@ namespace Microsoft.Dafny {
         }
 
         foreach (Include include in newFilesToInclude) {
-          string ret = ParseFile(new DafnyFile(include.filename), include.tok, module, builtIns, errs, false);
+          DafnyFile file;
+          try {file = new DafnyFile(include.filename);}
+          catch (IllegalDafnyFile){
+            return (String.Format("Include of file \"{0}\" failed.", include.filename));
+          }
+          string ret = ParseFile(file, include.tok, module, builtIns, errs, false);
           if (ret != null) {
             return ret;
           }

@@ -323,8 +323,8 @@ namespace Microsoft.Dafny
           var sig = literalDecl.Signature;
           // set up environment
           var preResolveErrorCount = reporter.Count(ErrorLevel.Error);
-          ResolveModuleDefinition(m, sig);
           ResolveModuleExport(literalDecl, sig);
+          ResolveModuleDefinition(m, sig);
           foreach (var r in rewriters) {
             if (reporter.Count(ErrorLevel.Error) != preResolveErrorCount) {
               break;
@@ -812,6 +812,38 @@ namespace Microsoft.Dafny
           } else if (export.Decl is MemberDecl) {
             signature.StaticMembers.Add(export.Name, (MemberDecl)export.Decl);
           }
+        }
+      }
+
+      //check for export consistency by resolving internal modules
+      foreach (ModuleExportDecl decl in sortedDecls) {
+
+        ModuleDefinition exportView = new ModuleDefinition(Token.NoToken, "_exportView", m.IsAbstract, m.IsFacade, m.IsExclusiveRefinement, new List<IToken>(), m.Module, m.Attributes, false);
+        ModuleSignature exportSig = new ModuleSignature();
+
+        foreach (var export in decl.Signature.TopLevels) {
+          exportView.TopLevelDecls.Add(export.Value);
+          exportSig.TopLevels.Add(export.Key, export.Value);
+        }
+
+        //TODO: Clone each declaration to avoid inter-export resolution by accident
+
+        DefaultClassDecl defaultClass = new DefaultClassDecl(exportView,new List<MemberDecl> ());
+        exportView.TopLevelDecls.Add(defaultClass);
+
+        foreach (var export in decl.Signature.StaticMembers){
+          defaultClass.Members.Add(export.Value);
+          exportSig.StaticMembers.Add(export.Key, export.Value);
+        }
+
+        classMembers.Add(defaultClass, decl.Signature.StaticMembers);
+
+        var prevErrorCount = reporter.Count(ErrorLevel.Error);
+
+        ResolveModuleDefinition(exportView, exportSig);
+
+        if (reporter.Count(ErrorLevel.Error) > prevErrorCount) {
+          reporter.Error(MessageSource.Resolver, decl.tok, "This export set is not consistent");
         }
       }
 

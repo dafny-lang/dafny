@@ -885,20 +885,20 @@ void ConvertKeywordTokenToIdent() {
 				if (la.kind == 75) {
 					Get();
 					NoUSIdent(out id);
-					exports.Add(new ExportSignature(id, false)); 
-					while (la.kind == 22) {
-						Get();
-						NoUSIdent(out id);
-						exports.Add(new ExportSignature(id, false)); 
-					}
-				} else if (la.kind == 76) {
-					Get();
-					NoUSIdent(out id);
 					exports.Add(new ExportSignature(id, true)); 
 					while (la.kind == 22) {
 						Get();
 						NoUSIdent(out id);
 						exports.Add(new ExportSignature(id, true)); 
+					}
+				} else if (la.kind == 76) {
+					Get();
+					NoUSIdent(out id);
+					exports.Add(new ExportSignature(id, false)); 
+					while (la.kind == 22) {
+						Get();
+						NoUSIdent(out id);
+						exports.Add(new ExportSignature(id, false)); 
 					}
 				} else {
 					Get();
