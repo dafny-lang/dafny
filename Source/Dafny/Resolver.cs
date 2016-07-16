@@ -1572,15 +1572,15 @@ namespace Microsoft.Dafny
       }
     }
 
-    static readonly List<NativeType> NativeTypes = new List<NativeType>() {
-      new NativeType("byte", 0, 0x100, "", true),
-      new NativeType("sbyte", -0x80, 0x80, "", true),
-      new NativeType("ushort", 0, 0x10000, "", true),
-      new NativeType("short", -0x8000, 0x8000, "", true),
-      new NativeType("uint", 0, 0x100000000, "U", false),
-      new NativeType("int", -0x80000000, 0x80000000, "", false),
-      new NativeType("ulong", 0, new BigInteger(0x100000000) * new BigInteger(0x100000000), "UL", false),
-      new NativeType("long", Int64.MinValue, 0x8000000000000000, "L", false),
+    public static readonly List<NativeType> NativeTypes = new List<NativeType>() {
+      new NativeType("byte", 0, 0x100, 8, "", true),
+      new NativeType("sbyte", -0x80, 0x80, 0, "", true),
+      new NativeType("ushort", 0, 0x10000, 16, "", true),
+      new NativeType("short", -0x8000, 0x8000, 0, "", true),
+      new NativeType("uint", 0, 0x100000000, 32, "U", false),
+      new NativeType("int", -0x80000000, 0x80000000, 0, "", false),
+      new NativeType("ulong", 0, new BigInteger(0x100000000) * new BigInteger(0x100000000), 64, "UL", false),
+      new NativeType("long", Int64.MinValue, 0x8000000000000000, 0, "L", false),
     };
 
     public void ResolveTopLevelDecls_Core(List<TopLevelDecl/*!*/>/*!*/ declarations, Graph<IndDatatypeDecl/*!*/>/*!*/ datatypeDependencies, Graph<CoDatatypeDecl/*!*/>/*!*/ codatatypeDependencies) {

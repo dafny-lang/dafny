@@ -1315,10 +1315,17 @@ namespace Microsoft.Dafny {
   public class BitvectorType : BasicType
   {
     public readonly int Width;
+    public readonly NativeType NativeType;
     public BitvectorType(int width)
       : base() {
       Contract.Requires(0 <= width);
       Width = width;
+      foreach (var nativeType in Resolver.NativeTypes) {
+        if (width <= nativeType.Bitwidth) {
+          NativeType = nativeType;
+          break;
+        }
+      }
     }
     [Pure]
     public override string TypeName(ModuleDefinition context) {
@@ -3292,16 +3299,19 @@ namespace Microsoft.Dafny {
     public readonly string Name;
     public readonly BigInteger LowerBound;
     public readonly BigInteger UpperBound;
+    public readonly int Bitwidth;  // for unasigned types, this shows the number of bits in the type; else is 0
     public readonly string Suffix;
     public readonly bool NeedsCastAfterArithmetic;
-    public NativeType(string Name, BigInteger LowerBound, BigInteger UpperBound, string Suffix, bool NeedsCastAfterArithmetic) {
+    public NativeType(string Name, BigInteger LowerBound, BigInteger UpperBound, int bitwidth, string Suffix, bool NeedsCastAfterArithmetic) {
       Contract.Requires(Name != null);
       Contract.Requires(LowerBound != null);
       Contract.Requires(UpperBound != null);
+      Contract.Requires(0 <= bitwidth && (bitwidth == 0 || LowerBound == 0));
       Contract.Requires(Suffix != null);
       this.Name = Name;
       this.LowerBound = LowerBound;
       this.UpperBound = UpperBound;
+      this.Bitwidth = bitwidth;
       this.Suffix = Suffix;
       this.NeedsCastAfterArithmetic = NeedsCastAfterArithmetic;
     }

@@ -1155,6 +1155,8 @@ namespace Microsoft.Dafny {
       Contract.Requires(typ != null);
       if (typ.AsNewtype != null) {
         return typ.AsNewtype.NativeType;
+      } else if (typ.IsBitVectorType) {
+        return ((BitvectorType)typ).NativeType;
       }
       return null;
     }
@@ -1194,6 +1196,9 @@ namespace Microsoft.Dafny {
         return "BigInteger";
       } else if (xType is RealType) {
         return "Dafny.BigRational";
+      } else if (xType is BitvectorType) {
+        var t = (BitvectorType)xType;
+        return t.NativeType != null ? t.NativeType.Name : "BigInteger";
       } else if (xType.AsNewtype != null) {
         NativeType nativeType = xType.AsNewtype.NativeType;
         if (nativeType != null) {
@@ -1312,6 +1317,9 @@ namespace Microsoft.Dafny {
         return "BigInteger.Zero";
       } else if (xType is RealType) {
         return "Dafny.BigRational.ZERO";
+      } else if (xType is BitvectorType) {
+        var t = (BitvectorType)xType;
+        return t.NativeType != null ? "0" : "BigInteger.Zero";
       } else if (xType.AsNewtype != null) {
         if (xType.AsNewtype.NativeType != null) {
           return "0";
