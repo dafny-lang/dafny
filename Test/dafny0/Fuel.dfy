@@ -27,19 +27,19 @@ module TestModule2 {
         else 1 + pos1(x - 1)
     }
 
-    function {:fuel 3,5} pos2(x:int) : int 
+    function {:fuel 4} pos2(x:int) : int 
     {
         if x < 0 then 0
         else 1 + pos2(x - 1)
     }
 
-    function {:fuel 3,5} pos3(x:int) : int 
+    function {:fuel 4} pos3(x:int) : int 
     {
         if x < 0 then 0
         else 1 + pos3(x - 1)
     }
 
-    function {:opaque} {:fuel 3,5} pos4(x:int) : int 
+    function {:opaque} {:fuel 4} pos4(x:int) : int 
     {
         if x < 0 then 0
         else 1 + pos3(x - 1)
@@ -104,7 +104,7 @@ module TestModule4 {
     }
 
     // Should pass
-    method {:fuel pos,3,5} test1(y:int, z:int) 
+    method {:fuel pos,3} test1(y:int, z:int) 
         requires y > 5;
         requires z < 0;
     {
@@ -132,8 +132,8 @@ module TestModule4 {
             assert pos(y) == 3 + pos(y - 3);  // error: Should fail without extra fuel setting
             assert pos(y) == 6 + pos(y - 6);  // error: Should fail even with previous assert turned into assume
         } else {
-            assert {:fuel pos,3,5} pos(y) == 3 + pos(y - 3);  // Should succeed with extra fuel setting
-            assert pos(y) == 6 + pos(y - 6);  // Should succeed thanks to previous assert turned into assume
+            assert {:fuel pos,3} pos(y) == 3 + pos(y - 3);  // Should succeed with extra fuel setting
+            assert {:fuel pos,3} pos(y) == 6 + pos(y - 6);  // Should succeed thanks to previous assert turned into assume
         } 
     }
 
@@ -328,7 +328,7 @@ module TestModule8 {
         function method parse_AppMessage(val:V) : CAppMessage
             requires ValInGrammar(val, CAppMessage_grammar());
 
-        function method {:fuel ValInGrammar,1,2} parse_Request1(val:V) : CRequest
+        function method {:fuel ValInGrammar,1} parse_Request1(val:V) : CRequest
             requires ValInGrammar(val, CRequest_grammar());
         {
             if val.c == 0 then
@@ -411,7 +411,7 @@ module TestModule9 {
 
     // Giving more fuel to a non-recursive function won't help,
     // but it shouldn't hurt either.
-    method {:fuel abs,5,7} test4(y:int, z:int)
+    method {:fuel abs,5,6} test4(y:int, z:int)
         requires y > 5;
         requires z < 0;
     {
@@ -454,8 +454,8 @@ module TestModule11 {
         requires y > 5;
         requires z < 0;
     {
-        assert abs'(z) == -1*z;  // error: Cannot see the body of abs
-        assert abs'(y) == y;     // error: Cannot see the body of abs
+        assert abs'(z) == -1*z;  // Annotation on abs' only applies locally, so we see the body of abs
+        assert abs'(y) == y;     // Annotation on abs' only applies locally, so we see the body of abs
         assert abs'(-1) == 1;    // lit bypasses fuel, so this should succeed
     }
 }

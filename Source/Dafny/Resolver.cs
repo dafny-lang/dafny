@@ -2913,6 +2913,17 @@ namespace Microsoft.Dafny
                 if (f.IsProtected && currentModule != f.EnclosingClass.Module) {
                   reporter.Error(MessageSource.Resolver, tok, "cannot adjust fuel for protected function {0} from another module", f.Name);
                 }
+                if (args.Count >= 3) {
+                  LiteralExpr literalLow = args[1] as LiteralExpr;
+                  LiteralExpr literalHigh = args[2] as LiteralExpr;
+                  if (literalLow != null && literalLow.Value is BigInteger && literalHigh != null && literalHigh.Value is BigInteger) {
+                    BigInteger low = (BigInteger)literalLow.Value;
+                    BigInteger high = (BigInteger)literalHigh.Value;
+                    if (!(high == low + 1 || (low == 0 && high == 0))) {
+                      reporter.Error(MessageSource.Resolver, tok, "fuel setting for function {0} must have high value == 1 + low value", f.Name);
+                    }
+                  }
+                }
               }
             }
           }

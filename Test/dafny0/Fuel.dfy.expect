@@ -24,20 +24,16 @@ Execution trace:
 Fuel.dfy(122,22): Error: assertion violation
 Execution trace:
     (0,0): anon0
-Fuel.dfy(129,38): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon7_Then
 Fuel.dfy(132,26): Error: assertion violation
 Execution trace:
     (0,0): anon0
-    Fuel.dfy(129,9): anon7_Else
-    (0,0): anon8_Then
+    Fuel.dfy(129,9): anon9_Else
+    (0,0): anon10_Then
 Fuel.dfy(133,26): Error: assertion violation
 Execution trace:
     (0,0): anon0
-    Fuel.dfy(129,9): anon7_Else
-    (0,0): anon8_Then
+    Fuel.dfy(129,9): anon9_Else
+    (0,0): anon10_Then
 Fuel.dfy(157,22): Error: assertion violation
 Execution trace:
     (0,0): anon0
@@ -82,32 +78,17 @@ Execution trace:
     (0,0): anon0
     (0,0): anon7_Else
     (0,0): anon8_Then
-Fuel.dfy(346,42): Error: destructor 'u' can only be applied to datatype values constructed by 'VUint64'
-Execution trace:
-    (0,0): anon0
-    (0,0): anon7_Else
-    (0,0): anon8_Then
 Fuel.dfy(397,22): Error: assertion violation
 Execution trace:
     (0,0): anon0
 Fuel.dfy(398,22): Error: assertion violation
 Execution trace:
     (0,0): anon0
-Fuel.dfy(407,38): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon3_Then
 Fuel.dfy(435,22): Error: assertion violation
 Execution trace:
     (0,0): anon0
 Fuel.dfy(436,22): Error: assertion violation
 Execution trace:
     (0,0): anon0
-Fuel.dfy(457,23): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-Fuel.dfy(458,23): Error: assertion violation
-Execution trace:
-    (0,0): anon0
 
-Dafny program verifier finished with 60 verified, 28 errors
+Dafny program verifier finished with 63 verified, 23 errors
