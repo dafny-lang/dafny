@@ -1985,6 +1985,9 @@ namespace Microsoft.Dafny
           case BinaryExpr.ResolvedOpcode.Mul:
           case BinaryExpr.ResolvedOpcode.Div:
           case BinaryExpr.ResolvedOpcode.Mod:
+          case BinaryExpr.ResolvedOpcode.BitwiseAnd:
+          case BinaryExpr.ResolvedOpcode.BitwiseOr:
+          case BinaryExpr.ResolvedOpcode.BitwiseXor:
           case BinaryExpr.ResolvedOpcode.Union:
           case BinaryExpr.ResolvedOpcode.Intersection:
           case BinaryExpr.ResolvedOpcode.SetDifference:

@@ -492,6 +492,11 @@ namespace Microsoft.Dafny {
       // compute which function needs fuel constants.
       ComputeFunctionFuel();
 
+      foreach (var w in program.BuiltIns.Bitwidths) {
+        AddBitvectorFunction(w, "and_bv", "bvand");
+        AddBitvectorFunction(w, "or_bv", "bvor");
+        AddBitvectorFunction(w, "xor_bv", "bvxor");
+      }
       foreach (TopLevelDecl d in program.BuiltIns.SystemModule.TopLevelDecls) {
         currentDeclaration = d;
         if (d is OpaqueTypeDecl) {
@@ -579,6 +584,20 @@ namespace Microsoft.Dafny {
       }
 
       return sink;
+    }
+
+    private void AddBitvectorFunction(int w, string namePrefix, string smtFunctionName) {
+      Contract.Requires(0 <= w);
+      Contract.Requires(namePrefix != null);
+      Contract.Requires(smtFunctionName != null);
+      var tok = Token.NoToken;
+      var t = new Bpl.BvType(w);
+      var a0 = BplFormalVar(null, t, true);
+      var a1 = BplFormalVar(null, t, true);
+      var r = BplFormalVar(null, t, true);
+      var attr = new Bpl.QKeyValue(tok, "bvbuiltin", new List<object>() { smtFunctionName }, null);
+      var func = new Bpl.Function(tok, namePrefix + w, new List<TypeVariable>(), new List<Bpl.Variable>() { a0, a1 }, r, null, attr);
+      sink.AddTopLevelDeclaration(func);
     }
 
     private void ComputeFunctionFuel() {
@@ -11716,6 +11735,19 @@ namespace Microsoft.Dafny {
                 } else {
                   return TrToFunctionCall(expr.tok, "INTERNAL_mod_boogie", Bpl.Type.Int, e0, e1, liftLit);
                 }
+              }
+
+            case BinaryExpr.ResolvedOpcode.BitwiseAnd: {
+              var w = ((BitvectorType)expr.Type).Width;
+              return TrToFunctionCall(expr.tok, "and_bv" + w, new Bpl.BvType(w), e0, e1, liftLit);
+            }
+            case BinaryExpr.ResolvedOpcode.BitwiseOr: {
+                var w = ((BitvectorType)expr.Type).Width;
+                return TrToFunctionCall(expr.tok, "or_bv" + w, new Bpl.BvType(w), e0, e1, liftLit);
+              }
+            case BinaryExpr.ResolvedOpcode.BitwiseXor: {
+                var w = ((BitvectorType)expr.Type).Width;
+                return TrToFunctionCall(expr.tok, "xor_bv" + w, new Bpl.BvType(w), e0, e1, liftLit);
               }
 
             case BinaryExpr.ResolvedOpcode.LtChar:

@@ -2180,9 +2180,7 @@ namespace Microsoft.Dafny
     TypeProxy NewIntegerBasedProxy(IToken tok) {
       Contract.Requires(tok != null);
       var proxy = new InferredTypeProxy();
-      // Note: the expectation is that the following error message will never be displayed, because there is special handling
-      // or error messages for constraints that involve an ArtificialType.
-      ConstrainSubtypeRelation(new IntVarietiesSupertype(), proxy, tok, "type of integer literal is used as {0}", proxy);
+      ConstrainSubtypeRelation(new IntVarietiesSupertype(), proxy, tok, "integer literal used as if it had type {0}", proxy);
       return proxy;
     }
 
@@ -2854,6 +2852,9 @@ namespace Microsoft.Dafny
           case "IntegerType":
             satisfied = t.IsNumericBased(Type.NumericPersuation.Int);
             break;
+          case "IsBitvector":
+            satisfied = t.IsBitVectorType;
+            break;
           case "Orderable_Lt":
             satisfied = t.IsNumericBased() || t.IsCharType || t is SeqType || t is SetType || t is MultiSetType;
             break;
@@ -2957,9 +2958,7 @@ namespace Microsoft.Dafny
               } else if (t is MultiSetType) {
                 var s = (MultiSetType)t;
                 resolver.ConstrainSubtypeRelation(s.Arg, index.Type, index, "multiset update requires domain element to be of type {0} (got {1})", s.Arg, index.Type);
-                // we do two constraints for the index; the first can aid in determining types, but allows bit-vectors; the second excludes bit-vectors
-                resolver.ConstrainSubtypeRelation(new IntVarietiesSupertype(), value.Type, value, "multiset update requires integer-based numeric value (got {0})", value.Type);
-                resolver.AddXConstraint(value.tok, "IntegerType", value.Type, "multiset update requires integer-based numeric value (got {0})");
+                resolver.ConstrainToIntegerType(value, "multiset update requires integer-based numeric value (got {0})");
               } else {
                 satisfied = false;
                 break;
@@ -6472,7 +6471,11 @@ namespace Microsoft.Dafny
       Contract.Requires(type != null);
       Contract.Requires(context != null);
       Contract.Requires((option.Opt == ResolveTypeOptionEnum.DontInfer || option.Opt == ResolveTypeOptionEnum.InferTypeProxies) == (defaultTypeArguments == null));
-      if (type is BasicType) {
+      if (type is BitvectorType) {
+        var t = (BitvectorType)type;
+        // nothing to resolve, but record the fact that this bitvector width is in use
+        builtIns.Bitwidths.Add(t.Width);
+      } else if (type is BasicType) {
         // nothing to resolve
       } else if (type is MapType) {
         var mt = (MapType)type;
@@ -8336,10 +8339,7 @@ namespace Microsoft.Dafny
           foreach (Expression dim in rr.ArrayDimensions) {
             Contract.Assert(dim != null);
             ResolveExpression(dim, new ResolveOpts(codeContext, true));
-            // we do two constraints for the index; the first can aid in determining types, but allows bit-vectors; the second excludes bit-vectors
-            var errFormat = "new must use an integer-based expression for the array size (got {0}" + (rr.ArrayDimensions.Count == 1 ? ")" : " for index " + i + ")");
-            ConstrainSubtypeRelation(new IntVarietiesSupertype(), dim.Type, stmt.Tok, errFormat);
-            AddXConstraint(stmt.Tok, "IntegerType", dim.Type, errFormat);
+            ConstrainToIntegerType(dim, string.Format("new must use an integer-based expression for the array size (got {{0}}{0})", rr.ArrayDimensions.Count == 1 ? "" : " for index " + i));
             i++;
           }
           rr.Type = ResolvedArrayType(stmt.Tok, rr.ArrayDimensions.Count, rr.EType, codeContext);
@@ -8863,7 +8863,7 @@ namespace Microsoft.Dafny
           } else if (e.Value is BigInteger) {
             var proxy = new InferredTypeProxy();
             e.Type = proxy;
-            ConstrainSubtypeRelation(new IntVarietiesSupertype(), e.Type, e.tok, "type of integer literal is used as {0}", e.Type);
+            ConstrainSubtypeRelation(new IntVarietiesSupertype(), e.Type, e.tok, "integer literal used as if it had type {0}", e.Type);
           } else if (e.Value is Basetypes.BigDec) {
             var proxy = new InferredTypeProxy();
             e.Type = proxy;
@@ -9027,10 +9027,7 @@ namespace Microsoft.Dafny
           Contract.Assert(idx != null);
           ResolveExpression(idx, opts);
           Contract.Assert(idx.Type != null);  // follows from postcondition of ResolveExpression
-          // we do two constraints for the index; the first can aid in determining types, but allows bit-vectors; the second excludes bit-vectors
-          var errFormat = "array selection requires integer-based numeric indices (got {0} for index " + i + ")";
-          ConstrainSubtypeRelation(new IntVarietiesSupertype(), idx.Type, idx, errFormat, idx.Type);
-          AddXConstraint(idx.tok, "IntegerType", idx.Type, errFormat);
+          ConstrainToIntegerType(idx, "array selection requires integer-based numeric indices (got {0} for index " + i + ")");
           i++;
         }
         e.Type = elementType;
@@ -9241,6 +9238,18 @@ namespace Microsoft.Dafny
               expr, "first argument to {0} must be of type int (instead got {1})", BinaryExpr.OpcodeString(e.Op), e.E0.Type);
             ConstrainSubtypeRelation(expr.Type, e.E1.Type,
               expr, "second argument to {0} must be of type int (instead got {1})", BinaryExpr.OpcodeString(e.Op), e.E1.Type);
+            break;
+
+          case BinaryExpr.Opcode.BitwiseAnd:
+          case BinaryExpr.Opcode.BitwiseOr:
+          case BinaryExpr.Opcode.BitwiseXor:
+            expr.Type = NewIntegerBasedProxy(expr.tok);
+            var errFormat = "first argument to " + BinaryExpr.OpcodeString(e.Op) + " must be of a bitvector type (instead got {0})";
+            ConstrainSubtypeRelation(expr.Type, e.E0.Type, expr, errFormat, e.E0.Type);
+            AddXConstraint(expr.tok, "IsBitvector", e.E0.Type, errFormat);
+            errFormat = "second argument to " + BinaryExpr.OpcodeString(e.Op) + " must be of a bitvector type (instead got {0})";
+            ConstrainSubtypeRelation(expr.Type, e.E1.Type, expr, errFormat, e.E1.Type);
+            AddXConstraint(expr.tok, "IsBitvector", e.E1.Type, errFormat);
             break;
 
           default:
@@ -9470,6 +9479,20 @@ namespace Microsoft.Dafny
       return type;
     }
 
+    /// <summary>
+    /// Adds appropriate type constraints that says "expr" evaluates to an integer (not a bitvector, but possibly an
+    /// int-based newtype).  The "errFormat" string can contain a "{0}", referring to the name of the type of "expr".
+    /// </summary>
+    void ConstrainToIntegerType(Expression expr, string errFormat) {
+      Contract.Requires(expr != null);
+      Contract.Requires(errFormat != null);
+      // We do two constraints: the first can aid in determining types, but allows bit-vectors; the second excludes bit-vectors.
+      // However, we reuse the error message, so that only one error gets reported.
+      var err = new TypeConstraint.ErrorMsgWithToken(expr.tok, errFormat, expr.Type);
+      ConstrainSubtypeRelation(new IntVarietiesSupertype(), expr.Type, err);
+      AddXConstraint(expr.tok, "IntegerType", expr.Type, err);
+    }
+
     private void AddXConstraint(IToken tok, string constraintName, Type type, string errMsgFormat) {
       Contract.Requires(tok != null);
       Contract.Requires(constraintName != null);
@@ -9477,6 +9500,14 @@ namespace Microsoft.Dafny
       Contract.Requires(errMsgFormat != null);
       var types = new Type[] { type };
       AllXConstraints.Add(new XConstraint(tok, constraintName, types, new TypeConstraint.ErrorMsgWithToken(tok, errMsgFormat, types)));
+    }
+    private void AddXConstraint(IToken tok, string constraintName, Type type, TypeConstraint.ErrorMsg errMsg) {
+      Contract.Requires(tok != null);
+      Contract.Requires(constraintName != null);
+      Contract.Requires(type != null);
+      Contract.Requires(errMsg != null);
+      var types = new Type[] { type };
+      AllXConstraints.Add(new XConstraint(tok, constraintName, types, errMsg));
     }
     private void AddXConstraint(IToken tok, string constraintName, Type type0, Type type1, string errMsgFormat) {
       Contract.Requires(tok != null);
@@ -11803,6 +11834,9 @@ namespace Microsoft.Dafny
           }
         case BinaryExpr.Opcode.Div: return BinaryExpr.ResolvedOpcode.Div;
         case BinaryExpr.Opcode.Mod: return BinaryExpr.ResolvedOpcode.Mod;
+        case BinaryExpr.Opcode.BitwiseAnd: return BinaryExpr.ResolvedOpcode.BitwiseAnd;
+        case BinaryExpr.Opcode.BitwiseOr: return BinaryExpr.ResolvedOpcode.BitwiseOr;
+        case BinaryExpr.Opcode.BitwiseXor: return BinaryExpr.ResolvedOpcode.BitwiseXor;
         default:
           Contract.Assert(false); throw new cce.UnreachableException();  // unexpected operator
       }

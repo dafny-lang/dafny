@@ -38,6 +38,7 @@ module _System {
       reads reads()
   }
 }
+// bitvector types in use:
 */
 
 /* CALL GRAPH for module _module:

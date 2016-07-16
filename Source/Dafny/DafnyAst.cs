@@ -94,6 +94,7 @@ namespace Microsoft.Dafny {
     readonly Dictionary<int, ClassDecl> arrayTypeDecls = new Dictionary<int, ClassDecl>();
     readonly Dictionary<int, ArrowTypeDecl> arrowTypeDecls = new Dictionary<int, ArrowTypeDecl>();
     readonly Dictionary<int, TupleTypeDecl> tupleTypeDecls = new Dictionary<int, TupleTypeDecl>();
+    public readonly ISet<int> Bitwidths = new HashSet<int>();
 
     public readonly ClassDecl ObjectDecl;
     public BuiltIns() {
@@ -7214,7 +7215,10 @@ namespace Microsoft.Dafny {
       Sub,
       Mul,
       Div,
-      Mod
+      Mod,
+      BitwiseAnd,
+      BitwiseOr,
+      BitwiseXor
     }
     public readonly Opcode Op;
     public enum ResolvedOpcode {
@@ -7238,6 +7242,10 @@ namespace Microsoft.Dafny {
       Mul,
       Div,
       Mod,
+      // bitvectors
+      BitwiseAnd,
+      BitwiseOr,
+      BitwiseXor,
       // char
       LtChar,
       LeChar,
@@ -7384,6 +7392,10 @@ namespace Microsoft.Dafny {
         case ResolvedOpcode.Div: return Opcode.Div;
         case ResolvedOpcode.Mod: return Opcode.Mod;
 
+        case ResolvedOpcode.BitwiseAnd: return Opcode.BitwiseAnd;
+        case ResolvedOpcode.BitwiseOr: return Opcode.BitwiseOr;
+        case ResolvedOpcode.BitwiseXor: return Opcode.BitwiseXor;
+
         case ResolvedOpcode.Disjoint:
         case ResolvedOpcode.MultiSetDisjoint:
         case ResolvedOpcode.MapDisjoint:
@@ -7449,6 +7461,12 @@ namespace Microsoft.Dafny {
           return "/";
         case Opcode.Mod:
           return "%";
+        case Opcode.BitwiseAnd:
+          return "&";
+        case Opcode.BitwiseOr:
+          return "|";
+        case Opcode.BitwiseXor:
+          return "^";
         default:
           Contract.Assert(false);
           throw new cce.UnreachableException();  // unexpected operator

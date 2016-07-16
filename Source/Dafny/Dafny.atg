@@ -227,7 +227,7 @@ bool IsExistentialGuard() {
 }
 
 bool IsLoopSpec() {
-  return la.kind == _invariant | la.kind == _decreases | la.kind == _modifies;
+  return la.kind == _invariant || la.kind == _decreases || la.kind == _modifies;
 }
 
 bool IsFunctionDecl() {
@@ -263,6 +263,18 @@ bool IsAndOp() {
 }
 bool IsOrOp() {
   return la.val == "||" || la.val == "\u2228";
+}
+bool IsBitwiseAndOp() {
+  return la.val == "&";
+}
+bool IsBitwiseOrOp() {
+  return la.val == "|";
+}
+bool IsBitwiseXorOp() {
+  return la.val == "^";
+}
+bool IsBitwiseOp() {
+  return IsBitwiseAndOp() || IsBitwiseOrOp() || IsBitwiseXorOp();
 }
 bool IsRelOp() {
   return la.val == "=="
@@ -2362,10 +2374,14 @@ QSep = "::" | '\u2022'.
  * or "=>") only if "allowLambda" is true.  This affects function/method/iterator
  * specifications, if/while statements with guarded alternatives, and expressions
  * in the specification of a lambda expression itself.
+ *
+ * The "allowBitwiseOps" says whether or not to include or bypass bitwise operators
+ * at the top level of this expression. It is passed in as "false" only inside
+ * cardinality brackets, that is, "|expr|".
  */
-Expression<out Expression e, bool allowSemi, bool allowLambda>
+Expression<out Expression e, bool allowSemi, bool allowLambda, bool allowBitwiseOps = true>
 = (. Expression e0; IToken endTok; .)
-  EquivExpression<out e, allowSemi, allowLambda>
+  EquivExpression<out e, allowSemi, allowLambda, allowBitwiseOps>
   [ IF(SemiFollowsCall(allowSemi, e))
     /* here we parse the ";E" that is part of a "LemmaCall;E" expression (other "S;E" expressions are parsed elsewhere) */
     ";"                       (. endTok = t; .)
@@ -2377,66 +2393,66 @@ Expression<out Expression e, bool allowSemi, bool allowLambda>
   ]
   .
 /*------------------------------------------------------------------------*/
-EquivExpression<out Expression e0, bool allowSemi, bool allowLambda>
+EquivExpression<out Expression e0, bool allowSemi, bool allowLambda, bool allowBitwiseOps>
 = (. Contract.Ensures(Contract.ValueAtReturn(out e0) != null); IToken/*!*/ x;  Expression/*!*/ e1; .)
-  ImpliesExpliesExpression<out e0, allowSemi, allowLambda>
+  ImpliesExpliesExpression<out e0, allowSemi, allowLambda, allowBitwiseOps>
   { IF(IsEquivOp())  /* read an EquivExpression as far as possible */
     EquivOp                                                   (. x = t; .)
-    ImpliesExpliesExpression<out e1, allowSemi, allowLambda>  (. e0 = new BinaryExpr(x, BinaryExpr.Opcode.Iff, e0, e1); .)
+    ImpliesExpliesExpression<out e1, allowSemi, allowLambda, allowBitwiseOps>  (. e0 = new BinaryExpr(x, BinaryExpr.Opcode.Iff, e0, e1); .)
   }
   .
 /*------------------------------------------------------------------------*/
-ImpliesExpliesExpression<out Expression e0, bool allowSemi, bool allowLambda>
+ImpliesExpliesExpression<out Expression e0, bool allowSemi, bool allowLambda, bool allowBitwiseOps>
 = (. Contract.Ensures(Contract.ValueAtReturn(out e0) != null); IToken/*!*/ x;  Expression/*!*/ e1; .)
-  LogicalExpression<out e0, allowSemi, allowLambda>
+  LogicalExpression<out e0, allowSemi, allowLambda, allowBitwiseOps>
   [ IF(IsImpliesOp() || IsExpliesOp())  /* read an ImpliesExpliesExpression as far as possible */
     /* Note, the asymmetry in the parsing of implies and explies expressions stems from the fact that
      * implies is right associative whereas reverse implication is left associative
      */
     ( ImpliesOp                                               (. x = t; .)
-      ImpliesExpression<out e1, allowSemi, allowLambda>       (. e0 = new BinaryExpr(x, BinaryExpr.Opcode.Imp, e0, e1); .)
+      ImpliesExpression<out e1, allowSemi, allowLambda, allowBitwiseOps>       (. e0 = new BinaryExpr(x, BinaryExpr.Opcode.Imp, e0, e1); .)
     | ExpliesOp                                               (. x = t; .)
-      LogicalExpression<out e1, allowSemi, allowLambda>       (. // The order of operands is reversed so that it can be turned into implication during resolution 
+      LogicalExpression<out e1, allowSemi, allowLambda, allowBitwiseOps>       (. // The order of operands is reversed so that it can be turned into implication during resolution 
 			                                                           e0 = new BinaryExpr(x, BinaryExpr.Opcode.Exp, e1, e0); .)
       { IF(IsExpliesOp())  /* read a reverse implication as far as possible */
         ExpliesOp                                             (. x = t; .)
-        LogicalExpression<out e1, allowSemi, allowLambda>     (. //The order of operands is reversed so that it can be turned into implication during resolution
+        LogicalExpression<out e1, allowSemi, allowLambda, allowBitwiseOps>     (. //The order of operands is reversed so that it can be turned into implication during resolution
 				                                                         e0 = new BinaryExpr(x, BinaryExpr.Opcode.Exp, e1, e0); 
 																															.)
       }
     )
   ]
   .
-ImpliesExpression<out Expression e0, bool allowSemi, bool allowLambda>
+ImpliesExpression<out Expression e0, bool allowSemi, bool allowLambda, bool allowBitwiseOps>
 = (. Contract.Ensures(Contract.ValueAtReturn(out e0) != null); IToken/*!*/ x;  Expression/*!*/ e1; .)
-  LogicalExpression<out e0, allowSemi, allowLambda>
+  LogicalExpression<out e0, allowSemi, allowLambda, allowBitwiseOps>
   [ IF(IsImpliesOp())  /* read an ImpliesExpression as far as possible */
     ImpliesOp                                               (. x = t; .)
-    ImpliesExpression<out e1, allowSemi, allowLambda>       (. e0 = new BinaryExpr(x, BinaryExpr.Opcode.Imp, e0, e1); .)
+    ImpliesExpression<out e1, allowSemi, allowLambda, allowBitwiseOps>       (. e0 = new BinaryExpr(x, BinaryExpr.Opcode.Imp, e0, e1); .)
   ]
   .
 /*------------------------------------------------------------------------*/
-LogicalExpression<out Expression e0, bool allowSemi, bool allowLambda>
+LogicalExpression<out Expression e0, bool allowSemi, bool allowLambda, bool allowBitwiseOps>
 = (. Contract.Ensures(Contract.ValueAtReturn(out e0) != null); IToken/*!*/ x;  Expression/*!*/ e1; .)
-  RelationalExpression<out e0, allowSemi, allowLambda>
+  RelationalExpression<out e0, allowSemi, allowLambda, allowBitwiseOps>
   [ IF(IsAndOp() || IsOrOp())  /* read a LogicalExpression as far as possible */
     ( AndOp                                                   (. x = t; .)
-      RelationalExpression<out e1, allowSemi, allowLambda>    (. e0 = new BinaryExpr(x, BinaryExpr.Opcode.And, e0, e1); .)
+      RelationalExpression<out e1, allowSemi, allowLambda, allowBitwiseOps>    (. e0 = new BinaryExpr(x, BinaryExpr.Opcode.And, e0, e1); .)
       { IF(IsAndOp())  /* read a conjunction as far as possible */
         AndOp                                                 (. x = t; .)
-        RelationalExpression<out e1, allowSemi, allowLambda>  (. e0 = new BinaryExpr(x, BinaryExpr.Opcode.And, e0, e1); .)
+        RelationalExpression<out e1, allowSemi, allowLambda, allowBitwiseOps>  (. e0 = new BinaryExpr(x, BinaryExpr.Opcode.And, e0, e1); .)
       }
     | OrOp                                                    (. x = t; .)
-      RelationalExpression<out e1, allowSemi, allowLambda>    (. e0 = new BinaryExpr(x, BinaryExpr.Opcode.Or, e0, e1); .)
+      RelationalExpression<out e1, allowSemi, allowLambda, allowBitwiseOps>    (. e0 = new BinaryExpr(x, BinaryExpr.Opcode.Or, e0, e1); .)
       { IF(IsOrOp())  /* read a disjunction as far as possible */
         OrOp                                                  (. x = t; .)
-        RelationalExpression<out e1, allowSemi, allowLambda>  (. e0 = new BinaryExpr(x, BinaryExpr.Opcode.Or, e0, e1); .)
+        RelationalExpression<out e1, allowSemi, allowLambda, allowBitwiseOps>  (. e0 = new BinaryExpr(x, BinaryExpr.Opcode.Or, e0, e1); .)
       }
     )
   ]
   .
 /*------------------------------------------------------------------------*/
-RelationalExpression<out Expression e, bool allowSemi, bool allowLambda>
+RelationalExpression<out Expression e, bool allowSemi, bool allowLambda, bool allowBitwiseOps>
 = (. Contract.Ensures(Contract.ValueAtReturn(out e) != null);
      IToken x, firstOpTok = null;  Expression e0, e1, acc = null;  BinaryExpr.Opcode op;
      List<Expression> chain = null;
@@ -2450,11 +2466,11 @@ RelationalExpression<out Expression e, bool allowSemi, bool allowLambda>
                     // 4 ("disjoint")    indicates chain of disjoint set operators
      bool hasSeenNeq = false;
   .)
-  Term<out e0, allowSemi, allowLambda>
+  Term<out e0, allowSemi, allowLambda, allowBitwiseOps>
                                    (. e = e0; .)
   [ IF(IsRelOp())  /* read a RelationalExpression as far as possible */
     RelOp<out x, out op, out k>    (. firstOpTok = x; .)
-    Term<out e1, allowSemi, allowLambda>
+    Term<out e1, allowSemi, allowLambda, allowBitwiseOps>
                                    (. if (k == null) {
                                         e = new BinaryExpr(x, op, e0, e1);
                                         if (op == BinaryExpr.Opcode.Disjoint)
@@ -2515,7 +2531,7 @@ RelationalExpression<out Expression e, bool allowSemi, bool allowLambda>
                                           kind = 3;  break;
                                       }
                                    .)
-      Term<out e1, allowSemi, allowLambda>
+      Term<out e1, allowSemi, allowLambda, allowBitwiseOps>
                                    (. ops.Add(op); prefixLimits.Add(k); chain.Add(e1);
                                       if (k != null) {
                                         Contract.Assert(op == BinaryExpr.Opcode.Eq || op == BinaryExpr.Opcode.Neq);
@@ -2570,12 +2586,12 @@ RelOp<out IToken/*!*/ x, out BinaryExpr.Opcode op, out Expression k>
   )
   .
 /*------------------------------------------------------------------------*/
-Term<out Expression e0, bool allowSemi, bool allowLambda>
+Term<out Expression e0, bool allowSemi, bool allowLambda, bool allowBitwiseOps>
 = (. Contract.Ensures(Contract.ValueAtReturn(out e0) != null); IToken/*!*/ x;  Expression/*!*/ e1;  BinaryExpr.Opcode op; .)
-  Factor<out e0, allowSemi, allowLambda>
+  Factor<out e0, allowSemi, allowLambda, allowBitwiseOps>
   { IF(IsAddOp())  /* read a Term as far as possible */
     AddOp<out x, out op>
-    Factor<out e1, allowSemi, allowLambda> (. e0 = new BinaryExpr(x, op, e0, e1); .)
+    Factor<out e1, allowSemi, allowLambda, allowBitwiseOps> (. e0 = new BinaryExpr(x, op, e0, e1); .)
   }
   .
 AddOp<out IToken x, out BinaryExpr.Opcode op>
@@ -2585,12 +2601,12 @@ AddOp<out IToken x, out BinaryExpr.Opcode op>
   )
   .
 /*------------------------------------------------------------------------*/
-Factor<out Expression e0, bool allowSemi, bool allowLambda>
+Factor<out Expression e0, bool allowSemi, bool allowLambda, bool allowBitwiseOps>
 = (. Contract.Ensures(Contract.ValueAtReturn(out e0) != null); IToken/*!*/ x;  Expression/*!*/ e1;  BinaryExpr.Opcode op; .)
-  UnaryExpression<out e0, allowSemi, allowLambda>
+  BitvectorFactor<out e0, allowSemi, allowLambda, allowBitwiseOps>
   { IF(IsMulOp())  /* read a Factor as far as possible */
     MulOp<out x, out op>
-    UnaryExpression<out e1, allowSemi, allowLambda> (. e0 = new BinaryExpr(x, op, e0, e1); .)
+    BitvectorFactor<out e1, allowSemi, allowLambda, allowBitwiseOps> (. e0 = new BinaryExpr(x, op, e0, e1); .)
   }
   .
 MulOp<out IToken x, out BinaryExpr.Opcode op>
@@ -2599,6 +2615,35 @@ MulOp<out IToken x, out BinaryExpr.Opcode op>
   | "/"            (. x = t;  op = BinaryExpr.Opcode.Div; .)
   | "%"            (. x = t;  op = BinaryExpr.Opcode.Mod; .)
   )
+  .
+/*------------------------------------------------------------------------*/
+BitvectorFactor<out Expression e0, bool allowSemi, bool allowLambda, bool allowBitwiseOps>
+= (. Contract.Ensures(Contract.ValueAtReturn(out e0) != null); IToken/*!*/ x;  Expression/*!*/ e1;  BinaryExpr.Opcode op; .)
+  UnaryExpression<out e0, allowSemi, allowLambda>
+  [ IF(allowBitwiseOps && IsBitwiseOp())  /* read a BitvectorFactor as far as possible, but not in the context inside a |.| size expression */
+    ( (. op = BinaryExpr.Opcode.BitwiseAnd; .)
+      "&"                                               (. x = t; .)
+      UnaryExpression<out e1, allowSemi, allowLambda>   (. e0 = new BinaryExpr(x, op, e0, e1); .)
+      { IF(IsBitwiseAndOp())
+        "&"                                             (. x = t; .)
+        UnaryExpression<out e1, allowSemi, allowLambda> (. e0 = new BinaryExpr(x, op, e0, e1); .)
+      }
+    | (. op = BinaryExpr.Opcode.BitwiseOr; .)
+      "|"                                               (. x = t; .)
+      UnaryExpression<out e1, allowSemi, allowLambda>   (. e0 = new BinaryExpr(x, op, e0, e1); .)
+      { IF(IsBitwiseOrOp())
+        "|"                                             (. x = t; .)
+        UnaryExpression<out e1, allowSemi, allowLambda> (. e0 = new BinaryExpr(x, op, e0, e1); .)
+      }
+    | (. op = BinaryExpr.Opcode.BitwiseXor; .)
+      "^"                                               (. x = t; .)
+      UnaryExpression<out e1, allowSemi, allowLambda>   (. e0 = new BinaryExpr(x, op, e0, e1); .)
+      { IF(IsBitwiseXorOp())
+        "^"                                             (. x = t; .)
+        UnaryExpression<out e1, allowSemi, allowLambda> (. e0 = new BinaryExpr(x, op, e0, e1); .)
+      }
+    )
+  ]
   .
 /*------------------------------------------------------------------------*/
 UnaryExpression<out Expression e, bool allowSemi, bool allowLambda>
@@ -2662,11 +2707,11 @@ ConstAtomExpression<out Expression e, bool allowSemi, bool allowLambda>
                                                .)
   | "this"                                     (. e = new ThisExpr(t); .)
   | "fresh"                                    (. x = t; .)
-    "(" Expression<out e, true, true> ")"            (. e = new UnaryOpExpr(x, UnaryOpExpr.Opcode.Fresh, e); .)
+    "(" Expression<out e, true, true> ")"      (. e = new UnaryOpExpr(x, UnaryOpExpr.Opcode.Fresh, e); .)
   | "old"                                      (. x = t; .)
-    "(" Expression<out e, true, true> ")"            (. e = new OldExpr(x, e); .)
+    "(" Expression<out e, true, true> ")"      (. e = new OldExpr(x, e); .)
   | "|"                                        (. x = t; .)
-      Expression<out e, true, true>                  (. e = new UnaryOpExpr(x, UnaryOpExpr.Opcode.Cardinality, e); .)
+      Expression<out e, true, true, false>     (. e = new UnaryOpExpr(x, UnaryOpExpr.Opcode.Cardinality, e); .)
     "|"
   | ( "int"                                    (. x = t; toType = new IntType(); .)
     | "real"                                   (. x = t; toType = new RealType(); .)

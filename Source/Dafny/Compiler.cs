@@ -2705,6 +2705,12 @@ namespace Microsoft.Dafny {
             opString = "||";  break;
           case BinaryExpr.ResolvedOpcode.And:
             opString = "&&";  break;
+          case BinaryExpr.ResolvedOpcode.BitwiseAnd:
+            opString = "&"; break;
+          case BinaryExpr.ResolvedOpcode.BitwiseOr:
+            opString = "|"; break;
+          case BinaryExpr.ResolvedOpcode.BitwiseXor:
+            opString = "^"; break;
 
           case BinaryExpr.ResolvedOpcode.EqCommon: {
             if (e.E0.Type.IsRefType) {
