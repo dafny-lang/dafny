@@ -817,29 +817,25 @@ namespace Microsoft.Dafny
 
       //check for export consistency by resolving internal modules
       foreach (ModuleExportDecl decl in sortedDecls) {
-
+        Cloner cloner = new Cloner();
         ModuleDefinition exportView = new ModuleDefinition(Token.NoToken, "_exportView", m.IsAbstract, m.IsFacade, m.IsExclusiveRefinement, new List<IToken>(), m.Module, m.Attributes, false);
-        ModuleSignature exportSig = new ModuleSignature();
 
         foreach (var export in decl.Signature.TopLevels) {
-          exportView.TopLevelDecls.Add(export.Value);
-          exportSig.TopLevels.Add(export.Key, export.Value);
+          var topDecl = cloner.CloneDeclaration(export.Value, exportView);
+          exportView.TopLevelDecls.Add(topDecl);
         }
-
-        //TODO: Clone each declaration to avoid inter-export resolution by accident
 
         DefaultClassDecl defaultClass = new DefaultClassDecl(exportView,new List<MemberDecl> ());
         exportView.TopLevelDecls.Add(defaultClass);
 
         foreach (var export in decl.Signature.StaticMembers){
-          defaultClass.Members.Add(export.Value);
-          exportSig.StaticMembers.Add(export.Key, export.Value);
+          var memberDecl = cloner.CloneMember(export.Value);
+          defaultClass.Members.Add(memberDecl);
         }
-
-        classMembers.Add(defaultClass, decl.Signature.StaticMembers);
 
         var prevErrorCount = reporter.Count(ErrorLevel.Error);
 
+        var exportSig = RegisterTopLevelDecls(exportView, false);
         ResolveModuleDefinition(exportView, exportSig);
 
         if (reporter.Count(ErrorLevel.Error) > prevErrorCount) {
