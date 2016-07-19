@@ -17,6 +17,8 @@
 *.csproj text eol=crlf
 *.vsixmanifest eol=crlf
 *.config eol=crlf
+*.bat eol=crlf
+*.transcript eol=crlf
 
 #Never convert these
 *.dll binary
