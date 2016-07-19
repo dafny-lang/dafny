@@ -12495,7 +12495,9 @@ namespace Microsoft.Dafny {
         Bpl.QKeyValue kv = null;
         foreach (var attr in attrs.AsEnumerable()) {
           if (attr.Name == skipThisAttribute
-           || attr.Name == "axiom") {  // Dafny's axiom attribute clashes with Boogie's axiom keyword
+           || attr.Name == "axiom"  // Dafny's axiom attribute clashes with Boogie's axiom keyword
+           || attr.Name == "fuel"   // Fuel often uses function names as arguments, which adds extra axioms unnecessarily
+             ) {
             continue;
           }
           List<object> parms = new List<object>();
