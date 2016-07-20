@@ -1446,7 +1446,7 @@ namespace Microsoft.Dafny {
           this.fuelContext = FuelSetting.NewFuelContext(f);
 
           AddClassMember_Function(f);
-          if (!IsOpaqueFunction(f) && !f.IsBuiltin && !(f.tok is IncludeToken)) { // Opaque function's well-formedness is checked on the full version
+          if (!f.IsBuiltin && !(f.tok is IncludeToken)) {
             AddWellformednessCheck(f);
             if (f.OverriddenFunction != null) { //it means that f is overriding its associated parent function
               AddFunctionOverrideCheckImpl(f);
@@ -1515,9 +1515,7 @@ namespace Microsoft.Dafny {
     }
     static bool IsOpaqueFunction(Function f) {
       Contract.Requires(f != null);
-      return Attributes.Contains(f.Attributes, "opaque") &&
-            !Attributes.Contains(f.Attributes, "opaque_full") && // The full version has both attributes
-            !OpaqueFunctionRewriter.RewriteUseFuel(f);  // if it is not rewrite as fuel
+      return Attributes.Contains(f.Attributes, "opaque");
     }
     static bool IsOpaqueRevealLemma(Method m) {
       Contract.Requires(m != null);
@@ -1543,12 +1541,11 @@ namespace Microsoft.Dafny {
       // add consequence axiom
       sink.AddTopLevelDeclaration(FunctionConsequenceAxiom(f, f.Ens));
       // add definition axioms, suitably specialized for literals
-      if (f.Body != null && !IsOpaqueFunction(f)) {
+      if (f.Body != null) {
         AddFunctionAxiom(f, FunctionAxiomVisibility.IntraModuleOnly, f.Body.Resolved);
         AddFunctionAxiom(f, FunctionAxiomVisibility.ForeignModuleOnly, f.Body.Resolved);
-      }
-      // for body-less functions, at least generate its #requires function
-      if (f.Body == null || IsOpaqueFunction(f)) {
+      } else {
+        // for body-less functions, at least generate its #requires function      
         var b = FunctionAxiom(f, FunctionAxiomVisibility.ForeignModuleOnly, null, null);
         Contract.Assert(b == null);
       }

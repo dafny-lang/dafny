@@ -39,14 +39,6 @@ FunctionSpecifications.dfy(130,26): Error: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Else
-FunctionSpecifications.dfy(158,2): Error: cannot prove termination; try supplying a decreases clause
-Execution trace:
-    (0,0): anon0
-    (0,0): anon4_Else
-FunctionSpecifications.dfy(167,10): Error: cannot prove termination; try supplying a decreases clause
-Execution trace:
-    (0,0): anon0
-    (0,0): anon4_Else
 FunctionSpecifications.dfy(135,19): Error BP5003: A postcondition might not hold on this return path.
 FunctionSpecifications.dfy(137,28): Related location: This is the postcondition that might not hold.
 Execution trace:
@@ -60,12 +52,14 @@ FunctionSpecifications.dfy(153,2): Error: failure to decrease termination measur
 Execution trace:
     (0,0): anon0
     (0,0): anon4_Else
-FunctionSpecifications.dfy(174,2): Error: cannot prove termination; try supplying a decreases clause
+FunctionSpecifications.dfy(158,2): Error: cannot prove termination; try supplying a decreases clause
 Execution trace:
     (0,0): anon0
     (0,0): anon4_Else
-FunctionSpecifications.dfy(171,19): Error: cannot prove termination; try supplying a decreases clause
+FunctionSpecifications.dfy(164,9): Error BP5003: A postcondition might not hold on this return path.
+FunctionSpecifications.dfy(165,14): Related location: This is the postcondition that might not hold.
 Execution trace:
     (0,0): anon0
+    (0,0): anon4_Else
 
-Dafny program verifier finished with 17 verified, 15 errors
+Dafny program verifier finished with 19 verified, 13 errors

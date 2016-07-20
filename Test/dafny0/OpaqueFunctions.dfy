@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:0 /print:"%t.print" /dprint:"%t.dprint" /rewriteOpaqueUseFuel:0 "%s" > "%t"
+// RUN: %dafny /compile:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module A {
@@ -239,3 +239,8 @@ module Regression
     reveal_Length();
   }
 }
+
+// This function used to cause a problem for the old version of opaque,
+// but it's fine with the new fuel-based version
+function{:opaque} zero<A>():int { 0 }
+
