@@ -27,3 +27,4 @@
 *.jpg binary
 *.xcf binary
 *.bpl binary
+*.snk binary
