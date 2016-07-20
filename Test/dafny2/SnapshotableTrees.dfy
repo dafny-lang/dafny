@@ -466,7 +466,7 @@ module SnapTree {
       reveal_NodeValid();
     }
 
-    method {:timeLimit 20} MutatingInsert_Right(x: int) returns (ghost pos: int)
+    method {:timeLimit 25} MutatingInsert_Right(x: int) returns (ghost pos: int)
       requires NodeValid() && data < x;
       modifies Repr;
       ensures NodeValid() && fresh(Repr - old(Repr));

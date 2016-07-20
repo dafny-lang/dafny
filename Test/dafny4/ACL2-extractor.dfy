@@ -109,6 +109,7 @@ lemma RevLength(xs: List)
         length(append(rev(rest), Cons(x, Nil)));
         { AppendLength(rev(rest), Cons(x, Nil)); }
         length(rev(rest)) + length(Cons(x, Nil));
+        length(rev(rest)) + 1;
       }
   }
 }
