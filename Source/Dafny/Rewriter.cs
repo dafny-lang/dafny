@@ -887,7 +887,9 @@ namespace Microsoft.Dafny
       //   { x + y }
       // We produce:
       //   lemma {:axiom} {:auto_generated} {:fuel foo, 1, 2 } reveal_foo()
-      //     ensures forall x:int, y:int {:trigger foo(x,y)} :: 0 <= x < 5 && 0 <= y < 5 ==> foo(x,y) == foo(x,y);
+      //
+      // The translator, in AddMethod, then adds ensures clauses to bump up the fuel parameters approriately
+
       var cloner = new Cloner();
 
       List<TypeParameter> typeVars = new List<TypeParameter>();

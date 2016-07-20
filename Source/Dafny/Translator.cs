@@ -3067,13 +3067,22 @@ namespace Microsoft.Dafny {
           // If the context doesn't define fuel for this function, check for a fuel attribute (which supplies a default value if none is found)
           settings = FuelSetting.FuelAttrib(f, out found); 
         }
-        
-        Bpl.Expr layer = etran.layerInterCluster.LayerN(settings.low, baseFuel);
-        Bpl.Expr layerAssert = etran.layerInterCluster.LayerN(settings.high, baseFuel);
-        builder.Add(TrAssumeCmd(tok, Bpl.Expr.Eq(startFuel, layer)));
-        builder.Add(TrAssumeCmd(tok, Bpl.Expr.Eq(startFuelAssert, layerAssert)));
-        // assume AsFuelBottom(BaseFuel_F) == BaseFuel_F;
-        builder.Add(TrAssumeCmd(tok, Bpl.Expr.Eq(FunctionCall(f.tok, BuiltinFunction.AsFuelBottom, null, baseFuel), baseFuel)));
+
+        if (settings.low == 0 && settings.high == 0) {
+            // Don't say anything about what startFuel and startFuel are set to
+            // Just add the fixpoints that allow us to shortcut to LZ:
+            // assume AsFuelBottom(startFuel) == startFuel
+            // assume AsFuelBottom(startFuelAssert) == startFuelAssert
+            builder.Add(TrAssumeCmd(tok, Bpl.Expr.Eq(FunctionCall(f.tok, BuiltinFunction.AsFuelBottom, null, startFuel), startFuel)));
+            builder.Add(TrAssumeCmd(tok, Bpl.Expr.Eq(FunctionCall(f.tok, BuiltinFunction.AsFuelBottom, null, startFuelAssert), startFuelAssert)));
+        } else {
+            Bpl.Expr layer = etran.layerInterCluster.LayerN(settings.low, baseFuel);
+            Bpl.Expr layerAssert = etran.layerInterCluster.LayerN(settings.high, baseFuel);
+            builder.Add(TrAssumeCmd(tok, Bpl.Expr.Eq(startFuel, layer)));
+            builder.Add(TrAssumeCmd(tok, Bpl.Expr.Eq(startFuelAssert, layerAssert)));
+            // assume AsFuelBottom(BaseFuel_F) == BaseFuel_F;
+            builder.Add(TrAssumeCmd(tok, Bpl.Expr.Eq(FunctionCall(f.tok, BuiltinFunction.AsFuelBottom, null, baseFuel), baseFuel)));
+        }
       }
     }
 
@@ -3089,7 +3098,7 @@ namespace Microsoft.Dafny {
         if (fuelConstant != null) {
           Bpl.Expr startFuel = fuelConstant.startFuel;
           Bpl.Expr startFuelAssert = fuelConstant.startFuelAssert;
-          Bpl.Expr moreFuel_expr = fuelConstant.MoreFuel(sink, predef, f.IdGenerator);
+          Bpl.Expr moreFuel_expr = fuelConstant.MoreFuel(sink, predef, f.IdGenerator);          
           Bpl.Expr layer = etran.layerInterCluster.LayerN(settings.low, moreFuel_expr);
           Bpl.Expr layerAssert = etran.layerInterCluster.LayerN(settings.high, moreFuel_expr);
           builder.Add(TrAssumeCmd(tok, Bpl.Expr.Eq(startFuel, layer)));
@@ -6578,8 +6587,12 @@ namespace Microsoft.Dafny {
                 Bpl.Expr moreFuel_expr = fuelConstant.MoreFuel(sink, predef, f.IdGenerator);
                 Bpl.Expr layer = etran.layerInterCluster.LayerN(1, moreFuel_expr);
                 Bpl.Expr layerAssert = etran.layerInterCluster.LayerN(2, moreFuel_expr);
+
                 ens.Add(Ensures(m.tok, true, Bpl.Expr.Eq(startFuel, layer), null, null));
                 ens.Add(Ensures(m.tok, true, Bpl.Expr.Eq(startFuelAssert, layerAssert), null, null));
+
+                ens.Add(Ensures(m.tok, true, Bpl.Expr.Eq(FunctionCall(f.tok, BuiltinFunction.AsFuelBottom, null, moreFuel_expr), moreFuel_expr), null, "Shortcut to LZ"));
+                ens.Add(Ensures(m.tok, true, Bpl.Expr.Eq(FunctionCall(f.tok, BuiltinFunction.AsFuelBottom, null, moreFuel_expr), moreFuel_expr), null, "Shortcut to LZ"));
               }
             }
           }
@@ -8541,7 +8554,7 @@ namespace Microsoft.Dafny {
           // TRIG (forall $ih#s0#0: Seq Box :: $Is($ih#s0#0, TSeq(TChar)) && $IsAlloc($ih#s0#0, TSeq(TChar), $initHeapForallStmt#0) && Seq#Length($ih#s0#0) != 0 && Seq#Rank($ih#s0#0) < Seq#Rank(s#0) ==> (forall i#2: int :: true ==> LitInt(0) <= i#2 && i#2 < Seq#Length($ih#s0#0) ==> char#ToInt(_module.CharChar.MinChar($LS($LZ), $Heap, this, $ih#s0#0)) <= char#ToInt($Unbox(Seq#Index($ih#s0#0, i#2)): char)))
           // TRIG (forall $ih#pat0#0: Seq Box, $ih#a0#0: Seq Box :: $Is($ih#pat0#0, TSeq(_module._default.Same0$T)) && $IsAlloc($ih#pat0#0, TSeq(_module._default.Same0$T), $initHeapForallStmt#0) && $Is($ih#a0#0, TSeq(_module._default.Same0$T)) && $IsAlloc($ih#a0#0, TSeq(_module._default.Same0$T), $initHeapForallStmt#0) && Seq#Length($ih#pat0#0) <= Seq#Length($ih#a0#0) && Seq#SameUntil($ih#pat0#0, $ih#a0#0, Seq#Length($ih#pat0#0)) && (Seq#Rank($ih#pat0#0) < Seq#Rank(pat#0) || (Seq#Rank($ih#pat0#0) == Seq#Rank(pat#0) && Seq#Rank($ih#a0#0) < Seq#Rank(a#0))) ==> _module.__default.IsRelaxedPrefixAux(_module._default.Same0$T, $LS($LZ), $Heap, $ih#pat0#0, $ih#a0#0, LitInt(1)))'
           // TRIG (forall $ih#m0#0: DatatypeType, $ih#n0#0: DatatypeType :: $Is($ih#m0#0, Tclass._module.Nat()) && $IsAlloc($ih#m0#0, Tclass._module.Nat(), $initHeapForallStmt#0) && $Is($ih#n0#0, Tclass._module.Nat()) && $IsAlloc($ih#n0#0, Tclass._module.Nat(), $initHeapForallStmt#0) && Lit(true) && (DtRank($ih#m0#0) < DtRank(m#0) || (DtRank($ih#m0#0) == DtRank(m#0) && DtRank($ih#n0#0) < DtRank(n#0))) ==> _module.__default.mult($LS($LZ), $Heap, $ih#m0#0, _module.__default.plus($LS($LZ), $Heap, $ih#n0#0, $ih#n0#0)) == _module.__default.mult($LS($LZ), $Heap, _module.__default.plus($LS($LZ), $Heap, $ih#m0#0, $ih#m0#0), $ih#n0#0))
-          qq = new Bpl.ForallExpr(tok, bvars, Bpl.Expr.Imp(ante, post));  // SMART_TRIGGER
+          qq = new Bpl.ForallExpr(tok, bvars, Bpl.Expr.Imp(ante, post));  // TODO: Add a SMART_TRIGGER here.  If we can't find one, abort the attempt to do induction automatically
           exporter.Add(TrAssumeCmd(tok, qq));
         }       
       }
@@ -10707,9 +10720,9 @@ namespace Microsoft.Dafny {
 
           FuelConstant fuelConstant = translator.functionFuel.Find(x => x.f == f);
           if (this.amount == (int)FuelAmount.LOW) {
-            return GetFunctionFuel(setting.low, found, fuelConstant);
+            return GetFunctionFuel(setting.low > 0 ? setting.low   : this.amount, found, fuelConstant);
           } else if (this.amount == (int)FuelAmount.HIGH) {
-            return GetFunctionFuel(setting.high, found, fuelConstant);
+            return GetFunctionFuel(setting.high > 0 ? setting.high : this.amount, found, fuelConstant);
           } else {
             Contract.Assert(false); // Should not reach here
             return null;
@@ -10719,17 +10732,19 @@ namespace Microsoft.Dafny {
 
       private Bpl.Expr GetFunctionFuel(int amount, bool hasFuel, FuelConstant fuelConstant) {
         if (fuelConstant != null) {
+          /*
           if (hasFuel) {
             // it has fuel context
             return LayerN(amount, fuelConstant.baseFuel);
           } else {
-            // startfuel
-            if (amount == (int)FuelAmount.LOW) {
-              return fuelConstant.startFuel;
-            } else {
-              return fuelConstant.startFuelAssert;
-            }
+           */
+          // startfuel
+          if (amount == (int)FuelAmount.LOW) {
+            return fuelConstant.startFuel;
+          } else {
+            return fuelConstant.startFuelAssert;
           }
+          //}
         } else {
           return ToExpr(amount);
         }
@@ -10738,7 +10753,7 @@ namespace Microsoft.Dafny {
       /// <summary>
       /// Finds all fuel related attributes of the form {:fuel function low [high]}
       /// Adds the setting to the context _if_ the context does not already have a setting for that function.
-      /// In other words, it should be called in order from most to least specific contenxt scope.
+      /// In other words, it should be called in order from most to least specific context scope.
       /// </summary>    
       public static void FindFuelAttributes(Attributes attribs, FuelContext fuelContext) {
         Function f = null;

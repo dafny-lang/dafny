@@ -12,7 +12,7 @@ using Bpl = Microsoft.Boogie;
 namespace Microsoft.Dafny {
   public class Main {
 
-      private static void MaybePrintProgram(Program program, string filename, bool afterResolver)
+      public static void MaybePrintProgram(Program program, string filename, bool afterResolver)
       {
           if (filename != null) {
               TextWriter tw;
@@ -32,6 +32,16 @@ namespace Microsoft.Dafny {
     public static string ParseCheck(IList<string/*!*/>/*!*/ fileNames, string/*!*/ programName, ErrorReporter reporter, out Program program)
       //modifies Bpl.CommandLineOptions.Clo.XmlSink.*;
     {
+      string err = Parse(fileNames, programName, reporter, out program);
+      if (err != null) {
+        return err;
+      }
+
+      return Resolve(program, reporter);
+    }
+
+    public static string Parse(IList<string> fileNames, string programName, ErrorReporter reporter, out Program program)
+    {
       Contract.Requires(programName != null);
       Contract.Requires(fileNames != null);
       program = null;
@@ -50,7 +60,7 @@ namespace Microsoft.Dafny {
         string err = ParseFile(dafnyFileName, Bpl.Token.NoToken, module, builtIns, new Errors(reporter));
         if (err != null) {
           return err;
-        }        
+        }
       }
 
       if (!DafnyOptions.O.DisallowIncludes) {
@@ -64,6 +74,11 @@ namespace Microsoft.Dafny {
 
       MaybePrintProgram(program, DafnyOptions.O.DafnyPrintFile, false);
 
+      return null; // success
+    }
+
+    public static string Resolve(Program program, ErrorReporter reporter)
+    {
       if (Bpl.CommandLineOptions.Clo.NoResolve || Bpl.CommandLineOptions.Clo.NoTypecheck) { return null; }
 
       Dafny.Resolver r = new Dafny.Resolver(program);
