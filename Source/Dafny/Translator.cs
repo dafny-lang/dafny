@@ -2290,11 +2290,11 @@ namespace Microsoft.Dafny {
         funcArgs.AddRange(tyargs);
         if (layer != null) {
           var ly = new Bpl.IdentifierExpr(f.tok, layer);
-          if (lits == null) {
+          //if (lits == null) {
             funcArgs.Add(LayerSucc(ly));
-          } else {
-            funcArgs.Add(ly);
-          }
+          //} else {
+          //  funcArgs.Add(ly);
+          //}
         }
         funcArgs.AddRange(args);
         funcAppl = new Bpl.NAryExpr(f.tok, new Bpl.FunctionCall(funcID), funcArgs);
@@ -2312,7 +2312,14 @@ namespace Microsoft.Dafny {
           var pp = (PrefixPredicate)f;
           bodyWithSubst = PrefixSubstitution(pp, bodyWithSubst);
         }
-        var etranBody = layer == null ? etran : etran.LimitedFunctions(f, new Bpl.IdentifierExpr(f.tok, layer));
+        Boogie.Expr ly = null;
+        if (layer != null) {
+           ly = new Bpl.IdentifierExpr(f.tok, layer);
+          if (lits != null) {   // Lit axiom doesn't consume any fuel
+            ly = LayerSucc(ly);
+          }
+        }
+        var etranBody = layer == null ? etran : etran.LimitedFunctions(f, ly);
         tastyVegetarianOption = BplAnd(CanCallAssumption(bodyWithSubst, etranBody),
           Bpl.Expr.Eq(funcAppl, etranBody.TrExpr(bodyWithSubst)));
       }

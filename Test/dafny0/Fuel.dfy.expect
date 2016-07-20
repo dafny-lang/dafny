@@ -15,10 +15,16 @@ Execution trace:
 Fuel.dfy(92,22): Error: assertion violation
 Execution trace:
     (0,0): anon0
+Fuel.dfy(93,23): Error: assertion violation
+Execution trace:
+    (0,0): anon0
 Fuel.dfy(94,22): Error: assertion violation
 Execution trace:
     (0,0): anon0
 Fuel.dfy(120,22): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+Fuel.dfy(121,23): Error: assertion violation
 Execution trace:
     (0,0): anon0
 Fuel.dfy(122,22): Error: assertion violation
@@ -84,11 +90,17 @@ Execution trace:
 Fuel.dfy(398,22): Error: assertion violation
 Execution trace:
     (0,0): anon0
+Fuel.dfy(399,23): Error: assertion violation
+Execution trace:
+    (0,0): anon0
 Fuel.dfy(435,22): Error: assertion violation
 Execution trace:
     (0,0): anon0
 Fuel.dfy(436,22): Error: assertion violation
 Execution trace:
     (0,0): anon0
+Fuel.dfy(437,23): Error: assertion violation
+Execution trace:
+    (0,0): anon0
 
-Dafny program verifier finished with 63 verified, 23 errors
+Dafny program verifier finished with 63 verified, 27 errors
