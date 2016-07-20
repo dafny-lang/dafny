@@ -15,3 +15,12 @@ Test/desktop/*
 Test/dafny0/Extern.cs
 Source/Dafny/Parser.cs.old
 Source/Dafny/Scanner.cs.old
+Binaries/*.dll
+*.pdb
+*.dll
+Binaries/Dafny.exe
+Binaries/Dafny.vshost.exe
+Binaries/DafnyServer.exe
+*.suo
+Test/*/*.exe
+Source/DafnyExtension/z3.exe
