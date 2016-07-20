@@ -1963,14 +1963,10 @@ namespace Microsoft.Dafny {
         if (0 < decs.Count && decs.Count < f.Formals.Count && !DafnyOptions.O.Dafnycc) {
           ax = FunctionAxiom(f, visibility, body, decs);
           sink.AddTopLevelDeclaration(ax);
-          ax = FunctionAxiom(f, visibility, body, decs, true);    // Add a literal axiom for LZ too
-          sink.AddTopLevelDeclaration(ax);
         }
 
         if (!DafnyOptions.O.Dafnycc) {
           ax = FunctionAxiom(f, visibility, body, f.Formals);
-          sink.AddTopLevelDeclaration(ax);
-          ax = FunctionAxiom(f, visibility, body, f.Formals, true);    // Add a literal axiom for LZ too
           sink.AddTopLevelDeclaration(ax);
         }
       }
@@ -2131,12 +2127,11 @@ namespace Microsoft.Dafny {
       }
     }
 
-    Bpl.Axiom FunctionAxiom(Function f, FunctionAxiomVisibility visibility, Expression body, ICollection<Formal> lits, bool litsLZ = false, TopLevelDecl overridingClass = null) {
+    Bpl.Axiom FunctionAxiom(Function f, FunctionAxiomVisibility visibility, Expression body, ICollection<Formal> lits, TopLevelDecl overridingClass = null) {
       Contract.Requires(f != null);
       Contract.Requires(predef != null);
       Contract.Requires(f.EnclosingClass != null);
       Contract.Requires(!f.IsStatic || overridingClass == null);
-      Contract.Requires((litsLZ && lits != null) || !litsLZ);
 
       // only if body is null, we will return null:
       Contract.Ensures((Contract.Result<Bpl.Axiom>() == null) == (body == null));
@@ -2300,12 +2295,12 @@ namespace Microsoft.Dafny {
         var funcArgs = new List<Bpl.Expr>();
         funcArgs.AddRange(tyargs);
         if (layer != null) {
-          var ly = new Bpl.IdentifierExpr(f.tok, layer);          
-          if (!litsLZ) {
+          var ly = new Bpl.IdentifierExpr(f.tok, layer);
+          //if (lits == null) {
             funcArgs.Add(LayerSucc(ly));
-          } else {
-            funcArgs.Add(new Bpl.IdentifierExpr(f.tok, "$LZ", predef.LayerType));
-          }          
+          //} else {
+          //  funcArgs.Add(ly);
+          //}
         }
         funcArgs.AddRange(args);
         funcAppl = new Bpl.NAryExpr(f.tok, new Bpl.FunctionCall(funcID), funcArgs);
@@ -2326,13 +2321,8 @@ namespace Microsoft.Dafny {
         Boogie.Expr ly = null;
         if (layer != null) {
            ly = new Bpl.IdentifierExpr(f.tok, layer);
-          if (lits != null) {
-            if (!litsLZ) { // Lit axiom doesn't consume any fuel
-              ly = LayerSucc(ly);
-            } else {
-              ly = new Bpl.IdentifierExpr(f.tok, "$LZ", predef.LayerType);
-              formals.Remove(layer);  // Don't quantify over the layer
-            }
+          if (lits != null) {   // Lit axiom doesn't consume any fuel
+            ly = LayerSucc(ly);
           }
         }
         var etranBody = layer == null ? etran : etran.LimitedFunctions(f, ly);
@@ -2356,9 +2346,6 @@ namespace Microsoft.Dafny {
           comment += " for all literals";
         } else {
           comment += " for decreasing-related literals";
-        }
-        if (litsLZ) {
-          comment += " and no fuel";
         }
       }
       if (visibility == FunctionAxiomVisibility.IntraModuleOnly) {
@@ -3270,8 +3257,8 @@ namespace Microsoft.Dafny {
       // TODO: the following two lines (incorrectly) assume there are no type parameters
       pseudoBody.Type = f.ResultType;  // resolve here
       pseudoBody.TypeArgumentSubstitutions = new Dictionary<TypeParameter,Type>();  // resolve here
-      sink.AddTopLevelDeclaration(FunctionAxiom(f.OverriddenFunction, FunctionAxiomVisibility.IntraModuleOnly, pseudoBody, null, false, f.EnclosingClass));
-      sink.AddTopLevelDeclaration(FunctionAxiom(f.OverriddenFunction, FunctionAxiomVisibility.ForeignModuleOnly, pseudoBody, null, false, f.EnclosingClass));
+      sink.AddTopLevelDeclaration(FunctionAxiom(f.OverriddenFunction, FunctionAxiomVisibility.IntraModuleOnly, pseudoBody, null, f.EnclosingClass));
+      sink.AddTopLevelDeclaration(FunctionAxiom(f.OverriddenFunction, FunctionAxiomVisibility.ForeignModuleOnly, pseudoBody, null, f.EnclosingClass));
     }
 
     private void AddFunctionOverrideEnsChk(Function f, StmtListBuilder builder, ExpressionTranslator etran, Dictionary<IVariable, Expression> substMap, List<Variable> implInParams)
