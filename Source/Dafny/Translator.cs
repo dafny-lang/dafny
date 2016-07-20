@@ -492,6 +492,11 @@ namespace Microsoft.Dafny {
       // compute which function needs fuel constants.
       ComputeFunctionFuel();
 
+      foreach (var w in program.BuiltIns.Bitwidths) {
+        AddBitvectorFunction(w, "and_bv", "bvand");
+        AddBitvectorFunction(w, "or_bv", "bvor");
+        AddBitvectorFunction(w, "xor_bv", "bvxor");
+      }
       foreach (TopLevelDecl d in program.BuiltIns.SystemModule.TopLevelDecls) {
         currentDeclaration = d;
         if (d is OpaqueTypeDecl) {
@@ -579,6 +584,20 @@ namespace Microsoft.Dafny {
       }
 
       return sink;
+    }
+
+    private void AddBitvectorFunction(int w, string namePrefix, string smtFunctionName) {
+      Contract.Requires(0 <= w);
+      Contract.Requires(namePrefix != null);
+      Contract.Requires(smtFunctionName != null);
+      var tok = Token.NoToken;
+      var t = new Bpl.BvType(w);
+      var a0 = BplFormalVar(null, t, true);
+      var a1 = BplFormalVar(null, t, true);
+      var r = BplFormalVar(null, t, true);
+      var attr = new Bpl.QKeyValue(tok, "bvbuiltin", new List<object>() { smtFunctionName }, null);
+      var func = new Bpl.Function(tok, namePrefix + w, new List<TypeVariable>(), new List<Bpl.Variable>() { a0, a1 }, r, null, attr);
+      sink.AddTopLevelDeclaration(func);
     }
 
     private void ComputeFunctionFuel() {
@@ -1697,12 +1716,8 @@ namespace Microsoft.Dafny {
       // play havoc with the heap, except at the locations prescribed by (this._reads - this._modifies - {this})
       var th = new ThisExpr(iter.tok);
       th.Type = Resolver.GetThisType(iter.tok, iter);  // resolve here
-      var rds = new MemberSelectExpr(iter.tok, th, iter.Member_Reads.Name);
-      rds.Member = iter.Member_Reads;  // resolve here
-      rds.Type = iter.Member_Reads.Type;  // resolve here
-      var mod = new MemberSelectExpr(iter.tok, th, iter.Member_Modifies.Name);
-      mod.Member = iter.Member_Modifies;  // resolve here
-      mod.Type = iter.Member_Modifies.Type;  // resolve here
+      var rds = new MemberSelectExpr(iter.tok, th, iter.Member_Reads);
+      var mod = new MemberSelectExpr(iter.tok, th, iter.Member_Modifies);
       builder.Add(new Bpl.CallCmd(iter.tok, "$IterHavoc0",
         new List<Bpl.Expr>() { etran.TrExpr(th), etran.TrExpr(rds), etran.TrExpr(mod) },
         new List<Bpl.IdentifierExpr>()));
@@ -1729,9 +1744,7 @@ namespace Microsoft.Dafny {
       localVariables.Add(oldIterHeap);
       builder.Add(Bpl.Cmd.SimpleAssign(iter.tok, new Bpl.IdentifierExpr(iter.tok, oldIterHeap), etran.HeapExpr));
       // simulate a modifies this, this._modifies, this._new;
-      var nw = new MemberSelectExpr(iter.tok, th, iter.Member_New.Name);
-      nw.Member = iter.Member_New;  // resolve here
-      nw.Type = iter.Member_New.Type;  // resolve here
+      var nw = new MemberSelectExpr(iter.tok, th, iter.Member_New);
       builder.Add(new Bpl.CallCmd(iter.tok, "$IterHavoc1",
         new List<Bpl.Expr>() { etran.TrExpr(th), etran.TrExpr(mod), etran.TrExpr(nw) },
         new List<Bpl.IdentifierExpr>()));
@@ -1755,10 +1768,8 @@ namespace Microsoft.Dafny {
       for (int i = 0; i < iter.OutsFields.Count; i++) {
         var y = iter.OutsFields[i];
         var ys = iter.OutsHistoryFields[i];
-        var thisY = new MemberSelectExpr(iter.tok, th, y.Name);
-        thisY.Member = y; thisY.Type = y.Type;  // resolve here
-        var thisYs = new MemberSelectExpr(iter.tok, th, ys.Name);
-        thisYs.Member = ys; thisYs.Type = ys.Type;  // resolve here
+        var thisY = new MemberSelectExpr(iter.tok, th, y);
+        var thisYs = new MemberSelectExpr(iter.tok, th, ys);
         var oldThisYs = new OldExpr(iter.tok, thisYs);
         oldThisYs.Type = thisYs.Type;  // resolve here
         var singleton = new SeqDisplayExpr(iter.tok, new List<Expression>() { thisY });
@@ -3056,13 +3067,22 @@ namespace Microsoft.Dafny {
           // If the context doesn't define fuel for this function, check for a fuel attribute (which supplies a default value if none is found)
           settings = FuelSetting.FuelAttrib(f, out found); 
         }
-        
-        Bpl.Expr layer = etran.layerInterCluster.LayerN(settings.low, baseFuel);
-        Bpl.Expr layerAssert = etran.layerInterCluster.LayerN(settings.high, baseFuel);
-        builder.Add(TrAssumeCmd(tok, Bpl.Expr.Eq(startFuel, layer)));
-        builder.Add(TrAssumeCmd(tok, Bpl.Expr.Eq(startFuelAssert, layerAssert)));
-        // assume AsFuelBottom(BaseFuel_F) == BaseFuel_F;
-        builder.Add(TrAssumeCmd(tok, Bpl.Expr.Eq(FunctionCall(f.tok, BuiltinFunction.AsFuelBottom, null, baseFuel), baseFuel)));
+
+        if (settings.low == 0 && settings.high == 0) {
+            // Don't say anything about what startFuel and startFuel are set to
+            // Just add the fixpoints that allow us to shortcut to LZ:
+            // assume AsFuelBottom(startFuel) == startFuel
+            // assume AsFuelBottom(startFuelAssert) == startFuelAssert
+            builder.Add(TrAssumeCmd(tok, Bpl.Expr.Eq(FunctionCall(f.tok, BuiltinFunction.AsFuelBottom, null, startFuel), startFuel)));
+            builder.Add(TrAssumeCmd(tok, Bpl.Expr.Eq(FunctionCall(f.tok, BuiltinFunction.AsFuelBottom, null, startFuelAssert), startFuelAssert)));
+        } else {
+            Bpl.Expr layer = etran.layerInterCluster.LayerN(settings.low, baseFuel);
+            Bpl.Expr layerAssert = etran.layerInterCluster.LayerN(settings.high, baseFuel);
+            builder.Add(TrAssumeCmd(tok, Bpl.Expr.Eq(startFuel, layer)));
+            builder.Add(TrAssumeCmd(tok, Bpl.Expr.Eq(startFuelAssert, layerAssert)));
+            // assume AsFuelBottom(BaseFuel_F) == BaseFuel_F;
+            builder.Add(TrAssumeCmd(tok, Bpl.Expr.Eq(FunctionCall(f.tok, BuiltinFunction.AsFuelBottom, null, baseFuel), baseFuel)));
+        }
       }
     }
 
@@ -3078,7 +3098,7 @@ namespace Microsoft.Dafny {
         if (fuelConstant != null) {
           Bpl.Expr startFuel = fuelConstant.startFuel;
           Bpl.Expr startFuelAssert = fuelConstant.startFuelAssert;
-          Bpl.Expr moreFuel_expr = fuelConstant.MoreFuel(sink, predef, f.IdGenerator);
+          Bpl.Expr moreFuel_expr = fuelConstant.MoreFuel(sink, predef, f.IdGenerator);          
           Bpl.Expr layer = etran.layerInterCluster.LayerN(settings.low, moreFuel_expr);
           Bpl.Expr layerAssert = etran.layerInterCluster.LayerN(settings.high, moreFuel_expr);
           builder.Add(TrAssumeCmd(tok, Bpl.Expr.Eq(startFuel, layer)));
@@ -6567,8 +6587,12 @@ namespace Microsoft.Dafny {
                 Bpl.Expr moreFuel_expr = fuelConstant.MoreFuel(sink, predef, f.IdGenerator);
                 Bpl.Expr layer = etran.layerInterCluster.LayerN(1, moreFuel_expr);
                 Bpl.Expr layerAssert = etran.layerInterCluster.LayerN(2, moreFuel_expr);
+
                 ens.Add(Ensures(m.tok, true, Bpl.Expr.Eq(startFuel, layer), null, null));
                 ens.Add(Ensures(m.tok, true, Bpl.Expr.Eq(startFuelAssert, layerAssert), null, null));
+
+                ens.Add(Ensures(m.tok, true, Bpl.Expr.Eq(FunctionCall(f.tok, BuiltinFunction.AsFuelBottom, null, moreFuel_expr), moreFuel_expr), null, "Shortcut to LZ"));
+                ens.Add(Ensures(m.tok, true, Bpl.Expr.Eq(FunctionCall(f.tok, BuiltinFunction.AsFuelBottom, null, moreFuel_expr), moreFuel_expr), null, "Shortcut to LZ"));
               }
             }
           }
@@ -7090,6 +7114,9 @@ namespace Microsoft.Dafny {
         return Bpl.Type.Int;
       } else if (type is RealType) {
         return Bpl.Type.Real;
+      } else if (type is BitvectorType) {
+        var t = (BitvectorType)type;
+        return Bpl.Type.GetBvType(t.Width);
       } else if (type is IteratorDecl.EverIncreasingType) {
         return Bpl.Type.Int;
       } else if (type is ArrowType) {
@@ -7099,7 +7126,7 @@ namespace Microsoft.Dafny {
       } else if (type.IsRefType) {
         // object and class types translate to ref
         return predef.RefType;
-      } else if (type.IsDatatype || type is DatatypeProxy) {
+      } else if (type.IsDatatype) {
         return predef.DatatypeType;
       } else if (type is SetType) {
         return predef.SetType(Token.NoToken, ((SetType)type).Finite, predef.BoxType);
@@ -7427,11 +7454,9 @@ namespace Microsoft.Dafny {
         Contract.Assert(iter.OutsFields.Count == iter.OutsHistoryFields.Count);
         for (int i = 0; i < iter.OutsFields.Count; i++) {
           var y = iter.OutsFields[i];
-          var dafnyY = new MemberSelectExpr(s.Tok, th, y.Name);
-          dafnyY.Member = y; dafnyY.Type = y.Type;  // resolve here
+          var dafnyY = new MemberSelectExpr(s.Tok, th, y);
           var ys = iter.OutsHistoryFields[i];
-          var dafnyYs = new MemberSelectExpr(s.Tok, th, ys.Name);
-          dafnyYs.Member = ys; dafnyYs.Type = ys.Type;  // resolve here
+          var dafnyYs = new MemberSelectExpr(s.Tok, th, ys);
           var dafnySingletonY = new SeqDisplayExpr(s.Tok, new List<Expression>() { dafnyY });
           dafnySingletonY.Type = ys.Type;  // resolve here
           var rhs = new BinaryExpr(s.Tok, BinaryExpr.Opcode.Add, dafnyYs, dafnySingletonY);
@@ -8017,12 +8042,8 @@ namespace Microsoft.Dafny {
       // havoc Heap \ {this} \ _reads \ _new;
       var th = new ThisExpr(tok);
       th.Type = Resolver.GetThisType(tok, iter);  // resolve here
-      var rds = new MemberSelectExpr(tok, th, iter.Member_Reads.Name);
-      rds.Member = iter.Member_Reads;  // resolve here
-      rds.Type = iter.Member_Reads.Type;  // resolve here
-      var nw = new MemberSelectExpr(tok, th, iter.Member_New.Name);
-      nw.Member = iter.Member_New;  // resolve here
-      nw.Type = iter.Member_New.Type;  // resolve here
+      var rds = new MemberSelectExpr(tok, th, iter.Member_Reads);
+      var nw = new MemberSelectExpr(tok, th, iter.Member_New);
       builder.Add(new Bpl.CallCmd(tok, "$YieldHavoc",
         new List<Bpl.Expr>() { etran.TrExpr(th), etran.TrExpr(rds), etran.TrExpr(nw) },
         new List<Bpl.IdentifierExpr>()));
@@ -8533,7 +8554,7 @@ namespace Microsoft.Dafny {
           // TRIG (forall $ih#s0#0: Seq Box :: $Is($ih#s0#0, TSeq(TChar)) && $IsAlloc($ih#s0#0, TSeq(TChar), $initHeapForallStmt#0) && Seq#Length($ih#s0#0) != 0 && Seq#Rank($ih#s0#0) < Seq#Rank(s#0) ==> (forall i#2: int :: true ==> LitInt(0) <= i#2 && i#2 < Seq#Length($ih#s0#0) ==> char#ToInt(_module.CharChar.MinChar($LS($LZ), $Heap, this, $ih#s0#0)) <= char#ToInt($Unbox(Seq#Index($ih#s0#0, i#2)): char)))
           // TRIG (forall $ih#pat0#0: Seq Box, $ih#a0#0: Seq Box :: $Is($ih#pat0#0, TSeq(_module._default.Same0$T)) && $IsAlloc($ih#pat0#0, TSeq(_module._default.Same0$T), $initHeapForallStmt#0) && $Is($ih#a0#0, TSeq(_module._default.Same0$T)) && $IsAlloc($ih#a0#0, TSeq(_module._default.Same0$T), $initHeapForallStmt#0) && Seq#Length($ih#pat0#0) <= Seq#Length($ih#a0#0) && Seq#SameUntil($ih#pat0#0, $ih#a0#0, Seq#Length($ih#pat0#0)) && (Seq#Rank($ih#pat0#0) < Seq#Rank(pat#0) || (Seq#Rank($ih#pat0#0) == Seq#Rank(pat#0) && Seq#Rank($ih#a0#0) < Seq#Rank(a#0))) ==> _module.__default.IsRelaxedPrefixAux(_module._default.Same0$T, $LS($LZ), $Heap, $ih#pat0#0, $ih#a0#0, LitInt(1)))'
           // TRIG (forall $ih#m0#0: DatatypeType, $ih#n0#0: DatatypeType :: $Is($ih#m0#0, Tclass._module.Nat()) && $IsAlloc($ih#m0#0, Tclass._module.Nat(), $initHeapForallStmt#0) && $Is($ih#n0#0, Tclass._module.Nat()) && $IsAlloc($ih#n0#0, Tclass._module.Nat(), $initHeapForallStmt#0) && Lit(true) && (DtRank($ih#m0#0) < DtRank(m#0) || (DtRank($ih#m0#0) == DtRank(m#0) && DtRank($ih#n0#0) < DtRank(n#0))) ==> _module.__default.mult($LS($LZ), $Heap, $ih#m0#0, _module.__default.plus($LS($LZ), $Heap, $ih#n0#0, $ih#n0#0)) == _module.__default.mult($LS($LZ), $Heap, _module.__default.plus($LS($LZ), $Heap, $ih#m0#0, $ih#m0#0), $ih#n0#0))
-          qq = new Bpl.ForallExpr(tok, bvars, Bpl.Expr.Imp(ante, post));  // SMART_TRIGGER
+          qq = new Bpl.ForallExpr(tok, bvars, Bpl.Expr.Imp(ante, post));  // TODO: Add a SMART_TRIGGER here.  If we can't find one, abort the attempt to do induction automatically
           exporter.Add(TrAssumeCmd(tok, qq));
         }       
       }
@@ -9553,6 +9574,9 @@ namespace Microsoft.Dafny {
         return new Bpl.IdentifierExpr(Token.NoToken, "TChar", predef.Ty);
       } else if (normType is RealType) {
         return new Bpl.IdentifierExpr(Token.NoToken, "TReal", predef.Ty);
+      } else if (normType is BitvectorType) {
+        var t = (BitvectorType)normType;
+        return FunctionCall(Token.NoToken, "TBitvector", predef.Ty, Bpl.Expr.Literal(t.Width));
       } else if (normType is NatType) {
         // (Nat needs to come before Int)
         return new Bpl.IdentifierExpr(Token.NoToken, "TNat", predef.Ty);
@@ -9729,18 +9753,21 @@ namespace Microsoft.Dafny {
         Contract.Assume(!(lhs is ConcreteSyntaxExpression));
         Contract.Assume(!(lhs is SeqSelectExpr && !((SeqSelectExpr)lhs).SelectOne));  // array-range assignments are not allowed
 
-        Type lhsType;
+        Type lhsType, rhsTypeConstraint;
         if (lhs is IdentifierExpr) {
-          lhsType = lhs.Type;
+          lhsType = ((IdentifierExpr)lhs).Var.Type;
+          rhsTypeConstraint = lhsType;
         } else if (lhs is MemberSelectExpr) {
           var fse = (MemberSelectExpr)lhs;
           var field = (Field)fse.Member;
           lhsType = field.Type;
+          rhsTypeConstraint = Resolver.SubstType(lhsType, fse.TypeArgumentSubstitutions());
         } else {
           Contract.Assert(lhs is SeqSelectExpr || lhs is MultiSelectExpr);
           lhsType = null;  // for an array update, always make sure the value assigned is boxed
+          rhsTypeConstraint = lhs.Type;
         }
-        var bRhs = TrAssignmentRhs(rhss[i].Tok, bLhss[i], lhsType, rhss[i], lhs.Type, builder, locals, etran);
+        var bRhs = TrAssignmentRhs(rhss[i].Tok, bLhss[i], lhsType, rhss[i], rhsTypeConstraint, builder, locals, etran);
         if (bLhss[i] != null) {
           Contract.Assert(bRhs == bLhss[i]);  // this is what the postcondition of TrAssignmentRhs promises
           // assignment has already been done by TrAssignmentRhs
@@ -9774,18 +9801,21 @@ namespace Microsoft.Dafny {
         Contract.Assume(!(lhs is ConcreteSyntaxExpression));
         Contract.Assume(!(lhs is SeqSelectExpr && !((SeqSelectExpr)lhs).SelectOne));  // array-range assignments are not allowed
 
-        Type lhsType;
+        Type lhsType, rhsTypeConstraint;
         if (lhs is IdentifierExpr) {
-          lhsType = lhs.Type;
+          lhsType = ((IdentifierExpr)lhs).Var.Type;
+          rhsTypeConstraint = lhsType;
         } else if (lhs is MemberSelectExpr) {
           var fse = (MemberSelectExpr)lhs;
           var field = (Field)fse.Member;
           lhsType = field.Type;
+          rhsTypeConstraint = Resolver.SubstType(lhsType, fse.TypeArgumentSubstitutions());
         } else {
           Contract.Assert(lhs is SeqSelectExpr || lhs is MultiSelectExpr);
           lhsType = null;  // for an array update, always make sure the value assigned is boxed
+          rhsTypeConstraint = lhs.Type;
         }
-        var bRhs = TrAssignmentRhs(rhss[i].Tok, null, lhsType, rhss[i], lhs.Type, builder, locals, etran);
+        var bRhs = TrAssignmentRhs(rhss[i].Tok, null, lhsType, rhss[i], rhsTypeConstraint, builder, locals, etran);
         finalRhss.Add(bRhs);
       }
       return finalRhss;
@@ -10024,14 +10054,14 @@ namespace Microsoft.Dafny {
 
     /// <summary>
     /// if "bGivenLhs" is non-null, generates an assignment of the translation of "rhs" to "bGivenLhs" and then returns "bGivenLhs".
-    /// If "bGivenLhs" is null, then this method will an expression that in a stable way denotes the translation of "rhs";
+    /// If "bGivenLhs" is null, then this method will return an expression that in a stable way denotes the translation of "rhs";
     /// this is achieved by creating a new temporary Boogie variable to hold the result and returning an expression that mentions
     /// that new temporary variable.
     /// 
     /// Before the assignment, the generated code will check that "rhs" obeys any subrange requirements entailed by "rhsTypeConstraint".
     /// 
     /// The purpose of "lhsType" is to determine if the expression should be boxed before doing the assignment.  It is allowed to be null,
-    /// which indicates that the result should always be a box.  Note that "lhsType" may refer to a formal type parameter that is not in\
+    /// which indicates that the result should always be a box.  Note that "lhsType" may refer to a formal type parameter that is not in
     /// scope; this is okay, since the purpose of "lhsType" is just to say whether or not the result should be boxed.
     /// </summary>
     Bpl.Expr TrAssignmentRhs(IToken tok, Bpl.IdentifierExpr bGivenLhs, Type lhsType, AssignmentRhs rhs, Type rhsTypeConstraint,
@@ -10690,9 +10720,9 @@ namespace Microsoft.Dafny {
 
           FuelConstant fuelConstant = translator.functionFuel.Find(x => x.f == f);
           if (this.amount == (int)FuelAmount.LOW) {
-            return GetFunctionFuel(setting.low, found, fuelConstant);
+            return GetFunctionFuel(setting.low > 0 ? setting.low   : this.amount, found, fuelConstant);
           } else if (this.amount == (int)FuelAmount.HIGH) {
-            return GetFunctionFuel(setting.high, found, fuelConstant);
+            return GetFunctionFuel(setting.high > 0 ? setting.high : this.amount, found, fuelConstant);
           } else {
             Contract.Assert(false); // Should not reach here
             return null;
@@ -10702,17 +10732,19 @@ namespace Microsoft.Dafny {
 
       private Bpl.Expr GetFunctionFuel(int amount, bool hasFuel, FuelConstant fuelConstant) {
         if (fuelConstant != null) {
+          /*
           if (hasFuel) {
             // it has fuel context
             return LayerN(amount, fuelConstant.baseFuel);
           } else {
-            // startfuel
-            if (amount == (int)FuelAmount.LOW) {
-              return fuelConstant.startFuel;
-            } else {
-              return fuelConstant.startFuelAssert;
-            }
+           */
+          // startfuel
+          if (amount == (int)FuelAmount.LOW) {
+            return fuelConstant.startFuel;
+          } else {
+            return fuelConstant.startFuelAssert;
           }
+          //}
         } else {
           return ToExpr(amount);
         }
@@ -10721,7 +10753,7 @@ namespace Microsoft.Dafny {
       /// <summary>
       /// Finds all fuel related attributes of the form {:fuel function low [high]}
       /// Adds the setting to the context _if_ the context does not already have a setting for that function.
-      /// In other words, it should be called in order from most to least specific contenxt scope.
+      /// In other words, it should be called in order from most to least specific context scope.
       /// </summary>    
       public static void FindFuelAttributes(Attributes attribs, FuelContext fuelContext) {
         Function f = null;
@@ -11127,7 +11159,12 @@ namespace Microsoft.Dafny {
             }
             return MaybeLit(seq, translator.TrType(new SeqType(Type.Char)));
           } else if (e.Value is BigInteger) {
-            return MaybeLit(Bpl.Expr.Literal(Microsoft.Basetypes.BigNum.FromBigInt((BigInteger)e.Value)));
+            var n = Microsoft.Basetypes.BigNum.FromBigInt((BigInteger)e.Value);
+            if (e.Type is BitvectorType) {
+              return MaybeLit(new Bpl.LiteralExpr(e.tok, n, ((BitvectorType)e.Type).Width));
+            } else {
+              return MaybeLit(Bpl.Expr.Literal(n));
+            }
           } else if (e.Value is Basetypes.BigDec) {
             return MaybeLit(Bpl.Expr.Literal((Basetypes.BigDec)e.Value));
           } else {
@@ -11715,6 +11752,19 @@ namespace Microsoft.Dafny {
                 }
               }
 
+            case BinaryExpr.ResolvedOpcode.BitwiseAnd: {
+              var w = ((BitvectorType)expr.Type).Width;
+              return TrToFunctionCall(expr.tok, "and_bv" + w, new Bpl.BvType(w), e0, e1, liftLit);
+            }
+            case BinaryExpr.ResolvedOpcode.BitwiseOr: {
+                var w = ((BitvectorType)expr.Type).Width;
+                return TrToFunctionCall(expr.tok, "or_bv" + w, new Bpl.BvType(w), e0, e1, liftLit);
+              }
+            case BinaryExpr.ResolvedOpcode.BitwiseXor: {
+                var w = ((BitvectorType)expr.Type).Width;
+                return TrToFunctionCall(expr.tok, "xor_bv" + w, new Bpl.BvType(w), e0, e1, liftLit);
+              }
+
             case BinaryExpr.ResolvedOpcode.LtChar:
             case BinaryExpr.ResolvedOpcode.LeChar:
             case BinaryExpr.ResolvedOpcode.GeChar:
@@ -12178,9 +12228,7 @@ namespace Microsoft.Dafny {
           foreach (var bv in mc.Arguments) {
             if (!LocalVariable.HasWildcardName(bv)) {
               var dtor = mc.Ctor.Destructors[argIndex];
-              var dv = new MemberSelectExpr(bv.tok, e.Source, dtor.Name);
-              dv.Member = dtor;  // resolve here
-              dv.Type = bv.Type;  // resolve here
+              var dv = new MemberSelectExpr(bv.tok, e.Source, dtor);
               substMap.Add(bv, dv);
             }
             argIndex++;
@@ -12189,9 +12237,7 @@ namespace Microsoft.Dafny {
           if (r == null) {
             r = c;
           } else {
-            var test = new MemberSelectExpr(mc.tok, e.Source, mc.Ctor.QueryField.Name);
-            test.Member = mc.Ctor.QueryField;  // resolve here
-            test.Type = Type.Bool;  // resolve here
+            var test = new MemberSelectExpr(mc.tok, e.Source, mc.Ctor.QueryField);
             var ite = new ITEExpr(mc.tok, false, test, c, r);
             ite.Type = e.Type;
             r = ite;
@@ -13990,9 +14036,7 @@ namespace Microsoft.Dafny {
           Expression substE = Substitute(fse.Obj);
           MemberSelectExpr fseNew = new MemberSelectExpr(fse.tok, substE, fse.MemberName);
           fseNew.Member = fse.Member;
-          fseNew.TypeApplication = fse.TypeApplication == null
-            ? null
-            : fse.TypeApplication.ConvertAll(t => Resolver.SubstType(t, typeMap));
+          fseNew.TypeApplication = fse.TypeApplication.ConvertAll(t => Resolver.SubstType(t, typeMap));
           newExpr = fseNew;
         } else if (expr is SeqSelectExpr) {
           SeqSelectExpr sse = (SeqSelectExpr)expr;

@@ -1,3 +1,2 @@
-Bug104.dfy(10,7): Warning: datatype update syntax D[f := E] is deprecated; the new syntax is D.(f := E)
 
 Dafny program verifier finished with 2 verified, 0 errors

@@ -22,5 +22,5 @@ method P()
 
 method Q()
 {
-  assert (((map[]))) == (((((map[])))));  // error (but not 10 errors)
+  assert (((map[]))) == (((((map[])))));  // 2 errors (but not 10 errors)
 }

@@ -1,0 +1,502 @@
+TypeConstraints.dfy(42,6): Error: RHS (of type int) not assignable to LHS (of type bool)
+TypeConstraints.dfy(50,6): Error: RHS (of type bool) not assignable to LHS (of type int)
+TypeConstraints.dfy(58,6): Error: RHS (of type int) not assignable to LHS (of type bool)
+TypeConstraints.dfy(68,6): Error: RHS (of type int) not assignable to LHS (of type bool)
+TypeConstraints.dfy(78,6): Error: RHS (of type MyInt) not assignable to LHS (of type int)
+TypeConstraints.dfy(79,6): Error: RHS (of type int) not assignable to LHS (of type MyInt)
+TypeConstraints.dfy(80,6): Error: RHS (of type MyInt) not assignable to LHS (of type int)
+TypeConstraints.dfy(81,6): Error: RHS (of type int) not assignable to LHS (of type MyInt)
+TypeConstraints.dfy(94,8): Error: the type of this local variable is underspecified
+TypeConstraints.dfy(94,11): Error: the type of this local variable is underspecified
+TypeConstraints.dfy(94,14): Error: the type of this local variable is underspecified
+TypeConstraints.dfy(134,16): Error: type of + must be of a numeric type, a sequence type, or a set-like type (instead got bool)
+TypeConstraints.dfy(143,16): Error: type of + must be of a numeric type, a sequence type, or a set-like type (instead got map<bool, int>)
+TypeConstraints.dfy(145,16): Error: type of + must be of a numeric type, a sequence type, or a set-like type (instead got C)
+TypeConstraints.dfy(147,16): Error: type of + must be of a numeric type, a sequence type, or a set-like type (instead got C)
+TypeConstraints.dfy(174,6): Error: RHS (of type C) not assignable to LHS (of type R)
+TypeConstraints.dfy(180,6): Error: RHS (of type object) not assignable to LHS (of type C)
+TypeConstraints.dfy(186,6): Error: RHS (of type object) not assignable to LHS (of type R)
+// TypeConstraints.dfy
+
+/*
+module _System {
+  /* CALL GRAPH for module _System:
+   */
+  type string = seq<char>
+
+  class {:compile false} object { }
+
+  class {:compile false} array<arg> {
+    var Length: int  // immutable
+  }
+
+  class {:compile false} _#Func0<T0> {
+    function requires(): bool
+      reads reads()
+
+    function reads(): set<object>
+      reads reads()
+  }
+}
+// bitvector types in use:
+*/
+
+/* CALL GRAPH for module _module:
+ * SCC at height 4:
+ *   _default.PlainLiterals
+ * SCC at height 3:
+ *   _default.ChainOfAssignments
+ * SCC at height 2:
+ *   CC.M
+ * SCC at height 1:
+ *   CC.N
+ * SCC at height 0:
+ *   CC.F
+ */
+class CC {
+  var f: nat
+  var g: int
+
+  function method F(): nat
+
+  method M()
+  {
+    var a: int := f;
+    var b: int := g;
+    var c: int := F();
+    var w: int;
+    var d: int := N(w);
+  }
+
+  method N(m: nat) returns (n: nat)
+}
+
+module HereAreErrors {
+  /* CALL GRAPH for module HereAreErrors:
+   * SCC at height 1:
+   *   _default.Literals
+   * SCC at height 0:
+   *   MyInt
+   */
+  newtype MyInt = x: int | true
+
+  method Error0() returns (x: int, z: bool)
+  {
+    var a: int, b: int, c: int;
+    a, b := b, c;
+    x := a;
+    z := c;
+  }
+
+  method Error1() returns (x: int, z: bool)
+  {
+    var a: bool, b: bool, c: bool;
+    a, b := b, c;
+    z := c;
+    x := a;
+  }
+
+  method Error2() returns (x: int, z: bool)
+  {
+    var a: int, b: int, c: int;
+    a, b := c, c;
+    x := a;
+    z := b;
+  }
+
+  method Error3() returns (x: int, z: bool)
+  {
+    var a: int, b: int, c: int;
+    c := a;
+    c := b;
+    x := a;
+    z := b;
+  }
+
+  method Literals() returns (r: int, s: MyInt)
+  {
+    var a: int := 0;
+    var b: MyInt := 0;
+    r := a;
+    s := b;
+    a := b;
+    b := a;
+    r := s;
+    s := r;
+    var d: MyInt, e: MyInt;
+    d, e := e, b;
+  }
+}
+
+module PlusTests {
+  /* CALL GRAPH for module PlusTests:
+   * SCC at height 5:
+   *   _default.Plus4
+   * SCC at height 4:
+   *   _default.Plus3
+   * SCC at height 3:
+   *   _default.Plus2
+   * SCC at height 2:
+   *   _default.Plus1
+   * SCC at height 1:
+   *   _default.Plus5
+   * SCC at height 0:
+   *   MyInt
+   */
+  newtype MyInt = x: int | true
+
+  method Plus0()
+  {
+    var a, b, c;
+  }
+
+  method Plus1()
+  {
+    var a: bool;
+    a := true;
+  }
+
+  method Plus2()
+  {
+    var a: int, b: int, c: int;
+    a := b + c;
+    a := 0;
+  }
+
+  method Plus3() returns (r: int)
+  {
+    var a: int, b: int, c: int;
+    a := b + c;
+    a := r;
+  }
+
+  method Plus4() returns (r: int)
+  {
+    var a: int, b: int, c: int;
+    a := b + c;
+    r := a;
+  }
+
+  method Plus5(y: MyInt)
+  {
+    var a: MyInt, b: MyInt, c: MyInt;
+    a := b + c;
+    a := y;
+  }
+}
+
+module MorePlusTests {
+  /* CALL GRAPH for module MorePlusTests:
+   * SCC at height 1:
+   *   _default.Plusses
+   * SCC at height 0:
+   *   MyInt
+   */
+  newtype MyInt = x: int | true
+
+  class C { }
+
+  method Plusses(b: bool, i: int, j: MyInt, r: real)
+  {
+    var ii: int := i + i;
+    var jj: MyInt := j + j;
+    var bb: bool := b + b;
+    var rr: real := r + r;
+    var s: set<bool> := {false};
+    var ss: set<bool> := s + s;
+    var m: multiset<bool> := multiset{false, false};
+    var mm: multiset<bool> := m + m;
+    var q: seq<bool> := [false];
+    var qq: seq<bool> := q + q;
+    var p: map<bool, int> := map[false:=17];
+    var pp: map<bool, int> := p + p;
+    var n: C := null;
+    var nn: C := n + n;
+    var c: C := new C;
+    var cc: C := c + c;
+  }
+}
+
+module References {
+  /* CALL GRAPH for module References:
+   */
+  class C extends K, M { }
+
+  trait R { }
+
+  trait K { }
+
+  trait M { }
+
+  method M0() returns (c: C, r: R)
+  {
+    var o: object, k: K, m: M;
+    o := o;
+    c := c;
+    r := r;
+    k := c;
+    m := c;
+    o := c;
+    o := r;
+    o := k;
+    o := m;
+  }
+
+  method M1() returns (c: C, r: R)
+  {
+    r := c;
+  }
+
+  method M2() returns (c: C, r: R)
+  {
+    var o: object;
+    c := o;
+  }
+
+  method M3() returns (c: C, r: R)
+  {
+    var o: object;
+    r := o;
+  }
+}
+
+module SimpleClassesAndTraits {
+  /* CALL GRAPH for module SimpleClassesAndTraits:
+   * SCC at height 0:
+   *   _default.Infer
+   */
+  class C extends K, M { }
+
+  class D extends K, M { }
+
+  trait R { }
+
+  trait K {
+    var h: int
+  }
+
+  trait M { }
+
+  method Infer(c: C, o: object, k: K, d: D)
+      returns (k': K)
+  {
+    var delayme: object := c;
+    var x: C := c;
+    var yy: int := x.h;
+    delayme := o;
+    var u: K := k;
+    var v: object := k;
+    v := o;
+    v := c;
+    var w: K := c;
+    w := k;
+    var z: object := c;
+    z := o;
+    var p: object := o;
+    var y: C;
+    var d: C := y;
+    var n: object := null;
+    var n': K := null;
+    n' := k;
+    var n'': K := null;
+    k' := n'';
+  }
+}
+
+module TypeParameters {
+  /* CALL GRAPH for module TypeParameters:
+   * SCC at height 0:
+   *   _default.M
+   */
+  type A
+
+  type B
+
+  type C
+
+  method M<G, H>(a: A, b: B, c0: C<int, bool>, g: G)
+      returns (c1: C<real, real>, h: H)
+  {
+    var x: A := a;
+    var y: B, z: B;
+    y := z;
+    z := b;
+    var m: C<int, bool>, n: C<int, bool>;
+    n := m;
+    m := c0;
+    var k: C<real, real>, l: C<real, real>;
+    k := l;
+    c1 := k;
+    var g': G := g;
+    var h': H, h'': H;
+    h' := h;
+    h := h'';
+  }
+}
+
+module Datatypes {
+  /* CALL GRAPH for module Datatypes:
+   * SCC at height 1:
+   *   _default.P
+   * SCC at height 0:
+   *   _default.M
+   */
+  datatype Color = Red | Green | Blue
+
+  datatype Record<T, U> = Record(t: T, u: U)
+
+  method M() returns (c: Color)
+  {
+    var x: Color := c;
+    var y: Color := x;
+    var w: Color, z: Color;
+    w := z;
+    c := w;
+  }
+
+  method P() returns (r: Record<int, bool>)
+  {
+    var a: Record<int, bool> := r;
+    var b: int, c: Record<int, bool>;
+    b := r.t;
+    r := c;
+    var s: Record<int, real>;
+    var x: int, y: real := s.t, s.u;
+    x := 5;
+    y := 10.0;
+    var t: Record<bool, char>;
+    var tt: bool, uu: char;
+    tt, uu := t.t, t.u;
+  }
+}
+
+module TraitStuff {
+  /* CALL GRAPH for module TraitStuff:
+   * SCC at height 0:
+   *   Aggregate._ctor
+   */
+  trait Part {
+    var id: int
+  }
+
+  trait Motorized { }
+
+  class PartX extends Part { }
+
+  class PartY extends Part, Motorized { }
+
+  class PartZ extends Part, Motorized { }
+
+  class Aggregate {
+    ghost var Repr: set<object>
+    var x: PartX
+    var y: PartY
+    var z: PartZ
+
+    constructor ()
+      modifies this
+    {
+      x := new PartX;
+      y := new PartY;
+      z := new PartZ;
+      Repr := {this, x, y, z};
+      var parts: set<Part> := {x, y};
+      var ooo: set<object> := {y, z};
+    }
+  }
+}
+
+module OtherTraitsAndClasses {
+  /* CALL GRAPH for module OtherTraitsAndClasses:
+   * SCC at height 5:
+   *   _default.Q1
+   * SCC at height 4:
+   *   _default.Q0
+   * SCC at height 3:
+   *   _default.M
+   * SCC at height 2:
+   *   _default.G
+   * SCC at height 1:
+   *   _default.Displays
+   * SCC at height 0:
+   *   _default.Basics
+   */
+  trait J { }
+
+  trait K { }
+
+  class C extends J { }
+
+  class D extends J, K { }
+
+  class E { }
+
+  class MyClass { }
+
+  method Basics(x: int) returns (y: int)
+  {
+    var k: int := x;
+    var m: int;
+    y := m + m;
+  }
+
+  method Displays(c: C, d: D, e: E, j: J, k: K)
+  {
+    var s: set<C> := {c, c};
+    var t: set<J> := {c, j};
+    var t': set<J> := {j, c};
+    var u: set<J> := {c, d};
+    var v: set<object> := {c, e};
+    var w: set<object> := {k, c};
+  }
+
+  method G(c: C)
+  {
+    var s: set<C> := {c};
+    var t: set<C> := s;
+    var u: set<object> := s;
+  }
+
+  method M() returns (r: nat)
+  {
+    var x: int, y: int, z: bool, w: int;
+    x := x + y;
+    z := true;
+    y := r;
+    w := 0;
+  }
+
+  method Q0(s: set<char>) returns (t: set<char>)
+  {
+    var p: set<char> := s + t;
+  }
+
+  method Q1<T>(s: set<MyClass>) returns (t: set<MyClass>)
+  {
+    var p: set<MyClass> := s + t;
+    var q: set<object> := s + t;
+  }
+}
+
+method ChainOfAssignments() returns (x: int, y: int, n: nat)
+{
+  var a: int;
+  var b: int := a;
+  var c: int := b;
+  x := c;
+  y := x;
+  var k: int, l: int, m: int;
+  k := l;
+  l := m;
+  m := x;
+  var p: int, q: int;
+  p := q;
+  q := n;
+}
+
+method PlainLiterals()
+{
+  var x: int := 0;
+  var r: real := 0.0;
+}
+18 resolution/type errors detected in TypeConstraints.dfy

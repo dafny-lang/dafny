@@ -19,6 +19,7 @@ const unique TChar : Ty;
 const unique TInt  : Ty;
 const unique TNat  : Ty;
 const unique TReal : Ty;
+function TBitvector(int) : Ty;
 function TSet(Ty)      : Ty;
 function TISet(Ty)     : Ty;
 function TMultiSet(Ty) : Ty;

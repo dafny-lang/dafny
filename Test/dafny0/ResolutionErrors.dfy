@@ -1250,8 +1250,8 @@ module NonInferredTypeVariables {
     var ggcc0: C;
     var ggcc1: C;  // error: full type cannot be determined
     ghost var d2 := forall c: C :: c != null ==> c.f == 10;
-    ghost var d2' := forall c :: c == ggcc0 && c != null ==> c.f == 10;
-    ghost var d2'' := forall c :: c == ggcc1 && c != null ==> c.f == c.f; // error: here, type of c is not determined
+    ghost var d2' := forall c: C :: c == ggcc0 && c != null ==> c.f == 10;
+    ghost var d2'' := forall c: C :: c == ggcc1 && c != null ==> c.f == c.f; // error: here, type of c is not determined
 
     /* TODO: Dafny's heuristic that looks for bounds should look for equality to
      *       accept these.
@@ -1709,6 +1709,30 @@ module UnderspecifiedTypesInAttributes {
     calc {:myattr P(10)} {:myattr var u :| true; 6} // error: type of u is underspecified
     {
       5;
+    }
+  }
+}
+
+// ------------------- infer array types for Indexable and MultiIndexable XConstraints ----------
+// ------------------- using weaker subtyping constraints                              ----------
+
+module AdvancedIndexableInference {
+  datatype MyRecord = Make(x: int, y: int)
+  method M(d: array<MyRecord>, e: seq<MyRecord>)
+    requires d != null && d.Length == 100 == |e|
+  {
+    if * {
+      var c := d;
+      var xx := c[25].x;
+    } else if * {
+      var c := d;
+      var xx := c[25..50][10].x;
+    } else if * {
+      var c := e;
+      var xx := c[25].x;
+    } else {
+      var c := e;
+      var xx := c[25..50][10].x;
     }
   }
 }

@@ -21,7 +21,7 @@ method Main()
   assert j.x + 1 == c.x;
 
   j := c;
-  //assert j.x == 9; //why this does not hold??
+  assert j.x == 9;
 
   print "j"; Print(j);
   print "c"; Print(c);

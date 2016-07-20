@@ -64,7 +64,7 @@ method Main()
   print "w=", w, "\n";
 
   c.Double(500);
-  c.AddFive(502);
+  { var cc: CC := new CC; cc.AddFive(502); }
   c.StaticTriple(504);
   TT.StaticTriple(504);
   CC.StaticTriple(505);

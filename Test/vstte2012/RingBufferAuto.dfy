@@ -4,13 +4,13 @@
 class {:autocontracts} RingBuffer<T>
 {
   // public view of the class:
-  ghost var Contents: seq<T>;  // the contents of the ring buffer
-  ghost var N: nat;  // the capacity of the ring buffer
+  ghost var Contents: seq<T>  // the contents of the ring buffer
+  ghost var N: nat  // the capacity of the ring buffer
 
   // private implementation:
-  var data: array<T>;
-  var start: nat;
-  var len: nat;
+  var data: array<T>
+  var start: nat
+  var len: nat
 
   // Valid encodes the consistency of RingBuffer objects (think, invariant)
   predicate Valid()
@@ -24,7 +24,7 @@ class {:autocontracts} RingBuffer<T>
   }
 
   constructor Create(n: nat)
-    ensures Contents == [] && N == n;
+    ensures Contents == [] && N == n
   {
     data := new T[n];
     start, len := 0, 0;
@@ -32,7 +32,7 @@ class {:autocontracts} RingBuffer<T>
   }
 
   method Clear()
-    ensures Contents == [] && N == old(N);
+    ensures Contents == [] && N == old(N)
   {
     len := 0;
     Contents := [];
@@ -40,14 +40,14 @@ class {:autocontracts} RingBuffer<T>
 
   method Head() returns (x: T)
     requires Contents != [];
-    ensures x == Contents[0];
+    ensures x == Contents[0]
   {
     x := data[start];
   }
 
   method Enqueue(x: T)
-    requires |Contents| != N;
-    ensures Contents == old(Contents) + [x] && N == old(N);
+    requires |Contents| != N
+    ensures Contents == old(Contents) + [x] && N == old(N)
   {
     var nextEmpty := if start + len < data.Length 
                      then start + len else start + len - data.Length;
@@ -57,7 +57,7 @@ class {:autocontracts} RingBuffer<T>
   }
 
   method ResizingEnqueue(x: T)
-    ensures Contents == old(Contents) + [x] && N >= old(N);
+    ensures Contents == old(Contents) + [x] && N >= old(N)
   {
     if data.Length == len {
       var more := data.Length + 1;
@@ -75,8 +75,8 @@ class {:autocontracts} RingBuffer<T>
   }
 
   method Dequeue() returns (x: T)
-    requires Contents != [];
-    ensures x == old(Contents)[0] && Contents == old(Contents)[1..] && N == old(N);
+    requires Contents != []
+    ensures x == old(Contents)[0] && Contents == old(Contents)[1..] && N == old(N)
   {
     x := data[start];  assert x == Contents[0];
     start, len := if start + 1 == data.Length then 0 else start + 1, len - 1;

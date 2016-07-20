@@ -49,7 +49,7 @@ class Main {
     ensures forall n :: n in S && n.marked ==>
                 n in stackNodes ||
                 forall ch :: ch in n.children && ch != null ==> ch.marked
-    ensures forall n: Node :: n in S && old(n.marked) ==> n.marked
+    ensures forall n :: n in S && old(n.marked) ==> n.marked
     ensures forall n :: n in S ==>
                 n.childrenVisited == old(n.childrenVisited) &&
                 n.children == old(n.children)
@@ -66,7 +66,7 @@ class Main {
                 forall ch :: ch in n.children && ch != null ==> ch.marked
         invariant forall j :: 0 <= j < i ==>
                     root.children[j] == null || root.children[j].marked
-        invariant forall n: Node :: n in S && old(n.marked) ==> n.marked
+        invariant forall n :: n in S && old(n.marked) ==> n.marked
         invariant forall n :: n in S ==>
                 n.childrenVisited == old(n.childrenVisited) &&
                 n.children == old(n.children)
@@ -99,7 +99,7 @@ class Main {
   {
     var t := root;
     t.marked := true;
-    var stackNodes := [];
+    var stackNodes: seq<Node> := [];
     ghost var unmarkedNodes := S - {t};
     while true
       invariant root.marked && t in S && t !in stackNodes
@@ -122,7 +122,7 @@ class Main {
                   forall ch :: ch in n.children && ch != null ==> ch.marked
       invariant forall n :: n in S && n !in stackNodes && n != t ==>
                   n.childrenVisited == old(n.childrenVisited)
-      invariant forall n: Node :: n in S ==> n.children == old(n.children)
+      invariant forall n :: n in S ==> n.children == old(n.children)
       invariant forall n :: n in S && !n.marked ==> n in unmarkedNodes
       decreases unmarkedNodes, stackNodes, |t.children| - t.childrenVisited
     {
@@ -154,7 +154,7 @@ class Main {
     reads S
     requires null !in S
   {
-    exists via: Path :: ReachableVia(from, via, to, S)
+    exists via :: ReachableVia(from, via, to, S)
   }
 
   predicate ReachableVia(from: Node, via: Path, to: Node, S: set<Node>)
@@ -191,7 +191,7 @@ class Main {
     ghost var path := Path.Empty;
     t.marked := true;
     t.pathFromRoot := path;
-    ghost var stackNodes := [];
+    ghost var stackNodes: seq<Node> := [];
     ghost var unmarkedNodes := S - {t};
     while true
       invariant root.marked && t != null && t in S && t !in stackNodes

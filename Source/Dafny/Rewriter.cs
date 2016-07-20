@@ -129,7 +129,10 @@ namespace Microsoft.Dafny
                   if (lhs is MemberSelectExpr) {
                     var ll = (MemberSelectExpr)lhs;
                     Fi = ll.Obj;
-                    lhsBuilder = e => { var l = new MemberSelectExpr(ll.tok, e, ll.MemberName); l.Member = ll.Member; l.Type = ll.Type; return l; };
+                    lhsBuilder = e => {
+                      var l = new MemberSelectExpr(ll.tok, e, ll.MemberName);
+                      l.Member = ll.Member; l.TypeApplication = ll.TypeApplication; l.Type = ll.Type;
+                      return l; };
                   } else if (lhs is SeqSelectExpr) {
                     var ll = (SeqSelectExpr)lhs;
                     Contract.Assert(ll.SelectOne);
@@ -522,9 +525,7 @@ namespace Microsoft.Dafny
       self.Type = ty;
       var implicitSelf = new ImplicitThisExpr(clTok);
       implicitSelf.Type = ty;
-      var Repr = new MemberSelectExpr(clTok, implicitSelf, "Repr");
-      Repr.Member = ReprField;
-      Repr.Type = ReprField.Type;
+      var Repr = new MemberSelectExpr(clTok, implicitSelf, ReprField);
       var cNull = new LiteralExpr(clTok);
       cNull.Type = new ObjectType();
 
@@ -552,16 +553,14 @@ namespace Microsoft.Dafny
                 // the field has been inherited from a refined module, so don't include it here
                 continue;
               }
-              var F = Resolver.NewMemberSelectExpr(tok, implicitSelf, ff.Item1, null);
+              var F = new MemberSelectExpr(tok, implicitSelf, ff.Item1);
               var c0 = BinBoolExpr(tok, BinaryExpr.ResolvedOpcode.NeqCommon, F, cNull);
               var c1 = BinBoolExpr(tok, BinaryExpr.ResolvedOpcode.InSet, F, Repr);
               if (ff.Item2 == null) {
                 // F != null ==> F in Repr  (so, nothing else to do)
               } else {
                 // F != null ==> F in Repr && F.Repr <= Repr && this !in F.Repr
-                var FRepr = new MemberSelectExpr(tok, F, ff.Item2.Name);
-                FRepr.Member = ff.Item2;
-                FRepr.Type = ff.Item2.Type;
+                var FRepr = new MemberSelectExpr(tok, F, ff.Item2);
                 var c2 = BinBoolExpr(tok, BinaryExpr.ResolvedOpcode.Subset, FRepr, Repr);
                 var c3 = BinBoolExpr(tok, BinaryExpr.ResolvedOpcode.NotInSet, self, FRepr);
                 c1 = BinBoolExpr(tok, BinaryExpr.ResolvedOpcode.And, c1, BinBoolExpr(tok, BinaryExpr.ResolvedOpcode.And, c2, c3));
@@ -631,7 +630,7 @@ namespace Microsoft.Dafny
       // TODO: these assignments should be included on every return path
 
       foreach (var ff in subobjects) {
-        var F = Resolver.NewMemberSelectExpr(tok, implicitSelf, ff.Item1, null);  // create a resolved MemberSelectExpr
+        var F = new MemberSelectExpr(tok, implicitSelf, ff.Item1);  // create a resolved MemberSelectExpr
         Expression e = new SetDisplayExpr(tok, true, new List<Expression>() { F });
         e.Type = new SetType(true, new ObjectType());  // resolve here
         var rhs = new BinaryExpr(tok, BinaryExpr.Opcode.Add, Repr, e);
@@ -641,7 +640,7 @@ namespace Microsoft.Dafny
           // Repr := Repr + {F}  (so, nothing else to do)
         } else {
           // Repr := Repr + {F} + F.Repr
-          var FRepr = Resolver.NewMemberSelectExpr(tok, F, ff.Item2, null);  // create resolved MemberSelectExpr
+          var FRepr = new MemberSelectExpr(tok, F, ff.Item2);  // create resolved MemberSelectExpr
           rhs = new BinaryExpr(tok, BinaryExpr.Opcode.Add, rhs, FRepr);
           rhs.ResolvedOp = BinaryExpr.ResolvedOpcode.Union;  // resolve here
           rhs.Type = Repr.Type;  // resolve here
@@ -888,7 +887,9 @@ namespace Microsoft.Dafny
       //   { x + y }
       // We produce:
       //   lemma {:axiom} {:auto_generated} {:fuel foo, 1, 2 } reveal_foo()
-      //     ensures forall x:int, y:int {:trigger foo(x,y)} :: 0 <= x < 5 && 0 <= y < 5 ==> foo(x,y) == foo(x,y);
+      //
+      // The translator, in AddMethod, then adds ensures clauses to bump up the fuel parameters approriately
+
       var cloner = new Cloner();
 
       List<TypeParameter> typeVars = new List<TypeParameter>();
@@ -1986,6 +1987,9 @@ namespace Microsoft.Dafny
           case BinaryExpr.ResolvedOpcode.Mul:
           case BinaryExpr.ResolvedOpcode.Div:
           case BinaryExpr.ResolvedOpcode.Mod:
+          case BinaryExpr.ResolvedOpcode.BitwiseAnd:
+          case BinaryExpr.ResolvedOpcode.BitwiseOr:
+          case BinaryExpr.ResolvedOpcode.BitwiseXor:
           case BinaryExpr.ResolvedOpcode.Union:
           case BinaryExpr.ResolvedOpcode.Intersection:
           case BinaryExpr.ResolvedOpcode.SetDifference:
