@@ -2022,7 +2022,7 @@ namespace Microsoft.Dafny {
       var formals = MkTyParamBinders(GetTypeParams(f), out tyargs);
       var args = new List<Bpl.Expr>();
       Bpl.BoundVariable layer;
-      if (f.IsFuelAware() && !f.IsFueled) {
+      if (f.IsFuelAware()) {
         layer = new Bpl.BoundVariable(f.tok, new Bpl.TypedIdent(f.tok, "$ly", predef.LayerType));
         formals.Add(layer);
         // Note, "layer" is not added to "args" here; rather, that's done below, as needed
@@ -2063,12 +2063,18 @@ namespace Microsoft.Dafny {
         var funcID = new Bpl.IdentifierExpr(f.tok, f.FullSanitizedName, TrType(f.ResultType));
         var funcArgs = new List<Bpl.Expr>();
         funcArgs.AddRange(tyargs);
+        /*
         if (f.IsFueled) {
             funcArgs.Add(etran.layerInterCluster.GetFunctionFuel(f));
         } else if (layer != null) {
            var ly = new Bpl.IdentifierExpr(f.tok, layer);
            funcArgs.Add(FunctionCall(f.tok, BuiltinFunction.LayerSucc, null, ly));
         }
+         */
+        if (layer != null) {
+          funcArgs.Add(new Bpl.IdentifierExpr(f.tok, layer));
+        }
+
         funcArgs.AddRange(args);
         funcAppl = new Bpl.NAryExpr(f.tok, new Bpl.FunctionCall(funcID), funcArgs);
       }
