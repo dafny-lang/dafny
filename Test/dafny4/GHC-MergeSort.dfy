@@ -473,7 +473,7 @@ lemma stable_sequences(g: G, xs: List<G>)
             calc {
               filter(g, flatten(sequences(xs)));
               filter(g, flatten(descending(b, Cons(a, Nil), zs)));
-              { stable_descending(g, b, Cons(a, Nil), zs); }
+              { assert sorted(Cons(a, Nil)); stable_descending(g, b, Cons(a, Nil), zs); }
               filter(g, append(Cons(b, Cons(a, Nil)), zs));
               // in the next couple of steps, unfold the definition of append
               filter(g, Cons(b, append(Cons(a, Nil), zs)));
