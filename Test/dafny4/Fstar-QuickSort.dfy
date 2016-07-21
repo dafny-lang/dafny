@@ -43,27 +43,48 @@ function append(n0: int, n1: int, n2: int, n3: int, i: List<int>, j: List<int>):
   case Cons(hd, tl) => Cons(hd, append(hd, n1, n2, n3, tl, j))
 }
 
-function partition(x: int, l: List<int>): (List<int>, List<int>)
-  ensures var (lo, hi) := partition(x, l);
-    (forall y :: In(y, lo) == if y <= x then In(y, l) else 0) &&
-    (forall y :: In(y, hi) == if x < y then In(y, l) else 0) &&
-    length(l) == length(lo) + length(hi)  // for termination proof
+function partition_inner(x: int, l: List<int>): (List<int>, List<int>)
 {
   match l
   case Nil => (Nil, Nil)
   case Cons(hd, tl) =>
-    var (lo, hi) := partition(x, tl);
+    var (lo, hi) := partition_inner(x, tl);
     if hd <= x then
       (Cons(hd, lo), hi)
     else
       (lo, Cons(hd, hi))
 }
 
-function sort(min: int, max: int, i: List<int>): List<int>
+// Help prove properties that Dafny struggles to prove intrinsically when
+// written directly as ensures on the function
+lemma partition_inner_properties(x: int, l: List<int>)
+  ensures var (lo, hi) := partition_inner(x, l);
+    (forall y :: In(y, lo) == if y <= x then In(y, l) else 0) &&
+    (forall y :: In(y, hi) == if x < y then In(y, l) else 0) &&
+    length(l) == length(lo) + length(hi)  // for termination proof
+{
+    if l.Nil? {
+    } else {
+        match l {
+            case Cons(hd, tl) =>
+                var (lo, hi) := partition_inner(x, tl);
+        }
+    }
+}
+
+function partition(x: int, l: List<int>): (List<int>, List<int>)
+  ensures var (lo, hi) := partition(x, l);
+    (forall y :: In(y, lo) == if y <= x then In(y, l) else 0) &&
+    (forall y :: In(y, hi) == if x < y then In(y, l) else 0) &&
+    length(l) == length(lo) + length(hi)  // for termination proof
+{
+    partition_inner_properties(x, l);
+    partition_inner(x, l)
+}
+
+function sort_inner(min: int, max: int, i: List<int>): List<int>
   requires min <= max
   requires forall x :: In(x, i) != 0 ==> min <= x <= max
-  ensures SortedRange(min, max, sort(min, max, i))
-  ensures forall x :: In(x, i) == In(x, sort(min, max, i))
   decreases length(i)  // for termination proof
 {
   match i
@@ -72,9 +93,59 @@ function sort(min: int, max: int, i: List<int>): List<int>
     assert In(hd, i) != 0;  // this proof line not needed in F*
     var (lo, hi) := partition(hd, tl);
     assert forall y :: In(y, lo) <= In(y, i);  // this proof line not needed in F*
-    var i' := sort(min, hd, lo);
-    var j' := sort(hd, max, hi);
+    var i' := sort_inner(min, hd, lo);
+    var j' := sort_inner(hd, max, hi);
     append(min, hd, hd, max, i', Cons(hd, j'))
+}
+
+// New proof (not needed in F*)
+lemma sort_inner_properties(min: int, max: int, i: List<int>)
+  requires min <= max
+  requires forall x :: In(x, i) != 0 ==> min <= x <= max
+  decreases max-min, length(i);
+  ensures SortedRange(min, max, sort_inner(min, max, i))
+  ensures forall x :: In(x, i) == In(x, sort_inner(min, max, i))
+{
+    if i.Nil? {
+    } else {
+        match i
+            case Cons(hd, tl) =>
+                assert In(hd,i) != 0;
+                var (lo, hi) := partition(hd, tl);
+                assert forall y :: In(y, lo) <= In(y, i);  
+                forall x 
+                    ensures In(x, i) == In(x, sort_inner(min, max, i))
+                {
+                    assert hd < max || (hd == max ==> length(lo) < length(i));
+                    sort_inner_properties(min, hd, lo);
+                    assert hd > min || (hd == min ==> length(hi) < length(i));
+                    sort_inner_properties(hd, max, hi);
+                    var i' := sort_inner(min, hd, lo);
+                    var j' := sort_inner(hd, max, hi);
+                    calc {
+                        In(x, i);
+                        (if x == hd then 1 else 0) + In(x, tl);
+                            { sort_inner_properties(min, max, tl); }
+                        (if x == hd then 1 else 0) + In(x, sort_inner(min, max, tl));
+                        (if x == hd then 1 else 0) + In(x, i') + In(x, j');
+                        In(x, i') + (if x == hd then 1 else 0) + In(x, j');
+                        In(x, i') + In(x, Cons(hd, j'));
+                        In(x, append(min, hd, hd, max, i', Cons(hd, j')));
+                        In(x, sort_inner(min, max, i));
+                    }
+                }
+    }
+
+}
+
+function sort(min: int, max: int, i: List<int>): List<int>
+  requires min <= max
+  requires forall x :: In(x, i) != 0 ==> min <= x <= max
+  ensures SortedRange(min, max, sort(min, max, i))
+  ensures forall x :: In(x, i) == In(x, sort(min, max, i))
+{
+    sort_inner_properties(min, max, i);
+    sort_inner(min, max, i)
 }
 
 /*

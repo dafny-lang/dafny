@@ -20,5 +20,28 @@ lemma proof(s1:seq<int>, s2:seq<int>)
 {
     reveal_Looper();
     TransformProperties();
+    if |s1| != |s2| {
+    } else {
+        forall i | i in s1 
+            ensures i in s2;
+        {
+            if i == s1[0] {
+                assert i == s2[0];
+            } else {
+                assert i in s1[1..];
+                proof(s1[1..], s2[1..]);
+            }
+        }
+        forall i | i in s2 
+            ensures i in s1;
+        {
+            if i == s2[0] {
+                assert i == s1[0];
+            } else {
+                assert i in s2[1..];
+                proof(s1[1..], s2[1..]);
+            }
+        }
+    }
 }
 

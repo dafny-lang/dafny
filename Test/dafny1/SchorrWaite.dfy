@@ -167,7 +167,7 @@ class Main {
     case Extend(prefix, n) => n in S && to in n.children && ReachableVia(from, prefix, n, S)
   }
 
-  method SchorrWaite(root: Node, ghost S: set<Node>)
+  method {:fuel Reachable,3} {:fuel ReachableVia,3} SchorrWaite(root: Node, ghost S: set<Node>)
     requires root in S
     // S is closed under 'children':
     requires forall n :: n in S ==> n != null &&

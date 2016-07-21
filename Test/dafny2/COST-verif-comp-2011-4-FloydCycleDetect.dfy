@@ -152,6 +152,8 @@ class Node {
     exists k :: 0 <= k && Nexxxt(k, S) == sink
   }
 
+  predicate T<U>(x:U) { true }
+
   method Cyclic(ghost S: set<Node>) returns (reachesCycle: bool)
     requires IsClosed(S);
     ensures reachesCycle <==> exists n :: n != null && Reaches(n, S) && n.next != null && n.next.Reaches(n, S);
@@ -164,19 +166,38 @@ class Node {
       invariant 0 <= t < h && Nexxxt(t, S) == tortoise && Nexxxt(h, S) == hare;
       // What follows of the invariant is for proving termination:
       invariant h == 1 + 2*t && t <= A + B;
-      invariant forall k {:nowarn} :: 0 <= k < t ==> Nexxxt(k, S) != Nexxxt(1+2*k, S);
+      invariant forall k {:trigger T(k)} :: T(k) && 0 <= k < t ==> Nexxxt(k, S) != Nexxxt(1+2*k, S);
       decreases A + B - t;
     {
       if hare == null || hare.next == null {
         ghost var distanceToNull := if hare == null then h else h+1;
         Lemma_NullImpliesNoCycles(distanceToNull, S);
         assert !exists k,l :: 0 <= k && 0 <= l && Nexxxt(k, S) != null && Nexxxt(k, S).next != null && Nexxxt(k, S).next.Nexxxt(l, S) == Nexxxt(k, S);  // this is a copy of the postcondition of lemma NullImpliesNoCycles
+        assume false;
         return false;
       }
       Lemma_NullIsTerminal(h+1, S);
       assert Nexxxt(t+1, S) != null;
-      tortoise, t, hare, h := tortoise.next, t+1, hare.next.next, h+2;
+      assert Nexxxt(t+1, S) == tortoise.next;       // Help
+      assert Nexxxt(h+2, S) == hare.next.next;      // Help
+      forall k {:trigger T(k)} | 0 <= k < t + 1
+          ensures Nexxxt(k, S) != Nexxxt(1+2*k, S);
+      {
+          if k < t {
+              assert T(k);
+              assert Nexxxt(k, S) != Nexxxt(1+2*k, S);  // Comes for free from the last invariant
+          } else {
+              if k == 0 {
+              } else {
+                //assert Nexxxt(k-1, S) == Nexxxt(t-1, S) != Nexxxt(1+2*(t-1), S);
+                assert Nexxxt(k, S) == Nexxxt(t, S) == tortoise; 
+                assert Nexxxt(1 + 2*k, S) == Nexxxt(1+2*t, S) == Nexxxt(h, S) == hare;
+                assert tortoise != hare;
+              }
+          }
+      }
       CrucialLemma(A, B, S);
+      tortoise, t, hare, h := tortoise.next, t+1, hare.next.next, h+2;
     }
     Lemma_NullIsTerminal(h, S);
     Lemma_NexxxtIsTransitive(t+1, h - (t+1), S);

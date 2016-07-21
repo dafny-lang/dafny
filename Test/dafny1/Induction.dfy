@@ -130,7 +130,11 @@ class IntegerInduction {
   {
     // the postcondition is a simple consequence of these quantified versions of the theorem:
     if (*) {
-      assert (forall m :: 0 <= m ==> SumOfCubes(m) == GaussWithPost(m) * GaussWithPost(m));
+      if n == 0 {
+      } else {
+          Theorem5(n-1);    // Now requires an explicit call to the induction hypothesis
+      }
+      //assert (forall m :: 0 <= m ==> SumOfCubes(m) == GaussWithPost(m) * GaussWithPost(m));
     } else {
       Theorem4();
     }
