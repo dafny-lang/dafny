@@ -90,7 +90,7 @@ module TestModule3 {
         requires z < 0;
     {
         assert pos(z) == 0;             // error: Opaque setting hides body
-        assert pos(-1) == 0;            // Passes, since Dafny's computation mode for lits ignore fuel
+        assert pos(-1) == 0;            // error: Lits also obey opaque now
         assert pos(y) == 3 + pos(y - 3);// error: Opaque setting hides body
     }
 }
@@ -118,7 +118,7 @@ module TestModule4 {
         requires z < 0;
     {
         assert pos(z) == 0;               // error: Should fail due to "opaque" fuel setting
-        assert pos(-1) == 0;
+        assert pos(-1) == 0;              // error: Should fail due to "opaque" fuel setting.  Even Lits obey opaque
         assert pos(y) == 3 + pos(y - 3);  // error: Should fail due to "opaque" fuel setting
     }
 
@@ -396,7 +396,7 @@ module TestModule9 {
     {
         assert abs(z) == -1*z;  // error: Cannot see the body of abs
         assert abs(y) == y;     // error: Cannot see the body of abs
-        assert abs(-1) == 1;    // lit bypasses fuel, so this should succeed
+        assert abs(-1) == 1;    // error: lit doesn't bypass fuel
     }
 
     // Statement-level fuel override
@@ -434,7 +434,7 @@ module TestModule10 {
     {
         assert abs(z) == -1*z;  // error: Cannot see the body of abs
         assert abs(y) == y;     // error: Cannot see the body of abs
-        assert abs(-1) == 1;    // lit bypasses fuel, so this should succeed
+        assert abs(-1) == 1;    // errro: lit does not bypass fuel
     }
 }
 

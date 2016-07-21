@@ -57,5 +57,6 @@ method Test5(x: int)
   var c := new C;
   c.x := x;
   var f := Fib(c.x);
-  assert 0 <= f;  // succeeds?
+  // assert c.x == 10;  // Succeeds if we remind Z3 about the Lit value of c.x
+  assert 0 <= f;  // fails, b/c we lose track of the Lit argument
 }

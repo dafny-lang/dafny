@@ -3,7 +3,7 @@
 
 module Library {
   function F(): int { 5 }
-  function {:opaque} {:rewriteOpaqueUseFuel false} G(): int { 5 }
+  function {:opaque} G(): int { 5 }
   protected function H(): int { 5 }
 
   lemma L0() {
@@ -14,7 +14,7 @@ module Library {
     var t := *;
     if {
       case true =>
-        assert G() == 5;  // error: G() is opauqe
+        assert G() == 5;  // error: G() is opaque
         return;
       case true =>
         reveal_G();

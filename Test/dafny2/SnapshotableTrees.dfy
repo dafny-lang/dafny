@@ -102,7 +102,7 @@ module SnapTree {
       (reprIsShared ==> MutableRepr == {this})
     }
 
-    static predicate {:opaque} {:rewriteOpaqueUseFuel false} IsSorted(c: seq<int>)  // checks if "c" is sorted and has no duplicates
+    static predicate {:opaque} IsSorted(c: seq<int>)  // checks if "c" is sorted and has no duplicates
     {
       forall i, j :: 0 <= i < j < |c| ==> c[i] < c[j]
     }
@@ -240,7 +240,7 @@ module SnapTree {
     var left: Node;
     var right: Node;
 
-    predicate {:opaque} {:rewriteOpaqueUseFuel false} NodeValid()
+    predicate {:opaque} NodeValid()
       reads this, Repr;
       ensures NodeValid() ==> this in Repr && null !in Repr && Tree.IsSorted(Contents);
     {
@@ -466,7 +466,7 @@ module SnapTree {
       reveal_NodeValid();
     }
 
-    method {:timeLimit 20} MutatingInsert_Right(x: int) returns (ghost pos: int)
+    method {:timeLimit 25} MutatingInsert_Right(x: int) returns (ghost pos: int)
       requires NodeValid() && data < x;
       modifies Repr;
       ensures NodeValid() && fresh(Repr - old(Repr));
