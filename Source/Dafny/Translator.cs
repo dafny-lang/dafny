@@ -11981,26 +11981,30 @@ namespace Microsoft.Dafny {
             Bpl.QKeyValue kv = TrAttributes(e.Attributes, "trigger");
             Bpl.Trigger tr = null;
             var argsEtran = bodyEtran.WithNoLits();
+            var fueledTrigger = new Dictionary<List<Expression>, bool>();
             // translate the triggers once to see if fuel or the heap is used as quantifier boundvar
             foreach (var aa in e.Attributes.AsEnumerable()) {
               if (aa.Name == "trigger") {
-                foreach (var arg in aa.Args) {
-                  argsEtran.TrExpr(arg);
+                int fuelCount = argsEtran.Statistics_CustomLayerFunctionCount;
+                foreach (var arg in aa.Args) {                  
+                  argsEtran.TrExpr(arg);                  
                 }
+                fueledTrigger[aa.Args] = argsEtran.Statistics_CustomLayerFunctionCount > fuelCount;
               }
             }
 
             bool useFuelAsQuantifier = argsEtran.Statistics_CustomLayerFunctionCount > 0;
             bool useHeapAsQuantifier = argsEtran.Statistics_HeapAsQuantifierCount > 0;
+            Expr qly = null;
             if (useFuelAsQuantifier) {
-              var qly = BplBoundVar(e.Refresh("tr$ly#", translator.CurrentIdGenerator), predef.LayerType, bvars);
+              qly = BplBoundVar(e.Refresh("tr$ly#", translator.CurrentIdGenerator), predef.LayerType, bvars);
               argsEtran = argsEtran.WithLayer(qly);              
             }            
             if (useHeapAsQuantifier) {
               var heapExpr = BplBoundVar(e.Refresh("tr$heap#", translator.CurrentIdGenerator), predef.HeapType, bvars);
               argsEtran = new ExpressionTranslator(argsEtran, heapExpr);
             }
-            // now translate it with the correct heapExpr.
+            // now translate it with the correct layer and heapExpr
             foreach (var aa in e.Attributes.AsEnumerable()) {
               if (aa.Name == "trigger") {
                 List<Bpl.Expr> tt = new List<Bpl.Expr>();
@@ -12009,6 +12013,11 @@ namespace Microsoft.Dafny {
                 }
                 if (useHeapAsQuantifier) {
                   tt.Add(translator.FunctionCall(expr.tok, BuiltinFunction.IsGoodHeap, null, argsEtran.HeapExpr));
+                }
+                if (useFuelAsQuantifier && !fueledTrigger[aa.Args]) {
+                  // We quantified over fuel, but this particular trigger doesn't use it,
+                  // so we need to add a dummy trigger.  Hopefully it will always be in scope when needed.
+                  tt.Add(translator.FunctionCall(expr.tok, BuiltinFunction.AsFuelBottom, null, qly));
                 }
                 tr = new Bpl.Trigger(expr.tok, true, tt, tr);
               }
