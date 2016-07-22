@@ -11981,7 +11981,7 @@ namespace Microsoft.Dafny {
             Bpl.QKeyValue kv = TrAttributes(e.Attributes, "trigger");
             Bpl.Trigger tr = null;
             var argsEtran = bodyEtran.WithNoLits();
-            // translate the triggers once to see if heap is used as quantifier boundvar
+            // translate the triggers once to see if fuel or the heap is used as quantifier boundvar
             foreach (var aa in e.Attributes.AsEnumerable()) {
               if (aa.Name == "trigger") {
                 foreach (var arg in aa.Args) {
@@ -11989,11 +11989,16 @@ namespace Microsoft.Dafny {
                 }
               }
             }
-            bool useHeapAsQuantifier = false;
-            if (argsEtran.Statistics_HeapAsQuantifierCount > 0) {
+
+            bool useFuelAsQuantifier = argsEtran.Statistics_CustomLayerFunctionCount > 0;
+            bool useHeapAsQuantifier = argsEtran.Statistics_HeapAsQuantifierCount > 0;
+            if (useFuelAsQuantifier) {
+              var qly = BplBoundVar(e.Refresh("tr$ly#", translator.CurrentIdGenerator), predef.LayerType, bvars);
+              argsEtran = argsEtran.WithLayer(qly);              
+            }            
+            if (useHeapAsQuantifier) {
               var heapExpr = BplBoundVar(e.Refresh("tr$heap#", translator.CurrentIdGenerator), predef.HeapType, bvars);
               argsEtran = new ExpressionTranslator(argsEtran, heapExpr);
-              useHeapAsQuantifier = true;
             }
             // now translate it with the correct heapExpr.
             foreach (var aa in e.Attributes.AsEnumerable()) {
