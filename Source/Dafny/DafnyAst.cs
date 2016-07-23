@@ -418,6 +418,32 @@ namespace Microsoft.Dafny {
     }
   }
 
+  public class VisibilityScope {
+    private HashSet<string> scopeTokens = new HashSet<string>();
+
+    //By convention, the "null" scope sees all
+    public bool VisibleInScope(VisibilityScope other) {
+      if (other != null) {
+        return other.scopeTokens.Intersect(this.scopeTokens).Count() > 0;
+      }
+      return true;
+    }
+
+    public void Augment(VisibilityScope other) {
+      Contract.Assert(other != null);
+      scopeTokens.UnionWith(other.scopeTokens);
+    }
+
+    public VisibilityScope(string baseScope) {
+      scopeTokens.Add(baseScope);
+    }
+
+    public VisibilityScope() {
+    }
+
+  }
+
+
   // ------------------------------------------------------------------------------------------------------
 
   public abstract class Type {
@@ -425,6 +451,16 @@ namespace Microsoft.Dafny {
     public static readonly CharType Char = new CharType();
     public static readonly IntType Int = new IntType();
     public static readonly RealType Real = new RealType();
+
+    private static Func<VisibilityScope> getScope = () => null;
+    
+    public static void RegisterScopeGetter(Func<VisibilityScope> scopeGetter) {
+      Type.getScope = scopeGetter;
+    }
+
+    public static void DropScope() {
+      Type.getScope = () => null;
+    }
     
     public static string TypeArgsToString(ModuleDefinition/*?*/ context, List<Type> typeArgs, bool parseAble = false) {
       Contract.Requires(typeArgs == null ||
@@ -489,10 +525,16 @@ namespace Microsoft.Dafny {
         }
           var syn = type.AsTypeSynonym;
           if (syn != null) {
-            var udt = (UserDefinedType)type;  // correctness of cast follows from the AsTypeSynonym != null test.
-            // Instantiate with the actual type arguments
-            type = syn.RhsWithArgument(udt.TypeArgs);
-          continue;
+            if (syn.IsRevealedInScope(Type.getScope())) {
+              var udt = (UserDefinedType)type;  // correctness of cast follows from the AsTypeSynonym != null test.
+              // Instantiate with the actual type arguments
+              type = syn.RhsWithArgument(udt.TypeArgs);
+              continue;
+            } else {
+              // We can't access our synonym due to the current scoping environment.
+              // This is the end of the road.
+              return type;
+            }
         }
         if (DafnyOptions.O.IronDafny && type is UserDefinedType) {
           var rc = ((UserDefinedType)type).ResolvedClass;
@@ -2075,6 +2117,26 @@ namespace Microsoft.Dafny {
     string compileName;
     private readonly Declaration clonedFrom;
 
+    private VisibilityScope opaqueScope = new VisibilityScope();
+    private VisibilityScope revealScope = new VisibilityScope();
+
+
+    public void AddVisibilityScope(VisibilityScope scope, bool isOpaque) {
+      if (isOpaque) {
+        opaqueScope.Augment(scope);
+      } else {
+        revealScope.Augment(scope);
+      }
+    }
+
+    public bool IsRevealedInScope(VisibilityScope scope) {
+      return revealScope.VisibleInScope(scope);
+    }
+
+    public bool IsVisibleInScope(VisibilityScope scope) {
+      return IsRevealedInScope(scope) || opaqueScope.VisibleInScope(scope);
+    }
+
     public virtual string CompileName {
       get {
         if (compileName == null) {
@@ -2251,12 +2313,20 @@ namespace Microsoft.Dafny {
     public List<string> Extends; // list of exports that are extended
     public readonly List<ModuleExportDecl> ExtendDecls = new List<ModuleExportDecl>(); // fill in by the resolver
 
+    public readonly VisibilityScope ThisScope;
     public ModuleExportDecl(IToken tok, ModuleDefinition parent, 
       List<ExportSignature> exports, List<string> extends) 
       : base(tok, tok.val, parent, false) {
       IsDefault = tok.val == parent.Name;
       Exports = exports;
       Extends = extends;
+      ThisScope = new VisibilityScope(this.FullName);
+    }
+
+    public void SetDeclaration(ExportSignature export, Declaration d) {
+      Contract.Assert(Exports.Contains(export));
+      export.Decl = d;
+      d.AddVisibilityScope(ThisScope, export.Opaque);
     }
 
     public override object Dereference() { return this; }
@@ -2278,6 +2348,7 @@ namespace Microsoft.Dafny {
 
   public class ModuleSignature {
     private ModuleDefinition exclusiveRefinement = null;
+    public  VisibilityScope VisibilityScope = null;
     public readonly Dictionary<string, TopLevelDecl> TopLevels = new Dictionary<string, TopLevelDecl>();
     public readonly Dictionary<string, Tuple<DatatypeCtor, bool>> Ctors = new Dictionary<string, Tuple<DatatypeCtor, bool>>();
     public readonly Dictionary<string, MemberDecl> StaticMembers = new Dictionary<string, MemberDecl>();
@@ -3393,6 +3464,7 @@ namespace Microsoft.Dafny {
       }
     }
   }
+
 
   public class TypeSynonymDecl : TopLevelDecl, RedirectingTypeDecl
   {

@@ -9,8 +9,13 @@ namespace Microsoft.Dafny
 {
   class Cloner
   {
-    public Cloner() {
+
+    private VisibilityScope scope = null;
+
+    public Cloner(VisibilityScope scope = null) {
+      this.scope = scope;
     }
+
      
     public ModuleDefinition CloneModuleDefinition(ModuleDefinition m, string name) {
       ModuleDefinition nw;
@@ -33,6 +38,7 @@ namespace Microsoft.Dafny
       return nw;
     }
 
+
     public TopLevelDecl CloneDeclaration(TopLevelDecl d, ModuleDefinition m) {
       Contract.Requires(d != null);
       Contract.Requires(m != null);
@@ -43,7 +49,11 @@ namespace Microsoft.Dafny
       } else if (d is TypeSynonymDecl) {
         var dd = (TypeSynonymDecl)d;
         var tps = dd.TypeArgs.ConvertAll(CloneTypeParam);
-        return new TypeSynonymDecl(Tok(dd.tok), dd.Name, tps, m, CloneType(dd.Rhs), CloneAttributes(dd.Attributes), CloneFromValue(dd));
+        if (d.IsRevealedInScope(scope)) {
+          return new TypeSynonymDecl(Tok(dd.tok), dd.Name, tps, m, CloneType(dd.Rhs), CloneAttributes(dd.Attributes), CloneFromValue(dd));
+        } else {
+          return new OpaqueTypeDecl(Tok(dd.tok), dd.Name, m, TypeParameter.EqualitySupportValue.InferredRequired, tps, CloneAttributes(dd.Attributes), CloneFromValue(dd));
+        }
       } else if (d is NewtypeDecl) {
         var dd = (NewtypeDecl)d;
         if (dd.Var == null) {
@@ -665,7 +675,12 @@ namespace Microsoft.Dafny
       var reads = f.Reads.ConvertAll(CloneFrameExpr);
       var decreases = CloneSpecExpr(f.Decreases);
       var ens = f.Ens.ConvertAll(CloneExpr);
-      var body = CloneExpr(f.Body);
+      Expression body;
+      if (f.IsRevealedInScope(scope)) {
+        body = CloneExpr(f.Body);
+      } else {
+        body = null;
+      }
 
       if (newName == null) {
         newName = f.Name;
