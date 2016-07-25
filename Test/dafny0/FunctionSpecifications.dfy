@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:0 /print:"%t.print" /dprint:"%t.dprint" /rewriteOpaqueUseFuel:0 "%s" > "%t"
+// RUN: %dafny /compile:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 function Fib(n: int): int
@@ -162,10 +162,10 @@ function h(i:int):int
 // in a lower SCC does not cause a soundness problem
 
 function A(): int
-  ensures A() == 5;
+  ensures A() == 5; // error: this result value is not what the postcondition specification says
 {
-  reveal_B();  // error: should not be allowed to invoke reveal_B() here
-  6  // this result value is not what the postcondition specification says
+  reveal_B();  // This isn't a decreases failure, since reveal just adjusts fuel values; it doesn't mention B
+  6  
 }
 
 function {:opaque} B(): int

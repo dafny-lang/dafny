@@ -1465,7 +1465,7 @@ namespace Microsoft.Dafny {
           this.fuelContext = FuelSetting.NewFuelContext(f);
 
           AddClassMember_Function(f);
-          if (!IsOpaqueFunction(f) && !f.IsBuiltin && !(f.tok is IncludeToken)) { // Opaque function's well-formedness is checked on the full version
+          if (!f.IsBuiltin && !(f.tok is IncludeToken)) {
             AddWellformednessCheck(f);
             if (f.OverriddenFunction != null) { //it means that f is overriding its associated parent function
               AddFunctionOverrideCheckImpl(f);
@@ -1534,9 +1534,7 @@ namespace Microsoft.Dafny {
     }
     static bool IsOpaqueFunction(Function f) {
       Contract.Requires(f != null);
-      return Attributes.Contains(f.Attributes, "opaque") &&
-            !Attributes.Contains(f.Attributes, "opaque_full") && // The full version has both attributes
-            !OpaqueFunctionRewriter.RewriteUseFuel(f);  // if it is not rewrite as fuel
+      return Attributes.Contains(f.Attributes, "opaque");
     }
     static bool IsOpaqueRevealLemma(Method m) {
       Contract.Requires(m != null);
@@ -1562,12 +1560,11 @@ namespace Microsoft.Dafny {
       // add consequence axiom
       sink.AddTopLevelDeclaration(FunctionConsequenceAxiom(f, f.Ens));
       // add definition axioms, suitably specialized for literals
-      if (f.Body != null && !IsOpaqueFunction(f)) {
+      if (f.Body != null) {
         AddFunctionAxiom(f, FunctionAxiomVisibility.IntraModuleOnly, f.Body.Resolved);
         AddFunctionAxiom(f, FunctionAxiomVisibility.ForeignModuleOnly, f.Body.Resolved);
-      }
-      // for body-less functions, at least generate its #requires function
-      if (f.Body == null || IsOpaqueFunction(f)) {
+      } else {
+        // for body-less functions, at least generate its #requires function      
         var b = FunctionAxiom(f, FunctionAxiomVisibility.ForeignModuleOnly, null, null);
         Contract.Assert(b == null);
       }
@@ -2032,9 +2029,10 @@ namespace Microsoft.Dafny {
       var formals = MkTyParamBinders(GetTypeParams(f), out tyargs);
       var args = new List<Bpl.Expr>();
       Bpl.BoundVariable layer;
-      if (f.IsFuelAware() && !f.IsFueled) {
+      if (f.IsFuelAware()) {
         layer = new Bpl.BoundVariable(f.tok, new Bpl.TypedIdent(f.tok, "$ly", predef.LayerType));
         formals.Add(layer);
+        etran = etran.WithLayer(new Bpl.IdentifierExpr(f.tok, layer));
         // Note, "layer" is not added to "args" here; rather, that's done below, as needed
       } else {
         layer = null;
@@ -2073,12 +2071,18 @@ namespace Microsoft.Dafny {
         var funcID = new Bpl.IdentifierExpr(f.tok, f.FullSanitizedName, TrType(f.ResultType));
         var funcArgs = new List<Bpl.Expr>();
         funcArgs.AddRange(tyargs);
+        /*
         if (f.IsFueled) {
             funcArgs.Add(etran.layerInterCluster.GetFunctionFuel(f));
         } else if (layer != null) {
            var ly = new Bpl.IdentifierExpr(f.tok, layer);
            funcArgs.Add(FunctionCall(f.tok, BuiltinFunction.LayerSucc, null, ly));
         }
+         */
+        if (layer != null) {
+          funcArgs.Add(new Bpl.IdentifierExpr(f.tok, layer));
+        }
+
         funcArgs.AddRange(args);
         funcAppl = new Bpl.NAryExpr(f.tok, new Bpl.FunctionCall(funcID), funcArgs);
       }
@@ -2304,11 +2308,11 @@ namespace Microsoft.Dafny {
         funcArgs.AddRange(tyargs);
         if (layer != null) {
           var ly = new Bpl.IdentifierExpr(f.tok, layer);
-          if (lits == null) {
+          //if (lits == null) {
             funcArgs.Add(LayerSucc(ly));
-          } else {
-            funcArgs.Add(ly);
-          }
+          //} else {
+          //  funcArgs.Add(ly);
+          //}
         }
         funcArgs.AddRange(args);
         funcAppl = new Bpl.NAryExpr(f.tok, new Bpl.FunctionCall(funcID), funcArgs);
@@ -2326,7 +2330,14 @@ namespace Microsoft.Dafny {
           var pp = (PrefixPredicate)f;
           bodyWithSubst = PrefixSubstitution(pp, bodyWithSubst);
         }
-        var etranBody = layer == null ? etran : etran.LimitedFunctions(f, new Bpl.IdentifierExpr(f.tok, layer));
+        Boogie.Expr ly = null;
+        if (layer != null) {
+           ly = new Bpl.IdentifierExpr(f.tok, layer);
+          if (lits != null) {   // Lit axiom doesn't consume any fuel
+            ly = LayerSucc(ly);
+          }
+        }
+        var etranBody = layer == null ? etran : etran.LimitedFunctions(f, ly);
         tastyVegetarianOption = BplAnd(CanCallAssumption(bodyWithSubst, etranBody),
           Bpl.Expr.Eq(funcAppl, etranBody.TrExpr(bodyWithSubst)));
       }
@@ -12526,7 +12537,9 @@ namespace Microsoft.Dafny {
         Bpl.QKeyValue kv = null;
         foreach (var attr in attrs.AsEnumerable()) {
           if (attr.Name == skipThisAttribute
-           || attr.Name == "axiom") {  // Dafny's axiom attribute clashes with Boogie's axiom keyword
+           || attr.Name == "axiom"  // Dafny's axiom attribute clashes with Boogie's axiom keyword
+           || attr.Name == "fuel"   // Fuel often uses function names as arguments, which adds extra axioms unnecessarily
+             ) {
             continue;
           }
           List<object> parms = new List<object>();

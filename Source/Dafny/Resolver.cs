@@ -265,9 +265,8 @@ namespace Microsoft.Dafny
       var refinementTransformer = new RefinementTransformer(prog);
       rewriters.Add(refinementTransformer);
       rewriters.Add(new AutoContractsRewriter(reporter));
-      var opaqueRewriter = new OpaqueFunctionRewriter(this.reporter);
-      rewriters.Add(new AutoReqFunctionRewriter(this.reporter, opaqueRewriter));
-      rewriters.Add(opaqueRewriter);
+      rewriters.Add(new OpaqueFunctionRewriter(this.reporter));
+      rewriters.Add(new AutoReqFunctionRewriter(this.reporter));
       rewriters.Add(new TimeLimitRewriter(reporter));
       rewriters.Add(new ForallStmtRewriter(reporter));
 
@@ -4012,7 +4011,7 @@ namespace Microsoft.Dafny
           foreach (var p in e.TypeArgumentSubstitutions) {
             if (!IsDetermined(p.Value.Normalize())) {
               resolver.reporter.Error(MessageSource.Resolver, e.tok, "type variable '{0}' in the function call to '{1}' could not be determined{2}", p.Key.Name, e.Name,
-                (e.Name.StartsWith("reveal_") || e.Name.EndsWith("_FULL"))
+                (e.Name.StartsWith("reveal_"))
                 ? ". If you are making an opaque function, make sure that the function can be called."
                 : ""
               );
