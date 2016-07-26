@@ -344,7 +344,7 @@ namespace Microsoft.Dafny
             var oldErrorsOnly = reporter.ErrorsOnly;
             reporter.ErrorsOnly = true; // turn off warning reporting for the clone
             var nw = new ClonerButUseOriginalMatchConstructsAndDontRecordFromFrom().CloneModuleDefinition(m, m.CompileName + "_Compile");
-            var compileSig = RegisterTopLevelDecls(nw, true);
+            var compileSig = RegisterTopLevelDecls(nw, true, sig.VisibilityScope);
             compileSig.Refines = refinementTransformer.RefinedSig;
             sig.CompileSignature = compileSig;
             ResolveModuleDefinition(nw, compileSig);
@@ -1033,12 +1033,15 @@ namespace Microsoft.Dafny
       info.VisibilityScope.Augment(system.VisibilityScope);
       return info;
     }
-    ModuleSignature RegisterTopLevelDecls(ModuleDefinition moduleDef, bool useImports) {
+    ModuleSignature RegisterTopLevelDecls(ModuleDefinition moduleDef, bool useImports, VisibilityScope scope = null) {
       Contract.Requires(moduleDef != null);
       var sig = new ModuleSignature();
       sig.ModuleDef = moduleDef;
       sig.IsAbstract = moduleDef.IsAbstract;
-      sig.VisibilityScope = new VisibilityScope(moduleDef.Name);
+      if (scope == null) {
+        scope = new VisibilityScope(moduleDef.Name);
+      }
+      sig.VisibilityScope = scope;
       List<TopLevelDecl> declarations = moduleDef.TopLevelDecls;
 
       // First go through and add anything from the opened imports
@@ -2406,6 +2409,10 @@ namespace Microsoft.Dafny
             isRoot = false; isLeaf = true;  // all type parameters are invariant
             headIsRoot = false; headIsLeaf = true;
           } else if (cl is OpaqueTypeDecl) {
+            isRoot = true; isLeaf = true;  // all type parameters are invariant
+            headIsRoot = true; headIsLeaf = true;
+          } else if (cl is TypeSynonymDecl) {
+            Contract.Assert(object.ReferenceEquals(t, t.NormalizeExpand())); // should be opaque in scope
             isRoot = true; isLeaf = true;  // all type parameters are invariant
             headIsRoot = true; headIsLeaf = true;
           } else {

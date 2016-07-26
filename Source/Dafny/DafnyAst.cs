@@ -429,9 +429,11 @@ namespace Microsoft.Dafny {
       return true;
     }
 
+    //However augmenting with a null scope does nothing
     public void Augment(VisibilityScope other) {
-      Contract.Assert(other != null);
-      scopeTokens.UnionWith(other.scopeTokens);
+      if (other != null) {
+        scopeTokens.UnionWith(other.scopeTokens);
+      }
     }
 
     public VisibilityScope(string baseScope) {
