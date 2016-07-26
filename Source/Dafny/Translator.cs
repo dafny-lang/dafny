@@ -3069,19 +3069,24 @@ namespace Microsoft.Dafny {
         }
 
         if (settings.low == 0 && settings.high == 0) {
-            // Don't say anything about what startFuel and startFuel are set to
-            // Just add the fixpoints that allow us to shortcut to LZ:
-            // assume AsFuelBottom(startFuel) == startFuel
-            // assume AsFuelBottom(startFuelAssert) == startFuelAssert
-            builder.Add(TrAssumeCmd(tok, Bpl.Expr.Eq(FunctionCall(f.tok, BuiltinFunction.AsFuelBottom, null, startFuel), startFuel)));
-            builder.Add(TrAssumeCmd(tok, Bpl.Expr.Eq(FunctionCall(f.tok, BuiltinFunction.AsFuelBottom, null, startFuelAssert), startFuelAssert)));
+          // We always know that startFuel + 1 == startFuelAssert
+          // TODO: Move this to a global axiom, rather than a per-method assume
+          // TODO: Reveal lemma would only need to boost startFuel, since this will automatically bump startFuelAssert
+          // assume startFuelAssert == LS(startFuel)
+          builder.Add(TrAssumeCmd(tok, Bpl.Expr.Eq(startFuelAssert, etran.translator.LayerSucc(startFuel))));
+
+          // Add the fixpoints that allow us to shortcut to LZ:
+          // assume AsFuelBottom(startFuel) == startFuel
+          // assume AsFuelBottom(startFuelAssert) == startFuelAssert
+          builder.Add(TrAssumeCmd(tok, Bpl.Expr.Eq(FunctionCall(f.tok, BuiltinFunction.AsFuelBottom, null, startFuel), startFuel)));
+          builder.Add(TrAssumeCmd(tok, Bpl.Expr.Eq(FunctionCall(f.tok, BuiltinFunction.AsFuelBottom, null, startFuelAssert), startFuelAssert)));
         } else {
-            Bpl.Expr layer = etran.layerInterCluster.LayerN(settings.low, baseFuel);
-            Bpl.Expr layerAssert = etran.layerInterCluster.LayerN(settings.high, baseFuel);
-            builder.Add(TrAssumeCmd(tok, Bpl.Expr.Eq(startFuel, layer)));
-            builder.Add(TrAssumeCmd(tok, Bpl.Expr.Eq(startFuelAssert, layerAssert)));
-            // assume AsFuelBottom(BaseFuel_F) == BaseFuel_F;
-            builder.Add(TrAssumeCmd(tok, Bpl.Expr.Eq(FunctionCall(f.tok, BuiltinFunction.AsFuelBottom, null, baseFuel), baseFuel)));
+          Bpl.Expr layer = etran.layerInterCluster.LayerN(settings.low, baseFuel);
+          Bpl.Expr layerAssert = etran.layerInterCluster.LayerN(settings.high, baseFuel);
+          builder.Add(TrAssumeCmd(tok, Bpl.Expr.Eq(startFuel, layer)));
+          builder.Add(TrAssumeCmd(tok, Bpl.Expr.Eq(startFuelAssert, layerAssert)));
+          // assume AsFuelBottom(BaseFuel_F) == BaseFuel_F;
+          builder.Add(TrAssumeCmd(tok, Bpl.Expr.Eq(FunctionCall(f.tok, BuiltinFunction.AsFuelBottom, null, baseFuel), baseFuel)));
         }
       }
     }
@@ -11996,9 +12001,12 @@ namespace Microsoft.Dafny {
             bool useFuelAsQuantifier = argsEtran.Statistics_CustomLayerFunctionCount > 0;
             bool useHeapAsQuantifier = argsEtran.Statistics_HeapAsQuantifierCount > 0;
             Expr qly = null;
+            // TODO: We should really generate a different fuel variable for each function in the trigger,
+            //       so that we don't unneceesarily restrict the trigger to times when both functions agree on the fuel amount.
             if (useFuelAsQuantifier) {
               qly = BplBoundVar(e.Refresh("tr$ly#", translator.CurrentIdGenerator), predef.LayerType, bvars);
-              argsEtran = argsEtran.WithLayer(qly);              
+              var qly_successor = translator.LayerSucc(qly, 1);
+              argsEtran = argsEtran.WithLayer(qly_successor);            // Only trigger if we have at least 1 fuel  
             }            
             if (useHeapAsQuantifier) {
               var heapExpr = BplBoundVar(e.Refresh("tr$heap#", translator.CurrentIdGenerator), predef.HeapType, bvars);
