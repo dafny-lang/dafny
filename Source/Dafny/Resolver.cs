@@ -332,6 +332,9 @@ namespace Microsoft.Dafny
             }
             r.PostResolve(m);
           }
+          if (reporter.Count(ErrorLevel.Error) == errorCount) {
+            m.SuccessfullyResolved = true;
+          }
           if (reporter.Count(ErrorLevel.Error) == errorCount && !m.IsAbstract) {
             // compilation should only proceed if everything is good, including the signature (which preResolveErrorCount does not include);
             Contract.Assert(!useCompileSignatures);
@@ -718,6 +721,34 @@ namespace Microsoft.Dafny
       Contract.Requires(AllTypeConstraints.Count == 0);
       Contract.Ensures(AllTypeConstraints.Count == 0);
       moduleInfo = MergeSignature(sig, systemNameInfo);
+      // make sure all imported modules were successfully resolved
+      foreach (var d in m.TopLevelDecls) {
+        if (d is AliasModuleDecl || d is ModuleFacadeDecl) {
+          ModuleSignature importSig;
+          if (d is AliasModuleDecl) {
+            var alias = (AliasModuleDecl)d;
+            importSig = alias.Root != null ? alias.Root.Signature : alias.Signature;
+            //importSig = ((AliasModuleDecl)d).Signature;
+            //importSig = ((AliasModuleDecl)d).Root.Signature;
+          } else {
+            importSig = ((ModuleFacadeDecl)d).OriginalSignature;
+          }
+          if (importSig.ModuleDef == null || !importSig.ModuleDef.SuccessfullyResolved) {
+            if (!m.IsEssentiallyEmptyModuleBody()) {  // say something only if this will cause any testing to be omitted
+              reporter.Error(MessageSource.Resolver, d, "not resolving module '{0}' because there were errors in resolving its import '{1}'", m.Name, d.Name);
+            }
+            return;
+          }
+        } else if (d is LiteralModuleDecl) {
+          var nested = (LiteralModuleDecl)d;
+          if (!nested.ModuleDef.SuccessfullyResolved) {
+            if (!m.IsEssentiallyEmptyModuleBody()) {  // say something only if this will cause any testing to be omitted
+              reporter.Error(MessageSource.Resolver, nested, "not resolving module '{0}' because there were errors in resolving its nested module '{1}'", m.Name, nested.Name);
+            }
+            return;
+          }
+        }
+      }
       // resolve
       var datatypeDependencies = new Graph<IndDatatypeDecl>();
       var codatatypeDependencies = new Graph<CoDatatypeDecl>();

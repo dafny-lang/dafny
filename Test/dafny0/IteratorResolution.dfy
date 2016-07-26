@@ -1,7 +1,9 @@
 // RUN: %dafny /compile:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
-iterator MyIter()
+module SimplestIter {
+  iterator MyIter()
+}
 
 module Mx {
 
@@ -112,30 +114,32 @@ module Mx {
 
 // --------------------------------- _decreases<n> fields
 
-class Cell
-{
-  var data: int;
-}
+module DecreasesFields {
+  class Cell
+  {
+    var data: int;
+  }
 
-iterator Dieter0(c: Cell)
-  requires c != null;
-  decreases c.data, c.data, c != null;
-{
-  assert _decreases0 == _decreases1;
-  assert _decreases2;
-  assert _decreases3 == null;  // error: there is no _decreases3
-  assert _decreases0 == null;  // error: type mismatch
-  _decreases2 := false;  // error: the field is immutable
-}
+  iterator Dieter0(c: Cell)
+    requires c != null;
+    decreases c.data, c.data, c != null;
+  {
+    assert _decreases0 == _decreases1;
+    assert _decreases2;
+    assert _decreases3 == null;  // error: there is no _decreases3
+    assert _decreases0 == null;  // error: type mismatch
+    _decreases2 := false;  // error: the field is immutable
+  }
 
-iterator Dieter1(c: Cell)
-  requires c != null;
-{
-  assert _decreases0 == c;
-  assert _decreases1;  // error: there is no _decreases1
-}
+  iterator Dieter1(c: Cell)
+    requires c != null;
+  {
+    assert _decreases0 == c;
+    assert _decreases1;  // error: there is no _decreases1
+  }
 
-iterator Dieter2()
-{
-  assert _decreases0 == null;  // error: there is no _decreases0
+  iterator Dieter2()
+  {
+    assert _decreases0 == null;  // error: there is no _decreases0
+  }
 }

@@ -2,7 +2,7 @@
 // RUN: %diff "%s.expect" "%t"
 
 // This file contains various tests of resolving quantifiers in ghost and non-ghost positions
-
+module Misc {
 class MyClass<T> {
   // This function is in a ghost context, so all is cool.
   function GhostF(): bool
@@ -141,7 +141,7 @@ class MyClass<T> {
     }
   }
 }
-
+}
 // The following functions test what was once a soundness problem
 module DependencyOnAllAllocatedObjects {
   function AllObjects0(): bool

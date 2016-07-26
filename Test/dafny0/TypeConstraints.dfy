@@ -1,6 +1,6 @@
 // RUN: %dafny /compile:0 /print:"%t.print" /env:0 /rprint:- "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
-
+module Tests {
 class CC {
   var f: nat
   var g: int
@@ -32,7 +32,7 @@ method ChainOfAssignments() returns (x: int, y: int, n: nat)
   p := q;
   q := n;
 }
-
+}  // module Tests
 module HereAreErrors {
   method Error0() returns (x: int, z: bool)
   {
@@ -83,12 +83,12 @@ module HereAreErrors {
     d, e := e, b;
   }
 }
-
+module PL {
 method PlainLiterals() {
   var x := 0;
   var r := 0.0;
 }
-
+}
 module PlusTests {  
   method Plus0() {
     var a, b, c;

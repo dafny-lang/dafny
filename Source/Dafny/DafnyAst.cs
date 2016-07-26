@@ -2312,6 +2312,7 @@ namespace Microsoft.Dafny {
     public readonly Attributes Attributes;
     public readonly List<IToken> RefinementBaseName;  // null if no refinement base
     public ModuleDecl RefinementBaseRoot; // filled in early during resolution, corresponds to RefinementBaseName[0]
+    public bool SuccessfullyResolved;  // set to true upon successful resolution; modules that import an unsuccessfully resolved module are not themselves resolved
 
     public List<Include> Includes;
 
@@ -2547,7 +2548,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-      public static IEnumerable<FixpointLemma> AllFixpointLemmas(List<TopLevelDecl> declarations) {
+    public static IEnumerable<FixpointLemma> AllFixpointLemmas(List<TopLevelDecl> declarations) {
       foreach (var d in declarations) {
         var cl = d as ClassDecl;
         if (cl != null) {
@@ -2559,6 +2560,23 @@ namespace Microsoft.Dafny {
           }
         }
       }
+    }
+
+    public bool IsEssentiallyEmptyModuleBody() {
+      foreach (var d in TopLevelDecls) {
+        if (d is ModuleDecl) {
+          // modules don't count
+          continue;
+        } else if (d is ClassDecl) {
+          var cl = (ClassDecl)d;
+          if (cl.Members.Count == 0) {
+            // the class is empty, so it doesn't count
+            continue;
+          }
+        }
+        return false;
+      }
+      return true;
     }
   }
 

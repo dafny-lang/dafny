@@ -1,6 +1,8 @@
 // RUN: %dafny /compile:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
+module Tests {
+  
 class C {
   function F(c: C, d: D): bool { true }
   method M(x: int) returns (y: int, c: C)
@@ -36,19 +38,6 @@ datatype ReverseOrder_MutuallyRecursiveDataType<T> =
 datatype ReverseOrder_TheCounterpart<T> =
   TreeLike(ReverseOrder_TheCounterpart<T>, ReverseOrder_TheCounterpart<T>) |
   More(ReverseOrder_MutuallyRecursiveDataType<T>)
-
-// ---------------------
-
-module ArrayTests {
-  ghost method G(a: array<int>)
-    requires a != null && 10 <= a.Length;
-    modifies a;
-  {
-    a[7] := 13;  // error: array elements are not ghost locations
-  }
-}
-
-// ---------------------
 
 method DuplicateVarName(x: int) returns (y: int)
 {
@@ -164,6 +153,8 @@ module Expl_Module {
     static method N<U>(t: T, u: U)
   }
 }
+  
+}  // module Tests
 
 // --------------------- more ghost tests, for assign-such-that statements
 
@@ -218,5 +209,16 @@ module ProxyCycles {
   {
     var x;
     x := F(x);  // error: cannot infer type for x
+  }
+}
+
+// ---------------------
+
+module ArrayTests {
+  ghost method G(a: array<int>)
+    requires a != null && 10 <= a.Length;
+    modifies a;
+  {
+    a[7] := 13;  // error: array elements are not ghost locations
   }
 }

@@ -42,33 +42,52 @@ module _System {
 */
 
 /* CALL GRAPH for module _module:
- * SCC at height 4:
- *   _default.PlainLiterals
- * SCC at height 3:
- *   _default.ChainOfAssignments
- * SCC at height 2:
- *   CC.M
- * SCC at height 1:
- *   CC.N
- * SCC at height 0:
- *   CC.F
  */
-class CC {
-  var f: nat
-  var g: int
 
-  function method F(): nat
+module Tests {
+  /* CALL GRAPH for module Tests:
+   * SCC at height 3:
+   *   _default.ChainOfAssignments
+   * SCC at height 2:
+   *   CC.M
+   * SCC at height 1:
+   *   CC.N
+   * SCC at height 0:
+   *   CC.F
+   */
+  class CC {
+    var f: nat
+    var g: int
 
-  method M()
-  {
-    var a: int := f;
-    var b: int := g;
-    var c: int := F();
-    var w: int;
-    var d: int := N(w);
+    function method F(): nat
+
+    method M()
+    {
+      var a: int := f;
+      var b: int := g;
+      var c: int := F();
+      var w: int;
+      var d: int := N(w);
+    }
+
+    method N(m: nat) returns (n: nat)
   }
 
-  method N(m: nat) returns (n: nat)
+  method ChainOfAssignments() returns (x: int, y: int, n: nat)
+  {
+    var a: int;
+    var b: int := a;
+    var c: int := b;
+    x := c;
+    y := x;
+    var k: int, l: int, m: int;
+    k := l;
+    l := m;
+    m := x;
+    var p: int, q: int;
+    p := q;
+    q := n;
+  }
 }
 
 module HereAreErrors {
@@ -125,6 +144,18 @@ module HereAreErrors {
     s := r;
     var d: MyInt, e: MyInt;
     d, e := e, b;
+  }
+}
+
+module PL {
+  /* CALL GRAPH for module PL:
+   * SCC at height 0:
+   *   _default.PlainLiterals
+   */
+  method PlainLiterals()
+  {
+    var x: int := 0;
+    var r: real := 0.0;
   }
 }
 
@@ -476,27 +507,5 @@ module OtherTraitsAndClasses {
     var p: set<MyClass> := s + t;
     var q: set<object> := s + t;
   }
-}
-
-method ChainOfAssignments() returns (x: int, y: int, n: nat)
-{
-  var a: int;
-  var b: int := a;
-  var c: int := b;
-  x := c;
-  y := x;
-  var k: int, l: int, m: int;
-  k := l;
-  l := m;
-  m := x;
-  var p: int, q: int;
-  p := q;
-  q := n;
-}
-
-method PlainLiterals()
-{
-  var x: int := 0;
-  var r: real := 0.0;
 }
 18 resolution/type errors detected in TypeConstraints.dfy

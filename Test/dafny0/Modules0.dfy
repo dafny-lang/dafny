@@ -60,7 +60,7 @@ module X0 {
 }
 
 module X1 {
-  import X0' = X0
+  import X0' = X0_corrected
   class MyClass1 {
     method Down(x0: X0'.MyClass0) {
       x0.Down();
@@ -71,7 +71,7 @@ module X1 {
 }
 
 module X2 {
-  import opened X1
+  import opened X1_corrected
   class MyClass2 {
     method Down(x1: MyClass1, x0: X0'.MyClass0) {
       x1.Down(x0);
@@ -94,7 +94,7 @@ module YY {
     }
   }
 }
-
+module Misc {
 class ClassG {
   method T() { }
   function method TFunc(): int { 10 }
@@ -201,7 +201,7 @@ function NestedMatch3(tree: Tree): int
       case Nil => 0
       case Cons(h1,l1,r1) => h + h0 + h1
 }
-
+}  // end of module Misc
 // ---------------------- direct imports are not transitive
 
 module ATr {
@@ -229,14 +229,14 @@ module BTr {
 }
 
 module CTr {
-  import B = BTr
+  import B = BTr_corrected
   class Z {
     var b: B.Y;  // fine
     var a: B.X;  // error: imports don't reach name X explicitly
   }
 }
 module CTs {
-  import B = BTr
+  import B = BTr_corrected
   method P() {
     var y := new B.Y;
     var x := y.N();  // this is allowed and will correctly infer the type of x to
@@ -346,4 +346,32 @@ module AA {
 
 module B refines AA {
   datatype T = MakeT(int)  // illegal
+}
+
+// ---------------------- some modules from above without errors
+
+module X0_corrected {
+  class MyClass0 {
+    method Down() { }
+    method Up<S>(x1: MyClass0, x2: MyClass0) { }
+  }
+}
+
+module X1_corrected {
+  import X0' = X0_corrected
+  class MyClass1 {
+    method Down(x0: X0'.MyClass0) {
+      x0.Down();
+    }
+    method Up<T>(x2: MyClass1) {
+    }
+  }
+}
+
+module BTr_corrected {
+  import A = ATr
+  class Y {
+    method N() returns (x: A.X)
+      ensures x != null;
+  }
 }

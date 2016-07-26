@@ -1,6 +1,6 @@
 // RUN: %dafny /compile:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
-
+module Misc {
 class C {
   var data: int;
   ghost var gdata: int;
@@ -119,7 +119,7 @@ method M3(c: C)
     c.GhostMethodWithModifies(x);  // error: not allowed to call method with nonempty modifies clause
   }
 }
-
+}
 module AnotherModule {
   class C {
     var data: int;
