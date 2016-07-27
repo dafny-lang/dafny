@@ -743,6 +743,7 @@ namespace Microsoft.Dafny
     }
 
     internal override void PostResolve(ModuleDefinition m) {     
+      /*
       foreach (var decl in ModuleDefinition.AllCallables(m.TopLevelDecls)) {
         if (decl is Lemma) {
           var lem = (Lemma)decl;
@@ -752,8 +753,9 @@ namespace Microsoft.Dafny
           }
         }
       }
+       */
     }
-
+    /*
     protected void AnnotateRevealFunction(Lemma lemma, Function f) {
       Expression receiver;
       if (f.IsStatic) {
@@ -786,7 +788,7 @@ namespace Microsoft.Dafny
       LiteralExpr hi = new LiteralExpr(f.tok, 2);
       lemma.Attributes = new Attributes("fuel", new List<Expression>() { nameSegment, low, hi }, lemma.Attributes);
     }
-
+    */
         
     // Tells the function to use 0 fuel by default
     protected void ProcessOpaqueClassFunctions(ClassDecl c) {
@@ -807,11 +809,7 @@ namespace Microsoft.Dafny
       c.Members.AddRange(newDecls);
     }
 
-    private void RewriteOpaqueFunctionUseFuel(Function f, List<MemberDecl> newDecls) {
-      // mark the opaque function with {:fuel, 0, 0}
-      LiteralExpr amount = new LiteralExpr(f.tok, 0);
-      f.Attributes = new Attributes("fuel", new List<Expression>() { amount, amount }, f.Attributes);
-
+    private void AddRevealLemma(Function f, List<MemberDecl> newDecls) {
       // That is, given:
       //   function {:opaque} foo(x:int, y:int) : int
       //     requires 0 <= x < 5;
@@ -831,7 +829,7 @@ namespace Microsoft.Dafny
         typeVars.Add(cloner.CloneTypeParam(tp));
         // doesn't matter what type, just so we have it to make the resolver happy when resolving function member of
         // the fuel attribute. This might not be needed after fixing codeplex issue #172.
-        optTypeArgs.Add(new IntType()); 
+        optTypeArgs.Add(new IntType());
       }
 
       // Add an axiom attribute so that the compiler won't complain about the lemma's lack of a body
@@ -842,7 +840,15 @@ namespace Microsoft.Dafny
                               new Specification<FrameExpression>(new List<FrameExpression>(), null), /* newEnsuresList*/new List<MaybeFreeExpression>(),
                               new Specification<Expression>(new List<Expression>(), null), null, lemma_attrs, null);
       newDecls.Add(reveal);
-      revealOriginal[reveal] = f;
+    }
+
+    private void RewriteOpaqueFunctionUseFuel(Function f, List<MemberDecl> newDecls) {
+      // mark the opaque function with {:fuel, 0, 0}
+      LiteralExpr amount = new LiteralExpr(f.tok, 0);
+      f.Attributes = new Attributes("fuel", new List<Expression>() { amount, amount }, f.Attributes);
+
+      AddRevealLemma(f, newDecls);
+      //revealOriginal[reveal] = f;
     }
 
     class OpaqueFunctionVisitor : TopDownVisitor<bool> {

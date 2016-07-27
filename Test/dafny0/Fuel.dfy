@@ -272,7 +272,7 @@ module TestModule7 {
         else 1 + neg(x + 1)
     }
 
-    method {:fuel neg,4} {:fuel pos,0,0} test1(y:int, z:int) 
+    method {:fuel neg,4} {:fuel pos,1,2} test1(y:int, z:int) 
         requires y > 5;
         requires z < -5;
     {
@@ -285,6 +285,20 @@ module TestModule7 {
             ensures true;
         {
             assert pos(y) == 3 + pos(y - 3);    // Statement fuel should override method fuel, so this should succeed
+        }
+    }
+
+    method {:fuel pos,0,0} test2(y:int, z:int) 
+        requires y > 5;
+        requires z > 5;
+    {
+        forall t:int {:fuel pos,3} | t > 0 
+            ensures true;
+        {
+            assert pos(y) == 3 + pos(y - 3);    // Statement fuel overrides method fuel, but not opaque
+            reveal_pos();
+            assert pos(z) == 3 + pos(z - 3);    // Succeeds once we call reveal
+
         }
     }
 }

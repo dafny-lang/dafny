@@ -1540,6 +1540,14 @@ namespace Microsoft.Dafny {
       AddFrameAxiom(f);
       // add consequence axiom
       sink.AddTopLevelDeclaration(FunctionConsequenceAxiom(f, f.Ens));
+
+      if (f.IsFueled) {
+        // Add a function-specific reveal trigger function, in case someone tries to make this function opaque          
+        var arg = BplFormalVar("dummy", Bpl.Type.Int, true);
+        var func = new Bpl.Function(f.tok, f.FullSanitizedName + "#reveal", new List<Variable>() { arg }, BplFormalVar(null, Bpl.Type.Bool, false));
+        sink.AddTopLevelDeclaration(func);
+      }
+
       // add definition axioms, suitably specialized for literals
       if (f.Body != null) {
         AddFunctionAxiom(f, FunctionAxiomVisibility.IntraModuleOnly, f.Body.Resolved);
@@ -2198,10 +2206,15 @@ namespace Microsoft.Dafny {
       var formals = MkTyParamBinders(GetTypeParams(f), out tyargs);
 
       Bpl.BoundVariable layer;
+      Bpl.BoundVariable revealed = null;
       if (f.IsFuelAware()) {
         layer = new Bpl.BoundVariable(f.tok, new Bpl.TypedIdent(f.tok, "$ly", predef.LayerType));
         formals.Add(layer);
         // Note, "layer" is not added to "args" here; rather, that's done below, as needed
+        if (f.IsFueled) {
+          revealed = new Bpl.BoundVariable(f.tok, new Bpl.TypedIdent(f.tok, "$rev", Bpl.Type.Int));
+          // Note that we add revealed to the formals later, so that it won't be included in the #requires function
+        }                        
       } else {
         layer = null;
       }
@@ -2307,8 +2320,13 @@ namespace Microsoft.Dafny {
         funcAppl = new Bpl.NAryExpr(f.tok, new Bpl.FunctionCall(funcID), funcArgs);
       }
 
-
-      Bpl.Trigger tr = new Bpl.Trigger(f.tok, true, new List<Bpl.Expr> { funcAppl });
+      var triggerExprs = new List<Bpl.Expr> { funcAppl };
+      if (f.IsFueled) {
+        // Extend the trigger with the reveal function, for more precise control
+        var reveal_args = new List<Expr>() { new Bpl.IdentifierExpr(f.tok, revealed) };
+        triggerExprs.Add(new Bpl.NAryExpr(f.tok, new Bpl.FunctionCall(new Bpl.IdentifierExpr(f.tok, f.FullSanitizedName + "#reveal", Bpl.Type.Bool)), reveal_args));
+      }
+      Bpl.Trigger tr = new Bpl.Trigger(f.tok, true, triggerExprs);
       var typeParams = TrTypeParamDecls(f.TypeArgs);
       Bpl.Expr tastyVegetarianOption;
       if (visibility == FunctionAxiomVisibility.ForeignModuleOnly && f.IsProtected) {
@@ -2334,6 +2352,9 @@ namespace Microsoft.Dafny {
       if (lits != null) {
         kv = new QKeyValue(f.tok, "weight", new List<object>() { Bpl.Expr.Literal(3) }, null);
       }
+      if (f.IsFueled) {        
+        formals.Add(revealed);
+      }   
       Bpl.Expr ax = new Bpl.ForallExpr(f.tok, typeParams, formals, kv, tr, Bpl.Expr.Imp(ante, tastyVegetarianOption));
       var activate = AxiomActivation(f, visibility == FunctionAxiomVisibility.ForeignModuleOnly, visibility == FunctionAxiomVisibility.IntraModuleOnly, etran);
       string comment;
@@ -3087,6 +3108,13 @@ namespace Microsoft.Dafny {
           builder.Add(TrAssumeCmd(tok, Bpl.Expr.Eq(startFuelAssert, layerAssert)));
           // assume AsFuelBottom(BaseFuel_F) == BaseFuel_F;
           builder.Add(TrAssumeCmd(tok, Bpl.Expr.Eq(FunctionCall(f.tok, BuiltinFunction.AsFuelBottom, null, baseFuel), baseFuel)));
+
+          // assume F#reveal(42) == true
+          var reveal_arg = new Bpl.LiteralExpr(f.tok, Basetypes.BigNum.FromInt(42));  
+          var reveal_args = new List<Expr>() { reveal_arg };
+          var reveal_call = new Bpl.NAryExpr(f.tok, new Bpl.FunctionCall(new Bpl.IdentifierExpr(f.tok, f.FullSanitizedName + "#reveal", Bpl.Type.Bool)), reveal_args);
+
+          builder.Add(TrAssumeCmd(tok, reveal_call));
         }
       }
     }
@@ -6598,6 +6626,12 @@ namespace Microsoft.Dafny {
 
                 ens.Add(Ensures(m.tok, true, Bpl.Expr.Eq(FunctionCall(f.tok, BuiltinFunction.AsFuelBottom, null, moreFuel_expr), moreFuel_expr), null, "Shortcut to LZ"));
                 ens.Add(Ensures(m.tok, true, Bpl.Expr.Eq(FunctionCall(f.tok, BuiltinFunction.AsFuelBottom, null, moreFuel_expr), moreFuel_expr), null, "Shortcut to LZ"));
+
+                // Add a call to the reveal trigger
+                var reveal_arg = new Bpl.LiteralExpr(f.tok, Basetypes.BigNum.FromInt(42));  
+                var reveal_args = new List<Expr>() { reveal_arg };
+                var reveal_call = new Bpl.NAryExpr(f.tok, new Bpl.FunctionCall(new Bpl.IdentifierExpr(f.tok, f.FullSanitizedName + "#reveal", Bpl.Type.Bool)), reveal_args);
+                ens.Add(Ensures(m.tok, true, reveal_call, null, "Trigger for the definition axiom"));
               }
             }
           }
