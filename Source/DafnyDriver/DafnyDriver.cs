@@ -176,12 +176,13 @@ namespace Microsoft.Dafny
       } else if (dafnyProgram != null && !CommandLineOptions.Clo.NoResolve && !CommandLineOptions.Clo.NoTypecheck
           && DafnyOptions.O.DafnyVerify) {
 
-        Bpl.Program boogieProgram = Translate(dafnyProgram);
+        var boogiePrograms = Translate(dafnyProgram);
 
-        PipelineStatistics stats;
+        Dictionary<string, PipelineStatistics> statss;
         PipelineOutcome oc;
-        var verified = Boogie(dafnyFileNames, boogieProgram, programId, out stats, out oc);
-        Compile(dafnyFileNames[0], otherFileNames, dafnyProgram, oc, stats, verified);
+        string baseName = cce.NonNull(Path.GetFileName(dafnyFileNames[dafnyFileNames.Count - 1]));
+        var verified = Boogie(baseName, boogiePrograms, programId, out statss, out oc);
+        Compile(dafnyFileNames[0], otherFileNames, dafnyProgram, oc, statss, verified);
 
         exitValue = verified ? ExitValue.VERIFIED : ExitValue.NOT_VERIFIED;
       }
@@ -195,18 +196,31 @@ namespace Microsoft.Dafny
       return exitValue;
     }
 
-    public static Bpl.Program Translate(Program dafnyProgram)
-    {
-      Dafny.Translator translator = new Dafny.Translator(dafnyProgram.reporter);
-      Bpl.Program boogieProgram = translator.Translate(dafnyProgram);
-      if (CommandLineOptions.Clo.PrintFile != null)
-      {
-        ExecutionEngine.PrintBplFile(CommandLineOptions.Clo.PrintFile, boogieProgram, false, false, CommandLineOptions.Clo.PrettyPrint);
-      }
-      return boogieProgram;
+    private static string BoogieProgramSuffix(string printFile, string suffix) {
+      var baseName = Path.GetFileNameWithoutExtension(printFile);
+      var dirName = Path.GetDirectoryName(printFile);
+
+      return Path.Combine(dirName, baseName + "_" + suffix + Path.GetExtension(printFile));
     }
 
-    public static bool Boogie(IList<string> dafnyFileNames, Bpl.Program boogieProgram, string programId,
+    public static Dictionary<string, Bpl.Program> Translate(Program dafnyProgram)
+    {
+      var boogiePrograms = Translator.Translate(dafnyProgram, dafnyProgram.reporter);
+      if (CommandLineOptions.Clo.PrintFile != null)
+      {
+        
+        foreach (var prog in boogiePrograms) {
+
+          var nm = boogiePrograms.Count > 1 ? BoogieProgramSuffix(CommandLineOptions.Clo.PrintFile, prog.Key) : CommandLineOptions.Clo.PrintFile;
+          ExecutionEngine.PrintBplFile(nm, prog.Value, false, false, CommandLineOptions.Clo.PrettyPrint);
+
+        }
+        
+      }
+      return boogiePrograms;
+    }
+
+    public static bool BoogieOnce(string baseFile, string moduleName, Bpl.Program boogieProgram, string programId,
                               out PipelineStatistics stats, out PipelineOutcome oc)
     {
       if (programId == null)
@@ -221,30 +235,60 @@ namespace Microsoft.Dafny
       }
       else
       {
-        string baseName = cce.NonNull(Path.GetFileName(dafnyFileNames[dafnyFileNames.Count - 1]));
+        string baseName = cce.NonNull(Path.GetFileName(baseFile));
         baseName = cce.NonNull(Path.ChangeExtension(baseName, "bpl"));
         bplFilename = Path.Combine(Path.GetTempPath(), baseName);
       }
 
+      bplFilename = BoogieProgramSuffix(bplFilename, moduleName);
       stats = null;
       oc = BoogiePipelineWithRerun(boogieProgram, bplFilename, out stats, 1 < Dafny.DafnyOptions.Clo.VerifySnapshots ? programId : null);
       return stats.ErrorCount == 0 && stats.InconclusiveCount == 0 && stats.TimeoutCount == 0 && stats.OutOfMemoryCount == 0;
     }
 
+    public static bool Boogie(string baseName, Dictionary<string, Bpl.Program> boogiePrograms, string programId, out Dictionary<string, PipelineStatistics> statss, out PipelineOutcome oc) {
+      Contract.Requires(boogiePrograms.Count > 0);
+      bool isVerified = true;
+      oc = PipelineOutcome.VerificationCompleted;
+      statss = new Dictionary<string, PipelineStatistics>();
+
+      foreach (var prog in boogiePrograms) {
+        PipelineStatistics newstats;
+        PipelineOutcome newoc;
+
+        isVerified = BoogieOnce(baseName, prog.Key, prog.Value, programId, out newstats, out newoc) && isVerified;
+
+        if ((oc == PipelineOutcome.VerificationCompleted || oc == PipelineOutcome.Done) && newoc != PipelineOutcome.VerificationCompleted) {
+          oc = newoc;
+        }
+
+        statss.Add(prog.Key, newstats);
+      }
+
+      return isVerified;
+    }
+
+    private static void WriteStatss(Dictionary<string, PipelineStatistics> statss) {
+      foreach (var stats in statss) {
+        ExecutionEngine.printer.AdvisoryWriteLine("Statistics for module: {0}", stats.Key);
+        ExecutionEngine.printer.WriteTrailer(stats.Value);
+      }
+    }
+
 
     public static void Compile(string fileName, ReadOnlyCollection<string> otherFileNames, Program dafnyProgram,
-                               PipelineOutcome oc, PipelineStatistics stats, bool verified)
+                               PipelineOutcome oc, Dictionary<string, PipelineStatistics> statss, bool verified)
     {
       var resultFileName = DafnyOptions.O.DafnyPrintCompiledFile ?? fileName;
       switch (oc)
       {
         case PipelineOutcome.VerificationCompleted:
-          ExecutionEngine.printer.WriteTrailer(stats);
+          WriteStatss(statss);
           if ((DafnyOptions.O.Compile && verified && CommandLineOptions.Clo.ProcsToCheck == null) || DafnyOptions.O.ForceCompile)
             CompileDafnyProgram(dafnyProgram, resultFileName, otherFileNames);
           break;
         case PipelineOutcome.Done:
-          ExecutionEngine.printer.WriteTrailer(stats);
+          WriteStatss(statss);
           if (DafnyOptions.O.ForceCompile)
             CompileDafnyProgram(dafnyProgram, resultFileName, otherFileNames);
           break;

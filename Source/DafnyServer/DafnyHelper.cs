@@ -33,7 +33,7 @@ namespace Microsoft.Dafny {
 
     private readonly Dafny.ErrorReporter reporter;
     private Dafny.Program dafnyProgram;
-    private Bpl.Program boogieProgram;
+    private Dictionary<string, Bpl.Program> boogiePrograms;
 
     public DafnyHelper(string[] args, string fname, string source) {
       this.args = args;
@@ -65,12 +65,12 @@ namespace Microsoft.Dafny {
     }
 
     private bool Translate() {
-      var translator = new Dafny.Translator(reporter) { InsertChecksums = true, UniqueIdPrefix = fname };
-      boogieProgram = translator.Translate(dafnyProgram); // FIXME how are translation errors reported?
+      boogiePrograms = Translator.Translate(dafnyProgram,reporter,
+          new Translator.TranslatorFlags() { InsertChecksums = true, UniqueIdPrefix = fname }); // FIXME how are translation errors reported?
       return true;
     }
 
-    private bool Boogie() {
+    private bool BoogieOnce(Bpl.Program boogieProgram) {
       if (boogieProgram.Resolve() == 0 && boogieProgram.Typecheck() == 0) { //FIXME ResolveAndTypecheck?
         ExecutionEngine.EliminateDeadVariables(boogieProgram);
         ExecutionEngine.CollectModSets(boogieProgram);
@@ -86,6 +86,14 @@ namespace Microsoft.Dafny {
       }
 
       return false;
+    }
+
+    private bool Boogie() {
+      var isVerified = true;
+      foreach (var boogieProgram in boogiePrograms) {
+        isVerified = isVerified && BoogieOnce(boogieProgram.Value);
+      }
+      return isVerified;
     }
   }
 }

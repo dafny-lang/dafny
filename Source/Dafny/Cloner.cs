@@ -117,11 +117,15 @@ namespace Microsoft.Dafny
       else if (d is ClassDecl) {
         var dd = (ClassDecl)d;
         var tps = dd.TypeArgs.ConvertAll(CloneTypeParam);
-        var mm = dd.Members.ConvertAll(CloneMember);
-        if (d is DefaultClassDecl) {
-          return new DefaultClassDecl(m, mm, CloneFromValue((DefaultClassDecl)d));
+        if (d.IsRevealedInScope(scope)) {
+          var mm = dd.Members.ConvertAll(CloneMember);
+          if (d is DefaultClassDecl) {
+            return new DefaultClassDecl(m, mm, CloneFromValue((DefaultClassDecl)d));
+          } else {
+            return new ClassDecl(Tok(dd.tok), dd.Name, m, tps, mm, CloneAttributes(dd.Attributes), dd.TraitsTyp.ConvertAll(CloneType), CloneFromValue(dd));
+          }
         } else {
-          return new ClassDecl(Tok(dd.tok), dd.Name, m, tps, mm, CloneAttributes(dd.Attributes), dd.TraitsTyp.ConvertAll(CloneType), CloneFromValue(dd));
+          return new OpaqueTypeDecl(Tok(dd.tok), d.Name, m, TypeParameter.EqualitySupportValue.Unspecified, tps, CloneAttributes(dd.Attributes), CloneFromValue(dd));
         }
       } else if (d is ModuleDecl) {
         if (d is LiteralModuleDecl) {

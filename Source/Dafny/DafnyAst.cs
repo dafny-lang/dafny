@@ -418,6 +418,8 @@ namespace Microsoft.Dafny {
     }
   }
 
+  enum Visibility { Opaque, Reveal } 
+
   public class VisibilityScope {
     private HashSet<string> scopeTokens = new HashSet<string>();
 
@@ -427,6 +429,11 @@ namespace Microsoft.Dafny {
         return other.scopeTokens.Intersect(this.scopeTokens).Count() > 0;
       }
       return true;
+    }
+
+    [Pure]
+    public bool IsEmpty() {
+      return scopeTokens.Count == 0;
     }
 
     //However augmenting with a null scope does nothing
@@ -770,6 +777,12 @@ namespace Microsoft.Dafny {
       get {
         var ct = NormalizeExpand() as UserDefinedType;
         return ct == null ? null : ct.ResolvedParam;
+      }
+    }
+    public bool IsOpaqueSynonym {
+      get {
+        var t = NormalizeExpand() as UserDefinedType;
+        return t != null && t.ResolvedClass is TypeSynonymDecl;
       }
     }
     public virtual bool SupportsEquality {
@@ -2121,15 +2134,36 @@ namespace Microsoft.Dafny {
 
     private VisibilityScope opaqueScope = new VisibilityScope();
     private VisibilityScope revealScope = new VisibilityScope();
+    private bool scopeIsInherited = false;
 
 
-    public void AddVisibilityScope(VisibilityScope scope, bool isOpaque) {
-      if (isOpaque) {
+    public void AddVisibilityScope(VisibilityScope scope, bool IsOpaque) {
+      Contract.Assert(!scopeIsInherited); //pragmatically we should only augment the visibility of the parent
+
+      if (IsOpaque) {
         opaqueScope.Augment(scope);
       } else {
         revealScope.Augment(scope);
       }
     }
+
+    /// <summary>
+    /// Make this declaration as visible as d. Optionally make this invisible if the parent declaration is opaque in scope.
+    /// </summary>
+    /// <param name="d"></param>
+    /// <param name="onlyRevealed"></param>
+    public void InheritVisibility(Declaration d, bool onlyRevealed = false) {
+      Contract.Assert(opaqueScope.IsEmpty());
+      Contract.Assert(revealScope.IsEmpty());
+      Contract.Assert(!scopeIsInherited);
+
+      revealScope = d.revealScope;
+      scopeIsInherited = true;
+      if (onlyRevealed) {
+        opaqueScope = d.opaqueScope;
+      }
+    }
+
 
     public bool IsRevealedInScope(VisibilityScope scope) {
       return revealScope.VisibleInScope(scope);
@@ -2405,6 +2439,7 @@ namespace Microsoft.Dafny {
     public readonly Attributes Attributes;
     public readonly List<IToken> RefinementBaseName;  // null if no refinement base
     public ModuleDecl RefinementBaseRoot; // filled in early during resolution, corresponds to RefinementBaseName[0]
+    public readonly VisibilityScope VisibilityScope;
 
     public List<Include> Includes;
 
@@ -2493,6 +2528,7 @@ namespace Microsoft.Dafny {
       this.refinementBase = null;
       Includes = new List<Include>();
       IsBuiltinName = isBuiltinName;
+      this.VisibilityScope = new VisibilityScope(name);
 
       if (isExclusiveRefinement && !DafnyOptions.O.IronDafny) {
         parser.errors.SynErr(

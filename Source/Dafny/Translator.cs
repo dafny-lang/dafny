@@ -97,15 +97,40 @@ namespace Microsoft.Dafny {
     // TODO(wuestholz): Enable this once Dafny's recommended Z3 version includes changeset 0592e765744497a089c42021990740f303901e67.
     public bool UseOptimizationInZ3 { get; set; }
 
+    public class TranslatorFlags {
+      public bool InsertChecksums = 0 < CommandLineOptions.Clo.VerifySnapshots;
+      public string UniqueIdPrefix = null;
+    }
+
     [NotDelayed]
-    public Translator(ErrorReporter reporter) {
+    public Translator(ErrorReporter reporter, TranslatorFlags flags = null) {
       this.reporter = reporter;
-      InsertChecksums = 0 < CommandLineOptions.Clo.VerifySnapshots;
+      if (flags == null) {
+        flags = new TranslatorFlags();
+      }
       Bpl.Program boogieProgram = ReadPrelude();
       if (boogieProgram != null) {
         sink = boogieProgram;
         predef = FindPredefinedDecls(boogieProgram);
       }
+    }
+
+    private void EstablishModuleScope(ModuleDefinition systemModule, ModuleDefinition m){
+      currentScope = new VisibilityScope();
+      verificationScope = new VisibilityScope();
+
+      currentScope.Augment(m.VisibilityScope);
+      currentScope.Augment(systemModule.VisibilityScope);
+
+      verificationScope.Augment(currentScope);
+
+      foreach (var decl in m.TopLevelDecls) {
+        if (decl is ModuleDecl) {
+          var mdecl = (ModuleDecl)decl;
+          currentScope.Augment(mdecl.Signature.VisibilityScope);
+        }
+      }
+            
     }
 
     // translation state
@@ -131,11 +156,40 @@ namespace Microsoft.Dafny {
       Contract.Invariant(codeContext == null || codeContext.EnclosingModule == currentModule);
     }
 
-    readonly Bpl.Program sink;
+    [Pure]
+    bool VisibleInScope(Declaration d) {
+      Contract.Requires(d != null);
+      return d.IsVisibleInScope(currentScope);
+    }
+
+    [Pure]
+    bool RevealedInScope(Declaration d) {
+      Contract.Requires(d != null);
+      return d.IsRevealedInScope(currentScope);
+    }
+
+    [Pure]
+    bool InVerificationScope(Declaration d) {
+      Contract.Requires(d != null);
+      if (d.IsVisibleInScope(verificationScope)) {
+        Contract.Assert(d.IsRevealedInScope(verificationScope));
+        return true;
+      }
+      return false;
+    }
+
+
+
+    private Bpl.Program sink;
+    private VisibilityScope currentScope;
+    private VisibilityScope verificationScope;
+
+
     readonly PredefinedDecls predef;
 
-    public bool InsertChecksums { get; set; }
-    public string UniqueIdPrefix { get; set; }
+    private TranslatorFlags flags = new TranslatorFlags();
+    private bool InsertChecksums { get { return flags.InsertChecksums; } }
+    private string UniqueIdPrefix { get { return flags.UniqueIdPrefix; } }
 
     internal class PredefinedDecls {
       public readonly Bpl.Type CharType;
@@ -477,20 +531,11 @@ namespace Microsoft.Dafny {
       return new Bpl.IdentifierExpr(tok, var.AssignUniqueName(currentDeclaration.IdGenerator), TrType(var.Type));
     }
 
-    public Bpl.Program Translate(Program p) {
-      Contract.Requires(p != null);
-      Contract.Ensures(Contract.Result<Bpl.Program>() != null);
-
+    private Bpl.Program DoTranslation(Program p, ModuleDefinition forModule) {
       program = p;
 
-      if (sink == null || predef == null) {
-        // something went wrong during construction, which reads the prelude; an error has
-        // already been printed, so just return an empty program here (which is non-null)
-        return new Bpl.Program();
-      }
-
-      // compute which function needs fuel constants.
-      ComputeFunctionFuel();
+      EstablishModuleScope(p.BuiltIns.SystemModule, forModule);
+      Type.RegisterScopeGetter(() => this.currentScope);
 
       foreach (var w in program.BuiltIns.Bitwidths) {
         AddBitvectorFunction(w, "and_bv", "bvand");
@@ -515,15 +560,24 @@ namespace Microsoft.Dafny {
           AddClassMembers((ClassDecl)d);
         }
       }
+
+      ComputeFunctionFuel(); // compute which function needs fuel constants.
+
       foreach (ModuleDefinition m in program.Modules) {
         foreach (TopLevelDecl d in m.TopLevelDecls) {
           currentDeclaration = d;
+          if (!VisibleInScope(currentDeclaration)) {
+            continue; // we don't care about declarations we can't see
+          }
           if (d is OpaqueTypeDecl) {
             AddTypeDecl((OpaqueTypeDecl)d);
           } else if (d is NewtypeDecl) {
             AddTypeDecl((NewtypeDecl)d);
           } else if (d is TypeSynonymDecl) {
-            // do nothing, just bypass type synonyms in the translation
+            if (!RevealedInScope(d)) {
+              AddTypeDecl((TypeSynonymDecl)d);
+              // type synonyms are now relevant as they may encode an opaque type
+            }
           } else if (d is DatatypeDecl) {
             AddDatatype((DatatypeDecl)d);
           } else if (d is ModuleDecl) {
@@ -538,7 +592,8 @@ namespace Microsoft.Dafny {
           }
         }
       }
-      foreach(var c in fieldConstants.Values) {
+
+      foreach (var c in fieldConstants.Values) {
         sink.AddTopLevelDeclaration(c);
       }
       HashSet<Tuple<string, string>> checkedMethods = new HashSet<Tuple<string, string>>();
@@ -547,6 +602,9 @@ namespace Microsoft.Dafny {
         if (t is MethodCheck) {
           var m = (MethodCheck)t;
           currentDeclaration = m.Refining;
+          if (!InVerificationScope(currentDeclaration)) {
+            continue;
+          }
           var id = new Tuple<string, string>(m.Refined.FullSanitizedName, m.Refining.FullSanitizedName);
           if (!checkedMethods.Contains(id)) {
             AddMethodRefinementCheck(m);
@@ -565,25 +623,45 @@ namespace Microsoft.Dafny {
 
       AddTraitParentAxioms();
 
-      if (InsertChecksums)
-      {
-        foreach (var impl in sink.Implementations)
-        {
-          if (impl.FindStringAttribute("checksum") == null)
-          {
+      if (InsertChecksums) {
+        foreach (var impl in sink.Implementations) {
+          if (impl.FindStringAttribute("checksum") == null) {
             impl.AddAttribute("checksum", "stable");
           }
         }
-        foreach (var func in sink.Functions)
-        {
-          if (func.FindStringAttribute("checksum") == null)
-          {
+        foreach (var func in sink.Functions) {
+          if (func.FindStringAttribute("checksum") == null) {
             func.AddAttribute("checksum", "stable");
           }
         }
       }
 
+      Type.DropScope();
       return sink;
+
+    }
+
+    public static Dictionary<string, Bpl.Program> Translate(Program p, ErrorReporter reporter, TranslatorFlags flags = null) {
+      Contract.Requires(p != null);
+      Contract.Requires(p.Modules.Count > 0);
+      Contract.Ensures(Contract.Result<Dictionary<string, Bpl.Program>>().Count == p.Modules.Count);
+      Contract.Ensures(Contract.Result<Dictionary<string, Bpl.Program>>().All(ccep => ccep.Value != null));
+
+      Dictionary<string, Bpl.Program> programs = new Dictionary<string, Bpl.Program>();
+
+      foreach (ModuleDefinition outerModule in p.Modules) {
+        var translator = new Translator(reporter, flags);
+
+        if (translator.sink == null || translator.sink == null) {
+          // something went wrong during construction, which reads the prelude; an error has
+          // already been printed, so just return an empty program here (which is non-null)
+          programs.Add(outerModule.Name, new Bpl.Program());
+          continue;
+        }
+        programs.Add(outerModule.Name, translator.DoTranslation(p, outerModule));
+      }
+
+      return programs;
     }
 
     private void AddBitvectorFunction(int w, string namePrefix, string smtFunctionName) {
@@ -606,7 +684,7 @@ namespace Microsoft.Dafny {
           if (d is ClassDecl) {
             ClassDecl c = (ClassDecl)d;
             foreach (MemberDecl member in c.Members) {
-              if (member is Function) {
+              if (member is Function && RevealedInScope(member)) {
                 Function f = (Function)member;
                 // declare the fuel constant
                 if (f.IsFueled) {
@@ -645,6 +723,9 @@ namespace Microsoft.Dafny {
             {
                 foreach (TopLevelDecl d in m.TopLevelDecls)
                 {
+                  if (!VisibleInScope(d)) {
+                    continue;
+                  }
                     if (d is ClassDecl)
                     {
                         var c = (ClassDecl)d;
@@ -652,6 +733,9 @@ namespace Microsoft.Dafny {
                         {
                             foreach (TraitDecl traitObj in c.TraitsObj)
                             {
+                              if (!VisibleInScope(traitObj)) {
+                                continue;
+                              }
                                 //this adds: axiom TraitParent(class.A) == class.J; Where A extends J
                                 Bpl.TypedIdent trait_id = new Bpl.TypedIdent(traitObj.tok, string.Format("class.{0}", traitObj.FullSanitizedName), predef.ClassNameType);
                                 Bpl.Constant trait = new Bpl.Constant(traitObj.tok, trait_id, true);
@@ -682,6 +766,14 @@ namespace Microsoft.Dafny {
       Contract.Requires(td != null);
       AddTypeDecl_Aux(td.tok, nameTypeParam(td.TheType), td.TypeArgs);
     }
+
+    void AddTypeDecl(TypeSynonymDecl td) {
+      Contract.Requires(td != null);
+      Contract.Requires(!RevealedInScope(td));
+      AddTypeDecl_Aux(td.tok, "#$" + td.Name, td.TypeArgs);
+    }
+
+    //TODO handle opaque newtype
     void AddTypeDecl(NewtypeDecl dd) {
       Contract.Requires(dd != null);
       Contract.Ensures(fuelContext == Contract.OldValue(fuelContext));      
@@ -1375,6 +1467,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(sink != null && predef != null);
       Contract.Requires(c != null);
       Contract.Ensures(fuelContext == Contract.OldValue(fuelContext));
+      Contract.Assert(VisibleInScope(c));
 
       sink.AddTopLevelDeclaration(GetClass(c));
       if (c is ArrayClassDecl) {
@@ -1527,10 +1620,10 @@ namespace Microsoft.Dafny {
     ///   - "f" is not opaque
     ///   - "f" is declared as protected, then "context" is the current module and parameter "revealProtectedBody" is passed in as "true".
     /// </summary>
-    static bool FunctionBodyIsAvailable(Function f, ModuleDefinition context, bool revealProtectedBody) {
+    static bool FunctionBodyIsAvailable(Function f, ModuleDefinition context, VisibilityScope scope, bool revealProtectedBody) {
       Contract.Requires(f != null);
       Contract.Requires(context != null);
-      return f.Body != null && !IsOpaqueFunction(f) && (!f.IsProtected || (revealProtectedBody && f.EnclosingClass.Module == context));
+      return f.Body != null && !IsOpaqueFunction(f) && f.IsRevealedInScope(scope) && (!f.IsProtected || (revealProtectedBody && f.EnclosingClass.Module == context));
     }
     static bool IsOpaqueFunction(Function f) {
       Contract.Requires(f != null);
@@ -1539,6 +1632,10 @@ namespace Microsoft.Dafny {
     static bool IsOpaqueRevealLemma(Method m) {
       Contract.Requires(m != null);
       return Attributes.Contains(m.Attributes, "opaque_reveal");
+    }
+
+    private bool FunctionIsRevealed(Function f) {
+      return f.Body != null && RevealedInScope(f);
     }
 
     private void AddClassMember_Function(Function f) {
@@ -1560,12 +1657,11 @@ namespace Microsoft.Dafny {
       // add consequence axiom
       sink.AddTopLevelDeclaration(FunctionConsequenceAxiom(f, f.Ens));
       // add definition axioms, suitably specialized for literals
-      if (f.Body != null) {
-        AddFunctionAxiom(f, FunctionAxiomVisibility.IntraModuleOnly, f.Body.Resolved);
-        AddFunctionAxiom(f, FunctionAxiomVisibility.ForeignModuleOnly, f.Body.Resolved);
+      if (FunctionIsRevealed(f)) {
+        AddFunctionAxiom(f, f.Body.Resolved);
       } else {
         // for body-less functions, at least generate its #requires function      
-        var b = FunctionAxiom(f, FunctionAxiomVisibility.ForeignModuleOnly, null, null);
+        var b = FunctionAxiom(f, null, null);
         Contract.Assert(b == null);
       }
       // supply the connection between inductive/coinductive predicates and prefix predicates
@@ -1950,11 +2046,11 @@ namespace Microsoft.Dafny {
       }
     }
 
-    void AddFunctionAxiom(Function f, FunctionAxiomVisibility visibility, Expression body) {
+    void AddFunctionAxiom(Function f, Expression body) {
       Contract.Requires(f != null);
       Contract.Requires(body != null);
 
-      var ax = FunctionAxiom(f, visibility, body, null);
+      var ax = FunctionAxiom(f, body, null);
       sink.AddTopLevelDeclaration(ax);
       // TODO(namin) Is checking f.Reads.Count==0 excluding Valid() of BinaryTree in the right way?
       //             I don't see how this in the decreasing clause would help there.
@@ -1972,18 +2068,16 @@ namespace Microsoft.Dafny {
         }
         Contract.Assert(decs.Count <= f.Formals.Count);
         if (0 < decs.Count && decs.Count < f.Formals.Count && !DafnyOptions.O.Dafnycc) {
-          ax = FunctionAxiom(f, visibility, body, decs);
+          ax = FunctionAxiom(f, body, decs);
           sink.AddTopLevelDeclaration(ax);
         }
 
         if (!DafnyOptions.O.Dafnycc) {
-          ax = FunctionAxiom(f, visibility, body, f.Formals);
+          ax = FunctionAxiom(f, body, f.Formals);
           sink.AddTopLevelDeclaration(ax);
         }
       }
     }
-
-    enum FunctionAxiomVisibility { IntraModuleOnly, ForeignModuleOnly }
 
     Bpl.Axiom FunctionConsequenceAxiom(Function f, List<Expression> ens) {
       Contract.Requires(f != null);
@@ -2139,7 +2233,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    Bpl.Axiom FunctionAxiom(Function f, FunctionAxiomVisibility visibility, Expression body, ICollection<Formal> lits, TopLevelDecl overridingClass = null) {
+    Bpl.Axiom FunctionAxiom(Function f, Expression body, ICollection<Formal> lits, TopLevelDecl overridingClass = null) {
       Contract.Requires(f != null);
       Contract.Requires(predef != null);
       Contract.Requires(f.EnclosingClass != null);
@@ -2266,7 +2360,7 @@ namespace Microsoft.Dafny {
       }
 
       // Add the precondition function and its axiom (which is equivalent to the ante)
-      if (body == null || (visibility == FunctionAxiomVisibility.IntraModuleOnly && lits == null)) {
+      if (!FunctionIsRevealed(f) || (FunctionIsRevealed(f) && lits == null)) {
         if (overridingClass == null) {
           var precondF = new Bpl.Function(f.tok,
             RequiresName(f), new List<Bpl.TypeVariable>(),
@@ -2279,14 +2373,14 @@ namespace Microsoft.Dafny {
         // axiom (forall params :: { f#requires(params) }  ante ==> f#requires(params) == pre);
         sink.AddTopLevelDeclaration(new Axiom(f.tok, BplForall(formals, BplTrigger(appl),
           BplImp(ante, Bpl.Expr.Eq(appl, pre)))));
-        if (body == null) {
+        if (!FunctionIsRevealed(f)) {
           return null;
         }
       }
 
       // useViaContext: (mh != ModuleContextHeight || fh != FunctionContextHeight)
       ModuleDefinition mod = f.EnclosingClass.Module;
-      Bpl.Expr useViaContext = visibility == FunctionAxiomVisibility.ForeignModuleOnly ? (Bpl.Expr)Bpl.Expr.True :
+      Bpl.Expr useViaContext = !FunctionIsRevealed(f) ? (Bpl.Expr)Bpl.Expr.True :
         Bpl.Expr.Neq(Bpl.Expr.Literal(mod.CallGraph.GetSCCRepresentativeId(f)), etran.FunctionContextHeight());
       // ante := (useViaContext && typeAnte && pre)
       ante = BplAnd(useViaContext, BplAnd(ante, pre));
@@ -2322,7 +2416,7 @@ namespace Microsoft.Dafny {
       Bpl.Trigger tr = new Bpl.Trigger(f.tok, true, new List<Bpl.Expr> { funcAppl });
       var typeParams = TrTypeParamDecls(f.TypeArgs);
       Bpl.Expr tastyVegetarianOption;
-      if (visibility == FunctionAxiomVisibility.ForeignModuleOnly && f.IsProtected) {
+      if (!FunctionIsRevealed(f) && f.IsProtected) {
         tastyVegetarianOption = Bpl.Expr.True;
       } else {
         var bodyWithSubst = Substitute(body, null, substMap);
@@ -2346,7 +2440,7 @@ namespace Microsoft.Dafny {
         kv = new QKeyValue(f.tok, "weight", new List<object>() { Bpl.Expr.Literal(3) }, null);
       }
       Bpl.Expr ax = new Bpl.ForallExpr(f.tok, typeParams, formals, kv, tr, Bpl.Expr.Imp(ante, tastyVegetarianOption));
-      var activate = AxiomActivation(f, visibility == FunctionAxiomVisibility.ForeignModuleOnly, visibility == FunctionAxiomVisibility.IntraModuleOnly, etran);
+      var activate = AxiomActivation(f, !FunctionIsRevealed(f), FunctionIsRevealed(f), etran);
       string comment;
       if (overridingClass == null) {
         comment = "definition axiom for " + f.FullSanitizedName;
@@ -2360,9 +2454,9 @@ namespace Microsoft.Dafny {
           comment += " for decreasing-related literals";
         }
       }
-      if (visibility == FunctionAxiomVisibility.IntraModuleOnly) {
-        comment += " (intra-module)";
-      } else if (visibility == FunctionAxiomVisibility.ForeignModuleOnly) {
+      if (FunctionIsRevealed(f)) {
+        comment += " (intra-module and revealed)";
+      } else if (!FunctionIsRevealed(f)) {
         comment += " (foreign modules)";
       }
       return new Bpl.Axiom(f.tok, Bpl.Expr.Imp(activate, ax), comment);
@@ -3269,8 +3363,7 @@ namespace Microsoft.Dafny {
       // TODO: the following two lines (incorrectly) assume there are no type parameters
       pseudoBody.Type = f.ResultType;  // resolve here
       pseudoBody.TypeArgumentSubstitutions = new Dictionary<TypeParameter,Type>();  // resolve here
-      sink.AddTopLevelDeclaration(FunctionAxiom(f.OverriddenFunction, FunctionAxiomVisibility.IntraModuleOnly, pseudoBody, null, f.EnclosingClass));
-      sink.AddTopLevelDeclaration(FunctionAxiom(f.OverriddenFunction, FunctionAxiomVisibility.ForeignModuleOnly, pseudoBody, null, f.EnclosingClass));
+      sink.AddTopLevelDeclaration(FunctionAxiom(f.OverriddenFunction, pseudoBody, null, f.EnclosingClass));
     }
 
     private void AddFunctionOverrideEnsChk(Function f, StmtListBuilder builder, ExpressionTranslator etran, Dictionary<IVariable, Expression> substMap, List<Variable> implInParams)
@@ -3711,7 +3804,7 @@ namespace Microsoft.Dafny {
         printer.PrintFrameSpecLine("", f.Reads, 0, null);
         printer.PrintSpec("", f.Ens, 0);
         printer.PrintDecreasesSpec(f.Decreases, 0);
-        if (!specificationOnly && f.Body != null)
+        if (!specificationOnly && FunctionIsRevealed(f))
         {
           printer.PrintExpression(f.Body, false);
         }
@@ -4285,7 +4378,7 @@ namespace Microsoft.Dafny {
       }
       // Here goes the body (and include both termination checks and reads checks)
       StmtListBuilder bodyCheckBuilder = new StmtListBuilder();
-      if (f.Body == null) {
+      if (!FunctionIsRevealed(f)) {
         // don't fall through to postcondition checks
         bodyCheckBuilder.Add(TrAssumeCmd(f.tok, Bpl.Expr.False));
       } else {
@@ -6340,6 +6433,8 @@ namespace Microsoft.Dafny {
       Contract.Requires(sink != null && predef != null);
       Contract.Ensures(Contract.Result<Bpl.Constant>() != null);
 
+      Contract.Assert(VisibleInScope(f));
+
       Bpl.Constant fc;
       if (fields.TryGetValue(f, out fc)) {
         Contract.Assert(fc != null);
@@ -6369,6 +6464,8 @@ namespace Microsoft.Dafny {
       Contract.Requires(f != null && !f.IsMutable);
       Contract.Requires(sink != null && predef != null);
       Contract.Ensures(Contract.Result<Bpl.Function>() != null);
+
+      Contract.Assert(VisibleInScope(f));
 
       Bpl.Function ff;
       if (fieldFunctions.TryGetValue(f, out ff)) {
@@ -7134,6 +7231,8 @@ namespace Microsoft.Dafny {
         return predef.HandleType;
       } else if (type.IsTypeParameter) {
         return predef.BoxType;
+      } else if (type.IsOpaqueSynonym) {
+        return predef.BoxType;
       } else if (type.IsRefType) {
         // object and class types translate to ref
         return predef.RefType;
@@ -7147,6 +7246,7 @@ namespace Microsoft.Dafny {
         return predef.MapType(Token.NoToken, ((MapType)type).Finite, predef.BoxType, predef.BoxType);
       } else if (type is SeqType) {
         return predef.SeqType(Token.NoToken, predef.BoxType);
+
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected type
       }
@@ -11470,7 +11570,7 @@ namespace Microsoft.Dafny {
           result = translator.CondApplyUnbox(e.tok, result, e.Function.ResultType, e.Type);
           
           bool callIsLit = argsAreLit 
-            && Translator.FunctionBodyIsAvailable(e.Function, translator.currentModule, true)
+            && Translator.FunctionBodyIsAvailable(e.Function, translator.currentModule, translator.currentScope, true)
             && !e.Function.Reads.Any(); // Function could depend on external values
           if (callIsLit) {
             result = MaybeLit(result, ty);
@@ -13428,13 +13528,13 @@ namespace Microsoft.Dafny {
         var module = f.EnclosingClass.Module;
         var functionHeight = module.CallGraph.GetSCCRepresentativeId(f);
 
-        if (functionHeight < heightLimit && f.Body != null && !(f.Body.Resolved is MatchExpr)) {
+        if (functionHeight < heightLimit && FunctionIsRevealed(f) && !(f.Body.Resolved is MatchExpr)) {
           if (RefinementToken.IsInherited(fexp.tok, currentModule) &&
               f is Predicate && ((Predicate)f).BodyOrigin == Predicate.BodyOriginKind.DelayedDefinition &&
               (codeContext == null || !codeContext.MustReverify)) {
             // The function was inherited as body-less but is now given a body. Don't inline the body (since, apparently, everything
             // that needed to be proved about the function was proved already in the previous module, even without the body definition).
-          } else if (!FunctionBodyIsAvailable(f, currentModule, inlineProtectedFunctions)) {
+          } else if (!FunctionBodyIsAvailable(f, currentModule, currentScope, inlineProtectedFunctions)) {
             // Don't inline opaque functions or foreign protected functions
           } else if (Attributes.Contains(f.Attributes, "no_inline")) {
             // User manually prevented inlining

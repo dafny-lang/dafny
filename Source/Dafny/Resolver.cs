@@ -828,12 +828,15 @@ namespace Microsoft.Dafny
       }
 
       //check for export consistency by resolving internal modules
+      //this should be effect-free, as it only operates on clones
       foreach (ModuleExportDecl decl in sortedDecls) {
-        Cloner cloner = new Cloner(decl.Signature.VisibilityScope);
+        var scope = decl.Signature.VisibilityScope;
+        Cloner cloner = new Cloner(scope);
         ModuleDefinition exportView = new ModuleDefinition(Token.NoToken, "_exportView", m.IsAbstract, m.IsFacade, m.IsExclusiveRefinement, new List<IToken>(), m.Module, m.Attributes, false);
-        var scope = new VisibilityScope(exportView.Name);
 
         foreach (var export in decl.Signature.TopLevels) {
+          Contract.Assert(export.Value.IsVisibleInScope(scope));
+ 
           var topDecl = cloner.CloneDeclaration(export.Value, exportView);
           exportView.TopLevelDecls.Add(topDecl);
         }
@@ -842,6 +845,8 @@ namespace Microsoft.Dafny
         exportView.TopLevelDecls.Add(defaultClass);
 
         foreach (var export in decl.Signature.StaticMembers){
+          Contract.Assert(export.Value.IsVisibleInScope(scope));
+
           var memberDecl = cloner.CloneMember(export.Value);
           defaultClass.Members.Add(memberDecl);
         }
@@ -1038,10 +1043,10 @@ namespace Microsoft.Dafny
       var sig = new ModuleSignature();
       sig.ModuleDef = moduleDef;
       sig.IsAbstract = moduleDef.IsAbstract;
-      if (scope == null) {
-        scope = new VisibilityScope(moduleDef.Name);
-      }
-      sig.VisibilityScope = scope;
+      sig.VisibilityScope = new VisibilityScope();
+      sig.VisibilityScope.Augment(moduleDef.VisibilityScope);
+      sig.VisibilityScope.Augment(scope);
+
       List<TopLevelDecl> declarations = moduleDef.TopLevelDecls;
 
       // First go through and add anything from the opened imports
@@ -1218,6 +1223,7 @@ namespace Microsoft.Dafny
             } else {
               var field = new SpecialField(p.tok, p.Name, p.CompileName, "", "", p.IsGhost, false, false, p.Type, null);
               field.EnclosingClass = iter;  // resolve here
+              field.InheritVisibility(iter, true);
               members.Add(p.Name, field);
               iter.Members.Add(field);
             }
@@ -1228,6 +1234,7 @@ namespace Microsoft.Dafny
             } else {
               var field = new SpecialField(p.tok, p.Name, p.CompileName, "", "", p.IsGhost, true, true, p.Type, null);
               field.EnclosingClass = iter;  // resolve here
+              field.InheritVisibility(iter, true);
               iter.OutsFields.Add(field);
               members.Add(p.Name, field);
               iter.Members.Add(field);
@@ -1241,6 +1248,7 @@ namespace Microsoft.Dafny
               var tp = new SeqType(p.Type.IsSubrangeType ? new IntType() : p.Type);
               var field = new SpecialField(p.tok, nm, nm, "", "", true, true, false, tp, null);
               field.EnclosingClass = iter;  // resolve here
+              field.InheritVisibility(iter, true);
               iter.OutsHistoryFields.Add(field);  // for now, just record this field (until all parameters have been added as members)
             }
           }
@@ -1255,6 +1263,7 @@ namespace Microsoft.Dafny
           iter.Member_New = new SpecialField(iter.tok, "_new", "_new",                "", "", true, true, true, new SetType(true, new ObjectType()), null);
           foreach (var field in new List<Field>() { iter.Member_Reads, iter.Member_Modifies, iter.Member_New }) {
             field.EnclosingClass = iter;  // resolve here
+            field.InheritVisibility(iter, true);
             members.Add(field.Name, field);
             iter.Members.Add(field);
           }
@@ -1266,6 +1275,7 @@ namespace Microsoft.Dafny
             var nm = "_decreases" + i;
             var field = new SpecialField(p.tok, nm, nm, "", "", true, false, false, new InferredTypeProxy(), null);
             field.EnclosingClass = iter;  // resolve here
+            field.InheritVisibility(iter, true);
             iter.DecreasesFields.Add(field);
             members.Add(field.Name, field);
             iter.Members.Add(field);
@@ -1300,7 +1310,9 @@ namespace Microsoft.Dafny
             null, null, null);
           // add these implicit members to the class
           init.EnclosingClass = iter;
+          init.InheritVisibility(iter, true);
           valid.EnclosingClass = iter;
+          valid.InheritVisibility(iter, true);
           moveNext.EnclosingClass = iter;
           iter.HasConstructor = true;
           iter.Member_Init = init;
@@ -1336,6 +1348,7 @@ namespace Microsoft.Dafny
           classMembers.Add(cl, members);
 
           foreach (MemberDecl m in cl.Members) {
+            m.AddVisibilityScope(sig.VisibilityScope, false);
             if (!members.ContainsKey(m.Name)) {
               members.Add(m.Name, m);
               if (m is Constructor) {
@@ -1393,6 +1406,7 @@ namespace Microsoft.Dafny
                   // In the call graph, add an edge from M# to M, since this will have the desired effect of detecting unwanted cycles.
                   moduleDef.CallGraph.AddEdge(com.PrefixLemma, com);
                 }
+                extraMember.InheritVisibility(m, true);
                 members.Add(extraName, extraMember);
               }
             } else if (m is Constructor && !((Constructor)m).HasName) {
@@ -1636,7 +1650,14 @@ namespace Microsoft.Dafny
       Contract.Requires(cce.NonNullElements(datatypeDependencies));
       Contract.Requires(cce.NonNullElements(codatatypeDependencies));
       Contract.Requires(AllTypeConstraints.Count == 0);
+
       Contract.Ensures(AllTypeConstraints.Count == 0);
+
+
+      //The scoping environment should be sane right now
+      Contract.Assert(declarations.All(d => d.IsRevealedInScope(moduleInfo.VisibilityScope)));
+      Contract.Assert(declarations.All(d =>
+          (d is ClassDecl) ? ((ClassDecl)d).Members.All(m => m.IsRevealedInScope(moduleInfo.VisibilityScope)) : true));
 
       int prevErrorCount = reporter.Count(ErrorLevel.Error);
 
