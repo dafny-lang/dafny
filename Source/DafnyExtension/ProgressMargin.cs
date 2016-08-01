@@ -6,6 +6,7 @@ using System.Diagnostics.Contracts;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Media;
@@ -62,6 +63,24 @@ namespace DafnyLanguage
     }
   }
 
+  internal class RunVerifierThreadParams
+  {
+    public RunVerifierThreadParams(Dafny.Program i_program, ITextSnapshot i_snapshot, string i_requestId, ResolverTagger i_errorListHolder, bool i_diagnoseTimeouts)
+    {
+      program = i_program;
+      snapshot = i_snapshot;
+      requestId = i_requestId;
+      errorListHolder = i_errorListHolder;
+      diagnoseTimeouts = i_diagnoseTimeouts;
+    }
+
+    public Dafny.Program program;
+    public ITextSnapshot snapshot;
+    public string requestId;
+    public ResolverTagger errorListHolder;
+    public bool diagnoseTimeouts;
+  }
+
   #endregion
 
 
@@ -104,6 +123,7 @@ namespace DafnyLanguage
     bool _logSnapshots = false;
     DateTime _created;
     int _version;
+    int _verificationTaskStackSize = 16 * 1024 * 1024;
 
     readonly DispatcherTimer timer;
 
@@ -195,7 +215,6 @@ namespace DafnyLanguage
     }
 
     bool verificationInProgress;  // this field is protected by "this".  Invariant:  !verificationInProgress ==> bufferChangesPreVerificationStart.Count == 0
-    System.Threading.Tasks.Task verificationTask;
     public bool VerificationDisabled { get; private set; }
     bool isDiagnosingTimeouts;
     string lastRequestId;
@@ -261,9 +280,9 @@ namespace DafnyLanguage
           ProgressTaggers[_document.TextBuffer] = this;
         }
 
-        verificationTask = System.Threading.Tasks.Task.Factory.StartNew(
-          () => RunVerifier(prog, snap, lastRequestId, resolver, dt),
-          TaskCreationOptions.LongRunning);
+        RunVerifierThreadParams verifierThreadParams = new RunVerifierThreadParams(prog, snap, lastRequestId, resolver, dt);
+        Thread thread = new Thread(RunVerifierThreadRoutine, _verificationTaskStackSize);
+        thread.Start(verifierThreadParams);
 
         verificationInProgress = true;
         if (dt)
@@ -405,6 +424,12 @@ namespace DafnyLanguage
       // If new changes took place since we started the verification, we may need to kick off another verification
       // immediately.
       UponIdle(null, null);
+    }
+
+    private void RunVerifierThreadRoutine(object o)
+    {
+        RunVerifierThreadParams p = (RunVerifierThreadParams)o;
+        RunVerifier(p.program, p.snapshot, p.requestId, p.errorListHolder, p.diagnoseTimeouts);
     }
 
     public event EventHandler<SnapshotSpanEventArgs> TagsChanged;

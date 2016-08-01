@@ -279,10 +279,7 @@ namespace DafnyLanguage
           RecordUseAndDef(e.tok, func.Name.Length, func.tok);
         }
       } else if (expr is ApplySuffix) {
-        var e = (ApplySuffix)expr;
-        if (e.Lhs != null) {
-          ExprRegions(e.Lhs, regions, prog, module);
-        }
+         // No need to call ExprRegions on the Lhs field because the for loop at the end of this function will do that.
       } else if (expr is LetExpr) {
         var e = (LetExpr)expr;
         IdRegion.AddRecognizedAttributes(e.Attributes, regions, prog);
