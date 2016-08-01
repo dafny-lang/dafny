@@ -52,14 +52,19 @@ namespace Microsoft.Dafny
         if (d.IsRevealedInScope(scope)) {
           return new TypeSynonymDecl(Tok(dd.tok), dd.Name, tps, m, CloneType(dd.Rhs), CloneAttributes(dd.Attributes), CloneFromValue(dd));
         } else {
-          return new OpaqueTypeDecl(Tok(dd.tok), dd.Name, m, TypeParameter.EqualitySupportValue.InferredRequired, tps, CloneAttributes(dd.Attributes), CloneFromValue(dd));
+          return new OpaqueTypeDecl(Tok(dd.tok), dd.Name, m, dd.Rhs.SupportsEquality ? TypeParameter.EqualitySupportValue.Required : TypeParameter.EqualitySupportValue.Unspecified, tps, CloneAttributes(dd.Attributes), CloneFromValue(dd));
         }
       } else if (d is NewtypeDecl) {
         var dd = (NewtypeDecl)d;
-        if (dd.Var == null) {
-          return new NewtypeDecl(Tok(dd.tok), dd.Name, m, CloneType(dd.BaseType), CloneAttributes(dd.Attributes), CloneFromValue(dd));
+
+        if (dd.IsRevealedInScope(scope)) {
+          if (dd.Var == null) {
+            return new NewtypeDecl(Tok(dd.tok), dd.Name, m, CloneType(dd.BaseType), CloneAttributes(dd.Attributes), CloneFromValue(dd));
+          } else {
+            return new NewtypeDecl(Tok(dd.tok), dd.Name, m, CloneBoundVar(dd.Var), CloneExpr(dd.Constraint), CloneAttributes(dd.Attributes), CloneFromValue(dd));
+          }
         } else {
-          return new NewtypeDecl(Tok(dd.tok), dd.Name, m, CloneBoundVar(dd.Var), CloneExpr(dd.Constraint), CloneAttributes(dd.Attributes), CloneFromValue(dd));
+          return new OpaqueTypeDecl(Tok(dd.tok), dd.Name, m, TypeParameter.EqualitySupportValue.Required, new List<TypeParameter>(), CloneAttributes(dd.Attributes), CloneFromValue(dd));
         }
       } else if (d is TupleTypeDecl) {
         var dd = (TupleTypeDecl)d;

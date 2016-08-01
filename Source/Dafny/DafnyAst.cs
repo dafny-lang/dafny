@@ -532,26 +532,40 @@ namespace Microsoft.Dafny {
           type = pt.T;
           continue;
         }
-          var syn = type.AsTypeSynonym;
-          if (syn != null) {
-            if (syn.IsRevealedInScope(Type.getScope())) {
-              var udt = (UserDefinedType)type;  // correctness of cast follows from the AsTypeSynonym != null test.
-              // Instantiate with the actual type arguments
-              type = syn.RhsWithArgument(udt.TypeArgs);
-              continue;
-            } else {
-              // We can't access our synonym due to the current scoping environment.
-              // This is the end of the road.
-              return type;
-            }
+        var syn = type.AsTypeSynonym;
+        if (syn != null) {
+          if (syn.IsRevealedInScope(Type.getScope())) {
+            var udt = (UserDefinedType)type;  // correctness of cast follows from the AsTypeSynonym != null test.
+            // Instantiate with the actual type arguments
+            type = syn.RhsWithArgument(udt.TypeArgs);
+            continue;
+          } else {
+            // We can't access our synonym due to the current scoping environment.
+            // This is the end of the road.
+            return type;
+          }
+
         }
+
+        var udt2 = type as UserDefinedType;
+        var nt = udt2 == null ? null : udt2.ResolvedClass as NewtypeDecl;
+
+        if (nt != null && !nt.IsRevealedInScope(Type.getScope())) {
+          Contract.Assert(nt.SelfSynonym != null);
+          Contract.Assert(nt.SelfSynonym.ResolvedClass != null);
+          Contract.Assert(!nt.SelfSynonym.ResolvedClass.IsRevealedInScope(Type.getScope()));
+          type = nt.SelfSynonym;
+          continue;
+        }
+
+
         if (DafnyOptions.O.IronDafny && type is UserDefinedType) {
           var rc = ((UserDefinedType)type).ResolvedClass;
           if (rc != null) {
             while (rc.ClonedFrom != null || rc.ExclusiveRefinement != null) {
               if (rc.ClonedFrom != null) {
                 rc = (TopLevelDecl)rc.ClonedFrom;
-          } else {
+              } else {
                 Contract.Assert(rc.ExclusiveRefinement != null);
                 rc = rc.ExclusiveRefinement;
               }
@@ -2013,7 +2027,7 @@ namespace Microsoft.Dafny {
         return Family.ValueType;
       } else if (t.IsRefType) {
         return Family.Ref;
-      } else if (t.IsTypeParameter) {
+      } else if (t.IsTypeParameter || t.IsOpaqueSynonym) {
         return Family.Opaque;
       } else if (t is TypeProxy) {
         return ((TypeProxy)t).family;
@@ -3456,6 +3470,7 @@ namespace Microsoft.Dafny {
     public readonly BoundVar Var;  // can be null (if non-null, then object.ReferenceEquals(Var.Type, BaseType))
     public readonly Expression Constraint;  // is null iff Var is
     public NativeType NativeType; // non-null for fixed-size representations (otherwise, use BigIntegers for integers)
+    public UserDefinedType SelfSynonym; // a synonym that points back to this newtype, but only in a revealed scope
     public NewtypeDecl(IToken tok, string name, ModuleDefinition module, Type baseType, Attributes attributes, NewtypeDecl clonedFrom = null)
       : base(tok, name, module, new List<TypeParameter>(), attributes, clonedFrom) {
       Contract.Requires(tok != null);
@@ -3473,7 +3488,15 @@ namespace Microsoft.Dafny {
       BaseType = bv.Type;
       Var = bv;
       Constraint = constraint;
+      
     }
+
+    [ContractInvariantMethod]
+    void ObjectInvariant() {
+      Contract.Invariant(SelfSynonym == null ||
+        ((UserDefinedType)((TypeSynonymDecl)SelfSynonym.ResolvedClass).Rhs).ResolvedClass == this);
+    }
+
 
     string RedirectingTypeDecl.Name { get { return Name; } }
 

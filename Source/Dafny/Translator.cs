@@ -564,11 +564,8 @@ namespace Microsoft.Dafny {
       ComputeFunctionFuel(); // compute which function needs fuel constants.
 
       foreach (ModuleDefinition m in program.Modules) {
-        foreach (TopLevelDecl d in m.TopLevelDecls) {
+        foreach (TopLevelDecl d in m.TopLevelDecls.FindAll(VisibleInScope)) {
           currentDeclaration = d;
-          if (!VisibleInScope(currentDeclaration)) {
-            continue; // we don't care about declarations we can't see
-          }
           if (d is OpaqueTypeDecl) {
             AddTypeDecl((OpaqueTypeDecl)d);
           } else if (d is NewtypeDecl) {
@@ -773,10 +770,15 @@ namespace Microsoft.Dafny {
       AddTypeDecl_Aux(td.tok, "#$" + td.Name, td.TypeArgs);
     }
 
-    //TODO handle opaque newtype
     void AddTypeDecl(NewtypeDecl dd) {
       Contract.Requires(dd != null);
-      Contract.Ensures(fuelContext == Contract.OldValue(fuelContext));      
+      Contract.Ensures(fuelContext == Contract.OldValue(fuelContext));
+
+      if (!RevealedInScope(dd)) {
+        Contract.Assert(dd.SelfSynonym != null);
+        AddTypeDecl((TypeSynonymDecl)dd.SelfSynonym.ResolvedClass);
+        return;
+      }
 
       FuelContext oldFuelContext = this.fuelContext;
       this.fuelContext = FuelSetting.NewFuelContext(dd);
@@ -1537,7 +1539,7 @@ namespace Microsoft.Dafny {
         }
       }
 
-      foreach (MemberDecl member in c.Members) {
+      foreach (MemberDecl member in c.Members.FindAll(VisibleInScope)) {
         currentDeclaration = member;
         if (member is Field) {
           Field f = (Field)member;

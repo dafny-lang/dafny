@@ -746,24 +746,34 @@ namespace Microsoft.Dafny
       Graph<ModuleExportDecl> exportDependencies = new Graph<ModuleExportDecl>();
       foreach (TopLevelDecl toplevel in m.TopLevelDecls) {
         if (toplevel is ModuleExportDecl) {
-          ModuleExportDecl d = (ModuleExportDecl) toplevel;
+          ModuleExportDecl d = (ModuleExportDecl)toplevel;
           exportDependencies.AddVertex(d);
           foreach (string s in d.Extends) {
             TopLevelDecl top;
             if (sig.TopLevels.TryGetValue(s, out top) && top is ModuleExportDecl) {
-              ModuleExportDecl extend = (ModuleExportDecl) top;
+              ModuleExportDecl extend = (ModuleExportDecl)top;
               d.ExtendDecls.Add(extend);
               exportDependencies.AddEdge(d, extend);
             } else {
               reporter.Error(MessageSource.Resolver, m.tok, s + " must be an export of " + m.Name + " to be extended");
             }
           }
+          TopLevelDecl defaultClass;
+
+          sig.TopLevels.TryGetValue("_default", out defaultClass);
+          Contract.Assert(defaultClass is ClassDecl);
+          Contract.Assert(((ClassDecl)defaultClass).IsDefaultClass);
+          defaultClass.AddVisibilityScope(d.ThisScope, true);
+
           foreach (ExportSignature export in d.Exports) {
+
             // check to see if it is a datatype or a member or
             // static function or method in the enclosing module or its imports
             TopLevelDecl decl;
             MemberDecl member;
             string name = export.Name;
+
+
             if (sig.TopLevels.TryGetValue(name, out decl)) {
               // Member of the enclosing module
               d.SetDeclaration(export, decl);
@@ -829,45 +839,48 @@ namespace Microsoft.Dafny
 
       //check for export consistency by resolving internal modules
       //this should be effect-free, as it only operates on clones
-      foreach (ModuleExportDecl decl in sortedDecls) {
-        var scope = decl.Signature.VisibilityScope;
-        Cloner cloner = new Cloner(scope);
-        ModuleDefinition exportView = new ModuleDefinition(Token.NoToken, "_exportView", m.IsAbstract, m.IsFacade, m.IsExclusiveRefinement, new List<IToken>(), m.Module, m.Attributes, false);
+      if (reporter.Count(ErrorLevel.Error) == 0) { //we'll re-report too many errors if we aren't error-free currently
 
-        foreach (var export in decl.Signature.TopLevels) {
-          Contract.Assert(export.Value.IsVisibleInScope(scope));
- 
-          var topDecl = cloner.CloneDeclaration(export.Value, exportView);
-          exportView.TopLevelDecls.Add(topDecl);
+        foreach (ModuleExportDecl decl in sortedDecls) {
+          var scope = decl.Signature.VisibilityScope;
+          Cloner cloner = new Cloner(scope);
+          ModuleDefinition exportView = new ModuleDefinition(Token.NoToken, "_exportView", m.IsAbstract, m.IsFacade, m.IsExclusiveRefinement, new List<IToken>(), m.Module, m.Attributes, false);
+
+          foreach (var export in decl.Signature.TopLevels) {
+            Contract.Assert(export.Value.IsVisibleInScope(scope));
+
+            var topDecl = cloner.CloneDeclaration(export.Value, exportView);
+            exportView.TopLevelDecls.Add(topDecl);
+          }
+
+          DefaultClassDecl defaultClass = new DefaultClassDecl(exportView, new List<MemberDecl>());
+          exportView.TopLevelDecls.Add(defaultClass);
+
+          foreach (var export in decl.Signature.StaticMembers) {
+            Contract.Assert(export.Value.IsVisibleInScope(scope));
+
+            var memberDecl = cloner.CloneMember(export.Value);
+            defaultClass.Members.Add(memberDecl);
+          }
+
+          var prevErrorCount = reporter.Count(ErrorLevel.Error);
+
+          var exportSig = RegisterTopLevelDecls(exportView, false);
+          ResolveModuleDefinition(exportView, exportSig);
+
+          if (reporter.Count(ErrorLevel.Error) > prevErrorCount) {
+            reporter.Error(MessageSource.Resolver, decl.tok, "This export set is not consistent");
+          }
         }
 
-        DefaultClassDecl defaultClass = new DefaultClassDecl(exportView,new List<MemberDecl> ());
-        exportView.TopLevelDecls.Add(defaultClass);
-
-        foreach (var export in decl.Signature.StaticMembers){
-          Contract.Assert(export.Value.IsVisibleInScope(scope));
-
-          var memberDecl = cloner.CloneMember(export.Value);
-          defaultClass.Members.Add(memberDecl);
-        }
-
-        var prevErrorCount = reporter.Count(ErrorLevel.Error);
-
-        var exportSig = RegisterTopLevelDecls(exportView, false);
-        ResolveModuleDefinition(exportView, exportSig);
-
-        if (reporter.Count(ErrorLevel.Error) > prevErrorCount) {
-          reporter.Error(MessageSource.Resolver, decl.tok, "This export set is not consistent");
-        }
-      }
-
-      // set the default export if it exists
-      if (defaultExport != null) {
-        literalDecl.DefaultExport = defaultExport.Signature;
-      } else {
-        // if there is at least one exported view, but no exported view marked as default, then defaultExport should be null.
-        if (sortedDecls.Count > 0) {
-          literalDecl.DefaultExport = null;       
+        // set the default export if it exists
+        if (defaultExport != null) {
+          literalDecl.DefaultExport = defaultExport.Signature;
+        } else {
+          // if there is at least one exported view, but no exported view marked as default, then defaultExport should be null.
+          if (sortedDecls.Count > 0) {
+            literalDecl.DefaultExport = null;
+          }
         }
       }
     }
@@ -1582,6 +1595,13 @@ namespace Microsoft.Dafny
         } else if (d is NewtypeDecl) {
           var dd = (NewtypeDecl)d;
           ResolveType(dd.tok, dd.BaseType, dd, ResolveTypeOptionEnum.DontInfer, null);
+          //create one level of indirection to mask this type when out of scope
+          var thisType = new UserDefinedType(dd.tok, dd.Name, dd, new List<Type>());
+          var syn = new TypeSynonymDecl(dd.tok, dd.Name, new List<TypeParameter>(), dd.Module, thisType, dd.Attributes);
+          syn.InheritVisibility(dd);
+          var udt = new UserDefinedType(dd.tok, dd.Name, syn, new List<Type>());
+
+          dd.SelfSynonym = udt;
           dd.BaseType.ForeachTypeComponent(ty => {
             var s = ty.AsRedirectingType;
             if (s != null) {
