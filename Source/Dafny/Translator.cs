@@ -11996,7 +11996,7 @@ namespace Microsoft.Dafny {
             bool useFuelAsQuantifier = argsEtran.Statistics_CustomLayerFunctionCount > 0;
             bool useHeapAsQuantifier = argsEtran.Statistics_HeapAsQuantifierCount > 0;
             Expr qly = null;
-            if (useFuelAsQuantifier) {
+            if (useFuelAsQuantifier && DafnyOptions.O.IronDafny) {
               qly = BplBoundVar(e.Refresh("tr$ly#", translator.CurrentIdGenerator), predef.LayerType, bvars);
               argsEtran = argsEtran.WithLayer(qly);              
             }            
@@ -12014,7 +12014,7 @@ namespace Microsoft.Dafny {
                 if (useHeapAsQuantifier) {
                   tt.Add(translator.FunctionCall(expr.tok, BuiltinFunction.IsGoodHeap, null, argsEtran.HeapExpr));
                 }
-                if (useFuelAsQuantifier && !fueledTrigger[aa.Args]) {
+                if (useFuelAsQuantifier && !fueledTrigger[aa.Args] && DafnyOptions.O.IronDafny) {
                   // We quantified over fuel, but this particular trigger doesn't use it,
                   // so we need to add a dummy trigger.  Hopefully it will always be in scope when needed.
                   tt.Add(translator.FunctionCall(expr.tok, BuiltinFunction.AsFuelBottom, null, qly));
