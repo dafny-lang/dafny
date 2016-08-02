@@ -269,10 +269,20 @@ namespace Microsoft.Dafny
     }
 
     private static void WriteStatss(Dictionary<string, PipelineStatistics> statss) {
+      var statSum = new PipelineStatistics();
       foreach (var stats in statss) {
-        ExecutionEngine.printer.AdvisoryWriteLine("Statistics for module: {0}", stats.Key);
-        ExecutionEngine.printer.WriteTrailer(stats.Value);
+        statSum.VerifiedCount += stats.Value.VerifiedCount;
+        statSum.ErrorCount += stats.Value.ErrorCount;
+        statSum.TimeoutCount += stats.Value.TimeoutCount;
+        statSum.OutOfMemoryCount += stats.Value.OutOfMemoryCount;
+        statSum.CachedErrorCount += stats.Value.CachedErrorCount;
+        statSum.CachedInconclusiveCount += stats.Value.CachedInconclusiveCount;
+        statSum.CachedOutOfMemoryCount += stats.Value.CachedOutOfMemoryCount;
+        statSum.CachedTimeoutCount += stats.Value.CachedTimeoutCount;
+        statSum.CachedVerifiedCount += stats.Value.CachedVerifiedCount;
+        statSum.InconclusiveCount += stats.Value.InconclusiveCount;        
       }
+      ExecutionEngine.printer.WriteTrailer(statSum);
     }
 
 

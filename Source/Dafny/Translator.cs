@@ -652,10 +652,10 @@ namespace Microsoft.Dafny {
         if (translator.sink == null || translator.sink == null) {
           // something went wrong during construction, which reads the prelude; an error has
           // already been printed, so just return an empty program here (which is non-null)
-          programs.Add(outerModule.Name, new Bpl.Program());
+          programs.Add(outerModule.CompileName, new Bpl.Program());
           continue;
         }
-        programs.Add(outerModule.Name, translator.DoTranslation(p, outerModule));
+        programs.Add(outerModule.CompileName, translator.DoTranslation(p, outerModule));
       }
 
       return programs;
@@ -1560,7 +1560,7 @@ namespace Microsoft.Dafny {
           this.fuelContext = FuelSetting.NewFuelContext(f);
 
           AddClassMember_Function(f);
-          if (!f.IsBuiltin && !(f.tok is IncludeToken)) {
+          if (!f.IsBuiltin && !(f.tok is IncludeToken) && InVerificationScope(f)) {
             AddWellformednessCheck(f);
             if (f.OverriddenFunction != null) { //it means that f is overriding its associated parent function
               AddFunctionOverrideCheckImpl(f);
@@ -1583,10 +1583,10 @@ namespace Microsoft.Dafny {
           } else {
             var proc = AddMethod(m, MethodTranslationKind.SpecWellformedness);
             sink.AddTopLevelDeclaration(proc);
-            if (!(m.tok is IncludeToken)) {
+            if (!(m.tok is IncludeToken) && InVerificationScope(m)) {
               AddMethodImpl(m, proc, true);
             }
-            if (m.OverriddenMethod != null) //method has overrided a parent method
+            if (m.OverriddenMethod != null && InVerificationScope(m)) //method has overrided a parent method
             {
                 var procOverrideChk = AddMethod(m, MethodTranslationKind.OverrideCheck);
                 sink.AddTopLevelDeclaration(procOverrideChk);
@@ -1602,7 +1602,7 @@ namespace Microsoft.Dafny {
             m = ((FixpointLemma)m).PrefixLemma;
             sink.AddTopLevelDeclaration(AddMethod(m, MethodTranslationKind.CoCall));
           }
-          if (m.Body != null && !(m.tok is IncludeToken)) {
+          if (m.Body != null && !(m.tok is IncludeToken) && InVerificationScope(m)) {
             // ...and its implementation
             var proc = AddMethod(m, MethodTranslationKind.Implementation);
             sink.AddTopLevelDeclaration(proc);
@@ -2362,7 +2362,7 @@ namespace Microsoft.Dafny {
       }
 
       // Add the precondition function and its axiom (which is equivalent to the ante)
-      if (!FunctionIsRevealed(f) || (FunctionIsRevealed(f) && lits == null)) {
+      if (body == null || (RevealedInScope(f) && lits == null)) {
         if (overridingClass == null) {
           var precondF = new Bpl.Function(f.tok,
             RequiresName(f), new List<Bpl.TypeVariable>(),
@@ -2375,7 +2375,7 @@ namespace Microsoft.Dafny {
         // axiom (forall params :: { f#requires(params) }  ante ==> f#requires(params) == pre);
         sink.AddTopLevelDeclaration(new Axiom(f.tok, BplForall(formals, BplTrigger(appl),
           BplImp(ante, Bpl.Expr.Eq(appl, pre)))));
-        if (!FunctionIsRevealed(f)) {
+        if (body == null || !RevealedInScope(f)) {
           return null;
         }
       }
@@ -4255,6 +4255,8 @@ namespace Microsoft.Dafny {
       Contract.Requires(currentModule == null && codeContext == null);
       Contract.Ensures(currentModule == null && codeContext == null);
 
+      Contract.Assert(InVerificationScope(f));
+
       currentModule = f.EnclosingClass.Module;
       codeContext = f;
 
@@ -4437,7 +4439,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(currentModule == null && codeContext == null);
       Contract.Ensures(currentModule == null && codeContext == null);
 
-      if (decl.tok is IncludeToken) {
+      if (decl.tok is IncludeToken || !InVerificationScope(decl)) {
         // Checked in other file
         return;
       }
@@ -6612,6 +6614,8 @@ namespace Microsoft.Dafny {
       Contract.Requires(currentModule == null && codeContext == null);
       Contract.Ensures(currentModule == null && codeContext == null);
       Contract.Ensures(Contract.Result<Bpl.Procedure>() != null);
+
+      Contract.Assert(VisibleInScope(m));
 
       currentModule = m.EnclosingClass.Module;
       codeContext = m;
@@ -10371,7 +10375,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(e != null);
       Contract.Requires(!e.Exact);
       Contract.Ensures(Contract.Result<Expression>() != null);
-      if (e.translationDesugaring == null) {
+      if (e.getTranslationDesugaring(this) == null) {
         // For let-such-that expression:
         //   var x:X, y:Y :| P(x,y,g); F(...)
         // where g has type G, declare a function for each bound variable:
@@ -10482,11 +10486,12 @@ namespace Microsoft.Dafny {
             rhs.Type = bv.Type;
             rhss.Add(rhs);
           }
-          e.translationDesugaring = new LetExpr(e.tok, e.LHSs, rhss, e.Body, true);
-          e.translationDesugaring.Type = e.Type;  // resolve here
+          var expr = new LetExpr(e.tok, e.LHSs, rhss, e.Body, true);
+          expr.Type = e.Type; // resolve here
+          e.setTranslationDesugaring(this, expr);
         }
       }
-      return e.translationDesugaring;
+      return e.getTranslationDesugaring(this);
     }
 
     class LetSuchThatExprInfo
@@ -14307,7 +14312,7 @@ namespace Microsoft.Dafny {
             if (translator != null)
             {
               Expression d = translator.LetDesugaring(e);
-              newLet.translationDesugaring = Substitute(d);
+              newLet.setTranslationDesugaring(translator, Substitute(d));
               var info = translator.letSuchThatExprInfo[e];
               translator.letSuchThatExprInfo.Add(newLet, new LetSuchThatExprInfo(info, translator, substMap, typeMap));
             }

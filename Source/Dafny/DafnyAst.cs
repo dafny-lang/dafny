@@ -2453,7 +2453,6 @@ namespace Microsoft.Dafny {
     public readonly Attributes Attributes;
     public readonly List<IToken> RefinementBaseName;  // null if no refinement base
     public ModuleDecl RefinementBaseRoot; // filled in early during resolution, corresponds to RefinementBaseName[0]
-    public readonly VisibilityScope VisibilityScope;
 
     public List<Include> Includes;
 
@@ -2542,7 +2541,6 @@ namespace Microsoft.Dafny {
       this.refinementBase = null;
       Includes = new List<Include>();
       IsBuiltinName = isBuiltinName;
-      this.VisibilityScope = new VisibilityScope(name);
 
       if (isExclusiveRefinement && !DafnyOptions.O.IronDafny) {
         parser.errors.SynErr(
@@ -2552,6 +2550,17 @@ namespace Microsoft.Dafny {
           "The exclusively keyword is experimental and only available when IronDafny features are enabled (/ironDafny).");
       }
     }
+    VisibilityScope visibilityScope;
+
+    public VisibilityScope VisibilityScope {
+      get {
+        if (visibilityScope == null) {
+          visibilityScope = new VisibilityScope(CompileName);
+        }
+        return visibilityScope;
+      }
+    }
+
     public virtual bool IsDefaultModule {
       get {
         return false;
@@ -7704,7 +7713,22 @@ namespace Microsoft.Dafny {
     // invariant Constraint_Bounds == null || Constraint_Bounds.Count == BoundVars.Count;
     public List<IVariable> Constraint_MissingBounds;  // filled in during resolution; remains "null" if Exact==true or if bounds can be found
     // invariant Constraint_Bounds == null || Constraint_MissingBounds == null;
-    public Expression translationDesugaring;  // filled in during translation, lazily; to be accessed only via Translation.LetDesugaring; always null when Exact==true
+    private Expression translationDesugaring;  // filled in during translation, lazily; to be accessed only via Translation.LetDesugaring; always null when Exact==true
+    private Translator lastTranslatorUsed; // avoid clashing desugaring between translators
+
+    public void setTranslationDesugaring(Translator trans, Expression expr){
+      lastTranslatorUsed = trans;
+      translationDesugaring = expr;
+    }
+
+    public Expression getTranslationDesugaring(Translator trans) {
+      if (lastTranslatorUsed == trans) {
+        return translationDesugaring;
+      } else {
+        return null;
+      }
+    }
+
     public LetExpr(IToken tok, List<CasePattern> lhss, List<Expression> rhss, Expression body, bool exact, Attributes attrs = null)
       : base(tok) {
       LHSs = lhss;

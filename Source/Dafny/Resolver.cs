@@ -20,6 +20,20 @@ namespace Microsoft.Dafny
     readonly ErrorReporter reporter;
     ModuleSignature moduleInfo = null;
 
+    private bool RevealedInScope(Declaration d) {
+      Contract.Requires(d != null);
+      Contract.Requires(moduleInfo != null);
+      Contract.Requires(moduleInfo.VisibilityScope != null);
+      return d.IsRevealedInScope(moduleInfo.VisibilityScope);
+    }
+
+    private bool VisibleInScope(Declaration d) {
+      Contract.Requires(d != null);
+      Contract.Requires(moduleInfo != null);
+      Contract.Requires(moduleInfo.VisibilityScope != null);
+      return d.IsVisibleInScope(moduleInfo.VisibilityScope);
+    }
+
     FreshIdGenerator defaultTempVarIdGenerator;
     string FreshTempVarName(string prefix, ICodeContext context)
     {
@@ -193,6 +207,7 @@ namespace Microsoft.Dafny
       reporter = prog.reporter;
       // Populate the members of the basic types
       var trunc = new SpecialField(Token.NoToken, "Trunc", "ToBigInteger()", "", "", false, false, false, Type.Int, null);
+      trunc.AddVisibilityScope(prog.BuiltIns.SystemModule.VisibilityScope, false);
       basicTypeMembers[(int)BasicTypeVariety.Real].Add(trunc.Name, trunc);
     }
 
@@ -1327,6 +1342,7 @@ namespace Microsoft.Dafny
           valid.EnclosingClass = iter;
           valid.InheritVisibility(iter, true);
           moveNext.EnclosingClass = iter;
+          moveNext.InheritVisibility(iter, true);
           iter.HasConstructor = true;
           iter.Member_Init = init;
           iter.Member_Valid = valid;
@@ -1454,10 +1470,12 @@ namespace Microsoft.Dafny
               reporter.Error(MessageSource.Resolver, ctor, "Duplicate datatype constructor name: {0}", ctor.Name);
             } else {
               ctors.Add(ctor.Name, ctor);
+              ctor.InheritVisibility(dt, true);
 
               // create and add the query "method" (field, really)
               string queryName = ctor.Name + "?";
               var query = new SpecialField(ctor.tok, queryName, "is_" + ctor.CompileName, "", "", false, false, false, Type.Bool, null);
+              query.InheritVisibility(dt, true);
               query.EnclosingClass = dt;  // resolve here
               members.Add(queryName, query);
               ctor.QueryField = query;
@@ -1482,6 +1500,7 @@ namespace Microsoft.Dafny
                 nameError = true;
               }
               var dtor = new DatatypeDestructor(formal.tok, ctor, formal, formal.Name, "dtor_" + formal.CompileName, "", "", formal.IsGhost, formal.Type, null);
+              dtor.InheritVisibility(dt, true);
               dtor.EnclosingClass = dt;  // resolve here
               if (!nameError && formal.HasName) {
                 members.Add(formal.Name, dtor);
@@ -1673,12 +1692,6 @@ namespace Microsoft.Dafny
 
       Contract.Ensures(AllTypeConstraints.Count == 0);
 
-
-      //The scoping environment should be sane right now
-      Contract.Assert(declarations.All(d => d.IsRevealedInScope(moduleInfo.VisibilityScope)));
-      Contract.Assert(declarations.All(d =>
-          (d is ClassDecl) ? ((ClassDecl)d).Members.All(m => m.IsRevealedInScope(moduleInfo.VisibilityScope)) : true));
-
       int prevErrorCount = reporter.Count(ErrorLevel.Error);
 
       // ---------------------------------- Pass 0 ----------------------------------
@@ -1696,6 +1709,7 @@ namespace Microsoft.Dafny
       // However, the constraints may contain set comprehensions.  For this reason, we postpone the DiscoverBounds checks on set comprehensions.
       foreach (TopLevelDecl d in declarations) {
         Contract.Assert(d != null);
+        Contract.Assert(VisibleInScope(d));
         if (d is NewtypeDecl) {
           var dd = (NewtypeDecl)d;
           ResolveAttributes(d.Attributes, d, new ResolveOpts(new NoContext(d.Module), false));
@@ -5606,6 +5620,7 @@ namespace Microsoft.Dafny
 
       currentClass = cl;
       foreach (MemberDecl member in cl.Members) {
+        Contract.Assert(VisibleInScope(member));
         if (member is Field) {
           ResolveAttributes(member.Attributes, member, new ResolveOpts(new NoContext(currentClass.Module), false));
           // nothing more to do
