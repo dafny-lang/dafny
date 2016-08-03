@@ -1684,9 +1684,11 @@ namespace Microsoft.Dafny {
       // wellformedness check for method specification
       Bpl.Procedure proc = AddIteratorProc(iter, MethodTranslationKind.SpecWellformedness);
       sink.AddTopLevelDeclaration(proc);
-      AddIteratorWellformed(iter, proc);
+      if (InVerificationScope(iter)) {
+        AddIteratorWellformed(iter, proc);
+      }
       // the method itself
-      if (iter.Body != null) {
+      if (iter.Body != null && InVerificationScope(iter)) {
         proc = AddIteratorProc(iter, MethodTranslationKind.Implementation);
         sink.AddTopLevelDeclaration(proc);
         // ...and its implementation
@@ -2189,9 +2191,8 @@ namespace Microsoft.Dafny {
       }
       // useViaContext: (mh != ModuleContextHeight || fh != FunctionContextHeight)
       var mod = f.EnclosingClass.Module;
-      Bpl.Expr useViaContext = Bpl.Expr.Or(
-        Bpl.Expr.Neq(Bpl.Expr.Literal(mod.Height), etran.ModuleContextHeight()),
-        Bpl.Expr.Neq(Bpl.Expr.Literal(mod.CallGraph.GetSCCRepresentativeId(f)), etran.FunctionContextHeight()));
+      Bpl.Expr useViaContext = 
+        Bpl.Expr.Neq(Bpl.Expr.Literal(mod.CallGraph.GetSCCRepresentativeId(f)), etran.FunctionContextHeight());
       // useViaCanCall: f#canCall(args)
       Bpl.IdentifierExpr canCallFuncID = new Bpl.IdentifierExpr(f.tok, f.FullSanitizedName + "#canCall", Bpl.Type.Bool);
       Bpl.Expr useViaCanCall = new Bpl.NAryExpr(f.tok, new Bpl.FunctionCall(canCallFuncID), Concat(tyargs, args));
@@ -2220,12 +2221,11 @@ namespace Microsoft.Dafny {
       Contract.Requires(interModule || intraModule);
       Contract.Requires(etran != null);
       var module = f.EnclosingClass.Module;
-      // mh < ModuleContextHeight
-      var activateForeignModule = Bpl.Expr.Lt(Bpl.Expr.Literal(module.Height), etran.ModuleContextHeight());
-      // mh == ModuleContextHeight && fh <= FunctionContextHeight
-      var activateIntraModule = Bpl.Expr.And(
-        Bpl.Expr.Eq(Bpl.Expr.Literal(module.Height), etran.ModuleContextHeight()),
-        Bpl.Expr.Le(Bpl.Expr.Literal(module.CallGraph.GetSCCRepresentativeId(f)), etran.FunctionContextHeight()));
+
+      var activateForeignModule = Bpl.Expr.True;
+      // fh <= FunctionContextHeight
+      var activateIntraModule = 
+        Bpl.Expr.Le(Bpl.Expr.Literal(module.CallGraph.GetSCCRepresentativeId(f)), etran.FunctionContextHeight());
       if (interModule && !intraModule) {
         return activateForeignModule;
       } else if (!interModule && intraModule) {
@@ -9088,6 +9088,7 @@ namespace Microsoft.Dafny {
           var fse = (MemberSelectExpr)lhs;
           var field = fse.Member as Field;
           Contract.Assert(field != null);
+          Contract.Assert(VisibleInScope(field));
           lhsType = field.Type;
         }
 
@@ -9126,6 +9127,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(tok != null);
       Contract.Requires(dafnyReceiver != null || bReceiver != null);
       Contract.Requires(method != null);
+      Contract.Requires(VisibleInScope(method));
       Contract.Requires(Args != null);
       Contract.Requires(Lhss != null);
       Contract.Requires(LhsTypes != null);
@@ -9877,6 +9879,7 @@ namespace Microsoft.Dafny {
         } else if (lhs is MemberSelectExpr) {
           var fse = (MemberSelectExpr)lhs;
           var field = (Field)fse.Member;
+          Contract.Assert(VisibleInScope(field));
           lhsType = field.Type;
           rhsTypeConstraint = Resolver.SubstType(lhsType, fse.TypeArgumentSubstitutions());
         } else {
@@ -9925,6 +9928,7 @@ namespace Microsoft.Dafny {
         } else if (lhs is MemberSelectExpr) {
           var fse = (MemberSelectExpr)lhs;
           var field = (Field)fse.Member;
+          Contract.Assert(VisibleInScope(field));
           lhsType = field.Type;
           rhsTypeConstraint = Resolver.SubstType(lhsType, fse.TypeArgumentSubstitutions());
         } else {
@@ -10069,6 +10073,7 @@ namespace Microsoft.Dafny {
           var fse = (MemberSelectExpr)lhs;
           var field = fse.Member as Field;
           Contract.Assert(field != null);
+          Contract.Assert(VisibleInScope(field));
           var obj = SaveInTemp(etran.TrExpr(fse.Obj), rhsCanAffectPreviouslyKnownExpressions,
             "$obj" + i, predef.RefType, builder, locals);
           prevObj[i] = obj;
@@ -11201,11 +11206,6 @@ namespace Microsoft.Dafny {
         }
       }
 
-      public Bpl.IdentifierExpr ModuleContextHeight() {
-        Contract.Ensures(Contract.Result<Bpl.IdentifierExpr>().Type != null);
-        return new Bpl.IdentifierExpr(Token.NoToken, "$ModuleContextHeight", Bpl.Type.Int);
-      }
-
       public Bpl.IdentifierExpr FunctionContextHeight() {
         Contract.Ensures(Contract.Result<Bpl.IdentifierExpr>().Type != null);
         return new Bpl.IdentifierExpr(Token.NoToken, "$FunctionContextHeight", Bpl.Type.Int);
@@ -11214,11 +11214,10 @@ namespace Microsoft.Dafny {
       public Bpl.Expr HeightContext(ICallable m)
       {
         Contract.Requires(m != null);
-        // free requires mh == ModuleContextHeight && fh == FunctionContextHeight;
+        // free requires fh == FunctionContextHeight;
         var module = m.EnclosingModule;
-        Bpl.Expr context = Bpl.Expr.And(
-          Bpl.Expr.Eq(Bpl.Expr.Literal(module.Height), ModuleContextHeight()),
-          Bpl.Expr.Eq(Bpl.Expr.Literal(module.CallGraph.GetSCCRepresentativeId(m)), FunctionContextHeight()));
+        Bpl.Expr context =
+          Bpl.Expr.Eq(Bpl.Expr.Literal(module.CallGraph.GetSCCRepresentativeId(m)), FunctionContextHeight());
         return context;
       }
 
