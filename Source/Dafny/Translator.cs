@@ -1594,8 +1594,7 @@ namespace Microsoft.Dafny {
             }
           }
           // the method spec itself
-          sink.AddTopLevelDeclaration(AddMethod(m, MethodTranslationKind.InterModuleCall));
-          sink.AddTopLevelDeclaration(AddMethod(m, MethodTranslationKind.IntraModuleCall));
+          sink.AddTopLevelDeclaration(AddMethod(m, MethodTranslationKind.Call));
           if (m is FixpointLemma) {
             // Let the CoCall and Impl forms to use m.PrefixLemma signature and specification (and
             // note that m.PrefixLemma.Body == m.Body.
@@ -1636,10 +1635,6 @@ namespace Microsoft.Dafny {
       return Attributes.Contains(m.Attributes, "opaque_reveal");
     }
 
-    private bool FunctionIsRevealed(Function f) {
-      return f.Body != null && RevealedInScope(f);
-    }
-
     private void AddClassMember_Function(Function f) {
       Contract.Ensures(currentModule == null && codeContext == null);
       Contract.Ensures(currentModule == null && codeContext == null);
@@ -1659,7 +1654,7 @@ namespace Microsoft.Dafny {
       // add consequence axiom
       sink.AddTopLevelDeclaration(FunctionConsequenceAxiom(f, f.Ens));
       // add definition axioms, suitably specialized for literals
-      if (FunctionIsRevealed(f)) {
+      if (f.Body != null && RevealedInScope(f)) {
         AddFunctionAxiom(f, f.Body.Resolved);
       } else {
         // for body-less functions, at least generate its #requires function      
@@ -1684,9 +1679,9 @@ namespace Microsoft.Dafny {
       // wellformedness check for method specification
       Bpl.Procedure proc = AddIteratorProc(iter, MethodTranslationKind.SpecWellformedness);
       sink.AddTopLevelDeclaration(proc);
-      if (InVerificationScope(iter)) {
-        AddIteratorWellformed(iter, proc);
-      }
+      if(InVerificationScope(iter)){
+      AddIteratorWellformed(iter, proc);
+        }
       // the method itself
       if (iter.Body != null && InVerificationScope(iter)) {
         proc = AddIteratorProc(iter, MethodTranslationKind.Implementation);
@@ -1733,7 +1728,7 @@ namespace Microsoft.Dafny {
             comment = null;
           } else {
             foreach (var s in TrSplitExprForMethodSpec(p.E, etran, kind)) {
-              if (kind == MethodTranslationKind.IntraModuleCall && RefinementToken.IsInherited(s.E.tok, currentModule)) {
+              if (kind == MethodTranslationKind.Call && RefinementToken.IsInherited(s.E.tok, currentModule)) {
                 // this precondition was inherited into this module, so just ignore it
               } else {
                 req.Add(Requires(s.E.tok, s.IsOnlyFree, s.E, null, comment));
@@ -2211,27 +2206,22 @@ namespace Microsoft.Dafny {
       if (whr != null) { post = Bpl.Expr.And(post, whr); }
 
       Bpl.Expr ax = new Bpl.ForallExpr(f.tok, typeParams, formals, null, tr, Bpl.Expr.Imp(ante, post));
-      var activate = AxiomActivation(f, true, true, etran);
+      var activate = AxiomActivation(f, etran);
       string comment = "consequence axiom for " + f.FullSanitizedName;
       return new Bpl.Axiom(f.tok, Bpl.Expr.Imp(activate, ax), comment);
     }
 
-    Bpl.Expr AxiomActivation(Function f, bool interModule, bool intraModule, ExpressionTranslator etran) {
+    Bpl.Expr AxiomActivation(Function f, ExpressionTranslator etran) {
       Contract.Requires(f != null);
-      Contract.Requires(interModule || intraModule);
       Contract.Requires(etran != null);
+      Contract.Requires(RevealedInScope(f));
       var module = f.EnclosingClass.Module;
 
-      var activateForeignModule = Bpl.Expr.True;
-      // fh <= FunctionContextHeight
-      var activateIntraModule = 
-        Bpl.Expr.Le(Bpl.Expr.Literal(module.CallGraph.GetSCCRepresentativeId(f)), etran.FunctionContextHeight());
-      if (interModule && !intraModule) {
-        return activateForeignModule;
-      } else if (!interModule && intraModule) {
-        return activateIntraModule;
+      if (InVerificationScope(f)) {
+        return
+          Bpl.Expr.Le(Bpl.Expr.Literal(module.CallGraph.GetSCCRepresentativeId(f)), etran.FunctionContextHeight());
       } else {
-        return Bpl.Expr.Or(activateForeignModule, activateIntraModule);
+        return Bpl.Expr.True;
       }
     }
 
@@ -2382,7 +2372,7 @@ namespace Microsoft.Dafny {
 
       // useViaContext: (mh != ModuleContextHeight || fh != FunctionContextHeight)
       ModuleDefinition mod = f.EnclosingClass.Module;
-      Bpl.Expr useViaContext = !FunctionIsRevealed(f) ? (Bpl.Expr)Bpl.Expr.True :
+      Bpl.Expr useViaContext = !InVerificationScope(f) ? (Bpl.Expr)Bpl.Expr.True :
         Bpl.Expr.Neq(Bpl.Expr.Literal(mod.CallGraph.GetSCCRepresentativeId(f)), etran.FunctionContextHeight());
       // ante := (useViaContext && typeAnte && pre)
       ante = BplAnd(useViaContext, BplAnd(ante, pre));
@@ -2418,7 +2408,7 @@ namespace Microsoft.Dafny {
       Bpl.Trigger tr = new Bpl.Trigger(f.tok, true, new List<Bpl.Expr> { funcAppl });
       var typeParams = TrTypeParamDecls(f.TypeArgs);
       Bpl.Expr tastyVegetarianOption;
-      if (!FunctionIsRevealed(f) && f.IsProtected) {
+      if (!RevealedInScope(f) || (f.IsProtected && !InVerificationScope(f))) {
         tastyVegetarianOption = Bpl.Expr.True;
       } else {
         var bodyWithSubst = Substitute(body, null, substMap);
@@ -2442,7 +2432,7 @@ namespace Microsoft.Dafny {
         kv = new QKeyValue(f.tok, "weight", new List<object>() { Bpl.Expr.Literal(3) }, null);
       }
       Bpl.Expr ax = new Bpl.ForallExpr(f.tok, typeParams, formals, kv, tr, Bpl.Expr.Imp(ante, tastyVegetarianOption));
-      var activate = AxiomActivation(f, !FunctionIsRevealed(f), FunctionIsRevealed(f), etran);
+      var activate = AxiomActivation(f, etran);
       string comment;
       if (overridingClass == null) {
         comment = "definition axiom for " + f.FullSanitizedName;
@@ -2456,10 +2446,10 @@ namespace Microsoft.Dafny {
           comment += " for decreasing-related literals";
         }
       }
-      if (FunctionIsRevealed(f)) {
-        comment += " (intra-module and revealed)";
-      } else if (!FunctionIsRevealed(f)) {
-        comment += " (foreign modules)";
+      if (RevealedInScope(f)) {
+        comment += "(revealed)";
+      } else if (!RevealedInScope(f)) {
+        comment += " (opaque)";
       }
       return new Bpl.Axiom(f.tok, Bpl.Expr.Imp(activate, ax), comment);
     }
@@ -2715,7 +2705,7 @@ namespace Microsoft.Dafny {
       funcID = new Bpl.IdentifierExpr(tok, pp.FullSanitizedName, TrType(pp.ResultType));
       var prefixAppl = new Bpl.NAryExpr(tok, new Bpl.FunctionCall(funcID), prefixArgs);
 
-      var activation = AxiomActivation(pp, true, true, etran);
+      var activation = AxiomActivation(pp, etran);
 
       // forall args :: { P(args) } args-have-appropriate-values && P(args) ==> QQQ k { P#[k](args) } :: 0 ATMOST k ==> P#[k](args)
       var tr = new Bpl.Trigger(tok, true, new List<Bpl.Expr> { prefixAppl });
@@ -3738,6 +3728,7 @@ namespace Microsoft.Dafny {
 
     private void InsertChecksum(Method m, Bpl.Declaration decl, bool specificationOnly = false)
     {
+      Contract.Requires(VisibleInScope(m));
       byte[] data;
       using (var writer = new System.IO.StringWriter())
       {
@@ -3753,7 +3744,7 @@ namespace Microsoft.Dafny {
         printer.PrintFrameSpecLine("", m.Mod.Expressions, 0, null);
         printer.PrintSpec("", m.Ens, 0);
         printer.PrintDecreasesSpec(m.Decreases, 0);
-        if (!specificationOnly && m.Body != null)
+        if (!specificationOnly && m.Body != null && RevealedInScope(m))
         {
           printer.PrintStatement(m.Body, 0);
         }
@@ -3765,6 +3756,7 @@ namespace Microsoft.Dafny {
 
     private void InsertChecksum(DatatypeDecl d, Bpl.Declaration decl)
     {
+      Contract.Requires(VisibleInScope(d));
       byte[] data;
       using (var writer = new System.IO.StringWriter())
       {
@@ -3793,6 +3785,7 @@ namespace Microsoft.Dafny {
     {
       Contract.Requires(f != null);
       Contract.Requires(decl != null);
+      Contract.Requires(VisibleInScope(f));
       byte[] data;
       using (var writer = new System.IO.StringWriter())
       {
@@ -3806,7 +3799,7 @@ namespace Microsoft.Dafny {
         printer.PrintFrameSpecLine("", f.Reads, 0, null);
         printer.PrintSpec("", f.Ens, 0);
         printer.PrintDecreasesSpec(f.Decreases, 0);
-        if (!specificationOnly && FunctionIsRevealed(f))
+        if (!specificationOnly && f.Body != null && RevealedInScope(f))
         {
           printer.PrintExpression(f.Body, false);
         }
@@ -4382,7 +4375,7 @@ namespace Microsoft.Dafny {
       }
       // Here goes the body (and include both termination checks and reads checks)
       StmtListBuilder bodyCheckBuilder = new StmtListBuilder();
-      if (!FunctionIsRevealed(f)) {
+      if (f.Body == null || !RevealedInScope(f)) {
         // don't fall through to postcondition checks
         bodyCheckBuilder.Add(TrAssumeCmd(f.tok, Bpl.Expr.False));
       } else {
@@ -6600,7 +6593,7 @@ namespace Microsoft.Dafny {
     /// Note that SpecWellformedness and Implementation have procedure implementations
     /// but no callers, and vice versa for InterModuleCall, IntraModuleCall, and CoCall.
     /// </summary>
-    enum MethodTranslationKind { SpecWellformedness, InterModuleCall, IntraModuleCall, CoCall, Implementation, OverrideCheck }
+    enum MethodTranslationKind { SpecWellformedness, Call, CoCall, Implementation, OverrideCheck }
 
     /// <summary>
     /// This method is expected to be called at most once for each parameter combination, and in particular
@@ -6733,10 +6726,8 @@ namespace Microsoft.Dafny {
       switch (kind) {
         case MethodTranslationKind.SpecWellformedness:
           return "CheckWellformed$$" + m.FullSanitizedName;
-        case MethodTranslationKind.InterModuleCall:
-          return "InterModuleCall$$" + m.FullSanitizedName;
-        case MethodTranslationKind.IntraModuleCall:
-          return "IntraModuleCall$$" + m.FullSanitizedName;
+        case MethodTranslationKind.Call:
+          return "Call$$" + m.FullSanitizedName;
         case MethodTranslationKind.CoCall:
           return "CoCall$$" + m.FullSanitizedName;
         case MethodTranslationKind.Implementation:
@@ -9166,10 +9157,8 @@ namespace Microsoft.Dafny {
         // an explicit call to a prefix lemma is allowed only inside the SCC of the corresponding colemma,
         // so we consider this to be a co-call
         kind = MethodTranslationKind.CoCall;
-      } else if (module == currentModule) {
-        kind = MethodTranslationKind.IntraModuleCall;
       } else {
-        kind = MethodTranslationKind.InterModuleCall;
+        kind = MethodTranslationKind.Call;
       }
 
 
@@ -13338,7 +13327,7 @@ namespace Microsoft.Dafny {
       var splits = new List<SplitExprInfo>();
       var apply_induction = true;/*kind == MethodTranslationKind.Implementation*/;
       bool splitHappened;  // we don't actually care
-      splitHappened = TrSplitExpr(expr, splits, true, int.MaxValue, kind != MethodTranslationKind.InterModuleCall, apply_induction, etran);
+      splitHappened = TrSplitExpr(expr, splits, true, int.MaxValue, kind != MethodTranslationKind.Call, apply_induction, etran);
       return splits;
     }
 
@@ -13534,7 +13523,7 @@ namespace Microsoft.Dafny {
         var module = f.EnclosingClass.Module;
         var functionHeight = module.CallGraph.GetSCCRepresentativeId(f);
 
-        if (functionHeight < heightLimit && FunctionIsRevealed(f) && !(f.Body.Resolved is MatchExpr)) {
+        if (functionHeight < heightLimit && f.Body != null && RevealedInScope(f) && !(f.Body.Resolved is MatchExpr)) {
           if (RefinementToken.IsInherited(fexp.tok, currentModule) &&
               f is Predicate && ((Predicate)f).BodyOrigin == Predicate.BodyOriginKind.DelayedDefinition &&
               (codeContext == null || !codeContext.MustReverify)) {

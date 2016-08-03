@@ -887,17 +887,18 @@ namespace Microsoft.Dafny
             reporter.Error(MessageSource.Resolver, decl.tok, "This export set is not consistent");
           }
         }
+      }
 
-        // set the default export if it exists
-        if (defaultExport != null) {
-          literalDecl.DefaultExport = defaultExport.Signature;
-        } else {
-          // if there is at least one exported view, but no exported view marked as default, then defaultExport should be null.
-          if (sortedDecls.Count > 0) {
-            literalDecl.DefaultExport = null;
-          }
+      // set the default export if it exists
+      if (defaultExport != null) {
+        literalDecl.DefaultExport = defaultExport.Signature;
+      } else {
+        // if there is at least one exported view, but no exported view marked as default, then defaultExport should be null.
+        if (sortedDecls.Count > 0) {
+          literalDecl.DefaultExport = null;
         }
       }
+
     }
 
     public class ModuleBindings

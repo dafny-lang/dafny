@@ -227,6 +227,7 @@ namespace Microsoft.Dafny
       {
         programId = "main_program_id";
       }
+      programId += "_" + moduleName;
 
       string bplFilename;
       if (CommandLineOptions.Clo.PrintFile != null)
