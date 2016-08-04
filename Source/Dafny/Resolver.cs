@@ -1565,18 +1565,17 @@ namespace Microsoft.Dafny
         } else if (d is ModuleDecl) {
           var decl = (ModuleDecl)d;
           if (!def.IsAbstract) {
-            if (decl.Signature.IsAbstract)
-              {
-                if (// _module is allowed to contain abstract modules, but not be abstract itself. Note this presents a challenge to
-                                            // trusted verification, as toplevels can't be trusted if they invoke abstract module members.
-                    !def.IsDefaultModule 
-                    // [IronDafny] it's possbile for an abstract module to have an exclusive refinement, so it no longer makes sense to disallow this.
-                    && !DafnyOptions.O.IronDafny) 
-                                            
+            if (decl.Signature.IsAbstract) {
+              if (// _module is allowed to contain abstract modules, but not be abstract itself. Note this presents a challenge to
+                  // trusted verification, as toplevels can't be trusted if they invoke abstract module members.
+                  !def.IsDefaultModule
+                  // [IronDafny] it's possbile for an abstract module to have an exclusive refinement, so it no longer makes sense to disallow this.
+                  && !DafnyOptions.O.IronDafny) {
                 reporter.Error(MessageSource.Resolver, d.tok, "an abstract module can only be imported into other abstract modules, not a concrete one.");
-              } else {
-                // physical modules are allowed everywhere
               }
+            } else {
+              // physical modules are allowed everywhere
+            }
           } else {
             // everything is allowed in an abstract module
           }
