@@ -84,27 +84,13 @@ namespace Microsoft.Dafny
           req, ens, yreq, yens,
           body, CloneAttributes(dd.Attributes), dd.SignatureEllipsis);
         return iter;
-      }
-      else if (d is TraitDecl)
-      {
-          if (d is DefaultClassDecl)
-          {
-              var dd = (TraitDecl)d;
-              var tps = dd.TypeArgs.ConvertAll(CloneTypeParam);
-              var mm = dd.Members.ConvertAll(CloneMember);
-              var cl = new DefaultClassDecl(m, mm);
-              return cl;
-          }
-          else
-          {
-              var dd = (TraitDecl)d;
-              var tps = dd.TypeArgs.ConvertAll(CloneTypeParam);
-              var mm = dd.Members.ConvertAll(CloneMember);
-              var cl = new TraitDecl(Tok(dd.tok), dd.Name, m, tps, mm, CloneAttributes(dd.Attributes), CloneFromValue(dd));
-              return cl;
-          }
-      }
-      else if (d is ClassDecl) {
+      } else if (d is TraitDecl) {
+        var dd = (TraitDecl)d;
+        var tps = dd.TypeArgs.ConvertAll(CloneTypeParam);
+        var mm = dd.Members.ConvertAll(CloneMember);
+        var cl = new TraitDecl(Tok(dd.tok), dd.Name, m, tps, mm, CloneAttributes(dd.Attributes), CloneFromValue(dd));
+        return cl;
+      } else if (d is ClassDecl) {
         var dd = (ClassDecl)d;
         var tps = dd.TypeArgs.ConvertAll(CloneTypeParam);
         var mm = dd.Members.ConvertAll(CloneMember);
