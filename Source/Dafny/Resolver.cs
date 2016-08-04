@@ -245,10 +245,10 @@ namespace Microsoft.Dafny
       // fill in module heights
       List<ModuleDecl> sortedDecls = dependencies.TopologicallySortedComponents();
       int h = 0;
-      foreach (ModuleDecl m in sortedDecls) {
-        m.Height = h;
-        if (m is LiteralModuleDecl) {
-          var mdef = ((LiteralModuleDecl)m).ModuleDef;
+      foreach (ModuleDecl md in sortedDecls) {
+        md.Height = h;
+        if (md is LiteralModuleDecl) {
+          var mdef = ((LiteralModuleDecl)md).ModuleDef;
           mdef.Height = h;
           prog.Modules.Add(mdef);
         }
@@ -278,10 +278,10 @@ namespace Microsoft.Dafny
       // first, we need to detect which top-level modules have exclusive refinement relationships.
       foreach (ModuleDecl decl in sortedDecls) {
         if (decl is LiteralModuleDecl) {
-          var literalDecl = (LiteralModuleDecl)decl;
-          var m = literalDecl.ModuleDef;
-          if (m.RefinementBaseRoot != null) {
-            if (m.IsExclusiveRefinement) {
+          var literalMDecl = (LiteralModuleDecl)decl;
+          var mdef = literalMDecl.ModuleDef;
+          if (mdef.RefinementBaseRoot != null) {
+            if (mdef.IsExclusiveRefinement) {
               foreach (var d in sortedDecls) {
                 // refinement dependencies won't be later in the sorted module list than the one we're looking at.
                 if (Object.ReferenceEquals(d, decl)) {
@@ -290,8 +290,8 @@ namespace Microsoft.Dafny
                 if (d is LiteralModuleDecl) {
                   var ld = (LiteralModuleDecl)d;
                   // currently, only exclusive refinements of top-level modules are supported.
-                  if (string.Equals(m.RefinementBaseName[0].val, m.RefinementBaseRoot.Name, StringComparison.InvariantCulture)
-                      && string.Equals(m.RefinementBaseName[0].val, ld.ModuleDef.Name, StringComparison.InvariantCulture)) {
+                  if (string.Equals(mdef.RefinementBaseName[0].val, mdef.RefinementBaseRoot.Name, StringComparison.InvariantCulture)
+                      && string.Equals(mdef.RefinementBaseName[0].val, ld.ModuleDef.Name, StringComparison.InvariantCulture)) {
                     ld.ModuleDef.ExclusiveRefinementCount += 1;
                   }
                 }
