@@ -5149,9 +5149,13 @@ namespace Microsoft.Dafny {
 
         // check parameter availability
         if (etran.UsesOldHeap) {
+          Bpl.Expr wh = GetWhereClause(e.Function.tok, etran.TrExpr(e.Function), e.Function.Type, etran, true);
+          if (wh != null) {
+            builder.Add(Assert(e.Function.tok, wh, "function must be allocated in the state in which the function is invoked"));
+          }
           for (int i = 0; i < e.Args.Count; i++) {
             Expression ee = e.Args[i];
-            Bpl.Expr wh = GetWhereClause(ee.tok, etran.TrExpr(ee), ee.Type, etran);
+            wh = GetWhereClause(ee.tok, etran.TrExpr(ee), ee.Type, etran, true);
             if (wh != null) {
               builder.Add(Assert(ee.tok, wh, "argument must be allocated in the state in which the function is invoked"));
             }
@@ -6158,7 +6162,7 @@ namespace Microsoft.Dafny {
                 BplForall(bvarsInner, BplTrigger(applied),
                   BplImp(BplAnd(BplAnd(goodHeap, isBoxes), pre), applied_is))))));
         }
-        /*
+        /*  This is the definition of $IsAlloc function the arrow type:
           axiom (forall f: HandleType, t0: Ty, t1: Ty, h: Heap ::
             { $IsAlloc(f, Tclass._System.___hFunc1(t0, t1), h) }
             $IsGoodHeap(h)
@@ -6168,10 +6172,55 @@ namespace Microsoft.Dafny {
                 <==>
                 (forall bx0: Box ::
                   { Apply1(t0, t1, f, h, bx0) } { Reads1(t0, t1, f, h, bx0) }
+                  $IsBox(bx0, t0) && $IsAllocBox(bx0, t0, h)
+                  && precondition of f(bx0) holds in h
+                  ==>
+                    (everything in reads set of f(bx0) is allocated in h)
+            ));
+        */
+        {
+          var bvarsOuter = new List<Bpl.Variable>();
+          var f = BplBoundVar("f", predef.HandleType, bvarsOuter);
+          var types = Map(Enumerable.Range(0, arity + 1), i => BplBoundVar("t" + i, predef.Ty, bvarsOuter));
+          var h = BplBoundVar("h", predef.HeapType, bvarsOuter);
+          var goodHeap = FunctionCall(tok, BuiltinFunction.IsGoodHeap, null, h);
+          var isAlloc = MkIsAlloc(f, ClassTyCon(ad, types), h);
+
+          var bvarsInner = new List<Bpl.Variable>();
+          var boxes = Map(Enumerable.Range(0, arity), i => BplBoundVar("bx" + i, predef.BoxType, bvarsInner));
+          var isAllocBoxes = BplAnd(Map(Enumerable.Range(0, arity), i =>
+            BplAnd(MkIs(boxes[i], types[i], true), MkIsAlloc(boxes[i], types[i], h, true))));
+          var pre = FunctionCall(tok, Requires(ad.Arity), predef.BoxType, Concat(types, Cons(f, Cons<Bpl.Expr>(h, boxes))));
+          var applied = FunctionCall(tok, Apply(ad.Arity), predef.BoxType, Concat(types, Cons(f, Cons<Bpl.Expr>(h, boxes))));
+
+          // (forall r: ref :: {Reads1(t0, t1, f, h, bx0)[$Box(r)]}  r != null && Reads1(t0, t1, f, h, bx0)[$Box(r)] ==> h[r, alloc])
+          var bvarsR = new List<Bpl.Variable>();
+          var r = BplBoundVar("r", predef.RefType, bvarsR);
+          var rNonNull = Bpl.Expr.Neq(r, predef.Null);
+          var reads = FunctionCall(tok, Reads(ad.Arity), predef.BoxType, Concat(types, Cons(f, Cons<Bpl.Expr>(h, boxes))));
+          var rInReads = Bpl.Expr.Select(reads, FunctionCall(tok, BuiltinFunction.Box, null, r));
+          var rAlloc = IsAlloced(tok, h, r);
+          var isAllocReads = BplForall(bvarsR, BplTrigger(rInReads), BplImp(BplAnd(rNonNull, rInReads), rAlloc));
+
+          sink.AddTopLevelDeclaration(new Axiom(tok,
+            BplForall(bvarsOuter, BplTrigger(isAlloc),
+              BplImp(goodHeap,
+                BplIff(isAlloc,
+                  BplForall(bvarsInner,
+                    new Bpl.Trigger(tok, true, new List<Bpl.Expr> { applied }, BplTrigger(reads)),
+                    BplImp(BplAnd(isAllocBoxes, pre), isAllocReads)))))));
+        }
+        /*  This is the allocatedness consequence axiom of arrow types:
+          axiom (forall f: HandleType, t0: Ty, t1: Ty, h: Heap ::
+            { $IsAlloc(f, Tclass._System.___hFunc1(t0, t1), h) }
+            $IsGoodHeap(h) &&
+            $IsAlloc(f, Tclass._System.___hFunc1(t0, t1), h)
+            ==>
+                (forall bx0: Box ::
+                  { Apply1(t0, t1, f, h, bx0) }
                   $IsAllocBox(bx0, t0, h)
                   && precondition of f(bx0) holds in h
                   ==>
-                    (everything in reads set of f(bx0) is allocated in h) &&
                     $IsAllocBox(Apply1(t0, t1, f, h, bx0), t1, h))
             ));
         */
@@ -6190,22 +6239,11 @@ namespace Microsoft.Dafny {
           var applied = FunctionCall(tok, Apply(ad.Arity), predef.BoxType, Concat(types, Cons(f, Cons<Bpl.Expr>(h, boxes))));
           var applied_isAlloc = MkIsAlloc(applied, types[ad.Arity], h, true);
 
-          // (forall r: ref :: {Reads1(t0, t1, f, h, bx0)[$Box(r)]}  r != null && Reads1(t0, t1, f, h, bx0)[$Box(r)] ==> h[r, alloc])
-          var bvarsR = new List<Bpl.Variable>();
-          var r = BplBoundVar("r", predef.RefType, bvarsR);
-          var rNonNull = Bpl.Expr.Neq(r, predef.Null);
-          var reads = FunctionCall(tok, Reads(ad.Arity), predef.BoxType, Concat(types, Cons(f, Cons<Bpl.Expr>(h, boxes))));
-          var rInReads = Bpl.Expr.Select(reads, FunctionCall(tok, BuiltinFunction.Box, null, r));
-          var rAlloc = IsAlloced(tok, h, r);
-          var isAllocReads = BplForall(bvarsR, BplTrigger(rInReads), BplImp(BplAnd(rNonNull, rInReads), rAlloc));
-
           sink.AddTopLevelDeclaration(new Axiom(tok,
             BplForall(bvarsOuter, BplTrigger(isAlloc),
-              BplImp(goodHeap,
-                BplIff(isAlloc,
-                  BplForall(bvarsInner,
-                    new Bpl.Trigger(tok, true, new List<Bpl.Expr> { applied }, BplTrigger(reads)),
-                    BplImp(BplAnd(isAllocBoxes, pre), BplAnd(isAllocReads, applied_isAlloc))))))));
+              BplImp(BplAnd(goodHeap, isAlloc),
+                BplForall(bvarsInner, BplTrigger(applied),
+                  BplImp(BplAnd(isAllocBoxes, pre), applied_isAlloc))))));
         }
       }
     }
@@ -9673,7 +9711,7 @@ namespace Microsoft.Dafny {
     }
 
 
-    Bpl.Expr GetWhereClause(IToken tok, Bpl.Expr x, Type type, ExpressionTranslator etran) {
+    Bpl.Expr GetWhereClause(IToken tok, Bpl.Expr x, Type type, ExpressionTranslator etran, bool allocatednessOnly = false) {
       Contract.Requires(tok != null);
       Contract.Requires(x != null);
       Contract.Requires(type != null);
@@ -9691,16 +9729,13 @@ namespace Microsoft.Dafny {
       if (normType is NatType) {
         // nat:
         // 0 <= x
-        return Bpl.Expr.Le(Bpl.Expr.Literal(0), x);
-      } else if (normType is BoolType || normType is IntType || normType is RealType) {
+        return allocatednessOnly ? null : Bpl.Expr.Le(Bpl.Expr.Literal(0), x);
+      } else if (normType is BoolType || normType is IntType || normType is RealType || normType.IsBitVectorType) {
         // nothing to do
         return null;
-      /* } else if (type is ArrowType) {
-        // dubious, but nothing to do?!
-        return null;
-        */
       } else {
-        return BplAnd(MkIs(x, normType), MkIsAlloc(x, normType, etran.HeapExpr));
+        var isAlloc = MkIsAlloc(x, normType, etran.HeapExpr);
+        return allocatednessOnly ? isAlloc : BplAnd(MkIs(x, normType), isAlloc);
       }
     }
 
