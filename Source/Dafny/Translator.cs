@@ -11036,7 +11036,7 @@ namespace Microsoft.Dafny {
         Contract.Requires(layerArgument != null);
         Contract.Ensures(Contract.Result<ExpressionTranslator>() != null);
 
-        return new ExpressionTranslator(translator, predef, HeapExpr, This, null, new FuelSetting(translator, 0, layerArgument), new FuelSetting(translator, 0, layerArgument), modifiesFrame, stripLits);
+        return CloneExpressionTranslator(this, translator, predef, HeapExpr, This, null, new FuelSetting(translator, 0, layerArgument), new FuelSetting(translator, 0, layerArgument), modifiesFrame, stripLits);
       }
 
       public ExpressionTranslator ReplaceLayer(Bpl.Expr layerArgument) {
@@ -11044,12 +11044,12 @@ namespace Microsoft.Dafny {
         Contract.Requires(layerArgument != null);
         Contract.Ensures(Contract.Result<ExpressionTranslator>() != null);
 
-        return new ExpressionTranslator(translator, predef, HeapExpr, This, applyLimited_CurrentFunction, layerInterCluster.WithLayer(layerArgument), layerIntraCluster.WithLayer(layerArgument), modifiesFrame, stripLits);
+        return CloneExpressionTranslator(this, translator, predef, HeapExpr, This, applyLimited_CurrentFunction, layerInterCluster.WithLayer(layerArgument), layerIntraCluster.WithLayer(layerArgument), modifiesFrame, stripLits);
        }
 
       public ExpressionTranslator WithNoLits() {
         Contract.Ensures(Contract.Result<ExpressionTranslator>() != null);
-        return new ExpressionTranslator(translator, predef, HeapExpr, This, applyLimited_CurrentFunction, layerInterCluster, layerIntraCluster, modifiesFrame, true);
+        return CloneExpressionTranslator(this, translator, predef, HeapExpr, This, applyLimited_CurrentFunction, layerInterCluster, layerIntraCluster, modifiesFrame, true);
       }
 
       public ExpressionTranslator LimitedFunctions(Function applyLimited_CurrentFunction, Bpl.Expr layerArgument) {
@@ -11057,29 +11057,29 @@ namespace Microsoft.Dafny {
         Contract.Requires(layerArgument != null);
         Contract.Ensures(Contract.Result<ExpressionTranslator>() != null);
 
-        return new ExpressionTranslator(translator, predef, HeapExpr, This, applyLimited_CurrentFunction, /* layerArgument */ layerInterCluster, new FuelSetting(translator, 0, layerArgument), modifiesFrame, stripLits);
+        return CloneExpressionTranslator(this, translator, predef, HeapExpr, This, applyLimited_CurrentFunction, /* layerArgument */ layerInterCluster, new FuelSetting(translator, 0, layerArgument), modifiesFrame, stripLits);
       }
 
       public ExpressionTranslator LayerOffset(int offset) {
         Contract.Requires(0 <= offset);
         Contract.Ensures(Contract.Result<ExpressionTranslator>() != null);
 
-        var et = new ExpressionTranslator(translator, predef, HeapExpr, This, applyLimited_CurrentFunction, layerInterCluster.Offset(offset), layerIntraCluster, modifiesFrame, stripLits);
-        if (this.oldEtran != null) {
-          var etOld = new ExpressionTranslator(translator, predef, Old.HeapExpr, This, applyLimited_CurrentFunction, layerInterCluster.Offset(offset), layerIntraCluster, modifiesFrame, stripLits);
-          etOld.oldEtran = etOld;
-          et.oldEtran = etOld;
-        }
-        return et;
+        return CloneExpressionTranslator(this, translator, predef, HeapExpr, This, applyLimited_CurrentFunction, layerInterCluster.Offset(offset), layerIntraCluster, modifiesFrame, stripLits);
       }
 
       public ExpressionTranslator DecreaseFuel(int offset) {
         Contract.Requires(0 <= offset);
         Contract.Ensures(Contract.Result<ExpressionTranslator>() != null);
 
-        var et = new ExpressionTranslator(translator, predef, HeapExpr, This, applyLimited_CurrentFunction, layerInterCluster.Decrease(offset), layerIntraCluster, modifiesFrame, stripLits);
-        if (this.oldEtran != null) {
-          var etOld = new ExpressionTranslator(translator, predef, Old.HeapExpr, This, applyLimited_CurrentFunction, layerInterCluster.Decrease(offset), layerIntraCluster, modifiesFrame, stripLits);
+        return CloneExpressionTranslator(this, translator, predef, HeapExpr, This, applyLimited_CurrentFunction, layerInterCluster.Decrease(offset), layerIntraCluster, modifiesFrame, stripLits);
+      }
+
+      private static ExpressionTranslator CloneExpressionTranslator(ExpressionTranslator orig,
+        Translator translator, PredefinedDecls predef, Bpl.Expr heap, string thisVar,
+        Function applyLimited_CurrentFunction, FuelSetting layerInterCluster, FuelSetting layerIntraCluster, string modifiesFrame, bool stripLits) {
+        var et = new ExpressionTranslator(translator, predef, heap, thisVar, applyLimited_CurrentFunction, layerInterCluster, layerIntraCluster, modifiesFrame, stripLits);
+        if (orig.oldEtran != null) {
+          var etOld = new ExpressionTranslator(translator, predef, orig.Old.HeapExpr, thisVar, applyLimited_CurrentFunction, layerInterCluster, layerIntraCluster, modifiesFrame, stripLits);
           etOld.oldEtran = etOld;
           et.oldEtran = etOld;
         }
