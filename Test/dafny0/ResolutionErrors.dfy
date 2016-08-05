@@ -1047,6 +1047,10 @@ module CycleError5 {
   type B = Dt<A>
   datatype Dt<T> = Make(T)
 }
+module CycleError6 {
+  type A = Dt<Dt<A>>  // error: cycle A -> Dt<Dt<A>> -> Dt<A> -> A
+  datatype Dt<T> = Make(T)
+}
 
 // --- attributes in top-level declarations ---
 

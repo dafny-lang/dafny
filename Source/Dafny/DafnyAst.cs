@@ -754,7 +754,7 @@ namespace Microsoft.Dafny {
 
     public void ForeachTypeComponent(Action<Type> action) {
       action(this);
-      TypeArgs.ForEach(action);
+      TypeArgs.ForEach(x => x.ForeachTypeComponent(action));
     }
   }
 
