@@ -74,7 +74,7 @@ method M0(S: set<C>)
   requires null !in S
   modifies S
   ensures forall o :: o in S ==> o.data == 85
-  ensures forall o :: o != null && o !in S ==> o.data == old(o.data)
+  ensures forall o :: o != null && o !in S && !fresh(o) ==> o.data == old(o.data)
 {
   forall s | s in S {
     s.data := 85;
