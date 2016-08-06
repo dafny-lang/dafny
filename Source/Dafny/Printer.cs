@@ -434,11 +434,9 @@ namespace Microsoft.Dafny {
           }
           state = 2;
         } else if (m is Field) {
-          if (m.RefinementBase == null || !m.RefinementBase.IsGhost && m.IsGhost) {
-            if (state == 2) { wr.WriteLine(); }
-            PrintField((Field)m, indent);
-            state = 1;
-          }
+          if (state == 2) { wr.WriteLine(); }
+          PrintField((Field)m, indent);
+          state = 1;
         } else if (m is Function) {
           if (state != 0) { wr.WriteLine(); }
           PrintFunction((Function)m, indent, false);
@@ -664,11 +662,8 @@ namespace Microsoft.Dafny {
 
       int ind = indent + IndentAmount;
       PrintSpec("requires", method.Req, ind);
-      if (method.Mod.Expressions != null)
-      {
-        if (method.RefinementBase == null) {
-          PrintFrameSpecLine("modifies", method.Mod.Expressions, ind, method.Mod.HasAttributes() ? method.Mod.Attributes : null);
-        }
+      if (method.Mod.Expressions != null) {
+        PrintFrameSpecLine("modifies", method.Mod.Expressions, ind, method.Mod.HasAttributes() ? method.Mod.Attributes : null);
       }
       PrintSpec("ensures", method.Ens, ind);
       PrintDecreasesSpec(method.Decreases, ind);
