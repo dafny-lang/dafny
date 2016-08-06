@@ -2874,7 +2874,7 @@ namespace Microsoft.Dafny {
       List<Variable> localVariables = new List<Variable>();
       GenerateImplPrelude(m, wellformednessProc, inParams, outParams, builder, localVariables);
 
-      if (UseOptimizationInZ3 && m.Ins != null)
+      if (UseOptimizationInZ3)
       {
         // We ask Z3 to minimize all parameters of type 'nat'.
         foreach (var f in m.Ins)
