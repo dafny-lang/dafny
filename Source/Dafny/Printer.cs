@@ -93,6 +93,15 @@ namespace Microsoft.Dafny {
       }
     }
 
+    public static string FieldToString(Field field) {
+      Contract.Requires(field != null);
+      using (var wr = new System.IO.StringWriter()) {
+        var pr = new Printer(wr);
+        pr.PrintField(field, 0);
+        return ToStringWithoutNewline(wr);
+      }
+    }
+
     public static string FunctionSignatureToString(Function f) {
       Contract.Requires(f != null);
       using (var wr = new System.IO.StringWriter()) {
