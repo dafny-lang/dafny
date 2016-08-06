@@ -8650,9 +8650,7 @@ namespace Microsoft.Dafny {
       //     assert Post;
       //     assume false;
       //   } else {
-      //     initHeap := $Heap;
-      //     advance $Heap, Tick;
-      //     assume (forall x,y :: Range(x,y)[old($Heap),$Heap := old($Heap),initHeap] ==> Post(x,y));
+      //     assume (forall x,y :: Range(x,y) ==> Post(x,y));
       //   }
 
       if (s.BoundVars.Count != 0) {
@@ -8691,26 +8689,10 @@ namespace Microsoft.Dafny {
       definedness.Add(TrAssumeCmd(s.Tok, Bpl.Expr.False));
 
       // Now for the other branch, where the ensures clauses are exported.
-
-      var initHeapVar = new Bpl.LocalVariable(s.Tok, new Bpl.TypedIdent(s.Tok, CurrentIdGenerator.FreshId("$initHeapForallStmt#"), predef.HeapType));
-      locals.Add(initHeapVar);
-      var initHeap = new Bpl.IdentifierExpr(s.Tok, initHeapVar);
-      var initEtran = new ExpressionTranslator(this, predef, initHeap, etran.Old.HeapExpr);
-      // initHeap := $Heap;
-      exporter.Add(Bpl.Cmd.SimpleAssign(s.Tok, initHeap, etran.HeapExpr));
-      // advance $Heap;
-      exporter.Add(new Bpl.HavocCmd(s.Tok, new List<Bpl.IdentifierExpr> { (Bpl.IdentifierExpr/*TODO: this cast is rather dubious*/)etran.HeapExpr, etran.Tick() }));
-      foreach (BoilerplateTriple tri in GetTwoStateBoilerplate(s.Tok, new List<FrameExpression>(), s.IsGhost, initEtran, etran, initEtran)) {
-        if (tri.IsFree) {
-          exporter.Add(TrAssumeCmd(s.Tok, tri.Expr));
-        }
-      }
-
-      Dictionary<IVariable, Expression> substMap = new Dictionary<IVariable, Expression>();
+      var substMap = new Dictionary<IVariable, Expression>();
       var p = Substitute(s.ForallExpressions[0], null, substMap);
       stmtContext = StmtType.FORALL;
-      var proofEtran = new ExpressionTranslator(this, predef, etran.HeapExpr, initHeap);
-      Bpl.Expr qq = proofEtran.TrExpr(p);
+      var qq = etran.TrExpr(p);
       if (s.BoundVars.Count != 0) {
         exporter.Add(TrAssumeCmd(s.Tok, qq));
       } else {

@@ -318,3 +318,30 @@ lemma Th(step: nat, t: Nat, r: nat)
   ensures exists ro:nat, ss | ss == step-1 :: ThProperty(ss, t.tail, ro) //WISH same as above
 {
 }
+
+// ------------------------------------------------------------------------
+// The following example once included a unsoundness bug in the translation
+    
+method BogosityClient()
+  ensures false
+{
+  var c := new C;
+  c.data := 3;
+  Bogus(c);
+}
+
+predicate False(x: int) { false }
+
+method Bogus(c: C)
+  requires c != null && c.data == 3
+  modifies c
+  ensures false
+{
+  c.data := 4;
+  forall x | old(c.data) == 4
+    ensures False(x)
+  {
+    // easily provable, because the range of x is empty
+  }
+  assert False(10);  // error: does not follow from the "forall" statement
+}

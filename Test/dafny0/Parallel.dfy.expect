@@ -64,5 +64,10 @@ Execution trace:
     (0,0): anon19_Then
     (0,0): anon20_Then
     (0,0): anon5
+Parallel.dfy(346,9): Error: assertion violation
+Parallel.dfy(333,26): Related location
+Execution trace:
+    (0,0): anon0
+    (0,0): anon4_Else
 
-Dafny program verifier finished with 43 verified, 9 errors
+Dafny program verifier finished with 47 verified, 10 errors
