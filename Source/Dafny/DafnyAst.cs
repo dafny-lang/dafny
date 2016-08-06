@@ -3667,13 +3667,15 @@ namespace Microsoft.Dafny {
         return !InParam;
       }
     }
+    public readonly bool IsOld;
 
-    public Formal(IToken tok, string name, Type type, bool inParam, bool isGhost)
+    public Formal(IToken tok, string name, Type type, bool inParam, bool isGhost, bool isOld = false)
       : base(tok, name, type, isGhost) {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
       Contract.Requires(type != null);
       InParam = inParam;
+      IsOld = isOld;
     }
 
     public bool HasName {
@@ -4111,6 +4113,36 @@ namespace Microsoft.Dafny {
                  [Captured] BlockStmt body,
                  Attributes attributes, IToken signatureEllipsis, Declaration clonedFrom = null)
       : base(tok, name, hasStaticKeyword, true, typeArgs, ins, outs, req, mod, ens, decreases, body, attributes, signatureEllipsis, clonedFrom) {
+    }
+  }
+
+  public class TwoStateLemma : Method
+  {
+    public readonly Specification<FrameExpression> Reads;
+    public override string WhatKind { get { return "twostate lemma"; } }
+    public TwoStateLemma(IToken tok, string name,
+                 bool hasStaticKeyword,
+                 [Captured] List<TypeParameter> typeArgs,
+                 [Captured] List<Formal> ins, [Captured] List<Formal> outs,
+                 [Captured] List<MaybeFreeExpression> req,
+                 [Captured] Specification<FrameExpression> mod,
+                 [Captured] Specification<FrameExpression> reads,
+                 [Captured] List<MaybeFreeExpression> ens,
+                 [Captured] Specification<Expression> decreases,
+                 [Captured] BlockStmt body,
+                 Attributes attributes, IToken signatureEllipsis, Declaration clonedFrom = null)
+      : base(tok, name, hasStaticKeyword, true, typeArgs, ins, outs, req, mod, ens, decreases, body, attributes, signatureEllipsis, clonedFrom) {
+      Contract.Requires(tok != null);
+      Contract.Requires(name != null);
+      Contract.Requires(typeArgs != null);
+      Contract.Requires(ins != null);
+      Contract.Requires(outs != null);
+      Contract.Requires(req != null);
+      Contract.Requires(mod != null);
+      Contract.Requires(reads != null);
+      Contract.Requires(ens != null);
+      Contract.Requires(decreases != null);
+      this.Reads = reads;
     }
   }
 

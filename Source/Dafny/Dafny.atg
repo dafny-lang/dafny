@@ -1019,13 +1019,14 @@ OtherTypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl t
       (. errors.Warning(t, "the semi-colon that used to terminate an opaque-type declaration has been deprecated; in the new syntax, just leave off the semi-colon"); .)
   ]
   .
-GIdentType<bool allowGhostKeyword, out IToken/*!*/ id, out Type/*!*/ ty, out bool isGhost>
+GIdentType<bool allowGhostKeyword, bool allowNewKeyword, out IToken/*!*/ id, out Type/*!*/ ty, out bool isGhost, out bool isOld>
 /* isGhost always returns as false if allowGhostKeyword is false */
 = (. Contract.Ensures(Contract.ValueAtReturn(out id)!=null);
      Contract.Ensures(Contract.ValueAtReturn(out ty)!=null);
-     isGhost = false; .)
-  [ "ghost"                    (. if (allowGhostKeyword) { isGhost = true; } else { SemErr(t, "formal cannot be declared 'ghost' in this context"); } .)
-  ]
+     isGhost = false; isOld = allowNewKeyword; .)
+  { "ghost"                    (. if (allowGhostKeyword) { isGhost = true; } else { SemErr(t, "formal cannot be declared 'ghost' in this context"); } .)
+  | "new"                      (. if (allowNewKeyword) { isOld = false; } else { SemErr(t, "formal cannot be declared 'new' in this context"); } .)
+  }
   IdentType<out id, out ty, true>
   .
 FIdentType<out IToken/*!*/ id, out Type/*!*/ ty>
@@ -1122,11 +1123,11 @@ IteratorDecl<DeclModifierData dmod, ModuleDefinition module, out IteratorDecl/*!
   NoUSIdent<out id>
   (
     [ GenericParameters<typeArgs> ]
-    Formals<true, true, ins>
+    Formals<true, true, false, ins>
     [ ( "yields"
       | "returns"           (. SemErr(t, "iterators don't have a 'returns' clause; did you mean 'yields'?"); .)
       )
-      Formals<false, true, outs>
+      Formals<false, true, false, outs>
     ]
   | "..."                                       (. signatureEllipsis = t; .)
   )
@@ -1170,12 +1171,15 @@ MethodDecl<DeclModifierData dmod, bool allowConstructor, bool isWithinAbstractMo
      List<Formal/*!*/> outs = new List<Formal/*!*/>();
      List<MaybeFreeExpression/*!*/> req = new List<MaybeFreeExpression/*!*/>();
      List<FrameExpression/*!*/> mod = new List<FrameExpression/*!*/>();
+     List<FrameExpression/*!*/> reads = null;
      List<MaybeFreeExpression/*!*/> ens = new List<MaybeFreeExpression/*!*/>();
      List<Expression/*!*/> dec = new List<Expression/*!*/>();
      Attributes decAttrs = null;
      Attributes modAttrs = null;
+     Attributes readsAttrs = null;
      BlockStmt body = null;
      bool isLemma = false;
+     bool isTwoStateLemma = false;
      bool isConstructor = false;
      bool isIndLemma = false;
      bool isCoLemma = false;
@@ -1202,6 +1206,10 @@ MethodDecl<DeclModifierData dmod, bool allowConstructor, bool isWithinAbstractMo
                                     .)
   | "inductive" "lemma"             (. isIndLemma = true;  caption = "Inductive lemmas";
                                        allowed = AllowedDeclModifiers.AlreadyGhost | AllowedDeclModifiers.Static;.)
+  | "twostate" "lemma"              (. isTwoStateLemma = true; caption = "Two-state lemmas";
+                                       reads = new List<FrameExpression/*!*/>();
+                                       allowed = AllowedDeclModifiers.AlreadyGhost | AllowedDeclModifiers.Static 
+                                         | AllowedDeclModifiers.Protected; .)
   | "constructor"                   (. if (allowConstructor) {
                                          isConstructor = true;
                                        } else {
@@ -1225,13 +1233,13 @@ MethodDecl<DeclModifierData dmod, bool allowConstructor, bool isWithinAbstractMo
   .)
   (
     [ GenericParameters<typeArgs> ]
-    Formals<true, !dmod.IsGhost, ins>
+    Formals<true, !dmod.IsGhost, isTwoStateLemma, ins>
     [ "returns"                                 (. if (isConstructor) { SemErr(t, "constructors cannot have out-parameters"); } .)
-      Formals<false, !dmod.IsGhost, outs>
+      Formals<false, !dmod.IsGhost, false, outs>
     ]
   | "..."                                       (. signatureEllipsis = t; .)
   )
-  { MethodSpec<req, mod, ens, dec, ref decAttrs, ref modAttrs> }
+  { MethodSpec<req, mod, reads, ens, dec, ref decAttrs, ref modAttrs, ref readsAttrs, caption> }
   [ BlockStmt<out body, out bodyStart, out bodyEnd>
   ]
   (.
@@ -1252,6 +1260,10 @@ MethodDecl<DeclModifierData dmod, bool allowConstructor, bool isWithinAbstractMo
      } else if (isLemma) {
        m = new Lemma(tok, id.val, dmod.IsStatic, typeArgs, ins, outs,
                      req, new Specification<FrameExpression>(mod, modAttrs), ens, new Specification<Expression>(dec, decAttrs), body, attrs, signatureEllipsis);
+     } else if (isTwoStateLemma) {
+       m = new TwoStateLemma(tok, id.val, dmod.IsStatic, typeArgs, ins, outs,
+                             req, new Specification<FrameExpression>(mod, modAttrs), new Specification<FrameExpression>(reads, readsAttrs),
+                             ens, new Specification<Expression>(dec, decAttrs), body, attrs, signatureEllipsis);
      } else {
        m = new Method(tok, id.val, dmod.IsStatic, dmod.IsGhost, typeArgs, ins, outs,
                       req, new Specification<FrameExpression>(mod, modAttrs), ens, new Specification<Expression>(dec, decAttrs), body, attrs, signatureEllipsis);
@@ -1260,15 +1272,25 @@ MethodDecl<DeclModifierData dmod, bool allowConstructor, bool isWithinAbstractMo
      m.BodyEndTok = bodyEnd;
  .)
   .
-MethodSpec<.List<MaybeFreeExpression/*!*/>/*!*/ req, List<FrameExpression/*!*/>/*!*/ mod, List<MaybeFreeExpression/*!*/>/*!*/ ens,
-           List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes modAttrs.>
-= (. Contract.Requires(cce.NonNullElements(req)); Contract.Requires(cce.NonNullElements(mod)); Contract.Requires(cce.NonNullElements(ens)); Contract.Requires(cce.NonNullElements(decreases));
-     Expression/*!*/ e;  FrameExpression/*!*/ fe;  bool isFree = false; Attributes ensAttrs = null;
+MethodSpec<.List<MaybeFreeExpression> req, List<FrameExpression> mod, List<FrameExpression>/*?*/ reads, List<MaybeFreeExpression> ens,
+            List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, ref Attributes readsAttrs, string caption.>
+= (. Contract.Requires(cce.NonNullElements(req));
+     Contract.Requires(cce.NonNullElements(mod));
+     Contract.Requires(cce.NonNullElements(ens));
+     Contract.Requires(cce.NonNullElements(decreases));
+     Expression e;  FrameExpression fe;  bool isFree = false; Attributes ensAttrs = null;
   .)
   SYNC
   ( "modifies" { IF(IsAttribute()) Attribute<ref modAttrs> }
                FrameExpression<out fe, false, false>         (. mod.Add(fe); .)
                { "," FrameExpression<out fe, false, false>   (. mod.Add(fe); .)
+               }
+               OldSemi
+  | "reads"    (. if (reads == null) { SemErr(caption + " cannot have 'reads' clauses"); }
+               .)
+               { IF(IsAttribute()) Attribute<ref readsAttrs> }
+               FrameExpression<out fe, false, false>         (. if (reads != null) { reads.Add(fe); } .)
+               { "," FrameExpression<out fe, false, false>   (. if (reads != null) { reads.Add(fe); } .)
                }
                OldSemi
   | [ "free"                                                 (. isFree = true;
@@ -1323,12 +1345,19 @@ IteratorSpec<.List<FrameExpression/*!*/>/*!*/ reads, List<FrameExpression/*!*/>/
   | "decreases" { IF(IsAttribute()) Attribute<ref decrAttrs> } DecreasesList<decreases, false, false> OldSemi
   )
   .
-Formals<.bool incoming, bool allowGhostKeyword, List<Formal> formals.>
-= (. Contract.Requires(cce.NonNullElements(formals)); IToken id;  Type ty;  bool isGhost; .)
+Formals<.bool incoming, bool allowGhostKeyword, bool allowNewKeyword, List<Formal> formals.>
+= (. Contract.Requires(cce.NonNullElements(formals));
+     IToken id;
+     Type ty;
+     bool isGhost;
+     bool isOld;
+  .)
   "("
   [
-    GIdentType<allowGhostKeyword, out id, out ty, out isGhost>         (. formals.Add(new Formal(id, id.val, ty, incoming, isGhost)); .)
-    { "," GIdentType<allowGhostKeyword, out id, out ty, out isGhost>   (. formals.Add(new Formal(id, id.val, ty, incoming, isGhost)); .)
+    GIdentType<allowGhostKeyword, allowNewKeyword, out id, out ty, out isGhost, out isOld>
+                 (. formals.Add(new Formal(id, id.val, ty, incoming, isGhost, isOld)); .)
+    { "," GIdentType<allowGhostKeyword, allowNewKeyword, out id, out ty, out isGhost, out isOld>
+                 (. formals.Add(new Formal(id, id.val, ty, incoming, isGhost, isOld)); .)
     }
   ]
   ")"
@@ -1497,7 +1526,7 @@ FunctionDecl<DeclModifierData dmod, bool isWithinAbstractModule, out Function/*!
     NoUSIdent<out id>
     (
       [ GenericParameters<typeArgs> ]
-      Formals<true, isFunctionMethod, formals>
+      Formals<true, isFunctionMethod, false, formals>
       ":"
       Type<out returnType>
     | "..."                    (. signatureEllipsis = t; .)
@@ -1518,9 +1547,9 @@ FunctionDecl<DeclModifierData dmod, bool isWithinAbstractModule, out Function/*!
     { Attribute<ref attrs> }
     NoUSIdent<out id>
     (
-      [ GenericParameters<typeArgs> ]                  (. missingOpenParen = true; .)
-      [ Formals<true, isFunctionMethod, formals>       (. missingOpenParen = false; .)
-      ]                                                (. if (missingOpenParen) { errors.Warning(t, "with the new support of higher-order functions in Dafny, parentheses-less predicates are no longer supported; in the new syntax, parentheses are required for the declaration and uses of predicates, even if the predicate takes no additional arguments"); } .)
+      [ GenericParameters<typeArgs> ]                   (. missingOpenParen = true; .)
+      [ Formals<true, isFunctionMethod, false, formals> (. missingOpenParen = false; .)
+      ]                                                 (. if (missingOpenParen) { errors.Warning(t, "with the new support of higher-order functions in Dafny, parentheses-less predicates are no longer supported; in the new syntax, parentheses are required for the declaration and uses of predicates, even if the predicate takes no additional arguments"); } .)
       [ ":"                    (. SemErr(t, "predicates do not have an explicitly declared return type; it is always bool"); .)
       ]
     | "..."                    (. signatureEllipsis = t; .)
@@ -1535,7 +1564,7 @@ FunctionDecl<DeclModifierData dmod, bool isWithinAbstractModule, out Function/*!
     NoUSIdent<out id>
     (
       [ GenericParameters<typeArgs> ]
-      Formals<true, isFunctionMethod, formals>
+      Formals<true, isFunctionMethod, false, formals>
       [ ":"                    (. SemErr(t, "inductive predicates do not have an explicitly declared return type; it is always bool"); .)
       ]
     | "..."                    (. signatureEllipsis = t; .)
@@ -1550,7 +1579,7 @@ FunctionDecl<DeclModifierData dmod, bool isWithinAbstractModule, out Function/*!
     NoUSIdent<out id>
     (
       [ GenericParameters<typeArgs> ]
-      Formals<true, isFunctionMethod, formals>
+      Formals<true, isFunctionMethod, false, formals>
       [ ":"                    (. SemErr(t, "copredicates do not have an explicitly declared return type; it is always bool"); .)
       ]
     | "..."                    (. signatureEllipsis = t; .)

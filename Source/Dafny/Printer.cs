@@ -352,7 +352,7 @@ namespace Microsoft.Dafny {
       if (iter.SignatureIsOmitted) {
         wr.WriteLine(" ...");
       } else {
-        PrintFormals(iter.Ins);
+        PrintFormals(iter.Ins, iter);
         if (iter.Outs.Count != 0) {
           if (iter.Ins.Count + iter.Outs.Count <= 3) {
             wr.Write(" yields ");
@@ -361,7 +361,7 @@ namespace Microsoft.Dafny {
             Indent(indent + 2 * IndentAmount);
             wr.Write("yields ");
           }
-          PrintFormals(iter.Outs);
+          PrintFormals(iter.Outs, iter);
         }
         wr.WriteLine();
       }
@@ -490,7 +490,7 @@ namespace Microsoft.Dafny {
         wr.Write(sep);
         PrintClassMethodHelper("", ctor.Attributes, ctor.Name, new List<TypeParameter>());
         if (ctor.Formals.Count != 0) {
-          PrintFormals(ctor.Formals);
+          PrintFormals(ctor.Formals, null);
         }
         sep = " |";
       }
@@ -563,7 +563,7 @@ namespace Microsoft.Dafny {
       if (f.SignatureIsOmitted) {
         wr.WriteLine(" ...");
       } else {
-        PrintFormals(f.Formals, f.Name);
+        PrintFormals(f.Formals, f, f.Name);
         if (!isPredicate) {
           wr.Write(": ");
           PrintType(f.ResultType);
@@ -629,15 +629,16 @@ namespace Microsoft.Dafny {
         method is InductiveLemma ? "inductive lemma" :
         method is CoLemma ? "colemma" :
         method is Lemma ? "lemma" :
+        method is TwoStateLemma ? "twostate lemma" :
         "method";
       if (method.HasStaticKeyword) { k = "static " + k; }
-      if (method.IsGhost && !(method is Lemma) && !(method is FixpointLemma)) { k = "ghost " + k; }
+      if (method.IsGhost && !(method is Lemma) && !(method is TwoStateLemma) && !(method is FixpointLemma)) { k = "ghost " + k; }
       string nm = method is Constructor && !((Constructor)method).HasName ? "" : method.Name;
       PrintClassMethodHelper(k, method.Attributes, nm, method.TypeArgs);
       if (method.SignatureIsOmitted) {
         wr.WriteLine(" ...");
       } else {
-        PrintFormals(method.Ins, method.Name);
+        PrintFormals(method.Ins, method, method.Name);
         if (method.Outs.Count != 0) {
           if (method.Ins.Count + method.Outs.Count <= 3) {
             wr.Write(" returns ");
@@ -646,7 +647,7 @@ namespace Microsoft.Dafny {
             Indent(indent + 2 * IndentAmount);
             wr.Write("returns ");
           }
-          PrintFormals(method.Outs);
+          PrintFormals(method.Outs, method);
         }
         wr.WriteLine();
       }
@@ -655,6 +656,12 @@ namespace Microsoft.Dafny {
       PrintSpec("requires", method.Req, ind);
       if (method.Mod.Expressions != null) {
         PrintFrameSpecLine("modifies", method.Mod.Expressions, ind, method.Mod.HasAttributes() ? method.Mod.Attributes : null);
+      }
+      if (method is TwoStateLemma) {
+        var two = (TwoStateLemma)method;
+        if (two.Reads.Expressions != null) {
+          PrintFrameSpecLine("reads", two.Reads.Expressions, ind, two.Reads.HasAttributes() ? two.Reads.Attributes : null);
+        }
       }
       PrintSpec("ensures", method.Ens, ind);
       PrintDecreasesSpec(method.Decreases, ind);
@@ -666,11 +673,11 @@ namespace Microsoft.Dafny {
       }
     }
 
-    internal void PrintFormals(List<Formal> ff, string name = null) {
+    internal void PrintFormals(List<Formal> ff, ICallable/*?*/ context, string name = null) {
       Contract.Requires(ff != null);
       if (name != null && name.EndsWith("#")) {
         wr.Write("[");
-        PrintFormal(ff[0]);
+        PrintFormal(ff[0], false);
         wr.Write("]");
         ff = new List<Formal>(ff.Skip(1));
       }
@@ -680,13 +687,16 @@ namespace Microsoft.Dafny {
         Contract.Assert(f != null);
         wr.Write(sep);
         sep = ", ";
-        PrintFormal(f);
+        PrintFormal(f, context is TwoStateLemma && f.InParam);
       }
       wr.Write(")");
     }
 
-    void PrintFormal(Formal f) {
+    void PrintFormal(Formal f, bool showNewKeyword) {
       Contract.Requires(f != null);
+      if (showNewKeyword && !f.IsOld) {
+        wr.Write("new ");
+      }
       if (f.IsGhost) {
         wr.Write("ghost ");
       }

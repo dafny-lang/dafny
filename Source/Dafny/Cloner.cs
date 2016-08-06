@@ -213,7 +213,7 @@ namespace Microsoft.Dafny
     }
 
     public Formal CloneFormal(Formal formal) {
-      Formal f = new Formal(Tok(formal.tok), formal.Name, CloneType(formal.Type), formal.InParam, formal.IsGhost);
+      Formal f = new Formal(Tok(formal.tok), formal.Name, CloneType(formal.Type), formal.InParam, formal.IsGhost, formal.IsOld);
       //if (f.Type is UserDefinedType && formal.Type is UserDefinedType)
       //    ((UserDefinedType)f.Type).ResolvedClass = ((UserDefinedType)(formal.Type)).ResolvedClass;
       return f;
@@ -710,6 +710,11 @@ namespace Microsoft.Dafny
       } else if (m is Lemma) {
         return new Lemma(Tok(m.tok), m.Name, m.HasStaticKeyword, tps, ins, m.Outs.ConvertAll(CloneFormal),
           req, mod, ens, decreases, body, CloneAttributes(m.Attributes), null, m);
+      } else if (m is TwoStateLemma) {
+        var two = (TwoStateLemma)m;
+        var reads = CloneSpecFrameExpr(two.Reads);
+        return new TwoStateLemma(Tok(m.tok), m.Name, m.HasStaticKeyword, tps, ins, m.Outs.ConvertAll(CloneFormal),
+          req, mod, reads, ens, decreases, body, CloneAttributes(m.Attributes), null, m);
       } else {
         return new Method(Tok(m.tok), m.Name, m.HasStaticKeyword, m.IsGhost, tps, ins, m.Outs.ConvertAll(CloneFormal),
           req, mod, ens, decreases, body, CloneAttributes(m.Attributes), null, m);
