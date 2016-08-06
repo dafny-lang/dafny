@@ -410,9 +410,11 @@ namespace Microsoft.Dafny
   /// At the end of the body of the method, add:
   ///    if (A != null) { Repr := Repr + {A}; }
   ///    if (F != null) { Repr := Repr + {F} + F.Repr; }
-  /// For every non-static method that is either ghost or is a "simple query method",
+  /// For every non-static non-twostate method that is either ghost or is a "simple query method",
   /// add:
   ///    requires Valid()
+  /// For every non-static twostate method, add:
+  ///    requires old(Valid())
   /// 
   /// For every non-"Valid" non-static function, add:
   ///    requires Valid()
@@ -660,6 +662,11 @@ namespace Microsoft.Dafny
             if (m.RefinementBase == null) {
               // requires Valid()
               var valid = ValidCall(tok, implicitSelf, Valid);
+              if (m is TwoStateLemma) {
+                // Instead use:  requires old(Valid())
+                valid = new OldExpr(tok, valid);
+                valid.Type = Type.Bool;
+              }
               m.Req.Insert(0, new MaybeFreeExpression(valid));
               AddHoverText(member.tok, "requires {0}", valid);
             }

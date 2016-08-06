@@ -1,0 +1,26 @@
+Twostate-Verification.dfy(40,26): Error: receiver must be allocated in the state in which its fields are accessed
+Execution trace:
+    (0,0): anon0
+Twostate-Verification.dfy(45,32): Error: receiver argument must be allocated in the state in which the function is invoked
+Execution trace:
+    (0,0): anon0
+Twostate-Verification.dfy(61,26): Error: receiver must be allocated in the state in which its fields are accessed
+Execution trace:
+    (0,0): anon0
+    (0,0): anon3_Then
+Twostate-Verification.dfy(63,32): Error: receiver argument must be allocated in the state in which the function is invoked
+Execution trace:
+    (0,0): anon0
+    (0,0): anon3_Else
+Twostate-Verification.dfy(81,15): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+Twostate-Verification.dfy(6,3): Error BP5002: A precondition for this call might not hold.
+Twostate-Verification.dfy(9,17): Related location: parameter 0 ('c') must be allocated in the previous state
+Execution trace:
+    (0,0): anon0
+Twostate-Verification.dfy(13,17): Error: receiver must be allocated in the state in which its fields are accessed
+Execution trace:
+    (0,0): anon0
+
+Dafny program verifier finished with 47 verified, 7 errors

@@ -1613,8 +1613,9 @@ namespace Microsoft.Dafny {
 
       ExpressionTranslator etran = new ExpressionTranslator(this, predef, iter.tok);
 
-      List<Variable> inParams, outParams;
-      GenerateMethodParametersChoose(iter.tok, iter, kind, true, true, false, etran, out inParams, out outParams);
+      var inParams = new List<Bpl.Variable>();
+      List<Variable> outParams;
+      GenerateMethodParametersChoose(iter.tok, iter, kind, true, true, false, etran, inParams, out outParams);
 
       var req = new List<Bpl.Requires>();
       var mod = new List<Bpl.IdentifierExpr>();
@@ -2993,21 +2994,26 @@ namespace Microsoft.Dafny {
         foreach (MaybeFreeExpression p in m.Req) {
           CheckWellformedAndAssume(p.E, new WFOptions(), localVariables, builder, etran);
         }
-        // check well-formedness of the modifies clause
+        // check well-formedness of the modifies and reads clauses
         CheckFrameWellFormed(new WFOptions(), m.Mod.Expressions, localVariables, builder, etran);
+        if (m is TwoStateLemma) {
+          var two = (TwoStateLemma)m;
+          CheckFrameWellFormed(new WFOptions(), two.Reads.Expressions, localVariables, builder, etran);
+        }
         // check well-formedness of the decreases clauses
         foreach (Expression p in m.Decreases.Expressions)
         {
           CheckWellformed(p, new WFOptions(), localVariables, builder, etran);
         }
 
-        // play havoc with the heap according to the modifies clause
-        builder.Add(new Bpl.HavocCmd(m.tok, new List<Bpl.IdentifierExpr>{ (Bpl.IdentifierExpr/*TODO: this cast is rather dubious*/)etran.HeapExpr }));
-        // assume the usual two-state boilerplate information
-        foreach (BoilerplateTriple tri in GetTwoStateBoilerplate(m.tok, m.Mod.Expressions, m.IsGhost, etran.Old, etran, etran.Old))
-        {
-          if (tri.IsFree) {
-            builder.Add(TrAssumeCmd(m.tok, tri.Expr));
+        if (!(m is TwoStateLemma)) {
+          // play havoc with the heap according to the modifies clause
+          builder.Add(new Bpl.HavocCmd(m.tok, new List<Bpl.IdentifierExpr> { (Bpl.IdentifierExpr/*TODO: this cast is rather dubious*/)etran.HeapExpr }));
+          // assume the usual two-state boilerplate information
+          foreach (BoilerplateTriple tri in GetTwoStateBoilerplate(m.tok, m.Mod.Expressions, m.IsGhost, etran.Old, etran, etran.Old)) {
+            if (tri.IsFree) {
+              builder.Add(TrAssumeCmd(m.tok, tri.Expr));
+            }
           }
         }
 
@@ -3637,14 +3643,18 @@ namespace Microsoft.Dafny {
       {
         var printer = new Printer(writer);
         printer.PrintAttributes(m.Attributes);
-        printer.PrintFormals(m.Ins);
+        printer.PrintFormals(m.Ins, m);
         if (m.Outs.Any())
         {
           writer.Write("returns ");
-          printer.PrintFormals(m.Outs);
+          printer.PrintFormals(m.Outs, m);
         }
         printer.PrintSpec("", m.Req, 0);
         printer.PrintFrameSpecLine("", m.Mod.Expressions, 0, null);
+        if (m is TwoStateLemma) {
+          var two = (TwoStateLemma)m;
+          printer.PrintFrameSpecLine("", two.Reads.Expressions, 0, null);
+        }
         printer.PrintSpec("", m.Ens, 0);
         printer.PrintDecreasesSpec(m.Decreases, 0);
         if (!specificationOnly && m.Body != null)
@@ -3693,7 +3703,7 @@ namespace Microsoft.Dafny {
         var printer = new Printer(writer);
         writer.Write(f.IsGhost ? "function" : "function method");
         printer.PrintAttributes(f.Attributes);
-        printer.PrintFormals(f.Formals);
+        printer.PrintFormals(f.Formals, f);
         writer.Write(": ");
         printer.PrintType(f.ResultType);
         printer.PrintSpec("", f.Req, 0);
@@ -3755,6 +3765,12 @@ namespace Microsoft.Dafny {
       Contract.Requires(localVariables != null);
       Contract.Requires(predef != null);
       Contract.Requires(wellformednessProc || m.Body != null);
+
+      if (m is TwoStateLemma) {
+        // $Heap := current$Heap;
+        var heap = (Bpl.IdentifierExpr /*TODO: this cast is somewhat dubious*/)new ExpressionTranslator(this, predef, m.tok).HeapExpr;
+        builder.Add(Bpl.Cmd.SimpleAssign(m.tok, heap, new Bpl.IdentifierExpr(m.tok, "current$Heap", predef.HeapType)));
+      }
 
       // set up the information used to verify the method's modifies clause
       DefineFrame(m.tok, m.Mod.Expressions, builder, localVariables, null);
@@ -5018,6 +5034,13 @@ namespace Microsoft.Dafny {
         CheckWellformed(e.Obj, options, locals, builder, etran);
         if (e.Obj.Type.IsRefType) {
           CheckNonNull(expr.tok, e.Obj, builder, etran, options.AssertKv);
+          // Check that the receiver is available in the state in which the dereference occurs
+          if (etran.UsesOldHeap) {
+            Bpl.Expr wh = GetWhereClause(expr.tok, etran.TrExpr(e.Obj), e.Obj.Type, etran, true);
+            if (wh != null) {
+              builder.Add(Assert(expr.tok, wh, "receiver must be allocated in the state in which its fields are accessed"));
+            }
+          }
         } else if (e.Member is DatatypeDestructor) {
           var dtor = (DatatypeDestructor)e.Member;
           var correctConstructor = FunctionCall(e.tok, dtor.EnclosingCtor.QueryField.FullSanitizedName, Bpl.Type.Bool, etran.TrExpr(e.Obj));
@@ -5236,14 +5259,14 @@ namespace Microsoft.Dafny {
         // invoked in the 'old' state, then we need to check that its arguments were all available at that time as well.
         if (etran.UsesOldHeap) {
           if (!e.Function.IsStatic) {
-            Bpl.Expr wh = GetWhereClause(e.Receiver.tok, etran.TrExpr(e.Receiver), e.Receiver.Type, etran);
+            Bpl.Expr wh = GetWhereClause(e.Receiver.tok, etran.TrExpr(e.Receiver), e.Receiver.Type, etran, true);
             if (wh != null) {
               builder.Add(Assert(e.Receiver.tok, wh, "receiver argument must be allocated in the state in which the function is invoked"));
             }
           }
           for (int i = 0; i < e.Args.Count; i++) {
             Expression ee = e.Args[i];
-            Bpl.Expr wh = GetWhereClause(ee.tok, etran.TrExpr(ee), ee.Type, etran);
+            Bpl.Expr wh = GetWhereClause(ee.tok, etran.TrExpr(ee), ee.Type, etran, true);
             if (wh != null) {
               builder.Add(Assert(ee.tok, wh, "argument must be allocated in the state in which the function is invoked"));
             }
@@ -6544,20 +6567,54 @@ namespace Microsoft.Dafny {
       currentModule = m.EnclosingClass.Module;
       codeContext = m;
 
-      ExpressionTranslator etran = new ExpressionTranslator(this, predef, m.tok);
+      Bpl.Expr prevHeap = null;
+      Bpl.Expr currHeap = null;
+      var ordinaryEtran = new ExpressionTranslator(this, predef, m.tok);
+      ExpressionTranslator etran;
+      var inParams = new List<Bpl.Variable>();
+      if (m is TwoStateLemma) {
+        var prevHeapVar = new Bpl.Formal(m.tok, new Bpl.TypedIdent(m.tok, "previous$Heap", predef.HeapType), true);
+        var currHeapVar = new Bpl.Formal(m.tok, new Bpl.TypedIdent(m.tok, "current$Heap", predef.HeapType), true);
+        inParams.Add(prevHeapVar);
+        inParams.Add(currHeapVar);
+        prevHeap = new Bpl.IdentifierExpr(m.tok, prevHeapVar);
+        currHeap = new Bpl.IdentifierExpr(m.tok, currHeapVar);
+        etran = new ExpressionTranslator(this, predef, currHeap, prevHeap);
+      } else {
+        etran = ordinaryEtran;
+      }
 
-      List<Variable> inParams, outParams;
-      GenerateMethodParameters(m.tok, m, kind, etran, out inParams, out outParams);
+      List<Variable> outParams;
+      GenerateMethodParameters(m.tok, m, kind, etran, inParams, out outParams);
 
       var req = new List<Bpl.Requires>();
       var mod = new List<Bpl.IdentifierExpr>();
       var ens = new List<Bpl.Ensures>();
       // FREE PRECONDITIONS
-      if (kind == MethodTranslationKind.SpecWellformedness || kind == MethodTranslationKind.Implementation || kind== MethodTranslationKind.OverrideCheck) {  // the other cases have no need for a free precondition
+      if (kind == MethodTranslationKind.SpecWellformedness || kind == MethodTranslationKind.Implementation || kind == MethodTranslationKind.OverrideCheck) {  // the other cases have no need for a free precondition
         // free requires mh == ModuleContextHeight && fh == FunctionContextHeight;
         req.Add(Requires(m.tok, true, etran.HeightContext(m), null, null));
+        if (m is TwoStateLemma) {
+          // free requires prevHeap == Heap && HeapSucc(prevHeap, currHeap) && IsHeap(currHeap)
+          var a0 = Bpl.Expr.Eq(prevHeap, ordinaryEtran.HeapExpr);
+          var a1 = HeapSucc(prevHeap, currHeap);
+          var a2 = FunctionCall(m.tok, BuiltinFunction.IsGoodHeap, null, currHeap);
+          req.Add(Requires(m.tok, true, BplAnd(a0, BplAnd(a1, a2)), null, null));
+        }
       }
-      mod.Add((Bpl.IdentifierExpr/*TODO: this cast is rather dubious*/)etran.HeapExpr);
+      if (m is TwoStateLemma) {
+        // Checked preconditions that old parameters really existed in previous state
+        var index = 0;
+        foreach (var formal in m.Ins) {
+          if (formal.IsOld) {
+            var dafnyFormalIdExpr = new IdentifierExpr(formal);
+            req.Add(Requires(formal.tok, false, MkIsAlloc(etran.TrExpr(dafnyFormalIdExpr), formal.Type, prevHeap),
+              string.Format("parameter {0} ('{1}') must be allocated in the previous state", index, formal.Name), null));
+          }
+          index++;
+        }
+      }
+      mod.Add((Bpl.IdentifierExpr/*TODO: this cast is somewhat dubious*/)ordinaryEtran.HeapExpr);
       mod.Add(etran.Tick());
 
       var bodyKind = kind == MethodTranslationKind.SpecWellformedness || kind == MethodTranslationKind.Implementation;
@@ -6584,6 +6641,11 @@ namespace Microsoft.Dafny {
             }
           }
         }
+        if (m is TwoStateLemma) {
+          var two = (TwoStateLemma)m;
+          req.Add(Requires(m.tok, false, FrameCondition(m.tok, two.Reads.Expressions, false, false, etran.Old, etran, etran),
+            "the previous heap and current heap do not agree on all objects denoted by the reads clause", "reads clause"));
+        }
         comment = "user-defined postconditions";
         foreach (var p in m.Ens) {
           ens.Add(Ensures(p.E.tok, true, CanCallAssumption(p.E, etran), null, comment));
@@ -6607,7 +6669,7 @@ namespace Microsoft.Dafny {
             }
           }
         }
-        foreach (BoilerplateTriple tri in GetTwoStateBoilerplate(m.tok, m.Mod.Expressions, m.IsGhost, etran.Old, etran, etran.Old)) {
+        foreach (BoilerplateTriple tri in GetTwoStateBoilerplate(m.tok, m.Mod.Expressions, m.IsGhost, ordinaryEtran.Old, ordinaryEtran, ordinaryEtran.Old)) {
           ens.Add(Ensures(tri.tok, tri.IsFree, tri.Expr, tri.ErrorMessage, tri.Comment));
         }
         
@@ -6688,8 +6750,9 @@ namespace Microsoft.Dafny {
 
       ExpressionTranslator etran = new ExpressionTranslator(this, predef, m.tok);
 
-      List<Variable> inParams, outParams;
-      GenerateMethodParameters(m.tok, m, MethodTranslationKind.Implementation, etran, out inParams, out outParams);
+      var inParams = new List<Bpl.Variable>();
+      List<Variable> outParams;
+      GenerateMethodParameters(m.tok, m, MethodTranslationKind.Implementation, etran, inParams, out outParams);
 
       var req = new List<Bpl.Requires>();
       List<Bpl.IdentifierExpr> mod = new List<Bpl.IdentifierExpr>();
@@ -6955,13 +7018,12 @@ namespace Microsoft.Dafny {
       Reset();
     }
 
-    private void GenerateMethodParameters(IToken tok, Method m, MethodTranslationKind kind, ExpressionTranslator etran, out List<Variable> inParams, out List<Variable> outParams) {
-      GenerateMethodParametersChoose(tok, m, kind, !m.IsStatic, true, true, etran, out inParams, out outParams);
+    private void GenerateMethodParameters(IToken tok, Method m, MethodTranslationKind kind, ExpressionTranslator etran, List<Variable> inParams, out List<Variable> outParams) {
+      GenerateMethodParametersChoose(tok, m, kind, !m.IsStatic, true, true, etran, inParams, out outParams);
     }
 
     private void GenerateMethodParametersChoose(IToken tok, IMethodCodeContext m, MethodTranslationKind kind, bool includeReceiver, bool includeInParams, bool includeOutParams,
-      ExpressionTranslator etran, out List<Variable> inParams, out List<Variable> outParams) {
-      inParams = new List<Bpl.Variable>();
+      ExpressionTranslator etran, List<Variable> inParams, out List<Variable> outParams) {
       outParams = new List<Variable>();
       // Add type parameters first, always!
       inParams.AddRange(MkTyParamFormals(GetTypeParams(m)));
@@ -6969,19 +7031,20 @@ namespace Microsoft.Dafny {
         var receiverType = m is MemberDecl ? Resolver.GetReceiverType(tok, (MemberDecl)m) : Resolver.GetThisType(tok, (IteratorDecl)m);
         Bpl.Expr wh = Bpl.Expr.And(
           Bpl.Expr.Neq(new Bpl.IdentifierExpr(tok, "this", predef.RefType), predef.Null),
-          etran.GoodRef(tok, new Bpl.IdentifierExpr(tok, "this", predef.RefType), receiverType));
+          (m is TwoStateLemma ? etran.Old : etran).GoodRef(tok, new Bpl.IdentifierExpr(tok, "this", predef.RefType), receiverType));
         Bpl.Formal thVar = new Bpl.Formal(tok, new Bpl.TypedIdent(tok, "this", predef.RefType, wh), true);
         inParams.Add(thVar);
       }
       if (includeInParams) {
         foreach (Formal p in m.Ins) {
           Bpl.Type varType = TrType(p.Type);
-          Bpl.Expr wh = GetExtendedWhereClause(p.tok, new Bpl.IdentifierExpr(p.tok, p.AssignUniqueName(currentDeclaration.IdGenerator), varType), p.Type, etran);
+          Bpl.Expr wh = GetExtendedWhereClause(p.tok, new Bpl.IdentifierExpr(p.tok, p.AssignUniqueName(currentDeclaration.IdGenerator), varType), p.Type, p.IsOld ? etran.Old : etran);
           inParams.Add(new Bpl.Formal(p.tok, new Bpl.TypedIdent(p.tok, p.AssignUniqueName(currentDeclaration.IdGenerator), varType, wh), true));
         }
       }
       if (includeOutParams) {
         foreach (Formal p in m.Outs) {
+          Contract.Assert(!p.IsOld);  // out-parameters are never old (perhaps we want to relax this condition in the future)
           Bpl.Type varType = TrType(p.Type);
           Bpl.Expr wh = GetWhereClause(p.tok, new Bpl.IdentifierExpr(p.tok, p.AssignUniqueName(currentDeclaration.IdGenerator), varType), p.Type, etran);
           outParams.Add(new Bpl.Formal(p.tok, new Bpl.TypedIdent(p.tok, p.AssignUniqueName(currentDeclaration.IdGenerator), varType, wh), false));
@@ -7042,7 +7105,7 @@ namespace Microsoft.Dafny {
         boilerplate.Add(new BoilerplateTriple(tok, true, Bpl.Expr.Eq(etranPre.HeapExpr, etran.HeapExpr), null, "frame condition"));
       } else {
         // the frame condition, which is free since it is checked with every heap update and call
-        boilerplate.Add(new BoilerplateTriple(tok, true, FrameCondition(tok, modifiesClause, isGhostContext, etranPre, etran, etranMod), null, "frame condition"));
+        boilerplate.Add(new BoilerplateTriple(tok, true, FrameCondition(tok, modifiesClause, isGhostContext, true, etranPre, etran, etranMod), null, "frame condition"));
         // HeapSucc(S1, S2) or HeapSuccGhost(S1, S2)
         Bpl.Expr heapSucc = HeapSucc(etranPre.HeapExpr, etran.HeapExpr, isGhostContext);
         boilerplate.Add(new BoilerplateTriple(tok, true, heapSucc, null, "boilerplate"));
@@ -7056,8 +7119,13 @@ namespace Microsoft.Dafny {
     ///  S1. the pre-state of the two-state interval
     ///  S2. the post-state of the two-state interval
     /// This method assumes that etranPre denotes S1, etran denotes S2, and that etranMod denotes S0.
+    /// "isModifiesClause" being "true" says to produce this frame condition:
+    ///      if it's not in the frame, then it is unchanged
+    /// and it being "false" says to produce this frame condition:
+    ///      if it's in the frame, then it is unchanged
     /// </summary>
-    Bpl.Expr/*!*/ FrameCondition(IToken/*!*/ tok, List<FrameExpression/*!*/>/*!*/ modifiesClause, bool isGhostContext, ExpressionTranslator/*!*/ etranPre, ExpressionTranslator/*!*/ etran, ExpressionTranslator/*!*/ etranMod)
+    Bpl.Expr/*!*/ FrameCondition(IToken/*!*/ tok, List<FrameExpression/*!*/>/*!*/ modifiesClause, bool isGhostContext, bool isModifiesClause,
+      ExpressionTranslator/*!*/ etranPre, ExpressionTranslator/*!*/ etran, ExpressionTranslator/*!*/ etranMod)
     {
       Contract.Requires(tok != null);
       Contract.Requires(etran != null);
@@ -7069,10 +7137,17 @@ namespace Microsoft.Dafny {
       // generate:
       //  (forall<alpha> o: ref, f: Field alpha :: { $Heap[o,f] }
       //      o != null
+      // #if isModifiesClause
       //      && old($Heap)[o,alloc]                     // include only in non-ghost contexts
+      // #endif
       //      ==>
+      // #if isModifiesClause
       //        $Heap[o,f] == PreHeap[o,f] ||
       //        (o,f) in modifiesClause)
+      // #else
+      //        (o,f) in readsClause ==>
+      //        $Heap[o,f] == PreHeap[o,f])
+      // #endif
       var alpha = new Bpl.TypeVariable(tok, "alpha");
       var oVar = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, "$o", predef.RefType));
       var o = new Bpl.IdentifierExpr(tok, oVar);
@@ -7082,12 +7157,12 @@ namespace Microsoft.Dafny {
       Bpl.Expr heapOF = ReadHeap(tok, etran.HeapExpr, o, f);
       Bpl.Expr preHeapOF = ReadHeap(tok, etranPre.HeapExpr, o, f);
       Bpl.Expr ante = Bpl.Expr.Neq(o, predef.Null);
-      if (!isGhostContext) {
+      if (!isGhostContext && isModifiesClause) {
         ante = Bpl.Expr.And(ante, etranMod.IsAlloced(tok, o));
       }
-      Bpl.Expr consequent = Bpl.Expr.Eq(heapOF, preHeapOF);
-
-      consequent = Bpl.Expr.Or(consequent, InRWClause(tok, o, f, modifiesClause, etranMod, null, null));
+      var eq = Bpl.Expr.Eq(heapOF, preHeapOF);
+      var ofInFrame = InRWClause(tok, o, f, modifiesClause, etranMod, null, null);
+      Bpl.Expr consequent = isModifiesClause ? Bpl.Expr.Or(eq, ofInFrame) : Bpl.Expr.Imp(ofInFrame, eq);
 
       var tr = new Bpl.Trigger(tok, true, new List<Bpl.Expr> { heapOF });
       return new Bpl.ForallExpr(tok, new List<TypeVariable> { alpha }, new List<Variable> { oVar, fVar }, null, tr, Bpl.Expr.Imp(ante, consequent));
@@ -8643,9 +8718,7 @@ namespace Microsoft.Dafny {
       //     assert Post;
       //     assume false;
       //   } else {
-      //     initHeap := $Heap;
-      //     advance $Heap, Tick;
-      //     assume (forall x,y :: Range(x,y)[old($Heap),$Heap := old($Heap),initHeap] ==> Post(x,y));
+      //     assume (forall x,y :: Range(x,y) ==> Post(x,y));
       //   }
 
       if (s.BoundVars.Count != 0) {
@@ -8684,26 +8757,10 @@ namespace Microsoft.Dafny {
       definedness.Add(TrAssumeCmd(s.Tok, Bpl.Expr.False));
 
       // Now for the other branch, where the ensures clauses are exported.
-
-      var initHeapVar = new Bpl.LocalVariable(s.Tok, new Bpl.TypedIdent(s.Tok, CurrentIdGenerator.FreshId("$initHeapForallStmt#"), predef.HeapType));
-      locals.Add(initHeapVar);
-      var initHeap = new Bpl.IdentifierExpr(s.Tok, initHeapVar);
-      var initEtran = new ExpressionTranslator(this, predef, initHeap, etran.Old.HeapExpr);
-      // initHeap := $Heap;
-      exporter.Add(Bpl.Cmd.SimpleAssign(s.Tok, initHeap, etran.HeapExpr));
-      // advance $Heap;
-      exporter.Add(new Bpl.HavocCmd(s.Tok, new List<Bpl.IdentifierExpr> { (Bpl.IdentifierExpr/*TODO: this cast is rather dubious*/)etran.HeapExpr, etran.Tick() }));
-      foreach (BoilerplateTriple tri in GetTwoStateBoilerplate(s.Tok, new List<FrameExpression>(), s.IsGhost, initEtran, etran, initEtran)) {
-        if (tri.IsFree) {
-          exporter.Add(TrAssumeCmd(s.Tok, tri.Expr));
-        }
-      }
-
-      Dictionary<IVariable, Expression> substMap = new Dictionary<IVariable, Expression>();
+      var substMap = new Dictionary<IVariable, Expression>();
       var p = Substitute(s.ForallExpressions[0], null, substMap);
       stmtContext = StmtType.FORALL;
-      var proofEtran = new ExpressionTranslator(this, predef, etran.HeapExpr, initHeap);
-      Bpl.Expr qq = proofEtran.TrExpr(p);
+      var qq = etran.TrExpr(p);
       if (s.BoundVars.Count != 0) {
         exporter.Add(TrAssumeCmd(s.Tok, qq));
       } else {
@@ -9093,6 +9150,10 @@ namespace Microsoft.Dafny {
 
 
       var ins = new List<Bpl.Expr>();
+      if (callee is TwoStateLemma) {
+        ins.Add(etran.Old.HeapExpr);
+        ins.Add(etran.HeapExpr);
+      }
       // Add type arguments
       ins.AddRange(trTypeArgs(tySubst, tyArgs));
 
@@ -11036,7 +11097,7 @@ namespace Microsoft.Dafny {
         Contract.Requires(layerArgument != null);
         Contract.Ensures(Contract.Result<ExpressionTranslator>() != null);
 
-        return new ExpressionTranslator(translator, predef, HeapExpr, This, null, new FuelSetting(translator, 0, layerArgument), new FuelSetting(translator, 0, layerArgument), modifiesFrame, stripLits);
+        return CloneExpressionTranslator(this, translator, predef, HeapExpr, This, null, new FuelSetting(translator, 0, layerArgument), new FuelSetting(translator, 0, layerArgument), modifiesFrame, stripLits);
       }
 
       public ExpressionTranslator ReplaceLayer(Bpl.Expr layerArgument) {
@@ -11044,12 +11105,12 @@ namespace Microsoft.Dafny {
         Contract.Requires(layerArgument != null);
         Contract.Ensures(Contract.Result<ExpressionTranslator>() != null);
 
-        return new ExpressionTranslator(translator, predef, HeapExpr, This, applyLimited_CurrentFunction, layerInterCluster.WithLayer(layerArgument), layerIntraCluster.WithLayer(layerArgument), modifiesFrame, stripLits);
+        return CloneExpressionTranslator(this, translator, predef, HeapExpr, This, applyLimited_CurrentFunction, layerInterCluster.WithLayer(layerArgument), layerIntraCluster.WithLayer(layerArgument), modifiesFrame, stripLits);
        }
 
       public ExpressionTranslator WithNoLits() {
         Contract.Ensures(Contract.Result<ExpressionTranslator>() != null);
-        return new ExpressionTranslator(translator, predef, HeapExpr, This, applyLimited_CurrentFunction, layerInterCluster, layerIntraCluster, modifiesFrame, true);
+        return CloneExpressionTranslator(this, translator, predef, HeapExpr, This, applyLimited_CurrentFunction, layerInterCluster, layerIntraCluster, modifiesFrame, true);
       }
 
       public ExpressionTranslator LimitedFunctions(Function applyLimited_CurrentFunction, Bpl.Expr layerArgument) {
@@ -11057,29 +11118,29 @@ namespace Microsoft.Dafny {
         Contract.Requires(layerArgument != null);
         Contract.Ensures(Contract.Result<ExpressionTranslator>() != null);
 
-        return new ExpressionTranslator(translator, predef, HeapExpr, This, applyLimited_CurrentFunction, /* layerArgument */ layerInterCluster, new FuelSetting(translator, 0, layerArgument), modifiesFrame, stripLits);
+        return CloneExpressionTranslator(this, translator, predef, HeapExpr, This, applyLimited_CurrentFunction, /* layerArgument */ layerInterCluster, new FuelSetting(translator, 0, layerArgument), modifiesFrame, stripLits);
       }
 
       public ExpressionTranslator LayerOffset(int offset) {
         Contract.Requires(0 <= offset);
         Contract.Ensures(Contract.Result<ExpressionTranslator>() != null);
 
-        var et = new ExpressionTranslator(translator, predef, HeapExpr, This, applyLimited_CurrentFunction, layerInterCluster.Offset(offset), layerIntraCluster, modifiesFrame, stripLits);
-        if (this.oldEtran != null) {
-          var etOld = new ExpressionTranslator(translator, predef, Old.HeapExpr, This, applyLimited_CurrentFunction, layerInterCluster.Offset(offset), layerIntraCluster, modifiesFrame, stripLits);
-          etOld.oldEtran = etOld;
-          et.oldEtran = etOld;
-        }
-        return et;
+        return CloneExpressionTranslator(this, translator, predef, HeapExpr, This, applyLimited_CurrentFunction, layerInterCluster.Offset(offset), layerIntraCluster, modifiesFrame, stripLits);
       }
 
       public ExpressionTranslator DecreaseFuel(int offset) {
         Contract.Requires(0 <= offset);
         Contract.Ensures(Contract.Result<ExpressionTranslator>() != null);
 
-        var et = new ExpressionTranslator(translator, predef, HeapExpr, This, applyLimited_CurrentFunction, layerInterCluster.Decrease(offset), layerIntraCluster, modifiesFrame, stripLits);
-        if (this.oldEtran != null) {
-          var etOld = new ExpressionTranslator(translator, predef, Old.HeapExpr, This, applyLimited_CurrentFunction, layerInterCluster.Decrease(offset), layerIntraCluster, modifiesFrame, stripLits);
+        return CloneExpressionTranslator(this, translator, predef, HeapExpr, This, applyLimited_CurrentFunction, layerInterCluster.Decrease(offset), layerIntraCluster, modifiesFrame, stripLits);
+      }
+
+      private static ExpressionTranslator CloneExpressionTranslator(ExpressionTranslator orig,
+        Translator translator, PredefinedDecls predef, Bpl.Expr heap, string thisVar,
+        Function applyLimited_CurrentFunction, FuelSetting layerInterCluster, FuelSetting layerIntraCluster, string modifiesFrame, bool stripLits) {
+        var et = new ExpressionTranslator(translator, predef, heap, thisVar, applyLimited_CurrentFunction, layerInterCluster, layerIntraCluster, modifiesFrame, stripLits);
+        if (orig.oldEtran != null) {
+          var etOld = new ExpressionTranslator(translator, predef, orig.Old.HeapExpr, thisVar, applyLimited_CurrentFunction, layerInterCluster, layerIntraCluster, modifiesFrame, stripLits);
           etOld.oldEtran = etOld;
           et.oldEtran = etOld;
         }

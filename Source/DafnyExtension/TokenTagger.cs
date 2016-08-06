@@ -460,6 +460,7 @@ namespace DafnyLanguage
                 case "then":
                 case "this":
                 case "true":
+                case "twostate":
                 case "type":
                 case "var":
                 case "where":
