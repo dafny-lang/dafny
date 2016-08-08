@@ -304,7 +304,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    void PrintModuleDefinition(ModuleDefinition module, int indent, string fileBeingPrinted) {
+    public void PrintModuleDefinition(ModuleDefinition module, int indent, string fileBeingPrinted) {
       Contract.Requires(module != null);
       Contract.Requires(0 <= indent);
       if (module.IsAbstract) {
@@ -314,6 +314,9 @@ namespace Microsoft.Dafny {
       PrintAttributes(module.Attributes);
       wr.Write(" {0} ", module.Name);
       if (module.RefinementBaseName != null) {
+        if (module.IsExclusiveRefinement) {
+          wr.Write("exclusively ");
+        }
         wr.Write("refines {0} ", Util.Comma(".", module.RefinementBaseName, id => id.val));
       }
       if (module.TopLevelDecls.Count == 0) {

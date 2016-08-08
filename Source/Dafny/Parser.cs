@@ -828,10 +828,9 @@ int StringToInt(string s, int defaultValue, string errString) {
 				} else {
 					Get();
 					QualifiedModuleName(out idRefined);
-					isExclusively = false; 
 				}
 			}
-			module = new ModuleDefinition(id, id.val, isAbstract, false, isExclusively, idRefined == null ? null : idRefined, parent, attrs, false, this); 
+			module = new ModuleDefinition(id, id.val, isAbstract, false, isExclusively, idRefined, parent, attrs, false, this); 
 			Expect(47);
 			module.BodyStartTok = t; 
 			while (StartOf(1)) {

@@ -743,14 +743,15 @@ SubModuleDecl<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl sub
     NoUSIdent<out id>
     (. EncodeExternAsAttribute(dmod, ref attrs, id, /* needAxiom */ false); .)
 
-      [ "exclusively" "refines" QualifiedModuleName<out idRefined> (. isExclusively = true; .)  
-      | "refines" QualifiedModuleName<out idRefined> (. isExclusively = false; .) ] 
-            (. module = new ModuleDefinition(id, id.val, isAbstract, false, isExclusively, idRefined == null ? null : idRefined, parent, attrs, false, this); .)  
-       "{"                                             (. module.BodyStartTok = t; .)
-            { TopDecl<module, namedModuleDefaultClassMembers, /* isTopLevel */ false, isAbstract>}
-       "}"                                 (. module.BodyEndTok = t;
-                                              module.TopLevelDecls.Add(new DefaultClassDecl(module, namedModuleDefaultClassMembers));
-                                              submodule = new LiteralModuleDecl(module, parent); .)
+      [ "exclusively" "refines" QualifiedModuleName<out idRefined> (. isExclusively = true; .)
+      | "refines" QualifiedModuleName<out idRefined>
+      ] 
+      (. module = new ModuleDefinition(id, id.val, isAbstract, false, isExclusively, idRefined, parent, attrs, false, this); .)  
+      "{"                                             (. module.BodyStartTok = t; .)
+      { TopDecl<module, namedModuleDefaultClassMembers, /* isTopLevel */ false, isAbstract> }
+      "}"                                 (. module.BodyEndTok = t;
+                                             module.TopLevelDecls.Add(new DefaultClassDecl(module, namedModuleDefaultClassMembers));
+                                             submodule = new LiteralModuleDecl(module, parent); .)
   |
     "import" ["opened" (.opened = true;.)]
     NoUSIdent<out id>
