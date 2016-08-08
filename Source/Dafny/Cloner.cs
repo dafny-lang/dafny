@@ -1,5 +1,4 @@
-﻿
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Numerics;
 using System.Diagnostics.Contracts;
@@ -25,15 +24,12 @@ namespace Microsoft.Dafny
       if (null != m.RefinementBase) {
         nw.RefinementBase = m.RefinementBase;
       }
-      if (null != m.RefinementBaseSig) {
-        nw.RefinementBaseSig = m.RefinementBaseSig;
-      }
       nw.ClonedFrom = CloneFromValue_Module(m);
       nw.Height = m.Height;
       return nw;
     }
 
-    public TopLevelDecl CloneDeclaration(TopLevelDecl d, ModuleDefinition m) {
+    public virtual TopLevelDecl CloneDeclaration(TopLevelDecl d, ModuleDefinition m) {
       Contract.Requires(d != null);
       Contract.Requires(m != null);
 
@@ -101,25 +97,16 @@ namespace Microsoft.Dafny
         }
       } else if (d is ModuleDecl) {
         if (d is LiteralModuleDecl) {
-          var l = new LiteralModuleDecl(((LiteralModuleDecl)d).ModuleDef, m);
-          l.Signature = ((ModuleDecl)d).Signature;
-          return l;
+          return new LiteralModuleDecl(((LiteralModuleDecl)d).ModuleDef, m);
         } else if (d is AliasModuleDecl) {
           var a = (AliasModuleDecl)d;
-          var alias = new AliasModuleDecl(a.Path, a.tok, m, a.Opened);
-          alias.Signature = a.Signature;
-          return alias;
+          return new AliasModuleDecl(a.Path, a.tok, m, a.Opened);
         } else if (d is ModuleFacadeDecl) {
           var a = (ModuleFacadeDecl)d;
-          var abs = new ModuleFacadeDecl(a.Path, a.tok, m, a.CompilePath, a.Opened);
-          abs.Signature = a.Signature;
-          abs.OriginalSignature = a.OriginalSignature;
-          return abs;
+          return new ModuleFacadeDecl(a.Path, a.tok, m, a.CompilePath, a.Opened);
         } else if (d is ModuleExportDecl) {
           var a = (ModuleExportDecl)d;
-          var export = new ModuleExportDecl(a.tok, m, a.IsDefault, a.Exports, a.Extends);
-          export.Signature = a.Signature;
-          return export;
+          return new ModuleExportDecl(a.tok, m, a.IsDefault, a.Exports, a.Extends);
         } else {
           Contract.Assert(false);  // unexpected declaration
           return null;  // to please compiler
@@ -706,6 +693,10 @@ namespace Microsoft.Dafny
     }
   }
 
+  /// <summary>
+  /// This cloner is used during the creation of a module signature for a method facade.
+  /// It does not clone method bodies, and it copies module signatures.
+  /// </summary>
   class ClonerButDropMethodBodies : Cloner
   {
     public ClonerButDropMethodBodies()
@@ -715,12 +706,43 @@ namespace Microsoft.Dafny
     public override BlockStmt CloneBlockStmt(BlockStmt stmt) {
       return null;
     }
-  }
 
-  class ClonerButUseOriginalMatchConstructsAndDontRecordFromFrom : Cloner
+    public override TopLevelDecl CloneDeclaration(TopLevelDecl d, ModuleDefinition m) {
+      var dd = base.CloneDeclaration(d, m);
+      if (d is ModuleDecl) {
+        ((ModuleDecl)dd).Signature = ((ModuleDecl)d).Signature;
+        if (d is ModuleFacadeDecl) {
+          ((ModuleFacadeDecl)dd).OriginalSignature = ((ModuleFacadeDecl)d).OriginalSignature;
+        }
+      }
+      return dd;
+    }
+  }
+  
+  /// <summary>
+  /// This cloner is used to clone a module into a _Compile module.  This is different from
+  /// the standard cloner in the following ways:
+  /// * "match" statements and "match" expressions obtain their original form, which may include
+  ///   nested patterns.  The resolver will turn these into nested "match" constructs with simple
+  ///   patterns.
+  /// * The .ClonedFrom field is set to null (probably, the .CloneFrom field should go away altogether --KRML)
+  /// * The various module-signature fields of modules are set to whatever they were in the original.
+  /// </summary>
+  class CompilationCloner : Cloner
   {
-    public ClonerButUseOriginalMatchConstructsAndDontRecordFromFrom()
+    public CompilationCloner()
       : base() {
+    }
+
+    public override TopLevelDecl CloneDeclaration(TopLevelDecl d, ModuleDefinition m) {
+      var dd = base.CloneDeclaration(d, m);
+      if (d is ModuleDecl) {
+        ((ModuleDecl)dd).Signature = ((ModuleDecl)d).Signature;
+        if (d is ModuleFacadeDecl) {
+          ((ModuleFacadeDecl)dd).OriginalSignature = ((ModuleFacadeDecl)d).OriginalSignature;
+        }
+      }
+      return dd;
     }
 
     public override Expression CloneExpr(Expression expr) {

@@ -53,7 +53,7 @@ namespace Microsoft.Dafny
   public class RefinementTransformer : IRewriter
   {
     Cloner rawCloner; // This cloner just gives exactly the same thing back.
-    RefinementCloner refinementCloner; // This cloner wraps things in a RefinementTransformer
+    RefinementCloner refinementCloner; // This cloner wraps things in a RefinementToken
     
     Program program;
 
@@ -95,6 +95,7 @@ namespace Microsoft.Dafny
               if (im is ModuleDecl) {
                 ModuleDecl mdecl = (ModuleDecl)im;
                 //find the matching import from the base
+                // TODO: this is a terribly slow algorithm; use the symbol table instead
                 foreach (var bim in baseDeclarations) {
                   if (bim is ModuleDecl && ((ModuleDecl)bim).Name.Equals(mdecl.Name)) {
                     if (mdecl.Opened != ((ModuleDecl)bim).Opened) {
@@ -1640,6 +1641,16 @@ namespace Microsoft.Dafny
     }
     public override IToken Tok(IToken tok) {
       return new RefinementToken(tok, moduleUnderConstruction);
+    }
+    public override TopLevelDecl CloneDeclaration(TopLevelDecl d, ModuleDefinition m) {
+      var dd = base.CloneDeclaration(d, m);
+      if (d is ModuleDecl) {
+        ((ModuleDecl)dd).Signature = ((ModuleDecl)d).Signature;
+        if (d is ModuleFacadeDecl) {
+          ((ModuleFacadeDecl)dd).OriginalSignature = ((ModuleFacadeDecl)d).OriginalSignature;
+        }
+      }
+      return dd;
     }
     public virtual Attributes MergeAttributes(Attributes prevAttrs, Attributes moreAttrs) {
       if (moreAttrs == null) {

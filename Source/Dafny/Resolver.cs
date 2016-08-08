@@ -337,14 +337,16 @@ namespace Microsoft.Dafny
           }
           if (reporter.Count(ErrorLevel.Error) == errorCount && !m.IsAbstract) {
             // compilation should only proceed if everything is good, including the signature (which preResolveErrorCount does not include);
-            Contract.Assert(!useCompileSignatures);
-            useCompileSignatures = true;  // set Resolver-global flag to indicate that Signatures should be followed to their CompiledSignature
+            var nw = new CompilationCloner().CloneModuleDefinition(m, m.CompileName + "_Compile");
             var oldErrorsOnly = reporter.ErrorsOnly;
             reporter.ErrorsOnly = true; // turn off warning reporting for the clone
-            var nw = new ClonerButUseOriginalMatchConstructsAndDontRecordFromFrom().CloneModuleDefinition(m, m.CompileName + "_Compile");
+            // Next, compute the compile signature
+            Contract.Assert(!useCompileSignatures);
+            useCompileSignatures = true;  // set Resolver-global flag to indicate that Signatures should be followed to their CompiledSignature
             var compileSig = RegisterTopLevelDecls(nw, true);
             compileSig.Refines = refinementTransformer.RefinedSig;
             sig.CompileSignature = compileSig;
+            // Now we're ready to resolve the cloned module definition, using the compile signature
             ResolveModuleDefinition(nw, compileSig);
             prog.CompileModules.Add(nw);
             useCompileSignatures = false;  // reset the flag
@@ -728,8 +730,6 @@ namespace Microsoft.Dafny
           if (d is AliasModuleDecl) {
             var alias = (AliasModuleDecl)d;
             importSig = alias.Root != null ? alias.Root.Signature : alias.Signature;
-            //importSig = ((AliasModuleDecl)d).Signature;
-            //importSig = ((AliasModuleDecl)d).Root.Signature;
           } else {
             importSig = ((ModuleFacadeDecl)d).OriginalSignature;
           }
@@ -1001,6 +1001,8 @@ namespace Microsoft.Dafny
     }
 
     public static ModuleSignature MergeSignature(ModuleSignature m, ModuleSignature system) {
+      Contract.Requires(m != null);
+      Contract.Requires(system != null);
       var info = new ModuleSignature();
       // add the system-declared information, among which we know there are no duplicates
       foreach (var kv in system.TopLevels) {
@@ -1154,16 +1156,6 @@ namespace Microsoft.Dafny
               }
             }              
           }
-        }
-      }
-
-      // second go through and overriding anything from the opened imports with the ones from the refinementBase
-      if (useImports && moduleDef.RefinementBaseSig != null) {
-        foreach (var kv in moduleDef.RefinementBaseSig.TopLevels) {
-          sig.TopLevels[kv.Key] = kv.Value;
-        }
-        foreach (var kv in moduleDef.RefinementBaseSig.StaticMembers) {
-          sig.StaticMembers[kv.Key] = kv.Value;
         }
       }
 
@@ -1453,7 +1445,7 @@ namespace Microsoft.Dafny
 
     private ModuleSignature MakeAbstractSignature(ModuleSignature p, string Name, int Height, List<ModuleDefinition> mods) {
       var mod = new ModuleDefinition(Token.NoToken, Name + ".Abs", true, true, /*isExclusiveRefinement:*/ false, null, null, null, false);
-      mod.ClonedFrom = new ClonerButUseOriginalMatchConstructsAndDontRecordFromFrom().CloneFromValue_Module(p.ModuleDef);
+      mod.ClonedFrom = new CompilationCloner().CloneFromValue_Module(p.ModuleDef);
       mod.Height = Height;
       foreach (var kv in p.TopLevels) {
         mod.TopLevelDecls.Add(CloneDeclaration(kv.Value, mod, mods, Name));
@@ -11182,6 +11174,8 @@ namespace Microsoft.Dafny
 
 
     private ModuleSignature GetSignature(ModuleSignature sig) {
+      Contract.Requires(sig != null);
+      Contract.Ensures(Contract.Result<ModuleSignature>() != null);
       if (useCompileSignatures) {
         while (sig.CompileSignature != null)
           sig = sig.CompileSignature;
