@@ -1,0 +1,29 @@
+* text=auto
+
+#Explicitly set here just for sanity.
+*.cs text
+*.dfy text
+*.expect text
+*.bpl text
+*.atg text
+*.mdk text
+*.json text
+*.sty text
+*.md text
+*.tmp text
+
+#Needs to be crlf
+*.sln text eol=crlf
+*.csproj text eol=crlf
+*.vsixmanifest eol=crlf
+*.config eol=crlf
+*.bat eol=crlf
+*.transcript eol=crlf
+
+#Never convert these
+*.dll binary
+*.exe binary
+*.png binary
+*.jpg binary
+*.xcf binary
+*.bpl binary
