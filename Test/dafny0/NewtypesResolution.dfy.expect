@@ -3,14 +3,11 @@ NewtypesResolution.dfy(12,10): Error: newtypes must be based on some numeric typ
 NewtypesResolution.dfy(51,13): Error: arguments to <= must have a common supertype (got posReal and int32)
 NewtypesResolution.dfy(52,13): Error: arguments to < must have a common supertype (got int32 and int)
 NewtypesResolution.dfy(53,13): Error: arguments to > must have a common supertype (got posReal and real)
-NewtypesResolution.dfy(57,13): Error: first argument to % must be of type int (instead got posReal)
-NewtypesResolution.dfy(57,13): Error: second argument to % must be of type int (instead got real)
-NewtypesResolution.dfy(57,25): Error: integer literal used as if it had type posReal
-NewtypesResolution.dfy(57,19): Error: type of right argument to + (posReal) must agree with the result type (int)
-NewtypesResolution.dfy(57,7): Error: RHS (of type int) not assignable to LHS (of type posReal)
 NewtypesResolution.dfy(38,9): Error: arguments must have the same type (got posReal and real)
 NewtypesResolution.dfy(44,9): Error: arguments must have the same type (got int32 and int)
 NewtypesResolution.dfy(50,13): Error: arguments must have the same type (got posReal and int32)
+NewtypesResolution.dfy(57,13): Error: arguments to % must be numeric or bitvector types (got posReal)
+NewtypesResolution.dfy(57,25): Error: arguments to % must be numeric or bitvector types (got posReal)
 NewtypesResolution.dfy(75,8): Error: newtype constraint must be of type bool (instead got SmallInt)
 NewtypesResolution.dfy(77,10): Error: unresolved identifier: a
 NewtypesResolution.dfy(91,31): Error: old expressions are not allowed in this context
@@ -34,4 +31,4 @@ NewtypesResolution.dfy(219,26): Error: new must use an integer-based expression 
 NewtypesResolution.dfy(238,13): Error: arguments to < must have a common supertype (got Even and int)
 NewtypesResolution.dfy(240,13): Error: arguments to <= must have a common supertype (got Even and int)
 NewtypesResolution.dfy(249,17): Error: multiset update requires integer-based numeric value (got real)
-36 resolution/type errors detected in NewtypesResolution.dfy
+33 resolution/type errors detected in NewtypesResolution.dfy

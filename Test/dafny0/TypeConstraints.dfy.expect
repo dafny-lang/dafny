@@ -9,10 +9,10 @@ TypeConstraints.dfy(81,6): Error: RHS (of type int) not assignable to LHS (of ty
 TypeConstraints.dfy(94,8): Error: the type of this local variable is underspecified
 TypeConstraints.dfy(94,11): Error: the type of this local variable is underspecified
 TypeConstraints.dfy(94,14): Error: the type of this local variable is underspecified
-TypeConstraints.dfy(134,16): Error: type of + must be of a numeric type, a sequence type, or a set-like type (instead got bool)
-TypeConstraints.dfy(143,16): Error: type of + must be of a numeric type, a sequence type, or a set-like type (instead got map<bool, int>)
-TypeConstraints.dfy(145,16): Error: type of + must be of a numeric type, a sequence type, or a set-like type (instead got C)
-TypeConstraints.dfy(147,16): Error: type of + must be of a numeric type, a sequence type, or a set-like type (instead got C)
+TypeConstraints.dfy(134,16): Error: type of + must be of a numeric type, a bitvector type, a sequence type, or a set-like type (instead got bool)
+TypeConstraints.dfy(143,16): Error: type of + must be of a numeric type, a bitvector type, a sequence type, or a set-like type (instead got map<bool, int>)
+TypeConstraints.dfy(145,16): Error: type of + must be of a numeric type, a bitvector type, a sequence type, or a set-like type (instead got C)
+TypeConstraints.dfy(147,16): Error: type of + must be of a numeric type, a bitvector type, a sequence type, or a set-like type (instead got C)
 TypeConstraints.dfy(174,6): Error: RHS (of type C) not assignable to LHS (of type R)
 TypeConstraints.dfy(180,6): Error: RHS (of type object) not assignable to LHS (of type C)
 TypeConstraints.dfy(186,6): Error: RHS (of type object) not assignable to LHS (of type R)

@@ -7250,7 +7250,7 @@ namespace Microsoft.Dafny {
       // non-collection types
       EqCommon,
       NeqCommon,
-      // integers
+      // integers, reals, bitvectors
       Lt,
       Le,
       Ge,

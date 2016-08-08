@@ -493,9 +493,21 @@ namespace Microsoft.Dafny {
       ComputeFunctionFuel();
 
       foreach (var w in program.BuiltIns.Bitwidths) {
+        // bitwise operations
         AddBitvectorFunction(w, "and_bv", "bvand");
         AddBitvectorFunction(w, "or_bv", "bvor");
-        AddBitvectorFunction(w, "xor_bv", "bvxor");
+        AddBitvectorFunction(w, "xor_bv", "bvxor");  // Z3 supports this, but it seems not to be in the SMT-LIB 2 standard
+        // arithmetic operations
+        AddBitvectorFunction(w, "add_bv", "bvadd");
+        AddBitvectorFunction(w, "sub_bv", "bvsub");  // Z3 supports this, but it seems not to be in the SMT-LIB 2 standard
+        AddBitvectorFunction(w, "mul_bv", "bvmul");
+        AddBitvectorFunction(w, "div_bv", "bvudiv");
+        AddBitvectorFunction(w, "mod_bv", "bvurem");
+        // comparisons
+        AddBitvectorFunction(w, "lt_bv", "bvult", Bpl.Type.Bool);
+        AddBitvectorFunction(w, "le_bv", "bvule", Bpl.Type.Bool);  // Z3 supports this, but it seems not to be in the SMT-LIB 2 standard
+        AddBitvectorFunction(w, "ge_bv", "bvuge", Bpl.Type.Bool);  // Z3 supports this, but it seems not to be in the SMT-LIB 2 standard
+        AddBitvectorFunction(w, "gt_bv", "bvugt", Bpl.Type.Bool);  // Z3 supports this, but it seems not to be in the SMT-LIB 2 standard
       }
       foreach (TopLevelDecl d in program.BuiltIns.SystemModule.TopLevelDecls) {
         currentDeclaration = d;
@@ -586,7 +598,7 @@ namespace Microsoft.Dafny {
       return sink;
     }
 
-    private void AddBitvectorFunction(int w, string namePrefix, string smtFunctionName) {
+    private void AddBitvectorFunction(int w, string namePrefix, string smtFunctionName, Bpl.Type resultType = null) {
       Contract.Requires(0 <= w);
       Contract.Requires(namePrefix != null);
       Contract.Requires(smtFunctionName != null);
@@ -594,7 +606,7 @@ namespace Microsoft.Dafny {
       var t = new Bpl.BvType(w);
       var a0 = BplFormalVar(null, t, true);
       var a1 = BplFormalVar(null, t, true);
-      var r = BplFormalVar(null, t, true);
+      var r = BplFormalVar(null, resultType ?? t, true);
       var attr = new Bpl.QKeyValue(tok, "bvbuiltin", new List<object>() { smtFunctionName }, null);
       var func = new Bpl.Function(tok, namePrefix + w, new List<TypeVariable>(), new List<Bpl.Variable>() { a0, a1 }, r, null, attr);
       sink.AddTopLevelDeclaration(func);
@@ -11573,6 +11585,7 @@ namespace Microsoft.Dafny {
         } else if (expr is BinaryExpr) {
           BinaryExpr e = (BinaryExpr)expr;
           bool isReal = e.E0.Type.IsNumericBased(Type.NumericPersuation.Real);
+          int bvWidth = e.E0.Type.IsBitVectorType ? ((BitvectorType)e.E0.Type.NormalizeExpand()).Width : -1;  // -1 indicates "not a bitvector type"
           Bpl.Expr e0 = TrExpr(e.E0);
           if (e.ResolvedOp == BinaryExpr.ResolvedOpcode.InSet) {
             return TrInSet(expr.tok, e0, e.E1, cce.NonNull(e.E0.Type));  // let TrInSet translate e.E1
@@ -11637,17 +11650,20 @@ namespace Microsoft.Dafny {
               typ = Bpl.Type.Bool;
               bOpcode = BinaryOperator.Opcode.Neq; break;
             case BinaryExpr.ResolvedOpcode.Lt:
-              if (isReal || !DafnyOptions.O.DisableNLarith) {
+              if (0 <= bvWidth) {
+                return TrToFunctionCall(expr.tok, "lt_bv" + bvWidth, new Bpl.BvType(bvWidth), e0, e1, liftLit);
+              } else if (isReal || !DafnyOptions.O.DisableNLarith) {
                 typ = Bpl.Type.Bool;
                 bOpcode = BinaryOperator.Opcode.Lt;
                 break;
               } else {
                 return TrToFunctionCall(expr.tok, "INTERNAL_lt_boogie", Bpl.Type.Bool, e0, e1, liftLit);
               }
-
             case BinaryExpr.ResolvedOpcode.Le:
               keepLits = true;
-              if (isReal || !DafnyOptions.O.DisableNLarith) {
+              if (0 <= bvWidth) {
+                return TrToFunctionCall(expr.tok, "le_bv" + bvWidth, new Bpl.BvType(bvWidth), e0, e1, false);
+              } else if (isReal || !DafnyOptions.O.DisableNLarith) {
                 typ = Bpl.Type.Bool;
                 bOpcode = BinaryOperator.Opcode.Le;
                 break;
@@ -11656,7 +11672,9 @@ namespace Microsoft.Dafny {
               }
             case BinaryExpr.ResolvedOpcode.Ge:
               keepLits = true;
-              if (isReal || !DafnyOptions.O.DisableNLarith) {
+              if (0 <= bvWidth) {
+                return TrToFunctionCall(expr.tok, "ge_bv" + bvWidth, new Bpl.BvType(bvWidth), e0, e1, false);
+              } else if (isReal || !DafnyOptions.O.DisableNLarith) {
                 typ = Bpl.Type.Bool;
                 bOpcode = BinaryOperator.Opcode.Ge;
                 break;
@@ -11664,90 +11682,82 @@ namespace Microsoft.Dafny {
                 return TrToFunctionCall(expr.tok, "INTERNAL_ge_boogie", Bpl.Type.Bool, e0, e1, false);
               }
             case BinaryExpr.ResolvedOpcode.Gt:
-              if (isReal || !DafnyOptions.O.DisableNLarith) {
+              if (0 <= bvWidth) {
+                return TrToFunctionCall(expr.tok, "gt_bv" + bvWidth, new Bpl.BvType(bvWidth), e0, e1, liftLit);
+              } else if (isReal || !DafnyOptions.O.DisableNLarith) {
                 typ = Bpl.Type.Bool;
                 bOpcode = BinaryOperator.Opcode.Gt;
                 break;
               } else {
                 return TrToFunctionCall(expr.tok, "INTERNAL_gt_boogie", Bpl.Type.Bool, e0, e1, liftLit);
               }
+
             case BinaryExpr.ResolvedOpcode.Add:
-              if (!DafnyOptions.O.DisableNLarith) {
-                typ = isReal ? Bpl.Type.Real : Bpl.Type.Int;
-                bOpcode = BinaryOperator.Opcode.Add; break;
+              if (0 <= bvWidth) {
+                return TrToFunctionCall(expr.tok, "add_bv" + bvWidth, new Bpl.BvType(bvWidth), e0, e1, liftLit);
+              } else if (DafnyOptions.O.DisableNLarith && !isReal) {
+                return TrToFunctionCall(expr.tok, "INTERNAL_add_boogie", Bpl.Type.Int, e0, e1, liftLit);
               } else {
-                if (isReal) {
-                  typ = Bpl.Type.Real;
-                  bOpcode = BinaryOperator.Opcode.Add;
-                  break;
-                } else {
-                  return TrToFunctionCall(expr.tok, "INTERNAL_add_boogie", Bpl.Type.Int, e0, e1, liftLit);
-                }
+                typ = isReal ? Bpl.Type.Real : Bpl.Type.Int;
+                bOpcode = BinaryOperator.Opcode.Add;
+                break;
               }
             case BinaryExpr.ResolvedOpcode.Sub:
-              if (!DafnyOptions.O.DisableNLarith) {
-                typ = isReal ? Bpl.Type.Real : Bpl.Type.Int;
-                bOpcode = BinaryOperator.Opcode.Sub; break;
+              if (0 <= bvWidth) {
+                return TrToFunctionCall(expr.tok, "sub_bv" + bvWidth, new Bpl.BvType(bvWidth), e0, e1, liftLit);
+              } else if (DafnyOptions.O.DisableNLarith && !isReal) {
+                return TrToFunctionCall(expr.tok, "INTERNAL_sub_boogie", Bpl.Type.Int, e0, e1, liftLit);
               } else {
-                if (isReal) {
-                  typ = Bpl.Type.Real;
-                  bOpcode = BinaryOperator.Opcode.Sub;
-                  break;
-                } else {
-                  return TrToFunctionCall(expr.tok, "INTERNAL_sub_boogie", Bpl.Type.Int, e0, e1, liftLit);
-                }
+                typ = isReal ? Bpl.Type.Real : Bpl.Type.Int;
+                bOpcode = BinaryOperator.Opcode.Sub;
+                break;
               }
             case BinaryExpr.ResolvedOpcode.Mul:
-              if (!DafnyOptions.O.DisableNLarith) {
+              if (0 <= bvWidth) {
+                return TrToFunctionCall(expr.tok, "mul_bv" + bvWidth, new Bpl.BvType(bvWidth), e0, e1, liftLit);
+              } else if (DafnyOptions.O.DisableNLarith && !isReal) {
+                return TrToFunctionCall(expr.tok, "INTERNAL_mul_boogie", Bpl.Type.Int, e0, e1, liftLit);
+              } else {
                 typ = isReal ? Bpl.Type.Real : Bpl.Type.Int;
-                bOpcode = BinaryOperator.Opcode.Mul; break;
-              } else {
-                if (isReal) {
-                  typ = Bpl.Type.Real;
-                  bOpcode = BinaryOperator.Opcode.Mul;
-                  break;
-                } else {
-                  return TrToFunctionCall(expr.tok, "INTERNAL_mul_boogie", Bpl.Type.Int, e0, e1, liftLit);
-                }
+                bOpcode = BinaryOperator.Opcode.Mul;
+                break;
               }
-
             case BinaryExpr.ResolvedOpcode.Div:
-              if (isReal) {
+              if (0 <= bvWidth) {
+                return TrToFunctionCall(expr.tok, "div_bv" + bvWidth, new Bpl.BvType(bvWidth), e0, e1, liftLit);
+              } else if (DafnyOptions.O.DisableNLarith && !isReal) {
+                return TrToFunctionCall(expr.tok, "INTERNAL_div_boogie", Bpl.Type.Int, e0, e1, liftLit);
+              } else if (isReal) {
                 typ = Bpl.Type.Real;
-                bOpcode = BinaryOperator.Opcode.RealDiv; break;
+                bOpcode = BinaryOperator.Opcode.RealDiv;
+                break;
               } else {
-                if (!DafnyOptions.O.DisableNLarith) {
-                  typ = Bpl.Type.Int;
-                  bOpcode = BinaryOperator.Opcode.Div; break;
-                } else {
-                  return TrToFunctionCall(expr.tok, "INTERNAL_div_boogie", Bpl.Type.Int, e0, e1, liftLit);
-                }
+                typ = Bpl.Type.Int;
+                bOpcode = BinaryOperator.Opcode.Div;
+                break;
               }
             case BinaryExpr.ResolvedOpcode.Mod:
-              if (!DafnyOptions.O.DisableNLarith) {
-                typ = Bpl.Type.Int;
-                bOpcode = BinaryOperator.Opcode.Mod; break;
+              if (0 <= bvWidth) {
+                return TrToFunctionCall(expr.tok, "mod_bv" + bvWidth, new Bpl.BvType(bvWidth), e0, e1, liftLit);
+              } else if (DafnyOptions.O.DisableNLarith && !isReal) {
+                return TrToFunctionCall(expr.tok, "INTERNAL_mod_boogie", Bpl.Type.Int, e0, e1, liftLit);
               } else {
-                if (isReal) {
-                  typ = Bpl.Type.Real;
-                  bOpcode = BinaryOperator.Opcode.Mod;
-                  break;
-                } else {
-                  return TrToFunctionCall(expr.tok, "INTERNAL_mod_boogie", Bpl.Type.Int, e0, e1, liftLit);
-                }
+                typ = isReal ? Bpl.Type.Real : Bpl.Type.Int;
+                bOpcode = BinaryOperator.Opcode.Mod;
+                break;
               }
 
             case BinaryExpr.ResolvedOpcode.BitwiseAnd: {
-              var w = ((BitvectorType)expr.Type).Width;
-              return TrToFunctionCall(expr.tok, "and_bv" + w, new Bpl.BvType(w), e0, e1, liftLit);
+              Contract.Assert(0 <= bvWidth);
+              return TrToFunctionCall(expr.tok, "and_bv" + bvWidth, new Bpl.BvType(bvWidth), e0, e1, liftLit);
             }
             case BinaryExpr.ResolvedOpcode.BitwiseOr: {
-                var w = ((BitvectorType)expr.Type).Width;
-                return TrToFunctionCall(expr.tok, "or_bv" + w, new Bpl.BvType(w), e0, e1, liftLit);
+                Contract.Assert(0 <= bvWidth);
+                return TrToFunctionCall(expr.tok, "or_bv" + bvWidth, new Bpl.BvType(bvWidth), e0, e1, liftLit);
               }
             case BinaryExpr.ResolvedOpcode.BitwiseXor: {
-                var w = ((BitvectorType)expr.Type).Width;
-                return TrToFunctionCall(expr.tok, "xor_bv" + w, new Bpl.BvType(w), e0, e1, liftLit);
+                Contract.Assert(0 <= bvWidth);
+                return TrToFunctionCall(expr.tok, "xor_bv" + bvWidth, new Bpl.BvType(bvWidth), e0, e1, liftLit);
               }
 
             case BinaryExpr.ResolvedOpcode.LtChar:

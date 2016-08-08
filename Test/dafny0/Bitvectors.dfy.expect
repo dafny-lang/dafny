@@ -1,0 +1,103 @@
+// Bitvectors.dfy
+
+/*
+module _System {
+  /* CALL GRAPH for module _System:
+   */
+  type string = seq<char>
+
+  class {:compile false} object { }
+
+  class {:compile false} array<arg> {
+    var Length: int  // immutable
+  }
+
+  class {:compile false} _#Func0<T0> {
+    function requires(): bool
+      reads reads()
+
+    function reads(): set<object>
+      reads reads()
+  }
+}
+// bitvector types in use: bv1 bv32 bv47
+*/
+
+/* CALL GRAPH for module _module:
+ * SCC at height 4:
+ *   _default.M
+ * SCC at height 3:
+ *   _default.Main
+ * SCC at height 2:
+ *   _default.MoreMain
+ * SCC at height 1:
+ *   _default.Arithmetic
+ * SCC at height 0:
+ *   _default.BitwiseOperations
+ */
+method M(a: bv1, b: bv32)
+    returns (c: bv32, d: bv1)
+  decreases a, b
+{
+  c := b;
+  d := a;
+  var x: bv32 := 5000;
+  c := x;
+  var y: bv32 := 4000;
+  y := c;
+}
+
+method Main()
+{
+  var x: bv32 := 4000;
+  var y: bv32 := 4000;
+  var z: bv32;
+  var w: bv32;
+  if x == y {
+    z := x;
+  } else {
+    w := y;
+  }
+  print x, " ", y, " ", z, " ", w, "\n";
+  var t: bv47, u: bv47, v: bv47 := BitwiseOperations();
+  print t, " ", v, " ", v, "\n";
+  MoreMain();
+}
+
+method BitwiseOperations() returns (a: bv47, b: bv47, c: bv47)
+{
+  b, c := 2053, 1099;
+  a := b & c;
+  a := a | a | (b & b & c & (a ^ b ^ c) & a);
+}
+
+method Arithmetic(x: bv32, y: bv32)
+    returns (r: bv32, s: bv32)
+  ensures r == x + y && s == y - x
+  decreases x, y
+{
+  r := x + y;
+  s := y - x;
+}
+
+method MoreMain()
+{
+  var r: bv32, s: bv32 := Arithmetic(65, 120);
+  print r, " ", s, "\n";
+  var x: bv32, y: bv32 := 2147483647, 2147483651;
+  r, s := Arithmetic(x, y);
+  assert r == 2 && s == 4;
+  print r, " ", s, "\n";
+  assert x < y && x <= y && y >= x && y > x;
+  print "Comparisons: ", x < y, " ", x <= y, " ", x >= y, " ", x > y, "\n";
+}
+
+Dafny program verifier finished with 10 verified, 0 errors
+Program compiled successfully
+Running...
+
+4000 4000 4000 0
+1 1099 1099
+185 55
+2 4
+Comparisons: True True False False
