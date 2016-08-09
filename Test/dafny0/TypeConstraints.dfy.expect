@@ -345,17 +345,17 @@ module TypeParameters {
 
   type C
 
-  method M<G, H>(a: A, b: B, c0: C<int,bool>, g: G)
-      returns (c1: C<real,real>, h: H)
+  method M<G, H>(a: A, b: B, c0: C<int, bool>, g: G)
+      returns (c1: C<real, real>, h: H)
   {
     var x: A := a;
     var y: B, z: B;
     y := z;
     z := b;
-    var m: C<int,bool>, n: C<int,bool>;
+    var m: C<int, bool>, n: C<int, bool>;
     n := m;
     m := c0;
-    var k: C<real,real>, l: C<real,real>;
+    var k: C<real, real>, l: C<real, real>;
     k := l;
     c1 := k;
     var g': G := g;
@@ -385,17 +385,17 @@ module Datatypes {
     c := w;
   }
 
-  method P() returns (r: Record<int,bool>)
+  method P() returns (r: Record<int, bool>)
   {
-    var a: Record<int,bool> := r;
-    var b: int, c: Record<int,bool>;
+    var a: Record<int, bool> := r;
+    var b: int, c: Record<int, bool>;
     b := r.t;
     r := c;
-    var s: Record<int,real>;
+    var s: Record<int, real>;
     var x: int, y: real := s.t, s.u;
     x := 5;
     y := 10.0;
-    var t: Record<bool,char>;
+    var t: Record<bool, char>;
     var tt: bool, uu: char;
     tt, uu := t.t, t.u;
   }

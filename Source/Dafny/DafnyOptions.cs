@@ -50,7 +50,7 @@ namespace Microsoft.Dafny
     public int InductionHeuristic = 6;
     public string DafnyPrelude = null;
     public string DafnyPrintFile = null;
-    public enum PrintModes { Everything, NoIncludes, NoGhost };
+    public enum PrintModes { Everything, DllEmbed, NoIncludes, NoGhost };
     public PrintModes PrintMode = PrintModes.Everything;  // Default to printing everything
     public bool DafnyVerify = true;
     public string DafnyPrintResolvedFile = null;
@@ -110,6 +110,10 @@ namespace Microsoft.Dafny
             else if (args[ps.i].Equals("NoGhost"))
             {
                 PrintMode = PrintModes.NoGhost;
+            }
+            else if (args[ps.i].Equals("DllEmbed"))
+            {
+                PrintMode = PrintModes.DllEmbed;
             }
             else
             {
@@ -335,8 +339,9 @@ namespace Microsoft.Dafny
   /dprint:<file>
                 print Dafny program after parsing it
                 (use - as <file> to print to console)
-  /printMode:<Everything|NoIncludes|NoGhost>
+  /printMode:<Everything|DllEmbed|NoIncludes|NoGhost>
                 Everything is the default.
+                DllEmbed prints the source that will be included in a compiled dll.
                 NoIncludes disables printing of {:verify false} methods incorporated via the
                 include mechanism, as well as datatypes and fields included from other files.
                 NoGhost disables printing of functions, ghost methods, and proof statements in

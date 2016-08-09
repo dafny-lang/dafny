@@ -3800,6 +3800,10 @@ namespace Microsoft.Dafny
         m.Ens.Iter(mfe => CheckTypeInference_MaybeFreeExpression(mfe, m));
         CheckTypeInference_Specification_FrameExpr(m.Mod, m);
         CheckTypeInference_Specification_Expr(m.Decreases, m);
+        if (m is TwoStateLemma) {
+          var two = (TwoStateLemma)m;
+          CheckTypeInference_Specification_FrameExpr(two.Reads, two);
+        }
         if (m.Body != null) {
           CheckTypeInference(m.Body, m);
         }
@@ -4363,6 +4367,17 @@ namespace Microsoft.Dafny
                 f.IsFueled = true;
                 if (f.IsProtected && currentModule != f.EnclosingClass.Module) {
                   reporter.Error(MessageSource.Resolver, tok, "cannot adjust fuel for protected function {0} from another module", f.Name);
+                }
+                if (args.Count >= 3) {
+                  LiteralExpr literalLow = args[1] as LiteralExpr;
+                  LiteralExpr literalHigh = args[2] as LiteralExpr;
+                  if (literalLow != null && literalLow.Value is BigInteger && literalHigh != null && literalHigh.Value is BigInteger) {
+                    BigInteger low = (BigInteger)literalLow.Value;
+                    BigInteger high = (BigInteger)literalHigh.Value;
+                    if (!(high == low + 1 || (low == 0 && high == 0))) {
+                      reporter.Error(MessageSource.Resolver, tok, "fuel setting for function {0} must have high value == 1 + low value", f.Name);
+                    }
+                  }
                 }
               }
             }
@@ -6007,7 +6022,7 @@ namespace Microsoft.Dafny
     void ResolveFrameExpression(FrameExpression fe, bool readsFrame, ICodeContext codeContext) {
       Contract.Requires(fe != null);
       Contract.Requires(codeContext != null);
-      ResolveExpression(fe.E, new ResolveOpts(codeContext, false));
+      ResolveExpression(fe.E, new ResolveOpts(codeContext, codeContext is TwoStateLemma));
       Type t = fe.E.Type;
       Contract.Assert(t != null);  // follows from postcondition of ResolveExpression
       var eventualRefType = new InferredTypeProxy();
@@ -6088,23 +6103,30 @@ namespace Microsoft.Dafny
 
         // Start resolving specification...
         foreach (MaybeFreeExpression e in m.Req) {
-          ResolveAttributes(e.Attributes, null, new ResolveOpts(m, false));
-          ResolveExpression(e.E, new ResolveOpts(m, false));
+          ResolveAttributes(e.Attributes, null, new ResolveOpts(m, m is TwoStateLemma));
+          ResolveExpression(e.E, new ResolveOpts(m, m is TwoStateLemma));
           Contract.Assert(e.E.Type != null);  // follows from postcondition of ResolveExpression
           ConstrainTypeExprBool(e.E, "Precondition must be a boolean (got {0})");
         }
         ResolveAttributes(m.Mod.Attributes, null, new ResolveOpts(m, false));
         foreach (FrameExpression fe in m.Mod.Expressions) {
           ResolveFrameExpression(fe, false, m);
-          if (m is Lemma || m is FixpointLemma) {
+          if (m is Lemma || m is TwoStateLemma || m is FixpointLemma) {
             reporter.Error(MessageSource.Resolver, fe.tok, "{0}s are not allowed to have modifies clauses", m.WhatKind);
           } else if (m.IsGhost) {
             DisallowNonGhostFieldSpecifiers(fe);
           }
         }
+        if (m is TwoStateLemma) {
+          var two = (TwoStateLemma)m;
+          ResolveAttributes(two.Reads.Attributes, null, new ResolveOpts(m, true));
+          foreach (FrameExpression fe in two.Reads.Expressions) {
+            ResolveFrameExpression(fe, true, m);
+          }
+        }
         ResolveAttributes(m.Decreases.Attributes, null, new ResolveOpts(m, false));
         foreach (Expression e in m.Decreases.Expressions) {
-          ResolveExpression(e, new ResolveOpts(m, false));
+          ResolveExpression(e, new ResolveOpts(m, m is TwoStateLemma));
           // any type is fine
         }
 

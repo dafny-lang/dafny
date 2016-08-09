@@ -93,6 +93,15 @@ namespace Microsoft.Dafny {
       }
     }
 
+    public static string FieldToString(Field field) {
+      Contract.Requires(field != null);
+      using (var wr = new System.IO.StringWriter()) {
+        var pr = new Printer(wr);
+        pr.PrintField(field, 0);
+        return ToStringWithoutNewline(wr);
+      }
+    }
+
     public static string FunctionSignatureToString(Function f) {
       Contract.Requires(f != null);
       using (var wr = new System.IO.StringWriter()) {
@@ -149,7 +158,9 @@ namespace Microsoft.Dafny {
         wr.WriteLine("// " + Bpl.CommandLineOptions.Clo.Version);
         wr.WriteLine("// " + Bpl.CommandLineOptions.Clo.Environment);
       }
-      wr.WriteLine("// {0}", prog.Name);
+      if (DafnyOptions.O.PrintMode != DafnyOptions.PrintModes.DllEmbed) {
+        wr.WriteLine("// {0}", prog.Name);
+      }
       if (DafnyOptions.O.DafnyPrintResolvedFile != null && DafnyOptions.O.PrintMode == DafnyOptions.PrintModes.Everything) {
         wr.WriteLine();
         wr.WriteLine("/*");
@@ -353,7 +364,7 @@ namespace Microsoft.Dafny {
       if (iter.SignatureIsOmitted) {
         wr.WriteLine(" ...");
       } else {
-        PrintFormals(iter.Ins);
+        PrintFormals(iter.Ins, iter);
         if (iter.Outs.Count != 0) {
           if (iter.Ins.Count + iter.Outs.Count <= 3) {
             wr.Write(" yields ");
@@ -362,7 +373,7 @@ namespace Microsoft.Dafny {
             Indent(indent + 2 * IndentAmount);
             wr.Write("yields ");
           }
-          PrintFormals(iter.Outs);
+          PrintFormals(iter.Outs, iter);
         }
         wr.WriteLine();
       }
@@ -464,7 +475,11 @@ namespace Microsoft.Dafny {
 
     private void PrintTypeParams(List<TypeParameter> typeArgs) {
       Contract.Requires(typeArgs != null);
-      if (typeArgs.Count != 0) {
+      Contract.Requires(
+        typeArgs.All(tp => tp.Name.StartsWith("_")) || 
+        typeArgs.All(tp => !tp.Name.StartsWith("_")));
+
+      if (typeArgs.Count != 0 && !typeArgs[0].Name.StartsWith("_")) {
         wr.Write("<" +
                  Util.Comma(", ", typeArgs,
                    tp => tp.Name + EqualitySupportSuffix(tp.EqualitySupport))
@@ -474,9 +489,7 @@ namespace Microsoft.Dafny {
 
     private void PrintTypeInstantiation(List<Type> typeArgs) {
       Contract.Requires(typeArgs == null || typeArgs.Count != 0);
-      if (typeArgs != null) {
-        wr.Write("<{0}>", Util.Comma(",", typeArgs, ty => ty.ToString()));
-      }
+      wr.Write(Type.TypeArgsToString(typeArgs));
     }
 
     public void PrintDatatype(DatatypeDecl dt, int indent) {
@@ -489,7 +502,7 @@ namespace Microsoft.Dafny {
         wr.Write(sep);
         PrintClassMethodHelper("", ctor.Attributes, ctor.Name, new List<TypeParameter>());
         if (ctor.Formals.Count != 0) {
-          PrintFormals(ctor.Formals);
+          PrintFormals(ctor.Formals, null);
         }
         sep = " |";
       }
@@ -562,7 +575,7 @@ namespace Microsoft.Dafny {
       if (f.SignatureIsOmitted) {
         wr.WriteLine(" ...");
       } else {
-        PrintFormals(f.Formals, f.Name);
+        PrintFormals(f.Formals, f, f.Name);
         if (!isPredicate) {
           wr.Write(": ");
           PrintType(f.ResultType);
@@ -628,15 +641,16 @@ namespace Microsoft.Dafny {
         method is InductiveLemma ? "inductive lemma" :
         method is CoLemma ? "colemma" :
         method is Lemma ? "lemma" :
+        method is TwoStateLemma ? "twostate lemma" :
         "method";
       if (method.HasStaticKeyword) { k = "static " + k; }
-      if (method.IsGhost && !(method is Lemma) && !(method is FixpointLemma)) { k = "ghost " + k; }
+      if (method.IsGhost && !(method is Lemma) && !(method is TwoStateLemma) && !(method is FixpointLemma)) { k = "ghost " + k; }
       string nm = method is Constructor && !((Constructor)method).HasName ? "" : method.Name;
       PrintClassMethodHelper(k, method.Attributes, nm, method.TypeArgs);
       if (method.SignatureIsOmitted) {
         wr.WriteLine(" ...");
       } else {
-        PrintFormals(method.Ins, method.Name);
+        PrintFormals(method.Ins, method, method.Name);
         if (method.Outs.Count != 0) {
           if (method.Ins.Count + method.Outs.Count <= 3) {
             wr.Write(" returns ");
@@ -645,16 +659,21 @@ namespace Microsoft.Dafny {
             Indent(indent + 2 * IndentAmount);
             wr.Write("returns ");
           }
-          PrintFormals(method.Outs);
+          PrintFormals(method.Outs, method);
         }
         wr.WriteLine();
       }
 
       int ind = indent + IndentAmount;
       PrintSpec("requires", method.Req, ind);
-      if (method.Mod.Expressions != null)
-      {
+      if (method.Mod.Expressions != null) {
         PrintFrameSpecLine("modifies", method.Mod.Expressions, ind, method.Mod.HasAttributes() ? method.Mod.Attributes : null);
+      }
+      if (method is TwoStateLemma) {
+        var two = (TwoStateLemma)method;
+        if (two.Reads.Expressions != null) {
+          PrintFrameSpecLine("reads", two.Reads.Expressions, ind, two.Reads.HasAttributes() ? two.Reads.Attributes : null);
+        }
       }
       PrintSpec("ensures", method.Ens, ind);
       PrintDecreasesSpec(method.Decreases, ind);
@@ -666,11 +685,11 @@ namespace Microsoft.Dafny {
       }
     }
 
-    internal void PrintFormals(List<Formal> ff, string name = null) {
+    internal void PrintFormals(List<Formal> ff, ICallable/*?*/ context, string name = null) {
       Contract.Requires(ff != null);
       if (name != null && name.EndsWith("#")) {
         wr.Write("[");
-        PrintFormal(ff[0]);
+        PrintFormal(ff[0], false);
         wr.Write("]");
         ff = new List<Formal>(ff.Skip(1));
       }
@@ -680,13 +699,16 @@ namespace Microsoft.Dafny {
         Contract.Assert(f != null);
         wr.Write(sep);
         sep = ", ";
-        PrintFormal(f);
+        PrintFormal(f, context is TwoStateLemma && f.InParam);
       }
       wr.Write(")");
     }
 
-    void PrintFormal(Formal f) {
+    void PrintFormal(Formal f, bool showNewKeyword) {
       Contract.Requires(f != null);
+      if (showNewKeyword && !f.IsOld) {
+        wr.Write("new ");
+      }
       if (f.IsGhost) {
         wr.Write("ghost ");
       }
@@ -776,7 +798,7 @@ namespace Microsoft.Dafny {
 
     public void PrintType(Type ty) {
       Contract.Requires(ty != null);
-      wr.Write(ty.ToString());
+      wr.Write(ty.TypeName(null, true));
     }
 
     public void PrintType(string prefix, Type ty) {
@@ -785,8 +807,9 @@ namespace Microsoft.Dafny {
       if (DafnyOptions.O.DafnyPrintResolvedFile != null) {
         ty = ty.NormalizeExpand();
       }
-      if (!(ty is TypeProxy)) {
-        wr.Write("{0}{1}", prefix, ty);
+      string s = ty.TypeName(null, true);
+      if (!(ty is TypeProxy) && !s.StartsWith("_")) {
+        wr.Write("{0}{1}", prefix, s);
       }
     }
 
@@ -1346,8 +1369,9 @@ namespace Microsoft.Dafny {
           string sep = "(";
           foreach (BoundVar bv in mc.Arguments) {
             wr.Write("{0}{1}", sep, bv.DisplayName);
-            if (bv.Type is NonProxyType) {
-              wr.Write(": {0}", bv.Type);
+            string typeName = bv.Type.TypeName(null, true);
+            if (bv.Type is NonProxyType && !typeName.StartsWith("_")) {
+              wr.Write(": {0}", typeName);
             }
             sep = ", ";
           }
@@ -1854,6 +1878,7 @@ namespace Microsoft.Dafny {
         var e = (LetExpr)expr;
         bool parensNeeded = !isRightmost;
         if (parensNeeded) { wr.Write("("); }
+        if (e.LHSs.Exists(lhs => lhs != null && lhs.Var != null && lhs.Var.IsGhost)) { wr.Write("ghost "); }
         wr.Write("var ");
         string sep = "";
         foreach (var lhs in e.LHSs) {
