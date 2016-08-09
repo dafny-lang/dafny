@@ -1722,13 +1722,9 @@ namespace Microsoft.Dafny {
           }
           bool parensNeeded = ParensNeeded(opBindingStrength, contextBindingStrength, fragileContext);
 
-          bool containsNestedNot = e.E is ParensExpression &&
-                                ((ParensExpression)e.E).E is UnaryExpr &&
-                                ((UnaryOpExpr)((ParensExpression)e.E).E).Op == UnaryOpExpr.Opcode.Not;
-
           if (parensNeeded) { wr.Write("("); }
           wr.Write(op);
-          PrintExpr(e.E, opBindingStrength, containsNestedNot, parensNeeded || isRightmost, !parensNeeded && isFollowedBySemicolon, -1, keyword);
+          PrintExpr(e.E, opBindingStrength, false, parensNeeded || isRightmost, !parensNeeded && isFollowedBySemicolon, -1, keyword);
           if (parensNeeded) { wr.Write(")"); }
         }
 
@@ -2026,11 +2022,9 @@ namespace Microsoft.Dafny {
         int opBindingStrength = 0x70;
         bool parensNeeded = ParensNeeded(opBindingStrength, contextBindingStrength, fragileContext);
 
-        bool containsNestedNegation = e.E is ParensExpression && ((ParensExpression)e.E).E is NegationExpression;
-
         if (parensNeeded) { wr.Write("("); }
         wr.Write(op);
-        PrintExpr(e.E, opBindingStrength, containsNestedNegation, parensNeeded || isRightmost, !parensNeeded && isFollowedBySemicolon, -1, keyword);
+        PrintExpr(e.E, opBindingStrength, false, parensNeeded || isRightmost, !parensNeeded && isFollowedBySemicolon, -1, keyword);
         if (parensNeeded) { wr.Write(")"); }
 
       } else if (expr is MatchExpr) {

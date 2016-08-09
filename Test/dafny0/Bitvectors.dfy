@@ -24,7 +24,11 @@ method Main() {
   print x, " ", y, " ", z, " ", w, "\n";
   var t, u, v := BitwiseOperations();
   print t, " ", v, " ", v, "\n";
-  MoreMain();
+  DoArith32();
+  var unry := Unary(5);
+  print "bv16: 5 - 2 == ", unry, "\n";
+  unry := Unary(1);
+  print "bv16: 1 - 2 == ", unry, "\n";
 }
 
 method BitwiseOperations() returns (a: bv47, b: bv47, c: bv47)
@@ -41,7 +45,7 @@ method Arithmetic(x: bv32, y: bv32) returns (r: bv32, s: bv32)
   s := y - x;
 }
 
-method MoreMain() {
+method DoArith32() {
   var r, s := Arithmetic(65, 120);
   print r, " ", s, "\n";
   var x, y := 0x7FFF_FFFF, 0x8000_0003;
@@ -50,4 +54,26 @@ method MoreMain() {
   print r, " ", s, "\n";
   assert x < y && x <= y && y >= x && y > x;
   print "Comparisons: ", x < y, " ", x <= y, " ", x >= y, " ", x > y, "\n";
+}
+
+method Unary(x: bv16) returns (y: bv16)
+  ensures y == x - 2
+{
+  // This method takes a long time (almost 20 seconds) to verify
+  y := -(-!-!!--(x));
+  y := !-y;
+  var F := 0xffff;
+  calc {
+    y;
+    !--(-!-!!--(x));
+    F - ---!-!!--x;
+    { assert ---!-!!--x == -!-!!--x; }
+    F - -!-!!--x;
+    F + !-!!--x;
+    F + F - -!!--x;
+    F + F + !!--x;
+    { assert !!--x == --x == x; }
+    F + F + x;
+    x - 2;
+  }
 }

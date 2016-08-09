@@ -2903,6 +2903,9 @@ namespace Microsoft.Dafny
           case "IntLikeOrBitvector":
             satisfied = t.IsNumericBased(Type.NumericPersuation.Int) || t.IsBitVectorType;
             break;
+          case "BooleanBits":
+            satisfied = t.IsBoolType || t.IsBitVectorType;
+            break;
           case "Sizeable":
             satisfied = (t is SetType && ((SetType)t).Finite) || t is MultiSetType || t is SeqType || (t is MapType && ((MapType)t).Finite);
             break;
@@ -4026,7 +4029,7 @@ namespace Microsoft.Dafny
             if (e.E.Type.IsNumericBased(Type.NumericPersuation.Real)) {
               zero = new LiteralExpr(e.tok, Basetypes.BigDec.ZERO);
             } else {
-              Contract.Assert(e.E.Type.IsNumericBased(Type.NumericPersuation.Int));
+              Contract.Assert(e.E.Type.IsNumericBased(Type.NumericPersuation.Int) || e.E.Type.IsBitVectorType);
               zero = new LiteralExpr(e.tok, 0);
             }
             zero.Type = expr.Type;
@@ -8896,7 +8899,7 @@ namespace Microsoft.Dafny
         var errorCount = reporter.Count(ErrorLevel.Error);
         ResolveExpression(e.E, opts);
         e.Type = e.E.Type;
-        AddXConstraint(e.E.tok, "NumericType", e.E.Type, "type of unary - must be of a numeric type (instead got {0})");
+        AddXConstraint(e.E.tok, "NumericOrBitvector", e.E.Type, "type of unary - must be of a numeric or bitvector type (instead got {0})");
         // Note, e.ResolvedExpression will be filled in during CheckTypeInference, at which time e.Type has been determined
 
       } else if (expr is LiteralExpr) {
@@ -9149,8 +9152,8 @@ namespace Microsoft.Dafny
         Contract.Assert(e.E.Type != null);  // follows from postcondition of ResolveExpression
         switch (e.Op) {
           case UnaryOpExpr.Opcode.Not:
-            ConstrainTypeExprBool(e.E, "logical negation expects a boolean argument (instead got {0})");
-            expr.Type = Type.Bool;
+            AddXConstraint(e.E.tok, "BooleanBits", e.E.Type, "logical/bitwise negation expects a boolean or bitvector argument (instead got {0})");
+            expr.Type = e.E.Type;
             break;
           case UnaryOpExpr.Opcode.Cardinality:
             AddXConstraint(expr.tok, "Sizeable", e.E.Type, "size operator expects a collection argument (instead got {0})");

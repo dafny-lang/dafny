@@ -2621,8 +2621,13 @@ namespace Microsoft.Dafny {
         var e = (UnaryOpExpr)expr;
         switch (e.Op) {
           case UnaryOpExpr.Opcode.Not:
-            wr.Write("!");
-            TrParenExpr(e.E, wr, inLetExprBody);
+            if (e.Type.IsBitVectorType) {
+              wr.Write("({0})~", TypeName(e.Type, wr));
+              TrParenExpr(e.E, wr, inLetExprBody);
+            } else {
+              wr.Write("!");
+              TrParenExpr(e.E, wr, inLetExprBody);
+            }
             break;
           case UnaryOpExpr.Opcode.Cardinality:
             wr.Write("new BigInteger(");

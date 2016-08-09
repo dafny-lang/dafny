@@ -1,4 +1,4 @@
-//-----------------------------------------------------------------------------
+﻿//-----------------------------------------------------------------------------
 //
 // Copyright (C) Microsoft Corporation.  All Rights Reserved.
 //
@@ -497,6 +497,7 @@ namespace Microsoft.Dafny {
         AddBitvectorFunction(w, "and_bv", "bvand");
         AddBitvectorFunction(w, "or_bv", "bvor");
         AddBitvectorFunction(w, "xor_bv", "bvxor");  // Z3 supports this, but it seems not to be in the SMT-LIB 2 standard
+        AddBitvectorFunction(w, "not_bv", "bvnot", false);
         // arithmetic operations
         AddBitvectorFunction(w, "add_bv", "bvadd");
         AddBitvectorFunction(w, "sub_bv", "bvsub");  // Z3 supports this, but it seems not to be in the SMT-LIB 2 standard
@@ -504,10 +505,10 @@ namespace Microsoft.Dafny {
         AddBitvectorFunction(w, "div_bv", "bvudiv");
         AddBitvectorFunction(w, "mod_bv", "bvurem");
         // comparisons
-        AddBitvectorFunction(w, "lt_bv", "bvult", Bpl.Type.Bool);
-        AddBitvectorFunction(w, "le_bv", "bvule", Bpl.Type.Bool);  // Z3 supports this, but it seems not to be in the SMT-LIB 2 standard
-        AddBitvectorFunction(w, "ge_bv", "bvuge", Bpl.Type.Bool);  // Z3 supports this, but it seems not to be in the SMT-LIB 2 standard
-        AddBitvectorFunction(w, "gt_bv", "bvugt", Bpl.Type.Bool);  // Z3 supports this, but it seems not to be in the SMT-LIB 2 standard
+        AddBitvectorFunction(w, "lt_bv", "bvult", true, Bpl.Type.Bool);
+        AddBitvectorFunction(w, "le_bv", "bvule", true, Bpl.Type.Bool);  // Z3 supports this, but it seems not to be in the SMT-LIB 2 standard
+        AddBitvectorFunction(w, "ge_bv", "bvuge", true, Bpl.Type.Bool);  // Z3 supports this, but it seems not to be in the SMT-LIB 2 standard
+        AddBitvectorFunction(w, "gt_bv", "bvugt", true, Bpl.Type.Bool);  // Z3 supports this, but it seems not to be in the SMT-LIB 2 standard
       }
       foreach (TopLevelDecl d in program.BuiltIns.SystemModule.TopLevelDecls) {
         currentDeclaration = d;
@@ -598,17 +599,24 @@ namespace Microsoft.Dafny {
       return sink;
     }
 
-    private void AddBitvectorFunction(int w, string namePrefix, string smtFunctionName, Bpl.Type resultType = null) {
+    private void AddBitvectorFunction(int w, string namePrefix, string smtFunctionName, bool binary = true, Bpl.Type resultType = null) {
       Contract.Requires(0 <= w);
       Contract.Requires(namePrefix != null);
       Contract.Requires(smtFunctionName != null);
       var tok = Token.NoToken;
       var t = new Bpl.BvType(w);
-      var a0 = BplFormalVar(null, t, true);
-      var a1 = BplFormalVar(null, t, true);
+      List<Bpl.Variable> args;
+      if (binary) {
+        var a0 = BplFormalVar(null, t, true);
+        var a1 = BplFormalVar(null, t, true);
+        args = new List<Variable>() { a0, a1 };
+      } else {
+        var a0 = BplFormalVar(null, t, true);
+        args = new List<Variable>() { a0 };
+      }
       var r = BplFormalVar(null, resultType ?? t, true);
       var attr = new Bpl.QKeyValue(tok, "bvbuiltin", new List<object>() { smtFunctionName }, null);
-      var func = new Bpl.Function(tok, namePrefix + w, new List<TypeVariable>(), new List<Bpl.Variable>() { a0, a1 }, r, null, attr);
+      var func = new Bpl.Function(tok, namePrefix + w, new List<TypeVariable>(), args, r, null, attr);
       sink.AddTopLevelDeclaration(func);
     }
 
@@ -11616,7 +11624,17 @@ namespace Microsoft.Dafny {
             case UnaryOpExpr.Opcode.Lit:
               return MaybeLit(arg);
             case UnaryOpExpr.Opcode.Not:
-              return Bpl.Expr.Unary(expr.tok, UnaryOperator.Opcode.Not, arg);
+              if (expr.Type.IsBitVectorType) {
+                var bvWidth = ((BitvectorType)expr.Type).Width;
+                var bvType = new Bpl.BvType(bvWidth);
+                Bpl.Expr r = translator.FunctionCall(expr.tok, "not_bv" + bvWidth, bvType, arg);
+                if (translator.IsLit(arg)) {
+                  r = MaybeLit(r, bvType);
+                }
+                return r;
+              } else {
+                return Bpl.Expr.Unary(expr.tok, UnaryOperator.Opcode.Not, arg);
+              }
             case UnaryOpExpr.Opcode.Cardinality:
               var eType = e.E.Type.NormalizeExpand();
               if (eType is SeqType) {
