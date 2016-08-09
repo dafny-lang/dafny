@@ -1,4 +1,4 @@
-﻿module CodeGen
+module CodeGen
 
 open Ast
 open Getters

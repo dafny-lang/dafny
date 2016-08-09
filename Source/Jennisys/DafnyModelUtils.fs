@@ -1,4 +1,4 @@
-﻿//  #########################################################################
+//  #########################################################################
 ///   Utilities for reading/building models from Boogie Visual Debugger files
 ///
 ///   author: Aleksandar Milicevic (t-alekm@microsoft.com)

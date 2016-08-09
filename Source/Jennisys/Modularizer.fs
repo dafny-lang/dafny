@@ -1,4 +1,4 @@
-﻿module Modularizer
+module Modularizer
 
 open Ast
 open Getters

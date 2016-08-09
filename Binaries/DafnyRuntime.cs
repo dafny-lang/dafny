@@ -1,4 +1,4 @@
-﻿using System; // for Func
+using System; // for Func
 using System.Numerics;
 
 namespace Dafny

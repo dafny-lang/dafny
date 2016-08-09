@@ -1,4 +1,4 @@
-﻿#define QUANTIFIER_WARNINGS
+#define QUANTIFIER_WARNINGS
 
 using System;
 using System.Collections.Generic;

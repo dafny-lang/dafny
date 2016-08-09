@@ -1,4 +1,4 @@
-﻿//  ####################################################################
+//  ####################################################################
 ///   Utilities for resolving the "Unresolved" constants with respect to 
 ///   a given context (heap/env/ctx)
 ///

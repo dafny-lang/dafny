@@ -1,4 +1,4 @@
-﻿#define THROW_UNSUPPORTED_COMPARISONS
+#define THROW_UNSUPPORTED_COMPARISONS
 
 using Microsoft.Dafny;
 using System;
