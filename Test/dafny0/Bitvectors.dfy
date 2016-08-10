@@ -29,6 +29,7 @@ method Main() {
   print "bv16: 5 - 2 == ", unry, "\n";
   unry := Unary(1);
   print "bv16: 1 - 2 == ", unry, "\n";
+  SummoTests();
 }
 
 method BitwiseOperations() returns (a: bv47, b: bv47, c: bv47)
@@ -76,4 +77,14 @@ method Unary(x: bv16) returns (y: bv16)
     F + F + x;
     x - 2;
   }
+}
+
+method SummoTests() {
+  var a: bv64 := 5;
+  a := 2 * 2 * 2 * (2 * 2) * a * 2 * (2 * 2 * 2) * 2;  // shift left 10 bits
+  var b := a / 512;  // b is a shifted right 9 bits, so it is 5 shifted left 1 bit
+  assert b == 10;
+  assert b / 3 == 3 && b / 4 == 2;
+  assert b % 3 == 1 && b % 4 == 2;
+  print b / 3, " ", b % 4;
 }

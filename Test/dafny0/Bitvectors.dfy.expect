@@ -20,14 +20,16 @@ module _System {
       reads reads()
   }
 }
-// bitvector types in use: bv1 bv32 bv47 bv16
+// bitvector types in use: bv1 bv32 bv47 bv16 bv64
 */
 
 /* CALL GRAPH for module _module:
- * SCC at height 5:
+ * SCC at height 6:
  *   _default.M
- * SCC at height 4:
+ * SCC at height 5:
  *   _default.Main
+ * SCC at height 4:
+ *   _default.SummoTests
  * SCC at height 3:
  *   _default.Unary
  * SCC at height 2:
@@ -68,6 +70,7 @@ method Main()
   print "bv16: 5 - 2 == ", unry, "\n";
   unry := Unary(1);
   print "bv16: 1 - 2 == ", unry, "\n";
+  SummoTests();
 }
 
 method BitwiseOperations() returns (a: bv47, b: bv47, c: bv47)
@@ -124,7 +127,18 @@ method Unary(x: bv16) returns (y: bv16)
   }
 }
 
-Dafny program verifier finished with 12 verified, 0 errors
+method SummoTests()
+{
+  var a: bv64 := 5;
+  a := 2 * 2 * 2 * 2 * 2 * a * 2 * 2 * 2 * 2 * 2;
+  var b: bv64 := a / 512;
+  assert b == 10;
+  assert b / 3 == 3 && b / 4 == 2;
+  assert b % 3 == 1 && b % 4 == 2;
+  print b / 3, " ", b % 4;
+}
+
+Dafny program verifier finished with 14 verified, 0 errors
 Program compiled successfully
 Running...
 
@@ -135,3 +149,4 @@ Running...
 Comparisons: True True False False
 bv16: 5 - 2 == 3
 bv16: 1 - 2 == 65535
+3 2

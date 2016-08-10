@@ -1,0 +1,164 @@
+// BitvectorsMore.dfy
+
+/*
+module _System {
+  /* CALL GRAPH for module _System:
+   */
+  type string = seq<char>
+
+  class {:compile false} object { }
+
+  class {:compile false} array<arg> {
+    var Length: int  // immutable
+  }
+
+  class {:compile false} _#Func0<T0> {
+    function requires(): bool
+      reads reads()
+
+    function reads(): set<object>
+      reads reads()
+  }
+}
+// bitvector types in use: bv7 bv137 bv0 bv10 bv60 bv8
+*/
+
+/* CALL GRAPH for module _module:
+ * SCC at height 8:
+ *   _default.R
+ * SCC at height 7:
+ *   _default.Q
+ * SCC at height 6:
+ *   _default.P
+ * SCC at height 5:
+ *   _default.N4
+ * SCC at height 4:
+ *   _default.N3
+ * SCC at height 3:
+ *   _default.N2
+ * SCC at height 2:
+ *   _default.N1
+ * SCC at height 1:
+ *   _default.N0
+ * SCC at height 0:
+ *   _default.M
+ */
+method M()
+{
+  var h: bv8 := 5;
+  var k: bv8 := h * 128 / 128;
+  assert k == 1;
+  h := 3;
+  k := h * 128 / 128;
+  assert k == 1;
+  h := *;
+  k := k / h;
+}
+
+method N0(x: bv7, y: bv7)
+  decreases x, y
+{
+  var z: bv7 := x / y;
+}
+
+method N1(x: bv7, y: bv7)
+  decreases x, y
+{
+  var z: bv7 := x % y;
+}
+
+method N2(x: bv137, y: bv137)
+  decreases x, y
+{
+  var z: bv137 := x / y;
+}
+
+method N3(x: bv0, y: bv0)
+  decreases x, y
+{
+  if * {
+    var z: bv0 := x / y;
+  } else {
+    var z: bv0 := x % y;
+  }
+}
+
+method N4(x: bv0, y: bv0) returns (z: bv0)
+  ensures z == 0
+  decreases x, y
+{
+  if {
+    case true =>
+      z := x + y;
+    case true =>
+      z := x - y;
+    case true =>
+      z := x * y;
+    case true =>
+      z := x & y;
+    case true =>
+      z := x | y;
+    case true =>
+      z := x ^ y;
+    case true =>
+      z := !x;
+    case true =>
+      z := -x;
+    case true =>
+    case true =>
+      assert !(x < y);
+    case true =>
+      assert x <= y;
+    case true =>
+      assert x >= y;
+    case true =>
+      assert !(x > y);
+  }
+}
+
+method P(x: bv0, y: bv0)
+  requires x != y
+  decreases x, y
+{
+  assert false;
+}
+
+method Q(x: bv10, y: bv10)
+  decreases x, y
+{
+  if x < 0 {
+    var z: bv10 := x / y;
+  }
+}
+
+method R(x: bv60, y: bv60)
+  decreases x, y
+{
+  var a0: bool, a1: bool;
+  a0, a1 := x < y, y > x;
+  assert a0 == a1;
+  a0, a1 := x <= y, y >= x;
+  assert a0 == a1;
+}
+BitvectorsMore.dfy(13,9): Error: possible division by zero
+Execution trace:
+    (0,0): anon0
+BitvectorsMore.dfy(17,13): Error: possible division by zero
+Execution trace:
+    (0,0): anon0
+BitvectorsMore.dfy(21,13): Error: possible division by zero
+Execution trace:
+    (0,0): anon0
+BitvectorsMore.dfy(25,13): Error: possible division by zero
+Execution trace:
+    (0,0): anon0
+BitvectorsMore.dfy(30,15): Error: possible division by zero
+Execution trace:
+    (0,0): anon0
+    (0,0): anon3_Then
+BitvectorsMore.dfy(32,15): Error: possible division by zero
+Execution trace:
+    (0,0): anon0
+    (0,0): anon3_Else
+
+Dafny program verifier finished with 13 verified, 6 errors
