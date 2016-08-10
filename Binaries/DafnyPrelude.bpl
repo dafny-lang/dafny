@@ -13,6 +13,7 @@ axiom $$Language$Dafny;        // coming from a Dafny program.
 // ---------------------------------------------------------------
 
 type Ty;
+type Bv0 = int;
 
 const unique TBool : Ty;
 const unique TChar : Ty;
@@ -397,15 +398,15 @@ function Int(x: real): int { int(x) }
 function Real(x: int): real { real(x) }
 axiom (forall i: int :: { Int(Real(i)) } Int(Real(i)) == i);
 
-function {:inline true} _System.real.Trunc(x: real): int { Int(x) }
+function {:inline} _System.real.Trunc(x: real): int { Int(x) }
 
 // ---------------------------------------------------------------
 // -- The heap ---------------------------------------------------
 // ---------------------------------------------------------------
 
 type Heap = <alpha>[ref,Field alpha]alpha;
-function {:inline true} read<alpha>(H:Heap, r:ref, f:Field alpha): alpha { H[r, f] }
-function {:inline true} update<alpha>(H:Heap, r:ref, f:Field alpha, v:alpha): Heap { H[r,f := v] }
+function {:inline} read<alpha>(H:Heap, r:ref, f:Field alpha): alpha { H[r, f] }
+function {:inline} update<alpha>(H:Heap, r:ref, f:Field alpha, v:alpha): Heap { H[r,f := v] }
 
 function $IsGoodHeap(Heap): bool;
 function $IsHeapAnchor(Heap): bool;

@@ -150,6 +150,7 @@ namespace Microsoft.Dafny {
       public readonly Bpl.Function ArrayLength;
       public readonly Bpl.Function RealTrunc;
       private readonly Bpl.TypeCtorDecl seqTypeCtor;
+      public readonly Bpl.Type Bv0Type;
       readonly Bpl.TypeCtorDecl fieldName;
       public readonly Bpl.Type HeapType;
       public readonly string HeapVarName;
@@ -238,8 +239,8 @@ namespace Microsoft.Dafny {
       public PredefinedDecls(Bpl.TypeCtorDecl charType, Bpl.TypeCtorDecl refType, Bpl.TypeCtorDecl boxType, Bpl.TypeCtorDecl tickType,
                              Bpl.TypeSynonymDecl setTypeCtor, Bpl.TypeSynonymDecl isetTypeCtor, Bpl.TypeSynonymDecl multiSetTypeCtor,
                              Bpl.TypeCtorDecl mapTypeCtor, Bpl.TypeCtorDecl imapTypeCtor,
-                             Bpl.Function arrayLength, Bpl.Function realTrunc, Bpl.TypeCtorDecl seqTypeCtor, Bpl.TypeCtorDecl fieldNameType,
-                             Bpl.TypeCtorDecl tyType, Bpl.TypeCtorDecl tyTagType,
+                             Bpl.Function arrayLength, Bpl.Function realTrunc, Bpl.TypeCtorDecl seqTypeCtor, Bpl.TypeSynonymDecl bv0TypeDecl,
+                             Bpl.TypeCtorDecl fieldNameType, Bpl.TypeCtorDecl tyType, Bpl.TypeCtorDecl tyTagType,
                              Bpl.GlobalVariable heap, Bpl.TypeCtorDecl classNameType, Bpl.TypeCtorDecl nameFamilyType,
                              Bpl.TypeCtorDecl datatypeType, Bpl.TypeCtorDecl handleType, Bpl.TypeCtorDecl layerType, Bpl.TypeCtorDecl dtCtorId,
                              Bpl.Constant allocField) {
@@ -256,6 +257,7 @@ namespace Microsoft.Dafny {
         Contract.Requires(arrayLength != null);
         Contract.Requires(realTrunc != null);
         Contract.Requires(seqTypeCtor != null);
+        Contract.Requires(bv0TypeDecl != null);
         Contract.Requires(fieldNameType != null);
         Contract.Requires(heap != null);
         Contract.Requires(classNameType != null);
@@ -280,6 +282,7 @@ namespace Microsoft.Dafny {
         this.ArrayLength = arrayLength;
         this.RealTrunc = realTrunc;
         this.seqTypeCtor = seqTypeCtor;
+        this.Bv0Type = new Bpl.TypeSynonymAnnotation(Token.NoToken, bv0TypeDecl, new List<Bpl.Type>());
         this.fieldName = fieldNameType;
         this.HeapType = heap.TypedIdent.Type;
         this.HeapVarName = heap.Name;
@@ -314,6 +317,7 @@ namespace Microsoft.Dafny {
       Bpl.TypeCtorDecl seqTypeCtor = null;
       Bpl.TypeCtorDecl fieldNameType = null;
       Bpl.TypeCtorDecl classNameType = null;
+      Bpl.TypeSynonymDecl bv0TypeDecl = null;
       Bpl.TypeCtorDecl tyType = null;
       Bpl.TypeCtorDecl tyTagType = null;
       Bpl.TypeCtorDecl nameFamilyType = null;
@@ -367,12 +371,12 @@ namespace Microsoft.Dafny {
           Bpl.TypeSynonymDecl dt = (Bpl.TypeSynonymDecl)d;
           if (dt.Name == "Set") {
             setTypeCtor = dt;
-          }
-          if (dt.Name == "MultiSet") {
+          } else if (dt.Name == "MultiSet") {
             multiSetTypeCtor = dt;
-          }
-          if (dt.Name == "ISet") {
+          } else if (dt.Name == "ISet") {
             isetTypeCtor = dt;
+          } else if (dt.Name == "Bv0") {
+            bv0TypeDecl = dt;
           }
         } else if (d is Bpl.Constant) {
           Bpl.Constant c = (Bpl.Constant)d;
@@ -409,6 +413,8 @@ namespace Microsoft.Dafny {
         Console.WriteLine("Error: Dafny prelude is missing declaration of function _System.array.Length");
       } else if (realTrunc == null) {
         Console.WriteLine("Error: Dafny prelude is missing declaration of function _System.real.Trunc");
+      } else if (bv0TypeDecl == null) {
+        Console.WriteLine("Error: Dafny prelude is missing declaration of type Bv0");
       } else if (fieldNameType == null) {
         Console.WriteLine("Error: Dafny prelude is missing declaration of type Field");
       } else if (classNameType == null) {
@@ -443,8 +449,8 @@ namespace Microsoft.Dafny {
         return new PredefinedDecls(charType, refType, boxType, tickType,
                                    setTypeCtor, isetTypeCtor, multiSetTypeCtor,
                                    mapTypeCtor, imapTypeCtor,
-                                   arrayLength, realTrunc, seqTypeCtor, fieldNameType,
-                                   tyType, tyTagType,
+                                   arrayLength, realTrunc, seqTypeCtor, bv0TypeDecl,
+                                   fieldNameType, tyType, tyTagType,
                                    heap, classNameType, nameFamilyType,
                                    datatypeType, handleType, layerType, dtCtorId,
                                    allocField);
@@ -505,10 +511,10 @@ namespace Microsoft.Dafny {
         AddBitvectorFunction(w, "div_bv", "bvudiv");
         AddBitvectorFunction(w, "mod_bv", "bvurem");
         // comparisons
-        AddBitvectorFunction(w, "lt_bv", "bvult", true, Bpl.Type.Bool);
-        AddBitvectorFunction(w, "le_bv", "bvule", true, Bpl.Type.Bool);  // Z3 supports this, but it seems not to be in the SMT-LIB 2 standard
-        AddBitvectorFunction(w, "ge_bv", "bvuge", true, Bpl.Type.Bool);  // Z3 supports this, but it seems not to be in the SMT-LIB 2 standard
-        AddBitvectorFunction(w, "gt_bv", "bvugt", true, Bpl.Type.Bool);  // Z3 supports this, but it seems not to be in the SMT-LIB 2 standard
+        AddBitvectorFunction(w, "lt_bv", "bvult", true, Bpl.Type.Bool, false);
+        AddBitvectorFunction(w, "le_bv", "bvule", true, Bpl.Type.Bool, true);  // Z3 supports this, but it seems not to be in the SMT-LIB 2 standard
+        AddBitvectorFunction(w, "ge_bv", "bvuge", true, Bpl.Type.Bool, true);  // Z3 supports this, but it seems not to be in the SMT-LIB 2 standard
+        AddBitvectorFunction(w, "gt_bv", "bvugt", true, Bpl.Type.Bool, false);  // Z3 supports this, but it seems not to be in the SMT-LIB 2 standard
       }
       foreach (TopLevelDecl d in program.BuiltIns.SystemModule.TopLevelDecls) {
         currentDeclaration = d;
@@ -599,12 +605,49 @@ namespace Microsoft.Dafny {
       return sink;
     }
 
-    private void AddBitvectorFunction(int w, string namePrefix, string smtFunctionName, bool binary = true, Bpl.Type resultType = null) {
+    public Bpl.Type BplBvType(int width) {
+      Contract.Requires(0 <= width);
+      if (width == 0) {
+        // Boogie claims to support bv0, but it translates it straight down to the SMT solver's 0-width bitvector type.
+        // However, the SMT-LIB 2 standard does not define such a bitvector width, so this is a bug in Boogie.  The
+        // best would be to fix this in Boogie, but for now, we simply work around it here.
+        return predef.Bv0Type;
+      } else {
+        return Bpl.Type.GetBvType(width);
+      }
+    }
+
+    internal Expr BplBvLiteralExpr(IToken tok, Basetypes.BigNum n, BitvectorType bitvectorType) {
+      Contract.Requires(tok != null);
+      Contract.Requires(bitvectorType != null);
+      if (bitvectorType.Width == 0) {
+        // see comment in BplBvType
+        Contract.Assert(n.IsZero);
+        return Bpl.Expr.Literal(0);
+      } else {
+        return new Bpl.LiteralExpr(tok, n, bitvectorType.Width);
+      }
+    }
+
+    /// <summary>
+    /// Declare and add to the sink a Boogie function named "namePrefix + w".
+    /// If "binary", then the function takes two arguments; otherwise, it takes one.  Arguments have the type
+    /// corresponding to the Dafny type for w-width bitvectors.
+    /// The function's result type is the same as the argument type, unless "resultType" is non-null, in which
+    /// case the function's result type is "resultType".
+    /// For w > 0:
+    ///     Attach an attribute {:bvbuiltin smtFunctionName}.
+    /// For w == 0:
+    ///     Attach an attribute {:inline} and add a .Body to the function.
+    ///     If "resultType" is null, then use 0 as the body; otherwise, use "bodyForBv0" as the body (which
+    ///     assumes "resultType" is actually Bpl.Type.Bool).
+    /// </summary>
+    private void AddBitvectorFunction(int w, string namePrefix, string smtFunctionName, bool binary = true, Bpl.Type resultType = null, bool bodyForBv0 = false) {
       Contract.Requires(0 <= w);
       Contract.Requires(namePrefix != null);
       Contract.Requires(smtFunctionName != null);
       var tok = Token.NoToken;
-      var t = new Bpl.BvType(w);
+      var t = BplBvType(w);
       List<Bpl.Variable> args;
       if (binary) {
         var a0 = BplFormalVar(null, t, true);
@@ -615,8 +658,20 @@ namespace Microsoft.Dafny {
         args = new List<Variable>() { a0 };
       }
       var r = BplFormalVar(null, resultType ?? t, true);
-      var attr = new Bpl.QKeyValue(tok, "bvbuiltin", new List<object>() { smtFunctionName }, null);
+      Bpl.QKeyValue attr;
+      if (w == 0) {
+        attr = new QKeyValue(tok, "inline", new List<object>(), null);
+      } else {
+        attr = new Bpl.QKeyValue(tok, "bvbuiltin", new List<object>() { smtFunctionName }, null);
+      }
       var func = new Bpl.Function(tok, namePrefix + w, new List<TypeVariable>(), args, r, null, attr);
+      if (w == 0) {
+        if (resultType != null) {
+          func.Body = Bpl.Expr.Literal(bodyForBv0);
+        } else {
+          func.Body = BplBvLiteralExpr(tok, Basetypes.BigNum.ZERO, new BitvectorType(w));
+        }
+      }
       sink.AddTopLevelDeclaration(func);
     }
 
@@ -5432,7 +5487,14 @@ namespace Microsoft.Dafny {
             break;
           case BinaryExpr.ResolvedOpcode.Div:
           case BinaryExpr.ResolvedOpcode.Mod: {
-              Bpl.Expr zero = e.E1.Type.IsNumericBased(Type.NumericPersuation.Real) ? Bpl.Expr.Literal(Basetypes.BigDec.ZERO) : Bpl.Expr.Literal(0);
+              Bpl.Expr zero;
+              if (e.E1.Type.IsBitVectorType) {
+                zero = BplBvLiteralExpr(e.tok, Basetypes.BigNum.ZERO, (BitvectorType)e.E1.Type);
+              } else if (e.E1.Type.IsNumericBased(Type.NumericPersuation.Real)) {
+                zero = Bpl.Expr.Literal(Basetypes.BigDec.ZERO);
+              } else {
+                zero = Bpl.Expr.Literal(0);
+              }
               CheckWellformed(e.E1, options, locals, builder, etran);
               builder.Add(Assert(expr.tok, Bpl.Expr.Neq(etran.TrExpr(e.E1), zero), "possible division by zero", options.AssertKv));
               CheckResultToBeInType(expr.tok, expr, expr.Type, locals, builder, etran);
@@ -6086,7 +6148,7 @@ namespace Microsoft.Dafny {
             sink.AddTopLevelDeclaration(
               new Bpl.Function(f.tok, nm, new List<TypeVariable>(), formals,
                 BplFormalVar(null, res_ty, false), null,
-                new QKeyValue(f.tok, "inline", new List<object> { Bpl.Expr.True }, null)) {
+                new QKeyValue(f.tok, "inline", new List<object>(), null)) {
                   Body = body
                 });
 
@@ -7249,7 +7311,7 @@ namespace Microsoft.Dafny {
         return Bpl.Type.Real;
       } else if (type is BitvectorType) {
         var t = (BitvectorType)type;
-        return Bpl.Type.GetBvType(t.Width);
+        return BplBvType(t.Width);
       } else if (type is IteratorDecl.EverIncreasingType) {
         return Bpl.Type.Int;
       } else if (type is ArrowType) {
@@ -9811,9 +9873,18 @@ namespace Microsoft.Dafny {
         // nat:
         // 0 <= x
         return allocatednessOnly ? null : Bpl.Expr.Le(Bpl.Expr.Literal(0), x);
-      } else if (normType is BoolType || normType is IntType || normType is RealType || normType.IsBitVectorType) {
+      } else if (normType is BoolType || normType is IntType || normType is RealType) {
         // nothing to do
         return null;
+      } else if (normType.IsBitVectorType) {
+        var t = (BitvectorType)normType;
+        if (t.Width == 0) {
+          // type bv0 has only one value
+          return allocatednessOnly ? null : Bpl.Expr.Eq(BplBvLiteralExpr(tok, Basetypes.BigNum.ZERO, t), x);
+        } else {
+          // nothing to do
+          return null;
+        }
       } else {
         var isAlloc = MkIsAlloc(x, normType, etran.HeapExpr);
         return allocatednessOnly ? isAlloc : BplAnd(MkIs(x, normType), isAlloc);
@@ -11277,7 +11348,7 @@ namespace Microsoft.Dafny {
           } else if (e.Value is BigInteger) {
             var n = Microsoft.Basetypes.BigNum.FromBigInt((BigInteger)e.Value);
             if (e.Type is BitvectorType) {
-              return MaybeLit(new Bpl.LiteralExpr(e.tok, n, ((BitvectorType)e.Type).Width));
+              return MaybeLit(translator.BplBvLiteralExpr(e.tok, n, (BitvectorType)e.Type));
             } else {
               return MaybeLit(Bpl.Expr.Literal(n));
             }
@@ -11626,7 +11697,7 @@ namespace Microsoft.Dafny {
             case UnaryOpExpr.Opcode.Not:
               if (expr.Type.IsBitVectorType) {
                 var bvWidth = ((BitvectorType)expr.Type).Width;
-                var bvType = new Bpl.BvType(bvWidth);
+                var bvType = translator.BplBvType(bvWidth);
                 Bpl.Expr r = translator.FunctionCall(expr.tok, "not_bv" + bvWidth, bvType, arg);
                 if (translator.IsLit(arg)) {
                   r = MaybeLit(r, bvType);
@@ -11780,7 +11851,7 @@ namespace Microsoft.Dafny {
               bOpcode = BinaryOperator.Opcode.Neq; break;
             case BinaryExpr.ResolvedOpcode.Lt:
               if (0 <= bvWidth) {
-                return TrToFunctionCall(expr.tok, "lt_bv" + bvWidth, new Bpl.BvType(bvWidth), e0, e1, liftLit);
+                return TrToFunctionCall(expr.tok, "lt_bv" + bvWidth, translator.BplBvType(bvWidth), e0, e1, liftLit);
               } else if (isReal || !DafnyOptions.O.DisableNLarith) {
                 typ = Bpl.Type.Bool;
                 bOpcode = BinaryOperator.Opcode.Lt;
@@ -11791,7 +11862,7 @@ namespace Microsoft.Dafny {
             case BinaryExpr.ResolvedOpcode.Le:
               keepLits = true;
               if (0 <= bvWidth) {
-                return TrToFunctionCall(expr.tok, "le_bv" + bvWidth, new Bpl.BvType(bvWidth), e0, e1, false);
+                return TrToFunctionCall(expr.tok, "le_bv" + bvWidth, translator.BplBvType(bvWidth), e0, e1, false);
               } else if (isReal || !DafnyOptions.O.DisableNLarith) {
                 typ = Bpl.Type.Bool;
                 bOpcode = BinaryOperator.Opcode.Le;
@@ -11802,7 +11873,7 @@ namespace Microsoft.Dafny {
             case BinaryExpr.ResolvedOpcode.Ge:
               keepLits = true;
               if (0 <= bvWidth) {
-                return TrToFunctionCall(expr.tok, "ge_bv" + bvWidth, new Bpl.BvType(bvWidth), e0, e1, false);
+                return TrToFunctionCall(expr.tok, "ge_bv" + bvWidth, translator.BplBvType(bvWidth), e0, e1, false);
               } else if (isReal || !DafnyOptions.O.DisableNLarith) {
                 typ = Bpl.Type.Bool;
                 bOpcode = BinaryOperator.Opcode.Ge;
@@ -11812,7 +11883,7 @@ namespace Microsoft.Dafny {
               }
             case BinaryExpr.ResolvedOpcode.Gt:
               if (0 <= bvWidth) {
-                return TrToFunctionCall(expr.tok, "gt_bv" + bvWidth, new Bpl.BvType(bvWidth), e0, e1, liftLit);
+                return TrToFunctionCall(expr.tok, "gt_bv" + bvWidth, translator.BplBvType(bvWidth), e0, e1, liftLit);
               } else if (isReal || !DafnyOptions.O.DisableNLarith) {
                 typ = Bpl.Type.Bool;
                 bOpcode = BinaryOperator.Opcode.Gt;
@@ -11823,7 +11894,7 @@ namespace Microsoft.Dafny {
 
             case BinaryExpr.ResolvedOpcode.Add:
               if (0 <= bvWidth) {
-                return TrToFunctionCall(expr.tok, "add_bv" + bvWidth, new Bpl.BvType(bvWidth), e0, e1, liftLit);
+                return TrToFunctionCall(expr.tok, "add_bv" + bvWidth, translator.BplBvType(bvWidth), e0, e1, liftLit);
               } else if (DafnyOptions.O.DisableNLarith && !isReal) {
                 return TrToFunctionCall(expr.tok, "INTERNAL_add_boogie", Bpl.Type.Int, e0, e1, liftLit);
               } else {
@@ -11833,7 +11904,7 @@ namespace Microsoft.Dafny {
               }
             case BinaryExpr.ResolvedOpcode.Sub:
               if (0 <= bvWidth) {
-                return TrToFunctionCall(expr.tok, "sub_bv" + bvWidth, new Bpl.BvType(bvWidth), e0, e1, liftLit);
+                return TrToFunctionCall(expr.tok, "sub_bv" + bvWidth, translator.BplBvType(bvWidth), e0, e1, liftLit);
               } else if (DafnyOptions.O.DisableNLarith && !isReal) {
                 return TrToFunctionCall(expr.tok, "INTERNAL_sub_boogie", Bpl.Type.Int, e0, e1, liftLit);
               } else {
@@ -11843,7 +11914,7 @@ namespace Microsoft.Dafny {
               }
             case BinaryExpr.ResolvedOpcode.Mul:
               if (0 <= bvWidth) {
-                return TrToFunctionCall(expr.tok, "mul_bv" + bvWidth, new Bpl.BvType(bvWidth), e0, e1, liftLit);
+                return TrToFunctionCall(expr.tok, "mul_bv" + bvWidth, translator.BplBvType(bvWidth), e0, e1, liftLit);
               } else if (DafnyOptions.O.DisableNLarith && !isReal) {
                 return TrToFunctionCall(expr.tok, "INTERNAL_mul_boogie", Bpl.Type.Int, e0, e1, liftLit);
               } else {
@@ -11853,7 +11924,7 @@ namespace Microsoft.Dafny {
               }
             case BinaryExpr.ResolvedOpcode.Div:
               if (0 <= bvWidth) {
-                return TrToFunctionCall(expr.tok, "div_bv" + bvWidth, new Bpl.BvType(bvWidth), e0, e1, liftLit);
+                return TrToFunctionCall(expr.tok, "div_bv" + bvWidth, translator.BplBvType(bvWidth), e0, e1, liftLit);
               } else if (DafnyOptions.O.DisableNLarith && !isReal) {
                 return TrToFunctionCall(expr.tok, "INTERNAL_div_boogie", Bpl.Type.Int, e0, e1, liftLit);
               } else if (isReal) {
@@ -11867,7 +11938,7 @@ namespace Microsoft.Dafny {
               }
             case BinaryExpr.ResolvedOpcode.Mod:
               if (0 <= bvWidth) {
-                return TrToFunctionCall(expr.tok, "mod_bv" + bvWidth, new Bpl.BvType(bvWidth), e0, e1, liftLit);
+                return TrToFunctionCall(expr.tok, "mod_bv" + bvWidth, translator.BplBvType(bvWidth), e0, e1, liftLit);
               } else if (DafnyOptions.O.DisableNLarith && !isReal) {
                 return TrToFunctionCall(expr.tok, "INTERNAL_mod_boogie", Bpl.Type.Int, e0, e1, liftLit);
               } else {
@@ -11878,15 +11949,15 @@ namespace Microsoft.Dafny {
 
             case BinaryExpr.ResolvedOpcode.BitwiseAnd: {
               Contract.Assert(0 <= bvWidth);
-              return TrToFunctionCall(expr.tok, "and_bv" + bvWidth, new Bpl.BvType(bvWidth), e0, e1, liftLit);
+              return TrToFunctionCall(expr.tok, "and_bv" + bvWidth, translator.BplBvType(bvWidth), e0, e1, liftLit);
             }
             case BinaryExpr.ResolvedOpcode.BitwiseOr: {
                 Contract.Assert(0 <= bvWidth);
-                return TrToFunctionCall(expr.tok, "or_bv" + bvWidth, new Bpl.BvType(bvWidth), e0, e1, liftLit);
+                return TrToFunctionCall(expr.tok, "or_bv" + bvWidth, translator.BplBvType(bvWidth), e0, e1, liftLit);
               }
             case BinaryExpr.ResolvedOpcode.BitwiseXor: {
                 Contract.Assert(0 <= bvWidth);
-                return TrToFunctionCall(expr.tok, "xor_bv" + bvWidth, new Bpl.BvType(bvWidth), e0, e1, liftLit);
+                return TrToFunctionCall(expr.tok, "xor_bv" + bvWidth, translator.BplBvType(bvWidth), e0, e1, liftLit);
               }
 
             case BinaryExpr.ResolvedOpcode.LtChar:
