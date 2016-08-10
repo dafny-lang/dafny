@@ -2622,9 +2622,27 @@ namespace Microsoft.Dafny {
         switch (e.Op) {
           case UnaryOpExpr.Opcode.Not:
             if (e.Type.IsBitVectorType) {
-              wr.Write("({0})~", TypeName(e.Type, wr));
+              var bvType = (BitvectorType)e.Type;
+              if (bvType.NativeType == null) {
+                wr.Write("((");
+              } else {
+                wr.Write("({0})((", bvType.NativeType.Name);
+              }
+              // here's the core of the operation
+              wr.Write("~");
               TrParenExpr(e.E, wr, inLetExprBody);
+              // do the truncation, if needed
+              if (bvType.NativeType == null) {
+                wr.Write(") & ((new BigInteger(1) << {0}) - 1))", bvType.Width);
+              } else if (bvType.NativeType.Bitwidth != bvType.Width) {
+                // print in hex, because that looks nice
+                wr.Write(") & ({2})0x{0:X}{1})", (1UL << bvType.Width) - 1, bvType.NativeType.Suffix, bvType.NativeType.Name);
+              } else {
+                wr.Write("))");
+              }
+
             } else {
+              // Piece o' cake! This is just simple boolean negation.
               wr.Write("!");
               TrParenExpr(e.E, wr, inLetExprBody);
             }
@@ -2700,6 +2718,9 @@ namespace Microsoft.Dafny {
         string opString = null;
         string preOpString = "";
         string callString = null;
+        string staticCallString = null;
+        bool reverseArguments = false;
+        bool truncateResult = false;
 
         switch (e.ResolvedOp) {
           case BinaryExpr.ResolvedOpcode.Iff:
@@ -2758,31 +2779,23 @@ namespace Microsoft.Dafny {
           case BinaryExpr.ResolvedOpcode.GtChar:
             opString = ">"; break;
           case BinaryExpr.ResolvedOpcode.Add:
-            opString = "+";  break;
+            opString = "+"; truncateResult = true; break;
           case BinaryExpr.ResolvedOpcode.Sub:
-            opString = "-";  break;
+            opString = "-"; truncateResult = true; break;
           case BinaryExpr.ResolvedOpcode.Mul:
-            opString = "*";  break;
+            opString = "*"; truncateResult = true; break;
           case BinaryExpr.ResolvedOpcode.Div:
             if (expr.Type.IsIntegerType || (AsNativeType(expr.Type) != null && AsNativeType(expr.Type).LowerBound < BigInteger.Zero)) {
-              string suffix = AsNativeType(expr.Type) != null ? ("_" + AsNativeType(expr.Type).Name) : "";
-              wr.Write("Dafny.Helpers.EuclideanDivision" + suffix + "(");
-              TrParenExpr(e.E0, wr, inLetExprBody);
-              wr.Write(", ");
-              TrExpr(e.E1, wr, inLetExprBody);
-              wr.Write(")");
+              var suffix = AsNativeType(expr.Type) != null ? "_" + AsNativeType(expr.Type).Name : "";
+              staticCallString = "Dafny.Helpers.EuclideanDivision" + suffix;
             } else {
               opString = "/";  // for reals
             }
             break;
           case BinaryExpr.ResolvedOpcode.Mod:
             if (expr.Type.IsIntegerType || (AsNativeType(expr.Type) != null && AsNativeType(expr.Type).LowerBound < BigInteger.Zero)) {
-              string suffix = AsNativeType(expr.Type) != null ? ("_" + AsNativeType(expr.Type).Name) : "";
-              wr.Write("Dafny.Helpers.EuclideanModulus" + suffix + "(");
-              TrParenExpr(e.E0, wr, inLetExprBody);
-              wr.Write(", ");
-              TrExpr(e.E1, wr, inLetExprBody);
-              wr.Write(")");
+              var suffix = AsNativeType(expr.Type) != null ? "_" + AsNativeType(expr.Type).Name : "";
+              staticCallString = "Dafny.Helpers.EuclideanModulus" + suffix;
             } else {
               opString = "%";  // for reals
             }
@@ -2816,20 +2829,11 @@ namespace Microsoft.Dafny {
           case BinaryExpr.ResolvedOpcode.InSet:
           case BinaryExpr.ResolvedOpcode.InMultiSet:
           case BinaryExpr.ResolvedOpcode.InMap:
-            TrParenExpr(e.E1, wr, inLetExprBody);
-            wr.Write(".Contains(");
-            TrExpr(e.E0, wr, inLetExprBody);
-            wr.Write(")");
-            break;
+            callString = "Contains"; reverseArguments = true; break;
           case BinaryExpr.ResolvedOpcode.NotInSet:
           case BinaryExpr.ResolvedOpcode.NotInMultiSet:
           case BinaryExpr.ResolvedOpcode.NotInMap:
-            wr.Write("!");
-            TrParenExpr(e.E1, wr, inLetExprBody);
-            wr.Write(".Contains(");
-            TrExpr(e.E0, wr, inLetExprBody);
-            wr.Write(")");
-            break;
+            preOpString = "!"; callString = "Contains"; reverseArguments = true; break;
           case BinaryExpr.ResolvedOpcode.Union:
           case BinaryExpr.ResolvedOpcode.MultiSetUnion:
             callString = "Union";  break;
@@ -2847,22 +2851,27 @@ namespace Microsoft.Dafny {
           case BinaryExpr.ResolvedOpcode.Concat:
             callString = "Concat";  break;
           case BinaryExpr.ResolvedOpcode.InSeq:
-            TrParenExpr(e.E1, wr, inLetExprBody);
-            wr.Write(".Contains(");
-            TrExpr(e.E0, wr, inLetExprBody);
-            wr.Write(")");
-            break;
+            callString = "Contains"; reverseArguments = true; break;
           case BinaryExpr.ResolvedOpcode.NotInSeq:
-            wr.Write("!");
-            TrParenExpr(e.E1, wr, inLetExprBody);
-            wr.Write(".Contains(");
-            TrExpr(e.E0, wr, inLetExprBody);
-            wr.Write(")");
-            break;
+            preOpString = "!"; callString = "Contains"; reverseArguments = true; break;
 
           default:
             Contract.Assert(false); throw new cce.UnreachableException();  // unexpected binary expression
         }
+
+        if (truncateResult && e.Type.IsBitVectorType) {
+          var bvType = (BitvectorType)e.Type;
+          if (bvType.NativeType == null) {
+            wr.Write("((");
+          } else {
+            // Unfortunately, the following will apply "unchecked" to all subexpressions as well.  There
+            // shouldn't ever be any problem with this, but stylistically it would have been nice to have
+            // applied the "unchecked" only to the actual operation that may overflow.
+            wr.Write("unchecked(({0})((", bvType.NativeType.Name);
+          }
+        }
+        var e0 = reverseArguments ? e.E1 : e.E0;
+        var e1 = reverseArguments ? e.E0 : e.E1;
         if (opString != null) {
           NativeType nativeType = AsNativeType(e.Type);
           bool needsCast = nativeType != null && nativeType.NeedsCastAfterArithmetic;
@@ -2870,18 +2879,37 @@ namespace Microsoft.Dafny {
             wr.Write("(" + nativeType.Name + ")(");
           }
           wr.Write(preOpString);
-          TrParenExpr(e.E0, wr, inLetExprBody);
+          TrParenExpr(e0, wr, inLetExprBody);
           wr.Write(" {0} ", opString);
-          TrParenExpr(e.E1, wr, inLetExprBody);
+          TrParenExpr(e1, wr, inLetExprBody);
           if (needsCast) {
             wr.Write(")");
           }
         } else if (callString != null) {
           wr.Write(preOpString);
-          TrParenExpr(e.E0, wr, inLetExprBody);
+          TrParenExpr(e0, wr, inLetExprBody);
           wr.Write(".@{0}(", callString);
-          TrExpr(e.E1, wr, inLetExprBody);
+          TrExpr(e1, wr, inLetExprBody);
           wr.Write(")");
+        } else if (staticCallString != null) {
+          wr.Write(preOpString);
+          wr.Write("{0}(", staticCallString);
+          TrExpr(e0, wr, inLetExprBody);
+          wr.Write(", ");
+          TrExpr(e1, wr, inLetExprBody);
+          wr.Write(")");
+        }
+        if (truncateResult && e.Type.IsBitVectorType) {
+          var bvType = (BitvectorType)e.Type;
+          // do the truncation, if needed
+          if (bvType.NativeType == null) {
+            wr.Write(") & ((new BigInteger(1) << {0}) - 1))", bvType.Width);
+          } else if (bvType.NativeType.Bitwidth != bvType.Width) {
+            // print in hex, because that looks nice
+            wr.Write(") & ({2})0x{0:X}{1}))", (1UL << bvType.Width) - 1, bvType.NativeType.Suffix, bvType.NativeType.Name);
+          } else {
+            wr.Write(")))");  // close the parentheses for the cast and the "unchecked"
+          }
         }
 
       } else if (expr is TernaryExpr) {
