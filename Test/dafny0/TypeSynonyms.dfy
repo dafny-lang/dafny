@@ -49,5 +49,5 @@ type MyMap = map<int, map<real, bool>>
 
 predicate MyMapProperty(m: MyMap, x: int)
 {
-  x in m && real(x) in m[x] && m[x][real(x)]
+  x in m && x as real in m[x] && m[x][x as real]
 }

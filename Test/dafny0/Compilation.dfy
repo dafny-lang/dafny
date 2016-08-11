@@ -256,7 +256,7 @@ class DigitUnderscore_Names {
     this.0_1_0 := 007;
     this.010 := 000_008;
     this.10 := 0x0000_0009;
-    assert this.0_1_0 == int(00_07.0_0) && this.010 == 8 && this.10 == 9;
+    assert this.0_1_0 == 00_07.0_0 as int && this.010 == 8 && this.10 == 9;
     this.10 := 20;
   }
 }

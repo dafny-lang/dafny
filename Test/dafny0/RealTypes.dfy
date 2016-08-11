@@ -3,28 +3,28 @@
 
 method R1(ghost x: real, ghost y: real, i: int) {
   assert x + y == y + x;
-  assert int(real(i)) == i;
-  assert real(x.Trunc) <= x;
+  assert i as real as int == i;
+  assert x.Trunc as real <= x;
   if {
-    case real(x.Trunc) >= x =>
-      assert x.Trunc == int(x);  // the cast to int is allowed here
+    case x.Trunc as real >= x =>
+      assert x.Trunc == x as int;  // the cast to int is allowed here
     case true =>
-      var t := int(x);  // error: x may be a non-integer
+      var t := x as int;  // error: x may be a non-integer
     case true =>
-      assert real(x.Trunc) >= x; // error
+      assert x.Trunc as real >= x; // error
   }
 }
 
 method R2(ghost x: real, ghost y: real) {
-  assert x * x >= real(0);
-  assert y != real(0) ==> x / y * y == x;
+  assert x * x >= 0 as real;
+  assert y != 0 as real ==> x / y * y == x;
   assert x / y * y == x; // error(s)
 }
 
 // Check that literals are handled properly
 method R3() {
   ghost var x := 000_00_0_1.5_0_0_00_000_0;  // 1.5
-  ghost var y := real(000_000_003);  // 3
+  ghost var y := 000_000_003 as real;  // 3
   assert x == y / 2.000_000_0;
   assert x == y / 2.000_000_000_000_000_000_000_000_001;  // error
 }

@@ -123,7 +123,7 @@ ResolutionErrors.dfy(954,26): Error: member x does not exist in datatype _tuple#
 ResolutionErrors.dfy(947,37): Error: RHS (of type (int,real,int)) not assignable to LHS (of type (int,real,int,real))
 ResolutionErrors.dfy(953,16): Error: condition is expected to be of type bool, but is int
 ResolutionErrors.dfy(946,32): Error: RHS (of type (int,int,real)) not assignable to LHS (of type (int,real,int)) (covariant type parameter 1 would require real <: int)
-ResolutionErrors.dfy(977,15): Error: type of right argument to / (int) must agree with the result type (real)
+ResolutionErrors.dfy(977,17): Error: type of right argument to / (int) must agree with the result type (real)
 ResolutionErrors.dfy(978,10): Error: type of right argument to % (real) must agree with the result type (int)
 ResolutionErrors.dfy(978,4): Error: RHS (of type int) not assignable to LHS (of type real)
 ResolutionErrors.dfy(1004,11): Error: Wrong number of type arguments (2 instead of 1) passed to array type: array3

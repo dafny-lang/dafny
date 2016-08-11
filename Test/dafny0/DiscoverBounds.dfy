@@ -29,15 +29,15 @@ method Main()
   print o, "\n";
 
   var b: bool;
-  b := forall n': NT :: true ==> P(int(n'));
-  b := forall t': UT :: true ==> P(int(t'));
-  b := forall u': Upper :: true ==> P(int(u'));
-  b := forall l': Lower :: l' < 20 ==> P(int(l'));
-  b := forall o': Lower :: true ==> P(int(o'));  // error: cannot find finite range
-  b := forall j': Int :: -3 <= j' < 7 ==> P(int(j'));
+  b := forall n': NT :: true ==> P(n' as int);
+  b := forall t': UT :: true ==> P(t' as int);
+  b := forall u': Upper :: true ==> P(u' as int);
+  b := forall l': Lower :: l' < 20 ==> P(l' as int);
+  b := forall o': Lower :: true ==> P(o' as int);  // error: cannot find finite range
+  b := forall j': Int :: -3 <= j' < 7 ==> P(j' as int);
 
   b := forall r: real :: 0.0 <= r <= 100.0 ==> Q(r);  // error: cannot find finite range
-  b := forall r': NR :: true ==> Q(real(r'));  // error: cannot find finite range
+  b := forall r': NR :: true ==> Q(r' as real);  // error: cannot find finite range
 }
 
 predicate method P(x: int)

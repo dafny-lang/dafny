@@ -22,13 +22,13 @@ Execution trace:
 Newtypes.dfy(177,13): Error: result of operation might violate newtype constraint
 Execution trace:
     (0,0): anon0
-Newtypes.dfy(193,63): Error: index 0 out of range
+Newtypes.dfy(193,67): Error: index 0 out of range
 Execution trace:
     (0,0): anon0
     (0,0): anon32_Then
     (0,0): anon33_Then
     (0,0): anon16
-Newtypes.dfy(194,66): Error: index 1 out of range
+Newtypes.dfy(194,70): Error: index 1 out of range
 Execution trace:
     (0,0): anon0
     (0,0): anon34_Then

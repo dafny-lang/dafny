@@ -276,6 +276,9 @@ bool IsBitwiseXorOp() {
 bool IsBitwiseOp() {
   return IsBitwiseAndOp() || IsBitwiseOrOp() || IsBitwiseXorOp();
 }
+bool IsAs() {
+  return la.kind == _as;
+}
 bool IsRelOp() {
   return la.val == "=="
       || la.val == "<"
@@ -391,11 +394,18 @@ bool IsNotEndOfCase() {
   return la.kind != _EOF && la.kind != _rbrace && la.kind != _case;
 }
 
+bool IsArrow() {
+  return la.kind == _arrow;
+}
+
 /* The following is the largest lookahead there is. It needs to check if what follows
  * can be nothing but "<" Type { "," Type } ">".
  */
-bool IsGenericInstantiation() {
+bool IsGenericInstantiation(bool inExpressionContext) {
   scanner.ResetPeek();
+  if (!inExpressionContext) {
+    return la.kind == _openAngleBracket;
+  }
   IToken pt = la;
   if (!IsTypeList(ref pt)) {
     return false;
@@ -628,6 +638,7 @@ TOKENS
   case = "case".
   then = "then".
   else = "else".
+  as = "as".
   decreases = "decreases".
   invariant = "invariant".
   function = "function".
@@ -1070,7 +1081,7 @@ TypeIdentOptional<out IToken/*!*/ id, out string/*!*/ identName, out Type/*!*/ t
      string name = null; id = Token.NoToken; ty = new BoolType()/*dummy*/; isGhost = false; .)
   [ "ghost"                            (. isGhost = true; .)
   ]
-  ( TypeAndToken<out id, out ty>
+  ( TypeAndToken<out id, out ty, false>
     [ ":"
       (. /* try to convert ty to an identifier */
          UserDefinedType udt = ty as UserDefinedType;
@@ -1376,10 +1387,10 @@ FormalsOptionalIds<.List<Formal/*!*/>/*!*/ formals.>
 /*------------------------------------------------------------------------*/
 Type<out Type ty>
 = (. Contract.Ensures(Contract.ValueAtReturn(out ty) != null); IToken/*!*/ tok; .)
-  TypeAndToken<out tok, out ty>
+  TypeAndToken<out tok, out ty, false>
   .
 
-TypeAndToken<out IToken tok, out Type ty>
+TypeAndToken<out IToken tok, out Type ty, bool inExpressionContext>
 = (. Contract.Ensures(Contract.ValueAtReturn(out tok)!=null); Contract.Ensures(Contract.ValueAtReturn(out ty) != null);
      tok = Token.NoToken;  ty = new BoolType();  /*keep compiler happy*/
      List<Type> gt; List<Type> tupleArgTypes = null;
@@ -1394,33 +1405,38 @@ TypeAndToken<out IToken tok, out Type ty>
                                        ty = new BitvectorType(w);
                                     .)
   | "object"                        (. tok = t;  ty = new ObjectType(); .)
-  | "set"                           (. tok = t;  gt = new List<Type>(); .)
-    [ GenericInstantiation<gt> ]    (. if (gt.Count > 1) {
+  | "set"                           (. tok = t;.)
+    OptGenericInstantiation<out gt, inExpressionContext>
+                                    (. if (gt != null && gt.Count > 1) {
                                          SemErr("set type expects only one type argument");
                                        }
-                                       ty = new SetType(true, gt.Count == 1 ? gt[0] : null);
+                                       ty = new SetType(true, gt != null ?gt[0] : null);
                                     .)
-  | "iset"                          (. tok = t;  gt = new List<Type>(); .)
-    [ GenericInstantiation<gt> ]    (. if (gt.Count > 1) {
+  | "iset"                          (. tok = t; .)
+    OptGenericInstantiation<out gt, inExpressionContext>
+                                    (. if (gt != null && gt.Count > 1) {
                                          SemErr("set type expects only one type argument");
                                        }
-                                       ty = new SetType(false, gt.Count == 1 ? gt[0] : null);
+                                       ty = new SetType(false, gt != null ? gt[0] : null);
                                     .)
-  | "multiset"                      (. tok = t;  gt = new List<Type>(); .)
-    [ GenericInstantiation<gt> ]    (. if (gt.Count > 1) {
+  | "multiset"                      (. tok = t; .)
+    OptGenericInstantiation<out gt, inExpressionContext>
+                                    (. if (gt != null && gt.Count > 1) {
                                          SemErr("multiset type expects only one type argument");
                                        }
-                                       ty = new MultiSetType(gt.Count == 1 ? gt[0] : null);
+                                       ty = new MultiSetType(gt != null ? gt[0] : null);
                                     .)
-  | "seq"                           (. tok = t;  gt = new List<Type>(); .)
-    [ GenericInstantiation<gt> ]    (. if (gt.Count > 1) {
+  | "seq"                           (. tok = t; .)
+    OptGenericInstantiation<out gt, inExpressionContext>
+                                    (. if (gt != null && gt.Count > 1) {
                                          SemErr("seq type expects only one type argument");
                                        }
-                                       ty = new SeqType(gt.Count == 1 ? gt[0] : null);
+                                       ty = new SeqType(gt != null ? gt[0] : null);
                                     .)
   | "string"                        (. tok = t;  ty = new UserDefinedType(tok, tok.val, null); .)
-  | "map"                           (. tok = t;  gt = new List<Type>(); .)
-    [ GenericInstantiation<gt> ]    (. if (gt.Count == 0) {
+  | "map"                           (. tok = t; .)
+    OptGenericInstantiation<out gt, inExpressionContext>
+                                    (. if (gt == null) {
                                          ty = new MapType(true, null, null);
                                        } else if (gt.Count != 2) {
                                          SemErr("map type expects two type arguments");
@@ -1429,8 +1445,9 @@ TypeAndToken<out IToken tok, out Type ty>
                                          ty = new MapType(true, gt[0], gt[1]);
                                        }
                                     .)
-  | "imap"                          (. tok = t;  gt = new List<Type>(); .)
-    [ GenericInstantiation<gt> ]    (. if (gt.Count == 0) {
+  | "imap"                          (. tok = t; .)
+    OptGenericInstantiation<out gt, inExpressionContext>
+                                    (. if (gt == null) {
                                          ty = new MapType(false, null, null);
                                        } else if (gt.Count != 2) {
                                          SemErr("imap type expects two type arguments");
@@ -1439,10 +1456,8 @@ TypeAndToken<out IToken tok, out Type ty>
                                          ty = new MapType(false, gt[0], gt[1]);
                                        }
                                     .)
-  | arrayToken                      (. tok = t;  gt = null; .)
-    [ (. gt = new List<Type>(); .)
-      GenericInstantiation<gt>
-    ]
+  | arrayToken                      (. tok = t; .)
+    OptGenericInstantiation<out gt, inExpressionContext>
                                     (. int dims = StringToInt(tok.val.Substring(5), 1, "arrays of that many dimensions");
                                        ty = theBuiltIns.ArrayType(tok, dims, gt, true);
                                     .)
@@ -1459,18 +1474,16 @@ TypeAndToken<out IToken tok, out Type ty>
                                          ty = new UserDefinedType(tok, BuiltIns.TupleTypeName(dims), dims == 0 ? null : tupleArgTypes);
                                        }
                                     .)
-  | (. Expression e; tok = t; .)
-    NameSegmentForTypeName<out e> (. tok = t; .)
-    { "." ident                      (. tok = t; List<Type> typeArgs = null; .)
-      [ (. typeArgs = new List<Type>(); .)
-        GenericInstantiation<typeArgs>
-      ]
+  | (. Expression e; .)
+    NameSegmentForTypeName<out e, inExpressionContext>  (. tok = t; .)
+    { "." ident                      (. tok = t; List<Type> typeArgs; .)
+      OptGenericInstantiation<out typeArgs, inExpressionContext>
       (. e = new ExprDotName(tok, e, tok.val, typeArgs); .)
     }
     (. ty = new UserDefinedType(e.tok, e); .)
   )
-  [ (. Type t2; .)
-    "->"                  (. tok = t; .)
+  [ IF(IsArrow())
+    "->"                  (. tok = t; Type t2; .)
     Type<out t2>
     (. if (tupleArgTypes != null) {
          gt = tupleArgTypes;
@@ -1481,9 +1494,15 @@ TypeAndToken<out IToken tok, out Type ty>
        theBuiltIns.CreateArrowTypeDecl(gt.Count);
     .)
   ]
-
   .
-GenericInstantiation<.List<Type/*!*/>/*!*/ gt.>
+OptGenericInstantiation<.out List<Type> gt, bool inExpressionContext.>  /* NOTE: Coco complains about "OptGenericInstantiation deletable". That's okay. */
+= (. gt = null; .)
+  [ IF(IsGenericInstantiation(inExpressionContext))  /* be greedy -- if it looks like a type instantiation, take it */
+    (. gt = new List<Type>(); .)
+    GenericInstantiation<gt>
+  ]
+  .
+GenericInstantiation<.List<Type> gt.>
 = (. Contract.Requires(cce.NonNullElements(gt)); Type/*!*/ ty; .)
   "<"
     Type<out ty>                     (. gt.Add(ty); .)
@@ -1828,7 +1847,7 @@ Rhs<out AssignmentRhs r>
      Attributes attrs = null;
   .)
   ( "new"                              (. newToken = t; .)
-    TypeAndToken<out x, out ty>
+    TypeAndToken<out x, out ty, false>
     [ "["                              (. ee = new List<Expression>(); .)
       Expressions<ee>
       "]"                              (. // make sure an array class with this dimensionality exists
@@ -2649,33 +2668,41 @@ MulOp<out IToken x, out BinaryExpr.Opcode op>
 /*------------------------------------------------------------------------*/
 BitvectorFactor<out Expression e0, bool allowSemi, bool allowLambda, bool allowBitwiseOps>
 = (. Contract.Ensures(Contract.ValueAtReturn(out e0) != null); IToken/*!*/ x;  Expression/*!*/ e1;  BinaryExpr.Opcode op; .)
-  UnaryExpression<out e0, allowSemi, allowLambda>
+  AsExpression<out e0, allowSemi, allowLambda>
   [ IF(allowBitwiseOps && IsBitwiseOp())  /* read a BitvectorFactor as far as possible, but not in the context inside a |.| size expression */
     ( (. op = BinaryExpr.Opcode.BitwiseAnd; .)
       "&"                                               (. x = t; .)
-      UnaryExpression<out e1, allowSemi, allowLambda>   (. e0 = new BinaryExpr(x, op, e0, e1); .)
+      AsExpression<out e1, allowSemi, allowLambda>   (. e0 = new BinaryExpr(x, op, e0, e1); .)
       { IF(IsBitwiseAndOp())
         "&"                                             (. x = t; .)
-        UnaryExpression<out e1, allowSemi, allowLambda> (. e0 = new BinaryExpr(x, op, e0, e1); .)
+        AsExpression<out e1, allowSemi, allowLambda> (. e0 = new BinaryExpr(x, op, e0, e1); .)
       }
     | (. op = BinaryExpr.Opcode.BitwiseOr; .)
       "|"                                               (. x = t; .)
-      UnaryExpression<out e1, allowSemi, allowLambda>   (. e0 = new BinaryExpr(x, op, e0, e1); .)
+      AsExpression<out e1, allowSemi, allowLambda>   (. e0 = new BinaryExpr(x, op, e0, e1); .)
       { IF(IsBitwiseOrOp())
         "|"                                             (. x = t; .)
-        UnaryExpression<out e1, allowSemi, allowLambda> (. e0 = new BinaryExpr(x, op, e0, e1); .)
+        AsExpression<out e1, allowSemi, allowLambda> (. e0 = new BinaryExpr(x, op, e0, e1); .)
       }
     | (. op = BinaryExpr.Opcode.BitwiseXor; .)
       "^"                                               (. x = t; .)
-      UnaryExpression<out e1, allowSemi, allowLambda>   (. e0 = new BinaryExpr(x, op, e0, e1); .)
+      AsExpression<out e1, allowSemi, allowLambda>   (. e0 = new BinaryExpr(x, op, e0, e1); .)
       { IF(IsBitwiseXorOp())
         "^"                                             (. x = t; .)
-        UnaryExpression<out e1, allowSemi, allowLambda> (. e0 = new BinaryExpr(x, op, e0, e1); .)
+        AsExpression<out e1, allowSemi, allowLambda> (. e0 = new BinaryExpr(x, op, e0, e1); .)
       }
     )
   ]
   .
 /*------------------------------------------------------------------------*/
+AsExpression<out Expression e, bool allowSemi, bool allowLambda>
+= (. IToken tok; IToken x; Type toType; .)
+  UnaryExpression<out e, allowSemi, allowLambda>
+  { IF(IsAs())
+    "as"                                     (. tok = t; .)
+     TypeAndToken<out x, out toType, true>   (. e = new ConversionExpr(tok, e, toType); .)
+  }
+  .
 UnaryExpression<out Expression e, bool allowSemi, bool allowLambda>
 = (. Contract.Ensures(Contract.ValueAtReturn(out e) != null); IToken/*!*/ x;  e = dummyExpr; .)
   ( "-"                                             (. x = t; .)
@@ -2745,7 +2772,7 @@ ConstAtomExpression<out Expression e, bool allowSemi, bool allowLambda>
     "|"
   | ( "int"                                    (. x = t; toType = new IntType(); .)
     | "real"                                   (. x = t; toType = new RealType(); .)
-    )
+    )                                          (. errors.Warning(t, string.Format("the syntax \"{0}(expr)\" for type conversions has been deprecated; the new syntax is \"expr as {0}\"", x.val)); .)
     "(" Expression<out e, true, true> ")"      (. e = new ConversionExpr(x, e, toType); .)
   | ParensExpression<out e, allowSemi, allowLambda>
   )
@@ -3053,7 +3080,7 @@ NameSegment<out Expression e>
      IToken openParen = null;  List<Type> typeArgs = null;  List<Expression> args = null;
   .)
   Ident<out id>
-  ( IF(IsGenericInstantiation())
+  ( IF(IsGenericInstantiation(true))
     (. typeArgs = new List<Type>(); .)
     GenericInstantiation<typeArgs>
   | HashCall<id, out openParen, out typeArgs, out args>
@@ -3067,14 +3094,10 @@ NameSegment<out Expression e>
   .)
   .
 /* NameSegmentForTypeName is like the production NameSegment, except that it does not allow HashCall */
-NameSegmentForTypeName<out Expression e>
-= (. IToken id;
-     List<Type> typeArgs = null;
-  .)
+NameSegmentForTypeName<out Expression e, bool inExpressionContext>
+= (. IToken id;  List<Type> typeArgs; .)
   Ident<out id>
-  [ (. typeArgs = new List<Type>(); .)
-    GenericInstantiation<typeArgs>
-  ]
+  OptGenericInstantiation<out typeArgs, inExpressionContext>
   (. e = new NameSegment(id, id.val, typeArgs);
   .)
   .
@@ -3123,7 +3146,7 @@ Suffix<ref Expression e>
                                                .)
 
 
-      ( IF(IsGenericInstantiation())
+      ( IF(IsGenericInstantiation(true))
         (. typeArgs = new List<Type>(); .)
         GenericInstantiation<typeArgs>
       | HashCall<id, out openParen, out typeArgs, out args>
@@ -3359,7 +3382,7 @@ WildIdent<out IToken x, bool allowWildcardId>
                    .)
   .
 
-OldSemi
+OldSemi  /* NOTE: Coco complains about "OldSemi deletable". That's okay. */
 = /* In the future, it may be that semi-colons will be neither needed nor allowed in certain places where,
    * in the past, they were required.  As a period of transition between the two, such semi-colons are optional.
    */

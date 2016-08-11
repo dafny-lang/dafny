@@ -5,9 +5,9 @@ datatype T = T(n:int)
 function P(x: int) : int { x - 1}
 
 function ToInt(t:T) : int
- ensures ToInt(t) == int(t.n);
+ ensures ToInt(t) == t.n as int;
  {
-    int(t.n)
+    t.n as int
  }
 
 method Test(x:int)

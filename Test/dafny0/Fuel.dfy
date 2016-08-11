@@ -311,7 +311,7 @@ module TestModule8 {
                 case VUint64(_) => grammar.GUint64?
                 case VTuple(t)  => grammar.GTuple? && |t| == |grammar.t|
                                       && forall i :: 0 <= i < |t| ==> ValInGrammar(t[i], grammar.t[i])
-                case VCase(c, val) => grammar.GTaggedUnion? && int(c) < |grammar.cases| && ValInGrammar(val, grammar.cases[c])
+                case VCase(c, val) => grammar.GTaggedUnion? && c as int < |grammar.cases| && ValInGrammar(val, grammar.cases[c])
         }
 
         datatype CRequest = CRequest(client:EndPoint, seqno:uint64, request:CAppMessage) | CRequestNoOp()

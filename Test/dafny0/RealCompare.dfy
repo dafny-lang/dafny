@@ -131,7 +131,7 @@ method Test_AbsInt0()
 {
   var a, i := 0.3, 0;
   while i < 10
-    invariant a == 0.3 + 0.5 * real(i);
+    invariant a == 0.3 + 0.5 * i as real;
   {
     a, i := a + 0.5, i + 1;
   }
@@ -145,7 +145,7 @@ method Test_AbsInt1()
 {
   var a, i := 0.3, 0.0;
   while i < 10.0
-    invariant i <= 10.0 && i == real(i.Trunc);
+    invariant i <= 10.0 && i == i.Trunc as real;
     invariant a == 0.3 + 0.5 * i;
   {
     a, i := a + 0.5, i + 1.0;

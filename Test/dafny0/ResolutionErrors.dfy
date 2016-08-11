@@ -970,18 +970,18 @@ method TupleResolution(x: int, y: int, r: real)
 
 method TypeConversions(m: nat, i: int, r: real) returns (n: nat, j: int, s: real)
 {
-  n := int(r);
-  j := int(r);
-  s := real(m);  // nat->real is allowed, just like int->real is
-  s := real(i);
-  s := real(i) / 2;  // error: division expects two reals
+  n := r as int;
+  j := r as int;
+  s := m as real;  // nat->real is allowed, just like int->real is
+  s := i as real;
+  s := i as real / 2;  // error: division expects two reals
   s := 15 % s;  // error: modulus is not defined for reals
 
   s := (2.0 / 1.7) + (r / s) - (--r) * -12.3;
 
-  s := real(s);  // fine (identity transform)
-  j := int(j);  // fine (identity transform)
-  j := int(n);  // fine (identity transform)
+  s := s as real;  // fine (identity transform)
+  j := j as int;  // fine (identity transform)
+  j := n as int;  // fine (identity transform)
 }
 }
 // --- filling in type arguments and checking that there aren't too many ---

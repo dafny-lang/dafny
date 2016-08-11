@@ -33,8 +33,8 @@ module Tests {
   {
     var x := true;
     if x: int, y :| P(x) && R(y) {
-      var z := x + int(y);
-      var w := real(x) + y;
+      var z := x + y as int;
+      var w := x as real + y;
     }
     var x := 0.0;  // error: 'x' is already declared in this scope
   }

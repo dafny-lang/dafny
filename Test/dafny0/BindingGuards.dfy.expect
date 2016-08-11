@@ -37,7 +37,7 @@ method M3()
   var x := true;
   if x: int, y :| P(x) && R(y) {
     var z := x + y.Trunc;
-    var w := real(x) + y;
+    var w := x as real + y;
   }
 }
 

@@ -326,10 +326,12 @@ transcript(11,0): Error: invalid UnaryExpression
 Verification completed successfully!
 [SUCCESS] [[DAFNY-SERVER: EOM]]
 transcript(5,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
+transcript(10,22): Warning: the syntax "int(expr)" for type conversions has been deprecated; the new syntax is "expr as int"
 transcript(10,25): Error: openparen expected
 Verification completed successfully!
 [SUCCESS] [[DAFNY-SERVER: EOM]]
 transcript(5,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
+transcript(10,22): Warning: the syntax "int(expr)" for type conversions has been deprecated; the new syntax is "expr as int"
 transcript(10,25): Error: openparen expected
 Verification completed successfully!
 [SUCCESS] [[DAFNY-SERVER: EOM]]
