@@ -113,14 +113,14 @@ module PredicateTests {
   method MidPoint_AlsoFine(lo: char8, hi: char8) returns (mid: char8)
     requires lo <= hi;
   {
-    mid := char8((lo as int + hi as int) / 2);
+    mid := ((lo as int + hi as int) / 2) as char8;
   }
 }
 
 module Module0 {
   import Module1
   method M(x: int) returns (n: Module1.N9) {
-    n := Module1.N9(x);
+    n := x as Module1.N9;
   }
 }
 
@@ -201,16 +201,16 @@ module IntegerBasedValues {
   {
     if {
       case i as int < |a|                   =>  x := a[i];
-      case |a| % 2 == 0 && i < Even(|a|)    =>  x := a[i];
+      case |a| % 2 == 0 && i < |a| as Even  =>  x := a[i];
       case hi as int <= |a|                 =>  b := a[lo..hi];
       case hi as int <= |a|                 =>  b := a[..hi];
       case hi as int <= |a|                 =>  b := a[0..hi];
       case lo as int <= |a|                 =>  b := a[lo..];
       case lo as int <= |a|                 =>  b := a[lo..|a|];
-      case lo as int <= |a| && |a| % 2 == 0 =>  assert a[lo..|a|] == a[lo..Even(|a|)];
+      case lo as int <= |a| && |a| % 2 == 0 =>  assert a[lo..|a|] == a[lo..|a| as Even];
       case n <= hi as int <= |a|            =>  b := a[n..hi];
       case lo as int <= n <= |a|            =>  b := a[lo..n];
-      case (hi + hi) as int <= |a|          =>  b := a[lo..Even(2*hi)];
+      case (hi + hi) as int <= |a|          =>  b := a[lo..(2*hi) as Even];
       case true =>
     }
   }
