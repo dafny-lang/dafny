@@ -9173,16 +9173,25 @@ namespace Microsoft.Dafny
 
       } else if (expr is ConversionExpr) {
         var e = (ConversionExpr)expr;
-        ResolveType(e.tok, e.ToType, opts.codeContext, new ResolveTypeOption(ResolveTypeOptionEnum.DontInfer), null);
         ResolveExpression(e.E, opts);
-        if (e.ToType.IsNumericBased(Type.NumericPersuation.Int)) {
-          AddXConstraint(expr.tok, "NumericType", e.E.Type, "type conversion to an int-based type is allowed only from numeric types (got {0})");
-        } else if (e.ToType.IsNumericBased(Type.NumericPersuation.Real)) {
-          AddXConstraint(expr.tok, "NumericType", e.E.Type, "type conversion to an real-based type is allowed only from numeric types (got {0})");
+        var prevErrorCount = reporter.Count(ErrorLevel.Error);
+        ResolveType(e.tok, e.ToType, opts.codeContext, new ResolveTypeOption(ResolveTypeOptionEnum.DontInfer), null);
+        if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
+          if (e.ToType is NatType) {
+            reporter.Error(MessageSource.Resolver, expr, "type conversions to 'nat' are not supported; convert to 'int' instead");
+          } else if (e.ToType.IsNumericBased(Type.NumericPersuation.Int)) {
+            AddXConstraint(expr.tok, "NumericOrBitvector", e.E.Type, "type conversion to an int-based type is allowed only from numeric and bitvector types (got {0})");
+          } else if (e.ToType.IsNumericBased(Type.NumericPersuation.Real)) {
+            AddXConstraint(expr.tok, "NumericOrBitvector", e.E.Type, "type conversion to an real-based type is allowed only from numeric and bitvector types (got {0})");
+          } else if (e.ToType.IsBitVectorType) {
+            AddXConstraint(expr.tok, "NumericOrBitvector", e.E.Type, "type conversion to an bitvector-based type is allowed only from numeric and bitvector types (got {0})");
+          } else {
+            reporter.Error(MessageSource.Resolver, expr, "type conversions are not supported to this type (got {0})", e.ToType);
+          }
+          e.Type = e.ToType;
         } else {
-          reporter.Error(MessageSource.Resolver, expr, "type conversions are not supported to this type (got {0})", e.ToType);
+          e.Type = new InferredTypeProxy();
         }
-        e.Type = e.ToType;
 
       } else if (expr is BinaryExpr) {
         BinaryExpr e = (BinaryExpr)expr;
