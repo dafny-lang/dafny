@@ -1459,7 +1459,7 @@ namespace Microsoft.Dafny {
 
                 string target = idGenerator.FreshId("_rhs");
                 rhss.Add(target);
-                TrRhs("var " + target, null, rhs, indent, wr);
+                TrRhs((rhs is ExprRhs ? TypeName(((ExprRhs)rhs).Expr.Type, wr) : "var") + " " + target, null, rhs, indent, wr);
               }
             }
           }
@@ -2658,59 +2658,101 @@ namespace Microsoft.Dafny {
 
       } else if (expr is ConversionExpr) {
         var e = (ConversionExpr)expr;
-        var fromInt = e.E.Type.IsNumericBased(Type.NumericPersuation.Int);
-        Contract.Assert(fromInt || e.E.Type.IsNumericBased(Type.NumericPersuation.Real));
-        var toInt = e.ToType.IsNumericBased(Type.NumericPersuation.Int);
-        Contract.Assert(toInt || e.ToType.IsNumericBased(Type.NumericPersuation.Real));
-        Action fromIntAsBigInteger = () => {
-          Contract.Assert(fromInt);
-          if (AsNativeType(e.E.Type) != null) {
-            wr.Write("new BigInteger");
-          }
-          TrParenExpr(e.E, wr, inLetExprBody);
-        };
-        Action toIntCast = () => {
-          Contract.Assert(toInt);
-          if (AsNativeType(e.ToType) != null) {
-            wr.Write("(" + AsNativeType(e.ToType).Name + ")");
-          }
-        };
-        if (fromInt && !toInt) {
-          // int -> real
-          wr.Write("new Dafny.BigRational(");
-          fromIntAsBigInteger();
-          wr.Write(", BigInteger.One)");
-        } else if (!fromInt && toInt) {
-          // real -> int
-          toIntCast();
-          TrParenExpr(e.E, wr, inLetExprBody);
-          wr.Write(".ToBigInteger()");
-        } else if (AsNativeType(e.ToType) != null) {
-          toIntCast();
-          LiteralExpr lit = e.E.Resolved as LiteralExpr;
-          UnaryOpExpr u = e.E.Resolved as UnaryOpExpr;
-          MemberSelectExpr m = e.E.Resolved as MemberSelectExpr;
-          if (lit != null && lit.Value is BigInteger) {
-            // Optimize constant to avoid intermediate BigInteger
-            wr.Write("(" + (BigInteger)lit.Value + AsNativeType(e.ToType).Suffix + ")");
-          } else if ((u != null && u.Op == UnaryOpExpr.Opcode.Cardinality) || (m != null && m.MemberName == "Length" && m.Obj.Type.IsArrayType)) {
-            // Optimize .Length to avoid intermediate BigInteger
-            TrParenExpr((u != null) ? u.E : m.Obj, wr, inLetExprBody);
-            if (AsNativeType(e.ToType).UpperBound <= new BigInteger(0x80000000U)) {
-              wr.Write(".Length");
-            } else {
-              wr.Write(".LongLength");
+        if (e.E.Type.IsNumericBased(Type.NumericPersuation.Int) || e.E.Type.IsBitVectorType) {
+          if (e.ToType.IsNumericBased(Type.NumericPersuation.Real)) {
+            // (int or bv) -> real
+            Contract.Assert(AsNativeType(e.ToType) == null);
+            wr.Write("new Dafny.BigRational(");
+            if (AsNativeType(e.E.Type) != null) {
+              wr.Write("new BigInteger");
             }
+            TrParenExpr(e.E, wr, inLetExprBody);
+            wr.Write(", BigInteger.One)");
           } else {
+            // (int or bv) -> (int or bv)
+            var fromNative = AsNativeType(e.E.Type);
+            var toNative = AsNativeType(e.ToType);
+            if (toNative != null) {
+              // a cast will do
+              wr.Write("({0})", toNative.Name);
+              TrParenExpr(e.E, wr, inLetExprBody);
+            } else if (fromNative != null) {
+              wr.Write("new BigInteger");
+              TrParenExpr(e.E, wr, inLetExprBody);
+            } else {
+              TrExpr(e.E, wr, inLetExprBody);
+            }
+          }
+        } else if (e.E.Type.IsNumericBased(Type.NumericPersuation.Real)) {
+          Contract.Assert(AsNativeType(e.E.Type) == null);
+          if (e.ToType.IsNumericBased(Type.NumericPersuation.Real)) {
+            // real -> real
+            Contract.Assert(AsNativeType(e.ToType) == null);
+            TrExpr(e.E, wr, inLetExprBody);
+          } else {
+            // real -> (int or bv)
+            if (AsNativeType(e.ToType) != null) {
+              wr.Write("({0})", AsNativeType(e.ToType).Name);
+            }
+            TrParenExpr(e.E, wr, inLetExprBody);
+            wr.Write(".ToBigInteger()");
+          }
+        } else {
+          Contract.Assume(false);
+          var fromInt = e.E.Type.IsNumericBased(Type.NumericPersuation.Int);
+          Contract.Assert(fromInt || e.E.Type.IsNumericBased(Type.NumericPersuation.Real));
+          var toInt = e.ToType.IsNumericBased(Type.NumericPersuation.Int);
+          Contract.Assert(toInt || e.ToType.IsNumericBased(Type.NumericPersuation.Real));
+          Action fromIntAsBigInteger = () => {
+            Contract.Assert(fromInt);
+            if (AsNativeType(e.E.Type) != null) {
+              wr.Write("new BigInteger");
+            }
+            TrParenExpr(e.E, wr, inLetExprBody);
+          };
+          Action toIntCast = () => {
+            Contract.Assert(toInt);
+            if (AsNativeType(e.ToType) != null) {
+              wr.Write("(" + AsNativeType(e.ToType).Name + ")");
+            }
+          };
+          if (fromInt && !toInt) {
+            // int -> real
+            wr.Write("new Dafny.BigRational(");
+            fromIntAsBigInteger();
+            wr.Write(", BigInteger.One)");
+          } else if (!fromInt && toInt) {
+            // real -> int
+            toIntCast();
+            TrParenExpr(e.E, wr, inLetExprBody);
+            wr.Write(".ToBigInteger()");
+          } else if (AsNativeType(e.ToType) != null) {
+            toIntCast();
+            LiteralExpr lit = e.E.Resolved as LiteralExpr;
+            UnaryOpExpr u = e.E.Resolved as UnaryOpExpr;
+            MemberSelectExpr m = e.E.Resolved as MemberSelectExpr;
+            if (lit != null && lit.Value is BigInteger) {
+              // Optimize constant to avoid intermediate BigInteger
+              wr.Write("(" + (BigInteger)lit.Value + AsNativeType(e.ToType).Suffix + ")");
+            } else if ((u != null && u.Op == UnaryOpExpr.Opcode.Cardinality) || (m != null && m.MemberName == "Length" && m.Obj.Type.IsArrayType)) {
+              // Optimize .Length to avoid intermediate BigInteger
+              TrParenExpr((u != null) ? u.E : m.Obj, wr, inLetExprBody);
+              if (AsNativeType(e.ToType).UpperBound <= new BigInteger(0x80000000U)) {
+                wr.Write(".Length");
+              } else {
+                wr.Write(".LongLength");
+              }
+            } else {
+              TrParenExpr(e.E, wr, inLetExprBody);
+            }
+          } else if (e.ToType.IsIntegerType && AsNativeType(e.E.Type) != null) {
+            fromIntAsBigInteger();
+          } else {
+            Contract.Assert(fromInt == toInt);
+            Contract.Assert(AsNativeType(e.ToType) == null);
+            Contract.Assert(AsNativeType(e.E.Type) == null);
             TrParenExpr(e.E, wr, inLetExprBody);
           }
-        } else if (e.ToType.IsIntegerType && AsNativeType(e.E.Type) != null) {
-          fromIntAsBigInteger();
-        } else {
-          Contract.Assert(fromInt == toInt);
-          Contract.Assert(AsNativeType(e.ToType) == null);
-          Contract.Assert(AsNativeType(e.E.Type) == null);
-          TrParenExpr(e.E, wr, inLetExprBody);
         }
 
       } else if (expr is BinaryExpr) {

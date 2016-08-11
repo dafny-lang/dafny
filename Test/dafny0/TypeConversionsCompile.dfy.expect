@@ -1,0 +1,138 @@
+// TypeConversionsCompile.dfy
+
+/*
+module _System {
+  /* CALL GRAPH for module _System:
+   */
+  type string = seq<char>
+
+  class {:compile false} object { }
+
+  class {:compile false} array<arg> {
+    var Length: int  // immutable
+  }
+
+  class {:compile false} _#Func0<T0> {
+    function requires(): bool
+      reads reads()
+
+    function reads(): set<object>
+      reads reads()
+  }
+}
+// bitvector types in use: bv67 bv32 bv7 bv0
+*/
+
+/* CALL GRAPH for module _module:
+ * SCC at height 5:
+ *   _default.Main
+ * SCC at height 4:
+ *   _default.PrintExpected
+ * SCC at height 3:
+ *   _default.Print
+ * SCC at height 2:
+ *   SmallReal
+ * SCC at height 1:
+ *   EvenInt
+ * SCC at height 0:
+ *   Handful
+ */
+newtype Handful = x: int | 0 <= x < 32768
+
+newtype EvenInt = x: int | x % 2 == 0
+
+newtype SmallReal = r: real | -4.0 <= r < 300.0
+
+method Print(x: int, n: nat, r: real, handful: Handful, even: EvenInt, small: SmallReal, b67: bv67, w: bv32, seven: bv7, noll: bv0)
+  decreases x, n, r, handful, even, small, b67, w, seven, noll
+{
+  print x, " ", n, " ", r, " ", handful, " ", even, " ", small, " ", b67, " ", w, " ", seven, " ", noll, "\n";
+}
+
+method PrintExpected<T>(got: T, expected: T)
+{
+  print "got ", got, ", expected ", expected, "\n";
+}
+
+method Main()
+{
+  var x: int, n: nat, r: real := 3, 4, 5.0;
+  var handful: Handful, even: EvenInt, small: SmallReal := 5, 6, -1.0;
+  var b67: bv67, w: bv32, seven: bv7, noll: bv0 := 147573952589676412927, 4294967295, 127, 0;
+  Print(x, n, r, handful, even, small, b67, w, seven, noll);
+  PrintExpected(x as bv67, 3);
+  PrintExpected(x as bv7, 3);
+  PrintExpected(0 as bv0, 0);
+  PrintExpected(r as int, 5);
+  PrintExpected((2.0 * r) as EvenInt, 10);
+  PrintExpected(x as real, 3.0);
+  PrintExpected(even as real, 6.0);
+  PrintExpected((small + 3.0) as Handful, 2);
+  PrintExpected(noll as Handful, 0);
+  PrintExpected(noll as SmallReal, 0.0);
+  PrintExpected(w as real, 4294967295.0);
+  PrintExpected(seven as real, 127.0);
+  PrintExpected(noll as bv32, 0);
+  PrintExpected(noll as bv67, 0);
+  PrintExpected(seven as bv32, 127);
+  PrintExpected(seven as bv67, 127);
+  b67 := 50;
+  PrintExpected(b67 as bv32, 50);
+  PrintExpected(b67 as bv7, 50);
+  PrintExpected(r as bv67, 5);
+  PrintExpected(r as bv32, 5);
+  PrintExpected(w as bv67, 4294967295);
+  PrintExpected(r as bv7, 5);
+  PrintExpected(0.0 as bv0, 0);
+  PrintExpected(handful as bv67, 5);
+  PrintExpected(handful as bv32, 5);
+  PrintExpected(handful as bv7, 5);
+  PrintExpected(handful as int, 5);
+  PrintExpected(noll as bv32 as bv0, 0);
+  PrintExpected(noll as bv67 as bv0, 0);
+  PrintExpected(seven as bv32 as bv7, 127);
+  PrintExpected(seven as bv67 as bv7, 127);
+  PrintExpected(handful as real, 5.0);
+  if 14 as real as int as bv67 == 14 {
+    PrintExpected(14 as real as int as bv67 as EvenInt as SmallReal as Handful as bv7 as bv32 as int, 14);
+  }
+}
+
+Dafny program verifier finished with 9 verified, 0 errors
+Program compiled successfully
+Running...
+
+3 4 (5.0 / 1.0) 5 6 (-1.0 / 1.0) 147573952589676412927 4294967295 127 0
+got 3, expected 3
+got 3, expected 3
+got 0, expected 0
+got 5, expected 5
+got 10, expected 10
+got (3.0 / 1.0), expected (3.0 / 1.0)
+got (6.0 / 1.0), expected (6.0 / 1.0)
+got 2, expected 2
+got 0, expected 0
+got (0.0 / 1.0), expected (0.0 / 1.0)
+got (4294967295.0 / 1.0), expected (4294967295.0 / 1.0)
+got (127.0 / 1.0), expected (127.0 / 1.0)
+got 0, expected 0
+got 0, expected 0
+got 127, expected 127
+got 127, expected 127
+got 50, expected 50
+got 50, expected 50
+got 5, expected 5
+got 5, expected 5
+got 4294967295, expected 4294967295
+got 5, expected 5
+got 0, expected 0
+got 5, expected 5
+got 5, expected 5
+got 5, expected 5
+got 5, expected 5
+got 0, expected 0
+got 0, expected 0
+got 127, expected 127
+got 127, expected 127
+got (5.0 / 1.0), expected (5.0 / 1.0)
+got 14, expected 14
