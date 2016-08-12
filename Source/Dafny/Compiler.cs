@@ -2672,15 +2672,37 @@ namespace Microsoft.Dafny {
             // (int or bv) -> (int or bv)
             var fromNative = AsNativeType(e.E.Type);
             var toNative = AsNativeType(e.ToType);
-            if (toNative != null) {
-              // a cast will do
-              wr.Write("({0})", toNative.Name);
-              TrParenExpr(e.E, wr, inLetExprBody);
-            } else if (fromNative != null) {
+            if (fromNative == null && toNative == null) {
+              // big-integer (int or bv) -> big-integer (int or bv), so identity will do
+              TrExpr(e.E, wr, inLetExprBody);
+            } else if (fromNative != null && toNative == null) {
+              // native (int or bv) -> big-integer (int or bv)
               wr.Write("new BigInteger");
               TrParenExpr(e.E, wr, inLetExprBody);
             } else {
-              TrExpr(e.E, wr, inLetExprBody);
+              // any (int or bv) -> native (int or bv)
+              // A cast would do, but we also consider some optimizations
+              wr.Write("({0})", toNative.Name);
+
+              var literal = PartiallyEvaluate(e.E);
+              UnaryOpExpr u = e.E.Resolved as UnaryOpExpr;
+              MemberSelectExpr m = e.E.Resolved as MemberSelectExpr;
+              if (literal != null) {
+                // Optimize constant to avoid intermediate BigInteger
+                wr.Write("(" + literal + toNative.Suffix + ")");
+              } else if ((u != null && u.Op == UnaryOpExpr.Opcode.Cardinality) || (m != null && m.MemberName == "Length" && m.Obj.Type.IsArrayType)) {
+                // Optimize .Length to avoid intermediate BigInteger
+                TrParenExpr((u != null) ? u.E : m.Obj, wr, inLetExprBody);
+                if (toNative.UpperBound <= new BigInteger(0x80000000U)) {
+                  wr.Write(".Length");
+                } else {
+                  wr.Write(".LongLength");
+                }
+              } else {
+                // no optimization applies; use the standard translation
+                TrParenExpr(e.E, wr, inLetExprBody);
+              }
+
             }
           }
         } else if (e.E.Type.IsNumericBased(Type.NumericPersuation.Real)) {
@@ -2696,62 +2718,6 @@ namespace Microsoft.Dafny {
             }
             TrParenExpr(e.E, wr, inLetExprBody);
             wr.Write(".ToBigInteger()");
-          }
-        } else {
-          Contract.Assume(false);
-          var fromInt = e.E.Type.IsNumericBased(Type.NumericPersuation.Int);
-          Contract.Assert(fromInt || e.E.Type.IsNumericBased(Type.NumericPersuation.Real));
-          var toInt = e.ToType.IsNumericBased(Type.NumericPersuation.Int);
-          Contract.Assert(toInt || e.ToType.IsNumericBased(Type.NumericPersuation.Real));
-          Action fromIntAsBigInteger = () => {
-            Contract.Assert(fromInt);
-            if (AsNativeType(e.E.Type) != null) {
-              wr.Write("new BigInteger");
-            }
-            TrParenExpr(e.E, wr, inLetExprBody);
-          };
-          Action toIntCast = () => {
-            Contract.Assert(toInt);
-            if (AsNativeType(e.ToType) != null) {
-              wr.Write("(" + AsNativeType(e.ToType).Name + ")");
-            }
-          };
-          if (fromInt && !toInt) {
-            // int -> real
-            wr.Write("new Dafny.BigRational(");
-            fromIntAsBigInteger();
-            wr.Write(", BigInteger.One)");
-          } else if (!fromInt && toInt) {
-            // real -> int
-            toIntCast();
-            TrParenExpr(e.E, wr, inLetExprBody);
-            wr.Write(".ToBigInteger()");
-          } else if (AsNativeType(e.ToType) != null) {
-            toIntCast();
-            LiteralExpr lit = e.E.Resolved as LiteralExpr;
-            UnaryOpExpr u = e.E.Resolved as UnaryOpExpr;
-            MemberSelectExpr m = e.E.Resolved as MemberSelectExpr;
-            if (lit != null && lit.Value is BigInteger) {
-              // Optimize constant to avoid intermediate BigInteger
-              wr.Write("(" + (BigInteger)lit.Value + AsNativeType(e.ToType).Suffix + ")");
-            } else if ((u != null && u.Op == UnaryOpExpr.Opcode.Cardinality) || (m != null && m.MemberName == "Length" && m.Obj.Type.IsArrayType)) {
-              // Optimize .Length to avoid intermediate BigInteger
-              TrParenExpr((u != null) ? u.E : m.Obj, wr, inLetExprBody);
-              if (AsNativeType(e.ToType).UpperBound <= new BigInteger(0x80000000U)) {
-                wr.Write(".Length");
-              } else {
-                wr.Write(".LongLength");
-              }
-            } else {
-              TrParenExpr(e.E, wr, inLetExprBody);
-            }
-          } else if (e.ToType.IsIntegerType && AsNativeType(e.E.Type) != null) {
-            fromIntAsBigInteger();
-          } else {
-            Contract.Assert(fromInt == toInt);
-            Contract.Assert(AsNativeType(e.ToType) == null);
-            Contract.Assert(AsNativeType(e.E.Type) == null);
-            TrParenExpr(e.E, wr, inLetExprBody);
           }
         }
 
@@ -3316,6 +3282,49 @@ namespace Microsoft.Dafny {
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected expression
       }
+    }
+
+    /// <summary>
+    /// Try to evaluate "expr" into one BigInteger.  On success, return it; otherwise, return "null".
+    /// </summary>
+    /// <param name="expr"></param>
+    /// <returns></returns>
+    public static Nullable<BigInteger> PartiallyEvaluate(Expression expr) {
+      Contract.Requires(expr != null);
+      expr = expr.Resolved;
+      if (expr is LiteralExpr) {
+        var e = (LiteralExpr)expr;
+        if (e.Value is BigInteger) {
+          return (BigInteger)e.Value;
+        }
+      } else if (expr is BinaryExpr) {
+        var e = (BinaryExpr)expr;
+        switch (e.ResolvedOp) {
+          case BinaryExpr.ResolvedOpcode.Add:
+          case BinaryExpr.ResolvedOpcode.Sub:
+          case BinaryExpr.ResolvedOpcode.Mul:
+            // possibly the most important case is Sub, since that's how NegationExpression's end up
+            var arg0 = PartiallyEvaluate(e.E0);
+            var arg1 = arg0 == null ? null : PartiallyEvaluate(e.E1);
+            if (arg1 != null) {
+              switch (e.ResolvedOp) {
+                case BinaryExpr.ResolvedOpcode.Add:
+                  return arg0 + arg1;
+                case BinaryExpr.ResolvedOpcode.Sub:
+                  return arg0 - arg1;
+                case BinaryExpr.ResolvedOpcode.Mul:
+                  return arg0 * arg1;
+                default:
+                  Contract.Assert(false);
+                  break;  // please compiler
+              }
+            }
+            break;
+          default:
+            break;
+        }
+      }
+      return null;
     }
 
     int TrCasePattern(CasePattern pat, string rhsString, Type bodyType, TextWriter wr) {

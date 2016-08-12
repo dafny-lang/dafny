@@ -2,6 +2,8 @@
 // RUN: %diff "%s.expect" "%t"
 
 newtype Handful = x | 0 <= x < 0x8000  // this type turns native
+newtype Abundance = y | -20 <= y < 0x200_0000_0000  // still fits inside a "long"
+newtype int64 = y | -0x8000_0000_0000_0000 <= y < 0x8000_0000_0000_0000  // exactly a "long"
 newtype EvenInt = x | x % 2 == 0
 newtype SmallReal = r | -4.0 <= r < 300.0
 
@@ -35,14 +37,14 @@ method Main()
   PrintExpected(seven as real, 127.0);
   PrintExpected(noll as bv32, 0);
   PrintExpected(noll as bv67, 0);
-  PrintExpected(seven as bv32, 127);  // TODO: strange type inference error
-  PrintExpected(seven as bv67, 127);  // TODO: strange type inference error
+  PrintExpected(seven as bv32, 127);
+  PrintExpected(seven as bv67, 127);
   b67 := 50;
   PrintExpected(b67 as bv32, 50);
   PrintExpected(b67 as bv7, 50);
   PrintExpected(r as bv67, 5);
   PrintExpected(r as bv32, 5);
-  PrintExpected(w as bv67, 0xFFFF_FFFF);  // TODO: strange type inference error
+  PrintExpected(w as bv67, 0xFFFF_FFFF);
   PrintExpected(r as bv7, 5);
   PrintExpected(0.0 as bv0, 0);
   PrintExpected(handful as bv67, 5);
@@ -57,4 +59,17 @@ method Main()
   if 14 as real as int as bv67 == 14 {  // help the verifier out, because Z3 doesn't know much about int/bv conversions
     PrintExpected(14 as real as int as bv67 as EvenInt as SmallReal as Handful as bv7 as bv32 as int, 14);  // take that!
   }
+  // here are some cases whose compilation are optimized
+  var a0: Abundance, a1: Abundance, a2: Abundance, lng: int64;
+  var s := {4.0, 6.3, r, 1000.2};
+  var a := new char[68];
+  handful := 120 as Handful;
+  a0, a1 := -1 as Abundance, 4 as Abundance;
+  a2 := 0x2_0000_0000 as Abundance;
+  w, lng := 634_5789 as bv32, -0x8000_0000_0000_0000 as int64;
+  print handful, " ", a0, " ", a1, " ", a2, " ", w, " ", lng, "\n";
+  x, handful, a0, w := |s|, |s| as Handful, |s| as Abundance, |s| as bv32;
+  print x, " ", handful, " ", a0, " ", w, "\n";
+  x, handful, a0, w := a.Length, a.Length as Handful, a.Length as Abundance, a.Length as bv32;
+  print x, " ", handful, " ", a0, " ", w, "\n";
 }

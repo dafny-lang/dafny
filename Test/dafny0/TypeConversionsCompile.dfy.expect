@@ -24,8 +24,12 @@ module _System {
 */
 
 /* CALL GRAPH for module _module:
- * SCC at height 5:
+ * SCC at height 7:
  *   _default.Main
+ * SCC at height 6:
+ *   int64
+ * SCC at height 5:
+ *   Abundance
  * SCC at height 4:
  *   _default.PrintExpected
  * SCC at height 3:
@@ -38,6 +42,10 @@ module _System {
  *   Handful
  */
 newtype Handful = x: int | 0 <= x < 32768
+
+newtype Abundance = y: int | -20 <= y < 2199023255552
+
+newtype int64 = y: int | -9223372036854775808 <= y < 9223372036854775808
 
 newtype EvenInt = x: int | x % 2 == 0
 
@@ -96,9 +104,21 @@ method Main()
   if 14 as real as int as bv67 == 14 {
     PrintExpected(14 as real as int as bv67 as EvenInt as SmallReal as Handful as bv7 as bv32 as int, 14);
   }
+  var a0: Abundance, a1: Abundance, a2: Abundance, lng: int64;
+  var s: set<real> := {4.0, 6.3, r, 1000.2};
+  var a: array<char> := new char[68];
+  handful := 120 as Handful;
+  a0, a1 := -1 as Abundance, 4 as Abundance;
+  a2 := 8589934592 as Abundance;
+  w, lng := 6345789 as bv32, -9223372036854775808 as int64;
+  print handful, " ", a0, " ", a1, " ", a2, " ", w, " ", lng, "\n";
+  x, handful, a0, w := |s|, |s| as Handful, |s| as Abundance, |s| as bv32;
+  print x, " ", handful, " ", a0, " ", w, "\n";
+  x, handful, a0, w := a.Length, a.Length as Handful, a.Length as Abundance, a.Length as bv32;
+  print x, " ", handful, " ", a0, " ", w, "\n";
 }
 
-Dafny program verifier finished with 9 verified, 0 errors
+Dafny program verifier finished with 11 verified, 0 errors
 Program compiled successfully
 Running...
 
@@ -136,3 +156,6 @@ got 127, expected 127
 got 127, expected 127
 got (5.0 / 1.0), expected (5.0 / 1.0)
 got 14, expected 14
+120 -1 4 8589934592 6345789 -9223372036854775808
+4 4 4 4
+68 68 68 68
