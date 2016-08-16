@@ -37,7 +37,7 @@ method M3()
 {
   var x := true;
   if x: int, y :| P(x) && R(y) {
-    var z := x + y.Trunc;
+    var z := x + y.Floor;
     var w := x as real + y;
   }
 }
@@ -121,7 +121,7 @@ method P0(m: int, n: int)
     case x: int :| P(x) =>
       even := x;
     case x, y :| P(x) && R(y) =>
-      even, alsoEven := x, y.Trunc;  // this assigns to 'alsoEven' a possibly odd number
+      even, alsoEven := x, y.Floor;  // this assigns to 'alsoEven' a possibly odd number
     case x: int, y :| P(x) && R(y) =>
       even := x;
     case m < n =>  // just to be different

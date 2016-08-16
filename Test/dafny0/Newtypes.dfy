@@ -38,9 +38,9 @@ method M()
   assert dr == 32.0;
 
   if yOrig == 0.3 {
-    var truncated := r0.Trunc + x.Trunc;
-    assert truncated == 5 + 5;
-    var rounded := (r0 + 0.5).Trunc;
+    var floored := r0.Floor + x.Floor;
+    assert floored == 5 + 5;
+    var rounded := (r0 + 0.5).Floor;
     assert rounded == 6;
   }
 }

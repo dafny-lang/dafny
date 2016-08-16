@@ -1,4 +1,4 @@
-RealTypes.dfy(12,17): Error: the real-based number must be an integer (if you want truncation, apply .Trunc to the real-based number)
+RealTypes.dfy(12,17): Error: the real-based number must be an integer (if you want truncation, apply .Floor to the real-based number)
 Execution trace:
     (0,0): anon0
     (0,0): anon6_Then

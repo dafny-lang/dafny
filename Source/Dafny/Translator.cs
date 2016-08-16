@@ -148,7 +148,7 @@ namespace Microsoft.Dafny {
       private readonly Bpl.TypeCtorDecl mapTypeCtor;
       private readonly Bpl.TypeCtorDecl imapTypeCtor;
       public readonly Bpl.Function ArrayLength;
-      public readonly Bpl.Function RealTrunc;
+      public readonly Bpl.Function RealFloor;
       private readonly Bpl.TypeCtorDecl seqTypeCtor;
       public readonly Bpl.Type Bv0Type;
       readonly Bpl.TypeCtorDecl fieldName;
@@ -174,7 +174,7 @@ namespace Microsoft.Dafny {
         Contract.Invariant(setTypeCtor != null);
         Contract.Invariant(multiSetTypeCtor != null);
         Contract.Invariant(ArrayLength != null);
-        Contract.Invariant(RealTrunc != null);
+        Contract.Invariant(RealFloor != null);
         Contract.Invariant(seqTypeCtor != null);
         Contract.Invariant(fieldName != null);
         Contract.Invariant(HeapVarName != null);
@@ -239,7 +239,7 @@ namespace Microsoft.Dafny {
       public PredefinedDecls(Bpl.TypeCtorDecl charType, Bpl.TypeCtorDecl refType, Bpl.TypeCtorDecl boxType, Bpl.TypeCtorDecl tickType,
                              Bpl.TypeSynonymDecl setTypeCtor, Bpl.TypeSynonymDecl isetTypeCtor, Bpl.TypeSynonymDecl multiSetTypeCtor,
                              Bpl.TypeCtorDecl mapTypeCtor, Bpl.TypeCtorDecl imapTypeCtor,
-                             Bpl.Function arrayLength, Bpl.Function realTrunc, Bpl.TypeCtorDecl seqTypeCtor, Bpl.TypeSynonymDecl bv0TypeDecl,
+                             Bpl.Function arrayLength, Bpl.Function realFloor, Bpl.TypeCtorDecl seqTypeCtor, Bpl.TypeSynonymDecl bv0TypeDecl,
                              Bpl.TypeCtorDecl fieldNameType, Bpl.TypeCtorDecl tyType, Bpl.TypeCtorDecl tyTagType,
                              Bpl.GlobalVariable heap, Bpl.TypeCtorDecl classNameType, Bpl.TypeCtorDecl nameFamilyType,
                              Bpl.TypeCtorDecl datatypeType, Bpl.TypeCtorDecl handleType, Bpl.TypeCtorDecl layerType, Bpl.TypeCtorDecl dtCtorId,
@@ -255,7 +255,7 @@ namespace Microsoft.Dafny {
         Contract.Requires(mapTypeCtor != null);
         Contract.Requires(imapTypeCtor != null);
         Contract.Requires(arrayLength != null);
-        Contract.Requires(realTrunc != null);
+        Contract.Requires(realFloor != null);
         Contract.Requires(seqTypeCtor != null);
         Contract.Requires(bv0TypeDecl != null);
         Contract.Requires(fieldNameType != null);
@@ -280,7 +280,7 @@ namespace Microsoft.Dafny {
         this.mapTypeCtor = mapTypeCtor;
         this.imapTypeCtor = imapTypeCtor;
         this.ArrayLength = arrayLength;
-        this.RealTrunc = realTrunc;
+        this.RealFloor = realFloor;
         this.seqTypeCtor = seqTypeCtor;
         this.Bv0Type = new Bpl.TypeSynonymAnnotation(Token.NoToken, bv0TypeDecl, new List<Bpl.Type>());
         this.fieldName = fieldNameType;
@@ -313,7 +313,7 @@ namespace Microsoft.Dafny {
       Bpl.TypeSynonymDecl isetTypeCtor = null;
       Bpl.TypeSynonymDecl multiSetTypeCtor = null;
       Bpl.Function arrayLength = null;
-      Bpl.Function realTrunc = null;
+      Bpl.Function realFloor = null;
       Bpl.TypeCtorDecl seqTypeCtor = null;
       Bpl.TypeCtorDecl fieldNameType = null;
       Bpl.TypeCtorDecl classNameType = null;
@@ -392,8 +392,8 @@ namespace Microsoft.Dafny {
           var f = (Bpl.Function)d;
           if (f.Name == "_System.array.Length") {
             arrayLength = f;
-          } else if (f.Name == "_System.real.Trunc") {
-            realTrunc = f;
+          } else if (f.Name == "_System.real.Floor") {
+            realFloor = f;
           }
         }
       }
@@ -411,8 +411,8 @@ namespace Microsoft.Dafny {
         Console.WriteLine("Error: Dafny prelude is missing declaration of type IMap");
       } else if (arrayLength == null) {
         Console.WriteLine("Error: Dafny prelude is missing declaration of function _System.array.Length");
-      } else if (realTrunc == null) {
-        Console.WriteLine("Error: Dafny prelude is missing declaration of function _System.real.Trunc");
+      } else if (realFloor == null) {
+        Console.WriteLine("Error: Dafny prelude is missing declaration of function _System.real.Floor");
       } else if (bv0TypeDecl == null) {
         Console.WriteLine("Error: Dafny prelude is missing declaration of type Bv0");
       } else if (fieldNameType == null) {
@@ -449,7 +449,7 @@ namespace Microsoft.Dafny {
         return new PredefinedDecls(charType, refType, boxType, tickType,
                                    setTypeCtor, isetTypeCtor, multiSetTypeCtor,
                                    mapTypeCtor, imapTypeCtor,
-                                   arrayLength, realTrunc, seqTypeCtor, bv0TypeDecl,
+                                   arrayLength, realFloor, seqTypeCtor, bv0TypeDecl,
                                    fieldNameType, tyType, tyTagType,
                                    heap, classNameType, nameFamilyType,
                                    datatypeType, handleType, layerType, dtCtorId,
@@ -5888,7 +5888,7 @@ namespace Microsoft.Dafny {
         var from = FunctionCall(tok, BuiltinFunction.RealToInt, null, o);
         Bpl.Expr e = FunctionCall(tok, BuiltinFunction.IntToReal, null, from);
         e = Bpl.Expr.Binary(tok, Bpl.BinaryOperator.Opcode.Eq, e, o);
-        builder.Add(Assert(tok, e, "the real-based number must be an integer (if you want truncation, apply .Trunc to the real-based number)"));
+        builder.Add(Assert(tok, e, "the real-based number must be an integer (if you want truncation, apply .Floor to the real-based number)"));
       }
 
       if (toType.IsBitVectorType) {
@@ -6634,9 +6634,9 @@ namespace Microsoft.Dafny {
         if (f.EnclosingClass is ArrayClassDecl && f.Name == "Length") { // link directly to the function in the prelude.
           fieldFunctions.Add(f, predef.ArrayLength);
           return predef.ArrayLength;
-        } else if (f.EnclosingClass == null && f.Name == "Trunc") { // link directly to the function in the prelude.
-          fieldFunctions.Add(f, predef.RealTrunc);
-          return predef.RealTrunc;
+        } else if (f.EnclosingClass == null && f.Name == "Floor") { // link directly to the function in the prelude.
+          fieldFunctions.Add(f, predef.RealFloor);
+          return predef.RealFloor;
         }
         // function f(Ref): ty;
         Bpl.Type ty = TrType(f.Type);

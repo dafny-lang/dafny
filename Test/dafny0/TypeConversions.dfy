@@ -14,11 +14,11 @@ method M0() returns (x: int, n: nat, r: real, even: EvenInt, small: SmallReal, b
     case true                 => n := x as int;  // error: x may be negative
     case 0 <= x                => x := x as int;
     case true                 => x := r as int;  // error: r may have a fractional part
-    case true                 => n := r.Trunc;  // error: r may be negative
-    case 0.0 <= r              => n := r.Trunc;
-    case r == r.Trunc as real => x := r as int;
-    case true                 => var b := r as int == r.Trunc;  // error: conversion to int may fail
-    case true                 => assert -4 <= small.Trunc < 300;
+    case true                 => n := r.Floor;  // error: r may be negative
+    case 0.0 <= r              => n := r.Floor;
+    case r == r.Floor as real => x := r as int;
+    case true                 => var b := r as int == r.Floor;  // error: conversion to int may fail
+    case true                 => assert -4 <= small.Floor < 300;
     case true                 => even := 6.0 as EvenInt;  assert even == 6;
   } 
 }
@@ -38,7 +38,7 @@ method M1() returns (x: int, n: nat, r: real, even: EvenInt, small: SmallReal, b
     case true => r := noll as real;
     case true => even := (b67 as int * 2) as EvenInt;
     case true => small := small as real as SmallReal;
-    case true => small := small.Trunc as SmallReal;
+    case true => small := small.Floor as SmallReal;
     case true => small := noll as SmallReal;
     case true => small := seven as SmallReal;
     case true => small := w as SmallReal;  // error: w may be too big
@@ -92,9 +92,9 @@ method M4() returns (x: int, n: nat, r: real, even: EvenInt, small: SmallReal, b
     case true => small := seven as SmallReal;
     case true =>
       even := small as EvenInt;  // error (x2): small may not even be an integer, let alone odd
-    case small == small.Trunc as SmallReal =>
+    case small == small.Floor as SmallReal =>
       even := small as EvenInt;  // error: small may be odd
-    case small == small.Trunc as SmallReal && small as int % 2 == 0 =>
+    case small == small.Floor as SmallReal && small as int % 2 == 0 =>
       even := small as EvenInt;
   }
 }
@@ -112,6 +112,6 @@ method M5() returns (x: int, n: nat, r: real, even: EvenInt, small: SmallReal, b
     case n == 0 => noll := n as bv0;
     case n < 1 => noll := n as bv0;
     case 0 <= even < 0x1_0000_0000 => w := even as bv32;
-    case small as real == small.Trunc as real => seven := (if 0.0 <= small < 100.0 then small else 100.0) as bv7;
+    case small as real == small.Floor as real => seven := (if 0.0 <= small < 100.0 then small else 100.0) as bv7;
   }
 }

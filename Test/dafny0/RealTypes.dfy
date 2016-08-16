@@ -4,14 +4,14 @@
 method R1(ghost x: real, ghost y: real, i: int) {
   assert x + y == y + x;
   assert i as real as int == i;
-  assert x.Trunc as real <= x;
+  assert x.Floor as real <= x;
   if {
-    case x.Trunc as real >= x =>
-      assert x.Trunc == x as int;  // the cast to int is allowed here
+    case x.Floor as real >= x =>
+      assert x.Floor == x as int;  // the cast to int is allowed here
     case true =>
       var t := x as int;  // error: x may be a non-integer
     case true =>
-      assert x.Trunc as real >= x; // error
+      assert x.Floor as real >= x; // error
   }
 }
 
@@ -38,7 +38,7 @@ function R4(x:int, r:real) : int
 
 method RoundingDirection()
 {
-  assert 51.500277.Trunc == 51;
-  assert (-0.194771).Trunc == -1;
-  assert -0.194771.Trunc == 0;
+  assert 51.500277.Floor == 51;
+  assert (-0.194771).Floor == -1;
+  assert -0.194771.Floor == 0;
 }

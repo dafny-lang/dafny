@@ -186,8 +186,8 @@ namespace Microsoft.Dafny
       builtIns = prog.BuiltIns;
       reporter = prog.reporter;
       // Populate the members of the basic types
-      var trunc = new SpecialField(Token.NoToken, "Trunc", "ToBigInteger()", "", "", false, false, false, Type.Int, null);
-      basicTypeMembers[(int)BasicTypeVariety.Real].Add(trunc.Name, trunc);
+      var floor = new SpecialField(Token.NoToken, "Floor", "ToBigInteger()", "", "", false, false, false, Type.Int, null);
+      basicTypeMembers[(int)BasicTypeVariety.Real].Add(floor.Name, floor);
     }
 
     [ContractInvariantMethod]

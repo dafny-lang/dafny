@@ -398,7 +398,7 @@ function Int(x: real): int { int(x) }
 function Real(x: int): real { real(x) }
 axiom (forall i: int :: { Int(Real(i)) } Int(Real(i)) == i);
 
-function {:inline} _System.real.Trunc(x: real): int { Int(x) }
+function {:inline} _System.real.Floor(x: real): int { Int(x) }
 
 // ---------------------------------------------------------------
 // -- The heap ---------------------------------------------------

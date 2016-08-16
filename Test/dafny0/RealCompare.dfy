@@ -2,7 +2,7 @@
 // RUN: %diff "%s.expect" "%t"
 
 method M(x: real)
-  decreases x;
+  decreases x
 {
   if 0.0 <= x {
     M(x - 15.0);
@@ -10,7 +10,7 @@ method M(x: real)
 }
 
 method N(x: real, y: real)
-  decreases x, y;
+  decreases x, y
 {
   if 0.0 <= y {
     N(x, y - 1.0);
@@ -29,7 +29,7 @@ method N_implicitDecreases(x: real, y: real)
 }
 
 method P(x: real)
-  decreases x;
+  decreases x
 {
   if 0.0 <= x {
     P(x - 0.5);  // error: don't descease enough
@@ -37,7 +37,7 @@ method P(x: real)
 }
 
 method Q(x: real)
-  decreases 2.0 * x;
+  decreases 2.0 * x
 {
   if 0.0 <= x {
     Q(x - 0.5);  // fine
@@ -45,7 +45,7 @@ method Q(x: real)
 }
 
 method R(x: real)
-  decreases x;
+  decreases x
 {
   R(x - 1.0);  // error: no lower bound
 }
@@ -54,7 +54,7 @@ method W0(N: real)
 {
   var i := 0.0;
   while i < N
-    decreases N - i;
+    decreases N - i
   {
     i := i + 1.0;
   }
@@ -73,7 +73,7 @@ method W2(N: real)
 {
   var i, n := 0.0, N;
   while i < n
-    decreases n - i;
+    decreases n - i
   {
     if * {
       i := i + 1.0;
@@ -100,7 +100,7 @@ method W4(N: real)
 {
   var i, n := 0.0, N;
   while i != n
-    decreases if i < n then n - i else i - n;  // absolute value
+    decreases if i < n then n - i else i - n  // absolute value
   {
     if i < n {
       i := i + 1.0;
@@ -131,7 +131,7 @@ method Test_AbsInt0()
 {
   var a, i := 0.3, 0;
   while i < 10
-    invariant a == 0.3 + 0.5 * i as real;
+    invariant a == 0.3 + 0.5 * i as real
   {
     a, i := a + 0.5, i + 1;
   }
@@ -145,8 +145,8 @@ method Test_AbsInt1()
 {
   var a, i := 0.3, 0.0;
   while i < 10.0
-    invariant i <= 10.0 && i == i.Trunc as real;
-    invariant a == 0.3 + 0.5 * i;
+    invariant i <= 10.0 && i == i.Floor as real
+    invariant a == 0.3 + 0.5 * i
   {
     a, i := a + 0.5, i + 1.0;
   }

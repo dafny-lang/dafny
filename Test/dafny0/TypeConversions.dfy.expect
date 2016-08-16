@@ -73,15 +73,15 @@ method M0()
     case true =>
       x := r as int;
     case true =>
-      n := r.Trunc;
+      n := r.Floor;
     case 0.0 <= r =>
-      n := r.Trunc;
-    case r == r.Trunc as real =>
+      n := r.Floor;
+    case r == r.Floor as real =>
       x := r as int;
     case true =>
-      var b: bool := r as int == r.Trunc;
+      var b: bool := r as int == r.Floor;
     case true =>
-      assert -4 <= small.Trunc < 300;
+      assert -4 <= small.Floor < 300;
     case true =>
       even := 6.0 as EvenInt;
       assert even == 6;
@@ -116,7 +116,7 @@ method M1()
     case true =>
       small := small as real as SmallReal;
     case true =>
-      small := small.Trunc as SmallReal;
+      small := small.Floor as SmallReal;
     case true =>
       small := noll as SmallReal;
     case true =>
@@ -200,9 +200,9 @@ method M4()
       small := seven as SmallReal;
     case true =>
       even := small as EvenInt;
-    case small == small.Trunc as SmallReal =>
+    case small == small.Floor as SmallReal =>
       even := small as EvenInt;
-    case small == small.Trunc as SmallReal && small as int % 2 == 0 =>
+    case small == small.Floor as SmallReal && small as int % 2 == 0 =>
       even := small as EvenInt;
   }
 }
@@ -229,7 +229,7 @@ method M5()
       noll := n as bv0;
     case 0 <= even < 4294967296 =>
       w := even as bv32;
-    case small as real == small.Trunc as real =>
+    case small as real == small.Floor as real =>
       seven := (if 0.0 <= small < 100.0 then small else 100.0) as bv7;
   }
 }
@@ -237,7 +237,7 @@ TypeConversions.dfy(14,40): Error: value assigned to a nat must be non-negative
 Execution trace:
     (0,0): anon0
     (0,0): anon13_Then
-TypeConversions.dfy(16,40): Error: the real-based number must be an integer (if you want truncation, apply .Trunc to the real-based number)
+TypeConversions.dfy(16,40): Error: the real-based number must be an integer (if you want truncation, apply .Floor to the real-based number)
 Execution trace:
     (0,0): anon0
     (0,0): anon15_Then
@@ -245,7 +245,7 @@ TypeConversions.dfy(17,40): Error: value assigned to a nat must be non-negative
 Execution trace:
     (0,0): anon0
     (0,0): anon16_Then
-TypeConversions.dfy(20,44): Error: the real-based number must be an integer (if you want truncation, apply .Trunc to the real-based number)
+TypeConversions.dfy(20,44): Error: the real-based number must be an integer (if you want truncation, apply .Floor to the real-based number)
 Execution trace:
     (0,0): anon0
     (0,0): anon19_Then
@@ -281,7 +281,7 @@ TypeConversions.dfy(94,20): Error: result of operation might violate newtype con
 Execution trace:
     (0,0): anon0
     (0,0): anon15_Then
-TypeConversions.dfy(94,20): Error: the real-based number must be an integer (if you want truncation, apply .Trunc to the real-based number)
+TypeConversions.dfy(94,20): Error: the real-based number must be an integer (if you want truncation, apply .Floor to the real-based number)
 Execution trace:
     (0,0): anon0
     (0,0): anon15_Then
