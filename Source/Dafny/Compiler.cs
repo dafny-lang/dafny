@@ -3360,8 +3360,12 @@ namespace Microsoft.Dafny {
 
     delegate void FCE_Arg_Translator(Expression e, TextWriter wr, bool inLetExpr=false);
 
-   void CompileFunctionCallExpr(FunctionCallExpr e, TextWriter twr, TextWriter wr, bool inLetExprBody, FCE_Arg_Translator tr) {
-      Function f = cce.NonNull(e.Function);
+    void CompileFunctionCallExpr(FunctionCallExpr e, TextWriter twr, TextWriter wr, bool inLetExprBody, FCE_Arg_Translator tr) {
+      Contract.Requires(e != null && e.Function != null);
+      Contract.Requires(twr != null);
+      Contract.Requires(tr != null);
+      Function f = e.Function;
+
       if (f.IsStatic) {
         twr.Write(TypeName_Companion(e.Receiver.Type, wr));
       } else {
@@ -3379,7 +3383,7 @@ namespace Microsoft.Dafny {
       for (int i = 0; i < e.Args.Count; i++) {
         if (!e.Function.Formals[i].IsGhost) {
           twr.Write(sep);
-          tr(e.Args[i], wr);
+          tr(e.Args[i], wr, inLetExprBody);
           sep = ", ";
         }
       }
