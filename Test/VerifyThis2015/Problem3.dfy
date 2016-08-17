@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:3 /print:"%t.print" /dprint:"%t.dprint" /autoTriggers:0 "%s" > "%t"
+// RUN: %dafny /compile:3 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // Rustan Leino
@@ -28,6 +28,12 @@ method TestMany(dd: DoublyLinkedList, xs: seq<Node>)
   if xs != [] {
     var x := xs[0];
     ghost var k := dd.Remove(x);
+    forall y | y in xs[1..]
+      ensures y in dd.Nodes && y != dd.Nodes[0] && y != dd.Nodes[|dd.Nodes|-1]
+    {
+      assert forall z :: z in old(dd.Nodes) ==> z in dd.Nodes || z == x;
+      assert x == old(dd.Nodes)[k];
+    }
     TestMany(dd, xs[1..]);
     dd.PutBack(x, k);
   }
@@ -121,6 +127,7 @@ class DoublyLinkedList {
 
     InjectiveAfterPop(Nodes, k);
     Nodes := Nodes[..k] + Nodes[k+1..];
+    assert Valid();
   }
 
   // One might consider have a precondition that says there exists a "k" with the properties given here.
