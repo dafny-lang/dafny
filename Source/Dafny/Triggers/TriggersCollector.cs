@@ -252,7 +252,7 @@ namespace Microsoft.Dafny.Triggers {
         case BinaryExpr.ResolvedOpcode.Mul:
         case BinaryExpr.ResolvedOpcode.Div:
         case BinaryExpr.ResolvedOpcode.Mod:
-          if (!isReal && DafnyOptions.O.DisableNLarith) {
+          if (!isReal && !e.E0.Type.IsBitVectorType && DafnyOptions.O.DisableNLarith) {
             return true;
           }
           break;

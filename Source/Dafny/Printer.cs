@@ -1747,6 +1747,9 @@ namespace Microsoft.Dafny {
         bool fragileRightContext = false;  // false means "allow same binding power on right without parens"
         switch (e.Op)
         {
+          case BinaryExpr.Opcode.LeftShift:
+          case BinaryExpr.Opcode.RightShift:
+            opBindingStrength = 0x48; fragileRightContext = true; break;
           case BinaryExpr.Opcode.Add:
             opBindingStrength = 0x40; break;
           case BinaryExpr.Opcode.Sub:

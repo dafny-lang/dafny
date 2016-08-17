@@ -293,6 +293,19 @@ bool IsRelOp() {
       || la.val == "\u2264"
       || la.val == "\u2265";
 }
+bool IsShiftOp() {
+  if (la.kind == _openAngleBracket) {
+  } else if (la.kind == _closeAngleBracket) {
+  } else {
+    return false;
+  }
+  scanner.ResetPeek();
+  var x = scanner.Peek();
+  if (x.kind != la.kind) {
+    return false;
+  }
+  return x.pos == la.pos + 1;  // return true only if the tokens are adjacent to each other
+}
 bool IsAddOp() {
   return la.val == "+" || la.val == "-";
 }
@@ -2515,11 +2528,11 @@ RelationalExpression<out Expression e, bool allowSemi, bool allowLambda, bool al
                     // 4 ("disjoint")    indicates chain of disjoint set operators
      bool hasSeenNeq = false;
   .)
-  Term<out e0, allowSemi, allowLambda, allowBitwiseOps>
+  ShiftTerm<out e0, allowSemi, allowLambda, allowBitwiseOps>
                                    (. e = e0; .)
   [ IF(IsRelOp())  /* read a RelationalExpression as far as possible */
     RelOp<out x, out op, out k>    (. firstOpTok = x; .)
-    Term<out e1, allowSemi, allowLambda, allowBitwiseOps>
+    ShiftTerm<out e1, allowSemi, allowLambda, allowBitwiseOps>
                                    (. if (k == null) {
                                         e = new BinaryExpr(x, op, e0, e1);
                                         if (op == BinaryExpr.Opcode.Disjoint)
@@ -2580,7 +2593,7 @@ RelationalExpression<out Expression e, bool allowSemi, bool allowLambda, bool al
                                           kind = 3;  break;
                                       }
                                    .)
-      Term<out e1, allowSemi, allowLambda, allowBitwiseOps>
+      ShiftTerm<out e1, allowSemi, allowLambda, allowBitwiseOps>
                                    (. ops.Add(op); prefixLimits.Add(k); chain.Add(e1);
                                       if (k != null) {
                                         Contract.Assert(op == BinaryExpr.Opcode.Eq || op == BinaryExpr.Opcode.Neq);
@@ -2633,6 +2646,21 @@ RelOp<out IToken/*!*/ x, out BinaryExpr.Opcode op, out Expression k>
   | '\u2264'       (. x = t;  op = BinaryExpr.Opcode.Le; .)
   | '\u2265'       (. x = t;  op = BinaryExpr.Opcode.Ge; .)
   )
+  .
+/*------------------------------------------------------------------------*/
+ShiftTerm<out Expression e0, bool allowSemi, bool allowLambda, bool allowBitwiseOps>
+= (. Contract.Ensures(Contract.ValueAtReturn(out e0) != null);
+     IToken x = Token.NoToken;  Expression e1;  BinaryExpr.Opcode op = BinaryExpr.Opcode.LeftShift/*(dummy)*/;
+  .)
+  Term<out e0, allowSemi, allowLambda, allowBitwiseOps>
+  { IF(IsShiftOp())  /* read a Term as far as possible */
+    ( "<"            (. x = t;  op = BinaryExpr.Opcode.LeftShift; .)
+      "<"            (. x.val = "<<";  Contract.Assert(t.pos == x.pos + 1); .)
+    | ">"            (. x = t;  op = BinaryExpr.Opcode.RightShift; .)
+      ">"            (. x.val = "<<";  Contract.Assert(t.pos == x.pos + 1); .)
+    )
+    Term<out e1, allowSemi, allowLambda, allowBitwiseOps> (. e0 = new BinaryExpr(x, op, e0, e1); .)
+  }
   .
 /*------------------------------------------------------------------------*/
 Term<out Expression e0, bool allowSemi, bool allowLambda, bool allowBitwiseOps>

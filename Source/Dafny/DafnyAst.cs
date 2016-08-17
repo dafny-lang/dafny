@@ -7285,6 +7285,8 @@ namespace Microsoft.Dafny {
       Disjoint,
       In,
       NotIn,
+      LeftShift,
+      RightShift,
       Add,
       Sub,
       Mul,
@@ -7317,6 +7319,8 @@ namespace Microsoft.Dafny {
       Div,
       Mod,
       // bitvectors
+      LeftShift,
+      RightShift,
       BitwiseAnd,
       BitwiseOr,
       BitwiseXor,
@@ -7446,6 +7450,12 @@ namespace Microsoft.Dafny {
         case ResolvedOpcode.RankGt:
           return Opcode.Gt;
 
+        case ResolvedOpcode.LeftShift:
+          return Opcode.LeftShift;
+
+        case ResolvedOpcode.RightShift:
+          return Opcode.RightShift;
+
         case ResolvedOpcode.Add:
         case ResolvedOpcode.Union:
         case ResolvedOpcode.MultiSetUnion:
@@ -7525,6 +7535,10 @@ namespace Microsoft.Dafny {
           return "in";
         case Opcode.NotIn:
           return "!in";
+        case Opcode.LeftShift:
+          return "<<";
+        case Opcode.RightShift:
+          return ">>";
         case Opcode.Add:
           return "+";
         case Opcode.Sub:

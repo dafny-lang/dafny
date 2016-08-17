@@ -171,8 +171,9 @@ namespace Microsoft.Dafny
     readonly Dictionary<ClassDecl, Dictionary<string, MemberDecl>> classMembers = new Dictionary<ClassDecl, Dictionary<string, MemberDecl>>();
     readonly Dictionary<DatatypeDecl, Dictionary<string, MemberDecl>> datatypeMembers = new Dictionary<DatatypeDecl, Dictionary<string, MemberDecl>>();
     readonly Dictionary<DatatypeDecl, Dictionary<string, DatatypeCtor>> datatypeCtors = new Dictionary<DatatypeDecl, Dictionary<string, DatatypeCtor>>();
-    enum BasicTypeVariety { Bool = 0, Int, Real, None }  // note, these are ordered, so they can be used as indices into basicTypeMembers
+    enum BasicTypeVariety { Bool = 0, Int, Real, Bitvector, None }  // note, these are ordered, so they can be used as indices into basicTypeMembers
     readonly Dictionary<string, MemberDecl>[] basicTypeMembers = new Dictionary<string, MemberDecl>[] {
+      new Dictionary<string, MemberDecl>(),
       new Dictionary<string, MemberDecl>(),
       new Dictionary<string, MemberDecl>(),
       new Dictionary<string, MemberDecl>()
@@ -8534,6 +8535,8 @@ namespace Microsoft.Dafny
         basic = BasicTypeVariety.Int;
       } else if (receiverType.IsNumericBased(Type.NumericPersuation.Real)) {
         basic = BasicTypeVariety.Real;
+      } else if (receiverType.IsBitVectorType) {
+        basic = BasicTypeVariety.Bitvector;
       } else {
         basic = BasicTypeVariety.None;
       }
@@ -9258,6 +9261,15 @@ namespace Microsoft.Dafny
             }
             break;
 
+          case BinaryExpr.Opcode.LeftShift:
+          case BinaryExpr.Opcode.RightShift: {
+              expr.Type = new InferredTypeProxy();
+              AddXConstraint(e.tok, "IsBitvector", expr.Type, "type of " + BinaryExpr.OpcodeString(e.Op) + " must be a bitvector type (instead got {0})");
+              ConstrainSubtypeRelation(expr.Type, e.E0.Type, expr.tok, "type of left argument to " + BinaryExpr.OpcodeString(e.Op) + " ({0}) must agree with the result type ({1})", e.E0.Type, expr.Type);
+              AddXConstraint(expr.tok, "IntLikeOrBitvector", e.E1.Type, "type of right argument to " + BinaryExpr.OpcodeString(e.Op) + " ({0}) must be an integer-numeric or bitvector type");
+            }
+            break;
+
           case BinaryExpr.Opcode.Add: {
               expr.Type = new InferredTypeProxy();
               AddXConstraint(e.tok, "Plussable", expr.Type, "type of + must be of a numeric type, a bitvector type, a sequence type, or a set-like type (instead got {0})");
@@ -9298,7 +9310,7 @@ namespace Microsoft.Dafny
 
           case BinaryExpr.Opcode.Mod:
             expr.Type = new InferredTypeProxy();
-            AddXConstraint(expr.tok, "IntLikeOrBitvector", expr.Type, "arguments to " + BinaryExpr.OpcodeString(e.Op) + " must be numeric or bitvector types (got {0})");
+            AddXConstraint(expr.tok, "IntLikeOrBitvector", expr.Type, "arguments to " + BinaryExpr.OpcodeString(e.Op) + " must be integer-numeric or bitvector types (got {0})");
             ConstrainSubtypeRelation(expr.Type, e.E0.Type,
               expr, "type of left argument to " + BinaryExpr.OpcodeString(e.Op) + " ({0}) must agree with the result type ({1})",
               e.E0.Type, expr.Type);
@@ -11833,6 +11845,10 @@ namespace Microsoft.Dafny
           } else {
             return BinaryExpr.ResolvedOpcode.Le;
           }
+        case BinaryExpr.Opcode.LeftShift:
+          return BinaryExpr.ResolvedOpcode.LeftShift;
+        case BinaryExpr.Opcode.RightShift:
+          return BinaryExpr.ResolvedOpcode.RightShift;
         case BinaryExpr.Opcode.Add:
           if (operandType is SetType) {
             return BinaryExpr.ResolvedOpcode.Union;

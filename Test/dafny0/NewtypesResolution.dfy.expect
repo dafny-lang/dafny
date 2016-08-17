@@ -6,8 +6,8 @@ NewtypesResolution.dfy(53,13): Error: arguments to > must have a common supertyp
 NewtypesResolution.dfy(38,9): Error: arguments must have the same type (got posReal and real)
 NewtypesResolution.dfy(44,9): Error: arguments must have the same type (got int32 and int)
 NewtypesResolution.dfy(50,13): Error: arguments must have the same type (got posReal and int32)
-NewtypesResolution.dfy(57,13): Error: arguments to % must be numeric or bitvector types (got posReal)
-NewtypesResolution.dfy(57,25): Error: arguments to % must be numeric or bitvector types (got posReal)
+NewtypesResolution.dfy(57,13): Error: arguments to % must be integer-numeric or bitvector types (got posReal)
+NewtypesResolution.dfy(57,25): Error: arguments to % must be integer-numeric or bitvector types (got posReal)
 NewtypesResolution.dfy(75,8): Error: newtype constraint must be of type bool (instead got SmallInt)
 NewtypesResolution.dfy(77,10): Error: unresolved identifier: a
 NewtypesResolution.dfy(91,31): Error: old expressions are not allowed in this context

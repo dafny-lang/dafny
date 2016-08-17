@@ -38,6 +38,8 @@ method Main() {
   print zz0 < zz1, " ", zz0 <= zz1, " ", zz0 >= zz1, " ", zz0 > zz1, "\n";
   
   TestCompilationTruncations();
+
+  Shifts();
 }
 
 method BitwiseOperations() returns (a: bv47, b: bv47, c: bv47)
@@ -196,4 +198,37 @@ method P2(a: bv2, b: bv2)
   print "  ", a, " * ", b, " == ", a*b, "\n";
   print "  ", a, " / ", b, " == ", a/b, "\n";
   print "  ", a, " % ", b, " == ", a%b, "\n";
+}
+
+newtype Handful = x | 0 <= x < 0x50
+
+method Shifts()
+{
+  var x: int, h: Handful, b67: bv67, w: bv32, seven: bv7, bb: bv2, noll: bv0;
+  x, h := 3, 3;
+
+  b67, w, seven := 5, 5, 5;
+  PrintShifts("bv67", b67, 8 * b67, b67 << x, b67 << h);
+  PrintShifts("bv32", w, 8 * w, w << x, w << h);
+  PrintShifts("bv7", seven, 8 * seven, seven << x, seven << h);
+  bb, x, h := 1, 1, 1;
+  PrintShifts("bv2", bb, 2 * bb, bb << x, bb << h);
+  x, h := 0, 0;
+  PrintShifts("bv0", noll, 0 * noll, noll << x, noll << h);
+
+  b67, w, bb, noll := 0x4_0000_0000_0000_0001, 1, 1, 0;
+  var One67: bv67 := 1;
+  PrintShifts("bv67 again", b67 << One67, b67 << w, b67 << bb, b67 << noll);  // 2, ...
+  b67, w, bb, noll := 2, 0xC000_0000 + 2000, 1, 0;
+  var Two32: bv32 := 2;
+  PrintShifts("bv32 again", w << b67, w << Two32, w << bb, w << noll);  // 8000, ...
+  seven, b67, w, bb, noll := 127, 2, 2, 2, 0;
+  PrintShifts("bv7 again", seven << b67, seven << w, seven << bb, seven << noll);  // 124, ...
+  b67, w, bb := 0, 0, 0;
+  PrintShifts("bv0 again", noll << b67, noll << w, noll << bb, noll << noll);  // 0, ...
+}
+
+method PrintShifts<T>(s: string, a: T, b: T, c: T, d: T)
+{
+  print "PrintShifts: ", s, ": ", a, " ", b, " ", c, " ", d, "\n";
 }

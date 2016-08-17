@@ -2623,23 +2623,10 @@ namespace Microsoft.Dafny {
           case UnaryOpExpr.Opcode.Not:
             if (e.Type.IsBitVectorType) {
               var bvType = (BitvectorType)e.Type;
-              if (bvType.NativeType == null) {
-                wr.Write("((");
-              } else {
-                wr.Write("({0})((", bvType.NativeType.Name);
-              }
-              // here's the core of the operation
+              BitvectorTruncation(bvType, wr, false, false);
               wr.Write("~");
               TrParenExpr(e.E, wr, inLetExprBody);
-              // do the truncation, if needed
-              if (bvType.NativeType == null) {
-                wr.Write(") & ((new BigInteger(1) << {0}) - 1))", bvType.Width);
-              } else if (bvType.NativeType.Bitwidth != bvType.Width) {
-                // print in hex, because that looks nice
-                wr.Write(") & ({2})0x{0:X}{1})", (1UL << bvType.Width) - 1, bvType.NativeType.Suffix, bvType.NativeType.Name);
-              } else {
-                wr.Write("))");
-              }
+              BitvectorTruncation(bvType, wr, true, false);
 
             } else {
               // Piece o' cake! This is just simple boolean negation.
@@ -2729,6 +2716,7 @@ namespace Microsoft.Dafny {
         string staticCallString = null;
         bool reverseArguments = false;
         bool truncateResult = false;
+        bool convertE1_to_int = false;
 
         switch (e.ResolvedOp) {
           case BinaryExpr.ResolvedOpcode.Iff:
@@ -2786,6 +2774,10 @@ namespace Microsoft.Dafny {
           case BinaryExpr.ResolvedOpcode.Gt:
           case BinaryExpr.ResolvedOpcode.GtChar:
             opString = ">"; break;
+          case BinaryExpr.ResolvedOpcode.LeftShift:
+            opString = "<<"; truncateResult = true; convertE1_to_int = true; break;
+          case BinaryExpr.ResolvedOpcode.RightShift:
+            opString = ">>"; convertE1_to_int = true; break;
           case BinaryExpr.ResolvedOpcode.Add:
             opString = "+"; truncateResult = true; break;
           case BinaryExpr.ResolvedOpcode.Sub:
@@ -2868,15 +2860,7 @@ namespace Microsoft.Dafny {
         }
 
         if (truncateResult && e.Type.IsBitVectorType) {
-          var bvType = (BitvectorType)e.Type;
-          if (bvType.NativeType == null) {
-            wr.Write("((");
-          } else {
-            // Unfortunately, the following will apply "unchecked" to all subexpressions as well.  There
-            // shouldn't ever be any problem with this, but stylistically it would have been nice to have
-            // applied the "unchecked" only to the actual operation that may overflow.
-            wr.Write("unchecked(({0})((", bvType.NativeType.Name);
-          }
+          BitvectorTruncation((BitvectorType)e.Type, wr, false, true);
         }
         var e0 = reverseArguments ? e.E1 : e.E0;
         var e1 = reverseArguments ? e.E0 : e.E1;
@@ -2889,6 +2873,9 @@ namespace Microsoft.Dafny {
           wr.Write(preOpString);
           TrParenExpr(e0, wr, inLetExprBody);
           wr.Write(" {0} ", opString);
+          if (convertE1_to_int) {
+            wr.Write("(int)");
+          }
           TrParenExpr(e1, wr, inLetExprBody);
           if (needsCast) {
             wr.Write(")");
@@ -2908,16 +2895,7 @@ namespace Microsoft.Dafny {
           wr.Write(")");
         }
         if (truncateResult && e.Type.IsBitVectorType) {
-          var bvType = (BitvectorType)e.Type;
-          // do the truncation, if needed
-          if (bvType.NativeType == null) {
-            wr.Write(") & ((new BigInteger(1) << {0}) - 1))", bvType.Width);
-          } else if (bvType.NativeType.Bitwidth != bvType.Width) {
-            // print in hex, because that looks nice
-            wr.Write(") & ({2})0x{0:X}{1}))", (1UL << bvType.Width) - 1, bvType.NativeType.Suffix, bvType.NativeType.Name);
-          } else {
-            wr.Write(")))");  // close the parentheses for the cast and the "unchecked"
-          }
+          BitvectorTruncation((BitvectorType)e.Type, wr, true, true);
         }
 
       } else if (expr is TernaryExpr) {
@@ -3281,6 +3259,39 @@ namespace Microsoft.Dafny {
         TrExpr(((NamedExpr)expr).Body, wr, inLetExprBody);
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected expression
+      }
+    }
+
+    private static void BitvectorTruncation(BitvectorType bvType, TextWriter wr, bool after, bool surroundByUnchecked) {
+      Contract.Requires(bvType != null);
+      Contract.Requires(wr != null);
+      if (!after) {
+        if (bvType.NativeType == null) {
+          wr.Write("((");
+        } else {
+          if (surroundByUnchecked) {
+            // Unfortunately, the following will apply "unchecked" to all subexpressions as well.  There
+            // shouldn't ever be any problem with this, but stylistically it would have been nice to have
+            // applied the "unchecked" only to the actual operation that may overflow.
+            wr.Write("unchecked(");
+          }
+          wr.Write("({0})((", bvType.NativeType.Name);
+        }
+      } else {
+        // do the truncation, if needed
+        if (bvType.NativeType == null) {
+          wr.Write(") & ((new BigInteger(1) << {0}) - 1))", bvType.Width);
+        } else {
+          if (bvType.NativeType.Bitwidth != bvType.Width) {
+            // print in hex, because that looks nice
+            wr.Write(") & ({2})0x{0:X}{1})", (1UL << bvType.Width) - 1, bvType.NativeType.Suffix, bvType.NativeType.Name);
+          } else {
+            wr.Write("))");  // close the parentheses for the cast
+          }
+          if (surroundByUnchecked) {
+            wr.Write(")");  // close the parentheses for the "unchecked"
+          }
+        }
       }
     }
 
