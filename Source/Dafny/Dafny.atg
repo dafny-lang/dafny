@@ -784,7 +784,7 @@ SubModuleDecl<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl sub
       (. submodule = new AliasModuleDecl(idPath, id, parent, opened); .)
     | "as" QualifiedModuleName<out idPath> [IF(IsDefaultImport()) "default" QualifiedModuleName<out idAssignment> ]
       (. submodule = new ModuleFacadeDecl(idPath, id, parent, idAssignment, opened); 
-         errors.Warning(t, "\"import A as B\" has been deprecated; in the new syntax, it is \"import A:B\"");
+         errors.Deprecated(t, "\"import A as B\" has been deprecated; in the new syntax, it is \"import A:B\"");
       .)
     | ":" QualifiedModuleName<out idPath>
       (. submodule = new ModuleFacadeDecl(idPath, id, parent, idAssignment, opened); .)
@@ -797,7 +797,7 @@ SubModuleDecl<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl sub
         // This semi-colon used to be required, but it seems silly to have it.
         // To stage the transition toward not having it at all, let's make it optional for now.  Then,
         // in the next big version of Dafny, don't allow the semi-colon at all.
-        (. errors.Warning(t, "the semi-colon that used to terminate a sub-module declaration has been deprecated; in the new syntax, just leave off the semi-colon"); .)
+        (. errors.Deprecated(t, "the semi-colon that used to terminate a sub-module declaration has been deprecated; in the new syntax, just leave off the semi-colon"); .)
     ]
     (. if (submodule == null) {
          idPath = new List<IToken>();
@@ -958,7 +958,7 @@ DatatypeDecl<DeclModifierData dmod, ModuleDefinition/*!*/ module, out DatatypeDe
       // This semi-colon used to be required, but it seems silly to have it.
       // To stage the transition toward not having it at all, let's make it optional for now.  Then,
       // in the next big version of Dafny, don't allow the semi-colon at all.
-      (. errors.Warning(t, "the semi-colon that used to terminate a (co)datatype declaration has been deprecated; in the new syntax, just leave off the semi-colon"); .)
+      (. errors.Deprecated(t, "the semi-colon that used to terminate a (co)datatype declaration has been deprecated; in the new syntax, just leave off the semi-colon"); .)
   ]
   (. if (co) {
        dt = new CoDatatypeDecl(id, id.val, module, typeArgs, ctors, attrs);
@@ -1041,7 +1041,7 @@ OtherTypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl t
       // This semi-colon used to be required, but it seems silly to have it.
       // To stage the transition toward not having it at all, let's make it optional for now.  Then,
       // in the next big version of Dafny, don't allow the semi-colon at all.
-      (. errors.Warning(t, "the semi-colon that used to terminate an opaque-type declaration has been deprecated; in the new syntax, just leave off the semi-colon"); .)
+      (. errors.Deprecated(t, "the semi-colon that used to terminate an opaque-type declaration has been deprecated; in the new syntax, just leave off the semi-colon"); .)
   ]
   .
 GIdentType<bool allowGhostKeyword, bool allowNewKeyword, out IToken/*!*/ id, out Type/*!*/ ty, out bool isGhost, out bool isOld>
@@ -1227,7 +1227,7 @@ MethodDecl<DeclModifierData dmod, bool allowConstructor, bool isWithinAbstractMo
   | "comethod"                      (. isCoLemma = true; caption = "Comethods";
                                        allowed = AllowedDeclModifiers.AlreadyGhost | AllowedDeclModifiers.Static 
                                          | AllowedDeclModifiers.Protected;
-                                       errors.Warning(t, "the 'comethod' keyword has been deprecated; it has been renamed to 'colemma'");
+                                       errors.Deprecated(t, "the 'comethod' keyword has been deprecated; it has been renamed to 'colemma'");
                                     .)
   | "inductive" "lemma"             (. isIndLemma = true;  caption = "Inductive lemmas";
                                        allowed = AllowedDeclModifiers.AlreadyGhost | AllowedDeclModifiers.Static;.)
@@ -1319,7 +1319,7 @@ MethodSpec<.List<MaybeFreeExpression> req, List<FrameExpression> mod, List<Frame
                }
                OldSemi
   | [ "free"                                                 (. isFree = true;
-                                                                errors.Warning(t, "the 'free' keyword is soon to be deprecated");
+                                                                errors.Deprecated(t, "the 'free' keyword is soon to be deprecated");
                                                              .)
     ]
     ( "requires" Expression<out e, false, false> OldSemi     (. req.Add(new MaybeFreeExpression(e, isFree)); .)
@@ -1348,7 +1348,7 @@ IteratorSpec<.List<FrameExpression/*!*/>/*!*/ reads, List<FrameExpression/*!*/>/
                }
                OldSemi
   | [ "free"                                                 (. isFree = true;
-                                                                errors.Warning(t, "the 'free' keyword is soon to be deprecated");
+                                                                errors.Deprecated(t, "the 'free' keyword is soon to be deprecated");
                                                              .)
     ]
     [ "yield"                                                (. isYield = true; .)
@@ -2076,7 +2076,7 @@ LoopSpec<.List<MaybeFreeExpression> invariants, List<Expression> decreases, ref 
      bool isFree = false; Attributes attrs = null;
   .)
   ( SYNC
-    [ "free"                                      (. isFree = true; errors.Warning(t, "the 'free' keyword is soon to be deprecated"); .)
+    [ "free"                                      (. isFree = true; errors.Deprecated(t, "the 'free' keyword is soon to be deprecated"); .)
     ]
     "invariant"
     { IF(IsAttribute()) Attribute<ref attrs> }
@@ -2248,7 +2248,7 @@ ForallStmt<out Statement/*!*/ s>
   .)
   ( "forall"                                  (. x = t; tok = x; .)
   | "parallel"                                (. x = t;
-                                                 errors.Warning(t, "the 'parallel' keyword has been deprecated; the comprehension statement now uses the keyword 'forall' (and the parentheses around the bound variables are now optional)");
+                                                 errors.Deprecated(t, "the 'parallel' keyword has been deprecated; the comprehension statement now uses the keyword 'forall' (and the parentheses around the bound variables are now optional)");
                                               .)
   )
 
@@ -2264,7 +2264,7 @@ ForallStmt<out Statement/*!*/ s>
 
   {                                         (. isFree = false; .)
     [ "free"                                (. isFree = true;
-                                               errors.Warning(t, "the 'free' keyword is soon to be deprecated");
+                                               errors.Deprecated(t, "the 'free' keyword is soon to be deprecated");
                                             .)
     ]
     "ensures" Expression<out e, false, true>  (. ens.Add(new MaybeFreeExpression(e, isFree)); .)
@@ -2800,7 +2800,7 @@ ConstAtomExpression<out Expression e, bool allowSemi, bool allowLambda>
     "|"
   | ( "int"                                    (. x = t; toType = new IntType(); .)
     | "real"                                   (. x = t; toType = new RealType(); .)
-    )                                          (. errors.Warning(t, string.Format("the syntax \"{0}(expr)\" for type conversions has been deprecated; the new syntax is \"expr as {0}\"", x.val)); .)
+    )                                          (. errors.Deprecated(t, string.Format("the syntax \"{0}(expr)\" for type conversions has been deprecated; the new syntax is \"expr as {0}\"", x.val)); .)
     "(" Expression<out e, true, true> ")"      (. e = new ConversionExpr(x, e, toType); .)
   | ParensExpression<out e, allowSemi, allowLambda>
   )
@@ -3414,7 +3414,8 @@ OldSemi  /* NOTE: Coco complains about "OldSemi deletable". That's okay. */
 = /* In the future, it may be that semi-colons will be neither needed nor allowed in certain places where,
    * in the past, they were required.  As a period of transition between the two, such semi-colons are optional.
    */
-  [ SYNC ";" ].
+  [ SYNC ";"    (. errors.DeprecatedStyle(t, "deprecated style: a semi-colon is not needed here"); .)
+  ].
 
 Nat<out BigInteger n>
 = (. n = BigInteger.Zero;

@@ -102,6 +102,23 @@ namespace Microsoft.Dafny {
       Message(source, ErrorLevel.Warning, tok, msg);
     }
 
+    public void Deprecated(MessageSource source, IToken tok, string msg, params object[] args) {
+      Contract.Requires(tok != null);
+      Contract.Requires(msg != null);
+      Contract.Requires(args != null);
+      if (DafnyOptions.O.DeprecationNoise != 0) {
+        Warning(source, tok, String.Format(msg, args));
+      }
+    }
+    public void DeprecatedStyle(MessageSource source, IToken tok, string msg, params object[] args) {
+      Contract.Requires(tok != null);
+      Contract.Requires(msg != null);
+      Contract.Requires(args != null);
+      if (DafnyOptions.O.DeprecationNoise == 2) {
+        Warning(source, tok, String.Format(msg, args));
+      }
+    }
+
     public void Warning(MessageSource source, IToken tok, string msg, params object[] args) {
       Contract.Requires(tok != null);
       Contract.Requires(msg != null);

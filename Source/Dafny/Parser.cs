@@ -77,16 +77,16 @@ public class Parser {
 	public const int _ellipsis = 61;
 	public const int maxT = 144;
 
-	const bool _T = true;
-	const bool _x = false;
-	const int minErrDist = 2;
+  const bool _T = true;
+  const bool _x = false;
+  const int minErrDist = 2;
 
-	public Scanner scanner;
-	public Errors  errors;
+  public Scanner scanner;
+  public Errors  errors;
 
-	public Token t;    // last recognized token
-	public Token la;   // lookahead token
-	int errDist = minErrDist;
+  public Token t;    // last recognized token
+  public Token la;   // lookahead token
+  int errDist = minErrDist;
 
 readonly Expression/*!*/ dummyExpr;
 readonly AssignmentRhs/*!*/ dummyRhs;
@@ -635,72 +635,72 @@ int StringToInt(string s, int defaultValue, string errString) {
 /*--------------------------------------------------------------------------*/
 
 
-	public Parser(Scanner scanner, Errors errors) {
-		this.scanner = scanner;
-		this.errors = errors;
-		Token tok = new Token();
-		tok.val = "";
-		this.la = tok;
-		this.t = new Token(); // just to satisfy its non-null constraint
-	}
+  public Parser(Scanner scanner, Errors errors) {
+    this.scanner = scanner;
+    this.errors = errors;
+    Token tok = new Token();
+    tok.val = "";
+    this.la = tok;
+    this.t = new Token(); // just to satisfy its non-null constraint
+  }
 
-	void SynErr (int n) {
-		if (errDist >= minErrDist) errors.SynErr(la.filename, la.line, la.col, n);
-		errDist = 0;
-	}
+  void SynErr (int n) {
+    if (errDist >= minErrDist) errors.SynErr(la.filename, la.line, la.col, n);
+    errDist = 0;
+  }
 
-	public void SemErr (string msg) {
-		Contract.Requires(msg != null);
-		if (errDist >= minErrDist) errors.SemErr(t, msg);
-		errDist = 0;
-	}
+  public void SemErr (string msg) {
+    Contract.Requires(msg != null);
+    if (errDist >= minErrDist) errors.SemErr(t, msg);
+    errDist = 0;
+  }
 
-	public void SemErr(IToken tok, string msg) {
-	  Contract.Requires(tok != null);
-	  Contract.Requires(msg != null);
-	  errors.SemErr(tok, msg);
-	}
+  public void SemErr(IToken tok, string msg) {
+    Contract.Requires(tok != null);
+    Contract.Requires(msg != null);
+    errors.SemErr(tok, msg);
+  }
 
-	void Get () {
-		for (;;) {
-			t = la;
-			la = scanner.Scan();
-			if (la.kind <= maxT) { ++errDist; break; }
+  void Get () {
+    for (;;) {
+      t = la;
+      la = scanner.Scan();
+      if (la.kind <= maxT) { ++errDist; break; }
 
-			la = t;
-		}
-	}
+      la = t;
+    }
+  }
 
-	void Expect (int n) {
-		if (la.kind==n) Get(); else { SynErr(n); }
-	}
+  void Expect (int n) {
+    if (la.kind==n) Get(); else { SynErr(n); }
+  }
 
-	bool StartOf (int s) {
-		return set[s, la.kind];
-	}
+  bool StartOf (int s) {
+    return set[s, la.kind];
+  }
 
-	void ExpectWeak (int n, int follow) {
-		if (la.kind == n) Get();
-		else {
-			SynErr(n);
-			while (!StartOf(follow)) Get();
-		}
-	}
+  void ExpectWeak (int n, int follow) {
+    if (la.kind == n) Get();
+    else {
+      SynErr(n);
+      while (!StartOf(follow)) Get();
+    }
+  }
 
 
-	bool WeakSeparator(int n, int syFol, int repFol) {
-		int kind = la.kind;
-		if (kind == n) {Get(); return true;}
-		else if (StartOf(repFol)) {return false;}
-		else {
-			SynErr(n);
-			while (!(set[syFol, kind] || set[repFol, kind] || set[0, kind])) {
-				Get();
-				kind = la.kind;
-			}
-			return StartOf(syFol);
-		}
-	}
+  bool WeakSeparator(int n, int syFol, int repFol) {
+    int kind = la.kind;
+    if (kind == n) {Get(); return true;}
+    else if (StartOf(repFol)) {return false;}
+    else {
+      SynErr(n);
+      while (!(set[syFol, kind] || set[repFol, kind] || set[0, kind])) {
+        Get();
+        kind = la.kind;
+      }
+      return StartOf(syFol);
+    }
+  }
 
 
 	void Dafny() {
@@ -885,7 +885,7 @@ int StringToInt(string s, int defaultValue, string errString) {
 						QualifiedModuleName(out idAssignment);
 					}
 					submodule = new ModuleFacadeDecl(idPath, id, parent, idAssignment, opened); 
-					errors.Warning(t, "\"import A as B\" has been deprecated; in the new syntax, it is \"import A:B\"");
+					errors.Deprecated(t, "\"import A as B\" has been deprecated; in the new syntax, it is \"import A:B\"");
 					
 				} else if (la.kind == 22) {
 					Get();
@@ -902,7 +902,7 @@ int StringToInt(string s, int defaultValue, string errString) {
 			if (la.kind == 29) {
 				while (!(la.kind == 0 || la.kind == 29)) {SynErr(147); Get();}
 				Get();
-				errors.Warning(t, "the semi-colon that used to terminate a sub-module declaration has been deprecated; in the new syntax, just leave off the semi-colon"); 
+				errors.Deprecated(t, "the semi-colon that used to terminate a sub-module declaration has been deprecated; in the new syntax, just leave off the semi-colon"); 
 			}
 			if (submodule == null) {
 			 idPath = new List<IToken>();
@@ -1041,7 +1041,7 @@ int StringToInt(string s, int defaultValue, string errString) {
 		if (la.kind == 29) {
 			while (!(la.kind == 0 || la.kind == 29)) {SynErr(152); Get();}
 			Get();
-			errors.Warning(t, "the semi-colon that used to terminate a (co)datatype declaration has been deprecated; in the new syntax, just leave off the semi-colon"); 
+			errors.Deprecated(t, "the semi-colon that used to terminate a (co)datatype declaration has been deprecated; in the new syntax, just leave off the semi-colon"); 
 		}
 		if (co) {
 		 dt = new CoDatatypeDecl(id, id.val, module, typeArgs, ctors, attrs);
@@ -1122,7 +1122,7 @@ int StringToInt(string s, int defaultValue, string errString) {
 		if (la.kind == 29) {
 			while (!(la.kind == 0 || la.kind == 29)) {SynErr(155); Get();}
 			Get();
-			errors.Warning(t, "the semi-colon that used to terminate an opaque-type declaration has been deprecated; in the new syntax, just leave off the semi-colon"); 
+			errors.Deprecated(t, "the semi-colon that used to terminate an opaque-type declaration has been deprecated; in the new syntax, just leave off the semi-colon"); 
 		}
 	}
 
@@ -1583,7 +1583,7 @@ int StringToInt(string s, int defaultValue, string errString) {
 			isCoLemma = true; caption = "Comethods";
 			allowed = AllowedDeclModifiers.AlreadyGhost | AllowedDeclModifiers.Static 
 			 | AllowedDeclModifiers.Protected;
-			errors.Warning(t, "the 'comethod' keyword has been deprecated; it has been renamed to 'colemma'");
+			errors.Deprecated(t, "the 'comethod' keyword has been deprecated; it has been renamed to 'colemma'");
 			
 			break;
 		}
@@ -1733,6 +1733,7 @@ int StringToInt(string s, int defaultValue, string errString) {
 		if (la.kind == 29) {
 			while (!(la.kind == 0 || la.kind == 29)) {SynErr(170); Get();}
 			Get();
+			errors.DeprecatedStyle(t, "deprecated style: a semi-colon is not needed here"); 
 		}
 	}
 
@@ -2085,7 +2086,7 @@ ref Attributes readsAttrs, ref Attributes modAttrs, ref Attributes decrAttrs) {
 			if (la.kind == 94) {
 				Get();
 				isFree = true;
-				errors.Warning(t, "the 'free' keyword is soon to be deprecated");
+				errors.Deprecated(t, "the 'free' keyword is soon to be deprecated");
 				
 			}
 			if (la.kind == 96) {
@@ -2181,7 +2182,7 @@ List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, re
 			if (la.kind == 94) {
 				Get();
 				isFree = true;
-				errors.Warning(t, "the 'free' keyword is soon to be deprecated");
+				errors.Deprecated(t, "the 'free' keyword is soon to be deprecated");
 				
 			}
 			if (la.kind == 47) {
@@ -2855,7 +2856,7 @@ List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, re
 		} else if (la.kind == 109) {
 			Get();
 			x = t;
-			errors.Warning(t, "the 'parallel' keyword has been deprecated; the comprehension statement now uses the keyword 'forall' (and the parentheses around the bound variables are now optional)");
+			errors.Deprecated(t, "the 'parallel' keyword has been deprecated; the comprehension statement now uses the keyword 'forall' (and the parentheses around the bound variables are now optional)");
 			
 		} else SynErr(200);
 		if (la.kind == _openparen) {
@@ -2877,7 +2878,7 @@ List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, re
 			if (la.kind == 94) {
 				Get();
 				isFree = true;
-				errors.Warning(t, "the 'free' keyword is soon to be deprecated");
+				errors.Deprecated(t, "the 'free' keyword is soon to be deprecated");
 				
 			}
 			Expect(95);
@@ -3282,7 +3283,7 @@ List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, re
 			while (!(la.kind == 0 || la.kind == 39 || la.kind == 94)) {SynErr(212); Get();}
 			if (la.kind == 94) {
 				Get();
-				isFree = true; errors.Warning(t, "the 'free' keyword is soon to be deprecated"); 
+				isFree = true; errors.Deprecated(t, "the 'free' keyword is soon to be deprecated"); 
 			}
 			Expect(39);
 			while (IsAttribute()) {
@@ -4446,7 +4447,7 @@ List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, re
 				Get();
 				x = t; toType = new RealType(); 
 			}
-			errors.Warning(t, string.Format("the syntax \"{0}(expr)\" for type conversions has been deprecated; the new syntax is \"expr as {0}\"", x.val)); 
+			errors.Deprecated(t, string.Format("the syntax \"{0}(expr)\" for type conversions has been deprecated; the new syntax is \"expr as {0}\"", x.val)); 
 			Expect(52);
 			Expression(out e, true, true);
 			Expect(53);
@@ -4848,16 +4849,16 @@ List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, re
 
 
 
-	public void Parse() {
-		la = new Token();
-		la.val = "";
-		Get();
+  public void Parse() {
+    la = new Token();
+    la.val = "";
+    Get();
 		Dafny();
 		Expect(0);
 
-	}
+  }
 
-	static readonly bool[,] set = {
+  static readonly bool[,] set = {
 		{_T,_T,_T,_T, _T,_x,_x,_x, _x,_T,_x,_T, _x,_x,_x,_x, _x,_x,_x,_x, _T,_T,_x,_x, _T,_x,_x,_x, _x,_T,_x,_x, _T,_T,_T,_x, _x,_x,_T,_T, _x,_x,_T,_T, _x,_T,_T,_T, _T,_T,_x,_x, _T,_x,_x,_x, _x,_x,_x,_x, _x,_T,_x,_x, _T,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_T,_T, _T,_T,_T,_x, _x,_x,_T,_x, _x,_T,_T,_T, _T,_T,_T,_T, _T,_x,_T,_T, _x,_x,_T,_T, _T,_T,_T,_T, _T,_T,_T,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_T,_T,_T, _T,_T,_T,_x, _x,_x},
 		{_x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _T,_T,_T,_T, _T,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_T, _T,_T,_T,_T, _T,_x,_x,_T, _x,_x,_T,_T, _x,_x,_T,_T, _T,_T,_T,_T, _T,_x,_T,_x, _x,_T,_T,_T, _T,_T,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x},
 		{_x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_T, _T,_T,_T,_T, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x},
@@ -4894,32 +4895,32 @@ List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, re
 		{_T,_T,_T,_T, _T,_x,_x,_x, _x,_T,_x,_T, _x,_x,_x,_x, _x,_x,_x,_x, _T,_T,_T,_T, _T,_T,_T,_T, _T,_T,_T,_T, _T,_T,_T,_T, _T,_T,_T,_T, _T,_T,_T,_T, _T,_T,_T,_T, _T,_T,_T,_T, _T,_T,_T,_T, _T,_T,_T,_T, _T,_T,_x,_T, _T,_T,_T,_T, _T,_x,_x,_T, _x,_x,_T,_T, _x,_T,_T,_T, _T,_T,_T,_T, _T,_x,_T,_x, _x,_T,_T,_T, _T,_T,_T,_T, _T,_T,_T,_T, _x,_T,_T,_T, _T,_T,_T,_T, _T,_T,_T,_x, _T,_T,_T,_T, _T,_T,_T,_T, _T,_T,_T,_T, _T,_T,_T,_x, _x,_x,_x,_T, _T,_T,_T,_T, _T,_T,_T,_T, _T,_T,_T,_T, _x,_x},
 		{_T,_T,_T,_T, _T,_x,_x,_x, _x,_T,_x,_T, _x,_x,_x,_x, _x,_x,_x,_x, _T,_T,_T,_T, _T,_T,_x,_T, _x,_T,_T,_T, _T,_T,_T,_T, _T,_T,_T,_T, _T,_T,_T,_T, _T,_T,_T,_T, _T,_T,_x,_T, _T,_T,_T,_T, _T,_T,_T,_T, _T,_T,_x,_T, _T,_T,_T,_T, _T,_x,_x,_T, _x,_x,_T,_T, _x,_T,_T,_T, _T,_T,_T,_T, _T,_x,_T,_x, _x,_T,_T,_T, _T,_T,_T,_T, _T,_T,_T,_T, _x,_T,_T,_T, _T,_T,_T,_T, _T,_T,_T,_x, _T,_T,_T,_T, _T,_T,_T,_T, _T,_T,_T,_T, _T,_T,_T,_x, _x,_x,_x,_T, _T,_T,_T,_T, _T,_T,_T,_T, _T,_T,_T,_T, _x,_x}
 
-	};
+  };
 } // end Parser
 
 
 public class Errors {
-	readonly ErrorReporter Reporting;
-	public int ErrorCount;
+  readonly ErrorReporter Reporting;
+  public int ErrorCount;
 
-	public Errors(ErrorReporter Reporting) {
-		Contract.Requires(Reporting != null);
-		this.Reporting = Reporting;
-	}
+  public Errors(ErrorReporter Reporting) {
+    Contract.Requires(Reporting != null);
+    this.Reporting = Reporting;
+  }
 
-	public void SynErr(string filename, int line, int col, int n) {
-		SynErr(filename, line, col, GetSyntaxErrorString(n));
-	}
+  public void SynErr(string filename, int line, int col, int n) {
+    SynErr(filename, line, col, GetSyntaxErrorString(n));
+  }
 
-	public void SynErr(string filename, int line, int col, string msg) {
-		Contract.Requires(msg != null);
-		ErrorCount++;
-		Reporting.Error(MessageSource.Parser, filename, line, col, msg);
-	}
+  public void SynErr(string filename, int line, int col, string msg) {
+    Contract.Requires(msg != null);
+    ErrorCount++;
+    Reporting.Error(MessageSource.Parser, filename, line, col, msg);
+  }
 
-	string GetSyntaxErrorString(int n) {
-		string s;
-		switch (n) {
+  string GetSyntaxErrorString(int n) {
+    string s;
+    switch (n) {
 			case 0: s = "EOF expected"; break;
 			case 1: s = "ident expected"; break;
 			case 2: s = "digits expected"; break;
@@ -5179,33 +5180,45 @@ public class Errors {
 			case 256: s = "invalid MemberBindingUpdate"; break;
 			case 257: s = "invalid DotSuffix"; break;
 
-			default: s = "error " + n; break;
-		}
-		return s;
-	}
+      default: s = "error " + n; break;
+    }
+    return s;
+  }
 
-	public void SemErr(IToken tok, string msg) {  // semantic errors
-		Contract.Requires(tok != null);
-		Contract.Requires(msg != null);
-		ErrorCount++;
-		Reporting.Error(MessageSource.Parser, tok, msg);
-	}
+  public void SemErr(IToken tok, string msg) {  // semantic errors
+    Contract.Requires(tok != null);
+    Contract.Requires(msg != null);
+    ErrorCount++;
+    Reporting.Error(MessageSource.Parser, tok, msg);
+  }
 
-	public void SemErr(string filename, int line, int col, string msg) {
-		Contract.Requires(msg != null);
-		ErrorCount++;
-		Reporting.Error(MessageSource.Parser, filename, line, col, msg);
-	}
+  public void SemErr(string filename, int line, int col, string msg) {
+    Contract.Requires(msg != null);
+    ErrorCount++;
+    Reporting.Error(MessageSource.Parser, filename, line, col, msg);
+  }
 
-	public void Warning(IToken tok, string msg) {
-		Contract.Requires(tok != null);
-		Contract.Requires(msg != null);
-		Reporting.Warning(MessageSource.Parser, tok, msg);
-	}
+  public void Deprecated(IToken tok, string msg) {
+    Contract.Requires(tok != null);
+    Contract.Requires(msg != null);
+    Reporting.Deprecated(MessageSource.Parser, tok, msg);
+  }
+
+  public void DeprecatedStyle(IToken tok, string msg) {
+    Contract.Requires(tok != null);
+    Contract.Requires(msg != null);
+    Reporting.DeprecatedStyle(MessageSource.Parser, tok, msg);
+  }
+
+  public void Warning(IToken tok, string msg) {
+    Contract.Requires(tok != null);
+    Contract.Requires(msg != null);
+    Reporting.Warning(MessageSource.Parser, tok, msg);
+  }
 } // Errors
 
 
 public class FatalError: Exception {
-	public FatalError(string m): base(m) {}
+  public FatalError(string m): base(m) {}
 }
 }
