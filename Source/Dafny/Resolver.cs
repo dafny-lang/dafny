@@ -302,6 +302,7 @@ namespace Microsoft.Dafny
         }
       }
 
+      var compilationModuleClones = new Dictionary<ModuleDefinition, ModuleDefinition>();
       foreach (var decl in sortedDecls) {
         if (decl is LiteralModuleDecl) {
           // The declaration is a literal module, so it has members and such that we need
@@ -336,9 +337,10 @@ namespace Microsoft.Dafny
           if (reporter.Count(ErrorLevel.Error) == errorCount) {
             m.SuccessfullyResolved = true;
           }
-          if (reporter.Count(ErrorLevel.Error) == errorCount && !m.IsAbstract) {
+          if (reporter.Count(ErrorLevel.Error) == errorCount && (!m.IsAbstract || DafnyOptions.O.IronDafny)) {
             // compilation should only proceed if everything is good, including the signature (which preResolveErrorCount does not include);
-            var nw = new CompilationCloner().CloneModuleDefinition(m, m.CompileName + "_Compile");
+            var nw = new CompilationCloner(compilationModuleClones).CloneModuleDefinition(m, m.CompileName + "_Compile");
+            compilationModuleClones.Add(m, nw);
             var oldErrorsOnly = reporter.ErrorsOnly;
             reporter.ErrorsOnly = true; // turn off warning reporting for the clone
             // Next, compute the compile signature
@@ -369,7 +371,7 @@ namespace Microsoft.Dafny
             abs.OriginalSignature = p;
             // ModuleDefinition.ExclusiveRefinement may not be set at this point but ExclusiveRefinementCount will be.
             if (0 == abs.Root.Signature.ModuleDef.ExclusiveRefinementCount) {
-              abs.Signature = MakeAbstractSignature(p, abs.FullCompileName, abs.Height, prog.Modules);
+              abs.Signature = MakeAbstractSignature(p, abs.FullCompileName, abs.Height, prog.Modules, compilationModuleClones);
               ModuleSignature compileSig;
               if (abs.CompilePath != null) {
                 if (ResolvePath(abs.CompileRoot, abs.CompilePath, out compileSig, reporter)) {
@@ -1444,12 +1446,16 @@ namespace Microsoft.Dafny
       return sig;
     }
 
-    private ModuleSignature MakeAbstractSignature(ModuleSignature p, string Name, int Height, List<ModuleDefinition> mods) {
+    private ModuleSignature MakeAbstractSignature(ModuleSignature p, string Name, int Height, List<ModuleDefinition> mods, Dictionary<ModuleDefinition, ModuleDefinition> compilationModuleClones) {
+      Contract.Requires(p != null);
+      Contract.Requires(Name != null);
+      Contract.Requires(mods != null);
+      Contract.Requires(compilationModuleClones != null);
       var mod = new ModuleDefinition(Token.NoToken, Name + ".Abs", true, true, /*isExclusiveRefinement:*/ false, null, null, null, false);
-      mod.ClonedFrom = new CompilationCloner().CloneFromValue_Module(p.ModuleDef);
+      mod.ClonedFrom = new CompilationCloner(compilationModuleClones).CloneFromValue_Module(p.ModuleDef);
       mod.Height = Height;
       foreach (var kv in p.TopLevels) {
-        mod.TopLevelDecls.Add(CloneDeclaration(kv.Value, mod, mods, Name));
+        mod.TopLevelDecls.Add(CloneDeclaration(kv.Value, mod, mods, Name, compilationModuleClones));
       }
       var sig = RegisterTopLevelDecls(mod, true);
       sig.Refines = p.Refines;
@@ -1461,13 +1467,16 @@ namespace Microsoft.Dafny
       return sig;
     }
 
-    TopLevelDecl CloneDeclaration(TopLevelDecl d, ModuleDefinition m, List<ModuleDefinition> mods, string Name) {
+    TopLevelDecl CloneDeclaration(TopLevelDecl d, ModuleDefinition m, List<ModuleDefinition> mods, string Name, Dictionary<ModuleDefinition, ModuleDefinition> compilationModuleClones) {
       Contract.Requires(d != null);
       Contract.Requires(m != null);
+      Contract.Requires(mods != null);
+      Contract.Requires(Name != null);
+      Contract.Requires(compilationModuleClones != null);
 
       if (d is ModuleFacadeDecl) {
         var abs = (ModuleFacadeDecl)d;
-        var sig = MakeAbstractSignature(abs.OriginalSignature, Name + "." + abs.Name, abs.Height, mods);
+        var sig = MakeAbstractSignature(abs.OriginalSignature, Name + "." + abs.Name, abs.Height, mods, compilationModuleClones);
         var a = new ModuleFacadeDecl(abs.Path, abs.tok, m, abs.CompilePath, abs.Opened);
         a.Signature = sig;
         a.OriginalSignature = abs.OriginalSignature;

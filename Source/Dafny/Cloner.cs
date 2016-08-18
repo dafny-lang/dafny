@@ -22,11 +22,16 @@ namespace Microsoft.Dafny
         nw.TopLevelDecls.Add(CloneDeclaration(d, nw));
       }
       if (null != m.RefinementBase) {
-        nw.RefinementBase = m.RefinementBase;
+        nw.RefinementBase = GetRefinementBase(m);
       }
       nw.ClonedFrom = CloneFromValue_Module(m);
       nw.Height = m.Height;
       return nw;
+    }
+
+    public virtual ModuleDefinition GetRefinementBase(ModuleDefinition m) {
+      Contract.Requires(m != null);
+      return m.RefinementBase;
     }
 
     public virtual TopLevelDecl CloneDeclaration(TopLevelDecl d, ModuleDefinition m) {
@@ -732,11 +737,14 @@ namespace Microsoft.Dafny
   ///   patterns.
   /// * The .ClonedFrom field is set to null (probably, the .CloneFrom field should go away altogether --KRML)
   /// * The various module-signature fields of modules are set to whatever they were in the original.
+  /// * To get the .RefinementBase, it redirects using the given mapping
   /// </summary>
   class CompilationCloner : Cloner
   {
-    public CompilationCloner()
+    Dictionary<ModuleDefinition, ModuleDefinition> compilationModuleClones;
+    public CompilationCloner(Dictionary<ModuleDefinition, ModuleDefinition> compilationModuleClones)
       : base() {
+      this.compilationModuleClones = compilationModuleClones;
     }
 
     public override TopLevelDecl CloneDeclaration(TopLevelDecl d, ModuleDefinition m) {
@@ -772,6 +780,16 @@ namespace Microsoft.Dafny
 
     public override ModuleDefinition CloneFromValue_Module(ModuleDefinition m) {
       return null;
+    }
+
+    public override ModuleDefinition GetRefinementBase(ModuleDefinition m) {
+      var rbase = m.RefinementBase;
+      ModuleDefinition r;
+      if (compilationModuleClones.TryGetValue(rbase, out r)) {
+        return r;
+      } else {
+        return rbase;
+      }
     }
   }
 
