@@ -213,7 +213,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(s != null);
       return s.StartsWith("_tuple#");
     }
-    public const string TupleTypeCtorName = "_#Make";  // the printer wants this name to be uniquely recognizable
+    public const string TupleTypeCtorNamePrefix = "_#Make";  // the printer wants this name prefix to be uniquely recognizable
   }
 
   /// <summary>
@@ -2871,7 +2871,7 @@ namespace Microsoft.Dafny {
         var f = new Formal(Token.NoToken, i.ToString(), new UserDefinedType(Token.NoToken, tp), true, false);
         formals.Add(f);
       }
-      var ctor = new DatatypeCtor(Token.NoToken, BuiltIns.TupleTypeCtorName, formals, null);
+      var ctor = new DatatypeCtor(Token.NoToken, BuiltIns.TupleTypeCtorNamePrefix + typeArgs.Count, formals, null);
       return new List<DatatypeCtor>() { ctor };
     }
   }

@@ -1948,7 +1948,7 @@ VarDeclStatement<.out Statement/*!*/ s.>
       ]
     ")"                             (. // Parse parenthesis without an identifier as a built in tuple type.
                                        theBuiltIns.TupleType(id, arguments.Count, true); // make sure the tuple type exists
-                                       string ctor = BuiltIns.TupleTypeCtorName;  //use the TupleTypeCtors
+                                       string ctor = BuiltIns.TupleTypeCtorNamePrefix + arguments.Count;  //use the TupleTypeCtors
                                        pat = new CasePattern(id, ctor, arguments); 
                                        if (isGhost) { pat.Vars.Iter(bv => bv.IsGhost = true); }
                                        letLHSs.Add(pat);
@@ -2853,7 +2853,7 @@ ParensExpression<out Expression e, bool allowSemi, bool allowLambda>
      } else {
        // make sure the corresponding tuple type exists
        var tmp = theBuiltIns.TupleType(x, args.Count, true);
-       e = new DatatypeValue(x, BuiltIns.TupleTypeName(args.Count), BuiltIns.TupleTypeCtorName, args);
+       e = new DatatypeValue(x, BuiltIns.TupleTypeName(args.Count), BuiltIns.TupleTypeCtorNamePrefix + args.Count, args);
      }
   .)
   .
@@ -3087,7 +3087,7 @@ CasePattern<out CasePattern pat>
       ]
     ")"                                (. // Parse parenthesis without an identifier as a built in tuple type.
                                           theBuiltIns.TupleType(id, arguments.Count, true); // make sure the tuple type exists
-                                          string ctor = BuiltIns.TupleTypeCtorName;  //use the TupleTypeCtors
+                                          string ctor = BuiltIns.TupleTypeCtorNamePrefix + arguments.Count;  //use the TupleTypeCtors
                                           pat = new CasePattern(id, ctor, arguments); 
                                        .)
   | IdentTypeOptional<out bv>          (. // This could be a BoundVar of a parameter-less constructor and we may not know until resolution.

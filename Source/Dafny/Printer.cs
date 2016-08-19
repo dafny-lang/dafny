@@ -1479,7 +1479,7 @@ namespace Microsoft.Dafny {
       } else if (expr is DatatypeValue) {
         var dtv = (DatatypeValue)expr;
         bool printParens;
-        if (dtv.MemberName == BuiltIns.TupleTypeCtorName) {
+        if (dtv.MemberName.StartsWith(BuiltIns.TupleTypeCtorNamePrefix)) {
           // we're looking at a tuple, whose printed constructor name is essentially the empty string
           printParens = true;
         } else {
@@ -2089,7 +2089,7 @@ namespace Microsoft.Dafny {
           PrintType(": ", v.Type);
         }
       } else {
-        if (pat.Ctor != null && pat.Ctor.EnclosingDatatype is TupleTypeDecl) {
+        if (pat.Id.StartsWith(BuiltIns.TupleTypeCtorNamePrefix)) {
           Contract.Assert(pat.Arguments != null);
         } else {
           wr.Write(pat.Id);

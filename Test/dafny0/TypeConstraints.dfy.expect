@@ -46,7 +46,7 @@ module _System {
       reads reads(x0)
   }
 
-  datatype _tuple#2<T0, T1> = _#Make(0: T0, 1: T1)
+  datatype _tuple#2<T0, T1> = _#Make2(0: T0, 1: T1)
 }
 // bitvector types in use:
 */

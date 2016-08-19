@@ -2680,7 +2680,7 @@ List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, re
 			}
 			Expect(53);
 			theBuiltIns.TupleType(id, arguments.Count, true); // make sure the tuple type exists
-			string ctor = BuiltIns.TupleTypeCtorName;  //use the TupleTypeCtors
+			string ctor = BuiltIns.TupleTypeCtorNamePrefix + arguments.Count;  //use the TupleTypeCtors
 			pat = new CasePattern(id, ctor, arguments); 
 			if (isGhost) { pat.Vars.Iter(bv => bv.IsGhost = true); }
 			letLHSs.Add(pat);
@@ -3197,7 +3197,7 @@ List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, re
 			}
 			Expect(53);
 			theBuiltIns.TupleType(id, arguments.Count, true); // make sure the tuple type exists
-			string ctor = BuiltIns.TupleTypeCtorName;  //use the TupleTypeCtors
+			string ctor = BuiltIns.TupleTypeCtorNamePrefix + arguments.Count;  //use the TupleTypeCtors
 			pat = new CasePattern(id, ctor, arguments); 
 			
 		} else if (la.kind == 1) {
@@ -4518,7 +4518,7 @@ List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, re
 		} else {
 		 // make sure the corresponding tuple type exists
 		 var tmp = theBuiltIns.TupleType(x, args.Count, true);
-		 e = new DatatypeValue(x, BuiltIns.TupleTypeName(args.Count), BuiltIns.TupleTypeCtorName, args);
+		 e = new DatatypeValue(x, BuiltIns.TupleTypeName(args.Count), BuiltIns.TupleTypeCtorNamePrefix + args.Count, args);
 		}
 		
 	}
