@@ -2089,7 +2089,11 @@ namespace Microsoft.Dafny {
           PrintType(": ", v.Type);
         }
       } else {
-        wr.Write(pat.Id);
+        if (pat.Ctor != null && pat.Ctor.EnclosingDatatype is TupleTypeDecl) {
+          Contract.Assert(pat.Arguments != null);
+        } else {
+          wr.Write(pat.Id);
+        }
         if (pat.Arguments != null) {
           wr.Write("(");
           var sep = "";

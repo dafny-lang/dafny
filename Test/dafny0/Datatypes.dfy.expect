@@ -37,6 +37,9 @@ Execution trace:
     (0,0): anon11_Then
     (0,0): anon12_Else
     (0,0): anon13_Then
+Datatypes.dfy(377,21): Error: RHS is not certain to look like the pattern 'AAA'
+Execution trace:
+    (0,0): anon0
 Datatypes.dfy(82,19): Error: assertion violation
 Execution trace:
     (0,0): anon0
@@ -68,4 +71,4 @@ Execution trace:
     (0,0): anon0
     (0,0): anon5_Then
 
-Dafny program verifier finished with 44 verified, 12 errors
+Dafny program verifier finished with 46 verified, 13 errors

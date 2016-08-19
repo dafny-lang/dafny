@@ -37,6 +37,16 @@ module _System {
     function reads(): set<object>
       reads reads()
   }
+
+  class {:compile false} _#Func1<T0, T1> {
+    function requires(x0: T0): bool
+      reads reads(x0)
+
+    function reads(x0: T0): set<object>
+      reads reads(x0)
+  }
+
+  datatype _tuple#2<T0, T1> = _#Make(0: T0, 1: T1)
 }
 // bitvector types in use:
 */
@@ -506,6 +516,39 @@ module OtherTraitsAndClasses {
   {
     var p: set<MyClass> := s + t;
     var q: set<object> := s + t;
+  }
+}
+
+module LetPatterns {
+  /* CALL GRAPH for module LetPatterns:
+   * SCC at height 2:
+   *   _default.M
+   * SCC at height 1:
+   *   _default.Q
+   * SCC at height 0:
+   *   _default.P
+   */
+  datatype MyDt = AAA(x: int) | BBB(y: int)
+
+  function M(m: MyDt): int
+    requires m.AAA?
+  {
+    var AAA(u: int) := m;
+    u
+  }
+
+  method P()
+  {
+    var v: int;
+    var m: MyDt;
+    var w: int := v + var AAA(u: int) := m; u;
+  }
+
+  method Q(x: int, r: real)
+  {
+    var o: real;
+    var u: (int,real) := (x, o);
+    o := r;
   }
 }
 18 resolution/type errors detected in TypeConstraints.dfy

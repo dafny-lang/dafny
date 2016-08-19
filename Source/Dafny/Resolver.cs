@@ -10144,7 +10144,24 @@ namespace Microsoft.Dafny
         ResolveType(v.tok, v.Type, context, ResolveTypeOptionEnum.InferTypeProxies, null);
         ConstrainSubtypeRelation(v.Type, sourceType, v.tok, "type of corresponding source/RHS ({0}) does not match type of bound variable ({1})", sourceType, v.Type);
         pat.AssembleExpr(null);
-      } else if (dtd == null) {
+        return;
+      }
+      if (dtd == null) {
+        // look up the name of the pattern's constructor
+        Tuple<DatatypeCtor, bool> pair;
+        if (moduleInfo.Ctors.TryGetValue(pat.Id, out pair) && !pair.Item2) {
+          ctor = pair.Item1;
+          pat.Ctor = ctor;
+          dtd = ctor.EnclosingDatatype;
+          var typeArgs = new List<Type>();
+          foreach (var xt in dtd.TypeArgs) {
+            typeArgs.Add(new InferredTypeProxy());
+          }
+          udt = new UserDefinedType(pat.tok, dtd.Name, dtd, typeArgs);
+          ConstrainSubtypeRelation(udt, sourceType, pat.tok, "type of RHS ({0}) does not match type of bound variable '{1}'", sourceType, pat.Id);
+        }
+      }
+      if (dtd == null && ctor == null) {
         reporter.Error(MessageSource.Resolver, pat.tok, "to use a pattern, the type of the source/RHS expression must be a datatype (instead found {0})", sourceType);
       } else if (ctor == null) {
         reporter.Error(MessageSource.Resolver, pat.tok, "constructor {0} does not exist in datatype {1}", pat.Id, dtd.Name);

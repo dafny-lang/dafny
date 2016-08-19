@@ -388,3 +388,28 @@ module OtherTraitsAndClasses {
   }
 ******/
 }
+
+module LetPatterns {
+  datatype MyDt = AAA(x: int) | BBB(y: int)
+
+  function M(m: MyDt): int
+    requires m.AAA?
+  {
+    var AAA(u) := m;  // u: int
+    u
+  }
+
+  method P()
+  {
+    var v;  // v: int
+    var m;  // m: MyDt
+    var w := v + var AAA(u) := m; u;  // m may not be an AAA, but that's checked by the verifier
+  }
+
+  method Q(x: int, r: real)
+  {
+    var o;  // real
+    var u := (x, o);  // (int,real)
+    o := r;
+  }
+}
