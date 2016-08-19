@@ -3869,42 +3869,42 @@ List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, re
 
 	void BitvectorFactor(out Expression e0, bool allowSemi, bool allowLambda, bool allowBitwiseOps) {
 		Contract.Ensures(Contract.ValueAtReturn(out e0) != null); IToken/*!*/ x;  Expression/*!*/ e1;  BinaryExpr.Opcode op; 
-		AsExpression(out e0, allowSemi, allowLambda);
+		AsExpression(out e0, allowSemi, allowLambda, allowBitwiseOps);
 		if (allowBitwiseOps && IsBitwiseOp()) {
 			if (la.kind == 135) {
 				op = BinaryExpr.Opcode.BitwiseAnd; 
 				Get();
 				x = t; 
-				AsExpression(out e1, allowSemi, allowLambda);
+				AsExpression(out e1, allowSemi, allowLambda, allowBitwiseOps);
 				e0 = new BinaryExpr(x, op, e0, e1); 
 				while (IsBitwiseAndOp()) {
 					Expect(135);
 					x = t; 
-					AsExpression(out e1, allowSemi, allowLambda);
+					AsExpression(out e1, allowSemi, allowLambda, allowBitwiseOps);
 					e0 = new BinaryExpr(x, op, e0, e1); 
 				}
 			} else if (la.kind == 24) {
 				op = BinaryExpr.Opcode.BitwiseOr; 
 				Get();
 				x = t; 
-				AsExpression(out e1, allowSemi, allowLambda);
+				AsExpression(out e1, allowSemi, allowLambda, allowBitwiseOps);
 				e0 = new BinaryExpr(x, op, e0, e1); 
 				while (IsBitwiseOrOp()) {
 					Expect(24);
 					x = t; 
-					AsExpression(out e1, allowSemi, allowLambda);
+					AsExpression(out e1, allowSemi, allowLambda, allowBitwiseOps);
 					e0 = new BinaryExpr(x, op, e0, e1); 
 				}
 			} else if (la.kind == 136) {
 				op = BinaryExpr.Opcode.BitwiseXor; 
 				Get();
 				x = t; 
-				AsExpression(out e1, allowSemi, allowLambda);
+				AsExpression(out e1, allowSemi, allowLambda, allowBitwiseOps);
 				e0 = new BinaryExpr(x, op, e0, e1); 
 				while (IsBitwiseXorOp()) {
 					Expect(136);
 					x = t; 
-					AsExpression(out e1, allowSemi, allowLambda);
+					AsExpression(out e1, allowSemi, allowLambda, allowBitwiseOps);
 					e0 = new BinaryExpr(x, op, e0, e1); 
 				}
 			} else SynErr(234);
@@ -3925,9 +3925,9 @@ List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, re
 		} else SynErr(235);
 	}
 
-	void AsExpression(out Expression e, bool allowSemi, bool allowLambda) {
+	void AsExpression(out Expression e, bool allowSemi, bool allowLambda, bool allowBitwiseOps) {
 		IToken tok; IToken x; Type toType; 
-		UnaryExpression(out e, allowSemi, allowLambda);
+		UnaryExpression(out e, allowSemi, allowLambda, allowBitwiseOps);
 		while (IsAs()) {
 			Expect(37);
 			tok = t; 
@@ -3936,17 +3936,17 @@ List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, re
 		}
 	}
 
-	void UnaryExpression(out Expression e, bool allowSemi, bool allowLambda) {
+	void UnaryExpression(out Expression e, bool allowSemi, bool allowLambda, bool allowBitwiseOps) {
 		Contract.Ensures(Contract.ValueAtReturn(out e) != null); IToken/*!*/ x;  e = dummyExpr; 
 		if (la.kind == 132) {
 			Get();
 			x = t; 
-			UnaryExpression(out e, allowSemi, allowLambda);
+			UnaryExpression(out e, allowSemi, allowLambda, allowBitwiseOps);
 			e = new NegationExpression(x, e); 
 		} else if (la.kind == 126 || la.kind == 127) {
 			NegOp();
 			x = t; 
-			UnaryExpression(out e, allowSemi, allowLambda);
+			UnaryExpression(out e, allowSemi, allowLambda, allowBitwiseOps);
 			e = new UnaryOpExpr(x, UnaryOpExpr.Opcode.Not, e); 
 		} else if (IsMapDisplay()) {
 			Expect(18);
@@ -3970,9 +3970,9 @@ List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, re
 				Suffix(ref e);
 			}
 		} else if (IsLambda(allowLambda)) {
-			LambdaExpression(out e, allowSemi);
+			LambdaExpression(out e, allowSemi, allowBitwiseOps);
 		} else if (StartOf(31)) {
-			EndlessExpression(out e, allowSemi, allowLambda);
+			EndlessExpression(out e, allowSemi, allowLambda, allowBitwiseOps);
 		} else if (la.kind == 1) {
 			NameSegment(out e);
 			while (IsSuffix()) {
@@ -4169,7 +4169,7 @@ List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, re
 		Expect(49);
 	}
 
-	void LambdaExpression(out Expression e, bool allowSemi) {
+	void LambdaExpression(out Expression e, bool allowSemi, bool allowBitwiseOps) {
 		IToken x = Token.NoToken;
 		IToken id;  BoundVar bv;
 		var bvs = new List<BoundVar>();
@@ -4208,13 +4208,13 @@ List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, re
 			}
 		}
 		LambdaArrow(out oneShot);
-		Expression(out body, allowSemi, true);
+		Expression(out body, allowSemi, true, allowBitwiseOps);
 		e = new LambdaExpr(x, oneShot, bvs, req, reads, body);
 		theBuiltIns.CreateArrowTypeDecl(bvs.Count);
 		
 	}
 
-	void EndlessExpression(out Expression e, bool allowSemi, bool allowLambda) {
+	void EndlessExpression(out Expression e, bool allowSemi, bool allowLambda, bool allowBitwiseOps) {
 		IToken/*!*/ x;
 		Expression e0, e1;
 		Statement s;
@@ -4232,9 +4232,9 @@ List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, re
 				Expression(out e, true, true);
 			} else SynErr(243);
 			Expect(35);
-			Expression(out e0, true, true);
+			Expression(out e0, true, true, true);
 			Expect(36);
-			Expression(out e1, allowSemi, allowLambda);
+			Expression(out e1, allowSemi, allowLambda, allowBitwiseOps);
 			if (isExistentialGuard) {
 			 var exists = (ExistsExpr) e;
 			 List<CasePattern> LHSs = new List<CasePattern>();
@@ -4248,7 +4248,7 @@ List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, re
 			break;
 		}
 		case 105: {
-			MatchExpression(out e, allowSemi, allowLambda);
+			MatchExpression(out e, allowSemi, allowLambda, allowBitwiseOps);
 			break;
 		}
 		case 108: case 128: case 129: case 130: {
@@ -4258,39 +4258,39 @@ List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, re
 		case 14: {
 			Get();
 			x = t; 
-			SetComprehensionExpr(x, true, out e, allowSemi, allowLambda);
+			SetComprehensionExpr(x, true, out e, allowSemi, allowLambda, allowBitwiseOps);
 			break;
 		}
 		case 15: {
 			Get();
 			x = t; 
-			SetComprehensionExpr(x, false, out e, allowSemi, allowLambda);
+			SetComprehensionExpr(x, false, out e, allowSemi, allowLambda, true);
 			break;
 		}
 		case 32: case 33: case 106: {
 			StmtInExpr(out s);
-			Expression(out e, allowSemi, allowLambda);
+			Expression(out e, allowSemi, allowLambda, allowBitwiseOps);
 			e = new StmtExpr(s.Tok, s, e); 
 			break;
 		}
 		case 64: case 82: {
-			LetExpr(out e, allowSemi, allowLambda);
+			LetExpr(out e, allowSemi, allowLambda, allowBitwiseOps);
 			break;
 		}
 		case 18: {
 			Get();
 			x = t; 
-			MapComprehensionExpr(x, true, out e, allowSemi, allowLambda);
+			MapComprehensionExpr(x, true, out e, allowSemi, allowLambda, allowBitwiseOps);
 			break;
 		}
 		case 19: {
 			Get();
 			x = t; 
-			MapComprehensionExpr(x, false, out e, allowSemi, allowLambda);
+			MapComprehensionExpr(x, false, out e, allowSemi, allowLambda, true);
 			break;
 		}
 		case 98: {
-			NamedExpr(out e, allowSemi, allowLambda);
+			NamedExpr(out e, allowSemi, allowLambda, allowBitwiseOps);
 			break;
 		}
 		default: SynErr(244); break;
@@ -4550,7 +4550,7 @@ List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, re
 		}
 	}
 
-	void MapComprehensionExpr(IToken mapToken, bool finite, out Expression e, bool allowSemi, bool allowLambda) {
+	void MapComprehensionExpr(IToken mapToken, bool finite, out Expression e, bool allowSemi, bool allowLambda, bool allowBitwiseOps) {
 		Contract.Ensures(Contract.ValueAtReturn(out e) != null);
 		BoundVar bv;
 		List<BoundVar> bvars = new List<BoundVar>();
@@ -4565,33 +4565,33 @@ List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, re
 		}
 		if (la.kind == 24) {
 			Get();
-			Expression(out range, true, true);
+			Expression(out range, true, true, true);
 		}
 		QSep();
-		Expression(out body, allowSemi, allowLambda);
+		Expression(out body, allowSemi, allowLambda, allowBitwiseOps);
 		e = new MapComprehension(mapToken, finite, bvars, range ?? new LiteralExpr(mapToken, true), body, attrs);
 		
 	}
 
-	void MatchExpression(out Expression e, bool allowSemi, bool allowLambda) {
+	void MatchExpression(out Expression e, bool allowSemi, bool allowLambda, bool allowBitwiseOps) {
 		Contract.Ensures(Contract.ValueAtReturn(out e) != null); IToken/*!*/ x;  MatchCaseExpr/*!*/ c;
 		List<MatchCaseExpr/*!*/> cases = new List<MatchCaseExpr/*!*/>();
 		bool usesOptionalBrace = false;
 		
 		Expect(105);
 		x = t; 
-		Expression(out e, allowSemi, allowLambda);
+		Expression(out e, allowSemi, allowLambda, allowBitwiseOps);
 		if (la.kind == _lbrace) {
 			Expect(48);
 			usesOptionalBrace = true; 
 			while (la.kind == 34) {
-				CaseExpression(out c, true, true);
+				CaseExpression(out c, true, true, allowBitwiseOps);
 				cases.Add(c); 
 			}
 			Expect(49);
 		} else if (StartOf(34)) {
 			while (la.kind == _case) {
-				CaseExpression(out c, allowSemi, allowLambda);
+				CaseExpression(out c, allowSemi, allowLambda, allowBitwiseOps);
 				cases.Add(c); 
 			}
 		} else SynErr(251);
@@ -4624,7 +4624,7 @@ List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, re
 		
 	}
 
-	void SetComprehensionExpr(IToken setToken, bool finite, out Expression q, bool allowSemi, bool allowLambda) {
+	void SetComprehensionExpr(IToken setToken, bool finite, out Expression q, bool allowSemi, bool allowLambda, bool allowBitwiseOps) {
 		Contract.Ensures(Contract.ValueAtReturn(out q) != null);
 		BoundVar bv;
 		List<BoundVar/*!*/> bvars = new List<BoundVar>();
@@ -4643,10 +4643,10 @@ List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, re
 			Attribute(ref attrs);
 		}
 		Expect(24);
-		Expression(out range, allowSemi, allowLambda);
+		Expression(out range, allowSemi, allowLambda, allowBitwiseOps);
 		if (IsQSep()) {
 			QSep();
-			Expression(out body, allowSemi, allowLambda);
+			Expression(out body, allowSemi, allowLambda, allowBitwiseOps);
 		}
 		if (body == null && bvars.Count != 1) { SemErr(t, "a set comprehension with more than one bound variable must have a term expression"); }
 		q = new SetComprehension(setToken, finite, bvars, range, body, attrs);
@@ -4664,7 +4664,7 @@ List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, re
 		} else SynErr(253);
 	}
 
-	void LetExpr(out Expression e, bool allowSemi, bool allowLambda) {
+	void LetExpr(out Expression e, bool allowSemi, bool allowLambda, bool allowBitwiseOps) {
 		IToken x = null;
 		bool isGhost = false;
 		var letLHSs = new List<CasePattern>();
@@ -4714,11 +4714,11 @@ List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, re
 			letRHSs.Add(e); 
 		}
 		Expect(29);
-		Expression(out e, allowSemi, allowLambda);
+		Expression(out e, allowSemi, allowLambda, allowBitwiseOps);
 		e = new LetExpr(x, letLHSs, letRHSs, e, exact, attrs); 
 	}
 
-	void NamedExpr(out Expression e, bool allowSemi, bool allowLambda) {
+	void NamedExpr(out Expression e, bool allowSemi, bool allowLambda, bool allowBitwiseOps) {
 		IToken/*!*/ x, d;
 		e = dummyExpr;
 		Expression expr;
@@ -4727,12 +4727,12 @@ List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, re
 		x = t; 
 		NoUSIdent(out d);
 		Expect(22);
-		Expression(out e, allowSemi, allowLambda);
+		Expression(out e, allowSemi, allowLambda, allowBitwiseOps);
 		expr = e;
 		e = new NamedExpr(x, d.val, expr); 
 	}
 
-	void CaseExpression(out MatchCaseExpr c, bool allowSemi, bool allowLambda) {
+	void CaseExpression(out MatchCaseExpr c, bool allowSemi, bool allowLambda, bool allowBitwiseOps) {
 		Contract.Ensures(Contract.ValueAtReturn(out c) != null); IToken/*!*/ x, id;
 		List<CasePattern/*!*/> arguments = new List<CasePattern/*!*/>();
 		CasePattern/*!*/ pat;
@@ -4769,7 +4769,7 @@ List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, re
 			Expect(53);
 		} else SynErr(255);
 		Expect(30);
-		Expression(out body, allowSemi, allowLambda);
+		Expression(out body, allowSemi, allowLambda, allowBitwiseOps);
 		c = new MatchCaseExpr(x, name, arguments, body); 
 	}
 
