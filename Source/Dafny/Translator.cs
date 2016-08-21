@@ -10481,8 +10481,6 @@ namespace Microsoft.Dafny {
 
       } else if (rhs is HavocRhs) {
         builder.Add(new Bpl.HavocCmd(tok, new List<Bpl.IdentifierExpr> { bLhs }));
-        var isNat = CheckSubrange_Expr(tok, bLhs, rhsTypeConstraint);
-        builder.Add(TrAssumeCmd(tok, isNat));
         return CondApplyBox(tok, bLhs, rhsTypeConstraint, lhsType);
       } else {
         // x := new Something
@@ -10559,7 +10557,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(builder != null);
 
       var cre = CheckSubrange_Expr(tok, bRhs, tp);
-      var msg = (tp.NormalizeExpand() is NatType) ?
+      var msg = tp.NormalizeExpand() is NatType ?
                                   "value assigned to a nat must be non-negative" :
                                   "value does not satisfy the subrange criteria";
       builder.Add(Assert(tok, cre, msg));
@@ -10572,7 +10570,7 @@ namespace Microsoft.Dafny {
       Contract.Ensures(Contract.Result<Bpl.Expr>() != null);
 
       // Only need to check this for natural numbers for now.
-      // We should always be able to use  Is, but this is an optimisation.
+      // We should always be able to use Is, but this is an optimisation.
       if (tp.NormalizeExpand() is NatType) {
         return MkIs(bRhs, tp);
       } else {
