@@ -1004,6 +1004,30 @@ namespace Dafny
     }
   }
   public partial class Helpers {
+    public static System.Predicate<BigInteger> PredicateConverter_byte(System.Predicate<byte> pred) {
+      return x => pred((byte)x);
+    }
+    public static System.Predicate<BigInteger> PredicateConverter_sbyte(System.Predicate<sbyte> pred) {
+      return x => pred((sbyte)x);
+    }
+    public static System.Predicate<BigInteger> PredicateConverter_ushort(System.Predicate<ushort> pred) {
+      return x => pred((ushort)x);
+    }
+    public static System.Predicate<BigInteger> PredicateConverter_short(System.Predicate<short> pred) {
+      return x => pred((short)x);
+    }
+    public static System.Predicate<BigInteger> PredicateConverter_uint(System.Predicate<uint> pred) {
+      return x => pred((uint)x);
+    }
+    public static System.Predicate<BigInteger> PredicateConverter_int(System.Predicate<int> pred) {
+      return x => pred((int)x);
+    }
+    public static System.Predicate<BigInteger> PredicateConverter_ulong(System.Predicate<ulong> pred) {
+      return x => pred((ulong)x);
+    }
+    public static System.Predicate<BigInteger> PredicateConverter_long(System.Predicate<long> pred) {
+      return x => pred((long)x);
+    }
     // Computing forall/exists quantifiers
     public static bool QuantBool(bool frall, System.Predicate<bool> pred) {
       if (frall) {

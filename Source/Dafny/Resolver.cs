@@ -2146,15 +2146,27 @@ namespace Microsoft.Dafny
           }
         }
       }
+      // Figure out the variable and constraint.  Usually, these would be just .Var and .Constraint, but
+      // in the case .Var is null, these can be computed from the .BaseType recursively.
+      var ddVar = dd.Var;
+      var ddConstraint = dd.Constraint;
+      for (var ddWhereConstraintsAre = dd; ddVar == null;) {
+        ddWhereConstraintsAre = ddWhereConstraintsAre.BaseType.AsNewtype;
+        if (ddWhereConstraintsAre == null) {
+          break;
+        }
+        ddVar = ddWhereConstraintsAre.Var;
+        ddConstraint = ddWhereConstraintsAre.Constraint;
+      }
       if (stringNativeType != null || boolNativeType == true) {
         if (!dd.BaseType.IsNumericBased(Type.NumericPersuation.Int)) {
           reporter.Error(MessageSource.Resolver, dd, "nativeType can only be used on integral types");
         }
-        if (dd.Var == null) {
+        if (ddVar == null) {
           reporter.Error(MessageSource.Resolver, dd, "nativeType can only be used if newtype specifies a constraint");
         }
       }
-      if (dd.Var != null) {
+      if (ddVar != null) {
         Func<Expression, BigInteger?> GetConst = null;
         GetConst = (Expression e) => {
           int m = 1;
@@ -2169,7 +2181,7 @@ namespace Microsoft.Dafny
           }
           return null;
         };
-        var bounds = DiscoverAllBounds_SingleVar(dd.Var, dd.Constraint);
+        var bounds = DiscoverAllBounds_SingleVar(ddVar, ddConstraint);
         List<NativeType> potentialNativeTypes =
           (stringNativeType != null) ? new List<NativeType> { stringNativeType } :
           (boolNativeType == false) ? new List<NativeType>() :
@@ -11392,6 +11404,7 @@ namespace Microsoft.Dafny
             }
             break;
           case BinaryExpr.ResolvedOpcode.EqCommon:
+          case BinaryExpr.ResolvedOpcode.SetEq:
             // TODO: Use the new ComprehensionExpr.ExactBoundedPool
             if (bv.Type.IsNumericBased(Type.NumericPersuation.Int)) {
               var otherOperand = whereIsBv == 0 ? e1 : e0;

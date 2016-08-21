@@ -3051,11 +3051,15 @@ namespace Microsoft.Dafny {
             Contract.Assert(false); throw new cce.UnreachableException();  // unexpected BoundedPool type
           }
           wr.Write("{0}, ", expr is ForallExpr ? "true" : "false");
-          wr.Write("@{0} => ", bv.CompileName);
+          var native = AsNativeType(e.BoundVars[i].Type);
+          if (native != null) {
+            wr.Write("Dafny.Helpers.PredicateConverter_{0}", native.Name);
+          }
+          wr.Write("(@{0} => ", bv.CompileName);
         }
         TrExpr(e.LogicalBody(true), wr, inLetExprBody);
         for (int i = 0; i < n; i++) {
-          wr.Write(")");
+          wr.Write("))");
         }
 
       } else if (expr is SetComprehension) {
