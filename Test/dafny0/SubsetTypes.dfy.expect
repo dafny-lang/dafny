@@ -1,0 +1,41 @@
+SubsetTypes.dfy(7,18): Error: value assigned to a nat must be non-negative
+Execution trace:
+    (0,0): anon0
+SubsetTypes.dfy(8,9): Error: value assigned to a nat must be non-negative
+Execution trace:
+    (0,0): anon0
+SubsetTypes.dfy(10,23): Error: value assigned to a nat must be non-negative
+Execution trace:
+    (0,0): anon0
+SubsetTypes.dfy(11,9): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
+Execution trace:
+    (0,0): anon0
+SubsetTypes.dfy(15,15): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
+Execution trace:
+    (0,0): anon0
+SubsetTypes.dfy(16,6): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
+Execution trace:
+    (0,0): anon0
+SubsetTypes.dfy(19,11): Error: value assigned to a nat must be non-negative
+Execution trace:
+    (0,0): anon0
+SubsetTypes.dfy(21,15): Error: value assigned to a nat must be non-negative
+Execution trace:
+    (0,0): anon0
+SubsetTypes.dfy(23,8): Error: value assigned to a nat must be non-negative
+Execution trace:
+    (0,0): anon0
+SubsetTypes.dfy(30,4): Error: value assigned to a nat must be non-negative
+Execution trace:
+    (0,0): anon0
+    (0,0): anon4_Else
+SubsetTypes.dfy(31,7): Error: value assigned to a nat must be non-negative
+Execution trace:
+    (0,0): anon0
+    (0,0): anon4_Else
+SubsetTypes.dfy(56,4): Error: value assigned to a nat must be non-negative
+Execution trace:
+    (0,0): anon0
+    (0,0): anon4_Else
+
+Dafny program verifier finished with 6 verified, 12 errors
