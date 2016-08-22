@@ -1,7 +1,8 @@
-DisplayExpressions.dfy(5,6): Error: the type of this variable is underspecified
-DisplayExpressions.dfy(10,6): Error: the type of this variable is underspecified
-DisplayExpressions.dfy(15,6): Error: the type of this variable is underspecified
-DisplayExpressions.dfy(20,6): Error: the type of this variable is underspecified
-DisplayExpressions.dfy(25,12): Error: the type of this expression is underspecified
-DisplayExpressions.dfy(25,29): Error: the type of this expression is underspecified
-6 resolution/type errors detected in DisplayExpressions.dfy
+DisplayExpressions.dfy(7,8): Error: the type of this variable is underspecified
+DisplayExpressions.dfy(12,8): Error: the type of this variable is underspecified
+DisplayExpressions.dfy(17,8): Error: the type of this variable is underspecified
+DisplayExpressions.dfy(22,8): Error: the type of this variable is underspecified
+DisplayExpressions.dfy(27,14): Error: the type of this expression is underspecified
+DisplayExpressions.dfy(27,31): Error: the type of this expression is underspecified
+DisplayExpressions.dfy(42,6): Error: RHS (of type seq<int>) not assignable to LHS (of type seq<byte>) (covariant type parameter would require byte <: int)
+7 resolution/type errors detected in DisplayExpressions.dfy
