@@ -823,6 +823,13 @@ namespace Microsoft.Dafny
         // fill in export signature
         ModuleSignature signature = decl.Signature;
 
+        foreach (ExportSignature export in decl.Exports) {
+          if (export.Decl is TopLevelDecl) {
+            signature.TopLevels.Add(export.Name, (TopLevelDecl)export.Decl);
+          } else if (export.Decl is MemberDecl) {
+            signature.StaticMembers.Add(export.Name, (MemberDecl)export.Decl);
+          }
+        }
 
         foreach (ModuleExportDecl extend in decl.ExtendDecls) {
           ModuleSignature s = extend.Signature;
@@ -843,13 +850,7 @@ namespace Microsoft.Dafny
             }
           }
         }
-        foreach (ExportSignature export in decl.Exports) {
-          if (export.Decl is TopLevelDecl) {
-            signature.TopLevels.Add(export.Name, (TopLevelDecl)export.Decl);
-          } else if (export.Decl is MemberDecl) {
-            signature.StaticMembers.Add(export.Name, (MemberDecl)export.Decl);
-          }
-        }
+
       }
 
       //check for export consistency by resolving internal modules
