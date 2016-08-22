@@ -45,6 +45,7 @@ method ComputeIsRelaxedPrefix<T(==)>(pat: seq<T>, a: seq<T>) returns (b: bool)
   while i < |pat| && i-shift < |a|
     invariant 0 <= i <= |pat| && i-shift <= |a|
     invariant 0 <= shift <= i
+    invariant shift == 0 || shift == 1
     invariant IsRelaxedPrefixAux(pat[i..], a[i-shift..], 1-shift) == B
   {
     if pat[i] != a[i-shift] {

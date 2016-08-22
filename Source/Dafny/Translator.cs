@@ -120,9 +120,11 @@ namespace Microsoft.Dafny {
       verificationScope = new VisibilityScope();
 
       currentScope.Augment(m.VisibilityScope);
+      verificationScope.Augment(currentScope);
+
       currentScope.Augment(systemModule.VisibilityScope);
 
-      verificationScope.Augment(currentScope);
+      
 
       foreach (var decl in m.TopLevelDecls) {
         if (decl is ModuleDecl) {
@@ -5828,7 +5830,8 @@ namespace Microsoft.Dafny {
         fn = sel.Member as Function;
       }
       if (fn != null) {
-        builder.Add(Assert(e.tok, Bpl.Expr.Not(etran.HeightContext(fn)),
+        Bpl.Expr assertion = !InVerificationScope(fn) ? Bpl.Expr.True : Bpl.Expr.Not(etran.HeightContext(fn));
+        builder.Add(Assert(e.tok, assertion,
           "cannot use " + what + " in recursive setting." + hint));
       }
     }
