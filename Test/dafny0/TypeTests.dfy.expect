@@ -22,36 +22,6 @@ TypeTests.dfy(92,3): Error: cannot assign to a range of array elements (try the 
 TypeTests.dfy(94,3): Error: cannot assign to a range of array elements (try the 'forall' statement)
 TypeTests.dfy(95,3): Error: cannot assign to a range of array elements (try the 'forall' statement)
 TypeTests.dfy(96,3): Error: cannot assign to a range of array elements (try the 'forall' statement)
-TypeTests.dfy(102,6): Error: sorry, cannot instantiate collection type with a subrange type
-TypeTests.dfy(103,9): Error: sorry, cannot instantiate type parameter with a subrange type
-TypeTests.dfy(104,8): Error: sorry, cannot instantiate type parameter with a subrange type
-TypeTests.dfy(105,8): Error: sorry, cannot instantiate type parameter with a subrange type
-TypeTests.dfy(108,28): Error: sorry, cannot instantiate type parameter with a subrange type
-TypeTests.dfy(108,28): Error: sorry, cannot instantiate type parameter with a subrange type
-TypeTests.dfy(109,17): Error: sorry, cannot instantiate type parameter with a subrange type
-TypeTests.dfy(109,10): Error: new can be applied only to reference types (got Expl_Class<nat>)
-TypeTests.dfy(110,17): Error: sorry, cannot instantiate type parameter with a subrange type
-TypeTests.dfy(113,6): Error: sorry, cannot instantiate collection type with a subrange type
-TypeTests.dfy(114,6): Error: sorry, cannot instantiate collection type with a subrange type
-TypeTests.dfy(115,6): Error: sorry, cannot instantiate collection type with a subrange type
-TypeTests.dfy(116,6): Error: sorry, cannot instantiate collection type with a subrange type
-TypeTests.dfy(117,13): Error: sorry, cannot instantiate type parameter with a subrange type
-TypeTests.dfy(118,9): Error: sorry, cannot instantiate type parameter with a subrange type
-TypeTests.dfy(119,10): Error: sorry, cannot instantiate type parameter with a subrange type
-TypeTests.dfy(123,11): Error: sorry, cannot instantiate type parameter with a subrange type
-TypeTests.dfy(124,11): Error: sorry, cannot instantiate type parameter with a subrange type
-TypeTests.dfy(127,14): Error: sorry, cannot instantiate type parameter with a subrange type
-TypeTests.dfy(128,14): Error: sorry, cannot instantiate type parameter with a subrange type
-TypeTests.dfy(129,20): Error: sorry, cannot instantiate type parameter with a subrange type
-TypeTests.dfy(132,9): Error: sorry, cannot instantiate type parameter with a subrange type
-TypeTests.dfy(133,22): Error: sorry, cannot instantiate type parameter with a subrange type
-TypeTests.dfy(136,12): Error: sorry, cannot instantiate type parameter with a subrange type
-TypeTests.dfy(137,12): Error: sorry, cannot instantiate type parameter with a subrange type
-TypeTests.dfy(139,5): Error: sorry, cannot instantiate type parameter with a subrange type
-TypeTests.dfy(140,13): Error: sorry, cannot instantiate type parameter with a subrange type
-TypeTests.dfy(141,2): Error: sorry, cannot instantiate type parameter with a subrange type
-TypeTests.dfy(142,16): Error: sorry, cannot instantiate type parameter with a subrange type
-TypeTests.dfy(143,14): Error: sorry, cannot instantiate type parameter with a subrange type
 TypeTests.dfy(23,9): Error: because of cyclic dependencies among constructor argument types, no instances of datatype 'NeverendingList' can be constructed
 TypeTests.dfy(169,7): Error: non-ghost variable cannot be assigned a value that depends on a ghost
 TypeTests.dfy(179,6): Error: cannot assign to non-ghost variable in a ghost context
@@ -60,4 +30,4 @@ TypeTests.dfy(198,15): Error: incorrect type of datatype constructor argument (f
 TypeTests.dfy(204,15): Error: incorrect type of datatype constructor argument (found ? -> ?, expected ? -> Dt<?>) (covariant type parameter 1 would require Dt<?> <: ?)
 TypeTests.dfy(211,6): Error: RHS (of type set<?>) not assignable to LHS (of type ?)
 TypeTests.dfy(222,9): Error: Assignment to array element is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)
-62 resolution/type errors detected in TypeTests.dfy
+32 resolution/type errors detected in TypeTests.dfy

@@ -233,7 +233,7 @@ method M5()
       seven := (if 0.0 <= small < 100.0 then small else 100.0) as bv7;
   }
 }
-TypeConversions.dfy(14,40): Error: value assigned to a nat must be non-negative
+TypeConversions.dfy(14,40): Error: value does not satisfy the subset constraints of 'nat'
 Execution trace:
     (0,0): anon0
     (0,0): anon13_Then
@@ -241,7 +241,7 @@ TypeConversions.dfy(16,40): Error: the real-based number must be an integer (if 
 Execution trace:
     (0,0): anon0
     (0,0): anon15_Then
-TypeConversions.dfy(17,40): Error: value assigned to a nat must be non-negative
+TypeConversions.dfy(17,40): Error: value does not satisfy the subset constraints of 'nat'
 Execution trace:
     (0,0): anon0
     (0,0): anon16_Then

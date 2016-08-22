@@ -52,7 +52,7 @@ Execution trace:
     (0,0): anon10_Else
     (0,0): anon11_Then
     (0,0): anon12_Then
-Parallel.dfy(122,11): Error: value assigned to a nat must be non-negative
+Parallel.dfy(122,11): Error: value does not satisfy the subset constraints of 'nat'
 Execution trace:
     (0,0): anon0
     (0,0): anon6_Then

@@ -96,51 +96,51 @@ method ArrayRangeAssignments(a: array<C>, c: C)
   s[2..3] := c;  // error: this is not allowed
 }
 
-// --------------------- tests of restrictions on subranges (nat)
+// ----- tests of restrictions on subranges (nat) ----- these are no longer restrictions :) :)
 
 method K() {
-  var s: set<nat>;  // error: not allowed to instantiate 'set' with 'nat'
-  var d: MutuallyRecursiveDataType<nat>;  // error: not allowed to instantiate with 'nat'
-  var a := new nat[100];  // error: not allowed the type array<nat>
-  var b := new nat[100,200];  // error: not allowed the type array2<nat>
+  var s: set<nat>;
+  var d: MutuallyRecursiveDataType<nat>;
+  var a := new nat[100];
+  var b := new nat[100,200];
 
   // constructors
-  var ci0 := new Expl_Class.Init<nat>(0, 0);  // error: subrange not allowed here
-  var ci1 := new Expl_Class<nat>;  // error
-  var ci2 := new Expl_Class<nat>.Init(0, 0);  // error
+  var ci0 := new Expl_Class.Init<nat>(0, 0);
+  var ci1 := new Expl_Class<nat>;
+  var ci2 := new Expl_Class<nat>.Init(0, 0);
 
   // collection types (sets are above) and array types
-  var m0: multiset<nat>;  // error
-  var m1: seq<nat>;  // error
-  var m2: map<nat,int>;  // error
-  var m3: map<int,nat>;  // error
-  var n: seq<MutuallyRecursiveDataType<nat>>;  // error
-  var o: array<nat>;  // error
-  var o': array2<nat>;  // error
+  var m0: multiset<nat>;
+  var m1: seq<nat>;
+  var m2: map<nat,int>;
+  var m3: map<int,nat>;
+  var n: seq<MutuallyRecursiveDataType<nat>>;
+  var o: array<nat>;
+  var o': array2<nat>;
 
   // tuple types
   var tu0: (nat);  // no problem, this just means 'nat'
-  var tu1: (nat,int);  // error
-  var tu2: (int,nat);  // error
+  var tu1: (nat,int);
+  var tu2: (int,nat);
 
   // function types
-  var fn: nat -> int;  // error
-  var gn: int -> nat;  // error
-  var hn: (int,nat) -> int;  // error
+  var fn: nat -> int;
+  var gn: int -> nat;
+  var hn: (int,nat) -> int;
 
   // the following tests test NameSegment and ExprDotName in types:
-  var k: Expl_Class<nat>;  // error
-  var k': Expl_Module.E<nat>;  // error
+  var k: Expl_Class<nat>;
+  var k': Expl_Module.E<nat>;
 
   // the following tests test NameSegment and ExprDotName in expressions:
-  var e0 := Expl_M<nat>(0);  // error
-  var e1 := Expl_F<nat>(0);  // error
+  var e0 := Expl_M<nat>(0);
+  var e1 := Expl_F<nat>(0);
   var ec := new Expl_Class<int>;
-  ec.Init<nat>(0, 0);  // error
-  Expl_Class.DoIt<nat>(0, 0);  // error
-  Expl_Class<nat>.DoIt(0, 0);  // error
-  Expl_Module.E.N<nat>(0, 0);  // error
-  Expl_Module.E<nat>.N(0, 0);  // error
+  ec.Init<nat>(0, 0);
+  Expl_Class.DoIt<nat>(0, 0);
+  Expl_Class<nat>.DoIt(0, 0);
+  Expl_Module.E.N<nat>(0, 0);
+  Expl_Module.E<nat>.N(0, 0);
 }
 method Expl_M<T>(x: T) returns (y: T)
 function method Expl_F<T>(x: T): T

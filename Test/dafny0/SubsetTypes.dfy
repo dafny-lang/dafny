@@ -37,26 +37,27 @@ module AssignmentToNat {
 
   function method Pf(n: nat): int
   function method Pg(x: int): nat
-  /*
-  method P(x: int, f: nat -> int) returns (g: int -> nat) {
-    var y := f(x);
-    g := z => z;
+
+  method P(x: int, f: nat -> int) returns (g: int -> nat)
+    requires f.requires(x)  // error
+  {
+    var y := f(x);  // error
+    g := z => z;  // error
   }
   method Q(x: int) {
-    var f := Pf;  // BUG: this is not supposed to happen, since it gives f the type nat->int
-    var g := Pg;  // BUG: this is not supposed to happen, since it gives g the type int->nat
+    var f := Pf;
+    var g := Pg;
     var a := f(x);  // error
     var id := u => u;
-    g := uu;  // BUG: there's a missing check here that the RHS (int -> int) is really a LHS (int -> nat)
+    g := id;  // error
   }
-   */
 
   function Id(x: int): nat
   {
     x  // error
   }
 }
-/*
+
 module AssignmentToSetNat {
   method M(x0: set<int>, x1: set<int>, x2: set<int>, x3: set<int>)
   {
@@ -83,8 +84,8 @@ module AssignmentToSetNat {
   function method F(q: set<nat>): set<int>
   function method F'(x: set<int>): set<nat>
   {
-    F
-      (x)  // error (x2)
+    F      // error (regarding result of F(x))
+      (x)  // error (regaring argument to F)
   }
 
   class G {
@@ -93,17 +94,19 @@ module AssignmentToSetNat {
 
   function method Pf(n: set<nat>): set<int>
   function method Pg(x: set<int>): set<nat>
-  /*
-  method P(x: set<int>, f: set<nat> -> set<int>) returns (g: set<int> -> set<nat>) {
-    var y := f(x);
-    g := z => z;
+
+  method P(x: set<int>, f: set<nat> -> set<int>) returns (g: set<int> -> set<nat>)
+    requires f.requires(x)  // error
+  {
+    var y := f(x);  // error
+    g := z => z;  // error
   }
-   */
   method Q(x: set<int>) {
-    var f := Pf;  // BUG: this is not supposed to happen, since it gives f the type set<nat>->set<int>
-    var g := Pg;  // BUG: this is not supposed to happen, since it gives g the type set<int>->set<nat>
+    var f := Pf;
+    var g := Pg;
     var a := f(x);  // error
-    g := u => u;  // BUG: there's a missing check here that the return value is a set<nat>
+    var id := u => u;
+    g := id;  // error
   }
 
   function Id(x: set<int>): set<nat>
@@ -111,4 +114,51 @@ module AssignmentToSetNat {
     x  // error
   }
 }
- */
+
+module OutParameters {
+  method P<T>(x: T) returns (y: T) { y := x; }
+
+  method M() returns (x: int, n: nat) {
+    if {
+      case true =>  x := P<nat>(n);
+      case true =>  n := P<nat>(x);  // error (x)
+      case true =>  x := P<int>(n);
+      case true =>  n := P<int>(x);  // error (n)
+    }
+  }
+}
+
+module Contravariance {
+  method M0(a: int -> int, b: int -> nat, c: nat -> int, d: nat -> nat) returns (r: int -> int) {
+    if {
+      case true =>  r := a;
+//TODO:      case true =>  r := b;
+      case true =>  r := c;  // error
+      case true =>  r := d;  // error
+    }
+  }
+  method M1(a: int -> int, b: int -> nat, c: nat -> int, d: nat -> nat) returns (r: int -> nat) {
+    if {
+      case true =>  r := a;  // error
+      case true =>  r := b;
+      case true =>  r := c;  // error
+      case true =>  r := d;  // error
+    }
+  }
+  method M2(a: int -> int, b: int -> nat, c: nat -> int, d: nat -> nat) returns (r: nat -> int) {
+    if {
+//TODO:      case true =>  r := a;
+//TODO:      case true =>  r := b;
+      case true =>  r := c;
+//TODO:      case true =>  r := d;
+    }
+  }
+  method M3(a: int -> int, b: int -> nat, c: nat -> int, d: nat -> nat) returns (r: nat -> nat) {
+    if {
+      case true =>  r := a;  // error
+//TODO:      case true =>  r := b;
+      case true =>  r := c;  // error
+      case true =>  r := d;
+    }
+  }
+}

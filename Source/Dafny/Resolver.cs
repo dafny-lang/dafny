@@ -1217,7 +1217,7 @@ namespace Microsoft.Dafny
             if (members.ContainsKey(nm)) {
               reporter.Error(MessageSource.Resolver, p.tok, "Name of implicit yield-history variable '{0}' is already used by another member of the iterator", p.Name);
             } else {
-              var tp = new SeqType(p.Type.IsSubrangeType ? new IntType() : p.Type);
+              var tp = new SeqType(StripSubsetConstraints(p.Type));
               var field = new SpecialField(p.tok, nm, nm, "", "", true, true, false, tp, null);
               field.EnclosingClass = iter;  // resolve here
               iter.OutsHistoryFields.Add(field);  // for now, just record this field (until all parameters have been added as members)
@@ -2259,8 +2259,8 @@ namespace Microsoft.Dafny
       Contract.Requires(sub != null);
       Contract.Requires(super != null);
       Contract.Requires(errMsg != null);
-      super = super.NormalizeExpand();
-      sub = sub.NormalizeExpand();
+      super = StripSubsetConstraints(super.NormalizeExpand());
+      sub = StripSubsetConstraints(sub.NormalizeExpand());
       var c = new TypeConstraint(super, sub, errMsg);
       AllTypeConstraints.Add(c);
       return ConstrainSubtypeRelation_Aux(super, sub, c);
@@ -6582,9 +6582,6 @@ namespace Microsoft.Dafny
         if (2 != typeArgumentCount) {
           reporter.Error(MessageSource.Resolver, tok, "Wrong number of type arguments ({0} instead of 2) passed to type: {1}", typeArgumentCount, mt.CollectionTypeName);
         }
-        if (errorCount == reporter.Count(ErrorLevel.Error) && (mt.Domain.IsSubrangeType || mt.Range.IsSubrangeType)) {
-          reporter.Error(MessageSource.Resolver, tok, "sorry, cannot instantiate collection type with a subrange type");
-        }
       } else if (type is CollectionType) {
         var t = (CollectionType)type;
         var errorCount = reporter.Count(ErrorLevel.Error);
@@ -6603,10 +6600,6 @@ namespace Microsoft.Dafny
           reporter.Error(MessageSource.Resolver, tok, "Wrong number of type arguments (0 instead of 1) passed to type: {0}", t.CollectionTypeName);
           // add a proxy type, to make sure that CollectionType will have have a non-null Arg
           t.SetTypeArg(new InferredTypeProxy());
-        }
-
-        if (errorCount == reporter.Count(ErrorLevel.Error) && t.Arg.IsSubrangeType) {
-          reporter.Error(MessageSource.Resolver, tok, "sorry, cannot instantiate collection type with a subrange type");
         }
 
       } else if (type is UserDefinedType) {
@@ -9571,7 +9564,7 @@ namespace Microsoft.Dafny
       }
     }
 
-    private Type StripSubsetConstraints(Type type) {
+    public static Type StripSubsetConstraints(Type type) {
       Contract.Requires(type != null);
       if (type is NatType) {
         return new IntType();
@@ -10235,9 +10228,6 @@ namespace Microsoft.Dafny
       if (expr.OptTypeArguments != null) {
         foreach (var ty in expr.OptTypeArguments) {
           ResolveType(expr.tok, ty, opts.codeContext, ResolveTypeOptionEnum.InferTypeProxies, null);
-          if (ty.IsSubrangeType) {
-            reporter.Error(MessageSource.Resolver, expr.tok, "sorry, cannot instantiate type parameter with a subrange type");
-          }
         }
       }
 
@@ -10261,9 +10251,7 @@ namespace Microsoft.Dafny
         if (expr.OptTypeArguments != null) {
           reporter.Error(MessageSource.Resolver, expr.tok, "variable '{0}' does not take any type parameters", expr.Name);
         }
-        var rr = new IdentifierExpr(expr.tok, expr.Name);
-        rr.Var = v; rr.Type = v.Type;
-        r = rr;
+        r = new IdentifierExpr(expr.tok, v);
       } else if (currentClass != null && classMembers.TryGetValue(currentClass, out members) && members.TryGetValue(expr.Name, out member)) {
         // ----- 1. member of the enclosing class
         Expression receiver;
@@ -10353,9 +10341,6 @@ namespace Microsoft.Dafny
       if (expr.OptTypeArguments != null) {
         foreach (var ty in expr.OptTypeArguments) {
           ResolveType(expr.tok, ty, opts.codeContext, option, defaultTypeArguments);
-          if (ty.IsSubrangeType) {
-            reporter.Error(MessageSource.Resolver, expr.tok, "sorry, cannot instantiate type parameter with a subrange type");
-          }
         }
       }
 
@@ -10494,9 +10479,6 @@ namespace Microsoft.Dafny
       if (expr.OptTypeArguments != null) {
         foreach (var ty in expr.OptTypeArguments) {
           ResolveType(expr.tok, ty, opts.codeContext, ResolveTypeOptionEnum.InferTypeProxies, null);
-          if (ty.IsSubrangeType) {
-            reporter.Error(MessageSource.Resolver, expr.tok, "sorry, cannot instantiate type parameter with a subrange type");
-          }
         }
       }
 
@@ -10660,9 +10642,6 @@ namespace Microsoft.Dafny
       if (expr.OptTypeArguments != null) {
         foreach (var ty in expr.OptTypeArguments) {
           ResolveType(expr.tok, ty, opts.codeContext, option, defaultTypeArguments);
-          if (ty.IsSubrangeType) {
-            reporter.Error(MessageSource.Resolver, expr.tok, "sorry, cannot instantiate type parameter with a subrange type");
-          }
         }
       }
 

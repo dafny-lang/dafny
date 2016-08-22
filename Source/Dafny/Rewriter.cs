@@ -1956,7 +1956,7 @@ namespace Microsoft.Dafny
       var inductionVariables = new List<Expression>();
       foreach (IVariable n in boundVars) {
         if (!n.Type.IsTypeParameter && (args != null || searchExprs.Exists(expr => VarOccursInArgumentToRecursiveFunction(expr, n)))) {
-          inductionVariables.Add(new IdentifierExpr(n));
+          inductionVariables.Add(new IdentifierExpr(n.Tok, n));
         }
       }
       if (inductionVariables.Count != 0) {

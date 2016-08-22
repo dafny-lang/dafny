@@ -516,12 +516,16 @@ namespace Microsoft.Dafny {
     }
 
     /// <summary>
-    /// Returns whether or not "this" and "that" denote the same type, module proxies and type synonyms.
+    /// Returns whether or not "this" and "that" denote the same type, module proxies and type synonyms and subset types.
     /// </summary>
     [Pure]
     public abstract bool Equals(Type that);
     /// <summary>
-    /// Returns whether or not "this" and "that" could denote the same type, module proxies and type synonyms, if
+    /// Returns whether or not "this" and "that" denote the same type, modulo proxies and type synonyms, but treating subset types as different.
+    /// </summary>
+    public abstract bool ExactlyEquals(Type that);
+    /// <summary>
+    /// Returns whether or not "this" and "that" could denote the same type, module proxies and type synonyms and subset types, if
     /// type parameters are treated as wildcards.
     /// </summary>
     public bool PossiblyEquals(Type that) {
@@ -543,8 +547,14 @@ namespace Microsoft.Dafny {
     public bool IsIntegerType { get { return NormalizeExpand() is IntType; } }
     public bool IsRealType { get { return NormalizeExpand() is RealType; } }
     public bool IsBitVectorType { get { return NormalizeExpand() is BitvectorType; } }
-    public bool IsSubrangeType {
-      get { return NormalizeExpand() is NatType; }
+    public bool ContainsSubsetType {
+      get {
+        var t = NormalizeExpand();
+        if (t is NatType) {
+          return true;
+        }
+        return t.TypeArgs.Any(a => a.ContainsSubsetType);
+      }
     }
     public bool IsNumericBased() {
       var t = NormalizeExpand();
@@ -1244,6 +1254,9 @@ namespace Microsoft.Dafny {
     public override bool PossiblyEquals_W(Type that) {
       return Equals(that);
     }
+    public override bool ExactlyEquals(Type that) {
+      return Equals(that);
+    }
   }
   /// <summary>
   /// The type "IntVarietiesSupertype" is used to denote a decimal-less number type, namely an int-based type
@@ -1282,6 +1295,9 @@ namespace Microsoft.Dafny {
     public override bool PossiblyEquals_W(Type that) {
       return Equals(that);
     }
+    public override bool ExactlyEquals(Type that) {
+      return Equals(that);
+    }
   }
 
   public class BoolType : BasicType {
@@ -1313,6 +1329,11 @@ namespace Microsoft.Dafny {
     }
     public override bool Equals(Type that) {
       return that.IsIntegerType;
+    }
+    public override bool ExactlyEquals(Type that) {
+      that = that.NormalizeExpand();
+      // treat "int" and "nat" as different
+      return that is IntType && (this is NatType == that is NatType);
     }
   }
 
@@ -1547,6 +1568,10 @@ namespace Microsoft.Dafny {
       var t = that.NormalizeExpand() as SetType;
       return t != null && Finite == t.Finite && Arg.Equals(t.Arg);
     }
+    public override bool ExactlyEquals(Type that) {
+      var t = that.NormalizeExpand() as SetType;
+      return t != null && Finite == t.Finite && Arg.ExactlyEquals(t.Arg);
+    }
     public override bool PossiblyEquals_W(Type that) {
       var t = that as SetType;
       return t != null && Finite == t.Finite && Arg.PossiblyEquals(t.Arg);
@@ -1562,6 +1587,10 @@ namespace Microsoft.Dafny {
       var t = that.NormalizeExpand() as MultiSetType;
       return t != null && Arg.Equals(t.Arg);
     }
+    public override bool ExactlyEquals(Type that) {
+      var t = that.NormalizeExpand() as MultiSetType;
+      return t != null && Arg.ExactlyEquals(t.Arg);
+    }
     public override bool PossiblyEquals_W(Type that) {
       var t = that as MultiSetType;
       return t != null && Arg.PossiblyEquals(t.Arg);
@@ -1575,6 +1604,10 @@ namespace Microsoft.Dafny {
     public override bool Equals(Type that) {
       var t = that.NormalizeExpand() as SeqType;
       return t != null && Arg.Equals(t.Arg);
+    }
+    public override bool ExactlyEquals(Type that) {
+      var t = that.NormalizeExpand() as SeqType;
+      return t != null && Arg.ExactlyEquals(t.Arg);
     }
     public override bool PossiblyEquals_W(Type that) {
       var t = that as SeqType;
@@ -1615,6 +1648,10 @@ namespace Microsoft.Dafny {
     public override bool Equals(Type that) {
       var t = that.NormalizeExpand() as MapType;
       return t != null && Finite == t.Finite && Arg.Equals(t.Arg) && Range.Equals(t.Range);
+    }
+    public override bool ExactlyEquals(Type that) {
+      var t = that.NormalizeExpand() as MapType;
+      return t != null && Finite == t.Finite && Arg.ExactlyEquals(t.Arg) && Range.ExactlyEquals(t.Range);
     }
     public override bool PossiblyEquals_W(Type that) {
       var t = that as MapType;
@@ -1812,6 +1849,25 @@ namespace Microsoft.Dafny {
         return i.Equals(that);
       }
     }
+    public override bool ExactlyEquals(Type that) {
+      var i = NormalizeExpand();
+      if (i is UserDefinedType) {
+        var ii = (UserDefinedType)i;
+        var t = that.NormalizeExpand() as UserDefinedType;
+        if (t == null || ii.ResolvedParam != t.ResolvedParam || ii.ResolvedClass != t.ResolvedClass || ii.TypeArgs.Count != t.TypeArgs.Count) {
+          return false;
+        } else {
+          for (int j = 0; j < ii.TypeArgs.Count; j++) {
+            if (!ii.TypeArgs[j].ExactlyEquals(t.TypeArgs[j])) {
+              return false;
+            }
+          }
+          return true;
+        }
+      } else {
+        return i.ExactlyEquals(that);
+      }
+    }
     public override bool PossiblyEquals_W(Type that) {
       Contract.Assume(ResolvedParam == null);  // we get this assumption from the caller, PossiblyEquals
       var t = that as UserDefinedType;
@@ -1997,6 +2053,15 @@ namespace Microsoft.Dafny {
         return u != null && object.ReferenceEquals(i, u);
       } else {
         return i.Equals(that);
+      }
+    }
+    public override bool ExactlyEquals(Type that) {
+      var i = NormalizeExpand();
+      if (i is TypeProxy) {
+        var u = that.NormalizeExpand() as TypeProxy;
+        return u != null && object.ReferenceEquals(i, u);
+      } else {
+        return i.ExactlyEquals(that);
       }
     }
     public override bool PossiblyEquals_W(Type that) {
@@ -6722,12 +6787,13 @@ namespace Microsoft.Dafny {
     /// <summary>
     /// Constructs a resolved IdentifierExpr.
     /// </summary>
-    public IdentifierExpr(IVariable v)
-      : base(v.Tok) {
+    public IdentifierExpr(IToken tok, IVariable v)
+      : base(tok) {
+      Contract.Requires(tok != null);
       Contract.Requires(v != null);
       Name = v.Name;
       Var = v;
-      Type = v.Type;
+      Type = Resolver.StripSubsetConstraints(v.Type);
     }
   }
 
@@ -6763,6 +6829,9 @@ namespace Microsoft.Dafny {
 
     public abstract class ResolverType : Type
     {
+      public override bool ExactlyEquals(Type that) {
+        return Equals(that);
+      }
     }
     public class ResolverType_Module : ResolverType
     {
@@ -8321,9 +8390,8 @@ namespace Microsoft.Dafny {
     public void AssembleExpr(List<Type> dtvTypeArgs) {
       Contract.Requires(Var != null || dtvTypeArgs != null);
       if (Var != null) {
-        var ie = new IdentifierExpr(this.tok, this.Id);
-        ie.Var = this.Var; ie.Type = this.Var.Type;  // resolve here
-        this.Expr = ie;
+        Contract.Assert(this.Id == this.Var.Name);
+        this.Expr = new IdentifierExpr(this.tok, this.Var);
       } else {
         var dtValue = new DatatypeValue(this.tok, this.Ctor.EnclosingDatatype.Name, this.Id, this.Arguments == null ? new List<Expression>() : this.Arguments.ConvertAll(arg => arg.Expr));
         dtValue.Ctor = this.Ctor;  // resolve here

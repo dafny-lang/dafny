@@ -3051,7 +3051,7 @@ namespace Microsoft.Dafny {
         {
           if (f.Type is NatType)
           {
-            builder.Add(optimizeExpr(true, new IdentifierExpr(f), f.Tok, etran));
+            builder.Add(optimizeExpr(true, new IdentifierExpr(f.tok, f), f.Tok, etran));
           }
         }
       }
@@ -4895,12 +4895,14 @@ namespace Microsoft.Dafny {
       }
     }
 
-    void CheckCasePatternShape(CasePattern pat, Bpl.Expr rhs, StmtListBuilder builder) {
+    void CheckCasePatternShape(CasePattern pat, Bpl.Expr rhs, IToken rhsTok, Type rhsType, StmtListBuilder builder) {
       Contract.Requires(pat != null);
       Contract.Requires(rhs != null);
+      Contract.Requires(rhsTok != null);
+      Contract.Requires(rhsType != null);
       Contract.Requires(builder != null);
       if (pat.Var != null) {
-        CheckSubrange(pat.tok, rhs, pat.Var.Type, builder);
+        CheckSubrange(rhsTok, rhs, rhsType, pat.Var.Type, builder);
       } else if (pat.Arguments != null) {
         Contract.Assert(pat.Ctor != null);  // follows from successful resolution
         Contract.Assert(pat.Arguments.Count == pat.Ctor.Destructors.Count);  // follows from successful resolution
@@ -4916,9 +4918,9 @@ namespace Microsoft.Dafny {
             builder.Add(Assert(pat.tok, correctConstructor, string.Format("RHS is not certain to look like the pattern '{0}'", ctor.Name)));
           }
 
-          var r = new Bpl.NAryExpr(pat.tok, new Bpl.FunctionCall(GetReadonlyField(dtor)), new List<Bpl.Expr> { rhs });
-          var de = CondApplyUnbox(pat.tok, r, dtor.Type, arg.Expr.Type);
-          CheckCasePatternShape(arg, de, builder);
+          var r = new Bpl.NAryExpr(arg.tok, new Bpl.FunctionCall(GetReadonlyField(dtor)), new List<Bpl.Expr> { rhs });
+          var de = CondApplyUnbox(arg.tok, r, dtor.Type, arg.Expr.Type);
+          CheckCasePatternShape(arg, de, arg.tok, arg.Expr.Type, builder);
         }
       }
     }
@@ -5336,7 +5338,7 @@ namespace Microsoft.Dafny {
 
         // check subranges of arguments
         for (int i = 0; i < arity; ++i) {
-          CheckSubrange(e.Args[i].tok, etran.TrExpr(e.Args[i]), tt.Args[i], builder);
+          CheckSubrange(e.Args[i].tok, etran.TrExpr(e.Args[i]), e.Args[i].Type, tt.Args[i], builder);
         }
 
         // check parameter availability
@@ -5413,7 +5415,7 @@ namespace Microsoft.Dafny {
           locals.Add(new Bpl.LocalVariable(local.Tok, new Bpl.TypedIdent(local.Tok, local.AssignUniqueName(currentDeclaration.IdGenerator), TrType(local.Type))));
           Bpl.IdentifierExpr lhs = (Bpl.IdentifierExpr)etran.TrExpr(ie);  // TODO: is this cast always justified?
           Expression ee = e.Args[i];
-          CheckSubrange(ee.tok, etran.TrExpr(ee), et, builder);
+          CheckSubrange(ee.tok, etran.TrExpr(ee), ee.Type, et, builder);
           Bpl.Cmd cmd = Bpl.Cmd.SimpleAssign(p.tok, lhs, CondApplyBox(p.tok, etran.TrExpr(ee), cce.NonNull(ee.Type), et));
           builder.Add(cmd);
           if (!etran.UsesOldHeap) {
@@ -5541,7 +5543,7 @@ namespace Microsoft.Dafny {
             su[p.Item1] = p.Item2;
           }
           Type ty = Resolver.SubstType(formal.Type, su);
-          CheckSubrange(arg.tok, etran.TrExpr(arg), ty, builder);
+          CheckSubrange(arg.tok, etran.TrExpr(arg), arg.Type, ty, builder);
         }
       } else if (expr is OldExpr) {
         OldExpr e = (OldExpr)expr;
@@ -5813,7 +5815,7 @@ namespace Microsoft.Dafny {
       if (result != null) {
         Contract.Assert(resultType != null);
         var bResult = etran.TrExpr(expr);
-        CheckSubrange(expr.tok, bResult, resultType, builder);
+        CheckSubrange(expr.tok, bResult, expr.Type, resultType, builder);
         builder.Add(TrAssumeCmd(expr.tok, Bpl.Expr.Eq(result, bResult)));
         builder.Add(TrAssumeCmd(expr.tok, CanCallAssumption(expr, etran)));
         builder.Add(new CommentCmd("CheckWellformedWithResult: any expression"));
@@ -5834,9 +5836,9 @@ namespace Microsoft.Dafny {
           var nm = varNameGen.FreshId(string.Format("#{0}#", i));
           var r = new Bpl.LocalVariable(pat.tok, new Bpl.TypedIdent(pat.tok, nm, TrType(rhs.Type)));
           locals.Add(r);
-          var rIe = new Bpl.IdentifierExpr(pat.tok, r);
+          var rIe = new Bpl.IdentifierExpr(rhs.tok, r);
           CheckWellformedWithResult(e.RHSs[i], options, rIe, pat.Expr.Type, locals, builder, etran);
-          CheckCasePatternShape(pat, rIe, builder);
+          CheckCasePatternShape(pat, rIe, rhs.tok, pat.Expr.Type, builder);
           builder.Add(TrAssumeCmd(pat.tok, Bpl.Expr.Eq(etran.TrExpr(Substitute(pat.Expr, null, substMap)), rIe)));
         }
         CheckWellformedWithResult(Substitute(e.Body, null, substMap), options, result, resultType, locals, builder, etran);
@@ -5856,19 +5858,7 @@ namespace Microsoft.Dafny {
         var rhs = Substitute(e.RHSs[0], null, substMap);
         if (checkRhs) {
           CheckWellformed(rhs, options, locals, builder, etran);
-          List<Tuple<List<BoundVar>, Expression>> partialGuesses = GeneratePartialGuesses(lhsVars, e.RHSs[0]);
-          Bpl.Expr w = Bpl.Expr.False;
-          foreach (var tup in partialGuesses) {
-            var body = etran.TrExpr(tup.Item2);
-            if (tup.Item1.Count != 0) {
-              var bvs = new List<Variable>();
-              var typeAntecedent = etran.TrBoundVariables(tup.Item1, bvs);
-              var triggers = TrTrigger(etran, e.Attributes, e.tok);
-              body = new Bpl.ExistsExpr(e.tok, bvs, triggers, BplAnd(typeAntecedent, body));
-            }
-            w = BplOr(body, w);
-          }
-          builder.Add(Assert(e.tok, w, "cannot establish the existence of LHS values that satisfy the such-that predicate"));
+          GenerateAndCheckGuesses(e.tok, lhsVars, e.RHSs[0], TrTrigger(etran, e.Attributes, e.tok), builder, etran);
         }
         builder.Add(TrAssumeCmd(e.tok, etran.TrExpr(rhs)));
         var letBody = Substitute(e.Body, null, substMap);
@@ -5888,7 +5878,7 @@ namespace Microsoft.Dafny {
         if (result != null) {
           Contract.Assert(resultType != null);
           var bResult = etran.TrExpr(letBody);
-          CheckSubrange(letBody.tok, bResult, resultType, builder);
+          CheckSubrange(letBody.tok, bResult, letBody.Type, resultType, builder);
           builder.Add(TrAssumeCmd(letBody.tok, Bpl.Expr.Eq(result, bResult)));
           builder.Add(TrAssumeCmd(letBody.tok, CanCallAssumption(letBody, etran)));
           builder.Add(new CommentCmd("CheckWellformedWithResult: Let expression"));
@@ -6872,7 +6862,7 @@ namespace Microsoft.Dafny {
         var index = 0;
         foreach (var formal in m.Ins) {
           if (formal.IsOld) {
-            var dafnyFormalIdExpr = new IdentifierExpr(formal);
+            var dafnyFormalIdExpr = new IdentifierExpr(formal.tok, formal);
             req.Add(Requires(formal.tok, false, MkIsAlloc(etran.TrExpr(dafnyFormalIdExpr), formal.Type, prevHeap),
               string.Format("parameter {0} ('{1}') must be allocated in the previous state", index, formal.Name), null));
           }
@@ -7917,19 +7907,7 @@ namespace Microsoft.Dafny {
             }
           }
 
-          List<Tuple<List<BoundVar>, Expression>> partialGuesses = GeneratePartialGuesses(bvars, Substitute(s.Expr, null, substMap));
-          Bpl.Expr w = Bpl.Expr.False;
-          foreach (var tup in partialGuesses) {
-            var body = etran.TrExpr(tup.Item2);
-            if (tup.Item1.Count != 0) {
-              var bvs = new List<Variable>();
-              var typeAntecedent = etran.TrBoundVariables(tup.Item1, bvs);
-              var triggers = TrTrigger(etran, s.Attributes, s.Tok, substMap);
-              body = new Bpl.ExistsExpr(s.Tok, bvs, triggers, BplAnd(typeAntecedent, body));
-            }
-            w = BplOr(body, w);
-          }
-          builder.Add(Assert(s.Tok, w, "cannot establish the existence of LHS values that satisfy the such-that predicate"));
+          GenerateAndCheckGuesses(s.Tok, bvars, Substitute(s.Expr, null, substMap), TrTrigger(etran, s.Attributes, s.Tok, substMap), builder, etran);
         }
         // End by doing the assume
         builder.Add(TrAssumeCmd(s.Tok, etran.TrExpr(s.Expr)));
@@ -8321,15 +8299,46 @@ namespace Microsoft.Dafny {
           var nm = varNameGen.FreshId(string.Format("#{0}#", i));
           var r = new Bpl.LocalVariable(pat.tok, new Bpl.TypedIdent(pat.tok, nm, TrType(rhs.Type)));
           locals.Add(r);
-          var rIe = new Bpl.IdentifierExpr(pat.tok, r);
+          var rIe = new Bpl.IdentifierExpr(rhs.tok, r);
           TrStmt_CheckWellformed(s.RHSs[i], builder, locals, etran, false);
           CheckWellformedWithResult(s.RHSs[i], new WFOptions(null, false, false), rIe, pat.Expr.Type, locals, builder, etran);
-          CheckCasePatternShape(pat, rIe, builder);
+          CheckCasePatternShape(pat, rIe, rhs.tok, pat.Expr.Type, builder);
           builder.Add(TrAssumeCmd(pat.tok, Bpl.Expr.Eq(etran.TrExpr(pat.Expr), rIe)));
         }
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected statement
       }
+    }
+
+    private void GenerateAndCheckGuesses(IToken tok, List<BoundVar> bvars, Expression expr, Trigger triggers, Bpl.StmtListBuilder builder, ExpressionTranslator etran) {
+      Contract.Requires(tok != null);
+      Contract.Requires(bvars != null);
+      Contract.Requires(expr != null);
+      Contract.Requires(builder != null);
+      Contract.Requires(etran != null);
+
+      List<Tuple<List<Tuple<BoundVar, Expression>>, Expression>> partialGuesses = GeneratePartialGuesses(bvars, expr);
+      Bpl.Expr w = Bpl.Expr.False;
+      foreach (var tup in partialGuesses) {
+        var body = etran.TrExpr(tup.Item2);
+        Bpl.Expr typeConstraints = Bpl.Expr.True;
+        var undetermined = new List<BoundVar>();
+        foreach (var be in tup.Item1) {
+          if (be.Item2 == null) {
+            undetermined.Add(be.Item1);
+          } else {
+            typeConstraints = BplAnd(typeConstraints, MkIs(etran.TrExpr(be.Item2), be.Item1.Type));
+          }
+        }
+        body = BplAnd(typeConstraints, body);
+        if (undetermined.Count != 0) {
+          var bvs = new List<Variable>();
+          var typeAntecedent = etran.TrBoundVariables(undetermined, bvs);
+          body = new Bpl.ExistsExpr(tok, bvs, triggers, BplAnd(typeAntecedent, body));
+        }
+        w = BplOr(body, w);
+      }
+      builder.Add(Assert(tok, w, "cannot establish the existence of LHS values that satisfy the such-that predicate"));
     }
 
     private void IntroduceAndAssignExistentialVars(ExistsExpr exists, Bpl.StmtListBuilder builder, Bpl.StmtListBuilder builderOutsideIfConstruct, List<Variable> locals, ExpressionTranslator etran) {
@@ -8433,12 +8442,12 @@ namespace Microsoft.Dafny {
       builder.Add(Bpl.Cmd.SimpleAssign(tok, new Bpl.IdentifierExpr(tok, "$_OldIterHeap", predef.HeapType), etran.HeapExpr));
     }
 
-    List<Tuple<List<BoundVar>, Expression>> GeneratePartialGuesses(List<BoundVar> bvars, Expression expression) {
+    List<Tuple<List<Tuple<BoundVar, Expression>>, Expression>> GeneratePartialGuesses(List<BoundVar> bvars, Expression expression) {
       if (bvars.Count == 0) {
-        var tup = new Tuple<List<BoundVar>, Expression>(new List<BoundVar>(), expression);
-        return new List<Tuple<List<BoundVar>, Expression>>() { tup };
+        var tup = new Tuple<List<Tuple<BoundVar, Expression>>, Expression>(new List<Tuple<BoundVar, Expression>>(), expression);
+        return new List<Tuple<List<Tuple<BoundVar, Expression>>, Expression>>() { tup };
       }
-      var result = new List<Tuple<List<BoundVar>, Expression>>();
+      var result = new List<Tuple<List<Tuple<BoundVar, Expression>>, Expression>>();
       var x = bvars[0];
       var otherBvars = bvars.GetRange(1, bvars.Count - 1);
       foreach (var tup in GeneratePartialGuesses(otherBvars, expression)) {
@@ -8448,22 +8457,32 @@ namespace Microsoft.Dafny {
           continue;
         }
         // one possible result is to quantify over all the variables
-        var vs = new List<BoundVar>() { x };
+        var vs = new List<Tuple<BoundVar, Expression>>() { new Tuple<BoundVar, Expression>(x, null) };
         vs.AddRange(tup.Item1);
-        result.Add(new Tuple<List<BoundVar>, Expression>(vs, tup.Item2));
+        result.Add(new Tuple<List<Tuple<BoundVar, Expression>>, Expression>(vs, tup.Item2));
         // other possibilities involve guessing a value for x
         foreach (var guess in GuessWitnesses(x, tup.Item2)) {
-          var substMap = new Dictionary<IVariable, Expression>();
-          substMap.Add(x, guess);
-          var g = Substitute(tup.Item2, null, substMap);
-          var subrange = SubrangeConstraint(x.tok, guess, x.Type);
-          if (subrange != null) {
-            g = Expression.CreateAnd(subrange, g);
-          }
-          result.Add(new Tuple<List<BoundVar>, Expression>(tup.Item1, g));
+          var g = Substitute(tup.Item2, x, guess);
+          vs = new List<Tuple<BoundVar, Expression>>() { new Tuple<BoundVar, Expression>(x, guess) };
+          AddRangeSubst(vs, tup.Item1, x, guess);
+          result.Add(new Tuple<List<Tuple<BoundVar, Expression>>, Expression>(vs, g));
         }
       }
       return result;
+    }
+
+    private void AddRangeSubst(List<Tuple<BoundVar, Expression>> vs, List<Tuple<BoundVar, Expression>> aa, IVariable v, Expression e) {
+      Contract.Requires(vs != null);
+      Contract.Requires(aa != null);
+      Contract.Requires(v != null);
+      Contract.Requires(e != null);
+      foreach (var be in aa) {
+        if (be.Item2 == null) {
+          vs.Add(be);
+        } else {
+          vs.Add(new Tuple<BoundVar, Expression>(be.Item1, Substitute(be.Item2, v, e)));
+        }
+      }
     }
 
     IEnumerable<Expression> GuessWitnesses(BoundVar x, Expression expr) {
@@ -8480,6 +8499,8 @@ namespace Microsoft.Dafny {
         yield break;  // there are no more possible witnesses for booleans
       } else if (xType is CharType) {
         // TODO: something could be done for character literals
+      } else if (xType.IsBitVectorType) {
+        // TODO: something could be done for bitvectors
       } else if (xType.IsRefType) {
         var lit = new LiteralExpr(x.tok);  // null
         lit.Type = xType;
@@ -8664,7 +8685,7 @@ namespace Microsoft.Dafny {
           lhsType = ((MultiSelectExpr)lhs).Type;
         }
         var translatedRhs = etran.TrExpr(rhs);
-        CheckSubrange(r.Tok, translatedRhs, lhsType, definedness);
+        CheckSubrange(r.Tok, translatedRhs, rhs.Type, lhsType, definedness);
         if (lhs is MemberSelectExpr) {
           var fse = (MemberSelectExpr)lhs;
           var field = fse.Member as Field;
@@ -9292,6 +9313,7 @@ namespace Microsoft.Dafny {
       List<Bpl.IdentifierExpr> bLhss;
       Bpl.Expr[] ignore1, ignore2;
       string[] ignore3;
+      var tySubst = s.MethodSelect.TypeArgumentSubstitutions();
       ProcessLhss(s.Lhs, true, true, builder, locals, etran, out lhsBuilders, out bLhss, out ignore1, out ignore2, out ignore3);
       Contract.Assert(s.Lhs.Count == lhsBuilders.Count);
       Contract.Assert(s.Lhs.Count == bLhss.Count);
@@ -9303,8 +9325,9 @@ namespace Microsoft.Dafny {
         if (bLhss[i] == null) {  // (in the current implementation, the second parameter "true" to ProcessLhss implies that all bLhss[*] will be null)
           // create temporary local and assign it to bLhss[i]
           string nm = CurrentIdGenerator.FreshId("$rhs##");
-          var ty = TrType(lhs.Type);
-          Bpl.Expr wh = GetWhereClause(lhs.tok, new Bpl.IdentifierExpr(lhs.tok, nm, ty), lhs.Type, etran);
+          var formalOutType = Resolver.SubstType(s.Method.Outs[i].Type, tySubst);
+          var ty = TrType(formalOutType);
+          Bpl.Expr wh = GetWhereClause(lhs.tok, new Bpl.IdentifierExpr(lhs.tok, nm, ty), formalOutType, etran);
           Bpl.LocalVariable var = new Bpl.LocalVariable(lhs.tok, new Bpl.TypedIdent(lhs.tok, nm, ty, wh));
           locals.Add(var);
           bLhss[i] = new Bpl.IdentifierExpr(lhs.tok, var.Name, ty);
@@ -9320,25 +9343,28 @@ namespace Microsoft.Dafny {
         builder.Add(Bpl.Cmd.SimpleAssign(s.Tok, initHeap, etran.HeapExpr));
       }
       builder.Add(new CommentCmd("TrCallStmt: Before ProcessCallStmt"));
-      ProcessCallStmt(s.Tok, s.MethodSelect.TypeArgumentSubstitutions(), GetTypeParams(s.Method), s.Receiver, actualReceiver, s.Method, s.Args, bLhss, lhsTypes, builder, locals, etran);
+      ProcessCallStmt(s.Tok, tySubst, GetTypeParams(s.Method), s.Receiver, actualReceiver, s.Method, s.Args, bLhss, lhsTypes, builder, locals, etran);
       builder.Add(new CommentCmd("TrCallStmt: After ProcessCallStmt"));
       for (int i = 0; i < lhsBuilders.Count; i++) {
         var lhs = s.Lhs[i];
-        Type lhsType = null;
+        Type lhsType, rhsTypeConstraint;
         if (lhs is IdentifierExpr) {
-          lhsType = lhs.Type;
+          var ide = (IdentifierExpr)lhs;
+          lhsType = ide.Var.Type;
+          rhsTypeConstraint = lhsType;
         } else if (lhs is MemberSelectExpr) {
           var fse = (MemberSelectExpr)lhs;
-          var field = fse.Member as Field;
-          Contract.Assert(field != null);
+          var field = (Field)fse.Member;
           lhsType = field.Type;
+          rhsTypeConstraint = Resolver.SubstType(lhsType, fse.TypeArgumentSubstitutions());
+        } else {
+          Contract.Assert(lhs is SeqSelectExpr || lhs is MultiSelectExpr);
+          lhsType = null;  // for arrays, always make sure the value assigned is boxed
+          rhsTypeConstraint = lhs.Type;
         }
 
         Bpl.Expr bRhs = bLhss[i];  // the RHS (bRhs) of the assignment to the actual call-LHS (lhs) was a LHS (bLhss[i]) in the Boogie call statement
-        if (lhsType != null) {
-          builder.Add(new CommentCmd("TrCallStmt: Checking bRhs " + bRhs + " to have type " + lhs.Type));
-          CheckSubrange(lhs.tok, bRhs, lhs.Type, builder);
-        }
+        CheckSubrange(lhs.tok, bRhs, Resolver.SubstType(s.Method.Outs[i].Type, tySubst), rhsTypeConstraint, builder);
         bRhs = CondApplyBox(lhs.tok, bRhs, lhs.Type, lhsType);
 
         lhsBuilders[i](bRhs, builder, etran);
@@ -9462,7 +9488,7 @@ namespace Microsoft.Dafny {
           builder.Add(new CommentCmd("ProcessCallStmt: CheckSubrange"));
           // Check the subrange without boxing
           var beforeBox = etran.TrExpr(actual);
-          CheckSubrange(actual.tok, beforeBox, Resolver.SubstType(formal.Type, tySubst), builder);
+          CheckSubrange(actual.tok, beforeBox, actual.Type, Resolver.SubstType(formal.Type, tySubst), builder);
           bActual = CondApplyBox(actual.tok, beforeBox, actual.Type, formal.Type);
         }
         Bpl.Cmd cmd = Bpl.Cmd.SimpleAssign(formal.tok, param, bActual);
@@ -10125,7 +10151,8 @@ namespace Microsoft.Dafny {
 
         Type lhsType, rhsTypeConstraint;
         if (lhs is IdentifierExpr) {
-          lhsType = ((IdentifierExpr)lhs).Var.Type;
+          var ide = (IdentifierExpr)lhs;
+          lhsType = ide.Var.Type;
           rhsTypeConstraint = lhsType;
         } else if (lhs is MemberSelectExpr) {
           var fse = (MemberSelectExpr)lhs;
@@ -10465,7 +10492,7 @@ namespace Microsoft.Dafny {
         TrStmt_CheckWellformed(e.Expr, builder, locals, etran, true);
 
         Bpl.Expr bRhs = etran.TrExpr(e.Expr);
-        CheckSubrange(tok, bRhs, rhsTypeConstraint, builder);
+        CheckSubrange(tok, bRhs, e.Expr.Type, rhsTypeConstraint, builder);
         if (bGivenLhs != null) {
           Contract.Assert(bGivenLhs == bLhs);
           // box the RHS, then do the assignment
@@ -10550,47 +10577,19 @@ namespace Microsoft.Dafny {
       }
     }
 
-    void CheckSubrange(IToken tok, Bpl.Expr bRhs, Type tp, StmtListBuilder builder) {
+    void CheckSubrange(IToken tok, Bpl.Expr bSource, Type sourceType, Type targetType, StmtListBuilder builder) {
       Contract.Requires(tok != null);
-      Contract.Requires(bRhs != null);
-      Contract.Requires(tp != null);
+      Contract.Requires(bSource != null);
+      Contract.Requires(sourceType != null);
+      Contract.Requires(targetType != null);
       Contract.Requires(builder != null);
 
-      var cre = CheckSubrange_Expr(tok, bRhs, tp);
-      var msg = tp.NormalizeExpand() is NatType ?
-                                  "value assigned to a nat must be non-negative" :
-                                  "value does not satisfy the subrange criteria";
-      builder.Add(Assert(tok, cre, msg));
-    }
-
-    Bpl.Expr CheckSubrange_Expr(IToken tok, Bpl.Expr bRhs, Type tp) {
-      Contract.Requires(tok != null);
-      Contract.Requires(bRhs != null);
-      Contract.Requires(tp != null);
-      Contract.Ensures(Contract.Result<Bpl.Expr>() != null);
-
-      // Only need to check this for natural numbers for now.
       // We should always be able to use Is, but this is an optimisation.
-      if (tp.NormalizeExpand() is NatType) {
-        return MkIs(bRhs, tp);
-      } else {
-        return Bpl.Expr.True;
+      if (!sourceType.ExactlyEquals(targetType)) {
+        var cre = MkIs(bSource, targetType);
+        var msg = string.Format("value does not satisfy the subset constraints of '{0}'", targetType.Normalize());
+        builder.Add(Assert(tok, cre, msg));
       }
-
-    }
-
-    // This one is only used for guessing, which should be fine for now.
-    Expression SubrangeConstraint(IToken tok, Expression e, Type tp) {
-      Contract.Requires(tok != null);
-      Contract.Requires(e != null);
-      Contract.Requires(tp != null);
-
-
-      if (tp is NatType) {
-        return Expression.CreateAtMost(Expression.CreateIntLiteral(tok, 0), e);
-      }
-      return null;
-
     }
 
     void Check_NewRestrictions(IToken tok, Bpl.Expr obj, Field f, Bpl.Expr rhs, StmtListBuilder builder, ExpressionTranslator etran) {

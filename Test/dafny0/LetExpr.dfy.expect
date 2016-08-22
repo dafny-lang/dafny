@@ -5,15 +5,15 @@ Execution trace:
 LetExpr.dfy(9,11): Error: assertion violation
 Execution trace:
     (0,0): anon0
-LetExpr.dfy(254,18): Error: value assigned to a nat must be non-negative
+LetExpr.dfy(254,18): Error: value does not satisfy the subset constraints of 'nat'
 Execution trace:
     (0,0): anon0
     (0,0): anon5_Then
-LetExpr.dfy(257,18): Error: value assigned to a nat must be non-negative
+LetExpr.dfy(257,18): Error: value does not satisfy the subset constraints of 'nat'
 Execution trace:
     (0,0): anon0
     (0,0): anon6_Then
-LetExpr.dfy(259,23): Error: value assigned to a nat must be non-negative
+LetExpr.dfy(259,23): Error: value does not satisfy the subset constraints of 'nat'
 Execution trace:
     (0,0): anon0
     (0,0): anon6_Else
@@ -21,7 +21,7 @@ LetExpr.dfy(288,13): Error: RHS is not certain to look like the pattern 'Agnes'
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Else
-LetExpr.dfy(305,41): Error: value assigned to a nat must be non-negative
+LetExpr.dfy(305,41): Error: value does not satisfy the subset constraints of 'nat'
 Execution trace:
     (0,0): anon0
     (0,0): anon7_Else
