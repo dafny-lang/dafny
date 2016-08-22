@@ -105,17 +105,35 @@ Array.dfy(249,0): Error BP5003: A postcondition might not hold on this return pa
 Array.dfy(248,10): Related location: This is the postcondition that might not hold.
 Execution trace:
     (0,0): anon0
-Array.dfy(264,9): Error: value does not satisfy the subset constraints of 'nat'
+Array.dfy(259,12): Error: value does not satisfy the subset constraints of 'nat'
 Execution trace:
     (0,0): anon0
     (0,0): anon5_Then
     (0,0): anon2
     (0,0): anon6_Then
-Array.dfy(265,4): Error: value does not satisfy the subset constraints of 'nat'
+Array.dfy(260,5): Error: value does not satisfy the subset constraints of 'nat'
+Execution trace:
+    (0,0): anon0
+    (0,0): anon5_Then
+    (0,0): anon2
+    (0,0): anon6_Then
+Array.dfy(261,12): Error: value does not satisfy the subset constraints of 'nat'
+Execution trace:
+    (0,0): anon0
+    (0,0): anon5_Then
+    (0,0): anon2
+    (0,0): anon6_Then
+Array.dfy(262,6): Error: value does not satisfy the subset constraints of 'nat'
+Execution trace:
+    (0,0): anon0
+    (0,0): anon5_Then
+    (0,0): anon2
+    (0,0): anon6_Then
+Array.dfy(264,4): Error: value does not satisfy the subset constraints of 'nat'
 Execution trace:
     (0,0): anon0
     (0,0): anon5_Then
     (0,0): anon2
     (0,0): anon6_Then
 
-Dafny program verifier finished with 49 verified, 20 errors
+Dafny program verifier finished with 49 verified, 23 errors
