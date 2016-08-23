@@ -2969,7 +2969,7 @@ namespace Microsoft.Dafny
                   convertedIntoOtherTypeConstraints = true;
                 }
               } else {
-                satisfied = false;
+                return false;  // we can't determine the answer
               }
             }
             break;
@@ -2989,7 +2989,7 @@ namespace Microsoft.Dafny
                   convertedIntoOtherTypeConstraints = true;
                 }
               } else {
-                satisfied = false;
+                return false;  // we can't determine the answer
               }
             }
             break;
