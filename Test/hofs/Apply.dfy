@@ -50,7 +50,7 @@ method AllocationTest(oldcell: Cell)
   }
 
   var j := (c: Cell, b) => if b then c else oldcell;
-  var k := (c: Cell, b) reads c reads oldcell requires b ==> c != null => (if b then c else oldcell).data;
+  var k := (c: Cell, b) reads c, oldcell requires b ==> c != null => (if b then c else oldcell).data;
   var b;
   if {
     case true =>  assert j(y, b).data < 50;

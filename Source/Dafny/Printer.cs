@@ -1980,9 +1980,11 @@ namespace Microsoft.Dafny {
           wr.Write(" requires ");
           PrintExpression(e.Range, false);
         }
+        var readsPrefix = " reads ";
         foreach (var read in e.Reads) {
-          wr.Write(" reads ");
+          wr.Write(readsPrefix);
           PrintExpression(read.E, false);
+          readsPrefix = ", ";
         }
         wr.Write(e.OneShot ? " -> " : " => ");
         PrintExpression(e.Body, isFollowedBySemicolon);

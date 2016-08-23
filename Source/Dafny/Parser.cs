@@ -4201,6 +4201,11 @@ List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, re
 				Get();
 				PossiblyWildFrameExpression(out fe, true);
 				reads.Add(fe); 
+				while (la.kind == 23) {
+					Get();
+					PossiblyWildFrameExpression(out fe, true);
+					reads.Add(fe); 
+				}
 			} else {
 				Get();
 				Expression(out ee, true, false);

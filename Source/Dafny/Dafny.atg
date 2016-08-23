@@ -2832,7 +2832,11 @@ LambdaExpression<out Expression e, bool allowSemi, bool allowBitwiseOps>
       ]
     ")"
   )
-  { "reads" PossiblyWildFrameExpression<out fe, true> (. reads.Add(fe); .)
+  { "reads"
+    PossiblyWildFrameExpression<out fe, true>         (. reads.Add(fe); .)
+    { ","
+      PossiblyWildFrameExpression<out fe, true>       (. reads.Add(fe); .)
+    }
   | "requires" Expression<out ee, true, false>        (. req = req == null ? ee : new BinaryExpr(req.tok, BinaryExpr.Opcode.And, req, ee); .)
   }
   LambdaArrow<out oneShot>
