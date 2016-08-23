@@ -5302,17 +5302,19 @@ namespace Microsoft.Dafny {
 
   public class AlternativeStmt : Statement
   {
+    public readonly bool UsesOptionalBraces;
     public readonly List<GuardedAlternative> Alternatives;
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(Alternatives != null);
     }
-    public AlternativeStmt(IToken tok, IToken endTok, List<GuardedAlternative> alternatives)
+    public AlternativeStmt(IToken tok, IToken endTok, List<GuardedAlternative> alternatives, bool usesOptionalBraces)
       : base(tok, endTok) {
       Contract.Requires(tok != null);
       Contract.Requires(endTok != null);
       Contract.Requires(alternatives != null);
       this.Alternatives = alternatives;
+      this.UsesOptionalBraces = usesOptionalBraces;
     }
     public override IEnumerable<Statement> SubStatements {
       get {
@@ -5435,6 +5437,7 @@ namespace Microsoft.Dafny {
 
   public class AlternativeLoopStmt : LoopStmt
   {
+    public readonly bool UsesOptionalBraces;
     public readonly List<GuardedAlternative> Alternatives;
     [ContractInvariantMethod]
     void ObjectInvariant() {
@@ -5442,12 +5445,13 @@ namespace Microsoft.Dafny {
     }
     public AlternativeLoopStmt(IToken tok, IToken endTok,
                                List<MaybeFreeExpression> invariants, Specification<Expression> decreases, Specification<FrameExpression> mod,
-                               List<GuardedAlternative> alternatives)
+                               List<GuardedAlternative> alternatives, bool usesOptionalBraces)
       : base(tok, endTok, invariants, decreases, mod) {
       Contract.Requires(tok != null);
       Contract.Requires(endTok != null);
       Contract.Requires(alternatives != null);
       this.Alternatives = alternatives;
+      this.UsesOptionalBraces = usesOptionalBraces;
     }
     public override IEnumerable<Statement> SubStatements {
       get {

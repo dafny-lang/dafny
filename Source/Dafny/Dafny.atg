@@ -204,7 +204,8 @@ bool IsAttribute() {
 
 bool IsAlternative() {
   Token x = scanner.Peek();
-  return la.kind == _lbrace && x.kind == _case;
+  return (la.kind == _lbrace && x.kind == _case)
+      || la.kind == _case;
 }
 
 // an existential guard starts with an identifier and is then followed by
@@ -397,10 +398,6 @@ bool IsIdentColonOrBar() {
 
 bool SemiFollowsCall(bool allowSemi, Expression e) {
   return allowSemi && la.kind == _semi && e is ApplySuffix;
-}
-
-bool CloseOptionalBrace(bool usesOptionalBrace) {
-  return usesOptionalBrace && la.kind == _rbrace;
 }
 
 bool IsNotEndOfCase() {
@@ -1973,12 +1970,13 @@ IfStmt<out Statement/*!*/ ifStmt>
      IToken bodyStart, bodyEnd, endTok;
      List<GuardedAlternative> alternatives;
      ifStmt = dummyStmt;  // to please the compiler
+     bool usesOptionalBraces;
   .)
   "if"                       (. x = t; .)
   (
     IF(IsAlternative())
-    AlternativeBlock<true, out alternatives, out endTok>
-    (. ifStmt = new AlternativeStmt(x, endTok, alternatives); .)
+    AlternativeBlock<true, out alternatives, out usesOptionalBraces, out endTok>
+    (. ifStmt = new AlternativeStmt(x, endTok, alternatives, usesOptionalBraces); .)
   |
     ( IF(IsExistentialGuard())
       ExistentialGuard<out guard, true>  (. isExistentialGuard = true; .)
@@ -1999,24 +1997,49 @@ IfStmt<out Statement/*!*/ ifStmt>
     .)
   )
   .
-AlternativeBlock<.bool allowExistentialGuards, out List<GuardedAlternative> alternatives, out IToken endTok.>
+AlternativeBlock<.bool allowExistentialGuards, out List<GuardedAlternative> alternatives, out bool usesOptionalBraces, out IToken endTok.>
 = (. alternatives = new List<GuardedAlternative>();
-     IToken x;
+     endTok = null;
+     usesOptionalBraces = false;
+     GuardedAlternative alt;
+  .)
+  ( "{"    (. usesOptionalBraces = true; .)
+    {
+      AlternativeBlockCase<allowExistentialGuards, out alt>  (. alternatives.Add(alt); .)
+    }
+    "}"
+  | /* Note, an alternative-less while is not parsed here; it is a body-less while (not an alternative while).
+       Also, an alternative-less if is not allowed.
+       These decisions save a Coco warning.
+    */
+    AlternativeBlockCase<allowExistentialGuards, out alt>  (. alternatives.Add(alt); .)
+    { IF(la.kind == _case)
+      AlternativeBlockCase<allowExistentialGuards, out alt>  (. alternatives.Add(alt); .)
+    }
+  )
+  (. endTok = t; .)
+  .
+AlternativeBlockCase<.bool allowExistentialGuards, out GuardedAlternative alt.>
+= (. IToken x;
      Expression e; bool isExistentialGuard;
      List<Statement> body;
   .)
-  "{"
-  { "case"                             (. x = t; isExistentialGuard = false; e = dummyExpr; .)
-    ( IF(allowExistentialGuards && IsExistentialGuard())
-      ExistentialGuard<out e, false >  (. isExistentialGuard = true; .)  // NB: don't allow lambda here
-    | Expression<out e, true, false> // NB: don't allow lambda here
-    )
-    "=>"
-    (. body = new List<Statement>(); .)
-    { Stmt<body> }
-    (. alternatives.Add(new GuardedAlternative(x, isExistentialGuard, e, body)); .)
+  "case"                             (. x = t; isExistentialGuard = false; e = dummyExpr; .)
+  ( IF(allowExistentialGuards && IsExistentialGuard())
+    ExistentialGuard<out e, false >  (. isExistentialGuard = true; .)  // NB: don't allow lambda here
+  | Expression<out e, true, false> // NB: don't allow lambda here
+  )
+  "=>"
+  (. body = new List<Statement>(); .)
+  SYNC  /* this SYNC and the one inside the loop below are used to avoid problems with the IsNotEndOfCase test. The SYNC will
+          * skip until the next symbol that can legally occur here, which is either the beginning of a Stmt or whatever is allowed
+          * to follow the CaseStatement.
+          */
+  { IF(IsNotEndOfCase()) /* This is a little sketchy. It would be nicer to be able to write IF(la is start-symbol of Stmt), but Coco doesn't allow that */
+    Stmt<body>
+    SYNC  /* see comment about SYNC above */
   }
-  "}"                           (. endTok = t; .)
+  (. alt = new GuardedAlternative(x, isExistentialGuard, e, body); .)
   .
 WhileStmt<out Statement stmt>
 = (. Contract.Ensures(Contract.ValueAtReturn(out stmt) != null); IToken x;
@@ -2033,13 +2056,14 @@ WhileStmt<out Statement stmt>
      List<GuardedAlternative> alternatives;
      stmt = dummyStmt;  // to please the compiler
      bool isDirtyLoop = true;
+     bool usesOptionalBraces;
   .)
   "while"                    (. x = t; .)
   (
     IF(IsLoopSpec() || IsAlternative())
     { LoopSpec<invariants, decreases, ref mod, ref decAttrs, ref modAttrs> }
-    AlternativeBlock<false, out alternatives, out endTok>
-    (. stmt = new AlternativeLoopStmt(x, endTok, invariants, new Specification<Expression>(decreases, decAttrs), new Specification<FrameExpression>(mod, modAttrs), alternatives); .)
+    AlternativeBlock<false, out alternatives, out usesOptionalBraces, out endTok>
+    (. stmt = new AlternativeLoopStmt(x, endTok, invariants, new Specification<Expression>(decreases, decAttrs), new Specification<FrameExpression>(mod, modAttrs), alternatives, usesOptionalBraces); .)
   |
     ( Guard<out guard>           (. Contract.Assume(guard == null || cce.Owner.None(guard)); .)
     | "..."                      (. guardEllipsis = t; .)
@@ -2137,19 +2161,19 @@ MatchStmt<out Statement/*!*/ s>
 = (. Contract.Ensures(Contract.ValueAtReturn(out s) != null);
      Token x;  Expression/*!*/ e;  MatchCaseStmt/*!*/ c;
      List<MatchCaseStmt/*!*/> cases = new List<MatchCaseStmt/*!*/>();
-     bool usesOptionalBrace = false;
+     bool usesOptionalBraces = false;
   .)
   "match"                     (. x = t; .)
   Expression<out e, true, true>
   ( IF(la.kind == _lbrace)  /* always favor brace-enclosed match body to a case-less match */
-    "{" (. usesOptionalBrace = true; .)
+    "{" (. usesOptionalBraces = true; .)
         { CaseStatement<out c> (. cases.Add(c); .) }
     "}"
   |     { IF(la.kind == _case)  /* let each "case" bind to the closest preceding "match" */
           CaseStatement<out c> (. cases.Add(c); .)
         }
   )
-  (. s = new MatchStmt(x, t, e, cases, usesOptionalBrace); .)
+  (. s = new MatchStmt(x, t, e, cases, usesOptionalBraces); .)
   .
 CaseStatement<out MatchCaseStmt/*!*/ c>
 = (. Contract.Ensures(Contract.ValueAtReturn(out c) != null);
@@ -3031,19 +3055,19 @@ NamedExpr<out Expression e, bool allowSemi, bool allowLambda, bool allowBitwiseO
 MatchExpression<out Expression e, bool allowSemi, bool allowLambda, bool allowBitwiseOps>
 = (. Contract.Ensures(Contract.ValueAtReturn(out e) != null); IToken/*!*/ x;  MatchCaseExpr/*!*/ c;
      List<MatchCaseExpr/*!*/> cases = new List<MatchCaseExpr/*!*/>();
-     bool usesOptionalBrace = false;
+     bool usesOptionalBraces = false;
   .)
   "match"                     (. x = t; .)
   Expression<out e, allowSemi, allowLambda, allowBitwiseOps>
   ( IF(la.kind == _lbrace)  /* always favor brace-enclosed match body to a case-less match */
-    "{" (. usesOptionalBrace = true; .)
+    "{" (. usesOptionalBraces = true; .)
         { CaseExpression<out c, true, true, allowBitwiseOps> (. cases.Add(c); .) }
     "}"
   |     { IF(la.kind == _case)  /* let each "case" bind to the closest preceding "match" */
           CaseExpression<out c, allowSemi, allowLambda, allowBitwiseOps> (. cases.Add(c); .)
         }
   )
-  (. e = new MatchExpr(x, e, cases, usesOptionalBrace); .)
+  (. e = new MatchExpr(x, e, cases, usesOptionalBraces); .)
   .
 CaseExpression<out MatchCaseExpr c, bool allowSemi, bool allowLambda, bool allowBitwiseOps>
 = (. Contract.Ensures(Contract.ValueAtReturn(out c) != null); IToken/*!*/ x, id;

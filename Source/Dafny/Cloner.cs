@@ -532,7 +532,7 @@ namespace Microsoft.Dafny
 
       } else if (stmt is AlternativeStmt) {
         var s = (AlternativeStmt)stmt;
-        r = new AlternativeStmt(Tok(s.Tok), Tok(s.EndTok), s.Alternatives.ConvertAll(CloneGuardedAlternative));
+        r = new AlternativeStmt(Tok(s.Tok), Tok(s.EndTok), s.Alternatives.ConvertAll(CloneGuardedAlternative), s.UsesOptionalBraces);
 
       } else if (stmt is WhileStmt) {
         var s = (WhileStmt)stmt;
@@ -540,7 +540,7 @@ namespace Microsoft.Dafny
 
       } else if (stmt is AlternativeLoopStmt) {
         var s = (AlternativeLoopStmt)stmt;
-        r = new AlternativeLoopStmt(Tok(s.Tok), Tok(s.EndTok), s.Invariants.ConvertAll(CloneMayBeFreeExpr), CloneSpecExpr(s.Decreases), CloneSpecFrameExpr(s.Mod), s.Alternatives.ConvertAll(CloneGuardedAlternative));
+        r = new AlternativeLoopStmt(Tok(s.Tok), Tok(s.EndTok), s.Invariants.ConvertAll(CloneMayBeFreeExpr), CloneSpecExpr(s.Decreases), CloneSpecFrameExpr(s.Mod), s.Alternatives.ConvertAll(CloneGuardedAlternative), s.UsesOptionalBraces);
 
       } else if (stmt is ForallStmt) {
         var s = (ForallStmt)stmt;
