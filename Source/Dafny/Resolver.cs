@@ -2265,6 +2265,19 @@ namespace Microsoft.Dafny
       AllTypeConstraints.Add(c);
       return ConstrainSubtypeRelation_Aux(super, sub, c);
     }
+    /// <summary>
+    /// Like ConstrainSubtypeRelation, but don't call StripSubsetConstraints on "super" and "sub"
+    /// </summary>
+    private bool ConstrainSubtypeRelation_Exact(Type super, Type sub, TypeConstraint.ErrorMsg errMsg) {
+      Contract.Requires(sub != null);
+      Contract.Requires(super != null);
+      Contract.Requires(errMsg != null);
+      super = super.NormalizeExpand();
+      sub = sub.NormalizeExpand();
+      var c = new TypeConstraint(super, sub, errMsg);
+      AllTypeConstraints.Add(c);
+      return ConstrainSubtypeRelation_Aux(super, sub, c);
+    }
     private bool ConstrainSubtypeRelation_Aux(Type super, Type sub, TypeConstraint c) {
       Contract.Requires(sub != null);
       Contract.Requires(!(sub is TypeProxy) || ((TypeProxy)sub).T == null);  // caller is expected to have called .NormalizeExpand
@@ -2303,14 +2316,14 @@ namespace Microsoft.Dafny
         switch (TypeProxy.GetFamily(super)) {
           case TypeProxy.Family.Bool:
           case TypeProxy.Family.Char:
-            headSymbolsAgree = sub.Equals(super);
+            headSymbolsAgree = super.IsSupertypeOf_WithSubsetTypes(sub);
             break;
           case TypeProxy.Family.IntLike:
           case TypeProxy.Family.BitVector:
-            headSymbolsAgree = super is IntVarietiesSupertype || sub.Equals(super);
+            headSymbolsAgree = super is IntVarietiesSupertype || super.IsSupertypeOf_WithSubsetTypes(sub);
             break;
           case TypeProxy.Family.RealLike:
-            headSymbolsAgree = super is RealVarietiesSupertype || sub.Equals(super);
+            headSymbolsAgree = super is RealVarietiesSupertype || super.IsSupertypeOf_WithSubsetTypes(sub);
             break;
           case TypeProxy.Family.Opaque:
             headSymbolsAgree = super.AsTypeParameter == sub.AsTypeParameter;
@@ -2564,17 +2577,17 @@ namespace Microsoft.Dafny
         var pol = polarities[i];
         var tp = p == 1 ? "" : " " + i;
         var errMsg = new TypeConstraint.ErrorMsgWithBase(errorMsg,
-          p < 0 ? "contravariant type parameter{0} would require {2} <: {1}" :
-          p > 0 ? "covariant type parameter{0} would require {1} <: {2}" :
+          pol < 0 ? "contravariant type parameter{0} would require {2} <: {1}" :
+          pol > 0 ? "covariant type parameter{0} would require {1} <: {2}" :
           "invariant type parameter{0} would require {1} = {2}",
           tp, super.TypeArgs[i], sub.TypeArgs[i]);
         if (pol >= 0) {
-          if (!ConstrainSubtypeRelation(super.TypeArgs[i], sub.TypeArgs[i], errMsg)) {
+          if (!ConstrainSubtypeRelation_Exact(super.TypeArgs[i], sub.TypeArgs[i], errMsg)) {
             return false;
           }
         }
         if (pol <= 0) {
-          if (!ConstrainSubtypeRelation(sub.TypeArgs[i], super.TypeArgs[i], errMsg)) {
+          if (!ConstrainSubtypeRelation_Exact(sub.TypeArgs[i], super.TypeArgs[i], errMsg)) {
             return false;
           }
         }
@@ -3156,7 +3169,7 @@ namespace Microsoft.Dafny
                   // we know enough to convert into a subtyping constraint
                   resolver.ConstrainSubtypeRelation(new ObjectType(), t, errorMsg);
                   resolver.ConstrainSubtypeRelation(u, t, errorMsg);
-                  resolver.ConstrainSubtypeRelation(u, t, errorMsg);
+                  resolver.ConstrainSubtypeRelation(t, u, errorMsg);
                   convertedIntoOtherTypeConstraints = true;
                   return true;
                 } else {
@@ -3165,7 +3178,7 @@ namespace Microsoft.Dafny
               }
               if (t.IsRefType) {
                 resolver.ConstrainSubtypeRelation(u, t, errorMsg);
-                resolver.ConstrainSubtypeRelation(u, t, errorMsg);
+                resolver.ConstrainSubtypeRelation(t, u, errorMsg);
                 convertedIntoOtherTypeConstraints = true;
                 return true;
               }
@@ -3187,7 +3200,7 @@ namespace Microsoft.Dafny
                   // we know enough to convert into a subtyping constraint
                   resolver.ConstrainSubtypeRelation(new ObjectType(), t, errorMsg);
                   resolver.ConstrainSubtypeRelation(u, t, errorMsg);
-                  resolver.ConstrainSubtypeRelation(u, t, errorMsg);
+                  resolver.ConstrainSubtypeRelation(t, u, errorMsg);
                   convertedIntoOtherTypeConstraints = true;
                   return true;
                 } else {
@@ -3196,7 +3209,7 @@ namespace Microsoft.Dafny
               }
               if (t.IsRefType) {
                 resolver.ConstrainSubtypeRelation(u, t, errorMsg);
-                resolver.ConstrainSubtypeRelation(u, t, errorMsg);
+                resolver.ConstrainSubtypeRelation(t, u, errorMsg);
                 convertedIntoOtherTypeConstraints = true;
                 return true;
               }
@@ -3391,7 +3404,7 @@ namespace Microsoft.Dafny
         }
       }
 
-      if (super.Equals(sub)) {
+      if (super.ExactlyEquals(sub)) {
         // the constraint is satisfied, so just drop it
       } else if ((super is NonProxyType || super is ArtificialType) && sub is NonProxyType) {
         ImposeSubtypingConstraint(super, sub, c.errorMsg);

@@ -16,6 +16,11 @@ TypeConstraints.dfy(147,16): Error: type of + must be of a numeric type, a bitve
 TypeConstraints.dfy(174,6): Error: RHS (of type C) not assignable to LHS (of type R)
 TypeConstraints.dfy(180,6): Error: RHS (of type object) not assignable to LHS (of type C)
 TypeConstraints.dfy(186,6): Error: RHS (of type object) not assignable to LHS (of type R)
+TypeConstraints.dfy(424,8): Error: type array<nat> is not assignable to LHS (of type array<int>) (invariant type parameter would require int = nat)
+TypeConstraints.dfy(426,8): Error: type array<int> is not assignable to LHS (of type array<nat>) (invariant type parameter would require nat = int)
+TypeConstraints.dfy(429,8): Error: RHS (of type array<int>) not assignable to LHS (of type array<nat>) (invariant type parameter would require nat = int)
+TypeConstraints.dfy(431,8): Error: RHS (of type array<nat>) not assignable to LHS (of type array<int>) (invariant type parameter would require int = nat)
+TypeConstraints.dfy(437,10): Error: RHS (of type array<nat>) not assignable to LHS (of type array<int>) (invariant type parameter would require int = nat)
 // TypeConstraints.dfy
 
 /*
@@ -551,4 +556,32 @@ module LetPatterns {
     o := r;
   }
 }
-18 resolution/type errors detected in TypeConstraints.dfy
+
+module Arrays_and_SubsetTypes {
+  /* CALL GRAPH for module Arrays_and_SubsetTypes:
+   */
+  method M()
+  {
+    var a: array<nat>;
+    var b: array<int>;
+    if * {
+      a := new nat[100];
+      b := new nat[100];
+    } else if * {
+      a := new int[100];
+      b := new int[100];
+    } else if * {
+      a := b;
+    } else if * {
+      b := a;
+    } else if * {
+      var n: array<nat> := new nat[100];
+      if * {
+        a := n;
+      } else {
+        b := n;
+      }
+    }
+  }
+}
+23 resolution/type errors detected in TypeConstraints.dfy

@@ -413,3 +413,29 @@ module LetPatterns {
     o := r;
   }
 }
+
+module Arrays_and_SubsetTypes {
+  method M()
+  {
+    var a: array<nat>;
+    var b: array<int>;
+    if * {
+      a := new nat[100];
+      b := new nat[100];  // error
+    } else if * {
+      a := new int[100];  // error
+      b := new int[100];
+    } else if * {
+      a := b;  // error
+    } else if * {
+      b := a;  // error
+    } else if * {
+      var n := new nat[100];  // array<nat>
+      if * {
+        a := n;
+      } else {
+        b := n;  // error
+      }
+    }
+  }
+}

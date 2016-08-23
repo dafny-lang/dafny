@@ -10596,8 +10596,9 @@ namespace Microsoft.Dafny {
       Contract.Requires(targetType != null);
       Contract.Requires(builder != null);
 
-      // We should always be able to use Is, but this is an optimisation.
-      if (!sourceType.ExactlyEquals(targetType)) {
+      if (targetType.IsSupertypeOf_WithSubsetTypes(sourceType)) {
+        // We should always be able to use Is, but this is an optimisation.
+      } else {
         var cre = MkIs(bSource, targetType);
         var msg = string.Format("value does not satisfy the subset constraints of '{0}'", targetType.Normalize());
         builder.Add(Assert(tok, cre, msg));

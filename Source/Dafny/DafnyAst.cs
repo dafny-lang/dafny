@@ -521,9 +521,15 @@ namespace Microsoft.Dafny {
     [Pure]
     public abstract bool Equals(Type that);
     /// <summary>
-    /// Returns whether or not "this" and "that" denote the same type, modulo proxies and type synonyms, but treating subset types as different.
+    /// Returns whether or not "this" and "that" denote the same type, module proxies and type synonyms, but treating subset types as different.
     /// </summary>
-    public abstract bool ExactlyEquals(Type that);
+    public bool ExactlyEquals(Type that) {
+      return this.IsSupertypeOf_WithSubsetTypes(that) && that.IsSupertypeOf_WithSubsetTypes(this);
+    }
+    /// <summary>
+    /// Returns whether or not "this" is a supertype of "that", modulo proxies and type synonyms, but treating subset types as different.
+    /// </summary>
+    public abstract bool IsSupertypeOf_WithSubsetTypes(Type that);
     /// <summary>
     /// Returns whether or not "this" and "that" could denote the same type, module proxies and type synonyms and subset types, if
     /// type parameters are treated as wildcards.
@@ -1254,7 +1260,7 @@ namespace Microsoft.Dafny {
     public override bool PossiblyEquals_W(Type that) {
       return Equals(that);
     }
-    public override bool ExactlyEquals(Type that) {
+    public override bool IsSupertypeOf_WithSubsetTypes(Type that) {
       return Equals(that);
     }
   }
@@ -1295,7 +1301,7 @@ namespace Microsoft.Dafny {
     public override bool PossiblyEquals_W(Type that) {
       return Equals(that);
     }
-    public override bool ExactlyEquals(Type that) {
+    public override bool IsSupertypeOf_WithSubsetTypes(Type that) {
       return Equals(that);
     }
   }
@@ -1330,10 +1336,10 @@ namespace Microsoft.Dafny {
     public override bool Equals(Type that) {
       return that.IsIntegerType;
     }
-    public override bool ExactlyEquals(Type that) {
+    public override bool IsSupertypeOf_WithSubsetTypes(Type that) {
       that = that.NormalizeExpand();
       // treat "int" and "nat" as different
-      return that is IntType && (this is NatType == that is NatType);
+      return that is IntType && (!(this is NatType) || that is NatType);
     }
   }
 
@@ -1388,6 +1394,9 @@ namespace Microsoft.Dafny {
     }
     public override bool Equals(Type that) {
       return that.NormalizeExpand() is ObjectType;
+    }
+    public override bool IsSupertypeOf_WithSubsetTypes(Type that) {
+      return that.IsRefType;
     }
   }
 
@@ -1568,9 +1577,9 @@ namespace Microsoft.Dafny {
       var t = that.NormalizeExpand() as SetType;
       return t != null && Finite == t.Finite && Arg.Equals(t.Arg);
     }
-    public override bool ExactlyEquals(Type that) {
+    public override bool IsSupertypeOf_WithSubsetTypes(Type that) {
       var t = that.NormalizeExpand() as SetType;
-      return t != null && Finite == t.Finite && Arg.ExactlyEquals(t.Arg);
+      return t != null && Finite == t.Finite && Arg.IsSupertypeOf_WithSubsetTypes(t.Arg);
     }
     public override bool PossiblyEquals_W(Type that) {
       var t = that as SetType;
@@ -1587,9 +1596,9 @@ namespace Microsoft.Dafny {
       var t = that.NormalizeExpand() as MultiSetType;
       return t != null && Arg.Equals(t.Arg);
     }
-    public override bool ExactlyEquals(Type that) {
+    public override bool IsSupertypeOf_WithSubsetTypes(Type that) {
       var t = that.NormalizeExpand() as MultiSetType;
-      return t != null && Arg.ExactlyEquals(t.Arg);
+      return t != null && Arg.IsSupertypeOf_WithSubsetTypes(t.Arg);
     }
     public override bool PossiblyEquals_W(Type that) {
       var t = that as MultiSetType;
@@ -1605,9 +1614,9 @@ namespace Microsoft.Dafny {
       var t = that.NormalizeExpand() as SeqType;
       return t != null && Arg.Equals(t.Arg);
     }
-    public override bool ExactlyEquals(Type that) {
+    public override bool IsSupertypeOf_WithSubsetTypes(Type that) {
       var t = that.NormalizeExpand() as SeqType;
-      return t != null && Arg.ExactlyEquals(t.Arg);
+      return t != null && Arg.IsSupertypeOf_WithSubsetTypes(t.Arg);
     }
     public override bool PossiblyEquals_W(Type that) {
       var t = that as SeqType;
@@ -1649,9 +1658,9 @@ namespace Microsoft.Dafny {
       var t = that.NormalizeExpand() as MapType;
       return t != null && Finite == t.Finite && Arg.Equals(t.Arg) && Range.Equals(t.Range);
     }
-    public override bool ExactlyEquals(Type that) {
+    public override bool IsSupertypeOf_WithSubsetTypes(Type that) {
       var t = that.NormalizeExpand() as MapType;
-      return t != null && Finite == t.Finite && Arg.ExactlyEquals(t.Arg) && Range.ExactlyEquals(t.Range);
+      return t != null && Finite == t.Finite && Arg.IsSupertypeOf_WithSubsetTypes(t.Arg) && Range.IsSupertypeOf_WithSubsetTypes(t.Range);
     }
     public override bool PossiblyEquals_W(Type that) {
       var t = that as MapType;
@@ -1849,7 +1858,7 @@ namespace Microsoft.Dafny {
         return i.Equals(that);
       }
     }
-    public override bool ExactlyEquals(Type that) {
+    public override bool IsSupertypeOf_WithSubsetTypes(Type that) {
       var i = NormalizeExpand();
       if (i is UserDefinedType) {
         var ii = (UserDefinedType)i;
@@ -1858,14 +1867,29 @@ namespace Microsoft.Dafny {
           return false;
         } else {
           for (int j = 0; j < ii.TypeArgs.Count; j++) {
-            if (!ii.TypeArgs[j].ExactlyEquals(t.TypeArgs[j])) {
-              return false;
+            var a0 = ii.TypeArgs[j];
+            var a1 = t.TypeArgs[j];
+            if (IsRefType) {
+              // invariant
+              if (!a0.IsSupertypeOf_WithSubsetTypes(a1) || !a1.IsSupertypeOf_WithSubsetTypes(a0)) {
+                return false;
+              }
+            } else if (this is ArrowType && j < ii.TypeArgs.Count-1) {
+              // contravariant
+              if (!a1.IsSupertypeOf_WithSubsetTypes(a0)) {
+                return false;
+              }
+            } else {
+              // covariant
+              if (!a0.IsSupertypeOf_WithSubsetTypes(a1)) {
+                return false;
+              }
             }
           }
           return true;
         }
       } else {
-        return i.ExactlyEquals(that);
+        return i.IsSupertypeOf_WithSubsetTypes(that);
       }
     }
     public override bool PossiblyEquals_W(Type that) {
@@ -2055,13 +2079,13 @@ namespace Microsoft.Dafny {
         return i.Equals(that);
       }
     }
-    public override bool ExactlyEquals(Type that) {
+    public override bool IsSupertypeOf_WithSubsetTypes(Type that) {
       var i = NormalizeExpand();
       if (i is TypeProxy) {
         var u = that.NormalizeExpand() as TypeProxy;
         return u != null && object.ReferenceEquals(i, u);
       } else {
-        return i.ExactlyEquals(that);
+        return i.IsSupertypeOf_WithSubsetTypes(that);
       }
     }
     public override bool PossiblyEquals_W(Type that) {
@@ -6829,7 +6853,7 @@ namespace Microsoft.Dafny {
 
     public abstract class ResolverType : Type
     {
-      public override bool ExactlyEquals(Type that) {
+      public override bool IsSupertypeOf_WithSubsetTypes(Type that) {
         return Equals(that);
       }
     }
