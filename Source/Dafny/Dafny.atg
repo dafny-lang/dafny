@@ -2213,17 +2213,23 @@ AssertStmt<out Statement/*!*/ s>
 = (. Contract.Ensures(Contract.ValueAtReturn(out s) != null); IToken/*!*/ x;
      Expression e = dummyExpr; Attributes attrs = null;
      IToken dotdotdot = null;
+     BlockStmt proof = null;
+     IToken proofStart, proofEnd;
   .)
   "assert"                                     (. x = t; .)
   { IF(IsAttribute()) Attribute<ref attrs> }
   ( Expression<out e, false, true>
+    ( "by"
+      BlockStmt<out proof, out proofStart, out proofEnd>
+    | ";"
+    )
   | "..."                                      (. dotdotdot = t; .)
+    ";"
   )
-  ";"
   (. if (dotdotdot != null) {
-       s = new SkeletonStatement(new AssertStmt(x, t, new LiteralExpr(x, true), attrs), dotdotdot, null);
+       s = new SkeletonStatement(new AssertStmt(x, t, new LiteralExpr(x, true), null, attrs), dotdotdot, null);
      } else {
-       s = new AssertStmt(x, t, e, attrs);
+       s = new AssertStmt(x, t, e, proof, attrs);
      }
   .)
   .

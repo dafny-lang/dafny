@@ -843,13 +843,19 @@ namespace Microsoft.Dafny {
       if (stmt is PredicateStmt) {
         if (printMode == DafnyOptions.PrintModes.NoGhost) { return; }
         Expression expr = ((PredicateStmt)stmt).Expr;
-        wr.Write(stmt is AssertStmt ? "assert" : "assume");
+        var assertStmt = stmt as AssertStmt;
+        wr.Write(assertStmt != null ? "assert" : "assume");
         if (stmt.Attributes != null) {
           PrintAttributes(stmt.Attributes);
         }
         wr.Write(" ");
         PrintExpression(expr, true);
-        wr.Write(";");
+        if (assertStmt != null && assertStmt.Proof != null) {
+          wr.Write(" by ");
+          PrintStatement(assertStmt.Proof, indent);
+        } else {
+          wr.Write(";");
+        }
 
       } else if (stmt is PrintStmt) {
         PrintStmt s = (PrintStmt)stmt;

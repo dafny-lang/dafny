@@ -4518,11 +4518,20 @@ namespace Microsoft.Dafny {
   }
 
   public class AssertStmt : PredicateStmt {
-    public AssertStmt(IToken tok, IToken endTok, Expression expr, Attributes attrs)
+    public readonly BlockStmt Proof;
+    public AssertStmt(IToken tok, IToken endTok, Expression expr, BlockStmt/*?*/ proof, Attributes attrs)
       : base(tok, endTok, expr, attrs) {
       Contract.Requires(tok != null);
       Contract.Requires(endTok != null);
       Contract.Requires(expr != null);
+      Proof = proof;
+    }
+    public override IEnumerable<Statement> SubStatements {
+      get {
+        if (Proof != null) {
+          yield return Proof;
+        }
+      }
     }
   }
 

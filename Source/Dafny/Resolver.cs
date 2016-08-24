@@ -4998,6 +4998,10 @@ namespace Microsoft.Dafny
 
         if (stmt is PredicateStmt) {
           stmt.IsGhost = true;
+          var assertStmt = stmt as AssertStmt;
+          if (assertStmt != null && assertStmt.Proof != null) {
+            Visit(assertStmt.Proof, true);
+          }
 
         } else if (stmt is PrintStmt) {
           var s = (PrintStmt)stmt;
@@ -6788,6 +6792,10 @@ namespace Microsoft.Dafny
         ResolveExpression(s.Expr, new ResolveOpts(codeContext, true));
         Contract.Assert(s.Expr.Type != null);  // follows from postcondition of ResolveExpression
         ConstrainTypeExprBool(s.Expr, "condition is expected to be of type bool, but is {0}");
+        var assertStmt = stmt as AssertStmt;
+        if (assertStmt != null && assertStmt.Proof != null) {
+          ResolveStatement(assertStmt.Proof, codeContext);
+        }
 
       } else if (stmt is PrintStmt) {
         var s = (PrintStmt)stmt;

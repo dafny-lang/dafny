@@ -415,6 +415,7 @@ namespace DafnyLanguage
                 case "assert":
                 case "assume":
                 case "break":
+                case "by":
                 case "calc":
                 case "case":
                 case "class":

@@ -493,7 +493,7 @@ namespace Microsoft.Dafny
       Statement r;
       if (stmt is AssertStmt) {
         var s = (AssertStmt)stmt;
-        r = new AssertStmt(Tok(s.Tok), Tok(s.EndTok), CloneExpr(s.Expr), null);
+        r = new AssertStmt(Tok(s.Tok), Tok(s.EndTok), CloneExpr(s.Expr), CloneBlockStmt(s.Proof), null);
 
       } else if (stmt is AssumeStmt) {
         var s = (AssumeStmt)stmt;

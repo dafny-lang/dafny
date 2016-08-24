@@ -7720,6 +7720,21 @@ namespace Microsoft.Dafny {
       return builder.Collect(block.Tok);  // TODO: would be nice to have an end-curly location for "block"
     }
 
+    /// <summary>
+    /// Add to "builder" the following:
+    ///     if (*) { S ; assume false; }
+    /// where "S" is the given "builderToCollect".  This method consumes what has been built up in "builderToCollect".
+    /// </summary>
+    void PathAsideBlock(IToken tok, Bpl.StmtListBuilder builderToCollect, Bpl.StmtListBuilder builder) {
+      Contract.Requires(tok != null);
+      Contract.Requires(builderToCollect != null);
+      Contract.Requires(builderToCollect != null);
+
+      builderToCollect.Add(new Bpl.AssumeCmd(tok, Bpl.Expr.False));
+      var ifCmd = new Bpl.IfCmd(tok, null, builderToCollect.Collect(tok), null, null);
+      builder.Add(ifCmd);
+    }
+
     void TrStmt(Statement stmt, Bpl.StmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran)
     {
       Contract.Requires(stmt != null);
@@ -7746,19 +7761,29 @@ namespace Microsoft.Dafny {
             enclosingToken = stmt.Tok;
           }
           bool splitHappened;
+          Bpl.StmtListBuilder proofBuilder = null;
+          if (stmt is AssertStmt && ((AssertStmt)stmt).Proof != null) {
+            proofBuilder = new Bpl.StmtListBuilder();
+            AddComment(proofBuilder, stmt, "assert statement proof");
+            TrStmt(((AssertStmt)stmt).Proof, proofBuilder, locals, etran);
+          }
           var ss = TrSplitExpr(s.Expr, etran, true, out splitHappened);
           if (!splitHappened) {
             var tok = enclosingToken == null ? s.Expr.tok : new NestedToken(enclosingToken, s.Expr.tok);
-            b.Add(Assert(tok, etran.TrExpr(s.Expr), "assertion violation", stmt.Tok, etran.TrAttributes(stmt.Attributes, null)));
-            stmtContext = StmtType.NONE; // done with translating assert stmt
+            (proofBuilder ?? b).Add(Assert(tok, etran.TrExpr(s.Expr), "assertion violation", stmt.Tok, etran.TrAttributes(stmt.Attributes, null)));
           } else {
             foreach (var split in ss) {
               if (split.IsChecked) {
                 var tok = enclosingToken == null ? split.E.tok : new NestedToken(enclosingToken, split.E.tok);
-                b.Add(AssertNS(tok, split.E, "assertion violation", stmt.Tok, etran.TrAttributes(stmt.Attributes, null)));  // attributes go on every split
+                (proofBuilder ?? b).Add(AssertNS(tok, split.E, "assertion violation", stmt.Tok, etran.TrAttributes(stmt.Attributes, null)));  // attributes go on every split
               }
             }
-            stmtContext = StmtType.NONE; // done with translating assert stmt
+          }
+          if (proofBuilder != null) {
+            PathAsideBlock(stmt.Tok, proofBuilder, b);
+          }
+          stmtContext = StmtType.NONE; // done with translating assert stmt
+          if (splitHappened || proofBuilder != null) {
             if (!defineFuel) {
               // Adding the assume stmt, resetting the stmtContext
               stmtContext = StmtType.ASSUME;
@@ -7768,7 +7793,7 @@ namespace Microsoft.Dafny {
             }
           }
           if (defineFuel) {
-            var ifCmd = new Bpl.IfCmd(s.Tok, null, b.Collect(s.Tok), null, null);
+            var ifCmd = new Bpl.IfCmd(s.Tok, null, b.Collect(s.Tok), null, null);  // BUGBUG: shouldn't this first append "assume false" to "b"? (use PathAsideBlock to do this)  --KRML
             builder.Add(ifCmd);
             // Adding the assume stmt, resetting the stmtContext
             stmtContext = StmtType.ASSUME;
@@ -14945,7 +14970,7 @@ namespace Microsoft.Dafny {
           return null;
         } else if (stmt is AssertStmt) {
           var s = (AssertStmt)stmt;
-          r = new AssertStmt(s.Tok, s.EndTok, Substitute(s.Expr), SubstAttributes(s.Attributes));
+          r = new AssertStmt(s.Tok, s.EndTok, Substitute(s.Expr), SubstBlockStmt(s.Proof), SubstAttributes(s.Attributes));
         } else if (stmt is AssumeStmt) {
           var s = (AssumeStmt)stmt;
           r = new AssumeStmt(s.Tok, s.EndTok, Substitute(s.Expr), SubstAttributes(s.Attributes));

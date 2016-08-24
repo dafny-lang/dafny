@@ -1141,7 +1141,7 @@ namespace Microsoft.Dafny
                 var e = refinementCloner.CloneExpr(oldAssume.Expr);
                 var attrs = refinementCloner.MergeAttributes(oldAssume.Attributes, skel.Attributes);
                 body.Add(new AssertStmt(new Translator.ForceCheckToken(skel.Tok), new Translator.ForceCheckToken(skel.EndTok),
-                  e, new Attributes("prependAssertToken", new List<Expression>(), attrs)));
+                  e, skel.Proof, new Attributes("prependAssertToken", new List<Expression>(), attrs)));
                 reporter.Info(MessageSource.RefinementTransformer, c.ConditionEllipsis, "assume->assert: " + Printer.ExprToString(e));
                 i++; j++;
               }
@@ -1267,7 +1267,7 @@ namespace Microsoft.Dafny
               i++; j++;
               if (addedAssert != null) {
                 var tok = new Translator.ForceCheckToken(addedAssert.tok);
-                body.Add(new AssertStmt(tok, tok, addedAssert, null));
+                body.Add(new AssertStmt(tok, tok, addedAssert, null, null));
               }
             } else {
               MergeAddStatement(cur, body);
@@ -1323,7 +1323,7 @@ namespace Microsoft.Dafny
                 stmtGenerated.Add(nw);
                 var addedAssert = refinementCloner.CloneExpr(s.Expr);
                 var tok = new Translator.ForceCheckToken(addedAssert.tok);
-                stmtGenerated.Add(new AssertStmt(tok, tok, addedAssert, null));
+                stmtGenerated.Add(new AssertStmt(tok, tok, addedAssert, null, null));
               }
             }
             if (doMerge) {
