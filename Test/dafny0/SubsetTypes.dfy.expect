@@ -39,29 +39,112 @@ Execution trace:
 SubsetTypes.dfy(44,15): Error: value does not satisfy the subset constraints of 'nat'
 Execution trace:
     (0,0): anon0
-SubsetTypes.dfy(49,15): Error: value does not satisfy the subset constraints of 'nat'
+SubsetTypes.dfy(45,9): Error: value does not satisfy the subset constraints of 'int -> nat'
 Execution trace:
     (0,0): anon0
-SubsetTypes.dfy(54,4): Error: value does not satisfy the subset constraints of 'nat'
+    SubsetTypes.dfy(45,10): anon3_Else
+SubsetTypes.dfy(50,15): Error: value does not satisfy the subset constraints of 'nat'
+Execution trace:
+    (0,0): anon0
+SubsetTypes.dfy(52,9): Error: value does not satisfy the subset constraints of 'int -> nat'
+Execution trace:
+    (0,0): anon0
+    SubsetTypes.dfy(51,15): anon3_Else
+SubsetTypes.dfy(57,4): Error: value does not satisfy the subset constraints of 'nat'
 Execution trace:
     (0,0): anon0
     (0,0): anon4_Else
-SubsetTypes.dfy(62,9): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
+SubsetTypes.dfy(64,23): Error: value does not satisfy the subset constraints of 'set<nat>'
 Execution trace:
     (0,0): anon0
-SubsetTypes.dfy(66,20): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
+SubsetTypes.dfy(65,9): Error: value does not satisfy the subset constraints of 'set<nat>'
 Execution trace:
     (0,0): anon0
-SubsetTypes.dfy(67,6): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
+SubsetTypes.dfy(67,28): Error: value does not satisfy the subset constraints of 'set<nat>'
 Execution trace:
     (0,0): anon0
-SubsetTypes.dfy(91,32): Error: value does not satisfy the subset constraints of 'nat'
+SubsetTypes.dfy(68,9): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
+Execution trace:
+    (0,0): anon0
+SubsetTypes.dfy(72,20): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
+Execution trace:
+    (0,0): anon0
+SubsetTypes.dfy(73,6): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
+Execution trace:
+    (0,0): anon0
+SubsetTypes.dfy(76,11): Error: value does not satisfy the subset constraints of 'set<nat>'
+Execution trace:
+    (0,0): anon0
+SubsetTypes.dfy(78,15): Error: value does not satisfy the subset constraints of 'set<nat>'
+Execution trace:
+    (0,0): anon0
+SubsetTypes.dfy(80,8): Error: value does not satisfy the subset constraints of 'set<nat>'
+Execution trace:
+    (0,0): anon0
+SubsetTypes.dfy(87,4): Error: value does not satisfy the subset constraints of 'set<nat>'
+Execution trace:
+    (0,0): anon0
+    (0,0): anon4_Else
+SubsetTypes.dfy(88,7): Error: value does not satisfy the subset constraints of 'set<nat>'
+Execution trace:
+    (0,0): anon0
+    (0,0): anon4_Else
+SubsetTypes.dfy(99,24): Error: value does not satisfy the subset constraints of 'set<nat>'
+Execution trace:
+    (0,0): anon0
+SubsetTypes.dfy(101,15): Error: value does not satisfy the subset constraints of 'set<nat>'
+Execution trace:
+    (0,0): anon0
+SubsetTypes.dfy(102,9): Error: value does not satisfy the subset constraints of 'set<int> -> set<nat>'
+Execution trace:
+    (0,0): anon0
+    SubsetTypes.dfy(102,10): anon3_Else
+SubsetTypes.dfy(107,15): Error: value does not satisfy the subset constraints of 'set<nat>'
+Execution trace:
+    (0,0): anon0
+SubsetTypes.dfy(109,9): Error: value does not satisfy the subset constraints of 'set<int> -> set<nat>'
+Execution trace:
+    (0,0): anon0
+    SubsetTypes.dfy(108,15): anon3_Else
+SubsetTypes.dfy(114,4): Error: value does not satisfy the subset constraints of 'set<nat>'
+Execution trace:
+    (0,0): anon0
+    (0,0): anon4_Else
+SubsetTypes.dfy(124,32): Error: value does not satisfy the subset constraints of 'nat'
 Execution trace:
     (0,0): anon0
     (0,0): anon7_Then
-SubsetTypes.dfy(93,20): Error: value does not satisfy the subset constraints of 'nat'
+SubsetTypes.dfy(126,20): Error: value does not satisfy the subset constraints of 'nat'
 Execution trace:
     (0,0): anon0
     (0,0): anon9_Then
+SubsetTypes.dfy(136,25): Error: value does not satisfy the subset constraints of 'int -> int'
+Execution trace:
+    (0,0): anon0
+    (0,0): anon8_Then
+SubsetTypes.dfy(137,25): Error: value does not satisfy the subset constraints of 'int -> int'
+Execution trace:
+    (0,0): anon0
+    (0,0): anon9_Then
+SubsetTypes.dfy(142,25): Error: value does not satisfy the subset constraints of 'int -> nat'
+Execution trace:
+    (0,0): anon0
+    (0,0): anon6_Then
+SubsetTypes.dfy(144,25): Error: value does not satisfy the subset constraints of 'int -> nat'
+Execution trace:
+    (0,0): anon0
+    (0,0): anon8_Then
+SubsetTypes.dfy(145,25): Error: value does not satisfy the subset constraints of 'int -> nat'
+Execution trace:
+    (0,0): anon0
+    (0,0): anon9_Then
+SubsetTypes.dfy(158,25): Error: value does not satisfy the subset constraints of 'nat -> nat'
+Execution trace:
+    (0,0): anon0
+    (0,0): anon6_Then
+SubsetTypes.dfy(160,25): Error: value does not satisfy the subset constraints of 'nat -> nat'
+Execution trace:
+    (0,0): anon0
+    (0,0): anon8_Then
 
-Dafny program verifier finished with 17 verified, 20 errors
+Dafny program verifier finished with 22 verified, 43 errors

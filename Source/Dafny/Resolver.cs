@@ -2265,19 +2265,6 @@ namespace Microsoft.Dafny
       AllTypeConstraints.Add(c);
       return ConstrainSubtypeRelation_Aux(super, sub, c);
     }
-    /// <summary>
-    /// Like ConstrainSubtypeRelation, but don't call StripSubsetConstraints on "super" and "sub"
-    /// </summary>
-    private bool ConstrainSubtypeRelation_Exact(Type super, Type sub, TypeConstraint.ErrorMsg errMsg) {
-      Contract.Requires(sub != null);
-      Contract.Requires(super != null);
-      Contract.Requires(errMsg != null);
-      super = super.NormalizeExpand();
-      sub = sub.NormalizeExpand();
-      var c = new TypeConstraint(super, sub, errMsg);
-      AllTypeConstraints.Add(c);
-      return ConstrainSubtypeRelation_Aux(super, sub, c);
-    }
     private bool ConstrainSubtypeRelation_Aux(Type super, Type sub, TypeConstraint c) {
       Contract.Requires(sub != null);
       Contract.Requires(!(sub is TypeProxy) || ((TypeProxy)sub).T == null);  // caller is expected to have called .NormalizeExpand
@@ -2582,12 +2569,12 @@ namespace Microsoft.Dafny
           "invariant type parameter{0} would require {1} = {2}",
           tp, super.TypeArgs[i], sub.TypeArgs[i]);
         if (pol >= 0) {
-          if (!ConstrainSubtypeRelation_Exact(super.TypeArgs[i], sub.TypeArgs[i], errMsg)) {
+          if (!ConstrainSubtypeRelation(super.TypeArgs[i], sub.TypeArgs[i], errMsg)) {
             return false;
           }
         }
         if (pol <= 0) {
-          if (!ConstrainSubtypeRelation_Exact(sub.TypeArgs[i], super.TypeArgs[i], errMsg)) {
+          if (!ConstrainSubtypeRelation(sub.TypeArgs[i], super.TypeArgs[i], errMsg)) {
             return false;
           }
         }
@@ -3404,7 +3391,7 @@ namespace Microsoft.Dafny
         }
       }
 
-      if (super.ExactlyEquals(sub)) {
+      if (super.Equals(sub)) {
         // the constraint is satisfied, so just drop it
       } else if ((super is NonProxyType || super is ArtificialType) && sub is NonProxyType) {
         ImposeSubtypingConstraint(super, sub, c.errorMsg);
