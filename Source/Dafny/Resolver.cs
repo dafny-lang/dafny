@@ -3098,27 +3098,25 @@ namespace Microsoft.Dafny
           case "EqComparable":
             {
               var u = Types[1].NormalizeExpand();
-              if (fullstrength) {
-                if (t is TypeProxy && u is TypeProxy) {
-                  return false;  // not enough information to do anything sensible
-                } else if (t is TypeProxy) {
-                  var proxy = (TypeProxy)t;
-                  if (Resolver.TypeConstraintsIncludeProxy(u, proxy)) {
-                    return false;
-                  } else {
-                    satisfied = resolver.AssignProxyAndHandleItsConstraints(proxy, u);
-                    convertedIntoOtherTypeConstraints = true;
-                    break;
-                  }
-                } else if (u is TypeProxy) {
-                  var proxy = (TypeProxy)u;
-                  if (Resolver.TypeConstraintsIncludeProxy(t, proxy)) {
-                    return false;
-                  } else {
-                    satisfied = resolver.AssignProxyAndHandleItsConstraints(proxy, t);
-                    convertedIntoOtherTypeConstraints = true;
-                    break;
-                  }
+              if (t is TypeProxy && u is TypeProxy) {
+                return false;  // not enough information to do anything sensible
+              } else if (t is TypeProxy && (fullstrength || IsEqDetermined(u))) {
+                var proxy = (TypeProxy)t;
+                if (Resolver.TypeConstraintsIncludeProxy(u, proxy)) {
+                  return false;
+                } else {
+                  satisfied = resolver.AssignProxyAndHandleItsConstraints(proxy, u);
+                  convertedIntoOtherTypeConstraints = true;
+                  break;
+                }
+              } else if (u is TypeProxy && (fullstrength || IsEqDetermined(t))) {
+                var proxy = (TypeProxy)u;
+                if (Resolver.TypeConstraintsIncludeProxy(t, proxy)) {
+                  return false;
+                } else {
+                  satisfied = resolver.AssignProxyAndHandleItsConstraints(proxy, t);
+                  convertedIntoOtherTypeConstraints = true;
+                  break;
                 }
               } else if (t is TypeProxy || u is TypeProxy) {
                 return false;  // not enough information

@@ -54,3 +54,23 @@ module BB {
     s := t;
   }
 }
+
+module CC {
+  newtype byte = x | 0 <= x < 256
+
+  method M(bytes: seq<byte>) returns (yn: bool)
+  {
+    var bbb := [1];
+    var bb: seq<byte> := [1];
+    var sq := [1];
+    if
+    case true =>  yn := bytes == sq;
+    case true =>  yn := bytes == [1];
+    case 8 <= |bytes| =>  yn := bytes[0..8] == [0, 0, 0, 0, 0, 0, 0, 2];
+    case true =>
+      var ints: seq<int>;
+      var cmp := [2, 0];  // seq<byte> (the comparison "bytes == cmp" gets to the constraint first)
+      yn := bytes == cmp;
+      yn := ints == cmp;  // error: mismatched types
+  }
+}
