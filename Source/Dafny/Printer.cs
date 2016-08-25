@@ -805,7 +805,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(prefix != null);
       Contract.Requires(ty != null);
       if (DafnyOptions.O.DafnyPrintResolvedFile != null) {
-        ty = ty.NormalizeExpand();
+        ty = ty.Normalize();
       }
       string s = ty.TypeName(null, true);
       if (!(ty is TypeProxy) && !s.StartsWith("_")) {

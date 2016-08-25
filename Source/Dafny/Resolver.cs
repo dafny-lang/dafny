@@ -1216,7 +1216,7 @@ namespace Microsoft.Dafny
             if (members.ContainsKey(nm)) {
               reporter.Error(MessageSource.Resolver, p.tok, "Name of implicit yield-history variable '{0}' is already used by another member of the iterator", p.Name);
             } else {
-              var tp = new SeqType(StripSubsetConstraints(p.Type));
+              var tp = new SeqType(p.Type.StripSubsetConstraints());
               var field = new SpecialField(p.tok, nm, nm, "", "", true, true, false, tp, null);
               field.EnclosingClass = iter;  // resolve here
               iter.OutsHistoryFields.Add(field);  // for now, just record this field (until all parameters have been added as members)
@@ -2258,8 +2258,8 @@ namespace Microsoft.Dafny
       Contract.Requires(sub != null);
       Contract.Requires(super != null);
       Contract.Requires(errMsg != null);
-      super = StripSubsetConstraints(super.NormalizeExpand());
-      sub = StripSubsetConstraints(sub.NormalizeExpand());
+      super = super.NormalizeExpand().StripSubsetConstraints();
+      sub = sub.NormalizeExpand().StripSubsetConstraints();
       var c = new TypeConstraint(super, sub, errMsg);
       AllTypeConstraints.Add(c);
       return ConstrainSubtypeRelation_Aux(super, sub, c);
@@ -6888,7 +6888,7 @@ namespace Microsoft.Dafny
             var lhs = (IdentifierExpr)upd.Lhss[i];  // the LHS in this case will be an IdentifierExpr, because that's how the parser creates the VarDeclStmt
             Contract.Assert(lhs.Type == null);  // not yet resolved
             lhs.Var = local;
-            lhs.Type = StripSubsetConstraints(local.Type);
+            lhs.Type = local.Type.StripSubsetConstraints();
           }
           // resolve the whole thing
           ResolveConcreteUpdateStmt(s.Update, codeContext);
@@ -8029,12 +8029,12 @@ namespace Microsoft.Dafny
         // type check the arguments
         var subst = s.MethodSelect.TypeArgumentSubstitutions();
         for (int i = 0; i < callee.Ins.Count; i++) {
-          var it = StripSubsetConstraints(callee.Ins[i].Type);
+          var it = callee.Ins[i].Type.StripSubsetConstraints();
           Type st = SubstType(it, subst);
           ConstrainSubtypeRelation(st, s.Args[i].Type, s.Tok, "incorrect type of method in-parameter {0} (expected {1}, got {2})", i, st, s.Args[i].Type);
         }
         for (int i = 0; i < callee.Outs.Count; i++) {
-          var it = StripSubsetConstraints(callee.Outs[i].Type);
+          var it = callee.Outs[i].Type.StripSubsetConstraints();
           Type st = SubstType(it, subst);
           var lhs = s.Lhs[i];
           ConstrainSubtypeRelation(lhs.Type, st, s.Tok, "incorrect type of method out-parameter {0} (expected {1}, got {2})", i, st, lhs.Type);
@@ -8966,7 +8966,7 @@ namespace Microsoft.Dafny
         var e = (IdentifierExpr)expr;
         e.Var = scope.Find(e.Name);
         if (e.Var != null) {
-          expr.Type = StripSubsetConstraints(e.Var.Type);
+          expr.Type = e.Var.Type.StripSubsetConstraints();
         } else {
           reporter.Error(MessageSource.Resolver, expr, "Identifier does not denote a local variable, parameter, or bound variable: {0}", e.Name);
         }
@@ -9567,14 +9567,6 @@ namespace Microsoft.Dafny
         // some resolution error occurred
         expr.Type = new InferredTypeProxy();
       }
-    }
-
-    public static Type StripSubsetConstraints(Type type) {
-      Contract.Requires(type != null);
-      if (type is NatType) {
-        return new IntType();
-      }
-      return type;
     }
 
     /// <summary>
@@ -10323,7 +10315,7 @@ namespace Microsoft.Dafny
         expr.Type = new InferredTypeProxy();
       } else {
         expr.ResolvedExpression = r;
-        expr.Type = StripSubsetConstraints(r.Type);
+        expr.Type = r.Type.StripSubsetConstraints();
       }
       return rWithArgs;
     }
@@ -10904,7 +10896,7 @@ namespace Microsoft.Dafny
                 Contract.Assert(farg.Type.Equals(e.Args[i].Type));
               }
 #endif
-              rr.Type = StripSubsetConstraints(SubstType(callee.ResultType, rr.TypeArgumentSubstitutions));
+              rr.Type = SubstType(callee.ResultType, rr.TypeArgumentSubstitutions).StripSubsetConstraints();
               // further bookkeeping
               if (callee is FixpointPredicate) {
                 ((FixpointPredicate)callee).Uses.Add(rr);
@@ -11217,7 +11209,7 @@ namespace Microsoft.Dafny
             Type s = SubstType(function.Formals[i].Type, e.TypeArgumentSubstitutions);
             ConstrainSubtypeRelation(s, farg.Type, e, "incorrect type of function argument {0} (expected {1}, got {2})", i, s, farg.Type);
           }
-          e.Type = StripSubsetConstraints(SubstType(function.ResultType, e.TypeArgumentSubstitutions));
+          e.Type = SubstType(function.ResultType, e.TypeArgumentSubstitutions).StripSubsetConstraints();
         }
 
         AddCallGraphEdge(opts.codeContext, function, e);
@@ -11429,7 +11421,7 @@ namespace Microsoft.Dafny
     static Expression GetImpliedTypeConstraint(IVariable bv, Type ty, ErrorReporter reporter) {
       Contract.Requires(bv != null);
       Contract.Requires(ty != null);
-      ty = ty.NormalizeExpand();
+      ty = ty.NormalizeExpandKeepConstraints();
       var dd = ty.AsNewtype;
       if (dd != null) {
         var c = GetImpliedTypeConstraint(bv, dd.BaseType, reporter);

@@ -1722,7 +1722,7 @@ namespace Microsoft.Dafny {
         Indent(indent + n * IndentAmount, wr);
         wr.Write("if (");
         foreach (var bv in s.BoundVars) {
-          if (bv.Type.NormalizeExpand() is NatType) {
+          if (bv.Type.NormalizeExpandKeepConstraints() is NatType) {
             wr.Write("0 <= {0} && ", bv.CompileName);
           }
         }

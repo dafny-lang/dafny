@@ -511,8 +511,58 @@ namespace Microsoft.Dafny {
             continue;
           }
         }
+        return type.StripSubsetConstraints();
+      }
+    }
+
+    /// <summary>
+    /// Return the type that "this" stands for, getting to the bottom of proxies and following type synonyms, but does
+    /// not follow subset types.
+    /// </summary>
+    [Pure]
+    public Type NormalizeExpandKeepConstraints() {
+      Contract.Ensures(Contract.Result<Type>() != null);
+      Contract.Ensures(!(Contract.Result<Type>() is TypeProxy) || ((TypeProxy)Contract.Result<Type>()).T == null);  // return a proxy only if .T == null
+      Type type = this;
+      while (true) {
+        var pt = type as TypeProxy;
+        if (pt != null && pt.T != null) {
+          type = pt.T;
+          continue;
+        }
+        var syn = type.AsTypeSynonym;
+        if (syn != null) {
+          var udt = (UserDefinedType)type;  // correctness of cast follows from the AsTypeSynonym != null test.
+          // Instantiate with the actual type arguments
+          type = syn.RhsWithArgument(udt.TypeArgs);
+          continue;
+        }
+        if (DafnyOptions.O.IronDafny && type is UserDefinedType) {
+          var rc = ((UserDefinedType)type).ResolvedClass;
+          if (rc != null) {
+            while (rc.ClonedFrom != null || rc.ExclusiveRefinement != null) {
+              if (rc.ClonedFrom != null) {
+                rc = (TopLevelDecl)rc.ClonedFrom;
+              } else {
+                Contract.Assert(rc.ExclusiveRefinement != null);
+                rc = rc.ExclusiveRefinement;
+              }
+            }
+          }
+          if (rc is TypeSynonymDecl) {
+            type = ((TypeSynonymDecl)rc).Rhs;
+            continue;
+          }
+        }
         return type;
       }
+    }
+
+    public Type StripSubsetConstraints() {
+      if (this is NatType) {
+        return new IntType();
+      }
+      return this;
     }
 
     /// <summary>
@@ -555,7 +605,7 @@ namespace Microsoft.Dafny {
     public bool IsBitVectorType { get { return NormalizeExpand() is BitvectorType; } }
     public bool ContainsSubsetType {
       get {
-        var t = NormalizeExpand();
+        var t = NormalizeExpandKeepConstraints();
         if (t is NatType) {
           return true;
         }
@@ -1337,7 +1387,7 @@ namespace Microsoft.Dafny {
       return that.IsIntegerType;
     }
     public override bool IsSupertypeOf_WithSubsetTypes(Type that) {
-      that = that.NormalizeExpand();
+      that = that.NormalizeExpandKeepConstraints();
       // treat "int" and "nat" as different
       return that is IntType && (!(this is NatType) || that is NatType);
     }
@@ -1578,7 +1628,7 @@ namespace Microsoft.Dafny {
       return t != null && Finite == t.Finite && Arg.Equals(t.Arg);
     }
     public override bool IsSupertypeOf_WithSubsetTypes(Type that) {
-      var t = that.NormalizeExpand() as SetType;
+      var t = that.NormalizeExpandKeepConstraints() as SetType;
       return t != null && Finite == t.Finite && Arg.IsSupertypeOf_WithSubsetTypes(t.Arg);
     }
     public override bool PossiblyEquals_W(Type that) {
@@ -1597,7 +1647,7 @@ namespace Microsoft.Dafny {
       return t != null && Arg.Equals(t.Arg);
     }
     public override bool IsSupertypeOf_WithSubsetTypes(Type that) {
-      var t = that.NormalizeExpand() as MultiSetType;
+      var t = that.NormalizeExpandKeepConstraints() as MultiSetType;
       return t != null && Arg.IsSupertypeOf_WithSubsetTypes(t.Arg);
     }
     public override bool PossiblyEquals_W(Type that) {
@@ -1615,7 +1665,7 @@ namespace Microsoft.Dafny {
       return t != null && Arg.Equals(t.Arg);
     }
     public override bool IsSupertypeOf_WithSubsetTypes(Type that) {
-      var t = that.NormalizeExpand() as SeqType;
+      var t = that.NormalizeExpandKeepConstraints() as SeqType;
       return t != null && Arg.IsSupertypeOf_WithSubsetTypes(t.Arg);
     }
     public override bool PossiblyEquals_W(Type that) {
@@ -1659,7 +1709,7 @@ namespace Microsoft.Dafny {
       return t != null && Finite == t.Finite && Arg.Equals(t.Arg) && Range.Equals(t.Range);
     }
     public override bool IsSupertypeOf_WithSubsetTypes(Type that) {
-      var t = that.NormalizeExpand() as MapType;
+      var t = that.NormalizeExpandKeepConstraints() as MapType;
       return t != null && Finite == t.Finite && Arg.IsSupertypeOf_WithSubsetTypes(t.Arg) && Range.IsSupertypeOf_WithSubsetTypes(t.Range);
     }
     public override bool PossiblyEquals_W(Type that) {
@@ -1859,7 +1909,7 @@ namespace Microsoft.Dafny {
       }
     }
     public override bool IsSupertypeOf_WithSubsetTypes(Type that) {
-      var i = NormalizeExpand();
+      var i = NormalizeExpandKeepConstraints();
       if (i is UserDefinedType) {
         var ii = (UserDefinedType)i;
         var t = that.NormalizeExpand() as UserDefinedType;
@@ -2080,7 +2130,7 @@ namespace Microsoft.Dafny {
       }
     }
     public override bool IsSupertypeOf_WithSubsetTypes(Type that) {
-      var i = NormalizeExpand();
+      var i = NormalizeExpandKeepConstraints();
       if (i is TypeProxy) {
         var u = that.NormalizeExpand() as TypeProxy;
         return u != null && object.ReferenceEquals(i, u);
@@ -6830,7 +6880,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(v != null);
       Name = v.Name;
       Var = v;
-      Type = Resolver.StripSubsetConstraints(v.Type);
+      Type = v.Type.StripSubsetConstraints();
     }
   }
 

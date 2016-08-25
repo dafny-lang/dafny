@@ -148,7 +148,7 @@ namespace Microsoft.Dafny
                 var rhs = ((ExprRhs)s0.Rhs).Expr;
                 bool usedInversion = false;
                 if (Fi != null) {
-                  var j = new BoundVar(i.tok, i.Name + "#inv", Fi.Type is NatType ? Type.Int : Fi.Type);
+                  var j = new BoundVar(i.tok, i.Name + "#inv", Fi.Type.StripSubsetConstraints());
                   var jj = Expression.CreateIdentExpr(j);
                   var jList = new List<BoundVar>() { j };
                   var range = i.Type is NatType ? Expression.CreateAnd(Expression.CreateAtMost(Expression.CreateIntLiteral(jj.tok, 0), jj), s.Range) : s.Range;

@@ -1076,7 +1076,7 @@ namespace Microsoft.Dafny {
           sink.AddTopLevelDeclaration(new Bpl.Axiom(ctor.tok, q, "Constructor injectivity"));
 
           if (dt is IndDatatypeDecl) {
-            var argType = arg.Type.NormalizeExpand();
+            var argType = arg.Type.NormalizeExpandKeepConstraints();
             if (argType.IsDatatype || argType.IsTypeParameter) {
               // for datatype:             axiom (forall params :: {#dt.ctor(params)} DtRank(params_i) < DtRank(#dt.ctor(params)));
               // for type-parameter type:  axiom (forall params :: {#dt.ctor(params)} BoxRank(params_i) < DtRank(#dt.ctor(params)));
@@ -8524,7 +8524,7 @@ namespace Microsoft.Dafny {
     IEnumerable<Expression> GuessWitnesses(BoundVar x, Expression expr) {
       Contract.Requires(x != null);
       Contract.Requires(expr != null);
-      var xType = x.Type.NormalizeExpand();
+      var xType = x.Type.NormalizeExpandKeepConstraints();
       if (xType is BoolType) {
         var lit = new LiteralExpr(x.tok, false);
         lit.Type = Type.Bool;  // resolve here
@@ -9984,7 +9984,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(type != null);
       Contract.Ensures(Contract.Result<Bpl.Expr>() != null);
 
-      var normType = type.NormalizeExpand();
+      var normType = type.NormalizeExpandKeepConstraints();
 
       if (normType is SetType) {
         bool finite = ((SetType)normType).Finite;
@@ -10110,7 +10110,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(etran != null);
       Contract.Requires(predef != null);
 
-      var normType = type.NormalizeExpand();
+      var normType = type.NormalizeExpandKeepConstraints();
       if (normType is TypeProxy) {
         // Unresolved proxy
         // Omit where clause (in other places, unresolved proxies are treated as a reference type; we could do that here too, but
@@ -14019,7 +14019,7 @@ namespace Microsoft.Dafny {
           var substMap = new Dictionary<IVariable, Expression>();
           foreach (var n in inductionVariables) {
             toks.Add(n.tok);
-            types.Add(n.Type.NormalizeExpand());
+            types.Add(n.Type.NormalizeExpandKeepConstraints());
             BoundVar k = new BoundVar(n.tok, CurrentIdGenerator.FreshId(n.Name + "$ih#"), n.Type);
             kvars.Add(k);
 
