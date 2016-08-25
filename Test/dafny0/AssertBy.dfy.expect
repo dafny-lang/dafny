@@ -1,0 +1,30 @@
+// Dafny program verifier version 1.9.7.30401, Copyright (c) 2003-2016, Microsoft.
+// Command Line Options: -nologo -countVerificationErrors:0 -useBaseNameForFileName /dprint:- C:\dafny\Test\dafny0\AssertBy.dfy
+// AssertBy.dfy
+
+method M0(x: int, y: int)
+{
+  assert x == 6;
+  assert y == 8;
+}
+
+method M1(x: int, y: int)
+{
+  assert x == 6 by {
+    assume x == 6;
+    assume y == 8;
+  }
+  assert y == 8;
+}
+AssertBy.dfy(6,11): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+AssertBy.dfy(7,11): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+AssertBy.dfy(16,11): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    AssertBy.dfy(12,3): anon3_Else
+
+Dafny program verifier finished with 2 verified, 3 errors

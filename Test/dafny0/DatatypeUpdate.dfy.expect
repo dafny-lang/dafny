@@ -1,13 +1,2 @@
-DatatypeUpdate.dfy(10,22): Warning: datatype update syntax D[f := E] is deprecated; the new syntax is D.(f := E)
-DatatypeUpdate.dfy(11,22): Warning: datatype update syntax D[f := E] is deprecated; the new syntax is D.(f := E)
-DatatypeUpdate.dfy(12,22): Warning: datatype update syntax D[f := E] is deprecated; the new syntax is D.(f := E)
-DatatypeUpdate.dfy(12,34): Warning: datatype update syntax D[f := E] is deprecated; the new syntax is D.(f := E)
-DatatypeUpdate.dfy(14,22): Warning: datatype update syntax D[f := E] is deprecated; the new syntax is D.(f := E)
-DatatypeUpdate.dfy(17,14): Warning: datatype update syntax D[f := E] is deprecated; the new syntax is D.(f := E)
-DatatypeUpdate.dfy(20,14): Warning: datatype update syntax D[f := E] is deprecated; the new syntax is D.(f := E)
-DatatypeUpdate.dfy(22,14): Warning: datatype update syntax D[f := E] is deprecated; the new syntax is D.(f := E)
-DatatypeUpdate.dfy(22,45): Warning: datatype update syntax D[f := E] is deprecated; the new syntax is D.(f := E)
-DatatypeUpdate.dfy(29,3): Warning: datatype update syntax D[f := E] is deprecated; the new syntax is D.(f := E)
-DatatypeUpdate.dfy(36,10): Warning: datatype update syntax D[f := E] is deprecated; the new syntax is D.(f := E)
 
-Dafny program verifier finished with 12 verified, 0 errors
+Dafny program verifier finished with 14 verified, 0 errors

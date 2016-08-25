@@ -1,0 +1,442 @@
+// BitvectorsMore.dfy
+
+/*
+module _System {
+  /* CALL GRAPH for module _System:
+   */
+  type string = seq<char>
+
+  class {:compile false} object { }
+
+  class {:compile false} array<arg> {
+    var Length: int  // immutable
+  }
+
+  class {:compile false} _#Func0<T0> {
+    function requires(): bool
+      reads reads()
+
+    function reads(): set<object>
+      reads reads()
+  }
+
+  class {:compile false} _#Func11<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11> {
+    function requires(x0: T0, x1: T1, x2: T2, x3: T3, x4: T4, x5: T5, x6: T6, x7: T7, x8: T8, x9: T9, x10: T10): bool
+      reads reads(x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10)
+
+    function reads(x0: T0, x1: T1, x2: T2, x3: T3, x4: T4, x5: T5, x6: T6, x7: T7, x8: T8, x9: T9, x10: T10): set<object>
+      reads reads(x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10)
+  }
+}
+// bitvector types in use: bv7 bv137 bv0 bv10 bv60 bv67 bv32 bv2 bv8 bv5
+*/
+
+/* CALL GRAPH for module _module:
+ * SCC at height 20:
+ *   _default.TestActualShifting
+ * SCC at height 19:
+ *   _default.R
+ * SCC at height 18:
+ *   _default.Q
+ * SCC at height 17:
+ *   _default.P
+ * SCC at height 16:
+ *   _default.N4
+ * SCC at height 15:
+ *   _default.N3
+ * SCC at height 14:
+ *   _default.N2
+ * SCC at height 13:
+ *   _default.N1
+ * SCC at height 12:
+ *   _default.N0
+ * SCC at height 11:
+ *   _default.M
+ * SCC at height 10:
+ *   _default.Shifts6
+ * SCC at height 9:
+ *   _default.Shifts5
+ * SCC at height 8:
+ *   _default.Shifts4
+ * SCC at height 7:
+ *   _default.Shifts3
+ * SCC at height 6:
+ *   _default.Shifts2
+ * SCC at height 5:
+ *   _default.Shifts1
+ * SCC at height 4:
+ *   _default.Shifts0
+ * SCC at height 3:
+ *   _default.PQ
+ * SCC at height 2:
+ *   Handful
+ * SCC at height 1:
+ *   SmallReal
+ * SCC at height 0:
+ *   EvenInt
+ */
+newtype EvenInt = x: int | x % 2 == 0
+
+newtype SmallReal = r: real | -4.0 <= r < 300.0
+
+newtype Handful = x: int | 0 <= x < 80
+
+method M()
+{
+  var h: bv8 := 5;
+  var k: bv8 := h * 128 / 128;
+  assert k == 1;
+  h := 3;
+  k := h * 128 / 128;
+  assert k == 1;
+  h := *;
+  k := k / h;
+}
+
+method N0(x: bv7, y: bv7)
+  decreases x, y
+{
+  var z: bv7 := x / y;
+}
+
+method N1(x: bv7, y: bv7)
+  decreases x, y
+{
+  var z: bv7 := x % y;
+}
+
+method N2(x: bv137, y: bv137)
+  decreases x, y
+{
+  var z: bv137 := x / y;
+}
+
+method N3(x: bv0, y: bv0)
+  decreases x, y
+{
+  if * {
+    var z: bv0 := x / y;
+  } else {
+    var z: bv0 := x % y;
+  }
+}
+
+method N4(x: bv0, y: bv0) returns (z: bv0)
+  ensures z == 0
+  decreases x, y
+{
+  if {
+    case true =>
+      z := x + y;
+    case true =>
+      z := x - y;
+    case true =>
+      z := x * y;
+    case true =>
+      z := x & y;
+    case true =>
+      z := x | y;
+    case true =>
+      z := x ^ y;
+    case true =>
+      z := !x;
+    case true =>
+      z := -x;
+    case true =>
+    case true =>
+      assert !(x < y);
+    case true =>
+      assert x <= y;
+    case true =>
+      assert x >= y;
+    case true =>
+      assert !(x > y);
+  }
+}
+
+method P(x: bv0, y: bv0)
+  requires x != y
+  decreases x, y
+{
+  assert false;
+}
+
+method Q(x: bv10, y: bv10)
+  decreases x, y
+{
+  if x < 0 {
+    var z: bv10 := x / y;
+  }
+}
+
+method R(x: bv60, y: bv60)
+  decreases x, y
+{
+  var a0: bool, a1: bool;
+  a0, a1 := x < y, y > x;
+  assert a0 == a1;
+  a0, a1 := x <= y, y >= x;
+  assert a0 == a1;
+}
+
+predicate PQ(x: int, n: nat, r: real, even: EvenInt, small: SmallReal, b67: bv67, w: bv32, seven: bv7, bb: bv2, noll: bv0, h: Handful)
+  decreases x, n, r, even, small, b67, w, seven, bb, noll, h
+{
+  x == x &&
+  n == n &&
+  r == r &&
+  even == even &&
+  small == small &&
+  b67 == b67 &&
+  w == w &&
+  seven == seven &&
+  bb == bb &&
+  noll == noll &&
+  h == h
+}
+
+method Shifts0()
+    returns (x: int, n: nat, r: real, even: EvenInt, small: SmallReal, b67: bv67, w: bv32, seven: bv7, bb: bv2, noll: bv0, h: Handful)
+  ensures PQ(x, n, r, even, small, b67, w, seven, bb, noll, h)
+{
+  if {
+    case x < 20 =>
+      b67 := b67 << x;
+    case 0 <= x =>
+      b67 := b67 << x;
+    case 0 <= x < 67 =>
+      b67 := b67 << x;
+    case true =>
+      b67 := b67 << n;
+    case true =>
+      b67 := b67 << h;
+  }
+}
+
+method Shifts1()
+    returns (x: int, n: nat, r: real, even: EvenInt, small: SmallReal, b67: bv67, w: bv32, seven: bv7, bb: bv2, noll: bv0, h: Handful)
+  ensures PQ(x, n, r, even, small, b67, w, seven, bb, noll, h)
+{
+  if {
+    case even <= 66 =>
+      b67 := b67 << even;
+    case 0 <= even =>
+      b67 := b67 << even;
+    case 0 <= even <= 66 =>
+      b67 := b67 << even;
+  }
+}
+
+method Shifts2()
+    returns (x: int, n: nat, r: real, even: EvenInt, small: SmallReal, b67: bv67, w: bv32, seven: bv7, bb: bv2, noll: bv0, h: Handful)
+  ensures PQ(x, n, r, even, small, b67, w, seven, bb, noll, h)
+{
+  if {
+    case true =>
+      b67 := b67 << b67;
+    case true =>
+      b67 := b67 << w;
+    case true =>
+      b67 := b67 << seven / 2;
+    case true =>
+      b67 := b67 << bb;
+    case true =>
+      b67 := b67 << noll;
+  }
+}
+
+method Shifts3()
+    returns (x: int, n: nat, r: real, even: EvenInt, small: SmallReal, b67: bv67, w: bv32, seven: bv7, bb: bv2, noll: bv0, h: Handful)
+  ensures PQ(x, n, r, even, small, b67, w, seven, bb, noll, h)
+{
+  if {
+    case true =>
+      w := w << b67;
+    case true =>
+      w := w << w;
+    case true =>
+      w := w << seven;
+    case true =>
+      w := w << bb;
+    case true =>
+      w := w << noll;
+  }
+}
+
+method Shifts4()
+    returns (x: int, n: nat, r: real, even: EvenInt, small: SmallReal, b67: bv67, w: bv32, seven: bv7, bb: bv2, noll: bv0, h: Handful)
+  ensures PQ(x, n, r, even, small, b67, w, seven, bb, noll, h)
+{
+  if {
+    case true =>
+      seven := seven << b67;
+    case true =>
+      seven := seven << w;
+    case true =>
+      seven := seven << seven;
+    case true =>
+      seven := seven << bb;
+    case true =>
+      seven := seven << noll;
+  }
+}
+
+method Shifts5()
+    returns (x: int, n: nat, r: real, even: EvenInt, small: SmallReal, b67: bv67, w: bv32, seven: bv7, bb: bv2, noll: bv0, h: Handful)
+  ensures PQ(x, n, r, even, small, b67, w, seven, bb, noll, h)
+{
+  if {
+    case true =>
+      bb := bb << b67;
+    case true =>
+      bb := bb << w;
+    case true =>
+      bb := bb << seven;
+    case true =>
+      bb := bb << bb;
+    case true =>
+      bb := bb << noll;
+  }
+}
+
+method Shifts6()
+    returns (x: int, n: nat, r: real, even: EvenInt, small: SmallReal, b67: bv67, w: bv32, seven: bv7, bb: bv2, noll: bv0, h: Handful)
+  ensures PQ(x, n, r, even, small, b67, w, seven, bb, noll, h)
+{
+  if {
+    case true =>
+      noll := noll << b67;
+    case true =>
+      noll := noll << w;
+    case true =>
+      noll := noll << seven;
+    case true =>
+      noll := noll << bb;
+    case true =>
+      noll := noll << noll;
+  }
+}
+
+method TestActualShifting()
+{
+  var a: bv67 := 3;
+  assert a << 2 == 12;
+  assert a >> 0 == 3;
+  assert a >> 1 == 1;
+  assert a >> 2 == 0;
+  var b: bv5 := 24;
+  assert b << 1 == 16;
+  assert b >> 0 == 24;
+  assert b >> 1 == 12;
+  assert b >> 2 == 6;
+}
+BitvectorsMore.dfy(13,9): Error: possible division by zero
+Execution trace:
+    (0,0): anon0
+BitvectorsMore.dfy(17,13): Error: possible division by zero
+Execution trace:
+    (0,0): anon0
+BitvectorsMore.dfy(21,13): Error: possible division by zero
+Execution trace:
+    (0,0): anon0
+BitvectorsMore.dfy(25,13): Error: possible division by zero
+Execution trace:
+    (0,0): anon0
+BitvectorsMore.dfy(30,15): Error: possible division by zero
+Execution trace:
+    (0,0): anon0
+    (0,0): anon3_Then
+BitvectorsMore.dfy(32,15): Error: possible division by zero
+Execution trace:
+    (0,0): anon0
+    (0,0): anon3_Else
+BitvectorsMore.dfy(104,34): Error: shift amount must be non-negative
+Execution trace:
+    (0,0): anon0
+    (0,0): anon9_Then
+BitvectorsMore.dfy(105,35): Error: shift amount must not exceed the width of the result (67)
+Execution trace:
+    (0,0): anon0
+    (0,0): anon10_Then
+BitvectorsMore.dfy(107,34): Error: shift amount must not exceed the width of the result (67)
+Execution trace:
+    (0,0): anon0
+    (0,0): anon13_Then
+BitvectorsMore.dfy(108,34): Error: shift amount must not exceed the width of the result (67)
+Execution trace:
+    (0,0): anon0
+    (0,0): anon14_Then
+BitvectorsMore.dfy(115,39): Error: shift amount must be non-negative
+Execution trace:
+    (0,0): anon0
+    (0,0): anon7_Then
+BitvectorsMore.dfy(116,39): Error: shift amount must not exceed the width of the result (67)
+Execution trace:
+    (0,0): anon0
+    (0,0): anon8_Then
+BitvectorsMore.dfy(124,28): Error: shift amount must not exceed the width of the result (67)
+Execution trace:
+    (0,0): anon0
+    (0,0): anon7_Then
+BitvectorsMore.dfy(125,28): Error: shift amount must not exceed the width of the result (67)
+Execution trace:
+    (0,0): anon0
+    (0,0): anon8_Then
+BitvectorsMore.dfy(135,24): Error: shift amount must not exceed the width of the result (32)
+Execution trace:
+    (0,0): anon0
+    (0,0): anon7_Then
+BitvectorsMore.dfy(136,24): Error: shift amount must not exceed the width of the result (32)
+Execution trace:
+    (0,0): anon0
+    (0,0): anon8_Then
+BitvectorsMore.dfy(137,24): Error: shift amount must not exceed the width of the result (32)
+Execution trace:
+    (0,0): anon0
+    (0,0): anon9_Then
+BitvectorsMore.dfy(146,32): Error: shift amount must not exceed the width of the result (7)
+Execution trace:
+    (0,0): anon0
+    (0,0): anon7_Then
+BitvectorsMore.dfy(147,32): Error: shift amount must not exceed the width of the result (7)
+Execution trace:
+    (0,0): anon0
+    (0,0): anon8_Then
+BitvectorsMore.dfy(148,32): Error: shift amount must not exceed the width of the result (7)
+Execution trace:
+    (0,0): anon0
+    (0,0): anon9_Then
+BitvectorsMore.dfy(157,26): Error: shift amount must not exceed the width of the result (2)
+Execution trace:
+    (0,0): anon0
+    (0,0): anon7_Then
+BitvectorsMore.dfy(158,26): Error: shift amount must not exceed the width of the result (2)
+Execution trace:
+    (0,0): anon0
+    (0,0): anon8_Then
+BitvectorsMore.dfy(159,26): Error: shift amount must not exceed the width of the result (2)
+Execution trace:
+    (0,0): anon0
+    (0,0): anon9_Then
+BitvectorsMore.dfy(160,26): Error: shift amount must not exceed the width of the result (2)
+Execution trace:
+    (0,0): anon0
+    (0,0): anon10_Then
+BitvectorsMore.dfy(168,30): Error: shift amount must not exceed the width of the result (0)
+Execution trace:
+    (0,0): anon0
+    (0,0): anon7_Then
+BitvectorsMore.dfy(169,30): Error: shift amount must not exceed the width of the result (0)
+Execution trace:
+    (0,0): anon0
+    (0,0): anon8_Then
+BitvectorsMore.dfy(170,30): Error: shift amount must not exceed the width of the result (0)
+Execution trace:
+    (0,0): anon0
+    (0,0): anon9_Then
+BitvectorsMore.dfy(171,30): Error: shift amount must not exceed the width of the result (0)
+Execution trace:
+    (0,0): anon0
+    (0,0): anon10_Then
+
+Dafny program verifier finished with 26 verified, 28 errors

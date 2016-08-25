@@ -7,33 +7,33 @@ datatype MyDataType = MyConstructor(myint:int, mybool:bool)
 
 method test(foo:MyDataType, x:int) returns (abc:MyDataType, def:MyDataType, ghi:MyDataType, jkl:MyDataType)
     requires foo.MyConstructor?;
-    ensures abc == foo[myint := x + 2];
-    ensures def == foo[otherbool := !foo.mybool];
-    ensures ghi == foo[myint := 2][mybool := false];
-    //ensures jkl == foo[non_destructor := 5];      // Resolution error: no non_destructor in MyDataType
-    ensures jkl == foo[42 := 7];
+    ensures abc == foo.(myint := x + 2);
+    ensures def == foo.(otherbool := !foo.mybool);
+    ensures ghi == foo.(myint := 2).(mybool := false);
+    //ensures jkl == foo.(non_destructor := 5);      // Resolution error: no non_destructor in MyDataType
+    ensures jkl == foo.(42 := 7);
 {
     abc := MyConstructor(x + 2, foo.mybool); 
-    abc := foo[myint := x + 2];
+    abc := foo.(myint := x + 2);
     def := MyOtherConstructor(!foo.mybool);
     ghi := MyConstructor(2, false);
-    jkl := foo[42 := 7];
+    jkl := foo.(42 := 7);
 
-    assert abc[myint := abc.myint - 2] == foo[myint := x];
+    assert abc.(myint := abc.myint - 2) == foo.(myint := x);
 }
 
 // regression test (for a previous bug in the Translator.Substituter):
 datatype Dt = Ctor(x: int, y: bool)
 function F(d: Dt): Dt
 {
-  d[x := 5]
+  d.(x := 5)
 }
 
 datatype NumericNames = NumNam(010: int)
 
 method UpdateNumNam(nn: NumericNames, y: int) returns (pp: NumericNames)
 {
-  pp := nn[010 := y];  // not to be confused with a field name 10
+  pp := nn.(010 := y);  // not to be confused with a field name 10
 }
 }
 
@@ -83,3 +83,17 @@ method MultipleUpdates(nn: NumericNames, y: int) returns (pp: NumericNames)
   }
 }
 }
+
+module Regression0 {
+  datatype SystemState = SS(connections: map<int,Connection>)
+  datatype Connection = C(acceptor: Actor)
+  type Actor
+  
+  method M(ls: SystemState, actor: Actor, conn_id: int)
+    requires conn_id in ls.connections
+  {
+    var x := ls.connections[conn_id];
+    var y := x.(acceptor := actor);
+  }
+}
+  

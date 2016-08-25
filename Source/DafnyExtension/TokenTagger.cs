@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.Composition;
 using System.Linq;
@@ -415,6 +415,7 @@ namespace DafnyLanguage
                 case "assert":
                 case "assume":
                 case "break":
+                case "by":
                 case "calc":
                 case "case":
                 case "class":
@@ -460,6 +461,7 @@ namespace DafnyLanguage
                 case "then":
                 case "this":
                 case "true":
+                case "twostate":
                 case "type":
                 case "var":
                 case "where":

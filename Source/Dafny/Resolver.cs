@@ -1,3 +1,4 @@
+//#define DEBUG_PRINT
 //-----------------------------------------------------------------------------
 //
 // Copyright (C) Microsoft Corporation.  All Rights Reserved.
@@ -170,8 +171,9 @@ namespace Microsoft.Dafny
     readonly Dictionary<ClassDecl, Dictionary<string, MemberDecl>> classMembers = new Dictionary<ClassDecl, Dictionary<string, MemberDecl>>();
     readonly Dictionary<DatatypeDecl, Dictionary<string, MemberDecl>> datatypeMembers = new Dictionary<DatatypeDecl, Dictionary<string, MemberDecl>>();
     readonly Dictionary<DatatypeDecl, Dictionary<string, DatatypeCtor>> datatypeCtors = new Dictionary<DatatypeDecl, Dictionary<string, DatatypeCtor>>();
-    enum BasicTypeVariety { Bool = 0, Int, Real, None }  // note, these are ordered, so they can be used as indices into basicTypeMembers
+    enum BasicTypeVariety { Bool = 0, Int, Real, Bitvector, None }  // note, these are ordered, so they can be used as indices into basicTypeMembers
     readonly Dictionary<string, MemberDecl>[] basicTypeMembers = new Dictionary<string, MemberDecl>[] {
+      new Dictionary<string, MemberDecl>(),
       new Dictionary<string, MemberDecl>(),
       new Dictionary<string, MemberDecl>(),
       new Dictionary<string, MemberDecl>()
@@ -185,8 +187,8 @@ namespace Microsoft.Dafny
       builtIns = prog.BuiltIns;
       reporter = prog.reporter;
       // Populate the members of the basic types
-      var trunc = new SpecialField(Token.NoToken, "Trunc", "ToBigInteger()", "", "", false, false, false, Type.Int, null);
-      basicTypeMembers[(int)BasicTypeVariety.Real].Add(trunc.Name, trunc);
+      var floor = new SpecialField(Token.NoToken, "Floor", "ToBigInteger()", "", "", false, false, false, Type.Int, null);
+      basicTypeMembers[(int)BasicTypeVariety.Real].Add(floor.Name, floor);
     }
 
     [ContractInvariantMethod]
@@ -244,10 +246,10 @@ namespace Microsoft.Dafny
       // fill in module heights
       List<ModuleDecl> sortedDecls = dependencies.TopologicallySortedComponents();
       int h = 0;
-      foreach (ModuleDecl m in sortedDecls) {
-        m.Height = h;
-        if (m is LiteralModuleDecl) {
-          var mdef = ((LiteralModuleDecl)m).ModuleDef;
+      foreach (ModuleDecl md in sortedDecls) {
+        md.Height = h;
+        if (md is LiteralModuleDecl) {
+          var mdef = ((LiteralModuleDecl)md).ModuleDef;
           mdef.Height = h;
           prog.Modules.Add(mdef);
         }
@@ -276,10 +278,10 @@ namespace Microsoft.Dafny
       // first, we need to detect which top-level modules have exclusive refinement relationships.
       foreach (ModuleDecl decl in sortedDecls) {
         if (decl is LiteralModuleDecl) {
-          var literalDecl = (LiteralModuleDecl)decl;
-          var m = literalDecl.ModuleDef;
-          if (m.RefinementBaseRoot != null) {
-            if (m.IsExclusiveRefinement) {
+          var literalMDecl = (LiteralModuleDecl)decl;
+          var mdef = literalMDecl.ModuleDef;
+          if (mdef.RefinementBaseRoot != null) {
+            if (mdef.IsExclusiveRefinement) {
               foreach (var d in sortedDecls) {
                 // refinement dependencies won't be later in the sorted module list than the one we're looking at.
                 if (Object.ReferenceEquals(d, decl)) {
@@ -288,8 +290,8 @@ namespace Microsoft.Dafny
                 if (d is LiteralModuleDecl) {
                   var ld = (LiteralModuleDecl)d;
                   // currently, only exclusive refinements of top-level modules are supported.
-                  if (string.Equals(m.RefinementBaseName[0].val, m.RefinementBaseRoot.Name, StringComparison.InvariantCulture)
-                      && string.Equals(m.RefinementBaseName[0].val, ld.ModuleDef.Name, StringComparison.InvariantCulture)) {
+                  if (string.Equals(mdef.RefinementBaseName[0].val, mdef.RefinementBaseRoot.Name, StringComparison.InvariantCulture)
+                      && string.Equals(mdef.RefinementBaseName[0].val, ld.ModuleDef.Name, StringComparison.InvariantCulture)) {
                     ld.ModuleDef.ExclusiveRefinementCount += 1;
                   }
                 }
@@ -299,6 +301,7 @@ namespace Microsoft.Dafny
         }
       }
 
+      var compilationModuleClones = new Dictionary<ModuleDefinition, ModuleDefinition>();
       foreach (var decl in sortedDecls) {
         if (decl is LiteralModuleDecl) {
           // The declaration is a literal module, so it has members and such that we need
@@ -330,16 +333,22 @@ namespace Microsoft.Dafny
             }
             r.PostResolve(m);
           }
-          if (reporter.Count(ErrorLevel.Error) == errorCount && !m.IsAbstract) {
+          if (reporter.Count(ErrorLevel.Error) == errorCount) {
+            m.SuccessfullyResolved = true;
+          }
+          if (reporter.Count(ErrorLevel.Error) == errorCount && (!m.IsAbstract || DafnyOptions.O.IronDafny)) {
             // compilation should only proceed if everything is good, including the signature (which preResolveErrorCount does not include);
-            Contract.Assert(!useCompileSignatures);
-            useCompileSignatures = true;  // set Resolver-global flag to indicate that Signatures should be followed to their CompiledSignature
+            var nw = new CompilationCloner(compilationModuleClones).CloneModuleDefinition(m, m.CompileName + "_Compile");
+            compilationModuleClones.Add(m, nw);
             var oldErrorsOnly = reporter.ErrorsOnly;
             reporter.ErrorsOnly = true; // turn off warning reporting for the clone
-            var nw = new Cloner().CloneModuleDefinition(m, m.CompileName + "_Compile");
+            // Next, compute the compile signature
+            Contract.Assert(!useCompileSignatures);
+            useCompileSignatures = true;  // set Resolver-global flag to indicate that Signatures should be followed to their CompiledSignature
             var compileSig = RegisterTopLevelDecls(nw, true);
             compileSig.Refines = refinementTransformer.RefinedSig;
             sig.CompileSignature = compileSig;
+            // Now we're ready to resolve the cloned module definition, using the compile signature
             ResolveModuleDefinition(nw, compileSig);
             prog.CompileModules.Add(nw);
             useCompileSignatures = false;  // reset the flag
@@ -361,7 +370,7 @@ namespace Microsoft.Dafny
             abs.OriginalSignature = p;
             // ModuleDefinition.ExclusiveRefinement may not be set at this point but ExclusiveRefinementCount will be.
             if (0 == abs.Root.Signature.ModuleDef.ExclusiveRefinementCount) {
-              abs.Signature = MakeAbstractSignature(p, abs.FullCompileName, abs.Height, prog.Modules);
+              abs.Signature = MakeAbstractSignature(p, abs.FullCompileName, abs.Height, prog.Modules, compilationModuleClones);
               ModuleSignature compileSig;
               if (abs.CompilePath != null) {
                 if (ResolvePath(abs.CompileRoot, abs.CompilePath, out compileSig, reporter)) {
@@ -716,6 +725,32 @@ namespace Microsoft.Dafny
       Contract.Requires(AllTypeConstraints.Count == 0);
       Contract.Ensures(AllTypeConstraints.Count == 0);
       moduleInfo = MergeSignature(sig, systemNameInfo);
+      // make sure all imported modules were successfully resolved
+      foreach (var d in m.TopLevelDecls) {
+        if (d is AliasModuleDecl || d is ModuleFacadeDecl) {
+          ModuleSignature importSig;
+          if (d is AliasModuleDecl) {
+            var alias = (AliasModuleDecl)d;
+            importSig = alias.Root != null ? alias.Root.Signature : alias.Signature;
+          } else {
+            importSig = ((ModuleFacadeDecl)d).OriginalSignature;
+          }
+          if (importSig.ModuleDef == null || !importSig.ModuleDef.SuccessfullyResolved) {
+            if (!m.IsEssentiallyEmptyModuleBody()) {  // say something only if this will cause any testing to be omitted
+              reporter.Error(MessageSource.Resolver, d, "not resolving module '{0}' because there were errors in resolving its import '{1}'", m.Name, d.Name);
+            }
+            return;
+          }
+        } else if (d is LiteralModuleDecl) {
+          var nested = (LiteralModuleDecl)d;
+          if (!nested.ModuleDef.SuccessfullyResolved) {
+            if (!m.IsEssentiallyEmptyModuleBody()) {  // say something only if this will cause any testing to be omitted
+              reporter.Error(MessageSource.Resolver, nested, "not resolving module '{0}' because there were errors in resolving its nested module '{1}'", m.Name, nested.Name);
+            }
+            return;
+          }
+        }
+      }
       // resolve
       var datatypeDependencies = new Graph<IndDatatypeDecl>();
       var codatatypeDependencies = new Graph<CoDatatypeDecl>();
@@ -968,6 +1003,8 @@ namespace Microsoft.Dafny
     }
 
     public static ModuleSignature MergeSignature(ModuleSignature m, ModuleSignature system) {
+      Contract.Requires(m != null);
+      Contract.Requires(system != null);
       var info = new ModuleSignature();
       // add the system-declared information, among which we know there are no duplicates
       foreach (var kv in system.TopLevels) {
@@ -1022,7 +1059,9 @@ namespace Microsoft.Dafny
                         b = b.ExclusiveRefinement;
                       }
                       if (a is TypeSynonymDecl && b is TypeSynonymDecl) {
-                        aliased1 = UnifyTypes(((TypeSynonymDecl)a).Rhs, ((TypeSynonymDecl)b).Rhs);
+                        var aa = ((TypeSynonymDecl)a).Rhs;
+                        var bb = ((TypeSynonymDecl)b).Rhs;
+                        aliased1 = aa.Equals(bb);
                       } else {
                         aliased1 = Object.ReferenceEquals(a, b);
                       }
@@ -1122,16 +1161,6 @@ namespace Microsoft.Dafny
         }
       }
 
-      // second go through and overriding anything from the opened imports with the ones from the refinementBase
-      if (useImports && moduleDef.RefinementBaseSig != null) {
-        foreach (var kv in moduleDef.RefinementBaseSig.TopLevels) {
-          sig.TopLevels[kv.Key] = kv.Value;
-        }
-        foreach (var kv in moduleDef.RefinementBaseSig.StaticMembers) {
-          sig.StaticMembers[kv.Key] = kv.Value;
-        }
-      }
-
       // This is solely used to detect duplicates amongst the various e
       Dictionary<string, TopLevelDecl> toplevels = new Dictionary<string, TopLevelDecl>();
       // Now add the things present
@@ -1187,7 +1216,7 @@ namespace Microsoft.Dafny
             if (members.ContainsKey(nm)) {
               reporter.Error(MessageSource.Resolver, p.tok, "Name of implicit yield-history variable '{0}' is already used by another member of the iterator", p.Name);
             } else {
-              var tp = new SeqType(p.Type.IsSubrangeType ? new IntType() : p.Type);
+              var tp = new SeqType(StripSubsetConstraints(p.Type));
               var field = new SpecialField(p.tok, nm, nm, "", "", true, true, false, tp, null);
               field.EnclosingClass = iter;  // resolve here
               iter.OutsHistoryFields.Add(field);  // for now, just record this field (until all parameters have been added as members)
@@ -1416,12 +1445,16 @@ namespace Microsoft.Dafny
       return sig;
     }
 
-    private ModuleSignature MakeAbstractSignature(ModuleSignature p, string Name, int Height, List<ModuleDefinition> mods) {
+    private ModuleSignature MakeAbstractSignature(ModuleSignature p, string Name, int Height, List<ModuleDefinition> mods, Dictionary<ModuleDefinition, ModuleDefinition> compilationModuleClones) {
+      Contract.Requires(p != null);
+      Contract.Requires(Name != null);
+      Contract.Requires(mods != null);
+      Contract.Requires(compilationModuleClones != null);
       var mod = new ModuleDefinition(Token.NoToken, Name + ".Abs", true, true, /*isExclusiveRefinement:*/ false, null, null, null, false);
-      mod.ClonedFrom = p.ModuleDef;
+      mod.ClonedFrom = new CompilationCloner(compilationModuleClones).CloneFromValue_Module(p.ModuleDef);
       mod.Height = Height;
       foreach (var kv in p.TopLevels) {
-        mod.TopLevelDecls.Add(CloneDeclaration(kv.Value, mod, mods, Name));
+        mod.TopLevelDecls.Add(CloneDeclaration(kv.Value, mod, mods, Name, compilationModuleClones));
       }
       var sig = RegisterTopLevelDecls(mod, true);
       sig.Refines = p.Refines;
@@ -1433,13 +1466,16 @@ namespace Microsoft.Dafny
       return sig;
     }
 
-    TopLevelDecl CloneDeclaration(TopLevelDecl d, ModuleDefinition m, List<ModuleDefinition> mods, string Name) {
+    TopLevelDecl CloneDeclaration(TopLevelDecl d, ModuleDefinition m, List<ModuleDefinition> mods, string Name, Dictionary<ModuleDefinition, ModuleDefinition> compilationModuleClones) {
       Contract.Requires(d != null);
       Contract.Requires(m != null);
+      Contract.Requires(mods != null);
+      Contract.Requires(Name != null);
+      Contract.Requires(compilationModuleClones != null);
 
       if (d is ModuleFacadeDecl) {
         var abs = (ModuleFacadeDecl)d;
-        var sig = MakeAbstractSignature(abs.OriginalSignature, Name + "." + abs.Name, abs.Height, mods);
+        var sig = MakeAbstractSignature(abs.OriginalSignature, Name + "." + abs.Name, abs.Height, mods, compilationModuleClones);
         var a = new ModuleFacadeDecl(abs.Path, abs.tok, m, abs.CompilePath, abs.Opened);
         a.Signature = sig;
         a.OriginalSignature = abs.OriginalSignature;
@@ -1530,18 +1566,17 @@ namespace Microsoft.Dafny
         } else if (d is ModuleDecl) {
           var decl = (ModuleDecl)d;
           if (!def.IsAbstract) {
-            if (decl.Signature.IsAbstract)
-              {
-                if (// _module is allowed to contain abstract modules, but not be abstract itself. Note this presents a challenge to
-                                            // trusted verification, as toplevels can't be trusted if they invoke abstract module members.
-                    !def.IsDefaultModule 
-                    // [IronDafny] it's possbile for an abstract module to have an exclusive refinement, so it no longer makes sense to disallow this.
-                    && !DafnyOptions.O.IronDafny) 
-                                            
+            if (decl.Signature.IsAbstract) {
+              if (// _module is allowed to contain abstract modules, but not be abstract itself. Note this presents a challenge to
+                  // trusted verification, as toplevels can't be trusted if they invoke abstract module members.
+                  !def.IsDefaultModule
+                  // [IronDafny] it's possbile for an abstract module to have an exclusive refinement, so it no longer makes sense to disallow this.
+                  && !DafnyOptions.O.IronDafny) {
                 reporter.Error(MessageSource.Resolver, d.tok, "an abstract module can only be imported into other abstract modules, not a concrete one.");
-              } else {
-                // physical modules are allowed everywhere
               }
+            } else {
+              // physical modules are allowed everywhere
+            }
           } else {
             // everything is allowed in an abstract module
           }
@@ -1568,15 +1603,15 @@ namespace Microsoft.Dafny
       }
     }
 
-    static readonly List<NativeType> NativeTypes = new List<NativeType>() {
-      new NativeType("byte", 0, 0x100, "", true),
-      new NativeType("sbyte", -0x80, 0x80, "", true),
-      new NativeType("ushort", 0, 0x10000, "", true),
-      new NativeType("short", -0x8000, 0x8000, "", true),
-      new NativeType("uint", 0, 0x100000000, "U", false),
-      new NativeType("int", -0x80000000, 0x80000000, "", false),
-      new NativeType("ulong", 0, new BigInteger(0x100000000) * new BigInteger(0x100000000), "UL", false),
-      new NativeType("long", Int64.MinValue, 0x8000000000000000, "L", false),
+    public static readonly List<NativeType> NativeTypes = new List<NativeType>() {
+      new NativeType("byte", 0, 0x100, 8, "", true),
+      new NativeType("sbyte", -0x80, 0x80, 0, "", true),
+      new NativeType("ushort", 0, 0x10000, 16, "", true),
+      new NativeType("short", -0x8000, 0x8000, 0, "", true),
+      new NativeType("uint", 0, 0x100000000, 32, "U", false),
+      new NativeType("int", -0x80000000, 0x80000000, 0, "", false),
+      new NativeType("ulong", 0, new BigInteger(0x100000000) * new BigInteger(0x100000000), 64, "UL", false),
+      new NativeType("long", Int64.MinValue, 0x8000000000000000, 0, "L", false),
     };
 
     public void ResolveTopLevelDecls_Core(List<TopLevelDecl/*!*/>/*!*/ declarations, Graph<IndDatatypeDecl/*!*/>/*!*/ datatypeDependencies, Graph<CoDatatypeDecl/*!*/>/*!*/ codatatypeDependencies) {
@@ -1607,20 +1642,19 @@ namespace Microsoft.Dafny
           var dd = (NewtypeDecl)d;
           ResolveAttributes(d.Attributes, d, new ResolveOpts(new NoContext(d.Module), false));
           // this check can be done only after it has been determined that the redirected types do not involve cycles
-          if (!dd.BaseType.IsNumericBased()) {
-            reporter.Error(MessageSource.Resolver, dd.tok, "newtypes must be based on some numeric type (got {0})", dd.BaseType);
-          }
+          AddXConstraint(dd.tok, "NumericType", dd.BaseType, "newtypes must be based on some numeric type (got {0})");
           // type check the constraint, if any
-          if (dd.Var != null) {
+          if (dd.Var == null) {
+            SolveAllTypeConstraints();
+          } else {
             Contract.Assert(object.ReferenceEquals(dd.Var.Type, dd.BaseType));  // follows from NewtypeDecl invariant
             Contract.Assert(dd.Constraint != null);  // follows from NewtypeDecl invariant
             scope.PushMarker();
             var added = scope.Push(dd.Var.Name, dd.Var);
             Contract.Assert(added == Scope<IVariable>.PushResult.Success);
-            ResolveType(dd.Var.tok, dd.Var.Type, dd, ResolveTypeOptionEnum.DontInfer, null);
             ResolveExpression(dd.Constraint, new ResolveOpts(dd, false));
             Contract.Assert(dd.Constraint.Type != null);  // follows from postcondition of ResolveExpression
-            ConstrainTypes(dd.Constraint.Type, Type.Bool, dd.Constraint, "newtype constraint must be of type bool (instead got {0})", dd.Constraint.Type);
+            ConstrainTypeExprBool(dd.Constraint, "newtype constraint must be of type bool (instead got {0})");
             SolveAllTypeConstraints();
             if (!CheckTypeInference_Visitor.IsDetermined(dd.BaseType.NormalizeExpand())) {
               reporter.Error(MessageSource.Resolver, dd.tok, "newtype's base type is not fully determined; add an explicit type for '{0}'", dd.Var.Name);
@@ -1633,6 +1667,9 @@ namespace Microsoft.Dafny
       // Now, we're ready for the other declarations.
       foreach (TopLevelDecl d in declarations) {
         Contract.Assert(AllTypeConstraints.Count == 0);
+        if (d is NewtypeDecl) {
+          continue;  // NewTypeDecl's were already processed in the loop above
+        }
         if (d is TraitDecl && d.TypeArgs.Count > 0) {
           reporter.Error(MessageSource.Resolver, d, "sorry, traits with type parameters are not supported");
         }
@@ -2108,15 +2145,27 @@ namespace Microsoft.Dafny
           }
         }
       }
+      // Figure out the variable and constraint.  Usually, these would be just .Var and .Constraint, but
+      // in the case .Var is null, these can be computed from the .BaseType recursively.
+      var ddVar = dd.Var;
+      var ddConstraint = dd.Constraint;
+      for (var ddWhereConstraintsAre = dd; ddVar == null;) {
+        ddWhereConstraintsAre = ddWhereConstraintsAre.BaseType.AsNewtype;
+        if (ddWhereConstraintsAre == null) {
+          break;
+        }
+        ddVar = ddWhereConstraintsAre.Var;
+        ddConstraint = ddWhereConstraintsAre.Constraint;
+      }
       if (stringNativeType != null || boolNativeType == true) {
         if (!dd.BaseType.IsNumericBased(Type.NumericPersuation.Int)) {
           reporter.Error(MessageSource.Resolver, dd, "nativeType can only be used on integral types");
         }
-        if (dd.Var == null) {
+        if (ddVar == null) {
           reporter.Error(MessageSource.Resolver, dd, "nativeType can only be used if newtype specifies a constraint");
         }
       }
-      if (dd.Var != null) {
+      if (ddVar != null) {
         Func<Expression, BigInteger?> GetConst = null;
         GetConst = (Expression e) => {
           int m = 1;
@@ -2131,7 +2180,7 @@ namespace Microsoft.Dafny
           }
           return null;
         };
-        var bounds = DiscoverAllBounds_SingleVar(dd.Var, dd.Constraint);
+        var bounds = DiscoverAllBounds_SingleVar(ddVar, ddConstraint);
         List<NativeType> potentialNativeTypes =
           (stringNativeType != null) ? new List<NativeType> { stringNativeType } :
           (boolNativeType == false) ? new List<NativeType>() :
@@ -2171,132 +2220,1574 @@ namespace Microsoft.Dafny
       }
     }
 
-    /// <summary>
-    /// Adds the type constraint ty==expected, eventually printing the error message "msg" if this is found to be
-    /// untenable.  If this is immediately known not to be untenable, false is returned.
-    /// </summary>
-    private bool ConstrainTypes(Type ty, Type expected, TopLevelDecl declForToken, string msg, params object[] args) {
-      Contract.Requires(ty != null);
-      Contract.Requires(expected != null);
-      Contract.Requires(declForToken != null);
-      Contract.Requires(msg != null);
-      Contract.Requires(args != null);
-      return ConstrainTypes(ty, expected, declForToken.tok, msg, args);
+    TypeProxy NewIntegerBasedProxy(IToken tok) {
+      Contract.Requires(tok != null);
+      var proxy = new InferredTypeProxy();
+      ConstrainSubtypeRelation(new IntVarietiesSupertype(), proxy, tok, "integer literal used as if it had type {0}", proxy);
+      return proxy;
     }
-    /// <summary>
-    /// Adds the type constraint ty==expected, eventually printing the error message "msg" if this is found to be
-    /// untenable.  If this is immediately known not to be untenable, false is returned.
-    /// </summary>
-    private bool ConstrainTypes(Type ty, Type expected, MemberDecl declForToken, string msg, params object[] args) {
-      Contract.Requires(ty != null);
-      Contract.Requires(expected != null);
-      Contract.Requires(declForToken != null);
-      Contract.Requires(msg != null);
-      Contract.Requires(args != null);
-      return ConstrainTypes(ty, expected, declForToken.tok, msg, args);
-    }
-    /// <summary>
-    /// Adds the type constraint ty==expected, eventually printing the error message "msg" if this is found to be
-    /// untenable.  If this is immediately known not to be untenable, false is returned.
-    /// </summary>
-    private bool ConstrainTypes(Type ty, Type expected, Statement stmtForToken, string msg, params object[] args) {
-      Contract.Requires(ty != null);
-      Contract.Requires(expected != null);
-      Contract.Requires(stmtForToken != null);
-      Contract.Requires(msg != null);
-      Contract.Requires(args != null);
-      return ConstrainTypes(ty, expected, stmtForToken.Tok, msg, args);
-    }
-    /// <summary>
-    /// Adds the type constraint ty==expected, eventually printing the error message "msg" if this is found to be
-    /// untenable.  If this is immediately known not to be untenable, false is returned.
-    /// </summary>
-    private bool ConstrainTypes(Type ty, Type expected, Expression exprForToken, string msg, params object[] args) {
-      Contract.Requires(ty != null);
-      Contract.Requires(expected != null);
+
+    private bool ConstrainSubtypeRelation(Type super, Type sub, Expression exprForToken, string msg, params object[] msgArgs) {
+      Contract.Requires(sub != null);
+      Contract.Requires(super != null);
       Contract.Requires(exprForToken != null);
       Contract.Requires(msg != null);
-      Contract.Requires(args != null);
-      return ConstrainTypes(ty, expected, exprForToken.tok, msg, args);
+      Contract.Requires(msgArgs != null);
+      return ConstrainSubtypeRelation(super, sub, exprForToken.tok, msg, msgArgs);
     }
-    /// <summary>
-    /// Adds the type constraint ty==expected, eventually printing the error message "msg" if this is found to be
-    /// untenable.  If this is immediately known not to be untenable, false is returned.
-    /// </summary>
-    private bool ConstrainTypes(Type ty, Type expected, IToken tok, string msg, params object[] args) {
-      Contract.Requires(ty != null);
-      Contract.Requires(expected != null);
+    private void ConstrainTypeExprBool(Expression e, string msg) {
+      Contract.Requires(e != null);
+      Contract.Requires(msg != null);  // expected to have a {0} part
+      ConstrainSubtypeRelation(Type.Bool, e.Type, e, msg, e.Type);
+    }
+    private bool ConstrainSubtypeRelation(Type super, Type sub, IToken tok, string msg, params object[] msgArgs) {
+      Contract.Requires(sub != null);
+      Contract.Requires(super != null);
       Contract.Requires(tok != null);
       Contract.Requires(msg != null);
-      Contract.Requires(args != null);
-#if LAZY_TYPE_CHECKING
-      var c = new TypeConstraint(ty, expected, tok, msg, args);
+      Contract.Requires(msgArgs != null);
+      return ConstrainSubtypeRelation(super, sub, new TypeConstraint.ErrorMsgWithToken(tok, msg, msgArgs));
+    }
+    /// <summary>
+    /// Adds the subtyping constraint that "sub" is a subtype of "super".
+    /// If this constraint seems feasible, returns "true".  Otherwise, prints error message (either "errMsg" or something
+    /// more specific) and returns "false".
+    /// Note, if in doubt, this method can return "true", because the constraints will be checked for sure at a later stage.
+    /// </summary>
+    private bool ConstrainSubtypeRelation(Type super, Type sub, TypeConstraint.ErrorMsg errMsg) {
+      Contract.Requires(sub != null);
+      Contract.Requires(super != null);
+      Contract.Requires(errMsg != null);
+      super = StripSubsetConstraints(super.NormalizeExpand());
+      sub = StripSubsetConstraints(sub.NormalizeExpand());
+      var c = new TypeConstraint(super, sub, errMsg);
       AllTypeConstraints.Add(c);
-      return true;
-#else
-      if (!UnifyTypes(ty, expected)) {
-        reporter.Error(MessageSource.Resolver, tok, msg, args);
+      return ConstrainSubtypeRelation_Aux(super, sub, c);
+    }
+    private bool ConstrainSubtypeRelation_Aux(Type super, Type sub, TypeConstraint c) {
+      Contract.Requires(sub != null);
+      Contract.Requires(!(sub is TypeProxy) || ((TypeProxy)sub).T == null);  // caller is expected to have called .NormalizeExpand
+      Contract.Requires(super != null);
+      Contract.Requires(!(super is TypeProxy) || ((TypeProxy)super).T == null);  // caller is expected to have called .NormalizeExpand
+      Contract.Requires(c != null);
+
+      if (object.ReferenceEquals(super, sub)) {
+        return true;
+      } else if (super is TypeProxy && sub is TypeProxy) {
+        // both are proxies
+        var pSuper = (TypeProxy)super;
+        var pSub = (TypeProxy)sub;
+        if (pSuper.IsSubtypeOfArtificial() || pSub.IsSubtypeOfArtificial()) {
+          pSuper.SupertypeConstraints.ForEach(ct => pSub.SupertypeConstraints.Add(ct));
+          pSuper.SubtypeConstraints.ForEach(ct => pSub.SubtypeConstraints.Add(ct));
+          pSuper.T = pSub;
+        } else {
+          pSub.AddSupertype(c);
+          pSuper.AddSubtype(c);
+        }
+        return true;
+      } else if (sub is TypeProxy) {
+        var proxy = (TypeProxy)sub;
+        proxy.AddSupertype(c);
+        AssignKnownEnd(proxy);
+        return true;
+      } else if (super is TypeProxy) {
+        var proxy = (TypeProxy)super;
+        proxy.AddSubtype(c);
+        AssignKnownEnd(proxy);
+        return true;
+      } else {
+        // two non-proxy types
+        bool headSymbolsAgree;
+        switch (TypeProxy.GetFamily(super)) {
+          case TypeProxy.Family.Bool:
+          case TypeProxy.Family.Char:
+            headSymbolsAgree = super.IsSupertypeOf_WithSubsetTypes(sub);
+            break;
+          case TypeProxy.Family.IntLike:
+          case TypeProxy.Family.BitVector:
+            headSymbolsAgree = super is IntVarietiesSupertype || super.IsSupertypeOf_WithSubsetTypes(sub);
+            break;
+          case TypeProxy.Family.RealLike:
+            headSymbolsAgree = super is RealVarietiesSupertype || super.IsSupertypeOf_WithSubsetTypes(sub);
+            break;
+          case TypeProxy.Family.Opaque:
+            headSymbolsAgree = super.AsTypeParameter == sub.AsTypeParameter;
+            break;
+          case TypeProxy.Family.ValueType:
+            if (super.AsSetType != null) {
+              headSymbolsAgree = sub.AsSetType != null && (super.IsISetType || !sub.IsISetType);
+            } else if (super.AsSeqType != null) {
+              headSymbolsAgree = sub.AsSeqType != null;
+            } else if (super.AsMultiSetType != null) {
+              headSymbolsAgree = sub.AsMultiSetType != null;
+            } else if (super.AsMapType != null) {
+              headSymbolsAgree = sub.AsMapType != null && (super.IsIMapType || !sub.IsIMapType);
+            } else if (super.IsArrowType) {
+              var a = super.AsArrowType;
+              var b = sub.AsArrowType;
+              headSymbolsAgree = b != null && a.Arity == b.Arity;
+            } else {
+              // two datatypes
+              var a = super.AsDatatype;
+              Contract.Assert(a != null);  // datatypes should be the only remaining .ValueType to check
+              headSymbolsAgree = a == sub.AsDatatype;
+            }
+            break;
+          case TypeProxy.Family.Ref:
+            if (TypeProxy.GetFamily(sub) != TypeProxy.Family.Ref) {
+              headSymbolsAgree = false;
+            } else if (super is ObjectType) {
+              headSymbolsAgree = true;
+            } else if (sub is ObjectType) {
+              headSymbolsAgree = false;
+            } else {
+              var a = ((UserDefinedType)super).ResolvedClass;  // cast justification: any other .Ref must be a class or trait
+              var b = ((UserDefinedType)sub).ResolvedClass;  // cast justification: any other .Ref must be a class or trait
+              if (a == b) {
+                headSymbolsAgree = true;
+              } else {
+                var cl = (ClassDecl)b;  // a class is the only other case
+                headSymbolsAgree = cl.DerivesFrom(a);
+              }
+              // Note: the code that follows below for checking type arguments would need to be adjusted a little if traits could take type arguments
+            }
+            break;
+          default:
+            Contract.Assert(false);  // unexpected type family
+            return false;  // to please the compiler
+        }
+        if (!headSymbolsAgree) {
+          c.FlagAsError();
+          return false;
+        }
+        // TODO: inspect type parameters in order to produce some error messages sooner
+        return true;
+      }
+    }
+
+    void CheckEnds(Type t, out bool isRoot, out bool isLeaf, out bool headIsRoot, out bool headIsLeaf) {
+      Contract.Requires(t != null);
+      Contract.Requires(!(t is TypeProxy) || ((TypeProxy)t).T == null);  // caller is expected to call NormalizeExpand
+      if (t.IsBoolType || t.IsCharType || t.IsNumericBased() || t.IsBitVectorType) {
+        isRoot = true; isLeaf = true;
+        headIsRoot = true; headIsLeaf = true;
+      } else if (t is ArtificialType) {
+        isRoot = false; isLeaf = false;
+        headIsRoot = false; headIsLeaf = false;
+      } else if (t is ObjectType) {
+        isRoot = true; isLeaf = false;
+        headIsRoot = true; headIsLeaf = false;
+      } else if (t is ArrowType) {
+        var arr = (ArrowType)t;
+        headIsRoot = true; headIsLeaf = true;  // these are definitely true
+        isRoot = true; isLeaf = true;  // set these to true until proven otherwise
+        Contract.Assert(arr.Arity + 1 == arr.TypeArgs.Count);
+        for (int i = 0; i < arr.TypeArgs.Count; i++) {
+          var arg = arr.TypeArgs[i];
+          bool r, l, hr, hl;
+          CheckEnds(arg.NormalizeExpand(), out r, out l, out hr, out hl);
+          if (i < arr.Arity) {
+            isRoot &= l; isLeaf &= r;  // argument types are contravariant
+          } else {
+            isRoot &= r; isLeaf &= l;  // result type is covariant
+          }
+        }
+      } else if (t is UserDefinedType) {
+        var udf = (UserDefinedType)t;
+        var cl = udf.ResolvedClass;
+        if (cl != null) {
+          if (cl is TraitDecl) {
+            isRoot = false; isLeaf = false;
+            headIsRoot = false; headIsLeaf = false;
+          } else if (cl is ClassDecl) {
+            isRoot = false; isLeaf = true;  // all type parameters are invariant
+            headIsRoot = false; headIsLeaf = true;
+          } else if (cl is OpaqueTypeDecl) {
+            isRoot = true; isLeaf = true;  // all type parameters are invariant
+            headIsRoot = true; headIsLeaf = true;
+          } else {
+            Contract.Assert(cl is DatatypeDecl);
+            // type parameters of datatypes are covariant
+            isRoot = true; isLeaf = true;
+            foreach (var arg in t.TypeArgs) {
+              bool r, l, hr, hl;
+              CheckEnds(arg.NormalizeExpand(), out r, out l, out hr, out hl);
+              isRoot &= r; isLeaf &= l;
+            }
+            headIsRoot = true; headIsLeaf = true;
+          }
+        } else {
+          var tp = udf.AsTypeParameter;
+          Contract.Assert(tp != null);
+          isRoot = true; isLeaf = true;  // all type parameters are invariant
+          headIsRoot = true; headIsLeaf = true;
+        }
+      } else if (t is MapType) {  // map, imap
+        Contract.Assert(t.TypeArgs.Count == 2);
+        bool r0, l0, r1, l1, hr, hl;
+        CheckEnds(t.TypeArgs[0].NormalizeExpand(), out r0, out l0, out hr, out hl);
+        CheckEnds(t.TypeArgs[1].NormalizeExpand(), out r1, out l1, out hr, out hl);
+        isRoot = r0 & r1; isLeaf = r0 & r1;  // map types are covariant in both type arguments
+        headIsRoot = true; headIsLeaf = true;
+      } else if (t is CollectionType) {  // set, iset, multiset, seq
+        Contract.Assert(t.TypeArgs.Count == 1);
+        bool hr, hl;
+        CheckEnds(t.TypeArgs[0].NormalizeExpand(), out isRoot, out isLeaf, out hr, out hl);  // type is covariant is type argument
+        headIsRoot = true; headIsLeaf = true;
+      } else {
+        isRoot = false; isLeaf = false;  // don't know
+        headIsRoot = false; headIsLeaf = false;
+      }
+    }
+
+    int _recursionDepth = 0;
+    private bool AssignProxyAndHandleItsConstraints(TypeProxy proxy, Type t) {
+      Contract.Requires(proxy != null);
+      Contract.Requires(proxy.T == null);
+      Contract.Requires(t != null);
+      Contract.Requires(!(t is TypeProxy));
+      Contract.Requires(!(t is ArtificialType));
+      if (_recursionDepth == 20) {
+        Contract.Assume(false);  // possible infinite recursion
+      }
+      _recursionDepth++;
+      var b = AssignProxyAndHandleItsConstraints_aux(proxy, t);
+      _recursionDepth--;
+      return b;
+    }
+    /// <summary>
+    /// This method is called if "proxy" is an unassigned proxy and "t" is a type whose head symbol is known.
+    /// It always sets "proxy.T" to "t".
+    /// Then, it deals with the constraints of "proxy" as follows:
+    /// * If the constraint compares "t" with a non-proxy with a head comparable with that of "t",
+    ///   then add constraints that the type arguments satisfy the desired subtyping constraint
+    /// * If the constraint compares "t" with a non-proxy with a head not comparable with that of "t",
+    ///   then report an error
+    /// * If the constraint compares "t" with a proxy, then (depending on the constraint and "t") attempt
+    ///   to recursively set it
+    /// After this process, the proxy's .Supertypes and .Subtypes lists of constraints are no longer needed.
+    /// If anything is found to be infeasible, "false" is returned (and the propagation may be interrupted);
+    /// otherwise, "true" is returned.
+    /// </summary>
+    private bool AssignProxyAndHandleItsConstraints_aux(TypeProxy proxy, Type t) {
+      Contract.Requires(proxy != null);
+      Contract.Requires(proxy.T == null);
+      Contract.Requires(t != null);
+      Contract.Requires(!(t is TypeProxy));
+      Contract.Requires(!(t is ArtificialType));
+
+      t = t.NormalizeExpand();
+      // never violate the type constraint of a literal expression
+      var followedRequestedAssignment = true;
+      foreach (var su in proxy.Supertypes) {
+        if (su is IntVarietiesSupertype) {
+          if (TypeProxy.GetFamily(t) == TypeProxy.Family.IntLike || TypeProxy.GetFamily(t) == TypeProxy.Family.BitVector) {
+            // good, let's continue with the request to equate the proxy with t
+          } else {
+            // hijack the setting of proxy; to do that, we decide on a particular int variety now
+#if DEBUG_PRINT
+            Console.WriteLine("DEBUG: hijacking {0}.T := {1} to instead assign {2}", proxy, t, Type.Int);
+#endif
+            t = Type.Int;
+            followedRequestedAssignment = false;
+          }
+          break;
+        } else if (su is RealVarietiesSupertype) {
+          if (TypeProxy.GetFamily(t) == TypeProxy.Family.RealLike) {
+            // good, let's continue with the request to equate the proxy with t
+          } else {
+            // hijack the setting of proxy; to do that, we decide on a particular real variety now
+#if DEBUG_PRINT
+            Console.WriteLine("DEBUG: hijacking {0}.T := {1} to instead assign {2}", proxy, t, Type.Real);
+#endif
+            t = Type.Real;
+            followedRequestedAssignment = false;
+          }
+          break;
+        }
+      }
+      // set proxy.T right away, so that we can freely recurse without having to worry about infinite recursion
+      proxy.T = t;
+
+      // check feasibility
+      bool isRoot, isLeaf, headRoot, headLeaf;
+      CheckEnds(t, out isRoot, out isLeaf, out headRoot, out headLeaf);
+      // propagate up
+      foreach (var c in proxy.SupertypeConstraints) {
+        var u = c.Super.NormalizeExpand();
+        if (!(u is TypeProxy)) {
+          ImposeSubtypingConstraint(u, t, c.errorMsg);
+        } else if (isRoot) {
+          // If t is a root, we might as well constrain u now.  Otherwise, we'll wait until the .Subtype constraint of u is dealt with.
+          AssignProxyAndHandleItsConstraints((TypeProxy)u, t);
+        }
+      }
+      // propagate down
+      foreach (var c in proxy.SubtypeConstraints) {
+        var u = c.Sub.NormalizeExpand();
+        Contract.Assert(!TypeProxy.IsSupertypeOfLiteral(u));  // these should only appear among .Supertypes
+        if (!(u is TypeProxy)) {
+          ImposeSubtypingConstraint(t, u, c.errorMsg);
+        } else if (isLeaf) {
+          // If t is a leaf (no pun intended), we might as well constrain u now.  Otherwise, we'll wait until the .Supertype constraint of u is dealt with.
+          AssignProxyAndHandleItsConstraints((TypeProxy)u, t);
+        }
+      }
+
+      return followedRequestedAssignment;
+    }
+
+    /// <summary>
+    /// Impose constraints that "sub" is a subtype of "super", returning "false" if this leads to an overconstrained situation.
+    /// In most cases, "sub" being a subtype of "super" means that "sub" and "super" have the same head symbol and, therefore, the
+    /// same number of type arguments. Depending on the polarities of the type parameters, the corresponding arguments
+    /// of "sub" and "super" must be in co-, in-, or contra-variant relationships to each other.
+    /// The only way "sub" can be a subtype of "super" without the two having the same head symbol is when "super" is a trait (possibly
+    /// the trait "object").  By a current restriction in Dafny's type system, traits have no type parameters, so in this case, it
+    /// suffices to check that the head symbol of "super" is something that derives from "sub".
+    /// </summary>
+    private bool ImposeSubtypingConstraint(Type super, Type sub, TypeConstraint.ErrorMsg errorMsg) {
+      Contract.Requires(super != null && !(super is TypeProxy));
+      Contract.Requires(sub != null && !(sub is TypeProxy));
+      Contract.Requires(errorMsg != null);
+      List<int> polarities = ConstrainTypeHead(super, sub);
+      if (polarities == null) {
+        errorMsg.FlagAsError();
         return false;
       }
+      var p = polarities.Count;
+      Contract.Assert(p == super.TypeArgs.Count);  // postcondition of ConstrainTypeHead
+      Contract.Assert(p == 0 || sub.TypeArgs.Count == super.TypeArgs.Count);  // postcondition of ConstrainTypeHead
+      for (int i = 0; i < p; i++) {
+        var pol = polarities[i];
+        var tp = p == 1 ? "" : " " + i;
+        var errMsg = new TypeConstraint.ErrorMsgWithBase(errorMsg,
+          pol < 0 ? "contravariant type parameter{0} would require {2} <: {1}" :
+          pol > 0 ? "covariant type parameter{0} would require {1} <: {2}" :
+          "invariant type parameter{0} would require {1} = {2}",
+          tp, super.TypeArgs[i], sub.TypeArgs[i]);
+        if (pol >= 0) {
+          if (!ConstrainSubtypeRelation(super.TypeArgs[i], sub.TypeArgs[i], errMsg)) {
+            return false;
+          }
+        }
+        if (pol <= 0) {
+          if (!ConstrainSubtypeRelation(sub.TypeArgs[i], super.TypeArgs[i], errMsg)) {
+            return false;
+          }
+        }
+     }
       return true;
-#endif
+    }
+
+    /// <summary>
+    /// Determines if the head of "sub" can be a subtype of "super".
+    /// If this is not possible, null is returned.
+    /// If it is possible, return a list of polarities, one for each type argument of "sub".  Polarities
+    /// indicate:
+    ///     +1  co-variant
+    ///      0  invariant
+    ///     -1  contra-variant
+    /// "sub" is of some type that can (in general) have type parameters.
+    /// See also note about Dafny's current type system in the description of method "ImposeSubtypingConstraint".
+    /// </summary>
+    private List<int> ConstrainTypeHead(Type super, Type sub) {
+      Contract.Requires(super != null && !(super is TypeProxy));
+      Contract.Requires(sub != null && !(sub is TypeProxy));
+      if (super is IntVarietiesSupertype) {
+        if (TypeProxy.GetFamily(sub) == TypeProxy.Family.IntLike || TypeProxy.GetFamily(sub) == TypeProxy.Family.BitVector || super.Equals(sub)) {
+          return new List<int>();
+        } else {
+          return null;
+        }
+      } else if (super is RealVarietiesSupertype) {
+        if (TypeProxy.GetFamily(sub) == TypeProxy.Family.RealLike || super.Equals(sub)) {
+          return new List<int>();
+        } else {
+          return null;
+        }
+      }
+      switch (TypeProxy.GetFamily(super)) {
+        case TypeProxy.Family.Bool:
+        case TypeProxy.Family.Char:
+        case TypeProxy.Family.IntLike:
+        case TypeProxy.Family.RealLike:
+        case TypeProxy.Family.BitVector:
+          if (super.Equals(sub)) {
+            return new List<int>();
+          } else {
+            return null;
+          }
+        case TypeProxy.Family.ValueType:
+        case TypeProxy.Family.Ref:
+        case TypeProxy.Family.Opaque:
+          break;  // more elaborate work below
+        case TypeProxy.Family.Unknown:
+          Contract.Assert(false);  // unexpected type (the precondition of ConstrainTypeHead says "no proxies")
+          return null;  // please compiler
+      }
+      if (super is SetType) {
+        var tt = (SetType)super;
+        var uu = sub as SetType;
+        return uu != null && tt.Finite == uu.Finite ? new List<int> { 1 } : null;
+      } else if (super is SeqType) {
+        return sub is SeqType ? new List<int> { 1 } : null;
+      } else if (super is MultiSetType) {
+        return sub is MultiSetType ? new List<int> { 1 } : null;
+      } else if (super is MapType) {
+        var tt = (MapType)super;
+        var uu = sub as MapType;
+        return uu != null && tt.Finite == uu.Finite ? new List<int> { 1, 1 } : null;
+      } else if (super is ArrowType) {
+        var tt = (ArrowType)super;
+        var uu = sub as ArrowType;
+        if (uu != null && tt.Arity == uu.Arity) {
+          var polarities = new List<int>();
+          for (int i = 0; i < tt.Arity; i++) {
+            polarities.Add(-1);
+          }
+          polarities.Add(1);
+          return polarities;
+        } else {
+          return null;
+        }
+      } else if (super is ObjectType) {
+        return sub.IsRefType ? new List<int>() : null;
+      } else {
+        // The only remaining cases are that "super" is a (co)datatype, opaque type, or non-object trait/class.
+        // In each of these cases, "super" is a UserDefinedType.
+        var udfSuper = (UserDefinedType)super;
+        var clSuper = udfSuper.ResolvedClass;
+        if (clSuper == null) {
+          // we're looking at a type parameter
+          Contract.Assert(super.IsTypeParameter);
+          Contract.Assert(super.TypeArgs.Count == 0);
+          return super.AsTypeParameter == sub.AsTypeParameter ? new List<int>() : null;
+        }
+        var udfSub = sub as UserDefinedType;
+        var clSub = udfSub == null ? null : udfSub.ResolvedClass;
+        if (clSub == null) {
+          return null;
+        } else if (clSuper == clSub) {
+          // good
+          var polarities = new List<int>();
+          for (int i = 0; i < sub.TypeArgs.Count; i++) {
+            // datatypes are co-variant in their argument types, whereas
+            // classes, traits, and opaque types are invariant in their argument types
+            polarities.Add(clSuper is DatatypeDecl ? 1 : 0);
+          }
+          return polarities;
+        } else if (clSub is ClassDecl && ((ClassDecl)clSub).DerivesFrom(clSuper)) {
+          // cool
+          Contract.Assert(clSuper.TypeArgs.Count == 0);  // traits are currently not allowed to have any type parameters
+          return new List<int>();
+        } else {
+          return null;
+        }
+      }
+    }
+
+    /// <summary>
+    /// Returns -1 if the head symbols are not equatable.  Otherwise, returns the number of
+    /// type arguments of both "a" and "b" that need to be eq-comparable in order for "a" and "b"
+    /// to be equatable.  If "treatTypeParametersAsWildcards" returns as true, then the type
+    /// arguments of a/b should be compared while treating type parameters as wildcards.
+    /// </summary>
+    public static int AreHeadSymbolsEquatable(Type a, Type b, out bool treatTypeParametersAsWildcards) {
+      Contract.Requires(a != null && !(a is TypeProxy) && !(a is ArtificialType));
+      Contract.Requires(b != null && !(b is TypeProxy) && !(b is ArtificialType));
+      treatTypeParametersAsWildcards = false;
+      switch (TypeProxy.GetFamily(a)) {
+        case TypeProxy.Family.Bool:
+        case TypeProxy.Family.Char:
+        case TypeProxy.Family.IntLike:
+        case TypeProxy.Family.RealLike:
+        case TypeProxy.Family.BitVector:
+        case TypeProxy.Family.Unknown:
+          return a.Equals(b) ? 0 : -1;
+        case TypeProxy.Family.ValueType:
+        case TypeProxy.Family.Ref:
+        case TypeProxy.Family.Opaque:
+          break;  // more elaborate work below
+      }
+      if (a is SetType) {
+        var tt = (SetType)a;
+        var uu = b as SetType;
+        return uu != null && tt.Finite == uu.Finite ? 1 : -1;
+      } else if (a is SeqType) {
+        return b is SeqType ? 1 : -1;
+      } else if (a is MultiSetType) {
+        return b is MultiSetType ? 1 : -1;
+      } else if (a is MapType) {
+        var tt = (MapType)a;
+        var uu = b as MapType;
+        return uu != null && tt.Finite == uu.Finite ? 2 : -1;
+      } else if (a is ArrowType) {
+        var tt = (ArrowType)a;
+        var uu = b as ArrowType;
+        return uu != null && tt.Arity == uu.Arity ? tt.Arity + 1 : -1;
+      } else if (a is ObjectType || b is ObjectType) {
+        return a.IsRefType && b.IsRefType ? 0 : -1;
+      } else {
+        // The only remaining cases are that "super" is a (co)datatype, opaque type, or non-object trait/class.
+        // In each of these cases, "super" is a UserDefinedType.
+        var udfA = (UserDefinedType)a;
+        var clA = udfA.ResolvedClass;
+        if (clA == null) {
+          // we're looking at a type parameter
+          Contract.Assert(a.IsTypeParameter);
+          Contract.Assert(a.TypeArgs.Count == 0);
+          return a.AsTypeParameter == b.AsTypeParameter ? 0 : -1;
+        }
+        treatTypeParametersAsWildcards = a.IsRefType;
+        var udfB = b as UserDefinedType;
+        var clB = udfB == null ? null : udfB.ResolvedClass;
+        if (clB == null) {
+          return -1;
+        } else if (clA == clB) {
+          return clA.TypeArgs.Count;
+        } else if (clB is ClassDecl && ((ClassDecl)clB).DerivesFrom(clA)) {
+          Contract.Assert(clA.TypeArgs.Count == 0);  // traits are currently not allowed to have any type parameters
+          return 0;
+        } else if (clA is ClassDecl && ((ClassDecl)clA).DerivesFrom(clB)) {
+          Contract.Assert(clB.TypeArgs.Count == 0);  // traits are currently not allowed to have any type parameters
+          return 0;
+        } else {
+          return -1;
+        }
+      }
+    }
+
+    /// <summary>
+    /// Returns -1 if the head symbols are not eq-comparable.  Otherwise, returns the number of
+    /// type arguments of both "a" and "b" that need to be eq-comparable in order for "a" and "b"
+    /// to be.  If "treatTypeParametersAsWildcards" is "true", then any comparison with a type
+    /// parameter returns "true".
+    /// </summary>
+    public static int AreHeadSymbolsEqComparable(Type a, Type b, bool treatTypeParametersAsWildcards) {
+      Contract.Requires(a != null && !(a is TypeProxy) && !(a is ArtificialType));
+      Contract.Requires(b != null && !(b is TypeProxy) && !(b is ArtificialType));
+      if (treatTypeParametersAsWildcards && (a.IsTypeParameter || b.IsTypeParameter)) {
+        return 0;
+      }
+      switch (TypeProxy.GetFamily(a)) {
+        case TypeProxy.Family.Bool:
+        case TypeProxy.Family.Char:
+        case TypeProxy.Family.IntLike:
+        case TypeProxy.Family.BitVector:
+        case TypeProxy.Family.RealLike:
+          return a.Equals(b) ? 0 : -1;
+        case TypeProxy.Family.ValueType:
+        case TypeProxy.Family.Ref:
+        case TypeProxy.Family.Opaque:
+          break;  // more elaborate work below
+        case TypeProxy.Family.Unknown:
+          Contract.Assert(false);  // unexpected type (the precondition of ConstrainTypeHead says "no proxies")
+          return 0;  // please compiler
+      }
+      if (a is SetType) {
+        var tt = (SetType)a;
+        var uu = b as SetType;
+        return uu != null && tt.Finite == uu.Finite ? 1 : -1;
+      } else if (a is SeqType) {
+        return b is SeqType ? 1 : -1;
+      } else if (a is MultiSetType) {
+        return b is MultiSetType ? 1 : -1;
+      } else if (a is MapType) {
+        var tt = (MapType)a;
+        var uu = b as MapType;
+        return uu != null && tt.Finite == uu.Finite ? 2 : -1;
+      } else if (a is ArrowType) {
+        var tt = (ArrowType)a;
+        var uu = b as ArrowType;
+        return uu != null && tt.Arity == uu.Arity ? tt.Arity + 1 : -1;
+      } else if (a is ObjectType || b is ObjectType) {
+        return a.IsRefType && b.IsRefType ? 0 : -1;
+      } else {
+        // The only remaining cases are that "a" is a (co)datatype, opaque type, or non-object trait/class.
+        // In each of these cases, "a" is a UserDefinedType.
+        var udfA = (UserDefinedType)a;
+        var clA = udfA.ResolvedClass;
+        if (clA == null) {
+          // we're looking at a type parameter
+          Contract.Assert(a.IsTypeParameter);
+          Contract.Assert(a.TypeArgs.Count == 0);
+          return a.AsTypeParameter == b.AsTypeParameter ? 0 : -1;
+        }
+        var udfB = b as UserDefinedType;
+        var clB = udfB == null ? null : udfB.ResolvedClass;
+        if (clB == null) {
+          return -1;
+        } else if (clA == clB) {
+          return clA.TypeArgs.Count;
+        } else if (clB is ClassDecl && ((ClassDecl)clB).DerivesFrom(clA)) {
+          Contract.Assert(clA.TypeArgs.Count == 0);  // traits are currently not allowed to have any type parameters
+          return 0;
+        } else if (clA is ClassDecl && ((ClassDecl)clA).DerivesFrom(clB)) {
+          Contract.Assert(clB.TypeArgs.Count == 0);  // traits are currently not allowed to have any type parameters
+          return 0;
+        } else {
+          return -1;
+        }
+      }
     }
 
     public List<TypeConstraint> AllTypeConstraints = new List<TypeConstraint>();
+    public List<XConstraint> AllXConstraints = new List<XConstraint>();
 
-    /// <summary>
-    /// Solves or simplifies as many type constraints as possible
-    /// </summary>
-    void PartiallySolveTypeConstraints() {
-      var remainingConstraints = new List<TypeConstraint>();
-      foreach (var constraint in AllTypeConstraints) {
-        if (!constraint.CheckTenable(this)) {
-          remainingConstraints.Add(constraint);
+    public class XConstraint
+    {
+      public readonly IToken tok;
+      public readonly string ConstraintName;
+      public readonly Type[] Types;
+      public readonly TypeConstraint.ErrorMsg errorMsg;
+      public XConstraint(IToken tok, string constraintName, Type[] types, TypeConstraint.ErrorMsg errMsg) {
+        Contract.Requires(tok != null);
+        Contract.Requires(constraintName != null);
+        Contract.Requires(types != null);
+        Contract.Requires(errMsg != null);
+        this.tok = tok;
+        ConstraintName = constraintName;
+        Types = types;
+        errorMsg = errMsg;
+      }
+
+      public override string ToString() {
+        var s = ConstraintName + ":";
+        foreach (var t in Types) {
+          s += " " + t;
+        }
+        return s;
+      }
+
+      /// <summary>
+      /// Tries to confirm the XConstraint.
+      /// If the XConstraint can be confirmed, or at least is plausible enough to have been converted into other type
+      /// constraints or more XConstraints, then "true" is returned and the out-parameters "convertedIntoOtherTypeConstraints"
+      /// and "moreXConstraints" are set to true accordingly.
+      /// If the XConstraint can be refuted, then an error message will be produced and "true" is returned (to indicate
+      /// that this XConstraint has finished serving its purpose).
+      /// If there's not information to confirm or refute the XConstraint, then "false" is returned.
+      /// </summary>
+      public bool Confirm(Resolver resolver, bool fullstrength, out bool convertedIntoOtherTypeConstraints, out bool moreXConstraints) {
+        Contract.Requires(resolver != null);
+        convertedIntoOtherTypeConstraints = false;
+        moreXConstraints = false;
+        var t = Types[0].NormalizeExpand();
+        if (t is TypeProxy) {
+          switch (ConstraintName) {
+            case "Equatable":
+            case "EqComparable":
+            case "Indexable":
+            case "MultiIndexable":
+              // have a go downstairs
+              break;
+            default:
+              return false;  // there's not enough information to confirm or refute this XConstraint
+          }
+        }
+        bool satisfied;
+        switch (ConstraintName) {
+          case "NumericType":
+            satisfied = t.IsNumericBased();
+            break;
+          case "IntegerType":
+            satisfied = t.IsNumericBased(Type.NumericPersuation.Int);
+            break;
+          case "IsBitvector":
+            satisfied = t.IsBitVectorType;
+            break;
+          case "Orderable_Lt":
+            satisfied = t.IsNumericBased() || t.IsBitVectorType || t.IsCharType || t is SeqType || t is SetType || t is MultiSetType;
+            break;
+          case "Orderable_Gt":
+            satisfied = t.IsNumericBased() || t.IsBitVectorType || t.IsCharType || t is SetType || t is MultiSetType;
+            break;
+          case "RankOrderable": {
+              var u = Types[1].NormalizeExpand();
+              if (u is TypeProxy) {
+                return false;  // not enough information
+              }
+              satisfied = (t.IsIndDatatype || t.IsTypeParameter) && u.IsIndDatatype;
+              break;
+            }
+          case "Plussable":
+            satisfied = t.IsNumericBased() || t.IsBitVectorType || t is SeqType || t is SetType || t is MultiSetType;
+            break;
+          case "SubMul-able":
+            satisfied = t.IsNumericBased() || t.IsBitVectorType || t is SetType || t is MultiSetType;
+            break;
+          case "NumericOrBitvector":
+            satisfied = t.IsNumericBased() || t.IsBitVectorType;
+            break;
+          case "IntLikeOrBitvector":
+            satisfied = t.IsNumericBased(Type.NumericPersuation.Int) || t.IsBitVectorType;
+            break;
+          case "BooleanBits":
+            satisfied = t.IsBoolType || t.IsBitVectorType;
+            break;
+          case "Sizeable":
+            satisfied = (t is SetType && ((SetType)t).Finite) || t is MultiSetType || t is SeqType || (t is MapType && ((MapType)t).Finite);
+            break;
+          case "Disjointable":
+            satisfied = t is SetType || t is MultiSetType || t is MapType;
+            break;
+          case "MultiSetConvertible":
+            satisfied = (t is SetType && ((SetType)t).Finite) || t is SeqType;
+            break;
+          case "IsCoDatatype":
+            satisfied = t.IsCoDatatype;
+            break;
+          case "Indexable":
+            if (t is NonProxyType) {
+              satisfied = t is SeqType || t is MultiSetType || t is MapType || (t.IsArrayType && t.AsArrayType.Dims == 1);
+            } else {
+              // t is a proxy, but perhaps it stands for something between "object" and "array<?>".  If so, we can add a constraint
+              // that it does have the form "array<?>", since "object" would not be Indexable.
+              var proxy = (TypeProxy)t;
+              Type meet = null;
+              if (Resolver.MeetOfAllSubtypes(proxy, ref meet, new HashSet<TypeProxy>()) && meet != null) {
+                var tt = Type.HeadWithProxyArgs(meet);
+                satisfied = tt is SeqType || tt is MultiSetType || tt is MapType || (tt.IsArrayType && tt.AsArrayType.Dims == 1);
+                if (satisfied) {
+                  resolver.AssignProxyAndHandleItsConstraints(proxy, tt);
+                  convertedIntoOtherTypeConstraints = true;
+                }
+              } else {
+                return false;  // we can't determine the answer
+              }
+            }
+            break;
+          case "MultiIndexable":
+            if (t is NonProxyType) {
+              satisfied = t is SeqType || (t.IsArrayType && t.AsArrayType.Dims == 1);
+            } else {
+              // t is a proxy, but perhaps it stands for something between "object" and "array<?>".  If so, we can add a constraint
+              // that it does have the form "array<?>", since "object" would not be Indexable.
+              var proxy = (TypeProxy)t;
+              Type meet = null;
+              if (Resolver.MeetOfAllSubtypes(proxy, ref meet, new HashSet<TypeProxy>()) && meet != null) {
+                var tt = Type.HeadWithProxyArgs(meet);
+                satisfied = tt is SeqType || (tt.IsArrayType && tt.AsArrayType.Dims == 1);
+                if (satisfied) {
+                  resolver.AssignProxyAndHandleItsConstraints(proxy, tt);
+                  convertedIntoOtherTypeConstraints = true;
+                }
+              } else {
+                return false;  // we can't determine the answer
+              }
+            }
+            break;
+          case "Innable":
+            if (t is CollectionType || t is MapType) {
+              Type elementType = t is CollectionType ? ((CollectionType)t).Arg : ((MapType)t).Domain;
+              var u = Types[1];  // note, it's okay if "u" is a TypeProxy
+              resolver.ConstrainSubtypeRelation(elementType, u, new TypeConstraint.ErrorMsgWithBase(errorMsg, "expecting element type {0} <: {1}", u, elementType));
+              convertedIntoOtherTypeConstraints = true;
+              satisfied = true;
+            } else {
+              satisfied = false;
+            }
+            return true;
+          case "SeqUpdatable": {
+              var xcWithExprs = (XConstraintWithExprs)this;
+              var index = xcWithExprs.Exprs[0];
+              var value = xcWithExprs.Exprs[1];
+              if (t is SeqType) {
+                var s = (SeqType)t;
+                resolver.ConstrainSubtypeRelation(Type.Int, index.Type, index, "sequence update requires integer index (got {0})", index.Type);
+                resolver.ConstrainSubtypeRelation(s.Arg, value.Type, value, "sequence update requires the value to have the element type of the sequence (got {0})", value.Type);
+              } else if (t is MapType) {
+                var s = (MapType)t;
+                if (s.Finite) {
+                  resolver.ConstrainSubtypeRelation(s.Domain, index.Type, index, "map update requires domain element to be of type {0} (got {1})", s.Domain, index.Type);
+                  resolver.ConstrainSubtypeRelation(s.Range, value.Type, value, "map update requires the value to have the range type {0} (got {1})", s.Range, value.Type);
+                } else {
+                  resolver.ConstrainSubtypeRelation(s.Domain, index.Type, index, "imap update requires domain element to be of type {0} (got {1})", s.Domain, index.Type);
+                  resolver.ConstrainSubtypeRelation(s.Range, value.Type, value, "imap update requires the value to have the range type {0} (got {1})", s.Range, value.Type);
+                }
+              } else if (t is MultiSetType) {
+                var s = (MultiSetType)t;
+                resolver.ConstrainSubtypeRelation(s.Arg, index.Type, index, "multiset update requires domain element to be of type {0} (got {1})", s.Arg, index.Type);
+                resolver.ConstrainToIntegerType(value, "multiset update requires integer-based numeric value (got {0})");
+              } else {
+                satisfied = false;
+                break;
+              }
+              convertedIntoOtherTypeConstraints = true;
+              return true;
+            }
+          case "ContainerIndex":
+            // The semantics of this XConstraint is that *if* the head is seq/array/map/multiset, then its element/domain type must a supertype of "u"
+            Type indexType;
+            if (t is SeqType) {
+              indexType = resolver.NewIntegerBasedProxy(tok);
+            } else if (t.IsArrayType) {
+              indexType = resolver.NewIntegerBasedProxy(tok);
+            } else if (t is MapType) {
+              indexType = ((MapType)t).Domain;
+            } else if (t is MultiSetType) {
+              indexType = ((MultiSetType)t).Arg;
+            } else {
+              // some other head symbol; that's cool
+              return true;
+            }
+            // note, it's okay if "Types[1]" is a TypeProxy
+            resolver.ConstrainSubtypeRelation(indexType, Types[1], errorMsg);  // use the same error message
+            convertedIntoOtherTypeConstraints = true;
+            return true;
+          case "ContainerResult":
+            // The semantics of this XConstraint is that *if* the head is seq/array/map/multiset, then the type of a selection must a subtype of "u"
+            Type resultType;
+            if (t is SeqType) {
+              resultType = ((SeqType)t).Arg;
+            } else if (t.IsArrayType) {
+              resultType = UserDefinedType.ArrayElementType(t);
+            } else if (t is MapType) {
+              resultType = ((MapType)t).Range;
+            } else if (t is MultiSetType) {
+              resultType = new IntType();  // TODO: this could even be "nat"
+            } else {
+              // some other head symbol; that's cool
+              return true;
+            }
+            // note, it's okay if "Types[1]" is a TypeProxy
+            resolver.ConstrainSubtypeRelation(Types[1], resultType, errorMsg);
+            convertedIntoOtherTypeConstraints = true;
+            return true;
+          case "Equatable": {
+              var u = Types[1].NormalizeExpand();
+              if (t is TypeProxy && u is TypeProxy) {
+                return false;  // not enough information to do anything sensible
+              } else if (t is TypeProxy && (fullstrength || IsEqDetermined(u))) {
+                var proxy = (TypeProxy)t;
+                // the following is rather aggressive
+                if (Resolver.TypeConstraintsIncludeProxy(u, proxy)) {
+                  return false;
+                } else {
+                  satisfied = resolver.AssignProxyAndHandleItsConstraints(proxy, u);
+                  convertedIntoOtherTypeConstraints = true;
+                  break;
+                }
+              } else if (u is TypeProxy && (fullstrength || IsEqDetermined(t))) {
+                var proxy = (TypeProxy)u;
+                // the following is rather aggressive
+                if (Resolver.TypeConstraintsIncludeProxy(t, proxy)) {
+                  return false;
+                } else {
+                  satisfied = resolver.AssignProxyAndHandleItsConstraints(proxy, t);
+                  convertedIntoOtherTypeConstraints = true;
+                  break;
+                }
+              } else if (t is TypeProxy || u is TypeProxy) {
+                return false;  // not enough information
+              }
+              bool treatTypeParametersAsWildcards;
+              var n = Resolver.AreHeadSymbolsEquatable(t, u, out treatTypeParametersAsWildcards);
+              satisfied = 0 <= n;
+              // put constraints of type parameters
+              Contract.Assert(n <= t.TypeArgs.Count && n <= u.TypeArgs.Count);
+              for (int i = 0; i < n; i++) {
+                resolver.AddXConstraint(tok, treatTypeParametersAsWildcards ? "EqComparableTPWild" : "EqComparable", t.TypeArgs[i], u.TypeArgs[i], errorMsg);
+                moreXConstraints = true;
+              }
+              break;
+            }
+          case "EqComparableTPWild":
+          case "EqComparable":
+            {
+              var u = Types[1].NormalizeExpand();
+              if (fullstrength) {
+                if (t is TypeProxy && u is TypeProxy) {
+                  return false;  // not enough information to do anything sensible
+                } else if (t is TypeProxy) {
+                  var proxy = (TypeProxy)t;
+                  if (Resolver.TypeConstraintsIncludeProxy(u, proxy)) {
+                    return false;
+                  } else {
+                    satisfied = resolver.AssignProxyAndHandleItsConstraints(proxy, u);
+                    convertedIntoOtherTypeConstraints = true;
+                    break;
+                  }
+                } else if (u is TypeProxy) {
+                  var proxy = (TypeProxy)u;
+                  if (Resolver.TypeConstraintsIncludeProxy(t, proxy)) {
+                    return false;
+                  } else {
+                    satisfied = resolver.AssignProxyAndHandleItsConstraints(proxy, t);
+                    convertedIntoOtherTypeConstraints = true;
+                    break;
+                  }
+                }
+              } else if (t is TypeProxy || u is TypeProxy) {
+                return false;  // not enough information
+              }
+              var n = Resolver.AreHeadSymbolsEqComparable(t, u, ConstraintName == "EqComparableTPWild");
+              satisfied = 0 <= n;
+              // put constraints of type parameters
+              Contract.Assert(n <= t.TypeArgs.Count && n <= u.TypeArgs.Count);
+              for (int i = 0; i < n; i++) {
+                resolver.AddXConstraint(tok, ConstraintName, t.TypeArgs[i], u.TypeArgs[i], errorMsg);
+                moreXConstraints = true;
+              }
+              break;
+            }
+          case "Freshable": {
+              var collType = t.AsCollectionType;
+              if (collType != null) {
+                t = collType.Arg.NormalizeExpand();
+              }
+              if (t is TypeProxy) {
+                return false;  // there is not enough information
+              }
+              satisfied = t.IsRefType || t.IsDatatype;
+              break;
+            }
+          case "ModifiesFrame": {
+              var u = Types[1].NormalizeExpand();  // eventual ref type
+              var collType = t.AsCollectionType;
+              if (collType != null) {
+                t = collType.Arg.NormalizeExpand();
+              }
+              if (t is TypeProxy) {
+                if (collType != null) {
+                  // we know enough to convert into a subtyping constraint
+                  resolver.ConstrainSubtypeRelation(new ObjectType(), t, errorMsg);
+                  resolver.ConstrainSubtypeRelation(u, t, errorMsg);
+                  resolver.ConstrainSubtypeRelation(t, u, errorMsg);
+                  convertedIntoOtherTypeConstraints = true;
+                  return true;
+                } else {
+                  return false;  // there is not enough information
+                }
+              }
+              if (t.IsRefType) {
+                resolver.ConstrainSubtypeRelation(u, t, errorMsg);
+                resolver.ConstrainSubtypeRelation(t, u, errorMsg);
+                convertedIntoOtherTypeConstraints = true;
+                return true;
+              }
+              satisfied = false;
+              break;
+            }
+          case "ReadsFrame": {
+              var u = Types[1].NormalizeExpand();  // eventual ref type
+              var arrTy = t.AsArrowType;
+              if (arrTy != null) {
+                t = arrTy.Result.NormalizeExpand();
+              }
+              var collType = t.AsCollectionType;
+              if (collType != null) {
+                t = collType.Arg.NormalizeExpand();
+              }
+              if (t is TypeProxy) {
+                if (collType != null) {
+                  // we know enough to convert into a subtyping constraint
+                  resolver.ConstrainSubtypeRelation(new ObjectType(), t, errorMsg);
+                  resolver.ConstrainSubtypeRelation(u, t, errorMsg);
+                  resolver.ConstrainSubtypeRelation(t, u, errorMsg);
+                  convertedIntoOtherTypeConstraints = true;
+                  return true;
+                } else {
+                  return false;  // there is not enough information
+                }
+              }
+              if (t.IsRefType) {
+                resolver.ConstrainSubtypeRelation(u, t, errorMsg);
+                resolver.ConstrainSubtypeRelation(t, u, errorMsg);
+                convertedIntoOtherTypeConstraints = true;
+                return true;
+              }
+              satisfied = false;
+              break;
+            }
+          default:
+            Contract.Assume(false);  // unknown XConstraint
+            return false;  // to please the compiler
+        }
+        if (!satisfied) {
+          errorMsg.FlagAsError();
+        }
+        return true;  // the XConstraint has served its purpose
+      }
+
+      bool IsEqDetermined(Type t) {
+        Contract.Requires(t != null);
+        switch (TypeProxy.GetFamily(t)) {
+          case TypeProxy.Family.Bool:
+          case TypeProxy.Family.Char:
+          case TypeProxy.Family.IntLike:
+          case TypeProxy.Family.RealLike:
+          case TypeProxy.Family.BitVector:
+            return true;
+          case TypeProxy.Family.ValueType:
+          case TypeProxy.Family.Ref:
+          case TypeProxy.Family.Opaque:
+          case TypeProxy.Family.Unknown:
+          default:
+            return false;  // TODO: could be made more exact
         }
       }
-      AllTypeConstraints = remainingConstraints;
+
+      internal bool CouldBeAnything() {
+        return Types.All(t => t.NormalizeExpand() is TypeProxy);
+      }
+    }
+
+    public class XConstraintWithExprs : XConstraint
+    {
+      public readonly Expression[] Exprs;
+      public XConstraintWithExprs(IToken tok, string constraintName, Type[] types, Expression[] exprs, TypeConstraint.ErrorMsg errMsg)
+        : base(tok, constraintName, types, errMsg) {
+        Contract.Requires(tok != null);
+        Contract.Requires(constraintName != null);
+        Contract.Requires(types != null);
+        Contract.Requires(exprs != null);
+        Contract.Requires(errMsg != null);
+        this.Exprs = exprs;
+      }
     }
 
     /// <summary>
-    /// Attempts to fully solve all type constraints.  Upon success, returns "true".
-    /// Upon failure, reports errors and returns "false".
+    /// Solves or simplifies as many type constraints as possible.
+    /// If "allowDecisions" is "false", then no decisions, only determined inferences, are made; this mode is
+    /// appropriate for the partial solving that's done before a member lookup.
+    /// </summary>
+    void PartiallySolveTypeConstraints(bool allowDecisions) {
+      bool fullStrength = false;
+      while (true) {
+        var anyNewConstraints = false;
+        // Process subtyping constraints
+        PrintTypeConstraintState(22);
+        if (fullStrength) {
+          var allTC = AllTypeConstraints;
+          AllTypeConstraints = new List<TypeConstraint>();
+          var proxyProcessed = new HashSet<TypeProxy>();
+          foreach (var c in allTC) {
+            ProcessFullStrength_SubDirection(c.Super, proxyProcessed, ref anyNewConstraints);
+          }
+          proxyProcessed = new HashSet<TypeProxy>();
+          foreach (var c in allTC) {
+            ProcessFullStrength_SuperDirection(c.Sub, proxyProcessed, ref anyNewConstraints);
+          }
+          AllTypeConstraints.AddRange(allTC);
+        }
+
+        var allTypeConstraints = AllTypeConstraints;
+        AllTypeConstraints = new List<TypeConstraint>();
+        var processed = new HashSet<TypeConstraint>();
+        foreach (var c in allTypeConstraints) {
+          ProcessOneSubtypingConstraintAndItsSubs(c, processed, fullStrength, ref anyNewConstraints);
+        }
+
+        allTypeConstraints = AllTypeConstraints;
+        AllTypeConstraints = new List<TypeConstraint>();
+        foreach (var c in allTypeConstraints) {
+          var super = c.Super.NormalizeExpand() as TypeProxy;
+          if (AssignKnownEnd(super)) {
+            anyNewConstraints = true;
+          } else if (super != null && fullStrength && AssignKnownEndsFullstrength(super)) {  // KRML: is this used any more?
+            anyNewConstraints = true;
+          } else {
+            AllTypeConstraints.Add(c);
+          }
+        }
+        if (anyNewConstraints) {
+          fullStrength = false;
+          continue;
+        }
+        // Process XConstraints
+        // confirm as many XConstraints as possible, setting "anyNewConstraints" to "true" if the confirmation
+        // of an XConstraint gives rise to new constraints to be handled in the loop above
+        bool generatedMoreXConstraints;
+        do {
+          generatedMoreXConstraints = false;
+          var allXConstraints = AllXConstraints;
+          AllXConstraints = new List<XConstraint>();
+          foreach (var xc in allXConstraints) {
+            bool convertedIntoOtherTypeConstraints, moreXConstraints;
+            if (xc.Confirm(this, fullStrength, out convertedIntoOtherTypeConstraints, out moreXConstraints)) {
+              if (convertedIntoOtherTypeConstraints) {
+                anyNewConstraints = true;
+              } else {
+                generatedMoreXConstraints = true;
+              }
+              if (moreXConstraints) {
+                generatedMoreXConstraints = true;
+              }
+            } else {
+              AllXConstraints.Add(xc);
+            }
+          }
+        } while (generatedMoreXConstraints);
+        if (anyNewConstraints) {
+          fullStrength = false;  // restart the first loop without full strength
+          continue;
+        }
+        if (!allowDecisions) {
+          // time to say goodnight to Napoli
+          return;
+        }
+        // Process default types
+        allTypeConstraints = AllTypeConstraints;
+        AllTypeConstraints = new List<TypeConstraint>();
+        foreach (var c in allTypeConstraints) {
+          if (c.Super is ArtificialType) {
+            var proxy = c.Sub.NormalizeExpand() as TypeProxy;
+            if (proxy != null) {
+              AssignProxyAndHandleItsConstraints(proxy, c.Super is IntVarietiesSupertype ? (Type)Type.Int : Type.Real);
+              anyNewConstraints = true;
+              continue;
+            }
+          }
+          AllTypeConstraints.Add(c);
+        }
+        if (anyNewConstraints) {
+          fullStrength = false;  // restart the first loop without full strength
+          continue;
+        }
+        // Increase the strength of the solving strategy, if possible
+        if (!fullStrength) {
+          fullStrength = true;  // keep going, but with full strength this time
+        } else {
+          // Finally, collapse constraints involving only proxies, which will have the effect of trading some type error
+          // messages for type-underspecification messages.
+          allTypeConstraints = AllTypeConstraints;
+          AllTypeConstraints = new List<TypeConstraint>();
+          foreach (var c in allTypeConstraints) {
+            var super = c.Super.NormalizeExpand();
+            var sub = c.Sub.NormalizeExpand();
+            if (super == sub) {
+              continue;
+            } else if (super is TypeProxy && sub is TypeProxy) {
+              var proxy = (TypeProxy)super;
+              proxy.T = sub;
+              continue;
+            }
+            AllTypeConstraints.Add(c);
+          }
+          return;
+        }
+      }
+    }
+
+    void ProcessOneSubtypingConstraintAndItsSubs(TypeConstraint c, ISet<TypeConstraint> processed, bool fullStrength, ref bool anyNewConstraints) {
+      Contract.Requires(c != null);
+      Contract.Requires(processed != null);
+      if (processed.Contains(c)) {
+        return;  // our job has already been done, or is at least in progress
+      }
+      processed.Add(c);
+
+      var super = c.Super.NormalizeExpand();
+      var sub = c.Sub.NormalizeExpand();
+      // Process all subtype types before going on
+      var subProxy = sub as TypeProxy;
+      if (subProxy != null) {
+        foreach (var cc in subProxy.SubtypeConstraints) {
+          ProcessOneSubtypingConstraintAndItsSubs(cc, processed, fullStrength, ref anyNewConstraints);
+        }
+      }
+
+      if (super.Equals(sub)) {
+        // the constraint is satisfied, so just drop it
+      } else if ((super is NonProxyType || super is ArtificialType) && sub is NonProxyType) {
+        ImposeSubtypingConstraint(super, sub, c.errorMsg);
+        anyNewConstraints = true;
+      } else if (AssignKnownEnd(sub as TypeProxy)) {
+        anyNewConstraints = true;
+      } else if (sub is TypeProxy && fullStrength && AssignKnownEndsFullstrength((TypeProxy)sub)) {
+        anyNewConstraints = true;
+      } else {
+        // keep the constraint for now
+        AllTypeConstraints.Add(c);
+      }
+    }
+
+    void ProcessFullStrength_SubDirection(Type t, ISet<TypeProxy> processed, ref bool anyNewConstraints) {
+      Contract.Requires(t != null);
+      Contract.Requires(processed != null);
+      var proxy = t.NormalizeExpand() as TypeProxy;
+      if (proxy != null) {
+        if (processed.Contains(proxy)) {
+          return;  // our job has already been done, or is at least in progress
+        }
+        processed.Add(proxy);
+
+        foreach (var u in proxy.Subtypes) {
+          ProcessFullStrength_SubDirection(u, processed, ref anyNewConstraints);
+        }
+        proxy = proxy.NormalizeExpand() as TypeProxy;
+        if (proxy != null && AssignKnownEndsFullstrength_SubDirection(proxy)) {
+          anyNewConstraints = true;
+        }
+      }
+    }
+
+    void ProcessFullStrength_SuperDirection(Type t, ISet<TypeProxy> processed, ref bool anyNewConstraints) {
+      Contract.Requires(t != null);
+      Contract.Requires(processed != null);
+      var proxy = t.NormalizeExpand() as TypeProxy;
+      if (proxy != null) {
+        if (processed.Contains(proxy)) {
+          return;  // our job has already been done, or is at least in progress
+        }
+        processed.Add(proxy);
+
+        foreach (var u in proxy.Supertypes) {
+          ProcessFullStrength_SuperDirection(u, processed, ref anyNewConstraints);
+        }
+        proxy = proxy.NormalizeExpand() as TypeProxy;
+        if (proxy != null && AssignKnownEndsFullstrength_SuperDirection(proxy)) {
+          anyNewConstraints = true;
+        }
+      }
+    }
+
+    /// <summary>
+    /// Returns true if anything happened.
+    /// </summary>
+    bool AssignKnownEnd(TypeProxy proxy) {
+      Contract.Requires(proxy == null || proxy.T == null);  // caller is supposed to have called NormalizeExpand
+      if (proxy == null) {
+        // nothing to do
+        return false;
+      }
+      // ----- first, go light; also, prefer subtypes over supertypes
+      foreach (var su in proxy.Subtypes) {
+        bool isRoot, isLeaf, headRoot, headLeaf;
+        CheckEnds(su, out isRoot, out isLeaf, out headRoot, out headLeaf);
+        Contract.Assert(!isRoot || headRoot);  // isRoot ==> headRoot
+        if (isRoot) {  // TODO: this is just a special case of the "else if" -- get rid of this check
+          AssignProxyAndHandleItsConstraints(proxy, su);
+          return true;
+        } else if (headRoot) {
+          if (Reaches(su, proxy, 1, new HashSet<TypeProxy>())) {
+            // adding a constraint here would cause a bad cycle, so we don't
+          } else {
+            AssignProxyAndHandleItsConstraints(proxy, TypeProxy.HeadWithProxyArgs(su));
+            return true;
+          }
+        }
+      }
+      foreach (var su in proxy.Supertypes) {
+        bool isRoot, isLeaf, headRoot, headLeaf;
+        CheckEnds(su, out isRoot, out isLeaf, out headRoot, out headLeaf);
+        Contract.Assert(!isLeaf || headLeaf);  // isLeaf ==> headLeaf
+        if (isLeaf) {  // TODO: this is just a special case of the "else if" -- get rid of this check
+          AssignProxyAndHandleItsConstraints(proxy, su);
+          return true;
+        } else if (headLeaf) {
+          if (Reaches(su, proxy, -1, new HashSet<TypeProxy>())) {
+            // adding a constraint here would cause a bad cycle, so we don't
+          } else {
+            AssignProxyAndHandleItsConstraints(proxy, TypeProxy.HeadWithProxyArgs(su));
+            return true;
+          }
+        }
+      }
+      return false;
+    }
+
+    bool AssignKnownEndsFullstrength(TypeProxy proxy) {
+      Contract.Requires(proxy != null);
+      // ----- continue with full strength
+      // If the meet of the subtypes exists, use it
+      var meets = new List<Type>();
+      foreach (var su in proxy.Subtypes) {
+        if (su is TypeProxy) {
+          continue;  // don't include proxies in the meet computation
+        }
+        int i = 0;
+        for (; i < meets.Count; i++) {
+          var j = Type.Meet(meets[i], su);
+          if (j != null) {
+            meets[i] = j;
+            break;
+          }
+        }
+        if (i == meets.Count) {
+          // we went to the end without finding a place to meet up
+          meets.Add(su);
+        }
+      }
+      if (meets.Count == 1 && !Reaches(meets[0], proxy, 1, new HashSet<TypeProxy>())) {
+        // we were able to compute a meet of all the subtyping constraints, so use it
+        AssignProxyAndHandleItsConstraints(proxy, meets[0]);
+        return true;
+      }
+      // If the join of the supertypes exists, use it
+      var joins = new List<Type>();
+      foreach (var su in proxy.Supertypes) {
+        if (su is TypeProxy) {
+          continue;  // don't include proxies in the join computation
+        }
+        int i = 0;
+        for (; i < joins.Count; i++) {
+          var j = Type.Join(joins[i], su);
+          if (j != null) {
+            joins[i] = j;
+            break;
+          }
+        }
+        if (i == joins.Count) {
+          // we went to the end without finding a place to join in
+          joins.Add(su);
+        }
+      }
+      if (joins.Count == 1 && !(joins[0] is ArtificialType) && !Reaches(joins[0], proxy, -1, new HashSet<TypeProxy>())) {
+        // we were able to compute a join of all the subtyping constraints, so use it
+        AssignProxyAndHandleItsConstraints(proxy, joins[0]);
+        return true;
+      }
+
+      return false;
+    }
+
+    bool AssignKnownEndsFullstrength_SubDirection(TypeProxy proxy) {
+      Contract.Requires(proxy != null && proxy.T == null);
+      // If the meet of the subtypes exists, use it
+      var meets = new List<Type>();
+      foreach (var su in proxy.Subtypes) {
+        if (su is TypeProxy) {
+          continue;  // don't include proxies in the meet computation
+        }
+        int i = 0;
+        for (; i < meets.Count; i++) {
+          var j = Type.Meet(meets[i], su);
+          if (j != null) {
+            meets[i] = j;
+            break;
+          }
+        }
+        if (i == meets.Count) {
+          // we went to the end without finding a place to meet up
+          meets.Add(su);
+        }
+      }
+      if (meets.Count == 1 && !Reaches(meets[0], proxy, 1, new HashSet<TypeProxy>())) {
+        // we were able to compute a meet of all the subtyping constraints, so use it
+        AssignProxyAndHandleItsConstraints(proxy, meets[0]);
+        return true;
+      }
+      return false;
+    }
+
+    bool AssignKnownEndsFullstrength_SuperDirection(TypeProxy proxy) {
+      Contract.Requires(proxy != null && proxy.T == null);
+      // If the join of the supertypes exists, use it
+      var joins = new List<Type>();
+      foreach (var su in proxy.Supertypes) {
+        if (su is TypeProxy) {
+          continue;  // don't include proxies in the join computation
+        }
+        int i = 0;
+        for (; i < joins.Count; i++) {
+          var j = Type.Join(joins[i], su);
+          if (j != null) {
+            joins[i] = j;
+            break;
+          }
+        }
+        if (i == joins.Count) {
+          // we went to the end without finding a place to join in
+          joins.Add(su);
+        }
+      }
+      if (joins.Count == 1 && !(joins[0] is ArtificialType) && !Reaches(joins[0], proxy, -1, new HashSet<TypeProxy>())) {
+        // we were able to compute a join of all the subtyping constraints, so use it
+        AssignProxyAndHandleItsConstraints(proxy, joins[0]);
+        return true;
+      }
+      return false;
+    }
+
+    int _reaches_recursion;
+    private bool Reaches(Type t, TypeProxy proxy, int direction, HashSet<TypeProxy> visited) {
+      if (_reaches_recursion == 20) {
+        Contract.Assume(false);  // possible infinite recursion
+      }
+      _reaches_recursion++;
+      var b = Reaches_aux(t, proxy, direction, visited);
+      _reaches_recursion--;
+      return b;
+    }
+    private bool Reaches_aux(Type t, TypeProxy proxy, int direction, HashSet<TypeProxy> visited) {
+      Contract.Requires(t != null);
+      Contract.Requires(proxy != null);
+      Contract.Requires(visited != null);
+      t = t.NormalizeExpand();
+      var tproxy = t as TypeProxy;
+      if (tproxy == null) {
+        var polarities = ConstrainTypeHead(t, t);
+        Contract.Assert(polarities != null);
+        Contract.Assert(polarities.Count <= t.TypeArgs.Count);
+        for (int i = 0; i < polarities.Count; i++) {
+          if (Reaches(t.TypeArgs[i], proxy, direction * polarities[i], visited)) {
+            return true;
+          }
+        }
+        return false;
+      } else if (tproxy == proxy) {
+        return true;
+      } else if (visited.Contains(tproxy)) {
+        return false;
+      } else {
+        visited.Add(tproxy);
+        if (0 <= direction && tproxy.Subtypes.Any(su => Reaches(su, proxy, direction, visited))) {
+          return true;
+        }
+        if (direction <= 0 && tproxy.Supertypes.Any(su => Reaches(su, proxy, direction, visited))) {
+          return true;
+        }
+        return false;
+      }
+    }
+
+    [System.Diagnostics.Conditional("DEBUG_PRINT")]
+    void PrintTypeConstraintState(int lbl) {
+      Console.WriteLine("DEBUG: ---------- type constraints ---------- {0}", lbl);
+      foreach (var constraint in AllTypeConstraints) {
+        var super = constraint.Super.NormalizeExpand();
+        var sub = constraint.Sub.NormalizeExpand();
+        Console.WriteLine("    {0} :> {1}", super is IntVarietiesSupertype ? "int-like" : super is RealVarietiesSupertype ? "real-like" : super.ToString(), sub);
+      }
+      foreach (var xc in AllXConstraints) {
+        Console.WriteLine("    {0}", xc);
+      }
+      Console.WriteLine();
+      if (lbl % 2 == 1) {
+        Console.WriteLine("DEBUG: --------------------------------------");
+      }
+    }
+
+    /// <summary>
+    /// Attempts to fully solve all type constraints.
+    /// Upon failure, reports errors.
     /// Clears all constraints.
     /// </summary>
-    bool SolveAllTypeConstraints() {
-      PartiallySolveTypeConstraints();
+    void SolveAllTypeConstraints() {
+      PrintTypeConstraintState(0);
+      PartiallySolveTypeConstraints(true);
+      PrintTypeConstraintState(1);
       foreach (var constraint in AllTypeConstraints) {
-        constraint.ReportAsError(reporter);
+        var super = constraint.Super.NormalizeExpand();
+        var sub = constraint.Sub.NormalizeExpand();
+        if (Type.IsSupertype(super, sub)) {
+          // unexpected condition -- PartiallySolveTypeConstraints is supposed to have continued until no more sub-typing constraints can be satisfied
+          Contract.Assume(false, string.Format("DEBUG: Unexpectedly satisfied supertype relation ({0} :> {1}) |||| ", super, sub));
+        } else {
+          constraint.FlagAsError();
+        }
       }
-      var success = AllTypeConstraints.Count == 0;
+      foreach (var xc in AllXConstraints) {
+        bool convertedIntoOtherTypeConstraints, moreXConstraints;
+        if (xc.Confirm(this, true, out convertedIntoOtherTypeConstraints, out moreXConstraints)) {
+          // unexpected condition -- PartiallySolveTypeConstraints is supposed to have continued until no more XConstraints were confirmable
+          Contract.Assume(false, string.Format("DEBUG: Unexpectedly confirmed XConstraint: {0} |||| ", xc));
+        } else if (xc.CouldBeAnything()) {
+          // suppress the error message; it will later be flagged as an underspecified type
+        } else {
+          xc.errorMsg.FlagAsError();
+        }
+      }
+      TypeConstraint.ReportErrors(reporter);
       AllTypeConstraints.Clear();
-      return success;
+      AllXConstraints.Clear();
     }
 
     public class TypeConstraint
     {
-      readonly Type Ty;
-      readonly Type Expected;
-      readonly IToken Tok;
-      readonly string Msg;
-      readonly object[] MsgArgs;
-      public TypeConstraint(Type ty, Type expected, IToken tok, string msg, object[] msgArgs) {
-        Ty = ty;
-        Expected = expected;
-        Tok = tok;
-        Msg = msg;
-        MsgArgs = msgArgs;
-      }
-      /// <summary>
-      /// Returns "true" if constraint is tenable, "false" otherwise.
-      /// </summary>
-      /// <returns></returns>
-      public bool CheckTenable(Resolver resolver) {
-        Contract.Requires(resolver != null);
-        return resolver.UnifyTypes(Ty, Expected);
-      }
-      public void ReportAsError(ErrorReporter reporter) {
+      public readonly Type Super;
+      public readonly Type Sub;
+
+      private static List<ErrorMsg> ErrorsToBeReported = new List<ErrorMsg>();
+      public static void ReportErrors(ErrorReporter reporter) {
         Contract.Requires(reporter != null);
-        reporter.Error(MessageSource.Resolver, Tok, Msg, MsgArgs);
+        foreach (var err in ErrorsToBeReported) {
+          err.ReportAsError(reporter);
+        }
+        ErrorsToBeReported.Clear();
+      }
+      abstract public class ErrorMsg
+      {
+        bool reported;
+        public void FlagAsError() {
+          TypeConstraint.ErrorsToBeReported.Add(this);
+        }
+        internal void ReportAsError(ErrorReporter reporter) {
+          Contract.Requires(reporter != null);
+          if (!reported) {  // this "reported" bit is checked only for the top-level message, but this message and all nested ones get their "reported" bit set to "true" as a result
+            Reporting(reporter, "");
+          }
+        }
+        private void Reporting(ErrorReporter reporter, string suffix) {
+          Contract.Requires(reporter != null);
+          Contract.Requires(suffix != null);
+          if (this is ErrorMsgWithToken) {
+            var err = (ErrorMsgWithToken)this;
+            Contract.Assert(err.Tok != null);
+            reporter.Error(MessageSource.Resolver, err.Tok, err.Msg + suffix, err.MsgArgs);
+          } else if (this is ErrorMsgWithBase) {
+            var err = (ErrorMsgWithBase)this;
+            err.BaseMsg.Reporting(reporter, " (" + string.Format(err.Msg, err.MsgArgs) + ")" + suffix);
+          } else {
+            var err = (ErrorMsgWithOriginal)this;
+            err.Original.Reporting(reporter, suffix);
+            err.Err.reported = true;
+          }
+          reported = true;
+        }
+      }
+      public class ErrorMsgWithToken : ErrorMsg
+      {
+        public readonly IToken Tok;
+        public readonly string Msg;
+        public readonly object[] MsgArgs;
+        public ErrorMsgWithToken(IToken tok, string msg, params object[] msgArgs) {
+          Contract.Requires(tok != null);
+          Contract.Requires(msg != null);
+          Contract.Requires(msgArgs != null);
+          Tok = tok;
+          Msg = msg;
+          MsgArgs = msgArgs;
+        }
+      }
+      public class ErrorMsgWithBase : ErrorMsg
+      {
+        public readonly ErrorMsg BaseMsg;
+        public readonly string Msg;
+        public readonly object[] MsgArgs;
+        public ErrorMsgWithBase(ErrorMsg baseMsg, string msg, params object[] msgArgs) {
+          Contract.Requires(baseMsg != null);
+          Contract.Requires(msg != null);
+          Contract.Requires(msgArgs != null);
+          BaseMsg = baseMsg;
+          Msg = msg;
+          MsgArgs = msgArgs;
+        }
+      }
+      public class ErrorMsgWithOriginal : ErrorMsg
+      {
+        public readonly ErrorMsg Err;
+        public readonly ErrorMsg Original;
+        public ErrorMsgWithOriginal(ErrorMsg err, ErrorMsg original) {
+          Err = err;
+          Original = original;
+        }
+      }
+      public readonly ErrorMsg errorMsg;
+      public TypeConstraint(Type super, Type sub, ErrorMsg errMsg) {
+        Contract.Requires(super != null);
+        Contract.Requires(sub != null);
+        Contract.Requires(errMsg != null);
+        Super = super;
+        Sub = sub;
+        errorMsg = errMsg;
+      }
+      public void FlagAsError() {
+        errorMsg.FlagAsError();
       }
     }
 
@@ -2333,6 +3824,10 @@ namespace Microsoft.Dafny
         m.Ens.Iter(mfe => CheckTypeInference_MaybeFreeExpression(mfe, m));
         CheckTypeInference_Specification_FrameExpr(m.Mod, m);
         CheckTypeInference_Specification_Expr(m.Decreases, m);
+        if (m is TwoStateLemma) {
+          var two = (TwoStateLemma)m;
+          CheckTypeInference_Specification_FrameExpr(two.Reads, two);
+        }
         if (m.Body != null) {
           CheckTypeInference(m.Body, m);
         }
@@ -2380,13 +3875,14 @@ namespace Microsoft.Dafny
     void CheckTypeInference(Expression expr, ICodeContext codeContext) {
       Contract.Requires(expr != null);
       Contract.Requires(codeContext != null);
-      PartiallySolveTypeConstraints();
+      PartiallySolveTypeConstraints(true);
       var c = new CheckTypeInference_Visitor(this, codeContext);
       c.Visit(expr);
     }
     void CheckTypeInference(Statement stmt, ICodeContext codeContext) {
       Contract.Requires(stmt != null);
       Contract.Requires(codeContext != null);
+      PartiallySolveTypeConstraints(true);
       var c = new CheckTypeInference_Visitor(this, codeContext);
       c.Visit(stmt);
     }
@@ -2444,7 +3940,17 @@ namespace Microsoft.Dafny
         }
       }
       protected override void VisitOneExpr(Expression expr) {
-        if (expr is ComprehensionExpr) {
+        if (expr is LiteralExpr) {
+          var e = (LiteralExpr)expr;
+          var t = e.Type as BitvectorType;
+          if (t != null) {
+            var n = (BigInteger)e.Value;
+            // check that the given literal fits into the bitvector width
+            if (BigInteger.Pow(2, t.Width) <= n) {
+              resolver.reporter.Error(MessageSource.Resolver, e.tok, "bitvector literal ({0}) is too large for the type {1}", e.Value, t);
+            }
+          }
+        } else if (expr is ComprehensionExpr) {
           var e = (ComprehensionExpr)expr;
           foreach (var bv in e.BoundVars) {
             if (!IsDetermined(bv.Type.Normalize())) {
@@ -2535,9 +4041,23 @@ namespace Microsoft.Dafny
           // by specializing for IdentifierExpr, error messages will be clearer
           CheckTypeIsDetermined(expr.tok, expr.Type, "variable");
         } else if (CheckTypeIsDetermined(expr.tok, expr.Type, "expression")) {
-          var bin = expr as BinaryExpr;
-          if (bin != null) {
+          if (expr is BinaryExpr) {
+            var bin = (BinaryExpr)expr;
             bin.ResolvedOp = ResolveOp(bin.Op, bin.E1.Type);
+          } else if (expr is NegationExpression) {
+            var e = (NegationExpression)expr;
+            Expression zero;
+            if (e.E.Type.IsNumericBased(Type.NumericPersuation.Real)) {
+              zero = new LiteralExpr(e.tok, Basetypes.BigDec.ZERO);
+            } else {
+              Contract.Assert(e.E.Type.IsNumericBased(Type.NumericPersuation.Int) || e.E.Type.IsBitVectorType);
+              zero = new LiteralExpr(e.tok, 0);
+            }
+            zero.Type = expr.Type;
+            var subtract = new BinaryExpr(e.tok, BinaryExpr.Opcode.Sub, zero, e.E);
+            subtract.Type = expr.Type;
+            subtract.ResolvedOp = BinaryExpr.ResolvedOpcode.Sub;
+            e.ResolvedExpression = subtract;
           }
         }
       }
@@ -2550,21 +4070,6 @@ namespace Microsoft.Dafny
       public static bool IsDetermined(Type t) {
         Contract.Requires(t != null);
         Contract.Requires(!(t is TypeProxy) || ((TypeProxy)t).T == null);
-        // If the type specifies an arbitrary int-based or real-based type, just fill it in with int or real, respectively
-        if (t is OperationTypeProxy) {
-          var proxy = (OperationTypeProxy)t;
-          if (proxy.JustInts) {
-            proxy.T = Type.Int;
-            return true;
-          } else if (proxy.JustReals) {
-            proxy.T = Type.Real;
-            return true;
-          }
-        } else if (t is ObjectTypeProxy) {
-          var proxy = (ObjectTypeProxy)t;
-          proxy.T = new ObjectType();
-          return true;
-        }
         // all other proxies indicate the type has not yet been determined, provided their type parameters have been
         return !(t is TypeProxy) && t.TypeArgs.All(tt => IsDetermined(tt.Normalize()));
       }
@@ -2574,22 +4079,6 @@ namespace Microsoft.Dafny
         Contract.Requires(t != null);
         Contract.Requires(what != null);
         t = t.NormalizeExpand();
-        // If the type specifies an arbitrary int-based or real-based type, just fill it in with int or real, respectively;
-        // similarly, if t refers to the type of "null", set its type to be "object".
-        if (t is OperationTypeProxy) {
-          var proxy = (OperationTypeProxy)t;
-          if (proxy.JustInts) {
-            proxy.T = Type.Int;
-            return true;
-          } else if (proxy.JustReals) {
-            proxy.T = Type.Real;
-            return true;
-          }
-        } else if (t is ObjectTypeProxy) {
-          var proxy = (ObjectTypeProxy)t;
-          proxy.T = new ObjectType();
-          return true;
-        }
 
         if (t is TypeProxy) {
           var proxy = (TypeProxy)t;
@@ -2601,16 +4090,7 @@ namespace Microsoft.Dafny
           return false;
         }
         // Recurse on type arguments:
-        if (t is MapType) {
-          return CheckTypeIsDetermined(tok, ((MapType)t).Range, what) &&
-                 CheckTypeIsDetermined(tok, ((MapType)t).Domain, what);
-        } else if (t is CollectionType) {
-          return CheckTypeIsDetermined(tok, ((CollectionType)t).Arg, what);
-        } else if (t is UserDefinedType) {
-          return t.TypeArgs.All(rg => CheckTypeIsDetermined(tok, rg, what));
-        } else {
-          return true;
-        }
+        return t.TypeArgs.All(rg => CheckTypeIsDetermined(tok, rg, what));
       }
     }
     #endregion CheckTypeInference
@@ -3208,10 +4688,11 @@ namespace Microsoft.Dafny
           return false;
         } else if (stmt is CallStmt) {
           var s = (CallStmt)stmt;
-          Contract.Assert(s.Method.TypeArgs.Count <= s.MethodSelect.TypeArgumentSubstitutions().Count);
+          var subst = s.MethodSelect.TypeArgumentSubstitutions();
+          Contract.Assert(s.Method.TypeArgs.Count <= subst.Count);
           var i = 0;
           foreach (var formalTypeArg in s.Method.TypeArgs) {
-            var actualTypeArg = s.MethodSelect.TypeArgumentSubstitutions()[formalTypeArg];
+            var actualTypeArg = subst[formalTypeArg];
             if (formalTypeArg.MustSupportEquality && !actualTypeArg.SupportsEquality) {
               resolver.reporter.Error(MessageSource.Resolver, s.Tok, "type parameter {0} ({1}) passed to method {2} must support equality (got {3}){4}", i, formalTypeArg.Name, s.Method.Name, actualTypeArg, TypeEqualityErrorMessageHint(actualTypeArg));
             }
@@ -3503,6 +4984,10 @@ namespace Microsoft.Dafny
 
         if (stmt is PredicateStmt) {
           stmt.IsGhost = true;
+          var assertStmt = stmt as AssertStmt;
+          if (assertStmt != null && assertStmt.Proof != null) {
+            Visit(assertStmt.Proof, true);
+          }
 
         } else if (stmt is PrintStmt) {
           var s = (PrintStmt)stmt;
@@ -4082,7 +5567,9 @@ namespace Microsoft.Dafny
     void ResolveClassMemberBodies(ClassDecl cl) {
       Contract.Requires(cl != null);
       Contract.Requires(currentClass == null);
+      Contract.Requires(AllTypeConstraints.Count == 0);
       Contract.Ensures(currentClass == null);
+      Contract.Ensures(AllTypeConstraints.Count == 0);
 
       currentClass = cl;
       foreach (MemberDecl member in cl.Members) {
@@ -4116,6 +5603,7 @@ namespace Microsoft.Dafny
         } else {
           Contract.Assert(false); throw new cce.UnreachableException();  // unexpected member type
         }
+        Contract.Assert(AllTypeConstraints.Count == 0);
       }
       currentClass = null;
     }
@@ -4507,6 +5995,9 @@ namespace Microsoft.Dafny
     /// </summary>
     void ResolveFunction(Function f) {
       Contract.Requires(f != null);
+      Contract.Requires(AllTypeConstraints.Count == 0);
+      Contract.Ensures(AllTypeConstraints.Count == 0);
+
       scope.PushMarker();
       if (f.IsStatic) {
         scope.AllowInstance = false;
@@ -4524,7 +6015,7 @@ namespace Microsoft.Dafny
       foreach (Expression r in f.Req) {
         ResolveExpression(r, new ResolveOpts(f, false));
         Contract.Assert(r.Type != null);  // follows from postcondition of ResolveExpression
-        ConstrainTypes(r.Type, Type.Bool, r, "Precondition must be a boolean (got {0})", r.Type);
+        ConstrainTypeExprBool(r, "Precondition must be a boolean (got {0})");
       }
       foreach (FrameExpression fr in f.Reads) {
         ResolveFrameExpression(fr, true, f);
@@ -4532,7 +6023,7 @@ namespace Microsoft.Dafny
       foreach (Expression r in f.Ens) {
         ResolveExpression(r, new ResolveOpts(f, false));  // since this is a function, the postcondition is still a one-state predicate
         Contract.Assert(r.Type != null);  // follows from postcondition of ResolveExpression
-        ConstrainTypes(r.Type, Type.Bool, r, "Postcondition must be a boolean (got {0})", r.Type);
+        ConstrainTypeExprBool(r, "Postcondition must be a boolean (got {0})");
       }
       ResolveAttributes(f.Decreases.Attributes, null, new ResolveOpts(f, false));
       foreach (Expression r in f.Decreases.Expressions) {
@@ -4543,9 +6034,9 @@ namespace Microsoft.Dafny
       if (f.Body != null) {
         var prevErrorCount = reporter.Count(ErrorLevel.Error);
         ResolveExpression(f.Body, new ResolveOpts(f, false));
-        SolveAllTypeConstraints();
         Contract.Assert(f.Body.Type != null);  // follows from postcondition of ResolveExpression
-        ConstrainTypes(f.Body.Type, f.ResultType, f, "Function body type mismatch (expected {0}, got {1})", f.ResultType, f.Body.Type);
+        ConstrainSubtypeRelation(f.ResultType, f.Body.Type, f.tok, "Function body type mismatch (expected {0}, got {1})", f.ResultType, f.Body.Type);
+        SolveAllTypeConstraints();
       }
       scope.PopMarker();
 
@@ -4559,21 +6050,18 @@ namespace Microsoft.Dafny
     void ResolveFrameExpression(FrameExpression fe, bool readsFrame, ICodeContext codeContext) {
       Contract.Requires(fe != null);
       Contract.Requires(codeContext != null);
-      ResolveExpression(fe.E, new ResolveOpts(codeContext, false));
+      ResolveExpression(fe.E, new ResolveOpts(codeContext, codeContext is TwoStateLemma));
       Type t = fe.E.Type;
       Contract.Assert(t != null);  // follows from postcondition of ResolveExpression
-      var arrTy = t.AsArrowType;
-      if (arrTy != null) {
-        t = arrTy.Result;
+      var eventualRefType = new InferredTypeProxy();
+      if (readsFrame) {
+        AddXConstraint(fe.E.tok, "ReadsFrame", t, eventualRefType, "a reads-clause expression must denote an object or a collection of objects (instead got {0})");
+      } else {
+        AddXConstraint(fe.E.tok, "ModifiesFrame", t, eventualRefType, "a modifies-clause expression must denote an object or a collection of objects (instead got {0})");
       }
-      var collType = t.AsCollectionType;
-      if (collType != null) {
-        t = collType.Arg;
-      }
-      if (!ConstrainTypes(t, new ObjectType(), fe.E, "a {0}-clause expression must denote an object or a collection of objects (instead got {1})", readsFrame ? "reads" : "modifies", fe.E.Type)) {
-      } else if (fe.FieldName != null) {
+      if (fe.FieldName != null) {
         NonProxyType nptype;
-        MemberDecl member = ResolveMember(fe.E.tok, t, fe.FieldName, out nptype);
+        MemberDecl member = ResolveMember(fe.E.tok, eventualRefType, fe.FieldName, out nptype);
         UserDefinedType ctype = (UserDefinedType)nptype;  // correctness of cast follows from the DenotesClass test above
         if (member == null) {
           // error has already been reported by ResolveMember
@@ -4625,6 +6113,8 @@ namespace Microsoft.Dafny
     /// </summary>
     void ResolveMethod(Method m) {
       Contract.Requires(m != null);
+      Contract.Requires(AllTypeConstraints.Count == 0);
+      Contract.Ensures(AllTypeConstraints.Count == 0);
 
       try
       {
@@ -4641,23 +6131,30 @@ namespace Microsoft.Dafny
 
         // Start resolving specification...
         foreach (MaybeFreeExpression e in m.Req) {
-          ResolveAttributes(e.Attributes, null, new ResolveOpts(m, false));
-          ResolveExpression(e.E, new ResolveOpts(m, false));
+          ResolveAttributes(e.Attributes, null, new ResolveOpts(m, m is TwoStateLemma));
+          ResolveExpression(e.E, new ResolveOpts(m, m is TwoStateLemma));
           Contract.Assert(e.E.Type != null);  // follows from postcondition of ResolveExpression
-          ConstrainTypes(e.E.Type, Type.Bool, e.E, "Precondition must be a boolean (got {0})", e.E.Type);
+          ConstrainTypeExprBool(e.E, "Precondition must be a boolean (got {0})");
         }
         ResolveAttributes(m.Mod.Attributes, null, new ResolveOpts(m, false));
         foreach (FrameExpression fe in m.Mod.Expressions) {
           ResolveFrameExpression(fe, false, m);
-          if (m is Lemma || m is FixpointLemma) {
+          if (m is Lemma || m is TwoStateLemma || m is FixpointLemma) {
             reporter.Error(MessageSource.Resolver, fe.tok, "{0}s are not allowed to have modifies clauses", m.WhatKind);
           } else if (m.IsGhost) {
             DisallowNonGhostFieldSpecifiers(fe);
           }
         }
+        if (m is TwoStateLemma) {
+          var two = (TwoStateLemma)m;
+          ResolveAttributes(two.Reads.Attributes, null, new ResolveOpts(m, true));
+          foreach (FrameExpression fe in two.Reads.Expressions) {
+            ResolveFrameExpression(fe, true, m);
+          }
+        }
         ResolveAttributes(m.Decreases.Attributes, null, new ResolveOpts(m, false));
         foreach (Expression e in m.Decreases.Expressions) {
-          ResolveExpression(e, new ResolveOpts(m, false));
+          ResolveExpression(e, new ResolveOpts(m, m is TwoStateLemma));
           // any type is fine
         }
 
@@ -4677,7 +6174,7 @@ namespace Microsoft.Dafny
           ResolveAttributes(e.Attributes, null, new ResolveOpts(m, true));
           ResolveExpression(e.E, new ResolveOpts(m, true));
           Contract.Assert(e.E.Type != null);  // follows from postcondition of ResolveExpression
-          ConstrainTypes(e.E.Type, Type.Bool, e.E, "Postcondition must be a boolean (got {0})", e.E.Type);
+          ConstrainTypeExprBool(e.E, "Postcondition must be a boolean (got {0})");
         }
         SolveAllTypeConstraints();
 
@@ -4729,12 +6226,15 @@ namespace Microsoft.Dafny
       }
       var option = iter.TypeArgs.Count == 0 ? new ResolveTypeOption(iter) : new ResolveTypeOption(ResolveTypeOptionEnum.AllowPrefix);
       // resolve the types of the parameters
+      var prevErrorCount = reporter.Count(ErrorLevel.Error);
       foreach (var p in iter.Ins.Concat(iter.Outs)) {
         ResolveType(p.tok, p.Type, iter, option, iter.TypeArgs);
       }
       // resolve the types of the added fields (in case some of these types would cause the addition of default type arguments)
-      foreach (var p in iter.OutsHistoryFields) {
-        ResolveType(p.tok, p.Type, iter, option, iter.TypeArgs);
+      if (prevErrorCount == reporter.Count(ErrorLevel.Error)) {
+        foreach (var p in iter.OutsHistoryFields) {
+          ResolveType(p.tok, p.Type, iter, option, iter.TypeArgs);
+        }
       }
       scope.PopMarker();
     }
@@ -4765,7 +6265,7 @@ namespace Microsoft.Dafny
         // any type is fine, but associate this type with the corresponding _decreases<n> field
         var d = iter.DecreasesFields[i];
         // If the following type constraint does not hold, then: Bummer, there was a use--and a bad use--of the field before, so this won't be the best of error messages
-        ConstrainTypes(d.Type, e.Type, e, "type of field {0} is {1}, but has been constrained elsewhere to be of type {2}", d.Name, e.Type, d.Type);
+        ConstrainSubtypeRelation(d.Type, e.Type, e, "type of field {0} is {1}, but has been constrained elsewhere to be of type {2}", d.Name, e.Type, d.Type);
       }
       foreach (FrameExpression fe in iter.Reads.Expressions) {
         ResolveFrameExpression(fe, true, iter);
@@ -4776,7 +6276,7 @@ namespace Microsoft.Dafny
       foreach (MaybeFreeExpression e in iter.Requires) {
         ResolveExpression(e.E, new ResolveOpts(iter, false));
         Contract.Assert(e.E.Type != null);  // follows from postcondition of ResolveExpression
-        ConstrainTypes(e.E.Type, Type.Bool, e.E, "Precondition must be a boolean (got {0})", e.E.Type);
+        ConstrainTypeExprBool(e.E, "Precondition must be a boolean (got {0})");
       }
 
       scope.PopMarker();  // for the in-parameters
@@ -4790,18 +6290,19 @@ namespace Microsoft.Dafny
       foreach (MaybeFreeExpression e in iter.YieldRequires) {
         ResolveExpression(e.E, new ResolveOpts(iter, false));
         Contract.Assert(e.E.Type != null);  // follows from postcondition of ResolveExpression
-        ConstrainTypes(e.E.Type, Type.Bool, e.E, "Yield precondition must be a boolean (got {0})", e.E.Type);
+        ConstrainTypeExprBool(e.E, "Yield precondition must be a boolean (got {0})");
       }
       foreach (MaybeFreeExpression e in iter.YieldEnsures) {
         ResolveExpression(e.E, new ResolveOpts(iter, true));
         Contract.Assert(e.E.Type != null);  // follows from postcondition of ResolveExpression
-        ConstrainTypes(e.E.Type, Type.Bool, e.E, "Yield postcondition must be a boolean (got {0})", e.E.Type);
+        ConstrainTypeExprBool(e.E, "Yield postcondition must be a boolean (got {0})");
       }
       foreach (MaybeFreeExpression e in iter.Ensures) {
         ResolveExpression(e.E, new ResolveOpts(iter, true));
         Contract.Assert(e.E.Type != null);  // follows from postcondition of ResolveExpression
-        ConstrainTypes(e.E.Type, Type.Bool, e.E, "Postcondition must be a boolean (got {0})", e.E.Type);
+        ConstrainTypeExprBool(e.E, "Postcondition must be a boolean (got {0})");
       }
+      SolveAllTypeConstraints();
 
       ResolveAttributes(iter.Attributes, iter, new ResolveOpts(iter, false));
 
@@ -4810,6 +6311,7 @@ namespace Microsoft.Dafny
       // Resolve body
       if (iter.Body != null) {
         ResolveBlockStatement(iter.Body, iter);
+        SolveAllTypeConstraints();
       }
 
       currentClass = null;
@@ -5047,40 +6549,41 @@ namespace Microsoft.Dafny
       Contract.Requires(type != null);
       Contract.Requires(context != null);
       Contract.Requires((option.Opt == ResolveTypeOptionEnum.DontInfer || option.Opt == ResolveTypeOptionEnum.InferTypeProxies) == (defaultTypeArguments == null));
-      if (type is BasicType) {
+      if (type is BitvectorType) {
+        var t = (BitvectorType)type;
+        // nothing to resolve, but record the fact that this bitvector width is in use
+        builtIns.Bitwidths.Add(t.Width);
+      } else if (type is BasicType) {
         // nothing to resolve
       } else if (type is MapType) {
         var mt = (MapType)type;
         var errorCount = reporter.Count(ErrorLevel.Error);
-        int typeArgumentCount = 0;
+        int typeArgumentCount;
         if (mt.HasTypeArg()) {
           ResolveType(tok, mt.Domain, context, option, defaultTypeArguments);
           ResolveType(tok, mt.Range, context, option, defaultTypeArguments);
           typeArgumentCount = 2;
-        } else if (option.Opt != ResolveTypeOptionEnum.DontInfer) {
+        } else if (option.Opt == ResolveTypeOptionEnum.DontInfer) {
+          mt.SetTypeArgs(new InferredTypeProxy(), new InferredTypeProxy());
+          typeArgumentCount = 0;
+        } else {
           var inferredTypeArgs = new List<Type>();
           FillInTypeArguments(tok, 2, inferredTypeArgs, defaultTypeArguments, option);
           Contract.Assert(inferredTypeArgs.Count <= 2);
-          if (inferredTypeArgs.Count != 0) {
-            mt.SetTypeArg(inferredTypeArgs[0]);
-            typeArgumentCount++;
-          }
-          if (inferredTypeArgs.Count == 2) {
-            mt.SetRangetype(inferredTypeArgs[1]);
-            typeArgumentCount++;
+          if (inferredTypeArgs.Count == 1) {
+            mt.SetTypeArgs(inferredTypeArgs[0], new InferredTypeProxy());
+            typeArgumentCount = 1;
+          } else if (inferredTypeArgs.Count == 2) {
+            mt.SetTypeArgs(inferredTypeArgs[0], inferredTypeArgs[1]);
+            typeArgumentCount = 2;
+          } else {
+            mt.SetTypeArgs(new InferredTypeProxy(), new InferredTypeProxy());
+            typeArgumentCount = 0;
           }
         }
         // defaults and auto have been applied; check if we now have the right number of arguments
         if (2 != typeArgumentCount) {
           reporter.Error(MessageSource.Resolver, tok, "Wrong number of type arguments ({0} instead of 2) passed to type: {1}", typeArgumentCount, mt.CollectionTypeName);
-          // add proxy types, to make sure that MapType will have have a non-null Arg/Domain and Range
-          if (typeArgumentCount == 0) {
-            mt.SetTypeArg(new InferredTypeProxy());
-          }
-          mt.SetRangetype(new InferredTypeProxy());
-        }
-        if (errorCount == reporter.Count(ErrorLevel.Error) && (mt.Domain.IsSubrangeType || mt.Range.IsSubrangeType)) {
-          reporter.Error(MessageSource.Resolver, tok, "sorry, cannot instantiate collection type with a subrange type");
         }
       } else if (type is CollectionType) {
         var t = (CollectionType)type;
@@ -5100,10 +6603,6 @@ namespace Microsoft.Dafny
           reporter.Error(MessageSource.Resolver, tok, "Wrong number of type arguments (0 instead of 1) passed to type: {0}", t.CollectionTypeName);
           // add a proxy type, to make sure that CollectionType will have have a non-null Arg
           t.SetTypeArg(new InferredTypeProxy());
-        }
-
-        if (errorCount == reporter.Count(ErrorLevel.Error) && t.Arg.IsSubrangeType) {
-          reporter.Error(MessageSource.Resolver, tok, "sorry, cannot instantiate collection type with a subrange type");
         }
 
       } else if (type is UserDefinedType) {
@@ -5216,455 +6715,42 @@ namespace Microsoft.Dafny
       }
     }
 
-    public bool UnifyTypes(Type a, Type b) {
-      Contract.Requires(a != null);
-      Contract.Requires(b != null);
-
-      a = a.NormalizeExpand();
-      b = b.NormalizeExpand();
-      if (a is TypeProxy) {
-        // merge a and b (cycles are avoided even if b is a TypeProxy, since we have got to the bottom of both a and b)
-        return AssignProxy((TypeProxy)a, b);
-      } else if (b is TypeProxy) {
-        // merge a and b
-        return AssignProxy((TypeProxy)b, a);
-      }
-
-#if !NO_CHEAP_OBJECT_WORKAROUND
-      if (a is ObjectType || b is ObjectType) {  // TODO: remove this temporary hack
-        var other = a is ObjectType ? b : a;
-        if (!other.IsRefType) {
-          return false;
-        }
-        // allow anything else with object; this is BOGUS
-        return true;
-      }
-#endif
-      // Now, a and b are non-proxies and stand for the same things as the original a and b, respectively.
-
-      if (a is BoolType) {
-        return b is BoolType;
-      } else if (a is CharType) {
-        return b is CharType;
-      } else if (a is IntType) {
-        return b is IntType;
-      } else if (a is RealType) {
-        return b is RealType;
-      } else if (a is ObjectType) {
-        return b is ObjectType;
-      } else if (a is SetType) {
-        return b is SetType && ((SetType)a).Finite == ((SetType)b).Finite &&
-               UnifyTypes(((SetType)a).Arg, ((SetType)b).Arg);
-      } else if (a is MultiSetType) {
-        return b is MultiSetType && UnifyTypes(((MultiSetType)a).Arg, ((MultiSetType)b).Arg);
-      } else if (a is MapType) {
-        return b is MapType && ((MapType)a).Finite == ((MapType)b).Finite &&
-               UnifyTypes(((MapType)a).Domain, ((MapType)b).Domain) && UnifyTypes(((MapType)a).Range, ((MapType)b).Range);
-      } else if (a is SeqType) {
-        return b is SeqType && UnifyTypes(((SeqType)a).Arg, ((SeqType)b).Arg);
-      } else if (a is UserDefinedType || b is UserDefinedType) {
-        if (!(a is UserDefinedType) && b is UserDefinedType) {
-          var x = a;
-          a = b;
-          b = x;
-        }
-
-        var aa = (UserDefinedType)a;
-        var rca = aa.ResolvedClass;
-        // traits are currently unfriendly to irondafny features.
-        if (DafnyOptions.O.IronDafny && !(rca is TraitDecl)) { 
-          if (rca != null) {
-            while (rca.ClonedFrom != null || rca.ExclusiveRefinement != null) {
-              if (rca.ClonedFrom != null) {
-                rca = (TopLevelDecl)rca.ClonedFrom;                
-              } else {
-                Contract.Assert(rca.ExclusiveRefinement != null);
-                rca = rca.ExclusiveRefinement;
-              }
-            }
-          }
-        }
-
-        if (!(b is UserDefinedType)) {
-          return DafnyOptions.O.IronDafny && rca is TypeSynonymDecl && UnifyTypes(((TypeSynonymDecl)rca).Rhs, b);
-        }
-
-        var bb = (UserDefinedType)b;
-        var rcb = bb.ResolvedClass;
-        // traits are currently unfriendly to irondafny features.
-        if (DafnyOptions.O.IronDafny && !(rca is TraitDecl) && !(rcb is TraitDecl)) {
-          if (rcb != null) {
-            while (rcb.ClonedFrom != null || rcb.ExclusiveRefinement != null) {
-              if (rcb.ClonedFrom != null) {
-                rcb = (TopLevelDecl)rcb.ClonedFrom;                
-              } else {
-                Contract.Assert(rcb.ExclusiveRefinement != null);
-                rcb = rcb.ExclusiveRefinement;
-              }
-            }
-          }
-          if (rca is TypeSynonymDecl || rcb is TypeSynonymDecl) {
-            var aaa = a;
-            var bbb = b;
-            if (rca is TypeSynonymDecl) {
-              aaa = ((TypeSynonymDecl)rca).Rhs;
-            }
-            if (rcb is TypeSynonymDecl) {
-              bbb = ((TypeSynonymDecl)rcb).Rhs;
-          }
-            return UnifyTypes(aaa, bbb);
-          }
-        }
-        if (rca != null && Object.ReferenceEquals(rca, rcb)) {
-          // these are both resolved class/datatype types
-          Contract.Assert(aa.TypeArgs.Count == bb.TypeArgs.Count);
-          bool successSoFar = true;
-          for (int i = 0; successSoFar && i < aa.TypeArgs.Count; i++) {
-            successSoFar = UnifyTypes(aa.TypeArgs[i], bb.TypeArgs[i]);
-          }
-          return successSoFar;
-        } else if (rcb is TraitDecl && rca is TraitDecl) {
-          return rca == rcb;
-        } else if (rcb is ClassDecl && rca is TraitDecl) {
-          return ((ClassDecl)rcb).TraitsObj.Contains(rca);
-        } else if (rca is ClassDecl && rcb is TraitDecl) {
-            return ((ClassDecl)rca).TraitsObj.Contains(rcb);
-        } else if (aa.ResolvedParam != null && aa.ResolvedParam == bb.ResolvedParam) {
-          // type parameters
-          if (aa.TypeArgs.Count != bb.TypeArgs.Count) {
-            return false;
-          } else {
-            bool successSoFar = true;
-            for (int i = 0; i < aa.TypeArgs.Count; i++) {
-              if (!UnifyTypes(aa.TypeArgs[i], bb.TypeArgs[i])) {
-                successSoFar = false;
-              }
-            }
-            return successSoFar;
-          }
-        } else {
-          // something is wrong; either aa or bb wasn't properly resolved, or they don't unify
-          return false;
-        }
-      } else if (a is Resolver_IdentifierExpr.ResolverType_Type) {
-        return b is Resolver_IdentifierExpr.ResolverType_Type;
-      } else if (a is Resolver_IdentifierExpr.ResolverType_Module) {
-        return b is Resolver_IdentifierExpr.ResolverType_Module;
-      } else {
-        Contract.Assert(false); throw new cce.UnreachableException();  // unexpected type
-      }
+    public static bool TypeConstraintsIncludeProxy(Type t, TypeProxy proxy) {
+      return TypeConstraintsIncludeProxy_Aux(t, proxy, new HashSet<TypeProxy>());
     }
-
-    bool AssignProxy(TypeProxy proxy, Type t) {
-      Contract.Requires(proxy != null);
+    static bool TypeConstraintsIncludeProxy_Aux(Type t, TypeProxy proxy, ISet<TypeProxy> visited) {
       Contract.Requires(t != null);
-      Contract.Requires(proxy.T == null);
-      Contract.Requires(!(t is TypeProxy) || ((TypeProxy)t).T == null);
-      //modifies proxy.T, ((TypeProxy)t).T;  // might also change t.T if t is a proxy
-      Contract.Ensures(Contract.Result<bool>() == (proxy == t || proxy.T != null || (t is TypeProxy && ((TypeProxy)t).T != null)));
-      if (proxy == t) {
-        // they are already in the same equivalence class
-        return true;
-
-      } else if (proxy is UnrestrictedTypeProxy) {
-        // it's fine to redirect proxy to t (done below)
-
-      } else if (t is UnrestrictedTypeProxy) {
-        // merge proxy and t by redirecting t to proxy, rather than the other way around
-        ((TypeProxy)t).T = proxy;
-        return true;
-
-      } else if (t is RestrictedTypeProxy) {
-        // Both proxy and t are restricted type proxies.  To simplify unification, order proxy and t
-        // according to their types.
-        RestrictedTypeProxy r0 = (RestrictedTypeProxy)proxy;
-        RestrictedTypeProxy r1 = (RestrictedTypeProxy)t;
-        if (r0.OrderID <= r1.OrderID) {
-          return AssignRestrictedProxies(r0, r1);
-        } else {
-          return AssignRestrictedProxies(r1, r0);
-        }
-
-        // In the remaining cases, proxy is a restricted proxy and t is a non-proxy
-      } else if (proxy is DatatypeProxy) {
-        var dtp = (DatatypeProxy)proxy;
-        if (!dtp.Co && t.NormalizeExpand().IsIndDatatype) {
-          // all is fine, proxy can be redirected to t
-        } else if (dtp.Co && t.IsCoDatatype) {
-          // all is fine, proxy can be redirected to t
-        } else if (dtp.TypeVariableOK && t.IsTypeParameter) {
-          // looking good
-        } else {
-          return false;
-        }
-
-      } else if (proxy is ObjectTypeProxy) {
-        if (t is ArrowType) {
-          return false;
-        } else if (t is ObjectType || UserDefinedType.DenotesClass(t) != null) {
-          // all is fine, proxy can be redirected to t
-        } else {
-          return false;
-        }
-
-      } else if (proxy is CollectionTypeProxy) {
-        CollectionTypeProxy collProxy = (CollectionTypeProxy)proxy;
-        if (t is CollectionType) {
-          if (!UnifyTypes(collProxy.Arg, ((CollectionType)t).Arg)) {
-            return false;
-          }
-        } else {
-          return false;
-        }
-
-      } else if (proxy is OperationTypeProxy) {
-        var opProxy = (OperationTypeProxy)proxy;
-        if (opProxy.AllowInts && t.IsNumericBased(Type.NumericPersuation.Int)) {
-          // fine
-        } else if (opProxy.AllowReals && t.IsNumericBased(Type.NumericPersuation.Real)) {
-          // fine
-        } else if (opProxy.AllowChar && t is CharType) {
-          // fine
-        } else if (opProxy.AllowSetVarieties && ((t is SetType && ((SetType)t).Finite) || t is MultiSetType)) {
-          // fine
-        } else if (opProxy.AllowISet && (t is SetType && !((SetType)t).Finite)) {
-          // fine
-        } else if (opProxy.AllowSeq && t is SeqType) {
-          // fine
-        } else {
-          return false;
-        }
-
-      } else if (proxy is IndexableTypeProxy) {
-        var iProxy = (IndexableTypeProxy)proxy;
-        if (t is SeqType) {
-          if (!UnifyTypes(iProxy.Domain, new OperationTypeProxy(true, false, false, false, false, false))) {
-            return false;
-          } else if (!UnifyTypes(iProxy.Range, ((SeqType)t).Arg)) {
-            return false;
-          } else if (!UnifyTypes(iProxy.Arg, iProxy.Range)) {
-            return false;
-          }
-        } else if (iProxy.AllowArray && t.IsArrayType && t.AsArrayType.Dims == 1) {
-          Type elType = UserDefinedType.ArrayElementType(t);
-          if (!UnifyTypes(iProxy.Domain, new OperationTypeProxy(true, false, false, false, false, false))) {
-            return false;
-          } else if (!UnifyTypes(iProxy.Range, elType)) {
-            return false;
-          } else if (!UnifyTypes(iProxy.Arg, iProxy.Range)) {
-            return false;
-          }
-        } else if (iProxy.AllowMap && t is MapType && ((MapType)t).Finite) {
-          if (!UnifyTypes(iProxy.Domain, ((MapType)t).Domain)) {
-            return false;
-          } else if (!UnifyTypes(iProxy.Range, ((MapType)t).Range)) {
-            return false;
-          } else if (!UnifyTypes(iProxy.Arg, iProxy.Domain)) {
-            return false;
-          }
-        } else if (iProxy.AllowIMap && t is MapType && !((MapType)t).Finite) {
-          if (!UnifyTypes(iProxy.Domain, ((MapType)t).Domain)) {
-            return false;
-          } else if (!UnifyTypes(iProxy.Range, ((MapType)t).Range)) {
-            return false;
-          } else if (!UnifyTypes(iProxy.Arg, iProxy.Domain)) {
-            return false;
-          }
-        } else if (t is MultiSetType) {
-          if (!UnifyTypes(iProxy.Domain, ((MultiSetType)t).Arg)) {
-            return false;
-          } else if (!UnifyTypes(iProxy.Range, new OperationTypeProxy(true, false, false, false, false, false))) {
-            return false;
-          } else if (!UnifyTypes(iProxy.Arg, iProxy.Domain)) {
-            return false;
-          }
-        } else {
-          return false;
-        }
-
-      } else {
-        Contract.Assert(false); throw new cce.UnreachableException();  // unexpected proxy type
-      }
-
-      // do the merge, but never infer a subrange type
-      if (t is NatType) {
-        proxy.T = Type.Int;
-      } else {
-        return AssignProxyAfterCycleCheck(proxy, t);
-      }
-      return true;
-    }
-
-    bool AssignProxyAfterCycleCheck(TypeProxy proxy, Type t) {
+      Contract.Requires(!(t is TypeProxy) || ((TypeProxy)t).T == null);  // t is expected to have been normalized first
       Contract.Requires(proxy != null && proxy.T == null);
-      Contract.Requires(t != null);
-      if (TypeArgumentsIncludeProxy(t, proxy)) {
-        return false;
-      } else {
-        proxy.T = t;
-        return true;
-      }
-    }
-
-    bool TypeArgumentsIncludeProxy(Type t, TypeProxy proxy) {
-      Contract.Requires(t != null);
-      Contract.Requires(proxy != null);
-      foreach (var ta in t.TypeArgs) {
-        var a = ta.Normalize();
-        if (a == proxy || TypeArgumentsIncludeProxy(a, proxy)) {
+      Contract.Requires(visited != null);
+      var tproxy = t as TypeProxy;
+      if (tproxy != null) {
+        if (object.ReferenceEquals(tproxy, proxy)) {
           return true;
-        }
-      }
-      return false;
-    }
-
-    bool AssignRestrictedProxies(RestrictedTypeProxy a, RestrictedTypeProxy b) {
-      Contract.Requires(a != null);
-      Contract.Requires(b != null);
-      Contract.Requires(a != b);
-      Contract.Requires(a.T == null && b.T == null);
-      Contract.Requires(a.OrderID <= b.OrderID);
-      //modifies a.T, b.T;
-      Contract.Ensures(!Contract.Result<bool>() || a.T != null || b.T != null);
-
-      if (a is DatatypeProxy) {
-        if (b is DatatypeProxy && ((DatatypeProxy)a).Co == ((DatatypeProxy)b).Co) {
-          // all is fine
-          a.T = b;
-          return true;
-        } else {
+        } else if (visited.Contains(tproxy)) {
           return false;
         }
-      } else if (a is ObjectTypeProxy) {
-        if (b is ObjectTypeProxy) {
-          // all is fine
-          a.T = b;
-          return true;
-        } else if (b is IndexableTypeProxy && ((IndexableTypeProxy)b).AllowArray) {
-          var ib = (IndexableTypeProxy)b;
-          // the intersection of ObjectTypeProxy and IndexableTypeProxy is an array type
-          // Note, we're calling ResolvedArrayType here, which in turn calls ResolveType on ib.Arg.  However, we
-          // don't need to worry about what ICodeContext we're passing in, because ib.Arg should already have been
-          // resolved.
-          var c = ResolvedArrayType(Token.NoToken, 1, ib.Arg, new DontUseICallable());
-          return AssignProxyAfterCycleCheck(a, c) && AssignProxyAfterCycleCheck(b, c) && UnifyTypes(ib.Arg, ib.Range);
-        } else {
-          return false;
-        }
-
-      } else if (a is CollectionTypeProxy) {
-        if (b is CollectionTypeProxy) {
-          var argUnificationSuccess = UnifyTypes(((CollectionTypeProxy)a).Arg, ((CollectionTypeProxy)b).Arg);
-          if (argUnificationSuccess) {
-            a.T = b;
-          }
-          return argUnificationSuccess;
-        } else if (b is OperationTypeProxy) {
-          var proxy = (OperationTypeProxy)b;
-          if (proxy.AllowSeq && proxy.AllowSetVarieties && proxy.AllowISet) {
-            b.T = a;  // a is a stronger constraint than b
-          } else {
-            // a says set<T>,seq<T> and b says numeric,set; the intersection is set<T>
-            var c = new SetType(true, ((CollectionTypeProxy)a).Arg);
-            return AssignProxyAfterCycleCheck(a, c) && AssignProxyAfterCycleCheck(b, c);
-          }
-          return true;
-        } else if (b is IndexableTypeProxy) {
-          var pa = (CollectionTypeProxy)a;
-          var ib = (IndexableTypeProxy)b;
-          // pa is:
-          //   set(Arg) or iset(Arg) or multiset(Arg) or seq(Arg) or map(Arg, anyRange) or imap(Arg, anyRange)
-          // ib is:
-          //   multiset(Arg) or
-          //   seq(Arg) or
-          //   if AllowMap, map(Domain, Arg), or
-          //   if AllowIMap, imap(Domain, Arg), or
-          //   if AllowArray, array(Arg)
-          // Their intersection is:
-          if (ib.AllowArray) {
-            var c = new IndexableTypeProxy(ib.Domain, ib.Range, ib.Arg, ib.AllowMap, ib.AllowIMap, false);
-            ib.T = c;
-            ib = c;
-          }
-          pa.T = ib;
-          return UnifyTypes(pa.Arg, ib.Arg);
-        } else {
-          Contract.Assert(false); throw new cce.UnreachableException();  // unexpected restricted-proxy type
-        }
-
-      } else if (a is OperationTypeProxy) {
-        var pa = (OperationTypeProxy)a;
-        if (b is OperationTypeProxy) {
-          var pb = (OperationTypeProxy)b;
-          var i = pa.AllowInts && pb.AllowInts;
-          var r = pa.AllowReals && pb.AllowReals;
-          var h = pa.AllowChar && pb.AllowChar;
-          var q = pa.AllowSeq && pb.AllowSeq;
-          var s = pa.AllowSetVarieties && pb.AllowSetVarieties;
-          var t = pa.AllowISet && pb.AllowISet;
-          if (!i && !r && !h && !q && !s && !t) {
-            // over-constrained
-            return false;
-          } else if (i == pa.AllowInts && r == pa.AllowReals && h == pa.AllowChar && q == pa.AllowSeq && s == pa.AllowSetVarieties && t == pa.AllowISet) {
-            b.T = a;  // a has the stronger requirement
-          } else if (i == pb.AllowInts && r == pb.AllowReals && h == pb.AllowChar && q == pb.AllowSeq && s == pb.AllowSetVarieties && t == pb.AllowISet) {
-            a.T = b;  // b has the stronger requirement
-          } else {
-            Type c = !i && !r && h && !q && !s && !t? new CharType() : (Type)new OperationTypeProxy(i, r, h, q, s, t);
-            // the calls to AssignProxyAfterCycleCheck are needed only when c is a non-proxy type, but it doesn't
-            // hurt to do them in both cases
-            return AssignProxyAfterCycleCheck(a, c) && AssignProxyAfterCycleCheck(b, c);
-          }
-          return true;
-        } else {
-          var ib = (IndexableTypeProxy)b;  // cast justification:  else we have unexpected restricted-proxy type
-          // a is:  possibly numeric, possibly char, possibly seq, possibly set or multiset
-          // b is:  seq, multiset, possibly map, possibly array -- with some constraints about the type parameterization
-          // So, the intersection could include multiset and seq.
-          if (pa.AllowSetVarieties && !pa.AllowSeq) {
-            // strengthen a and b to a multiset type
-            var c = new MultiSetType(ib.Arg);
-            return AssignProxyAfterCycleCheck(a, c) && AssignProxyAfterCycleCheck(b, c);
-          } else if (pa.AllowSeq && !pa.AllowSetVarieties) {
-            // strengthen a and b to a sequence type
-            var c = new SeqType(ib.Arg);
-            return AssignProxyAfterCycleCheck(a, c) && AssignProxyAfterCycleCheck(b, c);
-          } else if (!pa.AllowSeq && !pa.AllowSetVarieties) {
-            // over-constrained
-            return false;
-          } else {
-            Contract.Assert(pa.AllowSeq && pa.AllowSetVarieties);  // the only case left
-            if (ib.AllowMap || ib.AllowIMap || ib.AllowArray) {
-              var c = new IndexableTypeProxy(ib.Domain, ib.Range, ib.Arg, false, false, false);
-              a.T = c;
-              b.T = c;
-            } else {
-              a.T = b;
-            }
+        visited.Add(tproxy);
+        foreach (var su in tproxy.Subtypes) {
+          if (TypeConstraintsIncludeProxy_Aux(su, proxy, visited)) {
             return true;
           }
         }
-
-      } else if (a is IndexableTypeProxy) {
-        var ia = (IndexableTypeProxy)a;
-        var ib = (IndexableTypeProxy)b;  // cast justification: else we have unexpected restricted-proxy type
-        var am = ia.AllowMap && ib.AllowMap;
-        var aim = ia.AllowIMap && ib.AllowIMap;
-        var ar = ia.AllowArray && ib.AllowArray;
-        if (am == ia.AllowMap && aim == ia.AllowIMap && ar == ia.AllowArray) {
-          b.T = a;  // a has the stronger requirement
-        } else if (am == ib.AllowMap && aim == ib.AllowIMap && ar == ib.AllowArray) {
-          a.T = b;  // b has the stronger requirement
-        } else {
-          var c = new IndexableTypeProxy(ia.Domain, ia.Range, ia.Arg, am, aim, ar);
-          a.T = c;
-          b.T = c;
+        foreach (var su in tproxy.Supertypes) {
+          if (TypeConstraintsIncludeProxy_Aux(su, proxy, visited)) {
+            return true;
+          }
         }
-        return UnifyTypes(ia.Domain, ib.Domain) && UnifyTypes(ia.Range, ib.Range) && UnifyTypes(ia.Arg, ib.Arg);
-
       } else {
-        Contract.Assert(false); throw new cce.UnreachableException();  // unexpected restricted-proxy type
+        // check type arguments of t
+        foreach (var ta in t.TypeArgs) {
+          var a = ta.Normalize();
+          if (TypeConstraintsIncludeProxy_Aux(a, proxy, visited)) {
+            return true;
+          }
+        }
       }
+      return false;
     }
 
     /// <summary>
@@ -5691,7 +6777,11 @@ namespace Microsoft.Dafny
         PredicateStmt s = (PredicateStmt)stmt;
         ResolveExpression(s.Expr, new ResolveOpts(codeContext, true));
         Contract.Assert(s.Expr.Type != null);  // follows from postcondition of ResolveExpression
-        ConstrainTypes(s.Expr.Type, Type.Bool, s.Expr, "condition is expected to be of type {0}, but is {1}", Type.Bool, s.Expr.Type);
+        ConstrainTypeExprBool(s.Expr, "condition is expected to be of type bool, but is {0}");
+        var assertStmt = stmt as AssertStmt;
+        if (assertStmt != null && assertStmt.Proof != null) {
+          ResolveStatement(assertStmt.Proof, codeContext);
+        }
 
       } else if (stmt is PrintStmt) {
         var s = (PrintStmt)stmt;
@@ -5782,8 +6872,13 @@ namespace Microsoft.Dafny
 
         // Resolve the types of the locals
         foreach (var local in s.Locals) {
+          int prevErrorCount = reporter.Count(ErrorLevel.Error);
           ResolveType(local.Tok, local.OptionalType, codeContext, ResolveTypeOptionEnum.InferTypeProxies, null);
-          local.type = local.OptionalType;
+          if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
+            local.type = local.OptionalType;
+          } else {
+            local.type = new InferredTypeProxy();
+          }
         }
         // Resolve the UpdateStmt, if any
         if (s.Update is UpdateStmt) {
@@ -5795,7 +6890,7 @@ namespace Microsoft.Dafny
             var lhs = (IdentifierExpr)upd.Lhss[i];  // the LHS in this case will be an IdentifierExpr, because that's how the parser creates the VarDeclStmt
             Contract.Assert(lhs.Type == null);  // not yet resolved
             lhs.Var = local;
-            lhs.Type = local.Type;
+            lhs.Type = StripSubsetConstraints(local.Type);
           }
           // resolve the whole thing
           ResolveConcreteUpdateStmt(s.Update, codeContext);
@@ -5914,11 +7009,11 @@ namespace Microsoft.Dafny
           ExprRhs rr = (ExprRhs)s.Rhs;
           ResolveExpression(rr.Expr, new ResolveOpts(codeContext, true));
           Contract.Assert(rr.Expr.Type != null);  // follows from postcondition of ResolveExpression
-          ConstrainTypes(lhsType, rr.Expr.Type, stmt, "RHS (of type {0}) not assignable to LHS (of type {1})", rr.Expr.Type, lhsType);
+          ConstrainSubtypeRelation(lhsType, rr.Expr.Type, stmt.Tok, "RHS (of type {0}) not assignable to LHS (of type {1})", rr.Expr.Type, lhsType);
         } else if (s.Rhs is TypeRhs) {
           TypeRhs rr = (TypeRhs)s.Rhs;
           Type t = ResolveTypeRhs(rr, stmt, codeContext);
-          ConstrainTypes(lhsType, t, stmt, "type {0} is not assignable to LHS (of type {1})", t, lhsType);
+          ConstrainSubtypeRelation(lhsType, t, stmt.Tok, "type {0} is not assignable to LHS (of type {1})", t, lhsType);
         } else if (s.Rhs is HavocRhs) {
           // nothing else to do
         } else {
@@ -5940,7 +7035,7 @@ namespace Microsoft.Dafny
         if (s.Guard != null) {
           ResolveExpression(s.Guard, new ResolveOpts(codeContext, true));
           Contract.Assert(s.Guard.Type != null);  // follows from postcondition of ResolveExpression
-          ConstrainTypes(s.Guard.Type, Type.Bool, s.Guard, "condition is expected to be of type {0}, but is {1}", Type.Bool, s.Guard.Type);
+          ConstrainTypeExprBool(s.Guard, "condition is expected to be of type bool, but is {0}");
         }
 
         scope.PushMarker();
@@ -5968,7 +7063,7 @@ namespace Microsoft.Dafny
           ResolveExpression(s.Guard, new ResolveOpts(codeContext, true));
           Contract.Assert(s.Guard.Type != null);  // follows from postcondition of ResolveExpression
           Translator.ComputeFreeVariables(s.Guard, fvs);
-          ConstrainTypes(s.Guard.Type, Type.Bool, s.Guard, "condition is expected to be of type {0}, but is {1}", Type.Bool, s.Guard.Type);
+          ConstrainTypeExprBool(s.Guard, "condition is expected to be of type bool, but is {0}");
         }
 
         ResolveLoopSpecificationComponents(s.Invariants, s.Decreases, s.Mod, codeContext, fvs);
@@ -5999,11 +7094,11 @@ namespace Microsoft.Dafny
         }
         ResolveExpression(s.Range, new ResolveOpts(codeContext, true));
         Contract.Assert(s.Range.Type != null);  // follows from postcondition of ResolveExpression
-        ConstrainTypes(s.Range.Type, Type.Bool, stmt, "range restriction in forall statement must be of type bool (instead got {0})", s.Range.Type);
+        ConstrainTypeExprBool(s.Range, "range restriction in forall statement must be of type bool (instead got {0})");
         foreach (var ens in s.Ens) {
           ResolveExpression(ens.E, new ResolveOpts(codeContext, true));
           Contract.Assert(ens.E.Type != null);  // follows from postcondition of ResolveExpression
-          ConstrainTypes(ens.E.Type, Type.Bool, ens.E, "ensures condition is expected to be of type {0}, but is {1}", Type.Bool, ens.E.Type);
+          ConstrainTypeExprBool(ens.E, "ensures condition is expected to be of type bool, but is {0}");
         }
         // Since the range and postconditions are more likely to infer the types of the bound variables, resolve them
         // first (above) and only then resolve the attributes (below).
@@ -6082,22 +7177,25 @@ namespace Microsoft.Dafny
         var prevErrorCount = reporter.Count(ErrorLevel.Error);
         CalcStmt s = (CalcStmt)stmt;
         if (s.Lines.Count > 0) {
+          Type lineType = new InferredTypeProxy();
           var e0 = s.Lines.First();
           ResolveExpression(e0, new ResolveOpts(codeContext, true));
           Contract.Assert(e0.Type != null);  // follows from postcondition of ResolveExpression
+          var err = new TypeConstraint.ErrorMsgWithToken(e0.tok, "all lines in a calculation must have the same type (got {0} after {1})", e0.Type, lineType);
+          ConstrainSubtypeRelation(lineType, e0.Type, err);
           for (int i = 1; i < s.Lines.Count; i++) {
-            if (i < s.Lines.Count - 1 || prevErrorCount == reporter.Count(ErrorLevel.Error)) { // do not resolve the dummy step if there were errors, it might generate more errors
-              var e1 = s.Lines[i];
-              ResolveExpression(e1, new ResolveOpts(codeContext, true));
-              Contract.Assert(e1.Type != null);  // follows from postcondition of ResolveExpression
-              if (!ConstrainTypes(e0.Type, e1.Type, e1, "all lines in a calculation must have the same type (got {0} after {1})", e1.Type, e0.Type)) {
-              } else {
-                var step = s.StepOps[i - 1].StepExpr(e0, e1); // Use custom line operator
-                ResolveExpression(step, new ResolveOpts(codeContext, true));
-                s.Steps.Add(step);
-              }
-              e0 = e1;
+            var e1 = s.Lines[i];
+            ResolveExpression(e1, new ResolveOpts(codeContext, true));
+            Contract.Assert(e1.Type != null);  // follows from postcondition of ResolveExpression
+            // reuse the error object if we're on the dummy line; this prevents a duplicate error message
+            if (i < s.Lines.Count - 1) {
+              err = new TypeConstraint.ErrorMsgWithToken(e1.tok, "all lines in a calculation must have the same type (got {0} after {1})", e1.Type, lineType);
             }
+            ConstrainSubtypeRelation(lineType, e1.Type, err);
+            var step = s.StepOps[i - 1].StepExpr(e0, e1); // Use custom line operator
+            ResolveExpression(step, new ResolveOpts(codeContext, true));
+            s.Steps.Add(step);
+            e0 = e1;
           }
 
           // clear the labels for the duration of checking the hints, because break statements are not allowed to leave a forall statement
@@ -6123,7 +7221,7 @@ namespace Microsoft.Dafny
         Contract.Assert(prevErrorCount != reporter.Count(ErrorLevel.Error) || s.Steps.Count == s.Hints.Count);
 
       } else if (stmt is MatchStmt) {
-        ResolveMatchStmt(stmt, codeContext);
+        ResolveMatchStmt((MatchStmt)stmt, codeContext);
       } else if (stmt is SkeletonStatement) {
         var s = (SkeletonStatement)stmt;
         reporter.Error(MessageSource.Resolver, s.Tok, "skeleton statements are allowed only in refining methods");
@@ -6149,7 +7247,7 @@ namespace Microsoft.Dafny
         if (fvs != null) {
           Translator.ComputeFreeVariables(inv.E, fvs);
         }
-        ConstrainTypes(inv.E.Type, Type.Bool, inv.E, "invariant is expected to be of type {0}, but is {1}", Type.Bool, inv.E.Type);
+        ConstrainTypeExprBool(inv.E, "invariant is expected to be of type bool, but is {0}");
       }
 
       ResolveAttributes(decreases.Attributes, null, new ResolveOpts(codeContext, true));
@@ -6174,14 +7272,21 @@ namespace Microsoft.Dafny
       }
     }
 
-    void ResolveMatchStmt(Statement stmt, ICodeContext codeContext) {
-      MatchStmt s = (MatchStmt)stmt;
+    void ResolveMatchStmt(MatchStmt s, ICodeContext codeContext) {
+      Contract.Requires(s != null);
+      Contract.Requires(codeContext != null);
+      Contract.Requires(s.OrigUnresolved == null);
+
+      // first, clone the original expression
+      s.OrigUnresolved = (MatchStmt)new Cloner().CloneStmt(s);
+
       DesugarMatchStmtWithTupleExpression(s);
 
       ResolveExpression(s.Source, new ResolveOpts(codeContext, true));
       Contract.Assert(s.Source.Type != null);  // follows from postcondition of ResolveExpression
       UserDefinedType sourceType = null;
       DatatypeDecl dtd = null;
+      PartiallyResolveTypeForMemberSelection(s.Source.tok, s.Source.Type);
       if (s.Source.Type.IsDatatype) {
         sourceType = (UserDefinedType)s.Source.Type.NormalizeExpand();
         dtd = cce.NonNull((DatatypeDecl)sourceType.ResolvedClass);
@@ -6237,14 +7342,15 @@ namespace Microsoft.Dafny
             if (ctor != null && i < ctor.Formals.Count) {
               Formal formal = ctor.Formals[i];
               Type st = SubstType(formal.Type, subst);
-              ConstrainTypes(v.Type, st, stmt, "the declared type of the formal ({0}) does not agree with the corresponding type in the constructor's signature ({1})", v.Type, st);
+              ConstrainSubtypeRelation(v.Type, st, s.Tok,
+                "the declared type of the formal ({0}) does not agree with the corresponding type in the constructor's signature ({1})", v.Type, st);
               v.IsGhost = formal.IsGhost;
 
               // update the type of the boundvars in the MatchCaseToken
               if (v.tok is MatchCaseToken) {
                 MatchCaseToken mt = (MatchCaseToken)v.tok;
                 foreach (Tuple<IToken, BoundVar, bool> entry in mt.varList) {
-                  UnifyTypes(entry.Item2.Type, v.Type);  // TODO: What if this unification fails? Can it?  --KRML
+                  ConstrainSubtypeRelation(entry.Item2.Type, v.Type, entry.Item1, "incorrect type for bound match-case variable (expected {0}, got {1})", v.Type, entry.Item2.Type);
                 }
               }
             }
@@ -6836,7 +7942,7 @@ namespace Microsoft.Dafny
 
       var ec = reporter.Count(ErrorLevel.Error);
       ResolveExpression(s.Expr, new ResolveOpts(codeContext, true));
-      ConstrainTypes(s.Expr.Type, Type.Bool, s.Expr, "type of RHS of assign-such-that statement must be boolean (got {0})", s.Expr.Type);
+      ConstrainTypeExprBool(s.Expr, "type of RHS of assign-such-that statement must be boolean (got {0})");
     }
 
     void ResolveAlternatives(List<GuardedAlternative> alternatives, AlternativeLoopStmt loopToCatchBreaks, ICodeContext codeContext) {
@@ -6849,7 +7955,7 @@ namespace Microsoft.Dafny
         ResolveExpression(alternative.Guard, new ResolveOpts(codeContext, true));
         Contract.Assert(alternative.Guard.Type != null);  // follows from postcondition of ResolveExpression
         bool successfullyResolved = reporter.Count(ErrorLevel.Error) == prevErrorCount;
-        ConstrainTypes(alternative.Guard.Type, Type.Bool, alternative.Guard, "condition is expected to be of type {0}, but is {1}", Type.Bool, alternative.Guard.Type);
+        ConstrainTypeExprBool(alternative.Guard, "condition is expected to be of type bool, but is {0}");
       }
 
       if (loopToCatchBreaks != null) {
@@ -6923,19 +8029,19 @@ namespace Microsoft.Dafny
           }
         }
         // type check the arguments
+        var subst = s.MethodSelect.TypeArgumentSubstitutions();
         for (int i = 0; i < callee.Ins.Count; i++) {
-          Type st = SubstType(callee.Ins[i].Type, s.MethodSelect.TypeArgumentSubstitutions());
-          ConstrainTypes(s.Args[i].Type, st, s, "incorrect type of method in-parameter {0} (expected {1}, got {2})", i, st, s.Args[i].Type);
+          var it = StripSubsetConstraints(callee.Ins[i].Type);
+          Type st = SubstType(it, subst);
+          ConstrainSubtypeRelation(st, s.Args[i].Type, s.Tok, "incorrect type of method in-parameter {0} (expected {1}, got {2})", i, st, s.Args[i].Type);
         }
         for (int i = 0; i < callee.Outs.Count; i++) {
-          Type st = SubstType(callee.Outs[i].Type, s.MethodSelect.TypeArgumentSubstitutions());
+          var it = StripSubsetConstraints(callee.Outs[i].Type);
+          Type st = SubstType(it, subst);
           var lhs = s.Lhs[i];
-          if (!ConstrainTypes(lhs.Type, st, s, "incorrect type of method out-parameter {0} (expected {1}, got {2})", i, st, lhs.Type)) {
-          } else {
-            var resolvedLhs = lhs.Resolved;
-            // LHS must denote a mutable field.
-            CheckIsLvalue(resolvedLhs, codeContext);
-          }
+          ConstrainSubtypeRelation(lhs.Type, st, s.Tok, "incorrect type of method out-parameter {0} (expected {1}, got {2})", i, st, lhs.Type);
+          // LHS must denote a mutable field.
+          CheckIsLvalue(lhs.Resolved, codeContext);
         }
 
         // Resolution termination check
@@ -6982,7 +8088,8 @@ namespace Microsoft.Dafny
         }
       } else if (lhs is SeqSelectExpr) {
         var ll = (SeqSelectExpr)lhs;
-        ConstrainTypes(ll.Seq.Type, ResolvedArrayType(ll.Seq.tok, 1, new InferredTypeProxy(), codeContext), ll.Seq, "LHS of array assignment must denote an array element (found {0})", ll.Seq.Type);
+        ConstrainSubtypeRelation(ResolvedArrayType(ll.Seq.tok, 1, new InferredTypeProxy(), codeContext), ll.Seq.Type, ll.Seq,
+          "LHS of array assignment must denote an array element (found {0})", ll.Seq.Type);
         if (!ll.SelectOne) {
           reporter.Error(MessageSource.Resolver, ll.Seq, "cannot assign to a range of array elements (try the 'forall' statement)");
         }
@@ -7307,7 +8414,7 @@ namespace Microsoft.Dafny
           foreach (Expression dim in rr.ArrayDimensions) {
             Contract.Assert(dim != null);
             ResolveExpression(dim, new ResolveOpts(codeContext, true));
-            ConstrainTypes(dim.Type, new OperationTypeProxy(true, false, false, false, false, false), stmt, "new must use an integer-based expression for the array size (got {0} for index {1})", dim.Type, i);
+            ConstrainToIntegerType(dim, string.Format("new must use an integer-based expression for the array size (got {{0}}{0})", rr.ArrayDimensions.Count == 1 ? "" : " for index " + i));
             i++;
           }
           rr.Type = ResolvedArrayType(stmt.Tok, rr.ArrayDimensions.Count, rr.EType, codeContext);
@@ -7389,22 +8496,11 @@ namespace Microsoft.Dafny
       Contract.Requires(memberName != null);
       Contract.Ensures(Contract.Result<MemberDecl>() == null || Contract.ValueAtReturn(out nptype) != null);
 
-      PartiallySolveTypeConstraints();  // so that we can try to pick up the type of the receiver
+      receiverType = PartiallyResolveTypeForMemberSelection(tok, receiverType, memberName);
 
-      nptype = null;  // prepare for the worst
-      receiverType = receiverType.NormalizeExpand();
-      var opProxy = receiverType as OperationTypeProxy;
-      if (opProxy != null) {
-        if (opProxy.JustInts) {
-          // close enough to do member lookups for int-based types
-          receiverType = Type.Int;
-        } else if (opProxy.JustReals) {
-          // close enough to do member lookups for real-based types
-          receiverType = Type.Real;
-        }
-      }
       if (receiverType is TypeProxy) {
         reporter.Error(MessageSource.Resolver, tok, "type of the receiver is not fully determined at this program point", receiverType);
+        nptype = null;
         return null;
       }
       Contract.Assert(receiverType is NonProxyType);  // there are only two kinds of types: proxies and non-proxies
@@ -7415,9 +8511,8 @@ namespace Microsoft.Dafny
         Contract.Assert(ctype.TypeArgs.Count == cd.TypeArgs.Count);  // follows from the fact that ctype was resolved
         MemberDecl member;
         if (!classMembers[cd].TryGetValue(memberName, out member)) {
-          var kind = cd is IteratorDecl ? "iterator" : "class";
           if (memberName == "_ctor") {
-            reporter.Error(MessageSource.Resolver, tok, "{0} {1} does not have an anonymous constructor", kind, ctype.Name);
+            reporter.Error(MessageSource.Resolver, tok, "{0} {1} does not have an anonymous constructor", cd.WhatKind, ctype.Name);
           } else {
             // search the static members of the enclosing module or its imports
             if (!classMembersOnly && moduleInfo.StaticMembers.TryGetValue(memberName, out member)) {
@@ -7430,9 +8525,10 @@ namespace Microsoft.Dafny
                 return member;
               }
             } else {
-              reporter.Error(MessageSource.Resolver, tok, "member {0} does not exist in {2} {1}", memberName, ctype.Name, kind);
+              reporter.Error(MessageSource.Resolver, tok, "member {0} does not exist in {2} {1}", memberName, ctype.Name, cd.WhatKind);
             }
           }
+          nptype = null;
           return null;
         } else {
           nptype = ctype;
@@ -7445,6 +8541,7 @@ namespace Microsoft.Dafny
         MemberDecl member;
         if (!datatypeMembers[dtd].TryGetValue(memberName, out member)) {
           reporter.Error(MessageSource.Resolver, tok, "member {0} does not exist in datatype {1}", memberName, dtd.Name);
+          nptype = null;
           return null;
         } else {
           nptype = (UserDefinedType)receiverType;
@@ -7459,6 +8556,8 @@ namespace Microsoft.Dafny
         basic = BasicTypeVariety.Int;
       } else if (receiverType.IsNumericBased(Type.NumericPersuation.Real)) {
         basic = BasicTypeVariety.Real;
+      } else if (receiverType.IsBitVectorType) {
+        basic = BasicTypeVariety.Bitvector;
       } else {
         basic = BasicTypeVariety.None;
       }
@@ -7471,21 +8570,161 @@ namespace Microsoft.Dafny
       }
 
       reporter.Error(MessageSource.Resolver, tok, "type {0} does not have a member {1}", receiverType, memberName);
+      nptype = null;
       return null;
     }
 
     /// <summary>
-    /// Returns a resolved MemberSelectExpr for a field.
+    /// Tries to figure out the type of "t" without making any inference decisions.
+    /// If it can be figured out completely, then "t" (suitably determined) is returned.
+    /// If "memberName" is null, the return value is always (a normalized version of) "t",
+    /// regardless of if "t" was figured out completely.
+    /// If "memberName" is non-null, then the determination will make use of the fact that
+    /// the determined type must have a member named "memberName".  In the event that "t" can
+    /// only be determined enough to figure out where to unambiguously pick up "memberName", then
+    /// that type (call it "r") is returned after adding a type constraint that "t" is a subtype of "r".
     /// </summary>
-    public static MemberSelectExpr NewMemberSelectExpr(IToken tok, Expression obj, Field field, Dictionary<TypeParameter, Type> typeSubstMap) {
+    Type PartiallyResolveTypeForMemberSelection(IToken tok, Type t, string memberName = null) {
       Contract.Requires(tok != null);
-      Contract.Requires(obj != null);
-      Contract.Requires(field != null);
-      Contract.Requires(obj.Type != null);  // "obj" is required to be resolved
-      var e = new MemberSelectExpr(tok, obj, field.Name);
-      e.Member = field;  // resolve here
-      e.Type = typeSubstMap == null ? field.Type : SubstType(field.Type, typeSubstMap);  // resolve here
-      return e;
+      Contract.Requires(t != null);
+      Contract.Ensures(!(Contract.Result<Type>() is TypeProxy) || ((TypeProxy)Contract.Result<Type>()).T == null);
+      Contract.Ensures(memberName != null || Contract.Result<Type>().Equals(t.NormalizeExpand()));
+      t = t.NormalizeExpand();
+      if (!(t is TypeProxy)) {
+        return t;  // we're good
+      }
+
+      // simplify constraints
+      PrintTypeConstraintState(10);
+      PartiallySolveTypeConstraints(false);
+      PrintTypeConstraintState(11);
+      t = t.NormalizeExpand();
+      var proxy = t as TypeProxy;
+      if (proxy == null) {
+        return t;  // simplification did the trick
+      }
+#if DEBUG_PRINT
+      Console.Write("DEBUG: Member selection{3}:  {1} :> {0} :> {2}", t,
+        Util.Comma(proxy.Supertypes, su => su.ToString()),
+        Util.Comma(proxy.Subtypes, su => su.ToString()),
+        memberName == null ? "" : " (" + memberName + ")");
+#endif
+
+      var artificialSuper = proxy.AsSubtypeOfArtificial();
+      if (artificialSuper != null) {
+#if DEBUG_PRINT
+        Console.WriteLine("  ----> use artificial supertype: {0}", artificialSuper);
+#endif
+        return artificialSuper;
+      }
+
+      // Look for a meet of head symbols among the proxy's subtypes
+      Type meet = null;
+      if (MeetOfAllSubtypes(proxy, ref meet, new HashSet<TypeProxy>()) && meet != null) {
+        bool isRoot, isLeaf, headIsRoot, headIsLeaf;
+        CheckEnds(meet, out isRoot, out isLeaf, out headIsRoot, out headIsLeaf);
+        bool pickThisMeet = false;
+        if (headIsRoot) {
+          // we're good to go -- by picking "meet" (whose type parameters have been replaced by fresh proxies), we're not losing any generality
+          pickThisMeet = true;
+        } else if (memberName != null) {
+          // If "meet" has a member called "memberName" and no supertype of "meet" does, then we'll pick this meet
+          if (meet.IsRefType && !(meet is ObjectType)) {
+            var cl = ((UserDefinedType)meet).ResolvedClass as ClassDecl;
+            if (cl != null) {
+              // TODO: the following could be improved by also supplying an upper bound of the search (computed as a join of the supertypes)
+              var plausibleMembers = new HashSet<MemberDecl>();
+              FindAllMembers(cl, memberName, plausibleMembers);
+              if (plausibleMembers.Count == 1) {
+                var mbr = plausibleMembers.First();
+                if (mbr.EnclosingClass == cl) {
+                  pickThisMeet = true;  // do it below
+                } else {
+                  // pick the supertype "mbr.EnclosingClass" of "cl"
+                  Contract.Assert(mbr.EnclosingClass is TraitDecl);  // a proper supertype of a ClassDecl must be a TraitDecl
+                  var pickItFromHere = new UserDefinedType(tok, mbr.EnclosingClass.Name, mbr.EnclosingClass, new List<Type>());
+                  ConstrainSubtypeRelation(pickItFromHere, meet, tok, "Member selection requires a subtype of {0} (got something more like {1})", pickItFromHere, meet);
+#if DEBUG_PRINT
+                  Console.WriteLine("  ----> improved to {0} through meet and member lookup", pickItFromHere);
+#endif
+                  return pickItFromHere;
+                }
+              }
+            }
+          }
+        }
+        if (pickThisMeet) {
+#if DEBUG_PRINT
+          Console.WriteLine("  ----> improved to {0} through meet", meet);
+#endif
+          AssignProxyAndHandleItsConstraints(proxy, meet);
+          return proxy.NormalizeExpand();  // we return proxy.T instead of meet, in case the assignment gets hijacked
+        }
+#if DEBUG_PRINT
+        Console.WriteLine("  ----> found no improvement, because meet does not determine type enough");
+        return t;
+#endif
+      }
+
+      // we can't do it
+#if DEBUG_PRINT
+      Console.WriteLine("  ----> found no improvement");
+#endif
+      return t;
+    }
+
+    void FindAllMembers(ClassDecl cl, string memberName, ISet<MemberDecl> foundSoFar) {
+      Contract.Requires(cl != null);
+      Contract.Requires(memberName != null);
+      Contract.Requires(foundSoFar != null);
+      MemberDecl member;
+      if (classMembers[cl].TryGetValue(memberName, out member)) {
+        foundSoFar.Add(member);
+      }
+      cl.TraitsObj.ForEach(trait => FindAllMembers(trait, memberName, foundSoFar));
+    }
+
+    /// <summary>
+    /// Attempts to compute the meet of "meet", "t", and all of "t"'s known subtype( constraint)s.  The meet
+    /// ignores type parameters.  It is assumed that "meet" on entry already includes the meet of all proxies
+    /// in "visited".  The empty meet is represented by "null".
+    /// The return is "true" if the meet exists.
+    /// </summary>
+    static bool MeetOfAllSubtypes(Type t, ref Type meet, ISet<TypeProxy> visited) {
+      Contract.Requires(t != null);
+      Contract.Requires(visited != null);
+
+      t = t.NormalizeExpand();
+      var proxy = t as TypeProxy;
+      if (proxy != null) {
+        if (visited.Contains(proxy)) {
+          return true;
+        }
+        visited.Add(proxy);
+
+        foreach (var c in proxy.SubtypeConstraints) {
+          var s = c.Sub.NormalizeExpand();
+          if (!MeetOfAllSubtypes(s, ref meet, visited)) {
+            return false;
+          }
+        }
+        return true;
+      }
+
+      if (meet == null) {
+        meet = Type.HeadWithProxyArgs(t);
+        return true;
+      } else if (Type.IsHeadSupertype(meet, t)) {
+        // stick with what we've got
+        return true;
+      } else if (Type.IsHeadSupertype(t, meet)) {
+        meet = Type.HeadWithProxyArgs(t);
+        return true;
+      } else {
+        meet = Type.Meet(meet, Type.HeadWithProxyArgs(t));  // the only way this can succeed is if we obtain a trait
+        Contract.Assert(meet == null || meet is ObjectType || (meet is UserDefinedType && ((UserDefinedType)meet).ResolvedClass is TraitDecl));
+        return meet != null;
+      }
     }
 
     public static Dictionary<TypeParameter, Type> TypeSubstitutionMap(List<TypeParameter> formals, List<Type> actuals) {
@@ -7549,9 +8788,10 @@ namespace Microsoft.Dafny
             if (t.TypeArgs.Count == 0) {
               return type;
             } else {
-              return new UserDefinedType(t.ResolvedParam) {
-                TypeArgs = t.TypeArgs.ConvertAll(u => SubstType(u, subst))
-              };
+              // a type parameter with type arguments--must be an opaque type
+              var otp = (OpaqueType_AsParameter)t.ResolvedParam;
+              var ocl = (OpaqueTypeDecl)t.ResolvedClass;
+              return new UserDefinedType(otp, ocl, t.TypeArgs.ConvertAll(u => SubstType(u, subst)));
             }
           }
         } else if (t.ResolvedClass != null) {
@@ -7683,28 +8923,8 @@ namespace Microsoft.Dafny
         var errorCount = reporter.Count(ErrorLevel.Error);
         ResolveExpression(e.E, opts);
         e.Type = e.E.Type;
-        if (errorCount != reporter.Count(ErrorLevel.Error)) {
-          // there were errors resolving the operand; take the quick way out and
-          // just let the (already erronous) subexpression be what the negation expression
-          // will resolve to
-          e.ResolvedExpression = e.E;
-        } else {
-          Expression zero;
-          if (e.E.Type.IsNumericBased(Type.NumericPersuation.Real)) {
-            // we know for sure that this is a real-based unary minus
-            zero = new LiteralExpr(e.tok, Basetypes.BigDec.ZERO);
-          } else {
-            // it may be an int-based operand or it may be that we don't know yet; we'll treat
-            // two cases the same way
-            zero = new LiteralExpr(e.tok, 0);
-          }
-          var subtract = new BinaryExpr(e.tok, BinaryExpr.Opcode.Sub, zero, e.E);
-          // Resolve the subtraction expression.  This look like it will resolve e.E once more,
-          // but the recursive calls to the resolver is mindful about DAGs and will check if the
-          // subexpression has already been resolved.
-          ResolveExpression(subtract, opts);
-          e.ResolvedExpression = subtract;
-        }
+        AddXConstraint(e.E.tok, "NumericOrBitvector", e.E.Type, "type of unary - must be of a numeric or bitvector type (instead got {0})");
+        // Note, e.ResolvedExpression will be filled in during CheckTypeInference, at which time e.Type has been determined
 
       } else if (expr is LiteralExpr) {
         LiteralExpr e = (LiteralExpr)expr;
@@ -7715,11 +8935,16 @@ namespace Microsoft.Dafny
           eStatic.Type = eStatic.UnresolvedType;
         } else {
           if (e.Value == null) {
-            e.Type = new ObjectTypeProxy();
+            e.Type = new InferredTypeProxy();
+            ConstrainSubtypeRelation(new ObjectType(), e.Type, e.tok, "type of 'null' is a reference type, but it is used as {0}", e.Type);
           } else if (e.Value is BigInteger) {
-            e.Type = new OperationTypeProxy(true, false, false, false, false, false);
+            var proxy = new InferredTypeProxy();
+            e.Type = proxy;
+            ConstrainSubtypeRelation(new IntVarietiesSupertype(), e.Type, e.tok, "integer literal used as if it had type {0}", e.Type);
           } else if (e.Value is Basetypes.BigDec) {
-            e.Type = new OperationTypeProxy(false, true, false, false, false, false);
+            var proxy = new InferredTypeProxy();
+            e.Type = proxy;
+            ConstrainSubtypeRelation(new RealVarietiesSupertype(), e.Type, e.tok, "type of real literal is used as {0}", e.Type);
           } else if (e.Value is bool) {
             e.Type = Type.Bool;
           } else if (e is CharLiteralExpr) {
@@ -7743,7 +8968,7 @@ namespace Microsoft.Dafny
         var e = (IdentifierExpr)expr;
         e.Var = scope.Find(e.Name);
         if (e.Var != null) {
-          expr.Type = e.Var.Type;
+          expr.Type = StripSubsetConstraints(e.Var.Type);
         } else {
           reporter.Error(MessageSource.Resolver, expr, "Identifier does not denote a local variable, parameter, or bound variable: {0}", e.Name);
         }
@@ -7768,7 +8993,7 @@ namespace Microsoft.Dafny
         foreach (Expression ee in e.Elements) {
           ResolveExpression(ee, opts);
           Contract.Assert(ee.Type != null);  // follows from postcondition of ResolveExpression
-          ConstrainTypes(elementType, ee.Type, ee, "All elements of display must be of the same type (got {0}, but type of previous elements is {1})", ee.Type, elementType);
+          ConstrainSubtypeRelation(elementType, ee.Type, ee.tok, "All elements of display must have some common supertype (got {0}, but type of previous elements is {1})", ee.Type, elementType);
         }
         if (expr is SetDisplayExpr) {
           var se = (SetDisplayExpr)expr;
@@ -7785,10 +9010,10 @@ namespace Microsoft.Dafny
         foreach (ExpressionPair p in e.Elements) {
           ResolveExpression(p.A, opts);
           Contract.Assert(p.A.Type != null);  // follows from postcondition of ResolveExpression
-          ConstrainTypes(domainType, p.A.Type, p.A, "All elements of display must be of the same type (got {0}, but type of previous elements is {1})", p.A.Type, domainType);
+          ConstrainSubtypeRelation(domainType, p.A.Type, p.A.tok, "All elements of display must have some common supertype (got {0}, but type of previous elements is {1})", p.A.Type, domainType);
           ResolveExpression(p.B, opts);
           Contract.Assert(p.B.Type != null);  // follows from postcondition of ResolveExpression
-          ConstrainTypes(rangeType, p.B.Type, p.B, "All elements of display must be of the same type (got {0}, but type of previous elements is {1})", p.B.Type, rangeType);
+          ConstrainSubtypeRelation(rangeType, p.B.Type, p.B.tok, "All elements of display must have some common supertype (got {0}, but type of previous elements is {1})", p.B.Type, rangeType);
         }
         expr.Type = new MapType(e.Finite, domainType, rangeType);
       } else if (expr is NameSegment) {
@@ -7845,6 +9070,7 @@ namespace Microsoft.Dafny
         } else if (member is Field) {
           var field = (Field)member;
           e.Member = field;
+          e.TypeApplication = field.EnclosingClass.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp));
           if (e.Obj is StaticReceiverExpr) {
             reporter.Error(MessageSource.Resolver, expr, "a field must be selected via an object, not just a class name");
           }
@@ -7863,7 +9089,7 @@ namespace Microsoft.Dafny
 
       } else if (expr is SeqSelectExpr) {
         SeqSelectExpr e = (SeqSelectExpr)expr;
-        ResolveSeqSelectExpr(e, opts, true);
+        ResolveSeqSelectExpr(e, opts);
 
       } else if (expr is MultiSelectExpr) {
         MultiSelectExpr e = (MultiSelectExpr)expr;
@@ -7871,13 +9097,14 @@ namespace Microsoft.Dafny
         ResolveExpression(e.Array, opts);
         Contract.Assert(e.Array.Type != null);  // follows from postcondition of ResolveExpression
         Type elementType = new InferredTypeProxy();
-        ConstrainTypes(e.Array.Type, ResolvedArrayType(e.Array.tok, e.Indices.Count, elementType, opts.codeContext), e.Array, "array selection requires an array{0} (got {1})", e.Indices.Count, e.Array.Type);
+        ConstrainSubtypeRelation(ResolvedArrayType(e.Array.tok, e.Indices.Count, elementType, opts.codeContext), e.Array.Type, e.Array,
+          "array selection requires an array{0} (got {1})", e.Indices.Count, e.Array.Type);
         int i = 0;
         foreach (Expression idx in e.Indices) {
           Contract.Assert(idx != null);
           ResolveExpression(idx, opts);
           Contract.Assert(idx.Type != null);  // follows from postcondition of ResolveExpression
-          ConstrainTypes(idx.Type, new OperationTypeProxy(true, false, false, false, false, false), idx, "array selection requires integer-based numeric indices (got {0} for index {1})", idx.Type, i);
+          ConstrainToIntegerType(idx, "array selection requires integer-based numeric indices (got {0} for index " + i + ")");
           i++;
         }
         e.Type = elementType;
@@ -7886,69 +9113,16 @@ namespace Microsoft.Dafny
         SeqUpdateExpr e = (SeqUpdateExpr)expr;
         ResolveExpression(e.Seq, opts);
         Contract.Assert(e.Seq.Type != null);  // follows from postcondition of ResolveExpression
-        Type elementType = new InferredTypeProxy();
-        Type domainType = new InferredTypeProxy();
-        Type rangeType = new InferredTypeProxy();
-        if (UnifyTypes(e.Seq.Type, new SeqType(elementType))) {
-          ResolveExpression(e.Index, opts);
-          Contract.Assert(e.Index.Type != null);  // follows from postcondition of ResolveExpression
-          ConstrainTypes(e.Index.Type, Type.Int, e.Index, "sequence update requires integer index (got {0})", e.Index.Type);
-          ResolveExpression(e.Value, opts);
-          Contract.Assert(e.Value.Type != null);  // follows from postcondition of ResolveExpression
-          ConstrainTypes(e.Value.Type, elementType, e.Value, "sequence update requires the value to have the element type of the sequence (got {0})", e.Value.Type);
-          expr.Type = e.Seq.Type;
-        } else if (UnifyTypes(e.Seq.Type, new MapType(true, domainType, rangeType))) {
-          ResolveExpression(e.Index, opts);
-          ConstrainTypes(e.Index.Type, domainType, e.Index, "map update requires domain element to be of type {0} (got {1})", domainType, e.Index.Type);
-          ResolveExpression(e.Value, opts);
-          ConstrainTypes(e.Value.Type, rangeType, e.Value, "map update requires the value to have the range type {0} (got {1})", rangeType, e.Value.Type);
-          expr.Type = e.Seq.Type;
-        } else if (UnifyTypes(e.Seq.Type, new MapType(false, domainType, rangeType))) {
-          ResolveExpression(e.Index, opts);
-          ConstrainTypes(e.Index.Type, domainType, e.Index, "imap update requires domain element to be of type {0} (got {1})", domainType, e.Index.Type);
-          ResolveExpression(e.Value, opts);
-          ConstrainTypes(e.Value.Type, rangeType, e.Value, "imap update requires the value to have the range type {0} (got {1})", rangeType, e.Value.Type);
-          expr.Type = e.Seq.Type;
-        } else if (UnifyTypes(e.Seq.Type, new MultiSetType(elementType))) {
-          ResolveExpression(e.Index, opts);
-          ConstrainTypes(e.Index.Type, elementType, e.Index, "multiset update requires domain element to be of type {0} (got {1})", elementType, e.Index.Type);
-          ResolveExpression(e.Value, opts);
-          ConstrainTypes(e.Value.Type, new OperationTypeProxy(true, false, false, false, false, false), e.Value, "multiset update requires integer-based numeric value (got {0})", e.Value.Type);
-          expr.Type = e.Seq.Type;
-
-        } else if (e.Seq.Type.IsDatatype) {
-          // combine a nest of datatype updates into one single DatatypeUpdate expression
-          var memberUpdates = new List<Tuple<IToken, string, Expression>>();
-          Expression eIter = e;
-          while (eIter is SeqUpdateExpr) {
-            var ei = (SeqUpdateExpr)eIter;
-            if (ei.Index is NameSegment) {
-              var seg = (NameSegment)ei.Index;
-              memberUpdates.Add(new Tuple<IToken,string,Expression>(ei.Index.tok, seg.Name, ei.Value));
-            } else if (ei.Index is LiteralExpr && ((LiteralExpr)ei.Index).Value is BigInteger) {
-              var lit = (LiteralExpr)ei.Index;
-              var nm = lit.tok.val;  // note, take the string of digits, not the parsed integer
-              memberUpdates.Add(new Tuple<IToken,string,Expression>(ei.Index.tok, nm, ei.Value));
-            } else {
-              reporter.Error(MessageSource.Resolver, expr, "datatype updates must be to datatype destructors");
-            }
-            eIter = ei.Seq;
-          }
-          var let = ResolveDatatypeUpdate(expr.tok, eIter, e.Seq.Type.AsDatatype, memberUpdates, true, opts);
-          if (let != null) {
-            reporter.Warning(MessageSource.Resolver, expr.tok, "datatype update syntax D[f := E] is deprecated; the new syntax is D.(f := E)");
-            e.ResolvedUpdateExpr = let;
-            expr.Type = e.Seq.Type;
-          }
-
-        } else {
-          reporter.Error(MessageSource.Resolver, expr, "update requires a sequence, map, multiset, or datatype (got {0})", e.Seq.Type);
-        }
+        ResolveExpression(e.Index, opts);
+        ResolveExpression(e.Value, opts);
+        AddXConstraint(expr.tok, "SeqUpdatable", e.Seq.Type, e.Index, e.Value, "update requires a sequence, map, multiset, or datatype (got {0})");
+        expr.Type = e.Seq.Type;
 
       } else if (expr is DatatypeUpdateExpr) {
         var e = (DatatypeUpdateExpr)expr;
         ResolveExpression(e.Root, opts);
         var ty = e.Root.Type;
+        PartiallyResolveTypeForMemberSelection(expr.tok, ty);
         if (!ty.IsDatatype) {
           reporter.Error(MessageSource.Resolver, expr, "datatype update expression requires a root expression of a datatype (got {0})", ty);
         } else {
@@ -7969,6 +9143,7 @@ namespace Microsoft.Dafny
         foreach (var arg in e.Args) {
           ResolveExpression(arg, opts);
         }
+        // TODO: the following should be replaced by a type-class constraint that constrains the types of e.Function, e.Args[*], and e.Type
         var fnType = e.Function.Type.AsArrowType;
         if (fnType == null) {
           reporter.Error(MessageSource.Resolver, e.tok, "non-function expression (of type {0}) is called with parameters", e.Function.Type);
@@ -7976,7 +9151,7 @@ namespace Microsoft.Dafny
           reporter.Error(MessageSource.Resolver, e.tok, "wrong number of arguments to function application (function type '{0}' expects {1}, got {2})", fnType, fnType.Arity, e.Args.Count);
         } else {
           for (var i = 0; i < fnType.Arity; i++) {
-            ConstrainTypes(fnType.Args[i], e.Args[i].Type, e.Args[i].tok, "type mismatch for argument {0} (function expects {1}, got {2})", i, fnType.Args[i], e.Args[i].Type);
+            ConstrainSubtypeRelation(fnType.Args[i], e.Args[i].Type, e.Args[i].tok, "type mismatch for argument {0} (function expects {1}, got {2})", i, fnType.Args[i], e.Args[i].Type);
           }
         }
         expr.Type = fnType == null ? new InferredTypeProxy() : fnType.Result;
@@ -7992,9 +9167,7 @@ namespace Microsoft.Dafny
       } else if (expr is MultiSetFormingExpr) {
         MultiSetFormingExpr e = (MultiSetFormingExpr)expr;
         ResolveExpression(e.E, opts);
-        if (!UnifyTypes(e.E.Type, new SetType(true, new InferredTypeProxy())) && !UnifyTypes(e.E.Type, new SeqType(new InferredTypeProxy()))) {
-          reporter.Error(MessageSource.Resolver, e.tok, "can only form a multiset from a seq or set.");
-        }
+        AddXConstraint(e.E.tok, "MultiSetConvertible", e.E.Type, "can only form a multiset from a seq or set (got {0})");
         expr.Type = new MultiSetType(e.E.Type.AsCollectionType.Arg);
 
       } else if (expr is UnaryOpExpr) {
@@ -8003,11 +9176,11 @@ namespace Microsoft.Dafny
         Contract.Assert(e.E.Type != null);  // follows from postcondition of ResolveExpression
         switch (e.Op) {
           case UnaryOpExpr.Opcode.Not:
-            ConstrainTypes(e.E.Type, Type.Bool, expr, "logical negation expects a boolean argument (instead got {0})", e.E.Type);
-            expr.Type = Type.Bool;
+            AddXConstraint(e.E.tok, "BooleanBits", e.E.Type, "logical/bitwise negation expects a boolean or bitvector argument (instead got {0})");
+            expr.Type = e.E.Type;
             break;
           case UnaryOpExpr.Opcode.Cardinality:
-            ConstrainTypes(e.E.Type, new CollectionTypeProxy(new InferredTypeProxy(), false, false), expr, "size operator expects a collection argument (instead got {0})", e.E.Type);
+            AddXConstraint(expr.tok, "Sizeable", e.E.Type, "size operator expects a collection argument (instead got {0})");
             expr.Type = Type.Int;
             break;
           case UnaryOpExpr.Opcode.Fresh:
@@ -8015,20 +9188,7 @@ namespace Microsoft.Dafny
               reporter.Error(MessageSource.Resolver, expr, "fresh expressions are not allowed in this context");
             }
             // the type of e.E must be either an object or a collection of objects
-            Type t = e.E.Type.NormalizeExpand();
-            Contract.Assert(t != null);  // follows from postcondition of ResolveExpression
-            if (t is CollectionType) {
-              t = ((CollectionType)t).Arg.NormalizeExpand();
-            }
-            if (t is ObjectType) {
-              // fine
-            } else if (UserDefinedType.DenotesClass(t) != null) {
-              // fine
-            } else if (t.IsDatatype) {
-              // fine, treat this as the datatype itself.
-            } else {
-              reporter.Error(MessageSource.Resolver, expr, "the argument of a fresh expression must denote an object or a collection of objects (instead got {0})", e.E.Type);
-            }
+            AddXConstraint(expr.tok, "Freshable", e.E.Type, "the argument of a fresh expression must denote an object or a collection of objects (instead got {0})");
             expr.Type = Type.Bool;
             break;
           default:
@@ -8037,16 +9197,25 @@ namespace Microsoft.Dafny
 
       } else if (expr is ConversionExpr) {
         var e = (ConversionExpr)expr;
-        ResolveType(e.tok, e.ToType, opts.codeContext, new ResolveTypeOption(ResolveTypeOptionEnum.DontInfer), null);
         ResolveExpression(e.E, opts);
-        if (e.ToType.IsNumericBased(Type.NumericPersuation.Int)) {
-          ConstrainTypes(e.E.Type, new OperationTypeProxy(true, true, false, false, false, false), expr, "type conversion to an int-based type is allowed only from numeric types (got {0})", e.E.Type);
-        } else if (e.ToType.IsNumericBased(Type.NumericPersuation.Real)) {
-          ConstrainTypes(e.E.Type, new OperationTypeProxy(true, true, false, false, false, false), expr, "type conversion to a real-based type is allowed only from numeric types (got {0})", e.E.Type);
+        var prevErrorCount = reporter.Count(ErrorLevel.Error);
+        ResolveType(e.tok, e.ToType, opts.codeContext, new ResolveTypeOption(ResolveTypeOptionEnum.DontInfer), null);
+        if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
+          if (e.ToType is NatType) {
+            reporter.Error(MessageSource.Resolver, expr, "type conversions to 'nat' are not supported; convert to 'int' instead");
+          } else if (e.ToType.IsNumericBased(Type.NumericPersuation.Int)) {
+            AddXConstraint(expr.tok, "NumericOrBitvector", e.E.Type, "type conversion to an int-based type is allowed only from numeric and bitvector types (got {0})");
+          } else if (e.ToType.IsNumericBased(Type.NumericPersuation.Real)) {
+            AddXConstraint(expr.tok, "NumericOrBitvector", e.E.Type, "type conversion to an real-based type is allowed only from numeric and bitvector types (got {0})");
+          } else if (e.ToType.IsBitVectorType) {
+            AddXConstraint(expr.tok, "NumericOrBitvector", e.E.Type, "type conversion to an bitvector-based type is allowed only from numeric and bitvector types (got {0})");
+          } else {
+            reporter.Error(MessageSource.Resolver, expr, "type conversions are not supported to this type (got {0})", e.ToType);
+          }
+          e.Type = e.ToType;
         } else {
-          reporter.Error(MessageSource.Resolver, expr, "type conversions are not supported to this type (got {0})", e.ToType);
+          e.Type = new InferredTypeProxy();
         }
-        e.Type = e.ToType;
 
       } else if (expr is BinaryExpr) {
         BinaryExpr e = (BinaryExpr)expr;
@@ -8060,121 +9229,127 @@ namespace Microsoft.Dafny
           case BinaryExpr.Opcode.Exp:
           case BinaryExpr.Opcode.And:
           case BinaryExpr.Opcode.Or:
-            ConstrainTypes(e.E0.Type, Type.Bool, expr, "first argument to {0} must be of type bool (instead got {1})", BinaryExpr.OpcodeString(e.Op), e.E0.Type);
-            ConstrainTypes(e.E1.Type, Type.Bool, expr, "second argument to {0} must be of type bool (instead got {1})", BinaryExpr.OpcodeString(e.Op), e.E1.Type);
+            ConstrainSubtypeRelation(Type.Bool, e.E0.Type, expr, "first argument to {0} must be of type bool (instead got {1})", BinaryExpr.OpcodeString(e.Op), e.E0.Type);
+            ConstrainSubtypeRelation(Type.Bool, e.E1.Type, expr, "second argument to {0} must be of type bool (instead got {1})", BinaryExpr.OpcodeString(e.Op), e.E1.Type);
             expr.Type = Type.Bool;
             break;
 
           case BinaryExpr.Opcode.Eq:
           case BinaryExpr.Opcode.Neq:
-            // We will both check for comparability and attempt to unify the types, and we do them in this order so that
-            // the compatibility check is not influenced by the unification.
-            var areComparable = ComparableTypes(e.E0.Type, e.E1.Type);
-            var unificationSuccess = UnifyTypes(e.E0.Type, e.E1.Type);
-            if (areComparable) {
-              // The expression is legal.  For example, we may have received two equal types, or we have have gotten types like
-              // array<T> and array<U> where T is a type parameter and U is some type.
-              // Still, we're still happy that we did the type unification to assign type proxies as needed.
-            } else if (unificationSuccess) {
-              // The expression is legal.  This can happen if one of the types contains a type proxy.  For example, if the
-              // first type is array<T> and the second type is a proxy, then the compatibility check will return false but
-              // unification will succeed.
-            } else {
-              // The types are not comparable and do not unify.  It's time for an error message.
-              reporter.Error(MessageSource.Resolver, expr, "arguments must have the same type (got {0} and {1})", e.E0.Type, e.E1.Type);
-            }
+            AddXConstraint(expr.tok, "Equatable", e.E0.Type, e.E1.Type, "arguments must have the same type (got {0} and {1})");
             expr.Type = Type.Bool;
             break;
 
           case BinaryExpr.Opcode.Disjoint:
-            // TODO: the error messages are backwards from what (ideally) they should be. this is necessary because UnifyTypes can't backtrack.
-            ConstrainTypes(e.E0.Type, e.E1.Type, expr, "arguments must have the same type (got {0} and {1})", e.E0.Type, e.E1.Type);
-            if (!UnifyTypes(e.E0.Type, new SetType(true, new InferredTypeProxy())) &&
-                !UnifyTypes(e.E0.Type, new MultiSetType(new InferredTypeProxy())) &&
-                !UnifyTypes(e.E0.Type, new MapType(true, new InferredTypeProxy(), new InferredTypeProxy()))) {
-              reporter.Error(MessageSource.Resolver, expr, "arguments must be of a [multi]set or map type (got {0})", e.E0.Type);
-            }
+            Type disjointArgumentsType = new InferredTypeProxy();
+            ConstrainSubtypeRelation(disjointArgumentsType, e.E0.Type, expr, "arguments to {2} must have a common supertype (got {0} and {1})", e.E0.Type, e.E1.Type, BinaryExpr.OpcodeString(e.Op));
+            ConstrainSubtypeRelation(disjointArgumentsType, e.E1.Type, expr, "arguments to {2} must have a common supertype (got {0} and {1})", e.E0.Type, e.E1.Type, BinaryExpr.OpcodeString(e.Op));
+            AddXConstraint(expr.tok, "Disjointable", disjointArgumentsType, "arguments must be of a [multi]set or map type (got {0})");
             expr.Type = Type.Bool;
             break;
 
           case BinaryExpr.Opcode.Lt:
-          case BinaryExpr.Opcode.Le:
-          case BinaryExpr.Opcode.Add: {
-              if (e.Op == BinaryExpr.Opcode.Lt && (e.E0.Type.NormalizeExpand().IsIndDatatype || e.E0.Type.IsTypeParameter)) {
-                if (ConstrainTypes(e.E1.Type, new DatatypeProxy(false, false), expr, "arguments to rank comparison must be datatypes (instead of {0})", e.E1.Type)) {
-                  e.ResolvedOp = BinaryExpr.ResolvedOpcode.RankLt;
-                }
-                expr.Type = Type.Bool;
-              } else if (e.Op == BinaryExpr.Opcode.Lt && e.E1.Type.NormalizeExpand().IsIndDatatype) {
-                if (ConstrainTypes(e.E0.Type, new DatatypeProxy(false, true), expr, "arguments to rank comparison must be datatypes (instead of {0})", e.E0.Type)) {
-                  e.ResolvedOp = BinaryExpr.ResolvedOpcode.RankLt;
-                }
-                expr.Type = Type.Bool;
+          case BinaryExpr.Opcode.Le: {
+              if (e.Op == BinaryExpr.Opcode.Lt && (e.E0.Type.IsIndDatatype || e.E0.Type.IsTypeParameter || e.E1.Type.IsIndDatatype)) {
+                AddXConstraint(expr.tok, "RankOrderable", e.E0.Type, e.E1.Type, "arguments to rank comparison must be datatypes (got {0} and {1})");
+                e.ResolvedOp = BinaryExpr.ResolvedOpcode.RankLt;
               } else {
-                bool isComparison = e.Op != BinaryExpr.Opcode.Add;
-                var good0 = ConstrainTypes(e.E0.Type, new OperationTypeProxy(true, true, isComparison, true, true, true),
-                  expr, "arguments to {0} must be of a numeric type{2} or a collection type (instead got {1})",
-                  BinaryExpr.OpcodeString(e.Op), e.E0.Type, isComparison ? ", char," : "");
-                var good1 = ConstrainTypes(e.E1.Type, e.E0.Type,
-                  expr, "arguments to {0} must have the same type (got {1} and {2})", BinaryExpr.OpcodeString(e.Op), e.E0.Type, e.E1.Type);
-                if (isComparison) {
-                  expr.Type = Type.Bool;
-                } else if (good0 && good1) {
-                  expr.Type = e.E0.Type;
-                }
+                var cmpType = new InferredTypeProxy();
+                var err = new TypeConstraint.ErrorMsgWithToken(expr.tok, "arguments to {2} must have a common supertype (got {0} and {1})", e.E0.Type, e.E1.Type, BinaryExpr.OpcodeString(e.Op));
+                ConstrainSubtypeRelation(cmpType, e.E0.Type, err);
+                ConstrainSubtypeRelation(cmpType, e.E1.Type, err);
+                AddXConstraint(expr.tok, "Orderable_Lt", e.E0.Type, e.E1.Type,
+                  "arguments to " + BinaryExpr.OpcodeString(e.Op) + " must be of a numeric type, bitvector type, char, a sequence type, or a set-like type (instead got {0} and {1})");
               }
+              expr.Type = Type.Bool;
+            }
+            break;
+
+          case BinaryExpr.Opcode.Gt:
+          case BinaryExpr.Opcode.Ge: {
+              if (e.Op == BinaryExpr.Opcode.Gt && (e.E0.Type.IsIndDatatype || e.E1.Type.IsIndDatatype || e.E1.Type.IsTypeParameter)) {
+                AddXConstraint(expr.tok, "RankOrderable", e.E1.Type, e.E0.Type, "arguments to rank comparison must be datatypes (got {1} and {0})");
+                e.ResolvedOp = BinaryExpr.ResolvedOpcode.RankGt;
+              } else {
+                var cmpType = new InferredTypeProxy();
+                var err = new TypeConstraint.ErrorMsgWithToken(expr.tok, "arguments to {2} must have a common supertype (got {0} and {1})", e.E0.Type, e.E1.Type, BinaryExpr.OpcodeString(e.Op));
+                ConstrainSubtypeRelation(cmpType, e.E0.Type, err);
+                ConstrainSubtypeRelation(cmpType, e.E1.Type, err);
+                AddXConstraint(expr.tok, "Orderable_Gt", e.E0.Type, e.E1.Type,
+                  "arguments to " + BinaryExpr.OpcodeString(e.Op) + " must be of a numeric type, bitvector type, char, or a set-like type (instead got {0} and {1})");
+              }
+              expr.Type = Type.Bool;
+            }
+            break;
+
+          case BinaryExpr.Opcode.LeftShift:
+          case BinaryExpr.Opcode.RightShift: {
+              expr.Type = new InferredTypeProxy();
+              AddXConstraint(e.tok, "IsBitvector", expr.Type, "type of " + BinaryExpr.OpcodeString(e.Op) + " must be a bitvector type (instead got {0})");
+              ConstrainSubtypeRelation(expr.Type, e.E0.Type, expr.tok, "type of left argument to " + BinaryExpr.OpcodeString(e.Op) + " ({0}) must agree with the result type ({1})", e.E0.Type, expr.Type);
+              AddXConstraint(expr.tok, "IntLikeOrBitvector", e.E1.Type, "type of right argument to " + BinaryExpr.OpcodeString(e.Op) + " ({0}) must be an integer-numeric or bitvector type");
+            }
+            break;
+
+          case BinaryExpr.Opcode.Add: {
+              expr.Type = new InferredTypeProxy();
+              AddXConstraint(e.tok, "Plussable", expr.Type, "type of + must be of a numeric type, a bitvector type, a sequence type, or a set-like type (instead got {0})");
+              ConstrainSubtypeRelation(expr.Type, e.E0.Type, expr.tok, "type of left argument to + ({0}) must agree with the result type ({1})", e.E0.Type, expr.Type);
+              ConstrainSubtypeRelation(expr.Type, e.E1.Type, expr.tok, "type of right argument to + ({0}) must agree with the result type ({1})", e.E1.Type, expr.Type);
             }
             break;
 
           case BinaryExpr.Opcode.Sub:
-          case BinaryExpr.Opcode.Mul:
-          case BinaryExpr.Opcode.Gt:
-          case BinaryExpr.Opcode.Ge: {
-              if (e.Op == BinaryExpr.Opcode.Gt && e.E0.Type.NormalizeExpand().IsIndDatatype) {
-                if (ConstrainTypes(e.E1.Type, new DatatypeProxy(false, true), expr, "arguments to rank comparison must be datatypes (instead of {0})", e.E1.Type)) {
-                  e.ResolvedOp = BinaryExpr.ResolvedOpcode.RankGt;
-                }
-                expr.Type = Type.Bool;
-              } else if (e.Op == BinaryExpr.Opcode.Gt && (e.E1.Type.NormalizeExpand().IsIndDatatype || e.E1.Type.IsTypeParameter)) {
-                if (ConstrainTypes(e.E0.Type, new DatatypeProxy(false, false), expr, "arguments to rank comparison must be datatypes (instead of {0})", e.E0.Type)) {
-                  e.ResolvedOp = BinaryExpr.ResolvedOpcode.RankGt;
-                }
-                expr.Type = Type.Bool;
-              } else {
-                bool isComparison = e.Op == BinaryExpr.Opcode.Gt || e.Op == BinaryExpr.Opcode.Ge;
-                var good0 = ConstrainTypes(e.E0.Type, new OperationTypeProxy(true, true, isComparison, false, true, true),
-                  expr, "arguments to {0} must be of a numeric type{2} or a set type (instead got {1})",
-                  BinaryExpr.OpcodeString(e.Op), e.E0.Type, isComparison ? ", char, " : "");
-                var good1 = ConstrainTypes(e.E1.Type, e.E0.Type, expr, "arguments to {0} must have the same type (got {1} and {2})", BinaryExpr.OpcodeString(e.Op), e.E0.Type, e.E1.Type);
-                if (isComparison) {
-                  expr.Type = Type.Bool;
-                } else if (good0 && good1) {
-                  expr.Type = e.E0.Type;
-                }
-              }
+          case BinaryExpr.Opcode.Mul: {
+              expr.Type = new InferredTypeProxy();
+              AddXConstraint(e.tok, "SubMul-able", expr.Type, "type of " + BinaryExpr.OpcodeString(e.Op) + " must be of a numeric type, bitvector type, or a set-like type (instead got {0})");
+              ConstrainSubtypeRelation(expr.Type, e.E0.Type, expr.tok,
+                "type of left argument to " + BinaryExpr.OpcodeString(e.Op) + " ({0}) must agree with the result type ({1})",
+                e.E0.Type, expr.Type);
+              ConstrainSubtypeRelation(expr.Type, e.E1.Type, expr.tok,
+                "type of right argument to " + BinaryExpr.OpcodeString(e.Op) + " ({0}) must agree with the result type ({1})",
+                e.E1.Type, expr.Type);
             }
             break;
 
           case BinaryExpr.Opcode.In:
           case BinaryExpr.Opcode.NotIn:
-            ConstrainTypes(e.E1.Type, new CollectionTypeProxy(e.E0.Type, true, true), expr, "second argument to \"{0}\" must be a set, multiset, or sequence with elements of type {1}, or a map with domain {1} (instead got {2})", BinaryExpr.OpcodeString(e.Op), e.E0.Type, e.E1.Type);
+            AddXConstraint(expr.tok, "Innable", e.E1.Type, e.E0.Type, "second argument to \"" + BinaryExpr.OpcodeString(e.Op) + "\" must be a set, multiset, or sequence with elements of type {1}, or a map with domain {1} (instead got {0})");
             expr.Type = Type.Bool;
             break;
 
           case BinaryExpr.Opcode.Div:
-            ConstrainTypes(e.E0.Type, new OperationTypeProxy(true, true, false, false, false, false),
-              expr, "first argument to {0} must be of numeric type (instead got {1})", BinaryExpr.OpcodeString(e.Op), e.E0.Type);
-            ConstrainTypes(e.E1.Type, e.E0.Type,
-              expr, "arguments to {0} must have the same type (got {1} and {2})", BinaryExpr.OpcodeString(e.Op), e.E0.Type, e.E1.Type);
-            expr.Type = e.E0.Type;
+            expr.Type = new InferredTypeProxy();
+            AddXConstraint(expr.tok, "NumericOrBitvector", expr.Type, "arguments to " + BinaryExpr.OpcodeString(e.Op) + " must be numeric or bitvector types (got {0})");
+            ConstrainSubtypeRelation(expr.Type, e.E0.Type,
+              expr, "type of left argument to " + BinaryExpr.OpcodeString(e.Op) + " ({0}) must agree with the result type ({1})",
+              e.E0.Type, expr.Type);
+            ConstrainSubtypeRelation(expr.Type, e.E1.Type,
+              expr, "type of right argument to " + BinaryExpr.OpcodeString(e.Op) + " ({0}) must agree with the result type ({1})",
+              e.E1.Type, expr.Type);
             break;
 
           case BinaryExpr.Opcode.Mod:
-            ConstrainTypes(e.E0.Type, new OperationTypeProxy(true, false, false, false, false, false),
-              expr, "first argument to {0} must be of type int (instead got {1})", BinaryExpr.OpcodeString(e.Op), e.E0.Type);
-            ConstrainTypes(e.E1.Type, e.E0.Type,
-              expr, "second argument to {0} must be of type int (instead got {1})", BinaryExpr.OpcodeString(e.Op), e.E1.Type);
-            expr.Type = e.E0.Type;
+            expr.Type = new InferredTypeProxy();
+            AddXConstraint(expr.tok, "IntLikeOrBitvector", expr.Type, "arguments to " + BinaryExpr.OpcodeString(e.Op) + " must be integer-numeric or bitvector types (got {0})");
+            ConstrainSubtypeRelation(expr.Type, e.E0.Type,
+              expr, "type of left argument to " + BinaryExpr.OpcodeString(e.Op) + " ({0}) must agree with the result type ({1})",
+              e.E0.Type, expr.Type);
+            ConstrainSubtypeRelation(expr.Type, e.E1.Type,
+              expr, "type of right argument to " + BinaryExpr.OpcodeString(e.Op) + " ({0}) must agree with the result type ({1})",
+              e.E1.Type, expr.Type);
+            break;
+
+          case BinaryExpr.Opcode.BitwiseAnd:
+          case BinaryExpr.Opcode.BitwiseOr:
+          case BinaryExpr.Opcode.BitwiseXor:
+            expr.Type = NewIntegerBasedProxy(expr.tok);
+            var errFormat = "first argument to " + BinaryExpr.OpcodeString(e.Op) + " must be of a bitvector type (instead got {0})";
+            ConstrainSubtypeRelation(expr.Type, e.E0.Type, expr, errFormat, e.E0.Type);
+            AddXConstraint(expr.tok, "IsBitvector", e.E0.Type, errFormat);
+            errFormat = "second argument to " + BinaryExpr.OpcodeString(e.Op) + " must be of a bitvector type (instead got {0})";
+            ConstrainSubtypeRelation(expr.Type, e.E1.Type, expr, errFormat, e.E1.Type);
+            AddXConstraint(expr.tok, "IsBitvector", e.E1.Type, errFormat);
             break;
 
           default:
@@ -8191,12 +9366,10 @@ namespace Microsoft.Dafny
         switch (e.Op) {
           case TernaryExpr.Opcode.PrefixEqOp:
           case TernaryExpr.Opcode.PrefixNeqOp:
-            ConstrainTypes(e.E0.Type, Type.Int,
+            ConstrainSubtypeRelation(Type.Int, e.E0.Type,
               e.E0, "prefix-equality limit argument must be an integer expression (got {0})", e.E0.Type);
-            ConstrainTypes(e.E1.Type, new DatatypeProxy(true),
-              expr, "arguments to prefix equality must be codatatypes (instead of {0})", e.E1.Type);
-            ConstrainTypes(e.E1.Type, e.E2.Type,
-              expr, "arguments must have the same type (got {0} and {1})", e.E1.Type, e.E2.Type);
+            AddXConstraint(expr.tok, "Equatable", e.E1.Type, e.E2.Type, "arguments must have the same type (got {0} and {1})");
+            AddXConstraint(expr.tok, "IsCoDatatype", e.E1.Type, "arguments to prefix equality must be codatatypes (instead of {0})");
             expr.Type = Type.Bool;
             break;
           default:
@@ -8245,7 +9418,7 @@ namespace Microsoft.Dafny
           }
           foreach (var rhs in e.RHSs) {
             ResolveExpression(rhs, opts);
-            ConstrainTypes(rhs.Type, Type.Bool, rhs.tok, "type of RHS of let-such-that expression must be boolean (got {0})", rhs.Type);
+            ConstrainTypeExprBool(rhs, "type of RHS of let-such-that expression must be boolean (got {0})");
           }
         }
         ResolveExpression(e.Body, opts);
@@ -8280,11 +9453,11 @@ namespace Microsoft.Dafny
         if (e.Range != null) {
           ResolveExpression(e.Range, opts);
           Contract.Assert(e.Range.Type != null);  // follows from postcondition of ResolveExpression
-          ConstrainTypes(e.Range.Type, Type.Bool, expr, "range of quantifier must be of type bool (instead got {0})", e.Range.Type);
+          ConstrainTypeExprBool(e.Range, "range of quantifier must be of type bool (instead got {0})");
         }
         ResolveExpression(e.Term, opts);
         Contract.Assert(e.Term.Type != null);  // follows from postcondition of ResolveExpression
-        ConstrainTypes(e.Term.Type, Type.Bool, expr, "body of quantifier must be of type bool (instead got {0})", e.Term.Type);
+        ConstrainTypeExprBool(e.Term, "body of quantifier must be of type bool (instead got {0})");
         // Since the body is more likely to infer the types of the bound variables, resolve it
         // first (above) and only then resolve the attributes (below).
         ResolveAttributes(e.Attributes, e, opts);
@@ -8302,7 +9475,7 @@ namespace Microsoft.Dafny
         }
         ResolveExpression(e.Range, opts);
         Contract.Assert(e.Range.Type != null);  // follows from postcondition of ResolveExpression
-        ConstrainTypes(e.Range.Type, Type.Bool, expr, "range of comprehension must be of type bool (instead got {0})", e.Range.Type);
+        ConstrainTypeExprBool(e.Range, "range of comprehension must be of type bool (instead got {0})");
         ResolveExpression(e.Term, opts);
         Contract.Assert(e.Term.Type != null);  // follows from postcondition of ResolveExpression
 
@@ -8323,7 +9496,7 @@ namespace Microsoft.Dafny
         }
         ResolveExpression(e.Range, opts);
         Contract.Assert(e.Range.Type != null);  // follows from postcondition of ResolveExpression
-        ConstrainTypes(e.Range.Type, Type.Bool, expr, "range of comprehension must be of type bool (instead got {0})", e.Range.Type);
+        ConstrainTypeExprBool(e.Range, "range of comprehension must be of type bool (instead got {0})");
         ResolveExpression(e.Term, opts);
         Contract.Assert(e.Term.Type != null);  // follows from postcondition of ResolveExpression
 
@@ -8343,7 +9516,7 @@ namespace Microsoft.Dafny
         if (e.Range != null) {
           ResolveExpression(e.Range, opts);
           Contract.Assert(e.Range.Type != null);  // follows from postcondition of ResolveExpression
-          ConstrainTypes(e.Range.Type, Type.Bool, expr, "Precondition must be boolean (got {0})", e.Range.Type);
+          ConstrainTypeExprBool(e.Range, "Precondition must be boolean (got {0})");
         }
 
         foreach (var read in e.Reads) {
@@ -8381,13 +9554,13 @@ namespace Microsoft.Dafny
         Contract.Assert(e.Thn.Type != null);  // follows from postcondition of ResolveExpression
         ResolveExpression(e.Els, opts);
         Contract.Assert(e.Els.Type != null);  // follows from postcondition of ResolveExpression
-        ConstrainTypes(e.Test.Type, Type.Bool, expr, "guard condition in if-then-else expression must be a boolean (instead got {0})", e.Test.Type);
-        if (ConstrainTypes(e.Thn.Type, e.Els.Type, expr, "the two branches of an if-then-else expression must have the same type (got {0} and {1})", e.Thn.Type, e.Els.Type)) {
-          expr.Type = e.Thn.Type;
-        }
+        ConstrainTypeExprBool(e.Test, "guard condition in if-then-else expression must be a boolean (instead got {0})");
+        expr.Type = new InferredTypeProxy();
+        ConstrainSubtypeRelation(expr.Type, e.Thn.Type, expr, "the two branches of an if-then-else expression must have the same type (got {0} and {1})", e.Thn.Type, e.Els.Type);
+        ConstrainSubtypeRelation(expr.Type, e.Els.Type, expr, "the two branches of an if-then-else expression must have the same type (got {0} and {1})", e.Thn.Type, e.Els.Type);
 
       } else if (expr is MatchExpr) {
-        ResolveMatchExpr(expr, opts);
+        ResolveMatchExpr((MatchExpr)expr, opts);
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected expression
       }
@@ -8396,6 +9569,74 @@ namespace Microsoft.Dafny
         // some resolution error occurred
         expr.Type = new InferredTypeProxy();
       }
+    }
+
+    public static Type StripSubsetConstraints(Type type) {
+      Contract.Requires(type != null);
+      if (type is NatType) {
+        return new IntType();
+      }
+      return type;
+    }
+
+    /// <summary>
+    /// Adds appropriate type constraints that says "expr" evaluates to an integer (not a bitvector, but possibly an
+    /// int-based newtype).  The "errFormat" string can contain a "{0}", referring to the name of the type of "expr".
+    /// </summary>
+    void ConstrainToIntegerType(Expression expr, string errFormat) {
+      Contract.Requires(expr != null);
+      Contract.Requires(errFormat != null);
+      // We do two constraints: the first can aid in determining types, but allows bit-vectors; the second excludes bit-vectors.
+      // However, we reuse the error message, so that only one error gets reported.
+      var err = new TypeConstraint.ErrorMsgWithToken(expr.tok, errFormat, expr.Type);
+      ConstrainSubtypeRelation(new IntVarietiesSupertype(), expr.Type, err);
+      AddXConstraint(expr.tok, "IntegerType", expr.Type, err);
+    }
+
+    private void AddXConstraint(IToken tok, string constraintName, Type type, string errMsgFormat) {
+      Contract.Requires(tok != null);
+      Contract.Requires(constraintName != null);
+      Contract.Requires(type != null);
+      Contract.Requires(errMsgFormat != null);
+      var types = new Type[] { type };
+      AllXConstraints.Add(new XConstraint(tok, constraintName, types, new TypeConstraint.ErrorMsgWithToken(tok, errMsgFormat, types)));
+    }
+    private void AddXConstraint(IToken tok, string constraintName, Type type, TypeConstraint.ErrorMsg errMsg) {
+      Contract.Requires(tok != null);
+      Contract.Requires(constraintName != null);
+      Contract.Requires(type != null);
+      Contract.Requires(errMsg != null);
+      var types = new Type[] { type };
+      AllXConstraints.Add(new XConstraint(tok, constraintName, types, errMsg));
+    }
+    private void AddXConstraint(IToken tok, string constraintName, Type type0, Type type1, string errMsgFormat) {
+      Contract.Requires(tok != null);
+      Contract.Requires(constraintName != null);
+      Contract.Requires(type0 != null);
+      Contract.Requires(type1 != null);
+      Contract.Requires(errMsgFormat != null);
+      var types = new Type[] { type0, type1 };
+      AllXConstraints.Add(new XConstraint(tok, constraintName, types, new TypeConstraint.ErrorMsgWithToken(tok, errMsgFormat, types)));
+    }
+    private void AddXConstraint(IToken tok, string constraintName, Type type0, Type type1, TypeConstraint.ErrorMsg errMsg) {
+      Contract.Requires(tok != null);
+      Contract.Requires(constraintName != null);
+      Contract.Requires(type0 != null);
+      Contract.Requires(type1 != null);
+      Contract.Requires(errMsg != null);
+      var types = new Type[] { type0, type1 };
+      AllXConstraints.Add(new XConstraint(tok, constraintName, types, errMsg));
+    }
+    private void AddXConstraint(IToken tok, string constraintName, Type type, Expression expr0, Expression expr1, string errMsgFormat) {
+      Contract.Requires(tok != null);
+      Contract.Requires(constraintName != null);
+      Contract.Requires(type != null);
+      Contract.Requires(expr0 != null);
+      Contract.Requires(expr1 != null);
+      Contract.Requires(errMsgFormat != null);
+      var types = new Type[] { type };
+      var exprs = new Expression[] { expr0, expr1 };
+      AllXConstraints.Add(new XConstraintWithExprs(tok, constraintName, types, exprs, new TypeConstraint.ErrorMsgWithToken(tok, errMsgFormat, types)));
     }
 
     /// <summary>
@@ -8480,14 +9721,21 @@ namespace Microsoft.Dafny
       return null;
     }
 
-    void ResolveMatchExpr(Expression expr, ResolveOpts opts) {
-      var me = (MatchExpr)expr;
+    void ResolveMatchExpr(MatchExpr me, ResolveOpts opts) {
+      Contract.Requires(me != null);
+      Contract.Requires(opts != null);
+      Contract.Requires(me.OrigUnresolved == null);
+
+      // first, clone the original expression
+      me.OrigUnresolved = (MatchExpr)new Cloner().CloneExpr(me);
+
       DesugarMatchExprWithTupleExpression(me);
 
       ResolveExpression(me.Source, opts);
       Contract.Assert(me.Source.Type != null);  // follows from postcondition of ResolveExpression
       UserDefinedType sourceType = null;
       DatatypeDecl dtd = null;
+      PartiallyResolveTypeForMemberSelection(me.Source.tok, me.Source.Type);
       if (me.Source.Type.IsDatatype) {
         sourceType = (UserDefinedType)me.Source.Type.NormalizeExpand();
         dtd = cce.NonNull((DatatypeDecl)sourceType.ResolvedClass);
@@ -8515,7 +9763,7 @@ namespace Microsoft.Dafny
       }
 
       ISet<string> memberNamesUsed = new HashSet<string>();
-      expr.Type = new InferredTypeProxy();
+      me.Type = new InferredTypeProxy();
       foreach (MatchCaseExpr mc in me.Cases) {
         DatatypeCtor ctor = null;
         if (ctors != null) {
@@ -8544,15 +9792,15 @@ namespace Microsoft.Dafny
             if (ctor != null && i < ctor.Formals.Count) {
               Formal formal = ctor.Formals[i];
               Type st = SubstType(formal.Type, subst);
-              ConstrainTypes(v.Type, st,
-                expr, "the declared type of the formal ({0}) does not agree with the corresponding type in the constructor's signature ({1})", v.Type, st);
+              ConstrainSubtypeRelation(v.Type, st, me,
+                "the declared type of the formal ({0}) does not agree with the corresponding type in the constructor's signature ({1})", v.Type, st);
               v.IsGhost = formal.IsGhost;
 
               // update the type of the boundvars in the MatchCaseToken
               if (v.tok is MatchCaseToken) {
                 MatchCaseToken mt = (MatchCaseToken)v.tok;
                 foreach (Tuple<IToken, BoundVar, bool> entry in mt.varList) {
-                  UnifyTypes(entry.Item2.Type, v.Type);  // TODO: What to do if this unification fails? Or can it?  --KRML
+                  ConstrainSubtypeRelation(entry.Item2.Type, v.Type, entry.Item1, "incorrect type for bound match-case variable (expected {0}, got {1})", v.Type, entry.Item2.Type);
                 }
               }
             }
@@ -8570,7 +9818,7 @@ namespace Microsoft.Dafny
         }
 
         Contract.Assert(mc.Body.Type != null);  // follows from postcondition of ResolveExpression
-        ConstrainTypes(expr.Type, mc.Body.Type, mc.Body.tok, "type of case bodies do not agree (found {0}, previous types {1})", mc.Body.Type, expr.Type);
+        ConstrainSubtypeRelation(me.Type, mc.Body.Type, mc.Body.tok, "type of case bodies do not agree (found {0}, previous types {1})", mc.Body.Type, me.Type);
         scope.PopMarker();
       }
       if (dtd != null && memberNamesUsed.Count != dtd.Ctors.Count) {
@@ -8902,14 +10150,30 @@ namespace Microsoft.Dafny
         }
       }
         
-
       if (pat.Var != null) {
         // this is a simple resolution
         var v = pat.Var;
         ResolveType(v.tok, v.Type, context, ResolveTypeOptionEnum.InferTypeProxies, null);
-        ConstrainTypes(v.Type, sourceType, v.tok, "type of corresponding source/RHS ({0}) does not match type of bound variable ({1})", sourceType, v.Type);
+        ConstrainSubtypeRelation(v.Type, sourceType, v.tok, "type of corresponding source/RHS ({0}) does not match type of bound variable ({1})", sourceType, v.Type);
         pat.AssembleExpr(null);
-      } else if (dtd == null) {
+        return;
+      }
+      if (dtd == null) {
+        // look up the name of the pattern's constructor
+        Tuple<DatatypeCtor, bool> pair;
+        if (moduleInfo.Ctors.TryGetValue(pat.Id, out pair) && !pair.Item2) {
+          ctor = pair.Item1;
+          pat.Ctor = ctor;
+          dtd = ctor.EnclosingDatatype;
+          var typeArgs = new List<Type>();
+          foreach (var xt in dtd.TypeArgs) {
+            typeArgs.Add(new InferredTypeProxy());
+          }
+          udt = new UserDefinedType(pat.tok, dtd.Name, dtd, typeArgs);
+          ConstrainSubtypeRelation(udt, sourceType, pat.tok, "type of RHS ({0}) does not match type of bound variable '{1}'", sourceType, pat.Id);
+        }
+      }
+      if (dtd == null && ctor == null) {
         reporter.Error(MessageSource.Resolver, pat.tok, "to use a pattern, the type of the source/RHS expression must be a datatype (instead found {0})", sourceType);
       } else if (ctor == null) {
         reporter.Error(MessageSource.Resolver, pat.tok, "constructor {0} does not exist in datatype {1}", pat.Id, dtd.Name);
@@ -8971,9 +10235,6 @@ namespace Microsoft.Dafny
       if (expr.OptTypeArguments != null) {
         foreach (var ty in expr.OptTypeArguments) {
           ResolveType(expr.tok, ty, opts.codeContext, ResolveTypeOptionEnum.InferTypeProxies, null);
-          if (ty.IsSubrangeType) {
-            reporter.Error(MessageSource.Resolver, expr.tok, "sorry, cannot instantiate type parameter with a subrange type");
-          }
         }
       }
 
@@ -8997,9 +10258,7 @@ namespace Microsoft.Dafny
         if (expr.OptTypeArguments != null) {
           reporter.Error(MessageSource.Resolver, expr.tok, "variable '{0}' does not take any type parameters", expr.Name);
         }
-        var rr = new IdentifierExpr(expr.tok, expr.Name);
-        rr.Var = v; rr.Type = v.Type;
-        r = rr;
+        r = new IdentifierExpr(expr.tok, v);
       } else if (currentClass != null && classMembers.TryGetValue(currentClass, out members) && members.TryGetValue(expr.Name, out member)) {
         // ----- 1. member of the enclosing class
         Expression receiver;
@@ -9066,7 +10325,7 @@ namespace Microsoft.Dafny
         expr.Type = new InferredTypeProxy();
       } else {
         expr.ResolvedExpression = r;
-        expr.Type = r.Type;
+        expr.Type = StripSubsetConstraints(r.Type);
       }
       return rWithArgs;
     }
@@ -9089,9 +10348,6 @@ namespace Microsoft.Dafny
       if (expr.OptTypeArguments != null) {
         foreach (var ty in expr.OptTypeArguments) {
           ResolveType(expr.tok, ty, opts.codeContext, option, defaultTypeArguments);
-          if (ty.IsSubrangeType) {
-            reporter.Error(MessageSource.Resolver, expr.tok, "sorry, cannot instantiate type parameter with a subrange type");
-          }
         }
       }
 
@@ -9230,9 +10486,6 @@ namespace Microsoft.Dafny
       if (expr.OptTypeArguments != null) {
         foreach (var ty in expr.OptTypeArguments) {
           ResolveType(expr.tok, ty, opts.codeContext, ResolveTypeOptionEnum.InferTypeProxies, null);
-          if (ty.IsSubrangeType) {
-            reporter.Error(MessageSource.Resolver, expr.tok, "sorry, cannot instantiate type parameter with a subrange type");
-          }
         }
       }
 
@@ -9348,8 +10601,8 @@ namespace Microsoft.Dafny
           if (!member.IsStatic) {
             receiver = expr.Lhs;
           } else {
-            Contract.Assert(expr.Lhs.Type.IsRefType);  // only reference types have static methods
-            receiver = new StaticReceiverExpr(expr.tok, (UserDefinedType)expr.Lhs.Type.NormalizeExpand(), (ClassDecl)member.EnclosingClass, false);
+            Contract.Assert(nptype.IsRefType);  // only reference types have static methods
+            receiver = new StaticReceiverExpr(expr.tok, (UserDefinedType)nptype, (ClassDecl)member.EnclosingClass, false);
           }
           r = ResolveExprDotCall(expr.tok, receiver, member, expr.OptTypeArguments, opts.codeContext, allowMethodCall);
         }
@@ -9396,9 +10649,6 @@ namespace Microsoft.Dafny
       if (expr.OptTypeArguments != null) {
         foreach (var ty in expr.OptTypeArguments) {
           ResolveType(expr.tok, ty, opts.codeContext, option, defaultTypeArguments);
-          if (ty.IsSubrangeType) {
-            reporter.Error(MessageSource.Resolver, expr.tok, "sorry, cannot instantiate type parameter with a subrange type");
-          }
         }
       }
 
@@ -9479,8 +10729,10 @@ namespace Microsoft.Dafny
       // Add to "subst" the type parameters given to the member's class/datatype
       Dictionary<TypeParameter, Type> subst;
       var udt = receiver.Type.NormalizeExpand() as UserDefinedType;
+      rr.TypeApplication = new List<Type>();
       if (udt != null && udt.ResolvedClass != null) {
         subst = TypeSubstitutionMap(udt.ResolvedClass.TypeArgs, udt.TypeArgs);
+        rr.TypeApplication.AddRange(udt.TypeArgs);
       } else {
         subst = new Dictionary<TypeParameter, Type>();
       }
@@ -9495,10 +10747,6 @@ namespace Microsoft.Dafny
         int suppliedTypeArguments = optTypeArguments == null ? 0 : optTypeArguments.Count;
         if (optTypeArguments != null && suppliedTypeArguments != fn.TypeArgs.Count) {
           reporter.Error(MessageSource.Resolver, tok, "function '{0}' expects {1} type arguments (got {2})", member.Name, fn.TypeArgs.Count, suppliedTypeArguments);
-        }
-        rr.TypeApplication = new List<Type>();
-        if (udt != null && udt.ResolvedClass != null) {
-          rr.TypeApplication.AddRange(udt.TypeArgs);
         }
         for (int i = 0; i < fn.TypeArgs.Count; i++) {
           var ta = i < suppliedTypeArguments ? optTypeArguments[i] : new InferredTypeProxy();
@@ -9517,10 +10765,6 @@ namespace Microsoft.Dafny
         int suppliedTypeArguments = optTypeArguments == null ? 0 : optTypeArguments.Count;
         if (optTypeArguments != null && suppliedTypeArguments != m.TypeArgs.Count) {
           reporter.Error(MessageSource.Resolver, tok, "method '{0}' expects {1} type arguments (got {2})", member.Name, m.TypeArgs.Count, suppliedTypeArguments);
-        }
-        rr.TypeApplication = new List<Type>();
-        if (udt != null && udt.ResolvedClass != null) {
-          rr.TypeApplication.AddRange(udt.TypeArgs);
         }
         for (int i = 0; i < m.TypeArgs.Count; i++) {
           var ta = i < suppliedTypeArguments ? optTypeArguments[i] : new InferredTypeProxy();
@@ -9575,6 +10819,7 @@ namespace Microsoft.Dafny
         foreach (var arg in e.Args) {
           ResolveExpression(arg, opts);
         }
+        PartiallyResolveTypeForMemberSelection(e.Lhs.tok, e.Lhs.Type);
         var fnType = e.Lhs.Type.AsArrowType;
         if (fnType == null) {
           var lhs = e.Lhs.Resolved;
@@ -9591,6 +10836,8 @@ namespace Microsoft.Dafny
               if (ty.AsNewtype != null) {
                 if (e.Args.Count != 1) {
                   reporter.Error(MessageSource.Resolver, e.tok, "conversion operation to {0} got wrong number of arguments (expected 1, got {1})", decl.Name, e.Args.Count);
+                } else {
+                  reporter.Deprecated(MessageSource.Resolver, e.tok, "the syntax \"{0}(expr)\" for type conversions has been deprecated; the new syntax is \"expr as {0}\"", decl.Name);
                 }
                 var conversionArg = 1 <= e.Args.Count ? e.Args[0] :
                   ty.IsNumericBased(Type.NumericPersuation.Int) ? LiteralExpr.CreateIntLiteral(e.tok, 0) :
@@ -9626,8 +10873,8 @@ namespace Microsoft.Dafny
             reporter.Error(MessageSource.Resolver, e.tok, "wrong number of arguments to function application ({0} expects {1}, got {2})", what, fnType.Arity, e.Args.Count);
           } else {
             for (var i = 0; i < fnType.Arity; i++) {
-              ConstrainTypes(fnType.Args[i], e.Args[i].Type,
-                e.Args[i].tok, "type mismatch for argument {0} (function expects {1}, got {2})", i, fnType.Args[i], e.Args[i].Type);
+              ConstrainSubtypeRelation(fnType.Args[i], e.Args[i].Type, e.Args[i].tok,
+                "type mismatch for argument {0} (function expects {1}, got {2})", i, fnType.Args[i], e.Args[i].Type);
             }
             if (errorCount != reporter.Count(ErrorLevel.Error)) {
               // do nothing else; error has been reported
@@ -9648,14 +10895,18 @@ namespace Microsoft.Dafny
                 rr.TypeArgumentSubstitutions.Add(callee.TypeArgs[i], mse.TypeApplication[callee.EnclosingClass.TypeArgs.Count + i]);
               }
               // type check the arguments
+#if DEBUG
+              Contract.Assert(callee.Formals.Count == fnType.Arity);
               for (int i = 0; i < callee.Formals.Count; i++) {
                 Expression farg = rr.Args[i];
-                ResolveExpression(farg, opts);
-                Contract.Assert(farg.Type != null);  // follows from postcondition of ResolveExpression
+                Contract.Assert(farg.WasResolved());
+                Contract.Assert(farg.Type != null);
                 Type s = SubstType(callee.Formals[i].Type, rr.TypeArgumentSubstitutions);
-                ConstrainTypes(farg.Type, s, rr, "incorrect type of function argument {0} (expected {1}, got {2})", i, s, farg.Type);
+                Contract.Assert(s.Equals(fnType.Args[i]));
+                Contract.Assert(farg.Type.Equals(e.Args[i].Type));
               }
-              rr.Type = SubstType(callee.ResultType, rr.TypeArgumentSubstitutions);
+#endif
+              rr.Type = StripSubsetConstraints(SubstType(callee.ResultType, rr.TypeArgumentSubstitutions));
               // further bookkeeping
               if (callee is FixpointPredicate) {
                 ((FixpointPredicate)callee).Uses.Add(rr);
@@ -9681,8 +10932,8 @@ namespace Microsoft.Dafny
 
     private void ResolveDatatypeValue(ResolveOpts opts, DatatypeValue dtv, DatatypeDecl dt) {
       // this resolution is a little special, in that the syntax shows only the base name, not its instantiation (which is inferred)
-      List<Type> gt = new List<Type>(dt.TypeArgs.Count);
-      Dictionary<TypeParameter, Type> subst = new Dictionary<TypeParameter, Type>();
+      var gt = new List<Type>(dt.TypeArgs.Count);
+      var subst = new Dictionary<TypeParameter, Type>();
       for (int i = 0; i < dt.TypeArgs.Count; i++) {
         Type t = new InferredTypeProxy();
         gt.Add(t);
@@ -9703,13 +10954,13 @@ namespace Microsoft.Dafny
         }
       }
       int j = 0;
-      foreach (Expression arg in dtv.Arguments) {
+      foreach (var arg in dtv.Arguments) {
         Formal formal = ctor != null && j < ctor.Formals.Count ? ctor.Formals[j] : null;
         ResolveExpression(arg, opts);
         Contract.Assert(arg.Type != null);  // follows from postcondition of ResolveExpression
         if (formal != null) {
           Type st = SubstType(formal.Type, subst);
-          ConstrainTypes(arg.Type, st, arg.tok, "incorrect type of datatype constructor argument (found {0}, expected {1})", arg.Type, st);
+          ConstrainSubtypeRelation(st, arg.Type, arg, "incorrect type of datatype constructor argument (found {0}, expected {1})", arg.Type, st);
         }
         j++;
       }
@@ -9966,9 +11217,9 @@ namespace Microsoft.Dafny
             ResolveExpression(farg, opts);
             Contract.Assert(farg.Type != null);  // follows from postcondition of ResolveExpression
             Type s = SubstType(function.Formals[i].Type, e.TypeArgumentSubstitutions);
-            ConstrainTypes(farg.Type, s, e, "incorrect type of function argument {0} (expected {1}, got {2})", i, s, farg.Type);
+            ConstrainSubtypeRelation(s, farg.Type, e, "incorrect type of function argument {0} (expected {1}, got {2})", i, s, farg.Type);
           }
-          e.Type = SubstType(function.ResultType, e.TypeArgumentSubstitutions);
+          e.Type = StripSubsetConstraints(SubstType(function.ResultType, e.TypeArgumentSubstitutions));
         }
 
         AddCallGraphEdge(opts.codeContext, function, e);
@@ -10006,6 +11257,8 @@ namespace Microsoft.Dafny
 
 
     private ModuleSignature GetSignature(ModuleSignature sig) {
+      Contract.Requires(sig != null);
+      Contract.Ensures(Contract.Result<ModuleSignature>() != null);
       if (useCompileSignatures) {
         while (sig.CompileSignature != null)
           sig = sig.CompileSignature;
@@ -10137,6 +11390,7 @@ namespace Microsoft.Dafny
             }
             break;
           case BinaryExpr.ResolvedOpcode.EqCommon:
+          case BinaryExpr.ResolvedOpcode.SetEq:
             // TODO: Use the new ComprehensionExpr.ExactBoundedPool
             if (bv.Type.IsNumericBased(Type.NumericPersuation.Int)) {
               var otherOperand = whereIsBv == 0 ? e1 : e0;
@@ -10512,54 +11766,36 @@ namespace Microsoft.Dafny
       }
     }
 
-    void ResolveSeqSelectExpr(SeqSelectExpr e, ResolveOpts opts, bool allowNonUnitArraySelection) {
+    void ResolveSeqSelectExpr(SeqSelectExpr e, ResolveOpts opts) {
       Contract.Requires(e != null);
       if (e.Type != null) {
         // already resolved
         return;
       }
 
-      bool seqErr = false;
       ResolveExpression(e.Seq, opts);
       Contract.Assert(e.Seq.Type != null);  // follows from postcondition of ResolveExpression
-      Type elementType = new InferredTypeProxy();
-      Type domainType = new InferredTypeProxy();
-      Type argType = new InferredTypeProxy();
 
-      IndexableTypeProxy expectedType = new IndexableTypeProxy(domainType, elementType, argType, true, true, true);
-      if (!ConstrainTypes(e.Seq.Type, expectedType, e, "sequence/array/multiset/map selection requires a sequence, array, multiset, or map (got {0})", e.Seq.Type)) {
-        seqErr = true;
-      }
-      if (!e.SelectOne)  // require sequence or array
-      {
-        if (!allowNonUnitArraySelection) {
-          // require seq
-          ConstrainTypes(expectedType, new SeqType(new InferredTypeProxy()), e, "selection requires a sequence (got {0})", e.Seq.Type);
-        } else {
-          if (UnifyTypes(expectedType, new MapType(true, new InferredTypeProxy(), new InferredTypeProxy()))) {
-            reporter.Error(MessageSource.Resolver, e, "cannot multiselect a map (got {0} as map type)", e.Seq.Type);
-          } else if (UnifyTypes(expectedType, new MapType(false, new InferredTypeProxy(), new InferredTypeProxy()))) {
-            reporter.Error(MessageSource.Resolver, e, "cannot multiselect an imap (got {0} as imap type)", e.Seq.Type);
-          }
-        }
-      }
-      if (e.E0 != null) {
+      if (e.SelectOne) {
+        AddXConstraint(e.tok, "Indexable", e.Seq.Type, "element selection requires a sequence, array, multiset, or map (got {0})");
         ResolveExpression(e.E0, opts);
-        Contract.Assert(e.E0.Type != null);  // follows from postcondition of ResolveExpression
-        ConstrainTypes(e.E0.Type, domainType, e.E0, "sequence/array/multiset/map selection requires {1} indices (got {0})", e.E0.Type, domainType);
-      }
-      if (e.E1 != null) {
-        ResolveExpression(e.E1, opts);
-        Contract.Assert(e.E1.Type != null);  // follows from postcondition of ResolveExpression
-        var domType = e.E0 == null ? domainType : new OperationTypeProxy(true, false, false, false, false, false);  // reuse 'domainType' if .E0 did not use it; otherwise, create a new proxy to allow .E1 to be any integer-based numeric type, independent of the integer-based numeric type used by .E0
-        ConstrainTypes(e.E1.Type, domType, e.E1, "sequence/array/multiset/map selection requires {1} indices (got {0})", e.E1.Type, domType);
-      }
-      if (!seqErr) {
-        if (e.SelectOne) {
-          e.Type = elementType;
-        } else {
-          e.Type = new SeqType(elementType);
+        AddXConstraint(e.E0.tok, "ContainerIndex", e.Seq.Type, e.E0.Type, "incorrect type for selection into {0} (got {1})");
+        Contract.Assert(e.E1 == null);
+        e.Type = new InferredTypeProxy();
+        AddXConstraint(e.tok, "ContainerResult", e.Seq.Type, e.Type, "type does not agree with element type of {0} (got {1})");
+      } else {
+        AddXConstraint(e.tok, "MultiIndexable", e.Seq.Type, "multi-selection of elements requires a sequence or array (got {0})");
+        if (e.E0 != null) {
+          ResolveExpression(e.E0, opts);
+          ConstrainSubtypeRelation(NewIntegerBasedProxy(e.tok), e.E0.Type, e.E0, "multi-selection requires {0} indices (got {1})");
         }
+        if (e.E1 != null) {
+          ResolveExpression(e.E1, opts);
+          ConstrainSubtypeRelation(NewIntegerBasedProxy(e.tok), e.E1.Type, e.E1, "multi-selection requires {0} indices (got {1})");
+        }
+        var resultType = new InferredTypeProxy();
+        e.Type = new SeqType(resultType);
+        AddXConstraint(e.tok, "ContainerResult", e.Seq.Type, resultType, "type does not agree with element type of {0} (got {1})");
       }
     }
 
@@ -10609,7 +11845,7 @@ namespace Microsoft.Dafny
             return BinaryExpr.ResolvedOpcode.Disjoint;
           }
         case BinaryExpr.Opcode.Lt:
-          if (operandType.IsIndDatatype || (operandType is DatatypeProxy && !((DatatypeProxy)operandType).Co)) {
+          if (operandType.IsIndDatatype) {
             return BinaryExpr.ResolvedOpcode.RankLt;
           } else if (operandType is SetType) {
             return BinaryExpr.ResolvedOpcode.ProperSubset;
@@ -10634,6 +11870,10 @@ namespace Microsoft.Dafny
           } else {
             return BinaryExpr.ResolvedOpcode.Le;
           }
+        case BinaryExpr.Opcode.LeftShift:
+          return BinaryExpr.ResolvedOpcode.LeftShift;
+        case BinaryExpr.Opcode.RightShift:
+          return BinaryExpr.ResolvedOpcode.RightShift;
         case BinaryExpr.Opcode.Add:
           if (operandType is SetType) {
             return BinaryExpr.ResolvedOpcode.Union;
@@ -10706,6 +11946,9 @@ namespace Microsoft.Dafny
           }
         case BinaryExpr.Opcode.Div: return BinaryExpr.ResolvedOpcode.Div;
         case BinaryExpr.Opcode.Mod: return BinaryExpr.ResolvedOpcode.Mod;
+        case BinaryExpr.Opcode.BitwiseAnd: return BinaryExpr.ResolvedOpcode.BitwiseAnd;
+        case BinaryExpr.Opcode.BitwiseOr: return BinaryExpr.ResolvedOpcode.BitwiseOr;
+        case BinaryExpr.Opcode.BitwiseXor: return BinaryExpr.ResolvedOpcode.BitwiseXor;
         default:
           Contract.Assert(false); throw new cce.UnreachableException();  // unexpected operator
       }

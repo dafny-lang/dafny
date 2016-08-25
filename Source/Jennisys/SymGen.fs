@@ -1,4 +1,4 @@
-﻿module SymGen
+module SymGen
 
 let incr =
   let counter = ref 0

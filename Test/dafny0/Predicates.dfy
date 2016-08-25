@@ -160,7 +160,7 @@ module Q0 {
     }
     method N()
       modifies this;
-      ensures forall c :: c == this ==> c.Q();
+      ensures forall c: C :: c == this ==> c.Q();
     {  // error: fails to establish postcondition (but this error should not be repeated in Q1 below)
       x := 102;
     }

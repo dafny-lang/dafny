@@ -87,10 +87,10 @@ module Forall1 refines Forall0 {
           x == 4;
         }
       }
-      forall c | c in {this} {
+      forall c: C | c in {this} {
         c.b := 17;  // allowed
       }
-      forall c | c in {this} {
+      forall c: C | c in {this} {
         c.a := 17;  // error: not allowed to update previously defined field
       }
     }

@@ -1,11 +1,11 @@
-NatTypes.dfy(35,11): Error: value assigned to a nat must be non-negative
+NatTypes.dfy(35,11): Error: value does not satisfy the subset constraints of 'nat'
 Execution trace:
     (0,0): anon0
     NatTypes.dfy(23,5): anon10_LoopHead
     (0,0): anon10_LoopBody
     NatTypes.dfy(23,5): anon11_Else
     (0,0): anon12_Then
-NatTypes.dfy(10,4): Error: value assigned to a nat must be non-negative
+NatTypes.dfy(10,4): Error: value does not satisfy the subset constraints of 'nat'
 Execution trace:
     (0,0): anon0
 NatTypes.dfy(43,13): Error: assertion violation
@@ -25,17 +25,17 @@ Execution trace:
     (0,0): anon0
     (0,0): anon5_Else
     (0,0): anon6_Then
-NatTypes.dfy(94,21): Error: value assigned to a nat must be non-negative
+NatTypes.dfy(94,21): Error: value does not satisfy the subset constraints of 'nat'
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Then
-NatTypes.dfy(109,44): Error: value assigned to a nat must be non-negative
+NatTypes.dfy(109,44): Error: value does not satisfy the subset constraints of 'nat'
 Execution trace:
     (0,0): anon0
     (0,0): anon8_Else
     (0,0): anon9_Else
     (0,0): anon10_Then
-NatTypes.dfy(132,34): Error: value assigned to a nat must be non-negative
+NatTypes.dfy(132,34): Error: value does not satisfy the subset constraints of 'nat'
 Execution trace:
     (0,0): anon0
     (0,0): anon4_Then

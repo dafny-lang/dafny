@@ -29,23 +29,23 @@ module Goodies {
     s := {};
     s := {40,20};
     x := x + y;
-    var r0 := real(x);
+    var r0 := x as real;
     var r1: real := 2.0 * r0;
-    var i0 := int(z);
+    var i0 := z as int;
     var i1: nat := 2 * i0;
     assert i1 == 24;
     assert r1 == 10.6;
     if x == r0 {  // error: cannot compare posReal and real
-    } else if real(x) == r0 {
-    } else if i0 == int(x) {
-    } else if i0 == int(real(x)) {
-    } else if real(i0) == real(x) {
+    } else if x as real == r0 {
+    } else if i0 == x as int {
+    } else if i0 == x as real as int {
+    } else if i0 as real == x as real {
     }
     if z == i0 {  // error: cannot compare int32 and int
-    } else if int(z) == i0 {
-    } else if r0 == real(z) {
-    } else if r0 == real(int(z)) {
-    } else if int(r0) == int(z) {
+    } else if z as int == i0 {
+    } else if r0 == z as real {
+    } else if r0 == z as int as real {
+    } else if r0 as int == z as int {
     }
     assert x == z;  // error: cannot compare posReal and int32
     assert x <= z;  // error: cannot compare posReal and int32
@@ -62,8 +62,8 @@ module Goodies {
     var ms := multiset{23.0, 50.0};
     assert forall rr :: 0.0 <= rr < 100.0  ==> ms[rr] == ms[rr];
 
-    var truncated := r0.Trunc + x.Trunc;
-    var rounded := (r0 + 0.5).Trunc;
+    var floored := r0.Floor + x.Floor;
+    var rounded := (r0 + 0.5).Floor;
   }
 }
 
@@ -237,7 +237,7 @@ module IntegerBasedValues {
     if {
       case i < |a| =>  // error: i and |a| are of different integer-based types
         x := a[i];
-      case i <= int(|a|) =>  // error: type of i is a different integer-based type than int
+      case i <= |a| as int =>  // error: type of i is a different integer-based type than int
         b := a[0..i];
     }
   }

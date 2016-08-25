@@ -2,14 +2,10 @@ Processing command (at Snapshots1.v0.dfy(3,4)) assert (forall<alpha> $o: ref, $f
   >>> DoNothingToAssert
 Processing command (at Snapshots1.v0.dfy(4,10)) assert false;
   >>> DoNothingToAssert
-Processing command (at Snapshots1.v0.dfy(12,3)) assert true;
-  >>> DoNothingToAssert
 
 Dafny program verifier finished with 4 verified, 0 errors
 Processing call to procedure IntraModuleCall$$_module.__default.N in implementation Impl$$_module.__default.M (at Snapshots1.v1.dfy(3,4)):
   >>> added after: a##cached##0 := a##cached##0 && false;
-Processing command (at Snapshots1.v1.dfy(12,3)) assert true;
-  >>> MarkAsFullyVerified
 Processing command (at Snapshots1.v1.dfy(3,4)) assert (forall<alpha> $o: ref, $f: Field alpha :: false ==> $_Frame[$o, $f]);
   >>> MarkAsFullyVerified
 Processing command (at Snapshots1.v1.dfy(4,10)) assert false;

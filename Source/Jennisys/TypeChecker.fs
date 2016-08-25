@@ -1,4 +1,4 @@
-﻿module TypeChecker
+module TypeChecker
 
 open Ast
 open Getters

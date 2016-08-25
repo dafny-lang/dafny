@@ -1,4 +1,4 @@
-﻿module Analyzer
+module Analyzer
 
 open Ast
 open Getters

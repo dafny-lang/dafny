@@ -1,26 +1,56 @@
 // RUN: %dafny /compile:0 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
-method M()
-{
-  var m := map[];  // error: underspecified type
+
+module AA {
+  method M()
+  {
+    var m := map[];  // error: underspecified type
+  }
+
+  method N()
+  {
+    var n := multiset{};  // error: underspecified type
+  }
+
+  method O()
+  {
+    var o := [];  // error: underspecified type
+  }
+
+  method P()
+  {
+    var p := {};  // error: underspecified type
+  }
+
+  method Q()
+  {
+    assert (((map[]))) == (((((map[])))));  // 2 errors (but not 10 errors)
+  }
 }
 
-method N()
-{
-  var n := multiset{};  // error: underspecified type
-}
+module BB {
+  newtype byte = x | 0 <= x < 256
 
-method O()
-{
-  var o := [];  // error: underspecified type
-}
+  method B0() returns (s: seq<byte>) {
+    s := [10, 20];
+  }
 
-method P()
-{
-  var p := {};  // error: underspecified type
-}
+  method B1() returns (s: seq<byte>) {
+    var b := 10;  // int
+    var u: int := 30;
+    var t := [b, 20, u];  // seq<int>
+    s := t;  // error: type mismatch 
+  }
 
-method Q()
-{
-  assert (((map[]))) == (((((map[])))));  // error (but not 10 errors)
+  method B2() returns (s: seq<byte>) {
+    var b := 10;  // byte
+    var t := [b, 20];  // seq<byte>
+    s := t;
+  }
+
+  method B3() returns (s: seq<byte>) {
+    var b := 10;  // byte
+    var t := [20, b];  // seq<byte>
+    s := t;
+  }
 }

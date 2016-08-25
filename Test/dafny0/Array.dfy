@@ -251,17 +251,16 @@ ghost method Fill_None(s: seq<int>)
 
 // -------------- some regression tests; there was a time when array-element LHSs of calls were not translated correctly
 
-method Test_ArrayElementLhsOfCall(a: array<int>, i: int, c: Cdefg<int>) returns (x: int)
-  requires a != null && c != null;
-  modifies a, c;
+method Test_ArrayElementLhsOfCall(a: array<nat>, i: int, c: Cdefg<nat>) returns (x: int)
+  requires a != null && c != null
+  modifies a, c
 {
   if (0 <= i < a.Length) {
-    a[i] := x;
+    a[i] := x;  // error: subrange check is applied and it cannot be verified
     a[i] := Test_ArrayElementLhsOfCall(a, i-1, c);  // this line used to crash Dafny
-    c.t := x;
+    c.t := x-1;  // error: subrange check is applied and it cannot be verified
     c.t := Test_ArrayElementLhsOfCall(a, i-1, c);  // this line used to crash Dafny
     var n: nat;
-    n := x;  // error: subrange check is applied and it cannot be verified
     n := Test_ArrayElementLhsOfCall(a, i-1, c);  // error: subrange check is applied and it cannot be verified
   }
 }

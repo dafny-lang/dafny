@@ -1,4 +1,4 @@
-﻿//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
 //
 // Copyright (C) Microsoft Corporation.  All Rights Reserved.
 //
@@ -53,7 +53,7 @@ namespace Microsoft.Dafny
   public class RefinementTransformer : IRewriter
   {
     Cloner rawCloner; // This cloner just gives exactly the same thing back.
-    RefinementCloner refinementCloner; // This cloner wraps things in a RefinementTransformer
+    RefinementCloner refinementCloner; // This cloner wraps things in a RefinementToken
     
     Program program;
 
@@ -95,6 +95,7 @@ namespace Microsoft.Dafny
               if (im is ModuleDecl) {
                 ModuleDecl mdecl = (ModuleDecl)im;
                 //find the matching import from the base
+                // TODO: this is a terribly slow algorithm; use the symbol table instead
                 foreach (var bim in baseDeclarations) {
                   if (bim is ModuleDecl && ((ModuleDecl)bim).Name.Equals(mdecl.Name)) {
                     if (mdecl.Opened != ((ModuleDecl)bim).Opened) {
@@ -399,6 +400,10 @@ namespace Microsoft.Dafny
             reporter.Error(MessageSource.RefinementTransformer, n.tok, "{0} '{1}' of {2} {3} cannot be changed, compared to the corresponding {2} in the module it refines, from non-ghost to ghost", parameterKind, n.Name, thing, name);
           } else if (o.IsGhost && !n.IsGhost) {
             reporter.Error(MessageSource.RefinementTransformer, n.tok, "{0} '{1}' of {2} {3} cannot be changed, compared to the corresponding {2} in the module it refines, from ghost to non-ghost", parameterKind, n.Name, thing, name);
+          } else if (!o.IsOld && n.IsOld) {
+            reporter.Error(MessageSource.RefinementTransformer, n.tok, "{0} '{1}' of {2} {3} cannot be changed, compared to the corresponding {2} in the module it refines, from non-new to new", parameterKind, n.Name, thing, name);
+          } else if (o.IsOld && !n.IsOld) {
+            reporter.Error(MessageSource.RefinementTransformer, n.tok, "{0} '{1}' of {2} {3} cannot be changed, compared to the corresponding {2} in the module it refines, from new to non-new", parameterKind, n.Name, thing, name);
           } else if (!ResolvedTypesAreTheSame(o.Type, n.Type)) {
             reporter.Error(MessageSource.RefinementTransformer, n.tok, "the type of {0} '{1}' is different from the type of the same {0} in the corresponding {2} in the module it refines ('{3}' instead of '{4}')", parameterKind, n.Name, thing, n.Type, o.Type);
           }
@@ -630,6 +635,11 @@ namespace Microsoft.Dafny
       } else if (m is Lemma) {
         return new Lemma(new RefinementToken(m.tok, moduleUnderConstruction), m.Name, m.HasStaticKeyword, tps, ins, m.Outs.ConvertAll(refinementCloner.CloneFormal),
           req, mod, ens, decreases, body, refinementCloner.MergeAttributes(m.Attributes, moreAttributes), null, m);
+      } else if (m is TwoStateLemma) {
+        var two = (TwoStateLemma)m;
+        var reads = refinementCloner.CloneSpecFrameExpr(two.Reads);
+        return new TwoStateLemma(new RefinementToken(m.tok, moduleUnderConstruction), m.Name, m.HasStaticKeyword, tps, ins, m.Outs.ConvertAll(refinementCloner.CloneFormal),
+          req, mod, reads, ens, decreases, body, refinementCloner.MergeAttributes(m.Attributes, moreAttributes), null, m);
       } else {
         return new Method(new RefinementToken(m.tok, moduleUnderConstruction), m.Name, m.HasStaticKeyword, m.IsGhost, tps, ins, m.Outs.ConvertAll(refinementCloner.CloneFormal),
           req, mod, ens, decreases, body, refinementCloner.MergeAttributes(m.Attributes, moreAttributes), null, m);
@@ -966,17 +976,16 @@ namespace Microsoft.Dafny
             {
                 var o = old[i];
                 var n = nw[i];
-                if (!o.IsGhost && n.IsGhost)
-                {
-                    reporter.Error(MessageSource.RefinementTransformer, n.tok, "{0} '{1}' of {2} {3} cannot be changed, compared to the corresponding {2} in the module it overrides, from non-ghost to ghost", parameterKind, n.Name, thing, name);
-                }
-                else if (o.IsGhost && !n.IsGhost)
-                {
-                    reporter.Error(MessageSource.RefinementTransformer, n.tok, "{0} '{1}' of {2} {3} cannot be changed, compared to the corresponding {2} in the module it overrides, from ghost to non-ghost", parameterKind, n.Name, thing, name);
-                }
-                else if (!ResolvedTypesAreTheSame(o.Type, n.Type))
-                {
-                    reporter.Error(MessageSource.RefinementTransformer, n.tok, "the type of {0} '{1}' is different from the type of the same {0} in the corresponding {2} in the module it overrides ('{3}' instead of '{4}')", parameterKind, n.Name, thing, n.Type, o.Type);
+                if (!o.IsGhost && n.IsGhost) {
+                  reporter.Error(MessageSource.RefinementTransformer, n.tok, "{0} '{1}' of {2} {3} cannot be changed, compared to the corresponding {2} in the module it overrides, from non-ghost to ghost", parameterKind, n.Name, thing, name);
+                } else if (o.IsGhost && !n.IsGhost) {
+                  reporter.Error(MessageSource.RefinementTransformer, n.tok, "{0} '{1}' of {2} {3} cannot be changed, compared to the corresponding {2} in the module it overrides, from ghost to non-ghost", parameterKind, n.Name, thing, name);
+                } else if (!o.IsOld && n.IsOld) {
+                  reporter.Error(MessageSource.RefinementTransformer, n.tok, "{0} '{1}' of {2} {3} cannot be changed, compared to the corresponding {2} in the module it overrides, from non-new to new", parameterKind, n.Name, thing, name);
+                } else if (o.IsOld && !n.IsOld) {
+                  reporter.Error(MessageSource.RefinementTransformer, n.tok, "{0} '{1}' of {2} {3} cannot be changed, compared to the corresponding {2} in the module it overrides, from new to non-new", parameterKind, n.Name, thing, name);
+                } else if (!ResolvedTypesAreTheSame(o.Type, n.Type)) {
+                  reporter.Error(MessageSource.RefinementTransformer, n.tok, "the type of {0} '{1}' is different from the type of the same {0} in the corresponding {2} in the module it overrides ('{3}' instead of '{4}')", parameterKind, n.Name, thing, n.Type, o.Type);
                 }
             }
         }
@@ -1001,6 +1010,10 @@ namespace Microsoft.Dafny
             reporter.Error(MessageSource.RefinementTransformer, n.tok, "{0} '{1}' of {2} {3} cannot be changed, compared to the corresponding {2} in the module it refines, from non-ghost to ghost", parameterKind, n.Name, thing, name);
           } else if (o.IsGhost && !n.IsGhost) {
             reporter.Error(MessageSource.RefinementTransformer, n.tok, "{0} '{1}' of {2} {3} cannot be changed, compared to the corresponding {2} in the module it refines, from ghost to non-ghost", parameterKind, n.Name, thing, name);
+          } else if (!o.IsOld && n.IsOld) {
+            reporter.Error(MessageSource.RefinementTransformer, n.tok, "{0} '{1}' of {2} {3} cannot be changed, compared to the corresponding {2} in the module it refines, from non-new to new", parameterKind, n.Name, thing, name);
+          } else if (o.IsOld && !n.IsOld) {
+            reporter.Error(MessageSource.RefinementTransformer, n.tok, "{0} '{1}' of {2} {3} cannot be changed, compared to the corresponding {2} in the module it refines, from new to non-new", parameterKind, n.Name, thing, name);
           } else if (!TypesAreSyntacticallyEqual(o.Type, n.Type)) {
             reporter.Error(MessageSource.RefinementTransformer, n.tok, "the type of {0} '{1}' is different from the type of the same {0} in the corresponding {2} in the module it refines ('{3}' instead of '{4}')", parameterKind, n.Name, thing, n.Type, o.Type);
           }
@@ -1128,7 +1141,7 @@ namespace Microsoft.Dafny
                 var e = refinementCloner.CloneExpr(oldAssume.Expr);
                 var attrs = refinementCloner.MergeAttributes(oldAssume.Attributes, skel.Attributes);
                 body.Add(new AssertStmt(new Translator.ForceCheckToken(skel.Tok), new Translator.ForceCheckToken(skel.EndTok),
-                  e, new Attributes("prependAssertToken", new List<Expression>(), attrs)));
+                  e, skel.Proof, new Attributes("prependAssertToken", new List<Expression>(), attrs)));
                 reporter.Info(MessageSource.RefinementTransformer, c.ConditionEllipsis, "assume->assert: " + Printer.ExprToString(e));
                 i++; j++;
               }
@@ -1254,7 +1267,7 @@ namespace Microsoft.Dafny
               i++; j++;
               if (addedAssert != null) {
                 var tok = new Translator.ForceCheckToken(addedAssert.tok);
-                body.Add(new AssertStmt(tok, tok, addedAssert, null));
+                body.Add(new AssertStmt(tok, tok, addedAssert, null, null));
               }
             } else {
               MergeAddStatement(cur, body);
@@ -1310,7 +1323,7 @@ namespace Microsoft.Dafny
                 stmtGenerated.Add(nw);
                 var addedAssert = refinementCloner.CloneExpr(s.Expr);
                 var tok = new Translator.ForceCheckToken(addedAssert.tok);
-                stmtGenerated.Add(new AssertStmt(tok, tok, addedAssert, null));
+                stmtGenerated.Add(new AssertStmt(tok, tok, addedAssert, null, null));
               }
             }
             if (doMerge) {
@@ -1640,6 +1653,16 @@ namespace Microsoft.Dafny
     }
     public override IToken Tok(IToken tok) {
       return new RefinementToken(tok, moduleUnderConstruction);
+    }
+    public override TopLevelDecl CloneDeclaration(TopLevelDecl d, ModuleDefinition m) {
+      var dd = base.CloneDeclaration(d, m);
+      if (d is ModuleDecl) {
+        ((ModuleDecl)dd).Signature = ((ModuleDecl)d).Signature;
+        if (d is ModuleFacadeDecl) {
+          ((ModuleFacadeDecl)dd).OriginalSignature = ((ModuleFacadeDecl)d).OriginalSignature;
+        }
+      }
+      return dd;
     }
     public virtual Attributes MergeAttributes(Attributes prevAttrs, Attributes moreAttrs) {
       if (moreAttrs == null) {

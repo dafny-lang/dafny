@@ -1,7 +1,7 @@
 // RUN: %dafny /print:"%t.print" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
-
+module Tests {
 method ResolutionErrors() {
   var x;
   var g5 := x, y => (y, x);   // fail at resolution
@@ -67,7 +67,7 @@ method Underscores() {
   var v := (_, _) => 0;
   var w := (_, _, _) => _;
 }
-
+}  // module Tests
 module AritySituations {
   // In addition to testing type checking, these tests check that error messages
   //  print the types correctly

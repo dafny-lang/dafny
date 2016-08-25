@@ -1,4 +1,4 @@
-﻿module FixpointSolver
+module FixpointSolver
 
 open Ast
 open AstUtils

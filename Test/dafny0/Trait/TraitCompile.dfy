@@ -64,18 +64,18 @@ method Main()
   print "w=", w, "\n";
 
   c.Double(500);
-  c.AddFive(502);
+  { var cc: CC := new CC; cc.AddFive(502); }
   c.StaticTriple(504);
   TT.StaticTriple(504);
   CC.StaticTriple(505);
 
   var seven := OtherModule.Y.F(15);
   assert seven == 7;
-  var b := OtherModule.Y.P(real(seven));
+  var b := OtherModule.Y.P(seven as real);
   print "From OtherModule.Y: ", seven, " and ", b, "\n";
   seven := OtherModule.X.F(15);
   assert seven == 7;
-  b := OtherModule.X.P(real(seven));
+  b := OtherModule.X.P(seven as real);
   print "From OtherModule.X: ", seven, " and ", b, "\n";
 
   TestFields.Test();

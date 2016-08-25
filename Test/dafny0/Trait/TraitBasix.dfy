@@ -94,7 +94,7 @@ module m1
   }
 }
 
-
+module MoreTests {
 trait I0 
 {
    var x: int;
@@ -171,3 +171,4 @@ method I2Client(j: I2) returns (p: int)     //all is fine in this client method
   p := j.Customizable(a + b + c + d);
   p := I2.StaticM(p);
 }
+}  // MoreTests

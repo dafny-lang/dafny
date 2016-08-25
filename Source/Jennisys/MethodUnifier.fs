@@ -1,4 +1,4 @@
-﻿module MethodUnifier
+module MethodUnifier
 
 open Ast
 open Getters

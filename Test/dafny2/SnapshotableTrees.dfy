@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:2 /dprint:"%t.dprint" /autoTriggers:0 "%s" > "%t"
+// RUN: %dafny /compile:2 /dprint:"%t.dprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // Rustan Leino, September 2011.
@@ -118,11 +118,11 @@ module SnapTree {
     }
     static predicate AllBelow(s: seq<int>, d: int)
     {
-      forall e :: e in s ==> e < d
+      forall i :: 0 <= i < |s| ==> s[i] < d
     }
     static predicate AllAbove(d: int, s: seq<int>)
     {
-      forall e :: e in s ==> d < e
+      forall i :: 0 <= i < |s| ==> d < s[i]
     }
     static predicate SortedSplit(left: seq<int>, data: int, right: seq<int>)
     {

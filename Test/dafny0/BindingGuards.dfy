@@ -37,8 +37,8 @@ method M3()
 {
   var x := true;
   if x: int, y :| P(x) && R(y) {
-    var z := x + y.Trunc;
-    var w := real(x) + y;
+    var z := x + y.Floor;
+    var w := x as real + y;
   }
 }
 
@@ -121,7 +121,7 @@ method P0(m: int, n: int)
     case x: int :| P(x) =>
       even := x;
     case x, y :| P(x) && R(y) =>
-      even, alsoEven := x, y.Trunc;  // this assigns to 'alsoEven' a possibly odd number
+      even, alsoEven := x, y.Floor;  // this assigns to 'alsoEven' a possibly odd number
     case x: int, y :| P(x) && R(y) =>
       even := x;
     case m < n =>  // just to be different
@@ -161,4 +161,116 @@ method P3(m: int, n: int)
 function f(s:set<int>):int
 {
   if x :| x in s then x else 0
+}
+
+// -------------- optional curly-brace syntax
+
+predicate method AltSyntaxP(x: int) { true }
+datatype Color = Red | Green | Blue
+
+method AltSyntax0(x: int, y: int, c: Color) returns (z: int) {
+  if
+  case x <= y =>
+    z := 10;
+  case k :| 0 <= k < 100 && AltSyntaxP(k) =>
+    z := k;
+  case y <= x =>
+    z := 15;
+}
+method AltSyntax1(x: int, y: int, c: Color) returns (z: int) {
+  if
+  case x <= y =>
+    z := 10;
+  case k :| 0 <= k < 100 && AltSyntaxP(k) =>
+    z := k;
+  case y <= x =>
+    z := 15;
+  case false =>
+    // empty list of statement
+  case false =>
+    // empty list of statement
+}
+method AltSyntax2(X: int, Y: int, c: Color) returns (z: int) {
+  var x, y := X, Y;
+  while
+  case x < y =>
+    z := 10;
+    return;
+  case y > x =>
+    return 15;
+}
+method AltSyntax3(X: int, Y: int, c: Color) returns (z: int) {
+  var x, y := X, Y;
+  while
+    decreases y - x
+  case x < y =>
+    z := 10;
+    x := x + 1;
+  case y > x =>
+    z := 15;
+    y := y - 1;
+}
+method AltSyntax4(X: int, Y: int, c: Color) returns (z: int) {
+  var x, y := X, Y;
+  while
+    invariant true
+    decreases y - x
+  case x < y =>
+    z := 10;
+    x := x + 1;
+}
+method AltSyntax5(X: int, Y: int, c: Color) returns (z: int) {
+  var x, y := X, Y;
+  while
+    invariant true
+  case false =>
+    z := 10;
+    x := x + 1;
+}
+method AltSyntax6(X: int, Y: int, c: Color) returns (z: int) {
+  var x, y := X, Y;
+  while
+    decreases y - x
+  case x < y =>
+    z := 10;
+    x := x + 1;
+  case y > x =>
+    z := 15;
+    y := y - 1;
+  case false =>
+    // empty list of statement
+  case false =>
+    // empty list of statement
+}
+method AltSyntax7(X: int, Y: int, c: Color) returns (z: int) {
+  match c
+  case Red =>
+    z := X + Y;
+  case Green =>
+    z := X + Y;
+  case Blue =>
+    z := X + Y;
+}
+method AltSyntax8(X: int, Y: int, c: Color) returns (z: int) {
+  match c
+  case Red =>
+    z := X + Y;
+  case Green =>
+    // empty list of statement
+  case Blue =>
+    // empty list of statement
+}
+method AltSyntax9(x: int, y: int, c: Color) returns (z: int) {
+  if {
+    case true =>
+  }
+  z := x + y;
+  while {
+    case false =>
+  }
+  z := x + y;
+  match c {  // error (x2): missing cases
+    case Red =>
+  }
+  z := x + y;
 }

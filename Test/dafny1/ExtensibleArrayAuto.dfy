@@ -15,7 +15,6 @@ class {:autocontracts} ExtensibleArray<T> {
     elements != null && elements.Length == 256 &&
     (more != null ==>
         elements !in more.Repr &&
-        more.Valid() &&
         |more.Contents| != 0 &&
         forall j :: 0 <= j < |more.Contents| ==>
             more.Contents[j] != null && more.Contents[j].Length == 256 &&
@@ -100,8 +99,8 @@ method Main() {
   var a := new ExtensibleArray<int>.Init();
   var n := 0;
   while n < 256*256+600
-    invariant a.Valid() && fresh(a.Repr);
-    invariant |a.Contents| == n;
+    invariant a.Valid() && fresh(a.Repr)
+    invariant |a.Contents| == n
   {
     a.Append(n);
     n := n + 1;

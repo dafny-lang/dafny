@@ -46,19 +46,19 @@ class C1 extends T1
 
 
 
-method Good(c: C1) returns (t: T1)
+method Good() returns (c: C1, t: T1)
 ensures c == t;
 {
-    t := c;    
+    t := c;
 }
 
-method Bad1(c: C1) returns (t: T2)
+method Bad1() returns (c: C1, t: T2)
 ensures c == t;
 {
     t := c;  //error, C1 has not implemented T2
 }
 
-method Bad2(c: C1) returns (t: T1)
+method Bad2() returns (c: C1, t: T1)
 ensures c == t;
 {
     c := t;  //error, can not assign a trait to a class
