@@ -1257,13 +1257,13 @@ module NonInferredTypeVariables {
     ghost var d2' := forall c: C :: c == ggcc0 && c != null ==> c.f == 10;
     ghost var d2'' := forall c: C :: c == ggcc1 && c != null ==> c.f == c.f; // error: here, type of c is not determined
 
-    /* TODO: Dafny's heuristic that looks for bounds should look for equality to
-     *       accept these.
     var d0' := forall s :: s == {7} ==> s != {};
     var d0'' := forall s :: s <= {7} ==> s == {};
-    var ggcc2: C;
-    var d2''' := forall c :: c == ggcc2 && c != null ==> c.f == 10;
-     */
+
+    
+
+
+
   }
 }
 
