@@ -564,9 +564,25 @@ namespace Microsoft.Dafny {
     }
 
     public Type StripSubsetConstraints() {
-      Type type = NormalizeExpand();
+      Type type = Normalize();
       if (type is NatType) {
         return new IntType();
+      }
+      var syn = type.AsTypeSynonym;
+      if (syn != null) {
+        var udt = (UserDefinedType)type;
+        var rhs = syn.RhsWithArgument(udt.TypeArgs);
+        var r = rhs.StripSubsetConstraints();
+        if (syn is SubsetTypeDecl) {
+          return r;
+        } else if (object.ReferenceEquals(r, rhs)) {
+          // There was nothing further in RHS to strip, and "type" was just a
+          // type synonym, so ignore the RHS and just return "type" (because that
+          // gives rise to better error messages).
+          return type;
+        } else {
+          return r;
+        }
       }
       return type;
     }
