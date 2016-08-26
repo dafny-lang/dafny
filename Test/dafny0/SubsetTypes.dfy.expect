@@ -146,5 +146,8 @@ SubsetTypes.dfy(160,25): Error: value does not satisfy the subset constraints of
 Execution trace:
     (0,0): anon0
     (0,0): anon8_Then
+SubsetTypes.dfy(170,20): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
+Execution trace:
+    (0,0): anon0
 
-Dafny program verifier finished with 22 verified, 43 errors
+Dafny program verifier finished with 24 verified, 44 errors

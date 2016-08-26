@@ -162,3 +162,11 @@ module Contravariance {
     }
   }
 }
+
+module AssignSuchThat {
+  type SmallInt = x | 0 <= x < 10
+  method M() {
+    var a: int :| a == 11;
+    var b: SmallInt :| b == 11;  // error
+  }
+}

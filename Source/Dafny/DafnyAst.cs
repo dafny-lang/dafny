@@ -487,50 +487,6 @@ namespace Microsoft.Dafny {
           type = pt.T;
           continue;
         }
-          var syn = type.AsTypeSynonym;
-          if (syn != null) {
-            var udt = (UserDefinedType)type;  // correctness of cast follows from the AsTypeSynonym != null test.
-            // Instantiate with the actual type arguments
-            type = syn.RhsWithArgument(udt.TypeArgs);
-          continue;
-        }
-        if (DafnyOptions.O.IronDafny && type is UserDefinedType) {
-          var udt = (UserDefinedType)type;
-          var rc = udt.ResolvedClass;
-          if (rc != null) {
-            while (rc.ClonedFrom != null || rc.ExclusiveRefinement != null) {
-              if (rc.ClonedFrom != null) {
-                rc = (TopLevelDecl)rc.ClonedFrom;
-          } else {
-                Contract.Assert(rc.ExclusiveRefinement != null);
-                rc = rc.ExclusiveRefinement;
-              }
-            }
-          }
-          if (rc is TypeSynonymDecl) {
-            type = ((TypeSynonymDecl)rc).RhsWithArgument(udt.TypeArgs);
-            continue;
-          }
-        }
-        return type.StripSubsetConstraints();
-      }
-    }
-
-    /// <summary>
-    /// Return the type that "this" stands for, getting to the bottom of proxies and following type synonyms, but does
-    /// not follow subset types.
-    /// </summary>
-    [Pure]
-    public Type NormalizeExpandKeepConstraints() {
-      Contract.Ensures(Contract.Result<Type>() != null);
-      Contract.Ensures(!(Contract.Result<Type>() is TypeProxy) || ((TypeProxy)Contract.Result<Type>()).T == null);  // return a proxy only if .T == null
-      Type type = this;
-      while (true) {
-        var pt = type as TypeProxy;
-        if (pt != null && pt.T != null) {
-          type = pt.T;
-          continue;
-        }
         var syn = type.AsTypeSynonym;
         if (syn != null) {
           var udt = (UserDefinedType)type;  // correctness of cast follows from the AsTypeSynonym != null test.
@@ -560,11 +516,59 @@ namespace Microsoft.Dafny {
       }
     }
 
+    /// <summary>
+    /// Return the type that "this" stands for, getting to the bottom of proxies and following type synonyms, but does
+    /// not follow subset types.
+    /// </summary>
+    [Pure]
+    public Type NormalizeExpandKeepConstraints() {
+      Contract.Ensures(Contract.Result<Type>() != null);
+      Contract.Ensures(!(Contract.Result<Type>() is TypeProxy) || ((TypeProxy)Contract.Result<Type>()).T == null);  // return a proxy only if .T == null
+      Type type = this;
+      while (true) {
+        var pt = type as TypeProxy;
+        if (pt != null && pt.T != null) {
+          type = pt.T;
+          continue;
+        }
+        var syn = type.AsTypeSynonym;
+        if (syn != null) {
+          if (syn is SubsetTypeDecl) {
+            return type;
+          }
+          var udt = (UserDefinedType)type;  // correctness of cast follows from the AsTypeSynonym != null test.
+          // Instantiate with the actual type arguments
+          type = syn.RhsWithArgument(udt.TypeArgs);
+          continue;
+        }
+        if (DafnyOptions.O.IronDafny && type is UserDefinedType) {
+          var udt = (UserDefinedType)type;
+          var rc = udt.ResolvedClass;
+          if (rc != null) {
+            while (rc.ClonedFrom != null || rc.ExclusiveRefinement != null) {
+              if (rc.ClonedFrom != null) {
+                rc = (TopLevelDecl)rc.ClonedFrom;
+              } else {
+                Contract.Assert(rc.ExclusiveRefinement != null);
+                rc = rc.ExclusiveRefinement;
+              }
+            }
+          }
+          if (rc is TypeSynonymDecl) {
+            type = ((TypeSynonymDecl)rc).RhsWithArgument(udt.TypeArgs);
+            continue;
+          }
+        }
+        return type;
+      }
+    }
+
     public Type StripSubsetConstraints() {
-      if (this is NatType) {
+      Type type = NormalizeExpand();
+      if (type is NatType) {
         return new IntType();
       }
-      return this;
+      return type;
     }
 
     /// <summary>

@@ -10048,7 +10048,13 @@ namespace Microsoft.Dafny {
 
       var normType = type.NormalizeExpandKeepConstraints();
 
-      if (normType is SetType) {
+      if (normType.IsTypeParameter) {
+        return trTypeParam(normType.AsTypeParameter, normType.TypeArgs);
+      } else if (normType is UserDefinedType) {
+        // Classes, (co-)datatypes, newtypes, subset types, ...
+        var args = normType.TypeArgs.ConvertAll(TypeToTy);
+        return ClassTyCon(((UserDefinedType)normType), args);
+      } else if (normType is SetType) {
         bool finite = ((SetType)normType).Finite;
         return FunctionCall(Token.NoToken, finite ? "TSet" : "TISet", predef.Ty, TypeToTy(((CollectionType)normType).Arg));
       } else if (normType is MultiSetType) {
@@ -10074,14 +10080,8 @@ namespace Microsoft.Dafny {
         return new Bpl.IdentifierExpr(Token.NoToken, "TNat", predef.Ty);
       } else if (normType is IntType) {
         return new Bpl.IdentifierExpr(Token.NoToken, "TInt", predef.Ty);
-      } else if (normType.IsTypeParameter) {
-        return trTypeParam(normType.AsTypeParameter, normType.TypeArgs);
       } else if (normType is ObjectType) {
         return ClassTyCon(program.BuiltIns.ObjectDecl, new List<Bpl.Expr>());
-      } else if (normType is UserDefinedType) {
-        // Classes, (co-)datatypes
-        var args = normType.TypeArgs.ConvertAll(TypeToTy);
-        return ClassTyCon(((UserDefinedType)normType), args);
       } else if (normType is ParamTypeProxy) {
         return trTypeParam(((ParamTypeProxy)normType).orig, null);
       } else {

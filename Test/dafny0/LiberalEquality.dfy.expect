@@ -9,7 +9,7 @@ LiberalEquality.dfy(52,13): Error: arguments must have the same type (got Weird<
 LiberalEquality.dfy(61,14): Error: arguments must have the same type (got array<int> and array<bool>)
 LiberalEquality.dfy(73,13): Error: arguments must have the same type (got T -> int and int -> int)
 LiberalEquality.dfy(74,13): Error: arguments must have the same type (got int -> T and int -> int)
-LiberalEquality.dfy(84,13): Error: arguments must have the same type (got Syn<int> and Syn<bool>)
+LiberalEquality.dfy(84,13): Error: arguments must have the same type (got Weird<int, int, int> and Weird<bool, bool, int>)
 LiberalEquality.dfy(95,13): Error: arguments must have the same type (got array<List<int>> and array<List<bool>>)
 LiberalEquality.dfy(97,13): Error: arguments must have the same type (got array<List<bool>> and array<ListSynonym<T, int>>)
 LiberalEquality.dfy(103,13): Error: arguments must have the same type (got array<List<bool>> and array<ListSynonym<real, Wrapper<int>>>)
