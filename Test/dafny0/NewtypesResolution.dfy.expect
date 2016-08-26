@@ -1,4 +1,4 @@
-NewtypesResolution.dfy(5,7): Error: Cycle among redirecting types (newtypes, type synonyms): MySynonym -> MyIntegerType_WellSupposedly -> MyNewType -> MySynonym
+NewtypesResolution.dfy(5,7): Error: Cycle among redirecting types (newtypes, subset types, type synonyms): MySynonym -> MyIntegerType_WellSupposedly -> MyNewType -> MySynonym
 NewtypesResolution.dfy(12,10): Error: newtypes must be based on some numeric type (got List<int>)
 NewtypesResolution.dfy(51,13): Error: arguments to <= must have a common supertype (got posReal and int32)
 NewtypesResolution.dfy(52,13): Error: arguments to < must have a common supertype (got int32 and int)

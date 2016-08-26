@@ -228,13 +228,27 @@ namespace Microsoft.Dafny {
             PrintExpression(dd.Constraint, true);
           }
           wr.WriteLine();
-        } else if (d is TypeSynonymDecl) {
-          var syn = (TypeSynonymDecl)d;
+        } else if (d is SubsetTypeDecl) {
+          var dd = (SubsetTypeDecl)d;
           if (i++ != 0) { wr.WriteLine(); }
           Indent(indent);
-          PrintClassMethodHelper("type", syn.Attributes, syn.Name, syn.TypeArgs);
+          PrintClassMethodHelper("type", dd.Attributes, dd.Name, dd.TypeArgs);
           wr.Write(" = ");
-          PrintType(syn.Rhs);
+          wr.Write(dd.Var.DisplayName);
+          if (!(dd.Var.Type is TypeProxy) || DafnyOptions.O.DafnyPrintResolvedFile != null) {
+            wr.Write(": ");
+            PrintType(dd.Rhs);
+          }
+          wr.Write(" | ");
+          PrintExpression(dd.Constraint, true);
+          wr.WriteLine();
+        } else if (d is TypeSynonymDecl) {
+          var dd = (TypeSynonymDecl)d;
+          if (i++ != 0) { wr.WriteLine(); }
+          Indent(indent);
+          PrintClassMethodHelper("type", dd.Attributes, dd.Name, dd.TypeArgs);
+          wr.Write(" = ");
+          PrintType(dd.Rhs);
           wr.WriteLine();
         } else if (d is DatatypeDecl) {
           if (i++ != 0) { wr.WriteLine(); }

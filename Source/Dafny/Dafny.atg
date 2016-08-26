@@ -1012,13 +1012,14 @@ NewtypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl td>
   )
   .
 OtherTypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl td>
-= (. IToken id;
+= (. IToken id, bvId;
      Attributes attrs = null;
      var eqSupport = TypeParameter.EqualitySupportValue.Unspecified;
      var typeArgs = new List<TypeParameter>();
      td = null;
-     Type ty;
-     CheckDeclModifiers(dmod, "Type aliases", AllowedDeclModifiers.None);
+     Type ty = null;
+     Expression constraint;
+     var kind = "Opaque type";
   .)
   "type"
   { Attribute<ref attrs> }
@@ -1028,12 +1029,25 @@ OtherTypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl t
   |
     [ GenericParameters<typeArgs> ]
     [ "="
-      Type<out ty>             (. td = new TypeSynonymDecl(id, id.val, typeArgs, module, ty, attrs); .)
+      ( IF(IsIdentColonOrBar())
+        NoUSIdent<out bvId>
+        [ ":" Type<out ty> ]   (. if (ty == null) { ty = new InferredTypeProxy(); } .)
+        "|"
+        Expression<out constraint, false, true>
+                               (. td = new SubsetTypeDecl(id, id.val, typeArgs, module, new BoundVar(bvId, bvId.val, ty), constraint, attrs);
+                                  kind = "Subset type";
+                               .)
+      |
+        Type<out ty>           (. td = new TypeSynonymDecl(id, id.val, typeArgs, module, ty, attrs);
+                                  kind = "Type synonym";
+                               .)
+      )
     ]
   )                            (. if (td == null) {
                                     td = new OpaqueTypeDecl(id, id.val, module, eqSupport, typeArgs, attrs);
                                   }
                                .)
+  (. CheckDeclModifiers(dmod, kind, AllowedDeclModifiers.None); .)
   [ SYNC ";"
       // This semi-colon used to be required, but it seems silly to have it.
       // To stage the transition toward not having it at all, let's make it optional for now.  Then,

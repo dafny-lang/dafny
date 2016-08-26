@@ -1542,12 +1542,12 @@ namespace Microsoft.Dafny
         if (d is OpaqueTypeDecl) {
           // nothing to do
         } else if (d is TypeSynonymDecl) {
-          var syn = (TypeSynonymDecl)d;
-          ResolveType(syn.tok, syn.Rhs, syn, ResolveTypeOptionEnum.AllowPrefix, syn.TypeArgs);
-          syn.Rhs.ForeachTypeComponent(ty => {
+          var dd = (TypeSynonymDecl)d;
+          ResolveType(dd.tok, dd.Rhs, dd, ResolveTypeOptionEnum.AllowPrefix, dd.TypeArgs);
+          dd.Rhs.ForeachTypeComponent(ty => {
             var s = ty.AsRedirectingType;
             if (s != null) {
-              typeRedirectionDependencies.AddEdge(syn, s);
+              typeRedirectionDependencies.AddEdge(dd, s);
             }
           });
         } else if (d is NewtypeDecl) {
@@ -1599,7 +1599,7 @@ namespace Microsoft.Dafny
       if (cycle != null) {
         Contract.Assert(cycle.Count != 0);
         var erste = cycle[0];
-        reporter.Error(MessageSource.Resolver, erste.Tok, "Cycle among redirecting types (newtypes, type synonyms): {0} -> {1}", Util.Comma(" -> ", cycle, syn => syn.Name), erste.Name);
+        reporter.Error(MessageSource.Resolver, erste.Tok, "Cycle among redirecting types (newtypes, subset types, type synonyms): {0} -> {1}", Util.Comma(" -> ", cycle, syn => syn.Name), erste.Name);
       }
     }
 
@@ -1626,12 +1626,12 @@ namespace Microsoft.Dafny
       // ---------------------------------- Pass 0 ----------------------------------
       // This pass resolves names, introduces (and may solve) type constraints, and
       // builds the module's call graph.
-      // For 'newtype' declarations, it also checks that all types were fully
+      // For 'newtype' and subset-type declarations, it also checks that all types were fully
       // determined.
       // ----------------------------------------------------------------------------
 
       // Resolve the meat of classes and iterators, the definitions of type synonyms, and the type parameters of all top-level type declarations
-      // First, resolve the newtype declarations and the constraint clauses, including filling in .ResolvedOp fields.  This is needed for the
+      // First, resolve the newtype/subset-type declarations and the constraint clauses, including filling in .ResolvedOp fields.  This is needed for the
       // resolution of the other declarations, because those other declarations may invoke DiscoverBounds, which looks at the .Constraint field
       // of any newtypes involved.  DiscoverBounds is called on quantifiers (but only in non-ghost contexts) and set comprehensions (in all
       // contexts).  The constraints of newtypes are ghost, so DiscoverBounds is not going to be called on any quantifiers they may contain.
@@ -1662,13 +1662,31 @@ namespace Microsoft.Dafny
             CheckTypeInference(dd.Constraint, dd);
             scope.PopMarker();
           }
+        } else if (d is SubsetTypeDecl) {
+          var dd = (SubsetTypeDecl)d;
+          ResolveAttributes(d.Attributes, d, new ResolveOpts(new NoContext(d.Module), false));
+          // type check the constraint
+          Contract.Assert(object.ReferenceEquals(dd.Var.Type, dd.Rhs));  // follows from SubsetTypeDecl invariant
+          Contract.Assert(dd.Constraint != null);  // follows from SubsetTypeDecl invariant
+          scope.PushMarker();
+          var added = scope.Push(dd.Var.Name, dd.Var);
+          Contract.Assert(added == Scope<IVariable>.PushResult.Success);
+          ResolveExpression(dd.Constraint, new ResolveOpts(dd, false));
+          Contract.Assert(dd.Constraint.Type != null);  // follows from postcondition of ResolveExpression
+          ConstrainTypeExprBool(dd.Constraint, "subset-type constraint must be of type bool (instead got {0})");
+          SolveAllTypeConstraints();
+          if (!CheckTypeInference_Visitor.IsDetermined(dd.Rhs.NormalizeExpand())) {
+            reporter.Error(MessageSource.Resolver, dd.tok, "subset type's base type is not fully determined; add an explicit type for '{0}'", dd.Var.Name);
+          }
+          CheckTypeInference(dd.Constraint, dd);
+          scope.PopMarker();
         }
       }
       // Now, we're ready for the other declarations.
       foreach (TopLevelDecl d in declarations) {
         Contract.Assert(AllTypeConstraints.Count == 0);
-        if (d is NewtypeDecl) {
-          continue;  // NewTypeDecl's were already processed in the loop above
+        if (d is NewtypeDecl || d is SubsetTypeDecl) {
+          continue;  // NewTypeDecl's and SubsetTypeDecl's were already processed in the loop above
         }
         if (d is TraitDecl && d.TypeArgs.Count > 0) {
           reporter.Error(MessageSource.Resolver, d, "sorry, traits with type parameters are not supported");
@@ -1702,6 +1720,7 @@ namespace Microsoft.Dafny
       //     - assign-such-that statements
       //     - compilable let-such-that expressions
       //     - newtype constraints
+      //     - subset-type constraints
       // For each statement body that it successfully typed, this pass also:
       // * computes ghost interests
       // * determines/checks tail-recursion.
@@ -1753,6 +1772,10 @@ namespace Microsoft.Dafny
                 }
               }
             }
+          } else if (d is SubsetTypeDecl) {
+            var dd = (SubsetTypeDecl)d;
+            Contract.Assert(dd.Constraint != null);
+            CheckExpression(dd.Constraint, this, dd);
           } else if (d is NewtypeDecl) {
             var dd = (NewtypeDecl)d;
             if (dd.Var != null) {
@@ -2085,7 +2108,7 @@ namespace Microsoft.Dafny
         // Check that fixpoint-predicates are not recursive with non-fixpoint-predicate functions (and only
         // with fixpoint-predicates of the same polarity), and
         // check that colemmas are not recursive with non-colemma methods.
-        // Also, check that newtypes sit in their own SSC.
+        // Also, check that newtypes and subset types sit in their own SSC.
         foreach (var d in declarations) {
           if (d is ClassDecl) {
             foreach (var member in ((ClassDecl)d).Members) {
@@ -2109,6 +2132,12 @@ namespace Microsoft.Dafny
                   FixpointLemmaChecks(m.Body, m);
                 }
               }
+            }
+          } else if (d is SubsetTypeDecl) {
+            var dd = (SubsetTypeDecl)d;
+            if (dd.Module.CallGraph.GetSCCSize(dd) != 1) {
+              var cycle = Util.Comma(" -> ", dd.Module.CallGraph.GetSCC(dd), clbl => clbl.NameRelativeToModule);
+              reporter.Error(MessageSource.Resolver, dd.tok, "recursive dependency involving a subset type: " + cycle);
             }
           } else if (d is NewtypeDecl) {
             var dd = (NewtypeDecl)d;
@@ -5420,11 +5449,10 @@ namespace Microsoft.Dafny
       foreach (MemberDecl member in cl.Members) {
         member.EnclosingClass = cl;
         if (member is Field) {
-          // In the following, we pass in a NoContext, because any cycle formed by newtype constraints would have to
-          // involve a non-null object in order to get to the field and its type, and there is no way in a newtype constraint
-          // to obtain a non-null object.
+          // In the following, we pass in a NoContext, because any cycle formed by a redirecting-type constraints would have to
+          // dereference the heap, and such constraints are not allowed to dereference the heap so an error will be produced
+          // even if we don't detect this cycle.
           ResolveType(member.tok, ((Field)member).Type, new NoContext(cl.Module), ResolveTypeOptionEnum.DontInfer, null);
-
         } else if (member is Function) {
           var f = (Function)member;
           var ec = reporter.Count(ErrorLevel.Error);
@@ -6206,6 +6234,7 @@ namespace Microsoft.Dafny
       Contract.Requires(ctor.EnclosingDatatype != null);
       Contract.Requires(dtTypeArguments != null);
       foreach (Formal p in ctor.Formals) {
+        // The following comment seems irrelevant, but a DatatypeCtor has nothing to do with the heap. So, then, why *is* it okay to pass a NoContext here? --KRML
         // In the following, we pass in a NoContext, because any cycle formed by newtype constraints would have to
         // involve a non-null object in order to get to the field and its type, and there is no way in a newtype constraint
         // to obtain a non-null object.
@@ -6637,6 +6666,22 @@ namespace Microsoft.Dafny
                 // resolve like a type parameter, and it may have type parameters if it's an opaque type
                 t.ResolvedClass = d;  // Store the decl, so the compiler will generate the fully qualified name
               }
+            } else if (d is SubsetTypeDecl) {
+              var dd = (SubsetTypeDecl)d;
+              if (DafnyOptions.O.IronDafny) {
+                while (dd.ClonedFrom != null) {
+                  dd = (SubsetTypeDecl)dd.ClonedFrom;
+                }
+              }
+              var caller = context as ICallable;
+              if (caller != null) {
+                caller.EnclosingModule.CallGraph.AddEdge(caller, dd);
+                if (caller == dd) {
+                  // detect self-loops here, since they don't show up in the graph's SSC methods
+                  reporter.Error(MessageSource.Resolver, dd.tok, "recursive dependency involving a subset type: {0} -> {0}", dd.Name);
+                }
+              }
+              t.ResolvedClass = dd;
             } else if (d is NewtypeDecl) {
               var dd = (NewtypeDecl)d;
               if (DafnyOptions.O.IronDafny) {
@@ -10824,10 +10869,9 @@ namespace Microsoft.Dafny
               var decl = ri.Decl;
               var ty = new UserDefinedType(e.tok, decl.Name, decl, ri.TypeArgs);
               if (ty.AsNewtype != null) {
+                reporter.Deprecated(MessageSource.Resolver, e.tok, "the syntax \"{0}(expr)\" for type conversions has been deprecated; the new syntax is \"expr as {0}\"", decl.Name);
                 if (e.Args.Count != 1) {
                   reporter.Error(MessageSource.Resolver, e.tok, "conversion operation to {0} got wrong number of arguments (expected 1, got {1})", decl.Name, e.Args.Count);
-                } else {
-                  reporter.Deprecated(MessageSource.Resolver, e.tok, "the syntax \"{0}(expr)\" for type conversions has been deprecated; the new syntax is \"expr as {0}\"", decl.Name);
                 }
                 var conversionArg = 1 <= e.Args.Count ? e.Args[0] :
                   ty.IsNumericBased(Type.NumericPersuation.Int) ? LiteralExpr.CreateIntLiteral(e.tok, 0) :
@@ -11422,15 +11466,22 @@ namespace Microsoft.Dafny
       Contract.Requires(bv != null);
       Contract.Requires(ty != null);
       ty = ty.NormalizeExpandKeepConstraints();
-      var dd = ty.AsNewtype;
-      if (dd != null) {
-        var c = GetImpliedTypeConstraint(bv, dd.BaseType, reporter);
-        if (dd.Var != null) {
+      var udt = ty as UserDefinedType;
+      if (udt != null) {
+        if (udt.ResolvedClass is NewtypeDecl) {
+          var dd = (NewtypeDecl)udt.ResolvedClass;
+          var c = GetImpliedTypeConstraint(bv, dd.BaseType, reporter);
+          if (dd.Var != null) {
+            c = Expression.CreateAnd(c, new Translator(reporter).Substitute(dd.Constraint, dd.Var, Expression.CreateIdentExpr(bv)));
+          }
+          return c;
+        } else if (udt.ResolvedClass is SubsetTypeDecl) {
+          var dd = (SubsetTypeDecl)udt.ResolvedClass;
+          var c = GetImpliedTypeConstraint(bv, dd.RhsWithArgument(udt.TypeArgs), reporter);
           c = Expression.CreateAnd(c, new Translator(reporter).Substitute(dd.Constraint, dd.Var, Expression.CreateIdentExpr(bv)));
+          return c;
         }
-        return c;
-      }
-      if (ty is NatType) {
+      } else if (ty is NatType) {
         return Expression.CreateAtMost(Expression.CreateIntLiteral(bv.Tok, 0), Expression.CreateIdentExpr(bv));
       }
       return Expression.CreateBoolLiteral(bv.Tok, true);

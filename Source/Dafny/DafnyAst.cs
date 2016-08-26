@@ -495,7 +495,8 @@ namespace Microsoft.Dafny {
           continue;
         }
         if (DafnyOptions.O.IronDafny && type is UserDefinedType) {
-          var rc = ((UserDefinedType)type).ResolvedClass;
+          var udt = (UserDefinedType)type;
+          var rc = udt.ResolvedClass;
           if (rc != null) {
             while (rc.ClonedFrom != null || rc.ExclusiveRefinement != null) {
               if (rc.ClonedFrom != null) {
@@ -507,7 +508,7 @@ namespace Microsoft.Dafny {
             }
           }
           if (rc is TypeSynonymDecl) {
-            type = ((TypeSynonymDecl)rc).Rhs;
+            type = ((TypeSynonymDecl)rc).RhsWithArgument(udt.TypeArgs);
             continue;
           }
         }
@@ -538,7 +539,8 @@ namespace Microsoft.Dafny {
           continue;
         }
         if (DafnyOptions.O.IronDafny && type is UserDefinedType) {
-          var rc = ((UserDefinedType)type).ResolvedClass;
+          var udt = (UserDefinedType)type;
+          var rc = udt.ResolvedClass;
           if (rc != null) {
             while (rc.ClonedFrom != null || rc.ExclusiveRefinement != null) {
               if (rc.ClonedFrom != null) {
@@ -550,7 +552,7 @@ namespace Microsoft.Dafny {
             }
           }
           if (rc is TypeSynonymDecl) {
-            type = ((TypeSynonymDecl)rc).Rhs;
+            type = ((TypeSynonymDecl)rc).RhsWithArgument(udt.TypeArgs);
             continue;
           }
         }
@@ -3472,6 +3474,13 @@ namespace Microsoft.Dafny {
   public interface RedirectingTypeDecl : ICallable
   {
     string Name { get; }
+
+    IToken tok { get; }
+    Attributes Attributes { get; }
+    ModuleDefinition Module { get; }
+    BoundVar/*?*/ Var { get; }
+    Expression/*?*/ Constraint { get; }
+    FreshIdGenerator IdGenerator { get; }
   }
 
   public class NativeType
@@ -3524,6 +3533,12 @@ namespace Microsoft.Dafny {
     }
 
     string RedirectingTypeDecl.Name { get { return Name; } }
+    IToken RedirectingTypeDecl.tok { get { return tok; } }
+    Attributes RedirectingTypeDecl.Attributes { get { return Attributes; } }
+    ModuleDefinition RedirectingTypeDecl.Module { get { return Module; } }
+    BoundVar RedirectingTypeDecl.Var { get { return Var; } }
+    Expression RedirectingTypeDecl.Constraint { get { return Constraint; } }
+    FreshIdGenerator RedirectingTypeDecl.IdGenerator { get { return IdGenerator; } }
 
     bool ICodeContext.IsGhost { get { return true; } }
     List<TypeParameter> ICodeContext.TypeArgs { get { return new List<TypeParameter>(); } }
@@ -3581,6 +3596,12 @@ namespace Microsoft.Dafny {
     }
 
     string RedirectingTypeDecl.Name { get { return Name; } }
+    IToken RedirectingTypeDecl.tok { get { return tok; } }
+    Attributes RedirectingTypeDecl.Attributes { get { return Attributes; } }
+    ModuleDefinition RedirectingTypeDecl.Module { get { return Module; } }
+    BoundVar RedirectingTypeDecl.Var { get { return null; } }
+    Expression RedirectingTypeDecl.Constraint { get { return null; } }
+    FreshIdGenerator RedirectingTypeDecl.IdGenerator { get { return IdGenerator; } }
 
     bool ICodeContext.IsGhost { get { return false; } }
     List<TypeParameter> ICodeContext.TypeArgs { get { return TypeArgs; } }
@@ -3601,6 +3622,28 @@ namespace Microsoft.Dafny {
       get { throw new cce.UnreachableException(); }  // see comment above about ICallable.Decreases
       set { throw new cce.UnreachableException(); }  // see comment above about ICallable.Decreases
     }
+  }
+
+  public class SubsetTypeDecl : TypeSynonymDecl, RedirectingTypeDecl
+  {
+    public override string WhatKind { get { return "subset type"; } }
+    public readonly BoundVar Var;
+    public readonly Expression Constraint;
+    public SubsetTypeDecl(IToken tok, string name, List<TypeParameter> typeArgs, ModuleDefinition module,
+      BoundVar id, Expression constraint,
+      Attributes attributes, TypeSynonymDecl clonedFrom = null)
+      : base(tok, name, typeArgs, module, id.Type, attributes, clonedFrom) {
+      Contract.Requires(tok != null);
+      Contract.Requires(name != null);
+      Contract.Requires(typeArgs != null);
+      Contract.Requires(module != null);
+      Contract.Requires(id != null && id.Type != null);
+      Contract.Requires(constraint != null);
+      Var = id;
+      Constraint = constraint;
+    }
+    BoundVar RedirectingTypeDecl.Var { get { return Var; } }
+    Expression RedirectingTypeDecl.Constraint { get { return Constraint; } }
   }
 
   [ContractClass(typeof(IVariableContracts))]

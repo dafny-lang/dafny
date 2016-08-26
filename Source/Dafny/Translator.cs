@@ -527,6 +527,8 @@ namespace Microsoft.Dafny {
           AddTypeDecl((OpaqueTypeDecl)d);
         } else if (d is NewtypeDecl) {
           AddTypeDecl((NewtypeDecl)d);
+        } else if (d is SubsetTypeDecl) {
+          AddTypeDecl((SubsetTypeDecl)d);
         } else if (d is TypeSynonymDecl) {
           // do nothing, just bypass type synonyms in the translation
         } else if (d is DatatypeDecl) {
@@ -546,6 +548,8 @@ namespace Microsoft.Dafny {
             AddTypeDecl((OpaqueTypeDecl)d);
           } else if (d is NewtypeDecl) {
             AddTypeDecl((NewtypeDecl)d);
+          } else if (d is SubsetTypeDecl) {
+            AddTypeDecl((SubsetTypeDecl)d);
           } else if (d is TypeSynonymDecl) {
             // do nothing, just bypass type synonyms in the translation
           } else if (d is DatatypeDecl) {
@@ -858,50 +862,68 @@ namespace Microsoft.Dafny {
       FuelContext oldFuelContext = this.fuelContext;
       this.fuelContext = FuelSetting.NewFuelContext(dd);
 
-      AddTypeDecl_Aux(dd.tok, dd.FullName, new List<TypeParameter>());
-      AddWellformednessCheck(dd);
-      // Add $Is and $IsAlloc axioms for the newtype
-      MapM(Bools, is_alloc => {
-        var vars = new List<Variable>();
-
-        var oDafnyType = dd.BaseType.IsNumericBased(Type.NumericPersuation.Int) ? (Type)Type.Int : Type.Real;
-        var oBplType = dd.BaseType.IsNumericBased(Type.NumericPersuation.Int) ? Bpl.Type.Int : Bpl.Type.Real;
-
-        var oVarDafny = new BoundVar(dd.tok, "$o", oDafnyType);
-        var o = BplBoundVar(oVarDafny.AssignUniqueName(dd.IdGenerator), oBplType, vars);
-
-        Bpl.Expr body, is_o;
-        Bpl.Expr o_ty = ClassTyCon(dd, new List<Expr>());
-        string name = dd.FullName + ": newtype ";
-
-        if (is_alloc) {
-          name += "$IsAlloc";
-          var h = BplBoundVar("$h", predef.HeapType, vars);
-          // $IsAlloc(o, ..)
-          is_o = MkIsAlloc(o, o_ty, h);
-          body = is_o;
-        } else {
-          name += "$Is";
-          // $Is(o, ..)
-          is_o = MkIs(o, o_ty);
-          Bpl.Expr rhs = MkIs(o, dd.BaseType);
-          if (dd.Var != null) {
-            // conjoin the constraint
-            var etran = new ExpressionTranslator(this, predef, dd.tok);
-            var ie = new IdentifierExpr(dd.tok, oVarDafny.Name);
-            ie.Var = oVarDafny; ie.Type = ie.Var.Type;  // resolve ie here
-            var constraint = etran.TrExpr(Substitute(dd.Constraint, dd.Var, ie));
-            var heap = new Bpl.BoundVariable(dd.tok, new Bpl.TypedIdent(dd.tok, predef.HeapVarName, predef.HeapType));
-            //TRIG (exists $Heap: Heap :: $IsGoodHeap($Heap) && LitInt(0) <= $o#0 && $o#0 < 100)
-            var ex = new Bpl.ExistsExpr(dd.tok, new List<Variable> { heap }, BplAnd(FunctionCall(dd.tok, BuiltinFunction.IsGoodHeap, null, etran.HeapExpr), constraint));  // LL_TRIGGER
-            rhs = BplAnd(rhs, ex);
-          }
-          body = BplIff(is_o, rhs);
-        }
-
-        sink.AddTopLevelDeclaration(new Bpl.Axiom(dd.tok, BplForall(vars, BplTrigger(is_o), body), name));
-      });
+      AddTypeDecl_Aux(dd.tok, dd.FullName, dd.TypeArgs);
+      if (dd.Var != null) {
+        AddWellformednessCheck(dd);
+        // Add $Is and $IsAlloc axioms for the newtype
+        var o_ty = ClassTyCon(dd, new List<Bpl.Expr>());
+        AddRedirectingTypeDeclAxioms(false, dd, o_ty, dd.FullName);
+        AddRedirectingTypeDeclAxioms(true, dd, o_ty, dd.FullName);
+      }
       this.fuelContext = oldFuelContext;
+    }
+    void AddTypeDecl(SubsetTypeDecl dd) {
+      Contract.Requires(dd != null);
+      Contract.Ensures(fuelContext == Contract.OldValue(fuelContext));
+
+      FuelContext oldFuelContext = this.fuelContext;
+      this.fuelContext = FuelSetting.NewFuelContext(dd);
+
+      AddTypeDecl_Aux(dd.tok, dd.FullName, dd.TypeArgs);
+      AddWellformednessCheck(dd);
+      // Add $Is and $IsAlloc axioms for the subset type
+      var o_ty = ClassTyCon(dd, new List<Bpl.Expr>());  // TODO: use dd.TypeArgs
+      AddRedirectingTypeDeclAxioms(false, dd, o_ty, dd.FullName);
+      AddRedirectingTypeDeclAxioms(true, dd, o_ty, dd.FullName);
+      this.fuelContext = oldFuelContext;
+    }
+    void AddRedirectingTypeDeclAxioms(bool is_alloc, RedirectingTypeDecl dd, Bpl.Expr o_ty, string fullName) {
+      Contract.Requires(dd != null);
+      Contract.Requires(dd.Var != null && dd.Constraint != null);
+      Contract.Requires(o_ty != null);
+      Contract.Requires(fullName != null);
+      var vars = new List<Variable>();
+
+      var oBplType = TrType(dd.Var.Type);
+      var o = BplBoundVar(dd.Var.AssignUniqueName(dd.IdGenerator), oBplType, vars);
+
+      Bpl.Expr body, is_o;
+      string name = string.Format("{0}: {1} ", fullName, dd.WhatKind);
+
+      if (is_alloc) {
+        name += "$IsAlloc";
+        var h = BplBoundVar("$h", predef.HeapType, vars);
+        // $IsAlloc(o, ..)
+        is_o = MkIsAlloc(o, o_ty, h);
+        body = is_o;
+      } else {
+        name += "$Is";
+        // $Is(o, ..)
+        is_o = MkIs(o, o_ty);
+        Bpl.Expr rhs = MkIs(o, dd.Var.Type);
+        if (dd.Var != null) {
+          // conjoin the constraint
+          var etran = new ExpressionTranslator(this, predef, dd.tok);
+          var constraint = etran.TrExpr(dd.Constraint);
+          var heap = new Bpl.BoundVariable(dd.tok, new Bpl.TypedIdent(dd.tok, predef.HeapVarName, predef.HeapType));
+          //TRIG (exists $Heap: Heap :: $IsGoodHeap($Heap) && LitInt(0) <= $o#0 && $o#0 < 100)
+          var ex = new Bpl.ExistsExpr(dd.tok, new List<Variable> { heap }, BplAnd(FunctionCall(dd.tok, BuiltinFunction.IsGoodHeap, null, etran.HeapExpr), constraint));  // LL_TRIGGER
+          rhs = BplAnd(rhs, ex);
+        }
+        body = BplIff(is_o, rhs);
+      }
+
+      sink.AddTopLevelDeclaration(new Bpl.Axiom(dd.tok, BplForall(vars, BplTrigger(is_o), body), name));
     }
     void AddTypeDecl_Aux(IToken tok, string nm, List<TypeParameter> typeArgs) {
       Contract.Requires(tok != null);
@@ -4521,7 +4543,7 @@ namespace Microsoft.Dafny {
       Reset();
     }
 
-    void AddWellformednessCheck(NewtypeDecl decl) {
+    void AddWellformednessCheck(RedirectingTypeDecl decl) {
       Contract.Requires(decl != null);
       Contract.Requires(sink != null && predef != null);
       Contract.Requires(currentModule == null && codeContext == null);
@@ -4536,7 +4558,7 @@ namespace Microsoft.Dafny {
       if (decl.Var == null) {
         return;
       }
-      Contract.Assert(decl.Constraint != null);  // follows from the test above and the NewtypeDecl class invariant
+      Contract.Assert(decl.Constraint != null);  // follows from the test above and the RedirectingTypeDecl class invariant
 
       currentModule = decl.Module;
       codeContext = decl;
@@ -4570,7 +4592,7 @@ namespace Microsoft.Dafny {
       var implInParams = Bpl.Formal.StripWhereClauses(inParams);
       var locals = new List<Variable>();
       var builder = new Bpl.StmtListBuilder();
-      builder.Add(new CommentCmd("AddWellformednessCheck for newtype " + decl));
+      builder.Add(new CommentCmd(string.Format("AddWellformednessCheck for {0} {1}", decl.WhatKind, decl)));
       builder.Add(CaptureState(decl.tok, false, "initial state"));
 
       DefineFrame(decl.tok, new List<FrameExpression>(), builder, locals, null);
@@ -4579,13 +4601,15 @@ namespace Microsoft.Dafny {
       CheckWellformed(decl.Constraint, new WFOptions(null, true), locals, builder, etran);
 
       // Check that the type is inhabited.
-      // For now, we do that simply by checking if 0 (or 0.0) is part of the type.  As this will be changed in the future, the compiler also needs to be updated to pick an appropriate witness.
-      var witnessCheck = etran.TrExpr(Substitute(decl.Constraint, decl.Var,
-        decl.BaseType.IsNumericBased(Type.NumericPersuation.Int) ?
-        Expression.CreateIntLiteral(decl.tok, 0) :
-        Expression.CreateRealLiteral(decl.tok, Basetypes.BigDec.ZERO)));
-      builder.Add(Assert(decl.tok, witnessCheck, string.Format("cannot find witness that shows type is inhabited (sorry, for now, only tried {0})",
-        decl.BaseType.IsNumericBased(Type.NumericPersuation.Int) ? "0" : "0.0")));
+      // Note, whatever value is tried here must also be what the compiler will pick to initialize variables of this type.
+      var witness = Zero(decl.tok, decl.Var.Type);
+      if (witness == null) {
+        builder.Add(Assert(decl.tok, Bpl.Expr.False, "cannot find witness that shows type is inhabited (sorry, didn't know what what value to try)"));
+      } else {
+        var witnessCheck = etran.TrExpr(Substitute(decl.Constraint, decl.Var, witness));
+        builder.Add(Assert(decl.tok, witnessCheck, string.Format("cannot find witness that shows type is inhabited (sorry, for now, only tried {0})",
+          Printer.ExprToString(witness))));
+      }
 
       var impl = new Bpl.Implementation(decl.tok, proc.Name,
         new List<TypeVariable>(), implInParams, new List<Variable>(),
@@ -6039,13 +6063,15 @@ namespace Microsoft.Dafny {
     }
 
     // Use trType to translate types in the args list
-    Bpl.Expr ClassTyCon(UserDefinedType cl, List<Expr> args) {
+    Bpl.Expr ClassTyCon(UserDefinedType cl, List<Bpl.Expr> args) {
+      Contract.Requires(cl != null);
+      Contract.Requires(cce.NonNullElements(args));
       return ClassTyCon(cl.ResolvedClass, args);
     }
 
-    Bpl.Expr ClassTyCon(TopLevelDecl cl, List<Expr> args) {
-      Contract.Assert(cl != null);
-      Contract.Assert(Contract.ForAll(args, a => a != null));
+    Bpl.Expr ClassTyCon(TopLevelDecl cl, List<Bpl.Expr> args) {
+      Contract.Requires(cl != null);
+      Contract.Requires(cce.NonNullElements(args));
       return FunctionCall(cl.tok, GetClassTyCon(cl), predef.Ty, args);
     }
 
@@ -8524,7 +8550,7 @@ namespace Microsoft.Dafny {
     IEnumerable<Expression> GuessWitnesses(BoundVar x, Expression expr) {
       Contract.Requires(x != null);
       Contract.Requires(expr != null);
-      var xType = x.Type.NormalizeExpandKeepConstraints();
+      var xType = x.Type.NormalizeExpand();
       if (xType is BoolType) {
         var lit = new LiteralExpr(x.tok, false);
         lit.Type = Type.Bool;  // resolve here
@@ -8619,10 +8645,46 @@ namespace Microsoft.Dafny {
     /// <summary>
     /// Return a zero-equivalent value for "typ", or return null (for any reason whatsoever).
     /// </summary>
-    Expression Zero(Bpl.IToken tok, Type typ) {
+    Expression Zero(IToken tok, Type typ) {
       Contract.Requires(tok != null);
       Contract.Requires(typ != null);
-      return null;  // TODO: this can be improved
+      typ = typ.NormalizeExpand();
+      if (typ is BoolType) {
+        return Expression.CreateBoolLiteral(tok, false);
+      } else if (typ is CharType) {
+        var z = new CharLiteralExpr(tok, "\0");
+        z.Type = Type.Char;  // resolve here
+        return z;
+      } else if (typ.IsNumericBased(Type.NumericPersuation.Int)) {
+        return Expression.CreateIntLiteral(tok, 0);
+      } else if (typ.IsNumericBased(Type.NumericPersuation.Real)) {
+        return Expression.CreateRealLiteral(tok, Basetypes.BigDec.ZERO);
+      } else if (typ.IsBitVectorType) {
+        var z = new LiteralExpr(tok, 0);
+        z.Type = typ;
+        return z;
+      } else if (typ.IsRefType) {
+        var z = new LiteralExpr(tok);  // null
+        z.Type = typ;
+        return z;
+      } else if (typ.IsDatatype) {
+        return null;  // this can be improved
+      } else if (typ is SetType) {
+        var empty = new SetDisplayExpr(tok, ((SetType)typ).Finite, new List<Expression>());
+        empty.Type = typ;
+        return empty;
+      } else if (typ is MultiSetType) {
+        var empty = new MultiSetDisplayExpr(tok, new List<Expression>());
+        empty.Type = typ;
+        return empty;
+      } else if (typ is SeqType) {
+        var empty = new SeqDisplayExpr(tok, new List<Expression>());
+        empty.Type = typ;
+        return empty;
+      } else {
+        Contract.Assume(false);  // unexpected type
+        return null;
+      }
     }
 
     void TrForallAssign(ForallStmt s, AssignStmt s0,
