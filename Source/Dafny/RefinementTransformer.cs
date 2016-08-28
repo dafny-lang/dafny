@@ -476,12 +476,12 @@ namespace Microsoft.Dafny
       
     }
     // Check that two resolved types are the same in a similar context (the same type parameters, method, class, etc.)
-    // Assumes that prev is in a previous refinement, and next is in some refinement. Note this is not communative.
+    // Assumes that prev is in a previous refinement, and next is in some refinement. Note this is not commutative.
     public static bool ResolvedTypesAreTheSame(Type prev, Type next) {
       Contract.Requires(prev != null);
       Contract.Requires(next != null);
-      prev = prev.NormalizeExpand();
-      next = next.NormalizeExpand();
+      prev = prev.NormalizeExpandKeepConstraints();
+      next = next.NormalizeExpandKeepConstraints();
       if (prev is TypeProxy || next is TypeProxy)
         return false;
 
@@ -513,7 +513,7 @@ namespace Microsoft.Dafny
         }
         UserDefinedType aa = (UserDefinedType)prev;
         UserDefinedType bb = (UserDefinedType)next;
-        if (aa.ResolvedClass != null && aa.ResolvedClass.Name == bb.ResolvedClass.Name) {
+        if (aa.ResolvedClass != null && bb.ResolvedClass != null && aa.ResolvedClass.Name == bb.ResolvedClass.Name) {
           // these are both resolved class/datatype types
           Contract.Assert(aa.TypeArgs.Count == bb.TypeArgs.Count);
           for (int i = 0; i < aa.TypeArgs.Count; i++)

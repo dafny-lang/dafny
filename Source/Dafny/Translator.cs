@@ -880,7 +880,9 @@ namespace Microsoft.Dafny {
       this.fuelContext = FuelSetting.NewFuelContext(dd);
 
       AddTypeDecl_Aux(dd.tok, dd.FullName, dd.TypeArgs);
-      AddWellformednessCheck(dd);
+      if (!Attributes.Contains(dd.Attributes, "axiom")) {
+        AddWellformednessCheck(dd);
+      }
       // Add $Is and $IsAlloc axioms for the subset type
       var o_ty = ClassTyCon(dd, new List<Bpl.Expr>());  // TODO: use dd.TypeArgs
       AddRedirectingTypeDeclAxioms(false, dd, o_ty, dd.FullName);
@@ -5926,6 +5928,69 @@ namespace Microsoft.Dafny {
     }
 
     /// <summary>
+    /// Returns the translation of converting "r", whose Dafny type was "fromType", to a value of type "toType".
+    /// The translation assumes that "r" is known to be a value of type "toType".
+    /// </summary>
+    Bpl.Expr ConvertExpression(IToken tok, Bpl.Expr r, Type fromType, Type toType) {
+      Contract.Requires(tok != null);
+      Contract.Requires(r != null);
+      Contract.Requires(fromType != null);
+      Contract.Requires(toType != null);
+      toType = toType.NormalizeExpand();
+      fromType = fromType.NormalizeExpand();
+      if (fromType.IsBitVectorType) {
+        var fromWidth = ((BitvectorType)fromType).Width;
+        if (toType.IsBitVectorType) {
+          // conversion from one bitvector type to another
+          var toWidth = ((BitvectorType)toType).Width;
+          if (fromWidth == toWidth) {
+            return r;
+          } else if (fromWidth < toWidth) {
+            var zeros = BplBvLiteralExpr(tok, Basetypes.BigNum.ZERO, toWidth - fromWidth);
+            if (fromWidth == 0) {
+              return zeros;
+            } else {
+              var concat = new Bpl.BvConcatExpr(tok, zeros, r);
+              // There's a bug in Boogie that causes a warning to be emitted if a BvConcatExpr is passed as the argument
+              // to $Box, which takes a type argument.  The bug can apparently be worked around by giving an explicit
+              // (and other redudant) type conversion.
+              return Bpl.Expr.CoerceType(tok, concat, BplBvType(toWidth));
+            }
+          } else if (toWidth == 0) {
+            return BplBvLiteralExpr(tok, Basetypes.BigNum.ZERO, toWidth);
+          } else {
+            return new Bpl.BvExtractExpr(tok, r, toWidth, 0);
+          }
+        } else {
+          r = FunctionCall(tok, "nat_from_bv" + fromWidth, Bpl.Type.Int, r);
+          if (toType.IsNumericBased(Type.NumericPersuation.Real)) {
+            r = FunctionCall(tok, BuiltinFunction.IntToReal, null, r);
+          }
+          return r;
+        }
+      }
+      if (fromType.IsNumericBased(Type.NumericPersuation.Real)) {
+        if (toType.IsNumericBased(Type.NumericPersuation.Real)) {
+          return r;
+        }
+        r = FunctionCall(tok, BuiltinFunction.RealToInt, null, r);
+        // "r" now denotes an integer
+      } else {
+        Contract.Assert(fromType.IsNumericBased(Type.NumericPersuation.Int));
+        if (toType.IsNumericBased(Type.NumericPersuation.Real)) {
+          return FunctionCall(tok, BuiltinFunction.IntToReal, null, r);
+        }
+      }
+      if (toType.IsNumericBased(Type.NumericPersuation.Int)) {
+        return r;
+      } else {
+        Contract.Assert(toType.IsBitVectorType);
+        var toWidth = ((BitvectorType)toType).Width;
+        return FunctionCall(tok, "nat_to_bv" + toWidth, BplBvType(toWidth), r);
+      }
+    }
+
+    /// <summary>
     /// Emit checks that "expr" (which may or may not be a value of type "expr.Type"!) is a value of type "toType".
     /// </summary>
     void CheckResultToBeInType(IToken tok, Expression expr, Type toType, List<Bpl.Variable> locals, StmtListBuilder builder, ExpressionTranslator etran) {
@@ -5935,39 +6000,21 @@ namespace Microsoft.Dafny {
       Contract.Requires(builder != null);
       Contract.Requires(etran != null);
 
-      bool needIntegerCheck = false;
-      var dd = toType.AsNewtype;
-      if (expr.Type.IsNumericBased(Type.NumericPersuation.Real)) {
-        if (!toType.IsNumericBased(Type.NumericPersuation.Real)) {
-          // we're going to a non-real type
-          needIntegerCheck = true;
-        } else if (dd == null) {
-          return;  // nothing to do
+      // Lazily create a local variable "o" to hold the value of the from-expression
+      Bpl.IdentifierExpr o = null;
+      Action PutSourceIntoLocal = () => {
+        if (o == null) {
+          var oVar = new Bpl.LocalVariable(tok, new Bpl.TypedIdent(tok, CurrentIdGenerator.FreshId("newtype$check#"), TrType(expr.Type)));
+          locals.Add(oVar);
+          o = new Bpl.IdentifierExpr(tok, oVar);
+          builder.Add(Bpl.Cmd.SimpleAssign(tok, o, etran.TrExpr(expr)));
         }
-      } else if (expr.Type.IsNumericBased(Type.NumericPersuation.Int)) {
-        if (dd == null && !toType.IsBitVectorType) {
-          return;  // nothing to do
-        }
-      } else if (expr.Type.IsBitVectorType) {
-        var fromWidth = ((BitvectorType)expr.Type).Width;
-        if (dd == null && (!toType.IsBitVectorType || fromWidth <= ((BitvectorType)toType).Width)) {
-          return;  // nothing to do
-        }
-      } else {
-        // could be boolean, for example
-        return;  // nothing to do
-      }
+      };
 
-      // create a local variable "o" to hold the value of the from-expression
-      var oVar = new Bpl.LocalVariable(tok, new Bpl.TypedIdent(tok, CurrentIdGenerator.FreshId("newtype$check#"), TrType(expr.Type)));
-      locals.Add(oVar);
-      var o = new Bpl.IdentifierExpr(tok, oVar);
-      builder.Add(Bpl.Cmd.SimpleAssign(tok, o, etran.TrExpr(expr)));
-
-      if (needIntegerCheck) {
-        Contract.Assert(expr.Type.IsNumericBased(Type.NumericPersuation.Real));
+      if (expr.Type.IsNumericBased(Type.NumericPersuation.Real) && !toType.IsNumericBased(Type.NumericPersuation.Real)) {
         // this operation is well-formed only if the real-based number represents an integer
         //   assert Real(Int(o)) == o;
+        PutSourceIntoLocal();
         var from = FunctionCall(tok, BuiltinFunction.RealToInt, null, o);
         Bpl.Expr e = FunctionCall(tok, BuiltinFunction.IntToReal, null, from);
         e = Bpl.Expr.Binary(tok, Bpl.BinaryOperator.Opcode.Eq, e, o);
@@ -5975,64 +6022,73 @@ namespace Microsoft.Dafny {
       }
 
       if (toType.IsBitVectorType) {
-        var toWidth = ((BitvectorType)toType).Width;
+        var toWidth = ((BitvectorType)toType.NormalizeExpand()).Width;
         var toBound = Basetypes.BigNum.FromBigInt(BigInteger.One << toWidth);  // 1 << toWidth
-        Bpl.Expr boundsCheck;
+        Bpl.Expr boundsCheck = null;
         if (expr.Type.IsBitVectorType) {
-          var fromWidth = ((BitvectorType)expr.Type).Width;
-          Contract.Assert(toWidth < fromWidth);  // checked above
-          // Check "expr < (1 << toWidth)" in type "fromType" (note that "1 << toWidth" is indeed a value in "fromType")
-          var bound = BplBvLiteralExpr(tok, toBound, (BitvectorType)expr.Type);
-          boundsCheck = FunctionCall(expr.tok, "lt_bv" + fromWidth, Bpl.Type.Bool, o, bound);
+          var fromWidth = ((BitvectorType)expr.Type.NormalizeExpand()).Width;
+          if (toWidth < fromWidth) {
+            // Check "expr < (1 << toWidth)" in type "fromType" (note that "1 << toWidth" is indeed a value in "fromType")
+            PutSourceIntoLocal();
+            var bound = BplBvLiteralExpr(tok, toBound, (BitvectorType)expr.Type.NormalizeExpand());
+            boundsCheck = FunctionCall(expr.tok, "lt_bv" + fromWidth, Bpl.Type.Bool, o, bound);
+          }
         } else if (expr.Type.IsNumericBased(Type.NumericPersuation.Int)) {
           // Check "expr < (1 << toWdith)" in type "int"
+          PutSourceIntoLocal();
           var bound = Bpl.Expr.Literal(toBound);
-          boundsCheck = Bpl.Expr.Lt(o, bound);
+          boundsCheck = Bpl.Expr.And(Bpl.Expr.Le(Bpl.Expr.Literal(0), o), Bpl.Expr.Lt(o, bound));
         } else {
           Contract.Assert(expr.Type.IsNumericBased(Type.NumericPersuation.Real));
           // Check "Int(expr) < (1 << toWdith)" in type "int"
+          PutSourceIntoLocal();
           var bound = Bpl.Expr.Literal(toBound);
-          boundsCheck = Bpl.Expr.Lt(FunctionCall(tok, BuiltinFunction.RealToInt, null, o), bound);
+          var oi = FunctionCall(tok, BuiltinFunction.RealToInt, null, o);
+          boundsCheck = Bpl.Expr.And(Bpl.Expr.Le(Bpl.Expr.Literal(0), oi), Bpl.Expr.Lt(oi, bound));
         }
-        builder.Add(Assert(tok, boundsCheck, string.Format("value to be converted might not fit in {0}", toType)));
+        if (boundsCheck != null) {
+          builder.Add(Assert(tok, boundsCheck, string.Format("value to be converted might not fit in {0}", toType)));
+        }
       }
 
-      if (dd != null) {
-        Contract.Assert(toType.IsNumericBased());
+      if (toType.NormalizeExpandKeepConstraints().AsRedirectingType != null) {
+        PutSourceIntoLocal();
         Bpl.Expr be;
-        if (expr.Type.IsNumericBased(Type.NumericPersuation.Int) && toType.IsNumericBased(Type.NumericPersuation.Real)) {
-          be = FunctionCall(tok, BuiltinFunction.IntToReal, null, o);
-        } else if (expr.Type.IsNumericBased(Type.NumericPersuation.Real) && toType.IsNumericBased(Type.NumericPersuation.Int)) {
-          be = FunctionCall(tok, BuiltinFunction.RealToInt, null, o);
-        } else if (expr.Type.IsBitVectorType) {
-          var fromWidth = ((BitvectorType)expr.Type).Width;
-          be = FunctionCall(expr.tok, "nat_from_bv" + fromWidth, Bpl.Type.Int, o);
-          if (toType.IsNumericBased(Type.NumericPersuation.Real)) {
-            be = FunctionCall(tok, BuiltinFunction.IntToReal, null, be);
-          }
+        if (expr.Type.IsNumericBased() || expr.Type.IsBitVectorType) {
+          be = ConvertExpression(expr.tok, o, expr.Type, toType);
         } else {
           be = o;
         }
-        var dafnyType = toType.IsNumericBased(Type.NumericPersuation.Int) ? (Type)Type.Int : Type.Real;
-        CheckResultToBeInType_Aux(tok, new BoogieWrapper(be, dafnyType), dd, builder, etran);
+        var dafnyType = toType.NormalizeExpand();
+        CheckResultToBeInType_Aux(tok, new BoogieWrapper(be, dafnyType), toType.NormalizeExpandKeepConstraints(), builder, etran);
       }
     }
-    void CheckResultToBeInType_Aux(IToken tok, Expression expr, NewtypeDecl dd, StmtListBuilder builder, ExpressionTranslator etran) {
+    void CheckResultToBeInType_Aux(IToken tok, Expression expr, Type toType, StmtListBuilder builder, ExpressionTranslator etran) {
       Contract.Requires(tok != null);
       Contract.Requires(expr != null);
-      Contract.Requires(dd != null);
+      Contract.Requires(toType != null && toType.AsRedirectingType != null);
       Contract.Requires(builder != null);
       Contract.Requires(etran != null);
       // First, check constraints of base types
-      var baseType = dd.BaseType.AsNewtype;
-      if (baseType != null) {
+      var udt = (UserDefinedType)toType;
+      var rdt = (RedirectingTypeDecl)udt.ResolvedClass;
+      Type baseType;
+      string kind;
+      if (rdt is SubsetTypeDecl) {
+        baseType = ((SubsetTypeDecl)rdt).RhsWithArgument(udt.TypeArgs);
+        kind = "subset type";
+      } else {
+        baseType = ((NewtypeDecl)rdt).BaseType;
+        kind = "newtype";
+      }
+      if (baseType.AsRedirectingType != null) {
         CheckResultToBeInType_Aux(tok, expr, baseType, builder, etran);
       }
       // Check any constraint defined in 'dd'
-      if (dd.Var != null) {
+      if (rdt.Var != null) {
         // TODO: use TrSplitExpr
-        var constraint = etran.TrExpr(Substitute(dd.Constraint, dd.Var, expr));
-        builder.Add(Assert(tok, constraint, string.Format("result of operation might violate newtype constraint for '{0}'", dd.Name)));
+        var constraint = etran.TrExpr(Substitute(rdt.Constraint, rdt.Var, expr));
+        builder.Add(Assert(tok, constraint, string.Format("result of operation might violate {1} constraint for '{0}'", rdt.Name, kind)));
       }
     }
 
@@ -6476,6 +6532,44 @@ namespace Microsoft.Dafny {
               BplIff(Is,
                 BplForall(bvarsInner, BplTrigger(applied),
                   BplImp(BplAnd(BplAnd(goodHeap, isBoxes), pre), applied_is))))));
+        }
+        /*
+           axiom (forall f: HandleType, t0: Ty, t1: Ty, u0: Ty, u1: Ty ::
+             { $Is(f, Tclass._System.___hFunc1(t0, t1)), $Is(f, Tclass._System.___hFunc1(u0, u1)) }  
+             $Is(f, Tclass._System.___hFunc1(t0, t1)) &&
+             (forall bx: Box :: { $IsBox(bx, u0), $IsBox(bx, t0) }
+                 $IsBox(bx, u0) ==> $IsBox(bx, t0)) &&  // contravariant arguments
+             (forall bx: Box :: { $IsBox(bx, t1), $IsBox(bx, u1) }
+                 $IsBox(bx, t1) ==> $IsBox(bx, u1))     // covariant result
+             ==>
+             $Is(f, Tclass._System.___hFunc1(u0, u1)));
+        */
+        {
+          var bvarsOuter = new List<Bpl.Variable>();
+          var f = BplBoundVar("f", predef.HandleType, bvarsOuter);
+          var typesT = Map(Enumerable.Range(0, arity + 1), i => BplBoundVar("t" + i, predef.Ty, bvarsOuter));
+          var IsT = MkIs(f, ClassTyCon(ad, typesT));
+          var typesU = Map(Enumerable.Range(0, arity + 1), i => BplBoundVar("u" + i, predef.Ty, bvarsOuter));
+          var IsU = MkIs(f, ClassTyCon(ad, typesU));
+
+          Func<Expr, Expr, Expr> Inner = (a, b) => {
+            var bvarsInner = new List<Bpl.Variable>();
+            var bx = BplBoundVar("bx", predef.BoxType, bvarsInner);
+            var isBoxA = MkIs(bx, a, true);
+            var isBoxB = MkIs(bx, b, true);
+            var tr = new Bpl.Trigger(tok, true, new [] { isBoxA }, new Bpl.Trigger(tok, true, new [] { isBoxB }));
+            var imp = BplImp(isBoxA, isBoxB);
+            return BplForall(bvarsInner, tr, imp);
+          };
+
+          var body = IsT;
+          for (int i = 0; i < arity; i++) {
+            body = BplAnd(body, Inner(typesU[i], typesT[i]));
+          }
+          body = BplAnd(body, Inner(typesT[arity], typesU[arity]));
+          body = BplImp(body, IsU);
+          sink.AddTopLevelDeclaration(new Axiom(tok,
+            BplForall(bvarsOuter, new Bpl.Trigger(tok, true, new [] { IsT, IsU }), body)));
         }
         /*  This is the definition of $IsAlloc function the arrow type:
           axiom (forall f: HandleType, t0: Ty, t1: Ty, h: Heap ::
@@ -12058,7 +12152,7 @@ namespace Microsoft.Dafny {
 
         } else if (expr is ConversionExpr) {
           var e = (ConversionExpr)expr;
-          return ConvertExpression(e.tok, TrExpr(e.E), e.E.Type, e.ToType);
+          return translator.ConvertExpression(e.tok, TrExpr(e.E), e.E.Type, e.ToType);
 
         } else if (expr is BinaryExpr) {
           BinaryExpr e = (BinaryExpr)expr;
@@ -12227,11 +12321,11 @@ namespace Microsoft.Dafny {
 
             case BinaryExpr.ResolvedOpcode.LeftShift: {
                 Contract.Assert(0 <= bvWidth);
-                return TrToFunctionCall(expr.tok, "LeftShift_bv" + bvWidth, translator.BplBvType(bvWidth), e0, ConvertExpression(expr.tok, e1, e.E1.Type, e.Type), liftLit);
+                return TrToFunctionCall(expr.tok, "LeftShift_bv" + bvWidth, translator.BplBvType(bvWidth), e0, translator.ConvertExpression(expr.tok, e1, e.E1.Type, e.Type), liftLit);
               }
             case BinaryExpr.ResolvedOpcode.RightShift: {
                 Contract.Assert(0 <= bvWidth);
-                return TrToFunctionCall(expr.tok, "RightShift_bv" + bvWidth, translator.BplBvType(bvWidth), e0, ConvertExpression(expr.tok, e1, e.E1.Type, e.Type), liftLit);
+                return TrToFunctionCall(expr.tok, "RightShift_bv" + bvWidth, translator.BplBvType(bvWidth), e0, translator.ConvertExpression(expr.tok, e1, e.E1.Type, e.Type), liftLit);
               }
             case BinaryExpr.ResolvedOpcode.BitwiseAnd: {
               Contract.Assert(0 <= bvWidth);
@@ -12633,67 +12727,6 @@ namespace Microsoft.Dafny {
 
         } else {
           Contract.Assert(false); throw new cce.UnreachableException();  // unexpected expression
-        }
-      }
-
-      /// <summary>
-      /// Returns the translation of converting "r", whose Dafny type was "fromType", to a value of type "toType".
-      /// The translation assumes that "r" is known to be a value of type "toType".
-      /// </summary>
-      Bpl.Expr ConvertExpression(IToken tok, Bpl.Expr r, Type fromType, Type toType) {
-        Contract.Requires(tok != null);
-        Contract.Requires(r != null);
-        Contract.Requires(fromType != null);
-        Contract.Requires(toType != null);
-        if (fromType.IsBitVectorType) {
-          var fromWidth = ((BitvectorType)fromType).Width;
-          if (toType.IsBitVectorType) {
-            // conversion from one bitvector type to another
-            var toWidth = ((BitvectorType)toType).Width;
-            if (fromWidth == toWidth) {
-              return r;
-            } else if (fromWidth < toWidth) {
-              var zeros = translator.BplBvLiteralExpr(tok, Basetypes.BigNum.ZERO, toWidth - fromWidth);
-              if (fromWidth == 0) {
-                return zeros;
-              } else {
-                var concat = new Bpl.BvConcatExpr(tok, zeros, r);
-                // There's a bug in Boogie that causes a warning to be emitted if a BvConcatExpr is passed as the argument
-                // to $Box, which takes a type argument.  The bug can apparently be worked around by giving an explicit
-                // (and other redudant) type conversion.
-                return Bpl.Expr.CoerceType(tok, concat, translator.BplBvType(toWidth));
-              }
-            } else if (toWidth == 0) {
-              return translator.BplBvLiteralExpr(tok, Basetypes.BigNum.ZERO, toWidth);
-            } else {
-              return new Bpl.BvExtractExpr(tok, r, toWidth, 0);
-            }
-          } else {
-            r = translator.FunctionCall(tok, "nat_from_bv" + fromWidth, Bpl.Type.Int, r);
-            if (toType.IsNumericBased(Type.NumericPersuation.Real)) {
-              r = translator.FunctionCall(tok, BuiltinFunction.IntToReal, null, r);
-            }
-            return r;
-          }
-        }
-        if (fromType.IsNumericBased(Type.NumericPersuation.Real)) {
-          if (toType.IsNumericBased(Type.NumericPersuation.Real)) {
-            return r;
-          }
-          r = translator.FunctionCall(tok, BuiltinFunction.RealToInt, null, r);
-          // "r" now denotes an integer
-        } else {
-          Contract.Assert(fromType.IsNumericBased(Type.NumericPersuation.Int));
-          if (toType.IsNumericBased(Type.NumericPersuation.Real)) {
-            return translator.FunctionCall(tok, BuiltinFunction.IntToReal, null, r);
-          }
-        }
-        if (toType.IsNumericBased(Type.NumericPersuation.Int)) {
-          return r;
-        } else {
-          Contract.Assert(toType.IsBitVectorType);
-          var toWidth = ((BitvectorType)toType).Width;
-          return translator.FunctionCall(tok, "nat_to_bv" + toWidth, translator.BplBvType(toWidth), r);
         }
       }
 

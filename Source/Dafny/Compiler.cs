@@ -112,7 +112,7 @@ namespace Microsoft.Dafny {
             var at = (OpaqueTypeDecl)d;
             Error("Opaque type ('{0}') cannot be compiled", wr, at.FullName);
           } else if (d is TypeSynonymDecl) {
-            // do nothing, just bypass type synonyms in the compiler
+            // do nothing, just bypass type synonyms and subset types in the compiler
           } else if (d is NewtypeDecl) {
             var nt = (NewtypeDecl)d;
             Indent(indent, wr);
@@ -1722,11 +1722,11 @@ namespace Microsoft.Dafny {
         Indent(indent + n * IndentAmount, wr);
         wr.Write("if (");
         foreach (var bv in s.BoundVars) {
-          if (bv.Type.NormalizeExpandKeepConstraints() is NatType) {
-            wr.Write("0 <= {0} && ", bv.CompileName);
-          }
+          var bvConstraints = Resolver.GetImpliedTypeConstraint(bv, bv.Type);
+          TrParenExpr(bvConstraints, wr, false);
+          wr.Write(" && ");
         }
-        TrExpr(s.Range, wr, false);
+        TrParenExpr(s.Range, wr, false);
         wr.WriteLine(") {");
 
         var indFinal = indent + (n + 1) * IndentAmount;

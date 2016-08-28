@@ -41,6 +41,10 @@ namespace Microsoft.Dafny
       if (d is OpaqueTypeDecl) {
         var dd = (OpaqueTypeDecl)d;
         return new OpaqueTypeDecl(Tok(dd.tok), dd.Name, m, dd.EqualitySupport, dd.TypeArgs.ConvertAll(CloneTypeParam), CloneAttributes(dd.Attributes), CloneFromValue(d));
+      } else if (d is SubsetTypeDecl) {
+        var dd = (SubsetTypeDecl)d;
+        var tps = dd.TypeArgs.ConvertAll(CloneTypeParam);
+        return new SubsetTypeDecl(Tok(dd.tok), dd.Name, tps, m, CloneBoundVar(dd.Var), CloneExpr(dd.Constraint), CloneAttributes(dd.Attributes), CloneFromValue(dd));
       } else if (d is TypeSynonymDecl) {
         var dd = (TypeSynonymDecl)d;
         var tps = dd.TypeArgs.ConvertAll(CloneTypeParam);

@@ -6,7 +6,9 @@ module _System {
    */
   type string = seq<char>
 
-  class {:compile false} object { }
+  type {:axiom} nat = x: int | 0 <= x
+
+  trait {:compile false} object { }
 
   class {:compile false} array<arg> {
     var Length: int  // immutable
@@ -32,48 +34,50 @@ module _System {
 */
 
 /* CALL GRAPH for module _module:
- * SCC at height 20:
+ * SCC at height 21:
  *   _default.TestActualShifting
- * SCC at height 19:
+ * SCC at height 20:
  *   _default.R
- * SCC at height 18:
+ * SCC at height 19:
  *   _default.Q
- * SCC at height 17:
+ * SCC at height 18:
  *   _default.P
- * SCC at height 16:
+ * SCC at height 17:
  *   _default.N4
- * SCC at height 15:
+ * SCC at height 16:
  *   _default.N3
- * SCC at height 14:
+ * SCC at height 15:
  *   _default.N2
- * SCC at height 13:
+ * SCC at height 14:
  *   _default.N1
- * SCC at height 12:
+ * SCC at height 13:
  *   _default.N0
- * SCC at height 11:
+ * SCC at height 12:
  *   _default.M
- * SCC at height 10:
+ * SCC at height 11:
  *   _default.Shifts6
- * SCC at height 9:
+ * SCC at height 10:
  *   _default.Shifts5
- * SCC at height 8:
+ * SCC at height 9:
  *   _default.Shifts4
- * SCC at height 7:
+ * SCC at height 8:
  *   _default.Shifts3
- * SCC at height 6:
+ * SCC at height 7:
  *   _default.Shifts2
- * SCC at height 5:
+ * SCC at height 6:
  *   _default.Shifts1
- * SCC at height 4:
+ * SCC at height 5:
  *   _default.Shifts0
- * SCC at height 3:
+ * SCC at height 4:
  *   _default.PQ
- * SCC at height 2:
+ * SCC at height 3:
  *   Handful
- * SCC at height 1:
+ * SCC at height 2:
  *   SmallReal
- * SCC at height 0:
+ * SCC at height 1:
  *   EvenInt
+ * SCC at height 0:
+ *   nat
  */
 newtype EvenInt = x: int | x % 2 == 0
 

@@ -6,7 +6,9 @@ module _System {
    */
   type string = seq<char>
 
-  class {:compile false} object { }
+  type {:axiom} nat = x: int | 0 <= x
+
+  trait {:compile false} object { }
 
   class {:compile false} array<arg> {
     var Length: int  // immutable

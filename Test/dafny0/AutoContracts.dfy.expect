@@ -8,7 +8,9 @@ module _System {
    */
   type string = seq<char>
 
-  class {:compile false} object { }
+  type {:axiom} nat = x: int | 0 <= x
+
+  trait {:compile false} object { }
 
   class {:compile false} array<arg> {
     var Length: int  // immutable
@@ -30,26 +32,28 @@ module _System {
 
 module OneModule {
   /* CALL GRAPH for module OneModule:
-   * SCC at height 9:
+   * SCC at height 10:
    *   C.NoBody
-   * SCC at height 8:
+   * SCC at height 9:
    *   D.Valid
-   * SCC at height 7:
+   * SCC at height 8:
    *   C.TL
-   * SCC at height 6:
+   * SCC at height 7:
    *   C.L
-   * SCC at height 5:
+   * SCC at height 6:
    *   C.Query
-   * SCC at height 4:
+   * SCC at height 5:
    *   C.Mutating
-   * SCC at height 3:
+   * SCC at height 4:
    *   C.P
+   * SCC at height 3:
+   *   C._ctor
    * SCC at height 2:
    *   C.F
    * SCC at height 1:
-   *   C._ctor
-   * SCC at height 0:
    *   C.Valid
+   * SCC at height 0:
+   *   nat
    */
   class {:autocontracts} D {
     ghost var Repr: set<object>

@@ -1874,14 +1874,14 @@ int StringToInt(string s, int defaultValue, string errString) {
 			tok = t;  ty = new CharType(); 
 			break;
 		}
-		case 10: {
-			Get();
-			tok = t;  ty = new NatType(); 
-			break;
-		}
 		case 9: {
 			Get();
 			tok = t;  ty = new IntType(); 
+			break;
+		}
+		case 10: {
+			Get();
+			tok = t;  ty = new UserDefinedType(tok, tok.val, null); 
 			break;
 		}
 		case 11: {

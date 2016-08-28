@@ -6,7 +6,9 @@ module _System {
    */
   type string = seq<char>
 
-  class {:compile false} object { }
+  type {:axiom} nat = x: int | 0 <= x
+
+  trait {:compile false} object { }
 
   class {:compile false} array<arg> {
     var Length: int  // immutable
@@ -24,22 +26,24 @@ module _System {
 */
 
 /* CALL GRAPH for module _module:
- * SCC at height 7:
+ * SCC at height 8:
  *   _default.Main
- * SCC at height 6:
+ * SCC at height 7:
  *   int64
- * SCC at height 5:
+ * SCC at height 6:
  *   Abundance
- * SCC at height 4:
+ * SCC at height 5:
  *   _default.PrintExpected
- * SCC at height 3:
+ * SCC at height 4:
  *   _default.Print
- * SCC at height 2:
+ * SCC at height 3:
  *   SmallReal
- * SCC at height 1:
+ * SCC at height 2:
  *   EvenInt
- * SCC at height 0:
+ * SCC at height 1:
  *   Handful
+ * SCC at height 0:
+ *   nat
  */
 newtype Handful = x: int | 0 <= x < 32768
 

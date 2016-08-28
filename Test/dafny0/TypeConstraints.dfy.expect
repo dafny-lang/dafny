@@ -24,7 +24,9 @@ module _System {
    */
   type string = seq<char>
 
-  class {:compile false} object { }
+  type {:axiom} nat = x: int | 0 <= x
+
+  trait {:compile false} object { }
 
   class {:compile false} array<arg> {
     var Length: int  // immutable
@@ -56,14 +58,16 @@ module _System {
 
 module Tests {
   /* CALL GRAPH for module Tests:
+   * SCC at height 4:
+   *   CC.M
    * SCC at height 3:
    *   _default.ChainOfAssignments
    * SCC at height 2:
-   *   CC.M
-   * SCC at height 1:
    *   CC.N
-   * SCC at height 0:
+   * SCC at height 1:
    *   CC.F
+   * SCC at height 0:
+   *   nat
    */
   class CC {
     var f: nat
@@ -449,18 +453,20 @@ module TraitStuff {
 
 module OtherTraitsAndClasses {
   /* CALL GRAPH for module OtherTraitsAndClasses:
-   * SCC at height 5:
+   * SCC at height 6:
    *   _default.Q1
-   * SCC at height 4:
+   * SCC at height 5:
    *   _default.Q0
-   * SCC at height 3:
-   *   _default.M
-   * SCC at height 2:
+   * SCC at height 4:
    *   _default.G
-   * SCC at height 1:
+   * SCC at height 3:
    *   _default.Displays
-   * SCC at height 0:
+   * SCC at height 2:
    *   _default.Basics
+   * SCC at height 1:
+   *   _default.M
+   * SCC at height 0:
+   *   nat
    */
   trait J { }
 
@@ -554,8 +560,10 @@ module LetPatterns {
 
 module Arrays_and_SubsetTypes {
   /* CALL GRAPH for module Arrays_and_SubsetTypes:
-   * SCC at height 0:
+   * SCC at height 1:
    *   _default.M
+   * SCC at height 0:
+   *   nat
    */
   method M()
   {

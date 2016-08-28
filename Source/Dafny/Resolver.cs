@@ -9244,9 +9244,7 @@ namespace Microsoft.Dafny
         var prevErrorCount = reporter.Count(ErrorLevel.Error);
         ResolveType(e.tok, e.ToType, opts.codeContext, new ResolveTypeOption(ResolveTypeOptionEnum.DontInfer), null);
         if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
-          if (e.ToType is NatType) {
-            reporter.Error(MessageSource.Resolver, expr, "type conversions to 'nat' are not supported; convert to 'int' instead");
-          } else if (e.ToType.IsNumericBased(Type.NumericPersuation.Int)) {
+          if (e.ToType.IsNumericBased(Type.NumericPersuation.Int)) {
             AddXConstraint(expr.tok, "NumericOrBitvector", e.E.Type, "type conversion to an int-based type is allowed only from numeric and bitvector types (got {0})");
           } else if (e.ToType.IsNumericBased(Type.NumericPersuation.Real)) {
             AddXConstraint(expr.tok, "NumericOrBitvector", e.E.Type, "type conversion to an real-based type is allowed only from numeric and bitvector types (got {0})");
@@ -9255,7 +9253,7 @@ namespace Microsoft.Dafny
           } else {
             reporter.Error(MessageSource.Resolver, expr, "type conversions are not supported to this type (got {0})", e.ToType);
           }
-          e.Type = e.ToType;
+          e.Type = e.ToType.StripSubsetConstraints();
         } else {
           e.Type = new InferredTypeProxy();
         }
@@ -11306,7 +11304,7 @@ namespace Microsoft.Dafny
     /// </summary>
     public static List<ComprehensionExpr.BoundedPool> DiscoverBestBounds_MultipleVars<VT>(List<VT> bvars, Expression expr, bool polarity, bool onlyFiniteBounds, out List<VT> missingBounds) where VT : IVariable {
       foreach (var bv in bvars) {
-        var c = GetImpliedTypeConstraint(bv, bv.Type, null);
+        var c = GetImpliedTypeConstraint(bv, bv.Type);
         expr = polarity ? Expression.CreateAnd(c, expr) : Expression.CreateImplies(c, expr);
       }
       List<ComprehensionExpr.BoundedPool> knownBounds = null;
@@ -11344,7 +11342,7 @@ namespace Microsoft.Dafny
     }
 
     public static List<ComprehensionExpr.BoundedPool> DiscoverAllBounds_SingleVar<VT>(VT v, Expression expr) where VT : IVariable {
-      expr = Expression.CreateAnd(GetImpliedTypeConstraint(v, v.Type, null), expr);
+      expr = Expression.CreateAnd(GetImpliedTypeConstraint(v, v.Type), expr);
       return DiscoverAllBounds_Aux_SingleVar(new List<VT> { v }, 0, expr, true, null);
     }
 
@@ -11462,7 +11460,7 @@ namespace Microsoft.Dafny
       return bounds;
     }
 
-    static Expression GetImpliedTypeConstraint(IVariable bv, Type ty, ErrorReporter reporter) {
+    public static Expression GetImpliedTypeConstraint(IVariable bv, Type ty) {
       Contract.Requires(bv != null);
       Contract.Requires(ty != null);
       ty = ty.NormalizeExpandKeepConstraints();
@@ -11470,15 +11468,15 @@ namespace Microsoft.Dafny
       if (udt != null) {
         if (udt.ResolvedClass is NewtypeDecl) {
           var dd = (NewtypeDecl)udt.ResolvedClass;
-          var c = GetImpliedTypeConstraint(bv, dd.BaseType, reporter);
+          var c = GetImpliedTypeConstraint(bv, dd.BaseType);
           if (dd.Var != null) {
-            c = Expression.CreateAnd(c, new Translator(reporter).Substitute(dd.Constraint, dd.Var, Expression.CreateIdentExpr(bv)));
+            c = Expression.CreateAnd(c, new Translator(null).Substitute(dd.Constraint, dd.Var, Expression.CreateIdentExpr(bv)));
           }
           return c;
         } else if (udt.ResolvedClass is SubsetTypeDecl) {
           var dd = (SubsetTypeDecl)udt.ResolvedClass;
-          var c = GetImpliedTypeConstraint(bv, dd.RhsWithArgument(udt.TypeArgs), reporter);
-          c = Expression.CreateAnd(c, new Translator(reporter).Substitute(dd.Constraint, dd.Var, Expression.CreateIdentExpr(bv)));
+          var c = GetImpliedTypeConstraint(bv, dd.RhsWithArgument(udt.TypeArgs));
+          c = Expression.CreateAnd(c, new Translator(null).Substitute(dd.Constraint, dd.Var, Expression.CreateIdentExpr(bv)));
           return c;
         }
       } else if (ty is NatType) {

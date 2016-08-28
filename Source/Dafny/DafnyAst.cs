@@ -102,8 +102,14 @@ namespace Microsoft.Dafny {
       // create type synonym 'string'
       var str = new TypeSynonymDecl(Token.NoToken, "string", new List<TypeParameter>(), SystemModule, new SeqType(new CharType()), null);
       SystemModule.TopLevelDecls.Add(str);
-      // create class 'object'
-      ObjectDecl = new ClassDecl(Token.NoToken, "object", SystemModule, new List<TypeParameter>(), new List<MemberDecl>(), DontCompile(), null);
+      // create subset type 'nat'
+      var bvNat = new BoundVar(Token.NoToken, "x", Type.Int);
+      var natConstraint = Expression.CreateAtMost(Expression.CreateIntLiteral(Token.NoToken, 0), Expression.CreateIdentExpr(bvNat));
+      var ax = new Attributes("axiom", new List<Expression>(), null);
+      var nat = new SubsetTypeDecl(Token.NoToken, "nat", new List<TypeParameter>(), SystemModule, bvNat, natConstraint, ax);
+      SystemModule.TopLevelDecls.Add(nat);
+      // create trait 'object'
+      ObjectDecl = new TraitDecl(Token.NoToken, "object", SystemModule, new List<TypeParameter>(), new List<MemberDecl>(), DontCompile(), null);
       SystemModule.TopLevelDecls.Add(ObjectDecl);
       // add one-dimensional arrays, since they may arise during type checking
       // Arrays of other dimensions may be added during parsing as the parser detects the need for these
@@ -625,15 +631,6 @@ namespace Microsoft.Dafny {
     public bool IsIntegerType { get { return NormalizeExpand() is IntType; } }
     public bool IsRealType { get { return NormalizeExpand() is RealType; } }
     public bool IsBitVectorType { get { return NormalizeExpand() is BitvectorType; } }
-    public bool ContainsSubsetType {
-      get {
-        var t = NormalizeExpandKeepConstraints();
-        if (t is NatType) {
-          return true;
-        }
-        return t.TypeArgs.Any(a => a.ContainsSubsetType);
-      }
-    }
     public bool IsNumericBased() {
       var t = NormalizeExpand();
       return t.IsIntegerType || t.IsRealType || t.AsNewtype != null;
@@ -747,7 +744,7 @@ namespace Microsoft.Dafny {
     }
     public RedirectingTypeDecl AsRedirectingType {
       get {
-        var udt = this as UserDefinedType;  // Note, it is important to use 'this' here, not 'this.NormalizeExpand()'.  This property getter is intended to be used during resolution.
+        var udt = this as UserDefinedType;  // Note, it is important to use 'this' here, not 'this.NormalizeExpand()'.  This property getter is intended to be used during resolution, or with care thereafter.
         if (udt == null) {
           return null;
         } else {
@@ -1409,9 +1406,7 @@ namespace Microsoft.Dafny {
       return that.IsIntegerType;
     }
     public override bool IsSupertypeOf_WithSubsetTypes(Type that) {
-      that = that.NormalizeExpandKeepConstraints();
-      // treat "int" and "nat" as different
-      return that is IntType && (!(this is NatType) || that is NatType);
+      return that.IsIntegerType;
     }
   }
 
@@ -1420,6 +1415,20 @@ namespace Microsoft.Dafny {
     [Pure]
     public override string TypeName(ModuleDefinition context, bool parseAble) {
       return "nat";
+    }
+    public override bool IsSupertypeOf_WithSubsetTypes(Type that) {
+      while (true) {
+        that = that.NormalizeExpandKeepConstraints();
+        if (that is NatType) {
+          return true;
+        }
+        var udt = that as UserDefinedType;
+        if (udt != null && udt.ResolvedClass is SubsetTypeDecl) {
+          that = ((SubsetTypeDecl)udt.ResolvedClass).RhsWithArgument(udt.TypeArgs);
+          continue;
+        }
+        return false;
+      }
     }
   }
 
@@ -3651,7 +3660,7 @@ namespace Microsoft.Dafny {
     public readonly Expression Constraint;
     public SubsetTypeDecl(IToken tok, string name, List<TypeParameter> typeArgs, ModuleDefinition module,
       BoundVar id, Expression constraint,
-      Attributes attributes, TypeSynonymDecl clonedFrom = null)
+      Attributes attributes, SubsetTypeDecl clonedFrom = null)
       : base(tok, name, typeArgs, module, id.Type, attributes, clonedFrom) {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
