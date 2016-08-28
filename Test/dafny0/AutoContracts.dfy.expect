@@ -35,23 +35,23 @@ module OneModule {
    * SCC at height 10:
    *   C.NoBody
    * SCC at height 9:
-   *   D.Valid
-   * SCC at height 8:
    *   C.TL
-   * SCC at height 7:
+   * SCC at height 8:
    *   C.L
-   * SCC at height 6:
+   * SCC at height 7:
    *   C.Query
-   * SCC at height 5:
+   * SCC at height 6:
    *   C.Mutating
-   * SCC at height 4:
+   * SCC at height 5:
    *   C.P
-   * SCC at height 3:
+   * SCC at height 4:
    *   C._ctor
-   * SCC at height 2:
+   * SCC at height 3:
    *   C.F
-   * SCC at height 1:
+   * SCC at height 2:
    *   C.Valid
+   * SCC at height 1:
+   *   D.Valid
    * SCC at height 0:
    *   nat
    */

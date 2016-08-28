@@ -614,7 +614,7 @@ namespace Microsoft.Dafny
                 if (ff.Item3 != null) {
                   // F.Valid()
                   c1 = BinBoolExpr(tok, BinaryExpr.ResolvedOpcode.And, c1,
-                    ValidCall(tok, F, ff.Item3));
+                    ValidCall(tok, F, ff.Item3, valid));
                 }
               }
               var imp = BinBoolExpr(tok, BinaryExpr.ResolvedOpcode.Imp, c0, c1);
@@ -661,7 +661,7 @@ namespace Microsoft.Dafny
           if (member.IsGhost || IsSimpleQueryMethod(m)) {
             if (m.RefinementBase == null) {
               // requires Valid()
-              var valid = ValidCall(tok, implicitSelf, Valid);
+              var valid = ValidCall(tok, implicitSelf, Valid, m);
               if (m is TwoStateLemma) {
                 // Instead use:  requires old(Valid())
                 valid = new OldExpr(tok, valid);
@@ -672,7 +672,7 @@ namespace Microsoft.Dafny
             }
           } else if (m.RefinementBase == null) {
             // requires Valid()
-            var valid = ValidCall(tok, implicitSelf, Valid);
+            var valid = ValidCall(tok, implicitSelf, Valid, m);
             m.Req.Insert(0, new MaybeFreeExpression(valid));
             var format = "requires {0}";
             if (m.Mod.Expressions.Count == 0) {
@@ -805,10 +805,11 @@ namespace Microsoft.Dafny
     /// <summary>
     /// Returns a resolved expression of the form "receiver.Valid()"
     /// </summary>
-    public static Expression ValidCall(IToken tok, Expression receiver, Function Valid) {
+    public static Expression ValidCall(IToken tok, Expression receiver, Function Valid, ICallable callingContext) {
       Contract.Requires(tok != null);
       Contract.Requires(receiver != null);
       Contract.Requires(Valid != null);
+      Contract.Requires(callingContext != null);
       Contract.Requires(receiver.Type is UserDefinedType && ((UserDefinedType)receiver.Type).ResolvedClass == Valid.EnclosingClass);
       Contract.Requires(receiver.Type.TypeArgs.Count == Valid.EnclosingClass.TypeArgs.Count);
       var call = new FunctionCallExpr(tok, Valid.Name, receiver, tok, new List<Expression>());
@@ -819,6 +820,7 @@ namespace Microsoft.Dafny
       for (int i = 0; i < Valid.EnclosingClass.TypeArgs.Count; i++) {
         call.TypeArgumentSubstitutions.Add(Valid.EnclosingClass.TypeArgs[i], receiver.Type.TypeArgs[i]);
       }
+      callingContext.EnclosingModule.CallGraph.AddEdge(callingContext, Valid);
       return call;
     }
 
