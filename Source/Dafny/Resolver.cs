@@ -1659,7 +1659,9 @@ namespace Microsoft.Dafny
             if (!CheckTypeInference_Visitor.IsDetermined(dd.BaseType.NormalizeExpand())) {
               reporter.Error(MessageSource.Resolver, dd.tok, "newtype's base type is not fully determined; add an explicit type for '{0}'", dd.Var.Name);
             }
-            CheckTypeInference(dd.Constraint, dd);
+            if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
+              CheckTypeInference(dd.Constraint, dd);
+            }
             scope.PopMarker();
           }
         } else if (d is SubsetTypeDecl) {
@@ -1678,7 +1680,9 @@ namespace Microsoft.Dafny
           if (!CheckTypeInference_Visitor.IsDetermined(dd.Rhs.NormalizeExpand())) {
             reporter.Error(MessageSource.Resolver, dd.tok, "subset type's base type is not fully determined; add an explicit type for '{0}'", dd.Var.Name);
           }
-          CheckTypeInference(dd.Constraint, dd);
+          if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
+            CheckTypeInference(dd.Constraint, dd);
+          }
           scope.PopMarker();
         }
       }
