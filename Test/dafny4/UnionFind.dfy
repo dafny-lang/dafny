@@ -1,4 +1,4 @@
-// RUN: %dafny /rprint:"%t.rprint" /autoTriggers:1 "%s" > "%t"
+// RUN: %dafny /rprint:"%t.rprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 // Rustan Leino, Nov 2015
 
@@ -13,7 +13,7 @@ abstract module M0 {
     constructor ()
       ensures M == map[]
     {
-      Repr, M:= {this}, map[];
+      Repr, M := {this}, map[];
     }
 
     method New() returns (e: Element)

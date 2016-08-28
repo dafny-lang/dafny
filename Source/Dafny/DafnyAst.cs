@@ -1943,7 +1943,7 @@ namespace Microsoft.Dafny {
       var i = NormalizeExpandKeepConstraints();
       if (i is UserDefinedType) {
         var ii = (UserDefinedType)i;
-        var t = that.NormalizeExpand() as UserDefinedType;
+        var t = that.NormalizeExpandKeepConstraints() as UserDefinedType;
         if (t == null || ii.ResolvedParam != t.ResolvedParam || ii.ResolvedClass != t.ResolvedClass || ii.TypeArgs.Count != t.TypeArgs.Count) {
           return false;
         } else {
