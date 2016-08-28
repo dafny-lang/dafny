@@ -1902,7 +1902,7 @@ namespace Microsoft.Dafny {
     }
 
     /// <summary>
-    /// Constructs a resolve type for an opaque type.
+    /// Constructs a resolved type for an opaque type.
     /// </summary>
     public UserDefinedType(OpaqueType_AsParameter tp, OpaqueTypeDecl decl, List<Type> typeArgs) {
       Contract.Requires(tp != null);

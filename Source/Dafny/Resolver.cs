@@ -11461,28 +11461,31 @@ namespace Microsoft.Dafny
     }
 
     public static Expression GetImpliedTypeConstraint(IVariable bv, Type ty) {
-      Contract.Requires(bv != null);
+      return GetImpliedTypeConstraint(Expression.CreateIdentExpr(bv), ty);
+    }
+    public static Expression GetImpliedTypeConstraint(Expression e, Type ty) {
+      Contract.Requires(e != null);
       Contract.Requires(ty != null);
       ty = ty.NormalizeExpandKeepConstraints();
       var udt = ty as UserDefinedType;
       if (udt != null) {
         if (udt.ResolvedClass is NewtypeDecl) {
           var dd = (NewtypeDecl)udt.ResolvedClass;
-          var c = GetImpliedTypeConstraint(bv, dd.BaseType);
+          var c = GetImpliedTypeConstraint(e, dd.BaseType);
           if (dd.Var != null) {
-            c = Expression.CreateAnd(c, new Translator(null).Substitute(dd.Constraint, dd.Var, Expression.CreateIdentExpr(bv)));
+            c = Expression.CreateAnd(c, new Translator(null).Substitute(dd.Constraint, dd.Var, e));
           }
           return c;
         } else if (udt.ResolvedClass is SubsetTypeDecl) {
           var dd = (SubsetTypeDecl)udt.ResolvedClass;
-          var c = GetImpliedTypeConstraint(bv, dd.RhsWithArgument(udt.TypeArgs));
-          c = Expression.CreateAnd(c, new Translator(null).Substitute(dd.Constraint, dd.Var, Expression.CreateIdentExpr(bv)));
+          var c = GetImpliedTypeConstraint(e, dd.RhsWithArgument(udt.TypeArgs));
+          c = Expression.CreateAnd(c, new Translator(null).Substitute(dd.Constraint, dd.Var, e));
           return c;
         }
       } else if (ty is NatType) {
-        return Expression.CreateAtMost(Expression.CreateIntLiteral(bv.Tok, 0), Expression.CreateIdentExpr(bv));
+        return Expression.CreateAtMost(Expression.CreateIntLiteral(e.tok, 0), e);
       }
-      return Expression.CreateBoolLiteral(bv.Tok, true);
+      return Expression.CreateBoolLiteral(e.tok, true);
     }
 
     /// <summary>

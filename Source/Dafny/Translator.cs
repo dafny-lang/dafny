@@ -862,13 +862,12 @@ namespace Microsoft.Dafny {
       FuelContext oldFuelContext = this.fuelContext;
       this.fuelContext = FuelSetting.NewFuelContext(dd);
 
-      AddTypeDecl_Aux(dd.tok, dd.FullName, dd.TypeArgs);
+      AddTypeDecl_Aux(dd.tok, dd.FullName, dd.TypeArgs);  // TODO: I think this should not be called on newtypes, only on opaque types  --KRML
       if (dd.Var != null) {
         AddWellformednessCheck(dd);
         // Add $Is and $IsAlloc axioms for the newtype
-        var o_ty = ClassTyCon(dd, new List<Bpl.Expr>());
-        AddRedirectingTypeDeclAxioms(false, dd, o_ty, dd.FullName);
-        AddRedirectingTypeDeclAxioms(true, dd, o_ty, dd.FullName);
+        AddRedirectingTypeDeclAxioms(false, dd, dd.FullName);
+        AddRedirectingTypeDeclAxioms(true, dd, dd.FullName);
       }
       this.fuelContext = oldFuelContext;
     }
@@ -879,22 +878,23 @@ namespace Microsoft.Dafny {
       FuelContext oldFuelContext = this.fuelContext;
       this.fuelContext = FuelSetting.NewFuelContext(dd);
 
-      AddTypeDecl_Aux(dd.tok, dd.FullName, dd.TypeArgs);
+      AddTypeDecl_Aux(dd.tok, dd.FullName, dd.TypeArgs);  // TODO: I think this should not be called on newtypes, only on opaque types  --KRML
       if (!Attributes.Contains(dd.Attributes, "axiom")) {
         AddWellformednessCheck(dd);
       }
       // Add $Is and $IsAlloc axioms for the subset type
-      var o_ty = ClassTyCon(dd, new List<Bpl.Expr>());  // TODO: use dd.TypeArgs
-      AddRedirectingTypeDeclAxioms(false, dd, o_ty, dd.FullName);
-      AddRedirectingTypeDeclAxioms(true, dd, o_ty, dd.FullName);
+      AddRedirectingTypeDeclAxioms(false, dd, dd.FullName);
+      AddRedirectingTypeDeclAxioms(true, dd, dd.FullName);
       this.fuelContext = oldFuelContext;
     }
-    void AddRedirectingTypeDeclAxioms(bool is_alloc, RedirectingTypeDecl dd, Bpl.Expr o_ty, string fullName) {
-      Contract.Requires(dd != null);
+    void AddRedirectingTypeDeclAxioms(bool is_alloc, RedirectingTypeDecl dd, string fullName) {
+      Contract.Requires(dd != null && dd is TopLevelDecl);
       Contract.Requires(dd.Var != null && dd.Constraint != null);
-      Contract.Requires(o_ty != null);
       Contract.Requires(fullName != null);
+
       var vars = new List<Variable>();
+      var typeArgs = Map(Enumerable.Range(0, dd.TypeArgs.Count), i => BplBoundVar("t" + i, predef.Ty, vars));
+      var o_ty = ClassTyCon((TopLevelDecl)dd, typeArgs);
 
       var oBplType = TrType(dd.Var.Type);
       var o = BplBoundVar(dd.Var.AssignUniqueName(dd.IdGenerator), oBplType, vars);
@@ -907,22 +907,40 @@ namespace Microsoft.Dafny {
         var h = BplBoundVar("$h", predef.HeapType, vars);
         // $IsAlloc(o, ..)
         is_o = MkIsAlloc(o, o_ty, h);
-        body = is_o;
+        if (dd.Var.Type.IsNumericBased() || dd.Var.Type.IsBitVectorType || dd.Var.Type.IsBoolType || dd.Var.Type.IsCharType) {
+          body = is_o;
+        } else {
+          Bpl.Expr rhs = MkIsAlloc(o, dd.Var.Type, h);
+          body = BplIff(is_o, rhs);
+        }
       } else {
         name += "$Is";
         // $Is(o, ..)
         is_o = MkIs(o, o_ty);
-        Bpl.Expr rhs = MkIs(o, dd.Var.Type);
-        if (dd.Var != null) {
+        var etran = new ExpressionTranslator(this, predef, dd.tok);
+        Bpl.Expr parentConstraint, constraint;
+        if (dd.Var.Type.IsNumericBased() || dd.Var.Type.IsBitVectorType || dd.Var.Type.IsBoolType) {
+          // optimize this to only use the numeric/bitvector constraint, not the whole $Is thing on the base type
+          parentConstraint = Bpl.Expr.True;
+          var udt = new UserDefinedType(dd.tok, dd.Name, (TopLevelDecl)dd, dd.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp)));
+          var c = Resolver.GetImpliedTypeConstraint(dd.Var, udt);
+          constraint = etran.TrExpr(c);
+        } else {
+          parentConstraint = MkIs(o, dd.Var.Type);
           // conjoin the constraint
-          var etran = new ExpressionTranslator(this, predef, dd.tok);
-          var constraint = etran.TrExpr(dd.Constraint);
+          constraint = etran.TrExpr(dd.Constraint);
+        }
+        if (etran.Statistics_HeapUses != 0) {
           var heap = new Bpl.BoundVariable(dd.tok, new Bpl.TypedIdent(dd.tok, predef.HeapVarName, predef.HeapType));
           //TRIG (exists $Heap: Heap :: $IsGoodHeap($Heap) && LitInt(0) <= $o#0 && $o#0 < 100)
-          var ex = new Bpl.ExistsExpr(dd.tok, new List<Variable> { heap }, BplAnd(FunctionCall(dd.tok, BuiltinFunction.IsGoodHeap, null, etran.HeapExpr), constraint));  // LL_TRIGGER
-          rhs = BplAnd(rhs, ex);
+          // TODO: Since dd.Constraint really shouldn't depend on the heap anyway, it would be better to use an "etran"
+          // that used some global-constant dummy heap.  But some heap is needed to make for a correct translation into
+          // Boogie, as for instance this example shows:
+          //      class C { }
+          //      newtype MyInt = x: int | {} == set c: C | true :: c
+          constraint = new Bpl.ExistsExpr(dd.tok, new List<Variable> { heap }, BplAnd(FunctionCall(dd.tok, BuiltinFunction.IsGoodHeap, null, etran.HeapExpr), constraint));  // LL_TRIGGER
         }
-        body = BplIff(is_o, rhs);
+        body = BplIff(is_o, BplAnd(parentConstraint, constraint));
       }
 
       sink.AddTopLevelDeclaration(new Bpl.Axiom(dd.tok, BplForall(vars, BplTrigger(is_o), body), name));
@@ -10266,34 +10284,46 @@ namespace Microsoft.Dafny {
       Contract.Requires(etran != null);
       Contract.Requires(predef != null);
 
-      var normType = type.NormalizeExpandKeepConstraints();
-      if (normType is TypeProxy) {
+      if (type.NormalizeExpand() is TypeProxy) {
         // Unresolved proxy
         // Omit where clause (in other places, unresolved proxies are treated as a reference type; we could do that here too, but
         // we might as well leave out the where clause altogether).
         return null;
       }
 
+      Bpl.Expr isAlloc;
+      if (type.IsNumericBased() || type.IsBitVectorType || type.IsBoolType || type.IsCharType) {
+        isAlloc = null;
+      } else {
+        isAlloc = MkIsAlloc(x, type.NormalizeExpand(), etran.HeapExpr);
+      }
+      if (allocatednessOnly) {
+        return isAlloc;
+      }
+
+      var normType = type.NormalizeExpandKeepConstraints();
+      Bpl.Expr isPred = null;
       if (normType is NatType) {
         // nat:
         // 0 <= x
-        return allocatednessOnly ? null : Bpl.Expr.Le(Bpl.Expr.Literal(0), x);
+        isPred = Bpl.Expr.Le(Bpl.Expr.Literal(0), x);
       } else if (normType is BoolType || normType is IntType || normType is RealType) {
         // nothing to do
-        return null;
-      } else if (normType.IsBitVectorType) {
+      } else if (normType is BitvectorType) {
         var t = (BitvectorType)normType;
         if (t.Width == 0) {
           // type bv0 has only one value
-          return allocatednessOnly ? null : Bpl.Expr.Eq(BplBvLiteralExpr(tok, Basetypes.BigNum.ZERO, t), x);
-        } else {
-          // nothing to do
-          return null;
+          return Bpl.Expr.Eq(BplBvLiteralExpr(tok, Basetypes.BigNum.ZERO, t), x);
         }
+      } else if ((normType.AsTypeSynonym != null || normType.AsNewtype != null) &&
+        (normType.IsNumericBased() || normType.IsBitVectorType || normType.IsBoolType)) {
+        var constraint = Resolver.GetImpliedTypeConstraint(new BoogieWrapper(x, normType), normType);
+        isPred = etran.TrExpr(constraint);
       } else {
-        var isAlloc = MkIsAlloc(x, normType, etran.HeapExpr);
-        return allocatednessOnly ? isAlloc : BplAnd(MkIs(x, normType), isAlloc);
+        // go for the symbolic name
+        isPred = MkIs(x, normType);
       }
+      return isAlloc == null ? isPred : isPred == null ? isAlloc : BplAnd(isPred, isAlloc);
     }
 
     /// <summary>
@@ -11449,7 +11479,10 @@ namespace Microsoft.Dafny {
 
     internal class ExpressionTranslator
     {
-      public readonly Bpl.Expr HeapExpr;
+      readonly Bpl.Expr _the_heap_expr;
+      public Bpl.Expr HeapExpr {
+        get { Statistics_HeapUses++; return _the_heap_expr; }
+      }
       public readonly PredefinedDecls predef;
       public readonly Translator translator;
       public readonly string This;
@@ -11459,6 +11492,7 @@ namespace Microsoft.Dafny {
       public readonly FuelSetting layerIntraCluster = null;  // a value of null says to do the same as for inter-cluster calls
       public int Statistics_CustomLayerFunctionCount = 0;
       public int Statistics_HeapAsQuantifierCount = 0;
+      public int Statistics_HeapUses = 0;
       public readonly bool stripLits = false;
       [ContractInvariantMethod]
       void ObjectInvariant()
@@ -11488,7 +11522,7 @@ namespace Microsoft.Dafny {
 
         this.translator = translator;
         this.predef = predef;
-        this.HeapExpr = heap;
+        this._the_heap_expr = heap;
         this.This = thisVar;
         this.applyLimited_CurrentFunction = applyLimited_CurrentFunction;
         this.layerInterCluster = layerInterCluster;
