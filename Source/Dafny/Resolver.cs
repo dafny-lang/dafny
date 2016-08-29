@@ -1327,7 +1327,8 @@ namespace Microsoft.Dafny
                 MemberDecl extraMember;
                 var cloner = new Cloner();
                 var formals = new List<Formal>();
-                var k = new ImplicitFormal(m.tok, "_k", new NatType(), true, false);
+                var natType = new UserDefinedType(m.tok, "nat", (List<Type>)null);
+                var k = new ImplicitFormal(m.tok, "_k", natType, true, false);
                 formals.Add(k);
                 if (m is FixpointPredicate) {
                   var cop = (FixpointPredicate)m;
@@ -11486,8 +11487,6 @@ namespace Microsoft.Dafny
           c = Expression.CreateAnd(c, new Translator(null).Substitute(dd.Constraint, dd.Var, e));
           return c;
         }
-      } else if (ty is NatType) {
-        return Expression.CreateAtMost(Expression.CreateIntLiteral(e.tok, 0), e);
       }
       return Expression.CreateBoolLiteral(e.tok, true);
     }

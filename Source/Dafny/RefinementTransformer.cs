@@ -490,9 +490,7 @@ namespace Microsoft.Dafny
       } else if (prev is CharType) {
         return next is CharType;
       } else if (prev is IntType) {
-        if (next is IntType) {
-          return (prev is NatType) == (next is NatType);
-        } else return false;
+        return next is IntType;
       } else if (prev is RealType) {
         return next is RealType;
       } else if (prev is ObjectType) {

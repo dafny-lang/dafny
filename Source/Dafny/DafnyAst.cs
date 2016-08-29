@@ -571,9 +571,6 @@ namespace Microsoft.Dafny {
 
     public Type StripSubsetConstraints() {
       Type type = Normalize();
-      if (type is NatType) {
-        return new IntType();
-      }
       var syn = type.AsTypeSynonym;
       if (syn != null) {
         var udt = (UserDefinedType)type;
@@ -1407,28 +1404,6 @@ namespace Microsoft.Dafny {
     }
     public override bool IsSupertypeOf_WithSubsetTypes(Type that) {
       return that.IsIntegerType;
-    }
-  }
-
-  public class NatType : IntType
-  {
-    [Pure]
-    public override string TypeName(ModuleDefinition context, bool parseAble) {
-      return "nat";
-    }
-    public override bool IsSupertypeOf_WithSubsetTypes(Type that) {
-      while (true) {
-        that = that.NormalizeExpandKeepConstraints();
-        if (that is NatType) {
-          return true;
-        }
-        var udt = that as UserDefinedType;
-        if (udt != null && udt.ResolvedClass is SubsetTypeDecl) {
-          that = ((SubsetTypeDecl)udt.ResolvedClass).RhsWithArgument(udt.TypeArgs);
-          continue;
-        }
-        return false;
-      }
     }
   }
 

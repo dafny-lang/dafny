@@ -3102,7 +3102,8 @@ namespace Microsoft.Dafny {
         // We ask Z3 to minimize all parameters of type 'nat'.
         foreach (var f in m.Ins)
         {
-          if (f.Type is NatType)
+          var udt = f.Type.NormalizeExpandKeepConstraints() as UserDefinedType;
+          if (udt != null && udt.Name == "nat")
           {
             builder.Add(optimizeExpr(true, new IdentifierExpr(f.tok, f), f.Tok, etran));
           }
@@ -10187,9 +10188,6 @@ namespace Microsoft.Dafny {
       } else if (normType is BitvectorType) {
         var t = (BitvectorType)normType;
         return FunctionCall(Token.NoToken, "TBitvector", predef.Ty, Bpl.Expr.Literal(t.Width));
-      } else if (normType is NatType) {
-        // (Nat needs to come before Int)
-        return new Bpl.IdentifierExpr(Token.NoToken, "TNat", predef.Ty);
       } else if (normType is IntType) {
         return new Bpl.IdentifierExpr(Token.NoToken, "TInt", predef.Ty);
       } else if (normType is ObjectType) {
@@ -10303,11 +10301,7 @@ namespace Microsoft.Dafny {
 
       var normType = type.NormalizeExpandKeepConstraints();
       Bpl.Expr isPred = null;
-      if (normType is NatType) {
-        // nat:
-        // 0 <= x
-        isPred = Bpl.Expr.Le(Bpl.Expr.Literal(0), x);
-      } else if (normType is BoolType || normType is IntType || normType is RealType) {
+      if (normType is BoolType || normType is IntType || normType is RealType) {
         // nothing to do
       } else if (normType is BitvectorType) {
         var t = (BitvectorType)normType;
