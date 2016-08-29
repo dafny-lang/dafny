@@ -853,8 +853,25 @@ namespace Microsoft.Dafny {
 
     void AddTypeDecl(OpaqueTypeDecl td) {
       Contract.Requires(td != null);
-      AddTypeDecl_Aux(td.tok, nameTypeParam(td.TheType), td.TypeArgs);
+      var nm = nameTypeParam(td.TheType);
+
+      if (abstractTypes.Contains(nm)) {
+        // nothing to do; has already been added
+        return;
+      }
+      if (td.TypeArgs.Count == 0) {
+        sink.AddTopLevelDeclaration(
+          new Bpl.Constant(td.tok, new TypedIdent(td.tok, nm, predef.Ty), false /* not unique */));
+      } else {
+        // Note, the function produced is NOT necessarily injective, because the type may be replaced
+        // in a refinement module in such a way that the type arguments do not matter.
+        var args = new List<Bpl.Variable>(td.TypeArgs.ConvertAll(a => (Bpl.Variable)BplFormalVar(null, predef.Ty, true)));
+        var func = new Bpl.Function(td.tok, nm, args, BplFormalVar(null, predef.Ty, false));
+        sink.AddTopLevelDeclaration(func);
+      }
+      abstractTypes.Add(nm);
     }
+
     void AddTypeDecl(NewtypeDecl dd) {
       Contract.Requires(dd != null);
       Contract.Ensures(fuelContext == Contract.OldValue(fuelContext));      
@@ -862,7 +879,6 @@ namespace Microsoft.Dafny {
       FuelContext oldFuelContext = this.fuelContext;
       this.fuelContext = FuelSetting.NewFuelContext(dd);
 
-      AddTypeDecl_Aux(dd.tok, dd.FullName, dd.TypeArgs);  // TODO: I think this should not be called on newtypes, only on opaque types  --KRML
       if (dd.Var != null) {
         AddWellformednessCheck(dd);
         // Add $Is and $IsAlloc axioms for the newtype
@@ -871,6 +887,7 @@ namespace Microsoft.Dafny {
       }
       this.fuelContext = oldFuelContext;
     }
+
     void AddTypeDecl(SubsetTypeDecl dd) {
       Contract.Requires(dd != null);
       Contract.Ensures(fuelContext == Contract.OldValue(fuelContext));
@@ -878,7 +895,6 @@ namespace Microsoft.Dafny {
       FuelContext oldFuelContext = this.fuelContext;
       this.fuelContext = FuelSetting.NewFuelContext(dd);
 
-      AddTypeDecl_Aux(dd.tok, dd.FullName, dd.TypeArgs);  // TODO: I think this should not be called on newtypes, only on opaque types  --KRML
       if (!Attributes.Contains(dd.Attributes, "axiom")) {
         AddWellformednessCheck(dd);
       }
@@ -944,28 +960,6 @@ namespace Microsoft.Dafny {
       }
 
       sink.AddTopLevelDeclaration(new Bpl.Axiom(dd.tok, BplForall(vars, BplTrigger(is_o), body), name));
-    }
-    void AddTypeDecl_Aux(IToken tok, string nm, List<TypeParameter> typeArgs) {
-      Contract.Requires(tok != null);
-      Contract.Requires(nm != null);
-      Contract.Requires(typeArgs != null);
-
-      if (abstractTypes.Contains(nm)) {
-        // nothing to do; has already been added
-        return;
-      }
-      if (typeArgs.Count == 0) {
-        sink.AddTopLevelDeclaration(
-          new Bpl.Constant(tok,
-            new TypedIdent(tok, nm, predef.Ty), false /* not unique */));
-      } else {
-        // Note, the function produced is NOT necessarily injective, because the type may be replaced
-        // in a refinement module in such a way that the type arguments do not matter.
-        var args = new List<Bpl.Variable>(typeArgs.ConvertAll(a => (Bpl.Variable)BplFormalVar(null, predef.Ty, true)));
-        var func = new Bpl.Function(tok, nm, args, BplFormalVar(null, predef.Ty, false));
-        sink.AddTopLevelDeclaration(func);
-      }
-      abstractTypes.Add(nm);
     }
 
     void AddDatatype(DatatypeDecl dt) {
