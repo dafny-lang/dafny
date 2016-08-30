@@ -1,0 +1,6 @@
+xrefine1.dfy(64,12): Error BP5002: A precondition for this call might not hold.
+xrefine1.dfy(49,32): Related location: This is the precondition that might not hold.
+Execution trace:
+    (0,0): anon0
+
+Dafny program verifier finished with 9 verified, 1 error

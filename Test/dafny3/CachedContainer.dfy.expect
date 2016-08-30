@@ -1,3 +1,2 @@
-CachedContainer.dfy(120,25): Warning: "import A as B" has been deprecated; in the new syntax, it is "import A:B"
 
 Dafny program verifier finished with 47 verified, 0 errors

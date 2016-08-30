@@ -139,18 +139,18 @@ namespace Microsoft.Dafny
           return l;
         } else if (d is AliasModuleDecl) {
           var a = (AliasModuleDecl)d;
-          var alias = new AliasModuleDecl(a.Path, a.tok, m, a.Opened);
+          var alias = new AliasModuleDecl(a.Path, a.tok, m, a.Opened, a.Exports);
           alias.Signature = a.Signature;
           return alias;
         } else if (d is ModuleFacadeDecl) {
           var a = (ModuleFacadeDecl)d;
-          var abs = new ModuleFacadeDecl(a.Path, a.tok, m, a.CompilePath, a.Opened);
+          var abs = new ModuleFacadeDecl(a.Path, a.tok, m, a.CompilePath, a.Opened, a.Exports);
           abs.Signature = a.Signature;
           abs.OriginalSignature = a.OriginalSignature;
           return abs;
         } else if (d is ModuleExportDecl) {
           var a = (ModuleExportDecl)d;
-          var export = new ModuleExportDecl(a.tok, m, a.Exports, a.Extends);
+          var export = new ModuleExportDecl(a.tok, m, a.Exports, a.Extends, a.ProvideAll, a.RevealAll);
           export.Signature = a.Signature;
           return export;
         } else {
@@ -721,7 +721,12 @@ namespace Microsoft.Dafny
 
       var ens = m.Ens.ConvertAll(CloneMayBeFreeExpr);
 
-      var body = CloneBlockStmt(m.Body);
+      BlockStmt body = null;
+
+      if (scope == null) {
+        body = CloneBlockStmt(m.Body);
+      }
+
       if (m is Constructor) {
         return new Constructor(Tok(m.tok), m.Name, tps, ins,
           req, mod, ens, decreases, body, CloneAttributes(m.Attributes), null, m);

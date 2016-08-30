@@ -116,8 +116,8 @@ module M3 refines M2 {
 }
 
 // here a client of the Container
-module Client {
-  import M as M0 default M2
+abstract module Client {
+  import M : M0
   method Test() {
     var c := new M.Container();
     c.Add(56);

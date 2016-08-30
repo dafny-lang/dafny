@@ -1,9 +1,9 @@
-// RUN: %dafny /ironDafny /compile:3 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %dafny /compile:3 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 include "Queue.dfyi"
 
-module FIFO exclusively refines Queue {
+module FIFO refines Queue {
     type Item = int
 
     method Init() returns (q: Queue) {

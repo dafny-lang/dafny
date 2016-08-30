@@ -2,11 +2,11 @@
 // RUN: %diff "%s.expect" "%t.result"
 
 module A {
-	export A reveal f opaque h
-	export E1 opaque f reveal g
-	export E2 extends A, E1 reveal T
-  export Friend extends A reveal g, T
-	export Fruit reveal Data
+	export A reveals f provides h
+	export E1 provides f reveals g
+	export E2 extends A, E1 reveals T
+  export Friend extends A reveals g, T
+	export Fruit reveals Data
 
   method h() {}
   function f(): int { 818 }
@@ -34,7 +34,7 @@ module B {
 }
 
 module C {
-  import X = A.Friend
+  import X = A`Friend
 	method m() {
 	  X.h();  // OK
 	  assert X.f() == 818; // OK
@@ -55,7 +55,7 @@ module D {
 }
 
 module E {
-  import opened A.Fruit
+  import opened A`Fruit
 
   function G(d: Data): int
     requires d != Data.Lemon
@@ -68,11 +68,11 @@ module E {
 }
 
 module F {
-  export F reveal f, h
-	export E1 reveal f, g
-	export E2 extends Public2, E1 reveal T		// error: Public2 is not a exported view of F
-  export Friend extends F reveal g2, T  // error: g2 is not a member of F
-	export Fruit reveal Data
+  export F reveals f, h
+	export E1 reveals f, g
+	export E2 extends Public2, E1 reveals T		// error: Public2 is not a exported view of F
+  export Friend extends F reveals g2, T  // error: g2 is not a member of F
+	export Fruit reveals Data
 
   method h() {}
   function f(): int { 818 }
@@ -88,7 +88,7 @@ module F {
 }
 
 module G {
-  export Public reveal f, h
+  export Public reveals f, h
 
 	method h() {}
   function f(): int { 818 }
@@ -101,5 +101,5 @@ module H {
 }
 
 module I {
-  import G.Public  // OK
+  import G`Public  // OK
 }

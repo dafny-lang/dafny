@@ -1,23 +1,15 @@
+// XFAIL: *
 // RUN: %dafny /ironDafny /compile:3 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
-abstract module ProtocolSpec {
-    type ProtoT
 
-    predicate Init(p:ProtoT)
-}
+module ProtocolImpl {
+    export reveals *
+    export Spec provides ProtoT, Init
 
-abstract module HostSpec {
-    type HostT
-    import P : ProtocolSpec
-
-    function method foo(h:HostT) : P.ProtoT
-}
-
-module ProtocolImpl exclusively refines ProtocolSpec {
     type ProtoT = bool    
 
-    predicate Init(p:ProtoT) { !p }
+    predicate Init(p:ProtoT) { p }
 
     method orange(i:nat) returns (j:nat)
     {
@@ -25,14 +17,17 @@ module ProtocolImpl exclusively refines ProtocolSpec {
     }
 }
 
-module HostImpl exclusively refines HostSpec {
+module HostImpl {
+    export reveals *
+    export Spec provides HostT, foo, P
+
     import P = ProtocolImpl
 
     type HostT = int
 
     function method foo(h:HostT) : P.ProtoT
     {
-        h > 0
+        h != 0
     }
 
     method apple(i:nat) returns (j:nat)
@@ -41,20 +36,19 @@ module HostImpl exclusively refines HostSpec {
     }
 }
 
-abstract module MainSpec {
-    import HI : HostSpec
-    import PI : ProtocolSpec
+module MainImpl {
+    export reveals *
+    export Spec provides Test, HISpec, PISpec
 
-    method Test(h1:HI.HostT, h2:HI.HostT) 
-        requires HI.foo(h1) == HI.foo(h2);
-        requires PI.Init(HI.foo(h1))
-}
+    import HISpec = HostImpl`Spec
+    import PISpec = ProtocolImpl`Spec
 
-module MainImpl exclusively refines MainSpec {
     import HI = HostImpl
     import PI = ProtocolImpl
     
-    method Test(h1:HI.HostT, h2:HI.HostT) 
+    method Test(h1:HISpec.HostT, h2:HISpec.HostT) 
+        requires HISpec.foo(h1) == HISpec.foo(h2);
+        requires PISpec.Init(HISpec.foo(h1))
     {
         var a := HI.foo(h1);
         print "HI.foo(h1) => ", a, "\n";

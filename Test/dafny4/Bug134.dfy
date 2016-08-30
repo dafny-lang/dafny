@@ -13,11 +13,11 @@ abstract module AbstractModuleA
 
 abstract module AbstractModuleB 
 {
-	import opened A as AbstractModuleA
+	import opened A : AbstractModuleA
 } 
 
 abstract module AbstractModuleC 
 {
-	import opened B as AbstractModuleB
+	import opened B : AbstractModuleB
 }
 

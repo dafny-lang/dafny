@@ -1,0 +1,4 @@
+AggregateImport.dfy(32,16): Error: module 'A' does not declare a type 'TT'
+AggregateImport.dfy(45,16): Error: arguments must have the same type (got A.T and bool)
+AggregateImport.dfy(46,17): Error: arguments must have the same type (got A.TT and int)
+3 resolution/type errors detected in AggregateImport.dfy

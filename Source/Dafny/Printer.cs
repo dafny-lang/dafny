@@ -155,7 +155,7 @@ namespace Microsoft.Dafny {
       if (DafnyOptions.O.DafnyPrintResolvedFile != null && DafnyOptions.O.PrintMode == DafnyOptions.PrintModes.Everything) {
         wr.WriteLine();
         wr.WriteLine("/*");
-        PrintModuleDefinition(prog.BuiltIns.SystemModule, 0, Path.GetFullPath(DafnyOptions.O.DafnyPrintResolvedFile));
+        PrintModuleDefinition(prog.BuiltIns.SystemModule, null, 0, Path.GetFullPath(DafnyOptions.O.DafnyPrintResolvedFile));
         wr.Write("// bitvector types in use:");
         foreach (var w in prog.BuiltIns.Bitwidths) {
           wr.Write(" bv{0}", w);
@@ -264,8 +264,12 @@ namespace Microsoft.Dafny {
           wr.WriteLine();
           Indent(indent);
           if (d is LiteralModuleDecl) {
-            ModuleDefinition module = ((LiteralModuleDecl)d).ModuleDef;
-            PrintModuleDefinition(module, indent, fileBeingPrinted);
+            LiteralModuleDecl modDecl = ((LiteralModuleDecl)d);
+            VisibilityScope scope = null;
+            if (modDecl.Signature != null){
+              scope = modDecl.Signature.VisibilityScope;
+            }
+            PrintModuleDefinition(modDecl.ModuleDef, scope, indent, fileBeingPrinted);
           } else if (d is AliasModuleDecl) {
             wr.Write("import"); if (((AliasModuleDecl)d).Opened) wr.Write(" opened");
             wr.Write(" {0} ", ((AliasModuleDecl)d).Name);
@@ -329,9 +333,10 @@ namespace Microsoft.Dafny {
     }
 
 
-    void PrintModuleDefinition(ModuleDefinition module, int indent, string fileBeingPrinted) {
+    void PrintModuleDefinition(ModuleDefinition module, VisibilityScope scope, int indent, string fileBeingPrinted) {
       Contract.Requires(module != null);
       Contract.Requires(0 <= indent);
+      Type.RegisterScopeGetter(() => scope);
       if (module.IsAbstract) {
         wr.Write("abstract ");
       }
@@ -339,7 +344,7 @@ namespace Microsoft.Dafny {
       PrintAttributes(module.Attributes);
       wr.Write(" {0} ", module.Name);
       if (module.RefinementBaseName != null) {
-        wr.Write("refines {0} ", Util.Comma(".", module.RefinementBaseName, id => id.val));
+        wr.Write("refines {0} ", module.RefinementBaseName.val);
       }
       if (module.TopLevelDecls.Count == 0) {
         wr.WriteLine("{ }");
@@ -350,6 +355,7 @@ namespace Microsoft.Dafny {
         Indent(indent);
         wr.WriteLine("}");
       }
+      Type.DropScope();
     }
 
     void PrintTopLevelDeclsOrExportedView(ModuleDefinition module, int indent, string fileBeingPrinted) {

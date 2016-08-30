@@ -124,12 +124,10 @@ namespace Microsoft.Dafny {
 
       currentScope.Augment(systemModule.VisibilityScope);
 
-      
-
       foreach (var decl in m.TopLevelDecls) {
         if (decl is ModuleDecl) {
           var mdecl = (ModuleDecl)decl;
-          currentScope.Augment(mdecl.Signature.VisibilityScope);
+          currentScope.Augment(mdecl.AccessibleSignature().VisibilityScope);
         }
       }
             
@@ -565,7 +563,7 @@ namespace Microsoft.Dafny {
 
       ComputeFunctionFuel(); // compute which function needs fuel constants.
 
-      foreach (ModuleDefinition m in program.Modules) {
+      foreach (ModuleDefinition m in program.RawModules()) {
         foreach (TopLevelDecl d in m.TopLevelDecls.FindAll(VisibleInScope)) {
           currentDeclaration = d;
           if (d is OpaqueTypeDecl) {
@@ -642,13 +640,13 @@ namespace Microsoft.Dafny {
 
     public static Dictionary<string, Bpl.Program> Translate(Program p, ErrorReporter reporter, TranslatorFlags flags = null) {
       Contract.Requires(p != null);
-      Contract.Requires(p.Modules.Count > 0);
-      Contract.Ensures(Contract.Result<Dictionary<string, Bpl.Program>>().Count == p.Modules.Count);
+      Contract.Requires(p.ModuleSigs.Count > 0);
+      Contract.Ensures(Contract.Result<Dictionary<string, Bpl.Program>>().Count == p.ModuleSigs.Count);
       Contract.Ensures(Contract.Result<Dictionary<string, Bpl.Program>>().All(ccep => ccep.Value != null));
 
       Dictionary<string, Bpl.Program> programs = new Dictionary<string, Bpl.Program>();
 
-      foreach (ModuleDefinition outerModule in p.Modules) {
+      foreach (ModuleDefinition outerModule in p.RawModules()) {
         var translator = new Translator(reporter, flags);
 
         if (translator.sink == null || translator.sink == null) {
@@ -678,7 +676,7 @@ namespace Microsoft.Dafny {
     }
 
     private void ComputeFunctionFuel() {
-      foreach (ModuleDefinition m in program.Modules) {
+      foreach (ModuleDefinition m in program.Modules()) {
         foreach (TopLevelDecl d in m.TopLevelDecls) {
           if (d is ClassDecl) {
             ClassDecl c = (ClassDecl)d;
@@ -716,7 +714,7 @@ namespace Microsoft.Dafny {
     /// </summary>
     private void AddTraitParentAxioms()
     {
-        foreach (ModuleDefinition m in program.Modules)
+        foreach (ModuleDefinition m in program.RawModules())
         {
             if (m.TopLevelDecls.Any(d => (d is ClassDecl && ((ClassDecl)d).TraitsObj.Count > 0) || (d is TraitDecl)))
             {
@@ -2216,7 +2214,7 @@ namespace Microsoft.Dafny {
     Bpl.Expr AxiomActivation(Function f, ExpressionTranslator etran) {
       Contract.Requires(f != null);
       Contract.Requires(etran != null);
-      Contract.Requires(RevealedInScope(f));
+      Contract.Requires(VisibleInScope(f));
       var module = f.EnclosingClass.Module;
 
       if (InVerificationScope(f)) {
