@@ -1,0 +1,2 @@
+Twostate-Resolution.dfy(12,13): Error: twostate lemmas are not allowed to have modifies clauses
+1 resolution/type errors detected in Twostate-Resolution.dfy

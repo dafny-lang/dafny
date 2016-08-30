@@ -12,7 +12,7 @@ StatementExpressions.dfy(77,5): Error: possible division by zero
 Execution trace:
     (0,0): anon0
     (0,0): anon4_Else
-StatementExpressions.dfy(88,4): Error: value assigned to a nat must be non-negative
+StatementExpressions.dfy(88,4): Error: value does not satisfy the subset constraints of 'nat'
 Execution trace:
     (0,0): anon0
     (0,0): anon4_Else

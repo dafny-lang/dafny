@@ -1,4 +1,4 @@
-﻿//  ####################################################################
+//  ####################################################################
 ///   Utility functions for manipulating AST elements
 ///
 ///   author: Aleksandar Milicevic (t-alekm@microsoft.com)

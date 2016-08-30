@@ -1,13 +1,14 @@
-IteratorResolution.dfy(62,9): Error: LHS of assignment must denote a mutable field
-IteratorResolution.dfy(82,13): Error: when allocating an object of type 'GenericIteratorResult', one of its constructor methods must be called
-IteratorResolution.dfy(79,19): Error: RHS (of type bool) not assignable to LHS (of type int)
-IteratorResolution.dfy(86,19): Error: logical negation expects a boolean argument (instead got int)
-IteratorResolution.dfy(67,18): Error: arguments must have the same type (got _T0 and int)
-IteratorResolution.dfy(20,9): Error: LHS of assignment must denote a mutable field
+IteratorResolution.dfy(64,9): Error: LHS of assignment must denote a mutable field
+IteratorResolution.dfy(84,13): Error: when allocating an object of type 'GenericIteratorResult', one of its constructor methods must be called
+IteratorResolution.dfy(81,19): Error: RHS (of type bool) not assignable to LHS (of type int)
+IteratorResolution.dfy(88,15): Error: condition is expected to be of type bool, but is int
+IteratorResolution.dfy(88,19): Error: logical/bitwise negation expects a boolean or bitvector argument (instead got int)
+IteratorResolution.dfy(69,18): Error: arguments must have the same type (got _T0 and int)
 IteratorResolution.dfy(22,9): Error: LHS of assignment must denote a mutable field
-IteratorResolution.dfy(126,9): Error: unresolved identifier: _decreases3
-IteratorResolution.dfy(128,2): Error: LHS of assignment must denote a mutable field
-IteratorResolution.dfy(127,24): Error: type of 'null' is a reference type, but it is used as int
-IteratorResolution.dfy(135,9): Error: unresolved identifier: _decreases1
-IteratorResolution.dfy(140,9): Error: unresolved identifier: _decreases0
-12 resolution/type errors detected in IteratorResolution.dfy
+IteratorResolution.dfy(24,9): Error: LHS of assignment must denote a mutable field
+IteratorResolution.dfy(129,11): Error: unresolved identifier: _decreases3
+IteratorResolution.dfy(131,4): Error: LHS of assignment must denote a mutable field
+IteratorResolution.dfy(130,26): Error: type of 'null' is a reference type, but it is used as int
+IteratorResolution.dfy(138,11): Error: unresolved identifier: _decreases1
+IteratorResolution.dfy(143,11): Error: unresolved identifier: _decreases0
+13 resolution/type errors detected in IteratorResolution.dfy

@@ -1,4 +1,4 @@
-// RUN: %dafny /rprint:"%t.rprint" /autoTriggers:1 "%s" > "%t"
+// RUN: %dafny /rprint:"%t.rprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 // Rustan Leino, Nov 2015
 
@@ -9,12 +9,11 @@ abstract module M0 {
   class {:autocontracts} UnionFind {
     ghost var M: map<Element, Element>
     protected predicate Valid()
-      reads this, Repr
 
     constructor ()
       ensures M == map[]
     {
-      Repr, M:= {this}, map[];
+      Repr, M := {this}, map[];
     }
 
     method New() returns (e: Element)
@@ -56,14 +55,14 @@ abstract module M1 refines M0 {
     }
 
     // This function returns a snapshot of the .c fields of the objects in the domain of M
-    function Collect(): CMap
+    function {:autocontracts false} Collect(): CMap
       requires null !in M && forall f :: f in M && f.c.Link? ==> f.c.next in M
       reads this, set a | a in M
       ensures GoodCMap(Collect())
     {
       map e | e in M :: e.c
     }
-    predicate Reaches(d: nat, e: Element, r: Element, C: CMap)
+    predicate {:autocontracts false} Reaches(d: nat, e: Element, r: Element, C: CMap)
       requires GoodCMap(C)
       requires e in C
     {

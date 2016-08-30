@@ -11,6 +11,7 @@ Modules0.dfy(57,21): Error: Undeclared top-level type or type parameter: MyClass
 Modules0.dfy(68,21): Error: Undeclared top-level type or type parameter: MyClass2 (did you forget to qualify a name or declare a module import 'opened?')
 Modules0.dfy(84,24): Error: Undeclared top-level type or type parameter: MyClassY (did you forget to qualify a name or declare a module import 'opened?')
 Modules0.dfy(93,19): Error: Undeclared top-level type or type parameter: ClassG (did you forget to qualify a name or declare a module import 'opened?')
+Modules0.dfy(101,14): Error: Undeclared top-level type or type parameter: MyClassY (did you forget to qualify a name or declare a module import 'opened?')
 Modules0.dfy(226,15): Error: Undeclared top-level type or type parameter: X (did you forget to qualify a name or declare a module import 'opened?')
 Modules0.dfy(226,8): Error: new can be applied only to reference types (got X)
 Modules0.dfy(235,13): Error: module 'B' does not declare a type 'X'
@@ -31,5 +32,4 @@ Modules0.dfy(323,10): Error: new can be applied only to reference types (got Q_I
 Modules0.dfy(324,30): Error: member Create does not exist in class Klassy
 Modules0.dfy(318,13): Error: arguments must have the same type (got Q_Imp.Node and Node)
 Modules0.dfy(348,11): Error: a datatype declaration (T) in a refinement module can only replace an opaque type declaration
-Modules0.dfy(101,14): Error: Undeclared top-level type or type parameter: MyClassY (did you forget to qualify a name or declare a module import 'opened?')
 32 resolution/type errors detected in Modules0.dfy

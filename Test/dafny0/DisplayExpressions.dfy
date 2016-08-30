@@ -1,26 +1,76 @@
 // RUN: %dafny /compile:0 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
-method M()
-{
-  var m := map[];  // error: underspecified type
+
+module AA {
+  method M()
+  {
+    var m := map[];  // error: underspecified type
+  }
+
+  method N()
+  {
+    var n := multiset{};  // error: underspecified type
+  }
+
+  method O()
+  {
+    var o := [];  // error: underspecified type
+  }
+
+  method P()
+  {
+    var p := {};  // error: underspecified type
+  }
+
+  method Q()
+  {
+    assert (((map[]))) == (((((map[])))));  // 2 errors (but not 10 errors)
+  }
 }
 
-method N()
-{
-  var n := multiset{};  // error: underspecified type
+module BB {
+  newtype byte = x | 0 <= x < 256
+
+  method B0() returns (s: seq<byte>) {
+    s := [10, 20];
+  }
+
+  method B1() returns (s: seq<byte>) {
+    var b := 10;  // int
+    var u: int := 30;
+    var t := [b, 20, u];  // seq<int>
+    s := t;  // error: type mismatch 
+  }
+
+  method B2() returns (s: seq<byte>) {
+    var b := 10;  // byte
+    var t := [b, 20];  // seq<byte>
+    s := t;
+  }
+
+  method B3() returns (s: seq<byte>) {
+    var b := 10;  // byte
+    var t := [20, b];  // seq<byte>
+    s := t;
+  }
 }
 
-method O()
-{
-  var o := [];  // error: underspecified type
-}
+module CC {
+  newtype byte = x | 0 <= x < 256
 
-method P()
-{
-  var p := {};  // error: underspecified type
-}
-
-method Q()
-{
-  assert (((map[]))) == (((((map[])))));  // 2 errors (but not 10 errors)
+  method M(bytes: seq<byte>) returns (yn: bool)
+  {
+    var bbb := [1];
+    var bb: seq<byte> := [1];
+    var sq := [1];
+    if
+    case true =>  yn := bytes == sq;
+    case true =>  yn := bytes == [1];
+    case 8 <= |bytes| =>  yn := bytes[0..8] == [0, 0, 0, 0, 0, 0, 0, 2];
+    case true =>
+      var ints: seq<int>;
+      var cmp := [2, 0];  // seq<byte> (the comparison "bytes == cmp" gets to the constraint first)
+      yn := bytes == cmp;
+      yn := ints == cmp;  // error: mismatched types
+  }
 }

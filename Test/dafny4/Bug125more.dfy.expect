@@ -1,0 +1,11 @@
+Bug125more.dfy(26,15): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+Bug125more.dfy(38,15): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+Bug125more.dfy(50,15): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+
+Dafny program verifier finished with 11 verified, 3 errors

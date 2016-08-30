@@ -1,4 +1,4 @@
-﻿//  #######################################################
+//  #######################################################
 ///   Simple logging facility
 ///
 ///   author: Aleksandar Milicevic (t-alekm@microsoft.com)

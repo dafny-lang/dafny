@@ -1,4 +1,4 @@
-﻿module Printer
+module Printer
 
 open Ast
 open Getters

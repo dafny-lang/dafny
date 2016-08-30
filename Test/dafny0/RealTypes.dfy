@@ -3,28 +3,28 @@
 
 method R1(ghost x: real, ghost y: real, i: int) {
   assert x + y == y + x;
-  assert int(real(i)) == i;
-  assert real(x.Trunc) <= x;
+  assert i as real as int == i;
+  assert x.Floor as real <= x;
   if {
-    case real(x.Trunc) >= x =>
-      assert x.Trunc == int(x);  // the cast to int is allowed here
+    case x.Floor as real >= x =>
+      assert x.Floor == x as int;  // the cast to int is allowed here
     case true =>
-      var t := int(x);  // error: x may be a non-integer
+      var t := x as int;  // error: x may be a non-integer
     case true =>
-      assert real(x.Trunc) >= x; // error
+      assert x.Floor as real >= x; // error
   }
 }
 
 method R2(ghost x: real, ghost y: real) {
-  assert x * x >= real(0);
-  assert y != real(0) ==> x / y * y == x;
+  assert x * x >= 0 as real;
+  assert y != 0 as real ==> x / y * y == x;
   assert x / y * y == x; // error(s)
 }
 
 // Check that literals are handled properly
 method R3() {
   ghost var x := 000_00_0_1.5_0_0_00_000_0;  // 1.5
-  ghost var y := real(000_000_003);  // 3
+  ghost var y := 000_000_003 as real;  // 3
   assert x == y / 2.000_000_0;
   assert x == y / 2.000_000_000_000_000_000_000_000_001;  // error
 }
@@ -38,7 +38,7 @@ function R4(x:int, r:real) : int
 
 method RoundingDirection()
 {
-  assert 51.500277.Trunc == 51;
-  assert (-0.194771).Trunc == -1;
-  assert -0.194771.Trunc == 0;
+  assert 51.500277.Floor == 51;
+  assert (-0.194771).Floor == -1;
+  assert -0.194771.Floor == 0;
 }

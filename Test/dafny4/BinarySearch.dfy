@@ -33,12 +33,12 @@ newtype int32 = x | -0x8000_0000 <= x < 0x8000_0000
 method BinarySearchInt32_bad(a: array<int>, key: int) returns (r: int32)
   requires a != null && a.Length < 0x8000_0000
   requires forall i,j :: 0 <= i < j < a.Length ==> a[i] <= a[j]
-  ensures 0 <= r ==> r < int32(a.Length) && a[r] == key
+  ensures 0 <= r ==> r < a.Length as int32 && a[r] == key
   ensures r < 0 ==> key !in a[..]
 {
-  var lo, hi := 0, int32(a.Length);
+  var lo, hi := 0, a.Length as int32;
   while lo < hi
-    invariant 0 <= lo <= hi <= int32(a.Length)
+    invariant 0 <= lo <= hi <= a.Length as int32
     invariant key !in a[..lo] && key !in a[hi..]
   {
     var mid := (lo + hi) / 2;  // error: possible overflow
@@ -56,12 +56,12 @@ method BinarySearchInt32_bad(a: array<int>, key: int) returns (r: int32)
 method BinarySearchInt32_good(a: array<int>, key: int) returns (r: int32)
   requires a != null && a.Length < 0x8000_0000
   requires forall i,j :: 0 <= i < j < a.Length ==> a[i] <= a[j]
-  ensures 0 <= r ==> r < int32(a.Length) && a[r] == key
+  ensures 0 <= r ==> r < a.Length as int32 && a[r] == key
   ensures r < 0 ==> key !in a[..]
 {
-  var lo, hi := 0, int32(a.Length);
+  var lo, hi := 0, a.Length as int32;
   while lo < hi
-    invariant 0 <= lo <= hi <= int32(a.Length)
+    invariant 0 <= lo <= hi <= a.Length as int32
     invariant key !in a[..lo] && key !in a[hi..]
   {
     var mid := lo + (hi - lo) / 2;  // this is how to do it

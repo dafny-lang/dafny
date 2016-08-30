@@ -1,6 +1,6 @@
 // RUN: %dafny /compile:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
-
+module Misc {
 //Should not verify, as ghost loops should not be allowed to diverge.
 method GhostDivergentLoop()
 {
@@ -100,7 +100,7 @@ class EE {
     assert Tuv(Abc.Eleanor, e) == 10;
   }
 }
-
+}
 // --------------- ghost tests -------------------------------------
 module HereAreMoreGhostTests {
 datatype GhostDt =
@@ -288,7 +288,7 @@ class GhostTests {
   }
 }
 } //HereAreMoreGhostTests
-method DuplicateLabels(n: int) {
+module MiscMore { method DuplicateLabels(n: int) {
   var x;
   if (n < 7) {
     label DuplicateLabel: x := x + 1;
@@ -353,7 +353,7 @@ method DatatypeDestructors(d: DTD_List) {
       ghost var g0 := d.g;  // fine
   }
 }
-
+} // MiscMore
 // ------------------- print statements ---------------------------------------
 module GhostPrintAttempts {
 method PrintOnlyNonGhosts(a: int, ghost b: int)
@@ -363,7 +363,7 @@ method PrintOnlyNonGhosts(a: int, ghost b: int)
 }
 }
 // ------------------- auto-added type arguments ------------------------------
-
+module MiscEvenMore {
 class GenericClass<T> { var data: T; }
 
 method MG0(a: GenericClass, b: GenericClass)
@@ -422,7 +422,7 @@ method TestCalc(m: int, n: int, a: bool, b: bool)
     ==> n + m + 2; // error: ==> operator requires boolean lines
   }
 }
-
+} // MiscEvenMore
 module MyOwnModule {
   class SideEffectChecks {
     ghost var ycalc: int;
@@ -458,7 +458,7 @@ module MyOwnModule {
 }
   
 // ------------------- nameless constructors ------------------------------
-
+module MiscAgain {
 class Y {
   var data: int;
   constructor (x: int)
@@ -516,7 +516,7 @@ method AssignSuchThatFromGhost()
   g :| assume g < g;  // the compiler will complain here, despite the LHS being
                       // ghost -- and rightly so, since an assume is used
 }
-
+}  // MiscAgain
 // ------------------------ inferred type arguments ----------------------------
 
 // Put the following tests in a separate module, so that the method bodies will
@@ -570,7 +570,7 @@ module NoTypeArgs1 {
 }
 
 // ----------- let-such-that expressions ------------------------
-
+module MiscMisc {
 method LetSuchThat(ghost z: int, n: nat)
 {
   var x: int;
@@ -580,7 +580,7 @@ method LetSuchThat(ghost z: int, n: nat)
   x := var w := 2*w; w;  // error: the 'w' in the RHS of the assignment is not in scope
   ghost var xg := var w :| w == 2*w; w;
 }
-
+}
 // ------------ quantified variables whose types are not inferred ----------
 
 module NonInferredType {
@@ -679,16 +679,16 @@ module UnderspecifiedTypes {
 }
 
 // ------------------------- lemmas ------------------------------
-
+module MiscLemma { class L { }
 // a lemma is allowed to have out-parameters, but not a modifies clause
-lemma MyLemma(x: int, l: Lamb) returns (y: int)
+lemma MyLemma(x: int, l: L) returns (y: int)
   requires 0 <= x;
   modifies l;
   ensures 0 <= y;
 {
   y := x;
 }
-
+}
 // ------------------------- statements in expressions ------------------------------
 
 module StatementsInExpressions {
@@ -844,7 +844,7 @@ module ObjectType {
 }
 
 // ------------------ modify statment ---------------------------
-
+module MiscModify {
 class ModifyStatementClass {
   var x: int;
   ghost var g: int;
@@ -855,7 +855,7 @@ class ModifyStatementClass {
   ghost method G0()
     modifies `g;
     modifies `x;  // error: non-ghost field mentioned in ghost context
-}
+} }
 module ModifyStatementClass_More {
   class C {
     var x: int;
@@ -929,7 +929,7 @@ module LhsLvalue {
 }
 
 // ------------------- dirty loops -------------------
-
+module MiscEtc {
 method DirtyM(S: set<int>) {
   forall s | s in S ensures s < 0;
   assert s < 0; // error: s is unresolved
@@ -970,20 +970,20 @@ method TupleResolution(x: int, y: int, r: real)
 
 method TypeConversions(m: nat, i: int, r: real) returns (n: nat, j: int, s: real)
 {
-  n := int(r);
-  j := int(r);
-  s := real(m);  // nat->real is allowed, just like int->real is
-  s := real(i);
-  s := real(i) / 2;  // error: division expects two reals
+  n := r as int;
+  j := r as int;
+  s := m as real;  // nat->real is allowed, just like int->real is
+  s := i as real;
+  s := i as real / 2;  // error: division expects two reals
   s := 15 % s;  // error: modulus is not defined for reals
 
   s := (2.0 / 1.7) + (r / s) - (--r) * -12.3;
 
-  s := real(s);  // fine (identity transform)
-  j := int(j);  // fine (identity transform)
-  j := int(n);  // fine (identity transform)
+  s := s as real;  // fine (identity transform)
+  j := j as int;  // fine (identity transform)
+  j := n as int;  // fine (identity transform)
 }
-
+}
 // --- filling in type arguments and checking that there aren't too many ---
 
 module TypeArgumentCount {
@@ -1047,9 +1047,13 @@ module CycleError5 {
   type B = Dt<A>
   datatype Dt<T> = Make(T)
 }
+module CycleError6 {
+  type A = Dt<Dt<A>>  // error: cycle A -> Dt<Dt<A>> -> Dt<A> -> A
+  datatype Dt<T> = Make(T)
+}
 
 // --- attributes in top-level declarations ---
-
+module MiscIterator {
 iterator {:myAttribute x} Iter() {  // error: x does not refer to anything
 }
 
@@ -1061,7 +1065,7 @@ datatype {:myAttribute x} Dt = Blue  // error: x does not refer to anything
 type {:myAttribute x} Something  // error: x does not refer to anything
 
 type {:myAttribute x} Synonym = int  // error: x does not refer to anything
-
+}
 module {:myAttribute x} Modulette {  // error: x does not refer to anything
 }
 
@@ -1115,14 +1119,14 @@ module OpaqueTypes1 {
 
 // ----- new trait -------------------------------------------
 
-
+module MiscTrait {
 trait J { }
 type JJ = J
 method TraitSynonym()
 {
   var x := new JJ;  // error: new cannot be applied to a trait
 }
-
+}
 // ----- set comprehensions where the term type is finite -----
 
 module ObjectSetComprehensions {
@@ -1138,7 +1142,7 @@ module ObjectSetComprehensions {
 }
 
 // ------ regression test for type checking of integer division -----
-
+module MiscTests {
 method IntegerDivision(s: set<bool>)
 {
   var t := s / s;  // error: / cannot be used with sets
@@ -1181,7 +1185,7 @@ method NonTermination_D()
     n := n + 1;
   }
 }
-
+}
 // ------------ type variables whose values are not inferred ----------
 
 module NonInferredTypeVariables {
@@ -1253,13 +1257,13 @@ module NonInferredTypeVariables {
     ghost var d2' := forall c: C :: c == ggcc0 && c != null ==> c.f == 10;
     ghost var d2'' := forall c: C :: c == ggcc1 && c != null ==> c.f == c.f; // error: here, type of c is not determined
 
-    /* TODO: Dafny's heuristic that looks for bounds should look for equality to
-     *       accept these.
     var d0' := forall s :: s == {7} ==> s != {};
     var d0'' := forall s :: s <= {7} ==> s == {};
-    var ggcc2: C;
-    var d2''' := forall c :: c == ggcc2 && c != null ==> c.f == 10;
-     */
+
+    
+
+
+
   }
 }
 
@@ -1735,4 +1739,28 @@ module AdvancedIndexableInference {
       var xx := c[25..50][10].x;
     }
   }
+}
+
+// --------------------------
+
+module TypeConversions {
+  trait J { }
+  class C extends J { }
+  method M() returns (x: int, n: nat, o: object, j: J, c: C) {
+    n := x as nat;  // yes, this is allowed now
+    o := j;
+    j := o;  // error: cannot assign 'object' to 'J'
+    j := o as J;  // error: not allowed to convert to 'J'
+    j := c;
+    c := j;  // error: cannot assign J' to 'C'
+    c := j as C;  // error: not allowed to convert to 'C'
+    var oo := o as realint;  // error: there's no such type as "realint" (this once used to crash Dafny)
+  }
+}
+
+// --------------------- regression
+
+module Regression_NewType {
+  class C { }
+  newtype MyInt = x: int | {} == set c: C | c  // this once crashed Dafny
 }

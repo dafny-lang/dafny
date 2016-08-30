@@ -1,7 +1,7 @@
 // RUN: %dafny /compile:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
-
+module Tests {
 trait J 
 {
   function method F(k:int, y: array<int>): int
@@ -60,7 +60,7 @@ class C extends J
     c1 := a1 + b1;
   }  
 }
-
+}
 module BadNonTermination {
   trait TT1 {
     method N(x: int)

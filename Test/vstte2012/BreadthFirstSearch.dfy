@@ -1,3 +1,4 @@
+// XFAIL: *
 // RUN: %dafny /compile:0 /dprint:"%t.dprint" /vcsMaxKeepGoingSplits:10 /autoTriggers:0 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 

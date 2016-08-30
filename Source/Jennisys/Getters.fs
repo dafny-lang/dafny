@@ -1,4 +1,4 @@
-﻿module Getters
+module Getters
 
 open Ast
 

@@ -4,7 +4,7 @@ Verifying CheckWellformed$$_module.__default.A ...
   [0 proof obligations]  verified
 
 Verifying Impl$$_module.__default.A ...
-  [2 proof obligations]  error
+  [1 proof obligation]  error
 transcript(3,9): Error: assertion violation
 Execution trace:
     (0,0): anon0

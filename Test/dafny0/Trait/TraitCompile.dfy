@@ -71,11 +71,11 @@ method Main()
 
   var seven := OtherModule.Y.F(15);
   assert seven == 7;
-  var b := OtherModule.Y.P(real(seven));
+  var b := OtherModule.Y.P(seven as real);
   print "From OtherModule.Y: ", seven, " and ", b, "\n";
   seven := OtherModule.X.F(15);
   assert seven == 7;
-  b := OtherModule.X.P(real(seven));
+  b := OtherModule.X.P(seven as real);
   print "From OtherModule.X: ", seven, " and ", b, "\n";
 
   TestFields.Test();

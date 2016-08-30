@@ -1,4 +1,3 @@
-﻿
 using System;
 using System.Collections.Generic;
 using System.Numerics;
@@ -28,10 +27,7 @@ namespace Microsoft.Dafny
         nw.TopLevelDecls.Add(CloneDeclaration(d, nw));
       }
       if (null != m.RefinementBase) {
-        nw.RefinementBase = m.RefinementBase;
-      }
-      if (null != m.RefinementBaseSig) {
-        nw.RefinementBaseSig = m.RefinementBaseSig;
+        nw.RefinementBase = GetRefinementBase(m);
       }
       nw.ClonedFrom = CloneFromValue_Module(m);
       nw.Height = m.Height;
@@ -39,13 +35,22 @@ namespace Microsoft.Dafny
     }
 
 
-    public TopLevelDecl CloneDeclaration(TopLevelDecl d, ModuleDefinition m) {
+    public virtual ModuleDefinition GetRefinementBase(ModuleDefinition m) {
+      Contract.Requires(m != null);
+      return m.RefinementBase;
+    }
+
+    public virtual TopLevelDecl CloneDeclaration(TopLevelDecl d, ModuleDefinition m) {
       Contract.Requires(d != null);
       Contract.Requires(m != null);
 
       if (d is OpaqueTypeDecl) {
         var dd = (OpaqueTypeDecl)d;
         return new OpaqueTypeDecl(Tok(dd.tok), dd.Name, m, dd.EqualitySupport, dd.TypeArgs.ConvertAll(CloneTypeParam), CloneAttributes(dd.Attributes), CloneFromValue(d));
+      } else if (d is SubsetTypeDecl) {
+        var dd = (SubsetTypeDecl)d;
+        var tps = dd.TypeArgs.ConvertAll(CloneTypeParam);
+        return new SubsetTypeDecl(Tok(dd.tok), dd.Name, tps, m, CloneBoundVar(dd.Var), CloneExpr(dd.Constraint), CloneAttributes(dd.Attributes), CloneFromValue(dd));
       } else if (d is TypeSynonymDecl) {
         var dd = (TypeSynonymDecl)d;
         var tps = dd.TypeArgs.ConvertAll(CloneTypeParam);
@@ -99,27 +104,13 @@ namespace Microsoft.Dafny
           req, ens, yreq, yens,
           body, CloneAttributes(dd.Attributes), dd.SignatureEllipsis);
         return iter;
-      }
-      else if (d is TraitDecl)
-      {
-          if (d is DefaultClassDecl)
-          {
-              var dd = (TraitDecl)d;
-              var tps = dd.TypeArgs.ConvertAll(CloneTypeParam);
-              var mm = dd.Members.ConvertAll(CloneMember);
-              var cl = new DefaultClassDecl(m, mm);
-              return cl;
-          }
-          else
-          {
-              var dd = (TraitDecl)d;
-              var tps = dd.TypeArgs.ConvertAll(CloneTypeParam);
-              var mm = dd.Members.ConvertAll(CloneMember);
-              var cl = new TraitDecl(Tok(dd.tok), dd.Name, m, tps, mm, CloneAttributes(dd.Attributes), CloneFromValue(dd));
-              return cl;
-          }
-      }
-      else if (d is ClassDecl) {
+      } else if (d is TraitDecl) {
+        var dd = (TraitDecl)d;
+        var tps = dd.TypeArgs.ConvertAll(CloneTypeParam);
+        var mm = dd.Members.ConvertAll(CloneMember);
+        var cl = new TraitDecl(Tok(dd.tok), dd.Name, m, tps, mm, CloneAttributes(dd.Attributes), CloneFromValue(dd));
+        return cl;
+      } else if (d is ClassDecl) {
         var dd = (ClassDecl)d;
         var tps = dd.TypeArgs.ConvertAll(CloneTypeParam);
         if (d.IsRevealedInScope(scope)) {
@@ -134,25 +125,16 @@ namespace Microsoft.Dafny
         }
       } else if (d is ModuleDecl) {
         if (d is LiteralModuleDecl) {
-          var l = new LiteralModuleDecl(((LiteralModuleDecl)d).ModuleDef, m);
-          l.Signature = ((ModuleDecl)d).Signature;
-          return l;
+          return new LiteralModuleDecl(((LiteralModuleDecl)d).ModuleDef, m);
         } else if (d is AliasModuleDecl) {
           var a = (AliasModuleDecl)d;
-          var alias = new AliasModuleDecl(a.Path, a.tok, m, a.Opened, a.Exports);
-          alias.Signature = a.Signature;
-          return alias;
+          return new AliasModuleDecl(a.Path, a.tok, m, a.Opened, a.Exports);
         } else if (d is ModuleFacadeDecl) {
           var a = (ModuleFacadeDecl)d;
-          var abs = new ModuleFacadeDecl(a.Path, a.tok, m, a.CompilePath, a.Opened, a.Exports);
-          abs.Signature = a.Signature;
-          abs.OriginalSignature = a.OriginalSignature;
-          return abs;
+          return new ModuleFacadeDecl(a.Path, a.tok, m, a.CompilePath, a.Opened, a.Exports);
         } else if (d is ModuleExportDecl) {
           var a = (ModuleExportDecl)d;
-          var export = new ModuleExportDecl(a.tok, m, a.Exports, a.Extends, a.ProvideAll, a.RevealAll);
-          export.Signature = a.Signature;
-          return export;
+          return new ModuleExportDecl(a.tok, m, a.Exports, a.Extends, a.ProvideAll, a.RevealAll);
         } else {
           Contract.Assert(false);  // unexpected declaration
           return null;  // to please compiler
@@ -232,7 +214,7 @@ namespace Microsoft.Dafny
     }
 
     public Formal CloneFormal(Formal formal) {
-      Formal f = new Formal(Tok(formal.tok), formal.Name, CloneType(formal.Type), formal.InParam, formal.IsGhost);
+      Formal f = new Formal(Tok(formal.tok), formal.Name, CloneType(formal.Type), formal.InParam, formal.IsGhost, formal.IsOld);
       //if (f.Type is UserDefinedType && formal.Type is UserDefinedType)
       //    ((UserDefinedType)f.Type).ResolvedClass = ((UserDefinedType)(formal.Type)).ResolvedClass;
       return f;
@@ -534,7 +516,7 @@ namespace Microsoft.Dafny
       Statement r;
       if (stmt is AssertStmt) {
         var s = (AssertStmt)stmt;
-        r = new AssertStmt(Tok(s.Tok), Tok(s.EndTok), CloneExpr(s.Expr), null);
+        r = new AssertStmt(Tok(s.Tok), Tok(s.EndTok), CloneExpr(s.Expr), CloneBlockStmt(s.Proof), null);
 
       } else if (stmt is AssumeStmt) {
         var s = (AssumeStmt)stmt;
@@ -573,7 +555,7 @@ namespace Microsoft.Dafny
 
       } else if (stmt is AlternativeStmt) {
         var s = (AlternativeStmt)stmt;
-        r = new AlternativeStmt(Tok(s.Tok), Tok(s.EndTok), s.Alternatives.ConvertAll(CloneGuardedAlternative));
+        r = new AlternativeStmt(Tok(s.Tok), Tok(s.EndTok), s.Alternatives.ConvertAll(CloneGuardedAlternative), s.UsesOptionalBraces);
 
       } else if (stmt is WhileStmt) {
         var s = (WhileStmt)stmt;
@@ -581,7 +563,7 @@ namespace Microsoft.Dafny
 
       } else if (stmt is AlternativeLoopStmt) {
         var s = (AlternativeLoopStmt)stmt;
-        r = new AlternativeLoopStmt(Tok(s.Tok), Tok(s.EndTok), s.Invariants.ConvertAll(CloneMayBeFreeExpr), CloneSpecExpr(s.Decreases), CloneSpecFrameExpr(s.Mod), s.Alternatives.ConvertAll(CloneGuardedAlternative));
+        r = new AlternativeLoopStmt(Tok(s.Tok), Tok(s.EndTok), s.Invariants.ConvertAll(CloneMayBeFreeExpr), CloneSpecExpr(s.Decreases), CloneSpecFrameExpr(s.Mod), s.Alternatives.ConvertAll(CloneGuardedAlternative), s.UsesOptionalBraces);
 
       } else if (stmt is ForallStmt) {
         var s = (ForallStmt)stmt;
@@ -739,6 +721,11 @@ namespace Microsoft.Dafny
       } else if (m is Lemma) {
         return new Lemma(Tok(m.tok), m.Name, m.HasStaticKeyword, tps, ins, m.Outs.ConvertAll(CloneFormal),
           req, mod, ens, decreases, body, CloneAttributes(m.Attributes), null, m);
+      } else if (m is TwoStateLemma) {
+        var two = (TwoStateLemma)m;
+        var reads = CloneSpecFrameExpr(two.Reads);
+        return new TwoStateLemma(Tok(m.tok), m.Name, m.HasStaticKeyword, tps, ins, m.Outs.ConvertAll(CloneFormal),
+          req, mod, reads, ens, decreases, body, CloneAttributes(m.Attributes), null, m);
       } else {
         return new Method(Tok(m.tok), m.Name, m.HasStaticKeyword, m.IsGhost, tps, ins, m.Outs.ConvertAll(CloneFormal),
           req, mod, ens, decreases, body, CloneAttributes(m.Attributes), null, m);
@@ -749,6 +736,10 @@ namespace Microsoft.Dafny
     }
   }
 
+  /// <summary>
+  /// This cloner is used during the creation of a module signature for a method facade.
+  /// It does not clone method bodies, and it copies module signatures.
+  /// </summary>
   class ClonerButDropMethodBodies : Cloner
   {
     public ClonerButDropMethodBodies()
@@ -758,12 +749,46 @@ namespace Microsoft.Dafny
     public override BlockStmt CloneBlockStmt(BlockStmt stmt) {
       return null;
     }
-  }
 
-  class ClonerButUseOriginalMatchConstructsAndDontRecordFromFrom : Cloner
+    public override TopLevelDecl CloneDeclaration(TopLevelDecl d, ModuleDefinition m) {
+      var dd = base.CloneDeclaration(d, m);
+      if (d is ModuleDecl) {
+        ((ModuleDecl)dd).Signature = ((ModuleDecl)d).Signature;
+        if (d is ModuleFacadeDecl) {
+          ((ModuleFacadeDecl)dd).OriginalSignature = ((ModuleFacadeDecl)d).OriginalSignature;
+        }
+      }
+      return dd;
+    }
+  }
+  
+  /// <summary>
+  /// This cloner is used to clone a module into a _Compile module.  This is different from
+  /// the standard cloner in the following ways:
+  /// * "match" statements and "match" expressions obtain their original form, which may include
+  ///   nested patterns.  The resolver will turn these into nested "match" constructs with simple
+  ///   patterns.
+  /// * The .ClonedFrom field is set to null (probably, the .CloneFrom field should go away altogether --KRML)
+  /// * The various module-signature fields of modules are set to whatever they were in the original.
+  /// * To get the .RefinementBase, it redirects using the given mapping
+  /// </summary>
+  class CompilationCloner : Cloner
   {
-    public ClonerButUseOriginalMatchConstructsAndDontRecordFromFrom()
+    Dictionary<ModuleDefinition, ModuleDefinition> compilationModuleClones;
+    public CompilationCloner(Dictionary<ModuleDefinition, ModuleDefinition> compilationModuleClones)
       : base() {
+      this.compilationModuleClones = compilationModuleClones;
+    }
+
+    public override TopLevelDecl CloneDeclaration(TopLevelDecl d, ModuleDefinition m) {
+      var dd = base.CloneDeclaration(d, m);
+      if (d is ModuleDecl) {
+        ((ModuleDecl)dd).Signature = ((ModuleDecl)d).Signature;
+        if (d is ModuleFacadeDecl) {
+          ((ModuleFacadeDecl)dd).OriginalSignature = ((ModuleFacadeDecl)d).OriginalSignature;
+        }
+      }
+      return dd;
     }
 
     public override Expression CloneExpr(Expression expr) {
@@ -788,6 +813,16 @@ namespace Microsoft.Dafny
 
     public override ModuleDefinition CloneFromValue_Module(ModuleDefinition m) {
       return null;
+    }
+
+    public override ModuleDefinition GetRefinementBase(ModuleDefinition m) {
+      var rbase = m.RefinementBase;
+      ModuleDefinition r;
+      if (compilationModuleClones.TryGetValue(rbase, out r)) {
+        return r;
+      } else {
+        return rbase;
+      }
     }
   }
 

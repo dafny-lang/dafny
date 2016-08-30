@@ -1,4 +1,4 @@
-﻿#define DEBUG_AUTO_TRIGGERS
+#define DEBUG_AUTO_TRIGGERS
 
 using System;
 using System.Collections.Generic;

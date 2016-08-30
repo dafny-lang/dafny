@@ -1,7 +1,3 @@
-ResolveError.dfy(86,6): Error: RHS (of type ((int,bool)) -> real) not assignable to LHS (of type (int,bool) -> real)
-ResolveError.dfy(91,15): Error: incorrect type of method in-parameter 0 (expected int -> ?, got (int,bool) -> real)
-ResolveError.dfy(101,6): Error: RHS (of type (()) -> real) not assignable to LHS (of type () -> real)
-ResolveError.dfy(102,6): Error: RHS (of type () -> real) not assignable to LHS (of type (()) -> real)
 ResolveError.dfy(7,9): Error: the number of left-hand sides (1) and right-hand sides (2) must match for a multi-assignment
 ResolveError.dfy(8,9): Error: the number of left-hand sides (1) and right-hand sides (2) must match for a multi-assignment
 ResolveError.dfy(21,6): Error: LHS of assignment must denote a mutable field
@@ -20,4 +16,8 @@ ResolveError.dfy(56,9): Error: condition is expected to be of type bool, but is 
 ResolveError.dfy(59,39): Error: arguments must have the same type (got A -> B and object)
 ResolveError.dfy(62,11): Error: arguments must have the same type (got A -> B and object)
 ResolveError.dfy(68,24): Error: unresolved identifier: _
+ResolveError.dfy(86,6): Error: RHS (of type ((int,bool)) -> real) not assignable to LHS (of type (int,bool) -> real)
+ResolveError.dfy(91,15): Error: incorrect type of method in-parameter 0 (expected int -> ?, got (int,bool) -> real)
+ResolveError.dfy(101,6): Error: RHS (of type (()) -> real) not assignable to LHS (of type () -> real)
+ResolveError.dfy(102,6): Error: RHS (of type () -> real) not assignable to LHS (of type (()) -> real)
 22 resolution/type errors detected in ResolveError.dfy

@@ -18,18 +18,18 @@ method M()
   s := {};
   s := {40,20};
   x := x + y;
-  var r0 := real(x);
+  var r0 := x as real;
   var r1: real := 2.0 * r0;
-  var i0 := int(z);
+  var i0 := z as int;
   var i1: nat := 2 * i0;
   assert i1 == 24;
   assert y == 0.0 ==> r1 == 10.6;
 
-  assert real(x) == r0;
-  assert 2.0 * real(x) == real(2.0 * x);
+  assert x as real == r0;
+  assert 2.0 * x as real == (2.0 * x) as real;
 
-  assert real(int(z)) == real(i0);
-  assert 2 * int(z) == int(2 * z);
+  assert z as int as real == i0 as real;
+  assert 2 * z as int == (2 * z) as int;
 
   var di: int32 := z / 2 + 24 / z;
   assert di == 8;
@@ -38,9 +38,9 @@ method M()
   assert dr == 32.0;
 
   if yOrig == 0.3 {
-    var truncated := r0.Trunc + x.Trunc;
-    assert truncated == 5 + 5;
-    var rounded := (r0 + 0.5).Trunc;
+    var floored := r0.Floor + x.Floor;
+    assert floored == 5 + 5;
+    var rounded := (r0 + 0.5).Floor;
     assert rounded == 6;
   }
 }
@@ -69,7 +69,7 @@ module Constraints {
   newtype Te = x: int | 0 <= x < 3 && [5, 7, 8][x] % 2 != 0
 
   newtype Ta = x: int | 0 <= x < 3
-  newtype Tb = y: Ta | [5, 7, 8][int(y)] % 2 != 0  // the indexing is okay, because of the type constraint for Ta
+  newtype Tb = y: Ta | [5, 7, 8][y as int] % 2 != 0  // the indexing is okay, because of the type constraint for Ta
 
   newtype Odds = x: int | x % 2 == 1  // error: cannot find witness
 
@@ -113,14 +113,14 @@ module PredicateTests {
   method MidPoint_AlsoFine(lo: char8, hi: char8) returns (mid: char8)
     requires lo <= hi;
   {
-    mid := char8((int(lo) + int(hi)) / 2);
+    mid := ((lo as int + hi as int) / 2) as char8;
   }
 }
 
 module Module0 {
   import Module1
   method M(x: int) returns (n: Module1.N9) {
-    n := Module1.N9(x);
+    n := x as Module1.N9;
   }
 }
 
@@ -183,15 +183,15 @@ module IntegerBasedValues {
     var b := new T[o];
     var m := new T[o, n];
     if {
-      case int(i) < n        =>  x := a[i];
-      case int(i) < a.Length =>  x := a[i];
-      case i < o             =>  x := b[i];
-      case int(i) < b.Length =>  x := b[i];
-      case k < m.Length0 && int(j) < m.Length1 =>  x := m[k, j];
-      case int(i) < m.Length0 && k < m.Length1 =>  x := m[i, k];
-      case int(i) < m.Length0 && int(j) < m.Length1 =>  x := m[i, j];
-      case int(i) < m.Length0 && int(j) < m.Length1 =>  x := m[j, j];  // error: bad index 0
-      case int(i) < m.Length0 && int(j) < m.Length1 =>  x := m[i, i];  // error: bad index 1
+      case i as int < n        =>  x := a[i];
+      case i as int < a.Length =>  x := a[i];
+      case i < o               =>  x := b[i];
+      case i as int < b.Length =>  x := b[i];
+      case k < m.Length0 && j as int < m.Length1 =>  x := m[k, j];
+      case i as int < m.Length0 && k < m.Length1 =>  x := m[i, k];
+      case i as int < m.Length0 && j as int < m.Length1 =>  x := m[i, j];
+      case i as int < m.Length0 && j as int < m.Length1 =>  x := m[j, j];  // error: bad index 0
+      case i as int < m.Length0 && j as int < m.Length1 =>  x := m[i, i];  // error: bad index 1
       case true =>
     }
   }
@@ -200,17 +200,17 @@ module IntegerBasedValues {
     requires 0 <= i && 0 <= lo <= hi;
   {
     if {
-      case int(i) < |a|                   =>  x := a[i];
-      case |a| % 2 == 0 && i < Even(|a|)  =>  x := a[i];
-      case int(hi) <= |a|                 =>  b := a[lo..hi];
-      case int(hi) <= |a|                 =>  b := a[..hi];
-      case int(hi) <= |a|                 =>  b := a[0..hi];
-      case int(lo) <= |a|                 =>  b := a[lo..];
-      case int(lo) <= |a|                 =>  b := a[lo..|a|];
-      case int(lo) <= |a| && |a| % 2 == 0 =>  assert a[lo..|a|] == a[lo..Even(|a|)];
-      case n <= int(hi) <= |a|            =>  b := a[n..hi];
-      case int(lo) <= n <= |a|            =>  b := a[lo..n];
-      case int(hi + hi) <= |a|            =>  b := a[lo..Even(2*hi)];
+      case i as int < |a|                   =>  x := a[i];
+      case |a| % 2 == 0 && i < |a| as Even  =>  x := a[i];
+      case hi as int <= |a|                 =>  b := a[lo..hi];
+      case hi as int <= |a|                 =>  b := a[..hi];
+      case hi as int <= |a|                 =>  b := a[0..hi];
+      case lo as int <= |a|                 =>  b := a[lo..];
+      case lo as int <= |a|                 =>  b := a[lo..|a|];
+      case lo as int <= |a| && |a| % 2 == 0 =>  assert a[lo..|a|] == a[lo..|a| as Even];
+      case n <= hi as int <= |a|            =>  b := a[n..hi];
+      case lo as int <= n <= |a|            =>  b := a[lo..n];
+      case (hi + hi) as int <= |a|          =>  b := a[lo..(2*hi) as Even];
       case true =>
     }
   }
@@ -223,7 +223,7 @@ module IntegerBasedValues {
         m' := m[t := n+n];  // fine, if the previous statement was
       case 0 <= n =>  m' := m[t := n];
       case 0 <= n =>  m' := m[t := n+n+1];  // error: n+n+1 is not Even (like n+n and 1 are)
-      case 0 <= n =>  m' := m[t := int(n+n)+1];
+      case 0 <= n =>  m' := m[t := (n+n) as int + 1];
     }
   }
 }
@@ -247,7 +247,7 @@ module Guessing_Termination_Metrics {
   method M_Good() {
     var x: N, y: N;
     while x < y
-      decreases int(y) - int(x);
+      decreases y as int - x as int
     {
       if 3 < y {
         y := 3;
@@ -287,7 +287,7 @@ module Guessing_Termination_Metrics {
   method P_Good() {
     var x: R, y: R;
     while x < y
-      decreases real(y) - real(x);
+      decreases y as real - x as real
     {
       if 12.0 < y {
         y := 10.0;
@@ -318,8 +318,8 @@ module SeqTests {
   method M0(many_bytes: seq<byte>, one_byte: byte)
     requires |many_bytes| == 1;
   {
-    assert 0 <= int(one_byte) < 0x100;
-    assert 0 <= int(many_bytes[0]) < 0x100;
+    assert 0 <= one_byte as int < 0x100;
+    assert 0 <= many_bytes[0] as int < 0x100;
   }
 
   method M1(many_bytes: seq<byte>, many_ints: seq<int>) 

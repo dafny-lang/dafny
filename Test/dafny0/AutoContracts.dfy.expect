@@ -1,0 +1,533 @@
+// AutoContracts.dfy
+
+/*
+module _System {
+  /* CALL GRAPH for module _System:
+   */
+  type string = seq<char>
+
+  type {:axiom} nat = x: int | 0 <= x
+
+  trait {:compile false} object { }
+
+  class {:compile false} array<arg> {
+    var Length: int  // immutable
+  }
+
+  class {:compile false} _#Func0<T0> {
+    function requires(): bool
+      reads reads()
+
+    function reads(): set<object>
+      reads reads()
+  }
+}
+// bitvector types in use:
+*/
+
+/* CALL GRAPH for module _module:
+ */
+
+module OneModule {
+  /* CALL GRAPH for module OneModule:
+   * SCC at height 10:
+   *   C.NoBody
+   * SCC at height 9:
+   *   C.TL
+   * SCC at height 8:
+   *   C.L
+   * SCC at height 7:
+   *   C.Query
+   * SCC at height 6:
+   *   C.Mutating
+   * SCC at height 5:
+   *   C.P
+   * SCC at height 4:
+   *   C._ctor
+   * SCC at height 3:
+   *   C.F
+   * SCC at height 2:
+   *   C.Valid
+   * SCC at height 1:
+   *   D.Valid
+   * SCC at height 0:
+   *   nat
+   */
+  class {:autocontracts} D {
+    ghost var Repr: set<object>
+
+    predicate Valid()
+      reads this, Repr
+      decreases Repr + {this}
+    {
+      this in Repr &&
+      null !in Repr &&
+      true
+    }
+  }
+
+  class {:autocontracts} C {
+    var data: int
+    var anotherC: C
+    var dd: D
+    var {:autocontracts false} ee: D
+    var arr: array<C>
+
+    protected predicate Valid()
+      reads this, Repr
+      decreases Repr + {this}
+    {
+      this in Repr &&
+      null !in Repr &&
+      (anotherC != null ==>
+        anotherC in Repr &&
+        anotherC.Repr <= Repr &&
+        this !in anotherC.Repr &&
+        anotherC.Valid()) &&
+      (dd != null ==>
+        dd in Repr &&
+        dd.Repr <= Repr &&
+        this !in dd.Repr &&
+        dd.Valid()) &&
+      (arr != null ==>
+        arr in Repr) &&
+      0 <= data < 100
+    }
+
+    constructor ()
+      modifies this
+      ensures Valid()
+      ensures fresh(Repr - {this})
+    {
+      data := 0;
+      Repr := {this};
+      if anotherC != null {
+        Repr := Repr + {anotherC} + anotherC.Repr;
+      }
+      if dd != null {
+        Repr := Repr + {dd} + dd.Repr;
+      }
+      if arr != null {
+        Repr := Repr + {arr};
+      }
+    }
+
+    method Mutating()
+      requires Valid()
+      modifies Repr
+      ensures Valid()
+      ensures fresh(Repr - old(Repr))
+      ensures old(data) <= data
+    {
+      if anotherC != null {
+        Repr := Repr + {anotherC} + anotherC.Repr;
+      }
+      if dd != null {
+        Repr := Repr + {dd} + dd.Repr;
+      }
+      if arr != null {
+        Repr := Repr + {arr};
+      }
+    }
+
+    method Query() returns (d: int)
+      requires Valid()
+      ensures d == data
+    {
+      d := data;
+    }
+
+    function F(): nat
+      requires Valid()
+      reads Repr
+      decreases Repr
+    {
+      data
+    }
+
+    predicate P()
+      requires Valid()
+      reads Repr
+      decreases Repr
+    {
+      data < 20
+    }
+
+    lemma L()
+      requires Valid()
+      ensures data < 100
+    {
+    }
+
+    twostate lemma TL()
+      requires old(Valid())
+      ensures old(data) <= data
+    {
+    }
+
+    method NoBody()
+      requires Valid()
+      modifies Repr
+      ensures Valid()
+      ensures fresh(Repr - old(Repr))
+
+    ghost var Repr: set<object>
+  }
+}
+
+module N0 {
+  /* CALL GRAPH for module N0:
+   * SCC at height 9:
+   *   C.B
+   * SCC at height 8:
+   *   C.A
+   * SCC at height 7:
+   *   C.C
+   * SCC at height 6:
+   *   C.M
+   * SCC at height 5:
+   *   C.L
+   * SCC at height 4:
+   *   C.K
+   * SCC at height 3:
+   *   C.Z
+   * SCC at height 2:
+   *   C.Y
+   * SCC at height 1:
+   *   C.X
+   * SCC at height 0:
+   *   C.Valid
+   */
+  class {:autocontracts} C {
+    constructor X()
+      modifies this
+      ensures Valid()
+      ensures fresh(Repr - {this})
+
+    constructor Y()
+      modifies this
+      ensures Valid()
+      ensures fresh(Repr - {this})
+
+    constructor Z()
+      modifies this
+      ensures Valid()
+      ensures fresh(Repr - {this})
+    {
+      Repr := {this};
+    }
+
+    method A()
+      requires Valid()
+      modifies Repr
+      ensures Valid()
+      ensures fresh(Repr - old(Repr))
+
+    method B()
+      requires Valid()
+      modifies Repr
+      ensures Valid()
+      ensures fresh(Repr - old(Repr))
+
+    method C()
+      requires Valid()
+      modifies Repr
+      ensures Valid()
+      ensures fresh(Repr - old(Repr))
+    {
+    }
+
+    predicate Valid()
+      reads this, Repr
+      decreases Repr + {this}
+    {
+      this in Repr &&
+      null !in Repr &&
+      true
+    }
+
+    ghost var Repr: set<object>
+
+    method {:autocontracts false} K()
+      requires Valid()
+      modifies Repr
+      ensures Valid() && fresh(Repr - old(Repr))
+
+    method {:autocontracts false} L()
+      requires Valid()
+      modifies Repr
+      ensures Valid() && fresh(Repr - old(Repr))
+
+    method {:autocontracts false} M()
+      requires Valid()
+      modifies Repr
+      ensures Valid() && fresh(Repr - old(Repr))
+    {
+    }
+  }
+}
+
+module N1 refines N0 {
+  /* CALL GRAPH for module N1:
+   * SCC at height 9:
+   *   C.M
+   * SCC at height 8:
+   *   C.L
+   * SCC at height 7:
+   *   C.K
+   * SCC at height 6:
+   *   C.C
+   * SCC at height 5:
+   *   C.B
+   * SCC at height 4:
+   *   C.A
+   * SCC at height 3:
+   *   C.Z
+   * SCC at height 2:
+   *   C.Y
+   * SCC at height 1:
+   *   C.X
+   * SCC at height 0:
+   *   C.Valid
+   */
+  class {:autocontracts} C {
+    constructor X()
+      modifies this
+      ensures Valid()
+      ensures fresh(Repr - {this})
+
+    constructor Y()
+      modifies this
+      ensures Valid()
+      ensures fresh(Repr - {this})
+    {
+    }
+
+    constructor Z()
+      modifies this
+      ensures Valid()
+      ensures fresh(Repr - {this})
+    {
+      Repr := {this};
+    }
+
+    method A()
+      requires Valid()
+      modifies Repr
+      ensures Valid()
+      ensures fresh(Repr - old(Repr))
+
+    method B()
+      requires Valid()
+      modifies Repr
+      ensures Valid()
+      ensures fresh(Repr - old(Repr))
+    {
+    }
+
+    method C()
+      requires Valid()
+      modifies Repr
+      ensures Valid()
+      ensures fresh(Repr - old(Repr))
+    {
+    }
+
+    method {:autocontracts false} K()
+      requires Valid()
+      modifies Repr
+      ensures Valid() && fresh(Repr - old(Repr))
+
+    method {:autocontracts false} L()
+      requires Valid()
+      modifies Repr
+      ensures Valid() && fresh(Repr - old(Repr))
+    {
+    }
+
+    method {:autocontracts false} M()
+      requires Valid()
+      modifies Repr
+      ensures Valid() && fresh(Repr - old(Repr))
+    {
+    }
+
+    predicate Valid()
+      reads this, Repr
+      decreases Repr + {this}
+    {
+      this in Repr &&
+      null !in Repr &&
+      true
+    }
+
+    ghost var Repr: set<object>
+  }
+}
+
+module N2 refines N1 {
+  /* CALL GRAPH for module N2:
+   * SCC at height 9:
+   *   C.M
+   * SCC at height 8:
+   *   C.L
+   * SCC at height 7:
+   *   C.K
+   * SCC at height 6:
+   *   C.C
+   * SCC at height 5:
+   *   C.B
+   * SCC at height 4:
+   *   C.A
+   * SCC at height 3:
+   *   C.Z
+   * SCC at height 2:
+   *   C.Y
+   * SCC at height 1:
+   *   C.X
+   * SCC at height 0:
+   *   C.Valid
+   */
+  class {:autocontracts} C {
+    constructor X()
+      modifies this
+      ensures Valid()
+      ensures fresh(Repr - {this})
+
+    constructor Y()
+      modifies this
+      ensures Valid()
+      ensures fresh(Repr - {this})
+    {
+    }
+
+    constructor Z()
+      modifies this
+      ensures Valid()
+      ensures fresh(Repr - {this})
+    {
+      Repr := {this};
+    }
+
+    method A()
+      requires Valid()
+      modifies Repr
+      ensures Valid()
+      ensures fresh(Repr - old(Repr))
+
+    method B()
+      requires Valid()
+      modifies Repr
+      ensures Valid()
+      ensures fresh(Repr - old(Repr))
+    {
+    }
+
+    method C()
+      requires Valid()
+      modifies Repr
+      ensures Valid()
+      ensures fresh(Repr - old(Repr))
+    {
+    }
+
+    method {:autocontracts false} K()
+      requires Valid()
+      modifies Repr
+      ensures Valid() && fresh(Repr - old(Repr))
+
+    method {:autocontracts false} L()
+      requires Valid()
+      modifies Repr
+      ensures Valid() && fresh(Repr - old(Repr))
+    {
+    }
+
+    method {:autocontracts false} M()
+      requires Valid()
+      modifies Repr
+      ensures Valid() && fresh(Repr - old(Repr))
+    {
+    }
+
+    predicate Valid()
+      reads this, Repr
+      decreases Repr + {this}
+    {
+      this in Repr &&
+      null !in Repr &&
+      true
+    }
+
+    ghost var Repr: set<object>
+  }
+}
+AutoContracts.dfy(17,4): Error BP5003: A postcondition might not hold on this return path.
+AutoContracts.dfy(17,4): Related location: This is the postcondition that might not hold.
+AutoContracts.dfy(12,24): Related location
+Execution trace:
+    (0,0): anon0
+    (0,0): anon9_Then
+    (0,0): anon3
+    (0,0): anon10_Then
+    (0,0): anon6
+    (0,0): anon11_Then
+AutoContracts.dfy(17,4): Error BP5003: A postcondition might not hold on this return path.
+AutoContracts.dfy(17,4): Related location: This is the postcondition that might not hold.
+AutoContracts.dfy(12,24): Related location
+Execution trace:
+    (0,0): anon0
+    (0,0): anon9_Then
+    (0,0): anon3
+    (0,0): anon10_Then
+    (0,0): anon6
+    (0,0): anon11_Then
+AutoContracts.dfy(17,4): Error BP5003: A postcondition might not hold on this return path.
+AutoContracts.dfy(17,4): Related location: This is the postcondition that might not hold.
+AutoContracts.dfy(12,24): Related location
+Execution trace:
+    (0,0): anon0
+    (0,0): anon9_Then
+    (0,0): anon3
+    (0,0): anon10_Then
+    (0,0): anon6
+    (0,0): anon11_Then
+AutoContracts.dfy(17,4): Error BP5003: A postcondition might not hold on this return path.
+AutoContracts.dfy(17,4): Related location: This is the postcondition that might not hold.
+AutoContracts.dfy(12,24): Related location
+Execution trace:
+    (0,0): anon0
+    (0,0): anon9_Then
+    (0,0): anon3
+    (0,0): anon10_Then
+    (0,0): anon6
+    (0,0): anon11_Then
+AutoContracts.dfy(17,4): Error BP5003: A postcondition might not hold on this return path.
+AutoContracts.dfy(17,4): Related location: This is the postcondition that might not hold.
+Execution trace:
+    (0,0): anon0
+    (0,0): anon9_Then
+    (0,0): anon3
+    (0,0): anon10_Then
+    (0,0): anon6
+    (0,0): anon11_Then
+AutoContracts.dfy(50,4): Error BP5003: A postcondition might not hold on this return path.
+AutoContracts.dfy(49,24): Related location: This is the postcondition that might not hold.
+Execution trace:
+    (0,0): anon0
+AutoContracts.dfy(79,21): Error BP5003: A postcondition might not hold on this return path.
+AutoContracts.dfy(60,16): Related location: This is the postcondition that might not hold.
+Execution trace:
+    (0,0): anon0
+AutoContracts.dfy(79,21): Error BP5003: A postcondition might not hold on this return path.
+AutoContracts.dfy(60,16): Related location: This is the postcondition that might not hold.
+AutoContracts.dfy[N1](65,14): Related location
+Execution trace:
+    (0,0): anon0
+AutoContracts.dfy(79,21): Error BP5003: A postcondition might not hold on this return path.
+AutoContracts.dfy(60,16): Related location: This is the postcondition that might not hold.
+AutoContracts.dfy[N1](65,14): Related location
+Execution trace:
+    (0,0): anon0
+
+Dafny program verifier finished with 57 verified, 9 errors

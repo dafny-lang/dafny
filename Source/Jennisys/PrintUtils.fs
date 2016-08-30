@@ -1,4 +1,4 @@
-﻿module PrintUtils
+module PrintUtils
 
 let newline = System.Environment.NewLine // "\r\n"
 

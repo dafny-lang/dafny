@@ -10,8 +10,6 @@ Processing command (at Snapshots2.v0.dfy(14,11)) assert true;
   >>> DoNothingToAssert
 Processing command (at Snapshots2.v0.dfy(14,15)) assert _module.__default.Q($LS($LS($LZ)), $Heap) <==> Lit(_module.__default.R($Heap));
   >>> DoNothingToAssert
-Processing command (at Snapshots2.v0.dfy(18,3)) assert true;
-  >>> DoNothingToAssert
 
 Dafny program verifier finished with 6 verified, 0 errors
 Processing call to procedure Call$$_module.__default.N in implementation Impl$$_module.__default.M (at Snapshots2.v1.dfy(3,4)):
@@ -20,8 +18,6 @@ Processing implementation CheckWellformed$$_module.__default.P (at Snapshots2.v1
   >>> added after assuming the current precondition: a##cached##0 := a##cached##0 && false;
 Processing implementation CheckWellformed$$_module.__default.Q (at Snapshots2.v1.dfy(13,11)):
   >>> added after assuming the current precondition: a##cached##0 := a##cached##0 && false;
-Processing command (at Snapshots2.v1.dfy(18,3)) assert true;
-  >>> MarkAsFullyVerified
 Processing command (at Snapshots2.v1.dfy(3,4)) assert (forall<alpha> $o: ref, $f: Field alpha :: false ==> $_Frame[$o, $f]);
   >>> MarkAsFullyVerified
 Processing command (at Snapshots2.v1.dfy(4,10)) assert false;

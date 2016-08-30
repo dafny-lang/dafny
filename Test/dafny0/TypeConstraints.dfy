@@ -1,6 +1,6 @@
 // RUN: %dafny /compile:0 /print:"%t.print" /env:0 /rprint:- "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
-
+module Tests {
 class CC {
   var f: nat
   var g: int
@@ -32,7 +32,7 @@ method ChainOfAssignments() returns (x: int, y: int, n: nat)
   p := q;
   q := n;
 }
-
+}  // module Tests
 module HereAreErrors {
   method Error0() returns (x: int, z: bool)
   {
@@ -83,12 +83,12 @@ module HereAreErrors {
     d, e := e, b;
   }
 }
-
+module PL {
 method PlainLiterals() {
   var x := 0;
   var r := 0.0;
 }
-
+}
 module PlusTests {  
   method Plus0() {
     var a, b, c;
@@ -387,4 +387,55 @@ module OtherTraitsAndClasses {
     */
   }
 ******/
+}
+
+module LetPatterns {
+  datatype MyDt = AAA(x: int) | BBB(y: int)
+
+  function M(m: MyDt): int
+    requires m.AAA?
+  {
+    var AAA(u) := m;  // u: int
+    u
+  }
+
+  method P()
+  {
+    var v;  // v: int
+    var m;  // m: MyDt
+    var w := v + var AAA(u) := m; u;  // m may not be an AAA, but that's checked by the verifier
+  }
+
+  method Q(x: int, r: real)
+  {
+    var o;  // real
+    var u := (x, o);  // (int,real)
+    o := r;
+  }
+}
+
+module Arrays_and_SubsetTypes {
+  method M()
+  { // Type-wise, all of the following are allowed (but the verifier will complain):
+    var a: array<nat>;
+    var b: array<int>;
+    if * {
+      a := new nat[100];
+      b := new nat[100];
+    } else if * {
+      a := new int[100];
+      b := new int[100];
+    } else if * {
+      a := b;
+    } else if * {
+      b := a;
+    } else if * {
+      var n := new nat[100];  // array<nat>
+      if * {
+        a := n;
+      } else {
+        b := n;
+      }
+    }
+  }
 }

@@ -1,4 +1,4 @@
-﻿module EnvUtils
+module EnvUtils
 
 open Ast
 

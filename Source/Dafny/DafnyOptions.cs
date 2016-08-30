@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -73,6 +73,7 @@ namespace Microsoft.Dafny
     public bool PrintStats = false;
     public bool PrintFunctionCallGraph = false;
     public bool WarnShadowing = false;
+    public int DeprecationNoise = 1;
     public bool IronDafny = 
 #if ENABLE_IRONDAFNY 
       true
@@ -223,6 +224,14 @@ namespace Microsoft.Dafny
         case "warnShadowing":
           WarnShadowing = true;
           return true;
+
+        case "deprecation": {
+          int d = 1;
+          if (ps.GetNumericArgument(ref d, 3)) {
+            DeprecationNoise = d;
+          }
+          return true;
+        }
 
         case "countVerificationErrors": {
           int countErrors = 1; // defaults to reporting verification errors
@@ -417,6 +426,10 @@ namespace Microsoft.Dafny
   /funcCallGraph Print out the function call graph.  Format is: func,mod=callee*
   /warnShadowing  Emits a warning if the name of a declared variable caused another variable
                 to be shadowed
+  /deprecation:<n>
+                0 - don't give any warnings about deprecated features
+                1 (default) - show warnings about deprecated features
+                2 - also point out where there's new simpler syntax
   /ironDafny    Enable experimental features needed to support Ironclad/Ironfleet. Use of
                 these features may cause your code to become incompatible with future
                 releases of Dafny.

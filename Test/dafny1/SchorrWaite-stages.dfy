@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:0 /dprint:"%t.dprint" /autoTriggers:0 "%s" > "%t"
+// RUN: %dafny /compile:0 /dprint:"%t.dprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // Schorr-Waite algorithms, written and verified in Dafny.
@@ -61,7 +61,7 @@ abstract module M0 {
     ghost var stackNodes: seq<Node> := [];
     while true
       // stackNodes is a sequence of nodes from S:
-      invariant forall n :: n in stackNodes ==> n in S
+      invariant forall i :: 0 <= i < |stackNodes| ==> stackNodes[i] in S
 
       // The current node, t, is not included in stackNodes.  Rather, t is just above the top of stackNodes.
       // We say that the stack stackNodes+[t] are the "active" nodes.

@@ -116,8 +116,14 @@ namespace Microsoft.Dafny {
       // create type synonym 'string'
       var str = new TypeSynonymDecl(Token.NoToken, "string", new List<TypeParameter>(), SystemModule, new SeqType(new CharType()), null);
       SystemModule.TopLevelDecls.Add(str);
-      // create class 'object'
-      ObjectDecl = new ClassDecl(Token.NoToken, "object", SystemModule, new List<TypeParameter>(), new List<MemberDecl>(), DontCompile(), null);
+      // create subset type 'nat'
+      var bvNat = new BoundVar(Token.NoToken, "x", Type.Int);
+      var natConstraint = Expression.CreateAtMost(Expression.CreateIntLiteral(Token.NoToken, 0), Expression.CreateIdentExpr(bvNat));
+      var ax = new Attributes("axiom", new List<Expression>(), null);
+      var nat = new SubsetTypeDecl(Token.NoToken, "nat", new List<TypeParameter>(), SystemModule, bvNat, natConstraint, ax);
+      SystemModule.TopLevelDecls.Add(nat);
+      // create trait 'object'
+      ObjectDecl = new TraitDecl(Token.NoToken, "object", SystemModule, new List<TypeParameter>(), new List<MemberDecl>(), DontCompile(), null);
       SystemModule.TopLevelDecls.Add(ObjectDecl);
       // add one-dimensional arrays, since they may arise during type checking
       // Arrays of other dimensions may be added during parsing as the parser detects the need for these
@@ -227,7 +233,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(s != null);
       return s.StartsWith("_tuple#");
     }
-    public const string TupleTypeCtorName = "_#Make";  // the printer wants this name to be uniquely recognizable
+    public const string TupleTypeCtorNamePrefix = "_#Make";  // the printer wants this name prefix to be uniquely recognizable
   }
 
   /// <summary>
@@ -582,7 +588,8 @@ namespace Microsoft.Dafny {
 
 
         if (DafnyOptions.O.IronDafny && type is UserDefinedType) {
-          var rc = ((UserDefinedType)type).ResolvedClass;
+          var udt = (UserDefinedType)type;
+          var rc = udt.ResolvedClass;
           if (rc != null) {
             while (rc.ClonedFrom != null || rc.ExclusiveRefinement != null) {
               if (rc.ClonedFrom != null) {
@@ -594,7 +601,7 @@ namespace Microsoft.Dafny {
             }
           }
           if (rc is TypeSynonymDecl) {
-            type = ((TypeSynonymDecl)rc).Rhs;
+            type = ((TypeSynonymDecl)rc).RhsWithArgument(udt.TypeArgs);
             continue;
           }
         }
@@ -603,12 +610,90 @@ namespace Microsoft.Dafny {
     }
 
     /// <summary>
-    /// Returns whether or not "this" and "that" denote the same type, module proxies and type synonyms.
+    /// Return the type that "this" stands for, getting to the bottom of proxies and following type synonyms, but does
+    /// not follow subset types.
+    /// </summary>
+    [Pure]
+    public Type NormalizeExpandKeepConstraints() {
+      Contract.Ensures(Contract.Result<Type>() != null);
+      Contract.Ensures(!(Contract.Result<Type>() is TypeProxy) || ((TypeProxy)Contract.Result<Type>()).T == null);  // return a proxy only if .T == null
+      Type type = this;
+      while (true) {
+        var pt = type as TypeProxy;
+        if (pt != null && pt.T != null) {
+          type = pt.T;
+          continue;
+        }
+        var syn = type.AsTypeSynonym;
+        if (syn != null) {
+          if (syn is SubsetTypeDecl) {
+            return type;
+          }
+          var udt = (UserDefinedType)type;  // correctness of cast follows from the AsTypeSynonym != null test.
+          // Instantiate with the actual type arguments
+          type = syn.RhsWithArgument(udt.TypeArgs);
+          continue;
+        }
+        if (DafnyOptions.O.IronDafny && type is UserDefinedType) {
+          var udt = (UserDefinedType)type;
+          var rc = udt.ResolvedClass;
+          if (rc != null) {
+            while (rc.ClonedFrom != null || rc.ExclusiveRefinement != null) {
+              if (rc.ClonedFrom != null) {
+                rc = (TopLevelDecl)rc.ClonedFrom;
+              } else {
+                Contract.Assert(rc.ExclusiveRefinement != null);
+                rc = rc.ExclusiveRefinement;
+              }
+            }
+          }
+          if (rc is TypeSynonymDecl) {
+            type = ((TypeSynonymDecl)rc).RhsWithArgument(udt.TypeArgs);
+            continue;
+          }
+        }
+        return type;
+      }
+    }
+
+    public Type StripSubsetConstraints() {
+      Type type = Normalize();
+      var syn = type.AsTypeSynonym;
+      if (syn != null) {
+        var udt = (UserDefinedType)type;
+        var rhs = syn.RhsWithArgument(udt.TypeArgs);
+        var r = rhs.StripSubsetConstraints();
+        if (syn is SubsetTypeDecl) {
+          return r;
+        } else if (object.ReferenceEquals(r, rhs)) {
+          // There was nothing further in RHS to strip, and "type" was just a
+          // type synonym, so ignore the RHS and just return "type" (because that
+          // gives rise to better error messages).
+          return type;
+        } else {
+          return r;
+        }
+      }
+      return type;
+    }
+
+    /// <summary>
+    /// Returns whether or not "this" and "that" denote the same type, module proxies and type synonyms and subset types.
     /// </summary>
     [Pure]
     public abstract bool Equals(Type that);
     /// <summary>
-    /// Returns whether or not "this" and "that" could denote the same type, module proxies and type synonyms, if
+    /// Returns whether or not "this" and "that" denote the same type, module proxies and type synonyms, but treating subset types as different.
+    /// </summary>
+    public bool ExactlyEquals(Type that) {
+      return this.IsSupertypeOf_WithSubsetTypes(that) && that.IsSupertypeOf_WithSubsetTypes(this);
+    }
+    /// <summary>
+    /// Returns whether or not "this" is a supertype of "that", modulo proxies and type synonyms, but treating subset types as different.
+    /// </summary>
+    public abstract bool IsSupertypeOf_WithSubsetTypes(Type that);
+    /// <summary>
+    /// Returns whether or not "this" and "that" could denote the same type, module proxies and type synonyms and subset types, if
     /// type parameters are treated as wildcards.
     /// </summary>
     public bool PossiblyEquals(Type that) {
@@ -630,9 +715,6 @@ namespace Microsoft.Dafny {
     public bool IsIntegerType { get { return NormalizeExpand() is IntType; } }
     public bool IsRealType { get { return NormalizeExpand() is RealType; } }
     public bool IsBitVectorType { get { return NormalizeExpand() is BitvectorType; } }
-    public bool IsSubrangeType {
-      get { return NormalizeExpand() is NatType; }
-    }
     public bool IsNumericBased() {
       var t = NormalizeExpand();
       return t.IsIntegerType || t.IsRealType || t.AsNewtype != null;
@@ -746,7 +828,7 @@ namespace Microsoft.Dafny {
     }
     public RedirectingTypeDecl AsRedirectingType {
       get {
-        var udt = this as UserDefinedType;  // Note, it is important to use 'this' here, not 'this.NormalizeExpand()'.  This property getter is intended to be used during resolution.
+        var udt = this as UserDefinedType;  // Note, it is important to use 'this' here, not 'this.NormalizeExpand()'.  This property getter is intended to be used during resolution, or with care thereafter.
         if (udt == null) {
           return null;
         } else {
@@ -1325,7 +1407,7 @@ namespace Microsoft.Dafny {
 
     public void ForeachTypeComponent(Action<Type> action) {
       action(this);
-      TypeArgs.ForEach(action);
+      TypeArgs.ForEach(x => x.ForeachTypeComponent(action));
     }
   }
 
@@ -1335,6 +1417,9 @@ namespace Microsoft.Dafny {
   public abstract class ArtificialType : Type
   {
     public override bool PossiblyEquals_W(Type that) {
+      return Equals(that);
+    }
+    public override bool IsSupertypeOf_WithSubsetTypes(Type that) {
       return Equals(that);
     }
   }
@@ -1375,6 +1460,9 @@ namespace Microsoft.Dafny {
     public override bool PossiblyEquals_W(Type that) {
       return Equals(that);
     }
+    public override bool IsSupertypeOf_WithSubsetTypes(Type that) {
+      return Equals(that);
+    }
   }
 
   public class BoolType : BasicType {
@@ -1407,13 +1495,8 @@ namespace Microsoft.Dafny {
     public override bool Equals(Type that) {
       return that.IsIntegerType;
     }
-  }
-
-  public class NatType : IntType
-  {
-    [Pure]
-    public override string TypeName(ModuleDefinition context, bool parseAble) {
-      return "nat";
+    public override bool IsSupertypeOf_WithSubsetTypes(Type that) {
+      return that.IsIntegerType;
     }
   }
 
@@ -1460,6 +1543,9 @@ namespace Microsoft.Dafny {
     }
     public override bool Equals(Type that) {
       return that.NormalizeExpand() is ObjectType;
+    }
+    public override bool IsSupertypeOf_WithSubsetTypes(Type that) {
+      return that.IsRefType;
     }
   }
 
@@ -1640,6 +1726,10 @@ namespace Microsoft.Dafny {
       var t = that.NormalizeExpand() as SetType;
       return t != null && Finite == t.Finite && Arg.Equals(t.Arg);
     }
+    public override bool IsSupertypeOf_WithSubsetTypes(Type that) {
+      var t = that.NormalizeExpandKeepConstraints() as SetType;
+      return t != null && Finite == t.Finite && Arg.IsSupertypeOf_WithSubsetTypes(t.Arg);
+    }
     public override bool PossiblyEquals_W(Type that) {
       var t = that as SetType;
       return t != null && Finite == t.Finite && Arg.PossiblyEquals(t.Arg);
@@ -1655,6 +1745,10 @@ namespace Microsoft.Dafny {
       var t = that.NormalizeExpand() as MultiSetType;
       return t != null && Arg.Equals(t.Arg);
     }
+    public override bool IsSupertypeOf_WithSubsetTypes(Type that) {
+      var t = that.NormalizeExpandKeepConstraints() as MultiSetType;
+      return t != null && Arg.IsSupertypeOf_WithSubsetTypes(t.Arg);
+    }
     public override bool PossiblyEquals_W(Type that) {
       var t = that as MultiSetType;
       return t != null && Arg.PossiblyEquals(t.Arg);
@@ -1668,6 +1762,10 @@ namespace Microsoft.Dafny {
     public override bool Equals(Type that) {
       var t = that.NormalizeExpand() as SeqType;
       return t != null && Arg.Equals(t.Arg);
+    }
+    public override bool IsSupertypeOf_WithSubsetTypes(Type that) {
+      var t = that.NormalizeExpandKeepConstraints() as SeqType;
+      return t != null && Arg.IsSupertypeOf_WithSubsetTypes(t.Arg);
     }
     public override bool PossiblyEquals_W(Type that) {
       var t = that as SeqType;
@@ -1708,6 +1806,10 @@ namespace Microsoft.Dafny {
     public override bool Equals(Type that) {
       var t = that.NormalizeExpand() as MapType;
       return t != null && Finite == t.Finite && Arg.Equals(t.Arg) && Range.Equals(t.Range);
+    }
+    public override bool IsSupertypeOf_WithSubsetTypes(Type that) {
+      var t = that.NormalizeExpandKeepConstraints() as MapType;
+      return t != null && Finite == t.Finite && Arg.IsSupertypeOf_WithSubsetTypes(t.Arg) && Range.IsSupertypeOf_WithSubsetTypes(t.Range);
     }
     public override bool PossiblyEquals_W(Type that) {
       var t = that as MapType;
@@ -1868,7 +1970,7 @@ namespace Microsoft.Dafny {
     }
 
     /// <summary>
-    /// Constructs a resolve type for an opaque type.
+    /// Constructs a resolved type for an opaque type.
     /// </summary>
     public UserDefinedType(OpaqueType_AsParameter tp, OpaqueTypeDecl decl, List<Type> typeArgs) {
       Contract.Requires(tp != null);
@@ -1903,6 +2005,40 @@ namespace Microsoft.Dafny {
         }
       } else {
         return i.Equals(that);
+      }
+    }
+    public override bool IsSupertypeOf_WithSubsetTypes(Type that) {
+      var i = NormalizeExpandKeepConstraints();
+      if (i is UserDefinedType) {
+        var ii = (UserDefinedType)i;
+        var t = that.NormalizeExpandKeepConstraints() as UserDefinedType;
+        if (t == null || ii.ResolvedParam != t.ResolvedParam || ii.ResolvedClass != t.ResolvedClass || ii.TypeArgs.Count != t.TypeArgs.Count) {
+          return false;
+        } else {
+          for (int j = 0; j < ii.TypeArgs.Count; j++) {
+            var a0 = ii.TypeArgs[j];
+            var a1 = t.TypeArgs[j];
+            if (IsRefType) {
+              // invariant
+              if (!a0.IsSupertypeOf_WithSubsetTypes(a1) || !a1.IsSupertypeOf_WithSubsetTypes(a0)) {
+                return false;
+              }
+            } else if (this is ArrowType && j < ii.TypeArgs.Count-1) {
+              // contravariant
+              if (!a1.IsSupertypeOf_WithSubsetTypes(a0)) {
+                return false;
+              }
+            } else {
+              // covariant
+              if (!a0.IsSupertypeOf_WithSubsetTypes(a1)) {
+                return false;
+              }
+            }
+          }
+          return true;
+        }
+      } else {
+        return i.IsSupertypeOf_WithSubsetTypes(that);
       }
     }
     public override bool PossiblyEquals_W(Type that) {
@@ -2090,6 +2226,15 @@ namespace Microsoft.Dafny {
         return u != null && object.ReferenceEquals(i, u);
       } else {
         return i.Equals(that);
+      }
+    }
+    public override bool IsSupertypeOf_WithSubsetTypes(Type that) {
+      var i = NormalizeExpandKeepConstraints();
+      if (i is TypeProxy) {
+        var u = that.NormalizeExpand() as TypeProxy;
+        return u != null && object.ReferenceEquals(i, u);
+      } else {
+        return i.IsSupertypeOf_WithSubsetTypes(that);
       }
     }
     public override bool PossiblyEquals_W(Type that) {
@@ -2533,6 +2678,7 @@ namespace Microsoft.Dafny {
     public readonly Attributes Attributes;
     public readonly IToken RefinementBaseName;  // null if no refinement base
     public ModuleDecl RefinementBaseRoot; // filled in early during resolution, corresponds to RefinementBaseName[0]
+    public bool SuccessfullyResolved;  // set to true upon successful resolution; modules that import an unsuccessfully resolved module are not themselves resolved
 
     public List<Include> Includes;
 
@@ -2779,7 +2925,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-      public static IEnumerable<FixpointLemma> AllFixpointLemmas(List<TopLevelDecl> declarations) {
+    public static IEnumerable<FixpointLemma> AllFixpointLemmas(List<TopLevelDecl> declarations) {
       foreach (var d in declarations) {
         var cl = d as ClassDecl;
         if (cl != null) {
@@ -2791,6 +2937,23 @@ namespace Microsoft.Dafny {
           }
         }
       }
+    }
+
+    public bool IsEssentiallyEmptyModuleBody() {
+      foreach (var d in TopLevelDecls) {
+        if (d is ModuleDecl) {
+          // modules don't count
+          continue;
+        } else if (d is ClassDecl) {
+          var cl = (ClassDecl)d;
+          if (cl.Members.Count == 0) {
+            // the class is empty, so it doesn't count
+            continue;
+          }
+        }
+        return false;
+      }
+      return true;
     }
   }
 
@@ -3065,7 +3228,7 @@ namespace Microsoft.Dafny {
         var f = new Formal(Token.NoToken, i.ToString(), new UserDefinedType(Token.NoToken, tp), true, false);
         formals.Add(f);
       }
-      var ctor = new DatatypeCtor(Token.NoToken, BuiltIns.TupleTypeCtorName, formals, null);
+      var ctor = new DatatypeCtor(Token.NoToken, BuiltIns.TupleTypeCtorNamePrefix + typeArgs.Count, formals, null);
       return new List<DatatypeCtor>() { ctor };
     }
   }
@@ -3527,6 +3690,13 @@ namespace Microsoft.Dafny {
   public interface RedirectingTypeDecl : ICallable
   {
     string Name { get; }
+
+    IToken tok { get; }
+    Attributes Attributes { get; }
+    ModuleDefinition Module { get; }
+    BoundVar/*?*/ Var { get; }
+    Expression/*?*/ Constraint { get; }
+    FreshIdGenerator IdGenerator { get; }
   }
 
   public class NativeType
@@ -3588,6 +3758,12 @@ namespace Microsoft.Dafny {
 
 
     string RedirectingTypeDecl.Name { get { return Name; } }
+    IToken RedirectingTypeDecl.tok { get { return tok; } }
+    Attributes RedirectingTypeDecl.Attributes { get { return Attributes; } }
+    ModuleDefinition RedirectingTypeDecl.Module { get { return Module; } }
+    BoundVar RedirectingTypeDecl.Var { get { return Var; } }
+    Expression RedirectingTypeDecl.Constraint { get { return Constraint; } }
+    FreshIdGenerator RedirectingTypeDecl.IdGenerator { get { return IdGenerator; } }
 
     bool ICodeContext.IsGhost { get { return true; } }
     List<TypeParameter> ICodeContext.TypeArgs { get { return new List<TypeParameter>(); } }
@@ -3646,6 +3822,12 @@ namespace Microsoft.Dafny {
     }
 
     string RedirectingTypeDecl.Name { get { return Name; } }
+    IToken RedirectingTypeDecl.tok { get { return tok; } }
+    Attributes RedirectingTypeDecl.Attributes { get { return Attributes; } }
+    ModuleDefinition RedirectingTypeDecl.Module { get { return Module; } }
+    BoundVar RedirectingTypeDecl.Var { get { return null; } }
+    Expression RedirectingTypeDecl.Constraint { get { return null; } }
+    FreshIdGenerator RedirectingTypeDecl.IdGenerator { get { return IdGenerator; } }
 
     bool ICodeContext.IsGhost { get { return false; } }
     List<TypeParameter> ICodeContext.TypeArgs { get { return TypeArgs; } }
@@ -3666,6 +3848,28 @@ namespace Microsoft.Dafny {
       get { throw new cce.UnreachableException(); }  // see comment above about ICallable.Decreases
       set { throw new cce.UnreachableException(); }  // see comment above about ICallable.Decreases
     }
+  }
+
+  public class SubsetTypeDecl : TypeSynonymDecl, RedirectingTypeDecl
+  {
+    public override string WhatKind { get { return "subset type"; } }
+    public readonly BoundVar Var;
+    public readonly Expression Constraint;
+    public SubsetTypeDecl(IToken tok, string name, List<TypeParameter> typeArgs, ModuleDefinition module,
+      BoundVar id, Expression constraint,
+      Attributes attributes, SubsetTypeDecl clonedFrom = null)
+      : base(tok, name, typeArgs, module, id.Type, attributes, clonedFrom) {
+      Contract.Requires(tok != null);
+      Contract.Requires(name != null);
+      Contract.Requires(typeArgs != null);
+      Contract.Requires(module != null);
+      Contract.Requires(id != null && id.Type != null);
+      Contract.Requires(constraint != null);
+      Var = id;
+      Constraint = constraint;
+    }
+    BoundVar RedirectingTypeDecl.Var { get { return Var; } }
+    Expression RedirectingTypeDecl.Constraint { get { return Constraint; } }
   }
 
   [ContractClass(typeof(IVariableContracts))]
@@ -3889,13 +4093,15 @@ namespace Microsoft.Dafny {
         return !InParam;
       }
     }
+    public readonly bool IsOld;
 
-    public Formal(IToken tok, string name, Type type, bool inParam, bool isGhost)
+    public Formal(IToken tok, string name, Type type, bool inParam, bool isGhost, bool isOld = false)
       : base(tok, name, type, isGhost) {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
       Contract.Requires(type != null);
       InParam = inParam;
+      IsOld = isOld;
     }
 
     public bool HasName {
@@ -4336,6 +4542,36 @@ namespace Microsoft.Dafny {
     }
   }
 
+  public class TwoStateLemma : Method
+  {
+    public readonly Specification<FrameExpression> Reads;
+    public override string WhatKind { get { return "twostate lemma"; } }
+    public TwoStateLemma(IToken tok, string name,
+                 bool hasStaticKeyword,
+                 [Captured] List<TypeParameter> typeArgs,
+                 [Captured] List<Formal> ins, [Captured] List<Formal> outs,
+                 [Captured] List<MaybeFreeExpression> req,
+                 [Captured] Specification<FrameExpression> mod,
+                 [Captured] Specification<FrameExpression> reads,
+                 [Captured] List<MaybeFreeExpression> ens,
+                 [Captured] Specification<Expression> decreases,
+                 [Captured] BlockStmt body,
+                 Attributes attributes, IToken signatureEllipsis, Declaration clonedFrom = null)
+      : base(tok, name, hasStaticKeyword, true, typeArgs, ins, outs, req, mod, ens, decreases, body, attributes, signatureEllipsis, clonedFrom) {
+      Contract.Requires(tok != null);
+      Contract.Requires(name != null);
+      Contract.Requires(typeArgs != null);
+      Contract.Requires(ins != null);
+      Contract.Requires(outs != null);
+      Contract.Requires(req != null);
+      Contract.Requires(mod != null);
+      Contract.Requires(reads != null);
+      Contract.Requires(ens != null);
+      Contract.Requires(decreases != null);
+      this.Reads = reads;
+    }
+  }
+
   public class Constructor : Method
   {
     public override string WhatKind { get { return "constructor"; } }
@@ -4601,11 +4837,20 @@ namespace Microsoft.Dafny {
   }
 
   public class AssertStmt : PredicateStmt {
-    public AssertStmt(IToken tok, IToken endTok, Expression expr, Attributes attrs)
+    public readonly BlockStmt Proof;
+    public AssertStmt(IToken tok, IToken endTok, Expression expr, BlockStmt/*?*/ proof, Attributes attrs)
       : base(tok, endTok, expr, attrs) {
       Contract.Requires(tok != null);
       Contract.Requires(endTok != null);
       Contract.Requires(expr != null);
+      Proof = proof;
+    }
+    public override IEnumerable<Statement> SubStatements {
+      get {
+        if (Proof != null) {
+          yield return Proof;
+        }
+      }
     }
   }
 
@@ -5385,17 +5630,19 @@ namespace Microsoft.Dafny {
 
   public class AlternativeStmt : Statement
   {
+    public readonly bool UsesOptionalBraces;
     public readonly List<GuardedAlternative> Alternatives;
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(Alternatives != null);
     }
-    public AlternativeStmt(IToken tok, IToken endTok, List<GuardedAlternative> alternatives)
+    public AlternativeStmt(IToken tok, IToken endTok, List<GuardedAlternative> alternatives, bool usesOptionalBraces)
       : base(tok, endTok) {
       Contract.Requires(tok != null);
       Contract.Requires(endTok != null);
       Contract.Requires(alternatives != null);
       this.Alternatives = alternatives;
+      this.UsesOptionalBraces = usesOptionalBraces;
     }
     public override IEnumerable<Statement> SubStatements {
       get {
@@ -5518,6 +5765,7 @@ namespace Microsoft.Dafny {
 
   public class AlternativeLoopStmt : LoopStmt
   {
+    public readonly bool UsesOptionalBraces;
     public readonly List<GuardedAlternative> Alternatives;
     [ContractInvariantMethod]
     void ObjectInvariant() {
@@ -5525,12 +5773,13 @@ namespace Microsoft.Dafny {
     }
     public AlternativeLoopStmt(IToken tok, IToken endTok,
                                List<MaybeFreeExpression> invariants, Specification<Expression> decreases, Specification<FrameExpression> mod,
-                               List<GuardedAlternative> alternatives)
+                               List<GuardedAlternative> alternatives, bool usesOptionalBraces)
       : base(tok, endTok, invariants, decreases, mod) {
       Contract.Requires(tok != null);
       Contract.Requires(endTok != null);
       Contract.Requires(alternatives != null);
       this.Alternatives = alternatives;
+      this.UsesOptionalBraces = usesOptionalBraces;
     }
     public override IEnumerable<Statement> SubStatements {
       get {
@@ -6894,12 +7143,13 @@ namespace Microsoft.Dafny {
     /// <summary>
     /// Constructs a resolved IdentifierExpr.
     /// </summary>
-    public IdentifierExpr(IVariable v)
-      : base(v.Tok) {
+    public IdentifierExpr(IToken tok, IVariable v)
+      : base(tok) {
+      Contract.Requires(tok != null);
       Contract.Requires(v != null);
       Name = v.Name;
       Var = v;
-      Type = v.Type;
+      Type = v.Type.StripSubsetConstraints();
     }
   }
 
@@ -6935,6 +7185,9 @@ namespace Microsoft.Dafny {
 
     public abstract class ResolverType : Type
     {
+      public override bool IsSupertypeOf_WithSubsetTypes(Type that) {
+        return Equals(that);
+      }
     }
     public class ResolverType_Module : ResolverType
     {
@@ -7457,6 +7710,8 @@ namespace Microsoft.Dafny {
       Disjoint,
       In,
       NotIn,
+      LeftShift,
+      RightShift,
       Add,
       Sub,
       Mul,
@@ -7478,7 +7733,7 @@ namespace Microsoft.Dafny {
       // non-collection types
       EqCommon,
       NeqCommon,
-      // integers
+      // integers, reals, bitvectors
       Lt,
       Le,
       Ge,
@@ -7489,6 +7744,8 @@ namespace Microsoft.Dafny {
       Div,
       Mod,
       // bitvectors
+      LeftShift,
+      RightShift,
       BitwiseAnd,
       BitwiseOr,
       BitwiseXor,
@@ -7618,6 +7875,12 @@ namespace Microsoft.Dafny {
         case ResolvedOpcode.RankGt:
           return Opcode.Gt;
 
+        case ResolvedOpcode.LeftShift:
+          return Opcode.LeftShift;
+
+        case ResolvedOpcode.RightShift:
+          return Opcode.RightShift;
+
         case ResolvedOpcode.Add:
         case ResolvedOpcode.Union:
         case ResolvedOpcode.MultiSetUnion:
@@ -7697,6 +7960,10 @@ namespace Microsoft.Dafny {
           return "in";
         case Opcode.NotIn:
           return "!in";
+        case Opcode.LeftShift:
+          return "<<";
+        case Opcode.RightShift:
+          return ">>";
         case Opcode.Add:
           return "+";
         case Opcode.Sub:
@@ -8494,9 +8761,8 @@ namespace Microsoft.Dafny {
     public void AssembleExpr(List<Type> dtvTypeArgs) {
       Contract.Requires(Var != null || dtvTypeArgs != null);
       if (Var != null) {
-        var ie = new IdentifierExpr(this.tok, this.Id);
-        ie.Var = this.Var; ie.Type = this.Var.Type;  // resolve here
-        this.Expr = ie;
+        Contract.Assert(this.Id == this.Var.Name);
+        this.Expr = new IdentifierExpr(this.tok, this.Var);
       } else {
         var dtValue = new DatatypeValue(this.tok, this.Ctor.EnclosingDatatype.Name, this.Id, this.Arguments == null ? new List<Expression>() : this.Arguments.ConvertAll(arg => arg.Expr));
         dtValue.Ctor = this.Ctor;  // resolve here

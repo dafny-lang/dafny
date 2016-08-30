@@ -1,4 +1,4 @@
-﻿module DafnyPrinter
+module DafnyPrinter
 
 open Ast
 open Getters
