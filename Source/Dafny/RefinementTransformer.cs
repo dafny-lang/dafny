@@ -88,26 +88,26 @@ namespace Microsoft.Dafny
                   m.tok,
                   "no more than one exclusive refinement may exist for a given module.");
             }
-            // check that the openess in the imports between refinement and its base matches
-            List<TopLevelDecl> declarations = m.TopLevelDecls;
-            List<TopLevelDecl> baseDeclarations = m.RefinementBase.TopLevelDecls;
-            foreach (var im in declarations) {
-              if (im is ModuleDecl) {
-                ModuleDecl mdecl = (ModuleDecl)im;
-                //find the matching import from the base
-                // TODO: this is a terribly slow algorithm; use the symbol table instead
-                foreach (var bim in baseDeclarations) {
-                  if (bim is ModuleDecl && ((ModuleDecl)bim).Name.Equals(mdecl.Name)) {
-                    if (mdecl.Opened != ((ModuleDecl)bim).Opened) {
-                      string message = mdecl.Opened ? 
-                        "{0} in {1} cannot be imported with \"opened\" because it does not match the corresponding import in the refinement base {2} " :
-                        "{0} in {1} must be imported with \"opened\"  to match the corresponding import in its refinement base {2}.";
-                        reporter.Error(MessageSource.RefinementTransformer,m.tok, message, im.Name, m.Name, m.RefinementBase.Name);
-                    }
-                    break;
+          }
+          // check that the openess in the imports between refinement and its base matches
+          List<TopLevelDecl> declarations = m.TopLevelDecls;
+          List<TopLevelDecl> baseDeclarations = m.RefinementBase.TopLevelDecls;
+          foreach (var im in declarations) {
+            if (im is ModuleDecl) {
+              ModuleDecl mdecl = (ModuleDecl)im;
+              //find the matching import from the base
+              // TODO: this is a terribly slow algorithm; use the symbol table instead
+              foreach (var bim in baseDeclarations) {
+                if (bim is ModuleDecl && ((ModuleDecl)bim).Name.Equals(mdecl.Name)) {
+                  if (mdecl.Opened != ((ModuleDecl)bim).Opened) {
+                    string message = mdecl.Opened ?
+                      "{0} in {1} cannot be imported with \"opened\" because it does not match the corresponding import in the refinement base {2} " :
+                      "{0} in {1} must be imported with \"opened\"  to match the corresponding import in its refinement base {2}.";
+                    reporter.Error(MessageSource.RefinementTransformer, m.tok, message, im.Name, m.Name, m.RefinementBase.Name);
                   }
                   break;
                 }
+                break;
               }
             }
           }

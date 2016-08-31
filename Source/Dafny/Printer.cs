@@ -369,7 +369,7 @@ namespace Microsoft.Dafny {
         if (module.IsExclusiveRefinement) {
           wr.Write("exclusively ");
         }
-        wr.Write("refines {0} ", module.RefinementBaseName);
+        wr.Write("refines {0} ", module.RefinementBaseName.val);
       }
       if (module.TopLevelDecls.Count == 0) {
         wr.WriteLine("{ }");

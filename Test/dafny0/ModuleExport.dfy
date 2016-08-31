@@ -6,7 +6,7 @@ module A {
 	export E1 provides f reveals g
 	export E2 extends A, E1 reveals T
   export Friend extends A reveals g, T
-	export Fruit reveals Data
+	export Fruit provides Data
 
   method h() {}
   function f(): int { 818 }
@@ -68,11 +68,11 @@ module E {
 }
 
 module F {
-  export F reveals f, h
+  export F reveals f provides h
 	export E1 reveals f, g
 	export E2 extends Public2, E1 reveals T		// error: Public2 is not a exported view of F
   export Friend extends F reveals g2, T  // error: g2 is not a member of F
-	export Fruit reveals Data
+	export Fruit provides Data
 
   method h() {}
   function f(): int { 818 }
@@ -88,7 +88,7 @@ module F {
 }
 
 module G {
-  export Public reveals f, h
+  export Public reveals f provides h
 
 	method h() {}
   function f(): int { 818 }

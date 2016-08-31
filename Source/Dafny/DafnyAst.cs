@@ -547,7 +547,7 @@ namespace Microsoft.Dafny {
     /// Return the type that "this" stands for, getting to the bottom of proxies and following type synonyms.
     /// </summary>
     [Pure]
-    public Type NormalizeExpand() {
+    public Type NormalizeExpand(bool keepConstraints = false) {
       Contract.Ensures(Contract.Result<Type>() != null);
       Contract.Ensures(!(Contract.Result<Type>() is TypeProxy) || ((TypeProxy)Contract.Result<Type>()).T == null);  // return a proxy only if .T == null
       Type type = this;
@@ -561,7 +561,7 @@ namespace Microsoft.Dafny {
         if (syn != null) {
           var scope = Type.getScope();
           Contract.Assert(syn.IsVisibleInScope(scope));
-          if (syn.IsRevealedInScope(Type.getScope())) {
+          if (syn.IsRevealedInScope(scope) && (!(syn is SubsetTypeDecl) || !keepConstraints)) {
             var udt = (UserDefinedType)type;  // correctness of cast follows from the AsTypeSynonym != null test.
             // Instantiate with the actual type arguments
             type = syn.RhsWithArgument(udt.TypeArgs);
@@ -615,51 +615,19 @@ namespace Microsoft.Dafny {
     /// </summary>
     [Pure]
     public Type NormalizeExpandKeepConstraints() {
-      Contract.Ensures(Contract.Result<Type>() != null);
-      Contract.Ensures(!(Contract.Result<Type>() is TypeProxy) || ((TypeProxy)Contract.Result<Type>()).T == null);  // return a proxy only if .T == null
-      Type type = this;
-      while (true) {
-        var pt = type as TypeProxy;
-        if (pt != null && pt.T != null) {
-          type = pt.T;
-          continue;
-        }
-        var syn = type.AsTypeSynonym;
-        if (syn != null) {
-          if (syn is SubsetTypeDecl) {
-            return type;
-          }
-          var udt = (UserDefinedType)type;  // correctness of cast follows from the AsTypeSynonym != null test.
-          // Instantiate with the actual type arguments
-          type = syn.RhsWithArgument(udt.TypeArgs);
-          continue;
-        }
-        if (DafnyOptions.O.IronDafny && type is UserDefinedType) {
-          var udt = (UserDefinedType)type;
-          var rc = udt.ResolvedClass;
-          if (rc != null) {
-            while (rc.ClonedFrom != null || rc.ExclusiveRefinement != null) {
-              if (rc.ClonedFrom != null) {
-                rc = (TopLevelDecl)rc.ClonedFrom;
-              } else {
-                Contract.Assert(rc.ExclusiveRefinement != null);
-                rc = rc.ExclusiveRefinement;
-              }
-            }
-          }
-          if (rc is TypeSynonymDecl) {
-            type = ((TypeSynonymDecl)rc).RhsWithArgument(udt.TypeArgs);
-            continue;
-          }
-        }
-        return type;
-      }
+      return NormalizeExpand(true);
     }
 
     public Type StripSubsetConstraints() {
       Type type = Normalize();
       var syn = type.AsTypeSynonym;
       if (syn != null) {
+        var scope = Type.getScope();
+        Contract.Assert(syn.IsVisibleInScope(scope));
+        if (!syn.IsRevealedInScope(scope)) {
+          return type;
+        }
+
         var udt = (UserDefinedType)type;
         var rhs = syn.RhsWithArgument(udt.TypeArgs);
         var r = rhs.StripSubsetConstraints();
@@ -2317,6 +2285,13 @@ namespace Microsoft.Dafny {
     private VisibilityScope revealScope = new VisibilityScope();
     private bool scopeIsInherited = false;
 
+    public virtual bool CanBeExported() {
+      return true;
+    }
+
+    public virtual bool CanBeRevealed() {
+      return false;
+    }
 
     public void AddVisibilityScope(VisibilityScope scope, bool IsOpaque) {
       Contract.Assert(!scopeIsInherited); //pragmatically we should only augment the visibility of the parent
@@ -2581,13 +2556,10 @@ namespace Microsoft.Dafny {
       ThisScope = new VisibilityScope(this.FullName);
     }
 
-    public void SetDeclaration(ExportSignature export, Declaration d) {
-      Contract.Assert(Exports.Contains(export));
-      export.Decl = d;
-      d.AddVisibilityScope(ThisScope, export.Opaque);
-    }
-
     public override object Dereference() { return this; }
+    public override bool CanBeExported() {
+      return false;
+    }
   }
 
   public class ExportSignature
@@ -3035,6 +3007,7 @@ namespace Microsoft.Dafny {
 
   public class ClassDecl : TopLevelDecl {
     public override string WhatKind { get { return "class"; } }
+    public override bool CanBeRevealed() { return true; }
     public readonly List<MemberDecl> Members;
     public readonly List<MemberDecl> InheritedMembers = new List<MemberDecl>();  // these are non-ghost instance fields and instance members defined with bodies in traits (this list is used by the compiler)
     public readonly List<Type> TraitsTyp;  // these are the types that are parsed after the keyword 'extends'
@@ -3725,6 +3698,7 @@ namespace Microsoft.Dafny {
   public class NewtypeDecl : TopLevelDecl, RedirectingTypeDecl
   {
     public override string WhatKind { get { return "newtype"; } }
+    public override bool CanBeRevealed() { return true; }
     public readonly Type BaseType;
     public readonly BoundVar Var;  // can be null (if non-null, then object.ReferenceEquals(Var.Type, BaseType))
     public readonly Expression Constraint;  // is null iff Var is
@@ -3847,6 +3821,9 @@ namespace Microsoft.Dafny {
     bool ICallable.InferredDecreases {
       get { throw new cce.UnreachableException(); }  // see comment above about ICallable.Decreases
       set { throw new cce.UnreachableException(); }  // see comment above about ICallable.Decreases
+    }
+    public override bool CanBeRevealed() {
+      return true;
     }
   }
 
@@ -4151,6 +4128,7 @@ namespace Microsoft.Dafny {
 
   public class Function : MemberDecl, TypeParameter.ParentType, ICallable {
     public override string WhatKind { get { return "function"; } }
+    public override bool CanBeRevealed() { return true; }
     public readonly bool IsProtected;
     public bool IsRecursive;  // filled in during resolution
     public bool IsFueled;  // filled in during resolution if anyone tries to adjust this function's fuel

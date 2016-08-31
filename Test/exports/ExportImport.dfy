@@ -11,7 +11,7 @@ module A {
 module B {
   export BO provides TT, BAO
   export B provides TT
-  export BR reveals TT, BAR
+  export BR provides BAR reveals TT
 
   type TT = BAR.T
 

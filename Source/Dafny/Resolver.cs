@@ -196,6 +196,9 @@ namespace Microsoft.Dafny
     private ModuleSignature systemNameInfo = null;
     private bool useCompileSignatures = false;
 
+    private List<IRewriter> rewriters;
+    private RefinementTransformer refinementTransformer;
+
     public Resolver(Program prog) {
       Contract.Requires(prog != null);
 
@@ -277,8 +280,8 @@ namespace Microsoft.Dafny
         h++;
       }
 
-      var rewriters = new List<IRewriter>();
-      var refinementTransformer = new RefinementTransformer(prog);
+      rewriters = new List<IRewriter>();
+      refinementTransformer = new RefinementTransformer(prog);
       rewriters.Add(refinementTransformer);
       rewriters.Add(new AutoContractsRewriter(reporter));
       rewriters.Add(new OpaqueFunctionRewriter(this.reporter));
@@ -824,10 +827,10 @@ namespace Microsoft.Dafny
           defaultClass.AddVisibilityScope(d.ThisScope, true);
 
           if (d.RevealAll || d.ProvideAll) {
-            foreach (var top in sig.TopLevels) {
+            foreach (var top in sig.TopLevels.Where(t => t.Value.CanBeExported())) {
               top.Value.AddVisibilityScope(d.ThisScope, !d.RevealAll);
             }
-            foreach (var s in sig.StaticMembers) {
+            foreach (var s in sig.StaticMembers.Where(t => t.Value.CanBeExported())) {
               s.Value.AddVisibilityScope(d.ThisScope, !d.RevealAll);
             }
           }
@@ -836,19 +839,35 @@ namespace Microsoft.Dafny
 
             // check to see if it is a datatype or a member or
             // static function or method in the enclosing module or its imports
-            TopLevelDecl decl;
+            TopLevelDecl tdecl;
             MemberDecl member;
+
+            Declaration decl = null;
             string name = export.Name;
 
 
-            if (sig.TopLevels.TryGetValue(name, out decl)) {
+            if (sig.TopLevels.TryGetValue(name, out tdecl)) {
               // Member of the enclosing module
-              d.SetDeclaration(export, decl);
+              decl = tdecl;
             } else if (sig.StaticMembers.TryGetValue(name, out member)) {
-              d.SetDeclaration(export, member);
+              decl = member;
             } else {
               reporter.Error(MessageSource.Resolver, d.tok, name + " must be a member of " + m.Name + " to be exported");
+              continue;
             }
+
+            if (!decl.CanBeExported()) {
+              reporter.Error(MessageSource.Resolver, d.tok, name + " is not a valid export of " + m.Name);
+              continue;
+            }
+
+            if (!export.Opaque && !decl.CanBeRevealed()) {
+              reporter.Error(MessageSource.Resolver, d.tok, name + " cannot be revealed in an export. Use \"provides\" instead.");
+              continue;
+            }
+
+            export.Decl = decl;
+            decl.AddVisibilityScope(d.ThisScope, export.Opaque);
           }
         }
       }
@@ -874,10 +893,11 @@ namespace Microsoft.Dafny
         }
         // fill in export signature
         ModuleSignature signature = decl.Signature;
+        signature.ModuleDef = m;
 
         if (decl.RevealAll || decl.ProvideAll) {
-          sig.TopLevels.Iter(t => signature.TopLevels.Add(t.Key, t.Value));
-          sig.StaticMembers.Iter(t => signature.StaticMembers.Add(t.Key, t.Value));
+          sig.TopLevels.Where(t => t.Value.CanBeExported()).Iter(t => signature.TopLevels.Add(t.Key, t.Value));
+          sig.StaticMembers.Where(t => t.Value.CanBeExported()).Iter(t => signature.StaticMembers.Add(t.Key, t.Value));
         } else {
 
           foreach (ExportSignature export in decl.Exports) {
@@ -927,11 +947,6 @@ namespace Microsoft.Dafny
           if (decl.Value is ModuleDecl) {
             var modDecl = (ModuleDecl)decl.Value;
             s.VisibilityScope.Augment(modDecl.AccessibleSignature().VisibilityScope);
-            /*
-            if (modDecl is ModuleFacadeDecl) {
-              var facadeDecl = (ModuleFacadeDecl)modDecl;
-              s.VisibilityScope.Augment(facadeDecl.OriginalSignature.VisibilityScope);
-            }*/
           }
         }
 
@@ -943,34 +958,19 @@ namespace Microsoft.Dafny
 
         foreach (ModuleExportDecl decl in sortedDecls) {
           var scope = decl.Signature.VisibilityScope;
-          Cloner cloner = new Cloner(scope);
-          ModuleDefinition exportView = new ModuleDefinition(Token.NoToken, "_exportView", m.IsAbstract, m.IsFacade, m.IsExclusiveRefinement, null, m.Module, m.Attributes, false);
+          Cloner cloner = new ExportConsistencyCheckCloner(scope);
+          var exportView = cloner.CloneModuleDefinition(m, m.Name);
 
-          foreach (var export in decl.Signature.TopLevels) {
-            Contract.Assert(export.Value.IsVisibleInScope(scope));
-
-            var topDecl = cloner.CloneDeclaration(export.Value, exportView);
-            if (!(topDecl is DefaultClassDecl)) {
-              exportView.TopLevelDecls.Add(topDecl);
-            }
+          var errorCount = reporter.Count(ErrorLevel.Error);
+          foreach (var r in rewriters) {
+            r.PreResolve(m);
           }
 
-          DefaultClassDecl defaultClass = new DefaultClassDecl(exportView, new List<MemberDecl>());
-          exportView.TopLevelDecls.Add(defaultClass);
+          var testSig = RegisterTopLevelDecls(exportView, true);
+          testSig.Refines = refinementTransformer.RefinedSig;
+          ResolveModuleDefinition(exportView, testSig);
 
-          foreach (var export in decl.Signature.StaticMembers) {
-            Contract.Assert(export.Value.IsVisibleInScope(scope));
-
-            var memberDecl = cloner.CloneMember(export.Value);
-            defaultClass.Members.Add(memberDecl);
-          }
-
-          var prevErrorCount = reporter.Count(ErrorLevel.Error);
-
-          var exportSig = RegisterTopLevelDecls(exportView, false);
-          ResolveModuleDefinition(exportView, exportSig);
-
-          if (reporter.Count(ErrorLevel.Error) > prevErrorCount) {
+          if (reporter.Count(ErrorLevel.Error) > errorCount) {
             reporter.Error(MessageSource.Resolver, decl.tok, "This export set is not consistent");
           }
         }

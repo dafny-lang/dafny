@@ -37,7 +37,7 @@ module AA {
 
 module BB {
   import A = AA`A
-  function G() : int { int(A.f()) } // error, T not known to be nat
+  function G() : int { A.f() as int } // error, T not known to be nat
 
   function H(n : A.T) : bool
   requires 0 <= n; // error
@@ -47,7 +47,7 @@ module BB {
 module CC {
   import A = AA`B
 
-  function G(): nat { int(A.f()) } // T is now known
+  function G(): nat { A.f() as int } // T is now known
 
   function H(n : A.T, m : A.T) : bool
   requires 0 <= n && n == m && 1 <= m;
