@@ -202,8 +202,8 @@ namespace Microsoft.Dafny
     public Resolver(Program prog) {
       Contract.Requires(prog != null);
 
-      Type.RegisterScopeGetter(() => 
-          this.moduleInfo != null ?
+      Type.RegisterScopeGetter(() =>
+          this.moduleInfo != null && !useCompileSignatures ?
           this.moduleInfo.VisibilityScope :
           null);
 
@@ -375,7 +375,14 @@ namespace Microsoft.Dafny
             var compileSig = RegisterTopLevelDecls(nw, true, m.VisibilityScope);
             compileSig.Refines = refinementTransformer.RefinedSig;
             sig.CompileSignature = compileSig;
+            foreach (var top in sig.TopLevels.Values) {
+              var exportDecl = top as ModuleExportDecl;
+              if (exportDecl == null)
+                continue;
+              exportDecl.Signature.CompileSignature = compileSig;
+            }
             // Now we're ready to resolve the cloned module definition, using the compile signature
+
             ResolveModuleDefinition(nw, compileSig);
             prog.CompileModules.Add(nw);
             useCompileSignatures = false;  // reset the flag
