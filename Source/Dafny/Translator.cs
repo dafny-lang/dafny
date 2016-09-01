@@ -11311,7 +11311,7 @@ namespace Microsoft.Dafny {
           FuelConstant fuelConstant = translator.functionFuel.Find(x => x.f == f);
           if (this.amount == (int)FuelAmount.LOW) {
             return GetFunctionFuel(setting.low > 0 ? setting.low   : this.amount, found, fuelConstant);
-          } else if (this.amount == (int)FuelAmount.HIGH) {
+          } else if (this.amount >= (int)FuelAmount.HIGH) {
             return GetFunctionFuel(setting.high > 0 ? setting.high : this.amount, found, fuelConstant);
           } else {
             Contract.Assert(false); // Should not reach here
