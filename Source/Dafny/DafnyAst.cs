@@ -2556,6 +2556,16 @@ namespace Microsoft.Dafny {
       ThisScope = new VisibilityScope(this.FullName);
     }
 
+    public void SetupDefaultSignature() {
+      Contract.Requires(this.Signature == null);
+      var sig = new ModuleSignature();
+      sig.ModuleDef = this.Module;
+      sig.IsAbstract = this.Module.IsAbstract;
+      sig.VisibilityScope = new VisibilityScope();
+      sig.VisibilityScope.Augment(ThisScope);
+      this.Signature = sig;
+    }
+
     public override object Dereference() { return this; }
     public override bool CanBeExported() {
       return false;
@@ -3638,6 +3648,7 @@ namespace Microsoft.Dafny {
   public class OpaqueTypeDecl : TopLevelDecl, TypeParameter.ParentType
   {
     public override string WhatKind { get { return "opaque type"; } }
+    public override bool CanBeRevealed() { return true; }
     public readonly TypeParameter TheType;
     public TypeParameter.EqualitySupportValue EqualitySupport {
       get { return TheType.EqualitySupport; }

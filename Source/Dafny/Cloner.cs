@@ -740,14 +740,13 @@ namespace Microsoft.Dafny
   class ExportConsistencyCheckCloner : DeepModuleSignatureCloner {
     private VisibilityScope scope = null;
 
-    private HashSet<Declaration> invisibleClones = new HashSet<Declaration>();
+    private Dictionary<Declaration, Declaration> reverseMap = new Dictionary<Declaration, Declaration>();
+
+    private HashSet<AliasModuleDecl> extraProvides = new HashSet<AliasModuleDecl>();
 
     private bool isInvisibleClone(Declaration d) {
-      return invisibleClones.Contains(d);
-    }
-
-    private void markCloneInvisible(Declaration d){
-      invisibleClones.Add(d);
+      Contract.Assert(reverseMap.ContainsKey(d));
+      return !reverseMap[d].IsVisibleInScope(scope);
     }
 
     public ExportConsistencyCheckCloner(VisibilityScope scope) {
@@ -764,7 +763,47 @@ namespace Microsoft.Dafny
 
     public override ModuleDefinition CloneModuleDefinition(ModuleDefinition m, string name) {
       var basem = base.CloneModuleDefinition(m, name);
-      basem.TopLevelDecls.RemoveAll(isInvisibleClone);
+      
+
+      //Merge signatures for imports which point to the same module
+      //This makes the consistency check understand that the same element
+      //may be referred to via different qualifications.
+      var sigmap = new Dictionary<ModuleDefinition, ModuleSignature>();
+      var declmap = new Dictionary<ModuleDefinition, List<AliasModuleDecl>>();
+      var vismap = new Dictionary<ModuleDefinition, VisibilityScope>();
+
+      foreach (var top in basem.TopLevelDecls) {
+        var import = reverseMap[top] as AliasModuleDecl;
+        if (import == null)
+          continue;
+
+        var def = import.Signature.ModuleDef;
+        if (!declmap.ContainsKey(def)) {
+          declmap.Add(def, new List<AliasModuleDecl>());
+          sigmap.Add(def, new ModuleSignature());
+          vismap.Add(def, new VisibilityScope());
+        }
+
+
+        sigmap[def] = Resolver.MergeSignature(sigmap[def], import.Signature);
+        sigmap[def].ModuleDef = def;
+        declmap[def].Add((AliasModuleDecl)top);
+        if (VisibleInScope(import)) {
+          vismap[def].Augment(import.Signature.VisibilityScope);
+        }
+
+      }
+
+      foreach (var decls in declmap) {
+        sigmap[decls.Key].VisibilityScope = vismap[decls.Key];
+        foreach (var decl in decls.Value) {
+          decl.Signature = sigmap[decls.Key];
+        }
+      }
+
+      basem.TopLevelDecls.RemoveAll(t => t is AliasModuleDecl ?
+        vismap[((AliasModuleDecl)t).Signature.ModuleDef].IsEmpty() : isInvisibleClone(t));
+
       return basem;
     }
 
@@ -772,29 +811,23 @@ namespace Microsoft.Dafny
      
       var based = base.CloneDeclaration(d, m);
 
-      if (!VisibleInScope(d)) {
-        markCloneInvisible(based);
-        return based;
-      }
-
       if (d is TypeSynonymDecl && !RevealedInScope(d)) {
         var dd = (TypeSynonymDecl)d;
         var tps = dd.TypeArgs.ConvertAll(CloneTypeParam);
-        return new OpaqueTypeDecl(Tok(dd.tok), dd.Name, m, dd.Rhs.SupportsEquality ? TypeParameter.EqualitySupportValue.Required : TypeParameter.EqualitySupportValue.Unspecified, tps, CloneAttributes(dd.Attributes), CloneFromValue(dd));
+        based = new OpaqueTypeDecl(Tok(dd.tok), dd.Name, m, dd.Rhs.SupportsEquality ? TypeParameter.EqualitySupportValue.Required : TypeParameter.EqualitySupportValue.Unspecified, tps, CloneAttributes(dd.Attributes), CloneFromValue(dd));
       } else if (d is NewtypeDecl && !RevealedInScope(d)) {
         var dd = (NewtypeDecl)d;
-        return new OpaqueTypeDecl(Tok(dd.tok), dd.Name, m, TypeParameter.EqualitySupportValue.Required, new List<TypeParameter>(), CloneAttributes(dd.Attributes), CloneFromValue(dd));
+        based = new OpaqueTypeDecl(Tok(dd.tok), dd.Name, m, TypeParameter.EqualitySupportValue.Required, new List<TypeParameter>(), CloneAttributes(dd.Attributes), CloneFromValue(dd));
       } else if (d is ClassDecl) {
-        if (!RevealedInScope(d)) {
-          var dd = (ClassDecl)d;
-          var tps = dd.TypeArgs.ConvertAll(CloneTypeParam);
-          return new OpaqueTypeDecl(Tok(dd.tok), d.Name, m, TypeParameter.EqualitySupportValue.Unspecified, tps, CloneAttributes(dd.Attributes), CloneFromValue(dd));
-        } else {
-          var dd = (ClassDecl)based;
-          dd.Members.RemoveAll(isInvisibleClone);
-          return dd;
-        }
+        var dd = (ClassDecl)based;
+        dd.Members.RemoveAll(isInvisibleClone);
+        based = dd;
+      } else if (d is DatatypeDecl && !RevealedInScope(d)) {
+        var dd = (DatatypeDecl)d;
+        based = new OpaqueTypeDecl(Tok(dd.tok), dd.Name, m, TypeParameter.EqualitySupportValue.Required, new List<TypeParameter>(), CloneAttributes(dd.Attributes), CloneFromValue(dd));
       }
+
+      reverseMap.Add(based, d);
 
       return based;
       
@@ -816,9 +849,7 @@ namespace Microsoft.Dafny
 
     public override MemberDecl CloneMember(MemberDecl member) {
       var basem = base.CloneMember(member);
-      if (!VisibleInScope(member)) {
-        markCloneInvisible(basem);
-      }
+      reverseMap.Add(basem, member);
       return basem;
     }
 

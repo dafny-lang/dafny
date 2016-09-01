@@ -1653,7 +1653,9 @@ namespace Microsoft.Dafny
     }
     public override TopLevelDecl CloneDeclaration(TopLevelDecl d, ModuleDefinition m) {
       var dd = base.CloneDeclaration(d, m);
-      if (d is ModuleDecl) {
+      if (dd is ModuleExportDecl) {
+        ((ModuleExportDecl)dd).SetupDefaultSignature();
+      } else if (d is ModuleDecl) {
         ((ModuleDecl)dd).Signature = ((ModuleDecl)d).Signature;
         if (d is ModuleFacadeDecl) {
           ((ModuleFacadeDecl)dd).OriginalSignature = ((ModuleFacadeDecl)d).OriginalSignature;

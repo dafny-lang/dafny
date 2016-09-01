@@ -17,7 +17,7 @@ namespace Microsoft.Dafny
   {
     readonly BuiltIns builtIns;
 
-    readonly ErrorReporter reporter;
+    ErrorReporter reporter;
     ModuleSignature moduleInfo = null;
 
     private bool RevealedInScope(Declaration d) {
@@ -350,7 +350,7 @@ namespace Microsoft.Dafny
           // set up environment
           var preResolveErrorCount = reporter.Count(ErrorLevel.Error);
           ResolveModuleDefinition(m, sig);
-          ResolveModuleExport(literalDecl, sig);
+          ResolveModuleExport(literalDecl, sig, preResolveErrorCount);
 
           prog.ModuleSigs[m] = sig;
 
@@ -393,7 +393,9 @@ namespace Microsoft.Dafny
           // resolve the path
           ModuleSignature p;
           if (ResolveExport(alias.Root, alias.Module, alias.Path, alias.Exports, out p, reporter)) {
-            alias.Signature = p;
+            if (alias.Signature == null) {
+              alias.Signature = p;
+            }
           } else {
             alias.Signature = new ModuleSignature(); // there was an error, give it a valid but empty signature
           }
@@ -427,12 +429,11 @@ namespace Microsoft.Dafny
             abs.Signature = new ModuleSignature(); // there was an error, give it a valid but empty signature
           }
         } else if (decl is ModuleExportDecl) {
-          ModuleExportDecl export = (ModuleExportDecl)decl;
-          export.Signature = new ModuleSignature();
-          export.Signature.IsAbstract = false;
-          export.Signature.ModuleDef = null;
-          export.Signature.VisibilityScope = new VisibilityScope();
-          export.Signature.VisibilityScope.Augment(export.ThisScope);
+          ((ModuleExportDecl)decl).SetupDefaultSignature();
+
+          Contract.Assert(decl.Signature != null);
+          Contract.Assert(decl.Signature.VisibilityScope != null);
+
         } else { Contract.Assert(false); }
         Contract.Assert(decl.Signature != null);
       }
@@ -808,7 +809,7 @@ namespace Microsoft.Dafny
     }
 
     // Resolve the exports and detect cycles.
-    private void ResolveModuleExport(LiteralModuleDecl literalDecl, ModuleSignature sig) {
+    private void ResolveModuleExport(LiteralModuleDecl literalDecl, ModuleSignature sig, int preResolveErrorCount) {
       ModuleDefinition m = literalDecl.ModuleDef;
       literalDecl.DefaultExport = sig;
       Graph<ModuleExportDecl> exportDependencies = new Graph<ModuleExportDecl>();
@@ -961,25 +962,27 @@ namespace Microsoft.Dafny
 
       //check for export consistency by resolving internal modules
       //this should be effect-free, as it only operates on clones
-      if (reporter.Count(ErrorLevel.Error) == 0) { //we'll re-report too many errors if we aren't error-free currently
+      if (reporter.Count(ErrorLevel.Error) == preResolveErrorCount) { //only bother with consistency check if nothing was raised during resolution
+
 
         foreach (ModuleExportDecl decl in sortedDecls) {
+          reporter = new ErrorReporterWrapper(reporter, 
+            String.Format("Raised while checking export set {0}: ", decl.Name));
           var scope = decl.Signature.VisibilityScope;
           Cloner cloner = new ExportConsistencyCheckCloner(scope);
           var exportView = cloner.CloneModuleDefinition(m, m.Name);
 
-          var errorCount = reporter.Count(ErrorLevel.Error);
-          foreach (var r in rewriters) {
-            r.PreResolve(m);
-          }
-
           var testSig = RegisterTopLevelDecls(exportView, true);
-          testSig.Refines = refinementTransformer.RefinedSig;
+          //testSig.Refines = refinementTransformer.RefinedSig;
           ResolveModuleDefinition(exportView, testSig);
+          var wasError = reporter.Count(ErrorLevel.Error) > 0;
+          reporter = ((ErrorReporterWrapper)reporter).WrappedReporter;
 
-          if (reporter.Count(ErrorLevel.Error) > errorCount) {
-            reporter.Error(MessageSource.Resolver, decl.tok, "This export set is not consistent");
+          if (wasError) {
+            reporter.Error(MessageSource.Resolver, decl.tok, "This export set is not consistent: {0}", decl.Name);
           }
+
+          
         }
       }
 
@@ -1127,6 +1130,15 @@ namespace Microsoft.Dafny
         (1 < path.Count ? " (position " + i.ToString() + " in path " + Util.Comma(".", path, x => x.val) + ")" : "");
     }
 
+    [Pure]
+    private static bool EquivIfPresent<T1, T2>(Dictionary<T1, T2> dic, T1 key, T2 val) {
+      T2 val2;
+      if (dic.TryGetValue(key, out val2)) {
+        return Object.ReferenceEquals(val, val2);
+      }
+      return true;
+    }
+
     public static ModuleSignature MergeSignature(ModuleSignature m, ModuleSignature system) {
       Contract.Requires(m != null);
       Contract.Requires(system != null);
@@ -1138,14 +1150,20 @@ namespace Microsoft.Dafny
       foreach (var kv in system.Ctors) {
         info.Ctors.Add(kv.Key, kv.Value);
       }
+      foreach (var kv in system.StaticMembers) {
+        info.StaticMembers.Add(kv.Key, kv.Value);
+      }
       // add for the module itself
       foreach (var kv in m.TopLevels) {
+        Contract.Assert(EquivIfPresent(info.TopLevels, kv.Key, kv.Value));
         info.TopLevels[kv.Key] = kv.Value;
       }
       foreach (var kv in m.Ctors) {
+        Contract.Assert(EquivIfPresent(info.Ctors, kv.Key, kv.Value));
         info.Ctors[kv.Key] = kv.Value;
       }
       foreach (var kv in m.StaticMembers) {
+        Contract.Assert(EquivIfPresent(info.StaticMembers, kv.Key, kv.Value));
         info.StaticMembers[kv.Key] = kv.Value;
       }
       info.IsAbstract = m.IsAbstract;
@@ -1665,7 +1683,9 @@ namespace Microsoft.Dafny
 
           foreach(IToken export in Exports.Skip(1)){
             if (root.Signature.FindExport(export.val, out pp)){
+              Contract.Assert(Object.ReferenceEquals(p.ModuleDef, pp.Signature.ModuleDef));
               p = MergeSignature(p, pp.Signature);
+              p.ModuleDef = pp.Signature.ModuleDef;
             } else {
               reporter.Error(MessageSource.Resolver, export, "No export set {0} in module {1}", export.val, decl.Name);
               p = null;
@@ -1708,7 +1728,7 @@ namespace Microsoft.Dafny
 
       /* Augment the scoping environment for the current module*/
       foreach (TopLevelDecl d in declarations) {
-        if (d is ModuleDecl) {
+        if (d is ModuleDecl && !(d is ModuleExportDecl)) {
           var decl = (ModuleDecl)d;
           moduleInfo.VisibilityScope.Augment(decl.AccessibleSignature().VisibilityScope);
           sig.VisibilityScope.Augment(decl.AccessibleSignature().VisibilityScope);

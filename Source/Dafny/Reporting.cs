@@ -181,4 +181,20 @@ namespace Microsoft.Dafny {
       }
     }
   }
+
+  public class ErrorReporterWrapper : ErrorReporter {
+
+    private string msgPrefix;
+    public readonly ErrorReporter WrappedReporter;
+
+    public ErrorReporterWrapper(ErrorReporter reporter, string msgPrefix) {
+      this.msgPrefix = msgPrefix;
+      this.WrappedReporter = reporter;
+    }
+
+    public override bool Message(MessageSource source, ErrorLevel level, IToken tok, string msg) {
+      base.Message(source, level, tok, msg);
+      return WrappedReporter.Message(source, level, tok, msgPrefix + msg);
+    }
+  }
 }
