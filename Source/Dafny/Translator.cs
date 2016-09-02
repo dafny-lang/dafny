@@ -2237,8 +2237,9 @@ namespace Microsoft.Dafny {
       Bpl.BoundVariable layer;
       if (f.IsFuelAware()) {
         layer = new Bpl.BoundVariable(f.tok, new Bpl.TypedIdent(f.tok, "$ly", predef.LayerType));
-        formals.Add(layer);
-        etran = etran.WithLayer(new Bpl.IdentifierExpr(f.tok, layer));
+        formals.Add(layer);        
+        etran = etran.WithCustomFuelSetting(new CustomFuelSettings{ {f, new FuelSetting(this, 0, new Bpl.IdentifierExpr(f.tok, layer))} });
+        //etran = etran.WithLayer(new Bpl.IdentifierExpr(f.tok, layer));
         // Note, "layer" is not added to "args" here; rather, that's done below, as needed
       } else {
         layer = null;
@@ -11180,6 +11181,7 @@ namespace Microsoft.Dafny {
 
     // C#'s version of a type alias
     internal class FuelContext : Dictionary<Function, FuelSettingPair> { }
+    internal class CustomFuelSettings : Dictionary<Function, FuelSetting> {}
 
     internal class FuelConstant
     {
@@ -11243,11 +11245,13 @@ namespace Microsoft.Dafny {
       public int amount;        // Amount of fuel above that represented by start
       private Bpl.Expr start;   // Starting fuel argument (null indicates LZ)      
       private Translator translator;
+      private CustomFuelSettings customFuelSettings;
 
-      public FuelSetting(Translator translator, int amount, Bpl.Expr start = null) {
+      public FuelSetting(Translator translator, int amount, Bpl.Expr start = null, CustomFuelSettings customFuelSettings = null) {
         this.translator = translator;
         this.amount = amount;
         this.start = start;
+        this.customFuelSettings = customFuelSettings;
       }
 
       public FuelSetting Offset(int offset) {
@@ -11261,6 +11265,10 @@ namespace Microsoft.Dafny {
 
       public FuelSetting WithLayer(Bpl.Expr layer) {
         return new FuelSetting(translator, amount, layer);
+      }
+
+      public FuelSetting WithContext(CustomFuelSettings settings) {
+        return new FuelSetting(translator, amount, start, settings);
       }
 
       public Bpl.Expr LayerZero() {
@@ -11298,6 +11306,9 @@ namespace Microsoft.Dafny {
       /// </summary>      
       public Bpl.Expr GetFunctionFuel(Function f) {
         Contract.Requires(f != null);
+        if (customFuelSettings != null && customFuelSettings.ContainsKey(f)) {
+          return customFuelSettings[f].GetFunctionFuel(f);
+        }
         if (this.amount == (int)FuelAmount.NONE) {
           return this.ToExpr();
         } else {
@@ -11596,6 +11607,14 @@ namespace Microsoft.Dafny {
         Contract.Ensures(Contract.Result<ExpressionTranslator>() != null);
 
         return CloneExpressionTranslator(this, translator, predef, HeapExpr, This, null, new FuelSetting(translator, 0, layerArgument), new FuelSetting(translator, 0, layerArgument), modifiesFrame, stripLits);
+      }
+
+      public ExpressionTranslator WithCustomFuelSetting(CustomFuelSettings customSettings) {
+        // Use the existing layers but with some per-function customizations
+        Contract.Requires(customSettings != null);
+        Contract.Ensures(Contract.Result<ExpressionTranslator>() != null);
+
+        return CloneExpressionTranslator(this, translator, predef, HeapExpr, This, null, layerInterCluster.WithContext(customSettings), layerIntraCluster.WithContext(customSettings), modifiesFrame, stripLits);
       }
 
       public ExpressionTranslator ReplaceLayer(Bpl.Expr layerArgument) {
