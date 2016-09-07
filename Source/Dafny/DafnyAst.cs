@@ -557,35 +557,39 @@ namespace Microsoft.Dafny {
           type = pt.T;
           continue;
         }
-        var syn = type.AsTypeSynonym;
-        if (syn != null) {
-          var scope = Type.getScope();
-          Contract.Assert(syn.IsVisibleInScope(scope));
-          if (syn.IsRevealedInScope(scope) && (!(syn is SubsetTypeDecl) || !keepConstraints)) {
-            var udt = (UserDefinedType)type;  // correctness of cast follows from the AsTypeSynonym != null test.
-            // Instantiate with the actual type arguments
-            type = syn.RhsWithArgument(udt.TypeArgs);
+        var scope = Type.getScope();
+        var rtd = type.AsRevealableType;
+
+        if (rtd != null) {
+          Contract.Assert(rtd.AsTopLevelDecl.IsVisibleInScope(scope));
+          var udt = (UserDefinedType)type;
+
+          if (rtd.IsRevealedInScope(scope)) {
+            if (rtd is TypeSynonymDecl && (!(rtd is SubsetTypeDecl) || !keepConstraints)) {
+              type = ((TypeSynonymDecl)rtd).RhsWithArgument(udt.TypeArgs);
+              continue;
+            } else {
+              return type;
+            }
+          } else { // type is hidden, no more normalization is possible
+            return rtd.SelfSynonym();
+          }
+        }
+
+        //A hidden type may become visible in another scope
+        var isyn = type.AsInternalTypeSynonym;
+
+        if (isyn != null) {
+          Contract.Assert(isyn.IsVisibleInScope(scope));
+          if (isyn.IsRevealedInScope(scope)) {
+            var udt = (UserDefinedType)type;
+            type = isyn.RhsWithArgument(udt.TypeArgs);
             continue;
           } else {
-            
-            // We can't access our synonym due to the current scoping environment.
-            // This is the end of the road.
             return type;
           }
-
         }
-
-        var udt2 = type as UserDefinedType;
-        var nt = udt2 == null ? null : udt2.ResolvedClass as NewtypeDecl;
-
-        if (nt != null && !nt.IsRevealedInScope(Type.getScope())) {
-          Contract.Assert(nt.SelfSynonym != null);
-          Contract.Assert(nt.SelfSynonym.ResolvedClass != null);
-          Contract.Assert(!nt.SelfSynonym.ResolvedClass.IsRevealedInScope(Type.getScope()));
-          type = nt.SelfSynonym;
-          continue;
-        }
-
+        
 
         if (DafnyOptions.O.IronDafny && type is UserDefinedType) {
           var udt = (UserDefinedType)type;
@@ -794,6 +798,16 @@ namespace Microsoft.Dafny {
         }
       }
     }
+    public InternalTypeSynonymDecl AsInternalTypeSynonym {
+      get {
+        var udt = this as UserDefinedType;  // note, it is important to use 'this' here, not 'this.NormalizeExpand()'
+        if (udt == null) {
+          return null;
+        } else {
+          return udt.ResolvedClass as InternalTypeSynonymDecl;
+        }
+      }
+    }
     public RedirectingTypeDecl AsRedirectingType {
       get {
         var udt = this as UserDefinedType;  // Note, it is important to use 'this' here, not 'this.NormalizeExpand()'.  This property getter is intended to be used during resolution, or with care thereafter.
@@ -803,6 +817,19 @@ namespace Microsoft.Dafny {
           return (RedirectingTypeDecl)(udt.ResolvedClass as TypeSynonymDecl) ?? udt.ResolvedClass as NewtypeDecl;
         }
       }
+    }
+    public RevealableTypeDecl AsRevealableType {
+      get {
+        var udt = this as UserDefinedType;
+        if (udt == null) {
+          return null;
+        } else {
+          return (udt.ResolvedClass as RevealableTypeDecl);
+        }
+      }
+    }
+    public bool IsRevealableType {
+      get { return AsRevealableType != null; }
     }
     public bool IsDatatype {
       get {
@@ -859,16 +886,13 @@ namespace Microsoft.Dafny {
         return AsTypeParameter != null;
       }
     }
+    public bool IsInternalTypeSynonym {
+      get { return AsInternalTypeSynonym != null; }
+    }
     public TypeParameter AsTypeParameter {
       get {
         var ct = NormalizeExpand() as UserDefinedType;
         return ct == null ? null : ct.ResolvedParam;
-      }
-    }
-    public bool IsOpaqueSynonym {
-      get {
-        var t = NormalizeExpand() as UserDefinedType;
-        return t != null && t.ResolvedClass is TypeSynonymDecl;
       }
     }
     public virtual bool SupportsEquality {
@@ -2094,8 +2118,8 @@ namespace Microsoft.Dafny {
             i++;
           }
           return true;
-        } else if (ResolvedClass is TypeSynonymDecl) {
-          var t = (TypeSynonymDecl)ResolvedClass;
+        } else if (ResolvedClass is TypeSynonymDeclBase) {
+          var t = (TypeSynonymDeclBase)ResolvedClass;
           return t.RhsWithArgument(TypeArgs).SupportsEquality;
         } else if (ResolvedParam != null) {
           return ResolvedParam.MustSupportEquality;
@@ -2153,7 +2177,7 @@ namespace Microsoft.Dafny {
         return Family.ValueType;
       } else if (t.IsRefType) {
         return Family.Ref;
-      } else if (t.IsTypeParameter || t.IsOpaqueSynonym) {
+      } else if (t.IsTypeParameter || t.IsInternalTypeSynonym) {
         return Family.Opaque;
       } else if (t is TypeProxy) {
         return ((TypeProxy)t).family;
@@ -3109,8 +3133,9 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public abstract class DatatypeDecl : TopLevelDecl
+  public abstract class DatatypeDecl : TopLevelDecl, RevealableTypeDecl
   {
+    public override bool CanBeRevealed() { return true; }
     public readonly List<DatatypeCtor> Ctors;
     [ContractInvariantMethod]
     void ObjectInvariant() {
@@ -3128,6 +3153,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(cce.NonNullElements(ctors));
       Contract.Requires(1 <= ctors.Count);
       Ctors = ctors;
+      this.NewSelfSynonym();
     }
     public bool HasFinitePossibleValues {
       get {
@@ -3140,9 +3166,11 @@ namespace Microsoft.Dafny {
         return (DatatypeDecl)base.ClonedFrom; 
       }
     }
+    TopLevelDecl RevealableTypeDecl.AsTopLevelDecl { get { return this; } }
+    bool RevealableTypeDecl.SupportsEquality { get { return false; } }
   }
 
-  public class IndDatatypeDecl : DatatypeDecl
+  public class IndDatatypeDecl : DatatypeDecl, RevealableTypeDecl
   {
     public override string WhatKind { get { return "datatype"; } }
     public DatatypeCtor DefaultCtor;  // set during resolution
@@ -3161,6 +3189,8 @@ namespace Microsoft.Dafny {
       Contract.Requires(cce.NonNullElements(ctors));
       Contract.Requires(1 <= ctors.Count);
     }
+
+    bool RevealableTypeDecl.SupportsEquality { get { return this.EqualitySupport != ES.Never; } }
 
     public new IndDatatypeDecl ClonedFrom {
       get {
@@ -3706,7 +3736,58 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public class NewtypeDecl : TopLevelDecl, RedirectingTypeDecl
+  public static class RevealableTypeDeclHelper {
+    private static Dictionary<TopLevelDecl, UserDefinedType> udtMap = new Dictionary<TopLevelDecl, UserDefinedType>();
+    private static Dictionary<TopLevelDecl, InternalTypeSynonymDecl> tsdMap = new Dictionary<TopLevelDecl, InternalTypeSynonymDecl>();
+
+    public static void NewSelfSynonym(this RevealableTypeDecl rtd) {
+      var d = rtd.AsTopLevelDecl;
+      Contract.Assert(!udtMap.ContainsKey(d));
+      Contract.Assert(!tsdMap.ContainsKey(d));
+
+      var thisType = UserDefinedType.FromTopLevelDecl(d.tok, d);
+      var tsd = new InternalTypeSynonymDecl(d.tok, d.Name, d.TypeArgs, d.Module, thisType, d.Attributes);
+      tsd.InheritVisibility(d, false);
+      var syn = UserDefinedType.FromTopLevelDecl(d.tok, tsd);
+
+      udtMap.Add(d, syn);
+      tsdMap.Add(d, tsd);
+    }
+
+    public static UserDefinedType SelfSynonym(this RevealableTypeDecl rtd) {
+      var d = rtd.AsTopLevelDecl;
+      Contract.Assert(udtMap.ContainsKey(d));
+      return udtMap[d];
+    }
+
+    public static InternalTypeSynonymDecl SelfSynonymDecl(this RevealableTypeDecl rtd) {
+      var d = rtd.AsTopLevelDecl;
+      Contract.Assert(tsdMap.ContainsKey(d));
+      return tsdMap[d];
+    }
+
+    public static TopLevelDecl AccessibleDecl(this RevealableTypeDecl rtd, VisibilityScope scope) {
+      var d = rtd.AsTopLevelDecl;
+      if (d.IsRevealedInScope(scope)) {
+        return d;
+      } else {
+        return rtd.SelfSynonymDecl();
+      }
+    }
+
+    //Internal implementations are called before extensions, so this is safe
+    public static bool IsRevealedInScope(this RevealableTypeDecl rtd, VisibilityScope scope) {
+      var d = rtd.AsTopLevelDecl;
+      return d.IsRevealedInScope(scope);
+    }
+  }
+
+  public interface RevealableTypeDecl {
+    TopLevelDecl AsTopLevelDecl {get; }
+    bool SupportsEquality { get; }
+  }
+
+  public class NewtypeDecl : TopLevelDecl, RevealableTypeDecl, RedirectingTypeDecl
   {
     public override string WhatKind { get { return "newtype"; } }
     public override bool CanBeRevealed() { return true; }
@@ -3714,7 +3795,6 @@ namespace Microsoft.Dafny {
     public readonly BoundVar Var;  // can be null (if non-null, then object.ReferenceEquals(Var.Type, BaseType))
     public readonly Expression Constraint;  // is null iff Var is
     public NativeType NativeType; // non-null for fixed-size representations (otherwise, use BigIntegers for integers)
-    public UserDefinedType SelfSynonym; // a synonym that points back to this newtype, but only in a revealed scope
     public NewtypeDecl(IToken tok, string name, ModuleDefinition module, Type baseType, Attributes attributes, NewtypeDecl clonedFrom = null)
       : base(tok, name, module, new List<TypeParameter>(), attributes, clonedFrom) {
       Contract.Requires(tok != null);
@@ -3732,15 +3812,11 @@ namespace Microsoft.Dafny {
       BaseType = bv.Type;
       Var = bv;
       Constraint = constraint;
-      
+      this.NewSelfSynonym();
     }
 
-    [ContractInvariantMethod]
-    void ObjectInvariant() {
-      Contract.Invariant(SelfSynonym == null ||
-        ((UserDefinedType)((TypeSynonymDecl)SelfSynonym.ResolvedClass).Rhs).ResolvedClass == this);
-    }
-
+    TopLevelDecl RevealableTypeDecl.AsTopLevelDecl { get { return this; } }
+    bool RevealableTypeDecl.SupportsEquality { get { return this.BaseType.SupportsEquality; } }
 
     string RedirectingTypeDecl.Name { get { return Name; } }
     IToken RedirectingTypeDecl.tok { get { return tok; } }
@@ -3777,11 +3853,11 @@ namespace Microsoft.Dafny {
   }
 
 
-  public class TypeSynonymDecl : TopLevelDecl, RedirectingTypeDecl
+  public abstract class TypeSynonymDeclBase : TopLevelDecl, RedirectingTypeDecl
   {
     public override string WhatKind { get { return "type synonym"; } }
     public readonly Type Rhs;
-    public TypeSynonymDecl(IToken tok, string name, List<TypeParameter> typeArgs, ModuleDefinition module, Type rhs, Attributes attributes, TypeSynonymDecl clonedFrom = null)
+    public TypeSynonymDeclBase(IToken tok, string name, List<TypeParameter> typeArgs, ModuleDefinition module, Type rhs, Attributes attributes, TypeSynonymDeclBase clonedFrom = null)
       : base(tok, name, module, typeArgs, attributes, clonedFrom) {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
@@ -3837,6 +3913,22 @@ namespace Microsoft.Dafny {
       return true;
     }
   }
+
+  public class TypeSynonymDecl : TypeSynonymDeclBase, RedirectingTypeDecl, RevealableTypeDecl {
+    public TypeSynonymDecl(IToken tok, string name, List<TypeParameter> typeArgs, ModuleDefinition module, Type rhs, Attributes attributes, TypeSynonymDecl clonedFrom = null)
+      : base(tok, name, typeArgs, module, rhs, attributes, clonedFrom) {
+        this.NewSelfSynonym();
+    }
+    TopLevelDecl RevealableTypeDecl.AsTopLevelDecl { get { return this; } }
+    bool RevealableTypeDecl.SupportsEquality { get { return this.Rhs.SupportsEquality; } }
+  }
+
+  public class InternalTypeSynonymDecl : TypeSynonymDeclBase, RedirectingTypeDecl {
+    public InternalTypeSynonymDecl(IToken tok, string name, List<TypeParameter> typeArgs, ModuleDefinition module, Type rhs, Attributes attributes, TypeSynonymDecl clonedFrom = null)
+      : base(tok, name, typeArgs, module, rhs, attributes, clonedFrom) { }
+  }
+
+
 
   public class SubsetTypeDecl : TypeSynonymDecl, RedirectingTypeDecl
   {

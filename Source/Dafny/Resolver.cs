@@ -911,6 +911,10 @@ namespace Microsoft.Dafny
           foreach (ExportSignature export in decl.Exports) {
             if (export.Decl is TopLevelDecl) {
               signature.TopLevels.Add(export.Name, (TopLevelDecl)export.Decl);
+              if (export.Decl is DatatypeDecl && !export.Opaque) {
+                ((DatatypeDecl)export.Decl).Ctors.ForEach(ctor =>
+                  signature.Ctors.Add(ctor.Name, new Tuple<DatatypeCtor, bool>(ctor, false)));
+              }
             } else if (export.Decl is MemberDecl) {
               signature.StaticMembers.Add(export.Name, (MemberDecl)export.Decl);
             }
@@ -1770,13 +1774,6 @@ namespace Microsoft.Dafny
         } else if (d is NewtypeDecl) {
           var dd = (NewtypeDecl)d;
           ResolveType(dd.tok, dd.BaseType, dd, ResolveTypeOptionEnum.DontInfer, null);
-          //create one level of indirection to mask this type when out of scope
-          var thisType = new UserDefinedType(dd.tok, dd.Name, dd, new List<Type>());
-          var syn = new TypeSynonymDecl(dd.tok, dd.Name, new List<TypeParameter>(), dd.Module, thisType, dd.Attributes);
-          syn.InheritVisibility(dd, false);
-          var udt = new UserDefinedType(dd.tok, dd.Name, syn, new List<Type>());
-
-          dd.SelfSynonym = udt;
           dd.BaseType.ForeachTypeComponent(ty => {
             var s = ty.AsRedirectingType;
             if (s != null) {
@@ -2665,7 +2662,7 @@ namespace Microsoft.Dafny
           } else if (cl is OpaqueTypeDecl) {
             isRoot = true; isLeaf = true;  // all type parameters are invariant
             headIsRoot = true; headIsLeaf = true;
-          } else if (cl is TypeSynonymDecl) {
+          } else if (cl is InternalTypeSynonymDecl) {
             Contract.Assert(object.ReferenceEquals(t, t.NormalizeExpand())); // should be opaque in scope
             isRoot = true; isLeaf = true;  // all type parameters are invariant
             headIsRoot = true; headIsLeaf = true;
@@ -10713,6 +10710,13 @@ namespace Microsoft.Dafny
       return new Resolver_IdentifierExpr(tok, decl, tpArgs);
     }
 
+    void WithModuleSignature(ModuleSignature sig, Action a) {
+      var oldModuleInfo = moduleInfo;
+      moduleInfo = sig;
+      a();
+      moduleInfo = oldModuleInfo;
+    }
+
     /// <summary>
     /// To resolve "id" in expression "E . id", do:
     ///  * If E denotes a module name M:
@@ -10771,7 +10775,7 @@ namespace Microsoft.Dafny
         // For 1:
         TopLevelDecl decl;
 
-        if (isLastNameSegment && moduleInfo.Ctors.TryGetValue(expr.SuffixName, out pair)) {
+        if (isLastNameSegment && sig.Ctors.TryGetValue(expr.SuffixName, out pair)) {
           // ----- 0. datatype constructor
           if (pair.Item2) {
             // there is more than one constructor with this name
@@ -10781,7 +10785,8 @@ namespace Microsoft.Dafny
               reporter.Error(MessageSource.Resolver, expr.tok, "datatype constructor does not take any type parameters ('{0}')", expr.SuffixName);
             }
             var rr = new DatatypeValue(expr.tok, pair.Item1.EnclosingDatatype.Name, expr.SuffixName, args ?? new List<Expression>());
-            ResolveExpression(rr, opts);
+            WithModuleSignature(sig, () => ResolveExpression(rr, opts));
+
             if (args == null) {
               r = rr;
             } else {

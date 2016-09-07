@@ -169,6 +169,12 @@ namespace Microsoft.Dafny {
     }
 
     [Pure]
+    bool RevealedInScope(RevealableTypeDecl d) {
+      Contract.Requires(d != null);
+      return RevealedInScope(d.AsTopLevelDecl);
+    }
+
+    [Pure]
     bool InVerificationScope(Declaration d) {
       Contract.Requires(d != null);
       if (d.IsVisibleInScope(verificationScope)) {
@@ -601,17 +607,8 @@ namespace Microsoft.Dafny {
           currentDeclaration = d;
           if (d is OpaqueTypeDecl) {
             AddTypeDecl((OpaqueTypeDecl)d);
-          } else if (d is NewtypeDecl) {
-            AddTypeDecl((NewtypeDecl)d);
-          } else if (d is SubsetTypeDecl) {
-            AddTypeDecl((SubsetTypeDecl)d);
-          } else if (d is TypeSynonymDecl) {
-            if (!RevealedInScope(d)) {
-              AddTypeDecl((TypeSynonymDecl)d);
-              // type synonyms are now relevant as they may encode an opaque type
-            }
-          } else if (d is DatatypeDecl) {
-            AddDatatype((DatatypeDecl)d);
+          } else if (d is RevealableTypeDecl) {
+            AddTypeDecl((RevealableTypeDecl)d);
           } else if (d is ModuleDecl) {
             // submodules have already been added as a top level module, ignore this.
           } else if (d is ClassDecl) {
@@ -969,21 +966,34 @@ namespace Microsoft.Dafny {
     }
 
 
-    void AddTypeDecl(TypeSynonymDecl td) {
+    void AddTypeDecl(InternalTypeSynonymDecl td) {
       Contract.Requires(td != null);
       Contract.Requires(!RevealedInScope(td));
       AddTypeDecl_Aux(td.tok, "#$" + td.Name, td.TypeArgs);
     }
 
+    void AddTypeDecl(RevealableTypeDecl dd) {
+      Contract.Requires(dd != null);
+      if (RevealedInScope(dd)) {
+        if (dd is NewtypeDecl) {
+          AddTypeDecl((NewtypeDecl)dd);
+        } else if (dd is DatatypeDecl) {
+          AddDatatype((DatatypeDecl)dd);
+        } else if (dd is SubsetTypeDecl) {
+          AddTypeDecl((SubsetTypeDecl)dd);
+        } else if (dd is TypeSynonymDecl) {
+          //do nothing, this type will be transparent to translation
+        } else {
+          Contract.Assert(false);
+        }
+      } else {
+        AddTypeDecl(dd.SelfSynonymDecl());
+      }
+    }
+
     void AddTypeDecl(NewtypeDecl dd) {
       Contract.Requires(dd != null);
       Contract.Ensures(fuelContext == Contract.OldValue(fuelContext));
-
-      if (!RevealedInScope(dd)) {
-        Contract.Assert(dd.SelfSynonym != null);
-        AddTypeDecl((TypeSynonymDecl)dd.SelfSynonym.ResolvedClass);
-        return;
-      }
 
       FuelContext oldFuelContext = this.fuelContext;
       this.fuelContext = FuelSetting.NewFuelContext(dd);
@@ -7745,7 +7755,7 @@ namespace Microsoft.Dafny {
         return predef.HandleType;
       } else if (type.IsTypeParameter) {
         return predef.BoxType;
-      } else if (type.IsOpaqueSynonym) {
+      } else if (type.IsInternalTypeSynonym) {
         return predef.BoxType;
       } else if (type.IsRefType) {
         // object and class types translate to ref

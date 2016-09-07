@@ -6,7 +6,7 @@ module A {
 	export E1 provides f reveals g
 	export E2 extends A, E1 reveals T
   export Friend extends A reveals g, T
-	export Fruit provides Data
+	export Fruit reveals Data
 
   method h() {}
   function f(): int { 818 }

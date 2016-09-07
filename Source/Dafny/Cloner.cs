@@ -811,20 +811,10 @@ namespace Microsoft.Dafny
      
       var based = base.CloneDeclaration(d, m);
 
-      if (d is TypeSynonymDecl && !RevealedInScope(d)) {
-        var dd = (TypeSynonymDecl)d;
-        var tps = dd.TypeArgs.ConvertAll(CloneTypeParam);
-        based = new OpaqueTypeDecl(Tok(dd.tok), dd.Name, m, dd.Rhs.SupportsEquality ? TypeParameter.EqualitySupportValue.Required : TypeParameter.EqualitySupportValue.Unspecified, tps, CloneAttributes(dd.Attributes), CloneFromValue(dd));
-      } else if (d is NewtypeDecl && !RevealedInScope(d)) {
-        var dd = (NewtypeDecl)d;
-        based = new OpaqueTypeDecl(Tok(dd.tok), dd.Name, m, TypeParameter.EqualitySupportValue.Required, new List<TypeParameter>(), CloneAttributes(dd.Attributes), CloneFromValue(dd));
-      } else if (d is ClassDecl) {
-        var dd = (ClassDecl)based;
-        dd.Members.RemoveAll(isInvisibleClone);
-        based = dd;
-      } else if (d is DatatypeDecl && !RevealedInScope(d)) {
-        var dd = (DatatypeDecl)d;
-        based = new OpaqueTypeDecl(Tok(dd.tok), dd.Name, m, TypeParameter.EqualitySupportValue.Required, new List<TypeParameter>(), CloneAttributes(dd.Attributes), CloneFromValue(dd));
+      if (d is RevealableTypeDecl && !RevealedInScope(d)) {
+        var dd = (RevealableTypeDecl)d;
+        var tps = d.TypeArgs.ConvertAll(CloneTypeParam);
+        based = new OpaqueTypeDecl(Tok(d.tok), d.Name, m, dd.SupportsEquality ? TypeParameter.EqualitySupportValue.Required : TypeParameter.EqualitySupportValue.Unspecified, tps, CloneAttributes(d.Attributes), CloneFromValue(d));
       }
 
       reverseMap.Add(based, d);
