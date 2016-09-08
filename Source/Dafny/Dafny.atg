@@ -817,23 +817,24 @@ SubModuleDecl<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl sub
       List<string> extends = new List<string>();
       bool provideAll = false;
       bool revealAll = false;
+      ExportSignature exsig;
 		.)
 		"export" (. exportId = t; .)
 		[ ModuleExport<out exportId> ]
     {
        "provides"
        ( 
-         ( NoUSIdent<out id> 
-           (. exports.Add(new ExportSignature(id, true)); .)
-           {"," NoUSIdent<out id>  (. exports.Add(new ExportSignature(id, true)); .) }
+         ( ModuleExportSignature<true, out exsig> 
+           (. exports.Add(exsig); .)
+           {"," ModuleExportSignature<true, out exsig>  (. exports.Add(exsig); .) }
          )
         | "*" (. provideAll = true; .)
        )
      | "reveals"
        ( 
-         ( NoUSIdent<out id> 
-           (. exports.Add(new ExportSignature(id, false)); .)
-           {"," NoUSIdent<out id>  (. exports.Add(new ExportSignature(id, false)); .) }
+         ( ModuleExportSignature<false, out exsig> 
+           (. exports.Add(exsig); .)
+           {"," ModuleExportSignature<false, out exsig>  (. exports.Add(exsig); .) }
          )
         | "*" (. revealAll = true; .)
        )
@@ -847,6 +848,12 @@ SubModuleDecl<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl sub
   )
 .
 
+ModuleExportSignature<bool opaque, out ExportSignature exsig>
+= (. IToken prefix; IToken suffix = null; .)  
+  NoUSIdent<out prefix> [ "." NoUSIdent<out suffix> ]
+  (. exsig = new ExportSignature(prefix, suffix, opaque); .)
+  .
+  
 
 /* The only modules in any given scope are siblings, so we no longer need qualified lookups */
 ModuleName<out IToken id>

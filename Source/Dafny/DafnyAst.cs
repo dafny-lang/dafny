@@ -2600,6 +2600,7 @@ namespace Microsoft.Dafny {
   {
     public bool Opaque;
     public IToken Id;
+    public IToken ClassId;
     public string Name;
     public Declaration Decl;  // fill in  by the resolver
 
@@ -2607,9 +2608,14 @@ namespace Microsoft.Dafny {
       return Name == "*";
     }
 
-    public ExportSignature(IToken id, bool opaque) {
-      Id = id;
-      Name = id.val;
+    public ExportSignature(IToken prefix, IToken suffix, bool opaque) {
+      if (suffix == null) {
+        Id = prefix;
+      } else {
+        ClassId = prefix;
+        Id = suffix;
+      }
+      Name = Id.val;
       Opaque = opaque;
     }
   }

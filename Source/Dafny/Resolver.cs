@@ -837,6 +837,10 @@ namespace Microsoft.Dafny
           if (d.RevealAll || d.ProvideAll) {
             foreach (var top in sig.TopLevels.Where(t => t.Value.CanBeExported())) {
               top.Value.AddVisibilityScope(d.ThisScope, !d.RevealAll);
+              if (top.Value is ClassDecl) {
+                ((ClassDecl)top.Value).Members.ForEach(mdecl =>
+                  mdecl.AddVisibilityScope(d.ThisScope, !d.RevealAll));
+              }
             }
             foreach (var s in sig.StaticMembers.Where(t => t.Value.CanBeExported())) {
               s.Value.AddVisibilityScope(d.ThisScope, !d.RevealAll);
@@ -849,12 +853,28 @@ namespace Microsoft.Dafny
             // static function or method in the enclosing module or its imports
             TopLevelDecl tdecl;
             MemberDecl member;
+            TopLevelDecl cldecl;
 
             Declaration decl = null;
             string name = export.Name;
 
+            if (export.ClassId != null) {
+              if (sig.TopLevels.TryGetValue(export.ClassId.val, out cldecl)
+                && cldecl is ClassDecl) {
 
-            if (sig.TopLevels.TryGetValue(name, out tdecl)) {
+                var cl = (ClassDecl)cldecl;
+                var lmem = cl.Members.FirstOrDefault(l => l.Name == export.Id.val);
+                if (lmem != null) {
+                  decl = lmem;
+                } else {
+                  reporter.Error(MessageSource.Resolver, export.ClassId, "No member '" + export.Id.val + "' found in class '" + export.ClassId.val);
+                  continue;
+                }
+              } else {
+                reporter.Error(MessageSource.Resolver, export.Id, "No class '" + export.ClassId.val + "' found");
+                continue;
+              }
+            } else if (sig.TopLevels.TryGetValue(name, out tdecl)) {
               // Member of the enclosing module
               decl = tdecl;
             } else if (sig.StaticMembers.TryGetValue(name, out member)) {
@@ -876,6 +896,11 @@ namespace Microsoft.Dafny
 
             export.Decl = decl;
             decl.AddVisibilityScope(d.ThisScope, export.Opaque);
+
+            if (export.Decl is ClassDecl && !export.Opaque) {
+              ((ClassDecl)export.Decl).Members.ForEach(mdecl =>
+                  mdecl.AddVisibilityScope(d.ThisScope, false));
+            }
           }
         }
       }
@@ -908,6 +933,7 @@ namespace Microsoft.Dafny
           sig.StaticMembers.Where(t => t.Value.CanBeExported()).Iter(t => signature.StaticMembers.Add(t.Key, t.Value));
         } else {
 
+
           foreach (ExportSignature export in decl.Exports) {
             if (export.Decl is TopLevelDecl) {
               signature.TopLevels.Add(export.Name, (TopLevelDecl)export.Decl);
@@ -915,7 +941,7 @@ namespace Microsoft.Dafny
                 ((DatatypeDecl)export.Decl).Ctors.ForEach(ctor =>
                   signature.Ctors.Add(ctor.Name, new Tuple<DatatypeCtor, bool>(ctor, false)));
               }
-            } else if (export.Decl is MemberDecl) {
+            } else if (export.Decl is MemberDecl && ((MemberDecl)export.Decl).EnclosingClass is DefaultClassDecl) {
               signature.StaticMembers.Add(export.Name, (MemberDecl)export.Decl);
             }
           }
@@ -970,6 +996,15 @@ namespace Microsoft.Dafny
 
 
         foreach (ModuleExportDecl decl in sortedDecls) {
+          foreach (var export in decl.Exports) {
+            if (export.Decl is MemberDecl) {
+              var member = (MemberDecl)export.Decl;
+              if (!member.EnclosingClass.IsVisibleInScope(decl.Signature.VisibilityScope)) {
+                reporter.Error(MessageSource.Resolver, decl.tok, "Cannot export class member '{0}' without providing its enclosing class '{1}'", member.Name, member.EnclosingClass.Name);
+              }
+            }
+          }
+
           reporter = new ErrorReporterWrapper(reporter, 
             String.Format("Raised while checking export set {0}: ", decl.Name));
           var scope = decl.Signature.VisibilityScope;
@@ -10843,6 +10878,9 @@ namespace Microsoft.Dafny
           var cd = (ClassDecl)((UserDefinedType)ty).ResolvedClass;
           Dictionary<string, MemberDecl> members;
           if (classMembers.TryGetValue(cd, out members) && members.TryGetValue(expr.SuffixName, out member)) {
+            if (!VisibleInScope(member)) {
+              reporter.Error(MessageSource.Resolver, expr.tok, "member '{0}' has not be imported in this scope and cannot be accessed here", expr.SuffixName);
+            }
             if (!member.IsStatic) {
               reporter.Error(MessageSource.Resolver, expr.tok, "accessing member '{0}' requires an instance expression", expr.SuffixName); //TODO Unify with similar error messages
               // nevertheless, continue creating an expression that approximates a correct one

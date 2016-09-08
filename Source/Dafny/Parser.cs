@@ -912,6 +912,7 @@ int StringToInt(string s, int defaultValue, string errString) {
 			  List<string> extends = new List<string>();
 			  bool provideAll = false;
 			  bool revealAll = false;
+			  ExportSignature exsig;
 			
 			Get();
 			exportId = t; 
@@ -922,12 +923,12 @@ int StringToInt(string s, int defaultValue, string errString) {
 				if (la.kind == 76) {
 					Get();
 					if (la.kind == 1) {
-						NoUSIdent(out id);
-						exports.Add(new ExportSignature(id, true)); 
+						ModuleExportSignature(true, out exsig);
+						exports.Add(exsig); 
 						while (la.kind == 23) {
 							Get();
-							NoUSIdent(out id);
-							exports.Add(new ExportSignature(id, true)); 
+							ModuleExportSignature(true, out exsig);
+							exports.Add(exsig); 
 						}
 					} else if (la.kind == 60) {
 						Get();
@@ -936,12 +937,12 @@ int StringToInt(string s, int defaultValue, string errString) {
 				} else if (la.kind == 77) {
 					Get();
 					if (la.kind == 1) {
-						NoUSIdent(out id);
-						exports.Add(new ExportSignature(id, false)); 
+						ModuleExportSignature(false, out exsig);
+						exports.Add(exsig); 
 						while (la.kind == 23) {
 							Get();
-							NoUSIdent(out id);
-							exports.Add(new ExportSignature(id, false)); 
+							ModuleExportSignature(false, out exsig);
+							exports.Add(exsig); 
 						}
 					} else if (la.kind == 60) {
 						Get();
@@ -1361,6 +1362,16 @@ int StringToInt(string s, int defaultValue, string errString) {
 		if (afterdot != null)
 		 SemErr(afterdot, "Decimal export sets are not supported");
 		
+	}
+
+	void ModuleExportSignature(bool opaque, out ExportSignature exsig) {
+		IToken prefix; IToken suffix = null; 
+		NoUSIdent(out prefix);
+		if (la.kind == 28) {
+			Get();
+			NoUSIdent(out suffix);
+		}
+		exsig = new ExportSignature(prefix, suffix, opaque); 
 	}
 
 	void Ident(out IToken/*!*/ x) {
