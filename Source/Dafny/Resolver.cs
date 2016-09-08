@@ -1012,20 +1012,18 @@ namespace Microsoft.Dafny
           return true;
         }
       }
+      
       public bool TryLookup(IToken name, out ModuleDecl m) {
         Contract.Requires(name != null);
-        if (modules.TryGetValue(name.val, out m)) {
-          return true;
-        } else if (parent != null) {
-          return parent.TryLookup(name, out m);
-        } else return false;
+        return TryLookupFilter(name, out m, l => true);
       }
-      public bool TryLookupIgnore(IToken name, out ModuleDecl m, ModuleDecl ignore) {
+      
+      public bool TryLookupFilter(IToken name, out ModuleDecl m, Func<ModuleDecl, bool> filter) {
         Contract.Requires(name != null);
-        if (modules.TryGetValue(name.val, out m) && m != ignore) {
+        if (modules.TryGetValue(name.val, out m) && filter(m)) {
           return true;
         } else if (parent != null) {
-          return parent.TryLookup(name, out m);
+          return parent.TryLookupFilter(name, out m, filter);
         } else return false;
       }
       public IEnumerable<ModuleDecl> ModuleList {
@@ -1101,7 +1099,8 @@ namespace Microsoft.Dafny
       } else if (moduleDecl is AliasModuleDecl) {
         var alias = moduleDecl as AliasModuleDecl;
         ModuleDecl root;
-        if (!bindings.TryLookupIgnore(alias.Path[0], out root, alias))
+        if (!bindings.TryLookupFilter(alias.Path[0], out root, 
+          m => alias != m && (alias.Exports.Count == 0 || m is LiteralModuleDecl)))
           reporter.Error(MessageSource.Resolver, alias.tok, ModuleNotFoundErrorMessage(0, alias.Path));
         else {
           dependencies.AddEdge(moduleDecl, root);
@@ -1110,7 +1109,8 @@ namespace Microsoft.Dafny
       } else if (moduleDecl is ModuleFacadeDecl) {
         var abs = moduleDecl as ModuleFacadeDecl;
         ModuleDecl root;
-        if (!bindings.TryLookup(abs.Path[0], out root))
+        if (!bindings.TryLookupFilter(abs.Path[0], out root,
+          m => abs != m && (abs.Exports.Count == 0 || m is LiteralModuleDecl)))
           reporter.Error(MessageSource.Resolver, abs.tok, ModuleNotFoundErrorMessage(0, abs.Path));
         else {
           dependencies.AddEdge(moduleDecl, root);
@@ -1625,8 +1625,15 @@ namespace Microsoft.Dafny
       var mod = new ModuleDefinition(Token.NoToken, Name + ".Abs", true, true, /*isExclusiveRefinement:*/ false, null, null, null, false);
       mod.ClonedFrom = new CompilationCloner(compilationModuleClones).CloneFromValue_Module(p.ModuleDef);
       mod.Height = Height;
+      bool hasDefaultClass = false;
       foreach (var kv in p.TopLevels) {
+        hasDefaultClass = kv.Value is DefaultClassDecl || hasDefaultClass;
+
         mod.TopLevelDecls.Add(CloneDeclaration(kv.Value, mod, mods, Name, compilationModuleClones));
+      }
+      if (!hasDefaultClass) {
+        DefaultClassDecl cl = new DefaultClassDecl(mod, p.StaticMembers.Values.ToList());
+        mod.TopLevelDecls.Add(CloneDeclaration(cl, mod, mods, Name, compilationModuleClones));
       }
       var sig = RegisterTopLevelDecls(mod, true);
       sig.Refines = p.Refines;
@@ -1664,6 +1671,7 @@ namespace Microsoft.Dafny
       Contract.Requires(Path.Count > 0);
       Contract.Requires(Exports != null);
       Contract.Requires(Exports.Count == 0 || Path.Count == 1); // Path.Count > 1 ==> Exports.Count == 0
+      Contract.Requires(Exports.Count == 0 || root is LiteralModuleDecl); // only literal modules may have exports
       if (Path.Count == 1 && root is LiteralModuleDecl) {
         // use the default export when the importing the root
         LiteralModuleDecl decl = (LiteralModuleDecl)root;

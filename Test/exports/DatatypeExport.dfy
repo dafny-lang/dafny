@@ -1,4 +1,4 @@
-// RUN: %dafny /env:0 /dprint:"%t.dfy" /compile:0 "%s" > "%t.result"
+// RUN: %dafny /env:0 /compile:0 "%s" > "%t.result"
 // RUN: %diff "%s.expect" "%t.result"
 
 module A {
@@ -47,4 +47,22 @@ module CBad {
   }
   function k(x : A.T): int { if x.CT1? then 1 else x.X } // can't access destructors
 }
+
+
+module CIndirect {
+  import ABody = A`Body
+  import A = A`Spec
+
+  function g(): A.T { A.CT1 } //error
+
+  function i() : A.T { ABody.CT1 }
+
+  function h(x : A.T): int { 
+    match x
+      case CT1 => 0 
+      case CT2(n) => n
+  }
+  function k(x : A.T): int { if x.CT1? then 1 else x.X }
+}
+
 
