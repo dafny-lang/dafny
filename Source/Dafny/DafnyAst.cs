@@ -55,7 +55,7 @@ namespace Microsoft.Dafny {
       foreach (var msig in ModuleSigs) {
         Type.PushScope(msig.Value.VisibilityScope);
         yield return msig.Key;
-        Type.PopScope();
+        Type.PopScope(msig.Value.VisibilityScope);
       }
       
     }
@@ -483,8 +483,11 @@ namespace Microsoft.Dafny {
     public static readonly IntType Int = new IntType();
     public static readonly RealType Real = new RealType();
 
+    [ThreadStatic]
     private static List<VisibilityScope> scopes = new List<VisibilityScope>();
-    private static bool scopesEnabled = true;
+
+    [ThreadStatic]
+    private static bool scopesEnabled = false;
     
     public static void PushScope(VisibilityScope scope) {
       scopes.Add(scope);
@@ -496,6 +499,12 @@ namespace Microsoft.Dafny {
       scopes.RemoveAt(scopes.Count - 1);
     }
 
+    public static void PopScope(VisibilityScope expected) {
+      Contract.Assert(scopes.Count > 0);
+      Contract.Assert(scopes[scopes.Count - 1] == expected);
+      PopScope();
+    }
+
     private static VisibilityScope getScope() {
       if (scopes.Count > 0 && scopesEnabled) {
         return scopes[scopes.Count - 1];
@@ -504,10 +513,12 @@ namespace Microsoft.Dafny {
     }
 
     public static void EnableScopes() {
+      Contract.Assert(!scopesEnabled);
       scopesEnabled = true;
     }
 
     public static void DisableScopes() {
+      Contract.Assert(scopesEnabled);
       scopesEnabled = false;
     }
     
@@ -2350,7 +2361,7 @@ namespace Microsoft.Dafny {
 
       revealScope = d.revealScope;
 
-      if (onlyRevealed) {
+      if (!onlyRevealed) {
         opaqueScope = d.opaqueScope;
       }
       scopeIsInherited = true;

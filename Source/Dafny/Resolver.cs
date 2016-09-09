@@ -247,7 +247,7 @@ namespace Microsoft.Dafny
     }
     public void ResolveProgram(Program prog) {
       Contract.Requires(prog != null);
-
+      Type.EnableScopes();
       var origErrorCount = reporter.Count(ErrorLevel.Error); //TODO: This is used further below, but not in the >0 comparisons in the next few lines. Is that right?
       var bindings = new ModuleBindings(null);
       var b = BindModuleNames(prog.DefaultModuleDef, bindings);
@@ -346,6 +346,7 @@ namespace Microsoft.Dafny
           // set up environment
           var preResolveErrorCount = reporter.Count(ErrorLevel.Error);
           ResolveModuleDefinition(m, sig);
+          Type.PushScope(moduleInfo.VisibilityScope);
           ResolveModuleExport(literalDecl, sig, preResolveErrorCount);
 
           prog.ModuleSigs[m] = sig;
@@ -359,6 +360,8 @@ namespace Microsoft.Dafny
           if (reporter.Count(ErrorLevel.Error) == errorCount) {
             m.SuccessfullyResolved = true;
           }
+          Type.PopScope(moduleInfo.VisibilityScope);
+
           if (reporter.Count(ErrorLevel.Error) == errorCount && (!m.IsAbstract || DafnyOptions.O.IronDafny)) {
             // compilation should only proceed if everything is good, including the signature (which preResolveErrorCount does not include);
             var nw = new CompilationCloner(compilationModuleClones).CloneModuleDefinition(m, m.CompileName + "_Compile");
@@ -440,7 +443,7 @@ namespace Microsoft.Dafny
         return;
       }
 
-      Type.PopScope();
+      Type.DisableScopes();
 
       // compute IsRecursive bit for mutually recursive functions and methods
       foreach (var module in prog.Modules()) {
@@ -766,7 +769,6 @@ namespace Microsoft.Dafny
       Contract.Ensures(AllTypeConstraints.Count == 0);
       moduleInfo = MergeSignature(sig, systemNameInfo);
       sig.VisibilityScope.Augment(systemNameInfo.VisibilityScope);
-      Type.PushScope(moduleInfo.VisibilityScope);
       // make sure all imported modules were successfully resolved
       foreach (var d in m.TopLevelDecls) {
         if (d is AliasModuleDecl || d is ModuleFacadeDecl) {
@@ -795,6 +797,7 @@ namespace Microsoft.Dafny
       }
 
       // resolve
+      Type.PushScope(moduleInfo.VisibilityScope);
       var datatypeDependencies = new Graph<IndDatatypeDecl>();
       var codatatypeDependencies = new Graph<CoDatatypeDecl>();
       int prevErrorCount = reporter.Count(ErrorLevel.Error);
@@ -805,6 +808,7 @@ namespace Microsoft.Dafny
       if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
         ResolveTopLevelDecls_Core(m.TopLevelDecls, datatypeDependencies, codatatypeDependencies);
       }
+      Type.PopScope(moduleInfo.VisibilityScope);
     }
 
     // Resolve the exports and detect cycles.
@@ -994,6 +998,8 @@ namespace Microsoft.Dafny
 
       //check for export consistency by resolving internal modules
       //this should be effect-free, as it only operates on clones
+
+      var oldModuleInfo = moduleInfo;
       if (reporter.Count(ErrorLevel.Error) == preResolveErrorCount) { //only bother with consistency check if nothing was raised during resolution
 
 
@@ -1026,6 +1032,7 @@ namespace Microsoft.Dafny
           
         }
       }
+      moduleInfo = oldModuleInfo;
 
     }
 
@@ -10761,8 +10768,8 @@ namespace Microsoft.Dafny
       moduleInfo = sig;
       Type.PushScope(moduleInfo.VisibilityScope);
       a();
-      moduleInfo = oldModuleInfo;
-      Type.PopScope();
+      Type.PopScope(moduleInfo.VisibilityScope);
+      moduleInfo = oldModuleInfo;      
     }
 
     /// <summary>

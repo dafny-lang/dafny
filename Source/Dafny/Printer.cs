@@ -380,7 +380,7 @@ namespace Microsoft.Dafny {
         Indent(indent);
         wr.WriteLine("}");
       }
-      Type.PopScope();
+      Type.PopScope(scope);
     }
 
     void PrintTopLevelDeclsOrExportedView(ModuleDefinition module, int indent, string fileBeingPrinted) {

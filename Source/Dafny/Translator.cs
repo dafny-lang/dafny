@@ -665,7 +665,7 @@ namespace Microsoft.Dafny {
         }
       }
 
-      Type.PopScope();
+      Type.PopScope(this.currentScope);
       return sink;
 
     }
@@ -678,6 +678,7 @@ namespace Microsoft.Dafny {
 
       Dictionary<string, Bpl.Program> programs = new Dictionary<string, Bpl.Program>();
 
+      Type.EnableScopes();
       foreach (ModuleDefinition outerModule in p.RawModules()) {
         var translator = new Translator(reporter, flags);
 
@@ -689,6 +690,7 @@ namespace Microsoft.Dafny {
         }
         programs.Add(outerModule.CompileName, translator.DoTranslation(p, outerModule));
       }
+      Type.DisableScopes();
 
       return programs;
     }
