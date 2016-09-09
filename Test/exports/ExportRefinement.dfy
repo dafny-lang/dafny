@@ -1,17 +1,19 @@
-// RUN: %dafny /env:0 /dprint:"%t.dfy" /compile:0 "%s" > "%t.result"
+// RUN: %dafny /env:0 /compile:3 "%s" > "%t.result"
 // RUN: %diff "%s.expect" "%t.result"
 
 
 abstract module A {
-  export Spec provides f, T
-  export Body reveals f, T
+  export Spec provides f, T, m
+  export Body provides m reveals f, T
   type T
   function f(): T
+  method m()
 }
 
 module B refines A {
   type T = int
   function f(): T { 0 }
+  method m() { print "B\n"; }
 }
 
 abstract module C {
@@ -45,21 +47,24 @@ module E {
 module F {
   import D = DBSpec`Body
 
-  function h(): int { D.g() } //error
+  function h(): D.AF.T { D.g() }
 }
 
 //Extending existing exports
 
 module A2 refines A {
-  export Spec reveals T
+  export Spec provides m reveals T
 
   type T = int
+  function f(): T { 0 }
+  method m() { print "A2\n"; }
 }
 
 module B2 {
   import A2`Spec
 
   function g(): int { A2.f() }
+  method m() { A2.m(); }
 }
 
 //Facades only must respect the visible export
@@ -71,7 +76,7 @@ module C2 {
 module BAlt refines A {
   type T = bool
   function f(): T { false }
-
+  method m() { print "BAlt\n"; }
 }
 
 module C3 refines C2 {
@@ -80,4 +85,12 @@ module C3 refines C2 {
 
 module C4 refines C2 {
   import BB = BAlt`Body
+}
+
+method Main(){
+  C3.BB.m();
+  C4.BB.m();
+  B2.m();
+  C2.BB.m();
+
 }

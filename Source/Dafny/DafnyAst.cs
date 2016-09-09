@@ -3705,7 +3705,7 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public class OpaqueTypeDecl : TopLevelDecl, TypeParameter.ParentType
+  public class OpaqueTypeDecl : TopLevelDecl, TypeParameter.ParentType, RevealableTypeDecl
   {
     public override string WhatKind { get { return "opaque type"; } }
     public override bool CanBeRevealed() { return true; }
@@ -3728,6 +3728,15 @@ namespace Microsoft.Dafny {
       Contract.Requires(module != null);
       Contract.Requires(typeArgs != null);
       TheType = new OpaqueType_AsParameter(tok, name, equalitySupport, TypeArgs);
+      this.NewSelfSynonym();
+    }
+
+    public TopLevelDecl AsTopLevelDecl {
+      get { return this; }
+    }
+
+    public bool SupportsEquality {
+      get { return this.MustSupportEquality; }
     }
   }
 

@@ -168,10 +168,27 @@ namespace Microsoft.Dafny
       Contract.Assert(moduleUnderConstruction == m);  // this should be as it was set earlier in this method
     }
 
+    private void MergeModuleExports(ModuleExportDecl nw, ModuleExportDecl d) {
+      if (nw.IsDefault != d.IsDefault) {
+        reporter.Error(MessageSource.RefinementTransformer, nw, "can't change if a module export is default ({0})", nw.Name);
+      }
+
+      nw.Exports.AddRange(d.Exports);
+      nw.RevealAll = nw.RevealAll || d.RevealAll;
+      nw.ProvideAll = nw.ProvideAll || d.ProvideAll;
+      nw.Extends.AddRange(d.Extends);
+    }
+
     private void MergeTopLevelDecls(ModuleDefinition m, TopLevelDecl nw, TopLevelDecl d, int index) {
       if (d is ModuleDecl) {
         if (!(nw is ModuleDecl)) {
           reporter.Error(MessageSource.RefinementTransformer, nw, "a module ({0}) must refine another module", nw.Name);
+        } else if (d is ModuleExportDecl) {
+          if (!(nw is ModuleExportDecl)) {
+            reporter.Error(MessageSource.RefinementTransformer, nw, "a module export ({0}) must refine another export", nw.Name);
+          } else {
+            MergeModuleExports((ModuleExportDecl)nw,(ModuleExportDecl)d);
+          }
         } else if (!(d is ModuleFacadeDecl)) {
           reporter.Error(MessageSource.RefinementTransformer, nw, "a module ({0}) can only refine a module facade", nw.Name);
         } else {
@@ -254,6 +271,13 @@ namespace Microsoft.Dafny
       }
     }
 
+    private bool OpaqueTypeDeclInScope(TopLevelDecl d, VisibilityScope scope) {
+      if (d is RevealableTypeDecl) {
+        return !d.IsRevealedInScope(scope);
+      }
+      return false;
+    }
+
     public bool CheckIsRefinement(ModuleSignature derived, ModuleSignature original) {
       // Check refinement by construction.
       var derivedPointer = derived;
@@ -281,14 +305,17 @@ namespace Microsoft.Dafny
             } else {
               CheckIsRefinement(((ModuleDecl)nw).Signature, ((ModuleDecl)d).Signature);
             }
-          } else if (d is OpaqueTypeDecl) {
+          } else if (OpaqueTypeDeclInScope(d, original.VisibilityScope)) {
             if (nw is ModuleDecl) {
               reporter.Error(MessageSource.RefinementTransformer, nw, "a module ({0}) must refine another module", nw.Name);
             } else {
-              bool dDemandsEqualitySupport = ((OpaqueTypeDecl)d).MustSupportEquality;
-              if (nw is OpaqueTypeDecl) {
-                if (dDemandsEqualitySupport != ((OpaqueTypeDecl)nw).MustSupportEquality) {
-                  reporter.Error(MessageSource.RefinementTransformer, nw, "type declaration '{0}' is not allowed to change the requirement of supporting equality", nw.Name);
+              bool dDemandsEqualitySupport = ((RevealableTypeDecl)d).SupportsEquality;
+              if (OpaqueTypeDeclInScope(nw, derived.VisibilityScope) || nw is TypeSynonymDecl) {
+                if (dDemandsEqualitySupport && !((RevealableTypeDecl)nw).SupportsEquality) {
+                  reporter.Error(MessageSource.RefinementTransformer, nw, "type declaration '{0}' is not allowed to remove the requirement of supporting equality", nw.Name);
+                }
+                if (nw.TypeArgs.Count != d.TypeArgs.Count) {
+                    reporter.Error(MessageSource.RefinementTransformer, nw, "opaque type '{0}' is not allowed to be replaced by a type that takes a different number of type parameters", nw.Name);
                 }
               } else if (dDemandsEqualitySupport) {
                 if (nw is ClassDecl) {

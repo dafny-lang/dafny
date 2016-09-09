@@ -942,13 +942,21 @@ namespace Microsoft.Dafny
 
           foreach (ExportSignature export in decl.Exports) {
             if (export.Decl is TopLevelDecl) {
-              signature.TopLevels.Add(export.Name, (TopLevelDecl)export.Decl);
+              if (!signature.TopLevels.ContainsKey(export.Name)) {
+                signature.TopLevels.Add(export.Name, (TopLevelDecl)export.Decl);
+              }
+
               if (export.Decl is DatatypeDecl && !export.Opaque) {
-                ((DatatypeDecl)export.Decl).Ctors.ForEach(ctor =>
-                  signature.Ctors.Add(ctor.Name, new Tuple<DatatypeCtor, bool>(ctor, false)));
+                foreach (var ctor in ((DatatypeDecl)export.Decl).Ctors) {
+                  if (!signature.Ctors.ContainsKey(ctor.Name)) {
+                    signature.Ctors.Add(ctor.Name, new Tuple<DatatypeCtor, bool>(ctor, false));
+                  }
+                }
               }
             } else if (export.Decl is MemberDecl && ((MemberDecl)export.Decl).EnclosingClass is DefaultClassDecl) {
-              signature.StaticMembers.Add(export.Name, (MemberDecl)export.Decl);
+              if (!signature.StaticMembers.ContainsKey(export.Name)) {
+                signature.StaticMembers.Add(export.Name, (MemberDecl)export.Decl);
+              }
             }
           }
         }
@@ -1016,7 +1024,7 @@ namespace Microsoft.Dafny
           reporter = new ErrorReporterWrapper(reporter, 
             String.Format("Raised while checking export set {0}: ", decl.Name));
           var scope = decl.Signature.VisibilityScope;
-          Cloner cloner = new ExportConsistencyCheckCloner(scope);
+          Cloner cloner = new ScopeCloner(scope);
           var exportView = cloner.CloneModuleDefinition(m, m.Name);
 
           var testSig = RegisterTopLevelDecls(exportView, true);
@@ -1674,11 +1682,11 @@ namespace Microsoft.Dafny
       foreach (var kv in p.TopLevels) {
         hasDefaultClass = kv.Value is DefaultClassDecl || hasDefaultClass;
 
-        mod.TopLevelDecls.Add(CloneDeclaration(kv.Value, mod, mods, Name, compilationModuleClones));
+        mod.TopLevelDecls.Add(CloneDeclaration(p.VisibilityScope,kv.Value, mod, mods, Name, compilationModuleClones));
       }
       if (!hasDefaultClass) {
         DefaultClassDecl cl = new DefaultClassDecl(mod, p.StaticMembers.Values.ToList());
-        mod.TopLevelDecls.Add(CloneDeclaration(cl, mod, mods, Name, compilationModuleClones));
+        mod.TopLevelDecls.Add(CloneDeclaration(p.VisibilityScope, cl, mod, mods, Name, compilationModuleClones));
       }
       var sig = RegisterTopLevelDecls(mod, true);
       sig.Refines = p.Refines;
@@ -1691,7 +1699,7 @@ namespace Microsoft.Dafny
     }
 
 
-    TopLevelDecl CloneDeclaration(TopLevelDecl d, ModuleDefinition m, Dictionary<ModuleDefinition, ModuleSignature> mods, string Name, Dictionary<ModuleDefinition, ModuleDefinition> compilationModuleClones) {
+    TopLevelDecl CloneDeclaration(VisibilityScope scope, TopLevelDecl d, ModuleDefinition m, Dictionary<ModuleDefinition, ModuleSignature> mods, string Name, Dictionary<ModuleDefinition, ModuleDefinition> compilationModuleClones) {
       Contract.Requires(d != null);
       Contract.Requires(m != null);
       Contract.Requires(mods != null);
@@ -1706,7 +1714,7 @@ namespace Microsoft.Dafny
         a.OriginalSignature = abs.OriginalSignature;
         return a;
       } else {
-        return new ClonerButDropMethodBodies().CloneDeclaration(d, m);
+        return new AbstractSignatureCloner(scope).CloneDeclaration(d, m);
       }
     }
 

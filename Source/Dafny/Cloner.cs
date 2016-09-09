@@ -737,7 +737,8 @@ namespace Microsoft.Dafny
     }
   }
 
-  class ExportConsistencyCheckCloner : DeepModuleSignatureCloner {
+
+  class ScopeCloner : DeepModuleSignatureCloner {
     private VisibilityScope scope = null;
 
     private Dictionary<Declaration, Declaration> reverseMap = new Dictionary<Declaration, Declaration>();
@@ -749,7 +750,7 @@ namespace Microsoft.Dafny
       return !reverseMap[d].IsVisibleInScope(scope);
     }
 
-    public ExportConsistencyCheckCloner(VisibilityScope scope) {
+    public ScopeCloner(VisibilityScope scope) {
       this.scope = scope;
     }
 
@@ -804,6 +805,9 @@ namespace Microsoft.Dafny
       basem.TopLevelDecls.RemoveAll(t => t is AliasModuleDecl ?
         vismap[((AliasModuleDecl)t).Signature.ModuleDef].IsEmpty() : isInvisibleClone(t));
 
+      basem.TopLevelDecls.FindAll(t => t is ClassDecl).
+        ForEach(t => ((ClassDecl)t).Members.RemoveAll(isInvisibleClone));
+
       return basem;
     }
 
@@ -853,6 +857,23 @@ namespace Microsoft.Dafny
   {
     public ClonerButDropMethodBodies()
       : base() {
+    }
+
+    public override BlockStmt CloneBlockStmt(BlockStmt stmt) {
+      return null;
+    }
+  }
+
+  class AbstractSignatureCloner : ScopeCloner {
+
+    public AbstractSignatureCloner(VisibilityScope scope)
+      : base(scope) {
+    }
+
+    public override ModuleDefinition CloneModuleDefinition(ModuleDefinition m, string name) {
+      var basem = base.CloneModuleDefinition(m, name);
+      basem.TopLevelDecls.RemoveAll(t => t is ModuleExportDecl);
+      return basem;
     }
 
     public override BlockStmt CloneBlockStmt(BlockStmt stmt) {
