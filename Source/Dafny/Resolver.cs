@@ -247,6 +247,8 @@ namespace Microsoft.Dafny
     }
     public void ResolveProgram(Program prog) {
       Contract.Requires(prog != null);
+      Type.ResetScopes();
+
       Type.EnableScopes();
       var origErrorCount = reporter.Count(ErrorLevel.Error); //TODO: This is used further below, but not in the >0 comparisons in the next few lines. Is that right?
       var bindings = new ModuleBindings(null);

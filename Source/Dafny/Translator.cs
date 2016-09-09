@@ -677,7 +677,7 @@ namespace Microsoft.Dafny {
       Contract.Ensures(Contract.Result<Dictionary<string, Bpl.Program>>().All(ccep => ccep.Value != null));
 
       Dictionary<string, Bpl.Program> programs = new Dictionary<string, Bpl.Program>();
-
+      Type.ResetScopes();
       Type.EnableScopes();
       foreach (ModuleDefinition outerModule in p.RawModules()) {
         var translator = new Translator(reporter, flags);

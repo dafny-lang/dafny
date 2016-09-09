@@ -272,7 +272,9 @@ namespace Microsoft.Dafny
     }
 
     private bool OpaqueTypeDeclInScope(TopLevelDecl d, VisibilityScope scope) {
-      if (d is RevealableTypeDecl) {
+      if (d is OpaqueTypeDecl) {
+        return true;
+      } else if (d is RevealableTypeDecl) {
         return !d.IsRevealedInScope(scope);
       }
       return false;

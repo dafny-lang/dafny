@@ -493,6 +493,11 @@ namespace Microsoft.Dafny {
       scopes.Add(scope);
     }
 
+    public static void ResetScopes() {
+      scopes = new List<VisibilityScope>();
+      scopesEnabled = false;
+    }
+
 
     public static void PopScope() {
       Contract.Assert(scopes.Count > 0);
@@ -513,6 +518,9 @@ namespace Microsoft.Dafny {
     }
 
     public static void EnableScopes() {
+      if (scopesEnabled) {
+        Contract.Assert(true);
+      }
       Contract.Assert(!scopesEnabled);
       scopesEnabled = true;
     }
