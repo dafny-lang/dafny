@@ -929,6 +929,9 @@ namespace Microsoft.Dafny
         signature.ModuleDef = m;
 
         if (decl.RevealAll || decl.ProvideAll) {
+          if (decl.RevealAll) {
+            sig.Ctors.Iter(t => signature.Ctors.Add(t.Key, t.Value));
+          }
           sig.TopLevels.Where(t => t.Value.CanBeExported()).Iter(t => signature.TopLevels.Add(t.Key, t.Value));
           sig.StaticMembers.Where(t => t.Value.CanBeExported()).Iter(t => signature.StaticMembers.Add(t.Key, t.Value));
         } else {

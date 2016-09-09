@@ -853,7 +853,7 @@ namespace Microsoft.Dafny {
     }
 
     private void ComputeFunctionFuel() {
-      foreach (ModuleDefinition m in program.Modules()) {
+      foreach (ModuleDefinition m in program.RawModules()) {
         foreach (TopLevelDecl d in m.TopLevelDecls) {
           if (d is ClassDecl) {
             ClassDecl c = (ClassDecl)d;
