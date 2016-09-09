@@ -202,11 +202,6 @@ namespace Microsoft.Dafny
     public Resolver(Program prog) {
       Contract.Requires(prog != null);
 
-      Type.RegisterScopeGetter(() =>
-          this.moduleInfo != null && !useCompileSignatures ?
-          this.moduleInfo.VisibilityScope :
-          null);
-
       builtIns = prog.BuiltIns;
       reporter = prog.reporter;
       // Populate the members of the basic types
@@ -252,6 +247,7 @@ namespace Microsoft.Dafny
     }
     public void ResolveProgram(Program prog) {
       Contract.Requires(prog != null);
+
       var origErrorCount = reporter.Count(ErrorLevel.Error); //TODO: This is used further below, but not in the >0 comparisons in the next few lines. Is that right?
       var bindings = new ModuleBindings(null);
       var b = BindModuleNames(prog.DefaultModuleDef, bindings);
@@ -372,6 +368,7 @@ namespace Microsoft.Dafny
             // Next, compute the compile signature
             Contract.Assert(!useCompileSignatures);
             useCompileSignatures = true;  // set Resolver-global flag to indicate that Signatures should be followed to their CompiledSignature
+            Type.PushScope(null);
             var compileSig = RegisterTopLevelDecls(nw, true, m.VisibilityScope);
             compileSig.Refines = refinementTransformer.RefinedSig;
             sig.CompileSignature = compileSig;
@@ -386,6 +383,7 @@ namespace Microsoft.Dafny
             ResolveModuleDefinition(nw, compileSig);
             prog.CompileModules.Add(nw);
             useCompileSignatures = false;  // reset the flag
+            Type.PopScope();
             reporter.ErrorsOnly = oldErrorsOnly;
           }
         } else if (decl is AliasModuleDecl) {
@@ -441,6 +439,9 @@ namespace Microsoft.Dafny
         // do nothing else
         return;
       }
+
+      Type.PopScope();
+
       // compute IsRecursive bit for mutually recursive functions and methods
       foreach (var module in prog.Modules()) {
         foreach (var clbl in ModuleDefinition.AllCallables(module.TopLevelDecls)) {
@@ -476,7 +477,6 @@ namespace Microsoft.Dafny
         }
       }
 
-      Type.NoScope();
 
       // fill in default decreases clauses:  for functions and methods, and for loops
       FillInDefaultDecreasesClauses(prog);
@@ -542,7 +542,6 @@ namespace Microsoft.Dafny
       }
 
       CheckDupModuleNames(prog);
-      Type.DropScope();
     }
 
     void FillInDefaultDecreasesClauses(Program prog)
@@ -767,7 +766,7 @@ namespace Microsoft.Dafny
       Contract.Ensures(AllTypeConstraints.Count == 0);
       moduleInfo = MergeSignature(sig, systemNameInfo);
       sig.VisibilityScope.Augment(systemNameInfo.VisibilityScope);
-
+      Type.PushScope(moduleInfo.VisibilityScope);
       // make sure all imported modules were successfully resolved
       foreach (var d in m.TopLevelDecls) {
         if (d is AliasModuleDecl || d is ModuleFacadeDecl) {
@@ -10759,8 +10758,10 @@ namespace Microsoft.Dafny
     void WithModuleSignature(ModuleSignature sig, Action a) {
       var oldModuleInfo = moduleInfo;
       moduleInfo = sig;
+      Type.PushScope(moduleInfo.VisibilityScope);
       a();
       moduleInfo = oldModuleInfo;
+      Type.PopScope();
     }
 
     /// <summary>

@@ -51,11 +51,13 @@ namespace Microsoft.Dafny {
 
     //Set appropriate visibilty before presenting module
     public IEnumerable<ModuleDefinition> Modules() {
+
       foreach (var msig in ModuleSigs) {
-        Type.RegisterScopeGetter(() => msig.Value.VisibilityScope);
+        Type.PushScope(msig.Value.VisibilityScope);
         yield return msig.Key;
+        Type.PopScope();
       }
-      Type.DropScope();
+      
     }
 
     public IEnumerable<ModuleDefinition> RawModules() {
@@ -481,19 +483,23 @@ namespace Microsoft.Dafny {
     public static readonly IntType Int = new IntType();
     public static readonly RealType Real = new RealType();
 
-    private static Func<VisibilityScope> getScope = () => null;
+    private static List<VisibilityScope> scopes = new List<VisibilityScope>();
     
-    public static void RegisterScopeGetter(Func<VisibilityScope> scopeGetter) {
-      Type.getScope = scopeGetter;
+    public static void PushScope(VisibilityScope scope) {
+      scopes.Add(scope);
     }
 
-    public static void DropScope() {
-      Type.getScope = () => null;
+
+    public static void PopScope() {
+      Contract.Assert(scopes.Count > 0);
+      scopes.RemoveAt(scopes.Count - 1);
     }
 
-    public static void NoScope() {
-      var noScope = new VisibilityScope();
-      Type.getScope = () => noScope;
+    private static VisibilityScope getScope() {
+      if (scopes.Count > 0) {
+        return scopes[scopes.Count - 1];
+      }
+      return null;
     }
     
     public static string TypeArgsToString(ModuleDefinition/*?*/ context, List<Type> typeArgs, bool parseAble = false) {

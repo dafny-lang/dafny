@@ -358,7 +358,7 @@ namespace Microsoft.Dafny {
     public void PrintModuleDefinition(ModuleDefinition module, VisibilityScope scope, int indent, string fileBeingPrinted) {
       Contract.Requires(module != null);
       Contract.Requires(0 <= indent);
-      Type.RegisterScopeGetter(() => scope);
+      Type.PushScope(scope);
       if (module.IsAbstract) {
         wr.Write("abstract ");
       }
@@ -380,7 +380,7 @@ namespace Microsoft.Dafny {
         Indent(indent);
         wr.WriteLine("}");
       }
-      Type.DropScope();
+      Type.PopScope();
     }
 
     void PrintTopLevelDeclsOrExportedView(ModuleDefinition module, int indent, string fileBeingPrinted) {

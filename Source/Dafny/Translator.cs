@@ -554,7 +554,7 @@ namespace Microsoft.Dafny {
       program = p;
 
       EstablishModuleScope(p.BuiltIns.SystemModule, forModule);
-      Type.RegisterScopeGetter(() => this.currentScope);
+      Type.PushScope(this.currentScope);
 
       foreach (var w in program.BuiltIns.Bitwidths) {
         // bitwise operations
@@ -665,7 +665,7 @@ namespace Microsoft.Dafny {
         }
       }
 
-      Type.DropScope();
+      Type.PopScope();
       return sink;
 
     }
