@@ -24,14 +24,14 @@ namespace Microsoft.Dafny
       Contract.Requires(d != null);
       Contract.Requires(moduleInfo != null);
       Contract.Requires(moduleInfo.VisibilityScope != null);
-      return d.IsRevealedInScope(moduleInfo.VisibilityScope);
+      return d.IsRevealedInScope(moduleInfo.VisibilityScope) || useCompileSignatures;
     }
 
     private bool VisibleInScope(Declaration d) {
       Contract.Requires(d != null);
       Contract.Requires(moduleInfo != null);
       Contract.Requires(moduleInfo.VisibilityScope != null);
-      return d.IsVisibleInScope(moduleInfo.VisibilityScope);
+      return d.IsVisibleInScope(moduleInfo.VisibilityScope) || useCompileSignatures;
     }
 
     FreshIdGenerator defaultTempVarIdGenerator;
@@ -368,7 +368,7 @@ namespace Microsoft.Dafny
             // Next, compute the compile signature
             Contract.Assert(!useCompileSignatures);
             useCompileSignatures = true;  // set Resolver-global flag to indicate that Signatures should be followed to their CompiledSignature
-            Type.PushScope(null);
+            Type.DisableScopes();
             var compileSig = RegisterTopLevelDecls(nw, true, m.VisibilityScope);
             compileSig.Refines = refinementTransformer.RefinedSig;
             sig.CompileSignature = compileSig;
@@ -383,7 +383,7 @@ namespace Microsoft.Dafny
             ResolveModuleDefinition(nw, compileSig);
             prog.CompileModules.Add(nw);
             useCompileSignatures = false;  // reset the flag
-            Type.PopScope();
+            Type.EnableScopes();
             reporter.ErrorsOnly = oldErrorsOnly;
           }
         } else if (decl is AliasModuleDecl) {
@@ -1389,7 +1389,7 @@ namespace Microsoft.Dafny
             } else {
               var field = new SpecialField(p.tok, p.Name, p.CompileName, "", "", p.IsGhost, false, false, p.Type, null);
               field.EnclosingClass = iter;  // resolve here
-              field.InheritVisibility(iter, true);
+              field.InheritVisibility(iter);
               members.Add(p.Name, field);
               iter.Members.Add(field);
             }
@@ -1400,7 +1400,7 @@ namespace Microsoft.Dafny
             } else {
               var field = new SpecialField(p.tok, p.Name, p.CompileName, "", "", p.IsGhost, true, true, p.Type, null);
               field.EnclosingClass = iter;  // resolve here
-              field.InheritVisibility(iter, true);
+              field.InheritVisibility(iter);
               iter.OutsFields.Add(field);
               members.Add(p.Name, field);
               iter.Members.Add(field);
@@ -1414,7 +1414,7 @@ namespace Microsoft.Dafny
               var tp = new SeqType(p.Type.StripSubsetConstraints());
               var field = new SpecialField(p.tok, nm, nm, "", "", true, true, false, tp, null);
               field.EnclosingClass = iter;  // resolve here
-              field.InheritVisibility(iter, true);
+              field.InheritVisibility(iter);
               iter.OutsHistoryFields.Add(field);  // for now, just record this field (until all parameters have been added as members)
             }
           }
@@ -1429,7 +1429,7 @@ namespace Microsoft.Dafny
           iter.Member_New = new SpecialField(iter.tok, "_new", "_new",                "", "", true, true, true, new SetType(true, new ObjectType()), null);
           foreach (var field in new List<Field>() { iter.Member_Reads, iter.Member_Modifies, iter.Member_New }) {
             field.EnclosingClass = iter;  // resolve here
-            field.InheritVisibility(iter, true);
+            field.InheritVisibility(iter);
             members.Add(field.Name, field);
             iter.Members.Add(field);
           }
@@ -1441,7 +1441,7 @@ namespace Microsoft.Dafny
             var nm = "_decreases" + i;
             var field = new SpecialField(p.tok, nm, nm, "", "", true, false, false, new InferredTypeProxy(), null);
             field.EnclosingClass = iter;  // resolve here
-            field.InheritVisibility(iter, true);
+            field.InheritVisibility(iter);
             iter.DecreasesFields.Add(field);
             members.Add(field.Name, field);
             iter.Members.Add(field);
@@ -1476,11 +1476,11 @@ namespace Microsoft.Dafny
             null, null, null);
           // add these implicit members to the class
           init.EnclosingClass = iter;
-          init.InheritVisibility(iter, true);
+          init.InheritVisibility(iter);
           valid.EnclosingClass = iter;
-          valid.InheritVisibility(iter, true);
+          valid.InheritVisibility(iter);
           moveNext.EnclosingClass = iter;
-          moveNext.InheritVisibility(iter, true);
+          moveNext.InheritVisibility(iter);
           iter.HasConstructor = true;
           iter.Member_Init = init;
           iter.Member_Valid = valid;
@@ -1509,6 +1509,7 @@ namespace Microsoft.Dafny
 
         } else if (d is ClassDecl) {
           ClassDecl cl = (ClassDecl)d;
+
 
           // register the names of the class members
           var members = new Dictionary<string, MemberDecl>();
@@ -1575,7 +1576,7 @@ namespace Microsoft.Dafny
                   // In the call graph, add an edge from M# to M, since this will have the desired effect of detecting unwanted cycles.
                   moduleDef.CallGraph.AddEdge(com.PrefixLemma, com);
                 }
-                extraMember.InheritVisibility(m, true);
+                extraMember.InheritVisibility(m);
                 members.Add(extraName, extraMember);
               }
             } else if (m is Constructor && !((Constructor)m).HasName) {
@@ -1610,12 +1611,12 @@ namespace Microsoft.Dafny
               reporter.Error(MessageSource.Resolver, ctor, "Duplicate datatype constructor name: {0}", ctor.Name);
             } else {
               ctors.Add(ctor.Name, ctor);
-              ctor.InheritVisibility(dt, true);
+              ctor.InheritVisibility(dt);
 
               // create and add the query "method" (field, really)
               string queryName = ctor.Name + "?";
               var query = new SpecialField(ctor.tok, queryName, "is_" + ctor.CompileName, "", "", false, false, false, Type.Bool, null);
-              query.InheritVisibility(dt, true);
+              query.InheritVisibility(dt);
               query.EnclosingClass = dt;  // resolve here
               members.Add(queryName, query);
               ctor.QueryField = query;
@@ -1640,7 +1641,7 @@ namespace Microsoft.Dafny
                 nameError = true;
               }
               var dtor = new DatatypeDestructor(formal.tok, ctor, formal, formal.Name, "dtor_" + formal.CompileName, "", "", formal.IsGhost, formal.Type, null);
-              dtor.InheritVisibility(dt, true);
+              dtor.InheritVisibility(dt);
               dtor.EnclosingClass = dt;  // resolve here
               if (!nameError && formal.HasName) {
                 members.Add(formal.Name, dtor);
@@ -10883,7 +10884,7 @@ namespace Microsoft.Dafny
           Dictionary<string, MemberDecl> members;
           if (classMembers.TryGetValue(cd, out members) && members.TryGetValue(expr.SuffixName, out member)) {
             if (!VisibleInScope(member)) {
-              reporter.Error(MessageSource.Resolver, expr.tok, "member '{0}' has not be imported in this scope and cannot be accessed here", expr.SuffixName);
+              reporter.Error(MessageSource.Resolver, expr.tok, "member '{0}' has not been imported in this scope and cannot be accessed here", expr.SuffixName);
             }
             if (!member.IsStatic) {
               reporter.Error(MessageSource.Resolver, expr.tok, "accessing member '{0}' requires an instance expression", expr.SuffixName); //TODO Unify with similar error messages

@@ -462,7 +462,7 @@ namespace Microsoft.Dafny {
     public void Augment(VisibilityScope other) {
       if (other != null) {
         scopeTokens.UnionWith(other.scopeTokens);
-      }
+        }
     }
 
     public VisibilityScope(string baseScope) {
@@ -484,6 +484,7 @@ namespace Microsoft.Dafny {
     public static readonly RealType Real = new RealType();
 
     private static List<VisibilityScope> scopes = new List<VisibilityScope>();
+    private static bool scopesEnabled = true;
     
     public static void PushScope(VisibilityScope scope) {
       scopes.Add(scope);
@@ -496,10 +497,18 @@ namespace Microsoft.Dafny {
     }
 
     private static VisibilityScope getScope() {
-      if (scopes.Count > 0) {
+      if (scopes.Count > 0 && scopesEnabled) {
         return scopes[scopes.Count - 1];
       }
       return null;
+    }
+
+    public static void EnableScopes() {
+      scopesEnabled = true;
+    }
+
+    public static void DisableScopes() {
+      scopesEnabled = false;
     }
     
     public static string TypeArgsToString(ModuleDefinition/*?*/ context, List<Type> typeArgs, bool parseAble = false) {
@@ -2333,21 +2342,19 @@ namespace Microsoft.Dafny {
       }
     }
 
-    /// <summary>
-    /// Make this declaration as visible as d. Optionally make this invisible if the parent declaration is opaque in scope.
-    /// </summary>
-    /// <param name="d"></param>
-    /// <param name="onlyRevealed"></param>
-    public void InheritVisibility(Declaration d, bool onlyRevealed = false) {
+
+    public void InheritVisibility(Declaration d, bool onlyRevealed = true) {
       Contract.Assert(opaqueScope.IsEmpty());
       Contract.Assert(revealScope.IsEmpty());
-      Contract.Assert(!scopeIsInherited);
+      scopeIsInherited = false;
 
       revealScope = d.revealScope;
-      scopeIsInherited = true;
-      if (!onlyRevealed) {
+
+      if (onlyRevealed) {
         opaqueScope = d.opaqueScope;
       }
+      scopeIsInherited = true;
+
     }
 
 
