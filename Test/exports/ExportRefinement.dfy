@@ -3,17 +3,26 @@
 
 
 abstract module A {
-  export Spec provides f, T, m
-  export Body provides m reveals f, T
+  export Spec provides f, T, m, C
+  export Body provides m reveals f, T, C
   type T
   function f(): T
   method m()
+
+  class C {
+    method m()
+  }
 }
 
 module B refines A {
   type T = int
   function f(): T { 0 }
   method m() { print "B\n"; }
+
+  class C {
+     method m() { print "B.C.m\n"; }
+     method n() { print "B.C.n\n"; }
+  }
 }
 
 abstract module C {
@@ -58,6 +67,11 @@ module A2 refines A {
   type T = int
   function f(): T { 0 }
   method m() { print "A2\n"; }
+
+  class C {
+    method m() { print "A2.C.m\n"; }
+    method n() { print "A2.C.n\n"; }
+  }
 }
 
 module B2 {
@@ -74,9 +88,18 @@ module C2 {
 }
 
 module BAlt refines A {
+  export Spec provides C, C.m, C.n
+  export Body reveals C
+
   type T = bool
   function f(): T { false }
   method m() { print "BAlt\n"; }
+  
+  class C {
+    method m() { print "BAlt.C.m\n"; }
+    method n() { print "BAlt.C.n\n"; }
+    constructor Init() { }
+  }
 }
 
 module C3 refines C2 {
@@ -92,5 +115,8 @@ method Main(){
   C4.BB.m();
   B2.m();
   C2.BB.m();
-
+  var c := new C3.BB.C.Init();
+  c.m();
+  c.n();
+  
 }

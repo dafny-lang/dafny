@@ -9404,22 +9404,27 @@ namespace Microsoft.Dafny {
   }
   public abstract class TranslationTask
   {
+    public readonly ModuleDefinition ForModule;
 
+    public TranslationTask(ModuleDefinition forModule) {
+      ForModule = forModule;
+    }
   }
   public class MethodCheck : TranslationTask
   {
     public readonly Method Refined;
     public readonly Method Refining;
-    public MethodCheck(Method a, Method b) {
+    public MethodCheck(ModuleDefinition forModule, Method a, Method b) 
+      : base(forModule) {
       Refined = b;
       Refining = a;
     }
   }
-  public class FunctionCheck : TranslationTask
-  {
+  public class FunctionCheck : TranslationTask {
     public readonly Function Refined;
     public readonly Function Refining;
-    public FunctionCheck(Function a, Function b) {
+    public FunctionCheck(ModuleDefinition forModule, Function a, Function b)
+      : base(forModule) {
       Refined = b;
       Refining = a;
     }

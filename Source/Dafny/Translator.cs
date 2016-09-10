@@ -130,7 +130,10 @@ namespace Microsoft.Dafny {
           currentScope.Augment(mdecl.AccessibleSignature().VisibilityScope);
         }
       }
-            
+
+      if (m.RefinementBaseSig != null) {
+        currentScope.Augment(m.RefinementBaseSig.VisibilityScope);
+      }
     }
 
     // translation state
@@ -628,12 +631,17 @@ namespace Microsoft.Dafny {
       HashSet<Tuple<string, string>> checkedMethods = new HashSet<Tuple<string, string>>();
       HashSet<Tuple<string, string>> checkedFunctions = new HashSet<Tuple<string, string>>();
       foreach (var t in program.TranslationTasks) {
+        if (!(t.ForModule.VisibilityScope.VisibleInScope(verificationScope))) {
+          continue;
+        }
+        program.TranslationTasks.Remove(t);
+
         if (t is MethodCheck) {
           var m = (MethodCheck)t;
           currentDeclaration = m.Refining;
-          if (!InVerificationScope(currentDeclaration)) {
-            continue;
-          }
+          Contract.Assert(VisibleInScope(m.Refined));
+          Contract.Assert(VisibleInScope(m.Refining));
+
           var id = new Tuple<string, string>(m.Refined.FullSanitizedName, m.Refining.FullSanitizedName);
           if (!checkedMethods.Contains(id)) {
             AddMethodRefinementCheck(m);
@@ -642,6 +650,9 @@ namespace Microsoft.Dafny {
         } else if (t is FunctionCheck) {
           var f = (FunctionCheck)t;
           currentDeclaration = f.Refining;
+          Contract.Assert(VisibleInScope(f.Refined));
+          Contract.Assert(VisibleInScope(f.Refining));
+
           var id = new Tuple<string, string>(f.Refined.FullSanitizedName, f.Refining.FullSanitizedName);
           if (!checkedFunctions.Contains(id)) {
             AddFunctionRefinementCheck(f);
@@ -691,6 +702,7 @@ namespace Microsoft.Dafny {
         programs.Add(outerModule.CompileName, translator.DoTranslation(p, outerModule));
       }
       Type.DisableScopes();
+      Contract.Assert(p.TranslationTasks.Count == 0);
 
       return programs;
     }

@@ -301,6 +301,7 @@ namespace Microsoft.Dafny
         var d = kv.Value;
         TopLevelDecl nw;
         if (derived.TopLevels.TryGetValue(kv.Key, out nw)) {
+          
           if (d is ModuleDecl) {
             if (!(nw is ModuleDecl)) {
               reporter.Error(MessageSource.RefinementTransformer, nw, "a module ({0}) must refine another module", nw.Name);
@@ -356,7 +357,7 @@ namespace Microsoft.Dafny
             if (!(nw is ClassDecl)) {
               reporter.Error(MessageSource.RefinementTransformer, nw, "a class declaration ({0}) must be refined by another class declaration", nw.Name);
             } else {
-              CheckClassesAreRefinements((ClassDecl)nw, (ClassDecl)d);
+              CheckClassesAreRefinements(derived.VisibilityScope, original.VisibilityScope, (ClassDecl)nw, (ClassDecl)d);
             }
           } else {
             Contract.Assert(false); throw new cce.UnreachableException(); // unexpected toplevel
@@ -368,15 +369,15 @@ namespace Microsoft.Dafny
       return errorCount == reporter.Count(ErrorLevel.Error);
     }
 
-    private void CheckClassesAreRefinements(ClassDecl nw, ClassDecl d) {
+    private void CheckClassesAreRefinements(VisibilityScope derivedScope, VisibilityScope originalScope, ClassDecl nw, ClassDecl d) {
       if (nw.TypeArgs.Count != d.TypeArgs.Count) {
         reporter.Error(MessageSource.RefinementTransformer, nw, "a refining class ({0}) must have the same number of type parameters", nw.Name);
       } else {
         var map = new Dictionary<string, MemberDecl>();
-        foreach (var mem in nw.Members) {
+        foreach (var mem in nw.Members.FindAll(m => m.IsVisibleInScope(derivedScope))) {
           map.Add(mem.Name, mem);
         }
-        foreach (var m in d.Members) {
+        foreach (var m in d.Members.FindAll(m => m.IsVisibleInScope(originalScope))) {
           MemberDecl newMem;
           if (map.TryGetValue(m.Name, out newMem)) {
             if (m.HasStaticKeyword != newMem.HasStaticKeyword) {
@@ -442,7 +443,7 @@ namespace Microsoft.Dafny
       CheckAgreement_TypeParameters(nw.tok, m.TypeArgs, nw.TypeArgs, m.Name, "method", false);
       CheckAgreementResolvedParameters(nw.tok, m.Ins, nw.Ins, m.Name, "method", "in-parameter");
       CheckAgreementResolvedParameters(nw.tok, m.Outs, nw.Outs, m.Name, "method", "out-parameter");
-      program.TranslationTasks.Add(new MethodCheck(nw, m));
+      program.TranslationTasks.Add(new MethodCheck(moduleUnderConstruction, nw, m));
     }
     private void CheckFunctionsAreRefinements(Function nw, Function f) {
       if (f is Predicate) {
@@ -466,7 +467,7 @@ namespace Microsoft.Dafny
           }
         }
       }
-      program.TranslationTasks.Add(new FunctionCheck(nw, f));
+      program.TranslationTasks.Add(new FunctionCheck(moduleUnderConstruction, nw, f));
     }
 
 

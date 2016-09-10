@@ -296,6 +296,7 @@ namespace Microsoft.Dafny
 
       systemNameInfo = RegisterTopLevelDecls(prog.BuiltIns.SystemModule, false);
       prog.CompileModules.Add(prog.BuiltIns.SystemModule);
+      RevealAllInScope(prog.BuiltIns.SystemModule.TopLevelDecls, systemNameInfo.VisibilityScope);
 
       // first, we need to detect which top-level modules have exclusive refinement relationships.
       foreach (ModuleDecl decl in sortedDecls) {
@@ -344,6 +345,7 @@ namespace Microsoft.Dafny
 
           literalDecl.Signature = RegisterTopLevelDecls(m, true);
           literalDecl.Signature.Refines = refinementTransformer.RefinedSig;
+          
           var sig = literalDecl.Signature;
           // set up environment
           var preResolveErrorCount = reporter.Count(ErrorLevel.Error);
@@ -374,7 +376,7 @@ namespace Microsoft.Dafny
             Contract.Assert(!useCompileSignatures);
             useCompileSignatures = true;  // set Resolver-global flag to indicate that Signatures should be followed to their CompiledSignature
             Type.DisableScopes();
-            var compileSig = RegisterTopLevelDecls(nw, true, m.VisibilityScope);
+            var compileSig = RegisterTopLevelDecls(nw, true);
             compileSig.Refines = refinementTransformer.RefinedSig;
             sig.CompileSignature = compileSig;
             foreach (var top in sig.TopLevels.Values) {
@@ -1230,14 +1232,13 @@ namespace Microsoft.Dafny
       info.VisibilityScope.Augment(system.VisibilityScope);
       return info;
     }
-    ModuleSignature RegisterTopLevelDecls(ModuleDefinition moduleDef, bool useImports, VisibilityScope scope = null) {
+    ModuleSignature RegisterTopLevelDecls(ModuleDefinition moduleDef, bool useImports) {
       Contract.Requires(moduleDef != null);
       var sig = new ModuleSignature();
       sig.ModuleDef = moduleDef;
       sig.IsAbstract = moduleDef.IsAbstract;
       sig.VisibilityScope = new VisibilityScope();
       sig.VisibilityScope.Augment(moduleDef.VisibilityScope);
-      sig.VisibilityScope.Augment(scope);
 
       List<TopLevelDecl> declarations = moduleDef.TopLevelDecls;
 
@@ -1374,7 +1375,6 @@ namespace Microsoft.Dafny
       // Now add the things present
       foreach (TopLevelDecl d in declarations) {
         Contract.Assert(d != null);
-        d.AddVisibilityScope(sig.VisibilityScope, false);
 
         // register the class/datatype/module name
         if (toplevels.ContainsKey(d.Name)) {
@@ -1532,9 +1532,7 @@ namespace Microsoft.Dafny
           var members = new Dictionary<string, MemberDecl>();
           classMembers.Add(cl, members);
 
-          foreach (MemberDecl m in cl.Members) {
-            m.AddVisibilityScope(sig.VisibilityScope, false);
-            
+          foreach (MemberDecl m in cl.Members) {            
             if (!members.ContainsKey(m.Name)) {
               members.Add(m.Name, m);
               if (m is Constructor) {
@@ -1788,18 +1786,35 @@ namespace Microsoft.Dafny
       p = psig;
       return i == Path.Count;
     }
+
+    public void RevealAllInScope(List<TopLevelDecl> declarations, VisibilityScope scope) {
+      foreach (TopLevelDecl d in declarations) {
+        d.AddVisibilityScope(scope, false);
+        if (d is ClassDecl) {
+          foreach (var mem in ((ClassDecl)d).Members) {
+            mem.AddVisibilityScope(scope, false);
+          }
+        }
+      }
+    }
+
     public void ResolveTopLevelDecls_Signatures(ModuleDefinition def, ModuleSignature sig, List<TopLevelDecl/*!*/>/*!*/ declarations, Graph<IndDatatypeDecl/*!*/>/*!*/ datatypeDependencies, Graph<CoDatatypeDecl/*!*/>/*!*/ codatatypeDependencies) {
       Contract.Requires(declarations != null);
       Contract.Requires(datatypeDependencies != null);
       Contract.Requires(codatatypeDependencies != null);
-
-      /* Augment the scoping environment for the current module*/
+      RevealAllInScope(declarations, def.VisibilityScope);
+      
+      /* Augment the scoping environment for the current module*/    
       foreach (TopLevelDecl d in declarations) {
         if (d is ModuleDecl && !(d is ModuleExportDecl)) {
           var decl = (ModuleDecl)d;
           moduleInfo.VisibilityScope.Augment(decl.AccessibleSignature().VisibilityScope);
           sig.VisibilityScope.Augment(decl.AccessibleSignature().VisibilityScope);
         }
+      }
+      if (sig.Refines != null) {
+        moduleInfo.VisibilityScope.Augment(sig.Refines.VisibilityScope);
+        sig.VisibilityScope.Augment(sig.Refines.VisibilityScope);
       }
 
       // resolve the trait names that a class extends and register the trait members in the classes that inherit them
