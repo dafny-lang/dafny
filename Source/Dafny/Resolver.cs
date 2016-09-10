@@ -1792,7 +1792,9 @@ namespace Microsoft.Dafny
         d.AddVisibilityScope(scope, false);
         if (d is ClassDecl) {
           foreach (var mem in ((ClassDecl)d).Members) {
-            mem.AddVisibilityScope(scope, false);
+            if (!mem.ScopeIsInherited) {
+              mem.AddVisibilityScope(scope, false);
+            }
           }
         }
       }

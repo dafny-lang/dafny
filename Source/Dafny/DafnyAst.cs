@@ -2351,8 +2351,10 @@ namespace Microsoft.Dafny {
       return false;
     }
 
+    public bool ScopeIsInherited { get { return scopeIsInherited; } }
+
     public void AddVisibilityScope(VisibilityScope scope, bool IsOpaque) {
-      Contract.Assert(!scopeIsInherited); //pragmatically we should only augment the visibility of the parent
+      Contract.Requires(!ScopeIsInherited); //pragmatically we should only augment the visibility of the parent
 
       if (IsOpaque) {
         opaqueScope.Augment(scope);
