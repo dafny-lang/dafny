@@ -384,6 +384,9 @@ namespace Microsoft.Dafny
           reporter.Error(MessageSource.RefinementTransformer, d, "declaration {0} must have a matching declaration in the refining module", d.Name);
         }
       }
+
+      currentDerived = oldDerived;
+      currentOriginal = oldOriginal;
       return errorCount == reporter.Count(ErrorLevel.Error);
     }
 
