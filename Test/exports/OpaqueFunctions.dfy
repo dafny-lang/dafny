@@ -44,3 +44,27 @@ module E {
   { D.g() } // revealed via A`B
 
 }
+
+module AA {
+  export Spec provides f
+  export Body reveals f
+  function {:opaque} f(): int { 0 }
+}
+
+module BB {
+  import A = AA`Spec
+  lemma Test()
+  ensures A.f() == 0 // fails
+  { }
+}
+
+module CC {
+  import A= AA`Body
+  lemma Test1()
+  ensures A.f() == 0 // fails
+  { }
+  
+  lemma Test2()
+  ensures A.f() == 0
+  { A.reveal_f(); }
+}

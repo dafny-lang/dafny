@@ -975,6 +975,7 @@ namespace Microsoft.Dafny
                               new Specification<Expression>(new List<Expression>(), null), null, lemma_attrs, null);
       newDecls.Add(reveal);
       revealOriginal[reveal] = f;
+      reveal.InheritVisibility(f, true);
     }
 
     class OpaqueFunctionVisitor : TopDownVisitor<bool> {

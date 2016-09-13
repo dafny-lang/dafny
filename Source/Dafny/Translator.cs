@@ -634,7 +634,6 @@ namespace Microsoft.Dafny {
         if (!(t.ForModule.VisibilityScope.VisibleInScope(verificationScope))) {
           continue;
         }
-        program.TranslationTasks.Remove(t);
 
         if (t is MethodCheck) {
           var m = (MethodCheck)t;
@@ -702,7 +701,6 @@ namespace Microsoft.Dafny {
         programs.Add(outerModule.CompileName, translator.DoTranslation(p, outerModule));
       }
       Type.DisableScopes();
-      Contract.Assert(p.TranslationTasks.Count == 0);
 
       return programs;
     }
@@ -7384,7 +7382,7 @@ namespace Microsoft.Dafny {
       }
 
       // Make the call
-      builder.Add(Call(method.tok, method.FullSanitizedName, ins, outs));
+      builder.Add(Call(method.tok, MethodName(method, MethodTranslationKind.Call), ins, outs));
 
       for (int i = 0; i < m.Outs.Count; i++) {
         var bLhs = m.Outs[i];
@@ -7497,8 +7495,10 @@ namespace Microsoft.Dafny {
       List<Variable> locals = new List<Variable>();
       Bpl.StmtListBuilder builder = new Bpl.StmtListBuilder();
 
+
       Bpl.FunctionCall funcOriginal = new Bpl.FunctionCall(new Bpl.IdentifierExpr(f.tok, f.FullSanitizedName, TrType(f.ResultType)));
-      Bpl.FunctionCall funcRefining = new Bpl.FunctionCall(new Bpl.IdentifierExpr(functionCheck.Refining.tok, functionCheck.Refining.FullSanitizedName, TrType(f.ResultType)));
+      
+      Bpl.FunctionCall funcRefining = new Bpl.FunctionCall(new Bpl.IdentifierExpr(functionCheck.Refining.tok, functionCheck.Refining.FullSanitizedName, TrType(function.ResultType)));
       List<Bpl.Expr> args = new List<Bpl.Expr>();
       List<Bpl.Expr> argsCanCall = new List<Bpl.Expr>();
       if (layer != null) {
@@ -7511,7 +7511,7 @@ namespace Microsoft.Dafny {
         args.Add(new Bpl.IdentifierExpr(f.tok, implInParams[i]));
         argsCanCall.Add(new Bpl.IdentifierExpr(f.tok, implInParams[i]));
       }
-      Bpl.Expr funcAppl = new Bpl.NAryExpr(f.tok, funcOriginal, args);
+      Bpl.Expr funcAppl = CondApplyUnbox(f.tok, new Bpl.NAryExpr(f.tok, funcOriginal, args), f.ResultType, function.ResultType);
       Bpl.Expr funcAppl2 = new Bpl.NAryExpr(f.tok, funcRefining, args);
 
       Dictionary<IVariable, Expression> substMap = new Dictionary<IVariable, Expression>();
@@ -7881,7 +7881,7 @@ namespace Microsoft.Dafny {
         // unresolved proxy
         return false;
       }
-      var res = t.IsTypeParameter;
+      var res = t.IsTypeParameter || t.IsInternalTypeSynonym;
       Contract.Assert(t.IsArrowType ? !res : true);
       return res;
     }

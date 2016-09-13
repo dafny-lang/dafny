@@ -941,8 +941,29 @@ namespace Microsoft.Dafny
           sig.TopLevels.Where(t => t.Value.CanBeExported()).Iter(t => signature.TopLevels.Add(t.Key, t.Value));
           sig.StaticMembers.Where(t => t.Value.CanBeExported()).Iter(t => signature.StaticMembers.Add(t.Key, t.Value));
         } else {
+          
+          foreach (var top in sig.TopLevels.Where(t => t.Value.IsVisibleInScope(signature.VisibilityScope))) {
+            if (!signature.TopLevels.ContainsKey(top.Key)) {
+              signature.TopLevels.Add(top.Key, top.Value);
+            }
 
+            if (top.Value is DatatypeDecl && top.Value.IsRevealedInScope(signature.VisibilityScope)) {
+              foreach (var ctor in ((DatatypeDecl)top.Value).Ctors) {
+                if (!signature.Ctors.ContainsKey(ctor.Name)) {
+                  signature.Ctors.Add(ctor.Name, new Tuple<DatatypeCtor, bool>(ctor, false));
+                }
+              }
+            }
+          }
 
+          foreach (var mem in sig.StaticMembers.Where(t => t.Value.IsVisibleInScope(signature.VisibilityScope))) {
+            if (!signature.StaticMembers.ContainsKey(mem.Key)) {
+              signature.StaticMembers.Add(mem.Key, (MemberDecl)mem.Value);
+            }
+          }
+
+        }
+        /*
           foreach (ExportSignature export in decl.Exports) {
             if (export.Decl is TopLevelDecl) {
               if (!signature.TopLevels.ContainsKey(export.Name)) {
@@ -962,7 +983,8 @@ namespace Microsoft.Dafny
               }
             }
           }
-        }
+        }*/
+
 
         foreach (ModuleExportDecl extend in decl.ExtendDecls) {
           ModuleSignature s = extend.Signature;

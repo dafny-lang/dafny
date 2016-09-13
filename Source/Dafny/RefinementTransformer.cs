@@ -73,6 +73,8 @@ namespace Microsoft.Dafny
     public Queue<Tuple<Method, Method>> translationMethodChecks = new Queue<Tuple<Method, Method>>();  // contains all the methods that need to be checked for structural refinement.
     private Method currentMethod;
     public ModuleSignature RefinedSig;  // the intention is to use this field only after a successful PreResolve
+    private ModuleSignature currentDerived;
+    private ModuleSignature currentOriginal;
 
     internal override void PreResolve(ModuleDefinition m) {
       if (m.RefinementBaseRoot != null) {
@@ -205,6 +207,8 @@ namespace Microsoft.Dafny
           } else {
             reporter.Error(MessageSource.RefinementTransformer, nw, "a module ({0}) can only be refined by an alias module or a module facade", d.Name);
           }
+          ((ModuleDecl)nw).Signature.VisibilityScope.Augment(original.VisibilityScope);
+
           if (derived != null) {
             // check that the new module refines the previous declaration
             if (!CheckIsRefinement(derived, original))
@@ -284,7 +288,12 @@ namespace Microsoft.Dafny
       return false;
     }
 
+    private bool isTypeDecl(TopLevelDecl d) {
+      return (d is OpaqueTypeDecl || d is TypeSynonymDecl || d is ClassDecl || d is DatatypeDecl || d is NewtypeDecl);
+    }
+
     public bool CheckIsRefinement(ModuleSignature derived, ModuleSignature original) {
+
       // Check refinement by construction.
       var derivedPointer = derived;
       while (derivedPointer != null) {
@@ -300,7 +309,15 @@ namespace Microsoft.Dafny
       // Second, we need to determine whether the specifications will be compatible
       // (i.e. substitutable), by translating to Boogie.
 
+      var oldDerived = currentDerived;
+      currentDerived = derived;
+
+      var oldOriginal = currentOriginal;
+      currentOriginal = original;
+
       var errorCount = reporter.Count(ErrorLevel.Error);
+      var originals = new List<Tuple<string, TopLevelDecl>>();
+
       foreach (var kv in original.TopLevels) {
         var d = kv.Value;
         TopLevelDecl nw;
@@ -361,7 +378,7 @@ namespace Microsoft.Dafny
             if (!(nw is ClassDecl)) {
               reporter.Error(MessageSource.RefinementTransformer, nw, "a class declaration ({0}) must be refined by another class declaration", nw.Name);
             } else {
-              CheckClassesAreRefinements(derived.VisibilityScope, original.VisibilityScope, (ClassDecl)nw, (ClassDecl)d);
+              CheckClassesAreRefinements((ClassDecl)nw, (ClassDecl)d);
             }
           } else {
             Contract.Assert(false); throw new cce.UnreachableException(); // unexpected toplevel
@@ -373,15 +390,15 @@ namespace Microsoft.Dafny
       return errorCount == reporter.Count(ErrorLevel.Error);
     }
 
-    private void CheckClassesAreRefinements(VisibilityScope derivedScope, VisibilityScope originalScope, ClassDecl nw, ClassDecl d) {
+    private void CheckClassesAreRefinements(ClassDecl nw, ClassDecl d) {
       if (nw.TypeArgs.Count != d.TypeArgs.Count) {
         reporter.Error(MessageSource.RefinementTransformer, nw, "a refining class ({0}) must have the same number of type parameters", nw.Name);
       } else {
         var map = new Dictionary<string, MemberDecl>();
-        foreach (var mem in nw.Members.FindAll(m => m.IsVisibleInScope(derivedScope))) {
+        foreach (var mem in nw.Members.FindAll(m => m.IsVisibleInScope(currentDerived.VisibilityScope))) {
           map.Add(mem.Name, mem);
         }
-        foreach (var m in d.Members.FindAll(m => m.IsVisibleInScope(originalScope))) {
+        foreach (var m in d.Members.FindAll(m => m.IsVisibleInScope(currentOriginal.VisibilityScope))) {
           MemberDecl newMem;
           if (map.TryGetValue(m.Name, out newMem)) {
             if (m.HasStaticKeyword != newMem.HasStaticKeyword) {
@@ -390,7 +407,7 @@ namespace Microsoft.Dafny
             if (m is Field) {
               if (newMem is Field) {
                 var newField = (Field)newMem;
-                if (!ResolvedTypesAreTheSame(newField.Type, ((Field)m).Type))
+                if (!ResolvedTypesAreTheSame(((Field)m).Type, newField.Type))
                   reporter.Error(MessageSource.RefinementTransformer, newMem, "field must be refined by a field with the same type (got {0}, expected {1})", newField.Type, ((Field)m).Type);
                 if (m.IsGhost || !newField.IsGhost)
                   reporter.Error(MessageSource.RefinementTransformer, newField, "a field re-declaration ({0}) must be to ghostify the field", newField.Name, nw.Name);
@@ -466,7 +483,7 @@ namespace Microsoft.Dafny
         } else {
           CheckAgreement_TypeParameters(nw.tok, f.TypeArgs, nw.TypeArgs, nw.Name, "function", false);
           CheckAgreementResolvedParameters(nw.tok, f.Formals, nw.Formals, nw.Name, "function", "parameter");
-          if (!ResolvedTypesAreTheSame(nw.ResultType, f.ResultType)) {
+          if (!ResolvedTypesAreTheSame(f.ResultType, nw.ResultType)) {
             reporter.Error(MessageSource.RefinementTransformer, nw, "the result type of function '{0}' ({1}) differs from the result type of the corresponding function in the module it refines ({2})", nw.Name, nw.ResultType, f.ResultType);
           }
         }
@@ -510,11 +527,40 @@ namespace Microsoft.Dafny
     }
     // Check that two resolved types are the same in a similar context (the same type parameters, method, class, etc.)
     // Assumes that prev is in a previous refinement, and next is in some refinement. Note this is not commutative.
-    public static bool ResolvedTypesAreTheSame(Type prev, Type next) {
+    public bool ResolvedTypesAreTheSame(Type prev, Type next) {
       Contract.Requires(prev != null);
       Contract.Requires(next != null);
+
+
+      //If this type has been refined then we instead look for its refined variant.
+      //It should only be normalized with respect to its originating scope so 
+      //we can treat it as opaque although it may merely be a provided alias
+      if (currentDerived != null) {
+        Contract.Assert(currentOriginal != null);
+
+        Type.PushScope(currentOriginal.VisibilityScope);
+        prev = prev.NormalizeExpandKeepConstraints();
+
+        if (prev is UserDefinedType) {
+          var cl = ((UserDefinedType)prev).ResolvedClass;
+          TopLevelDecl derivedDecl;
+          if (currentDerived.TopLevels.TryGetValue(cl.Name, out derivedDecl)) {
+            prev = UserDefinedType.FromTopLevelDecl(((UserDefinedType)prev).tok, derivedDecl);
+          }
+        }
+
+        Type.PopScope(currentOriginal.VisibilityScope);
+      }
+
+      if (currentDerived != null) 
+        Type.PushScope(currentDerived.VisibilityScope);
+
       prev = prev.NormalizeExpandKeepConstraints();
       next = next.NormalizeExpandKeepConstraints();
+
+      if (currentDerived != null)
+        Type.PopScope(currentDerived.VisibilityScope);
+
       if (prev is TypeProxy || next is TypeProxy)
         return false;
 

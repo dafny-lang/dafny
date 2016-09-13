@@ -3,5 +3,13 @@ OpaqueFunctions.dfy(17,14): Related location: This is the postcondition that mig
 Execution trace:
     (0,0): anon0
     (0,0): anon4_Else
+OpaqueFunctions.dfy(58,2): Error BP5003: A postcondition might not hold on this return path.
+OpaqueFunctions.dfy(57,16): Related location: This is the postcondition that might not hold.
+Execution trace:
+    (0,0): anon0
+OpaqueFunctions.dfy(65,2): Error BP5003: A postcondition might not hold on this return path.
+OpaqueFunctions.dfy(64,16): Related location: This is the postcondition that might not hold.
+Execution trace:
+    (0,0): anon0
 
-Dafny program verifier finished with 6 verified, 1 error
+Dafny program verifier finished with 12 verified, 3 errors
