@@ -24,7 +24,21 @@ namespace Microsoft.Dafny {
               Printer pr = new Printer(tw, DafnyOptions.O.PrintMode);
               pr.PrintProgram(program, afterResolver);
           }
+
+          if (DafnyOptions.O.PrintIncludesMode != DafnyOptions.IncludesModes.None) {
+            PrintIncludes(program);
+          }
       }
+
+    public static void PrintIncludes(Program program)
+    {
+      List<Include> includes = new List<Include>();
+      foreach (ModuleDefinition module in program.Modules) {
+        foreach (Include include in module.Includes) {
+          System.Console.Out.WriteLine(include.fullPath);
+        }
+      }
+    }
    
     /// <summary>
     /// Returns null on success, or an error string otherwise.
@@ -62,8 +76,8 @@ namespace Microsoft.Dafny {
           return err;
         }
       }
-
-      if (!DafnyOptions.O.DisallowIncludes) {
+      
+      if (!(DafnyOptions.O.DisallowIncludes || DafnyOptions.O.PrintIncludesMode == DafnyOptions.IncludesModes.Immediate)) {
         string errString = ParseIncludes(module, builtIns, fileNames, new Errors(reporter));
         if (errString != null) {
           return errString;
