@@ -942,7 +942,7 @@ namespace Microsoft.Dafny
           sig.StaticMembers.Where(t => t.Value.CanBeExported()).Iter(t => signature.StaticMembers.Add(t.Key, t.Value));
         } else {
           
-          foreach (var top in sig.TopLevels.Where(t => t.Value.IsVisibleInScope(signature.VisibilityScope))) {
+          foreach (var top in sig.TopLevels.Where(t => t.Value.IsVisibleInScope(signature.VisibilityScope) && t.Value.CanBeExported())) {
             if (!signature.TopLevels.ContainsKey(top.Key)) {
               signature.TopLevels.Add(top.Key, top.Value);
             }
@@ -956,35 +956,13 @@ namespace Microsoft.Dafny
             }
           }
 
-          foreach (var mem in sig.StaticMembers.Where(t => t.Value.IsVisibleInScope(signature.VisibilityScope))) {
+          foreach (var mem in sig.StaticMembers.Where(t => t.Value.IsVisibleInScope(signature.VisibilityScope) && t.Value.CanBeExported())) {
             if (!signature.StaticMembers.ContainsKey(mem.Key)) {
               signature.StaticMembers.Add(mem.Key, (MemberDecl)mem.Value);
             }
           }
 
         }
-        /*
-          foreach (ExportSignature export in decl.Exports) {
-            if (export.Decl is TopLevelDecl) {
-              if (!signature.TopLevels.ContainsKey(export.Name)) {
-                signature.TopLevels.Add(export.Name, (TopLevelDecl)export.Decl);
-              }
-
-              if (export.Decl is DatatypeDecl && !export.Opaque) {
-                foreach (var ctor in ((DatatypeDecl)export.Decl).Ctors) {
-                  if (!signature.Ctors.ContainsKey(ctor.Name)) {
-                    signature.Ctors.Add(ctor.Name, new Tuple<DatatypeCtor, bool>(ctor, false));
-                  }
-                }
-              }
-            } else if (export.Decl is MemberDecl && ((MemberDecl)export.Decl).EnclosingClass is DefaultClassDecl) {
-              if (!signature.StaticMembers.ContainsKey(export.Name)) {
-                signature.StaticMembers.Add(export.Name, (MemberDecl)export.Decl);
-              }
-            }
-          }
-        }*/
-
 
         foreach (ModuleExportDecl extend in decl.ExtendDecls) {
           ModuleSignature s = extend.Signature;
