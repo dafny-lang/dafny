@@ -771,8 +771,9 @@ SubModuleDecl<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl sub
      submodule = null; // appease compiler
      bool isAbstract = dmod.IsAbstract;
      bool isExclusively = false;
+     bool isProtected = dmod.IsProtected;
      bool opened = false;
-     CheckDeclModifiers(dmod, "Modules", AllowedDeclModifiers.Abstract | AllowedDeclModifiers.Extern);
+     CheckDeclModifiers(dmod, "Modules", AllowedDeclModifiers.Abstract | AllowedDeclModifiers.Extern | AllowedDeclModifiers.Protected);
   .)
   ( "module"
     { Attribute<ref attrs> }
@@ -781,7 +782,7 @@ SubModuleDecl<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl sub
 
       [ "exclusively" "refines" ModuleName<out idRefined> (. isExclusively = true; .)  
       | "refines" ModuleName<out idRefined> (. isExclusively = false; .) ] 
-            (. module = new ModuleDefinition(id, id.val, isAbstract, false, isExclusively, idRefined, parent, attrs, false, this); .)  
+            (. module = new ModuleDefinition(id, id.val, isAbstract, isProtected, false, isExclusively, idRefined, parent, attrs, false); .)  
        "{"                                             (. module.BodyStartTok = t; .)
             { TopDecl<module, namedModuleDefaultClassMembers, /* isTopLevel */ false, isAbstract>}
        "}"                                 (. module.BodyEndTok = t;

@@ -106,7 +106,7 @@ namespace Microsoft.Dafny {
 
   public class BuiltIns
   {
-    public readonly ModuleDefinition SystemModule = new ModuleDefinition(Token.NoToken, "_System", false, false, /*isExclusiveRefinement:*/ false, null, null, null, true);
+    public readonly ModuleDefinition SystemModule = new ModuleDefinition(Token.NoToken, "_System", false, false, false, /*isExclusiveRefinement:*/ false, null, null, null, true);
     readonly Dictionary<int, ClassDecl> arrayTypeDecls = new Dictionary<int, ClassDecl>();
     readonly Dictionary<int, ArrowTypeDecl> arrowTypeDecls = new Dictionary<int, ArrowTypeDecl>();
     readonly Dictionary<int, TupleTypeDecl> tupleTypeDecls = new Dictionary<int, TupleTypeDecl>();
@@ -2735,6 +2735,7 @@ namespace Microsoft.Dafny {
     public readonly Graph<ICallable> CallGraph = new Graph<ICallable>();  // filled in during resolution
     public int Height;  // height in the topological sorting of modules; filled in during resolution
     public readonly bool IsAbstract;
+    public readonly bool IsProtected;
     public readonly bool IsExclusiveRefinement;
     public readonly bool IsFacade; // True iff this module represents a module facade (that is, an abstract interface)
     private readonly bool IsBuiltinName; // true if this is something like _System that shouldn't have it's name mangled.
@@ -2800,7 +2801,7 @@ namespace Microsoft.Dafny {
       Contract.Invariant(CallGraph != null);
     }
 
-    public ModuleDefinition(IToken tok, string name, bool isAbstract, bool isFacade, bool isExclusiveRefinement, IToken refinementBase, ModuleDefinition parent, Attributes attributes, bool isBuiltinName, Parser parser = null)
+    public ModuleDefinition(IToken tok, string name, bool isAbstract, bool isProtected, bool isFacade, bool isExclusiveRefinement, IToken refinementBase, ModuleDefinition parent, Attributes attributes, bool isBuiltinName, Parser parser = null)
     {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
@@ -2810,6 +2811,7 @@ namespace Microsoft.Dafny {
       this.Module = parent;
       RefinementBaseName = refinementBase;
       IsAbstract = isAbstract;
+      IsProtected = isProtected;
       IsFacade = isFacade;
       IsExclusiveRefinement = isExclusiveRefinement;
       RefinementBaseRoot = null;
@@ -2817,13 +2819,7 @@ namespace Microsoft.Dafny {
       Includes = new List<Include>();
       IsBuiltinName = isBuiltinName;
 
-      if (isExclusiveRefinement) {
-        parser.errors.SynErr(
-          tok.filename,
-          tok.line,
-          tok.col,
-          "The exclusively keyword has been discontinued. Use export sets instead.");
-      }
+      
     }
     VisibilityScope visibilityScope;
 
@@ -3008,7 +3004,7 @@ namespace Microsoft.Dafny {
 
   public class DefaultModuleDecl : ModuleDefinition {
       public DefaultModuleDecl()
-          : base(Token.NoToken, "_module", false, false, /*isExclusiveRefinement:*/ false, null, null, null, true)
+          : base(Token.NoToken, "_module", false, false, false, /*isExclusiveRefinement:*/ false, null, null, null, true)
       {
     }
     public override bool IsDefaultModule {

@@ -96,3 +96,14 @@ module Forall1 refines Forall0 {
     }
   }
 }
+
+protected module CannotRefine {
+  type T
+}
+
+module TryToRefine refines CannotRefine { // error
+  type T = int
+}
+
+// ------------- visibility checks -------------------------------
+

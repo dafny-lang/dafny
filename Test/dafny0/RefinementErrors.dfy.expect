@@ -10,4 +10,5 @@ RefinementErrors.dfy(39,23): Error: the type of parameter 'z' is different from 
 RefinementErrors.dfy(40,9): Error: there is a difference in name of parameter 3 ('k' versus 'b') of function F compared to corresponding function in the module it refines
 RefinementErrors.dfy(57,20): Error: a function can be changed into a function method in a refining module only if the function has not yet been given a body: G
 RefinementErrors.dfy(94,10): Error: refinement method cannot assign to a field defined in parent module ('a')
-12 resolution/type errors detected in RefinementErrors.dfy
+RefinementErrors.dfy(104,27): Error: module (CannotRefine) named as a refinement base is marked protected and cannot be refined
+13 resolution/type errors detected in RefinementErrors.dfy

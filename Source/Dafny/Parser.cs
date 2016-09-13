@@ -845,8 +845,9 @@ int StringToInt(string s, int defaultValue, string errString) {
 		submodule = null; // appease compiler
 		bool isAbstract = dmod.IsAbstract;
 		bool isExclusively = false;
+		bool isProtected = dmod.IsProtected;
 		bool opened = false;
-		CheckDeclModifiers(dmod, "Modules", AllowedDeclModifiers.Abstract | AllowedDeclModifiers.Extern);
+		CheckDeclModifiers(dmod, "Modules", AllowedDeclModifiers.Abstract | AllowedDeclModifiers.Extern | AllowedDeclModifiers.Protected);
 		
 		if (la.kind == 69) {
 			Get();
@@ -867,7 +868,7 @@ int StringToInt(string s, int defaultValue, string errString) {
 					isExclusively = false; 
 				}
 			}
-			module = new ModuleDefinition(id, id.val, isAbstract, false, isExclusively, idRefined, parent, attrs, false, this); 
+			module = new ModuleDefinition(id, id.val, isAbstract, isProtected, false, isExclusively, idRefined, parent, attrs, false); 
 			Expect(49);
 			module.BodyStartTok = t; 
 			while (StartOf(1)) {

@@ -201,5 +201,4 @@ module IncorrectConcrete refines Abstract {
   }
 }
 
-// ------------- visibility checks -------------------------------
 

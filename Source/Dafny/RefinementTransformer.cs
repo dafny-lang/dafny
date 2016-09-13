@@ -79,6 +79,10 @@ namespace Microsoft.Dafny
         RefinedSig = m.RefinementBaseRoot.Signature;
 
         if (RefinedSig.ModuleDef != null) {
+          if (RefinedSig.ModuleDef.IsProtected) {
+            reporter.Error(MessageSource.RefinementTransformer, m.RefinementBaseName, "module ({0}) named as a refinement base is marked protected and cannot be refined", m.RefinementBaseName.val);
+          }
+
           m.RefinementBase = RefinedSig.ModuleDef;
           if (m.IsExclusiveRefinement) {
             if (null == m.RefinementBase.ExclusiveRefinement) {

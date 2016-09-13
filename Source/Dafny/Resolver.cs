@@ -1674,7 +1674,7 @@ namespace Microsoft.Dafny
       Contract.Requires(Name != null);
       Contract.Requires(mods != null);
       Contract.Requires(compilationModuleClones != null);
-      var mod = new ModuleDefinition(Token.NoToken, Name + ".Abs", true, true, /*isExclusiveRefinement:*/ false, null, null, null, false);
+      var mod = new ModuleDefinition(Token.NoToken, Name + ".Abs", true, true, true, /*isExclusiveRefinement:*/ false, null, null, null, false);
       mod.ClonedFrom = new CompilationCloner(compilationModuleClones).CloneFromValue_Module(p.ModuleDef);
       mod.Height = Height;
       bool hasDefaultClass = false;
