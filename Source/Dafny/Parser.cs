@@ -912,6 +912,7 @@ int StringToInt(string s, int defaultValue, string errString) {
 			  List<string> extends = new List<string>();
 			  bool provideAll = false;
 			  bool revealAll = false;
+			  bool isDefault = false;
 			  ExportSignature exsig;
 			
 			Get();
@@ -959,7 +960,10 @@ int StringToInt(string s, int defaultValue, string errString) {
 					}
 				}
 			}
-			submodule = new ModuleExportDecl(exportId, parent, exports, extends, provideAll, revealAll);
+			if (exportId.val == "export" || exportId.val == parent.Name) {
+			 isDefault = true;
+			}
+			submodule = new ModuleExportDecl(exportId, parent, exports, extends, provideAll, revealAll, isDefault);
 			
 		} else SynErr(153);
 	}

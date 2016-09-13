@@ -1,5 +1,5 @@
 DefaultExport.dfy(13,16): Error: arguments must have the same type (got A.T and bool)
 DefaultExport.dfy(25,16): Error: arguments must have the same type (got D.T and bool)
-DefaultExport.dfy(33,2): Error: Duplicate name of top-level declaration: E
+DefaultExport.dfy(33,2): Error: Duplicate name of top-level declaration: _defaultExport
 DefaultExport.dfy(31,7): Error: more than one default export declared in module E
 4 resolution/type errors detected in DefaultExport.dfy

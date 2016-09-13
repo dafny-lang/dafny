@@ -825,9 +825,8 @@ namespace Microsoft.Dafny
           ModuleExportDecl d = (ModuleExportDecl)toplevel;
           exportDependencies.AddVertex(d);
           foreach (string s in d.Extends) {
-            TopLevelDecl top;
-            if (sig.TopLevels.TryGetValue(s, out top) && top is ModuleExportDecl) {
-              ModuleExportDecl extend = (ModuleExportDecl)top;
+            ModuleExportDecl extend;
+            if (sig.FindExport(s, out extend)) {
               d.ExtendDecls.Add(extend);
               exportDependencies.AddEdge(d, extend);
             } else {

@@ -2603,10 +2603,10 @@ namespace Microsoft.Dafny {
 
     public readonly VisibilityScope ThisScope;
     public ModuleExportDecl(IToken tok, ModuleDefinition parent, 
-      List<ExportSignature> exports, List<string> extends, bool provideAll, bool revealAll) 
-      : base(tok, tok.val == "export" ? parent.Name : tok.val, parent, false) {
+      List<ExportSignature> exports, List<string> extends, bool provideAll, bool revealAll, bool isDefault) 
+      : base(tok, isDefault ? "_defaultExport" : tok.val, parent, false) {
       Contract.Requires(exports != null);
-      IsDefault = this.Name == parent.Name;
+      IsDefault = isDefault;
       Exports = exports;
       Extends = extends;
       ProvideAll = provideAll;
@@ -2681,6 +2681,9 @@ namespace Microsoft.Dafny {
 
     // Final projection is for module export
     public bool FindExport(string name, out ModuleExportDecl pp) {
+      if (name == ModuleDef.Name) {
+        name = "_defaultExport";
+      }
       TopLevelDecl top;
       if (TopLevels.TryGetValue(name, out top) && top is ModuleExportDecl) {
         pp = ((ModuleExportDecl)top);
