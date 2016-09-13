@@ -288,9 +288,6 @@ namespace Microsoft.Dafny
       return false;
     }
 
-    private bool isTypeDecl(TopLevelDecl d) {
-      return (d is OpaqueTypeDecl || d is TypeSynonymDecl || d is ClassDecl || d is DatatypeDecl || d is NewtypeDecl);
-    }
 
     public bool CheckIsRefinement(ModuleSignature derived, ModuleSignature original) {
 
