@@ -120,6 +120,17 @@ namespace Microsoft.Dafny {
       }
     }
 
+    public static string ModuleDefinitionToString(ModuleDefinition m, DafnyOptions.PrintModes printMode = DafnyOptions.PrintModes.
+Everything) {
+      Contract.Requires(m != null);
+      using (var wr = new System.IO.StringWriter()) {
+        var pr = new Printer(wr, printMode);
+        pr.PrintModuleDefinition(m, m.VisibilityScope, 0, null);
+        return ToStringWithoutNewline(wr);
+      }
+    }
+
+
     /// <summary>
     /// Returns a string for all attributes on the list "a".  Each attribute is
     /// followed by a space.
@@ -297,6 +308,11 @@ namespace Microsoft.Dafny {
             var dd = (AliasModuleDecl)d;
 
             wr.Write("import"); if (dd.Opened) wr.Write(" opened");
+            if (dd.ResolvedHash.HasValue && this.printMode == DafnyOptions.PrintModes.DllEmbed) {
+              wr.Write(" /*");
+              wr.Write(dd.ResolvedHash);
+              wr.Write("*/");
+            }
             wr.Write(" {0} ", dd.Name);
             wr.Write("= {0}", Util.Comma(".", dd.Path, id => id.val));
             if (dd.Exports.Count > 0) {
@@ -307,6 +323,11 @@ namespace Microsoft.Dafny {
             var dd = (ModuleFacadeDecl)d;
 
             wr.Write("import"); if (dd.Opened) wr.Write(" opened");
+            if (dd.ResolvedHash.HasValue && this.printMode == DafnyOptions.PrintModes.DllEmbed) {
+              wr.Write(" /*");
+              wr.Write(dd.ResolvedHash);
+              wr.Write("*/");
+            }
             wr.Write(" {0} ", dd.Name);
             wr.Write(": {0}", Util.Comma(".", dd.Path, id => id.val));
             if (dd.Exports.Count > 0) {

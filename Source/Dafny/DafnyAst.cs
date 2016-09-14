@@ -2519,6 +2519,8 @@ namespace Microsoft.Dafny {
       Opened = opened;
     }
     public abstract object Dereference();
+
+    public int? ResolvedHash { get; set; }
   }
   // Represents module X { ... }
   public class LiteralModuleDecl : ModuleDecl
@@ -2628,6 +2630,7 @@ namespace Microsoft.Dafny {
     public override bool CanBeExported() {
       return false;
     }
+
   }
 
   public class ExportSignature
@@ -2672,6 +2675,7 @@ namespace Microsoft.Dafny {
     public ModuleSignature Refines = null;
     public bool IsAbstract = false;
     public ModuleSignature() {}
+    public int? ResolvedHash { get; set; }
 
     // Qualified accesses follow module imports
     public bool FindImport(string name, out ModuleSignature pp) {
@@ -2798,6 +2802,8 @@ namespace Microsoft.Dafny {
           refinementBase = value;
         }
     }
+
+    public int? ResolvedHash { get; set; }
 
     public ModuleDefinition ClonedFrom { get; set; }
 
