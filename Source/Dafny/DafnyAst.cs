@@ -2635,11 +2635,11 @@ namespace Microsoft.Dafny {
     public bool Opaque;
     public IToken Id;
     public IToken ClassId;
-    public string Name;
+    
     public Declaration Decl;  // fill in  by the resolver
 
     public bool IsUniversal() {
-      return Name == "*";
+      return Id.val == "*";
     }
 
     public ExportSignature(IToken prefix, IToken suffix, bool opaque) {
@@ -2649,8 +2649,14 @@ namespace Microsoft.Dafny {
         ClassId = prefix;
         Id = suffix;
       }
-      Name = Id.val;
       Opaque = opaque;
+    }
+
+    public override string ToString() {
+      if (ClassId != null) {
+        return ClassId.val + "." + Id.val;
+      }
+      return Id.val;
     }
   }
 

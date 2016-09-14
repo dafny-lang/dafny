@@ -862,7 +862,7 @@ namespace Microsoft.Dafny
             TopLevelDecl cldecl;
 
             Declaration decl = null;
-            string name = export.Name;
+            string name = export.Id.val;
 
             if (export.ClassId != null) {
               if (sig.TopLevels.TryGetValue(export.ClassId.val, out cldecl)

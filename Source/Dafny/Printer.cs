@@ -294,17 +294,33 @@ namespace Microsoft.Dafny {
             }
             PrintModuleDefinition(modDecl.ModuleDef, scope, indent, fileBeingPrinted);
           } else if (d is AliasModuleDecl) {
-            wr.Write("import"); if (((AliasModuleDecl)d).Opened) wr.Write(" opened");
-            wr.Write(" {0} ", ((AliasModuleDecl)d).Name);
-            wr.WriteLine("= {0}", Util.Comma(".", ((AliasModuleDecl)d).Path, id => id.val));
+            var dd = (AliasModuleDecl)d;
+
+            wr.Write("import"); if (dd.Opened) wr.Write(" opened");
+            wr.Write(" {0} ", dd.Name);
+            wr.Write("= {0}", Util.Comma(".", dd.Path, id => id.val));
+            if (dd.Exports.Count > 0) {
+              wr.Write("`{{{0}}}", Util.Comma(",", dd.Exports, id => id.val));
+            }
+            wr.WriteLine();
           } else if (d is ModuleFacadeDecl) {
-            wr.Write("import"); if (((ModuleFacadeDecl)d).Opened) wr.Write(" opened");
-            wr.Write(" {0} ", ((ModuleFacadeDecl)d).Name);
-            wr.WriteLine("as {0}", Util.Comma(".", ((ModuleFacadeDecl)d).Path, id => id.val));
+            var dd = (ModuleFacadeDecl)d;
+
+            wr.Write("import"); if (dd.Opened) wr.Write(" opened");
+            wr.Write(" {0} ", dd.Name);
+            wr.Write(": {0}", Util.Comma(".", dd.Path, id => id.val));
+            if (dd.Exports.Count > 0) {
+              wr.Write("`{{{0}}}", Util.Comma(",", dd.Exports, id => id.val));
+            }
+            wr.WriteLine();
+
           } else if (d is ModuleExportDecl) {
             ModuleExportDecl e = (ModuleExportDecl)d;
-            if (e.IsDefault) wr.Write("default ");
-            wr.Write("export {0}", e.Name);
+            if (!e.IsDefault) {
+              wr.Write("export {0}", e.Name);
+            } else {
+              wr.Write("export ");
+            }
             if (e.Extends.Count > 0) wr.Write(" extends {0}", Util.Comma(e.Extends, id => id));
             PrintModuleExportDecl(e, indent, fileBeingPrinted);
           }
@@ -319,8 +335,8 @@ namespace Microsoft.Dafny {
       ModuleSignature sig = m.Signature;
       // has been resolved yet, just print the strings
       string bodyKind = "";
-      string opaque = "opaque";
-      string reveal = "reveal";
+      string opaque = "provides";
+      string reveal = "reveals";
       string delimeter = " ";
 
       foreach (ExportSignature id in m.Exports) {
@@ -335,7 +351,7 @@ namespace Microsoft.Dafny {
           wr.Write(" " + bodyKind);
           delimeter = " ";
         }
-        wr.Write(delimeter + "{0}", id.Name);
+        wr.Write(delimeter + "{0}", id.ToString());
         if (id.Decl != null) {
           wr.WriteLine();
           Indent(indent + IndentAmount);
@@ -361,6 +377,9 @@ namespace Microsoft.Dafny {
       Type.PushScope(scope);
       if (module.IsAbstract) {
         wr.Write("abstract ");
+      }
+      if (module.IsProtected) {
+        wr.Write("protected ");
       }
       wr.Write("module");
       PrintAttributes(module.Attributes);
