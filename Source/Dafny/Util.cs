@@ -317,4 +317,42 @@ namespace Microsoft.Dafny {
       }
     }
   }
+
+  public class DependencyMap 
+  {
+    private Dictionary<string, SortedSet<string>> dependencies;
+
+    public DependencyMap() {
+      dependencies = new Dictionary<string, SortedSet<string>>();
+    }
+
+    public void AddInclude(Include include) {
+      SortedSet<string> existingDependencies = null;
+      string key = include.includerFilename == null ? "roots" : include.includerFilename;
+      bool found = dependencies.TryGetValue(key, out existingDependencies);
+      if (found) {
+        existingDependencies.Add(include.includedFullPath);
+      } else {
+        dependencies[key] = new SortedSet<string>() { include.includedFullPath };
+      }
+    }
+
+    public void AddIncludes(IEnumerable<Include> includes) {
+      // Reconstruct the dependency map
+      Dictionary<string, List<string>> dependencies = new Dictionary<string, List<string>>();
+      foreach (Include include in includes) {
+        AddInclude(include);
+      }
+    }
+
+    public void PrintMap() {
+      foreach (string target in dependencies.Keys) {
+        System.Console.Write(target);
+        foreach (string dependency in dependencies[target]) {
+          System.Console.Write(";" + dependency);
+        }
+        System.Console.WriteLine();
+      }
+    }
+  }
 }

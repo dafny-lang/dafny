@@ -68,20 +68,21 @@ namespace Microsoft.Dafny {
   public class Include : IComparable
   {
     public readonly IToken tok;
-    public readonly string filename;
-    public readonly string fullPath;
-
-    public Include(IToken tok, string theFilename, string fullPath) {
+    public readonly string includerFilename;
+    public readonly string includedFilename;
+    public readonly string includedFullPath;
+    
+    public Include(IToken tok, string includer, string theFilename, string fullPath) {
       this.tok = tok;
-      this.filename = theFilename;
-      this.fullPath = fullPath;
+      this.includerFilename = includer;
+      this.includedFilename = theFilename;
+      this.includedFullPath = fullPath;
     }
-
 
     public int CompareTo(object obj) {
       var i = obj as Include;
       if (i != null) {
-        return this.fullPath.CompareTo(i.fullPath);
+        return this.includedFullPath.CompareTo(i.includedFullPath);
       } else {
         throw new NotImplementedException();
       }
