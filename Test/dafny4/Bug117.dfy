@@ -20,7 +20,7 @@ abstract module AbstractModule3
 	datatype AbstractType2 = AbstractType2(x:AM1.AbstractType1)
 } 
 
-module ConcreteModule1
+module ConcreteModule1 refines AbstractModule1
 {
 	type AbstractType1 = int
 } 

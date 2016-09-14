@@ -36,7 +36,7 @@ abstract module C {
 }
 
 module DBBody refines C {
-  import AF = B`Body
+  import AF = B`{Body,Spec}
 
   function g(): AF.T { 0 }
 
@@ -65,6 +65,7 @@ module F {
 
 module A2 refines A {
   export Spec provides m reveals T
+  export Body extends Spec provides C, C.m, C.Init
 
   type T = int
   function f(): T { 0 }
@@ -73,6 +74,7 @@ module A2 refines A {
   class C {
     method m() { print "A2.C.m\n"; }
     method n() { print "A2.C.n\n"; }
+    constructor Init() { }
   }
 }
 
@@ -80,45 +82,23 @@ module B2 {
   import A2`Spec
 
   function g(): int { A2.f() }
-  method m() { A2.m(); }
+  method m() { print "B2.m()\n"; A2.m(); }
 }
 
-//Facades only must respect the visible export
+//Facades must be refined by a base module
 
-module C2 {
-  import BB : B`Spec
-}
-
-module BAlt refines A {
-  export Spec provides C, C.m, C.n
-  export Body reveals C
-
-  type T = bool
-  function f(): T { false }
-  method m() { print "BAlt\n"; }
-  
-  class C {
-    method m() { print "BAlt.C.m\n"; }
-    method n() { print "BAlt.C.n\n"; }
-    constructor Init() { }
-  }
+abstract module C2 {
+  import ASpec : A`Spec
 }
 
 module C3 refines C2 {
-  import BB = BAlt`Spec
-}
-
-module C4 refines C2 {
-  import BB = BAlt`Body
+  import ASpec = A2`{Spec,Body}
 }
 
 method Main(){
-  C3.BB.m();
-  C4.BB.m();
+  C3.ASpec.m();
   B2.m();
-  C2.BB.m();
-  var c := new C3.BB.C.Init();
+  var c := new C3.ASpec.C.Init();
   c.m();
-  c.n();
   
 }

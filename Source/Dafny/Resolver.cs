@@ -412,6 +412,8 @@ namespace Microsoft.Dafny
             // ModuleDefinition.ExclusiveRefinement may not be set at this point but ExclusiveRefinementCount will be.
             if (0 == abs.Root.Signature.ModuleDef.ExclusiveRefinementCount) {
               abs.Signature = MakeAbstractSignature(p, abs.FullCompileName, abs.Height, prog.ModuleSigs, compilationModuleClones);
+              Contract.Assert(abs.CompilePath == null);
+              /*
               ModuleSignature compileSig;
               if (abs.CompilePath != null) {
                 if (ResolveExport(abs.CompileRoot, abs.Module, abs.CompilePath, abs.Exports, out compileSig, reporter)) {
@@ -426,7 +428,7 @@ namespace Microsoft.Dafny
                   abs.Signature.IsAbstract = compileSig.IsAbstract;
                   // always keep the ghost information, to supress a spurious error message when the compile module isn't actually a refinement
                 }
-              }
+              }*/
             } else {
               abs.Signature = p;
             }
@@ -1038,6 +1040,8 @@ namespace Microsoft.Dafny
 
           if (wasError) {
             reporter.Error(MessageSource.Resolver, decl.tok, "This export set is not consistent: {0}", decl.Name);
+          } else {
+            decl.ResolvedHash = Math.Abs(Printer.ModuleDefinitionToString(exportView, DafnyOptions.PrintModes.DllEmbed).GetHashCode());
           }
 
           
@@ -1171,6 +1175,8 @@ namespace Microsoft.Dafny
           dependencies.AddEdge(moduleDecl, root);
           abs.Root = root;
         }
+        Contract.Assert(abs.CompilePath == null);
+        /*
         if (abs.CompilePath != null) {
           if (!bindings.TryLookup(abs.CompilePath[0], out root))
             reporter.Error(MessageSource.Resolver, abs.tok, ModuleNotFoundErrorMessage(0, abs.CompilePath));
@@ -1178,7 +1184,7 @@ namespace Microsoft.Dafny
             dependencies.AddEdge(moduleDecl, root);
             abs.CompileRoot = root;
           }
-        }
+        }*/
       }
     }
 
@@ -1750,6 +1756,7 @@ namespace Microsoft.Dafny
               Contract.Assert(Object.ReferenceEquals(p.ModuleDef, pp.Signature.ModuleDef));
               p = MergeSignature(p, pp.Signature);
               p.ModuleDef = pp.Signature.ModuleDef;
+              p.CompileSignature = pp.Signature.CompileSignature;
             } else {
               reporter.Error(MessageSource.Resolver, export, "No export set {0} in module {1}", export.val, decl.Name);
               p = null;

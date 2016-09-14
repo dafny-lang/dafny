@@ -1,11 +1,9 @@
 
-Dafny program verifier finished with 51 verified, 0 errors
+Dafny program verifier finished with 35 verified, 0 errors
 Program compiled successfully
 Running...
 
-BAlt
-BAlt
 A2
-B
-BAlt.C.m
-BAlt.C.n
+B2.m()
+A2
+A2.C.m

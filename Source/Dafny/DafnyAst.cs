@@ -2584,6 +2584,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(path != null && path.Count > 0);
       Contract.Requires(exports != null);
       Contract.Requires(exports.Count == 0 || path.Count == 1);
+      Contract.Assert(compilePath == null); // when is this used?
 
       Path = path;
       Exports = exports;
