@@ -839,7 +839,7 @@ int StringToInt(string s, int defaultValue, string errString) {
 	void SubModuleDecl(DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl submodule) {
 		Attributes attrs = null;  IToken/*!*/ id;
 		List<MemberDecl/*!*/> namedModuleDefaultClassMembers = new List<MemberDecl>();;
-		List<IToken> idPath = null, idAssignment = null, idExports = null;
+		List<IToken> idPath = null, idExports = null;
 		IToken idRefined = null;
 		ModuleDefinition module;
 		submodule = null; // appease compiler
@@ -900,7 +900,7 @@ int StringToInt(string s, int defaultValue, string errString) {
 			} else if (la.kind == 22) {
 				Get();
 				QualifiedModuleExport(out idPath, out idExports);
-				submodule = new ModuleFacadeDecl(idPath, id, parent, idAssignment, opened, idExports); 
+				submodule = new ModuleFacadeDecl(idPath, id, parent, opened, idExports); 
 			} else SynErr(149);
 			if (la.kind == 30) {
 				while (!(la.kind == 0 || la.kind == 30)) {SynErr(150); Get();}

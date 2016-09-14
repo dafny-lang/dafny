@@ -765,7 +765,7 @@ TopDecl<. ModuleDefinition module, List<MemberDecl/*!*/> membersDefaultClass, bo
 SubModuleDecl<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl submodule>
 = (. Attributes attrs = null;  IToken/*!*/ id;
 	   List<MemberDecl/*!*/> namedModuleDefaultClassMembers = new List<MemberDecl>();;
-     List<IToken> idPath = null, idAssignment = null, idExports = null;
+     List<IToken> idPath = null, idExports = null;
      IToken idRefined = null;
      ModuleDefinition module;
      submodule = null; // appease compiler
@@ -801,7 +801,7 @@ SubModuleDecl<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl sub
     | "=" QualifiedModuleExport<out idPath, out idExports>
       (. submodule = new AliasModuleDecl(idPath, id, parent, opened, idExports); .)
     | ":" QualifiedModuleExport<out idPath, out idExports>
-        (. submodule = new ModuleFacadeDecl(idPath, id, parent, idAssignment, opened, idExports); .)
+        (. submodule = new ModuleFacadeDecl(idPath, id, parent, opened, idExports); .)
 
     )
     

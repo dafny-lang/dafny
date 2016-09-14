@@ -2576,20 +2576,17 @@ namespace Microsoft.Dafny {
     public readonly List<IToken> Path;
     public readonly List<IToken> Exports; // list of exports sets
     public ModuleDecl CompileRoot;
-    public readonly List<IToken> CompilePath;
     public ModuleSignature OriginalSignature;
 
-    public ModuleFacadeDecl(List<IToken> path, IToken name, ModuleDefinition parent, List<IToken> compilePath, bool opened, List<IToken> exports)
+    public ModuleFacadeDecl(List<IToken> path, IToken name, ModuleDefinition parent, bool opened, List<IToken> exports)
       : base(name, name.val, parent, opened) {
       Contract.Requires(path != null && path.Count > 0);
       Contract.Requires(exports != null);
       Contract.Requires(exports.Count == 0 || path.Count == 1);
-      Contract.Assert(compilePath == null); // when is this used?
 
       Path = path;
       Exports = exports;
       Root = null;
-      CompilePath = compilePath;
     }
     public override object Dereference() { return this; }
   }

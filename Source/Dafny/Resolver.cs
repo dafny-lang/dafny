@@ -412,23 +412,6 @@ namespace Microsoft.Dafny
             // ModuleDefinition.ExclusiveRefinement may not be set at this point but ExclusiveRefinementCount will be.
             if (0 == abs.Root.Signature.ModuleDef.ExclusiveRefinementCount) {
               abs.Signature = MakeAbstractSignature(p, abs.FullCompileName, abs.Height, prog.ModuleSigs, compilationModuleClones);
-              Contract.Assert(abs.CompilePath == null);
-              /*
-              ModuleSignature compileSig;
-              if (abs.CompilePath != null) {
-                if (ResolveExport(abs.CompileRoot, abs.Module, abs.CompilePath, abs.Exports, out compileSig, reporter)) {
-                  if (refinementTransformer.CheckIsRefinement(compileSig, p)) {
-                    abs.Signature.CompileSignature = compileSig;
-                  } else {
-                    reporter.Error(MessageSource.Resolver,
-                      abs.CompilePath[0],
-                      "module " + Util.Comma(".", abs.CompilePath, x => x.val) + " must be a refinement of "
-                      + Util.Comma(".", abs.Path, x => x.val));
-                  }
-                  abs.Signature.IsAbstract = compileSig.IsAbstract;
-                  // always keep the ghost information, to supress a spurious error message when the compile module isn't actually a refinement
-                }
-              }*/
             } else {
               abs.Signature = p;
             }
@@ -1175,16 +1158,6 @@ namespace Microsoft.Dafny
           dependencies.AddEdge(moduleDecl, root);
           abs.Root = root;
         }
-        Contract.Assert(abs.CompilePath == null);
-        /*
-        if (abs.CompilePath != null) {
-          if (!bindings.TryLookup(abs.CompilePath[0], out root))
-            reporter.Error(MessageSource.Resolver, abs.tok, ModuleNotFoundErrorMessage(0, abs.CompilePath));
-          else {
-            dependencies.AddEdge(moduleDecl, root);
-            abs.CompileRoot = root;
-          }
-        }*/
       }
     }
 
@@ -1714,7 +1687,7 @@ namespace Microsoft.Dafny
       if (d is ModuleFacadeDecl) {
         var abs = (ModuleFacadeDecl)d;
         var sig = MakeAbstractSignature(abs.OriginalSignature, Name + "." + abs.Name, abs.Height, mods, compilationModuleClones);
-        var a = new ModuleFacadeDecl(abs.Path, abs.tok, m, abs.CompilePath, abs.Opened, abs.Exports);
+        var a = new ModuleFacadeDecl(abs.Path, abs.tok, m, abs.Opened, abs.Exports);
         a.Signature = sig;
         a.OriginalSignature = abs.OriginalSignature;
         return a;
