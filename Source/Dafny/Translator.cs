@@ -131,9 +131,6 @@ namespace Microsoft.Dafny {
         }
       }
 
-      if (m.RefinementBaseSig != null) {
-        currentScope.Augment(m.RefinementBaseSig.VisibilityScope);
-      }
     }
 
     // translation state
