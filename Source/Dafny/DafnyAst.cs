@@ -31,7 +31,6 @@ namespace Microsoft.Dafny {
     public readonly ModuleDecl DefaultModule;
     public readonly ModuleDefinition DefaultModuleDef;
     public readonly BuiltIns BuiltIns;
-    public readonly List<TranslationTask> TranslationTasks;
     public readonly ErrorReporter reporter;
 
     public Program(string name, [Captured] ModuleDecl module, [Captured] BuiltIns builtIns, ErrorReporter reporter) {
@@ -46,7 +45,6 @@ namespace Microsoft.Dafny {
       this.reporter = reporter;
       ModuleSigs = new Dictionary<ModuleDefinition,ModuleSignature>();
       CompileModules = new List<ModuleDefinition>();
-      TranslationTasks = new List<TranslationTask>();
     }
 
     //Set appropriate visibilty before presenting module
@@ -9413,33 +9411,6 @@ namespace Microsoft.Dafny {
     public bool HasAttributes()
     {
       return Attributes != null;
-    }
-  }
-  public abstract class TranslationTask
-  {
-    public readonly ModuleDefinition ForModule;
-
-    public TranslationTask(ModuleDefinition forModule) {
-      ForModule = forModule;
-    }
-  }
-  public class MethodCheck : TranslationTask
-  {
-    public readonly Method Refined;
-    public readonly Method Refining;
-    public MethodCheck(ModuleDefinition forModule, Method a, Method b) 
-      : base(forModule) {
-      Refined = b;
-      Refining = a;
-    }
-  }
-  public class FunctionCheck : TranslationTask {
-    public readonly Function Refined;
-    public readonly Function Refining;
-    public FunctionCheck(ModuleDefinition forModule, Function a, Function b)
-      : base(forModule) {
-      Refined = b;
-      Refining = a;
     }
   }
 
