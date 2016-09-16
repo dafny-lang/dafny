@@ -468,8 +468,8 @@ namespace DafnyLanguage
                 case "while":
                 case "yield":
                 case "yields":
-                case "reveal":
-                case "opaque":
+                case "reveals":
+                case "provides":
                 case "export":
                 #endregion
                   break;

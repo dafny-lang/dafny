@@ -124,7 +124,7 @@ namespace DafnyLanguage
 
       List<OutliningRegion> newRegions = new List<OutliningRegion>();
 
-      foreach (var module in program.Modules) {
+      foreach (var module in program.Modules()) {
         if (!module.IsDefaultModule) {
           var nm = "module";
           if (module.IsAbstract) {

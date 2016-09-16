@@ -149,7 +149,7 @@ namespace DafnyLanguage
         IdRegion.Add(newRegions, program, info.token, info.message, info.token.val.Length);
       }
 
-      foreach (var module in program.Modules) {
+      foreach (var module in program.Modules()) {
         if (module.IsFacade) {
           continue;
         }
