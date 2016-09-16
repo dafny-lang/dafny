@@ -868,7 +868,7 @@ int StringToInt(string s, int defaultValue, string errString) {
 					isExclusively = false; 
 				}
 			}
-			module = new ModuleDefinition(id, id.val, isAbstract, isProtected, false, isExclusively, idRefined, parent, attrs, false); 
+			module = new ModuleDefinition(id, id.val, isAbstract, isProtected, false, isExclusively, idRefined, parent, attrs, false); module.IsToBeVerified = theVerifyThisFile; 
 			Expect(49);
 			module.BodyStartTok = t; 
 			while (StartOf(1)) {

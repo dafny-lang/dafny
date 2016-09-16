@@ -683,13 +683,13 @@ namespace Microsoft.Dafny {
     public static Dictionary<string, Bpl.Program> Translate(Program p, ErrorReporter reporter, TranslatorFlags flags = null) {
       Contract.Requires(p != null);
       Contract.Requires(p.ModuleSigs.Count > 0);
-      Contract.Ensures(Contract.Result<Dictionary<string, Bpl.Program>>().Count == p.ModuleSigs.Count);
+      Contract.Ensures(Contract.Result<Dictionary<string, Bpl.Program>>().Count > 0);
       Contract.Ensures(Contract.Result<Dictionary<string, Bpl.Program>>().All(ccep => ccep.Value != null));
 
       Dictionary<string, Bpl.Program> programs = new Dictionary<string, Bpl.Program>();
       Type.ResetScopes();
       Type.EnableScopes();
-      foreach (ModuleDefinition outerModule in p.RawModules()) {
+      foreach (ModuleDefinition outerModule in p.RawModules().Where(m => m.IsToBeVerified)) {
         var translator = new Translator(reporter, flags);
 
         if (translator.sink == null || translator.sink == null) {
@@ -698,6 +698,7 @@ namespace Microsoft.Dafny {
           programs.Add(outerModule.CompileName, new Bpl.Program());
           continue;
         }
+
         programs.Add(outerModule.CompileName, translator.DoTranslation(p, outerModule));
       }
       Type.DisableScopes();

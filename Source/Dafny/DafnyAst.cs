@@ -2747,6 +2747,8 @@ namespace Microsoft.Dafny {
     public readonly bool IsExclusiveRefinement;
     public readonly bool IsFacade; // True iff this module represents a module facade (that is, an abstract interface)
     private readonly bool IsBuiltinName; // true if this is something like _System that shouldn't have it's name mangled.
+    public bool IsToBeVerified = true;
+
 
     private ModuleDefinition exclusiveRefinement;
 
