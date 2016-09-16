@@ -1223,7 +1223,7 @@ namespace Microsoft.Dafny
       // First go through and add anything from the opened imports
       foreach (var im in declarations) {
         if (im is ModuleDecl && ((ModuleDecl)im).Opened) {
-          var s = GetSignature(((ModuleDecl)im).Signature);
+          var s = GetSignature(((ModuleDecl)im).AccessibleSignature(useCompileSignatures));
 
           if (useImports || DafnyOptions.O.IronDafny) {
             // classes:
