@@ -785,11 +785,11 @@ namespace Microsoft.Dafny
     }
 
     /// <summary>
-    /// Returns true iff 'expr' is a two-state expression, that is, if it mentions "old(...)" or "fresh(...)".
+    /// Returns true iff 'expr' is a two-state expression, that is, if it mentions "old/fresh/unchanged(...)".
     /// </summary>
     static bool MentionsOldState(Expression expr) {
       Contract.Requires(expr != null);
-      if (expr is OldExpr) {
+      if (expr is OldExpr || expr is UnchangedExpr) {
         return true;
       } else if (expr is UnaryOpExpr && ((UnaryOpExpr)expr).Op == UnaryOpExpr.Opcode.Fresh) {
         return true;

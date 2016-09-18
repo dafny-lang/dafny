@@ -25,7 +25,7 @@ class A {
 
   twostate lemma L1(other: A) returns (res: bool)
     requires other != null
-    reads this
+    requires unchanged(this)
     ensures res ==> this == other
   {  
     res := this == other;
@@ -47,7 +47,7 @@ class A {
 
   twostate lemma L4(new a: A)
     requires a != null
-    reads a
+    requires unchanged(a)
   {
     assert a.f == old(a.f);
     assert a.GimmieF() == old(a.GimmieF());  // we get that everything about a, including its allocatedness,
@@ -69,7 +69,7 @@ class A {
     
   twostate lemma L6(a: A)
     requires a != null
-    reads a
+    requires unchanged(a)
   {
     assert a.f == old(a.f);
     assert a.GimmieF() == old(a.GimmieF());
@@ -130,7 +130,7 @@ class Node {
   twostate lemma M_Lemma(node: Node)
     requires old(Valid())
     requires node != null && old(node.x) <= node.x && old((node.next, node.Repr)) == (node.next, node.Repr)
-    reads old(Repr) - {node}
+    requires unchanged(old(Repr) - {node})
     ensures Valid() && old(Sum()) <= Sum()
     decreases Repr
   {
@@ -142,7 +142,7 @@ class Node {
   static twostate lemma M_Lemma_Static(self: Node, node: Node)
     requires self != null && old(self.Valid())
     requires node != null && old(node.x) <= node.x && old((node.next, node.Repr)) == (node.next, node.Repr)
-    reads old(self.Repr) - {node}
+    requires unchanged(old(self.Repr) - {node})
     ensures self.Valid() && old(self.Sum()) <= self.Sum()
     decreases self.Repr
   {
@@ -154,7 +154,7 @@ class Node {
   static twostate lemma M_Lemma_Forall(self: Node, node: Node)
     requires self != null && old(self.Valid())
     requires node != null && old(node.x) <= node.x && old((node.next, node.Repr)) == (node.next, node.Repr)
-    reads old(self.Repr) - {node}
+    requires unchanged(old(self.Repr) - {node})
     ensures self.Valid() && old(self.Sum()) <= self.Sum()
     decreases self.Repr
   {
@@ -228,7 +228,7 @@ class {:autocontracts} NodeAuto {
 
   twostate lemma M_Lemma(node: NodeAuto)
     requires node != null && old(node.x) <= node.x && old((node.next, node.Repr)) == (node.next, node.Repr)
-    reads old(Repr) - {node}
+    requires unchanged(old(Repr) - {node})
     ensures Valid() && old(Sum()) <= Sum()
     decreases Repr
   {

@@ -8,7 +8,7 @@ class A {
 
 twostate lemma L8(a: A, new b: A)
   requires a != null
-  reads old(a.g)
+  requires unchanged(a.g)
   modifies a.g  // lemmas are not allowed to have modifies clauses
   decreases old(a.f)
 {}

@@ -635,9 +635,8 @@ namespace Microsoft.Dafny
           req, mod, ens, decreases, body, refinementCloner.MergeAttributes(m.Attributes, moreAttributes), null, m);
       } else if (m is TwoStateLemma) {
         var two = (TwoStateLemma)m;
-        var reads = refinementCloner.CloneSpecFrameExpr(two.Reads);
         return new TwoStateLemma(new RefinementToken(m.tok, moduleUnderConstruction), m.Name, m.HasStaticKeyword, tps, ins, m.Outs.ConvertAll(refinementCloner.CloneFormal),
-          req, mod, reads, ens, decreases, body, refinementCloner.MergeAttributes(m.Attributes, moreAttributes), null, m);
+          req, mod, ens, decreases, body, refinementCloner.MergeAttributes(m.Attributes, moreAttributes), null, m);
       } else {
         return new Method(new RefinementToken(m.tok, moduleUnderConstruction), m.Name, m.HasStaticKeyword, m.IsGhost, tps, ins, m.Outs.ConvertAll(refinementCloner.CloneFormal),
           req, mod, ens, decreases, body, refinementCloner.MergeAttributes(m.Attributes, moreAttributes), null, m);

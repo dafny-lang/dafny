@@ -333,13 +333,17 @@ namespace Microsoft.Dafny
         var e = (ApplyExpr)expr;
         return new ApplyExpr(Tok(e.tok), CloneExpr(e.Function), e.Args.ConvertAll(CloneExpr));
 
+      } else if (expr is MultiSetFormingExpr) {
+        var e = (MultiSetFormingExpr)expr;
+        return new MultiSetFormingExpr(Tok(e.tok), CloneExpr(e.E));
+
       } else if (expr is OldExpr) {
         var e = (OldExpr)expr;
         return new OldExpr(Tok(e.tok), CloneExpr(e.E));
 
-      } else if (expr is MultiSetFormingExpr) {
-        var e = (MultiSetFormingExpr)expr;
-        return new MultiSetFormingExpr(Tok(e.tok), CloneExpr(e.E));
+      } else if (expr is UnchangedExpr) {
+        var e = (UnchangedExpr)expr;
+        return new UnchangedExpr(Tok(e.tok), e.Frame.ConvertAll(CloneFrameExpr));
 
       } else if (expr is UnaryOpExpr) {
         var e = (UnaryOpExpr)expr;
@@ -694,9 +698,8 @@ namespace Microsoft.Dafny
           req, mod, ens, decreases, body, CloneAttributes(m.Attributes), null, m);
       } else if (m is TwoStateLemma) {
         var two = (TwoStateLemma)m;
-        var reads = CloneSpecFrameExpr(two.Reads);
         return new TwoStateLemma(Tok(m.tok), m.Name, m.HasStaticKeyword, tps, ins, m.Outs.ConvertAll(CloneFormal),
-          req, mod, reads, ens, decreases, body, CloneAttributes(m.Attributes), null, m);
+          req, mod, ens, decreases, body, CloneAttributes(m.Attributes), null, m);
       } else {
         return new Method(Tok(m.tok), m.Name, m.HasStaticKeyword, m.IsGhost, tps, ins, m.Outs.ConvertAll(CloneFormal),
           req, mod, ens, decreases, body, CloneAttributes(m.Attributes), null, m);

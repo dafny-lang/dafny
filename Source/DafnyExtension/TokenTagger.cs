@@ -463,6 +463,7 @@ namespace DafnyLanguage
                 case "true":
                 case "twostate":
                 case "type":
+                case "unchanged":
                 case "var":
                 case "where":
                 case "while":

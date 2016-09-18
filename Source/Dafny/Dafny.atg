@@ -1209,12 +1209,10 @@ MethodDecl<DeclModifierData dmod, bool allowConstructor, bool isWithinAbstractMo
      List<Formal/*!*/> outs = new List<Formal/*!*/>();
      List<MaybeFreeExpression/*!*/> req = new List<MaybeFreeExpression/*!*/>();
      List<FrameExpression/*!*/> mod = new List<FrameExpression/*!*/>();
-     List<FrameExpression/*!*/> reads = null;
      List<MaybeFreeExpression/*!*/> ens = new List<MaybeFreeExpression/*!*/>();
      List<Expression/*!*/> dec = new List<Expression/*!*/>();
      Attributes decAttrs = null;
      Attributes modAttrs = null;
-     Attributes readsAttrs = null;
      BlockStmt body = null;
      bool isLemma = false;
      bool isTwoStateLemma = false;
@@ -1245,7 +1243,6 @@ MethodDecl<DeclModifierData dmod, bool allowConstructor, bool isWithinAbstractMo
   | "inductive" "lemma"             (. isIndLemma = true;  caption = "Inductive lemmas";
                                        allowed = AllowedDeclModifiers.AlreadyGhost | AllowedDeclModifiers.Static;.)
   | "twostate" "lemma"              (. isTwoStateLemma = true; caption = "Two-state lemmas";
-                                       reads = new List<FrameExpression/*!*/>();
                                        allowed = AllowedDeclModifiers.AlreadyGhost | AllowedDeclModifiers.Static 
                                          | AllowedDeclModifiers.Protected; .)
   | "constructor"                   (. if (allowConstructor) {
@@ -1277,7 +1274,7 @@ MethodDecl<DeclModifierData dmod, bool allowConstructor, bool isWithinAbstractMo
     ]
   | "..."                                       (. signatureEllipsis = t; .)
   )
-  { MethodSpec<req, mod, reads, ens, dec, ref decAttrs, ref modAttrs, ref readsAttrs, caption> }
+  { MethodSpec<req, mod, ens, dec, ref decAttrs, ref modAttrs, caption> }
   [ BlockStmt<out body, out bodyStart, out bodyEnd>
   ]
   (.
@@ -1300,7 +1297,7 @@ MethodDecl<DeclModifierData dmod, bool allowConstructor, bool isWithinAbstractMo
                      req, new Specification<FrameExpression>(mod, modAttrs), ens, new Specification<Expression>(dec, decAttrs), body, attrs, signatureEllipsis);
      } else if (isTwoStateLemma) {
        m = new TwoStateLemma(tok, id.val, dmod.IsStatic, typeArgs, ins, outs,
-                             req, new Specification<FrameExpression>(mod, modAttrs), new Specification<FrameExpression>(reads, readsAttrs),
+                             req, new Specification<FrameExpression>(mod, modAttrs),
                              ens, new Specification<Expression>(dec, decAttrs), body, attrs, signatureEllipsis);
      } else {
        m = new Method(tok, id.val, dmod.IsStatic, dmod.IsGhost, typeArgs, ins, outs,
@@ -1310,8 +1307,8 @@ MethodDecl<DeclModifierData dmod, bool allowConstructor, bool isWithinAbstractMo
      m.BodyEndTok = bodyEnd;
  .)
   .
-MethodSpec<.List<MaybeFreeExpression> req, List<FrameExpression> mod, List<FrameExpression>/*?*/ reads, List<MaybeFreeExpression> ens,
-            List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, ref Attributes readsAttrs, string caption.>
+MethodSpec<.List<MaybeFreeExpression> req, List<FrameExpression> mod, List<MaybeFreeExpression> ens,
+            List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, string caption.>
 = (. Contract.Requires(cce.NonNullElements(req));
      Contract.Requires(cce.NonNullElements(mod));
      Contract.Requires(cce.NonNullElements(ens));
@@ -1322,13 +1319,6 @@ MethodSpec<.List<MaybeFreeExpression> req, List<FrameExpression> mod, List<Frame
   ( "modifies" { IF(IsAttribute()) Attribute<ref modAttrs> }
                FrameExpression<out fe, false, false>         (. mod.Add(fe); .)
                { "," FrameExpression<out fe, false, false>   (. mod.Add(fe); .)
-               }
-               OldSemi
-  | "reads"    (. if (reads == null) { SemErr(caption + " cannot have 'reads' clauses"); }
-               .)
-               { IF(IsAttribute()) Attribute<ref readsAttrs> }
-               FrameExpression<out fe, false, false>         (. if (reads != null) { reads.Add(fe); } .)
-               { "," FrameExpression<out fe, false, false>   (. if (reads != null) { reads.Add(fe); } .)
                }
                OldSemi
   | [ "free"                                                 (. isFree = true;
@@ -2839,6 +2829,12 @@ ConstAtomExpression<out Expression e, bool allowSemi, bool allowLambda>
   | "this"                                     (. e = new ThisExpr(t); .)
   | "fresh"                                    (. x = t; .)
     "(" Expression<out e, true, true> ")"      (. e = new UnaryOpExpr(x, UnaryOpExpr.Opcode.Fresh, e); .)
+  | "unchanged"                                (. x = t; FrameExpression fe; var mod = new List<FrameExpression>(); .)
+    "(" 
+      FrameExpression<out fe, false, false>         (. mod.Add(fe); .)
+      { "," FrameExpression<out fe, false, false>   (. mod.Add(fe); .)
+      }
+    ")"                                        (. e = new UnchangedExpr(x, mod); .)
   | "old"                                      (. x = t; .)
     "(" Expression<out e, true, true> ")"      (. e = new OldExpr(x, e); .)
   | "|"                                        (. x = t; .)

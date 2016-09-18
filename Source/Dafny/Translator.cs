@@ -3212,12 +3212,8 @@ namespace Microsoft.Dafny {
         foreach (MaybeFreeExpression p in m.Req) {
           CheckWellformedAndAssume(p.E, new WFOptions(), localVariables, builder, etran);
         }
-        // check well-formedness of the modifies and reads clauses
+        // check well-formedness of the modifies clauses
         CheckFrameWellFormed(new WFOptions(), m.Mod.Expressions, localVariables, builder, etran);
-        if (m is TwoStateLemma) {
-          var two = (TwoStateLemma)m;
-          CheckFrameWellFormed(new WFOptions(), two.Reads.Expressions, localVariables, builder, etran);
-        }
         // check well-formedness of the decreases clauses
         foreach (Expression p in m.Decreases.Expressions)
         {
@@ -3869,10 +3865,6 @@ namespace Microsoft.Dafny {
         }
         printer.PrintSpec("", m.Req, 0);
         printer.PrintFrameSpecLine("", m.Mod.Expressions, 0, null);
-        if (m is TwoStateLemma) {
-          var two = (TwoStateLemma)m;
-          printer.PrintFrameSpecLine("", two.Reads.Expressions, 0, null);
-        }
         printer.PrintSpec("", m.Ens, 0);
         printer.PrintDecreasesSpec(m.Decreases, 0);
         if (!specificationOnly && m.Body != null)
@@ -4762,12 +4754,19 @@ namespace Microsoft.Dafny {
       } else if (expr is DatatypeValue) {
         DatatypeValue dtv = (DatatypeValue)expr;
         return CanCallAssumption(dtv.Arguments, etran);
-      } else if (expr is OldExpr) {
-        OldExpr e = (OldExpr)expr;
-        return CanCallAssumption(e.E, etran.Old);
       } else if (expr is MultiSetFormingExpr) {
         MultiSetFormingExpr e = (MultiSetFormingExpr)expr;
         return CanCallAssumption(e.E, etran);
+      } else if (expr is OldExpr) {
+        OldExpr e = (OldExpr)expr;
+        return CanCallAssumption(e.E, etran.Old);
+      } else if (expr is UnchangedExpr) {
+        var e = (UnchangedExpr)expr;
+        Bpl.Expr be = Bpl.Expr.True;
+        foreach (var fe in e.Frame) {
+          be = BplAnd(be, CanCallAssumption(fe.E, etran));
+        }
+        return be;
       } else if (expr is UnaryExpr) {
         var e = (UnaryExpr)expr;
         return CanCallAssumption(e.E, etran);
@@ -5596,12 +5595,17 @@ namespace Microsoft.Dafny {
           Type ty = Resolver.SubstType(formal.Type, su);
           CheckSubrange(arg.tok, etran.TrExpr(arg), arg.Type, ty, builder);
         }
-      } else if (expr is OldExpr) {
-        OldExpr e = (OldExpr)expr;
-        CheckWellformed(e.E, options, locals, builder, etran.Old);
       } else if (expr is MultiSetFormingExpr) {
         MultiSetFormingExpr e = (MultiSetFormingExpr)expr;
         CheckWellformed(e.E, options, locals, builder, etran);
+      } else if (expr is OldExpr) {
+        OldExpr e = (OldExpr)expr;
+        CheckWellformed(e.E, options, locals, builder, etran.Old);
+      } else if (expr is UnchangedExpr) {
+        var e = (UnchangedExpr)expr;
+        foreach (var fe in e.Frame) {
+          CheckWellformed(fe.E, options, locals, builder, etran.Old);
+        }
       } else if (expr is UnaryExpr) {
         UnaryExpr e = (UnaryExpr)expr;
         CheckWellformed(e.E, options, locals, builder, etran);
@@ -7040,11 +7044,6 @@ namespace Microsoft.Dafny {
               }
             }
           }
-        }
-        if (m is TwoStateLemma) {
-          var two = (TwoStateLemma)m;
-          req.Add(Requires(m.tok, false, FrameCondition(m.tok, two.Reads.Expressions, false, false, etran.Old, etran, etran),
-            "the previous heap and current heap do not agree on all objects denoted by the reads clause", "reads clause"));
         }
         comment = "user-defined postconditions";
         foreach (var p in m.Ens) {
@@ -12099,9 +12098,6 @@ namespace Microsoft.Dafny {
             ret = MaybeLit(ret, predef.DatatypeType);
           }
           return ret;
-        } else if (expr is OldExpr) {
-          OldExpr e = (OldExpr)expr;
-          return Old.TrExpr(e.E);
 
         } else if (expr is MultiSetFormingExpr) {
           MultiSetFormingExpr e = (MultiSetFormingExpr)expr;
@@ -12113,6 +12109,14 @@ namespace Microsoft.Dafny {
           } else {
             Contract.Assert(false); throw new cce.UnreachableException();
           }
+
+        } else if (expr is OldExpr) {
+          OldExpr e = (OldExpr)expr;
+          return Old.TrExpr(e.E);
+
+        } else if (expr is UnchangedExpr) {
+          var e = (UnchangedExpr)expr;
+          return translator.FrameCondition(e.tok, e.Frame, false, false, Old, this, this);
 
         } else if (expr is UnaryOpExpr) {
           var e = (UnaryOpExpr)expr;
@@ -13910,6 +13914,18 @@ namespace Microsoft.Dafny {
           return TrSplitExpr(d, splits, position, heightLimit, inlineProtectedFunctions, apply_induction, etran);
         }
 
+      } else if (expr is UnchangedExpr) {
+        var e = (UnchangedExpr)expr;
+        if (position && e.Frame.Count > 1) {
+          // split into a number of UnchangeExpr's, one for each FrameExpression
+          foreach (var fe in e.Frame) {
+            Expression ee = new UnchangedExpr(e.tok, new List<FrameExpression> { fe });
+            ee.Type = Type.Bool;  // resolve here
+            TrSplitExpr(ee, splits, position, heightLimit, inlineProtectedFunctions, apply_induction, etran);
+          }
+          return true;
+        }
+
       } else if (expr is UnaryOpExpr) {
         var e = (UnaryOpExpr)expr;
         if (e.Op == UnaryOpExpr.Opcode.Not) {
@@ -14502,6 +14518,8 @@ namespace Microsoft.Dafny {
         usesHeap = true;
       } else if (expr is FunctionCallExpr) {
         usesHeap = true;
+      } else if (expr is UnchangedExpr) {
+        usesOldHeap = true;
       } else if (expr is UnaryOpExpr && ((UnaryOpExpr)expr).Op == UnaryOpExpr.Opcode.Fresh) {
         usesOldHeap = true;
       }
@@ -14739,6 +14757,20 @@ namespace Microsoft.Dafny {
           Expression se = Substitute(e.E);
           if (se != e.E) {
             newExpr = new OldExpr(expr.tok, se);
+          }
+        } else if (expr is UnchangedExpr) {
+          var e = (UnchangedExpr)expr;
+          var fr = new List<FrameExpression>();
+          var anythingChanged = false;
+          foreach (var fe in e.Frame) {
+            var fefe = SubstFrameExpr(fe);
+            if (fefe != fe) {
+              anythingChanged = true;
+            }
+            fr.Add(fefe);
+          }
+          if (anythingChanged) {
+            newExpr = new UnchangedExpr(e.tok, fr);
           }
         } else if (expr is MultiSetFormingExpr) {
           var e = (MultiSetFormingExpr)expr;

@@ -683,12 +683,6 @@ namespace Microsoft.Dafny {
       if (method.Mod.Expressions != null) {
         PrintFrameSpecLine("modifies", method.Mod.Expressions, ind, method.Mod.HasAttributes() ? method.Mod.Attributes : null);
       }
-      if (method is TwoStateLemma) {
-        var two = (TwoStateLemma)method;
-        if (two.Reads.Expressions != null) {
-          PrintFrameSpecLine("reads", two.Reads.Expressions, ind, two.Reads.HasAttributes() ? two.Reads.Attributes : null);
-        }
-      }
       PrintSpec("ensures", method.Ens, ind);
       PrintDecreasesSpec(method.Decreases, ind);
 
@@ -1728,14 +1722,20 @@ namespace Microsoft.Dafny {
         }
         if (parensNeeded) { wr.Write(")"); }
 
+      } else if (expr is MultiSetFormingExpr) {
+        wr.Write("multiset(");
+        PrintExpression(((MultiSetFormingExpr)expr).E, false);
+        wr.Write(")");
+
       } else if (expr is OldExpr) {
         wr.Write("old(");
         PrintExpression(((OldExpr)expr).E, false);
         wr.Write(")");
 
-      } else if (expr is MultiSetFormingExpr) {
-        wr.Write("multiset(");
-        PrintExpression(((MultiSetFormingExpr)expr).E, false);
+      } else if (expr is UnchangedExpr) {
+        var e = (UnchangedExpr)expr;
+        wr.Write("unchanged(");
+        PrintFrameExpressionList(e.Frame);
         wr.Write(")");
 
       } else if (expr is UnaryOpExpr) {

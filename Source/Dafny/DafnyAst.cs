@@ -4323,7 +4323,6 @@ namespace Microsoft.Dafny {
 
   public class TwoStateLemma : Method
   {
-    public readonly Specification<FrameExpression> Reads;
     public override string WhatKind { get { return "twostate lemma"; } }
     public TwoStateLemma(IToken tok, string name,
                  bool hasStaticKeyword,
@@ -4331,7 +4330,6 @@ namespace Microsoft.Dafny {
                  [Captured] List<Formal> ins, [Captured] List<Formal> outs,
                  [Captured] List<MaybeFreeExpression> req,
                  [Captured] Specification<FrameExpression> mod,
-                 [Captured] Specification<FrameExpression> reads,
                  [Captured] List<MaybeFreeExpression> ens,
                  [Captured] Specification<Expression> decreases,
                  [Captured] BlockStmt body,
@@ -4344,10 +4342,8 @@ namespace Microsoft.Dafny {
       Contract.Requires(outs != null);
       Contract.Requires(req != null);
       Contract.Requires(mod != null);
-      Contract.Requires(reads != null);
       Contract.Requires(ens != null);
       Contract.Requires(decreases != null);
-      this.Reads = reads;
     }
   }
 
@@ -7377,7 +7373,31 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public class OldExpr : Expression {
+  public class MultiSetFormingExpr : Expression
+  {
+    [Peer]
+    public readonly Expression E;
+    [ContractInvariantMethod]
+    void ObjectInvariant() {
+      Contract.Invariant(E != null);
+    }
+
+    [Captured]
+    public MultiSetFormingExpr(IToken tok, Expression expr)
+      : base(tok) {
+      Contract.Requires(tok != null);
+      Contract.Requires(expr != null);
+      cce.Owner.AssignSame(this, expr);
+      E = expr;
+    }
+
+    public override IEnumerable<Expression> SubExpressions {
+      get { yield return E; }
+    }
+  }
+
+  public class OldExpr : Expression
+  {
     [Peer]
     public readonly Expression E;
     [ContractInvariantMethod]
@@ -7399,26 +7419,27 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public class MultiSetFormingExpr : Expression
+  public class UnchangedExpr : Expression
   {
-    [Peer]
-    public readonly Expression E;
+    public readonly List<FrameExpression> Frame;
     [ContractInvariantMethod]
     void ObjectInvariant() {
-      Contract.Invariant(E != null);
+      Contract.Invariant(Frame != null);
     }
 
-    [Captured]
-    public MultiSetFormingExpr(IToken tok, Expression expr)
+    public UnchangedExpr(IToken tok, List<FrameExpression> frame)
       : base(tok) {
       Contract.Requires(tok != null);
-      Contract.Requires(expr != null);
-      cce.Owner.AssignSame(this, expr);
-      E = expr;
+      Contract.Requires(frame != null);
+      this.Frame = frame;
     }
 
     public override IEnumerable<Expression> SubExpressions {
-      get { yield return E; }
+      get {
+        foreach (var fe in Frame) {
+          yield return fe.E;
+        }
+      }
     }
   }
 
