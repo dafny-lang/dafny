@@ -407,6 +407,9 @@ namespace DafnyLanguage
             if (0 < trailingDigits && s.Length == 5 + trailingDigits && s.StartsWith("array") && s[5] != '0' && (trailingDigits != 1 || s[5] != '1')) {
               // this is a keyword for a built-in type (array2, array3, ...)
               ty = DafnyTokenKind.BuiltInType;
+            } else if (0 < trailingDigits && s.Length == 2 + trailingDigits && s.StartsWith("bv") && (s[2] != '0' || trailingDigits == 1)) {
+              // this is a keyword for a built-in type (bv0, bv1, ...)
+              ty = DafnyTokenKind.BuiltInType;
             } else {
               switch (s) {
                 #region keywords
