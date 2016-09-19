@@ -1703,7 +1703,7 @@ FrameExpression<out FrameExpression fe, bool allowSemi, bool allowLambda>
      Expression/*!*/ e;
      IToken/*!*/ id;
      string fieldName = null;  IToken feTok = null;
-     fe = null;
+     fe = dummyFrameExpr;
   .)
   ( Expression<out e, allowSemi, allowLambda>   (. feTok = e.tok; .)
     [ "`" Ident<out id>        (. fieldName = id.val;  feTok = id; .)

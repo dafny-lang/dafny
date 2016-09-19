@@ -2213,7 +2213,7 @@ List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, st
 		Expression/*!*/ e;
 		IToken/*!*/ id;
 		string fieldName = null;  IToken feTok = null;
-		fe = null;
+		fe = dummyFrameExpr;
 		
 		if (StartOf(9)) {
 			Expression(out e, allowSemi, allowLambda);
