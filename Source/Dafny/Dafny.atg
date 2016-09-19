@@ -779,9 +779,8 @@ SubModuleDecl<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl sub
     { Attribute<ref attrs> }
     NoUSIdent<out id>
     (. EncodeExternAsAttribute(dmod, ref attrs, id, /* needAxiom */ false); .)
-
-      [ "exclusively" "refines" ModuleName<out idRefined> (. isExclusively = true; .)  
-      | "refines" ModuleName<out idRefined> (. isExclusively = false; .) ] 
+  
+      [ "refines" ModuleName<out idRefined> (. isExclusively = false; .) ] 
             (. module = new ModuleDefinition(id, id.val, isAbstract, isProtected, false, isExclusively, idRefined, parent, attrs, false); module.IsToBeVerified = theVerifyThisFile; .)  
        "{"                                             (. module.BodyStartTok = t; .)
             { TopDecl<module, namedModuleDefaultClassMembers, /* isTopLevel */ false, isAbstract>}

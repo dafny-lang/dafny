@@ -392,7 +392,9 @@ namespace Microsoft.Dafny.Triggers {
     }
 
     private static bool ShallowEq(SeqUpdateExpr expr1, SeqUpdateExpr expr2) {
-      Contract.Requires(expr1.ResolvedUpdateExpr != null && expr2.ResolvedUpdateExpr != null);
+      if (expr1.ResolvedUpdateExpr == null) {
+        Contract.Assert(expr2.ResolvedUpdateExpr == null);
+      }
       return true;
     }
 

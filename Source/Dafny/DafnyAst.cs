@@ -622,25 +622,6 @@ namespace Microsoft.Dafny {
           }
         }
         
-
-        if (DafnyOptions.O.IronDafny && type is UserDefinedType) {
-          var udt = (UserDefinedType)type;
-          var rc = udt.ResolvedClass;
-          if (rc != null) {
-            while (rc.ClonedFrom != null || rc.ExclusiveRefinement != null) {
-              if (rc.ClonedFrom != null) {
-                rc = (TopLevelDecl)rc.ClonedFrom;
-              } else {
-                Contract.Assert(rc.ExclusiveRefinement != null);
-                rc = rc.ExclusiveRefinement;
-              }
-            }
-          }
-          if (rc is TypeSynonymDecl) {
-            type = ((TypeSynonymDecl)rc).RhsWithArgument(udt.TypeArgs);
-            continue;
-          }
-        }
         return type;
       }
     }

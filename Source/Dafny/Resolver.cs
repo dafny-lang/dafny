@@ -350,7 +350,11 @@ namespace Microsoft.Dafny
           // set up environment
           var preResolveErrorCount = reporter.Count(ErrorLevel.Error);
           ResolveModuleDefinition(m, sig);
-          Type.PushScope(moduleInfo.VisibilityScope);
+          var tempVis = new VisibilityScope();
+          tempVis.Augment(sig.VisibilityScope);
+          tempVis.Augment(systemNameInfo.VisibilityScope);
+          Type.PushScope(tempVis);
+
           ResolveModuleExport(literalDecl, sig, preResolveErrorCount);
 
           prog.ModuleSigs[m] = sig;
@@ -364,7 +368,7 @@ namespace Microsoft.Dafny
           if (reporter.Count(ErrorLevel.Error) == errorCount) {
             m.SuccessfullyResolved = true;
           }
-          Type.PopScope(moduleInfo.VisibilityScope);
+          Type.PopScope(tempVis);
 
           if (reporter.Count(ErrorLevel.Error) == errorCount && (!m.IsAbstract || DafnyOptions.O.IronDafny)) {
             // compilation should only proceed if everything is good, including the signature (which preResolveErrorCount does not include);
@@ -756,7 +760,7 @@ namespace Microsoft.Dafny
     private void ResolveModuleDefinition(ModuleDefinition m, ModuleSignature sig) {
       Contract.Requires(AllTypeConstraints.Count == 0);
       Contract.Ensures(AllTypeConstraints.Count == 0);
-      moduleInfo = MergeSignature(sig, systemNameInfo);
+        
       sig.VisibilityScope.Augment(systemNameInfo.VisibilityScope);
       // make sure all imported modules were successfully resolved
       foreach (var d in m.TopLevelDecls) {
@@ -786,7 +790,10 @@ namespace Microsoft.Dafny
       }
 
       // resolve
+      var oldModuleInfo = moduleInfo;
+      moduleInfo = MergeSignature(sig, systemNameInfo);
       Type.PushScope(moduleInfo.VisibilityScope);
+      ResolveOpenedImports(moduleInfo); // opened imports do not persist
       var datatypeDependencies = new Graph<IndDatatypeDecl>();
       var codatatypeDependencies = new Graph<CoDatatypeDecl>();
       int prevErrorCount = reporter.Count(ErrorLevel.Error);
@@ -798,6 +805,7 @@ namespace Microsoft.Dafny
         ResolveTopLevelDecls_Core(m.TopLevelDecls, datatypeDependencies, codatatypeDependencies);
       }
       Type.PopScope(moduleInfo.VisibilityScope);
+      moduleInfo = oldModuleInfo;
     }
 
     // Resolve the exports and detect cycles.
@@ -1210,15 +1218,11 @@ namespace Microsoft.Dafny
       info.VisibilityScope.Augment(system.VisibilityScope);
       return info;
     }
-    ModuleSignature RegisterTopLevelDecls(ModuleDefinition moduleDef, bool useImports) {
-      Contract.Requires(moduleDef != null);
-      var sig = new ModuleSignature();
-      sig.ModuleDef = moduleDef;
-      sig.IsAbstract = moduleDef.IsAbstract;
-      sig.VisibilityScope = new VisibilityScope();
-      sig.VisibilityScope.Augment(moduleDef.VisibilityScope);
 
-      List<TopLevelDecl> declarations = moduleDef.TopLevelDecls;
+    void ResolveOpenedImports(ModuleSignature sig) {
+      List<TopLevelDecl> declarations = sig.TopLevels.Values.ToList<TopLevelDecl>();
+      var moduleDef = sig.ModuleDef;
+      bool useImports = true;
 
       // First go through and add anything from the opened imports
       foreach (var im in declarations) {
@@ -1228,6 +1232,9 @@ namespace Microsoft.Dafny
           if (useImports || DafnyOptions.O.IronDafny) {
             // classes:
             foreach (var kv in s.TopLevels) {
+              if (!kv.Value.CanBeExported())
+                continue;
+
               // IronDafny: we need to pull the members of the opened module's _default class in so that they can be merged.
               if (useImports || string.Equals(kv.Key, "_default", StringComparison.InvariantCulture)) {
                 TopLevelDecl d;
@@ -1257,7 +1264,7 @@ namespace Microsoft.Dafny
                       Object.ReferenceEquals(kv.Value.ClonedFrom, d) ||
                       Object.ReferenceEquals(d.ClonedFrom, kv.Value) ||
                       Object.ReferenceEquals(kv.Value.ExclusiveRefinement, d)) {
-                    sig.TopLevels[kv.Key] = kv.Value;
+                      sig.TopLevels[kv.Key] = kv.Value;
                       resolved = true;
                     }
                   }
@@ -1295,6 +1302,9 @@ namespace Microsoft.Dafny
           if (useImports || DafnyOptions.O.IronDafny) {
             // static members:
             foreach (var kv in s.StaticMembers) {
+              if (!kv.Value.CanBeExported())
+                continue;
+
               MemberDecl md;
               if (sig.StaticMembers.TryGetValue(kv.Key, out md)) {
                 var resolved = false;
@@ -1303,7 +1313,7 @@ namespace Microsoft.Dafny
                   var aliased1 = aliased0;
                   if (!aliased0) {
                     var a = kv.Value.EnclosingClass;
-                    while (a != null && 
+                    while (a != null &&
                         (a.ExclusiveRefinement != null || a.ClonedFrom != null)) {
                       if (a.ClonedFrom != null) {
                         a = (TopLevelDecl)a.ClonedFrom;
@@ -1313,7 +1323,7 @@ namespace Microsoft.Dafny
                       }
                     }
                     var b = md.EnclosingClass;
-                    while (b != null && 
+                    while (b != null &&
                             (b.ExclusiveRefinement != null || b.ClonedFrom != null)) {
                       if (b.ClonedFrom != null) {
                         b = (TopLevelDecl)b.ClonedFrom;
@@ -1325,11 +1335,11 @@ namespace Microsoft.Dafny
                     aliased1 = Object.ReferenceEquals(a, b);
                   }
                   if (aliased0 || aliased1) {
-                    if (kv.Value.EnclosingClass != null && 
+                    if (kv.Value.EnclosingClass != null &&
                         md.EnclosingClass != null &&
                         md.EnclosingClass.ExclusiveRefinement != null &&
                         !Object.ReferenceEquals(
-                            kv.Value.EnclosingClass.ExclusiveRefinement, 
+                            kv.Value.EnclosingClass.ExclusiveRefinement,
                             md.EnclosingClass)) {
                       sig.StaticMembers[kv.Key] = kv.Value;
                     }
@@ -1337,16 +1347,31 @@ namespace Microsoft.Dafny
                   }
                 }
                 if (!resolved) {
-                sig.StaticMembers[kv.Key] = AmbiguousMemberDecl.Create(moduleDef, md, kv.Value);
+                  sig.StaticMembers[kv.Key] = AmbiguousMemberDecl.Create(moduleDef, md, kv.Value);
                 }
               } else {
                 // add new
                 sig.StaticMembers.Add(kv.Key, kv.Value);
               }
-            }              
+            }
           }
         }
       }
+    }
+
+    ModuleSignature RegisterTopLevelDecls(ModuleDefinition moduleDef, bool useImports) {
+      Contract.Requires(moduleDef != null);
+      var sig = new ModuleSignature();
+      sig.ModuleDef = moduleDef;
+      sig.IsAbstract = moduleDef.IsAbstract;
+      sig.VisibilityScope = new VisibilityScope();
+      sig.VisibilityScope.Augment(moduleDef.VisibilityScope);
+
+
+
+      List<TopLevelDecl> declarations = moduleDef.TopLevelDecls;
+
+      
 
       // This is solely used to detect duplicates amongst the various e
       Dictionary<string, TopLevelDecl> toplevels = new Dictionary<string, TopLevelDecl>();
