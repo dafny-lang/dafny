@@ -346,12 +346,19 @@ namespace Microsoft.Dafny {
     }
 
     public void PrintMap() {
+      SortedSet<string> leaves = new SortedSet<string>(); // Files that don't themselves include any files
       foreach (string target in dependencies.Keys) {
         System.Console.Write(target);
         foreach (string dependency in dependencies[target]) {
           System.Console.Write(";" + dependency);
+          if (!dependencies.ContainsKey(dependency)) {
+            leaves.Add(dependency);
+          }
         }
         System.Console.WriteLine();
+      }
+      foreach (string leaf in leaves) {
+        System.Console.WriteLine(leaf);
       }
     }
   }

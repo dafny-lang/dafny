@@ -721,7 +721,7 @@ int StringToInt(string s, int defaultValue, string errString) {
 			   includedFile = Path.Combine(basePath, includedFile);
 			   fullPath = Path.GetFullPath(includedFile);
 			 }
-			 defaultModule.Includes.Add(new Include(t, parsedFile, includedFile, fullPath));
+ 			 defaultModule.Includes.Add(new Include(t, Path.GetFullPath(parsedFile), includedFile, fullPath));
 			}
 			
 		}
