@@ -1345,6 +1345,54 @@ namespace Microsoft.Dafny
     }
   }
 
+  public class ProvideRevealAllRewriter : IRewriter {
+    public ProvideRevealAllRewriter(ErrorReporter reporter)
+      : base(reporter) {
+      Contract.Requires(reporter != null);
+    }
+
+    internal override void PreResolve(ModuleDefinition m) {
+      var declarations = m.TopLevelDecls;
+
+      foreach (var d in declarations) {
+        if (d is ModuleExportDecl) {
+          var me = (ModuleExportDecl)d;
+
+          if (me.RevealAll || me.ProvideAll){
+
+              foreach (var newt in declarations) {
+                if (!newt.CanBeExported())
+                  continue;
+
+                if (!(newt is DefaultClassDecl)) {
+                  me.Exports.Add(new ExportSignature(newt.Name, null, !me.RevealAll || !newt.CanBeRevealed()));
+                }
+
+                if (newt is ClassDecl) {
+                  var cl = (ClassDecl)newt;
+
+                  foreach (var mem in cl.Members) {
+                    string prefix = cl.Name;
+                    string suffix = mem.Name;
+                    if (newt is DefaultClassDecl) {
+                      prefix = mem.Name;
+                      suffix = null;
+                    }
+
+                    me.Exports.Add(new ExportSignature(prefix, suffix, !me.RevealAll || !mem.CanBeRevealed()));
+                  }
+                }
+              }
+            }
+          me.RevealAll = false;
+          me.ProvideAll = false;
+
+        }
+      }
+    }
+  }
+
+
 
 
   /// <summary>

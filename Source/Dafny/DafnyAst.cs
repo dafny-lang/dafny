@@ -438,15 +438,19 @@ namespace Microsoft.Dafny {
     }
   }
 
-  enum Visibility { Opaque, Reveal } 
 
   public class VisibilityScope {
-    private HashSet<string> scopeTokens = new HashSet<string>();
+    private static uint maxScopeID = 0;
+
+    private SortedSet<uint> scopeTokens = new SortedSet<uint>();
+
+    // Only for debugging
+    private SortedSet<string> scopeIds = new SortedSet<string>();
 
     //By convention, the "null" scope sees all
     public bool VisibleInScope(VisibilityScope other) {
       if (other != null) {
-        return other.scopeTokens.Intersect(this.scopeTokens).Count() > 0;
+        return other.scopeTokens.Overlaps(this.scopeTokens);
       }
       return true;
     }
@@ -460,11 +464,17 @@ namespace Microsoft.Dafny {
     public void Augment(VisibilityScope other) {
       if (other != null) {
         scopeTokens.UnionWith(other.scopeTokens);
+        scopeIds.UnionWith(other.scopeIds);
         }
     }
 
-    public VisibilityScope(string baseScope) {
-      scopeTokens.Add(baseScope);
+    public VisibilityScope(bool newScope, string name) {
+      scopeTokens.Add(maxScopeID);
+      scopeIds.Add(name);
+      if (maxScopeID == uint.MaxValue) {
+        Contract.Assert(false);
+      }
+      maxScopeID++;
     }
 
     public VisibilityScope() {
@@ -575,6 +585,15 @@ namespace Microsoft.Dafny {
       }
     }
 
+    //TODO This is a hack to fix type inference breaking scoping rules
+    private Type reverseSynonym;
+    public Type ReverseSynonym {
+      get { return reverseSynonym; }
+      set {
+        reverseSynonym = value;
+      }
+    }
+
     /// <summary>
     /// Return the type that "this" stands for, getting to the bottom of proxies and following type synonyms.
     /// </summary>
@@ -593,7 +612,14 @@ namespace Microsoft.Dafny {
         var rtd = type.AsRevealableType;
 
         if (rtd != null) {
-          Contract.Assert(rtd.AsTopLevelDecl.IsVisibleInScope(scope));
+
+          //TODO This is a hack to fix type inference breaking scoping rules
+          if (!rtd.AsTopLevelDecl.IsVisibleInScope(scope)) {
+            Contract.Assert(type.ReverseSynonym != null);
+            type = type.ReverseSynonym;
+            continue;
+          }
+          
           var udt = (UserDefinedType)type;
 
           if (rtd.IsRevealedInScope(scope)) {
@@ -2490,7 +2516,9 @@ namespace Microsoft.Dafny {
       return Signature;
     }
     public int Height;
+
     public readonly bool Opened;
+
     public ModuleDecl(IToken tok, string name, ModuleDefinition parent, bool opened)
       : base(tok, name, parent, new List<TypeParameter>(), null) {
         Height = -1;
@@ -2577,7 +2605,7 @@ namespace Microsoft.Dafny {
     public List<ExportSignature> Exports; // list of TopLevelDecl that are included in the export
     public List<string> Extends; // list of exports that are extended
     public readonly List<ModuleExportDecl> ExtendDecls = new List<ModuleExportDecl>(); // fill in by the resolver
-    public bool RevealAll;
+    public bool RevealAll; // only kept for initial rewriting, then discarded
     public bool ProvideAll;
 
     public readonly VisibilityScope ThisScope;
@@ -2590,7 +2618,7 @@ namespace Microsoft.Dafny {
       Extends = extends;
       ProvideAll = provideAll;
       RevealAll = revealAll;
-      ThisScope = new VisibilityScope(this.FullName);
+      ThisScope = new VisibilityScope(true, this.FullCompileName);
     }
 
     public void SetupDefaultSignature() {
@@ -2613,16 +2641,12 @@ namespace Microsoft.Dafny {
   public class ExportSignature
   {
     public bool Opaque;
-    public IToken Id;
-    public IToken ClassId;
+    public string Id;
+    public string ClassId;
     
     public Declaration Decl;  // fill in  by the resolver
 
-    public bool IsUniversal() {
-      return Id.val == "*";
-    }
-
-    public ExportSignature(IToken prefix, IToken suffix, bool opaque) {
+    public ExportSignature(string prefix, string suffix, bool opaque) {
       if (suffix == null) {
         Id = prefix;
       } else {
@@ -2634,9 +2658,9 @@ namespace Microsoft.Dafny {
 
     public override string ToString() {
       if (ClassId != null) {
-        return ClassId.val + "." + Id.val;
+        return ClassId + "." + Id;
       }
-      return Id.val;
+      return Id;
     }
   }
 
@@ -2817,7 +2841,7 @@ namespace Microsoft.Dafny {
     public VisibilityScope VisibilityScope {
       get {
         if (visibilityScope == null) {
-          visibilityScope = new VisibilityScope(CompileName);
+          visibilityScope = new VisibilityScope(true, this.CompileName);
         }
         return visibilityScope;
       }
@@ -3957,6 +3981,7 @@ namespace Microsoft.Dafny {
     public TypeSynonymDecl(IToken tok, string name, List<TypeParameter> typeArgs, ModuleDefinition module, Type rhs, Attributes attributes, TypeSynonymDecl clonedFrom = null)
       : base(tok, name, typeArgs, module, rhs, attributes, clonedFrom) {
         this.NewSelfSynonym();
+        rhs.ReverseSynonym = this.SelfSynonym();
     }
     TopLevelDecl RevealableTypeDecl.AsTopLevelDecl { get { return this; } }
     bool RevealableTypeDecl.SupportsEquality { get { return this.Rhs.SupportsEquality; } }
@@ -4265,6 +4290,9 @@ namespace Microsoft.Dafny {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
       Contract.Requires(type != null);
+      if (type.ToString() == "ConstantsState" || name == "parsed_config") {
+        Contract.Assert(true);
+      }
     }
   }
 
@@ -6589,6 +6617,7 @@ namespace Microsoft.Dafny {
       }
     }
 
+
     protected Type type;
     public Type Type {  // filled in during resolution
       get {
@@ -6598,6 +6627,7 @@ namespace Microsoft.Dafny {
       set {
         Contract.Requires(!WasResolved());  // set it only once
         Contract.Requires(value != null);
+        
         //modifies type;
         type = value.Normalize();
       }
@@ -7270,6 +7300,10 @@ namespace Microsoft.Dafny {
       Name = v.Name;
       Var = v;
       Type = v.Type.StripSubsetConstraints();
+
+      if (Name == "parsed_config") {
+        Contract.Assert(true);
+      }
     }
   }
 

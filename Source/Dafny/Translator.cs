@@ -125,7 +125,7 @@ namespace Microsoft.Dafny {
       currentScope.Augment(systemModule.VisibilityScope);
 
       foreach (var decl in m.TopLevelDecls) {
-        if (decl is ModuleDecl) {
+        if (decl is ModuleDecl && !(decl is ModuleExportDecl)) {
           var mdecl = (ModuleDecl)decl;
           currentScope.Augment(mdecl.AccessibleSignature().VisibilityScope);
         }
@@ -646,6 +646,23 @@ namespace Microsoft.Dafny {
 
     }
 
+    // Don't verify modules which only contain other modules
+    private static bool ShouldVerifyModule(ModuleDefinition m) {
+      if (!m.IsToBeVerified)
+        return false;
+
+      foreach (var top in m.TopLevelDecls) {
+        if (top is DefaultClassDecl) {
+          if (((DefaultClassDecl)top).Members.Count > 0) {
+            return true;
+          }
+        } else if (!(top is ModuleDecl)) {
+          return true;
+        }
+      }
+      return false;
+    }
+
     public static Dictionary<string, Bpl.Program> Translate(Program p, ErrorReporter reporter, TranslatorFlags flags = null) {
       Contract.Requires(p != null);
       Contract.Requires(p.ModuleSigs.Count > 0);
@@ -655,7 +672,8 @@ namespace Microsoft.Dafny {
       Dictionary<string, Bpl.Program> programs = new Dictionary<string, Bpl.Program>();
       Type.ResetScopes();
       Type.EnableScopes();
-      foreach (ModuleDefinition outerModule in p.RawModules().Where(m => m.IsToBeVerified)) {
+      foreach (ModuleDefinition outerModule in p.RawModules().Where(ShouldVerifyModule)) {
+
         var translator = new Translator(reporter, flags);
 
         if (translator.sink == null || translator.sink == null) {
@@ -668,6 +686,10 @@ namespace Microsoft.Dafny {
         programs.Add(outerModule.CompileName, translator.DoTranslation(p, outerModule));
       }
       Type.DisableScopes();
+
+      if (programs.Count == 0) {
+        programs.Add(p.Name, new Bpl.Program());
+      }
 
       return programs;
     }

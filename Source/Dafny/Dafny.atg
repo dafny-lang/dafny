@@ -855,7 +855,7 @@ SubModuleDecl<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl sub
 ModuleExportSignature<bool opaque, out ExportSignature exsig>
 = (. IToken prefix; IToken suffix = null; .)  
   NoUSIdent<out prefix> [ "." NoUSIdent<out suffix> ]
-  (. exsig = new ExportSignature(prefix, suffix, opaque); .)
+  (. exsig = new ExportSignature(prefix.val, suffix != null ? suffix.val : null, opaque); .)
   .
   
 

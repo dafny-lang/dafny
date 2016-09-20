@@ -340,8 +340,8 @@ module Library {
   class T { }
 }
 
-module AA {
- import opened Library
+module AA refines Library {
+
 }
 
 module B refines AA {

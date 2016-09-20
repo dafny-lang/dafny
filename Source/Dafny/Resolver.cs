@@ -279,6 +279,7 @@ namespace Microsoft.Dafny
       }
 
       rewriters = new List<IRewriter>();
+
       refinementTransformer = new RefinementTransformer(prog);
       rewriters.Add(refinementTransformer);
       rewriters.Add(new AutoContractsRewriter(reporter));
@@ -286,6 +287,7 @@ namespace Microsoft.Dafny
       rewriters.Add(new AutoReqFunctionRewriter(this.reporter));
       rewriters.Add(new TimeLimitRewriter(reporter));
       rewriters.Add(new ForallStmtRewriter(reporter));
+      rewriters.Add(new ProvideRevealAllRewriter(this.reporter));
 
       if (DafnyOptions.O.AutoTriggers) {
         rewriters.Add(new QuantifierSplittingRewriter(reporter));
@@ -370,7 +372,7 @@ namespace Microsoft.Dafny
           }
           Type.PopScope(tempVis);
 
-          if (reporter.Count(ErrorLevel.Error) == errorCount && (!m.IsAbstract || DafnyOptions.O.IronDafny)) {
+          if (reporter.Count(ErrorLevel.Error) == errorCount && !m.IsAbstract) {
             // compilation should only proceed if everything is good, including the signature (which preResolveErrorCount does not include);
             var nw = new CompilationCloner(compilationModuleClones).CloneModuleDefinition(m, m.CompileName + "_Compile");
             compilationModuleClones.Add(m, nw);
@@ -833,19 +835,6 @@ namespace Microsoft.Dafny
           Contract.Assert(((ClassDecl)defaultClass).IsDefaultClass);
           defaultClass.AddVisibilityScope(d.ThisScope, true);
 
-          if (d.RevealAll || d.ProvideAll) {
-            foreach (var top in sig.TopLevels.Where(t => t.Value.CanBeExported())) {
-              top.Value.AddVisibilityScope(d.ThisScope, !d.RevealAll);
-              if (top.Value is ClassDecl) {
-                ((ClassDecl)top.Value).Members.ForEach(mdecl =>
-                  mdecl.AddVisibilityScope(d.ThisScope, !d.RevealAll));
-              }
-            }
-            foreach (var s in sig.StaticMembers.Where(t => t.Value.CanBeExported())) {
-              s.Value.AddVisibilityScope(d.ThisScope, !d.RevealAll);
-            }
-          }
-
           foreach (ExportSignature export in d.Exports) {
 
             // check to see if it is a datatype or a member or
@@ -855,22 +844,22 @@ namespace Microsoft.Dafny
             TopLevelDecl cldecl;
 
             Declaration decl = null;
-            string name = export.Id.val;
+            string name = export.Id;
 
             if (export.ClassId != null) {
-              if (sig.TopLevels.TryGetValue(export.ClassId.val, out cldecl)
+              if (sig.TopLevels.TryGetValue(export.ClassId, out cldecl)
                 && cldecl is ClassDecl) {
 
                 var cl = (ClassDecl)cldecl;
-                var lmem = cl.Members.FirstOrDefault(l => l.Name == export.Id.val);
+                var lmem = cl.Members.FirstOrDefault(l => l.Name == export.Id);
                 if (lmem != null) {
                   decl = lmem;
                 } else {
-                  reporter.Error(MessageSource.Resolver, export.ClassId, "No member '" + export.Id.val + "' found in class '" + export.ClassId.val);
+                  reporter.Error(MessageSource.Resolver, d.tok, "No member '" + export.Id + "' found in class '" + export.ClassId);
                   continue;
                 }
               } else {
-                reporter.Error(MessageSource.Resolver, export.Id, "No class '" + export.ClassId.val + "' found");
+                reporter.Error(MessageSource.Resolver, d.tok, "No class '" + export.ClassId + "' found");
                 continue;
               }
             } else if (sig.TopLevels.TryGetValue(name, out tdecl)) {
@@ -927,13 +916,6 @@ namespace Microsoft.Dafny
         ModuleSignature signature = decl.Signature;
         signature.ModuleDef = m;
 
-        if (decl.RevealAll || decl.ProvideAll) {
-          if (decl.RevealAll) {
-            sig.Ctors.Iter(t => signature.Ctors.Add(t.Key, t.Value));
-          }
-          sig.TopLevels.Where(t => t.Value.CanBeExported()).Iter(t => signature.TopLevels.Add(t.Key, t.Value));
-          sig.StaticMembers.Where(t => t.Value.CanBeExported()).Iter(t => signature.StaticMembers.Add(t.Key, t.Value));
-        } else {
           
           foreach (var top in sig.TopLevels.Where(t => t.Value.IsVisibleInScope(signature.VisibilityScope) && t.Value.CanBeExported())) {
             if (!signature.TopLevels.ContainsKey(top.Key)) {
@@ -947,7 +929,6 @@ namespace Microsoft.Dafny
                 }
               }
             }
-          }
 
           foreach (var mem in sig.StaticMembers.Where(t => t.Value.IsVisibleInScope(signature.VisibilityScope) && t.Value.CanBeExported())) {
             if (!signature.StaticMembers.ContainsKey(mem.Key)) {
@@ -992,7 +973,7 @@ namespace Microsoft.Dafny
 
       foreach (var s in sigs) {
         foreach (var decl in s.TopLevels) {
-          if (decl.Value is ModuleDecl) {
+          if (decl.Value is ModuleDecl && !(decl.Value is ModuleExportDecl)) {
             var modDecl = (ModuleDecl)decl.Value;
             s.VisibilityScope.Augment(modDecl.AccessibleSignature().VisibilityScope);
           }
@@ -1220,14 +1201,25 @@ namespace Microsoft.Dafny
     }
 
     void ResolveOpenedImports(ModuleSignature sig) {
-      List<TopLevelDecl> declarations = sig.TopLevels.Values.ToList<TopLevelDecl>();
-      var moduleDef = sig.ModuleDef;
-      bool useImports = true;
+      var declarations = sig.TopLevels.Values.ToList<TopLevelDecl>();
+      var importedSigs = new HashSet<ModuleSignature>() { sig };
 
-      // First go through and add anything from the opened imports
-      foreach (var im in declarations) {
-        if (im is ModuleDecl && ((ModuleDecl)im).Opened) {
-          var s = GetSignature(((ModuleDecl)im).AccessibleSignature(useCompileSignatures));
+      foreach (var top in declarations) {
+        if (top is ModuleDecl && ((ModuleDecl)top).Opened) {
+          ResolveOpenedImportsWorker(sig, sig.ModuleDef, (ModuleDecl)top, importedSigs);
+        }
+      }
+    }
+
+    void ResolveOpenedImportsWorker(ModuleSignature sig, ModuleDefinition moduleDef, ModuleDecl im, HashSet<ModuleSignature> importedSigs) {
+      bool useImports = true;
+          var s = GetSignature(im.AccessibleSignature(useCompileSignatures));
+
+          if (importedSigs.Contains(s)) {
+            return; // we've already got these declarations
+          }
+
+          importedSigs.Add(s);
 
           if (useImports || DafnyOptions.O.IronDafny) {
             // classes:
@@ -1235,48 +1227,20 @@ namespace Microsoft.Dafny
               if (!kv.Value.CanBeExported())
                 continue;
 
+              if (kv.Value is ModuleDecl && ((ModuleDecl)kv.Value).Opened && DafnyOptions.O.IronDafny) {
+                ResolveOpenedImportsWorker(sig, moduleDef, (ModuleDecl)kv.Value, importedSigs);
+                }
+
               // IronDafny: we need to pull the members of the opened module's _default class in so that they can be merged.
               if (useImports || string.Equals(kv.Key, "_default", StringComparison.InvariantCulture)) {
                 TopLevelDecl d;
                 if (sig.TopLevels.TryGetValue(kv.Key, out d)) {
-                  bool resolved = false;
-                  if (DafnyOptions.O.IronDafny) {
-                    // sometimes, we need to compare two type synonyms in order to come up with a decision regarding substitution.
-                    var aliased1 = Object.ReferenceEquals(kv.Value, d);
-                    if (!aliased1) {
-                      var a = d;
-                      while (a.ExclusiveRefinement != null) {
-                        a = a.ExclusiveRefinement;
-                      }
-                      var b = kv.Value;
-                      while (b.ExclusiveRefinement != null) {
-                        b = b.ExclusiveRefinement;
-                      }
-                      if (a is TypeSynonymDecl && b is TypeSynonymDecl) {
-                        var aa = ((TypeSynonymDecl)a).Rhs;
-                        var bb = ((TypeSynonymDecl)b).Rhs;
-                        aliased1 = aa.Equals(bb);
-                      } else {
-                        aliased1 = Object.ReferenceEquals(a, b);
-                      }
-                    }
-                    if (aliased1 ||
-                      Object.ReferenceEquals(kv.Value.ClonedFrom, d) ||
-                      Object.ReferenceEquals(d.ClonedFrom, kv.Value) ||
-                      Object.ReferenceEquals(kv.Value.ExclusiveRefinement, d)) {
-                      sig.TopLevels[kv.Key] = kv.Value;
-                      resolved = true;
-                    }
-                  }
-                  if (!resolved) {
                     sig.TopLevels[kv.Key] = AmbiguousTopLevelDecl.Create(moduleDef, d, kv.Value);
-                  }
                 } else {
                   sig.TopLevels.Add(kv.Key, kv.Value);
                 }
               }
             }
-          }
 
           if (useImports) {
             // constructors:
@@ -1307,48 +1271,7 @@ namespace Microsoft.Dafny
 
               MemberDecl md;
               if (sig.StaticMembers.TryGetValue(kv.Key, out md)) {
-                var resolved = false;
-                if (DafnyOptions.O.IronDafny) {
-                  var aliased0 = Object.ReferenceEquals(kv.Value, md) || Object.ReferenceEquals(kv.Value.ClonedFrom, md) || Object.ReferenceEquals(md.ClonedFrom, kv.Value);
-                  var aliased1 = aliased0;
-                  if (!aliased0) {
-                    var a = kv.Value.EnclosingClass;
-                    while (a != null &&
-                        (a.ExclusiveRefinement != null || a.ClonedFrom != null)) {
-                      if (a.ClonedFrom != null) {
-                        a = (TopLevelDecl)a.ClonedFrom;
-                      } else {
-                        Contract.Assert(a.ExclusiveRefinement != null);
-                        a = a.ExclusiveRefinement;
-                      }
-                    }
-                    var b = md.EnclosingClass;
-                    while (b != null &&
-                            (b.ExclusiveRefinement != null || b.ClonedFrom != null)) {
-                      if (b.ClonedFrom != null) {
-                        b = (TopLevelDecl)b.ClonedFrom;
-                      } else {
-                        Contract.Assert(b.ExclusiveRefinement != null);
-                        b = b.ExclusiveRefinement;
-                      }
-                    }
-                    aliased1 = Object.ReferenceEquals(a, b);
-                  }
-                  if (aliased0 || aliased1) {
-                    if (kv.Value.EnclosingClass != null &&
-                        md.EnclosingClass != null &&
-                        md.EnclosingClass.ExclusiveRefinement != null &&
-                        !Object.ReferenceEquals(
-                            kv.Value.EnclosingClass.ExclusiveRefinement,
-                            md.EnclosingClass)) {
-                      sig.StaticMembers[kv.Key] = kv.Value;
-                    }
-                    resolved = true;
-                  }
-                }
-                if (!resolved) {
                   sig.StaticMembers[kv.Key] = AmbiguousMemberDecl.Create(moduleDef, md, kv.Value);
-                }
               } else {
                 // add new
                 sig.StaticMembers.Add(kv.Key, kv.Value);
@@ -1356,7 +1279,6 @@ namespace Microsoft.Dafny
             }
           }
         }
-      }
     }
 
     ModuleSignature RegisterTopLevelDecls(ModuleDefinition moduleDef, bool useImports) {
@@ -1678,6 +1600,8 @@ namespace Microsoft.Dafny
       Contract.Requires(Name != null);
       Contract.Requires(mods != null);
       Contract.Requires(compilationModuleClones != null);
+      var errCount = reporter.Count(ErrorLevel.Error);
+
       var mod = new ModuleDefinition(Token.NoToken, Name + ".Abs", true, true, true, /*isExclusiveRefinement:*/ false, null, null, null, false);
       mod.ClonedFrom = new CompilationCloner(compilationModuleClones).CloneFromValue_Module(p.ModuleDef);
       mod.Height = Height;
@@ -1699,6 +1623,9 @@ namespace Microsoft.Dafny
       sig.ExclusiveRefinement = p.ExclusiveRefinement;
       mods.Add(mod,sig);
       ResolveModuleDefinition(mod, sig);
+      if (reporter.Count(ErrorLevel.Error) == errCount) {
+        mod.SuccessfullyResolved = true;
+      }
       return sig;
     }
 
@@ -1819,10 +1746,10 @@ namespace Microsoft.Dafny
           sig.VisibilityScope.Augment(decl.AccessibleSignature().VisibilityScope);
         }
       }
-      if (sig.Refines != null) {
+      /*if (sig.Refines != null) {
         moduleInfo.VisibilityScope.Augment(sig.Refines.VisibilityScope);
         sig.VisibilityScope.Augment(sig.Refines.VisibilityScope);
-      }
+      }*/
 
       // resolve the trait names that a class extends and register the trait members in the classes that inherit them
       foreach (TopLevelDecl d in declarations) {
@@ -1875,9 +1802,7 @@ namespace Microsoft.Dafny
             if (decl.Signature.IsAbstract) {
               if (// _module is allowed to contain abstract modules, but not be abstract itself. Note this presents a challenge to
                   // trusted verification, as toplevels can't be trusted if they invoke abstract module members.
-                  !def.IsDefaultModule
-                  // [IronDafny] it's possbile for an abstract module to have an exclusive refinement, so it no longer makes sense to disallow this.
-                  && !DafnyOptions.O.IronDafny) {
+                  !def.IsDefaultModule) {
                 reporter.Error(MessageSource.Resolver, d.tok, "an abstract module can only be imported into other abstract modules, not a concrete one.");
               }
             } else {
@@ -10487,6 +10412,10 @@ namespace Microsoft.Dafny
       if (sourceType.IsDatatype) {
         udt = (UserDefinedType)sourceType.NormalizeExpand();
         dtd = (DatatypeDecl)udt.ResolvedClass;
+
+        if (sourceType != udt) {
+          Contract.Assert(true);
+        }
       }
       // Find the constructor in the given datatype
       // If what was parsed was just an identifier, we will interpret it as a datatype constructor, if possible

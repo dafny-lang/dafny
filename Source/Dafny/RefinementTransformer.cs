@@ -178,8 +178,6 @@ namespace Microsoft.Dafny
       }
 
       nw.Exports.AddRange(d.Exports);
-      nw.RevealAll = nw.RevealAll || d.RevealAll;
-      nw.ProvideAll = nw.ProvideAll || d.ProvideAll;
       nw.Extends.AddRange(d.Extends);
     }
 
@@ -433,6 +431,10 @@ namespace Microsoft.Dafny
         ens = m.Ens.ConvertAll(refinementCloner.CloneMayBeFreeExpr);
       if (moreEnsures != null) {
         ens.AddRange(moreEnsures);
+      }
+
+      if (m.Name == "HostInitImpl") {
+        Contract.Assert(true);
       }
 
       var body = newBody ?? refinementCloner.CloneBlockStmt(m.Body);
