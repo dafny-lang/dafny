@@ -15,6 +15,7 @@ class Node<T> {
   static function ListSegment(q: seq<T>, from: Node<T>, to: Node<T>, S: set<Node<T>>): bool
     reads S;
   {
+    null !in S &&
     if q == []
     then from == to
     else from != null && from in S && from.data == q[0] && ListSegment(q[1..], from.next, to, S - {from})
@@ -60,10 +61,12 @@ class ListNode<T> {
   {
     if l == null then
       true
-    else if l.next == null then
-      l in l.Repr && l.Contents == [l.data]
     else
-      {l, l.next} <= l.Repr && l.Contents == [l.data] + l.next.Contents && l.next.Repr <= l.Repr - {l} && IsList(l.next)
+      null !in l.Repr &&
+      if l.next == null then
+        l in l.Repr && l.Contents == [l.data]
+      else
+        {l, l.next} <= l.Repr && l.Contents == [l.data] + l.next.Contents && l.next.Repr <= l.Repr - {l} && IsList(l.next)
   }
 
   static method Create(x: T) returns (l: ListNode<T>)

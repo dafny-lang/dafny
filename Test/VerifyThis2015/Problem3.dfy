@@ -159,7 +159,7 @@ method Alt(x: Node)
   requires x != null && x.L != null && x.R != null
   requires x.L.R == x && x.R.L == x  // links are mirrored
   modifies x, x.L, x.R
-  ensures forall y: Node :: y != null && !fresh(y) ==> y.L == old(y.L) && y.R == old(y.R)
+  ensures forall y: Node :: y != null && old(allocated(y)) ==> y.L == old(y.L) && y.R == old(y.R)
 {
   // remove
   x.R.L := x.L;

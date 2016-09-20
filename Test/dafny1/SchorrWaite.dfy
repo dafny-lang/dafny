@@ -217,9 +217,9 @@ class Main {
                   forall j :: 0 <= j < |n.children| ==>
                     j == n.childrenVisited || n.children[j] == old(n.children[j])
       // every marked node is reachable:
-      invariant !fresh(path);  // needed to show 'path' worthy as argument to old(Reachable(...))
+      invariant old(allocated(path));  // needed to show 'path' worthy as argument to old(Reachable(...))
       invariant old(ReachableVia(root, path, t, S));
-      invariant forall n, pth {:nowarn} :: n in S && n.marked && pth == n.pathFromRoot ==> !fresh(pth)
+      invariant forall n, pth {:nowarn} :: n in S && n.marked && pth == n.pathFromRoot ==> old(allocated(pth))
       invariant forall n, pth :: n in S && n.marked && pth == n.pathFromRoot ==>
                   old(ReachableVia(root, pth, n, S))
       invariant forall n :: n in S && n.marked ==> old(Reachable(root, n, S))

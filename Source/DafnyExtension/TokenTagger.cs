@@ -414,6 +414,7 @@ namespace DafnyLanguage
               switch (s) {
                 #region keywords
                 case "abstract":
+                case "allocated":
                 case "as":
                 case "assert":
                 case "assume":

@@ -190,30 +190,73 @@ class Modifies {
 // ------------------ allocated --------------------------------------------------
 
 class AllocatedTests {
-  method M(r: AllocatedTests, k: Node, S: set<Node>, d: Lindgren)
+  method M()
   {
     var n := new Node;
-    var t := S + {n};
-
-    if (*) {
-      assert !fresh(n);  // error: n was not allocated in the initial state
-    } else {
-      assert fresh(n);  // correct
-    }
-
+    if
+    case true =>  assert old(allocated(n));  // error: n was not allocated in the initial state
+    case true =>  assert !fresh(n);  // error: n was not allocated in the initial state
+    case true =>  assert fresh(n) && !old(allocated(n)) && allocated(n);  // correct
+    case true =>  assert fresh(null);  // error: null is never fresh
+    case true =>  assert !fresh(null);
+    case true =>  assert allocated(null);  // null is a literal, so it is always allocated
+  }
+  method Set0(k: Node)
+  {
+    var n := new Node;
     var U := {k,n};
-    if (*) {
-      assert !fresh(U);  // error: n was not allocated initially
-    } else {
-      assert fresh(U);  // error: k was not allocated initially
-    }
-
-    var Q := [k,n];
-    if (*) {
-      assert !fresh(Q);  // error: n was not allocated initially
-    } else {
-      assert fresh(Q);  // error: k was not allocated initially
-    }
+    if
+    case true =>  assert allocated(U);  // everytning is always allocated in the current state
+    case true =>  assert old(allocated(U));  // error: n was not allocated initially
+    case true =>  assert !old(allocated(U));
+    case true =>  assert fresh(U);  // error: k may be null (or was allocated initially)
+    case k == null =>  assert fresh(U);  // error: k is null, so fresh returns false
+    case k == null =>  assert !fresh(U);
+    case k != null =>  assert fresh(U);  // error: k was allocated initially
+    case k != null =>  assert !fresh(U);
+  }
+  method Set1(k: Node)
+  {
+    M();  // a method call, which introduces another allocation state
+    var n: Node;  // null or an allocated object of type Node
+    var U := {k,n};
+    if
+    case true =>  assert old(allocated(U));  // error: n may be an object allocated inside M()
+    case n == null =>  assert old(allocated(U));  // yes
+    case n == null =>  assert fresh(U);  // error: fresh is always false for null
+    case !old(allocated(n)) =>  assert n != null;
+    case !old(allocated(n)) =>  assert fresh(n);  // yes, if n was not available initially, then it is non-null and fresh
+    case fresh(n) =>  assert n != null;
+  }
+  method Seq0(k: Node)
+  {
+    var n := new Node;
+    var U := [k,n];
+    if
+    case true =>  assert allocated(U);  // everytning is always allocated in the current state
+    case true =>  assert old(allocated(U));  // error: n was not allocated initially
+    case true =>  assert !old(allocated(U[1]));  // this is a lemma that helps prove the next line
+                  assert !old(allocated(U));
+    case true =>  assert fresh(U);  // error: k may be null (or was allocated initially)
+    case k == null =>  assert fresh(U);  // error: k is null, so fresh returns false
+    case k == null =>  assert !fresh(U[0]);  // this is a lemma that helps prove the next line
+                        assert !fresh(U);
+    case k != null =>  assert fresh(U);  // error: k was allocated initially
+    case k != null =>  assert !fresh(U[0]);  // this is a lemma that helps prove the next line
+                        assert !fresh(U);
+  }
+  method Seq1(k: Node)
+  {
+    M();  // a method call, which introduces another allocation state
+    var n: Node;  // null or an allocated object of type Node
+    var U := [k,n];
+    if
+    case true =>  assert old(allocated(U));  // error: n may be an object allocated inside M()
+    case n == null =>  assert old(allocated(U));  // yes
+    case n == null =>  assert fresh(U);  // error: fresh is always false for null
+    case !old(allocated(n)) =>  assert n != null;
+    case !old(allocated(n)) =>  assert fresh(n);  // yes, if n was not available initially, then it is non-null and fresh
+    case fresh(n) =>  assert n != null;
   }
 }
 
@@ -710,10 +753,10 @@ class GT {
   {
     if (*) {
       P0();
-      assert forall x: GT {:nowarn} :: x != null ==> !fresh(x);  // error: method P2 may have allocated stuff
+      assert forall x: GT {:nowarn} :: x != null ==> old(allocated(x));  // error: method P2 may have allocated stuff
     } else {
       P1();
-      assert forall x: GT {:nowarn} :: x != null ==> !fresh(x);  // fine, because the ghost method does not allocate anything
+      assert forall x: GT {:nowarn} :: x != null ==> old(allocated(x));  // fine, because the ghost method does not allocate anything
     }
   }
 }

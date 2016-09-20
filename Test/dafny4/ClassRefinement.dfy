@@ -15,7 +15,7 @@ abstract module M0 {
     protected predicate Valid()
       reads this, Repr;
     {
-      this in Repr
+      this in Repr && null !in Repr
     }
 
     constructor Init()
@@ -24,7 +24,7 @@ abstract module M0 {
       ensures Valid() && fresh(Repr - {this});
     {
       Repr := {};
-      ghost var repr :| {this} <= repr && fresh(repr - {this});
+      ghost var repr :| {this} <= repr && null !in repr && fresh(repr - {this});
       N, Repr := 0, repr;
     }
 

@@ -4343,7 +4343,8 @@ namespace Microsoft.Dafny {
           disjunct = Bpl.Expr.True;
         } else if (eType is SetType) {
           // e[Box(o)]
-          disjunct = etran.TrInSet_Aux(tok, o, boxO, e);
+          bool pr;
+          disjunct = etran.TrInSet_Aux(tok, o, boxO, e, out pr);
         } else if (eType is MultiSetType) {
           // e[Box(o)] > 0
           disjunct = etran.TrInMultiSet_Aux(tok, o, boxO, e);
@@ -8434,14 +8435,23 @@ namespace Microsoft.Dafny {
 
       } else if (stmt is VarDeclStmt) {
         var s = (VarDeclStmt)stmt;
+        var newLocalIds = new List<Bpl.IdentifierExpr>();
         foreach (var local in s.Locals) {
           Bpl.Type varType = TrType(local.Type);
           Bpl.Expr wh = GetWhereClause(local.Tok, new Bpl.IdentifierExpr(local.Tok, local.AssignUniqueName(currentDeclaration.IdGenerator), varType), local.Type, etran);
           Bpl.LocalVariable var = new Bpl.LocalVariable(local.Tok, new Bpl.TypedIdent(local.Tok, local.AssignUniqueName(currentDeclaration.IdGenerator), varType, wh));
-          var.Attributes = etran.TrAttributes(local.Attributes, null); ;
+          var.Attributes = etran.TrAttributes(local.Attributes, null);
+          newLocalIds.Add(new Bpl.IdentifierExpr(local.Tok, var));
           locals.Add(var);
-          if (Attributes.Contains(local.Attributes, "assumption"))
-          {
+        }
+        if (s.Update == null) {
+          // it is necessary to do a havoc here in order to give the variable the correct allocation state
+          builder.Add(new HavocCmd(s.Tok, newLocalIds));
+        }
+        // processing of "assumption" variables happens after the variable is possibly havocked above
+        foreach (var local in s.Locals) {
+          if (Attributes.Contains(local.Attributes, "assumption")) {
+            Bpl.Type varType = TrType(local.Type);
             builder.Add(new AssumeCmd(local.Tok, new Bpl.IdentifierExpr(local.Tok, local.AssignUniqueName(currentDeclaration.IdGenerator), varType), new QKeyValue(local.Tok, "assumption_variable_initialization", new List<object>(), null)));
           }
         }
@@ -12152,22 +12162,20 @@ namespace Microsoft.Dafny {
             case UnaryOpExpr.Opcode.Fresh:
               var eeType = e.E.Type.NormalizeExpand();
               if (eeType is SetType) {
-                // generate:  (forall $o: ref :: $o != null && X[Box($o)] ==> !old($Heap)[$o,alloc])
-                // TODO: trigger?
+                // generate:  (forall $o: ref :: { X[Box($o)] } X[Box($o)] ==> $o != null && !old($Heap)[$o,alloc])
+                // OR, if X[Box($o)] is rewritten into smaller parts, use the less good trigger old($Heap)[$o,alloc]
                 Bpl.Variable oVar = new Bpl.BoundVariable(expr.tok, new Bpl.TypedIdent(expr.tok, "$o", predef.RefType));
                 Bpl.Expr o = new Bpl.IdentifierExpr(expr.tok, oVar);
                 Bpl.Expr oNotNull = Bpl.Expr.Neq(o, predef.Null);
-                Bpl.Expr oInSet = TrInSet(expr.tok, o, e.E, ((SetType)eeType).Arg);
+                bool performedInSetRewrite;
+                Bpl.Expr oInSet = TrInSet(expr.tok, o, e.E, ((SetType)eeType).Arg, out performedInSetRewrite);
                 Bpl.Expr oNotFresh = Old.IsAlloced(expr.tok, o);
                 Bpl.Expr oIsFresh = Bpl.Expr.Not(oNotFresh);
-                Bpl.Expr body = Bpl.Expr.Imp(Bpl.Expr.And(oNotNull, oInSet), oIsFresh);
-                // TRIGGERS: Does this make sense? VSI-Benchmarks\b7
-                // TRIG (forall $o: ref :: $o != null && read($Heap, this, _module.List.Repr)[$Box($o)] && $o != this ==> !read(old($Heap), $o, alloc))
-                // TRIG (forall $o: ref :: $o != null && read($Heap, this, _module.Stream.footprint)[$Box($o)] && $o != this ==> !read(old($Heap), $o, alloc))
-                var trigger = BplTrigger(oNotFresh); // NEW_TRIGGER
+                Bpl.Expr body = Bpl.Expr.Imp(oInSet, Bpl.Expr.And(oNotNull, oIsFresh));
+                var trigger = BplTrigger(performedInSetRewrite ? oNotFresh : oInSet);
                 return new Bpl.ForallExpr(expr.tok, new List<Variable> { oVar }, trigger, body);
               } else if (eeType is SeqType) {
-                // generate:  (forall $i: int :: 0 <= $i && $i < Seq#Length(X) && Unbox(Seq#Index(X,$i)) != null ==> !old($Heap)[Unbox(Seq#Index(X,$i)),alloc])
+                // generate:  (forall $i: int :: 0 <= $i && $i < Seq#Length(X) ==> Unbox(Seq#Index(X,$i)) != null && !old($Heap)[Unbox(Seq#Index(X,$i)),alloc])
                 Bpl.Variable iVar = new Bpl.BoundVariable(expr.tok, new Bpl.TypedIdent(expr.tok, "$i", Bpl.Type.Int));
                 Bpl.Expr i = new Bpl.IdentifierExpr(expr.tok, iVar);
                 Bpl.Expr iBounds = translator.InSeqRange(expr.tok, i, TrExpr(e.E), true, null, false);
@@ -12176,20 +12184,20 @@ namespace Microsoft.Dafny {
                 Bpl.Expr oNotFresh = Old.IsAlloced(expr.tok, XsubI);
                 Bpl.Expr oIsFresh = Bpl.Expr.Not(oNotFresh);
                 Bpl.Expr xsubiNotNull = Bpl.Expr.Neq(XsubI, predef.Null);
-                Bpl.Expr body = Bpl.Expr.Imp(Bpl.Expr.And(iBounds, xsubiNotNull), oIsFresh);
+                Bpl.Expr body = Bpl.Expr.Imp(iBounds, Bpl.Expr.And(xsubiNotNull, oIsFresh));
                 //TRIGGERS: Does this make sense? dafny0\SmallTests
                 // BROKEN // NEW_TRIGGER
                 //TRIG (forall $i: int :: 0 <= $i && $i < Seq#Length(Q#0) && $Unbox(Seq#Index(Q#0, $i)): ref != null ==> !read(old($Heap), $Unbox(Seq#Index(Q#0, $i)): ref, alloc))
                 return new Bpl.ForallExpr(expr.tok, new List<Variable> { iVar }, body);
-              } else if (eeType.IsDatatype) {
-                // translator.FunctionCall(e.tok, BuiltinFunction.DtAlloc, null, TrExpr(e.E), Old.HeapExpr);
-                Bpl.Expr alloc = translator.MkIsAlloc(TrExpr(e.E), eeType, Old.HeapExpr);
-                return Bpl.Expr.Unary(expr.tok, UnaryOperator.Opcode.Not, alloc);
               } else {
                 // generate:  x != null && !old($Heap)[x]
                 Bpl.Expr oNull = Bpl.Expr.Neq(TrExpr(e.E), predef.Null);
                 Bpl.Expr oIsFresh = Bpl.Expr.Not(Old.IsAlloced(expr.tok, TrExpr(e.E)));
                 return Bpl.Expr.Binary(expr.tok, BinaryOperator.Opcode.And, oNull, oIsFresh);
+              }
+            case UnaryOpExpr.Opcode.Allocated: {
+                var aType = e.E.Type.NormalizeExpand();
+                return translator.MkIsAlloc(TrExpr(e.E), aType, HeapExpr);
               }
             default:
               Contract.Assert(false); throw new cce.UnreachableException();  // unexpected unary expression
@@ -12205,9 +12213,11 @@ namespace Microsoft.Dafny {
           int bvWidth = e.E0.Type.IsBitVectorType ? ((BitvectorType)e.E0.Type.NormalizeExpand()).Width : -1;  // -1 indicates "not a bitvector type"
           Bpl.Expr e0 = TrExpr(e.E0);
           if (e.ResolvedOp == BinaryExpr.ResolvedOpcode.InSet) {
-            return TrInSet(expr.tok, e0, e.E1, cce.NonNull(e.E0.Type));  // let TrInSet translate e.E1
+            bool pr;
+            return TrInSet(expr.tok, e0, e.E1, cce.NonNull(e.E0.Type), out pr);  // let TrInSet translate e.E1
           } else if (e.ResolvedOp == BinaryExpr.ResolvedOpcode.NotInSet) {
-            Bpl.Expr arg = TrInSet(expr.tok, e0, e.E1, cce.NonNull(e.E0.Type));  // let TrInSet translate e.E1
+            bool pr;
+            Bpl.Expr arg = TrInSet(expr.tok, e0, e.E1, cce.NonNull(e.E0.Type), out pr);  // let TrInSet translate e.E1
             return Bpl.Expr.Unary(expr.tok, UnaryOperator.Opcode.Not, arg);
           } else if (e.ResolvedOp == BinaryExpr.ResolvedOpcode.InMultiSet) {
             return TrInMultiSet(expr.tok, e0, e.E1, cce.NonNull(e.E0.Type)); // let TrInMultiSet translate e.E1
@@ -13030,7 +13040,7 @@ namespace Microsoft.Dafny {
       /// Translate like s[Box(elmt)], but try to avoid as many set functions as possible in the
       /// translation, because such functions can mess up triggering.
       /// </summary>
-      public Bpl.Expr TrInSet(IToken tok, Bpl.Expr elmt, Expression s, Type elmtType) {
+      public Bpl.Expr TrInSet(IToken tok, Bpl.Expr elmt, Expression s, Type elmtType, out bool performedRewrite) {
         Contract.Requires(tok != null);
         Contract.Requires(elmt != null);
         Contract.Requires(s != null);
@@ -13038,29 +13048,31 @@ namespace Microsoft.Dafny {
         Contract.Ensures(Contract.Result<Bpl.Expr>() != null);
 
         var elmtBox = BoxIfNecessary(tok, elmt, elmtType);
-        return TrInSet_Aux(tok, elmt, elmtBox, s);
+        return TrInSet_Aux(tok, elmt, elmtBox, s, out performedRewrite);
       }
       /// <summary>
       /// The worker routine for TrInSet.  This method takes both "elmt" and "elmtBox" as parameters,
       /// using the former when the unboxed form is needed and the latter when the boxed form is needed.
       /// This gives the caller the flexibility to pass in either "o, Box(o)" or "Unbox(bx), bx".
       /// </summary>
-      public Bpl.Expr TrInSet_Aux(IToken tok, Bpl.Expr elmt, Bpl.Expr elmtBox, Expression s) {
+      public Bpl.Expr TrInSet_Aux(IToken tok, Bpl.Expr elmt, Bpl.Expr elmtBox, Expression s, out bool performedRewrite) {
         Contract.Requires(tok != null);
         Contract.Requires(elmt != null);
         Contract.Requires(elmtBox != null);
         Contract.Requires(s != null);
         Contract.Ensures(Contract.Result<Bpl.Expr>() != null);
 
+        performedRewrite = true;  // assume a rewrite will happen
+        bool pr;
         if (s is BinaryExpr) {
           BinaryExpr bin = (BinaryExpr)s;
           switch (bin.ResolvedOp) {
             case BinaryExpr.ResolvedOpcode.Union:
-              return Bpl.Expr.Or(TrInSet_Aux(tok, elmt, elmtBox, bin.E0), TrInSet_Aux(tok, elmt, elmtBox, bin.E1));
+              return Bpl.Expr.Or(TrInSet_Aux(tok, elmt, elmtBox, bin.E0, out pr), TrInSet_Aux(tok, elmt, elmtBox, bin.E1, out pr));
             case BinaryExpr.ResolvedOpcode.Intersection:
-              return Bpl.Expr.And(TrInSet_Aux(tok, elmt, elmtBox, bin.E0), TrInSet_Aux(tok, elmt, elmtBox, bin.E1));
+              return Bpl.Expr.And(TrInSet_Aux(tok, elmt, elmtBox, bin.E0, out pr), TrInSet_Aux(tok, elmt, elmtBox, bin.E1, out pr));
             case BinaryExpr.ResolvedOpcode.SetDifference:
-              return Bpl.Expr.And(TrInSet_Aux(tok, elmt, elmtBox, bin.E0), Bpl.Expr.Not(TrInSet_Aux(tok, elmt, elmtBox, bin.E1)));
+              return Bpl.Expr.And(TrInSet_Aux(tok, elmt, elmtBox, bin.E0, out pr), Bpl.Expr.Not(TrInSet_Aux(tok, elmt, elmtBox, bin.E1, out pr)));
             default:
               break;
           }
@@ -13101,6 +13113,7 @@ namespace Microsoft.Dafny {
             return new Bpl.ExistsExpr(compr.tok, bvars, triggers, ebody);
           }
         }
+        performedRewrite = false;
         return Bpl.Expr.SelectTok(tok, TrExpr(s), elmtBox);
       }
 
@@ -14522,6 +14535,8 @@ namespace Microsoft.Dafny {
         usesOldHeap = true;
       } else if (expr is UnaryOpExpr && ((UnaryOpExpr)expr).Op == UnaryOpExpr.Opcode.Fresh) {
         usesOldHeap = true;
+      } else if (expr is UnaryOpExpr && ((UnaryOpExpr)expr).Op == UnaryOpExpr.Opcode.Allocated) {
+        usesHeap = true;
       }
 
       // visit subexpressions

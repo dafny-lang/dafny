@@ -29,7 +29,7 @@ class Queue<T> {
 
   method Init()
     modifies this;
-    ensures Valid() && fresh(footprint - {this});
+    ensures Valid() && fresh(footprint - {this,null});
     ensures |contents| == 0;
   {
     var n := new Node<T>.Init();
@@ -50,7 +50,7 @@ class Queue<T> {
   method Enqueue(t: T)
     requires Valid();
     modifies footprint;
-    ensures Valid() && fresh(footprint - old(footprint));
+    ensures Valid() && fresh(footprint - old(footprint) - {null});
     ensures contents == old(contents) + [t];
   {
     var n := new Node<T>.Init();
@@ -96,7 +96,7 @@ class Queue<T> {
     requires Valid();
     requires 0 < |contents|;
     modifies footprint;
-    ensures Valid() && fresh(footprint - old(footprint));
+    ensures Valid() && fresh(footprint - old(footprint) - {null});
     ensures contents == old(contents)[1..] + old(contents)[..1];
   {
     var t := Front();
@@ -108,7 +108,7 @@ class Queue<T> {
     requires Valid();
     requires 0 < |contents|;
     modifies footprint;
-    ensures Valid() && fresh(footprint - old(footprint));
+    ensures Valid() && fresh(footprint - old(footprint) - {null});
     ensures |contents| == |old(contents)|;
     ensures (exists i :: 0 <= i && i <= |contents| &&
               contents == old(contents)[i..] + old(contents)[..i]);
@@ -177,8 +177,8 @@ class Main<U> {
     requires q0.footprint !! q1.footprint;
     requires |q0.contents| == 0;
     modifies q0.footprint, q1.footprint;
-    ensures fresh(q0.footprint - old(q0.footprint));
-    ensures fresh(q1.footprint - old(q1.footprint));
+    ensures fresh(q0.footprint - old(q0.footprint) - {null});
+    ensures fresh(q1.footprint - old(q1.footprint) - {null});
   {
     q0.Enqueue(t);
     q0.Enqueue(u);

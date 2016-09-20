@@ -7469,6 +7469,7 @@ namespace Microsoft.Dafny {
       Not,
       Cardinality,
       Fresh,
+      Allocated,
       Lit,  // there is no syntax for this operator, but it is sometimes introduced during translation
     }
     public readonly Opcode Op;

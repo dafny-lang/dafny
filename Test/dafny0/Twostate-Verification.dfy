@@ -158,14 +158,14 @@ class Node {
     ensures self.Valid() && old(self.Sum()) <= self.Sum()
     decreases self.Repr
   {
-    forall n: Node | n != null && !fresh(n) && old(n.Repr < self.Repr && n.Valid())
+    forall n: Node | n != null && old(allocated(n)) && old(n.Repr < self.Repr && n.Valid())
       ensures n.Valid() && old(n.Sum()) <= n.Sum()
     {
       M_Lemma_Forall(n, node);
     }
     var n := self.next;
     if n != null {
-      assert !fresh(n) && old(n.Repr < self.Repr && n.Valid());
+      assert old(allocated(n)) && old(n.Repr < self.Repr && n.Valid());
       assert n.Valid() && old(n.Sum()) <= n.Sum();
     }
   }

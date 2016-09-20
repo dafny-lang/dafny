@@ -1748,6 +1748,10 @@ namespace Microsoft.Dafny {
           wr.Write("fresh(");
           PrintExpression(e.E, false);
           wr.Write(")");
+        } else if (e.Op == UnaryOpExpr.Opcode.Allocated) {
+          wr.Write("allocated(");
+          PrintExpression(e.E, false);
+          wr.Write(")");
         } else {
           // Prefix operator.
           // determine if parens are needed

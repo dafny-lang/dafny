@@ -3173,7 +3173,7 @@ namespace Microsoft.Dafny
               if (t is TypeProxy) {
                 return false;  // there is not enough information
               }
-              satisfied = t.IsRefType || t.IsDatatype;
+              satisfied = t.IsRefType;
               break;
             }
           case "ModifiesFrame": {
@@ -6436,6 +6436,10 @@ namespace Microsoft.Dafny
         new BinaryExpr(iter.tok, BinaryExpr.Opcode.Sub,
           new MemberSelectExpr(iter.tok, new ThisExpr(iter.tok), "_new"),
           new OldExpr(iter.tok, new MemberSelectExpr(iter.tok, new ThisExpr(iter.tok), "_new"))))));
+      // ensures null !in _new
+      ens.Add(new MaybeFreeExpression(new BinaryExpr(iter.tok, BinaryExpr.Opcode.NotIn,
+        new LiteralExpr(iter.tok),
+        new MemberSelectExpr(iter.tok, new ThisExpr(iter.tok), "_new"))));
       // ensures more ==> this.Valid();
       valid_call = new FunctionCallExpr(iter.tok, "Valid", new ThisExpr(iter.tok), iter.tok, new List<Expression>());
       ens.Add(new MaybeFreeExpression(new BinaryExpr(iter.tok, BinaryExpr.Opcode.Imp,
@@ -9237,6 +9241,10 @@ namespace Microsoft.Dafny
             }
             // the type of e.E must be either an object or a collection of objects
             AddXConstraint(expr.tok, "Freshable", e.E.Type, "the argument of a fresh expression must denote an object or a collection of objects (instead got {0})");
+            expr.Type = Type.Bool;
+            break;
+          case UnaryOpExpr.Opcode.Allocated:
+            // the argument is allowed to have any type at all
             expr.Type = Type.Bool;
             break;
           default:
@@ -12078,7 +12086,7 @@ namespace Microsoft.Dafny
       } else if (expr is UnaryExpr) {
         var e = (UnaryExpr)expr;
         var unaryOpExpr = e as UnaryOpExpr;
-        if (unaryOpExpr != null && unaryOpExpr.Op == UnaryOpExpr.Opcode.Fresh) {
+        if (unaryOpExpr != null && (unaryOpExpr.Op == UnaryOpExpr.Opcode.Fresh || unaryOpExpr.Op == UnaryOpExpr.Opcode.Allocated)) {
           return true;
         }
         return UsesSpecFeatures(e.E);
