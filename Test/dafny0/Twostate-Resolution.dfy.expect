@@ -1,2 +1,6 @@
-Twostate-Resolution.dfy(12,13): Error: twostate lemmas are not allowed to have modifies clauses
-1 resolution/type errors detected in Twostate-Resolution.dfy
+Twostate-Resolution.dfy(13,15): Error: twostate lemmas are not allowed to have modifies clauses
+Twostate-Resolution.dfy(22,13): Error: unchanged expressions are not allowed in this context
+Twostate-Resolution.dfy(25,13): Error: unchanged expressions are not allowed in this context
+Twostate-Resolution.dfy(28,13): Error: unchanged expressions are not allowed in this context
+Twostate-Resolution.dfy(29,12): Error: unchanged expressions are not allowed in this context
+5 resolution/type errors detected in Twostate-Resolution.dfy

@@ -6070,7 +6070,7 @@ namespace Microsoft.Dafny
       DafnyOptions.O.WarnShadowing = warnShadowingOption; // restore the original warnShadowing value
     }
 
-    enum FrameExpressionUse { Reads, Modifies, Unchanged }
+    public enum FrameExpressionUse { Reads, Modifies, Unchanged }
 
     void ResolveFrameExpression(FrameExpression fe, FrameExpressionUse use, ICodeContext codeContext) {
       Contract.Requires(fe != null);

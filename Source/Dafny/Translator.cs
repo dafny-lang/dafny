@@ -164,7 +164,7 @@ namespace Microsoft.Dafny {
       public readonly Bpl.Type TyTag;
       public readonly Bpl.Expr Null;
       public readonly Bpl.Expr NoTraitAtAll;
-      private readonly Bpl.Constant allocField;
+      public readonly Bpl.Constant AllocField;
       [ContractInvariantMethod]
       void ObjectInvariant() {
         Contract.Invariant(CharType != null);
@@ -188,7 +188,7 @@ namespace Microsoft.Dafny {
         Contract.Invariant(TyTag != null);
         Contract.Invariant(Null != null);
         Contract.Invariant(NoTraitAtAll != null);
-        Contract.Invariant(allocField != null);
+        Contract.Invariant(AllocField != null);
       }
 
       public Bpl.Type SetType(IToken tok, bool finite, Bpl.Type ty) {
@@ -233,7 +233,7 @@ namespace Microsoft.Dafny {
         Contract.Requires(tok != null);
         Contract.Ensures(Contract.Result<Bpl.IdentifierExpr>() != null);
 
-        return new Bpl.IdentifierExpr(tok, allocField);
+        return new Bpl.IdentifierExpr(tok, AllocField);
       }
 
       public PredefinedDecls(Bpl.TypeCtorDecl charType, Bpl.TypeCtorDecl refType, Bpl.TypeCtorDecl boxType, Bpl.TypeCtorDecl tickType,
@@ -294,7 +294,7 @@ namespace Microsoft.Dafny {
         this.HandleType = new Bpl.CtorType(Token.NoToken, handleType, new List<Bpl.Type>());
         this.LayerType = new Bpl.CtorType(Token.NoToken, layerType, new List<Bpl.Type>());
         this.DtCtorId = new Bpl.CtorType(Token.NoToken, dtCtorId, new List<Bpl.Type>());
-        this.allocField = allocField;
+        this.AllocField = allocField;
         this.Null = new Bpl.IdentifierExpr(Token.NoToken, "null", refT);
         this.NoTraitAtAll = new Bpl.IdentifierExpr(Token.NoToken, "NoTraitAtAll", ClassNameType);
       }
@@ -4303,15 +4303,30 @@ namespace Microsoft.Dafny {
       Contract.Requires(predef != null);
       Contract.Requires((receiverReplacement == null) == (substMap == null));
       Contract.Ensures(Contract.Result<Bpl.Expr>() != null);
+      return InRWClause(tok, o, f, rw, false, etran, receiverReplacement, substMap);
+    }
+    Bpl.Expr InRWClause(IToken tok, Bpl.Expr o, Bpl.Expr f, List<FrameExpression> rw, bool useInUnchanged,
+                        ExpressionTranslator etran,
+                        Expression receiverReplacement, Dictionary<IVariable, Expression> substMap) {
+      Contract.Requires(tok != null);
+      Contract.Requires(o != null);
+      // Contract.Requires(f != null); // f == null means approximate
+      Contract.Requires(etran != null);
+      Contract.Requires(cce.NonNullElements(rw));
+      Contract.Requires(substMap == null || cce.NonNullDictionaryAndValues(substMap));
+      Contract.Requires(predef != null);
+      Contract.Requires((receiverReplacement == null) == (substMap == null));
+      Contract.Ensures(Contract.Result<Bpl.Expr>() != null);
       var boxO = FunctionCall(tok, BuiltinFunction.Box, null, o);
-      return InRWClause_Aux(tok, o, boxO, f, rw, etran, receiverReplacement, substMap);
+      return InRWClause_Aux(tok, o, boxO, f, rw, useInUnchanged, etran, receiverReplacement, substMap);
     }
 
     /// <summary>
     /// By taking both an "o" and a "boxO" parameter, the caller has a choice of passing in either
     /// "o, Box(o)" for some "o" or "Unbox(bx), bx" for some "bx".
     /// </summary>
-    Bpl.Expr InRWClause_Aux(IToken tok, Bpl.Expr o, Bpl.Expr boxO, Bpl.Expr f, List<FrameExpression> rw, ExpressionTranslator etran,
+    Bpl.Expr InRWClause_Aux(IToken tok, Bpl.Expr o, Bpl.Expr boxO, Bpl.Expr f, List<FrameExpression> rw, bool usedInUnchanged,
+                        ExpressionTranslator etran,
                         Expression receiverReplacement, Dictionary<IVariable, Expression> substMap) {
       Contract.Requires(tok != null);
       Contract.Requires(o != null);
@@ -4362,7 +4377,12 @@ namespace Microsoft.Dafny {
           disjunct = Bpl.Expr.Eq(o, etran.TrExpr(e));
         }
         if (rwComponent.Field != null && f != null) {
-          disjunct = Bpl.Expr.And(disjunct, Bpl.Expr.Eq(f, new Bpl.IdentifierExpr(rwComponent.E.tok, GetField(rwComponent.Field))));
+          Bpl.Expr q = Bpl.Expr.Eq(f, new Bpl.IdentifierExpr(rwComponent.E.tok, GetField(rwComponent.Field)));
+          if (usedInUnchanged) {
+            q = Bpl.Expr.Or(q,
+              Bpl.Expr.Eq(f, new Bpl.IdentifierExpr(rwComponent.E.tok, predef.AllocField)));
+          }
+          disjunct = Bpl.Expr.And(disjunct, q);
         }
         disjunction = BplOr(disjunction, disjunct);
       }
@@ -5605,7 +5625,7 @@ namespace Microsoft.Dafny {
       } else if (expr is UnchangedExpr) {
         var e = (UnchangedExpr)expr;
         foreach (var fe in e.Frame) {
-          CheckWellformed(fe.E, options, locals, builder, etran.Old);
+          CheckWellformed(fe.E, options, locals, builder, etran);
         }
       } else if (expr is UnaryExpr) {
         UnaryExpr e = (UnaryExpr)expr;
@@ -6298,7 +6318,7 @@ namespace Microsoft.Dafny {
           Bpl.Expr lhs = Bpl.Expr.SelectTok(f.tok, lhs_inner, bx);
 
           var et = new ExpressionTranslator(this, predef, h);
-          var rhs = InRWClause_Aux(f.tok, unboxBx, bx, null, f.Reads, et, selfExpr, rhs_dict);
+          var rhs = InRWClause_Aux(f.tok, unboxBx, bx, null, f.Reads, false, et, selfExpr, rhs_dict);
 
           sink.AddTopLevelDeclaration(new Axiom(f.tok,
             BplForall(Cons(bxVar, Concat(vars, bvars)), BplTrigger(lhs), Bpl.Expr.Eq(lhs, rhs))));
@@ -7491,7 +7511,8 @@ namespace Microsoft.Dafny {
     ///  S2. the post-state of the two-state interval
     /// This method assumes that etranPre denotes S1, etran denotes S2, and that etranMod denotes S0.
     /// </summary>
-    List<BoilerplateTriple/*!*/>/*!*/ GetTwoStateBoilerplate(IToken/*!*/ tok, List<FrameExpression/*!*/>/*!*/ modifiesClause, bool isGhostContext, ExpressionTranslator/*!*/ etranPre, ExpressionTranslator/*!*/ etran, ExpressionTranslator/*!*/ etranMod)
+    List<BoilerplateTriple/*!*/>/*!*/ GetTwoStateBoilerplate(IToken/*!*/ tok, List<FrameExpression/*!*/>/*!*/ modifiesClause, bool isGhostContext,
+      ExpressionTranslator/*!*/ etranPre, ExpressionTranslator/*!*/ etran, ExpressionTranslator/*!*/ etranMod)
     {
       Contract.Requires(tok != null);
       Contract.Requires(modifiesClause != null);
@@ -7505,7 +7526,7 @@ namespace Microsoft.Dafny {
         boilerplate.Add(new BoilerplateTriple(tok, true, Bpl.Expr.Eq(etranPre.HeapExpr, etran.HeapExpr), null, "frame condition"));
       } else {
         // the frame condition, which is free since it is checked with every heap update and call
-        boilerplate.Add(new BoilerplateTriple(tok, true, FrameCondition(tok, modifiesClause, isGhostContext, true, etranPre, etran, etranMod), null, "frame condition"));
+        boilerplate.Add(new BoilerplateTriple(tok, true, FrameCondition(tok, modifiesClause, isGhostContext, Resolver.FrameExpressionUse.Modifies, etranPre, etran, etranMod), null, "frame condition"));
         // HeapSucc(S1, S2) or HeapSuccGhost(S1, S2)
         Bpl.Expr heapSucc = HeapSucc(etranPre.HeapExpr, etran.HeapExpr, isGhostContext);
         boilerplate.Add(new BoilerplateTriple(tok, true, heapSucc, null, "boilerplate"));
@@ -7515,37 +7536,44 @@ namespace Microsoft.Dafny {
 
     /// <summary>
     /// There are 3 states of interest when generating a frame condition:
-    ///  S0. the beginning of the method/loop, which is where the modifies clause is interpreted
+    ///  S0. the beginning of the method/loop, which is where the frame is interpreted
     ///  S1. the pre-state of the two-state interval
     ///  S2. the post-state of the two-state interval
     /// This method assumes that etranPre denotes S1, etran denotes S2, and that etranMod denotes S0.
-    /// "isModifiesClause" being "true" says to produce this frame condition:
+    /// "use" being "Modifies" says to produce this frame condition:
     ///      if it's not in the frame, then it is unchanged
-    /// and it being "false" says to produce this frame condition:
+    /// "use" being "Reads" says to produce this frame condition:
     ///      if it's in the frame, then it is unchanged
+    /// "use" being "Unchanged" says to produce this frame condition:
+    ///      if it's in the frame, then it is unchanged,
+    ///      and if it has a field designation, then furthermore 'alloc' is unchanged
     /// </summary>
-    Bpl.Expr/*!*/ FrameCondition(IToken/*!*/ tok, List<FrameExpression/*!*/>/*!*/ modifiesClause, bool isGhostContext, bool isModifiesClause,
+    Bpl.Expr/*!*/ FrameCondition(IToken/*!*/ tok, List<FrameExpression/*!*/>/*!*/ frame, bool isGhostContext, Resolver.FrameExpressionUse use,
       ExpressionTranslator/*!*/ etranPre, ExpressionTranslator/*!*/ etran, ExpressionTranslator/*!*/ etranMod)
     {
       Contract.Requires(tok != null);
       Contract.Requires(etran != null);
       Contract.Requires(etranPre != null);
-      Contract.Requires(cce.NonNullElements(modifiesClause));
+      Contract.Requires(cce.NonNullElements(frame));
       Contract.Requires(predef != null);
       Contract.Ensures(Contract.Result<Bpl.Expr>() != null);
 
       // generate:
       //  (forall<alpha> o: ref, f: Field alpha :: { $Heap[o,f] }
       //      o != null
-      // #if isModifiesClause
+      // #if use==Modifies
       //      && old($Heap)[o,alloc]                     // include only in non-ghost contexts
       // #endif
       //      ==>
-      // #if isModifiesClause
+      // #if use==Modifies
       //        $Heap[o,f] == PreHeap[o,f] ||
       //        (o,f) in modifiesClause)
       // #else
-      //        (o,f) in readsClause ==>
+      //        (o,f) in readsClause
+      // #if use==Unchanged
+      //        or f==alloc && there's some f' such that (o,f') in readsClause
+      // #endif
+      //        ==>
       //        $Heap[o,f] == PreHeap[o,f])
       // #endif
       var alpha = new Bpl.TypeVariable(tok, "alpha");
@@ -7557,12 +7585,12 @@ namespace Microsoft.Dafny {
       Bpl.Expr heapOF = ReadHeap(tok, etran.HeapExpr, o, f);
       Bpl.Expr preHeapOF = ReadHeap(tok, etranPre.HeapExpr, o, f);
       Bpl.Expr ante = Bpl.Expr.Neq(o, predef.Null);
-      if (!isGhostContext && isModifiesClause) {
+      if (!isGhostContext && use == Resolver.FrameExpressionUse.Modifies) {
         ante = Bpl.Expr.And(ante, etranMod.IsAlloced(tok, o));
       }
       var eq = Bpl.Expr.Eq(heapOF, preHeapOF);
-      var ofInFrame = InRWClause(tok, o, f, modifiesClause, etranMod, null, null);
-      Bpl.Expr consequent = isModifiesClause ? Bpl.Expr.Or(eq, ofInFrame) : Bpl.Expr.Imp(ofInFrame, eq);
+      var ofInFrame = InRWClause(tok, o, f, frame, use == Resolver.FrameExpressionUse.Unchanged, etranMod, null, null);
+      Bpl.Expr consequent = use == Resolver.FrameExpressionUse.Modifies ? Bpl.Expr.Or(eq, ofInFrame) : Bpl.Expr.Imp(ofInFrame, eq);
 
       var tr = new Bpl.Trigger(tok, true, new List<Bpl.Expr> { heapOF });
       return new Bpl.ForallExpr(tok, new List<TypeVariable> { alpha }, new List<Variable> { oVar, fVar }, null, tr, Bpl.Expr.Imp(ante, consequent));
@@ -12126,7 +12154,7 @@ namespace Microsoft.Dafny {
 
         } else if (expr is UnchangedExpr) {
           var e = (UnchangedExpr)expr;
-          return translator.FrameCondition(e.tok, e.Frame, false, false, Old, this, this);
+          return translator.FrameCondition(e.tok, e.Frame, false, Resolver.FrameExpressionUse.Unchanged, Old, this, this);
 
         } else if (expr is UnaryOpExpr) {
           var e = (UnaryOpExpr)expr;
@@ -13932,7 +13960,8 @@ namespace Microsoft.Dafny {
         if (position && e.Frame.Count > 1) {
           // split into a number of UnchangeExpr's, one for each FrameExpression
           foreach (var fe in e.Frame) {
-            Expression ee = new UnchangedExpr(e.tok, new List<FrameExpression> { fe });
+            var tok = new NestedToken(e.tok, fe.tok);
+            Expression ee = new UnchangedExpr(tok, new List<FrameExpression> { fe });
             ee.Type = Type.Bool;  // resolve here
             TrSplitExpr(ee, splits, position, heightLimit, inlineProtectedFunctions, apply_induction, etran);
           }
