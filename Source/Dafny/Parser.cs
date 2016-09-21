@@ -95,7 +95,6 @@ readonly Statement/*!*/ dummyStmt;
 readonly ModuleDecl theModule;
 readonly BuiltIns theBuiltIns;
 readonly bool theVerifyThisFile;
-readonly string fullFilename;
 int anonymousIds = 0;
 
 /// <summary>
@@ -255,11 +254,11 @@ public static int Parse (string/*!*/ s, string/*!*/ fullFilename, string/*!*/ fi
   byte[]/*!*/ buffer = cce.NonNull( UTF8Encoding.Default.GetBytes(s));
   MemoryStream ms = new MemoryStream(buffer,false);
   Scanner scanner = new Scanner(ms, errors, fullFilename, filename);
-  Parser parser = new Parser(fullFilename, scanner, errors, module, builtIns, verifyThisFile);
+  Parser parser = new Parser(scanner, errors, module, builtIns, verifyThisFile);
   parser.Parse();
   return parser.errors.ErrorCount;
 }
-public Parser(string/*!*/ fullFilename, Scanner/*!*/ scanner, Errors/*!*/ errors, ModuleDecl module, BuiltIns builtIns, bool verifyThisFile=true)
+public Parser(Scanner/*!*/ scanner, Errors/*!*/ errors, ModuleDecl module, BuiltIns builtIns, bool verifyThisFile=true)
   : this(scanner, errors)  // the real work
 {
   // initialize readonly fields
@@ -270,7 +269,6 @@ public Parser(string/*!*/ fullFilename, Scanner/*!*/ scanner, Errors/*!*/ errors
   theModule = module;
   theBuiltIns = builtIns;
   theVerifyThisFile = verifyThisFile;
-  this.fullFilename = fullFilename;
 }
 
 bool IsAttribute() {
@@ -723,7 +721,7 @@ int StringToInt(string s, int defaultValue, string errString) {
 			   includedFile = Path.Combine(basePath, includedFile);
 			   fullPath = Path.GetFullPath(includedFile);
 			 }
-			 defaultModule.Includes.Add(new Include(t, this.fullFilename, includedFile, fullPath));
+			 defaultModule.Includes.Add(new Include(t, parsedFile, includedFile, fullPath));
 			}
 			
 		}
