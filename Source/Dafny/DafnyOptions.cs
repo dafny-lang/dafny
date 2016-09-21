@@ -76,6 +76,7 @@ namespace Microsoft.Dafny
     public int DeprecationNoise = 1;
     public bool VerifyAllModules = false;
     public bool SeparateModuleOutput = false;
+    public int OptimizeResolution = 2;
     public bool IronDafny = 
 #if ENABLE_IRONDAFNY 
       true
@@ -285,6 +286,14 @@ namespace Microsoft.Dafny
             IronDafny = true;
             return true;
         }
+
+        case "optimizeResolution": {
+            int d = 2;
+            if (ps.GetNumericArgument(ref d, 3)) {
+              OptimizeResolution = d;
+            }
+            return true;
+          }
 
         default:
           break;

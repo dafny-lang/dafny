@@ -144,6 +144,17 @@ namespace Microsoft.Dafny {
     readonly Dictionary<string, Bpl.Constant> fieldConstants = new Dictionary<string,Constant>();
     readonly ISet<string> abstractTypes = new HashSet<string>();
     readonly ISet<string> opaqueTypes = new HashSet<string>();
+
+    // optimizing translation
+    readonly ISet<MemberDecl> referencedMembers = new HashSet<MemberDecl>();
+    readonly ISet<MemberDecl> translatedMembers = new HashSet<MemberDecl>();
+
+    public void AddReferencedMember(MemberDecl m) {
+      if (m is Function || m is Method) {
+        referencedMembers.Add(m);
+      }
+    }
+
     FuelContext fuelContext = null;
     Program program;
 
@@ -601,7 +612,8 @@ namespace Microsoft.Dafny {
           GetClassTyCon(ad);
           AddArrowTypeAxioms(ad);
         } else {
-          AddClassMembers((ClassDecl)d);
+          AddShallowClassMembers((ClassDecl)d);
+          AddDeepClassMembers((ClassDecl)d);
         }
       }
 
@@ -617,15 +629,41 @@ namespace Microsoft.Dafny {
           } else if (d is ModuleDecl) {
             // submodules have already been added as a top level module, ignore this.
           } else if (d is ClassDecl) {
-            AddClassMembers((ClassDecl)d);
+            AddShallowClassMembers((ClassDecl)d);
             if (d is IteratorDecl) {
               AddIteratorSpecAndBody((IteratorDecl)d);
+            }
+            if (DafnyOptions.O.OptimizeResolution < 1 || InVerificationScope(d)) {
+              AddDeepClassMembers((ClassDecl)d);
             }
           } else {
             Contract.Assert(false);
           }
         }
       }
+
+      if (DafnyOptions.O.OptimizeResolution >= 1) {
+        List<MemberDecl> toBeTranslated;
+        do {
+          toBeTranslated = referencedMembers.Except(translatedMembers).ToList();
+          foreach (var member in toBeTranslated) {
+            AddMember_Top(member);
+          }
+
+        } while ((toBeTranslated.Count() > 0));
+
+      }
+
+      /*
+      foreach (ModuleDefinition m in program.RawModules()) {
+        foreach (TopLevelDecl d in m.TopLevelDecls.FindAll(VisibleInScope)) {
+          currentDeclaration = d;
+          if (d is ClassDecl) {
+            AddClassMethods((ClassDecl)d);
+          }
+        }
+      }*/
+
 
       foreach (var c in fieldConstants.Values) {
         sink.AddTopLevelDeclaration(c);
@@ -1694,7 +1732,7 @@ namespace Microsoft.Dafny {
       return fieldName;
     }
 
-    void AddClassMembers(ClassDecl c)
+    void AddShallowClassMembers(ClassDecl c)
     {
       Contract.Requires(sink != null && predef != null);
       Contract.Requires(c != null);
@@ -1785,63 +1823,88 @@ namespace Microsoft.Dafny {
           AddAllocationAxiom(f, c);
 
         } else if (member is Function) {
-          var f = (Function)member;
-          FuelContext oldFuelContext = this.fuelContext;
-          this.fuelContext = FuelSetting.NewFuelContext(f);
-
-          AddClassMember_Function(f);
-          if (!f.IsBuiltin && InVerificationScope(f)) {
-            AddWellformednessCheck(f);
-            if (f.OverriddenFunction != null) { //it means that f is overriding its associated parent function
-              AddFunctionOverrideCheckImpl(f);
-            }
-          }
-          var cop = f as FixpointPredicate;
-          if (cop != null) {
-            AddClassMember_Function(cop.PrefixPredicate);
-            // skip the well-formedness check, because it has already been done for the fixpoint-predicate
-          }
-          this.fuelContext = oldFuelContext;
+          AddFunction_Top((Function)member);
         } else if (member is Method) {
-          Method m = (Method)member;
-          FuelContext oldFuelContext = this.fuelContext;
-          this.fuelContext = FuelSetting.NewFuelContext(m);
-
-          // wellformedness check for method specification
-          if (m.EnclosingClass is IteratorDecl && m == ((IteratorDecl)m.EnclosingClass).Member_MoveNext) {
-            // skip the well-formedness check, because it has already been done for the iterator
-          } else {
-            var proc = AddMethod(m, MethodTranslationKind.SpecWellformedness);
-            sink.AddTopLevelDeclaration(proc);
-            if (InVerificationScope(m)) {
-              AddMethodImpl(m, proc, true);
-            }
-            if (m.OverriddenMethod != null && InVerificationScope(m)) //method has overrided a parent method
-            {
-                var procOverrideChk = AddMethod(m, MethodTranslationKind.OverrideCheck);
-                sink.AddTopLevelDeclaration(procOverrideChk);
-                AddMethodOverrideCheckImpl(m, procOverrideChk);
-            }
-          }
-          // the method spec itself
-          sink.AddTopLevelDeclaration(AddMethod(m, MethodTranslationKind.Call));
-          if (m is FixpointLemma) {
-            // Let the CoCall and Impl forms to use m.PrefixLemma signature and specification (and
-            // note that m.PrefixLemma.Body == m.Body.
-            m = ((FixpointLemma)m).PrefixLemma;
-            sink.AddTopLevelDeclaration(AddMethod(m, MethodTranslationKind.CoCall));
-          }
-          if (m.Body != null && InVerificationScope(m)) {
-            // ...and its implementation
-            var proc = AddMethod(m, MethodTranslationKind.Implementation);
-            sink.AddTopLevelDeclaration(proc);
-            AddMethodImpl(m, proc, false);
-          }
-          this.fuelContext = oldFuelContext;
+          // skip methods, add them from the top-level instead
         } else {
           Contract.Assert(false); throw new cce.UnreachableException();  // unexpected member
         }
       }
+    }
+
+    void AddDeepClassMembers(ClassDecl cl) {
+      foreach (var mem in cl.Members) {
+        if (mem is Method) {
+          AddMember_Top((MemberDecl)mem);
+        }
+      }
+    }
+
+    void AddMember_Top(MemberDecl mem) {
+      Contract.Requires(mem is Method);
+      
+      translatedMembers.Add((MemberDecl)mem);
+      if (mem is Method) {
+        AddMethod_Top((Method)mem);
+      }
+
+    }
+
+    void AddFunction_Top(Function f) {
+      FuelContext oldFuelContext = this.fuelContext;
+      this.fuelContext = FuelSetting.NewFuelContext(f);
+
+      AddClassMember_Function(f);
+
+      if (!f.IsBuiltin && InVerificationScope(f)) {
+        AddWellformednessCheck(f);
+        if (f.OverriddenFunction != null) { //it means that f is overriding its associated parent function
+          AddFunctionOverrideCheckImpl(f);
+        }
+      }
+      var cop = f as FixpointPredicate;
+      if (cop != null) {
+        AddClassMember_Function(cop.PrefixPredicate);
+        // skip the well-formedness check, because it has already been done for the fixpoint-predicate
+      }
+      this.fuelContext = oldFuelContext;
+    }
+
+    void AddMethod_Top(Method m) {
+      FuelContext oldFuelContext = this.fuelContext;
+      this.fuelContext = FuelSetting.NewFuelContext(m);
+
+      // wellformedness check for method specification
+      if (m.EnclosingClass is IteratorDecl && m == ((IteratorDecl)m.EnclosingClass).Member_MoveNext) {
+        // skip the well-formedness check, because it has already been done for the iterator
+      } else {
+        var proc = AddMethod(m, MethodTranslationKind.SpecWellformedness);
+        sink.AddTopLevelDeclaration(proc);
+        if (InVerificationScope(m)) {
+          AddMethodImpl(m, proc, true);
+        }
+        if (m.OverriddenMethod != null && InVerificationScope(m)) //method has overrided a parent method
+            {
+          var procOverrideChk = AddMethod(m, MethodTranslationKind.OverrideCheck);
+          sink.AddTopLevelDeclaration(procOverrideChk);
+          AddMethodOverrideCheckImpl(m, procOverrideChk);
+        }
+      }
+      // the method spec itself
+      sink.AddTopLevelDeclaration(AddMethod(m, MethodTranslationKind.Call));
+      if (m is FixpointLemma) {
+        // Let the CoCall and Impl forms to use m.PrefixLemma signature and specification (and
+        // note that m.PrefixLemma.Body == m.Body.
+        m = ((FixpointLemma)m).PrefixLemma;
+        sink.AddTopLevelDeclaration(AddMethod(m, MethodTranslationKind.CoCall));
+      }
+      if (m.Body != null && InVerificationScope(m)) {
+        // ...and its implementation
+        var proc = AddMethod(m, MethodTranslationKind.Implementation);
+        sink.AddTopLevelDeclaration(proc);
+        AddMethodImpl(m, proc, false);
+      }
+      this.fuelContext = oldFuelContext;
     }
 
     /// <summary>
@@ -1991,6 +2054,7 @@ namespace Microsoft.Dafny {
       }
 
       var typeParams = TrTypeParamDecls(iter.TypeArgs);
+
       var name = MethodName(iter, kind);
       var proc = new Bpl.Procedure(iter.tok, name, typeParams, inParams, outParams, req, mod, ens, etran.TrAttributes(iter.Attributes, null));
 
@@ -7220,6 +7284,7 @@ namespace Microsoft.Dafny {
       }
 
       var typeParams = TrTypeParamDecls(GetTypeParams(m));
+
       var name = MethodName(m, kind);
       var proc = new Bpl.Procedure(m.tok, name, typeParams, inParams, outParams, req, mod, ens, etran.TrAttributes(m.Attributes, null));
 
@@ -9601,6 +9666,7 @@ namespace Microsoft.Dafny {
 
       builder.Add(new CommentCmd("ProcessCallStmt: Make the call"));
       // Make the call
+      AddReferencedMember(callee);
       Bpl.CallCmd call = Call(tok, MethodName(callee, kind), ins, outs);
       if (module != currentModule && RefinementToken.IsInherited(tok, currentModule) && (codeContext == null || !codeContext.MustReverify)) {
         // The call statement is inherited, so the refined module already checked that the precondition holds.  Note,
@@ -11882,6 +11948,7 @@ namespace Microsoft.Dafny {
           FunctionCallExpr e = (FunctionCallExpr)expr;
           Bpl.Expr layerArgument;
           var etran = this;
+          translator.AddReferencedMember(e.Function);
           if (e.Function.ContainsQuantifier && translator.stmtContext == StmtType.ASSUME && translator.adjustFuelForExists) {
             // we need to increase fuel functions that contain quantifier expr in the assume context.
             etran =  etran.LayerOffset(1);

@@ -280,6 +280,10 @@ namespace Microsoft.Dafny
 
       rewriters = new List<IRewriter>();
 
+      if (!DafnyOptions.O.VerifyAllModules && DafnyOptions.O.OptimizeResolution >= 2) {
+        rewriters.Add(new OptimizedLemmaBodiesRewriter(reporter));
+      }
+
       refinementTransformer = new RefinementTransformer(prog);
       rewriters.Add(refinementTransformer);
       rewriters.Add(new AutoContractsRewriter(reporter));
@@ -11727,6 +11731,8 @@ namespace Microsoft.Dafny
       return bounds;
     }
 
+    private static Translator constraintTranslator = new Translator(null);
+
     public static Expression GetImpliedTypeConstraint(IVariable bv, Type ty) {
       return GetImpliedTypeConstraint(Expression.CreateIdentExpr(bv), ty);
     }
@@ -11740,13 +11746,13 @@ namespace Microsoft.Dafny
           var dd = (NewtypeDecl)udt.ResolvedClass;
           var c = GetImpliedTypeConstraint(e, dd.BaseType);
           if (dd.Var != null) {
-            c = Expression.CreateAnd(c, new Translator(null).Substitute(dd.Constraint, dd.Var, e));
+            c = Expression.CreateAnd(c, constraintTranslator.Substitute(dd.Constraint, dd.Var, e));
           }
           return c;
         } else if (udt.ResolvedClass is SubsetTypeDecl) {
           var dd = (SubsetTypeDecl)udt.ResolvedClass;
           var c = GetImpliedTypeConstraint(e, dd.RhsWithArgument(udt.TypeArgs));
-          c = Expression.CreateAnd(c, new Translator(null).Substitute(dd.Constraint, dd.Var, e));
+          c = Expression.CreateAnd(c, constraintTranslator.Substitute(dd.Constraint, dd.Var, e));
           return c;
         }
       }
