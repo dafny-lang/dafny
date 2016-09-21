@@ -1691,7 +1691,7 @@ namespace Microsoft.Dafny
       // Okay, here we go, coming up with good induction setting for the given situation
       var inductionVariables = new List<Expression>();
       foreach (IVariable n in boundVars) {
-        if (!n.Type.IsTypeParameter && (args != null || searchExprs.Exists(expr => VarOccursInArgumentToRecursiveFunction(expr, n)))) {
+        if (!(n.Type.IsTypeParameter || n.Type.IsInternalTypeSynonym) && (args != null || searchExprs.Exists(expr => VarOccursInArgumentToRecursiveFunction(expr, n)))) {
           inductionVariables.Add(new IdentifierExpr(n.Tok, n));
         }
       }

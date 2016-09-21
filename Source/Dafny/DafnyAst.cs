@@ -526,9 +526,6 @@ namespace Microsoft.Dafny {
     }
 
     public static void EnableScopes() {
-      if (scopesEnabled) {
-        Contract.Assert(true);
-      }
       Contract.Assert(!scopesEnabled);
       scopesEnabled = true;
     }
@@ -945,7 +942,7 @@ namespace Microsoft.Dafny {
     /// </summary>
     public bool IsOrdered {
       get {
-        return !IsTypeParameter && !IsCoDatatype && !IsArrowType && !IsIMapType && !IsISetType;
+        return !IsTypeParameter && !IsInternalTypeSynonym && !IsCoDatatype && !IsArrowType && !IsIMapType && !IsISetType;
       }
     }
 
@@ -957,7 +954,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(sub != null);
       super = super.NormalizeExpand();
       sub = sub.NormalizeExpand();
-      if (super.IsBoolType || super.IsCharType || super.IsNumericBased() || super.IsTypeParameter || super is TypeProxy) {
+      if (super.IsBoolType || super.IsCharType || super.IsNumericBased() || super.IsTypeParameter || super.IsInternalTypeSynonym || super is TypeProxy) {
         return super.Equals(sub);
       } else if (super is IntVarietiesSupertype) {
         return sub.IsNumericBased(NumericPersuation.Int) || sub.IsBitVectorType;
@@ -1045,7 +1042,7 @@ namespace Microsoft.Dafny {
     public static bool IsHeadSupertype(Type super, Type sub) {
       Contract.Requires(super != null && !(super is TypeProxy) && !(super is ArtificialType));
       Contract.Requires(sub != null && !(sub is TypeProxy) && !(sub is ArtificialType));
-      if (super.IsBoolType || super.IsCharType || super.IsNumericBased() || super.IsTypeParameter) {
+      if (super.IsBoolType || super.IsCharType || super.IsNumericBased() || super.IsTypeParameter || super.IsInternalTypeSynonym) {
         return super.Equals(sub);
       } else if (super is SetType) {
         var aa = (SetType)super;
@@ -1156,7 +1153,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(b != null);
       a = a.NormalizeExpand();
       b = b.NormalizeExpand();
-      if (a.IsBoolType || a.IsCharType || a.IsTypeParameter || a is TypeProxy) {
+      if (a.IsBoolType || a.IsCharType || a.IsTypeParameter || a.IsInternalTypeSynonym || a is TypeProxy) {
         return a.Equals(b) ? a : null;
       } else if (a.IsNumericBased()) {
         // Note, for meet, we choose not to step down to IntVarietiesSupertype or RealVarietiesSupertype
@@ -1307,7 +1304,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(b != null);
       a = a.NormalizeExpand();
       b = b.NormalizeExpand();
-      if (a.IsBoolType || a.IsCharType || a.IsTypeParameter || a is TypeProxy) {
+      if (a.IsBoolType || a.IsCharType || a.IsTypeParameter || a.IsInternalTypeSynonym || a is TypeProxy) {
         return a.Equals(b) ? a : null;
       } else if (a is IntVarietiesSupertype) {
         return b is IntVarietiesSupertype || b.IsNumericBased(NumericPersuation.Int) || b.IsBitVectorType ? b : null;
@@ -4290,9 +4287,6 @@ namespace Microsoft.Dafny {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
       Contract.Requires(type != null);
-      if (type.ToString() == "ConstantsState" || name == "parsed_config") {
-        Contract.Assert(true);
-      }
     }
   }
 
@@ -7300,10 +7294,6 @@ namespace Microsoft.Dafny {
       Name = v.Name;
       Var = v;
       Type = v.Type.StripSubsetConstraints();
-
-      if (Name == "parsed_config") {
-        Contract.Assert(true);
-      }
     }
   }
 

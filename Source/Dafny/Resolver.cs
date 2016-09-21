@@ -2930,10 +2930,14 @@ namespace Microsoft.Dafny
         var udfSuper = (UserDefinedType)super;
         var clSuper = udfSuper.ResolvedClass;
         if (clSuper == null) {
-          // we're looking at a type parameter
-          Contract.Assert(super.IsTypeParameter);
           Contract.Assert(super.TypeArgs.Count == 0);
-          return super.AsTypeParameter == sub.AsTypeParameter ? new List<int>() : null;
+          if (super.IsTypeParameter) {
+            // we're looking at a type parameter
+            return super.AsTypeParameter == sub.AsTypeParameter ? new List<int>() : null;
+          } else {
+            Contract.Assert(super.IsInternalTypeSynonym);
+            return super.AsInternalTypeSynonym == sub.AsInternalTypeSynonym ? new List<int>() : null;
+          }
         }
         var udfSub = sub as UserDefinedType;
         var clSub = udfSub == null ? null : udfSub.ResolvedClass;
@@ -3005,10 +3009,14 @@ namespace Microsoft.Dafny
         var udfA = (UserDefinedType)a;
         var clA = udfA.ResolvedClass;
         if (clA == null) {
-          // we're looking at a type parameter
-          Contract.Assert(a.IsTypeParameter);
           Contract.Assert(a.TypeArgs.Count == 0);
-          return a.AsTypeParameter == b.AsTypeParameter ? 0 : -1;
+          if (a.IsTypeParameter) {
+            // we're looking at a type parameter
+            return a.AsTypeParameter == b.AsTypeParameter ? 0 : -1;
+          } else {
+            Contract.Assert(a.IsInternalTypeSynonym);
+            return a.AsInternalTypeSynonym == b.AsInternalTypeSynonym ? 0 : -1;
+          }
         }
         treatTypeParametersAsWildcards = a.IsRefType;
         var udfB = b as UserDefinedType;
@@ -3080,10 +3088,14 @@ namespace Microsoft.Dafny
         var udfA = (UserDefinedType)a;
         var clA = udfA.ResolvedClass;
         if (clA == null) {
-          // we're looking at a type parameter
-          Contract.Assert(a.IsTypeParameter);
           Contract.Assert(a.TypeArgs.Count == 0);
-          return a.AsTypeParameter == b.AsTypeParameter ? 0 : -1;
+          if (a.IsTypeParameter) {
+            // we're looking at a type parameter
+            return a.AsTypeParameter == b.AsTypeParameter ? 0 : -1;
+          } else {
+            Contract.Assert(a.IsInternalTypeSynonym);
+            return a.AsInternalTypeSynonym == b.AsInternalTypeSynonym ? 0 : -1;
+          }
         }
         var udfB = b as UserDefinedType;
         var clB = udfB == null ? null : udfB.ResolvedClass;
@@ -10412,10 +10424,6 @@ namespace Microsoft.Dafny
       if (sourceType.IsDatatype) {
         udt = (UserDefinedType)sourceType.NormalizeExpand();
         dtd = (DatatypeDecl)udt.ResolvedClass;
-
-        if (sourceType != udt) {
-          Contract.Assert(true);
-        }
       }
       // Find the constructor in the given datatype
       // If what was parsed was just an identifier, we will interpret it as a datatype constructor, if possible

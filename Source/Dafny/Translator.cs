@@ -7082,7 +7082,6 @@ namespace Microsoft.Dafny {
       Contract.Requires(currentModule == null && codeContext == null);
       Contract.Ensures(currentModule == null && codeContext == null);
       Contract.Ensures(Contract.Result<Bpl.Procedure>() != null);
-
       Contract.Assert(VisibleInScope(m));
 
       currentModule = m.EnclosingClass.Module;

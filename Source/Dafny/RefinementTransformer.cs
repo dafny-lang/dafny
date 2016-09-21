@@ -433,10 +433,6 @@ namespace Microsoft.Dafny
         ens.AddRange(moreEnsures);
       }
 
-      if (m.Name == "HostInitImpl") {
-        Contract.Assert(true);
-      }
-
       var body = newBody ?? refinementCloner.CloneBlockStmt(m.Body);
       if (m is Constructor) {
         return new Constructor(new RefinementToken(m.tok, moduleUnderConstruction), m.Name, tps, ins,
