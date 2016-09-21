@@ -177,6 +177,10 @@ namespace Microsoft.Dafny {
     [Pure]
     bool InVerificationScope(Declaration d) {
       Contract.Requires(d != null);
+      if (d.tok is IncludeToken && !DafnyOptions.O.VerifyAllModules) {
+        return false;
+      }
+
       if (d.IsVisibleInScope(verificationScope)) {
         Contract.Assert(d.IsRevealedInScope(verificationScope));
         return true;
@@ -552,6 +556,7 @@ namespace Microsoft.Dafny {
 
     private Bpl.Program DoTranslation(Program p, ModuleDefinition forModule) {
       program = p;
+      Type.EnableScopes();
 
       EstablishModuleScope(p.BuiltIns.SystemModule, forModule);
       Type.PushScope(this.currentScope);
@@ -642,13 +647,14 @@ namespace Microsoft.Dafny {
       }
 
       Type.PopScope(this.currentScope);
+      Type.DisableScopes();
       return sink;
 
     }
 
     // Don't verify modules which only contain other modules
     private static bool ShouldVerifyModule(ModuleDefinition m) {
-      if (!m.IsToBeVerified)
+      if (!m.IsToBeVerified && !DafnyOptions.O.VerifyAllModules)
         return false;
 
       foreach (var top in m.TopLevelDecls) {
@@ -663,35 +669,28 @@ namespace Microsoft.Dafny {
       return false;
     }
 
-    public static Dictionary<string, Bpl.Program> Translate(Program p, ErrorReporter reporter, TranslatorFlags flags = null) {
+    public static IEnumerable<ModuleDefinition> VerifiableModules(Program p) {
+      return p.RawModules().Where(ShouldVerifyModule);
+    }
+
+    public static IEnumerable<Tuple<string, Bpl.Program>> Translate(Program p, ErrorReporter reporter, TranslatorFlags flags = null) {
       Contract.Requires(p != null);
       Contract.Requires(p.ModuleSigs.Count > 0);
-      Contract.Ensures(Contract.Result<Dictionary<string, Bpl.Program>>().Count > 0);
-      Contract.Ensures(Contract.Result<Dictionary<string, Bpl.Program>>().All(ccep => ccep.Value != null));
 
-      Dictionary<string, Bpl.Program> programs = new Dictionary<string, Bpl.Program>();
       Type.ResetScopes();
-      Type.EnableScopes();
-      foreach (ModuleDefinition outerModule in p.RawModules().Where(ShouldVerifyModule)) {
+
+      foreach (ModuleDefinition outerModule in VerifiableModules(p)) {
 
         var translator = new Translator(reporter, flags);
 
         if (translator.sink == null || translator.sink == null) {
           // something went wrong during construction, which reads the prelude; an error has
           // already been printed, so just return an empty program here (which is non-null)
-          programs.Add(outerModule.CompileName, new Bpl.Program());
-          continue;
+          yield return new Tuple<string,Bpl.Program>(outerModule.CompileName, new Bpl.Program());
         }
-
-        programs.Add(outerModule.CompileName, translator.DoTranslation(p, outerModule));
+        yield return new Tuple<string, Bpl.Program>(outerModule.CompileName, translator.DoTranslation(p, outerModule));
       }
-      Type.DisableScopes();
-
-      if (programs.Count == 0) {
-        programs.Add(p.Name, new Bpl.Program());
-      }
-
-      return programs;
+      
     }
 
     public Bpl.Type BplBvType(int width) {
@@ -1791,7 +1790,7 @@ namespace Microsoft.Dafny {
           this.fuelContext = FuelSetting.NewFuelContext(f);
 
           AddClassMember_Function(f);
-          if (!f.IsBuiltin && !(f.tok is IncludeToken) && InVerificationScope(f)) {
+          if (!f.IsBuiltin && InVerificationScope(f)) {
             AddWellformednessCheck(f);
             if (f.OverriddenFunction != null) { //it means that f is overriding its associated parent function
               AddFunctionOverrideCheckImpl(f);
@@ -1814,7 +1813,7 @@ namespace Microsoft.Dafny {
           } else {
             var proc = AddMethod(m, MethodTranslationKind.SpecWellformedness);
             sink.AddTopLevelDeclaration(proc);
-            if (!(m.tok is IncludeToken) && InVerificationScope(m)) {
+            if (InVerificationScope(m)) {
               AddMethodImpl(m, proc, true);
             }
             if (m.OverriddenMethod != null && InVerificationScope(m)) //method has overrided a parent method
@@ -1832,7 +1831,7 @@ namespace Microsoft.Dafny {
             m = ((FixpointLemma)m).PrefixLemma;
             sink.AddTopLevelDeclaration(AddMethod(m, MethodTranslationKind.CoCall));
           }
-          if (m.Body != null && !(m.tok is IncludeToken) && InVerificationScope(m)) {
+          if (m.Body != null && InVerificationScope(m)) {
             // ...and its implementation
             var proc = AddMethod(m, MethodTranslationKind.Implementation);
             sink.AddTopLevelDeclaration(proc);
@@ -4680,7 +4679,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(currentModule == null && codeContext == null);
       Contract.Ensures(currentModule == null && codeContext == null);
 
-      if (decl.tok is IncludeToken || !InVerificationScope(decl)) {
+      if (!InVerificationScope(decl)) {
         // Checked in other file
         return;
       }
@@ -9855,7 +9854,7 @@ namespace Microsoft.Dafny {
       } else if (t is ArrowType) {
         return u is ArrowType;
       } else {
-        Contract.Assert(t.IsTypeParameter);
+        Contract.Assert(t.IsTypeParameter || t.IsInternalTypeSynonym);
         return false;  // don't consider any type parameters to be the same (since we have no comparison function for them anyway)
       }
     }

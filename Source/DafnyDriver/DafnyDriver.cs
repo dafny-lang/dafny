@@ -17,6 +17,7 @@ namespace Microsoft.Dafny
   using System.Diagnostics.Contracts;
   using System.IO;
   using System.Reflection;
+  using System.Linq;
 
   using Microsoft.Boogie;
   using Bpl = Microsoft.Boogie;
@@ -203,21 +204,22 @@ namespace Microsoft.Dafny
       return Path.Combine(dirName, baseName + "_" + suffix + Path.GetExtension(printFile));
     }
 
-    public static Dictionary<string, Bpl.Program> Translate(Program dafnyProgram)
-    {
-      var boogiePrograms = Translator.Translate(dafnyProgram, dafnyProgram.reporter);
-      if (CommandLineOptions.Clo.PrintFile != null)
-      {
-        
-        foreach (var prog in boogiePrograms) {
+    public static IEnumerable<Tuple<string, Bpl.Program>> Translate(Program dafnyProgram) {
+      var nmodules = Translator.VerifiableModules(dafnyProgram).Count();
 
-          var nm = boogiePrograms.Count > 1 ? BoogieProgramSuffix(CommandLineOptions.Clo.PrintFile, prog.Key) : CommandLineOptions.Clo.PrintFile;
-          ExecutionEngine.PrintBplFile(nm, prog.Value, false, false, CommandLineOptions.Clo.PrettyPrint);
 
+      foreach (var prog in Translator.Translate(dafnyProgram, dafnyProgram.reporter)) {
+
+        if (CommandLineOptions.Clo.PrintFile != null) {
+
+          var nm = nmodules > 1 ? BoogieProgramSuffix(CommandLineOptions.Clo.PrintFile, prog.Item1) : CommandLineOptions.Clo.PrintFile;
+
+          ExecutionEngine.PrintBplFile(nm, prog.Item2, false, false, CommandLineOptions.Clo.PrettyPrint);
         }
-        
+
+        yield return prog;
+
       }
-      return boogiePrograms;
     }
 
     public static bool BoogieOnce(string baseFile, string moduleName, Bpl.Program boogieProgram, string programId,
@@ -247,8 +249,8 @@ namespace Microsoft.Dafny
       return stats.ErrorCount == 0 && stats.InconclusiveCount == 0 && stats.TimeoutCount == 0 && stats.OutOfMemoryCount == 0;
     }
 
-    public static bool Boogie(string baseName, Dictionary<string, Bpl.Program> boogiePrograms, string programId, out Dictionary<string, PipelineStatistics> statss, out PipelineOutcome oc) {
-      Contract.Requires(boogiePrograms.Count > 0);
+    public static bool Boogie(string baseName, IEnumerable<Tuple<string, Bpl.Program>> boogiePrograms, string programId, out Dictionary<string, PipelineStatistics> statss, out PipelineOutcome oc) {
+
       bool isVerified = true;
       oc = PipelineOutcome.VerificationCompleted;
       statss = new Dictionary<string, PipelineStatistics>();
@@ -257,13 +259,18 @@ namespace Microsoft.Dafny
         PipelineStatistics newstats;
         PipelineOutcome newoc;
 
-        isVerified = BoogieOnce(baseName, prog.Key, prog.Value, programId, out newstats, out newoc) && isVerified;
+        isVerified = BoogieOnce(baseName, prog.Item1, prog.Item2, programId, out newstats, out newoc) && isVerified;
 
         if ((oc == PipelineOutcome.VerificationCompleted || oc == PipelineOutcome.Done) && newoc != PipelineOutcome.VerificationCompleted) {
           oc = newoc;
         }
 
-        statss.Add(prog.Key, newstats);
+        if (DafnyOptions.O.SeparateModuleOutput) {
+          ExecutionEngine.printer.AdvisoryWriteLine("For module: {0}\n", prog.Item1);
+          ExecutionEngine.printer.WriteTrailer(newstats);
+        }
+
+        statss.Add(prog.Item1, newstats);
       }
 
       return isVerified;

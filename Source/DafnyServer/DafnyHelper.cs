@@ -33,7 +33,7 @@ namespace Microsoft.Dafny {
 
     private readonly Dafny.ErrorReporter reporter;
     private Dafny.Program dafnyProgram;
-    private Dictionary<string, Bpl.Program> boogiePrograms;
+    private IEnumerable<Tuple<string, Bpl.Program>> boogiePrograms;
 
     public DafnyHelper(string[] args, string fname, string source) {
       this.args = args;
@@ -91,7 +91,7 @@ namespace Microsoft.Dafny {
     private bool Boogie() {
       var isVerified = true;
       foreach (var boogieProgram in boogiePrograms) {
-        isVerified = isVerified && BoogieOnce(boogieProgram.Value);
+        isVerified = isVerified && BoogieOnce(boogieProgram.Item2);
       }
       return isVerified;
     }

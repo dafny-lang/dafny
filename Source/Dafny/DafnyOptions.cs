@@ -74,6 +74,8 @@ namespace Microsoft.Dafny
     public bool PrintFunctionCallGraph = false;
     public bool WarnShadowing = false;
     public int DeprecationNoise = 1;
+    public bool VerifyAllModules = false;
+    public bool SeparateModuleOutput = false;
     public bool IronDafny = 
 #if ENABLE_IRONDAFNY 
       true
@@ -223,6 +225,14 @@ namespace Microsoft.Dafny
 
         case "warnShadowing":
           WarnShadowing = true;
+          return true;
+
+        case "verifyAllModules":
+          VerifyAllModules = true;
+          return true;
+
+        case "separateModuleOutput":
+          SeparateModuleOutput = true;
           return true;
 
         case "deprecation": {
@@ -430,6 +440,11 @@ namespace Microsoft.Dafny
                 0 - don't give any warnings about deprecated features
                 1 (default) - show warnings about deprecated features
                 2 - also point out where there's new simpler syntax
+  /verifyAllModules 
+                Verify modules that come from an include directive
+  /separateModuleOutput
+                Output verification results for each module separately, rather than
+                aggregating them after they are all finished.
   /ironDafny    Enable experimental features needed to support Ironclad/Ironfleet. Use of
                 these features may cause your code to become incompatible with future
                 releases of Dafny.
