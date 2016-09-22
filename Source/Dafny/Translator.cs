@@ -10817,6 +10817,8 @@ namespace Microsoft.Dafny {
         }
         // assume $IsGoodHeap($Heap);
         builder.Add(AssumeGoodHeap(tok, etran));
+        // assume $IsHeapAnchor($Heap);
+        builder.Add(new Bpl.AssumeCmd(tok, FunctionCall(tok, BuiltinFunction.IsHeapAnchor, null, etran.HeapExpr)));
         if (tRhs.InitCall != null) {
           AddComment(builder, tRhs.InitCall, "init call statement");
           TrCallStmt(tRhs.InitCall, builder, locals, etran, nw);
