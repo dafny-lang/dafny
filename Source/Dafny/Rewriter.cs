@@ -408,8 +408,8 @@ namespace Microsoft.Dafny
   ///    modifies Repr
   ///    ensures Valid() && fresh(Repr - old(Repr))
   /// At the end of the body of the method, add:
-  ///    if (A != null) { Repr := Repr + {A}; }
-  ///    if (F != null) { Repr := Repr + {F} + F.Repr; }
+  ///    if (A != null && !(A in Repr)) { Repr := Repr + {A}; }
+  ///    if (F != null && !(F in Repr && F.Repr SUBSET Repr)) { Repr := Repr + {F} + F.Repr; }
   /// For every non-static non-twostate method that is either ghost or is a "simple query method",
   /// add:
   ///    requires Valid()
@@ -720,25 +720,33 @@ namespace Microsoft.Dafny
 
       foreach (var ff in subobjects) {
         var F = new MemberSelectExpr(tok, implicitSelf, ff.Item1);  // create a resolved MemberSelectExpr
-        Expression e = new SetDisplayExpr(tok, true, new List<Expression>() { F });
-        e.Type = new SetType(true, new ObjectType());  // resolve here
-        var rhs = new BinaryExpr(tok, BinaryExpr.Opcode.Add, Repr, e);
-        rhs.ResolvedOp = BinaryExpr.ResolvedOpcode.Union;  // resolve here
-        rhs.Type = Repr.Type;  // resolve here
+        Expression e = new SetDisplayExpr(tok, true, new List<Expression>() { F }) {
+          Type = new SetType(true, new ObjectType())  // resolve here
+        };
+        var rhs = new BinaryExpr(tok, BinaryExpr.Opcode.Add, Repr, e) {
+          ResolvedOp = BinaryExpr.ResolvedOpcode.Union,
+          Type = Repr.Type
+        };
+        Expression nguard = BinBoolExpr(tok, BinaryExpr.ResolvedOpcode.InSet, F, Repr);  // F in Repr
         if (ff.Item2 == null) {
           // Repr := Repr + {F}  (so, nothing else to do)
         } else {
           // Repr := Repr + {F} + F.Repr
           var FRepr = new MemberSelectExpr(tok, F, ff.Item2);  // create resolved MemberSelectExpr
-          rhs = new BinaryExpr(tok, BinaryExpr.Opcode.Add, rhs, FRepr);
-          rhs.ResolvedOp = BinaryExpr.ResolvedOpcode.Union;  // resolve here
-          rhs.Type = Repr.Type;  // resolve here
+          rhs = new BinaryExpr(tok, BinaryExpr.Opcode.Add, rhs, FRepr) {
+            ResolvedOp = BinaryExpr.ResolvedOpcode.Union,
+            Type = Repr.Type
+          };
+          var ng = BinBoolExpr(tok, BinaryExpr.ResolvedOpcode.Subset, FRepr, Repr);  // F.Repr <= Repr
+          nguard = Expression.CreateAnd(nguard, ng);
         }
         // Repr := Repr + ...;
         Statement s = new AssignStmt(tok, tok, Repr, new ExprRhs(rhs));
         s.IsGhost = true;
         // wrap if statement around s
-        e = BinBoolExpr(tok, BinaryExpr.ResolvedOpcode.NeqCommon, F, cNull);
+        e = Expression.CreateAnd(
+          BinBoolExpr(tok, BinaryExpr.ResolvedOpcode.NeqCommon, F, cNull),
+          Expression.CreateNot(tok, nguard));
         var thn = new BlockStmt(tok, tok, new List<Statement>() { s });
         thn.IsGhost = true;
         s = new IfStmt(tok, tok, false, e, thn, null);
