@@ -426,9 +426,26 @@ namespace Microsoft.Dafny
         }
       } else if (f is FixpointPredicate) {
         reporter.Error(MessageSource.RefinementTransformer, nw, "refinement of {0}s is not supported", f.WhatKind);
+      } else if (f is TwoStatePredicate) {
+        if (!(nw is TwoStatePredicate)) {
+          reporter.Error(MessageSource.RefinementTransformer, nw, "a twostate predicate declaration ({0}) can only be refined by a twostate predicate", nw.Name);
+        } else {
+          CheckAgreement_TypeParameters(nw.tok, f.TypeArgs, nw.TypeArgs, nw.Name, "twostate predicate", false);
+          CheckAgreementResolvedParameters(nw.tok, f.Formals, nw.Formals, nw.Name, "twostate predicate", "parameter");
+        }
+      } else if (f is TwoStateFunction) {
+        if (!(nw is TwoStateFunction) || nw is TwoStatePredicate) {
+          reporter.Error(MessageSource.RefinementTransformer, nw, "a twostate function declaration ({0}) can only be refined by a twostate function", nw.Name);
+        } else {
+          CheckAgreement_TypeParameters(nw.tok, f.TypeArgs, nw.TypeArgs, nw.Name, "twostate function", false);
+          CheckAgreementResolvedParameters(nw.tok, f.Formals, nw.Formals, nw.Name, "twostate function", "parameter");
+          if (!ResolvedTypesAreTheSame(nw.ResultType, f.ResultType)) {
+            reporter.Error(MessageSource.RefinementTransformer, nw, "the result type of twostate function '{0}' ({1}) differs from the result type of the corresponding twostate function in the module it refines ({2})", nw.Name, nw.ResultType, f.ResultType);
+          }
+        }
       } else {
         // f is a plain Function
-        if (nw is Predicate || nw is FixpointPredicate) {
+        if (nw is Predicate || nw is FixpointPredicate || nw is TwoStateFunction) {
           reporter.Error(MessageSource.RefinementTransformer, nw, "a {0} declaration ({1}) can only be refined by a function or function method", nw.IsGhost ? "function" : "function method", nw.Name);
         } else {
           CheckAgreement_TypeParameters(nw.tok, f.TypeArgs, nw.TypeArgs, nw.Name, "function", false);
@@ -596,6 +613,12 @@ namespace Microsoft.Dafny
       } else if (f is CoPredicate) {
         return new CoPredicate(tok, f.Name, f.HasStaticKeyword, f.IsProtected, tps, formals,
           req, reads, ens, body, refinementCloner.MergeAttributes(f.Attributes, moreAttributes), null, f);
+      } else if (f is TwoStatePredicate) {
+        return new TwoStatePredicate(tok, f.Name, f.HasStaticKeyword, tps, formals,
+          req, reads, ens, decreases, body, refinementCloner.MergeAttributes(f.Attributes, moreAttributes), null, f);
+      } else if (f is TwoStateFunction) {
+        return new TwoStateFunction(tok, f.Name, f.HasStaticKeyword, tps, formals, refinementCloner.CloneType(f.ResultType),
+          req, reads, ens, decreases, body, refinementCloner.MergeAttributes(f.Attributes, moreAttributes), null, f);
       } else {
         return new Function(tok, f.Name, f.HasStaticKeyword, f.IsProtected, isGhost, tps, formals, refinementCloner.CloneType(f.ResultType),
           req, reads, ens, decreases, body, refinementCloner.MergeAttributes(f.Attributes, moreAttributes), null, f);
@@ -747,7 +770,9 @@ namespace Microsoft.Dafny
             if (!(member is Function) ||
               (isPredicate && !(member is Predicate)) ||
               (isIndPredicate && !(member is InductivePredicate)) ||
-              (isCoPredicate && !(member is CoPredicate))) {
+              (isCoPredicate && !(member is CoPredicate)) ||
+              (f is TwoStatePredicate && !(member is TwoStatePredicate)) ||
+              (f is TwoStateFunction && (!(member is TwoStateFunction) || member is TwoStatePredicate))) {
               reporter.Error(MessageSource.RefinementTransformer, nwMember, "a {0} declaration ({1}) can only refine a {0}", f.WhatKind, nwMember.Name);
             } else if (f.IsProtected != ((Function)member).IsProtected) {
               reporter.Error(MessageSource.RefinementTransformer, f, "a {0} in a refinement module must be declared 'protected' if and only if the refined {0} is", f.WhatKind);

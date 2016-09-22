@@ -6040,7 +6040,7 @@ namespace Microsoft.Dafny
         DafnyOptions.O.WarnShadowing = warnShadowing;  // set the value according to the attribute
       }
       foreach (Expression r in f.Req) {
-        ResolveExpression(r, new ResolveOpts(f, false));
+        ResolveExpression(r, new ResolveOpts(f, f is TwoStateFunction));
         Contract.Assert(r.Type != null);  // follows from postcondition of ResolveExpression
         ConstrainTypeExprBool(r, "Precondition must be a boolean (got {0})");
       }
@@ -6048,19 +6048,19 @@ namespace Microsoft.Dafny
         ResolveFrameExpression(fr, FrameExpressionUse.Reads, f);
       }
       foreach (Expression r in f.Ens) {
-        ResolveExpression(r, new ResolveOpts(f, false));  // since this is a function, the postcondition is still a one-state predicate
+        ResolveExpression(r, new ResolveOpts(f, f is TwoStateFunction));  // since this is a function, the postcondition is still a one-state predicate, unless it's a two-state function
         Contract.Assert(r.Type != null);  // follows from postcondition of ResolveExpression
         ConstrainTypeExprBool(r, "Postcondition must be a boolean (got {0})");
       }
-      ResolveAttributes(f.Decreases.Attributes, null, new ResolveOpts(f, false));
+      ResolveAttributes(f.Decreases.Attributes, null, new ResolveOpts(f, f is TwoStateFunction));
       foreach (Expression r in f.Decreases.Expressions) {
-        ResolveExpression(r, new ResolveOpts(f, false));
+        ResolveExpression(r, new ResolveOpts(f, f is TwoStateFunction));
         // any type is fine
       }
       SolveAllTypeConstraints();
       if (f.Body != null) {
         var prevErrorCount = reporter.Count(ErrorLevel.Error);
-        ResolveExpression(f.Body, new ResolveOpts(f, false));
+        ResolveExpression(f.Body, new ResolveOpts(f, f is TwoStateFunction));
         Contract.Assert(f.Body.Type != null);  // follows from postcondition of ResolveExpression
         ConstrainSubtypeRelation(f.ResultType, f.Body.Type, f.tok, "Function body type mismatch (expected {0}, got {1})", f.ResultType, f.Body.Type);
         SolveAllTypeConstraints();
