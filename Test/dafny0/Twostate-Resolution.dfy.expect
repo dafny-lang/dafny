@@ -89,9 +89,44 @@ module PrettyPrinting {
     y.Floor as real == y
   }
 }
+
+module F {
+  class U {
+    var aa: int
+    var bb: int
+    var next: U
+
+    static twostate function H(x: int, new u: object): real
+    {
+      assert u == this;
+      x as real
+    }
+
+    twostate predicate R(y: real, new u: object)
+    {
+      y.Floor
+    }
+
+    twostate function G(x: int, new u: object): real
+      requires this != u
+      requires old(aa) <= aa && unchanged(`bb)
+      reads this, old(next)
+      ensures old(aa) <= aa && old(G(x, u)) == G(x, u)
+      decreases old(aa) - old(aa) + x
+    {
+      if 0 < x then
+        G(x - 1, u)
+      else
+        x as real
+    }
+  }
+}
 Twostate-Resolution.dfy(13,15): Error: twostate lemmas are not allowed to have modifies clauses
 Twostate-Resolution.dfy(25,15): Error: unchanged expressions are not allowed in this context
 Twostate-Resolution.dfy(28,15): Error: unchanged expressions are not allowed in this context
 Twostate-Resolution.dfy(31,15): Error: unchanged expressions are not allowed in this context
 Twostate-Resolution.dfy(32,14): Error: unchanged expressions are not allowed in this context
-5 resolution/type errors detected in Twostate-Resolution.dfy
+Twostate-Resolution.dfy(93,18): Error: 'this' is not allowed in a 'static' context
+Twostate-Resolution.dfy(97,23): Error: Function body type mismatch (expected bool, got int)
+Twostate-Resolution.dfy(106,12): Error: old expressions are not allowed in this context
+8 resolution/type errors detected in Twostate-Resolution.dfy

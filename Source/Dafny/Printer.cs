@@ -1386,6 +1386,12 @@ namespace Microsoft.Dafny {
         PrintExpressionList(e.RHSs, true);
         wr.WriteLine(";");
         PrintExtendedExpr(e.Body, indent, isRightmost, endWithCloseParen);
+      } else if (expr is StmtExpr && isRightmost) {
+        var e = (StmtExpr)expr;
+        Indent(indent);
+        PrintStatement(e.S, indent);
+        wr.WriteLine();
+        PrintExtendedExpr(e.E, indent, isRightmost, endWithCloseParen);
 
       } else if (expr is ParensExpression) {
         PrintExtendedExpr(((ParensExpression)expr).E, indent, isRightmost, endWithCloseParen);
