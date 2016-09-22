@@ -1,0 +1,4 @@
+Twostate-Functions.dfy(11,16): Error: 'this' is not allowed in a 'static' context
+Twostate-Functions.dfy(15,21): Error: Function body type mismatch (expected bool, got int)
+Twostate-Functions.dfy(24,10): Error: old expressions are not allowed in this context
+3 resolution/type errors detected in Twostate-Functions.dfy

@@ -239,6 +239,9 @@ bool IsFunctionDecl() {
       return true;
     case _inductive:
       return scanner.Peek().kind != _lemma;
+    case _twostate:
+      var x = scanner.Peek();
+      return x.kind == _function || x.kind == _predicate;
     default:
       return false;
   }
@@ -654,6 +657,7 @@ TOKENS
   function = "function".
   predicate = "predicate".
   inductive = "inductive".
+  twostate = "twostate".
   lemma = "lemma".
   copredicate = "copredicate".
   modifies = "modifies".
@@ -1543,12 +1547,18 @@ FunctionDecl<DeclModifierData dmod, bool isWithinAbstractModule, out Function/*!
      IToken bodyEnd = Token.NoToken;
      IToken signatureEllipsis = null;
      bool missingOpenParen;
+     bool isTwoState = false;
   .)
   /* ----- function ----- */
+  [ "twostate"               (. isTwoState = true; .)
+  ]
   ( "function"
-    [ "method"                 (. isFunctionMethod = true; .)
+    [ "method"                 (. if (isTwoState) { SemErr(t, "twostate functions are supported only as a ghosts, not as function methods"); }
+                                  else { isFunctionMethod = true; }
+                               .)
     ]
-    (. AllowedDeclModifiers allowed = AllowedDeclModifiers.AlreadyGhost | AllowedDeclModifiers.Static | AllowedDeclModifiers.Protected;
+    (. AllowedDeclModifiers allowed = AllowedDeclModifiers.AlreadyGhost | AllowedDeclModifiers.Static;
+       if (!isTwoState) { allowed |= AllowedDeclModifiers.Protected; }
        string caption = "Functions";
        if (isFunctionMethod) { 
          allowed |= AllowedDeclModifiers.Extern; 
@@ -1560,7 +1570,7 @@ FunctionDecl<DeclModifierData dmod, bool isWithinAbstractModule, out Function/*!
     NoUSIdent<out id>
     (
       [ GenericParameters<typeArgs> ]
-      Formals<true, isFunctionMethod, false, formals>
+      Formals<true, isFunctionMethod, isTwoState, formals>
       ":"
       Type<out returnType>
     | "..."                    (. signatureEllipsis = t; .)
@@ -1568,9 +1578,12 @@ FunctionDecl<DeclModifierData dmod, bool isWithinAbstractModule, out Function/*!
 
   /* ----- predicate ----- */
   | "predicate"                (. isPredicate = true; .)
-    [ "method"                 (. isFunctionMethod = true; .)
+    [ "method"                 (. if (isTwoState) { SemErr(t, "twostate predicates are supported only as a ghosts, not as predicate methods"); }
+                                  else { isFunctionMethod = true; }
+                               .)
     ]
-    (. AllowedDeclModifiers allowed = AllowedDeclModifiers.AlreadyGhost | AllowedDeclModifiers.Static | AllowedDeclModifiers.Protected;
+    (. AllowedDeclModifiers allowed = AllowedDeclModifiers.AlreadyGhost | AllowedDeclModifiers.Static;
+       if (!isTwoState) { allowed |= AllowedDeclModifiers.Protected; }
        string caption = "Predicates";
        if (isFunctionMethod) { 
          allowed |= AllowedDeclModifiers.Extern; 
@@ -1582,7 +1595,7 @@ FunctionDecl<DeclModifierData dmod, bool isWithinAbstractModule, out Function/*!
     NoUSIdent<out id>
     (
       [ GenericParameters<typeArgs> ]                   (. missingOpenParen = true; .)
-      [ Formals<true, isFunctionMethod, false, formals> (. missingOpenParen = false; .)
+      [ Formals<true, isFunctionMethod, isTwoState, formals> (. missingOpenParen = false; .)
       ]                                                 (. if (missingOpenParen) { errors.Warning(t, "with the new support of higher-order functions in Dafny, parentheses-less predicates are no longer supported; in the new syntax, parentheses are required for the declaration and uses of predicates, even if the predicate takes no additional arguments"); } .)
       [ ":"                    (. SemErr(t, "predicates do not have an explicitly declared return type; it is always bool"); .)
       ]
@@ -1590,7 +1603,9 @@ FunctionDecl<DeclModifierData dmod, bool isWithinAbstractModule, out Function/*!
     )
 
   /* ----- inductive predicate ----- */
-  | "inductive" "predicate"    (. isIndPredicate = true; .)
+  | (. Contract.Assert(!isTwoState);  // the IsFunctionDecl check checks that "twostate" is not followed by "inductive"
+    .)
+    "inductive" "predicate"    (. isIndPredicate = true; .)
     (. CheckDeclModifiers(dmod, "Inductive predicates",
          AllowedDeclModifiers.AlreadyGhost | AllowedDeclModifiers.Static | AllowedDeclModifiers.Protected);
     .)
@@ -1605,7 +1620,9 @@ FunctionDecl<DeclModifierData dmod, bool isWithinAbstractModule, out Function/*!
     )
 
   /* ----- copredicate ----- */
-  | "copredicate"              (. isCoPredicate = true; .)
+  | (. Contract.Assert(!isTwoState);  // the IsFunctionDecl check checks that "twostate" is not followed by "copredicate"
+    .)
+    "copredicate"              (. isCoPredicate = true; .)
     (. CheckDeclModifiers(dmod, "Copredicates",
          AllowedDeclModifiers.AlreadyGhost | AllowedDeclModifiers.Static | AllowedDeclModifiers.Protected);
     .)
@@ -1630,7 +1647,13 @@ FunctionDecl<DeclModifierData dmod, bool isWithinAbstractModule, out Function/*!
      }
      EncodeExternAsAttribute(dmod, ref attrs, id, /* needAxiom */ true);
      IToken tok = theVerifyThisFile ? id : new IncludeToken(id);
-     if (isPredicate) {
+     if (isTwoState && isPredicate) {
+        f = new TwoStatePredicate(tok, id.val, dmod.IsStatic, typeArgs, formals,
+                                  reqs, reads, ens, new Specification<Expression>(decreases, null), body, attrs, signatureEllipsis);
+     } else if (isTwoState) {
+        f = new TwoStateFunction(tok, id.val, dmod.IsStatic, typeArgs, formals, returnType,
+                                 reqs, reads, ens, new Specification<Expression>(decreases, null), body, attrs, signatureEllipsis);
+     } else if (isPredicate) {
         f = new Predicate(tok, id.val, dmod.IsStatic, dmod.IsProtected, !isFunctionMethod, typeArgs, formals,
                           reqs, reads, ens, new Specification<Expression>(decreases, null), body, Predicate.BodyOriginKind.OriginalOrInherited, attrs, signatureEllipsis);
      } else if (isIndPredicate) {

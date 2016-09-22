@@ -1,6 +1,97 @@
+// Dafny program verifier version 1.9.8.30829, Copyright (c) 2003-2016, Microsoft.
+// Command Line Options: -nologo -countVerificationErrors:0 -useBaseNameForFileName /print:C:\dafny\Test\dafny0\Output\Twostate-Resolution.dfy.tmp.print /dprint:- C:\dafny\Test\dafny0\Twostate-Resolution.dfy
+// Twostate-Resolution.dfy
+
+
+module M0 {
+  class A {
+    var f: int
+    var g: A
+  }
+
+  twostate lemma L8(a: A, new b: A)
+    requires a != null
+    requires unchanged(a.g)
+    modifies a.g
+    decreases old(a.f)
+  {
+  }
+}
+
+module M1 {
+  class C {
+    var f: int
+  }
+
+  class K {
+    var g: int
+
+    method M(c: C)
+      requires unchanged(c)
+      ensures unchanged(c)
+
+    lemma L(c: C)
+      requires unchanged(c)
+      ensures unchanged(c)
+
+    function F(c: C): bool
+      requires unchanged(c)
+      ensures unchanged(c)
+
+    twostate lemma L2(c: C, d: C)
+      requires unchanged(c, d`f, `g, this`g)
+      ensures unchanged(c)
+    {
+      assert g == this.g == this.g == d.f;
+    }
+  }
+}
+
+module PrettyPrinting {
+  class U {
+    twostate function G(x: int, new u: object): real
+    {
+      x as real
+    }
+
+    twostate predicate Q(y: real, new u: object)
+    {
+      y.Floor as real == y
+    }
+
+    static twostate function H(x: int, new u: object): real
+    {
+      x as real
+    }
+
+    static twostate predicate R(y: real, new u: object)
+    {
+      y.Floor as real == y
+    }
+
+    function method MF(y: real, ghost g: int): char
+    {
+      'G'
+    }
+
+    twostate lemma LL(y: real, new u: object)
+    {
+    }
+  }
+
+  twostate function F(x: int, new u: object): real
+  {
+    x as real
+  }
+
+  twostate predicate P(y: real, new u: object)
+  {
+    y.Floor as real == y
+  }
+}
 Twostate-Resolution.dfy(13,15): Error: twostate lemmas are not allowed to have modifies clauses
-Twostate-Resolution.dfy(22,13): Error: unchanged expressions are not allowed in this context
-Twostate-Resolution.dfy(25,13): Error: unchanged expressions are not allowed in this context
-Twostate-Resolution.dfy(28,13): Error: unchanged expressions are not allowed in this context
-Twostate-Resolution.dfy(29,12): Error: unchanged expressions are not allowed in this context
+Twostate-Resolution.dfy(25,15): Error: unchanged expressions are not allowed in this context
+Twostate-Resolution.dfy(28,15): Error: unchanged expressions are not allowed in this context
+Twostate-Resolution.dfy(31,15): Error: unchanged expressions are not allowed in this context
+Twostate-Resolution.dfy(32,14): Error: unchanged expressions are not allowed in this context
 5 resolution/type errors detected in Twostate-Resolution.dfy

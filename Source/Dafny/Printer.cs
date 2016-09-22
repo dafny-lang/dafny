@@ -581,7 +581,7 @@ namespace Microsoft.Dafny {
       if (PrintModeSkipFunctionOrMethod(f.IsGhost, f.Attributes, f.Name)) { return; }
       var isPredicate = f is Predicate || f is PrefixPredicate;
       Indent(indent);
-      string k = isPredicate ? "predicate" : f is InductivePredicate ? "inductive predicate" : f is CoPredicate ? "copredicate" : "function";
+      string k = isPredicate ? "predicate" : f.WhatKind;
       if (f.IsProtected) { k = "protected " + k; }
       if (f.HasStaticKeyword) { k = "static " + k; }
       if (!f.IsGhost) { k += " method"; }
@@ -590,7 +590,7 @@ namespace Microsoft.Dafny {
         wr.WriteLine(" ...");
       } else {
         PrintFormals(f.Formals, f, f.Name);
-        if (!isPredicate) {
+        if (!isPredicate && !(f is TwoStatePredicate)) {
           wr.Write(": ");
           PrintType(f.ResultType);
         }
@@ -707,7 +707,7 @@ namespace Microsoft.Dafny {
         Contract.Assert(f != null);
         wr.Write(sep);
         sep = ", ";
-        PrintFormal(f, context is TwoStateLemma && f.InParam);
+        PrintFormal(f, (context is TwoStateLemma || context is TwoStateFunction) && f.InParam);
       }
       wr.Write(")");
     }
@@ -2211,7 +2211,11 @@ namespace Microsoft.Dafny {
         Contract.Assert(fe != null);
         wr.Write(sep);
         sep = ", ";
-        PrintExpression(fe.E, true);
+        if (fe.E is ImplicitThisExpr) {
+          Contract.Assert(fe.FieldName != null);
+        } else {
+          PrintExpression(fe.E, true);
+        }
         if (fe.FieldName != null) {
           wr.Write("`{0}", fe.FieldName);
         }

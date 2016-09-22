@@ -4092,7 +4092,7 @@ namespace Microsoft.Dafny {
                      List<TypeParameter> typeArgs, List<Formal> formals,
                      List<Expression> req, List<FrameExpression> reads, List<Expression> ens, Specification<Expression> decreases,
                      Expression body, BodyOriginKind bodyOrigin, Attributes attributes, IToken signatureEllipsis, Declaration clonedFrom = null)
-      : base(tok, name, hasStaticKeyword, isProtected, isGhost, typeArgs, formals, new BoolType(), req, reads, ens, decreases, body, attributes, signatureEllipsis, clonedFrom) {
+      : base(tok, name, hasStaticKeyword, isProtected, isGhost, typeArgs, formals, Type.Bool, req, reads, ens, decreases, body, attributes, signatureEllipsis, clonedFrom) {
       Contract.Requires(bodyOrigin == Predicate.BodyOriginKind.OriginalOrInherited || body != null);
       BodyOrigin = bodyOrigin;
     }
@@ -4110,7 +4110,7 @@ namespace Microsoft.Dafny {
                      List<TypeParameter> typeArgs, Formal k, List<Formal> formals,
                      List<Expression> req, List<FrameExpression> reads, List<Expression> ens, Specification<Expression> decreases,
                      Expression body, Attributes attributes, FixpointPredicate fixpointPred)
-      : base(tok, name, hasStaticKeyword, isProtected, true, typeArgs, formals, new BoolType(), req, reads, ens, decreases, body, attributes, null, null) {
+      : base(tok, name, hasStaticKeyword, isProtected, true, typeArgs, formals, Type.Bool, req, reads, ens, decreases, body, attributes, null, null) {
       Contract.Requires(k != null);
       Contract.Requires(fixpointPred != null);
       Contract.Requires(formals != null && 1 <= formals.Count && formals[0] == k);
@@ -4128,7 +4128,7 @@ namespace Microsoft.Dafny {
                              List<TypeParameter> typeArgs, List<Formal> formals,
                              List<Expression> req, List<FrameExpression> reads, List<Expression> ens,
                              Expression body, Attributes attributes, IToken signatureEllipsis, Declaration clonedFrom = null)
-      : base(tok, name, hasStaticKeyword, isProtected, true, typeArgs, formals, new BoolType(),
+      : base(tok, name, hasStaticKeyword, isProtected, true, typeArgs, formals, Type.Bool,
              req, reads, ens, new Specification<Expression>(new List<Expression>(), null), body, attributes, signatureEllipsis, clonedFrom) {
     }
 
@@ -4150,7 +4150,7 @@ namespace Microsoft.Dafny {
       prefixPredCall.TypeArgumentSubstitutions = new Dictionary<TypeParameter, Type>();
       var old_to_new = new Dictionary<TypeParameter, TypeParameter>();
       for (int i = 0; i < this.TypeArgs.Count; i++) {
-   old_to_new[this.TypeArgs[i]] = this.PrefixPredicate.TypeArgs[i];
+        old_to_new[this.TypeArgs[i]] = this.PrefixPredicate.TypeArgs[i];
       }
       foreach (var p in fexp.TypeArgumentSubstitutions) {
         prefixPredCall.TypeArgumentSubstitutions[old_to_new[p.Key]] = p.Value;
@@ -4183,6 +4183,45 @@ namespace Microsoft.Dafny {
                        Expression body, Attributes attributes, IToken signatureEllipsis, Declaration clonedFrom = null)
       : base(tok, name, hasStaticKeyword, isProtected, typeArgs, formals,
              req, reads, ens, body, attributes, signatureEllipsis, clonedFrom) {
+    }
+  }
+
+  public class TwoStateFunction : Function
+  {
+    public override string WhatKind { get { return "twostate function"; } }
+    public TwoStateFunction(IToken tok, string name, bool hasStaticKeyword,
+                     List<TypeParameter> typeArgs, List<Formal> formals, Type resultType,
+                     List<Expression> req, List<FrameExpression> reads, List<Expression> ens, Specification<Expression> decreases,
+                     Expression body, Attributes attributes, IToken signatureEllipsis, Declaration clonedFrom = null)
+      : base(tok, name, hasStaticKeyword, false, true, typeArgs, formals, resultType, req, reads, ens, decreases, body, attributes, signatureEllipsis, clonedFrom) {
+      Contract.Requires(tok != null);
+      Contract.Requires(name != null);
+      Contract.Requires(typeArgs != null);
+      Contract.Requires(formals != null);
+      Contract.Requires(resultType != null);
+      Contract.Requires(req != null);
+      Contract.Requires(reads != null);
+      Contract.Requires(ens != null);
+      Contract.Requires(decreases != null);
+    }
+  }
+
+  public class TwoStatePredicate : TwoStateFunction
+  {
+    public override string WhatKind { get { return "twostate predicate"; } }
+    public TwoStatePredicate(IToken tok, string name, bool hasStaticKeyword,
+                     List<TypeParameter> typeArgs, List<Formal> formals,
+                     List<Expression> req, List<FrameExpression> reads, List<Expression> ens, Specification<Expression> decreases,
+                     Expression body, Attributes attributes, IToken signatureEllipsis, Declaration clonedFrom = null)
+      : base(tok, name, hasStaticKeyword, typeArgs, formals, Type.Bool, req, reads, ens, decreases, body, attributes, signatureEllipsis, clonedFrom) {
+      Contract.Requires(tok != null);
+      Contract.Requires(name != null);
+      Contract.Requires(typeArgs != null);
+      Contract.Requires(formals != null);
+      Contract.Requires(req != null);
+      Contract.Requires(reads != null);
+      Contract.Requires(ens != null);
+      Contract.Requires(decreases != null);
     }
   }
 

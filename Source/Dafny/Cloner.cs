@@ -666,6 +666,12 @@ namespace Microsoft.Dafny
       } else if (f is CoPredicate) {
         return new CoPredicate(Tok(f.tok), newName, f.HasStaticKeyword, f.IsProtected, tps, formals,
           req, reads, ens, body, CloneAttributes(f.Attributes), null, f);
+      } else if (f is TwoStatePredicate) {
+        return new TwoStatePredicate(Tok(f.tok), newName, f.HasStaticKeyword, tps, formals,
+          req, reads, ens, decreases, body, CloneAttributes(f.Attributes), null, f);
+      } else if (f is TwoStateFunction) {
+        return new TwoStateFunction(Tok(f.tok), newName, f.HasStaticKeyword, tps, formals, CloneType(f.ResultType),
+          req, reads, ens, decreases, body, CloneAttributes(f.Attributes), null, f);
       } else {
         return new Function(Tok(f.tok), newName, f.HasStaticKeyword, f.IsProtected, f.IsGhost, tps, formals, CloneType(f.ResultType),
           req, reads, ens, decreases, body, CloneAttributes(f.Attributes), null, f);
