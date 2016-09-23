@@ -115,6 +115,10 @@ namespace Microsoft.Dafny {
       }
     }
 
+    public void SetReporter(ErrorReporter reporter) {
+      this.reporter = reporter;
+    }
+
     private void EstablishModuleScope(ModuleDefinition systemModule, ModuleDefinition m){
       currentScope = new VisibilityScope();
       verificationScope = new VisibilityScope();

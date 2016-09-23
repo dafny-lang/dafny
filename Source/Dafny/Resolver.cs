@@ -5567,7 +5567,8 @@ namespace Microsoft.Dafny
             for (int i = 0; i < cs.Method.Ins.Count; i++) {
               argsSubstMap.Add(cs.Method.Ins[i], cs.Args[i]);
             }
-            var substituter = new Translator.AlphaConverting_Substituter(cs.Receiver, argsSubstMap, new Dictionary<TypeParameter, Type>(), new Translator(resolver.reporter));
+            translator.SetReporter(resolver.reporter);
+            var substituter = new Translator.AlphaConverting_Substituter(cs.Receiver, argsSubstMap, new Dictionary<TypeParameter, Type>(), translator);
             foreach (var ens in cs.Method.Ens) {
               var p = substituter.Substitute(ens.E);  // substitute the call's actuals for the method's formals
               resolver.reporter.Info(MessageSource.Resolver, s.Tok, "ensures " + Printer.ExprToString(p));
@@ -11727,7 +11728,7 @@ namespace Microsoft.Dafny
       return bounds;
     }
 
-    private static Translator constraintTranslator = new Translator(null);
+    private static Translator translator = new Translator(null);
 
     public static Expression GetImpliedTypeConstraint(IVariable bv, Type ty) {
       return GetImpliedTypeConstraint(Expression.CreateIdentExpr(bv), ty);
@@ -11742,13 +11743,13 @@ namespace Microsoft.Dafny
           var dd = (NewtypeDecl)udt.ResolvedClass;
           var c = GetImpliedTypeConstraint(e, dd.BaseType);
           if (dd.Var != null) {
-            c = Expression.CreateAnd(c, constraintTranslator.Substitute(dd.Constraint, dd.Var, e));
+            c = Expression.CreateAnd(c, translator.Substitute(dd.Constraint, dd.Var, e));
           }
           return c;
         } else if (udt.ResolvedClass is SubsetTypeDecl) {
           var dd = (SubsetTypeDecl)udt.ResolvedClass;
           var c = GetImpliedTypeConstraint(e, dd.RhsWithArgument(udt.TypeArgs));
-          c = Expression.CreateAnd(c, constraintTranslator.Substitute(dd.Constraint, dd.Var, e));
+          c = Expression.CreateAnd(c, translator.Substitute(dd.Constraint, dd.Var, e));
           return c;
         }
       }

@@ -1426,6 +1426,8 @@ namespace Microsoft.Dafny {
       }
     }
 
+    private Translator translator = new Translator(null);
+
     TextWriter TrStmt(Statement stmt, int indent)
     {
       Contract.Requires(stmt != null);
@@ -1536,7 +1538,7 @@ namespace Microsoft.Dafny {
           }
         } else {
           Indent(indent, wr); wr.Write("if (");
-          TrExpr(s.IsExistentialGuard ? Translator.AlphaRename((ExistsExpr)s.Guard, "eg_d", new Translator(null)) : s.Guard, wr, false);
+          TrExpr(s.IsExistentialGuard ? Translator.AlphaRename((ExistsExpr)s.Guard, "eg_d", translator) : s.Guard, wr, false);
           wr.WriteLine(")");
 
           // We'd like to do "TrStmt(s.Thn, indent)", except we want the scope of any existential variables to come inside the block
@@ -1558,7 +1560,7 @@ namespace Microsoft.Dafny {
         Indent(indent, wr);
         foreach (var alternative in s.Alternatives) {
           wr.Write("if (");
-          TrExpr(alternative.IsExistentialGuard ? Translator.AlphaRename((ExistsExpr)alternative.Guard, "eg_d", new Translator(null)) : alternative.Guard, wr, false);
+          TrExpr(alternative.IsExistentialGuard ? Translator.AlphaRename((ExistsExpr)alternative.Guard, "eg_d", translator) : alternative.Guard, wr, false);
           wr.WriteLine(") {");
           if (alternative.IsExistentialGuard) {
             IntroduceAndAssignBoundVars(indent + IndentAmount, (ExistsExpr)alternative.Guard, wr);
