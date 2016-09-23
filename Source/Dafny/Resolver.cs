@@ -991,7 +991,6 @@ namespace Microsoft.Dafny
       var oldModuleInfo = moduleInfo;
       if (reporter.Count(ErrorLevel.Error) == preResolveErrorCount) { //only bother with consistency check if nothing was raised during resolution
 
-
         foreach (ModuleExportDecl decl in sortedDecls) {
           foreach (var export in decl.Exports) {
             if (export.Decl is MemberDecl) {
@@ -1016,10 +1015,7 @@ namespace Microsoft.Dafny
 
           if (wasError) {
             reporter.Error(MessageSource.Resolver, decl.tok, "This export set is not consistent: {0}", decl.Name);
-          } else {
-            decl.ResolvedHash = Math.Abs(Printer.ModuleDefinitionToString(exportView, DafnyOptions.PrintModes.DllEmbed).GetHashCode());
           }
-
           
         }
       }

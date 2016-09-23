@@ -150,7 +150,7 @@ namespace Microsoft.Dafny {
     readonly ISet<MemberDecl> translatedMembers = new HashSet<MemberDecl>();
 
     public void AddReferencedMember(MemberDecl m) {
-      if (m is Function || m is Method) {
+      if (m is Method && !InVerificationScope(m)) {
         referencedMembers.Add(m);
       }
     }
@@ -642,28 +642,12 @@ namespace Microsoft.Dafny {
         }
       }
 
+      //because foreign methods have no bodies we know referencedMembers won't change
       if (DafnyOptions.O.OptimizeResolution >= 1) {
-        List<MemberDecl> toBeTranslated;
-        do {
-          toBeTranslated = referencedMembers.Except(translatedMembers).ToList();
-          foreach (var member in toBeTranslated) {
-            AddMember_Top(member);
-          }
-
-        } while ((toBeTranslated.Count() > 0));
-
+          foreach (var member in referencedMembers) {
+              AddMember_Top(member);
+            }
       }
-
-      /*
-      foreach (ModuleDefinition m in program.RawModules()) {
-        foreach (TopLevelDecl d in m.TopLevelDecls.FindAll(VisibleInScope)) {
-          currentDeclaration = d;
-          if (d is ClassDecl) {
-            AddClassMethods((ClassDecl)d);
-          }
-        }
-      }*/
-
 
       foreach (var c in fieldConstants.Values) {
         sink.AddTopLevelDeclaration(c);
@@ -1842,8 +1826,7 @@ namespace Microsoft.Dafny {
 
     void AddMember_Top(MemberDecl mem) {
       Contract.Requires(mem is Method);
-      
-      translatedMembers.Add((MemberDecl)mem);
+
       if (mem is Method) {
         AddMethod_Top((Method)mem);
       }
@@ -11948,7 +11931,6 @@ namespace Microsoft.Dafny {
           FunctionCallExpr e = (FunctionCallExpr)expr;
           Bpl.Expr layerArgument;
           var etran = this;
-          translator.AddReferencedMember(e.Function);
           if (e.Function.ContainsQuantifier && translator.stmtContext == StmtType.ASSUME && translator.adjustFuelForExists) {
             // we need to increase fuel functions that contain quantifier expr in the assume context.
             etran =  etran.LayerOffset(1);
