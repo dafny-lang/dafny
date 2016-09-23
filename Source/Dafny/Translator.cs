@@ -108,6 +108,10 @@ namespace Microsoft.Dafny {
       }
     }
 
+    public void SetReporter(ErrorReporter reporter) {
+      this.reporter = reporter;
+    }
+
     // translation state
     readonly Dictionary<TopLevelDecl/*!*/,Bpl.Constant/*!*/>/*!*/ classes = new Dictionary<TopLevelDecl/*!*/,Bpl.Constant/*!*/>();
     readonly Dictionary<TopLevelDecl, string>/*!*/ classConstants = new Dictionary<TopLevelDecl, string>();
