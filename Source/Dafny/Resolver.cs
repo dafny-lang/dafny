@@ -9091,6 +9091,9 @@ namespace Microsoft.Dafny
         } else if (member is Function) {
           var fn = member as Function;
           e.Member = fn;
+          if (fn is TwoStateFunction && !opts.twoState) {
+            reporter.Error(MessageSource.Resolver, e.tok, "a two-state function can be used only in a two-state context");
+          }
           // build the type substitution map
           e.TypeApplication = new List<Type>();
           Dictionary<TypeParameter, Type> subst;
@@ -9593,6 +9596,8 @@ namespace Microsoft.Dafny
             var call = r.ResolvedStatements[0] as CallStmt;
             if (call.Method.Mod.Expressions.Count != 0) {
               reporter.Error(MessageSource.Resolver, call, "calls to methods with side-effects are not allowed inside a statement expression");
+            } else if (call.Method is TwoStateLemma && !opts.twoState) {
+              reporter.Error(MessageSource.Resolver, call, "two-state lemmas can only be used in two-state contexts");
             }
           }
         }
@@ -10318,7 +10323,7 @@ namespace Microsoft.Dafny
           receiver = new ImplicitThisExpr(expr.tok);
           receiver.Type = GetThisType(expr.tok, (ClassDecl)member.EnclosingClass);  // resolve here
         }
-        r = ResolveExprDotCall(expr.tok, receiver, member, expr.OptTypeArguments, opts.codeContext, allowMethodCall);
+        r = ResolveExprDotCall(expr.tok, receiver, member, expr.OptTypeArguments, opts, allowMethodCall);
       } else if (isLastNameSegment && moduleInfo.Ctors.TryGetValue(expr.Name, out pair)) {
         // ----- 2. datatype constructor
         if (pair.Item2) {
@@ -10358,7 +10363,7 @@ namespace Microsoft.Dafny
           reporter.Error(MessageSource.Resolver, expr.tok, "The name {0} ambiguously refers to a static member in one of the modules {1} (try qualifying the member name with the module name)", expr.Name, ambiguousMember.ModuleNames());
         } else {
           var receiver = new StaticReceiverExpr(expr.tok, (ClassDecl)member.EnclosingClass, true);
-          r = ResolveExprDotCall(expr.tok, receiver, member, expr.OptTypeArguments, opts.codeContext, allowMethodCall);
+          r = ResolveExprDotCall(expr.tok, receiver, member, expr.OptTypeArguments, opts, allowMethodCall);
         }
 
       } else {
@@ -10587,7 +10592,7 @@ namespace Microsoft.Dafny
             reporter.Error(MessageSource.Resolver, expr.tok, "The name {0} ambiguously refers to a static member in one of the modules {1} (try qualifying the member name with the module name)", expr.SuffixName, ambiguousMember.ModuleNames());
           } else {
             var receiver = new StaticReceiverExpr(expr.tok, (ClassDecl)member.EnclosingClass, true);
-            r = ResolveExprDotCall(expr.tok, receiver, member, expr.OptTypeArguments, opts.codeContext, allowMethodCall);
+            r = ResolveExprDotCall(expr.tok, receiver, member, expr.OptTypeArguments, opts, allowMethodCall);
           }
         } else {
           reporter.Error(MessageSource.Resolver, expr.tok, "unresolved identifier: {0}", expr.SuffixName);
@@ -10613,7 +10618,7 @@ namespace Microsoft.Dafny
               // nevertheless, continue creating an expression that approximates a correct one
             }
             var receiver = new StaticReceiverExpr(expr.tok, (UserDefinedType)ty.NormalizeExpand(), (ClassDecl)member.EnclosingClass, false);
-            r = ResolveExprDotCall(expr.tok, receiver, member, expr.OptTypeArguments, opts.codeContext, allowMethodCall);
+            r = ResolveExprDotCall(expr.tok, receiver, member, expr.OptTypeArguments, opts, allowMethodCall);
           }
         } else if (ty.IsDatatype) {
           // ----- LHS is a datatype
@@ -10650,7 +10655,7 @@ namespace Microsoft.Dafny
             Contract.Assert(nptype.IsRefType);  // only reference types have static methods
             receiver = new StaticReceiverExpr(expr.tok, (UserDefinedType)nptype, (ClassDecl)member.EnclosingClass, false);
           }
-          r = ResolveExprDotCall(expr.tok, receiver, member, expr.OptTypeArguments, opts.codeContext, allowMethodCall);
+          r = ResolveExprDotCall(expr.tok, receiver, member, expr.OptTypeArguments, opts, allowMethodCall);
         }
       }
 
@@ -10760,12 +10765,12 @@ namespace Microsoft.Dafny
       return null;
     }
 
-    Expression ResolveExprDotCall(IToken tok, Expression receiver, MemberDecl member, List<Type> optTypeArguments, ICodeContext caller, bool allowMethodCall) {
+    Expression ResolveExprDotCall(IToken tok, Expression receiver, MemberDecl member, List<Type> optTypeArguments, ResolveOpts opts, bool allowMethodCall) {
       Contract.Requires(tok != null);
       Contract.Requires(receiver != null);
       Contract.Requires(receiver.WasResolved());
       Contract.Requires(member != null);
-      Contract.Requires(caller != null);
+      Contract.Requires(opts != null && opts.codeContext != null);
 
       var rr = new MemberSelectExpr(tok, receiver, member.Name);
       rr.Member = member;
@@ -10790,6 +10795,9 @@ namespace Microsoft.Dafny
         rr.Type = SubstType(((Field)member).Type, subst);
       } else if (member is Function) {
         var fn = (Function)member;
+        if (fn is TwoStateFunction && !opts.twoState) {
+          reporter.Error(MessageSource.Resolver, tok, "two-state function ('{0}') can only be called in a two-state context", member.Name);
+        }
         int suppliedTypeArguments = optTypeArguments == null ? 0 : optTypeArguments.Count;
         if (optTypeArguments != null && suppliedTypeArguments != fn.TypeArgs.Count) {
           reporter.Error(MessageSource.Resolver, tok, "function '{0}' expects {1} type arguments (got {2})", member.Name, fn.TypeArgs.Count, suppliedTypeArguments);
@@ -10800,7 +10808,7 @@ namespace Microsoft.Dafny
           subst.Add(fn.TypeArgs[i], ta);
         }
         rr.Type = new ArrowType(fn.tok, fn.Formals.ConvertAll(f => SubstType(f.Type, subst)), SubstType(fn.ResultType, subst), builtIns.SystemModule);
-        AddCallGraphEdge(caller, fn, rr);
+        AddCallGraphEdge(opts.codeContext, fn, rr);
       } else {
         // the member is a method
         var m = (Method)member;
@@ -11230,6 +11238,9 @@ namespace Microsoft.Dafny
         e.Function = function;
         if (function is FixpointPredicate) {
           ((FixpointPredicate)function).Uses.Add(e);
+        }
+        if (function is TwoStateFunction && !opts.twoState) {
+          reporter.Error(MessageSource.Resolver, e.tok, "a two-state function can be used only in a two-state context");
         }
         if (e.Receiver is StaticReceiverExpr && !function.IsStatic) {
           reporter.Error(MessageSource.Resolver, e, "an instance function must be selected via an object, not just a class name");

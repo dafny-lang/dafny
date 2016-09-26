@@ -10,7 +10,7 @@ module M0 {
   twostate lemma L8(a: A, new b: A)
     requires a != null
     requires unchanged(a.g)
-    modifies a.g  // lemmas are not allowed to have modifies clauses
+    modifies a.g  // error: lemmas are not allowed to have modifies clauses
     decreases old(a.f)
   {}
 }
@@ -26,7 +26,7 @@ module M1 {
       ensures unchanged(c)
     lemma L(c: C)
       requires unchanged(c)  // error: 'unchanged' not allowed here
-      ensures unchanged(c)  // error: 'unchanged' not allowed here
+      ensures unchanged(c)  // allowed, just like 'old' is allowed, but useless here
     function F(c: C): bool
       requires unchanged(c)  // error: 'unchanged' not allowed here
       ensures unchanged(c)  // error: 'unchanged' not allowed here
@@ -96,7 +96,7 @@ module F {
 
     twostate predicate R(y: real, new u: object)
     {
-      y.Floor  // error: incorrect result type
+      y.Floor  // error: incorrect result type (reported two lines above)
     }
 
     twostate function G(x: int, new u: object): real
@@ -112,5 +112,121 @@ module F {
       else
         x as real
     }
+  }
+}
+
+module G {
+  class C { var f: int }
+  twostate predicate P() { true }
+  function Fu(): int
+    requires P()  // error: cannot use a two-state function here
+    reads if P() then {null} else {}  // error: cannot use a two-state function here
+    ensures P()  // error: cannot use a two-state function here
+    decreases P()  // error: cannot use a two-state function here
+    decreases old(c.f)  // error: cannot use 'old' here
+  method Me(c: C) returns (b: bool)
+    requires c != null
+    requires P()  // error: cannot use a two-state function here
+    modifies if P() then {null} else {}  // error: cannot use a two-state function here
+    ensures P()
+    decreases P()  // error: cannot use a two-state function here
+    decreases old(c.f)  // error: cannot use 'old' here
+  iterator Iter(c: C)
+    requires c != null
+    requires P()  // error: cannot use a two-state function here
+    yield requires P()  // error: cannot use a two-state function here
+    reads if P() then {null} else {}  // error: cannot use a two-state function here
+    modifies if P() then {null} else {}  // error: cannot use a two-state function here
+    ensures P()
+    yield ensures P()
+    decreases P()  // error: cannot use a two-state function here
+    decreases old(c.f)  // error: cannot use 'old' here
+  twostate function TF(c: C): int
+    requires c != null
+    requires P()
+    reads if P() then {null} else {}  // error: cannot use a two-state function here
+    ensures P()
+    decreases P(), old(c.f), c.f
+  twostate lemma TL(c: C)
+    requires c != null
+    requires P()
+    ensures P()
+    decreases P(), old(c.f), c.f
+}
+
+module H {
+  class C { var f: int }
+  twostate predicate P() { true }
+  class YY {
+    static twostate predicate Sp() { false }
+  }
+  function Fu(): int
+  {
+    ghost var p: () -> bool := P;  // error: cannot use a two-state function in this context
+    ghost var q: () -> bool := YY.Sp;  // error: cannot use a two-state function in this context
+    if P() then 5 else 7  // error: cannot use a two-state function here
+  }
+  method Me(c: C) returns (b: bool)
+    requires c != null
+    ensures P()
+  {
+    assert P();
+    ghost var p: () -> bool := P;
+    ghost var q: () -> bool := YY.Sp;
+  }
+  class D {
+    function G(): int
+    static method Sm(c: C) returns (ghost b: bool)
+      requires c != null
+      ensures P()
+    {
+      ghost var u := G();  // error: G requires receiver, which is not available here in static method
+      ghost var g := G;  // error: G requires receiver, which is not available here in static method
+      assert P();
+      b := P();
+      ghost var p: () -> bool := P;
+      ghost var q: () -> bool := YY.Sp;
+    }
+  }
+  iterator Iter(c: C)
+    requires c != null
+    ensures P()
+    yield ensures P()
+  {
+  }
+  twostate function TF(c: C): int
+    requires c != null
+    requires P()
+    ensures P()
+    decreases P(), old(c.f), c.f
+  {
+    if P() then 5 else
+      var p: () -> bool := P;
+      if p() then 7 else 9
+  }
+  twostate lemma TL(c: C)
+    requires c != null
+    requires P()
+    ensures P()
+    decreases P(), old(c.f), c.f
+  {
+    assert P();
+    var p: () -> bool := P;
+  }
+  function K(c: C): int
+  {
+    TL(c);  // error: cannot call two-state lemma from this context
+    5
+  }
+}
+
+module J {
+  twostate predicate P() { true }
+  method Me() returns (b: bool)
+    ensures P()
+  {
+    assert P();
+    b := P();  // error: cannot assign a ghost to a non-ghost
+    var p': () -> bool := P;  // error: cannot assign a ghost
   }
 }
