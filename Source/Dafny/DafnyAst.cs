@@ -447,10 +447,33 @@ namespace Microsoft.Dafny {
     // Only for debugging
     private SortedSet<string> scopeIds = new SortedSet<string>();
 
+    private bool overlaps(SortedSet<uint> set1, SortedSet<uint> set2) {
+      if (set1.Count < set2.Count) {
+        return set2.Overlaps(set1);
+      } else {
+        return set1.Overlaps(set2);
+      }
+    }
+
+    private Dictionary<VisibilityScope, Tuple<int, bool>> cached = new Dictionary<VisibilityScope, Tuple<int, bool>>();
+
     //By convention, the "null" scope sees all
     public bool VisibleInScope(VisibilityScope other) {
       if (other != null) {
-        return other.scopeTokens.Overlaps(this.scopeTokens);
+        Tuple<int, bool> result;
+        if (cached.TryGetValue(other, out result)) {
+          if (result.Item1 == other.scopeTokens.Count()) {
+            return result.Item2;
+          } else {
+            if (result.Item2) {
+              return true;
+            }
+          }
+        }
+        var isoverlap = overlaps(other.scopeTokens, this.scopeTokens);
+        cached[other] = new Tuple<int, bool>(other.scopeTokens.Count(), isoverlap);
+        return isoverlap;
+
       }
       return true;
     }
