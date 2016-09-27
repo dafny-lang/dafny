@@ -2268,8 +2268,11 @@ namespace Microsoft.Dafny {
       var bv = new Bpl.BoundVariable(f.tok, new Bpl.TypedIdent(f.tok, predef.HeapVarName, predef.HeapType));
       formals.Add(bv);
       args.Add(new Bpl.IdentifierExpr(f.tok, bv));
-      // ante:  $IsGoodHeap($Heap) && this != null && formals-have-the-expected-types &&
+      // ante:  $IsGoodHeap($Heap) && $HeapSucc($prevHeap, $Heap) && this != null && formals-have-the-expected-types &&
       ante = BplAnd(ante, FunctionCall(f.tok, BuiltinFunction.IsGoodHeap, null, etran.HeapExpr));
+      if (f is TwoStateFunction) {
+        ante = BplAnd(ante, HeapSucc(etran.Old.HeapExpr, etran.HeapExpr));
+      }
 
       if (!f.IsStatic) {
         var bvThis = new Bpl.BoundVariable(f.tok, new Bpl.TypedIdent(f.tok, etran.This, predef.RefType));
@@ -2372,6 +2375,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(predef != null);
       Contract.Requires(f.EnclosingClass != null);
       Contract.Requires(!f.IsStatic || overridingClass == null);
+      Contract.Requires(overridingClass == null || body is FunctionCallExpr);  // pseudo body (see caller)
 
       // only if body is null, we will return null:
       Contract.Ensures((Contract.Result<Bpl.Axiom>() == null) == (body == null));
@@ -2454,8 +2458,8 @@ namespace Microsoft.Dafny {
         layer = null;
       }
       Bpl.Expr ante = Bpl.Expr.True;
-      if (bvPrevHeap != null) {
-        Contract.Assert(f is TwoStateFunction);
+      if (f is TwoStateFunction) {
+        Contract.Assert(bvPrevHeap != null);
         formals.Add(bvPrevHeap);
         args.Add(etran.Old.HeapExpr);
         // ante:  $IsGoodHeap($prevHeap) &&
@@ -2464,8 +2468,11 @@ namespace Microsoft.Dafny {
       var bv = new Bpl.BoundVariable(f.tok, new Bpl.TypedIdent(f.tok, predef.HeapVarName, predef.HeapType));
       formals.Add(bv);
       args.Add(new Bpl.IdentifierExpr(f.tok, bv));
-      // ante:  $IsGoodHeap($Heap) && this != null && formals-have-the-expected-types &&
+      // ante:  $IsGoodHeap($Heap) && $HeapSucc($prevHeap, $Heap) && this != null && formals-have-the-expected-types &&
       ante = BplAnd(ante, FunctionCall(f.tok, BuiltinFunction.IsGoodHeap, null, etran.HeapExpr));
+      if (f is TwoStateFunction) {
+        ante = BplAnd(ante, HeapSucc(etran.Old.HeapExpr, etran.HeapExpr));
+      }
 
       Bpl.Expr additionalAntecedent = null;
       if (!f.IsStatic) {
@@ -2594,12 +2601,20 @@ namespace Microsoft.Dafny {
         }
         Bpl.Expr ly = null;
         if (layer != null) {
-           ly = new Bpl.IdentifierExpr(f.tok, layer);
+          ly = new Bpl.IdentifierExpr(f.tok, layer);
           if (lits != null) {   // Lit axiom doesn't consume any fuel
             ly = LayerSucc(ly);
           }
         }
-        var etranBody = layer == null ? etran : etran.LimitedFunctions(f, ly);
+        ExpressionTranslator etranBody;
+        if (layer == null) {
+          etranBody = etran;
+        } else if (overridingClass != null) {
+          var pseudoBody = (FunctionCallExpr)body;
+          etranBody = etran.LimitedFunctions(pseudoBody.Function, LayerSucc(ly));
+        } else {
+          etranBody = etran.LimitedFunctions(f, ly);
+        }
         tastyVegetarianOption = BplAnd(CanCallAssumption(bodyWithSubst, etranBody),
           Bpl.Expr.Eq(funcAppl, etranBody.TrExpr(bodyWithSubst)));
       }
@@ -3425,8 +3440,25 @@ namespace Microsoft.Dafny {
         currentModule = f.EnclosingClass.Module;
         codeContext = f;
 
-        ExpressionTranslator etran = new ExpressionTranslator(this, predef, f.tok);
+        Bpl.Expr prevHeap = null;
+        Bpl.Expr currHeap = null;
+        var ordinaryEtran = new ExpressionTranslator(this, predef, f.tok);
+        ExpressionTranslator etran;
+        var inParams_Heap = new List<Bpl.Variable>();
+        if (f is TwoStateFunction) {
+          var prevHeapVar = new Bpl.Formal(f.tok, new Bpl.TypedIdent(f.tok, "previous$Heap", predef.HeapType), true);
+          var currHeapVar = new Bpl.Formal(f.tok, new Bpl.TypedIdent(f.tok, "current$Heap", predef.HeapType), true);
+          inParams_Heap.Add(prevHeapVar);
+          inParams_Heap.Add(currHeapVar);
+          prevHeap = new Bpl.IdentifierExpr(f.tok, prevHeapVar);
+          currHeap = new Bpl.IdentifierExpr(f.tok, currHeapVar);
+          etran = new ExpressionTranslator(this, predef, currHeap, prevHeap);
+        } else {
+          etran = ordinaryEtran;
+        }
+
         // parameters of the procedure
+        var typeInParams = MkTyParamFormals(GetTypeParams(f));
         List<Variable> inParams = new List<Variable>();
         if (!f.IsStatic)
         {
@@ -3447,24 +3479,21 @@ namespace Microsoft.Dafny {
         var req = new List<Bpl.Requires>();
         // free requires mh == ModuleContextHeight && fh == FunctionContextHeight;
         req.Add(Requires(f.tok, true, etran.HeightContext(f), null, null));
-        // modifies $Heap, $Tick
-        var mod = new List<Bpl.IdentifierExpr> { (Bpl.IdentifierExpr/*TODO: this cast is rather dubious*/)etran.HeapExpr, etran.Tick() };
-        // check that postconditions hold
-        var ens = new List<Bpl.Ensures>();
-        foreach (Expression p in f.Ens)
-        {
-            var functionHeight = currentModule.CallGraph.GetSCCRepresentativeId(f);
-            var splits = new List<SplitExprInfo>();
-            bool splitHappened/*we actually don't care*/ = TrSplitExpr(p, splits, true, functionHeight, true, false, etran);
-            foreach (var s in splits)
-            {
-                if (s.IsChecked && !RefinementToken.IsInherited(s.E.tok, currentModule))
-                {
-                    ens.Add(Ensures(s.E.tok, false, s.E, null, null));
-                }
-            }
+        if (f is TwoStateFunction) {
+          // free requires prevHeap == Heap && HeapSucc(prevHeap, currHeap) && IsHeap(currHeap)
+          var a0 = Bpl.Expr.Eq(prevHeap, ordinaryEtran.HeapExpr);
+          var a1 = HeapSucc(prevHeap, currHeap);
+          var a2 = FunctionCall(f.tok, BuiltinFunction.IsGoodHeap, null, currHeap);
+          req.Add(Requires(f.tok, true, BplAnd(a0, BplAnd(a1, a2)), null, null));
         }
-        Bpl.Procedure proc = new Bpl.Procedure(f.tok, "OverrideCheck$$" + f.FullSanitizedName, typeParams, inParams, new List<Variable>(),
+        // modifies $Heap, $Tick
+        var mod = new List<Bpl.IdentifierExpr> {
+          (Bpl.IdentifierExpr/*TODO: this cast is rather dubious*/)ordinaryEtran.HeapExpr,
+          etran.Tick()
+        };
+        var ens = new List<Bpl.Ensures>();
+        Bpl.Procedure proc = new Bpl.Procedure(f.tok, "OverrideCheck$$" + f.FullSanitizedName, typeParams,
+          Concat(Concat(typeInParams, inParams_Heap), inParams), new List<Variable>(),
           req, mod, ens, etran.TrAttributes(f.Attributes, null));
         sink.AddTopLevelDeclaration(proc);
         var implInParams = Bpl.Formal.StripWhereClauses(inParams);
@@ -3476,6 +3505,12 @@ namespace Microsoft.Dafny {
         Bpl.StmtListBuilder builder = new Bpl.StmtListBuilder();
         List<Variable> localVariables = new List<Variable>();
         //GenerateImplPrelude(m, wellformednessProc, inParams, outParams, builder, localVariables);
+        if (f is TwoStateFunction) {
+          // $Heap := current$Heap;
+          var heap = (Bpl.IdentifierExpr /*TODO: this cast is somewhat dubious*/)ordinaryEtran.HeapExpr;
+          builder.Add(Bpl.Cmd.SimpleAssign(f.tok, heap, etran.HeapExpr));
+          etran = ordinaryEtran;  // we no longer need the special heap names
+        }
 
         var substMap = new Dictionary<IVariable, Expression>();
         for (int i = 0; i < f.Formals.Count; i++)
@@ -3496,22 +3531,20 @@ namespace Microsoft.Dafny {
         //adding assert W <= Frame’
         AddFunctionOverrideSubsetChk(f, builder, etran, localVariables, substMap);
 
-        //change the heap at locations W
-        HavocFunctionFrameLocations(f, builder, etran, localVariables);
-
         //adding assume Q; assert Post’;
         AddFunctionOverrideEnsChk(f, builder, etran, substMap, implInParams);
-
-        //creating an axiom that connects J.F and C.F
-        //which is a class function and overridden trait function
-        AddFunctionOverrideAxiom(f);
 
         stmts = builder.Collect(f.tok);
 
         QKeyValue kv = etran.TrAttributes(f.Attributes, null);
 
-        Bpl.Implementation impl = new Bpl.Implementation(f.tok, proc.Name, typeParams, implInParams, new List<Variable>(), localVariables, stmts, kv);
+        Bpl.Implementation impl = new Bpl.Implementation(f.tok, proc.Name, typeParams,
+          Concat(Concat(typeInParams, inParams_Heap), implInParams), new List<Variable>(), localVariables, stmts, kv);
         sink.AddTopLevelDeclaration(impl);
+
+        //creating an axiom that connects J.F and C.F
+        //which is a class function and overridden trait function
+        AddFunctionOverrideAxiom(f);
 
         if (InsertChecksums)
         {
@@ -3703,6 +3736,12 @@ namespace Microsoft.Dafny {
         ExpressionTranslator etran = new ExpressionTranslator(this, predef, m.tok);
         List<Variable> localVariables = new List<Variable>();
         //GenerateImplPrelude(m, wellformednessProc, inParams, outParams, builder, localVariables);
+        if (m is TwoStateLemma) {
+          // $Heap := current$Heap;
+          var heap = (Bpl.IdentifierExpr /*TODO: this cast is somewhat dubious*/)new ExpressionTranslator(this, predef, m.tok).HeapExpr;
+          builder.Add(Bpl.Cmd.SimpleAssign(m.tok, heap, new Bpl.IdentifierExpr(m.tok, "current$Heap", predef.HeapType)));
+        }
+
 
         var substMap = new Dictionary<IVariable, Expression>();
         for (int i = 0; i < m.Ins.Count; i++)
@@ -3730,8 +3769,10 @@ namespace Microsoft.Dafny {
         //adding assert W <= Frame’
         AddMethodOverrideSubsetChk(m, builder, etran, localVariables, substMap);
 
-        //change the heap at locations W
-        HavocMethodFrameLocations(m, builder, etran, localVariables);
+        if (!(m is TwoStateLemma)) {
+          //change the heap at locations W
+          HavocMethodFrameLocations(m, builder, etran, localVariables);
+        }
 
         //adding assume Q; assert Post’;
         AddMethodOverrideEnsChk(m, builder, etran, substMap);

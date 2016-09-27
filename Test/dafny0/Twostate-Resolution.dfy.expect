@@ -291,6 +291,38 @@ module OldWithinOld {
     }
   }
 }
+
+module TraitsAndOldParameters {
+  class C { }
+
+  trait Tr {
+    twostate predicate A(c: C)
+
+    twostate predicate B(new c: C)
+
+    twostate predicate P(c: C, new d: C)
+
+    twostate lemma L(c: C)
+
+    twostate lemma M(new c: C)
+
+    twostate lemma N(c: C, new d: C)
+  }
+
+  class Cl extends Tr {
+    twostate predicate A(new c: C)
+
+    twostate predicate B(c: C)
+
+    twostate predicate P(c: C, new d: C)
+
+    twostate lemma L(new c: C)
+
+    twostate lemma M(c: C)
+
+    twostate lemma N(c: C, new d: C)
+  }
+}
 Twostate-Resolution.dfy(13,15): Error: twostate lemmas are not allowed to have modifies clauses
 Twostate-Resolution.dfy(25,15): Error: unchanged expressions are not allowed in this context
 Twostate-Resolution.dfy(28,15): Error: unchanged expressions are not allowed in this context
@@ -330,4 +362,8 @@ Twostate-Resolution.dfy(243,27): Error: two-state lemmas can only be used in two
 Twostate-Resolution.dfy(244,26): Error: unchanged expressions are not allowed in this context
 Twostate-Resolution.dfy(246,26): Error: fresh expressions are not allowed in this context
 Twostate-Resolution.dfy(248,26): Error: old expressions are not allowed in this context
-39 resolution/type errors detected in Twostate-Resolution.dfy
+Twostate-Resolution.dfy(264,29): Error: parameter 'c' of function A cannot be changed, compared to the corresponding function in the module it overrides, from new to non-new
+Twostate-Resolution.dfy(265,25): Error: parameter 'c' of function B cannot be changed, compared to the corresponding function in the module it overrides, from non-new to new
+Twostate-Resolution.dfy(267,25): Error: in-parameter 'c' of method L cannot be changed, compared to the corresponding method in the module it overrides, from new to non-new
+Twostate-Resolution.dfy(268,21): Error: in-parameter 'c' of method M cannot be changed, compared to the corresponding method in the module it overrides, from non-new to new
+43 resolution/type errors detected in Twostate-Resolution.dfy

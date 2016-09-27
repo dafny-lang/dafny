@@ -249,3 +249,23 @@ module OldWithinOld {
     }
   }
 }
+
+module TraitsAndOldParameters {
+  class C { }
+  trait Tr {
+    twostate predicate A(c: C)
+    twostate predicate B(new c: C)
+    twostate predicate P(c: C, new d: C)
+    twostate lemma L(c: C)
+    twostate lemma M(new c: C)
+    twostate lemma N(c: C, new d: C)
+  }
+  class Cl extends Tr {
+    twostate predicate A(new c: C)  // error: cannot change old to new
+    twostate predicate B(c: C)  // error: cannot change new to old
+    twostate predicate P(c: C, new d: C)
+    twostate lemma L(new c: C)  // error: cannot change old to new
+    twostate lemma M(c: C)  // error: cannot change new to old
+    twostate lemma N(c: C, new d: C)
+  }
+}

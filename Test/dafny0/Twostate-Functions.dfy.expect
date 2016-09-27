@@ -35,45 +35,32 @@ Execution trace:
     (0,0): anon0
     (0,0): anon7_Else
     (0,0): anon8_Else
-Twostate-Functions.dfy(124,45): Error: receiver must be allocated in the state in which its fields are accessed
+Twostate-Functions.dfy(134,39): Error: receiver must be allocated in the state in which its fields are accessed
 Execution trace:
     (0,0): anon0
-    (0,0): anon8_Then
-Twostate-Functions.dfy(127,45): Error: receiver must be allocated in the state in which its fields are accessed
-Execution trace:
-    (0,0): anon0
-    (0,0): anon3_Then
-Twostate-Functions.dfy(130,22): Error: the function must provide an equal or more permissive precondition than in its parent trait
-Execution trace:
-    (0,0): anon0
-Twostate-Functions.dfy(138,19): Error: the method must provide an equal or more permissive precondition than in its parent trait
-Execution trace:
-    (0,0): anon0
-Twostate-Functions.dfy(154,12): Error: receiver must be allocated in the state in which its fields are accessed
+    (0,0): anon16_Then
+    (0,0): anon4
+    (0,0): anon18_Then
+    (0,0): anon19_Then
+Twostate-Functions.dfy(152,12): Error: receiver must be allocated in the state in which its fields are accessed
 Execution trace:
     (0,0): anon0
     (0,0): anon4_Else
-Twostate-Functions.dfy[M1](130,22): Error: the function must provide an equal or more permissive precondition than in its parent trait
-Execution trace:
-    (0,0): anon0
-Twostate-Functions.dfy[M1](138,19): Error: the method must provide an equal or more permissive precondition than in its parent trait
-Execution trace:
-    (0,0): anon0
-Twostate-Functions.dfy(173,15): Error: argument 0 ('d') must be allocated in the two-state function's previous state
+Twostate-Functions.dfy(171,15): Error: argument 0 ('d') must be allocated in the two-state function's previous state
 Execution trace:
     (0,0): anon0
     (0,0): anon5_Then
-Twostate-Functions.dfy(176,13): Error: possible violation of function precondition
+Twostate-Functions.dfy(174,13): Error: possible violation of function precondition
 Execution trace:
     (0,0): anon0
     (0,0): anon6_Then
-Twostate-Functions.dfy(194,15): Error: argument 0 ('d') must be allocated in the two-state function's previous state
+Twostate-Functions.dfy(192,15): Error: argument 0 ('d') must be allocated in the two-state function's previous state
 Execution trace:
     (0,0): anon0
     (0,0): anon5_Then
-Twostate-Functions.dfy(197,13): Error: possible violation of function precondition
+Twostate-Functions.dfy(195,13): Error: possible violation of function precondition
 Execution trace:
     (0,0): anon0
     (0,0): anon6_Then
 
-Dafny program verifier finished with 26 verified, 18 errors
+Dafny program verifier finished with 31 verified, 13 errors
