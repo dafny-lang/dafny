@@ -24,14 +24,16 @@ namespace Microsoft.Dafny
       Contract.Requires(d != null);
       Contract.Requires(moduleInfo != null);
       Contract.Requires(moduleInfo.VisibilityScope != null);
-      return d.IsRevealedInScope(moduleInfo.VisibilityScope) || useCompileSignatures;
+
+      return useCompileSignatures || d.IsRevealedInScope(moduleInfo.VisibilityScope);
     }
 
     private bool VisibleInScope(Declaration d) {
       Contract.Requires(d != null);
       Contract.Requires(moduleInfo != null);
       Contract.Requires(moduleInfo.VisibilityScope != null);
-      return d.IsVisibleInScope(moduleInfo.VisibilityScope) || useCompileSignatures;
+
+      return useCompileSignatures || d.IsVisibleInScope(moduleInfo.VisibilityScope);
     }
 
     FreshIdGenerator defaultTempVarIdGenerator;
@@ -181,6 +183,10 @@ namespace Microsoft.Dafny
         return AmbiguousThingHelper<MemberDecl>.ModuleNames(this, d => d.EnclosingClass.Module.Name);
       }
     }
+
+
+    readonly HashSet<RevealableTypeDecl> revealableTypes = new HashSet<RevealableTypeDecl>();
+     //types that have been seen by the resolver - used for constraining type inference during exports
 
     readonly Dictionary<ClassDecl, Dictionary<string, MemberDecl>> classMembers = new Dictionary<ClassDecl, Dictionary<string, MemberDecl>>();
     readonly Dictionary<DatatypeDecl, Dictionary<string, MemberDecl>> datatypeMembers = new Dictionary<DatatypeDecl, Dictionary<string, MemberDecl>>();
@@ -865,7 +871,7 @@ namespace Microsoft.Dafny
 
         defaultClass.AddVisibilityScope(d.ThisScope, true);
 
-        foreach(var eexports in d.ExtendDecls.Select(e => e.Exports)){
+        foreach (var eexports in d.ExtendDecls.Select(e => e.Exports)) {
           d.Exports.AddRange(eexports);
         }
 
@@ -920,20 +926,14 @@ namespace Microsoft.Dafny
           decl.AddVisibilityScope(d.ThisScope, export.Opaque);
 
           if (export.Decl is ClassDecl && !export.Opaque) {
-            foreach (var mdecl in ((ClassDecl)export.Decl).Members){
+            foreach (var mdecl in ((ClassDecl)export.Decl).Members) {
               mdecl.AddVisibilityScope(d.ThisScope, false);
             }
           }
         }
       }
 
-
-      Dictionary<ModuleExportDecl, Dictionary<Declaration,bool>> exportDecls = new Dictionary<ModuleExportDecl,Dictionary<Declaration,bool>>();
-
       foreach (ModuleExportDecl decl in sortedDecls) {
-        var exportDeclSet = new Dictionary<Declaration,bool>();
-        exportDecls[decl] = exportDeclSet;
-
         if (decl.IsDefault) {
           if (defaultExport == null) {
             defaultExport = decl;
@@ -950,7 +950,6 @@ namespace Microsoft.Dafny
           if (!signature.TopLevels.ContainsKey(top.Key)) {
             signature.TopLevels.Add(top.Key, top.Value);
           }
-          exportDeclSet[top.Value] = !top.Value.IsRevealedInScope(signature.VisibilityScope);
 
           if (top.Value is DatatypeDecl && top.Value.IsRevealedInScope(signature.VisibilityScope)) {
             foreach (var ctor in ((DatatypeDecl)top.Value).Ctors) {
@@ -963,7 +962,6 @@ namespace Microsoft.Dafny
           foreach (var mem in sig.StaticMembers.Where(t => t.Value.IsVisibleInScope(signature.VisibilityScope) && t.Value.CanBeExported())) {
             if (!signature.StaticMembers.ContainsKey(mem.Key)) {
               signature.StaticMembers.Add(mem.Key, (MemberDecl)mem.Value);
-              exportDeclSet[mem.Value] = !mem.Value.IsRevealedInScope(signature.VisibilityScope);
             }
           }
 
@@ -989,71 +987,84 @@ namespace Microsoft.Dafny
             s.VisibilityScope.Augment(modDecl.AccessibleSignature().VisibilityScope);
           }
         }
-
       }
 
-      HashSet<Tuple<Declaration, bool>> exported = new HashSet<Tuple<Declaration,bool>>();
+      HashSet<Tuple<Declaration, bool>> exported = new HashSet<Tuple<Declaration, bool>>();
 
-      exportDecls.Values.Iter(e => e.Iter(db => exported.Add(new Tuple<Declaration,bool>(db.Key, db.Value))));
+      //some decls may not be set due to resolution errors
+      foreach (var e in sortedDecls.SelectMany(e => e.Exports).Where(e => e.Decl != null)) {
+        exported.Add(new Tuple<Declaration, bool>(e.Decl, e.Opaque));
+        if (!e.Opaque && e.Decl.CanBeRevealed()) {
+          exported.Add(new Tuple<Declaration, bool>(e.Decl, true));
+        }
+      }
 
+      Dictionary<RevealableTypeDecl, bool?> declScopes = new Dictionary<RevealableTypeDecl, bool?>();
+      Dictionary<RevealableTypeDecl, bool?> modifies = new Dictionary<RevealableTypeDecl, bool?>();
 
-      //find the minimum visibility of exports
+      //of all existing types, compute the minimum visibility of them for each exported declaration's
+      //body and signature
       foreach (var e in exported) {
-        Dictionary<Declaration, bool> minimumReveal = new Dictionary<Declaration, bool>();
+        declScopes.Clear();
+        modifies.Clear();
 
-        bool foundFirst = false;
-
-        foreach (var decl in sortedDecls) {
-          var exportDeclSet = exportDecls[decl];
-          bool isOpaque;
-          if (exportDeclSet.TryGetValue(e.Item1, out isOpaque)) {
-            if (isOpaque != e.Item2) {
-              continue;
-            }
-
-            if (!foundFirst) {
-              minimumReveal = new Dictionary<Declaration,bool>(exportDeclSet);
-              foundFirst = true;
-
-            } else {
-              
-              foreach(var exMin in minimumReveal.ToList()){
-                if (exportDeclSet.TryGetValue(exMin.Key, out isOpaque)){
-                  if (isOpaque && !exMin.Value){
-                    minimumReveal[exMin.Key] = true;
-                  }
-                } else {
-                  minimumReveal.Remove(exMin.Key);
-                }
-              }
-
-              foreach (var exDecl in exportDeclSet) {
-                if (!minimumReveal.TryGetValue(exDecl.Key, out isOpaque)) {
-                  minimumReveal.Remove(exDecl.Key);
-                }
-              }
-            }
-          }
+        foreach (var typ in revealableTypes){
+          declScopes.Add(typ, null);
         }
 
+        foreach (var decl in sortedDecls) {
+          if (decl.Exports.Exists(ex => ex.Decl == e.Item1 && (e.Item2 || !ex.Opaque))) {
+            //if we are revealed, consider those exports where we are provided as well
+            var scope = decl.Signature.VisibilityScope;
+
+            foreach (var kv in declScopes) {
+              bool? isOpaque = kv.Value;
+              var typ = kv.Key;
+                if (!typ.AsTopLevelDecl.IsVisibleInScope(scope)) {
+                  modifies[typ] = null;
+                  continue;
+                }
+
+                if (isOpaque.HasValue && isOpaque.Value) {
+                  //type is visible here, but known-opaque, so do nothing
+                  continue;
+                }
+
+                modifies[typ] = !typ.AsTopLevelDecl.IsRevealedInScope(scope);
+              }
+
+            foreach (var kv in modifies) {
+              if (!kv.Value.HasValue) {
+                declScopes.Remove(kv.Key);
+              } else {
+                var exvis = declScopes[kv.Key];
+                if (exvis.HasValue) {
+                  declScopes[kv.Key] = exvis.Value || kv.Value.Value;
+                } else {
+                  declScopes[kv.Key] = kv.Value;
+                }
+              }
+            }
+            modifies.Clear();
+          }
+        }
 
         VisibilityScope newscope = new VisibilityScope(true, e.Item1.Name);
 
-        foreach(var ei in minimumReveal){
-          if (!ei.Key.ScopeIsInherited) {
-            ei.Key.AddVisibilityScope(newscope, ei.Value);
-          }
+        foreach (var rt in declScopes) {
+          if (!rt.Value.HasValue)
+            continue;
+
+          rt.Key.AsTopLevelDecl.AddVisibilityScope(newscope, rt.Value.Value);
         }
 
         if (e.Item2) {
-          e.Item1.MinimumOpaqueScope = newscope;
+          e.Item1.MinimumSignatureScope = newscope;
         } else {
-          e.Item1.MinimumRevealScope = newscope;
+          e.Item1.MinimumBodyScope = newscope;
         }
 
-        
       }
-
     }
 
     //check for export consistency by resolving internal modules
@@ -1374,6 +1385,10 @@ namespace Microsoft.Dafny
       // Now add the things present
       foreach (TopLevelDecl d in declarations) {
         Contract.Assert(d != null);
+
+        if (d is RevealableTypeDecl) {
+          revealableTypes.Add((RevealableTypeDecl)d);
+        }
 
         // register the class/datatype/module name
         if (toplevels.ContainsKey(d.Name)) {
@@ -1847,7 +1862,7 @@ namespace Microsoft.Dafny
         allTypeParameters.PushMarker();
         ResolveTypeParameters(d.TypeArgs, true, d);
         if (d is OpaqueTypeDecl) {
-          // nothing to do
+          // do nothing
         } else if (d is TypeSynonymDecl) {
           var dd = (TypeSynonymDecl)d;
           ResolveType(dd.tok, dd.Rhs, dd, ResolveTypeOptionEnum.AllowPrefix, dd.TypeArgs);
@@ -1956,23 +1971,33 @@ namespace Microsoft.Dafny
           } else {
             Contract.Assert(object.ReferenceEquals(dd.Var.Type, dd.BaseType));  // follows from NewtypeDecl invariant
             Contract.Assert(dd.Constraint != null);  // follows from NewtypeDecl invariant
-            scope.PushMarker();
-            var added = scope.Push(dd.Var.Name, dd.Var);
-            Contract.Assert(added == Scope<IVariable>.PushResult.Success);
-            ResolveExpression(dd.Constraint, new ResolveOpts(dd, false));
-            Contract.Assert(dd.Constraint.Type != null);  // follows from postcondition of ResolveExpression
-            ConstrainTypeExprBool(dd.Constraint, "newtype constraint must be of type bool (instead got {0})");
-            SolveAllTypeConstraints();
-            if (!CheckTypeInference_Visitor.IsDetermined(dd.BaseType.NormalizeExpand())) {
-              reporter.Error(MessageSource.Resolver, dd.tok, "newtype's base type is not fully determined; add an explicit type for '{0}'", dd.Var.Name);
+            SetupMinimumBodyScope(dd, t =>
+                reporter.Error(MessageSource.Resolver, dd.tok, "The body of newtype {0} depends on type {1} which was not exported with it. Ensure that {1} is visible wherever {0} is exported.", dd.Name, t.ToString()));
+
+              scope.PushMarker();
+              var added = scope.Push(dd.Var.Name, dd.Var);
+              Contract.Assert(added == Scope<IVariable>.PushResult.Success);
+              ResolveExpression(dd.Constraint, new ResolveOpts(dd, false));
+              Contract.Assert(dd.Constraint.Type != null);  // follows from postcondition of ResolveExpression
+              ConstrainTypeExprBool(dd.Constraint, "newtype constraint must be of type bool (instead got {0})");
+              SolveAllTypeConstraints();
+              if (!CheckTypeInference_Visitor.IsDetermined(dd.BaseType.NormalizeExpand())) {
+                reporter.Error(MessageSource.Resolver, dd.tok, "newtype's base type is not fully determined; add an explicit type for '{0}'", dd.Var.Name);
+              }
+              if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
+                CheckTypeInference(dd.Constraint, dd);
+              }
+
+              TeardownMinimumBodyScope(dd);
+              scope.PopMarker();
             }
-            if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
-              CheckTypeInference(dd.Constraint, dd);
-            }
-            scope.PopMarker();
-          }
+
         } else if (d is SubsetTypeDecl) {
           var dd = (SubsetTypeDecl)d;
+
+          SetupMinimumBodyScope(dd, t =>
+                reporter.Error(MessageSource.Resolver, dd.tok, "The body of subset type {0} depends on type {1} which was not exported with it. Ensure that {1} is visible wherever {0} is exported.", dd.Name, t.ToString()));
+
           ResolveAttributes(d.Attributes, d, new ResolveOpts(new NoContext(d.Module), false));
           // type check the constraint
           Contract.Assert(object.ReferenceEquals(dd.Var.Type, dd.Rhs));  // follows from SubsetTypeDecl invariant
@@ -1990,6 +2015,8 @@ namespace Microsoft.Dafny
           if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
             CheckTypeInference(dd.Constraint, dd);
           }
+
+          TeardownMinimumBodyScope(dd);
           scope.PopMarker();
         }
       }
@@ -6353,6 +6380,14 @@ namespace Microsoft.Dafny
       Contract.Requires(AllTypeConstraints.Count == 0);
       Contract.Ensures(AllTypeConstraints.Count == 0);
 
+      bool warnShadowingOption = DafnyOptions.O.WarnShadowing;  // save the original warnShadowing value
+      bool warnShadowing = false;
+
+
+
+      SetupMinimumSignatureScope(f, t =>
+        reporter.Error(MessageSource.Resolver, f.tok, "The signature of function {0} depends on type {1} which was not exported with it. Ensure that {1} is visible wherever {0} is exported.", f.Name, t.ToString()));
+
       scope.PushMarker();
       if (f.IsStatic) {
         scope.AllowInstance = false;
@@ -6362,8 +6397,6 @@ namespace Microsoft.Dafny
       }
       ResolveAttributes(f.Attributes, f, new ResolveOpts(f, false));
       // take care of the warnShadowing attribute
-      bool warnShadowingOption = DafnyOptions.O.WarnShadowing;  // save the original warnShadowing value
-      bool warnShadowing = false;
       if (Attributes.ContainsBool(f.Attributes, "warnShadowing", ref warnShadowing)) {
         DafnyOptions.O.WarnShadowing = warnShadowing;  // set the value according to the attribute
       }
@@ -6386,6 +6419,14 @@ namespace Microsoft.Dafny
         // any type is fine
       }
       SolveAllTypeConstraints();
+
+
+      TeardownMinimumSignatureScope(f);
+
+      SetupMinimumBodyScope(f, t =>
+        reporter.Error(MessageSource.Resolver, f.tok, "The body of function {0} depends on type {1} which was not exported with it. Ensure that {1} is visible wherever the body of {0} is exported.", f.Name, t.ToString()));
+
+
       if (f.Body != null) {
         var prevErrorCount = reporter.Count(ErrorLevel.Error);
         ResolveExpression(f.Body, new ResolveOpts(f, false));
@@ -6393,9 +6434,13 @@ namespace Microsoft.Dafny
         ConstrainSubtypeRelation(f.ResultType, f.Body.Type, f.tok, "Function body type mismatch (expected {0}, got {1})", f.ResultType, f.Body.Type);
         SolveAllTypeConstraints();
       }
+
+      TeardownMinimumBodyScope(f);
       scope.PopMarker();
 
+
       DafnyOptions.O.WarnShadowing = warnShadowingOption; // restore the original warnShadowing value
+
     }
 
     /// <summary>
@@ -6463,6 +6508,41 @@ namespace Microsoft.Dafny
       scope.PopMarker();
     }
 
+
+    void SetupMinimumSignatureScope(Declaration d, Action<Type> onError) {
+      if (d.MinimumSignatureScope != null) {
+        VisibilityScope checkScope = new VisibilityScope();
+        checkScope.Augment(systemNameInfo.VisibilityScope);
+        checkScope.Augment(d.MinimumSignatureScope);
+        checkScope.HandleInvalidAccesses = onError;
+        Type.PushScope(checkScope);
+      }
+    }
+
+    void TeardownMinimumSignatureScope(Declaration d) {
+      if (d.MinimumSignatureScope != null) {
+        Type.PopScope();
+      }
+    }
+
+    void SetupMinimumBodyScope(Declaration d, Action<Type> onError) {
+      Contract.Assert(d.CanBeRevealed());
+
+      if (d.MinimumBodyScope != null) {
+        VisibilityScope checkScope = new VisibilityScope();
+        checkScope.Augment(systemNameInfo.VisibilityScope);
+        checkScope.Augment(d.MinimumBodyScope);
+        checkScope.HandleInvalidAccesses = onError;
+        Type.PushScope(checkScope);
+      }
+    }
+
+    void TeardownMinimumBodyScope(Declaration d) {
+      if (d.MinimumBodyScope != null) {
+        Type.PopScope();
+      }
+    }
+
     /// <summary>
     /// Assumes type parameters have already been pushed
     /// </summary>
@@ -6471,8 +6551,9 @@ namespace Microsoft.Dafny
       Contract.Requires(AllTypeConstraints.Count == 0);
       Contract.Ensures(AllTypeConstraints.Count == 0);
 
-      try
-      {
+      try {
+        SetupMinimumSignatureScope(m, t => 
+          reporter.Error(MessageSource.Resolver, m.tok, "The signature of method {0} depends on type {1} which was not exported with it. Ensure that {1} is visible wherever {0} is exported.", m.Name, t.ToString()));
         currentMethod = m;
 
         // Add in-parameters to the scope, but don't care about any duplication errors, since they have already been reported
@@ -6484,6 +6565,7 @@ namespace Microsoft.Dafny
           scope.Push(p.Name, p);
         }
 
+
         // Start resolving specification...
         foreach (MaybeFreeExpression e in m.Req) {
           ResolveAttributes(e.Attributes, null, new ResolveOpts(m, m is TwoStateLemma));
@@ -6491,6 +6573,7 @@ namespace Microsoft.Dafny
           Contract.Assert(e.E.Type != null);  // follows from postcondition of ResolveExpression
           ConstrainTypeExprBool(e.E, "Precondition must be a boolean (got {0})");
         }
+
         ResolveAttributes(m.Mod.Attributes, null, new ResolveOpts(m, false));
         foreach (FrameExpression fe in m.Mod.Expressions) {
           ResolveFrameExpression(fe, false, m);
@@ -6533,6 +6616,8 @@ namespace Microsoft.Dafny
         }
         SolveAllTypeConstraints();
 
+        TeardownMinimumSignatureScope(m);
+
         // Resolve body
         if (m.Body != null) {
           var com = m as FixpointLemma;
@@ -6551,9 +6636,7 @@ namespace Microsoft.Dafny
 
         scope.PopMarker();  // for the out-parameters and outermost-level locals
         scope.PopMarker();  // for the in-parameters
-      }
-      finally
-      {
+      } finally {
         currentMethod = null;
       }
     }

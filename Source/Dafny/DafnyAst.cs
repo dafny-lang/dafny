@@ -442,6 +442,8 @@ namespace Microsoft.Dafny {
   public class VisibilityScope {
     private static uint maxScopeID = 0;
 
+    public Action<Type> HandleInvalidAccesses;
+
     private SortedSet<uint> scopeTokens = new SortedSet<uint>();
 
     // Only for debugging
@@ -457,9 +459,25 @@ namespace Microsoft.Dafny {
 
     private Dictionary<VisibilityScope, Tuple<int, bool>> cached = new Dictionary<VisibilityScope, Tuple<int, bool>>();
 
+
+    //Something terrible has happened, all bets are off for keeping scopes intact
+    private bool hasBeenInvalidlyAccessed = false;
+
+    public void TripInvalidAccess() {
+      hasBeenInvalidlyAccessed = true;
+    }
+
+    public bool HasBeenInvalidlyAccessed() {
+      return hasBeenInvalidlyAccessed;
+    }
+
     //By convention, the "null" scope sees all
     public bool VisibleInScope(VisibilityScope other) {
       if (other != null) {
+        if (other.hasBeenInvalidlyAccessed) {
+          return true;
+        }
+
         Tuple<int, bool> result;
         if (cached.TryGetValue(other, out result)) {
           if (result.Item1 == other.scopeTokens.Count()) {
@@ -544,7 +562,7 @@ namespace Microsoft.Dafny {
       PopScope();
     }
 
-    private static VisibilityScope getScope() {
+    public static VisibilityScope GetScope() {
       if (scopes.Count > 0 && scopesEnabled) {
         return scopes[scopes.Count - 1];
       }
@@ -560,6 +578,7 @@ namespace Microsoft.Dafny {
       Contract.Assert(scopesEnabled);
       scopesEnabled = false;
     }
+
     
     public static string TypeArgsToString(ModuleDefinition/*?*/ context, List<Type> typeArgs, bool parseAble = false) {
       Contract.Requires(typeArgs == null ||
@@ -608,15 +627,6 @@ namespace Microsoft.Dafny {
       }
     }
 
-    //TODO This is a hack to fix type inference breaking scoping rules
-    private Type reverseSynonym;
-    public Type ReverseSynonym {
-      get { return reverseSynonym; }
-      set {
-        reverseSynonym = value;
-      }
-    }
-
     /// <summary>
     /// Return the type that "this" stands for, getting to the bottom of proxies and following type synonyms.
     /// </summary>
@@ -626,26 +636,28 @@ namespace Microsoft.Dafny {
       Contract.Ensures(!(Contract.Result<Type>() is TypeProxy) || ((TypeProxy)Contract.Result<Type>()).T == null);  // return a proxy only if .T == null
       Type type = this;
       while (true) {
+        
         var pt = type as TypeProxy;
         if (pt != null && pt.T != null) {
           type = pt.T;
           continue;
         }
-        var scope = Type.getScope();
+        var scope = Type.GetScope();
         var rtd = type.AsRevealableType;
 
+
         if (rtd != null) {
-
-          //TODO This is a hack to fix type inference breaking scoping rules
-          /*if (!rtd.AsTopLevelDecl.IsVisibleInScope(scope)) {
-            Contract.Assert(type.ReverseSynonym != null);
-            type = type.ReverseSynonym;
-            continue;
-          }*/
-
-          Contract.Assert(rtd.AsTopLevelDecl.IsVisibleInScope(scope));
-          
           var udt = (UserDefinedType)type;
+
+          if (!rtd.AsTopLevelDecl.IsVisibleInScope(scope)) {
+            if (scope.HandleInvalidAccesses != null) {
+              scope.HandleInvalidAccesses(type);
+              scope.TripInvalidAccess();
+            } else {
+              Contract.Assert(false);
+            }
+          }
+
 
           if (rtd.IsRevealedInScope(scope)) {
             if (rtd is TypeSynonymDecl && (!(rtd is SubsetTypeDecl) || !keepConstraints)) {
@@ -690,7 +702,7 @@ namespace Microsoft.Dafny {
       Type type = Normalize();
       var syn = type.AsTypeSynonym;
       if (syn != null) {
-        var scope = Type.getScope();
+        var scope = Type.GetScope();
         Contract.Assert(syn.IsVisibleInScope(scope));
         if (!syn.IsRevealedInScope(scope)) {
           return type;
@@ -2372,8 +2384,8 @@ namespace Microsoft.Dafny {
     private VisibilityScope opaqueScope = new VisibilityScope();
     private VisibilityScope revealScope = new VisibilityScope();
 
-    public VisibilityScope MinimumOpaqueScope; // filled in by resolver during export check, can be null
-    public VisibilityScope MinimumRevealScope; // filled in by resolver during export check, can be null
+    public VisibilityScope MinimumSignatureScope; // filled in by resolver during export check, can be null
+    public VisibilityScope MinimumBodyScope; // filled in by resolver during export check, can be null
 
     private bool scopeIsInherited = false;
 
@@ -2411,7 +2423,6 @@ namespace Microsoft.Dafny {
       scopeIsInherited = true;
 
     }
-
 
     public bool IsRevealedInScope(VisibilityScope scope) {
       return revealScope.VisibleInScope(scope);
@@ -3839,6 +3850,10 @@ namespace Microsoft.Dafny {
       Contract.Assert(!tsdMap.ContainsKey(d));
 
       var thisType = UserDefinedType.FromTopLevelDecl(d.tok, d);
+      if (d is OpaqueTypeDecl) {
+        thisType.ResolvedParam = ((OpaqueTypeDecl)d).TheType;
+      }
+
       var tsd = new InternalTypeSynonymDecl(d.tok, d.Name, d.TypeArgs, d.Module, thisType, d.Attributes);
       tsd.InheritVisibility(d, false);
       var syn = UserDefinedType.FromTopLevelDecl(d.tok, tsd);
@@ -4011,7 +4026,6 @@ namespace Microsoft.Dafny {
     public TypeSynonymDecl(IToken tok, string name, List<TypeParameter> typeArgs, ModuleDefinition module, Type rhs, Attributes attributes, TypeSynonymDecl clonedFrom = null)
       : base(tok, name, typeArgs, module, rhs, attributes, clonedFrom) {
         this.NewSelfSynonym();
-        rhs.ReverseSynonym = this.SelfSynonym();
     }
     TopLevelDecl RevealableTypeDecl.AsTopLevelDecl { get { return this; } }
     bool RevealableTypeDecl.SupportsEquality { get { return this.Rhs.SupportsEquality; } }

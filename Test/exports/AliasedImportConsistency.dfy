@@ -11,9 +11,6 @@ module A {
 }
 
 module B {
-  export BadSpec provides f // error
-  export BadBody reveals f // error
-  export StillBadBody reveals f provides ASpec // error
   export GoodSpec provides f, ASpec
   export AnotherGoodSpec provides f, ABody
   export YetAnotherGoodSpec provides f, ABody, ASpec
@@ -63,7 +60,6 @@ module E {
   export Spec provides f, CASpec
   export AnotherSpec provides f,g, CASpec
 
-  export BadBody reveals f provides CASpec // error
   export Body reveals f,g provides CABody
   export AnotherBody reveals f,g provides DABody
 

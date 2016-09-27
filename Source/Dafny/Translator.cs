@@ -1022,9 +1022,11 @@ namespace Microsoft.Dafny {
 
       if (dd.Var != null) {
         AddWellformednessCheck(dd);
+        currentModule = dd.Module;
         // Add $Is and $IsAlloc axioms for the newtype
         AddRedirectingTypeDeclAxioms(false, dd, dd.FullName);
         AddRedirectingTypeDeclAxioms(true, dd, dd.FullName);
+        currentModule = null;
       }
       this.fuelContext = oldFuelContext;
     }
@@ -7506,6 +7508,10 @@ namespace Microsoft.Dafny {
       Contract.Requires(type != null);
       Contract.Requires(predef != null);
       Contract.Ensures(Contract.Result<Bpl.Type>() != null);
+
+      if (type.ToString() == "ConcreteConfiguration") {
+        Contract.Assert(true);
+      }
 
       while (true) {
         type = type.NormalizeExpand();
