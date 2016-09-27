@@ -483,6 +483,7 @@ namespace Microsoft.Dafny {
       return scopeTokens.Count == 0;
     }
 
+
     //However augmenting with a null scope does nothing
     public void Augment(VisibilityScope other) {
       if (other != null) {
@@ -493,7 +494,9 @@ namespace Microsoft.Dafny {
 
     public VisibilityScope(bool newScope, string name) {
       scopeTokens.Add(maxScopeID);
+#if DEBUG
       scopeIds.Add(name);
+#endif
       if (maxScopeID == uint.MaxValue) {
         Contract.Assert(false);
       }
@@ -634,11 +637,13 @@ namespace Microsoft.Dafny {
         if (rtd != null) {
 
           //TODO This is a hack to fix type inference breaking scoping rules
-          if (!rtd.AsTopLevelDecl.IsVisibleInScope(scope)) {
+          /*if (!rtd.AsTopLevelDecl.IsVisibleInScope(scope)) {
             Contract.Assert(type.ReverseSynonym != null);
             type = type.ReverseSynonym;
             continue;
-          }
+          }*/
+
+          Contract.Assert(rtd.AsTopLevelDecl.IsVisibleInScope(scope));
           
           var udt = (UserDefinedType)type;
 
@@ -2366,6 +2371,10 @@ namespace Microsoft.Dafny {
 
     private VisibilityScope opaqueScope = new VisibilityScope();
     private VisibilityScope revealScope = new VisibilityScope();
+
+    public VisibilityScope MinimumOpaqueScope; // filled in by resolver during export check, can be null
+    public VisibilityScope MinimumRevealScope; // filled in by resolver during export check, can be null
+
     private bool scopeIsInherited = false;
 
     public virtual bool CanBeExported() {
@@ -2625,6 +2634,7 @@ namespace Microsoft.Dafny {
     public List<ExportSignature> Exports; // list of TopLevelDecl that are included in the export
     public List<string> Extends; // list of exports that are extended
     public readonly List<ModuleExportDecl> ExtendDecls = new List<ModuleExportDecl>(); // fill in by the resolver
+    public readonly HashSet<Tuple<Declaration, bool>> ExportDecls = new HashSet<Tuple<Declaration, bool>>(); // fill in by the resolver
     public bool RevealAll; // only kept for initial rewriting, then discarded
     public bool ProvideAll;
 

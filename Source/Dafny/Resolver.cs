@@ -355,13 +355,20 @@ namespace Microsoft.Dafny
           var sig = literalDecl.Signature;
           // set up environment
           var preResolveErrorCount = reporter.Count(ErrorLevel.Error);
+
+          
           ResolveModuleDefinition(m, sig);
+          ResolveModuleExport(literalDecl, sig);
+          if (reporter.Count(ErrorLevel.Error) == preResolveErrorCount) {
+            //CheckModuleExportConsistency(m);
+          }
+
           var tempVis = new VisibilityScope();
           tempVis.Augment(sig.VisibilityScope);
           tempVis.Augment(systemNameInfo.VisibilityScope);
           Type.PushScope(tempVis);
 
-          ResolveModuleExport(literalDecl, sig, preResolveErrorCount);
+          
 
           prog.ModuleSigs[m] = sig;
 
@@ -763,6 +770,7 @@ namespace Microsoft.Dafny
       }
     }
 
+
     private void ResolveModuleDefinition(ModuleDefinition m, ModuleSignature sig) {
       Contract.Requires(AllTypeConstraints.Count == 0);
       Contract.Ensures(AllTypeConstraints.Count == 0);
@@ -815,7 +823,7 @@ namespace Microsoft.Dafny
     }
 
     // Resolve the exports and detect cycles.
-    private void ResolveModuleExport(LiteralModuleDecl literalDecl, ModuleSignature sig, int preResolveErrorCount) {
+    private void ResolveModuleExport(LiteralModuleDecl literalDecl, ModuleSignature sig) {
       ModuleDefinition m = literalDecl.ModuleDef;
       literalDecl.DefaultExport = sig;
       Graph<ModuleExportDecl> exportDependencies = new Graph<ModuleExportDecl>();
@@ -832,68 +840,6 @@ namespace Microsoft.Dafny
               reporter.Error(MessageSource.Resolver, m.tok, s + " must be an export of " + m.Name + " to be extended");
             }
           }
-          TopLevelDecl defaultClass;
-
-          sig.TopLevels.TryGetValue("_default", out defaultClass);
-          Contract.Assert(defaultClass is ClassDecl);
-          Contract.Assert(((ClassDecl)defaultClass).IsDefaultClass);
-          defaultClass.AddVisibilityScope(d.ThisScope, true);
-
-          foreach (ExportSignature export in d.Exports) {
-
-            // check to see if it is a datatype or a member or
-            // static function or method in the enclosing module or its imports
-            TopLevelDecl tdecl;
-            MemberDecl member;
-            TopLevelDecl cldecl;
-
-            Declaration decl = null;
-            string name = export.Id;
-
-            if (export.ClassId != null) {
-              if (sig.TopLevels.TryGetValue(export.ClassId, out cldecl)
-                && cldecl is ClassDecl) {
-
-                var cl = (ClassDecl)cldecl;
-                var lmem = cl.Members.FirstOrDefault(l => l.Name == export.Id);
-                if (lmem != null) {
-                  decl = lmem;
-                } else {
-                  reporter.Error(MessageSource.Resolver, d.tok, "No member '" + export.Id + "' found in class '" + export.ClassId);
-                  continue;
-                }
-              } else {
-                reporter.Error(MessageSource.Resolver, d.tok, "No class '" + export.ClassId + "' found");
-                continue;
-              }
-            } else if (sig.TopLevels.TryGetValue(name, out tdecl)) {
-              // Member of the enclosing module
-              decl = tdecl;
-            } else if (sig.StaticMembers.TryGetValue(name, out member)) {
-              decl = member;
-            } else {
-              reporter.Error(MessageSource.Resolver, d.tok, name + " must be a member of " + m.Name + " to be exported");
-              continue;
-            }
-
-            if (!decl.CanBeExported()) {
-              reporter.Error(MessageSource.Resolver, d.tok, name + " is not a valid export of " + m.Name);
-              continue;
-            }
-
-            if (!export.Opaque && !decl.CanBeRevealed()) {
-              reporter.Error(MessageSource.Resolver, d.tok, name + " cannot be revealed in an export. Use \"provides\" instead.");
-              continue;
-            }
-
-            export.Decl = decl;
-            decl.AddVisibilityScope(d.ThisScope, export.Opaque);
-
-            if (export.Decl is ClassDecl && !export.Opaque) {
-              ((ClassDecl)export.Decl).Members.ForEach(mdecl =>
-                  mdecl.AddVisibilityScope(d.ThisScope, false));
-            }
-          }
         }
       }
 
@@ -908,7 +854,85 @@ namespace Microsoft.Dafny
       // fill in the exports for the extends.
       List<ModuleExportDecl> sortedDecls = exportDependencies.TopologicallySortedComponents();
       ModuleExportDecl defaultExport = null;
+
+      foreach (var d in sortedDecls) {
+        TopLevelDecl defaultClass;
+
+        sig.TopLevels.TryGetValue("_default", out defaultClass);
+        Contract.Assert(defaultClass is ClassDecl);
+        Contract.Assert(((ClassDecl)defaultClass).IsDefaultClass);
+        defaultClass.AddVisibilityScope(d.ThisScope, true);
+
+
+        foreach(var eexports in d.ExtendDecls.Select(e => e.Exports)){
+          d.Exports.AddRange(eexports);
+        }
+
+        foreach (ExportSignature export in d.Exports) {
+
+          // check to see if it is a datatype or a member or
+          // static function or method in the enclosing module or its imports
+          TopLevelDecl tdecl;
+          MemberDecl member;
+          TopLevelDecl cldecl;
+
+          Declaration decl = null;
+          string name = export.Id;
+
+          if (export.ClassId != null) {
+            if (sig.TopLevels.TryGetValue(export.ClassId, out cldecl)
+              && cldecl is ClassDecl) {
+
+              var cl = (ClassDecl)cldecl;
+              var lmem = cl.Members.FirstOrDefault(l => l.Name == export.Id);
+              if (lmem != null) {
+                decl = lmem;
+              } else {
+                reporter.Error(MessageSource.Resolver, d.tok, "No member '" + export.Id + "' found in class '" + export.ClassId);
+                continue;
+              }
+            } else {
+              reporter.Error(MessageSource.Resolver, d.tok, "No class '" + export.ClassId + "' found");
+              continue;
+            }
+          } else if (sig.TopLevels.TryGetValue(name, out tdecl)) {
+            // Member of the enclosing module
+            decl = tdecl;
+          } else if (sig.StaticMembers.TryGetValue(name, out member)) {
+            decl = member;
+          } else {
+            reporter.Error(MessageSource.Resolver, d.tok, name + " must be a member of " + m.Name + " to be exported");
+            continue;
+          }
+
+          if (!decl.CanBeExported()) {
+            reporter.Error(MessageSource.Resolver, d.tok, name + " is not a valid export of " + m.Name);
+            continue;
+          }
+
+          if (!export.Opaque && !decl.CanBeRevealed()) {
+            reporter.Error(MessageSource.Resolver, d.tok, name + " cannot be revealed in an export. Use \"provides\" instead.");
+            continue;
+          }
+
+          export.Decl = decl;
+          decl.AddVisibilityScope(d.ThisScope, export.Opaque);
+
+          if (export.Decl is ClassDecl && !export.Opaque) {
+            foreach (var mdecl in ((ClassDecl)export.Decl).Members){
+              mdecl.AddVisibilityScope(d.ThisScope, false);
+            }
+          }
+        }
+      }
+
+
+      Dictionary<ModuleExportDecl, Dictionary<Declaration,bool>> exportDecls = new Dictionary<ModuleExportDecl,Dictionary<Declaration,bool>>();
+
       foreach (ModuleExportDecl decl in sortedDecls) {
+        var exportDeclSet = new Dictionary<Declaration,bool>();
+        exportDecls[decl] = exportDeclSet;
+
         if (decl.IsDefault) {
           if (defaultExport == null) {
             defaultExport = decl;
@@ -920,46 +944,28 @@ namespace Microsoft.Dafny
         ModuleSignature signature = decl.Signature;
         signature.ModuleDef = m;
 
-          
-          foreach (var top in sig.TopLevels.Where(t => t.Value.IsVisibleInScope(signature.VisibilityScope) && t.Value.CanBeExported())) {
-            if (!signature.TopLevels.ContainsKey(top.Key)) {
-              signature.TopLevels.Add(top.Key, top.Value);
-            }
 
-            if (top.Value is DatatypeDecl && top.Value.IsRevealedInScope(signature.VisibilityScope)) {
-              foreach (var ctor in ((DatatypeDecl)top.Value).Ctors) {
-                if (!signature.Ctors.ContainsKey(ctor.Name)) {
-                  signature.Ctors.Add(ctor.Name, new Tuple<DatatypeCtor, bool>(ctor, false));
-                }
+        foreach (var top in sig.TopLevels.Where(t => t.Value.IsVisibleInScope(signature.VisibilityScope) && t.Value.CanBeExported())) {
+          if (!signature.TopLevels.ContainsKey(top.Key)) {
+            signature.TopLevels.Add(top.Key, top.Value);
+          }
+          exportDeclSet[top.Value] = !top.Value.IsRevealedInScope(signature.VisibilityScope);
+
+          if (top.Value is DatatypeDecl && top.Value.IsRevealedInScope(signature.VisibilityScope)) {
+            foreach (var ctor in ((DatatypeDecl)top.Value).Ctors) {
+              if (!signature.Ctors.ContainsKey(ctor.Name)) {
+                signature.Ctors.Add(ctor.Name, new Tuple<DatatypeCtor, bool>(ctor, false));
               }
             }
+          }
 
           foreach (var mem in sig.StaticMembers.Where(t => t.Value.IsVisibleInScope(signature.VisibilityScope) && t.Value.CanBeExported())) {
             if (!signature.StaticMembers.ContainsKey(mem.Key)) {
               signature.StaticMembers.Add(mem.Key, (MemberDecl)mem.Value);
+              exportDeclSet[mem.Value] = !mem.Value.IsRevealedInScope(signature.VisibilityScope);
             }
           }
 
-        }
-
-        foreach (ModuleExportDecl extend in decl.ExtendDecls) {
-          ModuleSignature s = extend.Signature;
-          signature.VisibilityScope.Augment(s.VisibilityScope);
-          foreach (var kv in s.TopLevels) {
-            if (!signature.TopLevels.ContainsKey(kv.Key)) {
-              signature.TopLevels.Add(kv.Key, kv.Value);
-            }
-          }
-          foreach (var kv in s.Ctors) {
-            if (!signature.Ctors.ContainsKey(kv.Key)) {
-              signature.Ctors.Add(kv.Key, kv.Value);
-            }
-          }
-          foreach (var kv in s.StaticMembers) {
-            if (!signature.StaticMembers.ContainsKey(kv.Key)) {
-              signature.StaticMembers.Add(kv.Key, kv.Value);
-            }
-          }
         }
 
       }
@@ -985,42 +991,109 @@ namespace Microsoft.Dafny
 
       }
 
-      //check for export consistency by resolving internal modules
-      //this should be effect-free, as it only operates on clones
+      HashSet<Tuple<Declaration, bool>> exported = new HashSet<Tuple<Declaration,bool>>();
 
-      var oldModuleInfo = moduleInfo;
-      if (reporter.Count(ErrorLevel.Error) == preResolveErrorCount) { //only bother with consistency check if nothing was raised during resolution
+      exportDecls.Values.Iter(e => e.Iter(db => exported.Add(new Tuple<Declaration,bool>(db.Key, db.Value))));
 
-        foreach (ModuleExportDecl decl in sortedDecls) {
-          foreach (var export in decl.Exports) {
-            if (export.Decl is MemberDecl) {
-              var member = (MemberDecl)export.Decl;
-              if (!member.EnclosingClass.IsVisibleInScope(decl.Signature.VisibilityScope)) {
-                reporter.Error(MessageSource.Resolver, decl.tok, "Cannot export class member '{0}' without providing its enclosing class '{1}'", member.Name, member.EnclosingClass.Name);
+
+      //find the minimum visibility of exports
+      foreach (var e in exported) {
+        Dictionary<Declaration, bool> minimumReveal = new Dictionary<Declaration, bool>();
+
+        bool foundFirst = false;
+
+        foreach (var decl in sortedDecls) {
+          var exportDeclSet = exportDecls[decl];
+          bool isOpaque;
+          if (exportDeclSet.TryGetValue(e.Item1, out isOpaque)) {
+            if (isOpaque != e.Item2) {
+              continue;
+            }
+
+            if (!foundFirst) {
+              minimumReveal = new Dictionary<Declaration,bool>(exportDeclSet);
+              foundFirst = true;
+
+            } else {
+              
+              foreach(var exMin in minimumReveal.ToList()){
+                if (exportDeclSet.TryGetValue(exMin.Key, out isOpaque)){
+                  if (isOpaque && !exMin.Value){
+                    minimumReveal[exMin.Key] = true;
+                  }
+                } else {
+                  minimumReveal.Remove(exMin.Key);
+                }
+              }
+
+              foreach (var exDecl in exportDeclSet) {
+                if (!minimumReveal.TryGetValue(exDecl.Key, out isOpaque)) {
+                  minimumReveal.Remove(exDecl.Key);
+                }
               }
             }
           }
-
-          reporter = new ErrorReporterWrapper(reporter, 
-            String.Format("Raised while checking export set {0}: ", decl.Name));
-          var scope = decl.Signature.VisibilityScope;
-          Cloner cloner = new ScopeCloner(scope);
-          var exportView = cloner.CloneModuleDefinition(m, m.Name);
-
-          var testSig = RegisterTopLevelDecls(exportView, true);
-          //testSig.Refines = refinementTransformer.RefinedSig;
-          ResolveModuleDefinition(exportView, testSig);
-          var wasError = reporter.Count(ErrorLevel.Error) > 0;
-          reporter = ((ErrorReporterWrapper)reporter).WrappedReporter;
-
-          if (wasError) {
-            reporter.Error(MessageSource.Resolver, decl.tok, "This export set is not consistent: {0}", decl.Name);
-          }
-          
         }
-      }
-      moduleInfo = oldModuleInfo;
 
+
+        VisibilityScope newscope = new VisibilityScope(true, e.Item1.Name);
+
+        foreach(var ei in minimumReveal){
+          if (!ei.Key.ScopeIsInherited) {
+            ei.Key.AddVisibilityScope(newscope, ei.Value);
+          }
+        }
+
+        if (e.Item2) {
+          e.Item1.MinimumOpaqueScope = newscope;
+        } else {
+          e.Item1.MinimumRevealScope = newscope;
+        }
+
+        
+      }
+
+    }
+
+    //check for export consistency by resolving internal modules
+    //this should be effect-free, as it only operates on clones
+    private void CheckModuleExportConsistency(ModuleDefinition m) {
+      var oldModuleInfo = moduleInfo;
+      foreach (var top in m.TopLevelDecls) {
+        if (!(top is ModuleExportDecl))
+          continue;
+
+        ModuleExportDecl decl = (ModuleExportDecl)top;
+
+        foreach (var export in decl.Exports) {
+          if (export.Decl is MemberDecl) {
+            var member = (MemberDecl)export.Decl;
+            if (!member.EnclosingClass.IsVisibleInScope(decl.Signature.VisibilityScope)) {
+              reporter.Error(MessageSource.Resolver, decl.tok, "Cannot export class member '{0}' without providing its enclosing class '{1}'", member.Name, member.EnclosingClass.Name);
+            }
+          }
+        }
+
+        reporter = new ErrorReporterWrapper(reporter,
+          String.Format("Raised while checking export set {0}: ", decl.Name));
+        var scope = decl.Signature.VisibilityScope;
+        Cloner cloner = new ScopeCloner(scope);
+        var exportView = cloner.CloneModuleDefinition(m, m.Name);
+
+        var testSig = RegisterTopLevelDecls(exportView, true);
+        //testSig.Refines = refinementTransformer.RefinedSig;
+        ResolveModuleDefinition(exportView, testSig);
+        var wasError = reporter.Count(ErrorLevel.Error) > 0;
+        reporter = ((ErrorReporterWrapper)reporter).WrappedReporter;
+
+        if (wasError) {
+          reporter.Error(MessageSource.Resolver, decl.tok, "This export set is not consistent: {0}", decl.Name);
+        }
+
+      }
+
+
+      moduleInfo = oldModuleInfo;
     }
 
     public class ModuleBindings
