@@ -104,7 +104,7 @@ module F {
       requires old(aa) <= aa && unchanged(`bb)
       reads this
       reads old(next)  // error: not allowed to use 'old' in 'reads' clauses
-      ensures old(aa) <= aa && old(G(x, u)) == G(x, u)
+      ensures old(aa) <= aa && old(G(x, u)) == G(x, u)  // error: cannot call G inside old
       decreases old(aa) - old(aa) + x
     {
       if 0 < x then
@@ -228,5 +228,24 @@ module J {
     assert P();
     b := P();  // error: cannot assign a ghost to a non-ghost
     var p': () -> bool := P;  // error: cannot assign a ghost
+  }
+}
+
+module OldWithinOld {
+  class C {
+    var data: int
+    var next: C
+    twostate function F(): int
+    twostate lemma L()
+    method M()
+    {
+      ghost var x0 := old(F());  // error: two-state function cannot be used inside 'old'
+      ghost var x1 := old(L(); 5);  // error: two-state lemma cannot be used inside 'old'
+      ghost var x2 := old(unchanged(this));  // error: unchanged cannot be used inside old
+      ghost var x3 := unchanged(old(next));
+      ghost var x4 := old(fresh(this));  // error: fresh cannot be used inside old
+      ghost var x5 := fresh(old(next));
+      ghost var x6 := old(old(data));  // error: old cannot be used inside old
+    }
   }
 }

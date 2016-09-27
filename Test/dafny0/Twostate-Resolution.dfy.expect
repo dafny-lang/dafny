@@ -269,6 +269,28 @@ module J {
     var p': () -> bool := P;
   }
 }
+
+module OldWithinOld {
+  class C {
+    var data: int
+    var next: C
+
+    twostate function F(): int
+
+    twostate lemma L()
+
+    method M()
+    {
+      ghost var x0 := old(F());
+      ghost var x1 := old(L(); 5);
+      ghost var x2 := old(unchanged(this));
+      ghost var x3 := unchanged(old(next));
+      ghost var x4 := old(fresh(this));
+      ghost var x5 := fresh(old(next));
+      ghost var x6 := old(old(data));
+    }
+  }
+}
 Twostate-Resolution.dfy(13,15): Error: twostate lemmas are not allowed to have modifies clauses
 Twostate-Resolution.dfy(25,15): Error: unchanged expressions are not allowed in this context
 Twostate-Resolution.dfy(28,15): Error: unchanged expressions are not allowed in this context
@@ -277,6 +299,7 @@ Twostate-Resolution.dfy(32,14): Error: unchanged expressions are not allowed in 
 Twostate-Resolution.dfy(93,18): Error: 'this' is not allowed in a 'static' context
 Twostate-Resolution.dfy(97,23): Error: Function body type mismatch (expected bool, got int)
 Twostate-Resolution.dfy(106,12): Error: old expressions are not allowed in this context
+Twostate-Resolution.dfy(107,35): Error: two-state function ('G') can only be called in a two-state context
 Twostate-Resolution.dfy(142,14): Error: two-state function ('P') can only be called in a two-state context
 Twostate-Resolution.dfy(143,14): Error: old expressions are not allowed in this context
 Twostate-Resolution.dfy(138,13): Error: two-state function ('P') can only be called in a two-state context
@@ -302,4 +325,9 @@ Twostate-Resolution.dfy(167,7): Error: two-state function ('P') can only be call
 Twostate-Resolution.dfy(218,6): Error: two-state lemmas can only be used in two-state contexts
 Twostate-Resolution.dfy(229,9): Error: function calls are allowed only in specification contexts (consider declaring the function a 'function method')
 Twostate-Resolution.dfy(230,26): Error: ghost fields are allowed only in specification contexts
-33 resolution/type errors detected in Twostate-Resolution.dfy
+Twostate-Resolution.dfy(242,26): Error: two-state function ('F') can only be called in a two-state context
+Twostate-Resolution.dfy(243,27): Error: two-state lemmas can only be used in two-state contexts
+Twostate-Resolution.dfy(244,26): Error: unchanged expressions are not allowed in this context
+Twostate-Resolution.dfy(246,26): Error: fresh expressions are not allowed in this context
+Twostate-Resolution.dfy(248,26): Error: old expressions are not allowed in this context
+39 resolution/type errors detected in Twostate-Resolution.dfy

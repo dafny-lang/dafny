@@ -6076,7 +6076,7 @@ namespace Microsoft.Dafny
     void ResolveFrameExpression(FrameExpression fe, FrameExpressionUse use, ICodeContext codeContext) {
       Contract.Requires(fe != null);
       Contract.Requires(codeContext != null);
-      ResolveExpression(fe.E, new ResolveOpts(codeContext, codeContext is TwoStateLemma));
+      ResolveExpression(fe.E, new ResolveOpts(codeContext, codeContext is TwoStateLemma || use == FrameExpressionUse.Unchanged));
       Type t = fe.E.Type;
       Contract.Assert(t != null);  // follows from postcondition of ResolveExpression
       var eventualRefType = new InferredTypeProxy();
@@ -9213,7 +9213,7 @@ namespace Microsoft.Dafny
         if (!opts.twoState) {
           reporter.Error(MessageSource.Resolver, expr, "old expressions are not allowed in this context");
         }
-        ResolveExpression(e.E, opts);
+        ResolveExpression(e.E, new ResolveOpts(opts.codeContext, false));
         expr.Type = e.E.Type;
 
       } else if (expr is UnchangedExpr) {
