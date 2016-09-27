@@ -1,5 +1,3 @@
-Fuel.dfy(129,8): Error: Fuel can only increase within a given scope.
-Fuel.dfy(407,8): Error: Fuel can only increase within a given scope.
 Fuel.dfy(17,22): Error: assertion violation
 Execution trace:
     (0,0): anon0
@@ -21,6 +19,7 @@ Execution trace:
 Fuel.dfy(94,22): Error: assertion violation
 Execution trace:
     (0,0): anon0
+Fuel.dfy(129,8): Error: Fuel can only increase within a given scope.
 Fuel.dfy(120,22): Error: assertion violation
 Execution trace:
     (0,0): anon0
@@ -84,6 +83,7 @@ Execution trace:
     (0,0): anon0
     (0,0): anon7_Else
     (0,0): anon8_Then
+Fuel.dfy(407,8): Error: Fuel can only increase within a given scope.
 Fuel.dfy(397,22): Error: assertion violation
 Execution trace:
     (0,0): anon0

@@ -1,10 +1,10 @@
 // RUN: %dafny /compile:3 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
-
 // Rustan Leino
 // 12 April 2015
 // VerifyThis 2015
 // Problem 3 -- Dancing Links
+
 
 // The following method demonstrates that Remove and PutBack (defined below) have the desired properties
 method Test(dd: DoublyLinkedList, x: Node)
@@ -69,7 +69,7 @@ class DoublyLinkedList {
       Nodes[0].L == null && (forall i :: 1 <= i < |Nodes| ==> Nodes[i].L == Nodes[i-1]) &&
       (forall i :: 0 <= i < |Nodes|-1 ==> Nodes[i].R == Nodes[i+1]) && Nodes[|Nodes|-1].R == null
     ) &&
-    forall a,b :: 0 <= a < b < |Nodes| ==> Nodes[a] != Nodes[b]  // this is actually a consequence of the previous conditions
+    forall i,j :: 0 <= i < j < |Nodes| ==> Nodes[i] != Nodes[j]  // this is actually a consequence of the previous conditions
   }
   // This constructor just shows that there is a way to create a doubly linked list.  It accepts
   // as an argument the sequences of Nodes to construct the doubly linked list from.  The constructor

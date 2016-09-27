@@ -616,8 +616,7 @@ namespace Microsoft.Dafny {
           GetClassTyCon(ad);
           AddArrowTypeAxioms(ad);
         } else {
-          AddShallowClassMembers((ClassDecl)d);
-          AddDeepClassMembers((ClassDecl)d);
+          AddClassMembers((ClassDecl)d, true);
         }
       }
 
@@ -633,12 +632,9 @@ namespace Microsoft.Dafny {
           } else if (d is ModuleDecl) {
             // submodules have already been added as a top level module, ignore this.
           } else if (d is ClassDecl) {
-            AddShallowClassMembers((ClassDecl)d);
+            AddClassMembers((ClassDecl)d, DafnyOptions.O.OptimizeResolution < 1);
             if (d is IteratorDecl) {
               AddIteratorSpecAndBody((IteratorDecl)d);
-            }
-            if (DafnyOptions.O.OptimizeResolution < 1 || InVerificationScope(d)) {
-              AddDeepClassMembers((ClassDecl)d);
             }
           } else {
             Contract.Assert(false);
@@ -1720,7 +1716,7 @@ namespace Microsoft.Dafny {
       return fieldName;
     }
 
-    void AddShallowClassMembers(ClassDecl c)
+    void AddClassMembers(ClassDecl c, bool includeMethods)
     {
       Contract.Requires(sink != null && predef != null);
       Contract.Requires(c != null);
@@ -1814,16 +1810,11 @@ namespace Microsoft.Dafny {
           AddFunction_Top((Function)member);
         } else if (member is Method) {
           // skip methods, add them from the top-level instead
+          if (includeMethods || InVerificationScope(member)) {
+            AddMember_Top(member);
+          }
         } else {
           Contract.Assert(false); throw new cce.UnreachableException();  // unexpected member
-        }
-      }
-    }
-
-    void AddDeepClassMembers(ClassDecl cl) {
-      foreach (var mem in cl.Members) {
-        if (mem is Method) {
-          AddMember_Top((MemberDecl)mem);
         }
       }
     }

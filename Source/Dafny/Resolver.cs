@@ -356,11 +356,11 @@ namespace Microsoft.Dafny
           // set up environment
           var preResolveErrorCount = reporter.Count(ErrorLevel.Error);
 
-          
-          ResolveModuleDefinition(m, sig);
           ResolveModuleExport(literalDecl, sig);
+          ResolveModuleDefinition(m, sig);
+          
           if (reporter.Count(ErrorLevel.Error) == preResolveErrorCount) {
-            //CheckModuleExportConsistency(m);
+            CheckModuleExportConsistency(m);
           }
 
           var tempVis = new VisibilityScope();
@@ -854,15 +854,16 @@ namespace Microsoft.Dafny
       // fill in the exports for the extends.
       List<ModuleExportDecl> sortedDecls = exportDependencies.TopologicallySortedComponents();
       ModuleExportDecl defaultExport = null;
+      TopLevelDecl defaultClass;
+
+      sig.TopLevels.TryGetValue("_default", out defaultClass);
+      Contract.Assert(defaultClass is ClassDecl);
+      Contract.Assert(((ClassDecl)defaultClass).IsDefaultClass);
+      defaultClass.AddVisibilityScope(m.VisibilityScope, true);
 
       foreach (var d in sortedDecls) {
-        TopLevelDecl defaultClass;
 
-        sig.TopLevels.TryGetValue("_default", out defaultClass);
-        Contract.Assert(defaultClass is ClassDecl);
-        Contract.Assert(((ClassDecl)defaultClass).IsDefaultClass);
         defaultClass.AddVisibilityScope(d.ThisScope, true);
-
 
         foreach(var eexports in d.ExtendDecls.Select(e => e.Exports)){
           d.Exports.AddRange(eexports);
