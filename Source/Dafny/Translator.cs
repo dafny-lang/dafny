@@ -179,7 +179,7 @@ namespace Microsoft.Dafny {
 
     [Pure]
     bool VisibleInScope(Type t) {
-      if (t is UserDefinedType) {
+      if (t is UserDefinedType && ((UserDefinedType)t).ResolvedClass != null) {
         return VisibleInScope(((UserDefinedType)t).ResolvedClass);
       }
       return true;
