@@ -178,6 +178,14 @@ namespace Microsoft.Dafny {
     }
 
     [Pure]
+    bool VisibleInScope(Type t) {
+      if (t is UserDefinedType) {
+        return VisibleInScope(((UserDefinedType)t).ResolvedClass);
+      }
+      return true;
+    }
+
+    [Pure]
     bool RevealedInScope(Declaration d) {
       Contract.Requires(d != null);
       return d.IsRevealedInScope(currentScope);
@@ -7332,6 +7340,8 @@ namespace Microsoft.Dafny {
       inParams.AddRange(MkTyParamFormals(GetTypeParams(m)));
       if (includeReceiver) {
         var receiverType = m is MemberDecl ? Resolver.GetReceiverType(tok, (MemberDecl)m) : Resolver.GetThisType(tok, (IteratorDecl)m);
+        Contract.Assert(VisibleInScope(receiverType));
+
         Bpl.Expr wh = Bpl.Expr.And(
           Bpl.Expr.Neq(new Bpl.IdentifierExpr(tok, "this", predef.RefType), predef.Null),
           (m is TwoStateLemma ? etran.Old : etran).GoodRef(tok, new Bpl.IdentifierExpr(tok, "this", predef.RefType), receiverType));
@@ -7340,6 +7350,7 @@ namespace Microsoft.Dafny {
       }
       if (includeInParams) {
         foreach (Formal p in m.Ins) {
+          Contract.Assert(VisibleInScope(p.Type));
           Bpl.Type varType = TrType(p.Type);
           Bpl.Expr wh = GetExtendedWhereClause(p.tok, new Bpl.IdentifierExpr(p.tok, p.AssignUniqueName(currentDeclaration.IdGenerator), varType), p.Type, p.IsOld ? etran.Old : etran);
           inParams.Add(new Bpl.Formal(p.tok, new Bpl.TypedIdent(p.tok, p.AssignUniqueName(currentDeclaration.IdGenerator), varType, wh), true));
@@ -7347,6 +7358,7 @@ namespace Microsoft.Dafny {
       }
       if (includeOutParams) {
         foreach (Formal p in m.Outs) {
+          Contract.Assert(VisibleInScope(p.Type));
           Contract.Assert(!p.IsOld);  // out-parameters are never old (perhaps we want to relax this condition in the future)
           Bpl.Type varType = TrType(p.Type);
           Bpl.Expr wh = GetWhereClause(p.tok, new Bpl.IdentifierExpr(p.tok, p.AssignUniqueName(currentDeclaration.IdGenerator), varType), p.Type, etran);
@@ -7508,10 +7520,6 @@ namespace Microsoft.Dafny {
       Contract.Requires(type != null);
       Contract.Requires(predef != null);
       Contract.Ensures(Contract.Result<Bpl.Type>() != null);
-
-      if (type.ToString() == "ConcreteConfiguration") {
-        Contract.Assert(true);
-      }
 
       while (true) {
         type = type.NormalizeExpand();

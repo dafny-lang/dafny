@@ -6490,6 +6490,9 @@ namespace Microsoft.Dafny
     /// </summary>
     void ResolveMethodSignature(Method m) {
       Contract.Requires(m != null);
+      SetupMinimumSignatureScope(m, t =>
+          reporter.Error(MessageSource.Resolver, m.tok, "The signature of method {0} depends on type {1} which was not exported with it. Ensure that {1} is visible wherever {0} is exported.", m.Name, t.ToString()));
+
       scope.PushMarker();
       if (m.SignatureIsOmitted) {
         reporter.Error(MessageSource.Resolver, m, "method signature can be omitted only in refining methods");
@@ -6506,6 +6509,7 @@ namespace Microsoft.Dafny
         ResolveType(p.tok, p.Type, m, option, m.TypeArgs);
       }
       scope.PopMarker();
+      TeardownMinimumSignatureScope(m);
     }
 
 
