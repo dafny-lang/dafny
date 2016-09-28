@@ -151,7 +151,6 @@ namespace Microsoft.Dafny {
 
     // optimizing translation
     readonly ISet<MemberDecl> referencedMembers = new HashSet<MemberDecl>();
-    readonly ISet<MemberDecl> translatedMembers = new HashSet<MemberDecl>();
 
     public void AddReferencedMember(MemberDecl m) {
       if (m is Method && !InVerificationScope(m)) {
@@ -630,7 +629,12 @@ namespace Microsoft.Dafny {
 
       ComputeFunctionFuel(); // compute which function needs fuel constants.
 
-      foreach (ModuleDefinition m in program.RawModules()) {
+      //translate us first
+      List<ModuleDefinition> mods = program.RawModules().ToList();
+      mods.Remove(forModule);
+      mods.Insert(0, forModule);
+
+      foreach (ModuleDefinition m in mods) {
         foreach (TopLevelDecl d in m.TopLevelDecls.FindAll(VisibleInScope)) {
           currentDeclaration = d;
           if (d is OpaqueTypeDecl) {
@@ -650,12 +654,6 @@ namespace Microsoft.Dafny {
         }
       }
 
-      //because foreign methods have no bodies we know referencedMembers won't change
-      if (DafnyOptions.O.OptimizeResolution >= 1) {
-          foreach (var member in referencedMembers) {
-              AddMember_Top(member);
-            }
-      }
 
       foreach (var c in fieldConstants.Values) {
         sink.AddTopLevelDeclaration(c);
@@ -1819,8 +1817,7 @@ namespace Microsoft.Dafny {
         } else if (member is Function) {
           AddFunction_Top((Function)member);
         } else if (member is Method) {
-          // skip methods, add them from the top-level instead
-          if (includeMethods || InVerificationScope(member)) {
+          if (includeMethods || InVerificationScope(member) || referencedMembers.Contains(member)) {
             AddMember_Top(member);
           }
         } else {
