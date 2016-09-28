@@ -115,8 +115,7 @@ lemma Same1<T>(pat: seq<T>, a: seq<T>, k: nat)
   // "k" gives one splitting point, but we want to last splitting point
   var d := k;
   while d+1 < |pat| && pat[d] == pat[d+1] 
-    invariant 0 <= d < |pat| 
-    invariant pat[..d] + pat[d+1..] <= a
+    invariant 0 <= d < |pat| && pat[..d] + pat[d+1..] <= a
   {
     d := d + 1;
   }

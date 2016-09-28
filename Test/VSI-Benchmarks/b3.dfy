@@ -114,8 +114,7 @@ class Benchmark3 {
     ghost var qq := q.contents;
     m := q.Dequeue();
     assert m == qq[0];
-    assert q.contents == qq[1..];
-    assert [m] + q.contents == qq;
+    assert [m] + q.contents == qq && q.contents == qq[1..];
     assert |old(q.contents)| == |q.contents| + 1;
 
     assert q.contents == old(q.contents)[k+1..] + old(q.contents)[..k];  
