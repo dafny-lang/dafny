@@ -25,7 +25,7 @@ namespace Microsoft.Dafny
 
   public class DafnyDriver
   {
-    public enum ExitValue { VERIFIED = 0, PREPROCESSING_ERROR, DAFNY_ERROR, NOT_VERIFIED }
+    public enum ExitValue { VERIFIED = 0, PREPROCESSING_ERROR, DAFNY_ERROR, COMPILE_ERROR, NOT_VERIFIED }
 
     public static int Main(string[] args)
     {
@@ -183,9 +183,8 @@ namespace Microsoft.Dafny
         PipelineOutcome oc;
         string baseName = cce.NonNull(Path.GetFileName(dafnyFileNames[dafnyFileNames.Count - 1]));
         var verified = Boogie(baseName, boogiePrograms, programId, out statss, out oc);
-        Compile(dafnyFileNames[0], otherFileNames, dafnyProgram, oc, statss, verified);
-
-        exitValue = verified ? ExitValue.VERIFIED : ExitValue.NOT_VERIFIED;
+        var compiled = Compile(dafnyFileNames[0], otherFileNames, dafnyProgram, oc, statss, verified);
+        exitValue = verified && compiled ? ExitValue.VERIFIED : !verified ? ExitValue.NOT_VERIFIED : ExitValue.COMPILE_ERROR;
       }
 
       if (err == null && dafnyProgram != null && DafnyOptions.O.PrintStats) {
@@ -246,7 +245,7 @@ namespace Microsoft.Dafny
       bplFilename = BoogieProgramSuffix(bplFilename, moduleName);
       stats = null;
       oc = BoogiePipelineWithRerun(boogieProgram, bplFilename, out stats, 1 < Dafny.DafnyOptions.Clo.VerifySnapshots ? programId : null);
-      return stats.ErrorCount == 0 && stats.InconclusiveCount == 0 && stats.TimeoutCount == 0 && stats.OutOfMemoryCount == 0;
+      return (oc == PipelineOutcome.Done || oc == PipelineOutcome.VerificationCompleted) && stats.ErrorCount == 0 && stats.InconclusiveCount == 0 && stats.TimeoutCount == 0 && stats.OutOfMemoryCount == 0;
     }
 
     public static bool Boogie(string baseName, IEnumerable<Tuple<string, Bpl.Program>> boogiePrograms, string programId, out Dictionary<string, PipelineStatistics> statss, out PipelineOutcome oc) {
@@ -294,26 +293,28 @@ namespace Microsoft.Dafny
     }
 
 
-    public static void Compile(string fileName, ReadOnlyCollection<string> otherFileNames, Program dafnyProgram,
+    public static bool Compile(string fileName, ReadOnlyCollection<string> otherFileNames, Program dafnyProgram,
                                PipelineOutcome oc, Dictionary<string, PipelineStatistics> statss, bool verified)
     {
       var resultFileName = DafnyOptions.O.DafnyPrintCompiledFile ?? fileName;
+      bool compiled = true;
       switch (oc)
       {
         case PipelineOutcome.VerificationCompleted:
           WriteStatss(statss);
           if ((DafnyOptions.O.Compile && verified && CommandLineOptions.Clo.ProcsToCheck == null) || DafnyOptions.O.ForceCompile)
-            CompileDafnyProgram(dafnyProgram, resultFileName, otherFileNames);
+            compiled = CompileDafnyProgram(dafnyProgram, resultFileName, otherFileNames);
           break;
         case PipelineOutcome.Done:
           WriteStatss(statss);
           if (DafnyOptions.O.ForceCompile)
-            CompileDafnyProgram(dafnyProgram, resultFileName, otherFileNames);
+            compiled = CompileDafnyProgram(dafnyProgram, resultFileName, otherFileNames);
           break;
         default:
           // error has already been reported to user
           break;
       }
+      return compiled;
     }
 
     /// <summary>
@@ -412,7 +413,7 @@ namespace Microsoft.Dafny
       return targetFilename;
     }
 
-    public static void CompileDafnyProgram(Dafny.Program dafnyProgram, string dafnyProgramName,
+    public static bool CompileDafnyProgram(Dafny.Program dafnyProgram, string dafnyProgramName,
                                            ReadOnlyCollection<string> otherFileNames, TextWriter outputWriter = null)
     {
       Contract.Requires(dafnyProgram != null);
@@ -427,10 +428,6 @@ namespace Microsoft.Dafny
       Dafny.Compiler compiler = new Dafny.Compiler();
       compiler.ErrorWriter = outputWriter;
       var hasMain = compiler.HasMain(dafnyProgram);
-      if (DafnyOptions.O.RunAfterCompile && !hasMain) {
-        // do no more
-        return;
-      }
       compiler.Compile(dafnyProgram, sw);
       var csharpProgram = sw.ToString();
       bool completeProgram = compiler.ErrorCount == 0;
@@ -446,10 +443,12 @@ namespace Microsoft.Dafny
       if (!completeProgram)
       {
         // don't compile
+        return false;
       }
       else if (!CodeDomProvider.IsDefinedLanguage("CSharp"))
       {
         outputWriter.WriteLine("Error: cannot compile, because there is no provider configured for input language CSharp");
+        return false;
       }
       else
       {
@@ -513,6 +512,12 @@ namespace Microsoft.Dafny
         else {
           cr = provider.CompileAssemblyFromSource(cp, csharpProgram);
         }
+
+        if (DafnyOptions.O.RunAfterCompile && !hasMain) {
+          // do no more
+          return cr.Errors.Count == 0 ? true : false;
+        }
+
         var assemblyName = Path.GetFileName(cr.PathToAssembly);
         if (DafnyOptions.O.RunAfterCompile && cr.Errors.Count == 0) {
           outputWriter.WriteLine("Program compiled successfully");
@@ -546,7 +551,9 @@ namespace Microsoft.Dafny
             outputWriter.WriteLine(ce.ToString());
             outputWriter.WriteLine();
           }
+          return false;
         }
+        return true;
       }
     }
 

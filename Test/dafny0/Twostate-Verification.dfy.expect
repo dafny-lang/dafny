@@ -16,7 +16,7 @@ Twostate-Verification.dfy(81,15): Error: assertion violation
 Execution trace:
     (0,0): anon0
 Twostate-Verification.dfy(6,3): Error BP5002: A precondition for this call might not hold.
-Twostate-Verification.dfy(9,17): Related location: parameter 0 ('c') must be allocated in the previous state
+Twostate-Verification.dfy(9,17): Related location: parameter 0 ('c') must be allocated in the two-state lemma's previous state
 Execution trace:
     (0,0): anon0
 Twostate-Verification.dfy(13,17): Error: receiver must be allocated in the state in which its fields are accessed

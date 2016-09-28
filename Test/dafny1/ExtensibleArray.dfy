@@ -14,7 +14,7 @@ class ExtensibleArray<T> {
     reads this, Repr;
   {
     // shape of data structure
-    this in Repr &&
+    this in Repr && null !in Repr &&
     elements != null && elements.Length == 256 && elements in Repr &&
     (more != null ==>
         more in Repr && more.Repr <= Repr && this !in more.Repr && elements !in more.Repr &&

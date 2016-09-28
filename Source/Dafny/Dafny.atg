@@ -239,6 +239,9 @@ bool IsFunctionDecl() {
       return true;
     case _inductive:
       return scanner.Peek().kind != _lemma;
+    case _twostate:
+      var x = scanner.Peek();
+      return x.kind == _function || x.kind == _predicate;
     default:
       return false;
   }
@@ -668,6 +671,7 @@ TOKENS
   function = "function".
   predicate = "predicate".
   inductive = "inductive".
+  twostate = "twostate".
   lemma = "lemma".
   copredicate = "copredicate".
   modifies = "modifies".
@@ -710,7 +714,7 @@ Dafny
                                                includedFile = Path.Combine(basePath, includedFile);
                                                fullPath = Path.GetFullPath(includedFile);
                                              }
-                                             defaultModule.Includes.Add(new Include(t, includedFile, fullPath));
+                                             defaultModule.Includes.Add(new Include(t, parsedFile, includedFile, fullPath));
                                            }
                                         .)
   }
@@ -765,7 +769,7 @@ TopDecl<. ModuleDefinition module, List<MemberDecl/*!*/> membersDefaultClass, bo
 SubModuleDecl<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl submodule>
 = (. Attributes attrs = null;  IToken/*!*/ id;
 	   List<MemberDecl/*!*/> namedModuleDefaultClassMembers = new List<MemberDecl>();;
-     List<IToken> idPath = null, idExports = null;
+     List<IToken> idPath, idExports;
      IToken idRefined = null;
      ModuleDefinition module;
      submodule = null; // appease compiler
@@ -791,7 +795,8 @@ SubModuleDecl<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl sub
     "import" ["opened" (.opened = true;.)]
      ModuleName<out id>
     (. EncodeExternAsAttribute(dmod, ref attrs, id, /* needAxiom */ false); .)
-    ( QualifiedModuleExportSuffix<out idPath, out idExports>
+    ( (. idPath = new List<IToken>(); idExports = new List<IToken>(); .)
+      [ QualifiedModuleExportSuffix<idPath, idExports> ]
       (. if (idPath.Count > 0)
            SemErr(idPath[0], "Qualified imports must be given a name.");
         idPath.Insert(0, id);
@@ -874,26 +879,25 @@ ModuleExport<out IToken id>
   .
 
 /* This production is for referring to module exports for imports (both normal and facades) */
-QualifiedModuleExportSuffix<.out List<IToken> ids, out List<IToken> exports.>
-= (. IToken id; ids = new List<IToken>(); exports = new List<IToken>(); .)
-  [ 
-    ( 
-      "." ModuleName<out id> (. ids.Add(id); .)
+QualifiedModuleExportSuffix<.List<IToken> ids, List<IToken> exports.>
+= (. IToken id; .)
+  (
+    "." ModuleName<out id> (. ids.Add(id); .)
     { "." ModuleName<out id> (. ids.Add(id); .) }
-    )
-   | ( "`" ( ModuleExport<out id> (. exports.Add(id); .)
-           | "{" ModuleExport<out id> (. exports.Add(id); .)
-                { "," ModuleExport<out id> (. exports.Add(id); .) }
-             "}"
-           )
-     )
-  ]
+  | "`" ( ModuleExport<out id> (. exports.Add(id); .)
+        | "{" ModuleExport<out id> (. exports.Add(id); .)
+          { "," ModuleExport<out id> (. exports.Add(id); .) }
+          "}"
+        )
+  )
   .
 
 QualifiedModuleExport<.out List<IToken> ids, out List<IToken> exports.>
-= (. IToken id; ids = new List<IToken>(); List<IToken> sids; .)
+= (. IToken id; ids = new List<IToken>();
+     List<IToken> sids = new List<IToken>(); exports = new List<IToken>();
+  .)
   ModuleName<out id> (. ids.Add(id); .)
-  QualifiedModuleExportSuffix<out sids, out exports>
+  [ QualifiedModuleExportSuffix<sids, exports> ]
   (. ids.AddRange(sids); .)
   .
 
@@ -1263,12 +1267,10 @@ MethodDecl<DeclModifierData dmod, bool allowConstructor, bool isWithinAbstractMo
      List<Formal/*!*/> outs = new List<Formal/*!*/>();
      List<MaybeFreeExpression/*!*/> req = new List<MaybeFreeExpression/*!*/>();
      List<FrameExpression/*!*/> mod = new List<FrameExpression/*!*/>();
-     List<FrameExpression/*!*/> reads = null;
      List<MaybeFreeExpression/*!*/> ens = new List<MaybeFreeExpression/*!*/>();
      List<Expression/*!*/> dec = new List<Expression/*!*/>();
      Attributes decAttrs = null;
      Attributes modAttrs = null;
-     Attributes readsAttrs = null;
      BlockStmt body = null;
      bool isLemma = false;
      bool isTwoStateLemma = false;
@@ -1299,7 +1301,6 @@ MethodDecl<DeclModifierData dmod, bool allowConstructor, bool isWithinAbstractMo
   | "inductive" "lemma"             (. isIndLemma = true;  caption = "Inductive lemmas";
                                        allowed = AllowedDeclModifiers.AlreadyGhost | AllowedDeclModifiers.Static;.)
   | "twostate" "lemma"              (. isTwoStateLemma = true; caption = "Two-state lemmas";
-                                       reads = new List<FrameExpression/*!*/>();
                                        allowed = AllowedDeclModifiers.AlreadyGhost | AllowedDeclModifiers.Static 
                                          | AllowedDeclModifiers.Protected; .)
   | "constructor"                   (. if (allowConstructor) {
@@ -1331,7 +1332,7 @@ MethodDecl<DeclModifierData dmod, bool allowConstructor, bool isWithinAbstractMo
     ]
   | "..."                                       (. signatureEllipsis = t; .)
   )
-  { MethodSpec<req, mod, reads, ens, dec, ref decAttrs, ref modAttrs, ref readsAttrs, caption> }
+  { MethodSpec<req, mod, ens, dec, ref decAttrs, ref modAttrs, caption> }
   [ BlockStmt<out body, out bodyStart, out bodyEnd>
   ]
   (.
@@ -1354,7 +1355,7 @@ MethodDecl<DeclModifierData dmod, bool allowConstructor, bool isWithinAbstractMo
                      req, new Specification<FrameExpression>(mod, modAttrs), ens, new Specification<Expression>(dec, decAttrs), body, attrs, signatureEllipsis);
      } else if (isTwoStateLemma) {
        m = new TwoStateLemma(tok, id.val, dmod.IsStatic, typeArgs, ins, outs,
-                             req, new Specification<FrameExpression>(mod, modAttrs), new Specification<FrameExpression>(reads, readsAttrs),
+                             req, new Specification<FrameExpression>(mod, modAttrs),
                              ens, new Specification<Expression>(dec, decAttrs), body, attrs, signatureEllipsis);
      } else {
        m = new Method(tok, id.val, dmod.IsStatic, dmod.IsGhost, typeArgs, ins, outs,
@@ -1364,8 +1365,8 @@ MethodDecl<DeclModifierData dmod, bool allowConstructor, bool isWithinAbstractMo
      m.BodyEndTok = bodyEnd;
  .)
   .
-MethodSpec<.List<MaybeFreeExpression> req, List<FrameExpression> mod, List<FrameExpression>/*?*/ reads, List<MaybeFreeExpression> ens,
-            List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, ref Attributes readsAttrs, string caption.>
+MethodSpec<.List<MaybeFreeExpression> req, List<FrameExpression> mod, List<MaybeFreeExpression> ens,
+            List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, string caption.>
 = (. Contract.Requires(cce.NonNullElements(req));
      Contract.Requires(cce.NonNullElements(mod));
      Contract.Requires(cce.NonNullElements(ens));
@@ -1376,13 +1377,6 @@ MethodSpec<.List<MaybeFreeExpression> req, List<FrameExpression> mod, List<Frame
   ( "modifies" { IF(IsAttribute()) Attribute<ref modAttrs> }
                FrameExpression<out fe, false, false>         (. mod.Add(fe); .)
                { "," FrameExpression<out fe, false, false>   (. mod.Add(fe); .)
-               }
-               OldSemi
-  | "reads"    (. if (reads == null) { SemErr(caption + " cannot have 'reads' clauses"); }
-               .)
-               { IF(IsAttribute()) Attribute<ref readsAttrs> }
-               FrameExpression<out fe, false, false>         (. if (reads != null) { reads.Add(fe); } .)
-               { "," FrameExpression<out fe, false, false>   (. if (reads != null) { reads.Add(fe); } .)
                }
                OldSemi
   | [ "free"                                                 (. isFree = true;
@@ -1609,12 +1603,18 @@ FunctionDecl<DeclModifierData dmod, bool isWithinAbstractModule, out Function/*!
      IToken bodyEnd = Token.NoToken;
      IToken signatureEllipsis = null;
      bool missingOpenParen;
+     bool isTwoState = false;
   .)
   /* ----- function ----- */
+  [ "twostate"               (. isTwoState = true; .)
+  ]
   ( "function"
-    [ "method"                 (. isFunctionMethod = true; .)
+    [ "method"                 (. if (isTwoState) { SemErr(t, "twostate functions are supported only as a ghosts, not as function methods"); }
+                                  else { isFunctionMethod = true; }
+                               .)
     ]
-    (. AllowedDeclModifiers allowed = AllowedDeclModifiers.AlreadyGhost | AllowedDeclModifiers.Static | AllowedDeclModifiers.Protected;
+    (. AllowedDeclModifiers allowed = AllowedDeclModifiers.AlreadyGhost | AllowedDeclModifiers.Static;
+       if (!isTwoState) { allowed |= AllowedDeclModifiers.Protected; }
        string caption = "Functions";
        if (isFunctionMethod) { 
          allowed |= AllowedDeclModifiers.Extern; 
@@ -1626,7 +1626,7 @@ FunctionDecl<DeclModifierData dmod, bool isWithinAbstractModule, out Function/*!
     NoUSIdent<out id>
     (
       [ GenericParameters<typeArgs> ]
-      Formals<true, isFunctionMethod, false, formals>
+      Formals<true, isFunctionMethod, isTwoState, formals>
       ":"
       Type<out returnType>
     | "..."                    (. signatureEllipsis = t; .)
@@ -1634,9 +1634,12 @@ FunctionDecl<DeclModifierData dmod, bool isWithinAbstractModule, out Function/*!
 
   /* ----- predicate ----- */
   | "predicate"                (. isPredicate = true; .)
-    [ "method"                 (. isFunctionMethod = true; .)
+    [ "method"                 (. if (isTwoState) { SemErr(t, "twostate predicates are supported only as a ghosts, not as predicate methods"); }
+                                  else { isFunctionMethod = true; }
+                               .)
     ]
-    (. AllowedDeclModifiers allowed = AllowedDeclModifiers.AlreadyGhost | AllowedDeclModifiers.Static | AllowedDeclModifiers.Protected;
+    (. AllowedDeclModifiers allowed = AllowedDeclModifiers.AlreadyGhost | AllowedDeclModifiers.Static;
+       if (!isTwoState) { allowed |= AllowedDeclModifiers.Protected; }
        string caption = "Predicates";
        if (isFunctionMethod) { 
          allowed |= AllowedDeclModifiers.Extern; 
@@ -1648,7 +1651,7 @@ FunctionDecl<DeclModifierData dmod, bool isWithinAbstractModule, out Function/*!
     NoUSIdent<out id>
     (
       [ GenericParameters<typeArgs> ]                   (. missingOpenParen = true; .)
-      [ Formals<true, isFunctionMethod, false, formals> (. missingOpenParen = false; .)
+      [ Formals<true, isFunctionMethod, isTwoState, formals> (. missingOpenParen = false; .)
       ]                                                 (. if (missingOpenParen) { errors.Warning(t, "with the new support of higher-order functions in Dafny, parentheses-less predicates are no longer supported; in the new syntax, parentheses are required for the declaration and uses of predicates, even if the predicate takes no additional arguments"); } .)
       [ ":"                    (. SemErr(t, "predicates do not have an explicitly declared return type; it is always bool"); .)
       ]
@@ -1656,7 +1659,9 @@ FunctionDecl<DeclModifierData dmod, bool isWithinAbstractModule, out Function/*!
     )
 
   /* ----- inductive predicate ----- */
-  | "inductive" "predicate"    (. isIndPredicate = true; .)
+  | (. Contract.Assert(!isTwoState);  // the IsFunctionDecl check checks that "twostate" is not followed by "inductive"
+    .)
+    "inductive" "predicate"    (. isIndPredicate = true; .)
     (. CheckDeclModifiers(dmod, "Inductive predicates",
          AllowedDeclModifiers.AlreadyGhost | AllowedDeclModifiers.Static | AllowedDeclModifiers.Protected);
     .)
@@ -1671,7 +1676,9 @@ FunctionDecl<DeclModifierData dmod, bool isWithinAbstractModule, out Function/*!
     )
 
   /* ----- copredicate ----- */
-  | "copredicate"              (. isCoPredicate = true; .)
+  | (. Contract.Assert(!isTwoState);  // the IsFunctionDecl check checks that "twostate" is not followed by "copredicate"
+    .)
+    "copredicate"              (. isCoPredicate = true; .)
     (. CheckDeclModifiers(dmod, "Copredicates",
          AllowedDeclModifiers.AlreadyGhost | AllowedDeclModifiers.Static | AllowedDeclModifiers.Protected);
     .)
@@ -1696,7 +1703,13 @@ FunctionDecl<DeclModifierData dmod, bool isWithinAbstractModule, out Function/*!
      }
      EncodeExternAsAttribute(dmod, ref attrs, id, /* needAxiom */ true);
      IToken tok = theVerifyThisFile ? id : new IncludeToken(id);
-     if (isPredicate) {
+     if (isTwoState && isPredicate) {
+        f = new TwoStatePredicate(tok, id.val, dmod.IsStatic, typeArgs, formals,
+                                  reqs, reads, ens, new Specification<Expression>(decreases, null), body, attrs, signatureEllipsis);
+     } else if (isTwoState) {
+        f = new TwoStateFunction(tok, id.val, dmod.IsStatic, typeArgs, formals, returnType,
+                                 reqs, reads, ens, new Specification<Expression>(decreases, null), body, attrs, signatureEllipsis);
+     } else if (isPredicate) {
         f = new Predicate(tok, id.val, dmod.IsStatic, dmod.IsProtected, !isFunctionMethod, typeArgs, formals,
                           reqs, reads, ens, new Specification<Expression>(decreases, null), body, Predicate.BodyOriginKind.OriginalOrInherited, attrs, signatureEllipsis);
      } else if (isIndPredicate) {
@@ -1767,7 +1780,7 @@ FrameExpression<out FrameExpression fe, bool allowSemi, bool allowLambda>
      Expression/*!*/ e;
      IToken/*!*/ id;
      string fieldName = null;  IToken feTok = null;
-     fe = null;
+     fe = dummyFrameExpr;
   .)
   ( Expression<out e, allowSemi, allowLambda>   (. feTok = e.tok; .)
     [ "`" Ident<out id>        (. fieldName = id.val;  feTok = id; .)
@@ -2893,6 +2906,14 @@ ConstAtomExpression<out Expression e, bool allowSemi, bool allowLambda>
   | "this"                                     (. e = new ThisExpr(t); .)
   | "fresh"                                    (. x = t; .)
     "(" Expression<out e, true, true> ")"      (. e = new UnaryOpExpr(x, UnaryOpExpr.Opcode.Fresh, e); .)
+  | "allocated"                                (. x = t; .)
+    "(" Expression<out e, true, true> ")"      (. e = new UnaryOpExpr(x, UnaryOpExpr.Opcode.Allocated, e); .)
+  | "unchanged"                                (. x = t; FrameExpression fe; var mod = new List<FrameExpression>(); .)
+    "(" 
+      FrameExpression<out fe, false, false>         (. mod.Add(fe); .)
+      { "," FrameExpression<out fe, false, false>   (. mod.Add(fe); .)
+      }
+    ")"                                        (. e = new UnchangedExpr(x, mod); .)
   | "old"                                      (. x = t; .)
     "(" Expression<out e, true, true> ")"      (. e = new OldExpr(x, e); .)
   | "|"                                        (. x = t; .)

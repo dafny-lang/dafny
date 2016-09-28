@@ -291,13 +291,13 @@ namespace DafnyLanguage
 
       var boogiePrograms = Dafny.Translator.Translate(dafnyProgram, dafnyProgram.reporter, translatorFlags);
 
-      var impls = boogiePrograms.SelectMany(p => p.Value.Implementations);
+      var impls = boogiePrograms.SelectMany(p => p.Item2.Implementations);
       resolver.ReInitializeVerificationErrors(requestId, impls);
 
       bool success = false;
 
       foreach (var kv in boogiePrograms) {
-        var boogieProgram = kv.Value;
+        var boogieProgram = kv.Item2;
 
         // TODO(wuestholz): Maybe we should use a fixed program ID to limit the memory overhead due to the program cache in Boogie.
         PipelineOutcome oc = BoogiePipeline(boogieProgram, 1 < Dafny.DafnyOptions.Clo.VerifySnapshots ? uniqueIdPrefix : null, requestId, er);

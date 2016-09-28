@@ -24,3 +24,5 @@ Binaries/DafnyServer.exe
 *.suo
 Test/*/*.exe
 Source/DafnyExtension/z3.exe
+Binaries/export/
+Package/

@@ -249,7 +249,7 @@ namespace DafnyLanguage
       if (fe.Field != null) {
         Microsoft.Dafny.Type showType = null;  // TODO: if we had the instantiated type of this field, that would have been nice to use here (but the Resolver currently does not compute or store the instantiated type for a FrameExpression)
         IdRegion.Add(regions, prog, fe.tok, fe.Field, showType, "field", false, module);
-        RecordUseAndDef(fe.tok, fe.Field.Name.Length, fe.Field.tok);
+        RecordUseAndDef(prog, fe.tok, fe.Field.Name.Length, fe.Field.tok);
       }
     }
 
@@ -270,13 +270,13 @@ namespace DafnyLanguage
           IdRegion.Add(regions, prog, e.tok, field, e.Type, "field", false, module);
         }
         if (e.Member != null) {
-          RecordUseAndDef(e.tok, e.Member.Name.Length, e.Member.tok);
+          RecordUseAndDef(prog, e.tok, e.Member.Name.Length, e.Member.tok);
         }
       } else if (expr is FunctionCallExpr) {
         var e = (FunctionCallExpr)expr;
         var func = e.Function;
         if (func != null) {
-          RecordUseAndDef(e.tok, func.Name.Length, func.tok);
+          RecordUseAndDef(prog, e.tok, func.Name.Length, func.tok);
         }
       } else if (expr is ApplySuffix) {
          // No need to call ExprRegions on the Lhs field because the for loop at the end of this function will do that.
@@ -318,11 +318,13 @@ namespace DafnyLanguage
       }
     }
 
-    void RecordUseAndDef(Bpl.IToken useTok, int length, Bpl.IToken defTok) {
-      // add to the definition table so we know where the definition for this expr is
-      SnapshotSpan span = new SnapshotSpan(this._snapshot, useTok.pos, length);
-      if (!_definitions.ContainsKey(span)) {
-        _definitions.Add(span, defTok);
+    void RecordUseAndDef(Program prog, Bpl.IToken useTok, int length, Bpl.IToken defTok) {
+      if (prog.FullName.ToLower().CompareTo(useTok.filename.ToLower()) == 0) {  // Otherwise, we're looking at an included file
+        // add to the definition table so we know where the definition for this expr is
+        SnapshotSpan span = new SnapshotSpan(this._snapshot, useTok.pos, length);
+        if (!_definitions.ContainsKey(span)) {
+          _definitions.Add(span, defTok);
+        }
       }
     }
 
@@ -371,9 +373,9 @@ namespace DafnyLanguage
                 if (method != null) {
                   if (method is Constructor) {
                     // call token starts at the beginning of "new C()", so we need to add 4 to the length.
-                    RecordUseAndDef(call.Tok, method.EnclosingClass.Name.Length+4, method.EnclosingClass.tok);
+                    RecordUseAndDef(prog, call.Tok, method.EnclosingClass.Name.Length+4, method.EnclosingClass.tok);
                   } else {
-                    RecordUseAndDef(call.Tok, method.Name.Length, method.tok);
+                    RecordUseAndDef(prog, call.Tok, method.Name.Length, method.tok);
                   }
                 }
               }
@@ -422,7 +424,7 @@ namespace DafnyLanguage
         var s = (CallStmt)stmt;
         var method = s.Method;
         if (method != null) {
-          RecordUseAndDef(s.MethodSelect.tok, method.Name.Length, method.tok);
+          RecordUseAndDef(prog, s.MethodSelect.tok, method.Name.Length, method.tok);
         }
       }
       foreach (var ee in stmt.SubExpressions) {

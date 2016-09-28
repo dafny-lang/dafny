@@ -76,6 +76,8 @@ namespace Microsoft.Dafny
     public int DeprecationNoise = 1;
     public bool VerifyAllModules = false;
     public bool SeparateModuleOutput = false;
+    public enum IncludesModes { None, Immediate, Transitive }
+    public IncludesModes PrintIncludesMode = IncludesModes.None;
     public int OptimizeResolution = 2;
     public bool IronDafny = 
 #if ENABLE_IRONDAFNY 
@@ -295,6 +297,26 @@ namespace Microsoft.Dafny
             return true;
           }
 
+        case "printIncludes":
+          if (ps.ConfirmArgumentCount(1)) {
+            if (args[ps.i].Equals("None")) {
+              PrintIncludesMode = IncludesModes.None;
+            } else if (args[ps.i].Equals("Immediate")) {
+              PrintIncludesMode = IncludesModes.Immediate;
+            } else if (args[ps.i].Equals("Transitive")) {
+              PrintIncludesMode = IncludesModes.Transitive;              
+            } else {
+              throw new Exception("Invalid value for includesMode");
+            }
+
+            if (PrintIncludesMode == IncludesModes.Immediate || PrintIncludesMode == IncludesModes.Transitive) {
+              Compile = false;
+              DontShowLogo = true;
+              DafnyVerify = false;
+            }
+          }
+          return true;
+
         default:
           break;
       }
@@ -461,6 +483,11 @@ namespace Microsoft.Dafny
   /printTooltips    
                 Dump additional positional information (displayed as mouse-over tooltips by 
                 the VS plugin) to stdout as 'Info' messages.
+  /printIncludes:<None|Immediate|Transitive>
+                None is the default.
+                Immediate prints files included by files listed on the command line
+                Transitive recurses on the files printed by Immediate
+                Immediate and Transitive will exit after printing.
 ");
       base.Usage();  // also print the Boogie options
     }

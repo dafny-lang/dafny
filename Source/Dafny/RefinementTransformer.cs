@@ -264,6 +264,7 @@ namespace Microsoft.Dafny
 
     public bool CheckIsRefinement(ModuleDecl derived, ModuleFacadeDecl original) {
 
+
       // Check explicit refinement
       // TODO syntactic analysis of export sets is not quite right
       var derivedPointer = derived.Signature.ModuleDef;
@@ -409,6 +410,12 @@ namespace Microsoft.Dafny
       } else if (f is CoPredicate) {
         return new CoPredicate(tok, f.Name, f.HasStaticKeyword, f.IsProtected, tps, formals,
           req, reads, ens, body, refinementCloner.MergeAttributes(f.Attributes, moreAttributes), null, f);
+      } else if (f is TwoStatePredicate) {
+        return new TwoStatePredicate(tok, f.Name, f.HasStaticKeyword, tps, formals,
+          req, reads, ens, decreases, body, refinementCloner.MergeAttributes(f.Attributes, moreAttributes), null, f);
+      } else if (f is TwoStateFunction) {
+        return new TwoStateFunction(tok, f.Name, f.HasStaticKeyword, tps, formals, refinementCloner.CloneType(f.ResultType),
+          req, reads, ens, decreases, body, refinementCloner.MergeAttributes(f.Attributes, moreAttributes), null, f);
       } else {
         return new Function(tok, f.Name, f.HasStaticKeyword, f.IsProtected, isGhost, tps, formals, refinementCloner.CloneType(f.ResultType),
           req, reads, ens, decreases, body, refinementCloner.MergeAttributes(f.Attributes, moreAttributes), null, f);
@@ -448,9 +455,8 @@ namespace Microsoft.Dafny
           req, mod, ens, decreases, body, refinementCloner.MergeAttributes(m.Attributes, moreAttributes), null, m);
       } else if (m is TwoStateLemma) {
         var two = (TwoStateLemma)m;
-        var reads = refinementCloner.CloneSpecFrameExpr(two.Reads);
         return new TwoStateLemma(new RefinementToken(m.tok, moduleUnderConstruction), m.Name, m.HasStaticKeyword, tps, ins, m.Outs.ConvertAll(refinementCloner.CloneFormal),
-          req, mod, reads, ens, decreases, body, refinementCloner.MergeAttributes(m.Attributes, moreAttributes), null, m);
+          req, mod, ens, decreases, body, refinementCloner.MergeAttributes(m.Attributes, moreAttributes), null, m);
       } else {
         return new Method(new RefinementToken(m.tok, moduleUnderConstruction), m.Name, m.HasStaticKeyword, m.IsGhost, tps, ins, m.Outs.ConvertAll(refinementCloner.CloneFormal),
           req, mod, ens, decreases, body, refinementCloner.MergeAttributes(m.Attributes, moreAttributes), null, m);
@@ -561,7 +567,9 @@ namespace Microsoft.Dafny
             if (!(member is Function) ||
               (isPredicate && !(member is Predicate)) ||
               (isIndPredicate && !(member is InductivePredicate)) ||
-              (isCoPredicate && !(member is CoPredicate))) {
+              (isCoPredicate && !(member is CoPredicate)) ||
+              (f is TwoStatePredicate && !(member is TwoStatePredicate)) ||
+              (f is TwoStateFunction && (!(member is TwoStateFunction) || member is TwoStatePredicate))) {
               reporter.Error(MessageSource.RefinementTransformer, nwMember, "a {0} declaration ({1}) can only refine a {0}", f.WhatKind, nwMember.Name);
             } else if (f.IsProtected != ((Function)member).IsProtected) {
               reporter.Error(MessageSource.RefinementTransformer, f, "a {0} in a refinement module must be declared 'protected' if and only if the refined {0} is", f.WhatKind);

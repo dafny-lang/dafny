@@ -1428,6 +1428,7 @@ namespace Microsoft.Dafny {
 
     private Translator translator = new Translator(null);
 
+
     TextWriter TrStmt(Statement stmt, int indent)
     {
       Contract.Requires(stmt != null);

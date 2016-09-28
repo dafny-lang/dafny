@@ -18,7 +18,6 @@ type Bv0 = int;
 const unique TBool : Ty;
 const unique TChar : Ty;
 const unique TInt  : Ty;
-const unique TNat  : Ty;
 const unique TReal : Ty;
 function TBitvector(int) : Ty;
 function TSet(Ty)      : Ty;
@@ -54,7 +53,6 @@ function Tag(Ty) : TyTag;
 const unique TagBool     : TyTag;
 const unique TagChar     : TyTag;
 const unique TagInt      : TyTag;
-const unique TagNat      : TyTag;
 const unique TagReal     : TyTag;
 const unique TagSet      : TyTag;
 const unique TagISet     : TyTag;
@@ -67,7 +65,6 @@ const unique TagClass    : TyTag;
 axiom Tag(TBool) == TagBool;
 axiom Tag(TChar) == TagChar;
 axiom Tag(TInt) == TagInt;
-axiom Tag(TNat) == TagNat;
 axiom Tag(TReal) == TagReal;
 axiom (forall t: Ty    :: { TSet(t) }      Tag(TSet(t))      == TagSet);
 axiom (forall t: Ty    :: { TISet(t) }     Tag(TISet(t))     == TagISet);
@@ -130,9 +127,6 @@ axiom (forall bx : Box ::
     { $IsBox(bx, TInt) }
     ( $IsBox(bx, TInt) ==> $Box($Unbox(bx) : int) == bx && $Is($Unbox(bx) : int, TInt)));
 axiom (forall bx : Box ::
-    { $IsBox(bx, TNat) }
-    ( $IsBox(bx, TNat) ==> $Box($Unbox(bx) : int) == bx && $Is($Unbox(bx) : int, TNat)));
-axiom (forall bx : Box ::
     { $IsBox(bx, TReal) }
     ( $IsBox(bx, TReal) ==> $Box($Unbox(bx) : real) == bx && $Is($Unbox(bx) : real, TReal)));
 axiom (forall bx : Box ::
@@ -182,13 +176,11 @@ function $IsBox<T>(T,Ty): bool;
 function $IsAllocBox<T>(T,Ty,Heap): bool;
 
 axiom(forall v : int  :: { $Is(v,TInt) }  $Is(v,TInt));
-axiom(forall v : int  :: { $Is(v,TNat) }  $Is(v,TNat) <==> v >= 0);
 axiom(forall v : real :: { $Is(v,TReal) } $Is(v,TReal));
 axiom(forall v : bool :: { $Is(v,TBool) } $Is(v,TBool));
 axiom(forall v : char :: { $Is(v,TChar) } $Is(v,TChar));
 
 axiom(forall h : Heap, v : int  :: { $IsAlloc(v,TInt,h) }  $IsAlloc(v,TInt,h));
-axiom(forall h : Heap, v : int  :: { $IsAlloc(v,TNat,h) }  $IsAlloc(v,TNat,h));
 axiom(forall h : Heap, v : real :: { $IsAlloc(v,TReal,h) } $IsAlloc(v,TReal,h));
 axiom(forall h : Heap, v : bool :: { $IsAlloc(v,TBool,h) } $IsAlloc(v,TBool,h));
 axiom(forall h : Heap, v : char :: { $IsAlloc(v,TChar,h) } $IsAlloc(v,TChar,h));
