@@ -983,7 +983,8 @@ namespace Microsoft.Dafny {
     /// </summary>
     public bool IsOrdered {
       get {
-        return !IsTypeParameter && !IsInternalTypeSynonym && !IsCoDatatype && !IsArrowType && !IsIMapType && !IsISetType;
+        var ct = NormalizeExpand();
+        return !ct.IsTypeParameter && !ct.IsInternalTypeSynonym && !ct.IsCoDatatype && !ct.IsArrowType && !ct.IsIMapType && !ct.IsISetType;
       }
     }
 

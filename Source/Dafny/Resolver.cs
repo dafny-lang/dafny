@@ -455,7 +455,7 @@ namespace Microsoft.Dafny
         return;
       }
 
-      Type.DisableScopes();
+      
 
       // compute IsRecursive bit for mutually recursive functions and methods
       foreach (var module in prog.Modules()) {
@@ -556,6 +556,7 @@ namespace Microsoft.Dafny
         }
       }
 
+      Type.DisableScopes();
       CheckDupModuleNames(prog);
     }
 
@@ -564,6 +565,7 @@ namespace Microsoft.Dafny
       Contract.Requires(prog != null);
 
       foreach (var module in prog.Modules()) {
+        Contract.Assert(Type.GetScope() != null);
         foreach (var clbl in ModuleDefinition.AllCallables(module.TopLevelDecls)) {
           ICallable m;
           string s;
@@ -1546,7 +1548,7 @@ namespace Microsoft.Dafny
           var members = new Dictionary<string, MemberDecl>();
           classMembers.Add(cl, members);
 
-          foreach (MemberDecl m in cl.Members) {            
+          foreach (MemberDecl m in cl.Members) {
             if (!members.ContainsKey(m.Name)) {
               members.Add(m.Name, m);
               if (m is Constructor) {
