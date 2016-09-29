@@ -1392,14 +1392,16 @@ namespace Microsoft.Dafny
         if (d is ModuleExportDecl) {
           var me = (ModuleExportDecl)d;
 
-          if (me.RevealAll || me.ProvideAll){
+          var revealAll = me.RevealAll || DafnyOptions.O.DisableScopes;
+
+          if (revealAll || me.ProvideAll) {
 
               foreach (var newt in declarations) {
                 if (!newt.CanBeExported())
                   continue;
 
                 if (!(newt is DefaultClassDecl)) {
-                  me.Exports.Add(new ExportSignature(newt.Name, null, !me.RevealAll || !newt.CanBeRevealed()));
+                  me.Exports.Add(new ExportSignature(newt.Name, null, !revealAll || !newt.CanBeRevealed()));
                 }
 
                 if (newt is ClassDecl) {
@@ -1413,7 +1415,7 @@ namespace Microsoft.Dafny
                       suffix = null;
                     }
 
-                    me.Exports.Add(new ExportSignature(prefix, suffix, !me.RevealAll || !mem.CanBeRevealed()));
+                    me.Exports.Add(new ExportSignature(prefix, suffix, !revealAll || !mem.CanBeRevealed()));
                   }
                 }
               }

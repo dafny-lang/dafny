@@ -1007,6 +1007,7 @@ namespace Microsoft.Dafny
       //of all existing types, compute the minimum visibility of them for each exported declaration's
       //body and signature
       foreach (var e in exported) {
+
         declScopes.Clear();
         modifies.Clear();
 
@@ -1245,10 +1246,11 @@ namespace Microsoft.Dafny
     }
 
     [Pure]
-    private static bool EquivIfPresent<T1, T2>(Dictionary<T1, T2> dic, T1 key, T2 val) {
+    private static bool EquivIfPresent<T1, T2>(Dictionary<T1, T2> dic, T1 key, T2 val) 
+    where T2 : class {
       T2 val2;
       if (dic.TryGetValue(key, out val2)) {
-        return Object.ReferenceEquals(val, val2);
+        return val.Equals(val2);
       }
       return true;
     }

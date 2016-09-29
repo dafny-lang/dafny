@@ -80,6 +80,7 @@ namespace Microsoft.Dafny
     public IncludesModes PrintIncludesMode = IncludesModes.None;
     public int OptimizeResolution = 2;
     public bool UseRuntimeLib = false;
+    public bool DisableScopes = false;
     public bool IronDafny = 
 #if ENABLE_IRONDAFNY 
       true
@@ -300,6 +301,11 @@ namespace Microsoft.Dafny
 
         case "useRuntimeLib": {
             UseRuntimeLib = true;
+            return true;
+          }
+
+        case "disableScopes": {
+            DisableScopes = true;
             return true;
           }
 

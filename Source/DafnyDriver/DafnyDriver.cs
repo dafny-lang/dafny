@@ -22,6 +22,7 @@ namespace Microsoft.Dafny
   using Microsoft.Boogie;
   using Bpl = Microsoft.Boogie;
   using DafnyAssembly;
+  using System.Diagnostics;
 
   public class DafnyDriver
   {
@@ -254,23 +255,38 @@ namespace Microsoft.Dafny
       oc = PipelineOutcome.VerificationCompleted;
       statss = new Dictionary<string, PipelineStatistics>();
 
+      Stopwatch watch = new Stopwatch();
+      watch.Start();
+
       foreach (var prog in boogiePrograms) {
         PipelineStatistics newstats;
         PipelineOutcome newoc;
 
+        if (DafnyOptions.O.SeparateModuleOutput) {
+          ExecutionEngine.printer.AdvisoryWriteLine("For module: {0}", prog.Item1);
+        }
+
         isVerified = BoogieOnce(baseName, prog.Item1, prog.Item2, programId, out newstats, out newoc) && isVerified;
+
+        watch.Stop();
 
         if ((oc == PipelineOutcome.VerificationCompleted || oc == PipelineOutcome.Done) && newoc != PipelineOutcome.VerificationCompleted) {
           oc = newoc;
         }
 
         if (DafnyOptions.O.SeparateModuleOutput) {
-          ExecutionEngine.printer.AdvisoryWriteLine("For module: {0}\n", prog.Item1);
+          TimeSpan ts = watch.Elapsed;
+          string elapsedTime = String.Format("{0:00}:{1:00}:{2:00}",
+            ts.Hours, ts.Minutes, ts.Seconds);
+
+          ExecutionEngine.printer.AdvisoryWriteLine("Elapsed time: {0}", elapsedTime);
           ExecutionEngine.printer.WriteTrailer(newstats);
         }
 
         statss.Add(prog.Item1, newstats);
+        watch.Restart();
       }
+      watch.Stop();
 
       return isVerified;
     }
