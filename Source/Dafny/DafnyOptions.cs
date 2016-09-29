@@ -469,6 +469,10 @@ namespace Microsoft.Dafny
                     System.Collections.Immutable.dll in the source directory to successfully 
                     compile).
                   - passes /optimize flag to csc.exe.
+  /optimizeResolution:<n>
+                0 - Resolve and translate all methods
+                1 - Translate methods only in the call graph of current verification target
+                2 (default) - As in 1, but only resolve method bodies in non-included Dafny sources
   /stats        Print interesting statistics about the Dafny files supplied.
   /funcCallGraph Print out the function call graph.  Format is: func,mod=callee*
   /warnShadowing  Emits a warning if the name of a declared variable caused another variable
