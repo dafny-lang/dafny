@@ -73,6 +73,7 @@ namespace Microsoft.Dafny
     public Queue<Tuple<Method, Method>> translationMethodChecks = new Queue<Tuple<Method, Method>>();  // contains all the methods that need to be checked for structural refinement.
     private Method currentMethod;
     public ModuleSignature RefinedSig;  // the intention is to use this field only after a successful PreResolve
+    private ModuleSignature refinedSigOpened;
 
     internal override void PreResolve(ModuleDefinition m) {
       if (m.RefinementBaseRoot != null) {
@@ -135,12 +136,29 @@ namespace Microsoft.Dafny
       refinementCloner = new RefinementCloner(moduleUnderConstruction);
       var prev = m.RefinementBase;
 
+      //copy the signature, including its opened imports
+      refinedSigOpened = Resolver.MergeSignature(new ModuleSignature(), RefinedSig);
+      Resolver.ResolveOpenedImports(refinedSigOpened, false);
+
       // Create a simple name-to-decl dictionary.  Ignore any duplicates at this time.
       var declaredNames = new Dictionary<string, int>();
       for (int i = 0; i < m.TopLevelDecls.Count; i++) {
         var d = m.TopLevelDecls[i];
         if (!declaredNames.ContainsKey(d.Name)) {
           declaredNames.Add(d.Name, i);
+        }
+
+        // TODO: This is more restrictive than is necessary,
+        // it would be possible to disambiguate these, but it seems like
+        // a lot of work for not much gain
+
+        if (refinedSigOpened.TopLevels.ContainsKey(d.Name) &&
+          !RefinedSig.TopLevels.ContainsKey(d.Name)) {
+            var decl = Resolver.AmbiguousTopLevelDecl.Create(m, d, refinedSigOpened.TopLevels[d.Name]);
+
+          if (decl is Resolver.AmbiguousTopLevelDecl) {
+            reporter.Error(MessageSource.RefinementTransformer, d.tok, "Base module {0} imports {1} from an opened import, so it cannot be overridden. Give this declaration a unique name to disambiguate.", prev.Name, d.Name);
+          }
         }
       }
 
@@ -538,6 +556,11 @@ namespace Microsoft.Dafny
         var member = nw.Members[i];
         if (!declaredNames.ContainsKey(member.Name)) {
           declaredNames.Add(member.Name, i);
+        }
+
+        if (prev.IsDefaultClass && refinedSigOpened.StaticMembers.ContainsKey(member.Name) &&
+          !RefinedSig.StaticMembers.ContainsKey(member.Name)) {
+            reporter.Error(MessageSource.RefinementTransformer, member.tok, "Base module {0} imports {1} from an opened import, so it cannot be overridden. Give this declaration a unique name to disambiguate.", RefinedSig.ModuleDef.Name, member.Name);
         }
       }
 

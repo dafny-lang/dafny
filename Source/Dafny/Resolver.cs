@@ -114,7 +114,7 @@ namespace Microsoft.Dafny
       }
     }
 
-    class AmbiguousTopLevelDecl : TopLevelDecl, IAmbiguousThing<TopLevelDecl>  // only used with "classes"
+    public class AmbiguousTopLevelDecl : TopLevelDecl, IAmbiguousThing<TopLevelDecl>  // only used with "classes"
     {
       public static TopLevelDecl Create(ModuleDefinition m, TopLevelDecl a, TopLevelDecl b) {
         ISet<TopLevelDecl> s;
@@ -815,7 +815,7 @@ namespace Microsoft.Dafny
       var oldModuleInfo = moduleInfo;
       moduleInfo = MergeSignature(sig, systemNameInfo);
       Type.PushScope(moduleInfo.VisibilityScope);
-      ResolveOpenedImports(moduleInfo); // opened imports do not persist
+      ResolveOpenedImports(moduleInfo, useCompileSignatures); // opened imports do not persist
       var datatypeDependencies = new Graph<IndDatatypeDecl>();
       var codatatypeDependencies = new Graph<CoDatatypeDecl>();
       int prevErrorCount = reporter.Count(ErrorLevel.Error);
@@ -1287,20 +1287,20 @@ namespace Microsoft.Dafny
       return info;
     }
 
-    void ResolveOpenedImports(ModuleSignature sig) {
+    public static void ResolveOpenedImports(ModuleSignature sig, bool useCompileSignatures) {
       var declarations = sig.TopLevels.Values.ToList<TopLevelDecl>();
       var importedSigs = new HashSet<ModuleSignature>() { sig };
 
       foreach (var top in declarations) {
         if (top is ModuleDecl && ((ModuleDecl)top).Opened) {
-          ResolveOpenedImportsWorker(sig, sig.ModuleDef, (ModuleDecl)top, importedSigs);
+          ResolveOpenedImportsWorker(sig, sig.ModuleDef, (ModuleDecl)top, importedSigs, useCompileSignatures);
         }
       }
     }
 
-    void ResolveOpenedImportsWorker(ModuleSignature sig, ModuleDefinition moduleDef, ModuleDecl im, HashSet<ModuleSignature> importedSigs) {
+    static void ResolveOpenedImportsWorker(ModuleSignature sig, ModuleDefinition moduleDef, ModuleDecl im, HashSet<ModuleSignature> importedSigs, bool useCompileSignatures) {
       bool useImports = true;
-          var s = GetSignature(im.AccessibleSignature(useCompileSignatures));
+      var s = GetSignatureExt(im.AccessibleSignature(useCompileSignatures), useCompileSignatures);
 
           if (importedSigs.Contains(s)) {
             return; // we've already got these declarations
@@ -1315,7 +1315,7 @@ namespace Microsoft.Dafny
                 continue;
 
               if (kv.Value is ModuleDecl && ((ModuleDecl)kv.Value).Opened && DafnyOptions.O.IronDafny) {
-                ResolveOpenedImportsWorker(sig, moduleDef, (ModuleDecl)kv.Value, importedSigs);
+                ResolveOpenedImportsWorker(sig, moduleDef, (ModuleDecl)kv.Value, importedSigs, useCompileSignatures);
                 }
 
               // IronDafny: we need to pull the members of the opened module's _default class in so that they can be merged.
@@ -11742,7 +11742,7 @@ namespace Microsoft.Dafny
     }
 
 
-    private ModuleSignature GetSignature(ModuleSignature sig) {
+    private static ModuleSignature GetSignatureExt(ModuleSignature sig, bool useCompileSignatures) {
       Contract.Requires(sig != null);
       Contract.Ensures(Contract.Result<ModuleSignature>() != null);
       if (useCompileSignatures) {
@@ -11750,6 +11750,10 @@ namespace Microsoft.Dafny
           sig = sig.CompileSignature;
       }
       return sig;
+    }
+
+    private ModuleSignature GetSignature(ModuleSignature sig) {
+      return GetSignatureExt(sig, useCompileSignatures);
     }
 
     /// <summary>
