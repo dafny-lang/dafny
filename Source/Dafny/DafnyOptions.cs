@@ -507,6 +507,9 @@ namespace Microsoft.Dafny
                 Immediate prints files included by files listed on the command line
                 Transitive recurses on the files printed by Immediate
                 Immediate and Transitive will exit after printing.
+  /disableScopes
+                Treat all export sets as 'export reveal *'. i.e. don't hide function bodies
+                or type definitions during translation.
 ");
       base.Usage();  // also print the Boogie options
     }
