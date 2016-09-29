@@ -983,6 +983,7 @@ namespace Microsoft.Dafny
                               new Specification<Expression>(new List<Expression>(), null), null, lemma_attrs, null);
       newDecls.Add(reveal);
       revealOriginal[reveal] = f;
+      reveal.InheritVisibility(f, true);
     }
 
     class OpaqueFunctionVisitor : TopDownVisitor<bool> {
@@ -1352,6 +1353,82 @@ namespace Microsoft.Dafny
     }
   }
 
+  public class OptimizedLemmaBodiesRewriter : IRewriter {
+    public OptimizedLemmaBodiesRewriter(ErrorReporter reporter)
+      : base(reporter) {
+      Contract.Requires(reporter != null);
+    }
+
+    internal override void PreResolve(ModuleDefinition m) {
+      var declarations = m.TopLevelDecls;
+
+      foreach (var d in declarations) {
+        if (d is ClassDecl) {
+          var cl = (ClassDecl)d;
+          foreach (var mem in cl.Members) {
+            if ((mem is Lemma || mem is TwoStateLemma) && mem.tok is IncludeToken) {
+              var method = (Method)mem;
+              if (method.Body != null) {
+                method.Body = new BlockStmt(method.BodyStartTok, method.BodyEndTok, new List<Statement>());
+              }
+            }
+
+          }
+        }
+      }
+    }
+  }
+
+  public class ProvideRevealAllRewriter : IRewriter {
+    public ProvideRevealAllRewriter(ErrorReporter reporter)
+      : base(reporter) {
+      Contract.Requires(reporter != null);
+    }
+
+    internal override void PreResolve(ModuleDefinition m) {
+      var declarations = m.TopLevelDecls;
+
+      foreach (var d in declarations) {
+        if (d is ModuleExportDecl) {
+          var me = (ModuleExportDecl)d;
+
+          var revealAll = me.RevealAll || DafnyOptions.O.DisableScopes;
+
+          if (revealAll || me.ProvideAll) {
+
+              foreach (var newt in declarations) {
+                if (!newt.CanBeExported())
+                  continue;
+
+                if (!(newt is DefaultClassDecl)) {
+                  me.Exports.Add(new ExportSignature(newt.Name, null, !revealAll || !newt.CanBeRevealed()));
+                }
+
+                if (newt is ClassDecl) {
+                  var cl = (ClassDecl)newt;
+
+                  foreach (var mem in cl.Members) {
+                    string prefix = cl.Name;
+                    string suffix = mem.Name;
+                    if (newt is DefaultClassDecl) {
+                      prefix = mem.Name;
+                      suffix = null;
+                    }
+
+                    me.Exports.Add(new ExportSignature(prefix, suffix, !revealAll || !mem.CanBeRevealed()));
+                  }
+                }
+              }
+            }
+          me.RevealAll = false;
+          me.ProvideAll = false;
+
+        }
+      }
+    }
+  }
+
+
 
 
   /// <summary>
@@ -1650,7 +1727,7 @@ namespace Microsoft.Dafny
       // Okay, here we go, coming up with good induction setting for the given situation
       var inductionVariables = new List<Expression>();
       foreach (IVariable n in boundVars) {
-        if (!n.Type.IsTypeParameter && (args != null || searchExprs.Exists(expr => VarOccursInArgumentToRecursiveFunction(expr, n)))) {
+        if (!(n.Type.IsTypeParameter || n.Type.IsInternalTypeSynonym) && (args != null || searchExprs.Exists(expr => VarOccursInArgumentToRecursiveFunction(expr, n)))) {
           inductionVariables.Add(new IdentifierExpr(n.Tok, n));
         }
       }

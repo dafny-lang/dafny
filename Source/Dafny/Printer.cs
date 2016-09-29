@@ -120,6 +120,17 @@ namespace Microsoft.Dafny {
       }
     }
 
+    public static string ModuleDefinitionToString(ModuleDefinition m, DafnyOptions.PrintModes printMode = DafnyOptions.PrintModes.
+Everything) {
+      Contract.Requires(m != null);
+      using (var wr = new System.IO.StringWriter()) {
+        var pr = new Printer(wr, printMode);
+        pr.PrintModuleDefinition(m, m.VisibilityScope, 0, null);
+        return ToStringWithoutNewline(wr);
+      }
+    }
+
+
     /// <summary>
     /// Returns a string for all attributes on the list "a".  Each attribute is
     /// followed by a space.
@@ -164,7 +175,7 @@ namespace Microsoft.Dafny {
       if (DafnyOptions.O.DafnyPrintResolvedFile != null && DafnyOptions.O.PrintMode == DafnyOptions.PrintModes.Everything) {
         wr.WriteLine();
         wr.WriteLine("/*");
-        PrintModuleDefinition(prog.BuiltIns.SystemModule, 0, Path.GetFullPath(DafnyOptions.O.DafnyPrintResolvedFile));
+        PrintModuleDefinition(prog.BuiltIns.SystemModule, null, 0, Path.GetFullPath(DafnyOptions.O.DafnyPrintResolvedFile));
         wr.Write("// bitvector types in use:");
         foreach (var w in prog.BuiltIns.Bitwidths) {
           wr.Write(" bv{0}", w);
@@ -287,20 +298,50 @@ namespace Microsoft.Dafny {
           wr.WriteLine();
           Indent(indent);
           if (d is LiteralModuleDecl) {
-            ModuleDefinition module = ((LiteralModuleDecl)d).ModuleDef;
-            PrintModuleDefinition(module, indent, fileBeingPrinted);
+            LiteralModuleDecl modDecl = ((LiteralModuleDecl)d);
+            VisibilityScope scope = null;
+            if (modDecl.Signature != null){
+              scope = modDecl.Signature.VisibilityScope;
+            }
+            PrintModuleDefinition(modDecl.ModuleDef, scope, indent, fileBeingPrinted);
           } else if (d is AliasModuleDecl) {
-            wr.Write("import"); if (((AliasModuleDecl)d).Opened) wr.Write(" opened");
-            wr.Write(" {0} ", ((AliasModuleDecl)d).Name);
-            wr.WriteLine("= {0}", Util.Comma(".", ((AliasModuleDecl)d).Path, id => id.val));
+            var dd = (AliasModuleDecl)d;
+
+            wr.Write("import"); if (dd.Opened) wr.Write(" opened");
+            if (dd.ResolvedHash.HasValue && this.printMode == DafnyOptions.PrintModes.DllEmbed) {
+              wr.Write(" /*");
+              wr.Write(dd.ResolvedHash);
+              wr.Write("*/");
+            }
+            wr.Write(" {0} ", dd.Name);
+            wr.Write("= {0}", Util.Comma(".", dd.Path, id => id.val));
+            if (dd.Exports.Count > 0) {
+              wr.Write("`{{{0}}}", Util.Comma(",", dd.Exports, id => id.val));
+            }
+            wr.WriteLine();
           } else if (d is ModuleFacadeDecl) {
-            wr.Write("import"); if (((ModuleFacadeDecl)d).Opened) wr.Write(" opened");
-            wr.Write(" {0} ", ((ModuleFacadeDecl)d).Name);
-            wr.WriteLine("as {0}", Util.Comma(".", ((ModuleFacadeDecl)d).Path, id => id.val));
+            var dd = (ModuleFacadeDecl)d;
+
+            wr.Write("import"); if (dd.Opened) wr.Write(" opened");
+            if (dd.ResolvedHash.HasValue && this.printMode == DafnyOptions.PrintModes.DllEmbed) {
+              wr.Write(" /*");
+              wr.Write(dd.ResolvedHash);
+              wr.Write("*/");
+            }
+            wr.Write(" {0} ", dd.Name);
+            wr.Write(": {0}", Util.Comma(".", dd.Path, id => id.val));
+            if (dd.Exports.Count > 0) {
+              wr.Write("`{{{0}}}", Util.Comma(",", dd.Exports, id => id.val));
+            }
+            wr.WriteLine();
+
           } else if (d is ModuleExportDecl) {
             ModuleExportDecl e = (ModuleExportDecl)d;
-            if (e.IsDefault) wr.Write("default ");
-            wr.Write("export {0}", e.Name);
+            if (!e.IsDefault) {
+              wr.Write("export {0}", e.Name);
+            } else {
+              wr.Write("export ");
+            }
             if (e.Extends.Count > 0) wr.Write(" extends {0}", Util.Comma(e.Extends, id => id));
             PrintModuleExportDecl(e, indent, fileBeingPrinted);
           }
@@ -313,27 +354,53 @@ namespace Microsoft.Dafny {
 
     void PrintModuleExportDecl(ModuleExportDecl m, int indent, string fileBeingPrinted) {
       ModuleSignature sig = m.Signature;
-      if (sig == null) {
-        wr.Write(" {");
-        // has been resolved yet, just print the strings
-        wr.Write("{0}", Util.Comma(m.Exports, id => id.Name));
-        wr.Write("}");
-      } else {
-        wr.WriteLine(" {");
-        // print the decls and members in the module
-        List<TopLevelDecl> decls = sig.TopLevels.Values.ToList();
-        List<MemberDecl> members = sig.StaticMembers.Values.ToList();
-        PrintTopLevelDecls(decls, indent + IndentAmount, fileBeingPrinted);
-        PrintMembers(members, indent + IndentAmount, fileBeingPrinted);
-        Indent(indent);  wr.WriteLine("}");
+      // has been resolved yet, just print the strings
+      string bodyKind = "";
+      string opaque = "provides";
+      string reveal = "reveals";
+      string delimeter = " ";
+
+      foreach (ExportSignature id in m.Exports) {
+        delimeter = ",";
+
+        if (id.Opaque && bodyKind != opaque) {
+          bodyKind = opaque;
+          wr.Write(" " + bodyKind);
+          delimeter = " ";
+        } else if (!id.Opaque && bodyKind != reveal) {
+          bodyKind = reveal;
+          wr.Write(" " + bodyKind);
+          delimeter = " ";
+        }
+        wr.Write(delimeter + "{0}", id.ToString());
+        if (id.Decl != null) {
+          wr.WriteLine();
+          Indent(indent + IndentAmount);
+          wr.WriteLine("/*");
+          if (id.Decl is TopLevelDecl) {
+            PrintTopLevelDecls(new List<TopLevelDecl> { (TopLevelDecl)id.Decl }, indent + IndentAmount, fileBeingPrinted);
+          } else if (id.Decl is MemberDecl) {
+            PrintMembers(new List<MemberDecl> { (MemberDecl)id.Decl }, indent + IndentAmount, fileBeingPrinted);
+          }
+
+          Indent(indent + IndentAmount);
+          wr.WriteLine("*/");
+          Indent(indent + IndentAmount);
+        }
       }
+      wr.WriteLine();
+
     }
 
-    public void PrintModuleDefinition(ModuleDefinition module, int indent, string fileBeingPrinted) {
+    public void PrintModuleDefinition(ModuleDefinition module, VisibilityScope scope, int indent, string fileBeingPrinted) {
       Contract.Requires(module != null);
       Contract.Requires(0 <= indent);
+      Type.PushScope(scope);
       if (module.IsAbstract) {
         wr.Write("abstract ");
+      }
+      if (module.IsProtected) {
+        wr.Write("protected ");
       }
       wr.Write("module");
       PrintAttributes(module.Attributes);
@@ -342,7 +409,7 @@ namespace Microsoft.Dafny {
         if (module.IsExclusiveRefinement) {
           wr.Write("exclusively ");
         }
-        wr.Write("refines {0} ", Util.Comma(".", module.RefinementBaseName, id => id.val));
+        wr.Write("refines {0} ", module.RefinementBaseName.val);
       }
       if (module.TopLevelDecls.Count == 0) {
         wr.WriteLine("{ }");
@@ -353,6 +420,7 @@ namespace Microsoft.Dafny {
         Indent(indent);
         wr.WriteLine("}");
       }
+      Type.PopScope(scope);
     }
 
     void PrintTopLevelDeclsOrExportedView(ModuleDefinition module, int indent, string fileBeingPrinted) {

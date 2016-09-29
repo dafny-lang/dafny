@@ -1,0 +1,7 @@
+DatatypeExport.dfy(41,24): Error: unresolved identifier: CT1
+DatatypeExport.dfy(44,10): Error: the type of the match source expression must be a datatype (instead found A.T)
+DatatypeExport.dfy(46,21): Error: unresolved identifier: n
+DatatypeExport.dfy(48,34): Error: type T does not have a member CT1?
+DatatypeExport.dfy(48,53): Error: type T does not have a member X
+DatatypeExport.dfy(56,24): Error: unresolved identifier: CT1
+6 resolution/type errors detected in DatatypeExport.dfy

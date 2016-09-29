@@ -1,12 +1,12 @@
-// RUN: %dafny /compile:0 "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %dafny /env:0 /dprint:"%t.dfy" /compile:0 "%s" > "%t.result"
+// RUN: %diff "%s.expect" "%t.result"
 
 module A {
-	default export Public { f, h}
-	export E1 { f, g}
-	export E2 extends Public, E1 {T}
-  export Friend extends Public {g, T}
-	export Fruit {Data}
+	export A reveals f provides h
+	export E1 provides f reveals g
+	export E2 extends A, E1 reveals T
+  export Friend extends A reveals g, T
+	export Fruit reveals Data
 
   method h() {}
   function f(): int { 818 }
@@ -23,7 +23,7 @@ module A {
 }
 
 module B {
-  import X = A.Public
+  import X = A
 	method m() {
 	  X.h();  // OK
 	  assert X.f() == 818; // OK
@@ -34,7 +34,7 @@ module B {
 }
 
 module C {
-  import X = A.Friend
+  import X = A`Friend
 	method m() {
 	  X.h();  // OK
 	  assert X.f() == 818; // OK
@@ -55,7 +55,7 @@ module D {
 }
 
 module E {
-  import opened A.Fruit
+  import opened A`Fruit
 
   function G(d: Data): int
     requires d != Data.Lemon
@@ -68,11 +68,11 @@ module E {
 }
 
 module F {
-  default export Public { f, h}
-	default export E1 { f, g}
-	export E2 extends Public2, E1 {T}		// error: Public2 is not a exported view of F
-  export Friend extends Public {g2, T}  // error: g2 is not a member of F
-	export Fruit {Data}
+  export F reveals f provides h
+	export E1 reveals f, g
+	export E2 extends Public2, E1 reveals T		// error: Public2 is not a exported view of F
+  export Friend extends F reveals g2, T  // error: g2 is not a member of F
+	export Fruit provides Data
 
   method h() {}
   function f(): int { 818 }
@@ -88,7 +88,7 @@ module F {
 }
 
 module G {
-  export Public { f, h}
+  export Public reveals f provides h
 
 	method h() {}
   function f(): int { 818 }
@@ -101,5 +101,5 @@ module H {
 }
 
 module I {
-  import G.Public  // OK
+  import G`Public  // OK
 }

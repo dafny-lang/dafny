@@ -5,9 +5,9 @@ Processing command (at Snapshots0.v0.dfy(4,10)) assert false;
 
 Dafny program verifier finished with 3 verified, 0 errors
 Processing implementation CheckWellformed$$_module.__default.bar (at Snapshots0.v1.dfy(7,8)):
-  >>> added axiom: ##extracted_function##1() == (0 == $ModuleContextHeight && 0 == $FunctionContextHeight)
+  >>> added axiom: ##extracted_function##1() == (0 == $FunctionContextHeight)
   >>> added after assuming the current precondition: a##cached##0 := a##cached##0 && ##extracted_function##1();
-Processing call to procedure IntraModuleCall$$_module.__default.bar in implementation Impl$$_module.__default.foo (at Snapshots0.v1.dfy(3,6)):
+Processing call to procedure Call$$_module.__default.bar in implementation Impl$$_module.__default.foo (at Snapshots0.v1.dfy(3,6)):
   >>> added axiom: (forall call0old#AT#$Heap: Heap, $Heap: Heap :: {:weight 30} { ##extracted_function##2(call0old#AT#$Heap, $Heap) } ##extracted_function##2(call0old#AT#$Heap, $Heap) == (true && Lit(false) && (forall<alpha> $o: ref, $f: Field alpha :: { read($Heap, $o, $f) } $o != null && read(call0old#AT#$Heap, $o, alloc) ==> read($Heap, $o, $f) == read(call0old#AT#$Heap, $o, $f)) && $HeapSucc(call0old#AT#$Heap, $Heap)))
   >>> added after: a##cached##0 := a##cached##0 && ##extracted_function##2(call0old#AT#$Heap, $Heap);
 Processing command (at <unknown location>) a##cached##0 := a##cached##0 && ##extracted_function##1();

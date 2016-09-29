@@ -12,6 +12,7 @@ using System.Diagnostics.Contracts;
 using Bpl = Microsoft.Boogie;
 using System.Text;
 
+
 namespace Microsoft.Dafny {
   public class Compiler {
     public Compiler() {
@@ -67,6 +68,20 @@ namespace Microsoft.Dafny {
       }
     }
 
+    void EmitDafnySourceAttribute(Program program, TextWriter wr) {
+      Contract.Requires(program != null);
+
+      wr.WriteLine("[assembly: DafnyAssembly.DafnySourceAttribute(@\"");
+
+      var strwr = new StringWriter();
+      strwr.NewLine = wr.NewLine;
+      new Printer(strwr, DafnyOptions.PrintModes.Everything).PrintProgram(program, true);
+
+      wr.Write(strwr.GetStringBuilder().Replace("\"", "\"\"").ToString());
+      wr.WriteLine("\")]");
+      wr.WriteLine();
+    }
+
     readonly int IndentAmount = 2;
     void Indent(int ind, TextWriter wr) {
       Contract.Requires(0 <= ind);
@@ -85,7 +100,14 @@ namespace Microsoft.Dafny {
       wr.WriteLine("// You might also want to include compiler switches like:");
       wr.WriteLine("//     /debug /nowarn:0164 /nowarn:0219");
       wr.WriteLine();
-      ReadRuntimeSystem(wr);
+      wr.WriteLine("using System;");
+      wr.WriteLine("using System.Numerics;");
+      EmitDafnySourceAttribute(program, wr);
+
+      if (!DafnyOptions.O.UseRuntimeLib) {
+        ReadRuntimeSystem(wr);
+      }
+
       CompileBuiltIns(program.BuiltIns, wr);
 
       foreach (ModuleDefinition m in program.CompileModules) {
@@ -279,7 +301,7 @@ namespace Microsoft.Dafny {
     void CompileBuiltIns(BuiltIns builtIns, TextWriter wr) {
       wr.WriteLine("namespace Dafny {");
       Indent(IndentAmount, wr);
-      wr.WriteLine("public partial class Helpers {");
+      wr.WriteLine("internal class ArrayHelpers {");
       foreach (var decl in builtIns.SystemModule.TopLevelDecls) {
         if (decl is ArrayClassDecl) {
           int dims = ((ArrayClassDecl)decl).Dims;
@@ -759,7 +781,7 @@ namespace Microsoft.Dafny {
     public bool HasMain(Program program) {
       Method mainMethod = null;
       bool hasMain = false;
-      foreach (var module in program.Modules) {
+      foreach (var module in program.Modules()) {
         if (module.IsAbstract) {
           // the purpose of an abstract module is to skip compilation
           continue;
@@ -1407,8 +1429,8 @@ namespace Microsoft.Dafny {
       }
     }
 
+    private Translator translator = new Translator(null);
 
-    private static Translator translator = new Translator(null);
 
     TextWriter TrStmt(Statement stmt, int indent)
     {
@@ -2220,7 +2242,7 @@ namespace Microsoft.Dafny {
           if (tp.EType.IsIntegerType || tp.EType.IsTypeParameter) {
             // Because the default constructor for BigInteger does not generate a valid BigInteger, we have
             // to excplicitly initialize the elements of an integer array.  This is all done in a helper routine.
-            wr.Write("Dafny.Helpers.InitNewArray{0}<{1}>", tp.ArrayDimensions.Count, TypeName(tp.EType, wr));
+            wr.Write("Dafny.ArrayHelpers.InitNewArray{0}<{1}>", tp.ArrayDimensions.Count, TypeName(tp.EType, wr));
             string prefix = "(";
             foreach (Expression dim in tp.ArrayDimensions) {
               wr.Write(prefix);

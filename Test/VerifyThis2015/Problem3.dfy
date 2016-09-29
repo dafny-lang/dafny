@@ -1,11 +1,10 @@
-// XFAIL: *
 // RUN: %dafny /compile:3 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
-
 // Rustan Leino
 // 12 April 2015
 // VerifyThis 2015
 // Problem 3 -- Dancing Links
+
 
 // The following method demonstrates that Remove and PutBack (defined below) have the desired properties
 method Test(dd: DoublyLinkedList, x: Node)

@@ -284,24 +284,35 @@ namespace DafnyLanguage
     }
 
     public static bool Verify(Dafny.Program dafnyProgram, ResolverTagger resolver, string uniqueIdPrefix, string requestId, ErrorReporterDelegate er) {
+
       Dafny.Translator translator = new Dafny.Translator(dafnyProgram.reporter);
-      translator.InsertChecksums = true;
-      translator.UniqueIdPrefix = uniqueIdPrefix;
-      Bpl.Program boogieProgram = translator.Translate(dafnyProgram);
+      var translatorFlags = new Dafny.Translator.TranslatorFlags() { InsertChecksums = true, UniqueIdPrefix = uniqueIdPrefix };
 
-      resolver.ReInitializeVerificationErrors(requestId, boogieProgram.Implementations);
 
-      // TODO(wuestholz): Maybe we should use a fixed program ID to limit the memory overhead due to the program cache in Boogie.
-      PipelineOutcome oc = BoogiePipeline(boogieProgram, 1 < Dafny.DafnyOptions.Clo.VerifySnapshots ? uniqueIdPrefix : null, requestId, er);
-      switch (oc) {
-        case PipelineOutcome.Done:
-        case PipelineOutcome.VerificationCompleted:
-          // TODO:  This would be the place to proceed to compile the program, if desired
-          return true;
-        case PipelineOutcome.FatalError:
-        default:
-          return false;
+      var boogiePrograms = Dafny.Translator.Translate(dafnyProgram, dafnyProgram.reporter, translatorFlags);
+
+      var impls = boogiePrograms.SelectMany(p => p.Item2.Implementations);
+      resolver.ReInitializeVerificationErrors(requestId, impls);
+
+      bool success = false;
+
+      foreach (var kv in boogiePrograms) {
+        var boogieProgram = kv.Item2;
+
+        // TODO(wuestholz): Maybe we should use a fixed program ID to limit the memory overhead due to the program cache in Boogie.
+        PipelineOutcome oc = BoogiePipeline(boogieProgram, 1 < Dafny.DafnyOptions.Clo.VerifySnapshots ? uniqueIdPrefix : null, requestId, er);
+        switch (oc) {
+          case PipelineOutcome.Done:
+          case PipelineOutcome.VerificationCompleted:
+            // TODO:  This would be the place to proceed to compile the program, if desired
+            success = true;
+            break;
+          case PipelineOutcome.FatalError:
+          default:
+            return false;
+        }
       }
+      return success;
     }
 
     /// <summary>

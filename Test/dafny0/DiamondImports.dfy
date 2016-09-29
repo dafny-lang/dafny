@@ -54,6 +54,8 @@ module ImportByName {
 
 // ------------------------------------------------------------
 
+
+
 module ImportOpened {
   module A {
     type T
@@ -63,6 +65,7 @@ module ImportOpened {
 
   module B {
     import opened A
+    type T = A.T
   }
 
   module C {
@@ -88,15 +91,12 @@ module ImportOpened {
       var x, y, z := B.A.P(), C.A.P(), C'.A.P();
       assert x == y == z;
       var o;
-      x, y, z, o := B.P(), C.P(), C'.A.P(), A.P();
-      assert x == y == z == o;
+      z, o := C'.A.P(), A.P();
+      assert z == o;
 
       B.A.M(u);
       C.A.M(t);
       C'.A.M(t);
-      B.M(t);
-      C.M(t);
-      M(t);
       var anything;
       assert t == anything;  // error: (testing that it's not possible to prove false here)
     }

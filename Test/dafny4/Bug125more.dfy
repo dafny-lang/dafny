@@ -14,10 +14,14 @@ module LibB {
 module R {
   import opened LibA
 }
-
+/*
 module S0 refines R {
   // This module defines a local g().  It takes precedence over the g() that
   // comes from the (inherited) opened import
+
+  // this is no longer possible due to too many potential clashes and generally
+  // weird behaviour
+
   function g(): int { 2 }
   method m() {
     assert g() == 2;
@@ -31,6 +35,11 @@ module S1 refines R {
   import opened LibB
   // This module, too, defines a local g().  It takes precedence over the
   // ambiguously imported LibA.g() and LibB.g() that come from opened imports.
+
+
+  // this is no longer possible due to too many potential clashes and generally
+  // weird behaviour
+
   function g(): int { 3 }
 
   method m() {
@@ -38,7 +47,7 @@ module S1 refines R {
     assert g() == 0;  // error: g() resolves to S1.g(), which returns 3
   }
 }
-
+*/
 module V {
   import opened LibA
   function g(): int { 4 }

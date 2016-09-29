@@ -185,7 +185,7 @@ namespace Microsoft.Dafny {
       Graph<Function> functionCallGraph = new Graph<Function>();
       FunctionCallFinder callFinder = new FunctionCallFinder();
 
-      foreach (var module in program.Modules) {
+      foreach (var module in program.Modules()) {
         foreach (var decl in module.TopLevelDecls) {
           if (decl is ClassDecl) {
             var c = (ClassDecl)decl;
@@ -261,7 +261,7 @@ namespace Microsoft.Dafny {
     public static void PrintStats(Dafny.Program program) {
       SortedDictionary<string, ulong> stats = new SortedDictionary<string, ulong>();
 
-      foreach (var module in program.Modules) {
+      foreach (var module in program.Modules()) {
         IncrementStat(stats, "Modules");
         UpdateMax(stats, "Module height (max)", (ulong)module.Height);
 

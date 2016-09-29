@@ -73,49 +73,53 @@ namespace Microsoft.Dafny
     public Queue<Tuple<Method, Method>> translationMethodChecks = new Queue<Tuple<Method, Method>>();  // contains all the methods that need to be checked for structural refinement.
     private Method currentMethod;
     public ModuleSignature RefinedSig;  // the intention is to use this field only after a successful PreResolve
+    private ModuleSignature refinedSigOpened;
 
     internal override void PreResolve(ModuleDefinition m) {
       if (m.RefinementBaseRoot != null) {
-        if (Resolver.ResolvePath(m.RefinementBaseRoot, m.RefinementBaseName, out RefinedSig, reporter)) {
-          if (RefinedSig.ModuleDef != null) {
-            m.RefinementBase = RefinedSig.ModuleDef;
-            if (m.IsExclusiveRefinement) {
-              if (null == m.RefinementBase.ExclusiveRefinement) {
-                m.RefinementBase.ExclusiveRefinement = m;
-              } else {
-                reporter.Error(MessageSource.RefinementTransformer,
-                    m.tok,
-                    "no more than one exclusive refinement may exist for a given module.");
-              }
-            }
-            // check that the openess in the imports between refinement and its base matches
-            List<TopLevelDecl> declarations = m.TopLevelDecls;
-            List<TopLevelDecl> baseDeclarations = m.RefinementBase.TopLevelDecls;
-            foreach (var im in declarations) {
-              if (im is ModuleDecl) {
-                ModuleDecl mdecl = (ModuleDecl)im;
-                //find the matching import from the base
-                // TODO: this is a terribly slow algorithm; use the symbol table instead
-                foreach (var bim in baseDeclarations) {
-                  if (bim is ModuleDecl && ((ModuleDecl)bim).Name.Equals(mdecl.Name)) {
-                    if (mdecl.Opened != ((ModuleDecl)bim).Opened) {
-                      string message = mdecl.Opened ? 
-                        "{0} in {1} cannot be imported with \"opened\" because it does not match the corresponding import in the refinement base {2} " :
-                        "{0} in {1} must be imported with \"opened\"  to match the corresponding import in its refinement base {2}.";
-                        reporter.Error(MessageSource.RefinementTransformer,m.tok, message, im.Name, m.Name, m.RefinementBase.Name);
-                    }
-                    break;
-                  }
-                }
-              }
-            }
-            
-            PreResolveWorker(m);
-          } else {
-            reporter.Error(MessageSource.RefinementTransformer, m.RefinementBaseName[0], "module ({0}) named as refinement base is not a literal module or simple reference to a literal module", Util.Comma(".", m.RefinementBaseName, x => x.val));
+        RefinedSig = m.RefinementBaseRoot.Signature;
+
+        if (RefinedSig.ModuleDef != null) {
+          if (RefinedSig.ModuleDef.IsProtected) {
+            reporter.Error(MessageSource.RefinementTransformer, m.RefinementBaseName, "module ({0}) named as a refinement base is marked protected and cannot be refined", m.RefinementBaseName.val);
           }
+
+          m.RefinementBase = RefinedSig.ModuleDef;
+          if (m.IsExclusiveRefinement) {
+            if (null == m.RefinementBase.ExclusiveRefinement) {
+              m.RefinementBase.ExclusiveRefinement = m;
+            } else {
+              reporter.Error(MessageSource.RefinementTransformer,
+                  m.tok,
+                  "no more than one exclusive refinement may exist for a given module.");
+            }
+          }
+          // check that the openess in the imports between refinement and its base matches
+          List<TopLevelDecl> declarations = m.TopLevelDecls;
+          List<TopLevelDecl> baseDeclarations = m.RefinementBase.TopLevelDecls;
+          foreach (var im in declarations) {
+            if (im is ModuleDecl) {
+              ModuleDecl mdecl = (ModuleDecl)im;
+              //find the matching import from the base
+              // TODO: this is a terribly slow algorithm; use the symbol table instead
+              foreach (var bim in baseDeclarations) {
+                if (bim is ModuleDecl && ((ModuleDecl)bim).Name.Equals(mdecl.Name)) {
+                  if (mdecl.Opened != ((ModuleDecl)bim).Opened) {
+                    string message = mdecl.Opened ?
+                      "{0} in {1} cannot be imported with \"opened\" because it does not match the corresponding import in the refinement base {2} " :
+                      "{0} in {1} must be imported with \"opened\"  to match the corresponding import in its refinement base {2}.";
+                    reporter.Error(MessageSource.RefinementTransformer, m.tok, message, im.Name, m.Name, m.RefinementBase.Name);
+                  }
+                  break;
+                }
+                break;
+              }
+            }
+          }
+          PreResolveWorker(m);
+
         } else {
-          reporter.Error(MessageSource.RefinementTransformer, m.RefinementBaseName[0], "module ({0}) named as refinement base does not exist", Util.Comma(".", m.RefinementBaseName, x => x.val));
+          reporter.Error(MessageSource.RefinementTransformer, m.RefinementBaseName, "module ({0}) named as refinement base does not exist", m.RefinementBaseName.val);
         }
       }
     }
@@ -132,12 +136,29 @@ namespace Microsoft.Dafny
       refinementCloner = new RefinementCloner(moduleUnderConstruction);
       var prev = m.RefinementBase;
 
+      //copy the signature, including its opened imports
+      refinedSigOpened = Resolver.MergeSignature(new ModuleSignature(), RefinedSig);
+      Resolver.ResolveOpenedImports(refinedSigOpened, false);
+
       // Create a simple name-to-decl dictionary.  Ignore any duplicates at this time.
       var declaredNames = new Dictionary<string, int>();
       for (int i = 0; i < m.TopLevelDecls.Count; i++) {
         var d = m.TopLevelDecls[i];
         if (!declaredNames.ContainsKey(d.Name)) {
           declaredNames.Add(d.Name, i);
+        }
+
+        // TODO: This is more restrictive than is necessary,
+        // it would be possible to disambiguate these, but it seems like
+        // a lot of work for not much gain
+
+        if (refinedSigOpened.TopLevels.ContainsKey(d.Name) &&
+          !RefinedSig.TopLevels.ContainsKey(d.Name)) {
+          var decl = Resolver.AmbiguousTopLevelDecl.Create(m, d, refinedSigOpened.TopLevels[d.Name]);
+
+          if (decl is Resolver.AmbiguousTopLevelDecl) {
+            reporter.Error(MessageSource.RefinementTransformer, d.tok, "Base module {0} imports {1} from an opened import, so it cannot be overridden. Give this declaration a unique name to disambiguate.", prev.Name, d.Name);
+          }
         }
       }
 
@@ -169,27 +190,31 @@ namespace Microsoft.Dafny
       Contract.Assert(moduleUnderConstruction == m);  // this should be as it was set earlier in this method
     }
 
+    private void MergeModuleExports(ModuleExportDecl nw, ModuleExportDecl d) {
+      if (nw.IsDefault != d.IsDefault) {
+        reporter.Error(MessageSource.RefinementTransformer, nw, "can't change if a module export is default ({0})", nw.Name);
+      }
+
+      nw.Exports.AddRange(d.Exports);
+      nw.Extends.AddRange(d.Extends);
+    }
+
     private void MergeTopLevelDecls(ModuleDefinition m, TopLevelDecl nw, TopLevelDecl d, int index) {
       if (d is ModuleDecl) {
         if (!(nw is ModuleDecl)) {
           reporter.Error(MessageSource.RefinementTransformer, nw, "a module ({0}) must refine another module", nw.Name);
+        } else if (d is ModuleExportDecl) {
+          if (!(nw is ModuleExportDecl)) {
+            reporter.Error(MessageSource.RefinementTransformer, nw, "a module export ({0}) must refine another export", nw.Name);
+          } else {
+            MergeModuleExports((ModuleExportDecl)nw,(ModuleExportDecl)d);
+          }
         } else if (!(d is ModuleFacadeDecl)) {
           reporter.Error(MessageSource.RefinementTransformer, nw, "a module ({0}) can only refine a module facade", nw.Name);
         } else {
-          ModuleSignature original = ((ModuleFacadeDecl)d).OriginalSignature;
-          ModuleSignature derived = null;
-          if (nw is AliasModuleDecl) {
-            derived = ((AliasModuleDecl)nw).Signature;
-          } else if (nw is ModuleFacadeDecl) {
-            derived = ((ModuleFacadeDecl)nw).Signature;
-          } else {
-            reporter.Error(MessageSource.RefinementTransformer, nw, "a module ({0}) can only be refined by an alias module or a module facade", d.Name);
-          }
-          if (derived != null) {
-            // check that the new module refines the previous declaration
-            if (!CheckIsRefinement(derived, original))
-              reporter.Error(MessageSource.RefinementTransformer, nw.tok, "a module ({0}) can only be replaced by a refinement of the original module", d.Name);
-          }
+          // check that the new module refines the previous declaration
+          if (!CheckIsRefinement((ModuleDecl)nw, (ModuleFacadeDecl)d))
+            reporter.Error(MessageSource.RefinementTransformer, nw.tok, "a module ({0}) can only be replaced by a refinement of the original module", d.Name);
         }
       } else if (d is OpaqueTypeDecl) {
         if (nw is ModuleDecl) {
@@ -255,250 +280,40 @@ namespace Microsoft.Dafny
       }
     }
 
-    public bool CheckIsRefinement(ModuleSignature derived, ModuleSignature original) {
-      // Check refinement by construction.
-      var derivedPointer = derived;
+    public bool CheckIsRefinement(ModuleDecl derived, ModuleFacadeDecl original) {
+
+
+      // Check explicit refinement
+      // TODO syntactic analysis of export sets is not quite right
+      var derivedPointer = derived.Signature.ModuleDef;
       while (derivedPointer != null) {
-        if (derivedPointer == original)
-          return true;
-        derivedPointer = derivedPointer.Refines;
-      }
-      // Check structural refinement. Note this involves several checks.
-      // First, we need to know if the two modules are signature compatible;
-      // this is determined immediately as it is necessary for determining
-      // whether resolution will succeed. This involves checking classes, datatypes,
-      // type declarations, and nested modules. 
-      // Second, we need to determine whether the specifications will be compatible
-      // (i.e. substitutable), by translating to Boogie.
-
-      var errorCount = reporter.Count(ErrorLevel.Error);
-      foreach (var kv in original.TopLevels) {
-        var d = kv.Value;
-        TopLevelDecl nw;
-        if (derived.TopLevels.TryGetValue(kv.Key, out nw)) {
-          if (d is ModuleDecl) {
-            if (!(nw is ModuleDecl)) {
-              reporter.Error(MessageSource.RefinementTransformer, nw, "a module ({0}) must refine another module", nw.Name);
-            } else {
-              CheckIsRefinement(((ModuleDecl)nw).Signature, ((ModuleDecl)d).Signature);
-            }
-          } else if (d is OpaqueTypeDecl) {
-            if (nw is ModuleDecl) {
-              reporter.Error(MessageSource.RefinementTransformer, nw, "a module ({0}) must refine another module", nw.Name);
-            } else {
-              bool dDemandsEqualitySupport = ((OpaqueTypeDecl)d).MustSupportEquality;
-              if (nw is OpaqueTypeDecl) {
-                if (dDemandsEqualitySupport != ((OpaqueTypeDecl)nw).MustSupportEquality) {
-                  reporter.Error(MessageSource.RefinementTransformer, nw, "type declaration '{0}' is not allowed to change the requirement of supporting equality", nw.Name);
-                }
-              } else if (dDemandsEqualitySupport) {
-                if (nw is ClassDecl) {
-                  // fine, as long as "nw" does not take any type parameters
-                  if (nw.TypeArgs.Count != 0) {
-                    reporter.Error(MessageSource.RefinementTransformer, nw, "opaque type '{0}' is not allowed to be replaced by a class that takes type parameters", nw.Name);
-                  }
-                } else if (nw is CoDatatypeDecl) {
-                  reporter.Error(MessageSource.RefinementTransformer, nw, "a type declaration that requires equality support cannot be replaced by a codatatype");
-                } else {
-                  Contract.Assert(nw is IndDatatypeDecl);
-                  if (nw.TypeArgs.Count != 0) {
-                    reporter.Error(MessageSource.RefinementTransformer, nw, "opaque type '{0}' is not allowed to be replaced by a datatype that takes type parameters", nw.Name);
-                  } else {
-                    var udt = new UserDefinedType(nw.tok, nw.Name, nw, new List<Type>());
-                    if (!(udt.SupportsEquality)) {
-                      reporter.Error(MessageSource.RefinementTransformer, nw.tok, "datatype '{0}' is used to refine an opaque type with equality support, but '{0}' does not support equality", nw.Name);
-                    }
-                  }
-                }
-              }
-            }
-          } else if (d is DatatypeDecl) {
-            if (nw is DatatypeDecl) {
-              if (d is IndDatatypeDecl && !(nw is IndDatatypeDecl)) {
-                reporter.Error(MessageSource.RefinementTransformer, nw, "a datatype ({0}) must be replaced by a datatype, not a codatatype", d.Name);
-              } else if (d is CoDatatypeDecl && !(nw is CoDatatypeDecl)) {
-                reporter.Error(MessageSource.RefinementTransformer, nw, "a codatatype ({0}) must be replaced by a codatatype, not a datatype", d.Name);
-              }
-              // check constructors, formals, etc.
-              CheckDatatypesAreRefinements((DatatypeDecl)d, (DatatypeDecl)nw);
-            } else {
-              reporter.Error(MessageSource.RefinementTransformer, nw, "a {0} ({1}) must be refined by a {0}", d is IndDatatypeDecl ? "datatype" : "codatatype", d.Name);
-            }
-          } else if (d is ClassDecl) {
-            if (!(nw is ClassDecl)) {
-              reporter.Error(MessageSource.RefinementTransformer, nw, "a class declaration ({0}) must be refined by another class declaration", nw.Name);
-            } else {
-              CheckClassesAreRefinements((ClassDecl)nw, (ClassDecl)d);
-            }
+        if (derivedPointer == original.OriginalSignature.ModuleDef) {
+          HashSet<string> exports;
+          if (derived is AliasModuleDecl) {
+            exports = new HashSet<string>(((AliasModuleDecl)derived).Exports.ConvertAll(t => t.val));
+          } else if (derived is ModuleFacadeDecl) {
+            exports = new HashSet<string>(((ModuleFacadeDecl)derived).Exports.ConvertAll(t => t.val));
           } else {
-            Contract.Assert(false); throw new cce.UnreachableException(); // unexpected toplevel
+            reporter.Error(MessageSource.RefinementTransformer, derived, "a module ({0}) can only be refined by an alias module or a module facade", original.Name);
+            return false;
           }
-        } else {
-          reporter.Error(MessageSource.RefinementTransformer, d, "declaration {0} must have a matching declaration in the refining module", d.Name);
+          var oexports = new HashSet<string>(original.Exports.ConvertAll(t => t.val));
+          return oexports.IsSubsetOf(exports);
         }
+        derivedPointer = derivedPointer.RefinementBase;
       }
-      return errorCount == reporter.Count(ErrorLevel.Error);
+      return false;
     }
 
-    private void CheckClassesAreRefinements(ClassDecl nw, ClassDecl d) {
-      if (nw.TypeArgs.Count != d.TypeArgs.Count) {
-        reporter.Error(MessageSource.RefinementTransformer, nw, "a refining class ({0}) must have the same number of type parameters", nw.Name);
-      } else {
-        var map = new Dictionary<string, MemberDecl>();
-        foreach (var mem in nw.Members) {
-          map.Add(mem.Name, mem);
-        }
-        foreach (var m in d.Members) {
-          MemberDecl newMem;
-          if (map.TryGetValue(m.Name, out newMem)) {
-            if (m.HasStaticKeyword != newMem.HasStaticKeyword) {
-              reporter.Error(MessageSource.RefinementTransformer, newMem, "member {0} must {1}", m.Name, m.HasStaticKeyword ? "be static" : "not be static");
-            }
-            if (m is Field) {
-              if (newMem is Field) {
-                var newField = (Field)newMem;
-                if (!ResolvedTypesAreTheSame(newField.Type, ((Field)m).Type))
-                  reporter.Error(MessageSource.RefinementTransformer, newMem, "field must be refined by a field with the same type (got {0}, expected {1})", newField.Type, ((Field)m).Type);
-                if (m.IsGhost || !newField.IsGhost)
-                  reporter.Error(MessageSource.RefinementTransformer, newField, "a field re-declaration ({0}) must be to ghostify the field", newField.Name, nw.Name);
-              } else {
-                reporter.Error(MessageSource.RefinementTransformer, newMem, "a field declaration ({1}) must be replaced by a field in the refinement base (not {0})", newMem.Name, nw.Name);
-              }
-            } else if (m is Method) {
-              if (newMem is Method) {
-                CheckMethodsAreRefinements((Method)newMem, (Method)m);
-              } else {
-                reporter.Error(MessageSource.RefinementTransformer, newMem, "method must be refined by a method");
-              }
-            } else if (m is Function) {
-              if (newMem is Function) {
-                CheckFunctionsAreRefinements((Function)newMem, (Function)m);
-              } else {
-                reporter.Error(MessageSource.RefinementTransformer, newMem, "{0} must be refined by a {0}", m.WhatKind);
-              }
-            }
-          } else {
-            reporter.Error(MessageSource.RefinementTransformer, nw is DefaultClassDecl ? nw.Module.tok : nw.tok, "refining {0} must have member {1}", nw is DefaultClassDecl ? "module" : "class", m.Name);
-          }
-        }
-      }
-    }
-    void CheckAgreementResolvedParameters(IToken tok, List<Formal> old, List<Formal> nw, string name, string thing, string parameterKind) {
-      Contract.Requires(tok != null);
-      Contract.Requires(old != null);
-      Contract.Requires(nw != null);
-      Contract.Requires(name != null);
-      Contract.Requires(thing != null);
-      Contract.Requires(parameterKind != null);
-      if (old.Count != nw.Count) {
-        reporter.Error(MessageSource.RefinementTransformer, tok, "{0} '{1}' is declared with a different number of {2} ({3} instead of {4}) than the corresponding {0} in the module it refines", thing, name, parameterKind, nw.Count, old.Count);
-      } else {
-        for (int i = 0; i < old.Count; i++) {
-          var o = old[i];
-          var n = nw[i];
-          if (!o.IsGhost && n.IsGhost) {
-            reporter.Error(MessageSource.RefinementTransformer, n.tok, "{0} '{1}' of {2} {3} cannot be changed, compared to the corresponding {2} in the module it refines, from non-ghost to ghost", parameterKind, n.Name, thing, name);
-          } else if (o.IsGhost && !n.IsGhost) {
-            reporter.Error(MessageSource.RefinementTransformer, n.tok, "{0} '{1}' of {2} {3} cannot be changed, compared to the corresponding {2} in the module it refines, from ghost to non-ghost", parameterKind, n.Name, thing, name);
-          } else if (!o.IsOld && n.IsOld) {
-            reporter.Error(MessageSource.RefinementTransformer, n.tok, "{0} '{1}' of {2} {3} cannot be changed, compared to the corresponding {2} in the module it refines, from non-new to new", parameterKind, n.Name, thing, name);
-          } else if (o.IsOld && !n.IsOld) {
-            reporter.Error(MessageSource.RefinementTransformer, n.tok, "{0} '{1}' of {2} {3} cannot be changed, compared to the corresponding {2} in the module it refines, from new to non-new", parameterKind, n.Name, thing, name);
-          } else if (!ResolvedTypesAreTheSame(o.Type, n.Type)) {
-            reporter.Error(MessageSource.RefinementTransformer, n.tok, "the type of {0} '{1}' is different from the type of the same {0} in the corresponding {2} in the module it refines ('{3}' instead of '{4}')", parameterKind, n.Name, thing, n.Type, o.Type);
-          }
-        }
-      }
-    }
-    private void CheckMethodsAreRefinements(Method nw, Method m) {
-      CheckAgreement_TypeParameters(nw.tok, m.TypeArgs, nw.TypeArgs, m.Name, "method", false);
-      CheckAgreementResolvedParameters(nw.tok, m.Ins, nw.Ins, m.Name, "method", "in-parameter");
-      CheckAgreementResolvedParameters(nw.tok, m.Outs, nw.Outs, m.Name, "method", "out-parameter");
-      program.TranslationTasks.Add(new MethodCheck(nw, m));
-    }
-    private void CheckFunctionsAreRefinements(Function nw, Function f) {
-      if (f is Predicate) {
-        if (!(nw is Predicate)) {
-          reporter.Error(MessageSource.RefinementTransformer, nw, "a predicate declaration ({0}) can only be refined by a predicate", nw.Name);
-        } else {
-          CheckAgreement_TypeParameters(nw.tok, f.TypeArgs, nw.TypeArgs, nw.Name, "predicate", false);
-          CheckAgreementResolvedParameters(nw.tok, f.Formals, nw.Formals, nw.Name, "predicate", "parameter");
-        }
-      } else if (f is FixpointPredicate) {
-        reporter.Error(MessageSource.RefinementTransformer, nw, "refinement of {0}s is not supported", f.WhatKind);
-      } else if (f is TwoStatePredicate) {
-        if (!(nw is TwoStatePredicate)) {
-          reporter.Error(MessageSource.RefinementTransformer, nw, "a twostate predicate declaration ({0}) can only be refined by a twostate predicate", nw.Name);
-        } else {
-          CheckAgreement_TypeParameters(nw.tok, f.TypeArgs, nw.TypeArgs, nw.Name, "twostate predicate", false);
-          CheckAgreementResolvedParameters(nw.tok, f.Formals, nw.Formals, nw.Name, "twostate predicate", "parameter");
-        }
-      } else if (f is TwoStateFunction) {
-        if (!(nw is TwoStateFunction) || nw is TwoStatePredicate) {
-          reporter.Error(MessageSource.RefinementTransformer, nw, "a twostate function declaration ({0}) can only be refined by a twostate function", nw.Name);
-        } else {
-          CheckAgreement_TypeParameters(nw.tok, f.TypeArgs, nw.TypeArgs, nw.Name, "twostate function", false);
-          CheckAgreementResolvedParameters(nw.tok, f.Formals, nw.Formals, nw.Name, "twostate function", "parameter");
-          if (!ResolvedTypesAreTheSame(nw.ResultType, f.ResultType)) {
-            reporter.Error(MessageSource.RefinementTransformer, nw, "the result type of twostate function '{0}' ({1}) differs from the result type of the corresponding twostate function in the module it refines ({2})", nw.Name, nw.ResultType, f.ResultType);
-          }
-        }
-      } else {
-        // f is a plain Function
-        if (nw is Predicate || nw is FixpointPredicate || nw is TwoStateFunction) {
-          reporter.Error(MessageSource.RefinementTransformer, nw, "a {0} declaration ({1}) can only be refined by a function or function method", nw.IsGhost ? "function" : "function method", nw.Name);
-        } else {
-          CheckAgreement_TypeParameters(nw.tok, f.TypeArgs, nw.TypeArgs, nw.Name, "function", false);
-          CheckAgreementResolvedParameters(nw.tok, f.Formals, nw.Formals, nw.Name, "function", "parameter");
-          if (!ResolvedTypesAreTheSame(nw.ResultType, f.ResultType)) {
-            reporter.Error(MessageSource.RefinementTransformer, nw, "the result type of function '{0}' ({1}) differs from the result type of the corresponding function in the module it refines ({2})", nw.Name, nw.ResultType, f.ResultType);
-          }
-        }
-      }
-      program.TranslationTasks.Add(new FunctionCheck(nw, f));
-    }
-
-
-    private void CheckDatatypesAreRefinements(DatatypeDecl dd, DatatypeDecl nn) {
-      CheckAgreement_TypeParameters(nn.tok, dd.TypeArgs, nn.TypeArgs, dd.Name, "datatype", false);
-      if (dd.Ctors.Count != nn.Ctors.Count) {
-        reporter.Error(MessageSource.RefinementTransformer, nn.tok, "a refining datatype must have the same number of constructors");
-      } else {
-        var map = new Dictionary<string, DatatypeCtor>();
-        foreach (var ctor in nn.Ctors) {
-          map.Add(ctor.Name, ctor);
-        }
-        foreach (var ctor in dd.Ctors) {
-          DatatypeCtor newCtor;
-          if (map.TryGetValue(ctor.Name, out newCtor)) {
-            if (newCtor.Formals.Count != ctor.Formals.Count) {
-              reporter.Error(MessageSource.RefinementTransformer, newCtor, "the constructor ({0}) must have the same number of formals as in the refined module", newCtor.Name);
-            } else {
-              for (int i = 0; i < newCtor.Formals.Count; i++) {
-                var a = ctor.Formals[i]; var b = newCtor.Formals[i];
-                if (a.HasName) {
-                  if (!b.HasName || a.Name != b.Name)
-                    reporter.Error(MessageSource.RefinementTransformer, b, "formal argument {0} in constructor {1} does not have the same name as in the refined module (should be {2})", i, ctor.Name, a.Name);
-                }
-                if (!ResolvedTypesAreTheSame(a.Type, b.Type)) {
-                  reporter.Error(MessageSource.RefinementTransformer, b, "formal argument {0} in constructor {1} does not have the same type as in the refined module (should be {2}, not {3})", i, ctor.Name, a.Type.ToString(), b.Type.ToString());
-                }
-              }
-            }
-          } else {
-            reporter.Error(MessageSource.RefinementTransformer, nn, "the constructor {0} must be present in the refining datatype", ctor.Name);
-          }
-        }
-      }
-      
-    }
     // Check that two resolved types are the same in a similar context (the same type parameters, method, class, etc.)
     // Assumes that prev is in a previous refinement, and next is in some refinement. Note this is not commutative.
-    public static bool ResolvedTypesAreTheSame(Type prev, Type next) {
+    public bool ResolvedTypesAreTheSame(Type prev, Type next) {
       Contract.Requires(prev != null);
       Contract.Requires(next != null);
+
       prev = prev.NormalizeExpandKeepConstraints();
       next = next.NormalizeExpandKeepConstraints();
+
       if (prev is TypeProxy || next is TypeProxy)
         return false;
 
@@ -741,6 +556,11 @@ namespace Microsoft.Dafny
         var member = nw.Members[i];
         if (!declaredNames.ContainsKey(member.Name)) {
           declaredNames.Add(member.Name, i);
+        }
+
+        if (prev.IsDefaultClass && refinedSigOpened.StaticMembers.ContainsKey(member.Name) &&
+          !RefinedSig.StaticMembers.ContainsKey(member.Name)) {
+            reporter.Error(MessageSource.RefinementTransformer, member.tok, "Base module {0} imports {1} from an opened import, so it cannot be overridden. Give this declaration a unique name to disambiguate.", RefinedSig.ModuleDef.Name, member.Name);
         }
       }
 
@@ -1678,7 +1498,9 @@ namespace Microsoft.Dafny
     }
     public override TopLevelDecl CloneDeclaration(TopLevelDecl d, ModuleDefinition m) {
       var dd = base.CloneDeclaration(d, m);
-      if (d is ModuleDecl) {
+      if (dd is ModuleExportDecl) {
+        ((ModuleExportDecl)dd).SetupDefaultSignature();
+      } else if (d is ModuleDecl) {
         ((ModuleDecl)dd).Signature = ((ModuleDecl)d).Signature;
         if (d is ModuleFacadeDecl) {
           ((ModuleFacadeDecl)dd).OriginalSignature = ((ModuleFacadeDecl)d).OriginalSignature;

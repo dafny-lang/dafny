@@ -539,10 +539,23 @@ bool IsType(ref IToken pt) {
 }
 
 
-bool IsDefaultImport() {
-  scanner.ResetPeek();  
-  Token x = scanner.Peek();  // lookahead token again 
-  return la.val == "default" && x.val != "export";
+void ConvertKeywordTokenToIdent() {
+  var oldKind = la.kind;
+  la.kind = _ident;
+
+  // call CheckLiteral with la
+  var origT = t;
+  t = la;
+  scanner.CheckLiteral();
+  t = origT;
+
+  if (la.kind != _ident) {
+    // it has been changed by CheckLiteral, which means it was a keyword
+    la.kind = _ident;  // convert it to an ident
+  } else {
+    // la was something other than a keyword
+    la.kind = oldKind;
+  }
 }
 
 int StringToInt(string s, int defaultValue, string errString) {
@@ -643,6 +656,7 @@ TOKENS
   boredSmiley = ":|".
   bullet = '\u2022'.
   dot = '.'.
+  backtick = "`".
   semi = ';'.
   darrow = "=>".
   arrow = "->".
@@ -755,95 +769,137 @@ TopDecl<. ModuleDefinition module, List<MemberDecl/*!*/> membersDefaultClass, bo
 SubModuleDecl<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl submodule>
 = (. Attributes attrs = null;  IToken/*!*/ id;
 	   List<MemberDecl/*!*/> namedModuleDefaultClassMembers = new List<MemberDecl>();;
-     List<IToken> idRefined = null, idPath = null, idAssignment = null;
+     List<IToken> idPath, idExports;
+     IToken idRefined = null;
      ModuleDefinition module;
      submodule = null; // appease compiler
      bool isAbstract = dmod.IsAbstract;
      bool isExclusively = false;
+     bool isProtected = dmod.IsProtected;
      bool opened = false;
-     CheckDeclModifiers(dmod, "Modules", AllowedDeclModifiers.Abstract | AllowedDeclModifiers.Extern);
+     CheckDeclModifiers(dmod, "Modules", AllowedDeclModifiers.Abstract | AllowedDeclModifiers.Extern | AllowedDeclModifiers.Protected);
   .)
   ( "module"
     { Attribute<ref attrs> }
     NoUSIdent<out id>
     (. EncodeExternAsAttribute(dmod, ref attrs, id, /* needAxiom */ false); .)
-
-      [ "exclusively" "refines" QualifiedModuleName<out idRefined> (. isExclusively = true; .)
-      | "refines" QualifiedModuleName<out idRefined>
-      ] 
-      (. module = new ModuleDefinition(id, id.val, isAbstract, false, isExclusively, idRefined, parent, attrs, false, this); .)  
-      "{"                                             (. module.BodyStartTok = t; .)
-      { TopDecl<module, namedModuleDefaultClassMembers, /* isTopLevel */ false, isAbstract> }
-      "}"                                 (. module.BodyEndTok = t;
-                                             module.TopLevelDecls.Add(new DefaultClassDecl(module, namedModuleDefaultClassMembers));
-                                             submodule = new LiteralModuleDecl(module, parent); .)
+  
+      [ "refines" ModuleName<out idRefined> (. isExclusively = false; .) ] 
+            (. module = new ModuleDefinition(id, id.val, isAbstract, isProtected, false, isExclusively, idRefined, parent, attrs, false); module.IsToBeVerified = theVerifyThisFile; .)  
+       "{"                                             (. module.BodyStartTok = t; .)
+            { TopDecl<module, namedModuleDefaultClassMembers, /* isTopLevel */ false, isAbstract>}
+       "}"                                 (. module.BodyEndTok = t;
+                                              module.TopLevelDecls.Add(new DefaultClassDecl(module, namedModuleDefaultClassMembers));
+                                              submodule = new LiteralModuleDecl(module, parent); .)
   |
     "import" ["opened" (.opened = true;.)]
-    NoUSIdent<out id>
+     ModuleName<out id>
     (. EncodeExternAsAttribute(dmod, ref attrs, id, /* needAxiom */ false); .)
-    [ "=" QualifiedModuleName<out idPath>
-      (. submodule = new AliasModuleDecl(idPath, id, parent, opened); .)
-    | "as" QualifiedModuleName<out idPath> [IF(IsDefaultImport()) "default" QualifiedModuleName<out idAssignment> ]
-      (. submodule = new ModuleFacadeDecl(idPath, id, parent, idAssignment, opened); 
-         errors.Deprecated(t, "\"import A as B\" has been deprecated; in the new syntax, it is \"import A:B\"");
+    ( (. idPath = new List<IToken>(); idExports = new List<IToken>(); .)
+      [ QualifiedModuleExportSuffix<idPath, idExports> ]
+      (. if (idPath.Count > 0)
+           SemErr(idPath[0], "Qualified imports must be given a name.");
+        idPath.Insert(0, id);
+        submodule = new AliasModuleDecl(idPath, id, parent, opened, idExports); 
       .)
-    | ":" QualifiedModuleName<out idPath>
-      (. submodule = new ModuleFacadeDecl(idPath, id, parent, idAssignment, opened); .)
-    | "." QualifiedModuleName<out idPath>
-      (. idPath.Insert(0, id);
-			   submodule = new AliasModuleDecl(idPath, id, parent, opened); 
-      .)
-    ]
+    | "=" QualifiedModuleExport<out idPath, out idExports>
+      (. submodule = new AliasModuleDecl(idPath, id, parent, opened, idExports); .)
+    | ":" QualifiedModuleExport<out idPath, out idExports>
+        (. submodule = new ModuleFacadeDecl(idPath, id, parent, opened, idExports); .)
+
+    )
+    
+
     [ SYNC ";"
         // This semi-colon used to be required, but it seems silly to have it.
         // To stage the transition toward not having it at all, let's make it optional for now.  Then,
         // in the next big version of Dafny, don't allow the semi-colon at all.
         (. errors.Deprecated(t, "the semi-colon that used to terminate a sub-module declaration has been deprecated; in the new syntax, just leave off the semi-colon"); .)
     ]
-    (. if (submodule == null) {
-         idPath = new List<IToken>();
-         idPath.Add(id);
-         submodule = new AliasModuleDecl(idPath, id, parent, opened);
-       }
-    .)
 	| (. 		 
-		  bool isDefault = false;
-			bool includeBody;
 			IToken exportId;
 			List<ExportSignature> exports = new List<ExportSignature>();;
-      List<string> extends = new List<string>(); 
+      List<string> extends = new List<string>();
+      bool provideAll = false;
+      bool revealAll = false;
+      bool isDefault = false;
+      ExportSignature exsig;
 		.)
-	  ["default"  (. isDefault = true; .) ]
-		"export"
-		NoUSIdent<out exportId>
-		["extends" 
-     NoUSIdent<out id>(. extends.Add(id.val); .) 
-     {"," NoUSIdent<out id>  (. extends.Add(id.val); .) }
-    ] 
-		"{"
-		   NoUSIdent<out id>   (. includeBody = false; .)
-			 ['+' (. includeBody = true; .)]
-			 (. exports.Add(new ExportSignature(id, includeBody)); .)
-       { ","
-         NoUSIdent<out id> (. includeBody = false; .)
-			   ['+' (. includeBody = true; .)]
-			   (. exports.Add(new ExportSignature(id, includeBody)); .)
-       }
-		"}"
+		"export" (. exportId = t; .)
+		[ ModuleExport<out exportId> ]
+    {
+       "provides"
+       ( 
+         ( ModuleExportSignature<true, out exsig> 
+           (. exports.Add(exsig); .)
+           {"," ModuleExportSignature<true, out exsig>  (. exports.Add(exsig); .) }
+         )
+        | "*" (. provideAll = true; .)
+       )
+     | "reveals"
+       ( 
+         ( ModuleExportSignature<false, out exsig> 
+           (. exports.Add(exsig); .)
+           {"," ModuleExportSignature<false, out exsig>  (. exports.Add(exsig); .) }
+         )
+        | "*" (. revealAll = true; .)
+       )
+     | "extends" 
+       ModuleExport<out id>(. extends.Add(id.val); .) 
+       {"," ModuleExport<out id>  (. extends.Add(id.val); .) }
+    }
 		(.
-		   submodule = new ModuleExportDecl(exportId, parent, isDefault, exports, extends);
+       if (exportId.val == "export" || exportId.val == parent.Name) {
+         isDefault = true;
+       }
+		   submodule = new ModuleExportDecl(exportId, parent, exports, extends, provideAll, revealAll, isDefault);
 		.)
   )
 .
 
-/* This production is used to parse module names, where it is known that it is a module name that is expected. */
-QualifiedModuleName<.out List<IToken> ids.>
-= (. IToken id; ids = new List<IToken>(); .)
-  Ident<out id>                               (. ids.Add(id); .)
-  { "." Ident<out id>                         (. ids.Add(id); .)
-  }
+ModuleExportSignature<bool opaque, out ExportSignature exsig>
+= (. IToken prefix; IToken suffix = null; .)  
+  NoUSIdent<out prefix> [ "." NoUSIdent<out suffix> ]
+  (. exsig = new ExportSignature(prefix.val, suffix != null ? suffix.val : null, opaque); .)
+  .
+  
+
+/* The only modules in any given scope are siblings, so we no longer need qualified lookups */
+ModuleName<out IToken id>
+= Ident<out id>
   .
 
+/* For declaring or referring to module exports from the current module */
+ModuleExport<out IToken id>
+= (. IToken afterdot; .) 
+  DotSuffix<out id, out afterdot> 
+  (. if (afterdot != null)
+       SemErr(afterdot, "Decimal export sets are not supported");
+  .)
+  .
+
+/* This production is for referring to module exports for imports (both normal and facades) */
+QualifiedModuleExportSuffix<.List<IToken> ids, List<IToken> exports.>
+= (. IToken id; .)
+  (
+    "." ModuleName<out id> (. ids.Add(id); .)
+    { "." ModuleName<out id> (. ids.Add(id); .) }
+  | "`" ( ModuleExport<out id> (. exports.Add(id); .)
+        | "{" ModuleExport<out id> (. exports.Add(id); .)
+          { "," ModuleExport<out id> (. exports.Add(id); .) }
+          "}"
+        )
+  )
+  .
+
+QualifiedModuleExport<.out List<IToken> ids, out List<IToken> exports.>
+= (. IToken id; ids = new List<IToken>();
+     List<IToken> sids = new List<IToken>(); exports = new List<IToken>();
+  .)
+  ModuleName<out id> (. ids.Add(id); .)
+  [ QualifiedModuleExportSuffix<sids, exports> ]
+  (. ids.AddRange(sids); .)
+  .
 
 ClassDecl<DeclModifierData dmodClass, ModuleDefinition/*!*/ module, out ClassDecl/*!*/ c>
 = (. Contract.Requires(module != null);
@@ -3400,11 +3456,13 @@ Expressions<.List<Expression> args.>
   .
 /*------------------------------------------------------------------------*/
 Attribute<ref Attributes attrs>
-= (. IToken openBrace, colon, x, closeBrace;
+= (. IToken openBrace, colon, closeBrace;
+     IToken x = null;
      var args = new List<Expression>();
   .)
   "{"                         (. openBrace = t; .)
   ":"                         (. colon = t; .)
+  (. ConvertKeywordTokenToIdent(); .)
   NoUSIdent<out x>
   [ Expressions<args> ]
   "}"                         (. closeBrace = t; .)

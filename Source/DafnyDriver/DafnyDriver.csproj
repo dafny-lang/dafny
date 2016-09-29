@@ -72,8 +72,8 @@
     </CodeContractsExtraAnalysisOptions>
     <CodeContractsBaseLineFile>
     </CodeContractsBaseLineFile>
-    <CodeContractsRuntimeCheckingLevel>Full</CodeContractsRuntimeCheckingLevel>
-    <CodeContractsReferenceAssembly>Build</CodeContractsReferenceAssembly>
+    <CodeContractsRuntimeCheckingLevel>None</CodeContractsRuntimeCheckingLevel>
+    <CodeContractsReferenceAssembly>DoNotBuild</CodeContractsReferenceAssembly>
     <CodeAnalysisRuleSet>AllRules.ruleset</CodeAnalysisRuleSet>
     <CodeContractsRuntimeSkipQuantifiers>False</CodeContractsRuntimeSkipQuantifiers>
     <CodeContractsEnumObligations>False</CodeContractsEnumObligations>
@@ -84,7 +84,7 @@
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>
     <Optimize>true</Optimize>
-    <OutputPath>bin\Release\</OutputPath>
+    <OutputPath>..\..\Binaries\</OutputPath>
     <DefineConstants>TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
@@ -156,6 +156,10 @@
     <Compile Include="..\version.cs" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\DafnyRuntime\DafnyRuntime.csproj">
+      <Project>{3e2944e9-3e1d-4e03-a881-fb04a7a6ed67}</Project>
+      <Name>DafnyRuntime</Name>
+    </ProjectReference>
     <ProjectReference Include="..\Dafny\DafnyPipeline.csproj">
       <Project>{FE44674A-1633-4917-99F4-57635E6FA740}</Project>
       <Name>DafnyPipeline</Name>

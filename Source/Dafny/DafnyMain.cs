@@ -8,8 +8,64 @@ using System.IO;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using Bpl = Microsoft.Boogie;
+using System.Reflection;
+using DafnyAssembly;
 
 namespace Microsoft.Dafny {
+
+  public class IllegalDafnyFile : Exception { }
+
+  public class DafnyFile {
+    public string FilePath { get; private set; }
+    public string BaseName { get; private set; }
+    public bool isPrecompiled { get; private set; }
+    public string SourceFileName { get; private set; }
+
+    public static List<string> fileNames(IList<DafnyFile> dafnyFiles) {
+      var sourceFiles = new List<string>();
+      foreach (DafnyFile f in dafnyFiles) {
+        sourceFiles.Add(f.FilePath);
+      }
+      return sourceFiles;
+    }
+
+    public DafnyFile(string filePath) {
+      FilePath = filePath;
+      BaseName = Path.GetFileName(filePath);
+
+      var extension = Path.GetExtension(filePath);
+      if (extension != null) { extension = extension.ToLower(); }
+
+      if (extension == ".dfy" || extension == ".dfyi") {
+        isPrecompiled = false;
+        SourceFileName = filePath;
+      } else if (extension == ".dll") {
+        isPrecompiled = true;
+        Assembly.ReflectionOnlyLoad("DafnyRuntime");
+        var asm = Assembly.ReflectionOnlyLoadFrom(filePath);
+        string sourceText = null;
+        foreach (var adata in asm.GetCustomAttributesData()) {
+          if (adata.Constructor.DeclaringType.Name == "DafnySourceAttribute") {
+            foreach (var args in adata.ConstructorArguments) {
+              if (args.ArgumentType == System.Type.GetType("System.String")) {
+                sourceText = (string)args.Value;
+              }
+            }
+          }
+        }
+
+        if (sourceText == null) { throw new IllegalDafnyFile(); }
+        SourceFileName = Path.GetTempFileName();
+        File.WriteAllText(SourceFileName, sourceText);
+
+      } else {
+        throw new IllegalDafnyFile();
+      }
+
+
+    }
+  }
+
   public class Main {
 
       public static void MaybePrintProgram(Program program, string filename, bool afterResolver)
@@ -29,10 +85,10 @@ namespace Microsoft.Dafny {
     /// <summary>
     /// Returns null on success, or an error string otherwise.
     /// </summary>
-    public static string ParseCheck(IList<string/*!*/>/*!*/ fileNames, string/*!*/ programName, ErrorReporter reporter, out Program program)
+    public static string ParseCheck(IList<DafnyFile/*!*/>/*!*/ files, string/*!*/ programName, ErrorReporter reporter, out Program program)
       //modifies Bpl.CommandLineOptions.Clo.XmlSink.*;
     {
-      string err = Parse(fileNames, programName, reporter, out program);
+      string err = Parse(files, programName, reporter, out program);
       if (err != null) {
         return err;
       }
@@ -40,31 +96,31 @@ namespace Microsoft.Dafny {
       return Resolve(program, reporter);
     }
 
-    public static string Parse(IList<string> fileNames, string programName, ErrorReporter reporter, out Program program)
+    public static string Parse(IList<DafnyFile> files, string programName, ErrorReporter reporter, out Program program)
     {
       Contract.Requires(programName != null);
-      Contract.Requires(fileNames != null);
+      Contract.Requires(files != null);
       program = null;
       ModuleDecl module = new LiteralModuleDecl(new DefaultModuleDecl(), null);
       BuiltIns builtIns = new BuiltIns();
-      foreach (string dafnyFileName in fileNames){
-        Contract.Assert(dafnyFileName != null);
+      foreach (DafnyFile dafnyFile in files){
+        Contract.Assert(dafnyFile != null);
         if (Bpl.CommandLineOptions.Clo.XmlSink != null && Bpl.CommandLineOptions.Clo.XmlSink.IsOpen) {
-          Bpl.CommandLineOptions.Clo.XmlSink.WriteFileFragment(dafnyFileName);
+          Bpl.CommandLineOptions.Clo.XmlSink.WriteFileFragment(dafnyFile.FilePath);
         }
         if (Bpl.CommandLineOptions.Clo.Trace)
         {
-          Console.WriteLine("Parsing " + dafnyFileName);
+          Console.WriteLine("Parsing " + dafnyFile.FilePath);
         }
 
-        string err = ParseFile(dafnyFileName, Bpl.Token.NoToken, module, builtIns, new Errors(reporter));
+        string err = ParseFile(dafnyFile, Bpl.Token.NoToken, module, builtIns, new Errors(reporter));
         if (err != null) {
           return err;
         }
       }
       
       if (!(DafnyOptions.O.DisallowIncludes || DafnyOptions.O.PrintIncludesMode == DafnyOptions.IncludesModes.Immediate)) {
-        string errString = ParseIncludes(module, builtIns, fileNames, new Errors(reporter));
+        string errString = ParseIncludes(module, builtIns, DafnyFile.fileNames(files), new Errors(reporter));
         if (errString != null) {
           return errString;
         }
@@ -127,7 +183,12 @@ namespace Microsoft.Dafny {
         }
 
         foreach (Include include in newFilesToInclude) {
-          string ret = ParseFile(include.includedFilename, include.tok, module, builtIns, errs, false);
+          DafnyFile file;
+          try {file = new DafnyFile(include.includedFilename);}
+          catch (IllegalDafnyFile){
+            return (String.Format("Include of file \"{0}\" failed.", include.includedFilename));
+          }
+          string ret = ParseFile(file, include.tok, module, builtIns, errs, false);
           if (ret != null) {
             return ret;
           }
@@ -142,10 +203,10 @@ namespace Microsoft.Dafny {
       return null; // Success
     }
 
-    private static string ParseFile(string dafnyFileName, Bpl.IToken tok, ModuleDecl module, BuiltIns builtIns, Errors errs, bool verifyThisFile = true) {
-      var fn = DafnyOptions.Clo.UseBaseNameForFileName ? Path.GetFileName(dafnyFileName) : dafnyFileName;
+    private static string ParseFile(DafnyFile dafnyFile, Bpl.IToken tok, ModuleDecl module, BuiltIns builtIns, Errors errs, bool verifyThisFile = true) {
+      var fn = DafnyOptions.Clo.UseBaseNameForFileName ? Path.GetFileName(dafnyFile.FilePath) : dafnyFile.FilePath;
       try {
-        int errorCount = Dafny.Parser.Parse(dafnyFileName, module, builtIns, errs, verifyThisFile);
+        int errorCount = Dafny.Parser.Parse(dafnyFile.SourceFileName, module, builtIns, errs, verifyThisFile);
         if (errorCount != 0) {
           return string.Format("{0} parse errors detected in {1}", errorCount, fn);
         }
