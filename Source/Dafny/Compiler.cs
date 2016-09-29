@@ -79,6 +79,7 @@ namespace Microsoft.Dafny {
 
       wr.Write(strwr.GetStringBuilder().Replace("\"", "\"\"").ToString());
       wr.WriteLine("\")]");
+      wr.WriteLine();
     }
 
     readonly int IndentAmount = 2;
@@ -99,11 +100,13 @@ namespace Microsoft.Dafny {
       wr.WriteLine("// You might also want to include compiler switches like:");
       wr.WriteLine("//     /debug /nowarn:0164 /nowarn:0219");
       wr.WriteLine();
-      //ReadRuntimeSystem(wr);
       wr.WriteLine("using System;");
       wr.WriteLine("using System.Numerics;");
       EmitDafnySourceAttribute(program, wr);
 
+      if (!DafnyOptions.O.UseRuntimeLib) {
+        ReadRuntimeSystem(wr);
+      }
 
       CompileBuiltIns(program.BuiltIns, wr);
 

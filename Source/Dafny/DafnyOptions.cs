@@ -79,6 +79,7 @@ namespace Microsoft.Dafny
     public enum IncludesModes { None, Immediate, Transitive }
     public IncludesModes PrintIncludesMode = IncludesModes.None;
     public int OptimizeResolution = 2;
+    public bool UseRuntimeLib = false;
     public bool IronDafny = 
 #if ENABLE_IRONDAFNY 
       true
@@ -297,6 +298,11 @@ namespace Microsoft.Dafny
             return true;
           }
 
+        case "useRuntimeLib": {
+            UseRuntimeLib = true;
+            return true;
+          }
+
         case "printIncludes":
           if (ps.ConfirmArgumentCount(1)) {
             if (args[ps.i].Equals("None")) {
@@ -476,6 +482,9 @@ namespace Microsoft.Dafny
   /separateModuleOutput
                 Output verification results for each module separately, rather than
                 aggregating them after they are all finished.
+  /useRuntimeLib
+                Refer to pre-built DafnyRuntime.dll in compiled assembly rather
+                than including DafnyRuntime.cs verbatim.
   /ironDafny    Enable experimental features needed to support Ironclad/Ironfleet. Use of
                 these features may cause your code to become incompatible with future
                 releases of Dafny.

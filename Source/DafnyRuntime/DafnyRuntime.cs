@@ -1,5 +1,7 @@
+#if ISDAFNYRUNTIMELIB
 using System; // for Func
 using System.Numerics;
+#endif
 
 namespace DafnyAssembly {
   [AttributeUsage(AttributeTargets.Assembly)]

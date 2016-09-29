@@ -154,7 +154,7 @@ namespace Microsoft.Dafny
 
         if (refinedSigOpened.TopLevels.ContainsKey(d.Name) &&
           !RefinedSig.TopLevels.ContainsKey(d.Name)) {
-            var decl = Resolver.AmbiguousTopLevelDecl.Create(m, d, refinedSigOpened.TopLevels[d.Name]);
+          var decl = Resolver.AmbiguousTopLevelDecl.Create(m, d, refinedSigOpened.TopLevels[d.Name]);
 
           if (decl is Resolver.AmbiguousTopLevelDecl) {
             reporter.Error(MessageSource.RefinementTransformer, d.tok, "Base module {0} imports {1} from an opened import, so it cannot be overridden. Give this declaration a unique name to disambiguate.", prev.Name, d.Name);
