@@ -508,6 +508,7 @@ namespace Microsoft.Dafny {
       if (other != null) {
         scopeTokens.UnionWith(other.scopeTokens);
         scopeIds.UnionWith(other.scopeIds);
+        cached.Clear();
         }
     }
 
