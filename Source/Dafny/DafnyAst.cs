@@ -2220,6 +2220,13 @@ namespace Microsoft.Dafny {
         }
       }
     }
+    public IEnumerable<Type> SupertypesKeepConstraints {
+      get {
+        foreach (var c in SupertypeConstraints) {
+          yield return c.Super.NormalizeExpandKeepConstraints();
+        }
+      }
+    }
     public void AddSupertype(Resolver.TypeConstraint c) {
       Contract.Requires(c != null);
       Contract.Requires(c.Sub == this);
@@ -2232,6 +2239,15 @@ namespace Microsoft.Dafny {
         }
       }
     }
+    
+    public IEnumerable<Type> SubtypesKeepConstraints {
+      get {
+        foreach (var c in SubtypeConstraints) {
+          yield return c.Sub.NormalizeExpandKeepConstraints();
+        }
+      }
+    }
+    
     public void AddSubtype(Resolver.TypeConstraint c) {
       Contract.Requires(c != null);
       Contract.Requires(c.Super == this);
