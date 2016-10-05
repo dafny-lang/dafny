@@ -12264,10 +12264,9 @@ namespace Microsoft.Dafny
         var s = FreeVariables(e.Source);
         foreach (MatchCaseExpr mc in e.Cases) {
           var t = FreeVariables(mc.Body);
-          foreach (var cp in mc.CasePatterns) {
-            foreach (var bv in cp.Vars) {
-              t.Remove(bv);
-            }
+          Contract.Assert(mc.CasePatterns == null);  // CasePatterns should be converted to List<BoundVar> during resolver
+          foreach (var bv in mc.Arguments) {
+            t.Remove(bv);
           }
           s.UnionWith(t);
         }
