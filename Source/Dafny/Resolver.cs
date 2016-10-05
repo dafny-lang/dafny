@@ -815,7 +815,7 @@ namespace Microsoft.Dafny
       var oldModuleInfo = moduleInfo;
       moduleInfo = MergeSignature(sig, systemNameInfo);
       Type.PushScope(moduleInfo.VisibilityScope);
-      ResolveOpenedImports(moduleInfo, useCompileSignatures); // opened imports do not persist
+      ResolveOpenedImports(moduleInfo, m, useCompileSignatures, this); // opened imports do not persist
       var datatypeDependencies = new Graph<IndDatatypeDecl>();
       var codatatypeDependencies = new Graph<CoDatatypeDecl>();
       int prevErrorCount = reporter.Count(ErrorLevel.Error);
@@ -1289,84 +1289,94 @@ namespace Microsoft.Dafny
       return info;
     }
 
-    public static void ResolveOpenedImports(ModuleSignature sig, bool useCompileSignatures) {
+    public static void ResolveOpenedImports(ModuleSignature sig, ModuleDefinition moduleDef, bool useCompileSignatures, Resolver resolver) {
       var declarations = sig.TopLevels.Values.ToList<TopLevelDecl>();
       var importedSigs = new HashSet<ModuleSignature>() { sig };
 
       foreach (var top in declarations) {
         if (top is ModuleDecl && ((ModuleDecl)top).Opened) {
-          ResolveOpenedImportsWorker(sig, sig.ModuleDef, (ModuleDecl)top, importedSigs, useCompileSignatures);
+            ResolveOpenedImportsWorker(sig, moduleDef, (ModuleDecl)top, importedSigs, useCompileSignatures);
         }
+      }
+
+      if (resolver != null) { //needed because ResolveOpenedImports is used statically for a refinement check
+          if (sig.TopLevels["_default"] is AmbiguousTopLevelDecl) {
+              Contract.Assert(sig.TopLevels["_default"].WhatKind == "class");
+              var cl = new DefaultClassDecl(moduleDef, sig.StaticMembers.Values.ToList(), null);
+              sig.TopLevels["_default"] = cl;
+              resolver.classMembers[cl] = cl.Members.ToDictionary(m => m.Name);
+          }
       }
     }
 
     static void ResolveOpenedImportsWorker(ModuleSignature sig, ModuleDefinition moduleDef, ModuleDecl im, HashSet<ModuleSignature> importedSigs, bool useCompileSignatures) {
-      bool useImports = true;
-      var s = GetSignatureExt(im.AccessibleSignature(useCompileSignatures), useCompileSignatures);
+        bool useImports = true;
+        var s = GetSignatureExt(im.AccessibleSignature(useCompileSignatures), useCompileSignatures);
 
-          if (importedSigs.Contains(s)) {
+        if (importedSigs.Contains(s)) {
             return; // we've already got these declarations
-          }
+        }
 
-          importedSigs.Add(s);
+        importedSigs.Add(s);
 
-          if (useImports || DafnyOptions.O.IronDafny) {
+        if (useImports || DafnyOptions.O.IronDafny) {
             // classes:
             foreach (var kv in s.TopLevels) {
-              if (!kv.Value.CanBeExported())
-                continue;
+                if (!kv.Value.CanBeExported())
+                    continue;
 
-              if (kv.Value is ModuleDecl && ((ModuleDecl)kv.Value).Opened && DafnyOptions.O.IronDafny) {
-                ResolveOpenedImportsWorker(sig, moduleDef, (ModuleDecl)kv.Value, importedSigs, useCompileSignatures);
+                if (kv.Value is ModuleDecl && ((ModuleDecl)kv.Value).Opened && DafnyOptions.O.IronDafny) {
+                    ResolveOpenedImportsWorker(sig, moduleDef, (ModuleDecl)kv.Value, importedSigs, useCompileSignatures);
                 }
 
-              // IronDafny: we need to pull the members of the opened module's _default class in so that they can be merged.
-              if (useImports || string.Equals(kv.Key, "_default", StringComparison.InvariantCulture)) {
-                TopLevelDecl d;
-                if (sig.TopLevels.TryGetValue(kv.Key, out d)) {
-                    sig.TopLevels[kv.Key] = AmbiguousTopLevelDecl.Create(moduleDef, d, kv.Value);
-                } else {
-                  sig.TopLevels.Add(kv.Key, kv.Value);
+                // IronDafny: we need to pull the members of the opened module's _default class in so that they can be merged.
+                if (useImports || string.Equals(kv.Key, "_default", StringComparison.InvariantCulture)) {
+                    TopLevelDecl d;
+                    if (sig.TopLevels.TryGetValue(kv.Key, out d)) {
+                        sig.TopLevels[kv.Key] = AmbiguousTopLevelDecl.Create(moduleDef, d, kv.Value);
+                    } else {
+                        sig.TopLevels.Add(kv.Key, kv.Value);
+                    }
                 }
-              }
             }
 
-          if (useImports) {
-            // constructors:
-            foreach (var kv in s.Ctors) {
-              Tuple<DatatypeCtor, bool> pair;
-              if (sig.Ctors.TryGetValue(kv.Key, out pair)) {
-                // The same ctor can be imported from two different imports (e.g "diamond" imports), in which case, 
-                // they are not duplicates.
-                if (!Object.ReferenceEquals(kv.Value.Item1, pair.Item1) &&
-                    (!DafnyOptions.O.IronDafny ||
-                        (!Object.ReferenceEquals(kv.Value.Item1.ClonedFrom, pair.Item1) &&
-                        !Object.ReferenceEquals(kv.Value.Item1, pair.Item1.ClonedFrom)))) {
-                  // mark it as a duplicate
-                  sig.Ctors[kv.Key] = new Tuple<DatatypeCtor, bool>(pair.Item1, true);
+            if (useImports) {
+                // constructors:
+                foreach (var kv in s.Ctors) {
+                    Tuple<DatatypeCtor, bool> pair;
+                    if (sig.Ctors.TryGetValue(kv.Key, out pair)) {
+                        // The same ctor can be imported from two different imports (e.g "diamond" imports), in which case, 
+                        // they are not duplicates.
+                        if (!Object.ReferenceEquals(kv.Value.Item1, pair.Item1) &&
+                            (!DafnyOptions.O.IronDafny ||
+                                (!Object.ReferenceEquals(kv.Value.Item1.ClonedFrom, pair.Item1) &&
+                                !Object.ReferenceEquals(kv.Value.Item1, pair.Item1.ClonedFrom)))) {
+                            // mark it as a duplicate
+                            sig.Ctors[kv.Key] = new Tuple<DatatypeCtor, bool>(pair.Item1, true);
+                        }
+                    } else {
+                        // add new
+                        sig.Ctors.Add(kv.Key, kv.Value);
+                    }
                 }
-              } else {
-                // add new
-                sig.Ctors.Add(kv.Key, kv.Value);
-              }
             }
-          }
 
-          if (useImports || DafnyOptions.O.IronDafny) {
-            // static members:
-            foreach (var kv in s.StaticMembers) {
-              if (!kv.Value.CanBeExported())
-                continue;
+            if (useImports || DafnyOptions.O.IronDafny) {
+                // static members:
+                foreach (var kv in s.StaticMembers) {
+                    if (!kv.Value.CanBeExported())
+                        continue;
 
-              MemberDecl md;
-              if (sig.StaticMembers.TryGetValue(kv.Key, out md)) {
-                  sig.StaticMembers[kv.Key] = AmbiguousMemberDecl.Create(moduleDef, md, kv.Value);
-              } else {
-                // add new
-                sig.StaticMembers.Add(kv.Key, kv.Value);
-              }
+                    MemberDecl md;
+                    if (sig.StaticMembers.TryGetValue(kv.Key, out md)) {
+                        sig.StaticMembers[kv.Key] = AmbiguousMemberDecl.Create(moduleDef, md, kv.Value);
+                    } else {
+                        // add new
+                        sig.StaticMembers.Add(kv.Key, kv.Value);
+                    }
+                }
             }
-          }
+            
         }
     }
 
