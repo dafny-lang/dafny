@@ -108,6 +108,7 @@ namespace Microsoft.Dafny {
       if (flags == null) {
         flags = new TranslatorFlags();
       }
+      this.flags = flags;
       Bpl.Program boogieProgram = ReadPrelude();
       if (boogieProgram != null) {
         sink = boogieProgram;
