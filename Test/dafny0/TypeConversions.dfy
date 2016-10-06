@@ -87,7 +87,7 @@ method M4() returns (x: int, n: nat, r: real, even: EvenInt, small: SmallReal, b
 {
   if {
     case true => even := noll as EvenInt;
-    case true => even := b67 as EvenInt;  // error: bv67 may be odd
+    //case true => even := b67 as EvenInt;  // error: bv67 may be odd  // disabled because it doesn't terminate with 4.4.2 Z3
     case b67 as int % 2 == 0 => even := b67 as EvenInt;
     case true => small := seven as SmallReal;
     case true =>

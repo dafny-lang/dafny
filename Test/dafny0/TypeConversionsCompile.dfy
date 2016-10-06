@@ -23,7 +23,7 @@ method Main()
   var b67: bv67, w: bv32, seven: bv7, noll: bv0 := 0x7_FFFF_FFFF_FFFF_FFFF, 0xFFFF_FFFF, 127, 0;
   Print(x, n, r, handful, even, small, b67, w, seven, noll);
 
-  PrintExpected(x as bv67, 3);
+  // PrintExpected(x as bv67, 3); // disabled because it does not terminate with 4.4.2 Z3
   PrintExpected(x as bv7, 3);
   PrintExpected(0 as bv0, 0);
   PrintExpected(r as int, 5);

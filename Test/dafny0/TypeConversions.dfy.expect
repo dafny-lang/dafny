@@ -196,8 +196,6 @@ method M4()
   if {
     case true =>
       even := noll as EvenInt;
-    case true =>
-      even := b67 as EvenInt;
     case b67 as int % 2 == 0 =>
       even := b67 as EvenInt;
     case true =>
@@ -277,22 +275,18 @@ TypeConversions.dfy(66,27): Error: value to be converted might not fit in bv0
 Execution trace:
     (0,0): anon0
     (0,0): anon31_Then
-TypeConversions.dfy(90,29): Error: result of operation might violate newtype constraint for 'EvenInt'
-Execution trace:
-    (0,0): anon0
-    (0,0): anon12_Then
 TypeConversions.dfy(94,20): Error: result of operation might violate newtype constraint for 'EvenInt'
 Execution trace:
     (0,0): anon0
-    (0,0): anon15_Then
+    (0,0): anon13_Then
 TypeConversions.dfy(94,20): Error: the real-based number must be an integer (if you want truncation, apply .Floor to the real-based number)
 Execution trace:
     (0,0): anon0
-    (0,0): anon15_Then
+    (0,0): anon13_Then
 TypeConversions.dfy(96,20): Error: result of operation might violate newtype constraint for 'EvenInt'
 Execution trace:
     (0,0): anon0
-    (0,0): anon16_Then
+    (0,0): anon14_Then
 TypeConversions.dfy(109,28): Error: value to be converted might not fit in bv7
 Execution trace:
     (0,0): anon0
@@ -302,4 +296,4 @@ Execution trace:
     (0,0): anon0
     (0,0): anon21_Then
 
-Dafny program verifier finished with 10 verified, 16 errors
+Dafny program verifier finished with 10 verified, 15 errors
