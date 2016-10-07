@@ -2905,7 +2905,7 @@ namespace Microsoft.Dafny
           ImposeSubtypingConstraint(u, t, c.errorMsg);
         } else if (isRoot) {
           // If t is a root, we might as well constrain u now.  Otherwise, we'll wait until the .Subtype constraint of u is dealt with.
-          AssignProxyAndHandleItsConstraints((TypeProxy)u, t);
+          AssignProxyAndHandleItsConstraints((TypeProxy)u, t, keepConstraints);
         }
       }
       // propagate down
