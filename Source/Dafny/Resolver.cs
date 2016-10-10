@@ -6607,6 +6607,13 @@ namespace Microsoft.Dafny
           reporter.Error(MessageSource.Resolver, m.tok, "The signature of method {0} depends on type {1} which was not exported with it. Ensure that {1} is visible wherever {0} is exported.", m.Name, t.ToString()));
         currentMethod = m;
 
+        bool warnShadowingOption = DafnyOptions.O.WarnShadowing;  // save the original warnShadowing value
+        bool warnShadowing = false;
+        // take care of the warnShadowing attribute
+        if (Attributes.ContainsBool(m.Attributes, "warnShadowing", ref warnShadowing)) {
+          DafnyOptions.O.WarnShadowing = warnShadowing;  // set the value according to the attribute
+        }
+
         // Add in-parameters to the scope, but don't care about any duplication errors, since they have already been reported
         scope.PushMarker();
         if (m.IsStatic) {
@@ -6678,6 +6685,7 @@ namespace Microsoft.Dafny
         // attributes are allowed to mention both in- and out-parameters (including the implicit _k, for colemmas)
         ResolveAttributes(m.Attributes, m, new ResolveOpts(m, false));
 
+        DafnyOptions.O.WarnShadowing = warnShadowingOption; // restore the original warnShadowing value
         scope.PopMarker();  // for the out-parameters and outermost-level locals
         scope.PopMarker();  // for the in-parameters
       } finally {
