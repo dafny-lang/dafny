@@ -19,4 +19,4 @@ Execution trace:
     FnRef.dfy(56,12): anon8_Else
     (0,0): anon10_Then
 
-Dafny program verifier finished with 4 verified, 4 errors
+Dafny program verifier finished with 0 verified, 4 errors

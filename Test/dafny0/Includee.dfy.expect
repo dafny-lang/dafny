@@ -10,4 +10,4 @@ Includee.dfy(5,12): Related location: This is the postcondition that might not h
 Execution trace:
     (0,0): anon0
 
-Dafny program verifier finished with 5 verified, 3 errors
+Dafny program verifier finished with 1 verified, 3 errors

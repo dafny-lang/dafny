@@ -35,4 +35,4 @@ Execution trace:
     (0,0): anon5_Then
     (0,0): anon6_Else
 
-Dafny program verifier finished with 14 verified, 7 errors
+Dafny program verifier finished with 5 verified, 7 errors

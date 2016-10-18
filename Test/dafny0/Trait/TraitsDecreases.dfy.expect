@@ -32,4 +32,4 @@ TraitsDecreases.dfy(88,9): Error: method's decreases clause must be below or equ
 Execution trace:
     (0,0): anon0
 
-Dafny program verifier finished with 75 verified, 11 errors
+Dafny program verifier finished with 12 verified, 11 errors

@@ -6,4 +6,4 @@ RevealProvideAll.dfy(30,13): Error: assertion violation
 Execution trace:
     (0,0): anon0
 
-Dafny program verifier finished with 15 verified, 2 errors
+Dafny program verifier finished with 4 verified, 2 errors

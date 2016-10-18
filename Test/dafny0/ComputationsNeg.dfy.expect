@@ -17,4 +17,4 @@ ComputationsNeg.dfy(45,12): Error: assertion violation
 Execution trace:
     (0,0): anon0
 
-Dafny program verifier finished with 7 verified, 5 errors
+Dafny program verifier finished with 5 verified, 5 errors

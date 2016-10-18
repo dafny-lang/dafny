@@ -55,4 +55,4 @@ Execution trace:
     (0,0): anon9_LoopBody
     (0,0): anon10_Then
 
-Dafny program verifier finished with 60 verified, 13 errors
+Dafny program verifier finished with 37 verified, 13 errors

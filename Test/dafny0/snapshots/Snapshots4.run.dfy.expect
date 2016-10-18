@@ -1,7 +1,7 @@
 Processing command (at Snapshots4.v0.dfy(9,14)) assert LitInt(0) == LitInt(0);
   >>> DoNothingToAssert
 
-Dafny program verifier finished with 2 verified, 0 errors
+Dafny program verifier finished with 1 verified, 0 errors
 Processing command (at Snapshots4.v1.dfy(5,14)) assert 1 != 1;
   >>> DoNothingToAssert
 Processing command (at Snapshots4.v1.dfy(9,14)) assert LitInt(0) == LitInt(0);
@@ -17,4 +17,4 @@ Execution trace:
     (0,0): anon0
     (0,0): anon3_Else
 
-Dafny program verifier finished with 1 verified, 2 errors
+Dafny program verifier finished with 0 verified, 2 errors

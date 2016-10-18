@@ -14,4 +14,4 @@ loop-detection-is-not-too-strict.dfy(36,9): Warning: Selected triggers: {Q(x)} (
  /!\ Suppressing loops would leave this expression without triggers.
 loop-detection-is-not-too-strict.dfy(39,9): Info: Selected triggers: {Q(x)}
 
-Dafny program verifier finished with 4 verified, 0 errors
+Dafny program verifier finished with 1 verified, 0 errors

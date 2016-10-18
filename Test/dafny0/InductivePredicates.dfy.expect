@@ -6,4 +6,4 @@ InductivePredicates.dfy(88,10): Error: assertion violation
 Execution trace:
     (0,0): anon0
 
-Dafny program verifier finished with 35 verified, 2 errors
+Dafny program verifier finished with 29 verified, 2 errors

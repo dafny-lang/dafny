@@ -23,4 +23,4 @@ Twostate-Verification.dfy(13,17): Error: receiver must be allocated in the state
 Execution trace:
     (0,0): anon0
 
-Dafny program verifier finished with 47 verified, 7 errors
+Dafny program verifier finished with 31 verified, 7 errors

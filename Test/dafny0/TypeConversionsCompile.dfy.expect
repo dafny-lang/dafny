@@ -88,8 +88,6 @@ method Main()
   PrintExpected(seven as bv32, 127);
   PrintExpected(seven as bv67, 127);
   b67 := 50;
-  PrintExpected(b67 as bv32, 50);
-  PrintExpected(b67 as bv7, 50);
   PrintExpected(r as bv67, 5);
   PrintExpected(r as bv32, 5);
   PrintExpected(w as bv67, 4294967295);
@@ -121,7 +119,7 @@ method Main()
   print x, " ", handful, " ", a0, " ", w, "\n";
 }
 
-Dafny program verifier finished with 11 verified, 0 errors
+Dafny program verifier finished with 6 verified, 0 errors
 Program compiled successfully
 Running...
 
@@ -141,8 +139,6 @@ got 0, expected 0
 got 0, expected 0
 got 127, expected 127
 got 127, expected 127
-got 50, expected 50
-got 50, expected 50
 got 5, expected 5
 got 5, expected 5
 got 4294967295, expected 4294967295

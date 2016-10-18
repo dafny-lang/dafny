@@ -3,4 +3,4 @@ SplitExpr.dfy(86,43): Related location
 Execution trace:
     SplitExpr.dfy(91,3): anon7_LoopHead
 
-Dafny program verifier finished with 10 verified, 1 error
+Dafny program verifier finished with 7 verified, 1 error

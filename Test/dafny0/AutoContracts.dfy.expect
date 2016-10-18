@@ -560,4 +560,4 @@ AutoContracts.dfy(60,16): Related location: This is the postcondition that might
 Execution trace:
     (0,0): anon0
 
-Dafny program verifier finished with 57 verified, 9 errors
+Dafny program verifier finished with 37 verified, 9 errors

@@ -5,7 +5,7 @@ Execution trace:
     (0,0): anon0
     (0,0): anon3_Else
 
-Dafny program verifier finished with 1 verified, 1 error
+Dafny program verifier finished with 0 verified, 1 error
 Processing command (at Snapshots3.v1.dfy(5,12)) assert true;
   >>> DoNothingToAssert
 Processing command (at Snapshots3.v1.dfy(9,14)) assert 0 != 0;
@@ -15,4 +15,4 @@ Execution trace:
     (0,0): anon0
     (0,0): anon3_Else
 
-Dafny program verifier finished with 1 verified, 1 error
+Dafny program verifier finished with 0 verified, 1 error

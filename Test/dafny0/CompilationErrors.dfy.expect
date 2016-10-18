@@ -1,5 +1,5 @@
 
-Dafny program verifier finished with 15 verified, 0 errors
+Dafny program verifier finished with 2 verified, 0 errors
 Compilation error: Opaque type ('_module.MyType') cannot be compiled
 Compilation error: Iterator _module.Iter has no body
 Compilation error: an assume statement cannot be compiled (line 12)

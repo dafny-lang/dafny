@@ -17,4 +17,4 @@ Execution trace:
     OneShot.dfy(13,8): anon5_Else
     (0,0): anon6_Else
 
-Dafny program verifier finished with 1 verified, 3 errors
+Dafny program verifier finished with 0 verified, 3 errors

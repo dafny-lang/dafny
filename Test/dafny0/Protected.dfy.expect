@@ -18,4 +18,4 @@ Protected.dfy(55,19): Error: assertion violation
 Execution trace:
     (0,0): anon0
 
-Dafny program verifier finished with 14 verified, 5 errors
+Dafny program verifier finished with 3 verified, 5 errors

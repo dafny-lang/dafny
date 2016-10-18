@@ -10,4 +10,4 @@ Execution trace:
     Bug145.dfy(17,5): anon26_Else
     (0,0): anon27_Then
 
-Dafny program verifier finished with 2 verified, 2 errors
+Dafny program verifier finished with 1 verified, 2 errors

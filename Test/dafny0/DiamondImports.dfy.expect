@@ -26,4 +26,4 @@ DiamondImports.dfy(140,25): Error: assertion violation
 Execution trace:
     (0,0): anon0
 
-Dafny program verifier finished with 11 verified, 5 errors
+Dafny program verifier finished with 0 verified, 5 errors

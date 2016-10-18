@@ -35,4 +35,4 @@ Execution trace:
     Apply.dfy(53,12): anon38_Else
     (0,0): anon47_Then
 
-Dafny program verifier finished with 8 verified, 4 errors
+Dafny program verifier finished with 4 verified, 4 errors

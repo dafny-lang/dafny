@@ -19,7 +19,7 @@ Snapshots8.v0.dfy(23,11): Error: assertion violation
 Processing command (at Snapshots8.v0.dfy(28,10)) assert true;
   >>> DoNothingToAssert
 
-Dafny program verifier finished with 7 verified, 4 errors
+Dafny program verifier finished with 1 verified, 4 errors
 Processing command (at Snapshots8.v1.dfy(30,17)) assert u#0 != 53;
   >>> RecycleError
 Snapshots8.v1.dfy(30,16): Error: assertion violation
@@ -44,4 +44,4 @@ Processing command (at Snapshots8.v1.dfy(19,13)) assert LitInt(2) <= z#0;
 Snapshots8.v1.dfy(24,9): Error BP5003: A postcondition might not hold on this return path.
 Snapshots8.v1.dfy(19,12): Related location: This is the postcondition that might not hold.
 
-Dafny program verifier finished with 7 verified, 5 errors
+Dafny program verifier finished with 1 verified, 5 errors

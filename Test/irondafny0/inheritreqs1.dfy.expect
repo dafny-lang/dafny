@@ -3,4 +3,4 @@ inheritreqs1.dfy(15,17): Related location: This is the precondition that might n
 Execution trace:
     (0,0): anon0
 
-Dafny program verifier finished with 6 verified, 1 error
+Dafny program verifier finished with 0 verified, 1 error

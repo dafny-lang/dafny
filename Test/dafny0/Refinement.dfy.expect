@@ -38,4 +38,4 @@ Refinement.dfy[IncorrectConcrete](137,23): Related location
 Execution trace:
     (0,0): anon0
 
-Dafny program verifier finished with 48 verified, 9 errors
+Dafny program verifier finished with 23 verified, 9 errors

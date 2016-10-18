@@ -43,4 +43,4 @@ Naked.dfy(48,10): Error: cannot use naked function in recursive setting. Possibl
 Execution trace:
     (0,0): anon0
 
-Dafny program verifier finished with 2 verified, 11 errors
+Dafny program verifier finished with 1 verified, 11 errors

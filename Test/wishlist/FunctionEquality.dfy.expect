@@ -23,4 +23,4 @@ Execution trace:
     (0,0): anon41_Else
     FunctionEquality.dfy(18,14): anon44_Else
 
-Dafny program verifier finished with 2 verified, 4 errors
+Dafny program verifier finished with 0 verified, 4 errors

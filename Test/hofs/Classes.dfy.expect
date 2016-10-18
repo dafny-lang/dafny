@@ -7,4 +7,4 @@ Execution trace:
     (0,0): anon7_Else
     (0,0): anon8_Else
 
-Dafny program verifier finished with 8 verified, 2 errors
+Dafny program verifier finished with 4 verified, 2 errors

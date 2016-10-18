@@ -3,4 +3,4 @@ loop-detection-looks-at-ranges-too.dfy(11,17): Warning: Selected triggers: {P(x)
 loop-detection-looks-at-ranges-too.dfy(13,17): Warning: Selected triggers: {P(x)} (may loop with "P(x + 1)")
  /!\ Suppressing loops would leave this expression without triggers.
 
-Dafny program verifier finished with 3 verified, 0 errors
+Dafny program verifier finished with 1 verified, 0 errors

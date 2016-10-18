@@ -33,4 +33,4 @@ Execution trace:
     (0,0): anon0
     (0,0): anon4_Else
 
-Dafny program verifier finished with 20 verified, 8 errors
+Dafny program verifier finished with 16 verified, 8 errors

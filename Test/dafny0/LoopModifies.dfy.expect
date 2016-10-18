@@ -62,4 +62,4 @@ Execution trace:
     LoopModifies.dfy(283,7): anon21_Else
     LoopModifies.dfy(283,7): anon23_Else
 
-Dafny program verifier finished with 23 verified, 9 errors
+Dafny program verifier finished with 21 verified, 9 errors

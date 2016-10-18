@@ -18,4 +18,4 @@ Execution trace:
     PredExpr.dfy(76,20): anon10_Else
     (0,0): anon6
 
-Dafny program verifier finished with 11 verified, 4 errors
+Dafny program verifier finished with 6 verified, 4 errors

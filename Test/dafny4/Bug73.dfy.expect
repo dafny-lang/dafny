@@ -9,4 +9,4 @@ Execution trace:
     Bug73.dfy(13,20): anon3_Else
     (0,0): anon2
 
-Dafny program verifier finished with 2 verified, 2 errors
+Dafny program verifier finished with 0 verified, 2 errors

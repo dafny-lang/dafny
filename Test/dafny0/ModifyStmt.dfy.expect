@@ -39,4 +39,4 @@ ModifyStmt.dfy(172,14): Error: assertion violation
 Execution trace:
     (0,0): anon0
 
-Dafny program verifier finished with 25 verified, 11 errors
+Dafny program verifier finished with 11 verified, 11 errors

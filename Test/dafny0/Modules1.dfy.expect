@@ -18,4 +18,4 @@ Modules1.dfy(62,8): Error: failure to decrease termination measure
 Execution trace:
     (0,0): anon0
 
-Dafny program verifier finished with 26 verified, 5 errors
+Dafny program verifier finished with 5 verified, 5 errors

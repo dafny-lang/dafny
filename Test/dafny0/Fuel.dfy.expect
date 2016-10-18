@@ -103,4 +103,4 @@ Fuel.dfy(437,23): Error: assertion violation
 Execution trace:
     (0,0): anon0
 
-Dafny program verifier finished with 63 verified, 27 errors
+Dafny program verifier finished with 35 verified, 27 errors

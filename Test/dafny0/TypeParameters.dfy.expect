@@ -49,4 +49,4 @@ Execution trace:
     TypeParameters.dfy(177,3): anon21_Else
     TypeParameters.dfy(177,3): anon23_Else
 
-Dafny program verifier finished with 63 verified, 8 errors
+Dafny program verifier finished with 28 verified, 8 errors

@@ -11,4 +11,4 @@ Execution trace:
     Lambda.dfy(18,15): anon42_Else
     Lambda.dfy(23,15): anon44_Else
 
-Dafny program verifier finished with 7 verified, 1 error
+Dafny program verifier finished with 3 verified, 1 error

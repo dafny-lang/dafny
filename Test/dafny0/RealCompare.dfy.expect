@@ -21,4 +21,4 @@ Execution trace:
     RealCompare.dfy(147,3): anon10_Else
     (0,0): anon12_Then
 
-Dafny program verifier finished with 24 verified, 4 errors
+Dafny program verifier finished with 10 verified, 4 errors

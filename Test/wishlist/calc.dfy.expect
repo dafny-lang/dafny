@@ -8,4 +8,4 @@ calc.dfy(15,10): Related location: This is the postcondition that might not hold
 Execution trace:
     (0,0): anon0
 
-Dafny program verifier finished with 2 verified, 2 errors
+Dafny program verifier finished with 0 verified, 2 errors

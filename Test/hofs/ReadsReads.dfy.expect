@@ -33,4 +33,4 @@ Execution trace:
     ReadsReads.dfy(96,14): anon15_Else
     (0,0): anon21_Then
 
-Dafny program verifier finished with 20 verified, 8 errors
+Dafny program verifier finished with 13 verified, 8 errors

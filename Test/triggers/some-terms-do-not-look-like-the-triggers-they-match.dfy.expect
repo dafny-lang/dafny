@@ -3,4 +3,4 @@ some-terms-do-not-look-like-the-triggers-they-match.dfy(12,17): Warning: Selecte
 some-terms-do-not-look-like-the-triggers-they-match.dfy(15,17): Warning: Selected triggers: {s[x]} (may loop with "s[x + 1]")
  /!\ Suppressing loops would leave this expression without triggers.
 
-Dafny program verifier finished with 2 verified, 0 errors
+Dafny program verifier finished with 0 verified, 0 errors

@@ -19,4 +19,4 @@ old-is-a-special-case-for-triggers.dfy(26,10): Info: Selected triggers:
    {g(f(c))} (more specific than {f(c)})
    {old(g(f(c)))} (more specific than {old(f(c))})
 
-Dafny program verifier finished with 5 verified, 0 errors
+Dafny program verifier finished with 2 verified, 0 errors

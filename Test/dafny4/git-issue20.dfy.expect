@@ -2,4 +2,4 @@ git-issue20.dfy(21,11): Error: assertion violation
 Execution trace:
     (0,0): anon0
 
-Dafny program verifier finished with 5 verified, 1 error
+Dafny program verifier finished with 1 verified, 1 error

@@ -20,4 +20,4 @@ Execution trace:
     Bug146.dfy(35,5): anon23_Else
     (0,0): anon24_Else
 
-Dafny program verifier finished with 4 verified, 2 errors
+Dafny program verifier finished with 2 verified, 2 errors

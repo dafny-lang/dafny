@@ -11,5 +11,5 @@ Execution trace:
     (0,0): anon0
     (0,0): anon3_Then
 
-Dafny program verifier finished with 65 verified, 2 errors
+Dafny program verifier finished with 53 verified, 2 errors
 Compiled assembly into SnapshotableTrees.exe

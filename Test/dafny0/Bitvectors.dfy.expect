@@ -325,7 +325,7 @@ method PrintShifts<T>(s: string, a: T, b: T, c: T, d: T)
   print "PrintShifts: ", s, ": ", a, " ", b, " ", c, " ", d, "\n";
 }
 
-Dafny program verifier finished with 49 verified, 0 errors
+Dafny program verifier finished with 10 verified, 0 errors
 Program compiled successfully
 Running...
 
