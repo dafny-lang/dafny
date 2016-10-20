@@ -1353,32 +1353,6 @@ namespace Microsoft.Dafny
     }
   }
 
-  public class OptimizedLemmaBodiesRewriter : IRewriter {
-    public OptimizedLemmaBodiesRewriter(ErrorReporter reporter)
-      : base(reporter) {
-      Contract.Requires(reporter != null);
-    }
-
-    internal override void PreResolve(ModuleDefinition m) {
-      var declarations = m.TopLevelDecls;
-
-      foreach (var d in declarations) {
-        if (d is ClassDecl) {
-          var cl = (ClassDecl)d;
-          foreach (var mem in cl.Members) {
-            if ((mem is Lemma || mem is TwoStateLemma) && mem.tok is IncludeToken) {
-              var method = (Method)mem;
-              if (method.Body != null) {
-                method.Body = new BlockStmt(method.BodyStartTok, method.BodyEndTok, new List<Statement>());
-              }
-            }
-
-          }
-        }
-      }
-    }
-  }
-
   public class ProvideRevealAllRewriter : IRewriter {
     public ProvideRevealAllRewriter(ErrorReporter reporter)
       : base(reporter) {

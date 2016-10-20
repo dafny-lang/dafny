@@ -1,0 +1,24 @@
+// RUN: %dafny /compile:0  "%s" > "%t"
+// RUN: %diff "%s.expect" "%t"
+
+module m1 {
+
+    datatype ints = Nil | Cons(hd:int, tl:ints)
+    predicate TailIs(b:ints, t:ints) { b.Cons? && b.tl == t }
+
+}
+
+abstract module m2 {
+
+    import m1
+
+    lemma Test(s0:m1.ints) returns (s1:m1.ints)
+        requires s0.Cons?;
+        ensures  m1.TailIs(s0, s1);
+    {
+        s1 := s0.tl;
+    }
+
+}
+
+module m3 refines m2 { }
