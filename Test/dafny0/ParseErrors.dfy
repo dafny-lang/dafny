@@ -88,3 +88,56 @@ method TestCalc()
 	3;
   }
 }
+
+// ---------------------- ghost modifier on methods -----------------------------------
+
+ghost method GhM()
+
+ghost lemma GhL()  // error: a lemma is not allowed to be declared "ghost" -- it is already ghost
+
+ghost inductive lemma GhIL()  // error: a lemma is not allowed to be declared "ghost" -- it is already ghost
+
+ghost colemma GhCL()  // error: a lemma is not allowed to be declared "ghost" -- it is already ghost
+
+ghost twostate lemma GhL2()  // error: a lemma is not allowed to be declared "ghost" -- it is already ghost
+
+class C {
+  ghost constructor Make()  // error: a constructor is not allowed to be ghost
+  ghost method M()
+}
+
+// ---------------------- ghost parameters -----------------------------------
+
+method M(ghost x: int) returns (ghost y: int)  // error: ditto
+
+ghost method GM(ghost x: int)  // error: formal not allowed to be declared "ghost" here -- the method is already ghost
+  returns (ghost y: int)  // error: ditto
+
+lemma L(ghost x: int)  // error: formal not allowed to be declared "ghost" here -- a lemma is already ghost
+  returns (ghost y: int)  // error: ditto
+
+inductive lemma IL(ghost x: int)  // error: formal not allowed to be declared "ghost" here -- a lemma is already ghost
+  returns (ghost y: int)  // error: ditto (actually, inductive lemmas are not allowed out-parameters at all)
+
+colemma CoL(ghost x: int)  // error: formal not allowed to be declared "ghost" here -- a lemma is already ghost
+  returns (ghost y: int)  // error: ditto (actually, co-lemmas are not allowed out-parameters at all)
+
+twostate lemma L2(ghost x: int)  // error: formal not allowed to be declared "ghost" here -- a lemma is already ghost
+  returns (ghost y: int)  // error: ditto
+
+class C {
+  constructor Make(ghost x: int)
+  method M(ghost x: int) returns (ghost y: int)
+}
+
+function F(ghost x: int): int  // error: formal not allowed to be declared "ghost" here -- a function is already ghost
+function method FM(ghost x: int): int
+predicate P(ghost x: int)  // error: formal not allowed to be declared "ghost" here -- a predicate is already ghost
+
+inductive predicate IP(ghost x: int)  // error: formal not allowed to be declared "ghost" here
+                                      // -- an inductive predicate is already ghost
+copredicate CoP(ghost x: int)  // error: formal not allowed to be declared "ghost" here
+                                      // -- a copredicate is already ghost
+
+twostate function F2(ghost x: int): int  // error: formal not allowed to be declared "ghost" here -- a function is already ghost
+twostate predicate P2(ghost x: int)  // error: formal not allowed to be declared "ghost" here -- a predicate is already ghost
