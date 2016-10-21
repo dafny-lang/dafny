@@ -1272,6 +1272,7 @@ MethodDecl<DeclModifierData dmod, bool allowConstructor, bool isWithinAbstractMo
      Attributes decAttrs = null;
      Attributes modAttrs = null;
      BlockStmt body = null;
+     bool isPlainOlMethod = false;
      bool isLemma = false;
      bool isTwoStateLemma = false;
      bool isConstructor = false;
@@ -1284,7 +1285,7 @@ MethodDecl<DeclModifierData dmod, bool allowConstructor, bool isWithinAbstractMo
      string caption = "";
   .)
   SYNC
-  ( "method"                        (. caption = "Methods";
+  ( "method"                        (. isPlainOlMethod = true; caption = "Methods";
                                        allowed = AllowedDeclModifiers.Ghost | AllowedDeclModifiers.Static 
                                          | AllowedDeclModifiers.Extern; .)
   | "lemma"                         (. isLemma = true; caption = "Lemmas";
@@ -1326,9 +1327,10 @@ MethodDecl<DeclModifierData dmod, bool allowConstructor, bool isWithinAbstractMo
   .)
   (
     [ GenericParameters<typeArgs> ]
-    Formals<true, !dmod.IsGhost, isTwoStateLemma, ins>
+    (. var isCompilable = (isPlainOlMethod && !dmod.IsGhost) || isConstructor; .)
+    Formals<true, isCompilable, isTwoStateLemma, ins>
     [ "returns"                                 (. if (isConstructor) { SemErr(t, "constructors cannot have out-parameters"); } .)
-      Formals<false, !dmod.IsGhost, false, outs>
+      Formals<false, isCompilable, false, outs>
     ]
   | "..."                                       (. signatureEllipsis = t; .)
   )

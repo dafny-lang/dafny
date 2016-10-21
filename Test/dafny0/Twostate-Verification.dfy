@@ -64,7 +64,7 @@ class A {
     }
   }
 
-  twostate lemma L5(ghost new a: A, new ghost b: A)
+  twostate lemma L5(new a: A, new b: A)
   {}
     
   twostate lemma L6(a: A)
