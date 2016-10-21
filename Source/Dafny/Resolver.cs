@@ -2635,6 +2635,8 @@ namespace Microsoft.Dafny
       Contract.Requires(sub != null);
       Contract.Requires(super != null);
       Contract.Requires(errMsg != null);
+      keepConstraints = keepConstraints || (super is InferredTypeProxy ? ((InferredTypeProxy)super).KeepConstraints : false);
+      keepConstraints = keepConstraints || (sub is InferredTypeProxy ? ((InferredTypeProxy)sub).KeepConstraints : false);
       super = keepConstraints ? super.NormalizeExpandKeepConstraints() : super.NormalizeExpand().StripSubsetConstraints();
       sub = keepConstraints ? sub.NormalizeExpandKeepConstraints() : sub.NormalizeExpand().StripSubsetConstraints();
       var c = new TypeConstraint(super, sub, errMsg);
@@ -9259,7 +9261,13 @@ namespace Microsoft.Dafny
       } else if (type is MapType) {
         var t = (MapType)type;
         var dom = SubstType(t.Domain, subst);
+        if (dom is InferredTypeProxy) {
+          ((InferredTypeProxy)dom).KeepConstraints = true;
+        }
         var ran = SubstType(t.Range, subst);
+        if (ran is InferredTypeProxy) {
+          ((InferredTypeProxy)ran).KeepConstraints = true;
+        }
         if (dom == t.Domain && ran == t.Range) {
           return type;
         } else {
@@ -9268,6 +9276,9 @@ namespace Microsoft.Dafny
       } else if (type is CollectionType) {
         var t = (CollectionType)type;
         var arg = SubstType(t.Arg, subst);
+        if (arg is InferredTypeProxy) {
+          ((InferredTypeProxy)arg).KeepConstraints = true;
+        }
         if (arg == t.Arg) {
           return type;
         } else if (type is SetType) {
@@ -9321,6 +9332,9 @@ namespace Microsoft.Dafny
           for (int i = 0; i < t.TypeArgs.Count; i++) {
             Type p = t.TypeArgs[i];
             Type s = SubstType(p, subst);
+            if (s is InferredTypeProxy) {
+              ((InferredTypeProxy)s).KeepConstraints = true;
+            }
             if (s != p && newArgs == null) {
               // lazily construct newArgs
               newArgs = new List<Type>();
@@ -9735,7 +9749,7 @@ namespace Microsoft.Dafny
           } else {
             reporter.Error(MessageSource.Resolver, expr, "type conversions are not supported to this type (got {0})", e.ToType);
           }
-          e.Type = e.ToType.StripSubsetConstraints();
+          e.Type = e.ToType;
         } else {
           e.Type = new InferredTypeProxy();
         }

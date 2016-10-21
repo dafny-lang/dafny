@@ -2352,6 +2352,10 @@ namespace Microsoft.Dafny {
   /// This proxy stands for any type.
   /// </summary>
   public class InferredTypeProxy : TypeProxy {
+    public bool KeepConstraints;
+    public InferredTypeProxy() : base() {
+      KeepConstraints = false; // whethere the typeProxy should be inferred to base type or as subset type
+    }
   }
 
   /// <summary>
