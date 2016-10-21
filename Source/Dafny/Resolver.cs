@@ -2102,7 +2102,7 @@ namespace Microsoft.Dafny
               if (prevErrCnt == reporter.Count(ErrorLevel.Error)) {
                 if (member is Method) {
                   var m = (Method)member;
-                  if (m.Body != null) {
+                  if (m.Body != null && NeedProcessMethodBody(m)) {
                     ComputeGhostInterest(m.Body, m.IsGhost, m);
                     CheckExpression(m.Body, this, m);
                     DetermineTailRecursion(m);
@@ -2435,7 +2435,7 @@ namespace Microsoft.Dafny
                       CheckEqualityTypes_Type(p.tok, p.Type);
                     }
                   }
-                  if (m.Body != null) {
+                  if (m.Body != null && NeedProcessMethodBody(m)) {
                     CheckEqualityTypes_Stmt(m.Body);
                   }
                 }
@@ -2624,6 +2624,7 @@ namespace Microsoft.Dafny
       Contract.Requires(msgArgs != null);
       return ConstrainSubtypeRelation(super, sub, new TypeConstraint.ErrorMsgWithToken(tok, msg, msgArgs));
     }
+
     /// <summary>
     /// Adds the subtyping constraint that "sub" is a subtype of "super".
     /// If this constraint seems feasible, returns "true".  Otherwise, prints error message (either "errMsg" or something
@@ -4250,7 +4251,7 @@ namespace Microsoft.Dafny
         m.Ens.Iter(mfe => CheckTypeInference_MaybeFreeExpression(mfe, m));
         CheckTypeInference_Specification_FrameExpr(m.Mod, m);
         CheckTypeInference_Specification_Expr(m.Decreases, m);
-        if (m.Body != null) {
+        if (m.Body != null && NeedProcessMethodBody(m)) {
           CheckTypeInference(m.Body, m);
         }
       } else if (member is Function) {
@@ -6673,7 +6674,7 @@ namespace Microsoft.Dafny
             var k = com.PrefixLemma.Ins[0];
             scope.Push(k.Name, k);  // we expect no name conflict for _k
           }
-          if (!((m is Lemma || m is TwoStateLemma) && m.tok is IncludeToken)) {
+          if (NeedProcessMethodBody(m)) {
             ResolveBlockStatement(m.Body, m);
           }
           SolveAllTypeConstraints();
@@ -6687,6 +6688,14 @@ namespace Microsoft.Dafny
         scope.PopMarker();  // for the in-parameters
       } finally {
         currentMethod = null;
+      }
+    }
+
+    bool NeedProcessMethodBody(Method m) {
+      if ((m is Lemma || m is TwoStateLemma) && m.tok is IncludeToken) {
+        return false;
+      } else {
+        return true;
       }
     }
 
