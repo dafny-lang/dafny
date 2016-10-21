@@ -4667,11 +4667,12 @@ namespace Microsoft.Dafny {
     public readonly Specification<FrameExpression> Mod;
     public readonly List<MaybeFreeExpression> Ens;
     public readonly Specification<Expression> Decreases;
-    public BlockStmt Body;  // Body is readonly after construction, except for any kind of rewrite that may take place around the time of resolution
+    private BlockStmt methodBody;  // Body is readonly after construction, except for any kind of rewrite that may take place around the time of resolution
     public bool IsRecursive;  // filled in during resolution
     public bool IsTailRecursive;  // filled in during resolution
     public readonly ISet<IVariable> AssignedAssumptionVariables = new HashSet<IVariable>();
     public Method OverriddenMethod;
+    private static BlockStmt emptyBody = new BlockStmt(Token.NoToken, Token.NoToken, new List<Statement>());
     
     public override IEnumerable<Expression> SubExpressions {
       get {
@@ -4728,7 +4729,7 @@ namespace Microsoft.Dafny {
       this.Mod = mod;
       this.Ens = ens;
       this.Decreases = decreases;
-      this.Body = body;
+      this.methodBody = body;
       this.SignatureEllipsis = signatureEllipsis;
       MustReverify = false;
     }
@@ -4772,13 +4773,27 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public bool NeedProcessMethodBody {
+    public BlockStmt Body {
       get {
-        if ((this is Lemma || this is TwoStateLemma) && this.tok is IncludeToken) {
-          return false;
+        // Lemma from included files do not need to be resolved and translated
+        // so we return emptyBody. This is to speed up resolvor and translator.
+        if (methodBody != null && (this is Lemma || this is TwoStateLemma) && this.tok is IncludeToken) {
+          return Method.emptyBody;
         } else {
-          return true;
+          return methodBody;
         }
+      }
+      set {
+        methodBody = value;
+      }
+    }
+
+    public BlockStmt BodyForRefinement {
+      // For refinement, we still need to merge in the body
+      // a lemma that is in the refinement base that is defined
+      // in a include file.
+      get {
+        return methodBody;
       }
     }
   }
@@ -9589,7 +9604,7 @@ namespace Microsoft.Dafny {
       Visit(method.Req);
       Visit(method.Mod.Expressions);
       Visit(method.Decreases.Expressions);
-      if (method.Body != null && method.NeedProcessMethodBody) { Visit(method.Body); }
+      if (method.Body != null) { Visit(method.Body); }
       //TODO More?
     }
     public void Visit(Function function) {
@@ -9680,7 +9695,7 @@ namespace Microsoft.Dafny {
       Visit(method.Req, st);
       Visit(method.Mod.Expressions, st);
       Visit(method.Decreases.Expressions, st);
-      if (method.Body != null && method.NeedProcessMethodBody) { Visit(method.Body, st); }
+      if (method.Body != null) { Visit(method.Body, st); }
       //TODO More?
     }
     public void Visit(Function function, State st) {

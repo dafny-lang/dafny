@@ -458,7 +458,7 @@ namespace Microsoft.Dafny
         ens.AddRange(moreEnsures);
       }
 
-      var body = newBody ?? refinementCloner.CloneBlockStmt(m.Body);
+      var body = newBody ?? refinementCloner.CloneBlockStmt(m.BodyForRefinement);
       if (m is Constructor) {
         return new Constructor(new RefinementToken(m.tok, moduleUnderConstruction), m.Name, tps, ins,
           req, mod, ens, decreases, body, refinementCloner.MergeAttributes(m.Attributes, moreAttributes), null, m);
@@ -692,15 +692,15 @@ namespace Microsoft.Dafny
                 CheckAgreement_Parameters(m.tok, prevMethod.Outs, m.Outs, m.Name, "method", "out-parameter");
               }
               currentMethod = m;
-              var replacementBody = m.Body;
+              var replacementBody = m.BodyForRefinement;
               if (replacementBody != null) {
-                if (prevMethod.Body == null) {
+                if (prevMethod.BodyForRefinement == null) {
                   // cool
                 } else {
-                  replacementBody = MergeBlockStmt(replacementBody, prevMethod.Body);
+                  replacementBody = MergeBlockStmt(replacementBody, prevMethod.BodyForRefinement);
                 }
               }
-              var newM = CloneMethod(prevMethod, m.Ens, decreases, replacementBody, prevMethod.Body == null, m.Attributes);
+              var newM = CloneMethod(prevMethod, m.Ens, decreases, replacementBody, prevMethod.BodyForRefinement == null, m.Attributes);
               newM.RefinementBase = member;
               nw.Members[index] = newM;
             }
@@ -1492,6 +1492,9 @@ namespace Microsoft.Dafny
     ModuleDefinition moduleUnderConstruction;
     public RefinementCloner(ModuleDefinition m) {
       moduleUnderConstruction = m;
+    }
+    public override BlockStmt CloneMethodBody(Method m) {
+      return CloneBlockStmt(m.BodyForRefinement);
     }
     public override IToken Tok(IToken tok) {
       return new RefinementToken(tok, moduleUnderConstruction);

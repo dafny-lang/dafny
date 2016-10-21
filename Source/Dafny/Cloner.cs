@@ -690,7 +690,7 @@ namespace Microsoft.Dafny
 
       var ens = m.Ens.ConvertAll(CloneMayBeFreeExpr);
 
-      BlockStmt body = CloneBlockStmt(m.Body);
+      BlockStmt body = CloneMethodBody(m);
 
       if (m is Constructor) {
         return new Constructor(Tok(m.tok), m.Name, tps, ins,
@@ -713,6 +713,11 @@ namespace Microsoft.Dafny
           req, mod, ens, decreases, body, CloneAttributes(m.Attributes), null, m);
       }
     }
+
+    public virtual BlockStmt CloneMethodBody(Method m) {
+      return CloneBlockStmt(m.Body);
+    }
+
     public virtual IToken Tok(IToken tok) {
       return tok;
     }
