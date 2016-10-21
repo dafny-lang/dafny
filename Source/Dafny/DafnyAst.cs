@@ -4770,7 +4770,17 @@ namespace Microsoft.Dafny {
         }
         return nm;
       }
-    } 
+    }
+
+    public bool NeedProcessMethodBody {
+      get {
+        if ((this is Lemma || this is TwoStateLemma) && this.tok is IncludeToken) {
+          return false;
+        } else {
+          return true;
+        }
+      }
+    }
   }
 
   public class Lemma : Method
@@ -9579,7 +9589,7 @@ namespace Microsoft.Dafny {
       Visit(method.Req);
       Visit(method.Mod.Expressions);
       Visit(method.Decreases.Expressions);
-      if (method.Body != null) { Visit(method.Body); }
+      if (method.Body != null && method.NeedProcessMethodBody) { Visit(method.Body); }
       //TODO More?
     }
     public void Visit(Function function) {
@@ -9670,7 +9680,7 @@ namespace Microsoft.Dafny {
       Visit(method.Req, st);
       Visit(method.Mod.Expressions, st);
       Visit(method.Decreases.Expressions, st);
-      if (method.Body != null) { Visit(method.Body, st); }
+      if (method.Body != null && method.NeedProcessMethodBody) { Visit(method.Body, st); }
       //TODO More?
     }
     public void Visit(Function function, State st) {

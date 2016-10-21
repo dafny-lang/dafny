@@ -1,0 +1,6 @@
+module m1 {
+    lemma Test()
+    {
+        forall i:int | i > 0 ensures true { }
+    }
+} 

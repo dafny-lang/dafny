@@ -929,7 +929,7 @@ namespace Microsoft.Dafny {
             // nothing to compile, but we do check for assumes
             if (m.Body == null) {
               Contract.Assert(c is TraitDecl && !m.IsStatic);
-            } else {
+            } else if (m.NeedProcessMethodBody) {
               var v = new CheckHasNoAssumes_Visitor(this, wr);
               v.Visit(m.Body);
             }
@@ -986,7 +986,7 @@ namespace Microsoft.Dafny {
       }
       if (m.Body == null) {
         Error("Method {0} has no body", wr, m.FullName);
-      } else {
+      } else if (m.NeedProcessMethodBody) {
         if (m.IsTailRecursive) {
           if (!m.IsStatic) {
             Indent(indent + IndentAmount, wr); wr.WriteLine("var _this = this;");

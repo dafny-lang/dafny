@@ -768,7 +768,7 @@ namespace Microsoft.Dafny
     bool IsSimpleQueryMethod(Method m) {
       // A simple query method has out parameters, its body has no effect other than to assign to them,
       // and the postcondition does not explicitly mention the pre-state.
-      return m.Outs.Count != 0 && m.Body != null && LocalAssignsOnly(m.Body) &&
+      return m.Outs.Count != 0 && m.Body != null && (!m.NeedProcessMethodBody || LocalAssignsOnly(m.Body)) &&
         m.Ens.TrueForAll(mfe => !MentionsOldState(mfe.E));
     }
 
@@ -1618,7 +1618,7 @@ namespace Microsoft.Dafny
       var visitor = new Induction_Visitor(this);
       method.Req.ForEach(mfe => visitor.Visit(mfe.E));
       method.Ens.ForEach(mfe => visitor.Visit(mfe.E));
-      if (method.Body != null) {
+      if (method.Body != null && method.NeedProcessMethodBody) {
         visitor.Visit(method.Body);
       }
     }

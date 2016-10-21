@@ -754,7 +754,7 @@ Everything) {
       PrintSpec("ensures", method.Ens, ind);
       PrintDecreasesSpec(method.Decreases, ind);
 
-      if (method.Body != null && !printSignatureOnly) {
+      if (method.Body != null && !printSignatureOnly && method.NeedProcessMethodBody) {
         Indent(indent);
         PrintStatement(method.Body, indent);
         wr.WriteLine();
