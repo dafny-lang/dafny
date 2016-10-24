@@ -415,7 +415,7 @@ namespace Microsoft.Dafny
           var alias = (AliasModuleDecl)decl;
           // resolve the path
           ModuleSignature p;
-          if (ResolveExport(alias.Root, alias.Module, alias.Path, alias.Exports, out p, reporter)) {
+          if (ResolveExport(alias, alias.Root, alias.Module, alias.Path, alias.Exports, out p, reporter)) {
             if (alias.Signature == null) {
               alias.Signature = p;
             }
@@ -425,7 +425,7 @@ namespace Microsoft.Dafny
         } else if (decl is ModuleFacadeDecl) {
           var abs = (ModuleFacadeDecl)decl;
           ModuleSignature p;
-          if (ResolveExport(abs.Root, abs.Module, abs.Path, abs.Exports, out p, reporter)) {
+          if (ResolveExport(abs, abs.Root, abs.Module, abs.Path, abs.Exports, out p, reporter)) {
             abs.OriginalSignature = p;
             // ModuleDefinition.ExclusiveRefinement may not be set at this point but ExclusiveRefinementCount will be.
             if (0 == abs.Root.Signature.ModuleDef.ExclusiveRefinementCount) {
@@ -1214,7 +1214,7 @@ namespace Microsoft.Dafny
         var alias = moduleDecl as AliasModuleDecl;
         ModuleDecl root;
         if (!bindings.TryLookupFilter(alias.Path[0], out root, 
-          m => alias != m && (alias.Exports.Count == 0 || m is LiteralModuleDecl)))
+          m => alias != m && (((alias.Module == m.Module) && (alias.Exports.Count == 0)) || m is LiteralModuleDecl)))
           reporter.Error(MessageSource.Resolver, alias.tok, ModuleNotFoundErrorMessage(0, alias.Path));
         else {
           dependencies.AddEdge(moduleDecl, root);
@@ -1224,7 +1224,7 @@ namespace Microsoft.Dafny
         var abs = moduleDecl as ModuleFacadeDecl;
         ModuleDecl root;
         if (!bindings.TryLookupFilter(abs.Path[0], out root,
-          m => abs != m && (abs.Exports.Count == 0 || m is LiteralModuleDecl)))
+          m => abs != m && (((abs.Module == m.Module) && (abs.Exports.Count == 0)) || m is LiteralModuleDecl)))
           reporter.Error(MessageSource.Resolver, abs.tok, ModuleNotFoundErrorMessage(0, abs.Path));
         else {
           dependencies.AddEdge(moduleDecl, root);
@@ -1748,7 +1748,7 @@ namespace Microsoft.Dafny
     }
 
 
-    public bool ResolveExport(ModuleDecl root, ModuleDefinition parent, List<IToken> Path, List<IToken> Exports, out ModuleSignature p, ErrorReporter reporter) {
+    public bool ResolveExport(ModuleDecl alias, ModuleDecl root, ModuleDefinition parent, List<IToken> Path, List<IToken> Exports, out ModuleSignature p, ErrorReporter reporter) {
       Contract.Requires(Path != null);
       Contract.Requires(Path.Count > 0);
       Contract.Requires(Exports != null);
@@ -1791,8 +1791,8 @@ namespace Microsoft.Dafny
         }
       }
 
-      // Although the module is known, we demand it be imported before we're willing to access it
-      var thisImport = parent.TopLevelDecls.FirstOrDefault(t => t.Name == Path[0].val);
+      // Although the module is known, we demand it be imported before we're willing to access it.
+      var thisImport = parent.TopLevelDecls.FirstOrDefault(t => t.Name == Path[0].val && t != alias);
 
       if (thisImport == null || !(thisImport is ModuleDecl)){
 
