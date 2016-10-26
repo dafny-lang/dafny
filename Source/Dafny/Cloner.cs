@@ -950,6 +950,36 @@ namespace Microsoft.Dafny
         return rbase;
       }
     }
+
+    public ModuleSignature CloneModuleSignature(ModuleSignature org, ModuleSignature newSig) {
+      var sig = new ModuleSignature();
+      sig.ModuleDef = newSig.ModuleDef;
+      sig.IsAbstract = newSig.IsAbstract;
+      sig.VisibilityScope = new VisibilityScope();
+      sig.VisibilityScope.Augment(newSig.VisibilityScope);
+
+      foreach (var kv in org.TopLevels) {
+        TopLevelDecl d;
+        if (newSig.TopLevels.TryGetValue(kv.Key, out d)) {
+          sig.TopLevels.Add(kv.Key, d);
+        }
+      }
+
+      foreach (var kv in org.Ctors) {
+        Tuple<DatatypeCtor, bool> pair;
+        if (newSig.Ctors.TryGetValue(kv.Key, out pair)) {
+          sig.Ctors.Add(kv.Key, pair);
+        }
+      }
+
+      foreach (var kv in org.StaticMembers) {
+        MemberDecl md;
+        if (newSig.StaticMembers.TryGetValue(kv.Key, out md)) {
+          sig.StaticMembers.Add(kv.Key, md);
+        }
+      }
+      return sig;
+    }
   }
 
   /// <summary>

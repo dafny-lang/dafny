@@ -386,7 +386,8 @@ namespace Microsoft.Dafny
 
           if (reporter.Count(ErrorLevel.Error) == errorCount && !m.IsAbstract) {
             // compilation should only proceed if everything is good, including the signature (which preResolveErrorCount does not include);
-            var nw = new CompilationCloner(compilationModuleClones).CloneModuleDefinition(m, m.CompileName + "_Compile");
+            CompilationCloner cloner = new CompilationCloner(compilationModuleClones);
+            var nw = cloner.CloneModuleDefinition(m, m.CompileName + "_Compile");
             compilationModuleClones.Add(m, nw);
             var oldErrorsOnly = reporter.ErrorsOnly;
             reporter.ErrorsOnly = true; // turn off warning reporting for the clone
@@ -401,7 +402,7 @@ namespace Microsoft.Dafny
               var exportDecl = top as ModuleExportDecl;
               if (exportDecl == null)
                 continue;
-              exportDecl.Signature.CompileSignature = compileSig;
+              exportDecl.Signature.CompileSignature = cloner.CloneModuleSignature(exportDecl.Signature, compileSig);
             }
             // Now we're ready to resolve the cloned module definition, using the compile signature
 
@@ -1778,9 +1779,10 @@ namespace Microsoft.Dafny
           foreach(IToken export in Exports.Skip(1)){
             if (root.Signature.FindExport(export.val, out pp)){
               Contract.Assert(Object.ReferenceEquals(p.ModuleDef, pp.Signature.ModuleDef));
-              p = MergeSignature(p, pp.Signature);
-              p.ModuleDef = pp.Signature.ModuleDef;
-              p.CompileSignature = pp.Signature.CompileSignature;
+              ModuleSignature merged = MergeSignature(p, pp.Signature);
+              merged.ModuleDef = pp.Signature.ModuleDef;
+              merged.CompileSignature = MergeSignature(p.CompileSignature, pp.Signature.CompileSignature);
+              p = merged;
             } else {
               reporter.Error(MessageSource.Resolver, export, "No export set {0} in module {1}", export.val, decl.Name);
               p = null;
