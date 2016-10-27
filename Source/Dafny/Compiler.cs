@@ -122,8 +122,10 @@ namespace Microsoft.Dafny {
             m_prime = m.ClonedFrom;
           }
           wr.WriteLine("namespace @{0} {{", m_prime.CompileName);
-          indent += IndentAmount;
+        } else {
+          wr.WriteLine("namespace @__default {");
         }
+        indent += IndentAmount;
         foreach (TopLevelDecl d in m.TopLevelDecls) {
           bool compileIt = true;
           if (Attributes.ContainsBool(d.Attributes, "compile", ref compileIt) && !compileIt) {
@@ -294,6 +296,8 @@ namespace Microsoft.Dafny {
         }
         if (!m.IsDefaultModule) {
           wr.WriteLine("}} // end of namespace {0}", m.CompileName);
+        } else {
+          wr.WriteLine("} // end of namespace @__default");
         }
       }
     }
