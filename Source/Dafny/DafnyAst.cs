@@ -705,7 +705,6 @@ namespace Microsoft.Dafny {
       var syn = type.AsTypeSynonym;
       if (syn != null) {
         var scope = Type.GetScope();
-        Contract.Assert(syn.IsVisibleInScope(scope));
         if (!syn.IsRevealedInScope(scope)) {
           return type;
         }

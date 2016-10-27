@@ -1,0 +1,2 @@
+git-issue49.dfy(8,10): Error: The body of function f depends on type T which was not exported with it. Ensure that T is visible wherever the body of f is exported.
+1 resolution/type errors detected in git-issue49.dfy
