@@ -1,0 +1,4 @@
+ReturnErrors.dfy(32,11): Error: cannot have method call in return statement.
+ReturnErrors.dfy(38,11): Error: cannot have effectful parameter in multi-return statement.
+ReturnErrors.dfy(43,10): Error: can only have initialization methods which modify at most 'this'.
+3 resolution/type errors detected in ReturnErrors.dfy

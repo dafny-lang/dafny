@@ -1,0 +1,5 @@
+TriggerInPredicate.dfy(6,32): Info: Not generating triggers for "A(x, y) && z".
+TriggerInPredicate.dfy(9,20): Info: Some instances of this call cannot safely be inlined.
+TriggerInPredicate.dfy(9,20): Info: Some instances of this call cannot safely be inlined.
+
+Dafny program verifier finished with 1 verified, 0 errors

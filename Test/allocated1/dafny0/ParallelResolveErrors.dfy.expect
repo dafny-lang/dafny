@@ -1,0 +1,23 @@
+ParallelResolveErrors.dfy(20,4): Error: LHS of assignment must denote a mutable variable
+ParallelResolveErrors.dfy(25,6): Error: body of forall statement is attempting to update a variable declared outside the forall statement
+ParallelResolveErrors.dfy(42,6): Error: body of forall statement is attempting to update a variable declared outside the forall statement
+ParallelResolveErrors.dfy(43,6): Error: body of forall statement is attempting to update a variable declared outside the forall statement
+ParallelResolveErrors.dfy(55,13): Error: new allocation not supported in forall statements
+ParallelResolveErrors.dfy(60,13): Error: new allocation not allowed in ghost context
+ParallelResolveErrors.dfy(61,13): Error: new allocation not allowed in ghost context
+ParallelResolveErrors.dfy(62,13): Error: new allocation not allowed in ghost context
+ParallelResolveErrors.dfy(63,13): Error: new allocation not allowed in ghost context
+ParallelResolveErrors.dfy(64,22): Error: the body of the enclosing forall statement is not allowed to update heap locations, so any call must be to a method with an empty modifies clause
+ParallelResolveErrors.dfy(65,20): Error: the body of the enclosing forall statement is not allowed to call non-ghost methods
+ParallelResolveErrors.dfy(72,19): Error: trying to break out of more loop levels than there are enclosing loops
+ParallelResolveErrors.dfy(76,18): Error: return statement is not allowed inside a forall statement
+ParallelResolveErrors.dfy(83,21): Error: trying to break out of more loop levels than there are enclosing loops
+ParallelResolveErrors.dfy(84,20): Error: trying to break out of more loop levels than there are enclosing loops
+ParallelResolveErrors.dfy(85,20): Error: break label is undefined or not in scope: OutsideLoop
+ParallelResolveErrors.dfy(94,24): Error: trying to break out of more loop levels than there are enclosing loops
+ParallelResolveErrors.dfy(95,24): Error: break label is undefined or not in scope: OutsideLoop
+ParallelResolveErrors.dfy(106,9): Error: the body of the enclosing forall statement is not allowed to update heap locations
+ParallelResolveErrors.dfy(114,29): Error: the body of the enclosing forall statement is not allowed to update heap locations, so any call must be to a method with an empty modifies clause
+ParallelResolveErrors.dfy(119,29): Error: the body of the enclosing forall statement is not allowed to update heap locations, so any call must be to a method with an empty modifies clause
+ParallelResolveErrors.dfy(129,11): Error: Assignment to non-ghost field is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)
+22 resolution/type errors detected in ParallelResolveErrors.dfy

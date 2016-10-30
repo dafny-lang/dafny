@@ -1,0 +1,6 @@
+RefinementModificationChecking.dfy(22,6): Error: refinement method cannot assign to variable defined in parent module ('t')
+RefinementModificationChecking.dfy(23,6): Error: refinement method cannot assign to variable defined in parent module ('r')
+RefinementModificationChecking.dfy(24,6): Error: refinement method cannot assign to a field defined in parent module ('f')
+RefinementModificationChecking.dfy(51,15): Error: assignment RHS in refinement method is not allowed to affect previously defined state
+RefinementModificationChecking.dfy(53,11): Error: new assignments in a refinement method can only assign to state that the module defines (which never includes array elements)
+5 resolution/type errors detected in RefinementModificationChecking.dfy
