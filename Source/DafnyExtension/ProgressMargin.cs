@@ -371,7 +371,9 @@ namespace DafnyLanguage
 
       try
       {
-        bool success = DafnyDriver.Verify(program, errorListHolder, GetHashCode().ToString(), requestId, errorInfo =>
+        string filename = _document != null ? _document.FilePath : "<program>";
+        var driver = new DafnyDriver(_buffer, filename);
+        bool success = driver.Verify(program, errorListHolder, GetHashCode().ToString(), requestId, errorInfo =>
         {
           if (!_disposed)
           {
@@ -399,7 +401,9 @@ namespace DafnyLanguage
         });
         if (!success)
         {
-          errorListHolder.AddError(new DafnyError("$$program$$", 0, 0, ErrorCategory.InternalError, "Verification process error", snapshot, false), "$$program$$", requestId);
+          foreach (var error in driver.Errors) {
+            errorListHolder.AddError(error, "$$program$$", requestId);
+          }
         }
       }
       catch (Exception e)

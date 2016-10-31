@@ -192,6 +192,18 @@ namespace DafnyLanguage
       }
     }
 
+    public class ErrorSink : Bpl.IErrorSink
+    {
+      DafnyDriver dd;
+
+      public ErrorSink(DafnyDriver dd) {
+        this.dd = dd;
+      }
+      public void Error(Bpl.IToken tok, string msg) {
+        dd.RecordError(tok.filename, tok.line, tok.col, ErrorCategory.VerificationError, msg);
+      }
+    }
+
     #endregion
 
     #region Compilation
@@ -283,7 +295,7 @@ namespace DafnyLanguage
       return Dafny.DafnyOptions.O.Induction == 3;
     }
 
-    public static bool Verify(Dafny.Program dafnyProgram, ResolverTagger resolver, string uniqueIdPrefix, string requestId, ErrorReporterDelegate er) {
+    public bool Verify(Dafny.Program dafnyProgram, ResolverTagger resolver, string uniqueIdPrefix, string requestId, ErrorReporterDelegate er) {
 
       Dafny.Translator translator = new Dafny.Translator(dafnyProgram.reporter);
       var translatorFlags = new Dafny.Translator.TranslatorFlags() { InsertChecksums = true, UniqueIdPrefix = uniqueIdPrefix };
@@ -295,12 +307,13 @@ namespace DafnyLanguage
       resolver.ReInitializeVerificationErrors(requestId, impls);
 
       bool success = false;
-
+      var errorSink = new ErrorSink(this);
+      
       foreach (var kv in boogiePrograms) {
         var boogieProgram = kv.Item2;
 
         // TODO(wuestholz): Maybe we should use a fixed program ID to limit the memory overhead due to the program cache in Boogie.
-        PipelineOutcome oc = BoogiePipeline(boogieProgram, 1 < Dafny.DafnyOptions.Clo.VerifySnapshots ? uniqueIdPrefix : null, requestId, er);
+        PipelineOutcome oc = BoogiePipeline(boogieProgram, 1 < Dafny.DafnyOptions.Clo.VerifySnapshots ? uniqueIdPrefix : null, requestId, errorSink, er);
         switch (oc) {
           case PipelineOutcome.Done:
           case PipelineOutcome.VerificationCompleted:
@@ -321,11 +334,11 @@ namespace DafnyLanguage
     /// else.  Hence, any resolution errors and type checking errors are due to errors in
     /// the translation.
     /// </summary>
-    static PipelineOutcome BoogiePipeline(Bpl.Program/*!*/ program, string programId, string requestId, ErrorReporterDelegate er)
+    static PipelineOutcome BoogiePipeline(Bpl.Program/*!*/ program, string programId, string requestId, ErrorSink errorSink, ErrorReporterDelegate er)
     {
       Contract.Requires(program != null);
 
-      PipelineOutcome oc = BoogieResolveAndTypecheck(program);
+      PipelineOutcome oc = BoogieResolveAndTypecheck(program, errorSink);
       if (oc == PipelineOutcome.ResolvedAndTypeChecked) {
         ExecutionEngine.EliminateDeadVariables(program);
         ExecutionEngine.CollectModSets(program);
@@ -344,16 +357,16 @@ namespace DafnyLanguage
     ///  - TypeCheckingError if a type checking error occurred
     ///  - ResolvedAndTypeChecked if both resolution and type checking succeeded
     /// </summary>
-    static PipelineOutcome BoogieResolveAndTypecheck(Bpl.Program program) {
+    static PipelineOutcome BoogieResolveAndTypecheck(Bpl.Program program, ErrorSink errorSink) {
       Contract.Requires(program != null);
       // ---------- Resolve ------------------------------------------------------------
-      int errorCount = program.Resolve();
+      int errorCount = program.Resolve(errorSink);
       if (errorCount != 0) {
         return PipelineOutcome.ResolutionError;
       }
 
       // ---------- Type check ------------------------------------------------------------
-      errorCount = program.Typecheck();
+      errorCount = program.Typecheck(errorSink);
       if (errorCount != 0) {
         return PipelineOutcome.TypeCheckingError;
       }
