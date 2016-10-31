@@ -81,6 +81,7 @@ namespace Microsoft.Dafny
     public int OptimizeResolution = 2;
     public bool UseRuntimeLib = false;
     public bool DisableScopes = false;
+    public int Allocated = 2;
     public bool IronDafny = 
 #if ENABLE_IRONDAFNY 
       true
@@ -278,6 +279,11 @@ namespace Microsoft.Dafny
 
         case "optimize": {
             Optimize = true;
+            return true;
+        }
+
+        case "allocated": {
+            ps.GetNumericArgument(ref Allocated, 3);
             return true;
         }
 
@@ -495,6 +501,22 @@ namespace Microsoft.Dafny
   /useRuntimeLib
                 Refer to pre-built DafnyRuntime.dll in compiled assembly rather
                 than including DafnyRuntime.cs verbatim.
+  /allocated:<n>
+                Specify defaults for where Dafny should assert and assume
+                allocated(x) for various parameters x, local variables x,
+                bound variables x, etc.  Lower <n> may require more manual
+                allocated(x) annotations and thus may be more difficult to use.
+                Warning: this option should be chosen consistently across
+                an entire project; it would be unsound to use different
+                defaults for different files or modules within a project.
+                0 - Nowhere (never assume/assert allocated(x) by default).
+                1 - Assume allocated(x) only for non-ghost variables and fields
+                    (these assumptions are free, since non-ghost variables
+                    always contain allocated values at run-time).  This option
+                    may speed up verification relative to /allocated:2.
+                2 - (default) Assert/assume allocated(x) on all variables,
+                    even bound variables in quantifiers.  This option is
+                    the easiest to use for heapful code.
   /ironDafny    Enable experimental features needed to support Ironclad/Ironfleet. Use of
                 these features may cause your code to become incompatible with future
                 releases of Dafny.

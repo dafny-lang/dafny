@@ -1,0 +1,9 @@
+NestedPatterns.dfy(69,2): Error: member Cons appears in more than one case
+NestedPatterns.dfy(75,2): Error: member  does not exist in datatype List
+NestedPatterns.dfy(76,2): Error: member  does not exist in datatype List
+NestedPatterns.dfy(84,23): Error: Duplicate parameter name: h
+NestedPatterns.dfy(92,20): Error: Duplicate parameter name: h
+NestedPatterns.dfy(100,23): Error: Duplicate parameter name: e
+NestedPatterns.dfy(116,2): Error: case arguments count does not match source arguments count
+NestedPatterns.dfy(122,2): Error: match source tuple needs at least 1 argument
+8 resolution/type errors detected in NestedPatterns.dfy

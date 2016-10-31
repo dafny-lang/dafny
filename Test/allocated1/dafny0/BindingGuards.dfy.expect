@@ -1,0 +1,48 @@
+BindingGuards.dfy(85,10): Error BP5003: A postcondition might not hold on this return path.
+BindingGuards.dfy(71,12): Related location: This is the postcondition that might not hold.
+Execution trace:
+    (0,0): anon0
+    (0,0): anon12_Then
+    (0,0): anon9
+    (0,0): anon16_Then
+BindingGuards.dfy(134,9): Error: assertion violation
+BindingGuards.dfy(6,8): Related location
+Execution trace:
+    (0,0): anon0
+    (0,0): anon20_Then
+    (0,0): anon21_Then
+    (0,0): anon5
+    (0,0): anon17
+BindingGuards.dfy(139,2): Error: alternative cases fail to cover all possibilties
+Execution trace:
+    (0,0): anon0
+    (0,0): anon7_Else
+BindingGuards.dfy(147,2): Error: alternative cases fail to cover all possibilties
+Execution trace:
+    (0,0): anon0
+    (0,0): anon7_Else
+BindingGuards.dfy(272,2): Error: missing case in case statement: Blue
+Execution trace:
+    (0,0): anon0
+    BindingGuards.dfy(268,3): anon19_LoopHead
+    (0,0): anon19_LoopBody
+    BindingGuards.dfy(268,3): anon20_Else
+    BindingGuards.dfy(268,3): anon21_Else
+    (0,0): anon22_Else
+    (0,0): anon12
+    (0,0): anon23_Else
+    (0,0): anon24_Then
+BindingGuards.dfy(272,2): Error: missing case in case statement: Green
+Execution trace:
+    (0,0): anon0
+    BindingGuards.dfy(268,3): anon19_LoopHead
+    (0,0): anon19_LoopBody
+    BindingGuards.dfy(268,3): anon20_Else
+    BindingGuards.dfy(268,3): anon21_Else
+    (0,0): anon22_Else
+    (0,0): anon12
+    (0,0): anon23_Else
+    (0,0): anon24_Else
+    (0,0): anon25_Then
+
+Dafny program verifier finished with 10 verified, 6 errors

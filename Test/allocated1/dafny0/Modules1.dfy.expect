@@ -1,0 +1,25 @@
+Modules1.dfy(10,8): Error: target object may not be allocated
+Execution trace:
+    (0,0): anon0
+    (0,0): anon4_Else
+Modules1.dfy(79,15): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    (0,0): anon3_Then
+Modules1.dfy(92,15): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    (0,0): anon3_Then
+Modules1.dfy(94,17): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    (0,0): anon3_Else
+Modules1.dfy(56,8): Error: decreases expression must be bounded below by 0
+Modules1.dfy(54,12): Related location
+Execution trace:
+    (0,0): anon0
+Modules1.dfy(62,8): Error: failure to decrease termination measure
+Execution trace:
+    (0,0): anon0
+
+Dafny program verifier finished with 4 verified, 6 errors

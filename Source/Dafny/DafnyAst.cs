@@ -4508,6 +4508,7 @@ namespace Microsoft.Dafny {
 
     [Pure]
     public bool IsFuelAware() { return IsRecursive || IsFueled; }
+    public virtual bool ReadsHeap { get { return Reads.Count != 0; } }
   }
 
   public class Predicate : Function
@@ -4636,6 +4637,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(ens != null);
       Contract.Requires(decreases != null);
     }
+    public override bool ReadsHeap { get { return true; } }
   }
 
   public class TwoStatePredicate : TwoStateFunction
@@ -4780,7 +4782,7 @@ namespace Microsoft.Dafny {
       get {
         // Lemma from included files do not need to be resolved and translated
         // so we return emptyBody. This is to speed up resolvor and translator.
-        if (methodBody != null && (this is Lemma || this is TwoStateLemma) && this.tok is IncludeToken) {
+        if (methodBody != null && (this is Lemma || this is TwoStateLemma) && this.tok is IncludeToken && !DafnyOptions.O.VerifyAllModules) {
           return Method.emptyBody;
         } else {
           return methodBody;

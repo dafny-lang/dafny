@@ -1,0 +1,37 @@
+
+Verifying Impl$$_0_M0.C.M ...
+  [4 proof obligations]  verified
+
+Verifying CheckWellformed$$_0_M0.C.P ...
+  [4 proof obligations]  verified
+
+Verifying CheckWellformed$$_0_M0.C.Q ...
+  [3 proof obligations]  error
+Superposition.dfy(27,14): Error BP5003: A postcondition might not hold on this return path.
+Superposition.dfy(28,25): Related location: This is the postcondition that might not hold.
+Execution trace:
+    (0,0): anon0
+    (0,0): anon7_Else
+
+Verifying CheckWellformed$$_0_M0.C.R ...
+  [3 proof obligations]  error
+Superposition.dfy(33,14): Error BP5003: A postcondition might not hold on this return path.
+Superposition.dfy(34,25): Related location: This is the postcondition that might not hold.
+Execution trace:
+    (0,0): anon0
+    (0,0): anon7_Else
+
+Verifying Impl$$_1_M1.C.M ...
+  [1 proof obligation]  verified
+
+Verifying CheckWellformed$$_1_M1.C.P ...
+  [1 proof obligation]  error
+Superposition.dfy(50,24): Error BP5003: A postcondition might not hold on this return path.
+Superposition.dfy[M1](22,25): Related location: This is the postcondition that might not hold.
+Execution trace:
+    (0,0): anon0
+    (0,0): anon9_Else
+    (0,0): anon11_Then
+    (0,0): anon8
+
+Dafny program verifier finished with 3 verified, 3 errors

@@ -1,0 +1,144 @@
+Array.dfy(13,7): Error: assignment may update an array element not in the enclosing context's modifies clause
+Execution trace:
+    (0,0): anon0
+    (0,0): anon5_Then
+    (0,0): anon2
+    (0,0): anon6_Then
+Array.dfy(20,15): Error: target object may be null
+Execution trace:
+    (0,0): anon0
+Array.dfy(27,5): Error: index out of range
+Execution trace:
+    (0,0): anon0
+Array.dfy(51,19): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    (0,0): anon12_Then
+    (0,0): anon13_Then
+    (0,0): anon14_Then
+    (0,0): anon6
+    (0,0): anon15_Then
+    (0,0): anon16_Then
+    (0,0): anon9
+    (0,0): anon11
+Array.dfy(59,7): Error: assignment may update an array element not in the enclosing context's modifies clause
+Execution trace:
+    (0,0): anon0
+    (0,0): anon5_Then
+    (0,0): anon2
+    (0,0): anon6_Then
+Array.dfy(66,7): Error: assignment may update an array element not in the enclosing context's modifies clause
+Execution trace:
+    (0,0): anon0
+    (0,0): anon5_Then
+    (0,0): anon2
+    (0,0): anon6_Then
+Array.dfy(110,20): Error: upper bound below lower bound or above length of array
+Execution trace:
+    (0,0): anon0
+    (0,0): anon14_Else
+    (0,0): anon18_Then
+    (0,0): anon19_Then
+    (0,0): anon20_Then
+    (0,0): anon11
+Array.dfy(120,7): Error: insufficient reads clause to read the indicated range of array elements
+Execution trace:
+    (0,0): anon0
+    (0,0): anon12_Else
+    (0,0): anon13_Then
+    (0,0): anon14_Then
+    (0,0): anon15_Then
+    (0,0): anon16_Then
+    (0,0): anon11
+Array.dfy(122,7): Error: insufficient reads clause to read the indicated range of array elements
+Execution trace:
+    (0,0): anon0
+    (0,0): anon12_Else
+    (0,0): anon13_Then
+    (0,0): anon14_Then
+    (0,0): anon15_Then
+    (0,0): anon16_Else
+    (0,0): anon11
+Array.dfy(123,7): Error: insufficient reads clause to read the indicated range of array elements
+Execution trace:
+    (0,0): anon0
+    (0,0): anon12_Else
+    (0,0): anon13_Then
+    (0,0): anon14_Then
+    (0,0): anon15_Then
+    (0,0): anon16_Else
+    (0,0): anon11
+Array.dfy(124,7): Error: insufficient reads clause to read the indicated range of array elements
+Execution trace:
+    (0,0): anon0
+    (0,0): anon12_Else
+    (0,0): anon13_Then
+    (0,0): anon14_Then
+    (0,0): anon15_Then
+    (0,0): anon16_Else
+    (0,0): anon11
+Array.dfy(163,5): Error: insufficient reads clause to read array element
+Execution trace:
+    (0,0): anon0
+    (0,0): anon10_Else
+    (0,0): anon11_Then
+    (0,0): anon12_Then
+    (0,0): anon13_Then
+    (0,0): anon9
+Array.dfy(171,5): Error: insufficient reads clause to read array element
+Execution trace:
+    (0,0): anon0
+    (0,0): anon8_Else
+    (0,0): anon9_Then
+    (0,0): anon10_Then
+    (0,0): anon7
+Array.dfy(187,5): Error: assignment may update an array element not in the enclosing context's modifies clause
+Execution trace:
+    (0,0): anon0
+Array.dfy(194,5): Error: assignment may update an array element not in the enclosing context's modifies clause
+Execution trace:
+    (0,0): anon0
+Array.dfy(219,0): Error BP5003: A postcondition might not hold on this return path.
+Array.dfy(218,10): Related location: This is the postcondition that might not hold.
+Execution trace:
+    (0,0): anon0
+Array.dfy(243,0): Error BP5003: A postcondition might not hold on this return path.
+Array.dfy(242,10): Related location: This is the postcondition that might not hold.
+Execution trace:
+    (0,0): anon0
+Array.dfy(249,0): Error BP5003: A postcondition might not hold on this return path.
+Array.dfy(248,10): Related location: This is the postcondition that might not hold.
+Execution trace:
+    (0,0): anon0
+Array.dfy(259,12): Error: value does not satisfy the subset constraints of 'nat'
+Execution trace:
+    (0,0): anon0
+    (0,0): anon5_Then
+    (0,0): anon2
+    (0,0): anon6_Then
+Array.dfy(260,5): Error: value does not satisfy the subset constraints of 'nat'
+Execution trace:
+    (0,0): anon0
+    (0,0): anon5_Then
+    (0,0): anon2
+    (0,0): anon6_Then
+Array.dfy(261,12): Error: value does not satisfy the subset constraints of 'nat'
+Execution trace:
+    (0,0): anon0
+    (0,0): anon5_Then
+    (0,0): anon2
+    (0,0): anon6_Then
+Array.dfy(262,6): Error: value does not satisfy the subset constraints of 'nat'
+Execution trace:
+    (0,0): anon0
+    (0,0): anon5_Then
+    (0,0): anon2
+    (0,0): anon6_Then
+Array.dfy(264,4): Error: value does not satisfy the subset constraints of 'nat'
+Execution trace:
+    (0,0): anon0
+    (0,0): anon5_Then
+    (0,0): anon2
+    (0,0): anon6_Then
+
+Dafny program verifier finished with 36 verified, 23 errors

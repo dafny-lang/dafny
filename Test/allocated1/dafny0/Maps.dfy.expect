@@ -1,0 +1,9 @@
+Maps.dfy(147,12): Warning: /!\ No terms found to trigger on.
+Maps.dfy(78,7): Error: element may not be in domain
+Execution trace:
+    (0,0): anon0
+Maps.dfy(128,12): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+
+Dafny program verifier finished with 18 verified, 2 errors

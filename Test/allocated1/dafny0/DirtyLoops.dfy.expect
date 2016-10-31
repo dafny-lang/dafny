@@ -1,0 +1,20 @@
+DirtyLoops.dfy(7,4): Warning: note, this forall statement has no body
+DirtyLoops.dfy(13,4): Warning: note, this loop has no body
+DirtyLoops.dfy(20,4): Warning: note, this loop has no body
+DirtyLoops.dfy(31,4): Warning: note, this loop has no body
+DirtyLoops.dfy(40,4): Warning: note, this forall statement has no body
+DirtyLoops.dfy(43,4): Warning: note, this forall statement has no body
+DirtyLoops.dfy(43,4): Warning: the conclusion of the body of this forall statement will not be known outside the forall statement; consider using an 'ensures' clause
+DirtyLoops.dfy(43,4): Warning: /!\ No terms found to trigger on.
+
+Dafny program verifier finished with 4 verified, 0 errors
+DirtyLoops.dfy.tmp.dprint.dfy(8,4): Warning: note, this forall statement has no body
+DirtyLoops.dfy.tmp.dprint.dfy(15,4): Warning: note, this loop has no body
+DirtyLoops.dfy.tmp.dprint.dfy(22,4): Warning: note, this loop has no body
+DirtyLoops.dfy.tmp.dprint.dfy(33,4): Warning: note, this loop has no body
+DirtyLoops.dfy.tmp.dprint.dfy(43,4): Warning: note, this forall statement has no body
+DirtyLoops.dfy.tmp.dprint.dfy(45,4): Warning: note, this forall statement has no body
+DirtyLoops.dfy.tmp.dprint.dfy(45,4): Warning: the conclusion of the body of this forall statement will not be known outside the forall statement; consider using an 'ensures' clause
+DirtyLoops.dfy.tmp.dprint.dfy(45,4): Warning: /!\ No terms found to trigger on.
+
+Dafny program verifier finished with 0 verified, 0 errors
