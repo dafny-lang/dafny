@@ -10053,6 +10053,45 @@ namespace Microsoft.Dafny {
         ins.Add(param);
       }
 
+      // Check that every parameter is available in the state in which the method is invoked; this means checking that it has
+      // the right type and is allocated.  These checks usually hold trivially, on account of that the Dafny language only gives
+      // access to expressions of the appropriate type and that are allocated in the current state.  However, if the method is
+      // invoked in the 'old' state or if the method invoked is a two-state lemma with a non-new parameter, then we need to
+      // check that its arguments were all available at that time as well.
+      if (etran.UsesOldHeap) {
+        if (!method.IsStatic) {
+          Bpl.Expr wh = GetWhereClause(receiver.tok, etran.TrExpr(receiver), receiver.Type, etran, ISALLOC, true);
+          if (wh != null) {
+            builder.Add(Assert(receiver.tok, wh, "receiver argument must be allocated in the state in which the method is invoked"));
+          }
+        }
+        for (int i = 0; i < Args.Count; i++) {
+          Expression ee = Args[i];
+          Bpl.Expr wh = GetWhereClause(ee.tok, etran.TrExpr(ee), ee.Type, etran, ISALLOC, true);
+          if (wh != null) {
+            builder.Add(Assert(ee.tok, wh, "argument must be allocated in the state in which the method is invoked"));
+          }
+        }
+      } else if (method is TwoStateLemma) {
+        if (!method.IsStatic) {
+          Bpl.Expr wh = GetWhereClause(receiver.tok, etran.TrExpr(receiver), receiver.Type, etran.Old, ISALLOC, true);
+          if (wh != null) {
+            builder.Add(Assert(receiver.tok, wh, "receiver argument must be allocated in the two-state lemma's previous state"));
+          }
+        }
+        Contract.Assert(callee.Ins.Count == Args.Count);
+        for (int i = 0; i < Args.Count; i++) {
+          var formal = callee.Ins[i];
+          if (formal.IsOld) {
+            Expression ee = Args[i];
+            Bpl.Expr wh = GetWhereClause(ee.tok, etran.TrExpr(ee), ee.Type, etran.Old, ISALLOC, true);
+            if (wh != null) {
+              builder.Add(Assert(ee.tok, wh, string.Format("parameter {0} ('{1}') must be allocated in the two-state lemma's previous state", i, formal.Name)));
+            }
+          }
+        }
+      }
+
       // Check modifies clause of a subcall is a subset of the current frame.
       if (codeContext is IMethodCodeContext) {
         CheckFrameSubset(tok, callee.Mod.Expressions, receiver, substMap, etran, builder, "call may violate context's modifies clause", null);

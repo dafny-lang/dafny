@@ -1,0 +1,46 @@
+git-issue51.dfy(38,15): Error: argument must be allocated in the state in which the function is invoked
+Execution trace:
+    (0,0): anon0
+    (0,0): anon14_Then
+git-issue51.dfy(41,20): Error: argument must be allocated in the state in which the function is invoked
+Execution trace:
+    (0,0): anon0
+    (0,0): anon15_Then
+git-issue51.dfy(45,15): Error: argument must be allocated in the state in which the method is invoked
+Execution trace:
+    (0,0): anon0
+    (0,0): anon17_Then
+    (0,0): anon18_Then
+    (0,0): anon10
+git-issue51.dfy(48,15): Error: argument must be allocated in the state in which the method is invoked
+Execution trace:
+    (0,0): anon0
+    (0,0): anon19_Then
+git-issue51.dfy(57,22): Error: argument must be allocated in the state in which the function is invoked
+Execution trace:
+    (0,0): anon0
+    (0,0): anon8_Then
+git-issue51.dfy(61,19): Error: argument must be allocated in the state in which the method is invoked
+Execution trace:
+    (0,0): anon0
+    (0,0): anon9_Then
+    (0,0): anon11_Then
+git-issue51.dfy(63,17): Error: argument must be allocated in the state in which the function is invoked
+Execution trace:
+    (0,0): anon0
+    (0,0): anon9_Then
+    (0,0): anon12_Then
+git-issue51.dfy(74,12): Error: parameter 0 ('a') must be allocated in the two-state lemma's previous state
+Execution trace:
+    (0,0): anon0
+    (0,0): anon8_Then
+git-issue51.dfy(80,15): Error: receiver must be allocated in the state in which its fields are accessed
+Execution trace:
+    (0,0): anon0
+    (0,0): anon11_Then
+git-issue51.dfy(84,11): Error: argument 0 ('a') must be allocated in the two-state function's previous state
+Execution trace:
+    (0,0): anon0
+    (0,0): anon13_Then
+
+Dafny program verifier finished with 2 verified, 10 errors
