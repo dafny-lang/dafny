@@ -3688,8 +3688,8 @@ namespace Microsoft.Dafny {
         Contract.Requires(sink != null && predef != null);
         Contract.Requires(f.OverriddenFunction != null);
         Contract.Requires(f.Formals.Count == f.OverriddenFunction.Formals.Count);
-        Contract.Requires(currentModule == null && codeContext == null && _tmpIEs.Count == 0 && isAllocContext == null);
-        Contract.Ensures(currentModule == null && codeContext == null && _tmpIEs.Count == 0 && isAllocContext == null);
+        Contract.Requires(currentModule == null && codeContext == null && _tmpIEs.Count == 0 && isAllocContext != null);
+        Contract.Ensures(currentModule == null && codeContext == null && _tmpIEs.Count == 0 && isAllocContext != null);
 
         #region first procedure, no impl yet
         //Function nf = new Function(f.tok, "OverrideCheck_" + f.Name, f.IsStatic, f.IsGhost, f.TypeArgs, f.OpenParen, f.Formals, f.ResultType, f.Req, f.Reads, f.Ens, f.Decreases, f.Body, f.Attributes, f.SignatureEllipsis);
@@ -3762,7 +3762,6 @@ namespace Microsoft.Dafny {
         BoogieStmtListBuilder builder = new BoogieStmtListBuilder(this);
         List<Variable> localVariables = new List<Variable>();
         //GenerateImplPrelude(m, wellformednessProc, inParams, outParams, builder, localVariables);
-        isAllocContext = new IsAllocContext(true);
         if (f is TwoStateFunction) {
           // $Heap := current$Heap;
           var heap = (Bpl.IdentifierExpr /*TODO: this cast is somewhat dubious*/)ordinaryEtran.HeapExpr;
@@ -3814,7 +3813,6 @@ namespace Microsoft.Dafny {
             InsertChecksum(f, proc, true);
         }
 
-        isAllocContext = null;
         Reset();
     }
 
@@ -4808,8 +4806,8 @@ namespace Microsoft.Dafny {
       Contract.Requires(f != null);
       Contract.Requires(sink != null && predef != null);
       Contract.Requires(f.EnclosingClass != null);
-      Contract.Requires(currentModule == null && codeContext == null && isAllocContext == null);
-      Contract.Ensures(currentModule == null && codeContext == null && isAllocContext == null);
+      Contract.Requires(currentModule == null && codeContext == null && isAllocContext != null);
+      Contract.Ensures(currentModule == null && codeContext == null && isAllocContext != null);
 
       Contract.Assert(InVerificationScope(f));
 
@@ -4902,7 +4900,6 @@ namespace Microsoft.Dafny {
         etran = ordinaryEtran;  // we no longer need the special heap names
       }
       builder.Add(CaptureState(f.tok, false, "initial state"));
-      isAllocContext = new IsAllocContext(true);
 
       DefineFrame(f.tok, f.Reads, builder, locals, null);
       InitializeFuelConstant(f.tok, builder, etran);
@@ -5032,7 +5029,6 @@ namespace Microsoft.Dafny {
 
       Contract.Assert(currentModule == f.EnclosingClass.Module);
       Contract.Assert(codeContext == f);
-      isAllocContext = null;
       Reset();
     }
 
@@ -11942,7 +11938,6 @@ namespace Microsoft.Dafny {
 
         Contract.Requires(translator != null);
         Contract.Requires(predef != null);
-        Contract.Requires(heap != null);
         Contract.Requires(thisVar != null);       
         Contract.Requires(modifiesFrame != null);
 
@@ -11972,14 +11967,12 @@ namespace Microsoft.Dafny {
         : this(translator, predef, heap, "this") {
         Contract.Requires(translator != null);
         Contract.Requires(predef != null);
-        Contract.Requires(heap != null);
       }
 
       public ExpressionTranslator(Translator translator, PredefinedDecls predef, Bpl.Expr heap, Bpl.Expr oldHeap)
         : this(translator, predef, heap, "this") {
         Contract.Requires(translator != null);
         Contract.Requires(predef != null);
-        Contract.Requires(heap != null);
         Contract.Requires(oldHeap != null);
 
         var old = new ExpressionTranslator(translator, predef, oldHeap);
@@ -11991,7 +11984,6 @@ namespace Microsoft.Dafny {
         : this(translator, predef, heap, thisVar, null, new FuelSetting(translator, 1), null, "$_Frame", false) {
         Contract.Requires(translator != null);
         Contract.Requires(predef != null);
-        Contract.Requires(heap != null);
         Contract.Requires(thisVar != null);
       }
 
@@ -11999,7 +11991,6 @@ namespace Microsoft.Dafny {
         : this(etran.translator, etran.predef, heap, etran.This, etran.applyLimited_CurrentFunction, etran.layerInterCluster, etran.layerIntraCluster, etran.modifiesFrame, etran.stripLits)
       {
         Contract.Requires(etran != null);
-        Contract.Requires(heap != null);
       }
 
       public ExpressionTranslator(ExpressionTranslator etran, string modifiesFrame)
