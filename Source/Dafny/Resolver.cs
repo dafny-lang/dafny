@@ -3489,6 +3489,9 @@ namespace Microsoft.Dafny
             return true;
           case "Equatable": {
               var u = Types[1].NormalizeExpand();
+              if (object.ReferenceEquals(t, u)) {
+                return true;
+              }
               if (t is TypeProxy && u is TypeProxy) {
                 return false;  // not enough information to do anything sensible
               } else if (t is TypeProxy && (fullstrength || IsEqDetermined(u))) {
