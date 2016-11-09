@@ -40,6 +40,8 @@ method Main() {
   TestCompilationTruncations();
 
   Shifts();
+
+	Rotates();
 }
 
 method BitwiseOperations() returns (a: bv47, b: bv47, c: bv47)
@@ -231,4 +233,27 @@ method Shifts()
 method PrintShifts<T>(s: string, a: T, b: T, c: T, d: T)
 {
   print "PrintShifts: ", s, ": ", a, " ", b, " ", c, " ", d, "\n";
+}
+
+method Rotates()
+{
+  var x: int, w: bv12, seven: bv7, bb: bv2, noll: bv0;
+  x := 3;
+
+  w, seven, noll :=  5, 5, 0;
+  PrintRotates("bv12", w, w.RotateLeft(x).RotateRight(x));
+  PrintRotates("bv7", seven, seven.RotateLeft(x).RotateRight(x));
+  bb, x := 1, 1;
+  PrintRotates("bv2", bb, bb.RotateLeft(x).RotateRight(x));
+  x := 0;
+  PrintRotates("bv0", noll, noll.RotateLeft(x).RotateRight(x));
+	x := 5;
+  w, seven := 0xC00 + 2000, 127;
+  PrintRotates("bv12 again", w, w.RotateLeft(x).RotateRight(x));
+  PrintRotates("bv7 again", seven, seven.RotateLeft(x).RotateRight(x)); 
+}
+
+method PrintRotates<T>(s: string, a: T, b: T)
+{
+  print "PrintRotates: ", s, ": ", a, " ", b, "\n";
 }

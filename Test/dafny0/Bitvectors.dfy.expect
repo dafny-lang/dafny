@@ -21,15 +21,27 @@ module _System {
     function reads(): set<object>
       reads reads()
   }
+
+  class {:compile false} _#Func1<T0, T1> {
+    function requires(x0: T0): bool
+      reads reads(x0)
+
+    function reads(x0: T0): set<object>
+      reads reads(x0)
+  }
 }
-// bitvector types in use: bv1 bv32 bv47 bv16 bv0 bv67 bv64 bv53 bv33 bv31 bv15 bv8 bv6 bv2 bv7
+// bitvector types in use: bv1 bv32 bv47 bv16 bv0 bv67 bv64 bv53 bv33 bv31 bv15 bv8 bv6 bv2 bv7 bv12
 */
 
 /* CALL GRAPH for module _module:
- * SCC at height 24:
+ * SCC at height 26:
  *   _default.M
- * SCC at height 23:
+ * SCC at height 25:
  *   _default.Main
+ * SCC at height 24:
+ *   _default.Rotates
+ * SCC at height 23:
+ *   _default.PrintRotates
  * SCC at height 22:
  *   _default.Shifts
  * SCC at height 21:
@@ -117,6 +129,7 @@ method Main()
   print zz0 < zz1, " ", zz0 <= zz1, " ", zz0 >= zz1, " ", zz0 > zz1, "\n";
   TestCompilationTruncations();
   Shifts();
+  Rotates();
 }
 
 method BitwiseOperations() returns (a: bv47, b: bv47, c: bv47)
@@ -325,7 +338,30 @@ method PrintShifts<T>(s: string, a: T, b: T, c: T, d: T)
   print "PrintShifts: ", s, ": ", a, " ", b, " ", c, " ", d, "\n";
 }
 
-Dafny program verifier finished with 10 verified, 0 errors
+method Rotates()
+{
+  var x: int, w: bv12, seven: bv7, bb: bv2, noll: bv0;
+  x := 3;
+  w, seven, noll := 5, 5, 0;
+  PrintRotates("bv12", w, w.RotateLeft(x).RotateRight(x));
+  PrintRotates("bv7", seven, seven.RotateLeft(x).RotateRight(x));
+  bb, x := 1, 1;
+  PrintRotates("bv2", bb, bb.RotateLeft(x).RotateRight(x));
+  x := 0;
+  PrintRotates("bv0", noll, noll.RotateLeft(x).RotateRight(x));
+  x := 5;
+  w, seven := 3072 + 2000, 127;
+  PrintRotates("bv12 again", w, w.RotateLeft(x).RotateRight(x));
+  PrintRotates("bv7 again", seven, seven.RotateLeft(x).RotateRight(x));
+}
+
+method PrintRotates<T>(s: string, a: T, b: T)
+  decreases s
+{
+  print "PrintRotates: ", s, ": ", a, " ", b, "\n";
+}
+
+Dafny program verifier finished with 11 verified, 0 errors
 Program compiled successfully
 Running...
 
@@ -366,3 +402,9 @@ PrintShifts: bv67 again: 2 2 2 73786976294838206465
 PrintShifts: bv32 again: 8000 8000 2147487648 3221227472
 PrintShifts: bv7 again: 124 124 124 127
 PrintShifts: bv0 again: 0 0 0 0
+PrintRotates: bv12: 5 5
+PrintRotates: bv7: 5 5
+PrintRotates: bv2: 1 1
+PrintRotates: bv0: 0 0
+PrintRotates: bv12 again: 976 976
+PrintRotates: bv7 again: 127 127

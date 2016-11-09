@@ -605,6 +605,9 @@ namespace Microsoft.Dafny {
         // shifts
         AddBitvectorShiftFunction(w, "LeftShift_bv", "bvshl");
         AddBitvectorShiftFunction(w, "RightShift_bv", "bvlshr");
+        // rotates
+        AddBitvectorShiftFunction(w, "LeftRotate_bv", "ext_rotate_left");
+        AddBitvectorShiftFunction(w, "RightRotate_bv", "ext_rotate_right");
         // conversion functions
         AddBitvectorNatConversionFunction(w);
       }
@@ -5235,11 +5238,13 @@ namespace Microsoft.Dafny {
         FunctionCallExpr e = (FunctionCallExpr)expr;
         Bpl.Expr r = CanCallAssumption(e.Receiver, etran);
         r = BplAnd(r, CanCallAssumption(e.Args, etran));
-        // get to assume canCall
-        Bpl.IdentifierExpr canCallFuncID = new Bpl.IdentifierExpr(expr.tok, e.Function.FullSanitizedName + "#canCall", Bpl.Type.Bool);
-        List<Bpl.Expr> args = etran.FunctionInvocationArguments(e, null);
-        Bpl.Expr canCallFuncAppl = new Bpl.NAryExpr(expr.tok, new Bpl.FunctionCall(canCallFuncID), args);
-        r = BplAnd(r, canCallFuncAppl);
+        if (!(e.Function is SpecialFunction)) {
+          // get to assume canCall
+          Bpl.IdentifierExpr canCallFuncID = new Bpl.IdentifierExpr(expr.tok, e.Function.FullSanitizedName + "#canCall", Bpl.Type.Bool);
+          List<Bpl.Expr> args = etran.FunctionInvocationArguments(e, null);
+          Bpl.Expr canCallFuncAppl = new Bpl.NAryExpr(expr.tok, new Bpl.FunctionCall(canCallFuncID), args);
+          r = BplAnd(r, canCallFuncAppl);
+        }
         return r;
       } else if (expr is DatatypeValue) {
         DatatypeValue dtv = (DatatypeValue)expr;
@@ -5307,7 +5312,7 @@ namespace Microsoft.Dafny {
           LetDesugaring(e);  // call LetDesugaring to prepare the desugaring and populate letSuchThatExprInfo with something for e
           var info = letSuchThatExprInfo[e];
           // $let$canCall(g)
-          var canCall = info.CanCallFunctionCall(this, etran);         
+          var canCall = info.CanCallFunctionCall(this, etran);
           Dictionary<IVariable, Expression> substMap = new Dictionary<IVariable, Expression>();
           foreach (var bv in e.BoundVars) {
             // create a call to $let$x(g)
@@ -5337,7 +5342,7 @@ namespace Microsoft.Dafny {
         Bpl.Expr heap; var hVar = BplBoundVar(varNameGen.FreshId("#heap#"), predef.HeapType, out heap);
         var et = new ExpressionTranslator(etran, heap);
 
-        Dictionary<IVariable, Expression> subst = new Dictionary<IVariable,Expression>();
+        Dictionary<IVariable, Expression> subst = new Dictionary<IVariable, Expression>();
         foreach (var bv in e.BoundVars) {
           Bpl.Expr ve; var yVar = BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), TrType(bv.Type), out ve);
           var wh = GetWhereClause(bv.tok, new Bpl.IdentifierExpr(bv.tok, yVar), bv.Type, et, NOALLOC);
@@ -5947,165 +5952,169 @@ namespace Microsoft.Dafny {
       } else if (expr is FunctionCallExpr) {
         FunctionCallExpr e = (FunctionCallExpr)expr;
         Contract.Assert(e.Function != null);  // follows from the fact that expr has been successfully resolved
-        // check well-formedness of receiver
-        CheckWellformed(e.Receiver, options, locals, builder, etran);
-        if (!e.Function.IsStatic && !(e.Receiver is ThisExpr) && !e.Receiver.Type.IsArrowType) {
-          CheckNonNull(expr.tok, e.Receiver, builder, etran, options.AssertKv);
-        } else if (e.Receiver.Type.IsArrowType) {
-          CheckFunctionSelectWF("function specification", builder, etran, e.Receiver, "");
-        }
-        // check well-formedness of the other parameters
-        foreach (Expression arg in e.Args) {
-          CheckWellformed(arg, options, locals, builder, etran);
-        }
-        // create a local variable for each formal parameter, and assign each actual parameter to the corresponding local
-        Dictionary<IVariable, Expression> substMap = new Dictionary<IVariable, Expression>();
-        for (int i = 0; i < e.Function.Formals.Count; i++) {
-          Formal p = e.Function.Formals[i];
-          // Note, in the following, the "##" makes the variable invisible in BVD.  An alternative would be to communicate
-          // to BVD what this variable stands for and display it as such to the user.
-          Type et = Resolver.SubstType(p.Type, e.TypeArgumentSubstitutions);
-          LocalVariable local = new LocalVariable(p.tok, p.tok, "##" + p.Name, et, p.IsGhost);
-          local.type = local.OptionalType;  // resolve local here
-          IdentifierExpr ie = new IdentifierExpr(local.Tok, local.AssignUniqueName(currentDeclaration.IdGenerator));
-          ie.Var = local; ie.Type = ie.Var.Type;  // resolve ie here
-          substMap.Add(p, ie);
-          locals.Add(new Bpl.LocalVariable(local.Tok, new Bpl.TypedIdent(local.Tok, local.AssignUniqueName(currentDeclaration.IdGenerator), TrType(local.Type))));
-          Bpl.IdentifierExpr lhs = (Bpl.IdentifierExpr)etran.TrExpr(ie);  // TODO: is this cast always justified?
-          Expression ee = e.Args[i];
-          CheckSubrange(ee.tok, etran.TrExpr(ee), ee.Type, et, builder);
-          Bpl.Cmd cmd = Bpl.Cmd.SimpleAssign(p.tok, lhs, CondApplyBox(p.tok, etran.TrExpr(ee), cce.NonNull(ee.Type), et));
-          builder.Add(cmd);
-          if (AlwaysUseHeap && !etran.UsesOldHeap) {
-            // the argument can't be assumed to be allocated for the old heap
-            builder.Add(new Bpl.CommentCmd("assume allocatedness for argument to function"));
-            builder.Add(TrAssumeCmd(e.Args[i].tok, MkIsAlloc(lhs, et, etran.HeapExpr)));
+        if (e.Function is SpecialFunction) {
+          CheckWellformedSpecialFunction(e, options, null, null, locals, builder, etran);
+        } else {
+          // check well-formedness of receiver
+          CheckWellformed(e.Receiver, options, locals, builder, etran);
+          if (!e.Function.IsStatic && !(e.Receiver is ThisExpr) && !e.Receiver.Type.IsArrowType) {
+            CheckNonNull(expr.tok, e.Receiver, builder, etran, options.AssertKv);
+          } else if (e.Receiver.Type.IsArrowType) {
+            CheckFunctionSelectWF("function specification", builder, etran, e.Receiver, "");
           }
-        }
-        // Check that every parameter is available in the state in which the function is invoked; this means checking that it has
-        // the right type and is allocated.  These checks usually hold trivially, on account of that the Dafny language only gives
-        // access to expressions of the appropriate type and that are allocated in the current state.  However, if the function is
-        // invoked in the 'old' state or if the function invoked is a two-state function with a non-new parameter, then we need to
-        // check that its arguments were all available at that time as well.
-        if (etran.UsesOldHeap) {
-          if (!e.Function.IsStatic) {
-            Bpl.Expr wh = GetWhereClause(e.Receiver.tok, etran.TrExpr(e.Receiver), e.Receiver.Type, etran, ISALLOC, true);
-            if (wh != null) {
-              builder.Add(Assert(e.Receiver.tok, wh, "receiver argument must be allocated in the state in which the function is invoked"));
-            }
+          // check well-formedness of the other parameters
+          foreach (Expression arg in e.Args) {
+            CheckWellformed(arg, options, locals, builder, etran);
           }
-          for (int i = 0; i < e.Args.Count; i++) {
+          // create a local variable for each formal parameter, and assign each actual parameter to the corresponding local
+          Dictionary<IVariable, Expression> substMap = new Dictionary<IVariable, Expression>();
+          for (int i = 0; i < e.Function.Formals.Count; i++) {
+            Formal p = e.Function.Formals[i];
+            // Note, in the following, the "##" makes the variable invisible in BVD.  An alternative would be to communicate
+            // to BVD what this variable stands for and display it as such to the user.
+            Type et = Resolver.SubstType(p.Type, e.TypeArgumentSubstitutions);
+            LocalVariable local = new LocalVariable(p.tok, p.tok, "##" + p.Name, et, p.IsGhost);
+            local.type = local.OptionalType;  // resolve local here
+            IdentifierExpr ie = new IdentifierExpr(local.Tok, local.AssignUniqueName(currentDeclaration.IdGenerator));
+            ie.Var = local; ie.Type = ie.Var.Type;  // resolve ie here
+            substMap.Add(p, ie);
+            locals.Add(new Bpl.LocalVariable(local.Tok, new Bpl.TypedIdent(local.Tok, local.AssignUniqueName(currentDeclaration.IdGenerator), TrType(local.Type))));
+            Bpl.IdentifierExpr lhs = (Bpl.IdentifierExpr)etran.TrExpr(ie);  // TODO: is this cast always justified?
             Expression ee = e.Args[i];
-            Bpl.Expr wh = GetWhereClause(ee.tok, etran.TrExpr(ee), ee.Type, etran, ISALLOC, true);
-            if (wh != null) {
-              builder.Add(Assert(ee.tok, wh, "argument must be allocated in the state in which the function is invoked"));
+            CheckSubrange(ee.tok, etran.TrExpr(ee), ee.Type, et, builder);
+            Bpl.Cmd cmd = Bpl.Cmd.SimpleAssign(p.tok, lhs, CondApplyBox(p.tok, etran.TrExpr(ee), cce.NonNull(ee.Type), et));
+            builder.Add(cmd);
+            if (AlwaysUseHeap && !etran.UsesOldHeap) {
+              // the argument can't be assumed to be allocated for the old heap
+              builder.Add(new Bpl.CommentCmd("assume allocatedness for argument to function"));
+              builder.Add(TrAssumeCmd(e.Args[i].tok, MkIsAlloc(lhs, et, etran.HeapExpr)));
             }
           }
-        } else if (e.Function is TwoStateFunction) {
-          if (!e.Function.IsStatic) {
-            Bpl.Expr wh = GetWhereClause(e.Receiver.tok, etran.TrExpr(e.Receiver), e.Receiver.Type, etran.Old, ISALLOC, true);
-            if (wh != null) {
-              builder.Add(Assert(e.Receiver.tok, wh, "receiver argument must be allocated in the two-state functions's previous state"));
-            }
-          }
-          Contract.Assert(e.Function.Formals.Count == e.Args.Count);
-          for (int i = 0; i < e.Args.Count; i++) {
-            var formal = e.Function.Formals[i];
-            if (formal.IsOld) {
-              Expression ee = e.Args[i];
-              Bpl.Expr wh = GetWhereClause(ee.tok, etran.TrExpr(ee), ee.Type, etran.Old, ISALLOC, true);
-              if (wh != null) {
-                builder.Add(Assert(ee.tok, wh, string.Format("argument {0} ('{1}') must be allocated in the two-state function's previous state", i, formal.Name)));
-              }
-            }
-          }
-        }
-        // check that the preconditions for the call hold
-        foreach (Expression p in e.Function.Req) {
-          Expression precond = Substitute(p, e.Receiver, substMap, e.TypeArgumentSubstitutions);
-          bool splitHappened;  // we don't actually care
-          foreach (var ss in TrSplitExpr(precond, etran, true, out splitHappened)) {
-            if (ss.IsChecked) {
-              var tok = new NestedToken(expr.tok, ss.E.tok);
-              if (options.AssertKv != null) {
-                // use the given assert attribute only
-                builder.Add(Assert(tok, ss.E, "possible violation of function precondition", options.AssertKv));
-              } else {
-                builder.Add(AssertNS(tok, ss.E, "possible violation of function precondition"));
-              }
-            }
-          }
-          if (options.AssertKv == null) {
-            // assume only if no given assert attribute is given
-            builder.Add(TrAssumeCmd(expr.tok, etran.TrExpr(precond)));
-          }
-        }
-        if (options.DoReadsChecks) {
-          // check that the callee reads only what the caller is already allowed to read
-          var s = new Substituter(null, new Dictionary<IVariable,Expression>(), e.TypeArgumentSubstitutions, this);
-          CheckFrameSubset(expr.tok,
-            e.Function.Reads.ConvertAll(s.SubstFrameExpr),
-            e.Receiver, substMap, etran, options.AssertSink(this, builder), "insufficient reads clause to invoke function", options.AssertKv);
-        }
 
-        Bpl.Expr allowance = null;
-        if (codeContext != null && e.CoCall != FunctionCallExpr.CoCallResolution.Yes && !(e.Function is FixpointPredicate)) {
-          // check that the decreases measure goes down
-          if (ModuleDefinition.InSameSCC(e.Function, codeContext)) {
-            List<Expression> contextDecreases = codeContext.Decreases.Expressions;
-            List<Expression> calleeDecreases = e.Function.Decreases.Expressions;
-            if (e.Function == options.SelfCallsAllowance) {
-              allowance = Bpl.Expr.True;
-              if (!e.Function.IsStatic) {
-                allowance = BplAnd(allowance, Bpl.Expr.Eq(etran.TrExpr(e.Receiver), new Bpl.IdentifierExpr(e.tok, etran.This, predef.RefType)));
+          // Check that every parameter is available in the state in which the function is invoked; this means checking that it has
+          // the right type and is allocated.  These checks usually hold trivially, on account of that the Dafny language only gives
+          // access to expressions of the appropriate type and that are allocated in the current state.  However, if the function is
+          // invoked in the 'old' state or if the function invoked is a two-state function with a non-new parameter, then we need to
+          // check that its arguments were all available at that time as well.
+          if (etran.UsesOldHeap) {
+            if (!e.Function.IsStatic) {
+              Bpl.Expr wh = GetWhereClause(e.Receiver.tok, etran.TrExpr(e.Receiver), e.Receiver.Type, etran, ISALLOC, true);
+              if (wh != null) {
+                builder.Add(Assert(e.Receiver.tok, wh, "receiver argument must be allocated in the state in which the function is invoked"));
               }
-              for (int i = 0; i < e.Args.Count; i++) {
+            }
+            for (int i = 0; i < e.Args.Count; i++) {
+              Expression ee = e.Args[i];
+              Bpl.Expr wh = GetWhereClause(ee.tok, etran.TrExpr(ee), ee.Type, etran, ISALLOC, true);
+              if (wh != null) {
+                builder.Add(Assert(ee.tok, wh, "argument must be allocated in the state in which the function is invoked"));
+              }
+            }
+          } else if (e.Function is TwoStateFunction) {
+            if (!e.Function.IsStatic) {
+              Bpl.Expr wh = GetWhereClause(e.Receiver.tok, etran.TrExpr(e.Receiver), e.Receiver.Type, etran.Old, ISALLOC, true);
+              if (wh != null) {
+                builder.Add(Assert(e.Receiver.tok, wh, "receiver argument must be allocated in the two-state functions's previous state"));
+              }
+            }
+            Contract.Assert(e.Function.Formals.Count == e.Args.Count);
+            for (int i = 0; i < e.Args.Count; i++) {
+              var formal = e.Function.Formals[i];
+              if (formal.IsOld) {
                 Expression ee = e.Args[i];
-                Formal ff = e.Function.Formals[i];
-                allowance = BplAnd(allowance, Bpl.Expr.Eq(etran.TrExpr(ee), new Bpl.IdentifierExpr(e.tok, ff.AssignUniqueName(currentDeclaration.IdGenerator), TrType(ff.Type))));
+                Bpl.Expr wh = GetWhereClause(ee.tok, etran.TrExpr(ee), ee.Type, etran.Old, ISALLOC, true);
+                if (wh != null) {
+                  builder.Add(Assert(ee.tok, wh, string.Format("argument {0} ('{1}') must be allocated in the two-state function's previous state", i, formal.Name)));
+                }
               }
             }
-            string hint;
-            switch (e.CoCall) {
-              case FunctionCallExpr.CoCallResolution.NoBecauseFunctionHasSideEffects:
-                hint = "note that only functions without side effects can be called co-recursively";
-                break;
-              case FunctionCallExpr.CoCallResolution.NoBecauseFunctionHasPostcondition:
-                hint = "note that only functions without any ensures clause can be called co-recursively";
-                break;
-              case FunctionCallExpr.CoCallResolution.NoBecauseIsNotGuarded:
-                hint = "note that the call is not sufficiently guarded to be used co-recursively";
-                break;
-              case FunctionCallExpr.CoCallResolution.NoBecauseRecursiveCallsAreNotAllowedInThisContext:
-                hint = "note that calls cannot be co-recursive in this context";
-                break;
-              case FunctionCallExpr.CoCallResolution.NoBecauseRecursiveCallsInDestructiveContext:
-                hint = "note that a call can be co-recursive only if all intra-cluster calls are in non-destructive contexts";
-                break;
-              case FunctionCallExpr.CoCallResolution.No:
-                hint = null;
-                break;
-              default:
-                Contract.Assert(false);  // unexpected CoCallResolution
-                goto case FunctionCallExpr.CoCallResolution.No;  // please the compiler
+          }
+          // check that the preconditions for the call hold
+          foreach (Expression p in e.Function.Req) {
+            Expression precond = Substitute(p, e.Receiver, substMap, e.TypeArgumentSubstitutions);
+            bool splitHappened;  // we don't actually care
+            foreach (var ss in TrSplitExpr(precond, etran, true, out splitHappened)) {
+              if (ss.IsChecked) {
+                var tok = new NestedToken(expr.tok, ss.E.tok);
+                if (options.AssertKv != null) {
+                  // use the given assert attribute only
+                  builder.Add(Assert(tok, ss.E, "possible violation of function precondition", options.AssertKv));
+                } else {
+                  builder.Add(AssertNS(tok, ss.E, "possible violation of function precondition"));
+                }
+              }
             }
-            CheckCallTermination(expr.tok, contextDecreases, calleeDecreases, allowance, e.Receiver, substMap, e.TypeArgumentSubstitutions,
-              etran, etran, builder, codeContext.InferredDecreases, hint);
+            if (options.AssertKv == null) {
+              // assume only if no given assert attribute is given
+              builder.Add(TrAssumeCmd(expr.tok, etran.TrExpr(precond)));
+            }
+          }
+          if (options.DoReadsChecks) {
+            // check that the callee reads only what the caller is already allowed to read
+            var s = new Substituter(null, new Dictionary<IVariable, Expression>(), e.TypeArgumentSubstitutions, this);
+            CheckFrameSubset(expr.tok,
+              e.Function.Reads.ConvertAll(s.SubstFrameExpr),
+              e.Receiver, substMap, etran, options.AssertSink(this, builder), "insufficient reads clause to invoke function", options.AssertKv);
+          }
+
+          Bpl.Expr allowance = null;
+          if (codeContext != null && e.CoCall != FunctionCallExpr.CoCallResolution.Yes && !(e.Function is FixpointPredicate)) {
+            // check that the decreases measure goes down
+            if (ModuleDefinition.InSameSCC(e.Function, codeContext)) {
+              List<Expression> contextDecreases = codeContext.Decreases.Expressions;
+              List<Expression> calleeDecreases = e.Function.Decreases.Expressions;
+              if (e.Function == options.SelfCallsAllowance) {
+                allowance = Bpl.Expr.True;
+                if (!e.Function.IsStatic) {
+                  allowance = BplAnd(allowance, Bpl.Expr.Eq(etran.TrExpr(e.Receiver), new Bpl.IdentifierExpr(e.tok, etran.This, predef.RefType)));
+                }
+                for (int i = 0; i < e.Args.Count; i++) {
+                  Expression ee = e.Args[i];
+                  Formal ff = e.Function.Formals[i];
+                  allowance = BplAnd(allowance, Bpl.Expr.Eq(etran.TrExpr(ee), new Bpl.IdentifierExpr(e.tok, ff.AssignUniqueName(currentDeclaration.IdGenerator), TrType(ff.Type))));
+                }
+              }
+              string hint;
+              switch (e.CoCall) {
+                case FunctionCallExpr.CoCallResolution.NoBecauseFunctionHasSideEffects:
+                  hint = "note that only functions without side effects can be called co-recursively";
+                  break;
+                case FunctionCallExpr.CoCallResolution.NoBecauseFunctionHasPostcondition:
+                  hint = "note that only functions without any ensures clause can be called co-recursively";
+                  break;
+                case FunctionCallExpr.CoCallResolution.NoBecauseIsNotGuarded:
+                  hint = "note that the call is not sufficiently guarded to be used co-recursively";
+                  break;
+                case FunctionCallExpr.CoCallResolution.NoBecauseRecursiveCallsAreNotAllowedInThisContext:
+                  hint = "note that calls cannot be co-recursive in this context";
+                  break;
+                case FunctionCallExpr.CoCallResolution.NoBecauseRecursiveCallsInDestructiveContext:
+                  hint = "note that a call can be co-recursive only if all intra-cluster calls are in non-destructive contexts";
+                  break;
+                case FunctionCallExpr.CoCallResolution.No:
+                  hint = null;
+                  break;
+                default:
+                  Contract.Assert(false);  // unexpected CoCallResolution
+                  goto case FunctionCallExpr.CoCallResolution.No;  // please the compiler
+              }
+              CheckCallTermination(expr.tok, contextDecreases, calleeDecreases, allowance, e.Receiver, substMap, e.TypeArgumentSubstitutions,
+                etran, etran, builder, codeContext.InferredDecreases, hint);
+            }
+          }
+          // all is okay, so allow this function application access to the function's axiom, except if it was okay because of the self-call allowance.
+          Bpl.IdentifierExpr canCallFuncID = new Bpl.IdentifierExpr(expr.tok, e.Function.FullSanitizedName + "#canCall", Bpl.Type.Bool);
+          List<Bpl.Expr> args = etran.FunctionInvocationArguments(e, null);
+          Bpl.Expr canCallFuncAppl = new Bpl.NAryExpr(expr.tok, new Bpl.FunctionCall(canCallFuncID), args);
+          builder.Add(TrAssumeCmd(expr.tok, allowance == null ? canCallFuncAppl : Bpl.Expr.Or(allowance, canCallFuncAppl)));
+
+          var returnType = e.Type.AsDatatype;
+          if (returnType != null && returnType.Ctors.Count == 1) {
+            var correctConstructor = FunctionCall(e.tok, returnType.Ctors[0].QueryField.FullSanitizedName, Bpl.Type.Bool, etran.TrExpr(e));
+            // There is only one constructor, so the value must be been constructed by it; might as well assume that here.
+            builder.Add(TrAssumeCmd(expr.tok, correctConstructor));
           }
         }
-        // all is okay, so allow this function application access to the function's axiom, except if it was okay because of the self-call allowance.
-        Bpl.IdentifierExpr canCallFuncID = new Bpl.IdentifierExpr(expr.tok, e.Function.FullSanitizedName + "#canCall", Bpl.Type.Bool);
-        List<Bpl.Expr> args = etran.FunctionInvocationArguments(e, null);
-        Bpl.Expr canCallFuncAppl = new Bpl.NAryExpr(expr.tok, new Bpl.FunctionCall(canCallFuncID), args);
-        builder.Add(TrAssumeCmd(expr.tok, allowance == null ? canCallFuncAppl : Bpl.Expr.Or(allowance, canCallFuncAppl)));
- 
-        var returnType = e.Type.AsDatatype;
-        if (returnType != null && returnType.Ctors.Count == 1) {
-          var correctConstructor = FunctionCall(e.tok, returnType.Ctors[0].QueryField.FullSanitizedName, Bpl.Type.Bool, etran.TrExpr(e));
-          // There is only one constructor, so the value must be been constructed by it; might as well assume that here.
-          builder.Add(TrAssumeCmd(expr.tok, correctConstructor));
-        }
-        
       } else if (expr is DatatypeValue) {
         DatatypeValue dtv = (DatatypeValue)expr;
         for (int i = 0; i < dtv.Ctor.Formals.Count; i++) {
@@ -6407,6 +6416,21 @@ namespace Microsoft.Dafny {
           builder.Add(TrAssumeCmd(expr.tok, MkIsAlloc(result, resultType, etran.HeapExpr)));
         }
         builder.Add(TrAssumeCmd(expr.tok, MkIs(result, resultType)));
+      }
+    }
+
+    void CheckWellformedSpecialFunction(FunctionCallExpr expr, WFOptions options, Bpl.Expr result, Type resultType, List<Bpl.Variable> locals,
+                               BoogieStmtListBuilder builder, ExpressionTranslator etran) {
+      Contract.Requires(expr.Function is SpecialFunction);
+
+      string name = expr.Function.Name;
+      CheckWellformed(expr.Receiver, options, locals, builder, etran);
+      if (name == "RotateLeft" || name == "RotateRight") {
+        var w = ((BitvectorType)expr.Type).Width;
+        Expression arg = expr.Args[0];
+        builder.Add(Assert(expr.tok, Bpl.Expr.Le(Bpl.Expr.Literal(0), etran.TrExpr(arg)), "shift amount must be non-negative", options.AssertKv));
+        var upperMsg = string.Format("shift amount must not exceed the width of the result ({0})", w);
+        builder.Add(Assert(expr.tok, Bpl.Expr.Le(etran.TrExpr(arg), Bpl.Expr.Literal(w)), upperMsg, options.AssertKv));
       }
     }
 
@@ -12492,47 +12516,51 @@ namespace Microsoft.Dafny {
 
         } else if (expr is FunctionCallExpr) {
           FunctionCallExpr e = (FunctionCallExpr)expr;
-          Bpl.Expr layerArgument;
-          var etran = this;
-          if (e.Function.ContainsQuantifier && translator.stmtContext == StmtType.ASSUME && translator.adjustFuelForExists) {
-            // we need to increase fuel functions that contain quantifier expr in the assume context.
-            etran =  etran.LayerOffset(1);
-            translator.adjustFuelForExists = false;
-          } 
-          if (e.Function.IsFuelAware()) {
-            Statistics_CustomLayerFunctionCount++;
-            ModuleDefinition module = e.Function.EnclosingClass.Module;
-            if (etran.applyLimited_CurrentFunction != null &&
-              etran.layerIntraCluster != null &&
-              ModuleDefinition.InSameSCC(e.Function, applyLimited_CurrentFunction)) {
-              layerArgument = etran.layerIntraCluster.GetFunctionFuel(e.Function);
-            } else {
-              layerArgument = etran.layerInterCluster.GetFunctionFuel(e.Function);
-            }
+          if (e.Function is SpecialFunction) {
+            return TrExprSpecialFunctionCall(e);
           } else {
-            layerArgument = null;
-          }
+            Bpl.Expr layerArgument;
+            var etran = this;
+            if (e.Function.ContainsQuantifier && translator.stmtContext == StmtType.ASSUME && translator.adjustFuelForExists) {
+              // we need to increase fuel functions that contain quantifier expr in the assume context.
+              etran = etran.LayerOffset(1);
+              translator.adjustFuelForExists = false;
+            }
+            if (e.Function.IsFuelAware()) {
+              Statistics_CustomLayerFunctionCount++;
+              ModuleDefinition module = e.Function.EnclosingClass.Module;
+              if (etran.applyLimited_CurrentFunction != null &&
+                etran.layerIntraCluster != null &&
+                ModuleDefinition.InSameSCC(e.Function, applyLimited_CurrentFunction)) {
+                layerArgument = etran.layerIntraCluster.GetFunctionFuel(e.Function);
+              } else {
+                layerArgument = etran.layerInterCluster.GetFunctionFuel(e.Function);
+              }
+            } else {
+              layerArgument = null;
+            }
 
-          var ty = translator.TrType(e.Type);
-          var name = e.Function.FullSanitizedName;
-          if (DafnyOptions.O.IronDafny) {
-            name = e.Function.FullSanitizedRefinementName;
-          }
-          var id = new Bpl.IdentifierExpr(e.tok, name, ty);
+            var ty = translator.TrType(e.Type);
+            var name = e.Function.FullSanitizedName;
+            if (DafnyOptions.O.IronDafny) {
+              name = e.Function.FullSanitizedRefinementName;
+            }
+            var id = new Bpl.IdentifierExpr(e.tok, name, ty);
 
-          bool argsAreLit;
-          var args = FunctionInvocationArguments(e, layerArgument, out argsAreLit);
-          Expr result = new Bpl.NAryExpr(e.tok, new Bpl.FunctionCall(id), args);
-          result = translator.CondApplyUnbox(e.tok, result, e.Function.ResultType, e.Type);
-          
-          bool callIsLit = argsAreLit 
-            && Translator.FunctionBodyIsAvailable(e.Function, translator.currentModule, translator.currentScope, true)
-            && !e.Function.Reads.Any(); // Function could depend on external values
-          if (callIsLit) {
-            result = MaybeLit(result, ty);
-          }
+            bool argsAreLit;
+            var args = FunctionInvocationArguments(e, layerArgument, out argsAreLit);
+            Expr result = new Bpl.NAryExpr(e.tok, new Bpl.FunctionCall(id), args);
+            result = translator.CondApplyUnbox(e.tok, result, e.Function.ResultType, e.Type);
 
-          return result;
+            bool callIsLit = argsAreLit
+              && Translator.FunctionBodyIsAvailable(e.Function, translator.currentModule, translator.currentScope, true)
+              && !e.Function.Reads.Any(); // Function could depend on external values
+            if (callIsLit) {
+              result = MaybeLit(result, ty);
+            }
+
+            return result;
+          }
         } else if (expr is DatatypeValue) {
           DatatypeValue dtv = (DatatypeValue)expr;
           Contract.Assert(dtv.Ctor != null);  // since dtv has been successfully resolved
@@ -13230,6 +13258,21 @@ namespace Microsoft.Dafny {
         }
       }
 
+      public Expr TrExprSpecialFunctionCall(FunctionCallExpr expr) {
+        Contract.Requires(expr.Function is SpecialFunction);
+        string name = expr.Function.Name;
+        if (name == "RotateLeft") {
+          var w = ((BitvectorType)expr.Type).Width;
+          Expression arg = expr.Args[0];
+          return TrToFunctionCall(expr.tok, "LeftRotate_bv" + w, translator.BplBvType(w), TrExpr(expr.Receiver), translator.ConvertExpression(expr.tok, TrExpr(arg), arg.Type, expr.Type), false);
+        } else if (name == "RotateRight") {
+          var w = ((BitvectorType)expr.Type).Width;
+          Expression arg = expr.Args[0];
+          return TrToFunctionCall(expr.tok, "RightRotate_bv" + w, translator.BplBvType(w), TrExpr(expr.Receiver), translator.ConvertExpression(expr.tok, TrExpr(arg), arg.Type, expr.Type), false);
+        } else {
+          Contract.Assert(false); throw new cce.UnreachableException();  // unexpected special function
+        }
+      }
       public Expr TrToFunctionCall(IToken tok, string function, Bpl.Type returnType, Bpl.Expr e0, Bpl.Expr e1, bool liftLit) {
         Bpl.Expr re = translator.FunctionCall(tok, function, returnType, e0, e1);
         if (liftLit) {
