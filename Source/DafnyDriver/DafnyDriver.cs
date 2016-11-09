@@ -415,7 +415,7 @@ namespace Microsoft.Dafny
 
     static string WriteDafnyProgramToFile(string dafnyProgramName, string csharpProgram, bool completeProgram, TextWriter outputWriter)
     {
-      string targetFilename = Path.ChangeExtension(dafnyProgramName, "cs");
+      string targetFilename = Path.ChangeExtension(dafnyProgramName, (DafnyOptions.O.Kremlin) ? "json" : "cs");
       using (TextWriter target = new StreamWriter(new FileStream(targetFilename, System.IO.FileMode.Create))) {
         target.Write(csharpProgram);
         string relativeTarget = Path.GetFileName(targetFilename);
@@ -441,7 +441,7 @@ namespace Microsoft.Dafny
 
       // Compile the Dafny program into a string that contains the C# program
       StringWriter sw = new StringWriter();
-      Dafny.Compiler compiler = new Dafny.Compiler();
+      Dafny.ICompiler compiler = (DafnyOptions.O.Kremlin) ? (Dafny.ICompiler)new Dafny.KremlinCompiler() : (Dafny.ICompiler)new Dafny.Compiler();
       compiler.ErrorWriter = outputWriter;
       var hasMain = compiler.HasMain(dafnyProgram);
       compiler.Compile(dafnyProgram, sw);
@@ -461,7 +461,11 @@ namespace Microsoft.Dafny
         // don't compile
         return false;
       }
-      else if (!CodeDomProvider.IsDefinedLanguage("CSharp"))
+      else if (DafnyOptions.O.Kremlin) 
+      {
+        return true;
+      }
+      else if (!CodeDomProvider.IsDefinedLanguage("CSharp")) 
       {
         outputWriter.WriteLine("Error: cannot compile, because there is no provider configured for input language CSharp");
         return false;

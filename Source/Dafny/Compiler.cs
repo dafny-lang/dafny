@@ -14,7 +14,14 @@ using System.Text;
 
 
 namespace Microsoft.Dafny {
-  public class Compiler {
+  public interface ICompiler {
+    int ErrorCount { get; }
+    TextWriter ErrorWriter { get; set; }
+    void Compile(Program program, TextWriter wr);
+    bool HasMain(Program program);
+  }
+
+  public class Compiler : ICompiler {
     public Compiler() {
   
     }
@@ -41,8 +48,22 @@ namespace Microsoft.Dafny {
       return n;
     }
 
-    public int ErrorCount;
-    public TextWriter ErrorWriter = Console.Out;
+    public int ErrorCount {
+      get {
+        return errorCount;
+      }
+    }
+    int errorCount;
+
+    public TextWriter ErrorWriter {
+      get {
+        return errorWriter;
+      }
+      set {
+        errorWriter = value;
+      }
+    }
+    TextWriter errorWriter = Console.Out;
 
     void Error(string msg, TextWriter wr, params object[] args) {
       Contract.Requires(msg != null);
@@ -51,7 +72,7 @@ namespace Microsoft.Dafny {
       string s = string.Format("Compilation error: " + msg, args);
       ErrorWriter.WriteLine(s);
       wr.WriteLine("/* {0} */", s);
-      ErrorCount++;
+      errorCount++;
     }
 
     void ReadRuntimeSystem(TextWriter wr) {
@@ -802,7 +823,7 @@ namespace Microsoft.Dafny {
                 } else {
                   // more than one main in the program
                   ErrorWriter.WriteLine("More than one method is declared as \"main\"");
-                  ErrorCount++;
+                  errorCount++;
                   hasMain = false;
                 }
               }

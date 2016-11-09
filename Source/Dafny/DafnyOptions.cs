@@ -82,6 +82,7 @@ namespace Microsoft.Dafny
     public bool UseRuntimeLib = false;
     public bool DisableScopes = false;
     public int Allocated = 2;
+    public bool Kremlin = false; // True emits a Kremlin AST in place of C# code
     public bool IronDafny = 
 #if ENABLE_IRONDAFNY 
       true
@@ -286,6 +287,11 @@ namespace Microsoft.Dafny
             ps.GetNumericArgument(ref Allocated, 3);
             return true;
         }
+
+        case "kremlin": {
+            Kremlin = true;
+            return true;
+          }
 
         case "noIronDafny": {
             IronDafny = false;
@@ -521,6 +527,7 @@ namespace Microsoft.Dafny
                 these features may cause your code to become incompatible with future
                 releases of Dafny.
   /noIronDafny  Disable Ironclad/Ironfleet features, if enabled by default.
+  /kremlin      Emit Kremlin AST instead of C# code
   /printTooltips    
                 Dump additional positional information (displayed as mouse-over tooltips by 
                 the VS plugin) to stdout as 'Info' messages.
