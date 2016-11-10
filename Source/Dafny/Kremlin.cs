@@ -988,7 +988,19 @@ namespace Microsoft.Dafny {
       }
     }
 
+    bool IsExtractableMethod(Method m) {
+      Contract.Assert(m != null);
 
+      // Do not extract any lemma
+      if (m is Lemma ||
+        m is TwoStateLemma ||
+        m is PrefixLemma ||
+        m is FixpointLemma /* base for InductiveLemma and CoLemma */) {
+        return false;
+      }
+
+      return true;
+    }
 
     void CompileClassMembers(ClassDecl c) {
       Contract.Requires(c != null);
@@ -1084,36 +1096,44 @@ namespace Microsoft.Dafny {
           }
         } else if (member is Method) {
           var m = (Method)member;
-          if (m.Body == null && !(c is TraitDecl && !m.IsStatic)) {
-            // A (ghost or non-ghost) method must always have a body, except if it's an instance method in a trait.
-            if (forCompanionClass /* || Attributes.Contains(m.Attributes, "axiom") */ ) {
-              // suppress error message (in the case of "forCompanionClass", the non-forCompanionClass call will produce the error message)
-            } else {
-              // The C# backend ignores functions that are axioms.  But for
-              // the Spartan scenario, treat these as extern functions.
+          if (IsExtractableMethod(m)) {
+            if (m.Body == null && !(c is TraitDecl && !m.IsStatic)) {
+              // A (ghost or non-ghost) method must always have a body, except if it's an instance method in a trait.
+              if (forCompanionClass /* || Attributes.Contains(m.Attributes, "axiom") */ ) {
+                // suppress error message (in the case of "forCompanionClass", the non-forCompanionClass call will produce the error message)
+              }
+              else {
+                // The C# backend ignores functions that are axioms.  But for
+                // the Spartan scenario, treat these as extern functions.
+                WriteToken(member.tok);
+                CompileExternalMethod(c, m);
+              }
+            }
+            else if (m.IsGhost) {
+              // nothing to compile, but we do check for assumes
+              if (m.Body == null) {
+                Contract.Assert(c is TraitDecl && !m.IsStatic);
+              }
+              else {
+                var v = new CheckHasNoAssumes_VisitorJ(this, j);
+                v.Visit(m.Body);
+              }
+            }
+            else if (c is TraitDecl && !forCompanionClass) {
+              // include it, unless it's static
+              if (!m.IsStatic) {
+                j.WriteComment("BUGBUG TraitDecl not supported: " + m.CompileName); // bugbug: implement
+              }
+            }
+            else if (forCompanionClass && !m.IsStatic) {
+              // companion classes only has static members
+            }
+            else {
               WriteToken(member.tok);
-              CompileExternalMethod(c, m);
+              enclosingThis = (m.IsStatic) ? null : new BoundVar(c.tok, ThisName, thisType);
+              CompileMethod(c, m);
+              enclosingThis = null;
             }
-          } else if (m.IsGhost) {
-            // nothing to compile, but we do check for assumes
-            if (m.Body == null) {
-              Contract.Assert(c is TraitDecl && !m.IsStatic);
-            } else {
-              var v = new CheckHasNoAssumes_VisitorJ(this, j);
-              v.Visit(m.Body);
-            }
-          } else if (c is TraitDecl && !forCompanionClass) {
-            // include it, unless it's static
-            if (!m.IsStatic) {
-              j.WriteComment("BUGBUG TraitDecl not supported: " + m.CompileName); // bugbug: implement
-            }
-          } else if (forCompanionClass && !m.IsStatic) {
-            // companion classes only has static members
-          } else {
-            WriteToken(member.tok);
-            enclosingThis = (m.IsStatic) ? null : new BoundVar(c.tok, ThisName, thisType);
-            CompileMethod(c, m);
-            enclosingThis = null;
           }
         } else {
           Contract.Assert(false); throw new cce.UnreachableException();  // unexpected member
