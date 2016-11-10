@@ -106,5 +106,13 @@ BitvectorsMore.dfy(171,30): Error: shift amount must not exceed the width of the
 Execution trace:
     (0,0): anon0
     (0,0): anon10_Then
+BitvectorsMore.dfy(193,26): Error: shift amount must not exceed the width of the result (5)
+Execution trace:
+    (0,0): anon0
+    (0,0): anon4_Then
+BitvectorsMore.dfy(194,26): Error: shift amount must not exceed the width of the result (5)
+Execution trace:
+    (0,0): anon0
+    (0,0): anon5_Then
 
-Dafny program verifier finished with 15 verified, 28 errors
+Dafny program verifier finished with 16 verified, 30 errors

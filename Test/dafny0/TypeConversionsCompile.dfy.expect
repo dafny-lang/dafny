@@ -21,6 +21,14 @@ module _System {
     function reads(): set<object>
       reads reads()
   }
+
+  class {:compile false} _#Func1<T0, T1> {
+    function requires(x0: T0): bool
+      reads reads(x0)
+
+    function reads(x0: T0): set<object>
+      reads reads(x0)
+  }
 }
 // bitvector types in use: bv67 bv32 bv7 bv0
 */

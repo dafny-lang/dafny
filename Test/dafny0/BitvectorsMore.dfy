@@ -187,3 +187,15 @@ method TestActualShifting()
   assert b >> 1 == 0x0C;
   assert b >> 2 == 6;
 }
+
+method Rotate() returns (x: nat, bb: bv5) {
+   if {
+    case true => bb := bb.RotateLeft(x);  // error: rotate amount may exceed 5
+    case true => bb := bb.RotateRight(x);  // error: rotate amount may exceed 5
+  }
+}
+
+method TestActualRotate() {
+  var a: bv5 := 12;
+	assert a == a.RotateLeft(3).RotateRight(3);
+}

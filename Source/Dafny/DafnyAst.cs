@@ -1595,6 +1595,7 @@ namespace Microsoft.Dafny {
         }
       }
     }
+
     [Pure]
     public override string TypeName(ModuleDefinition context, bool parseAble) {
       return "bv" + Width;
@@ -1602,6 +1603,29 @@ namespace Microsoft.Dafny {
     public override bool Equals(Type that) {
       var bv = that.NormalizeExpand() as BitvectorType;
       return bv != null && bv.Width == Width;
+    }
+  }
+
+  public class SelfType : NonProxyType
+  {
+    public TypeParameter TypeArg;
+    public SelfType() : base() {
+      TypeArg = new TypeParameter(Token.NoToken, "selfType");
+    }
+
+    [Pure]
+    public override string TypeName(ModuleDefinition context, bool parseAble) {
+      return "selftype";
+    }
+    public override bool Equals(Type that) {
+      return that.NormalizeExpand() is SelfType;
+    }
+
+    public override bool PossiblyEquals_W(Type that) {
+      return Equals(that);
+    }
+    public override bool IsSupertypeOf_WithSubsetTypes(Type that) {
+      return Equals(that);
     }
   }
 
@@ -2955,6 +2979,7 @@ namespace Microsoft.Dafny {
     public static bool InSameSCC(ICallable a, ICallable b) {
       Contract.Requires(a != null);
       Contract.Requires(b != null);
+      if (a is SpecialFunction || b is SpecialFunction) { return false; }
       var module = a.EnclosingModule;
       return module == b.EnclosingModule && module.CallGraph.GetSCCRepresentative(a) == module.CallGraph.GetSCCRepresentative(b);
     }
@@ -3748,6 +3773,16 @@ namespace Microsoft.Dafny {
       IsUserMutable = isUserMutable;
       Type = type;
     }
+  }
+
+  public class SpecialFunction : Function
+  {
+    public SpecialFunction(IToken tok, string name, bool hasStaticKeyword, bool isProtected, bool isGhost,
+                    List<TypeParameter> typeArgs, List<Formal> formals, Type resultType,
+                    List<Expression> req, List<FrameExpression> reads, List<Expression> ens, Specification<Expression> decreases,
+                    Expression body, Attributes attributes, IToken signatureEllipsis)
+      : base(tok, name, hasStaticKeyword, isProtected, isGhost, typeArgs, formals, resultType, req, reads, ens, decreases, body, attributes, signatureEllipsis) 
+    { }
   }
 
   public class SpecialField : Field

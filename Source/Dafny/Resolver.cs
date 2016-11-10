@@ -198,6 +198,7 @@ namespace Microsoft.Dafny
       new Dictionary<string, MemberDecl>(),
       new Dictionary<string, MemberDecl>()
     };
+    private Dictionary<TypeParameter, Type> SelfTypeSubstitution;
     readonly Graph<ModuleDecl> dependencies = new Graph<ModuleDecl>();
     private ModuleSignature systemNameInfo = null;
     private bool useCompileSignatures = false;
@@ -214,6 +215,19 @@ namespace Microsoft.Dafny
       var floor = new SpecialField(Token.NoToken, "Floor", "ToBigInteger()", "", "", false, false, false, Type.Int, null);
       floor.AddVisibilityScope(prog.BuiltIns.SystemModule.VisibilityScope, false);
       basicTypeMembers[(int)BasicTypeVariety.Real].Add(floor.Name, floor);
+
+      List<Formal> formals = new List<Formal>();
+      formals.Add(new Formal(Token.NoToken, "w", new UserDefinedType(Token.NoToken, "nat", null), true, false, false));
+      var rotateLeft = new SpecialFunction(Token.NoToken, "RotateLeft", false, false, false, new List<TypeParameter>(), formals, new SelfType(),
+        new List<Expression>(), new List<FrameExpression>(), new List<Expression>(), new Specification<Expression>(new List<Expression>(), null), null, null, null);
+      rotateLeft.AddVisibilityScope(prog.BuiltIns.SystemModule.VisibilityScope, false);
+      basicTypeMembers[(int)BasicTypeVariety.Bitvector].Add(rotateLeft.Name, rotateLeft);
+      builtIns.CreateArrowTypeDecl(formals.Count);
+
+      var rotateRight = new SpecialFunction(Token.NoToken, "RotateRight", false, false, false, new List<TypeParameter>(), formals, new SelfType(),
+        new List<Expression>(), new List<FrameExpression>(), new List<Expression>(), new Specification<Expression>(new List<Expression>(), null), null, null, null);
+      rotateLeft.AddVisibilityScope(prog.BuiltIns.SystemModule.VisibilityScope, false);
+      basicTypeMembers[(int)BasicTypeVariety.Bitvector].Add(rotateRight.Name, rotateRight);
     }
 
     [ContractInvariantMethod]
@@ -304,6 +318,7 @@ namespace Microsoft.Dafny
       systemNameInfo = RegisterTopLevelDecls(prog.BuiltIns.SystemModule, false);
       prog.CompileModules.Add(prog.BuiltIns.SystemModule);
       RevealAllInScope(prog.BuiltIns.SystemModule.TopLevelDecls, systemNameInfo.VisibilityScope);
+      ResolveBasicTypeMembers();
 
       // first, we need to detect which top-level modules have exclusive refinement relationships.
       foreach (ModuleDecl decl in sortedDecls) {
@@ -774,6 +789,18 @@ namespace Microsoft.Dafny
       }
     }
 
+    private void ResolveBasicTypeMembers() {
+      moduleInfo = systemNameInfo;
+      foreach (var entry in basicTypeMembers) {
+        foreach (var kv in entry) {
+          if (kv.Value is Function) {
+            ResolveFunctionSignature((Function)kv.Value);
+          } else if (kv.Value is Method) {
+            ResolveMethodSignature((Method)kv.Value);
+          }
+        }
+      }
+    }
 
     private void ResolveModuleDefinition(ModuleDefinition m, ModuleSignature sig) {
       Contract.Requires(AllTypeConstraints.Count == 0);
@@ -7146,7 +7173,7 @@ namespace Microsoft.Dafny
                 }
               }
               var caller = context as ICallable;
-              if (caller != null) {
+              if (caller != null && !(caller is SpecialFunction)) {
                 caller.EnclosingModule.CallGraph.AddEdge(caller, dd);
                 if (caller == dd) {
                   // detect self-loops here, since they don't show up in the graph's SSC methods
@@ -7192,7 +7219,8 @@ namespace Microsoft.Dafny
         if (t.T != null) {
           ResolveType(tok, t.T, context, option, defaultTypeArguments);
         }
-
+      } else if (type is SelfType) {
+        // do nothing.
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected type
       }
@@ -9080,6 +9108,14 @@ namespace Microsoft.Dafny
         MemberDecl member;
         if (basicTypeMembers[(int)basic].TryGetValue(memberName, out member)) {
           nptype = (NonProxyType)receiverType;
+          if (member is SpecialFunction) {
+            SelfType resultType = ((SpecialFunction)member).ResultType as SelfType;
+            if (resultType != null) {
+              // only one at a time.
+              SelfTypeSubstitution = new Dictionary<TypeParameter, Type>();
+              SelfTypeSubstitution.Add(resultType.TypeArg, receiverType);
+            }
+          }
           return member;
         }
       }
@@ -9263,6 +9299,13 @@ namespace Microsoft.Dafny
 
       if (type is BasicType) {
         return type;
+      } else if (type is SelfType) {
+        Type t;
+        if (subst.TryGetValue(((SelfType)type).TypeArg, out t)) {
+          return cce.NonNull(t);
+        } else {
+          Contract.Assert(false); throw new cce.UnreachableException();  // unresolved SelfType
+        }
       } else if (type is MapType) {
         var t = (MapType)type;
         var dom = SubstType(t.Domain, subst);
@@ -9595,6 +9638,7 @@ namespace Microsoft.Dafny
             subst[tp] = prox;
             e.TypeApplication.Add(prox);
           }
+          subst = BuildTypeArgumentSubstitute(subst);
           e.Type = new ArrowType(fn.tok, fn.Formals.ConvertAll(f => SubstType(f.Type, subst)), SubstType(fn.ResultType, subst), builtIns.SystemModule);
           AddCallGraphEdge(opts.codeContext, fn, e);
         } else if (member is Field) {
@@ -11305,6 +11349,7 @@ namespace Microsoft.Dafny
           rr.TypeApplication.Add(ta);
           subst.Add(fn.TypeArgs[i], ta);
         }
+        subst = BuildTypeArgumentSubstitute(subst);
         rr.Type = new ArrowType(fn.tok, fn.Formals.ConvertAll(f => SubstType(f.Type, subst)), SubstType(fn.ResultType, subst), builtIns.SystemModule);
         AddCallGraphEdge(opts.codeContext, fn, rr);
       } else {
@@ -11438,13 +11483,17 @@ namespace Microsoft.Dafny
               Contract.Assert(callee.Formals.Count == rr.Args.Count);  // this should have been checked already
               // build the type substitution map
               rr.TypeArgumentSubstitutions = new Dictionary<TypeParameter, Type>();
-              Contract.Assert(mse.TypeApplication.Count == callee.EnclosingClass.TypeArgs.Count + callee.TypeArgs.Count);
-              for (int i = 0; i < callee.EnclosingClass.TypeArgs.Count; i++) {
+              int enclosingTypeArgsCount = callee.EnclosingClass == null ? 0 : callee.EnclosingClass.TypeArgs.Count;
+              Contract.Assert(mse.TypeApplication.Count == enclosingTypeArgsCount + callee.TypeArgs.Count);
+              for (int i = 0; i < enclosingTypeArgsCount; i++) {
                 rr.TypeArgumentSubstitutions.Add(callee.EnclosingClass.TypeArgs[i], mse.TypeApplication[i]);
               }
+
               for (int i = 0; i < callee.TypeArgs.Count; i++) {
-                rr.TypeArgumentSubstitutions.Add(callee.TypeArgs[i], mse.TypeApplication[callee.EnclosingClass.TypeArgs.Count + i]);
+                rr.TypeArgumentSubstitutions.Add(callee.TypeArgs[i], mse.TypeApplication[enclosingTypeArgsCount + i]);
               }
+              Dictionary<TypeParameter, Type> subst = BuildTypeArgumentSubstitute(rr.TypeArgumentSubstitutions);
+              
               // type check the arguments
 #if DEBUG
               Contract.Assert(callee.Formals.Count == fnType.Arity);
@@ -11452,12 +11501,12 @@ namespace Microsoft.Dafny
                 Expression farg = rr.Args[i];
                 Contract.Assert(farg.WasResolved());
                 Contract.Assert(farg.Type != null);
-                Type s = SubstType(callee.Formals[i].Type, rr.TypeArgumentSubstitutions);
+                Type s = SubstType(callee.Formals[i].Type, subst);
                 Contract.Assert(s.Equals(fnType.Args[i]));
                 Contract.Assert(farg.Type.Equals(e.Args[i].Type));
               }
 #endif
-              rr.Type = SubstType(callee.ResultType, rr.TypeArgumentSubstitutions).StripSubsetConstraints();
+              rr.Type = SubstType(callee.ResultType, subst).StripSubsetConstraints();
               // further bookkeeping
               if (callee is FixpointPredicate) {
                 ((FixpointPredicate)callee).Uses.Add(rr);
@@ -11479,6 +11528,22 @@ namespace Microsoft.Dafny
         e.Type = r.Type;
       }
       return null;
+    }
+
+    private Dictionary<TypeParameter, Type> BuildTypeArgumentSubstitute(Dictionary<TypeParameter, Type> typeArgumentSubstitutions) {
+      Contract.Requires(typeArgumentSubstitutions != null);
+
+      Dictionary<TypeParameter, Type> subst = new Dictionary<TypeParameter, Type>();
+      foreach (var entry in typeArgumentSubstitutions) {
+        subst.Add(entry.Key, entry.Value);
+      }
+
+      if (SelfTypeSubstitution != null) {
+        foreach (var entry in SelfTypeSubstitution) {
+          subst.Add(entry.Key, entry.Value);
+        }
+      }
+      return subst;
     }
 
     private void ResolveDatatypeValue(ResolveOpts opts, DatatypeValue dtv, DatatypeDecl dt) {
@@ -11769,15 +11834,17 @@ namespace Microsoft.Dafny
           foreach (TypeParameter p in function.TypeArgs) {
             e.TypeArgumentSubstitutions.Add(p, new ParamTypeProxy(p));
           }
+          Dictionary<TypeParameter, Type> subst = BuildTypeArgumentSubstitute(e.TypeArgumentSubstitutions);
+     
           // type check the arguments
           for (int i = 0; i < function.Formals.Count; i++) {
             Expression farg = e.Args[i];
             ResolveExpression(farg, opts);
             Contract.Assert(farg.Type != null);  // follows from postcondition of ResolveExpression
-            Type s = SubstType(function.Formals[i].Type, e.TypeArgumentSubstitutions);
+            Type s = SubstType(function.Formals[i].Type, subst);
             ConstrainSubtypeRelation(s, farg.Type, e, "incorrect type of function argument {0} (expected {1}, got {2})", i, s, farg.Type);
           }
-          e.Type = SubstType(function.ResultType, e.TypeArgumentSubstitutions).StripSubsetConstraints();
+          e.Type = SubstType(function.ResultType, subst).StripSubsetConstraints();
         }
 
         AddCallGraphEdge(opts.codeContext, function, e);
@@ -11790,7 +11857,7 @@ namespace Microsoft.Dafny
       Contract.Requires(e != null);
       // Resolution termination check
       ModuleDefinition callerModule = callingContext.EnclosingModule;
-      ModuleDefinition calleeModule = function.EnclosingClass.Module;
+      ModuleDefinition calleeModule = function is SpecialFunction ? null : function.EnclosingClass.Module;
       if (callerModule == calleeModule) {
         // intra-module call; add edge in module's call graph
         var caller = callingContext as ICallable;

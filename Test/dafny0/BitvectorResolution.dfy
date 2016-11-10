@@ -35,8 +35,12 @@ module OrdinaryTypeChecking {
     x := b67 << 3;  // error: result not assignable to an int
     x := b67 << 3 as int;  // error: ditto (the "as" applies only to the "3")
     x := (b67 << 3) as int;
+    x := b67.RotateLeft(3);
+    x := b67.RotateRight(3);
     b67 := b67 << r;  // error: cannot shift by a real
     b67 := b67 << small;  // error: cannot shift by a real
+    b67 := b67.RotateLeft(r);
+    b67 := b67.RotateLeft(small);
     b67 := b67 << x;
     b67 := b67 << n;
     b67 := b67 << h;

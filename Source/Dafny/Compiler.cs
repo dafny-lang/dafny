@@ -2583,7 +2583,11 @@ namespace Microsoft.Dafny {
 
       } else if (expr is FunctionCallExpr) {
         FunctionCallExpr e = (FunctionCallExpr)expr;
-        CompileFunctionCallExpr(e, wr, wr, inLetExprBody, TrExpr);
+        if (e.Function is SpecialFunction) {
+          CompileSpecialFunctionCallExpr(e, wr, inLetExprBody, TrExpr);
+        } else {
+          CompileFunctionCallExpr(e, wr, wr, inLetExprBody, TrExpr);
+        }
 
       } else if (expr is ApplyExpr) {
         var e = expr as ApplyExpr;
@@ -3425,6 +3429,64 @@ namespace Microsoft.Dafny {
 
     delegate void FCE_Arg_Translator(Expression e, TextWriter wr, bool inLetExpr=false);
 
+    void CompileSpecialFunctionCallExpr(FunctionCallExpr e, TextWriter wr, bool inLetExprBody, FCE_Arg_Translator tr) {
+      string name = e.Function.Name;
+      
+      if (name == "RotateLeft") {
+        CompileRotate(e.Receiver, e.Args[0], "<<", ">>", true, false, wr, inLetExprBody, tr);
+      } else if (name == "RotateRight") {
+        CompileRotate(e.Receiver, e.Args[0], ">>", "<<", false, true, wr, inLetExprBody, tr);
+      }
+    }
+
+    void CompileRotate(Expression e0, Expression e1, string op1, string op2, bool truncateOp1, bool truncateOp2, TextWriter wr, bool inLetExprBody, FCE_Arg_Translator tr) {
+      NativeType nativeType = AsNativeType(e0.Type);
+      bool needsCast = nativeType != null && nativeType.NeedsCastAfterArithmetic;
+      // ( e0 op1 e1) | (e0 op2 (width - e1))
+      if (needsCast) {
+        wr.Write("(" + nativeType.Name + ")(");
+      }
+      wr.Write("(");
+      CompileShift(e0, e1, op1, truncateOp1, nativeType, true, wr, inLetExprBody, tr);
+      wr.Write(")");
+
+      wr.Write (" | ");
+
+      wr.Write("(");
+      CompileShift(e0, e1, op2, truncateOp2, nativeType, false, wr, inLetExprBody, tr);
+      wr.Write(")");
+
+      if (needsCast) {
+        wr.Write(")");
+      }
+    }
+
+    void CompileShift(Expression e0, Expression e1, string op, bool truncate, NativeType nativeType, bool firstOp, TextWriter wr, bool inLetExprBody, FCE_Arg_Translator tr) {
+      BitvectorType bv = (BitvectorType)e0.Type;
+      bool needsCast = nativeType != null && nativeType.NeedsCastAfterArithmetic;
+      if (truncate) {
+        BitvectorTruncation(bv, wr, false, true);
+      }
+      tr(e0, wr, false);
+      wr.Write(" {0} ", op);
+      if (needsCast) {
+        wr.Write("(" + nativeType.Name + ")(");
+      }
+      if (!firstOp) {
+        wr.Write("({0} -", bv.Width);
+      }
+      tr(e1, wr, inLetExprBody);
+      if (!firstOp) {
+        wr.Write(")");
+      }
+      if (needsCast) {
+        wr.Write(")");
+      }
+      if (truncate) {
+        BitvectorTruncation(bv, wr, true, true);
+      }
+    }
+    
     void CompileFunctionCallExpr(FunctionCallExpr e, TextWriter twr, TextWriter wr, bool inLetExprBody, FCE_Arg_Translator tr) {
       Contract.Requires(e != null && e.Function != null);
       Contract.Requires(twr != null);
