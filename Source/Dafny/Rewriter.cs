@@ -978,6 +978,7 @@ namespace Microsoft.Dafny
       Attributes lemma_attrs = new Attributes("axiom", new List<Expression>(), null);
       lemma_attrs = new Attributes("auto_generated", new List<Expression>(), lemma_attrs);
       lemma_attrs = new Attributes("opaque_reveal", new List<Expression>(), lemma_attrs);
+      lemma_attrs = new Attributes("verify", new List<Expression>() { new LiteralExpr(f.tok, false)}, lemma_attrs);
       var reveal = new Lemma(f.tok, "reveal_" + f.Name, f.HasStaticKeyword, new List<TypeParameter>(), new List<Formal>(), new List<Formal>(), new List<MaybeFreeExpression>(),
                               new Specification<FrameExpression>(new List<FrameExpression>(), null), /* newEnsuresList*/new List<MaybeFreeExpression>(),
                               new Specification<Expression>(new List<Expression>(), null), null, lemma_attrs, null);
