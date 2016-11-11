@@ -6551,10 +6551,19 @@ namespace Microsoft.Dafny {
       } else {
         Contract.Assert(toType.IsBitVectorType);
         var toWidth = ((BitvectorType)toType).Width;
+        if (IsLit(r)) {
+          Bpl.LiteralExpr e = (Bpl.LiteralExpr) GetLit(r);
+          if (e.isBigNum) {
+            var toBound = Basetypes.BigNum.FromBigInt(BigInteger.One << toWidth);  // 1 << toWidth
+            if (e.asBigNum <= toBound) {
+              return BplBvLiteralExpr(r.tok, e.asBigNum, (BitvectorType)toType);
+            }
+          }
+        }
         return FunctionCall(tok, "nat_to_bv" + toWidth, BplBvType(toWidth), r);
       }
     }
-
+        
     /// <summary>
     /// Emit checks that "expr" (which may or may not be a value of type "expr.Type"!) is a value of type "toType".
     /// </summary>
