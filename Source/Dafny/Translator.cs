@@ -6551,8 +6551,8 @@ namespace Microsoft.Dafny {
       } else {
         Contract.Assert(toType.IsBitVectorType);
         var toWidth = ((BitvectorType)toType).Width;
-        if (IsLit(r)) {
-          Bpl.LiteralExpr e = (Bpl.LiteralExpr) GetLit(r);
+        if (RemoveLit(r) is Bpl.LiteralExpr) {
+          Bpl.LiteralExpr e = (Bpl.LiteralExpr) RemoveLit(r);
           if (e.isBigNum) {
             var toBound = Basetypes.BigNum.FromBigInt(BigInteger.One << toWidth);  // 1 << toWidth
             if (e.asBigNum <= toBound) {

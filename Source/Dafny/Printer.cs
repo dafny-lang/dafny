@@ -1826,6 +1826,10 @@ Everything) {
           wr.Write("allocated(");
           PrintExpression(e.E, false);
           wr.Write(")");
+        } else if (e.Op == UnaryOpExpr.Opcode.Lit) {
+          wr.Write("Lit(");
+          PrintExpression(e.E, false);
+          wr.Write(")");
         } else {
           // Prefix operator.
           // determine if parens are needed
