@@ -2186,20 +2186,25 @@ namespace Microsoft.Dafny {
 
       stmts = builder.Collect(iter.tok);
 
-      QKeyValue kv = etran.TrAttributes(iter.Attributes, null);
-
-      if (assertionCount == 0) {
-        // there is no proof obligation, therefore doesn't need to be verified
-        kv = new QKeyValue(Token.NoToken, "verify", new List<object>() { Bpl.Expr.Literal(false) }, kv);
+      if (EmitImplementation(iter.Attributes)) {   
+        QKeyValue kv = etran.TrAttributes(iter.Attributes, null);
+        Bpl.Implementation impl = new Bpl.Implementation(iter.tok, proc.Name,
+          typeParams, inParams, new List<Variable>(),
+          localVariables, stmts, kv);
+        sink.AddTopLevelDeclaration(impl);
       }
-      Bpl.Implementation impl = new Bpl.Implementation(iter.tok, proc.Name,
-        typeParams, inParams, new List<Variable>(),
-        localVariables, stmts, kv);
-      sink.AddTopLevelDeclaration(impl);
 
       Reset();
     }
 
+    bool EmitImplementation(Attributes attributes) {
+      // emit the impl only when there are proof obligations 
+      if (assertionCount > 0) {
+        return true;
+      } else {
+        return false;
+      }
+    }
     void AddIteratorImpl(IteratorDecl iter, Bpl.Procedure proc) {
       Contract.Requires(iter != null);
       Contract.Requires(proc != null);
@@ -2249,17 +2254,15 @@ namespace Microsoft.Dafny {
       // translate the body of the method
       var stmts = TrStmt2StmtList(builder, iter.Body, localVariables, etran);
 
-      QKeyValue kv = etran.TrAttributes(iter.Attributes, null);
+      if (EmitImplementation(iter.Attributes)) {
+        // emit the impl only when there are proof obligations.
+        QKeyValue kv = etran.TrAttributes(iter.Attributes, null);
 
-      if (assertionCount == 0) {
-        // there is no proof obligation, therefore doesn't need to be verified
-        kv = new QKeyValue(Token.NoToken, "verify", new List<object>() { Bpl.Expr.Literal(false) }, kv);
+        Bpl.Implementation impl = new Bpl.Implementation(iter.tok, proc.Name,
+          typeParams, inParams, new List<Variable>(),
+          localVariables, stmts, kv);
+        sink.AddTopLevelDeclaration(impl);
       }
-
-      Bpl.Implementation impl = new Bpl.Implementation(iter.tok, proc.Name,
-        typeParams, inParams, new List<Variable>(),
-        localVariables, stmts, kv);
-      sink.AddTopLevelDeclaration(impl);
       
       yieldCountVariable = null;
       Reset();
@@ -3593,21 +3596,17 @@ namespace Microsoft.Dafny {
         stmts = builder.Collect(m.tok);
       }
 
-      QKeyValue kv = etran.TrAttributes(m.Attributes, null);
+      if (EmitImplementation(m.Attributes)) {
+        // emit impl only when there are proof obligations.
+        QKeyValue kv = etran.TrAttributes(m.Attributes, null);
+        Bpl.Implementation impl = new Bpl.Implementation(m.tok, proc.Name,
+          typeParams, inParams, outParams,
+          localVariables, stmts, kv);
+        sink.AddTopLevelDeclaration(impl);
 
-      if (assertionCount == 0) {
-        // there is no proof obligation, therefore doesn't need to be verified
-        kv = new QKeyValue(Token.NoToken, "verify", new List<object>() { Bpl.Expr.Literal(false) }, kv);
-      }
-
-      Bpl.Implementation impl = new Bpl.Implementation(m.tok, proc.Name,
-        typeParams, inParams, outParams,
-        localVariables, stmts, kv);
-      sink.AddTopLevelDeclaration(impl);
-
-      if (InsertChecksums)
-      {
-        InsertChecksum(m, impl);
+        if (InsertChecksums) {
+          InsertChecksum(m, impl);
+        }
       }
 
       isAllocContext = null;
@@ -3796,16 +3795,15 @@ namespace Microsoft.Dafny {
 
         stmts = builder.Collect(f.tok);
 
-        QKeyValue kv = etran.TrAttributes(f.Attributes, null);
+        if (EmitImplementation(f.Attributes)) {
+          // emit the impl only when there are proof obligations.
+          QKeyValue kv = etran.TrAttributes(f.Attributes, null);
 
-        if (assertionCount == 0) {
-          // there is no proof obligation, therefore doesn't need to be verified
-          kv = new QKeyValue(Token.NoToken, "verify", new List<object>() { Bpl.Expr.Literal(false) }, kv);
+          Bpl.Implementation impl = new Bpl.Implementation(f.tok, proc.Name, typeParams,
+            Concat(Concat(typeInParams, inParams_Heap), implInParams), new List<Variable>(), localVariables, stmts, kv);
+          sink.AddTopLevelDeclaration(impl);
+
         }
-
-        Bpl.Implementation impl = new Bpl.Implementation(f.tok, proc.Name, typeParams,
-          Concat(Concat(typeInParams, inParams_Heap), implInParams), new List<Variable>(), localVariables, stmts, kv);
-        sink.AddTopLevelDeclaration(impl);
 
         //creating an axiom that connects J.F and C.F
         //which is a class function and overridden trait function
@@ -4050,21 +4048,17 @@ namespace Microsoft.Dafny {
 
         stmts = builder.Collect(m.tok);
 
-        QKeyValue kv = etran.TrAttributes(m.Attributes, null);
+        if (EmitImplementation(m.Attributes)) {
+          // emit the impl only when there are proof obligations.
+          QKeyValue kv = etran.TrAttributes(m.Attributes, null);
+          Bpl.Implementation impl = new Bpl.Implementation(m.tok, proc.Name, typeParams, inParams, outParams, localVariables, stmts, kv);
+          sink.AddTopLevelDeclaration(impl);
 
-        if (assertionCount == 0) {
-          // there is no proof obligation, therefore doesn't need to be verified
-          kv = new QKeyValue(Token.NoToken, "verify", new List<object>() { Bpl.Expr.Literal(false) }, kv);
-        }
-
-        Bpl.Implementation impl = new Bpl.Implementation(m.tok, proc.Name, typeParams, inParams, outParams, localVariables, stmts, kv);
-        sink.AddTopLevelDeclaration(impl);
-
-        if (InsertChecksums)
-        {
+          if (InsertChecksums) {
             InsertChecksum(m, impl);
+          }
         }
-
+        
         isAllocContext = null;
         Reset();
     }
@@ -5015,21 +5009,19 @@ namespace Microsoft.Dafny {
       var s0 = builderInitializationArea.Collect(f.tok);
       var s1 = builder.Collect(f.tok);
       var implBody = new StmtList(new List<BigBlock>(s0.BigBlocks.Concat(s1.BigBlocks)), f.tok);
-      QKeyValue kv = etran.TrAttributes(f.Attributes, null);
-      if (assertionCount == 0) {
-        // there is no proof obligation, therefore doesn't need to be verified
-        kv = new QKeyValue(Token.NoToken, "verify", new List<object>() { Bpl.Expr.Literal(false) }, kv);
-      }
-      Bpl.Implementation impl = new Bpl.Implementation(f.tok, proc.Name,
-        typeParams, Concat(Concat(typeInParams, inParams_Heap), implInParams), new List<Variable>(),
-        locals, implBody, kv);
-      sink.AddTopLevelDeclaration(impl);
 
-      if (InsertChecksums)
-      {
-        InsertChecksum(f, impl);
+      if (EmitImplementation(f.Attributes)) {
+        // emit the impl only when there are proof obligations.
+        QKeyValue kv = etran.TrAttributes(f.Attributes, null);
+        Bpl.Implementation impl = new Bpl.Implementation(f.tok, proc.Name,
+          typeParams, Concat(Concat(typeInParams, inParams_Heap), implInParams), new List<Variable>(),
+          locals, implBody, kv);
+        sink.AddTopLevelDeclaration(impl);
+        if (InsertChecksums) {
+          InsertChecksum(f, impl);
+        }
       }
-
+      
       Contract.Assert(currentModule == f.EnclosingClass.Module);
       Contract.Assert(codeContext == f);
       Reset();
@@ -5103,17 +5095,15 @@ namespace Microsoft.Dafny {
         builder.Add(Assert(decl.tok, witnessCheck, string.Format("cannot find witness that shows type is inhabited (sorry, for now, only tried {0})",
           Printer.ExprToString(witness))));
       }
-      
-      QKeyValue kv = etran.TrAttributes(decl.Attributes, null);
-      if (assertionCount == 0) {
-        // there is no proof obligation, therefore doesn't need to be verified
-        kv = new QKeyValue(Token.NoToken, "verify", new List<object>() { Bpl.Expr.Literal(false) }, kv);
-      }
 
-      var impl = new Bpl.Implementation(decl.tok, proc.Name,
-        new List<TypeVariable>(), implInParams, new List<Variable>(),
-        locals, builder.Collect(decl.tok), kv);
-      sink.AddTopLevelDeclaration(impl);
+      if (EmitImplementation(decl.Attributes)) {
+        // emit the impl only when there are proof obligations.
+        QKeyValue kv = etran.TrAttributes(decl.Attributes, null);
+        var impl = new Bpl.Implementation(decl.tok, proc.Name,
+          new List<TypeVariable>(), implInParams, new List<Variable>(),
+          locals, builder.Collect(decl.tok), kv);
+        sink.AddTopLevelDeclaration(impl);
+      }
 
       // TODO: Should a checksum be inserted here?
 
@@ -6561,10 +6551,19 @@ namespace Microsoft.Dafny {
       } else {
         Contract.Assert(toType.IsBitVectorType);
         var toWidth = ((BitvectorType)toType).Width;
+        if (RemoveLit(r) is Bpl.LiteralExpr) {
+          Bpl.LiteralExpr e = (Bpl.LiteralExpr) RemoveLit(r);
+          if (e.isBigNum) {
+            var toBound = Basetypes.BigNum.FromBigInt(BigInteger.One << toWidth);  // 1 << toWidth
+            if (e.asBigNum <= toBound) {
+              return BplBvLiteralExpr(r.tok, e.asBigNum, (BitvectorType)toType);
+            }
+          }
+        }
         return FunctionCall(tok, "nat_to_bv" + toWidth, BplBvType(toWidth), r);
       }
     }
-
+        
     /// <summary>
     /// Emit checks that "expr" (which may or may not be a value of type "expr.Type"!) is a value of type "toType".
     /// </summary>
@@ -7563,7 +7562,6 @@ namespace Microsoft.Dafny {
       Contract.Ensures(Contract.Result<Bpl.Procedure>() != null);
       Contract.Assert(VisibleInScope(m));
 
-      // QUNYAN: Need prove obligation count
       currentModule = m.EnclosingClass.Module;
       codeContext = m;
       isAllocContext = new IsAllocContext(m.IsGhost);
