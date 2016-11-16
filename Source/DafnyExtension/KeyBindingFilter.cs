@@ -2,6 +2,7 @@ using System;
 using System.Runtime.InteropServices;
 using System.Collections.Generic;
 using System.ComponentModel.Composition;
+using EnvDTE;
 using Microsoft.VisualStudio;
 using Microsoft.VisualStudio.OLE.Interop;
 using Microsoft.VisualStudio.Utilities;
@@ -77,14 +78,35 @@ namespace DafnyLanguage
 
     [Import(typeof(IVsEditorAdaptersFactoryService))]
     internal IVsEditorAdaptersFactoryService editorFactory = null;
+    private IWpfTextView textView;
+    Events events;
+    EnvDTE.DocumentEvents documentEvents;
 
 
     public void VsTextViewCreated(IVsTextView textViewAdapter) {
-      IWpfTextView textView = editorFactory.GetWpfTextView(textViewAdapter);
+      textView = editorFactory.GetWpfTextView(textViewAdapter);
       if (textView == null)
         return;
 
       AddCommandFilter(textViewAdapter, new KeyBindingCommandFilter(textView));
+
+      // add Document saved event
+      DTE dte = (DTE)ServiceProvider.GlobalProvider.GetService(typeof(DTE));
+      events = (Events)dte.Events;
+      documentEvents = events.DocumentEvents;
+      documentEvents.DocumentSaved += DocumentSaved;
+    }
+
+    private void DocumentSaved(EnvDTE.Document document) {
+      DafnyLanguage.ProgressTagger tagger;
+      if (textView != null && DafnyLanguage.ProgressTagger.ProgressTaggers.TryGetValue(textView.TextBuffer, out tagger)) {
+        MenuProxy.Output("restart verifier on file save\n");
+        // stop the old verification
+        tagger.StopVerification();
+
+        // start a new one.
+        tagger.StartVerification(false);
+      }
     }
 
     void AddCommandFilter(IVsTextView viewAdapter, KeyBindingCommandFilter commandFilter) {

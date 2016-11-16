@@ -77,7 +77,7 @@ namespace DafnyLanguage
       if (activeTextView != null && DafnyLanguage.ProgressTagger.ProgressTaggers.TryGetValue(activeTextView.TextBuffer, out tagger))
       {
         MenuProxy.Output("verifier manually started\n");
-        tagger.StartVerification();
+        tagger.StartVerification(false);
       }
     }
 
@@ -97,7 +97,7 @@ namespace DafnyLanguage
       }
       DafnyLanguage.ProgressTagger tagger;
       if (activeTextView != null && DafnyLanguage.ProgressTagger.ProgressTaggers.TryGetValue(activeTextView.TextBuffer, out tagger)) {
-        tagger.StartVerification();
+        tagger.StartVerification(false);
       }
     }
 
@@ -117,7 +117,7 @@ namespace DafnyLanguage
       }
       DafnyLanguage.ProgressTagger tagger;
       if (activeTextView != null && DafnyLanguage.ProgressTagger.ProgressTaggers.TryGetValue(activeTextView.TextBuffer, out tagger)) {
-        tagger.StartVerification();
+        tagger.StartVerification(false);
       }
     }
 
