@@ -78,13 +78,12 @@ namespace DafnyLanguage
 
     [Import(typeof(IVsEditorAdaptersFactoryService))]
     internal IVsEditorAdaptersFactoryService editorFactory = null;
-    private IWpfTextView textView;
     Events events;
     EnvDTE.DocumentEvents documentEvents;
 
 
     public void VsTextViewCreated(IVsTextView textViewAdapter) {
-      textView = editorFactory.GetWpfTextView(textViewAdapter);
+      IWpfTextView textView = editorFactory.GetWpfTextView(textViewAdapter);
       if (textView == null)
         return;
 
@@ -99,8 +98,9 @@ namespace DafnyLanguage
 
     private void DocumentSaved(EnvDTE.Document document) {
       DafnyLanguage.ProgressTagger tagger;
+      IWpfTextView textView = GetWpfTextView(document.FullName);
       if (textView != null && DafnyLanguage.ProgressTagger.ProgressTaggers.TryGetValue(textView.TextBuffer, out tagger)) {
-        MenuProxy.Output("restart verifier on file save\n");
+        MenuProxy.Output("restart verifier on file save: " + document.FullName + "\n");
         // stop the old verification
         tagger.StopVerification();
 
@@ -108,6 +108,26 @@ namespace DafnyLanguage
         tagger.StartVerification(false);
       }
     }
+
+    private IWpfTextView GetWpfTextView(string filePath) {
+      DTE dte = (DTE)ServiceProvider.GlobalProvider.GetService(typeof(DTE));
+      Microsoft.VisualStudio.OLE.Interop.IServiceProvider provider = (Microsoft.VisualStudio.OLE.Interop.IServiceProvider)dte;
+      ServiceProvider serviceProvider = new ServiceProvider(provider);
+
+      IVsUIHierarchy uiHierarchy;
+      uint itemID;
+      IVsWindowFrame windowFrame;
+      
+      if (Microsoft.VisualStudio.Shell.VsShellUtilities.IsDocumentOpen(serviceProvider, filePath, Guid.Empty,
+                                      out uiHierarchy, out itemID, out windowFrame)) {
+        // Get the IVsTextView from the windowFrame.
+        IVsTextView textView =  Microsoft.VisualStudio.Shell.VsShellUtilities.GetTextView(windowFrame);
+        return editorFactory.GetWpfTextView(textView);
+      }
+
+      return null;
+    }
+
 
     void AddCommandFilter(IVsTextView viewAdapter, KeyBindingCommandFilter commandFilter) {
       if (commandFilter.m_added == false) {
