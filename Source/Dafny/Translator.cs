@@ -199,6 +199,12 @@ namespace Microsoft.Dafny {
     }
 
     [Pure]
+    bool InVerificationScope(RevealableTypeDecl d) {
+      Contract.Requires(d != null);
+      return InVerificationScope(d.AsTopLevelDecl);
+    }
+
+    [Pure]
     bool InVerificationScope(Declaration d) {
       Contract.Requires(d != null);
       if (d.tok is IncludeToken && !DafnyOptions.O.VerifyAllModules) {
@@ -1012,7 +1018,7 @@ namespace Microsoft.Dafny {
           AddTypeDecl((NewtypeDecl)dd);
         } else if (dd is DatatypeDecl) {
           AddDatatype((DatatypeDecl)dd);
-        } else if (dd is SubsetTypeDecl) {
+        } else if (dd is SubsetTypeDecl && InVerificationScope(dd)) {
           AddTypeDecl((SubsetTypeDecl)dd);
         } else if (dd is TypeSynonymDecl) {
           //do nothing, this type will be transparent to translation

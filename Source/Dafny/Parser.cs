@@ -1133,7 +1133,7 @@ int StringToInt(string s, int defaultValue, string errString) {
 					if (ty == null) { ty = new InferredTypeProxy(); } 
 					Expect(24);
 					Expression(out constraint, false, true);
-					td = new SubsetTypeDecl(id, id.val, typeArgs, module, new BoundVar(bvId, bvId.val, ty), constraint, attrs);
+					td = new SubsetTypeDecl(theVerifyThisFile ? id : new IncludeToken(id), id.val, typeArgs, module, new BoundVar(bvId, bvId.val, ty), constraint, attrs);
 					kind = "Subset type";
 					
 				} else if (StartOf(6)) {
