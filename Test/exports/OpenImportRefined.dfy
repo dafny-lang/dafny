@@ -43,7 +43,7 @@ module BaseF{
 
   lemma Test()
     ensures f() == true
-  { reveal_f(); }
+  { reveal f(); }
 
 }
 
@@ -52,5 +52,5 @@ module RefinedF refines BaseF {
 
   lemma False()
     ensures false
-  { reveal_f(); Test(); }
+  { reveal f(); Test(); }
 }

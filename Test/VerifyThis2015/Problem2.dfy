@@ -263,7 +263,7 @@ lemma OneDividesAnything(a: int)
   requires a > 0
   ensures Divides(1, a)
 {
-  reveal_Divides();  // here, we use the definition of Divides
+  reveal Divides();  // here, we use the definition of Divides
   assert MulTriple(a, 1, a);
 }
 
@@ -287,7 +287,7 @@ lemma DividesIdempotent(a: int)
   requires a > 0
   ensures Divides(a, a)
 {
-  reveal_Divides();  // here, we use the body of function Divides
+  reveal Divides();  // here, we use the body of function Divides
   assert MulTriple(1, a, a);
 }
 
@@ -295,7 +295,7 @@ lemma DividesUpperBound(d: int, a: int)
   requires d > 0 && a > 0
   ensures Divides(d, a) ==> d <= a
 {
-  reveal_Divides();  // here, we use the body of function Divides
+  reveal Divides();  // here, we use the body of function Divides
 }
 
 lemma Symmetry(a: int, b: int)
@@ -350,7 +350,7 @@ lemma MultipleDivides(n: int, d: int, a: int)
   requires n > 0 && d > 0 && n*d == a
   ensures Divides(d, a)
 {
-  reveal_Divides();
+  reveal Divides();
   assert MulTriple(n, d, a);
 }
 
@@ -359,6 +359,6 @@ lemma DividesProperty(d: int, a: int) returns (n: int)
   requires Divides(d, a)
   ensures n*d == a
 {
-  reveal_Divides();
+  reveal Divides();
   n :| n > 0 && MulTriple(n, d, a);
 }

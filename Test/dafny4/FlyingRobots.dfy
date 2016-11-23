@@ -119,25 +119,25 @@ class Bot {
     right := new Arm(0, 0);
     Repr := {this};
     Repr := Repr + pos.Repr + left.Repr + right.Repr;
-    reveal_Valid();
+    reveal Valid();
   }
 
   predicate flying()
-    requires (reveal_Valid(); Valid())
+    requires (reveal Valid(); Valid())
     reads Repr
   {
     pos.z.val > 0
   }
   
   predicate arms_up()
-    requires (reveal_Valid(); Valid())
+    requires (reveal Valid(); Valid())
     reads Repr
   {
     left.polar.val == right.polar.val == 0
   }
 
   predicate robot_inv()
-    requires (reveal_Valid(); Valid())
+    requires (reveal Valid(); Valid())
     reads Repr
   {
     flying() ==> arms_up()
@@ -149,13 +149,13 @@ class Bot {
     ensures Valid() && fresh(Repr - old(Repr))
     ensures robot_inv() && flying()
   {
-    reveal_Valid();
+    reveal Valid();
     left.polar.val, right.polar.val := 0, 0;
     pos.z.val := 100;
     right.azim.val := 17;
     pos.Value := (pos.Value.0, pos.Value.1, 100);
     left.Value, right.Value := (0, left.Value.1), (0, 17);
-    reveal_Valid();
+    reveal Valid();
   }
 }
 

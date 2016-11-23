@@ -67,7 +67,7 @@ function {:opaque} ref2(y:int) : int        // Now with an opaque attribute
 lemma assumption2()
   ensures forall a, b :: valid(a) && valid(b) && ref2(a) == ref2(b) ==> a == b;
 {
-  reveal_ref2();
+  reveal ref2();
 }
 
 method test2()

@@ -4698,6 +4698,9 @@ namespace Microsoft.Dafny
         return TailRecursionStatus.NotTailRecursive;
       }
       if (stmt is PrintStmt) {
+      } else if (stmt is RevealStmt) {
+        var s = (RevealStmt)stmt;
+        return CheckTailRecursive(s.ResolvedStatements, enclosingMethod, ref tailCall, reportErrors);
       } else if (stmt is BreakStmt) {
       } else if (stmt is ReturnStmt) {
         var s = (ReturnStmt)stmt;
@@ -5454,6 +5457,10 @@ namespace Microsoft.Dafny
             s.Args.Iter(resolver.CheckIsCompilable);
           }
 
+        } else if (stmt is RevealStmt) {
+          var s = (RevealStmt)stmt;
+          s.ResolvedStatements.Iter(ss => Visit(ss, mustBeErasable));
+          s.IsGhost = s.ResolvedStatements.All(ss => ss.IsGhost);
         } else if (stmt is BreakStmt) {
           var s = (BreakStmt)stmt;
           s.IsGhost = mustBeErasable;
@@ -7331,6 +7338,24 @@ namespace Microsoft.Dafny
         var opts = new ResolveOpts(codeContext, false);
         s.Args.Iter(e => ResolveExpression(e, opts));
 
+      } else if (stmt is RevealStmt) {
+        var s = (RevealStmt)stmt;
+        var opts = new ResolveOpts(codeContext, false, true);
+        if (s.Expr is ApplySuffix) {
+          var e = (ApplySuffix)s.Expr;
+          var methodCallInfo = ResolveApplySuffix(e, opts, true);
+          if (methodCallInfo == null) {
+            reporter.Error(MessageSource.Resolver, s.Tok, "function {0} does not have the reveal lemma", e.Lhs);
+          } else {
+            var call = new CallStmt(methodCallInfo.Tok, s.EndTok, new List<Expression>(), methodCallInfo.Callee, methodCallInfo.Args);
+            s.ResolvedStatements.Add(call);
+          }
+        } else {
+          ResolveExpression(s.Expr, opts);
+        }
+        foreach (var a in s.ResolvedStatements) {
+          ResolveStatement(a, codeContext);
+        }
       } else if (stmt is BreakStmt) {
         var s = (BreakStmt)stmt;
         if (s.TargetLabel != null) {
@@ -8390,6 +8415,11 @@ namespace Microsoft.Dafny
             var cRhs = ResolveApplySuffix(a, new ResolveOpts(codeContext, true), true);
             isEffectful = cRhs != null;
             methodCallInfo = methodCallInfo ?? cRhs;
+          } else if (er.Expr is RevealExpr) {
+            var r = (RevealExpr)er.Expr;
+            var cRhs = ResolveRevealExpr(r, new ResolveOpts(codeContext, true), true);
+            isEffectful = cRhs != null;
+            methodCallInfo = methodCallInfo ?? cRhs;
           } else {
             ResolveExpression(er.Expr, new ResolveOpts(codeContext, true));
             isEffectful = false;
@@ -8675,6 +8705,11 @@ namespace Microsoft.Dafny
       Contract.Requires(stmt != null);
       if (stmt is PredicateStmt) {
         // cool
+      } else if (stmt is RevealStmt) {
+        var s = (RevealStmt)stmt;
+        foreach (var ss in s.ResolvedStatements) {
+          CheckForallStatementBodyRestrictions(ss, kind);
+        }
       } else if (stmt is PrintStmt) {
         reporter.Error(MessageSource.Resolver, stmt, "print statement is not allowed inside a forall statement");
       } else if (stmt is BreakStmt) {
@@ -8825,6 +8860,11 @@ namespace Microsoft.Dafny
         // cool
       } else if (stmt is PrintStmt) {
         // not allowed in ghost context
+      } else if (stmt is RevealStmt) {
+        var s = (RevealStmt)stmt;
+        foreach (var ss in s.ResolvedStatements) {
+          CheckHintRestrictions(ss, localsAllowedInUpdates);
+        }
       } else if (stmt is BreakStmt) {
         // already checked while resolving hints
       } else if (stmt is ReturnStmt) {
@@ -9441,10 +9481,19 @@ namespace Microsoft.Dafny
     {
       public readonly ICodeContext codeContext;
       public readonly bool twoState;
+      public readonly bool isReveal;
+
       public ResolveOpts(ICodeContext codeContext, bool twoState) {
         Contract.Requires(codeContext != null);
         this.codeContext = codeContext;
         this.twoState = twoState;
+        this.isReveal = false;
+      }
+      public ResolveOpts(ICodeContext codeContext, bool twoState, bool isReveal) {
+        Contract.Requires(codeContext != null);
+        this.codeContext = codeContext;
+        this.twoState = twoState;
+        this.isReveal = isReveal;
       }
     }
 
@@ -9607,6 +9656,11 @@ namespace Microsoft.Dafny
       } else if (expr is ApplySuffix) {
         var e = (ApplySuffix)expr;
         ResolveApplySuffix(e, opts, false);
+
+      } else if (expr is RevealExpr) {
+        var e = (RevealExpr) expr;
+        ResolveRevealExpr(e, opts, true);
+        e.ResolvedExpression = e.Expr;
 
       } else if (expr is MemberSelectExpr) {
         var e = (MemberSelectExpr)expr;
@@ -10832,14 +10886,15 @@ namespace Microsoft.Dafny
       // For 3:
       TopLevelDecl decl;
 
-      v = scope.Find(expr.Name);
+      var name = opts.isReveal ? "reveal_" + expr.Name : expr.Name;
+      v = scope.Find(name);
       if (v != null) {
         // ----- 0. local variable, parameter, or bound variable
         if (expr.OptTypeArguments != null) {
-          reporter.Error(MessageSource.Resolver, expr.tok, "variable '{0}' does not take any type parameters", expr.Name);
+          reporter.Error(MessageSource.Resolver, expr.tok, "variable '{0}' does not take any type parameters", name);
         }
         r = new IdentifierExpr(expr.tok, v);
-      } else if (currentClass != null && classMembers.TryGetValue(currentClass, out members) && members.TryGetValue(expr.Name, out member)) {
+      } else if (currentClass != null && classMembers.TryGetValue(currentClass, out members) && members.TryGetValue(name, out member)) {
         // ----- 1. member of the enclosing class
         Expression receiver;
         if (member.IsStatic) {
@@ -10853,16 +10908,16 @@ namespace Microsoft.Dafny
           receiver.Type = GetThisType(expr.tok, (ClassDecl)member.EnclosingClass);  // resolve here
         }
         r = ResolveExprDotCall(expr.tok, receiver, member, expr.OptTypeArguments, opts, allowMethodCall);
-      } else if (isLastNameSegment && moduleInfo.Ctors.TryGetValue(expr.Name, out pair)) {
+      } else if (isLastNameSegment && moduleInfo.Ctors.TryGetValue(name, out pair)) {
         // ----- 2. datatype constructor
         if (pair.Item2) {
           // there is more than one constructor with this name
           reporter.Error(MessageSource.Resolver, expr.tok, "the name '{0}' denotes a datatype constructor, but does not do so uniquely; add an explicit qualification (for example, '{1}.{0}')", expr.Name, pair.Item1.EnclosingDatatype.Name);
         } else {
           if (expr.OptTypeArguments != null) {
-            reporter.Error(MessageSource.Resolver, expr.tok, "datatype constructor does not take any type parameters ('{0}')", expr.Name);
+            reporter.Error(MessageSource.Resolver, expr.tok, "datatype constructor does not take any type parameters ('{0}')", name);
           }
-          var rr = new DatatypeValue(expr.tok, pair.Item1.EnclosingDatatype.Name, expr.Name, args ?? new List<Expression>());
+          var rr = new DatatypeValue(expr.tok, pair.Item1.EnclosingDatatype.Name, name, args ?? new List<Expression>());
           ResolveDatatypeValue(opts, rr, pair.Item1.EnclosingDatatype);
           if (args == null) {
             r = rr;
@@ -10871,7 +10926,7 @@ namespace Microsoft.Dafny
             rWithArgs = rr;
           }
         }
-      } else if (moduleInfo.TopLevels.TryGetValue(expr.Name, out decl)) {
+      } else if (moduleInfo.TopLevels.TryGetValue(name, out decl)) {
         // ----- 3. Member of the enclosing module
         if (decl is AmbiguousTopLevelDecl) {
           var ad = (AmbiguousTopLevelDecl)decl;
@@ -10881,10 +10936,10 @@ namespace Microsoft.Dafny
           // looking at may be followed by a further suffix that makes this into an expresion. We postpone the rest of the
           // resolution to any such suffix. For now, we create a temporary expression that will never be seen by the compiler
           // or verifier, just to have a placeholder where we can recorded what we have found.
-          r = CreateResolver_IdentifierExpr(expr.tok, expr.Name, expr.OptTypeArguments, decl);
+          r = CreateResolver_IdentifierExpr(expr.tok, name, expr.OptTypeArguments, decl);
         }
 
-      } else if (moduleInfo.StaticMembers.TryGetValue(expr.Name, out member)) {
+      } else if (moduleInfo.StaticMembers.TryGetValue(name, out member)) {
         // ----- 4. static member of the enclosing module
         Contract.Assert(member.IsStatic); // moduleInfo.StaticMembers is supposed to contain only static members of the module's implicit class _default
         if (member is AmbiguousMemberDecl) {
@@ -10897,7 +10952,7 @@ namespace Microsoft.Dafny
 
       } else {
         // ----- None of the above
-        reporter.Error(MessageSource.Resolver, expr.tok, "unresolved identifier: {0}", expr.Name);
+        reporter.Error(MessageSource.Resolver, expr.tok, "unresolved identifier: {0}", name);
       }
 
       if (r == null) {
@@ -11064,12 +11119,14 @@ namespace Microsoft.Dafny
       Contract.Ensures(Contract.Result<Expression>() == null || args != null);
 
       // resolve the LHS expression
+      // LHS should not be reveal lemma
+      ResolveOpts nonRevealOpts = new ResolveOpts(opts.codeContext, opts.twoState, false);
       if (expr.Lhs is NameSegment) {
-        ResolveNameSegment((NameSegment)expr.Lhs, false, null, opts, false);
+        ResolveNameSegment((NameSegment)expr.Lhs, false, null, nonRevealOpts, false);
       } else if (expr.Lhs is ExprDotName) {
-        ResolveDotSuffix((ExprDotName)expr.Lhs, false, null, opts, false);
+        ResolveDotSuffix((ExprDotName)expr.Lhs, false, null, nonRevealOpts, false);
       } else {
-        ResolveExpression(expr.Lhs, opts);
+        ResolveExpression(expr.Lhs, nonRevealOpts);
       }
 
       if (expr.OptTypeArguments != null) {
@@ -11082,6 +11139,7 @@ namespace Microsoft.Dafny
       Expression rWithArgs = null;  // the resolved expression after incorporating "args"
       MemberDecl member = null;
 
+      var name = opts.isReveal ? "reveal_" + expr.SuffixName : expr.SuffixName;
       var lhs = expr.Lhs.Resolved;
       if (lhs != null && lhs.Type is Resolver_IdentifierExpr.ResolverType_Module) {
         var ri = (Resolver_IdentifierExpr)lhs;
@@ -11092,16 +11150,16 @@ namespace Microsoft.Dafny
         // For 1:
         TopLevelDecl decl;
 
-        if (isLastNameSegment && sig.Ctors.TryGetValue(expr.SuffixName, out pair)) {
+        if (isLastNameSegment && sig.Ctors.TryGetValue(name, out pair)) {
           // ----- 0. datatype constructor
           if (pair.Item2) {
             // there is more than one constructor with this name
-            reporter.Error(MessageSource.Resolver, expr.tok, "the name '{0}' denotes a datatype constructor in module {2}, but does not do so uniquely; add an explicit qualification (for example, '{1}.{0}')", expr.SuffixName, pair.Item1.EnclosingDatatype.Name, ((ModuleDecl)ri.Decl).Name);
+            reporter.Error(MessageSource.Resolver, expr.tok, "the name '{0}' denotes a datatype constructor in module {2}, but does not do so uniquely; add an explicit qualification (for example, '{1}.{0}')", name, pair.Item1.EnclosingDatatype.Name, ((ModuleDecl)ri.Decl).Name);
           } else {
             if (expr.OptTypeArguments != null) {
-              reporter.Error(MessageSource.Resolver, expr.tok, "datatype constructor does not take any type parameters ('{0}')", expr.SuffixName);
+              reporter.Error(MessageSource.Resolver, expr.tok, "datatype constructor does not take any type parameters ('{0}')", name);
             }
-            var rr = new DatatypeValue(expr.tok, pair.Item1.EnclosingDatatype.Name, expr.SuffixName, args ?? new List<Expression>());
+            var rr = new DatatypeValue(expr.tok, pair.Item1.EnclosingDatatype.Name, name, args ?? new List<Expression>());
             WithModuleSignature(sig, () => ResolveExpression(rr, opts));
 
             if (args == null) {
@@ -11111,7 +11169,7 @@ namespace Microsoft.Dafny
               rWithArgs = rr;
             }
           }
-        } else if (sig.TopLevels.TryGetValue(expr.SuffixName, out decl)) {
+        } else if (sig.TopLevels.TryGetValue(name, out decl)) {
           // ----- 1. Member of the specified module
           if (decl is AmbiguousTopLevelDecl) {
             var ad = (AmbiguousTopLevelDecl)decl;
@@ -11121,9 +11179,9 @@ namespace Microsoft.Dafny
             // looking at may be followed by a further suffix that makes this into an expresion. We postpone the rest of the
             // resolution to any such suffix. For now, we create a temporary expression that will never be seen by the compiler
             // or verifier, just to have a placeholder where we can recorded what we have found.
-            r = CreateResolver_IdentifierExpr(expr.tok, expr.SuffixName, expr.OptTypeArguments, decl);
+            r = CreateResolver_IdentifierExpr(expr.tok, name, expr.OptTypeArguments, decl);
           }
-        } else if (sig.StaticMembers.TryGetValue(expr.SuffixName, out member)) {
+        } else if (sig.StaticMembers.TryGetValue(name, out member)) {
           // ----- 2. static member of the specified module
           Contract.Assert(member.IsStatic); // moduleInfo.StaticMembers is supposed to contain only static members of the module's implicit class _default
           if (member is AmbiguousMemberDecl) {
@@ -11134,7 +11192,7 @@ namespace Microsoft.Dafny
             r = ResolveExprDotCall(expr.tok, receiver, member, expr.OptTypeArguments, opts, allowMethodCall);
           }
         } else {
-          reporter.Error(MessageSource.Resolver, expr.tok, "unresolved identifier: {0}", expr.SuffixName);
+          reporter.Error(MessageSource.Resolver, expr.tok, "unresolved identifier: {0}", name);
         }
 
       } else if (lhs != null && lhs.Type is Resolver_IdentifierExpr.ResolverType_Type) {
@@ -11151,12 +11209,12 @@ namespace Microsoft.Dafny
           // ----- LHS is a class
           var cd = (ClassDecl)((UserDefinedType)ty).ResolvedClass;
           Dictionary<string, MemberDecl> members;
-          if (classMembers.TryGetValue(cd, out members) && members.TryGetValue(expr.SuffixName, out member)) {
+          if (classMembers.TryGetValue(cd, out members) && members.TryGetValue(name, out member)) {
             if (!VisibleInScope(member)) {
-              reporter.Error(MessageSource.Resolver, expr.tok, "member '{0}' has not been imported in this scope and cannot be accessed here", expr.SuffixName);
+              reporter.Error(MessageSource.Resolver, expr.tok, "member '{0}' has not been imported in this scope and cannot be accessed here", name);
             }
             if (!member.IsStatic) {
-              reporter.Error(MessageSource.Resolver, expr.tok, "accessing member '{0}' requires an instance expression", expr.SuffixName); //TODO Unify with similar error messages
+              reporter.Error(MessageSource.Resolver, expr.tok, "accessing member '{0}' requires an instance expression", name); //TODO Unify with similar error messages
               // nevertheless, continue creating an expression that approximates a correct one
             }
             var receiver = new StaticReceiverExpr(expr.tok, (UserDefinedType)ty.NormalizeExpand(), (ClassDecl)member.EnclosingClass, false);
@@ -11167,11 +11225,11 @@ namespace Microsoft.Dafny
           var dt = ty.AsDatatype;
           Dictionary<string, DatatypeCtor> members;
           DatatypeCtor ctor;
-          if (datatypeCtors.TryGetValue(dt, out members) && members.TryGetValue(expr.SuffixName, out ctor)) {
+          if (datatypeCtors.TryGetValue(dt, out members) && members.TryGetValue(name, out ctor)) {
             if (expr.OptTypeArguments != null) {
-              reporter.Error(MessageSource.Resolver, expr.tok, "datatype constructor does not take any type parameters ('{0}')", expr.SuffixName);
+              reporter.Error(MessageSource.Resolver, expr.tok, "datatype constructor does not take any type parameters ('{0}')", name);
             }
-            var rr = new DatatypeValue(expr.tok, ctor.EnclosingDatatype.Name, expr.SuffixName, args ?? new List<Expression>());
+            var rr = new DatatypeValue(expr.tok, ctor.EnclosingDatatype.Name, name, args ?? new List<Expression>());
             ResolveDatatypeValue(opts, rr, ctor.EnclosingDatatype);
             if (args == null) {
               r = rr;
@@ -11182,13 +11240,13 @@ namespace Microsoft.Dafny
           }
         }
         if (r == null) {
-          reporter.Error(MessageSource.Resolver, expr.tok, "member '{0}' does not exist in type '{1}'", expr.SuffixName, ri.TypeParamDecl != null ? ri.TypeParamDecl.Name : ri.Decl.Name);
+          reporter.Error(MessageSource.Resolver, expr.tok, "member '{0}' does not exist in type '{1}'", name, ri.TypeParamDecl != null ? ri.TypeParamDecl.Name : ri.Decl.Name);
         }
       } else if (lhs != null) {
         // ----- 4. Look up name in the type of the Lhs
         bool classMemberOnly = UserDefinedType.DenotesClass(expr.Lhs.Type) == null ? false : true;
         NonProxyType nptype;
-        member = ResolveMember(expr.tok, expr.Lhs.Type, expr.SuffixName, out nptype, classMemberOnly);
+        member = ResolveMember(expr.tok, expr.Lhs.Type, name, out nptype, classMemberOnly);
         if (member != null) {
           Expression receiver;
           if (!member.IsStatic) {
@@ -11395,6 +11453,17 @@ namespace Microsoft.Dafny
         this.Callee = callee;
         this.Args = args;
       }
+    }
+
+    MethodCallInformation ResolveRevealExpr(RevealExpr e, ResolveOpts opts, bool allowMethodCall) {
+      var revealOpts = new ResolveOpts(opts.codeContext, opts.twoState, true);
+      MethodCallInformation info = null;
+      if (e.Expr is ApplySuffix) {
+        info = ResolveApplySuffix((ApplySuffix)e.Expr, revealOpts, true);
+      } else {
+        ResolveExpression(e.Expr, revealOpts);
+      }
+      return info;
     }
 
     MethodCallInformation ResolveApplySuffix(ApplySuffix e, ResolveOpts opts, bool allowMethodCall) {

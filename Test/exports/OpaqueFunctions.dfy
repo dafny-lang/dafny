@@ -66,5 +66,5 @@ module CC {
   
   lemma Test2()
   ensures A.f() == 0
-  { A.reveal_f(); }
+  { reveal A.f(); }
 }

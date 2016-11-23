@@ -400,7 +400,7 @@ bool IsIdentColonOrBar() {
 }
 
 bool SemiFollowsCall(bool allowSemi, Expression e) {
-  return allowSemi && la.kind == _semi && e is ApplySuffix;
+  return allowSemi && la.kind == _semi && (e is ApplySuffix || (e is RevealExpr && (((RevealExpr)e).Expr is ApplySuffix)));
 }
 
 bool IsNotEndOfCase() {
@@ -691,6 +691,7 @@ TOKENS
   star = '*'.
   notIn = "!in" CONTEXT (nonidchar).
   ellipsis = "...".
+	reveal = "reveal".
 COMMENTS FROM "/*" TO "*/" NESTED
 COMMENTS FROM "//" TO lf
 IGNORE cr + lf + tab
@@ -1094,7 +1095,7 @@ OtherTypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl t
         [ ":" Type<out ty> ]   (. if (ty == null) { ty = new InferredTypeProxy(); } .)
         "|"
         Expression<out constraint, false, true>
-                               (. td = new SubsetTypeDecl(id, id.val, typeArgs, module, new BoundVar(bvId, bvId.val, ty), constraint, attrs);
+                               (. td = new SubsetTypeDecl(theVerifyThisFile ? id : new IncludeToken(id), id.val, typeArgs, module, new BoundVar(bvId, bvId.val, ty), constraint, attrs);
                                   kind = "Subset type";
                                .)
       |
@@ -1826,6 +1827,7 @@ OneStmt<out Statement/*!*/ s>
   | AssertStmt<out s>
   | AssumeStmt<out s>
   | PrintStmt<out s>
+	| RevealStmt<out s>
   | UpdateStmt<out s>
   | VarDeclStatement<out s>
   | IfStmt<out s>
@@ -2346,6 +2348,15 @@ PrintStmt<out Statement s>
   { "," Expression<out e, false, true>         (. args.Add(e); .)
   }
   ";"                                          (. s = new PrintStmt(x, t, args); .)
+  .
+
+RevealStmt<out Statement s>
+= (. Contract.Ensures(Contract.ValueAtReturn(out s) != null);
+     IToken x;  Expression e;
+  .)
+  "reveal"                                      (. x = t; .)
+  Expression<out e, false, true> 	
+  ";"                                          (. s = new RevealStmt(x, t, e); .)
   .
 
 ForallStmt<out Statement/*!*/ s>
@@ -3089,6 +3100,8 @@ EndlessExpression<out Expression e, bool allowSemi, bool allowLambda, bool allow
     MapComprehensionExpr<x, true, out e, allowSemi, allowLambda, allowBitwiseOps>
   | "imap"                          (. x = t; .)
     MapComprehensionExpr<x, false, out e, allowSemi, allowLambda, true>
+	| "reveal"
+	  Expression<out e, false, false, allowBitwiseOps> (. e = new RevealExpr(e.tok, e); .)
   | NamedExpr<out e, allowSemi, allowLambda, allowBitwiseOps>
   )
   .

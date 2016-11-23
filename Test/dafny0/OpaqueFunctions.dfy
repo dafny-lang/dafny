@@ -141,7 +141,7 @@ module OpaqueFunctionsAreNotInlined {
   method M'()
   {
     var x := 18;
-    reveal_F();
+    reveal F();
     assert F(x);
   }
 }
@@ -161,7 +161,7 @@ function{:opaque} id<A>(x : A):A { x }
 
 method id_ok()
 {
-  reveal_id();
+  reveal id();
   assert id(1) == 1;
 }
 
@@ -176,7 +176,7 @@ function{:opaque} id_box(x : Box):Box { x }
 
 method box_ok()
 {
-  reveal_id();
+  reveal id();
   assert id(Bx(1)) == Bx(1);
 }
 
@@ -193,7 +193,7 @@ module LayerQuantifiers
 
   method rec_should_ok()
   {
-    reveal_f();
+    reveal f();
     assert f(1);
   }
 
@@ -205,7 +205,7 @@ module LayerQuantifiers
   method rec_should_unroll_ok(one : int)
     requires one == 1;
   {
-    reveal_f();
+    reveal f();
     // this one should have enough fuel
     assert f(one + one);
   }
@@ -213,7 +213,7 @@ module LayerQuantifiers
   method rec_should_unroll_fail(one : int)
     requires one == 1;
   {
-    reveal_f();
+    reveal f();
     // this one does not have enough fuel
     assert f(one + one + one);
   }
@@ -236,7 +236,7 @@ module Regression
   lemma Empty_ToZero<A>()
     ensures Length<A>(Empty<A>()) == 0;  // this line once caused the verifier to crash
   {
-    reveal_Length();
+    reveal Length();
   }
 }
 

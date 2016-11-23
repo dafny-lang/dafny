@@ -5196,6 +5196,29 @@ namespace Microsoft.Dafny {
     }
   }
 
+  public class RevealStmt : Statement
+  {
+    public readonly Expression Expr;
+    public readonly List<Statement> ResolvedStatements = new List<Statement>(); // contents filled in during resolution.
+
+    public override IEnumerable<Statement> SubStatements {
+      get { return ResolvedStatements; }
+    }
+
+    [ContractInvariantMethod]
+    void ObjectInvariant() {
+      Contract.Invariant(Expr != null);
+    }
+
+    public RevealStmt(IToken tok, IToken endTok, Expression expr)
+      : base(tok, endTok) {
+      Contract.Requires(tok != null);
+      Contract.Requires(endTok != null);
+      Contract.Requires(expr != null);
+      this.Expr = expr;
+    }
+  }
+
   public class BreakStmt : Statement {
     public readonly string TargetLabel;
     public readonly int BreakCount;
@@ -7843,6 +7866,26 @@ namespace Microsoft.Dafny {
     {
       Function = fn;
       Args = args;
+    }
+  }
+
+  public class RevealExpr : Expression
+  {
+    public readonly Expression Expr;
+    public Expression ResolvedExpression; 
+
+    public override IEnumerable<Expression> SubExpressions {
+      get {
+        if (ResolvedExpression != null) {
+          yield return ResolvedExpression;
+        }
+      }
+    }
+
+    public RevealExpr(IToken tok, Expression expr) 
+      : base(tok)
+    {
+      this.Expr = expr;
     }
   }
 

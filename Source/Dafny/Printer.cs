@@ -939,6 +939,12 @@ Everything) {
         PrintAttributeArgs(s.Args, true);
         wr.Write(";");
 
+      } else if (stmt is RevealStmt) {
+        RevealStmt s = (RevealStmt)stmt;
+        wr.Write("reveal ");
+        PrintExpression(s.Expr, true);
+        wr.Write(";");
+
       } else if (stmt is BreakStmt) {
         BreakStmt s = (BreakStmt)stmt;
         if (s.TargetLabel != null) {
@@ -1657,6 +1663,11 @@ Everything) {
         PrintExpressionList(e.Args, false);
         wr.Write(")");
         if (parensNeeded) { wr.Write(")"); }
+
+      } else if (expr is RevealExpr) {
+        var e = (RevealExpr)expr;
+        wr.Write("reveal ");
+        PrintExpression(e.Expr, true);
 
       } else if (expr is MemberSelectExpr) {
         MemberSelectExpr e = (MemberSelectExpr)expr;

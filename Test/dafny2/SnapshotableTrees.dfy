@@ -109,12 +109,12 @@ module SnapTree {
     static lemma IsSortedProperty(c: seq<int>)
       ensures IsSorted(c) <==> forall i, j :: 0 <= i < j < |c| ==> c[i] < c[j];
     {
-      reveal_IsSorted();
+      reveal IsSorted();
     }
     static lemma SmallIsSorted(s: seq<int>)
       ensures |s| <= 1 ==> IsSorted(s);
     {
-      reveal_IsSorted();
+      reveal IsSorted();
     }
     static predicate AllBelow(s: seq<int>, d: int)
     {
@@ -133,7 +133,7 @@ module SnapTree {
       requires SortedSplit(left, data, right);
       ensures IsSorted(left + [data] + right);
     {
-      reveal_IsSorted();
+      reveal IsSorted();
     }
 
     constructor Empty()
@@ -292,7 +292,7 @@ module SnapTree {
       left, data, right := null, x, null;
       Tree.SmallIsSorted([]);
       Tree.SmallIsSorted([x]);
-      reveal_NodeValid();
+      reveal NodeValid();
     }
 
     constructor Build(left: Node, x: int, right: Node)
@@ -330,7 +330,7 @@ module SnapTree {
       assert Contents == CombineSplit(left, x, right);
       CombineSortedSplit(left, x, right);
       assert Tree.IsSorted(Contents);
-      reveal_NodeValid();
+      reveal NodeValid();
     }
 
     static method FunctionalInsert(n: Node, x: int) returns (r: Node, ghost pos: int)
@@ -353,7 +353,7 @@ module SnapTree {
       } else if n.data < x {
         r, pos := FunctionalInsert_Right(n, x);
       } else {
-        n.reveal_NodeValid();
+        reveal n.NodeValid();
         r, pos := n, -1;
       }
     }
@@ -368,7 +368,7 @@ module SnapTree {
         r.Contents == n.Contents[..pos] + [x] + n.Contents[pos..];
       decreases n.Repr, 0;
     {
-      n.reveal_NodeValid();
+      reveal n.NodeValid();
       var left;
       left, pos := FunctionalInsert(n.left, x);
       if left == n.left {
@@ -389,7 +389,7 @@ module SnapTree {
         r.Contents == n.Contents[..pos] + [x] + n.Contents[pos..];
       decreases n.Repr, 0;
     {
-      n.reveal_NodeValid();
+      reveal n.NodeValid();
       var right;
       right, pos := FunctionalInsert(n.right, x);
       if right == n.right {
@@ -427,7 +427,7 @@ module SnapTree {
       } else if data < x {
         pos := MutatingInsert_Right(x);
       } else {
-        reveal_NodeValid();
+        reveal NodeValid();
         pos := -1;
       }
     }
@@ -442,7 +442,7 @@ module SnapTree {
         Contents == old(Contents[..pos] + [x] + Contents[pos..]);
       decreases Repr, 0;
     {
-      reveal_NodeValid();
+      reveal NodeValid();
       ghost var R := if right == null then [] else right.Contents;
       assert Tree.AllAbove(data, R);
       assert Tree.AllAbove(x, R);
@@ -463,7 +463,7 @@ module SnapTree {
       assert Tree.IsSorted(R);
       Tree.SortCombineProperty(left.Contents, data, R);
       assert Tree.IsSorted(Contents);
-      reveal_NodeValid();
+      reveal NodeValid();
     }
 
     method {:timeLimit 25} MutatingInsert_Right(x: int) returns (ghost pos: int)
@@ -476,7 +476,7 @@ module SnapTree {
         Contents == old(Contents[..pos] + [x] + Contents[pos..]);
       decreases Repr, 0;
     {
-      reveal_NodeValid();
+      reveal NodeValid();
       assert Contents == CombineSplit(left, data, right);
       ghost var L := if left == null then [] else left.Contents;
       ghost var Llen := |L| + 1;
@@ -520,7 +520,7 @@ module SnapTree {
       assert Tree.IsSorted(right.Contents);
       Tree.SortCombineProperty(L, data, right.Contents);
       assert Tree.IsSorted(Contents);
-      reveal_NodeValid();
+      reveal NodeValid();
     }
   }
 
@@ -565,7 +565,7 @@ module SnapTree {
       case Cons(p, rest) =>
         p != null && p in Nodes && p.Repr <= Nodes && p.NodeValid() &&
         0 <= n < |C| && p.data == C[n] &&
-        (p.reveal_NodeValid();
+        (reveal p.NodeValid();
          R(rest, n + 1 + if p.right==null then 0 else |p.right.Contents|, C, Nodes) &&
          p.Contents[if p.left==null then 0 else |p.left.Contents| ..] <= C[n..])
     }
@@ -628,7 +628,7 @@ module SnapTree {
     {
       st := Cons(p, stIn);
 
-      p.reveal_NodeValid();
+      reveal p.NodeValid();
       assert p.data == p.Contents[if p.left == null then 0 else |p.left.Contents|];  // lemma
       if p.left != null {
         st := Push(st, n, p.left, C, Nodes);
@@ -662,7 +662,7 @@ module SnapTree {
             hasCurrent := false;
           case Cons(p, rest) =>
             // lemmas:
-            p.reveal_NodeValid();
+            reveal p.NodeValid();
             assert R(rest, N + 1 + if p.right==null then 0 else |p.right.Contents|, Contents, T.Repr);
             ghost var k := if p.left==null then 0 else |p.left.Contents|;
             assert p.Contents[k..] == [p.data] + p.Contents[k+1..];

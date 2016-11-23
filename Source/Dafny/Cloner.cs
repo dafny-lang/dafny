@@ -305,6 +305,9 @@ namespace Microsoft.Dafny
       } else if (expr is ApplySuffix) {
         var e = (ApplySuffix) expr;
         return CloneApplySuffix(e);
+      } else if (expr is RevealExpr) {
+        var e = (RevealExpr) expr;
+        return new RevealExpr(Tok(e.tok), CloneExpr(e.Expr));
       } else if (expr is MemberSelectExpr) {
         var e = (MemberSelectExpr)expr;
         return new MemberSelectExpr(Tok(e.tok), CloneExpr(e.Obj), e.MemberName);
@@ -510,6 +513,10 @@ namespace Microsoft.Dafny
       } else if (stmt is PrintStmt) {
         var s = (PrintStmt)stmt;
         r = new PrintStmt(Tok(s.Tok), Tok(s.EndTok), s.Args.ConvertAll(CloneExpr));
+
+      } else if (stmt is RevealStmt) {
+        var s = (RevealStmt)stmt;
+        r = new RevealStmt(Tok(s.Tok), Tok(s.EndTok), CloneExpr(s.Expr));
 
       } else if (stmt is BreakStmt) {
         var s = (BreakStmt)stmt;
