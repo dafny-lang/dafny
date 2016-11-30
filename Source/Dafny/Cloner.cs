@@ -144,9 +144,14 @@ namespace Microsoft.Dafny
 
     public virtual MemberDecl CloneMember(MemberDecl member) {
       if (member is Field) {
-        Contract.Assert(!(member is SpecialField));  // we don't expect a SpecialField to be cloned (or do we?)
-        var f = (Field)member;
-        return new Field(Tok(f.tok), f.Name, f.IsGhost, f.IsMutable, f.IsUserMutable, CloneType(f.Type), CloneAttributes(f.Attributes));
+        if (member is ConstantField) {
+          var c = (ConstantField) member;
+          return new ConstantField(Tok(c.tok), c.Name, CloneExpr(c.constValue), c.IsGhost, CloneType(c.Type), CloneAttributes(c.Attributes));
+        } else {
+          Contract.Assert(!(member is SpecialField));  // we don't expect a SpecialField to be cloned (or do we?)
+          var f = (Field)member;
+          return new Field(Tok(f.tok), f.Name, f.IsGhost, f.IsMutable, f.IsUserMutable, CloneType(f.Type), CloneAttributes(f.Attributes));
+        }
       } else if (member is Function) {
         var f = (Function)member;
         return CloneFunction(f);

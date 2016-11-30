@@ -841,13 +841,20 @@ namespace Microsoft.Dafny
       ResolveOpenedImports(moduleInfo, m, useCompileSignatures, this); // opened imports do not persist
       var datatypeDependencies = new Graph<IndDatatypeDecl>();
       var codatatypeDependencies = new Graph<CoDatatypeDecl>();
+      var constantDependencies = new Graph<ConstantField>();
       int prevErrorCount = reporter.Count(ErrorLevel.Error);
       ResolveTopLevelDecls_Signatures(m, sig, m.TopLevelDecls, datatypeDependencies, codatatypeDependencies);
       Contract.Assert(AllTypeConstraints.Count == 0);  // signature resolution does not add any type constraints
       ResolveAttributes(m.Attributes, m, new ResolveOpts(new NoContext(m.Module), false)); // Must follow ResolveTopLevelDecls_Signatures, in case attributes refer to members
       SolveAllTypeConstraints();  // solve any type constraints entailed by the attributes
       if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
-        ResolveTopLevelDecls_Core(m.TopLevelDecls, datatypeDependencies, codatatypeDependencies);
+        ResolveTopLevelDecls_Core(m.TopLevelDecls, datatypeDependencies, codatatypeDependencies, constantDependencies);
+      }
+      // check for cycles in constant definition.
+      List<ConstantField> cycle = constantDependencies.TryFindCycle();
+      if (cycle != null) {
+        var cy = Util.Comma(" -> ", cycle, f => f.Name);
+        reporter.Error(MessageSource.Resolver, cycle[0], "constant definition contains a cycle: {0}", cy);
       }
       Type.PopScope(moduleInfo.VisibilityScope);
       moduleInfo = oldModuleInfo;
@@ -1442,7 +1449,6 @@ namespace Microsoft.Dafny
           // nothing more to register
         } else if (d is NewtypeDecl) {
           // nothing more to register
-
         } else if (d is IteratorDecl) {
           var iter = (IteratorDecl)d;
 
@@ -1654,7 +1660,7 @@ namespace Microsoft.Dafny
           if (cl.IsDefaultClass) {
             foreach (MemberDecl m in cl.Members) {
               Contract.Assert(!m.HasStaticKeyword || DafnyOptions.O.AllowGlobals);  // note, the IsStatic value isn't available yet; when it becomes available, we expect it will have the value 'true'
-              if (m is Function || m is Method) {
+              if (m is Function || m is Method || m is ConstantField) {
                 sig.StaticMembers[m.Name] = m;
               }
             }
@@ -1972,7 +1978,7 @@ namespace Microsoft.Dafny
       new NativeType("long", Int64.MinValue, 0x8000000000000000, 0, "L", false),
     };
 
-    public void ResolveTopLevelDecls_Core(List<TopLevelDecl/*!*/>/*!*/ declarations, Graph<IndDatatypeDecl/*!*/>/*!*/ datatypeDependencies, Graph<CoDatatypeDecl/*!*/>/*!*/ codatatypeDependencies) {
+    public void ResolveTopLevelDecls_Core(List<TopLevelDecl/*!*/>/*!*/ declarations, Graph<IndDatatypeDecl/*!*/>/*!*/ datatypeDependencies, Graph<CoDatatypeDecl/*!*/>/*!*/ codatatypeDependencies, Graph<ConstantField/*!*/>/*!*/ constantDependencies) {
       Contract.Requires(declarations != null);
       Contract.Requires(cce.NonNullElements(datatypeDependencies));
       Contract.Requires(cce.NonNullElements(codatatypeDependencies));
@@ -2076,10 +2082,10 @@ namespace Microsoft.Dafny
         if (d is IteratorDecl) {
           var iter = (IteratorDecl)d;
           ResolveIterator(iter);
-          ResolveClassMemberBodies(iter);  // resolve the automatically generated members
+          ResolveClassMemberBodies(iter, constantDependencies);  // resolve the automatically generated members
         } else if (d is ClassDecl) {
           var cl = (ClassDecl)d;
-          ResolveClassMemberBodies(cl);
+          ResolveClassMemberBodies(cl, constantDependencies);
         }
         allTypeParameters.PopMarker();
       }
@@ -4279,7 +4285,10 @@ namespace Microsoft.Dafny
     // ------------------------------------------------------------------------------------------------------
     #region CheckTypeInference
     private void CheckTypeInference_Member(MemberDecl member) {
-      if (member is Method) {
+      if (member is ConstantField) {
+        var field = (ConstantField) member;
+        CheckTypeInference(field.constValue, new NoContext(member.EnclosingClass.Module));
+      } else if (member is Method) {
         var m = (Method)member;
         m.Req.Iter(mfe => CheckTypeInference_MaybeFreeExpression(mfe, m));
         m.Ens.Iter(mfe => CheckTypeInference_MaybeFreeExpression(mfe, m));
@@ -6028,7 +6037,7 @@ namespace Microsoft.Dafny
     /// <summary>
     /// Assumes type parameters have already been pushed, and that all types in class members have been resolved
     /// </summary>
-    void ResolveClassMemberBodies(ClassDecl cl) {
+    void ResolveClassMemberBodies(ClassDecl cl, Graph<ConstantField/*!*/>/*!*/ constantDependencies) {
       Contract.Requires(cl != null);
       Contract.Requires(currentClass == null);
       Contract.Requires(AllTypeConstraints.Count == 0);
@@ -6040,8 +6049,16 @@ namespace Microsoft.Dafny
         Contract.Assert(VisibleInScope(member));
         if (member is Field) {
           ResolveAttributes(member.Attributes, member, new ResolveOpts(new NoContext(currentClass.Module), false));
-          // nothing more to do
-
+          
+          if (member is ConstantField) {
+            // setting the enclosing class for the corresponding function for the field. And resolve the value expression
+            var field = (ConstantField)member;
+            field.function.EnclosingClass = cl;
+            ResolveExpression(field.constValue, new ResolveOpts(new NoContext(currentClass.Module), false));
+            // make sure initialization only refers to constant field or literal expression
+            CheckConstantFieldInitialization(field, field.constValue, constantDependencies);
+            SolveAllTypeConstraints();
+          }
         } else if (member is Function) {
           var f = (Function)member;
           var ec = reporter.Count(ErrorLevel.Error);
@@ -6071,6 +6088,60 @@ namespace Microsoft.Dafny
         Contract.Assert(AllTypeConstraints.Count == 0);
       }
       currentClass = null;
+    }
+
+    void CheckConstantFieldInitialization(ConstantField field, Expression expr, Graph<ConstantField/*!*/>/*!*/ constantDependencies) {
+      ConstantField other;
+      if (expr is LiteralExpr) {
+        ConstrainSubtypeRelation(field.Type, expr.Type, field.tok, "type for constant {0} is {1}, but its initialization value type is {2}", field.Name, field.Type, expr.Type);
+        // we are fine
+      } else if (expr is NameSegment) {
+        other = FindConstantField((NameSegment)expr);
+        if (other != null) {
+          ConstrainSubtypeRelation(field.Type, other.Type, field.tok, "type for constant {0} is {1}, but its initialization value type is {2}", field.Name, field.Type, expr.Type);
+          constantDependencies.AddEdge(field, other);
+        } else {
+          reporter.Error(MessageSource.Resolver, field.tok, "only constants are allowed in the expression to initialize constant{0}", field.Name);
+        }
+      } else if (expr is ExprDotName) {
+        var v = (ExprDotName)expr;
+        while (v.Lhs is ExprDotName) {
+          v = (ExprDotName)v.Lhs;
+        }
+        if (v.Lhs is NameSegment) {
+          other = FindConstantField((NameSegment)v.Lhs);
+          if (other != null) {
+            ConstrainSubtypeRelation(field.Type, other.Type, field.tok, "type for constant {0} is {1}, but its initialization value type is {2}", field.Name, field.Type, expr.Type);
+            constantDependencies.AddEdge(field, other);
+          } else {
+            reporter.Error(MessageSource.Resolver, field.tok, "only constants are allowed in the expression to initialize constant{0}", field.Name);
+          }
+        } else {
+          reporter.Error(MessageSource.Resolver, field.tok, "only constants are allowed in the expression to initialize constant{0}", field.Name);
+        }
+      } else {
+        bool hasSubfield = false;
+        foreach (var ee in field.constValue.SubExpressions) {
+          hasSubfield = true;
+          CheckConstantFieldInitialization(field, ee, constantDependencies);
+        }
+        if (!hasSubfield) {
+          reporter.Error(MessageSource.Resolver, field.tok, "only constants are allowed in the expression to initialize constant {0}", field.Name);
+        }
+      }
+    }
+
+    ConstantField FindConstantField(NameSegment expr) {
+      Dictionary<string, MemberDecl> members;
+      MemberDecl member;
+      if (currentClass != null && classMembers.TryGetValue(currentClass, out members) && members.TryGetValue(expr.Name, out member)) {
+        if (member is ConstantField)
+          return (ConstantField)member;
+      } else if (moduleInfo.StaticMembers.TryGetValue(expr.Name, out member)) {
+        if (member is ConstantField)
+          return (ConstantField)member;
+      }
+      return null;
     }
 
     /// <summary>
@@ -11427,7 +11498,17 @@ namespace Microsoft.Dafny
         }
         rr.Type = new InferredTypeProxy();  // fill in this field, in order to make "rr" resolved
       }
-      return rr;
+      if (member is ConstantField) {
+        // change the reference to constant field to a function call since that is what constant is translate to.
+        var r = new FunctionCallExpr(tok, member.Name, rr.Obj, tok, new List<Expression>());
+        r.Function = ((ConstantField)member).function;
+        r.TypeArgumentSubstitutions = new Dictionary<TypeParameter, Type>();
+        r.Type = r.Function.ResultType.StripSubsetConstraints();
+        AddCallGraphEdge(opts.codeContext, r.Function, rr);
+        return r;
+      } else {
+        return rr;
+      }
     }
 
     class MethodCallInformation

@@ -1,0 +1,11 @@
+
+Dafny program verifier finished with 1 verified, 0 errors
+Program compiled successfully
+Running...
+
+one := 1
+two := 2
+three := 3
+Pi := (314.0 / 100.0)
+months := 12
+weeks := 52

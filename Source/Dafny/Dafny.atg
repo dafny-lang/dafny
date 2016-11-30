@@ -976,6 +976,7 @@ ClassMemberDecl<. DeclModifierData dmod, List<MemberDecl> mm, bool allowConstruc
        }
     .)
     FieldDecl<dmod, mm>
+  | ConstantFieldDecl<dmod, mm>
   | IF(IsFunctionDecl())
     (. if (moduleLevelDecl && dmod.StaticToken != null) {
          errors.Warning(dmod.StaticToken, "module-level functions are always non-instance, so the 'static' keyword is not allowed here");
@@ -1050,6 +1051,20 @@ FieldDecl<.DeclModifierData dmod, List<MemberDecl/*!*/>/*!*/ mm.>
   FIdentType<out id, out ty>                        (. mm.Add(new Field(id, id.val, dmod.IsGhost, ty, attrs)); .)
   { "," FIdentType<out id, out ty>                  (. mm.Add(new Field(id, id.val, dmod.IsGhost, ty, attrs)); .)
   }
+  OldSemi
+  .
+ConstantFieldDecl<.DeclModifierData dmod, List<MemberDecl/*!*/>/*!*/ mm.>
+= (. Contract.Requires(cce.NonNullElements(mm));
+     Attributes attrs = null;
+     IToken/*!*/ id;  Type/*!*/ ty; Expression/*!*/ e;
+     CheckDeclModifiers(dmod, "Fields", AllowedDeclModifiers.Ghost);
+  .)
+  SYNC
+  "const"
+  { Attribute<ref attrs> }
+  FIdentType<out id, out ty>
+  ":="
+	Expression<out e, false, false>                   (. mm.Add(new ConstantField(id, id.val, e, dmod.IsGhost, ty, attrs)); .)
   OldSemi
   .
 NewtypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl td>

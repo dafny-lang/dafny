@@ -1817,16 +1817,27 @@ namespace Microsoft.Dafny {
         currentDeclaration = member;
         if (member is Field) {
           Field f = (Field)member;
-          if (f.IsMutable) {
-            Bpl.Constant fc = GetField(f);
-            sink.AddTopLevelDeclaration(fc);
+          if (f is ConstantField) {
+            // function QQ():int { 3 }
+            var cf = (ConstantField)f;
+            Function ff = ((ConstantField)cf).function;
+            var res = new Bpl.Formal(f.tok, new Bpl.TypedIdent(f.tok, Bpl.TypedIdent.NoName, TrType(ff.ResultType)), false);
+            var func = new Bpl.Function(f.tok, ff.FullSanitizedName, new List<TypeVariable>(), new List<Bpl.Variable>(), res, null, new QKeyValue(f.tok, "inline", new List<object>(), null));
+            ExpressionTranslator etran = new ExpressionTranslator(this, predef, (Bpl.Expr)null);
+            func.Body = etran.TrExpr(cf.constValue);
+            sink.AddTopLevelDeclaration(func);
           } else {
-            Bpl.Function ff = GetReadonlyField(f);
-            if (ff != predef.ArrayLength)
-              sink.AddTopLevelDeclaration(ff);
-          }
+            if (f.IsMutable) {
+              Bpl.Constant fc = GetField(f);
+              sink.AddTopLevelDeclaration(fc);
+            } else {
+              Bpl.Function ff = GetReadonlyField(f);
+              if (ff != predef.ArrayLength)
+                sink.AddTopLevelDeclaration(ff);
+            }
 
-          AddAllocationAxiom(f, c);
+            AddAllocationAxiom(f, c);
+          }
 
         } else if (member is Function) {
           AddFunction_Top((Function)member);
@@ -13293,7 +13304,13 @@ namespace Microsoft.Dafny {
           Expression arg = expr.Args[0];
           return TrToFunctionCall(expr.tok, "RightRotate_bv" + w, translator.BplBvType(w), TrExpr(expr.Receiver), translator.ConvertExpression(expr.tok, TrExpr(arg), arg.Type, expr.Type), false);
         } else {
-          Contract.Assert(false); throw new cce.UnreachableException();  // unexpected special function
+          var args = new List<Bpl.Expr>();
+          for (int i = 0; i < expr.Args.Count; i++) {
+            Expression ee = expr.Args[i];
+            args.Add(TrExpr(ee));
+          }
+          var id = new Bpl.IdentifierExpr(expr.tok, expr.Function.FullSanitizedName, translator.TrType(expr.Type));
+          return new Bpl.NAryExpr(expr.tok, new Bpl.FunctionCall(id), args);
         }
       }
       public Expr TrToFunctionCall(IToken tok, string function, Bpl.Type returnType, Bpl.Expr e0, Bpl.Expr e1, bool liftLit) {

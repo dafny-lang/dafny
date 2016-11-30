@@ -881,6 +881,12 @@ namespace Microsoft.Dafny {
           var f = (Field)member;
           if (f.IsGhost || forCompanionClass) {
             // emit nothing
+          } else if (f is ConstantField) {
+            var dd = (ConstantField)f;
+            wr.Write("public static {0} {1}()", TypeName(dd.type, wr), dd.CompileName);
+            wr.WriteLine("{");
+            CompileReturnBody(dd.constValue, indent + IndentAmount, wr);
+            Indent(indent, wr); wr.WriteLine("}");
           } else if (c is TraitDecl) {
             Indent(indent, wr);
             wr.Write("{0} @{1}", TypeName(f.Type, wr), f.CompileName);
@@ -3415,6 +3421,8 @@ namespace Microsoft.Dafny {
         CompileRotate(e.Receiver, e.Args[0], "<<", ">>", true, false, wr, inLetExprBody, tr);
       } else if (name == "RotateRight") {
         CompileRotate(e.Receiver, e.Args[0], ">>", "<<", false, true, wr, inLetExprBody, tr);
+      } else {
+        CompileFunctionCallExpr(e, wr, wr, inLetExprBody, tr);
       }
     }
 
