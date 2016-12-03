@@ -2867,8 +2867,9 @@ namespace Microsoft.Dafny {
         } else {
           etranBody = etran.LimitedFunctions(f, ly);
         }
+        
         tastyVegetarianOption = BplAnd(CanCallAssumption(bodyWithSubst, etranBody),
-          Bpl.Expr.Eq(funcAppl, etranBody.TrExpr(bodyWithSubst)));
+          BplAnd(TrFunctionSideEffect(bodyWithSubst, etranBody),Bpl.Expr.Eq(funcAppl, etranBody.TrExpr(bodyWithSubst))));
       }
       QKeyValue kv = null;
       if (lits != null) {
@@ -2895,6 +2896,42 @@ namespace Microsoft.Dafny {
         comment += " (opaque)";
       }
       return new Bpl.Axiom(f.tok, Bpl.Expr.Imp(activate, ax), comment);
+    }
+
+    Expr TrFunctionSideEffect(Expression expr, ExpressionTranslator etran) {
+      Expr e = Bpl.Expr.True;
+      if (expr is StmtExpr) {
+        // if there is a call to reveal_ lemma, we need to record its side effect.
+        var stmt = ((StmtExpr)expr).S;
+        foreach (var ss in stmt.SubStatements) {
+          if (ss is CallStmt) {
+            var call = (CallStmt)ss;
+            var m = call.Method;
+            if (IsOpaqueRevealLemma(m)) {
+              List<Expression> args = Attributes.FindExpressions(m.Attributes, "fuel");
+              if (args != null) {
+                MemberSelectExpr selectExpr = args[0].Resolved as MemberSelectExpr;
+                if (selectExpr != null) {
+                  Function f = selectExpr.Member as Function;
+                  FuelConstant fuelConstant = this.functionFuel.Find(x => x.f == f);
+                  if (fuelConstant != null) {
+                    Bpl.Expr startFuel = fuelConstant.startFuel;
+                    Bpl.Expr startFuelAssert = fuelConstant.startFuelAssert;
+                    Bpl.Expr moreFuel_expr = fuelConstant.MoreFuel(sink, predef, f.IdGenerator);
+                    Bpl.Expr layer = etran.layerInterCluster.LayerN(1, moreFuel_expr);
+                    Bpl.Expr layerAssert = etran.layerInterCluster.LayerN(2, moreFuel_expr);
+
+                    e = Bpl.Expr.Eq(startFuel, layer);
+                    e = BplAnd(e, Bpl.Expr.Eq(startFuelAssert, layerAssert));
+                    e = BplAnd(e, Bpl.Expr.Eq(this.FunctionCall(f.tok, BuiltinFunction.AsFuelBottom, null, moreFuel_expr), moreFuel_expr));
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+      return e;
     }
 
     /// <summary>
@@ -7705,8 +7742,7 @@ namespace Microsoft.Dafny {
                 AddEnsures(ens, Ensures(m.tok, true, Bpl.Expr.Eq(startFuelAssert, layerAssert), null, null));
 
                 AddEnsures(ens, Ensures(m.tok, true, Bpl.Expr.Eq(FunctionCall(f.tok, BuiltinFunction.AsFuelBottom, null, moreFuel_expr), moreFuel_expr), null, "Shortcut to LZ"));
-                AddEnsures(ens, Ensures(m.tok, true, Bpl.Expr.Eq(FunctionCall(f.tok, BuiltinFunction.AsFuelBottom, null, moreFuel_expr), moreFuel_expr), null, "Shortcut to LZ"));
-              }
+                }
             }
           }
         }
