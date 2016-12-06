@@ -9250,7 +9250,7 @@ namespace Microsoft.Dafny
       Contract.Requires(tok != null);
       Contract.Requires(t != null);
       Contract.Ensures(!(Contract.Result<Type>() is TypeProxy) || ((TypeProxy)Contract.Result<Type>()).T == null);
-      Contract.Ensures(memberName != null || Contract.Result<Type>().Equals(t.NormalizeExpand()));
+      Contract.Ensures(memberName != null || Contract.Result<Type>() == t || Contract.Result<Type>().Equals(t.NormalizeExpand()));
       t = t.NormalizeExpand();
       if (!(t is TypeProxy)) {
         return t;  // we're good

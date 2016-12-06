@@ -1,5 +1,5 @@
 OpenImport.dfy(25,11): Error: The body of function g depends on type T which was not exported with it. Ensure that T is visible wherever the body of g is exported.
-OpenImport.dfy(26,11): Error: The body of function h depends on type T which was not exported with it. Ensure that T is visible wherever the body of h is exported.
+OpenImport.dfy(26,11): Error: The body of function h depends on type A.T which was not exported with it. Ensure that A.T is visible wherever the body of h is exported.
 OpenImport.dfy(33,26): Error: unresolved identifier: f
 OpenImport.dfy(35,22): Error: unresolved identifier: f
 4 resolution/type errors detected in OpenImport.dfy
