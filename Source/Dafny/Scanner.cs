@@ -326,14 +326,14 @@ public class Scanner {
 			this._buffer = new Buffer(stream, false);
 			this.FullFilename = fullFilename;
 			Filename = useBaseName? GetBaseName(fileName): fileName;
-			Init();
+			Init(1);
 		} catch (IOException) {
 			throw new FatalError("Cannot open file " + fileName);
 		}
 	}
 
 //	[NotDelayed]
-	public Scanner (Stream/*!*/ s, Errors/*!*/ errorHandler, string/*!*/ fullFilename, string/*!*/ fileName, bool useBaseName = false) : base() {
+	public Scanner (Stream/*!*/ s, Errors/*!*/ errorHandler, string/*!*/ fullFilename, string/*!*/ fileName, int lineNumber = 1, bool useBaseName = false) : base() {
 		Contract.Requires(s != null);
 		Contract.Requires(errorHandler != null);
 		Contract.Requires(fileName != null);
@@ -343,15 +343,16 @@ public class Scanner {
 		this.errorHandler = errorHandler;
 		this.FullFilename = fullFilename;
 		this.Filename = useBaseName? GetBaseName(fileName) : fileName;
-		Init();
+		Init(lineNumber);
 	}
+
 
 	string GetBaseName(string fileName) {
 		return System.IO.Path.GetFileName(fileName); // Return basename
 	}
 
-	void Init() {
-		pos = -1; line = 1; col = 0;
+	void Init(int lineNumber) {
+		pos = -1; line = lineNumber; col = 0;
 		oldEols = 0;
 		NextCh();
 		if (ch == 0xEF) { // check optional byte order mark for UTF-8
