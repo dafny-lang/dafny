@@ -7239,7 +7239,7 @@ namespace Microsoft.Dafny {
         substMap.Add(oldVars[i], id);
       }
 
-      Translator.Substituter sub = new Translator.Substituter(null, substMap, typeMap, null);
+      Translator.Substituter sub = new Translator.Substituter(null, substMap, typeMap);
       return sub.Substitute(e);
     }
 

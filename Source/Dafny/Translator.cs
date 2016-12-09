@@ -2963,7 +2963,7 @@ namespace Microsoft.Dafny {
       k.Type = pp.K.Type;  // resolve here
       var kMinusOne = Expression.CreateSubtract(k, Expression.CreateIntLiteral(pp.tok, 1));
 
-      var s = new PrefixCallSubstituter(null, paramMap, typeMap, pp.FixpointPred, kMinusOne, this);
+      var s = new PrefixCallSubstituter(null, paramMap, typeMap, pp.FixpointPred, kMinusOne);
       body = s.Substitute(body);
 
       var kIsPositive = Expression.CreateLess(Expression.CreateIntLiteral(pp.tok, 0), k);
@@ -6092,7 +6092,7 @@ namespace Microsoft.Dafny {
           }
           if (options.DoReadsChecks) {
             // check that the callee reads only what the caller is already allowed to read
-            var s = new Substituter(null, new Dictionary<IVariable, Expression>(), e.TypeArgumentSubstitutions, this);
+            var s = new Substituter(null, new Dictionary<IVariable, Expression>(), e.TypeArgumentSubstitutions);
             CheckFrameSubset(expr.tok,
               e.Function.Reads.ConvertAll(s.SubstFrameExpr),
               e.Receiver, substMap, etran, options.AssertSink(this, builder), "insufficient reads clause to invoke function", options.AssertKv);
@@ -6310,7 +6310,7 @@ namespace Microsoft.Dafny {
         locals.AddRange(Map(copies,
           tp => new Bpl.LocalVariable(tp.tok, new TypedIdent(tp.tok, nameTypeParam(tp), predef.Ty))));
         var substMap = SetupBoundVarsAsLocals(e.BoundVars, builder, locals, etran, typeMap);
-        var s = new Substituter(null, substMap, typeMap, this);
+        var s = new Substituter(null, substMap, typeMap);
         var body = Substitute(e.Term, null, substMap, typeMap);
         List<FrameExpression> reads = null;
 
@@ -8556,7 +8556,7 @@ namespace Microsoft.Dafny {
         if (s.Guard == null) {
           guard = null;
         } else {
-          guard = s.IsExistentialGuard ? AlphaRename((ExistsExpr)s.Guard, "eg$", this) : s.Guard;
+          guard = s.IsExistentialGuard ? AlphaRename((ExistsExpr)s.Guard, "eg$") : s.Guard;
           TrStmt_CheckWellformed(guard, builder, locals, etran, true);
         }
         BoogieStmtListBuilder b = new BoogieStmtListBuilder(this);
@@ -8978,11 +8978,10 @@ namespace Microsoft.Dafny {
     /// 'prefix' as a prefix to their previous names.
     /// Assumes the expression has been resolved.
     /// </summary>
-    public static Expression AlphaRename(ExistsExpr exists, string prefix, Translator translator) {
+    public static Expression AlphaRename(ExistsExpr exists, string prefix) {
       Contract.Requires(exists != null);
       Contract.Requires(prefix != null);
-      Contract.Requires(translator != null);
-
+      
       if (exists.SplitQuantifier != null) {
         // TODO: what to do?  Substitute(exists.SplitQuantifierExpression);
       }
@@ -8999,7 +8998,7 @@ namespace Microsoft.Dafny {
         ie.Type = newBv.Type;  // resolve here
         substMap.Add(bv, ie);
       }
-      var s = new Substituter(null, substMap, new Dictionary<TypeParameter, Type>(), translator);
+      var s = new Substituter(null, substMap, new Dictionary<TypeParameter, Type>());
       var range = exists.Range == null ? null : s.Substitute(exists.Range);
       var term = s.Substitute(exists.Term);
       var attrs = s.SubstAttributes(exists.Attributes);
@@ -9900,7 +9899,7 @@ namespace Microsoft.Dafny {
       }
 
       // alpha-rename any existential guards
-      var guards = alternatives.ConvertAll(alt => alt.IsExistentialGuard ? AlphaRename((ExistsExpr)alt.Guard, "eg$", this) : alt.Guard);
+      var guards = alternatives.ConvertAll(alt => alt.IsExistentialGuard ? AlphaRename((ExistsExpr)alt.Guard, "eg$") : alt.Guard);
 
       // build the negation of the disjunction of all guards (that is, the conjunction of their negations)
       Bpl.Expr noGuard = Bpl.Expr.True;
@@ -11350,105 +11349,114 @@ namespace Microsoft.Dafny {
         //            P($let$x(g), $let$y(g), g));
         // and create the desugaring:
         //   var x:X, y:Y := $let$x(g), $let$y(g); F(...)
+        if (e is SubstLetExpr) {
+          // desugar based on the original letexpr.
+          var expr = (SubstLetExpr)e;
+          var orgExpr = expr.orgExpr;
+          Expression d = LetDesugaring(orgExpr);
+          e.setTranslationDesugaring(this, Substitute(d, null, expr.substMap, expr.typeMap));
+          var orgInfo = letSuchThatExprInfo[orgExpr];
+          letSuchThatExprInfo.Add(expr, new LetSuchThatExprInfo(orgInfo, this, expr.substMap, expr.typeMap));
+        } else {
+          // First, determine "g" as a list of Dafny variables FVs plus possibly this, $Heap, and old($Heap)
+          LetSuchThatExprInfo info;
+          {
+            var FVs = new HashSet<IVariable>();
+            bool usesHeap = false, usesOldHeap = false;
+            Type usesThis = null;
+            ComputeFreeVariables(e.RHSs[0], FVs, ref usesHeap, ref usesOldHeap, ref usesThis);
+            foreach (var bv in e.BoundVars) {
+              FVs.Remove(bv);
+            }
+            var FTVs = new HashSet<TypeParameter>();
+            ComputeFreeTypeVariables(e.RHSs[0], FTVs);
+            info = new LetSuchThatExprInfo(e.tok, letSuchThatExprInfo.Count, FVs.ToList(), FTVs.ToList(), usesHeap, usesOldHeap, usesThis, currentDeclaration);
+            letSuchThatExprInfo.Add(e, info);
+          }
 
-        // First, determine "g" as a list of Dafny variables FVs plus possibly this, $Heap, and old($Heap)
-        LetSuchThatExprInfo info;
-        {
-          var FVs = new HashSet<IVariable>();
-          bool usesHeap = false, usesOldHeap = false;
-          Type usesThis = null;
-          ComputeFreeVariables(e.RHSs[0], FVs, ref usesHeap, ref usesOldHeap, ref usesThis);
           foreach (var bv in e.BoundVars) {
-            FVs.Remove(bv);
+            Bpl.Variable resType = new Bpl.Formal(bv.tok, new Bpl.TypedIdent(bv.tok, Bpl.TypedIdent.NoName, TrType(bv.Type)), false);
+            Bpl.Expr ante;
+            List<Variable> formals = info.GAsVars(this, true, out ante, null);
+            var fn = new Bpl.Function(bv.tok, info.SkolemFunctionName(bv), formals, resType);
+
+            if (InsertChecksums) {
+              InsertChecksum(e.Body, fn);
+            }
+
+            sink.AddTopLevelDeclaration(fn);
           }
-          var FTVs = new HashSet<TypeParameter>();
-          ComputeFreeTypeVariables(e.RHSs[0], FTVs);
-          info = new LetSuchThatExprInfo(e.tok, letSuchThatExprInfo.Count, FVs.ToList(), FTVs.ToList(), usesHeap, usesOldHeap, usesThis, currentDeclaration);
-          letSuchThatExprInfo.Add(e, info);
-        }
+          // add canCall function
+          {
+            Bpl.Variable resType = new Bpl.Formal(e.tok, new Bpl.TypedIdent(e.tok, Bpl.TypedIdent.NoName, Bpl.Type.Bool), false);
+            Bpl.Expr ante;
+            List<Variable> formals = info.GAsVars(this, true, out ante, null);
+            var fn = new Bpl.Function(e.tok, info.CanCallFunctionName(), formals, resType);
 
-        foreach (var bv in e.BoundVars) {
-          Bpl.Variable resType = new Bpl.Formal(bv.tok, new Bpl.TypedIdent(bv.tok, Bpl.TypedIdent.NoName, TrType(bv.Type)), false);
-          Bpl.Expr ante;
-          List<Variable> formals = info.GAsVars(this, true, out ante, null);
-          var fn = new Bpl.Function(bv.tok, info.SkolemFunctionName(bv), formals, resType);
+            if (InsertChecksums) {
+              InsertChecksum(e.Body, fn);
+            }
 
-          if (InsertChecksums) {
-            InsertChecksum(e.Body, fn);
-          }
-
-          sink.AddTopLevelDeclaration(fn);
-        }
-        // add canCall function
-        {
-          Bpl.Variable resType = new Bpl.Formal(e.tok, new Bpl.TypedIdent(e.tok, Bpl.TypedIdent.NoName, Bpl.Type.Bool), false);
-          Bpl.Expr ante;
-          List<Variable> formals = info.GAsVars(this, true, out ante, null);
-          var fn = new Bpl.Function(e.tok, info.CanCallFunctionName(), formals, resType);
-
-          if (InsertChecksums) {
-            InsertChecksum(e.Body, fn);
+            sink.AddTopLevelDeclaration(fn);
           }
 
-          sink.AddTopLevelDeclaration(fn);
-        }
-
-        {
-          var etranCC = new ExpressionTranslator(this, predef, info.HeapExpr(this, false), info.HeapExpr(this, true));
-          Bpl.Expr typeAntecedents;  // later ignored
-          List<Variable> gg = info.GAsVars(this, false, out typeAntecedents, etranCC);
-          var gExprs = new List<Bpl.Expr>();
-          foreach (Bpl.Variable g in gg) {
-            gExprs.Add(new Bpl.IdentifierExpr(g.tok, g));
-          }
-          Bpl.Trigger tr = null;
-          Dictionary<IVariable, Expression> substMap = new Dictionary<IVariable, Expression>();
-          Bpl.Expr antecedent = Bpl.Expr.True;
-          foreach (var bv in e.BoundVars) {
-            // create a call to $let$x(g)
-            var call = FunctionCall(e.tok, info.SkolemFunctionName(bv), TrType(bv.Type), gExprs);
-            tr = new Bpl.Trigger(e.tok, true, new List<Bpl.Expr> { call }, tr);
-            substMap.Add(bv, new BoogieWrapper(call, bv.Type));
-            if (!(bv.Type.IsTypeParameter)) {
-              Bpl.Expr wh = GetWhereClause(bv.tok, call, bv.Type, etranCC, NOALLOC);
-              if (wh != null) {
-                antecedent = BplAnd(antecedent, wh);
+          {
+            var etranCC = new ExpressionTranslator(this, predef, info.HeapExpr(this, false), info.HeapExpr(this, true));
+            Bpl.Expr typeAntecedents;  // later ignored
+            List<Variable> gg = info.GAsVars(this, false, out typeAntecedents, etranCC);
+            var gExprs = new List<Bpl.Expr>();
+            foreach (Bpl.Variable g in gg) {
+              gExprs.Add(new Bpl.IdentifierExpr(g.tok, g));
+            }
+            Bpl.Trigger tr = null;
+            Dictionary<IVariable, Expression> substMap = new Dictionary<IVariable, Expression>();
+            Bpl.Expr antecedent = Bpl.Expr.True;
+            foreach (var bv in e.BoundVars) {
+              // create a call to $let$x(g)
+              var call = FunctionCall(e.tok, info.SkolemFunctionName(bv), TrType(bv.Type), gExprs);
+              tr = new Bpl.Trigger(e.tok, true, new List<Bpl.Expr> { call }, tr);
+              substMap.Add(bv, new BoogieWrapper(call, bv.Type));
+              if (!(bv.Type.IsTypeParameter)) {
+                Bpl.Expr wh = GetWhereClause(bv.tok, call, bv.Type, etranCC, NOALLOC);
+                if (wh != null) {
+                  antecedent = BplAnd(antecedent, wh);
+                }
               }
             }
+            var i = info.FTVs.Count + (info.UsesHeap ? 1 : 0) + (info.UsesOldHeap ? 1 : 0);
+            Expression receiverReplacement;
+            if (info.ThisType == null) {
+              receiverReplacement = null;
+            } else {
+              receiverReplacement = new BoogieWrapper(gExprs[i], info.ThisType);
+              i++;
+            }
+            foreach (var fv in info.FVs) {
+              var ge = gExprs[i];
+              substMap.Add(fv, new BoogieWrapper(ge, fv.Type));
+              i++;
+            }
+            var canCall = FunctionCall(e.tok, info.CanCallFunctionName(), Bpl.Type.Bool, gExprs);
+            var p = Substitute(e.RHSs[0], receiverReplacement, substMap);
+            Bpl.Expr ax = Bpl.Expr.Imp(canCall, BplAnd(antecedent, etranCC.TrExpr(p)));
+            ax = BplForall(gg, tr, ax);
+            sink.AddTopLevelDeclaration(new Bpl.Axiom(e.tok, ax));
           }
-          var i = info.FTVs.Count + (info.UsesHeap ? 1 : 0) + (info.UsesOldHeap ? 1 : 0);
-          Expression receiverReplacement;
-          if (info.ThisType == null) {
-            receiverReplacement = null;
-          } else {
-            receiverReplacement = new BoogieWrapper(gExprs[i], info.ThisType);
-            i++;
-          }
-          foreach (var fv in info.FVs) {
-            var ge = gExprs[i];
-            substMap.Add(fv, new BoogieWrapper(ge, fv.Type));
-            i++;
-          }
-          var canCall = FunctionCall(e.tok, info.CanCallFunctionName(), Bpl.Type.Bool, gExprs);
-          var p = Substitute(e.RHSs[0], receiverReplacement, substMap);
-          Bpl.Expr ax = Bpl.Expr.Imp(canCall, BplAnd(antecedent, etranCC.TrExpr(p)));
-          ax = BplForall(gg, tr, ax);
-          sink.AddTopLevelDeclaration(new Bpl.Axiom(e.tok, ax));
-        }
 
-        // now that we've declared the functions and axioms, let's prepare the let-such-that desugaring
-        {
-          var etran = new ExpressionTranslator(this, predef, e.tok);
-          var rhss = new List<Expression>();
-          foreach (var bv in e.BoundVars) {
-            var args = info.SkolemFunctionArgs(bv, this, etran);
-            var rhs = new BoogieFunctionCall(bv.tok, info.SkolemFunctionName(bv), info.UsesHeap, info.UsesOldHeap, args.Item1, args.Item2);
-            rhs.Type = bv.Type;
-            rhss.Add(rhs);
+          // now that we've declared the functions and axioms, let's prepare the let-such-that desugaring
+          {
+            var etran = new ExpressionTranslator(this, predef, e.tok);
+            var rhss = new List<Expression>();
+            foreach (var bv in e.BoundVars) {
+              var args = info.SkolemFunctionArgs(bv, this, etran);
+              var rhs = new BoogieFunctionCall(bv.tok, info.SkolemFunctionName(bv), info.UsesHeap, info.UsesOldHeap, args.Item1, args.Item2);
+              rhs.Type = bv.Type;
+              rhss.Add(rhs);
+            }
+            var expr = new LetExpr(e.tok, e.LHSs, rhss, e.Body, true);
+            expr.Type = e.Type; // resolve here
+            e.setTranslationDesugaring(this, expr);
           }
-          var expr = new LetExpr(e.tok, e.LHSs, rhss, e.Body, true);
-          expr.Type = e.Type; // resolve here
-          e.setTranslationDesugaring(this, expr);
         }
       }
       return e.getTranslationDesugaring(this);
@@ -11652,6 +11660,21 @@ namespace Microsoft.Dafny {
             yield return v;
           }
         }
+      }
+    }
+
+    internal class SubstLetExpr : LetExpr {
+      public LetExpr orgExpr;
+      public Dictionary<IVariable, Expression> substMap;
+      public Dictionary<TypeParameter, Type> typeMap;
+
+      public SubstLetExpr(IToken tok, List<CasePattern> lhss, List<Expression> rhss, Expression body, bool exact,
+         LetExpr orgExpr, Dictionary<IVariable, Expression> substMap, Dictionary<TypeParameter, Type> typeMap) 
+        : base(tok, lhss, rhss, body, exact) 
+      {
+        this.orgExpr = orgExpr;
+        this.substMap = substMap;
+        this.typeMap = typeMap;
       }
     }
 
@@ -13366,7 +13389,7 @@ namespace Microsoft.Dafny {
 
           subst[bv] = new BoogieWrapper(unboxy, bv.Type);
         }
-        var su = new Substituter(null, subst, new Dictionary<TypeParameter, Type>(), translator);
+        var su = new Substituter(null, subst, new Dictionary<TypeParameter, Type>());
 
         var et = new ExpressionTranslator(this, heap);
         var lvars = new List<Bpl.Variable>();
@@ -15188,15 +15211,15 @@ namespace Microsoft.Dafny {
       Contract.Requires(expr != null);
       Contract.Requires(cce.NonNullDictionaryAndValues(substMap));
       Contract.Ensures(Contract.Result<Expression>() != null);
-      var s = new Substituter(receiverReplacement, substMap, typeMap ?? new Dictionary<TypeParameter, Type>(), this);
+      var s = new Substituter(receiverReplacement, substMap, typeMap ?? new Dictionary<TypeParameter, Type>());
       return s.Substitute(expr);
     }
 
     public class FunctionCallSubstituter : Substituter
     {
       public readonly Function A, B;
-      public FunctionCallSubstituter(Expression receiverReplacement, Dictionary<IVariable, Expression/*!*/>/*!*/ substMap, Function a, Function b, Translator translator)
-        : base(receiverReplacement, substMap, new Dictionary<TypeParameter,Type>(), translator) {
+      public FunctionCallSubstituter(Expression receiverReplacement, Dictionary<IVariable, Expression/*!*/>/*!*/ substMap, Function a, Function b)
+        : base(receiverReplacement, substMap, new Dictionary<TypeParameter,Type>()) {
         A = a;
         B = b;
       }
@@ -15224,8 +15247,8 @@ namespace Microsoft.Dafny {
       readonly FixpointPredicate fixpointPred;
       readonly Expression unrollDepth;
       readonly ModuleDefinition module;
-      public PrefixCallSubstituter(Expression receiverReplacement, Dictionary<IVariable, Expression/*!*/>/*!*/ substMap, Dictionary<TypeParameter, Type> tySubstMap, FixpointPredicate fixpointpred, Expression depth, Translator translator)
-        : base(receiverReplacement, substMap, tySubstMap, translator) {
+      public PrefixCallSubstituter(Expression receiverReplacement, Dictionary<IVariable, Expression/*!*/>/*!*/ substMap, Dictionary<TypeParameter, Type> tySubstMap, FixpointPredicate fixpointpred, Expression depth)
+        : base(receiverReplacement, substMap, tySubstMap) {
         Contract.Requires(fixpointpred != null);
         Contract.Requires(depth != null);
         fixpointPred = fixpointpred;
@@ -15254,14 +15277,13 @@ namespace Microsoft.Dafny {
       public readonly Expression receiverReplacement;
       public readonly Dictionary<IVariable, Expression/*!*/>/*!*/ substMap;
       public readonly Dictionary<TypeParameter, Type/*!*/>/*!*/ typeMap;
-      readonly Translator translator;
-      public Substituter(Expression receiverReplacement, Dictionary<IVariable, Expression/*!*/>/*!*/ substMap, Dictionary<TypeParameter, Type> typeMap, Translator translator) {
+      
+      public Substituter(Expression receiverReplacement, Dictionary<IVariable, Expression/*!*/>/*!*/ substMap, Dictionary<TypeParameter, Type> typeMap) {
         Contract.Requires(substMap != null);
         Contract.Requires(typeMap != null);
         this.receiverReplacement = receiverReplacement;
         this.substMap = substMap;
         this.typeMap = typeMap;
-        this.translator = translator;
       }
       public virtual Expression Substitute(Expression expr) {
         Contract.Requires(expr != null);
@@ -15477,14 +15499,7 @@ namespace Microsoft.Dafny {
             if (rhs == e.RHSs[0] && body == e.Body) {
               return e;
             }
-            var newLet = new LetExpr(e.tok, e.LHSs, new List<Expression>{ rhs }, body, e.Exact);
-            if (translator != null)
-            {
-              Expression d = translator.LetDesugaring(e);
-              newLet.setTranslationDesugaring(translator, Substitute(d));
-              var info = translator.letSuchThatExprInfo[e];
-              translator.letSuchThatExprInfo.Add(newLet, new LetSuchThatExprInfo(info, translator, substMap, typeMap));
-            }
+            var newLet = new SubstLetExpr(e.tok, e.LHSs, new List<Expression>{ rhs }, body, e.Exact, e, substMap, typeMap);
             newExpr = newLet;
           }
 
@@ -16021,11 +16036,10 @@ namespace Microsoft.Dafny {
     public class AlphaConverting_Substituter : Substituter
     {
       ISet<string> namesToAvoid = new HashSet<string>();
-      public AlphaConverting_Substituter(Expression receiverReplacement, Dictionary<IVariable, Expression> substMap, Dictionary<TypeParameter, Type> typeMap, Translator translator)
-        : base(receiverReplacement is ImplicitThisExpr ? new ThisExpr(receiverReplacement.tok) : receiverReplacement, substMap, typeMap, translator) {
+      public AlphaConverting_Substituter(Expression receiverReplacement, Dictionary<IVariable, Expression> substMap, Dictionary<TypeParameter, Type> typeMap)
+        : base(receiverReplacement is ImplicitThisExpr ? new ThisExpr(receiverReplacement.tok) : receiverReplacement, substMap, typeMap) {
         Contract.Requires(substMap != null);
         Contract.Requires(typeMap != null);
-        Contract.Requires(translator != null);
       }
       protected override List<BoundVar> CreateBoundVarSubstitutions(List<BoundVar> vars, bool forceSubstitutionOfQuantifiedVars) {
         var newBoundVars = vars.Count == 0 ? vars : new List<BoundVar>();

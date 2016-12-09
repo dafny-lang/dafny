@@ -227,7 +227,7 @@ namespace Microsoft.Dafny
           Dictionary<TypeParameter, Type> typeMap = new Dictionary<TypeParameter, Type>();
           var substMap = new Dictionary<IVariable, Expression>();
           substMap.Add(j, e);
-          Translator.Substituter sub = new Translator.Substituter(null, substMap, typeMap, null);
+          Translator.Substituter sub = new Translator.Substituter(null, substMap, typeMap);
           var v = new ForallStmtTranslationValues(sub.Substitute(Range), sub.Substitute(FInverse));
           return v;
         }
@@ -362,7 +362,7 @@ namespace Microsoft.Dafny
         Dictionary<IVariable, Expression/*!*/> substMap = new Dictionary<IVariable, Expression>();
         Dictionary<TypeParameter, Type> typeMap = new Dictionary<TypeParameter, Type>();
         substMap.Add(v, e);
-        Translator.Substituter sub = new Translator.Substituter(null, substMap, typeMap, null);
+        Translator.Substituter sub = new Translator.Substituter(null, substMap, typeMap);
         return sub.Substitute(expr);
       }
     }
@@ -1070,7 +1070,7 @@ namespace Microsoft.Dafny
         substMap.Add(formals[i], values[i]);
       }
 
-      Translator.Substituter sub = new Translator.Substituter(f_this, substMap, typeMap, null);
+      Translator.Substituter sub = new Translator.Substituter(f_this, substMap, typeMap);
       return sub.Substitute(e);
     }
 
@@ -1149,7 +1149,7 @@ namespace Microsoft.Dafny
         }
 
         foreach (var req in f.Req) {
-          Translator.Substituter sub = new Translator.Substituter(f_this, substMap, typeMap, null);          
+          Translator.Substituter sub = new Translator.Substituter(f_this, substMap, typeMap);          
           translated_f_reqs.Add(sub.Substitute(req));         
         }
       }

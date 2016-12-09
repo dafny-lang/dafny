@@ -5760,8 +5760,7 @@ namespace Microsoft.Dafny
             for (int i = 0; i < cs.Method.Ins.Count; i++) {
               argsSubstMap.Add(cs.Method.Ins[i], cs.Args[i]);
             }
-            translator.SetReporter(resolver.reporter);
-            var substituter = new Translator.AlphaConverting_Substituter(cs.Receiver, argsSubstMap, new Dictionary<TypeParameter, Type>(), translator);
+            var substituter = new Translator.AlphaConverting_Substituter(cs.Receiver, argsSubstMap, new Dictionary<TypeParameter, Type>());
             foreach (var ens in cs.Method.Ens) {
               var p = substituter.Substitute(ens.E);  // substitute the call's actuals for the method's formals
               resolver.reporter.Info(MessageSource.Resolver, s.Tok, "ensures " + Printer.ExprToString(p));
@@ -12223,13 +12222,19 @@ namespace Microsoft.Dafny
           var dd = (NewtypeDecl)udt.ResolvedClass;
           var c = GetImpliedTypeConstraint(e, dd.BaseType);
           if (dd.Var != null) {
-            c = Expression.CreateAnd(c, translator.Substitute(dd.Constraint, dd.Var, e));
+            Dictionary<IVariable, Expression/*!*/> substMap = new Dictionary<IVariable, Expression>();
+            substMap.Add(dd.Var, e);
+            Translator.Substituter sub = new Translator.Substituter(null, substMap, new Dictionary<TypeParameter, Type>());
+            c = Expression.CreateAnd(c, sub.Substitute(dd.Constraint));
           }
           return c;
         } else if (udt.ResolvedClass is SubsetTypeDecl) {
           var dd = (SubsetTypeDecl)udt.ResolvedClass;
           var c = GetImpliedTypeConstraint(e, dd.RhsWithArgument(udt.TypeArgs));
-          c = Expression.CreateAnd(c, translator.Substitute(dd.Constraint, dd.Var, e));
+          Dictionary<IVariable, Expression/*!*/> substMap = new Dictionary<IVariable, Expression>();
+          substMap.Add(dd.Var, e);
+          Translator.Substituter sub = new Translator.Substituter(null, substMap, new Dictionary<TypeParameter, Type>());
+          c = Expression.CreateAnd(c, sub.Substitute(dd.Constraint));
           return c;
         }
       }
