@@ -6596,6 +6596,9 @@ namespace Microsoft.Dafny {
         }
         r = FunctionCall(tok, BuiltinFunction.RealToInt, null, r);
         // "r" now denotes an integer
+      } else if (fromType.IsCharType) {
+        Contract.Assert(toType.IsNumericBased(Type.NumericPersuation.Int));
+        return FunctionCall(tok, BuiltinFunction.CharToInt, null, r);
       } else {
         Contract.Assert(fromType.IsNumericBased(Type.NumericPersuation.Int));
         if (toType.IsNumericBased(Type.NumericPersuation.Real)) {
@@ -6604,6 +6607,9 @@ namespace Microsoft.Dafny {
       }
       if (toType.IsNumericBased(Type.NumericPersuation.Int)) {
         return r;
+      } else if (toType.IsCharType) {
+        Contract.Assert(fromType.IsNumericBased(Type.NumericPersuation.Int));
+        return FunctionCall(tok, BuiltinFunction.CharFromInt, null, r);
       } else {
         Contract.Assert(toType.IsBitVectorType);
         var toWidth = ((BitvectorType)toType).Width;
@@ -6677,6 +6683,14 @@ namespace Microsoft.Dafny {
           boundsCheck = Bpl.Expr.And(Bpl.Expr.Le(Bpl.Expr.Literal(0), oi), Bpl.Expr.Lt(oi, bound));
         }
         if (boundsCheck != null) {
+          builder.Add(Assert(tok, boundsCheck, string.Format("value to be converted might not fit in {0}", toType)));
+        }
+      }
+      
+      if (toType.IsCharType) {
+        if (expr.Type.IsNumericBased(Type.NumericPersuation.Int)) {
+          PutSourceIntoLocal();
+          Bpl.Expr boundsCheck = Bpl.Expr.And(Bpl.Expr.Le(Bpl.Expr.Literal(0), o), Bpl.Expr.Lt(o, Bpl.Expr.Literal(65536)));
           builder.Add(Assert(tok, boundsCheck, string.Format("value to be converted might not fit in {0}", toType)));
         }
       }

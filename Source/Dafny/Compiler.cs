@@ -2681,7 +2681,7 @@ namespace Microsoft.Dafny {
 
       } else if (expr is ConversionExpr) {
         var e = (ConversionExpr)expr;
-        if (e.E.Type.IsNumericBased(Type.NumericPersuation.Int) || e.E.Type.IsBitVectorType) {
+        if (e.E.Type.IsNumericBased(Type.NumericPersuation.Int) || e.E.Type.IsBitVectorType || e.E.Type.IsCharType) {
           if (e.ToType.IsNumericBased(Type.NumericPersuation.Real)) {
             // (int or bv) -> real
             Contract.Assert(AsNativeType(e.ToType) == null);
@@ -2691,6 +2691,10 @@ namespace Microsoft.Dafny {
             }
             TrParenExpr(e.E, wr, inLetExprBody);
             wr.Write(", BigInteger.One)");
+          } else if (e.ToType.IsCharType) {
+            wr.Write("(char)(");
+            TrExpr(e.E, wr, inLetExprBody);
+            wr.Write(")");
           } else {
             // (int or bv) -> (int or bv)
             var fromNative = AsNativeType(e.E.Type);

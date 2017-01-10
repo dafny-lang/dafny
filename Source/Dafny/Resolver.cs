@@ -3385,6 +3385,9 @@ namespace Microsoft.Dafny
           case "NumericOrBitvector":
             satisfied = t.IsNumericBased() || t.IsBitVectorType;
             break;
+          case "NumericOrBitvectorOrChar":
+            satisfied = t.IsNumericBased() || t.IsBitVectorType || t.IsCharType;
+            break;
           case "IntLikeOrBitvector":
             satisfied = t.IsNumericBased(Type.NumericPersuation.Int) || t.IsBitVectorType;
             break;
@@ -9914,11 +9917,13 @@ namespace Microsoft.Dafny
         ResolveType(e.tok, e.ToType, opts.codeContext, new ResolveTypeOption(ResolveTypeOptionEnum.DontInfer), null);
         if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
           if (e.ToType.IsNumericBased(Type.NumericPersuation.Int)) {
-            AddXConstraint(expr.tok, "NumericOrBitvector", e.E.Type, "type conversion to an int-based type is allowed only from numeric and bitvector types (got {0})");
+            AddXConstraint(expr.tok, "NumericOrBitvectorOrChar", e.E.Type, "type conversion to an int-based type is allowed only from numeric, char and bitvector types (got {0})");
           } else if (e.ToType.IsNumericBased(Type.NumericPersuation.Real)) {
             AddXConstraint(expr.tok, "NumericOrBitvector", e.E.Type, "type conversion to an real-based type is allowed only from numeric and bitvector types (got {0})");
           } else if (e.ToType.IsBitVectorType) {
             AddXConstraint(expr.tok, "NumericOrBitvector", e.E.Type, "type conversion to an bitvector-based type is allowed only from numeric and bitvector types (got {0})");
+          } else if (e.ToType.IsCharType) {
+            AddXConstraint(expr.tok, "NumericOrBitvector", e.E.Type, "type conversion to an char type is allowed only from numeric and bitvector types (got {0})");
           } else {
             reporter.Error(MessageSource.Resolver, expr, "type conversions are not supported to this type (got {0})", e.ToType);
           }
