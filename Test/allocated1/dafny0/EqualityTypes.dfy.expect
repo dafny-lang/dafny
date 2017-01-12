@@ -1,3 +1,4 @@
+EqualityTypes.dfy(3,8): Error: the included file EqualityTypes.dfy contains error(s)
 EqualityTypes.dfy(34,13): Error: a type declaration that requires equality support cannot be replaced by a codatatype
 EqualityTypes.dfy(35,11): Error: type 'Y' is used to refine an opaque type with equality support, but 'Y' does not support equality
 EqualityTypes.dfy(40,11): Error: opaque type 'X' is not allowed to be replaced by a type that takes a different number of type parameters (got 1, expected 0)
@@ -57,4 +58,4 @@ EqualityTypes.dfy(319,31): Error: type parameter 1 (X) passed to function H must
 EqualityTypes.dfy(321,41): Error: type parameter 0 (V) passed to type AClass must support equality (got Stream<real>)
 EqualityTypes.dfy(323,28): Error: type parameter 0 (V) passed to type AClass must support equality (got Stream<int>)
 EqualityTypes.dfy(326,48): Error: type parameter 1 (B) passed to method Q must support equality (got Stream<real>)
-59 resolution/type errors detected in EqualityTypes.dfy
+60 resolution/type errors detected in EqualityTypes.dfy

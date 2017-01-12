@@ -85,12 +85,14 @@ namespace Microsoft.Dafny {
     public readonly string includerFilename;
     public readonly string includedFilename;
     public readonly string includedFullPath;
+    public bool ErrorReported;
     
     public Include(IToken tok, string includer, string theFilename, string fullPath) {
       this.tok = tok;
       this.includerFilename = includer;
       this.includedFilename = theFilename;
       this.includedFullPath = fullPath;
+      this.ErrorReported = false;
     }
 
     public int CompareTo(object obj) {
@@ -6755,7 +6757,7 @@ namespace Microsoft.Dafny {
       get { return WrappedToken.pos; }
       set { throw new NotSupportedException(); }
     }
-    public string val {
+    public virtual string val {
       get { return WrappedToken.val; }
       set { throw new NotSupportedException(); }
     }
@@ -6781,9 +6783,16 @@ namespace Microsoft.Dafny {
   /// </summary>
   public class IncludeToken : TokenWrapper
   {
-    public IncludeToken(IToken wrappedToken)
+    public Include Include;
+    public IncludeToken(Include include, IToken wrappedToken)
       : base(wrappedToken) {
       Contract.Requires(wrappedToken != null);
+      this.Include = include;
+    }
+
+    public override string val {
+      get { return WrappedToken.val; }
+      set { WrappedToken.val = value; }
     }
   }
 

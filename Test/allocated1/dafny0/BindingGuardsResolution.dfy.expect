@@ -154,6 +154,7 @@ module Ghost {
     b := exists y {:myattribute P(y)} :: 0 <= y < 100;
   }
 }
+BindingGuardsResolution.dfy(3,8): Error: the included file BindingGuardsResolution.dfy contains error(s)
 BindingGuardsResolution.dfy(12,10): Error: Duplicate local-variable name: x
 BindingGuardsResolution.dfy(19,6): Error: LHS of assignment must denote a mutable variable
 BindingGuardsResolution.dfy(39,8): Error: Duplicate local-variable name: x
@@ -165,4 +166,4 @@ BindingGuardsResolution.dfy(140,8): Error: Assignment to non-ghost variable is n
 BindingGuardsResolution.dfy(142,8): Error: Assignment to non-ghost variable is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)
 BindingGuardsResolution.dfy(146,8): Error: Assignment to non-ghost variable is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)
 BindingGuardsResolution.dfy(149,37): Error: function calls are allowed only in specification contexts (consider declaring the function a 'function method')
-11 resolution/type errors detected in BindingGuardsResolution.dfy
+12 resolution/type errors detected in BindingGuardsResolution.dfy

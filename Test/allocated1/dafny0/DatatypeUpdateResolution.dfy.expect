@@ -1,5 +1,6 @@
+DatatypeUpdateResolution.dfy(3,8): Error: the included file DatatypeUpdateResolution.dfy contains error(s)
 DatatypeUpdateResolution.dfy(12,22): Error: member 'non_destructor' does not exist in datatype 'MyDataType'
 DatatypeUpdateResolution.dfy(13,38): Error: member '40' does not exist in datatype 'MyDataType'
 DatatypeUpdateResolution.dfy(17,61): Error: duplicate update member 'otherbool'
 DatatypeUpdateResolution.dfy(19,23): Error: updated datatype members must belong to the same constructor ('otherbool' belongs to 'MyOtherConstructor' and '42' belongs to 'MyNumericConstructor'
-4 resolution/type errors detected in DatatypeUpdateResolution.dfy
+5 resolution/type errors detected in DatatypeUpdateResolution.dfy

@@ -1,3 +1,4 @@
+LiberalEquality.dfy(3,8): Error: the included file LiberalEquality.dfy contains error(s)
 LiberalEquality.dfy(22,14): Error: arguments must have the same type (got T and U)
 LiberalEquality.dfy(23,14): Error: arguments must have the same type (got U and int)
 LiberalEquality.dfy(31,14): Error: arguments must have the same type (got array<T> and array3<T>)
@@ -13,4 +14,4 @@ LiberalEquality.dfy(84,13): Error: arguments must have the same type (got Syn<in
 LiberalEquality.dfy(95,13): Error: arguments must have the same type (got array<List<int>> and array<List<bool>>)
 LiberalEquality.dfy(97,13): Error: arguments must have the same type (got array<List<bool>> and array<ListSynonym<T, int>>)
 LiberalEquality.dfy(103,13): Error: arguments must have the same type (got array<List<bool>> and array<ListSynonym<real, Wrapper<int>>>)
-15 resolution/type errors detected in LiberalEquality.dfy
+16 resolution/type errors detected in LiberalEquality.dfy

@@ -1,3 +1,4 @@
+TypeTests.dfy(3,8): Error: the included file TypeTests.dfy contains error(s)
 TypeTests.dfy(9,17): Error: type mismatch for argument 0 (function expects C, got D)
 TypeTests.dfy(9,20): Error: type mismatch for argument 1 (function expects D, got C)
 TypeTests.dfy(10,15): Error: type mismatch for argument 0 (function expects C, got int)
@@ -30,4 +31,4 @@ TypeTests.dfy(198,15): Error: incorrect type of datatype constructor argument (f
 TypeTests.dfy(204,15): Error: incorrect type of datatype constructor argument (found ? -> ?, expected ? -> Dt<?>) (covariant type parameter 1 would require Dt<?> <: ?)
 TypeTests.dfy(211,6): Error: RHS (of type set<?>) not assignable to LHS (of type ?)
 TypeTests.dfy(222,9): Error: Assignment to array element is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)
-32 resolution/type errors detected in TypeTests.dfy
+33 resolution/type errors detected in TypeTests.dfy

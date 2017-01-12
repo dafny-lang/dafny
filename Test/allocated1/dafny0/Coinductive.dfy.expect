@@ -1,3 +1,4 @@
+Coinductive.dfy(3,8): Error: the included file Coinductive.dfy contains error(s)
 Coinductive.dfy(13,11): Error: because of cyclic dependencies among constructor argument types, no instances of datatype 'Rec_Forever' can be constructed
 Coinductive.dfy(16,11): Error: because of cyclic dependencies among constructor argument types, no instances of datatype 'D' can be constructed
 Coinductive.dfy(38,11): Error: because of cyclic dependencies among constructor argument types, no instances of datatype 'K' can be constructed
@@ -28,4 +29,4 @@ Coinductive.dfy(253,12): Error: an inductive predicate can be called recursively
 Coinductive.dfy(259,15): Error: an inductive predicate can be called recursively only in positive positions and cannot sit inside an unbounded universal quantifier
 Coinductive.dfy(260,10): Error: an inductive predicate can be called recursively only in positive positions and cannot sit inside an unbounded universal quantifier
 Coinductive.dfy(280,21): Error: a recursive call from an inductive predicate can go only to other inductive predicates
-30 resolution/type errors detected in Coinductive.dfy
+31 resolution/type errors detected in Coinductive.dfy

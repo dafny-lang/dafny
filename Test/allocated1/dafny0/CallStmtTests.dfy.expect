@@ -1,3 +1,4 @@
+CallStmtTests.dfy(3,8): Error: the included file CallStmtTests.dfy contains error(s)
 CallStmtTests.dfy(7,4): Error: LHS of assignment must denote a mutable variable
 CallStmtTests.dfy(20,11): Error: actual out-parameter 0 is required to be a ghost variable
-2 resolution/type errors detected in CallStmtTests.dfy
+3 resolution/type errors detected in CallStmtTests.dfy

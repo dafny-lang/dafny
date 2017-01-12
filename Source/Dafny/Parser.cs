@@ -87,14 +87,15 @@ public class Parser {
 	public Scanner scanner;
 	public Errors  errors;
 
-	public Token t;    // last recognized token
-	public Token la;   // lookahead token
+	public IToken t;    // last recognized token
+	public IToken la;   // lookahead token
 	int errDist = minErrDist;
 
 readonly Expression/*!*/ dummyExpr;
 readonly AssignmentRhs/*!*/ dummyRhs;
 readonly FrameExpression/*!*/ dummyFrameExpr;  
 readonly Statement/*!*/ dummyStmt;
+readonly Include theInclude;
 readonly ModuleDecl theModule;
 readonly BuiltIns theBuiltIns;
 readonly bool theVerifyThisFile;
@@ -215,17 +216,17 @@ static void EncodeExternAsAttribute(DeclModifierData dmod, ref Attributes attrs,
 /// Returns the number of parsing errors encountered.
 /// Note: first initialize the Scanner.
 ///</summary>
-public static int Parse (string/*!*/ filename, ModuleDecl module, BuiltIns builtIns, Errors/*!*/ errors, bool verifyThisFile=true) /* throws System.IO.IOException */ {
+public static int Parse (string/*!*/ filename, Include include, ModuleDecl module, BuiltIns builtIns, Errors/*!*/ errors, bool verifyThisFile=true) /* throws System.IO.IOException */ {
   Contract.Requires(filename != null);
   Contract.Requires(module != null);
   string s;
   if (filename == "stdin.dfy") {
     s = Microsoft.Boogie.ParserHelper.Fill(System.Console.In, new List<string>());
-    return Parse(s, filename, filename, module, builtIns, errors, verifyThisFile);
+    return Parse(s, filename, filename, include, module, builtIns, errors, verifyThisFile);
   } else {
     using (System.IO.StreamReader reader = new System.IO.StreamReader(filename)) {
       s = Microsoft.Boogie.ParserHelper.Fill(reader, new List<string>());
-      return Parse(s, filename, DafnyOptions.Clo.UseBaseNameForFileName ? Path.GetFileName(filename) : filename, module, builtIns, errors, verifyThisFile);
+      return Parse(s, filename, DafnyOptions.Clo.UseBaseNameForFileName ? Path.GetFileName(filename) : filename, include, module, builtIns, errors, verifyThisFile);
     }
   }
 }
@@ -240,7 +241,7 @@ public static int Parse (string/*!*/ s, string/*!*/ fullFilename, string/*!*/ fi
   Contract.Requires(filename != null);
   Contract.Requires(module != null);
   Errors errors = new Errors(reporter);
-  return Parse(s, fullFilename, filename, module, builtIns, errors, verifyThisFile);
+  return Parse(s, fullFilename, filename, null, module, builtIns, errors, verifyThisFile);
 }
 ///<summary>
 /// Parses top-level things (modules, classes, datatypes, class members)
@@ -248,7 +249,7 @@ public static int Parse (string/*!*/ s, string/*!*/ fullFilename, string/*!*/ fi
 /// Returns the number of parsing errors encountered.
 /// Note: first initialize the Scanner with the given Errors sink.
 ///</summary>
-public static int Parse (string/*!*/ s, string/*!*/ fullFilename, string/*!*/ filename, ModuleDecl module,
+public static int Parse (string/*!*/ s, string/*!*/ fullFilename, string/*!*/ filename, Include include, ModuleDecl module,
                          BuiltIns builtIns, Errors/*!*/ errors, bool verifyThisFile=true) {
   Contract.Requires(s != null);
   Contract.Requires(filename != null);
@@ -257,11 +258,11 @@ public static int Parse (string/*!*/ s, string/*!*/ fullFilename, string/*!*/ fi
   byte[]/*!*/ buffer = cce.NonNull( UTF8Encoding.Default.GetBytes(s));
   MemoryStream ms = new MemoryStream(buffer,false);
   Scanner scanner = new Scanner(ms, errors, fullFilename, filename);
-  Parser parser = new Parser(scanner, errors, module, builtIns, verifyThisFile);
+  Parser parser = new Parser(scanner, errors, include, module, builtIns, verifyThisFile);
   parser.Parse();
   return parser.errors.ErrorCount;
 }
-public Parser(Scanner/*!*/ scanner, Errors/*!*/ errors, ModuleDecl module, BuiltIns builtIns, bool verifyThisFile=true)
+public Parser(Scanner/*!*/ scanner, Errors/*!*/ errors, Include include, ModuleDecl module, BuiltIns builtIns, bool verifyThisFile=true)
   : this(scanner, errors)  // the real work
 {
   // initialize readonly fields
@@ -269,6 +270,7 @@ public Parser(Scanner/*!*/ scanner, Errors/*!*/ errors, ModuleDecl module, Built
   dummyRhs = new ExprRhs(dummyExpr, null);
   dummyFrameExpr = new FrameExpression(dummyExpr.tok, dummyExpr, null);
   dummyStmt = new ReturnStmt(Token.NoToken, Token.NoToken, null);
+  theInclude = include; // the "include" that includes this file
   theModule = module;
   theBuiltIns = builtIns;
   theVerifyThisFile = verifyThisFile;
@@ -679,7 +681,7 @@ int StringToInt(string s, int defaultValue, string errString) {
 
 	void Get () {
 		for (;;) {
-			t = la;
+			t = theVerifyThisFile ? la : new IncludeToken(theInclude, la);
 			la = scanner.Scan();
 			if (la.kind <= maxT) { ++errDist; break; }
 
@@ -1089,10 +1091,10 @@ int StringToInt(string s, int defaultValue, string errString) {
 			if (baseType == null) { baseType = new InferredTypeProxy(); } 
 			Expect(24);
 			Expression(out wh, false, true);
-			td = new NewtypeDecl(theVerifyThisFile ? id : new IncludeToken(id), id.val, module, new BoundVar(bvId, bvId.val, baseType), wh, attrs); 
+			td = new NewtypeDecl(id, id.val, module, new BoundVar(bvId, bvId.val, baseType), wh, attrs); 
 		} else if (StartOf(6)) {
 			Type(out baseType);
-			td = new NewtypeDecl(theVerifyThisFile ? id : new IncludeToken(id), id.val, module, baseType, attrs); 
+      td = new NewtypeDecl(id, id.val, module, baseType, attrs); 
 		} else SynErr(161);
 	}
 
@@ -1134,7 +1136,7 @@ int StringToInt(string s, int defaultValue, string errString) {
 					if (ty == null) { ty = new InferredTypeProxy(); } 
 					Expect(24);
 					Expression(out constraint, false, true);
-					td = new SubsetTypeDecl(theVerifyThisFile ? id : new IncludeToken(id), id.val, typeArgs, module, new BoundVar(bvId, bvId.val, ty), constraint, attrs);
+          td = new SubsetTypeDecl(id, id.val, typeArgs, module, new BoundVar(bvId, bvId.val, ty), constraint, attrs);
 					kind = "Subset type";
 					
 				} else if (StartOf(6)) {
@@ -1665,7 +1667,7 @@ int StringToInt(string s, int defaultValue, string errString) {
 		  SemErr(t, "a function with an ensures clause must have a body, unless given the :axiom attribute");
 		}
 		EncodeExternAsAttribute(dmod, ref attrs, id, /* needAxiom */ true);
-		IToken tok = theVerifyThisFile ? id : new IncludeToken(id);
+    IToken tok = id;
 		if (isTwoState && isPredicate) {
 		  f = new TwoStatePredicate(tok, id.val, dmod.IsStatic, typeArgs, formals,
 		                            reqs, reads, ens, new Specification<Expression>(decreases, null), body, attrs, signatureEllipsis);
@@ -1824,8 +1826,8 @@ int StringToInt(string s, int defaultValue, string errString) {
 		if (!isWithinAbstractModule && DafnyOptions.O.DisallowSoundnessCheating && body == null && ens.Count > 0 && !Attributes.Contains(attrs, "axiom") && !Attributes.Contains(attrs, "imported") && !Attributes.Contains(attrs, "decl") && theVerifyThisFile) {
 		  SemErr(t, "a method with an ensures clause must have a body, unless given the :axiom attribute");
 		}
-		
-		IToken tok = theVerifyThisFile ? id : new IncludeToken(id);
+
+    IToken tok = id;
 		if (isConstructor) {
 		 m = new Constructor(tok, hasName ? id.val : "_ctor", typeArgs, ins,
 		                     req, new Specification<FrameExpression>(mod, modAttrs), ens, new Specification<Expression>(dec, decAttrs), body, attrs, signatureEllipsis);
@@ -2990,7 +2992,7 @@ List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, st
 
 	void MatchStmt(out Statement/*!*/ s) {
 		Contract.Ensures(Contract.ValueAtReturn(out s) != null);
-		Token x;  Expression/*!*/ e;  MatchCaseStmt/*!*/ c;
+		IToken x;  Expression/*!*/ e;  MatchCaseStmt/*!*/ c;
 		List<MatchCaseStmt/*!*/> cases = new List<MatchCaseStmt/*!*/>();
 		bool usesOptionalBraces = false;
 		
@@ -3080,7 +3082,7 @@ List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, st
 
 	void CalcStmt(out Statement s) {
 		Contract.Ensures(Contract.ValueAtReturn(out s) != null);
-		Token x;
+		IToken x;
 		Attributes attrs = null;
 		CalcStmt.CalcOp op, calcOp = Microsoft.Dafny.CalcStmt.DefaultOp, resOp = Microsoft.Dafny.CalcStmt.DefaultOp;
 		var lines = new List<Expression>();

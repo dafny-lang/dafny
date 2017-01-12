@@ -1,5 +1,6 @@
 Modules0.dfy(333,2): Warning: module-level functions are always non-instance, so the 'static' keyword is not allowed here
 Modules0.dfy(335,2): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
+Modules0.dfy(3,8): Error: the included file Modules0.dfy contains error(s)
 Modules0.dfy(8,8): Error: Duplicate name of top-level declaration: WazzupA
 Modules0.dfy(9,11): Error: Duplicate name of top-level declaration: WazzupA
 Modules0.dfy(10,7): Error: Duplicate name of top-level declaration: WazzupA
@@ -32,4 +33,4 @@ Modules0.dfy(323,10): Error: new can be applied only to reference types (got Q_I
 Modules0.dfy(324,30): Error: member Create does not exist in class Klassy
 Modules0.dfy(318,13): Error: arguments must have the same type (got Q_Imp.Node and Node)
 Modules0.dfy(348,11): Error: a datatype declaration (T) in a refinement module can only replace an opaque type declaration
-32 resolution/type errors detected in Modules0.dfy
+33 resolution/type errors detected in Modules0.dfy

@@ -113,7 +113,7 @@ namespace Microsoft.Dafny {
           Console.WriteLine("Parsing " + dafnyFile.FilePath);
         }
 
-        string err = ParseFile(dafnyFile, Bpl.Token.NoToken, module, builtIns, new Errors(reporter));
+        string err = ParseFile(dafnyFile, null, module, builtIns, new Errors(reporter));
         if (err != null) {
           return err;
         }
@@ -188,7 +188,7 @@ namespace Microsoft.Dafny {
           catch (IllegalDafnyFile){
             return (String.Format("Include of file \"{0}\" failed.", include.includedFilename));
           }
-          string ret = ParseFile(file, include.tok, module, builtIns, errs, false);
+          string ret = ParseFile(file, include, module, builtIns, errs, false);
           if (ret != null) {
             return ret;
           }
@@ -203,14 +203,15 @@ namespace Microsoft.Dafny {
       return null; // Success
     }
 
-    private static string ParseFile(DafnyFile dafnyFile, Bpl.IToken tok, ModuleDecl module, BuiltIns builtIns, Errors errs, bool verifyThisFile = true) {
+    private static string ParseFile(DafnyFile dafnyFile, Include include, ModuleDecl module, BuiltIns builtIns, Errors errs, bool verifyThisFile = true) {
       var fn = DafnyOptions.Clo.UseBaseNameForFileName ? Path.GetFileName(dafnyFile.FilePath) : dafnyFile.FilePath;
       try {
-        int errorCount = Dafny.Parser.Parse(dafnyFile.SourceFileName, module, builtIns, errs, verifyThisFile);
+        int errorCount = Dafny.Parser.Parse(dafnyFile.SourceFileName, include, module, builtIns, errs, verifyThisFile);
         if (errorCount != 0) {
           return string.Format("{0} parse errors detected in {1}", errorCount, fn);
         }
       } catch (IOException e) {
+        Bpl.IToken tok = include == null ? Bpl.Token.NoToken : include.tok; 
         errs.SemErr(tok, "Unable to open included file");
         return string.Format("Error opening file \"{0}\": {1}", fn, e.Message);
       }

@@ -1,3 +1,4 @@
+AssumptionVariables0.dfy(3,8): Error: the included file AssumptionVariables0.dfy contains error(s)
 AssumptionVariables0.dfy(6,29): Error: there may be at most one assignment to an assumption variable, the RHS of which must match the expression "a0 && <boolean expression>"
 AssumptionVariables0.dfy(7,33): Error: there may be at most one assignment to an assumption variable, the RHS of which must match the expression "a2 && <boolean expression>"
 AssumptionVariables0.dfy(9,26): Error: assumption variable must be of type 'bool'
@@ -10,4 +11,4 @@ AssumptionVariables0.dfy(61,37): Error: there may be at most one assignment to a
 AssumptionVariables0.dfy(61,34): Error: assumption variable must be of type 'bool'
 AssumptionVariables0.dfy(69,15): Error: there may be at most one assignment to an assumption variable, the RHS of which must match the expression "a0 && <boolean expression>"
 AssumptionVariables0.dfy(78,20): Error: assumption variable must be ghost
-12 resolution/type errors detected in AssumptionVariables0.dfy
+13 resolution/type errors detected in AssumptionVariables0.dfy

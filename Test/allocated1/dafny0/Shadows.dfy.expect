@@ -1,3 +1,4 @@
+Shadows.dfy(3,8): Error: the included file Shadows.dfy contains error(s)
 Shadows.dfy(6,19): Error: Duplicate type-parameter name: beta
 Shadows.dfy(7,13): Warning: Shadowed type-parameter name: alpha
 Shadows.dfy(8,21): Error: Duplicate type-parameter name: beta
@@ -9,4 +10,4 @@ Shadows.dfy(26,10): Error: Duplicate local-variable name: f
 Shadows.dfy(32,12): Warning: Shadowed local-variable name: x
 Shadows.dfy(38,28): Warning: Shadowed bound-variable name: x
 Shadows.dfy(39,40): Warning: Shadowed bound-variable name: y
-5 resolution/type errors detected in Shadows.dfy
+6 resolution/type errors detected in Shadows.dfy

@@ -1,2 +1,3 @@
+IMaps2.dfy(3,8): Error: the included file IMaps2.dfy contains error(s)
 IMaps2.dfy(7,3): Error: a set comprehension must produce a finite set, but Dafny's heuristics can't figure out how to produce a bounded set of values for 's'
-1 resolution/type errors detected in IMaps2.dfy
+2 resolution/type errors detected in IMaps2.dfy

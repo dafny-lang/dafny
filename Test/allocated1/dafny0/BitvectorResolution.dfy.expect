@@ -1,3 +1,4 @@
+BitvectorResolution.dfy(3,8): Error: the included file BitvectorResolution.dfy contains error(s)
 BitvectorResolution.dfy(9,13): Error: bitvector literal (5000) is too large for the type bv1
 BitvectorResolution.dfy(15,9): Error: bitvector literal (1) is too large for the type bv0
 BitvectorResolution.dfy(18,9): Error: bitvector literal (4294967296) is too large for the type bv32
@@ -11,4 +12,4 @@ BitvectorResolution.dfy(43,26): Error: type mismatch for argument 0 (function ex
 BitvectorResolution.dfy(40,15): Error: type of right argument to << (real) must be an integer-numeric or bitvector type
 BitvectorResolution.dfy(41,15): Error: type of right argument to << (SmallReal) must be an integer-numeric or bitvector type
 BitvectorResolution.dfy(110,19): Error: the type of this expression is underspecified
-13 resolution/type errors detected in BitvectorResolution.dfy
+14 resolution/type errors detected in BitvectorResolution.dfy

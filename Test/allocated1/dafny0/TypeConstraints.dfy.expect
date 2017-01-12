@@ -1,3 +1,4 @@
+TypeConstraints.dfy(3,8): Error: the included file TypeConstraints.dfy contains error(s)
 TypeConstraints.dfy(42,6): Error: RHS (of type int) not assignable to LHS (of type bool)
 TypeConstraints.dfy(50,6): Error: RHS (of type bool) not assignable to LHS (of type int)
 TypeConstraints.dfy(58,6): Error: RHS (of type int) not assignable to LHS (of type bool)
@@ -589,4 +590,4 @@ module Arrays_and_SubsetTypes {
     }
   }
 }
-18 resolution/type errors detected in TypeConstraints.dfy
+19 resolution/type errors detected in TypeConstraints.dfy

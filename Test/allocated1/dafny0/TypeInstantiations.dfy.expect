@@ -1,3 +1,4 @@
+TypeInstantiations.dfy(3,8): Error: the included file TypeInstantiations.dfy contains error(s)
 TypeInstantiations.dfy(33,7): Error: an opaque type declaration (B) in a refining module cannot replace a more specific type declaration in the refinement base
 TypeInstantiations.dfy(36,13): Error: a type declaration that requires equality support cannot be replaced by a codatatype
 TypeInstantiations.dfy(40,7): Error: opaque type 'G' is not allowed to be replaced by a type that takes a different number of type parameters (got 1, expected 0)
@@ -10,4 +11,4 @@ TypeInstantiations.dfy(56,7): Error: type 'TP1' is not allowed to change its num
 TypeInstantiations.dfy(34,11): Error: type 'C' is used to refine an opaque type with equality support, but 'C' does not support equality
 TypeInstantiations.dfy(35,7): Error: type 'D' is used to refine an opaque type with equality support, but 'D' does not support equality
 TypeInstantiations.dfy(48,7): Error: type 'N' is used to refine an opaque type with equality support, but 'N' does not support equality
-12 resolution/type errors detected in TypeInstantiations.dfy
+13 resolution/type errors detected in TypeInstantiations.dfy

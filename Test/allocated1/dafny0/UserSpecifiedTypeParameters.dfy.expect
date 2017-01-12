@@ -1,3 +1,4 @@
+UserSpecifiedTypeParameters.dfy(3,8): Error: the included file UserSpecifiedTypeParameters.dfy contains error(s)
 UserSpecifiedTypeParameters.dfy(27,12): Error: the type of this variable is underspecified
 UserSpecifiedTypeParameters.dfy(27,26): Error: type variable 'T' in the function call to 'H' could not be determined
 UserSpecifiedTypeParameters.dfy(27,26): Error: type variable 'U' in the function call to 'H' could not be determined
@@ -8,4 +9,4 @@ UserSpecifiedTypeParameters.dfy(48,30): Error: non-function expression (of type 
 UserSpecifiedTypeParameters.dfy(48,16): Error: wrong number of arguments to function application (function 'F' expects 2, got 1)
 UserSpecifiedTypeParameters.dfy(79,15): Error: incorrect type of method in-parameter 0 (expected A, got int)
 UserSpecifiedTypeParameters.dfy(91,15): Error: type mismatch for argument 0 (function expects A, got int)
-10 resolution/type errors detected in UserSpecifiedTypeParameters.dfy
+11 resolution/type errors detected in UserSpecifiedTypeParameters.dfy

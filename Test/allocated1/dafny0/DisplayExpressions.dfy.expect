@@ -1,3 +1,4 @@
+DisplayExpressions.dfy(3,8): Error: the included file DisplayExpressions.dfy contains error(s)
 DisplayExpressions.dfy(7,8): Error: the type of this variable is underspecified
 DisplayExpressions.dfy(12,8): Error: the type of this variable is underspecified
 DisplayExpressions.dfy(17,8): Error: the type of this variable is underspecified
@@ -6,4 +7,4 @@ DisplayExpressions.dfy(27,14): Error: the type of this expression is underspecif
 DisplayExpressions.dfy(27,31): Error: the type of this expression is underspecified
 DisplayExpressions.dfy(42,6): Error: RHS (of type seq<int>) not assignable to LHS (of type seq<byte>) (covariant type parameter would require byte <: int)
 DisplayExpressions.dfy(74,17): Error: arguments must have the same type (got seq<int> and seq<byte>)
-8 resolution/type errors detected in DisplayExpressions.dfy
+9 resolution/type errors detected in DisplayExpressions.dfy
