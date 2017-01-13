@@ -5307,13 +5307,31 @@ namespace Microsoft.Dafny {
         BinaryExpr e = (BinaryExpr)expr;
         Bpl.Expr t0 = CanCallAssumption(e.E0, etran);
         Bpl.Expr t1 = CanCallAssumption(e.E1, etran);
+        BinaryExpr be;
+        Bpl.Expr antecedent;
         switch (e.ResolvedOp) {
           case BinaryExpr.ResolvedOpcode.And:
           case BinaryExpr.ResolvedOpcode.Imp:
-            t1 = BplImp(etran.TrExpr(e.E0), t1);
+              be = e.E0 as BinaryExpr;
+              if (be != null && (be.ResolvedOp == BinaryExpr.ResolvedOpcode.And ||
+                be.ResolvedOp == BinaryExpr.ResolvedOpcode.Imp ||
+                be.ResolvedOp == BinaryExpr.ResolvedOpcode.Or)) {
+                antecedent = BplAnd(CanCallAssumption(be.E1, etran), etran.TrExpr(be.E1));
+              } else {
+                antecedent = etran.TrExpr(e.E0);
+              }
+              t1 = BplImp(antecedent, t1);
             break;
           case BinaryExpr.ResolvedOpcode.Or:
-            t1 = BplImp(Bpl.Expr.Not(etran.TrExpr(e.E0)), t1);
+            be = e.E0 as BinaryExpr;
+            if (be != null && (be.ResolvedOp == BinaryExpr.ResolvedOpcode.And ||
+              be.ResolvedOp == BinaryExpr.ResolvedOpcode.Imp ||
+              be.ResolvedOp == BinaryExpr.ResolvedOpcode.Or)) {
+                antecedent = BplAnd(CanCallAssumption(be.E1, etran), Bpl.Expr.Not(etran.TrExpr(be.E1)));
+            } else {
+              antecedent = Bpl.Expr.Not(etran.TrExpr(e.E0));
+            }
+            t1 = BplImp(antecedent, t1);
             break;
           default:
             break;
