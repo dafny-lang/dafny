@@ -80,16 +80,16 @@ public class Parser {
 	public const int _reveal = 64;
 	public const int maxT = 149;
 
-	const bool _T = true;
-	const bool _x = false;
-	const int minErrDist = 2;
+  const bool _T = true;
+  const bool _x = false;
+  const int minErrDist = 2;
 
-	public Scanner scanner;
-	public Errors  errors;
+  public Scanner scanner;
+  public Errors  errors;
 
-	public IToken t;    // last recognized token
-	public IToken la;   // lookahead token
-	int errDist = minErrDist;
+  public IToken t;    // last recognized token
+  public IToken la;   // lookahead token
+  int errDist = minErrDist;
 
 readonly Expression/*!*/ dummyExpr;
 readonly AssignmentRhs/*!*/ dummyRhs;
@@ -653,72 +653,72 @@ int StringToInt(string s, int defaultValue, string errString) {
 /*--------------------------------------------------------------------------*/
 
 
-	public Parser(Scanner scanner, Errors errors) {
-		this.scanner = scanner;
-		this.errors = errors;
-		Token tok = new Token();
-		tok.val = "";
-		this.la = tok;
-		this.t = new Token(); // just to satisfy its non-null constraint
-	}
+  public Parser(Scanner scanner, Errors errors) {
+    this.scanner = scanner;
+    this.errors = errors;
+    Token tok = new Token();
+    tok.val = "";
+    this.la = tok;
+    this.t = new Token(); // just to satisfy its non-null constraint
+  }
 
-	void SynErr (int n) {
-		if (errDist >= minErrDist) errors.SynErr(la.filename, la.line, la.col, n);
-		errDist = 0;
-	}
+  void SynErr (int n) {
+    if (errDist >= minErrDist) errors.SynErr(la.filename, la.line, la.col, n);
+    errDist = 0;
+  }
 
-	public void SemErr (string msg) {
-		Contract.Requires(msg != null);
-		if (errDist >= minErrDist) errors.SemErr(t, msg);
-		errDist = 0;
-	}
+  public void SemErr (string msg) {
+    Contract.Requires(msg != null);
+    if (errDist >= minErrDist) errors.SemErr(t, msg);
+    errDist = 0;
+  }
 
-	public void SemErr(IToken tok, string msg) {
-	  Contract.Requires(tok != null);
-	  Contract.Requires(msg != null);
-	  errors.SemErr(tok, msg);
-	}
+  public void SemErr(IToken tok, string msg) {
+    Contract.Requires(tok != null);
+    Contract.Requires(msg != null);
+    errors.SemErr(tok, msg);
+  }
 
-	void Get () {
-		for (;;) {
-			t = theVerifyThisFile ? la : new IncludeToken(theInclude, la);
-			la = scanner.Scan();
-			if (la.kind <= maxT) { ++errDist; break; }
+  void Get () {
+    for (;;) {
+      t = theVerifyThisFile ? la : new IncludeToken(theInclude, la);
+      la = scanner.Scan();
+      if (la.kind <= maxT) { ++errDist; break; }
 
-			la = t;
-		}
-	}
+      la = t;
+    }
+  }
 
-	void Expect (int n) {
-		if (la.kind==n) Get(); else { SynErr(n); }
-	}
+  void Expect (int n) {
+    if (la.kind==n) Get(); else { SynErr(n); }
+  }
 
-	bool StartOf (int s) {
-		return set[s, la.kind];
-	}
+  bool StartOf (int s) {
+    return set[s, la.kind];
+  }
 
-	void ExpectWeak (int n, int follow) {
-		if (la.kind == n) Get();
-		else {
-			SynErr(n);
-			while (!StartOf(follow)) Get();
-		}
-	}
+  void ExpectWeak (int n, int follow) {
+    if (la.kind == n) Get();
+    else {
+      SynErr(n);
+      while (!StartOf(follow)) Get();
+    }
+  }
 
 
-	bool WeakSeparator(int n, int syFol, int repFol) {
-		int kind = la.kind;
-		if (kind == n) {Get(); return true;}
-		else if (StartOf(repFol)) {return false;}
-		else {
-			SynErr(n);
-			while (!(set[syFol, kind] || set[repFol, kind] || set[0, kind])) {
-				Get();
-				kind = la.kind;
-			}
-			return StartOf(syFol);
-		}
-	}
+  bool WeakSeparator(int n, int syFol, int repFol) {
+    int kind = la.kind;
+    if (kind == n) {Get(); return true;}
+    else if (StartOf(repFol)) {return false;}
+    else {
+      SynErr(n);
+      while (!(set[syFol, kind] || set[repFol, kind] || set[0, kind])) {
+        Get();
+        kind = la.kind;
+      }
+      return StartOf(syFol);
+    }
+  }
 
 
 	void Dafny() {
@@ -1094,7 +1094,7 @@ int StringToInt(string s, int defaultValue, string errString) {
 			td = new NewtypeDecl(id, id.val, module, new BoundVar(bvId, bvId.val, baseType), wh, attrs); 
 		} else if (StartOf(6)) {
 			Type(out baseType);
-      td = new NewtypeDecl(id, id.val, module, baseType, attrs); 
+			td = new NewtypeDecl(id, id.val, module, baseType, attrs); 
 		} else SynErr(161);
 	}
 
@@ -1136,7 +1136,7 @@ int StringToInt(string s, int defaultValue, string errString) {
 					if (ty == null) { ty = new InferredTypeProxy(); } 
 					Expect(24);
 					Expression(out constraint, false, true);
-          td = new SubsetTypeDecl(id, id.val, typeArgs, module, new BoundVar(bvId, bvId.val, ty), constraint, attrs);
+					td = new SubsetTypeDecl(id, id.val, typeArgs, module, new BoundVar(bvId, bvId.val, ty), constraint, attrs);
 					kind = "Subset type";
 					
 				} else if (StartOf(6)) {
@@ -1667,7 +1667,7 @@ int StringToInt(string s, int defaultValue, string errString) {
 		  SemErr(t, "a function with an ensures clause must have a body, unless given the :axiom attribute");
 		}
 		EncodeExternAsAttribute(dmod, ref attrs, id, /* needAxiom */ true);
-    IToken tok = id;
+		IToken tok = id;
 		if (isTwoState && isPredicate) {
 		  f = new TwoStatePredicate(tok, id.val, dmod.IsStatic, typeArgs, formals,
 		                            reqs, reads, ens, new Specification<Expression>(decreases, null), body, attrs, signatureEllipsis);
@@ -1826,8 +1826,8 @@ int StringToInt(string s, int defaultValue, string errString) {
 		if (!isWithinAbstractModule && DafnyOptions.O.DisallowSoundnessCheating && body == null && ens.Count > 0 && !Attributes.Contains(attrs, "axiom") && !Attributes.Contains(attrs, "imported") && !Attributes.Contains(attrs, "decl") && theVerifyThisFile) {
 		  SemErr(t, "a method with an ensures clause must have a body, unless given the :axiom attribute");
 		}
-
-    IToken tok = id;
+		
+		IToken tok = id;
 		if (isConstructor) {
 		 m = new Constructor(tok, hasName ? id.val : "_ctor", typeArgs, ins,
 		                     req, new Specification<FrameExpression>(mod, modAttrs), ens, new Specification<Expression>(dec, decAttrs), body, attrs, signatureEllipsis);
@@ -5043,16 +5043,16 @@ List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, st
 
 
 
-	public void Parse() {
-		la = new Token();
-		la.val = "";
-		Get();
+  public void Parse() {
+    la = new Token();
+    la.val = "";
+    Get();
 		Dafny();
 		Expect(0);
 
-	}
+  }
 
-	static readonly bool[,] set = {
+  static readonly bool[,] set = {
 		{_T,_T,_T,_T, _T,_x,_x,_x, _x,_T,_x,_T, _x,_x,_x,_x, _x,_x,_x,_x, _T,_T,_x,_x, _T,_x,_x,_x, _x,_x,_T,_x, _x,_T,_T,_T, _x,_x,_x,_T, _T,_x,_x,_T, _T,_T,_x,_T, _T,_T,_T,_T, _x,_x,_T,_x, _x,_x,_x,_x, _x,_x,_x,_T, _T,_x,_x,_T, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _T,_T,_T,_T, _T,_T,_x,_x, _x,_x,_T,_x, _x,_T,_T,_T, _T,_T,_T,_T, _T,_T,_x,_T, _T,_T,_T,_T, _x,_T,_T,_T, _T,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _T,_T,_T,_T, _T,_T,_T,_T, _x,_x,_x},
 		{_x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_T,_T,_T, _T,_T,_T,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_T,_T, _T,_T,_T,_T, _x,_T,_x,_x, _T,_x,_x,_x, _T,_T,_T,_T, _T,_T,_x,_T, _T,_x,_T,_x, _x,_T,_T,_T, _T,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x},
 		{_x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_T,_T, _T,_T,_T,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x},
@@ -5089,32 +5089,32 @@ List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, st
 		{_T,_T,_T,_T, _T,_x,_x,_x, _x,_T,_x,_T, _x,_x,_x,_x, _x,_x,_x,_x, _T,_T,_T,_T, _T,_T,_T,_T, _T,_T,_T,_T, _T,_T,_T,_T, _T,_T,_T,_T, _T,_T,_T,_T, _T,_T,_T,_T, _T,_T,_T,_T, _T,_T,_T,_T, _T,_T,_T,_T, _T,_T,_T,_T, _T,_x,_T,_T, _T,_T,_T,_T, _x,_T,_x,_x, _T,_x,_x,_x, _T,_T,_T,_T, _T,_T,_T,_T, _T,_x,_T,_x, _x,_T,_T,_T, _T,_T,_T,_T, _T,_T,_x,_T, _T,_T,_T,_T, _T,_T,_T,_T, _T,_x,_T,_T, _T,_T,_T,_T, _T,_T,_T,_T, _T,_T,_T,_T, _T,_x,_x,_x, _x,_T,_T,_T, _T,_T,_T,_T, _T,_T,_T,_T, _T,_T,_T,_T, _T,_x,_x},
 		{_T,_T,_T,_T, _T,_x,_x,_x, _x,_T,_x,_T, _x,_x,_x,_x, _x,_x,_x,_x, _T,_T,_T,_T, _T,_T,_x,_T, _x,_T,_T,_T, _T,_T,_T,_T, _T,_T,_T,_T, _T,_T,_T,_T, _T,_T,_T,_T, _T,_T,_T,_T, _x,_T,_T,_T, _T,_T,_T,_T, _T,_T,_T,_T, _T,_x,_T,_T, _T,_T,_T,_T, _x,_T,_x,_x, _T,_x,_x,_x, _T,_T,_T,_T, _T,_T,_T,_T, _T,_x,_T,_x, _x,_T,_T,_T, _T,_T,_T,_T, _T,_T,_x,_T, _T,_T,_T,_T, _T,_T,_T,_T, _T,_x,_T,_T, _T,_T,_T,_T, _T,_T,_T,_T, _T,_T,_T,_T, _T,_x,_x,_x, _x,_T,_T,_T, _T,_T,_T,_T, _T,_T,_T,_T, _T,_T,_T,_T, _T,_x,_x}
 
-	};
+  };
 } // end Parser
 
 
 public class Errors {
-	readonly ErrorReporter Reporting;
-	public int ErrorCount;
+  readonly ErrorReporter Reporting;
+  public int ErrorCount;
 
-	public Errors(ErrorReporter Reporting) {
-		Contract.Requires(Reporting != null);
-		this.Reporting = Reporting;
-	}
+  public Errors(ErrorReporter Reporting) {
+    Contract.Requires(Reporting != null);
+    this.Reporting = Reporting;
+  }
 
-	public void SynErr(string filename, int line, int col, int n) {
-		SynErr(filename, line, col, GetSyntaxErrorString(n));
-	}
+  public void SynErr(string filename, int line, int col, int n) {
+    SynErr(filename, line, col, GetSyntaxErrorString(n));
+  }
 
-	public void SynErr(string filename, int line, int col, string msg) {
-		Contract.Requires(msg != null);
-		ErrorCount++;
-		Reporting.Error(MessageSource.Parser, filename, line, col, msg);
-	}
+  public void SynErr(string filename, int line, int col, string msg) {
+    Contract.Requires(msg != null);
+    ErrorCount++;
+    Reporting.Error(MessageSource.Parser, filename, line, col, msg);
+  }
 
-	string GetSyntaxErrorString(int n) {
-		string s;
-		switch (n) {
+  string GetSyntaxErrorString(int n) {
+    string s;
+    switch (n) {
 			case 0: s = "EOF expected"; break;
 			case 1: s = "ident expected"; break;
 			case 2: s = "digits expected"; break;
@@ -5390,23 +5390,23 @@ public class Errors {
 			case 272: s = "invalid CaseExpression"; break;
 			case 273: s = "invalid MemberBindingUpdate"; break;
 
-			default: s = "error " + n; break;
-		}
-		return s;
-	}
+      default: s = "error " + n; break;
+    }
+    return s;
+  }
 
-	public void SemErr(IToken tok, string msg) {  // semantic errors
-		Contract.Requires(tok != null);
-		Contract.Requires(msg != null);
-		ErrorCount++;
-		Reporting.Error(MessageSource.Parser, tok, msg);
-	}
+  public void SemErr(IToken tok, string msg) {  // semantic errors
+    Contract.Requires(tok != null);
+    Contract.Requires(msg != null);
+    ErrorCount++;
+    Reporting.Error(MessageSource.Parser, tok, msg);
+  }
 
-	public void SemErr(string filename, int line, int col, string msg) {
-		Contract.Requires(msg != null);
-		ErrorCount++;
-		Reporting.Error(MessageSource.Parser, filename, line, col, msg);
-	}
+  public void SemErr(string filename, int line, int col, string msg) {
+    Contract.Requires(msg != null);
+    ErrorCount++;
+    Reporting.Error(MessageSource.Parser, filename, line, col, msg);
+  }
 
   public void Deprecated(IToken tok, string msg) {
     Contract.Requires(tok != null);
@@ -5420,15 +5420,15 @@ public class Errors {
     Reporting.DeprecatedStyle(MessageSource.Parser, tok, msg);
   }
 
-	public void Warning(IToken tok, string msg) {
-		Contract.Requires(tok != null);
-		Contract.Requires(msg != null);
-		Reporting.Warning(MessageSource.Parser, tok, msg);
-	}
+  public void Warning(IToken tok, string msg) {
+    Contract.Requires(tok != null);
+    Contract.Requires(msg != null);
+    Reporting.Warning(MessageSource.Parser, tok, msg);
+  }
 } // Errors
 
 
 public class FatalError: Exception {
-	public FatalError(string m): base(m) {}
+  public FatalError(string m): base(m) {}
 }
 }
