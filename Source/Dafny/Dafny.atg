@@ -210,6 +210,13 @@ bool IsAlternative() {
       || la.kind == _case;
 }
 
+bool FollowedByColon() {
+  IToken x = la;
+	while (x.kind == _ident || x.kind == _openparen)
+	   x = scanner.Peek();
+	return x.kind == _colon;
+}
+
 // an existential guard starts with an identifier and is then followed by
 // * a colon (if the first identifier is given an explicit type),
 // * a comma (if there's a list a bound variables and the first one is not given an explicit type),
@@ -1611,6 +1618,7 @@ FunctionDecl<DeclModifierData dmod, bool isWithinAbstractModule, out Function/*!
      IToken/*!*/ id = Token.NoToken;  // to please compiler
      List<TypeParameter/*!*/> typeArgs = new List<TypeParameter/*!*/>();
      List<Formal/*!*/> formals = new List<Formal/*!*/>();
+     Formal/*!*/ result = null;
      Type/*!*/ returnType = new BoolType();
      List<Expression/*!*/> reqs = new List<Expression/*!*/>();
      List<Expression/*!*/> ens = new List<Expression/*!*/>();
@@ -1648,7 +1656,22 @@ FunctionDecl<DeclModifierData dmod, bool isWithinAbstractModule, out Function/*!
       [ GenericParameters<typeArgs> ]
       Formals<true, isFunctionMethod, isTwoState, formals>
       ":"
-      Type<out returnType>
+      (  IF(FollowedByColon()) 
+         "("
+           (. 
+              IToken resultId;
+              Type ty;
+              bool isGhost;
+              bool isOld;
+           .)
+            GIdentType<isFunctionMethod, false, out resultId, out ty, out isGhost, out isOld>
+					 /* WildIdent<out resultId, true>
+           ":"
+           Type<out ty> */
+           (. result = new Formal(resultId, resultId.val, ty, false, isGhost, isOld); .)
+         ")"
+         | Type<out returnType>
+      )
     | "..."                    (. signatureEllipsis = t; .)
     )
 
@@ -1727,7 +1750,7 @@ FunctionDecl<DeclModifierData dmod, bool isWithinAbstractModule, out Function/*!
         f = new TwoStatePredicate(tok, id.val, dmod.IsStatic, typeArgs, formals,
                                   reqs, reads, ens, new Specification<Expression>(decreases, null), body, attrs, signatureEllipsis);
      } else if (isTwoState) {
-        f = new TwoStateFunction(tok, id.val, dmod.IsStatic, typeArgs, formals, returnType,
+        f = new TwoStateFunction(tok, id.val, dmod.IsStatic, typeArgs, formals, result, returnType,
                                  reqs, reads, ens, new Specification<Expression>(decreases, null), body, attrs, signatureEllipsis);
      } else if (isPredicate) {
         f = new Predicate(tok, id.val, dmod.IsStatic, dmod.IsProtected, !isFunctionMethod, typeArgs, formals,
@@ -1739,7 +1762,7 @@ FunctionDecl<DeclModifierData dmod, bool isWithinAbstractModule, out Function/*!
         f = new CoPredicate(tok, id.val, dmod.IsStatic, dmod.IsProtected, typeArgs, formals,
                             reqs, reads, ens, body, attrs, signatureEllipsis);
      } else {
-        f = new Function(tok, id.val, dmod.IsStatic, dmod.IsProtected, !isFunctionMethod, typeArgs, formals, returnType,
+        f = new Function(tok, id.val, dmod.IsStatic, dmod.IsProtected, !isFunctionMethod, typeArgs, formals, result, returnType,
                          reqs, reads, ens, new Specification<Expression>(decreases, null), body, attrs, signatureEllipsis);
      }
      f.BodyStartTok = bodyStart;

@@ -6524,7 +6524,12 @@ namespace Microsoft.Dafny
         ScopePushAndReport(scope, p, "parameter");
         ResolveType(p.tok, p.Type, f, option, f.TypeArgs);
       }
-      ResolveType(f.tok, f.ResultType, f, option, f.TypeArgs);
+      if (f.Result != null) {
+        ScopePushAndReport(scope, f.Result, "parameter/return");
+        ResolveType(f.Result.tok, f.Result.Type, f, option, f.TypeArgs);
+      } else {
+        ResolveType(f.tok, f.ResultType, f, option, f.TypeArgs);
+      }
       scope.PopMarker();
     }
 
@@ -6565,9 +6570,16 @@ namespace Microsoft.Dafny
         ResolveFrameExpression(fr, FrameExpressionUse.Reads, f);
       }
       foreach (Expression r in f.Ens) {
+        if (f.Result != null) {
+          scope.PushMarker();
+          scope.Push(f.Result.Name, f.Result);  // function return only visible in post-conditions
+        }
         ResolveExpression(r, new ResolveOpts(f, f is TwoStateFunction));  // since this is a function, the postcondition is still a one-state predicate, unless it's a two-state function
         Contract.Assert(r.Type != null);  // follows from postcondition of ResolveExpression
         ConstrainTypeExprBool(r, "Postcondition must be a boolean (got {0})");
+        if (f.Result != null) {
+          scope.PopMarker();
+        }
       }
       ResolveAttributes(f.Decreases.Attributes, null, new ResolveOpts(f, f is TwoStateFunction));
       foreach (Expression r in f.Decreases.Expressions) {

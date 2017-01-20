@@ -660,7 +660,13 @@ Everything) {
         PrintFormals(f.Formals, f, f.Name);
         if (!isPredicate && !(f is TwoStatePredicate)) {
           wr.Write(": ");
-          PrintType(f.ResultType);
+          if (f.Result != null) {
+            wr.Write("(");
+            PrintFormal(f.Result, false);
+            wr.Write(")");
+          } else {
+            PrintType(f.ResultType);
+          }
         }
         wr.WriteLine();
       }

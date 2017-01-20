@@ -2562,6 +2562,10 @@ namespace Microsoft.Dafny {
         (AlwaysUseHeap || f.ReadsHeap || !readsHeap) ? null : etran.HeapExpr);
       var typeParams = TrTypeParamDecls(f.TypeArgs);
       Bpl.Expr post = Bpl.Expr.True;
+      // substitute function return value with the function call.
+      if (f.Result != null) {
+        substMap.Add(f.Result, new BoogieWrapper(funcAppl, f.ResultType));
+      }
       foreach (Expression p in ens) {
         Bpl.Expr q = etran.TrExpr(Substitute(p, null, substMap));
         post = BplAnd(post, q);
@@ -4879,6 +4883,7 @@ namespace Microsoft.Dafny {
       // parameters of the procedure
       var typeInParams = MkTyParamFormals(GetTypeParams(f));
       var inParams = new List<Bpl.Variable>();
+      var outParams = new List<Bpl.Variable>();
       if (!f.IsStatic) {
         Bpl.Expr wh = Bpl.Expr.And(
           Bpl.Expr.Neq(new Bpl.IdentifierExpr(f.tok, "this", predef.RefType), predef.Null),
@@ -4890,6 +4895,12 @@ namespace Microsoft.Dafny {
         Bpl.Type varType = TrType(p.Type);
         Bpl.Expr wh = GetWhereClause(p.tok, new Bpl.IdentifierExpr(p.tok, p.AssignUniqueName(f.IdGenerator), varType), p.Type, p.IsOld ? etran.Old : etran, NOALLOC);
         inParams.Add(new Bpl.Formal(p.tok, new Bpl.TypedIdent(p.tok, p.AssignUniqueName(f.IdGenerator), varType, wh), true));
+      }
+      if (f.Result != null) {
+        Formal p = f.Result;
+        Bpl.Type varType = TrType(p.Type);
+        Bpl.Expr wh = GetWhereClause(p.tok, new Bpl.IdentifierExpr(p.tok, p.AssignUniqueName(f.IdGenerator), varType), p.Type, p.IsOld ? etran.Old : etran, NOALLOC);
+        outParams.Add(new Bpl.Formal(p.tok, new Bpl.TypedIdent(p.tok, p.AssignUniqueName(f.IdGenerator), varType, wh), true));     
       }
       List<TypeVariable> typeParams = TrTypeParamDecls(f.TypeArgs);
       // the procedure itself
@@ -4922,7 +4933,7 @@ namespace Microsoft.Dafny {
         }
       }
       Bpl.Procedure proc = new Bpl.Procedure(f.tok, "CheckWellformed$$" + f.FullSanitizedName, typeParams,
-        Concat(Concat(typeInParams, inParams_Heap), inParams), new List<Variable>(),
+        Concat(Concat(typeInParams, inParams_Heap), inParams), outParams,
         req, mod, ens, etran.TrAttributes(f.Attributes, null));
       sink.AddTopLevelDeclaration(proc);
 
@@ -4934,6 +4945,7 @@ namespace Microsoft.Dafny {
       // Changed the next line to strip from inParams instead of proc.InParams
       // They should be the same, but hence the added contract
       var implInParams = Bpl.Formal.StripWhereClauses(inParams);
+      var implOutParams = Bpl.Formal.StripWhereClauses(outParams);
       var locals = new List<Variable>();
       var builder = new BoogieStmtListBuilder(this);
       var builderInitializationArea = new BoogieStmtListBuilder(this);
@@ -5048,6 +5060,9 @@ namespace Microsoft.Dafny {
 
         wfo = new WFOptions(null, true, true /* do delayed reads checks */);
         CheckWellformedWithResult(f.Body, wfo, funcAppl, f.ResultType, locals, bodyCheckBuilder, etran);
+        if (f.Result != null) {
+          bodyCheckBuilder.Add(TrAssumeCmd(f.tok, Bpl.Expr.Eq(funcAppl, TrVar(f.tok, f.Result))));
+        }
         wfo.ProcessSavedReadsChecks(locals, builderInitializationArea, bodyCheckBuilder);
       }
       // Combine the two, letting the postcondition be checked on after the "bodyCheckBuilder" branch
@@ -5062,7 +5077,7 @@ namespace Microsoft.Dafny {
         // emit the impl only when there are proof obligations.
         QKeyValue kv = etran.TrAttributes(f.Attributes, null);
         Bpl.Implementation impl = new Bpl.Implementation(f.tok, proc.Name,
-          typeParams, Concat(Concat(typeInParams, inParams_Heap), implInParams), new List<Variable>(),
+          typeParams, Concat(Concat(typeInParams, inParams_Heap), implInParams), implOutParams,
           locals, implBody, kv);
         sink.AddTopLevelDeclaration(impl);
         if (InsertChecksums) {
