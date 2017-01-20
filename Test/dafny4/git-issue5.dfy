@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:0 "%s" > "%t"
+// RUN: %dafny /compile:0 /print:"%t.print" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 predicate isEven(x:int) 
@@ -43,3 +43,25 @@ function foo(x:int, y:int) : (v: (int, int))
 {
   (x, y)
 }
+
+// bar will not be marked as recursive
+function bar(x:int, y:int) : int
+ ensures bar(x, y) == 10
+{
+   10
+}
+
+// bar1 will be marked as recursive
+function bar1(x:int, y:int) : int
+ ensures bar1(x, y+0) == 10
+{
+   10
+}
+
+// bar2 will be marked as recursive
+function bar2(x:int, y:int) : int
+  ensures bar2((x), y) == 10
+{
+  10
+}
+

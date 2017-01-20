@@ -6574,7 +6574,7 @@ namespace Microsoft.Dafny
           scope.PushMarker();
           scope.Push(f.Result.Name, f.Result);  // function return only visible in post-conditions
         }
-        ResolveExpression(r, new ResolveOpts(f, f is TwoStateFunction));  // since this is a function, the postcondition is still a one-state predicate, unless it's a two-state function
+        ResolveExpression(r, new ResolveOpts(f, f is TwoStateFunction, false, true));  // since this is a function, the postcondition is still a one-state predicate, unless it's a two-state function
         Contract.Assert(r.Type != null);  // follows from postcondition of ResolveExpression
         ConstrainTypeExprBool(r, "Postcondition must be a boolean (got {0})");
         if (f.Result != null) {
@@ -9567,18 +9567,29 @@ namespace Microsoft.Dafny
       public readonly ICodeContext codeContext;
       public readonly bool twoState;
       public readonly bool isReveal;
+      public readonly bool isPostCondition;
 
       public ResolveOpts(ICodeContext codeContext, bool twoState) {
         Contract.Requires(codeContext != null);
         this.codeContext = codeContext;
         this.twoState = twoState;
         this.isReveal = false;
+        this.isPostCondition = false;
       }
       public ResolveOpts(ICodeContext codeContext, bool twoState, bool isReveal) {
         Contract.Requires(codeContext != null);
         this.codeContext = codeContext;
         this.twoState = twoState;
         this.isReveal = isReveal;
+        this.isPostCondition = false;
+      }
+
+      public ResolveOpts(ICodeContext codeContext, bool twoState, bool isReveal, bool isPostCondition) {
+        Contract.Requires(codeContext != null);
+        this.codeContext = codeContext;
+        this.twoState = twoState;
+        this.isReveal = isReveal;
+        this.isPostCondition = isPostCondition;
       }
     }
 
@@ -9779,7 +9790,7 @@ namespace Microsoft.Dafny
           }
           subst = BuildTypeArgumentSubstitute(subst);
           e.Type = new ArrowType(fn.tok, fn.Formals.ConvertAll(f => SubstType(f.Type, subst)), SubstType(fn.ResultType, subst), builtIns.SystemModule);
-          AddCallGraphEdge(opts.codeContext, fn, e);
+          AddCallGraphEdge(opts.codeContext, fn, e, false);
         } else if (member is Field) {
           var field = (Field)member;
           e.Member = field;
@@ -10994,7 +11005,7 @@ namespace Microsoft.Dafny
           receiver = new ImplicitThisExpr(expr.tok);
           receiver.Type = GetThisType(expr.tok, (ClassDecl)member.EnclosingClass);  // resolve here
         }
-        r = ResolveExprDotCall(expr.tok, receiver, member, expr.OptTypeArguments, opts, allowMethodCall);
+        r = ResolveExprDotCall(expr.tok, receiver, member, args, expr.OptTypeArguments, opts, allowMethodCall);
       } else if (isLastNameSegment && moduleInfo.Ctors.TryGetValue(name, out pair)) {
         // ----- 2. datatype constructor
         if (pair.Item2) {
@@ -11034,7 +11045,7 @@ namespace Microsoft.Dafny
           reporter.Error(MessageSource.Resolver, expr.tok, "The name {0} ambiguously refers to a static member in one of the modules {1} (try qualifying the member name with the module name)", expr.Name, ambiguousMember.ModuleNames());
         } else {
           var receiver = new StaticReceiverExpr(expr.tok, (ClassDecl)member.EnclosingClass, true);
-          r = ResolveExprDotCall(expr.tok, receiver, member, expr.OptTypeArguments, opts, allowMethodCall);
+          r = ResolveExprDotCall(expr.tok, receiver, member, args, expr.OptTypeArguments, opts, allowMethodCall);
         }
 
       } else {
@@ -11276,7 +11287,7 @@ namespace Microsoft.Dafny
             reporter.Error(MessageSource.Resolver, expr.tok, "The name {0} ambiguously refers to a static member in one of the modules {1} (try qualifying the member name with the module name)", expr.SuffixName, ambiguousMember.ModuleNames());
           } else {
             var receiver = new StaticReceiverExpr(expr.tok, (ClassDecl)member.EnclosingClass, true);
-            r = ResolveExprDotCall(expr.tok, receiver, member, expr.OptTypeArguments, opts, allowMethodCall);
+            r = ResolveExprDotCall(expr.tok, receiver, member, args, expr.OptTypeArguments, opts, allowMethodCall);
           }
         } else {
           reporter.Error(MessageSource.Resolver, expr.tok, "unresolved identifier: {0}", name);
@@ -11305,7 +11316,7 @@ namespace Microsoft.Dafny
               // nevertheless, continue creating an expression that approximates a correct one
             }
             var receiver = new StaticReceiverExpr(expr.tok, (UserDefinedType)ty.NormalizeExpand(), (ClassDecl)member.EnclosingClass, false);
-            r = ResolveExprDotCall(expr.tok, receiver, member, expr.OptTypeArguments, opts, allowMethodCall);
+            r = ResolveExprDotCall(expr.tok, receiver, member, args, expr.OptTypeArguments, opts, allowMethodCall);
           }
         } else if (ty.IsDatatype) {
           // ----- LHS is a datatype
@@ -11342,7 +11353,7 @@ namespace Microsoft.Dafny
             Contract.Assert(nptype.IsRefType);  // only reference types have static methods
             receiver = new StaticReceiverExpr(expr.tok, (UserDefinedType)nptype, (ClassDecl)member.EnclosingClass, false);
           }
-          r = ResolveExprDotCall(expr.tok, receiver, member, expr.OptTypeArguments, opts, allowMethodCall);
+          r = ResolveExprDotCall(expr.tok, receiver, member, args, expr.OptTypeArguments, opts, allowMethodCall);
         }
       }
 
@@ -11452,7 +11463,7 @@ namespace Microsoft.Dafny
       return null;
     }
 
-    Expression ResolveExprDotCall(IToken tok, Expression receiver, MemberDecl member, List<Type> optTypeArguments, ResolveOpts opts, bool allowMethodCall) {
+    Expression ResolveExprDotCall(IToken tok, Expression receiver, MemberDecl member, List<Expression> args, List<Type> optTypeArguments, ResolveOpts opts, bool allowMethodCall) {
       Contract.Requires(tok != null);
       Contract.Requires(receiver != null);
       Contract.Requires(receiver.WasResolved());
@@ -11496,7 +11507,7 @@ namespace Microsoft.Dafny
         }
         subst = BuildTypeArgumentSubstitute(subst);
         rr.Type = new ArrowType(fn.tok, fn.Formals.ConvertAll(f => SubstType(f.Type, subst)), SubstType(fn.ResultType, subst), builtIns.SystemModule);
-        AddCallGraphEdge(opts.codeContext, fn, rr);
+        AddCallGraphEdge(opts.codeContext, fn, rr, IsFunctionReturnValue(fn, args, opts));
       } else {
         // the member is a method
         var m = (Method)member;
@@ -11520,11 +11531,33 @@ namespace Microsoft.Dafny
         r.Function = ((ConstantField)member).function;
         r.TypeArgumentSubstitutions = new Dictionary<TypeParameter, Type>();
         r.Type = r.Function.ResultType.StripSubsetConstraints();
-        AddCallGraphEdge(opts.codeContext, r.Function, rr);
+        AddCallGraphEdge(opts.codeContext, r.Function, rr, false);
         return r;
       } else {
         return rr;
       }
+    }
+
+    private bool IsFunctionReturnValue(Function fn, List<Expression> args, ResolveOpts opts) {
+      bool isFunctionReturnValue = true;
+      // if the call is in post-condition and it is calling itself, and the arguments matches
+      // formal parameter, then it denotes function return value.
+      if (opts.isPostCondition && opts.codeContext == fn) {
+        foreach (var arg in args) {
+          if (arg is NameSegment) {
+            var name = ((NameSegment)arg).Name;
+            IVariable v = scope.Find(name);
+            if (!(v is Formal)) {
+              isFunctionReturnValue = false;
+            }
+          } else {
+            isFunctionReturnValue = false;
+          }
+        }
+      } else {
+        isFunctionReturnValue = false;
+      }
+      return isFunctionReturnValue;
     }
 
     class MethodCallInformation
@@ -11677,7 +11710,7 @@ namespace Microsoft.Dafny
               if (callee is FixpointPredicate) {
                 ((FixpointPredicate)callee).Uses.Add(rr);
               }
-              AddCallGraphEdge(opts.codeContext, callee, rr);
+              AddCallGraphEdge(opts.codeContext, callee, rr, IsFunctionReturnValue(callee, e.Args, opts));
               r = rr;
             } else {
               r = new ApplyExpr(e.Lhs.tok, e.Lhs, e.Args);
@@ -12012,12 +12045,11 @@ namespace Microsoft.Dafny
           }
           e.Type = SubstType(function.ResultType, subst).StripSubsetConstraints();
         }
-
-        AddCallGraphEdge(opts.codeContext, function, e);
+        AddCallGraphEdge(opts.codeContext, function, e, IsFunctionReturnValue(function, e.Args, opts));
       }
     }
 
-    private static void AddCallGraphEdge(ICodeContext callingContext, Function function, Expression e) {
+    private static void AddCallGraphEdge(ICodeContext callingContext, Function function, Expression e, bool isFunctionReturnValue) {
       Contract.Requires(callingContext != null);
       Contract.Requires(function != null);
       Contract.Requires(e != null);
@@ -12039,7 +12071,9 @@ namespace Microsoft.Dafny
               ((Function)caller).AllCalls.Add(ee);
             }
           }
-          if (caller == function) {
+          // if the call denotes the function return value in the function postconditions, then we don't
+          // mark it as recursive.
+          if (caller == function && !isFunctionReturnValue) {
             function.IsRecursive = true;  // self recursion (mutual recursion is determined elsewhere)
           }
         }

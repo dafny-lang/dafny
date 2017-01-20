@@ -6,7 +6,7 @@ Modules1.dfy(92,15): Error: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Then
-Modules1.dfy(94,17): Error: assertion violation
+Modules1.dfy(94,18): Error: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Else
