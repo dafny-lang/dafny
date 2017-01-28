@@ -3375,7 +3375,7 @@ namespace Microsoft.Dafny {
     ICallable codeContext = null;  // the method/iterator whose implementation is currently being translated or the function whose specification is being checked for well-formedness
     Bpl.LocalVariable yieldCountVariable = null;  // non-null when an iterator body is being translated
     bool assertAsAssume = false; // generate assume statements instead of assert statements
-    public enum StmtType { NONE, ASSERT, ASSUME, FORALL };
+    public enum StmtType { NONE, ASSERT, ASSUME };
     public StmtType stmtContext = StmtType.NONE;  // the Statement that is currently being translated
     public bool adjustFuelForExists = true;  // fuel need to be adjusted for exists based on whether exists is in assert or assume stmt. 
     
@@ -9591,52 +9591,41 @@ namespace Microsoft.Dafny {
         // Boogie expressions into BoogieExprWrappers that are used in the DafnyExpr-to-DafnyExpr substitution.
         // TODO     
         Bpl.Expr qq;
-        if (forallExpressions != null) {
-          var callEtran = new ExpressionTranslator(this, predef, etran.HeapExpr, initHeap);
-          foreach (Expression expr in forallExpressions) {
-            Dictionary<IVariable, Expression> substMap = new Dictionary<IVariable, Expression>();
-            var e = Substitute(expr, null, substMap, null);
-            var argsSubstMap = new Dictionary<IVariable, Expression>();
-            Contract.Assert(s0.Method.Ins.Count == s0.Args.Count);
-            for (int i = 0; i < s0.Method.Ins.Count; i++) {
-              var arg = Substitute(s0.Args[i], null, substMap, s0.MethodSelect.TypeArgumentSubstitutions());  // substitute the renamed bound variables for the declared ones
-              argsSubstMap.Add(s0.Method.Ins[i], new BoogieWrapper(initEtran.TrExpr(arg), s0.Args[i].Type));
-            }
-            var receiver = new BoogieWrapper(initEtran.TrExpr(Substitute(s0.Receiver, null, substMap, s0.MethodSelect.TypeArgumentSubstitutions())), s0.Receiver.Type);
-            var p = Substitute(e, receiver, argsSubstMap, s0.MethodSelect.TypeArgumentSubstitutions());  // substitute the call's actuals for the method's formals
-            stmtContext = StmtType.FORALL;
-            qq = callEtran.TrExpr(p);
-            exporter.Add(TrAssumeCmd(tok, qq));
-            stmtContext = StmtType.NONE;
-          }
-        } else {
-          var bvars = new List<Variable>();
-          Dictionary<IVariable, Expression> substMap;
-          var ante = initEtran.TrBoundVariablesRename(boundVars, bvars, out substMap);
-          var argsSubstMap = new Dictionary<IVariable, Expression>();  // maps formal arguments to actuals
-          Contract.Assert(s0.Method.Ins.Count == s0.Args.Count);
-          for (int i = 0; i < s0.Method.Ins.Count; i++) {
-            var arg = Substitute(s0.Args[i], null, substMap, s0.MethodSelect.TypeArgumentSubstitutions());  // substitute the renamed bound variables for the declared ones
-            argsSubstMap.Add(s0.Method.Ins[i], new BoogieWrapper(initEtran.TrExpr(arg), s0.Args[i].Type));
-          }
-          var callEtran = new ExpressionTranslator(this, predef, etran.HeapExpr, initHeap);
-          ante = BplAnd(ante, initEtran.TrExpr(Substitute(range, null, substMap)));
-          if (additionalRange != null) {
-            ante = BplAnd(ante, additionalRange(substMap, initEtran));
-          } 
-          var receiver = new BoogieWrapper(initEtran.TrExpr(Substitute(s0.Receiver, null, substMap, s0.MethodSelect.TypeArgumentSubstitutions())), s0.Receiver.Type);
-          Bpl.Expr post = Bpl.Expr.True;
-          foreach (var ens in s0.Method.Ens) {
-            var p = Substitute(ens.E, receiver, argsSubstMap, s0.MethodSelect.TypeArgumentSubstitutions());  // substitute the call's actuals for the method's formals
-            post = BplAnd(post, callEtran.TrExpr(p));
-          }
+        var bvars = new List<Variable>();
+        Dictionary<IVariable, Expression> substMap;
+        var ante = initEtran.TrBoundVariablesRename(boundVars, bvars, out substMap);
+        var argsSubstMap = new Dictionary<IVariable, Expression>();  // maps formal arguments to actuals
+        Contract.Assert(s0.Method.Ins.Count == s0.Args.Count);
+        for (int i = 0; i < s0.Method.Ins.Count; i++) {
+          var arg = Substitute(s0.Args[i], null, substMap, s0.MethodSelect.TypeArgumentSubstitutions());  // substitute the renamed bound variables for the declared ones
+          argsSubstMap.Add(s0.Method.Ins[i], new BoogieWrapper(initEtran.TrExpr(arg), s0.Args[i].Type));
+        }
+        var callEtran = new ExpressionTranslator(this, predef, etran.HeapExpr, initHeap);
+        ante = BplAnd(ante, initEtran.TrExpr(Substitute(range, null, substMap)));
+        if (additionalRange != null) {
+          ante = BplAnd(ante, additionalRange(substMap, initEtran));
+        }
+        var receiver = new BoogieWrapper(initEtran.TrExpr(Substitute(s0.Receiver, null, substMap, s0.MethodSelect.TypeArgumentSubstitutions())), s0.Receiver.Type);
+        Bpl.Expr post = Bpl.Expr.True;
+        foreach (var ens in s0.Method.Ens) {
+          var p = Substitute(ens.E, receiver, argsSubstMap, s0.MethodSelect.TypeArgumentSubstitutions());  // substitute the call's actuals for the method's formals
+          post = BplAnd(post, callEtran.TrExpr(p));
+        }
 
-          // TRIG (forall $ih#s0#0: Seq Box :: $Is($ih#s0#0, TSeq(TChar)) && $IsAlloc($ih#s0#0, TSeq(TChar), $initHeapForallStmt#0) && Seq#Length($ih#s0#0) != 0 && Seq#Rank($ih#s0#0) < Seq#Rank(s#0) ==> (forall i#2: int :: true ==> LitInt(0) <= i#2 && i#2 < Seq#Length($ih#s0#0) ==> char#ToInt(_module.CharChar.MinChar($LS($LZ), $Heap, this, $ih#s0#0)) <= char#ToInt($Unbox(Seq#Index($ih#s0#0, i#2)): char)))
-          // TRIG (forall $ih#pat0#0: Seq Box, $ih#a0#0: Seq Box :: $Is($ih#pat0#0, TSeq(_module._default.Same0$T)) && $IsAlloc($ih#pat0#0, TSeq(_module._default.Same0$T), $initHeapForallStmt#0) && $Is($ih#a0#0, TSeq(_module._default.Same0$T)) && $IsAlloc($ih#a0#0, TSeq(_module._default.Same0$T), $initHeapForallStmt#0) && Seq#Length($ih#pat0#0) <= Seq#Length($ih#a0#0) && Seq#SameUntil($ih#pat0#0, $ih#a0#0, Seq#Length($ih#pat0#0)) && (Seq#Rank($ih#pat0#0) < Seq#Rank(pat#0) || (Seq#Rank($ih#pat0#0) == Seq#Rank(pat#0) && Seq#Rank($ih#a0#0) < Seq#Rank(a#0))) ==> _module.__default.IsRelaxedPrefixAux(_module._default.Same0$T, $LS($LZ), $Heap, $ih#pat0#0, $ih#a0#0, LitInt(1)))'
-          // TRIG (forall $ih#m0#0: DatatypeType, $ih#n0#0: DatatypeType :: $Is($ih#m0#0, Tclass._module.Nat()) && $IsAlloc($ih#m0#0, Tclass._module.Nat(), $initHeapForallStmt#0) && $Is($ih#n0#0, Tclass._module.Nat()) && $IsAlloc($ih#n0#0, Tclass._module.Nat(), $initHeapForallStmt#0) && Lit(true) && (DtRank($ih#m0#0) < DtRank(m#0) || (DtRank($ih#m0#0) == DtRank(m#0) && DtRank($ih#n0#0) < DtRank(n#0))) ==> _module.__default.mult($LS($LZ), $Heap, $ih#m0#0, _module.__default.plus($LS($LZ), $Heap, $ih#n0#0, $ih#n0#0)) == _module.__default.mult($LS($LZ), $Heap, _module.__default.plus($LS($LZ), $Heap, $ih#m0#0, $ih#m0#0), $ih#n0#0))
-          qq = new Bpl.ForallExpr(tok, bvars, Bpl.Expr.Imp(ante, post));  // TODO: Add a SMART_TRIGGER here.  If we can't find one, abort the attempt to do induction automatically
-          exporter.Add(TrAssumeCmd(tok, qq));
-        }       
+        Bpl.Trigger tr = null;
+        if (forallExpressions != null) {
+          QuantifierExpr expr = (QuantifierExpr)forallExpressions[0];
+          while (expr.SplitQuantifier != null) {
+            expr = (QuantifierExpr)expr.SplitQuantifierExpression;
+          }
+          tr = TrTrigger(callEtran, expr.Attributes, expr.tok, bvars, substMap, s0.MethodSelect.TypeArgumentSubstitutions());
+        }
+
+        // TRIG (forall $ih#s0#0: Seq Box :: $Is($ih#s0#0, TSeq(TChar)) && $IsAlloc($ih#s0#0, TSeq(TChar), $initHeapForallStmt#0) && Seq#Length($ih#s0#0) != 0 && Seq#Rank($ih#s0#0) < Seq#Rank(s#0) ==> (forall i#2: int :: true ==> LitInt(0) <= i#2 && i#2 < Seq#Length($ih#s0#0) ==> char#ToInt(_module.CharChar.MinChar($LS($LZ), $Heap, this, $ih#s0#0)) <= char#ToInt($Unbox(Seq#Index($ih#s0#0, i#2)): char)))
+        // TRIG (forall $ih#pat0#0: Seq Box, $ih#a0#0: Seq Box :: $Is($ih#pat0#0, TSeq(_module._default.Same0$T)) && $IsAlloc($ih#pat0#0, TSeq(_module._default.Same0$T), $initHeapForallStmt#0) && $Is($ih#a0#0, TSeq(_module._default.Same0$T)) && $IsAlloc($ih#a0#0, TSeq(_module._default.Same0$T), $initHeapForallStmt#0) && Seq#Length($ih#pat0#0) <= Seq#Length($ih#a0#0) && Seq#SameUntil($ih#pat0#0, $ih#a0#0, Seq#Length($ih#pat0#0)) && (Seq#Rank($ih#pat0#0) < Seq#Rank(pat#0) || (Seq#Rank($ih#pat0#0) == Seq#Rank(pat#0) && Seq#Rank($ih#a0#0) < Seq#Rank(a#0))) ==> _module.__default.IsRelaxedPrefixAux(_module._default.Same0$T, $LS($LZ), $Heap, $ih#pat0#0, $ih#a0#0, LitInt(1)))'
+        // TRIG (forall $ih#m0#0: DatatypeType, $ih#n0#0: DatatypeType :: $Is($ih#m0#0, Tclass._module.Nat()) && $IsAlloc($ih#m0#0, Tclass._module.Nat(), $initHeapForallStmt#0) && $Is($ih#n0#0, Tclass._module.Nat()) && $IsAlloc($ih#n0#0, Tclass._module.Nat(), $initHeapForallStmt#0) && Lit(true) && (DtRank($ih#m0#0) < DtRank(m#0) || (DtRank($ih#m0#0) == DtRank(m#0) && DtRank($ih#n0#0) < DtRank(n#0))) ==> _module.__default.mult($LS($LZ), $Heap, $ih#m0#0, _module.__default.plus($LS($LZ), $Heap, $ih#n0#0, $ih#n0#0)) == _module.__default.mult($LS($LZ), $Heap, _module.__default.plus($LS($LZ), $Heap, $ih#m0#0, $ih#m0#0), $ih#n0#0))
+        qq = new Bpl.ForallExpr(tok, bvars, tr, Bpl.Expr.Imp(ante, post));  // TODO: Add a SMART_TRIGGER here.  If we can't find one, abort the attempt to do induction automatically
+        exporter.Add(TrAssumeCmd(tok, qq));
       }
     }
 
@@ -9726,14 +9715,12 @@ namespace Microsoft.Dafny {
       // Now for the other branch, where the ensures clauses are exported.
       var substMap = new Dictionary<IVariable, Expression>();
       var p = Substitute(s.ForallExpressions[0], null, substMap);
-      stmtContext = StmtType.FORALL;
       var qq = etran.TrExpr(p);
       if (s.BoundVars.Count != 0) {
         exporter.Add(TrAssumeCmd(s.Tok, qq));
       } else {
         exporter.Add(TrAssumeCmd(s.Tok, ((Bpl.ForallExpr)qq).Body));
       }
-      stmtContext = StmtType.NONE;
     }
 
     private string GetObjFieldDetails(Expression lhs, ExpressionTranslator etran, out Bpl.Expr obj, out Bpl.Expr F) {
@@ -13212,8 +13199,8 @@ namespace Microsoft.Dafny {
               bodyEtran = bodyEtran.LayerOffset(1);
               translator.adjustFuelForExists = false;
             }
-            
-            var etran = translator.stmtContext == StmtType.FORALL ? this.Old : this;
+
+            var initEtran = this;
             bool _scratch = true;
 
             Bpl.Expr antecedent = Bpl.Expr.True;
@@ -13229,59 +13216,17 @@ namespace Microsoft.Dafny {
               antecedent = BplAnd(new List<Bpl.Expr> {
               antecedent,
               translator.FunctionCall(e.tok, BuiltinFunction.IsGoodHeap, null, h),
-              translator.HeapSameOrSucc(etran.HeapExpr, h)  // initHeapForAllStmt
+              translator.HeapSameOrSucc(initEtran.HeapExpr, h)  // initHeapForAllStmt
             });
             }
 
-            antecedent = BplAnd(antecedent, etran.TrBoundVariables(e.BoundVars, bvars)); // initHeapForAllStmt
+            antecedent = BplAnd(antecedent, bodyEtran.TrBoundVariables(e.BoundVars, bvars)); // initHeapForAllStmt
 
             Bpl.QKeyValue kv = TrAttributes(e.Attributes, "trigger");
-            Bpl.Trigger tr = null;
-            var argsEtran = bodyEtran.WithNoLits();
-            var fueledTrigger = new Dictionary<List<Expression>, bool>();
-            // translate the triggers once to see if fuel or the heap is used as quantifier boundvar
-            foreach (var aa in e.Attributes.AsEnumerable()) {
-              if (aa.Name == "trigger") {
-                int fuelCount = argsEtran.Statistics_CustomLayerFunctionCount;
-                foreach (var arg in aa.Args) {                  
-                  argsEtran.TrExpr(arg);                  
-                }
-                fueledTrigger[aa.Args] = argsEtran.Statistics_CustomLayerFunctionCount > fuelCount;
-              }
-            }
-
-            bool useFuelAsQuantifier = argsEtran.Statistics_CustomLayerFunctionCount > 0;
-            bool useHeapAsQuantifier = argsEtran.Statistics_HeapAsQuantifierCount > 0;
-            Expr qly = null;
-            if (useFuelAsQuantifier && DafnyOptions.O.IronDafny) {
-              qly = BplBoundVar(e.Refresh("tr$ly#", translator.CurrentIdGenerator), predef.LayerType, bvars);
-              argsEtran = argsEtran.WithLayer(qly);              
-            }            
-            if (useHeapAsQuantifier) {
-              var heapExpr = BplBoundVar(e.Refresh("tr$heap#", translator.CurrentIdGenerator), predef.HeapType, bvars);
-              argsEtran = new ExpressionTranslator(argsEtran, heapExpr);
-            }
-            // now translate it with the correct layer and heapExpr
-            foreach (var aa in e.Attributes.AsEnumerable()) {
-              if (aa.Name == "trigger") {
-                List<Bpl.Expr> tt = new List<Bpl.Expr>();
-                foreach (var arg in aa.Args) {
-                  tt.Add(argsEtran.TrExpr(arg));
-                }
-                if (useHeapAsQuantifier) {
-                  tt.Add(translator.FunctionCall(expr.tok, BuiltinFunction.IsGoodHeap, null, argsEtran.HeapExpr));
-                }
-                if (useFuelAsQuantifier && !fueledTrigger[aa.Args] && DafnyOptions.O.IronDafny) {
-                  // We quantified over fuel, but this particular trigger doesn't use it,
-                  // so we need to add a dummy trigger.  Hopefully it will always be in scope when needed.
-                  tt.Add(translator.FunctionCall(expr.tok, BuiltinFunction.AsFuelBottom, null, qly));
-                }
-                tr = new Bpl.Trigger(expr.tok, true, tt, tr);
-              }
-            }
+            Bpl.Trigger tr = translator.TrTrigger(bodyEtran, e.Attributes, e.tok, bvars, null, null);
             
             if (e.Range != null) {
-              antecedent = BplAnd(antecedent, etran.TrExpr(e.Range)); // initHeapForAllStmt
+              antecedent = BplAnd(antecedent, bodyEtran.TrExpr(e.Range));
             }
             Bpl.Expr body = bodyEtran.TrExpr(e.Term);
 
@@ -13602,7 +13547,21 @@ namespace Microsoft.Dafny {
         }
         if (AlwaysUseHeap || e.Function.ReadsHeap) {
           args.Add(HeapExpr);
-          Statistics_HeapAsQuantifierCount++;
+          // if the function doesn't use heaps, but always use heap as an argument
+          // we want to quantify over the heap so that heap in the trigger can match over 
+          // heap modifying operations. (see Dafny4/bug144.dfy)
+          bool useHeap = e.Function.ReadsHeap;
+          if (!useHeap) {
+            foreach (var arg in e.Function.Formals) {
+              if (arg.Type.IsRefType) {
+                useHeap = true;
+                break;
+              }
+            }
+          }
+          if (!useHeap) {
+            Statistics_HeapAsQuantifierCount++;
+          }
         }
         if (!e.Function.IsStatic) {
           args.Add(TrExpr(e.Receiver));
@@ -14516,6 +14475,59 @@ namespace Microsoft.Dafny {
           } else {
             tt.Add(argsEtran.TrExpr(Substitute(arg, null, substMap)));
           }
+        }
+        tr = new Bpl.Trigger(tok, true, tt, tr);
+      }
+      return tr;
+    }
+
+    Bpl.Trigger TrTrigger(ExpressionTranslator etran, Attributes attribs, IToken tok, List<Variable> bvars, Dictionary<IVariable, Expression> substMap, Dictionary<TypeParameter, Type> typeMap)
+    {
+      Contract.Requires(etran != null);
+      Contract.Requires(tok != null);
+      var argsEtran = etran.WithNoLits();
+      Bpl.Trigger tr = null;
+      var fueledTrigger = new Dictionary<List<Expression>, bool>();
+      // translate the triggers once to see if fuel or the heap is used as quantifier boundvar
+      foreach (var aa in attribs.AsEnumerable()) {
+        if (aa.Name == "trigger") {
+          int fuelCount = argsEtran.Statistics_CustomLayerFunctionCount;
+          foreach (var arg in aa.Args) {
+            argsEtran.TrExpr(arg);
+          }
+          fueledTrigger[aa.Args] = argsEtran.Statistics_CustomLayerFunctionCount > fuelCount;
+        }
+      }
+
+      bool useFuelAsQuantifier = argsEtran.Statistics_CustomLayerFunctionCount > 0;
+      bool useHeapAsQuantifier = argsEtran.Statistics_HeapAsQuantifierCount > 0;
+      Expr qly = null;
+      if (useFuelAsQuantifier && DafnyOptions.O.IronDafny) {
+        qly = BplBoundVar(CurrentIdGenerator.FreshId("tr$ly#"), predef.LayerType, bvars);
+        argsEtran = argsEtran.WithLayer(qly);
+      }
+      if (useHeapAsQuantifier) {
+        var heapExpr = BplBoundVar(CurrentIdGenerator.FreshId("tr$heap#"), predef.HeapType, bvars);
+        argsEtran = new ExpressionTranslator(argsEtran, heapExpr);
+      }
+
+      // now translate it with the correct layer and heapExpr
+      foreach (var trigger in attribs.AsEnumerable().Where(aa => aa.Name == "trigger")) {
+        List<Bpl.Expr> tt = new List<Bpl.Expr>();
+        foreach (var arg in trigger.Args) {
+          if (substMap == null) {
+            tt.Add(argsEtran.TrExpr(arg));
+          } else {
+            tt.Add(argsEtran.TrExpr(Substitute(arg, null, substMap, typeMap)));
+          }
+        }
+        if (useHeapAsQuantifier) {
+          tt.Add(FunctionCall(tok, BuiltinFunction.IsGoodHeap, null, argsEtran.HeapExpr));
+        }
+        if (useFuelAsQuantifier && !fueledTrigger[trigger.Args] && DafnyOptions.O.IronDafny) {
+          // We quantified over fuel, but this particular trigger doesn't use it,
+          // so we need to add a dummy trigger.  Hopefully it will always be in scope when needed.
+          tt.Add(FunctionCall(tok, BuiltinFunction.AsFuelBottom, null, qly));
         }
         tr = new Bpl.Trigger(tok, true, tt, tr);
       }

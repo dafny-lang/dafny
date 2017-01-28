@@ -6165,6 +6165,7 @@ namespace Microsoft.Dafny {
     public readonly List<MaybeFreeExpression> Ens;
     public readonly Statement Body;
     public List<Expression> ForallExpressions;   // fill in by rewriter.
+    public bool CanConvert = true; //  can convert to ForallExpressions
 
     public List<ComprehensionExpr.BoundedPool> Bounds;  // initialized and filled in by resolver
     // invariant: if successfully resolved, Bounds.Count == BoundVars.Count;

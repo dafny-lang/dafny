@@ -99,7 +99,7 @@ namespace Microsoft.Dafny
         this.reporter = reporter;
       }
       protected override bool VisitOneStmt(Statement stmt, ref bool st) {
-        if (stmt is ForallStmt) {
+        if (stmt is ForallStmt && ((ForallStmt)stmt).CanConvert) {
           ForallStmt s = (ForallStmt)stmt;
           if (s.Kind == ForallStmt.ParBodyKind.Proof) {
             Expression term = s.Ens.Count != 0 ? s.Ens[0].E : Expression.CreateBoolLiteral(s.Tok, true);
@@ -196,14 +196,22 @@ namespace Microsoft.Dafny
             }
           } else if (s.Kind == ForallStmt.ParBodyKind.Call) {
             var s0 = (CallStmt)s.S0;
-            Expression term = s0.Method.Ens.Count != 0 ? s0.Method.Ens[0].E : Expression.CreateBoolLiteral(s.Tok, true);
+            var argsSubstMap = new Dictionary<IVariable, Expression>();  // maps formal arguments to actuals
+            Contract.Assert(s0.Method.Ins.Count == s0.Args.Count);
+            for (int i = 0; i < s0.Method.Ins.Count; i++) {
+              argsSubstMap.Add(s0.Method.Ins[i], s0.Args[i]);
+            }
+            var substituter = new Translator.AlphaConverting_Substituter(s0.Receiver, argsSubstMap, new Dictionary<TypeParameter, Type>());
+            // substitute the call's actuals for the method's formals
+            Expression term = s0.Method.Ens.Count != 0 ? substituter.Substitute(s0.Method.Ens[0].E) : Expression.CreateBoolLiteral(s.Tok, true);
             for (int i = 1; i < s0.Method.Ens.Count; i++) {
-              term = new BinaryExpr(s.Tok, BinaryExpr.ResolvedOpcode.And, term, s0.Method.Ens[i].E);
+              term = new BinaryExpr(s.Tok, BinaryExpr.ResolvedOpcode.And, term, substituter.Substitute(s0.Method.Ens[i].E));
             }
             List<Expression> exprList = new List<Expression>();
             ForallExpr expr = new ForallExpr(s.Tok, s.BoundVars, s.Range, term, s.Attributes);
             expr.Type = Type.Bool; // resolve here
             exprList.Add(expr);
+            s.ForallExpressions = exprList;
           } else {
             Contract.Assert(false);  // unexpected kind
           }

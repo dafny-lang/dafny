@@ -1,3 +1,5 @@
+Ackermann.dfy(177,4): Warning: /!\ No terms found to trigger on.
+Ackermann.dfy(195,4): Warning: /!\ No terms found to trigger on.
 
 Dafny program verifier finished with 29 verified, 0 errors
 Program compiled successfully

@@ -7788,6 +7788,14 @@ namespace Microsoft.Dafny
               s.Kind = ForallStmt.ParBodyKind.Assign;
             } else if (s0 is CallStmt) {
               s.Kind = ForallStmt.ParBodyKind.Call;
+              var call = (CallStmt)s.S0;
+              var method = call.Method;
+              // if the called method is not in the same module as the ForallCall stmt
+              // don't convert it to ForallExpression since the inlined called method's
+              // ensure clause might not be resolved correctly(test\dafny3\GenericSort.dfy)
+              if (method.EnclosingClass.Module != codeContext.EnclosingModule) {
+                s.CanConvert = false;
+              }
               // Additional information (namely, the postcondition of the call) will be reported later. But it cannot be
               // done yet, because the specification of the callee may not have been resolved yet.
             } else if (s0 is CalcStmt) {
