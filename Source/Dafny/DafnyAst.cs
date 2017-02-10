@@ -222,12 +222,18 @@ namespace Microsoft.Dafny {
       TupleTypeDecl tt;
       if (!tupleTypeDecls.TryGetValue(dims, out tt)) {
         Contract.Assume(allowCreationOfNewType);  // the parser should ensure that all needed tuple types exist by the time of resolution
-        tt = new TupleTypeDecl(dims, SystemModule);
+        if (dims == 2) {
+          // tuple#2 is already defined in DafnyRuntime.cs
+          tt = new TupleTypeDecl(dims, SystemModule, DontCompile());
+        } else {
+          tt = new TupleTypeDecl(dims, SystemModule, null);
+        }
         tupleTypeDecls.Add(dims, tt);
         SystemModule.TopLevelDecls.Add(tt);
       }
       return tt;
     }
+
     public static string TupleTypeName(int dims) {
       Contract.Requires(0 <= dims);
       return "_tuple#" + dims;
@@ -849,6 +855,13 @@ namespace Microsoft.Dafny {
         return t as ArrowType;
       }
     }
+    public bool IsMapType {
+      get {
+        var t = NormalizeExpand() as MapType;
+        return t != null && t.Finite;
+      }
+    }
+
     public bool IsIMapType {
       get {
         var t = NormalizeExpand() as MapType;
@@ -1611,6 +1624,7 @@ namespace Microsoft.Dafny {
   public class SelfType : NonProxyType
   {
     public TypeParameter TypeArg;
+    public Type ResolvedType;
     public SelfType() : base() {
       TypeArg = new TypeParameter(Token.NoToken, "selfType");
     }
@@ -3349,13 +3363,14 @@ namespace Microsoft.Dafny {
     /// <summary>
     /// Construct a resolved built-in tuple type with "dim" arguments.  "systemModule" is expected to be the _System module.
     /// </summary>
-    public TupleTypeDecl(int dims, ModuleDefinition systemModule)
-      : this(systemModule, CreateTypeParameters(dims)) {
+    public TupleTypeDecl(int dims, ModuleDefinition systemModule, Attributes attributes)
+      : this(systemModule, CreateTypeParameters(dims), attributes) {
       Contract.Requires(0 <= dims);
       Contract.Requires(systemModule != null);
     }
-    private TupleTypeDecl(ModuleDefinition systemModule, List<TypeParameter> typeArgs)
-      : base(Token.NoToken, BuiltIns.TupleTypeName(typeArgs.Count), systemModule, typeArgs, CreateConstructors(typeArgs), null) {
+
+    private TupleTypeDecl(ModuleDefinition systemModule, List<TypeParameter> typeArgs, Attributes attributes)
+      : base(Token.NoToken, BuiltIns.TupleTypeName(typeArgs.Count), systemModule, typeArgs, CreateConstructors(typeArgs), attributes) {
       Contract.Requires(systemModule != null);
       Contract.Requires(typeArgs != null);
       Dims = typeArgs.Count;

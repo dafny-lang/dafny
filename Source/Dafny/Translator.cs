@@ -244,6 +244,14 @@ namespace Microsoft.Dafny {
       private readonly Bpl.TypeCtorDecl imapTypeCtor;
       public readonly Bpl.Function ArrayLength;
       public readonly Bpl.Function RealFloor;
+      public readonly Bpl.Function MapDomain;
+      public readonly Bpl.Function IMapDomain;
+      public readonly Bpl.Function MapValues;
+      public readonly Bpl.Function IMapValues;
+      public readonly Bpl.Function MapItems;
+      public readonly Bpl.Function IMapItems;
+      public readonly Bpl.Function Tuple2Destructors0;
+      public readonly Bpl.Function Tuple2Destructors1;
       private readonly Bpl.TypeCtorDecl seqTypeCtor;
       public readonly Bpl.Type Bv0Type;
       readonly Bpl.TypeCtorDecl fieldName;
@@ -270,6 +278,14 @@ namespace Microsoft.Dafny {
         Contract.Invariant(multiSetTypeCtor != null);
         Contract.Invariant(ArrayLength != null);
         Contract.Invariant(RealFloor != null);
+        Contract.Invariant(MapDomain != null);
+        Contract.Invariant(IMapDomain != null);
+        Contract.Invariant(MapValues != null);
+        Contract.Invariant(IMapValues != null);
+        Contract.Invariant(MapItems != null);
+        Contract.Invariant(IMapItems != null);
+        Contract.Invariant(Tuple2Destructors0 != null);
+        Contract.Invariant(Tuple2Destructors1 != null);
         Contract.Invariant(seqTypeCtor != null);
         Contract.Invariant(fieldName != null);
         Contract.Invariant(HeapVarName != null);
@@ -334,7 +350,10 @@ namespace Microsoft.Dafny {
       public PredefinedDecls(Bpl.TypeCtorDecl charType, Bpl.TypeCtorDecl refType, Bpl.TypeCtorDecl boxType, Bpl.TypeCtorDecl tickType,
                              Bpl.TypeSynonymDecl setTypeCtor, Bpl.TypeSynonymDecl isetTypeCtor, Bpl.TypeSynonymDecl multiSetTypeCtor,
                              Bpl.TypeCtorDecl mapTypeCtor, Bpl.TypeCtorDecl imapTypeCtor,
-                             Bpl.Function arrayLength, Bpl.Function realFloor, Bpl.TypeCtorDecl seqTypeCtor, Bpl.TypeSynonymDecl bv0TypeDecl,
+                             Bpl.Function arrayLength, Bpl.Function realFloor,  Bpl.Function mapDomain, Bpl.Function imapDomain,
+                             Bpl.Function mapValues, Bpl.Function imapValues, Bpl.Function mapItems, Bpl.Function imapItems,
+                             Bpl.Function tuple2Destructors0, Bpl.Function tuple2Destructors1,
+                             Bpl.TypeCtorDecl seqTypeCtor, Bpl.TypeSynonymDecl bv0TypeDecl,
                              Bpl.TypeCtorDecl fieldNameType, Bpl.TypeCtorDecl tyType, Bpl.TypeCtorDecl tyTagType,
                              Bpl.GlobalVariable heap, Bpl.TypeCtorDecl classNameType, Bpl.TypeCtorDecl nameFamilyType,
                              Bpl.TypeCtorDecl datatypeType, Bpl.TypeCtorDecl handleType, Bpl.TypeCtorDecl layerType, Bpl.TypeCtorDecl dtCtorId,
@@ -351,6 +370,14 @@ namespace Microsoft.Dafny {
         Contract.Requires(imapTypeCtor != null);
         Contract.Requires(arrayLength != null);
         Contract.Requires(realFloor != null);
+        Contract.Requires(mapDomain != null);
+        Contract.Requires(imapDomain != null);
+        Contract.Requires(mapValues != null);
+        Contract.Requires(imapValues != null);
+        Contract.Requires(mapItems != null);
+        Contract.Requires(imapItems != null);
+        Contract.Requires(tuple2Destructors0 != null);
+        Contract.Requires(tuple2Destructors1 != null);
         Contract.Requires(seqTypeCtor != null);
         Contract.Requires(bv0TypeDecl != null);
         Contract.Requires(fieldNameType != null);
@@ -376,6 +403,14 @@ namespace Microsoft.Dafny {
         this.imapTypeCtor = imapTypeCtor;
         this.ArrayLength = arrayLength;
         this.RealFloor = realFloor;
+        this.MapDomain = mapDomain;
+        this.IMapDomain = imapDomain;
+        this.MapValues = mapValues;
+        this.IMapValues = imapValues;
+        this.MapItems = mapItems;
+        this.IMapItems = imapItems;
+        this.Tuple2Destructors0 = tuple2Destructors0;
+        this.Tuple2Destructors1 = tuple2Destructors1;
         this.seqTypeCtor = seqTypeCtor;
         this.Bv0Type = new Bpl.TypeSynonymAnnotation(Token.NoToken, bv0TypeDecl, new List<Bpl.Type>());
         this.fieldName = fieldNameType;
@@ -409,6 +444,14 @@ namespace Microsoft.Dafny {
       Bpl.TypeSynonymDecl multiSetTypeCtor = null;
       Bpl.Function arrayLength = null;
       Bpl.Function realFloor = null;
+      Bpl.Function mapDomain = null;
+      Bpl.Function imapDomain = null;
+      Bpl.Function mapValues = null;
+      Bpl.Function imapValues = null;
+      Bpl.Function mapItems = null;
+      Bpl.Function imapItems = null;
+      Bpl.Function tuple2Destructors0 = null;
+      Bpl.Function tuple2Destructors1 = null;
       Bpl.TypeCtorDecl seqTypeCtor = null;
       Bpl.TypeCtorDecl fieldNameType = null;
       Bpl.TypeCtorDecl classNameType = null;
@@ -489,6 +532,22 @@ namespace Microsoft.Dafny {
             arrayLength = f;
           } else if (f.Name == "_System.real.Floor") {
             realFloor = f;
+          } else if (f.Name == "Map#Domain") {
+            mapDomain = f;
+          } else if (f.Name == "IMap#Domain") {
+            imapDomain = f;
+          } else if (f.Name == "Map#Values") {
+            mapValues = f;
+          } else if (f.Name == "IMap#Values") {
+            imapValues = f;
+          } else if (f.Name == "Map#Items") {
+            mapItems = f;
+          } else if (f.Name == "IMap#Items") {
+            imapItems = f;
+          } else if (f.Name == "_System.__tuple_h2._0") {
+            tuple2Destructors0 = f;
+          } else if (f.Name == "_System.__tuple_h2._1") {
+            tuple2Destructors1 = f;
           }
         }
       }
@@ -508,6 +567,22 @@ namespace Microsoft.Dafny {
         Console.WriteLine("Error: Dafny prelude is missing declaration of function _System.array.Length");
       } else if (realFloor == null) {
         Console.WriteLine("Error: Dafny prelude is missing declaration of function _System.real.Floor");
+      } else if (mapDomain == null) {
+        Console.WriteLine("Error: Dafny prelude is missing declaration of function Map#Domain");
+      } else if (imapDomain == null) {
+        Console.WriteLine("Error: Dafny prelude is missing declaration of function IMap#Domain");
+      } else if (mapValues == null) {
+        Console.WriteLine("Error: Dafny prelude is missing declaration of function Map#Values");
+      } else if (imapValues == null) {
+        Console.WriteLine("Error: Dafny prelude is missing declaration of function IMap#Values");
+      } else if (mapItems == null) {
+        Console.WriteLine("Error: Dafny prelude is missing declaration of function Map#Items");
+      } else if (imapItems == null) {
+        Console.WriteLine("Error: Dafny prelude is missing declaration of function IMap#Items");
+      } else if (tuple2Destructors0 == null) {
+        Console.WriteLine("Error: Dafny prelude is missing declaration of function _System.__tuple_h2._0");
+      } else if (tuple2Destructors1 == null) {
+        Console.WriteLine("Error: Dafny prelude is missing declaration of function _System.__tuple_h2._1");
       } else if (bv0TypeDecl == null) {
         Console.WriteLine("Error: Dafny prelude is missing declaration of type Bv0");
       } else if (fieldNameType == null) {
@@ -544,7 +619,10 @@ namespace Microsoft.Dafny {
         return new PredefinedDecls(charType, refType, boxType, tickType,
                                    setTypeCtor, isetTypeCtor, multiSetTypeCtor,
                                    mapTypeCtor, imapTypeCtor,
-                                   arrayLength, realFloor, seqTypeCtor, bv0TypeDecl,
+                                   arrayLength, realFloor, mapDomain, imapDomain,
+                                   mapValues, imapValues, mapItems, imapItems,
+                                   tuple2Destructors0, tuple2Destructors1,
+                                   seqTypeCtor, bv0TypeDecl,
                                    fieldNameType, tyType, tyTagType,
                                    heap, classNameType, nameFamilyType,
                                    datatypeType, handleType, layerType, dtCtorId,
@@ -611,6 +689,7 @@ namespace Microsoft.Dafny {
         // conversion functions
         AddBitvectorNatConversionFunction(w);
       }
+      
       foreach (TopLevelDecl d in program.BuiltIns.SystemModule.TopLevelDecls) {
         currentDeclaration = d;
         if (d is OpaqueTypeDecl) {
@@ -1119,6 +1198,7 @@ namespace Microsoft.Dafny {
     void AddDatatype(DatatypeDecl dt) {
       Contract.Requires(dt != null);
       Contract.Requires(sink != null && predef != null);
+     
       Bpl.Constant dt_const = GetClass(dt);
       sink.AddTopLevelDeclaration(dt_const);
 
@@ -1259,7 +1339,11 @@ namespace Microsoft.Dafny {
           var sf = ctor.Destructors[i];
           Contract.Assert(sf != null);
           fn = GetReadonlyField(sf);
-          sink.AddTopLevelDeclaration(fn);
+          if (fn != predef.Tuple2Destructors0 && fn != predef.Tuple2Destructors1) {
+            // the two destructors for 2-tuples are predefined in Prelude for use
+            // by the Map#Items axiom
+            sink.AddTopLevelDeclaration(fn);
+          }
           // axiom (forall params :: ##dt.ctor#i(#dt.ctor(params)) == params_i);
           CreateBoundVariables(ctor.Formals, out bvs, out args);
           var inner = FunctionCall(ctor.tok, ctor.FullName, predef.DatatypeType, args);
@@ -4386,7 +4470,7 @@ namespace Microsoft.Dafny {
     public void InsertUniqueIdForImplementation(Bpl.Declaration decl)
     {
       var impl = decl as Bpl.Implementation;
-      var prefix = UniqueIdPrefix ?? System.Text.RegularExpressions.Regex.Replace(decl.tok.filename, @".v\d+.dfy", ".dfy");
+      var prefix = UniqueIdPrefix ?? (decl.tok.filename == null ? "" : System.Text.RegularExpressions.Regex.Replace(decl.tok.filename, @".v\d+.dfy", ".dfy"));
       if (impl != null && !string.IsNullOrEmpty(prefix))
       {
         decl.AddAttribute("id", prefix + ":" + impl.Name + ":0");
@@ -7520,7 +7604,26 @@ namespace Microsoft.Dafny {
         } else if (f.EnclosingClass == null && f.Name == "Floor") { // link directly to the function in the prelude.
           fieldFunctions.Add(f, predef.RealFloor);
           return predef.RealFloor;
+        } else if ((f is SpecialField) && (f.Name == "Keys" || f.Name == "Values" || f.Name == "Items")) { // link directly to function in the prelude.
+          Contract.Assert(f is SpecialField && f.Type is SelfType);
+          var selfType = f.Type as SelfType;
+          Contract.Assert(selfType.ResolvedType is SetType);
+          var setType = selfType.ResolvedType as SetType;
+          if (f.Name == "Keys") {
+            return setType.Finite ? predef.MapDomain : predef.IMapDomain;
+          } else if (f.Name == "Values") {
+            return setType.Finite ? predef.MapValues : predef.IMapValues;
+          } else {
+            return setType.Finite ? predef.MapItems : predef.IMapItems;
+          }
+        } else if (f.FullSanitizedName == "_System.__tuple_h2._0") {
+          fieldFunctions.Add(f, predef.Tuple2Destructors0);
+          return predef.Tuple2Destructors0;
+        } else if (f.FullSanitizedName == "_System.__tuple_h2._1") {
+          fieldFunctions.Add(f, predef.Tuple2Destructors1);
+          return predef.Tuple2Destructors1;
         }
+
         // function f(Ref): ty;
         Bpl.Type ty = TrType(f.Type);
         List<Variable> args = new List<Variable>();

@@ -1,0 +1,13 @@
+
+Dafny program verifier finished with 3 verified, 0 errors
+Program compiled successfully
+Running...
+
+map test 
+{4, 6}
+{5, 7}
+{(4, 5), (6, 7)}
+imap test 
+{4, 6}
+{5, 7}
+{(4, 5), (6, 7)}

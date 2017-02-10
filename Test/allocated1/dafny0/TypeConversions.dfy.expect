@@ -30,6 +30,8 @@ module _System {
       reads reads(x0, x1, x2, x3, x4, x5, x6, x7, x8)
   }
 
+  datatype {:compile false} _tuple#2<T0, T1> = _#Make2(0: T0, 1: T1)
+
   class {:compile false} _#Func1<T0, T1> {
     function requires(x0: T0): bool
       reads reads(x0)

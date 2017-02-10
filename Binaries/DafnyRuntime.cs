@@ -849,7 +849,33 @@ namespace Dafny
         return dict.Keys;
       }
     }
+    public Set<U> Keys
+    {
+      get
+      {
+        return Dafny.Set<U>.FromCollection(dict.Keys);
+      }
+    }
+    public Set<V> Values
+    {
+      get
+      {
+        return Dafny.Set<V>.FromCollection(dict.Values);
+      }
+    }
+    public Set<@_System.@__tuple_h2<U, V>> Items
+    {
+      get
+      {
+        HashSet<@_System.@__tuple_h2<U, V>> result = new HashSet<@_System.@__tuple_h2<U, V>>();
+        foreach (KeyValuePair<U, V> kvp in dict) {
+          result.Add(new @_System.@__tuple_h2<U,V>(new @_System.@__tuple_h2____hMake2<U, V>(kvp.Key, kvp.Value)));
+        }
+        return Dafny.Set<@_System.@__tuple_h2<U, V>>.FromCollection(result);
+      }
+    }
   }
+
 #endif
   public class Sequence<T>
   {
@@ -1369,3 +1395,79 @@ namespace Dafny
     }
   }
 }
+
+namespace @_System
+{
+
+
+
+  public abstract class Base___tuple_h2<@T0, @T1> { }
+  public class __tuple_h2____hMake2<@T0, @T1> : Base___tuple_h2<@T0, @T1>
+  {
+    public readonly @T0 @_0;
+    public readonly @T1 @_1;
+    public __tuple_h2____hMake2(@T0 @_0, @T1 @_1)
+    {
+      this.@_0 = @_0;
+      this.@_1 = @_1;
+    }
+    public override bool Equals(object other)
+    {
+      var oth = other as _System.@__tuple_h2____hMake2<@T0, @T1>;
+      return oth != null && this.@_0.Equals(oth.@_0) && this.@_1.Equals(oth.@_1);
+    }
+    public override int GetHashCode()
+    {
+      ulong hash = 5381;
+      hash = ((hash << 5) + hash) + 0;
+      hash = ((hash << 5) + hash) + ((ulong)this.@_0.GetHashCode());
+      hash = ((hash << 5) + hash) + ((ulong)this.@_1.GetHashCode());
+      return (int)hash;
+    }
+    public override string ToString()
+    {
+      string s = "";
+      s += "(";
+      s += @_0.ToString();
+      s += ", ";
+      s += @_1.ToString();
+      s += ")";
+      return s;
+    }
+  }
+  public struct @__tuple_h2<@T0, @T1>
+  {
+    Base___tuple_h2<@T0, @T1> _d;
+    public Base___tuple_h2<@T0, @T1> _D
+    {
+      get
+      {
+        if (_d == null) {
+          _d = Default;
+        }
+        return _d;
+      }
+    }
+    public @__tuple_h2(Base___tuple_h2<@T0, @T1> d) { this._d = d; }
+    static Base___tuple_h2<@T0, @T1> theDefault;
+    public static Base___tuple_h2<@T0, @T1> Default
+    {
+      get
+      {
+        if (theDefault == null) {
+          theDefault = new _System.@__tuple_h2____hMake2<@T0, @T1>(default(@T0), default(@T1));
+        }
+        return theDefault;
+      }
+    }
+    public override bool Equals(object other)
+    {
+      return other is @__tuple_h2<@T0, @T1> && _D.Equals(((@__tuple_h2<@T0, @T1>)other)._D);
+    }
+    public override int GetHashCode() { return _D.GetHashCode(); }
+    public override string ToString() { return _D.ToString(); }
+    public bool is____hMake2 { get { return _D is __tuple_h2____hMake2<@T0, @T1>; } }
+    public @T0 dtor__0 { get { return ((__tuple_h2____hMake2<@T0, @T1>)_D).@_0; } }
+    public @T1 dtor__1 { get { return ((__tuple_h2____hMake2<@T0, @T1>)_D).@_1; } }
+  }
+} // end of namespace _System

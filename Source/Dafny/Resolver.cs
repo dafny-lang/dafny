@@ -191,8 +191,10 @@ namespace Microsoft.Dafny
     readonly Dictionary<ClassDecl, Dictionary<string, MemberDecl>> classMembers = new Dictionary<ClassDecl, Dictionary<string, MemberDecl>>();
     readonly Dictionary<DatatypeDecl, Dictionary<string, MemberDecl>> datatypeMembers = new Dictionary<DatatypeDecl, Dictionary<string, MemberDecl>>();
     readonly Dictionary<DatatypeDecl, Dictionary<string, DatatypeCtor>> datatypeCtors = new Dictionary<DatatypeDecl, Dictionary<string, DatatypeCtor>>();
-    enum BasicTypeVariety { Bool = 0, Int, Real, Bitvector, None }  // note, these are ordered, so they can be used as indices into basicTypeMembers
+    enum BasicTypeVariety { Bool = 0, Int, Real, Bitvector, Map, IMap, None }  // note, these are ordered, so they can be used as indices into basicTypeMembers
     readonly Dictionary<string, MemberDecl>[] basicTypeMembers = new Dictionary<string, MemberDecl>[] {
+      new Dictionary<string, MemberDecl>(),
+      new Dictionary<string, MemberDecl>(),
       new Dictionary<string, MemberDecl>(),
       new Dictionary<string, MemberDecl>(),
       new Dictionary<string, MemberDecl>(),
@@ -215,6 +217,32 @@ namespace Microsoft.Dafny
       var floor = new SpecialField(Token.NoToken, "Floor", "ToBigInteger()", "", "", false, false, false, Type.Int, null);
       floor.AddVisibilityScope(prog.BuiltIns.SystemModule.VisibilityScope, false);
       basicTypeMembers[(int)BasicTypeVariety.Real].Add(floor.Name, floor);
+
+      var keys = new SpecialField(Token.NoToken, "Keys", "Keys", "", "", false, false, false, new SelfType(), null);
+      keys.AddVisibilityScope(prog.BuiltIns.SystemModule.VisibilityScope, false);
+      basicTypeMembers[(int)BasicTypeVariety.Map].Add(keys.Name, keys);
+
+      var values = new SpecialField(Token.NoToken, "Values", "Values", "", "", false, false, false, new SelfType(), null);
+      values.AddVisibilityScope(prog.BuiltIns.SystemModule.VisibilityScope, false);
+      basicTypeMembers[(int)BasicTypeVariety.Map].Add(values.Name, values);
+
+      var items = new SpecialField(Token.NoToken, "Items", "Items", "", "", false, false, false, new SelfType(), null);
+      items.AddVisibilityScope(prog.BuiltIns.SystemModule.VisibilityScope, false);
+      basicTypeMembers[(int)BasicTypeVariety.Map].Add(items.Name, items);
+      // Map#Items relies on the two destructors for 2-tuples
+      builtIns.TupleType(Token.NoToken, 2, true);
+
+      var iMapKeys = new SpecialField(Token.NoToken, "Keys", "Keys", "", "", false, false, false, new SelfType(), null);
+      iMapKeys.AddVisibilityScope(prog.BuiltIns.SystemModule.VisibilityScope, false);
+      basicTypeMembers[(int)BasicTypeVariety.IMap].Add(keys.Name, iMapKeys);
+
+      var iMapValues = new SpecialField(Token.NoToken, "Values", "Values", "", "", false, false, false, new SelfType(), null);
+      iMapValues.AddVisibilityScope(prog.BuiltIns.SystemModule.VisibilityScope, false);
+      basicTypeMembers[(int)BasicTypeVariety.IMap].Add(values.Name, iMapValues);
+
+      var iMapItems = new SpecialField(Token.NoToken, "Items", "Items", "", "", false, false, false, new SelfType(), null);
+      iMapItems.AddVisibilityScope(prog.BuiltIns.SystemModule.VisibilityScope, false);
+      basicTypeMembers[(int)BasicTypeVariety.IMap].Add(items.Name, iMapItems);
 
       List<Formal> formals = new List<Formal>();
       formals.Add(new Formal(Token.NoToken, "w", new UserDefinedType(Token.NoToken, "nat", null), true, false, false));
@@ -9234,6 +9262,10 @@ namespace Microsoft.Dafny
         basic = BasicTypeVariety.Real;
       } else if (receiverType.IsBitVectorType) {
         basic = BasicTypeVariety.Bitvector;
+      } else if (receiverType.IsMapType) {
+        basic = BasicTypeVariety.Map;
+      } else if (receiverType.IsIMapType) {
+        basic = BasicTypeVariety.IMap;
       } else {
         basic = BasicTypeVariety.None;
       }
@@ -9241,13 +9273,28 @@ namespace Microsoft.Dafny
         MemberDecl member;
         if (basicTypeMembers[(int)basic].TryGetValue(memberName, out member)) {
           nptype = (NonProxyType)receiverType;
+          SelfType resultType = null;
+          var substType = receiverType;
           if (member is SpecialFunction) {
-            SelfType resultType = ((SpecialFunction)member).ResultType as SelfType;
-            if (resultType != null) {
-              // only one at a time.
-              SelfTypeSubstitution = new Dictionary<TypeParameter, Type>();
-              SelfTypeSubstitution.Add(resultType.TypeArg, receiverType);
+            resultType = ((SpecialFunction)member).ResultType as SelfType;
+          } else if (member is SpecialField) {
+            resultType = ((SpecialField)member).Type as SelfType;
+            MapType mapType = receiverType as MapType;
+            if (mapType != null && member.Name == "Keys") {
+              substType = new SetType(mapType.Finite, mapType.Domain);
+            } else if (mapType != null && member.Name == "Values") {
+              substType = new SetType(mapType.Finite, mapType.Range);
+            } else if (mapType != null && member.Name == "Items") {
+              var gt = new List<Type>() { mapType.Domain, mapType.Range };
+              var dt = builtIns.TupleType(member.tok, 2, true);
+              var tupleType = new UserDefinedType(member.tok, dt.Name, dt, gt);
+              substType = new SetType(mapType.Finite, tupleType);
             }
+          }
+          if (resultType != null) {
+            SelfTypeSubstitution = new Dictionary<TypeParameter, Type>();
+            SelfTypeSubstitution.Add(resultType.TypeArg, substType);
+            resultType.ResolvedType = substType;
           }
           return member;
         }
@@ -11498,6 +11545,7 @@ namespace Microsoft.Dafny
         if (optTypeArguments != null) {
           reporter.Error(MessageSource.Resolver, tok, "a field ({0}) does not take any type arguments (got {1})", member.Name, optTypeArguments.Count);
         }
+        subst = BuildTypeArgumentSubstitute(subst);
         rr.Type = SubstType(((Field)member).Type, subst);
       } else if (member is Function) {
         var fn = (Function)member;
