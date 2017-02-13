@@ -2,5 +2,5 @@
 // RUN: %diff "%s.expect" "%t"
 
 method EqualityOfStrings() {
-  assert "a" != "b"; // WISH
+  assert "a" != "b"; // WISH -- granted
 }
