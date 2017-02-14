@@ -804,6 +804,13 @@ function Seq#Singleton<T>(T): Seq T;
 axiom (forall<T> t: T :: { Seq#Length(Seq#Singleton(t)) } Seq#Length(Seq#Singleton(t)) == 1);
 
 function Seq#Build<T>(s: Seq T, val: T): Seq T;
+function Seq#Build_inv0<T>(s: Seq T) : Seq T;
+function Seq#Build_inv1<T>(s: Seq T) : T;
+axiom (forall<T> s: Seq T, val: T ::
+  { Seq#Build(s, val) }
+  Seq#Build_inv0(Seq#Build(s, val)) == s &&
+  Seq#Build_inv1(Seq#Build(s, val)) == val);
+
 axiom (forall<T> s: Seq T, v: T :: { Seq#Length(Seq#Build(s,v)) }
   Seq#Length(Seq#Build(s,v)) == 1 + Seq#Length(s));
 axiom (forall<T> s: Seq T, i: int, v: T :: { Seq#Index(Seq#Build(s,v), i) }
