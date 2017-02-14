@@ -11761,7 +11761,7 @@ namespace Microsoft.Dafny
                 Contract.Assert(farg.Type.Equals(e.Args[i].Type));
               }
 #endif
-              rr.Type = SubstType(callee.ResultType, subst).StripSubsetConstraints();
+              rr.Type = SubstType(callee.ResultType, subst);
               // further bookkeeping
               if (callee is FixpointPredicate) {
                 ((FixpointPredicate)callee).Uses.Add(rr);
