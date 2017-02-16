@@ -1617,6 +1617,8 @@ namespace Microsoft.Dafny
           var members = new Dictionary<string, MemberDecl>();
           classMembers.Add(cl, members);
 
+          var preMemberErrs = reporter.Count(ErrorLevel.Error);
+
           foreach (MemberDecl m in cl.Members) {
             if (!members.ContainsKey(m.Name)) {
               members.Add(m.Name, m);
@@ -1685,8 +1687,11 @@ namespace Microsoft.Dafny
               reporter.Error(MessageSource.Resolver, m, "Duplicate member name: {0}", m.Name);
             }
           }
+
+          Contract.Assert(preMemberErrs != reporter.Count(ErrorLevel.Error) || !cl.Members.Except(members.Values).Any());
+
           if (cl.IsDefaultClass) {
-            foreach (MemberDecl m in cl.Members) {
+            foreach (MemberDecl m in members.Values) {
               Contract.Assert(!m.HasStaticKeyword || DafnyOptions.O.AllowGlobals);  // note, the IsStatic value isn't available yet; when it becomes available, we expect it will have the value 'true'
               if (m is Function || m is Method || m is ConstantField) {
                 sig.StaticMembers[m.Name] = m;
