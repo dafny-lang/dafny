@@ -30,3 +30,13 @@ method EqualityOfStrings0() {
 method EqualityOfStrings1() {
   assert "a" + "b" == "ab";
 }
+
+method M2()
+{
+  assert !( [0,0] in {[0,2],[1,2]} );
+}
+
+method M3()
+{
+  assert [0,0] !in {[0,2],[1,2]};
+}
