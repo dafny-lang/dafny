@@ -2991,32 +2991,49 @@ namespace Microsoft.Dafny {
       if (expr is StmtExpr) {
         // if there is a call to reveal_ lemma, we need to record its side effect.
         var stmt = ((StmtExpr)expr).S;
-        foreach (var ss in stmt.SubStatements) {
-          if (ss is CallStmt) {
-            var call = (CallStmt)ss;
-            var m = call.Method;
-            if (IsOpaqueRevealLemma(m)) {
-              List<Expression> args = Attributes.FindExpressions(m.Attributes, "fuel");
-              if (args != null) {
-                MemberSelectExpr selectExpr = args[0].Resolved as MemberSelectExpr;
-                if (selectExpr != null) {
-                  Function f = selectExpr.Member as Function;
-                  FuelConstant fuelConstant = this.functionFuel.Find(x => x.f == f);
-                  if (fuelConstant != null) {
-                    Bpl.Expr startFuel = fuelConstant.startFuel;
-                    Bpl.Expr startFuelAssert = fuelConstant.startFuelAssert;
-                    Bpl.Expr moreFuel_expr = fuelConstant.MoreFuel(sink, predef, f.IdGenerator);
-                    Bpl.Expr layer = etran.layerInterCluster.LayerN(1, moreFuel_expr);
-                    Bpl.Expr layerAssert = etran.layerInterCluster.LayerN(2, moreFuel_expr);
+        e = TrFunctionSideEffect(stmt, etran);
+      }
+      return e;
+    }
 
-                    e = Bpl.Expr.Eq(startFuel, layer);
-                    e = BplAnd(e, Bpl.Expr.Eq(startFuelAssert, layerAssert));
-                    e = BplAnd(e, Bpl.Expr.Eq(this.FunctionCall(f.tok, BuiltinFunction.AsFuelBottom, null, moreFuel_expr), moreFuel_expr));
-                  }
-                }
+    Expr TrFunctionSideEffect(Statement stmt, ExpressionTranslator etran) {
+      Expr e = Bpl.Expr.True;
+      e = TrStmtSideEffect(e, stmt, etran);
+      foreach (var ss in stmt.SubStatements) {
+        e = TrStmtSideEffect(e, ss, etran);
+      }
+      return e;
+    }
+
+    Expr TrStmtSideEffect(Expr e, Statement stmt, ExpressionTranslator etran) {
+      if (stmt is CallStmt) {
+        var call = (CallStmt)stmt;
+        var m = call.Method;
+        if (IsOpaqueRevealLemma(m)) {
+          List<Expression> args = Attributes.FindExpressions(m.Attributes, "fuel");
+          if (args != null) {
+            MemberSelectExpr selectExpr = args[0].Resolved as MemberSelectExpr;
+            if (selectExpr != null) {
+              Function f = selectExpr.Member as Function;
+              FuelConstant fuelConstant = this.functionFuel.Find(x => x.f == f);
+              if (fuelConstant != null) {
+                Bpl.Expr startFuel = fuelConstant.startFuel;
+                Bpl.Expr startFuelAssert = fuelConstant.startFuelAssert;
+                Bpl.Expr moreFuel_expr = fuelConstant.MoreFuel(sink, predef, f.IdGenerator);
+                Bpl.Expr layer = etran.layerInterCluster.LayerN(1, moreFuel_expr);
+                Bpl.Expr layerAssert = etran.layerInterCluster.LayerN(2, moreFuel_expr);
+
+                e = BplAnd(e, Bpl.Expr.Eq(startFuel, layer));
+                e = BplAnd(e, Bpl.Expr.Eq(startFuelAssert, layerAssert));
+                e = BplAnd(e, Bpl.Expr.Eq(this.FunctionCall(f.tok, BuiltinFunction.AsFuelBottom, null, moreFuel_expr), moreFuel_expr));
               }
             }
           }
+        }
+      } else if (stmt is RevealStmt) {
+        var reveal = (RevealStmt)stmt;
+        foreach (var s in reveal.ResolvedStatements) {
+          e = BplAnd(e, TrFunctionSideEffect(s, etran));
         }
       }
       return e;
@@ -9816,13 +9833,16 @@ namespace Microsoft.Dafny {
       definedness.Add(TrAssumeCmd(s.Tok, Bpl.Expr.False));
 
       // Now for the other branch, where the ensures clauses are exported.
+      // If the forall body has side effect such as call to a reveal function,
+      // it needs to be exported too.
+      var se = s.Body == null ? Bpl.Expr.True : TrFunctionSideEffect(s.Body, etran);
       var substMap = new Dictionary<IVariable, Expression>();
       var p = Substitute(s.ForallExpressions[0], null, substMap);
       var qq = etran.TrExpr(p);
       if (s.BoundVars.Count != 0) {
-        exporter.Add(TrAssumeCmd(s.Tok, qq));
+        exporter.Add(TrAssumeCmd(s.Tok, BplAnd(se, qq)));
       } else {
-        exporter.Add(TrAssumeCmd(s.Tok, ((Bpl.ForallExpr)qq).Body));
+        exporter.Add(TrAssumeCmd(s.Tok, BplAnd(se, ((Bpl.ForallExpr)qq).Body)));
       }
     }
 
