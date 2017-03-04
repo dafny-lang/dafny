@@ -3708,7 +3708,7 @@ namespace Microsoft.Dafny {
     /// <summary>
     /// Returns className+"."+memberName.  Available only after resolution.
     /// </summary>
-    public string FullName {
+    public virtual string FullName {
       get {
         Contract.Requires(EnclosingClass != null);
         Contract.Ensures(Contract.Result<string>() != null);
@@ -3716,7 +3716,7 @@ namespace Microsoft.Dafny {
         return EnclosingClass.FullName + "." + Name;
       }
     }
-    public string FullSanitizedName {
+    public virtual string FullSanitizedName {
       get {
         Contract.Requires(EnclosingClass != null);
         Contract.Ensures(Contract.Result<string>() != null);
@@ -3724,7 +3724,7 @@ namespace Microsoft.Dafny {
         return EnclosingClass.FullSanitizedName + "." + CompileName;
       }
     }
-    public string FullSanitizedRefinementName {
+    public virtual string FullSanitizedRefinementName {
       get {
         Contract.Requires(EnclosingClass != null);
         Contract.Ensures(Contract.Result<string>() != null);
@@ -3732,7 +3732,7 @@ namespace Microsoft.Dafny {
         return EnclosingClass.FullSanitizedRefinementName + "." + CompileName;
       }
     }
-    public string FullNameInContext(ModuleDefinition context) {
+    public virtual string FullNameInContext(ModuleDefinition context) {
       Contract.Requires(EnclosingClass != null);
       Contract.Ensures(Contract.Result<string>() != null);
 
@@ -3747,7 +3747,7 @@ namespace Microsoft.Dafny {
         return nm;
       }
     }
-    public string FullCompileName {
+    public virtual string FullCompileName {
       get {
         Contract.Requires(EnclosingClass != null);
         Contract.Ensures(Contract.Result<string>() != null);
@@ -3820,6 +3820,46 @@ namespace Microsoft.Dafny {
       CompiledName = compiledName;
       PreString = preString;
       PostString = postString;
+    }
+
+    public override string FullName {
+      get {
+        Contract.Ensures(Contract.Result<string>() != null);
+        return EnclosingClass != null ? EnclosingClass.FullName + "." + Name : Name;
+      }
+    }
+
+    public override string FullSanitizedName { 
+      get {
+        Contract.Ensures(Contract.Result<string>() != null);
+        return EnclosingClass != null ? EnclosingClass.FullSanitizedName + "." + CompileName : CompileName;
+      }
+    }
+
+    public override string FullSanitizedRefinementName {
+      get{
+        Contract.Ensures(Contract.Result<string>() != null);
+        return EnclosingClass != null ? EnclosingClass.FullSanitizedRefinementName + "." + CompileName : CompileName;
+      }
+    }
+
+    public override string FullNameInContext(ModuleDefinition context) {
+      Contract.Ensures(Contract.Result<string>() != null);
+      return EnclosingClass != null ? EnclosingClass.FullNameInContext(context) + "." + Name : Name;
+    }
+
+    public override string CompileName {
+      get {
+        Contract.Ensures(Contract.Result<string>() != null);
+        return EnclosingClass != null ? base.CompileName : Name;
+      }
+    }
+
+    public override string FullCompileName {
+      get {
+        Contract.Ensures(Contract.Result<string>() != null);
+        return EnclosingClass != null ? EnclosingClass.FullCompileName + ".@" + CompileName : CompileName;
+      }
     }
   }
 
