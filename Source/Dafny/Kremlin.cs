@@ -88,7 +88,7 @@ namespace Microsoft.Dafny {
     }
 
     static class KremlinAst {
-      public const string Version = "19";
+      public const string Version = "20";
 
       // InputAst.Decl
       public const string DFunction = "DFunction";        // of (calling_convention option * flag list * typ * lident * binder list * expr)
@@ -315,7 +315,7 @@ namespace Microsoft.Dafny {
     VariableTracker VarTracker = new VariableTracker();
 
     public void Compile(Program program, TextWriter wr) {
-      Contract.Requires(program != null);
+      Contract.Assert(program != null); //Contract.Requires(program != null);
 
       // program.Name is the source filename without any path.  Remove the extension
       // and use it as the name of the default module.  In C#, this would have been
@@ -608,6 +608,7 @@ namespace Microsoft.Dafny {
             WriteDefaultCallingConvention();
             using (WriteArray()) { // flag list.  NoExtract flag can be added here if needed
             }
+            j.WriteValue(0); // number of type parameters
             WriteTypeName(thisType); // returns type of 'this'
             WriteLident(ctor.FullName);
             using (WriteArray()) { // start of binder list
@@ -1265,6 +1266,7 @@ namespace Microsoft.Dafny {
           WriteDefaultCallingConvention();
           using (WriteArray()) { // flag list.  NoExtract flag can be added here if needed
           }
+          j.WriteValue(0); // number of type parameters
           WriteTypeName(f.ResultType); // typ
           WriteLident(f); // lident
           using (WriteArray()) { // start of binder list
@@ -1388,6 +1390,7 @@ namespace Microsoft.Dafny {
           WriteDefaultCallingConvention();
           using (WriteArray()) { // empty flag list
           }
+          j.WriteValue(0); // number of type parameters
           WriteMethodReturnType(m.Outs); // typ
           WriteLident(m); // lident
           using (WriteArray()) { // start of binder list
@@ -1590,7 +1593,7 @@ namespace Microsoft.Dafny {
 
     void WriteTypeNames(List<Type/*!*/>/*!*/ types) {
       Contract.Requires(cce.NonNullElements(types));
-      Contract.Ensures(Contract.Result<string>() != null);
+      //Contract.Ensures(Contract.Result<string>() != null);
       foreach (var t in types) {
         WriteTypeName(t);
       }
@@ -1632,7 +1635,7 @@ namespace Microsoft.Dafny {
 
     void WriteTypeName(Type type) {
       Contract.Requires(type != null);
-      Contract.Ensures(Contract.Result<string>() != null);
+      //Contract.Ensures(Contract.Result<string>() != null);
 
       Formatting old = j.Formatting;
       j.Formatting = Formatting.None;
@@ -1755,7 +1758,7 @@ namespace Microsoft.Dafny {
 
     void WriteTypeWidth(Type type) {
       Contract.Requires(type != null);
-      Contract.Ensures(Contract.Result<string>() != null);
+      //Contract.Ensures(Contract.Result<string>() != null);
 
       Formatting old = j.Formatting;
       j.Formatting = Formatting.None;
@@ -1856,7 +1859,7 @@ namespace Microsoft.Dafny {
     // Write out a default value as an expr
     void WriteDefaultValue(Type type) {
       Contract.Requires(type != null);
-      Contract.Ensures(Contract.Result<string>() != null);
+      //Contract.Ensures(Contract.Result<string>() != null);
 
       var xType = type.NormalizeExpand();
       if (xType is TypeProxy) {

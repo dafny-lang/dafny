@@ -114,7 +114,7 @@ namespace Microsoft.Dafny {
     }
 
     public void Compile(Program program, TextWriter wr) {
-      Contract.Requires(program != null);
+      Contract.Assert(program != null); // Contract.Requires(program != null);
       wr.WriteLine("// Dafny program {0} compiled into C#", program.Name);
       wr.WriteLine("// To recompile, use 'csc' with: /r:System.Numerics.dll");
       wr.WriteLine("// and choosing /target:exe or /target:library");
