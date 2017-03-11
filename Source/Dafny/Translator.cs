@@ -11015,11 +11015,11 @@ namespace Microsoft.Dafny {
         } else if (lhs is SeqSelectExpr) {
           var e = (SeqSelectExpr)lhs;
           lhsType = null;  // for an array update, always make sure the value assigned is boxed
-          rhsTypeConstraint = e.Seq.Type.TypeArgs[0];
+          rhsTypeConstraint = e.Seq.Type.NormalizeExpand().TypeArgs[0];
         } else {
           var e = (MultiSelectExpr)lhs;
           lhsType = null;  // for an array update, always make sure the value assigned is boxed
-          rhsTypeConstraint = e.Array.Type.TypeArgs[0];
+          rhsTypeConstraint = e.Array.Type.NormalizeExpand().TypeArgs[0];
         }
         var bRhs = TrAssignmentRhs(rhss[i].Tok, bLhss[i], lhsType, rhss[i], rhsTypeConstraint, builder, locals, etran);
         if (bLhss[i] != null) {
