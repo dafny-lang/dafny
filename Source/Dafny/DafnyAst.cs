@@ -3037,6 +3037,27 @@ namespace Microsoft.Dafny {
       }
     }
 
+    public static IEnumerable<Field> AllFields(List<TopLevelDecl> declarations) {
+      foreach (var d in declarations) {
+        var cl = d as ClassDecl;
+        if (cl != null) {
+          foreach (var member in cl.Members) {
+            var fn = member as Field;
+            if (fn != null) {
+              yield return fn;
+            }
+          }
+        }
+      }
+    }
+
+    public static IEnumerable<ClassDecl> AllClasses(List<TopLevelDecl> declarations) {
+      foreach (var d in declarations) {
+        var cl = d as ClassDecl;
+        yield return cl;
+      }
+    }
+
     /// <summary>
     /// Yields all functions and methods that are members of some class in the given list of
     /// declarations.

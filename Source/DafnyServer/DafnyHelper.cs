@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.Boogie;
+using Newtonsoft.Json;
 using Bpl = Microsoft.Boogie;
 
 namespace Microsoft.Dafny {
@@ -94,6 +95,77 @@ namespace Microsoft.Dafny {
         isVerified = isVerified && BoogieOnce(boogieProgram.Item2);
       }
       return isVerified;
+    }
+
+    public void Symbols() {
+      ServerUtils.ApplyArgs(args, reporter);
+      var information = new List<SymbolInformation>();
+      if (Parse() && Resolve()) {
+        try {
+          foreach (var module in dafnyProgram.Modules()) {
+            foreach (var clbl in ModuleDefinition.AllCallables(module.TopLevelDecls)) {
+              if (clbl is Function) {
+                var fn = (Function) clbl;
+                var functionSymbol = new SymbolInformation {
+                  Module = fn.EnclosingClass?.Module?.Name,
+                  Name = fn.Name,
+                  ParentClass = fn.EnclosingClass?.Name,
+                  SymbolType = SymbolInformation.Type.Function
+                };
+                information.Add(functionSymbol);
+              } else {
+                var m = (Method) clbl;
+                var methodSymbol = new SymbolInformation {
+                  Module = m.EnclosingClass?.Module?.Name,
+                  Name = m.Name,
+                  ParentClass = m.EnclosingClass?.Name,
+                  SymbolType = SymbolInformation.Type.Method
+                };
+                information.Add(methodSymbol);
+              }
+            }
+
+            foreach (var fs in ModuleDefinition.AllFields(module.TopLevelDecls)) {
+              var fieldSymbol = new SymbolInformation {
+                Module = fs.EnclosingClass?.Module?.Name,
+                Name = fs.Name,
+                ParentClass = fs.EnclosingClass?.Name,
+                SymbolType = SymbolInformation.Type.Field
+              };
+              information.Add(fieldSymbol);
+            }
+
+            foreach (var cs in ModuleDefinition.AllClasses(module.TopLevelDecls)) {
+              var classSymbol = new SymbolInformation {
+                Module = cs.Module?.Name,
+                Name = cs.Name,
+                SymbolType = SymbolInformation.Type.Class
+              };
+              information.Add(classSymbol);
+            }
+          }
+        } catch (Exception e) {
+          throw e;
+        }
+      }
+
+      var json = JsonConvert.SerializeObject(information);
+      Console.WriteLine($"SYMBOLS_START {json} SYMBOLS_END");
+    }
+
+
+    internal class SymbolInformation {
+      public string Module { get; set; }
+      public string Name { get; set; }
+      public string ParentClass { get; set; }
+      public Type SymbolType { get; set; }
+
+      internal enum Type {
+        Class,
+        Method,
+        Function,
+        Field
+      }
     }
   }
 }

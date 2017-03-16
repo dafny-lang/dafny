@@ -120,6 +120,10 @@
     <Reference Include="BoogieParserHelper">
       <HintPath>..\..\..\boogie\Binaries\BoogieParserHelper.dll</HintPath>
     </Reference>
+    <Reference Include="Newtonsoft.Json, Version=9.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
+      <HintPath>..\packages\Newtonsoft.Json.9.0.1\lib\net45\Newtonsoft.Json.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
     <Reference Include="Provers.SMTLib">
       <HintPath>..\..\..\boogie\Binaries\Provers.SMTLib.dll</HintPath>
     </Reference>
@@ -139,6 +143,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
+    <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Dafny\DafnyPipeline.csproj">

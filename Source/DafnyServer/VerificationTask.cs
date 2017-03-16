@@ -54,5 +54,9 @@ namespace Microsoft.Dafny {
     internal void Run() {
       new DafnyHelper(args, filename, ProgramSource).Verify();
     }
+
+    internal void Symbols() {
+      new DafnyHelper(args, filename, ProgramSource).Symbols();
+    }
   }
 }
