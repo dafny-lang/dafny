@@ -6,6 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Microsoft.Boogie;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
 using Bpl = Microsoft.Boogie;
 
 namespace Microsoft.Dafny {
@@ -110,7 +111,10 @@ namespace Microsoft.Dafny {
                   Module = fn.EnclosingClass?.Module?.Name,
                   Name = fn.Name,
                   ParentClass = fn.EnclosingClass?.Name,
-                  SymbolType = SymbolInformation.Type.Function
+                  SymbolType = SymbolInformation.Type.Function,
+                  Position = fn.tok?.pos,
+                  Line = fn.tok?.line,
+                  Column = fn.tok?.col
                 };
                 information.Add(functionSymbol);
               } else {
@@ -119,7 +123,10 @@ namespace Microsoft.Dafny {
                   Module = m.EnclosingClass?.Module?.Name,
                   Name = m.Name,
                   ParentClass = m.EnclosingClass?.Name,
-                  SymbolType = SymbolInformation.Type.Method
+                  SymbolType = SymbolInformation.Type.Method,
+                  Position = m.tok?.pos,
+                  Line = m.tok?.line,
+                  Column = m.tok?.col,
                 };
                 information.Add(methodSymbol);
               }
@@ -130,7 +137,10 @@ namespace Microsoft.Dafny {
                 Module = fs.EnclosingClass?.Module?.Name,
                 Name = fs.Name,
                 ParentClass = fs.EnclosingClass?.Name,
-                SymbolType = SymbolInformation.Type.Field
+                SymbolType = SymbolInformation.Type.Field,
+                Position = fs.tok?.pos,
+                Line = fs.tok?.line,
+                Column = fs.tok?.col
               };
               information.Add(fieldSymbol);
             }
@@ -139,7 +149,10 @@ namespace Microsoft.Dafny {
               var classSymbol = new SymbolInformation {
                 Module = cs.Module?.Name,
                 Name = cs.Name,
-                SymbolType = SymbolInformation.Type.Class
+                SymbolType = SymbolInformation.Type.Class,
+                Position = cs.tok?.pos,
+                Line = cs.tok?.line,
+                Column = cs.tok?.col
               };
               information.Add(classSymbol);
             }
@@ -158,7 +171,11 @@ namespace Microsoft.Dafny {
       public string Module { get; set; }
       public string Name { get; set; }
       public string ParentClass { get; set; }
+      [JsonConverter(typeof(StringEnumConverter))]
       public Type SymbolType { get; set; }
+      public int? Position { get; set; }
+      public int? Line { get; set; }
+      public int? Column { get; set; }
 
       internal enum Type {
         Class,
