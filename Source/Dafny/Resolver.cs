@@ -2534,10 +2534,6 @@ namespace Microsoft.Dafny
                 if (fn.Ens.Count != 0) {
                   reporter.Error(MessageSource.Resolver, fn.Ens[0].tok, "a {0} is not allowed to declare any ensures clause", member.WhatKind);
                 }
-                // Also check for 'reads' clauses
-                if (fn.Reads.Count != 0) {
-                  reporter.Error(MessageSource.Resolver, fn.Reads[0].tok, "a {0} is not allowed to declare any reads clause", member.WhatKind);  // (why?)
-                }
                 if (fn.Body != null) {
                   FixpointPredicateChecks(fn.Body, fn, CallingPosition.Positive);
                 }
