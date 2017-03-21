@@ -80,6 +80,10 @@ namespace Microsoft.Dafny {
           ServerUtils.checkArgs(command, 0);
           var payload = ReadPayload();
           VerificationTask.ReadTask(payload).Symbols();
+        } else if (verb == "findReferences") {
+          ServerUtils.checkArgs(command, 0);
+          var payload = ReadPayload();
+          VerificationTask.ReadTask(payload).FindReferences();
         } else if (verb == "quit") {
           ServerUtils.checkArgs(command, 0);
           Exit();

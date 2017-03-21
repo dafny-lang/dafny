@@ -58,5 +58,17 @@ namespace Microsoft.Dafny {
     internal void Symbols() {
       new DafnyHelper(args, filename, ProgramSource).Symbols();
     }
+
+      public void FindReferences()
+      {
+            try
+            {
+                new DafnyHelper(args, filename, ProgramSource).FindReferences();
+            }
+            catch (Exception ex)
+            {
+                Interaction.EOM(Interaction.FAILURE, ex);
+            }
+        }
   }
 }
