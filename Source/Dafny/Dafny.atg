@@ -212,9 +212,9 @@ bool IsAlternative() {
 
 bool FollowedByColon() {
   IToken x = la;
-	while (x.kind == _ident || x.kind == _openparen)
-	   x = scanner.Peek();
-	return x.kind == _colon;
+  while (x.kind == _ident || x.kind == _openparen)
+     x = scanner.Peek();
+  return x.kind == _colon;
 }
 
 // an existential guard starts with an identifier and is then followed by
@@ -700,7 +700,7 @@ TOKENS
   star = '*'.
   notIn = "!in" CONTEXT (nonidchar).
   ellipsis = "...".
-	reveal = "reveal".
+  reveal = "reveal".
 COMMENTS FROM "/*" TO "*/" NESTED
 COMMENTS FROM "//" TO lf
 IGNORE cr + lf + tab
@@ -762,7 +762,7 @@ DeclModifier<ref DeclModifierData dmod>
 TopDecl<. ModuleDefinition module, List<MemberDecl/*!*/> membersDefaultClass, bool isTopLevel, bool isAbstract .>
 = (. DeclModifierData dmod = new DeclModifierData(); ModuleDecl submodule;
      ClassDecl/*!*/ c; DatatypeDecl/*!*/ dt; TopLevelDecl td; IteratorDecl iter;
-  	 TraitDecl/*!*/ trait;
+     TraitDecl/*!*/ trait;
   .)
   { DeclModifier<ref dmod> }
   ( SubModuleDecl<dmod, module, out submodule> (. module.TopLevelDecls.Add(submodule); .)
@@ -778,7 +778,7 @@ TopDecl<. ModuleDefinition module, List<MemberDecl/*!*/> membersDefaultClass, bo
 
 SubModuleDecl<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl submodule>
 = (. Attributes attrs = null;  IToken/*!*/ id;
-	   List<MemberDecl/*!*/> namedModuleDefaultClassMembers = new List<MemberDecl>();;
+     List<MemberDecl/*!*/> namedModuleDefaultClassMembers = new List<MemberDecl>();;
      List<IToken> idPath, idExports;
      IToken idRefined = null;
      ModuleDefinition module;
@@ -826,17 +826,17 @@ SubModuleDecl<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl sub
         // in the next big version of Dafny, don't allow the semi-colon at all.
         (. errors.Deprecated(t, "the semi-colon that used to terminate a sub-module declaration has been deprecated; in the new syntax, just leave off the semi-colon"); .)
     ]
-	| (. 		 
-			IToken exportId;
-			List<ExportSignature> exports = new List<ExportSignature>();;
+  | (.      
+      IToken exportId;
+      List<ExportSignature> exports = new List<ExportSignature>();;
       List<string> extends = new List<string>();
       bool provideAll = false;
       bool revealAll = false;
       bool isDefault = false;
       ExportSignature exsig;
-		.)
-		"export" (. exportId = t; .)
-		[ ModuleExport<out exportId> ]
+    .)
+    "export" (. exportId = t; .)
+    [ ModuleExport<out exportId> ]
     {
        "provides"
        ( 
@@ -858,12 +858,12 @@ SubModuleDecl<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl sub
        ModuleExport<out id>(. extends.Add(id.val); .) 
        {"," ModuleExport<out id>  (. extends.Add(id.val); .) }
     }
-		(.
+    (.
        if (exportId.val == "export" || exportId.val == parent.Name) {
          isDefault = true;
        }
-		   submodule = new ModuleExportDecl(exportId, parent, exports, extends, provideAll, revealAll, isDefault);
-		.)
+       submodule = new ModuleExportDecl(exportId, parent, exports, extends, provideAll, revealAll, isDefault);
+    .)
   )
 .
 
@@ -915,9 +915,9 @@ ClassDecl<DeclModifierData dmodClass, ModuleDefinition/*!*/ module, out ClassDec
 = (. Contract.Requires(module != null);
      Contract.Ensures(Contract.ValueAtReturn(out c) != null);
      IToken/*!*/ id;
-	 Type trait = null;
+   Type trait = null;
      List<Type>/*!*/ traits = new List<Type>();
-	 Attributes attrs = null;
+   Attributes attrs = null;
      List<TypeParameter/*!*/> typeArgs = new List<TypeParameter/*!*/>();
      List<MemberDecl/*!*/> members = new List<MemberDecl/*!*/>();
      IToken bodyStart;
@@ -931,7 +931,7 @@ ClassDecl<DeclModifierData dmodClass, ModuleDefinition/*!*/ module, out ClassDec
   (. EncodeExternAsAttribute(dmodClass, ref attrs, id, /* needAxiom */ false); .)
   [ GenericParameters<typeArgs> ]
   ["extends" 
-  Type<out trait>		(. traits.Add(trait); .) 
+  Type<out trait>    (. traits.Add(trait); .) 
   {"," Type<out trait>  (. traits.Add(trait); .) }
   ]         
   "{"                                            (. bodyStart = t;  .)
@@ -948,31 +948,31 @@ ClassDecl<DeclModifierData dmodClass, ModuleDefinition/*!*/ module, out ClassDec
 
 TraitDecl<DeclModifierData dmodIn, ModuleDefinition/*!*/ module, out TraitDecl/*!*/ trait>
   = (. Contract.Requires(module != null);     
-	   Contract.Ensures(Contract.ValueAtReturn(out trait) != null);
+     Contract.Ensures(Contract.ValueAtReturn(out trait) != null);
      CheckDeclModifiers(dmodIn, "Traits", AllowedDeclModifiers.None);
-	   IToken/*!*/ id;
-	   Attributes attrs = null;
-	   List<TypeParameter/*!*/> typeArgs = new List<TypeParameter/*!*/>(); //traits should not support type parameters at the moment
-	   List<MemberDecl/*!*/> members = new List<MemberDecl/*!*/>();
-	   IToken bodyStart;
+     IToken/*!*/ id;
+     Attributes attrs = null;
+     List<TypeParameter/*!*/> typeArgs = new List<TypeParameter/*!*/>(); //traits should not support type parameters at the moment
+     List<MemberDecl/*!*/> members = new List<MemberDecl/*!*/>();
+     IToken bodyStart;
      DeclModifierData dmod; 
     .)
-	SYNC
-	"trait"
-	{ Attribute<ref attrs> }
-	NoUSIdent<out id>
-	[ GenericParameters<typeArgs> ]
-  	"{"                                            (. bodyStart = t; .)
+  SYNC
+  "trait"
+  { Attribute<ref attrs> }
+  NoUSIdent<out id>
+  [ GenericParameters<typeArgs> ]
+    "{"                                            (. bodyStart = t; .)
       {                                            (. dmod  = new DeclModifierData(); .)
         { DeclModifier<ref dmod> }
         ClassMemberDecl<dmod, members, true, false, false>
       }
     "}"
-	(. trait = new TraitDecl(id, id.val, module, typeArgs, members, attrs);
+  (. trait = new TraitDecl(id, id.val, module, typeArgs, members, attrs);
      trait.BodyStartTok = bodyStart;
      trait.BodyEndTok = t;
     .)
-	.
+  .
 
 ClassMemberDecl<. DeclModifierData dmod, List<MemberDecl> mm, bool allowConstructors, bool moduleLevelDecl, bool isWithinAbstractModule.>
 = (. Contract.Requires(cce.NonNullElements(mm));
@@ -1073,7 +1073,7 @@ ConstantFieldDecl<.DeclModifierData dmod, List<MemberDecl/*!*/>/*!*/ mm.>
   { Attribute<ref attrs> }
   FIdentType<out id, out ty>
   ":="
-	Expression<out e, false, false>                   (. mm.Add(new ConstantField(id, id.val, e, dmod.IsGhost, ty, attrs)); .)
+  Expression<out e, false, false>                   (. mm.Add(new ConstantField(id, id.val, e, dmod.IsGhost, ty, attrs)); .)
   OldSemi
   .
 NewtypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl td>
@@ -1665,7 +1665,7 @@ FunctionDecl<DeclModifierData dmod, bool isWithinAbstractModule, out Function/*!
               bool isOld;
            .)
             GIdentType<isFunctionMethod, false, out resultId, out ty, out isGhost, out isOld>
-					 /* WildIdent<out resultId, true>
+           /* WildIdent<out resultId, true>
            ":"
            Type<out ty> */
            (. result = new Formal(resultId, resultId.val, ty, false, isGhost, isOld); .)
@@ -1867,7 +1867,7 @@ OneStmt<out Statement/*!*/ s>
   | AssertStmt<out s>
   | AssumeStmt<out s>
   | PrintStmt<out s>
-	| RevealStmt<out s>
+  | RevealStmt<out s>
   | UpdateStmt<out s>
   | VarDeclStatement<out s>
   | IfStmt<out s>
@@ -2395,7 +2395,7 @@ RevealStmt<out Statement s>
      IToken x;  Expression e;
   .)
   "reveal"                                      (. x = t; .)
-  Expression<out e, false, true> 	
+  Expression<out e, false, true>   
   ";"                                          (. s = new RevealStmt(x, t, e); .)
   .
 
@@ -2641,12 +2641,12 @@ ImpliesExpliesExpression<out Expression e0, bool allowSemi, bool allowLambda, bo
       ImpliesExpression<out e1, allowSemi, allowLambda, allowBitwiseOps>       (. e0 = new BinaryExpr(x, BinaryExpr.Opcode.Imp, e0, e1); .)
     | ExpliesOp                                               (. x = t; .)
       LogicalExpression<out e1, allowSemi, allowLambda, allowBitwiseOps>       (. // The order of operands is reversed so that it can be turned into implication during resolution 
-			                                                           e0 = new BinaryExpr(x, BinaryExpr.Opcode.Exp, e1, e0); .)
+                                                                 e0 = new BinaryExpr(x, BinaryExpr.Opcode.Exp, e1, e0); .)
       { IF(IsExpliesOp())  /* read a reverse implication as far as possible */
         ExpliesOp                                             (. x = t; .)
         LogicalExpression<out e1, allowSemi, allowLambda, allowBitwiseOps>     (. //The order of operands is reversed so that it can be turned into implication during resolution
-				                                                         e0 = new BinaryExpr(x, BinaryExpr.Opcode.Exp, e1, e0); 
-																															.)
+                                                                 e0 = new BinaryExpr(x, BinaryExpr.Opcode.Exp, e1, e0); 
+                                                              .)
       }
     )
   ]
@@ -3123,7 +3123,7 @@ EndlessExpression<out Expression e, bool allowSemi, bool allowLambda, bool allow
                                                                foreach (var v in exists.BoundVars) {
                                                                  LHSs.Add(new CasePattern(e.tok, v));
                                                                }
-                                                               e0 = new LetExpr(e.tok, LHSs, new List<Expression>() { exists.Term }, e0, false);	                                                         
+                                                               e0 = new LetExpr(e.tok, LHSs, new List<Expression>() { exists.Term }, e0, false);                                                           
                                                              }
                                                              e = new ITEExpr(x, isExistentialGuard, e, e0, e1);
                                                          .)
@@ -3140,8 +3140,8 @@ EndlessExpression<out Expression e, bool allowSemi, bool allowLambda, bool allow
     MapComprehensionExpr<x, true, out e, allowSemi, allowLambda, allowBitwiseOps>
   | "imap"                          (. x = t; .)
     MapComprehensionExpr<x, false, out e, allowSemi, allowLambda, true>
-	| "reveal"
-	  Expression<out e, false, false, allowBitwiseOps> (. e = new RevealExpr(e.tok, e); .)
+  | "reveal"
+    Expression<out e, false, false, allowBitwiseOps> (. e = new RevealExpr(e.tok, e); .)
   | NamedExpr<out e, allowSemi, allowLambda, allowBitwiseOps>
   )
   .
