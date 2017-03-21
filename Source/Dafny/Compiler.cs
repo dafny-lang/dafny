@@ -378,15 +378,13 @@ namespace Microsoft.Dafny {
       }
     }
 
-    void CompileDatatypeConstructors(DatatypeDecl dt, int indent, TextWriter wr)
-    {
+    void CompileDatatypeConstructors(DatatypeDecl dt, int indent, TextWriter wr) {
       Contract.Requires(dt != null);
 
       string typeParams = dt.TypeArgs.Count == 0 ? "" : string.Format("<{0}>", TypeParameters(dt.TypeArgs));
       if (dt is CoDatatypeDecl) {
         // public class Dt__Lazy<T> : Base_Dt<T> {
         //   public delegate Base_Dt<T> Computer();
-        //   public delegate Computer ComputerComputer();
         //   Computer c;
         //   public Dt__Lazy(Computer c) { this.c = c; }
         //   public Base_Dt<T> Get() { return c(); }
@@ -396,8 +394,6 @@ namespace Microsoft.Dafny {
         int ind = indent + IndentAmount;
         Indent(ind, wr);
         wr.WriteLine("public delegate Base_{0}{1} Computer();", dt.CompileName, typeParams);
-        Indent(ind, wr);
-        wr.WriteLine("public delegate Computer ComputerComputer();");
         Indent(ind, wr);
         wr.WriteLine("Computer c;");
         Indent(ind, wr);
@@ -2601,52 +2597,22 @@ namespace Microsoft.Dafny {
           wr.Write(")");
         } else {
           // In the case of a co-recursive call, generate:
-          //     new Dt__Lazy<T>( new Dt__Lazy<T>.ComputerComputer( LAMBDA )() )
+          //     new Dt__Lazy<T>( LAMBDA )
           // where LAMBDA is:
-          //     () => { var someLocals = eagerlyEvaluatedArguments;
-          //             return () => { return Dt_Cons<T>( ...args...using someLocals and including function calls to be evaluated lazily... ); };
-          //           }
-          wr.Write("new {0}__Lazy{1}", dtv.DatatypeName, typeParams);
-          wr.Write("(new {0}__Lazy{1}.ComputerComputer(() => {{ ", dtv.DatatypeName, typeParams);
+          //     () => { return Dt_Cons<T>( ...args... ); }
+          wr.Write("new {0}__Lazy{1}(", dtv.DatatypeName, typeParams);
 
-          // locals
-          string args = "";
+          wr.Write("() => {{ return new {0}(", DtCtorName(dtv.Ctor, dtv.InferredTypeArgs, wr));
           string sep = "";
           for (int i = 0; i < dtv.Arguments.Count; i++) {
             Formal formal = dtv.Ctor.Formals[i];
             if (!formal.IsGhost) {
-              Expression actual = dtv.Arguments[i].Resolved;
-              string arg;
-              var fce = actual as FunctionCallExpr;
-              if (fce == null || fce.CoCall != FunctionCallExpr.CoCallResolution.Yes) {
-                string varName = idGenerator.FreshId("_ac");
-                arg = varName;
-
-                wr.Write("var {0} = ", varName);
-                TrExpr(actual, wr, inLetExprBody);
-                wr.Write("; ");
-              } else {
-                var sw = new StringWriter();
-                CompileFunctionCallExpr(fce, sw, wr, inLetExprBody, (exp, wrr, inLetExpr) => {
-                  string varName = idGenerator.FreshId("_ac");
-                  sw.Write(varName);
-
-                  wrr.Write("var {0} = ", varName);
-                  TrExpr(exp, wrr, inLetExpr);
-                  wrr.Write("; ");
-
-                });
-                arg = sw.ToString();
-              }
-              args += sep + arg;
+              wr.Write(sep);
+              TrExpr(dtv.Arguments[i], wr, inLetExprBody);
               sep = ", ";
             }
           }
-
-          wr.Write("return () => { return ");
-
-          wr.Write("new {0}({1}", DtCtorName(dtv.Ctor, dtv.InferredTypeArgs, wr), args);
-          wr.Write("); }; })())");
+          wr.Write("); })");
         }
         wr.Write(")");
 
