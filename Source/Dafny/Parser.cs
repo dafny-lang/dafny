@@ -289,9 +289,9 @@ bool IsAlternative() {
 
 bool FollowedByColon() {
   IToken x = la;
-	while (x.kind == _ident || x.kind == _openparen)
-	   x = scanner.Peek();
-	return x.kind == _colon;
+  while (x.kind == _ident || x.kind == _openparen)
+     x = scanner.Peek();
+  return x.kind == _colon;
 }
 
 // an existential guard starts with an identifier and is then followed by
@@ -920,11 +920,11 @@ int StringToInt(string s, int defaultValue, string errString) {
 		} else if (la.kind == 76) {
 			IToken exportId;
 			List<ExportSignature> exports = new List<ExportSignature>();;
-			  List<string> extends = new List<string>();
-			  bool provideAll = false;
-			  bool revealAll = false;
-			  bool isDefault = false;
-			  ExportSignature exsig;
+			List<string> extends = new List<string>();
+			bool provideAll = false;
+			bool revealAll = false;
+			bool isDefault = false;
+			ExportSignature exsig;
 			
 			Get();
 			exportId = t; 
@@ -4466,7 +4466,7 @@ List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, st
 			 foreach (var v in exists.BoundVars) {
 			   LHSs.Add(new CasePattern(e.tok, v));
 			 }
-			 e0 = new LetExpr(e.tok, LHSs, new List<Expression>() { exists.Term }, e0, false);	                                                         
+			 e0 = new LetExpr(e.tok, LHSs, new List<Expression>() { exists.Term }, e0, false);                                                           
 			}
 			e = new ITEExpr(x, isExistentialGuard, e, e0, e1);
 			

@@ -2534,10 +2534,6 @@ namespace Microsoft.Dafny
                 if (fn.Ens.Count != 0) {
                   reporter.Error(MessageSource.Resolver, fn.Ens[0].tok, "a {0} is not allowed to declare any ensures clause", member.WhatKind);
                 }
-                // Also check for 'reads' clauses
-                if (fn.Reads.Count != 0) {
-                  reporter.Error(MessageSource.Resolver, fn.Reads[0].tok, "a {0} is not allowed to declare any reads clause", member.WhatKind);  // (why?)
-                }
                 if (fn.Body != null) {
                   FixpointPredicateChecks(fn.Body, fn, CallingPosition.Positive);
                 }
@@ -11996,6 +11992,9 @@ namespace Microsoft.Dafny
     }
 
     public void ResolveFunctionCallExpr(FunctionCallExpr e, ResolveOpts opts) {
+      Contract.Requires(e != null);
+      Contract.Requires(e.Type == null);  // should not have been type checked before
+
       ResolveReceiver(e.Receiver, opts);
       Contract.Assert(e.Receiver.Type != null);  // follows from postcondition of ResolveExpression
       NonProxyType nptype;
@@ -13113,8 +13112,14 @@ namespace Microsoft.Dafny
         var e = (MatchExpr)expr;
         CheckCoCalls(e.Source, int.MaxValue, null, coCandidates);
         foreach (var kase in e.Cases) {
-          CheckCoCalls(kase.Body, destructionLevel, null, coCandidates);
+          CheckCoCalls(kase.Body, destructionLevel, coContext, coCandidates);
         }
+        return;
+      } else if (expr is ITEExpr) {
+        var e = (ITEExpr)expr;
+        CheckCoCalls(e.Test, int.MaxValue, null, coCandidates);
+        CheckCoCalls(e.Thn, destructionLevel, coContext, coCandidates);
+        CheckCoCalls(e.Els, destructionLevel, coContext, coCandidates);
         return;
       } else if (expr is FunctionCallExpr) {
         var e = (FunctionCallExpr)expr;
@@ -13165,6 +13170,27 @@ namespace Microsoft.Dafny
           }
         }
         return;
+      } else if (expr is LambdaExpr) {
+        var e = (LambdaExpr)expr;
+        CheckCoCalls(e.Body, destructionLevel, coContext, coCandidates);
+        if (e.Range != null) {
+          CheckCoCalls(e.Range, int.MaxValue, null, coCandidates);
+        }
+        foreach (var read in e.Reads) {
+          CheckCoCalls(read.E, int.MaxValue, null, coCandidates);
+        }
+        return;
+      } else if (expr is MapComprehension) {
+        var e = (MapComprehension)expr;
+        foreach (var ee in Attributes.SubExpressions(e.Attributes)) {
+          CheckCoCalls(ee, int.MaxValue, null, coCandidates);
+        }
+        if (e.Range != null) {
+          CheckCoCalls(e.Range, int.MaxValue, null, coCandidates);
+        }
+        // allow co-calls in the term
+        CheckCoCalls(e.Term, destructionLevel, coContext, coCandidates);
+        return;
       } else if (expr is OldExpr) {
         var e = (OldExpr)expr;
         // here, "coContext" is passed along (the use of "old" says this must be ghost code, so the compiler does not need to handle this case)
@@ -13175,8 +13201,14 @@ namespace Microsoft.Dafny
         foreach (var rhs in e.RHSs) {
           CheckCoCalls(rhs, int.MaxValue, null, coCandidates);
         }
-        CheckCoCalls(e.Body, destructionLevel, null, coCandidates);
+        CheckCoCalls(e.Body, destructionLevel, coContext, coCandidates);
         return;
+      } else if (expr is ApplyExpr) {
+        var e = (ApplyExpr)expr;
+        CheckCoCalls(e.Function, int.MaxValue, null, coCandidates);
+        foreach (var ee in e.Args) {
+          CheckCoCalls(ee, destructionLevel, null, coCandidates);
+        }
       }
 
       // Default handling:
