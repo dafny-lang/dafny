@@ -164,7 +164,7 @@ class Node {
       invariant 0 <= t < h && Nexxxt(t, S) == tortoise && Nexxxt(h, S) == hare;
       // What follows of the invariant is for proving termination:
       invariant h == 1 + 2*t && t <= A + B;
-      invariant forall k {:nowarn} :: 0 <= k < t ==> Nexxxt(k, S) != Nexxxt(1+2*k, S);
+      invariant forall k :: 0 <= k < t ==> Nexxxt(k, S) != Nexxxt(1+2*k, S);
       decreases A + B - t;
     {
       if hare == null || hare.next == null {
@@ -225,7 +225,7 @@ class Node {
     requires 0 <= a && 1 <= b;
     requires forall k,l :: 0 <= k < l < a ==> Nexxxt(k, S) != Nexxxt(l, S);
     requires Nexxxt(a, S) == null || Nexxxt(a, S).Nexxxt(b, S) == Nexxxt(a, S);
-    ensures exists T {:nowarn} :: 0 <= T < a+b && Nexxxt(T, S) == Nexxxt(1+2*T, S);
+    ensures exists T :: 0 <= T < a+b && Nexxxt(T, S) == Nexxxt(1+2*T, S);
   {
     if Nexxxt(a, S) == null {
       Lemma_NullIsTerminal(1+2*a, S);
@@ -341,7 +341,7 @@ class Node {
     ensures forall k,l :: 0 <= k && n <= l && Nexxxt(k, S) != null && Nexxxt(k, S).next != null ==> Nexxxt(k, S).next.Nexxxt(l, S) != Nexxxt(k, S);
   {
     // Each of the following assertions makes use of Dafny's induction tactic
-    assert forall k,l :: 0 <= k && 0 <= l && Nexxxt(k, S) != null && Nexxxt(k, S).next != null ==> Nexxxt(k, S).next.Nexxxt(l, S) == Nexxxt(k+1+l, S);
+    assert forall k,l {:matchinglooprewrite false} :: 0 <= k && 0 <= l && Nexxxt(k, S) != null && Nexxxt(k, S).next != null ==> Nexxxt(k, S).next.Nexxxt(l, S) == Nexxxt(k+1+l, S);
     assert forall kl :: n <= kl ==> Nexxxt(kl, S) == null;
   }
 

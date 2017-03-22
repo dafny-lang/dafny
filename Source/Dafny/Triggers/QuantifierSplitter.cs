@@ -108,12 +108,12 @@ namespace Microsoft.Dafny.Triggers
         }
       }
     }
-
+     
     protected override void VisitOneStmt(Statement stmt) {
       if (stmt is ForallStmt) {
         ForallStmt s = (ForallStmt)stmt;
         if (s.ForallExpressions != null) {
-          foreach (Expression expr in s.ForallExpressions) {
+          foreach (Expression expr in s.ForallExpressions) { 
             VisitOneExpr(expr);
           }
         }
@@ -127,6 +127,48 @@ namespace Microsoft.Dafny.Triggers
       foreach (var quantifier in splits.Keys) {
         quantifier.SplitQuantifier = splits[quantifier];
       }
+    }
+  }
+
+  class MatchingLoopRewriter
+  {
+    TriggersCollector triggersCollector = new Triggers.TriggersCollector(new HashSet<Expression>());
+    Dictionary<Expression, IdentifierExpr> substMap;
+    Dictionary<Expression, IdentifierExpr> usedMap;
+
+    public QuantifierExpr RewriteMatchingLoops(QuantifierWithTriggers q)
+    {
+      // rewrite quantifier to avoid mathing loops
+      // before:
+      //    assert forall i :: 0 <= i < a.Length-1 ==> a[i] <= a[i+1];
+      // after: 
+      //    assert forall i,j :: j == i+1 ==> 0 <= i < a.Length-1 ==> a[i] <= a[i+1];
+      substMap = new Dictionary<Expression, IdentifierExpr>();
+      usedMap = new Dictionary<Expression, IdentifierExpr>();
+      foreach (var m in q.LoopingMatches) {
+        var e = m.OriginalExpr;
+        if (TriggersCollector.IsPotentialTriggerCandidate(e) && triggersCollector.IsTriggerKiller(e)) {
+          foreach (var sub in e.SubExpressions) {
+            if (triggersCollector.IsTriggerKiller(sub) && (!TriggersCollector.IsPotentialTriggerCandidate(sub))) {
+              IdentifierExpr ie;
+              if (!substMap.TryGetValue(sub, out ie)) {
+                var newBv = new BoundVar(sub.tok, "_t#" + substMap.Count, sub.Type);
+                ie = new IdentifierExpr(sub.tok, newBv.Name);
+                ie.Var = newBv;
+                ie.Type = newBv.Type;
+                substMap[sub] = ie;
+              }
+            }
+          }
+        }
+      }
+
+      var expr = (QuantifierExpr) q.quantifier;
+      if (substMap.Count > 0) {
+        var s = new Translator.ExprSubstituter(substMap);
+        expr = s.Substitute(q.quantifier) as QuantifierExpr;
+      }
+      return expr;
     }
   }
 }

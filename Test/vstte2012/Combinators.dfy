@@ -456,7 +456,7 @@ lemma VT3(n: nat)
 {
   // Dafny's (way cool) induction tactic kicks in and proves the following
   // assertion automatically:
-  assert forall p :: 2 <= p ==> FindAndStep(ks(p)) == ks(p-2);
+  assert forall p {:matchinglooprewrite false} :: 2 <= p ==> FindAndStep(ks(p)) == ks(p-2);
   // And then Dafny's (cool beyond words) induction tactic for lemmas kicks
   // in to prove the postcondition.  (If this got you curious, scope out Leino's
   // VMCAI 2012 paper "Automating Induction with an SMT Solver".)

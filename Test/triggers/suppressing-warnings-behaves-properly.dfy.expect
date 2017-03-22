@@ -5,8 +5,8 @@ suppressing-warnings-behaves-properly.dfy(14,9): Info: Selected triggers: {f(n)}
 suppressing-warnings-behaves-properly.dfy(15,9): Warning: Selected triggers: {f(n)}
  /!\ There is no warning here to suppress.
 suppressing-warnings-behaves-properly.dfy(16,9): Info: Not generating triggers for "(n != 0) == f(n) || true". Note that {:autotriggers false} can cause instabilities. Consider using {:nowarn}, {:matchingloop} (not great either), or a manual trigger instead.
-suppressing-warnings-behaves-properly.dfy(18,9): Info: Selected triggers: {g(n)}
- Rejected triggers: {f(n)} (may loop with "f(n + 1)")
+suppressing-warnings-behaves-properly.dfy(18,9): Info: Selected triggers:
+   {g(n), f(_t#0)}, {f(_t#0), f(n)}
 suppressing-warnings-behaves-properly.dfy(19,9): Warning: Selected triggers: {f(n)}
  /!\ There is no warning here to suppress.
 suppressing-warnings-behaves-properly.dfy(20,9): Info: Not generating triggers for "(n != 0) == f(n) || true". Note that {:autotriggers false} can cause instabilities. Consider using {:nowarn}, {:matchingloop} (not great either), or a manual trigger instead.

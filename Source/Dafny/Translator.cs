@@ -15448,6 +15448,62 @@ namespace Microsoft.Dafny {
         return base.Substitute(expr);
       }
     }
+
+    public class ExprSubstituter : Substituter {
+      readonly Dictionary<Expression, IdentifierExpr> exprSubstMap;
+
+      public ExprSubstituter(Dictionary<Expression, IdentifierExpr> exprSubstMap)
+        : base(null, new Dictionary<IVariable, Expression>(), new Dictionary<TypeParameter,Type>()) {
+        this.exprSubstMap = exprSubstMap;
+      }
+
+      public override Expression Substitute(Expression expr) {
+        IdentifierExpr ie;
+        if (exprSubstMap.TryGetValue(expr, out ie)) {
+          return cce.NonNull(ie);
+        }
+        if (expr is QuantifierExpr) {
+          var newExpr = expr;
+          var e = expr as QuantifierExpr;
+          var newAttrs = e.Attributes;
+          var newRange = e.Range == null ? null : Substitute(e.Range);
+          var newTerm = Substitute(e.Term);
+          var newBoundVars = new List<BoundVar>();
+          newBoundVars.AddRange(e.BoundVars);
+          if (newRange != e.Range || newTerm != e.Term) {
+            if (expr is ForallExpr) {
+              foreach (KeyValuePair<Expression, IdentifierExpr> entry in exprSubstMap) {
+                newExpr = new BinaryExpr(expr.tok, BinaryExpr.ResolvedOpcode.EqCommon, entry.Value, entry.Key);
+                if (newRange == null) {
+                  newRange = newExpr;
+                } else {
+                  newTerm = new BinaryExpr(expr.tok, BinaryExpr.ResolvedOpcode.Imp, newRange, newTerm);
+                  newRange = newExpr;
+                }
+                newBoundVars.Add((BoundVar)entry.Value.Var);
+              }
+              newExpr = new ForallExpr(expr.tok, ((QuantifierExpr)expr).TypeArgs, newBoundVars, newRange, newTerm, newAttrs);
+            } else if (expr is ExistsExpr) {
+              foreach (KeyValuePair<Expression, IdentifierExpr> entry in exprSubstMap) {
+                newExpr = new BinaryExpr(expr.tok, BinaryExpr.ResolvedOpcode.EqCommon, entry.Value, entry.Key);
+                if (newRange == null) {
+                  newRange = newExpr;
+                } else {
+                  newTerm = new BinaryExpr(expr.tok, BinaryExpr.ResolvedOpcode.And, newRange, newTerm);
+                  newRange = newExpr;
+                }
+                newBoundVars.Add((BoundVar)entry.Value.Var);
+              }
+              newExpr = new ExistsExpr(expr.tok, ((QuantifierExpr)expr).TypeArgs, newBoundVars, newRange, newTerm, newAttrs);
+            } 
+          }
+          newExpr.Type = expr.Type;
+          return newExpr;
+        }
+        return base.Substitute(expr);
+      }
+    }
+
     /// <summary>
     /// The substituter has methods to create an expression from an existing one, where the new one has the indicated
     /// substitutions for "this" (receiverReplacement), variables (substMap), and types (typeMap).

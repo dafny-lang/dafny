@@ -36,7 +36,7 @@ abstract module Sort {
     requires a != null && 0 <= low <= high <= a.Length
     reads a
   {
-    forall i {:nowarn} :: low < i < high ==> O.Leq(a[i-1], a[i])
+    forall i :: low < i < high ==> O.Leq(a[i-1], a[i])
   }
   // ...but we show that property to imply all pairs to be sorted.  The proof of this
   // lemma uses the transitivity property.

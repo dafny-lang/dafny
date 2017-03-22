@@ -13,6 +13,7 @@ namespace Microsoft.Dafny.Triggers {
     internal List<TriggerTerm> CandidateTerms;
     internal List<TriggerCandidate> Candidates;
     internal List<TriggerCandidate> RejectedCandidates;
+    internal List<TriggerMatch> LoopingMatches;
 
     internal bool AllowsLoops { get { return TriggerUtils.AllowsMatchingLoops(quantifier); } }
     internal bool CouldSuppressLoops { get; set; }
@@ -45,7 +46,11 @@ namespace Microsoft.Dafny.Triggers {
       CollectAndShareTriggers(triggersCollector);
       TrimInvalidTriggers();
       BuildDependenciesGraph();
-      SuppressMatchingLoops();
+      if(SuppressMatchingLoops() && RewriteMatchingLoop()) {
+        CollectWithoutShareTriggers(triggersCollector);
+        TrimInvalidTriggers();
+        SuppressMatchingLoops();
+      }
       SelectTriggers();
       CombineSplitQuantifier();
     }
@@ -82,6 +87,15 @@ namespace Microsoft.Dafny.Triggers {
       }
     }
 
+    void CollectWithoutShareTriggers(TriggersCollector triggersCollector)
+    {
+      foreach (var q in quantifiers) {
+        var candidates = triggersCollector.CollectTriggers(q.quantifier).Deduplicate(TriggerTerm.Eq);
+        q.CandidateTerms = candidates; // The list of candidate terms is immutable
+        q.Candidates = TriggerUtils.AllNonEmptySubsets(candidates, SubsetGenerationPredicate, q.quantifier.BoundVars).Select(set => set.ToTriggerCandidate()).ToList();
+      }
+    }
+
     private void TrimInvalidTriggers() {
       foreach (var q in quantifiers) {
         q.TrimInvalidTriggers();
@@ -95,7 +109,7 @@ namespace Microsoft.Dafny.Triggers {
       // detection
     }
 
-    void SuppressMatchingLoops() {
+    bool SuppressMatchingLoops() {
       // NOTE: This only looks for self-loops; that is, loops involving a single
       // quantifier.
 
@@ -120,9 +134,10 @@ namespace Microsoft.Dafny.Triggers {
       // in which that expression is found. For examples of this behavious, see
       // triggers/literals-do-not-cause-loops.
       // This ignoring logic is implemented by the CouldCauseLoops method.
-
+      bool foundloop = false;
       foreach (var q in quantifiers) {
         var looping = new List<TriggerCandidate>();
+        var loopingMatches = new List<TriggerMatch>();
 
         var safe = TriggerUtils.Filter(
           q.Candidates,
@@ -130,16 +145,41 @@ namespace Microsoft.Dafny.Triggers {
           (candidate, loopingSubterms) => !loopingSubterms.Any(),
           (candidate, loopingSubterms) => {
             looping.Add(candidate);
+            loopingMatches = loopingSubterms.ToList();
             candidate.Annotation = "may loop with " + loopingSubterms.MapConcat(t => "\"" + Printer.ExprToString(t.OriginalExpr) + "\"", ", ");
           }).ToList();
 
         q.CouldSuppressLoops = safe.Count > 0;
-
+        q.LoopingMatches = loopingMatches;
         if (!q.AllowsLoops && q.CouldSuppressLoops) {
           q.Candidates = safe;
           q.RejectedCandidates.AddRange(looping);
         }
+
+        if (looping.Count > 0)
+          foundloop = true;
       }
+      return foundloop;
+    }
+
+    bool RewriteMatchingLoop()
+    {
+      if (expr is QuantifierExpr && TriggerUtils.WantsMatchingLoopRewrite((QuantifierExpr)expr)) {
+        QuantifierExpr quantifier = (QuantifierExpr)expr;
+        var l = new List<QuantifierWithTriggers>();
+        // only split quantifier expr now.
+        List<Expression> splits = new List<Expression>();
+        foreach (var q in quantifiers) {
+          var matchingLoopRewriter = new MatchingLoopRewriter();
+          var qq = matchingLoopRewriter.RewriteMatchingLoops(q);
+          splits.Add(qq);
+          l.Add(new QuantifierWithTriggers(qq));
+        }
+        quantifier.SplitQuantifier = splits;
+        quantifiers = l;
+        return true;
+      }
+      return false;
     }
 
     void SelectTriggers() {
