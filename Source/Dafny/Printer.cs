@@ -1665,7 +1665,7 @@ Everything) {
         } else {
           PrintExpr(e.Lhs, opBindingStrength, false, false, !parensNeeded && isFollowedBySemicolon, -1, keyword);
         }
-        string name = e.Lhs is NameSegment ns ? ns.Name : e.Lhs is ExprDotName edn ? edn.SuffixName : null;
+        string name = e.Lhs is NameSegment ? ((NameSegment)e.Lhs).Name : e.Lhs is ExprDotName ? ((ExprDotName)e.Lhs).SuffixName : null;
         PrintActualArguments(e.Args, name);
         if (parensNeeded) { wr.Write(")"); }
 

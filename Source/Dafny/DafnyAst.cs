@@ -4703,7 +4703,8 @@ namespace Microsoft.Dafny {
         old_to_new[this.TypeArgs[i]] = this.PrefixPredicate.TypeArgs[i];
       }
       foreach (var p in fexp.TypeArgumentSubstitutions) {
-        if (old_to_new.TryGetValue(p.Key, out TypeParameter tp)) {
+        TypeParameter tp;
+        if (old_to_new.TryGetValue(p.Key, out tp)) {
           // p.Key denotes a type parameter of the predicate
           prefixPredCall.TypeArgumentSubstitutions[tp] = p.Value;
         } else {

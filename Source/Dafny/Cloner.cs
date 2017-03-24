@@ -1013,17 +1013,18 @@ namespace Microsoft.Dafny
     }
     protected Expression CloneCallAndAddK(ApplySuffix e) {
       Contract.Requires(e != null);
-      Contract.Requires(e.Resolved is FunctionCallExpr r && r.Function is FixpointPredicate);
+      Contract.Requires(e.Resolved is FunctionCallExpr && ((FunctionCallExpr)e.Resolved).Function is FixpointPredicate);
       Contract.Requires(e.Lhs is NameSegment || e.Lhs is ExprDotName);
       Expression lhs;
       string name;
-      if (e.Lhs is NameSegment ns) {
+      var ns = e.Lhs as NameSegment;
+      if (ns != null) {
         name = ns.Name;
-        lhs = new NameSegment(Tok(ns.tok), name + "#", ns.OptTypeArguments?.ConvertAll(CloneType));
+        lhs = new NameSegment(Tok(ns.tok), name + "#", ns.OptTypeArguments == null ? null : ns.OptTypeArguments.ConvertAll(CloneType));
       } else {
         var edn = (ExprDotName)e.Lhs;
         name = edn.SuffixName;
-        lhs = new ExprDotName(Tok(edn.tok), CloneExpr(edn.Lhs), name + "#", edn.OptTypeArguments?.ConvertAll(CloneType));
+        lhs = new ExprDotName(Tok(edn.tok), CloneExpr(edn.Lhs), name + "#", edn.OptTypeArguments == null ? null : edn.OptTypeArguments.ConvertAll(CloneType));
       }
       var args = new List<Expression>();
       args.Add(k);
@@ -1077,7 +1078,8 @@ namespace Microsoft.Dafny
         return base.CloneExpr(expr);
       } else if (expr is ApplySuffix) {
         var e = (ApplySuffix)expr;
-        if (e.Resolved is FunctionCallExpr r && friendlyCalls.Contains(r)) {
+        var r = e.Resolved as FunctionCallExpr;
+        if (r != null && friendlyCalls.Contains(r)) {
           return CloneCallAndAddK(e);
         }
       } else if (expr is SuffixExpr) {
