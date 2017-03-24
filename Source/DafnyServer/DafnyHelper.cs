@@ -236,9 +236,10 @@ namespace Microsoft.Dafny
                     Interaction.EOM(Interaction.FAILURE, e.Message);
                 }
             }
-
             var json = JsonConvert.SerializeObject(information);
-            Console.WriteLine($"REFERENCE_START {json} REFERENCE_END");
+            var byteArray = Encoding.UTF8.GetBytes(json);
+            var base64 = Convert.ToBase64String(byteArray);
+            Console.WriteLine($"REFERENCE_START{base64}REFERENCE_END");
         }
 
         private List<ReferenceInformation> ParseBody(IEnumerable<Statement> block, string methodToFind, string currentMethodName)

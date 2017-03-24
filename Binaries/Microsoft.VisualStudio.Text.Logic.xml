@@ -1,0 +1,1772 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<doc>
+  <assembly>
+    <name>Microsoft.VisualStudio.Text.Logic</name>
+  </assembly>
+  <members>
+    <member name="T:Microsoft.VisualStudio.Text.ITextDataModel">
+      <summary>Prepares the <see cref="T:Microsoft.VisualStudio.Text.ITextBuffer" /> for presentation in the editor. </summary>
+    </member>
+    <member name="P:Microsoft.VisualStudio.Text.ITextDataModel.ContentType">
+      <summary>The <see cref="T:Microsoft.VisualStudio.Utilities.IContentType" /> of the text data model.</summary>
+      <returns>The <see cref="T:Microsoft.VisualStudio.Utilities.IContentType" /> of the text data model.</returns>
+    </member>
+    <member name="E:Microsoft.VisualStudio.Text.ITextDataModel.ContentTypeChanged">
+      <summary>Raised when the <see cref="P:Microsoft.VisualStudio.Text.ITextDataModel.ContentType" /> of this text data model changes.</summary>
+    </member>
+    <member name="P:Microsoft.VisualStudio.Text.ITextDataModel.DataBuffer">
+      <summary>Gets the <see cref="T:Microsoft.VisualStudio.Text.ITextBuffer" /> that should be presented in the editor.</summary>
+      <returns>The <see cref="T:Microsoft.VisualStudio.Text.ITextBuffer" /> that should be presented in the editor.</returns>
+    </member>
+    <member name="P:Microsoft.VisualStudio.Text.ITextDataModel.DocumentBuffer">
+      <summary>Gets the <see cref="T:Microsoft.VisualStudio.Text.ITextBuffer" /> that corresponds to a document in the file system.</summary>
+      <returns>the <see cref="T:Microsoft.VisualStudio.Text.ITextBuffer" /> that corresponds to a document in the file system.</returns>
+    </member>
+    <member name="T:Microsoft.VisualStudio.Text.TextDataModelContentTypeChangedEventArgs">
+      <summary>Provides information for the <see cref="E:Microsoft.VisualStudio.Text.ITextDataModel.ContentTypeChanged" /> event.</summary>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.TextDataModelContentTypeChangedEventArgs.#ctor(Microsoft.VisualStudio.Utilities.IContentType,Microsoft.VisualStudio.Utilities.IContentType)">
+      <summary>Initializes a new instance of <see cref="T:Microsoft.VisualStudio.Text.TextDataModelContentTypeChangedEventArgs" />.</summary>
+      <param name="beforeContentType">The <see cref="T:Microsoft.VisualStudio.Utilities.IContentType" /> of the <see cref="T:Microsoft.VisualStudio.Text.ITextDataModel" /> before the change.</param>
+      <param name="afterContentType">The <see cref="T:Microsoft.VisualStudio.Utilities.IContentType" /> of the <see cref="T:Microsoft.VisualStudio.Text.ITextDataModel" /> after the change.</param>
+    </member>
+    <member name="P:Microsoft.VisualStudio.Text.TextDataModelContentTypeChangedEventArgs.AfterContentType">
+      <summary>Gets the <see cref="T:Microsoft.VisualStudio.Utilities.IContentType" /> of the <see cref="T:Microsoft.VisualStudio.Text.ITextDataModel" /> after the change.</summary>
+      <returns>The <see cref="T:Microsoft.VisualStudio.Utilities.IContentType" /> of the <see cref="T:Microsoft.VisualStudio.Text.ITextDataModel" /> after the change.</returns>
+    </member>
+    <member name="P:Microsoft.VisualStudio.Text.TextDataModelContentTypeChangedEventArgs.BeforeContentType">
+      <summary>Gets the <see cref="T:Microsoft.VisualStudio.Utilities.IContentType" /> of the <see cref="T:Microsoft.VisualStudio.Text.ITextDataModel" /> before the change.</summary>
+      <returns>The <see cref="T:Microsoft.VisualStudio.Utilities.IContentType" /> of the <see cref="T:Microsoft.VisualStudio.Text.ITextDataModel" /> before the change.</returns>
+    </member>
+    <member name="T:Microsoft.VisualStudio.Text.VirtualSnapshotPoint">
+      <summary>Represents a <see cref="T:Microsoft.VisualStudio.Text.SnapshotPoint" /> that may have virtual spaces.</summary>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.VirtualSnapshotPoint.#ctor(Microsoft.VisualStudio.Text.ITextSnapshot,System.Int32)">
+      <summary>Initializes a new instance of a <see cref="T:Microsoft.VisualStudio.Text.VirtualSnapshotPoint" /> at the specified position in the specified snapshot, with zero virtual spaces.</summary>
+      <param name="snapshot">The snapshot to use.</param>
+      <param name="position">The position of the snapshot point.</param>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.VirtualSnapshotPoint.#ctor(Microsoft.VisualStudio.Text.ITextSnapshotLine,System.Int32)">
+      <summary>Initializes a new instance of a <see cref="T:Microsoft.VisualStudio.Text.VirtualSnapshotPoint" /> at the specified offset of the specified line, placing the point in virtual space if necessary.</summary>
+      <param name="line">The line on which to place the point.</param>
+      <param name="offset">The column (zero-based) of the point.</param>
+      <exception cref="T:System.ArgumentNullException">
+        <paramref name="line" /> is null.</exception>
+      <exception cref="T:System.ArgumentOutOfRangeException">
+        <paramref name="column" /> is negative, or the start position plus the column is less than the start position.</exception>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.VirtualSnapshotPoint.#ctor(Microsoft.VisualStudio.Text.SnapshotPoint)">
+      <summary>Initializes a new instance of a <see cref="T:Microsoft.VisualStudio.Text.VirtualSnapshotPoint" /> at the specified position, with zero virtual spaces.</summary>
+      <param name="position">The position the point in the snapshot.</param>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.VirtualSnapshotPoint.#ctor(Microsoft.VisualStudio.Text.SnapshotPoint,System.Int32)">
+      <summary>Initializes a new instance of a <see cref="T:Microsoft.VisualStudio.Text.VirtualSnapshotPoint" /> at the specified position, with the specified number of virtual spaces.</summary>
+      <param name="position">The position of the virtual snapshot point.</param>
+      <param name="virtualSpaces">The number of virtual spaces after <paramref name="position" />.</param>
+      <exception cref="T:System.ArgumentOutOfRangeException">
+        <paramref name="virtualSpaces" /> is negative, or the position plus the number of virtual spaces is less than the position.</exception>
+      <exception cref="T:System.ArgumentException">
+        <paramref name="virtualSpaces" /> is not zero and the position does not correspond to the end of the line.</exception>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.VirtualSnapshotPoint.CompareTo(Microsoft.VisualStudio.Text.VirtualSnapshotPoint)">
+      <summary>Compares one <see cref="T:Microsoft.VisualStudio.Text.VirtualSnapshotPoint" /> to another.</summary>
+      <returns>If the positions of the virtual snapshot points are different, returns the difference in positions, otherwise returns the difference in the number of virtual spaces. </returns>
+      <param name="other">The second <see cref="T:Microsoft.VisualStudio.Text.VirtualSnapshotPoint" />.</param>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.VirtualSnapshotPoint.Equals(System.Object)">
+      <summary>Determines whether two <see cref="T:Microsoft.VisualStudio.Text.VirtualSnapshotPoint" /> objects are the same.</summary>
+      <returns>true if the objects are the same, otherwise false.</returns>
+      <param name="obj">The second virtual snapshot point.</param>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.VirtualSnapshotPoint.GetHashCode">
+      <summary>Gets the hash code for the object.</summary>
+      <returns>The hash code for the object.</returns>
+    </member>
+    <member name="P:Microsoft.VisualStudio.Text.VirtualSnapshotPoint.IsInVirtualSpace">
+      <summary>Determines whether the snapshot point has virtual spaces.</summary>
+      <returns>true if the snapshot point has virtual spaces, otherwise false.</returns>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.VirtualSnapshotPoint.op_Equality(Microsoft.VisualStudio.Text.VirtualSnapshotPoint,Microsoft.VisualStudio.Text.VirtualSnapshotPoint)">
+      <summary>Determines whether two <see cref="T:Microsoft.VisualStudio.Text.VirtualSnapshotPoint" /> objects are the same.</summary>
+      <returns>true if the two objects are the same, otherwise false.</returns>
+      <param name="left">The left-hand point.</param>
+      <param name="right">The right-hand point.</param>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.VirtualSnapshotPoint.op_GreaterThan(Microsoft.VisualStudio.Text.VirtualSnapshotPoint,Microsoft.VisualStudio.Text.VirtualSnapshotPoint)">
+      <summary>Determines whether the position of the left point is greater than the position of the right point.</summary>
+      <returns>true if left.Position is greater than right.Position, otherwise false.</returns>
+      <param name="left">The left-hand point.</param>
+      <param name="right">The right-hand point.</param>
+      <exception cref="T:System.ArgumentException">The snapshots of the two points do not match.</exception>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.VirtualSnapshotPoint.op_GreaterThanOrEqual(Microsoft.VisualStudio.Text.VirtualSnapshotPoint,Microsoft.VisualStudio.Text.VirtualSnapshotPoint)">
+      <summary>Determines whether the position of the left point is greater than or equal to the position of the right point.</summary>
+      <returns>true if left.Position is greater than or equal to right.Position, otherwise false.</returns>
+      <param name="left">The left-hand point.</param>
+      <param name="right">The right-hand point.</param>
+      <exception cref="T:System.ArgumentException">The snapshots of the two points do not match.</exception>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.VirtualSnapshotPoint.op_Inequality(Microsoft.VisualStudio.Text.VirtualSnapshotPoint,Microsoft.VisualStudio.Text.VirtualSnapshotPoint)">
+      <summary>Determines whether two <see cref="T:Microsoft.VisualStudio.Text.VirtualSnapshotPoint" /> objects are different.</summary>
+      <returns>true if the two objects are different, otherwise false.</returns>
+      <param name="left">The left-hand point.</param>
+      <param name="right">The right-hand point.</param>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.VirtualSnapshotPoint.op_LessThan(Microsoft.VisualStudio.Text.VirtualSnapshotPoint,Microsoft.VisualStudio.Text.VirtualSnapshotPoint)">
+      <summary>Determines whether the position of the left point is less than the position of the right point.</summary>
+      <returns>true if left.Position is less than right.Position, otherwise false.</returns>
+      <param name="left">The left-hand point.</param>
+      <param name="right">The right-hand point.</param>
+      <exception cref="T:System.ArgumentException">The snapshots of the points do not match.</exception>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.VirtualSnapshotPoint.op_LessThanOrEqual(Microsoft.VisualStudio.Text.VirtualSnapshotPoint,Microsoft.VisualStudio.Text.VirtualSnapshotPoint)">
+      <summary>Determines whether the position of the left point is less than or equal to the position of the right point.</summary>
+      <returns>true if left.Position is less than or equal to right.Position, otherwise false.</returns>
+      <param name="left">The left-hand point.</param>
+      <param name="right">The right-hand point.</param>
+      <exception cref="T:System.ArgumentException">If the snapshots of the points do not match.</exception>
+    </member>
+    <member name="P:Microsoft.VisualStudio.Text.VirtualSnapshotPoint.Position">
+      <summary>Gets the position of the snapshot point.</summary>
+      <returns>The position of the snapshot point.</returns>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.VirtualSnapshotPoint.ToString">
+      <summary>Converts the object to a string.</summary>
+      <returns>The string form of this object.</returns>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.VirtualSnapshotPoint.TranslateTo(Microsoft.VisualStudio.Text.ITextSnapshot)">
+      <summary>Translates this point to the specified snapshot.</summary>
+      <returns>The corresponding <see cref="T:Microsoft.VisualStudio.Text.VirtualSnapshotPoint" /> in <paramref name="snapshot" />.</returns>
+      <param name="snapshot">The target snapshot.</param>
+      <exception cref="T:System.ArgumentException">
+        <paramref name="snapshot" /> is for an earlier snapshot.</exception>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.VirtualSnapshotPoint.TranslateTo(Microsoft.VisualStudio.Text.ITextSnapshot,Microsoft.VisualStudio.Text.PointTrackingMode)">
+      <summary>Translates this point to the specified text snapshot with the specified tracking mode.</summary>
+      <returns>The corresponding <see cref="T:Microsoft.VisualStudio.Text.VirtualSnapshotPoint" /> in <paramref name="snapshot" />.</returns>
+      <param name="snapshot">The target snapshot.</param>
+      <param name="trackingMode">The tracking mode to use.</param>
+      <exception cref="T:System.ArgumentException">
+        <paramref name="snapshot" /> is for an earlier snapshot.</exception>
+    </member>
+    <member name="P:Microsoft.VisualStudio.Text.VirtualSnapshotPoint.VirtualSpaces">
+      <summary>Gets the number of virtual spaces.</summary>
+      <returns>The number of virtual spaces.</returns>
+    </member>
+    <member name="T:Microsoft.VisualStudio.Text.VirtualSnapshotSpan">
+      <summary>Represents the range between two <see cref="T:Microsoft.VisualStudio.Text.VirtualSnapshotPoint" /> objects.</summary>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.VirtualSnapshotSpan.#ctor(Microsoft.VisualStudio.Text.SnapshotSpan)">
+      <summary>Initializes a new instance of a <see cref="T:Microsoft.VisualStudio.Text.VirtualSnapshotSpan" /> in the specified snapshot span, with no virtual spaces.</summary>
+      <param name="snapshotSpan">A snapshot span.</param>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.VirtualSnapshotSpan.#ctor(Microsoft.VisualStudio.Text.VirtualSnapshotPoint,Microsoft.VisualStudio.Text.VirtualSnapshotPoint)">
+      <summary>Initializes a new instance of a <see cref="T:Microsoft.VisualStudio.Text.VirtualSnapshotSpan" /> from the specified start and end points.</summary>
+      <param name="start">The start point.</param>
+      <param name="end">The end point, which must be from the same <see cref="T:Microsoft.VisualStudio.Text.ITextSnapshot" /> as the start point.</param>
+      <exception cref="T:System.ArgumentException">The snapshot points belong to different <see cref="T:Microsoft.VisualStudio.Text.ITextSnapshot" /> objects.</exception>
+      <exception cref="T:System.ArgumentOutOfRangeException">The end point comes before the start point.</exception>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.VirtualSnapshotSpan.Contains(Microsoft.VisualStudio.Text.VirtualSnapshotPoint)">
+      <summary>Determines whether or not the given virtual point is contained within this virtual span.</summary>
+      <returns>true if the position is greater than or equal to Start and less than End, otherwise false.</returns>
+      <param name="virtualPoint">The virtual point.</param>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.VirtualSnapshotSpan.Contains(Microsoft.VisualStudio.Text.VirtualSnapshotSpan)">
+      <summary>Determines whether the specified virtual span falls completely within this virtual span.</summary>
+      <returns>true if the specified span falls completely within this span, otherwise false.</returns>
+      <param name="virtualSpan">The virtual span.</param>
+    </member>
+    <member name="P:Microsoft.VisualStudio.Text.VirtualSnapshotSpan.End">
+      <summary>Gets the ending virtual point.</summary>
+      <returns>The end point.</returns>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.VirtualSnapshotSpan.Equals(System.Object)">
+      <summary>Determines whether two <see cref="T:Microsoft.VisualStudio.Text.VirtualSnapshotSpan" /> objects are the same.</summary>
+      <returns>true if the objects are the same, otherwise false.</returns>
+      <param name="obj">The object to compare.</param>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.VirtualSnapshotSpan.GetHashCode">
+      <summary>Gets the hash code for the object.</summary>
+      <returns>The hash code.</returns>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.VirtualSnapshotSpan.GetText">
+      <summary>The text contained by this virtual snapshot span.</summary>
+      <returns>A non-null string.</returns>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.VirtualSnapshotSpan.Intersection(Microsoft.VisualStudio.Text.VirtualSnapshotSpan)">
+      <summary>Returns the intersection with the given virtual span.</summary>
+      <returns>The intersection of the spans, or null if the spans do not intersect.</returns>
+      <param name="virtualSpan">The virtual span to check.</param>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.VirtualSnapshotSpan.IntersectsWith(Microsoft.VisualStudio.Text.VirtualSnapshotSpan)">
+      <summary>Determines whether the specified virtual span intersects this span. </summary>
+      <returns>true if the spans intersect, otherwise false.</returns>
+      <param name="virtualSpan">The virtual span to check.</param>
+    </member>
+    <member name="P:Microsoft.VisualStudio.Text.VirtualSnapshotSpan.IsEmpty">
+      <summary>Determines whether the start and end points are in the same place.</summary>
+      <returns>true if the span is empty, otherwise false.</returns>
+    </member>
+    <member name="P:Microsoft.VisualStudio.Text.VirtualSnapshotSpan.IsInVirtualSpace">
+      <summary>Determines whether the start or end points are in virtual space.</summary>
+      <returns>true if both the start or end points of the span are in virtual space, otherwise false.</returns>
+    </member>
+    <member name="P:Microsoft.VisualStudio.Text.VirtualSnapshotSpan.Length">
+      <summary>The length of this span, taking into account virtual space.</summary>
+      <returns>The length of the span.</returns>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.VirtualSnapshotSpan.op_Equality(Microsoft.VisualStudio.Text.VirtualSnapshotSpan,Microsoft.VisualStudio.Text.VirtualSnapshotSpan)">
+      <summary>Determines whether two <see cref="T:Microsoft.VisualStudio.Text.VirtualSnapshotSpan" /> objects are the same.</summary>
+      <returns>true if the two objects are the same, otherwise false.</returns>
+      <param name="left">The first object.</param>
+      <param name="right">The second object.</param>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.VirtualSnapshotSpan.op_Inequality(Microsoft.VisualStudio.Text.VirtualSnapshotSpan,Microsoft.VisualStudio.Text.VirtualSnapshotSpan)">
+      <summary>Determines whether two <see cref="T:Microsoft.VisualStudio.Text.VirtualSnapshotSpan" /> objects are different.</summary>
+      <returns>true if the two objects are different, otherwise false.</returns>
+      <param name="left">The first object.</param>
+      <param name="right">The second object.</param>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.VirtualSnapshotSpan.Overlap(Microsoft.VisualStudio.Text.VirtualSnapshotSpan)">
+      <summary>Returns the overlap with the specified virtual span.</summary>
+      <returns>The overlap of the spans, or null if the spans do not overlap.</returns>
+      <param name="virtualSpan">The virtual span.</param>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.VirtualSnapshotSpan.OverlapsWith(Microsoft.VisualStudio.Text.VirtualSnapshotSpan)">
+      <summary>Determines whether the specified span overlaps this span. </summary>
+      <returns>true if the spans overlap, otherwise false.</returns>
+      <param name="virtualSpan">The virtual span.</param>
+    </member>
+    <member name="P:Microsoft.VisualStudio.Text.VirtualSnapshotSpan.Snapshot">
+      <summary>The <see cref="T:Microsoft.VisualStudio.Text.ITextSnapshot" /> to which this snapshot span refers.</summary>
+      <returns>The text snapshot.</returns>
+    </member>
+    <member name="P:Microsoft.VisualStudio.Text.VirtualSnapshotSpan.SnapshotSpan">
+      <summary>Gets the non-virtual snapshot span to which this span corresponds.</summary>
+      <returns>The snapshot span.</returns>
+    </member>
+    <member name="P:Microsoft.VisualStudio.Text.VirtualSnapshotSpan.Start">
+      <summary>Gets the starting virtual point.</summary>
+      <returns>The start point.</returns>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.VirtualSnapshotSpan.ToString">
+      <summary>Converts the object to a string.</summary>
+      <returns>The string form of this object.</returns>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.VirtualSnapshotSpan.TranslateTo(Microsoft.VisualStudio.Text.ITextSnapshot)">
+      <summary>Translates this span to the specified snapshot.</summary>
+      <returns>The corresponding <see cref="T:Microsoft.VisualStudio.Text.VirtualSnapshotSpan" /> in <paramref name="snapshot" />.</returns>
+      <param name="snapshot">The target snapshot.</param>
+      <exception cref="T:System.ArgumentException">
+        <paramref name="snapshot" /> is for an earlier snapshot.</exception>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.VirtualSnapshotSpan.TranslateTo(Microsoft.VisualStudio.Text.ITextSnapshot,Microsoft.VisualStudio.Text.SpanTrackingMode)">
+      <summary>Translates this span to the specified snapshot with the given tracking mode.</summary>
+      <returns>The corresponding <see cref="T:Microsoft.VisualStudio.Text.VirtualSnapshotSpan" /> in <paramref name="snapshot" />.</returns>
+      <param name="snapshot">The target snapshot.</param>
+      <param name="trackingMode">The tracking mode.</param>
+      <exception cref="T:System.ArgumentException">
+        <paramref name="snapshot" /> is for an earlier snapshot.</exception>
+    </member>
+    <member name="T:Microsoft.VisualStudio.Text.Classification.ClassificationChangedEventArgs">
+      <summary>Provides information for the <see cref="E:Microsoft.VisualStudio.Text.Classification.IClassifier.ClassificationChanged" /> event.</summary>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.Classification.ClassificationChangedEventArgs.#ctor(Microsoft.VisualStudio.Text.SnapshotSpan)">
+      <summary>Initializes a new instance of <see cref="T:Microsoft.VisualStudio.Text.Classification.ClassificationChangedEventArgs" />.</summary>
+      <param name="changeSpan">The span of the classification that changed.</param>
+    </member>
+    <member name="P:Microsoft.VisualStudio.Text.Classification.ClassificationChangedEventArgs.ChangeSpan">
+      <summary>Gets the span of the classification that changed.</summary>
+      <returns>The change span.</returns>
+    </member>
+    <member name="T:Microsoft.VisualStudio.Text.Classification.ClassificationSpan">
+      <summary>Describes a region of text classified by an <see cref="T:Microsoft.VisualStudio.Text.Classification.IClassificationType" />.</summary>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.Classification.ClassificationSpan.#ctor(Microsoft.VisualStudio.Text.SnapshotSpan,Microsoft.VisualStudio.Text.Classification.IClassificationType)">
+      <summary>Initializes a new instance of a <see cref="T:Microsoft.VisualStudio.Text.Classification.ClassificationSpan" />.</summary>
+      <param name="span">The span of text to which the classification applies.</param>
+      <param name="classification">The classification type of the span. </param>
+      <exception cref="T:System.ArgumentNullException">
+        <paramref name="classification" /> is null.</exception>
+    </member>
+    <member name="P:Microsoft.VisualStudio.Text.Classification.ClassificationSpan.ClassificationType">
+      <summary>Gets the classification type of the text.</summary>
+      <returns>The classification type.</returns>
+    </member>
+    <member name="P:Microsoft.VisualStudio.Text.Classification.ClassificationSpan.Span">
+      <summary>Gets the snapshot span of the classified text.</summary>
+      <returns>The snapshot span.</returns>
+    </member>
+    <member name="T:Microsoft.VisualStudio.Text.Classification.ClassificationTypeAttribute">
+      <summary>Provides the name for a logical classification type and the name of a classification type from which it is derived.</summary>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.Classification.ClassificationTypeAttribute.#ctor">
+      <summary>Initializes a new instance of <see cref="T:Microsoft.VisualStudio.Text.Classification.ClassificationTypeAttribute" />.</summary>
+    </member>
+    <member name="P:Microsoft.VisualStudio.Text.Classification.ClassificationTypeAttribute.ClassificationTypeNames">
+      <summary>Gets or sets the name of this classification type.</summary>
+      <returns>The name of the type.</returns>
+      <exception cref="T:System.ArgumentNullException">The value is null.</exception>
+      <exception cref="T:System.ArgumentOutOfRangeException">The value is an empty string.</exception>
+    </member>
+    <member name="T:Microsoft.VisualStudio.Text.Classification.ClassificationTypeDefinition">
+      <summary>Describes a data-only export for declaring classification types.</summary>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.Classification.ClassificationTypeDefinition.#ctor">
+      <summary>Initializes a new instance of <see cref="T:Microsoft.VisualStudio.Text.Classification.ClassificationTypeDefinition" />.</summary>
+    </member>
+    <member name="T:Microsoft.VisualStudio.Text.Classification.IClassificationType">
+      <summary>The logical classification type of a span of text.</summary>
+    </member>
+    <member name="P:Microsoft.VisualStudio.Text.Classification.IClassificationType.BaseTypes">
+      <summary>Gets the classification types from which the current <see cref="T:Microsoft.VisualStudio.Text.Classification.IClassificationType" /> is derived.</summary>
+      <returns>The base classification types </returns>
+    </member>
+    <member name="P:Microsoft.VisualStudio.Text.Classification.IClassificationType.Classification">
+      <summary>Gets the name of the classification type.</summary>
+      <returns>The name of the classification type.</returns>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.Classification.IClassificationType.IsOfType(System.String)">
+      <summary>Determines whether the current <see cref="T:Microsoft.VisualStudio.Text.Classification.IClassificationType" /> derives from the classification type named <paramref name="type" />.</summary>
+      <returns>true if the current classification type derives from the one identified by <paramref name="type" />, otherwise false.</returns>
+      <param name="type">The name of the base classification type.</param>
+    </member>
+    <member name="T:Microsoft.VisualStudio.Text.Classification.IClassificationTypeRegistryService">
+      <summary>The service that maintains the collection of all known classification types.</summary>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.Classification.IClassificationTypeRegistryService.CreateClassificationType(System.String,System.Collections.Generic.IEnumerable{Microsoft.VisualStudio.Text.Classification.IClassificationType})">
+      <summary>Initializes a new instance of a <see cref="T:Microsoft.VisualStudio.Text.Classification.IClassificationType" /> and adds it to the registry.</summary>
+      <returns>A new <see cref="T:Microsoft.VisualStudio.Text.Classification.IClassificationType" />.</returns>
+      <param name="type">The name of the classification type to create.</param>
+      <param name="baseTypes">The base types of the classification.</param>
+      <exception cref="T:System.InvalidOperationException">
+        <paramref name="type" /> is already in the registry.</exception>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.Classification.IClassificationTypeRegistryService.CreateTransientClassificationType(Microsoft.VisualStudio.Text.Classification.IClassificationType[])">
+      <summary>Creates an <see cref="T:Microsoft.VisualStudio.Text.Classification.IClassificationType" /> that persists only for the duration of this session. </summary>
+      <returns>A new <see cref="T:Microsoft.VisualStudio.Text.Classification.IClassificationType" /> which inherits from all <paramref name="baseTypes" />.</returns>
+      <param name="baseTypes">The base types for this <see cref="T:Microsoft.VisualStudio.Text.Classification.IClassificationType" />.</param>
+      <exception cref="T:System.ArgumentNullException">
+        <paramref name="baseTypes" /> is null.</exception>
+      <exception cref="T:System.InvalidOperationException">
+        <paramref name="baseTypes" /> has zero items.</exception>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.Classification.IClassificationTypeRegistryService.CreateTransientClassificationType(System.Collections.Generic.IEnumerable{Microsoft.VisualStudio.Text.Classification.IClassificationType})">
+      <summary>Creates an <see cref="T:Microsoft.VisualStudio.Text.Classification.IClassificationType" /> that persists only for the duration of this session..</summary>
+      <returns>A new <see cref="T:Microsoft.VisualStudio.Text.Classification.IClassificationType" /> that inherits from all of <paramref name="baseTypes" />.</returns>
+      <param name="baseTypes">The base types for this <see cref="T:Microsoft.VisualStudio.Text.Classification.IClassificationType" />.</param>
+      <exception cref="T:System.ArgumentNullException">
+        <paramref name="baseTypes" /> is null.</exception>
+      <exception cref="T:System.InvalidOperationException">
+        <paramref name="baseTypes" /> has zero items.</exception>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.Classification.IClassificationTypeRegistryService.GetClassificationType(System.String)">
+      <summary>Gets the <see cref="T:Microsoft.VisualStudio.Text.Classification.IClassificationType" /> object identified by the specified type.</summary>
+      <returns>The classification type, null if there is no classification type of that name.</returns>
+      <param name="type">The name of the classification type.</param>
+    </member>
+    <member name="T:Microsoft.VisualStudio.Text.Classification.IClassifier">
+      <summary>Assigns <see cref="T:Microsoft.VisualStudio.Text.Classification.IClassificationType" /> objects to the text in a <see cref="T:Microsoft.VisualStudio.Text.ITextBuffer" />.</summary>
+    </member>
+    <member name="E:Microsoft.VisualStudio.Text.Classification.IClassifier.ClassificationChanged">
+      <summary>Ocurs when the classification of a span of text has changed.</summary>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.Classification.IClassifier.GetClassificationSpans(Microsoft.VisualStudio.Text.SnapshotSpan)">
+      <summary>Gets all the <see cref="T:Microsoft.VisualStudio.Text.Classification.ClassificationSpan" /> objects that overlap the given range of text.</summary>
+      <returns>A list of <see cref="T:Microsoft.VisualStudio.Text.Classification.ClassificationSpan" /> objects that intersect with the given range.</returns>
+      <param name="span">The snapshot span.</param>
+    </member>
+    <member name="T:Microsoft.VisualStudio.Text.Classification.IClassifierAggregatorService">
+      <summary>A service that returns an <see cref="T:Microsoft.VisualStudio.Text.Classification.IClassifier" /> that aggregates and normalizes all <see cref="T:Microsoft.VisualStudio.Text.Classification.IClassifier" /> contributions for a <see cref="T:Microsoft.VisualStudio.Text.ITextBuffer" />.</summary>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.Classification.IClassifierAggregatorService.GetClassifier(Microsoft.VisualStudio.Text.ITextBuffer)">
+      <summary>Gets the cached <see cref="T:Microsoft.VisualStudio.Text.Classification.IClassifier" /> for the given <see cref="T:Microsoft.VisualStudio.Text.ITextBuffer" />. </summary>
+      <returns>The cached <see cref="T:Microsoft.VisualStudio.Text.Classification.IClassifier" />.</returns>
+      <param name="textBuffer">The <see cref="T:Microsoft.VisualStudio.Text.ITextBuffer" /> with which to retrieve/create the <see cref="T:Microsoft.VisualStudio.Text.Classification.IClassifier" />.</param>
+      <exception cref="T:System.ArgumentNullException">
+        <paramref name="textBuffer" /> is null.</exception>
+    </member>
+    <member name="T:Microsoft.VisualStudio.Text.Classification.IClassifierProvider">
+      <summary>Creates a classifier for a given <see cref="T:Microsoft.VisualStudio.Text.ITextBuffer" /> in the given environment.</summary>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.Classification.IClassifierProvider.GetClassifier(Microsoft.VisualStudio.Text.ITextBuffer)">
+      <summary>Gets a classifier for the given text buffer.</summary>
+      <returns>A classifier for the text buffer, or null if the provider cannot provide one in its current state.</returns>
+      <param name="textBuffer">The <see cref="T:Microsoft.VisualStudio.Text.ITextBuffer" /> to classify.</param>
+    </member>
+    <member name="T:Microsoft.VisualStudio.Text.Differencing.DifferenceBufferOption`1">
+      <typeparam name="T"></typeparam>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.Differencing.DifferenceBufferOption`1.#ctor"></member>
+    <member name="M:Microsoft.VisualStudio.Text.Differencing.DifferenceBufferOption`1.IsApplicableToScope(Microsoft.VisualStudio.Utilities.IPropertyOwner)"></member>
+    <member name="T:Microsoft.VisualStudio.Text.Differencing.DifferenceBufferOptions"></member>
+    <member name="F:Microsoft.VisualStudio.Text.Differencing.DifferenceBufferOptions.IgnoreCaseId"></member>
+    <member name="F:Microsoft.VisualStudio.Text.Differencing.DifferenceBufferOptions.IgnoreCaseName"></member>
+    <member name="F:Microsoft.VisualStudio.Text.Differencing.DifferenceBufferOptions.IgnoreWhiteSpaceBehaviorId"></member>
+    <member name="F:Microsoft.VisualStudio.Text.Differencing.DifferenceBufferOptions.IgnoreWhiteSpaceBehaviorName"></member>
+    <member name="T:Microsoft.VisualStudio.Text.Differencing.DifferenceMappingMode"></member>
+    <member name="F:Microsoft.VisualStudio.Text.Differencing.DifferenceMappingMode.Start">
+      <summary />
+    </member>
+    <member name="F:Microsoft.VisualStudio.Text.Differencing.DifferenceMappingMode.LineColumn">
+      <summary />
+    </member>
+    <member name="F:Microsoft.VisualStudio.Text.Differencing.DifferenceMappingMode.End">
+      <summary />
+    </member>
+    <member name="T:Microsoft.VisualStudio.Text.Differencing.IDifferenceBuffer"></member>
+    <member name="M:Microsoft.VisualStudio.Text.Differencing.IDifferenceBuffer.AddIgnoreDifferencePredicate(Microsoft.VisualStudio.Text.Differencing.IgnoreDifferencePredicate)"></member>
+    <member name="M:Microsoft.VisualStudio.Text.Differencing.IDifferenceBuffer.AddSnapshotLineTransform(Microsoft.VisualStudio.Text.Differencing.SnapshotLineTransform)"></member>
+    <member name="P:Microsoft.VisualStudio.Text.Differencing.IDifferenceBuffer.BaseLeftBuffer"></member>
+    <member name="P:Microsoft.VisualStudio.Text.Differencing.IDifferenceBuffer.BaseRightBuffer"></member>
+    <member name="P:Microsoft.VisualStudio.Text.Differencing.IDifferenceBuffer.CurrentInlineBufferSnapshot"></member>
+    <member name="P:Microsoft.VisualStudio.Text.Differencing.IDifferenceBuffer.CurrentSnapshotDifference"></member>
+    <member name="P:Microsoft.VisualStudio.Text.Differencing.IDifferenceBuffer.DifferenceOptions"></member>
+    <member name="P:Microsoft.VisualStudio.Text.Differencing.IDifferenceBuffer.InlineBuffer"></member>
+    <member name="P:Microsoft.VisualStudio.Text.Differencing.IDifferenceBuffer.IsEditingDisabled"></member>
+    <member name="P:Microsoft.VisualStudio.Text.Differencing.IDifferenceBuffer.LeftBuffer"></member>
+    <member name="P:Microsoft.VisualStudio.Text.Differencing.IDifferenceBuffer.Options"></member>
+    <member name="M:Microsoft.VisualStudio.Text.Differencing.IDifferenceBuffer.RemoveIgnoreDifferencePredicate(Microsoft.VisualStudio.Text.Differencing.IgnoreDifferencePredicate)"></member>
+    <member name="M:Microsoft.VisualStudio.Text.Differencing.IDifferenceBuffer.RemoveSnapshotLineTransform(Microsoft.VisualStudio.Text.Differencing.SnapshotLineTransform)"></member>
+    <member name="P:Microsoft.VisualStudio.Text.Differencing.IDifferenceBuffer.RightBuffer"></member>
+    <member name="E:Microsoft.VisualStudio.Text.Differencing.IDifferenceBuffer.SnapshotDifferenceChanged"></member>
+    <member name="E:Microsoft.VisualStudio.Text.Differencing.IDifferenceBuffer.SnapshotDifferenceChanging"></member>
+    <member name="T:Microsoft.VisualStudio.Text.Differencing.IDifferenceBufferFactoryService"></member>
+    <member name="M:Microsoft.VisualStudio.Text.Differencing.IDifferenceBufferFactoryService.CreateDifferenceBuffer(Microsoft.VisualStudio.Text.ITextBuffer,Microsoft.VisualStudio.Text.ITextBuffer)"></member>
+    <member name="M:Microsoft.VisualStudio.Text.Differencing.IDifferenceBufferFactoryService.CreateDifferenceBuffer(Microsoft.VisualStudio.Text.ITextBuffer,Microsoft.VisualStudio.Text.ITextBuffer,Microsoft.VisualStudio.Text.Differencing.StringDifferenceOptions,System.Boolean,System.Boolean,System.Boolean)"></member>
+    <member name="M:Microsoft.VisualStudio.Text.Differencing.IDifferenceBufferFactoryService.TryGetDifferenceBuffer(Microsoft.VisualStudio.Text.Projection.IProjectionBufferBase)"></member>
+    <member name="T:Microsoft.VisualStudio.Text.Differencing.IDifferenceTrackingSpanCollection"></member>
+    <member name="P:Microsoft.VisualStudio.Text.Differencing.IDifferenceTrackingSpanCollection.AddedLineSpans"></member>
+    <member name="P:Microsoft.VisualStudio.Text.Differencing.IDifferenceTrackingSpanCollection.AddedWordSpans"></member>
+    <member name="P:Microsoft.VisualStudio.Text.Differencing.IDifferenceTrackingSpanCollection.RemovedLineSpans"></member>
+    <member name="P:Microsoft.VisualStudio.Text.Differencing.IDifferenceTrackingSpanCollection.RemovedWordSpans"></member>
+    <member name="T:Microsoft.VisualStudio.Text.Differencing.IgnoreDifferencePredicate"></member>
+    <member name="T:Microsoft.VisualStudio.Text.Differencing.IgnoreWhiteSpaceBehavior"></member>
+    <member name="F:Microsoft.VisualStudio.Text.Differencing.IgnoreWhiteSpaceBehavior.None">
+      <summary />
+    </member>
+    <member name="F:Microsoft.VisualStudio.Text.Differencing.IgnoreWhiteSpaceBehavior.IgnoreTrimWhiteSpace">
+      <summary />
+    </member>
+    <member name="F:Microsoft.VisualStudio.Text.Differencing.IgnoreWhiteSpaceBehavior.IgnoreAllWhiteSpace">
+      <summary />
+    </member>
+    <member name="T:Microsoft.VisualStudio.Text.Differencing.ISnapshotDifference"></member>
+    <member name="P:Microsoft.VisualStudio.Text.Differencing.ISnapshotDifference.DifferenceBuffer"></member>
+    <member name="P:Microsoft.VisualStudio.Text.Differencing.ISnapshotDifference.DifferenceOptions"></member>
+    <member name="P:Microsoft.VisualStudio.Text.Differencing.ISnapshotDifference.DifferenceSpans"></member>
+    <member name="M:Microsoft.VisualStudio.Text.Differencing.ISnapshotDifference.FindMatchOrDifference(Microsoft.VisualStudio.Text.SnapshotPoint,Microsoft.VisualStudio.Text.Differencing.Match@,Microsoft.VisualStudio.Text.Differencing.Difference@)"></member>
+    <member name="P:Microsoft.VisualStudio.Text.Differencing.ISnapshotDifference.IgnoreDifferencePredicates"></member>
+    <member name="P:Microsoft.VisualStudio.Text.Differencing.ISnapshotDifference.InlineBufferSnapshot"></member>
+    <member name="P:Microsoft.VisualStudio.Text.Differencing.ISnapshotDifference.LeftBufferSnapshot"></member>
+    <member name="P:Microsoft.VisualStudio.Text.Differencing.ISnapshotDifference.LineDifferences"></member>
+    <member name="M:Microsoft.VisualStudio.Text.Differencing.ISnapshotDifference.MapToInlineSnapshot(Microsoft.VisualStudio.Text.SnapshotPoint)"></member>
+    <member name="M:Microsoft.VisualStudio.Text.Differencing.ISnapshotDifference.MapToSnapshot(Microsoft.VisualStudio.Text.Differencing.Difference,Microsoft.VisualStudio.Text.ITextSnapshot)"></member>
+    <member name="M:Microsoft.VisualStudio.Text.Differencing.ISnapshotDifference.MapToSnapshot(Microsoft.VisualStudio.Text.SnapshotPoint,Microsoft.VisualStudio.Text.ITextSnapshot,Microsoft.VisualStudio.Text.Differencing.DifferenceMappingMode)"></member>
+    <member name="M:Microsoft.VisualStudio.Text.Differencing.ISnapshotDifference.MapToSourceSnapshot(Microsoft.VisualStudio.Text.SnapshotPoint)"></member>
+    <member name="P:Microsoft.VisualStudio.Text.Differencing.ISnapshotDifference.RightBufferSnapshot"></member>
+    <member name="P:Microsoft.VisualStudio.Text.Differencing.ISnapshotDifference.SnapshotLineTransforms"></member>
+    <member name="M:Microsoft.VisualStudio.Text.Differencing.ISnapshotDifference.TranslateToSnapshot(Microsoft.VisualStudio.Text.SnapshotPoint)"></member>
+    <member name="T:Microsoft.VisualStudio.Text.Differencing.LineType"></member>
+    <member name="F:Microsoft.VisualStudio.Text.Differencing.LineType.Added">
+      <summary />
+    </member>
+    <member name="F:Microsoft.VisualStudio.Text.Differencing.LineType.Removed">
+      <summary />
+    </member>
+    <member name="F:Microsoft.VisualStudio.Text.Differencing.LineType.Matched">
+      <summary />
+    </member>
+    <member name="T:Microsoft.VisualStudio.Text.Differencing.SnapshotDifferenceChangeEventArgs"></member>
+    <member name="M:Microsoft.VisualStudio.Text.Differencing.SnapshotDifferenceChangeEventArgs.#ctor(Microsoft.VisualStudio.Text.Differencing.ISnapshotDifference,Microsoft.VisualStudio.Text.Differencing.ISnapshotDifference)"></member>
+    <member name="P:Microsoft.VisualStudio.Text.Differencing.SnapshotDifferenceChangeEventArgs.After"></member>
+    <member name="P:Microsoft.VisualStudio.Text.Differencing.SnapshotDifferenceChangeEventArgs.Before"></member>
+    <member name="T:Microsoft.VisualStudio.Text.Differencing.SnapshotLineTransform"></member>
+    <member name="T:Microsoft.VisualStudio.Text.Document.ChangeTag">
+      <summary>A tag associated with a span of modified text.</summary>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.Document.ChangeTag.#ctor(Microsoft.VisualStudio.Text.Document.ChangeTypes)">
+      <summary>Initializes a new instance of <see cref="T:Microsoft.VisualStudio.Text.Document.ChangeTag" /> with the specified change type.</summary>
+      <param name="type">The type of change for the tag.</param>
+    </member>
+    <member name="P:Microsoft.VisualStudio.Text.Document.ChangeTag.ChangeTypes">
+      <summary>Gets the type of change for the tag.</summary>
+      <returns>The type of change for the tag.</returns>
+    </member>
+    <member name="T:Microsoft.VisualStudio.Text.Document.ChangeTypes">
+      <summary>Specifies the types of changes that can be made to a document.</summary>
+    </member>
+    <member name="F:Microsoft.VisualStudio.Text.Document.ChangeTypes.None">
+      <summary>No change types are set.</summary>
+    </member>
+    <member name="F:Microsoft.VisualStudio.Text.Document.ChangeTypes.ChangedSinceOpened">
+      <summary>The change occurred after the document was opened.</summary>
+    </member>
+    <member name="F:Microsoft.VisualStudio.Text.Document.ChangeTypes.ChangedSinceSaved">
+      <summary>The change occurred after the document was saved.</summary>
+    </member>
+    <member name="T:Microsoft.VisualStudio.Text.Editor.ConvertTabsToSpaces">
+      <summary>The option definition that determines whether to convert tabs to spaces.</summary>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.Editor.ConvertTabsToSpaces.#ctor">
+      <summary>Initializes a new instance of <see cref="T:Microsoft.VisualStudio.Text.Editor.ConvertTabsToSpaces" />.</summary>
+    </member>
+    <member name="P:Microsoft.VisualStudio.Text.Editor.ConvertTabsToSpaces.Default">
+      <summary>Gets the default value (true).</summary>
+      <returns>true.</returns>
+    </member>
+    <member name="P:Microsoft.VisualStudio.Text.Editor.ConvertTabsToSpaces.Key">
+      <summary>Gets the editor option key.</summary>
+      <returns>
+        <see cref="F:Microsoft.VisualStudio.Text.Editor.DefaultOptions.ConvertTabsToSpacesOptionId" />.</returns>
+    </member>
+    <member name="T:Microsoft.VisualStudio.Text.Editor.DefaultOptions">
+      <summary>Common editor default options.</summary>
+    </member>
+    <member name="F:Microsoft.VisualStudio.Text.Editor.DefaultOptions.ConvertTabsToSpacesOptionId">
+      <summary>Determines whether to convert tabs to spaces.</summary>
+    </member>
+    <member name="F:Microsoft.VisualStudio.Text.Editor.DefaultOptions.ConvertTabsToSpacesOptionName"></member>
+    <member name="F:Microsoft.VisualStudio.Text.Editor.DefaultOptions.IndentSizeOptionId">
+      <summary>Determines the size of an indentation.</summary>
+    </member>
+    <member name="F:Microsoft.VisualStudio.Text.Editor.DefaultOptions.IndentSizeOptionName"></member>
+    <member name="F:Microsoft.VisualStudio.Text.Editor.DefaultOptions.LongBufferLineChunkLengthId"></member>
+    <member name="F:Microsoft.VisualStudio.Text.Editor.DefaultOptions.LongBufferLineChunkLengthOptionName"></member>
+    <member name="F:Microsoft.VisualStudio.Text.Editor.DefaultOptions.LongBufferLineThresholdId"></member>
+    <member name="F:Microsoft.VisualStudio.Text.Editor.DefaultOptions.LongBufferLineThresholdOptionName"></member>
+    <member name="F:Microsoft.VisualStudio.Text.Editor.DefaultOptions.NewLineCharacterOptionId">
+      <summary>Determines the newline character or characters.</summary>
+    </member>
+    <member name="F:Microsoft.VisualStudio.Text.Editor.DefaultOptions.NewLineCharacterOptionName"></member>
+    <member name="F:Microsoft.VisualStudio.Text.Editor.DefaultOptions.ReplicateNewLineCharacterOptionId">
+      <summary>Determines whether to duplicate the new line character already present when inserting a new line.</summary>
+    </member>
+    <member name="F:Microsoft.VisualStudio.Text.Editor.DefaultOptions.ReplicateNewLineCharacterOptionName"></member>
+    <member name="F:Microsoft.VisualStudio.Text.Editor.DefaultOptions.TabSizeOptionId">
+      <summary>Determines size of a tab.</summary>
+    </member>
+    <member name="F:Microsoft.VisualStudio.Text.Editor.DefaultOptions.TabSizeOptionName"></member>
+    <member name="T:Microsoft.VisualStudio.Text.Editor.DeferCreationAttribute"></member>
+    <member name="M:Microsoft.VisualStudio.Text.Editor.DeferCreationAttribute.#ctor"></member>
+    <member name="P:Microsoft.VisualStudio.Text.Editor.DeferCreationAttribute.OptionName"></member>
+    <member name="T:Microsoft.VisualStudio.Text.Editor.EditorOptionChangedEventArgs">
+      <summary>Provides information for the <see cref="E:Microsoft.VisualStudio.Text.Editor.IEditorOptions.OptionChanged" /> event.</summary>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.Editor.EditorOptionChangedEventArgs.#ctor(System.String)">
+      <summary>Initializes a new instance of <see cref="T:Microsoft.VisualStudio.Text.Editor.EditorOptionChangedEventArgs" />.</summary>
+      <param name="optionId">The ID of the option.</param>
+    </member>
+    <member name="P:Microsoft.VisualStudio.Text.Editor.EditorOptionChangedEventArgs.OptionId">
+      <summary>Gets the ID of the option that has changed.</summary>
+      <returns>The option ID.</returns>
+    </member>
+    <member name="T:Microsoft.VisualStudio.Text.Editor.EditorOptionDefinition">
+      <summary>The definition of an editor option.</summary>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.Editor.EditorOptionDefinition.#ctor">
+      <summary>Initializes a new instance of <see cref="T:Microsoft.VisualStudio.Text.Editor.EditorOptionDefinition" />.</summary>
+    </member>
+    <member name="P:Microsoft.VisualStudio.Text.Editor.EditorOptionDefinition.DefaultValue">
+      <summary>Gets the default value of the option.</summary>
+      <returns>The default value.</returns>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.Editor.EditorOptionDefinition.Equals(System.Object)">
+      <summary>Determines whether two <see cref="T:Microsoft.VisualStudio.Text.Editor.EditorOptionDefinition" /> objects are the same.</summary>
+      <returns>true if the two objects are the same, otherwise false.</returns>
+      <param name="obj">The object to be compared.</param>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.Editor.EditorOptionDefinition.GetHashCode">
+      <summary>Gets the hash code of this type.</summary>
+      <returns>The hash code.</returns>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.Editor.EditorOptionDefinition.IsApplicableToScope(Microsoft.VisualStudio.Utilities.IPropertyOwner)">
+      <summary>Determines whether this option is applicable for the given scope (for example, a text buffer). </summary>
+      <returns>true if the option is applicable to the scope, otherwise false.</returns>
+      <param name="scope">The <see cref="T:Microsoft.VisualStudio.Utilities.IPropertyOwner" />.</param>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.Editor.EditorOptionDefinition.IsValid(System.Object@)">
+      <summary>Determines whether the proposed value is valid.</summary>
+      <returns>true if the value is valid, otherwise false.</returns>
+      <param name="proposedValue">The proposed value for this option.</param>
+    </member>
+    <member name="P:Microsoft.VisualStudio.Text.Editor.EditorOptionDefinition.Name">
+      <summary>Gets the name of the option from the options registry.</summary>
+      <returns>The name of the option.</returns>
+    </member>
+    <member name="P:Microsoft.VisualStudio.Text.Editor.EditorOptionDefinition.ValueType">
+      <summary>Gets the actual type of the option. This is used to ensure that setting the option by using the editor options registry is type-safe.</summary>
+      <returns>The type of the option.</returns>
+    </member>
+    <member name="T:Microsoft.VisualStudio.Text.Editor.EditorOptionDefinition`1">
+      <summary>Represents the definition of an editor option.</summary>
+      <typeparam name="T">The type of the option.</typeparam>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.Editor.EditorOptionDefinition`1.#ctor">
+      <summary>Initializes a new instance of <see cref="T:Microsoft.VisualStudio.Text.Editor.EditorOptionDefinition`1" />.</summary>
+    </member>
+    <member name="P:Microsoft.VisualStudio.Text.Editor.EditorOptionDefinition`1.Default">
+      <summary>Gets the default value of this option.</summary>
+      <returns>The default value of this option.</returns>
+    </member>
+    <member name="P:Microsoft.VisualStudio.Text.Editor.EditorOptionDefinition`1.DefaultValue">
+      <summary>Gets the default value of the option.</summary>
+      <returns>The default value.</returns>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.Editor.EditorOptionDefinition`1.IsValid(System.Object@)">
+      <summary>Determines whether the proposed value is valid.</summary>
+      <returns>true if the value is valid, otherwise false.</returns>
+      <param name="proposedValue">The proposed value for this option.</param>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.Editor.EditorOptionDefinition`1.IsValid(`0@)">
+      <summary>Determines whether the proposed value is valid.</summary>
+      <returns>true if the value is valid, otherwise false.</returns>
+      <param name="proposedValue">The proposed value for this option.</param>
+    </member>
+    <member name="P:Microsoft.VisualStudio.Text.Editor.EditorOptionDefinition`1.Key">
+      <summary>Gets the key of this option.</summary>
+      <returns>The key.</returns>
+    </member>
+    <member name="P:Microsoft.VisualStudio.Text.Editor.EditorOptionDefinition`1.Name">
+      <summary>Gets the name of the option.</summary>
+      <returns>The name of the option.</returns>
+    </member>
+    <member name="P:Microsoft.VisualStudio.Text.Editor.EditorOptionDefinition`1.ValueType">
+      <summary>Gets the actual type of the option.</summary>
+      <returns>The type of the option.</returns>
+    </member>
+    <member name="T:Microsoft.VisualStudio.Text.Editor.EditorOptionKey`1">
+      <summary>Represents a type-safe key for editor options.</summary>
+      <typeparam name="T">The type of the option value.</typeparam>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.Editor.EditorOptionKey`1.#ctor(System.String)">
+      <summary>Initializes a new instance of <see cref="T:Microsoft.VisualStudio.Text.Editor.EditorOptionKey`1" />.</summary>
+      <param name="name">The name of the option key.</param>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.Editor.EditorOptionKey`1.Equals(System.Object)">
+      <summary>Determines whether two <see cref="T:Microsoft.VisualStudio.Text.Editor.EditorOptionKey`1" /> objects are the same.</summary>
+      <returns>true if the objects are the same, otherwise false.</returns>
+      <param name="obj">The object to be compared.</param>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.Editor.EditorOptionKey`1.GetHashCode">
+      <summary>Gets the hash code for this object.</summary>
+      <returns>The hash code.</returns>
+    </member>
+    <member name="P:Microsoft.VisualStudio.Text.Editor.EditorOptionKey`1.Name">
+      <summary>Gets the name of this key.</summary>
+      <returns>The name of this key.</returns>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.Editor.EditorOptionKey`1.op_Equality(Microsoft.VisualStudio.Text.Editor.EditorOptionKey{`0},Microsoft.VisualStudio.Text.Editor.EditorOptionKey{`0})">
+      <summary>Determines whether two instances of this type are the same.</summary>
+      <returns>true if the two keys are the same, otherwise false.</returns>
+      <param name="left">The left-hand editor option key.</param>
+      <param name="right">The right-hand editor option key.</param>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.Editor.EditorOptionKey`1.op_Inequality(Microsoft.VisualStudio.Text.Editor.EditorOptionKey{`0},Microsoft.VisualStudio.Text.Editor.EditorOptionKey{`0})">
+      <summary>Determines whether two instances of this type are different.</summary>
+      <returns>true if the two keys are different, otherwise false.</returns>
+      <param name="left">The left-hand editor option key.</param>
+      <param name="right">The right-hand editor option key.</param>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.Editor.EditorOptionKey`1.ToString">
+      <summary>Converts this object to a string.</summary>
+      <returns>The name of the option.</returns>
+    </member>
+    <member name="T:Microsoft.VisualStudio.Text.Editor.IEditorOptions">
+      <summary>Represents common editor options and an extensible mechanism for modifying values and adding new options.</summary>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.Editor.IEditorOptions.ClearOptionValue``1(Microsoft.VisualStudio.Text.Editor.EditorOptionKey{``0})">
+      <summary>Clear the locally-defined value for the given option.</summary>
+      <returns>true if the option was defined locally and cleared, otherwise false.</returns>
+      <param name="key">The key of the option.</param>
+      <typeparam name="T">The type of the value.</typeparam>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.Editor.IEditorOptions.ClearOptionValue(System.String)">
+      <summary>Clear the locally-defined value for the given option.</summary>
+      <returns>true if the option was defined locally and cleared.</returns>
+      <param name="optionId">The ID of the option.</param>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.Editor.IEditorOptions.GetOptionValue``1(Microsoft.VisualStudio.Text.Editor.EditorOptionKey{``0})">
+      <summary>Gets the value of the option identified by the specified key.</summary>
+      <returns>The current value of the option.</returns>
+      <param name="key">The key of the option.</param>
+      <typeparam name="T">The type of the value.</typeparam>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.Editor.IEditorOptions.GetOptionValue``1(System.String)">
+      <summary>Gets the value of the option identified by the specified option ID.</summary>
+      <returns>The current value of the option.</returns>
+      <param name="optionId">The ID of the option.</param>
+      <typeparam name="T">The type of the value.</typeparam>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.Editor.IEditorOptions.GetOptionValue(System.String)">
+      <summary>Gets the value of the option specified by the option ID.</summary>
+      <returns>The current value of the option, as an object. The caller is responsible for casting the object to the correct type.</returns>
+      <param name="optionId">The ID of the option.</param>
+    </member>
+    <member name="P:Microsoft.VisualStudio.Text.Editor.IEditorOptions.GlobalOptions">
+      <summary>Gets the global options.</summary>
+      <returns>The global options.</returns>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.Editor.IEditorOptions.IsOptionDefined``1(Microsoft.VisualStudio.Text.Editor.EditorOptionKey{``0},System.Boolean)">
+      <summary>Determines whether the specified editor option is defined.</summary>
+      <returns>true if the option is defined, otherwise false.</returns>
+      <param name="key">The key of the option.</param>
+      <param name="localScopeOnly">true to search only in this scope, false to try parent scopes as well. This setting has no effect if the current scope is global.</param>
+      <typeparam name="T">The type of the key.</typeparam>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.Editor.IEditorOptions.IsOptionDefined(System.String,System.Boolean)">
+      <summary>Determines whether the specified option is defined.</summary>
+      <returns>true if the option is defined, otherwise false.</returns>
+      <param name="optionId">The ID of the option.</param>
+      <param name="localScopeOnly">true to search only in this scope, false to try parent scopes as well. This setting has no effect if the current scope is global.</param>
+    </member>
+    <member name="E:Microsoft.VisualStudio.Text.Editor.IEditorOptions.OptionChanged">
+      <summary>Occurs when any option changes. </summary>
+    </member>
+    <member name="P:Microsoft.VisualStudio.Text.Editor.IEditorOptions.Parent">
+      <summary>Gets the immediate parent of this set of options. </summary>
+      <returns>The parent scope.</returns>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.Editor.IEditorOptions.SetOptionValue``1(Microsoft.VisualStudio.Text.Editor.EditorOptionKey{``0},``0)">
+      <summary>Sets the value of the specified option in the current scope. </summary>
+      <param name="key">The key of the option.</param>
+      <param name="value">The new value of the option.</param>
+      <typeparam name="T">The type of the key.</typeparam>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.Editor.IEditorOptions.SetOptionValue(System.String,System.Object)">
+      <summary>Sets the value of the specified option in the current scope. </summary>
+      <param name="optionId">The ID of the option.</param>
+      <param name="value">The new value of the option.</param>
+    </member>
+    <member name="P:Microsoft.VisualStudio.Text.Editor.IEditorOptions.SupportedOptions">
+      <summary>Gets the supported options.</summary>
+      <returns>The supported options.</returns>
+    </member>
+    <member name="T:Microsoft.VisualStudio.Text.Editor.IEditorOptionsFactoryService">
+      <summary>Represents a service that gets <see cref="T:Microsoft.VisualStudio.Text.Editor.IEditorOptions" /> for a specified scope or for the global scope.</summary>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.Editor.IEditorOptionsFactoryService.CreateOptions">
+      <summary>Creates a new instance of <see cref="T:Microsoft.VisualStudio.Text.Editor.IEditorOptions" /> that is not bound to any particular scope.</summary>
+      <returns>A new instance of <see cref="T:Microsoft.VisualStudio.Text.Editor.IEditorOptions" />, parented on the <see cref="P:Microsoft.VisualStudio.Text.Editor.IEditorOptionsFactoryService.GlobalOptions" />.</returns>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.Editor.IEditorOptionsFactoryService.GetOptions(Microsoft.VisualStudio.Utilities.IPropertyOwner)">
+      <summary>Gets the <see cref="T:Microsoft.VisualStudio.Text.Editor.IEditorOptions" /> for the <see cref="T:Microsoft.VisualStudio.Utilities.IPropertyOwner" />. Buffers and views are property owners. Creates new options for the scope if none have previously been created.</summary>
+      <returns>The <see cref="T:Microsoft.VisualStudio.Text.Editor.IEditorOptions" /> for the given <see cref="T:Microsoft.VisualStudio.Utilities.IPropertyOwner" />.</returns>
+      <param name="scope">The <see cref="T:Microsoft.VisualStudio.Utilities.IPropertyOwner" />.</param>
+    </member>
+    <member name="P:Microsoft.VisualStudio.Text.Editor.IEditorOptionsFactoryService.GlobalOptions">
+      <summary>Gets the global <see cref="T:Microsoft.VisualStudio.Text.Editor.IEditorOptions" />.</summary>
+      <returns>The global options.</returns>
+    </member>
+    <member name="T:Microsoft.VisualStudio.Text.Editor.IndentSize">
+      <summary>The option definition that determines the size (in number of spaces) of an indent.</summary>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.Editor.IndentSize.#ctor">
+      <summary>Initializes a new instance of <see cref="T:Microsoft.VisualStudio.Text.Editor.IndentSize" />.</summary>
+    </member>
+    <member name="P:Microsoft.VisualStudio.Text.Editor.IndentSize.Default">
+      <summary>Gets the default value (4).</summary>
+      <returns>The default value (4).</returns>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.Editor.IndentSize.IsValid(System.Int32@)">
+      <summary>Determines whether a given indent size is valid.</summary>
+      <returns>true if the size is valid, otherwise false.</returns>
+      <param name="proposedValue">The size of the indent, in number of spaces.</param>
+    </member>
+    <member name="P:Microsoft.VisualStudio.Text.Editor.IndentSize.Key">
+      <summary>Gets the editor option key.</summary>
+      <returns>The editor option key.</returns>
+    </member>
+    <member name="T:Microsoft.VisualStudio.Text.Editor.LongBufferLineChunk"></member>
+    <member name="M:Microsoft.VisualStudio.Text.Editor.LongBufferLineChunk.#ctor"></member>
+    <member name="P:Microsoft.VisualStudio.Text.Editor.LongBufferLineChunk.Default"></member>
+    <member name="P:Microsoft.VisualStudio.Text.Editor.LongBufferLineChunk.Key"></member>
+    <member name="T:Microsoft.VisualStudio.Text.Editor.LongBufferLineThreshold"></member>
+    <member name="M:Microsoft.VisualStudio.Text.Editor.LongBufferLineThreshold.#ctor"></member>
+    <member name="P:Microsoft.VisualStudio.Text.Editor.LongBufferLineThreshold.Default"></member>
+    <member name="P:Microsoft.VisualStudio.Text.Editor.LongBufferLineThreshold.Key"></member>
+    <member name="T:Microsoft.VisualStudio.Text.Editor.NewLineCharacter">
+      <summary>The option definition that specifies the newline character or characters.</summary>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.Editor.NewLineCharacter.#ctor">
+      <summary>Initializes a new instance of <see cref="T:Microsoft.VisualStudio.Text.Editor.NewLineCharacter" />.</summary>
+    </member>
+    <member name="P:Microsoft.VisualStudio.Text.Editor.NewLineCharacter.Default">
+      <summary>Gets the default value ("\r\n").</summary>
+      <returns>"\r\n".</returns>
+    </member>
+    <member name="P:Microsoft.VisualStudio.Text.Editor.NewLineCharacter.Key">
+      <summary>Gets the editor option key.</summary>
+      <returns>
+        <see cref="F:Microsoft.VisualStudio.Text.Editor.DefaultOptions.NewLineCharacterOptionId" />.</returns>
+    </member>
+    <member name="T:Microsoft.VisualStudio.Text.Editor.ReplicateNewLineCharacter">
+      <summary>Determines whether to duplicate a newline character when inserting a line.</summary>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.Editor.ReplicateNewLineCharacter.#ctor">
+      <summary>Initializes a new instance of <see cref="T:Microsoft.VisualStudio.Text.Editor.ReplicateNewLineCharacter" />.</summary>
+    </member>
+    <member name="P:Microsoft.VisualStudio.Text.Editor.ReplicateNewLineCharacter.Default">
+      <summary>Gets the default value (true).</summary>
+      <returns>true.</returns>
+    </member>
+    <member name="P:Microsoft.VisualStudio.Text.Editor.ReplicateNewLineCharacter.Key">
+      <summary>Gets the editor option key.</summary>
+      <returns>
+        <see cref="F:Microsoft.VisualStudio.Text.Editor.DefaultOptions.ReplicateNewLineCharacterOptionId" />.</returns>
+    </member>
+    <member name="T:Microsoft.VisualStudio.Text.Editor.TabSize">
+      <summary>The option definition that determines the number of spaces of a tab.</summary>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.Editor.TabSize.#ctor">
+      <summary>Initializes a new instance of <see cref="T:Microsoft.VisualStudio.Text.Editor.TabSize" />.</summary>
+    </member>
+    <member name="P:Microsoft.VisualStudio.Text.Editor.TabSize.Default">
+      <summary>Gets the default value (4).</summary>
+      <returns>The default value (4).</returns>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.Editor.TabSize.IsValid(System.Int32@)">
+      <summary>Determines whether a given tab size is valid.</summary>
+      <returns>true if <paramref name="proposedValue" /> is a valid size, otherwise false.</returns>
+      <param name="proposedValue">The size of the tab, in number of spaces.</param>
+    </member>
+    <member name="P:Microsoft.VisualStudio.Text.Editor.TabSize.Key">
+      <summary>Gets the editor option key.</summary>
+      <returns>
+        <see cref="F:Microsoft.VisualStudio.Text.Editor.DefaultOptions.TabSizeOptionId" />.</returns>
+    </member>
+    <member name="T:Microsoft.VisualStudio.Text.Editor.OptionsExtensionMethods.DefaultOptionExtensions">
+      <summary>Extension methods for common general options.</summary>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.Editor.OptionsExtensionMethods.DefaultOptionExtensions.GetIndentSize(Microsoft.VisualStudio.Text.Editor.IEditorOptions)">
+      <summary>Gets the size of an indentation for the specified <see cref="T:Microsoft.VisualStudio.Text.Editor.IEditorOptions" />.</summary>
+      <returns>The size of the indentation.</returns>
+      <param name="options">The <see cref="T:Microsoft.VisualStudio.Text.Editor.IEditorOptions" />.</param>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.Editor.OptionsExtensionMethods.DefaultOptionExtensions.GetNewLineCharacter(Microsoft.VisualStudio.Text.Editor.IEditorOptions)">
+      <summary>Gets the newline character or characters for the specified editor options.</summary>
+      <returns>A string containing the newline character or characters.</returns>
+      <param name="options">The <see cref="T:Microsoft.VisualStudio.Text.Editor.IEditorOptions" />.</param>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.Editor.OptionsExtensionMethods.DefaultOptionExtensions.GetReplicateNewLineCharacter(Microsoft.VisualStudio.Text.Editor.IEditorOptions)">
+      <summary>Determines whether to duplicate the newline character or character sequence if it is already present when inserting a newline.</summary>
+      <returns>true if the newline character(s) should be duplicated, otherwise false.</returns>
+      <param name="options">The <see cref="T:Microsoft.VisualStudio.Text.Editor.IEditorOptions" />.</param>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.Editor.OptionsExtensionMethods.DefaultOptionExtensions.GetTabSize(Microsoft.VisualStudio.Text.Editor.IEditorOptions)">
+      <summary>Gets the number of spaces for the tab in the specified <see cref="T:Microsoft.VisualStudio.Text.Editor.IEditorOptions" />.</summary>
+      <returns>The number of spaces of the tab size.</returns>
+      <param name="options">The <see cref="T:Microsoft.VisualStudio.Text.Editor.IEditorOptions" />.</param>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.Editor.OptionsExtensionMethods.DefaultOptionExtensions.IsConvertTabsToSpacesEnabled(Microsoft.VisualStudio.Text.Editor.IEditorOptions)">
+      <summary>Determines whether the option to convert tabs to spaces is enabled in the specified <see cref="T:Microsoft.VisualStudio.Text.Editor.IEditorOptions" />.</summary>
+      <returns>true if the option is enabled, otherwise false.</returns>
+      <param name="options">The <see cref="T:Microsoft.VisualStudio.Text.Editor.IEditorOptions" />.</param>
+    </member>
+    <member name="T:Microsoft.VisualStudio.Text.Operations.FindData">
+      <summary>Represents the set of data used in a search by the <see cref="T:Microsoft.VisualStudio.Text.Operations.ITextSearchService" />.</summary>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.Operations.FindData.#ctor(System.String,Microsoft.VisualStudio.Text.ITextSnapshot)">
+      <summary>Initializes a new instance of <see cref="T:Microsoft.VisualStudio.Text.Operations.FindData" /> with the specified search pattern and text snapshot. </summary>
+      <param name="searchPattern">The search string.</param>
+      <param name="textSnapshot">The text snapshot in which to search.</param>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.Operations.FindData.#ctor(System.String,Microsoft.VisualStudio.Text.ITextSnapshot,Microsoft.VisualStudio.Text.Operations.FindOptions,Microsoft.VisualStudio.Text.Operations.ITextStructureNavigator)">
+      <summary>Initializes a new instance of <see cref="T:Microsoft.VisualStudio.Text.Operations.FindData" /> with the specified search pattern, text snapshot, find options, and text structure navigator.</summary>
+      <param name="searchPattern">The search pattern.</param>
+      <param name="textSnapshot">The <see cref="T:Microsoft.VisualStudio.Text.ITextSnapshot" /> to search.</param>
+      <param name="findOptions">The <see cref="P:Microsoft.VisualStudio.Text.Operations.FindData.FindOptions" /> to use during the search.</param>
+      <param name="textStructureNavigator">The <see cref="T:Microsoft.VisualStudio.Text.Operations.ITextStructureNavigator" /> to use during the search.</param>
+      <exception cref="T:System.ArgumentNullException">
+        <paramref name="searchPattern" /> or <paramref name="textSnapshot" /> is null.</exception>
+      <exception cref="T:System.ArgumentOutOfRangeException">
+        <paramref name="searchPattern" /> is an empty string.</exception>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.Operations.FindData.Equals(System.Object)">
+      <summary>Determines whether two <see cref="T:Microsoft.VisualStudio.Text.Operations.FindData" /> objects are the same.</summary>
+      <returns>true if the objects are the same, otherwise false.</returns>
+      <param name="obj">The object to compare.</param>
+    </member>
+    <member name="P:Microsoft.VisualStudio.Text.Operations.FindData.FindOptions">
+      <summary>Gets or sets the options that are used for the search.</summary>
+      <returns>The options that are used for the search.</returns>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.Operations.FindData.GetHashCode">
+      <summary>Gets the hash code for the object.</summary>
+      <returns>The hash code.</returns>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.Operations.FindData.op_Equality(Microsoft.VisualStudio.Text.Operations.FindData,Microsoft.VisualStudio.Text.Operations.FindData)">
+      <summary>Determines whether two <see cref="T:Microsoft.VisualStudio.Text.Operations.FindData" /> objects are the same.</summary>
+      <returns>true if the objects are the same, otherwise false.</returns>
+      <param name="data1">The first object.</param>
+      <param name="data2">The second object.</param>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.Operations.FindData.op_Inequality(Microsoft.VisualStudio.Text.Operations.FindData,Microsoft.VisualStudio.Text.Operations.FindData)">
+      <summary>Determines whether two <see cref="T:Microsoft.VisualStudio.Text.Operations.FindData" /> objects are different.</summary>
+      <returns>true if the two objects are different, otherwise false.</returns>
+      <param name="data1">The first object.</param>
+      <param name="data2">The second object.</param>
+    </member>
+    <member name="P:Microsoft.VisualStudio.Text.Operations.FindData.SearchString">
+      <summary>Gets or sets the string to use in the search.</summary>
+      <returns>The string to use in the search.</returns>
+      <exception cref="T:System.ArgumentNullException">The value is null.</exception>
+      <exception cref="T:System.ArgumentOutOfRangeException">The value is an empty string.</exception>
+    </member>
+    <member name="P:Microsoft.VisualStudio.Text.Operations.FindData.TextSnapshotToSearch">
+      <summary>Gets or sets the <see cref="T:Microsoft.VisualStudio.Text.ITextSnapshot" /> on which to perform the search.</summary>
+      <returns>The <see cref="T:Microsoft.VisualStudio.Text.ITextSnapshot" /> on which to perform the search.</returns>
+      <exception cref="T:System.ArgumentNullException">The value is null.</exception>
+    </member>
+    <member name="P:Microsoft.VisualStudio.Text.Operations.FindData.TextStructureNavigator">
+      <summary>Gets or sets the <see cref="T:Microsoft.VisualStudio.Text.Operations.ITextStructureNavigator" /> to use in determining word boundaries.</summary>
+      <returns>The <see cref="T:Microsoft.VisualStudio.Text.Operations.ITextStructureNavigator" /> to use in determining word boundaries.</returns>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.Operations.FindData.ToString">
+      <summary>Converts the <see cref="T:Microsoft.VisualStudio.Text.Operations.FindData" /> object to a string.</summary>
+      <returns>The string representation of the <see cref="T:Microsoft.VisualStudio.Text.Operations.FindData" /> object.</returns>
+    </member>
+    <member name="T:Microsoft.VisualStudio.Text.Operations.FindOptions">
+      <summary>Represents the options that are used in a search.</summary>
+    </member>
+    <member name="F:Microsoft.VisualStudio.Text.Operations.FindOptions.None">
+      <summary>No options have been set.</summary>
+    </member>
+    <member name="F:Microsoft.VisualStudio.Text.Operations.FindOptions.MatchCase">
+      <summary>The search is case-sensitive.</summary>
+    </member>
+    <member name="F:Microsoft.VisualStudio.Text.Operations.FindOptions.UseRegularExpressions">
+      <summary>The search uses .NET regular expressions.</summary>
+    </member>
+    <member name="F:Microsoft.VisualStudio.Text.Operations.FindOptions.WholeWord">
+      <summary>The search matches whole words only.</summary>
+    </member>
+    <member name="F:Microsoft.VisualStudio.Text.Operations.FindOptions.SearchReverse">
+      <summary>The search starts at the end of the string.</summary>
+    </member>
+    <member name="F:Microsoft.VisualStudio.Text.Operations.FindOptions.Wrap">
+      <summary>The search should wrap around if it hits boundaries of the search range..</summary>
+    </member>
+    <member name="F:Microsoft.VisualStudio.Text.Operations.FindOptions.Multiline">
+      <summary>The search contains data that could match over line endings..</summary>
+    </member>
+    <member name="F:Microsoft.VisualStudio.Text.Operations.FindOptions.OrdinalComparison">
+      <summary>The string comparison used for the search is culture-insensitive (ordinal). For regular expressions, this option specifies <see cref="F:System.Text.RegularExpressions.RegexOptions.CultureInvariant" /></summary>
+    </member>
+    <member name="F:Microsoft.VisualStudio.Text.Operations.FindOptions.SingleLine">
+      <summary>When supplied, uses the <see cref="F:System.Text.RegularExpressions.RegexOptions.Singleline" /> option to perform the searches. Only valid in conjunction with the UseRegularExpressions option.</summary>
+    </member>
+    <member name="T:Microsoft.VisualStudio.Text.Operations.IMergeTextUndoTransactionPolicy">
+      <summary>Provides the merge policy for undo transactions.</summary>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.Operations.IMergeTextUndoTransactionPolicy.CanMerge(Microsoft.VisualStudio.Text.Operations.ITextUndoTransaction,Microsoft.VisualStudio.Text.Operations.ITextUndoTransaction)">
+      <summary>Determines whether two transactions can be merged</summary>
+      <returns>true if the transactions can be merged, otherwise false.</returns>
+      <param name="newerTransaction">The newer transaction.</param>
+      <param name="olderTransaction">The older transaction.</param>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.Operations.IMergeTextUndoTransactionPolicy.PerformTransactionMerge(Microsoft.VisualStudio.Text.Operations.ITextUndoTransaction,Microsoft.VisualStudio.Text.Operations.ITextUndoTransaction)">
+      <summary>Merges a new <see cref="T:Microsoft.VisualStudio.Text.Operations.ITextUndoTransaction" /> with an existing one.</summary>
+      <param name="existingTransaction">The existing transaction.</param>
+      <param name="newTransaction">The new transaction.</param>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.Operations.IMergeTextUndoTransactionPolicy.TestCompatiblePolicy(Microsoft.VisualStudio.Text.Operations.IMergeTextUndoTransactionPolicy)">
+      <summary>Determines whether one <see cref="T:Microsoft.VisualStudio.Text.Operations.IMergeTextUndoTransactionPolicy" /> is compatible with another.</summary>
+      <returns>true if the policy is compatible, otherwise false.</returns>
+      <param name="other">The <see cref="T:Microsoft.VisualStudio.Text.Operations.IMergeTextUndoTransactionPolicy" /> to test.</param>
+    </member>
+    <member name="T:Microsoft.VisualStudio.Text.Operations.ITextBufferUndoManager">
+      <summary>Registers the <see cref="T:Microsoft.VisualStudio.Text.Operations.ITextUndoHistory" /> for a text buffer, listens for change events on a text buffer, and adds <see cref="T:Microsoft.VisualStudio.Text.Operations.ITextUndoPrimitive" /> objects to the <see cref="T:Microsoft.VisualStudio.Text.Operations.ITextUndoHistory" />.</summary>
+    </member>
+    <member name="P:Microsoft.VisualStudio.Text.Operations.ITextBufferUndoManager.TextBuffer">
+      <summary>Gets the <see cref="T:Microsoft.VisualStudio.Text.ITextBuffer" /> for which this <see cref="T:Microsoft.VisualStudio.Text.Operations.ITextBufferUndoManager" /> manages undo operations.</summary>
+      <returns>The <see cref="T:Microsoft.VisualStudio.Text.ITextBuffer" />.</returns>
+    </member>
+    <member name="P:Microsoft.VisualStudio.Text.Operations.ITextBufferUndoManager.TextBufferUndoHistory">
+      <summary>Gets the undo history for the underlying <see cref="T:Microsoft.VisualStudio.Text.ITextBuffer" />.</summary>
+      <returns>The undo history.</returns>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.Operations.ITextBufferUndoManager.UnregisterUndoHistory">
+      <summary>Unregisters the <see cref="T:Microsoft.VisualStudio.Text.Operations.ITextUndoHistory" /> for the underlying <see cref="T:Microsoft.VisualStudio.Text.ITextBuffer" /> from the <see cref="T:Microsoft.VisualStudio.Text.Operations.ITextUndoHistoryRegistry" />.</summary>
+    </member>
+    <member name="T:Microsoft.VisualStudio.Text.Operations.ITextBufferUndoManagerProvider">
+      <summary>Provides an <see cref="T:Microsoft.VisualStudio.Text.Operations.ITextBufferUndoManager" /> for a given <see cref="T:Microsoft.VisualStudio.Text.ITextBuffer" />. </summary>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.Operations.ITextBufferUndoManagerProvider.GetTextBufferUndoManager(Microsoft.VisualStudio.Text.ITextBuffer)">
+      <summary>Gets the cached <see cref="T:Microsoft.VisualStudio.Text.Operations.ITextBufferUndoManager" /> for the specified <see cref="T:Microsoft.VisualStudio.Text.ITextBuffer" />. </summary>
+      <returns>The cached <see cref="T:Microsoft.VisualStudio.Text.Operations.ITextBufferUndoManager" /> for <paramref name="textBuffer" />.</returns>
+      <param name="textBuffer">The <see cref="T:Microsoft.VisualStudio.Text.ITextBuffer" />.</param>
+      <exception cref="T:System.ArgumentNullException">
+        <paramref name="textBuffer" /> is null.</exception>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.Operations.ITextBufferUndoManagerProvider.RemoveTextBufferUndoManager(Microsoft.VisualStudio.Text.ITextBuffer)">
+      <summary>Removes the <see cref="T:Microsoft.VisualStudio.Text.Operations.ITextBufferUndoManager" /> for the specified text buffer.</summary>
+      <param name="textBuffer">The <see cref="T:Microsoft.VisualStudio.Text.ITextBuffer" /> to check.</param>
+      <exception cref="T:System.ArgumentNullException">
+        <paramref name="textBuffer" /> is null.</exception>
+    </member>
+    <member name="T:Microsoft.VisualStudio.Text.Operations.ITextSearchNavigator">
+      <summary>Navigates between search results on an <see cref="T:Microsoft.VisualStudio.Text.ITextBuffer" /> and performs text replacements.</summary>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.Operations.ITextSearchNavigator.ClearCurrentResult">
+      <summary>Clears the current result.</summary>
+    </member>
+    <member name="P:Microsoft.VisualStudio.Text.Operations.ITextSearchNavigator.CurrentResult">
+      <summary>Gets the <see cref="T:Microsoft.VisualStudio.Text.SnapshotSpan" /> corresponding to the result of the last find operation.</summary>
+      <returns>Returns the result of the last find operation. If no matches were found or if no search was performed, returns null.</returns>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.Operations.ITextSearchNavigator.Find">
+      <summary>Finds the next occurrence of the text matching the <see cref="P:Microsoft.VisualStudio.Text.Operations.ITextSearchNavigator.SearchTerm" />.</summary>
+      <returns>Returns true if a match is found; otherwise, returns false.</returns>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.Operations.ITextSearchNavigator.Replace">
+      <summary>Replaces the current result with the <see cref="P:Microsoft.VisualStudio.Text.Operations.ITextSearchNavigator.ReplaceTerm" />.</summary>
+      <returns>Returns true if the replacement succeeded; otherwise returns false.</returns>
+    </member>
+    <member name="P:Microsoft.VisualStudio.Text.Operations.ITextSearchNavigator.ReplaceTerm">
+      <summary>Gets or sets the term to use to replace matches.</summary>
+      <returns>Returns the term to use to replace matches.</returns>
+    </member>
+    <member name="P:Microsoft.VisualStudio.Text.Operations.ITextSearchNavigator.SearchOptions">
+      <summary>Gets or sets options to use for a search.</summary>
+      <returns>Returns options to use for a search.</returns>
+    </member>
+    <member name="P:Microsoft.VisualStudio.Text.Operations.ITextSearchNavigator.SearchSpan">
+      <summary>Gets or sets the range of text to search.</summary>
+      <returns>Returns the range of text to search.</returns>
+    </member>
+    <member name="P:Microsoft.VisualStudio.Text.Operations.ITextSearchNavigator.SearchTerm">
+      <summary>Gets or sets the term to search for.</summary>
+      <returns>Returns the term to search for.</returns>
+    </member>
+    <member name="P:Microsoft.VisualStudio.Text.Operations.ITextSearchNavigator.StartPoint">
+      <summary>Gets or sets the position at which the search is started.</summary>
+      <returns>Returns the position at which the search is started.</returns>
+    </member>
+    <member name="T:Microsoft.VisualStudio.Text.Operations.ITextSearchNavigatorFactoryService">
+      <summary>Creates <see cref="T:Microsoft.VisualStudio.Text.Operations.ITextSearchNavigator" /> objects.</summary>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.Operations.ITextSearchNavigatorFactoryService.CreateSearchNavigator(Microsoft.VisualStudio.Text.ITextBuffer)">
+      <summary>Creates a new instance of <see cref="T:Microsoft.VisualStudio.Text.Operations.ITextSearchNavigator" /> that searches the provided text buffer.</summary>
+      <returns>Returns an <see cref="T:Microsoft.VisualStudio.Text.Operations.ITextSearchNavigator" /> that searches the provided buffer..</returns>
+      <param name="buffer">The buffer to search.</param>
+    </member>
+    <member name="T:Microsoft.VisualStudio.Text.Operations.ITextSearchService">
+      <summary>Searches a <see cref="T:Microsoft.VisualStudio.Text.ITextSnapshot" /> with different search options.</summary>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.Operations.ITextSearchService.FindAll(Microsoft.VisualStudio.Text.Operations.FindData)">
+      <summary>Searches for all the occurrences of the search string.</summary>
+      <returns>A list of all the matches, or null if no matches were found.</returns>
+      <param name="findData">The data to use for this search.</param>
+      <exception cref="T:System.ArgumentNullException">
+        <paramref name="findData" /> is null.</exception>
+      <exception cref="T:System.ArgumentException">The <see cref="F:Microsoft.VisualStudio.Text.Operations.FindOptions.UseRegularExpressions" /> flag is set and the search string is an invalid regular expression.</exception>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.Operations.ITextSearchService.FindNext(System.Int32,System.Boolean,Microsoft.VisualStudio.Text.Operations.FindData)">
+      <summary>Searches for the next occurrence of the search string.</summary>
+      <returns>The <see cref="T:Microsoft.VisualStudio.Text.SnapshotSpan" /> containing the match if a match was found, or null if no matches were found.</returns>
+      <param name="startIndex">The index from which to begin the search.</param>
+      <param name="wraparound">Determines whether the search wraps to the beginning of the buffer when it reaches the end of the buffer.</param>
+      <param name="findData">The data to use for this search.</param>
+      <exception cref="T:System.ArgumentNullException">
+        <paramref name="findData" /> is null.</exception>
+      <exception cref="T:System.ArgumentOutOfRangeException">
+        <paramref name="startIndex" /> is less than zero or greater than the length of the data.</exception>
+      <exception cref="T:System.ArgumentException">The <see cref="F:Microsoft.VisualStudio.Text.Operations.FindOptions.UseRegularExpressions" /> flag is set and the search string is an invalid regular expression.</exception>
+    </member>
+    <member name="T:Microsoft.VisualStudio.Text.Operations.ITextSearchService2">
+      <summary>Extends <see cref="T:Microsoft.VisualStudio.Text.Operations.ITextSearchService" /> with methods for searching contents of a <see cref="T:Microsoft.VisualStudio.Text.ITextSnapshot" /> and helper methods for performing replace operations.</summary>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.Operations.ITextSearchService2.Find(Microsoft.VisualStudio.Text.SnapshotPoint,System.String,Microsoft.VisualStudio.Text.Operations.FindOptions)">
+      <summary>Searches for the next occurrence of the given search pattern, using the given starting position and options.</summary>
+      <returns>Returns the text span containing the match if a match was found; otherwise, returns null if no matches were found.</returns>
+      <param name="startingPosition">[in] The position from which to begin the search.</param>
+      <param name="searchPattern">[in] The text pattern to search for.</param>
+      <param name="options">[in] Options to use for the search.</param>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.Operations.ITextSearchService2.Find(Microsoft.VisualStudio.Text.SnapshotSpan,Microsoft.VisualStudio.Text.SnapshotPoint,System.String,Microsoft.VisualStudio.Text.Operations.FindOptions)">
+      <summary>Searches for the next occurrence of the given search pattern, using the given search range, starting position and options.</summary>
+      <returns>This method is safe to be executed on any thread.Returns the text span containing the match if a match was found; otherwise, returns null if no matches were found.</returns>
+      <param name="searchRange">[in] The range of text to search in.</param>
+      <param name="startingPosition">[in] The position from which to begin the search.</param>
+      <param name="searchPattern">[in] The text pattern to search for.</param>
+      <param name="options">[in] Options to use for the search.</param>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.Operations.ITextSearchService2.FindAll(Microsoft.VisualStudio.Text.SnapshotSpan,Microsoft.VisualStudio.Text.SnapshotPoint,System.String,Microsoft.VisualStudio.Text.Operations.FindOptions)">
+      <summary>Searches for all occurrences of the given search pattern, using the given search range, starting position and options.</summary>
+      <returns>Returns an enumeration of <see cref="T:Microsoft.VisualStudio.Text.SnapshotSpan" /> containing the matches if any matches were found; otherwise, returns null if no matches were found.</returns>
+      <param name="searchRange">[in] The range of text to search in.</param>
+      <param name="startingPosition">[in] The position from which to begin the search.</param>
+      <param name="searchPattern">[in] The text pattern to search for.</param>
+      <param name="options">[in] Options to use for the search.</param>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.Operations.ITextSearchService2.FindAll(Microsoft.VisualStudio.Text.SnapshotSpan,System.String,Microsoft.VisualStudio.Text.Operations.FindOptions)">
+      <summary>Searches for all occurrences of the given search pattern, using the given starting range and options.</summary>
+      <returns>Returns an enumeration of <see cref="T:Microsoft.VisualStudio.Text.SnapshotSpan" /> containing the matches if any matches were found; otherwise, returns null if no matches were found.</returns>
+      <param name="searchRange">[in] The range of text to search in.</param>
+      <param name="searchPattern">[in] The text pattern to search for.</param>
+      <param name="options">[in] Options to use for the search.</param>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.Operations.ITextSearchService2.FindAllForReplace(System.Boolean,Microsoft.VisualStudio.Text.SnapshotSpan,System.String,Microsoft.VisualStudio.Text.SnapshotSpan)">
+      <summary>Searches for all occurrences of the search pattern and calculates all the corresponding replacement results for every match according to the specified replacement pattern.</summary>
+      <returns>Returns an enumeration of all matches found and their corresponding replacement values. Returned value contains a collection of tuples; each tuple contains a <see cref="T:Microsoft.VisualStudio.Text.SnapshotSpan" /> referencing the location of the match and a string containing the calculated replacement text for the match. Returns empty enumeration if no matches are found.</returns>
+      <param name="searchRange">[in] The range of text to search in.</param>
+      <param name="searchPattern">[in] The text pattern to search for.</param>
+      <param name="replacePattern">[in] The replace pattern to use for the operation.</param>
+      <param name="options">[in] Options to use for the search.</param>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.Operations.ITextSearchService2.FindForReplace(Microsoft.VisualStudio.Text.SnapshotPoint,System.String,System.String,Microsoft.VisualStudio.Text.Operations.FindOptions,System.String@)">
+      <summary>Searches for the next occurrence of the search pattern and returns the result of replacing the search pattern with the replacement pattern.</summary>
+      <returns>Returns the search result found. If no match is found, returns null.</returns>
+      <param name="startingPosition">The position from which the search is started. The search will be performed on the <see cref="T:Microsoft.VisualStudio.Text.ITextSnapshot" /> to which this parameter belongs.</param>
+      <param name="searchPattern">[in] The text pattern to search for.</param>
+      <param name="replacePattern">[in] The text pattern to replace the found text with.</param>
+      <param name="options">[in] Options to use for the search.</param>
+      <param name="expandedReplacePattern">[out] The result of the replacement. Value is null if no matches are found. This value will be useful when performing regular expression searches.</param>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.Operations.ITextSearchService2.FindForReplace(Microsoft.VisualStudio.Text.SnapshotSpan,System.String,System.String,Microsoft.VisualStudio.Text.Operations.FindOptions,System.String@)">
+      <summary>Searches for the next occurrence of the search pattern and returns the result of replacing the search pattern with the replacement pattern.</summary>
+      <returns>Returns the search result found. If no match is found, returns null.</returns>
+      <param name="searchRange">[in] The range of text to search in.</param>
+      <param name="searchPattern">[in] The text pattern to search for.</param>
+      <param name="replacePattern">[in] The text pattern to replace the found text with.</param>
+      <param name="options">[in] Options to use for the search.</param>
+      <param name="expandedReplacePattern">[out] The result of the replacement. Value is null if no matches are found. This value will be useful when performing regular expression searches.</param>
+    </member>
+    <member name="T:Microsoft.VisualStudio.Text.Operations.ITextStructureNavigator">
+      <summary>Provides methods to navigate text, such as getting word extents.</summary>
+    </member>
+    <member name="P:Microsoft.VisualStudio.Text.Operations.ITextStructureNavigator.ContentType">
+      <summary>Gets the content type that this navigator supports.</summary>
+      <returns>The content type that this navigator supports.</returns>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.Operations.ITextStructureNavigator.GetExtentOfWord(Microsoft.VisualStudio.Text.SnapshotPoint)">
+      <summary>Gets the extent of the word at the given position.</summary>
+      <returns>A <see cref="T:Microsoft.VisualStudio.Text.Operations.TextExtent" /> that represents the word. </returns>
+      <param name="currentPosition">The text position.</param>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.Operations.ITextStructureNavigator.GetSpanOfEnclosing(Microsoft.VisualStudio.Text.SnapshotSpan)">
+      <summary>Gets the span of the enclosing syntactic element of the specified snapshot span.</summary>
+      <returns>A <see cref="T:Microsoft.VisualStudio.Text.SnapshotSpan" /> that represents the enclosing syntactic element. If the specified snapshot span covers multiple syntactic elements, then the method returns the least common ancestor of the elements.If the snapshot span covers the root element (in other words, the whole document), then the method returns <see cref="T:Microsoft.VisualStudio.Text.SnapshotSpan" /> of the whole document.</returns>
+      <param name="activeSpan">The <see cref="T:Microsoft.VisualStudio.Text.SnapshotSpan" /> from which to get the enclosing syntactic element.</param>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.Operations.ITextStructureNavigator.GetSpanOfFirstChild(Microsoft.VisualStudio.Text.SnapshotSpan)">
+      <summary>Gets the span of the first child syntactic element of the specified snapshot span. </summary>
+      <returns>A <see cref="T:Microsoft.VisualStudio.Text.SnapshotSpan" /> that represents the first child syntactic element. </returns>
+      <param name="activeSpan">The <see cref="T:Microsoft.VisualStudio.Text.SnapshotSpan" /> from which to get the span of the first child syntactic element.</param>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.Operations.ITextStructureNavigator.GetSpanOfNextSibling(Microsoft.VisualStudio.Text.SnapshotSpan)">
+      <summary>Gets the span of the next sibling syntactic element of the specified snapshot span. </summary>
+      <returns>A <see cref="T:Microsoft.VisualStudio.Text.SnapshotSpan" /> that represents the next sibling syntactic element. </returns>
+      <param name="activeSpan">The <see cref="T:Microsoft.VisualStudio.Text.SnapshotSpan" /> from which to get the span of the next sibling syntactic element.</param>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.Operations.ITextStructureNavigator.GetSpanOfPreviousSibling(Microsoft.VisualStudio.Text.SnapshotSpan)">
+      <summary>Gets the span of the previous sibling syntactic element of the specified snapshot span. </summary>
+      <returns>A <see cref="T:Microsoft.VisualStudio.Text.SnapshotSpan" /> that represents the previous sibling syntactic element. </returns>
+      <param name="activeSpan">The <see cref="T:Microsoft.VisualStudio.Text.SnapshotSpan" /> from which to get the span of the previous sibling syntactic element.</param>
+    </member>
+    <member name="T:Microsoft.VisualStudio.Text.Operations.ITextStructureNavigatorProvider">
+      <summary>Gets an <see cref="T:Microsoft.VisualStudio.Text.Operations.ITextStructureNavigator" /> for a given <see cref="T:Microsoft.VisualStudio.Text.ITextBuffer" />. </summary>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.Operations.ITextStructureNavigatorProvider.CreateTextStructureNavigator(Microsoft.VisualStudio.Text.ITextBuffer)">
+      <summary>Creates a new <see cref="T:Microsoft.VisualStudio.Text.Operations.ITextStructureNavigator" /> for the specified <see cref="T:Microsoft.VisualStudio.Text.ITextBuffer" />.</summary>
+      <returns>The <see cref="T:Microsoft.VisualStudio.Text.Operations.ITextStructureNavigator" /> for <paramref name="textBuffer" />, or null.</returns>
+      <param name="textBuffer">The <see cref="T:Microsoft.VisualStudio.Text.ITextBuffer" /> for which to get the <see cref="T:Microsoft.VisualStudio.Text.Operations.ITextStructureNavigator" />.</param>
+    </member>
+    <member name="T:Microsoft.VisualStudio.Text.Operations.ITextStructureNavigatorSelectorService">
+      <summary>Selects and caches <see cref="T:Microsoft.VisualStudio.Text.Operations.ITextStructureNavigator" /> objects based on content type.</summary>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.Operations.ITextStructureNavigatorSelectorService.CreateTextStructureNavigator(Microsoft.VisualStudio.Text.ITextBuffer,Microsoft.VisualStudio.Utilities.IContentType)">
+      <summary>Creates a new <see cref="T:Microsoft.VisualStudio.Text.Operations.ITextStructureNavigator" /> for the specified <see cref="T:Microsoft.VisualStudio.Text.ITextBuffer" /> by using the specified <see cref="T:Microsoft.VisualStudio.Utilities.IContentType" /> to select the navigator.</summary>
+      <returns>A valid <see cref="T:Microsoft.VisualStudio.Text.Operations.ITextStructureNavigator" />. This value is never null.</returns>
+      <param name="textBuffer">The <see cref="T:Microsoft.VisualStudio.Text.ITextBuffer" /> that the <see cref="T:Microsoft.VisualStudio.Text.Operations.ITextStructureNavigator" /> will navigate.</param>
+      <param name="contentType">The content type to use.</param>
+      <exception cref="T:System.ArgumentNullException">
+        <paramref name="textBuffer" /> is null.</exception>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.Operations.ITextStructureNavigatorSelectorService.GetTextStructureNavigator(Microsoft.VisualStudio.Text.ITextBuffer)">
+      <summary>Gets a <see cref="T:Microsoft.VisualStudio.Text.Operations.ITextStructureNavigator" /> for the specified <see cref="T:Microsoft.VisualStudio.Text.ITextBuffer" />, either by creating a new one or by using a cached value.</summary>
+      <returns>A valid <see cref="T:Microsoft.VisualStudio.Text.Operations.ITextStructureNavigator" />. This value will never be null.</returns>
+      <param name="textBuffer">The <see cref="T:Microsoft.VisualStudio.Text.ITextBuffer" /> that the <see cref="T:Microsoft.VisualStudio.Text.Operations.ITextStructureNavigator" /> will navigate.</param>
+      <exception cref="T:System.ArgumentNullException">
+        <paramref name="textBuffer" /> is null.</exception>
+    </member>
+    <member name="T:Microsoft.VisualStudio.Text.Operations.ITextUndoHistory">
+      <summary>Contains undo transactions.</summary>
+    </member>
+    <member name="P:Microsoft.VisualStudio.Text.Operations.ITextUndoHistory.CanRedo">
+      <summary>Determines whether a single redo is possible.</summary>
+      <returns>true if a single redo is possible, otherwise false.</returns>
+    </member>
+    <member name="P:Microsoft.VisualStudio.Text.Operations.ITextUndoHistory.CanUndo">
+      <summary>Determines whether a single undo is possible.</summary>
+      <returns>true if a single undo is possible, otherwise false.</returns>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.Operations.ITextUndoHistory.CreateTransaction(System.String)">
+      <summary>Creates a new transaction, nests it in the previously current transaction, and marks it current.</summary>
+      <returns>The new transaction.</returns>
+      <param name="description">The description of the transaction.</param>
+    </member>
+    <member name="P:Microsoft.VisualStudio.Text.Operations.ITextUndoHistory.CurrentTransaction">
+      <summary>Gets the current undo transaction in progress.</summary>
+      <returns>The current undo operation.</returns>
+    </member>
+    <member name="P:Microsoft.VisualStudio.Text.Operations.ITextUndoHistory.LastRedoTransaction">
+      <summary>Gets the most recent (top) item of the <see cref="P:Microsoft.VisualStudio.Text.Operations.ITextUndoHistory.RedoStack" />. </summary>
+      <returns>The most recent (top) item of the redo stac, or null if the stack is empty.</returns>
+    </member>
+    <member name="P:Microsoft.VisualStudio.Text.Operations.ITextUndoHistory.LastUndoTransaction">
+      <summary>Gets the most recent (top) item of the <see cref="P:Microsoft.VisualStudio.Text.Operations.ITextUndoHistory.UndoStack" />.</summary>
+      <returns>The most recent (top) item of the <see cref="P:Microsoft.VisualStudio.Text.Operations.ITextUndoHistory.UndoStack" />, or null if the stack is empty.</returns>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.Operations.ITextUndoHistory.Redo(System.Int32)">
+      <summary>Performs the specified number of redo operation and places the transactions on the undo stack.</summary>
+      <param name="count">The number of redo operations to perform. </param>
+    </member>
+    <member name="P:Microsoft.VisualStudio.Text.Operations.ITextUndoHistory.RedoDescription">
+      <summary>Gets the description of the most recent visible redo <see cref="T:Microsoft.VisualStudio.Text.Operations.ITextUndoTransaction" />.</summary>
+      <returns>The description of the most recent visible redo <see cref="T:Microsoft.VisualStudio.Text.Operations.ITextUndoTransaction" />.</returns>
+    </member>
+    <member name="P:Microsoft.VisualStudio.Text.Operations.ITextUndoHistory.RedoStack">
+      <summary>The redo stack for this history. It does not include any currently open or undo transactions.</summary>
+      <returns>The redo stack for this history.</returns>
+    </member>
+    <member name="P:Microsoft.VisualStudio.Text.Operations.ITextUndoHistory.State">
+      <summary>Gets the current state of the undo history.</summary>
+      <returns>The current state of the undo history.</returns>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.Operations.ITextUndoHistory.Undo(System.Int32)">
+      <summary>Performs the specified number of undo operations and places the transactions on the redo stack.</summary>
+      <param name="count">The number of undo operations to perform.</param>
+    </member>
+    <member name="P:Microsoft.VisualStudio.Text.Operations.ITextUndoHistory.UndoDescription">
+      <summary>Gets the description of the most recent visible undo <see cref="T:Microsoft.VisualStudio.Text.Operations.ITextUndoTransaction" />.</summary>
+      <returns>The description of the most recent visible undo <see cref="T:Microsoft.VisualStudio.Text.Operations.ITextUndoTransaction" />.</returns>
+    </member>
+    <member name="E:Microsoft.VisualStudio.Text.Operations.ITextUndoHistory.UndoRedoHappened">
+      <summary>Notifies consumers when an undo or a redo has happened on this history.</summary>
+    </member>
+    <member name="P:Microsoft.VisualStudio.Text.Operations.ITextUndoHistory.UndoStack">
+      <summary>The undo stack for this history. It does not include any currently open or redo transactions.</summary>
+      <returns>The undo stack for this history.</returns>
+    </member>
+    <member name="E:Microsoft.VisualStudio.Text.Operations.ITextUndoHistory.UndoTransactionCompleted">
+      <summary>Notifies consumers when an <see cref="T:Microsoft.VisualStudio.Text.Operations.ITextUndoTransaction" /> is completed and added to the <see cref="P:Microsoft.VisualStudio.Text.Operations.ITextUndoHistory.UndoStack" />.</summary>
+    </member>
+    <member name="T:Microsoft.VisualStudio.Text.Operations.ITextUndoHistoryRegistry">
+      <summary>Maintains the relationship between text buffers and <see cref="T:Microsoft.VisualStudio.Text.Operations.ITextUndoHistory" /> objects.</summary>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.Operations.ITextUndoHistoryRegistry.AttachHistory(System.Object,Microsoft.VisualStudio.Text.Operations.ITextUndoHistory)">
+      <summary>Attaches an existing <see cref="T:Microsoft.VisualStudio.Text.Operations.ITextUndoHistory" /> to a text buffer. The buffer must not already be mapped in this registry.</summary>
+      <param name="context">This object should always be an <see cref="T:Microsoft.VisualStudio.Text.ITextBuffer" />.</param>
+      <param name="history">An <see cref="T:Microsoft.VisualStudio.Text.Operations.ITextUndoHistory" /> object to associate with the text buffer.</param>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.Operations.ITextUndoHistoryRegistry.GetHistory(System.Object)">
+      <summary>Gets a history associated with the text buffer, but does not create a new one.</summary>
+      <returns>An <see cref="T:Microsoft.VisualStudio.Text.Operations.ITextUndoHistory" />.</returns>
+      <param name="context">This object should always be an <see cref="T:Microsoft.VisualStudio.Text.ITextBuffer" />.</param>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.Operations.ITextUndoHistoryRegistry.RegisterHistory(System.Object)">
+      <summary>Gets, and if necessary creates, a history associated with the context.</summary>
+      <returns>An <see cref="T:Microsoft.VisualStudio.Text.Operations.ITextUndoHistory" /></returns>
+      <param name="context">This object should always be an <see cref="T:Microsoft.VisualStudio.Text.ITextBuffer" />.</param>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.Operations.ITextUndoHistoryRegistry.RemoveHistory(Microsoft.VisualStudio.Text.Operations.ITextUndoHistory)">
+      <summary>Removes all mappings to a given <see cref="T:Microsoft.VisualStudio.Text.Operations.ITextUndoHistory" /> in this registry, if any exist.</summary>
+      <param name="history">The <see cref="T:Microsoft.VisualStudio.Text.Operations.ITextUndoHistory" /> to remove from the registry.</param>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.Operations.ITextUndoHistoryRegistry.TryGetHistory(System.Object,Microsoft.VisualStudio.Text.Operations.ITextUndoHistory@)">
+      <summary>Gets a history associated with the text buffer, but does not create a new one.</summary>
+      <returns>true if there is an undo history associated with the specified text buffer, otherwise false.</returns>
+      <param name="context">This object should always be an <see cref="T:Microsoft.VisualStudio.Text.ITextBuffer" />.</param>
+      <param name="history">[out] An <see cref="T:Microsoft.VisualStudio.Text.Operations.ITextUndoHistory" /> associated with the text buffer.</param>
+    </member>
+    <member name="T:Microsoft.VisualStudio.Text.Operations.ITextUndoPrimitive">
+      <summary>Represents an atomic operation that knows how to do, undo, and redo itself.</summary>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.Operations.ITextUndoPrimitive.CanMerge(Microsoft.VisualStudio.Text.Operations.ITextUndoPrimitive)">
+      <summary>Determines whether this undo primitive can merge with the specified undo primitive.</summary>
+      <returns>true if the undo primitives can be merged, otherwise false.</returns>
+      <param name="older">The older primitive.</param>
+    </member>
+    <member name="P:Microsoft.VisualStudio.Text.Operations.ITextUndoPrimitive.CanRedo">
+      <summary>Determines whether it is currently possible to call Do() successfully.</summary>
+      <returns>true if it is currently possible to call Do() successfully, otherwise false.</returns>
+    </member>
+    <member name="P:Microsoft.VisualStudio.Text.Operations.ITextUndoPrimitive.CanUndo">
+      <summary>Determines whether it is currently possible to call Undo() successfully.</summary>
+      <returns>true if it is currently possible to call Undo() successfully, otherwise false.</returns>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.Operations.ITextUndoPrimitive.Do">
+      <summary>Performs or redoes the operation.</summary>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.Operations.ITextUndoPrimitive.Merge(Microsoft.VisualStudio.Text.Operations.ITextUndoPrimitive)">
+      <summary>Performs a merge with the specified undo primitive.</summary>
+      <returns>The replacement primitive.</returns>
+      <param name="older">The older primitive to merge.</param>
+    </member>
+    <member name="P:Microsoft.VisualStudio.Text.Operations.ITextUndoPrimitive.Parent">
+      <summary>Gets or sets the <see cref="T:Microsoft.VisualStudio.Text.Operations.ITextUndoTransaction" /> that contains the primitive.</summary>
+      <returns>The <see cref="T:Microsoft.VisualStudio.Text.Operations.ITextUndoTransaction" /> that contains the primitive.</returns>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.Operations.ITextUndoPrimitive.Undo">
+      <summary>Performs undo on the primitive.</summary>
+    </member>
+    <member name="T:Microsoft.VisualStudio.Text.Operations.ITextUndoTransaction">
+      <summary>Represents a container for <see cref="T:Microsoft.VisualStudio.Text.Operations.ITextUndoPrimitive" /> objects.</summary>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.Operations.ITextUndoTransaction.AddUndo(Microsoft.VisualStudio.Text.Operations.ITextUndoPrimitive)">
+      <summary>Adds a new undo primitive to the end of the list when the transaction is open.</summary>
+      <param name="undo">The undo primitive.</param>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.Operations.ITextUndoTransaction.Cancel">
+      <summary>Marks an open transaction as canceled, and undoes and clears any undo primitives that have been added.</summary>
+    </member>
+    <member name="P:Microsoft.VisualStudio.Text.Operations.ITextUndoTransaction.CanRedo">
+      <summary>Determines whether it is currently possible to call <see cref="M:Microsoft.VisualStudio.Text.Operations.ITextUndoTransaction.Do" /> successfully.</summary>
+      <returns>true if it is currently possible to call Do() successfully, otherwise false.</returns>
+    </member>
+    <member name="P:Microsoft.VisualStudio.Text.Operations.ITextUndoTransaction.CanUndo">
+      <summary>Determines whether it is currently possible to call Undo() successfully.</summary>
+      <returns>true if it is currently possible to call <see cref="M:Microsoft.VisualStudio.Text.Operations.ITextUndoTransaction.Undo" /> successfully, otherwise false.</returns>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.Operations.ITextUndoTransaction.Complete">
+      <summary>Marks the transaction as finished and eligible for undo.</summary>
+    </member>
+    <member name="P:Microsoft.VisualStudio.Text.Operations.ITextUndoTransaction.Description">
+      <summary>Gets or sets the description.</summary>
+      <returns>The description.</returns>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.Operations.ITextUndoTransaction.Do">
+      <summary>Performs a do or redo.</summary>
+    </member>
+    <member name="P:Microsoft.VisualStudio.Text.Operations.ITextUndoTransaction.History">
+      <summary>Gets the <see cref="T:Microsoft.VisualStudio.Text.Operations.ITextUndoHistory" /> that contains this transaction.</summary>
+      <returns>The <see cref="T:Microsoft.VisualStudio.Text.Operations.ITextUndoHistory" />.</returns>
+    </member>
+    <member name="P:Microsoft.VisualStudio.Text.Operations.ITextUndoTransaction.MergePolicy">
+      <summary>Gets the <see cref="T:Microsoft.VisualStudio.Text.Operations.IMergeTextUndoTransactionPolicy" /> associated with this transaction.</summary>
+      <returns>the <see cref="T:Microsoft.VisualStudio.Text.Operations.IMergeTextUndoTransactionPolicy" />.</returns>
+    </member>
+    <member name="P:Microsoft.VisualStudio.Text.Operations.ITextUndoTransaction.Parent">
+      <summary>Gets the <see cref="T:Microsoft.VisualStudio.Text.Operations.ITextUndoTransaction" /> that contains this transaction.</summary>
+      <returns>The parent <see cref="T:Microsoft.VisualStudio.Text.Operations.ITextUndoTransaction" />.</returns>
+    </member>
+    <member name="P:Microsoft.VisualStudio.Text.Operations.ITextUndoTransaction.State">
+      <summary>Gets the <see cref="T:Microsoft.VisualStudio.Text.Operations.UndoTransactionState" /> for the <see cref="T:Microsoft.VisualStudio.Text.Operations.ITextUndoTransaction" />.</summary>
+      <returns>The <see cref="T:Microsoft.VisualStudio.Text.Operations.UndoTransactionState" />.</returns>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.Operations.ITextUndoTransaction.Undo">
+      <summary>Performs an undo or rollback.</summary>
+    </member>
+    <member name="P:Microsoft.VisualStudio.Text.Operations.ITextUndoTransaction.UndoPrimitives">
+      <summary>Gets the collection of <see cref="T:Microsoft.VisualStudio.Text.Operations.ITextUndoPrimitive" /> objects in this container.</summary>
+      <returns>The <see cref="T:Microsoft.VisualStudio.Text.Operations.ITextUndoPrimitive" /> collection.</returns>
+    </member>
+    <member name="T:Microsoft.VisualStudio.Text.Operations.TextExtent">
+      <summary>Represents the extent of a word.</summary>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.Operations.TextExtent.#ctor(Microsoft.VisualStudio.Text.Operations.TextExtent)">
+      <summary>Initializes a new instance of a <see cref="T:Microsoft.VisualStudio.Text.Operations.TextExtent" /> from the specified <see cref="T:Microsoft.VisualStudio.Text.Operations.TextExtent" />.</summary>
+      <param name="textExtent">The <see cref="T:Microsoft.VisualStudio.Text.Operations.TextExtent" /> from which to copy.</param>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.Operations.TextExtent.#ctor(Microsoft.VisualStudio.Text.SnapshotSpan,System.Boolean)">
+      <summary>Initializes a new instance of <see cref="T:Microsoft.VisualStudio.Text.Operations.TextExtent" />.</summary>
+      <param name="span">The <see cref="T:Microsoft.VisualStudio.Text.SnapshotSpan" /> that includes the extent.</param>
+      <param name="isSignificant">false if the extent contains whitespace, unless whitespace should be treated like any other character.</param>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.Operations.TextExtent.Equals(System.Object)">
+      <summary>Determines whether two <see cref="T:Microsoft.VisualStudio.Text.Operations.TextExtent" /> objects are the same.</summary>
+      <returns>true if the two objects are the same, otherwise false.</returns>
+      <param name="obj">The <see cref="T:Microsoft.VisualStudio.Text.Operations.TextExtent" /> to compare.</param>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.Operations.TextExtent.GetHashCode">
+      <summary>Gets the hash code of the object.</summary>
+      <returns>The hash code.</returns>
+    </member>
+    <member name="P:Microsoft.VisualStudio.Text.Operations.TextExtent.IsSignificant">
+      <summary>Determines whether the extent is significant.</summary>
+      <returns>true if the extent is significant, otherwise false.</returns>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.Operations.TextExtent.op_Equality(Microsoft.VisualStudio.Text.Operations.TextExtent,Microsoft.VisualStudio.Text.Operations.TextExtent)">
+      <summary>Determines whether two <see cref="T:Microsoft.VisualStudio.Text.Operations.TextExtent" /> objects are the same.</summary>
+      <returns>true if the objects are the same, otherwise false.</returns>
+      <param name="extent1">The first object.</param>
+      <param name="extent2">The second object.</param>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.Operations.TextExtent.op_Inequality(Microsoft.VisualStudio.Text.Operations.TextExtent,Microsoft.VisualStudio.Text.Operations.TextExtent)">
+      <summary>Determines whether two <see cref="T:Microsoft.VisualStudio.Text.Operations.TextExtent" /> objects are different.</summary>
+      <returns>true if the two objects are different, otherwise false.</returns>
+      <param name="extent1">The first object.</param>
+      <param name="extent2">The second object.</param>
+    </member>
+    <member name="P:Microsoft.VisualStudio.Text.Operations.TextExtent.Span">
+      <summary>Gets the <see cref="T:Microsoft.VisualStudio.Text.SnapshotSpan" />.</summary>
+      <returns>The <see cref="T:Microsoft.VisualStudio.Text.SnapshotSpan" />.</returns>
+    </member>
+    <member name="T:Microsoft.VisualStudio.Text.Operations.TextUndoHistoryState">
+      <summary>Provides information about the state of an <see cref="T:Microsoft.VisualStudio.Text.Operations.ITextUndoHistory" />.</summary>
+    </member>
+    <member name="F:Microsoft.VisualStudio.Text.Operations.TextUndoHistoryState.Idle">
+      <summary>The <see cref="T:Microsoft.VisualStudio.Text.Operations.ITextUndoHistory" /> is not in the process of performing an undo or redo.</summary>
+    </member>
+    <member name="F:Microsoft.VisualStudio.Text.Operations.TextUndoHistoryState.Undoing">
+      <summary>The <see cref="T:Microsoft.VisualStudio.Text.Operations.ITextUndoHistory" /> is in the process of executing its Undo method.</summary>
+    </member>
+    <member name="F:Microsoft.VisualStudio.Text.Operations.TextUndoHistoryState.Redoing">
+      <summary>The <see cref="T:Microsoft.VisualStudio.Text.Operations.ITextUndoHistory" /> is in the process of executing its Redo method.</summary>
+    </member>
+    <member name="T:Microsoft.VisualStudio.Text.Operations.TextUndoRedoEventArgs">
+      <summary>Provides information about the effect of the undo or redo operation for the <see cref="E:Microsoft.VisualStudio.Text.Operations.ITextUndoHistory.UndoRedoHappened" /> event.</summary>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.Operations.TextUndoRedoEventArgs.#ctor(Microsoft.VisualStudio.Text.Operations.TextUndoHistoryState,Microsoft.VisualStudio.Text.Operations.ITextUndoTransaction)">
+      <summary>Initializes a new instance of <see cref="T:Microsoft.VisualStudio.Text.Operations.TextUndoRedoEventArgs" />.</summary>
+      <param name="state">The <see cref="T:Microsoft.VisualStudio.Text.Operations.TextUndoHistoryState" />.</param>
+      <param name="transaction">The <see cref="T:Microsoft.VisualStudio.Text.Operations.ITextUndoTransaction" />.</param>
+    </member>
+    <member name="P:Microsoft.VisualStudio.Text.Operations.TextUndoRedoEventArgs.State">
+      <summary>Gets the state of the transaction.</summary>
+      <returns>The state of the transaction.</returns>
+    </member>
+    <member name="P:Microsoft.VisualStudio.Text.Operations.TextUndoRedoEventArgs.Transaction">
+      <summary>Gets the transaction that was processed in this undo or redo.</summary>
+      <returns>The transaction that was processed in this undo or redo.</returns>
+    </member>
+    <member name="T:Microsoft.VisualStudio.Text.Operations.TextUndoTransactionCompletedEventArgs">
+      <summary>Provides information for the <see cref="E:Microsoft.VisualStudio.Text.Operations.ITextUndoHistory.UndoTransactionCompleted" /> event.</summary>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.Operations.TextUndoTransactionCompletedEventArgs.#ctor(Microsoft.VisualStudio.Text.Operations.ITextUndoTransaction,Microsoft.VisualStudio.Text.Operations.TextUndoTransactionCompletionResult)">
+      <summary>Initializes a new instance of <see cref="T:Microsoft.VisualStudio.Text.Operations.TextUndoTransactionCompletedEventArgs" />.</summary>
+      <param name="transaction">The <see cref="T:Microsoft.VisualStudio.Text.Operations.ITextUndoTransaction" />.</param>
+      <param name="result">The <see cref="T:Microsoft.VisualStudio.Text.Operations.TextUndoTransactionCompletionResult" />.</param>
+      <exception cref="T:System.ArgumentNullException">
+        <paramref name="transaction" /> is null.</exception>
+    </member>
+    <member name="P:Microsoft.VisualStudio.Text.Operations.TextUndoTransactionCompletedEventArgs.Result">
+      <summary>Gets the result of the completed transaction.</summary>
+      <returns>The result of the completed transaction.</returns>
+    </member>
+    <member name="P:Microsoft.VisualStudio.Text.Operations.TextUndoTransactionCompletedEventArgs.Transaction">
+      <summary>Gets the transaction that was added to the <see cref="T:Microsoft.VisualStudio.Text.Operations.ITextUndoHistory" />.</summary>
+      <returns>The transaction that was added to the <see cref="T:Microsoft.VisualStudio.Text.Operations.ITextUndoHistory" />.</returns>
+    </member>
+    <member name="T:Microsoft.VisualStudio.Text.Operations.TextUndoTransactionCompletionResult">
+      <summary>Describes the possible results of a transaction completion for an <see cref="T:Microsoft.VisualStudio.Text.Operations.ITextUndoHistory" />.</summary>
+    </member>
+    <member name="F:Microsoft.VisualStudio.Text.Operations.TextUndoTransactionCompletionResult.TransactionAdded">
+      <summary>The most recent transaction is added to the <see cref="P:Microsoft.VisualStudio.Text.Operations.ITextUndoHistory.UndoStack" /> of the <see cref="T:Microsoft.VisualStudio.Text.Operations.ITextUndoHistory" />.</summary>
+    </member>
+    <member name="F:Microsoft.VisualStudio.Text.Operations.TextUndoTransactionCompletionResult.TransactionMerged">
+      <summary>The most recent transaction is merged with the transaction on the top of the <see cref="P:Microsoft.VisualStudio.Text.Operations.ITextUndoHistory.UndoStack" /> of the associated <see cref="T:Microsoft.VisualStudio.Text.Operations.ITextUndoHistory" />.</summary>
+    </member>
+    <member name="T:Microsoft.VisualStudio.Text.Operations.UndoTransactionState">
+      <summary>Holds the state of the transaction.</summary>
+    </member>
+    <member name="F:Microsoft.VisualStudio.Text.Operations.UndoTransactionState.Open">
+      <summary>The initial state of the transaction, after it has been created and before it is canceled or completed.</summary>
+    </member>
+    <member name="F:Microsoft.VisualStudio.Text.Operations.UndoTransactionState.Completed">
+      <summary>The transaction is no longer being defined, and is eligible for undo.</summary>
+    </member>
+    <member name="F:Microsoft.VisualStudio.Text.Operations.UndoTransactionState.Canceled">
+      <summary>The transaction is no longer being defined, but has been aborted and cleared.</summary>
+    </member>
+    <member name="F:Microsoft.VisualStudio.Text.Operations.UndoTransactionState.Redoing">
+      <summary>A transient state set by the Do operation, between the undone state and the completed state.</summary>
+    </member>
+    <member name="F:Microsoft.VisualStudio.Text.Operations.UndoTransactionState.Undoing">
+      <summary>A transient state set by the Undo operation, between the completed state and the undone state.</summary>
+    </member>
+    <member name="F:Microsoft.VisualStudio.Text.Operations.UndoTransactionState.Undone">
+      <summary>The Undo operation was called after completion.</summary>
+    </member>
+    <member name="F:Microsoft.VisualStudio.Text.Operations.UndoTransactionState.Invalid">
+      <summary>The transaction has been removed from the undo history stack, for example because it was on the redo stack when a new operation cleared the redo stack. After a transaction is invalid, it should not be used for anything.</summary>
+    </member>
+    <member name="T:Microsoft.VisualStudio.Text.Tagging.BatchedTagsChangedEventArgs">
+      <summary>Provides information for the <see cref="E:Microsoft.VisualStudio.Text.Tagging.ITagAggregator`1.BatchedTagsChanged" /> event. </summary>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.Tagging.BatchedTagsChangedEventArgs.#ctor(System.Collections.Generic.IList{Microsoft.VisualStudio.Text.IMappingSpan})">
+      <summary>Initializes a new instance of <see cref="T:Microsoft.VisualStudio.Text.Tagging.BatchedTagsChangedEventArgs" /> with the specified list of <see cref="T:Microsoft.VisualStudio.Text.IMappingSpan" /> objects.</summary>
+      <param name="spans">The list of <see cref="T:Microsoft.VisualStudio.Text.IMappingSpan" /> objects in which the tags have changed.</param>
+      <exception cref="T:System.ArgumentNullException">
+        <paramref name="spans" /> is null.</exception>
+    </member>
+    <member name="P:Microsoft.VisualStudio.Text.Tagging.BatchedTagsChangedEventArgs.Spans">
+      <summary>Gets the list of <see cref="T:Microsoft.VisualStudio.Text.IMappingSpan" /> objects where the tags have changed.</summary>
+      <returns>The list of <see cref="T:Microsoft.VisualStudio.Text.IMappingSpan" /> objects where the tags have changed.</returns>
+    </member>
+    <member name="T:Microsoft.VisualStudio.Text.Tagging.ClassificationTag">
+      <summary>A tag that represents a classification type. An implementation of <see cref="T:Microsoft.VisualStudio.Text.Tagging.IClassificationTag" />.</summary>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.Tagging.ClassificationTag.#ctor(Microsoft.VisualStudio.Text.Classification.IClassificationType)">
+      <summary>Creates a new tag associated with the given type of classification.</summary>
+      <param name="type">The type of classification.</param>
+      <exception cref="T:System.ArgumentNullException">
+        <paramref name="type" /> is null.</exception>
+    </member>
+    <member name="P:Microsoft.VisualStudio.Text.Tagging.ClassificationTag.ClassificationType">
+      <summary>Gets the classification type associated with this tag.</summary>
+      <returns>The classification type associated with this tag.</returns>
+    </member>
+    <member name="T:Microsoft.VisualStudio.Text.Tagging.IBufferTagAggregatorFactoryService">
+      <summary>Creates an <see cref="T:Microsoft.VisualStudio.Text.Tagging.ITagAggregator`1" /> for an <see cref="T:Microsoft.VisualStudio.Text.ITextBuffer" />.</summary>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.Tagging.IBufferTagAggregatorFactoryService.CreateTagAggregator``1(Microsoft.VisualStudio.Text.ITextBuffer)">
+      <summary>Creates a tag aggregator for the specified text buffer.</summary>
+      <returns>The tag aggregator.</returns>
+      <param name="textBuffer">The <see cref="T:Microsoft.VisualStudio.Text.ITextBuffer" /> over which the aggregator should aggregate tags, including all source buffers if the buffer is a projection buffer.</param>
+      <typeparam name="T">The type of tag to aggregate.</typeparam>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.Tagging.IBufferTagAggregatorFactoryService.CreateTagAggregator``1(Microsoft.VisualStudio.Text.ITextBuffer,Microsoft.VisualStudio.Text.Tagging.TagAggregatorOptions)">
+      <summary>Creates a tag aggregator for the specified text buffer using the given options.</summary>
+      <returns>The tag aggregator.</returns>
+      <param name="textBuffer">The <see cref="T:Microsoft.VisualStudio.Text.ITextBuffer" /> over which the aggregator should aggregate tags, including all source buffers if the buffer is a projection buffer.</param>
+      <param name="options">The options to use for the newly created aggregator.</param>
+      <typeparam name="T">The type of tag to aggregate.</typeparam>
+    </member>
+    <member name="T:Microsoft.VisualStudio.Text.Tagging.IClassificationTag">
+      <summary>A tag that represents a classification type.</summary>
+    </member>
+    <member name="P:Microsoft.VisualStudio.Text.Tagging.IClassificationTag.ClassificationType">
+      <summary>Gets the classification type associated with this tag.</summary>
+      <returns>The classification type associated with this tag</returns>
+    </member>
+    <member name="T:Microsoft.VisualStudio.Text.Tagging.IMappingTagSpan`1">
+      <summary>Associates an <see cref="T:Microsoft.VisualStudio.Text.Tagging.ITag" /> with a specified <see cref="T:Microsoft.VisualStudio.Text.IMappingSpan" />.</summary>
+      <typeparam name="T">The type, which must be a subtype of <see cref="T:Microsoft.VisualStudio.Text.Tagging.ITag" />.This type parameter is covariant. That is, you can use either the type you specified or any type that is more derived. For more information about covariance and contravariance, see Covariance and Contravariance in Generics.</typeparam>
+    </member>
+    <member name="P:Microsoft.VisualStudio.Text.Tagging.IMappingTagSpan`1.Span">
+      <summary>Gets the mapping span for this tag.</summary>
+      <returns>The mapping span for this tag.</returns>
+    </member>
+    <member name="P:Microsoft.VisualStudio.Text.Tagging.IMappingTagSpan`1.Tag">
+      <summary>Gets the tag located in this span.</summary>
+      <returns>The tag located in this span.</returns>
+    </member>
+    <member name="T:Microsoft.VisualStudio.Text.Tagging.ITag">
+      <summary>The base interface of all tags.</summary>
+    </member>
+    <member name="T:Microsoft.VisualStudio.Text.Tagging.ITagAggregator`1">
+      <summary>Aggregates all the tag providers in a buffer graph for the specified type of tag.</summary>
+      <typeparam name="T">The type of tag returned by the aggregator.This type parameter is covariant. That is, you can use either the type you specified or any type that is more derived. For more information about covariance and contravariance, see Covariance and Contravariance in Generics.</typeparam>
+    </member>
+    <member name="E:Microsoft.VisualStudio.Text.Tagging.ITagAggregator`1.BatchedTagsChanged">
+      <summary>Occurs on idle after one or more TagsChanged events.</summary>
+    </member>
+    <member name="P:Microsoft.VisualStudio.Text.Tagging.ITagAggregator`1.BufferGraph">
+      <summary>Gets the buffer graph over which this aggregator operates.</summary>
+      <returns>The buffer graph over which this aggregator operates.</returns>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.Tagging.ITagAggregator`1.GetTags(Microsoft.VisualStudio.Text.IMappingSpan)">
+      <summary>Gets all the tags that overlap or are contained by the specified <paramref name="span" /> of the type of the aggregator.</summary>
+      <returns>All the tags that overlap the region.</returns>
+      <param name="span">The span to search.</param>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.Tagging.ITagAggregator`1.GetTags(Microsoft.VisualStudio.Text.NormalizedSnapshotSpanCollection)">
+      <summary>Gets all the tags that overlap or are contained by the specified <paramref name="snapshotSpans" /> of the type of the aggregator.</summary>
+      <returns>All the tags that overlap the region.</returns>
+      <param name="snapshotSpans">The spans to search.</param>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.Tagging.ITagAggregator`1.GetTags(Microsoft.VisualStudio.Text.SnapshotSpan)">
+      <summary>Gets all the tags that overlap or are contained by the specified <paramref name="span" /> of the same type as the aggregator.</summary>
+      <returns>All the tags that overlap the region.</returns>
+      <param name="span">The span to search.</param>
+    </member>
+    <member name="E:Microsoft.VisualStudio.Text.Tagging.ITagAggregator`1.TagsChanged">
+      <summary>Occurs when tags are added to or removed from providers.</summary>
+    </member>
+    <member name="T:Microsoft.VisualStudio.Text.Tagging.ITagger`1">
+      <summary>A provider of tags over a buffer.</summary>
+      <typeparam name="T">The type of tags to generate.This type parameter is covariant. That is, you can use either the type you specified or any type that is more derived. For more information about covariance and contravariance, see Covariance and Contravariance in Generics.</typeparam>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.Tagging.ITagger`1.GetTags(Microsoft.VisualStudio.Text.NormalizedSnapshotSpanCollection)">
+      <summary>Gets all the tags that intersect the specified spans. </summary>
+      <returns>A <see cref="T:Microsoft.VisualStudio.Text.Tagging.TagSpan`1" /> for each tag.</returns>
+      <param name="spans">The spans to visit.</param>
+    </member>
+    <member name="E:Microsoft.VisualStudio.Text.Tagging.ITagger`1.TagsChanged">
+      <summary>Occurs when tags are added to or removed from the provider.</summary>
+    </member>
+    <member name="T:Microsoft.VisualStudio.Text.Tagging.ITaggerProvider">
+      <summary>Creates an <see cref="T:Microsoft.VisualStudio.Text.Tagging.ITagger`1" /> for a given buffer.</summary>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.Tagging.ITaggerProvider.CreateTagger``1(Microsoft.VisualStudio.Text.ITextBuffer)">
+      <summary>Creates a tag provider for the specified buffer.</summary>
+      <returns>The <see cref="T:Microsoft.VisualStudio.Text.Tagging.ITagger`1" />.</returns>
+      <param name="buffer">The <see cref="T:Microsoft.VisualStudio.Text.ITextBuffer" />.</param>
+      <typeparam name="T">The type of the tag.</typeparam>
+    </member>
+    <member name="T:Microsoft.VisualStudio.Text.Tagging.ITagSpan`1">
+      <summary>Associates an <see cref="T:Microsoft.VisualStudio.Text.Tagging.ITag" /> with a given <see cref="T:Microsoft.VisualStudio.Text.SnapshotSpan" />.</summary>
+      <typeparam name="T">The type, which must be a subclass of <see cref="T:Microsoft.VisualStudio.Text.Tagging.ITag" />.This type parameter is covariant. That is, you can use either the type you specified or any type that is more derived. For more information about covariance and contravariance, see Covariance and Contravariance in Generics.</typeparam>
+    </member>
+    <member name="P:Microsoft.VisualStudio.Text.Tagging.ITagSpan`1.Span">
+      <summary>Gets the snapshot span for this tag.</summary>
+      <returns>The snapshot span for this tag.</returns>
+    </member>
+    <member name="P:Microsoft.VisualStudio.Text.Tagging.ITagSpan`1.Tag">
+      <summary>Gets the tag located in this span.</summary>
+      <returns>The tag located in this span.</returns>
+    </member>
+    <member name="T:Microsoft.VisualStudio.Text.Tagging.IUrlTag">
+      <summary>A tag that represents a URL.</summary>
+    </member>
+    <member name="P:Microsoft.VisualStudio.Text.Tagging.IUrlTag.Url">
+      <summary>Gets the URL.</summary>
+      <returns>The URL.</returns>
+    </member>
+    <member name="T:Microsoft.VisualStudio.Text.Tagging.MappingTagSpan`1">
+      <summary>The implementation of <see cref="T:Microsoft.VisualStudio.Text.Tagging.IMappingTagSpan`1" />.</summary>
+      <typeparam name="T">The type, which must be a subtype of <see cref="T:Microsoft.VisualStudio.Text.Tagging.ITag" />.</typeparam>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.Tagging.MappingTagSpan`1.#ctor(Microsoft.VisualStudio.Text.IMappingSpan,`0)">
+      <summary>Creates a mapping tag span.</summary>
+      <param name="span">The mapping span with which to associate the tag.</param>
+      <param name="tag">The tag associated with the span.</param>
+      <exception cref="T:System.ArgumentNullException">
+        <paramref name="span" /> or <paramref name="tag" /> is null.</exception>
+    </member>
+    <member name="P:Microsoft.VisualStudio.Text.Tagging.MappingTagSpan`1.Span">
+      <summary>Gets the mapping span for this tag.</summary>
+      <returns>The mapping span for this tag.</returns>
+    </member>
+    <member name="P:Microsoft.VisualStudio.Text.Tagging.MappingTagSpan`1.Tag">
+      <summary>Gets the tag located in this span.</summary>
+      <returns>The tag located in this span.</returns>
+    </member>
+    <member name="T:Microsoft.VisualStudio.Text.Tagging.SimpleTagger`1">
+      <summary>Provides simple, thread-safe storage of and interaction with tags of the given type.</summary>
+      <typeparam name="T">The type, which must be a subtype of <see cref="T:Microsoft.VisualStudio.Text.Tagging.ITag" />.</typeparam>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.Tagging.SimpleTagger`1.#ctor(Microsoft.VisualStudio.Text.ITextBuffer)">
+      <summary>Initializes a new instance of <see cref="T:Microsoft.VisualStudio.Text.Tagging.SimpleTagger`1" /> for the specified buffer.</summary>
+      <param name="buffer">The subject buffer that will be tagged.</param>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.Tagging.SimpleTagger`1.CreateTagSpan(Microsoft.VisualStudio.Text.ITrackingSpan,`0)">
+      <summary>Adds a tag over the given span.</summary>
+      <returns>The <see cref="T:Microsoft.VisualStudio.Text.Tagging.TrackingTagSpan`1" /> that was added, which can be used to remove the tag later on.</returns>
+      <param name="span">The <see cref="T:Microsoft.VisualStudio.Text.ITrackingSpan" /> that tracks the tag across text versions.</param>
+      <param name="tag">The tag to associate with the given span.</param>
+      <exception cref="T:System.ArgumentNullException">
+        <paramref name="span" /> or <paramref name="tag" /> is null.</exception>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.Tagging.SimpleTagger`1.GetTaggedSpans(Microsoft.VisualStudio.Text.SnapshotSpan)">
+      <summary>Gets the tagged spans that intersect the given <see cref="T:Microsoft.VisualStudio.Text.SnapshotSpan" />.</summary>
+      <returns>The set of <see cref="T:Microsoft.VisualStudio.Text.Tagging.TrackingTagSpan`1" /> objects that intersect the given span, in order.</returns>
+      <param name="span">The <see cref="T:Microsoft.VisualStudio.Text.SnapshotSpan" /> to use.</param>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.Tagging.SimpleTagger`1.GetTags(Microsoft.VisualStudio.Text.NormalizedSnapshotSpanCollection)">
+      <summary>Gets all the tags that overlap the spans in the specified snapshot of the desired type.</summary>
+      <returns>A <see cref="T:Microsoft.VisualStudio.Text.Tagging.ITagSpan`1" /> for each tag.</returns>
+      <param name="spans">The spans to visit.</param>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.Tagging.SimpleTagger`1.RemoveTagSpan(Microsoft.VisualStudio.Text.Tagging.TrackingTagSpan{`0})">
+      <summary>Removes a tag span that was created by calling <see cref="M:Microsoft.VisualStudio.Text.Tagging.SimpleTagger`1.CreateTagSpan(Microsoft.VisualStudio.Text.ITrackingSpan,`0)" />.</summary>
+      <returns>true if removed successfully, otherwise false.</returns>
+      <param name="tagSpan">The <see cref="T:Microsoft.VisualStudio.Text.Tagging.TrackingTagSpan`1" /> returned from a previous call to <see cref="M:Microsoft.VisualStudio.Text.Tagging.SimpleTagger`1.CreateTagSpan(Microsoft.VisualStudio.Text.ITrackingSpan,`0)" />.</param>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.Tagging.SimpleTagger`1.RemoveTagSpans(System.Predicate{Microsoft.VisualStudio.Text.Tagging.TrackingTagSpan{`0}})">
+      <summary>Removes all tag spans that match the conditions specified by the predicate.</summary>
+      <returns>The number of tag spans removed.</returns>
+      <param name="match">The <see cref="T:System.Predicate`1" /> that defines the match.</param>
+      <exception cref="T:System.ArgumentNullException">
+        <paramref name="match" /> is null.</exception>
+    </member>
+    <member name="E:Microsoft.VisualStudio.Text.Tagging.SimpleTagger`1.TagsChanged">
+      <summary>Occurs when one or more tags have been added or removed.</summary>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.Tagging.SimpleTagger`1.Update">
+      <summary>Gets an IDisposable object that represents an update batch.</summary>
+      <returns>An <see cref="T:System.IDisposable" /> object that represents an update batch.</returns>
+    </member>
+    <member name="T:Microsoft.VisualStudio.Text.Tagging.TagAggregatorOptions">
+      <summary>Represents a set of options for aggregating tags.</summary>
+    </member>
+    <member name="F:Microsoft.VisualStudio.Text.Tagging.TagAggregatorOptions.None">
+      <summary>Default behavior. The tag aggregator maps up and down through all projection buffers.</summary>
+    </member>
+    <member name="F:Microsoft.VisualStudio.Text.Tagging.TagAggregatorOptions.MapByContentType">
+      <summary>Map only through projection buffers that have the "projection" content type. Normally, a tag aggregator maps up and down through all projection buffers (buffers that implement <see cref="T:Microsoft.VisualStudio.Text.Projection.IProjectionBufferBase" />). This flag causes the projection buffer not to map through buffers that are projection buffers but do not have a projection content type. This is used by the classifier aggregator, because classification depends on content type.</summary>
+    </member>
+    <member name="T:Microsoft.VisualStudio.Text.Tagging.TagsChangedEventArgs">
+      <summary>Provides information about the <see cref="E:Microsoft.VisualStudio.Text.Tagging.ITagAggregator`1.TagsChanged" /> event.</summary>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.Tagging.TagsChangedEventArgs.#ctor(Microsoft.VisualStudio.Text.IMappingSpan)">
+      <summary>Initializes a new instance of <see cref="T:Microsoft.VisualStudio.Text.Tagging.TagsChangedEventArgs" /> with the specified <see cref="T:Microsoft.VisualStudio.Text.IMappingSpan" />.</summary>
+      <param name="span">The <see cref="T:Microsoft.VisualStudio.Text.IMappingSpan" />.</param>
+      <exception cref="T:System.ArgumentNullException">
+        <paramref name="span" /> is null.</exception>
+    </member>
+    <member name="P:Microsoft.VisualStudio.Text.Tagging.TagsChangedEventArgs.Span">
+      <summary>Gets the span over which tags have changed.</summary>
+      <returns>The span over which tags have changed.</returns>
+    </member>
+    <member name="T:Microsoft.VisualStudio.Text.Tagging.TagSpan`1">
+      <summary>The implementation of <see cref="T:Microsoft.VisualStudio.Text.Tagging.ITagSpan`1" />.</summary>
+      <typeparam name="T">The type, which must be a subclass of <see cref="T:Microsoft.VisualStudio.Text.Tagging.ITag" />.</typeparam>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.Tagging.TagSpan`1.#ctor(Microsoft.VisualStudio.Text.SnapshotSpan,`0)">
+      <summary>Initializes a new instance of a <see cref="T:Microsoft.VisualStudio.Text.Tagging.TagSpan`1" /> with the specified snapshot span and tag.</summary>
+      <param name="span">The <see cref="T:Microsoft.VisualStudio.Text.SnapshotSpan" /> with which to associate the tag.</param>
+      <param name="tag">The tag associated with the span.</param>
+      <exception cref="T:System.ArgumentNullException">
+        <paramref name="tag" /> is null.</exception>
+    </member>
+    <member name="P:Microsoft.VisualStudio.Text.Tagging.TagSpan`1.Span">
+      <summary>Gets the snapshot span for this tag.</summary>
+      <returns>The snapshot span for this tag.</returns>
+    </member>
+    <member name="P:Microsoft.VisualStudio.Text.Tagging.TagSpan`1.Tag">
+      <summary>Gets the tag located in this span.</summary>
+      <returns>The tag located in this span.</returns>
+    </member>
+    <member name="T:Microsoft.VisualStudio.Text.Tagging.TagTypeAttribute">
+      <summary>Declares the types of tags an <see cref="T:Microsoft.VisualStudio.Text.Tagging.ITagger`1" /> produces. </summary>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.Tagging.TagTypeAttribute.#ctor(System.Type)">
+      <summary>Initializes a new instance of a <see cref="T:Microsoft.VisualStudio.Text.Tagging.TagTypeAttribute" />.</summary>
+      <param name="tagType">The tag type, which must derive from <see cref="T:Microsoft.VisualStudio.Text.Tagging.ITag" />.</param>
+      <exception cref="T:System.ArgumentNullException">
+        <paramref name="tagType" /> is null.</exception>
+      <exception cref="T:System.ArgumentException">
+        <paramref name="tagType" /> does not derive from <see cref="T:Microsoft.VisualStudio.Text.Tagging.ITag" />.</exception>
+    </member>
+    <member name="P:Microsoft.VisualStudio.Text.Tagging.TagTypeAttribute.TagTypes">
+      <summary>Gets the type of the tag.</summary>
+      <returns>The type of the tag.</returns>
+    </member>
+    <member name="T:Microsoft.VisualStudio.Text.Tagging.TrackingTagSpan`1">
+      <summary>Associates an <see cref="T:Microsoft.VisualStudio.Text.Tagging.ITag" /> with a given <see cref="T:Microsoft.VisualStudio.Text.ITrackingSpan" />. </summary>
+      <typeparam name="T">The type, which must be a subclass of <see cref="T:Microsoft.VisualStudio.Text.Tagging.ITag" />.</typeparam>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.Tagging.TrackingTagSpan`1.#ctor(Microsoft.VisualStudio.Text.ITrackingSpan,`0)">
+      <summary>Initializes a new instance of a <see cref="T:Microsoft.VisualStudio.Text.Tagging.TrackingTagSpan`1" />.</summary>
+      <param name="span">The tracking span with which to associate the tag.</param>
+      <param name="tag">The tag associated with the span.</param>
+      <exception cref="T:System.ArgumentNullException">
+        <paramref name="span" /> or <paramref name="tag" /> is null.</exception>
+    </member>
+    <member name="P:Microsoft.VisualStudio.Text.Tagging.TrackingTagSpan`1.Span">
+      <summary>Gets the tracking span for this tag.</summary>
+      <returns>The tracking span for this tag.</returns>
+    </member>
+    <member name="P:Microsoft.VisualStudio.Text.Tagging.TrackingTagSpan`1.Tag">
+      <summary>Gets the tag located in this span.</summary>
+      <returns>The tag located in this span.</returns>
+    </member>
+    <member name="T:Microsoft.VisualStudio.Text.Tagging.UrlTag">
+      <summary>An implementation of <see cref="T:Microsoft.VisualStudio.Text.Tagging.IUrlTag" />.</summary>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Text.Tagging.UrlTag.#ctor(System.Uri)">
+      <summary>Create a new tag with the given URL.</summary>
+      <param name="url">The URL.</param>
+      <exception cref="T:System.ArgumentNullException">Thrown if <paramref name="url" /> is null.</exception>
+    </member>
+    <member name="P:Microsoft.VisualStudio.Text.Tagging.UrlTag.Url">
+      <summary>Gets the URL.</summary>
+      <returns>The URL.</returns>
+    </member>
+  </members>
+</doc>
