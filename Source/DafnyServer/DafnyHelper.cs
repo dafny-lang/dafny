@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Runtime.Remoting;
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.Boogie;
@@ -268,6 +269,81 @@ namespace Microsoft.Dafny
             return information;
         }
 
+        public void Proofs()
+        {
+            ServerUtils.ApplyArgs(args, reporter);
+            List<ProofInformation> proofs = new List<ProofInformation>();
+            if (Parse() && Resolve() && Translate()/* && Boogie()*/)
+            {
+                foreach (var boogieProgram in boogiePrograms)
+                {
+                    var name = boogieProgram.Item1;
+                    var program = boogieProgram.Item2;
+                    foreach (var block in program.Implementations.SelectMany(i => i.Blocks))
+                    {
+                        var cmds = block?.Cmds;
+                        if (cmds == null) continue;
+
+                        foreach (var proof in cmds)
+                        {
+                            var cl = proof.GetType();
+                            Console.WriteLine(cl);
+                            if (proof is AssertRequiresCmd)
+                            {
+                                
+                                var ar = proof as AssertRequiresCmd;
+                                proofs.Add(new ProofInformation
+                                {
+                                    Proof = ar.Expr?.ToString(),
+                                    Type = ProofInformation.ProofType.AssertRequires
+                                });
+                            }
+                            else if (proof is AssertEnsuresCmd)
+                            {
+                                var ae = proof as AssertEnsuresCmd;
+                                proofs.Add(new ProofInformation
+                                {
+                                    Proof = ae.Expr?.ToString(),
+                                    Type = ProofInformation.ProofType.AssertEnsures
+                                });
+                            }
+                            else if (proof is LoopInitAssertCmd)
+                            {
+                                var ai = proof as LoopInitAssertCmd;
+                                proofs.Add(new ProofInformation
+                                {
+                                    Proof = ai.Expr?.ToString(),
+                                    Type = ProofInformation.ProofType.LoopInitAssert
+                                });
+                            }
+                            else if (proof is LoopInvMaintainedAssertCmd)
+                            {
+                                var am = proof as LoopInvMaintainedAssertCmd;
+                                proofs.Add(new ProofInformation
+                                {
+                                    Proof = am.Expr?.ToString(),
+                                    Type = ProofInformation.ProofType.LoopInvMaintainedAssert
+                                });
+                            }
+                            else if (proof is AssertCmd)
+                            {
+                                var a = proof as AssertCmd;
+                                proofs.Add(new ProofInformation
+                                {
+                                    Proof = a.Expr?.ToString(),
+                                    Type = ProofInformation.ProofType.Assert
+                                });
+                            }
+                        }
+                    }
+                }
+            }
+
+            var json = JsonConvert.SerializeObject(proofs);
+            Console.WriteLine($"PROOFS_START {json} PROOFS_END");
+        }
+
+
 
         internal class SymbolInformation
         {
@@ -297,6 +373,20 @@ namespace Microsoft.Dafny
             public int? Column { get; set; }
         }
 
+        internal class ProofInformation
+        {
+            public string Proof { get; set; }
+            [JsonConverter(typeof(StringEnumConverter))]
+            public ProofType Type { get; set; }
 
+            internal enum ProofType
+            {
+                Assert,
+                AssertRequires,
+                AssertEnsures,
+                LoopInitAssert,
+                LoopInvMaintainedAssert
+            }
+        }
     }
 }
