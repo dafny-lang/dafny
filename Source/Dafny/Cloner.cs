@@ -1011,8 +1011,32 @@ namespace Microsoft.Dafny
       this.reporter = reporter;
       this.suffix = string.Format("#[{0}]", Printer.ExprToString(k));
     }
+    protected Expression CloneCallAndAddK(ApplySuffix e) {
+      Contract.Requires(e != null);
+      Contract.Requires(e.Resolved is FunctionCallExpr r && r.Function is FixpointPredicate);
+      Contract.Requires(e.Lhs is NameSegment || e.Lhs is ExprDotName);
+      Expression lhs;
+      string name;
+      if (e.Lhs is NameSegment ns) {
+        name = ns.Name;
+        lhs = new NameSegment(Tok(ns.tok), name + "#", ns.OptTypeArguments?.ConvertAll(CloneType));
+      } else {
+        var edn = (ExprDotName)e.Lhs;
+        name = edn.SuffixName;
+        lhs = new ExprDotName(Tok(edn.tok), CloneExpr(edn.Lhs), name + "#", edn.OptTypeArguments?.ConvertAll(CloneType));
+      }
+      var args = new List<Expression>();
+      args.Add(k);
+      foreach (var arg in e.Args) {
+        args.Add(CloneExpr(arg));
+      }
+      var apply = new ApplySuffix(Tok(e.tok), lhs, args);
+      reporter.Info(MessageSource.Cloner, e.tok, name + suffix);
+      return apply;
+    }
     protected Expression CloneCallAndAddK(FunctionCallExpr e) {
       Contract.Requires(e != null);
+      Contract.Requires(e.Function is FixpointPredicate);
       var receiver = CloneExpr(e.Receiver);
       var args = new List<Expression>();
       args.Add(k);
@@ -1048,10 +1072,22 @@ namespace Microsoft.Dafny
       this.friendlyCalls = friendlyCalls;
     }
     public override Expression CloneExpr(Expression expr) {
-      if (expr is ConcreteSyntaxExpression) {
+      if (expr is NameSegment || expr is ExprDotName) {
+        // make sure to clone any user-supplied type-parameter instantiations
+        return base.CloneExpr(expr);
+      } else if (expr is ApplySuffix) {
+        var e = (ApplySuffix)expr;
+        if (e.Resolved is FunctionCallExpr r && friendlyCalls.Contains(r)) {
+          return CloneCallAndAddK(e);
+        }
+      } else if (expr is SuffixExpr) {
+        // make sure to clone any user-supplied type-parameter instantiations
+        return base.CloneExpr(expr);
+      } else if (expr is ConcreteSyntaxExpression) {
         var e = (ConcreteSyntaxExpression)expr;
         // Note, the CoLemmaPostconditionSubstituter is an unusual cloner in that it operates on
-        // resolved expressions.  Hence, we bypass the syntactic parts here.
+        // resolved expressions.  Hence, we bypass the syntactic parts here, except for the ones
+        // checked above.
         return CloneExpr(e.Resolved);
       } else if (expr is FunctionCallExpr) {
         var e = (FunctionCallExpr)expr;
