@@ -137,13 +137,13 @@ namespace Microsoft.Dafny
                                 var fn = (Function)clbl;
                                 var functionSymbol = new SymbolInformation
                                 {
-                                    Module = fn.EnclosingClass?.Module?.Name,
+                                    Module = fn.EnclosingClass.Module.Name,
                                     Name = fn.Name,
-                                    ParentClass = fn.EnclosingClass?.Name,
+                                    ParentClass = fn.EnclosingClass.Name,
                                     SymbolType = SymbolInformation.Type.Function,
-                                    Position = fn.tok?.pos,
-                                    Line = fn.tok?.line,
-                                    Column = fn.tok?.col
+                                    Position = fn.tok.pos,
+                                    Line = fn.tok.line,
+                                    Column = fn.tok.col
                                 };
                                 information.Add(functionSymbol);
                             }
@@ -152,13 +152,13 @@ namespace Microsoft.Dafny
                                 var m = (Method)clbl;
                                 var methodSymbol = new SymbolInformation
                                 {
-                                    Module = m.EnclosingClass?.Module?.Name,
+                                    Module = m.EnclosingClass.Module.Name,
                                     Name = m.Name,
-                                    ParentClass = m.EnclosingClass?.Name,
+                                    ParentClass = m.EnclosingClass.Name,
                                     SymbolType = SymbolInformation.Type.Method,
-                                    Position = m.tok?.pos,
-                                    Line = m.tok?.line,
-                                    Column = m.tok?.col,
+                                    Position = m.tok.pos,
+                                    Line = m.tok.line,
+                                    Column = m.tok.col,
                                 };
                                 information.Add(methodSymbol);
                             }
@@ -168,13 +168,13 @@ namespace Microsoft.Dafny
                         {
                             var fieldSymbol = new SymbolInformation
                             {
-                                Module = fs.EnclosingClass?.Module?.Name,
+                                Module = fs.EnclosingClass.Module.Name,
                                 Name = fs.Name,
-                                ParentClass = fs.EnclosingClass?.Name,
+                                ParentClass = fs.EnclosingClass.Name,
                                 SymbolType = SymbolInformation.Type.Field,
-                                Position = fs.tok?.pos,
-                                Line = fs.tok?.line,
-                                Column = fs.tok?.col
+                                Position = fs.tok.pos,
+                                Line = fs.tok.line,
+                                Column = fs.tok.col
                             };
                             information.Add(fieldSymbol);
                         }
@@ -183,12 +183,12 @@ namespace Microsoft.Dafny
                         {
                             var classSymbol = new SymbolInformation
                             {
-                                Module = cs.Module?.Name,
+                                Module = cs.Module.Name,
                                 Name = cs.Name,
                                 SymbolType = SymbolInformation.Type.Class,
-                                Position = cs.tok?.pos,
-                                Line = cs.tok?.line,
-                                Column = cs.tok?.col
+                                Position = cs.tok.pos,
+                                Line = cs.tok.line,
+                                Column = cs.tok.col
                             };
                             information.Add(classSymbol);
                         }
@@ -226,7 +226,7 @@ namespace Microsoft.Dafny
                             {
                                 var m = (Method)clbl;
                                 var body = m.Body;
-                                information.AddRange(ParseBody(body?.SubStatements, methodToFind, m.Name));
+                                information.AddRange(ParseBody(body.SubStatements, methodToFind, m.Name));
                                 int i = 0;
                             }
                         }
@@ -282,7 +282,7 @@ namespace Microsoft.Dafny
                     var program = boogieProgram.Item2;
                     foreach (var block in program.Implementations.SelectMany(i => i.Blocks))
                     {
-                        var cmds = block?.Cmds;
+                        var cmds = block.Cmds;
                         if (cmds == null) continue;
 
                         foreach (var proof in cmds)
@@ -295,7 +295,7 @@ namespace Microsoft.Dafny
                                 var ar = proof as AssertRequiresCmd;
                                 proofs.Add(new ProofInformation
                                 {
-                                    Proof = ar.Expr?.ToString(),
+                                    Proof = ar.Expr.ToString(),
                                     Type = ProofInformation.ProofType.AssertRequires
                                 });
                             }
@@ -304,7 +304,7 @@ namespace Microsoft.Dafny
                                 var ae = proof as AssertEnsuresCmd;
                                 proofs.Add(new ProofInformation
                                 {
-                                    Proof = ae.Expr?.ToString(),
+                                    Proof = ae.Expr.ToString(),
                                     Type = ProofInformation.ProofType.AssertEnsures
                                 });
                             }
@@ -313,7 +313,7 @@ namespace Microsoft.Dafny
                                 var ai = proof as LoopInitAssertCmd;
                                 proofs.Add(new ProofInformation
                                 {
-                                    Proof = ai.Expr?.ToString(),
+                                    Proof = ai.Expr.ToString(),
                                     Type = ProofInformation.ProofType.LoopInitAssert
                                 });
                             }
@@ -322,7 +322,7 @@ namespace Microsoft.Dafny
                                 var am = proof as LoopInvMaintainedAssertCmd;
                                 proofs.Add(new ProofInformation
                                 {
-                                    Proof = am.Expr?.ToString(),
+                                    Proof = am.Expr.ToString(),
                                     Type = ProofInformation.ProofType.LoopInvMaintainedAssert
                                 });
                             }
@@ -331,7 +331,7 @@ namespace Microsoft.Dafny
                                 var a = proof as AssertCmd;
                                 proofs.Add(new ProofInformation
                                 {
-                                    Proof = a.Expr?.ToString(),
+                                    Proof = a.Expr.ToString(),
                                     Type = ProofInformation.ProofType.Assert
                                 });
                             }
