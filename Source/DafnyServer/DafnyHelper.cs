@@ -201,14 +201,14 @@ namespace Microsoft.Dafny
             }
 
             var json = JsonConvert.SerializeObject(information);
-            Console.WriteLine($"SYMBOLS_START {json} SYMBOLS_END");
+            Console.WriteLine("SYMBOLS_START " + json + " SYMBOLS_END");
         }
 
 
         public void FindReferences()
         {
             ServerUtils.ApplyArgs(args, reporter);
-            string methodToFind = $"{args[0]}.{args[1]}.{args[2]}";
+            string methodToFind = args[0] + "." + args[1] + "." + args[2];
             var information = new List<ReferenceInformation>();
             if (Parse() && Resolve())
             {
@@ -240,7 +240,7 @@ namespace Microsoft.Dafny
             var json = JsonConvert.SerializeObject(information);
             var byteArray = Encoding.UTF8.GetBytes(json);
             var base64 = Convert.ToBase64String(byteArray);
-            Console.WriteLine($"REFERENCE_START{base64}REFERENCE_END");
+            Console.WriteLine("REFERENCE_START" + base64 + "REFERENCE_END");
         }
 
         private List<ReferenceInformation> ParseBody(IEnumerable<Statement> block, string methodToFind, string currentMethodName)
@@ -291,7 +291,7 @@ namespace Microsoft.Dafny
                             Console.WriteLine(cl);
                             if (proof is AssertRequiresCmd)
                             {
-                                
+
                                 var ar = proof as AssertRequiresCmd;
                                 proofs.Add(new ProofInformation
                                 {
@@ -341,7 +341,7 @@ namespace Microsoft.Dafny
             }
 
             var json = JsonConvert.SerializeObject(proofs);
-            Console.WriteLine($"PROOFS_START {json} PROOFS_END");
+            Console.WriteLine("PROOFS_START " + json + " PROOFS_END");
         }
 
 
