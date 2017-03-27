@@ -6,8 +6,8 @@ using System.Runtime.Remoting;
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.Boogie;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Converters;
+using System.Runtime.Serialization;
+using System.Runtime.Serialization.Json;
 using Bpl = Microsoft.Boogie;
 
 namespace Microsoft.Dafny
@@ -200,10 +200,10 @@ namespace Microsoft.Dafny
                 }
             }
 
-            var json = JsonConvert.SerializeObject(information);
+            
+            var json = ToJson(information);
             Console.WriteLine("SYMBOLS_START " + json + " SYMBOLS_END");
         }
-
 
         public void FindReferences()
         {
@@ -237,7 +237,7 @@ namespace Microsoft.Dafny
                     Interaction.EOM(Interaction.FAILURE, e.Message);
                 }
             }
-            var json = JsonConvert.SerializeObject(information);
+            var json = ToJson(information);
             var byteArray = Encoding.UTF8.GetBytes(json);
             var base64 = Convert.ToBase64String(byteArray);
             Console.WriteLine("REFERENCE_START" + base64 + "REFERENCE_END");
@@ -340,7 +340,7 @@ namespace Microsoft.Dafny
                 }
             }
 
-            var json = JsonConvert.SerializeObject(proofs);
+            var json = ToJson(proofs);
             Console.WriteLine("PROOFS_START " + json + " PROOFS_END");
         }
 
@@ -348,14 +348,26 @@ namespace Microsoft.Dafny
 
         internal class SymbolInformation
         {
+            [DataMember]
             public string Module { get; set; }
+            [DataMember]
             public string Name { get; set; }
+            [DataMember]
             public string ParentClass { get; set; }
-            [JsonConverter(typeof(StringEnumConverter))]
             public Type SymbolType { get; set; }
+            [DataMember]
             public int? Position { get; set; }
+            [DataMember]
             public int? Line { get; set; }
+            [DataMember]
             public int? Column { get; set; }
+
+            [DataMember(Name = "SymbolType", Order = 1)]
+            private string SymbolTypeString
+            {
+                get { return Enum.GetName(typeof(Type), SymbolType); }
+                set { SymbolType = (Type)Enum.Parse(typeof(Type), value, true); }
+            }
 
             internal enum Type
             {
@@ -366,19 +378,31 @@ namespace Microsoft.Dafny
             }
         }
 
+        [Serializable]
         internal class ReferenceInformation
         {
+            [DataMember]
             public string MethodName { get; set; }
+            [DataMember]
             public int? Position { get; set; }
+            [DataMember]
             public int? Line { get; set; }
+            [DataMember]
             public int? Column { get; set; }
         }
 
+        [Serializable]
         internal class ProofInformation
         {
+            [DataMember]
             public string Proof { get; set; }
-            [JsonConverter(typeof(StringEnumConverter))]
             public ProofType Type { get; set; }
+            [DataMember(Name = "Type", Order = 1)]
+            private string TypeString
+            {
+                get { return Enum.GetName(typeof(ProofType), Type); }
+                set { Type = (ProofType)Enum.Parse(typeof(ProofType), value, true); }
+            }
 
             internal enum ProofType
             {
@@ -389,5 +413,19 @@ namespace Microsoft.Dafny
                 LoopInvMaintainedAssert
             }
         }
+
+
+        private static string ToJson<T>(T data)
+        {
+            DataContractJsonSerializer serializer
+                        = new DataContractJsonSerializer(typeof(T));
+
+            using (MemoryStream ms = new MemoryStream())
+            {
+                serializer.WriteObject(ms, data);
+                return Encoding.Default.GetString(ms.ToArray());
+            }
+        }
+
     }
 }
