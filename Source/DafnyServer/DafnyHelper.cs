@@ -344,22 +344,22 @@ namespace Microsoft.Dafny
             Console.WriteLine("PROOFS_START " + json + " PROOFS_END");
         }
 
-
-
+        [Serializable]
+        [DataContract]
         internal class SymbolInformation
         {
-            [DataMember]
+            [DataMember(Name = "Module")]
             public string Module { get; set; }
-            [DataMember]
+            [DataMember(Name = "Name")]
             public string Name { get; set; }
-            [DataMember]
+            [DataMember(Name = "ParentClass")]
             public string ParentClass { get; set; }
             public Type SymbolType { get; set; }
-            [DataMember]
+            [DataMember(Name = "Position")]
             public int? Position { get; set; }
-            [DataMember]
+            [DataMember(Name = "Line")]
             public int? Line { get; set; }
-            [DataMember]
+            [DataMember(Name = "Column")]
             public int? Column { get; set; }
 
             [DataMember(Name = "SymbolType", Order = 1)]
@@ -379,22 +379,24 @@ namespace Microsoft.Dafny
         }
 
         [Serializable]
+        [DataContract]
         internal class ReferenceInformation
         {
-            [DataMember]
+            [DataMember(Name = "MethodName")]
             public string MethodName { get; set; }
-            [DataMember]
+            [DataMember(Name = "Position")]
             public int? Position { get; set; }
-            [DataMember]
+            [DataMember(Name = "Line")]
             public int? Line { get; set; }
-            [DataMember]
+            [DataMember(Name = "Column")]
             public int? Column { get; set; }
         }
 
         [Serializable]
+        [DataContract]
         internal class ProofInformation
         {
-            [DataMember]
+            [DataMember(Name = "Proof")]
             public string Proof { get; set; }
             public ProofType Type { get; set; }
             [DataMember(Name = "Type", Order = 1)]
