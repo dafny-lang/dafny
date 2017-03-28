@@ -35,7 +35,7 @@ Z3_PACKAGE_PREFIX = path.join("z3")
 Z3_INTERESTING_FILES = ["LICENSE.txt", "bin/*"]
 
 ## On unix systems, which Dafny files should be marked as executable? (Glob syntax; Z3's permissions are preserved)
-UNIX_EXECUTABLES = ["dafny", "dafny-server", "DafnyDef.exe"]
+UNIX_EXECUTABLES = ["dafny", "dafny-server"]
 
 ## What do we take from Dafny's Binaries folder?
 DLLs = ["BoogieAbsInt",
