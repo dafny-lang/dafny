@@ -2,11 +2,12 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Runtime.Remoting;
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.Boogie;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Converters;
+using System.Runtime.Serialization;
+using System.Runtime.Serialization.Json;
 using Bpl = Microsoft.Boogie;
 
 namespace Microsoft.Dafny
@@ -137,13 +138,13 @@ namespace Microsoft.Dafny
                                 var fn = (Function)clbl;
                                 var functionSymbol = new SymbolInformation
                                 {
-                                    Module = fn.EnclosingClass?.Module?.Name,
+                                    Module = fn.EnclosingClass.Module.Name,
                                     Name = fn.Name,
-                                    ParentClass = fn.EnclosingClass?.Name,
+                                    ParentClass = fn.EnclosingClass.Name,
                                     SymbolType = SymbolInformation.Type.Function,
-                                    Position = fn.tok?.pos,
-                                    Line = fn.tok?.line,
-                                    Column = fn.tok?.col
+                                    Position = fn.tok.pos,
+                                    Line = fn.tok.line,
+                                    Column = fn.tok.col
                                 };
                                 information.Add(functionSymbol);
                             }
@@ -152,13 +153,13 @@ namespace Microsoft.Dafny
                                 var m = (Method)clbl;
                                 var methodSymbol = new SymbolInformation
                                 {
-                                    Module = m.EnclosingClass?.Module?.Name,
+                                    Module = m.EnclosingClass.Module.Name,
                                     Name = m.Name,
-                                    ParentClass = m.EnclosingClass?.Name,
+                                    ParentClass = m.EnclosingClass.Name,
                                     SymbolType = SymbolInformation.Type.Method,
-                                    Position = m.tok?.pos,
-                                    Line = m.tok?.line,
-                                    Column = m.tok?.col,
+                                    Position = m.tok.pos,
+                                    Line = m.tok.line,
+                                    Column = m.tok.col,
                                 };
                                 information.Add(methodSymbol);
                             }
@@ -168,13 +169,13 @@ namespace Microsoft.Dafny
                         {
                             var fieldSymbol = new SymbolInformation
                             {
-                                Module = fs.EnclosingClass?.Module?.Name,
+                                Module = fs.EnclosingClass.Module.Name,
                                 Name = fs.Name,
-                                ParentClass = fs.EnclosingClass?.Name,
+                                ParentClass = fs.EnclosingClass.Name,
                                 SymbolType = SymbolInformation.Type.Field,
-                                Position = fs.tok?.pos,
-                                Line = fs.tok?.line,
-                                Column = fs.tok?.col
+                                Position = fs.tok.pos,
+                                Line = fs.tok.line,
+                                Column = fs.tok.col
                             };
                             information.Add(fieldSymbol);
                         }
@@ -183,12 +184,12 @@ namespace Microsoft.Dafny
                         {
                             var classSymbol = new SymbolInformation
                             {
-                                Module = cs.Module?.Name,
+                                Module = cs.Module.Name,
                                 Name = cs.Name,
                                 SymbolType = SymbolInformation.Type.Class,
-                                Position = cs.tok?.pos,
-                                Line = cs.tok?.line,
-                                Column = cs.tok?.col
+                                Position = cs.tok.pos,
+                                Line = cs.tok.line,
+                                Column = cs.tok.col
                             };
                             information.Add(classSymbol);
                         }
@@ -200,15 +201,15 @@ namespace Microsoft.Dafny
                 }
             }
 
-            var json = JsonConvert.SerializeObject(information);
-            Console.WriteLine($"SYMBOLS_START {json} SYMBOLS_END");
+            
+            var json = ToJson(information);
+            Console.WriteLine("SYMBOLS_START " + json + " SYMBOLS_END");
         }
-
 
         public void FindReferences()
         {
             ServerUtils.ApplyArgs(args, reporter);
-            string methodToFind = $"{args[0]}.{args[1]}.{args[2]}";
+            string methodToFind = args[0] + "." + args[1] + "." + args[2];
             var information = new List<ReferenceInformation>();
             if (Parse() && Resolve())
             {
@@ -226,7 +227,7 @@ namespace Microsoft.Dafny
                             {
                                 var m = (Method)clbl;
                                 var body = m.Body;
-                                information.AddRange(ParseBody(body?.SubStatements, methodToFind, m.Name));
+                                information.AddRange(ParseBody(body.SubStatements, methodToFind, m.Name));
                                 int i = 0;
                             }
                         }
@@ -237,10 +238,10 @@ namespace Microsoft.Dafny
                     Interaction.EOM(Interaction.FAILURE, e.Message);
                 }
             }
-            var json = JsonConvert.SerializeObject(information);
+            var json = ToJson(information);
             var byteArray = Encoding.UTF8.GetBytes(json);
             var base64 = Convert.ToBase64String(byteArray);
-            Console.WriteLine($"REFERENCE_START{base64}REFERENCE_END");
+            Console.WriteLine("REFERENCE_START" + base64 + "REFERENCE_END");
         }
 
         private List<ReferenceInformation> ParseBody(IEnumerable<Statement> block, string methodToFind, string currentMethodName)
@@ -270,17 +271,104 @@ namespace Microsoft.Dafny
             return information;
         }
 
+        public void Proofs()
+        {
+            ServerUtils.ApplyArgs(args, reporter);
+            List<ProofInformation> proofs = new List<ProofInformation>();
+            if (Parse() && Resolve() && Translate()/* && Boogie()*/)
+            {
+                foreach (var boogieProgram in boogiePrograms)
+                {
+                    var name = boogieProgram.Item1;
+                    var program = boogieProgram.Item2;
+                    foreach (var block in program.Implementations.SelectMany(i => i.Blocks))
+                    {
+                        var cmds = block.Cmds;
+                        if (cmds == null) continue;
 
+                        foreach (var proof in cmds)
+                        {
+                            var cl = proof.GetType();
+                            Console.WriteLine(cl);
+                            if (proof is AssertRequiresCmd)
+                            {
+
+                                var ar = proof as AssertRequiresCmd;
+                                proofs.Add(new ProofInformation
+                                {
+                                    Proof = ar.Expr.ToString(),
+                                    Type = ProofInformation.ProofType.AssertRequires
+                                });
+                            }
+                            else if (proof is AssertEnsuresCmd)
+                            {
+                                var ae = proof as AssertEnsuresCmd;
+                                proofs.Add(new ProofInformation
+                                {
+                                    Proof = ae.Expr.ToString(),
+                                    Type = ProofInformation.ProofType.AssertEnsures
+                                });
+                            }
+                            else if (proof is LoopInitAssertCmd)
+                            {
+                                var ai = proof as LoopInitAssertCmd;
+                                proofs.Add(new ProofInformation
+                                {
+                                    Proof = ai.Expr.ToString(),
+                                    Type = ProofInformation.ProofType.LoopInitAssert
+                                });
+                            }
+                            else if (proof is LoopInvMaintainedAssertCmd)
+                            {
+                                var am = proof as LoopInvMaintainedAssertCmd;
+                                proofs.Add(new ProofInformation
+                                {
+                                    Proof = am.Expr.ToString(),
+                                    Type = ProofInformation.ProofType.LoopInvMaintainedAssert
+                                });
+                            }
+                            else if (proof is AssertCmd)
+                            {
+                                var a = proof as AssertCmd;
+                                proofs.Add(new ProofInformation
+                                {
+                                    Proof = a.Expr.ToString(),
+                                    Type = ProofInformation.ProofType.Assert
+                                });
+                            }
+                        }
+                    }
+                }
+            }
+
+            var json = ToJson(proofs);
+            Console.WriteLine("PROOFS_START " + json + " PROOFS_END");
+        }
+
+        [Serializable]
+        [DataContract]
         internal class SymbolInformation
         {
+            [DataMember(Name = "Module")]
             public string Module { get; set; }
+            [DataMember(Name = "Name")]
             public string Name { get; set; }
+            [DataMember(Name = "ParentClass")]
             public string ParentClass { get; set; }
-            [JsonConverter(typeof(StringEnumConverter))]
             public Type SymbolType { get; set; }
+            [DataMember(Name = "Position")]
             public int? Position { get; set; }
+            [DataMember(Name = "Line")]
             public int? Line { get; set; }
+            [DataMember(Name = "Column")]
             public int? Column { get; set; }
+
+            [DataMember(Name = "SymbolType", Order = 1)]
+            private string SymbolTypeString
+            {
+                get { return Enum.GetName(typeof(Type), SymbolType); }
+                set { SymbolType = (Type)Enum.Parse(typeof(Type), value, true); }
+            }
 
             internal enum Type
             {
@@ -291,14 +379,56 @@ namespace Microsoft.Dafny
             }
         }
 
+        [Serializable]
+        [DataContract]
         internal class ReferenceInformation
         {
+            [DataMember(Name = "MethodName")]
             public string MethodName { get; set; }
+            [DataMember(Name = "Position")]
             public int? Position { get; set; }
+            [DataMember(Name = "Line")]
             public int? Line { get; set; }
+            [DataMember(Name = "Column")]
             public int? Column { get; set; }
         }
 
+        [Serializable]
+        [DataContract]
+        internal class ProofInformation
+        {
+            [DataMember(Name = "Proof")]
+            public string Proof { get; set; }
+            public ProofType Type { get; set; }
+            [DataMember(Name = "Type", Order = 1)]
+            private string TypeString
+            {
+                get { return Enum.GetName(typeof(ProofType), Type); }
+                set { Type = (ProofType)Enum.Parse(typeof(ProofType), value, true); }
+            }
+
+            internal enum ProofType
+            {
+                Assert,
+                AssertRequires,
+                AssertEnsures,
+                LoopInitAssert,
+                LoopInvMaintainedAssert
+            }
+        }
+
+
+        private static string ToJson<T>(T data)
+        {
+            DataContractJsonSerializer serializer
+                        = new DataContractJsonSerializer(typeof(T));
+
+            using (MemoryStream ms = new MemoryStream())
+            {
+                serializer.WriteObject(ms, data);
+                return Encoding.Default.GetString(ms.ToArray());
+            }
+        }
 
     }
 }
