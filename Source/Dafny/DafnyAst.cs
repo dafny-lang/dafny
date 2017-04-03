@@ -3051,7 +3051,7 @@ namespace Microsoft.Dafny {
         if (cl != null) {
           foreach (var member in cl.Members) {
             var clbl = member as ICallable;
-            if (clbl != null) {
+            if (clbl != null && !(member is ConstantField)) {
               yield return clbl;
             }
           }
@@ -3695,7 +3695,8 @@ namespace Microsoft.Dafny {
         return HasStaticKeyword || (EnclosingClass is ClassDecl && ((ClassDecl)EnclosingClass).IsDefaultClass);
       }
     }
-    public readonly bool IsGhost;
+    protected readonly bool isGhost;
+    public bool IsGhost { get { return isGhost; } }
     public TopLevelDecl EnclosingClass;  // filled in during resolution
     public MemberDecl RefinementBase;  // filled in during the pre-resolution refinement transformation; null if the member is new here
     public MemberDecl(IToken tok, string name, bool hasStaticKeyword, bool isGhost, Attributes attributes, Declaration clonedFrom = null)
@@ -3703,7 +3704,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
       HasStaticKeyword = hasStaticKeyword;
-      IsGhost = isGhost;
+      this.isGhost = isGhost;
     }
     /// <summary>
     /// Returns className+"."+memberName.  Available only after resolution.
@@ -3884,7 +3885,7 @@ namespace Microsoft.Dafny {
     }
   }
   
-  public class ConstantField : SpecialField
+  public class ConstantField : SpecialField, ICallable
   {
     public override string WhatKind { get { return "const field"; } }
     public Function function;
@@ -3905,6 +3906,21 @@ namespace Microsoft.Dafny {
         new Specification<Expression>(new List<Expression>(), null), null, null, null);
     }
 
+    // 
+    public new bool IsGhost { get { return this.isGhost; } }
+    public List<TypeParameter> TypeArgs { get { return new List<TypeParameter>(); } }
+    public List<Formal> Ins { get { return new List<Formal>(); } }
+    public ModuleDefinition EnclosingModule { get { return this.EnclosingClass.Module; } }
+    public bool MustReverify { get { return false; } }
+    public bool AllowsNontermination { get { throw new cce.UnreachableException(); } }
+    public IToken Tok { get { return tok; } }
+    public string NameRelativeToModule { get { return EnclosingClass.Name + "." + Name; } }
+    public Specification<Expression> Decreases { get { throw new cce.UnreachableException(); } }
+    public bool InferredDecreases
+    {
+      get { throw new cce.UnreachableException(); }
+      set { throw new cce.UnreachableException(); }
+    }
   }
 
   public class OpaqueTypeDecl : TopLevelDecl, TypeParameter.ParentType, RevealableTypeDecl

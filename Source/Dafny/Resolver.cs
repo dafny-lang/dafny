@@ -869,20 +869,13 @@ namespace Microsoft.Dafny
       ResolveOpenedImports(moduleInfo, m, useCompileSignatures, this); // opened imports do not persist
       var datatypeDependencies = new Graph<IndDatatypeDecl>();
       var codatatypeDependencies = new Graph<CoDatatypeDecl>();
-      var constantDependencies = new Graph<ConstantField>();
       int prevErrorCount = reporter.Count(ErrorLevel.Error);
       ResolveTopLevelDecls_Signatures(m, sig, m.TopLevelDecls, datatypeDependencies, codatatypeDependencies);
       Contract.Assert(AllTypeConstraints.Count == 0);  // signature resolution does not add any type constraints
       ResolveAttributes(m.Attributes, m, new ResolveOpts(new NoContext(m.Module), false)); // Must follow ResolveTopLevelDecls_Signatures, in case attributes refer to members
       SolveAllTypeConstraints();  // solve any type constraints entailed by the attributes
       if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
-        ResolveTopLevelDecls_Core(m.TopLevelDecls, datatypeDependencies, codatatypeDependencies, constantDependencies);
-      }
-      // check for cycles in constant definition.
-      List<ConstantField> cycle = constantDependencies.TryFindCycle();
-      if (cycle != null) {
-        var cy = Util.Comma(" -> ", cycle, f => f.Name);
-        reporter.Error(MessageSource.Resolver, cycle[0], "constant definition contains a cycle: {0}", cy);
+        ResolveTopLevelDecls_Core(m.TopLevelDecls, datatypeDependencies, codatatypeDependencies);
       }
       Type.PopScope(moduleInfo.VisibilityScope);
       moduleInfo = oldModuleInfo;
@@ -2011,7 +2004,7 @@ namespace Microsoft.Dafny
       new NativeType("long", Int64.MinValue, 0x8000000000000000, 0, "L", false),
     };
 
-    public void ResolveTopLevelDecls_Core(List<TopLevelDecl/*!*/>/*!*/ declarations, Graph<IndDatatypeDecl/*!*/>/*!*/ datatypeDependencies, Graph<CoDatatypeDecl/*!*/>/*!*/ codatatypeDependencies, Graph<ConstantField/*!*/>/*!*/ constantDependencies) {
+    public void ResolveTopLevelDecls_Core(List<TopLevelDecl/*!*/>/*!*/ declarations, Graph<IndDatatypeDecl/*!*/>/*!*/ datatypeDependencies, Graph<CoDatatypeDecl/*!*/>/*!*/ codatatypeDependencies) {
       Contract.Requires(declarations != null);
       Contract.Requires(cce.NonNullElements(datatypeDependencies));
       Contract.Requires(cce.NonNullElements(codatatypeDependencies));
@@ -2115,10 +2108,10 @@ namespace Microsoft.Dafny
         if (d is IteratorDecl) {
           var iter = (IteratorDecl)d;
           ResolveIterator(iter);
-          ResolveClassMemberBodies(iter, constantDependencies);  // resolve the automatically generated members
+          ResolveClassMemberBodies(iter);  // resolve the automatically generated members
         } else if (d is ClassDecl) {
           var cl = (ClassDecl)d;
-          ResolveClassMemberBodies(cl, constantDependencies);
+          ResolveClassMemberBodies(cl);
         }
         allTypeParameters.PopMarker();
       }
@@ -5927,10 +5920,15 @@ namespace Microsoft.Dafny
       foreach (MemberDecl member in cl.Members) {
         member.EnclosingClass = cl;
         if (member is Field) {
-          // In the following, we pass in a NoContext, because any cycle formed by a redirecting-type constraints would have to
-          // dereference the heap, and such constraints are not allowed to dereference the heap so an error will be produced
-          // even if we don't detect this cycle.
-          ResolveType(member.tok, ((Field)member).Type, new NoContext(cl.Module), ResolveTypeOptionEnum.DontInfer, null);
+          if (member is ConstantField) {
+            var m = (ConstantField)member;
+            ResolveType(member.tok, ((Field)member).Type, m, ResolveTypeOptionEnum.DontInfer, null);
+          } else {
+            // In the following, we pass in a NoContext, because any cycle formed by a redirecting-type constraints would have to
+            // dereference the heap, and such constraints are not allowed to dereference the heap so an error will be produced
+            // even if we don't detect this cycle.
+            ResolveType(member.tok, ((Field)member).Type, new NoContext(cl.Module), ResolveTypeOptionEnum.DontInfer, null);
+          }
         } else if (member is Function) {
           var f = (Function)member;
           var ec = reporter.Count(ErrorLevel.Error);
@@ -6068,7 +6066,7 @@ namespace Microsoft.Dafny
     /// <summary>
     /// Assumes type parameters have already been pushed, and that all types in class members have been resolved
     /// </summary>
-    void ResolveClassMemberBodies(ClassDecl cl, Graph<ConstantField/*!*/>/*!*/ constantDependencies) {
+    void ResolveClassMemberBodies(ClassDecl cl) {
       Contract.Requires(cl != null);
       Contract.Requires(currentClass == null);
       Contract.Requires(AllTypeConstraints.Count == 0);
@@ -6087,7 +6085,7 @@ namespace Microsoft.Dafny
             field.function.EnclosingClass = cl;
             ResolveExpression(field.constValue, new ResolveOpts(new NoContext(currentClass.Module), false));
             // make sure initialization only refers to constant field or literal expression
-            CheckConstantFieldInitialization(field, field.constValue, constantDependencies);
+            CheckConstantFieldInitialization(field, field.constValue);
             SolveAllTypeConstraints();
           }
         } else if (member is Function) {
@@ -6121,45 +6119,51 @@ namespace Microsoft.Dafny
       currentClass = null;
     }
 
-    void CheckConstantFieldInitialization(ConstantField field, Expression expr, Graph<ConstantField/*!*/>/*!*/ constantDependencies) {
-      ConstantField other;
-      if (expr is LiteralExpr) {
+   void CheckConstantFieldInitialization(ConstantField field, Expression expr) {
+     if (IsConstantExpr(field, expr)) {
         ConstrainSubtypeRelation(field.Type, expr.Type, field.tok, "type for constant {0} is {1}, but its initialization value type is {2}", field.Name, field.Type, expr.Type);
-        // we are fine
+      } else {
+          reporter.Error(MessageSource.Resolver, field.tok, "only constants are allowed in the expression to initialize constant {0}", field.Name);
+      }
+      if (field.EnclosingModule.CallGraph.GetSCCSize(field) != 1) {
+        var cycle = Util.Comma(" -> ", field.EnclosingModule.CallGraph.GetSCC(field), clbl => clbl.NameRelativeToModule);
+        reporter.Error(MessageSource.Resolver, field.tok, "constant definition contains a cycle: " + cycle);
+      }
+    }
+
+    bool IsConstantExpr(ConstantField field, Expression expr) {
+      bool isConstant = false;
+      if (expr is LiteralExpr && !(expr is StaticReceiverExpr)) {
+        isConstant = true;
       } else if (expr is NameSegment) {
-        other = FindConstantField((NameSegment)expr);
+        var other = FindConstantField((NameSegment)expr);
         if (other != null) {
-          ConstrainSubtypeRelation(field.Type, other.Type, field.tok, "type for constant {0} is {1}, but its initialization value type is {2}", field.Name, field.Type, expr.Type);
-          constantDependencies.AddEdge(field, other);
-        } else {
-          reporter.Error(MessageSource.Resolver, field.tok, "only constants are allowed in the expression to initialize constant{0}", field.Name);
+          field.EnclosingModule.CallGraph.AddEdge(field, other);
+          if (field == other) {
+            // detect self-loops here, since they don't show up in the graph's SSC methods
+            reporter.Error(MessageSource.Resolver, field.tok, "recursive dependency involving constant initialization: {0} -> {0}", field.Name);
+          }
+          isConstant = true;
         }
       } else if (expr is ExprDotName) {
         var v = (ExprDotName)expr;
         while (v.Lhs is ExprDotName) {
           v = (ExprDotName)v.Lhs;
         }
-        if (v.Lhs is NameSegment) {
-          other = FindConstantField((NameSegment)v.Lhs);
-          if (other != null) {
-            ConstrainSubtypeRelation(field.Type, other.Type, field.tok, "type for constant {0} is {1}, but its initialization value type is {2}", field.Name, field.Type, expr.Type);
-            constantDependencies.AddEdge(field, other);
-          } else {
-            reporter.Error(MessageSource.Resolver, field.tok, "only constants are allowed in the expression to initialize constant{0}", field.Name);
-          }
-        } else {
-          reporter.Error(MessageSource.Resolver, field.tok, "only constants are allowed in the expression to initialize constant{0}", field.Name);
-        }
+        isConstant = IsConstantExpr(field, v.Lhs);
       } else {
         bool hasSubfield = false;
-        foreach (var ee in field.constValue.SubExpressions) {
+        isConstant = true;
+        foreach (var ee in expr.SubExpressions) {
           hasSubfield = true;
-          CheckConstantFieldInitialization(field, ee, constantDependencies);
+          if (!IsConstantExpr(field, ee)) {
+            isConstant = false;
+            break;
+          }
         }
-        if (!hasSubfield) {
-          reporter.Error(MessageSource.Resolver, field.tok, "only constants are allowed in the expression to initialize constant {0}", field.Name);
-        }
+        isConstant = hasSubfield ? isConstant : false;
       }
+      return isConstant;
     }
 
     ConstantField FindConstantField(NameSegment expr) {
@@ -11542,7 +11546,7 @@ namespace Microsoft.Dafny
         r.Function = ((ConstantField)member).function;
         r.TypeArgumentSubstitutions = new Dictionary<TypeParameter, Type>();
         r.Type = r.Function.ResultType.StripSubsetConstraints();
-        AddCallGraphEdge(opts.codeContext, r.Function, rr, false);
+        AddCallGraphEdge(opts.codeContext, (ConstantField)member, rr, false);
         return r;
       } else {
         return rr;
@@ -12063,13 +12067,13 @@ namespace Microsoft.Dafny
       }
     }
 
-    private static void AddCallGraphEdge(ICodeContext callingContext, Function function, Expression e, bool isFunctionReturnValue) {
+    private static void AddCallGraphEdge(ICodeContext callingContext, ICallable function, Expression e, bool isFunctionReturnValue) {
       Contract.Requires(callingContext != null);
       Contract.Requires(function != null);
       Contract.Requires(e != null);
       // Resolution termination check
       ModuleDefinition callerModule = callingContext.EnclosingModule;
-      ModuleDefinition calleeModule = function is SpecialFunction ? null : function.EnclosingClass.Module;
+      ModuleDefinition calleeModule = function is SpecialFunction ? null : function.EnclosingModule;
       if (callerModule == calleeModule) {
         // intra-module call; add edge in module's call graph
         var caller = callingContext as ICallable;
@@ -12087,8 +12091,8 @@ namespace Microsoft.Dafny
           }
           // if the call denotes the function return value in the function postconditions, then we don't
           // mark it as recursive.
-          if (caller == function && !isFunctionReturnValue) {
-            function.IsRecursive = true;  // self recursion (mutual recursion is determined elsewhere)
+          if (caller == function && (function is Function) && !isFunctionReturnValue) {
+            ((Function)function).IsRecursive = true;  // self recursion (mutual recursion is determined elsewhere)
           }
         }
       }
