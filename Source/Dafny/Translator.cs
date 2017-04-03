@@ -3237,7 +3237,7 @@ namespace Microsoft.Dafny {
       var etran = new ExpressionTranslator(this, predef, tok);
 
       List<Bpl.Expr> tyexprs;
-      var tyvars = MkTyParamBinders(pp.TypeArgs, out tyexprs);
+      var tyvars = MkTyParamBinders(GetTypeParams(pp), out tyexprs);
 
       var bvs = new List<Variable>(tyvars);
       var coArgs = new List<Bpl.Expr>(tyexprs);

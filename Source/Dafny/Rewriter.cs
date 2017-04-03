@@ -85,7 +85,9 @@ namespace Microsoft.Dafny
         forallvisiter.Visit(decl, true);
         if (decl is FixpointLemma) {
           var prefixLemma = ((FixpointLemma)decl).PrefixLemma;
-          forallvisiter.Visit(prefixLemma, true);
+          if (prefixLemma != null) {
+            forallvisiter.Visit(prefixLemma, true);
+          }
         }
       }
       
