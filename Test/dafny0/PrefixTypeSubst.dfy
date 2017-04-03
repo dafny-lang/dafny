@@ -1,4 +1,4 @@
-// RUN: %dafny /rprint:- "%s" > "%t"
+// RUN: %dafny /env:0 /rprint:- "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 class MyClass<A,B> {
