@@ -5937,12 +5937,14 @@ namespace Microsoft.Dafny
           ResolveFunctionSignature(f);
           allTypeParameters.PopMarker();
           if (f is FixpointPredicate && ec == reporter.Count(ErrorLevel.Error)) {
-            var ff = ((FixpointPredicate)f).PrefixPredicate;
-            ff.EnclosingClass = cl;
-            allTypeParameters.PushMarker();
-            ResolveTypeParameters(ff.TypeArgs, true, ff);
-            ResolveFunctionSignature(ff);
-            allTypeParameters.PopMarker();
+            var ff = ((FixpointPredicate)f).PrefixPredicate;  // note, may be null if there was an error before the prefix predicate was generated
+            if (ff != null) {
+              ff.EnclosingClass = cl;
+              allTypeParameters.PushMarker();
+              ResolveTypeParameters(ff.TypeArgs, true, ff);
+              ResolveFunctionSignature(ff);
+              allTypeParameters.PopMarker();
+            }
           }
 
         } else if (member is Method) {
@@ -6097,10 +6099,12 @@ namespace Microsoft.Dafny
           allTypeParameters.PopMarker();
           if (f is FixpointPredicate && ec == reporter.Count(ErrorLevel.Error)) {
             var ff = ((FixpointPredicate)f).PrefixPredicate;
-            allTypeParameters.PushMarker();
-            ResolveTypeParameters(ff.TypeArgs, false, ff);
-            ResolveFunction(ff);
-            allTypeParameters.PopMarker();
+            if (ff != null) {
+              allTypeParameters.PushMarker();
+              ResolveTypeParameters(ff.TypeArgs, false, ff);
+              ResolveFunction(ff);
+              allTypeParameters.PopMarker();
+            }
           }
 
         } else if (member is Method) {

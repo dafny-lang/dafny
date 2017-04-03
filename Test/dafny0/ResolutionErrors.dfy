@@ -1764,3 +1764,12 @@ module Regression_NewType {
   class C { }
   newtype MyInt = x: int | {} == set c: C | c  // this once crashed Dafny
 }
+
+// --------------------- regression
+
+module PrefixGeneratorDuplicates {
+  copredicate P()
+  copredicate P()  // error: duplicate name (this once crashed Dafny)
+  colemma L()
+  colemma L()  // error: duplicate name (this once crashed Dafny)
+}

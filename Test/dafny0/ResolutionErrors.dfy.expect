@@ -253,4 +253,6 @@ ResolutionErrors.dfy(1757,19): Error: Undeclared top-level type or type paramete
 ResolutionErrors.dfy(1752,6): Error: RHS (of type object) not assignable to LHS (of type J)
 ResolutionErrors.dfy(1755,6): Error: RHS (of type J) not assignable to LHS (of type C)
 ResolutionErrors.dfy(1765,44): Error: range of comprehension must be of type bool (instead got C)
-254 resolution/type errors detected in ResolutionErrors.dfy
+ResolutionErrors.dfy(1772,14): Error: Duplicate member name: P
+ResolutionErrors.dfy(1774,10): Error: Duplicate member name: L
+256 resolution/type errors detected in ResolutionErrors.dfy

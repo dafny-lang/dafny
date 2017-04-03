@@ -527,7 +527,7 @@ Everything) {
           PrintFunction((Function)m, indent, false);
           var fixp = m as FixpointPredicate;
           if (fixp != null && fixp.PrefixPredicate != null) {
-            Indent(indent); wr.WriteLine("/***");
+            Indent(indent); wr.WriteLine("/*** (note, what is printed here does not show substitutions of calls to prefix predicates)");
             PrintFunction(fixp.PrefixPredicate, indent, false);
             Indent(indent); wr.WriteLine("***/");
           }
@@ -658,7 +658,7 @@ Everything) {
         wr.WriteLine(" ...");
       } else {
         PrintFormals(f.Formals, f, f.Name);
-        if (!isPredicate && !(f is TwoStatePredicate)) {
+        if (!isPredicate && !(f is FixpointPredicate) && !(f is TwoStatePredicate)) {
           wr.Write(": ");
           if (f.Result != null) {
             wr.Write("(");
@@ -1665,9 +1665,8 @@ Everything) {
         } else {
           PrintExpr(e.Lhs, opBindingStrength, false, false, !parensNeeded && isFollowedBySemicolon, -1, keyword);
         }
-        wr.Write("(");
-        PrintExpressionList(e.Args, false);
-        wr.Write(")");
+        string name = e.Lhs is NameSegment ? ((NameSegment)e.Lhs).Name : e.Lhs is ExprDotName ? ((ExprDotName)e.Lhs).SuffixName : null;
+        PrintActualArguments(e.Args, name);
         if (parensNeeded) { wr.Write(")"); }
 
       } else if (expr is RevealExpr) {
@@ -2264,8 +2263,7 @@ Everything) {
 
     void PrintActualArguments(List<Expression> args, string name) {
       Contract.Requires(args != null);
-      Contract.Requires(name != null);
-      if (name.EndsWith("#")) {
+      if (name != null && name.EndsWith("#")) {
         wr.Write("[");
         PrintExpression(args[0], false);
         wr.Write("]");
