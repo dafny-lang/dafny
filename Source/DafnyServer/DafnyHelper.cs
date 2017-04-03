@@ -89,6 +89,7 @@ namespace Microsoft.Dafny
         {
             if (boogieProgram.Resolve() == 0 && boogieProgram.Typecheck() == 0)
             {
+                
                 //FIXME ResolveAndTypecheck?
                 ExecutionEngine.EliminateDeadVariables(boogieProgram);
                 ExecutionEngine.CollectModSets(boogieProgram);
