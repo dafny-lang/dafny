@@ -199,13 +199,15 @@ namespace Microsoft.Dafny.Triggers {
       if (IsPotentialTriggerCandidate(expr)) { 
         annotation = AnnotatePotentialCandidate(expr);
       } else if (expr is QuantifierExpr) {
-          annotation = AnnotateQuantifier((QuantifierExpr)expr);
+        annotation = AnnotateQuantifier((QuantifierExpr)expr);
       } else if (expr is LetExpr) {
         annotation = AnnotateLetExpr((LetExpr)expr);
       } else if (expr is IdentifierExpr) {
         annotation = AnnotateIdentifier((IdentifierExpr)expr);
       } else if (expr is ApplySuffix) {
         annotation = AnnotateApplySuffix((ApplySuffix)expr);
+      } else if (expr is MatchExpr) {
+        annotation = AnnotateMatchExpr((MatchExpr)expr);
       } else if (expr is ComprehensionExpr) {
         annotation = AnnotateComprehensionExpr((ComprehensionExpr)expr);
       } else if (expr is ConcreteSyntaxExpression ||
@@ -317,6 +319,22 @@ namespace Microsoft.Dafny.Triggers {
     private TriggerAnnotation AnnotateComprehensionExpr(ComprehensionExpr expr) {
       var terms = CollectExportedCandidates(expr);
       return new TriggerAnnotation(true, CollectVariables(expr), terms,  OnlyPrivateCandidates(terms, expr.BoundVars));
+    }
+
+    private TriggerAnnotation AnnotateMatchExpr(MatchExpr expr)
+    {
+      var pts = CollectExportedCandidates(expr);
+      // collects that argument boundvar of matchcaseexpr
+      var variables = expr.Cases.Select(e => e.Arguments).
+        Aggregate(new List<BoundVar>(), (acc, e) => TriggerUtils.MergeAlterFirst(acc, e));
+      // remove terms that mentions argument boundvar of matchcaseexpr
+      var terms = new List<TriggerTerm>();
+      foreach (var term in pts) {
+        if (!(variables.All(x => term.Variables.Contains(x)))) {
+          terms.Add(term);
+        }
+      }
+      return new TriggerAnnotation(true, CollectVariables(expr), terms);
     }
 
     private TriggerAnnotation AnnotateOther(Expression expr, bool isTriggerKiller) {
