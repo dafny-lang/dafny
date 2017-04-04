@@ -127,8 +127,7 @@ namespace Microsoft.Dafny
             var information = new List<SymbolInformation>();
             if (Parse() && Resolve())
             {
-                try
-                {
+
                     foreach (var module in dafnyProgram.Modules())
                     {
                         foreach (var clbl in ModuleDefinition.AllCallables(module.TopLevelDecls))
@@ -160,6 +159,7 @@ namespace Microsoft.Dafny
                                     Position = m.tok.pos,
                                     Line = m.tok.line,
                                     Column = m.tok.col,
+                                    References = FindReferencesInternal(m.EnclosingClass.Module.Name + "." + m.EnclosingClass.Name + "." + m.Name)
                                 };
                                 information.Add(methodSymbol);
                             }
@@ -194,11 +194,8 @@ namespace Microsoft.Dafny
                             information.Add(classSymbol);
                         }
                     }
-                }
-                catch (Exception e)
-                {
-                    throw e;
-                }
+                
+
             }
 
             
@@ -210,9 +207,50 @@ namespace Microsoft.Dafny
         {
             ServerUtils.ApplyArgs(args, reporter);
             string methodToFind = args[0] + "." + args[1] + "." + args[2];
+            var information = FindReferences(methodToFind);
+            var json = ToJson(information);
+            var byteArray = Encoding.UTF8.GetBytes(json);
+            var base64 = Convert.ToBase64String(byteArray);
+            Console.WriteLine("REFERENCE_START" + base64 + "REFERENCE_END");
+        }
+
+        private List<ReferenceInformation> FindReferences(string methodToFind)
+        {
             var information = new List<ReferenceInformation>();
             if (Parse() && Resolve())
             {
+                try
+                {
+                    foreach (var module in dafnyProgram.Modules())
+                    {
+                        foreach (var clbl in ModuleDefinition.AllCallables(module.TopLevelDecls))
+                        {
+                            if (clbl is Function)
+                            {
+                                var fn = (Function) clbl;
+                            }
+                            else
+                            {
+                                var m = (Method) clbl;
+                                var body = m.Body;
+                                information.AddRange(ParseBody(body.SubStatements, methodToFind, m.Name));
+                                int i = 0;
+                            }
+                        }
+                    }
+                }
+                catch (Exception e)
+                {
+                    Interaction.EOM(Interaction.FAILURE, e.Message + e.StackTrace);
+                }
+            }
+            return information;
+        }
+
+        private List<ReferenceInformation> FindReferencesInternal(string methodToFind)
+        {
+            var information = new List<ReferenceInformation>();
+
                 try
                 {
                     foreach (var module in dafnyProgram.Modules())
@@ -235,15 +273,10 @@ namespace Microsoft.Dafny
                 }
                 catch (Exception e)
                 {
-                    Interaction.EOM(Interaction.FAILURE, e.Message);
+                    Interaction.EOM(Interaction.FAILURE, e.Message + e.StackTrace);
                 }
-            }
-            var json = ToJson(information);
-            var byteArray = Encoding.UTF8.GetBytes(json);
-            var base64 = Convert.ToBase64String(byteArray);
-            Console.WriteLine("REFERENCE_START" + base64 + "REFERENCE_END");
+            return information;
         }
-
         private List<ReferenceInformation> ParseBody(IEnumerable<Statement> block, string methodToFind, string currentMethodName)
         {
             var information = new List<ReferenceInformation>();
@@ -277,8 +310,10 @@ namespace Microsoft.Dafny
             List<ProofInformation> proofs = new List<ProofInformation>();
             if (Parse() && Resolve() && Translate()/* && Boogie()*/)
             {
+                Boogie();
                 foreach (var boogieProgram in boogiePrograms)
                 {
+                    object err = "";
                     var name = boogieProgram.Item1;
                     var program = boogieProgram.Item2;
                     foreach (var block in program.Implementations.SelectMany(i => i.Blocks))
@@ -294,6 +329,7 @@ namespace Microsoft.Dafny
                             {
 
                                 var ar = proof as AssertRequiresCmd;
+                                err = ar.ErrorData;
                                 proofs.Add(new ProofInformation
                                 {
                                     Proof = ar.Expr.ToString(),
@@ -303,6 +339,7 @@ namespace Microsoft.Dafny
                             else if (proof is AssertEnsuresCmd)
                             {
                                 var ae = proof as AssertEnsuresCmd;
+                                err = ae.ErrorData;
                                 proofs.Add(new ProofInformation
                                 {
                                     Proof = ae.Expr.ToString(),
@@ -312,6 +349,7 @@ namespace Microsoft.Dafny
                             else if (proof is LoopInitAssertCmd)
                             {
                                 var ai = proof as LoopInitAssertCmd;
+                                err = ai.ErrorData;
                                 proofs.Add(new ProofInformation
                                 {
                                     Proof = ai.Expr.ToString(),
@@ -321,6 +359,7 @@ namespace Microsoft.Dafny
                             else if (proof is LoopInvMaintainedAssertCmd)
                             {
                                 var am = proof as LoopInvMaintainedAssertCmd;
+                                err = am.ErrorData;
                                 proofs.Add(new ProofInformation
                                 {
                                     Proof = am.Expr.ToString(),
@@ -330,12 +369,29 @@ namespace Microsoft.Dafny
                             else if (proof is AssertCmd)
                             {
                                 var a = proof as AssertCmd;
+                                err = a.ErrorData;
                                 proofs.Add(new ProofInformation
                                 {
                                     Proof = a.Expr.ToString(),
                                     Type = ProofInformation.ProofType.Assert
                                 });
                             }
+                            else if (proof is AssumeCmd)
+                            {
+                                var z = proof as AssumeCmd;
+                                
+                            }
+                            else if (proof is AssignCmd)
+                            {
+                                var x = proof as AssignCmd;
+                                
+                            }
+                            else if (proof is CommentCmd)
+                            {
+                                var t = proof as CommentCmd;
+                            }
+                            var u = err;
+
                         }
                     }
                 }
@@ -362,7 +418,8 @@ namespace Microsoft.Dafny
             public int? Line { get; set; }
             [DataMember(Name = "Column")]
             public int? Column { get; set; }
-
+            [DataMember(Name = "References")]
+            public ICollection<ReferenceInformation> References { get; set; }
             [DataMember(Name = "SymbolType", Order = 1)]
             private string SymbolTypeString
             {
@@ -376,6 +433,11 @@ namespace Microsoft.Dafny
                 Method,
                 Function,
                 Field
+            }
+
+            public SymbolInformation()
+            {
+                References = new List<ReferenceInformation>();
             }
         }
 

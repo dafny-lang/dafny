@@ -133,7 +133,7 @@ namespace Microsoft.Dafny
             }
             catch (Exception ex)
             {
-                Interaction.EOM(Interaction.FAILURE, ex, "[FATAL]");
+                Interaction.EOM(Interaction.FAILURE, ex, "[FATAL]" + ex.StackTrace);
                 running = false;
             }
         }
