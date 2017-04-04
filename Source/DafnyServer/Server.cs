@@ -4,7 +4,7 @@ using System.Text;
 using System.Collections.Generic;
 using System.Runtime.Serialization;
 using System.Runtime.Serialization.Json;
-
+using DafnyServer;
 using Dafny = Microsoft.Dafny;
 using Bpl = Microsoft.Boogie;
 using Microsoft.Boogie;
@@ -114,6 +114,13 @@ namespace Microsoft.Dafny
                     ServerUtils.checkArgs(command, 0);
                     var payload = ReadPayload();
                     VerificationTask.ReadTask(payload).FindReferences();
+                }
+                else if (verb == "versioncheck")
+                {
+                    ServerUtils.checkArgs(command, 0);
+                    var payload = ReadPayload();
+                    VersionCheck check = new VersionCheck();
+                    check.Check();
                 }
                 else if (verb == "quit")
                 {
