@@ -52,6 +52,11 @@ namespace DafnyServer
                 Console.WriteLine(e.Message);
             }
         }
+
+        public void CurrentVersion()
+        {
+            Console.WriteLine("VERSION:" + _currentVersion);
+        }
     }
 
     [DataContract]

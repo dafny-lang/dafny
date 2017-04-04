@@ -115,6 +115,13 @@ namespace Microsoft.Dafny
                     var payload = ReadPayload();
                     VerificationTask.ReadTask(payload).FindReferences();
                 }
+                else if (verb == "version")
+                {
+                    ServerUtils.checkArgs(command, 0);
+                    var payload = ReadPayload();
+                    VersionCheck check = new VersionCheck();
+                    check.CurrentVersion();
+                }
                 else if (verb == "versioncheck")
                 {
                     ServerUtils.checkArgs(command, 0);
