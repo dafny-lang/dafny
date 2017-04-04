@@ -117,6 +117,8 @@ namespace Microsoft.Dafny
                 }
                 else if (verb == "versioncheck")
                 {
+                    ServerUtils.checkArgs(command, 0);
+                    var payload = ReadPayload();
                     VersionCheck check = new VersionCheck();
                     check.Check();
                 }
