@@ -15451,15 +15451,18 @@ namespace Microsoft.Dafny {
 
     public class ExprSubstituter : Substituter {
       readonly Dictionary<Expression, IdentifierExpr> exprSubstMap;
+      Dictionary<Expression, IdentifierExpr> usedSubstMap;
 
       public ExprSubstituter(Dictionary<Expression, IdentifierExpr> exprSubstMap)
         : base(null, new Dictionary<IVariable, Expression>(), new Dictionary<TypeParameter,Type>()) {
         this.exprSubstMap = exprSubstMap;
+        this.usedSubstMap = new Dictionary<Expression, IdentifierExpr>();
       }
 
       public override Expression Substitute(Expression expr) {
         IdentifierExpr ie;
         if (exprSubstMap.TryGetValue(expr, out ie)) {
+          usedSubstMap.Add(expr, ie);
           return cce.NonNull(ie);
         }
         if (expr is QuantifierExpr) {
@@ -15472,7 +15475,7 @@ namespace Microsoft.Dafny {
           newBoundVars.AddRange(e.BoundVars);
           if (newRange != e.Range || newTerm != e.Term) {
             if (expr is ForallExpr) {
-              foreach (KeyValuePair<Expression, IdentifierExpr> entry in exprSubstMap) {
+              foreach (KeyValuePair<Expression, IdentifierExpr> entry in usedSubstMap) {
                 newExpr = new BinaryExpr(expr.tok, BinaryExpr.ResolvedOpcode.EqCommon, entry.Value, entry.Key);
                 if (newRange == null) {
                   newRange = newExpr;
@@ -15484,7 +15487,7 @@ namespace Microsoft.Dafny {
               }
               newExpr = new ForallExpr(expr.tok, ((QuantifierExpr)expr).TypeArgs, newBoundVars, newRange, newTerm, newAttrs);
             } else if (expr is ExistsExpr) {
-              foreach (KeyValuePair<Expression, IdentifierExpr> entry in exprSubstMap) {
+              foreach (KeyValuePair<Expression, IdentifierExpr> entry in usedSubstMap) {
                 newExpr = new BinaryExpr(expr.tok, BinaryExpr.ResolvedOpcode.EqCommon, entry.Value, entry.Key);
                 if (newRange == null) {
                   newRange = newExpr;
@@ -15495,7 +15498,8 @@ namespace Microsoft.Dafny {
                 newBoundVars.Add((BoundVar)entry.Value.Var);
               }
               newExpr = new ExistsExpr(expr.tok, ((QuantifierExpr)expr).TypeArgs, newBoundVars, newRange, newTerm, newAttrs);
-            } 
+            }
+            usedSubstMap.Clear();
           }
           newExpr.Type = expr.Type;
           return newExpr;

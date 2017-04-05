@@ -164,6 +164,12 @@ namespace Microsoft.Dafny.Triggers {
 
     bool RewriteMatchingLoop()
     {
+      if (!TriggerUtils.NeedsAutoTriggers(expr)) {
+        // don't rewrite the quantifier if we are not auto generate triggers.
+        // This is because rewriting introduces new boundvars and will cause
+        // user provided triggers not mention all boundvars
+        return false;
+      }
       if (expr is QuantifierExpr && TriggerUtils.WantsMatchingLoopRewrite((QuantifierExpr)expr)) {
         QuantifierExpr quantifier = (QuantifierExpr)expr;
         var l = new List<QuantifierWithTriggers>();
