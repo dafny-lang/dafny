@@ -130,6 +130,7 @@ namespace Microsoft.Dafny
 
                     foreach (var module in dafnyProgram.Modules())
                     {
+                        var x = module.TopLevelDecls;
                         foreach (var clbl in ModuleDefinition.AllCallables(module.TopLevelDecls))
                         {
                             if (clbl is Function)
@@ -150,6 +151,10 @@ namespace Microsoft.Dafny
                             else
                             {
                                 var m = (Method)clbl;
+                                if (m.Body?.Body != null)
+                                {
+                                    information.AddRange(ResolveCallStatements(m.Body.Body));
+                                }
                                 var methodSymbol = new SymbolInformation
                                 {
                                     Module = m.EnclosingClass.Module.Name,
@@ -203,6 +208,50 @@ namespace Microsoft.Dafny
             Console.WriteLine("SYMBOLS_START " + json + " SYMBOLS_END");
         }
 
+        private static IEnumerable<SymbolInformation> ResolveCallStatements(ICollection<Statement> statements)
+        {
+            var information = new List<SymbolInformation>();
+            try
+            {
+                foreach (var statement in statements)
+                {
+                    if (statement is CallStmt)
+                    {
+                        var callStmt = (CallStmt)statement;
+                        {
+
+                            if (callStmt.Receiver.Type is UserDefinedType)
+                            {
+                                var receiver = callStmt.Receiver as NameSegment;
+                                var userType = callStmt.Receiver.Type as UserDefinedType;
+                                information.Add(new SymbolInformation
+                                {
+                                    Name = callStmt.Method.CompileName,
+                                    ParentClass = userType.ResolvedClass.CompileName,
+                                    Module = userType.ResolvedClass.Module.CompileName,
+                                    Call = receiver?.Name + "." + callStmt.MethodSelect.Member,
+                                    SymbolType = SymbolInformation.Type.Call,
+                                    Position = callStmt.Tok.pos,
+                                    Line = callStmt.Tok.line,
+                                    Column = callStmt.Tok.col
+                                });
+                            }
+                            
+                        }
+                    }
+                    if (statement.SubStatements.Any())
+                    {
+                        information.AddRange(ResolveCallStatements(statement.SubStatements.ToList()));
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                Interaction.EOM(Interaction.FAILURE, e.Message + e.StackTrace);
+            }
+            return information;
+        }
+
         public void FindReferences()
         {
             ServerUtils.ApplyArgs(args, reporter);
@@ -234,7 +283,6 @@ namespace Microsoft.Dafny
                                 var m = (Method) clbl;
                                 var body = m.Body;
                                 information.AddRange(ParseBody(body.SubStatements, methodToFind, m.Name));
-                                int i = 0;
                             }
                         }
                     }
@@ -266,7 +314,6 @@ namespace Microsoft.Dafny
                                 var m = (Method)clbl;
                                 var body = m.Body;
                                 information.AddRange(ParseBody(body.SubStatements, methodToFind, m.Name));
-                                int i = 0;
                             }
                         }
                     }
@@ -420,6 +467,8 @@ namespace Microsoft.Dafny
             public int? Column { get; set; }
             [DataMember(Name = "References")]
             public ICollection<ReferenceInformation> References { get; set; }
+            [DataMember(Name = "Call")]
+            public string Call { get; set; }
             [DataMember(Name = "SymbolType", Order = 1)]
             private string SymbolTypeString
             {
@@ -432,7 +481,8 @@ namespace Microsoft.Dafny
                 Class,
                 Method,
                 Function,
-                Field
+                Field,
+                Call
             }
 
             public SymbolInformation()

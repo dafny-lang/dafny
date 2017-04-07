@@ -24,7 +24,6 @@ namespace DafnyServer
             {
                 var webRequest = (HttpWebRequest)WebRequest.Create(@"https://api.github.com/repos/FunctionalCorrectness/dafny-microsoft/releases");
                 webRequest.UserAgent = "Mozilla/5.0 (Windows NT x.y; rv:10.0) Gecko/20100101 Firefox/10.0";
-                string strContent = null;
 
                 using (var response = webRequest.GetResponse())
                 using (var content = response.GetResponseStream())
