@@ -151,7 +151,7 @@ namespace Microsoft.Dafny
                             else
                             {
                                 var m = (Method)clbl;
-                                if (m.Body?.Body != null)
+                                if (m.Body!= null && m.Body.Body != null)
                                 {
                                     information.AddRange(ResolveCallStatements(m.Body.Body));
                                 }
@@ -224,12 +224,13 @@ namespace Microsoft.Dafny
                             {
                                 var receiver = callStmt.Receiver as NameSegment;
                                 var userType = callStmt.Receiver.Type as UserDefinedType;
+                                var reveiverName = receiver == null ? "" : receiver.Name;
                                 information.Add(new SymbolInformation
                                 {
                                     Name = callStmt.Method.CompileName,
                                     ParentClass = userType.ResolvedClass.CompileName,
                                     Module = userType.ResolvedClass.Module.CompileName,
-                                    Call = receiver?.Name + "." + callStmt.MethodSelect.Member,
+                                    Call = reveiverName + "." + callStmt.MethodSelect.Member,
                                     SymbolType = SymbolInformation.Type.Call,
                                     Position = callStmt.Tok.pos,
                                     Line = callStmt.Tok.line,
@@ -237,6 +238,35 @@ namespace Microsoft.Dafny
                                 });
                             }
                             
+                        }
+                    } else if (statement is UpdateStmt)
+                    {
+                        var updateStmt = (UpdateStmt) statement;
+                        var leftSide = updateStmt.Lhss;
+                        var rightSide = updateStmt.Rhss;
+                        var leftSideDots = leftSide.OfType<ExprDotName>();
+                        var rightSideDots = rightSide.OfType<ExprDotName>();
+                        var allExprDotNames = leftSideDots.Concat(rightSideDots);
+                        foreach (var exprDotName in allExprDotNames)
+                        {
+                            if (exprDotName.Lhs.Type is UserDefinedType)
+                            {
+                                var segment = exprDotName.Lhs as NameSegment;
+                                var type = exprDotName.Lhs.Type as UserDefinedType;
+                                var designator = segment == null ? "" : segment.Name;
+                                information.Add(new SymbolInformation
+                                {
+                                    Name = exprDotName.SuffixName,
+                                    ParentClass = type.ResolvedClass.CompileName,
+                                    Module =  type.ResolvedClass.Module.CompileName,
+                                    Call = designator + "." + exprDotName.SuffixName,
+                                    SymbolType = SymbolInformation.Type.Call,
+                                    Position = exprDotName.tok.pos,
+                                    Line = exprDotName.tok.line,
+                                    Column = exprDotName.tok.col
+
+                                });
+                            }
                         }
                     }
                     if (statement.SubStatements.Any())
