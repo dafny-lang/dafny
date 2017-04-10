@@ -182,16 +182,19 @@ namespace Microsoft.Dafny
 
                         foreach (var cs in ModuleDefinition.AllClasses(module.TopLevelDecls))
                         {
-                            var classSymbol = new SymbolInformation
+                            if (cs != null && cs.Module != null && cs.tok != null)
                             {
-                                Module = cs.Module.Name,
-                                Name = cs.Name,
-                                SymbolType = SymbolInformation.Type.Class,
-                                Position = cs.tok.pos,
-                                Line = cs.tok.line,
-                                Column = cs.tok.col
-                            };
-                            information.Add(classSymbol);
+                                var classSymbol = new SymbolInformation
+                                {
+                                    Module = cs.Module.Name,
+                                    Name = cs.Name,
+                                    SymbolType = SymbolInformation.Type.Class,
+                                    Position = cs.tok.pos,
+                                    Line = cs.tok.line,
+                                    Column = cs.tok.col
+                                };
+                                information.Add(classSymbol);
+                            }
                         }
                     }
                 
