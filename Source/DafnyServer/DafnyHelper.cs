@@ -2,9 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Runtime.Remoting;
 using System.Text;
-using System.Threading.Tasks;
 using Microsoft.Boogie;
 using System.Runtime.Serialization;
 using System.Runtime.Serialization.Json;
@@ -130,7 +128,6 @@ namespace Microsoft.Dafny
 
                     foreach (var module in dafnyProgram.Modules())
                     {
-                        var x = module.TopLevelDecls;
                         foreach (var clbl in ModuleDefinition.AllCallables(module.TopLevelDecls))
                         {
                             if (clbl is Function)
@@ -164,7 +161,7 @@ namespace Microsoft.Dafny
                                     Position = m.tok.pos,
                                     Line = m.tok.line,
                                     Column = m.tok.col,
-                                    References = FindReferencesInternal(m.EnclosingClass.Module.Name + "." + m.EnclosingClass.Name + "." + m.Name)
+                                    References = FindMethodReferencesInternal(m.EnclosingClass.Module.Name + "." + m.EnclosingClass.Name + "." + m.Name)
                                 };
                                 information.Add(methodSymbol);
                             }
@@ -180,7 +177,8 @@ namespace Microsoft.Dafny
                                 SymbolType = SymbolInformation.Type.Field,
                                 Position = fs.tok.pos,
                                 Line = fs.tok.line,
-                                Column = fs.tok.col
+                                Column = fs.tok.col,
+                                References = FindFieldReferencesInternal(fs.Name, fs.EnclosingClass.Name, fs.EnclosingClass.Module.Name)
                             };
                             information.Add(fieldSymbol);
                         }
@@ -208,7 +206,7 @@ namespace Microsoft.Dafny
             Console.WriteLine("SYMBOLS_START " + json + " SYMBOLS_END");
         }
 
-        private static IEnumerable<SymbolInformation> ResolveCallStatements(ICollection<Statement> statements)
+        private static IEnumerable<SymbolInformation> ResolveCallStatements(IEnumerable<Statement> statements)
         {
             var information = new List<SymbolInformation>();
             try
@@ -312,7 +310,7 @@ namespace Microsoft.Dafny
                             {
                                 var m = (Method) clbl;
                                 var body = m.Body;
-                                information.AddRange(ParseBody(body.SubStatements, methodToFind, m.Name));
+                                information.AddRange(ParseBodyForMethodReferences(body.SubStatements, methodToFind, m.Name));
                             }
                         }
                     }
@@ -325,7 +323,37 @@ namespace Microsoft.Dafny
             return information;
         }
 
-        private List<ReferenceInformation> FindReferencesInternal(string methodToFind)
+        private List<ReferenceInformation> FindFieldReferencesInternal(string fieldName, string className,
+            string moduleName)
+        {
+            var information = new List<ReferenceInformation>();
+
+            try
+            {
+                foreach (var module in dafnyProgram.Modules())
+                {
+                    foreach (var clbl in ModuleDefinition.AllCallables(module.TopLevelDecls))
+                    {
+                        if (clbl is Function)
+                        {
+                            var fn = (Function)clbl;
+                        }
+                        else
+                        {
+                            var m = (Method)clbl;
+                            var body = m.Body;
+                            information.AddRange(ParseBodyForFieldReferences(body.SubStatements, fieldName, className, moduleName));
+                        }
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                Interaction.EOM(Interaction.FAILURE, e.Message + e.StackTrace);
+            }
+            return information;
+        }
+        private List<ReferenceInformation> FindMethodReferencesInternal(string methodToFind)
         {
             var information = new List<ReferenceInformation>();
 
@@ -343,7 +371,7 @@ namespace Microsoft.Dafny
                             {
                                 var m = (Method)clbl;
                                 var body = m.Body;
-                                information.AddRange(ParseBody(body.SubStatements, methodToFind, m.Name));
+                                information.AddRange(ParseBodyForMethodReferences(body.SubStatements, methodToFind, m.Name));
                             }
                         }
                     }
@@ -354,7 +382,74 @@ namespace Microsoft.Dafny
                 }
             return information;
         }
-        private List<ReferenceInformation> ParseBody(IEnumerable<Statement> block, string methodToFind, string currentMethodName)
+
+        private static IEnumerable<ReferenceInformation> ParseBodyForFieldReferences(IEnumerable<Statement> block, string fieldName, string className, string moduleName)
+        {
+            var information = new List<ReferenceInformation>();
+            foreach (var statement in block)
+            {
+                if (statement is UpdateStmt)
+                {
+                    var updateStmt = (UpdateStmt)statement;
+                    var leftSide = updateStmt.Lhss;
+                    var rightSide = updateStmt.Rhss;
+                    var leftSideDots = leftSide.OfType<ExprDotName>();
+                    var rightSideDots = rightSide.OfType<ExprDotName>();
+                    var allExprDotNames = leftSideDots.Concat(rightSideDots);
+                    var leftSideNameSegments = leftSide.OfType<NameSegment>();
+                    var rightSideNameSegments = rightSide.OfType<NameSegment>();
+                    var allNameSegments = leftSideNameSegments.Concat(rightSideNameSegments);
+                    foreach (var exprDotName in allExprDotNames)
+                    {
+                        if (exprDotName.Lhs.Type is UserDefinedType)
+                        {
+                            var type = exprDotName.Lhs.Type as UserDefinedType;
+                            if (fieldName == exprDotName.SuffixName && className == type.ResolvedClass.CompileName &&
+                                moduleName == type.ResolvedClass.Module.CompileName)
+                            {
+                                information.Add(new ReferenceInformation
+                                {
+                                    MethodName = exprDotName.SuffixName,
+                                    Position = exprDotName.tok.pos,
+                                    Line = exprDotName.tok.line,
+                                    Column = exprDotName.tok.col
+
+                                });
+                            }
+                           
+                        }
+                    }
+                    foreach (var nameSegment in allNameSegments)
+                    {
+                        if (nameSegment.ResolvedExpression is MemberSelectExpr)
+                        {
+                            var memberAcc = nameSegment.ResolvedExpression as MemberSelectExpr;
+                            if (fieldName == memberAcc.MemberName &&
+                                className == memberAcc.Member.EnclosingClass.CompileName &&
+                                moduleName == memberAcc.Member.EnclosingClass.Module.CompileName)
+                            {
+                                information.Add(new ReferenceInformation
+                                {
+                                    MethodName = memberAcc.MemberName,
+                                    Position = memberAcc.tok.pos,
+                                    Line = memberAcc.tok.line,
+                                    Column = memberAcc.tok.col
+
+                                });
+                            }
+                        }
+                    }
+                }
+
+                if (statement.SubStatements.Any())
+                {
+                    information.AddRange(ParseBodyForFieldReferences(statement.SubStatements, fieldName, className, moduleName));
+                }
+            }
+            return information;
+        }
+
+        private List<ReferenceInformation> ParseBodyForMethodReferences(IEnumerable<Statement> block, string methodToFind, string currentMethodName)
         {
             var information = new List<ReferenceInformation>();
             foreach (var statement in block)
@@ -375,7 +470,7 @@ namespace Microsoft.Dafny
                 }
                 if (statement.SubStatements.Any())
                 {
-                    information.AddRange(ParseBody(statement.SubStatements, methodToFind, currentMethodName));
+                    information.AddRange(ParseBodyForMethodReferences(statement.SubStatements, methodToFind, currentMethodName));
                 }
             }
             return information;
