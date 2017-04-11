@@ -10877,6 +10877,13 @@ namespace Microsoft.Dafny {
       }
     }
 
+    /// <summary>
+    /// Return $IsBox(x, t).
+    /// </summary>
+    Bpl.Expr MkIsBox(Bpl.Expr x, Type t) {
+      return MkIs(x, TypeToTy(t.NormalizeExpandKeepConstraints()), true);
+    }
+
     // Boxes, if necessary
     Bpl.Expr MkIs(Bpl.Expr x, Type t) {
       return MkIs(x, TypeToTy(t), ModeledAsBoxType(t));
@@ -13370,20 +13377,20 @@ namespace Microsoft.Dafny {
           Bpl.Expr y = new Bpl.IdentifierExpr(expr.tok, yVar);
           Bpl.Expr lbody;
           if (e.TermIsSimple) {
-            // lambda y: BoxType :: CorrectType(yUnboxed) && R[xs := yUnboxed]
+            // lambda y: BoxType :: CorrectType(y) && R[xs := yUnboxed]
             var bv = e.BoundVars[0];
+            Bpl.Expr typeAntecedent = translator.MkIsBox(new Bpl.IdentifierExpr(expr.tok, yVar), bv.Type);
             var yUnboxed = translator.UnboxIfBoxed(new Bpl.IdentifierExpr(expr.tok, yVar), bv.Type);
-            Bpl.Expr typeAntecedent = translator.GetWhereClause(e.tok, yUnboxed, bv.Type, this, NOALLOC) ?? Bpl.Expr.True;
             var range = translator.Substitute(e.Range, bv, new BoogieWrapper(yUnboxed, bv.Type));
             lbody = BplAnd(typeAntecedent, TrExpr(range));
           } else {
             // lambda y: BoxType :: (exists xs :: CorrectType(xs) && R && y==Box(T))
-          List<Variable> bvars = new List<Variable>();
-          Bpl.Expr typeAntecedent = TrBoundVariables(e.BoundVars, bvars);
+            List<Variable> bvars = new List<Variable>();
+            Bpl.Expr typeAntecedent = TrBoundVariables(e.BoundVars, bvars);
 
-          var eq = Bpl.Expr.Eq(y, BoxIfNecessary(expr.tok, TrExpr(e.Term), e.Term.Type));
-          var ebody = Bpl.Expr.And(BplAnd(typeAntecedent, TrExpr(e.Range)), eq);
-          var triggers = translator.TrTrigger(this, e.Attributes, e.tok);
+            var eq = Bpl.Expr.Eq(y, BoxIfNecessary(expr.tok, TrExpr(e.Term), e.Term.Type));
+            var ebody = Bpl.Expr.And(BplAnd(typeAntecedent, TrExpr(e.Range)), eq);
+            var triggers = translator.TrTrigger(this, e.Attributes, e.tok);
             lbody = new Bpl.ExistsExpr(expr.tok, bvars, triggers, ebody);
           }
           Bpl.QKeyValue kv = TrAttributes(e.Attributes, "trigger");
