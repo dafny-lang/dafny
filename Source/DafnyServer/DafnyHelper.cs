@@ -167,7 +167,7 @@ namespace Microsoft.Dafny
                             }
                         }
 
-                        foreach (var fs in ModuleDefinition.AllFields(module.TopLevelDecls))
+                        foreach (var fs in ModuleDefinition.AllFields(module.TopLevelDecls).Where(e => !(e.tok is IncludeToken)))
                         {
                             var fieldSymbol = new SymbolInformation
                             {
@@ -183,7 +183,7 @@ namespace Microsoft.Dafny
                             information.Add(fieldSymbol);
                         }
 
-                        foreach (var cs in ModuleDefinition.AllClasses(module.TopLevelDecls))
+                        foreach (var cs in ModuleDefinition.AllClasses(module.TopLevelDecls).Where(e => !(e.tok is IncludeToken)))
                         {
                             if (cs != null && cs.Module != null && cs.tok != null)
                             {
