@@ -255,4 +255,12 @@ ResolutionErrors.dfy(1755,6): Error: RHS (of type J) not assignable to LHS (of t
 ResolutionErrors.dfy(1765,44): Error: range of comprehension must be of type bool (instead got C)
 ResolutionErrors.dfy(1772,14): Error: Duplicate member name: P
 ResolutionErrors.dfy(1774,10): Error: Duplicate member name: L
-256 resolution/type errors detected in ResolutionErrors.dfy
+ResolutionErrors.dfy(1783,4): Error: second argument to && must be of type bool (instead got int)
+ResolutionErrors.dfy(1781,11): Error: Function body type mismatch (expected int, got bool)
+ResolutionErrors.dfy(1787,4): Error: second argument to && must be of type bool (instead got int)
+ResolutionErrors.dfy(1791,4): Error: second argument to || must be of type bool (instead got int)
+ResolutionErrors.dfy(1789,11): Error: Function body type mismatch (expected int, got bool)
+ResolutionErrors.dfy(1795,4): Error: second argument to || must be of type bool (instead got int)
+ResolutionErrors.dfy(1799,8): Error: second argument to || must be of type bool (instead got int)
+ResolutionErrors.dfy(1797,11): Error: Function body type mismatch (expected int, got bool)
+264 resolution/type errors detected in ResolutionErrors.dfy

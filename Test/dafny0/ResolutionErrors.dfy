@@ -1773,3 +1773,29 @@ module PrefixGeneratorDuplicates {
   colemma L()
   colemma L()  // error: duplicate name (this once crashed Dafny)
 }
+
+
+// ------------------- unary TLA+ style predicates -------------------
+
+module TLAplusOperators {
+  function BadA(y: int): int  // error: body has wrong return type
+  {
+    && 5 + y  // error: using operator "&&" requires the operand to be boolean
+  }
+  function BadB(y: int): bool
+  {
+    && 5 + y  // error: using operator "&&" requires the operand to be boolean
+  }
+  function BadC(y: int): int  // error: body has wrong return type
+  {
+    || 5 + y  // error: using operator "||" requires the operand to be boolean
+  }
+  function BadD(y: int): bool
+  {
+    || 5 + y  // error: using operator "||" requires the operand to be boolean
+  }
+  function BadE(y: int): int  // error: body has wrong return type
+  {
+    && (|| 5 + y)  // error: bad types
+  }
+}

@@ -1020,7 +1020,7 @@ DatatypeDecl<DeclModifierData dmod, ModuleDefinition/*!*/ module, out DatatypeDe
   NoUSIdent<out id>
   [ GenericParameters<typeArgs> ]
   "="                                      (. bodyStart = t; .)
-  DatatypeMemberDecl<ctors>
+  [ "|" ] DatatypeMemberDecl<ctors>
   { "|" DatatypeMemberDecl<ctors> }
   [ SYNC ";"
       // This semi-colon used to be required, but it seems silly to have it.
@@ -2661,23 +2661,51 @@ ImpliesExpression<out Expression e0, bool allowSemi, bool allowLambda, bool allo
   .
 /*------------------------------------------------------------------------*/
 LogicalExpression<out Expression e0, bool allowSemi, bool allowLambda, bool allowBitwiseOps>
-= (. Contract.Ensures(Contract.ValueAtReturn(out e0) != null); IToken/*!*/ x;  Expression/*!*/ e1; .)
-  RelationalExpression<out e0, allowSemi, allowLambda, allowBitwiseOps>
-  [ IF(IsAndOp() || IsOrOp())  /* read a LogicalExpression as far as possible */
-    ( AndOp                                                   (. x = t; .)
-      RelationalExpression<out e1, allowSemi, allowLambda, allowBitwiseOps>    (. e0 = new BinaryExpr(x, BinaryExpr.Opcode.And, e0, e1); .)
-      { IF(IsAndOp())  /* read a conjunction as far as possible */
-        AndOp                                                 (. x = t; .)
-        RelationalExpression<out e1, allowSemi, allowLambda, allowBitwiseOps>  (. e0 = new BinaryExpr(x, BinaryExpr.Opcode.And, e0, e1); .)
-      }
-    | OrOp                                                    (. x = t; .)
-      RelationalExpression<out e1, allowSemi, allowLambda, allowBitwiseOps>    (. e0 = new BinaryExpr(x, BinaryExpr.Opcode.Or, e0, e1); .)
-      { IF(IsOrOp())  /* read a disjunction as far as possible */
-        OrOp                                                  (. x = t; .)
-        RelationalExpression<out e1, allowSemi, allowLambda, allowBitwiseOps>  (. e0 = new BinaryExpr(x, BinaryExpr.Opcode.Or, e0, e1); .)
-      }
-    )
-  ]
+= (. Contract.Ensures(Contract.ValueAtReturn(out e0) != null); IToken/*!*/ x;  Expression/*!*/ e1;
+     Expression first;
+     e0 = null; /* mute the warning */
+  .)
+  ( AndOp                                                       (. x = t; .)
+    RelationalExpression<out e0, allowSemi, allowLambda, allowBitwiseOps>        (. first = e0; .)
+    { IF(IsAndOp())  /* read a conjunction as far as possible */
+      AndOp                                                     (. x = t; .)
+      RelationalExpression<out e1, allowSemi, allowLambda, allowBitwiseOps>      (. e0 = new BinaryExpr(x, BinaryExpr.Opcode.And, e0, e1); .)
+    }
+    (. if (e0 == first) {
+         // There was only one conjunct. To make sure that the type checker still checks it to
+         // be a boolean, we conjoin "true" to its left.
+         e0 = new BinaryExpr(x, BinaryExpr.Opcode.And, new LiteralExpr(x, true), e0);
+       }
+    .)
+  | OrOp                                                        (. x = t; .)
+    RelationalExpression<out e0, allowSemi, allowLambda, allowBitwiseOps>        (. first = e0; .)
+    { IF(IsOrOp())  /* read a disjunction as far as possible */
+      OrOp                                                      (. x = t; .)
+      RelationalExpression<out e1, allowSemi, allowLambda, allowBitwiseOps>      (. e0 = new BinaryExpr(x, BinaryExpr.Opcode.Or, e0, e1); .)
+    }
+    (. if (e0 == first) {
+         // There was only one disjunct. To make sure that the type checker still checks it to
+         // be a boolean, we disjoin [sic] "false" to its left.
+         e0 = new BinaryExpr(x, BinaryExpr.Opcode.Or, new LiteralExpr(x, false), e0);
+       }
+    .)
+  | RelationalExpression<out e0, allowSemi, allowLambda, allowBitwiseOps>
+    [ IF(IsAndOp() || IsOrOp())  /* read a LogicalExpression as far as possible */
+      ( AndOp                                                   (. x = t; .)
+        RelationalExpression<out e1, allowSemi, allowLambda, allowBitwiseOps>    (. e0 = new BinaryExpr(x, BinaryExpr.Opcode.And, e0, e1); .)
+        { IF(IsAndOp())  /* read a conjunction as far as possible */
+          AndOp                                                 (. x = t; .)
+          RelationalExpression<out e1, allowSemi, allowLambda, allowBitwiseOps>  (. e0 = new BinaryExpr(x, BinaryExpr.Opcode.And, e0, e1); .)
+        }
+      | OrOp                                                    (. x = t; .)
+        RelationalExpression<out e1, allowSemi, allowLambda, allowBitwiseOps>    (. e0 = new BinaryExpr(x, BinaryExpr.Opcode.Or, e0, e1); .)
+        { IF(IsOrOp())  /* read a disjunction as far as possible */
+          OrOp                                                  (. x = t; .)
+          RelationalExpression<out e1, allowSemi, allowLambda, allowBitwiseOps>  (. e0 = new BinaryExpr(x, BinaryExpr.Opcode.Or, e0, e1); .)
+        }
+      )
+    ]
+  )
   .
 /*------------------------------------------------------------------------*/
 RelationalExpression<out Expression e, bool allowSemi, bool allowLambda, bool allowBitwiseOps>
