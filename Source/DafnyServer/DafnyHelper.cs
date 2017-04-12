@@ -128,7 +128,7 @@ namespace Microsoft.Dafny
 
                     foreach (var module in dafnyProgram.Modules())
                     {
-                        foreach (var clbl in ModuleDefinition.AllCallables(module.TopLevelDecls))
+                        foreach (var clbl in ModuleDefinition.AllCallables(module.TopLevelDecls).Where(e => ! (e.Tok is IncludeToken)))
                         {
                             if (clbl is Function)
                             {
@@ -194,7 +194,10 @@ namespace Microsoft.Dafny
                                     SymbolType = SymbolInformation.Type.Class,
                                     Position = cs.tok.pos,
                                     Line = cs.tok.line,
-                                    Column = cs.tok.col
+                                    Column = cs.tok.col,
+                                    EndPosition = cs.BodyEndTok.pos,
+                                    EndLine = cs.BodyEndTok.line,
+                                    EndColumn = cs.BodyEndTok.col
                                 };
                                 information.Add(classSymbol);
                             }
@@ -335,7 +338,7 @@ namespace Microsoft.Dafny
             {
                 foreach (var module in dafnyProgram.Modules())
                 {
-                    foreach (var clbl in ModuleDefinition.AllCallables(module.TopLevelDecls))
+                    foreach (var clbl in ModuleDefinition.AllCallables(module.TopLevelDecls).Where(e => !(e.Tok is IncludeToken)))
                     {
                         if (clbl is Function)
                         {
@@ -364,7 +367,7 @@ namespace Microsoft.Dafny
                 {
                     foreach (var module in dafnyProgram.Modules())
                     {
-                        foreach (var clbl in ModuleDefinition.AllCallables(module.TopLevelDecls))
+                        foreach (var clbl in ModuleDefinition.AllCallables(module.TopLevelDecls).Where(e => !(e.Tok is IncludeToken)))
                         {
                             if (clbl is Function)
                             {
@@ -386,6 +389,16 @@ namespace Microsoft.Dafny
             return information;
         }
 
+        public static ICollection<Expression> GetAllSubExpressions(Expression expression)
+        {
+            var expressions = new List<Expression>();
+            foreach (var subExpression in expression.SubExpressions)
+            {
+                expressions.AddRange(GetAllSubExpressions(subExpression));
+            }
+            expressions.Add(expression);
+            return expressions;
+        }
         private static IEnumerable<ReferenceInformation> ParseBodyForFieldReferences(IEnumerable<Statement> block, string fieldName, string className, string moduleName)
         {
             var information = new List<ReferenceInformation>();
@@ -398,10 +411,17 @@ namespace Microsoft.Dafny
                     var rightSide = updateStmt.Rhss;
                     var leftSideDots = leftSide.OfType<ExprDotName>();
                     var rightSideDots = rightSide.OfType<ExprDotName>();
-                    var allExprDotNames = leftSideDots.Concat(rightSideDots);
+                    var exprDotNames = leftSideDots.Concat(rightSideDots);
                     var leftSideNameSegments = leftSide.OfType<NameSegment>();
                     var rightSideNameSegments = rightSide.OfType<NameSegment>();
-                    var allNameSegments = leftSideNameSegments.Concat(rightSideNameSegments);
+                    var nameSegments = leftSideNameSegments.Concat(rightSideNameSegments);
+                    var allRightSideExpressions = rightSide.SelectMany(e => e.SubExpressions.SelectMany(GetAllSubExpressions));
+                    var allLeftSideExpressions =
+                        leftSide.SelectMany(e => e.SubExpressions.SelectMany(GetAllSubExpressions));
+                    var allExpressions = allRightSideExpressions.Concat(allLeftSideExpressions).ToList();
+                    var allExprDotNames = exprDotNames.Concat(allExpressions.OfType<ExprDotName>()).Distinct();
+                    var allNameSegments = nameSegments.Concat(allExpressions.OfType<NameSegment>()).Distinct();
+                    var allMemberSelectExpr = allExpressions.OfType<MemberSelectExpr>().Distinct();
                     foreach (var exprDotName in allExprDotNames)
                     {
                         if (exprDotName.Lhs.Type is UserDefinedType)
@@ -593,6 +613,12 @@ namespace Microsoft.Dafny
             public int? Line { get; set; }
             [DataMember(Name = "Column")]
             public int? Column { get; set; }
+            [DataMember(Name="EndPosition")]
+            public int? EndPosition { get; set; }
+            [DataMember(Name="EndLine")]
+            public int? EndLine { get; set; }
+            [DataMember(Name="EndColumn")]
+            public int? EndColumn { get; set; }
             [DataMember(Name = "References")]
             public ICollection<ReferenceInformation> References { get; set; }
             [DataMember(Name = "Call")]
