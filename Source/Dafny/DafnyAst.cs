@@ -8870,8 +8870,10 @@ namespace Microsoft.Dafny {
         return _SplitQuantifier;
       }
       set {
-        _SplitQuantifier = value;
-        SplitQuantifierExpression = SplitQuantifierToExpression();
+        if (!value.Contains(this)) {
+          _SplitQuantifier = value;
+          SplitQuantifierExpression = SplitQuantifierToExpression();
+        }
       }
     }
 
