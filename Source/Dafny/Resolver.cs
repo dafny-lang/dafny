@@ -10464,10 +10464,10 @@ namespace Microsoft.Dafny
       // We're currently looking at e = e(n-1)[en.Index := en.Value]
       // Let e(n-2) = e(n-1).Seq, e(n-3) = e(n-2).Seq, etc.
       // Let's extract e = e0[e1.Index := e1.Value]...[en.Index := en.Value]
-      DatatypeCtor ctor = null;
-      Tuple<IToken, string, Expression> ctorSource = default(Tuple<IToken, string, Expression>);  // relevant only if "ctor" is non-null
+      var possibleCtors = dt.Ctors;  // list of constructors that have all the so-far-mentioned destructors
       var memberNames = new HashSet<string>();
-      var updates = new Dictionary<Formal, Expression>();
+      var updates = new Dictionary<DatatypeDestructor, Expression>();
+      var suppressUniquenessCheck = false;
       foreach (var entry in memberUpdates) {
         var destructor_str = entry.Item2;
         if (memberNames.Contains(destructor_str)) {
@@ -10477,34 +10477,50 @@ namespace Microsoft.Dafny
           MemberDecl member;
           if (!datatypeMembers[dt].TryGetValue(destructor_str, out member)) {
             reporter.Error(MessageSource.Resolver, entry.Item1, "member '{0}' does not exist in datatype '{1}'", destructor_str, dt.Name);
+            suppressUniquenessCheck = true;
           } else if (!(member is DatatypeDestructor)) {
             reporter.Error(MessageSource.Resolver, entry.Item1, "member '{0}' is not a destructor in datatype '{1}'", destructor_str, dt.Name);
+            suppressUniquenessCheck = true;
           } else {
             var destructor = (DatatypeDestructor)member;
-            if (destructor.EnclosingCtors.Count > 1) {
-              // Note: This restriction could be relaxed.  For example, thing would still be okay if the intersection of constructors of
-              // the indicated memberUpdates names indicate a unique constructor.  In addition, the syntax could be extended to allow an
-              // update member to have the form ctor.x:=E where ctor would be used to disambiguate which constructor the x is supposed to
-              // be looked up in.
-              reporter.Error(MessageSource.Resolver, entry.Item1, "datatype member update is supported only for uniquely named destructors " +
-                "('{0}' belongs to '{1}')", entry.Item2, destructor.EnclosingCtorNames("and"));
-            } else if (ctor != null && ctor != destructor.EnclosingCtors[0]) {
-              reporter.Error(MessageSource.Resolver, entry.Item1, "updated datatype members must belong to the same constructor " +
-                "('{0}' belongs to '{1}' and '{2}' belongs to '{3}')", entry.Item2, destructor.EnclosingCtors[0].Name, ctorSource.Item2, ctor.Name);
+            var intersection = new List<DatatypeCtor>(possibleCtors.Intersect(destructor.EnclosingCtors));
+            if (intersection.Count != 0) {
+              possibleCtors = intersection;
+              updates.Add(destructor, entry.Item3);
             } else {
-              updates.Add(destructor.CorrespondingFormals[0], entry.Item3);
-              ctor = destructor.EnclosingCtors[0];
-              ctorSource = entry;
+              reporter.Error(MessageSource.Resolver, entry.Item1, "updated datatype members must belong to the same constructor " +
+                "(unlike the previously mentioned destructors, '{0}' does not belong to {1})", entry.Item2, DatatypeDestructor.PrintableCtorNameList(possibleCtors, "or"));
+              suppressUniquenessCheck = true;
             }
           }
         }
       }
 
-      if (ctor != null) {
+      if (possibleCtors.Count != 1) {
+        if (!suppressUniquenessCheck) {
+          var which = DatatypeDestructor.PrintableCtorNameList(possibleCtors, "and");
+          string explanation;
+          if (memberUpdates.Count == 1) {
+            explanation = string.Format("destructor '{0}' belongs to constructors {1}", memberUpdates[0].Item2, which);
+          } else {
+            explanation = string.Format("the given destructors all belong to constructors {0}", which);
+          }
+          reporter.Error(MessageSource.Resolver, tok, "the updated datatype members must uniquely determine the resulting constructor ({0})", explanation);
+        }
+      } else {
+        var ctor = possibleCtors[0];
         // Rewrite an update of the form "dt[dtor := E]" to be "let d' := dt in dtCtr(E, d'.dtor2, d'.dtor3,...)"
         // Wrapping it in a let expr avoids exponential growth in the size of the expression
         // More generally, rewrite "E0[dtor1 := E1][dtor2 := E2]...[dtorn := En]" where "E0" is "root" to
         //   "let d' := E0 in dtCtr(...mixtures of Ek and d'.dtorj...)"
+
+        // Now that we know which constructor we're talking about, we can pick out the formal corresponding to each destructor
+        var fUpdates = new Dictionary<Formal, Expression>();
+        foreach (var entry in updates) {
+          var i = entry.Key.EnclosingCtors.IndexOf(ctor);
+          Contract.Assert(0 <= i && i < entry.Key.CorrespondingFormals.Count);
+          fUpdates.Add(entry.Key.CorrespondingFormals[i], entry.Value);
+        }
 
         // Create a unique name for d', the variable we introduce in the let expression
         var tmpName = FreshTempVarName("dt_update_tmp#", opts.codeContext);
@@ -10515,7 +10531,7 @@ namespace Microsoft.Dafny
         var ctor_args = new List<Expression>();
         foreach (Formal d in ctor.Formals) {
           Expression v;
-          if (updates.TryGetValue(d, out v)) {
+          if (fUpdates.TryGetValue(d, out v)) {
             ctor_args.Add(v);
           } else {
             ctor_args.Add(new ExprDotName(tok, tmpVarIdExpr, d.Name, null));

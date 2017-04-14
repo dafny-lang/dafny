@@ -3904,21 +3904,27 @@ namespace Microsoft.Dafny {
 
     internal string EnclosingCtorNames(string grammaticalConjunction) {
       Contract.Requires(grammaticalConjunction != null);
-      var n = EnclosingCtors.Count;
+      return PrintableCtorNameList(EnclosingCtors, grammaticalConjunction);
+    }
+
+    static internal string PrintableCtorNameList(List<DatatypeCtor> ctors, string grammaticalConjunction) {
+      Contract.Requires(ctors != null && ctors.Count != 1);
+      Contract.Requires(grammaticalConjunction != null);
+      var n = ctors.Count;
       if (n == 1) {
-        return string.Format("'{0}'", EnclosingCtors[0].Name);
+        return string.Format("'{0}'", ctors[0].Name);
       } else if (n == 2) {
-        return string.Format("'{0}' {1} '{2}'", EnclosingCtors[0].Name, grammaticalConjunction, EnclosingCtors[1].Name);
+        return string.Format("'{0}' {1} '{2}'", ctors[0].Name, grammaticalConjunction, ctors[1].Name);
       } else {
         var s = "";
         for (int i = 0; i < n - 1; i++) {
-          s += string.Format("'{0}', ", EnclosingCtors[i].Name);
+          s += string.Format("'{0}', ", ctors[i].Name);
         }
-        return s + string.Format("{0} '{1}'", grammaticalConjunction, EnclosingCtors[n - 1].Name);
+        return s + string.Format("{0} '{1}'", grammaticalConjunction, ctors[n - 1].Name);
       }
     }
   }
-  
+
   public class ConstantField : SpecialField, ICallable
   {
     public override string WhatKind { get { return "const field"; } }

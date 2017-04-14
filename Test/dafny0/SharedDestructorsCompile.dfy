@@ -32,4 +32,20 @@ method Main()
     assert d.x == 71;
     i := i + 1;
   }
+
+  BaseKlef(C1(44, 55, 66, 77));
+}
+
+datatype Klef =
+  | C0(0: int, 1: int, 2: int, c0: int)
+  | C1(1: int, 2: int, 3: int, c1: int)
+  | C2(2: int, 3: int, 0: int, c2: int)
+  | C3(3: int, 0: int, 1: int, c3: int)
+
+method BaseKlef(k: Klef)
+  requires !k.C0? && !k.C2?
+{
+  var k' := k.(0 := 100, c3 := 200);  // makes a C3
+  assert k' == C3(k.3, 100, k.1, 200);
+  print k', "\n";
 }

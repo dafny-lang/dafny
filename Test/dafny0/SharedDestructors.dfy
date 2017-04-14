@@ -30,6 +30,9 @@ method M(d: Dt) returns (r: int, s: real)
     var h := d.h;  // error: d might not have a member .h (1 name in error msg)
   case d.B? =>
     var h := d.h;
+  case true =>
+    var n := d.(y := 2.7, x := 3);
+    assert n.A?;
 }
 
 datatype Record = Record(t: int)
@@ -59,19 +62,21 @@ datatype Quirky = PP(id: int, a: int) | QQ(b: int, id: int) | RR(id: int, c: int
 
 method UpdateA(y: Quirky) returns (y': Quirky)
 {
-  // The semantics of datatype field update is somewhat quirky.  It's perhaps a design
-  // bug, but here is what it requires and what it does:
-  // - Each field given must be a non-shared destructor.  That is, each field mentioned
-  //   must be a destructor in a unique constructor.  (An alternative to this design
-  //   would be to just insist that the intersection of the constructors that contain
-  //   the given fields must be a single constructor.)
-  //   This unique constructor is the constructor that will be used for the result.
-  // - Every field "g" of the chosen constructor must either be given in the update
-  //   expression or be available in the source expression.  This does not necessarily
-  //   mean that the source expression must already be of the chosen constructor; it
-  //   suffices that every such "g" is available in all of the constructors.  A special
-  //   case of this is that there is no "g", in which case the value of the source
-  //   expression does not matter at all.
+  // Datatype field update works as follows:
+  // 0- The fields given in the update must uniquely determine a constructor.
+  //    The result will be of this constructor.
+  // 1- For any pair "f := E" given in the update, the field "f" of the result will
+  //    have the value "E".
+  // 2- For any field "f" that is not given in the update "E.(x := X, y := Y, ...)",
+  //    "E" must be a value with an "f" field and the value of "f" in the result will
+  //    be "E.f".
+  // Note, in point 2, the requirement that "E" have an "f" field is satisfied
+  // if "E" is constructed by the same constructor as is determined in point 0.
+  // However, it is also possible to satisfy this requirement if "f" is a shared
+  // destructor and "E" is of a constructor that has that shared field.
+  // Note also, that a degenerate case of the update expression is that all fields
+  // of the by-point-0 determined constructor are given explicitly.  In that case,
+  // the source of the update (that is, the "E" in "E.(...)") can be any value.
   if
   case true =>
     // make a PP, get .id from anywhere
@@ -88,4 +93,21 @@ method UpdateA(y: Quirky) returns (y': Quirky)
   case true =>
     // make an RR, but where does .d come from?
     y' := y.(c := 10);  // error: this would require y to be an RR
+}
+
+datatype Klef =
+  | C0(0: int, 1: int, 2: int, c0: int)
+  | C1(1: int, 2: int, 3: int, c1: int)
+  | C2(2: int, 3: int, 0: int, c2: int)
+  | C3(3: int, 0: int, 1: int, c3: int)
+
+method TroubleKlef(k: Klef) returns (k': Klef)
+  ensures k'.C3?
+{
+  if
+  case k.C1? || k.C3? =>
+    k' := k.(0 := 100, c3 := 200);  // makes a C3
+    assert k' == C3(k.3, 100, k.1, 200);
+  case true =>
+    k' := k.(0 := 100, c3 := 200);  // error (x2): k might not have .1 and .3
 }
