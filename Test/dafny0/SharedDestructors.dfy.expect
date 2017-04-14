@@ -1,0 +1,33 @@
+SharedDestructors.dfy(16,11): Error: destructor 'x' can only be applied to datatype values constructed by 'A' or 'B'
+Execution trace:
+    (0,0): anon0
+    (0,0): anon13_Then
+SharedDestructors.dfy(22,11): Error: destructor 'x' can only be applied to datatype values constructed by 'A' or 'B'
+Execution trace:
+    (0,0): anon0
+    (0,0): anon16_Then
+SharedDestructors.dfy(24,11): Error: destructor 'y' can only be applied to datatype values constructed by 'A', 'C', or 'D'
+Execution trace:
+    (0,0): anon0
+    (0,0): anon17_Then
+SharedDestructors.dfy(30,15): Error: destructor 'h' can only be applied to datatype values constructed by 'B'
+Execution trace:
+    (0,0): anon0
+    (0,0): anon21_Then
+SharedDestructors.dfy(48,14): Error: destructor 'a' can only be applied to datatype values constructed by 'AA'
+Execution trace:
+    (0,0): anon0
+    (0,0): anon8_Else
+    (0,0): anon9_Then
+SharedDestructors.dfy(54,14): Error: destructor 'c' can only be applied to datatype values constructed by 'AA'
+Execution trace:
+    (0,0): anon0
+    (0,0): anon8_Else
+    (0,0): anon9_Else
+    (0,0): anon10_Else
+SharedDestructors.dfy(90,12): Error: destructor 'd' can only be applied to datatype values constructed by 'RR'
+Execution trace:
+    (0,0): anon0
+    (0,0): anon11_Then
+
+Dafny program verifier finished with 0 verified, 7 errors

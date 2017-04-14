@@ -1,0 +1,15 @@
+SharedDestructorsResolution.dfy(16,15): Error: datatype member update is supported only for uniquely named destructors ('x' belongs to ''A' and 'B'')
+SharedDestructorsResolution.dfy(20,15): Error: datatype member update is supported only for uniquely named destructors ('y' belongs to ''A', 'C', and 'D'')
+SharedDestructorsResolution.dfy(72,6): Error: Duplicate use of deconstructor name in the same constructor: x
+SharedDestructorsResolution.dfy(73,6): Error: Duplicate use of deconstructor name in the same constructor: y
+SharedDestructorsResolution.dfy(74,6): Error: Duplicate use of deconstructor name in the same constructor: z
+SharedDestructorsResolution.dfy(30,14): Error: shared destructors must agree on whether or not they are ghost, but 'x' is non-ghost in constructor 'Kt0' and ghost in constructor 'Kt1'
+SharedDestructorsResolution.dfy(32,8): Error: shared destructors must agree on whether or not they are ghost, but 'g' is ghost in constructor 'Kt2' and non-ghost in constructor 'Kt3'
+SharedDestructorsResolution.dfy(39,8): Error: shared destructors must have the same type, but 'x' has type 'int' in constructor 'Lt0' and type 'real' in constructor 'Lt1'
+SharedDestructorsResolution.dfy(44,8): Error: shared destructors must have the same type, but 'y' has type 'A' in constructor 'Mt0' and type 'B' in constructor 'Mt2'
+SharedDestructorsResolution.dfy(46,8): Error: shared destructors must have the same type, but 'arr' has type 'array<A>' in constructor 'Mt3' and type 'array<B>' in constructor 'Mt4'
+SharedDestructorsResolution.dfy(47,8): Error: shared destructors must have the same type, but 'arr' has type 'array<A>' in constructor 'Mt3' and type 'array<object>' in constructor 'Mt5'
+SharedDestructorsResolution.dfy(51,8): Error: shared destructors must have the same type, but 'op' has type 'Opaque<int>' in constructor 'Mt8' and type 'Opaque<bool>' in constructor 'Mt9'
+SharedDestructorsResolution.dfy(53,9): Error: shared destructors must have the same type, but 'oop' has type 'Opaque<Opaque<B>>' in constructor 'Mt10' and type 'Opaque<Opaque<A>>' in constructor 'Mt11'
+SharedDestructorsResolution.dfy(69,26): Error: shared destructors must have the same type, but 'u' has type 'int' in constructor 'Co2' and type 'real' in constructor 'Co3'
+14 resolution/type errors detected in SharedDestructorsResolution.dfy

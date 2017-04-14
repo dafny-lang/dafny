@@ -1339,9 +1339,12 @@ namespace Microsoft.Dafny {
           var sf = ctor.Destructors[i];
           Contract.Assert(sf != null);
           fn = GetReadonlyField(sf);
-          if (fn != predef.Tuple2Destructors0 && fn != predef.Tuple2Destructors1) {
+          if (fn == predef.Tuple2Destructors0 || fn == predef.Tuple2Destructors1) {
             // the two destructors for 2-tuples are predefined in Prelude for use
             // by the Map#Items axiom
+          } else if (sf.EnclosingCtors[0] != ctor) {
+            // this special field, which comes from a shared destructor, is being declared in a different iteration of this loop
+          } else {
             sink.AddTopLevelDeclaration(fn);
           }
           // axiom (forall params :: ##dt.ctor#i(#dt.ctor(params)) == params_i);
@@ -5349,9 +5352,10 @@ namespace Microsoft.Dafny {
         var r = CanCallAssumption(e.Obj, etran);
         if (e.Member is DatatypeDestructor) {
           var dtor = (DatatypeDestructor)e.Member;
-          if (dtor.EnclosingCtor.EnclosingDatatype.Ctors.Count == 1) {
-            var correctConstructor = FunctionCall(e.tok, dtor.EnclosingCtor.QueryField.FullSanitizedName, Bpl.Type.Bool, etran.TrExpr(e.Obj));
-            // There is only one constructor, so the value must be been constructed by it; might as well assume that here.
+          if (dtor.EnclosingCtors.Count == dtor.EnclosingCtors[0].EnclosingDatatype.Ctors.Count) {
+            // Every constructor has this destructor; might as well assume that here.
+            var correctConstructor = BplOr(dtor.EnclosingCtors.ConvertAll(
+              ctor => FunctionCall(e.tok, ctor.QueryField.FullSanitizedName, Bpl.Type.Bool, etran.TrExpr(e.Obj))));
             r = BplAnd(r, correctConstructor);
           }
         }
@@ -5949,13 +5953,14 @@ namespace Microsoft.Dafny {
           }
         } else if (e.Member is DatatypeDestructor) {
           var dtor = (DatatypeDestructor)e.Member;
-          var correctConstructor = FunctionCall(e.tok, dtor.EnclosingCtor.QueryField.FullSanitizedName, Bpl.Type.Bool, etran.TrExpr(e.Obj));
-          if (dtor.EnclosingCtor.EnclosingDatatype.Ctors.Count == 1) {
-            // There is only one constructor, so the value must be been constructed by it; might as well assume that here.
+          var correctConstructor = BplOr(dtor.EnclosingCtors.ConvertAll(
+            ctor => FunctionCall(e.tok, ctor.QueryField.FullSanitizedName, Bpl.Type.Bool, etran.TrExpr(e.Obj))));
+          if (dtor.EnclosingCtors.Count == dtor.EnclosingCtors[0].EnclosingDatatype.Ctors.Count) {
+            // Every constructor has this destructor; might as well assume that here.
             builder.Add(TrAssumeCmd(expr.tok, correctConstructor));
           } else {
             builder.Add(Assert(expr.tok, correctConstructor,
-              string.Format("destructor '{0}' can only be applied to datatype values constructed by '{1}'", dtor.Name, dtor.EnclosingCtor.Name)));
+              string.Format("destructor '{0}' can only be applied to datatype values constructed by {1}", dtor.Name, dtor.EnclosingCtorNames("or"))));
           }
         }
         if (options.DoReadsChecks && e.Member is Field && ((Field)e.Member).IsMutable) {

@@ -1732,17 +1732,37 @@ namespace Microsoft.Dafny
           }
           // add deconstructors now (that is, after the query methods have been added)
           foreach (DatatypeCtor ctor in dt.Ctors) {
+            var formalsUsedInThisCtor = new HashSet<string>();
             foreach (var formal in ctor.Formals) {
-              bool nameError = false;
-              if (formal.HasName && members.ContainsKey(formal.Name)) {
-                reporter.Error(MessageSource.Resolver, ctor, "Name of deconstructor is used by another member of the datatype: {0}", formal.Name);
-                nameError = true;
+              MemberDecl previousMember = null;
+              var localDuplicate = false;
+              if (formal.HasName) {
+                if (members.TryGetValue(formal.Name, out previousMember)) {
+                  localDuplicate = formalsUsedInThisCtor.Contains(formal.Name);
+                  if (localDuplicate) {
+                    reporter.Error(MessageSource.Resolver, ctor, "Duplicate use of deconstructor name in the same constructor: {0}", formal.Name);
+                  } else if (previousMember is DatatypeDestructor) {
+                    // this is okay, if the destructor has the appropriate type; this will be checked later, after type checking
+                  } else {
+                    reporter.Error(MessageSource.Resolver, ctor, "Name of deconstructor is used by another member of the datatype: {0}", formal.Name);
+                  }
+                }
+                formalsUsedInThisCtor.Add(formal.Name);
               }
-              var dtor = new DatatypeDestructor(formal.tok, ctor, formal, formal.Name, "dtor_" + formal.CompileName, "", "", formal.IsGhost, formal.Type, null);
-              dtor.InheritVisibility(dt);
-              dtor.EnclosingClass = dt;  // resolve here
-              if (!nameError && formal.HasName) {
-                members.Add(formal.Name, dtor);
+              DatatypeDestructor dtor;
+              if (!localDuplicate && previousMember is DatatypeDestructor) {
+                // a destructor with this name already existed in (a different constructor in) the datatype
+                dtor = (DatatypeDestructor)previousMember;
+                dtor.AddAnotherEnclosingCtor(ctor, formal);
+              } else {
+                // either the destructor has no explicit name, or this constructor declared another destructor with this name, or no previous destructor had this name
+                dtor = new DatatypeDestructor(formal.tok, ctor, formal, formal.Name, "dtor_" + formal.CompileName, "", "", formal.IsGhost, formal.Type, null);
+                dtor.InheritVisibility(dt);
+                dtor.EnclosingClass = dt;  // resolve here
+                if (formal.HasName && !localDuplicate && previousMember == null) {
+                  // the destructor has an explict name and there was no member at all with this name before
+                  members.Add(formal.Name, dtor);
+                }
               }
               ctor.Destructors.Add(dtor);
             }
@@ -2119,6 +2139,7 @@ namespace Microsoft.Dafny
       // ---------------------------------- Pass 1 ----------------------------------
       // This pass:
       // * checks that type inference was able to determine all types
+      // * check that shared destructors in datatypes are in agreement
       // * fills in the .ResolvedOp field of binary expressions
       // * discovers bounds for:
       //     - forall statements
@@ -2140,6 +2161,7 @@ namespace Microsoft.Dafny
       }
       if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
         // Check that type inference went well everywhere; this will also fill in the .ResolvedOp field in binary expressions
+        // Also, for each datatype, check that shared destructors are in agreement
         foreach (TopLevelDecl d in declarations) {
           if (d is IteratorDecl) {
             var iter = (IteratorDecl)d;
@@ -2191,6 +2213,28 @@ namespace Microsoft.Dafny
               CheckExpression(dd.Constraint, this, dd);
             }
             FigureOutNativeType(dd, nativeTypeMap);
+          } else if (d is DatatypeDecl) {
+            var dd = (DatatypeDecl)d;
+            foreach (var member in datatypeMembers[dd].Values) {
+              var dtor = member as DatatypeDestructor;
+              if (dtor != null) {
+                var rolemodel = dtor.CorrespondingFormals[0];
+                for (int i = 1; i < dtor.CorrespondingFormals.Count; i++) {
+                  var other = dtor.CorrespondingFormals[i];
+                  if (!rolemodel.Type.ExactlyEquals(other.Type)) {
+                    reporter.Error(MessageSource.Resolver, other,
+                      "shared destructors must have the same type, but '{0}' has type '{1}' in constructor '{2}' and type '{3}' in constructor '{4}'",
+                      rolemodel.Name, rolemodel.Type, dtor.EnclosingCtors[0].Name, other.Type, dtor.EnclosingCtors[i].Name);
+                  } else if (rolemodel.IsGhost != other.IsGhost) {
+                    reporter.Error(MessageSource.Resolver, other,
+                      "shared destructors must agree on whether or not they are ghost, but '{0}' is {1} in constructor '{2}' and {3} in constructor '{4}'",
+                      rolemodel.Name,
+                      rolemodel.IsGhost ? "ghost" : "non-ghost", dtor.EnclosingCtors[0].Name,
+                      other.IsGhost ? "ghost" : "non-ghost", dtor.EnclosingCtors[i].Name);
+                  }
+                }
+              }
+            }
           }
         }
       }
@@ -9885,7 +9929,7 @@ namespace Microsoft.Dafny
         if (!ty.IsDatatype) {
           reporter.Error(MessageSource.Resolver, expr, "datatype update expression requires a root expression of a datatype (got {0})", ty);
         } else {
-          var let = ResolveDatatypeUpdate(expr.tok, e.Root, ty.AsDatatype, e.Updates, false, opts);
+          var let = ResolveDatatypeUpdate(expr.tok, e.Root, ty.AsDatatype, e.Updates, opts);
           if (let != null) {
             e.ResolvedExpression = let;
             expr.Type = ty;
@@ -10409,7 +10453,7 @@ namespace Microsoft.Dafny
     /// <summary>
     /// Attempts to produce a let expression from the given datatype updates.  Returns that let expression upon success, and null otherwise.
     /// </summary>
-    Expression ResolveDatatypeUpdate(IToken tok, Expression root, DatatypeDecl dt, List<Tuple<IToken, string, Expression>> memberUpdates, bool sequentialUpdates, ResolveOpts opts) {
+    Expression ResolveDatatypeUpdate(IToken tok, Expression root, DatatypeDecl dt, List<Tuple<IToken, string, Expression>> memberUpdates, ResolveOpts opts) {
       Contract.Requires(tok != null);
       Contract.Requires(root != null);
       Contract.Requires(dt != null);
@@ -10427,28 +10471,29 @@ namespace Microsoft.Dafny
       foreach (var entry in memberUpdates) {
         var destructor_str = entry.Item2;
         if (memberNames.Contains(destructor_str)) {
-          if (sequentialUpdates) {
-            reporter.Warning(MessageSource.Resolver, entry.Item1, "update to '{0}' overwritten by another update to '{0}'", destructor_str);
-          } else {
-            reporter.Error(MessageSource.Resolver, entry.Item1, "duplicate update member '{0}'", destructor_str);
-          }
+          reporter.Error(MessageSource.Resolver, entry.Item1, "duplicate update member '{0}'", destructor_str);
         } else {
           memberNames.Add(destructor_str);
           MemberDecl member;
           if (!datatypeMembers[dt].TryGetValue(destructor_str, out member)) {
             reporter.Error(MessageSource.Resolver, entry.Item1, "member '{0}' does not exist in datatype '{1}'", destructor_str, dt.Name);
+          } else if (!(member is DatatypeDestructor)) {
+            reporter.Error(MessageSource.Resolver, entry.Item1, "member '{0}' is not a destructor in datatype '{1}'", destructor_str, dt.Name);
           } else {
             var destructor = (DatatypeDestructor)member;
-            if (ctor != null && ctor != destructor.EnclosingCtor) {
-              if (sequentialUpdates) {
-                // This would eventually give rise to a verification error.  However, since the 'sequentialUpdates' case is being depricated,
-                // we don't mind giving resolution error about this now.
-              }
+            if (destructor.EnclosingCtors.Count > 1) {
+              // Note: This restriction could be relaxed.  For example, thing would still be okay if the intersection of constructors of
+              // the indicated memberUpdates names indicate a unique constructor.  In addition, the syntax could be extended to allow an
+              // update member to have the form ctor.x:=E where ctor would be used to disambiguate which constructor the x is supposed to
+              // be looked up in.
+              reporter.Error(MessageSource.Resolver, entry.Item1, "datatype member update is supported only for uniquely named destructors " +
+                "('{0}' belongs to '{1}')", entry.Item2, destructor.EnclosingCtorNames("and"));
+            } else if (ctor != null && ctor != destructor.EnclosingCtors[0]) {
               reporter.Error(MessageSource.Resolver, entry.Item1, "updated datatype members must belong to the same constructor " +
-                "('{0}' belongs to '{1}' and '{2}' belongs to '{3}'", entry.Item2, destructor.EnclosingCtor.Name, ctorSource.Item2, ctor.Name);
+                "('{0}' belongs to '{1}' and '{2}' belongs to '{3}')", entry.Item2, destructor.EnclosingCtors[0].Name, ctorSource.Item2, ctor.Name);
             } else {
-              updates.Add(destructor.CorrespondingFormal, entry.Item3);
-              ctor = destructor.EnclosingCtor;
+              updates.Add(destructor.CorrespondingFormals[0], entry.Item3);
+              ctor = destructor.EnclosingCtors[0];
               ctorSource = entry;
             }
           }

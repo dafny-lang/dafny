@@ -566,7 +566,14 @@ namespace Microsoft.Dafny {
       //   public bool is_Ctor0 { get { return _D is Dt_Ctor0; } }
       //   ...
       //
-      //   public T0 dtor_Dtor0 { get { return ((DT_Ctor)_D).@Dtor0; } }
+      //   public T0 dtor_Dtor0 { get { return ((DT_Ctor)_D).@Dtor0; } }  // This is in essence what gets generated for the case where the destructor is used in one use constructor
+      //   public T0 dtor_Dtor0 { get { var d = _D;                       // This is the general case
+      //       if (d is DT_Ctor0) { return ((DT_Ctor0)d).@Dtor0; }
+      //       if (d is DT_Ctor1) { return ((DT_Ctor1)d).@Dtor0; }
+      //       ...
+      //       if (d is DT_Ctor(n-2)) { return ((DT_Ctor(n-2))d).@Dtor0; }
+      //       return ((DT_Ctor(n-1))d).@Dtor0;
+      //    }}
       //   ...
       // }
       string DtT = dt.CompileName;
@@ -683,11 +690,28 @@ namespace Microsoft.Dafny {
 
       // destructors
       foreach (var ctor in dt.Ctors) {
-        foreach (var arg in ctor.Formals) {
-          if (!arg.IsGhost && arg.HasName) {
-            //   public T0 @Dtor0 { get { return ((DT_Ctor)_D).@Dtor0; } }
-            Indent(ind, wr);
-            wr.WriteLine("public {0} dtor_{1} {{ get {{ return (({2}_{3}{4})_D).@{1}; }} }}", TypeName(arg.Type, wr), arg.CompileName, dt.CompileName, ctor.CompileName, DtT_TypeArgs);
+        foreach (var dtor in ctor.Destructors) {
+          if (dtor.EnclosingCtors[0] == ctor) {
+            var arg = dtor.CorrespondingFormals[0];
+            if (!arg.IsGhost && arg.HasName) {
+              Indent(ind, wr);
+              //   public T0 dtor_Dtor0 { get { var d = _D;
+              //       if (d is DT_Ctor0) { return ((DT_Ctor0)d).@Dtor0; }
+              //       if (d is DT_Ctor1) { return ((DT_Ctor1)d).@Dtor0; }
+              //       ...
+              //       if (d is DT_Ctor(n-2)) { return ((DT_Ctor(n-2))d).@Dtor0; }
+              //       return ((DT_Ctor(n-1))d).@Dtor0;
+              //    }}
+              wr.Write("public {0} dtor_{1} {{ get {{ var d = _D; ", TypeName(arg.Type, wr), arg.CompileName);
+              var n = dtor.EnclosingCtors.Count;
+              for (int i = 0; i < n-1; i++) {
+                var ctor_i = dtor.EnclosingCtors[i];
+                Contract.Assert(arg.CompileName == dtor.CorrespondingFormals[i].CompileName);
+                wr.Write("if (d is {0}_{1}{2}) {{ return (({0}_{1}{2})d).@{3}; }} ", dt.CompileName, ctor_i.CompileName, DtT_TypeArgs, arg.CompileName);
+              }
+              Contract.Assert(arg.CompileName == dtor.CorrespondingFormals[n-1].CompileName);
+              wr.WriteLine("return (({0}_{1}{2})d).@{3}; }} }}", dt.CompileName, dtor.EnclosingCtors[n-1].CompileName, DtT_TypeArgs, arg.CompileName);
+            }
           }
         }
       }

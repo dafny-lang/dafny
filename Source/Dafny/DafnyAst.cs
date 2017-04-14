@@ -3866,8 +3866,15 @@ namespace Microsoft.Dafny {
 
   public class DatatypeDestructor : SpecialField
   {
-    public readonly DatatypeCtor EnclosingCtor;
-    public readonly Formal CorrespondingFormal;
+    public readonly List<DatatypeCtor> EnclosingCtors = new List<DatatypeCtor>();  // is always a nonempty list
+    public readonly List<Formal> CorrespondingFormals = new List<Formal>();  // is always a nonempty list
+    [ContractInvariantMethod]
+    void ObjectInvariant() {
+      Contract.Invariant(EnclosingCtors != null);
+      Contract.Invariant(CorrespondingFormals != null);
+      Contract.Invariant(EnclosingCtors.Count > 0);
+      Contract.Invariant(EnclosingCtors.Count == CorrespondingFormals.Count);
+    }
 
     public DatatypeDestructor(IToken tok, DatatypeCtor enclosingCtor, Formal correspondingFormal, string name, string compiledName, string preString, string postString, bool isGhost, Type type, Attributes attributes)
       : base(tok, name, compiledName, preString, postString, isGhost, false, false, type, attributes)
@@ -3880,8 +3887,35 @@ namespace Microsoft.Dafny {
       Contract.Requires(preString != null);
       Contract.Requires(postString != null);
       Contract.Requires(type != null);
-      EnclosingCtor = enclosingCtor;
-      CorrespondingFormal = correspondingFormal;
+      EnclosingCtors.Add(enclosingCtor);  // more enclosing constructors may be added later during resolution
+      CorrespondingFormals.Add(correspondingFormal);  // more corresponding formals may be added later during resolution
+    }
+
+    /// <summary>
+    /// To be called only by the resolver. Called to share this datatype destructor between multiple constructors
+    /// of the same datatype.
+    /// </summary>
+    internal void AddAnotherEnclosingCtor(DatatypeCtor ctor, Formal formal) {
+      Contract.Requires(ctor != null);
+      Contract.Requires(formal != null);
+      EnclosingCtors.Add(ctor);  // more enclosing constructors may be added later during resolution
+      CorrespondingFormals.Add(formal);  // more corresponding formals may be added later during resolution
+    }
+
+    internal string EnclosingCtorNames(string grammaticalConjunction) {
+      Contract.Requires(grammaticalConjunction != null);
+      var n = EnclosingCtors.Count;
+      if (n == 1) {
+        return string.Format("'{0}'", EnclosingCtors[0].Name);
+      } else if (n == 2) {
+        return string.Format("'{0}' {1} '{2}'", EnclosingCtors[0].Name, grammaticalConjunction, EnclosingCtors[1].Name);
+      } else {
+        var s = "";
+        for (int i = 0; i < n - 1; i++) {
+          s += string.Format("'{0}', ", EnclosingCtors[i].Name);
+        }
+        return s + string.Format("{0} '{1}'", grammaticalConjunction, EnclosingCtors[n - 1].Name);
+      }
     }
   }
   
