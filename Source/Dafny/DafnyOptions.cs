@@ -28,7 +28,7 @@ namespace Microsoft.Dafny
     }
     public override string VersionSuffix {
       get {
-        return " version " + VersionNumber + ", Copyright (c) 2003-2016, Microsoft.";
+        return " version " + VersionNumber + ", Copyright (c) 2003-2017, Microsoft.";
       }
     }
 
