@@ -167,6 +167,13 @@ namespace Microsoft.Dafny.Triggers
       if (substMap.Count > 0) {
         var s = new Translator.ExprSubstituter(substMap);
         expr = s.Substitute(q.quantifier) as QuantifierExpr;
+      } else {
+        // make a copy of the expr
+        if (expr is ForallExpr) {
+          expr = new ForallExpr(expr.tok, expr.TypeArgs, expr.BoundVars, expr.Range, expr.Term, TriggerUtils.CopyAttributes(expr.Attributes)) { Type = expr.Type };
+        } else {
+          expr = new ExistsExpr(expr.tok, expr.TypeArgs, expr.BoundVars, expr.Range, expr.Term, TriggerUtils.CopyAttributes(expr.Attributes)) { Type = expr.Type };
+        }
       }
       return expr;
     }
