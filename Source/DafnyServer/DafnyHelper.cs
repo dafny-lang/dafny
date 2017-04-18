@@ -435,7 +435,8 @@ namespace Microsoft.Dafny
                                     MethodName = exprDotName.SuffixName,
                                     Position = exprDotName.tok.pos,
                                     Line = exprDotName.tok.line,
-                                    Column = exprDotName.tok.col
+                                    Column = exprDotName.tok.col,
+                                    ReferencedName = exprDotName.SuffixName
 
                                 });
                             }
@@ -456,8 +457,8 @@ namespace Microsoft.Dafny
                                     MethodName = memberAcc.MemberName,
                                     Position = memberAcc.tok.pos,
                                     Line = memberAcc.tok.line,
-                                    Column = memberAcc.tok.col
-
+                                    Column = memberAcc.tok.col,
+                                    ReferencedName = memberAcc.MemberName
                                 });
                             }
                         }
@@ -484,10 +485,11 @@ namespace Microsoft.Dafny
                     {
                         information.Add(new ReferenceInformation
                         {
-                            Position = callStmt.Tok.pos,
-                            Line = callStmt.Tok.line,
-                            Column = callStmt.Tok.col,
-                            MethodName = currentMethodName
+                            Position = callStmt.MethodSelect.tok.pos,
+                            Line = callStmt.MethodSelect.tok.line,
+                            Column = callStmt.MethodSelect.tok.col,
+                            MethodName = currentMethodName,
+                            ReferencedName = methodToFind.Split('.')[2]
                         });
                     }
                 }
@@ -657,6 +659,8 @@ namespace Microsoft.Dafny
             public int? Line { get; set; }
             [DataMember(Name = "Column")]
             public int? Column { get; set; }
+            [DataMember(Name="ReferencedName")]
+            public string ReferencedName { get; set; }
         }
 
         [Serializable]
