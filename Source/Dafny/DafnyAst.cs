@@ -3908,7 +3908,7 @@ namespace Microsoft.Dafny {
     }
 
     static internal string PrintableCtorNameList(List<DatatypeCtor> ctors, string grammaticalConjunction) {
-      Contract.Requires(ctors != null && ctors.Count != 1);
+      Contract.Requires(ctors != null);
       Contract.Requires(grammaticalConjunction != null);
       var n = ctors.Count;
       if (n == 1) {
