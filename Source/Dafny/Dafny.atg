@@ -2663,7 +2663,7 @@ ImpliesExpression<out Expression e0, bool allowSemi, bool allowLambda, bool allo
 LogicalExpression<out Expression e0, bool allowSemi, bool allowLambda, bool allowBitwiseOps>
 = (. Contract.Ensures(Contract.ValueAtReturn(out e0) != null); IToken/*!*/ x;  Expression/*!*/ e1;
      Expression first;
-     e0 = null; /* mute the warning */
+     e0 = dummyExpr; /* mute the warning */
   .)
   ( AndOp                                                       (. x = t; .)
     RelationalExpression<out e0, allowSemi, allowLambda, allowBitwiseOps>        (. first = e0; .)

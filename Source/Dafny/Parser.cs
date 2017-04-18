@@ -3802,7 +3802,7 @@ List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, st
 	void LogicalExpression(out Expression e0, bool allowSemi, bool allowLambda, bool allowBitwiseOps) {
 		Contract.Ensures(Contract.ValueAtReturn(out e0) != null); IToken/*!*/ x;  Expression/*!*/ e1;
 		Expression first;
-		e0 = null; /* mute the warning */
+		e0 = dummyExpr; /* mute the warning */
 		
 		if (la.kind == 124 || la.kind == 125) {
 			AndOp();

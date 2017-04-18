@@ -164,26 +164,31 @@ namespace Microsoft.Dafny.Triggers {
 
     bool RewriteMatchingLoop()
     {
-      if (!TriggerUtils.NeedsAutoTriggers(expr)) {
-        // don't rewrite the quantifier if we are not auto generate triggers.
-        // This is because rewriting introduces new boundvars and will cause
-        // user provided triggers not mention all boundvars
-        return false;
-      }
-      if (expr is QuantifierExpr && TriggerUtils.WantsMatchingLoopRewrite((QuantifierExpr)expr)) {
+      if (expr is QuantifierExpr) {
         QuantifierExpr quantifier = (QuantifierExpr)expr;
         var l = new List<QuantifierWithTriggers>();
-        // only split quantifier expr now.
         List<Expression> splits = new List<Expression>();
+        bool rewritten = false;
         foreach (var q in quantifiers) {
-          var matchingLoopRewriter = new MatchingLoopRewriter();
-          var qq = matchingLoopRewriter.RewriteMatchingLoops(q);
-          splits.Add(qq);
-          l.Add(new QuantifierWithTriggers(qq));
+          if (TriggerUtils.NeedsAutoTriggers(q.quantifier) && TriggerUtils.WantsMatchingLoopRewrite(q.quantifier)) {
+            var matchingLoopRewriter = new MatchingLoopRewriter();
+            var qq = matchingLoopRewriter.RewriteMatchingLoops(q);
+            splits.Add(qq);
+            l.Add(new QuantifierWithTriggers(qq));
+            rewritten = true;
+          } else {
+            // don't rewrite the quantifier if we are not auto generate triggers.
+            // This is because rewriting introduces new boundvars and will cause
+            // user provided triggers not mention all boundvars
+            splits.Add(q.quantifier);
+            l.Add(q);
+          }
         }
-        quantifier.SplitQuantifier = splits;
-        quantifiers = l;
-        return true;
+        if (rewritten) {
+          quantifier.SplitQuantifier = splits;
+          quantifiers = l;
+          return true;
+        }
       }
       return false;
     }
