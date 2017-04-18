@@ -8910,10 +8910,9 @@ namespace Microsoft.Dafny {
         return _SplitQuantifier;
       }
       set {
-        if (!value.Contains(this)) {
-          _SplitQuantifier = value;
-          SplitQuantifierExpression = SplitQuantifierToExpression();
-        }
+        Contract.Assert(!value.Contains(this)); // don't let it put into its own split quantifiers.
+        _SplitQuantifier = value;
+        SplitQuantifierExpression = SplitQuantifierToExpression();
       }
     }
 
