@@ -236,9 +236,9 @@ namespace Microsoft.Dafny
                                     Module = userType.ResolvedClass.Module.CompileName,
                                     Call = reveiverName + "." + callStmt.MethodSelect.Member,
                                     SymbolType = SymbolInformation.Type.Call,
-                                    Position = callStmt.Tok.pos,
-                                    Line = callStmt.Tok.line,
-                                    Column = callStmt.Tok.col
+                                    Position = callStmt.MethodSelect.tok.pos,
+                                    Line = callStmt.MethodSelect.tok.line,
+                                    Column = callStmt.MethodSelect.tok.col
                                 });
                             }
                             
