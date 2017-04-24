@@ -151,6 +151,7 @@ namespace Microsoft.Dafny
                                 if (m.Body!= null && m.Body.Body != null)
                                 {
                                     information.AddRange(ResolveCallStatements(m.Body.Body));
+                                    information.AddRange(ResolveLocalDefinitions(m.Body.Body, m));
                                 }
                                 var methodSymbol = new SymbolInformation
                                 {
@@ -212,6 +213,67 @@ namespace Microsoft.Dafny
             Console.WriteLine("SYMBOLS_START " + json + " SYMBOLS_END");
         }
 
+        private static IEnumerable<SymbolInformation> ResolveLocalDefinitions(IEnumerable<Statement> statements, Method method)
+        {
+            var information = new List<SymbolInformation>();
+            try
+            {
+                foreach (var statement in statements)
+                {
+                    if (statement is VarDeclStmt)
+                    {
+                        var declarations = (VarDeclStmt)statement;
+                        {
+                            Type type = null;
+                            var rightSide = declarations.Update as UpdateStmt;
+                            if (rightSide != null)
+                            {
+                                var definition = rightSide.Rhss.First();
+                                if (definition != null)
+                                {
+                                    var typeDef = definition as TypeRhs;
+                                    if (typeDef != null)
+                                    {
+                                        type = typeDef.Type;
+                                    }
+                                }
+                            }
+                            if (type != null  && type  is UserDefinedType)
+                            {
+                                var userType = type as UserDefinedType;
+                                foreach (var declarationLocal in declarations.Locals)
+                                {
+                                    var name = declarationLocal.Name;
+                                    information.Add(new SymbolInformation
+                                    {
+                                        Name = name,
+                                        ParentClass = userType.ResolvedClass.CompileName,
+                                        Module = userType.ResolvedClass.Module.CompileName,
+                                        SymbolType = SymbolInformation.Type.Definition,
+                                        Position = method.BodyStartTok.pos,
+                                        Line = method.BodyStartTok.line,
+                                        Column = method.BodyStartTok.col,
+                                        EndColumn = method.BodyEndTok.col,
+                                        EndLine = method.BodyEndTok.line,
+                                        EndPosition = method.BodyEndTok.pos
+                                    });
+                                }
+                            }
+                        }
+                    }
+                    
+                    if (statement.SubStatements.Any())
+                    {
+                        information.AddRange(ResolveLocalDefinitions(statement.SubStatements.ToList(), method));
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                Interaction.EOM(Interaction.FAILURE, e.Message + e.StackTrace);
+            }
+            return information;
+        }
         private static IEnumerable<SymbolInformation> ResolveCallStatements(IEnumerable<Statement> statements)
         {
             var information = new List<SymbolInformation>();
@@ -638,7 +700,8 @@ namespace Microsoft.Dafny
                 Method,
                 Function,
                 Field,
-                Call
+                Call,
+                Definition
             }
 
             public SymbolInformation()
