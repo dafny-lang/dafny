@@ -2901,11 +2901,14 @@ namespace Microsoft.Dafny
             }
             headIsRoot = true; headIsLeaf = true;
           }
-        } else {
+        } else if (t.IsTypeParameter) {
           var tp = udf.AsTypeParameter;
           Contract.Assert(tp != null);
           isRoot = true; isLeaf = true;  // all type parameters are invariant
           headIsRoot = true; headIsLeaf = true;
+        } else {
+          isRoot = false; isLeaf = false;  // don't know
+          headIsRoot = false; headIsLeaf = false;
         }
       } else if (t is MapType) {  // map, imap
         Contract.Assert(t.TypeArgs.Count == 2);
