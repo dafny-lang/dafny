@@ -88,7 +88,7 @@ namespace Microsoft.Dafny
         {
             if (boogieProgram.Resolve() == 0 && boogieProgram.Typecheck() == 0)
             {
-                
+
                 //FIXME ResolveAndTypecheck?
                 ExecutionEngine.EliminateDeadVariables(boogieProgram);
                 ExecutionEngine.CollectModSets(boogieProgram);
@@ -126,91 +126,93 @@ namespace Microsoft.Dafny
             if (Parse() && Resolve())
             {
 
-                    foreach (var module in dafnyProgram.Modules())
+                foreach (var module in dafnyProgram.Modules())
+                {
+                    foreach (var clbl in ModuleDefinition.AllCallables(module.TopLevelDecls).Where(e => e != null && !(e.Tok is IncludeToken)))
                     {
-                        foreach (var clbl in ModuleDefinition.AllCallables(module.TopLevelDecls).Where(e => ! (e.Tok is IncludeToken)))
+                        if (clbl is Function)
                         {
-                            if (clbl is Function)
+                            var fn = (Function)clbl;
+                            var functionSymbol = new SymbolInformation
                             {
-                                var fn = (Function)clbl;
-                                var functionSymbol = new SymbolInformation
-                                {
-                                    Module = fn.EnclosingClass.Module.Name,
-                                    Name = fn.Name,
-                                    ParentClass = fn.EnclosingClass.Name,
-                                    SymbolType = SymbolInformation.Type.Function,
-                                    Position = fn.tok.pos,
-                                    Line = fn.tok.line,
-                                    Column = fn.tok.col
-                                };
-                                information.Add(functionSymbol);
-                            }
-                            else
-                            {
-                                var m = (Method)clbl;
-                                if (m.Body!= null && m.Body.Body != null)
-                                {
-                                    information.AddRange(ResolveCallStatements(m.Body.Body));
-                                    information.AddRange(ResolveLocalDefinitions(m.Body.Body, m));
-                                }
-                                var methodSymbol = new SymbolInformation
-                                {
-                                    Module = m.EnclosingClass.Module.Name,
-                                    Name = m.Name,
-                                    ParentClass = m.EnclosingClass.Name,
-                                    SymbolType = SymbolInformation.Type.Method,
-                                    Position = m.tok.pos,
-                                    Line = m.tok.line,
-                                    Column = m.tok.col,
-                                    Ensures = ParseEnsuresContracts(m.Ens),
-                                    Requires = ParseRequiresContracts(m.Req),
-                                    References = FindMethodReferencesInternal(m.EnclosingClass.Module.Name + "." + m.EnclosingClass.Name + "." + m.Name)
-                                };
-                                information.Add(methodSymbol);
-                            }
-                        }
-
-                        foreach (var fs in ModuleDefinition.AllFields(module.TopLevelDecls).Where(e => !(e.tok is IncludeToken)))
-                        {
-                            var fieldSymbol = new SymbolInformation
-                            {
-                                Module = fs.EnclosingClass.Module.Name,
-                                Name = fs.Name,
-                                ParentClass = fs.EnclosingClass.Name,
-                                SymbolType = SymbolInformation.Type.Field,
-                                Position = fs.tok.pos,
-                                Line = fs.tok.line,
-                                Column = fs.tok.col,
-                                References = FindFieldReferencesInternal(fs.Name, fs.EnclosingClass.Name, fs.EnclosingClass.Module.Name)
+                                Module = fn.EnclosingClass.Module.Name,
+                                Name = fn.Name,
+                                ParentClass = fn.EnclosingClass.Name,
+                                SymbolType = SymbolInformation.Type.Function,
+                                Position = fn.tok.pos,
+                                Line = fn.tok.line,
+                                Column = fn.tok.col
                             };
-                            information.Add(fieldSymbol);
+                            information.Add(functionSymbol);
                         }
-
-                        foreach (var cs in ModuleDefinition.AllClasses(module.TopLevelDecls).Where(e => !(e.tok is IncludeToken)))
+                        else
                         {
-                            if (cs != null && cs.Module != null && cs.tok != null)
+                            var m = (Method)clbl;
+                            if (m.Body != null && m.Body.Body != null)
                             {
-                                var classSymbol = new SymbolInformation
-                                {
-                                    Module = cs.Module.Name,
-                                    Name = cs.Name,
-                                    SymbolType = SymbolInformation.Type.Class,
-                                    Position = cs.tok.pos,
-                                    Line = cs.tok.line,
-                                    Column = cs.tok.col,
-                                    EndPosition = cs.BodyEndTok.pos,
-                                    EndLine = cs.BodyEndTok.line,
-                                    EndColumn = cs.BodyEndTok.col
-                                };
-                                information.Add(classSymbol);
+                                information.AddRange(ResolveCallStatements(m.Body.Body));
+                                information.AddRange(ResolveLocalDefinitions(m.Body.Body, m));
                             }
+                            var methodSymbol = new SymbolInformation
+                            {
+                                Module = m.EnclosingClass.Module.Name,
+                                Name = m.Name,
+                                ParentClass = m.EnclosingClass.Name,
+                                SymbolType = SymbolInformation.Type.Method,
+                                Position = m.tok.pos,
+                                Line = m.tok.line,
+                                Column = m.tok.col,
+                                Ensures = ParseEnsuresContracts(m.Ens),
+                                Requires = ParseRequiresContracts(m.Req),
+                                References = FindMethodReferencesInternal(m.EnclosingClass.Module.Name + "." + m.EnclosingClass.Name + "." + m.Name)
+                            };
+                            information.Add(methodSymbol);
                         }
                     }
-                
+
+                    foreach (var fs in ModuleDefinition.AllFields(module.TopLevelDecls).Where(e => e != null && !(e.tok is IncludeToken)))
+                    {
+                        var fieldSymbol = new SymbolInformation
+                        {
+                            Module = fs.EnclosingClass.Module.Name,
+                            Name = fs.Name,
+                            ParentClass = fs.EnclosingClass.Name,
+                            SymbolType = SymbolInformation.Type.Field,
+                            Position = fs.tok.pos,
+                            Line = fs.tok.line,
+                            Column = fs.tok.col,
+                            References = FindFieldReferencesInternal(fs.Name, fs.EnclosingClass.Name, fs.EnclosingClass.Module.Name)
+                        };
+                        information.Add(fieldSymbol);
+                    }
+
+
+                    foreach (var cs in ModuleDefinition.AllClasses(module.TopLevelDecls).Where(e => e != null && !(e.tok is IncludeToken)))
+                    {
+                        if (cs != null && cs.Module != null && cs.tok != null)
+                        {
+                            var classSymbol = new SymbolInformation
+                            {
+                                Module = cs.Module.Name,
+                                Name = cs.Name,
+                                SymbolType = SymbolInformation.Type.Class,
+                                Position = cs.tok.pos,
+                                Line = cs.tok.line,
+                                Column = cs.tok.col,
+                                EndPosition = cs.BodyEndTok.pos,
+                                EndLine = cs.BodyEndTok.line,
+                                EndColumn = cs.BodyEndTok.col
+                            };
+                            information.Add(classSymbol);
+                        }
+                    }
+
+                }
+
 
             }
 
-            
+
             var json = ToJson(information);
             Console.WriteLine("SYMBOLS_START " + json + " SYMBOLS_END");
         }
@@ -231,7 +233,7 @@ namespace Microsoft.Dafny
 
         private static ICollection<Expression> FlattenSubExpressions(IEnumerable<Expression> expressions)
         {
-            var returnExpressions =  new List<Expression>();
+            var returnExpressions = new List<Expression>();
             foreach (var expression in expressions)
             {
                 returnExpressions.Add(expression);
@@ -278,7 +280,7 @@ namespace Microsoft.Dafny
                                     }
                                 }
                             }
-                            if (type != null  && type  is UserDefinedType)
+                            if (type != null && type is UserDefinedType)
                             {
                                 var userType = type as UserDefinedType;
                                 foreach (var declarationLocal in declarations.Locals)
@@ -301,7 +303,7 @@ namespace Microsoft.Dafny
                             }
                         }
                     }
-                    
+
                     if (statement.SubStatements.Any())
                     {
                         information.AddRange(ResolveLocalDefinitions(statement.SubStatements.ToList(), method));
@@ -343,11 +345,12 @@ namespace Microsoft.Dafny
                                     Column = callStmt.MethodSelect.tok.col
                                 });
                             }
-                            
+
                         }
-                    } else if (statement is UpdateStmt)
+                    }
+                    else if (statement is UpdateStmt)
                     {
-                        var updateStmt = (UpdateStmt) statement;
+                        var updateStmt = (UpdateStmt)statement;
                         var leftSide = updateStmt.Lhss;
                         var rightSide = updateStmt.Rhss;
                         var leftSideDots = leftSide.OfType<ExprDotName>();
@@ -364,7 +367,7 @@ namespace Microsoft.Dafny
                                 {
                                     Name = exprDotName.SuffixName,
                                     ParentClass = type.ResolvedClass.CompileName,
-                                    Module =  type.ResolvedClass.Module.CompileName,
+                                    Module = type.ResolvedClass.Module.CompileName,
                                     Call = designator + "." + exprDotName.SuffixName,
                                     SymbolType = SymbolInformation.Type.Call,
                                     Position = exprDotName.tok.pos,
@@ -412,11 +415,11 @@ namespace Microsoft.Dafny
                         {
                             if (clbl is Function)
                             {
-                                var fn = (Function) clbl;
+                                var fn = (Function)clbl;
                             }
                             else
                             {
-                                var m = (Method) clbl;
+                                var m = (Method)clbl;
                                 var body = m.Body;
                                 information.AddRange(ParseBodyForMethodReferences(body.SubStatements, methodToFind, m.Name));
                             }
@@ -449,8 +452,10 @@ namespace Microsoft.Dafny
                         else
                         {
                             var m = (Method)clbl;
-                            var body = m.Body;
-                            information.AddRange(ParseBodyForFieldReferences(body.SubStatements, fieldName, className, moduleName));
+                            if (m.Body != null)
+                            {
+                                information.AddRange(ParseBodyForFieldReferences(m.Body.SubStatements, fieldName, className, moduleName));
+                            }
                         }
                     }
                 }
@@ -465,29 +470,31 @@ namespace Microsoft.Dafny
         {
             var information = new List<ReferenceInformation>();
 
-                try
+            try
+            {
+                foreach (var module in dafnyProgram.Modules())
                 {
-                    foreach (var module in dafnyProgram.Modules())
+                    foreach (var clbl in ModuleDefinition.AllCallables(module.TopLevelDecls).Where(e => !(e.Tok is IncludeToken)))
                     {
-                        foreach (var clbl in ModuleDefinition.AllCallables(module.TopLevelDecls).Where(e => !(e.Tok is IncludeToken)))
+                        if (clbl is Function)
                         {
-                            if (clbl is Function)
+                            var fn = (Function)clbl;
+                        }
+                        else
+                        {
+                            var m = (Method)clbl;
+                            if (m.Body != null)
                             {
-                                var fn = (Function)clbl;
-                            }
-                            else
-                            {
-                                var m = (Method)clbl;
-                                var body = m.Body;
-                                information.AddRange(ParseBodyForMethodReferences(body.SubStatements, methodToFind, m.Name));
+                                information.AddRange(ParseBodyForMethodReferences(m.Body.SubStatements, methodToFind, m.Name));
                             }
                         }
                     }
                 }
-                catch (Exception e)
-                {
-                    Interaction.EOM(Interaction.FAILURE, e.Message + e.StackTrace);
-                }
+            }
+            catch (Exception e)
+            {
+                Interaction.EOM(Interaction.FAILURE, e.Message + e.StackTrace);
+            }
             return information;
         }
 
@@ -542,7 +549,7 @@ namespace Microsoft.Dafny
 
                                 });
                             }
-                           
+
                         }
                     }
                     foreach (var nameSegment in allNameSegments)
@@ -678,12 +685,12 @@ namespace Microsoft.Dafny
                             else if (proof is AssumeCmd)
                             {
                                 var z = proof as AssumeCmd;
-                                
+
                             }
                             else if (proof is AssignCmd)
                             {
                                 var x = proof as AssignCmd;
-                                
+
                             }
                             else if (proof is CommentCmd)
                             {
@@ -717,17 +724,17 @@ namespace Microsoft.Dafny
             public int? Line { get; set; }
             [DataMember(Name = "Column")]
             public int? Column { get; set; }
-            [DataMember(Name="EndPosition")]
+            [DataMember(Name = "EndPosition")]
             public int? EndPosition { get; set; }
-            [DataMember(Name="EndLine")]
+            [DataMember(Name = "EndLine")]
             public int? EndLine { get; set; }
-            [DataMember(Name="EndColumn")]
+            [DataMember(Name = "EndColumn")]
             public int? EndColumn { get; set; }
             [DataMember(Name = "References")]
             public ICollection<ReferenceInformation> References { get; set; }
-            [DataMember(Name="Requires")]
+            [DataMember(Name = "Requires")]
             public ICollection<string> Requires { get; set; }
-            [DataMember(Name="Ensures")]
+            [DataMember(Name = "Ensures")]
             public ICollection<string> Ensures { get; set; }
             [DataMember(Name = "Call")]
             public string Call { get; set; }
@@ -766,7 +773,7 @@ namespace Microsoft.Dafny
             public int? Line { get; set; }
             [DataMember(Name = "Column")]
             public int? Column { get; set; }
-            [DataMember(Name="ReferencedName")]
+            [DataMember(Name = "ReferencedName")]
             public string ReferencedName { get; set; }
         }
 
