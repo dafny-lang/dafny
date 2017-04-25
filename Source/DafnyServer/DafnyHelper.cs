@@ -162,6 +162,8 @@ namespace Microsoft.Dafny
                                     Position = m.tok.pos,
                                     Line = m.tok.line,
                                     Column = m.tok.col,
+                                    Ensures = ParseEnsuresContracts(m.Ens),
+                                    Requires = ParseRequiresContracts(m.Req),
                                     References = FindMethodReferencesInternal(m.EnclosingClass.Module.Name + "." + m.EnclosingClass.Name + "." + m.Name)
                                 };
                                 information.Add(methodSymbol);
@@ -211,6 +213,44 @@ namespace Microsoft.Dafny
             
             var json = ToJson(information);
             Console.WriteLine("SYMBOLS_START " + json + " SYMBOLS_END");
+        }
+
+        private static ICollection<string> ParseEnsuresContracts(IEnumerable<MaybeFreeExpression> ensuresClauses)
+        {
+            var requires = new List<string>();
+            foreach (var maybeFreeExpression in ensuresClauses)
+            {
+                var eprs = FlattenSubExpressions(maybeFreeExpression.E.SubExpressions);
+                eprs.Add(maybeFreeExpression.E);
+                var p = eprs.Select(e => e.tok).OrderBy(e => e.line).ThenBy(e => e.col).Distinct().Select(e => e.val);
+                requires.Add(p.Concat(" "));
+            }
+            return requires;
+
+        }
+
+        private static ICollection<Expression> FlattenSubExpressions(IEnumerable<Expression> expressions)
+        {
+            var returnExpressions =  new List<Expression>();
+            foreach (var expression in expressions)
+            {
+                returnExpressions.Add(expression);
+                returnExpressions.AddRange(FlattenSubExpressions(expression.SubExpressions));
+            }
+
+            return returnExpressions;
+        }
+        private static ICollection<string> ParseRequiresContracts(IEnumerable<MaybeFreeExpression> requiresClauses)
+        {
+            var requires = new List<string>();
+            foreach (var maybeFreeExpression in requiresClauses)
+            {
+                var eprs = FlattenSubExpressions(maybeFreeExpression.E.SubExpressions);
+                eprs.Add(maybeFreeExpression.E);
+                var p = eprs.Select(e => e.tok).OrderBy(e => e.line).ThenBy(e => e.col).Distinct().Select(e => e.val);
+                requires.Add(p.Concat(" "));
+            }
+            return requires;
         }
 
         private static IEnumerable<SymbolInformation> ResolveLocalDefinitions(IEnumerable<Statement> statements, Method method)
@@ -685,6 +725,10 @@ namespace Microsoft.Dafny
             public int? EndColumn { get; set; }
             [DataMember(Name = "References")]
             public ICollection<ReferenceInformation> References { get; set; }
+            [DataMember(Name="Requires")]
+            public ICollection<string> Requires { get; set; }
+            [DataMember(Name="Ensures")]
+            public ICollection<string> Ensures { get; set; }
             [DataMember(Name = "Call")]
             public string Call { get; set; }
             [DataMember(Name = "SymbolType", Order = 1)]
