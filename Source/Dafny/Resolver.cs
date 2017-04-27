@@ -11260,15 +11260,6 @@ namespace Microsoft.Dafny
       return new Resolver_IdentifierExpr(tok, decl, tpArgs);
     }
 
-    void WithModuleSignature(ModuleSignature sig, Action a) {
-      var oldModuleInfo = moduleInfo;
-      moduleInfo = sig;
-      Type.PushScope(moduleInfo.VisibilityScope);
-      a();
-      Type.PopScope(moduleInfo.VisibilityScope);
-      moduleInfo = oldModuleInfo;      
-    }
-
     /// <summary>
     /// To resolve "id" in expression "E . id", do:
     ///  * If E denotes a module name M:
@@ -11340,7 +11331,7 @@ namespace Microsoft.Dafny
               reporter.Error(MessageSource.Resolver, expr.tok, "datatype constructor does not take any type parameters ('{0}')", name);
             }
             var rr = new DatatypeValue(expr.tok, pair.Item1.EnclosingDatatype.Name, name, args ?? new List<Expression>());
-            WithModuleSignature(sig, () => ResolveExpression(rr, opts));
+            ResolveDatatypeValue(opts, rr, pair.Item1.EnclosingDatatype);
 
             if (args == null) {
               r = rr;
