@@ -53,8 +53,6 @@ namespace Microsoft.Dafny {
         DafnyOptions.O.PrintTooltips = true; // Dump tooptips (ErrorLevel.Info) to stdout
         //DafnyOptions.O.UnicodeOutput = true; // Use pretty warning signs
         DafnyOptions.O.TraceProofObligations = true; // Show which method is being verified, but don't show duration of verification
-        //DafnyOptions.O.Trace = true;
-        //DafnyOptions.O.PrintNecessaryAssumes = true;
       } else {
         throw new ServerException("Invalid command line options");
       }
