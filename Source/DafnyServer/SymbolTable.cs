@@ -22,11 +22,18 @@ namespace DafnyServer
         {
             _dafnyProgram = dafnyProgram;
 
-            foreach (var module in dafnyProgram.Modules())
+            try
             {
-                AddMethods(module, _information);
-                AddFields(module, _information);
-                AddClasses(module, _information);
+                foreach (var module in dafnyProgram.Modules())
+                {
+                    AddMethods(module, _information);
+                    AddFields(module, _information);
+                    AddClasses(module, _information);
+                }
+            }
+            catch (Exception e)
+            {
+                Interaction.EOM(Interaction.FAILURE, e.Message + e.StackTrace);
             }
         }
 
@@ -152,140 +159,128 @@ namespace DafnyServer
             }
             return returnExpressions;
         }
-        
+
         private static IEnumerable<SymbolInformation> ResolveLocalDefinitions(IEnumerable<Statement> statements, Method method)
         {
             var information = new List<SymbolInformation>();
-            try
+
+            foreach (var statement in statements)
             {
-                foreach (var statement in statements)
+                if (statement is VarDeclStmt)
                 {
-                    if (statement is VarDeclStmt)
+                    var declarations = (VarDeclStmt)statement;
                     {
-                        var declarations = (VarDeclStmt)statement;
+                        Type type = null;
+                        var rightSide = declarations.Update as UpdateStmt;
+                        if (rightSide != null)
                         {
-                            Type type = null;
-                            var rightSide = declarations.Update as UpdateStmt;
-                            if (rightSide != null)
+                            var definition = rightSide.Rhss.First();
+                            var typeDef = definition as TypeRhs;
+                            if (typeDef != null)
                             {
-                                var definition = rightSide.Rhss.First();
-                                if (definition != null)
-                                {
-                                    var typeDef = definition as TypeRhs;
-                                    if (typeDef != null)
-                                    {
-                                        type = typeDef.Type;
-                                    }
-                                }
+                                type = typeDef.Type;
                             }
-                            if (type != null && type is UserDefinedType)
+                        }
+                        if (type != null && type is UserDefinedType)
+                        {
+                            var userType = type as UserDefinedType;
+                            foreach (var declarationLocal in declarations.Locals)
                             {
-                                var userType = type as UserDefinedType;
-                                foreach (var declarationLocal in declarations.Locals)
+                                var name = declarationLocal.Name;
+                                information.Add(new SymbolInformation
                                 {
-                                    var name = declarationLocal.Name;
-                                    information.Add(new SymbolInformation
-                                    {
-                                        Name = name,
-                                        ParentClass = userType.ResolvedClass.CompileName,
-                                        Module = userType.ResolvedClass.Module.CompileName,
-                                        SymbolType = SymbolInformation.Type.Definition,
-                                        Position = method.BodyStartTok.pos,
-                                        Line = method.BodyStartTok.line,
-                                        Column = method.BodyStartTok.col,
-                                        EndColumn = method.BodyEndTok.col,
-                                        EndLine = method.BodyEndTok.line,
-                                        EndPosition = method.BodyEndTok.pos
-                                    });
-                                }
+                                    Name = name,
+                                    ParentClass = userType.ResolvedClass.CompileName,
+                                    Module = userType.ResolvedClass.Module.CompileName,
+                                    SymbolType = SymbolInformation.Type.Definition,
+                                    Position = method.BodyStartTok.pos,
+                                    Line = method.BodyStartTok.line,
+                                    Column = method.BodyStartTok.col,
+                                    EndColumn = method.BodyEndTok.col,
+                                    EndLine = method.BodyEndTok.line,
+                                    EndPosition = method.BodyEndTok.pos
+                                });
                             }
                         }
                     }
+                }
 
-                    if (statement.SubStatements.Any())
-                    {
-                        information.AddRange(ResolveLocalDefinitions(statement.SubStatements.ToList(), method));
-                    }
+                if (statement.SubStatements.Any())
+                {
+                    information.AddRange(ResolveLocalDefinitions(statement.SubStatements.ToList(), method));
                 }
             }
-            catch (Exception e)
-            {
-                Interaction.EOM(Interaction.FAILURE, e.Message + e.StackTrace);
-            }
+
+
             return information;
         }
         private static IEnumerable<SymbolInformation> ResolveCallStatements(IEnumerable<Statement> statements)
         {
             var information = new List<SymbolInformation>();
-            try
+
+            foreach (var statement in statements)
             {
-                foreach (var statement in statements)
+                if (statement is CallStmt)
                 {
-                    if (statement is CallStmt)
+                    var callStmt = (CallStmt)statement;
                     {
-                        var callStmt = (CallStmt)statement;
+
+                        if (callStmt.Receiver.Type is UserDefinedType)
                         {
-
-                            if (callStmt.Receiver.Type is UserDefinedType)
+                            var receiver = callStmt.Receiver as NameSegment;
+                            var userType = callStmt.Receiver.Type as UserDefinedType;
+                            var reveiverName = receiver == null ? "" : receiver.Name;
+                            information.Add(new SymbolInformation
                             {
-                                var receiver = callStmt.Receiver as NameSegment;
-                                var userType = callStmt.Receiver.Type as UserDefinedType;
-                                var reveiverName = receiver == null ? "" : receiver.Name;
-                                information.Add(new SymbolInformation
-                                {
-                                    Name = callStmt.Method.CompileName,
-                                    ParentClass = userType.ResolvedClass.CompileName,
-                                    Module = userType.ResolvedClass.Module.CompileName,
-                                    Call = reveiverName + "." + callStmt.MethodSelect.Member,
-                                    SymbolType = SymbolInformation.Type.Call,
-                                    Position = callStmt.MethodSelect.tok.pos,
-                                    Line = callStmt.MethodSelect.tok.line,
-                                    Column = callStmt.MethodSelect.tok.col
-                                });
-                            }
-
+                                Name = callStmt.Method.CompileName,
+                                ParentClass = userType.ResolvedClass.CompileName,
+                                Module = userType.ResolvedClass.Module.CompileName,
+                                Call = reveiverName + "." + callStmt.MethodSelect.Member,
+                                SymbolType = SymbolInformation.Type.Call,
+                                Position = callStmt.MethodSelect.tok.pos,
+                                Line = callStmt.MethodSelect.tok.line,
+                                Column = callStmt.MethodSelect.tok.col
+                            });
                         }
-                    }
-                    else if (statement is UpdateStmt)
-                    {
-                        var updateStmt = (UpdateStmt)statement;
-                        var leftSide = updateStmt.Lhss;
-                        var rightSide = updateStmt.Rhss;
-                        var leftSideDots = leftSide.OfType<ExprDotName>();
-                        var rightSideDots = rightSide.OfType<ExprDotName>();
-                        var allExprDotNames = leftSideDots.Concat(rightSideDots);
-                        foreach (var exprDotName in allExprDotNames)
-                        {
-                            if (exprDotName.Lhs.Type is UserDefinedType)
-                            {
-                                var segment = exprDotName.Lhs as NameSegment;
-                                var type = exprDotName.Lhs.Type as UserDefinedType;
-                                var designator = segment == null ? "" : segment.Name;
-                                information.Add(new SymbolInformation
-                                {
-                                    Name = exprDotName.SuffixName,
-                                    ParentClass = type.ResolvedClass.CompileName,
-                                    Module = type.ResolvedClass.Module.CompileName,
-                                    Call = designator + "." + exprDotName.SuffixName,
-                                    SymbolType = SymbolInformation.Type.Call,
-                                    Position = exprDotName.tok.pos,
-                                    Line = exprDotName.tok.line,
-                                    Column = exprDotName.tok.col
 
-                                });
-                            }
-                        }
-                    }
-                    if (statement.SubStatements.Any())
-                    {
-                        information.AddRange(ResolveCallStatements(statement.SubStatements.ToList()));
                     }
                 }
+                else if (statement is UpdateStmt)
+                {
+                    var updateStmt = (UpdateStmt)statement;
+                    var leftSide = updateStmt.Lhss;
+                    var rightSide = updateStmt.Rhss;
+                    var leftSideDots = leftSide.OfType<ExprDotName>();
+                    var rightSideDots = rightSide.OfType<ExprDotName>();
+                    var allExprDotNames = leftSideDots.Concat(rightSideDots);
+                    foreach (var exprDotName in allExprDotNames)
+                    {
+                        if (exprDotName.Lhs.Type is UserDefinedType)
+                        {
+                            var segment = exprDotName.Lhs as NameSegment;
+                            var type = (UserDefinedType)exprDotName.Lhs.Type;
+                            var designator = segment == null ? "" : segment.Name;
+                            information.Add(new SymbolInformation
+                            {
+                                Name = exprDotName.SuffixName,
+                                ParentClass = type.ResolvedClass.CompileName,
+                                Module = type.ResolvedClass.Module.CompileName,
+                                Call = designator + "." + exprDotName.SuffixName,
+                                SymbolType = SymbolInformation.Type.Call,
+                                Position = exprDotName.tok.pos,
+                                Line = exprDotName.tok.line,
+                                Column = exprDotName.tok.col
+
+                            });
+                        }
+                    }
+                }
+                if (statement.SubStatements.Any())
+                {
+                    information.AddRange(ResolveCallStatements(statement.SubStatements.ToList()));
+                }
             }
-            catch (Exception e)
-            {
-                Interaction.EOM(Interaction.FAILURE, e.Message + e.StackTrace);
-            }
+
             return information;
         }
 
@@ -294,62 +289,48 @@ namespace DafnyServer
         {
             var information = new List<ReferenceInformation>();
 
-            try
+
+            foreach (var module in _dafnyProgram.Modules())
             {
-                foreach (var module in _dafnyProgram.Modules())
+                foreach (var clbl in ModuleDefinition.AllCallables(module.TopLevelDecls).Where(e => !(e.Tok is IncludeToken)))
                 {
-                    foreach (var clbl in ModuleDefinition.AllCallables(module.TopLevelDecls).Where(e => !(e.Tok is IncludeToken)))
+                    if (clbl is Function)
                     {
-                        if (clbl is Function)
+                        var fn = (Function)clbl;
+                    }
+                    else
+                    {
+                        var m = (Method)clbl;
+                        if (m.Body != null)
                         {
-                            var fn = (Function)clbl;
-                        }
-                        else
-                        {
-                            var m = (Method)clbl;
-                            if (m.Body != null)
-                            {
-                                information.AddRange(ParseBodyForFieldReferences(m.Body.SubStatements, fieldName, className, moduleName));
-                            }
+                            information.AddRange(ParseBodyForFieldReferences(m.Body.SubStatements, fieldName, className, moduleName));
                         }
                     }
                 }
             }
-            catch (Exception e)
-            {
-                Interaction.EOM(Interaction.FAILURE, e.Message + e.StackTrace);
-            }
+
             return information;
         }
         private List<ReferenceInformation> FindMethodReferencesInternal(string methodToFind)
         {
             var information = new List<ReferenceInformation>();
 
-            try
+
+            foreach (var module in _dafnyProgram.Modules())
             {
-                foreach (var module in _dafnyProgram.Modules())
+                foreach (var clbl in ModuleDefinition.AllCallables(module.TopLevelDecls).Where(e => !(e.Tok is IncludeToken)))
                 {
-                    foreach (var clbl in ModuleDefinition.AllCallables(module.TopLevelDecls).Where(e => !(e.Tok is IncludeToken)))
+                    if (clbl is Method)
                     {
-                        if (clbl is Function)
+                        var m = (Method)clbl;
+                        if (m.Body != null)
                         {
-                            var fn = (Function)clbl;
-                        }
-                        else
-                        {
-                            var m = (Method)clbl;
-                            if (m.Body != null)
-                            {
-                                information.AddRange(ParseBodyForMethodReferences(m.Body.SubStatements, methodToFind, m.Name));
-                            }
+                            information.AddRange(ParseBodyForMethodReferences(m.Body.SubStatements, methodToFind, m.Name));
                         }
                     }
                 }
             }
-            catch (Exception e)
-            {
-                Interaction.EOM(Interaction.FAILURE, e.Message + e.StackTrace);
-            }
+
             return information;
         }
 
