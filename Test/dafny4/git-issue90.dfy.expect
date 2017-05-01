@@ -1,0 +1,2 @@
+git-issue90.dfy(5,6): Error: constant definition contains a cycle: _default.y -> MyInt -> _default.x
+1 resolution/type errors detected in git-issue90.dfy

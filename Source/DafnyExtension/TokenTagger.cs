@@ -473,8 +473,6 @@ namespace DafnyLanguage
                 case "while":
                 case "yield":
                 case "yields":
-                case "reveals":
-                case "provides":
                 case "export":
                 #endregion
                   break;
@@ -486,7 +484,9 @@ namespace DafnyLanguage
                 case "invariant":
                 case "modifies":
                 case "reads":
-                // "yields" plays a dual role
+                case "reveals":
+                case "provides":
+                  // "yields" plays a dual role
                 #endregion
                   ty = DafnyTokenKind.SpecificationClause;
                   break;

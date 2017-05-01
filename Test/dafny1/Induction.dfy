@@ -152,7 +152,7 @@ class IntegerInduction {
     ensures IsSorted(s) ==> (forall i,j {:induction j} {:autotriggers false} :: 0 <= i < j < |s| ==> s[i] <= s[j]);
     ensures (forall i,j :: 0 <= i && i < j && j < |s| ==> s[i] <= s[j]) ==> IsSorted(s);
   {
-    (forall i {:nowarn} :: 1 <= i && i < |s| ==> s[i-1] <= s[i])
+    (forall i {:nowarn} {:matchinglooprewrite false}:: 1 <= i && i < |s| ==> s[i-1] <= s[i])
   }
 }
 

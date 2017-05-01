@@ -3072,7 +3072,7 @@ namespace Microsoft.Dafny {
         if (cl != null) {
           foreach (var member in cl.Members) {
             var clbl = member as ICallable;
-            if (clbl != null) {
+            if (clbl != null && !(member is ConstantField)) {
               yield return clbl;
             }
           }
@@ -3716,7 +3716,8 @@ namespace Microsoft.Dafny {
         return HasStaticKeyword || (EnclosingClass is ClassDecl && ((ClassDecl)EnclosingClass).IsDefaultClass);
       }
     }
-    public readonly bool IsGhost;
+    protected readonly bool isGhost;
+    public bool IsGhost { get { return isGhost; } }
     public TopLevelDecl EnclosingClass;  // filled in during resolution
     public MemberDecl RefinementBase;  // filled in during the pre-resolution refinement transformation; null if the member is new here
     public MemberDecl(IToken tok, string name, bool hasStaticKeyword, bool isGhost, Attributes attributes, Declaration clonedFrom = null)
@@ -3724,7 +3725,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
       HasStaticKeyword = hasStaticKeyword;
-      IsGhost = isGhost;
+      this.isGhost = isGhost;
     }
     /// <summary>
     /// Returns className+"."+memberName.  Available only after resolution.
@@ -3886,8 +3887,15 @@ namespace Microsoft.Dafny {
 
   public class DatatypeDestructor : SpecialField
   {
-    public readonly DatatypeCtor EnclosingCtor;
-    public readonly Formal CorrespondingFormal;
+    public readonly List<DatatypeCtor> EnclosingCtors = new List<DatatypeCtor>();  // is always a nonempty list
+    public readonly List<Formal> CorrespondingFormals = new List<Formal>();  // is always a nonempty list
+    [ContractInvariantMethod]
+    void ObjectInvariant() {
+      Contract.Invariant(EnclosingCtors != null);
+      Contract.Invariant(CorrespondingFormals != null);
+      Contract.Invariant(EnclosingCtors.Count > 0);
+      Contract.Invariant(EnclosingCtors.Count == CorrespondingFormals.Count);
+    }
 
     public DatatypeDestructor(IToken tok, DatatypeCtor enclosingCtor, Formal correspondingFormal, string name, string compiledName, string preString, string postString, bool isGhost, Type type, Attributes attributes)
       : base(tok, name, compiledName, preString, postString, isGhost, false, false, type, attributes)
@@ -3900,12 +3908,45 @@ namespace Microsoft.Dafny {
       Contract.Requires(preString != null);
       Contract.Requires(postString != null);
       Contract.Requires(type != null);
-      EnclosingCtor = enclosingCtor;
-      CorrespondingFormal = correspondingFormal;
+      EnclosingCtors.Add(enclosingCtor);  // more enclosing constructors may be added later during resolution
+      CorrespondingFormals.Add(correspondingFormal);  // more corresponding formals may be added later during resolution
+    }
+
+    /// <summary>
+    /// To be called only by the resolver. Called to share this datatype destructor between multiple constructors
+    /// of the same datatype.
+    /// </summary>
+    internal void AddAnotherEnclosingCtor(DatatypeCtor ctor, Formal formal) {
+      Contract.Requires(ctor != null);
+      Contract.Requires(formal != null);
+      EnclosingCtors.Add(ctor);  // more enclosing constructors may be added later during resolution
+      CorrespondingFormals.Add(formal);  // more corresponding formals may be added later during resolution
+    }
+
+    internal string EnclosingCtorNames(string grammaticalConjunction) {
+      Contract.Requires(grammaticalConjunction != null);
+      return PrintableCtorNameList(EnclosingCtors, grammaticalConjunction);
+    }
+
+    static internal string PrintableCtorNameList(List<DatatypeCtor> ctors, string grammaticalConjunction) {
+      Contract.Requires(ctors != null);
+      Contract.Requires(grammaticalConjunction != null);
+      var n = ctors.Count;
+      if (n == 1) {
+        return string.Format("'{0}'", ctors[0].Name);
+      } else if (n == 2) {
+        return string.Format("'{0}' {1} '{2}'", ctors[0].Name, grammaticalConjunction, ctors[1].Name);
+      } else {
+        var s = "";
+        for (int i = 0; i < n - 1; i++) {
+          s += string.Format("'{0}', ", ctors[i].Name);
+        }
+        return s + string.Format("{0} '{1}'", grammaticalConjunction, ctors[n - 1].Name);
+      }
     }
   }
-  
-  public class ConstantField : SpecialField
+
+  public class ConstantField : SpecialField, ICallable
   {
     public override string WhatKind { get { return "const field"; } }
     public Function function;
@@ -3926,6 +3967,21 @@ namespace Microsoft.Dafny {
         new Specification<Expression>(new List<Expression>(), null), null, null, null);
     }
 
+    // 
+    public new bool IsGhost { get { return this.isGhost; } }
+    public List<TypeParameter> TypeArgs { get { return new List<TypeParameter>(); } }
+    public List<Formal> Ins { get { return new List<Formal>(); } }
+    public ModuleDefinition EnclosingModule { get { return this.EnclosingClass.Module; } }
+    public bool MustReverify { get { return false; } }
+    public bool AllowsNontermination { get { throw new cce.UnreachableException(); } }
+    public IToken Tok { get { return tok; } }
+    public string NameRelativeToModule { get { return EnclosingClass.Name + "." + Name; } }
+    public Specification<Expression> Decreases { get { throw new cce.UnreachableException(); } }
+    public bool InferredDecreases
+    {
+      get { throw new cce.UnreachableException(); }
+      set { throw new cce.UnreachableException(); }
+    }
   }
 
   public class OpaqueTypeDecl : TopLevelDecl, TypeParameter.ParentType, RevealableTypeDecl
@@ -4724,7 +4780,14 @@ namespace Microsoft.Dafny {
         old_to_new[this.TypeArgs[i]] = this.PrefixPredicate.TypeArgs[i];
       }
       foreach (var p in fexp.TypeArgumentSubstitutions) {
-        prefixPredCall.TypeArgumentSubstitutions[old_to_new[p.Key]] = p.Value;
+        TypeParameter tp;
+        if (old_to_new.TryGetValue(p.Key, out tp)) {
+          // p.Key denotes a type parameter of the predicate
+          prefixPredCall.TypeArgumentSubstitutions[tp] = p.Value;
+        } else {
+          // p.Key denotes a type parameter of the enclosing class; it is the same for the prefix predicate
+          prefixPredCall.TypeArgumentSubstitutions[p.Key] = p.Value;
+        }
       }  // resolved here.
 
       prefixPredCall.Type = fexp.Type;  // resolve here
@@ -8868,6 +8931,7 @@ namespace Microsoft.Dafny {
         return _SplitQuantifier;
       }
       set {
+        Contract.Assert(!value.Contains(this)); // don't let it put into its own split quantifiers.
         _SplitQuantifier = value;
         SplitQuantifierExpression = SplitQuantifierToExpression();
       }

@@ -1339,9 +1339,12 @@ namespace Microsoft.Dafny {
           var sf = ctor.Destructors[i];
           Contract.Assert(sf != null);
           fn = GetReadonlyField(sf);
-          if (fn != predef.Tuple2Destructors0 && fn != predef.Tuple2Destructors1) {
+          if (fn == predef.Tuple2Destructors0 || fn == predef.Tuple2Destructors1) {
             // the two destructors for 2-tuples are predefined in Prelude for use
             // by the Map#Items axiom
+          } else if (sf.EnclosingCtors[0] != ctor) {
+            // this special field, which comes from a shared destructor, is being declared in a different iteration of this loop
+          } else {
             sink.AddTopLevelDeclaration(fn);
           }
           // axiom (forall params :: ##dt.ctor#i(#dt.ctor(params)) == params_i);
@@ -3237,7 +3240,7 @@ namespace Microsoft.Dafny {
       var etran = new ExpressionTranslator(this, predef, tok);
 
       List<Bpl.Expr> tyexprs;
-      var tyvars = MkTyParamBinders(pp.TypeArgs, out tyexprs);
+      var tyvars = MkTyParamBinders(GetTypeParams(pp), out tyexprs);
 
       var bvs = new List<Variable>(tyvars);
       var coArgs = new List<Bpl.Expr>(tyexprs);
@@ -5349,9 +5352,10 @@ namespace Microsoft.Dafny {
         var r = CanCallAssumption(e.Obj, etran);
         if (e.Member is DatatypeDestructor) {
           var dtor = (DatatypeDestructor)e.Member;
-          if (dtor.EnclosingCtor.EnclosingDatatype.Ctors.Count == 1) {
-            var correctConstructor = FunctionCall(e.tok, dtor.EnclosingCtor.QueryField.FullSanitizedName, Bpl.Type.Bool, etran.TrExpr(e.Obj));
-            // There is only one constructor, so the value must be been constructed by it; might as well assume that here.
+          if (dtor.EnclosingCtors.Count == dtor.EnclosingCtors[0].EnclosingDatatype.Ctors.Count) {
+            // Every constructor has this destructor; might as well assume that here.
+            var correctConstructor = BplOr(dtor.EnclosingCtors.ConvertAll(
+              ctor => FunctionCall(e.tok, ctor.QueryField.FullSanitizedName, Bpl.Type.Bool, etran.TrExpr(e.Obj))));
             r = BplAnd(r, correctConstructor);
           }
         }
@@ -5949,13 +5953,14 @@ namespace Microsoft.Dafny {
           }
         } else if (e.Member is DatatypeDestructor) {
           var dtor = (DatatypeDestructor)e.Member;
-          var correctConstructor = FunctionCall(e.tok, dtor.EnclosingCtor.QueryField.FullSanitizedName, Bpl.Type.Bool, etran.TrExpr(e.Obj));
-          if (dtor.EnclosingCtor.EnclosingDatatype.Ctors.Count == 1) {
-            // There is only one constructor, so the value must be been constructed by it; might as well assume that here.
+          var correctConstructor = BplOr(dtor.EnclosingCtors.ConvertAll(
+            ctor => FunctionCall(e.tok, ctor.QueryField.FullSanitizedName, Bpl.Type.Bool, etran.TrExpr(e.Obj))));
+          if (dtor.EnclosingCtors.Count == dtor.EnclosingCtors[0].EnclosingDatatype.Ctors.Count) {
+            // Every constructor has this destructor; might as well assume that here.
             builder.Add(TrAssumeCmd(expr.tok, correctConstructor));
           } else {
             builder.Add(Assert(expr.tok, correctConstructor,
-              string.Format("destructor '{0}' can only be applied to datatype values constructed by '{1}'", dtor.Name, dtor.EnclosingCtor.Name)));
+              string.Format("destructor '{0}' can only be applied to datatype values constructed by {1}", dtor.Name, dtor.EnclosingCtorNames("or"))));
           }
         }
         if (options.DoReadsChecks && e.Member is Field && ((Field)e.Member).IsMutable) {
@@ -10877,6 +10882,13 @@ namespace Microsoft.Dafny {
       }
     }
 
+    /// <summary>
+    /// Return $IsBox(x, t).
+    /// </summary>
+    Bpl.Expr MkIsBox(Bpl.Expr x, Type t) {
+      return MkIs(x, TypeToTy(t.NormalizeExpandKeepConstraints()), true);
+    }
+
     // Boxes, if necessary
     Bpl.Expr MkIs(Bpl.Expr x, Type t) {
       return MkIs(x, TypeToTy(t), ModeledAsBoxType(t));
@@ -13370,20 +13382,20 @@ namespace Microsoft.Dafny {
           Bpl.Expr y = new Bpl.IdentifierExpr(expr.tok, yVar);
           Bpl.Expr lbody;
           if (e.TermIsSimple) {
-            // lambda y: BoxType :: CorrectType(yUnboxed) && R[xs := yUnboxed]
+            // lambda y: BoxType :: CorrectType(y) && R[xs := yUnboxed]
             var bv = e.BoundVars[0];
+            Bpl.Expr typeAntecedent = translator.MkIsBox(new Bpl.IdentifierExpr(expr.tok, yVar), bv.Type);
             var yUnboxed = translator.UnboxIfBoxed(new Bpl.IdentifierExpr(expr.tok, yVar), bv.Type);
-            Bpl.Expr typeAntecedent = translator.GetWhereClause(e.tok, yUnboxed, bv.Type, this, NOALLOC) ?? Bpl.Expr.True;
             var range = translator.Substitute(e.Range, bv, new BoogieWrapper(yUnboxed, bv.Type));
             lbody = BplAnd(typeAntecedent, TrExpr(range));
           } else {
             // lambda y: BoxType :: (exists xs :: CorrectType(xs) && R && y==Box(T))
-          List<Variable> bvars = new List<Variable>();
-          Bpl.Expr typeAntecedent = TrBoundVariables(e.BoundVars, bvars);
+            List<Variable> bvars = new List<Variable>();
+            Bpl.Expr typeAntecedent = TrBoundVariables(e.BoundVars, bvars);
 
-          var eq = Bpl.Expr.Eq(y, BoxIfNecessary(expr.tok, TrExpr(e.Term), e.Term.Type));
-          var ebody = Bpl.Expr.And(BplAnd(typeAntecedent, TrExpr(e.Range)), eq);
-          var triggers = translator.TrTrigger(this, e.Attributes, e.tok);
+            var eq = Bpl.Expr.Eq(y, BoxIfNecessary(expr.tok, TrExpr(e.Term), e.Term.Type));
+            var ebody = Bpl.Expr.And(BplAnd(typeAntecedent, TrExpr(e.Range)), eq);
+            var triggers = translator.TrTrigger(this, e.Attributes, e.tok);
             lbody = new Bpl.ExistsExpr(expr.tok, bvars, triggers, ebody);
           }
           Bpl.QKeyValue kv = TrAttributes(e.Attributes, "trigger");
@@ -15448,6 +15460,66 @@ namespace Microsoft.Dafny {
         return base.Substitute(expr);
       }
     }
+
+    public class ExprSubstituter : Substituter {
+      readonly Dictionary<Expression, IdentifierExpr> exprSubstMap;
+      Dictionary<Expression, IdentifierExpr> usedSubstMap;
+
+      public ExprSubstituter(Dictionary<Expression, IdentifierExpr> exprSubstMap)
+        : base(null, new Dictionary<IVariable, Expression>(), new Dictionary<TypeParameter,Type>()) {
+        this.exprSubstMap = exprSubstMap;
+        this.usedSubstMap = new Dictionary<Expression, IdentifierExpr>();
+      }
+
+      public override Expression Substitute(Expression expr) {
+        IdentifierExpr ie;
+        if (exprSubstMap.TryGetValue(expr, out ie)) {
+          usedSubstMap.Add(expr, ie);
+          return cce.NonNull(ie);
+        }
+        if (expr is QuantifierExpr) {
+          var newExpr = expr;
+          var e = expr as QuantifierExpr;
+          var newAttrs = e.Attributes;
+          var newRange = e.Range == null ? null : Substitute(e.Range);
+          var newTerm = Substitute(e.Term);
+          var newBoundVars = new List<BoundVar>();
+          newBoundVars.AddRange(e.BoundVars);
+          if (newRange != e.Range || newTerm != e.Term) {
+            if (expr is ForallExpr) {
+              foreach (KeyValuePair<Expression, IdentifierExpr> entry in usedSubstMap) {
+                newExpr = new BinaryExpr(expr.tok, BinaryExpr.ResolvedOpcode.EqCommon, entry.Value, entry.Key);
+                if (newRange == null) {
+                  newRange = newExpr;
+                } else {
+                  newTerm = new BinaryExpr(expr.tok, BinaryExpr.ResolvedOpcode.Imp, newRange, newTerm);
+                  newRange = newExpr;
+                }
+                newBoundVars.Add((BoundVar)entry.Value.Var);
+              }
+              newExpr = new ForallExpr(expr.tok, ((QuantifierExpr)expr).TypeArgs, newBoundVars, newRange, newTerm, newAttrs);
+            } else if (expr is ExistsExpr) {
+              foreach (KeyValuePair<Expression, IdentifierExpr> entry in usedSubstMap) {
+                newExpr = new BinaryExpr(expr.tok, BinaryExpr.ResolvedOpcode.EqCommon, entry.Value, entry.Key);
+                if (newRange == null) {
+                  newRange = newExpr;
+                } else {
+                  newTerm = new BinaryExpr(expr.tok, BinaryExpr.ResolvedOpcode.And, newRange, newTerm);
+                  newRange = newExpr;
+                }
+                newBoundVars.Add((BoundVar)entry.Value.Var);
+              }
+              newExpr = new ExistsExpr(expr.tok, ((QuantifierExpr)expr).TypeArgs, newBoundVars, newRange, newTerm, newAttrs);
+            }
+            usedSubstMap.Clear();
+          }
+          newExpr.Type = expr.Type;
+          return newExpr;
+        }
+        return base.Substitute(expr);
+      }
+    }
+
     /// <summary>
     /// The substituter has methods to create an expression from an existing one, where the new one has the indicated
     /// substitutions for "this" (receiverReplacement), variables (substMap), and types (typeMap).

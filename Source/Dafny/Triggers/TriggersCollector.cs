@@ -196,25 +196,18 @@ namespace Microsoft.Dafny.Triggers {
       expr.SubExpressions.Iter(e => Annotate(e));
 
       TriggerAnnotation annotation; // TODO: Using ApplySuffix fixes the unresolved members problem in GenericSort
-      if (expr is FunctionCallExpr || 
-          expr is SeqSelectExpr || 
-          expr is MultiSelectExpr || 
-          expr is MemberSelectExpr || 
-          expr is OldExpr || 
-          expr is ApplyExpr || 
-          expr is DisplayExpression ||
-          TranslateToFunctionCall(expr) ||
-          (expr is UnaryOpExpr && (((UnaryOpExpr)expr).Op == UnaryOpExpr.Opcode.Cardinality)) || // FIXME || ((UnaryOpExpr)expr).Op == UnaryOpExpr.Opcode.Fresh doesn't work, as fresh is a pretty tricky predicate when it's not about datatypes. See translator.cs:10944
-          (expr is BinaryExpr && (((BinaryExpr)expr).Op == BinaryExpr.Opcode.NotIn || ((BinaryExpr)expr).Op == BinaryExpr.Opcode.In) && !(((BinaryExpr)expr).E1 is DisplayExpression))) {
+      if (IsPotentialTriggerCandidate(expr)) { 
         annotation = AnnotatePotentialCandidate(expr);
       } else if (expr is QuantifierExpr) {
-          annotation = AnnotateQuantifier((QuantifierExpr)expr);
+        annotation = AnnotateQuantifier((QuantifierExpr)expr);
       } else if (expr is LetExpr) {
         annotation = AnnotateLetExpr((LetExpr)expr);
       } else if (expr is IdentifierExpr) {
         annotation = AnnotateIdentifier((IdentifierExpr)expr);
       } else if (expr is ApplySuffix) {
         annotation = AnnotateApplySuffix((ApplySuffix)expr);
+      } else if (expr is MatchExpr) {
+        annotation = AnnotateMatchExpr((MatchExpr)expr);
       } else if (expr is ComprehensionExpr) {
         annotation = AnnotateComprehensionExpr((ComprehensionExpr)expr);
       } else if (expr is ConcreteSyntaxExpression ||
@@ -232,6 +225,23 @@ namespace Microsoft.Dafny.Triggers {
       TriggerUtils.DebugTriggers("{0} ({1})\n{2}", Printer.ExprToString(expr), expr.GetType(), annotation);
       cache.annotations[expr] = annotation;
       return annotation;
+    }
+
+    public static bool IsPotentialTriggerCandidate(Expression expr) {
+      if (expr is FunctionCallExpr ||
+          expr is SeqSelectExpr ||
+          expr is MultiSelectExpr ||
+          expr is MemberSelectExpr ||
+          expr is OldExpr ||
+          expr is ApplyExpr ||
+          expr is DisplayExpression ||
+          TranslateToFunctionCall(expr) ||
+          (expr is UnaryOpExpr && (((UnaryOpExpr)expr).Op == UnaryOpExpr.Opcode.Cardinality)) || // FIXME || ((UnaryOpExpr)expr).Op == UnaryOpExpr.Opcode.Fresh doesn't work, as fresh is a pretty tricky predicate when it's not about datatypes. See translator.cs:10944
+          (expr is BinaryExpr && (((BinaryExpr)expr).Op == BinaryExpr.Opcode.NotIn || ((BinaryExpr)expr).Op == BinaryExpr.Opcode.In) && !(((BinaryExpr)expr).E1 is DisplayExpression))) {
+        return true;
+      } else {
+        return false;
+      }
     }
 
     // math operations can be turned into a Boogie-level function as in the 
@@ -309,6 +319,22 @@ namespace Microsoft.Dafny.Triggers {
     private TriggerAnnotation AnnotateComprehensionExpr(ComprehensionExpr expr) {
       var terms = CollectExportedCandidates(expr);
       return new TriggerAnnotation(true, CollectVariables(expr), terms,  OnlyPrivateCandidates(terms, expr.BoundVars));
+    }
+
+    private TriggerAnnotation AnnotateMatchExpr(MatchExpr expr)
+    {
+      var pts = CollectExportedCandidates(expr);
+      // collects that argument boundvar of matchcaseexpr
+      var variables = expr.Cases.Select(e => e.Arguments).
+        Aggregate(new List<BoundVar>(), (acc, e) => TriggerUtils.MergeAlterFirst(acc, e));
+      // remove terms that mentions argument boundvar of matchcaseexpr
+      var terms = new List<TriggerTerm>();
+      foreach (var term in pts) {
+        if (!(variables.All(x => term.Variables.Contains(x)))) {
+          terms.Add(term);
+        }
+      }
+      return new TriggerAnnotation(true, CollectVariables(expr), terms);
     }
 
     private TriggerAnnotation AnnotateOther(Expression expr, bool isTriggerKiller) {

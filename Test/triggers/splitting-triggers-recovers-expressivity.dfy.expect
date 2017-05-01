@@ -1,7 +1,7 @@
-splitting-triggers-recovers-expressivity.dfy(12,10): Info: Selected triggers: {Q(i)}
- Rejected triggers: {P(i)} (may loop with "P(i + 1)")
-splitting-triggers-recovers-expressivity.dfy(17,11): Info: Selected triggers: {Q(j)}
- Rejected triggers: {P(j)} (may loop with "P(j + 1)")
+splitting-triggers-recovers-expressivity.dfy(12,10): Info: Selected triggers:
+   {P(_t#0), Q(i)}, {P(_t#0), P(i)}
+splitting-triggers-recovers-expressivity.dfy(17,11): Info: Selected triggers:
+   {P(_t#0), Q(j)}, {P(_t#0), P(j)}
 splitting-triggers-recovers-expressivity.dfy(26,10): Info: Selected triggers: {Q(i)}
  Rejected triggers: {P(i)} (may loop with "P(i + 1)")
 splitting-triggers-recovers-expressivity.dfy(33,11): Info: Selected triggers: {Q(j)}

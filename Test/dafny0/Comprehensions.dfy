@@ -44,3 +44,22 @@ method PrintSet<T>(s: set<T>) {
   }
   print "\n";
 }
+
+// ---------- Regression tests ----------
+
+method SetComprehensionBoxAntecedents()
+{
+  // The first assert below used to not verify, due to a missing $IsBox conjunct in the Boogie lambda
+  // that encodes the set comprehension.
+  var a := set x | x in {0,1,2,3,4,5} && x < 3;
+  var b := {0,1,2};
+
+  if
+  case true =>
+    assert a == b;
+  case true =>
+    assert forall x :: x in a ==> x in b;
+    assert forall x :: x in b ==> x in a;
+  case true =>
+    assert forall x :: x in a <==> x in b;
+}

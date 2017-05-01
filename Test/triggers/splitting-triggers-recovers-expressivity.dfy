@@ -23,14 +23,14 @@ lemma forall_0(i: int)
 
 lemma exists_1()
   requires P(0)
-  ensures exists i {:split false} :: P(i) || (Q(i) ==> P(i+1)) {
+  ensures exists i {:split false}  {:matchinglooprewrite false} :: P(i) || (Q(i) ==> P(i+1)) {
     assert Q(0) || !Q(0);
     // Works: the dummy assertion introduces a term that causes the quantifier
     // to trigger, producing a witness.
   }
 
 lemma forall_1(i: int)
-  requires forall j {:split false} :: j >= 0 ==> (P(j) && (Q(j) ==> P(j+1)))
+  requires forall j {:split false}  {:matchinglooprewrite false} :: j >= 0 ==> (P(j) && (Q(j) ==> P(j+1)))
   requires i >= 0
   ensures P(i) {
     assert Q(i) || !Q(i);
@@ -41,12 +41,12 @@ lemma forall_1(i: int)
 
 lemma exists_2()
   requires P(0)
-  ensures exists i :: P(i) || (Q(i) ==> P(i+1)) {
+  ensures exists i {:matchinglooprewrite false} :: P(i) || (Q(i) ==> P(i+1)) {
     // Works: automatic trigger splitting allows P(i) to get its own triggers
 }
 
 lemma forall_2(i: int)
-  requires forall j :: j >= 0 ==> (P(j) && (Q(j) ==> P(j+1)))
+  requires forall j {:matchinglooprewrite false} :: j >= 0 ==> (P(j) && (Q(j) ==> P(j+1)))
   requires i >= 0
   ensures P(i) {
     // Works: automatic trigger splitting allows P(i) to get its own triggers
@@ -55,7 +55,7 @@ lemma forall_2(i: int)
 
 lemma loop()
   requires P(0)
-  requires forall i {:matchingloop} :: i >= 0 ==> Q(i) && (P(i) ==> P(i+1))
+  requires forall i {:matchingloop}  {:matchinglooprewrite false} :: i >= 0 ==> Q(i) && (P(i) ==> P(i+1))
   ensures P(100) {
     // Works: the matching loop is explicitly allowed
 }

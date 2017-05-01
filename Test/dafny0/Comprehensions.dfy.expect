@@ -3,6 +3,7 @@ Comprehensions.dfy(22,11): Warning: /!\ No terms found to trigger on.
 Comprehensions.dfy(24,7): Warning: /!\ No terms found to trigger on.
 Comprehensions.dfy(25,11): Warning: /!\ No terms found to trigger on.
 Comprehensions.dfy(32,11): Warning: /!\ No trigger covering all quantified variables found.
+Comprehensions.dfy(54,11): Warning: /!\ No terms found to trigger on.
 Comprehensions.dfy(12,13): Error: assertion violation
 Execution trace:
     (0,0): anon0
@@ -13,4 +14,4 @@ Execution trace:
     (0,0): anon12_Then
     (0,0): anon8
 
-Dafny program verifier finished with 2 verified, 1 error
+Dafny program verifier finished with 3 verified, 1 error

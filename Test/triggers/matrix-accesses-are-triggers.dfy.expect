@@ -1,5 +1,4 @@
-matrix-accesses-are-triggers.dfy(8,11): Warning: Selected triggers: {m[i, j]} (may loop with "m[j, i + 1]")
- /!\ Suppressing loops would leave this expression without triggers.
+matrix-accesses-are-triggers.dfy(8,11): Info: Selected triggers: {m[j, _t#0], m[i, j]}
 matrix-accesses-are-triggers.dfy(8,81): Error: index 0 out of range
 Execution trace:
     (0,0): anon0

@@ -152,8 +152,10 @@ namespace DafnyLanguage
             var dt = (DatatypeDecl)d;
             foreach (var ctor in dt.Ctors) {
               foreach (var dtor in ctor.Destructors) {
-                if (dtor.CorrespondingFormal.HasName) {
-                  IdRegion.Add(newRegions, program, dtor.tok, dtor, null, "destructor", true, module);
+                var i = dtor.EnclosingCtors.IndexOf(ctor);
+                var formal = dtor.CorrespondingFormals[i];
+                if (formal.HasName) {
+                  IdRegion.Add(newRegions, program, formal.tok, dtor, null, "destructor", true, module);
                 }
               }
             }

@@ -1,0 +1,11 @@
+
+Dafny program verifier finished with 2 verified, 0 errors
+Program compiled successfully
+Running...
+
+Dt.A(10, (12.0 / 1.0)):  x=10 y=(12.0 / 1.0)
+Dt.B(__default.MyClass, 6):  h=__default.MyClass x=6
+Dt.C((314.0 / 100.0)):  y=(314.0 / 100.0)
+Dt.C((314.0 / 100.0))
+Dt.A(71, (1.0 / 10.0))
+Klef.C3(66, 100, 44, 200)

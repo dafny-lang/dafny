@@ -869,20 +869,13 @@ namespace Microsoft.Dafny
       ResolveOpenedImports(moduleInfo, m, useCompileSignatures, this); // opened imports do not persist
       var datatypeDependencies = new Graph<IndDatatypeDecl>();
       var codatatypeDependencies = new Graph<CoDatatypeDecl>();
-      var constantDependencies = new Graph<ConstantField>();
       int prevErrorCount = reporter.Count(ErrorLevel.Error);
       ResolveTopLevelDecls_Signatures(m, sig, m.TopLevelDecls, datatypeDependencies, codatatypeDependencies);
       Contract.Assert(AllTypeConstraints.Count == 0);  // signature resolution does not add any type constraints
       ResolveAttributes(m.Attributes, m, new ResolveOpts(new NoContext(m.Module), false)); // Must follow ResolveTopLevelDecls_Signatures, in case attributes refer to members
       SolveAllTypeConstraints();  // solve any type constraints entailed by the attributes
       if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
-        ResolveTopLevelDecls_Core(m.TopLevelDecls, datatypeDependencies, codatatypeDependencies, constantDependencies);
-      }
-      // check for cycles in constant definition.
-      List<ConstantField> cycle = constantDependencies.TryFindCycle();
-      if (cycle != null) {
-        var cy = Util.Comma(" -> ", cycle, f => f.Name);
-        reporter.Error(MessageSource.Resolver, cycle[0], "constant definition contains a cycle: {0}", cy);
+        ResolveTopLevelDecls_Core(m.TopLevelDecls, datatypeDependencies, codatatypeDependencies);
       }
       Type.PopScope(moduleInfo.VisibilityScope);
       moduleInfo = oldModuleInfo;
@@ -1739,17 +1732,37 @@ namespace Microsoft.Dafny
           }
           // add deconstructors now (that is, after the query methods have been added)
           foreach (DatatypeCtor ctor in dt.Ctors) {
+            var formalsUsedInThisCtor = new HashSet<string>();
             foreach (var formal in ctor.Formals) {
-              bool nameError = false;
-              if (formal.HasName && members.ContainsKey(formal.Name)) {
-                reporter.Error(MessageSource.Resolver, ctor, "Name of deconstructor is used by another member of the datatype: {0}", formal.Name);
-                nameError = true;
+              MemberDecl previousMember = null;
+              var localDuplicate = false;
+              if (formal.HasName) {
+                if (members.TryGetValue(formal.Name, out previousMember)) {
+                  localDuplicate = formalsUsedInThisCtor.Contains(formal.Name);
+                  if (localDuplicate) {
+                    reporter.Error(MessageSource.Resolver, ctor, "Duplicate use of deconstructor name in the same constructor: {0}", formal.Name);
+                  } else if (previousMember is DatatypeDestructor) {
+                    // this is okay, if the destructor has the appropriate type; this will be checked later, after type checking
+                  } else {
+                    reporter.Error(MessageSource.Resolver, ctor, "Name of deconstructor is used by another member of the datatype: {0}", formal.Name);
+                  }
+                }
+                formalsUsedInThisCtor.Add(formal.Name);
               }
-              var dtor = new DatatypeDestructor(formal.tok, ctor, formal, formal.Name, "dtor_" + formal.CompileName, "", "", formal.IsGhost, formal.Type, null);
-              dtor.InheritVisibility(dt);
-              dtor.EnclosingClass = dt;  // resolve here
-              if (!nameError && formal.HasName) {
-                members.Add(formal.Name, dtor);
+              DatatypeDestructor dtor;
+              if (!localDuplicate && previousMember is DatatypeDestructor) {
+                // a destructor with this name already existed in (a different constructor in) the datatype
+                dtor = (DatatypeDestructor)previousMember;
+                dtor.AddAnotherEnclosingCtor(ctor, formal);
+              } else {
+                // either the destructor has no explicit name, or this constructor declared another destructor with this name, or no previous destructor had this name
+                dtor = new DatatypeDestructor(formal.tok, ctor, formal, formal.Name, "dtor_" + formal.CompileName, "", "", formal.IsGhost, formal.Type, null);
+                dtor.InheritVisibility(dt);
+                dtor.EnclosingClass = dt;  // resolve here
+                if (formal.HasName && !localDuplicate && previousMember == null) {
+                  // the destructor has an explict name and there was no member at all with this name before
+                  members.Add(formal.Name, dtor);
+                }
               }
               ctor.Destructors.Add(dtor);
             }
@@ -2011,7 +2024,7 @@ namespace Microsoft.Dafny
       new NativeType("long", Int64.MinValue, 0x8000000000000000, 0, "L", false),
     };
 
-    public void ResolveTopLevelDecls_Core(List<TopLevelDecl/*!*/>/*!*/ declarations, Graph<IndDatatypeDecl/*!*/>/*!*/ datatypeDependencies, Graph<CoDatatypeDecl/*!*/>/*!*/ codatatypeDependencies, Graph<ConstantField/*!*/>/*!*/ constantDependencies) {
+    public void ResolveTopLevelDecls_Core(List<TopLevelDecl/*!*/>/*!*/ declarations, Graph<IndDatatypeDecl/*!*/>/*!*/ datatypeDependencies, Graph<CoDatatypeDecl/*!*/>/*!*/ codatatypeDependencies) {
       Contract.Requires(declarations != null);
       Contract.Requires(cce.NonNullElements(datatypeDependencies));
       Contract.Requires(cce.NonNullElements(codatatypeDependencies));
@@ -2115,10 +2128,10 @@ namespace Microsoft.Dafny
         if (d is IteratorDecl) {
           var iter = (IteratorDecl)d;
           ResolveIterator(iter);
-          ResolveClassMemberBodies(iter, constantDependencies);  // resolve the automatically generated members
+          ResolveClassMemberBodies(iter);  // resolve the automatically generated members
         } else if (d is ClassDecl) {
           var cl = (ClassDecl)d;
-          ResolveClassMemberBodies(cl, constantDependencies);
+          ResolveClassMemberBodies(cl);
         }
         allTypeParameters.PopMarker();
       }
@@ -2126,6 +2139,7 @@ namespace Microsoft.Dafny
       // ---------------------------------- Pass 1 ----------------------------------
       // This pass:
       // * checks that type inference was able to determine all types
+      // * check that shared destructors in datatypes are in agreement
       // * fills in the .ResolvedOp field of binary expressions
       // * discovers bounds for:
       //     - forall statements
@@ -2147,6 +2161,7 @@ namespace Microsoft.Dafny
       }
       if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
         // Check that type inference went well everywhere; this will also fill in the .ResolvedOp field in binary expressions
+        // Also, for each datatype, check that shared destructors are in agreement
         foreach (TopLevelDecl d in declarations) {
           if (d is IteratorDecl) {
             var iter = (IteratorDecl)d;
@@ -2198,6 +2213,28 @@ namespace Microsoft.Dafny
               CheckExpression(dd.Constraint, this, dd);
             }
             FigureOutNativeType(dd, nativeTypeMap);
+          } else if (d is DatatypeDecl) {
+            var dd = (DatatypeDecl)d;
+            foreach (var member in datatypeMembers[dd].Values) {
+              var dtor = member as DatatypeDestructor;
+              if (dtor != null) {
+                var rolemodel = dtor.CorrespondingFormals[0];
+                for (int i = 1; i < dtor.CorrespondingFormals.Count; i++) {
+                  var other = dtor.CorrespondingFormals[i];
+                  if (!rolemodel.Type.ExactlyEquals(other.Type)) {
+                    reporter.Error(MessageSource.Resolver, other,
+                      "shared destructors must have the same type, but '{0}' has type '{1}' in constructor '{2}' and type '{3}' in constructor '{4}'",
+                      rolemodel.Name, rolemodel.Type, dtor.EnclosingCtors[0].Name, other.Type, dtor.EnclosingCtors[i].Name);
+                  } else if (rolemodel.IsGhost != other.IsGhost) {
+                    reporter.Error(MessageSource.Resolver, other,
+                      "shared destructors must agree on whether or not they are ghost, but '{0}' is {1} in constructor '{2}' and {3} in constructor '{4}'",
+                      rolemodel.Name,
+                      rolemodel.IsGhost ? "ghost" : "non-ghost", dtor.EnclosingCtors[0].Name,
+                      other.IsGhost ? "ghost" : "non-ghost", dtor.EnclosingCtors[i].Name);
+                  }
+                }
+              }
+            }
           }
         }
       }
@@ -2534,10 +2571,6 @@ namespace Microsoft.Dafny
                 if (fn.Ens.Count != 0) {
                   reporter.Error(MessageSource.Resolver, fn.Ens[0].tok, "a {0} is not allowed to declare any ensures clause", member.WhatKind);
                 }
-                // Also check for 'reads' clauses
-                if (fn.Reads.Count != 0) {
-                  reporter.Error(MessageSource.Resolver, fn.Reads[0].tok, "a {0} is not allowed to declare any reads clause", member.WhatKind);  // (why?)
-                }
                 if (fn.Body != null) {
                   FixpointPredicateChecks(fn.Body, fn, CallingPosition.Positive);
                 }
@@ -2868,11 +2901,14 @@ namespace Microsoft.Dafny
             }
             headIsRoot = true; headIsLeaf = true;
           }
-        } else {
+        } else if (t.IsTypeParameter) {
           var tp = udf.AsTypeParameter;
           Contract.Assert(tp != null);
           isRoot = true; isLeaf = true;  // all type parameters are invariant
           headIsRoot = true; headIsLeaf = true;
+        } else {
+          isRoot = false; isLeaf = false;  // don't know
+          headIsRoot = false; headIsLeaf = false;
         }
       } else if (t is MapType) {  // map, imap
         Contract.Assert(t.TypeArgs.Count == 2);
@@ -5931,10 +5967,15 @@ namespace Microsoft.Dafny
       foreach (MemberDecl member in cl.Members) {
         member.EnclosingClass = cl;
         if (member is Field) {
-          // In the following, we pass in a NoContext, because any cycle formed by a redirecting-type constraints would have to
-          // dereference the heap, and such constraints are not allowed to dereference the heap so an error will be produced
-          // even if we don't detect this cycle.
-          ResolveType(member.tok, ((Field)member).Type, new NoContext(cl.Module), ResolveTypeOptionEnum.DontInfer, null);
+          if (member is ConstantField) {
+            var m = (ConstantField)member;
+            ResolveType(member.tok, ((Field)member).Type, m, ResolveTypeOptionEnum.DontInfer, null);
+          } else {
+            // In the following, we pass in a NoContext, because any cycle formed by a redirecting-type constraints would have to
+            // dereference the heap, and such constraints are not allowed to dereference the heap so an error will be produced
+            // even if we don't detect this cycle.
+            ResolveType(member.tok, ((Field)member).Type, new NoContext(cl.Module), ResolveTypeOptionEnum.DontInfer, null);
+          }
         } else if (member is Function) {
           var f = (Function)member;
           var ec = reporter.Count(ErrorLevel.Error);
@@ -5943,12 +5984,14 @@ namespace Microsoft.Dafny
           ResolveFunctionSignature(f);
           allTypeParameters.PopMarker();
           if (f is FixpointPredicate && ec == reporter.Count(ErrorLevel.Error)) {
-            var ff = ((FixpointPredicate)f).PrefixPredicate;
-            ff.EnclosingClass = cl;
-            allTypeParameters.PushMarker();
-            ResolveTypeParameters(ff.TypeArgs, true, ff);
-            ResolveFunctionSignature(ff);
-            allTypeParameters.PopMarker();
+            var ff = ((FixpointPredicate)f).PrefixPredicate;  // note, may be null if there was an error before the prefix predicate was generated
+            if (ff != null) {
+              ff.EnclosingClass = cl;
+              allTypeParameters.PushMarker();
+              ResolveTypeParameters(ff.TypeArgs, true, ff);
+              ResolveFunctionSignature(ff);
+              allTypeParameters.PopMarker();
+            }
           }
 
         } else if (member is Method) {
@@ -6072,7 +6115,7 @@ namespace Microsoft.Dafny
     /// <summary>
     /// Assumes type parameters have already been pushed, and that all types in class members have been resolved
     /// </summary>
-    void ResolveClassMemberBodies(ClassDecl cl, Graph<ConstantField/*!*/>/*!*/ constantDependencies) {
+    void ResolveClassMemberBodies(ClassDecl cl) {
       Contract.Requires(cl != null);
       Contract.Requires(currentClass == null);
       Contract.Requires(AllTypeConstraints.Count == 0);
@@ -6091,7 +6134,7 @@ namespace Microsoft.Dafny
             field.function.EnclosingClass = cl;
             ResolveExpression(field.constValue, new ResolveOpts(new NoContext(currentClass.Module), false));
             // make sure initialization only refers to constant field or literal expression
-            CheckConstantFieldInitialization(field, field.constValue, constantDependencies);
+            CheckConstantFieldInitialization(field, field.constValue);
             SolveAllTypeConstraints();
           }
         } else if (member is Function) {
@@ -6103,10 +6146,12 @@ namespace Microsoft.Dafny
           allTypeParameters.PopMarker();
           if (f is FixpointPredicate && ec == reporter.Count(ErrorLevel.Error)) {
             var ff = ((FixpointPredicate)f).PrefixPredicate;
-            allTypeParameters.PushMarker();
-            ResolveTypeParameters(ff.TypeArgs, false, ff);
-            ResolveFunction(ff);
-            allTypeParameters.PopMarker();
+            if (ff != null) {
+              allTypeParameters.PushMarker();
+              ResolveTypeParameters(ff.TypeArgs, false, ff);
+              ResolveFunction(ff);
+              allTypeParameters.PopMarker();
+            }
           }
 
         } else if (member is Method) {
@@ -6125,45 +6170,51 @@ namespace Microsoft.Dafny
       currentClass = null;
     }
 
-    void CheckConstantFieldInitialization(ConstantField field, Expression expr, Graph<ConstantField/*!*/>/*!*/ constantDependencies) {
-      ConstantField other;
-      if (expr is LiteralExpr) {
+   void CheckConstantFieldInitialization(ConstantField field, Expression expr) {
+     if (IsConstantExpr(field, expr)) {
         ConstrainSubtypeRelation(field.Type, expr.Type, field.tok, "type for constant {0} is {1}, but its initialization value type is {2}", field.Name, field.Type, expr.Type);
-        // we are fine
+      } else {
+          reporter.Error(MessageSource.Resolver, field.tok, "only constants are allowed in the expression to initialize constant {0}", field.Name);
+      }
+      if (field.EnclosingModule.CallGraph.GetSCCSize(field) != 1) {
+        var cycle = Util.Comma(" -> ", field.EnclosingModule.CallGraph.GetSCC(field), clbl => clbl.NameRelativeToModule);
+        reporter.Error(MessageSource.Resolver, field.tok, "constant definition contains a cycle: " + cycle);
+      }
+    }
+
+    bool IsConstantExpr(ConstantField field, Expression expr) {
+      bool isConstant = false;
+      if (expr is LiteralExpr && !(expr is StaticReceiverExpr)) {
+        isConstant = true;
       } else if (expr is NameSegment) {
-        other = FindConstantField((NameSegment)expr);
+        var other = FindConstantField((NameSegment)expr);
         if (other != null) {
-          ConstrainSubtypeRelation(field.Type, other.Type, field.tok, "type for constant {0} is {1}, but its initialization value type is {2}", field.Name, field.Type, expr.Type);
-          constantDependencies.AddEdge(field, other);
-        } else {
-          reporter.Error(MessageSource.Resolver, field.tok, "only constants are allowed in the expression to initialize constant{0}", field.Name);
+          field.EnclosingModule.CallGraph.AddEdge(field, other);
+          if (field == other) {
+            // detect self-loops here, since they don't show up in the graph's SSC methods
+            reporter.Error(MessageSource.Resolver, field.tok, "recursive dependency involving constant initialization: {0} -> {0}", field.Name);
+          }
+          isConstant = true;
         }
       } else if (expr is ExprDotName) {
         var v = (ExprDotName)expr;
         while (v.Lhs is ExprDotName) {
           v = (ExprDotName)v.Lhs;
         }
-        if (v.Lhs is NameSegment) {
-          other = FindConstantField((NameSegment)v.Lhs);
-          if (other != null) {
-            ConstrainSubtypeRelation(field.Type, other.Type, field.tok, "type for constant {0} is {1}, but its initialization value type is {2}", field.Name, field.Type, expr.Type);
-            constantDependencies.AddEdge(field, other);
-          } else {
-            reporter.Error(MessageSource.Resolver, field.tok, "only constants are allowed in the expression to initialize constant{0}", field.Name);
-          }
-        } else {
-          reporter.Error(MessageSource.Resolver, field.tok, "only constants are allowed in the expression to initialize constant{0}", field.Name);
-        }
+        isConstant = IsConstantExpr(field, v.Lhs);
       } else {
         bool hasSubfield = false;
-        foreach (var ee in field.constValue.SubExpressions) {
+        isConstant = true;
+        foreach (var ee in expr.SubExpressions) {
           hasSubfield = true;
-          CheckConstantFieldInitialization(field, ee, constantDependencies);
+          if (!IsConstantExpr(field, ee)) {
+            isConstant = false;
+            break;
+          }
         }
-        if (!hasSubfield) {
-          reporter.Error(MessageSource.Resolver, field.tok, "only constants are allowed in the expression to initialize constant {0}", field.Name);
-        }
+        isConstant = hasSubfield ? isConstant : false;
       }
+      return isConstant;
     }
 
     ConstantField FindConstantField(NameSegment expr) {
@@ -9881,7 +9932,7 @@ namespace Microsoft.Dafny
         if (!ty.IsDatatype) {
           reporter.Error(MessageSource.Resolver, expr, "datatype update expression requires a root expression of a datatype (got {0})", ty);
         } else {
-          var let = ResolveDatatypeUpdate(expr.tok, e.Root, ty.AsDatatype, e.Updates, false, opts);
+          var let = ResolveDatatypeUpdate(expr.tok, e.Root, ty.AsDatatype, e.Updates, opts);
           if (let != null) {
             e.ResolvedExpression = let;
             expr.Type = ty;
@@ -10405,7 +10456,7 @@ namespace Microsoft.Dafny
     /// <summary>
     /// Attempts to produce a let expression from the given datatype updates.  Returns that let expression upon success, and null otherwise.
     /// </summary>
-    Expression ResolveDatatypeUpdate(IToken tok, Expression root, DatatypeDecl dt, List<Tuple<IToken, string, Expression>> memberUpdates, bool sequentialUpdates, ResolveOpts opts) {
+    Expression ResolveDatatypeUpdate(IToken tok, Expression root, DatatypeDecl dt, List<Tuple<IToken, string, Expression>> memberUpdates, ResolveOpts opts) {
       Contract.Requires(tok != null);
       Contract.Requires(root != null);
       Contract.Requires(dt != null);
@@ -10416,46 +10467,63 @@ namespace Microsoft.Dafny
       // We're currently looking at e = e(n-1)[en.Index := en.Value]
       // Let e(n-2) = e(n-1).Seq, e(n-3) = e(n-2).Seq, etc.
       // Let's extract e = e0[e1.Index := e1.Value]...[en.Index := en.Value]
-      DatatypeCtor ctor = null;
-      Tuple<IToken, string, Expression> ctorSource = default(Tuple<IToken, string, Expression>);  // relevant only if "ctor" is non-null
+      var possibleCtors = dt.Ctors;  // list of constructors that have all the so-far-mentioned destructors
       var memberNames = new HashSet<string>();
-      var updates = new Dictionary<Formal, Expression>();
+      var updates = new Dictionary<DatatypeDestructor, Expression>();
+      var suppressUniquenessCheck = false;
       foreach (var entry in memberUpdates) {
         var destructor_str = entry.Item2;
         if (memberNames.Contains(destructor_str)) {
-          if (sequentialUpdates) {
-            reporter.Warning(MessageSource.Resolver, entry.Item1, "update to '{0}' overwritten by another update to '{0}'", destructor_str);
-          } else {
-            reporter.Error(MessageSource.Resolver, entry.Item1, "duplicate update member '{0}'", destructor_str);
-          }
+          reporter.Error(MessageSource.Resolver, entry.Item1, "duplicate update member '{0}'", destructor_str);
         } else {
           memberNames.Add(destructor_str);
           MemberDecl member;
           if (!datatypeMembers[dt].TryGetValue(destructor_str, out member)) {
             reporter.Error(MessageSource.Resolver, entry.Item1, "member '{0}' does not exist in datatype '{1}'", destructor_str, dt.Name);
+            suppressUniquenessCheck = true;
+          } else if (!(member is DatatypeDestructor)) {
+            reporter.Error(MessageSource.Resolver, entry.Item1, "member '{0}' is not a destructor in datatype '{1}'", destructor_str, dt.Name);
+            suppressUniquenessCheck = true;
           } else {
             var destructor = (DatatypeDestructor)member;
-            if (ctor != null && ctor != destructor.EnclosingCtor) {
-              if (sequentialUpdates) {
-                // This would eventually give rise to a verification error.  However, since the 'sequentialUpdates' case is being depricated,
-                // we don't mind giving resolution error about this now.
-              }
-              reporter.Error(MessageSource.Resolver, entry.Item1, "updated datatype members must belong to the same constructor " +
-                "('{0}' belongs to '{1}' and '{2}' belongs to '{3}'", entry.Item2, destructor.EnclosingCtor.Name, ctorSource.Item2, ctor.Name);
+            var intersection = new List<DatatypeCtor>(possibleCtors.Intersect(destructor.EnclosingCtors));
+            if (intersection.Count != 0) {
+              possibleCtors = intersection;
+              updates.Add(destructor, entry.Item3);
             } else {
-              updates.Add(destructor.CorrespondingFormal, entry.Item3);
-              ctor = destructor.EnclosingCtor;
-              ctorSource = entry;
+              reporter.Error(MessageSource.Resolver, entry.Item1, "updated datatype members must belong to the same constructor " +
+                "(unlike the previously mentioned destructors, '{0}' does not belong to {1})", entry.Item2, DatatypeDestructor.PrintableCtorNameList(possibleCtors, "or"));
+              suppressUniquenessCheck = true;
             }
           }
         }
       }
 
-      if (ctor != null) {
+      if (possibleCtors.Count != 1) {
+        if (!suppressUniquenessCheck) {
+          var which = DatatypeDestructor.PrintableCtorNameList(possibleCtors, "and");
+          string explanation;
+          if (memberUpdates.Count == 1) {
+            explanation = string.Format("destructor '{0}' belongs to constructors {1}", memberUpdates[0].Item2, which);
+          } else {
+            explanation = string.Format("the given destructors all belong to constructors {0}", which);
+          }
+          reporter.Error(MessageSource.Resolver, tok, "the updated datatype members must uniquely determine the resulting constructor ({0})", explanation);
+        }
+      } else {
+        var ctor = possibleCtors[0];
         // Rewrite an update of the form "dt[dtor := E]" to be "let d' := dt in dtCtr(E, d'.dtor2, d'.dtor3,...)"
         // Wrapping it in a let expr avoids exponential growth in the size of the expression
         // More generally, rewrite "E0[dtor1 := E1][dtor2 := E2]...[dtorn := En]" where "E0" is "root" to
         //   "let d' := E0 in dtCtr(...mixtures of Ek and d'.dtorj...)"
+
+        // Now that we know which constructor we're talking about, we can pick out the formal corresponding to each destructor
+        var fUpdates = new Dictionary<Formal, Expression>();
+        foreach (var entry in updates) {
+          var i = entry.Key.EnclosingCtors.IndexOf(ctor);
+          Contract.Assert(0 <= i && i < entry.Key.CorrespondingFormals.Count);
+          fUpdates.Add(entry.Key.CorrespondingFormals[i], entry.Value);
+        }
 
         // Create a unique name for d', the variable we introduce in the let expression
         var tmpName = FreshTempVarName("dt_update_tmp#", opts.codeContext);
@@ -10466,7 +10534,7 @@ namespace Microsoft.Dafny
         var ctor_args = new List<Expression>();
         foreach (Formal d in ctor.Formals) {
           Expression v;
-          if (updates.TryGetValue(d, out v)) {
+          if (fUpdates.TryGetValue(d, out v)) {
             ctor_args.Add(v);
           } else {
             ctor_args.Add(new ExprDotName(tok, tmpVarIdExpr, d.Name, null));
@@ -11192,15 +11260,6 @@ namespace Microsoft.Dafny
       return new Resolver_IdentifierExpr(tok, decl, tpArgs);
     }
 
-    void WithModuleSignature(ModuleSignature sig, Action a) {
-      var oldModuleInfo = moduleInfo;
-      moduleInfo = sig;
-      Type.PushScope(moduleInfo.VisibilityScope);
-      a();
-      Type.PopScope(moduleInfo.VisibilityScope);
-      moduleInfo = oldModuleInfo;      
-    }
-
     /// <summary>
     /// To resolve "id" in expression "E . id", do:
     ///  * If E denotes a module name M:
@@ -11272,7 +11331,7 @@ namespace Microsoft.Dafny
               reporter.Error(MessageSource.Resolver, expr.tok, "datatype constructor does not take any type parameters ('{0}')", name);
             }
             var rr = new DatatypeValue(expr.tok, pair.Item1.EnclosingDatatype.Name, name, args ?? new List<Expression>());
-            WithModuleSignature(sig, () => ResolveExpression(rr, opts));
+            ResolveDatatypeValue(opts, rr, pair.Item1.EnclosingDatatype);
 
             if (args == null) {
               r = rr;
@@ -11546,7 +11605,7 @@ namespace Microsoft.Dafny
         r.Function = ((ConstantField)member).function;
         r.TypeArgumentSubstitutions = new Dictionary<TypeParameter, Type>();
         r.Type = r.Function.ResultType.StripSubsetConstraints();
-        AddCallGraphEdge(opts.codeContext, r.Function, rr, false);
+        AddCallGraphEdge(opts.codeContext, (ConstantField)member, rr, false);
         return r;
       } else {
         return rr;
@@ -11996,6 +12055,9 @@ namespace Microsoft.Dafny
     }
 
     public void ResolveFunctionCallExpr(FunctionCallExpr e, ResolveOpts opts) {
+      Contract.Requires(e != null);
+      Contract.Requires(e.Type == null);  // should not have been type checked before
+
       ResolveReceiver(e.Receiver, opts);
       Contract.Assert(e.Receiver.Type != null);  // follows from postcondition of ResolveExpression
       NonProxyType nptype;
@@ -12064,13 +12126,13 @@ namespace Microsoft.Dafny
       }
     }
 
-    private static void AddCallGraphEdge(ICodeContext callingContext, Function function, Expression e, bool isFunctionReturnValue) {
+    private static void AddCallGraphEdge(ICodeContext callingContext, ICallable function, Expression e, bool isFunctionReturnValue) {
       Contract.Requires(callingContext != null);
       Contract.Requires(function != null);
       Contract.Requires(e != null);
       // Resolution termination check
       ModuleDefinition callerModule = callingContext.EnclosingModule;
-      ModuleDefinition calleeModule = function is SpecialFunction ? null : function.EnclosingClass.Module;
+      ModuleDefinition calleeModule = function is SpecialFunction ? null : function.EnclosingModule;
       if (callerModule == calleeModule) {
         // intra-module call; add edge in module's call graph
         var caller = callingContext as ICallable;
@@ -12088,8 +12150,8 @@ namespace Microsoft.Dafny
           }
           // if the call denotes the function return value in the function postconditions, then we don't
           // mark it as recursive.
-          if (caller == function && !isFunctionReturnValue) {
-            function.IsRecursive = true;  // self recursion (mutual recursion is determined elsewhere)
+          if (caller == function && (function is Function) && !isFunctionReturnValue) {
+            ((Function)function).IsRecursive = true;  // self recursion (mutual recursion is determined elsewhere)
           }
         }
       }
@@ -13113,8 +13175,14 @@ namespace Microsoft.Dafny
         var e = (MatchExpr)expr;
         CheckCoCalls(e.Source, int.MaxValue, null, coCandidates);
         foreach (var kase in e.Cases) {
-          CheckCoCalls(kase.Body, destructionLevel, null, coCandidates);
+          CheckCoCalls(kase.Body, destructionLevel, coContext, coCandidates);
         }
+        return;
+      } else if (expr is ITEExpr) {
+        var e = (ITEExpr)expr;
+        CheckCoCalls(e.Test, int.MaxValue, null, coCandidates);
+        CheckCoCalls(e.Thn, destructionLevel, coContext, coCandidates);
+        CheckCoCalls(e.Els, destructionLevel, coContext, coCandidates);
         return;
       } else if (expr is FunctionCallExpr) {
         var e = (FunctionCallExpr)expr;
@@ -13165,6 +13233,27 @@ namespace Microsoft.Dafny
           }
         }
         return;
+      } else if (expr is LambdaExpr) {
+        var e = (LambdaExpr)expr;
+        CheckCoCalls(e.Body, destructionLevel, coContext, coCandidates);
+        if (e.Range != null) {
+          CheckCoCalls(e.Range, int.MaxValue, null, coCandidates);
+        }
+        foreach (var read in e.Reads) {
+          CheckCoCalls(read.E, int.MaxValue, null, coCandidates);
+        }
+        return;
+      } else if (expr is MapComprehension) {
+        var e = (MapComprehension)expr;
+        foreach (var ee in Attributes.SubExpressions(e.Attributes)) {
+          CheckCoCalls(ee, int.MaxValue, null, coCandidates);
+        }
+        if (e.Range != null) {
+          CheckCoCalls(e.Range, int.MaxValue, null, coCandidates);
+        }
+        // allow co-calls in the term
+        CheckCoCalls(e.Term, destructionLevel, coContext, coCandidates);
+        return;
       } else if (expr is OldExpr) {
         var e = (OldExpr)expr;
         // here, "coContext" is passed along (the use of "old" says this must be ghost code, so the compiler does not need to handle this case)
@@ -13175,8 +13264,14 @@ namespace Microsoft.Dafny
         foreach (var rhs in e.RHSs) {
           CheckCoCalls(rhs, int.MaxValue, null, coCandidates);
         }
-        CheckCoCalls(e.Body, destructionLevel, null, coCandidates);
+        CheckCoCalls(e.Body, destructionLevel, coContext, coCandidates);
         return;
+      } else if (expr is ApplyExpr) {
+        var e = (ApplyExpr)expr;
+        CheckCoCalls(e.Function, int.MaxValue, null, coCandidates);
+        foreach (var ee in e.Args) {
+          CheckCoCalls(ee, destructionLevel, null, coCandidates);
+        }
       }
 
       // Default handling:

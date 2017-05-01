@@ -1,6 +1,4 @@
 using System;
-using System.Runtime.InteropServices;
-using System.Collections.Generic;
 using System.ComponentModel.Composition;
 using EnvDTE;
 using Microsoft.VisualStudio;

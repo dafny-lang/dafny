@@ -18,3 +18,12 @@ method test(foo:MyDataType, x:int) returns (abc:MyDataType, def:MyDataType, ghi:
   ghi := MyConstructor(2, false).(otherbool := true);  // allowed, and will generate verification error
   jkl := foo.(42 := 7, otherbool := true);  // error: members are from different constructors
 }
+
+datatype Dt = Make(x: int)
+
+method Main()
+{
+  var d := Make(5);
+  d := d.(x := 20);
+  d := d.(Make? := d);  // error: Make? is not a destructor (this previously crashed the resolver)
+}

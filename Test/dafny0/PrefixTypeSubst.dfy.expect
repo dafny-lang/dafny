@@ -1,0 +1,396 @@
+// PrefixTypeSubst.dfy
+
+/*
+module _System {
+  /* CALL GRAPH for module _System:
+   */
+  type string = seq<char>
+
+  type {:axiom} nat = x: int | 0 <= x
+
+  trait {:compile false} object { }
+
+  class {:compile false} array<arg> {
+    var Length: int  // immutable
+  }
+
+  class {:compile false} _#Func0<T0> {
+    function requires(): bool
+      reads reads()
+
+    function reads(): set<object>
+      reads reads()
+  }
+
+  class {:compile false} _#Func2<T0, T1, T2> {
+    function requires(x0: T0, x1: T1): bool
+      reads reads(x0, x1)
+
+    function reads(x0: T0, x1: T1): set<object>
+      reads reads(x0, x1)
+  }
+
+  class {:compile false} _#Func3<T0, T1, T2, T3> {
+    function requires(x0: T0, x1: T1, x2: T2): bool
+      reads reads(x0, x1, x2)
+
+    function reads(x0: T0, x1: T1, x2: T2): set<object>
+      reads reads(x0, x1, x2)
+  }
+
+  class {:compile false} _#Func1<T0, T1> {
+    function requires(x0: T0): bool
+      reads reads(x0)
+
+    function reads(x0: T0): set<object>
+      reads reads(x0)
+  }
+
+  datatype {:compile false} _tuple#2<T0, T1> = _#Make2(0: T0, 1: T1)
+}
+// bitvector types in use:
+*/
+
+/* CALL GRAPH for module _module:
+ * SCC at height 30:
+ *   _default.RstRst7#
+ * SCC at height 29:
+ *   _default.RstRst7
+ * SCC at height 28:
+ *   _default.RstRst6
+ *   _default.RstRst6#
+ * SCC at height 27:
+ *   _default.RstRst5
+ *   _default.RstRst5#
+ * SCC at height 26:
+ *   _default.RstRst4#
+ * SCC at height 25:
+ *   _default.RstRst4
+ * SCC at height 24:
+ *   _default.RstRst3#
+ * SCC at height 23:
+ *   _default.RstRst3
+ * SCC at height 22:
+ *   _default.RstRst2#
+ * SCC at height 21:
+ *   _default.RstRst2
+ * SCC at height 20:
+ *   _default.RstRst1#
+ * SCC at height 19:
+ *   _default.RstRst1
+ * SCC at height 18:
+ *   _default.RstRst0#
+ * SCC at height 17:
+ *   _default.RstRst0
+ * SCC at height 16:
+ *   _default.O#
+ * SCC at height 15:
+ *   _default.O
+ * SCC at height 14:
+ *   _default.N#
+ * SCC at height 13:
+ *   _default.N
+ * SCC at height 12:
+ *   MyClass.M#
+ * SCC at height 11:
+ *   MyClass.M
+ * SCC at height 10:
+ *   MyClass.L#
+ * SCC at height 9:
+ *   MyClass.L
+ * SCC at height 8:
+ *   MyClass.RST#
+ * SCC at height 7:
+ *   MyClass.RST
+ * SCC at height 6:
+ *   MyClass.S#
+ * SCC at height 5:
+ *   MyClass.S
+ * SCC at height 4:
+ *   MyClass.R#
+ * SCC at height 3:
+ *   MyClass.R
+ * SCC at height 2:
+ *   MyClass.P#
+ * SCC at height 1:
+ *   nat
+ * SCC at height 0:
+ *   MyClass.P
+ */
+class MyClass<A, B> {
+  copredicate P<X, Y>(x: X, y: Y)
+  {
+    P(x, y)
+  }
+  /*** (note, what is printed here does not show substitutions of calls to prefix predicates)
+  predicate P#<X, Y>[_k: nat](x: X, y: Y)
+    decreases _k
+  {
+    P(x, y)
+  }
+  ***/
+
+  copredicate R<T>()
+  {
+    R<T>()
+  }
+  /*** (note, what is printed here does not show substitutions of calls to prefix predicates)
+  predicate R#<T>[_k: nat]()
+    decreases _k
+  {
+    R<T>()
+  }
+  ***/
+
+  static copredicate S<Q>()
+  {
+    S<Q>()
+  }
+  /*** (note, what is printed here does not show substitutions of calls to prefix predicates)
+  static predicate S#<Q>[_k: nat]()
+    decreases _k
+  {
+    S<Q>()
+  }
+  ***/
+
+  static copredicate RST<QQ>()
+  {
+    MyClass<B, A>.RST<QQ>()
+  }
+  /*** (note, what is printed here does not show substitutions of calls to prefix predicates)
+  static predicate RST#<QQ>[_k: nat]()
+    decreases _k
+  {
+    MyClass<B, A>.RST<QQ>()
+  }
+  ***/
+
+  colemma L<U, V>(u: U, v: V)
+    ensures P(u, v)
+  {
+    L(u, v);
+  }
+  /***
+  ghost method /*{:_induction _k}*/ L#<U, V>[_k: nat](u: U, v: V)
+    ensures P#[_k](u, v)
+    decreases _k
+  {
+    if 0 < _k {
+      L#[_k - 1](u, v);
+    }
+  }
+  ***/
+
+  colemma M<W>()
+    ensures R<char>()
+  {
+    M<W>();
+    assert R#<char>[_k - 1]();
+  }
+  /***
+  ghost method /*{:_induction _k}*/ M#<W>[_k: nat]()
+    ensures R#<char>[_k]()
+    decreases _k
+  {
+    if 0 < _k {
+      M#<W>[_k - 1]();
+      assert R#<char>[_k - 1]();
+    }
+  }
+  ***/
+}
+
+colemma N<D0, D1, D2>(o: MyClass<D0, D1>)
+  requires o != null
+  ensures o.R<D2>()
+{
+  N<D0, D1, D2>(o);
+}
+/***
+ghost method /*{:_induction _k}*/ N#<D0, D1, D2>[_k: nat](o: MyClass<D0, D1>)
+  requires o != null
+  ensures o.R#<D2>[_k]()
+  decreases _k, o
+{
+  if 0 < _k {
+    N#<D0, D1, D2>[_k - 1](o);
+  }
+}
+***/
+
+colemma O<D0, D1, D2>()
+  ensures MyClass<D0, D1>.S<D2>()
+{
+  O<D0, D1, D2>();
+}
+/***
+ghost method /*{:_induction _k}*/ O#<D0, D1, D2>[_k: nat]()
+  ensures MyClass<D0, D1>.S#<D2>[_k]()
+  decreases _k
+{
+  if 0 < _k {
+    O#<D0, D1, D2>[_k - 1]();
+  }
+}
+***/
+
+colemma {:induction false} RstRst0<alpha, gamma>()
+  ensures MyClass<alpha, char>.RST<gamma>()
+{
+  RstRst0<int, gamma>();
+}
+/***
+ghost method {:induction false} RstRst0#<alpha, gamma>[_k: nat]()
+  ensures MyClass<alpha, char>.RST#<gamma>[_k]()
+  decreases _k
+{
+  if 0 < _k {
+    RstRst0#<int, gamma>[_k - 1]();
+  }
+}
+***/
+
+colemma {:induction false} RstRst1<alpha, gamma>()
+  ensures MyClass<alpha, char>.RST<gamma>()
+{
+  RstRst1<int, int>();
+}
+/***
+ghost method {:induction false} RstRst1#<alpha, gamma>[_k: nat]()
+  ensures MyClass<alpha, char>.RST#<gamma>[_k]()
+  decreases _k
+{
+  if 0 < _k {
+    RstRst1#<int, int>[_k - 1]();
+  }
+}
+***/
+
+colemma {:induction false} RstRst2<alpha, gamma>()
+  ensures MyClass<alpha, char>.RST<gamma>()
+{
+  RstRst2<alpha, gamma>();
+}
+/***
+ghost method {:induction false} RstRst2#<alpha, gamma>[_k: nat]()
+  ensures MyClass<alpha, char>.RST#<gamma>[_k]()
+  decreases _k
+{
+  if 0 < _k {
+    RstRst2#<alpha, gamma>[_k - 1]();
+  }
+}
+***/
+
+colemma {:induction false} RstRst3<alpha, beta, gamma>()
+  ensures MyClass<alpha, beta>.RST<gamma>()
+{
+  RstRst3<alpha, beta, gamma>();
+}
+/***
+ghost method {:induction false} RstRst3#<alpha, beta, gamma>[_k: nat]()
+  ensures MyClass<alpha, beta>.RST#<gamma>[_k]()
+  decreases _k
+{
+  if 0 < _k {
+    RstRst3#<alpha, beta, gamma>[_k - 1]();
+  }
+}
+***/
+
+colemma {:induction false} RstRst4<alpha, beta, gamma>()
+  ensures MyClass<alpha, beta>.RST<gamma>()
+{
+  RstRst4<beta, alpha, gamma>();
+}
+/***
+ghost method {:induction false} RstRst4#<alpha, beta, gamma>[_k: nat]()
+  ensures MyClass<alpha, beta>.RST#<gamma>[_k]()
+  decreases _k
+{
+  if 0 < _k {
+    RstRst4#<beta, alpha, gamma>[_k - 1]();
+  }
+}
+***/
+
+colemma {:induction false} RstRst5<alpha, gamma>()
+  ensures MyClass<alpha, char>.RST<gamma>()
+{
+  if 2 <= _k {
+    RstRst5#<alpha, gamma>[_k - 2]();
+  }
+}
+/***
+ghost method {:induction false} RstRst5#<alpha, gamma>[_k: nat]()
+  ensures MyClass<alpha, char>.RST#<gamma>[_k]()
+  decreases _k
+{
+  if 0 < _k {
+    if 2 <= _k {
+      RstRst5#<alpha, gamma>[_k - 2]();
+    }
+  }
+}
+***/
+
+colemma {:induction false} RstRst6<alpha, beta, gamma>()
+  ensures MyClass<alpha, beta>.RST<gamma>()
+{
+  if 2 <= _k {
+    RstRst6#<alpha, beta, gamma>[_k - 2]();
+  }
+}
+/***
+ghost method {:induction false} RstRst6#<alpha, beta, gamma>[_k: nat]()
+  ensures MyClass<alpha, beta>.RST#<gamma>[_k]()
+  decreases _k
+{
+  if 0 < _k {
+    if 2 <= _k {
+      RstRst6#<alpha, beta, gamma>[_k - 2]();
+    }
+  }
+}
+***/
+
+colemma RstRst7<alpha, beta, gamma>()
+  ensures MyClass<alpha, beta>.RST<gamma>()
+{
+}
+/***
+ghost method /*{:_induction _k}*/ RstRst7#<alpha, beta, gamma>[_k: nat]()
+  ensures MyClass<alpha, beta>.RST#<gamma>[_k]()
+  decreases _k
+{
+  if 0 < _k {
+  }
+}
+***/
+PrefixTypeSubst.dfy(49,0): Error BP5003: A postcondition might not hold on this return path.
+PrefixTypeSubst.dfy(48,30): Related location: This is the postcondition that might not hold.
+PrefixTypeSubst.dfy(19,17): Related location
+Execution trace:
+    (0,0): anon0
+    (0,0): anon3_Then
+PrefixTypeSubst.dfy(55,0): Error BP5003: A postcondition might not hold on this return path.
+PrefixTypeSubst.dfy(54,30): Related location: This is the postcondition that might not hold.
+PrefixTypeSubst.dfy(19,17): Related location
+Execution trace:
+    (0,0): anon0
+    (0,0): anon3_Then
+PrefixTypeSubst.dfy(61,0): Error BP5003: A postcondition might not hold on this return path.
+PrefixTypeSubst.dfy(60,30): Related location: This is the postcondition that might not hold.
+PrefixTypeSubst.dfy(19,17): Related location
+Execution trace:
+    (0,0): anon0
+    (0,0): anon3_Then
+PrefixTypeSubst.dfy(67,0): Error BP5003: A postcondition might not hold on this return path.
+PrefixTypeSubst.dfy(66,30): Related location: This is the postcondition that might not hold.
+PrefixTypeSubst.dfy(19,17): Related location
+Execution trace:
+    (0,0): anon0
+    (0,0): anon3_Then
+
+Dafny program verifier finished with 13 verified, 4 errors
