@@ -1,12 +1,7 @@
 using System;
 using System.IO;
 using System.Text;
-using System.Collections.Generic;
-using System.Runtime.Serialization;
-using System.Runtime.Serialization.Json;
 using DafnyServer;
-using Dafny = Microsoft.Dafny;
-using Bpl = Microsoft.Boogie;
 using Microsoft.Boogie;
 
 namespace Microsoft.Dafny
