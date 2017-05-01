@@ -130,25 +130,11 @@ namespace DafnyServer
             var requires = new List<string>();
             foreach (var maybeFreeExpression in contractClauses)
             {
-                var eprs = FlattenSubExpressions(maybeFreeExpression.E.SubExpressions);
-                eprs.Add(maybeFreeExpression.E);
-                var p = eprs.Select(e => e.tok).OrderBy(e => e.line).ThenBy(e => e.col).Distinct().Select(e => e.val);
-                requires.Add(p.Concat(" "));
+                requires.Add(Printer.ExprToString(maybeFreeExpression.E));
             }
             return requires;
         }
-
-        private static ICollection<Expression> FlattenSubExpressions(IEnumerable<Expression> expressions)
-        {
-            var returnExpressions = new List<Expression>();
-            foreach (var expression in expressions)
-            {
-                returnExpressions.Add(expression);
-                returnExpressions.AddRange(FlattenSubExpressions(expression.SubExpressions));
-            }
-            return returnExpressions;
-        }
-
+        
         private static IEnumerable<SymbolInformation> ResolveLocalDefinitions(IEnumerable<Statement> statements, Method method)
         {
             var information = new List<SymbolInformation>();
