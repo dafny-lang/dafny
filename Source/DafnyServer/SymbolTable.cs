@@ -37,10 +37,9 @@ namespace DafnyServer
             }
         }
 
-        public void PrintJson()
+        public string ToJson()
         {
-            var json = ToJson(_information);
-            Console.WriteLine("SYMBOLS_START " + json + " SYMBOLS_END");
+            return ConvertToJson(_information);   
         }
 
         private void AddMethods(ModuleDefinition module, List<SymbolInformation> information)
@@ -58,9 +57,7 @@ namespace DafnyServer
                         Name = fn.Name,
                         ParentClass = fn.EnclosingClass.Name,
                         SymbolType = SymbolInformation.Type.Function,
-                        Position = fn.tok.pos,
-                        Line = fn.tok.line,
-                        Column = fn.tok.col
+                        StartToken = fn.tok
                     };
                     information.Add(functionSymbol);
                 }
@@ -78,9 +75,7 @@ namespace DafnyServer
                         Name = m.Name,
                         ParentClass = m.EnclosingClass.Name,
                         SymbolType = SymbolInformation.Type.Method,
-                        Position = m.tok.pos,
-                        Line = m.tok.line,
-                        Column = m.tok.col,
+                        StartToken = m.tok,
                         Ensures = ParseContracts(m.Ens),
                         Requires = ParseContracts(m.Req),
                         References =
@@ -103,9 +98,7 @@ namespace DafnyServer
                     Name = fs.Name,
                     ParentClass = fs.EnclosingClass.Name,
                     SymbolType = SymbolInformation.Type.Field,
-                    Position = fs.tok.pos,
-                    Line = fs.tok.line,
-                    Column = fs.tok.col,
+                    StartToken = fs.tok,
                     References = FindFieldReferencesInternal(fs.Name, fs.EnclosingClass.Name, fs.EnclosingClass.Module.Name)
                 };
                 information.Add(fieldSymbol);
@@ -124,22 +117,18 @@ namespace DafnyServer
                         Module = cs.Module.Name,
                         Name = cs.Name,
                         SymbolType = SymbolInformation.Type.Class,
-                        Position = cs.tok.pos,
-                        Line = cs.tok.line,
-                        Column = cs.tok.col,
-                        EndPosition = cs.BodyEndTok.pos,
-                        EndLine = cs.BodyEndTok.line,
-                        EndColumn = cs.BodyEndTok.col
+                        StartToken = cs.tok,
+                        EndToken = cs.BodyEndTok
                     };
                     information.Add(classSymbol);
                 }
             }
         }
 
-        private static ICollection<string> ParseContracts(IEnumerable<MaybeFreeExpression> ensuresClauses)
+        private static ICollection<string> ParseContracts(IEnumerable<MaybeFreeExpression> contractClauses)
         {
             var requires = new List<string>();
-            foreach (var maybeFreeExpression in ensuresClauses)
+            foreach (var maybeFreeExpression in contractClauses)
             {
                 var eprs = FlattenSubExpressions(maybeFreeExpression.E.SubExpressions);
                 eprs.Add(maybeFreeExpression.E);
@@ -193,12 +182,8 @@ namespace DafnyServer
                                     ParentClass = userType.ResolvedClass.CompileName,
                                     Module = userType.ResolvedClass.Module.CompileName,
                                     SymbolType = SymbolInformation.Type.Definition,
-                                    Position = method.BodyStartTok.pos,
-                                    Line = method.BodyStartTok.line,
-                                    Column = method.BodyStartTok.col,
-                                    EndColumn = method.BodyEndTok.col,
-                                    EndLine = method.BodyEndTok.line,
-                                    EndPosition = method.BodyEndTok.pos
+                                    StartToken = method.BodyStartTok,
+                                    EndToken = method.BodyEndTok
                                 });
                             }
                         }
@@ -222,59 +207,13 @@ namespace DafnyServer
             {
                 if (statement is CallStmt)
                 {
-                    var callStmt = (CallStmt)statement;
-                    {
-
-                        if (callStmt.Receiver.Type is UserDefinedType)
-                        {
-                            var receiver = callStmt.Receiver as NameSegment;
-                            var userType = callStmt.Receiver.Type as UserDefinedType;
-                            var reveiverName = receiver == null ? "" : receiver.Name;
-                            information.Add(new SymbolInformation
-                            {
-                                Name = callStmt.Method.CompileName,
-                                ParentClass = userType.ResolvedClass.CompileName,
-                                Module = userType.ResolvedClass.Module.CompileName,
-                                Call = reveiverName + "." + callStmt.MethodSelect.Member,
-                                SymbolType = SymbolInformation.Type.Call,
-                                Position = callStmt.MethodSelect.tok.pos,
-                                Line = callStmt.MethodSelect.tok.line,
-                                Column = callStmt.MethodSelect.tok.col
-                            });
-                        }
-
-                    }
+                    ParseCallStatement(statement, information);
                 }
                 else if (statement is UpdateStmt)
                 {
-                    var updateStmt = (UpdateStmt)statement;
-                    var leftSide = updateStmt.Lhss;
-                    var rightSide = updateStmt.Rhss;
-                    var leftSideDots = leftSide.OfType<ExprDotName>();
-                    var rightSideDots = rightSide.OfType<ExprDotName>();
-                    var allExprDotNames = leftSideDots.Concat(rightSideDots);
-                    foreach (var exprDotName in allExprDotNames)
-                    {
-                        if (exprDotName.Lhs.Type is UserDefinedType)
-                        {
-                            var segment = exprDotName.Lhs as NameSegment;
-                            var type = (UserDefinedType)exprDotName.Lhs.Type;
-                            var designator = segment == null ? "" : segment.Name;
-                            information.Add(new SymbolInformation
-                            {
-                                Name = exprDotName.SuffixName,
-                                ParentClass = type.ResolvedClass.CompileName,
-                                Module = type.ResolvedClass.Module.CompileName,
-                                Call = designator + "." + exprDotName.SuffixName,
-                                SymbolType = SymbolInformation.Type.Call,
-                                Position = exprDotName.tok.pos,
-                                Line = exprDotName.tok.line,
-                                Column = exprDotName.tok.col
-
-                            });
-                        }
-                    }
+                    ParseUpdateStatement(statement, information);
                 }
+
                 if (statement.SubStatements.Any())
                 {
                     information.AddRange(ResolveCallStatements(statement.SubStatements.ToList()));
@@ -284,27 +223,69 @@ namespace DafnyServer
             return information;
         }
 
+        private static void ParseCallStatement(Statement statement, List<SymbolInformation> information)
+        {
+            var callStmt = (CallStmt) statement;
+            {
+                if (!(callStmt.Receiver.Type is UserDefinedType)) return;
+
+                var receiver = callStmt.Receiver as NameSegment;
+                var userType = (UserDefinedType) callStmt.Receiver.Type;
+                var reveiverName = receiver == null ? "" : receiver.Name;
+                information.Add(new SymbolInformation
+                {
+                    Name = callStmt.Method.CompileName,
+                    ParentClass = userType.ResolvedClass.CompileName,
+                    Module = userType.ResolvedClass.Module.CompileName,
+                    Call = reveiverName + "." + callStmt.MethodSelect.Member,
+                    SymbolType = SymbolInformation.Type.Call,
+                    StartToken = callStmt.MethodSelect.tok
+                });
+            }
+        }
+
+        private static void ParseUpdateStatement(Statement statement, List<SymbolInformation> information)
+        {
+            var updateStmt = (UpdateStmt) statement;
+            var leftSide = updateStmt.Lhss;
+            var rightSide = updateStmt.Rhss;
+            var leftSideDots = leftSide.OfType<ExprDotName>();
+            var rightSideDots = rightSide.OfType<ExprDotName>();
+            var allExprDotNames = leftSideDots.Concat(rightSideDots);
+            foreach (var exprDotName in allExprDotNames)
+            {
+                if (!(exprDotName.Lhs.Type is UserDefinedType)) continue;
+
+                var segment = exprDotName.Lhs as NameSegment;
+                var type = (UserDefinedType) exprDotName.Lhs.Type;
+                var designator = segment == null ? "" : segment.Name;
+                information.Add(new SymbolInformation
+                {
+                    Name = exprDotName.SuffixName,
+                    ParentClass = type.ResolvedClass.CompileName,
+                    Module = type.ResolvedClass.Module.CompileName,
+                    Call = designator + "." + exprDotName.SuffixName,
+                    SymbolType = SymbolInformation.Type.Call,
+                    StartToken = exprDotName.tok
+                });
+            }
+        }
+
         private List<ReferenceInformation> FindFieldReferencesInternal(string fieldName, string className,
             string moduleName)
         {
             var information = new List<ReferenceInformation>();
-
-
+            
             foreach (var module in _dafnyProgram.Modules())
             {
                 foreach (var clbl in ModuleDefinition.AllCallables(module.TopLevelDecls).Where(e => !(e.Tok is IncludeToken)))
                 {
-                    if (clbl is Function)
+                    if (!(clbl is Method)) continue;
+
+                    var m = (Method)clbl;
+                    if (m.Body != null)
                     {
-                        var fn = (Function)clbl;
-                    }
-                    else
-                    {
-                        var m = (Method)clbl;
-                        if (m.Body != null)
-                        {
-                            information.AddRange(ParseBodyForFieldReferences(m.Body.SubStatements, fieldName, className, moduleName));
-                        }
+                        information.AddRange(ParseBodyForFieldReferences(m.Body.SubStatements, fieldName, className, moduleName));
                     }
                 }
             }
@@ -315,18 +296,16 @@ namespace DafnyServer
         {
             var information = new List<ReferenceInformation>();
 
-
             foreach (var module in _dafnyProgram.Modules())
             {
                 foreach (var clbl in ModuleDefinition.AllCallables(module.TopLevelDecls).Where(e => !(e.Tok is IncludeToken)))
                 {
-                    if (clbl is Method)
+                    if (!(clbl is Method)) continue;
+
+                    var m = (Method)clbl;
+                    if (m.Body != null)
                     {
-                        var m = (Method)clbl;
-                        if (m.Body != null)
-                        {
-                            information.AddRange(ParseBodyForMethodReferences(m.Body.SubStatements, methodToFind, m.Name));
-                        }
+                        information.AddRange(ParseBodyForMethodReferences(m.Body.SubStatements, methodToFind, m.Name));
                     }
                 }
             }
@@ -334,7 +313,7 @@ namespace DafnyServer
             return information;
         }
 
-        public static ICollection<Expression> GetAllSubExpressions(Expression expression)
+        private static ICollection<Expression> GetAllSubExpressions(Expression expression)
         {
             var expressions = new List<Expression>();
             foreach (var subExpression in expression.SubExpressions)
@@ -344,6 +323,7 @@ namespace DafnyServer
             expressions.Add(expression);
             return expressions;
         }
+
         private static IEnumerable<ReferenceInformation> ParseBodyForFieldReferences(IEnumerable<Statement> block, string fieldName, string className, string moduleName)
         {
             var information = new List<ReferenceInformation>();
@@ -366,21 +346,19 @@ namespace DafnyServer
                     var allExpressions = allRightSideExpressions.Concat(allLeftSideExpressions).ToList();
                     var allExprDotNames = exprDotNames.Concat(allExpressions.OfType<ExprDotName>()).Distinct();
                     var allNameSegments = nameSegments.Concat(allExpressions.OfType<NameSegment>()).Distinct();
-                    var allMemberSelectExpr = allExpressions.OfType<MemberSelectExpr>().Distinct();
+                    
                     foreach (var exprDotName in allExprDotNames)
                     {
                         if (exprDotName.Lhs.Type is UserDefinedType)
                         {
-                            var type = exprDotName.Lhs.Type as UserDefinedType;
+                            var type = (UserDefinedType) exprDotName.Lhs.Type;
                             if (fieldName == exprDotName.SuffixName && className == type.ResolvedClass.CompileName &&
                                 moduleName == type.ResolvedClass.Module.CompileName)
                             {
                                 information.Add(new ReferenceInformation
                                 {
                                     MethodName = exprDotName.SuffixName,
-                                    Position = exprDotName.tok.pos,
-                                    Line = exprDotName.tok.line,
-                                    Column = exprDotName.tok.col,
+                                    StartToken = exprDotName.tok,
                                     ReferencedName = exprDotName.SuffixName
 
                                 });
@@ -392,7 +370,7 @@ namespace DafnyServer
                     {
                         if (nameSegment.ResolvedExpression is MemberSelectExpr)
                         {
-                            var memberAcc = nameSegment.ResolvedExpression as MemberSelectExpr;
+                            var memberAcc = (MemberSelectExpr) nameSegment.ResolvedExpression;
                             if (fieldName == memberAcc.MemberName &&
                                 className == memberAcc.Member.EnclosingClass.CompileName &&
                                 moduleName == memberAcc.Member.EnclosingClass.Module.CompileName)
@@ -400,9 +378,7 @@ namespace DafnyServer
                                 information.Add(new ReferenceInformation
                                 {
                                     MethodName = memberAcc.MemberName,
-                                    Position = memberAcc.tok.pos,
-                                    Line = memberAcc.tok.line,
-                                    Column = memberAcc.tok.col,
+                                    StartToken = memberAcc.tok,
                                     ReferencedName = memberAcc.MemberName
                                 });
                             }
@@ -430,9 +406,7 @@ namespace DafnyServer
                     {
                         information.Add(new ReferenceInformation
                         {
-                            Position = callStmt.MethodSelect.tok.pos,
-                            Line = callStmt.MethodSelect.tok.line,
-                            Column = callStmt.MethodSelect.tok.col,
+                            StartToken = callStmt.MethodSelect.tok,
                             MethodName = currentMethodName,
                             ReferencedName = methodToFind.Split('.')[2]
                         });
@@ -484,6 +458,26 @@ namespace DafnyServer
                 set { SymbolType = (Type)Enum.Parse(typeof(Type), value, true); }
             }
 
+            public IToken StartToken
+            {
+                set
+                {
+                    Line = value.line;
+                    Position = value.pos;
+                    Column = value.col;
+                }
+            }
+
+            public IToken EndToken
+            {
+                set
+                {
+                    EndLine = value.line;
+                    EndPosition = value.pos;
+                    EndColumn = value.col;
+                }
+            }
+
             internal enum Type
             {
                 Class,
@@ -514,9 +508,19 @@ namespace DafnyServer
             public int? Column { get; set; }
             [DataMember(Name = "ReferencedName")]
             public string ReferencedName { get; set; }
+
+            public IToken StartToken
+            {
+                set
+                {
+                    Line = value.line;
+                    Position = value.pos;
+                    Column = value.col;
+                }
+            }
         }
 
-        private static string ToJson<T>(T data)
+        private static string ConvertToJson<T>(T data)
         {
             var serializer = new DataContractJsonSerializer(typeof(T));
             using (var ms = new MemoryStream())

@@ -48,6 +48,7 @@ namespace DafnyServer
             }
             catch (Exception e)
             {
+                Console.WriteLine("Latest version installed");
                 Console.WriteLine(e.Message);
             }
         }

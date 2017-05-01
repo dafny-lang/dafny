@@ -126,7 +126,8 @@ namespace Microsoft.Dafny
             if (Parse() && Resolve())
             {
                 var symbolTable = new SymbolTable(dafnyProgram);
-                symbolTable.PrintJson();
+                var json = symbolTable.ToJson();
+                Console.WriteLine("SYMBOLS_START " + json + " SYMBOLS_END");
             }
             else
             {
