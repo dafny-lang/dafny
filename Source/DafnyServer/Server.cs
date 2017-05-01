@@ -103,18 +103,6 @@ namespace Microsoft.Dafny
                     var payload = ReadPayload();
                     VerificationTask.ReadTask(payload).Symbols();
                 }
-                else if (verb == "proofs")
-                {
-                    ServerUtils.checkArgs(command, 0);
-                    var payload = ReadPayload();
-                    VerificationTask.ReadTask(payload).Proofs();
-                }
-                else if (verb == "findReferences")
-                {
-                    ServerUtils.checkArgs(command, 0);
-                    var payload = ReadPayload();
-                    VerificationTask.ReadTask(payload).FindReferences();
-                }
                 else if (verb == "version")
                 {
                     ServerUtils.checkArgs(command, 0);

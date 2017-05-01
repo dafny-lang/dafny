@@ -390,50 +390,7 @@ namespace Microsoft.Dafny
             }
             return information;
         }
-
-        public void FindReferences()
-        {
-            ServerUtils.ApplyArgs(args, reporter);
-            string methodToFind = args[0] + "." + args[1] + "." + args[2];
-            var information = FindReferences(methodToFind);
-            var json = ToJson(information);
-            var byteArray = Encoding.UTF8.GetBytes(json);
-            var base64 = Convert.ToBase64String(byteArray);
-            Console.WriteLine("REFERENCE_START" + base64 + "REFERENCE_END");
-        }
-
-        private List<ReferenceInformation> FindReferences(string methodToFind)
-        {
-            var information = new List<ReferenceInformation>();
-            if (Parse() && Resolve())
-            {
-                try
-                {
-                    foreach (var module in dafnyProgram.Modules())
-                    {
-                        foreach (var clbl in ModuleDefinition.AllCallables(module.TopLevelDecls))
-                        {
-                            if (clbl is Function)
-                            {
-                                var fn = (Function)clbl;
-                            }
-                            else
-                            {
-                                var m = (Method)clbl;
-                                var body = m.Body;
-                                information.AddRange(ParseBodyForMethodReferences(body.SubStatements, methodToFind, m.Name));
-                            }
-                        }
-                    }
-                }
-                catch (Exception e)
-                {
-                    Interaction.EOM(Interaction.FAILURE, e.Message + e.StackTrace);
-                }
-            }
-            return information;
-        }
-
+        
         private List<ReferenceInformation> FindFieldReferencesInternal(string fieldName, string className,
             string moduleName)
         {
@@ -609,104 +566,7 @@ namespace Microsoft.Dafny
             }
             return information;
         }
-
-        public void Proofs()
-        {
-            ServerUtils.ApplyArgs(args, reporter);
-            List<ProofInformation> proofs = new List<ProofInformation>();
-            if (Parse() && Resolve() && Translate()/* && Boogie()*/)
-            {
-                Boogie();
-                foreach (var boogieProgram in boogiePrograms)
-                {
-                    object err = "";
-                    var name = boogieProgram.Item1;
-                    var program = boogieProgram.Item2;
-                    foreach (var block in program.Implementations.SelectMany(i => i.Blocks))
-                    {
-                        var cmds = block.Cmds;
-                        if (cmds == null) continue;
-
-                        foreach (var proof in cmds)
-                        {
-                            var cl = proof.GetType();
-                            Console.WriteLine(cl);
-                            if (proof is AssertRequiresCmd)
-                            {
-
-                                var ar = proof as AssertRequiresCmd;
-                                err = ar.ErrorData;
-                                proofs.Add(new ProofInformation
-                                {
-                                    Proof = ar.Expr.ToString(),
-                                    Type = ProofInformation.ProofType.AssertRequires
-                                });
-                            }
-                            else if (proof is AssertEnsuresCmd)
-                            {
-                                var ae = proof as AssertEnsuresCmd;
-                                err = ae.ErrorData;
-                                proofs.Add(new ProofInformation
-                                {
-                                    Proof = ae.Expr.ToString(),
-                                    Type = ProofInformation.ProofType.AssertEnsures
-                                });
-                            }
-                            else if (proof is LoopInitAssertCmd)
-                            {
-                                var ai = proof as LoopInitAssertCmd;
-                                err = ai.ErrorData;
-                                proofs.Add(new ProofInformation
-                                {
-                                    Proof = ai.Expr.ToString(),
-                                    Type = ProofInformation.ProofType.LoopInitAssert
-                                });
-                            }
-                            else if (proof is LoopInvMaintainedAssertCmd)
-                            {
-                                var am = proof as LoopInvMaintainedAssertCmd;
-                                err = am.ErrorData;
-                                proofs.Add(new ProofInformation
-                                {
-                                    Proof = am.Expr.ToString(),
-                                    Type = ProofInformation.ProofType.LoopInvMaintainedAssert
-                                });
-                            }
-                            else if (proof is AssertCmd)
-                            {
-                                var a = proof as AssertCmd;
-                                err = a.ErrorData;
-                                proofs.Add(new ProofInformation
-                                {
-                                    Proof = a.Expr.ToString(),
-                                    Type = ProofInformation.ProofType.Assert
-                                });
-                            }
-                            else if (proof is AssumeCmd)
-                            {
-                                var z = proof as AssumeCmd;
-
-                            }
-                            else if (proof is AssignCmd)
-                            {
-                                var x = proof as AssignCmd;
-
-                            }
-                            else if (proof is CommentCmd)
-                            {
-                                var t = proof as CommentCmd;
-                            }
-                            var u = err;
-
-                        }
-                    }
-                }
-            }
-
-            var json = ToJson(proofs);
-            Console.WriteLine("PROOFS_START " + json + " PROOFS_END");
-        }
-
+        
         [Serializable]
         [DataContract]
         internal class SymbolInformation
@@ -776,32 +636,7 @@ namespace Microsoft.Dafny
             [DataMember(Name = "ReferencedName")]
             public string ReferencedName { get; set; }
         }
-
-        [Serializable]
-        [DataContract]
-        internal class ProofInformation
-        {
-            [DataMember(Name = "Proof")]
-            public string Proof { get; set; }
-            public ProofType Type { get; set; }
-            [DataMember(Name = "Type", Order = 1)]
-            private string TypeString
-            {
-                get { return Enum.GetName(typeof(ProofType), Type); }
-                set { Type = (ProofType)Enum.Parse(typeof(ProofType), value, true); }
-            }
-
-            internal enum ProofType
-            {
-                Assert,
-                AssertRequires,
-                AssertEnsures,
-                LoopInitAssert,
-                LoopInvMaintainedAssert
-            }
-        }
-
-
+        
         private static string ToJson<T>(T data)
         {
             DataContractJsonSerializer serializer

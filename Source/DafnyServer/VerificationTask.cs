@@ -73,21 +73,6 @@ namespace Microsoft.Dafny
             new DafnyHelper(args, filename, ProgramSource).Symbols();
         }
 
-        public void FindReferences()
-        {
-            try
-            {
-                new DafnyHelper(args, filename, ProgramSource).FindReferences();
-            }
-            catch (Exception ex)
-            {
-                Interaction.EOM(Interaction.FAILURE, ex);
-            }
-        }
-
-        public void Proofs()
-        {
-            new DafnyHelper(args, filename, ProgramSource).Proofs();
-        }
+        
     }
 }
