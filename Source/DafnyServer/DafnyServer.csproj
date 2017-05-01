@@ -132,6 +132,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="DafnyHelper.cs" />
+    <Compile Include="SymbolTable.cs" />
     <Compile Include="Utilities.cs" />
     <Compile Include="VerificationTask.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
