@@ -92,6 +92,7 @@ namespace DafnyServer
             foreach (
                 var fs in ModuleDefinition.AllFields(module.TopLevelDecls).Where(e => e != null && !(e.tok is IncludeToken)))
             {
+
                 var fieldSymbol = new SymbolInformation
                 {
                     Module = fs.EnclosingClass.Module.Name,
@@ -101,6 +102,12 @@ namespace DafnyServer
                     StartToken = fs.tok,
                     References = FindFieldReferencesInternal(fs.Name, fs.EnclosingClass.Name, fs.EnclosingClass.Module.Name)
                 };
+                if (fs.Type is UserDefinedType)
+                {
+                    var userType = fs.Type as UserDefinedType;
+                    fieldSymbol.ReferencedClass = userType.ResolvedClass.CompileName;
+                    fieldSymbol.ReferencedModule = userType.ResolvedClass.Module.CompileName;                                  
+                }
                 information.Add(fieldSymbol);
             }
         }
@@ -437,6 +444,10 @@ namespace DafnyServer
             public ICollection<string> Ensures { get; set; }
             [DataMember(Name = "Call")]
             public string Call { get; set; }
+            [DataMember(Name="ReferencedClass")]
+            public string ReferencedClass { get; set; }
+            [DataMember(Name="ReferencedModule")]
+            public string ReferencedModule { get; set; }
             [DataMember(Name = "SymbolType", Order = 1)]
             private string SymbolTypeString
             {
