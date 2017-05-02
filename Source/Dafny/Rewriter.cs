@@ -1371,6 +1371,7 @@ namespace Microsoft.Dafny
     }
 
     internal override void PreResolve(ModuleDefinition m) {
+      Contract.Requires(m != null);
       var declarations = m.TopLevelDecls;
 
       foreach (var d in declarations) {
@@ -1386,21 +1387,19 @@ namespace Microsoft.Dafny
                   continue;
 
                 if (!(newt is DefaultClassDecl)) {
-                  me.Exports.Add(new ExportSignature(newt.Name, null, !revealAll || !newt.CanBeRevealed()));
+                  me.Exports.Add(new ExportSignature(newt.tok, newt.Name, !revealAll || !newt.CanBeRevealed()));
                 }
 
                 if (newt is ClassDecl) {
                   var cl = (ClassDecl)newt;
 
                   foreach (var mem in cl.Members) {
-                    string prefix = cl.Name;
-                    string suffix = mem.Name;
+                    var opaque = !revealAll || !mem.CanBeRevealed();
                     if (newt is DefaultClassDecl) {
-                      prefix = mem.Name;
-                      suffix = null;
+                      me.Exports.Add(new ExportSignature(mem.tok, mem.Name, opaque));
+                    } else {
+                      me.Exports.Add(new ExportSignature(cl.tok, cl.Name, mem.tok, mem.Name, opaque));
                     }
-
-                    me.Exports.Add(new ExportSignature(prefix, suffix, !revealAll || !mem.CanBeRevealed()));
                   }
                 }
               }

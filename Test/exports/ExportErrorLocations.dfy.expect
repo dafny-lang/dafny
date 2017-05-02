@@ -1,0 +1,7 @@
+ExportErrorLocations.dfy(8,16): Error: FunctionG must be a member of MyModule to be exported
+ExportErrorLocations.dfy(9,25): Error: No class 'YourClass' found
+ExportErrorLocations.dfy(10,13): Error: No class 'Datatype' found
+ExportErrorLocations.dfy(12,41): Error: No member 'UndefinedMethod' found in class 'MyClass'
+ExportErrorLocations.dfy(14,20): Error: SomeMethod cannot be revealed in an export. Use "provides" instead.
+ExportErrorLocations.dfy(15,13): Error: Alt is not a valid export of MyModule
+6 resolution/type errors detected in ExportErrorLocations.dfy

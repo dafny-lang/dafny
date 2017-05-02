@@ -948,11 +948,11 @@ namespace Microsoft.Dafny
               if (lmem != null) {
                 decl = lmem;
               } else {
-                reporter.Error(MessageSource.Resolver, d.tok, "No member '" + export.Id + "' found in class '" + export.ClassId);
+                reporter.Error(MessageSource.Resolver, export.Tok, "No member '{0}' found in class '{1}'", export.Id, export.ClassId);
                 continue;
               }
             } else {
-              reporter.Error(MessageSource.Resolver, d.tok, "No class '" + export.ClassId + "' found");
+              reporter.Error(MessageSource.Resolver, export.ClassIdTok, "No class '{0}' found", export.ClassId);
               continue;
             }
           } else if (sig.TopLevels.TryGetValue(name, out tdecl)) {
@@ -961,17 +961,17 @@ namespace Microsoft.Dafny
           } else if (sig.StaticMembers.TryGetValue(name, out member)) {
             decl = member;
           } else {
-            reporter.Error(MessageSource.Resolver, d.tok, name + " must be a member of " + m.Name + " to be exported");
+            reporter.Error(MessageSource.Resolver, export.Tok, name + " must be a member of " + m.Name + " to be exported");
             continue;
           }
 
           if (!decl.CanBeExported()) {
-            reporter.Error(MessageSource.Resolver, d.tok, name + " is not a valid export of " + m.Name);
+            reporter.Error(MessageSource.Resolver, export.Tok, name + " is not a valid export of " + m.Name);
             continue;
           }
 
           if (!export.Opaque && !decl.CanBeRevealed()) {
-            reporter.Error(MessageSource.Resolver, d.tok, name + " cannot be revealed in an export. Use \"provides\" instead.");
+            reporter.Error(MessageSource.Resolver, export.Tok, name + " cannot be revealed in an export. Use \"provides\" instead.");
             continue;
           }
 

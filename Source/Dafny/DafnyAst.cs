@@ -2743,19 +2743,38 @@ namespace Microsoft.Dafny {
 
   public class ExportSignature
   {
-    public bool Opaque;
-    public string Id;
-    public string ClassId;
+    public readonly IToken Tok;
+    public readonly IToken ClassIdTok;
+    public readonly bool Opaque;
+    public readonly string ClassId;
+    public readonly string Id;
     
-    public Declaration Decl;  // fill in  by the resolver
+    public Declaration Decl;  // filled in by the resolver
 
-    public ExportSignature(string prefix, string suffix, bool opaque) {
-      if (suffix == null) {
-        Id = prefix;
-      } else {
-        ClassId = prefix;
-        Id = suffix;
-      }
+    [ContractInvariantMethod]
+    void ObjectInvariant() {
+      Contract.Invariant(Tok != null);
+      Contract.Invariant(Id != null);
+      Contract.Invariant((ClassId != null) == (ClassIdTok != null));
+    }
+
+    public ExportSignature(IToken prefixTok, string prefix, IToken idTok, string id, bool opaque) {
+      Contract.Requires(prefixTok != null);
+      Contract.Requires(prefix != null);
+      Contract.Requires(idTok != null);
+      Contract.Requires(id != null);
+      Tok = idTok;
+      ClassIdTok = prefixTok;
+      ClassId = prefix;
+      Id = id;
+      Opaque = opaque;
+    }
+
+    public ExportSignature(IToken idTok, string id, bool opaque) {
+      Contract.Requires(idTok != null);
+      Contract.Requires(id != null);
+      Tok = idTok;
+      Id = id;
       Opaque = opaque;
     }
 

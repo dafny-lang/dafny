@@ -1393,7 +1393,12 @@ int StringToInt(string s, int defaultValue, string errString) {
 			Get();
 			NoUSIdent(out suffix);
 		}
-		exsig = new ExportSignature(prefix.val, suffix != null ? suffix.val : null, opaque); 
+		if (suffix != null) {
+		 exsig = new ExportSignature(prefix, prefix.val, suffix, suffix.val, opaque);
+		} else {
+		 exsig = new ExportSignature(prefix, prefix.val, opaque);
+		}
+		
 	}
 
 	void Ident(out IToken/*!*/ x) {
