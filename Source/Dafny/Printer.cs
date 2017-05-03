@@ -218,7 +218,7 @@ Everything) {
           var at = (OpaqueTypeDecl)d;
           if (i++ != 0) { wr.WriteLine(); }
           Indent(indent);
-          PrintClassMethodHelper("type", at.Attributes, at.Name, new List<TypeParameter>());
+          PrintClassMethodHelper("type", at.Attributes, at.Name, d.TypeArgs);
           wr.Write(EqualitySupportSuffix(at.EqualitySupport));
           wr.WriteLine();
         } else if (d is NewtypeDecl) {

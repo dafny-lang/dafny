@@ -358,7 +358,7 @@ module TypeParameters {
 
   type B
 
-  type C
+  type C<T, U>
 
   method M<G, H>(a: A, b: B, c0: C<int, bool>, g: G)
       returns (c1: C<real, real>, h: H)
