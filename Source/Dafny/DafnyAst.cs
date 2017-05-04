@@ -677,7 +677,7 @@ namespace Microsoft.Dafny {
               return type;
             }
           } else { // type is hidden, no more normalization is possible
-            return rtd.SelfSynonym();
+            return rtd.SelfSynonym(type.TypeArgs);
           }
         }
 
@@ -4053,12 +4053,10 @@ namespace Microsoft.Dafny {
   }
 
   public static class RevealableTypeDeclHelper {
-    private static Dictionary<TopLevelDecl, UserDefinedType> udtMap = new Dictionary<TopLevelDecl, UserDefinedType>();
     private static Dictionary<TopLevelDecl, InternalTypeSynonymDecl> tsdMap = new Dictionary<TopLevelDecl, InternalTypeSynonymDecl>();
 
     public static void NewSelfSynonym(this RevealableTypeDecl rtd) {
       var d = rtd.AsTopLevelDecl;
-      Contract.Assert(!udtMap.ContainsKey(d));
       Contract.Assert(!tsdMap.ContainsKey(d));
 
       var thisType = UserDefinedType.FromTopLevelDecl(d.tok, d);
@@ -4068,16 +4066,16 @@ namespace Microsoft.Dafny {
 
       var tsd = new InternalTypeSynonymDecl(d.tok, d.Name, d.TypeArgs, d.Module, thisType, d.Attributes);
       tsd.InheritVisibility(d, false);
-      var syn = UserDefinedType.FromTopLevelDecl(d.tok, tsd);
 
-      udtMap.Add(d, syn);
       tsdMap.Add(d, tsd);
     }
 
-    public static UserDefinedType SelfSynonym(this RevealableTypeDecl rtd) {
+    public static UserDefinedType SelfSynonym(this RevealableTypeDecl rtd, List<Type> args) {
+      Contract.Requires(args != null);
       var d = rtd.AsTopLevelDecl;
-      Contract.Assert(udtMap.ContainsKey(d));
-      return udtMap[d];
+      Contract.Assert(tsdMap.ContainsKey(d));
+      var typeSynonym = tsdMap[d];
+      return new UserDefinedType(typeSynonym.tok, typeSynonym.Name, typeSynonym, args);
     }
 
     public static InternalTypeSynonymDecl SelfSynonymDecl(this RevealableTypeDecl rtd) {
