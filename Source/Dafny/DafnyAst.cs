@@ -7579,9 +7579,7 @@ namespace Microsoft.Dafny {
       Contract.Invariant(MemberName != null);
       Contract.Invariant(cce.NonNullElements(Arguments));
       Contract.Invariant(cce.NonNullElements(InferredTypeArgs));
-      Contract.Invariant(
-  Ctor == null ||
-  InferredTypeArgs.Count == Ctor.EnclosingDatatype.TypeArgs.Count);
+      Contract.Invariant(Ctor == null || InferredTypeArgs.Count == Ctor.EnclosingDatatype.TypeArgs.Count);
     }
 
     public DatatypeValue(IToken tok, string datatypeName, string memberName, [Captured] List<Expression> arguments)

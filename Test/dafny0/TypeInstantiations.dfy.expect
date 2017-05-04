@@ -10,4 +10,13 @@ TypeInstantiations.dfy(56,7): Error: type 'TP1' is not allowed to change its num
 TypeInstantiations.dfy(34,11): Error: type 'C' is used to refine an opaque type with equality support, but 'C' does not support equality
 TypeInstantiations.dfy(35,7): Error: type 'D' is used to refine an opaque type with equality support, but 'D' does not support equality
 TypeInstantiations.dfy(48,7): Error: type 'N' is used to refine an opaque type with equality support, but 'N' does not support equality
-12 resolution/type errors detected in TypeInstantiations.dfy
+TypeInstantiations.dfy(69,29): Error: RHS (of type List<int>) not assignable to LHS (of type MyList.List<real>) (covariant type parameter would require real <: int)
+TypeInstantiations.dfy(81,8): Error: the type of this variable is underspecified
+TypeInstantiations.dfy(82,8): Error: the type of this variable is underspecified
+TypeInstantiations.dfy(96,22): Error: RHS (of type List<int>) not assignable to LHS (of type List<real>) (covariant type parameter would require real <: int)
+TypeInstantiations.dfy(108,8): Error: the type of this variable is underspecified
+TypeInstantiations.dfy(109,8): Error: the type of this variable is underspecified
+TypeInstantiations.dfy(127,27): Error: RHS (of type int) not assignable to LHS (of type C.Classic<real>)
+TypeInstantiations.dfy(137,8): Error: the type of this variable is underspecified
+TypeInstantiations.dfy(137,23): Error: type variable 'A' in the function call to 'F' could not be determined
+21 resolution/type errors detected in TypeInstantiations.dfy

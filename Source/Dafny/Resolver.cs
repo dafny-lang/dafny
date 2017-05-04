@@ -9781,7 +9781,7 @@ namespace Microsoft.Dafny
         } else if (!(d is DatatypeDecl)) {
           reporter.Error(MessageSource.Resolver, expr.tok, "Expected datatype: {0}", dtv.DatatypeName);
         } else {
-          ResolveDatatypeValue(opts, dtv, (DatatypeDecl)d);
+          ResolveDatatypeValue(opts, dtv, (DatatypeDecl)d, null);
         }
 
       } else if (expr is DisplayExpression) {
@@ -11098,7 +11098,7 @@ namespace Microsoft.Dafny
             reporter.Error(MessageSource.Resolver, expr.tok, "datatype constructor does not take any type parameters ('{0}')", name);
           }
           var rr = new DatatypeValue(expr.tok, pair.Item1.EnclosingDatatype.Name, name, args ?? new List<Expression>());
-          ResolveDatatypeValue(opts, rr, pair.Item1.EnclosingDatatype);
+          ResolveDatatypeValue(opts, rr, pair.Item1.EnclosingDatatype, null);
           if (args == null) {
             r = rr;
           } else {
@@ -11331,7 +11331,7 @@ namespace Microsoft.Dafny
               reporter.Error(MessageSource.Resolver, expr.tok, "datatype constructor does not take any type parameters ('{0}')", name);
             }
             var rr = new DatatypeValue(expr.tok, pair.Item1.EnclosingDatatype.Name, name, args ?? new List<Expression>());
-            ResolveDatatypeValue(opts, rr, pair.Item1.EnclosingDatatype);
+            ResolveDatatypeValue(opts, rr, pair.Item1.EnclosingDatatype, null);
 
             if (args == null) {
               r = rr;
@@ -11401,7 +11401,7 @@ namespace Microsoft.Dafny
               reporter.Error(MessageSource.Resolver, expr.tok, "datatype constructor does not take any type parameters ('{0}')", name);
             }
             var rr = new DatatypeValue(expr.tok, ctor.EnclosingDatatype.Name, name, args ?? new List<Expression>());
-            ResolveDatatypeValue(opts, rr, ctor.EnclosingDatatype);
+            ResolveDatatypeValue(opts, rr, ctor.EnclosingDatatype, ty);
             if (args == null) {
               r = rr;
             } else {
@@ -11819,12 +11819,16 @@ namespace Microsoft.Dafny
       return subst;
     }
 
-    private void ResolveDatatypeValue(ResolveOpts opts, DatatypeValue dtv, DatatypeDecl dt) {
-      // this resolution is a little special, in that the syntax shows only the base name, not its instantiation (which is inferred)
+    private void ResolveDatatypeValue(ResolveOpts opts, DatatypeValue dtv, DatatypeDecl dt, Type ty) {
+      Contract.Requires(opts != null);
+      Contract.Requires(dtv != null);
+      Contract.Requires(dt != null);
+      Contract.Requires(ty == null || (ty.AsDatatype == dt && ty.TypeArgs.Count == dt.TypeArgs.Count));
+
       var gt = new List<Type>(dt.TypeArgs.Count);
       var subst = new Dictionary<TypeParameter, Type>();
       for (int i = 0; i < dt.TypeArgs.Count; i++) {
-        Type t = new InferredTypeProxy();
+        Type t = ty == null ? new InferredTypeProxy() : ty.TypeArgs[i];
         gt.Add(t);
         dtv.InferredTypeArgs.Add(t);
         subst.Add(dt.TypeArgs[i], t);
