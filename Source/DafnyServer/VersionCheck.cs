@@ -12,7 +12,7 @@ namespace DafnyServer
 {
     public class VersionCheck
     {
-        private readonly string _currentVersion = "1.9.12";
+        private readonly string _currentVersion = "1.9.13";
 
         public void Check()
         {
