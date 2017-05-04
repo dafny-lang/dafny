@@ -1371,7 +1371,6 @@ namespace Microsoft.Dafny
     }
 
     internal override void PreResolve(ModuleDefinition m) {
-      Contract.Requires(m != null);
       var declarations = m.TopLevelDecls;
 
       foreach (var d in declarations) {
