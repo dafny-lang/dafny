@@ -371,7 +371,7 @@ namespace Microsoft.Dafny
 
       } else if (expr is ChainingExpression) {
         var e = (ChainingExpression)expr;
-        return CloneExpr(e.E);  // just clone the desugaring, since it's already available
+        return new ChainingExpression(Tok(e.tok), e.Operands.ConvertAll(CloneExpr), e.Operators, e.OperatorLocs.ConvertAll(Tok), e.PrefixLimits.ConvertAll(CloneExpr));
 
       } else if (expr is LetExpr) {
         var e = (LetExpr)expr;

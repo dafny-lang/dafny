@@ -3886,9 +3886,10 @@ List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, st
 
 	void RelationalExpression(out Expression e, bool allowSemi, bool allowLambda, bool allowBitwiseOps) {
 		Contract.Ensures(Contract.ValueAtReturn(out e) != null);
-		IToken x, firstOpTok = null;  Expression e0, e1, acc = null;  BinaryExpr.Opcode op;
+		IToken x = null;  Expression e0, e1 = null;  BinaryExpr.Opcode op;
 		List<Expression> chain = null;
 		List<BinaryExpr.Opcode> ops = null;
+		List<IToken> opLocs = null;
 		List<Expression/*?*/> prefixLimits = null;
 		Expression k;
 		int kind = 0;  // 0 ("uncommitted") indicates chain of ==, possibly with one !=
@@ -3902,12 +3903,9 @@ List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, st
 		e = e0; 
 		if (IsRelOp()) {
 			RelOp(out x, out op, out k);
-			firstOpTok = x; 
 			ShiftTerm(out e1, allowSemi, allowLambda, allowBitwiseOps);
 			if (k == null) {
 			 e = new BinaryExpr(x, op, e0, e1);
-			 if (op == BinaryExpr.Opcode.Disjoint)
-			   acc = new BinaryExpr(x, BinaryExpr.Opcode.Add, e0, e1); // accumulate first two operands.
 			} else {
 			 Contract.Assert(op == BinaryExpr.Opcode.Eq || op == BinaryExpr.Opcode.Neq);
 			 e = new TernaryExpr(x, op == BinaryExpr.Opcode.Eq ? TernaryExpr.Opcode.PrefixEqOp : TernaryExpr.Opcode.PrefixNeqOp, k, e0, e1);
@@ -3917,8 +3915,9 @@ List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, st
 				if (chain == null) {
 				 chain = new List<Expression>();
 				 ops = new List<BinaryExpr.Opcode>();
+				 opLocs = new List<IToken>();
 				 prefixLimits = new List<Expression>();
-				 chain.Add(e0);  ops.Add(op);  prefixLimits.Add(k);  chain.Add(e1);
+				 chain.Add(e0); ops.Add(op); opLocs.Add(x); prefixLimits.Add(k); chain.Add(e1);
 				 switch (op) {
 				   case BinaryExpr.Opcode.Eq:
 				     kind = 0;  break;
@@ -3936,26 +3935,25 @@ List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, st
 				     kind = 3;  break;
 				 }
 				}
-				e0 = e1;
 				
 				RelOp(out x, out op, out k);
 				switch (op) {
 				 case BinaryExpr.Opcode.Eq:
-				   if (kind != 0 && kind != 1 && kind != 2) { SemErr(x, "chaining not allowed from the previous operator"); }
+				   if (kind != 0 && kind != 1 && kind != 2) { SemErr(x, "chaining not allowed from the previous operator"); kind = 3; }
 				   break;
 				 case BinaryExpr.Opcode.Neq:
-				   if (hasSeenNeq) { SemErr(x, "a chain cannot have more than one != operator"); }
-				   if (kind != 0 && kind != 1 && kind != 2) { SemErr(x, "this operator cannot continue this chain"); }
+				   if (hasSeenNeq) { SemErr(x, "a chain cannot have more than one != operator"); kind = 3; }
+				   else if (kind != 0 && kind != 1 && kind != 2) { SemErr(x, "this operator cannot continue this chain"); kind = 3; }
 				   hasSeenNeq = true;  break;
 				 case BinaryExpr.Opcode.Lt:
 				 case BinaryExpr.Opcode.Le:
 				   if (kind == 0) { kind = 1; }
-				   else if (kind != 1) { SemErr(x, "this operator chain cannot continue with an ascending operator"); }
+				   else if (kind != 1) { SemErr(x, "this operator chain cannot continue with an ascending operator"); kind = 3; }
 				   break;
 				 case BinaryExpr.Opcode.Gt:
 				 case BinaryExpr.Opcode.Ge:
 				   if (kind == 0) { kind = 2; }
-				   else if (kind != 2) { SemErr(x, "this operator chain cannot continue with a descending operator"); }
+				   else if (kind != 2) { SemErr(x, "this operator chain cannot continue with a descending operator"); kind = 3; }
 				   break;
 				 case BinaryExpr.Opcode.Disjoint:
 				   if (kind != 4) { SemErr(x, "can only chain disjoint (!!) with itself."); kind = 3; }
@@ -3966,21 +3964,12 @@ List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, st
 				}
 				
 				ShiftTerm(out e1, allowSemi, allowLambda, allowBitwiseOps);
-				ops.Add(op); prefixLimits.Add(k); chain.Add(e1);
-				if (k != null) {
-				 Contract.Assert(op == BinaryExpr.Opcode.Eq || op == BinaryExpr.Opcode.Neq);
-				 e = new TernaryExpr(x, op == BinaryExpr.Opcode.Eq ? TernaryExpr.Opcode.PrefixEqOp : TernaryExpr.Opcode.PrefixNeqOp, k, e0, e1);
-				} else if (op == BinaryExpr.Opcode.Disjoint && acc != null) {  // the second conjunct always holds for legal programs
-				 e = new BinaryExpr(x, BinaryExpr.Opcode.And, e, new BinaryExpr(x, op, acc, e1));
-				 acc = new BinaryExpr(x, BinaryExpr.Opcode.Add, acc, e1); //e0 has already been added.
-				} else {
-				 e = new BinaryExpr(x, BinaryExpr.Opcode.And, e, new BinaryExpr(x, op, e0, e1));
-				}
+				ops.Add(op); opLocs.Add(x); prefixLimits.Add(k); chain.Add(e1);
 				
 			}
 		}
-		if (chain != null) {
-		 e = new ChainingExpression(firstOpTok, chain, ops, prefixLimits, e);
+		if (chain != null && kind != 3) {
+		 e = new ChainingExpression(opLocs[0], chain, ops, opLocs, prefixLimits);
 		}
 		
 	}
