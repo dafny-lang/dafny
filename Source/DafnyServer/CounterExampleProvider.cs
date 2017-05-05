@@ -90,7 +90,6 @@ namespace DafnyServer
             //TODO list of models
             foreach (var languageSpecificModel in specificModels)
             {
-                Debugger.Launch();
                 var counterExample = new CounterExample();
                 foreach (var s in languageSpecificModel.States)
                 {
@@ -117,7 +116,7 @@ namespace DafnyServer
                 return ConvertToJson(counterExample);
             }
 
-            return "[]";
+            return ConvertToJson(new CounterExample());
         }
 
         private void AddLineInformation(CounterExampleState state, string stateCapturedStateName)

@@ -122,7 +122,7 @@ namespace Microsoft.Dafny {
           foreach (var boogieProgram in boogiePrograms) {
             counterExampleProvider.LoadModel(boogieProgram.Item2);
             var json = counterExampleProvider.ToJson();
-            Console.WriteLine("COUNTEREXAMPLE " + json + " COUNTEREXAMPLE");
+            Console.WriteLine("COUNTEREXAMPLE_START " + json + " COUNTEREXAMPLE_END");
           }
         }
       } catch (Exception e) {
