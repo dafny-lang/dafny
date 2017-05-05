@@ -8,11 +8,9 @@ using Microsoft.Boogie.ModelViewer;
 using Microsoft.Boogie.ModelViewer.Dafny;
 using Bpl = Microsoft.Boogie;
 
-namespace Microsoft.Dafny
-{
+namespace Microsoft.Dafny {
   // FIXME: This should not be duplicated here
-  class DafnyConsolePrinter : ConsolePrinter
-  {
+  class DafnyConsolePrinter : ConsolePrinter {
     public override void ReportBplError(IToken tok, string message, bool error, TextWriter tw, string category = null) {
       // Dafny has 0-indexed columns, but Boogie counts from 1
       var realigned_tok = new Token(tok.line, tok.col - 1);
@@ -29,8 +27,7 @@ namespace Microsoft.Dafny
     }
   }
 
-  class DafnyHelper
-  {
+  class DafnyHelper {
     private string fname;
     private string source;
     private string[] args;

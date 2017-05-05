@@ -4,10 +4,8 @@ using System.Text;
 using DafnyServer;
 using Microsoft.Boogie;
 
-namespace Microsoft.Dafny
-{
-  class Server
-  {
+namespace Microsoft.Dafny {
+  class Server {
     private bool running;
 
     static void Main(string[] args) {
