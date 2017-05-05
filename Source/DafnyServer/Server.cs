@@ -72,7 +72,6 @@ namespace Microsoft.Dafny {
           ServerUtils.checkArgs(command, 0);
           var payload = ReadPayload();
           VerificationTask.ReadTask(payload).Run();
-          VerificationTask.ReadTask(payload).CounterExample();
         } else if (verb == "counterExample") {
           ServerUtils.checkArgs(command, 0);
           var payload = ReadPayload();
