@@ -123,6 +123,12 @@
     <Reference Include="Provers.SMTLib">
       <HintPath>..\..\..\boogie\Binaries\Provers.SMTLib.dll</HintPath>
     </Reference>
+    <Reference Include="BoogieModelViewer">
+      <HintPath>..\..\..\boogie\Binaries\BoogieModelViewer.dll</HintPath>
+    </Reference>
+    <Reference Include="BoogieModel">
+      <HintPath>..\..\..\boogie\Binaries\BoogieModel.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Runtime.Serialization" />
@@ -131,6 +137,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="CounterExampleProvider.cs" />
     <Compile Include="DafnyHelper.cs" />
     <Compile Include="SymbolTable.cs" />
     <Compile Include="Utilities.cs" />
