@@ -57,4 +57,11 @@ EqualityTypes.dfy(319,31): Error: type parameter 1 (X) passed to function H must
 EqualityTypes.dfy(321,41): Error: type parameter 0 (V) passed to type AClass must support equality (got Stream<real>)
 EqualityTypes.dfy(323,28): Error: type parameter 0 (V) passed to type AClass must support equality (got Stream<int>)
 EqualityTypes.dfy(326,48): Error: type parameter 1 (B) passed to method Q must support equality (got Stream<real>)
-59 resolution/type errors detected in EqualityTypes.dfy
+EqualityTypes.dfy(328,33): Error: set argument type must support equality (got Stream<int>)
+EqualityTypes.dfy(330,44): Error: set argument type must support equality (got Stream<int>)
+EqualityTypes.dfy(337,7): Error: in can only be applied to expressions of sequence types that support equality (got int -> int)
+EqualityTypes.dfy(340,9): Error: in can only be applied to expressions of sequence types that support equality (got int -> int)
+EqualityTypes.dfy(359,8): Error: type parameter 0 (A) passed to type JustOpaque must support equality (got ABC) (perhaps try declaring type parameter 'ABC' on line 354 as 'ABC(==)', which says it can only be instantiated with a type that supports equality)
+EqualityTypes.dfy(360,8): Error: type parameter 0 (A) passed to type Synonym must support equality (got ABC) (perhaps try declaring type parameter 'ABC' on line 354 as 'ABC(==)', which says it can only be instantiated with a type that supports equality)
+EqualityTypes.dfy(361,8): Error: type parameter 0 (A) passed to type Subset must support equality (got ABC) (perhaps try declaring type parameter 'ABC' on line 354 as 'ABC(==)', which says it can only be instantiated with a type that supports equality)
+66 resolution/type errors detected in EqualityTypes.dfy

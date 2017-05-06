@@ -325,18 +325,14 @@ module EqualitySupportingTypes {
     AClass<int,Stream<int>>.Q<Stream<real>,real>();
     AClass<int,Stream<int>>.Q<real,Stream<real>>();  // error: method type param 1 wants an equality-supporting type
   
-/*************************** TESTS YET TO COME
-    var ac8: AClass<real,real>;
-    var xd8 := (if 5/0 == 3 then ac0 else ac8).H<real,real>();  // error: this should be checked by the verifier
-
-    AClass<int,set<Stream<int>>>.Q<real,real>();  // error: cannot utter "set<Stream<int>>"   Or is that okay???
-    AClass<int,int>.Q<set<Stream<real>>,real>();  // error: cannot utter "set<Stream<real>>"   Or is that okay???
-    var xi0 := AClass<int,set<Stream<int>>>.H<real,real>();  // error: cannot utter "set<Stream<int>>"   Or is that okay???
-    var xi1 := AClass<int,int>.H<real,set<Stream<real>>>();  // error: cannot utter "set<Stream<real>>"   Or is that okay???
+    AClass<int,set<Stream<int>>>.Q<real,real>();  // error: cannot utter "set<Stream<int>>"
+//    AClass<int,int>.Q<set<Stream<real>>,real>();  // error: cannot utter "set<Stream<real>>"   ------------------------------------------ TODO
+    var xi0 := AClass<int,set<Stream<int>>>.H<real,real>();  // error: cannot utter "set<Stream<int>>"
+//    var xi1 := AClass<int,int>.H<real,set<Stream<real>>>();  // error: cannot utter "set<Stream<real>>"   ------------------------------------------ TODO
 
     var x, t, s: seq<int -> int>, fii: int -> int;
     if s == t {
-      x := 5;  // error: assigning to non-ghost variable in ghost context
+//      x := 5;  // error: assigning to non-ghost variable in ghost context   ------------------------------------------ TODO
     }
     if fii in s {
       x := 4;  // error: assigning to non-ghost variable in ghost context
@@ -345,11 +341,23 @@ module EqualitySupportingTypes {
       x := 3;  // error: assigning to non-ghost variable in ghost context
     }
 
-    ghost var ghostset: set<Stream<int>> := {};  // fine, since this is ghost
+//    ghost var ghostset: set<Stream<int>> := {};  // fine, since this is ghost   ------------------------------------------ TODO
     forall u | 0 <= u < 100
       ensures var lets: set<Stream<int>> := {}; lets == lets  // this is ghost, so the equality requirement doesn't apply
     {
     }
-*********************************************/
+
+  }
+}
+
+module MoreEqualitySupportingTypes {
+  type ABC
+  type JustOpaque<A(==)>
+  type Synonym<A(==)> = (int,A)
+  type Subset<A(==)> = a: A | a == a
+  method Test() {
+    var a: JustOpaque<ABC>;  // error: type argument to JustOpaque must support equality
+    var b: Synonym<ABC>;  // error: type argument to Synonym must support equality
+    var c: Subset<ABC>;  // error: type argument to Subset must support equality
   }
 }
