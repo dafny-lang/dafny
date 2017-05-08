@@ -1141,8 +1141,8 @@ namespace Microsoft.Dafny {
       Contract.Requires(dd.Var != null && dd.Constraint != null);
       Contract.Requires(fullName != null);
 
-      var vars = new List<Variable>();
-      var typeArgs = Map(Enumerable.Range(0, dd.TypeArgs.Count), i => BplBoundVar("t" + i, predef.Ty, vars));
+      List<Bpl.Expr> typeArgs;
+      var vars = MkTyParamBinders(dd.TypeArgs, out typeArgs);
       var o_ty = ClassTyCon((TopLevelDecl)dd, typeArgs);
 
       var oBplType = TrType(dd.Var.Type);
@@ -5216,7 +5216,7 @@ namespace Microsoft.Dafny {
       ExpressionTranslator etran = new ExpressionTranslator(this, predef, decl.tok);
 
       // parameters of the procedure
-      var inParams = new List<Variable>();
+      var inParams = MkTyParamFormals(decl.TypeArgs);
       Bpl.Type varType = TrType(decl.Var.Type);
       Bpl.Expr wh = GetWhereClause(decl.Var.tok, new Bpl.IdentifierExpr(decl.Var.tok, decl.Var.AssignUniqueName(decl.IdGenerator), varType), decl.Var.Type, etran, NOALLOC);
       inParams.Add(new Bpl.Formal(decl.Var.tok, new Bpl.TypedIdent(decl.Var.tok, decl.Var.AssignUniqueName(decl.IdGenerator), varType, wh), true));
@@ -5230,7 +5230,7 @@ namespace Microsoft.Dafny {
         (Bpl.IdentifierExpr /*TODO: this cast is rather dubious*/)etran.HeapExpr,
         etran.Tick()
       };
-      var proc = new Bpl.Procedure(decl.tok, "CheckWellformed$$" + decl.FullSanitizedName, new List<TypeVariable>(),
+      var proc = new Bpl.Procedure(decl.tok, "CheckWellformed$$" + decl.FullSanitizedName, TrTypeParamDecls(decl.TypeArgs),
         inParams, new List<Variable>(),
         req, mod, new List<Bpl.Ensures>(), etran.TrAttributes(decl.Attributes, null));
       sink.AddTopLevelDeclaration(proc);
@@ -5267,7 +5267,7 @@ namespace Microsoft.Dafny {
         // emit the impl only when there are proof obligations.
         QKeyValue kv = etran.TrAttributes(decl.Attributes, null);
         var impl = new Bpl.Implementation(decl.tok, proc.Name,
-          new List<TypeVariable>(), implInParams, new List<Variable>(),
+          TrTypeParamDecls(decl.TypeArgs), implInParams, new List<Variable>(),
           locals, builder.Collect(decl.tok), kv);
         sink.AddTopLevelDeclaration(impl);
       }
