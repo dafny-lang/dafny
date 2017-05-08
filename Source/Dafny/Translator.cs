@@ -2152,10 +2152,8 @@ namespace Microsoft.Dafny {
         }
       }
 
-      var typeParams = TrTypeParamDecls(iter.TypeArgs);
-
       var name = MethodName(iter, kind);
-      var proc = new Bpl.Procedure(iter.tok, name, typeParams, inParams, outParams, req, mod, ens, etran.TrAttributes(iter.Attributes, null));
+      var proc = new Bpl.Procedure(iter.tok, name, new List<Bpl.TypeVariable>(), inParams, outParams, req, mod, ens, etran.TrAttributes(iter.Attributes, null));
 
       currentModule = null;
       codeContext = null;
@@ -2177,7 +2175,6 @@ namespace Microsoft.Dafny {
       currentModule = iter.Module;
       codeContext = iter;
 
-      List<Bpl.TypeVariable> typeParams = TrTypeParamDecls(iter.TypeArgs);
       List<Variable> inParams = Bpl.Formal.StripWhereClauses(proc.InParams);
       Contract.Assert(1 <= inParams.Count);  // there should at least be a receiver parameter
       Contract.Assert(proc.OutParams.Count == 0);
@@ -2287,7 +2284,7 @@ namespace Microsoft.Dafny {
       if (EmitImplementation(iter.Attributes)) {   
         QKeyValue kv = etran.TrAttributes(iter.Attributes, null);
         Bpl.Implementation impl = new Bpl.Implementation(iter.tok, proc.Name,
-          typeParams, inParams, new List<Variable>(),
+          new List<Bpl.TypeVariable>(), inParams, new List<Variable>(),
           localVariables, stmts, kv);
         sink.AddTopLevelDeclaration(impl);
       }
@@ -2314,7 +2311,6 @@ namespace Microsoft.Dafny {
       currentModule = iter.Module;
       codeContext = iter;
 
-      List<TypeVariable> typeParams = TrTypeParamDecls(iter.TypeArgs);
       List<Variable> inParams = Bpl.Formal.StripWhereClauses(proc.InParams);
       Contract.Assert(1 <= inParams.Count);  // there should at least be a receiver parameter
       Contract.Assert(proc.OutParams.Count == 0);
@@ -2357,7 +2353,7 @@ namespace Microsoft.Dafny {
         QKeyValue kv = etran.TrAttributes(iter.Attributes, null);
 
         Bpl.Implementation impl = new Bpl.Implementation(iter.tok, proc.Name,
-          typeParams, inParams, new List<Variable>(),
+          new List<Bpl.TypeVariable>(), inParams, new List<Variable>(),
           localVariables, stmts, kv);
         sink.AddTopLevelDeclaration(impl);
       }
@@ -2647,7 +2643,6 @@ namespace Microsoft.Dafny {
 
       Bpl.Trigger tr = BplTriggerHeap(this, f.tok, funcAppl,
         (AlwaysUseHeap || f.ReadsHeap || !readsHeap) ? null : etran.HeapExpr);
-      var typeParams = TrTypeParamDecls(f.TypeArgs);
       Bpl.Expr post = Bpl.Expr.True;
       // substitute function return value with the function call.
       if (f.Result != null) {
@@ -2660,7 +2655,7 @@ namespace Microsoft.Dafny {
       Bpl.Expr whr = GetWhereClause(f.tok, funcAppl, f.ResultType, etran, NOALLOC);
       if (whr != null) { post = Bpl.Expr.And(post, whr); }
 
-      Bpl.Expr ax = BplForall(f.tok, typeParams, formals, null, tr, Bpl.Expr.Imp(ante, post));
+      Bpl.Expr ax = BplForall(f.tok, new List<Bpl.TypeVariable>(), formals, null, tr, Bpl.Expr.Imp(ante, post));
       var activate = AxiomActivation(f, etran);
       string comment = "consequence axiom for " + f.FullSanitizedName;
       return new Bpl.Axiom(f.tok, Bpl.Expr.Imp(activate, ax), comment);
@@ -2932,7 +2927,6 @@ namespace Microsoft.Dafny {
 
       Bpl.Trigger tr = BplTriggerHeap(this, f.tok, funcAppl,
         (AlwaysUseHeap || f.ReadsHeap || !readsHeap) ? null : etran.HeapExpr);
-      var typeParams = TrTypeParamDecls(f.TypeArgs);
       Bpl.Expr tastyVegetarianOption;
       if (!RevealedInScope(f) || (f.IsProtected && !InVerificationScope(f))) {
         tastyVegetarianOption = Bpl.Expr.True;
@@ -2966,7 +2960,7 @@ namespace Microsoft.Dafny {
       if (lits != null) {
         kv = new QKeyValue(f.tok, "weight", new List<object>() { Bpl.Expr.Literal(3) }, null);
       }
-      Bpl.Expr ax = BplForall(f.tok, typeParams, forallFormals, kv, tr, Bpl.Expr.Imp(ante, tastyVegetarianOption));
+      Bpl.Expr ax = BplForall(f.tok, new List<Bpl.TypeVariable>(), forallFormals, kv, tr, Bpl.Expr.Imp(ante, tastyVegetarianOption));
       var activate = AxiomActivation(f, etran);
       string comment;
       if (overridingClass == null) {
@@ -3138,10 +3132,8 @@ namespace Microsoft.Dafny {
       var funcAppl1 = new Bpl.NAryExpr(f.tok, funcID, args1);
       var funcAppl0 = new Bpl.NAryExpr(f.tok, funcID, args0);
 
-      var typeParams = TrTypeParamDecls(f.TypeArgs);
-
       Bpl.Trigger tr = new Bpl.Trigger(f.tok, true, new List<Bpl.Expr> { funcAppl1 });
-      Bpl.Expr ax = new Bpl.ForallExpr(f.tok, typeParams, formals, null, tr, Bpl.Expr.Eq(funcAppl1, funcAppl0));
+      Bpl.Expr ax = new Bpl.ForallExpr(f.tok, new List<Bpl.TypeVariable>(), formals, null, tr, Bpl.Expr.Eq(funcAppl1, funcAppl0));
       sink.AddTopLevelDeclaration(new Bpl.Axiom(f.tok, ax, "layer synonym axiom"));
     }
 
@@ -3206,10 +3198,8 @@ namespace Microsoft.Dafny {
       var funcAppl1 = new Bpl.NAryExpr(f.tok, funcID, args1);
       var funcAppl0 = new Bpl.NAryExpr(f.tok, funcID, args0);
 
-      var typeParams = TrTypeParamDecls(f.TypeArgs);
-
       Bpl.Trigger tr = new Bpl.Trigger(f.tok, true, new List<Bpl.Expr> { funcAppl2 });
-      Bpl.Expr ax = new Bpl.ForallExpr(f.tok, typeParams, formals, null, tr, Bpl.Expr.Eq(funcAppl1, funcAppl0));
+      Bpl.Expr ax = new Bpl.ForallExpr(f.tok, new List<Bpl.TypeVariable>(), formals, null, tr, Bpl.Expr.Eq(funcAppl1, funcAppl0));
       sink.AddTopLevelDeclaration(new Bpl.Axiom(f.tok, ax, "fuel synonym axiom"));
     }
 
@@ -3579,7 +3569,6 @@ namespace Microsoft.Dafny {
       codeContext = m;
       isAllocContext = new IsAllocContext(m.IsGhost);
 
-      List<TypeVariable> typeParams = TrTypeParamDecls(GetTypeParams(m));
       List<Variable> inParams = Bpl.Formal.StripWhereClauses(proc.InParams);
       List<Variable> outParams = Bpl.Formal.StripWhereClauses(proc.OutParams);
 
@@ -3756,7 +3745,7 @@ namespace Microsoft.Dafny {
         // emit impl only when there are proof obligations.
         QKeyValue kv = etran.TrAttributes(m.Attributes, null);
         Bpl.Implementation impl = new Bpl.Implementation(m.tok, proc.Name,
-          typeParams, inParams, outParams,
+          new List<Bpl.TypeVariable>(), inParams, outParams,
           localVariables, stmts, kv);
         sink.AddTopLevelDeclaration(impl);
 
@@ -3889,7 +3878,6 @@ namespace Microsoft.Dafny {
             Bpl.Expr wh = GetWhereClause(p.tok, new Bpl.IdentifierExpr(p.tok, p.AssignUniqueName(f.IdGenerator), varType), p.Type, etran, NOALLOC);
             inParams.Add(new Bpl.Formal(p.tok, new Bpl.TypedIdent(p.tok, p.AssignUniqueName(f.IdGenerator), varType, wh), true));
         }
-        List<TypeVariable> typeParams = TrTypeParamDecls(f.TypeArgs);
         // the procedure itself
         var req = new List<Bpl.Requires>();
         // free requires mh == ModuleContextHeight && fh == FunctionContextHeight;
@@ -3907,7 +3895,7 @@ namespace Microsoft.Dafny {
           etran.Tick()
         };
         var ens = new List<Bpl.Ensures>();
-        Bpl.Procedure proc = new Bpl.Procedure(f.tok, "OverrideCheck$$" + f.FullSanitizedName, typeParams,
+        var proc = new Bpl.Procedure(f.tok, "OverrideCheck$$" + f.FullSanitizedName, new List<Bpl.TypeVariable>(),
           Concat(Concat(typeInParams, inParams_Heap), inParams), new List<Variable>(),
           req, mod, ens, etran.TrAttributes(f.Attributes, null));
         sink.AddTopLevelDeclaration(proc);
@@ -3955,7 +3943,7 @@ namespace Microsoft.Dafny {
           // emit the impl only when there are proof obligations.
           QKeyValue kv = etran.TrAttributes(f.Attributes, null);
 
-          Bpl.Implementation impl = new Bpl.Implementation(f.tok, proc.Name, typeParams,
+          var impl = new Bpl.Implementation(f.tok, proc.Name, new List<Bpl.TypeVariable>(),
             Concat(Concat(typeInParams, inParams_Heap), implInParams), new List<Variable>(), localVariables, stmts, kv);
           sink.AddTopLevelDeclaration(impl);
 
@@ -4153,7 +4141,6 @@ namespace Microsoft.Dafny {
         codeContext = m;
         isAllocContext = new IsAllocContext(m.IsGhost);
 
-        List<TypeVariable> typeParams = TrTypeParamDecls(m.TypeArgs);
         List<Variable> inParams = Bpl.Formal.StripWhereClauses(proc.InParams);
         List<Variable> outParams = Bpl.Formal.StripWhereClauses(proc.OutParams);
 
@@ -4207,7 +4194,7 @@ namespace Microsoft.Dafny {
         if (EmitImplementation(m.Attributes)) {
           // emit the impl only when there are proof obligations.
           QKeyValue kv = etran.TrAttributes(m.Attributes, null);
-          Bpl.Implementation impl = new Bpl.Implementation(m.tok, proc.Name, typeParams, inParams, outParams, localVariables, stmts, kv);
+          Bpl.Implementation impl = new Bpl.Implementation(m.tok, proc.Name, new List<Bpl.TypeVariable>(), inParams, outParams, localVariables, stmts, kv);
           sink.AddTopLevelDeclaration(impl);
 
           if (InsertChecksums) {
@@ -4840,8 +4827,7 @@ namespace Microsoft.Dafny {
         var eq = Bpl.Expr.Eq(F0, F1);
         var tr = new Bpl.Trigger(f.tok, true, new List<Bpl.Expr> { h0IsHeapAnchor, heapSucc, F1 });
 
-        var typeParams = TrTypeParamDecls(f.TypeArgs);
-        var ax = new Bpl.ForallExpr(f.tok, typeParams, bvars, null, tr,
+        var ax = new Bpl.ForallExpr(f.tok, new List<Bpl.TypeVariable>(), bvars, null, tr,
           Bpl.Expr.Imp(Bpl.Expr.And(wellFormed, Bpl.Expr.And(h0IsHeapAnchor, heapSucc)),
           Bpl.Expr.Imp(q0, eq)));
         sink.AddTopLevelDeclaration(new Bpl.Axiom(f.tok, ax, comment));
@@ -5006,7 +4992,6 @@ namespace Microsoft.Dafny {
         Bpl.Expr wh = GetWhereClause(p.tok, new Bpl.IdentifierExpr(p.tok, p.AssignUniqueName(f.IdGenerator), varType), p.Type, p.IsOld ? etran.Old : etran, NOALLOC);
         outParams.Add(new Bpl.Formal(p.tok, new Bpl.TypedIdent(p.tok, p.AssignUniqueName(f.IdGenerator), varType, wh), true));     
       }
-      List<TypeVariable> typeParams = TrTypeParamDecls(f.TypeArgs);
       // the procedure itself
       var req = new List<Bpl.Requires>();
       // free requires mh == ModuleContextHeight && fh == FunctionContextHeight;
@@ -5036,7 +5021,7 @@ namespace Microsoft.Dafny {
           }
         }
       }
-      Bpl.Procedure proc = new Bpl.Procedure(f.tok, "CheckWellformed$$" + f.FullSanitizedName, typeParams,
+      var proc = new Bpl.Procedure(f.tok, "CheckWellformed$$" + f.FullSanitizedName, new List<Bpl.TypeVariable>(),
         Concat(Concat(typeInParams, inParams_Heap), inParams), outParams,
         req, mod, ens, etran.TrAttributes(f.Attributes, null));
       sink.AddTopLevelDeclaration(proc);
@@ -5180,8 +5165,8 @@ namespace Microsoft.Dafny {
       if (EmitImplementation(f.Attributes)) {
         // emit the impl only when there are proof obligations.
         QKeyValue kv = etran.TrAttributes(f.Attributes, null);
-        Bpl.Implementation impl = new Bpl.Implementation(f.tok, proc.Name,
-          typeParams, Concat(Concat(typeInParams, inParams_Heap), implInParams), implOutParams,
+        var impl = new Bpl.Implementation(f.tok, proc.Name,
+          new List<Bpl.TypeVariable>(), Concat(Concat(typeInParams, inParams_Heap), implInParams), implOutParams,
           locals, implBody, kv);
         sink.AddTopLevelDeclaration(impl);
         if (InsertChecksums) {
@@ -5230,7 +5215,7 @@ namespace Microsoft.Dafny {
         (Bpl.IdentifierExpr /*TODO: this cast is rather dubious*/)etran.HeapExpr,
         etran.Tick()
       };
-      var proc = new Bpl.Procedure(decl.tok, "CheckWellformed$$" + decl.FullSanitizedName, TrTypeParamDecls(decl.TypeArgs),
+      var proc = new Bpl.Procedure(decl.tok, "CheckWellformed$$" + decl.FullSanitizedName, new List<Bpl.TypeVariable>(),
         inParams, new List<Variable>(),
         req, mod, new List<Bpl.Ensures>(), etran.TrAttributes(decl.Attributes, null));
       sink.AddTopLevelDeclaration(proc);
@@ -5267,7 +5252,7 @@ namespace Microsoft.Dafny {
         // emit the impl only when there are proof obligations.
         QKeyValue kv = etran.TrAttributes(decl.Attributes, null);
         var impl = new Bpl.Implementation(decl.tok, proc.Name,
-          TrTypeParamDecls(decl.TypeArgs), implInParams, new List<Variable>(),
+          new List<Bpl.TypeVariable>(), implInParams, new List<Variable>(),
           locals, builder.Collect(decl.tok), kv);
         sink.AddTopLevelDeclaration(impl);
       }
@@ -7697,7 +7682,6 @@ namespace Microsoft.Dafny {
 
       // declare the function
       if (!f.IsBuiltin) {
-        var typeParams = TrTypeParamDecls(f.TypeArgs);
         var formals = new List<Variable>();
         formals.AddRange(MkTyParamFormals(GetTypeParams(f)));
         if (f.IsFuelAware()) {
@@ -7716,7 +7700,7 @@ namespace Microsoft.Dafny {
           formals.Add(new Bpl.Formal(p.tok, new Bpl.TypedIdent(p.tok, p.AssignUniqueName(f.IdGenerator), TrType(p.Type)), true));
         }
         var res = new Bpl.Formal(f.tok, new Bpl.TypedIdent(f.tok, Bpl.TypedIdent.NoName, TrType(f.ResultType)), false);
-        var func = new Bpl.Function(f.tok, f.FullSanitizedName, typeParams, formals, res, "function declaration for " + f.FullName);
+        var func = new Bpl.Function(f.tok, f.FullSanitizedName, new List<Bpl.TypeVariable>(), formals, res, "function declaration for " + f.FullName);
         if (InsertChecksums) {
           InsertChecksum(f, func);
         }
@@ -7725,7 +7709,6 @@ namespace Microsoft.Dafny {
 
       // declare the corresponding canCall function
       {
-        var typeParams = TrTypeParamDecls(GetTypeParams(f));
         var formals = new List<Variable>();
         formals.AddRange(MkTyParamFormals(GetTypeParams(f)));
         if (f is TwoStateFunction) {
@@ -7741,7 +7724,7 @@ namespace Microsoft.Dafny {
           formals.Add(new Bpl.Formal(p.tok, new Bpl.TypedIdent(p.tok, p.AssignUniqueName(f.IdGenerator), TrType(p.Type)), true));
         }
         var res = new Bpl.Formal(f.tok, new Bpl.TypedIdent(f.tok, Bpl.TypedIdent.NoName, Bpl.Type.Bool), false);
-        var canCallF = new Bpl.Function(f.tok, f.FullSanitizedName + "#canCall", typeParams, formals, res);
+        var canCallF = new Bpl.Function(f.tok, f.FullSanitizedName + "#canCall", new List<Bpl.TypeVariable>(), formals, res);
         sink.AddTopLevelDeclaration(canCallF);
       }
     }
@@ -7920,10 +7903,8 @@ namespace Microsoft.Dafny {
         }
       }
 
-      var typeParams = TrTypeParamDecls(GetTypeParams(m));
-
       var name = MethodName(m, kind);
-      var proc = new Bpl.Procedure(m.tok, name, typeParams, inParams, outParams, req, mod, ens, etran.TrAttributes(m.Attributes, null));
+      var proc = new Bpl.Procedure(m.tok, name, new List<Bpl.TypeVariable>(), inParams, outParams, req, mod, ens, etran.TrAttributes(m.Attributes, null));
 
       if (InsertChecksums)
       {
@@ -8232,15 +8213,6 @@ namespace Microsoft.Dafny {
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected type
       }
-    }
-
-    List<TypeVariable> TrTypeParamDecls(List<TypeParameter/*!*/>/*!*/ tps)
-    {
-      Contract.Requires(cce.NonNullElements(tps));
-      Contract.Ensures(Contract.Result<List<TypeVariable>>() != null);
-
-      List<TypeVariable> typeParams = new List<TypeVariable>();
-      return typeParams;
     }
 
     public Bpl.Expr CondApplyBox(IToken tok, Bpl.Expr e, Type fromType, Type toType) {
