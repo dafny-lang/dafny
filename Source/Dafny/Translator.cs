@@ -6189,7 +6189,8 @@ namespace Microsoft.Dafny {
                 Expression ee = e.Args[i];
                 Bpl.Expr wh = GetWhereClause(ee.tok, etran.TrExpr(ee), ee.Type, etran.Old, ISALLOC, true);
                 if (wh != null) {
-                  builder.Add(Assert(ee.tok, wh, string.Format("argument {0} ('{1}') must be allocated in the two-state function's previous state", i, formal.Name)));
+                  builder.Add(Assert(ee.tok, wh, string.Format("argument{0} ('{1}') must be allocated in the two-state function's previous state",
+                    e.Args.Count == 1 ? "" : " " + i, formal.Name)));
                 }
               }
             }
@@ -7819,7 +7820,8 @@ namespace Microsoft.Dafny {
           if (formal.IsOld) {
             var dafnyFormalIdExpr = new IdentifierExpr(formal.tok, formal);
             req.Add(Requires(formal.tok, false, MkIsAlloc(etran.TrExpr(dafnyFormalIdExpr), formal.Type, prevHeap),
-              string.Format("parameter {0} ('{1}') must be allocated in the two-state lemma's previous state", index, formal.Name), null));
+              string.Format("parameter{0} ('{1}') must be allocated in the two-state lemma's previous state",
+              m.Ins.Count == 1 ? "" : " " + index, formal.Name), null));
           }
           index++;
         }
@@ -10302,7 +10304,8 @@ namespace Microsoft.Dafny {
             Expression ee = Args[i];
             Bpl.Expr wh = GetWhereClause(ee.tok, etran.TrExpr(ee), ee.Type, etran.Old, ISALLOC, true);
             if (wh != null) {
-              builder.Add(Assert(ee.tok, wh, string.Format("parameter {0} ('{1}') must be allocated in the two-state lemma's previous state", i, formal.Name)));
+              builder.Add(Assert(ee.tok, wh, string.Format("parameter{0} ('{1}') must be allocated in the two-state lemma's previous state",
+                Args.Count == 1 ? "" : " " + i, formal.Name)));
             }
           }
         }

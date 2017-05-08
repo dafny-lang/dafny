@@ -6,12 +6,12 @@ EqualityTypes.dfy(41,8): Error: opaque type 'Y' is not allowed to be replaced by
 EqualityTypes.dfy(45,11): Error: type 'X' is used to refine an opaque type with equality support, but 'X' does not support equality
 EqualityTypes.dfy(46,11): Error: type 'Y' is used to refine an opaque type with equality support, but 'Y' does not support equality
 EqualityTypes.dfy(66,7): Error: == can only be applied to expressions of types that support equality (got Dt<T>)
-EqualityTypes.dfy(85,9): Error: type parameter 0 (T) passed to method M must support equality (got _T0) (perhaps try declaring type parameter '_T0' on line 81 as '_T0(==)', which says it can only be instantiated with a type that supports equality)
+EqualityTypes.dfy(85,9): Error: type parameter (T) passed to method M must support equality (got _T0) (perhaps try declaring type parameter '_T0' on line 81 as '_T0(==)', which says it can only be instantiated with a type that supports equality)
 EqualityTypes.dfy(109,7): Error: == can only be applied to expressions of types that support equality (got D)
 EqualityTypes.dfy(114,13): Error: == can only be applied to expressions of types that support equality (got D)
 EqualityTypes.dfy(118,16): Error: == can only be applied to expressions of types that support equality (got D)
 EqualityTypes.dfy(147,8): Error: set argument type must support equality (got Co)
-EqualityTypes.dfy(149,13): Error: type parameter 0 (Y) passed to function G must support equality (got Co)
+EqualityTypes.dfy(149,13): Error: type parameter (Y) passed to function G must support equality (got Co)
 EqualityTypes.dfy(156,11): Error: set argument type must support equality (got Co)
 EqualityTypes.dfy(173,8): Error: set argument type must support equality (got Dt<Co>)
 EqualityTypes.dfy(176,8): Error: set argument type must support equality (got Left<Co, int>)
@@ -27,10 +27,10 @@ EqualityTypes.dfy(210,8): Error: set argument type must support equality (got Co
 EqualityTypes.dfy(211,20): Error: set argument type must support equality (got Co)
 EqualityTypes.dfy(211,29): Error: set argument type must support equality (got Co)
 EqualityTypes.dfy(212,17): Error: set argument type must support equality (got Co)
-EqualityTypes.dfy(233,12): Error: type parameter 0 (A) passed to method Explicit must support equality (got Co)
+EqualityTypes.dfy(233,12): Error: type parameter (A) passed to method Explicit must support equality (got Co)
 EqualityTypes.dfy(233,13): Error: set argument type must support equality (got Co)
 EqualityTypes.dfy(234,19): Error: set argument type must support equality (got Co)
-EqualityTypes.dfy(236,34): Error: type parameter 0 (A) passed to method InferEqualitySupportIsRequired must support equality (got Co)
+EqualityTypes.dfy(236,34): Error: type parameter (A) passed to method InferEqualitySupportIsRequired must support equality (got Co)
 EqualityTypes.dfy(236,35): Error: set argument type must support equality (got Co)
 EqualityTypes.dfy(238,24): Error: set argument type must support equality (got Co)
 EqualityTypes.dfy(239,21): Error: multiset argument type must support equality (got Co)
@@ -41,8 +41,8 @@ EqualityTypes.dfy(256,4): Error: type '?' to the method 'UP' is not determined
 EqualityTypes.dfy(259,8): Error: the type of this local variable is underspecified
 EqualityTypes.dfy(261,4): Error: type 'set<?>' to the method 'Callee' is not determined
 EqualityTypes.dfy(264,4): Error: type 'TakesParam<?>' to the method 'Callee' is not determined
-EqualityTypes.dfy(284,14): Error: type parameter 0 (T) passed to method Callee must support equality (got Dt)
-EqualityTypes.dfy(285,23): Error: type parameter 0 (T) passed to method Callee must support equality (got Stream<int>)
+EqualityTypes.dfy(284,14): Error: type parameter (T) passed to method Callee must support equality (got Dt)
+EqualityTypes.dfy(285,23): Error: type parameter (T) passed to method Callee must support equality (got Stream<int>)
 EqualityTypes.dfy(289,8): Error: set argument type must support equality (got Dt)
 EqualityTypes.dfy(290,8): Error: iset argument type must support equality (got Dt)
 EqualityTypes.dfy(291,8): Error: multiset argument type must support equality (got ArbitraryTypeArg) (perhaps try declaring type parameter 'ArbitraryTypeArg' on line 282 as 'ArbitraryTypeArg(==)', which says it can only be instantiated with a type that supports equality)
@@ -62,7 +62,7 @@ EqualityTypes.dfy(328,33): Error: set argument type must support equality (got S
 EqualityTypes.dfy(330,44): Error: set argument type must support equality (got Stream<int>)
 EqualityTypes.dfy(337,7): Error: in can only be applied to expressions of sequence types that support equality (got int -> int)
 EqualityTypes.dfy(340,9): Error: in can only be applied to expressions of sequence types that support equality (got int -> int)
-EqualityTypes.dfy(359,8): Error: type parameter 0 (A) passed to type JustOpaque must support equality (got ABC) (perhaps try declaring type parameter 'ABC' on line 354 as 'ABC(==)', which says it can only be instantiated with a type that supports equality)
-EqualityTypes.dfy(360,8): Error: type parameter 0 (A) passed to type Synonym must support equality (got ABC) (perhaps try declaring type parameter 'ABC' on line 354 as 'ABC(==)', which says it can only be instantiated with a type that supports equality)
-EqualityTypes.dfy(361,8): Error: type parameter 0 (A) passed to type Subset must support equality (got ABC) (perhaps try declaring type parameter 'ABC' on line 354 as 'ABC(==)', which says it can only be instantiated with a type that supports equality)
+EqualityTypes.dfy(359,8): Error: type parameter (A) passed to type JustOpaque must support equality (got ABC) (perhaps try declaring type parameter 'ABC' on line 354 as 'ABC(==)', which says it can only be instantiated with a type that supports equality)
+EqualityTypes.dfy(360,8): Error: type parameter (A) passed to type Synonym must support equality (got ABC) (perhaps try declaring type parameter 'ABC' on line 354 as 'ABC(==)', which says it can only be instantiated with a type that supports equality)
+EqualityTypes.dfy(361,8): Error: type parameter (A) passed to type Subset must support equality (got ABC) (perhaps try declaring type parameter 'ABC' on line 354 as 'ABC(==)', which says it can only be instantiated with a type that supports equality)
 67 resolution/type errors detected in EqualityTypes.dfy

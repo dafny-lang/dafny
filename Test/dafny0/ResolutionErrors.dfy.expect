@@ -20,7 +20,7 @@ ResolutionErrors.dfy(67,14): Error: member 'z' does not exist in type 'Global'
 ResolutionErrors.dfy(113,9): Error: ghost variables are allowed only in specification contexts
 ResolutionErrors.dfy(114,9): Error: function calls are allowed only in specification contexts (consider declaring the function a 'function method')
 ResolutionErrors.dfy(118,11): Error: ghost variables are allowed only in specification contexts
-ResolutionErrors.dfy(119,10): Error: actual out-parameter 0 is required to be a ghost variable
+ResolutionErrors.dfy(119,10): Error: actual out-parameter is required to be a ghost variable
 ResolutionErrors.dfy(126,15): Error: ghost variables are allowed only in specification contexts
 ResolutionErrors.dfy(130,23): Error: ghost variables are allowed only in specification contexts
 ResolutionErrors.dfy(137,4): Error: ghost variables are allowed only in specification contexts
