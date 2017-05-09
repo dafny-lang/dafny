@@ -23,9 +23,9 @@ TypeConstraints.dfy(186,6): Error: RHS (of type object) not assignable to LHS (o
 module _System {
   /* CALL GRAPH for module _System:
    */
-  type string = seq<char>
+  type string(==) = seq<char>
 
-  type {:axiom} nat = x: int | 0 <= x
+  type {:axiom} nat(==) = x: int | 0 <= x
 
   trait {:compile false} object { }
 

@@ -117,13 +117,13 @@ namespace Microsoft.Dafny {
     public BuiltIns() {
       SystemModule.Height = -1;  // the system module doesn't get a height assigned later, so we set it here to something below everything else
       // create type synonym 'string'
-      var str = new TypeSynonymDecl(Token.NoToken, "string", TypeParameter.EqualitySupportValue.Unspecified, new List<TypeParameter>(), SystemModule, new SeqType(new CharType()), null);
+      var str = new TypeSynonymDecl(Token.NoToken, "string", TypeParameter.EqualitySupportValue.InferredRequired, new List<TypeParameter>(), SystemModule, new SeqType(new CharType()), null);
       SystemModule.TopLevelDecls.Add(str);
       // create subset type 'nat'
       var bvNat = new BoundVar(Token.NoToken, "x", Type.Int);
       var natConstraint = Expression.CreateAtMost(Expression.CreateIntLiteral(Token.NoToken, 0), Expression.CreateIdentExpr(bvNat));
       var ax = new Attributes("axiom", new List<Expression>(), null);
-      var nat = new SubsetTypeDecl(Token.NoToken, "nat", TypeParameter.EqualitySupportValue.Unspecified, new List<TypeParameter>(), SystemModule, bvNat, natConstraint, ax);
+      var nat = new SubsetTypeDecl(Token.NoToken, "nat", TypeParameter.EqualitySupportValue.InferredRequired, new List<TypeParameter>(), SystemModule, bvNat, natConstraint, ax);
       SystemModule.TopLevelDecls.Add(nat);
       // create trait 'object'
       ObjectDecl = new TraitDecl(Token.NoToken, "object", SystemModule, new List<TypeParameter>(), new List<MemberDecl>(), DontCompile(), null);
