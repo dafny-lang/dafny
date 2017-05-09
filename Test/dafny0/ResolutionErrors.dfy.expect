@@ -191,6 +191,7 @@ ResolutionErrors.dfy(1350,15): Error: The name Inner ambiguously refers to a typ
 ResolutionErrors.dfy(1360,29): Error: ghost variables are allowed only in specification contexts
 ResolutionErrors.dfy(1362,49): Error: ghost variables are allowed only in specification contexts
 ResolutionErrors.dfy(1362,54): Error: ghost variables are allowed only in specification contexts
+ResolutionErrors.dfy(1371,33): Error: set argument type must support equality (got (int,int -> bool))
 ResolutionErrors.dfy(1383,11): Error: name of type (X) is used as a variable
 ResolutionErrors.dfy(1383,16): Error: name of type (X) is used as a variable
 ResolutionErrors.dfy(1384,11): Error: name of module (Y) is used as a variable
@@ -263,4 +264,4 @@ ResolutionErrors.dfy(1789,11): Error: Function body type mismatch (expected int,
 ResolutionErrors.dfy(1795,4): Error: second argument to || must be of type bool (instead got int)
 ResolutionErrors.dfy(1799,8): Error: second argument to || must be of type bool (instead got int)
 ResolutionErrors.dfy(1797,11): Error: Function body type mismatch (expected int, got bool)
-264 resolution/type errors detected in ResolutionErrors.dfy
+265 resolution/type errors detected in ResolutionErrors.dfy

@@ -2064,23 +2064,23 @@ namespace Microsoft.Dafny
             SetupMinimumBodyScope(dd, t =>
                 reporter.Error(MessageSource.Resolver, dd.tok, "The body of newtype {0} depends on type {1} which was not exported with it. Ensure that {1} is visible wherever {0} is exported.", dd.Name, t.ToString()));
 
-              scope.PushMarker();
-              var added = scope.Push(dd.Var.Name, dd.Var);
-              Contract.Assert(added == Scope<IVariable>.PushResult.Success);
-              ResolveExpression(dd.Constraint, new ResolveOpts(dd, false));
-              Contract.Assert(dd.Constraint.Type != null);  // follows from postcondition of ResolveExpression
-              ConstrainTypeExprBool(dd.Constraint, "newtype constraint must be of type bool (instead got {0})");
-              SolveAllTypeConstraints();
-              if (!CheckTypeInference_Visitor.IsDetermined(dd.BaseType.NormalizeExpand())) {
-                reporter.Error(MessageSource.Resolver, dd.tok, "newtype's base type is not fully determined; add an explicit type for '{0}'", dd.Var.Name);
-              }
-              if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
-                CheckTypeInference(dd.Constraint, dd);
-              }
-
-              TeardownMinimumBodyScope(dd);
-              scope.PopMarker();
+            scope.PushMarker();
+            var added = scope.Push(dd.Var.Name, dd.Var);
+            Contract.Assert(added == Scope<IVariable>.PushResult.Success);
+            ResolveExpression(dd.Constraint, new ResolveOpts(dd, false));
+            Contract.Assert(dd.Constraint.Type != null);  // follows from postcondition of ResolveExpression
+            ConstrainTypeExprBool(dd.Constraint, "newtype constraint must be of type bool (instead got {0})");
+            SolveAllTypeConstraints();
+            if (!CheckTypeInference_Visitor.IsDetermined(dd.BaseType.NormalizeExpand())) {
+              reporter.Error(MessageSource.Resolver, dd.tok, "newtype's base type is not fully determined; add an explicit type for '{0}'", dd.Var.Name);
             }
+            if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
+              CheckTypeInference(dd.Constraint, dd);
+            }
+
+            TeardownMinimumBodyScope(dd);
+            scope.PopMarker();
+          }
 
         } else if (d is SubsetTypeDecl) {
           var dd = (SubsetTypeDecl)d;
@@ -2088,6 +2088,8 @@ namespace Microsoft.Dafny
           SetupMinimumBodyScope(dd, t =>
                 reporter.Error(MessageSource.Resolver, dd.tok, "The body of subset type {0} depends on type {1} which was not exported with it. Ensure that {1} is visible wherever {0} is exported.", dd.Name, t.ToString()));
 
+          allTypeParameters.PushMarker();
+          ResolveTypeParameters(d.TypeArgs, false, d);
           ResolveAttributes(d.Attributes, d, new ResolveOpts(new NoContext(d.Module), false));
           // type check the constraint
           Contract.Assert(object.ReferenceEquals(dd.Var.Type, dd.Rhs));  // follows from SubsetTypeDecl invariant
@@ -2106,6 +2108,7 @@ namespace Microsoft.Dafny
             CheckTypeInference(dd.Constraint, dd);
           }
 
+          allTypeParameters.PopMarker();
           TeardownMinimumBodyScope(dd);
           scope.PopMarker();
         }
@@ -2394,8 +2397,8 @@ namespace Microsoft.Dafny
             }
           }
         }
-        // Inferred required equality support for datatypes and for Function and Method signatures
-        // First, do datatypes until a fixpoint is reached
+        // Inferred required equality support for datatypes and type synonyms, and for Function and Method signatures.
+        // First, do datatypes and type synonyms until a fixpoint is reached.
         bool inferredSomething;
         do {
           inferredSomething = false;
@@ -2417,10 +2420,21 @@ namespace Microsoft.Dafny
                 DONE_DT: ;
                 }
               }
+            } else if (d is TypeSynonymDecl) {
+              var syn = (TypeSynonymDecl)d;
+              foreach (var tp in syn.TypeArgs) {
+                if (tp.EqualitySupport == TypeParameter.EqualitySupportValue.Unspecified) {
+                  // here's our chance to infer the need for equality support
+                  if (InferRequiredEqualitySupport(tp, syn.Rhs)) {
+                    tp.EqualitySupport = TypeParameter.EqualitySupportValue.InferredRequired;
+                    inferredSomething = true;
+                  }
+                }
+              }
             }
           }
         } while (inferredSomething);
-        // Now do it for Function and Method signatures
+        // Now do it for Function and Method signatures.
         foreach (var d in declarations) {
           if (d is IteratorDecl) {
             var iter = (IteratorDecl)d;
@@ -2554,6 +2568,12 @@ namespace Microsoft.Dafny
                   CheckEqualityTypes_Type(p.tok, p.Type);
                 }
               }
+            }
+          } else if (d is TypeSynonymDecl) {
+            var syn = (TypeSynonymDecl)d;
+            CheckEqualityTypes_Type(syn.tok, syn.Rhs);
+            if (syn.MustSupportEquality && !syn.Rhs.SupportsEquality) {
+              reporter.Error(MessageSource.Resolver, syn.tok, "type '{0}' declared as supporting equality, but the RHS type ({1}) does not", syn.Name, syn.Rhs);
             }
           }
         }

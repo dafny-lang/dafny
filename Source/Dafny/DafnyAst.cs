@@ -3407,7 +3407,9 @@ namespace Microsoft.Dafny {
       Contract.Requires(0 <= dims);
       var ts = new List<TypeParameter>();
       for (int i = 0; i < dims; i++) {
-        ts.Add(new TypeParameter(Token.NoToken, "T" + i));
+        var tp = new TypeParameter(Token.NoToken, "T" + i);
+        tp.NecessaryForEqualitySupportOfSurroundingInductiveDatatype = true;
+        ts.Add(tp);
       }
       return ts;
     }
