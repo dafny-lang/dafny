@@ -47,7 +47,11 @@ namespace DafnyServer
             Name = fn.Name,
             ParentClass = fn.EnclosingClass.Name,
             SymbolType = SymbolInformation.Type.Function,
-            StartToken = fn.tok
+            StartToken = fn.tok,
+              EndColumn = fn.BodyEndTok.col,
+              EndLine = fn.BodyEndTok.line,
+              EndPosition = fn.BodyEndTok.pos,
+              EndToken = fn.BodyEndTok
           };
           information.Add(functionSymbol);
         } else {
@@ -66,7 +70,11 @@ namespace DafnyServer
             Requires = ParseContracts(m.Req),
             References =
                   FindMethodReferencesInternal(m.EnclosingClass.Module.Name + "." + m.EnclosingClass.Name + "." +
-                                               m.Name)
+                                   m.Name),
+            EndColumn = m.BodyEndTok.col,
+            EndLine = m.BodyEndTok.line,
+            EndPosition = m.BodyEndTok.pos,
+            EndToken = m.BodyEndTok
           };
           information.Add(methodSymbol);
         }

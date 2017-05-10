@@ -89,7 +89,7 @@ namespace Microsoft.Dafny {
           ServerUtils.checkArgs(command, 0);
           var payload = ReadPayload();
           VersionCheck check = new VersionCheck();
-          check.Check();
+          check.CurrentVersion();
         } else if (verb == "quit") {
           ServerUtils.checkArgs(command, 0);
           Exit();
