@@ -154,13 +154,12 @@ namespace DafnyServer
         [DataContract]
         class CounterExample
         {
-            private readonly List<CounterExampleState> _states;
-            [DataMember]
-            public List<CounterExampleState> States => _states;
+          [DataMember]
+            public List<CounterExampleState> States { get; }
 
-            public CounterExample()
+          public CounterExample()
             {
-                _states = new List<CounterExampleState>();
+                States = new List<CounterExampleState>();
             }
         }
 
@@ -168,11 +167,10 @@ namespace DafnyServer
         [DataContract]
         class CounterExampleState
         {
-            private readonly List<CounterExampleVariable> _variables;
-            [DataMember]
-            public List<CounterExampleVariable> Variables => _variables;
+          [DataMember]
+            public List<CounterExampleVariable> Variables { get; }
 
-            [DataMember]
+          [DataMember]
             public string Name { get; set; }
             [DataMember]
             public int Line { get; set; }
@@ -180,7 +178,7 @@ namespace DafnyServer
             public int Column { get; set; }
             public CounterExampleState()
             {
-                _variables = new List<CounterExampleVariable>();
+                Variables = new List<CounterExampleVariable>();
             }
         }
 
