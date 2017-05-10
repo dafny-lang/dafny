@@ -155,7 +155,7 @@ namespace DafnyServer
         class CounterExample
         {
           [DataMember]
-            public List<CounterExampleState> States { get; }
+            public List<CounterExampleState> States { get; set; }
 
           public CounterExample()
             {
@@ -168,7 +168,7 @@ namespace DafnyServer
         class CounterExampleState
         {
           [DataMember]
-            public List<CounterExampleVariable> Variables { get; }
+            public List<CounterExampleVariable> Variables { get; set; }
 
           [DataMember]
             public string Name { get; set; }
