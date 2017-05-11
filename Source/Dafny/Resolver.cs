@@ -404,6 +404,7 @@ namespace Microsoft.Dafny
           ResolveModuleDefinition(m, sig);
           
           if (reporter.Count(ErrorLevel.Error) == preResolveErrorCount) {
+            // Check that the module export gives a self-contained view of the module.
             CheckModuleExportConsistency(m);
           }
 
@@ -1049,6 +1050,15 @@ namespace Microsoft.Dafny
         exported.Add(new Tuple<Declaration, bool>(e.Decl, e.Opaque));
         if (!e.Opaque && e.Decl.CanBeRevealed()) {
           exported.Add(new Tuple<Declaration, bool>(e.Decl, true));
+        }
+        if (e.Opaque && (e.Decl is DatatypeDecl || e.Decl is TypeSynonymDecl)) {
+          // Datatypes and type synonyms are marked as _provided when they appear in any provided export.  If a
+          // declaration is never provided, then either it isn't visible outside the module at all or its whole
+          // definition is.  Datatype and type-synonym declarations undergo some inference from their definitions.
+          // Such inference should not be done for provided declarations, since different views of the module
+          // would then get different inferred properties.
+          e.Decl.Attributes = new Attributes("_provided", new List<Expression>(), e.Decl.Attributes);
+          reporter.Info(MessageSource.Resolver, e.Decl.tok, "{:_provided}");
         }
       }
 
@@ -2403,7 +2413,10 @@ namespace Microsoft.Dafny
         do {
           inferredSomething = false;
           foreach (var d in declarations) {
-            if (d is DatatypeDecl) {
+            if (Attributes.Contains(d.Attributes, "_provided")) {
+              // Don't infer required-equality-support for the type parameters, since there are
+              // scopes that see the name of the declaration but not its body.
+            } else if (d is DatatypeDecl) {
               var dt = (DatatypeDecl)d;
               foreach (var tp in dt.TypeArgs) {
                 if (tp.EqualitySupport == TypeParameter.EqualitySupportValue.Unspecified) {

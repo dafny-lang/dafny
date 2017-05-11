@@ -2238,7 +2238,13 @@ namespace Microsoft.Dafny {
           return true;
         } else if (ResolvedClass is TypeSynonymDeclBase) {
           var t = (TypeSynonymDeclBase)ResolvedClass;
-          return t.RhsWithArgument(TypeArgs).SupportsEquality;
+          if (t.MustSupportEquality) {
+            return true;
+          } else if (t.IsRevealedInScope(Type.GetScope())) {
+            return t.RhsWithArgument(TypeArgs).SupportsEquality;
+          } else {
+            return false;
+          }
         } else if (ResolvedParam != null) {
           return ResolvedParam.MustSupportEquality;
         }
@@ -2601,6 +2607,17 @@ namespace Microsoft.Dafny {
     public string FullName() {
       // when debugging, print it all:
       return /* Parent.FullName + "." + */ Name;
+    }
+
+    public static EqualitySupportValue GetExplicitEqualitySupportValue(TopLevelDecl d) {
+      Contract.Requires(d != null);
+      var r = EqualitySupportValue.Unspecified;
+      if (d is OpaqueTypeDecl) {
+        r = ((OpaqueTypeDecl)d).EqualitySupport;
+      } else if (d is TypeSynonymDecl) {
+        r = ((TypeSynonymDecl)d).EqualitySupport;
+      }
+      return r == EqualitySupportValue.InferredRequired ? EqualitySupportValue.Unspecified : r;
     }
   }
 
@@ -3344,7 +3361,6 @@ namespace Microsoft.Dafny {
       }
     }
     TopLevelDecl RevealableTypeDecl.AsTopLevelDecl { get { return this; } }
-    bool RevealableTypeDecl.SupportsEquality { get { return false; } }
   }
 
   public class IndDatatypeDecl : DatatypeDecl, RevealableTypeDecl
@@ -3366,8 +3382,6 @@ namespace Microsoft.Dafny {
       Contract.Requires(cce.NonNullElements(ctors));
       Contract.Requires(1 <= ctors.Count);
     }
-
-    bool RevealableTypeDecl.SupportsEquality { get { return this.EqualitySupport != ES.Never; } }
 
     public new IndDatatypeDecl ClonedFrom {
       get {
@@ -4066,7 +4080,7 @@ namespace Microsoft.Dafny {
         thisType.ResolvedParam = ((OpaqueTypeDecl)d).TheType;
       }
 
-      var tsd = new InternalTypeSynonymDecl(d.tok, d.Name, TypeParameter.EqualitySupportValue.Unspecified, d.TypeArgs, d.Module, thisType, d.Attributes);
+      var tsd = new InternalTypeSynonymDecl(d.tok, d.Name, TypeParameter.GetExplicitEqualitySupportValue(d), d.TypeArgs, d.Module, thisType, d.Attributes);
       tsd.InheritVisibility(d, false);
 
       tsdMap.Add(d, tsd);
@@ -4104,7 +4118,6 @@ namespace Microsoft.Dafny {
 
   public interface RevealableTypeDecl {
     TopLevelDecl AsTopLevelDecl {get; }
-    bool SupportsEquality { get; }
   }
 
   public class NewtypeDecl : TopLevelDecl, RevealableTypeDecl, RedirectingTypeDecl
@@ -4136,7 +4149,15 @@ namespace Microsoft.Dafny {
     }
 
     TopLevelDecl RevealableTypeDecl.AsTopLevelDecl { get { return this; } }
-    bool RevealableTypeDecl.SupportsEquality { get { return this.BaseType.SupportsEquality; } }
+    public TypeParameter.EqualitySupportValue EqualitySupport {
+      get {
+        if (this.BaseType.SupportsEquality) {
+          return TypeParameter.EqualitySupportValue.Required;
+        } else {
+          return TypeParameter.EqualitySupportValue.Unspecified;
+        }
+      }
+    }
 
     string RedirectingTypeDecl.Name { get { return Name; } }
     IToken RedirectingTypeDecl.tok { get { return tok; } }
@@ -4245,7 +4266,6 @@ namespace Microsoft.Dafny {
         this.NewSelfSynonym();
     }
     TopLevelDecl RevealableTypeDecl.AsTopLevelDecl { get { return this; } }
-    bool RevealableTypeDecl.SupportsEquality { get { return this.Rhs.SupportsEquality; } }
   }
 
   public class InternalTypeSynonymDecl : TypeSynonymDeclBase, RedirectingTypeDecl {

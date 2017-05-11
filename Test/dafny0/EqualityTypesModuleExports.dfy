@@ -140,3 +140,154 @@ module AAA {
     var l: Syn5<Subset3<Opaque0>>;
   }
 }
+
+module BBB {
+  class MyClass<A(==)> { }
+  datatype Dt<A> = Dt(s: set<A>)
+  codatatype Co<A> = Co(s: iset<A>, more: SubsetCo<A>)
+  type Syn<A> = Dt<A>
+  type SubsetCo<A> = co: Co<A> | true
+  type Noeq = int -> int
+
+  method Test() {
+    var a: MyClass<Noeq>;  // error: Noeq does not support equality
+    var b: Dt<Noeq>;  // error: Noeq does not support equality
+    var c: Co<Noeq>;  // error: Noeq does not support equality
+    var d: Syn<Noeq>;  // error: Noeq does not support equality
+    var e: SubsetCo<Noeq>;  // error: Noeq does not support equality
+  }
+}
+
+module CCC {
+  export reveals Co, Syn, SubsetCo, Dt
+  export Alt reveals MyClass, Dt, SubsetCo, Co
+  export More reveals Syn provides Dt
+
+  class MyClass<A(==)> { }
+  datatype Dt<A(==)> = Dt(s: set<A>)
+  codatatype Co<A> = Co(s: iset<A>, more: SubsetCo<A>)
+  type Syn<A> = Dt<A>
+  type SubsetCo<A> = co: Co<A> | true
+  type Noeq = int -> int
+
+  method Test() {
+    var a: MyClass<Noeq>;  // error: Noeq does not support equality
+    var b: Dt<Noeq>;  // error: Noeq does not support equality
+    var c: Co<Noeq>;  // error: Noeq does not support equality
+    var d: Syn<Noeq>;  // error: Noeq does not support equality
+    var e: SubsetCo<Noeq>;  // error: Noeq does not support equality
+  }
+}
+
+module DDD {
+  export reveals Syn, SubsetCo provides Dt, Co
+  export Alt reveals MyClass, Dt, SubsetCo, Co
+  export More reveals Syn, Dt
+
+  class MyClass<A(==)> { }
+  datatype Dt<A> = Dt(s: set<A>)  // error: A is not inferred to be (==), so set<A> is not allowed
+  codatatype Co<A> = Co(s: iset<A>, more: SubsetCo<A>)  // error: A is not inferred to be (==), so iset<A> is not allowed
+  type Syn<A> = Dt<A>
+  type SubsetCo<A> = co: Co<A> | true
+  type Noeq = int -> int
+
+  method Test() {
+    var a: MyClass<Noeq>;  // error: Noeq does not support equality
+    // Nothing wrong with the following declarations, though, since the types are declared with, nor have been inferred to have, (==) arguments
+    var b: Dt<Noeq>;
+    var c: Co<Noeq>;
+    var d: Syn<Noeq>;
+    var e: SubsetCo<Noeq>;
+  }
+}
+
+module EEE {
+  type Opa(==)<A>
+  type Syn(==)<A> = int
+  type Sub(==)<A> = x: bool | !x
+  type Opa'<A>
+  type Syn'<A> = int
+  type Sub'<A> = x: bool | !x
+}
+module FFF refines EEE {
+  type Noeq = int -> int
+  type Opa<A> = Noeq  // error: Opa must support equality
+}
+module GGG refines EEE {
+  export provides Opa, Syn, Sub, Opa', Syn', Sub'
+}
+module HHH {
+  import GGG
+  type Noeq = int -> int
+  type S<A> = set<A>
+  method Test() {
+    var a: GGG.Opa<Noeq>;
+    var b: GGG.Syn<Noeq>;
+    var c: GGG.Sub<Noeq>;
+    var d: S<GGG.Opa<int>>;
+    var e: S<GGG.Syn<int>>;
+    var f: S<GGG.Sub<int>>;
+    var d': S<GGG.Opa'<int>>;  // error: type parameter to S must support equality, but it doesn't
+    var e': S<GGG.Syn'<int>>;  // error: type parameter to S must support equality, but it doesn't
+    var f': S<GGG.Sub'<int>>;  // error: type parameter to S must support equality, but it doesn't
+  }
+}
+
+module WWW0 {
+  export provides XT, YT, ZT, WT, YT', ZT', WT'
+  datatype XT = Blue | Red
+  type YT = XT
+  type ZT
+  type WT = x: int | x < 100
+  type YT'(==) = XT
+  type ZT'(==)
+  type WT'(==) = x: int | x < 100
+}
+module WWW1 {
+  import WWW0
+  method M(x: WWW0.XT, y: WWW0.YT, z: WWW0.ZT, w: WWW0.WT) returns (r: int) {
+    if x == x {  // error: x's type is not known to support equality
+      r := 20;
+    }
+    if y == y {  // error: y's type is not known to support equality
+      r := 20;
+    }
+    if z == z {  // error: z's type is not known to support equality
+      r := 20;
+    }
+    if w == w {  // error: w's type is not known to support equality
+      r := 20;
+    }
+  }
+  method M'(y: WWW0.YT', z: WWW0.ZT', w: WWW0.WT') returns (r: int) {
+    if y == y {
+      r := 20;
+    }
+    if z == z {
+      r := 20;
+    }
+    if w == w {
+      r := 20;
+    }
+  }
+}
+
+module QQQ0 {
+  type Syn<A> = int
+}
+module QQQ1 refines QQQ0 {
+  export provides Syn
+}
+module PPP {
+  import QQQ1
+  type A(==) = QQQ1.Syn<int>  // error: QQQ.Syn1 is not known to support equality
+}
+
+module PRS {
+  export provides S  // exports will not know S to be equality-supporting, but this is known locally
+  datatype Dt = Green | Cat
+  type S = Dt
+  method M(s: S, t: S) returns (b: bool) {
+    b := s == t;
+  }
+}
