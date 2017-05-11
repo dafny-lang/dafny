@@ -430,7 +430,6 @@ namespace DafnyLanguage
                 case "constructor":
                 case "copredicate":
                 case "datatype":
-                case "default":
                 case "else":
                 case "exists":
                 case "false":
