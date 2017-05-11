@@ -18,35 +18,14 @@ namespace DafnyServer {
   public class CounterExampleProvider {
     private List<ILanguageSpecificModel> _languageSpecificModels;
 
-    public void LoadModel(Program boogieProgram) {
-      if (boogieProgram.Resolve() == 0 && boogieProgram.Typecheck() == 0) {
-        //FIXME ResolveAndTypecheck?
-        ExecutionEngine.EliminateDeadVariables(boogieProgram);
-        ExecutionEngine.CollectModSets(boogieProgram);
-        ExecutionEngine.CoalesceBlocks(boogieProgram);
-        ExecutionEngine.Inline(boogieProgram);
-
-        var realConsoleOut = Console.Out;
-        using (var writer = new StringWriter()) {
-          Console.SetOut(writer);
-
-          //NOTE: We could capture errors instead of printing them (pass a delegate instead of null)
-          ExecutionEngine.InferAndVerify(boogieProgram, new PipelineStatistics(), "ServerProgram", null,
-          DateTime.UtcNow.Ticks.ToString());
-          writer.Flush();
-
-          var output = writer.GetStringBuilder().ToString();
-          Console.SetOut(realConsoleOut);
-          Console.WriteLine(output);
-
-          var models = ExtractModels(output);
-          _languageSpecificModels = BuildModels(models);
-
-        }
+    public void LoadModel() {
+      using (var wr = new StreamReader("model.bvd")) {
+        var output = wr.ReadToEnd();
+        var models = ExtractModels(output);
+        _languageSpecificModels = BuildModels(models);
       }
     }
-
-
+    
     public string ToJson() {
       return ConvertModels(_languageSpecificModels);
     }
@@ -95,12 +74,9 @@ namespace DafnyServer {
             });
           }
           var index = counterExample.States.FindIndex(c => c.Column == counterExampleState.Column && c.Line == counterExampleState.Line);
-          if (index != -1)
-          {
+          if (index != -1) {
             counterExample.States[index] = counterExampleState;
-          }
-          else
-          {
+          } else {
             counterExample.States.Add(counterExampleState);
           }
         }

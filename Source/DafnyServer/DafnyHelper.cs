@@ -120,7 +120,8 @@ namespace Microsoft.Dafny {
         if (Parse() && Resolve() && Translate()) {
           var counterExampleProvider = new CounterExampleProvider();
           foreach (var boogieProgram in boogiePrograms) {
-            counterExampleProvider.LoadModel(boogieProgram.Item2);
+            BoogieOnce(boogieProgram.Item2);
+            counterExampleProvider.LoadModel();
             var json = counterExampleProvider.ToJson();
             Console.WriteLine("COUNTEREXAMPLE_START " + json + " COUNTEREXAMPLE_END");
           }
