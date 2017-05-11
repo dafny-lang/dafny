@@ -291,3 +291,70 @@ module PRS {
     b := s == t;
   }
 }
+
+module ExportEquality0 {
+  export provides ExportedType, Empty
+
+  type ExportedType(==)<A> = PrivateType<A>  // error: because PrivateType<A> supports equality only if A does
+  datatype PrivateType<A> = None | Make(a: A)
+  function method Empty(): ExportedType
+}
+
+module ExportEquality1 {
+  export provides ExportedType, Empty
+
+  type ExportedType(==)<A> = PrivateType<A>
+  datatype PrivateType<A> = None | Make(a: int)  // this does not make use of A
+  function method Empty(): ExportedType
+}
+
+module ExportEquality2 {
+  export provides ExportedType, Empty
+
+  type ExportedType(==)<A(==)> = PrivateType<A>
+  datatype PrivateType<A> = None | Make(a: A)
+  function method Empty(): ExportedType
+}
+module Client2 {
+  import EE = ExportEquality2
+  method IsEmpty(t: EE.ExportedType) returns (wellIsIt: bool)
+  {
+    wellIsIt := t == EE.Empty();
+  }
+}
+
+module ExportEquality3 {
+  export provides ExportedType, Empty, IsEmpty
+
+  type ExportedType(==)<A(==)> = PrivateType<A>
+  datatype PrivateType<A> = None | Make(a: A)
+  function method Empty(): ExportedType
+  {
+    None
+  }
+  predicate method IsEmpty(t: ExportedType)
+    ensures IsEmpty(t) <==> t == Empty()
+  {
+    t == None
+  }
+}
+
+module CompareWithNullaryCtor {
+  datatype List<A> = Nil | Cons(head: A, tail: List)
+  predicate method MyEquals_Bad<A>(xs: List, ys: List)
+  {
+    xs == ys  // error: List<A> supports equality only if A does
+  }
+  predicate method MyEquals_Good<A(==)>(xs: List, ys: List)
+  {
+    xs == ys
+  }
+  predicate method IsNil<A>(xs: List)
+  {
+    xs == Nil
+  }
+  predicate method IsNil'<A>(xs: List)
+  {
+    xs.Nil?
+  }
+}

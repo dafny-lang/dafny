@@ -5890,7 +5890,7 @@ namespace Microsoft.Dafny
       Contract.Requires(tp != null);
       Contract.Requires(type != null);
 
-      type = type.NormalizeExpand();
+      type = type.Normalize();  // we only do a .Normalize() here, because we want to keep stop at any type synonym or subset type
       if (type is BasicType) {
       } else if (type is SetType) {
         var st = (SetType)type;
@@ -5924,6 +5924,12 @@ namespace Microsoft.Dafny
               return true;
             }
             i++;
+          }
+        }
+        if (udt.ResolvedClass is TypeSynonymDecl) {
+          var syn = (TypeSynonymDecl)udt.ResolvedClass;
+          if (syn.IsRevealedInScope(Type.GetScope())) {
+            return InferRequiredEqualitySupport(tp, syn.RhsWithArgument(udt.TypeArgs));
           }
         }
       } else {
