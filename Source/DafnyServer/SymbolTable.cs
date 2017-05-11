@@ -158,7 +158,26 @@ namespace DafnyServer
             }
           }
         }
-
+          if (statement is UpdateStmt)
+          {
+              var updateStatement = statement as UpdateStmt;
+              var lefts = updateStatement.Lhss;
+              foreach (var expression in lefts)
+              {
+                  if (expression is AutoGhostIdentifierExpr)
+                  {
+                      var autoGhost = expression as AutoGhostIdentifierExpr;
+                        information.Add(new SymbolInformation
+                        {
+                            Name = autoGhost.Name,
+                            ParentClass = autoGhost.Resolved.Type.ToString(),
+                            SymbolType = SymbolInformation.Type.Definition,
+                            StartToken = updateStatement.Tok,
+                            EndToken = updateStatement.EndTok
+                        });
+                    }
+              }
+          }
         if (statement.SubStatements.Any()) {
           information.AddRange(ResolveLocalDefinitions(statement.SubStatements.ToList(), method));
         }
