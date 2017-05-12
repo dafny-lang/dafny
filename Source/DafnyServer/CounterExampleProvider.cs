@@ -17,9 +17,11 @@ using Program = Microsoft.Boogie.Program;
 namespace DafnyServer {
   public class CounterExampleProvider {
     private List<ILanguageSpecificModel> _languageSpecificModels;
+    public static readonly string ModelBvd = "./model.bvd";
 
-    public void LoadModel() {
-      using (var wr = new StreamReader("model.bvd")) {
+    public void LoadModel()
+    {
+      using (var wr = new StreamReader(ModelBvd)) {
         var output = wr.ReadToEnd();
         var models = ExtractModels(output);
         _languageSpecificModels = BuildModels(models);

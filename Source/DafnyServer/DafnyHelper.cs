@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using Microsoft.Boogie;
 using DafnyServer;
 using Microsoft.Boogie.ModelViewer;
@@ -115,11 +116,14 @@ namespace Microsoft.Dafny {
     }
 
     public void CounterExample() {
-      ServerUtils.ApplyArgs(args, reporter);
+      var listArgs = args.ToList();
+      listArgs.Add("/mv:" + CounterExampleProvider.ModelBvd);
+      ServerUtils.ApplyArgs(listArgs.ToArray(), reporter);
       try {
         if (Parse() && Resolve() && Translate()) {
           var counterExampleProvider = new CounterExampleProvider();
           foreach (var boogieProgram in boogiePrograms) {
+            RemoveExistingModel();
             BoogieOnce(boogieProgram.Item2);
             counterExampleProvider.LoadModel();
             var json = counterExampleProvider.ToJson();
@@ -128,6 +132,12 @@ namespace Microsoft.Dafny {
         }
       } catch (Exception e) {
         Console.WriteLine("Error collection models: " + e.Message);
+      }
+    }
+
+    private void RemoveExistingModel() {
+      if (File.Exists(CounterExampleProvider.ModelBvd)) {
+        File.Delete(CounterExampleProvider.ModelBvd);
       }
     }
   }
