@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Runtime.Serialization;
 using System.Runtime.Serialization.Json;
 using System.Text;
@@ -19,15 +20,14 @@ namespace DafnyServer {
     private List<ILanguageSpecificModel> _languageSpecificModels;
     public static readonly string ModelBvd = "./model.bvd";
 
-    public void LoadModel()
-    {
+    public void LoadModel() {
       using (var wr = new StreamReader(ModelBvd)) {
         var output = wr.ReadToEnd();
         var models = ExtractModels(output);
         _languageSpecificModels = BuildModels(models);
       }
     }
-    
+
     public string ToJson() {
       return ConvertModels(_languageSpecificModels);
     }
@@ -56,6 +56,12 @@ namespace DafnyServer {
       return models;
     }
 
+    public static T GetFieldValue<T>(object instance, string fieldName) {
+      const BindingFlags bindFlags = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static;
+      var field = instance.GetType().GetField(fieldName, bindFlags);
+      return field == null ? default(T) : (T)field.GetValue(instance);
+    }
+
     private string ConvertModels(List<ILanguageSpecificModel> specificModels) {
       foreach (var languageSpecificModel in specificModels) {
         var counterExample = new CounterExample();
@@ -69,11 +75,11 @@ namespace DafnyServer {
 
           foreach (var variableNode in state.Vars) {
             counterExampleState.Variables.Add(new CounterExampleVariable {
-              RealName = variableNode.realName,
               Name = variableNode.ShortName,
               Value = variableNode.Value,
               CanonicalName = languageSpecificModel.CanonicalName(variableNode.Element)
             });
+            GetExpansions(state, variableNode, counterExampleState, languageSpecificModel);
           }
           var index = counterExample.States.FindIndex(c => c.Column == counterExampleState.Column && c.Line == counterExampleState.Line);
           if (index != -1) {
@@ -86,6 +92,23 @@ namespace DafnyServer {
       }
 
       return ConvertToJson(new CounterExample());
+    }
+
+    private static void GetExpansions(StateNode state, ElementNode elementNode, CounterExampleState counterExampleState,
+      ILanguageSpecificModel languageSpecificModel) {
+      try {
+        var dafnyModel = GetFieldValue<DafnyModel>(state, "dm");
+        var elt = GetFieldValue<Model.Element>(elementNode, "elt");
+        var extras = dafnyModel.GetExpansion(state, elt);
+        foreach (var el in extras) {
+          counterExampleState.Variables.Add(new CounterExampleVariable {
+            Name = elementNode.Name + "." + el.Name,
+            Value = el.Value,
+            CanonicalName = languageSpecificModel.CanonicalName(el.Element)
+          });
+        }
+      } catch (Exception e) {
+      }
     }
 
     private void AddLineInformation(CounterExampleState state, string stateCapturedStateName) {
