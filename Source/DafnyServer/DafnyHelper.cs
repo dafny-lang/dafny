@@ -125,6 +125,7 @@ namespace Microsoft.Dafny {
           foreach (var boogieProgram in boogiePrograms) {
             RemoveExistingModel();
             BoogieOnce(boogieProgram.Item2);
+            
             counterExampleProvider.LoadModel();
             var json = counterExampleProvider.ToJson();
             Console.WriteLine("COUNTEREXAMPLE_START " + json + " COUNTEREXAMPLE_END");
@@ -139,6 +140,23 @@ namespace Microsoft.Dafny {
       if (File.Exists(CounterExampleProvider.ModelBvd)) {
         File.Delete(CounterExampleProvider.ModelBvd);
       }
+    }
+
+    public void DotGraph() {
+      ServerUtils.ApplyArgs(args, reporter);
+      
+      if (Parse() && Resolve() && Translate()) {
+        foreach (var boogieProgram in boogiePrograms) {
+          BoogieOnce(boogieProgram.Item2);
+
+          foreach (var impl in boogieProgram.Item2.Implementations) {
+            using (StreamWriter sw = new StreamWriter(fname + impl.Name + ".dot")) {
+              sw.Write(boogieProgram.Item2.ProcessLoops(impl).ToDot());
+            }
+          }
+        }
+      }
+
     }
   }
 }
