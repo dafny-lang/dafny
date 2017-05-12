@@ -10,7 +10,7 @@ using System.Text.RegularExpressions;
 
 namespace DafnyServer {
   public class VersionCheck {
-    private readonly string _currentVersion = "1.9.14";
+    private readonly string _currentVersion = "1.9.15";
 
     public void Check() {
       try {
