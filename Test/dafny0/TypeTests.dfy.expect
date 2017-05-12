@@ -2,7 +2,7 @@ TypeTests.dfy(9,17): Error: type mismatch for argument 0 (function expects C, go
 TypeTests.dfy(9,20): Error: type mismatch for argument 1 (function expects D, got C)
 TypeTests.dfy(10,15): Error: type mismatch for argument 0 (function expects C, got int)
 TypeTests.dfy(10,18): Error: type mismatch for argument 1 (function expects D, got int)
-TypeTests.dfy(16,16): Error: incorrect type of method in-parameter 0 (expected int, got bool)
+TypeTests.dfy(16,16): Error: incorrect type of method in-parameter (expected int, got bool)
 TypeTests.dfy(16,16): Error: incorrect type of method out-parameter 1 (expected C, got int)
 TypeTests.dfy(17,12): Error: incorrect type of method out-parameter 1 (expected C, got int)
 TypeTests.dfy(45,6): Error: Duplicate local-variable name: z

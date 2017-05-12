@@ -855,3 +855,24 @@ module GenericPick {
     var x :| x in m; x
   }
 }
+
+// ------------------------------------------------
+
+module ListLibrary {
+  datatype List<T> = Nil | Cons(T, List)
+}
+
+module ListLibraryIndirect {
+  import LL = ListLibrary
+  export provides LL
+}
+
+module DatatypeTestZ {
+  import LLI = ListLibraryIndirect
+  import MyList = ListLibrary
+  method Test() {
+    var aa := MyList.List<real>.Nil;
+    var bb := LLI.LL.Nil;
+    assert aa == bb;
+  }
+}

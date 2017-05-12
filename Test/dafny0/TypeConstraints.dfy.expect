@@ -22,9 +22,9 @@ TypeConstraints.dfy(186,6): Error: RHS (of type object) not assignable to LHS (o
 module _System {
   /* CALL GRAPH for module _System:
    */
-  type string = seq<char>
+  type string(==) = seq<char>
 
-  type {:axiom} nat = x: int | 0 <= x
+  type {:axiom} nat(==) = x: int | 0 <= x
 
   trait {:compile false} object { }
 
@@ -357,7 +357,7 @@ module TypeParameters {
 
   type B
 
-  type C
+  type C<T, U>
 
   method M<G, H>(a: A, b: B, c0: C<int, bool>, g: G)
       returns (c1: C<real, real>, h: H)

@@ -404,6 +404,7 @@ namespace Microsoft.Dafny
           ResolveModuleDefinition(m, sig);
           
           if (reporter.Count(ErrorLevel.Error) == preResolveErrorCount) {
+            // Check that the module export gives a self-contained view of the module.
             CheckModuleExportConsistency(m);
           }
 
@@ -928,6 +929,22 @@ namespace Microsoft.Dafny
           d.Exports.AddRange(eexports);
         }
 
+        if (d.ExtendDecls.Count == 0 && d.Exports.Count == 0) {
+          // This is an empty export.  This is allowed, but unusual.  It could pop up, for example, if
+          // someone temporary comments out everything that the export set provides/reveals.  However,
+          // if the name of the export set coincides with something else that's declared at the top
+          // level of the module, then this export declaration is more likely an error--the user probably
+          // forgot the "provides" or "reveals" keyword.
+          Dictionary<string, MemberDecl> members;
+          MemberDecl member;
+          // Top-level functions and methods are actually recorded as members of the _default class.  We look up the
+          // export-set name there.  If the export-set name happens to coincide with some other top-level declaration,
+          // then an error will already have been produced ("duplicate name of top-level declaration").
+          if (classMembers.TryGetValue((ClassDecl)defaultClass, out members) && members.TryGetValue(d.Name, out member)) {
+            reporter.Warning(MessageSource.Resolver, d.tok, "note, this export set is empty (did you perhaps forget the 'provides' or 'reveals' keyword?)");
+          }
+        }
+
         foreach (ExportSignature export in d.Exports) {
 
           // check to see if it is a datatype or a member or
@@ -948,11 +965,11 @@ namespace Microsoft.Dafny
               if (lmem != null) {
                 decl = lmem;
               } else {
-                reporter.Error(MessageSource.Resolver, d.tok, "No member '" + export.Id + "' found in class '" + export.ClassId);
+                reporter.Error(MessageSource.Resolver, export.Tok, "No member '{0}' found in class '{1}'", export.Id, export.ClassId);
                 continue;
               }
             } else {
-              reporter.Error(MessageSource.Resolver, d.tok, "No class '" + export.ClassId + "' found");
+              reporter.Error(MessageSource.Resolver, export.ClassIdTok, "No class '{0}' found", export.ClassId);
               continue;
             }
           } else if (sig.TopLevels.TryGetValue(name, out tdecl)) {
@@ -961,17 +978,17 @@ namespace Microsoft.Dafny
           } else if (sig.StaticMembers.TryGetValue(name, out member)) {
             decl = member;
           } else {
-            reporter.Error(MessageSource.Resolver, d.tok, name + " must be a member of " + m.Name + " to be exported");
+            reporter.Error(MessageSource.Resolver, export.Tok, name + " must be a member of " + m.Name + " to be exported");
             continue;
           }
 
           if (!decl.CanBeExported()) {
-            reporter.Error(MessageSource.Resolver, d.tok, name + " is not a valid export of " + m.Name);
+            reporter.Error(MessageSource.Resolver, export.Tok, name + " is not a valid export of " + m.Name);
             continue;
           }
 
           if (!export.Opaque && !decl.CanBeRevealed()) {
-            reporter.Error(MessageSource.Resolver, d.tok, name + " cannot be revealed in an export. Use \"provides\" instead.");
+            reporter.Error(MessageSource.Resolver, export.Tok, name + " cannot be revealed in an export. Use \"provides\" instead.");
             continue;
           }
 
@@ -1049,6 +1066,15 @@ namespace Microsoft.Dafny
         exported.Add(new Tuple<Declaration, bool>(e.Decl, e.Opaque));
         if (!e.Opaque && e.Decl.CanBeRevealed()) {
           exported.Add(new Tuple<Declaration, bool>(e.Decl, true));
+        }
+        if (e.Opaque && (e.Decl is DatatypeDecl || e.Decl is TypeSynonymDecl)) {
+          // Datatypes and type synonyms are marked as _provided when they appear in any provided export.  If a
+          // declaration is never provided, then either it isn't visible outside the module at all or its whole
+          // definition is.  Datatype and type-synonym declarations undergo some inference from their definitions.
+          // Such inference should not be done for provided declarations, since different views of the module
+          // would then get different inferred properties.
+          e.Decl.Attributes = new Attributes("_provided", new List<Expression>(), e.Decl.Attributes);
+          reporter.Info(MessageSource.Resolver, e.Decl.tok, "{:_provided}");
         }
       }
 
@@ -2064,23 +2090,23 @@ namespace Microsoft.Dafny
             SetupMinimumBodyScope(dd, t =>
                 reporter.Error(MessageSource.Resolver, dd.tok, "The body of newtype {0} depends on type {1} which was not exported with it. Ensure that {1} is visible wherever {0} is exported.", dd.Name, t.ToString()));
 
-              scope.PushMarker();
-              var added = scope.Push(dd.Var.Name, dd.Var);
-              Contract.Assert(added == Scope<IVariable>.PushResult.Success);
-              ResolveExpression(dd.Constraint, new ResolveOpts(dd, false));
-              Contract.Assert(dd.Constraint.Type != null);  // follows from postcondition of ResolveExpression
-              ConstrainTypeExprBool(dd.Constraint, "newtype constraint must be of type bool (instead got {0})");
-              SolveAllTypeConstraints();
-              if (!CheckTypeInference_Visitor.IsDetermined(dd.BaseType.NormalizeExpand())) {
-                reporter.Error(MessageSource.Resolver, dd.tok, "newtype's base type is not fully determined; add an explicit type for '{0}'", dd.Var.Name);
-              }
-              if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
-                CheckTypeInference(dd.Constraint, dd);
-              }
-
-              TeardownMinimumBodyScope(dd);
-              scope.PopMarker();
+            scope.PushMarker();
+            var added = scope.Push(dd.Var.Name, dd.Var);
+            Contract.Assert(added == Scope<IVariable>.PushResult.Success);
+            ResolveExpression(dd.Constraint, new ResolveOpts(dd, false));
+            Contract.Assert(dd.Constraint.Type != null);  // follows from postcondition of ResolveExpression
+            ConstrainTypeExprBool(dd.Constraint, "newtype constraint must be of type bool (instead got {0})");
+            SolveAllTypeConstraints();
+            if (!CheckTypeInference_Visitor.IsDetermined(dd.BaseType.NormalizeExpand())) {
+              reporter.Error(MessageSource.Resolver, dd.tok, "newtype's base type is not fully determined; add an explicit type for '{0}'", dd.Var.Name);
             }
+            if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
+              CheckTypeInference(dd.Constraint, dd);
+            }
+
+            TeardownMinimumBodyScope(dd);
+            scope.PopMarker();
+          }
 
         } else if (d is SubsetTypeDecl) {
           var dd = (SubsetTypeDecl)d;
@@ -2088,6 +2114,8 @@ namespace Microsoft.Dafny
           SetupMinimumBodyScope(dd, t =>
                 reporter.Error(MessageSource.Resolver, dd.tok, "The body of subset type {0} depends on type {1} which was not exported with it. Ensure that {1} is visible wherever {0} is exported.", dd.Name, t.ToString()));
 
+          allTypeParameters.PushMarker();
+          ResolveTypeParameters(d.TypeArgs, false, d);
           ResolveAttributes(d.Attributes, d, new ResolveOpts(new NoContext(d.Module), false));
           // type check the constraint
           Contract.Assert(object.ReferenceEquals(dd.Var.Type, dd.Rhs));  // follows from SubsetTypeDecl invariant
@@ -2106,6 +2134,7 @@ namespace Microsoft.Dafny
             CheckTypeInference(dd.Constraint, dd);
           }
 
+          allTypeParameters.PopMarker();
           TeardownMinimumBodyScope(dd);
           scope.PopMarker();
         }
@@ -2394,13 +2423,16 @@ namespace Microsoft.Dafny
             }
           }
         }
-        // Inferred required equality support for datatypes and for Function and Method signatures
-        // First, do datatypes until a fixpoint is reached
+        // Inferred required equality support for datatypes and type synonyms, and for Function and Method signatures.
+        // First, do datatypes and type synonyms until a fixpoint is reached.
         bool inferredSomething;
         do {
           inferredSomething = false;
           foreach (var d in declarations) {
-            if (d is DatatypeDecl) {
+            if (Attributes.Contains(d.Attributes, "_provided")) {
+              // Don't infer required-equality-support for the type parameters, since there are
+              // scopes that see the name of the declaration but not its body.
+            } else if (d is DatatypeDecl) {
               var dt = (DatatypeDecl)d;
               foreach (var tp in dt.TypeArgs) {
                 if (tp.EqualitySupport == TypeParameter.EqualitySupportValue.Unspecified) {
@@ -2417,10 +2449,21 @@ namespace Microsoft.Dafny
                 DONE_DT: ;
                 }
               }
+            } else if (d is TypeSynonymDecl) {
+              var syn = (TypeSynonymDecl)d;
+              foreach (var tp in syn.TypeArgs) {
+                if (tp.EqualitySupport == TypeParameter.EqualitySupportValue.Unspecified) {
+                  // here's our chance to infer the need for equality support
+                  if (InferRequiredEqualitySupport(tp, syn.Rhs)) {
+                    tp.EqualitySupport = TypeParameter.EqualitySupportValue.InferredRequired;
+                    inferredSomething = true;
+                  }
+                }
+              }
             }
           }
         } while (inferredSomething);
-        // Now do it for Function and Method signatures
+        // Now do it for Function and Method signatures.
         foreach (var d in declarations) {
           if (d is IteratorDecl) {
             var iter = (IteratorDecl)d;
@@ -2554,6 +2597,12 @@ namespace Microsoft.Dafny
                   CheckEqualityTypes_Type(p.tok, p.Type);
                 }
               }
+            }
+          } else if (d is TypeSynonymDecl) {
+            var syn = (TypeSynonymDecl)d;
+            CheckEqualityTypes_Type(syn.tok, syn.Rhs);
+            if (syn.MustSupportEquality && !syn.Rhs.SupportsEquality) {
+              reporter.Error(MessageSource.Resolver, syn.tok, "type '{0}' declared as supporting equality, but the RHS type ({1}) does not", syn.Name, syn.Rhs);
             }
           }
         }
@@ -4807,7 +4856,9 @@ namespace Microsoft.Dafny
                 // all is good
               } else {
                 if (reportErrors) {
-                  reporter.Error(MessageSource.Resolver, s.Tok, "the recursive call to '{0}' is not tail recursive because the actual out-parameter {1} is not the formal out-parameter '{2}'", s.Method.Name, i, formal.Name);
+                  reporter.Error(MessageSource.Resolver, s.Tok,
+                    "the recursive call to '{0}' is not tail recursive because the actual out-parameter{1} is not the formal out-parameter '{2}'",
+                    s.Method.Name, s.Lhs.Count == 1 ? "" : " " + i, formal.Name);
                 }
                 return TailRecursionStatus.NotTailRecursive;
               }
@@ -5235,7 +5286,8 @@ namespace Microsoft.Dafny
           foreach (var formalTypeArg in s.Method.TypeArgs) {
             var actualTypeArg = subst[formalTypeArg];
             if (formalTypeArg.MustSupportEquality && !actualTypeArg.SupportsEquality) {
-              resolver.reporter.Error(MessageSource.Resolver, s.Tok, "type parameter {0} ({1}) passed to method {2} must support equality (got {3}){4}", i, formalTypeArg.Name, s.Method.Name, actualTypeArg, TypeEqualityErrorMessageHint(actualTypeArg));
+              resolver.reporter.Error(MessageSource.Resolver, s.Tok, "type parameter{0} ({1}) passed to method {2} must support equality (got {3}){4}",
+                s.Method.TypeArgs.Count == 1 ? "" : " " + i, formalTypeArg.Name, s.Method.Name, actualTypeArg, TypeEqualityErrorMessageHint(actualTypeArg));
             }
             i++;
           }
@@ -5336,7 +5388,8 @@ namespace Microsoft.Dafny
             foreach (var tp in ((ICallable)e.Member).TypeArgs) {
               var actualTp = e.TypeApplication[e.Member.EnclosingClass.TypeArgs.Count + i];
               if (tp.MustSupportEquality && !actualTp.SupportsEquality) {
-                resolver.reporter.Error(MessageSource.Resolver, e.tok, "type parameter {0} ({1}) passed to {5} '{2}' must support equality (got {3}){4}", i, tp.Name, e.Member.Name, actualTp, TypeEqualityErrorMessageHint(actualTp), e.Member.WhatKind);
+                resolver.reporter.Error(MessageSource.Resolver, e.tok, "type parameter{0} ({1}) passed to {5} '{2}' must support equality (got {3}){4}",
+                  ((ICallable)e.Member).TypeArgs.Count == 1 ? "" : " " + i, tp.Name, e.Member.Name, actualTp, TypeEqualityErrorMessageHint(actualTp), e.Member.WhatKind);
               }
               i++;
             }
@@ -5348,7 +5401,8 @@ namespace Microsoft.Dafny
           foreach (var formalTypeArg in e.Function.TypeArgs) {
             var actualTypeArg = e.TypeArgumentSubstitutions[formalTypeArg];
             if (formalTypeArg.MustSupportEquality && !actualTypeArg.SupportsEquality) {
-              resolver.reporter.Error(MessageSource.Resolver, e.tok, "type parameter {0} ({1}) passed to function {2} must support equality (got {3}){4}", i, formalTypeArg.Name, e.Function.Name, actualTypeArg, TypeEqualityErrorMessageHint(actualTypeArg));
+              resolver.reporter.Error(MessageSource.Resolver, e.tok, "type parameter{0} ({1}) passed to function {2} must support equality (got {3}){4}",
+                e.Function.TypeArgs.Count == 1 ? "" : " " + i, formalTypeArg.Name, e.Function.Name, actualTypeArg, TypeEqualityErrorMessageHint(actualTypeArg));
             }
             i++;
           }
@@ -5373,7 +5427,7 @@ namespace Microsoft.Dafny
       public void CheckEqualityTypes_Type(IToken tok, Type type) {
         Contract.Requires(tok != null);
         Contract.Requires(type != null);
-        type = type.NormalizeExpand();
+        type = type.Normalize();  // we only do a .Normalize() here, because we want to keep stop at any type synonym or subset type
         if (type is BasicType) {
           // fine
         } else if (type is SetType) {
@@ -5420,7 +5474,8 @@ namespace Microsoft.Dafny
             foreach (var argType in udt.TypeArgs) {
               var formalTypeArg = formalTypeArgs[i];
               if (formalTypeArg.MustSupportEquality && !argType.SupportsEquality) {
-                resolver.reporter.Error(MessageSource.Resolver, tok, "type parameter {0} ({1}) passed to type {2} must support equality (got {3}){4}", i, formalTypeArg.Name, udt.ResolvedClass.Name, argType, TypeEqualityErrorMessageHint(argType));
+                resolver.reporter.Error(MessageSource.Resolver, tok, "type parameter{0} ({1}) passed to type {2} must support equality (got {3}){4}",
+                  udt.TypeArgs.Count == 1 ? "" : " " + i, formalTypeArg.Name, udt.ResolvedClass.Name, argType, TypeEqualityErrorMessageHint(argType));
               }
               CheckEqualityTypes_Type(tok, argType);
               i++;
@@ -5674,17 +5729,17 @@ namespace Microsoft.Dafny
                       // the variable was actually declared in this statement, so auto-declare it as ghost
                       ((LocalVariable)ll.Var).MakeGhost();
                     } else {
-                      Error(s, "actual out-parameter {0} is required to be a ghost variable", j);
+                      Error(s, "actual out-parameter{0} is required to be a ghost variable", s.Lhs.Count == 1 ? "" : " " + j);
                     }
                   }
                 } else if (resolvedLhs is MemberSelectExpr) {
                   var ll = (MemberSelectExpr)resolvedLhs;
                   if (!ll.Member.IsGhost) {
-                    Error(s, "actual out-parameter {0} is required to be a ghost field", j);
+                    Error(s, "actual out-parameter{0} is required to be a ghost field", s.Lhs.Count == 1 ? "" : " " + j);
                   }
                 } else {
                   // this is an array update, and arrays are always non-ghost
-                  Error(s, "actual out-parameter {0} is required to be a ghost variable", j);
+                  Error(s, "actual out-parameter{0} is required to be a ghost variable", s.Lhs.Count == 1 ? "" : " " + j);
                 }
               }
               j++;
@@ -5851,7 +5906,7 @@ namespace Microsoft.Dafny
       Contract.Requires(tp != null);
       Contract.Requires(type != null);
 
-      type = type.NormalizeExpand();
+      type = type.Normalize();  // we only do a .Normalize() here, because we want to keep stop at any type synonym or subset type
       if (type is BasicType) {
       } else if (type is SetType) {
         var st = (SetType)type;
@@ -5885,6 +5940,12 @@ namespace Microsoft.Dafny
               return true;
             }
             i++;
+          }
+        }
+        if (udt.ResolvedClass is TypeSynonymDecl) {
+          var syn = (TypeSynonymDecl)udt.ResolvedClass;
+          if (syn.IsRevealedInScope(Type.GetScope())) {
+            return InferRequiredEqualitySupport(tp, syn.RhsWithArgument(udt.TypeArgs));
           }
         }
       } else {
@@ -8754,13 +8815,15 @@ namespace Microsoft.Dafny
         for (int i = 0; i < callee.Ins.Count; i++) {
           var it = callee.Ins[i].Type.StripSubsetConstraints();
           Type st = SubstType(it, subst);
-          ConstrainSubtypeRelation(st, s.Args[i].Type, s.Tok, "incorrect type of method in-parameter {0} (expected {1}, got {2})", i, st, s.Args[i].Type);
+          ConstrainSubtypeRelation(st, s.Args[i].Type, s.Tok, "incorrect type of method in-parameter{0} (expected {1}, got {2})",
+            callee.Ins.Count == 1 ? "" : " " + i, st, s.Args[i].Type);
         }
         for (int i = 0; i < callee.Outs.Count; i++) {
           var it = callee.Outs[i].Type.StripSubsetConstraints();
           Type st = SubstType(it, subst);
           var lhs = s.Lhs[i];
-          ConstrainSubtypeRelation(lhs.Type, st, s.Tok, "incorrect type of method out-parameter {0} (expected {1}, got {2})", i, st, lhs.Type);
+          ConstrainSubtypeRelation(lhs.Type, st, s.Tok, "incorrect type of method out-parameter{0} (expected {1}, got {2})",
+            callee.Outs.Count == 1 ? "" : " " + i, st, lhs.Type);
           // LHS must denote a mutable field.
           CheckIsLvalue(lhs.Resolved, codeContext);
         }
@@ -9781,7 +9844,7 @@ namespace Microsoft.Dafny
         } else if (!(d is DatatypeDecl)) {
           reporter.Error(MessageSource.Resolver, expr.tok, "Expected datatype: {0}", dtv.DatatypeName);
         } else {
-          ResolveDatatypeValue(opts, dtv, (DatatypeDecl)d);
+          ResolveDatatypeValue(opts, dtv, (DatatypeDecl)d, null);
         }
 
       } else if (expr is DisplayExpression) {
@@ -9957,7 +10020,8 @@ namespace Microsoft.Dafny
           reporter.Error(MessageSource.Resolver, e.tok, "wrong number of arguments to function application (function type '{0}' expects {1}, got {2})", fnType, fnType.Arity, e.Args.Count);
         } else {
           for (var i = 0; i < fnType.Arity; i++) {
-            ConstrainSubtypeRelation(fnType.Args[i], e.Args[i].Type, e.Args[i].tok, "type mismatch for argument {0} (function expects {1}, got {2})", i, fnType.Args[i], e.Args[i].Type);
+            ConstrainSubtypeRelation(fnType.Args[i], e.Args[i].Type, e.Args[i].tok, "type mismatch for argument{0} (function expects {1}, got {2})",
+              fnType.Arity == 1 ? "" : " " + i, fnType.Args[i], e.Args[i].Type);
           }
         }
         expr.Type = fnType == null ? new InferredTypeProxy() : fnType.Result;
@@ -11098,7 +11162,7 @@ namespace Microsoft.Dafny
             reporter.Error(MessageSource.Resolver, expr.tok, "datatype constructor does not take any type parameters ('{0}')", name);
           }
           var rr = new DatatypeValue(expr.tok, pair.Item1.EnclosingDatatype.Name, name, args ?? new List<Expression>());
-          ResolveDatatypeValue(opts, rr, pair.Item1.EnclosingDatatype);
+          ResolveDatatypeValue(opts, rr, pair.Item1.EnclosingDatatype, null);
           if (args == null) {
             r = rr;
           } else {
@@ -11331,7 +11395,7 @@ namespace Microsoft.Dafny
               reporter.Error(MessageSource.Resolver, expr.tok, "datatype constructor does not take any type parameters ('{0}')", name);
             }
             var rr = new DatatypeValue(expr.tok, pair.Item1.EnclosingDatatype.Name, name, args ?? new List<Expression>());
-            ResolveDatatypeValue(opts, rr, pair.Item1.EnclosingDatatype);
+            ResolveDatatypeValue(opts, rr, pair.Item1.EnclosingDatatype, null);
 
             if (args == null) {
               r = rr;
@@ -11401,7 +11465,7 @@ namespace Microsoft.Dafny
               reporter.Error(MessageSource.Resolver, expr.tok, "datatype constructor does not take any type parameters ('{0}')", name);
             }
             var rr = new DatatypeValue(expr.tok, ctor.EnclosingDatatype.Name, name, args ?? new List<Expression>());
-            ResolveDatatypeValue(opts, rr, ctor.EnclosingDatatype);
+            ResolveDatatypeValue(opts, rr, ctor.EnclosingDatatype, ty);
             if (args == null) {
               r = rr;
             } else {
@@ -11743,7 +11807,8 @@ namespace Microsoft.Dafny
           } else {
             for (var i = 0; i < fnType.Arity; i++) {
               ConstrainSubtypeRelation(fnType.Args[i], e.Args[i].Type, e.Args[i].tok,
-                "type mismatch for argument {0} (function expects {1}, got {2})", i, fnType.Args[i], e.Args[i].Type);
+                "type mismatch for argument{0} (function expects {1}, got {2})",
+                fnType.Arity == 1 ? "" : " " + i, fnType.Args[i], e.Args[i].Type);
             }
             if (errorCount != reporter.Count(ErrorLevel.Error)) {
               // do nothing else; error has been reported
@@ -11819,12 +11884,16 @@ namespace Microsoft.Dafny
       return subst;
     }
 
-    private void ResolveDatatypeValue(ResolveOpts opts, DatatypeValue dtv, DatatypeDecl dt) {
-      // this resolution is a little special, in that the syntax shows only the base name, not its instantiation (which is inferred)
+    private void ResolveDatatypeValue(ResolveOpts opts, DatatypeValue dtv, DatatypeDecl dt, Type ty) {
+      Contract.Requires(opts != null);
+      Contract.Requires(dtv != null);
+      Contract.Requires(dt != null);
+      Contract.Requires(ty == null || (ty.AsDatatype == dt && ty.TypeArgs.Count == dt.TypeArgs.Count));
+
       var gt = new List<Type>(dt.TypeArgs.Count);
       var subst = new Dictionary<TypeParameter, Type>();
       for (int i = 0; i < dt.TypeArgs.Count; i++) {
-        Type t = new InferredTypeProxy();
+        Type t = ty == null ? new InferredTypeProxy() : ty.TypeArgs[i];
         gt.Add(t);
         dtv.InferredTypeArgs.Add(t);
         subst.Add(dt.TypeArgs[i], t);
@@ -12118,7 +12187,8 @@ namespace Microsoft.Dafny
             ResolveExpression(farg, opts);
             Contract.Assert(farg.Type != null);  // follows from postcondition of ResolveExpression
             Type s = SubstType(function.Formals[i].Type, subst);
-            ConstrainSubtypeRelation(s, farg.Type, e, "incorrect type of function argument {0} (expected {1}, got {2})", i, s, farg.Type);
+            ConstrainSubtypeRelation(s, farg.Type, e, "incorrect type of function argument{0} (expected {1}, got {2})",
+              function.Formals.Count == 1 ? "" : " " + i, s, farg.Type);
           }
           e.Type = SubstType(function.ResultType, subst).StripSubsetConstraints();
         }

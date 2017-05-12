@@ -218,8 +218,7 @@ Everything) {
           var at = (OpaqueTypeDecl)d;
           if (i++ != 0) { wr.WriteLine(); }
           Indent(indent);
-          PrintClassMethodHelper("type", at.Attributes, at.Name, new List<TypeParameter>());
-          wr.Write(EqualitySupportSuffix(at.EqualitySupport));
+          PrintClassMethodHelper("type", at.Attributes, at.Name + EqualitySupportSuffix(at.EqualitySupport), d.TypeArgs);
           wr.WriteLine();
         } else if (d is NewtypeDecl) {
           var dd = (NewtypeDecl)d;
@@ -243,7 +242,7 @@ Everything) {
           var dd = (SubsetTypeDecl)d;
           if (i++ != 0) { wr.WriteLine(); }
           Indent(indent);
-          PrintClassMethodHelper("type", dd.Attributes, dd.Name, dd.TypeArgs);
+          PrintClassMethodHelper("type", dd.Attributes, dd.Name + EqualitySupportSuffix(dd.EqualitySupport), dd.TypeArgs);
           wr.Write(" = ");
           wr.Write(dd.Var.DisplayName);
           if (!(dd.Var.Type is TypeProxy) || DafnyOptions.O.DafnyPrintResolvedFile != null) {
@@ -257,7 +256,7 @@ Everything) {
           var dd = (TypeSynonymDecl)d;
           if (i++ != 0) { wr.WriteLine(); }
           Indent(indent);
-          PrintClassMethodHelper("type", dd.Attributes, dd.Name, dd.TypeArgs);
+          PrintClassMethodHelper("type", dd.Attributes, dd.Name + EqualitySupportSuffix(dd.EqualitySupport), dd.TypeArgs);
           wr.Write(" = ");
           PrintType(dd.Rhs);
           wr.WriteLine();
@@ -1699,7 +1698,7 @@ Everything) {
         PrintExpr(e.Seq, opBindingStrength, false, false, !parensNeeded && isFollowedBySemicolon, indent, keyword);
         wr.Write("[");
         if (e.SelectOne) {
-          Contract.Assert( e.E0 != null);
+          Contract.Assert(e.E0 != null);
           PrintExpression(e.E0, false);
         } else {
           if (e.E0 != null) {
@@ -1733,12 +1732,9 @@ Everything) {
 
       } else if (expr is SeqUpdateExpr) {
         SeqUpdateExpr e = (SeqUpdateExpr)expr;
-        if (e.ResolvedUpdateExpr != null)
-        {
+        if (e.ResolvedUpdateExpr != null) {
           PrintExpr(e.ResolvedUpdateExpr, contextBindingStrength, fragileContext, isRightmost, isFollowedBySemicolon, indent, keyword);
-        }
-        else
-        {
+        } else {
           // determine if parens are needed
           int opBindingStrength = 0x90;
           bool parensNeeded = ParensNeeded(opBindingStrength, contextBindingStrength, fragileContext);
@@ -1853,7 +1849,7 @@ Everything) {
           int opBindingStrength;
           switch (e.Op) {
             case UnaryOpExpr.Opcode.Not:
-              op = "!";  opBindingStrength = 0x80;  break;
+              op = "!"; opBindingStrength = 0x80; break;
             default:
               Contract.Assert(false); throw new cce.UnreachableException();  // unexpected unary opcode
           }
@@ -1882,8 +1878,7 @@ Everything) {
         int opBindingStrength;
         bool fragileLeftContext = false;  // false means "allow same binding power on left without parens"
         bool fragileRightContext = false;  // false means "allow same binding power on right without parens"
-        switch (e.Op)
-        {
+        switch (e.Op) {
           case BinaryExpr.Opcode.LeftShift:
           case BinaryExpr.Opcode.RightShift:
             opBindingStrength = 0x48; fragileRightContext = true; break;
@@ -2067,7 +2062,7 @@ Everything) {
         wr.Write("expr {0}: ", e.Name);
         PrintExpression(e.Body, isFollowedBySemicolon);
 
-       } else if (expr is SetComprehension) {
+      } else if (expr is SetComprehension) {
         var e = (SetComprehension)expr;
         bool parensNeeded = !isRightmost;
         if (parensNeeded) { wr.Write("("); }
@@ -2203,6 +2198,8 @@ Everything) {
         wr.Write("[BoogieWrapper]");  // this is somewhat unexpected, but we can get here if the /trace switch is used, so it seems best to cover this case here
       } else if (expr is Translator.BoogieFunctionCall) {
         wr.Write("[BoogieFunctionCall]");  // this prevents debugger watch window crash
+      } else if (expr is Resolver_IdentifierExpr) {
+        wr.Write("[Resolver_IdentifierExpr]");  // we can get here in the middle of a debugging session
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected expression
       }

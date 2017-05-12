@@ -224,7 +224,7 @@ SmallTests.dfy(718,8): Error: cannot establish the existence of LHS values that 
 Execution trace:
     (0,0): anon0
 
-Dafny program verifier finished with 51 verified, 45 errors
+Dafny program verifier finished with 52 verified, 45 errors
 SmallTests.dfy.tmp.dprint.dfy(453,4): Warning: /!\ No trigger covering all quantified variables found.
 
 Dafny program verifier finished with 0 verified, 0 errors
