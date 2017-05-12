@@ -358,3 +358,19 @@ module CompareWithNullaryCtor {
     xs.Nil?
   }
 }
+
+module ProbablyAMistake {
+  // The following line is legal syntactically, but it's suspicious, because there's
+  // already a member called "F" in the module and this export set is empty; hence, to
+  // try to be helpful, a warning is produced.
+  export F  // warning: a possible mix-up of "export" syntax
+  function F(x: int): int { x }
+}
+
+module AHarmlessMistake {
+  // The following line may also be a mistake, but since empty export sets are allowed
+  // and there's no member named "G", there's no strong evidence to suggest producing
+  // a possibly spurious warning.
+  export G
+  function F(x: int): int { x }
+}

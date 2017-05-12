@@ -46,4 +46,5 @@ EqualityTypesModuleExports.dfy(258,7): Error: == can only be applied to expressi
 EqualityTypesModuleExports.dfy(283,7): Error: type 'A' declared as supporting equality, but the RHS type (QQQ1.Syn<int>) does not
 EqualityTypesModuleExports.dfy(298,7): Error: type 'ExportedType' declared as supporting equality, but the RHS type (PrivateType<A>) does not
 EqualityTypesModuleExports.dfy(346,4): Error: == can only be applied to expressions of types that support equality (got List<A>)
+EqualityTypesModuleExports.dfy(366,9): Warning: note, this export set is empty (did you perhaps forget the 'provides' or 'reveals' keyword?)
 48 resolution/type errors detected in EqualityTypesModuleExports.dfy

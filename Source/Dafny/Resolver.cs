@@ -929,6 +929,22 @@ namespace Microsoft.Dafny
           d.Exports.AddRange(eexports);
         }
 
+        if (d.ExtendDecls.Count == 0 && d.Exports.Count == 0) {
+          // This is an empty export.  This is allowed, but unusual.  It could pop up, for example, if
+          // someone temporary comments out everything that the export set provides/reveals.  However,
+          // if the name of the export set coincides with something else that's declared at the top
+          // level of the module, then this export declaration is more likely an error--the user probably
+          // forgot the "provides" or "reveals" keyword.
+          Dictionary<string, MemberDecl> members;
+          MemberDecl member;
+          // Top-level functions and methods are actually recorded as members of the _default class.  We look up the
+          // export-set name there.  If the export-set name happens to coincide with some other top-level declaration,
+          // then an error will already have been produced ("duplicate name of top-level declaration").
+          if (classMembers.TryGetValue((ClassDecl)defaultClass, out members) && members.TryGetValue(d.Name, out member)) {
+            reporter.Warning(MessageSource.Resolver, d.tok, "note, this export set is empty (did you perhaps forget the 'provides' or 'reveals' keyword?)");
+          }
+        }
+
         foreach (ExportSignature export in d.Exports) {
 
           // check to see if it is a datatype or a member or
