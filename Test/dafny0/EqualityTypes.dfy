@@ -361,3 +361,41 @@ module MoreEqualitySupportingTypes {
     var c: Subset<ABC>;  // error: type argument to Subset must support equality
   }
 }
+
+// ----------------------------
+
+module AlwaysOkayComparisons {
+  datatype List<A> = Nil | Cons(A, List) | ICons(int, List)
+  datatype TwoLists<A> = Two(List, List)
+  datatype GhostRecord = GR(int, ghost int, bool)
+  codatatype Co<A> = Atom(A) | CoCons(int, Co) | CoConsA(A, Co)
+
+  method M<A>(xs: List, a: A) returns (r: bool)
+  {
+    var u := 6;
+    r := xs == xs;  // error: cannot compare
+    r := xs == Nil;
+    r := xs == Cons(a, Nil);  // error: cannot compare
+    r := xs == ICons(4, ICons(2, Nil));
+    r := xs == ICons(2, ICons(u, Nil));
+    r := xs == ICons(2, ICons(30, xs));  // error: cannot compare
+  }
+
+  method N<A>(pr: (A, List<A>), a: A, pair: TwoLists<A>) returns (r: bool)
+  {
+    r := pr == (a, Nil);  // error: cannot compare
+    r := pair == Two(ICons(4, Nil), Nil);
+  }
+
+  method G(g: GhostRecord) returns (r: bool)
+  {
+    r := g == GR(5, 6, true);  // error: cannot compare
+  }
+
+  method H<A,B(==)>(c: Co<A>, d: Co<B>, a: A, b: B) returns (r: bool)
+  {
+    r := c == Atom(a);  // error: cannot compare
+    r := d == Atom(b);
+    r := d == CoCons(10, CoCons(8, Atom(b)));
+  }
+}

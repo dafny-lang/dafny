@@ -5334,12 +5334,10 @@ namespace Microsoft.Dafny
           switch (e.Op) {
             case BinaryExpr.Opcode.Eq:
             case BinaryExpr.Opcode.Neq:
-              // First, check a special case:  a datatype value (like Nil) that takes no parameters
-              var e0 = e.E0.Resolved as DatatypeValue;
-              var e1 = e.E1.Resolved as DatatypeValue;
-              if (e0 != null && e0.Arguments.Count == 0) {
+              // First, check some special cases that can always be compared against--for example, a datatype value (like Nil) that takes no parameters
+              if (CanCompareWith(e.E0)) {
                 // that's cool
-              } else if (e1 != null && e1.Arguments.Count == 0) {
+              } else if (CanCompareWith(e.E1)) {
                 // oh yeah!
               } else if (!t0.SupportsEquality) {
                 resolver.reporter.Error(MessageSource.Resolver, e.E0, "{0} can only be applied to expressions of types that support equality (got {1}){2}", BinaryExpr.OpcodeString(e.Op), t0, TypeEqualityErrorMessageHint(t0));
@@ -5422,6 +5420,26 @@ namespace Microsoft.Dafny
           CheckEqualityTypes_Type(expr.tok, expr.Type);
         }
         return true;
+      }
+
+      private bool CanCompareWith(Expression expr) {
+        Contract.Requires(expr != null);
+        if (expr.Type.SupportsEquality) {
+          return true;
+        }
+        expr = expr.Resolved;
+        if (expr is DatatypeValue) {
+          var e = (DatatypeValue)expr;
+          for (int i = 0; i < e.Ctor.Formals.Count; i++) {
+            if (e.Ctor.Formals[i].IsGhost) {
+              return false;
+            } else if (!CanCompareWith(e.Arguments[i])) {
+              return false;
+            }
+          }
+          return true;
+        }
+        return false;
       }
 
       public void CheckEqualityTypes_Type(IToken tok, Type type) {

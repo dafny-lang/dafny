@@ -2218,12 +2218,15 @@ namespace Microsoft.Dafny {
     public override bool SupportsEquality {
       get {
         if (ResolvedClass is ClassDecl || ResolvedClass is NewtypeDecl) {
-          return true;
+          return ResolvedClass.IsRevealedInScope(Type.GetScope());
         } else if (ResolvedClass is CoDatatypeDecl) {
           return false;
         } else if (ResolvedClass is IndDatatypeDecl) {
           var dt = (IndDatatypeDecl)ResolvedClass;
           Contract.Assume(dt.EqualitySupport != IndDatatypeDecl.ES.NotYetComputed);
+          if (!dt.IsRevealedInScope(Type.GetScope())) {
+            return false;
+          }
           if (dt.EqualitySupport == IndDatatypeDecl.ES.Never) {
             return false;
           }
