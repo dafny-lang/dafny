@@ -1810,13 +1810,6 @@ namespace Microsoft.Dafny {
       this.arg = arg;
       this.TypeArgs = new List<Type> { arg, other };
     }
-    public override bool SupportsEquality {
-      get {
-        // Note that all collection types support equality. There is, however, a requirement (checked during resolution)
-        // that the argument types of collections support equality.
-        return true;
-      }
-    }
   }
 
   public class SetType : CollectionType {
@@ -1844,6 +1837,12 @@ namespace Microsoft.Dafny {
       var t = that as SetType;
       return t != null && Finite == t.Finite && Arg.PossiblyEquals(t.Arg);
     }
+    public override bool SupportsEquality {
+      get {
+        // Sets always support equality, because there is a check that the set element type always does.
+        return true;
+      }
+    }
   }
 
   public class MultiSetType : CollectionType
@@ -1863,6 +1862,12 @@ namespace Microsoft.Dafny {
       var t = that as MultiSetType;
       return t != null && Arg.PossiblyEquals(t.Arg);
     }
+    public override bool SupportsEquality {
+      get {
+        // Multisets always support equality, because there is a check that the set element type always does.
+        return true;
+      }
+    }
   }
 
   public class SeqType : CollectionType {
@@ -1880,6 +1885,12 @@ namespace Microsoft.Dafny {
     public override bool PossiblyEquals_W(Type that) {
       var t = that as SeqType;
       return t != null && Arg.PossiblyEquals(t.Arg);
+    }
+    public override bool SupportsEquality {
+      get {
+        // The sequence type supports equality if its element type does
+        return Arg.SupportsEquality;
+      }
     }
   }
   public class MapType : CollectionType
@@ -1924,6 +1935,13 @@ namespace Microsoft.Dafny {
     public override bool PossiblyEquals_W(Type that) {
       var t = that as MapType;
       return t != null && Finite == t.Finite && Arg.PossiblyEquals(t.Arg) && Range.PossiblyEquals(t.Range);
+    }
+    public override bool SupportsEquality {
+      get {
+        // A map type supports equality if both its Keys type and Values type does.  It is checked
+        // that the Keys type always supports equality, so we only need to check the Values type here.
+        return range.SupportsEquality;
+      }
     }
   }
 

@@ -5250,7 +5250,9 @@ namespace Microsoft.Dafny
         } else if (stmt is VarDeclStmt) {
           var s = (VarDeclStmt)stmt;
           foreach (var v in s.Locals) {
-            CheckEqualityTypes_Type(v.Tok, v.Type);
+            if (!v.IsGhost) {
+              CheckEqualityTypes_Type(v.Tok, v.Type);
+            }
           }
         } else if (stmt is LetStmt) {
           var s = (LetStmt)stmt;
@@ -5285,6 +5287,7 @@ namespace Microsoft.Dafny
           var i = 0;
           foreach (var formalTypeArg in s.Method.TypeArgs) {
             var actualTypeArg = subst[formalTypeArg];
+            CheckEqualityTypes_Type(s.Tok, actualTypeArg);
             if (formalTypeArg.MustSupportEquality && !actualTypeArg.SupportsEquality) {
               resolver.reporter.Error(MessageSource.Resolver, s.Tok, "type parameter{0} ({1}) passed to method {2} must support equality (got {3}){4}",
                 s.Method.TypeArgs.Count == 1 ? "" : " " + i, formalTypeArg.Name, s.Method.Name, actualTypeArg, TypeEqualityErrorMessageHint(actualTypeArg));
@@ -5385,6 +5388,7 @@ namespace Microsoft.Dafny
             var i = 0;
             foreach (var tp in ((ICallable)e.Member).TypeArgs) {
               var actualTp = e.TypeApplication[e.Member.EnclosingClass.TypeArgs.Count + i];
+              CheckEqualityTypes_Type(e.tok, actualTp);
               if (tp.MustSupportEquality && !actualTp.SupportsEquality) {
                 resolver.reporter.Error(MessageSource.Resolver, e.tok, "type parameter{0} ({1}) passed to {5} '{2}' must support equality (got {3}){4}",
                   ((ICallable)e.Member).TypeArgs.Count == 1 ? "" : " " + i, tp.Name, e.Member.Name, actualTp, TypeEqualityErrorMessageHint(actualTp), e.Member.WhatKind);
@@ -5398,6 +5402,7 @@ namespace Microsoft.Dafny
           var i = 0;
           foreach (var formalTypeArg in e.Function.TypeArgs) {
             var actualTypeArg = e.TypeArgumentSubstitutions[formalTypeArg];
+            CheckEqualityTypes_Type(e.tok, actualTypeArg);
             if (formalTypeArg.MustSupportEquality && !actualTypeArg.SupportsEquality) {
               resolver.reporter.Error(MessageSource.Resolver, e.tok, "type parameter{0} ({1}) passed to function {2} must support equality (got {3}){4}",
                 e.Function.TypeArgs.Count == 1 ? "" : " " + i, formalTypeArg.Name, e.Function.Name, actualTypeArg, TypeEqualityErrorMessageHint(actualTypeArg));
@@ -5438,6 +5443,12 @@ namespace Microsoft.Dafny
             }
           }
           return true;
+        } else if (expr is DisplayExpression) {
+          var e = (DisplayExpression)expr;
+          return e.Elements.Count == 0;
+        } else if (expr is MapDisplayExpr) {
+          var e = (MapDisplayExpr)expr;
+          return e.Elements.Count == 0;
         }
         return false;
       }
