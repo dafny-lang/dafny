@@ -213,6 +213,9 @@ namespace Microsoft.Dafny
 
       builtIns = prog.BuiltIns;
       reporter = prog.reporter;
+      // Resolution error handling relies on being able to get to the 0-tuple declaration
+      builtIns.TupleType(Token.NoToken, 0, true);
+
       // Populate the members of the basic types
       var floor = new SpecialField(Token.NoToken, "Floor", "ToBigInteger()", "", "", false, false, false, Type.Int, null);
       floor.AddVisibilityScope(prog.BuiltIns.SystemModule.VisibilityScope, false);
@@ -7478,6 +7481,11 @@ namespace Microsoft.Dafny
             }
 
           }
+        }
+        if (t.ResolvedClass == null && t.ResolvedParam == null) {
+          // There was some error. Still, we will set one of them to some value to prevent some crashes in the downstream resolution.  The
+          // 0-tuple is convenient, because it is always in scope.
+          t.ResolvedClass = builtIns.TupleType(t.tok, 0, false);
         }
 
       } else if (type is TypeProxy) {

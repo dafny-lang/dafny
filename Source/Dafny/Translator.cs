@@ -16615,7 +16615,7 @@ namespace Microsoft.Dafny {
       return Util.Concat(xs, ys);
     }
 
-    static List<B> Map<A,B>(IEnumerable<A> xs, Func<A,B> f) {
+    public static List<B> Map<A,B>(IEnumerable<A> xs, Func<A,B> f) {
       return Util.Map(xs, f);
     }
 
