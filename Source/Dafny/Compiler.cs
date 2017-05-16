@@ -1494,7 +1494,11 @@ namespace Microsoft.Dafny {
             if (!resolved[i].IsGhost) {
               var lhs = s.Lhss[i];
               var rhs = s.Rhss[i];
-              if (!(rhs is HavocRhs)) {
+              if (rhs is HavocRhs) {
+                if (DafnyOptions.O.ForbidNondeterminism) {
+                  Error("nondeterministic assignment (line {0}) forbidden by /deterministic option", wr, rhs.Tok.line);
+                }
+              } else {
                 lvalues.Add(CreateLvalue(lhs, indent, wr));
 
                 string target = idGenerator.FreshId("_rhs");
@@ -1517,6 +1521,9 @@ namespace Microsoft.Dafny {
 
       } else if (stmt is AssignSuchThatStmt) {
         var s = (AssignSuchThatStmt)stmt;
+        if (DafnyOptions.O.ForbidNondeterminism) {
+          Error("assign-such-that statement (line {0}) forbidden by /deterministic option", wr, s.Tok.line);
+        }
         if (s.AssumeToken != null) {
           // Note, a non-ghost AssignSuchThatStmt may contain an assume
           Error("an assume statement cannot be compiled (line {0})", wr, s.AssumeToken.line);
@@ -1543,6 +1550,9 @@ namespace Microsoft.Dafny {
       } else if (stmt is IfStmt) {
         IfStmt s = (IfStmt)stmt;
         if (s.Guard == null) {
+          if (DafnyOptions.O.ForbidNondeterminism) {
+            Error("nondeterministic if statement (line {0}) forbidden by /deterministic option", wr, s.Tok.line);
+          }
           // we can compile the branch of our choice
           if (s.Els == null) {
             // let's compile the "else" branch, since that involves no work
@@ -1556,6 +1566,9 @@ namespace Microsoft.Dafny {
             wr.Write(TrStmt(s.Thn, indent).ToString());
           }
         } else {
+          if (s.IsExistentialGuard && DafnyOptions.O.ForbidNondeterminism) {
+            Error("binding if statement (line {0}) forbidden by /deterministic option", wr, s.Tok.line);
+          }
           Indent(indent, wr); wr.Write("if (");
           TrExpr(s.IsExistentialGuard ? Translator.AlphaRename((ExistsExpr)s.Guard, "eg_d") : s.Guard, wr, false);
           wr.WriteLine(")");
@@ -1576,6 +1589,9 @@ namespace Microsoft.Dafny {
 
       } else if (stmt is AlternativeStmt) {
         var s = (AlternativeStmt)stmt;
+        if (DafnyOptions.O.ForbidNondeterminism) {
+          Error("case-based if statement (line {0}) forbidden by /deterministic option", wr, s.Tok.line);
+        }
         Indent(indent, wr);
         foreach (var alternative in s.Alternatives) {
           wr.Write("if (");
@@ -1596,6 +1612,9 @@ namespace Microsoft.Dafny {
           return wr;
         }
         if (s.Guard == null) {
+          if (DafnyOptions.O.ForbidNondeterminism) {
+            Error("nondeterministic loop (line {0}) forbidden by /deterministic option", wr, s.Tok.line);
+          }
           Indent(indent, wr);
           wr.WriteLine("while (false) { }");
         } else {
@@ -1608,6 +1627,9 @@ namespace Microsoft.Dafny {
 
       } else if (stmt is AlternativeLoopStmt) {
         var s = (AlternativeLoopStmt)stmt;
+        if (DafnyOptions.O.ForbidNondeterminism) {
+          Error("case-based loop (line {0}) forbidden by /deterministic option", wr, s.Tok.line);
+        }
         if (s.Alternatives.Count != 0) {
           Indent(indent, wr);
           wr.WriteLine("while (true) {");
@@ -1640,6 +1662,9 @@ namespace Microsoft.Dafny {
         }
         var s0 = (AssignStmt)s.S0;
         if (s0.Rhs is HavocRhs) {
+          if (DafnyOptions.O.ForbidNondeterminism) {
+            Error("nondeterministic assignment (line {0}) forbidden by /deterministic option", wr, s0.Rhs.Tok.line);
+          }
           // The forall statement says to havoc a bunch of things.  This can be efficiently compiled
           // into doing nothing.
           return wr;
@@ -1863,6 +1888,8 @@ namespace Microsoft.Dafny {
         }
         if (s.Update != null) {
           wr.Write(TrStmt(s.Update, indent).ToString());
+        } else if (DafnyOptions.O.ForbidNondeterminism) {
+          Error("variable declaration without initialization (line {0}) forbidden by /deterministic option", wr, s.Tok.line);
         }
 
       } else if (stmt is LetStmt) {
@@ -1877,6 +1904,8 @@ namespace Microsoft.Dafny {
         var s = (ModifyStmt)stmt;
         if (s.Body != null) {
           wr.Write(TrStmt(s.Body, indent).ToString());
+        } else if (DafnyOptions.O.ForbidNondeterminism) {
+          Error("modify statement without a body (line {0}) forbidden by /deterministic option", wr, s.Tok.line);
         }
 
       } else {
@@ -2100,6 +2129,9 @@ namespace Microsoft.Dafny {
         wr.WriteLine(" = {0};", nw);
       } else if (rhs is HavocRhs) {
         // do nothing
+        if (DafnyOptions.O.ForbidNondeterminism) {
+          Error("nondeterministic assignment (line {0}) forbidden by /deterministic option", wr, rhs.Tok.line);
+        }
       } else {
         if (rhs is ExprRhs) {
         } else if (tRhs != null && tRhs.ArrayDimensions != null) {

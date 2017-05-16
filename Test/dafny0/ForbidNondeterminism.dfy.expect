@@ -1,0 +1,13 @@
+
+Dafny program verifier finished with 1 verified, 0 errors
+Compilation error: variable declaration without initialization (line 16) forbidden by /deterministic option
+Compilation error: nondeterministic assignment (line 18) forbidden by /deterministic option
+Compilation error: nondeterministic assignment (line 19) forbidden by /deterministic option
+Compilation error: assign-such-that statement (line 20) forbidden by /deterministic option
+Compilation error: nondeterministic if statement (line 21) forbidden by /deterministic option
+Compilation error: case-based if statement (line 24) forbidden by /deterministic option
+Compilation error: binding if statement (line 27) forbidden by /deterministic option
+Compilation error: nondeterministic loop (line 30) forbidden by /deterministic option
+Compilation error: case-based loop (line 35) forbidden by /deterministic option
+Compilation error: nondeterministic assignment (line 43) forbidden by /deterministic option
+Compilation error: modify statement without a body (line 45) forbidden by /deterministic option
