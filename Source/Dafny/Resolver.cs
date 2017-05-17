@@ -5787,6 +5787,9 @@ namespace Microsoft.Dafny
         } else if (stmt is IfStmt) {
           var s = (IfStmt)stmt;
           s.IsGhost = mustBeErasable || (s.Guard != null && resolver.UsesSpecFeatures(s.Guard));
+          if (!mustBeErasable && s.IsGhost) {
+            resolver.reporter.Info(MessageSource.Resolver, s.Tok, "ghost if");
+          }
           Visit(s.Thn, s.IsGhost);
           if (s.Els != null) {
             Visit(s.Els, s.IsGhost);
@@ -5797,12 +5800,18 @@ namespace Microsoft.Dafny
         } else if (stmt is AlternativeStmt) {
           var s = (AlternativeStmt)stmt;
           s.IsGhost = mustBeErasable || s.Alternatives.Exists(alt => resolver.UsesSpecFeatures(alt.Guard));
+          if (!mustBeErasable && s.IsGhost) {
+            resolver.reporter.Info(MessageSource.Resolver, s.Tok, "ghost if");
+          }
           s.Alternatives.Iter(alt => alt.Body.Iter(ss => Visit(ss, s.IsGhost)));
           s.IsGhost = s.IsGhost || s.Alternatives.All(alt => alt.Body.All(ss => ss.IsGhost));
 
         } else if (stmt is WhileStmt) {
           var s = (WhileStmt)stmt;
           s.IsGhost = mustBeErasable || (s.Guard != null && resolver.UsesSpecFeatures(s.Guard));
+          if (!mustBeErasable && s.IsGhost) {
+            resolver.reporter.Info(MessageSource.Resolver, s.Tok, "ghost while");
+          }
           if (s.IsGhost && s.Decreases.Expressions.Exists(e => e is WildcardExpr)) {
             Error(s, "'decreases *' is not allowed on ghost loops");
           }
@@ -5817,6 +5826,9 @@ namespace Microsoft.Dafny
         } else if (stmt is AlternativeLoopStmt) {
           var s = (AlternativeLoopStmt)stmt;
           s.IsGhost = mustBeErasable || s.Alternatives.Exists(alt => resolver.UsesSpecFeatures(alt.Guard));
+          if (!mustBeErasable && s.IsGhost) {
+            resolver.reporter.Info(MessageSource.Resolver, s.Tok, "ghost while");
+          }
           if (s.IsGhost && s.Decreases.Expressions.Exists(e => e is WildcardExpr)) {
             Error(s, "'decreases *' is not allowed on ghost loops");
           }
@@ -5854,6 +5866,9 @@ namespace Microsoft.Dafny
         } else if (stmt is MatchStmt) {
           var s = (MatchStmt)stmt;
           s.IsGhost = mustBeErasable || resolver.UsesSpecFeatures(s.Source);
+          if (!mustBeErasable && s.IsGhost) {
+            resolver.reporter.Info(MessageSource.Resolver, s.Tok, "ghost match");
+          }
           s.Cases.Iter(kase => kase.Body.Iter(ss => Visit(ss, s.IsGhost)));
           s.IsGhost = s.IsGhost || s.Cases.All(kase => kase.Body.All(ss => ss.IsGhost));
 
