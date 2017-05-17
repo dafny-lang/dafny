@@ -40,7 +40,23 @@ namespace DafnyServer
       foreach (
           var clbl in
           ModuleDefinition.AllCallables(module.TopLevelDecls).Where(e => e != null && !(e.Tok is IncludeToken))) {
-        if (clbl is Function) {
+
+        if (clbl is Predicate)
+        {
+            var predicate = clbl as Predicate;
+            var predicateSymbol = new SymbolInformation
+            {
+                Module =  predicate.EnclosingClass.Module.Name,
+                Name = predicate.Name,
+                ParentClass = predicate.EnclosingClass.Name,
+                SymbolType = SymbolInformation.Type.Predicate,
+                StartToken = predicate.tok,
+                EndToken = predicate.BodyEndTok
+            };
+            information.Add(predicateSymbol);
+
+        }
+        else if (clbl is Function) {
           var fn = (Function)clbl;
           var functionSymbol = new SymbolInformation {
             Module = fn.EnclosingClass.Module.Name,
@@ -432,7 +448,8 @@ namespace DafnyServer
         Function,
         Field,
         Call,
-        Definition
+        Definition,
+        Predicate
       }
 
       public SymbolInformation() {
