@@ -7501,6 +7501,8 @@ namespace Microsoft.Dafny
           // There was some error. Still, we will set one of them to some value to prevent some crashes in the downstream resolution.  The
           // 0-tuple is convenient, because it is always in scope.
           t.ResolvedClass = builtIns.TupleType(t.tok, 0, false);
+          // clear out the TypeArgs since 0-tuple doesn't take TypeArg
+          t.TypeArgs = new List<Type>();
         }
 
       } else if (type is TypeProxy) {
