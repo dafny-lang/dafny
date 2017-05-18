@@ -12392,7 +12392,7 @@ namespace Microsoft.Dafny
         switch (c.ResolvedOp) {
           case BinaryExpr.ResolvedOpcode.InSet:
             if (whereIsBv == 0 && e1.Type.AsSetType.Finite) {
-              bounds.Add(new ComprehensionExpr.SetBoundedPool(e1));
+              bounds.Add(new ComprehensionExpr.SetBoundedPool(e1, e0.Type.Equals(e1.Type.AsSetType.Arg)));
             }
             break;
           case BinaryExpr.ResolvedOpcode.Subset:
@@ -12404,17 +12404,17 @@ namespace Microsoft.Dafny
             break;
           case BinaryExpr.ResolvedOpcode.InMultiSet:
             if (whereIsBv == 0) {
-              bounds.Add(new ComprehensionExpr.SetBoundedPool(e1));
+              bounds.Add(new ComprehensionExpr.SetBoundedPool(e1, e0.Type.Equals(e1.Type.AsMultiSetType.Arg)));
             }
             break;
           case BinaryExpr.ResolvedOpcode.InSeq:
             if (whereIsBv == 0) {
-              bounds.Add(new ComprehensionExpr.SeqBoundedPool(e1));
+              bounds.Add(new ComprehensionExpr.SeqBoundedPool(e1, e0.Type.Equals(e1.Type.AsSeqType.Arg)));
             }
             break;
           case BinaryExpr.ResolvedOpcode.InMap:
             if (whereIsBv == 0 && e1.Type.AsMapType.Finite) {
-              bounds.Add(new ComprehensionExpr.MapBoundedPool(e1));
+              bounds.Add(new ComprehensionExpr.MapBoundedPool(e1, e0.Type.Equals(e1.Type.AsMapType.Arg)));
             }
             break;
           case BinaryExpr.ResolvedOpcode.EqCommon:

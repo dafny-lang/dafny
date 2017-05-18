@@ -15873,7 +15873,7 @@ namespace Microsoft.Dafny {
           return new ComprehensionExpr.IntBoundedPool(b.LowerBound == null ? null : Substitute(b.LowerBound), b.UpperBound == null ? null : Substitute(b.UpperBound));
         } else if (bound is ComprehensionExpr.SetBoundedPool) {
           var b = (ComprehensionExpr.SetBoundedPool)bound;
-          return new ComprehensionExpr.SetBoundedPool(Substitute(b.Set));
+          return new ComprehensionExpr.SetBoundedPool(Substitute(b.Set), b.ExactTypes);
         } else if (bound is ComprehensionExpr.SubSetBoundedPool) {
           var b = (ComprehensionExpr.SubSetBoundedPool)bound;
           return new ComprehensionExpr.SubSetBoundedPool(Substitute(b.UpperBound));
@@ -15882,10 +15882,10 @@ namespace Microsoft.Dafny {
           return new ComprehensionExpr.SuperSetBoundedPool(Substitute(b.LowerBound));
         } else if (bound is ComprehensionExpr.MapBoundedPool) {
           var b = (ComprehensionExpr.MapBoundedPool)bound;
-          return new ComprehensionExpr.MapBoundedPool(Substitute(b.Map));
+          return new ComprehensionExpr.MapBoundedPool(Substitute(b.Map), b.ExactTypes);
         } else if (bound is ComprehensionExpr.SeqBoundedPool) {
           var b = (ComprehensionExpr.SeqBoundedPool)bound;
-          return new ComprehensionExpr.SeqBoundedPool(Substitute(b.Seq));
+          return new ComprehensionExpr.SeqBoundedPool(Substitute(b.Seq), b.ExactTypes);
         } else if (bound is ComprehensionExpr.DatatypeBoundedPool) {
           return bound;  // nothing to substitute
         } else {

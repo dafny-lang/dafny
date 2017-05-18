@@ -834,6 +834,17 @@ namespace Microsoft.Dafny {
         }
       }
     }
+    public bool IsTraitType {
+      get {
+        var t = NormalizeExpand();
+        if (t is ObjectType) {
+          return true;
+        } else {
+          var udt = t as UserDefinedType;
+          return udt != null && udt.ResolvedParam == null && udt.ResolvedClass is TraitDecl;
+        }
+      }
+    }
     public bool IsArrayType {
       get {
         return AsArrayType != null;
@@ -8853,13 +8864,20 @@ namespace Microsoft.Dafny {
         return 1;
       }
     }
-    public class SetBoundedPool : BoundedPool
+    public abstract class CollectionBoundedPool : BoundedPool
     {
-      public readonly Expression Set;
-      public SetBoundedPool(Expression set) { Set = set; }
+      public readonly bool ExactTypes;
+      public CollectionBoundedPool(bool exactTypes) {
+        ExactTypes = exactTypes;
+      }
       public override int Preference() {
         return 10;
       }
+    }
+    public class SetBoundedPool : CollectionBoundedPool
+    {
+      public readonly Expression Set;
+      public SetBoundedPool(Expression set, bool exactTypes) : base(exactTypes) { Set = set; }
     }
     public class SubSetBoundedPool : BoundedPool
     {
@@ -8880,21 +8898,15 @@ namespace Microsoft.Dafny {
         get { return false; }
       }
     }
-    public class MapBoundedPool : BoundedPool
+    public class MapBoundedPool : CollectionBoundedPool
     {
       public readonly Expression Map;
-      public MapBoundedPool(Expression map) { Map = map; }
-      public override int Preference() {
-        return 10;
-      }
+      public MapBoundedPool(Expression map, bool exactTypes) : base(exactTypes) { Map = map; }
     }
-    public class SeqBoundedPool : BoundedPool
+    public class SeqBoundedPool : CollectionBoundedPool
     {
       public readonly Expression Seq;
-      public SeqBoundedPool(Expression seq) { Seq = seq; }
-      public override int Preference() {
-        return 10;
-      }
+      public SeqBoundedPool(Expression seq, bool exactTypes) : base(exactTypes) { Seq = seq; }
     }
     public class DatatypeBoundedPool : BoundedPool
     {
@@ -8921,6 +8933,9 @@ namespace Microsoft.Dafny {
           var bound = Bounds[i];
           if (bound is RefBoundedPool) {
             // yes, this is in principle a bound, but it's not one we'd like to compile
+            bvs.Add(BoundVars[i]);
+          } else if (bound is CollectionBoundedPool && !((CollectionBoundedPool)bound).ExactTypes) {
+            // non-exact types would require a run-time type test, which is not possible in C#
             bvs.Add(BoundVars[i]);
           }
         }

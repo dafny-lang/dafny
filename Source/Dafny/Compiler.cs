@@ -1281,27 +1281,27 @@ namespace Microsoft.Dafny {
         return TypeName_UDT(s, udt.TypeArgs, wr);
       } else if (xType is SetType) {
         Type argType = ((SetType)xType).Arg;
-        if (argType is ObjectType) {
-          Error("compilation of set<object> is not supported; consider introducing a ghost", wr);
+        if (ComplicatedTypeParameterForCompilation(argType)) {
+          Error("compilation of set<TRAIT> is not supported; consider introducing a ghost", wr);
         }
         return DafnySetClass + "<" + TypeName(argType, wr) + ">";
       } else if (xType is SeqType) {
         Type argType = ((SeqType)xType).Arg;
-        if (argType is ObjectType) {
-          Error("compilation of seq<object> is not supported; consider introducing a ghost", wr);
+        if (ComplicatedTypeParameterForCompilation(argType)) {
+          Error("compilation of seq<TRAIT> is not supported; consider introducing a ghost", wr);
         }
         return DafnySeqClass + "<" + TypeName(argType, wr) + ">";
       } else if (xType is MultiSetType) {
         Type argType = ((MultiSetType)xType).Arg;
-        if (argType is ObjectType) {
-          Error("compilation of seq<object> is not supported; consider introducing a ghost", wr);
+        if (ComplicatedTypeParameterForCompilation(argType)) {
+          Error("compilation of multiset<TRAIT> is not supported; consider introducing a ghost", wr);
         }
         return DafnyMultiSetClass + "<" + TypeName(argType, wr) + ">";
       } else if (xType is MapType) {
         Type domType = ((MapType)xType).Domain;
         Type ranType = ((MapType)xType).Range;
-        if (domType is ObjectType || ranType is ObjectType) {
-          Error("compilation of map<object, _> or map<_, object> is not supported; consider introducing a ghost", wr);
+        if (ComplicatedTypeParameterForCompilation(domType) || ComplicatedTypeParameterForCompilation(ranType)) {
+          Error("compilation of map<TRAIT, _> or map<_, TRAIT> is not supported; consider introducing a ghost", wr);
         }
         return DafnyMapClass + "<" + TypeName(domType, wr) + "," + TypeName(ranType, wr) + ">";
       } else {
@@ -1314,12 +1314,17 @@ namespace Microsoft.Dafny {
       Contract.Requires(typeArgs != null);
       string s = "@" + fullCompileName;
       if (typeArgs.Count != 0) {
-        if (typeArgs.Exists(argType => argType is ObjectType)) {
-          Error("compilation does not support type 'object' as a type parameter; consider introducing a ghost", wr);
+        if (typeArgs.Exists(ComplicatedTypeParameterForCompilation)) {
+          Error("compilation does not support trait types as a type parameter; consider introducing a ghost", wr);
         }
         s += "<" + TypeNames(typeArgs, wr) + ">";
       }
       return s;
+    }
+
+    bool ComplicatedTypeParameterForCompilation(Type t) {
+      Contract.Requires(t != null);
+      return t.IsTraitType;
     }
 
     string/*!*/ TypeNames(List<Type/*!*/>/*!*/ types, TextWriter wr) {
@@ -3114,8 +3119,8 @@ namespace Microsoft.Dafny {
         // For "set i,j,k,l | R(i,j,k,l) :: Term(i,j,k,l)" where the term has type "G", emit something like:
         // ((ComprehensionDelegate<G>)delegate() {
         //   var _coll = new List<G>();
-        //   foreach (L l in sq.Elements) {
-        //     foreach (K k in st.Elements) {
+        //   foreach (var tmp_l in sq.Elements) { L l = (L)tmp_l;
+        //     foreach (var tmp_k in st.Elements) { K k = (K)tmp_k;
         //       for (BigInteger j = Lo; j < Hi; j++) {
         //         for (bool i in Helper.AllBooleans) {
         //           if (R(i,j,k,l)) {
@@ -3154,19 +3159,22 @@ namespace Microsoft.Dafny {
             wr.Write(")) { ");
           } else if (bound is ComprehensionExpr.SetBoundedPool) {
             var b = (ComprehensionExpr.SetBoundedPool)bound;
-            wr.Write("foreach (var @{0} in (", bv.CompileName);
+            var tmpVar = idGenerator.FreshId("_set_compr_");
+            wr.Write("foreach (var @{0} in (", tmpVar);
             TrExpr(b.Set, wr, inLetExprBody);
-            wr.Write(").Elements) { ");
+            wr.Write(").Elements) {{ {0} @{1} = ({0}){2}; ", TypeName(bv.Type, wr), bv.CompileName, tmpVar);
           } else if (bound is ComprehensionExpr.MapBoundedPool) {
             var b = (ComprehensionExpr.MapBoundedPool)bound;
-            wr.Write("foreach (var @{0} in (", bv.CompileName);
+            var tmpVar = idGenerator.FreshId("_map_compr_");
+            wr.Write("foreach (var @{0} in (", tmpVar);
             TrExpr(b.Map, wr, inLetExprBody);
-            wr.Write(").Domain) { ");
+            wr.Write(").Domain) {{ {0} @{1} = ({0}){2}; ", TypeName(bv.Type, wr), bv.CompileName, tmpVar);
           } else if (bound is ComprehensionExpr.SeqBoundedPool) {
             var b = (ComprehensionExpr.SeqBoundedPool)bound;
-            wr.Write("foreach (var @{0} in (", bv.CompileName);
+            var tmpVar = idGenerator.FreshId("_seq_compr_");
+            wr.Write("foreach (var @{0} in (", tmpVar);
             TrExpr(b.Seq, wr, inLetExprBody);
-            wr.Write(").Elements) { ");
+            wr.Write(").Elements) { {0} @{1} = ({0}){2}; ", TypeName(bv.Type, wr), bv.CompileName, tmpVar);
           } else if (bound is ComprehensionExpr.DatatypeBoundedPool) {
             var b = (ComprehensionExpr.DatatypeBoundedPool)bound;
             wr.Write("foreach (var @{0} in {1}.AllSingletonConstructors) {{", bv.CompileName, TypeName(bv.Type, wr));
