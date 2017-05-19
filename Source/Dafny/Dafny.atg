@@ -1086,7 +1086,8 @@ NewtypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl td>
      Attributes attrs = null;
      td = null;
      Type baseType = null;
-     Expression wh;
+     Expression constraint;
+     Expression witness = null;
      CheckDeclModifiers(dmod, "Newtypes", AllowedDeclModifiers.None);
   .)
   "newtype"
@@ -1097,7 +1098,9 @@ NewtypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl td>
     NoUSIdent<out bvId>
     [ ":" Type<out baseType> ]       (. if (baseType == null) { baseType = new InferredTypeProxy(); } .)
     "|"
-    Expression<out wh, false, true>  (. td = new NewtypeDecl(id, id.val, module, new BoundVar(bvId, bvId.val, baseType), wh, attrs); .)
+    Expression<out constraint, false, true>
+    [ "witness" Expression<out witness, false, true> ]
+                                     (. td = new NewtypeDecl(id, id.val, module, new BoundVar(bvId, bvId.val, baseType), constraint, witness, attrs); .)
   | Type<out baseType>               (. td = new NewtypeDecl(id, id.val, module, baseType, attrs); .)
   )
   .
@@ -1109,6 +1112,7 @@ OtherTypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl t
      td = null;
      Type ty = null;
      Expression constraint;
+     Expression witness = null;
      var kind = "Opaque type";
   .)
   "type"
@@ -1123,7 +1127,8 @@ OtherTypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl t
       [ ":" Type<out ty> ]   (. if (ty == null) { ty = new InferredTypeProxy(); } .)
       "|"
       Expression<out constraint, false, true>
-                             (. td = new SubsetTypeDecl(id, id.val, eqSupport, typeArgs, module, new BoundVar(bvId, bvId.val, ty), constraint, attrs);
+      [ "witness" Expression<out witness, false, true> ]
+                             (. td = new SubsetTypeDecl(id, id.val, eqSupport, typeArgs, module, new BoundVar(bvId, bvId.val, ty), constraint, witness, attrs);
                                 kind = "Subset type";
                              .)
     |

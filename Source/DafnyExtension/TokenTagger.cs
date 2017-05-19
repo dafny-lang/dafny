@@ -432,6 +432,7 @@ namespace DafnyLanguage
                 case "datatype":
                 case "else":
                 case "exists":
+                case "export":
                 case "false":
                 case "forall":
                 case "fresh":
@@ -472,19 +473,18 @@ namespace DafnyLanguage
                 case "while":
                 case "yield":
                 case "yields":
-                case "export":
                 #endregion
                   break;
                 #region keywords in specification clauses
-                case "requires":
                 case "decreases":
                 case "ensures":
-                case "free":
                 case "invariant":
                 case "modifies":
-                case "reads":
-                case "reveals":
                 case "provides":
+                case "reads":
+                case "requires":
+                case "reveals":
+                case "witness":
                   // "yields" plays a dual role
                 #endregion
                   ty = DafnyTokenKind.SpecificationClause;
@@ -494,8 +494,8 @@ namespace DafnyLanguage
                 case "bool":
                 case "char":
                 case "imap":
-                case "iset":
                 case "int":
+                case "iset":
                 case "map":
                 case "multiset":
                 case "nat":
