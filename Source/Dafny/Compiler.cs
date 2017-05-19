@@ -134,7 +134,25 @@ namespace Microsoft.Dafny {
             var at = (OpaqueTypeDecl)d;
             Error("Opaque type ('{0}') cannot be compiled", wr, at.FullName);
           } else if (d is TypeSynonymDecl) {
-            // do nothing, just bypass type synonyms and subset types in the compiler
+            var sst = d as SubsetTypeDecl;
+            if (sst == null || sst.Witness == null) {
+              // do nothing, just bypass type synonyms and witness-less subset types in the compiler
+            } else {
+              Indent(indent, wr);
+              wr.Write("public class @{0}", sst.CompileName);
+              if (sst.TypeArgs.Count != 0) {
+                wr.Write("<{0}>", TypeParameters(sst.TypeArgs));
+              }
+              wr.WriteLine(" {");
+              if (sst.Witness != null) {
+                Indent(indent + IndentAmount, wr);
+                wr.Write("public static readonly {0} Witness = ", TypeName(sst.Rhs, wr));
+                TrExpr(sst.Witness, wr, false);
+                wr.WriteLine(";");
+              }
+              Indent(indent, wr);
+              wr.WriteLine("}");
+            }
           } else if (d is NewtypeDecl) {
             var nt = (NewtypeDecl)d;
             Indent(indent, wr);
@@ -146,6 +164,18 @@ namespace Microsoft.Dafny {
               wr.WriteLine("for (var j = lo; j < hi; j++) {{ yield return ({0})j; }}", nt.NativeType.Name);
               Indent(indent + IndentAmount, wr);
               wr.WriteLine("}");
+            }
+            if (nt.Witness != null) {
+              Indent(indent + IndentAmount, wr);
+              if (nt.NativeType == null) {
+                wr.Write("public static readonly {0} Witness = ", TypeName(nt.BaseType, wr));
+                TrExpr(nt.Witness, wr, false);
+              } else {
+                wr.Write("public static readonly {0} Witness = ({0})(", nt.NativeType.Name);
+                TrExpr(nt.Witness, wr, false);
+                wr.Write(")");
+              }
+              wr.WriteLine(";");
             }
             Indent(indent, wr);
             wr.WriteLine("}");
@@ -1316,6 +1346,12 @@ namespace Microsoft.Dafny {
       if (typeArgs.Count != 0) {
         if (typeArgs.Exists(ComplicatedTypeParameterForCompilation)) {
           Error("compilation does not support trait types as a type parameter; consider introducing a ghost", wr);
+        } else {
+          foreach (var ta in typeArgs) {
+            if (NonZeroInitialization(ta)) {
+              Error("compilation currently does not support '{0}' as a type parameter, because it is a type that may require non-zero initialiation", wr, ta);
+            }
+          }
         }
         s += "<" + TypeNames(typeArgs, wr) + ">";
       }
@@ -1325,6 +1361,12 @@ namespace Microsoft.Dafny {
     bool ComplicatedTypeParameterForCompilation(Type t) {
       Contract.Requires(t != null);
       return t.IsTraitType;
+    }
+
+    bool NonZeroInitialization(Type t) {
+      Contract.Requires(t != null);
+      var r = t.NormalizeExpandKeepConstraints() as RedirectingTypeDecl;
+      return r != null && r.Witness != null;
     }
 
     string/*!*/ TypeNames(List<Type/*!*/>/*!*/ types, TextWriter wr) {
@@ -1350,7 +1392,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(type != null);
       Contract.Ensures(Contract.Result<string>() != null);
 
-      var xType = type.NormalizeExpand();
+      var xType = type.NormalizeExpandKeepConstraints();
       if (xType is TypeProxy) {
         // unresolved proxy; just treat as ref, since no particular type information is apparently needed for this type
         return "null";
@@ -1367,17 +1409,42 @@ namespace Microsoft.Dafny {
       } else if (xType is BitvectorType) {
         var t = (BitvectorType)xType;
         return t.NativeType != null ? "0" : "BigInteger.Zero";
-      } else if (xType.AsNewtype != null) {
-        if (xType.AsNewtype.NativeType != null) {
+      } else if (xType is ObjectType) {
+        return "(object)null";
+      } else if (xType is CollectionType) {
+        return TypeName(xType, wr) + ".Empty";
+      } else if (xType is ArrowType) {
+        return "null";  // TODO: shouldn't this be preceded by a type-name cast?
+      }
+
+      var udt = (UserDefinedType)xType;
+      if (udt.ResolvedParam != null) {
+        Contract.Assert(udt.ResolvedClass == null);
+        return "default(" + TypeName_UDT(udt.FullCompileName, udt.TypeArgs, wr) + ")";
+      }
+      var cl = udt.ResolvedClass;
+      Contract.Assert(cl != null);
+      if (cl is NewtypeDecl) {
+        var td = (NewtypeDecl)cl;
+        if (td.Witness != null) {
+          return TypeName_UDT(udt.FullCompileName, udt.TypeArgs, wr) + ".Witness";
+        } else if (td.NativeType != null) {
           return "0";
+        } else {
+          return DefaultValue(td.BaseType, wr);
         }
-        return DefaultValue(xType.AsNewtype.BaseType, wr);
-      } else if (xType.IsRefType) {
+      } else if (cl is SubsetTypeDecl) {
+        var td = (SubsetTypeDecl)cl;
+        if (td.Witness != null) {
+          return TypeName_UDT(udt.FullCompileName, udt.TypeArgs, wr) + ".Witness";
+        } else {
+          return DefaultValue(td.Rhs, wr);
+        }
+      } else if (cl is ClassDecl) {
         return string.Format("({0})null", TypeName(xType, wr));
-      } else if (xType.IsDatatype) {
-        var udt = (UserDefinedType)xType;
+      } else if (cl is DatatypeDecl) {
         var s = "@" + udt.FullCompileName;
-        var rc = udt.ResolvedClass;
+        var rc = cl;
         if (DafnyOptions.O.IronDafny &&
             !(xType is ArrowType) &&
             rc != null &&
@@ -1397,24 +1464,6 @@ namespace Microsoft.Dafny {
           s += "<" + TypeNames(udt.TypeArgs, wr) + ">";
         }
         return string.Format("new {0}()", s);
-      } else if (xType.IsTypeParameter) {
-        var udt = (UserDefinedType)xType;
-        string s = "default(@" + udt.FullCompileName;
-        if (udt.TypeArgs.Count != 0) {
-          s += "<" + TypeNames(udt.TypeArgs, wr) + ">";
-        }
-        s += ")";
-        return s;
-      } else if (xType is SetType) {
-        return DafnySetClass + "<" + TypeName(((SetType)xType).Arg, wr) + ">.Empty";
-      } else if (xType is MultiSetType) {
-        return DafnyMultiSetClass + "<" + TypeName(((MultiSetType)xType).Arg, wr) + ">.Empty";
-      } else if (xType is SeqType) {
-        return DafnySeqClass + "<" + TypeName(((SeqType)xType).Arg, wr) + ">.Empty";
-      } else if (xType is MapType) {
-        return TypeName(xType, wr) + ".Empty";
-      } else if (xType is ArrowType) {
-        return "null";
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected type
       }
