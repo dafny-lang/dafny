@@ -896,15 +896,14 @@ namespace Microsoft.Dafny {
           var f = (Field)member;
           // every field is inherited
           Indent(indent, wr);
-          wr.WriteLine("public {0} @_{1};", TypeName(f.Type, wr), f.CompileName);
-          wr.Write("public {0} @{1}", TypeName(f.Type, wr), f.CompileName);
-          wr.WriteLine(" {");
-          wr.WriteLine(" get { ");
-          wr.Write("return this.@_{0};", f.CompileName);
-          wr.WriteLine("}");
-          wr.WriteLine(" set { ");
-          wr.WriteLine("this.@_{0} = value;", f.CompileName);
-          wr.WriteLine("}");
+          wr.WriteLine("public {0} @_{1} = {2};", TypeName(f.Type, wr), f.CompileName, DefaultValue(f.Type, wr));
+          Indent(indent, wr);
+          wr.WriteLine("public {0} @{1} {{", TypeName(f.Type, wr), f.CompileName);
+          Indent(indent + IndentAmount, wr);
+          wr.WriteLine("get {{ return this.@_{0}; }}", f.CompileName);
+          Indent(indent + IndentAmount, wr);
+          wr.WriteLine("set {{ this.@_{0} = value; }}", f.CompileName);
+          Indent(indent, wr);
           wr.WriteLine("}");
         } else if (member is Function) {
           var f = (Function)member;
