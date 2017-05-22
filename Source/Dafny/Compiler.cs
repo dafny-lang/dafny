@@ -134,7 +134,25 @@ namespace Microsoft.Dafny {
             var at = (OpaqueTypeDecl)d;
             Error("Opaque type ('{0}') cannot be compiled", wr, at.FullName);
           } else if (d is TypeSynonymDecl) {
-            // do nothing, just bypass type synonyms and subset types in the compiler
+            var sst = d as SubsetTypeDecl;
+            if (sst == null || sst.Witness == null) {
+              // do nothing, just bypass type synonyms and witness-less subset types in the compiler
+            } else {
+              Indent(indent, wr);
+              wr.Write("public class @{0}", sst.CompileName);
+              if (sst.TypeArgs.Count != 0) {
+                wr.Write("<{0}>", TypeParameters(sst.TypeArgs));
+              }
+              wr.WriteLine(" {");
+              if (sst.Witness != null) {
+                Indent(indent + IndentAmount, wr);
+                wr.Write("public static readonly {0} Witness = ", TypeName(sst.Rhs, wr));
+                TrExpr(sst.Witness, wr, false);
+                wr.WriteLine(";");
+              }
+              Indent(indent, wr);
+              wr.WriteLine("}");
+            }
           } else if (d is NewtypeDecl) {
             var nt = (NewtypeDecl)d;
             Indent(indent, wr);
@@ -146,6 +164,18 @@ namespace Microsoft.Dafny {
               wr.WriteLine("for (var j = lo; j < hi; j++) {{ yield return ({0})j; }}", nt.NativeType.Name);
               Indent(indent + IndentAmount, wr);
               wr.WriteLine("}");
+            }
+            if (nt.Witness != null) {
+              Indent(indent + IndentAmount, wr);
+              if (nt.NativeType == null) {
+                wr.Write("public static readonly {0} Witness = ", TypeName(nt.BaseType, wr));
+                TrExpr(nt.Witness, wr, false);
+              } else {
+                wr.Write("public static readonly {0} Witness = ({0})(", nt.NativeType.Name);
+                TrExpr(nt.Witness, wr, false);
+                wr.Write(")");
+              }
+              wr.WriteLine(";");
             }
             Indent(indent, wr);
             wr.WriteLine("}");
@@ -866,15 +896,14 @@ namespace Microsoft.Dafny {
           var f = (Field)member;
           // every field is inherited
           Indent(indent, wr);
-          wr.WriteLine("public {0} @_{1};", TypeName(f.Type, wr), f.CompileName);
-          wr.Write("public {0} @{1}", TypeName(f.Type, wr), f.CompileName);
-          wr.WriteLine(" {");
-          wr.WriteLine(" get { ");
-          wr.Write("return this.@_{0};", f.CompileName);
-          wr.WriteLine("}");
-          wr.WriteLine(" set { ");
-          wr.WriteLine("this.@_{0} = value;", f.CompileName);
-          wr.WriteLine("}");
+          wr.WriteLine("public {0} @_{1} = {2};", TypeName(f.Type, wr), f.CompileName, DefaultValue(f.Type, wr));
+          Indent(indent, wr);
+          wr.WriteLine("public {0} @{1} {{", TypeName(f.Type, wr), f.CompileName);
+          Indent(indent + IndentAmount, wr);
+          wr.WriteLine("get {{ return this.@_{0}; }}", f.CompileName);
+          Indent(indent + IndentAmount, wr);
+          wr.WriteLine("set {{ this.@_{0} = value; }}", f.CompileName);
+          Indent(indent, wr);
           wr.WriteLine("}");
         } else if (member is Function) {
           var f = (Function)member;
@@ -1281,27 +1310,27 @@ namespace Microsoft.Dafny {
         return TypeName_UDT(s, udt.TypeArgs, wr);
       } else if (xType is SetType) {
         Type argType = ((SetType)xType).Arg;
-        if (argType is ObjectType) {
-          Error("compilation of set<object> is not supported; consider introducing a ghost", wr);
+        if (ComplicatedTypeParameterForCompilation(argType)) {
+          Error("compilation of set<TRAIT> is not supported; consider introducing a ghost", wr);
         }
         return DafnySetClass + "<" + TypeName(argType, wr) + ">";
       } else if (xType is SeqType) {
         Type argType = ((SeqType)xType).Arg;
-        if (argType is ObjectType) {
-          Error("compilation of seq<object> is not supported; consider introducing a ghost", wr);
+        if (ComplicatedTypeParameterForCompilation(argType)) {
+          Error("compilation of seq<TRAIT> is not supported; consider introducing a ghost", wr);
         }
         return DafnySeqClass + "<" + TypeName(argType, wr) + ">";
       } else if (xType is MultiSetType) {
         Type argType = ((MultiSetType)xType).Arg;
-        if (argType is ObjectType) {
-          Error("compilation of seq<object> is not supported; consider introducing a ghost", wr);
+        if (ComplicatedTypeParameterForCompilation(argType)) {
+          Error("compilation of multiset<TRAIT> is not supported; consider introducing a ghost", wr);
         }
         return DafnyMultiSetClass + "<" + TypeName(argType, wr) + ">";
       } else if (xType is MapType) {
         Type domType = ((MapType)xType).Domain;
         Type ranType = ((MapType)xType).Range;
-        if (domType is ObjectType || ranType is ObjectType) {
-          Error("compilation of map<object, _> or map<_, object> is not supported; consider introducing a ghost", wr);
+        if (ComplicatedTypeParameterForCompilation(domType) || ComplicatedTypeParameterForCompilation(ranType)) {
+          Error("compilation of map<TRAIT, _> or map<_, TRAIT> is not supported; consider introducing a ghost", wr);
         }
         return DafnyMapClass + "<" + TypeName(domType, wr) + "," + TypeName(ranType, wr) + ">";
       } else {
@@ -1314,12 +1343,29 @@ namespace Microsoft.Dafny {
       Contract.Requires(typeArgs != null);
       string s = "@" + fullCompileName;
       if (typeArgs.Count != 0) {
-        if (typeArgs.Exists(argType => argType is ObjectType)) {
-          Error("compilation does not support type 'object' as a type parameter; consider introducing a ghost", wr);
+        if (typeArgs.Exists(ComplicatedTypeParameterForCompilation)) {
+          Error("compilation does not support trait types as a type parameter; consider introducing a ghost", wr);
+        } else {
+          foreach (var ta in typeArgs) {
+            if (NonZeroInitialization(ta)) {
+              Error("compilation currently does not support '{0}' as a type parameter, because it is a type that may require non-zero initialiation", wr, ta);
+            }
+          }
         }
         s += "<" + TypeNames(typeArgs, wr) + ">";
       }
       return s;
+    }
+
+    bool ComplicatedTypeParameterForCompilation(Type t) {
+      Contract.Requires(t != null);
+      return t.IsTraitType;
+    }
+
+    bool NonZeroInitialization(Type t) {
+      Contract.Requires(t != null);
+      var r = t.NormalizeExpandKeepConstraints() as RedirectingTypeDecl;
+      return r != null && r.Witness != null;
     }
 
     string/*!*/ TypeNames(List<Type/*!*/>/*!*/ types, TextWriter wr) {
@@ -1345,7 +1391,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(type != null);
       Contract.Ensures(Contract.Result<string>() != null);
 
-      var xType = type.NormalizeExpand();
+      var xType = type.NormalizeExpandKeepConstraints();
       if (xType is TypeProxy) {
         // unresolved proxy; just treat as ref, since no particular type information is apparently needed for this type
         return "null";
@@ -1362,17 +1408,42 @@ namespace Microsoft.Dafny {
       } else if (xType is BitvectorType) {
         var t = (BitvectorType)xType;
         return t.NativeType != null ? "0" : "BigInteger.Zero";
-      } else if (xType.AsNewtype != null) {
-        if (xType.AsNewtype.NativeType != null) {
+      } else if (xType is ObjectType) {
+        return "(object)null";
+      } else if (xType is CollectionType) {
+        return TypeName(xType, wr) + ".Empty";
+      } else if (xType is ArrowType) {
+        return "null";  // TODO: shouldn't this be preceded by a type-name cast?
+      }
+
+      var udt = (UserDefinedType)xType;
+      if (udt.ResolvedParam != null) {
+        Contract.Assert(udt.ResolvedClass == null);
+        return "default(" + TypeName_UDT(udt.FullCompileName, udt.TypeArgs, wr) + ")";
+      }
+      var cl = udt.ResolvedClass;
+      Contract.Assert(cl != null);
+      if (cl is NewtypeDecl) {
+        var td = (NewtypeDecl)cl;
+        if (td.Witness != null) {
+          return TypeName_UDT(udt.FullCompileName, udt.TypeArgs, wr) + ".Witness";
+        } else if (td.NativeType != null) {
           return "0";
+        } else {
+          return DefaultValue(td.BaseType, wr);
         }
-        return DefaultValue(xType.AsNewtype.BaseType, wr);
-      } else if (xType.IsRefType) {
+      } else if (cl is SubsetTypeDecl) {
+        var td = (SubsetTypeDecl)cl;
+        if (td.Witness != null) {
+          return TypeName_UDT(udt.FullCompileName, udt.TypeArgs, wr) + ".Witness";
+        } else {
+          return DefaultValue(td.Rhs, wr);
+        }
+      } else if (cl is ClassDecl) {
         return string.Format("({0})null", TypeName(xType, wr));
-      } else if (xType.IsDatatype) {
-        var udt = (UserDefinedType)xType;
+      } else if (cl is DatatypeDecl) {
         var s = "@" + udt.FullCompileName;
-        var rc = udt.ResolvedClass;
+        var rc = cl;
         if (DafnyOptions.O.IronDafny &&
             !(xType is ArrowType) &&
             rc != null &&
@@ -1392,24 +1463,6 @@ namespace Microsoft.Dafny {
           s += "<" + TypeNames(udt.TypeArgs, wr) + ">";
         }
         return string.Format("new {0}()", s);
-      } else if (xType.IsTypeParameter) {
-        var udt = (UserDefinedType)xType;
-        string s = "default(@" + udt.FullCompileName;
-        if (udt.TypeArgs.Count != 0) {
-          s += "<" + TypeNames(udt.TypeArgs, wr) + ">";
-        }
-        s += ")";
-        return s;
-      } else if (xType is SetType) {
-        return DafnySetClass + "<" + TypeName(((SetType)xType).Arg, wr) + ">.Empty";
-      } else if (xType is MultiSetType) {
-        return DafnyMultiSetClass + "<" + TypeName(((MultiSetType)xType).Arg, wr) + ">.Empty";
-      } else if (xType is SeqType) {
-        return DafnySeqClass + "<" + TypeName(((SeqType)xType).Arg, wr) + ">.Empty";
-      } else if (xType is MapType) {
-        return TypeName(xType, wr) + ".Empty";
-      } else if (xType is ArrowType) {
-        return "null";
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected type
       }
@@ -1494,7 +1547,11 @@ namespace Microsoft.Dafny {
             if (!resolved[i].IsGhost) {
               var lhs = s.Lhss[i];
               var rhs = s.Rhss[i];
-              if (!(rhs is HavocRhs)) {
+              if (rhs is HavocRhs) {
+                if (DafnyOptions.O.ForbidNondeterminism) {
+                  Error("nondeterministic assignment (line {0}) forbidden by /deterministic option", wr, rhs.Tok.line);
+                }
+              } else {
                 lvalues.Add(CreateLvalue(lhs, indent, wr));
 
                 string target = idGenerator.FreshId("_rhs");
@@ -1517,6 +1574,9 @@ namespace Microsoft.Dafny {
 
       } else if (stmt is AssignSuchThatStmt) {
         var s = (AssignSuchThatStmt)stmt;
+        if (DafnyOptions.O.ForbidNondeterminism) {
+          Error("assign-such-that statement (line {0}) forbidden by /deterministic option", wr, s.Tok.line);
+        }
         if (s.AssumeToken != null) {
           // Note, a non-ghost AssignSuchThatStmt may contain an assume
           Error("an assume statement cannot be compiled (line {0})", wr, s.AssumeToken.line);
@@ -1543,6 +1603,9 @@ namespace Microsoft.Dafny {
       } else if (stmt is IfStmt) {
         IfStmt s = (IfStmt)stmt;
         if (s.Guard == null) {
+          if (DafnyOptions.O.ForbidNondeterminism) {
+            Error("nondeterministic if statement (line {0}) forbidden by /deterministic option", wr, s.Tok.line);
+          }
           // we can compile the branch of our choice
           if (s.Els == null) {
             // let's compile the "else" branch, since that involves no work
@@ -1556,6 +1619,9 @@ namespace Microsoft.Dafny {
             wr.Write(TrStmt(s.Thn, indent).ToString());
           }
         } else {
+          if (s.IsExistentialGuard && DafnyOptions.O.ForbidNondeterminism) {
+            Error("binding if statement (line {0}) forbidden by /deterministic option", wr, s.Tok.line);
+          }
           Indent(indent, wr); wr.Write("if (");
           TrExpr(s.IsExistentialGuard ? Translator.AlphaRename((ExistsExpr)s.Guard, "eg_d") : s.Guard, wr, false);
           wr.WriteLine(")");
@@ -1576,6 +1642,9 @@ namespace Microsoft.Dafny {
 
       } else if (stmt is AlternativeStmt) {
         var s = (AlternativeStmt)stmt;
+        if (DafnyOptions.O.ForbidNondeterminism) {
+          Error("case-based if statement (line {0}) forbidden by /deterministic option", wr, s.Tok.line);
+        }
         Indent(indent, wr);
         foreach (var alternative in s.Alternatives) {
           wr.Write("if (");
@@ -1596,6 +1665,9 @@ namespace Microsoft.Dafny {
           return wr;
         }
         if (s.Guard == null) {
+          if (DafnyOptions.O.ForbidNondeterminism) {
+            Error("nondeterministic loop (line {0}) forbidden by /deterministic option", wr, s.Tok.line);
+          }
           Indent(indent, wr);
           wr.WriteLine("while (false) { }");
         } else {
@@ -1608,6 +1680,9 @@ namespace Microsoft.Dafny {
 
       } else if (stmt is AlternativeLoopStmt) {
         var s = (AlternativeLoopStmt)stmt;
+        if (DafnyOptions.O.ForbidNondeterminism) {
+          Error("case-based loop (line {0}) forbidden by /deterministic option", wr, s.Tok.line);
+        }
         if (s.Alternatives.Count != 0) {
           Indent(indent, wr);
           wr.WriteLine("while (true) {");
@@ -1640,6 +1715,9 @@ namespace Microsoft.Dafny {
         }
         var s0 = (AssignStmt)s.S0;
         if (s0.Rhs is HavocRhs) {
+          if (DafnyOptions.O.ForbidNondeterminism) {
+            Error("nondeterministic assignment (line {0}) forbidden by /deterministic option", wr, s0.Rhs.Tok.line);
+          }
           // The forall statement says to havoc a bunch of things.  This can be efficiently compiled
           // into doing nothing.
           return wr;
@@ -1863,6 +1941,8 @@ namespace Microsoft.Dafny {
         }
         if (s.Update != null) {
           wr.Write(TrStmt(s.Update, indent).ToString());
+        } else if (DafnyOptions.O.ForbidNondeterminism) {
+          Error("variable declaration without initialization (line {0}) forbidden by /deterministic option", wr, s.Tok.line);
         }
 
       } else if (stmt is LetStmt) {
@@ -1877,6 +1957,8 @@ namespace Microsoft.Dafny {
         var s = (ModifyStmt)stmt;
         if (s.Body != null) {
           wr.Write(TrStmt(s.Body, indent).ToString());
+        } else if (DafnyOptions.O.ForbidNondeterminism) {
+          Error("modify statement without a body (line {0}) forbidden by /deterministic option", wr, s.Tok.line);
         }
 
       } else {
@@ -2100,6 +2182,9 @@ namespace Microsoft.Dafny {
         wr.WriteLine(" = {0};", nw);
       } else if (rhs is HavocRhs) {
         // do nothing
+        if (DafnyOptions.O.ForbidNondeterminism) {
+          Error("nondeterministic assignment (line {0}) forbidden by /deterministic option", wr, rhs.Tok.line);
+        }
       } else {
         if (rhs is ExprRhs) {
         } else if (tRhs != null && tRhs.ArrayDimensions != null) {
@@ -3082,8 +3167,8 @@ namespace Microsoft.Dafny {
         // For "set i,j,k,l | R(i,j,k,l) :: Term(i,j,k,l)" where the term has type "G", emit something like:
         // ((ComprehensionDelegate<G>)delegate() {
         //   var _coll = new List<G>();
-        //   foreach (L l in sq.Elements) {
-        //     foreach (K k in st.Elements) {
+        //   foreach (var tmp_l in sq.Elements) { L l = (L)tmp_l;
+        //     foreach (var tmp_k in st.Elements) { K k = (K)tmp_k;
         //       for (BigInteger j = Lo; j < Hi; j++) {
         //         for (bool i in Helper.AllBooleans) {
         //           if (R(i,j,k,l)) {
@@ -3122,19 +3207,22 @@ namespace Microsoft.Dafny {
             wr.Write(")) { ");
           } else if (bound is ComprehensionExpr.SetBoundedPool) {
             var b = (ComprehensionExpr.SetBoundedPool)bound;
-            wr.Write("foreach (var @{0} in (", bv.CompileName);
+            var tmpVar = idGenerator.FreshId("_set_compr_");
+            wr.Write("foreach (var @{0} in (", tmpVar);
             TrExpr(b.Set, wr, inLetExprBody);
-            wr.Write(").Elements) { ");
+            wr.Write(").Elements) {{ {0} @{1} = ({0}){2}; ", TypeName(bv.Type, wr), bv.CompileName, tmpVar);
           } else if (bound is ComprehensionExpr.MapBoundedPool) {
             var b = (ComprehensionExpr.MapBoundedPool)bound;
-            wr.Write("foreach (var @{0} in (", bv.CompileName);
+            var tmpVar = idGenerator.FreshId("_map_compr_");
+            wr.Write("foreach (var @{0} in (", tmpVar);
             TrExpr(b.Map, wr, inLetExprBody);
-            wr.Write(").Domain) { ");
+            wr.Write(").Domain) {{ {0} @{1} = ({0}){2}; ", TypeName(bv.Type, wr), bv.CompileName, tmpVar);
           } else if (bound is ComprehensionExpr.SeqBoundedPool) {
             var b = (ComprehensionExpr.SeqBoundedPool)bound;
-            wr.Write("foreach (var @{0} in (", bv.CompileName);
+            var tmpVar = idGenerator.FreshId("_seq_compr_");
+            wr.Write("foreach (var @{0} in (", tmpVar);
             TrExpr(b.Seq, wr, inLetExprBody);
-            wr.Write(").Elements) { ");
+            wr.Write(").Elements) { {0} @{1} = ({0}){2}; ", TypeName(bv.Type, wr), bv.CompileName, tmpVar);
           } else if (bound is ComprehensionExpr.DatatypeBoundedPool) {
             var b = (ComprehensionExpr.DatatypeBoundedPool)bound;
             wr.Write("foreach (var @{0} in {1}.AllSingletonConstructors) {{", bv.CompileName, TypeName(bv.Type, wr));

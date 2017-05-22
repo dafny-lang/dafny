@@ -5192,6 +5192,8 @@ namespace Microsoft.Dafny {
 
       // If there's no constraint, there's nothing to do
       if (decl.Var == null) {
+        Contract.Assert(decl.Constraint == null);  // there's a constraint only if there's a variable to be constrained
+        Contract.Assert(decl.Witness == null);  // a witness makes sense only if there is a constraint
         return;
       }
       Contract.Assert(decl.Constraint != null);  // follows from the test above and the RedirectingTypeDecl class invariant
@@ -5238,14 +5240,23 @@ namespace Microsoft.Dafny {
       CheckWellformed(decl.Constraint, new WFOptions(null, true), locals, builder, etran);
 
       // Check that the type is inhabited.
-      // Note, whatever value is tried here must also be what the compiler will pick to initialize variables of this type.
-      var witness = Zero(decl.tok, decl.Var.Type);
-      if (witness == null) {
-        builder.Add(Assert(decl.tok, Bpl.Expr.False, "cannot find witness that shows type is inhabited (sorry, didn't know what what value to try)"));
+      // Note, the possible witness in this check should be coordinated with the compiler, so the compiler knows how to do the initialization
+      if (decl.Witness != null) {
+        // check well-formedness of the witness expression (including termination, and reads checks)
+        CheckWellformed(decl.Witness, new WFOptions(null, true), locals, builder, etran);
+        // check that the witness expression checks out
+        var witnessCheck = etran.TrExpr(Substitute(decl.Constraint, decl.Var, decl.Witness));
+        builder.Add(Assert(decl.Witness.tok, witnessCheck, "the given witness expression might not satisfy constraint"));
       } else {
-        var witnessCheck = etran.TrExpr(Substitute(decl.Constraint, decl.Var, witness));
-        builder.Add(Assert(decl.tok, witnessCheck, string.Format("cannot find witness that shows type is inhabited (sorry, for now, only tried {0})",
-          Printer.ExprToString(witness))));
+        var witness = Zero(decl.tok, decl.Var.Type);
+        if (witness == null) {
+          builder.Add(Assert(decl.tok, Bpl.Expr.False, "cannot find witness that shows type is inhabited; try giving a hint through a 'witness' clause"));
+        } else {
+          var witnessCheck = etran.TrExpr(Substitute(decl.Constraint, decl.Var, witness));
+          builder.Add(Assert(decl.tok, witnessCheck,
+            string.Format("cannot find witness that shows type is inhabited (only tried {0}); try giving a hint through a 'witness' clause",
+            Printer.ExprToString(witness))));
+        }
       }
 
       if (EmitImplementation(decl.Attributes)) {
@@ -15873,7 +15884,7 @@ namespace Microsoft.Dafny {
           return new ComprehensionExpr.IntBoundedPool(b.LowerBound == null ? null : Substitute(b.LowerBound), b.UpperBound == null ? null : Substitute(b.UpperBound));
         } else if (bound is ComprehensionExpr.SetBoundedPool) {
           var b = (ComprehensionExpr.SetBoundedPool)bound;
-          return new ComprehensionExpr.SetBoundedPool(Substitute(b.Set));
+          return new ComprehensionExpr.SetBoundedPool(Substitute(b.Set), b.ExactTypes);
         } else if (bound is ComprehensionExpr.SubSetBoundedPool) {
           var b = (ComprehensionExpr.SubSetBoundedPool)bound;
           return new ComprehensionExpr.SubSetBoundedPool(Substitute(b.UpperBound));
@@ -15882,10 +15893,10 @@ namespace Microsoft.Dafny {
           return new ComprehensionExpr.SuperSetBoundedPool(Substitute(b.LowerBound));
         } else if (bound is ComprehensionExpr.MapBoundedPool) {
           var b = (ComprehensionExpr.MapBoundedPool)bound;
-          return new ComprehensionExpr.MapBoundedPool(Substitute(b.Map));
+          return new ComprehensionExpr.MapBoundedPool(Substitute(b.Map), b.ExactTypes);
         } else if (bound is ComprehensionExpr.SeqBoundedPool) {
           var b = (ComprehensionExpr.SeqBoundedPool)bound;
-          return new ComprehensionExpr.SeqBoundedPool(Substitute(b.Seq));
+          return new ComprehensionExpr.SeqBoundedPool(Substitute(b.Seq), b.ExactTypes);
         } else if (bound is ComprehensionExpr.DatatypeBoundedPool) {
           return bound;  // nothing to substitute
         } else {
@@ -16615,7 +16626,7 @@ namespace Microsoft.Dafny {
       return Util.Concat(xs, ys);
     }
 
-    static List<B> Map<A,B>(IEnumerable<A> xs, Func<A,B> f) {
+    public static List<B> Map<A,B>(IEnumerable<A> xs, Func<A,B> f) {
       return Util.Map(xs, f);
     }
 

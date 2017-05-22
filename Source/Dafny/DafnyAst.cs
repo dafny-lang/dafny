@@ -123,7 +123,7 @@ namespace Microsoft.Dafny {
       var bvNat = new BoundVar(Token.NoToken, "x", Type.Int);
       var natConstraint = Expression.CreateAtMost(Expression.CreateIntLiteral(Token.NoToken, 0), Expression.CreateIdentExpr(bvNat));
       var ax = new Attributes("axiom", new List<Expression>(), null);
-      var nat = new SubsetTypeDecl(Token.NoToken, "nat", TypeParameter.EqualitySupportValue.InferredRequired, new List<TypeParameter>(), SystemModule, bvNat, natConstraint, ax);
+      var nat = new SubsetTypeDecl(Token.NoToken, "nat", TypeParameter.EqualitySupportValue.InferredRequired, new List<TypeParameter>(), SystemModule, bvNat, natConstraint, null, ax);
       SystemModule.TopLevelDecls.Add(nat);
       // create trait 'object'
       ObjectDecl = new TraitDecl(Token.NoToken, "object", SystemModule, new List<TypeParameter>(), new List<MemberDecl>(), DontCompile(), null);
@@ -831,6 +831,17 @@ namespace Microsoft.Dafny {
           var udt = t as UserDefinedType;
           return udt != null && udt.ResolvedParam == null && udt.ResolvedClass is ClassDecl
             && !(udt.ResolvedClass is ArrowTypeDecl);
+        }
+      }
+    }
+    public bool IsTraitType {
+      get {
+        var t = NormalizeExpand();
+        if (t is ObjectType) {
+          return true;
+        } else {
+          var udt = t as UserDefinedType;
+          return udt != null && udt.ResolvedParam == null && udt.ResolvedClass is TraitDecl;
         }
       }
     }
@@ -1810,13 +1821,6 @@ namespace Microsoft.Dafny {
       this.arg = arg;
       this.TypeArgs = new List<Type> { arg, other };
     }
-    public override bool SupportsEquality {
-      get {
-        // Note that all collection types support equality. There is, however, a requirement (checked during resolution)
-        // that the argument types of collections support equality.
-        return true;
-      }
-    }
   }
 
   public class SetType : CollectionType {
@@ -1844,6 +1848,12 @@ namespace Microsoft.Dafny {
       var t = that as SetType;
       return t != null && Finite == t.Finite && Arg.PossiblyEquals(t.Arg);
     }
+    public override bool SupportsEquality {
+      get {
+        // Sets always support equality, because there is a check that the set element type always does.
+        return true;
+      }
+    }
   }
 
   public class MultiSetType : CollectionType
@@ -1863,6 +1873,12 @@ namespace Microsoft.Dafny {
       var t = that as MultiSetType;
       return t != null && Arg.PossiblyEquals(t.Arg);
     }
+    public override bool SupportsEquality {
+      get {
+        // Multisets always support equality, because there is a check that the set element type always does.
+        return true;
+      }
+    }
   }
 
   public class SeqType : CollectionType {
@@ -1880,6 +1896,12 @@ namespace Microsoft.Dafny {
     public override bool PossiblyEquals_W(Type that) {
       var t = that as SeqType;
       return t != null && Arg.PossiblyEquals(t.Arg);
+    }
+    public override bool SupportsEquality {
+      get {
+        // The sequence type supports equality if its element type does
+        return Arg.SupportsEquality;
+      }
     }
   }
   public class MapType : CollectionType
@@ -1924,6 +1946,13 @@ namespace Microsoft.Dafny {
     public override bool PossiblyEquals_W(Type that) {
       var t = that as MapType;
       return t != null && Finite == t.Finite && Arg.PossiblyEquals(t.Arg) && Range.PossiblyEquals(t.Range);
+    }
+    public override bool SupportsEquality {
+      get {
+        // A map type supports equality if both its Keys type and Values type does.  It is checked
+        // that the Keys type always supports equality, so we only need to check the Values type here.
+        return range.SupportsEquality;
+      }
     }
   }
 
@@ -2218,12 +2247,15 @@ namespace Microsoft.Dafny {
     public override bool SupportsEquality {
       get {
         if (ResolvedClass is ClassDecl || ResolvedClass is NewtypeDecl) {
-          return true;
+          return ResolvedClass.IsRevealedInScope(Type.GetScope());
         } else if (ResolvedClass is CoDatatypeDecl) {
           return false;
         } else if (ResolvedClass is IndDatatypeDecl) {
           var dt = (IndDatatypeDecl)ResolvedClass;
           Contract.Assume(dt.EqualitySupport != IndDatatypeDecl.ES.NotYetComputed);
+          if (!dt.IsRevealedInScope(Type.GetScope())) {
+            return false;
+          }
           if (dt.EqualitySupport == IndDatatypeDecl.ES.Never) {
             return false;
           }
@@ -4063,6 +4095,7 @@ namespace Microsoft.Dafny {
     ModuleDefinition Module { get; }
     BoundVar/*?*/ Var { get; }
     Expression/*?*/ Constraint { get; }
+    Expression/*?*/ Witness { get; }
     FreshIdGenerator IdGenerator { get; }
   }
 
@@ -4148,6 +4181,7 @@ namespace Microsoft.Dafny {
     public readonly Type BaseType;
     public readonly BoundVar Var;  // can be null (if non-null, then object.ReferenceEquals(Var.Type, BaseType))
     public readonly Expression Constraint;  // is null iff Var is
+    public readonly Expression Witness;  // is null if (but not "only if") Var is
     public NativeType NativeType; // non-null for fixed-size representations (otherwise, use BigIntegers for integers)
     public NewtypeDecl(IToken tok, string name, ModuleDefinition module, Type baseType, Attributes attributes, NewtypeDecl clonedFrom = null)
       : base(tok, name, module, new List<TypeParameter>(), attributes, clonedFrom) {
@@ -4157,7 +4191,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(baseType != null);
       BaseType = baseType;
     }
-    public NewtypeDecl(IToken tok, string name, ModuleDefinition module, BoundVar bv, Expression constraint, Attributes attributes, NewtypeDecl clonedFrom = null)
+    public NewtypeDecl(IToken tok, string name, ModuleDefinition module, BoundVar bv, Expression constraint, Expression witness, Attributes attributes, NewtypeDecl clonedFrom = null)
       : base(tok, name, module, new List<TypeParameter>(), attributes, clonedFrom) {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
@@ -4166,6 +4200,7 @@ namespace Microsoft.Dafny {
       BaseType = bv.Type;
       Var = bv;
       Constraint = constraint;
+      Witness = witness;
       this.NewSelfSynonym();
     }
 
@@ -4186,6 +4221,7 @@ namespace Microsoft.Dafny {
     ModuleDefinition RedirectingTypeDecl.Module { get { return Module; } }
     BoundVar RedirectingTypeDecl.Var { get { return Var; } }
     Expression RedirectingTypeDecl.Constraint { get { return Constraint; } }
+    Expression RedirectingTypeDecl.Witness { get { return Witness; } }
     FreshIdGenerator RedirectingTypeDecl.IdGenerator { get { return IdGenerator; } }
 
     bool ICodeContext.IsGhost { get { return true; } }
@@ -4255,6 +4291,7 @@ namespace Microsoft.Dafny {
     ModuleDefinition RedirectingTypeDecl.Module { get { return Module; } }
     BoundVar RedirectingTypeDecl.Var { get { return null; } }
     Expression RedirectingTypeDecl.Constraint { get { return null; } }
+    Expression RedirectingTypeDecl.Witness { get { return null; } }
     FreshIdGenerator RedirectingTypeDecl.IdGenerator { get { return IdGenerator; } }
 
     bool ICodeContext.IsGhost { get { return false; } }
@@ -4301,8 +4338,9 @@ namespace Microsoft.Dafny {
     public override string WhatKind { get { return "subset type"; } }
     public readonly BoundVar Var;
     public readonly Expression Constraint;
+    public readonly Expression/*?*/ Witness;
     public SubsetTypeDecl(IToken tok, string name, TypeParameter.EqualitySupportValue equalitySupport, List<TypeParameter> typeArgs, ModuleDefinition module,
-      BoundVar id, Expression constraint,
+      BoundVar id, Expression constraint, Expression witness,
       Attributes attributes, SubsetTypeDecl clonedFrom = null)
       : base(tok, name, equalitySupport, typeArgs, module, id.Type, attributes, clonedFrom) {
       Contract.Requires(tok != null);
@@ -4313,9 +4351,11 @@ namespace Microsoft.Dafny {
       Contract.Requires(constraint != null);
       Var = id;
       Constraint = constraint;
+      Witness = witness;
     }
     BoundVar RedirectingTypeDecl.Var { get { return Var; } }
     Expression RedirectingTypeDecl.Constraint { get { return Constraint; } }
+    Expression RedirectingTypeDecl.Witness { get { return Witness; } }
   }
 
   [ContractClass(typeof(IVariableContracts))]
@@ -8853,13 +8893,20 @@ namespace Microsoft.Dafny {
         return 1;
       }
     }
-    public class SetBoundedPool : BoundedPool
+    public abstract class CollectionBoundedPool : BoundedPool
     {
-      public readonly Expression Set;
-      public SetBoundedPool(Expression set) { Set = set; }
+      public readonly bool ExactTypes;
+      public CollectionBoundedPool(bool exactTypes) {
+        ExactTypes = exactTypes;
+      }
       public override int Preference() {
         return 10;
       }
+    }
+    public class SetBoundedPool : CollectionBoundedPool
+    {
+      public readonly Expression Set;
+      public SetBoundedPool(Expression set, bool exactTypes) : base(exactTypes) { Set = set; }
     }
     public class SubSetBoundedPool : BoundedPool
     {
@@ -8880,21 +8927,15 @@ namespace Microsoft.Dafny {
         get { return false; }
       }
     }
-    public class MapBoundedPool : BoundedPool
+    public class MapBoundedPool : CollectionBoundedPool
     {
       public readonly Expression Map;
-      public MapBoundedPool(Expression map) { Map = map; }
-      public override int Preference() {
-        return 10;
-      }
+      public MapBoundedPool(Expression map, bool exactTypes) : base(exactTypes) { Map = map; }
     }
-    public class SeqBoundedPool : BoundedPool
+    public class SeqBoundedPool : CollectionBoundedPool
     {
       public readonly Expression Seq;
-      public SeqBoundedPool(Expression seq) { Seq = seq; }
-      public override int Preference() {
-        return 10;
-      }
+      public SeqBoundedPool(Expression seq, bool exactTypes) : base(exactTypes) { Seq = seq; }
     }
     public class DatatypeBoundedPool : BoundedPool
     {
@@ -8921,6 +8962,9 @@ namespace Microsoft.Dafny {
           var bound = Bounds[i];
           if (bound is RefBoundedPool) {
             // yes, this is in principle a bound, but it's not one we'd like to compile
+            bvs.Add(BoundVars[i]);
+          } else if (bound is CollectionBoundedPool && !((CollectionBoundedPool)bound).ExactTypes) {
+            // non-exact types would require a run-time type test, which is not possible in C#
             bvs.Add(BoundVars[i]);
           }
         }

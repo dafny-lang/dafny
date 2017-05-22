@@ -236,6 +236,10 @@ Everything) {
             }
             wr.Write(" | ");
             PrintExpression(dd.Constraint, true);
+            if (dd.Witness != null) {
+              wr.Write(" witness ");
+              PrintExpression(dd.Witness, true);
+            }
           }
           wr.WriteLine();
         } else if (d is SubsetTypeDecl) {
@@ -251,6 +255,10 @@ Everything) {
           }
           wr.Write(" | ");
           PrintExpression(dd.Constraint, true);
+          if (dd.Witness != null) {
+            wr.Write(" witness ");
+            PrintExpression(dd.Witness, true);
+          }
           wr.WriteLine();
         } else if (d is TypeSynonymDecl) {
           var dd = (TypeSynonymDecl)d;

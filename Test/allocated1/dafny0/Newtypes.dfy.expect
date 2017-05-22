@@ -1,4 +1,4 @@
-Newtypes.dfy(74,10): Error: cannot find witness that shows type is inhabited (sorry, for now, only tried 0)
+Newtypes.dfy(74,10): Error: cannot find witness that shows type is inhabited (only tried 0); try giving a hint through a 'witness' clause
 Execution trace:
     (0,0): anon0
 Newtypes.dfy(76,44): Error: possible division by zero

@@ -1,0 +1,5 @@
+NonZeroInitialization.dfy(4,36): Error: the given witness expression might not satisfy constraint
+Execution trace:
+    (0,0): anon0
+
+Dafny program verifier finished with 2 verified, 1 error

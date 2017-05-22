@@ -46,6 +46,7 @@ namespace Microsoft.Dafny
     public bool UnicodeOutput = false;
     public bool DisallowSoundnessCheating = false;
     public bool Dafnycc = false;
+    public bool ForbidNondeterminism = false;
     public int Induction = 3;
     public int InductionHeuristic = 6;
     public string DafnyPrelude = null;
@@ -189,6 +190,10 @@ namespace Microsoft.Dafny
             }
             return true;
           }
+
+        case "deterministic":
+          ForbidNondeterminism = true;
+          return true;
 
         case "induction":
           ps.GetNumericArgument(ref Induction, 4);
@@ -434,6 +439,7 @@ namespace Microsoft.Dafny
   /out:<file>
                 filename and location for the generated .cs, .dll or .exe files 
   /dafnycc      Disable features not supported by DafnyCC
+  /deterministic  Forbid the use of compiled nondeterministic statements
   /noCheating:<n>
                 0 (default) - allow assume statements and free invariants
                 1 - treat all assumptions as asserts, and drop free.

@@ -1,4 +1,4 @@
-git-issue3.dfy(4,8): Error: cannot find witness that shows type is inhabited (sorry, for now, only tried 0)
+git-issue3.dfy(4,8): Error: cannot find witness that shows type is inhabited (only tried 0); try giving a hint through a 'witness' clause
 Execution trace:
     (0,0): anon0
 

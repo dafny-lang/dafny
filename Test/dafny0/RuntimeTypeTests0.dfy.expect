@@ -1,0 +1,6 @@
+
+Dafny program verifier finished with 3 verified, 0 errors
+Compilation error: compilation does not support trait types as a type parameter; consider introducing a ghost
+Compilation error: compilation does not support trait types as a type parameter; consider introducing a ghost
+Compilation error: compilation of set<TRAIT> is not supported; consider introducing a ghost
+Compilation error: compilation of set<TRAIT> is not supported; consider introducing a ghost

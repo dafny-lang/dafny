@@ -213,6 +213,9 @@ namespace Microsoft.Dafny
 
       builtIns = prog.BuiltIns;
       reporter = prog.reporter;
+      // Resolution error handling relies on being able to get to the 0-tuple declaration
+      builtIns.TupleType(Token.NoToken, 0, true);
+
       // Populate the members of the basic types
       var floor = new SpecialField(Token.NoToken, "Floor", "ToBigInteger()", "", "", false, false, false, Type.Int, null);
       floor.AddVisibilityScope(prog.BuiltIns.SystemModule.VisibilityScope, false);
@@ -2068,11 +2071,10 @@ namespace Microsoft.Dafny
       // ----------------------------------------------------------------------------
 
       // Resolve the meat of classes and iterators, the definitions of type synonyms, and the type parameters of all top-level type declarations
-      // First, resolve the newtype/subset-type declarations and the constraint clauses, including filling in .ResolvedOp fields.  This is needed for the
-      // resolution of the other declarations, because those other declarations may invoke DiscoverBounds, which looks at the .Constraint field
-      // of any newtypes involved.  DiscoverBounds is called on quantifiers (but only in non-ghost contexts) and set comprehensions (in all
-      // contexts).  The constraints of newtypes are ghost, so DiscoverBounds is not going to be called on any quantifiers they may contain.
-      // However, the constraints may contain set comprehensions.  For this reason, we postpone the DiscoverBounds checks on set comprehensions.
+      // In the first two loops below, resolve the newtype/subset-type declarations and their constraint clauses, including filling in .ResolvedOp
+      // fields.  This is needed for the resolution of the other declarations, because those other declarations may invoke DiscoverBounds, which
+      // looks at the .Constraint field of any such types involved.
+      // The third loop resolves the other declarations.  It also resolves any witness expressions of newtype/subset-type declarations.
       foreach (TopLevelDecl d in declarations) {
         Contract.Assert(d != null);
         Contract.Assert(VisibleInScope(d));
@@ -2100,10 +2102,6 @@ namespace Microsoft.Dafny
             if (!CheckTypeInference_Visitor.IsDetermined(dd.BaseType.NormalizeExpand())) {
               reporter.Error(MessageSource.Resolver, dd.tok, "newtype's base type is not fully determined; add an explicit type for '{0}'", dd.Var.Name);
             }
-            if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
-              CheckTypeInference(dd.Constraint, dd);
-            }
-
             TeardownMinimumBodyScope(dd);
             scope.PopMarker();
           }
@@ -2130,37 +2128,62 @@ namespace Microsoft.Dafny
           if (!CheckTypeInference_Visitor.IsDetermined(dd.Rhs.NormalizeExpand())) {
             reporter.Error(MessageSource.Resolver, dd.tok, "subset type's base type is not fully determined; add an explicit type for '{0}'", dd.Var.Name);
           }
-          if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
-            CheckTypeInference(dd.Constraint, dd);
-          }
-
-          allTypeParameters.PopMarker();
           TeardownMinimumBodyScope(dd);
           scope.PopMarker();
+          allTypeParameters.PopMarker();
         }
       }
-      // Now, we're ready for the other declarations.
+      Contract.Assert(AllTypeConstraints.Count == 0);
+      if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
+        // Check type inference, which also discovers bounds, in newtype/subset-type constraints
+        foreach (TopLevelDecl d in declarations) {
+          if (d is NewtypeDecl || d is SubsetTypeDecl) {
+            var dd = (RedirectingTypeDecl)d;
+            if (dd.Constraint != null) {
+              allTypeParameters.PushMarker();
+              ResolveTypeParameters(d.TypeArgs, false, d);
+              CheckTypeInference(dd.Constraint, dd);
+              allTypeParameters.PopMarker();
+            }
+          }
+        }
+      }
+      // Now, we're ready for the other declarations, along with any witness clauses of newtype/subset-type declarations.
       foreach (TopLevelDecl d in declarations) {
         Contract.Assert(AllTypeConstraints.Count == 0);
-        if (d is NewtypeDecl || d is SubsetTypeDecl) {
-          continue;  // NewTypeDecl's and SubsetTypeDecl's were already processed in the loop above
-        }
         if (d is TraitDecl && d.TypeArgs.Count > 0) {
           reporter.Error(MessageSource.Resolver, d, "sorry, traits with type parameters are not supported");
         }
         allTypeParameters.PushMarker();
         ResolveTypeParameters(d.TypeArgs, false, d);
-        if (!(d is IteratorDecl)) {
-          // Note, attributes of iterators are resolved by ResolvedIterator, after registering any names in the iterator signature
-          ResolveAttributes(d.Attributes, d, new ResolveOpts(new NoContext(d.Module), false));
-        }
-        if (d is IteratorDecl) {
-          var iter = (IteratorDecl)d;
-          ResolveIterator(iter);
-          ResolveClassMemberBodies(iter);  // resolve the automatically generated members
-        } else if (d is ClassDecl) {
-          var cl = (ClassDecl)d;
-          ResolveClassMemberBodies(cl);
+        if (d is NewtypeDecl || d is SubsetTypeDecl) {
+          // NewTypeDecl's and SubsetTypeDecl's were already processed in the loop above, except for any witness clauses
+          var dd = (RedirectingTypeDecl)d;
+          if (dd.Witness != null) {
+            var prevErrCnt = reporter.Count(ErrorLevel.Error);
+            ResolveExpression(dd.Witness, new ResolveOpts(dd, false));
+            ConstrainSubtypeRelation(dd.Var.Type, dd.Witness.Type, dd.Witness, "witness expression must have type '{0}' (got '{1}')", dd.Var.Type, dd.Witness.Type);
+            SolveAllTypeConstraints();
+            if (reporter.Count(ErrorLevel.Error) == prevErrCnt) {
+              CheckTypeInference(dd.Witness, dd);
+            }
+            if (reporter.Count(ErrorLevel.Error) == prevErrCnt) {
+              CheckIsCompilable(dd.Witness);
+            }
+          }
+        } else {
+          if (!(d is IteratorDecl)) {
+            // Note, attributes of iterators are resolved by ResolvedIterator, after registering any names in the iterator signature
+            ResolveAttributes(d.Attributes, d, new ResolveOpts(new NoContext(d.Module), false));
+          }
+          if (d is IteratorDecl) {
+            var iter = (IteratorDecl)d;
+            ResolveIterator(iter);
+            ResolveClassMemberBodies(iter);  // resolve the automatically generated members
+          } else if (d is ClassDecl) {
+            var cl = (ClassDecl)d;
+            ResolveClassMemberBodies(cl);
+          }
         }
         allTypeParameters.PopMarker();
       }
@@ -5250,7 +5273,9 @@ namespace Microsoft.Dafny
         } else if (stmt is VarDeclStmt) {
           var s = (VarDeclStmt)stmt;
           foreach (var v in s.Locals) {
-            CheckEqualityTypes_Type(v.Tok, v.Type);
+            if (!v.IsGhost) {
+              CheckEqualityTypes_Type(v.Tok, v.Type);
+            }
           }
         } else if (stmt is LetStmt) {
           var s = (LetStmt)stmt;
@@ -5285,6 +5310,7 @@ namespace Microsoft.Dafny
           var i = 0;
           foreach (var formalTypeArg in s.Method.TypeArgs) {
             var actualTypeArg = subst[formalTypeArg];
+            CheckEqualityTypes_Type(s.Tok, actualTypeArg);
             if (formalTypeArg.MustSupportEquality && !actualTypeArg.SupportsEquality) {
               resolver.reporter.Error(MessageSource.Resolver, s.Tok, "type parameter{0} ({1}) passed to method {2} must support equality (got {3}){4}",
                 s.Method.TypeArgs.Count == 1 ? "" : " " + i, formalTypeArg.Name, s.Method.Name, actualTypeArg, TypeEqualityErrorMessageHint(actualTypeArg));
@@ -5334,12 +5360,10 @@ namespace Microsoft.Dafny
           switch (e.Op) {
             case BinaryExpr.Opcode.Eq:
             case BinaryExpr.Opcode.Neq:
-              // First, check a special case:  a datatype value (like Nil) that takes no parameters
-              var e0 = e.E0.Resolved as DatatypeValue;
-              var e1 = e.E1.Resolved as DatatypeValue;
-              if (e0 != null && e0.Arguments.Count == 0) {
+              // First, check some special cases that can always be compared against--for example, a datatype value (like Nil) that takes no parameters
+              if (CanCompareWith(e.E0)) {
                 // that's cool
-              } else if (e1 != null && e1.Arguments.Count == 0) {
+              } else if (CanCompareWith(e.E1)) {
                 // oh yeah!
               } else if (!t0.SupportsEquality) {
                 resolver.reporter.Error(MessageSource.Resolver, e.E0, "{0} can only be applied to expressions of types that support equality (got {1}){2}", BinaryExpr.OpcodeString(e.Op), t0, TypeEqualityErrorMessageHint(t0));
@@ -5387,6 +5411,7 @@ namespace Microsoft.Dafny
             var i = 0;
             foreach (var tp in ((ICallable)e.Member).TypeArgs) {
               var actualTp = e.TypeApplication[e.Member.EnclosingClass.TypeArgs.Count + i];
+              CheckEqualityTypes_Type(e.tok, actualTp);
               if (tp.MustSupportEquality && !actualTp.SupportsEquality) {
                 resolver.reporter.Error(MessageSource.Resolver, e.tok, "type parameter{0} ({1}) passed to {5} '{2}' must support equality (got {3}){4}",
                   ((ICallable)e.Member).TypeArgs.Count == 1 ? "" : " " + i, tp.Name, e.Member.Name, actualTp, TypeEqualityErrorMessageHint(actualTp), e.Member.WhatKind);
@@ -5400,6 +5425,7 @@ namespace Microsoft.Dafny
           var i = 0;
           foreach (var formalTypeArg in e.Function.TypeArgs) {
             var actualTypeArg = e.TypeArgumentSubstitutions[formalTypeArg];
+            CheckEqualityTypes_Type(e.tok, actualTypeArg);
             if (formalTypeArg.MustSupportEquality && !actualTypeArg.SupportsEquality) {
               resolver.reporter.Error(MessageSource.Resolver, e.tok, "type parameter{0} ({1}) passed to function {2} must support equality (got {3}){4}",
                 e.Function.TypeArgs.Count == 1 ? "" : " " + i, formalTypeArg.Name, e.Function.Name, actualTypeArg, TypeEqualityErrorMessageHint(actualTypeArg));
@@ -5422,6 +5448,32 @@ namespace Microsoft.Dafny
           CheckEqualityTypes_Type(expr.tok, expr.Type);
         }
         return true;
+      }
+
+      private bool CanCompareWith(Expression expr) {
+        Contract.Requires(expr != null);
+        if (expr.Type.SupportsEquality) {
+          return true;
+        }
+        expr = expr.Resolved;
+        if (expr is DatatypeValue) {
+          var e = (DatatypeValue)expr;
+          for (int i = 0; i < e.Ctor.Formals.Count; i++) {
+            if (e.Ctor.Formals[i].IsGhost) {
+              return false;
+            } else if (!CanCompareWith(e.Arguments[i])) {
+              return false;
+            }
+          }
+          return true;
+        } else if (expr is DisplayExpression) {
+          var e = (DisplayExpression)expr;
+          return e.Elements.Count == 0;
+        } else if (expr is MapDisplayExpr) {
+          var e = (MapDisplayExpr)expr;
+          return e.Elements.Count == 0;
+        }
+        return false;
       }
 
       public void CheckEqualityTypes_Type(IToken tok, Type type) {
@@ -5755,6 +5807,9 @@ namespace Microsoft.Dafny
         } else if (stmt is IfStmt) {
           var s = (IfStmt)stmt;
           s.IsGhost = mustBeErasable || (s.Guard != null && resolver.UsesSpecFeatures(s.Guard));
+          if (!mustBeErasable && s.IsGhost) {
+            resolver.reporter.Info(MessageSource.Resolver, s.Tok, "ghost if");
+          }
           Visit(s.Thn, s.IsGhost);
           if (s.Els != null) {
             Visit(s.Els, s.IsGhost);
@@ -5765,12 +5820,18 @@ namespace Microsoft.Dafny
         } else if (stmt is AlternativeStmt) {
           var s = (AlternativeStmt)stmt;
           s.IsGhost = mustBeErasable || s.Alternatives.Exists(alt => resolver.UsesSpecFeatures(alt.Guard));
+          if (!mustBeErasable && s.IsGhost) {
+            resolver.reporter.Info(MessageSource.Resolver, s.Tok, "ghost if");
+          }
           s.Alternatives.Iter(alt => alt.Body.Iter(ss => Visit(ss, s.IsGhost)));
           s.IsGhost = s.IsGhost || s.Alternatives.All(alt => alt.Body.All(ss => ss.IsGhost));
 
         } else if (stmt is WhileStmt) {
           var s = (WhileStmt)stmt;
           s.IsGhost = mustBeErasable || (s.Guard != null && resolver.UsesSpecFeatures(s.Guard));
+          if (!mustBeErasable && s.IsGhost) {
+            resolver.reporter.Info(MessageSource.Resolver, s.Tok, "ghost while");
+          }
           if (s.IsGhost && s.Decreases.Expressions.Exists(e => e is WildcardExpr)) {
             Error(s, "'decreases *' is not allowed on ghost loops");
           }
@@ -5785,6 +5846,9 @@ namespace Microsoft.Dafny
         } else if (stmt is AlternativeLoopStmt) {
           var s = (AlternativeLoopStmt)stmt;
           s.IsGhost = mustBeErasable || s.Alternatives.Exists(alt => resolver.UsesSpecFeatures(alt.Guard));
+          if (!mustBeErasable && s.IsGhost) {
+            resolver.reporter.Info(MessageSource.Resolver, s.Tok, "ghost while");
+          }
           if (s.IsGhost && s.Decreases.Expressions.Exists(e => e is WildcardExpr)) {
             Error(s, "'decreases *' is not allowed on ghost loops");
           }
@@ -5822,6 +5886,9 @@ namespace Microsoft.Dafny
         } else if (stmt is MatchStmt) {
           var s = (MatchStmt)stmt;
           s.IsGhost = mustBeErasable || resolver.UsesSpecFeatures(s.Source);
+          if (!mustBeErasable && s.IsGhost) {
+            resolver.reporter.Info(MessageSource.Resolver, s.Tok, "ghost match");
+          }
           s.Cases.Iter(kase => kase.Body.Iter(ss => Visit(ss, s.IsGhost)));
           s.IsGhost = s.IsGhost || s.Cases.All(kase => kase.Body.All(ss => ss.IsGhost));
 
@@ -7449,6 +7516,13 @@ namespace Microsoft.Dafny
             }
 
           }
+        }
+        if (t.ResolvedClass == null && t.ResolvedParam == null) {
+          // There was some error. Still, we will set one of them to some value to prevent some crashes in the downstream resolution.  The
+          // 0-tuple is convenient, because it is always in scope.
+          t.ResolvedClass = builtIns.TupleType(t.tok, 0, false);
+          // clear out the TypeArgs since 0-tuple doesn't take TypeArg
+          t.TypeArgs = new List<Type>();
         }
 
       } else if (type is TypeProxy) {
@@ -12340,7 +12414,7 @@ namespace Microsoft.Dafny
         switch (c.ResolvedOp) {
           case BinaryExpr.ResolvedOpcode.InSet:
             if (whereIsBv == 0 && e1.Type.AsSetType.Finite) {
-              bounds.Add(new ComprehensionExpr.SetBoundedPool(e1));
+              bounds.Add(new ComprehensionExpr.SetBoundedPool(e1, e0.Type.Equals(e1.Type.AsSetType.Arg)));
             }
             break;
           case BinaryExpr.ResolvedOpcode.Subset:
@@ -12352,17 +12426,17 @@ namespace Microsoft.Dafny
             break;
           case BinaryExpr.ResolvedOpcode.InMultiSet:
             if (whereIsBv == 0) {
-              bounds.Add(new ComprehensionExpr.SetBoundedPool(e1));
+              bounds.Add(new ComprehensionExpr.SetBoundedPool(e1, e0.Type.Equals(e1.Type.AsMultiSetType.Arg)));
             }
             break;
           case BinaryExpr.ResolvedOpcode.InSeq:
             if (whereIsBv == 0) {
-              bounds.Add(new ComprehensionExpr.SeqBoundedPool(e1));
+              bounds.Add(new ComprehensionExpr.SeqBoundedPool(e1, e0.Type.Equals(e1.Type.AsSeqType.Arg)));
             }
             break;
           case BinaryExpr.ResolvedOpcode.InMap:
             if (whereIsBv == 0 && e1.Type.AsMapType.Finite) {
-              bounds.Add(new ComprehensionExpr.MapBoundedPool(e1));
+              bounds.Add(new ComprehensionExpr.MapBoundedPool(e1, e0.Type.Equals(e1.Type.AsMapType.Arg)));
             }
             break;
           case BinaryExpr.ResolvedOpcode.EqCommon:

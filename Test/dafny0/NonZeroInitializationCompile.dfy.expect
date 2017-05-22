@@ -1,0 +1,12 @@
+
+Dafny program verifier finished with 9 verified, 0 errors
+Program compiled successfully
+Running...
+
+These are the arbitrary values chosen by the compiler: 6, 12
+short, short': 0, -35
+nes: {57}
+f0, f1: (0, False), (29, True)
+dt: Dt.Atom(-35)
+cl { u: 12, x: 0, r: (314.0 / 100.0), nes: {57} }
+cl' { u: 12, x: 0, ': (314.0 / 100.0), nes: {57, 20} }
