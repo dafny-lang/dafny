@@ -117,7 +117,9 @@
     <Reference Include="BoogieExecutionEngine">
       <HintPath>..\..\..\boogie\Binaries\BoogieExecutionEngine.dll</HintPath>
     </Reference>
-    <Reference Include="BoogieGraph, Version=2.3.0.61016, Culture=neutral, PublicKeyToken=736440c9b414ea16" />
+    <Reference Include="BoogieGraph">
+		<HintPath>..\..\..\boogie\Binaries\BoogieGraph.dll</HintPath>
+	</Reference>
     <Reference Include="BoogieParserHelper">
       <HintPath>..\..\..\boogie\Binaries\BoogieParserHelper.dll</HintPath>
     </Reference>

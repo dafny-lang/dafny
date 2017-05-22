@@ -1,14 +1,11 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Runtime.Serialization.Json;
 using System.Text;
 using Microsoft.Boogie;
 using DafnyServer;
-using Microsoft.Boogie.ModelViewer;
-using Microsoft.Boogie.ModelViewer.Dafny;
 using Bpl = Microsoft.Boogie;
 
 namespace Microsoft.Dafny {
@@ -54,9 +51,8 @@ namespace Microsoft.Dafny {
     private bool Parse() {
       Dafny.ModuleDecl module = new Dafny.LiteralModuleDecl(new Dafny.DefaultModuleDecl(), null);
       Dafny.BuiltIns builtIns = new Dafny.BuiltIns();
-      var success =
-          (Dafny.Parser.Parse(source, fname, fname, null, module, builtIns, new Dafny.Errors(reporter)) == 0 &&
-           Dafny.Main.ParseIncludes(module, builtIns, new List<string>(), new Dafny.Errors(reporter)) == null);
+      var success = (Dafny.Parser.Parse(source, fname, fname, null, module, builtIns, new Dafny.Errors(reporter)) == 0 &&
+                     Dafny.Main.ParseIncludes(module, builtIns, new List<string>(), new Dafny.Errors(reporter)) == null);
       if (success) {
         dafnyProgram = new Dafny.Program(fname, module, builtIns, reporter);
       }
@@ -71,24 +67,19 @@ namespace Microsoft.Dafny {
 
     private bool Translate() {
       boogiePrograms = Translator.Translate(dafnyProgram, reporter,
-          new Translator.TranslatorFlags() { InsertChecksums = true, UniqueIdPrefix = fname });
-      // FIXME how are translation errors reported?
+          new Translator.TranslatorFlags() { InsertChecksums = true, UniqueIdPrefix = fname }); // FIXME how are translation errors reported?
       return true;
     }
 
     private bool BoogieOnce(Bpl.Program boogieProgram) {
-      if (boogieProgram.Resolve() == 0 && boogieProgram.Typecheck() == 0) {
-
-        //FIXME ResolveAndTypecheck?
+      if (boogieProgram.Resolve() == 0 && boogieProgram.Typecheck() == 0) { //FIXME ResolveAndTypecheck?
         ExecutionEngine.EliminateDeadVariables(boogieProgram);
         ExecutionEngine.CollectModSets(boogieProgram);
         ExecutionEngine.CoalesceBlocks(boogieProgram);
         ExecutionEngine.Inline(boogieProgram);
 
         //NOTE: We could capture errors instead of printing them (pass a delegate instead of null)
-        switch (
-            ExecutionEngine.InferAndVerify(boogieProgram, new PipelineStatistics(), "ServerProgram", null,
-                DateTime.UtcNow.Ticks.ToString())) {
+        switch (ExecutionEngine.InferAndVerify(boogieProgram, new PipelineStatistics(), "ServerProgram", null, DateTime.UtcNow.Ticks.ToString())) {
           case PipelineOutcome.Done:
           case PipelineOutcome.VerificationCompleted:
             return true;
@@ -144,7 +135,7 @@ namespace Microsoft.Dafny {
 
     public void DotGraph() {
       ServerUtils.ApplyArgs(args, reporter);
-      
+
       if (Parse() && Resolve() && Translate()) {
         foreach (var boogieProgram in boogiePrograms) {
           BoogieOnce(boogieProgram.Item2);

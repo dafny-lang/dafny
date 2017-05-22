@@ -98,7 +98,7 @@ namespace Microsoft.Dafny {
       } catch (ServerException ex) {
         Interaction.EOM(Interaction.FAILURE, ex);
       } catch (Exception ex) {
-        Interaction.EOM(Interaction.FAILURE, ex, "[FATAL]" + ex.StackTrace);
+        Interaction.EOM(Interaction.FAILURE, ex, "[FATAL]");
         running = false;
       }
     }
