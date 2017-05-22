@@ -3,8 +3,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
 using System.Runtime.Serialization;
-using System.Runtime.Serialization.Json;
-using System.Text;
 using System.Text.RegularExpressions;
 using Microsoft.Boogie;
 using Microsoft.Boogie.ModelViewer;
@@ -16,8 +14,12 @@ namespace DafnyServer {
     public static readonly string ModelBvd = "./model.bvd";
 
     public CounterExample LoadCounterModel() {
-      var models = LoadModelFromFile();
-      return ConvertModels(models);
+      try {
+        var models = LoadModelFromFile();
+        return ConvertModels(models);
+      } catch (Exception) {
+        return new CounterExample();
+      }
     }
 
     private List<ILanguageSpecificModel> LoadModelFromFile() {
