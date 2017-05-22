@@ -1,35 +1,32 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
-using System.Linq;
 using System.Reflection;
 using System.Runtime.Serialization;
 using System.Runtime.Serialization.Json;
 using System.Text;
 using System.Text.RegularExpressions;
-using System.Threading.Tasks;
 using Microsoft.Boogie;
 using Microsoft.Boogie.ModelViewer;
 using Microsoft.Boogie.ModelViewer.Dafny;
-using Microsoft.Dafny;
-using Program = Microsoft.Boogie.Program;
 
 namespace DafnyServer {
   public class CounterExampleProvider {
     private List<ILanguageSpecificModel> _languageSpecificModels;
     public static readonly string ModelBvd = "./model.bvd";
 
-    public void LoadModel() {
+    public CounterExample LoadCounterModel() {
+      var models = LoadModelFromFile();
+      return ConvertModels(models);
+    }
+
+    private List<ILanguageSpecificModel> LoadModelFromFile() {
       using (var wr = new StreamReader(ModelBvd)) {
         var output = wr.ReadToEnd();
         var models = ExtractModels(output);
         _languageSpecificModels = BuildModels(models);
       }
-    }
-
-    public string ToJson() {
-      return ConvertModels(_languageSpecificModels);
+      return _languageSpecificModels;
     }
 
     private List<ILanguageSpecificModel> BuildModels(List<Model> modellist) {
@@ -56,17 +53,18 @@ namespace DafnyServer {
       return models;
     }
 
-    public static T GetFieldValue<T>(object instance, string fieldName) {
+    private static T GetFieldValue<T>(object instance, string fieldName) {
       const BindingFlags bindFlags = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static;
       var field = instance.GetType().GetField(fieldName, bindFlags);
       return field == null ? default(T) : (T)field.GetValue(instance);
     }
 
-    private string ConvertModels(List<ILanguageSpecificModel> specificModels) {
+    private CounterExample ConvertModels(List<ILanguageSpecificModel> specificModels) {
       foreach (var languageSpecificModel in specificModels) {
         var counterExample = new CounterExample();
         foreach (var s in languageSpecificModel.States) {
-          var state = s as Microsoft.Boogie.ModelViewer.Dafny.StateNode;
+          var state = s as StateNode;
+          if (state == null) continue;
 
           var counterExampleState = new CounterExampleState {
             Name = state.CapturedStateName
@@ -88,10 +86,10 @@ namespace DafnyServer {
             counterExample.States.Add(counterExampleState);
           }
         }
-        return ConvertToJson(counterExample);
+        return counterExample;
       }
 
-      return ConvertToJson(new CounterExample());
+      return new CounterExample();
     }
 
     private static void GetExpansions(StateNode state, ElementNode elementNode, CounterExampleState counterExampleState,
@@ -108,6 +106,7 @@ namespace DafnyServer {
           });
         }
       } catch (Exception e) {
+        Console.Error.WriteLine(e.Message);
       }
     }
 
@@ -123,23 +122,15 @@ namespace DafnyServer {
       var m = r.Match(stateCapturedStateName);
       if (m.Success) {
         var lineStr = m.Groups[3].ToString();
-        state.Line = Int32.Parse(lineStr);
+        state.Line = int.Parse(lineStr);
         var columnStr = m.Groups[5].ToString();
-        state.Column = Int32.Parse(columnStr);
-      }
-    }
-
-    private static string ConvertToJson<T>(T data) {
-      var serializer = new DataContractJsonSerializer(typeof(T));
-      using (var ms = new MemoryStream()) {
-        serializer.WriteObject(ms, data);
-        return Encoding.Default.GetString(ms.ToArray());
+        state.Column = int.Parse(columnStr);
       }
     }
 
     [Serializable]
     [DataContract]
-    class CounterExample {
+    public class CounterExample {
       [DataMember]
       public List<CounterExampleState> States { get; set; }
 
@@ -150,10 +141,9 @@ namespace DafnyServer {
 
     [Serializable]
     [DataContract]
-    class CounterExampleState {
+    public class CounterExampleState {
       [DataMember]
       public List<CounterExampleVariable> Variables { get; set; }
-
       [DataMember]
       public string Name { get; set; }
       [DataMember]
@@ -167,7 +157,7 @@ namespace DafnyServer {
 
     [Serializable]
     [DataContract]
-    class CounterExampleVariable {
+    public class CounterExampleVariable {
       [DataMember]
       public string Name { get; set; }
       [DataMember]

@@ -68,7 +68,6 @@ namespace Microsoft.Dafny {
 
         var verb = command[0];
         if (verb == "verify") {
-
           ServerUtils.checkArgs(command, 0);
           var payload = ReadPayload();
           VerificationTask.ReadTask(payload).Run();
@@ -86,14 +85,8 @@ namespace Microsoft.Dafny {
           VerificationTask.ReadTask(payload).Symbols();
         } else if (verb == "version") {
           ServerUtils.checkArgs(command, 0);
-          var payload = ReadPayload();
-          VersionCheck check = new VersionCheck();
-          check.CurrentVersion();
-        } else if (verb == "versioncheck") {
-          ServerUtils.checkArgs(command, 0);
-          var payload = ReadPayload();
-          VersionCheck check = new VersionCheck();
-          check.Check();
+          ReadPayload();
+          VersionCheck.CurrentVersion();
         } else if (verb == "quit") {
           ServerUtils.checkArgs(command, 0);
           Exit();

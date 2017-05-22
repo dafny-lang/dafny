@@ -11,29 +11,22 @@ using Microsoft.Boogie;
 using Function = Microsoft.Dafny.Function;
 using Program = Microsoft.Dafny.Program;
 
-namespace DafnyServer
-{
-  public class SymbolTable
-  {
+namespace DafnyServer {
+  public class SymbolTable {
     private readonly Program _dafnyProgram;
     private readonly List<SymbolInformation> _information = new List<SymbolInformation>();
 
     public SymbolTable(Program dafnyProgram) {
       _dafnyProgram = dafnyProgram;
-
-      try {
-        foreach (var module in dafnyProgram.Modules()) {
-          AddMethods(module, _information);
-          AddFields(module, _information);
-          AddClasses(module, _information);
-        }
-      } catch (Exception e) {
-        Interaction.EOM(Interaction.FAILURE, e.Message + e.StackTrace);
-      }
     }
 
-    public string ToJson() {
-      return ConvertToJson(_information);
+    public List<SymbolInformation> CalculateSymbols() {
+      foreach (var module in _dafnyProgram.Modules()) {
+        AddMethods(module, _information);
+        AddFields(module, _information);
+        AddClasses(module, _information);
+      }
+      return _information;
     }
 
     private void AddMethods(ModuleDefinition module, List<SymbolInformation> information) {
@@ -41,22 +34,19 @@ namespace DafnyServer
           var clbl in
           ModuleDefinition.AllCallables(module.TopLevelDecls).Where(e => e != null && !(e.Tok is IncludeToken))) {
 
-        if (clbl is Predicate)
-        {
-            var predicate = clbl as Predicate;
-            var predicateSymbol = new SymbolInformation
-            {
-                Module =  predicate.EnclosingClass.Module.Name,
-                Name = predicate.Name,
-                ParentClass = predicate.EnclosingClass.Name,
-                SymbolType = SymbolInformation.Type.Predicate,
-                StartToken = predicate.tok,
-                EndToken = predicate.BodyEndTok
-            };
-            information.Add(predicateSymbol);
+        if (clbl is Predicate) {
+          var predicate = clbl as Predicate;
+          var predicateSymbol = new SymbolInformation {
+            Module = predicate.EnclosingClass.Module.Name,
+            Name = predicate.Name,
+            ParentClass = predicate.EnclosingClass.Name,
+            SymbolType = SymbolInformation.Type.Predicate,
+            StartToken = predicate.tok,
+            EndToken = predicate.BodyEndTok
+          };
+          information.Add(predicateSymbol);
 
-        }
-        else if (clbl is Function) {
+        } else if (clbl is Function) {
           var fn = (Function)clbl;
           var functionSymbol = new SymbolInformation {
             Module = fn.EnclosingClass.Module.Name,
@@ -64,10 +54,10 @@ namespace DafnyServer
             ParentClass = fn.EnclosingClass.Name,
             SymbolType = SymbolInformation.Type.Function,
             StartToken = fn.tok,
-              EndColumn = fn.BodyEndTok.col,
-              EndLine = fn.BodyEndTok.line,
-              EndPosition = fn.BodyEndTok.pos,
-              EndToken = fn.BodyEndTok
+            EndColumn = fn.BodyEndTok.col,
+            EndLine = fn.BodyEndTok.line,
+            EndPosition = fn.BodyEndTok.pos,
+            EndToken = fn.BodyEndTok
           };
           information.Add(functionSymbol);
         } else {
@@ -174,34 +164,29 @@ namespace DafnyServer
             }
           }
         }
-          if (statement is UpdateStmt)
-          {
-              var updateStatement = statement as UpdateStmt;
-              var lefts = updateStatement.Lhss;
-              foreach (var expression in lefts)
-              {
-                  if (expression is AutoGhostIdentifierExpr)
-                  {
-                      var autoGhost = expression as AutoGhostIdentifierExpr;
-                        information.Add(new SymbolInformation
-                        {
-                            Name = autoGhost.Name,
-                            ParentClass = autoGhost.Resolved.Type.ToString(),
-                            SymbolType = SymbolInformation.Type.Definition,
-                            StartToken = updateStatement.Tok,
-                            EndToken = updateStatement.EndTok
-                        });
-                    }
-              }
+        if (statement is UpdateStmt) {
+          var updateStatement = statement as UpdateStmt;
+          var lefts = updateStatement.Lhss;
+          foreach (var expression in lefts) {
+            if (expression is AutoGhostIdentifierExpr) {
+              var autoGhost = expression as AutoGhostIdentifierExpr;
+              information.Add(new SymbolInformation {
+                Name = autoGhost.Name,
+                ParentClass = autoGhost.Resolved.Type.ToString(),
+                SymbolType = SymbolInformation.Type.Definition,
+                StartToken = updateStatement.Tok,
+                EndToken = updateStatement.EndTok
+              });
+            }
           }
+        }
         if (statement.SubStatements.Any()) {
           information.AddRange(ResolveLocalDefinitions(statement.SubStatements.ToList(), method));
         }
       }
-
-
       return information;
     }
+
     private static IEnumerable<SymbolInformation> ResolveCallStatements(IEnumerable<Statement> statements) {
       var information = new List<SymbolInformation>();
 
@@ -216,7 +201,6 @@ namespace DafnyServer
           information.AddRange(ResolveCallStatements(statement.SubStatements.ToList()));
         }
       }
-
       return information;
     }
 
@@ -293,7 +277,6 @@ namespace DafnyServer
           }
         }
       }
-
       return information;
     }
 
@@ -386,8 +369,7 @@ namespace DafnyServer
 
     [Serializable]
     [DataContract]
-    internal class SymbolInformation
-    {
+    public class SymbolInformation {
       [DataMember(Name = "Module")]
       public string Module { get; set; }
       [DataMember(Name = "Name")]
@@ -441,8 +423,7 @@ namespace DafnyServer
         }
       }
 
-      internal enum Type
-      {
+      public enum Type {
         Class,
         Method,
         Function,
@@ -459,8 +440,7 @@ namespace DafnyServer
 
     [Serializable]
     [DataContract]
-    internal class ReferenceInformation
-    {
+    public class ReferenceInformation {
       [DataMember(Name = "MethodName")]
       public string MethodName { get; set; }
       [DataMember(Name = "Position")]
@@ -480,14 +460,5 @@ namespace DafnyServer
         }
       }
     }
-
-    private static string ConvertToJson<T>(T data) {
-      var serializer = new DataContractJsonSerializer(typeof(T));
-      using (var ms = new MemoryStream()) {
-        serializer.WriteObject(ms, data);
-        return Encoding.Default.GetString(ms.ToArray());
-      }
-    }
-
   }
 }

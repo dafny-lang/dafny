@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Runtime.Serialization.Json;
+using System.Text;
 using Microsoft.Boogie;
 using DafnyServer;
 using Microsoft.Boogie.ModelViewer;
@@ -108,8 +110,8 @@ namespace Microsoft.Dafny {
       ServerUtils.ApplyArgs(args, reporter);
       if (Parse() && Resolve()) {
         var symbolTable = new SymbolTable(dafnyProgram);
-        var json = symbolTable.ToJson();
-        Console.WriteLine("SYMBOLS_START " + json + " SYMBOLS_END");
+        var symbols = symbolTable.CalculateSymbols();
+        Console.WriteLine("SYMBOLS_START " + ConvertToJson(symbols) + " SYMBOLS_END");
       } else {
         Console.WriteLine("SYMBOLS_START [] SYMBOLS_END");
       }
@@ -125,10 +127,8 @@ namespace Microsoft.Dafny {
           foreach (var boogieProgram in boogiePrograms) {
             RemoveExistingModel();
             BoogieOnce(boogieProgram.Item2);
-            
-            counterExampleProvider.LoadModel();
-            var json = counterExampleProvider.ToJson();
-            Console.WriteLine("COUNTEREXAMPLE_START " + json + " COUNTEREXAMPLE_END");
+            var model = counterExampleProvider.LoadCounterModel();
+            Console.WriteLine("COUNTEREXAMPLE_START " + ConvertToJson(model) + " COUNTEREXAMPLE_END");
           }
         }
       } catch (Exception e) {
@@ -156,7 +156,14 @@ namespace Microsoft.Dafny {
           }
         }
       }
+    }
 
+    private static string ConvertToJson<T>(T data) {
+      var serializer = new DataContractJsonSerializer(typeof(T));
+      using (var ms = new MemoryStream()) {
+        serializer.WriteObject(ms, data);
+        return Encoding.Default.GetString(ms.ToArray());
+      }
     }
   }
 }
