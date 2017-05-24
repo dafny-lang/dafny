@@ -2071,11 +2071,10 @@ namespace Microsoft.Dafny
       // ----------------------------------------------------------------------------
 
       // Resolve the meat of classes and iterators, the definitions of type synonyms, and the type parameters of all top-level type declarations
-      // First, resolve the newtype/subset-type declarations and the constraint clauses, including filling in .ResolvedOp fields.  This is needed for the
-      // resolution of the other declarations, because those other declarations may invoke DiscoverBounds, which looks at the .Constraint field
-      // of any newtypes involved.  DiscoverBounds is called on quantifiers (but only in non-ghost contexts) and set comprehensions (in all
-      // contexts).  The constraints of newtypes are ghost, so DiscoverBounds is not going to be called on any quantifiers they may contain.
-      // However, the constraints may contain set comprehensions.  For this reason, we postpone the DiscoverBounds checks on set comprehensions.
+      // In the first two loops below, resolve the newtype/subset-type declarations and their constraint clauses, including filling in .ResolvedOp
+      // fields.  This is needed for the resolution of the other declarations, because those other declarations may invoke DiscoverBounds, which
+      // looks at the .Constraint field of any such types involved.
+      // The third loop resolves the other declarations.  It also resolves any witness expressions of newtype/subset-type declarations.
       foreach (TopLevelDecl d in declarations) {
         Contract.Assert(d != null);
         Contract.Assert(VisibleInScope(d));
@@ -2103,10 +2102,6 @@ namespace Microsoft.Dafny
             if (!CheckTypeInference_Visitor.IsDetermined(dd.BaseType.NormalizeExpand())) {
               reporter.Error(MessageSource.Resolver, dd.tok, "newtype's base type is not fully determined; add an explicit type for '{0}'", dd.Var.Name);
             }
-            if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
-              CheckTypeInference(dd.Constraint, dd);
-            }
-
             TeardownMinimumBodyScope(dd);
             scope.PopMarker();
           }
@@ -2133,37 +2128,62 @@ namespace Microsoft.Dafny
           if (!CheckTypeInference_Visitor.IsDetermined(dd.Rhs.NormalizeExpand())) {
             reporter.Error(MessageSource.Resolver, dd.tok, "subset type's base type is not fully determined; add an explicit type for '{0}'", dd.Var.Name);
           }
-          if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
-            CheckTypeInference(dd.Constraint, dd);
-          }
-
-          allTypeParameters.PopMarker();
           TeardownMinimumBodyScope(dd);
           scope.PopMarker();
+          allTypeParameters.PopMarker();
         }
       }
-      // Now, we're ready for the other declarations.
+      Contract.Assert(AllTypeConstraints.Count == 0);
+      if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
+        // Check type inference, which also discovers bounds, in newtype/subset-type constraints
+        foreach (TopLevelDecl d in declarations) {
+          if (d is NewtypeDecl || d is SubsetTypeDecl) {
+            var dd = (RedirectingTypeDecl)d;
+            if (dd.Constraint != null) {
+              allTypeParameters.PushMarker();
+              ResolveTypeParameters(d.TypeArgs, false, d);
+              CheckTypeInference(dd.Constraint, dd);
+              allTypeParameters.PopMarker();
+            }
+          }
+        }
+      }
+      // Now, we're ready for the other declarations, along with any witness clauses of newtype/subset-type declarations.
       foreach (TopLevelDecl d in declarations) {
         Contract.Assert(AllTypeConstraints.Count == 0);
-        if (d is NewtypeDecl || d is SubsetTypeDecl) {
-          continue;  // NewTypeDecl's and SubsetTypeDecl's were already processed in the loop above
-        }
         if (d is TraitDecl && d.TypeArgs.Count > 0) {
           reporter.Error(MessageSource.Resolver, d, "sorry, traits with type parameters are not supported");
         }
         allTypeParameters.PushMarker();
         ResolveTypeParameters(d.TypeArgs, false, d);
-        if (!(d is IteratorDecl)) {
-          // Note, attributes of iterators are resolved by ResolvedIterator, after registering any names in the iterator signature
-          ResolveAttributes(d.Attributes, d, new ResolveOpts(new NoContext(d.Module), false));
-        }
-        if (d is IteratorDecl) {
-          var iter = (IteratorDecl)d;
-          ResolveIterator(iter);
-          ResolveClassMemberBodies(iter);  // resolve the automatically generated members
-        } else if (d is ClassDecl) {
-          var cl = (ClassDecl)d;
-          ResolveClassMemberBodies(cl);
+        if (d is NewtypeDecl || d is SubsetTypeDecl) {
+          // NewTypeDecl's and SubsetTypeDecl's were already processed in the loop above, except for any witness clauses
+          var dd = (RedirectingTypeDecl)d;
+          if (dd.Witness != null) {
+            var prevErrCnt = reporter.Count(ErrorLevel.Error);
+            ResolveExpression(dd.Witness, new ResolveOpts(dd, false));
+            ConstrainSubtypeRelation(dd.Var.Type, dd.Witness.Type, dd.Witness, "witness expression must have type '{0}' (got '{1}')", dd.Var.Type, dd.Witness.Type);
+            SolveAllTypeConstraints();
+            if (reporter.Count(ErrorLevel.Error) == prevErrCnt) {
+              CheckTypeInference(dd.Witness, dd);
+            }
+            if (reporter.Count(ErrorLevel.Error) == prevErrCnt) {
+              CheckIsCompilable(dd.Witness);
+            }
+          }
+        } else {
+          if (!(d is IteratorDecl)) {
+            // Note, attributes of iterators are resolved by ResolvedIterator, after registering any names in the iterator signature
+            ResolveAttributes(d.Attributes, d, new ResolveOpts(new NoContext(d.Module), false));
+          }
+          if (d is IteratorDecl) {
+            var iter = (IteratorDecl)d;
+            ResolveIterator(iter);
+            ResolveClassMemberBodies(iter);  // resolve the automatically generated members
+          } else if (d is ClassDecl) {
+            var cl = (ClassDecl)d;
+            ResolveClassMemberBodies(cl);
+          }
         }
         allTypeParameters.PopMarker();
       }
