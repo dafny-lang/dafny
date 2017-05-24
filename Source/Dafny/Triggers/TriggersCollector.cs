@@ -215,7 +215,6 @@ namespace Microsoft.Dafny.Triggers {
                  expr is OldExpr ||
                  expr is ThisExpr ||
                  expr is BoxingCastExpr ||
-                 expr is DatatypeValue ||
                  expr is MultiSetFormingExpr) {
         annotation = AnnotateOther(expr, false);
       } else {
@@ -235,6 +234,7 @@ namespace Microsoft.Dafny.Triggers {
           expr is OldExpr ||
           expr is ApplyExpr ||
           expr is DisplayExpression ||
+          expr is DatatypeValue ||
           TranslateToFunctionCall(expr) ||
           (expr is UnaryOpExpr && (((UnaryOpExpr)expr).Op == UnaryOpExpr.Opcode.Cardinality)) || // FIXME || ((UnaryOpExpr)expr).Op == UnaryOpExpr.Opcode.Fresh doesn't work, as fresh is a pretty tricky predicate when it's not about datatypes. See translator.cs:10944
           (expr is BinaryExpr && (((BinaryExpr)expr).Op == BinaryExpr.Opcode.NotIn || ((BinaryExpr)expr).Op == BinaryExpr.Opcode.In) && !(((BinaryExpr)expr).E1 is DisplayExpression))) {
