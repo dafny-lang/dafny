@@ -2,9 +2,10 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Runtime.Serialization.Json;
 using System.Text;
-using System.Threading.Tasks;
 using Microsoft.Boogie;
+using DafnyServer;
 using Bpl = Microsoft.Boogie;
 
 namespace Microsoft.Dafny {
@@ -65,7 +66,7 @@ namespace Microsoft.Dafny {
     }
 
     private bool Translate() {
-      boogiePrograms = Translator.Translate(dafnyProgram,reporter,
+      boogiePrograms = Translator.Translate(dafnyProgram, reporter,
           new Translator.TranslatorFlags() { InsertChecksums = true, UniqueIdPrefix = fname }); // FIXME how are translation errors reported?
       return true;
     }
@@ -94,6 +95,66 @@ namespace Microsoft.Dafny {
         isVerified = isVerified && BoogieOnce(boogieProgram.Item2);
       }
       return isVerified;
+    }
+
+    public void Symbols() {
+      ServerUtils.ApplyArgs(args, reporter);
+      if (Parse() && Resolve()) {
+        var symbolTable = new SymbolTable(dafnyProgram);
+        var symbols = symbolTable.CalculateSymbols();
+        Console.WriteLine("SYMBOLS_START " + ConvertToJson(symbols) + " SYMBOLS_END");
+      } else {
+        Console.WriteLine("SYMBOLS_START [] SYMBOLS_END");
+      }
+    }
+
+    public void CounterExample() {
+      var listArgs = args.ToList();
+      listArgs.Add("/mv:" + CounterExampleProvider.ModelBvd);
+      ServerUtils.ApplyArgs(listArgs.ToArray(), reporter);
+      try {
+        if (Parse() && Resolve() && Translate()) {
+          var counterExampleProvider = new CounterExampleProvider();
+          foreach (var boogieProgram in boogiePrograms) {
+            RemoveExistingModel();
+            BoogieOnce(boogieProgram.Item2);
+            var model = counterExampleProvider.LoadCounterModel();
+            Console.WriteLine("COUNTEREXAMPLE_START " + ConvertToJson(model) + " COUNTEREXAMPLE_END");
+          }
+        }
+      } catch (Exception e) {
+        Console.WriteLine("Error collection models: " + e.Message);
+      }
+    }
+
+    private void RemoveExistingModel() {
+      if (File.Exists(CounterExampleProvider.ModelBvd)) {
+        File.Delete(CounterExampleProvider.ModelBvd);
+      }
+    }
+
+    public void DotGraph() {
+      ServerUtils.ApplyArgs(args, reporter);
+
+      if (Parse() && Resolve() && Translate()) {
+        foreach (var boogieProgram in boogiePrograms) {
+          BoogieOnce(boogieProgram.Item2);
+
+          foreach (var impl in boogieProgram.Item2.Implementations) {
+            using (StreamWriter sw = new StreamWriter(fname + impl.Name + ".dot")) {
+              sw.Write(boogieProgram.Item2.ProcessLoops(impl).ToDot());
+            }
+          }
+        }
+      }
+    }
+
+    private static string ConvertToJson<T>(T data) {
+      var serializer = new DataContractJsonSerializer(typeof(T));
+      using (var ms = new MemoryStream()) {
+        serializer.WriteObject(ms, data);
+        return Encoding.Default.GetString(ms.ToArray());
+      }
     }
   }
 }
