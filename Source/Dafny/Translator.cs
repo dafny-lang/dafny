@@ -1977,7 +1977,7 @@ namespace Microsoft.Dafny {
           AddMethodImpl(m, proc, true);
         }
         if (m.OverriddenMethod != null && InVerificationScope(m)) //method has overrided a parent method
-            {
+        {
           var procOverrideChk = AddMethod(m, MethodTranslationKind.OverrideCheck);
           sink.AddTopLevelDeclaration(procOverrideChk);
           AddMethodOverrideCheckImpl(m, procOverrideChk);
@@ -3992,59 +3992,56 @@ namespace Microsoft.Dafny {
 
     private void AddFunctionOverrideEnsChk(Function f, BoogieStmtListBuilder builder, ExpressionTranslator etran, Dictionary<IVariable, Expression> substMap, List<Variable> implInParams)
     {
-        //generating class post-conditions
-        foreach (var en in f.Ens)
-        {
-            builder.Add(TrAssumeCmd(f.tok, etran.TrExpr(en)));
-        }
+      //generating class post-conditions
+      foreach (var en in f.Ens)
+      {
+        builder.Add(TrAssumeCmd(f.tok, etran.TrExpr(en)));
+      }
 
-        //generating assume J.F(ins) == C.F(ins)
-        Bpl.FunctionCall funcIdC = new Bpl.FunctionCall(new Bpl.IdentifierExpr(f.tok, f.FullSanitizedName, TrType(f.ResultType)));
-        Bpl.FunctionCall funcIdT = new Bpl.FunctionCall(new Bpl.IdentifierExpr(f.OverriddenFunction.tok, f.OverriddenFunction.FullSanitizedName, TrType(f.OverriddenFunction.ResultType)));
-        List<Bpl.Expr> argsC = new List<Bpl.Expr>();
-        List<Bpl.Expr> argsT = new List<Bpl.Expr>();
-        if (f.IsFuelAware())
-        {
-            argsC.Add(etran.layerInterCluster.GetFunctionFuel(f));
-        }
-        if (f.OverriddenFunction.IsFuelAware())
-        {
-          argsT.Add(etran.layerInterCluster.GetFunctionFuel(f));
-        }
-        if (f is TwoStateFunction) {
-          argsC.Add(etran.Old.HeapExpr);
-          argsT.Add(etran.Old.HeapExpr);
-        }
-        if (AlwaysUseHeap || f.ReadsHeap)
-        {
-          argsC.Add(etran.HeapExpr);
-        }
-        if (AlwaysUseHeap || f.OverriddenFunction.ReadsHeap)
-        {
-          argsT.Add(etran.HeapExpr);
-        }
-        foreach (Variable p in implInParams)
-        {
-            argsC.Add(new Bpl.IdentifierExpr(f.tok, p));
-            argsT.Add(new Bpl.IdentifierExpr(f.OverriddenFunction.tok, p));
-        }
-        Bpl.Expr funcExpC = new Bpl.NAryExpr(f.tok, funcIdC, argsC);
-        Bpl.Expr funcExpT = new Bpl.NAryExpr(f.OverriddenFunction.tok, funcIdT, argsT);
-        builder.Add(TrAssumeCmd(f.tok, Bpl.Expr.Eq(funcExpC, funcExpT)));
+      //generating assume J.F(ins) == C.F(ins)
+      Bpl.FunctionCall funcIdC = new Bpl.FunctionCall(new Bpl.IdentifierExpr(f.tok, f.FullSanitizedName, TrType(f.ResultType)));
+      Bpl.FunctionCall funcIdT = new Bpl.FunctionCall(new Bpl.IdentifierExpr(f.OverriddenFunction.tok, f.OverriddenFunction.FullSanitizedName, TrType(f.OverriddenFunction.ResultType)));
+      List<Bpl.Expr> argsC = new List<Bpl.Expr>();
+      List<Bpl.Expr> argsT = new List<Bpl.Expr>();
+      if (f.IsFuelAware())
+      {
+        argsC.Add(etran.layerInterCluster.GetFunctionFuel(f));
+      }
+      if (f.OverriddenFunction.IsFuelAware())
+      {
+        argsT.Add(etran.layerInterCluster.GetFunctionFuel(f));
+      }
+      if (f is TwoStateFunction) {
+        argsC.Add(etran.Old.HeapExpr);
+        argsT.Add(etran.Old.HeapExpr);
+      }
+      if (AlwaysUseHeap || f.ReadsHeap)
+      {
+        argsC.Add(etran.HeapExpr);
+      }
+      if (AlwaysUseHeap || f.OverriddenFunction.ReadsHeap)
+      {
+        argsT.Add(etran.HeapExpr);
+      }
+      foreach (Variable p in implInParams)
+      {
+        argsC.Add(new Bpl.IdentifierExpr(f.tok, p));
+        argsT.Add(new Bpl.IdentifierExpr(f.OverriddenFunction.tok, p));
+      }
+      Bpl.Expr funcExpC = new Bpl.NAryExpr(f.tok, funcIdC, argsC);
+      Bpl.Expr funcExpT = new Bpl.NAryExpr(f.OverriddenFunction.tok, funcIdT, argsT);
+      builder.Add(TrAssumeCmd(f.tok, Bpl.Expr.Eq(funcExpC, funcExpT)));
 
-        //generating trait post-conditions with class variables
-        foreach (var en in f.OverriddenFunction.Ens)
-        {
-            Expression postcond = Substitute(en, null, substMap);
-            bool splitHappened;
-            var reqSplitedE = TrSplitExpr(postcond, etran,false, out splitHappened);
-            foreach (var s in reqSplitedE)
-            {
-                var assert = TrAssertCmd(f.tok, s.E);
-                assert.ErrorData = "Error: the function must provide an equal or more detailed postcondition than in its parent trait";
-                builder.Add(assert);
-            }
+      //generating trait post-conditions with class variables
+      foreach (var en in f.OverriddenFunction.Ens) {
+        Expression postcond = Substitute(en, null, substMap);
+        bool splitHappened;  // we don't actually care
+        foreach (var s in TrSplitExpr(postcond, etran, false, out splitHappened)) {
+          if (s.IsChecked) {
+            builder.Add(Assert(f.tok, s.E, "the function must provide an equal or more detailed postcondition than in its parent trait"));
+          }
         }
+      }
     }
 
     private void HavocFunctionFrameLocations(Function f, BoogieStmtListBuilder builder, ExpressionTranslator etran, List<Variable> localVariables)
@@ -4105,24 +4102,24 @@ namespace Microsoft.Dafny {
 
     private void AddFunctionOverrideReqsChk(Function f, BoogieStmtListBuilder builder, ExpressionTranslator etran, Dictionary<IVariable, Expression> substMap)
     {
-        //generating trait pre-conditions with class variables
-        foreach (var req in f.OverriddenFunction.Req)
-        {
-            Expression precond = Substitute(req, null, substMap);
-            builder.Add(TrAssumeCmd(f.tok, etran.TrExpr(precond)));
+      Contract.Requires(f != null);
+      Contract.Requires(builder != null);
+      Contract.Requires(etran != null);
+      Contract.Requires(substMap != null);
+      //generating trait pre-conditions with class variables
+      foreach (var req in f.OverriddenFunction.Req) {
+        Expression precond = Substitute(req, null, substMap);
+        builder.Add(TrAssumeCmd(f.tok, etran.TrExpr(precond)));
+      }
+      //generating class pre-conditions
+      foreach (var req in f.Req) {
+        bool splitHappened;  // we actually don't care
+        foreach (var s in TrSplitExpr(req, etran, false, out splitHappened)) {
+          if (s.IsChecked) {
+            builder.Add(Assert(f.tok, s.E, "the function must provide an equal or more permissive precondition than in its parent trait"));
+          }
         }
-        //generating class pre-conditions
-        foreach (var req in f.Req)
-        {
-            bool splitHappened;
-            var reqSplitedE = TrSplitExpr(req, etran,false, out splitHappened);
-            foreach (var s in reqSplitedE)
-            {
-                var assert = TrAssertCmd(f.tok, s.E);
-                assert.ErrorData = "Error: the function must provide an equal or more permissive precondition than in its parent trait";
-                builder.Add(assert);
-            }
-        }
+      }
     }
 
     private void AddMethodOverrideCheckImpl(Method m, Bpl.Procedure proc)
@@ -4225,46 +4222,46 @@ namespace Microsoft.Dafny {
 
     private void AddMethodOverrideEnsChk(Method m, BoogieStmtListBuilder builder, ExpressionTranslator etran, Dictionary<IVariable, Expression> substMap)
     {
-        //generating class post-conditions
-        foreach (var en in m.Ens)
-        {
-            builder.Add(TrAssumeCmd(m.tok, etran.TrExpr(en.E)));
+      Contract.Requires(m != null);
+      Contract.Requires(builder != null);
+      Contract.Requires(etran != null);
+      Contract.Requires(substMap != null);
+      //generating class post-conditions
+      foreach (var en in m.Ens) {
+        builder.Add(TrAssumeCmd(m.tok, etran.TrExpr(en.E)));
+      }
+      //generating trait post-conditions with class variables
+      foreach (var en in m.OverriddenMethod.Ens) {
+        Expression postcond = Substitute(en.E, null, substMap);
+        bool splitHappened;  // we actually don't care
+        foreach (var s in TrSplitExpr(postcond, etran, false, out splitHappened)) {
+          if (s.IsChecked) {
+            builder.Add(Assert(m.tok, s.E, "the method must provide an equal or more detailed postcondition than in its parent trait"));
+          }
         }
-        //generating trait post-conditions with class variables
-        foreach (var en in m.OverriddenMethod.Ens)
-        {
-            Expression postcond = Substitute(en.E, null, substMap);
-            bool splitHappened;
-            var reqSplitedE = TrSplitExpr(postcond, etran,false, out splitHappened);
-            foreach (var s in reqSplitedE)
-            {
-                var assert = TrAssertCmd(m.tok, s.E);
-                assert.ErrorData = "Error: the method must provide an equal or more detailed postcondition than in its parent trait";
-                builder.Add(assert);
-            }
-        }
+      }
     }
 
     private void AddMethodOverrideReqsChk(Method m, BoogieStmtListBuilder builder, ExpressionTranslator etran, Dictionary<IVariable, Expression> substMap)
     {
-        //generating trait pre-conditions with class variables
-        foreach (var req in m.OverriddenMethod.Req)
-        {
-            Expression precond = Substitute(req.E, null, substMap);
-            builder.Add(TrAssumeCmd(m.tok, etran.TrExpr(precond)));
+      Contract.Requires(m != null);
+      Contract.Requires(builder != null);
+      Contract.Requires(etran != null);
+      Contract.Requires(substMap != null);
+      //generating trait pre-conditions with class variables
+      foreach (var req in m.OverriddenMethod.Req) {
+        Expression precond = Substitute(req.E, null, substMap);
+        builder.Add(TrAssumeCmd(m.tok, etran.TrExpr(precond)));
+      }
+      //generating class pre-conditions
+      foreach (var req in m.Req) {
+        bool splitHappened;  // we actually don't care
+        foreach (var s in TrSplitExpr(req.E, etran, false, out splitHappened)) {
+          if (s.IsChecked) {
+            builder.Add(Assert(m.tok, s.E, "the method must provide an equal or more permissive precondition than in its parent trait"));
+          }
         }
-        //generating class pre-conditions
-        foreach (var req in m.Req)
-        {
-            bool splitHappened;
-            var reqSplitedE = TrSplitExpr(req.E, etran,false, out splitHappened);
-            foreach (var s in reqSplitedE)
-            {
-                var assert = TrAssertCmd(m.tok, s.E);
-                assert.ErrorData = "Error: the method must provide an equal or more permissive precondition than in its parent trait";
-                builder.Add(assert);
-            }
-        }
+      }
     }
 
     private void AddOverrideTerminationChk(ICallable original, ICallable overryd, BoogieStmtListBuilder builder, ExpressionTranslator etran, Dictionary<IVariable, Expression> substMap) {

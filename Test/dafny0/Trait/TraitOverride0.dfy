@@ -79,3 +79,20 @@ abstract module AM1
       method Calc(ii:int, jj:int) returns (kk:int)
    }
 }
+
+// regression tests
+
+trait OneTrait
+{
+  predicate P() { true }
+  predicate Q() { true }
+
+  method M() ensures P()
+  method N() ensures P()
+}
+
+class OneClass extends OneTrait
+{
+  method M() ensures P() { }
+  method N() ensures Q() { }
+}
