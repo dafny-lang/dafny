@@ -4861,6 +4861,19 @@ namespace Microsoft.Dafny
           return CheckTailRecursive(s.hiddenUpdate, enclosingMethod, ref tailCall, reportErrors);
         }
       } else if (stmt is AssignStmt) {
+        var s = (AssignStmt)stmt;
+        var tRhs = s.Rhs as TypeRhs;
+        if (tRhs != null && tRhs.InitCall != null && tRhs.InitCall.Method == enclosingMethod) {
+          // It's a recursive call.  However, it is not a tail call, because after the "new" allocation
+          // and init call have taken place, the newly allocated object has yet to be assigned to
+          // the LHS of the assignment statement.
+          if (reportErrors) {
+            reporter.Error(MessageSource.Resolver, tRhs.InitCall.Tok,
+              "the recursive call to '{0}' is not tail recursive, because the assignment of the LHS happens after the call",
+              tRhs.InitCall.Method.Name);
+          }
+          return TailRecursionStatus.NotTailRecursive;
+        }
       } else if (stmt is ModifyStmt) {
         var s = (ModifyStmt)stmt;
         if (s.Body != null) {
