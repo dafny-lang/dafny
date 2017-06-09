@@ -11371,13 +11371,18 @@ namespace Microsoft.Dafny {
         Contract.Assert(rhs is TypeRhs);  // otherwise, an unexpected AssignmentRhs
         TypeRhs tRhs = (TypeRhs)rhs;
 
-        if (tRhs.ArrayDimensions != null) {
+        if (tRhs.ArrayDimensions == null) {
+          Contract.Assert(tRhs.ElementInit == null);
+        } else {
           int i = 0;
           foreach (Expression dim in tRhs.ArrayDimensions) {
             CheckWellformed(dim, new WFOptions(), locals, builder, etran);
             builder.Add(Assert(tok, Bpl.Expr.Le(Bpl.Expr.Literal(0), etran.TrExpr(dim)),
               tRhs.ArrayDimensions.Count == 1 ? "array size might be negative" : string.Format("array size (dimension {0}) might be negative", i)));
             i++;
+          }
+          if (tRhs.ElementInit != null) {
+            CheckWellformed(tRhs.ElementInit, new WFOptions(), locals, builder, etran);
           }
         }
 
@@ -11395,6 +11400,41 @@ namespace Microsoft.Dafny {
             Bpl.Expr arrayLength = ArrayLength(tok, nw, tRhs.ArrayDimensions.Count, i);
             builder.Add(TrAssumeCmd(tok, Bpl.Expr.Eq(arrayLength, etran.TrExpr(dim))));
             i++;
+          }
+          if (tRhs.ElementInit != null) {
+            // Check that all indices are in the domain of the given function.  That is:
+            // assert (forall i0,i1,i2,... :: 0 <= i0 < tRhs.ArrayDimensions[0] && ... ==> tRhs.ElementInit.requires(i0,i1,i2,...));
+            Bpl.Expr ante = Bpl.Expr.True;
+            var varNameGen = CurrentIdGenerator.NestedFreshIdGenerator("arrayinit#");
+            var bvs = new List<Bpl.Variable>();
+            var indicies = new List<Bpl.Expr>();
+            for (int ii = 0; ii < tRhs.ArrayDimensions.Count; ii++) {
+              var nm = varNameGen.FreshId(string.Format("#i{0}#", ii));
+              var bv = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, nm, Bpl.Type.Int));
+              bvs.Add(bv);
+              var ie = new Bpl.IdentifierExpr(tok, bv);
+              indicies.Add(ie);
+              ante = BplAnd(ante, BplAnd(Bpl.Expr.Le(Bpl.Expr.Literal(0), ie), Bpl.Expr.Lt(ie, etran.TrExpr(tRhs.ArrayDimensions[ii]))));
+            }
+            var args = Concat(
+              Map(Enumerable.Range(0, tRhs.ArrayDimensions.Count), dummy => TypeToTy(Type.Int)),
+              Cons(TypeToTy(tRhs.EType),
+              Cons(etran.TrExpr(tRhs.ElementInit),
+              Cons(etran.HeapExpr,
+              indicies.ConvertAll(idx => (Bpl.Expr)FunctionCall(tok, BuiltinFunction.Box, null, idx))))));
+            // check precond
+            var pre = FunctionCall(tok, Requires(tRhs.ArrayDimensions.Count), Bpl.Type.Bool, args);
+            var q = new Bpl.ForallExpr(tok, bvs, Bpl.Expr.Imp(ante, pre));
+            builder.Add(AssertNS(tok, q, "all array indicies must be in the domain of the initialization function"));
+            // Assume that array elements have initial values according to the given initialization function.  That is:
+            // assume (forall i0,i1,i2,... :: { A[i0,i1,i2,...] }
+            //            0 <= i0 < ... && ... ==> A[i0,i1,i2,...] == tRhs.ElementInit.requires(i0,i1,i2,...));
+            var ai = ReadHeap(tok, etran.HeapExpr, nw, GetArrayIndexFieldName(tok, indicies));
+            var ai_prime = UnboxIfBoxed(ai, tRhs.EType);
+            var tr = new Bpl.Trigger(tok, true, new List<Bpl.Expr> { ai });
+            var apply = UnboxIfBoxed(FunctionCall(tok, Apply(tRhs.ArrayDimensions.Count), TrType(tRhs.EType), args), tRhs.EType);  // TODO: use a more general Equality translation
+            q = new Bpl.ForallExpr(tok, bvs, tr, Bpl.Expr.Imp(ante, Bpl.Expr.Eq(ai_prime, apply)));
+            builder.Add(new Bpl.AssumeCmd(tok, q));
           }
         }
         // $Heap[$nw, alloc] := true;

@@ -3301,6 +3301,7 @@ List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, st
 		Type ty = null;
 		List<Expression> ee = null;
 		List<Expression> args = null;
+		Expression arrayElementInit = null;
 		r = dummyRhs;  // to please compiler
 		Attributes attrs = null;
 		
@@ -3316,6 +3317,11 @@ List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, st
 					Expect(53);
 					var tmp = theBuiltIns.ArrayType(ee.Count, new IntType(), true);
 					
+					if (la.kind == 54) {
+						Get();
+						Expression(out arrayElementInit, true, true);
+						Expect(55);
+					}
 				} else {
 					x = null; args = new List<Expression/*!*/>(); 
 					Get();
@@ -3326,7 +3332,7 @@ List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, st
 				}
 			}
 			if (ee != null) {
-			 r = new TypeRhs(newToken, ty, ee);
+			 r = new TypeRhs(newToken, ty, ee, arrayElementInit);
 			} else if (args != null) {
 			 r = new TypeRhs(newToken, ty, args, false);
 			} else {

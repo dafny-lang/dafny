@@ -5751,6 +5751,9 @@ namespace Microsoft.Dafny
               foreach (var dim in rhs.ArrayDimensions) {
                 resolver.CheckIsCompilable(dim);
               }
+              if (rhs.ElementInit != null) {
+                resolver.CheckIsCompilable(rhs.ElementInit);
+              }
             }
             if (rhs.InitCall != null) {
               foreach (var arg in rhs.InitCall.Args) {
@@ -9288,17 +9291,37 @@ namespace Microsoft.Dafny
 
       if (rr.Type == null) {
         if (rr.ArrayDimensions != null) {
-          // ---------- new T[EE]
+          // ---------- new T[EE]    OR    new T[EE] (elementInit)
           Contract.Assert(rr.Arguments == null && rr.Path == null && rr.InitCall == null);
           ResolveType(stmt.Tok, rr.EType, codeContext, ResolveTypeOptionEnum.InferTypeProxies, null);
           int i = 0;
           foreach (Expression dim in rr.ArrayDimensions) {
             Contract.Assert(dim != null);
-            ResolveExpression(dim, new ResolveOpts(codeContext, true));
+            ResolveExpression(dim, new ResolveOpts(codeContext, false));
             ConstrainToIntegerType(dim, string.Format("new must use an integer-based expression for the array size (got {{0}}{0})", rr.ArrayDimensions.Count == 1 ? "" : " for index " + i));
             i++;
           }
           rr.Type = ResolvedArrayType(stmt.Tok, rr.ArrayDimensions.Count, rr.EType, codeContext);
+          if (rr.ElementInit != null) {
+            ResolveExpression(rr.ElementInit, new ResolveOpts(codeContext, false));
+            // Check
+            //     int^N -> rr.EType  :>  rr.ElementInit.Type
+            builtIns.CreateArrowTypeDecl(rr.ArrayDimensions.Count);  // TODO: should this be done already in the parser?
+            var args = new List<Type>();
+            for (int ii = 0; ii < rr.ArrayDimensions.Count; ii++) {
+              args.Add(Type.Int);
+            }
+            var arrowType = new ArrowType(rr.ElementInit.tok, args, rr.EType);
+            string underscores;
+            if (rr.ArrayDimensions.Count == 1) {
+              underscores = "_";
+            } else {
+              underscores = "(" + Util.Comma(rr.ArrayDimensions.Count, x => "_") + ")";
+            }
+            var hintString = string.Format(" (perhaps write '{0} =>' in front of the expression you gave in order to make it an arrow type)", underscores);
+            ConstrainSubtypeRelation(arrowType, rr.ElementInit.Type, rr.ElementInit, "array-allocation initialization expression expected to have type '{0}' (instead got '{1}'){2}",
+              arrowType, rr.ElementInit.Type, new LazyString_OnTypeEquals(rr.EType, rr.ElementInit.Type, hintString));
+          }
         } else {
           bool callsConstructor = false;
           if (rr.Arguments == null) {
@@ -9369,6 +9392,24 @@ namespace Microsoft.Dafny
         }
       }
       return rr.Type;
+    }
+
+    class LazyString_OnTypeEquals
+    {
+      Type t0;
+      Type t1;
+      string s;
+      public LazyString_OnTypeEquals(Type t0, Type t1, string s) {
+        Contract.Requires(t0 != null);
+        Contract.Requires(t1 != null);
+        Contract.Requires(s != null);
+        this.t0 = t0;
+        this.t1 = t1;
+        this.s = s;
+      }
+      public override string ToString() {
+        return t0.Equals(t1) ? s : "";
+      }
     }
 
     MemberDecl ResolveMember(IToken tok, Type receiverType, string memberName, out NonProxyType nptype, bool classMembersOnly = false) {

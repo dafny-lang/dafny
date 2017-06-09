@@ -384,6 +384,44 @@ namespace Microsoft.Dafny {
           // }
           Indent(3 * IndentAmount, wr);
           wr.WriteLine("}");  // end of method
+
+          // Here is an overloading of the method name, where there is an initialValue parameter
+          // public static T[,] InitNewArray2<T>(T z, BigInteger size0, BigInteger size1) {
+          Indent(3 * IndentAmount, wr);
+          wr.Write("public static T[");
+          RepeatWrite(wr, dims, "", ",");
+          wr.Write("] InitNewArray{0}<T>(T z, ", dims);
+          RepeatWrite(wr, dims, "BigInteger size{0}", ", ");
+          wr.WriteLine(") {");
+          // int s0 = (int)size0;
+          for (int i = 0; i < dims; i++) {
+            Indent(4 * IndentAmount, wr);
+            wr.WriteLine("int s{0} = (int)size{0};", i);
+          }
+          // T[,] a = new T[s0, s1];
+          Indent(4 * IndentAmount, wr);
+          wr.Write("T[");
+          RepeatWrite(wr, dims, "", ",");
+          wr.Write("] a = new T[");
+          RepeatWrite(wr, dims, "s{0}", ",");
+          wr.WriteLine("];");
+          // for (int i0 = 0; i0 < s0; i0++)
+          //   for (int i1 = 0; i1 < s1; i1++)
+          for (int i = 0; i < dims; i++) {
+            Indent((4 + i) * IndentAmount, wr);
+            wr.WriteLine("for (int i{0} = 0; i{0} < s{0}; i{0}++)", i);
+          }
+          // a[i0,i1] = z;
+          Indent((4 + dims) * IndentAmount, wr);
+          wr.Write("a[");
+          RepeatWrite(wr, dims, "i{0}", ",");
+          wr.WriteLine("] = z;");
+          // return a;
+          Indent(4 * IndentAmount, wr);
+          wr.WriteLine("return a;");
+          // }
+          Indent(3 * IndentAmount, wr);
+          wr.WriteLine("}");  // end of method
         }
       }
       Indent(IndentAmount, wr);
@@ -1364,7 +1402,7 @@ namespace Microsoft.Dafny {
 
     bool NonZeroInitialization(Type t) {
       Contract.Requires(t != null);
-      var r = t.NormalizeExpandKeepConstraints() as RedirectingTypeDecl;
+      var r = t.NormalizeExpandKeepConstraints().AsRedirectingType;
       return r != null && r.Witness != null;
     }
 
@@ -1556,7 +1594,7 @@ namespace Microsoft.Dafny {
 
                 string target = idGenerator.FreshId("_rhs");
                 rhss.Add(target);
-                TrRhs((rhs is ExprRhs ? TypeName(((ExprRhs)rhs).Expr.Type, wr) : "var") + " " + target, null, rhs, indent, wr);
+                TrRhs((rhs is ExprRhs ? TypeName(((ExprRhs)rhs).Expr.Type, wr) : "var") + " " + target, rhs, indent, wr);
               }
             }
           }
@@ -1570,7 +1608,14 @@ namespace Microsoft.Dafny {
       } else if (stmt is AssignStmt) {
         AssignStmt s = (AssignStmt)stmt;
         Contract.Assert(!(s.Lhs is SeqSelectExpr) || ((SeqSelectExpr)s.Lhs).SelectOne);  // multi-element array assignments are not allowed
-        TrRhs(null, s.Lhs, s.Rhs, indent, wr);
+        if (s.Rhs is HavocRhs) {
+          if (DafnyOptions.O.ForbidNondeterminism) {
+            Error("nondeterministic assignment (line {0}) forbidden by /deterministic option", wr, s.Rhs.Tok.line);
+          }
+        } else {
+          var lvalue = CreateLvalue(s.Lhs, indent, wr);
+          TrRhs(lvalue, s.Rhs, indent, wr);
+        }
 
       } else if (stmt is AssignSuchThatStmt) {
         var s = (AssignSuchThatStmt)stmt;
@@ -2163,44 +2208,58 @@ namespace Microsoft.Dafny {
       }
     }
 
-    void TrRhs(string target, Expression targetExpr, AssignmentRhs rhs, int indent, TextWriter wr) {
-      Contract.Requires((target == null) != (targetExpr == null));
+    void TrRhs(string target, AssignmentRhs rhs, int indent, TextWriter wr) {
+      Contract.Requires(target != null);
+      Contract.Requires(!(rhs is HavocRhs));
+      Contract.Requires(0 <= indent);
+      Contract.Requires(wr != null);
+
       var tRhs = rhs as TypeRhs;
-      if (tRhs != null && tRhs.InitCall != null) {
-        string nw = idGenerator.FreshId("_nw");
-        Indent(indent, wr);
-        wr.Write("var {0} = ", nw);
-        TrAssignmentRhs(rhs, wr);  // in this case, this call will not require us to spill any let variables first
-        wr.WriteLine(";");
-        wr.Write(TrCallStmt(tRhs.InitCall, nw, indent).ToString());
-        Indent(indent, wr);
-        if (target != null) {
-          wr.Write(target);
-        } else {
-          TrExpr(targetExpr, wr, false);
-        }
-        wr.WriteLine(" = {0};", nw);
-      } else if (rhs is HavocRhs) {
-        // do nothing
-        if (DafnyOptions.O.ForbidNondeterminism) {
-          Error("nondeterministic assignment (line {0}) forbidden by /deterministic option", wr, rhs.Tok.line);
-        }
+
+      // Do the allocation and assign it to _rhs aka _nw
+      Indent(indent, wr);
+      string nw;
+      if (tRhs == null) {
+        var eRhs = (ExprRhs)rhs;  // it's not HavocRhs (by the precondition) or TypeRhs (by the "if" test), so it's gotta be ExprRhs
+        nw = idGenerator.FreshId("_rhs");
+        wr.Write("{0} {1} = ", TypeName(eRhs.Expr.Type, wr), nw);
       } else {
-        if (rhs is ExprRhs) {
-        } else if (tRhs != null && tRhs.ArrayDimensions != null) {
-          foreach (Expression dim in tRhs.ArrayDimensions) {
-          }
-        }
-        Indent(indent, wr);
-        if (target != null) {
-          wr.Write(target);
-        } else {
-          TrExpr(targetExpr, wr, false);
-        }
-        wr.Write(" = ");
-        TrAssignmentRhs(rhs, wr);
-        wr.WriteLine(";");
+        nw = idGenerator.FreshId("_nw");
+        wr.Write("var {0} = ", nw);
       }
+      TrAssignmentRhs(rhs, wr);
+      wr.WriteLine(";");
+
+      // Proceed with any initialization
+      if (tRhs == null) {
+        // no further initialization action required
+      } else if (tRhs.InitCall != null) {
+        wr.Write(TrCallStmt(tRhs.InitCall, nw, indent).ToString());
+      } else if (tRhs.ElementInit != null) {
+        // Compute the array-initializing function once and for all (as required by the language definition)
+        string f = idGenerator.FreshId("_arrayinit");
+        Indent(indent, wr);
+        wr.Write("var {0} = ", f);
+        TrExpr(tRhs.ElementInit, wr, false);
+        wr.WriteLine(";");
+        // Build a loop nest that will call the initializer for all indicies
+        var indicies = Translator.Map(Enumerable.Range(0, tRhs.ArrayDimensions.Count), ii => idGenerator.FreshId("_arrayinit_" + ii));
+        for (int d = 0; d < tRhs.ArrayDimensions.Count; d++) {
+          Indent(indent + d * IndentAmount, wr);
+          wr.WriteLine("for (int {0} = 0; {0} < {1}.{2}; {0}++) {{", indicies[d], nw,
+            tRhs.ArrayDimensions.Count == 1 ? "Length" : ("GetLength(" + d + ")"));
+        }
+        Indent(indent + tRhs.ArrayDimensions.Count * IndentAmount, wr);
+        wr.WriteLine("{0}[{2}] = {1}({2});", nw, f, Util.Comma(indicies, si => si));
+        for (int d = tRhs.ArrayDimensions.Count; 0 <= --d; ) {
+          Indent(indent + d * IndentAmount, wr);
+          wr.WriteLine("}");
+        }
+      }
+
+      // Assign to the final LHS
+      Indent(indent, wr);
+      wr.WriteLine("{0} = {1};", target, nw);
     }
 
     TextWriter TrCallStmt(CallStmt s, string receiverReplacement, int indent) {
@@ -2213,11 +2272,6 @@ namespace Microsoft.Dafny {
 
         // assign the actual in-parameters to temporary variables
         var inTmps = new List<string>();
-        for (int i = 0; i < s.Method.Ins.Count; i++) {
-          Formal p = s.Method.Ins[i];
-          if (!p.IsGhost) {
-          }
-        }
         if (receiverReplacement != null) {
           // TODO:  What to do here?  When does this happen, what does it mean?
         } else if (!s.Method.IsStatic) {
@@ -2339,7 +2393,16 @@ namespace Microsoft.Dafny {
         if (tp.ArrayDimensions == null) {
           wr.Write("new {0}()", TypeName(tp.EType, wr));
         } else {
-          if (tp.EType.IsIntegerType || tp.EType.IsTypeParameter) {
+          if (NonZeroInitialization(tp.EType)) {
+            wr.Write("Dafny.ArrayHelpers.InitNewArray{0}<{1}>", tp.ArrayDimensions.Count, TypeName(tp.EType, wr));
+            wr.Write("(");
+            wr.Write(DefaultValue(tp.EType, wr));
+            foreach (Expression dim in tp.ArrayDimensions) {
+              wr.Write(", ");
+              TrParenExpr(dim, wr, false);
+            }
+            wr.Write(")");
+          } else if (tp.EType.IsIntegerType || tp.EType.IsTypeParameter) {
             // Because the default constructor for BigInteger does not generate a valid BigInteger, we have
             // to excplicitly initialize the elements of an integer array.  This is all done in a helper routine.
             wr.Write("Dafny.ArrayHelpers.InitNewArray{0}<{1}>", tp.ArrayDimensions.Count, TypeName(tp.EType, wr));

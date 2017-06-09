@@ -1353,6 +1353,11 @@ Everything) {
             s = ", ";
           }
           wr.Write("]");
+          if (t.ElementInit != null) {
+            wr.Write(" (");
+            PrintExpression(t.ElementInit, false);
+            wr.Write(")");
+          }
         } else if (t.Arguments == null) {
           PrintType(t.EType);
         } else {

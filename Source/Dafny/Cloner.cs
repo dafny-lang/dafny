@@ -490,7 +490,7 @@ namespace Microsoft.Dafny
       } else {
         var r = (TypeRhs)rhs;
         if (r.ArrayDimensions != null) {
-          c = new TypeRhs(Tok(r.Tok), CloneType(r.EType), r.ArrayDimensions.ConvertAll(CloneExpr));
+          c = new TypeRhs(Tok(r.Tok), CloneType(r.EType), r.ArrayDimensions.ConvertAll(CloneExpr), CloneExpr(r.ElementInit));
         } else if (r.Arguments == null) {
           c = new TypeRhs(Tok(r.Tok), CloneType(r.EType));
         } else {

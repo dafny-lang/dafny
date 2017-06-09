@@ -5617,16 +5617,18 @@ namespace Microsoft.Dafny {
   }
 
   /// <summary>
-  /// A TypeRhs represents one of three things, each having to do with allocating something in the heap:
+  /// A TypeRhs represents one of four things, each having to do with allocating something in the heap:
   ///  * new T[EE]
   ///    This allocates an array of objects of type T (where EE is a list of expression)
+  ///  * new T[EE] (elementInit)
+  ///    This is like the previous, but uses "elementInit" to initialize the elements of the new array.
   ///  * new C
   ///    This allocates an object of type C
   ///  * new C.Init(EE)
   ///    This allocates an object of type C and then invokes the method/constructor Init on it
   /// There are three ways to construct a TypeRhs syntactically:
-  ///  * TypeRhs(T, EE)
-  ///      -- represents new T[EE]
+  ///  * TypeRhs(T, EE, initExpr)
+  ///      -- represents "new T[EE]" (with "elementInit" being "null") and "new T[EE] (elementInit)"
   ///  * TypeRhs(C)
   ///      -- represents new C
   ///  * TypeRhs(Path, EE)
@@ -5638,18 +5640,20 @@ namespace Microsoft.Dafny {
   public class TypeRhs : AssignmentRhs
   {
     /// <summary>
-    /// If ArrayDimensions != null, then the TypeRhs represents "new EType[ArrayDimensions]"
+    /// If ArrayDimensions != null, then the TypeRhs represents "new EType[ArrayDimensions]",
+    ///     ElementInit is non-null to represent "new EType[ArrayDimensions] (elementInit)",
     ///     and Arguments, Path, and InitCall are all null.
     /// If ArrayDimentions == null && Arguments == null, then the TypeRhs represents "new EType"
-    ///     and Path, and InitCall are all null.
+    ///     and ElementInit, Path, and InitCall are all null.
     /// If Arguments != null, then the TypeRhs represents "new Path(Arguments)"
-    ///     and EType and InitCall is filled in by resolution, and ArrayDimensions == null.
+    ///     and EType and InitCall is filled in by resolution, and ArrayDimensions == null and ElementInit == null.
     /// If OptionalNameComponent == null and Arguments != null, then the TypeRHS has not been resolved yet;
     ///   resolution will either produce an error or will chop off the last part of "EType" and move it to
     ///   OptionalNameComponent, after which the case above applies.
     /// </summary>
     public Type EType;  // in the case of Arguments != null, EType is filled in during resolution
     public readonly List<Expression> ArrayDimensions;
+    public readonly Expression ElementInit;
     public readonly List<Expression> Arguments;
     public Type Path;
     public CallStmt InitCall;  // may be null (and is definitely null for arrays), may be filled in during resolution
@@ -5658,17 +5662,18 @@ namespace Microsoft.Dafny {
     void ObjectInvariant() {
       Contract.Invariant(EType != null || Arguments != null);
       Contract.Invariant(ArrayDimensions == null || (Arguments == null && Path == null && InitCall == null && 1 <= ArrayDimensions.Count));
-      Contract.Invariant(Arguments == null || (Path != null && ArrayDimensions == null));
-      Contract.Invariant(!(ArrayDimensions == null && Arguments == null) || (Path == null && InitCall == null));
+      Contract.Invariant(Arguments == null || (Path != null && ArrayDimensions == null && ElementInit == null));
+      Contract.Invariant(!(ArrayDimensions == null && Arguments == null) || (Path == null && InitCall == null && ElementInit == null));
     }
 
-    public TypeRhs(IToken tok, Type type, List<Expression> arrayDimensions)
+    public TypeRhs(IToken tok, Type type, List<Expression> arrayDimensions, Expression elementInit)
       : base(tok) {
       Contract.Requires(tok != null);
       Contract.Requires(type != null);
       Contract.Requires(arrayDimensions != null && 1 <= arrayDimensions.Count);
       EType = type;
       ArrayDimensions = arrayDimensions;
+      ElementInit = elementInit;
     }
     public TypeRhs(IToken tok, Type type)
       : base(tok)
@@ -5704,6 +5709,9 @@ namespace Microsoft.Dafny {
         if (ArrayDimensions != null) {
           foreach (var e in ArrayDimensions) {
             yield return e;
+          }
+          if (ElementInit != null) {
+            yield return ElementInit;
           }
         }
       }
