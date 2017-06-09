@@ -11372,17 +11372,25 @@ namespace Microsoft.Dafny {
         TypeRhs tRhs = (TypeRhs)rhs;
 
         if (tRhs.ArrayDimensions == null) {
-          Contract.Assert(tRhs.ElementInit == null);
+          Contract.Assert(tRhs.ElementInit == null && tRhs.InitDisplay == null);
         } else {
           int i = 0;
           foreach (Expression dim in tRhs.ArrayDimensions) {
             CheckWellformed(dim, new WFOptions(), locals, builder, etran);
-            builder.Add(Assert(tok, Bpl.Expr.Le(Bpl.Expr.Literal(0), etran.TrExpr(dim)),
+            builder.Add(Assert(dim.tok, Bpl.Expr.Le(Bpl.Expr.Literal(0), etran.TrExpr(dim)),
               tRhs.ArrayDimensions.Count == 1 ? "array size might be negative" : string.Format("array size (dimension {0}) might be negative", i)));
             i++;
           }
           if (tRhs.ElementInit != null) {
             CheckWellformed(tRhs.ElementInit, new WFOptions(), locals, builder, etran);
+          }
+          if (tRhs.InitDisplay != null) {
+            var dim = tRhs.ArrayDimensions[0];
+            builder.Add(Assert(dim.tok, Bpl.Expr.Eq(etran.TrExpr(dim), Bpl.Expr.Literal(tRhs.InitDisplay.Count)),
+              string.Format("given array size must agree with the number of expressions in the initializing display ({0})", tRhs.InitDisplay.Count)));
+            foreach (var v in tRhs.InitDisplay) {
+              CheckWellformed(v, new WFOptions(), locals, builder, etran);
+            }
           }
         }
 
@@ -11416,9 +11424,11 @@ namespace Microsoft.Dafny {
               indicies.Add(ie);
               ante = BplAnd(ante, BplAnd(Bpl.Expr.Le(Bpl.Expr.Literal(0), ie), Bpl.Expr.Lt(ie, etran.TrExpr(tRhs.ArrayDimensions[ii]))));
             }
+            var sourceType = tRhs.ElementInit.Type.AsArrowType;
+            Contract.Assert(sourceType.Args.Count == tRhs.ArrayDimensions.Count);
             var args = Concat(
-              Map(Enumerable.Range(0, tRhs.ArrayDimensions.Count), dummy => TypeToTy(Type.Int)),
-              Cons(TypeToTy(tRhs.EType),
+              Map(Enumerable.Range(0, tRhs.ArrayDimensions.Count), ii => TypeToTy(sourceType.Args[ii])),
+              Cons(TypeToTy(sourceType.Result),
               Cons(etran.TrExpr(tRhs.ElementInit),
               Cons(etran.HeapExpr,
               indicies.ConvertAll(idx => (Bpl.Expr)FunctionCall(tok, BuiltinFunction.Box, null, idx))))));
@@ -11426,15 +11436,35 @@ namespace Microsoft.Dafny {
             var pre = FunctionCall(tok, Requires(tRhs.ArrayDimensions.Count), Bpl.Type.Bool, args);
             var q = new Bpl.ForallExpr(tok, bvs, Bpl.Expr.Imp(ante, pre));
             builder.Add(AssertNS(tok, q, "all array indicies must be in the domain of the initialization function"));
+            // Check that the values coming out of the function satisfy any appropriate subset-type constraints
+            var apply = UnboxIfBoxed(FunctionCall(tok, Apply(tRhs.ArrayDimensions.Count), TrType(tRhs.EType), args), tRhs.EType);
+            string msg;
+            var cre = GetSubrangeCheck(apply, sourceType.Result, tRhs.EType, out msg);
+            if (cre != null) {
+              // assert (forall i0,i1,i2,... ::
+              //            0 <= i0 < ... && ... ==> tRhs.ElementInit.requires(i0,i1,i2,...) is Subtype);
+              q = new Bpl.ForallExpr(tok, bvs, Bpl.Expr.Imp(ante, cre));
+              builder.Add(AssertNS(tRhs.ElementInit.tok, q, msg));
+            }
             // Assume that array elements have initial values according to the given initialization function.  That is:
-            // assume (forall i0,i1,i2,... :: { A[i0,i1,i2,...] }
-            //            0 <= i0 < ... && ... ==> A[i0,i1,i2,...] == tRhs.ElementInit.requires(i0,i1,i2,...));
+            // assume (forall i0,i1,i2,... :: { nw[i0,i1,i2,...] }
+            //            0 <= i0 < ... && ... ==> nw[i0,i1,i2,...] == tRhs.ElementInit.requires(i0,i1,i2,...));
             var ai = ReadHeap(tok, etran.HeapExpr, nw, GetArrayIndexFieldName(tok, indicies));
             var ai_prime = UnboxIfBoxed(ai, tRhs.EType);
             var tr = new Bpl.Trigger(tok, true, new List<Bpl.Expr> { ai });
-            var apply = UnboxIfBoxed(FunctionCall(tok, Apply(tRhs.ArrayDimensions.Count), TrType(tRhs.EType), args), tRhs.EType);  // TODO: use a more general Equality translation
-            q = new Bpl.ForallExpr(tok, bvs, tr, Bpl.Expr.Imp(ante, Bpl.Expr.Eq(ai_prime, apply)));
+            q = new Bpl.ForallExpr(tok, bvs, tr, Bpl.Expr.Imp(ante, Bpl.Expr.Eq(ai_prime, apply)));  // TODO: use a more general Equality translation
             builder.Add(new Bpl.AssumeCmd(tok, q));
+          } else if (tRhs.InitDisplay != null) {
+            int ii = 0;
+            foreach (var v in tRhs.InitDisplay) {
+              var EE_ii = etran.TrExpr(v);
+              // assert EE_ii satisfies any subset-type constraints;
+              CheckSubrange(v.tok, EE_ii, v.Type, tRhs.EType, builder);
+              // assume nw[ii] == EE_ii;
+              var ai = ReadHeap(tok, etran.HeapExpr, nw, GetArrayIndexFieldName(tok, new List<Bpl.Expr> { Bpl.Expr.Literal(ii) }));
+              builder.Add(new Bpl.AssumeCmd(tok, Bpl.Expr.Eq(UnboxIfBoxed(ai, tRhs.EType), EE_ii)));
+              ii++;
+            }
           }
         }
         // $Heap[$nw, alloc] := true;
@@ -11476,6 +11506,22 @@ namespace Microsoft.Dafny {
       }
     }
 
+    Bpl.Expr GetSubrangeCheck(Bpl.Expr bSource, Type sourceType, Type targetType, out string msg) {
+      Contract.Requires(bSource != null);
+      Contract.Requires(sourceType != null);
+      Contract.Requires(targetType != null);
+
+      if (targetType.IsSupertypeOf_WithSubsetTypes(sourceType)) {
+        // We should always be able to use Is, but this is an optimisation.
+        msg = null;
+        return null;
+      } else {
+        var cre = MkIs(bSource, targetType);
+        msg = string.Format("value does not satisfy the subset constraints of '{0}'", targetType.Normalize());
+        return cre;
+      }
+    }
+
     void CheckSubrange(IToken tok, Bpl.Expr bSource, Type sourceType, Type targetType, BoogieStmtListBuilder builder) {
       Contract.Requires(tok != null);
       Contract.Requires(bSource != null);
@@ -11483,11 +11529,9 @@ namespace Microsoft.Dafny {
       Contract.Requires(targetType != null);
       Contract.Requires(builder != null);
 
-      if (targetType.IsSupertypeOf_WithSubsetTypes(sourceType)) {
-        // We should always be able to use Is, but this is an optimisation.
-      } else {
-        var cre = MkIs(bSource, targetType);
-        var msg = string.Format("value does not satisfy the subset constraints of '{0}'", targetType.Normalize());
+      string msg;
+      var cre = GetSubrangeCheck(bSource, sourceType, targetType, out msg);
+      if (cre != null) {
         builder.Add(Assert(tok, cre, msg));
       }
     }

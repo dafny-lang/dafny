@@ -3302,6 +3302,7 @@ List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, st
 		List<Expression> ee = null;
 		List<Expression> args = null;
 		Expression arrayElementInit = null;
+		List<Expression> display = null;
 		r = dummyRhs;  // to please compiler
 		Attributes attrs = null;
 		
@@ -3317,10 +3318,23 @@ List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, st
 					Expect(53);
 					var tmp = theBuiltIns.ArrayType(ee.Count, new IntType(), true);
 					
-					if (la.kind == 54) {
-						Get();
-						Expression(out arrayElementInit, true, true);
-						Expect(55);
+					if (la.kind == 52 || la.kind == 54) {
+						if (la.kind == 54) {
+							Get();
+							Expression(out arrayElementInit, true, true);
+							Expect(55);
+						} else {
+							Get();
+							if (ee.Count > 1) {
+							 SemErr(t, "An initializing element display is allowed only for 1-dimensional arrays");
+							}
+							display = new List<Expression>();
+							
+							if (StartOf(9)) {
+								Expressions(display);
+							}
+							Expect(53);
+						}
 					}
 				} else {
 					x = null; args = new List<Expression/*!*/>(); 
@@ -3332,7 +3346,11 @@ List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, st
 				}
 			}
 			if (ee != null) {
-			 r = new TypeRhs(newToken, ty, ee, arrayElementInit);
+			 if (display != null) {
+			   r = new TypeRhs(newToken, ty, ee[0], display);
+			 } else {
+			   r = new TypeRhs(newToken, ty, ee, arrayElementInit);
+			 }
 			} else if (args != null) {
 			 r = new TypeRhs(newToken, ty, args, false);
 			} else {

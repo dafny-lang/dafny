@@ -1,5 +1,5 @@
 
-Dafny program verifier finished with 14 verified, 0 errors
+Dafny program verifier finished with 16 verified, 0 errors
 Program compiled successfully
 Running...
 
@@ -12,4 +12,8 @@ Running...
 O . O . O . O . O . O . 
 12 12 12 12 12 12 12 12 12 12 12 12 
 D E
-7 
+7
+100 75 98 25 
+
+looks like this rocks 
+-2 -1 0 1 2 3 4 

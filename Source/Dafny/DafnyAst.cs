@@ -5617,11 +5617,15 @@ namespace Microsoft.Dafny {
   }
 
   /// <summary>
-  /// A TypeRhs represents one of four things, each having to do with allocating something in the heap:
+  /// A TypeRhs represents one of five things, each having to do with allocating something in the heap:
   ///  * new T[EE]
   ///    This allocates an array of objects of type T (where EE is a list of expression)
   ///  * new T[EE] (elementInit)
   ///    This is like the previous, but uses "elementInit" to initialize the elements of the new array.
+  ///  * new T[E] [EE]
+  ///    This is like the first one, but uses the elements displayed in the list EE as the initial
+  ///    elements of the array.  Only a 1-dimensional array may be used in this case.  The size denoted
+  ///    by E must equal the length of EE.
   ///  * new C
   ///    This allocates an object of type C
   ///  * new C.Init(EE)
@@ -5629,6 +5633,8 @@ namespace Microsoft.Dafny {
   /// There are three ways to construct a TypeRhs syntactically:
   ///  * TypeRhs(T, EE, initExpr)
   ///      -- represents "new T[EE]" (with "elementInit" being "null") and "new T[EE] (elementInit)"
+  ///  * TypeRhs(T, E, EE)
+  ///      -- represents "new T[E] [EE]"
   ///  * TypeRhs(C)
   ///      -- represents new C
   ///  * TypeRhs(Path, EE)
@@ -5642,6 +5648,7 @@ namespace Microsoft.Dafny {
     /// <summary>
     /// If ArrayDimensions != null, then the TypeRhs represents "new EType[ArrayDimensions]",
     ///     ElementInit is non-null to represent "new EType[ArrayDimensions] (elementInit)",
+    ///     InitDisplay is non-null to represent "new EType[ArrayDimensions] [InitDisplay]",
     ///     and Arguments, Path, and InitCall are all null.
     /// If ArrayDimentions == null && Arguments == null, then the TypeRhs represents "new EType"
     ///     and ElementInit, Path, and InitCall are all null.
@@ -5654,6 +5661,7 @@ namespace Microsoft.Dafny {
     public Type EType;  // in the case of Arguments != null, EType is filled in during resolution
     public readonly List<Expression> ArrayDimensions;
     public readonly Expression ElementInit;
+    public readonly List<Expression> InitDisplay;
     public readonly List<Expression> Arguments;
     public Type Path;
     public CallStmt InitCall;  // may be null (and is definitely null for arrays), may be filled in during resolution
@@ -5661,9 +5669,11 @@ namespace Microsoft.Dafny {
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(EType != null || Arguments != null);
+      Contract.Invariant(ElementInit == null || InitDisplay == null);
+      Contract.Invariant(InitDisplay == null || ArrayDimensions.Count == 1);
       Contract.Invariant(ArrayDimensions == null || (Arguments == null && Path == null && InitCall == null && 1 <= ArrayDimensions.Count));
-      Contract.Invariant(Arguments == null || (Path != null && ArrayDimensions == null && ElementInit == null));
-      Contract.Invariant(!(ArrayDimensions == null && Arguments == null) || (Path == null && InitCall == null && ElementInit == null));
+      Contract.Invariant(Arguments == null || (Path != null && ArrayDimensions == null && ElementInit == null && InitDisplay == null));
+      Contract.Invariant(!(ArrayDimensions == null && Arguments == null) || (Path == null && InitCall == null && ElementInit == null && InitDisplay == null));
     }
 
     public TypeRhs(IToken tok, Type type, List<Expression> arrayDimensions, Expression elementInit)
@@ -5674,6 +5684,16 @@ namespace Microsoft.Dafny {
       EType = type;
       ArrayDimensions = arrayDimensions;
       ElementInit = elementInit;
+    }
+    public TypeRhs(IToken tok, Type type, Expression dim, List<Expression> initDisplay)
+      : base(tok) {
+      Contract.Requires(tok != null);
+      Contract.Requires(type != null);
+      Contract.Requires(dim != null);
+      Contract.Requires(initDisplay != null);
+      EType = type;
+      ArrayDimensions = new List<Expression> { dim };
+      InitDisplay = initDisplay;
     }
     public TypeRhs(IToken tok, Type type)
       : base(tok)
@@ -5712,6 +5732,11 @@ namespace Microsoft.Dafny {
           }
           if (ElementInit != null) {
             yield return ElementInit;
+          }
+          if (InitDisplay != null) {
+            foreach (var e in InitDisplay) {
+              yield return e;
+            }
           }
         }
       }

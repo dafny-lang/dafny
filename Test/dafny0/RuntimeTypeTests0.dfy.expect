@@ -4,3 +4,4 @@ Compilation error: compilation does not support trait types as a type parameter;
 Compilation error: compilation does not support trait types as a type parameter; consider introducing a ghost
 Compilation error: compilation of set<TRAIT> is not supported; consider introducing a ghost
 Compilation error: compilation of set<TRAIT> is not supported; consider introducing a ghost
+Compilation error: compilation of set<TRAIT> is not supported; consider introducing a ghost

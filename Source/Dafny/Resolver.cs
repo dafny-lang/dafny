@@ -5748,17 +5748,16 @@ namespace Microsoft.Dafny
           } else {
             var rhs = (TypeRhs)s.Rhs;
             if (rhs.ArrayDimensions != null) {
-              foreach (var dim in rhs.ArrayDimensions) {
-                resolver.CheckIsCompilable(dim);
-              }
+              rhs.ArrayDimensions.ForEach(resolver.CheckIsCompilable);
               if (rhs.ElementInit != null) {
                 resolver.CheckIsCompilable(rhs.ElementInit);
               }
+              if (rhs.InitDisplay != null) {
+                rhs.InitDisplay.ForEach(resolver.CheckIsCompilable);
+              }
             }
             if (rhs.InitCall != null) {
-              foreach (var arg in rhs.InitCall.Args) {
-                resolver.CheckIsCompilable(arg);
-              }
+              rhs.InitCall.Args.ForEach(resolver.CheckIsCompilable);
             }
           }
 
@@ -9321,6 +9320,11 @@ namespace Microsoft.Dafny
             var hintString = string.Format(" (perhaps write '{0} =>' in front of the expression you gave in order to make it an arrow type)", underscores);
             ConstrainSubtypeRelation(arrowType, rr.ElementInit.Type, rr.ElementInit, "array-allocation initialization expression expected to have type '{0}' (instead got '{1}'){2}",
               arrowType, rr.ElementInit.Type, new LazyString_OnTypeEquals(rr.EType, rr.ElementInit.Type, hintString));
+          } else if (rr.InitDisplay != null) {
+            foreach (var v in rr.InitDisplay) {
+              ResolveExpression(v, new ResolveOpts(codeContext, false));
+              ConstrainSubtypeRelation(rr.EType, v.Type, v, "initial value must be assignable to array's elements (expected '{0}', got '{1}')", v.Type, rr.EType);
+            }
           }
         } else {
           bool callsConstructor = false;

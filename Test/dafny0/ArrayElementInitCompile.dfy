@@ -20,6 +20,8 @@ method Main()
   t.Do();
 
   SubsetType();
+
+  Display(98);
 }
 
 method SingleValued(d: int) returns (a: array<int>)
@@ -133,10 +135,23 @@ class TLWrapper
 }
 
 type Six = x | 6 <= x witness 7
+newtype int32 = x | -0x8000_0000 <= x < 0x8000_0000
 
 method SubsetType()
 {
   var a := new Six[12];
   assert 6 <= a[6];
-  print a[6], " ";
+  print a[6], "\n";
+}
+
+method Display(n: nat)
+{
+  var b := new nat[4] [100, 75, n, 25];
+  var d := new char[0][];
+  var s := new string[4]["looks", "like", "this", "rocks"];
+  var i := new int32[7][-2, -1, 0, 1, 2, 3, 4];
+  PrintArray(b);
+  PrintArray(d);
+  PrintArray(s);
+  PrintArray(i);
 }

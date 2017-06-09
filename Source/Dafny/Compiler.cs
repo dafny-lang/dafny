@@ -2255,6 +2255,15 @@ namespace Microsoft.Dafny {
           Indent(indent + d * IndentAmount, wr);
           wr.WriteLine("}");
         }
+      } else if (tRhs.InitDisplay != null) {
+        var ii = 0;
+        foreach (var v in tRhs.InitDisplay) {
+          Indent(indent, wr);
+          wr.Write("{0}[{1}] = ", nw, ii);
+          TrExpr(v, wr, false);
+          wr.WriteLine(";");
+          ii++;
+        }
       }
 
       // Assign to the final LHS

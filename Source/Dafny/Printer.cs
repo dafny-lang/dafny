@@ -1357,6 +1357,10 @@ Everything) {
             wr.Write(" (");
             PrintExpression(t.ElementInit, false);
             wr.Write(")");
+          } else if (t.InitDisplay != null) {
+            wr.Write(" [");
+            PrintExpressionList(t.InitDisplay, false);
+            wr.Write("]");
           }
         } else if (t.Arguments == null) {
           PrintType(t.EType);

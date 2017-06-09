@@ -67,3 +67,22 @@ module BM {
     }
   }
 }
+
+// ------- initializing display --------------------------------------
+
+module CM {
+  newtype int32 = x | -0x8000_0000 <= x < 0x8000_0000
+
+  method Display0<D>(d: D, n: int)
+  {
+    var a := new nat[4] [100, 75, 50, 25];
+    var b := new int32[4] [100, 75, n, 25];  // error: "n" has type "int", not "int32"
+  }
+}
+
+module DM {
+  method Ghost(ghost g: int)
+  {
+    var a := new int[4] [100, 75, g, 25];  // error: "g" is ghost
+  }
+}

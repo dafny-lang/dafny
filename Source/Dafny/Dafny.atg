@@ -1990,6 +1990,7 @@ Rhs<out AssignmentRhs r>
      List<Expression> ee = null;
      List<Expression> args = null;
      Expression arrayElementInit = null;
+     List<Expression> display = null;
      r = dummyRhs;  // to please compiler
      Attributes attrs = null;
   .)
@@ -2002,6 +2003,13 @@ Rhs<out AssignmentRhs r>
                                        .)
       [ "(" Expression<out arrayElementInit, true, true>
         ")"
+      | "["                            (. if (ee.Count > 1) {
+                                            SemErr(t, "An initializing element display is allowed only for 1-dimensional arrays");
+                                          }
+                                          display = new List<Expression>();
+                                       .)
+        [ Expressions<display> ]
+        "]"
       ]
     |                                  (. x = null; args = new List<Expression/*!*/>(); .)
       "("
@@ -2009,7 +2017,11 @@ Rhs<out AssignmentRhs r>
       ")"
     ]
     (. if (ee != null) {
-         r = new TypeRhs(newToken, ty, ee, arrayElementInit);
+         if (display != null) {
+           r = new TypeRhs(newToken, ty, ee[0], display);
+         } else {
+           r = new TypeRhs(newToken, ty, ee, arrayElementInit);
+         }
        } else if (args != null) {
          r = new TypeRhs(newToken, ty, args, false);
        } else {

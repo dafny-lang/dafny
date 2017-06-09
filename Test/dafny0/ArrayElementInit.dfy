@@ -94,3 +94,52 @@ method QCaller()
   var a := Q0(s, 217);
   var b := Q1(s, 2);
 }
+
+method SubtypeConstraint(f: int -> int, g: int -> nat)
+  requires forall x :: 0 <= x < 100 ==> f.requires(x) && g.requires(x)
+{
+  var a := new nat[100](g);
+  var b := new nat[100](f);  // error: f may return negative numbers
+}
+
+// ------- initializing display --------------------------------------
+
+method Display0<D>(d: D, n: int)
+{
+  var a := new nat[4] [100, 75, 50, 25];
+  var b := new nat[4] [100, 75, n, 25];  // error: "n" may be negative
+  var c := new D[2] [d, d];
+  var d := new char[0][];
+  var e := new real[3][2.0, 2.0, 2.0, 2.0];  // error: incorrect array size given
+}
+
+method Display1<D>(d: D, n: int, w: array<nat>)
+  requires 0 <= n && w != null && 100 <= w.Length
+{
+  var a := new nat[4] [100, 75, 50, 25];
+  assert a.Length == 4;
+  assert a[0] == 100;
+  assert a[1] == 75;
+  assert a[2] == 50;
+  assert a[3] == 25;
+  
+  var b := new nat[4] [100, 75, n, 25];
+  assert b[2] == n;
+  assert b[0] == b[1] + b[3];
+  
+  assert 0 <= w[23];
+  
+  var c := new D[2] [d, d];
+  assert c[0] == c[1] == d;
+  
+  var d := new char[0][];
+  assert d.Length == 0;
+
+  var e := new real[2][ 100.0, 200.0 ];
+  assert e[0] == e[1];  // error: no, they're not the same
+}
+
+method Display2<D>(f: int -> D)
+{
+  var a := new D[1] [ f(0) ];  // error: 0 may not be in the domain of f
+}

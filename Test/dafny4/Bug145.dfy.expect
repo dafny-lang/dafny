@@ -1,4 +1,4 @@
-Bug145.dfy(12,15): Error: array size (dimension 0) might be negative
+Bug145.dfy(12,24): Error: array size (dimension 0) might be negative
 Execution trace:
     (0,0): anon0
 Bug145.dfy(25,11): Error: assertion violation
