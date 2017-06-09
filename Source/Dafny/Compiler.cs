@@ -1687,7 +1687,7 @@ namespace Microsoft.Dafny {
 
       } else if (stmt is AlternativeStmt) {
         var s = (AlternativeStmt)stmt;
-        if (DafnyOptions.O.ForbidNondeterminism) {
+        if (DafnyOptions.O.ForbidNondeterminism && 2 <= s.Alternatives.Count) {
           Error("case-based if statement (line {0}) forbidden by /deterministic option", wr, s.Tok.line);
         }
         Indent(indent, wr);

@@ -23,6 +23,12 @@ method M(c: C)
   }
   if {  // error: nondeterministic //----------------------BUG
     case true =>  x := x + 1;
+    case true =>  x := x + 2;
+  }
+  if c.f < 500.0 {
+    if {  // a one-case if is always deterministic
+      case c.f < 1000.0 => x := x + 1;
+    }
   }
   if z :| 10 <= z < 15 && P(z) {  // error: nondeterministic
     x := z;
@@ -46,3 +52,17 @@ method M(c: C)
   modify c {  // fine
   }
 }
+
+method OutputParameters0(x: int) returns (s: int, t: int)
+{
+  return x, x+45;  // yes, this is legal
+}
+
+method OutputParameters1(x: int) returns (s: int, t: int)
+{
+  if x < 100 {
+    return;  // error: this may leave s and t undefined //----------------------BUG
+  } else {
+    var y := x + s;  // error: this uses s before it may be defined //----------------------BUG
+  }
+}  // error: this may leave s and t undefined //----------------------BUG
