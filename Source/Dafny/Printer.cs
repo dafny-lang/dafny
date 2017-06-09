@@ -1344,15 +1344,26 @@ Everything) {
         TypeRhs t = (TypeRhs)rhs;
         wr.Write("new ");
         if (t.ArrayDimensions != null) {
-          PrintType(t.EType);
-          string s = "[";
-          foreach (Expression dim in t.ArrayDimensions) {
-            Contract.Assume(dim != null);
-            wr.Write(s);
-            PrintExpression(dim, false);
-            s = ", ";
+          if (!(t.EType is TypeProxy) || DafnyOptions.O.DafnyPrintResolvedFile != null) {
+            PrintType(t.EType);
           }
-          wr.Write("]");
+          var dim0 = t.ArrayDimensions[0] as LiteralExpr;
+          if (DafnyOptions.O.DafnyPrintResolvedFile == null &&
+            t.InitDisplay != null &&
+            t.ArrayDimensions.Count == 1 && dim0.Value is BigInteger &&
+            (BigInteger)dim0.Value == new BigInteger(t.InitDisplay.Count)) {
+            // elide the size
+            wr.Write("[]");
+          } else {
+            string s = "[";
+            foreach (Expression dim in t.ArrayDimensions) {
+              Contract.Assume(dim != null);
+              wr.Write(s);
+              PrintExpression(dim, false);
+              s = ", ";
+            }
+            wr.Write("]");
+          }
           if (t.ElementInit != null) {
             wr.Write(" (");
             PrintExpression(t.ElementInit, false);

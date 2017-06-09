@@ -5,4 +5,7 @@ ArrayElementInitResolution.dfy(55,31): Error: array-allocation initialization ex
 ArrayElementInitResolution.dfy(64,25): Error: ghost fields are allowed only in specification contexts
 ArrayElementInitResolution.dfy(79,36): Error: initial value must be assignable to array's elements (expected 'int', got 'int32')
 ArrayElementInitResolution.dfy(86,34): Error: ghost variables are allowed only in specification contexts
-7 resolution/type errors detected in ArrayElementInitResolution.dfy
+ArrayElementInitResolution.dfy(99,29): Error: initial value must be assignable to array's elements (expected 'char', got 'bool')
+ArrayElementInitResolution.dfy(116,28): Error: initial value must be assignable to array's elements (expected 'char', got 'bool')
+ArrayElementInitResolution.dfy(126,8): Error: the type of this variable is underspecified
+10 resolution/type errors detected in ArrayElementInitResolution.dfy

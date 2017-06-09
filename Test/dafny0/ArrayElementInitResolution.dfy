@@ -86,3 +86,43 @@ module DM {
     var a := new int[4] [100, 75, g, 25];  // error: "g" is ghost
   }
 }
+
+// ------- optional syntactic parts --------------------------------------
+
+module EM {
+  class C {}
+  class D {}
+  method M() {
+    var a := new [3] [2, 5, 8];
+    var b := new [1][1];
+    a, b := b, a;  // a and b have the same type, array<int>
+    var c := new [2] [false, 'f'];  // error: type inference fails
+    var xc, xd := new C, new D;
+    var d := new [2] [ xc, xd ];
+    var e: array<object>;
+    d, e := e, d;  // d and e have the same type, array<object>
+    var f := new [3](i => i as real);
+    var g: array<char> := new [10];
+  }
+}
+
+module EM' {  // same as EM, but with sizes left out (where allowed)
+  class C {}
+  class D {}
+  method M() {
+    var a := new [] [2, 5, 8];
+    var b := new [][1];
+    a, b := b, a;  // a and b have the same type, array<int>
+    var c := new [] [false, 'f'];  // error: type inference fails
+    var xc, xd := new C, new D;
+    var d := new [] [ xc, xd ];
+    var e: array<object>;
+    d, e := e, d;  // d and e have the same type, array<object>
+  }
+}
+
+module FM {
+  method M() {
+    var a := new [0];  // error: underspecified array-element type
+  }
+}

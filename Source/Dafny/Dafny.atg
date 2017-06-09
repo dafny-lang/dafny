@@ -1995,27 +1995,16 @@ Rhs<out AssignmentRhs r>
      Attributes attrs = null;
   .)
   ( "new"                              (. newToken = t; .)
-    TypeAndToken<out x, out ty, false>
-    [ "["                              (. ee = new List<Expression>(); .)
-      Expressions<ee>
-      "]"                              (. // make sure an array class with this dimensionality exists
-                                          var tmp = theBuiltIns.ArrayType(ee.Count, new IntType(), true);
-                                       .)
-      [ "(" Expression<out arrayElementInit, true, true>
+    ( NewArray<out ee, out arrayElementInit, out display>
+                                       (. ty = new InferredTypeProxy(); .)
+    | TypeAndToken<out x, out ty, false>
+      [ NewArray<out ee, out arrayElementInit, out display>
+      |                                (. x = null; args = new List<Expression/*!*/>(); .)
+        "("
+          [ Expressions<args> ]
         ")"
-      | "["                            (. if (ee.Count > 1) {
-                                            SemErr(t, "An initializing element display is allowed only for 1-dimensional arrays");
-                                          }
-                                          display = new List<Expression>();
-                                       .)
-        [ Expressions<display> ]
-        "]"
       ]
-    |                                  (. x = null; args = new List<Expression/*!*/>(); .)
-      "("
-        [ Expressions<args> ]
-      ")"
-    ]
+    )
     (. if (ee != null) {
          if (display != null) {
            r = new TypeRhs(newToken, ty, ee[0], display);
@@ -2032,6 +2021,35 @@ Rhs<out AssignmentRhs r>
   | Expression<out e, false, true>     (. r = new ExprRhs(e); .)
   )
   { Attribute<ref attrs> }             (. r.Attributes = attrs; .)
+  .
+NewArray<. out List<Expression> ee, out Expression arrayElementInit, out List<Expression> display .>
+= (. ee = new List<Expression>();
+     arrayElementInit = null;
+     display = null;
+     IToken x;
+  .)
+  "["                                (. x = t; .)
+  ( "]"                              /* no size is given; this is allowed as long as an initialization display is given */
+    "["                              (. display = new List<Expression>(); .)
+    [ Expressions<display> ]
+    "]"                              (. // we fill in the size
+                                        ee.Add(new LiteralExpr(x, display.Count));
+                                     .)
+  | Expressions<ee>
+    "]"                              (. // make sure an array class with this dimensionality exists
+                                        var tmp = theBuiltIns.ArrayType(ee.Count, new IntType(), true);
+                                     .)
+    [ "(" Expression<out arrayElementInit, true, true>
+      ")"
+    | "["                            (. if (ee.Count > 1) {
+                                          SemErr(t, "An initializing element display is allowed only for 1-dimensional arrays");
+                                        }
+                                        display = new List<Expression>();
+                                     .)
+      [ Expressions<display> ]
+      "]"
+    ]
+  )
   .
 VarDeclStatement<.out Statement/*!*/ s.>
 = (. IToken x = null, assignTok = null;  bool isGhost = false;
