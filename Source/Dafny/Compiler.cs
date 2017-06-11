@@ -962,6 +962,7 @@ namespace Microsoft.Dafny {
             // emit nothing
           } else if (f is ConstantField) {
             var dd = (ConstantField)f;
+            Indent(indent, wr);
             wr.Write("public static {0} {1}()", TypeName(dd.type, wr), dd.CompileName);
             wr.WriteLine("{");
             CompileReturnBody(dd.constValue, indent + IndentAmount, wr);

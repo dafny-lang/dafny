@@ -636,11 +636,19 @@ Everything) {
       if (field.IsGhost) {
         wr.Write("ghost ");
       }
-      wr.Write("var");
+      if (field is ConstantField) {
+        wr.Write("const");
+      } else {
+        wr.Write("var");
+      }
       PrintAttributes(field.Attributes);
       wr.Write(" {0}: ", field.Name);
       PrintType(field.Type);
-      if (field.IsUserMutable) {
+      if (field is ConstantField) {
+        var c = (ConstantField)field;
+        wr.Write(" := ");
+        PrintExpression(c.constValue, true);
+      } else if (field.IsUserMutable) {
         // nothing more to say
       } else if (field.IsMutable) {
         wr.Write("  // non-assignable");
