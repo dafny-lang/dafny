@@ -1076,7 +1076,7 @@ ConstantFieldDecl<.DeclModifierData dmod, List<MemberDecl/*!*/>/*!*/ mm.>
   SYNC
   "const"
   { Attribute<ref attrs> }
-  FIdentType<out id, out ty>
+  CIdentType<out id, out ty>                        (. if (ty == null) { ty = new InferredTypeProxy(); } .)
   ":="
   Expression<out e, false, false>                   (. mm.Add(new ConstantField(id, id.val, e, dmod.IsStatic, dmod.IsGhost, ty, attrs)); .)
   OldSemi
@@ -1168,6 +1168,18 @@ FIdentType<out IToken/*!*/ id, out Type/*!*/ ty>
   )
   ":"
   Type<out ty>
+  .
+CIdentType<out IToken/*!*/ id, out Type ty>
+= (.Contract.Ensures(Contract.ValueAtReturn(out id) != null);
+    id = Token.NoToken;
+    ty = null;
+  .)
+  ( WildIdent<out id, false>
+  | digits         (. id = t; .)
+  )
+  [ ":"
+    Type<out ty>
+  ]
   .
 IdentType<out IToken/*!*/ id, out Type/*!*/ ty, bool allowWildcardId>
 = (.Contract.Ensures(Contract.ValueAtReturn(out id) != null); Contract.Ensures(Contract.ValueAtReturn(out ty) != null);.)

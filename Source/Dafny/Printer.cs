@@ -230,7 +230,7 @@ Everything) {
             PrintType(dd.BaseType);
           } else {
             wr.Write(dd.Var.DisplayName);
-            if (!(dd.Var.Type is TypeProxy) || DafnyOptions.O.DafnyPrintResolvedFile != null) {
+            if (ShowType(dd.Var.Type)) {
               wr.Write(": ");
               PrintType(dd.BaseType);
             }
@@ -249,7 +249,7 @@ Everything) {
           PrintClassMethodHelper("type", dd.Attributes, dd.Name + EqualitySupportSuffix(dd.EqualitySupport), dd.TypeArgs);
           wr.Write(" = ");
           wr.Write(dd.Var.DisplayName);
-          if (!(dd.Var.Type is TypeProxy) || DafnyOptions.O.DafnyPrintResolvedFile != null) {
+          if (ShowType(dd.Var.Type)) {
             wr.Write(": ");
             PrintType(dd.Rhs);
           }
@@ -645,8 +645,11 @@ Everything) {
         wr.Write("var");
       }
       PrintAttributes(field.Attributes);
-      wr.Write(" {0}: ", field.Name);
-      PrintType(field.Type);
+      wr.Write(" {0}", field.Name);
+      if (ShowType(field.Type)) {
+        wr.Write(": ");
+        PrintType(field.Type);
+      }
       if (field is ConstantField) {
         var c = (ConstantField)field;
         wr.Write(" := ");
@@ -920,6 +923,11 @@ Everything) {
       } else {
         return "";
       }
+    }
+
+    bool ShowType(Type t) {
+      Contract.Requires(t != null);
+      return !(t is TypeProxy) || DafnyOptions.O.DafnyPrintResolvedFile != null;
     }
 
     // ----------------------------- PrintStatement -----------------------------
@@ -1355,7 +1363,7 @@ Everything) {
         TypeRhs t = (TypeRhs)rhs;
         wr.Write("new ");
         if (t.ArrayDimensions != null) {
-          if (!(t.EType is TypeProxy) || DafnyOptions.O.DafnyPrintResolvedFile != null) {
+          if (ShowType(t.EType)) {
             PrintType(t.EType);
           }
           var dim0 = t.ArrayDimensions[0] as LiteralExpr;
@@ -2143,9 +2151,9 @@ Everything) {
         var e = (LambdaExpr)expr;
         bool parensNeeded = !isRightmost;
         if (parensNeeded) { wr.Write("("); }
-        var skipSignatureParens = e.BoundVars.Count == 1 && e.BoundVars[0].Type is InferredTypeProxy;
+        var skipSignatureParens = e.BoundVars.Count == 1 && !ShowType(e.BoundVars[0].Type);
         if (!skipSignatureParens) { wr.Write("("); }
-        wr.Write(Util.Comma(", ", e.BoundVars, bv => bv.DisplayName + (bv.Type is InferredTypeProxy ? "" : ": " + bv.Type)));
+        wr.Write(Util.Comma(", ", e.BoundVars, bv => bv.DisplayName + (ShowType(bv.Type) ? ": " + bv.Type : "")));
         if (!skipSignatureParens) { wr.Write(")"); }
         if (e.Range != null) {
           wr.Write(" requires ");
