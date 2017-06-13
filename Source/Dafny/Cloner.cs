@@ -154,11 +154,11 @@ namespace Microsoft.Dafny
       if (member is Field) {
         if (member is ConstantField) {
           var c = (ConstantField) member;
-          return new ConstantField(Tok(c.tok), c.Name, CloneExpr(c.constValue), c.IsGhost, CloneType(c.Type), CloneAttributes(c.Attributes));
+          return new ConstantField(Tok(c.tok), c.Name, CloneExpr(c.constValue), c.IsStatic, c.IsGhost, CloneType(c.Type), CloneAttributes(c.Attributes));
         } else {
           Contract.Assert(!(member is SpecialField));  // we don't expect a SpecialField to be cloned (or do we?)
           var f = (Field)member;
-          return new Field(Tok(f.tok), f.Name, f.IsGhost, f.IsMutable, f.IsUserMutable, CloneType(f.Type), CloneAttributes(f.Attributes));
+          return new Field(Tok(f.tok), f.Name, f.HasStaticKeyword, f.IsGhost, f.IsMutable, f.IsUserMutable, CloneType(f.Type), CloneAttributes(f.Attributes));
         }
       } else if (member is Function) {
         var f = (Function)member;

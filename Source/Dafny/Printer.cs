@@ -633,6 +633,9 @@ Everything) {
     public void PrintField(Field field, int indent) {
       Contract.Requires(field != null);
       Indent(indent);
+      if (field.HasStaticKeyword) {
+        wr.Write("static ");
+      }
       if (field.IsGhost) {
         wr.Write("ghost ");
       }

@@ -1714,7 +1714,7 @@ namespace Microsoft.Dafny
 
           if (cl.IsDefaultClass) {
             foreach (MemberDecl m in members.Values) {
-              Contract.Assert(!m.HasStaticKeyword || DafnyOptions.O.AllowGlobals);  // note, the IsStatic value isn't available yet; when it becomes available, we expect it will have the value 'true'
+              Contract.Assert(!m.HasStaticKeyword || m is ConstantField || DafnyOptions.O.AllowGlobals);  // note, the IsStatic value isn't available yet; when it becomes available, we expect it will have the value 'true'
               if (m is Function || m is Method || m is ConstantField) {
                 sig.StaticMembers[m.Name] = m;
               }
@@ -11796,12 +11796,13 @@ namespace Microsoft.Dafny
         rr.Type = new InferredTypeProxy();  // fill in this field, in order to make "rr" resolved
       }
       if (member is ConstantField) {
+        var cf = (ConstantField)member;
         // change the reference to constant field to a function call since that is what constant is translate to.
         var r = new FunctionCallExpr(tok, member.Name, rr.Obj, tok, new List<Expression>());
-        r.Function = ((ConstantField)member).function;
-        r.TypeArgumentSubstitutions = new Dictionary<TypeParameter, Type>();
-        r.Type = r.Function.ResultType.StripSubsetConstraints();
-        AddCallGraphEdge(opts.codeContext, (ConstantField)member, rr, false);
+        r.Function = cf.function;
+        r.TypeArgumentSubstitutions = rr.TypeArgumentSubstitutions();
+        r.Type = rr.Type;
+        AddCallGraphEdge(opts.codeContext, cf, rr, false);
         return r;
       } else {
         return rr;

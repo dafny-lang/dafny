@@ -1071,14 +1071,14 @@ ConstantFieldDecl<.DeclModifierData dmod, List<MemberDecl/*!*/>/*!*/ mm.>
 = (. Contract.Requires(cce.NonNullElements(mm));
      Attributes attrs = null;
      IToken/*!*/ id;  Type/*!*/ ty; Expression/*!*/ e;
-     CheckDeclModifiers(dmod, "Fields", AllowedDeclModifiers.Ghost);
+     CheckDeclModifiers(dmod, "Fields", AllowedDeclModifiers.Ghost | AllowedDeclModifiers.Static);
   .)
   SYNC
   "const"
   { Attribute<ref attrs> }
   FIdentType<out id, out ty>
   ":="
-  Expression<out e, false, false>                   (. mm.Add(new ConstantField(id, id.val, e, dmod.IsGhost, ty, attrs)); .)
+  Expression<out e, false, false>                   (. mm.Add(new ConstantField(id, id.val, e, dmod.IsStatic, dmod.IsGhost, ty, attrs)); .)
   OldSemi
   .
 NewtypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl td>

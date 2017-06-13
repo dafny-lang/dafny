@@ -3863,14 +3863,14 @@ namespace Microsoft.Dafny {
     }
 
     public Field(IToken tok, string name, bool isGhost, Type type, Attributes attributes)
-      : this(tok, name, isGhost, true, true, type, attributes) {
+      : this(tok, name, false, isGhost, true, true, type, attributes) {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
       Contract.Requires(type != null);
     }
 
-    public Field(IToken tok, string name, bool isGhost, bool isMutable, bool isUserMutable, Type type, Attributes attributes)
-      : base(tok, name, false, isGhost, attributes) {
+    public Field(IToken tok, string name, bool hasStaticKeyword, bool isGhost, bool isMutable, bool isUserMutable, Type type, Attributes attributes)
+      : base(tok, name, hasStaticKeyword, isGhost, attributes) {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
       Contract.Requires(type != null);
@@ -3897,7 +3897,18 @@ namespace Microsoft.Dafny {
     public readonly string PreString;
     public readonly string PostString;
     public SpecialField(IToken tok, string name, string compiledName, string preString, string postString, bool isGhost, bool isMutable, bool isUserMutable, Type type, Attributes attributes)
-      : base(tok, name, isGhost, isMutable, isUserMutable, type, attributes) {
+      : this(tok, name, compiledName, preString, postString, false, isGhost, isMutable, isUserMutable, type, attributes) {
+      Contract.Requires(tok != null);
+      Contract.Requires(name != null);
+      Contract.Requires(compiledName != null);
+      Contract.Requires(preString != null);
+      Contract.Requires(postString != null);
+      Contract.Requires(!isUserMutable || isMutable);
+      Contract.Requires(type != null);
+    }
+
+    public SpecialField(IToken tok, string name, string compiledName, string preString, string postString, bool hasStaticKeyword, bool isGhost, bool isMutable, bool isUserMutable, Type type, Attributes attributes)
+      : base(tok, name, hasStaticKeyword, isGhost, isMutable, isUserMutable, type, attributes) {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
       Contract.Requires(compiledName != null);
@@ -4019,17 +4030,16 @@ namespace Microsoft.Dafny {
     public Function function;
     public Type type;
     public Expression constValue;
-    public override bool IsStatic {
-      get {
-        return true;
-      }
-    }
-    public ConstantField(IToken tok, string name, Expression constValue, bool isGhost, Type type, Attributes attributes)
-      : base(tok, name, name, "", "", isGhost, false, false, type, attributes)
+    public ConstantField(IToken tok, string name, Expression constValue, bool hasStaticKeyword, bool isGhost, Type type, Attributes attributes)
+      : base(tok, name, name, "", "", hasStaticKeyword, isGhost, false, false, type, attributes)
     {
+      Contract.Requires(tok != null);
+      Contract.Requires(name != null);
+      Contract.Requires(constValue != null);
+      Contract.Requires(type != null);
       this.type = type;
       this.constValue = constValue;
-      this.function = new SpecialFunction(tok, name, true, false, false, new List<TypeParameter>(), new List<Formal>(),
+      this.function = new SpecialFunction(tok, name, hasStaticKeyword, false, isGhost, new List<TypeParameter>(), new List<Formal>(),
         type, new List<Expression>(), new List<FrameExpression>(), new List<Expression>(),
         new Specification<Expression>(new List<Expression>(), null), null, null, null);
     }

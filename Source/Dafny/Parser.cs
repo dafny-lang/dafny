@@ -1514,7 +1514,7 @@ int StringToInt(string s, int defaultValue, string errString) {
 		Contract.Requires(cce.NonNullElements(mm));
 		Attributes attrs = null;
 		IToken/*!*/ id;  Type/*!*/ ty; Expression/*!*/ e;
-		CheckDeclModifiers(dmod, "Fields", AllowedDeclModifiers.Ghost);
+		CheckDeclModifiers(dmod, "Fields", AllowedDeclModifiers.Ghost | AllowedDeclModifiers.Static);
 		
 		while (!(la.kind == 0 || la.kind == 85)) {SynErr(173); Get();}
 		Expect(85);
@@ -1524,7 +1524,7 @@ int StringToInt(string s, int defaultValue, string errString) {
 		FIdentType(out id, out ty);
 		Expect(86);
 		Expression(out e, false, false);
-		mm.Add(new ConstantField(id, id.val, e, dmod.IsGhost, ty, attrs)); 
+		mm.Add(new ConstantField(id, id.val, e, dmod.IsStatic, dmod.IsGhost, ty, attrs)); 
 		OldSemi();
 	}
 

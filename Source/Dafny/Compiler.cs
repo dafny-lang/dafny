@@ -963,7 +963,7 @@ namespace Microsoft.Dafny {
           } else if (f is ConstantField) {
             var dd = (ConstantField)f;
             Indent(indent, wr);
-            wr.Write("public static {0} {1}()", TypeName(dd.type, wr), dd.CompileName);
+            wr.Write("public {2}{0} {1}()", TypeName(dd.type, wr), dd.CompileName, f.IsStatic ? "static " : "");
             wr.WriteLine("{");
             CompileReturnBody(dd.constValue, indent + IndentAmount, wr);
             Indent(indent, wr); wr.WriteLine("}");

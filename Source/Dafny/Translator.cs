@@ -1901,9 +1901,14 @@ namespace Microsoft.Dafny {
           if (f is ConstantField) {
             // function QQ():int { 3 }
             var cf = (ConstantField)f;
-            Function ff = ((ConstantField)cf).function;
+            Function ff = cf.function;
+            var formals = new List<Variable>();
+            formals.AddRange(MkTyParamFormals(GetTypeParams(cf.EnclosingClass)));
+            if (!cf.IsStatic) {
+              formals.Add(new Bpl.Formal(cf.tok, new Bpl.TypedIdent(cf.tok, "this", predef.RefType), true));
+            }
             var res = new Bpl.Formal(f.tok, new Bpl.TypedIdent(f.tok, Bpl.TypedIdent.NoName, TrType(ff.ResultType)), false);
-            var func = new Bpl.Function(f.tok, ff.FullSanitizedName, new List<TypeVariable>(), new List<Bpl.Variable>(), res, null, new QKeyValue(f.tok, "inline", new List<object>(), null));
+            var func = new Bpl.Function(f.tok, ff.FullSanitizedName, new List<TypeVariable>(), formals, res, null, new QKeyValue(f.tok, "inline", new List<object>(), null));
             ExpressionTranslator etran = new ExpressionTranslator(this, predef, (Bpl.Expr)null);
             func.Body = etran.TrExpr(cf.constValue);
             sink.AddTopLevelDeclaration(func);
@@ -12866,7 +12871,7 @@ namespace Microsoft.Dafny {
             var id = new Bpl.IdentifierExpr(e.tok, name, ty);
 
             bool argsAreLit;
-            var args = FunctionInvocationArguments(e, layerArgument, out argsAreLit);
+            var args = FunctionInvocationArguments(e, layerArgument, false, out argsAreLit);
             Expr result = new Bpl.NAryExpr(e.tok, new Bpl.FunctionCall(id), args);
             result = translator.CondApplyUnbox(e.tok, result, e.Function.ResultType, e.Type);
 
@@ -13550,11 +13555,8 @@ namespace Microsoft.Dafny {
           Expression arg = expr.Args[0];
           return TrToFunctionCall(expr.tok, "RightRotate_bv" + w, translator.BplBvType(w), TrExpr(expr.Receiver), translator.ConvertExpression(expr.tok, TrExpr(arg), arg.Type, expr.Type), false);
         } else {
-          var args = new List<Bpl.Expr>();
-          for (int i = 0; i < expr.Args.Count; i++) {
-            Expression ee = expr.Args[i];
-            args.Add(TrExpr(ee));
-          }
+          bool argsAreLit_dummy;
+          var args = FunctionInvocationArguments(expr, null, true, out argsAreLit_dummy);
           var id = new Bpl.IdentifierExpr(expr.tok, expr.Function.FullSanitizedName, translator.TrType(expr.Type));
           return new Bpl.NAryExpr(expr.tok, new Bpl.FunctionCall(id), args);
         }
@@ -13723,16 +13725,16 @@ namespace Microsoft.Dafny {
         return typeAntecedent;
       }
 
-      public List<Expr> FunctionInvocationArguments(FunctionCallExpr e, Bpl.Expr layerArgument) {
+      public List<Bpl.Expr> FunctionInvocationArguments(FunctionCallExpr e, Bpl.Expr layerArgument) {
         bool dummy;
-        return FunctionInvocationArguments(e, layerArgument, out dummy);
+        return FunctionInvocationArguments(e, layerArgument, false, out dummy);
       }
 
-      public List<Expr> FunctionInvocationArguments(FunctionCallExpr e, Bpl.Expr layerArgument, out bool argsAreLit) {
+      public List<Bpl.Expr> FunctionInvocationArguments(FunctionCallExpr e, Bpl.Expr layerArgument, bool omitHeapArgument, out bool argsAreLit) {
         Contract.Requires(e != null);
         Contract.Ensures(Contract.Result<List<Bpl.Expr>>() != null);
 
-        List<Bpl.Expr> args = new List<Bpl.Expr>();
+        var args = new List<Bpl.Expr>();
 
         // first add type arguments
         var tyParams = GetTypeParams(e.Function);
@@ -13746,7 +13748,7 @@ namespace Microsoft.Dafny {
         if (e.Function is TwoStateFunction) {
           args.Add(Old.HeapExpr);
         }
-        if (AlwaysUseHeap || e.Function.ReadsHeap) {
+        if (!omitHeapArgument && (AlwaysUseHeap || e.Function.ReadsHeap)) {
           args.Add(HeapExpr);
           // if the function doesn't use heaps, but always use heap as an argument
           // we want to quantify over the heap so that heap in the trigger can match over 
