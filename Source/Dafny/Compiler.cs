@@ -962,10 +962,20 @@ namespace Microsoft.Dafny {
             // emit nothing
           } else if (f is ConstantField) {
             var dd = (ConstantField)f;
+            if (dd.constValue == null) {
+              Contract.Assert(!dd.IsStatic);  // module-level and static const's must have a RHS (enforced by parser)
+              Indent(indent, wr);
+              wr.WriteLine("public {0} _{1} = {2};", TypeName(dd.type, wr), dd.CompileName, DefaultValue(dd.type, wr));
+            }
             Indent(indent, wr);
-            wr.Write("public {2}{0} {1}()", TypeName(dd.type, wr), dd.CompileName, f.IsStatic ? "static " : "");
+            wr.Write("public {2}{0} @{1}()", TypeName(dd.type, wr), dd.CompileName, f.IsStatic ? "static " : "");
             wr.WriteLine("{");
-            CompileReturnBody(dd.constValue, indent + IndentAmount, wr);
+            if (dd.constValue == null) {
+              Indent(indent + IndentAmount, wr);
+              wr.WriteLine("return _{0};", dd.CompileName);
+            } else {
+              CompileReturnBody(dd.constValue, indent + IndentAmount, wr);
+            }
             Indent(indent, wr); wr.WriteLine("}");
           } else if (c is TraitDecl) {
             Indent(indent, wr);

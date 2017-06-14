@@ -1,5 +1,5 @@
 
-Dafny program verifier finished with 5 verified, 0 errors
+Dafny program verifier finished with 6 verified, 0 errors
 Program compiled successfully
 Running...
 
@@ -10,3 +10,4 @@ Pi := (314.0 / 100.0)
 months := 12
 weeks := 52
 11 16 173 6 63 63
+noRhs.y = 6

@@ -34,6 +34,9 @@ method Main() {
   print putItHere, " ";  // 63
   var go := g.M();
   print go, "\n";  // 63
+
+  var noRhs := new NoRHS;
+  print "noRhs.y = ", noRhs.y, "\n";
 }
 
 class C {
@@ -70,4 +73,10 @@ class Generic<G> {
   {
     q := this.y;
   }
+}
+
+newtype Six = x | x == 6 witness 6
+
+class NoRHS {
+  const y: Six
 }

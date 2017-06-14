@@ -1289,7 +1289,7 @@ int StringToInt(string s, int defaultValue, string errString) {
 			
 			FieldDecl(dmod, mm);
 		} else if (la.kind == 85) {
-			ConstantFieldDecl(dmod, mm);
+			ConstantFieldDecl(dmod, mm, moduleLevelDecl);
 		} else if (IsFunctionDecl()) {
 			if (moduleLevelDecl && dmod.StaticToken != null) {
 			 errors.Warning(dmod.StaticToken, "module-level functions are always non-instance, so the 'static' keyword is not allowed here");
@@ -1510,10 +1510,11 @@ int StringToInt(string s, int defaultValue, string errString) {
 		OldSemi();
 	}
 
-	void ConstantFieldDecl(DeclModifierData dmod, List<MemberDecl/*!*/>/*!*/ mm) {
+	void ConstantFieldDecl(DeclModifierData dmod, List<MemberDecl/*!*/>/*!*/ mm, bool moduleLevelDecl) {
 		Contract.Requires(cce.NonNullElements(mm));
 		Attributes attrs = null;
-		IToken/*!*/ id;  Type/*!*/ ty; Expression/*!*/ e;
+		IToken/*!*/ id;  Type/*!*/ ty;
+		Expression e = null;
 		CheckDeclModifiers(dmod, "Fields", AllowedDeclModifiers.Ghost | AllowedDeclModifiers.Static);
 		
 		while (!(la.kind == 0 || la.kind == 85)) {SynErr(173); Get();}
@@ -1523,9 +1524,22 @@ int StringToInt(string s, int defaultValue, string errString) {
 		}
 		CIdentType(out id, out ty);
 		if (ty == null) { ty = new InferredTypeProxy(); } 
-		Expect(86);
-		Expression(out e, false, false);
+		if (la.kind == 86) {
+			Get();
+			Expression(out e, false, false);
+		}
+		if (e == null) {
+		 // some restrictions apply
+		 if (moduleLevelDecl) {
+		   SemErr(t, "a module-level const declaration must give a RHS value");
+		 } else if (dmod.IsStatic) {
+		   SemErr(t, "a static const declaration must give a RHS value");
+		 } else if (ty is InferredTypeProxy) {
+		   SemErr(t, "a const declaration must have a type or a RHS value");
+		 }
+		}
 		mm.Add(new ConstantField(id, id.val, e, dmod.IsStatic, dmod.IsGhost, ty, attrs)); 
+		
 		OldSemi();
 	}
 

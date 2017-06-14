@@ -990,7 +990,7 @@ ClassMemberDecl<. DeclModifierData dmod, List<MemberDecl> mm, bool allowConstruc
        }
     .)
     FieldDecl<dmod, mm>
-  | ConstantFieldDecl<dmod, mm>
+  | ConstantFieldDecl<dmod, mm, moduleLevelDecl>
   | IF(IsFunctionDecl())
     (. if (moduleLevelDecl && dmod.StaticToken != null) {
          errors.Warning(dmod.StaticToken, "module-level functions are always non-instance, so the 'static' keyword is not allowed here");
@@ -1067,18 +1067,30 @@ FieldDecl<.DeclModifierData dmod, List<MemberDecl/*!*/>/*!*/ mm.>
   }
   OldSemi
   .
-ConstantFieldDecl<.DeclModifierData dmod, List<MemberDecl/*!*/>/*!*/ mm.>
+ConstantFieldDecl<.DeclModifierData dmod, List<MemberDecl/*!*/>/*!*/ mm, bool moduleLevelDecl.>
 = (. Contract.Requires(cce.NonNullElements(mm));
      Attributes attrs = null;
-     IToken/*!*/ id;  Type/*!*/ ty; Expression/*!*/ e;
+     IToken/*!*/ id;  Type/*!*/ ty;
+     Expression e = null;
      CheckDeclModifiers(dmod, "Fields", AllowedDeclModifiers.Ghost | AllowedDeclModifiers.Static);
   .)
   SYNC
   "const"
   { Attribute<ref attrs> }
-  CIdentType<out id, out ty>                        (. if (ty == null) { ty = new InferredTypeProxy(); } .)
-  ":="
-  Expression<out e, false, false>                   (. mm.Add(new ConstantField(id, id.val, e, dmod.IsStatic, dmod.IsGhost, ty, attrs)); .)
+  CIdentType<out id, out ty>                 (. if (ty == null) { ty = new InferredTypeProxy(); } .)
+  [ ":=" Expression<out e, false, false> ]
+                                             (. if (e == null) {
+                                                  // some restrictions apply
+                                                  if (moduleLevelDecl) {
+                                                    SemErr(t, "a module-level const declaration must give a RHS value");
+                                                  } else if (dmod.IsStatic) {
+                                                    SemErr(t, "a static const declaration must give a RHS value");
+                                                  } else if (ty is InferredTypeProxy) {
+                                                    SemErr(t, "a const declaration must have a type or a RHS value");
+                                                  }
+                                                }
+                                                mm.Add(new ConstantField(id, id.val, e, dmod.IsStatic, dmod.IsGhost, ty, attrs)); 
+                                             .)
   OldSemi
   .
 NewtypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl td>

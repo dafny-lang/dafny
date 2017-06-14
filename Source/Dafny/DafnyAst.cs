@@ -4030,12 +4030,11 @@ namespace Microsoft.Dafny {
     public Function function;
     public Type type;
     public Expression constValue;
-    public ConstantField(IToken tok, string name, Expression constValue, bool hasStaticKeyword, bool isGhost, Type type, Attributes attributes)
+    public ConstantField(IToken tok, string name, Expression/*?*/ constValue, bool hasStaticKeyword, bool isGhost, Type type, Attributes attributes)
       : base(tok, name, name, "", "", hasStaticKeyword, isGhost, false, false, type, attributes)
     {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
-      Contract.Requires(constValue != null);
       Contract.Requires(type != null);
       this.type = type;
       this.constValue = constValue;

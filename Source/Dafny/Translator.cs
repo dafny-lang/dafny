@@ -1908,9 +1908,12 @@ namespace Microsoft.Dafny {
               formals.Add(new Bpl.Formal(cf.tok, new Bpl.TypedIdent(cf.tok, "this", predef.RefType), true));
             }
             var res = new Bpl.Formal(f.tok, new Bpl.TypedIdent(f.tok, Bpl.TypedIdent.NoName, TrType(ff.ResultType)), false);
-            var func = new Bpl.Function(f.tok, ff.FullSanitizedName, new List<TypeVariable>(), formals, res, null, new QKeyValue(f.tok, "inline", new List<object>(), null));
-            ExpressionTranslator etran = new ExpressionTranslator(this, predef, (Bpl.Expr)null);
-            func.Body = etran.TrExpr(cf.constValue);
+            var inlineAttribute = cf.constValue == null ? null : new QKeyValue(f.tok, "inline", new List<object>(), null);
+            var func = new Bpl.Function(f.tok, ff.FullSanitizedName, new List<TypeVariable>(), formals, res, null, inlineAttribute);
+            if (cf.constValue != null) {
+              var etran = new ExpressionTranslator(this, predef, (Bpl.Expr)null);
+              func.Body = etran.TrExpr(cf.constValue);
+            }
             sink.AddTopLevelDeclaration(func);
           } else {
             if (f.IsMutable) {

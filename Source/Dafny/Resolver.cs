@@ -4431,7 +4431,10 @@ namespace Microsoft.Dafny
     private void CheckTypeInference_Member(MemberDecl member) {
       if (member is ConstantField) {
         var field = (ConstantField) member;
-        CheckTypeInference(field.constValue, new NoContext(member.EnclosingClass.Module));
+        if (field.constValue != null) {
+          CheckTypeInference(field.constValue, new NoContext(member.EnclosingClass.Module));
+        }
+        CheckTypeInference(field.type, new NoContext(member.EnclosingClass.Module), field.tok, "const");
       } else if (member is Method) {
         var m = (Method)member;
         m.Req.Iter(mfe => CheckTypeInference_MaybeFreeExpression(mfe, m));
@@ -4488,6 +4491,15 @@ namespace Microsoft.Dafny
       PartiallySolveTypeConstraints(true);
       var c = new CheckTypeInference_Visitor(this, codeContext);
       c.Visit(expr);
+    }
+    void CheckTypeInference(Type type, ICodeContext codeContext, IToken tok, string what) {
+      Contract.Requires(type != null);
+      Contract.Requires(codeContext != null);
+      Contract.Requires(tok != null);
+      Contract.Requires(what != null);
+      PartiallySolveTypeConstraints(true);
+      var c = new CheckTypeInference_Visitor(this, codeContext);
+      c.CheckTypeIsDetermined(tok, type, what);
     }
     void CheckTypeInference(Statement stmt, ICodeContext codeContext) {
       Contract.Requires(stmt != null);
@@ -4684,7 +4696,7 @@ namespace Microsoft.Dafny
         return !(t is TypeProxy) && t.TypeArgs.All(tt => IsDetermined(tt.Normalize()));
       }
       ISet<TypeProxy> UnderspecifiedTypeProxies = new HashSet<TypeProxy>();
-      bool CheckTypeIsDetermined(IToken tok, Type t, string what) {
+      public bool CheckTypeIsDetermined(IToken tok, Type t, string what) {
         Contract.Requires(tok != null);
         Contract.Requires(t != null);
         Contract.Requires(what != null);
@@ -6275,9 +6287,11 @@ namespace Microsoft.Dafny
             // setting the enclosing class for the corresponding function for the field. And resolve the value expression
             var field = (ConstantField)member;
             field.function.EnclosingClass = cl;
-            ResolveExpression(field.constValue, new ResolveOpts(new NoContext(currentClass.Module), false));
-            // make sure initialization only refers to constant field or literal expression
-            CheckConstantFieldInitialization(field, field.constValue);
+            if (field.constValue != null) {
+              ResolveExpression(field.constValue, new ResolveOpts(new NoContext(currentClass.Module), false));
+              // make sure initialization only refers to constant field or literal expression
+              CheckConstantFieldInitialization(field, field.constValue);
+            }
             SolveAllTypeConstraints();
           }
         } else if (member is Function) {
