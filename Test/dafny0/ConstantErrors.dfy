@@ -45,3 +45,30 @@ module D {  // const's with inferred types
     r := pi;
   }
 }
+
+// ---------- traits --------------------
+
+module E {
+  newtype Six = x | 6 <= x witness 6
+
+  trait Trait {
+    const x0: Six
+    const x1: Six := 7
+    const x2: Six
+    const x3: Six := 8
+
+    static const y: Six := 10
+  }
+
+  class Class extends Trait {
+    const x0: Six  // error: not allowed to declare const
+    const x1: Six := 7  // error: not allowed to declare const
+    const x2: Six  // error: not allowed to declare const
+    const x3: Six  // error: not allowed to declare const
+  
+    method Test() {
+      print x0, " ", x1, " ", x2, "\n";
+      print y, "\n";
+    }
+  }
+}

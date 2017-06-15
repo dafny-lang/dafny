@@ -6192,7 +6192,7 @@ namespace Microsoft.Dafny
             // but that will be checked by the verifier.  And it should also have a body, but that will be checked by the compiler.)
             if (traitMember is Field) {
               var field = (Field)traitMember;
-              if (!field.IsGhost) {
+              if (!field.IsGhost && !field.IsStatic) {
                 cl.InheritedMembers.Add(field);
               }
             } else if (traitMember is Function) {

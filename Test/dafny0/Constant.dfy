@@ -37,6 +37,9 @@ method Main() {
 
   var noRhs := new NoRHS;
   print "noRhs.y = ", noRhs.y, "\n";
+
+  var cl := new Class;
+  cl.Test();
 }
 
 class C {
@@ -75,8 +78,30 @@ class Generic<G> {
   }
 }
 
-newtype Six = x | x == 6 witness 6
+newtype Six = x | 6 <= x witness 6
 
 class NoRHS {
   const y: Six
+}
+
+// ---------- traits --------------------
+
+trait Trait {
+  const x0: Six
+  const x1: Six := 7
+
+  static const y: Six := 7
+}
+
+class Class extends Trait {
+  method Test() {
+    assert x1 == 7 && y == 7;
+    print x0, " ", x1, " ", y, "\n";
+  }
+}
+
+method MMethod(tr: Trait) {
+  assert Trait.y == 7;
+  assert tr.y == 7;
+  assert tr.x1 == 7;
 }

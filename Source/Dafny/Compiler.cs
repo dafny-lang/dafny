@@ -278,21 +278,6 @@ namespace Microsoft.Dafny {
             Indent(indent, wr); wr.WriteLine("}");
 
             //writing the _Companion class
-            List<MemberDecl> members = new List<MemberDecl>();
-            foreach (MemberDecl mem in trait.Members) {
-              if (mem.IsStatic && !mem.IsGhost) {
-                if (mem is Function) {
-                  if (((Function)mem).Body != null) {
-                    members.Add(mem);
-                  }
-                }
-                if (mem is Method) {
-                  if (((Method)mem).Body != null) {
-                    members.Add(mem);
-                  }
-                }
-              }
-            }
             Indent(indent, wr);
             wr.Write("public class @_Companion_{0}", trait.CompileName);
             wr.WriteLine(" {");
@@ -930,7 +915,24 @@ namespace Microsoft.Dafny {
       Contract.Requires(0 <= indent);
       foreach (var member in c.InheritedMembers) {
         Contract.Assert(!member.IsGhost && !member.IsStatic);  // only non-ghost instance members should ever be added to .InheritedMembers
-        if (member is Field) {
+        if (member is ConstantField) {
+          var cf = (ConstantField)member;
+          if (cf.constValue == null) {
+            Contract.Assert(!cf.IsStatic);  // module-level and static const's must have a RHS (enforced by parser)
+            Indent(indent, wr);
+            wr.WriteLine("public {0} _{1} = {2};", TypeName(cf.type, wr), cf.CompileName, DefaultValue(cf.type, wr));
+          }
+          Indent(indent, wr);
+          wr.Write("public {2}{0} @{1}()", TypeName(cf.type, wr), cf.CompileName, cf.IsStatic ? "static " : "");
+          wr.WriteLine("{");
+          if (cf.constValue == null) {
+            Indent(indent + IndentAmount, wr);
+            wr.WriteLine("return _{0};", cf.CompileName);
+          } else {
+            CompileReturnBody(cf.constValue, indent + IndentAmount, wr);
+          }
+          Indent(indent, wr); wr.WriteLine("}");
+        } else if (member is Field) {
           var f = (Field)member;
           // every field is inherited
           Indent(indent, wr);
@@ -958,29 +960,50 @@ namespace Microsoft.Dafny {
       foreach (MemberDecl member in c.Members) {
         if (member is Field) {
           var f = (Field)member;
-          if (f.IsGhost || forCompanionClass) {
+          if (f.IsGhost) {
             // emit nothing
-          } else if (f is ConstantField) {
-            var dd = (ConstantField)f;
-            if (dd.constValue == null) {
-              Contract.Assert(!dd.IsStatic);  // module-level and static const's must have a RHS (enforced by parser)
+          } else if (forCompanionClass) {
+            // emit nothing, unless "f" is a static const
+            var cf = f as ConstantField;
+            if (cf != null && cf.IsStatic) {
+              Contract.Assert(cf.constValue != null);
               Indent(indent, wr);
-              wr.WriteLine("public {0} _{1} = {2};", TypeName(dd.type, wr), dd.CompileName, DefaultValue(dd.type, wr));
+              wr.Write("public static {0} @{1}()", TypeName(cf.type, wr), cf.CompileName);
+              wr.WriteLine("{");
+              CompileReturnBody(cf.constValue, indent + IndentAmount, wr);
+              Indent(indent, wr); wr.WriteLine("}");
+            }
+          } else if (c is TraitDecl) {
+            if (f is ConstantField) {
+              var cf = (ConstantField)f;
+              if (cf.IsStatic) {
+                // emit nothing
+              } else {
+                Indent(indent, wr);
+                wr.WriteLine("{0} @{1}();", TypeName(f.Type, wr), f.CompileName);
+              }
+            } else {
+              Indent(indent, wr);
+              wr.Write("{0} @{1}", TypeName(f.Type, wr), f.CompileName);
+              wr.WriteLine(" { get; set; }");
+            }
+          } else if (f is ConstantField) {
+            var cf = (ConstantField)f;
+            if (cf.constValue == null) {
+              Contract.Assert(!cf.IsStatic);  // module-level and static const's must have a RHS (enforced by parser)
+              Indent(indent, wr);
+              wr.WriteLine("public {0} _{1} = {2};", TypeName(cf.type, wr), cf.CompileName, DefaultValue(cf.type, wr));
             }
             Indent(indent, wr);
-            wr.Write("public {2}{0} @{1}()", TypeName(dd.type, wr), dd.CompileName, f.IsStatic ? "static " : "");
+            wr.Write("public {2}{0} @{1}()", TypeName(cf.type, wr), cf.CompileName, f.IsStatic ? "static " : "");
             wr.WriteLine("{");
-            if (dd.constValue == null) {
+            if (cf.constValue == null) {
               Indent(indent + IndentAmount, wr);
-              wr.WriteLine("return _{0};", dd.CompileName);
+              wr.WriteLine("return _{0};", cf.CompileName);
             } else {
-              CompileReturnBody(dd.constValue, indent + IndentAmount, wr);
+              CompileReturnBody(cf.constValue, indent + IndentAmount, wr);
             }
             Indent(indent, wr); wr.WriteLine("}");
-          } else if (c is TraitDecl) {
-            Indent(indent, wr);
-            wr.Write("{0} @{1}", TypeName(f.Type, wr), f.CompileName);
-            wr.WriteLine(" { get; set; }");
           } else {
             Indent(indent, wr);
             wr.WriteLine("public {0} @{1} = {2};", TypeName(f.Type, wr), f.CompileName, DefaultValue(f.Type, wr));
