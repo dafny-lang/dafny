@@ -3144,12 +3144,11 @@ List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, st
 		Contract.Ensures(Contract.ValueAtReturn(out s) != null);
 		IToken x;
 		Attributes attrs = null;
-		CalcStmt.CalcOp op, calcOp = Microsoft.Dafny.CalcStmt.DefaultOp, resOp = Microsoft.Dafny.CalcStmt.DefaultOp;
+		CalcStmt.CalcOp op, userSuppliedOp = null, resOp = Microsoft.Dafny.CalcStmt.DefaultOp;
 		var lines = new List<Expression>();
 		var hints = new List<BlockStmt>();
 		CalcStmt.CalcOp stepOp;
 		var stepOps = new List<CalcStmt.CalcOp>();
-		CalcStmt.CalcOp maybeOp;
 		Expression e;
 		IToken opTok;
 		IToken danglingOperator = null;
@@ -3160,22 +3159,22 @@ List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, st
 			Attribute(ref attrs);
 		}
 		if (StartOf(27)) {
-			CalcOp(out opTok, out calcOp);
-			maybeOp = calcOp.ResultOp(calcOp); // guard against non-transitive calcOp (like !=)
-			if (maybeOp == null) {
+			CalcOp(out opTok, out userSuppliedOp);
+			if (userSuppliedOp.ResultOp(userSuppliedOp) == null) { // guard against non-transitive calcOp (like !=)
 			 SemErr(opTok, "the main operator of a calculation must be transitive");
+			} else {
+			 resOp = userSuppliedOp;
 			}
-			resOp = calcOp;
 			
 		}
 		Expect(50);
 		while (StartOf(9)) {
 			Expression(out e, false, true);
-			lines.Add(e); stepOp = calcOp; danglingOperator = null; 
+			lines.Add(e); stepOp = null; danglingOperator = null; 
 			Expect(30);
 			if (StartOf(27)) {
 				CalcOp(out opTok, out op);
-				maybeOp = resOp.ResultOp(op);
+				var maybeOp = resOp.ResultOp(op);
 				if (maybeOp == null) {
 				 SemErr(opTok, "this operator cannot continue this calculation");
 				} else {
@@ -3213,7 +3212,7 @@ List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, st
 		 // Repeat the last line to create a dummy line for the dangling hint
 		 lines.Add(lines[lines.Count - 1]);
 		}
-		s = new CalcStmt(x, t, calcOp, lines, hints, stepOps, resOp, attrs);
+		s = new CalcStmt(x, t, userSuppliedOp, lines, hints, stepOps, attrs);
 		
 	}
 

@@ -234,6 +234,10 @@ ResolutionErrors.dfy(1585,4): Error: non-ghost variable cannot be assigned a val
 ResolutionErrors.dfy(1602,8): Error: print statement is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)
 ResolutionErrors.dfy(1611,26): Error: ghost variables are allowed only in specification contexts
 ResolutionErrors.dfy(1619,6): Error: the type of the bound variable 't' could not be determined
+ResolutionErrors.dfy(1619,6): Error: the type of the bound variable 't' could not be determined
+ResolutionErrors.dfy(1619,6): Error: the type of the bound variable 't' could not be determined
+ResolutionErrors.dfy(1619,6): Error: the type of the bound variable 't' could not be determined
+ResolutionErrors.dfy(1619,6): Error: the type of the bound variable 't' could not be determined
 ResolutionErrors.dfy(1637,15): Error: in a ghost context, only ghost fields can be mentioned as modifies frame targets (x)
 ResolutionErrors.dfy(1639,10): Error: Assignment to non-ghost field is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)
 ResolutionErrors.dfy(1664,15): Error: in a ghost context, only ghost fields can be mentioned as modifies frame targets (x)
@@ -264,4 +268,4 @@ ResolutionErrors.dfy(1789,11): Error: Function body type mismatch (expected int,
 ResolutionErrors.dfy(1795,4): Error: second argument to || must be of type bool (instead got int)
 ResolutionErrors.dfy(1799,8): Error: second argument to || must be of type bool (instead got int)
 ResolutionErrors.dfy(1797,11): Error: Function body type mismatch (expected int, got bool)
-265 resolution/type errors detected in ResolutionErrors.dfy
+269 resolution/type errors detected in ResolutionErrors.dfy

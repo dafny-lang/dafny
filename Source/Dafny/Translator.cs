@@ -8922,7 +8922,7 @@ namespace Microsoft.Dafny {
               bool splitHappened;
               var ss = TrSplitExpr(s.Steps[i], etran, true, out splitHappened);
               // assert step:
-              AddComment(b, stmt, "assert line" + i.ToString() + " " + s.StepOps[i].ToString() + " line" + (i + 1).ToString());
+              AddComment(b, stmt, "assert line" + i.ToString() + " " + (s.StepOps[i] ?? s.Op).ToString() + " line" + (i + 1).ToString());
               if (!splitHappened) {
                 b.Add(AssertNS(s.Lines[i + 1].tok, etran.TrExpr(s.Steps[i]), "the calculation step between the previous line and this line might not hold"));
               } else {
@@ -16190,7 +16190,8 @@ namespace Microsoft.Dafny {
           r = rr;
         } else if (stmt is CalcStmt) {
           var s = (CalcStmt)stmt;
-          var rr = new CalcStmt(s.Tok, s.EndTok, SubstCalcOp(s.Op), s.Lines.ConvertAll(Substitute), s.Hints.ConvertAll(SubstBlockStmt), s.StepOps.ConvertAll(SubstCalcOp), SubstCalcOp(s.ResultOp), SubstAttributes(s.Attributes));
+          var rr = new CalcStmt(s.Tok, s.EndTok, SubstCalcOp(s.UserSuppliedOp), s.Lines.ConvertAll(Substitute), s.Hints.ConvertAll(SubstBlockStmt), s.StepOps.ConvertAll(SubstCalcOp), SubstAttributes(s.Attributes));
+          rr.Op = SubstCalcOp(s.Op);
           rr.Steps.AddRange(s.Steps.ConvertAll(Substitute));
           rr.Result = Substitute(s.Result);
           r = rr;
@@ -16310,7 +16311,9 @@ namespace Microsoft.Dafny {
       }
 
       protected CalcStmt.CalcOp SubstCalcOp(CalcStmt.CalcOp op) {
-        if (op is CalcStmt.BinaryCalcOp) {
+        if (op == null) {
+          return null;
+        } else if (op is CalcStmt.BinaryCalcOp) {
           return new CalcStmt.BinaryCalcOp(((CalcStmt.BinaryCalcOp)op).Op);
         } else if (op is CalcStmt.TernaryCalcOp) {
           return new CalcStmt.TernaryCalcOp(Substitute(((CalcStmt.TernaryCalcOp)op).Index));

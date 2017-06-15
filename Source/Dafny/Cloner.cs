@@ -591,7 +591,7 @@ namespace Microsoft.Dafny
           lines.Add(i == lineCount - 1 && 2 <= lineCount && s.Lines[i] == s.Lines[i - 1] ? lines[i - 1] : CloneExpr(s.Lines[i]));
         }
         Contract.Assert(lines.Count == lineCount);
-        r = new CalcStmt(Tok(s.Tok), Tok(s.EndTok), CloneCalcOp(s.Op), lines, s.Hints.ConvertAll(CloneBlockStmt), s.StepOps.ConvertAll(CloneCalcOp), CloneCalcOp(s.ResultOp), CloneAttributes(s.Attributes));
+        r = new CalcStmt(Tok(s.Tok), Tok(s.EndTok), CloneCalcOp(s.UserSuppliedOp), lines, s.Hints.ConvertAll(CloneBlockStmt), s.StepOps.ConvertAll(CloneCalcOp), CloneAttributes(s.Attributes));
 
       } else if (stmt is MatchStmt) {
         var s = (MatchStmt)stmt;
@@ -644,7 +644,9 @@ namespace Microsoft.Dafny
     }
 
     public CalcStmt.CalcOp CloneCalcOp(CalcStmt.CalcOp op) {
-      if (op is CalcStmt.BinaryCalcOp) {
+      if (op == null) {
+        return null;
+      } else if (op is CalcStmt.BinaryCalcOp) {
         return new CalcStmt.BinaryCalcOp(((CalcStmt.BinaryCalcOp) op).Op);
       } else if (op is CalcStmt.TernaryCalcOp) {
         return new CalcStmt.TernaryCalcOp(CloneExpr(((CalcStmt.TernaryCalcOp) op).Index));
