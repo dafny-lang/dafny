@@ -16162,6 +16162,8 @@ namespace Microsoft.Dafny {
           var s = (CallStmt)stmt;
           var rr = new CallStmt(s.Tok, s.EndTok, s.Lhs.ConvertAll(Substitute), (MemberSelectExpr)Substitute(s.MethodSelect), s.Args.ConvertAll(Substitute));
           r = rr;
+        } else if (stmt is DividedBlockStmt) {
+          r = SubstDividedBlockStmt((DividedBlockStmt)stmt);
         } else if (stmt is BlockStmt) {
           r = SubstBlockStmt((BlockStmt)stmt);
         } else if (stmt is IfStmt) {
@@ -16247,6 +16249,10 @@ namespace Microsoft.Dafny {
           AddStmtLabels(s, node.Next);
           s.Labels = new LList<Label>(node.Data, s.Labels);
         }
+      }
+
+      protected virtual DividedBlockStmt SubstDividedBlockStmt(DividedBlockStmt stmt) {
+        return stmt == null ? null : new DividedBlockStmt(stmt.Tok, stmt.EndTok, stmt.BodyInit.ConvertAll(SubstStmt), stmt.SeparatorTok, stmt.BodyProper.ConvertAll(SubstStmt));
       }
 
       protected virtual BlockStmt SubstBlockStmt(BlockStmt stmt) {

@@ -4966,7 +4966,7 @@ namespace Microsoft.Dafny {
     public readonly Specification<FrameExpression> Mod;
     public readonly List<MaybeFreeExpression> Ens;
     public readonly Specification<Expression> Decreases;
-    private BlockStmt methodBody;  // Body is readonly after construction, except for any kind of rewrite that may take place around the time of resolution
+    private BlockStmt methodBody;  // Body is readonly after construction, except for any kind of rewrite that may take place around the time of resolution (note that "methodBody" is a "DividedBlockStmt" for any "Method" that is a "Constructor")
     public bool IsRecursive;  // filled in during resolution
     public bool IsTailRecursive;  // filled in during resolution
     public readonly ISet<IVariable> AssignedAssumptionVariables = new HashSet<IVariable>();
@@ -5142,13 +5142,35 @@ namespace Microsoft.Dafny {
   public class Constructor : Method
   {
     public override string WhatKind { get { return "constructor"; } }
+    [ContractInvariantMethod]
+    void ObjectInvariant() {
+      Contract.Invariant(Body == null || Body is DividedBlockStmt);
+    }
+    public List<Statement> BodyInit {  // first part of Body's statements
+      get {
+        if (Body == null) {
+          return null;
+        } else {
+          return ((DividedBlockStmt)Body).BodyInit;
+        }
+      }
+    }
+    public List<Statement> BodyProper {  // second part of Body's statements
+      get {
+        if (Body == null) {
+          return null;
+        } else {
+          return ((DividedBlockStmt)Body).BodyProper;
+        }
+      }
+    }
     public Constructor(IToken tok, string name,
-                  [Captured] List<TypeParameter> typeArgs,
-                  [Captured] List<Formal> ins,
-                  [Captured] List<MaybeFreeExpression> req, [Captured] Specification<FrameExpression> mod,
-                  [Captured] List<MaybeFreeExpression> ens,
-                  [Captured] Specification<Expression> decreases,
-                  [Captured] BlockStmt body,
+                  List<TypeParameter> typeArgs,
+                  List<Formal> ins,
+                  List<MaybeFreeExpression> req, [Captured] Specification<FrameExpression> mod,
+                  List<MaybeFreeExpression> ens,
+                  Specification<Expression> decreases,
+                  DividedBlockStmt body,
                   Attributes attributes, IToken signatureEllipsis, Declaration clonedFrom = null)
       : base(tok, name, false, false, typeArgs, ins, new List<Formal>(), req, mod, ens, decreases, body, attributes, signatureEllipsis, clonedFrom) {
       Contract.Requires(tok != null);
@@ -6181,6 +6203,32 @@ namespace Microsoft.Dafny {
 
     public override IEnumerable<Statement> SubStatements {
       get { return Body; }
+    }
+
+    public virtual void AppendStmt(Statement s) {
+      Contract.Requires(s != null);
+      Body.Add(s);
+    }
+  }
+
+  public class DividedBlockStmt : BlockStmt
+  {
+    public readonly List<Statement> BodyInit;  // first part of Body's statements
+    public readonly IToken SeparatorTok;  // token that separates the two parts, if any
+    public readonly List<Statement> BodyProper;  // second part of Body's statements
+    public DividedBlockStmt(IToken tok, IToken endTok, List<Statement> bodyInit, IToken/*?*/ separatorTok, List<Statement> bodyProper)
+      : base(tok, endTok, Util.Concat(bodyInit, bodyProper)) {
+      Contract.Requires(tok != null);
+      Contract.Requires(endTok != null);
+      Contract.Requires(cce.NonNullElements(bodyInit));
+      Contract.Requires(cce.NonNullElements(bodyProper));
+      this.BodyInit = bodyInit;
+      this.SeparatorTok = separatorTok;
+      this.BodyProper = bodyProper;
+    }
+    public override void AppendStmt(Statement s) {
+      BodyProper.Add(s);
+      base.AppendStmt(s);
     }
   }
 

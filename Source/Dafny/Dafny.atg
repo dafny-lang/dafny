@@ -1393,7 +1393,11 @@ MethodDecl<DeclModifierData dmod, bool allowConstructor, bool isWithinAbstractMo
   | "..."                                       (. signatureEllipsis = t; .)
   )
   { MethodSpec<req, mod, ens, dec, ref decAttrs, ref modAttrs, caption> }
-  [ BlockStmt<out body, out bodyStart, out bodyEnd>
+  [ IF(isConstructor)
+    (. DividedBlockStmt dividedBody; .)
+    DividedBlockStmt<out dividedBody, out bodyStart, out bodyEnd>
+    (. body = dividedBody; .)
+  | BlockStmt<out body, out bodyStart, out bodyEnd>
   ]
   (.
      if (!isWithinAbstractModule && DafnyOptions.O.DisallowSoundnessCheating && body == null && ens.Count > 0 && !Attributes.Contains(attrs, "axiom") && !Attributes.Contains(attrs, "imported") && !Attributes.Contains(attrs, "decl") && theVerifyThisFile) {
@@ -1403,7 +1407,7 @@ MethodDecl<DeclModifierData dmod, bool allowConstructor, bool isWithinAbstractMo
      IToken tok = id;
      if (isConstructor) {
        m = new Constructor(tok, hasName ? id.val : "_ctor", typeArgs, ins,
-                           req, new Specification<FrameExpression>(mod, modAttrs), ens, new Specification<Expression>(dec, decAttrs), body, attrs, signatureEllipsis);
+                           req, new Specification<FrameExpression>(mod, modAttrs), ens, new Specification<Expression>(dec, decAttrs), (DividedBlockStmt)body, attrs, signatureEllipsis);
      } else if (isIndLemma) {
        m = new InductiveLemma(tok, id.val, dmod.IsStatic, typeArgs, ins, outs,
                               req, new Specification<FrameExpression>(mod, modAttrs), ens, new Specification<Expression>(dec, decAttrs), body, attrs, signatureEllipsis);
@@ -1882,6 +1886,28 @@ BlockStmt<out BlockStmt/*!*/ block, out IToken bodyStart, out IToken bodyEnd>
   }
   "}"                                  (. bodyEnd = t;
                                           block = new BlockStmt(bodyStart, bodyEnd, body); .)
+  .
+DividedBlockStmt<out DividedBlockStmt body, out IToken bodyStart, out IToken bodyEnd>
+= (. Contract.Ensures(Contract.ValueAtReturn(out body) != null);
+     List<Statement> bodyInit = new List<Statement>();
+     IToken separatorTok = null;
+     List<Statement> bodyProper = null;
+  .)
+  "{"                                  (. bodyStart = t; .)
+  { Stmt<bodyInit>
+  }
+  [ "new"                              (. separatorTok = t; bodyProper = new List<Statement>(); .)
+    ";"
+    { Stmt<bodyProper>
+    }
+  ]
+  (. if (bodyProper == null) {
+       bodyProper = bodyInit;
+       bodyInit = new List<Statement>();
+     }
+  .)
+  "}"                                  (. bodyEnd = t; .)
+  (. body = new DividedBlockStmt(bodyStart, bodyEnd, bodyInit, separatorTok, bodyProper); .)
   .
 Stmt<.List<Statement/*!*/>/*!*/ ss.>
 = (. Statement/*!*/ s;

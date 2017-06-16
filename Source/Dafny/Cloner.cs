@@ -507,10 +507,19 @@ namespace Microsoft.Dafny
     }
 
     public virtual BlockStmt CloneBlockStmt(BlockStmt stmt) {
+      Contract.Requires(!(stmt is DividedBlockStmt));  // for blocks that may be DividedBlockStmt's, call CloneDividedBlockStmt instead
       if (stmt == null) {
         return null;
       } else {
         return new BlockStmt(Tok(stmt.Tok), Tok(stmt.EndTok), stmt.Body.ConvertAll(CloneStmt));
+      }
+    }
+
+    public virtual DividedBlockStmt CloneDividedBlockStmt(DividedBlockStmt stmt) {
+      if (stmt == null) {
+        return null;
+      } else {
+        return new DividedBlockStmt(Tok(stmt.Tok), Tok(stmt.EndTok), stmt.BodyInit.ConvertAll(CloneStmt), stmt.SeparatorTok == null ? null : Tok(stmt.SeparatorTok), stmt.BodyProper.ConvertAll(CloneStmt));
       }
     }
 
@@ -555,6 +564,9 @@ namespace Microsoft.Dafny
       } else if (stmt is AssignStmt) {
         var s = (AssignStmt)stmt;
         r = new AssignStmt(Tok(s.Tok), Tok(s.EndTok), CloneExpr(s.Lhs), CloneRHS(s.Rhs));
+
+      } else if (stmt is DividedBlockStmt) {
+        r = CloneDividedBlockStmt((DividedBlockStmt)stmt);
 
       } else if (stmt is BlockStmt) {
         r = CloneBlockStmt((BlockStmt)stmt);
@@ -719,7 +731,7 @@ namespace Microsoft.Dafny
 
       if (m is Constructor) {
         return new Constructor(Tok(m.tok), m.Name, tps, ins,
-          req, mod, ens, decreases, body, CloneAttributes(m.Attributes), null, m);
+          req, mod, ens, decreases, (DividedBlockStmt)body, CloneAttributes(m.Attributes), null, m);
       } else if (m is InductiveLemma) {
         return new InductiveLemma(Tok(m.tok), m.Name, m.HasStaticKeyword, tps, ins, m.Outs.ConvertAll(CloneFormal),
           req, mod, ens, decreases, body, CloneAttributes(m.Attributes), null, m);
@@ -740,7 +752,11 @@ namespace Microsoft.Dafny
     }
 
     public virtual BlockStmt CloneMethodBody(Method m) {
-      return CloneBlockStmt(m.Body);
+      if (m.Body is DividedBlockStmt) {
+        return CloneDividedBlockStmt((DividedBlockStmt)m.Body);
+      } else {
+        return CloneBlockStmt(m.Body);
+      }
     }
 
     public virtual IToken Tok(IToken tok) {

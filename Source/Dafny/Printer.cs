@@ -1012,6 +1012,27 @@ Everything) {
         PrintRhs(s.Rhs);
         wr.Write(";");
 
+      } else if (stmt is DividedBlockStmt) {
+        var sbs = (DividedBlockStmt)stmt;
+        wr.WriteLine("{");
+        int ind = indent + IndentAmount;
+        if (sbs.BodyInit.Count != 0) {
+          foreach (Statement s in sbs.BodyInit) {
+            Indent(ind);
+            PrintStatement(s, ind);
+            wr.WriteLine();
+          }
+          Indent(indent + IndentAmount);
+          wr.WriteLine("new;");
+        }
+        foreach (Statement s in sbs.BodyProper) {
+          Indent(ind);
+          PrintStatement(s, ind);
+          wr.WriteLine();
+        }
+        Indent(indent);
+        wr.Write("}");
+
       } else if (stmt is BlockStmt) {
         wr.WriteLine("{");
         int ind = indent + IndentAmount;
