@@ -8090,7 +8090,26 @@ namespace Microsoft.Dafny
         if (s.UserSuppliedOp != null) {
           s.Op = s.UserSuppliedOp;
         } else {
-          s.Op = CalcStmt.DefaultOp;
+          // Usually, we'd use == as the default main operator.  However, if the calculation
+          // begins or ends with a boolean literal, then we can do better by selecting ==>
+          // or <==.  Also, if the calculation begins or ends with an empty set, then we can
+          // do better by selecting <= or >=.
+          if (s.Lines.Count == 0) {
+            s.Op = CalcStmt.DefaultOp;
+          } else {
+            bool b;
+            if (Expression.IsBoolLiteral(s.Lines.First(), out b)) {
+              s.Op = new CalcStmt.BinaryCalcOp(b ? BinaryExpr.Opcode.Imp : BinaryExpr.Opcode.Exp);
+            } else if (Expression.IsBoolLiteral(s.Lines.Last(), out b)) {
+              s.Op = new CalcStmt.BinaryCalcOp(b ? BinaryExpr.Opcode.Exp : BinaryExpr.Opcode.Imp);
+            } else if (Expression.IsEmptySetOrMultiset(s.Lines.First())) {
+              s.Op = new CalcStmt.BinaryCalcOp(BinaryExpr.Opcode.Ge);
+            } else if (Expression.IsEmptySetOrMultiset(s.Lines.Last())) {
+              s.Op = new CalcStmt.BinaryCalcOp(BinaryExpr.Opcode.Le);
+            } else {
+              s.Op = CalcStmt.DefaultOp;
+            }
+          }
           reporter.Info(MessageSource.Resolver, s.Tok, s.Op.ToString());
         }
 

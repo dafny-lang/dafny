@@ -7290,6 +7290,48 @@ namespace Microsoft.Dafny {
       return lit;
     }
 
+    /// <summary>
+    /// Returns "expr", but with all outer layers of parentheses removed.
+    /// This method can be called before resolution.
+    /// </summary>
+    public static Expression StripParens(Expression expr) {
+      while (true) {
+        var e = expr as ParensExpression;
+        if (e == null) {
+          return expr;
+        }
+        expr = e.E;
+      }
+    }
+
+    /// <summary>
+    /// If "expr" denotes a boolean literal "b", then return "true" and set "value" to "b".
+    /// Otherwise, return "false" (and the value of "value" should not be used by the caller).
+    /// This method can be called before resolution.
+    /// </summary>
+    public static bool IsBoolLiteral(Expression expr, out bool value) {
+      Contract.Requires(expr != null);
+      var e = StripParens(expr) as LiteralExpr;
+      if (e != null && e.Value is bool) {
+        value = (bool)e.Value;
+        return true;
+      } else {
+        value = false;  // to please compiler
+        return false;
+      }
+    }
+
+    /// <summary>
+    /// Returns "true" if "expr" denotes the empty set (for "iset", "set", or "multiset").
+    /// This method can be called before resolution.
+    /// </summary>
+    public static bool IsEmptySetOrMultiset(Expression expr) {
+      Contract.Requires(expr != null);
+      expr = StripParens(expr);
+      return (expr is SetDisplayExpr && ((SetDisplayExpr)expr).Elements.Count == 0) ||
+        (expr is MultiSetDisplayExpr && ((MultiSetDisplayExpr)expr).Elements.Count == 0);
+    }
+      
     public static Expression CreateNot(IToken tok, Expression e) {
       Contract.Requires(tok != null);
       Contract.Requires(e.Type.IsBoolType);
