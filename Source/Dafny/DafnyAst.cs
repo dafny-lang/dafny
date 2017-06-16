@@ -6780,7 +6780,6 @@ namespace Microsoft.Dafny {
     {
       Contract.Requires(tok != null);
       Contract.Requires(endTok != null);
-      Contract.Requires(userSuppliedOp != null);
       Contract.Requires(lines != null);
       Contract.Requires(hints != null);
       Contract.Requires(stepOps != null);
