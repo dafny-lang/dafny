@@ -6751,13 +6751,13 @@ namespace Microsoft.Dafny {
 
     }
 
-    public readonly List<Expression> Lines;  // Last line is dummy, in order to form a proper step with the dangling hint
-    public readonly List<BlockStmt> Hints;   // Hints[i] comes after line i; block statement is used as a container for multiple sub-hints
-    public readonly CalcOp Op;               // main operator of the calculation
-    public readonly List<CalcOp> StepOps;    // StepOps[i] comes after line i
-    public CalcOp ResultOp;                  // conclusion operator
-    public readonly List<Expression> Steps;  // expressions li op l<i + 1>, filled in during resolution (last step is dummy)
-    public Expression Result;                     // expression l0 ResultOp ln, filled in during resolution
+    public readonly List<Expression> Lines;    // Last line is dummy, in order to form a proper step with the dangling hint
+    public readonly List<BlockStmt> Hints;     // Hints[i] comes after line i; block statement is used as a container for multiple sub-hints
+    public readonly CalcOp UserSuppliedOp;     // may be null, if omitted by the user
+    public CalcOp Op;                          // main operator of the calculation (either UserSuppliedOp or (after resolution) an inferred CalcOp)
+    public readonly List<CalcOp/*?*/> StepOps; // StepOps[i] comes after line i
+    public readonly List<Expression> Steps;    // expressions li op l<i + 1>, filled in during resolution (last step is dummy)
+    public Expression Result;                  // expression l0 ResultOp ln, filled in during resolution
 
     public static readonly CalcOp DefaultOp = new BinaryCalcOp(BinaryExpr.Opcode.Eq);
 
@@ -6768,39 +6768,30 @@ namespace Microsoft.Dafny {
       Contract.Invariant(cce.NonNullElements(Lines));
       Contract.Invariant(Hints != null);
       Contract.Invariant(cce.NonNullElements(Hints));
-      Contract.Invariant(Op != null);
       Contract.Invariant(StepOps != null);
-      Contract.Invariant(cce.NonNullElements(StepOps));
-      Contract.Invariant(ResultOp != null);
       Contract.Invariant(Steps != null);
       Contract.Invariant(cce.NonNullElements(Steps));
       Contract.Invariant(Hints.Count == Math.Max(Lines.Count - 1, 0));
       Contract.Invariant(StepOps.Count == Hints.Count);
     }
 
-    public CalcStmt(IToken tok, IToken endTok, CalcOp op, List<Expression> lines, List<BlockStmt> hints, List<CalcOp> stepOps, CalcOp resultOp, Attributes attrs)
+    public CalcStmt(IToken tok, IToken endTok, CalcOp userSuppliedOp, List<Expression> lines, List<BlockStmt> hints, List<CalcOp/*?*/> stepOps, Attributes attrs)
       : base(tok, endTok)
     {
       Contract.Requires(tok != null);
       Contract.Requires(endTok != null);
-      Contract.Requires(op != null);
+      Contract.Requires(userSuppliedOp != null);
       Contract.Requires(lines != null);
       Contract.Requires(hints != null);
       Contract.Requires(stepOps != null);
       Contract.Requires(cce.NonNullElements(lines));
       Contract.Requires(cce.NonNullElements(hints));
-      Contract.Requires(cce.NonNullElements(stepOps));
       Contract.Requires(hints.Count == Math.Max(lines.Count - 1, 0));
       Contract.Requires(stepOps.Count == hints.Count);
-      this.Op = op;
+      this.UserSuppliedOp = userSuppliedOp;
       this.Lines = lines;
       this.Hints = hints;
       this.StepOps = stepOps;
-      if (resultOp == null) {
-        this.ResultOp = stepOps.Aggregate(DefaultOp, (op0, op1) => op0.ResultOp(op1));
-      } else {
-        this.ResultOp = resultOp;
-      }
       this.Steps = new List<Expression>();
       this.Result = null;
       this.Attributes = attrs;
@@ -6834,14 +6825,13 @@ namespace Microsoft.Dafny {
 
     IEnumerable<CalcOp> AllCalcOps {
       get {
-        if (Op != null) {
-          yield return Op;
+        if (UserSuppliedOp != null) {
+          yield return UserSuppliedOp;
         }
         foreach (var stepop in StepOps) {
-          yield return stepop;
-        }
-        if (ResultOp != null) {
-          yield return ResultOp;
+          if (stepop != null) {
+            yield return stepop;
+          }
         }
       }
     }
@@ -7348,6 +7338,48 @@ namespace Microsoft.Dafny {
       return lit;
     }
 
+    /// <summary>
+    /// Returns "expr", but with all outer layers of parentheses removed.
+    /// This method can be called before resolution.
+    /// </summary>
+    public static Expression StripParens(Expression expr) {
+      while (true) {
+        var e = expr as ParensExpression;
+        if (e == null) {
+          return expr;
+        }
+        expr = e.E;
+      }
+    }
+
+    /// <summary>
+    /// If "expr" denotes a boolean literal "b", then return "true" and set "value" to "b".
+    /// Otherwise, return "false" (and the value of "value" should not be used by the caller).
+    /// This method can be called before resolution.
+    /// </summary>
+    public static bool IsBoolLiteral(Expression expr, out bool value) {
+      Contract.Requires(expr != null);
+      var e = StripParens(expr) as LiteralExpr;
+      if (e != null && e.Value is bool) {
+        value = (bool)e.Value;
+        return true;
+      } else {
+        value = false;  // to please compiler
+        return false;
+      }
+    }
+
+    /// <summary>
+    /// Returns "true" if "expr" denotes the empty set (for "iset", "set", or "multiset").
+    /// This method can be called before resolution.
+    /// </summary>
+    public static bool IsEmptySetOrMultiset(Expression expr) {
+      Contract.Requires(expr != null);
+      expr = StripParens(expr);
+      return (expr is SetDisplayExpr && ((SetDisplayExpr)expr).Elements.Count == 0) ||
+        (expr is MultiSetDisplayExpr && ((MultiSetDisplayExpr)expr).Elements.Count == 0);
+    }
+      
     public static Expression CreateNot(IToken tok, Expression e) {
       Contract.Requires(tok != null);
       Contract.Requires(e.Type.IsBoolType);

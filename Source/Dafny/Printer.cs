@@ -1122,7 +1122,10 @@ Everything) {
         CalcStmt s = (CalcStmt)stmt;
         if (printMode == DafnyOptions.PrintModes.NoGhost) { return; }   // Calcs don't get a "ghost" attribute, but they are.
         wr.Write("calc ");
-        if (!s.Op.Equals(CalcStmt.DefaultOp)) {
+        if (s.UserSuppliedOp != null) {
+          PrintCalcOp(s.UserSuppliedOp);
+          wr.Write(" ");
+        } else if (DafnyOptions.O.DafnyPrintResolvedFile != null && s.Op != null) {
           PrintCalcOp(s.Op);
           wr.Write(" ");
         }
@@ -1145,9 +1148,9 @@ Everything) {
             break;
           }
           // print the operator, if any
-          if (!s.Op.Equals(op)) {
+          if (op != null || (DafnyOptions.O.DafnyPrintResolvedFile != null && s.Op != null)) {
             Indent(indent);  // this lines up with the "calc"
-            PrintCalcOp(op);
+            PrintCalcOp(op ?? s.Op);
             wr.WriteLine();
           }
           // print the hints

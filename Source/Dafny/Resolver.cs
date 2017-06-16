@@ -4556,9 +4556,9 @@ namespace Microsoft.Dafny
           // E0 and E1 are expressions from .Lines.  These additional expressions still need to have their .ResolvedOp
           // fields filled in, so we visit them (but not their subexpressions) here.
           foreach (var e in s.Steps) {
-            VisitOneExpr(e);
+            Visit(e);
           }
-          VisitOneExpr(s.Result);
+          Visit(s.Result);
         }
       }
       protected override void VisitOneExpr(Expression expr) {
@@ -8085,6 +8085,34 @@ namespace Microsoft.Dafny
       } else if (stmt is CalcStmt) {
         var prevErrorCount = reporter.Count(ErrorLevel.Error);
         CalcStmt s = (CalcStmt)stmt;
+        // figure out s.Op
+        Contract.Assert(s.Op == null);  // it hasn't been set yet
+        if (s.UserSuppliedOp != null) {
+          s.Op = s.UserSuppliedOp;
+        } else {
+          // Usually, we'd use == as the default main operator.  However, if the calculation
+          // begins or ends with a boolean literal, then we can do better by selecting ==>
+          // or <==.  Also, if the calculation begins or ends with an empty set, then we can
+          // do better by selecting <= or >=.
+          if (s.Lines.Count == 0) {
+            s.Op = CalcStmt.DefaultOp;
+          } else {
+            bool b;
+            if (Expression.IsBoolLiteral(s.Lines.First(), out b)) {
+              s.Op = new CalcStmt.BinaryCalcOp(b ? BinaryExpr.Opcode.Imp : BinaryExpr.Opcode.Exp);
+            } else if (Expression.IsBoolLiteral(s.Lines.Last(), out b)) {
+              s.Op = new CalcStmt.BinaryCalcOp(b ? BinaryExpr.Opcode.Exp : BinaryExpr.Opcode.Imp);
+            } else if (Expression.IsEmptySetOrMultiset(s.Lines.First())) {
+              s.Op = new CalcStmt.BinaryCalcOp(BinaryExpr.Opcode.Ge);
+            } else if (Expression.IsEmptySetOrMultiset(s.Lines.Last())) {
+              s.Op = new CalcStmt.BinaryCalcOp(BinaryExpr.Opcode.Le);
+            } else {
+              s.Op = CalcStmt.DefaultOp;
+            }
+          }
+          reporter.Info(MessageSource.Resolver, s.Tok, s.Op.ToString());
+        }
+
         if (s.Lines.Count > 0) {
           Type lineType = new InferredTypeProxy();
           var e0 = s.Lines.First();
@@ -8101,7 +8129,7 @@ namespace Microsoft.Dafny
               err = new TypeConstraint.ErrorMsgWithToken(e1.tok, "all lines in a calculation must have the same type (got {0} after {1})", e1.Type, lineType);
             }
             ConstrainSubtypeRelation(lineType, e1.Type, err);
-            var step = s.StepOps[i - 1].StepExpr(e0, e1); // Use custom line operator
+            var step = (s.StepOps[i - 1] ?? s.Op).StepExpr(e0, e1); // Use custom line operator
             ResolveExpression(step, new ResolveOpts(codeContext, true));
             s.Steps.Add(step);
             e0 = e1;
@@ -8121,7 +8149,8 @@ namespace Microsoft.Dafny
         }
         if (prevErrorCount == reporter.Count(ErrorLevel.Error) && s.Lines.Count > 0) {
           // do not build Result from the lines if there were errors, as it might be ill-typed and produce unnecessary resolution errors
-          s.Result = s.ResultOp.StepExpr(s.Lines.First(), s.Lines.Last());
+          var resultOp = s.StepOps.Aggregate(s.Op, (op0, op1) => op1 == null ? op0 : op0.ResultOp(op1));
+          s.Result = resultOp.StepExpr(s.Lines.First(), s.Lines.Last());
         } else {
           s.Result = CalcStmt.DefaultOp.StepExpr(Expression.CreateIntLiteral(s.Tok, 0), Expression.CreateIntLiteral(s.Tok, 0));
         }

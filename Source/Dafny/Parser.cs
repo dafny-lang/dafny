@@ -188,11 +188,8 @@ void CheckDeclModifiers(DeclModifierData dmod, string declCaption, AllowedDeclMo
 
 /// <summary>
 /// Encode an 'extern' declaration modifier as an {:extern name} attribute.
-///
-/// We also include an {:axiom} attribute since the specification of an
-/// external entity is assumed to hold, but only for methods or functions.
 ///</summary>
-static void EncodeExternAsAttribute(DeclModifierData dmod, ref Attributes attrs, IToken/*!*/ id, bool needAxiom) {
+static void EncodeExternAsAttribute(DeclModifierData dmod, ref Attributes attrs, IToken/*!*/ id) {
   if (dmod.IsExtern) {
     StringLiteralExpr name = dmod.ExternName;
     if (name == null) {
@@ -202,11 +199,6 @@ static void EncodeExternAsAttribute(DeclModifierData dmod, ref Attributes attrs,
     var args = new List<Expression>();
     args.Add(name);
     attrs = new Attributes("extern", args, attrs);
-
-    // Also 'extern' implies 'axiom' for methods or functions.
-    if (needAxiom) {
-      attrs = new Attributes("axiom", new List<Expression>(), attrs);
-    }
   }
 }
 
@@ -839,7 +831,9 @@ int StringToInt(string s, int defaultValue, string errString) {
 			dmod.IsProtected = true; CheckAndSetToken(ref dmod.ProtectedToken); 
 		} else if (la.kind == 70) {
 			Get();
-			dmod.IsExtern = true; CheckAndSetToken(ref dmod.ExternToken); 
+			dmod.IsExtern = true; CheckAndSetToken(ref dmod.ExternToken);
+			errors.Deprecated(t, "the 'extern' keyword has been deprecated; use the ':extern' attribute instead");
+			
 			if (la.kind == 21) {
 				Get();
 				bool isVerbatimString;
@@ -869,7 +863,7 @@ int StringToInt(string s, int defaultValue, string errString) {
 				Attribute(ref attrs);
 			}
 			NoUSIdent(out id);
-			EncodeExternAsAttribute(dmod, ref attrs, id, /* needAxiom */ false); 
+			EncodeExternAsAttribute(dmod, ref attrs, id); 
 			if (la.kind == 72) {
 				Get();
 				ModuleName(out idRefined);
@@ -892,7 +886,7 @@ int StringToInt(string s, int defaultValue, string errString) {
 				opened = true;
 			}
 			ModuleName(out id);
-			EncodeExternAsAttribute(dmod, ref attrs, id, /* needAxiom */ false); 
+			EncodeExternAsAttribute(dmod, ref attrs, id); 
 			if (StartOf(3)) {
 				idPath = new List<IToken>(); idExports = new List<IToken>(); 
 				if (la.kind == 28 || la.kind == 29) {
@@ -998,7 +992,7 @@ int StringToInt(string s, int defaultValue, string errString) {
 			Attribute(ref attrs);
 		}
 		NoUSIdent(out id);
-		EncodeExternAsAttribute(dmodClass, ref attrs, id, /* needAxiom */ false); 
+		EncodeExternAsAttribute(dmodClass, ref attrs, id); 
 		if (la.kind == 56) {
 			GenericParameters(typeArgs);
 		}
@@ -1715,7 +1709,7 @@ int StringToInt(string s, int defaultValue, string errString) {
 		   !Attributes.Contains(attrs, "axiom") && !Attributes.Contains(attrs, "imported")) {
 		  SemErr(t, "a function with an ensures clause must have a body, unless given the :axiom attribute");
 		}
-		EncodeExternAsAttribute(dmod, ref attrs, id, /* needAxiom */ true);
+		EncodeExternAsAttribute(dmod, ref attrs, id);
 		IToken tok = id;
 		if (isTwoState && isPredicate) {
 		  f = new TwoStatePredicate(tok, id.val, dmod.IsStatic, typeArgs, formals,
@@ -1849,7 +1843,7 @@ int StringToInt(string s, int defaultValue, string errString) {
 		   SemErr(la, "a method must be given a name (expecting identifier)");
 		 }
 		}
-		EncodeExternAsAttribute(dmod, ref attrs, id, /* needAxiom */ true);
+		EncodeExternAsAttribute(dmod, ref attrs, id);
 		
 		if (la.kind == 54 || la.kind == 56) {
 			if (la.kind == 56) {
@@ -3185,12 +3179,11 @@ List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, st
 		Contract.Ensures(Contract.ValueAtReturn(out s) != null);
 		IToken x;
 		Attributes attrs = null;
-		CalcStmt.CalcOp op, calcOp = Microsoft.Dafny.CalcStmt.DefaultOp, resOp = Microsoft.Dafny.CalcStmt.DefaultOp;
+		CalcStmt.CalcOp op, userSuppliedOp = null, resOp = Microsoft.Dafny.CalcStmt.DefaultOp;
 		var lines = new List<Expression>();
 		var hints = new List<BlockStmt>();
 		CalcStmt.CalcOp stepOp;
 		var stepOps = new List<CalcStmt.CalcOp>();
-		CalcStmt.CalcOp maybeOp;
 		Expression e;
 		IToken opTok;
 		IToken danglingOperator = null;
@@ -3201,22 +3194,22 @@ List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, st
 			Attribute(ref attrs);
 		}
 		if (StartOf(27)) {
-			CalcOp(out opTok, out calcOp);
-			maybeOp = calcOp.ResultOp(calcOp); // guard against non-transitive calcOp (like !=)
-			if (maybeOp == null) {
+			CalcOp(out opTok, out userSuppliedOp);
+			if (userSuppliedOp.ResultOp(userSuppliedOp) == null) { // guard against non-transitive calcOp (like !=)
 			 SemErr(opTok, "the main operator of a calculation must be transitive");
+			} else {
+			 resOp = userSuppliedOp;
 			}
-			resOp = calcOp;
 			
 		}
 		Expect(50);
 		while (StartOf(9)) {
 			Expression(out e, false, true);
-			lines.Add(e); stepOp = calcOp; danglingOperator = null; 
+			lines.Add(e); stepOp = null; danglingOperator = null; 
 			Expect(30);
 			if (StartOf(27)) {
 				CalcOp(out opTok, out op);
-				maybeOp = resOp.ResultOp(op);
+				var maybeOp = resOp.ResultOp(op);
 				if (maybeOp == null) {
 				 SemErr(opTok, "this operator cannot continue this calculation");
 				} else {
@@ -3254,7 +3247,7 @@ List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, st
 		 // Repeat the last line to create a dummy line for the dangling hint
 		 lines.Add(lines[lines.Count - 1]);
 		}
-		s = new CalcStmt(x, t, calcOp, lines, hints, stepOps, resOp, attrs);
+		s = new CalcStmt(x, t, userSuppliedOp, lines, hints, stepOps, attrs);
 		
 	}
 
