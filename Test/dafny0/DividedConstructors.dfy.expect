@@ -1,5 +1,3 @@
-// Dafny program verifier version 1.9.9.40418, Copyright (c) 2003-2017, Microsoft.
-// Command Line Options: -nologo -countVerificationErrors:0 -useBaseNameForFileName /compile:3 /dprint:- C:\dafny\Test\dafny0\DividedConstructors.dfy
 // DividedConstructors.dfy
 
 

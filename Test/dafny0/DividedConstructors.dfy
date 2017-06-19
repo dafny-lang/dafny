@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:3 /dprint:- "%s" > "%t"
+// RUN: %dafny /compile:3 /env:0 /dprint:- "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 method Main() {

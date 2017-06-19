@@ -16222,6 +16222,12 @@ namespace Microsoft.Dafny {
           var lhss = s.Locals.ConvertAll(c => new LocalVariable(c.Tok, c.EndTok, c.Name, c.OptionalType == null ? null : Resolver.SubstType(c.OptionalType, typeMap), c.IsGhost));
           var rr = new VarDeclStmt(s.Tok, s.EndTok, lhss, (ConcreteUpdateStatement)SubstStmt(s.Update));
           r = rr;
+        } else if (stmt is RevealStmt) {
+          var s = (RevealStmt)stmt;
+          // don't need to substitute s.Expr since it won't be used, only the s.ResolvvedStatements are used.
+          var rr = new RevealStmt(s.Tok, s.EndTok, s.Expr);
+          rr.ResolvedStatements.AddRange(s.ResolvedStatements.ConvertAll(SubstStmt));
+          r = rr;
         } else {
           Contract.Assert(false); throw new cce.UnreachableException();  // unexpected statement
         }
