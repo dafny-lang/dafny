@@ -322,9 +322,9 @@ those constructs are explained.
 The grammar presented in this document was derived from the `Dafny.atg`
 file but has been simplified by removing details that, though needed by
 the parser, are not needed to understand the grammar. In particular, the
-following transformation have been performed.
+following transformations have been performed.
 
-* The semantics actions, enclosed by "(." and ".)", where removed.
+* The semantics actions, enclosed by "(." and ".)", were removed.
 * There are some elements in the grammar used for error recovery
   ("SYNC"). These were removed.
 * There are some elements in the grammar for resolving conflicts
