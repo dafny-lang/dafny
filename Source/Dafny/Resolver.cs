@@ -2668,6 +2668,22 @@ namespace Microsoft.Dafny
           }
         }
       }
+
+      // ---------------------------------- Pass 3 ----------------------------------
+      // Further checks
+      // ----------------------------------------------------------------------------
+
+      if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
+        var cdci = new CheckDividedConstructorInit_Visitor(this);
+        foreach (var cl in ModuleDefinition.AllClasses(declarations)) {
+          foreach (var member in cl.Members) {
+            var constructor = member as Constructor;
+            if (constructor != null && constructor.BodyInit != null) {
+              cdci.CheckInit(constructor.BodyInit);
+            }
+          }
+        }
+      }
     }
 
     private void FigureOutNativeType(NewtypeDecl dd, Dictionary<string, NativeType> nativeTypeMap) {
@@ -5991,6 +6007,62 @@ namespace Microsoft.Dafny
       }
     }
     #endregion ReportOtherAdditionalInformation_Visitor
+
+    // ------------------------------------------------------------------------------------------------------
+    // ----- ReportMoreAdditionalInformation ----------------------------------------------------------------
+    // ------------------------------------------------------------------------------------------------------
+    #region CheckDividedConstructorInit
+    class CheckDividedConstructorInit_Visitor : ResolverBottomUpVisitor
+    {
+      public CheckDividedConstructorInit_Visitor(Resolver resolver)
+        : base(resolver)
+      {
+        Contract.Requires(resolver != null);
+      }
+      public void CheckInit(List<Statement> initStmts) {
+        Contract.Requires(initStmts != null);
+        initStmts.Iter(CheckInit);
+      }
+      /// <summary>
+      /// This method almost does what Visit(Statement) does, except that it handles assignments to
+      /// fields differently.
+      /// </summary>
+      void CheckInit(Statement stmt) {
+        Contract.Requires(stmt != null);
+        // Visit(stmt) would do:
+        //     stmt.SubExpressions.Iter(Visit);    (*)
+        //     stmt.SubStatements.Iter(Visit);     (**)
+        //     VisitOneStmt(stmt);                 (***)
+        // We may do less for (*), we always use CheckInit instead of Visit in (**), and we do (***) the same.
+        if (stmt is AssignStmt) {
+          var s = stmt as AssignStmt;
+          // The usual visitation of s.SubExpressions.Iter(Visit) would do the following:
+          //   Attributes.SubExpressions(s.Attributes).Iter(Visit);  (+)
+          //   Visit(s.Lhs);                                         (++)
+          //   s.Rhs.SubExpressions.Iter(Visit);                     (+++)
+          // Here, we may do less; in particular, we may omit (++).
+          Attributes.SubExpressions(s.Attributes).Iter(Visit);  // (+)
+          var mse = s.Lhs as MemberSelectExpr;
+          if (mse != null && Expression.AsThis(mse.Obj) != null) {
+            // This is a special case we allow.  Omit s.Lhs in the recursive visits.  That is, we omit (++).
+          } else {
+            Visit(s.Lhs);  // (++)
+          }
+          s.Rhs.SubExpressions.Iter(Visit);  // (+++)
+        } else {
+          stmt.SubExpressions.Iter(Visit);  // (*)
+        }
+        stmt.SubStatements.Iter(CheckInit);  // (**)
+        VisitOneStmt(stmt);  // (***)
+      }
+      protected override void VisitOneExpr(Expression expr) {
+        if (expr is ThisExpr && !(expr is ImplicitThisExpr_ConstructorCall)) {
+          resolver.reporter.Error(MessageSource.Resolver, expr.tok, "in the first division of the constructor body (before 'new;'), 'this' can only be used to assign to its fields");
+        }
+        base.VisitOneExpr(expr);
+      }
+    }
+    #endregion
 
     // ------------------------------------------------------------------------------------------------------
     // ------------------------------------------------------------------------------------------------------
@@ -9405,7 +9477,7 @@ namespace Microsoft.Dafny
 
               // We want to create a MemberSelectExpr for the initializing method.  To do that, we create a throw-away receiver of the appropriate
               // type, create an dot-suffix expression around this receiver, and then resolve it in the usual way for dot-suffix expressions.
-              var lhs = new ImplicitThisExpr(initCallTok) { Type = rr.EType };
+              var lhs = new ImplicitThisExpr_ConstructorCall(initCallTok) { Type = rr.EType };
               var callLhs = new ExprDotName(initCallTok, lhs, initCallName, ret == null ? null : ret.LastComponent.OptTypeArguments);
               ResolveDotSuffix(callLhs, true, rr.Arguments, new ResolveOpts(codeContext, true), true);
               if (prevErrorCount == reporter.Count(ErrorLevel.Error)) {

@@ -3122,7 +3122,9 @@ namespace Microsoft.Dafny {
     public static IEnumerable<ClassDecl> AllClasses(List<TopLevelDecl> declarations) {
       foreach (var d in declarations) {
         var cl = d as ClassDecl;
-        yield return cl;
+        if (cl != null) {
+          yield return cl;
+        }
       }
     }
 
@@ -7351,6 +7353,11 @@ namespace Microsoft.Dafny {
       }
     }
 
+    public static ThisExpr AsThis(Expression expr) {
+      Contract.Requires(expr != null);
+      return StripParens(expr) as ThisExpr;
+    }
+
     /// <summary>
     /// If "expr" denotes a boolean literal "b", then return "true" and set "value" to "b".
     /// Otherwise, return "false" (and the value of "value" should not be used by the caller).
@@ -7831,6 +7838,20 @@ namespace Microsoft.Dafny {
 
     public override bool IsImplicit {
       get { return true; }
+    }
+  }
+
+  /// <summary>
+  /// An ImplicitThisExpr_ConstructorCall is used in the .InitCall of a TypeRhs,
+  /// which has a need for a "throw-away receiver".  Using a different type
+  /// gives a way to distinguish this receiver from other receivers, which
+  /// plays a role in checking the restrictions on divided block statements.
+  /// </summary>
+  public class ImplicitThisExpr_ConstructorCall : ImplicitThisExpr
+  {
+    public ImplicitThisExpr_ConstructorCall(IToken tok)
+      : base(tok) {
+      Contract.Requires(tok != null);
     }
   }
 

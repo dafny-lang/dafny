@@ -1799,3 +1799,57 @@ module TLAplusOperators {
     && (|| 5 + y)  // error: bad types
   }
 }
+
+// ------------------------- divided constructors -------------------
+
+module DividedConstructors {
+  class MyClass {
+    var a: nat
+    var b: nat
+    var c: nat
+    var n: MyClass
+    const t := 17
+    static const g := 25
+  
+    constructor Init(x: nat)
+      modifies this
+    {
+      this.a := this.b;  // error: cannot use "this" in RHS
+      ((this)).b := 10;
+      n := new MyClass();
+      n.a := 10;  // error: not allowed use of "this" in this way
+      c := a + b;  // error (x2): not allowed "this" in RHS
+      var th := this;  // error: not allowed "this" in RHS
+      Helper();  // error: not allowed to call instance method
+      var mc := new MyClass();
+      StaticHelper(mc);
+      this.StaticHelper(mc);  // "this" is benign here
+      StaticHelper(this);  // error: cannot use "this" here
+      P(a);  // error: cannot use "this" here
+      P(g);
+      P(this.g);  // "this" is benign here
+      new;
+      a := a + b;
+      Helper();
+    }
+
+    method Helper()
+    {
+    }
+
+    static method StaticHelper(mc: MyClass)
+    {
+    }
+
+    static method P(x: nat)
+    {
+    }
+
+    constructor ()
+      modifies this
+    {
+      a, c := 0, 0;
+      new;
+    }
+  }
+}

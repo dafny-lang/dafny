@@ -27,7 +27,7 @@ module M0 {
       modifies this
       ensures c <= 2.0 * z
     {
-      a, c := b, 2.0 * z;
+      a, c := 50, 2.0 * z;
       new;
     }
 

@@ -268,4 +268,12 @@ ResolutionErrors.dfy(1789,11): Error: Function body type mismatch (expected int,
 ResolutionErrors.dfy(1795,4): Error: second argument to || must be of type bool (instead got int)
 ResolutionErrors.dfy(1799,8): Error: second argument to || must be of type bool (instead got int)
 ResolutionErrors.dfy(1797,11): Error: Function body type mismatch (expected int, got bool)
-269 resolution/type errors detected in ResolutionErrors.dfy
+ResolutionErrors.dfy(1817,16): Error: in the first division of the constructor body (before 'new;'), 'this' can only be used to assign to its fields
+ResolutionErrors.dfy(1820,6): Error: in the first division of the constructor body (before 'new;'), 'this' can only be used to assign to its fields
+ResolutionErrors.dfy(1821,11): Error: in the first division of the constructor body (before 'new;'), 'this' can only be used to assign to its fields
+ResolutionErrors.dfy(1821,15): Error: in the first division of the constructor body (before 'new;'), 'this' can only be used to assign to its fields
+ResolutionErrors.dfy(1822,16): Error: in the first division of the constructor body (before 'new;'), 'this' can only be used to assign to its fields
+ResolutionErrors.dfy(1823,6): Error: in the first division of the constructor body (before 'new;'), 'this' can only be used to assign to its fields
+ResolutionErrors.dfy(1827,19): Error: in the first division of the constructor body (before 'new;'), 'this' can only be used to assign to its fields
+ResolutionErrors.dfy(1828,8): Error: in the first division of the constructor body (before 'new;'), 'this' can only be used to assign to its fields
+277 resolution/type errors detected in ResolutionErrors.dfy

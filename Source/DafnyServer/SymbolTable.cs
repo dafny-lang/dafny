@@ -106,8 +106,7 @@ namespace DafnyServer {
     }
 
     private static void AddClasses(ModuleDefinition module, List<SymbolInformation> information) {
-      foreach (
-          var cs in ModuleDefinition.AllClasses(module.TopLevelDecls).Where(e => e != null && !(e.tok is IncludeToken))) {
+      foreach (var cs in ModuleDefinition.AllClasses(module.TopLevelDecls).Where(cl => !(cl.tok is IncludeToken))) {
         if (cs.Module != null && cs.tok != null) {
           var classSymbol = new SymbolInformation {
             Module = cs.Module.Name,

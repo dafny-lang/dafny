@@ -277,7 +277,9 @@ namespace Microsoft.Dafny
         }
 
       } else if (expr is ThisExpr) {
-        if (expr is ImplicitThisExpr) {
+        if (expr is ImplicitThisExpr_ConstructorCall) {
+          return new ImplicitThisExpr_ConstructorCall(Tok(expr.tok));
+        } else if (expr is ImplicitThisExpr) {
           return new ImplicitThisExpr(Tok(expr.tok));
         } else {
           return new ThisExpr(Tok(expr.tok));
