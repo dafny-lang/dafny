@@ -1888,9 +1888,11 @@ namespace Microsoft.Dafny {
             } else {
               wr.Write("foreach (var @{0} in Dafny.Helpers.IntegerRange(", bv.CompileName);
             }
-            TrExpr(b.LowerBound, wr, false);
+            var low = SubstituteBound(b, s.Bounds, s.BoundVars, i, true);
+            TrExpr(low, wr, false);
             wr.Write(", ");
-            TrExpr(b.UpperBound, wr, false);
+            var high = SubstituteBound(b, s.Bounds, s.BoundVars, i, false);
+            TrExpr(high, wr, false);
             wr.Write(")) { ");
           } else if (bound is ComprehensionExpr.SetBoundedPool) {
             var b = (ComprehensionExpr.SetBoundedPool)bound;
@@ -3229,9 +3231,11 @@ namespace Microsoft.Dafny {
           } else if (bound is ComprehensionExpr.IntBoundedPool) {
             var b = (ComprehensionExpr.IntBoundedPool)bound;
             wr.Write("Dafny.Helpers.QuantInt(");
-            TrExpr(b.LowerBound, wr, inLetExprBody);
+            var low = SubstituteBound(b, e.Bounds, e.BoundVars, i, true);
+            TrExpr(low, wr, inLetExprBody);
             wr.Write(", ");
-            TrExpr(b.UpperBound, wr, inLetExprBody);
+            var high = SubstituteBound(b, e.Bounds, e.BoundVars, i, false);
+            TrExpr(high, wr, inLetExprBody);
             wr.Write(", ");
           } else if (bound is ComprehensionExpr.SetBoundedPool) {
             var b = (ComprehensionExpr.SetBoundedPool)bound;
@@ -3473,6 +3477,24 @@ namespace Microsoft.Dafny {
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected expression
       }
+    }
+
+    private Expression SubstituteBound(ComprehensionExpr.IntBoundedPool b, List<ComprehensionExpr.BoundedPool> bounds, List<BoundVar> boundVars, int index, bool lowBound)
+    {
+      // if the outer bound is depended on the inner boundvar, we need to
+      // substitute the inner boundvar with its bound.
+      var low = lowBound ? b.LowerBound : b.UpperBound;
+      var sm = new Dictionary<IVariable, Expression>();
+      for (int i = index+1; i < boundVars.Count; i++) {
+        var bound = bounds[i];
+        if (bound is ComprehensionExpr.IntBoundedPool) {
+          var ib = (ComprehensionExpr.IntBoundedPool)bound;
+          var bv = boundVars[i];
+          sm[bv] = lowBound ? ib.LowerBound : ib.UpperBound;
+        }
+      }
+      var su = new Translator.Substituter(null, sm, new Dictionary<TypeParameter, Type>());
+      return su.Substitute(low);
     }
 
     private static void BitvectorTruncation(BitvectorType bvType, TextWriter wr, bool after, bool surroundByUnchecked) {
