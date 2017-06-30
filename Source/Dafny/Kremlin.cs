@@ -2255,7 +2255,7 @@ namespace Microsoft.Dafny {
           using (WriteArray()) {
             j.WriteValue(KremlinAst.EIfThenElse);
             using (WriteArray()) {
-              TrExpr(s.IsExistentialGuard ? Translator.AlphaRename((ExistsExpr)s.Guard, "eg_d", new Translator(null)) : s.Guard, false);
+              TrExpr(s.IsExistentialGuard ? Translator.AlphaRename((ExistsExpr)s.Guard, "eg_d") : s.Guard, false);
 
               // We'd like to do "TrStmt(s.Thn, indent)", except we want the scope of any existential variables to come inside the block
               using (WriteArray()) {

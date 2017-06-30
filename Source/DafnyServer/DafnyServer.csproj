@@ -118,10 +118,14 @@
       <HintPath>..\..\..\boogie\Binaries\BoogieExecutionEngine.dll</HintPath>
     </Reference>
     <Reference Include="BoogieGraph">
-		<HintPath>..\..\..\boogie\Binaries\BoogieGraph.dll</HintPath>
-	</Reference>
+      <HintPath>..\..\..\boogie\Binaries\BoogieGraph.dll</HintPath>
+    </Reference>
     <Reference Include="BoogieParserHelper">
       <HintPath>..\..\..\boogie\Binaries\BoogieParserHelper.dll</HintPath>
+    </Reference>
+    <Reference Include="Newtonsoft.Json, Version=10.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
+      <HintPath>..\packages\Newtonsoft.Json.10.0.3\lib\net45\Newtonsoft.Json.dll</HintPath>
+      <Private>True</Private>
     </Reference>
     <Reference Include="Provers.SMTLib">
       <HintPath>..\..\..\boogie\Binaries\Provers.SMTLib.dll</HintPath>
@@ -151,6 +155,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
+    <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Dafny\DafnyPipeline.csproj">
