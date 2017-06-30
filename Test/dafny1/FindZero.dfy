@@ -3,7 +3,7 @@
 
 method FindZero(a: array<int>) returns (r: int)
   requires a != null && forall i :: 0 <= i < a.Length ==> 0 <= a[i];
-  requires forall i {:nowarn} :: 0 <= i && i+1 < a.Length ==> a[i]-1 <= a[i+1];
+  requires forall i :: 0 <= i && i+1 < a.Length ==> a[i]-1 <= a[i+1];
   ensures 0 <= r ==> r < a.Length && a[r] == 0;
   ensures r < 0 ==> forall i :: 0 <= i < a.Length ==> a[i] != 0;
 {
@@ -20,7 +20,7 @@ method FindZero(a: array<int>) returns (r: int)
 
 lemma Lemma(a: array<int>, k: int, m: int)
   requires a != null && forall i :: 0 <= i < a.Length ==> 0 <= a[i];
-  requires forall i {:nowarn} :: 0 <= i && i+1 < a.Length ==> a[i]-1 <= a[i+1];
+  requires forall i :: 0 <= i && i+1 < a.Length ==> a[i]-1 <= a[i+1];
   requires 0 <= k;
   requires k < a.Length ==> m <= a[k];
   ensures forall i :: k <= i < k+m && i < a.Length ==> a[i] != 0;
@@ -36,7 +36,7 @@ lemma Lemma(a: array<int>, k: int, m: int)
 
 method FindZero_GhostLoop(a: array<int>) returns (r: int)
   requires a != null && forall i :: 0 <= i < a.Length ==> 0 <= a[i];
-  requires forall i {:nowarn} :: 0 <= i && i+1 < a.Length ==> a[i]-1 <= a[i+1];
+  requires forall i :: 0 <= i && i+1 < a.Length ==> a[i]-1 <= a[i+1];
   ensures 0 <= r ==> r < a.Length && a[r] == 0;
   ensures r < 0 ==> forall i :: 0 <= i < a.Length ==> a[i] != 0;
 {
@@ -63,7 +63,7 @@ method FindZero_GhostLoop(a: array<int>) returns (r: int)
 
 method FindZero_Assert(a: array<int>) returns (r: int)
   requires a != null && forall i :: 0 <= i < a.Length ==> 0 <= a[i];
-  requires forall i {:nowarn} :: 0 <= i-1 && i < a.Length ==> a[i-1]-1 <= a[i];
+  requires forall i {:nowarn} {:matchinglooprewrite false}:: 0 <= i-1 && i < a.Length ==> a[i-1]-1 <= a[i];
   ensures 0 <= r ==> r < a.Length && a[r] == 0;
   ensures r < 0 ==> forall i :: 0 <= i < a.Length ==> a[i] != 0;
 {

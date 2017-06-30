@@ -58,7 +58,7 @@ abstract module M0 {
     requires forall s :: s in sts ==> Extends(stOrig, s);
     ensures Compatible(sts);
   {
-    reveal_Extends();
+    reveal Extends();
   }
 
   function {:opaque} Combine(sts: set<State>, useCache: bool): State
@@ -89,7 +89,7 @@ abstract module M0 {
         (forall st :: st in sts ==> DomC(st) <= DomC(stCombined)) &&
         (forall h :: h in DomC(stCombined) ==> exists st :: st in sts && h in DomC(st)));
   {
-    reveal_Combine();
+    reveal Combine();
     var st := PickOne(sts);
     if sts == {st} {
     } else {
@@ -101,11 +101,11 @@ abstract module M0 {
       forall p | p !in DomSt(smallerCombination) && p in DomSt(stCombined)
         ensures GetSt(p, stCombined) == Oracle(p, smallerCombination);
       {
-        reveal_Extends();
+        reveal Extends();
         OracleProperty(p, parent, smallerCombination);
       }
       forall ensures Extends(smallerCombination, stCombined); {
-        reveal_Extends();
+        reveal Extends();
       }
       Lemma_ExtendsTransitive(parent, smallerCombination, stCombined);
     }
@@ -202,7 +202,7 @@ abstract module M0 {
     requires Extends(st0, st1) && Extends(st1, st2);
     ensures Extends(st0, st2);
   {
-    reveal_Extends();
+    reveal Extends();
     forall p { OracleProperty(p, st0, st1); }
   }
 
@@ -465,7 +465,7 @@ abstract module M0 {
     requires expr.exprInvocation? && ValidEnv(env);
     ensures eval(expr, st, env, useCache) == evalSuperCore(expr, st, env, useCache);
   {
-    reveal_eval();
+    reveal eval();
   }
 
   function evalSuperCore(expr: Expression, st: State, env: Env, useCache: bool): Tuple<Expression, State>
@@ -594,7 +594,7 @@ abstract module M0 {
         } else { 
         }
       } else {
-        reveal_Extends();
+        reveal Extends();
       }
     } else {
       assert stmt.stmtVariable? || stmt.stmtReturn?;
@@ -629,11 +629,11 @@ abstract module M0 {
     var result := eval(expr, st, env, useCache);
     outExpr, outSt := result.fst, result.snd;
     if Value(expr) {
-      reveal_eval();  reveal_Extends();
+      reveal eval();  reveal Extends();
     } else if expr.exprIdentifier? {
-      reveal_eval();  reveal_Extends();
+      reveal eval();  reveal Extends();
     } else if expr.exprIf? {
-      reveal_eval();
+      reveal eval();
       var cond', st' := EvalLemma(expr.cond, st, env, useCache);
       if cond'.exprLiteral? && cond'.lit == litTrue {
         var _, st'' := EvalLemma(expr.ifTrue, st', env, useCache);
@@ -642,31 +642,31 @@ abstract module M0 {
         var _, st'' := EvalLemma(expr.ifFalse, st', env, useCache);
         Lemma_ExtendsTransitive(st, st', st'');
       } else {
-        reveal_Extends();
+        reveal Extends();
       }
     } else if expr.exprAnd? {
-      reveal_eval();
+      reveal eval();
       var conj0', st' := EvalLemma(expr.conj0, st, env, useCache);
       if conj0'.exprLiteral? && conj0'.lit == litTrue {
         var _, st'' := EvalLemma(expr.conj1, st', env, useCache);
         Lemma_ExtendsTransitive(st, st', st'');
       } else if conj0'.exprLiteral? && conj0'.lit == litFalse {
       } else {
-        reveal_Extends();
+        reveal Extends();
       }
     } else if expr.exprOr? {
-      reveal_eval();
+      reveal eval();
       var disj0', st' := EvalLemma(expr.disj0, st, env, useCache);
       if disj0'.exprLiteral? && disj0'.lit == litTrue {
       } else if disj0'.exprLiteral? && disj0'.lit == litFalse {
         var _, st'' := EvalLemma(expr.disj1, st', env, useCache);
         Lemma_ExtendsTransitive(st, st', st'');
       } else {
-        reveal_Extends();
+        reveal Extends();
       }
     } else if expr.exprInvocation? {
-      reveal_eval();
-      reveal_Extends();
+      reveal eval();
+      reveal Extends();
       var fun', st' := EvalLemma(expr.fun, st, env, useCache);
       var args', sts' := EvalArgsLemma(expr, expr.args, st, env, useCache);
       var sts'' := {st'} + sts';
@@ -700,8 +700,8 @@ abstract module M0 {
         } else { }
       } else { }
     } else {
-      reveal_eval();
-      reveal_Extends();
+      reveal eval();
+      reveal Extends();
     }
   }
 
@@ -784,13 +784,13 @@ abstract module M0 {
     var result, resultC := eval(expr, st, env, false), eval(expr, stC, env, true);
     outExpr, outSt, outStC := result.fst, result.snd, resultC.snd;
     if Value(expr) {
-      reveal_eval();
-      reveal_Extends();
+      reveal eval();
+      reveal Extends();
     } else if expr.exprIdentifier? {
-      reveal_eval();
-      reveal_Extends();
+      reveal eval();
+      reveal Extends();
     } else if expr.exprIf? {
-      reveal_eval();
+      reveal eval();
       var cond', st', stC' := Lemma_Eval(expr.cond, st, stC, env);
       if cond'.exprLiteral? && cond'.lit == litTrue {
         var _, st'', stC'' := Lemma_Eval(expr.ifTrue, st', stC', env);
@@ -801,10 +801,10 @@ abstract module M0 {
         Lemma_ExtendsTransitive(st, st', st'');
         Lemma_ExtendsTransitive(stC, stC', stC'');
       } else {
-        reveal_Extends();
+        reveal Extends();
       }
     } else if expr.exprAnd? {
-      reveal_eval();
+      reveal eval();
       var conj0', st', stC' := Lemma_Eval(expr.conj0, st, stC, env);
       if conj0'.exprLiteral? && conj0'.lit == litTrue {
         var _, st'', stC'' := Lemma_Eval(expr.conj1, st', stC', env);
@@ -812,10 +812,10 @@ abstract module M0 {
         Lemma_ExtendsTransitive(stC, stC', stC'');
       } else if conj0'.exprLiteral? && conj0'.lit == litFalse {
       } else {
-        reveal_Extends();
+        reveal Extends();
       }
     } else if expr.exprOr? {
-      reveal_eval();
+      reveal eval();
       var disj0', st', stC' := Lemma_Eval(expr.disj0, st, stC, env);
       if disj0'.exprLiteral? && disj0'.lit == litTrue {
       } else if disj0'.exprLiteral? && disj0'.lit == litFalse {
@@ -823,15 +823,15 @@ abstract module M0 {
         Lemma_ExtendsTransitive(st, st', st'');
         Lemma_ExtendsTransitive(stC, stC', stC'');
       } else {
-        reveal_Extends();
+        reveal Extends();
       }
     } else if expr.exprInvocation? {
       outExpr, outSt, outStC := Lemma_Eval_Invocation(expr, st, stC, env);
       LittleEvalLemma(expr, st, env, false, outExpr, outSt);
       LittleEvalLemma(expr, stC, env, true, outExpr, outStC);
     } else {
-      reveal_eval();
-      reveal_Extends();
+      reveal eval();
+      reveal Extends();
     }
   }
 
@@ -969,8 +969,8 @@ abstract module M0 {
       assert p == Pair(exprLiteral(litArrOfPaths(ps.fst)), ps.snd);
       assert pC == Pair(exprLiteral(litArrOfPaths(psC.fst)), psC.snd);
 
-      reveal_Extends();
-      reveal_StateCorrespondence();
+      reveal Extends();
+      reveal StateCorrespondence();
       ExecProperty(cmd, deps, exts, stCombined);
       assert Extends(stCombined, ps.snd);
       assert ExtendsLimit(cmd, deps, exts, stCombined, ps.snd);
@@ -997,7 +997,7 @@ abstract module M0 {
             assert exists e :: e in exts && pth == Loc(cmd, deps, e);
             var e :| e in exts && pth == Loc(cmd, deps, e);
             assert Post(cmd, deps, exts, p.snd);
-            reveal_Post();
+            reveal Post();
             assert GetSt(pth, p.snd) == Oracle(pth, p.snd);
           }
         }
@@ -1023,7 +1023,7 @@ abstract module M0 {
             assert exists e :: e in exts && pth == Loc(cmd, deps, e);
             var e :| e in exts && pth == Loc(cmd, deps, e);
             assert Post(cmd, deps, exts, p.snd);
-            reveal_Post();
+            reveal Post();
             calc {
               GetSt(pth, p.snd);
               // by Post
@@ -1071,8 +1071,8 @@ abstract module M0 {
     requires Extends(st, st') && StateCorrespondence(st, stC) && DomSt(st') <= DomSt(stC);
     ensures StateCorrespondence(st', stC);
   {
-    reveal_Extends();
-    reveal_StateCorrespondence();
+    reveal Extends();
+    reveal StateCorrespondence();
     forall p | p !in DomSt(st') && p in DomSt(stC)
       ensures GetSt(p, stC) == Oracle(p, st');
     {
@@ -1119,7 +1119,7 @@ abstract module M0 {
     requires sts != {};
     ensures DomSt(Combine(sts, useCache)) == DomSt_Union(sts);
   {
-    reveal_Combine();
+    reveal Combine();
   }
   lemma DomSt_Union_Cons(st: State, sts: set<State>)
     ensures DomSt_Union({st} + sts) == DomSt(st) + DomSt_Union(sts);
@@ -1164,13 +1164,13 @@ abstract module M0 {
         Combine_DomSt_X(big, useCache);
         Combine_DomSt_X(sts, useCache);
       } else if {stPick} == sts {
-        reveal_Combine();
+        reveal Combine();
         assert Combine(sts, useCache) == stPick;
         Combine_DomSt_X(big, useCache);
       } else {
         // assert forall states :: st in states ==> DomSt_Union(states) == DomSt(st) + DomSt_Union(states - {st});
         // assert forall aa, bb :: DomSt_Union(aa + bb) == DomSt_Union(aa) + DomSt_Union(bb);
-        reveal_Combine();
+        reveal Combine();
         assert big == {stPick} + ({st} + (sts - {stPick}));
         calc {
           DomSt(Combine(big, useCache));
@@ -1205,10 +1205,10 @@ abstract module M0 {
     requires Compatible({st} + sts) && Compatible({stC} + stsC);
     ensures StateCorrespondence(Combine({st} + sts, false), Combine({stC} + stsC, true));
   {
-    reveal_Combine();
+    reveal Combine();
     if sts == {} {
     } else {
-      reveal_StateCorrespondence();
+      reveal StateCorrespondence();
       var a, b := Combine({st} + sts, false), Combine({stC} + stsC, true);
       assert Combine({st}, false) == st;
       assert Combine({stC}, true) == stC;
@@ -1298,13 +1298,13 @@ abstract module M0 {
     requires p in DomSt(st) && p in DomSt(Combine(sts, useCache));
     ensures GetSt(p, Combine(sts, useCache)) == GetSt(p, st);
   {
-    reveal_Combine();
+    reveal Combine();
   }
   ghost method Combine_Representative(p: Path, sts: set<State>, useCache: bool) returns (stRepr: State)
     requires sts != {} && p in DomSt(Combine(sts, useCache));
     ensures stRepr in sts && p in DomSt(stRepr) && GetSt(p, stRepr) == GetSt(p, Combine(sts, useCache));
   {
-    reveal_Combine();
+    reveal Combine();
     var stPick := PickOne(sts);
     if p in DomSt(stPick) {
       stRepr := stPick;
@@ -1317,7 +1317,7 @@ abstract module M0 {
     requires st in sts;
     ensures p in DomSt(st) ==> p in DomSt(Combine(sts, useCache));
   {
-    reveal_Combine();
+    reveal Combine();
   }
 
 } // module M0

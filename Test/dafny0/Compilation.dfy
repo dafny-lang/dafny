@@ -203,7 +203,7 @@ function {:opaque} hidden():int
 
 method hidden_test()
 {
-  reveal_hidden();
+  reveal hidden();
   assert hidden() == 7;
 }
 

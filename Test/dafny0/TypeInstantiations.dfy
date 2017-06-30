@@ -56,3 +56,84 @@ module M1 refines M0 {
   type TP1  // error: wrong number of type arguments
   type TP2<E0,E1>
 }
+
+module ListLibrary {
+  datatype List<T> = Nil | Cons(T, List)
+}
+
+module DatatypeTestX {
+  import MyList = ListLibrary
+  method Test() {
+    var a: MyList.List<real> := MyList.Nil;
+    var b: MyList.List<real> := MyList.List.Nil;
+    var c: MyList.List<real> := MyList.List<int>.Nil;  // error: incompatible types
+    var d: MyList.List<real> := MyList.List<real>.Nil;
+  }
+}
+
+module DatatypeTestY {
+  import MyList = ListLibrary
+  method Test() {
+    var a: MyList.List<real> := MyList.Nil;
+    var b: MyList.List<real> := MyList.List.Nil;
+    var d: MyList.List<real> := MyList.List<real>.Nil;
+
+    var w: MyList.List := MyList.Nil;  // error: underspecified type argumement
+    var x: MyList.List := MyList.List.Nil;  // error: underspecified type argumement
+    var y: MyList.List := MyList.List<int>.Nil;
+    var z: MyList.List := MyList.List<real>.Nil;
+
+    var e := MyList.List.Nil;
+    var f: MyList.List<real> := e;
+  }
+}
+
+module DatatypeTestLocalX {
+  datatype List<T> = Nil | Cons(T, List)
+  method Test() {
+    var a: List<real> := Nil;
+    var b: List<real> := List.Nil;
+    var c: List<real> := List<int>.Nil;  // error: incompatible types
+    var d: List<real> := List<real>.Nil;
+  }
+}
+
+module DatatypeTestLocalY {
+  datatype List<T> = Nil | Cons(T, List)
+  method Test() {
+    var a: List<real> := Nil;
+    var b: List<real> := List.Nil;
+    var d: List<real> := List<real>.Nil;
+
+    var w: List := Nil;  // error: underspecified type argumement
+    var x: List := List.Nil;  // error: underspecified type argumement
+    var y: List := List<int>.Nil;
+    var z: List := List<real>.Nil;
+
+    var e := List.Nil;
+    var f: List<real> := e;
+  }
+}
+
+module ClassLibrary {
+  class Classic<A> {
+    static function method F(): A
+  }
+}
+
+module ClassTestX {
+  import C = ClassLibrary
+  method Test() {
+    var x: C.Classic<real> := C.Classic<int>.F();  // error: incompatible types
+  }
+}
+
+module ClassTestY {
+  import C = ClassLibrary
+  method Test() {
+    var a := C.Classic<int>.F();
+    var b: real := C.Classic.F();
+    var c: C.Classic<real> := C.Classic.F();  // here, the RHS type parameter is instantiated with C.Classic<real>, which is fine
+    var d := C.Classic.F();  // error: underspecified type
+  }
+}

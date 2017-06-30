@@ -147,13 +147,28 @@ namespace DafnyLanguage
           continue;
         }
         foreach (var d in module.TopLevelDecls) {
+          if (d is IteratorDecl) {
+            // iterators already get a hover text that shows the class desugaring, so that hover text shows the type parameters
+          } else if (d is OpaqueTypeDecl) {
+            IdRegion.Add(newRegions, program, d.tok,
+              string.Format("{0} {1}{2}", d.WhatKind, d.Name, ((OpaqueTypeDecl)d).MustSupportEquality ? "(==)" : ""),
+              d.TypeArgs);
+          } else if (d is TypeSynonymDecl) {  // also covers SubsetTypeDecl
+            IdRegion.Add(newRegions, program, d.tok,
+              string.Format("{0} {1}{2}", d.WhatKind, d.Name, ((TypeSynonymDecl)d).MustSupportEquality ? "(==)" : ""),
+              d.TypeArgs);
+          } else {
+            IdRegion.Add(newRegions, program, d.tok, string.Format("{0} {1}", d.WhatKind, d.Name), d.TypeArgs);
+          }
           IdRegion.AddRecognizedAttributes(d.Attributes, newRegions, program);
           if (d is DatatypeDecl) {
             var dt = (DatatypeDecl)d;
             foreach (var ctor in dt.Ctors) {
               foreach (var dtor in ctor.Destructors) {
-                if (dtor.CorrespondingFormal.HasName) {
-                  IdRegion.Add(newRegions, program, dtor.tok, dtor, null, "destructor", true, module);
+                var i = dtor.EnclosingCtors.IndexOf(ctor);
+                var formal = dtor.CorrespondingFormals[i];
+                if (formal.HasName) {
+                  IdRegion.Add(newRegions, program, formal.tok, dtor, null, "destructor", true, module);
                 }
               }
             }
@@ -186,6 +201,7 @@ namespace DafnyLanguage
                 // do nothing
               } else  if (member is Function) {
                 var f = (Function)member;
+                IdRegion.Add(newRegions, program, f.tok, string.Format("{0} {1}", f.WhatKind, f.Name), f.TypeArgs);
                 foreach (var p in f.Formals) {
                   IdRegion.Add(newRegions, program, p.tok, p, true, f, module);
                 }
@@ -198,6 +214,7 @@ namespace DafnyLanguage
                 }
               } else if (member is Method) {
                 var m = (Method)member;
+                IdRegion.Add(newRegions, program, m.tok, string.Format("{0} {1}", m.WhatKind, m.Name), m.TypeArgs);
                 foreach (var p in m.Ins) {
                   IdRegion.Add(newRegions, program, p.tok, p, true, m, module);
                 }
@@ -461,6 +478,28 @@ namespace DafnyLanguage
         Contract.Requires(kind != null);
         if (InMainFileAndUserDefined(prog, tok)) {
           regions.Add(new IdRegion(tok, decl, showType, kind, isDefinition, context));
+        }
+      }
+
+      public static void Add(List<IdRegion> regions, Microsoft.Dafny.Program prog, Bpl.IToken tok, string text, List<TypeParameter> typeArgs) {
+        Contract.Requires(regions != null);
+        Contract.Requires(prog != null);
+        Contract.Requires(tok != null);
+        Contract.Requires(text != null);
+        Contract.Requires(typeArgs != null);
+        if (InMainFileAndUserDefined(prog, tok)) {
+          if (typeArgs.Count > 0) {
+            var pre = "<";
+            foreach (var tp in typeArgs) {
+              text += pre + tp.Name;
+              if (tp.MustSupportEquality) {
+                text += "(==)";
+              }
+              pre = ", ";
+            }
+            text += ">";
+          }
+          regions.Add(new IdRegion(tok, OccurrenceKind.AdditionalInformation, text, tok.val.Length));
         }
       }
 

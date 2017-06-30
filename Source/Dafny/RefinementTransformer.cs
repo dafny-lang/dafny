@@ -381,7 +381,7 @@ namespace Microsoft.Dafny
       moduleUnderConstruction = null;
     }
 
-    Function CloneFunction(IToken tok, Function f, bool isGhost, List<Expression> moreEnsures, Expression moreBody, Expression replacementBody, bool checkPrevPostconditions, Attributes moreAttributes) {
+    Function CloneFunction(IToken tok, Function f, bool isGhost, List<Expression> moreEnsures, Formal moreResult, Expression moreBody, Expression replacementBody, bool checkPrevPostconditions, Attributes moreAttributes) {
       Contract.Requires(tok != null);
       Contract.Requires(moreBody == null || f is Predicate);
       Contract.Requires(moreBody == null || replacementBody == null);
@@ -391,6 +391,10 @@ namespace Microsoft.Dafny
       var req = f.Req.ConvertAll(refinementCloner.CloneExpr);
       var reads = f.Reads.ConvertAll(refinementCloner.CloneFrameExpr);
       var decreases = refinementCloner.CloneSpecExpr(f.Decreases);
+      var result = f.Result ?? moreResult;
+      if (result != null) {
+        result = refinementCloner.CloneFormal(result);
+      }
 
       List<Expression> ens;
       if (checkPrevPostconditions)  // note, if a postcondition includes something that changes in the module, the translator will notice this and still re-check the postcondition
@@ -432,16 +436,17 @@ namespace Microsoft.Dafny
         return new TwoStatePredicate(tok, f.Name, f.HasStaticKeyword, tps, formals,
           req, reads, ens, decreases, body, refinementCloner.MergeAttributes(f.Attributes, moreAttributes), null, f);
       } else if (f is TwoStateFunction) {
-        return new TwoStateFunction(tok, f.Name, f.HasStaticKeyword, tps, formals, refinementCloner.CloneType(f.ResultType),
+        return new TwoStateFunction(tok, f.Name, f.HasStaticKeyword, tps, formals, result, refinementCloner.CloneType(f.ResultType),
           req, reads, ens, decreases, body, refinementCloner.MergeAttributes(f.Attributes, moreAttributes), null, f);
       } else {
-        return new Function(tok, f.Name, f.HasStaticKeyword, f.IsProtected, isGhost, tps, formals, refinementCloner.CloneType(f.ResultType),
+        return new Function(tok, f.Name, f.HasStaticKeyword, f.IsProtected, isGhost, tps, formals, result, refinementCloner.CloneType(f.ResultType),
           req, reads, ens, decreases, body, refinementCloner.MergeAttributes(f.Attributes, moreAttributes), null, f);
       }
     }
 
     Method CloneMethod(Method m, List<MaybeFreeExpression> moreEnsures, Specification<Expression> decreases, BlockStmt newBody, bool checkPreviousPostconditions, Attributes moreAttributes) {
       Contract.Requires(m != null);
+      Contract.Requires(!(m is Constructor) || newBody == null || newBody is DividedBlockStmt);
       Contract.Requires(decreases != null);
 
       var tps = m.TypeArgs.ConvertAll(refinementCloner.CloneTypeParam);
@@ -458,11 +463,13 @@ namespace Microsoft.Dafny
         ens.AddRange(moreEnsures);
       }
 
-      var body = newBody ?? refinementCloner.CloneBlockStmt(m.BodyForRefinement);
       if (m is Constructor) {
+        var dividedBody = (DividedBlockStmt)newBody ?? refinementCloner.CloneDividedBlockStmt((DividedBlockStmt)m.BodyForRefinement);
         return new Constructor(new RefinementToken(m.tok, moduleUnderConstruction), m.Name, tps, ins,
-          req, mod, ens, decreases, body, refinementCloner.MergeAttributes(m.Attributes, moreAttributes), null, m);
-      } else if (m is InductiveLemma) {
+          req, mod, ens, decreases, dividedBody, refinementCloner.MergeAttributes(m.Attributes, moreAttributes), null, m);
+      }
+      var body = newBody ?? refinementCloner.CloneBlockStmt(m.BodyForRefinement);
+      if (m is InductiveLemma) {
         return new InductiveLemma(new RefinementToken(m.tok, moduleUnderConstruction), m.Name, m.HasStaticKeyword, tps, ins, m.Outs.ConvertAll(refinementCloner.CloneFormal),
           req, mod, ens, decreases, body, refinementCloner.MergeAttributes(m.Attributes, moreAttributes), null, m);
       } else if (m is CoLemma) {
@@ -623,6 +630,9 @@ namespace Microsoft.Dafny
               } else {
                 CheckAgreement_TypeParameters(f.tok, prevFunction.TypeArgs, f.TypeArgs, f.Name, "function");
                 CheckAgreement_Parameters(f.tok, prevFunction.Formals, f.Formals, f.Name, "function", "parameter");
+                if (prevFunction.Result != null && f.Result != null && prevFunction.Result.Name != f.Result.Name) {
+                  reporter.Error(MessageSource.RefinementTransformer, f, "the name of function return value '{0}'({1}) differs from the name of corresponding function return value in the module it refines ({2})", f.Name, f.Result.Name, prevFunction.Result.Name);
+                }
                 if (!TypesAreSyntacticallyEqual(prevFunction.ResultType, f.ResultType)) {
                   reporter.Error(MessageSource.RefinementTransformer, f, "the result type of function '{0}' ({1}) differs from the result type of the corresponding function in the module it refines ({2})", f.Name, f.ResultType, prevFunction.ResultType);
                 }
@@ -641,7 +651,7 @@ namespace Microsoft.Dafny
                   reporter.Error(MessageSource.RefinementTransformer, nwMember, "a refining function is not allowed to extend/change the body");
                 }
               }
-              var newF = CloneFunction(f.tok, prevFunction, f.IsGhost, f.Ens, moreBody, replacementBody, prevFunction.Body == null, f.Attributes);
+              var newF = CloneFunction(f.tok, prevFunction, f.IsGhost, f.Ens, f.Result, moreBody, replacementBody, prevFunction.Body == null, f.Attributes);
               newF.RefinementBase = member;
               nw.Members[index] = newF;
             }
@@ -872,12 +882,43 @@ namespace Microsoft.Dafny
     BlockStmt MergeBlockStmt(BlockStmt skeleton, BlockStmt oldStmt) {
       Contract.Requires(skeleton != null);
       Contract.Requires(oldStmt != null);
+      Contract.Requires(skeleton is DividedBlockStmt == oldStmt is DividedBlockStmt);
 
+      if (skeleton is DividedBlockStmt) {
+        var sbsSkeleton = (DividedBlockStmt)skeleton;
+        var sbsOldStmt = (DividedBlockStmt)oldStmt;
+        string hoverText;
+        var bodyInit = MergeStmtList(sbsSkeleton.BodyInit, sbsOldStmt.BodyInit, out hoverText);
+        if (hoverText.Length != 0) {
+          reporter.Info(MessageSource.RefinementTransformer, sbsSkeleton.SeparatorTok ?? sbsSkeleton.Tok, hoverText);
+        }
+        var bodyProper = MergeStmtList(sbsSkeleton.BodyProper, sbsOldStmt.BodyProper, out hoverText);
+        if (hoverText.Length != 0) {
+          reporter.Info(MessageSource.RefinementTransformer, sbsSkeleton.EndTok, hoverText);
+        }
+        return new DividedBlockStmt(sbsSkeleton.Tok, sbsSkeleton.EndTok, bodyInit, sbsSkeleton.SeparatorTok, bodyProper);
+      } else {
+        string hoverText;
+        var body = MergeStmtList(skeleton.Body, oldStmt.Body, out hoverText);
+        if (hoverText.Length != 0) {
+          reporter.Info(MessageSource.RefinementTransformer, skeleton.EndTok, hoverText);
+        }
+        return new BlockStmt(skeleton.Tok, skeleton.EndTok, body);
+      }
+    }
+
+    List<Statement> MergeStmtList(List<Statement> skeleton, List<Statement> oldStmt, out string hoverText) {
+      Contract.Requires(skeleton != null);
+      Contract.Requires(oldStmt != null);
+      Contract.Ensures(Contract.ValueAtReturn(out hoverText) != null);
+      Contract.Ensures(Contract.Result<List<Statement>>() != null);
+
+      hoverText = "";
       var body = new List<Statement>();
       int i = 0, j = 0;
-      while (i < skeleton.Body.Count) {
-        var cur = skeleton.Body[i];
-        if (j == oldStmt.Body.Count) {
+      while (i < skeleton.Count) {
+        var cur = skeleton[i];
+        if (j == oldStmt.Count) {
           if (!(cur is SkeletonStatement)) {
             MergeAddStatement(cur, body);
           } else if (((SkeletonStatement)cur).S == null) {
@@ -887,7 +928,7 @@ namespace Microsoft.Dafny
           }
           i++;
         } else {
-          var oldS = oldStmt.Body[j];
+          var oldS = oldStmt[j];
           /* See how the two statements match up.
            *   oldS                         cur                         result
            *   ------                      ------                       ------
@@ -927,7 +968,7 @@ namespace Microsoft.Dafny
             var c = (SkeletonStatement)cur;
             var S = c.S;
             if (S == null) {
-              var nxt = i + 1 == skeleton.Body.Count ? null : skeleton.Body[i + 1];
+              var nxt = i + 1 == skeleton.Count ? null : skeleton[i + 1];
               if (nxt != null && nxt is SkeletonStatement && ((SkeletonStatement)nxt).S == null) {
                 // "...; ...;" is the same as just "...;", so skip this one
               } else {
@@ -954,8 +995,8 @@ namespace Microsoft.Dafny
                   hoverTextA += sepA + Printer.StatementToString(s);
                   sepA = "\n";
                   j++;
-                  if (j == oldStmt.Body.Count) { break; }
-                  oldS = oldStmt.Body[j];
+                  if (j == oldStmt.Count) { break; }
+                  oldS = oldStmt[j];
                 }
                 if (hoverTextA.Length != 0) {
                   reporter.Info(MessageSource.RefinementTransformer, c.Tok, hoverTextA);
@@ -1219,18 +1260,14 @@ namespace Microsoft.Dafny
         }
       }
       // implement the implicit "...;" at the end of each block statement skeleton
-      var hoverText = "";
       var sep = "";
-      for (; j < oldStmt.Body.Count; j++) {
-        var b = oldStmt.Body[j];
+      for (; j < oldStmt.Count; j++) {
+        var b = oldStmt[j];
         body.Add(refinementCloner.CloneStmt(b));
         hoverText += sep + Printer.StatementToString(b);
         sep = "\n";
       }
-      if (hoverText.Length != 0) {
-        reporter.Info(MessageSource.RefinementTransformer, skeleton.EndTok, hoverText);
-      }
-      return new BlockStmt(skeleton.Tok, skeleton.EndTok, body);
+      return body;
     }
 
     private bool LeftHandSidesAgree(List<Expression> old, List<Expression> nw) {
@@ -1494,7 +1531,11 @@ namespace Microsoft.Dafny
       moduleUnderConstruction = m;
     }
     public override BlockStmt CloneMethodBody(Method m) {
-      return CloneBlockStmt(m.BodyForRefinement);
+      if (m.BodyForRefinement is DividedBlockStmt) {
+        return CloneDividedBlockStmt((DividedBlockStmt)m.BodyForRefinement);
+      } else {
+        return CloneBlockStmt(m.BodyForRefinement);
+      }
     }
     public override IToken Tok(IToken tok) {
       return new RefinementToken(tok, moduleUnderConstruction);

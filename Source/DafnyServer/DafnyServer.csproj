@@ -117,11 +117,20 @@
     <Reference Include="BoogieExecutionEngine">
       <HintPath>..\..\..\boogie\Binaries\BoogieExecutionEngine.dll</HintPath>
     </Reference>
+    <Reference Include="BoogieGraph">
+		<HintPath>..\..\..\boogie\Binaries\BoogieGraph.dll</HintPath>
+	</Reference>
     <Reference Include="BoogieParserHelper">
       <HintPath>..\..\..\boogie\Binaries\BoogieParserHelper.dll</HintPath>
     </Reference>
     <Reference Include="Provers.SMTLib">
       <HintPath>..\..\..\boogie\Binaries\Provers.SMTLib.dll</HintPath>
+    </Reference>
+    <Reference Include="BoogieModelViewer">
+      <HintPath>..\..\..\boogie\Binaries\BoogieModelViewer.dll</HintPath>
+    </Reference>
+    <Reference Include="BoogieModel">
+      <HintPath>..\..\..\boogie\Binaries\BoogieModel.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
@@ -131,11 +140,14 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="CounterExampleProvider.cs" />
     <Compile Include="DafnyHelper.cs" />
+    <Compile Include="SymbolTable.cs" />
     <Compile Include="Utilities.cs" />
     <Compile Include="VerificationTask.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Server.cs" />
+    <Compile Include="VersionCheck.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />

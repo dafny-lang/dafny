@@ -1,0 +1,34 @@
+ArrayElementInit.dfy(13,31): Error: possible division by zero
+Execution trace:
+    (0,0): anon0
+    (0,0): anon3_Then
+ArrayElementInit.dfy(19,11): Error: all array indicies must be in the domain of the initialization function
+Execution trace:
+    (0,0): anon0
+ArrayElementInit.dfy(39,11): Error: all array indicies must be in the domain of the initialization function
+Execution trace:
+    (0,0): anon0
+    ArrayElementInit.dfy(39,25): anon7_Else
+ArrayElementInit.dfy(66,22): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    ArrayElementInit.dfy(64,30): anon3_Else
+ArrayElementInit.dfy(102,24): Error: value does not satisfy the subset constraints of 'nat'
+Execution trace:
+    (0,0): anon0
+ArrayElementInit.dfy(110,32): Error: value does not satisfy the subset constraints of 'nat'
+Execution trace:
+    (0,0): anon0
+ArrayElementInit.dfy(113,20): Error: given array size must agree with the number of expressions in the initializing display (4)
+Execution trace:
+    (0,0): anon0
+ArrayElementInit.dfy(139,14): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    (0,0): anon3_Then
+    (0,0): anon2
+ArrayElementInit.dfy(144,22): Error: possible violation of function precondition
+Execution trace:
+    (0,0): anon0
+
+Dafny program verifier finished with 10 verified, 9 errors

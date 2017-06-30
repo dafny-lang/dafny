@@ -67,7 +67,7 @@ module GhostCheck2 {
 module Mojul0 {
   class MyClass {
     copredicate D()
-      reads this;  // error: copredicates are not allowed to have a reads clause -- WHY NOT?
+      reads this  // yes, copredicates can have reads clauses
     {
       true
     }

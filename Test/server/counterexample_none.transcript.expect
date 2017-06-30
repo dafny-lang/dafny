@@ -1,0 +1,9 @@
+# Reading from counterexample_none.transcript
+
+Verifying Impl$$_module.__default.AbsCorrect ...
+  [1 proof obligation]  verified
+COUNTEREXAMPLE_START {"States":[]} COUNTEREXAMPLE_END
+Verification completed successfully!
+[SUCCESS] [[DAFNY-SERVER: EOM]]
+Verification completed successfully!
+[SUCCESS] [[DAFNY-SERVER: EOM]]

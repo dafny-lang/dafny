@@ -47,9 +47,9 @@ colemma BzipZipLemma(xs:Stream, ys:Stream)
    More examples from CoCasl.
  */
 
-function const(n:int): Stream<int>
+function constr(n:int): Stream<int>
 {
-  Cons(n, const(n))
+  Cons(n, constr(n))
 }
 
 function blink(): Stream<int>
@@ -58,7 +58,7 @@ function blink(): Stream<int>
 }
 
 colemma BzipBlinkLemma()
-  ensures zip(const(0), const(1)) == blink();
+  ensures zip(constr(0), constr(1)) == blink();
 {
   BzipBlinkLemma(); 
 }
@@ -70,7 +70,7 @@ function zip2(xs: Stream, ys: Stream): Stream
 }
 
 colemma Zip201Lemma()
-  ensures zip2(const(0), const(1)) == blink();
+  ensures zip2(constr(0), constr(1)) == blink();
 {
   Zip201Lemma();
 }

@@ -1,0 +1,3 @@
+git-issue99.dfy(6,19): Error: Undeclared top-level type or type parameter: BOGUS_TYPE (did you forget to qualify a name or declare a module import 'opened?')
+git-issue99.dfy(6,41): Error: second argument to "in" must be a set, multiset, or sequence with elements of type (BOGUS_TYPE,T2), or a map with domain (BOGUS_TYPE,T2) (instead got iset<(T1,T2)>) (expecting element type (BOGUS_TYPE,T2) <: (T1,T2)) (covariant type parameter 0 would require T1 <: BOGUS_TYPE)
+2 resolution/type errors detected in git-issue99.dfy

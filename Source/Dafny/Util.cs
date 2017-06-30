@@ -24,7 +24,18 @@ namespace Microsoft.Dafny {
       return res;
     }
 
-    public static List<B> Map<A,B>(IEnumerable<A> xs, Func<A,B> f)
+    public static string Comma(int count, Func<int, string> f) {
+      Contract.Requires(0 <= count);
+      string res = "";
+      string c = "";
+      for (int i = 0; i < count; i++) {
+        res += c + f(i);
+        c = ",";
+      }
+      return res;
+    }
+
+    public static List<B> Map<A, B>(IEnumerable<A> xs, Func<A, B> f)
     {
       List<B> ys = new List<B>();
       foreach (A x in xs) {

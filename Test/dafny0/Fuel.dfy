@@ -68,7 +68,7 @@ module TestModule2 {
         if (*) {
             assert pos4(z) == 0;    // error: Fuel shouldn't overcome opaque
         } else {
-            reveal_pos4();
+            reveal pos4();
             assert pos4(y) == 5 + pos4(y - 5);  // With reveal, everything should work as above
         }
 

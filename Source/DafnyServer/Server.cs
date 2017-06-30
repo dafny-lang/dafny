@@ -1,12 +1,7 @@
 using System;
 using System.IO;
 using System.Text;
-using System.Collections.Generic;
-using System.Runtime.Serialization;
-using System.Runtime.Serialization.Json;
-
-using Dafny = Microsoft.Dafny;
-using Bpl = Microsoft.Boogie;
+using DafnyServer;
 using Microsoft.Boogie;
 
 namespace Microsoft.Dafny {
@@ -67,7 +62,7 @@ namespace Microsoft.Dafny {
 
     void Respond(string[] command) {
       try {
-        if (command.Length ==  0) {
+        if (command.Length == 0) {
           throw new ServerException("Empty command");
         }
 
@@ -76,6 +71,22 @@ namespace Microsoft.Dafny {
           ServerUtils.checkArgs(command, 0);
           var payload = ReadPayload();
           VerificationTask.ReadTask(payload).Run();
+        } else if (verb == "counterExample") {
+          ServerUtils.checkArgs(command, 0);
+          var payload = ReadPayload();
+          VerificationTask.ReadTask(payload).CounterExample();
+        } else if (verb == "dotgraph") {
+          ServerUtils.checkArgs(command, 0);
+          var payload = ReadPayload();
+          VerificationTask.ReadTask(payload).DotGraph();
+        } else if (verb == "symbols") {
+          ServerUtils.checkArgs(command, 0);
+          var payload = ReadPayload();
+          VerificationTask.ReadTask(payload).Symbols();
+        } else if (verb == "version") {
+          ServerUtils.checkArgs(command, 0);
+          ReadPayload();
+          VersionCheck.CurrentVersion();
         } else if (verb == "quit") {
           ServerUtils.checkArgs(command, 0);
           Exit();

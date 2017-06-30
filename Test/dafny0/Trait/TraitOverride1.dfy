@@ -1,20 +1,19 @@
 // RUN: %dafny /compile:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
-//everything should work OK in this test file
 trait T1
 {
   function method Plus (x:int, y:int) : int
-    requires x>y;
+    requires x>y
   {
-     x + y
+    x + y
   }
   
   function method bb(x:int):int
-    requires x>10;
+    requires x>10
   
   function method BodyLess1(a:int) : int
-    requires a > 0;
+    requires a > 0
    
   function method dd(a:int) : int  
    
@@ -35,49 +34,49 @@ class C1 extends T1
   }
   
   function method bb(x:int):int
-    requires x >10;
+    requires x >10
   {
     x
   }
   function method BodyLess1(bda:int) : int
-    requires bda > (-10); 
+    requires bda > -10
   {
     2
   }
   
   method CallBodyLess(x:int)
-    requires x > (-10);
+    requires x > -10
   {
     var k:int := BodyLess1(x);
-    assert (k==2);
+    assert k==2;
   }
 }
 
 trait T2 
 {
   function method F(x: int): int
-    requires x < 100;
-    ensures F(x) < 100;
+    requires x < 100
+    ensures F(x) < 100
   
   method M(x: int) returns (y: int)
-    requires 0 <= x;
-    ensures x < y;
+    requires 0 <= x
+    ensures x < y
 }
 
 class C2 extends T2 
 {
   function method F(x: int): int
-    requires x < 100;
-    ensures F(x) < 100;
+    requires x < 100
+    ensures F(x) < 100
   {
     x
   }
   
   method M(x: int) returns (y: int)
-    requires -2000 <= x; // a more permissive precondition than in the interface
-    ensures 2*x < y; // a more detailed postcondition than in the interface
+    requires -2000 <= x  // a more permissive precondition than in the interface
+    ensures 2*x < y  // a more detailed postcondition than in the interface
   {
-    y := (2 * x) + 1;
+    y := 2 * x + 1;
   }
 }
 
@@ -108,17 +107,17 @@ class C3 extends T3
 trait t
 {
   function f(s2:int):int
-    ensures f(s2) > 0;
-    //requires s != null && s.Length > 1;
-    //reads s, s2;
+    ensures f(s2) > 0
+    //requires s != null && s.Length > 1
+    //reads s, s2
 }
 
 class c extends t
 {
   function f(s3:int):int
-    ensures f(s3) > 1;
-    //requires s0 != null && s0.Length > (0);
-    //reads s0;
+    ensures f(s3) > 1
+    //requires s0 != null && s0.Length > (0)
+    //reads s0
   { 
     2
   }
@@ -127,7 +126,7 @@ class c extends t
 trait TT
 {
   static function method M(a:int, b:int) : int
-    ensures M(a,b) == a + b;
+    ensures M(a,b) == a + b
   {
     a + b
   }
@@ -137,7 +136,7 @@ class CC extends TT
 {
   method Testing(a:int,b:int)
   {
-    assert (TT.M(a,b) == a + b);
+    assert TT.M(a,b) == a + b;
   }
 }
 
@@ -152,8 +151,8 @@ trait T4
   }
   
   method M(y: int) returns (kobra:int)
-    requires y > 0;
-    ensures kobra > 0;
+    requires y > 0
+    ensures kobra > 0
      
   method N(y: int) 
   { 
@@ -173,9 +172,35 @@ class C4 extends T4
   }
 
   method M(kk:int) returns (ksos:int)
-    requires kk > (-1);
-    ensures ksos > 0;
+    requires kk > -1
+    ensures ksos > 0
   {
     ksos:=10;  
   }   
+}
+
+// regression tests
+
+trait OneTrait
+{
+  predicate P() { true }
+  predicate Q() { true }
+  predicate R(x: int) { x < 80 }
+
+  method M() ensures P()
+  method N() ensures P()
+  method O() returns (r: int) ensures R(r)
+  method O'() returns (r: int) ensures P()
+}
+
+class OneClass extends OneTrait
+{
+  method M() ensures P() { }
+  method N() ensures Q() { }
+  method O() returns (r': int) ensures P()  // error: this postcondition does not imply the one in the trait
+  {
+    r' := 50;
+  }
+  method O'() returns (r': int) ensures R(r')
+  { }  // error: does not establish postcondition R(r')
 }

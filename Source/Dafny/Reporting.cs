@@ -37,7 +37,7 @@ namespace Microsoft.Dafny {
     // This is the only thing that needs to be overriden
     public virtual bool Message(MessageSource source, ErrorLevel level, IToken tok, string msg) {
       bool discard = (ErrorsOnly && level != ErrorLevel.Error) || // Discard non-errors if ErrorsOnly is set
-                     (tok is TokenWrapper && !(tok is NestedToken) && !(tok is RefinementToken)); // Discard wrapped tokens, except for nested and refinement
+                     (tok is TokenWrapper && !(tok is IncludeToken) && !(tok is NestedToken) && !(tok is RefinementToken)); // Discard wrapped tokens, except for included, nested and refinement
       if (!discard) {
         AllMessages[level].Add(new ErrorMessage { token = tok, message = msg });
       }
@@ -51,6 +51,16 @@ namespace Microsoft.Dafny {
     public void Error(MessageSource source, IToken tok, string msg) {
       Contract.Requires(tok != null);
       Contract.Requires(msg != null);
+      // if the tok is IncludeToken, we need to indicate to the including file
+      // that there are errors in the included file.
+      if (tok is IncludeToken) {
+        IncludeToken includeToken = (IncludeToken) tok;
+        Include include = includeToken.Include;
+        if (!include.ErrorReported) {
+          Message(source, ErrorLevel.Error, include.tok, "the included file " + tok.filename + " contains error(s)");
+          include.ErrorReported = true;
+        }
+      }
       Message(source, ErrorLevel.Error, tok, msg);
     }
 

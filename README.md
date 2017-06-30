@@ -24,6 +24,7 @@ Here are some ways to get started with Dafny:
 * Dafny [Quick Reference](http://research.microsoft.com/en-us/projects/dafny/reference.aspx)
 * Language reference for the [Dafny type system](http://research.microsoft.com/en-us/um/people/leino/papers/krml243.html), which also describes available expressions for each type 
 * [Cheatsheet](https://docs.google.com/document/d/1kz5_yqzhrEyXII96eCF1YoHZhnb_6dzv-K3u79bMMis/edit?pref=2&pli=1): basic Dafny syntax on two pages 
+* Dafny Reference Manual [[html](https://github.com/Microsoft/dafny/blob/master/Docs/DafnyRef/out/DafnyRef.html)] [[pdf](https://github.com/Microsoft/dafny/blob/master/Docs/DafnyRef/out/DafnyRef.pdf)]
 * Videos at [Verification Corner](https://www.youtube.com/channel/UCP2eLEql4tROYmIYm5mA27A)
 * For more papers on Dafny, see the Dafny section of Rustan Leino's [paper page](http://research.microsoft.com/en-us/um/people/leino/papers.html)
 

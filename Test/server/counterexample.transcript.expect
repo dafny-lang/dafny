@@ -1,0 +1,13 @@
+# Reading from counterexample.transcript
+
+Verifying Impl$$_module.__default.Abs ...
+  [1 proof obligation]  error
+c:\DEV\Dafny\abs.dfy(4,4): Error BP5003: A postcondition might not hold on this return path.
+c:\DEV\Dafny\abs.dfy(3,10): Related location: This is the postcondition that might not hold.
+Execution trace:
+    (0,0): anon0
+COUNTEREXAMPLE_START {"States":[{"Column":0,"Line":0,"Name":"<initial>","Variables":[{"CanonicalName":"((- 1))","Name":"x","RealName":null,"Value":"((- 1))"},{"CanonicalName":"(**y#0)","Name":"y","RealName":null,"Value":"(**y#0)"}]},{"Column":16,"Line":3,"Name":"c:\\DEV\\Dafny\\abs.dfy(3,16): initial state","Variables":[{"CanonicalName":"((- 1))","Name":"x","RealName":null,"Value":"((- 1))"},{"CanonicalName":"(**y#0)","Name":"y","RealName":null,"Value":"(**y#0)"}]},{"Column":13,"Line":4,"Name":"c:\\DEV\\Dafny\\abs.dfy(4,13)","Variables":[{"CanonicalName":"((- 1))","Name":"x","RealName":null,"Value":"((- 1))"},{"CanonicalName":"((- 1))'1","Name":"y","RealName":null,"Value":"((- 1))'1"}]}]} COUNTEREXAMPLE_END
+Verification completed successfully!
+[SUCCESS] [[DAFNY-SERVER: EOM]]
+Verification completed successfully!
+[SUCCESS] [[DAFNY-SERVER: EOM]]

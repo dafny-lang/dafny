@@ -48,7 +48,7 @@ namespace Microsoft.Dafny {
       Dafny.DafnyOptions.O.ProverKillTime = 10; //This is just a default; it can be overriden
 
       if (CommandLineOptions.Clo.Parse(args)) {
-        DafnyOptions.O.VerifySnapshots = 2; // Use caching
+        DafnyOptions.O.VerifySnapshots = 0;
         DafnyOptions.O.VcsCores = Math.Max(1, System.Environment.ProcessorCount / 2); // Don't use too many cores
         DafnyOptions.O.PrintTooltips = true; // Dump tooptips (ErrorLevel.Info) to stdout
         //DafnyOptions.O.UnicodeOutput = true; // Use pretty warning signs

@@ -1,0 +1,5 @@
+// RUN: %dafny /rprint:"%t.rprint" /compile:0  "%s" > "%t"
+// RUN: %diff "%s.expect" "%t"
+
+predicate isUInt32(i:int) { 0 <= i < 0x1_0000_0000 }
+type word = x | isUInt32(x)

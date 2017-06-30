@@ -148,7 +148,7 @@ module Deep {
     var co: Co;
     var d := G(co, NoMo);  // error: actual type parameter for Y (namely, Co) does
                            // not support equality
-    d := G(t, t) + G(s, s);  // fine, because all sets support equality
+
   }
 
   function method G<Y(==)>(y: Y, z: Y): int { if y == z then 5 else 7 }
@@ -302,8 +302,8 @@ module EqualitySupportingTypes {
     var xy: set<set<int>>;
     var xz: set<set<Stream<int>>>;  // error: set type argument must support equality
     
-    Callee<set<Stream<int>>>();  // bogus: a set shouldn't ever be allowed to take a Stream as an argument (this check seems to be missing for explicit type arguments)  -- Note: language definition should be changed, because it doesn't make sense for it to talk about a type appearing in a ghost or non-ghost context. Instead, set/iset/multiset/map/imap should always be allowed to take any type argument, but these types may or may not support equality.
-    var xg := G<set<Stream<int>>>();
+    Callee<set<Stream<int>>>();  // error: cannot utter set<Stream<int>>  -- Note: language definition should be changed, because it doesn't make sense for it to talk about a type appearing in a ghost or non-ghost context. Instead, set/iset/multiset/map/imap should always be allowed to take any type argument, but these types may or may not support equality.
+    var xg := G<set<Stream<int>>>();  // error: cannot utter set<Stream<int>>, because Stream<int> does not support equality
     
     var ac0: AClass<int,int>;
     var ac1: AClass<Stream<int>,int>;  // error: type parameter 0 is required to support equality
@@ -325,24 +325,20 @@ module EqualitySupportingTypes {
     AClass<int,Stream<int>>.Q<Stream<real>,real>();
     AClass<int,Stream<int>>.Q<real,Stream<real>>();  // error: method type param 1 wants an equality-supporting type
   
-/*************************** TESTS YET TO COME
-    var ac8: AClass<real,real>;
-    var xd8 := (if 5/0 == 3 then ac0 else ac8).H<real,real>();  // error: this should be checked by the verifier
-
-    AClass<int,set<Stream<int>>>.Q<real,real>();  // error: cannot utter "set<Stream<int>>"   Or is that okay???
-    AClass<int,int>.Q<set<Stream<real>>,real>();  // error: cannot utter "set<Stream<real>>"   Or is that okay???
-    var xi0 := AClass<int,set<Stream<int>>>.H<real,real>();  // error: cannot utter "set<Stream<int>>"   Or is that okay???
-    var xi1 := AClass<int,int>.H<real,set<Stream<real>>>();  // error: cannot utter "set<Stream<real>>"   Or is that okay???
+    AClass<int,set<Stream<int>>>.Q<real,real>();  // error: cannot utter "set<Stream<int>>"
+    AClass<int,int>.Q<set<Stream<real>>,real>();  // error: cannot utter "set<Stream<real>>"
+    var xi0 := AClass<int,set<Stream<int>>>.H<real,real>();  // error: cannot utter "set<Stream<int>>"
+    var xi1 := AClass<int,int>.H<real,set<Stream<real>>>();  // error: cannot utter "set<Stream<real>>"
 
     var x, t, s: seq<int -> int>, fii: int -> int;
-    if s == t {
-      x := 5;  // error: assigning to non-ghost variable in ghost context
+    if s == t {  // error: this comparison requires the types of s and t to be equality supporting
+      x := 5;
     }
-    if fii in s {
-      x := 4;  // error: assigning to non-ghost variable in ghost context
+    if fii in s {  // error: this operation requires "s" to be an equality-support sequence (which it isn't)
+      x := 4;
     }
-    if !(fii in s) {
-      x := 3;  // error: assigning to non-ghost variable in ghost context
+    if !(fii in s) {  // error: this operation requires "s" to be an equality-support sequence (which it isn't)
+      x := 3;
     }
 
     ghost var ghostset: set<Stream<int>> := {};  // fine, since this is ghost
@@ -350,6 +346,93 @@ module EqualitySupportingTypes {
       ensures var lets: set<Stream<int>> := {}; lets == lets  // this is ghost, so the equality requirement doesn't apply
     {
     }
-*********************************************/
+
+  }
+}
+
+module MoreEqualitySupportingTypes {
+  type ABC
+  type JustOpaque<A(==)>
+  type Synonym<A(==)> = (int,A)
+  type Subset<A(==)> = a: A | a == a
+  method Test() {
+    var a: JustOpaque<ABC>;  // error: type argument to JustOpaque must support equality
+    var b: Synonym<ABC>;  // error: type argument to Synonym must support equality
+    var c: Subset<ABC>;  // error: type argument to Subset must support equality
+  }
+}
+
+// ----------------------------
+
+module AlwaysOkayComparisons {
+  datatype List<A> = Nil | Cons(A, List) | ICons(int, List)
+  datatype TwoLists<A> = Two(List, List)
+  datatype GhostRecord = GR(int, ghost int, bool)
+  codatatype Co<A> = Atom(A) | CoCons(int, Co) | CoConsA(A, Co)
+
+  method M<A>(xs: List, a: A) returns (r: bool)
+  {
+    var u := 6;
+    r := xs == xs;  // error: cannot compare
+    r := xs == Nil;
+    r := xs == Cons(a, Nil);  // error: cannot compare
+    r := xs == ICons(4, ICons(2, Nil));
+    r := xs == ICons(2, ICons(u, Nil));
+    r := xs == ICons(2, ICons(30, xs));  // error: cannot compare
+  }
+
+  method N<A>(pr: (A, List<A>), a: A, pair: TwoLists<A>) returns (r: bool)
+  {
+    r := pr == (a, Nil);  // error: cannot compare
+    r := pair == Two(ICons(4, Nil), Nil);
+  }
+
+  method G(g: GhostRecord) returns (r: bool)
+  {
+    r := g == GR(5, 6, true);  // error: cannot compare
+  }
+
+  method H<A,B(==)>(c: Co<A>, d: Co<B>, a: A, b: B) returns (r: bool)
+  {
+    r := c == Atom(a);  // error: cannot compare
+    r := d == Atom(b);
+    r := d == CoCons(10, CoCons(8, Atom(b)));
+  }
+  
+  method CompareDisplays<A,B>(q: seq<B>, m: map<A,B>) returns (r: int) {
+    r := if q != [] && m == map[] then 3 else 5;  // allowed
+  }
+}
+
+// ----------------------------
+
+module RegressionsSeqMap {
+  method M0<A>(q: seq<A>)  // this does not make A into A(==)
+  {
+    var s: set<A>;  // error: set<A> requires A to be equality supporting
+  }
+  method M1<A>(q: seq<A>, a: A) returns (r: int)  // this does not make A into A(==)
+  {
+    if a in q {  // error: this operation requires A to be equality supporting
+      r := 10;
+    }
+    if a: A :| a in q {  // error: this operation requires A to be equality supporting
+      r := 12;
+    }
+    var q': seq<A>, b: bool;
+    b := q' <= q;  // error: this operation requires A to be equality supporting
+  }
+  method N0<A,B>(m: map<A,B>) returns (r: int)  // this infers <A(==),B>
+  {
+    var items := m.Items;  // error: this requires (A and) B to be equality supporting
+    var keys := m.Keys;
+    var values := m.Values;  // error: this requires B to be equality supporting
+    ghost var gv := m.Values;
+    ghost var itms := m.Items;
+    gv, keys, itms := {}, {}, {};
+  }
+  method N1<A,B>(a: A, b: B) returns (r: int)  // this infers <A(==),B>
+  {
+    var m: map<A,B>;  // error: this requires A to be equality supporting
   }
 }

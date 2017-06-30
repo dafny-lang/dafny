@@ -142,7 +142,7 @@ class DatatypeInduction<T> {
   method IntegerInduction_Succeeds(a: array<int>)
     requires a != null
     requires a.Length == 0 || a[0] == 0
-    requires forall j {:nowarn} :: 1 <= j < a.Length ==> a[j] == a[j-1]+2*j-1 // WISH: If induction was more powerful, we wouldn't need to rely on the quantifier to produce the j-1 term.
+    requires forall j {:nowarn} {:matchinglooprewrite false} :: 1 <= j < a.Length ==> a[j] == a[j-1]+2*j-1 // WISH: If induction was more powerful, we wouldn't need to rely on the quantifier to produce the j-1 term.
   {
     // The following assertion can be proved by induction:
     assert forall n {:induction} :: 0 <= n < a.Length ==> a[n] == n*n;
@@ -151,7 +151,7 @@ class DatatypeInduction<T> {
   method IntegerInduction_Fails(a: array<int>)
     requires a != null
     requires a.Length == 0 || a[0] == 0
-    requires forall j {:nowarn} :: 1 <= j < a.Length ==> a[j] == a[j-1]+2*j-1 // WISH: Same as above
+    requires forall j :: 1 <= j < a.Length ==> a[j] == a[j-1]+2*j-1 // WISH: Same as above
   {
     // ...but the induction heuristics don't recognize the situation as one where
     // applying induction would be profitable:

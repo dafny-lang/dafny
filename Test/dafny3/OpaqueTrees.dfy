@@ -24,19 +24,19 @@ lemma {:induction false} MirrorSize(t: Tree)
     case Leaf(x) =>
       calc {
         size(mirror(Leaf(x)));
-      ==  { reveal_mirror(); }
+      ==  { reveal mirror(); }
         size(Leaf(x));
       }
     case Node(left, right) =>
       calc {
         size(mirror(Node(left, right)));
-      ==  { reveal_mirror(); }
+      ==  { reveal mirror(); }
         size(Node(mirror(right), mirror(left)));
-      ==  { reveal_size(); }
+      ==  { reveal size(); }
         1 + size(mirror(right)) + size(mirror(left));
       ==  { MirrorSize(right); MirrorSize(left); }  // induction hypothesis
         1 + size(right) + size(left);
-      ==  { reveal_size(); }
+      ==  { reveal size(); }
         size(Node(left, right));
       }
   }

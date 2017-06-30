@@ -21,7 +21,7 @@ NewtypesResolution.dfy(156,9): Error: name of type (B) is used as a variable
 NewtypesResolution.dfy(157,11): Error: name of type (Syn) is used as a variable
 NewtypesResolution.dfy(162,8): Error: member 'U' does not exist in type 'Y'
 NewtypesResolution.dfy(162,9): Error: expected method call, found expression
-NewtypesResolution.dfy(188,60): Error: incorrect type of datatype constructor argument (found Dt<bool>, expected S) (covariant type parameter would require int <: bool)
+NewtypesResolution.dfy(188,61): Error: incorrect type of datatype constructor argument (found bool, expected int)
 NewtypesResolution.dfy(221,13): Error: arguments to < must have a common supertype (got Even and int)
 NewtypesResolution.dfy(223,13): Error: arguments to < must have a common supertype (got Even and int)
 NewtypesResolution.dfy(227,13): Error: arguments to < must have a common supertype (got Even and int)
@@ -31,4 +31,13 @@ NewtypesResolution.dfy(219,26): Error: new must use an integer-based expression 
 NewtypesResolution.dfy(238,13): Error: arguments to < must have a common supertype (got Even and int)
 NewtypesResolution.dfy(240,13): Error: arguments to <= must have a common supertype (got Even and int)
 NewtypesResolution.dfy(249,17): Error: multiset update requires integer-based numeric value (got real)
-33 resolution/type errors detected in NewtypesResolution.dfy
+NewtypesResolution.dfy(256,28): Error: ghost variables are allowed only in specification contexts
+NewtypesResolution.dfy(259,24): Error: ghost variables are allowed only in specification contexts
+NewtypesResolution.dfy(262,6): Error: quantifiers in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce or compile a bounded set of values for 'x'
+NewtypesResolution.dfy(265,9): Error: quantifiers in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce or compile a bounded set of values for 'x'
+NewtypesResolution.dfy(276,7): Error: recursive dependency involving a subset type: AA -> EE -> DD -> CC -> BB
+NewtypesResolution.dfy(277,7): Error: recursive dependency involving a subset type: AA -> EE -> DD -> CC -> BB
+NewtypesResolution.dfy(278,7): Error: recursive dependency involving a subset type: AA -> EE -> DD -> CC -> BB
+NewtypesResolution.dfy(279,10): Error: recursive dependency involving a newtype: AA -> EE -> DD -> CC -> BB
+NewtypesResolution.dfy(280,10): Error: recursive dependency involving a newtype: AA -> EE -> DD -> CC -> BB
+42 resolution/type errors detected in NewtypesResolution.dfy

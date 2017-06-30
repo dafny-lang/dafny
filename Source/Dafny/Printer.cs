@@ -218,8 +218,7 @@ Everything) {
           var at = (OpaqueTypeDecl)d;
           if (i++ != 0) { wr.WriteLine(); }
           Indent(indent);
-          PrintClassMethodHelper("type", at.Attributes, at.Name, new List<TypeParameter>());
-          wr.Write(EqualitySupportSuffix(at.EqualitySupport));
+          PrintClassMethodHelper("type", at.Attributes, at.Name + EqualitySupportSuffix(at.EqualitySupport), d.TypeArgs);
           wr.WriteLine();
         } else if (d is NewtypeDecl) {
           var dd = (NewtypeDecl)d;
@@ -231,33 +230,41 @@ Everything) {
             PrintType(dd.BaseType);
           } else {
             wr.Write(dd.Var.DisplayName);
-            if (!(dd.Var.Type is TypeProxy) || DafnyOptions.O.DafnyPrintResolvedFile != null) {
+            if (ShowType(dd.Var.Type)) {
               wr.Write(": ");
               PrintType(dd.BaseType);
             }
             wr.Write(" | ");
             PrintExpression(dd.Constraint, true);
+            if (dd.Witness != null) {
+              wr.Write(" witness ");
+              PrintExpression(dd.Witness, true);
+            }
           }
           wr.WriteLine();
         } else if (d is SubsetTypeDecl) {
           var dd = (SubsetTypeDecl)d;
           if (i++ != 0) { wr.WriteLine(); }
           Indent(indent);
-          PrintClassMethodHelper("type", dd.Attributes, dd.Name, dd.TypeArgs);
+          PrintClassMethodHelper("type", dd.Attributes, dd.Name + EqualitySupportSuffix(dd.EqualitySupport), dd.TypeArgs);
           wr.Write(" = ");
           wr.Write(dd.Var.DisplayName);
-          if (!(dd.Var.Type is TypeProxy) || DafnyOptions.O.DafnyPrintResolvedFile != null) {
+          if (ShowType(dd.Var.Type)) {
             wr.Write(": ");
             PrintType(dd.Rhs);
           }
           wr.Write(" | ");
           PrintExpression(dd.Constraint, true);
+          if (dd.Witness != null) {
+            wr.Write(" witness ");
+            PrintExpression(dd.Witness, true);
+          }
           wr.WriteLine();
         } else if (d is TypeSynonymDecl) {
           var dd = (TypeSynonymDecl)d;
           if (i++ != 0) { wr.WriteLine(); }
           Indent(indent);
-          PrintClassMethodHelper("type", dd.Attributes, dd.Name, dd.TypeArgs);
+          PrintClassMethodHelper("type", dd.Attributes, dd.Name + EqualitySupportSuffix(dd.EqualitySupport), dd.TypeArgs);
           wr.Write(" = ");
           PrintType(dd.Rhs);
           wr.WriteLine();
@@ -527,7 +534,7 @@ Everything) {
           PrintFunction((Function)m, indent, false);
           var fixp = m as FixpointPredicate;
           if (fixp != null && fixp.PrefixPredicate != null) {
-            Indent(indent); wr.WriteLine("/***");
+            Indent(indent); wr.WriteLine("/*** (note, what is printed here does not show substitutions of calls to prefix predicates)");
             PrintFunction(fixp.PrefixPredicate, indent, false);
             Indent(indent); wr.WriteLine("***/");
           }
@@ -626,14 +633,30 @@ Everything) {
     public void PrintField(Field field, int indent) {
       Contract.Requires(field != null);
       Indent(indent);
+      if (field.HasStaticKeyword) {
+        wr.Write("static ");
+      }
       if (field.IsGhost) {
         wr.Write("ghost ");
       }
-      wr.Write("var");
+      if (field is ConstantField) {
+        wr.Write("const");
+      } else {
+        wr.Write("var");
+      }
       PrintAttributes(field.Attributes);
-      wr.Write(" {0}: ", field.Name);
-      PrintType(field.Type);
-      if (field.IsUserMutable) {
+      wr.Write(" {0}", field.Name);
+      if (ShowType(field.Type)) {
+        wr.Write(": ");
+        PrintType(field.Type);
+      }
+      if (field is ConstantField) {
+        var c = (ConstantField)field;
+        if (c.constValue != null) {
+          wr.Write(" := ");
+          PrintExpression(c.constValue, true);
+        }
+      } else if (field.IsUserMutable) {
         // nothing more to say
       } else if (field.IsMutable) {
         wr.Write("  // non-assignable");
@@ -658,9 +681,15 @@ Everything) {
         wr.WriteLine(" ...");
       } else {
         PrintFormals(f.Formals, f, f.Name);
-        if (!isPredicate && !(f is TwoStatePredicate)) {
+        if (!isPredicate && !(f is FixpointPredicate) && !(f is TwoStatePredicate)) {
           wr.Write(": ");
-          PrintType(f.ResultType);
+          if (f.Result != null) {
+            wr.Write("(");
+            PrintFormal(f.Result, false);
+            wr.Write(")");
+          } else {
+            PrintType(f.ResultType);
+          }
         }
         wr.WriteLine();
       }
@@ -898,6 +927,11 @@ Everything) {
       }
     }
 
+    bool ShowType(Type t) {
+      Contract.Requires(t != null);
+      return !(t is TypeProxy) || DafnyOptions.O.DafnyPrintResolvedFile != null;
+    }
+
     // ----------------------------- PrintStatement -----------------------------
 
     /// <summary>
@@ -939,6 +973,12 @@ Everything) {
         PrintAttributeArgs(s.Args, true);
         wr.Write(";");
 
+      } else if (stmt is RevealStmt) {
+        RevealStmt s = (RevealStmt)stmt;
+        wr.Write("reveal ");
+        PrintExpression(s.Expr, true);
+        wr.Write(";");
+
       } else if (stmt is BreakStmt) {
         BreakStmt s = (BreakStmt)stmt;
         if (s.TargetLabel != null) {
@@ -971,6 +1011,27 @@ Everything) {
         wr.Write(" := ");
         PrintRhs(s.Rhs);
         wr.Write(";");
+
+      } else if (stmt is DividedBlockStmt) {
+        var sbs = (DividedBlockStmt)stmt;
+        wr.WriteLine("{");
+        int ind = indent + IndentAmount;
+        if (sbs.BodyInit.Count != 0) {
+          foreach (Statement s in sbs.BodyInit) {
+            Indent(ind);
+            PrintStatement(s, ind);
+            wr.WriteLine();
+          }
+          Indent(indent + IndentAmount);
+          wr.WriteLine("new;");
+        }
+        foreach (Statement s in sbs.BodyProper) {
+          Indent(ind);
+          PrintStatement(s, ind);
+          wr.WriteLine();
+        }
+        Indent(indent);
+        wr.Write("}");
 
       } else if (stmt is BlockStmt) {
         wr.WriteLine("{");
@@ -1061,7 +1122,10 @@ Everything) {
         CalcStmt s = (CalcStmt)stmt;
         if (printMode == DafnyOptions.PrintModes.NoGhost) { return; }   // Calcs don't get a "ghost" attribute, but they are.
         wr.Write("calc ");
-        if (!s.Op.Equals(CalcStmt.DefaultOp)) {
+        if (s.UserSuppliedOp != null) {
+          PrintCalcOp(s.UserSuppliedOp);
+          wr.Write(" ");
+        } else if (DafnyOptions.O.DafnyPrintResolvedFile != null && s.Op != null) {
           PrintCalcOp(s.Op);
           wr.Write(" ");
         }
@@ -1084,9 +1148,9 @@ Everything) {
             break;
           }
           // print the operator, if any
-          if (!s.Op.Equals(op)) {
+          if (op != null || (DafnyOptions.O.DafnyPrintResolvedFile != null && s.Op != null)) {
             Indent(indent);  // this lines up with the "calc"
-            PrintCalcOp(op);
+            PrintCalcOp(op ?? s.Op);
             wr.WriteLine();
           }
           // print the hints
@@ -1325,15 +1389,35 @@ Everything) {
         TypeRhs t = (TypeRhs)rhs;
         wr.Write("new ");
         if (t.ArrayDimensions != null) {
-          PrintType(t.EType);
-          string s = "[";
-          foreach (Expression dim in t.ArrayDimensions) {
-            Contract.Assume(dim != null);
-            wr.Write(s);
-            PrintExpression(dim, false);
-            s = ", ";
+          if (ShowType(t.EType)) {
+            PrintType(t.EType);
           }
-          wr.Write("]");
+          var dim0 = t.ArrayDimensions[0] as LiteralExpr;
+          if (DafnyOptions.O.DafnyPrintResolvedFile == null &&
+            t.InitDisplay != null &&
+            t.ArrayDimensions.Count == 1 && dim0.Value is BigInteger &&
+            (BigInteger)dim0.Value == new BigInteger(t.InitDisplay.Count)) {
+            // elide the size
+            wr.Write("[]");
+          } else {
+            string s = "[";
+            foreach (Expression dim in t.ArrayDimensions) {
+              Contract.Assume(dim != null);
+              wr.Write(s);
+              PrintExpression(dim, false);
+              s = ", ";
+            }
+            wr.Write("]");
+          }
+          if (t.ElementInit != null) {
+            wr.Write(" (");
+            PrintExpression(t.ElementInit, false);
+            wr.Write(")");
+          } else if (t.InitDisplay != null) {
+            wr.Write(" [");
+            PrintExpressionList(t.InitDisplay, false);
+            wr.Write("]");
+          }
         } else if (t.Arguments == null) {
           PrintType(t.EType);
         } else {
@@ -1653,10 +1737,14 @@ Everything) {
         } else {
           PrintExpr(e.Lhs, opBindingStrength, false, false, !parensNeeded && isFollowedBySemicolon, -1, keyword);
         }
-        wr.Write("(");
-        PrintExpressionList(e.Args, false);
-        wr.Write(")");
+        string name = e.Lhs is NameSegment ? ((NameSegment)e.Lhs).Name : e.Lhs is ExprDotName ? ((ExprDotName)e.Lhs).SuffixName : null;
+        PrintActualArguments(e.Args, name);
         if (parensNeeded) { wr.Write(")"); }
+
+      } else if (expr is RevealExpr) {
+        var e = (RevealExpr)expr;
+        wr.Write("reveal ");
+        PrintExpression(e.Expr, true);
 
       } else if (expr is MemberSelectExpr) {
         MemberSelectExpr e = (MemberSelectExpr)expr;
@@ -1683,7 +1771,7 @@ Everything) {
         PrintExpr(e.Seq, opBindingStrength, false, false, !parensNeeded && isFollowedBySemicolon, indent, keyword);
         wr.Write("[");
         if (e.SelectOne) {
-          Contract.Assert( e.E0 != null);
+          Contract.Assert(e.E0 != null);
           PrintExpression(e.E0, false);
         } else {
           if (e.E0 != null) {
@@ -1717,12 +1805,9 @@ Everything) {
 
       } else if (expr is SeqUpdateExpr) {
         SeqUpdateExpr e = (SeqUpdateExpr)expr;
-        if (e.ResolvedUpdateExpr != null)
-        {
+        if (e.ResolvedUpdateExpr != null) {
           PrintExpr(e.ResolvedUpdateExpr, contextBindingStrength, fragileContext, isRightmost, isFollowedBySemicolon, indent, keyword);
-        }
-        else
-        {
+        } else {
           // determine if parens are needed
           int opBindingStrength = 0x90;
           bool parensNeeded = ParensNeeded(opBindingStrength, contextBindingStrength, fragileContext);
@@ -1837,7 +1922,7 @@ Everything) {
           int opBindingStrength;
           switch (e.Op) {
             case UnaryOpExpr.Opcode.Not:
-              op = "!";  opBindingStrength = 0x80;  break;
+              op = "!"; opBindingStrength = 0x80; break;
             default:
               Contract.Assert(false); throw new cce.UnreachableException();  // unexpected unary opcode
           }
@@ -1866,8 +1951,7 @@ Everything) {
         int opBindingStrength;
         bool fragileLeftContext = false;  // false means "allow same binding power on left without parens"
         bool fragileRightContext = false;  // false means "allow same binding power on right without parens"
-        switch (e.Op)
-        {
+        switch (e.Op) {
           case BinaryExpr.Opcode.LeftShift:
           case BinaryExpr.Opcode.RightShift:
             opBindingStrength = 0x48; fragileRightContext = true; break;
@@ -2051,7 +2135,7 @@ Everything) {
         wr.Write("expr {0}: ", e.Name);
         PrintExpression(e.Body, isFollowedBySemicolon);
 
-       } else if (expr is SetComprehension) {
+      } else if (expr is SetComprehension) {
         var e = (SetComprehension)expr;
         bool parensNeeded = !isRightmost;
         if (parensNeeded) { wr.Write("("); }
@@ -2093,9 +2177,9 @@ Everything) {
         var e = (LambdaExpr)expr;
         bool parensNeeded = !isRightmost;
         if (parensNeeded) { wr.Write("("); }
-        var skipSignatureParens = e.BoundVars.Count == 1 && e.BoundVars[0].Type is InferredTypeProxy;
+        var skipSignatureParens = e.BoundVars.Count == 1 && !ShowType(e.BoundVars[0].Type);
         if (!skipSignatureParens) { wr.Write("("); }
-        wr.Write(Util.Comma(", ", e.BoundVars, bv => bv.DisplayName + (bv.Type is InferredTypeProxy ? "" : ": " + bv.Type)));
+        wr.Write(Util.Comma(", ", e.BoundVars, bv => bv.DisplayName + (ShowType(bv.Type) ? ": " + bv.Type : "")));
         if (!skipSignatureParens) { wr.Write(")"); }
         if (e.Range != null) {
           wr.Write(" requires ");
@@ -2187,6 +2271,8 @@ Everything) {
         wr.Write("[BoogieWrapper]");  // this is somewhat unexpected, but we can get here if the /trace switch is used, so it seems best to cover this case here
       } else if (expr is Translator.BoogieFunctionCall) {
         wr.Write("[BoogieFunctionCall]");  // this prevents debugger watch window crash
+      } else if (expr is Resolver_IdentifierExpr) {
+        wr.Write("[Resolver_IdentifierExpr]");  // we can get here in the middle of a debugging session
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected expression
       }
@@ -2247,8 +2333,7 @@ Everything) {
 
     void PrintActualArguments(List<Expression> args, string name) {
       Contract.Requires(args != null);
-      Contract.Requires(name != null);
-      if (name.EndsWith("#")) {
+      if (name != null && name.EndsWith("#")) {
         wr.Write("[");
         PrintExpression(args[0], false);
         wr.Write("]");

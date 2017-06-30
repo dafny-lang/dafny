@@ -17,10 +17,10 @@ module Library {
         assert G() == 5;  // error: G() is opaque
         return;
       case true =>
-        reveal_G();
+        reveal G();
         assert G() == 5;
       case true =>
-        reveal_G();
+        reveal G();
         t := 2;
       case true =>
         t := 3;
@@ -33,7 +33,7 @@ module Library {
   }
   lemma L2() {
     assert G() == 5;  // error: G() has not yet been revealed
-    reveal_G();  // revealing afterwards is not good enough
+    reveal G();  // revealing afterwards is not good enough
   }
   lemma L3() {
     assert H() == 5;  // yes, definition of H() is known, because we're inside H's defining module
@@ -48,7 +48,7 @@ module Client {
     assert Lib.G() == 5;  // error: not known, since G() is opaque
   }
   lemma L1() {
-    Lib.reveal_G();
+    reveal Lib.G();
     assert Lib.G() == 5;  // yes, the definition has been revealed
   }
   lemma L2() {

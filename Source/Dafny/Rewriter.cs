@@ -85,7 +85,9 @@ namespace Microsoft.Dafny
         forallvisiter.Visit(decl, true);
         if (decl is FixpointLemma) {
           var prefixLemma = ((FixpointLemma)decl).PrefixLemma;
-          forallvisiter.Visit(prefixLemma, true);
+          if (prefixLemma != null) {
+            forallvisiter.Visit(prefixLemma, true);
+          }
         }
       }
       
@@ -99,7 +101,7 @@ namespace Microsoft.Dafny
         this.reporter = reporter;
       }
       protected override bool VisitOneStmt(Statement stmt, ref bool st) {
-        if (stmt is ForallStmt) {
+        if (stmt is ForallStmt && ((ForallStmt)stmt).CanConvert) {
           ForallStmt s = (ForallStmt)stmt;
           if (s.Kind == ForallStmt.ParBodyKind.Proof) {
             Expression term = s.Ens.Count != 0 ? s.Ens[0].E : Expression.CreateBoolLiteral(s.Tok, true);
@@ -196,14 +198,22 @@ namespace Microsoft.Dafny
             }
           } else if (s.Kind == ForallStmt.ParBodyKind.Call) {
             var s0 = (CallStmt)s.S0;
-            Expression term = s0.Method.Ens.Count != 0 ? s0.Method.Ens[0].E : Expression.CreateBoolLiteral(s.Tok, true);
+            var argsSubstMap = new Dictionary<IVariable, Expression>();  // maps formal arguments to actuals
+            Contract.Assert(s0.Method.Ins.Count == s0.Args.Count);
+            for (int i = 0; i < s0.Method.Ins.Count; i++) {
+              argsSubstMap.Add(s0.Method.Ins[i], s0.Args[i]);
+            }
+            var substituter = new Translator.AlphaConverting_Substituter(s0.Receiver, argsSubstMap, new Dictionary<TypeParameter, Type>());
+            // substitute the call's actuals for the method's formals
+            Expression term = s0.Method.Ens.Count != 0 ? substituter.Substitute(s0.Method.Ens[0].E) : Expression.CreateBoolLiteral(s.Tok, true);
             for (int i = 1; i < s0.Method.Ens.Count; i++) {
-              term = new BinaryExpr(s.Tok, BinaryExpr.ResolvedOpcode.And, term, s0.Method.Ens[i].E);
+              term = new BinaryExpr(s.Tok, BinaryExpr.ResolvedOpcode.And, term, substituter.Substitute(s0.Method.Ens[i].E));
             }
             List<Expression> exprList = new List<Expression>();
             ForallExpr expr = new ForallExpr(s.Tok, s.BoundVars, s.Range, term, s.Attributes);
             expr.Type = Type.Bool; // resolve here
             exprList.Add(expr);
+            s.ForallExpressions = exprList;
           } else {
             Contract.Assert(false);  // unexpected kind
           }
@@ -227,7 +237,7 @@ namespace Microsoft.Dafny
           Dictionary<TypeParameter, Type> typeMap = new Dictionary<TypeParameter, Type>();
           var substMap = new Dictionary<IVariable, Expression>();
           substMap.Add(j, e);
-          Translator.Substituter sub = new Translator.Substituter(null, substMap, typeMap, null);
+          Translator.Substituter sub = new Translator.Substituter(null, substMap, typeMap);
           var v = new ForallStmtTranslationValues(sub.Substitute(Range), sub.Substitute(FInverse));
           return v;
         }
@@ -362,7 +372,7 @@ namespace Microsoft.Dafny
         Dictionary<IVariable, Expression/*!*/> substMap = new Dictionary<IVariable, Expression>();
         Dictionary<TypeParameter, Type> typeMap = new Dictionary<TypeParameter, Type>();
         substMap.Add(v, e);
-        Translator.Substituter sub = new Translator.Substituter(null, substMap, typeMap, null);
+        Translator.Substituter sub = new Translator.Substituter(null, substMap, typeMap);
         return sub.Substitute(expr);
       }
     }
@@ -642,17 +652,17 @@ namespace Microsoft.Dafny
         } else if (member is Constructor) {
           var ctor = (Constructor)member;
           if (ctor.Body != null) {
-            var bodyStatements = ((BlockStmt)ctor.Body).Body;
-            var n = bodyStatements.Count;
+            var sbs = (DividedBlockStmt)ctor.Body;
+            var n = sbs.Body.Count;
             if (ctor.RefinementBase == null) {
               // Repr := {this};
               var e = new SetDisplayExpr(tok, true, new List<Expression>() { self });
               e.Type = new SetType(true, new ObjectType());
               Statement s = new AssignStmt(tok, tok, Repr, new ExprRhs(e));
               s.IsGhost = true;
-              bodyStatements.Add(s);
+              sbs.AppendStmt(s);
             }
-            AddSubobjectReprs(tok, ctor.BodyEndTok, subobjects, bodyStatements, n, implicitSelf, cNull, Repr);
+            AddSubobjectReprs(tok, ctor.BodyEndTok, subobjects, sbs, n, implicitSelf, cNull, Repr);
           }
 
         } else if (member is Method && !member.IsStatic && Valid != null) {
@@ -699,20 +709,19 @@ namespace Microsoft.Dafny
 
           if (addStatementsToUpdateRepr && m.Body != null) {
             var methodBody = (BlockStmt)m.Body;
-            var bodyStatements = methodBody.Body;
-            AddSubobjectReprs(tok, methodBody.EndTok, subobjects, bodyStatements, bodyStatements.Count, implicitSelf, cNull, Repr);
+            AddSubobjectReprs(tok, methodBody.EndTok, subobjects, methodBody, methodBody.Body.Count, implicitSelf, cNull, Repr);
           }
         }
       }
     }
 
-    void AddSubobjectReprs(IToken tok, IToken endCurlyTok, List<Tuple<Field, Field, Function>> subobjects, List<Statement> bodyStatements, int hoverTextFromHere,
+    void AddSubobjectReprs(IToken tok, IToken endCurlyTok, List<Tuple<Field, Field, Function>> subobjects, BlockStmt block, int hoverTextFromHere,
       Expression implicitSelf, Expression cNull, Expression Repr) {
       Contract.Requires(tok != null);
       Contract.Requires(endCurlyTok != null);
       Contract.Requires(subobjects != null);
-      Contract.Requires(bodyStatements != null);
-      Contract.Requires(0 <= hoverTextFromHere && hoverTextFromHere <= bodyStatements.Count);
+      Contract.Requires(block != null);
+      Contract.Requires(0 <= hoverTextFromHere && hoverTextFromHere <= block.Body.Count);
       Contract.Requires(implicitSelf != null);
       Contract.Requires(cNull != null);
       Contract.Requires(Repr != null);
@@ -751,14 +760,14 @@ namespace Microsoft.Dafny
         thn.IsGhost = true;
         s = new IfStmt(tok, tok, false, e, thn, null);
         s.IsGhost = true;
-        // finally, add s to the body
-        bodyStatements.Add(s);
+        // finally, add s to the block
+        block.AppendStmt(s);
       }
-      if (hoverTextFromHere != bodyStatements.Count) {
+      if (hoverTextFromHere != block.Body.Count) {
         var hoverText = "";
         var sep = "";
-        for (int i = hoverTextFromHere; i < bodyStatements.Count; i++) {
-          hoverText += sep + Printer.StatementToString(bodyStatements[i]);
+        for (int i = hoverTextFromHere; i < block.Body.Count; i++) {
+          hoverText += sep + Printer.StatementToString(block.Body[i]);
           sep = "\n";
         }
         AddHoverText(endCurlyTok, "{0}", hoverText);
@@ -1070,7 +1079,7 @@ namespace Microsoft.Dafny
         substMap.Add(formals[i], values[i]);
       }
 
-      Translator.Substituter sub = new Translator.Substituter(f_this, substMap, typeMap, null);
+      Translator.Substituter sub = new Translator.Substituter(f_this, substMap, typeMap);
       return sub.Substitute(e);
     }
 
@@ -1149,7 +1158,7 @@ namespace Microsoft.Dafny
         }
 
         foreach (var req in f.Req) {
-          Translator.Substituter sub = new Translator.Substituter(f_this, substMap, typeMap, null);          
+          Translator.Substituter sub = new Translator.Substituter(f_this, substMap, typeMap);          
           translated_f_reqs.Add(sub.Substitute(req));         
         }
       }
@@ -1376,21 +1385,19 @@ namespace Microsoft.Dafny
                   continue;
 
                 if (!(newt is DefaultClassDecl)) {
-                  me.Exports.Add(new ExportSignature(newt.Name, null, !revealAll || !newt.CanBeRevealed()));
+                  me.Exports.Add(new ExportSignature(newt.tok, newt.Name, !revealAll || !newt.CanBeRevealed()));
                 }
 
                 if (newt is ClassDecl) {
                   var cl = (ClassDecl)newt;
 
                   foreach (var mem in cl.Members) {
-                    string prefix = cl.Name;
-                    string suffix = mem.Name;
+                    var opaque = !revealAll || !mem.CanBeRevealed();
                     if (newt is DefaultClassDecl) {
-                      prefix = mem.Name;
-                      suffix = null;
+                      me.Exports.Add(new ExportSignature(mem.tok, mem.Name, opaque));
+                    } else {
+                      me.Exports.Add(new ExportSignature(cl.tok, cl.Name, mem.tok, mem.Name, opaque));
                     }
-
-                    me.Exports.Add(new ExportSignature(prefix, suffix, !revealAll || !mem.CanBeRevealed()));
                   }
                 }
               }

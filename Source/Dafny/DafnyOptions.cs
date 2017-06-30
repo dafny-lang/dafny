@@ -28,7 +28,7 @@ namespace Microsoft.Dafny
     }
     public override string VersionSuffix {
       get {
-        return " version " + VersionNumber + ", Copyright (c) 2003-2016, Microsoft.";
+        return " version " + VersionNumber + ", Copyright (c) 2003-2017, Microsoft.";
       }
     }
 
@@ -46,6 +46,7 @@ namespace Microsoft.Dafny
     public bool UnicodeOutput = false;
     public bool DisallowSoundnessCheating = false;
     public bool Dafnycc = false;
+    public bool ForbidNondeterminism = false;
     public int Induction = 3;
     public int InductionHeuristic = 6;
     public string DafnyPrelude = null;
@@ -190,6 +191,10 @@ namespace Microsoft.Dafny
             }
             return true;
           }
+
+        case "deterministic":
+          ForbidNondeterminism = true;
+          return true;
 
         case "induction":
           ps.GetNumericArgument(ref Induction, 4);
@@ -440,6 +445,7 @@ namespace Microsoft.Dafny
   /out:<file>
                 filename and location for the generated .cs, .dll or .exe files 
   /dafnycc      Disable features not supported by DafnyCC
+  /deterministic  Forbid the use of compiled nondeterministic statements
   /noCheating:<n>
                 0 (default) - allow assume statements and free invariants
                 1 - treat all assumptions as asserts, and drop free.

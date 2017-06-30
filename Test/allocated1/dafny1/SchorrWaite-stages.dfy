@@ -96,12 +96,12 @@ abstract module M0 {
       // points to stackNodes[k-1], with the end case pointing to null.
       invariant 0 < |stackNodes| ==>
                   stackNodes[0].children[stackNodes[0].childrenVisited] == null
-      invariant forall k :: 0 < k < |stackNodes| ==>
+      invariant forall k {:matchinglooprewrite false} :: 0 < k < |stackNodes| ==>
                   stackNodes[k].children[stackNodes[k].childrenVisited] == stackNodes[k-1]
       // We also need to keep track of what the original values of the children pointers had been.  Here, we
       // have that the active child of stackNodes[k] used to be stackNodes[k+1], with the end case pointing
       // to t.
-      invariant forall k :: 0 <= k < |stackNodes|-1 ==>
+      invariant forall k {:matchinglooprewrite false} :: 0 <= k < |stackNodes|-1 ==>
                   old(stackNodes[k].children)[stackNodes[k].childrenVisited] == stackNodes[k+1]
       invariant 0 < |stackNodes| ==>
         old(stackNodes[|stackNodes|-1].children)[stackNodes[|stackNodes|-1].childrenVisited] == t

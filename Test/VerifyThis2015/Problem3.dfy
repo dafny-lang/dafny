@@ -20,7 +20,7 @@ method Test(dd: DoublyLinkedList, x: Node)
 // done in a FOLI order.
 method TestMany(dd: DoublyLinkedList, xs: seq<Node>)
   requires dd != null && dd.Valid()
-  requires forall x :: x in xs ==> x in dd.Nodes && x != dd.Nodes[0] && x != dd.Nodes[|dd.Nodes|-1]
+  requires forall x {:matchinglooprewrite false} :: x in xs ==> x in dd.Nodes && x != dd.Nodes[0] && x != dd.Nodes[|dd.Nodes|-1]
   requires forall i,j :: 0 <= i < j < |xs| ==> xs[i] != xs[j]
   modifies dd, dd.Nodes
   ensures dd.Valid() && dd.Nodes == old(dd.Nodes)
@@ -66,8 +66,8 @@ class DoublyLinkedList {
   {
     (forall i :: 0 <= i < |Nodes| ==> Nodes[i] != null) &&
     (|Nodes| > 0 ==>
-      Nodes[0].L == null && (forall i :: 1 <= i < |Nodes| ==> Nodes[i].L == Nodes[i-1]) &&
-      (forall i :: 0 <= i < |Nodes|-1 ==> Nodes[i].R == Nodes[i+1]) && Nodes[|Nodes|-1].R == null
+      Nodes[0].L == null && (forall i {:matchinglooprewrite false} :: 1 <= i < |Nodes| ==> Nodes[i].L == Nodes[i-1]) &&
+      (forall i {:matchinglooprewrite false} :: 0 <= i < |Nodes|-1 ==> Nodes[i].R == Nodes[i+1]) && Nodes[|Nodes|-1].R == null
     ) &&
     forall i,j :: 0 <= i < j < |Nodes| ==> Nodes[i] != Nodes[j]  // this is actually a consequence of the previous conditions
   }

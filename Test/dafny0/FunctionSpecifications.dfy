@@ -106,7 +106,7 @@ function {:opaque} secret(x:int, y:int) : int
 method test_secret()
 {
   assert secret(2, 3) >= 5;   // Should fail because secret's body is hidden
-  reveal_secret();
+  reveal secret();
   assert secret(2, 3) == 5;   // Should pass now that the body is "visible"
   assert secret(4, 1) == 7;   // Make sure it catches incorrect applications as well
 }
@@ -125,7 +125,7 @@ method test_recursive_f()
   if * {
     assert recursive_f(4) == 4;   // Should fail because body is hidden
   } else {
-    reveal_recursive_f();
+    reveal recursive_f();
     assert recursive_f(4) == 4;   // Should pass now body is visible and can be unrolled
     assert recursive_f(3) == 5;   // Make sure it catches incorrect applications as well
   }

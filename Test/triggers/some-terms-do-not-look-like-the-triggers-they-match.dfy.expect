@@ -1,6 +1,7 @@
-some-terms-do-not-look-like-the-triggers-they-match.dfy(12,17): Warning: Selected triggers: {s[x]} (may loop with "s[x + 1]")
- /!\ Suppressing loops would leave this expression without triggers.
-some-terms-do-not-look-like-the-triggers-they-match.dfy(15,17): Warning: Selected triggers: {s[x]} (may loop with "s[x + 1]")
- /!\ Suppressing loops would leave this expression without triggers.
+some-terms-do-not-look-like-the-triggers-they-match.dfy(12,17): Info: Selected triggers: {s[_t#0], s[x]}
+some-terms-do-not-look-like-the-triggers-they-match.dfy(15,17): Info: For expression "x in s ==> s[_t#0] > 0":
+   Selected triggers: {s[_t#0], s[x]}
+some-terms-do-not-look-like-the-triggers-they-match.dfy(15,17): Info: For expression "x in s ==> _t#0 !in s":
+   Selected triggers: {s[_t#0], s[x]}
 
 Dafny program verifier finished with 0 verified, 0 errors

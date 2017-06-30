@@ -100,3 +100,15 @@ method {:tailrecursion} OtherTailCall(n: int) {
   if n < 230 { } // and this can be (and is) considered ghost as well
   if (*) { x := x + 1; }  // this, too
 }
+
+class TailConstructorRegressionTest
+{
+  var next: TailConstructorRegressionTest
+  constructor {:tailrecursion} (n: nat)
+    modifies this
+  {
+    if n != 0 {
+      next := new TailConstructorRegressionTest(n-1);  // error: not a tail call, because it is followed by an assignment
+    }
+  }
+}

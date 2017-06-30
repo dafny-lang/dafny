@@ -1,3 +1,4 @@
+ParseErrors.dfy(3,8): Error: the included file ParseErrors.dfy contains error(s)
 ParseErrors.dfy(7,18): Error: a chain cannot have more than one != operator
 ParseErrors.dfy(9,36): Error: this operator chain cannot continue with a descending operator
 ParseErrors.dfy(10,37): Error: this operator chain cannot continue with an ascending operator

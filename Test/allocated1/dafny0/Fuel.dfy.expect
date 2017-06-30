@@ -19,6 +19,7 @@ Execution trace:
 Fuel.dfy(94,22): Error: assertion violation
 Execution trace:
     (0,0): anon0
+Fuel.dfy(3,8): Error: the included file Fuel.dfy contains error(s)
 Fuel.dfy(129,8): Error: Fuel can only increase within a given scope.
 Fuel.dfy(120,22): Error: assertion violation
 Execution trace:

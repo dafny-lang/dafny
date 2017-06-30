@@ -58,7 +58,7 @@ class CF {
 
   predicate method G()
 
-  copredicate Co(): bool
+  copredicate Co()
 
   protected function H(): int
 

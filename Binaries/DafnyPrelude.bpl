@@ -804,6 +804,13 @@ function Seq#Singleton<T>(T): Seq T;
 axiom (forall<T> t: T :: { Seq#Length(Seq#Singleton(t)) } Seq#Length(Seq#Singleton(t)) == 1);
 
 function Seq#Build<T>(s: Seq T, val: T): Seq T;
+function Seq#Build_inv0<T>(s: Seq T) : Seq T;
+function Seq#Build_inv1<T>(s: Seq T) : T;
+axiom (forall<T> s: Seq T, val: T ::
+  { Seq#Build(s, val) }
+  Seq#Build_inv0(Seq#Build(s, val)) == s &&
+  Seq#Build_inv1(Seq#Build(s, val)) == val);
+
 axiom (forall<T> s: Seq T, v: T :: { Seq#Length(Seq#Build(s,v)) }
   Seq#Length(Seq#Build(s,v)) == 1 + Seq#Length(s));
 axiom (forall<T> s: Seq T, i: int, v: T :: { Seq#Index(Seq#Build(s,v), i) }
@@ -986,11 +993,62 @@ axiom (forall<T> s: Seq T, m, n: int :: { Seq#Drop(Seq#Drop(s, m), n) }
 
 type Map U V;
 
-function Map#Domain<U, V>(Map U V): [U] bool;
-function Map#Elements<U, V>(Map U V): [U]V;
+// A Map is defined by three functions, Map#Domain, Map#Elements, and #Map#Card.
 
-function Map#Card<U, V>(Map U V): int;
-axiom (forall<U, V> m: Map U V :: { Map#Card(m) } 0 <= Map#Card(m));
+function Map#Domain<U,V>(Map U V) : Set U;
+
+function Map#Elements<U,V>(Map U V) : [U]V;
+
+function Map#Card<U,V>(Map U V) : int;
+
+axiom (forall<U,V> m: Map U V :: { Map#Card(m) } 0 <= Map#Card(m));
+
+// The set of Keys of a Map are available by Map#Domain, and the cardinality of that
+// set is given by Map#Card.
+
+axiom (forall<U,V> m: Map U V :: { Set#Card(Map#Domain(m)) }
+  Set#Card(Map#Domain(m)) == Map#Card(m));
+
+// The set of Values of a Map can be obtained by the function Map#Values, which is
+// defined as follows.  Remember, a Set is defined by membership (using Boogie's
+// square brackets) and Map#Card, so we need to define what these mean for the Set
+// returned by Map#Values.
+
+function Map#Values<U,V>(Map U V) : Set V;
+
+axiom (forall<U,V> m: Map U V :: { Set#Card(Map#Values(m)) }
+  Set#Card(Map#Values(m)) == Map#Card(m));
+
+axiom (forall<U,V> m: Map U V, v: V :: { Map#Values(m)[v] }
+  Map#Values(m)[v] ==
+	(exists u: U :: { Map#Domain(m)[u] } { Map#Elements(m)[u] }	
+	  Map#Domain(m)[u] &&
+    v == Map#Elements(m)[u]));
+
+// The set of Items--that is, (key,value) pairs--of a Map can be obtained by the
+// function Map#Items.  Again, we need to define membership of Set#Card for this
+// set.  Everywhere else in this axiomatization, Map is parameterized by types U V,
+// even though Dafny only ever instantiates U V with Box Box.  This makes the
+// axiomatization more generic.  Function Map#Items, however, returns a set of
+// pairs, and the axiomatization of pairs is Dafny specific.  Therefore, the
+// definition of Map#Items here is to be considered Dafny specific.  Also, note
+// that it relies on the two destructors for 2-tuples.
+
+function Map#Items<U,V>(Map U V) : Set Box;
+
+function _System.__tuple_h2._0(DatatypeType) : Box;
+
+function _System.__tuple_h2._1(DatatypeType) : Box;
+
+axiom (forall<U,V> m: Map U V :: { Set#Card(Map#Items(m)) }
+  Set#Card(Map#Items(m)) == Map#Card(m));
+
+axiom (forall m: Map Box Box, item: Box :: { Map#Items(m)[item] }
+  Map#Items(m)[item] <==>
+    Map#Domain(m)[_System.__tuple_h2._0($Unbox(item))] &&
+    Map#Elements(m)[_System.__tuple_h2._0($Unbox(item))] == _System.__tuple_h2._1($Unbox(item)));
+
+// Here are the operations that produce Map values.
 
 function Map#Empty<U, V>(): Map U V;
 axiom (forall<U, V> u: U ::
@@ -1028,6 +1086,8 @@ axiom (forall<U, V> m: Map U V, u: U, v: V :: { Map#Card(Map#Build(m, u, v)) }
   Map#Domain(m)[u] ==> Map#Card(Map#Build(m, u, v)) == Map#Card(m));
 axiom (forall<U, V> m: Map U V, u: U, v: V :: { Map#Card(Map#Build(m, u, v)) }
   !Map#Domain(m)[u] ==> Map#Card(Map#Build(m, u, v)) == Map#Card(m) + 1);
+axiom (forall<U, V> m: Map U V, u: U, v: V :: { Map#Values(Map#Build(m, u, v)) }
+  Map#Values(Map#Build(m, u, v)) == Set#UnionOne(Map#Values(m), v));
 
 
 //equality for maps
@@ -1052,9 +1112,42 @@ axiom (forall<U, V> m: Map U V, m': Map U V ::
 
 type IMap U V;
 
-function IMap#Domain<U, V>(IMap U V): [U] bool;
-function IMap#Elements<U, V>(IMap U V): [U]V;
+// A IMap is defined by two functions, Map#Domain and Map#Elements.
 
+function IMap#Domain<U,V>(IMap U V) : Set U;
+
+function IMap#Elements<U,V>(IMap U V) : [U]V;
+
+// The set of Values of a IMap can be obtained by the function IMap#Values, which is
+// defined as follows.  Remember, a ISet is defined by membership (using Boogie's
+// square brackets) so we need to define what these mean for the Set
+// returned by Map#Values.
+
+function IMap#Values<U,V>(IMap U V) : Set V;
+
+axiom (forall<U,V> m: IMap U V, v: V :: { IMap#Values(m)[v] }
+  IMap#Values(m)[v] ==
+	(exists u: U :: { IMap#Domain(m)[u] } { IMap#Elements(m)[u] }	
+	  IMap#Domain(m)[u] &&
+    v == IMap#Elements(m)[u]));
+
+// The set of Items--that is, (key,value) pairs--of a Map can be obtained by the
+// function IMap#Items.  
+// Everywhere else in this axiomatization, IMap is parameterized by types U V,
+// even though Dafny only ever instantiates U V with Box Box.  This makes the
+// axiomatization more generic.  Function IMap#Items, however, returns a set of
+// pairs, and the axiomatization of pairs is Dafny specific.  Therefore, the
+// definition of IMap#Items here is to be considered Dafny specific.  Also, note
+// that it relies on the two destructors for 2-tuples.
+
+function IMap#Items<U,V>(IMap U V) : Set Box;
+
+axiom (forall m: IMap Box Box, item: Box :: { IMap#Items(m)[item] }
+  IMap#Items(m)[item] <==>
+    IMap#Domain(m)[_System.__tuple_h2._0($Unbox(item))] &&
+    IMap#Elements(m)[_System.__tuple_h2._0($Unbox(item))] == _System.__tuple_h2._1($Unbox(item)));
+
+// Here are the operations that produce Map values.
 function IMap#Empty<U, V>(): IMap U V;
 axiom (forall<U, V> u: U ::
         { IMap#Domain(IMap#Empty(): IMap U V)[u] }
@@ -1083,6 +1176,9 @@ axiom (forall<U, V> m: IMap U V, u: U, u': U, v: V ::
                IMap#Elements(IMap#Build(m, u, v))[u'] == v) &&
   (u' != u ==> IMap#Domain(IMap#Build(m, u, v))[u'] == IMap#Domain(m)[u'] &&
                IMap#Elements(IMap#Build(m, u, v))[u'] == IMap#Elements(m)[u']));
+
+axiom (forall<U, V> m: IMap U V, u: U, v: V :: { IMap#Values(IMap#Build(m, u, v)) }
+  IMap#Values(IMap#Build(m, u, v)) == Set#UnionOne(IMap#Values(m), v));
 
 //equality for imaps
 function IMap#Equal<U, V>(IMap U V, IMap U V): bool;

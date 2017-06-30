@@ -211,7 +211,7 @@ class Main {
                   forall ch :: ch in n.children && ch != null ==> ch.marked
       invariant forall n :: n in S && n !in stackNodes && n != t ==>
                   n.childrenVisited == old(n.childrenVisited)
-      invariant forall n :: n in S ==> n in stackNodes || n.children == old(n.children)
+      invariant forall n :: n in S ==> n in stackNodes || (allocated(n) && n.children == old(n.children))
       invariant forall n :: n in stackNodes ==>
                   |n.children| == old(|n.children|) &&
                   forall j :: 0 <= j < |n.children| ==>

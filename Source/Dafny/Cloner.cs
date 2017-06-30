@@ -40,25 +40,25 @@ namespace Microsoft.Dafny
 
       if (d is OpaqueTypeDecl) {
         var dd = (OpaqueTypeDecl)d;
-        return new OpaqueTypeDecl(Tok(dd.tok), dd.Name, m, dd.EqualitySupport, dd.TypeArgs.ConvertAll(CloneTypeParam), CloneAttributes(dd.Attributes), CloneFromValue(d));
+        return new OpaqueTypeDecl(Tok(dd.tok), dd.Name, m, CloneEqSupp(dd.EqualitySupport), dd.TypeArgs.ConvertAll(CloneTypeParam), CloneAttributes(dd.Attributes), CloneFromValue(d));
       } else if (d is SubsetTypeDecl) {
         var dd = (SubsetTypeDecl)d;
         var tps = dd.TypeArgs.ConvertAll(CloneTypeParam);
-        return new SubsetTypeDecl(Tok(dd.tok), dd.Name, tps, m, CloneBoundVar(dd.Var), CloneExpr(dd.Constraint), CloneAttributes(dd.Attributes), CloneFromValue(dd));
+        return new SubsetTypeDecl(Tok(dd.tok), dd.Name, CloneEqSupp(dd.EqualitySupport), tps, m, CloneBoundVar(dd.Var), CloneExpr(dd.Constraint), CloneExpr(dd.Witness), CloneAttributes(dd.Attributes), CloneFromValue(dd));
       } else if (d is TypeSynonymDecl) {
         var dd = (TypeSynonymDecl)d;
         var tps = dd.TypeArgs.ConvertAll(CloneTypeParam);
-        return new TypeSynonymDecl(Tok(dd.tok), dd.Name, tps, m, CloneType(dd.Rhs), CloneAttributes(dd.Attributes), CloneFromValue(dd));
+        return new TypeSynonymDecl(Tok(dd.tok), dd.Name, CloneEqSupp(dd.EqualitySupport), tps, m, CloneType(dd.Rhs), CloneAttributes(dd.Attributes), CloneFromValue(dd));
       } else if (d is NewtypeDecl) {
         var dd = (NewtypeDecl)d;
           if (dd.Var == null) {
             return new NewtypeDecl(Tok(dd.tok), dd.Name, m, CloneType(dd.BaseType), CloneAttributes(dd.Attributes), CloneFromValue(dd));
           } else {
-            return new NewtypeDecl(Tok(dd.tok), dd.Name, m, CloneBoundVar(dd.Var), CloneExpr(dd.Constraint), CloneAttributes(dd.Attributes), CloneFromValue(dd));
+            return new NewtypeDecl(Tok(dd.tok), dd.Name, m, CloneBoundVar(dd.Var), CloneExpr(dd.Constraint), CloneExpr(dd.Witness), CloneAttributes(dd.Attributes), CloneFromValue(dd));
           }
       } else if (d is TupleTypeDecl) {
         var dd = (TupleTypeDecl)d;
-        return new TupleTypeDecl(dd.Dims, dd.Module);
+        return new TupleTypeDecl(dd.Dims, dd.Module, dd.Attributes);
       } else if (d is IndDatatypeDecl) {
         var dd = (IndDatatypeDecl)d;
         var tps = dd.TypeArgs.ConvertAll(CloneTypeParam);
@@ -126,6 +126,14 @@ namespace Microsoft.Dafny
       }
     }
 
+    public TypeParameter.EqualitySupportValue CloneEqSupp(TypeParameter.EqualitySupportValue equalitySupport) {
+      if (equalitySupport == TypeParameter.EqualitySupportValue.InferredRequired) {
+        return TypeParameter.EqualitySupportValue.Unspecified;
+      } else {
+        return equalitySupport;
+      }
+    }
+
     public virtual T CloneFromValue<T>(T d) where T : TopLevelDecl {
       return d;
     }
@@ -139,14 +147,19 @@ namespace Microsoft.Dafny
     }
 
     public TypeParameter CloneTypeParam(TypeParameter tp) {
-      return new TypeParameter(Tok(tp.tok), tp.Name, tp.EqualitySupport, tp);
+      return new TypeParameter(Tok(tp.tok), tp.Name, CloneEqSupp(tp.EqualitySupport), tp);
     }
 
     public virtual MemberDecl CloneMember(MemberDecl member) {
       if (member is Field) {
-        Contract.Assert(!(member is SpecialField));  // we don't expect a SpecialField to be cloned (or do we?)
-        var f = (Field)member;
-        return new Field(Tok(f.tok), f.Name, f.IsGhost, f.IsMutable, f.IsUserMutable, CloneType(f.Type), CloneAttributes(f.Attributes));
+        if (member is ConstantField) {
+          var c = (ConstantField) member;
+          return new ConstantField(Tok(c.tok), c.Name, CloneExpr(c.constValue), c.IsStatic, c.IsGhost, CloneType(c.Type), CloneAttributes(c.Attributes));
+        } else {
+          Contract.Assert(!(member is SpecialField));  // we don't expect a SpecialField to be cloned (or do we?)
+          var f = (Field)member;
+          return new Field(Tok(f.tok), f.Name, f.HasStaticKeyword, f.IsGhost, f.IsMutable, f.IsUserMutable, CloneType(f.Type), CloneAttributes(f.Attributes));
+        }
       } else if (member is Function) {
         var f = (Function)member;
         return CloneFunction(f);
@@ -305,6 +318,9 @@ namespace Microsoft.Dafny
       } else if (expr is ApplySuffix) {
         var e = (ApplySuffix) expr;
         return CloneApplySuffix(e);
+      } else if (expr is RevealExpr) {
+        var e = (RevealExpr) expr;
+        return new RevealExpr(Tok(e.tok), CloneExpr(e.Expr));
       } else if (expr is MemberSelectExpr) {
         var e = (MemberSelectExpr)expr;
         return new MemberSelectExpr(Tok(e.tok), CloneExpr(e.Obj), e.MemberName);
@@ -363,7 +379,7 @@ namespace Microsoft.Dafny
 
       } else if (expr is ChainingExpression) {
         var e = (ChainingExpression)expr;
-        return CloneExpr(e.E);  // just clone the desugaring, since it's already available
+        return new ChainingExpression(Tok(e.tok), e.Operands.ConvertAll(CloneExpr), e.Operators, e.OperatorLocs.ConvertAll(Tok), e.PrefixLimits.ConvertAll(CloneExpr));
 
       } else if (expr is LetExpr) {
         var e = (LetExpr)expr;
@@ -474,7 +490,12 @@ namespace Microsoft.Dafny
       } else {
         var r = (TypeRhs)rhs;
         if (r.ArrayDimensions != null) {
-          c = new TypeRhs(Tok(r.Tok), CloneType(r.EType), r.ArrayDimensions.ConvertAll(CloneExpr));
+          if (r.InitDisplay != null) {
+            Contract.Assert(r.ArrayDimensions.Count == 1);
+            c = new TypeRhs(Tok(r.Tok), CloneType(r.EType), CloneExpr(r.ArrayDimensions[0]), r.InitDisplay.ConvertAll(CloneExpr));
+          } else {
+            c = new TypeRhs(Tok(r.Tok), CloneType(r.EType), r.ArrayDimensions.ConvertAll(CloneExpr), CloneExpr(r.ElementInit));
+          }
         } else if (r.Arguments == null) {
           c = new TypeRhs(Tok(r.Tok), CloneType(r.EType));
         } else {
@@ -486,10 +507,19 @@ namespace Microsoft.Dafny
     }
 
     public virtual BlockStmt CloneBlockStmt(BlockStmt stmt) {
+      Contract.Requires(!(stmt is DividedBlockStmt));  // for blocks that may be DividedBlockStmt's, call CloneDividedBlockStmt instead
       if (stmt == null) {
         return null;
       } else {
         return new BlockStmt(Tok(stmt.Tok), Tok(stmt.EndTok), stmt.Body.ConvertAll(CloneStmt));
+      }
+    }
+
+    public virtual DividedBlockStmt CloneDividedBlockStmt(DividedBlockStmt stmt) {
+      if (stmt == null) {
+        return null;
+      } else {
+        return new DividedBlockStmt(Tok(stmt.Tok), Tok(stmt.EndTok), stmt.BodyInit.ConvertAll(CloneStmt), stmt.SeparatorTok == null ? null : Tok(stmt.SeparatorTok), stmt.BodyProper.ConvertAll(CloneStmt));
       }
     }
 
@@ -511,6 +541,10 @@ namespace Microsoft.Dafny
         var s = (PrintStmt)stmt;
         r = new PrintStmt(Tok(s.Tok), Tok(s.EndTok), s.Args.ConvertAll(CloneExpr));
 
+      } else if (stmt is RevealStmt) {
+        var s = (RevealStmt)stmt;
+        r = new RevealStmt(Tok(s.Tok), Tok(s.EndTok), CloneExpr(s.Expr));
+
       } else if (stmt is BreakStmt) {
         var s = (BreakStmt)stmt;
         if (s.TargetLabel != null) {
@@ -530,6 +564,9 @@ namespace Microsoft.Dafny
       } else if (stmt is AssignStmt) {
         var s = (AssignStmt)stmt;
         r = new AssignStmt(Tok(s.Tok), Tok(s.EndTok), CloneExpr(s.Lhs), CloneRHS(s.Rhs));
+
+      } else if (stmt is DividedBlockStmt) {
+        r = CloneDividedBlockStmt((DividedBlockStmt)stmt);
 
       } else if (stmt is BlockStmt) {
         r = CloneBlockStmt((BlockStmt)stmt);
@@ -566,7 +603,7 @@ namespace Microsoft.Dafny
           lines.Add(i == lineCount - 1 && 2 <= lineCount && s.Lines[i] == s.Lines[i - 1] ? lines[i - 1] : CloneExpr(s.Lines[i]));
         }
         Contract.Assert(lines.Count == lineCount);
-        r = new CalcStmt(Tok(s.Tok), Tok(s.EndTok), CloneCalcOp(s.Op), lines, s.Hints.ConvertAll(CloneBlockStmt), s.StepOps.ConvertAll(CloneCalcOp), CloneCalcOp(s.ResultOp), CloneAttributes(s.Attributes));
+        r = new CalcStmt(Tok(s.Tok), Tok(s.EndTok), CloneCalcOp(s.UserSuppliedOp), lines, s.Hints.ConvertAll(CloneBlockStmt), s.StepOps.ConvertAll(CloneCalcOp), CloneAttributes(s.Attributes));
 
       } else if (stmt is MatchStmt) {
         var s = (MatchStmt)stmt;
@@ -619,7 +656,9 @@ namespace Microsoft.Dafny
     }
 
     public CalcStmt.CalcOp CloneCalcOp(CalcStmt.CalcOp op) {
-      if (op is CalcStmt.BinaryCalcOp) {
+      if (op == null) {
+        return null;
+      } else if (op is CalcStmt.BinaryCalcOp) {
         return new CalcStmt.BinaryCalcOp(((CalcStmt.BinaryCalcOp) op).Op);
       } else if (op is CalcStmt.TernaryCalcOp) {
         return new CalcStmt.TernaryCalcOp(CloneExpr(((CalcStmt.TernaryCalcOp) op).Index));
@@ -671,10 +710,10 @@ namespace Microsoft.Dafny
         return new TwoStatePredicate(Tok(f.tok), newName, f.HasStaticKeyword, tps, formals,
           req, reads, ens, decreases, body, CloneAttributes(f.Attributes), null, f);
       } else if (f is TwoStateFunction) {
-        return new TwoStateFunction(Tok(f.tok), newName, f.HasStaticKeyword, tps, formals, CloneType(f.ResultType),
+        return new TwoStateFunction(Tok(f.tok), newName, f.HasStaticKeyword, tps, formals, f.Result == null ? null : CloneFormal(f.Result), CloneType(f.ResultType),
           req, reads, ens, decreases, body, CloneAttributes(f.Attributes), null, f);
       } else {
-        return new Function(Tok(f.tok), newName, f.HasStaticKeyword, f.IsProtected, f.IsGhost, tps, formals, CloneType(f.ResultType),
+        return new Function(Tok(f.tok), newName, f.HasStaticKeyword, f.IsProtected, f.IsGhost, tps, formals, f.Result == null ? null : CloneFormal(f.Result), CloneType(f.ResultType),
           req, reads, ens, decreases, body, CloneAttributes(f.Attributes), null, f);
       }
     }
@@ -694,7 +733,7 @@ namespace Microsoft.Dafny
 
       if (m is Constructor) {
         return new Constructor(Tok(m.tok), m.Name, tps, ins,
-          req, mod, ens, decreases, body, CloneAttributes(m.Attributes), null, m);
+          req, mod, ens, decreases, (DividedBlockStmt)body, CloneAttributes(m.Attributes), null, m);
       } else if (m is InductiveLemma) {
         return new InductiveLemma(Tok(m.tok), m.Name, m.HasStaticKeyword, tps, ins, m.Outs.ConvertAll(CloneFormal),
           req, mod, ens, decreases, body, CloneAttributes(m.Attributes), null, m);
@@ -715,7 +754,11 @@ namespace Microsoft.Dafny
     }
 
     public virtual BlockStmt CloneMethodBody(Method m) {
-      return CloneBlockStmt(m.Body);
+      if (m.Body is DividedBlockStmt) {
+        return CloneDividedBlockStmt((DividedBlockStmt)m.Body);
+      } else {
+        return CloneBlockStmt(m.Body);
+      }
     }
 
     public virtual IToken Tok(IToken tok) {
@@ -832,7 +875,8 @@ namespace Microsoft.Dafny
       if (d is RevealableTypeDecl && !RevealedInScope(d)) {
         var dd = (RevealableTypeDecl)d;
         var tps = d.TypeArgs.ConvertAll(CloneTypeParam);
-        based = new OpaqueTypeDecl(Tok(d.tok), d.Name, m, dd.SupportsEquality ? TypeParameter.EqualitySupportValue.Required : TypeParameter.EqualitySupportValue.Unspecified, tps, CloneAttributes(d.Attributes), CloneFromValue(d));
+        var eqsupp = TypeParameter.GetExplicitEqualitySupportValue(d);
+        based = new OpaqueTypeDecl(Tok(d.tok), d.Name, m, eqsupp, tps, CloneAttributes(d.Attributes), CloneFromValue(d));
       }
 
       reverseMap.Add(based, d);
@@ -999,8 +1043,33 @@ namespace Microsoft.Dafny
       this.reporter = reporter;
       this.suffix = string.Format("#[{0}]", Printer.ExprToString(k));
     }
+    protected Expression CloneCallAndAddK(ApplySuffix e) {
+      Contract.Requires(e != null);
+      Contract.Requires(e.Resolved is FunctionCallExpr && ((FunctionCallExpr)e.Resolved).Function is FixpointPredicate);
+      Contract.Requires(e.Lhs is NameSegment || e.Lhs is ExprDotName);
+      Expression lhs;
+      string name;
+      var ns = e.Lhs as NameSegment;
+      if (ns != null) {
+        name = ns.Name;
+        lhs = new NameSegment(Tok(ns.tok), name + "#", ns.OptTypeArguments == null ? null : ns.OptTypeArguments.ConvertAll(CloneType));
+      } else {
+        var edn = (ExprDotName)e.Lhs;
+        name = edn.SuffixName;
+        lhs = new ExprDotName(Tok(edn.tok), CloneExpr(edn.Lhs), name + "#", edn.OptTypeArguments == null ? null : edn.OptTypeArguments.ConvertAll(CloneType));
+      }
+      var args = new List<Expression>();
+      args.Add(k);
+      foreach (var arg in e.Args) {
+        args.Add(CloneExpr(arg));
+      }
+      var apply = new ApplySuffix(Tok(e.tok), lhs, args);
+      reporter.Info(MessageSource.Cloner, e.tok, name + suffix);
+      return apply;
+    }
     protected Expression CloneCallAndAddK(FunctionCallExpr e) {
       Contract.Requires(e != null);
+      Contract.Requires(e.Function is FixpointPredicate);
       var receiver = CloneExpr(e.Receiver);
       var args = new List<Expression>();
       args.Add(k);
@@ -1036,10 +1105,23 @@ namespace Microsoft.Dafny
       this.friendlyCalls = friendlyCalls;
     }
     public override Expression CloneExpr(Expression expr) {
-      if (expr is ConcreteSyntaxExpression) {
+      if (expr is NameSegment || expr is ExprDotName) {
+        // make sure to clone any user-supplied type-parameter instantiations
+        return base.CloneExpr(expr);
+      } else if (expr is ApplySuffix) {
+        var e = (ApplySuffix)expr;
+        var r = e.Resolved as FunctionCallExpr;
+        if (r != null && friendlyCalls.Contains(r)) {
+          return CloneCallAndAddK(e);
+        }
+      } else if (expr is SuffixExpr) {
+        // make sure to clone any user-supplied type-parameter instantiations
+        return base.CloneExpr(expr);
+      } else if (expr is ConcreteSyntaxExpression) {
         var e = (ConcreteSyntaxExpression)expr;
         // Note, the CoLemmaPostconditionSubstituter is an unusual cloner in that it operates on
-        // resolved expressions.  Hence, we bypass the syntactic parts here.
+        // resolved expressions.  Hence, we bypass the syntactic parts here, except for the ones
+        // checked above.
         return CloneExpr(e.Resolved);
       } else if (expr is FunctionCallExpr) {
         var e = (FunctionCallExpr)expr;
