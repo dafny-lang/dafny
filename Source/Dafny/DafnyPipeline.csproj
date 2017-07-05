@@ -175,8 +175,8 @@
     <None Include="Dafny.atg" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Parser.cs" />
-    <Compile Include="Scanner.cs" />
+    <Compile Include="Parser.cs"  Visible="False"/>
+    <Compile Include="Scanner.cs" Visible="False"/>
   </ItemGroup>
   <ItemGroup>
     <BootstrapperPackage Include="Microsoft.Net.Client.3.5">
