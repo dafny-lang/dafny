@@ -1,0 +1,18 @@
+Processing command (at Snapshots9.v0.dfy(2,11)) assert ok#0;
+  >>> DoNothingToAssert
+Snapshots9.v0.dfy(4,7): Error BP5003: A postcondition might not hold on this return path.
+Snapshots9.v0.dfy(2,10): Related location: This is the postcondition that might not hold.
+Execution trace:
+    (0,0): anon0
+    (0,0): anon3_Then
+
+Dafny program verifier finished with 0 verified, 1 error
+Processing command (at Snapshots9.v1.dfy(6,11)) assert ok#0;
+  >>> RecycleError
+Snapshots9.v1.dfy(8,7): Error BP5003: A postcondition might not hold on this return path.
+Snapshots9.v1.dfy(6,10): Related location: This is the postcondition that might not hold.
+Execution trace:
+    (0,0): anon0
+    (0,0): anon3_Then
+
+Dafny program verifier finished with 0 verified, 1 error
