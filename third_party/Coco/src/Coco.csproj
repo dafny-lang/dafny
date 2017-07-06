@@ -1,0 +1,53 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="3.5" DefaultTargets="Usage" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+
+  <Target Name="Usage">
+    <Message Text="Possible Targets:"/>
+    <Message Text="  clean: Full clean up."/>
+    <Message Text="  build: Build Coco/R."/>
+    <Message Text="  debug: Build Coco/R."/>
+    <Message Text="  self: Create the parser and scanner from the atg."/>
+    <Message Text=" "/>
+    <Message Text="Example:  msbuild /t:clean"/>
+  </Target>
+
+  <Target Name="clean">
+    <Delete Files="$(AppName).exe" Condition="Exists('$(AppName).exe')"/>
+    <Delete Files="$(AppName).pdb" Condition="Exists('$(AppName).pdb')"/>
+  </Target>
+
+  <ItemGroup>
+    <Compile Include="Coco.cs" />
+    <Compile Include="Scanner.cs" />
+    <Compile Include="Tab.cs" />
+    <Compile Include="DFA.cs" />
+    <Compile Include="ParserGen.cs" />
+    <Compile Include="Parser.cs" />
+  </ItemGroup>
+
+  <Target Name="build">
+    <Message Text="Building Coco/R..."/>
+    <Csc Sources="@(Compile)" OutputAssembly="$(AppName).exe" EmitDebugInformation="false" Optimize="true"/>
+  </Target>
+
+  <Target Name="debug">
+    <Message Text="Building Debug Version of Coco/R..."/>
+    <Csc Sources="@(Compile)" OutputAssembly="$(AppName).exe" EmitDebugInformation="true"/>
+  </Target>
+
+  <Target Name="self">
+    <Message Text="Self Build Coco/R..."/>
+    <Exec Command="$(AppName).exe -namespace at.jku.ssw.Coco Coco.atg"/>
+  </Target>
+
+  <PropertyGroup>
+    <AppName>Coco</AppName>
+    <OutputPath>.</OutputPath>
+    <OutputType>Exe</OutputType>
+    <TargetFrameworkVersion>v1.1</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+
+</Project>

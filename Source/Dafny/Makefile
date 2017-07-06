@@ -4,8 +4,8 @@
 # from http://boogiepartners.codeplex.com/. Update the FRAME_DIR variable to
 # point to whatever directory you install that into.
 # ###############################################################################
-COCO_EXE_DIR = ..\..\..\boogie-partners\CocoR\bin
-FRAME_DIR = ..\..\..\boogie-partners\CocoR\Modified
+COCO_EXE_DIR = ..\..\third_party\Coco\bin
+FRAME_DIR = ..\..\third_party\Coco\src
 COCO = $(COCO_EXE_DIR)\Coco.exe
 
 # "all" depends on 2 files, really (Parser.cs and Scanner.cs), but they
