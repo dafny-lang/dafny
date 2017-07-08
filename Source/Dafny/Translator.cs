@@ -2001,6 +2001,7 @@ namespace Microsoft.Dafny {
       }
       if (m.Body != null && InVerificationScope(m)) {
         // ...and its implementation
+        assertionCount = 0;
         var proc = AddMethod(m, MethodTranslationKind.Implementation);
         sink.AddTopLevelDeclaration(proc);
         AddMethodImpl(m, proc, false);
