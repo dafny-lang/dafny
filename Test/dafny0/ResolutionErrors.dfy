@@ -1853,3 +1853,17 @@ module DividedConstructors {
     }
   }
 }
+
+module ConstructorsThisUsage {
+  class C {
+    var x: int
+    constructor M()
+      requires this != null  // error: cannot use "this" here
+      //modifies this  // error: cannot use "this" here (but we just issue a deprecation warning)
+      decreases this.x  // error: cannot use "this" here
+      ensures this.x == 5
+    {
+      x := 5;
+    }
+  }
+}

@@ -2,11 +2,11 @@
 // RUN: %diff "%s.expect" "%t"
 
 class Node<T> {
-  ghost var List: seq<T>;
-  ghost var Repr: set<Node<T>>;
+  ghost var List: seq<T>
+  ghost var Repr: set<Node<T>>
 
-  var data: T;
-  var next: Node<T>;
+  var data: T
+  var next: Node<T>
 
   predicate Valid()
     reads this, Repr
@@ -30,10 +30,10 @@ class Node<T> {
   }
 
   constructor InitAsPredecessor(d: T, succ: Node<T>)
-    requires succ != null && succ.Valid() && this !in succ.Repr;
-    modifies this;
-    ensures Valid() && fresh(Repr - {this} - succ.Repr);
-    ensures List == [d] + succ.List;
+    requires succ != null && succ.Valid()
+    modifies this
+    ensures Valid() && fresh(Repr - {this} - succ.Repr)
+    ensures List == [d] + succ.List
   {
     data, next := d, succ;
     List := [d] + succ.List;

@@ -7051,13 +7051,12 @@ namespace Microsoft.Dafny
 
         // Add in-parameters to the scope, but don't care about any duplication errors, since they have already been reported
         scope.PushMarker();
-        if (m.IsStatic) {
+        if (m.IsStatic || m is Constructor) {
           scope.AllowInstance = false;
         }
         foreach (Formal p in m.Ins) {
           scope.Push(p.Name, p);
         }
-
 
         // Start resolving specification...
         foreach (MaybeFreeExpression e in m.Req) {
@@ -7080,6 +7079,15 @@ namespace Microsoft.Dafny
         foreach (Expression e in m.Decreases.Expressions) {
           ResolveExpression(e, new ResolveOpts(m, m is TwoStateLemma));
           // any type is fine
+        }
+
+        if (m is Constructor) {
+          scope.PopMarker();
+          // start the scope again, but this time allowing instance
+          scope.PushMarker();
+          foreach (Formal p in m.Ins) {
+            scope.Push(p.Name, p);
+          }
         }
 
         // Add out-parameters to a new scope that will also include the outermost-level locals of the body
@@ -7258,8 +7266,6 @@ namespace Microsoft.Dafny
       // ---------- here comes the constructor ----------
       // same requires clause as the iterator itself
       iter.Member_Init.Req.AddRange(iter.Requires);
-      // modifies this;
-      iter.Member_Init.Mod.Expressions.Add(new FrameExpression(iter.tok, new ThisExpr(iter.tok), null));
       var ens = iter.Member_Init.Ens;
       foreach (var p in iter.Ins) {
         // ensures this.x == x;

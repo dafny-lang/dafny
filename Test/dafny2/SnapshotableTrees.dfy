@@ -296,9 +296,8 @@ module SnapTree {
     }
 
     constructor Build(left: Node, x: int, right: Node)
-      requires this != left && this != right;
-      requires left != null ==> left.NodeValid() && this !in left.Repr && Tree.AllBelow(left.Contents, x);
-      requires right != null ==> right.NodeValid() && this !in right.Repr && Tree.AllAbove(x, right.Contents);
+      requires left != null ==> left.NodeValid() && Tree.AllBelow(left.Contents, x);
+      requires right != null ==> right.NodeValid() && Tree.AllAbove(x, right.Contents);
       requires left != null && right != null ==> left.Repr !! right.Repr;
       modifies this;
       ensures NodeValid();
@@ -571,7 +570,7 @@ module SnapTree {
     }
 
     constructor Init(t: Tree)
-      requires t != null && t.Valid() && this !in t.Repr;
+      requires t != null && t.Valid();
       modifies this;
       ensures Valid() && fresh(IterRepr - {this});
       ensures T == t && Contents == t.Contents && N == -1;

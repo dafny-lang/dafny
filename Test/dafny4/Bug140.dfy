@@ -30,7 +30,7 @@ class Node<T> {
   }
 
   constructor InitAsPredecessor(d: T, succ: Node<T>)
-    requires succ != null && succ.Valid() && this !in succ.Repr;
+    requires succ != null && succ.Valid()
     modifies this;
     ensures Valid() && fresh(Repr - {this} - succ.Repr);
     ensures List == [d] + succ.List;

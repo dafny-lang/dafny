@@ -402,7 +402,6 @@ namespace Microsoft.Dafny
   /// be added.
   ///
   /// For every constructor, add:
-  ///    modifies this;
   ///    ensures Valid() && fresh(Repr - {this})
   /// At the end of the body of the constructor, add:
   ///    Repr := {this};
@@ -504,9 +503,6 @@ namespace Microsoft.Dafny
           AddHoverText(member.tok, format, valid, repr);
         } else if (member is Constructor) {
           var ctor = (Constructor)member;
-          // modifies this;
-          var m0 = new ThisExpr(tok);
-          ctor.Mod.Expressions.Add(new FrameExpression(tok, m0, null));
           // ensures Valid();
           var valid = new FunctionCallExpr(tok, "Valid", new ImplicitThisExpr(tok), tok, new List<Expression>());
           ctor.Ens.Insert(0, new MaybeFreeExpression(valid));
@@ -515,6 +511,7 @@ namespace Microsoft.Dafny
             new MemberSelectExpr(tok, new ImplicitThisExpr(tok), "Repr"),
             new SetDisplayExpr(tok, true, new List<Expression>() { new ThisExpr(tok) })));
           ctor.Ens.Insert(1, new MaybeFreeExpression(freshness));
+          var m0 = new ThisExpr(tok);
           AddHoverText(member.tok, "modifies {0}\nensures {1} && {2}", m0, valid, freshness);
         }
       }

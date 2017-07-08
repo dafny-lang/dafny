@@ -3477,6 +3477,7 @@ namespace Microsoft.Dafny {
     ModuleDefinition currentModule = null;  // the name of the module whose members are currently being translated
     ICallable codeContext = null;  // the method/iterator whose implementation is currently being translated or the function whose specification is being checked for well-formedness
     Bpl.LocalVariable yieldCountVariable = null;  // non-null when an iterator body is being translated
+    bool inBodyInitContext = false;  // true during the translation of the .BodyInit portion of a divided constructor body
     bool assertAsAssume = false; // generate assume statements instead of assert statements
     public enum StmtType { NONE, ASSERT, ASSUME };
     public StmtType stmtContext = StmtType.NONE;  // the Statement that is currently being translated
@@ -7893,6 +7894,10 @@ namespace Microsoft.Dafny {
             }
           }
         }
+        if (m is Constructor && kind == MethodTranslationKind.Call) {
+          var fresh = Bpl.Expr.Not(etran.Old.IsAlloced(m.tok, new Bpl.IdentifierExpr(m.tok, "this", predef.RefType)));
+          AddEnsures(ens, Ensures(m.tok, false, fresh, null, "constructor allocates the object"));
+        }
         foreach (BoilerplateTriple tri in GetTwoStateBoilerplate(m.tok, m.Mod.Expressions, m.IsGhost, ordinaryEtran.Old, ordinaryEtran, ordinaryEtran.Old)) {
           AddEnsures(ens, Ensures(tri.tok, tri.IsFree, tri.Expr, tri.ErrorMessage, tri.Comment));
         }
@@ -7992,11 +7997,22 @@ namespace Microsoft.Dafny {
         var receiverType = m is MemberDecl ? Resolver.GetReceiverType(tok, (MemberDecl)m) : Resolver.GetThisType(tok, (IteratorDecl)m);
         Contract.Assert(VisibleInScope(receiverType));
 
-        Bpl.Expr wh = Bpl.Expr.And(
-          Bpl.Expr.Neq(new Bpl.IdentifierExpr(tok, "this", predef.RefType), predef.Null),
-          (m is TwoStateLemma ? etran.Old : etran).GoodRef(tok, new Bpl.IdentifierExpr(tok, "this", predef.RefType), receiverType));
-        Bpl.Formal thVar = new Bpl.Formal(tok, new Bpl.TypedIdent(tok, "this", predef.RefType, wh), true);
-        inParams.Add(thVar);
+        Bpl.Expr wh;
+        if (m is Constructor && kind == MethodTranslationKind.Implementation) {
+          wh = null;
+        } else {
+          var th = new Bpl.IdentifierExpr(tok, "this", predef.RefType);
+          wh = Bpl.Expr.And(
+            Bpl.Expr.Neq(th, predef.Null),
+            (m is TwoStateLemma ? etran.Old : etran).GoodRef(tok, th, receiverType));
+        }
+        // for class constructors, the receiver is encoded as an output parameter
+        Bpl.Formal thVar = new Bpl.Formal(tok, new Bpl.TypedIdent(tok, "this", predef.RefType, wh), !(m is Constructor && kind != MethodTranslationKind.SpecWellformedness));
+        if (thVar.InComing) {
+          inParams.Add(thVar);
+        } else {
+          outParams.Add(thVar);
+        }
       }
       if (includeInParams) {
         foreach (Formal p in m.Ins) {
@@ -8708,6 +8724,37 @@ namespace Microsoft.Dafny {
       } else if (stmt is CallStmt) {
         AddComment(builder, stmt, "call statement");
         TrCallStmt((CallStmt)stmt, builder, locals, etran, null);
+
+      } else if (stmt is DividedBlockStmt) {
+        var s = (DividedBlockStmt)stmt;
+        var tok = s.SeparatorTok ?? s.Tok;
+        // a DividedBlockStmt occurs only inside a Constructor body of a class
+        var cl = (ClassDecl)((Constructor)codeContext).EnclosingClass;
+        var fields = cl.Members.ConvertAll(member =>
+          member is Field && !(member is ConstantField && ((ConstantField)member).constValue != null) ? (Field)member : null);
+        fields.RemoveAll(f => f == null);
+        var localSurrogates = fields.ConvertAll(f => new Bpl.LocalVariable(f.tok, new TypedIdent(f.tok, SurrogateName(f), TrType(f.Type))));
+        locals.AddRange(localSurrogates);
+
+        Contract.Assert(!inBodyInitContext);
+        inBodyInitContext = true;
+        TrStmtList(s.BodyInit, builder, locals, etran);
+        Contract.Assert(inBodyInitContext);
+        inBodyInitContext = false;
+
+        // The "new;" translates into an allocation of "this"
+        var th = new ThisExpr(tok);
+        th.Type = Resolver.GetThisType(tok, cl);  // resolve here
+        var bplThis = (Bpl.IdentifierExpr)etran.TrExpr(th);
+        SelectAllocateObject(tok, bplThis, th.Type, builder, etran);
+        for (int i = 0; i < fields.Count; i++) {
+          // assume $Heap[this, f] == this.f;
+          var mse = new MemberSelectExpr(tok, th, fields[i]);
+          builder.Add(new Bpl.AssumeCmd(tok, Bpl.Expr.Eq(etran.TrExpr(mse), new Bpl.IdentifierExpr(tok, localSurrogates[i]))));
+        }
+        CommitAllocatedObject(tok, bplThis, null, builder, etran);
+
+        TrStmtList(s.BodyProper, builder, locals, etran);
 
       } else if (stmt is BlockStmt) {
         var s = (BlockStmt)stmt;
@@ -10094,7 +10141,13 @@ namespace Microsoft.Dafny {
       builder.Add(elsIf);
     }
 
-    void TrCallStmt(CallStmt s, BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran, Bpl.Expr actualReceiver) {
+    void TrCallStmt(CallStmt s, BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran, Bpl.IdentifierExpr actualReceiver) {
+      Contract.Requires(s != null);
+      Contract.Requires(builder != null);
+      Contract.Requires(locals != null);
+      Contract.Requires(etran != null);
+      Contract.Requires(!(s.Method is Constructor) || (s.Lhs.Count == 0 && actualReceiver != null));
+
       List<AssignToLhs> lhsBuilders;
       List<Bpl.IdentifierExpr> bLhss;
       Bpl.Expr[] ignore1, ignore2;
@@ -10104,20 +10157,25 @@ namespace Microsoft.Dafny {
       Contract.Assert(s.Lhs.Count == lhsBuilders.Count);
       Contract.Assert(s.Lhs.Count == bLhss.Count);
       var lhsTypes = new List<Type>();
-      for (int i = 0; i < s.Lhs.Count; i++) {
-        var lhs = s.Lhs[i];
-        lhsTypes.Add(lhs.Type);
-        builder.Add(new CommentCmd("TrCallStmt: Adding lhs " + lhs + " with type " + lhs.Type));
-        if (bLhss[i] == null) {  // (in the current implementation, the second parameter "true" to ProcessLhss implies that all bLhss[*] will be null)
-          // create temporary local and assign it to bLhss[i]
-          string nm = CurrentIdGenerator.FreshId("$rhs##");
-          var formalOutType = Resolver.SubstType(s.Method.Outs[i].Type, tySubst);
-          var ty = TrType(formalOutType);
-          Bpl.Expr wh = GetWhereClause(lhs.tok, new Bpl.IdentifierExpr(lhs.tok, nm, ty), formalOutType, etran,
-            isAllocContext.Var(s.IsGhost || s.Method.IsGhost, s.Method.Outs[i]));
-          Bpl.LocalVariable var = new Bpl.LocalVariable(lhs.tok, new Bpl.TypedIdent(lhs.tok, nm, ty, wh));
-          locals.Add(var);
-          bLhss[i] = new Bpl.IdentifierExpr(lhs.tok, var.Name, ty);
+      if (s.Method is Constructor) {
+        lhsTypes.Add(s.Receiver.Type);
+        bLhss.Add(actualReceiver);
+      } else {
+        for (int i = 0; i < s.Lhs.Count; i++) {
+          var lhs = s.Lhs[i];
+          lhsTypes.Add(lhs.Type);
+          builder.Add(new CommentCmd("TrCallStmt: Adding lhs " + lhs + " with type " + lhs.Type));
+          if (bLhss[i] == null) {  // (in the current implementation, the second parameter "true" to ProcessLhss implies that all bLhss[*] will be null)
+            // create temporary local and assign it to bLhss[i]
+            string nm = CurrentIdGenerator.FreshId("$rhs##");
+            var formalOutType = Resolver.SubstType(s.Method.Outs[i].Type, tySubst);
+            var ty = TrType(formalOutType);
+            Bpl.Expr wh = GetWhereClause(lhs.tok, new Bpl.IdentifierExpr(lhs.tok, nm, ty), formalOutType, etran,
+              isAllocContext.Var(s.IsGhost || s.Method.IsGhost, s.Method.Outs[i]));
+            Bpl.LocalVariable var = new Bpl.LocalVariable(lhs.tok, new Bpl.TypedIdent(lhs.tok, nm, ty, wh));
+            locals.Add(var);
+            bLhss[i] = new Bpl.IdentifierExpr(lhs.tok, var.Name, ty);
+          }
         }
       }
       Bpl.IdentifierExpr initHeap = null;
@@ -10192,8 +10250,11 @@ namespace Microsoft.Dafny {
       Contract.Requires(Args != null);
       Contract.Requires(Lhss != null);
       Contract.Requires(LhsTypes != null);
-      Contract.Requires(method.Outs.Count == Lhss.Count);
-      Contract.Requires(method.Outs.Count == LhsTypes.Count);
+      // Note, a Dafny class constructor is declared to have no output parameters, but it is encoded in Boogie as
+      // having an output parameter.
+      Contract.Requires(method is Constructor || method.Outs.Count == Lhss.Count);
+      Contract.Requires(method is Constructor || method.Outs.Count == LhsTypes.Count);
+      Contract.Requires(!(method is Constructor) || (method.Outs.Count == 0 && Lhss.Count == 1 && LhsTypes.Count == 1));
       Contract.Requires(builder != null);
       Contract.Requires(locals != null);
       Contract.Requires(etran != null);
@@ -10242,7 +10303,7 @@ namespace Microsoft.Dafny {
 
       // Translate receiver argument, if any
       Expression receiver = bReceiver == null ? dafnyReceiver : new BoogieWrapper(bReceiver, dafnyReceiver.Type);
-      if (!method.IsStatic) {
+      if (!method.IsStatic && !(method is Constructor)) {
         if (bReceiver == null && !(dafnyReceiver is ThisExpr)) {
           CheckNonNull(dafnyReceiver.tok, dafnyReceiver, builder, etran, null);
         }
@@ -10294,7 +10355,7 @@ namespace Microsoft.Dafny {
       // invoked in the 'old' state or if the method invoked is a two-state lemma with a non-new parameter, then we need to
       // check that its arguments were all available at that time as well.
       if (etran.UsesOldHeap) {
-        if (!method.IsStatic) {
+        if (!method.IsStatic && !(method is Constructor)) {
           Bpl.Expr wh = GetWhereClause(receiver.tok, etran.TrExpr(receiver), receiver.Type, etran, ISALLOC, true);
           if (wh != null) {
             builder.Add(Assert(receiver.tok, wh, "receiver argument must be allocated in the state in which the method is invoked"));
@@ -10344,18 +10405,23 @@ namespace Microsoft.Dafny {
       // Create variables to hold the output parameters of the call, so that appropriate unboxes can be introduced.
       var outs = new List<Bpl.IdentifierExpr>();
       var tmpOuts = new List<Bpl.IdentifierExpr>();
-      for (int i = 0; i < Lhss.Count; i++) {
-        var bLhs = Lhss[i];
-        if (ModeledAsBoxType(callee.Outs[i].Type) && !ModeledAsBoxType(LhsTypes[i])) {
-          // we need an Unbox
-          Bpl.LocalVariable var = new Bpl.LocalVariable(bLhs.tok, new Bpl.TypedIdent(bLhs.tok, CurrentIdGenerator.FreshId("$tmp##"), predef.BoxType));
-          locals.Add(var);
-          Bpl.IdentifierExpr varIdE = new Bpl.IdentifierExpr(bLhs.tok, var.Name, predef.BoxType);
-          tmpOuts.Add(varIdE);
-          outs.Add(varIdE);
-        } else {
-          tmpOuts.Add(null);
-          outs.Add(bLhs);
+      if (method is Constructor) {
+        tmpOuts.Add(null);
+        outs.Add(Lhss[0]);
+      } else {
+        for (int i = 0; i < Lhss.Count; i++) {
+          var bLhs = Lhss[i];
+          if (ModeledAsBoxType(callee.Outs[i].Type) && !ModeledAsBoxType(LhsTypes[i])) {
+            // we need an Unbox
+            Bpl.LocalVariable var = new Bpl.LocalVariable(bLhs.tok, new Bpl.TypedIdent(bLhs.tok, CurrentIdGenerator.FreshId("$tmp##"), predef.BoxType));
+            locals.Add(var);
+            Bpl.IdentifierExpr varIdE = new Bpl.IdentifierExpr(bLhs.tok, var.Name, predef.BoxType);
+            tmpOuts.Add(varIdE);
+            outs.Add(varIdE);
+          } else {
+            tmpOuts.Add(null);
+            outs.Add(bLhs);
+          }
         }
       }
 
@@ -11215,11 +11281,16 @@ namespace Microsoft.Dafny {
           var field = fse.Member as Field;
           Contract.Assert(field != null);
           Contract.Assert(VisibleInScope(field));
+
+          var useSurrogateLocal = inBodyInitContext && Expression.AsThis(fse.Obj) != null;
+
           var obj = SaveInTemp(etran.TrExpr(fse.Obj), rhsCanAffectPreviouslyKnownExpressions,
             "$obj" + i, predef.RefType, builder, locals);
           prevObj[i] = obj;
-          // check that the enclosing modifies clause allows this object to be written:  assert $_Frame[obj]);
-          builder.Add(Assert(tok, Bpl.Expr.SelectTok(tok, etran.TheFrame(tok), obj, GetField(fse)), "assignment may update an object not in the enclosing context's modifies clause"));
+          if (!useSurrogateLocal) {
+            // check that the enclosing modifies clause allows this object to be written:  assert $_Frame[obj]);
+            builder.Add(Assert(tok, Bpl.Expr.SelectTok(tok, etran.TheFrame(tok), obj, GetField(fse)), "assignment may update an object not in the enclosing context's modifies clause"));
+          }
 
           if (checkDistinctness) {
             // check that this LHS is not the same as any previous LHSs
@@ -11232,17 +11303,25 @@ namespace Microsoft.Dafny {
             }
           }
 
-          bLhss.Add(null);
-          lhsBuilders.Add(delegate(Bpl.Expr rhs, BoogieStmtListBuilder bldr, ExpressionTranslator et) {
-            var fseField = fse.Member as Field;
-            Contract.Assert(fseField != null);
-            Check_NewRestrictions(tok, obj, fseField, rhs, bldr, et);
-            var h = (Bpl.IdentifierExpr)et.HeapExpr;  // TODO: is this cast always justified?
-            Bpl.Cmd cmd = Bpl.Cmd.SimpleAssign(tok, h, ExpressionTranslator.UpdateHeap(tok, h, obj, new Bpl.IdentifierExpr(tok, GetField(fseField)), rhs));
-            bldr.Add(cmd);
-            // assume $IsGoodHeap($Heap);
-            bldr.Add(AssumeGoodHeap(tok, et));
-          });
+          if (useSurrogateLocal) {
+            var bLhs = new Bpl.IdentifierExpr(fse.tok, SurrogateName(field), TrType(field.Type));
+            bLhss.Add(rhsCanAffectPreviouslyKnownExpressions ? null : bLhs);
+            lhsBuilders.Add(delegate(Bpl.Expr rhs, BoogieStmtListBuilder bldr, ExpressionTranslator et) {
+              bldr.Add(Bpl.Cmd.SimpleAssign(tok, bLhs, rhs));
+            });
+          } else {
+            bLhss.Add(null);
+            lhsBuilders.Add(delegate(Bpl.Expr rhs, BoogieStmtListBuilder bldr, ExpressionTranslator et) {
+              var fseField = fse.Member as Field;
+              Contract.Assert(fseField != null);
+              Check_NewRestrictions(tok, obj, fseField, rhs, bldr, et);
+              var h = (Bpl.IdentifierExpr)et.HeapExpr;  // TODO: is this cast always justified?
+              Bpl.Cmd cmd = Bpl.Cmd.SimpleAssign(tok, h, ExpressionTranslator.UpdateHeap(tok, h, obj, new Bpl.IdentifierExpr(tok, GetField(fseField)), rhs));
+              bldr.Add(cmd);
+              // assume $IsGoodHeap($Heap);
+              bldr.Add(AssumeGoodHeap(tok, et));
+            });
+          }
 
         } else if (lhs is SeqSelectExpr) {
           SeqSelectExpr sel = (SeqSelectExpr)lhs;
@@ -11380,6 +11459,8 @@ namespace Microsoft.Dafny {
         Contract.Assert(rhs is TypeRhs);  // otherwise, an unexpected AssignmentRhs
         TypeRhs tRhs = (TypeRhs)rhs;
 
+        var callsConstructor = tRhs.InitCall != null && tRhs.InitCall.Method is Constructor;
+
         if (tRhs.ArrayDimensions == null) {
           Contract.Assert(tRhs.ElementInit == null && tRhs.InitDisplay == null);
         } else {
@@ -11404,97 +11485,87 @@ namespace Microsoft.Dafny {
         }
 
         Bpl.IdentifierExpr nw = GetNewVar_IdExpr(tok, locals);
-        builder.Add(new Bpl.HavocCmd(tok, new List<Bpl.IdentifierExpr> { nw }));
-        // assume $nw != null && !$Heap[$nw, alloc] && dtype($nw) == RHS;
-        Bpl.Expr nwNotNull = Bpl.Expr.Neq(nw, predef.Null);
-        Bpl.Expr rightType;
-        rightType = etran.GoodRef_(tok, nw, tRhs.Type, true);
-        builder.Add(TrAssumeCmd(tok, Bpl.Expr.And(nwNotNull, rightType)));
-        if (tRhs.ArrayDimensions != null) {
-          int i = 0;
-          foreach (Expression dim in tRhs.ArrayDimensions) {
-            // assume Array#Length($nw, i) == arraySize;
-            Bpl.Expr arrayLength = ArrayLength(tok, nw, tRhs.ArrayDimensions.Count, i);
-            builder.Add(TrAssumeCmd(tok, Bpl.Expr.Eq(arrayLength, etran.TrExpr(dim))));
-            i++;
-          }
-          if (tRhs.ElementInit != null) {
-            // Check that all indices are in the domain of the given function.  That is:
-            // assert (forall i0,i1,i2,... :: 0 <= i0 < tRhs.ArrayDimensions[0] && ... ==> tRhs.ElementInit.requires(i0,i1,i2,...));
-            Bpl.Expr ante = Bpl.Expr.True;
-            var varNameGen = CurrentIdGenerator.NestedFreshIdGenerator("arrayinit#");
-            var bvs = new List<Bpl.Variable>();
-            var indicies = new List<Bpl.Expr>();
-            for (int ii = 0; ii < tRhs.ArrayDimensions.Count; ii++) {
-              var nm = varNameGen.FreshId(string.Format("#i{0}#", ii));
-              var bv = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, nm, Bpl.Type.Int));
-              bvs.Add(bv);
-              var ie = new Bpl.IdentifierExpr(tok, bv);
-              indicies.Add(ie);
-              ante = BplAnd(ante, BplAnd(Bpl.Expr.Le(Bpl.Expr.Literal(0), ie), Bpl.Expr.Lt(ie, etran.TrExpr(tRhs.ArrayDimensions[ii]))));
+        if (!callsConstructor) {
+          SelectAllocateObject(tok, nw, tRhs.Type, builder, etran);
+          if (tRhs.ArrayDimensions != null) {
+            int i = 0;
+            foreach (Expression dim in tRhs.ArrayDimensions) {
+              // assume Array#Length($nw, i) == arraySize;
+              Bpl.Expr arrayLength = ArrayLength(tok, nw, tRhs.ArrayDimensions.Count, i);
+              builder.Add(TrAssumeCmd(tok, Bpl.Expr.Eq(arrayLength, etran.TrExpr(dim))));
+              i++;
             }
-            var sourceType = tRhs.ElementInit.Type.AsArrowType;
-            Contract.Assert(sourceType.Args.Count == tRhs.ArrayDimensions.Count);
-            var args = Concat(
-              Map(Enumerable.Range(0, tRhs.ArrayDimensions.Count), ii => TypeToTy(sourceType.Args[ii])),
-              Cons(TypeToTy(sourceType.Result),
-              Cons(etran.TrExpr(tRhs.ElementInit),
-              Cons(etran.HeapExpr,
-              indicies.ConvertAll(idx => (Bpl.Expr)FunctionCall(tok, BuiltinFunction.Box, null, idx))))));
-            // check precond
-            var pre = FunctionCall(tok, Requires(tRhs.ArrayDimensions.Count), Bpl.Type.Bool, args);
-            var q = new Bpl.ForallExpr(tok, bvs, Bpl.Expr.Imp(ante, pre));
-            builder.Add(AssertNS(tok, q, "all array indicies must be in the domain of the initialization function"));
-            // Check that the values coming out of the function satisfy any appropriate subset-type constraints
-            var apply = UnboxIfBoxed(FunctionCall(tok, Apply(tRhs.ArrayDimensions.Count), TrType(tRhs.EType), args), tRhs.EType);
-            string msg;
-            var cre = GetSubrangeCheck(apply, sourceType.Result, tRhs.EType, out msg);
-            if (cre != null) {
-              // assert (forall i0,i1,i2,... ::
-              //            0 <= i0 < ... && ... ==> tRhs.ElementInit.requires(i0,i1,i2,...) is Subtype);
-              q = new Bpl.ForallExpr(tok, bvs, Bpl.Expr.Imp(ante, cre));
-              builder.Add(AssertNS(tRhs.ElementInit.tok, q, msg));
-            }
-            // Assume that array elements have initial values according to the given initialization function.  That is:
-            // assume (forall i0,i1,i2,... :: { nw[i0,i1,i2,...] }
-            //            0 <= i0 < ... && ... ==> nw[i0,i1,i2,...] == tRhs.ElementInit.requires(i0,i1,i2,...));
-            var ai = ReadHeap(tok, etran.HeapExpr, nw, GetArrayIndexFieldName(tok, indicies));
-            var ai_prime = UnboxIfBoxed(ai, tRhs.EType);
-            var tr = new Bpl.Trigger(tok, true, new List<Bpl.Expr> { ai });
-            q = new Bpl.ForallExpr(tok, bvs, tr, Bpl.Expr.Imp(ante, Bpl.Expr.Eq(ai_prime, apply)));  // TODO: use a more general Equality translation
-            builder.Add(new Bpl.AssumeCmd(tok, q));
-          } else if (tRhs.InitDisplay != null) {
-            int ii = 0;
-            foreach (var v in tRhs.InitDisplay) {
-              var EE_ii = etran.TrExpr(v);
-              // assert EE_ii satisfies any subset-type constraints;
-              CheckSubrange(v.tok, EE_ii, v.Type, tRhs.EType, builder);
-              // assume nw[ii] == EE_ii;
-              var ai = ReadHeap(tok, etran.HeapExpr, nw, GetArrayIndexFieldName(tok, new List<Bpl.Expr> { Bpl.Expr.Literal(ii) }));
-              builder.Add(new Bpl.AssumeCmd(tok, Bpl.Expr.Eq(UnboxIfBoxed(ai, tRhs.EType), EE_ii)));
-              ii++;
+            if (tRhs.ElementInit != null) {
+              // Check that all indices are in the domain of the given function.  That is:
+              // assert (forall i0,i1,i2,... :: 0 <= i0 < tRhs.ArrayDimensions[0] && ... ==> tRhs.ElementInit.requires(i0,i1,i2,...));
+              Bpl.Expr ante = Bpl.Expr.True;
+              var varNameGen = CurrentIdGenerator.NestedFreshIdGenerator("arrayinit#");
+              var bvs = new List<Bpl.Variable>();
+              var indicies = new List<Bpl.Expr>();
+              for (int ii = 0; ii < tRhs.ArrayDimensions.Count; ii++) {
+                var nm = varNameGen.FreshId(string.Format("#i{0}#", ii));
+                var bv = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, nm, Bpl.Type.Int));
+                bvs.Add(bv);
+                var ie = new Bpl.IdentifierExpr(tok, bv);
+                indicies.Add(ie);
+                ante = BplAnd(ante, BplAnd(Bpl.Expr.Le(Bpl.Expr.Literal(0), ie), Bpl.Expr.Lt(ie, etran.TrExpr(tRhs.ArrayDimensions[ii]))));
+              }
+              var sourceType = tRhs.ElementInit.Type.AsArrowType;
+              Contract.Assert(sourceType.Args.Count == tRhs.ArrayDimensions.Count);
+              var args = Concat(
+                Map(Enumerable.Range(0, tRhs.ArrayDimensions.Count), ii => TypeToTy(sourceType.Args[ii])),
+                Cons(TypeToTy(sourceType.Result),
+                Cons(etran.TrExpr(tRhs.ElementInit),
+                Cons(etran.HeapExpr,
+                indicies.ConvertAll(idx => (Bpl.Expr)FunctionCall(tok, BuiltinFunction.Box, null, idx))))));
+              // check precond
+              var pre = FunctionCall(tok, Requires(tRhs.ArrayDimensions.Count), Bpl.Type.Bool, args);
+              var q = new Bpl.ForallExpr(tok, bvs, Bpl.Expr.Imp(ante, pre));
+              builder.Add(AssertNS(tok, q, "all array indicies must be in the domain of the initialization function"));
+              // Check that the values coming out of the function satisfy any appropriate subset-type constraints
+              var apply = UnboxIfBoxed(FunctionCall(tok, Apply(tRhs.ArrayDimensions.Count), TrType(tRhs.EType), args), tRhs.EType);
+              string msg;
+              var cre = GetSubrangeCheck(apply, sourceType.Result, tRhs.EType, out msg);
+              if (cre != null) {
+                // assert (forall i0,i1,i2,... ::
+                //            0 <= i0 < ... && ... ==> tRhs.ElementInit.requires(i0,i1,i2,...) is Subtype);
+                q = new Bpl.ForallExpr(tok, bvs, Bpl.Expr.Imp(ante, cre));
+                builder.Add(AssertNS(tRhs.ElementInit.tok, q, msg));
+              }
+              // Assume that array elements have initial values according to the given initialization function.  That is:
+              // assume (forall i0,i1,i2,... :: { nw[i0,i1,i2,...] }
+              //            0 <= i0 < ... && ... ==> nw[i0,i1,i2,...] == tRhs.ElementInit.requires(i0,i1,i2,...));
+              var ai = ReadHeap(tok, etran.HeapExpr, nw, GetArrayIndexFieldName(tok, indicies));
+              var ai_prime = UnboxIfBoxed(ai, tRhs.EType);
+              var tr = new Bpl.Trigger(tok, true, new List<Bpl.Expr> { ai });
+              q = new Bpl.ForallExpr(tok, bvs, tr, Bpl.Expr.Imp(ante, Bpl.Expr.Eq(ai_prime, apply)));  // TODO: use a more general Equality translation
+              builder.Add(new Bpl.AssumeCmd(tok, q));
+            } else if (tRhs.InitDisplay != null) {
+              int ii = 0;
+              foreach (var v in tRhs.InitDisplay) {
+                var EE_ii = etran.TrExpr(v);
+                // assert EE_ii satisfies any subset-type constraints;
+                CheckSubrange(v.tok, EE_ii, v.Type, tRhs.EType, builder);
+                // assume nw[ii] == EE_ii;
+                var ai = ReadHeap(tok, etran.HeapExpr, nw, GetArrayIndexFieldName(tok, new List<Bpl.Expr> { Bpl.Expr.Literal(ii) }));
+                builder.Add(new Bpl.AssumeCmd(tok, Bpl.Expr.Eq(UnboxIfBoxed(ai, tRhs.EType), EE_ii)));
+                ii++;
+              }
             }
           }
+          Bpl.Cmd heapAllocationRecorder = null;
+          if (codeContext is IteratorDecl) {
+            var iter = (IteratorDecl)codeContext;
+            // $Heap[this, _new] := Set#UnionOne<BoxType>($Heap[this, _new], $Box($nw));
+            var th = new Bpl.IdentifierExpr(tok, etran.This, predef.RefType);
+            var nwField = new Bpl.IdentifierExpr(tok, GetField(iter.Member_New));
+            var thisDotNew = ReadHeap(tok, etran.HeapExpr, th, nwField);
+            var unionOne = FunctionCall(tok, BuiltinFunction.SetUnionOne, predef.BoxType, thisDotNew, FunctionCall(tok, BuiltinFunction.Box, null, nw));
+            var heapRhs = ExpressionTranslator.UpdateHeap(tok, etran.HeapExpr, th, nwField, unionOne);
+            heapAllocationRecorder = Bpl.Cmd.SimpleAssign(tok, (Bpl.IdentifierExpr/*TODO: this cast is dubious*/)etran.HeapExpr, heapRhs);
+          }
+          CommitAllocatedObject(tok, nw, heapAllocationRecorder, builder, etran);
         }
-        // $Heap[$nw, alloc] := true;
-        Bpl.Expr alloc = predef.Alloc(tok);
-        Bpl.IdentifierExpr heap = (Bpl.IdentifierExpr/*TODO: this cast is dubious*/)etran.HeapExpr;
-        Bpl.Cmd cmd = Bpl.Cmd.SimpleAssign(tok, heap, ExpressionTranslator.UpdateHeap(tok, heap, nw, alloc, Bpl.Expr.True));
-        builder.Add(cmd);
-        if (codeContext is IteratorDecl) {
-          var iter = (IteratorDecl)codeContext;
-          // $Heap[this, _new] := Set#UnionOne<BoxType>($Heap[this, _new], $Box($nw));
-          var th = new Bpl.IdentifierExpr(tok, etran.This, predef.RefType);
-          var nwField = new Bpl.IdentifierExpr(tok, GetField(iter.Member_New));
-          var thisDotNew = ReadHeap(tok, etran.HeapExpr, th, nwField);
-          var unionOne = FunctionCall(tok, BuiltinFunction.SetUnionOne, predef.BoxType, thisDotNew, FunctionCall(tok, BuiltinFunction.Box, null, nw));
-          var heapRhs = ExpressionTranslator.UpdateHeap(tok, etran.HeapExpr, th, nwField, unionOne);
-          builder.Add(Bpl.Cmd.SimpleAssign(tok, heap, heapRhs));
-        }
-        // assume $IsGoodHeap($Heap);
-        builder.Add(AssumeGoodHeap(tok, etran));
-        // assume $IsHeapAnchor($Heap);
-        builder.Add(new Bpl.AssumeCmd(tok, FunctionCall(tok, BuiltinFunction.IsHeapAnchor, null, etran.HeapExpr)));
         if (tRhs.InitCall != null) {
           AddComment(builder, tRhs.InitCall, "init call statement");
           TrCallStmt(tRhs.InitCall, builder, locals, etran, nw);
@@ -11503,16 +11574,57 @@ namespace Microsoft.Dafny {
         if (bGivenLhs != null) {
           Contract.Assert(bGivenLhs == bLhs);
           // box the RHS, then do the assignment
-          cmd = Bpl.Cmd.SimpleAssign(tok, bGivenLhs, CondApplyBox(tok, nw, tRhs.Type, lhsType));
-          builder.Add(cmd);
+          builder.Add(Bpl.Cmd.SimpleAssign(tok, bGivenLhs, CondApplyBox(tok, nw, tRhs.Type, lhsType)));
           return bGivenLhs;
         } else {
           // do the assignment, then box the result
-          cmd = Bpl.Cmd.SimpleAssign(tok, bLhs, nw);
-          builder.Add(cmd);
+          builder.Add(Bpl.Cmd.SimpleAssign(tok, bLhs, nw));
           return CondApplyBox(tok, bLhs, tRhs.Type, lhsType);
         }
       }
+    }
+
+    private void SelectAllocateObject(IToken tok, Bpl.IdentifierExpr nw, Type type, BoogieStmtListBuilder builder, ExpressionTranslator etran) {
+      Contract.Requires(tok != null);
+      Contract.Requires(nw != null);
+      Contract.Requires(type != null);
+      Contract.Requires(builder != null);
+      Contract.Requires(etran != null);
+      // havoc $nw;
+      builder.Add(new Bpl.HavocCmd(tok, new List<Bpl.IdentifierExpr> { nw }));
+      // assume $nw != null && !$Heap[$nw, alloc] && dtype($nw) == RHS;
+      var nwNotNull = Bpl.Expr.Neq(nw, predef.Null);
+      var rightType = etran.GoodRef_(tok, nw, type, true);
+      builder.Add(TrAssumeCmd(tok, Bpl.Expr.And(nwNotNull, rightType)));
+    }
+
+    private void CommitAllocatedObject(IToken tok, Bpl.IdentifierExpr nw, Bpl.Cmd extraCmd, BoogieStmtListBuilder builder, ExpressionTranslator etran) {
+      Contract.Requires(tok != null);
+      Contract.Requires(nw != null);
+      Contract.Requires(builder != null);
+      Contract.Requires(etran != null);
+
+      // $Heap[$nw, alloc] := true;
+      Bpl.Expr alloc = predef.Alloc(tok);
+      Bpl.IdentifierExpr heap = (Bpl.IdentifierExpr/*TODO: this cast is dubious*/)etran.HeapExpr;
+      Bpl.Cmd cmd = Bpl.Cmd.SimpleAssign(tok, heap, ExpressionTranslator.UpdateHeap(tok, heap, nw, alloc, Bpl.Expr.True));
+      builder.Add(cmd);
+      if (extraCmd != null) {
+        builder.Add(extraCmd);
+      }
+      // assume $IsGoodHeap($Heap);
+      builder.Add(AssumeGoodHeap(tok, etran));
+      // assume $IsHeapAnchor($Heap);
+      builder.Add(new Bpl.AssumeCmd(tok, FunctionCall(tok, BuiltinFunction.IsHeapAnchor, null, etran.HeapExpr)));
+    }
+
+    /// <summary>
+    /// Returns the name of the local variable used as a stand-in for a field in the BodyInit part of a divided
+    /// constructor body.
+    /// </summary>
+    string SurrogateName(Field field) {
+      Contract.Requires(field != null);
+      return "this." + field.Name;
     }
 
     Bpl.Expr GetSubrangeCheck(Bpl.Expr bSource, Type sourceType, Type targetType, out string msg) {

@@ -1,12 +1,12 @@
 SnapshotableTrees.dfy(68,23): Error BP5002: A precondition for this call might not hold.
-SnapshotableTrees.dfy(648,15): Related location: This is the precondition that might not hold.
-SnapshotableTrees.dfy(548,18): Related location
+SnapshotableTrees.dfy(647,15): Related location: This is the precondition that might not hold.
+SnapshotableTrees.dfy(547,18): Related location
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Then
 SnapshotableTrees.dfy(68,23): Error BP5002: A precondition for this call might not hold.
-SnapshotableTrees.dfy(648,15): Related location: This is the precondition that might not hold.
-SnapshotableTrees.dfy(545,15): Related location
+SnapshotableTrees.dfy(647,15): Related location: This is the precondition that might not hold.
+SnapshotableTrees.dfy(544,15): Related location
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Then

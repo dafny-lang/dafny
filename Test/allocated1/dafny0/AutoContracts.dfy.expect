@@ -107,7 +107,6 @@ module OneModule {
     }
 
     constructor ()
-      modifies this
       ensures Valid()
       ensures fresh(Repr - {this})
     {
@@ -212,17 +211,14 @@ module N0 {
    */
   class {:autocontracts} C {
     constructor X()
-      modifies this
       ensures Valid()
       ensures fresh(Repr - {this})
 
     constructor Y()
-      modifies this
       ensures Valid()
       ensures fresh(Repr - {this})
 
     constructor Z()
-      modifies this
       ensures Valid()
       ensures fresh(Repr - {this})
     {
@@ -304,19 +300,16 @@ module N1 refines N0 {
    */
   class {:autocontracts} C {
     constructor X()
-      modifies this
       ensures Valid()
       ensures fresh(Repr - {this})
 
     constructor Y()
-      modifies this
       ensures Valid()
       ensures fresh(Repr - {this})
     {
     }
 
     constructor Z()
-      modifies this
       ensures Valid()
       ensures fresh(Repr - {this})
     {
@@ -402,19 +395,16 @@ module N2 refines N1 {
    */
   class {:autocontracts} C {
     constructor X()
-      modifies this
       ensures Valid()
       ensures fresh(Repr - {this})
 
     constructor Y()
-      modifies this
       ensures Valid()
       ensures fresh(Repr - {this})
     {
     }
 
     constructor Z()
-      modifies this
       ensures Valid()
       ensures fresh(Repr - {this})
     {

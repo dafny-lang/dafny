@@ -100,7 +100,7 @@ class Node {
     Repr := {this};
   }
   constructor Prepend(y: int, nxt: Node)
-    requires nxt != null && nxt.Valid() && this !in nxt.Repr
+    requires nxt != null && nxt.Valid()
     modifies this
     ensures Valid() && fresh(Repr - {this} - nxt.Repr)
   {
@@ -203,7 +203,7 @@ class {:autocontracts} NodeAuto {
     x, next := y, null;
   }
   constructor {:autocontracts false} Prepend(y: int, nxt: NodeAuto)
-    requires nxt != null && nxt.Valid() && this !in nxt.Repr
+    requires nxt != null && nxt.Valid() && allocated(nxt.Repr);
     modifies this
     ensures Valid() && fresh(Repr - {this} - nxt.Repr)
   {

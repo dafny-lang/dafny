@@ -108,7 +108,6 @@ class Tree {
 
   constructor Node(lft: Tree, val: int, rgt: Tree)
     requires lft != null && rgt != null && lft.Valid() && rgt.Valid();
-    requires this !in lft.Repr && this !in rgt.Repr;
     modifies this;
     ensures Valid() && Contents == lft.Contents + [val] + rgt.Contents;
   {

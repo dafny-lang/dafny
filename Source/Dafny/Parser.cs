@@ -1867,7 +1867,7 @@ int StringToInt(string s, int defaultValue, string errString) {
 			signatureEllipsis = t; 
 		} else SynErr(182);
 		while (StartOf(13)) {
-			MethodSpec(req, mod, ens, dec, ref decAttrs, ref modAttrs, caption);
+			MethodSpec(req, mod, ens, dec, ref decAttrs, ref modAttrs, caption, isConstructor);
 		}
 		if (la.kind == 50) {
 			if (isConstructor) {
@@ -2383,7 +2383,7 @@ ref Attributes readsAttrs, ref Attributes modAttrs, ref Attributes decrAttrs) {
 	}
 
 	void MethodSpec(List<MaybeFreeExpression> req, List<FrameExpression> mod, List<MaybeFreeExpression> ens,
-List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, string caption) {
+List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, string caption, bool performThisDeprecatedCheck) {
 		Contract.Requires(cce.NonNullElements(req));
 		Contract.Requires(cce.NonNullElements(mod));
 		Contract.Requires(cce.NonNullElements(ens));
@@ -2397,11 +2397,11 @@ List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, st
 				Attribute(ref modAttrs);
 			}
 			FrameExpression(out fe, false, false);
-			mod.Add(fe); 
+			Util.AddFrameExpression(mod, fe, performThisDeprecatedCheck, errors); 
 			while (la.kind == 23) {
 				Get();
 				FrameExpression(out fe, false, false);
-				mod.Add(fe); 
+				Util.AddFrameExpression(mod, fe, performThisDeprecatedCheck, errors); 
 			}
 			OldSemi();
 		} else if (la.kind == 49 || la.kind == 98 || la.kind == 99) {
