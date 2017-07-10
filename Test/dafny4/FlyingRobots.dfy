@@ -35,8 +35,7 @@ class Point {
     x := new Cell(a);
     y := new Cell(b);
     z := new Cell(c);
-    Repr := {this};
-    Repr := Repr + {x, y, z};
+    Repr := {this, x, y, z};
     Value := (a, b, c);
   }
 
@@ -73,8 +72,7 @@ class Arm {
   {
     polar := new Cell(polar_in);
     azim := new Cell(azim_in);
-    Repr := {this};
-    Repr := Repr + {polar, azim};
+    Repr := {this, polar, azim};
     Value := (polar_in, azim_in);
   }
 
@@ -113,8 +111,8 @@ class Bot {
     pos := new Point(0, 0, 0);
     left := new Arm(0, 0);
     right := new Arm(0, 0);
-    Repr := {this};
-    Repr := Repr + pos.Repr + left.Repr + right.Repr;
+    new;
+    Repr := {this} + pos.Repr + left.Repr + right.Repr;
     reveal Valid();
   }
 

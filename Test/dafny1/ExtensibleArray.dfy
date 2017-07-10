@@ -47,7 +47,7 @@ class ExtensibleArray<T> {
     M := 0;
     
     Contents := [];
-    Repr := {this};  Repr := Repr + {elements};
+    Repr := {this, elements};
   }
 
   method Get(i: int) returns (t: T)

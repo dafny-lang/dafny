@@ -21,9 +21,9 @@ class List<T> {
     ensures Valid() && fresh(Repr - {this});
     ensures Contents == [];
   {
-    Contents, Repr, n := [], {this}, 0;
+    Contents, n := [], 0;
     a := new T[25];
-    Repr := Repr + {a};
+    Repr := {this, a};
   }
 
   method Add(t: T)

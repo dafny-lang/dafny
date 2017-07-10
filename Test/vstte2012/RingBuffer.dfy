@@ -30,9 +30,8 @@ class RingBuffer<T>
     ensures Valid() && fresh(Repr - {this});
     ensures Contents == [] && N == n;
   {
-    Repr := {this};
     data := new T[n];
-    Repr := Repr + {data};
+    Repr := {this, data};
     start, len := 0, 0;
     Contents, N := [], n;
   }
