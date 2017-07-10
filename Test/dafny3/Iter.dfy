@@ -18,7 +18,6 @@ class List<T> {
   }
 
   constructor Init()
-    modifies this;
     ensures Valid() && fresh(Repr - {this});
     ensures Contents == [];
   {

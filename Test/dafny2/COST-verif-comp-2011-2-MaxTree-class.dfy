@@ -98,7 +98,6 @@ class Tree {
   }
 
   constructor Empty()
-    modifies this;
     ensures Valid() && Contents == [];
   {
     left, right := this, this;
@@ -108,7 +107,6 @@ class Tree {
 
   constructor Node(lft: Tree, val: int, rgt: Tree)
     requires lft != null && rgt != null && lft.Valid() && rgt.Valid();
-    modifies this;
     ensures Valid() && Contents == lft.Contents + [val] + rgt.Contents;
   {
     left, value, right := lft, val, rgt;

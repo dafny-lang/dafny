@@ -192,18 +192,14 @@ namespace Microsoft.Dafny {
       Contract.Requires(errors != null);
       if (performThisDeprecationCheck) {
         if (fe.E is ThisExpr) {
-#if SOON
-          //errors.Deprecated(fe.E.tok, "Dafny's constructors no longer need 'this' to be listed in modifies clauses");
-#endif
+          errors.Deprecated(fe.E.tok, "Dafny's constructors no longer need 'this' to be listed in modifies clauses");
           return;
         } else if (fe.E is SetDisplayExpr) {
           var s = (SetDisplayExpr)fe.E;
           var deprecated = s.Elements.FindAll(e => e is ThisExpr);
           if (deprecated.Count != 0) {
             foreach (var e in deprecated) {
-#if SOON
               errors.Deprecated(e.tok, "Dafny's constructors no longer need 'this' to be listed in modifies clauses");
-#endif
             }
             s.Elements.RemoveAll(e => e is ThisExpr);
             if (s.Elements.Count == 0) {

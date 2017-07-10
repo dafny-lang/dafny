@@ -314,7 +314,7 @@ class ClassWithConstructor {
   var y: int;
   method NotTheOne() { }
   constructor InitA() { }
-  constructor InitB() modifies this; { y := 20; }
+  constructor InitB() modifies this; { y := 20; }  // error: don't use "this" in modifies of constructor
 }
 
 class ClassWithoutConstructor {
@@ -458,11 +458,11 @@ module MyOwnModule {
 }
   
 // ------------------- nameless constructors ------------------------------
+
 module MiscAgain {
 class Y {
   var data: int;
   constructor (x: int)
-    modifies this;
   {
     data := x;
   }
@@ -1803,6 +1803,7 @@ module TLAplusOperators {
 // ------------------------- divided constructors -------------------
 
 module DividedConstructors {
+
   class MyClass {
     var a: nat
     var b: nat
@@ -1812,7 +1813,6 @@ module DividedConstructors {
     static const g := 25
   
     constructor Init(x: nat)
-      modifies this
     {
       this.a := this.b;  // error: cannot use "this" in RHS
       ((this)).b := 10;
@@ -1846,11 +1846,11 @@ module DividedConstructors {
     }
 
     constructor ()
-      modifies this
     {
       a, c := 0, 0;
       new;
     }
+    
   }
 }
 
@@ -1859,7 +1859,7 @@ module ConstructorsThisUsage {
     var x: int
     constructor M()
       requires this != null  // error: cannot use "this" here
-      //modifies this  // error: cannot use "this" here (but we just issue a deprecation warning)
+      modifies this  // error: cannot use "this" here (but we just issue a deprecation warning)
       decreases this.x  // error: cannot use "this" here
       ensures this.x == 5
     {

@@ -46,11 +46,11 @@ module Loose {
       0 <= N
     }
     constructor Init()
-      modifies this;
       ensures Valid() && fresh(Repr - {this});
     {
       N, Repr := 0, {this};
     }
+    
     method Inc()
       requires Valid();
       modifies Repr;

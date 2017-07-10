@@ -13,7 +13,6 @@ module M0 {
     var c: real
   
     constructor Init(x: nat)
-      modifies this
     {
       this.a := x;
       c := 3.14;
@@ -24,7 +23,6 @@ module M0 {
     }
 
     constructor (z: real)
-      modifies this
       ensures c <= 2.0 * z
     {
       a, c := 50, 2.0 * z;
@@ -32,7 +30,6 @@ module M0 {
     }
 
     constructor Make()
-      modifies this
       ensures 10 <= a
     {
       new;
@@ -40,7 +37,6 @@ module M0 {
     }
 
     constructor Create()
-      modifies this
       ensures 30 <= a
     {
       a := a + 2*b;

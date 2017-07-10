@@ -5,7 +5,6 @@ abstract module M0 {
   class Cell {
     var data: int;
     constructor (d: int)
-      modifies this;
       ensures data == d;
     { data := d; }
   }
@@ -19,7 +18,6 @@ abstract module M0 {
     }
 
     constructor Init()
-      modifies this;
       ensures N == 0;
       ensures Valid() && fresh(Repr - {this});
     {

@@ -24,7 +24,6 @@ class Fiat extends Automobile {
   }
   constructor (pos: int)
     requires pos <= 100
-    modifies this
     ensures Valid() && fresh(Repr - {this}) && position == pos
   {
     position, Repr := pos, {this};
@@ -53,7 +52,6 @@ class Volvo extends Automobile {
     odometer.value == position
   }
   constructor ()
-    modifies this
     ensures Valid() && fresh(Repr - {this})
   {
     position, Repr := 0, {this};
@@ -77,7 +75,6 @@ class Volvo extends Automobile {
 class Odometer {
   var value: int
   constructor ()
-    modifies this
     ensures value == 0
   {
     value := 0;
@@ -105,7 +102,6 @@ class Catacar extends Automobile {
     position == f.position + v.position
   }
   constructor ()
-    modifies this
     ensures Valid() && fresh(Repr - {this})
   {
     Repr := {this};

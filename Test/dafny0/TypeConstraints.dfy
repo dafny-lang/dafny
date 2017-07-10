@@ -301,7 +301,6 @@ module TraitStuff {
     var y: PartY
     var z: PartZ
     constructor ()
-      modifies this
     {
       x := new PartX;
       y := new PartY;

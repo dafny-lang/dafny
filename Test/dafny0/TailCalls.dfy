@@ -105,7 +105,6 @@ class TailConstructorRegressionTest
 {
   var next: TailConstructorRegressionTest
   constructor {:tailrecursion} (n: nat)
-    modifies this
   {
     if n != 0 {
       next := new TailConstructorRegressionTest(n-1);  // error: not a tail call, because it is followed by an assignment

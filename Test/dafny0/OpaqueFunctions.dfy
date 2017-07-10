@@ -15,11 +15,11 @@ module A {
       x
     }
     constructor ()
-      modifies this;
       ensures Valid();
     {
       x := 8;
     }
+    
     method M()
       requires Valid();
     {

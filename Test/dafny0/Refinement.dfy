@@ -116,7 +116,6 @@ module Abstract {
       this in Repr && null !in Repr
     }
     constructor Init()
-      modifies this;
       ensures N == 0;
       ensures Valid() && fresh(Repr - {this});
     {
