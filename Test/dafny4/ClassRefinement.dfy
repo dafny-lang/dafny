@@ -22,6 +22,7 @@ abstract module M0 {
       ensures Valid() && fresh(Repr - {this});
     {
       Repr := {};
+      new;
       ghost var repr :| {this} <= repr && null !in repr && fresh(repr - {this});
       N, Repr := 0, repr;
     }
@@ -61,7 +62,7 @@ module M1 refines M0 {
     {
       c := new Cell(0);
       d := new Cell(0);
-      ...;
+      new;
       ghost var repr := Repr + {this} + {c,d};
     }
 

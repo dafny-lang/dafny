@@ -33,6 +33,7 @@ class MyClassWithCtor extends Tr {
   var nes: NonEmptyIntSet
   constructor Init(y: int)
   {
+    new;
     nes := nes + {y};
   }
 }

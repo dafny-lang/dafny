@@ -1814,7 +1814,7 @@ module DividedConstructors {
   
     constructor Init(x: nat)
     {
-      this.a := this.b;  // error: cannot use "this" in RHS
+      this.a := this.b;  // this use of "this" in RHS is allowed
       ((this)).b := 10;
       n := new MyClass();
       n.a := 10;  // error: not allowed use of "this" in this way

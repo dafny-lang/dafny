@@ -104,10 +104,11 @@ class Catacar extends Automobile {
   constructor ()
     ensures Valid() && fresh(Repr - {this})
   {
-    Repr := {this};
-    f := new Fiat(0);  Repr := Repr + f.Repr;
-    v := new Volvo();  Repr := Repr + v.Repr;
-    position := v.position;
+    var fiat := new Fiat(0);
+    var volvo := new Volvo();
+    f, v := fiat, volvo;
+    Repr := {this} + fiat.Repr + volvo.Repr;
+    position := volvo.position;
   }
   function method Brand(): string {
     "Catacar"

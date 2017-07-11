@@ -140,6 +140,7 @@ module SnapTree {
       ensures Valid() && Contents == [] && !IsReadonly;
       ensures MutableRepr <= Repr && fresh(Repr - {this});
     {
+      new;
       Contents := [];
       IsReadonly := false;
       MutableRepr := {this};
@@ -288,6 +289,7 @@ module SnapTree {
       Contents := [x];
       Repr := {this};
       left, data, right := null, x, null;
+      new;
       Tree.SmallIsSorted([]);
       Tree.SmallIsSorted([x]);
       reveal NodeValid();
@@ -315,6 +317,7 @@ module SnapTree {
         Contents := Contents + right.Contents;
         Repr := Repr + right.Repr;
       }
+      new;
       ghost var L := if left == null then [] else left.Contents;
       ghost var R := if right == null then [] else right.Contents;
       Tree.SmallIsSorted([]);
@@ -571,6 +574,7 @@ module SnapTree {
       ensures Valid() && fresh(IterRepr - {this});
       ensures T == t && Contents == t.Contents && N == -1;
     {
+      new;
       Init_Aux(t);
     }
     method Init_Aux(t: Tree)

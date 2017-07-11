@@ -306,6 +306,7 @@ module TraitStuff {
       y := new PartY;
       z := new PartZ;
       Repr := {this, x, y, z};  // set<object>
+      new;
       var parts := {x, y};  // set<Part>
       var ooo := {y, z};  // set<object>  -- since super-traits are not unique
     }

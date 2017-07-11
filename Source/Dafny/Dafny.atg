@@ -1885,21 +1885,14 @@ DividedBlockStmt<out DividedBlockStmt body, out IToken bodyStart, out IToken bod
 = (. Contract.Ensures(Contract.ValueAtReturn(out body) != null);
      List<Statement> bodyInit = new List<Statement>();
      IToken separatorTok = null;
-     List<Statement> bodyProper = null;
+     List<Statement> bodyProper = new List<Statement>();
   .)
   "{"                                  (. bodyStart = t; .)
-  { Stmt<bodyInit>
-  }
-  [ "new"                              (. separatorTok = t; bodyProper = new List<Statement>(); .)
+  { Stmt<bodyInit> }
+  [ "new"                              (. separatorTok = t; .)
     ";"
-    { Stmt<bodyProper>
-    }
+    { Stmt<bodyProper> }
   ]
-  (. if (bodyProper == null) {
-       bodyProper = bodyInit;
-       bodyInit = new List<Statement>();
-     }
-  .)
   "}"                                  (. bodyEnd = t; .)
   (. body = new DividedBlockStmt(bodyStart, bodyEnd, bodyInit, separatorTok, bodyProper); .)
   .

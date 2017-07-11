@@ -27,12 +27,14 @@ module M0 {
     constructor Make()
       ensures 10 <= a
     {
+      new;
       a := a + b;
     }
 
     constructor Create()
       ensures 30 <= a
     {
+      new;
       a := a + 2 * b;
     }
   }
@@ -60,6 +62,7 @@ module M1 refines M0 {
 
     constructor Make ...
     {
+      new;
       e := 'z';
     }
 

@@ -446,6 +446,7 @@ module TraitStuff {
       y := new PartY;
       z := new PartZ;
       Repr := {this, x, y, z};
+      new;
       var parts: set<Part> := {x, y};
       var ooo: set<object> := {y, z};
     }

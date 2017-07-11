@@ -39,6 +39,7 @@ module M0 {
     constructor Create()
       ensures 30 <= a
     {
+      new;
       a := a + 2*b;
     }
   }

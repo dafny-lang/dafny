@@ -111,6 +111,7 @@ module OneModule {
       ensures fresh(Repr - {this})
     {
       data := 0;
+      new;
       Repr := {this};
       if anotherC != null && !(anotherC in Repr && anotherC.Repr <= Repr) {
         Repr := Repr + {anotherC} + anotherC.Repr;
@@ -222,6 +223,7 @@ module N0 {
       ensures Valid()
       ensures fresh(Repr - {this})
     {
+      new;
       Repr := {this};
     }
 
@@ -313,6 +315,7 @@ module N1 refines N0 {
       ensures Valid()
       ensures fresh(Repr - {this})
     {
+      new;
       Repr := {this};
     }
 
@@ -408,6 +411,7 @@ module N2 refines N1 {
       ensures Valid()
       ensures fresh(Repr - {this})
     {
+      new;
       Repr := {this};
     }
 

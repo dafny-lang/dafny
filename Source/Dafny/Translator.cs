@@ -8746,7 +8746,7 @@ namespace Microsoft.Dafny {
         var th = new ThisExpr(tok);
         th.Type = Resolver.GetThisType(tok, cl);  // resolve here
         var bplThis = (Bpl.IdentifierExpr)etran.TrExpr(th);
-        SelectAllocateObject(tok, bplThis, th.Type, builder, etran);
+        SelectAllocateObject(tok, bplThis, th.Type, false, builder, etran);
         for (int i = 0; i < fields.Count; i++) {
           // assume $Heap[this, f] == this.f;
           var mse = new MemberSelectExpr(tok, th, fields[i]);
@@ -11486,7 +11486,7 @@ namespace Microsoft.Dafny {
 
         Bpl.IdentifierExpr nw = GetNewVar_IdExpr(tok, locals);
         if (!callsConstructor) {
-          SelectAllocateObject(tok, nw, tRhs.Type, builder, etran);
+          SelectAllocateObject(tok, nw, tRhs.Type, true, builder, etran);
           if (tRhs.ArrayDimensions != null) {
             int i = 0;
             foreach (Expression dim in tRhs.ArrayDimensions) {
@@ -11584,14 +11584,16 @@ namespace Microsoft.Dafny {
       }
     }
 
-    private void SelectAllocateObject(IToken tok, Bpl.IdentifierExpr nw, Type type, BoogieStmtListBuilder builder, ExpressionTranslator etran) {
+    private void SelectAllocateObject(IToken tok, Bpl.IdentifierExpr nw, Type type, bool includeHavoc, BoogieStmtListBuilder builder, ExpressionTranslator etran) {
       Contract.Requires(tok != null);
       Contract.Requires(nw != null);
       Contract.Requires(type != null);
       Contract.Requires(builder != null);
       Contract.Requires(etran != null);
-      // havoc $nw;
-      builder.Add(new Bpl.HavocCmd(tok, new List<Bpl.IdentifierExpr> { nw }));
+      if (includeHavoc) {
+        // havoc $nw;
+        builder.Add(new Bpl.HavocCmd(tok, new List<Bpl.IdentifierExpr> { nw }));
+      }
       // assume $nw != null && !$Heap[$nw, alloc] && dtype($nw) == RHS;
       var nwNotNull = Bpl.Expr.Neq(nw, predef.Null);
       var rightType = etran.GoodRef_(tok, nw, type, true);
@@ -12779,19 +12781,24 @@ namespace Microsoft.Dafny {
           var e = (MemberSelectExpr)expr;
           return e.MemberSelectCase(
             field => {
-              Bpl.Expr obj = TrExpr(e.Obj);
-              Bpl.Expr result;
-              if (field.IsMutable) {
-                result = ReadHeap(expr.tok, HeapExpr, obj, new Bpl.IdentifierExpr(expr.tok, translator.GetField(field)));
-                return translator.CondApplyUnbox(expr.tok, result, field.Type, expr.Type);
+              var useSurrogateLocal = translator.inBodyInitContext && Expression.AsThis(e.Obj) != null;
+              if (useSurrogateLocal) {
+                return new Bpl.IdentifierExpr(expr.tok, translator.SurrogateName(field), translator.TrType(field.Type));
               } else {
-                result = new Bpl.NAryExpr(expr.tok, new Bpl.FunctionCall(translator.GetReadonlyField(field)),
-                  new List<Bpl.Expr> {obj});
-                result = translator.CondApplyUnbox(expr.tok, result, field.Type, expr.Type);
-                if (translator.IsLit(obj)) {
-                  result = MaybeLit(result, translator.TrType(expr.Type));
+                Bpl.Expr obj = TrExpr(e.Obj);
+                Bpl.Expr result;
+                if (field.IsMutable) {
+                  result = ReadHeap(expr.tok, HeapExpr, obj, new Bpl.IdentifierExpr(expr.tok, translator.GetField(field)));
+                  return translator.CondApplyUnbox(expr.tok, result, field.Type, expr.Type);
+                } else {
+                  result = new Bpl.NAryExpr(expr.tok, new Bpl.FunctionCall(translator.GetReadonlyField(field)),
+                    new List<Bpl.Expr> { obj });
+                  result = translator.CondApplyUnbox(expr.tok, result, field.Type, expr.Type);
+                  if (translator.IsLit(obj)) {
+                    result = MaybeLit(result, translator.TrType(expr.Type));
+                  }
+                  return result;
                 }
-                return result;
               }
             },
             fn => {

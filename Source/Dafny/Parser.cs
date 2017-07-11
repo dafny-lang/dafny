@@ -2439,7 +2439,7 @@ List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, st
 		Contract.Ensures(Contract.ValueAtReturn(out body) != null);
 		List<Statement> bodyInit = new List<Statement>();
 		IToken separatorTok = null;
-		List<Statement> bodyProper = null;
+		List<Statement> bodyProper = new List<Statement>();
 		
 		Expect(50);
 		bodyStart = t; 
@@ -2448,17 +2448,12 @@ List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, st
 		}
 		if (la.kind == 90) {
 			Get();
-			separatorTok = t; bodyProper = new List<Statement>(); 
+			separatorTok = t; 
 			Expect(30);
 			while (StartOf(17)) {
 				Stmt(bodyProper);
 			}
 		}
-		if (bodyProper == null) {
-		 bodyProper = bodyInit;
-		 bodyInit = new List<Statement>();
-		}
-		
 		Expect(51);
 		bodyEnd = t; 
 		body = new DividedBlockStmt(bodyStart, bodyEnd, bodyInit, separatorTok, bodyProper); 

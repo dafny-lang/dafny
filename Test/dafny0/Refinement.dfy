@@ -149,6 +149,7 @@ module Concrete refines Abstract {
     }
     constructor Init()
     {
+      new;
       a := b;
     }
     method Inc()
@@ -186,6 +187,7 @@ module IncorrectConcrete refines Abstract {
     }
     constructor Init()
     {  // error: postcondition violation
+      new;
       a := b;
     }
     method Inc()

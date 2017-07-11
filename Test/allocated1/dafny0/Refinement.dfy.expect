@@ -21,19 +21,19 @@ Refinement.dfy(102,2): Error BP5003: A postcondition might not hold on this retu
 Refinement.dfy(83,14): Related location: This is the postcondition that might not hold.
 Execution trace:
     (0,0): anon0
-Refinement.dfy(188,4): Error BP5003: A postcondition might not hold on this return path.
+Refinement.dfy(189,4): Error BP5003: A postcondition might not hold on this return path.
 Refinement.dfy[IncorrectConcrete](120,14): Related location: This is the postcondition that might not hold.
-Refinement.dfy(185,8): Related location
+Refinement.dfy(186,8): Related location
 Execution trace:
     (0,0): anon0
-Refinement.dfy(192,4): Error BP5003: A postcondition might not hold on this return path.
+Refinement.dfy(194,4): Error BP5003: A postcondition might not hold on this return path.
 Refinement.dfy[IncorrectConcrete](128,14): Related location: This is the postcondition that might not hold.
-Refinement.dfy(185,8): Related location
+Refinement.dfy(186,8): Related location
 Execution trace:
     (0,0): anon0
     (0,0): anon4_Then
     (0,0): anon3
-Refinement.dfy(198,6): Error: assertion violation
+Refinement.dfy(200,6): Error: assertion violation
 Refinement.dfy[IncorrectConcrete](136,23): Related location
 Execution trace:
     (0,0): anon0
