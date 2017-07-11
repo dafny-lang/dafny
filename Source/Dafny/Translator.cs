@@ -8730,7 +8730,7 @@ namespace Microsoft.Dafny {
         var tok = s.SeparatorTok ?? s.Tok;
         // a DividedBlockStmt occurs only inside a Constructor body of a class
         var cl = (ClassDecl)((Constructor)codeContext).EnclosingClass;
-        var fields = cl.Members.ConvertAll(member =>
+        var fields = Concat(cl.InheritedMembers, cl.Members).ConvertAll(member =>
           member is Field && !(member is ConstantField && ((ConstantField)member).constValue != null) ? (Field)member : null);
         fields.RemoveAll(f => f == null);
         var localSurrogates = fields.ConvertAll(f => new Bpl.LocalVariable(f.tok, new TypedIdent(f.tok, SurrogateName(f), TrType(f.Type))));

@@ -3292,7 +3292,7 @@ namespace Microsoft.Dafny {
     public override string WhatKind { get { return "class"; } }
     public override bool CanBeRevealed() { return true; }
     public readonly List<MemberDecl> Members;
-    public readonly List<MemberDecl> InheritedMembers = new List<MemberDecl>();  // these are non-ghost instance fields and instance members defined with bodies in traits (this list is used by the compiler)
+    public readonly List<MemberDecl> InheritedMembers = new List<MemberDecl>();  // these are instance fields and instance members defined with bodies in traits
     public readonly List<Type> TraitsTyp;  // these are the types that are parsed after the keyword 'extends'
     public readonly List<TraitDecl> TraitsObj = new List<TraitDecl>();  // populated during resolution
     public bool HasConstructor;  // filled in (early) during resolution; true iff there exists a member that is a Constructor

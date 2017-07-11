@@ -914,8 +914,10 @@ namespace Microsoft.Dafny {
       Contract.Requires(!forCompanionClass || c is TraitDecl);
       Contract.Requires(0 <= indent);
       foreach (var member in c.InheritedMembers) {
-        Contract.Assert(!member.IsGhost && !member.IsStatic);  // only non-ghost instance members should ever be added to .InheritedMembers
-        if (member is ConstantField) {
+        Contract.Assert(!member.IsStatic);  // only instance members should ever be added to .InheritedMembers
+        if (member.IsGhost) {
+          // skip
+        } else if (member is ConstantField) {
           var cf = (ConstantField)member;
           if (cf.constValue == null) {
             Contract.Assert(!cf.IsStatic);  // module-level and static const's must have a RHS (enforced by parser)

@@ -6264,21 +6264,21 @@ namespace Microsoft.Dafny
             // but that will be checked by the verifier.  And it should also have a body, but that will be checked by the compiler.)
             if (traitMember is Field) {
               var field = (Field)traitMember;
-              if (!field.IsGhost && !field.IsStatic) {
+              if (!field.IsStatic) {
                 cl.InheritedMembers.Add(field);
               }
             } else if (traitMember is Function) {
               var func = (Function)traitMember;
               if (func.Body == null) {
                 reporter.Error(MessageSource.Resolver, cl.tok, "class '{0}' does not implement trait function '{1}.{2}'", cl.Name, trait.Name, traitMember.Name);
-              } else if (!func.IsGhost && !func.IsStatic) {
+              } else if (!func.IsStatic) {
                 cl.InheritedMembers.Add(func);
               }
             } else if (traitMember is Method) {
               var method = (Method)traitMember;
               if (method.Body == null) {
                 reporter.Error(MessageSource.Resolver, cl.tok, "class '{0}' does not implement trait method '{1}.{2}'", cl.Name, trait.Name, traitMember.Name);
-              } else if (!method.IsGhost && !method.IsStatic) {
+              } else if (!method.IsStatic) {
                 cl.InheritedMembers.Add(method);
               }
             }
