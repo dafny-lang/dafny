@@ -159,6 +159,30 @@ public static int Parse (string/*!*/ s, string/*!*/ fullFilename, string/*!*/ fi
   Errors errors = new Errors(reporter);
   return Parse(s, fullFilename, filename, null, module, builtIns, errors, verifyThisFile);
 }
+
+public static Parser SetupParser(string/*!*/ s, string/*!*/ fullFilename, string/*!*/ filename, Include include, ModuleDecl module,
+                                 BuiltIns builtIns, Errors/*!*/ errors, bool verifyThisFile=true) {
+  Contract.Requires(s != null);
+  Contract.Requires(filename != null);
+  Contract.Requires(module != null);
+  Contract.Requires(errors != null);
+  byte[]/*!*/ buffer = cce.NonNull( UTF8Encoding.Default.GetBytes(s));
+  MemoryStream ms = new MemoryStream(buffer,false);
+  Scanner scanner = new Scanner(ms, errors, fullFilename, filename);
+  return new Parser(scanner, errors, include, module, builtIns, verifyThisFile);
+}
+
+public static Expression ParseExpression(string/*!*/ s, string/*!*/ fullFilename, string/*!*/ filename, Include include, ModuleDecl module,
+                                         BuiltIns builtIns, Errors/*!*/ errors, bool verifyThisFile=true) {
+  Parser parser = SetupParser(s, fullFilename, filename, include, module, builtIns, errors, verifyThisFile);
+  parser.la = new Token();
+  parser.la.val = "";
+  parser.Get();
+  Expression e;
+  parser.Expression(out e, true, true, true);
+  return e;
+}
+
 ///<summary>
 /// Parses top-level things (modules, classes, datatypes, class members)
 /// and appends them in appropriate form to "module".
@@ -167,17 +191,11 @@ public static int Parse (string/*!*/ s, string/*!*/ fullFilename, string/*!*/ fi
 ///</summary>
 public static int Parse (string/*!*/ s, string/*!*/ fullFilename, string/*!*/ filename, Include include, ModuleDecl module,
                          BuiltIns builtIns, Errors/*!*/ errors, bool verifyThisFile=true) {
-  Contract.Requires(s != null);
-  Contract.Requires(filename != null);
-  Contract.Requires(module != null);
-  Contract.Requires(errors != null);
-  byte[]/*!*/ buffer = cce.NonNull( UTF8Encoding.Default.GetBytes(s));
-  MemoryStream ms = new MemoryStream(buffer,false);
-  Scanner scanner = new Scanner(ms, errors, fullFilename, filename);
-  Parser parser = new Parser(scanner, errors, include, module, builtIns, verifyThisFile);
+  Parser parser = SetupParser(s, fullFilename, filename, include, module, builtIns, errors, verifyThisFile);
   parser.Parse();
   return parser.errors.ErrorCount;
 }
+
 public Parser(Scanner/*!*/ scanner, Errors/*!*/ errors, Include include, ModuleDecl module, BuiltIns builtIns, bool verifyThisFile=true)
   : this(scanner, errors)  // the real work
 {
