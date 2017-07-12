@@ -267,6 +267,7 @@ namespace Microsoft.Dafny
       Contract.Invariant(cce.NonNullElements(dependencies));
       Contract.Invariant(cce.NonNullDictionaryAndValues(classMembers) && Contract.ForAll(classMembers.Values, v => cce.NonNullDictionaryAndValues(v)));
       Contract.Invariant(cce.NonNullDictionaryAndValues(datatypeCtors) && Contract.ForAll(datatypeCtors.Values, v => cce.NonNullDictionaryAndValues(v)));
+      Contract.Invariant(!inBodyInitContext || currentMethod is Constructor);
     }
 
     /// <summary>
@@ -6012,7 +6013,7 @@ namespace Microsoft.Dafny
     // ----- ReportMoreAdditionalInformation ----------------------------------------------------------------
     // ------------------------------------------------------------------------------------------------------
     #region CheckDividedConstructorInit
-    class CheckDividedConstructorInit_Visitor : ResolverBottomUpVisitor
+    class CheckDividedConstructorInit_Visitor : ResolverTopDownVisitor<int>
     {
       public CheckDividedConstructorInit_Visitor(Resolver resolver)
         : base(resolver)
@@ -6041,7 +6042,7 @@ namespace Microsoft.Dafny
           //   Visit(s.Lhs);                                         (++)
           //   s.Rhs.SubExpressions.Iter(Visit);                     (+++)
           // Here, we may do less; in particular, we may omit (++).
-          Attributes.SubExpressions(s.Attributes).Iter(Visit);  // (+)
+          Attributes.SubExpressions(s.Attributes).Iter(VisitExpr);  // (+)
           var mse = s.Lhs as MemberSelectExpr;
           if (mse != null && Expression.AsThis(mse.Obj) != null) {
             if (s.Rhs is ExprRhs) {
@@ -6050,23 +6051,33 @@ namespace Microsoft.Dafny
               // the "new;", we can allow certain specific (and useful) uses of "this" in the RHS.
               s.Rhs.SubExpressions.Iter(LiberalRHSVisit);  // (+++)
             } else {
-              s.Rhs.SubExpressions.Iter(Visit);  // (+++)
+              s.Rhs.SubExpressions.Iter(VisitExpr);  // (+++)
             }
           } else {
-            Visit(s.Lhs);  // (++)
-            s.Rhs.SubExpressions.Iter(Visit);  // (+++)
+            VisitExpr(s.Lhs);  // (++)
+            s.Rhs.SubExpressions.Iter(VisitExpr);  // (+++)
           }
         } else {
-          stmt.SubExpressions.Iter(Visit);  // (*)
+          stmt.SubExpressions.Iter(VisitExpr);  // (*)
         }
         stmt.SubStatements.Iter(CheckInit);  // (**)
-        VisitOneStmt(stmt);  // (***)
+        int dummy = 0;
+        VisitOneStmt(stmt, ref dummy);  // (***)
       }
-      protected override void VisitOneExpr(Expression expr) {
-        if (expr is ThisExpr && !(expr is ImplicitThisExpr_ConstructorCall)) {
+      void VisitExpr(Expression expr) {
+        Contract.Requires(expr != null);
+        Visit(expr, 0);
+      }
+      protected override bool VisitOneExpr(Expression expr, ref int unused) {
+        if (expr is MemberSelectExpr) {
+          var e = (MemberSelectExpr)expr;
+          if (e.Member.IsInstanceIndependentConstant && Expression.AsThis(e.Obj) != null) {
+            return false;  // don't continue the recursion
+          }
+        } else if (expr is ThisExpr && !(expr is ImplicitThisExpr_ConstructorCall)) {
           resolver.reporter.Error(MessageSource.Resolver, expr.tok, "in the first division of the constructor body (before 'new;'), 'this' can only be used to assign to its fields");
         }
-        base.VisitOneExpr(expr);
+        return base.VisitOneExpr(expr, ref unused);
       }
       void LiberalRHSVisit(Expression expr) {
         Contract.Requires(expr != null);
@@ -6090,13 +6101,13 @@ namespace Microsoft.Dafny
         } else if (expr is DatatypeValue) {
         } else if (expr is ITEExpr) {
           var e = (ITEExpr)expr;
-          Visit(e.Test);
+          VisitExpr(e.Test);
           LiberalRHSVisit(e.Thn);
           LiberalRHSVisit(e.Els);
           return;
         } else {
           // defer to the usual Visit
-          Visit(expr);
+          VisitExpr(expr);
           return;
         }
         expr.SubExpressions.Iter(LiberalRHSVisit);
@@ -6185,6 +6196,7 @@ namespace Microsoft.Dafny
 
     ClassDecl currentClass;
     Method currentMethod;
+    bool inBodyInitContext;  // "true" only if "currentMethod is Constructor"
     readonly Scope<TypeParameter>/*!*/ allTypeParameters = new Scope<TypeParameter>();
     readonly Scope<IVariable>/*!*/ scope = new Scope<IVariable>();
     Scope<Statement>/*!*/ labeledStatements = new Scope<Statement>();
@@ -9140,7 +9152,12 @@ namespace Microsoft.Dafny
         var ll = (MemberSelectExpr)lhs;
         var field = ll.Member as Field;
         if (field == null || !field.IsUserMutable) {
-          reporter.Error(MessageSource.Resolver, lhs, "LHS of assignment must denote a mutable field");
+          var cf = field as ConstantField;
+          if (inBodyInitContext && cf != null && cf.constValue == null) {
+            // it's cool; this field can be assigned to here
+          } else {
+            reporter.Error(MessageSource.Resolver, lhs, "LHS of assignment must denote a mutable field");
+          }
         }
       } else if (lhs is SeqSelectExpr) {
         var ll = (SeqSelectExpr)lhs;
@@ -9160,25 +9177,47 @@ namespace Microsoft.Dafny
       Contract.Requires(blockStmt != null);
       Contract.Requires(codeContext != null);
 
-      foreach (Statement ss in blockStmt.Body) {
-        labeledStatements.PushMarker();
-        // push labels
-        for (var l = ss.Labels; l != null; l = l.Next) {
-          var lnode = l.Data;
-          Contract.Assert(lnode.Name != null);  // LabelNode's with .Label==null are added only during resolution of the break statements with 'stmt' as their target, which hasn't happened yet
-          var prev = labeledStatements.Find(lnode.Name);
-          if (prev == ss) {
-            reporter.Error(MessageSource.Resolver, lnode.Tok, "duplicate label");
-          } else if (prev != null) {
-            reporter.Error(MessageSource.Resolver, lnode.Tok, "label shadows an enclosing label");
-          } else {
-            var r = labeledStatements.Push(lnode.Name, ss);
-            Contract.Assert(r == Scope<Statement>.PushResult.Success);  // since we just checked for duplicates, we expect the Push to succeed
-          }
+      if (blockStmt is DividedBlockStmt) {
+        var div = (DividedBlockStmt)blockStmt;
+        Contract.Assert(currentMethod is Constructor);  // divided bodies occur only in class constructors
+        Contract.Assert(!inBodyInitContext);  // divided bodies are never nested
+        inBodyInitContext = true;
+        foreach (Statement ss in div.BodyInit) {
+          ResolveStatementWithLabels(ss, codeContext);
         }
-        ResolveStatement(ss, codeContext);
-        labeledStatements.PopMarker();
+        Contract.Assert(inBodyInitContext);
+        inBodyInitContext = false;
+        foreach (Statement ss in div.BodyProper) {
+          ResolveStatementWithLabels(ss, codeContext);
+        }
+      } else {
+        foreach (Statement ss in blockStmt.Body) {
+          ResolveStatementWithLabels(ss, codeContext);
+        }
       }
+    }
+
+    void ResolveStatementWithLabels(Statement stmt, ICodeContext codeContext) {
+      Contract.Requires(stmt != null);
+      Contract.Requires(codeContext != null);
+
+      labeledStatements.PushMarker();
+      // push labels
+      for (var l = stmt.Labels; l != null; l = l.Next) {
+        var lnode = l.Data;
+        Contract.Assert(lnode.Name != null);  // LabelNode's with .Label==null are added only during resolution of the break statements with 'stmt' as their target, which hasn't happened yet
+        var prev = labeledStatements.Find(lnode.Name);
+        if (prev == stmt) {
+          reporter.Error(MessageSource.Resolver, lnode.Tok, "duplicate label");
+        } else if (prev != null) {
+          reporter.Error(MessageSource.Resolver, lnode.Tok, "label shadows an enclosing label");
+        } else {
+          var r = labeledStatements.Push(lnode.Name, stmt);
+          Contract.Assert(r == Scope<Statement>.PushResult.Success);  // since we just checked for duplicates, we expect the Push to succeed
+        }
+      }
+      ResolveStatement(stmt, codeContext);
+      labeledStatements.PopMarker();
     }
 
     /// <summary>

@@ -8,4 +8,10 @@ ConstantErrors.dfy(64,10): Error: field 'x0' is inherited from trait 'Trait' and
 ConstantErrors.dfy(65,10): Error: field 'x1' is inherited from trait 'Trait' and is not allowed to be re-declared
 ConstantErrors.dfy(66,10): Error: field 'x2' is inherited from trait 'Trait' and is not allowed to be re-declared
 ConstantErrors.dfy(67,10): Error: field 'x3' is inherited from trait 'Trait' and is not allowed to be re-declared
-10 resolution/type errors detected in ConstantErrors.dfy
+ConstantErrors.dfy(94,6): Error: LHS of assignment must denote a mutable field
+ConstantErrors.dfy(96,6): Error: LHS of assignment must denote a mutable field
+ConstantErrors.dfy(98,6): Error: LHS of assignment must denote a mutable field
+ConstantErrors.dfy(98,10): Error: LHS of assignment must denote a mutable field
+ConstantErrors.dfy(98,14): Error: LHS of assignment must denote a mutable field
+ConstantErrors.dfy(98,18): Error: LHS of assignment must denote a mutable field
+16 resolution/type errors detected in ConstantErrors.dfy

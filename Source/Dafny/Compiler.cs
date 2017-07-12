@@ -2206,7 +2206,8 @@ namespace Microsoft.Dafny {
         wr.Write("var {0} = ", obj);
         TrExpr(ll.Obj, wr, false);
         wr.WriteLine(";");
-        return string.Format("{0}.@{1}", obj, ll.Member.CompileName);
+        Contract.Assert(!ll.Member.IsInstanceIndependentConstant);  // instance-independent const's don't have assignment statements
+        return string.Format("{0}.@{2}{1}", obj, ll.Member.CompileName, ll.Member is ConstantField ? "_" : "");
       } else if (lhs is SeqSelectExpr) {
         var ll = (SeqSelectExpr)lhs;
         var c = idGenerator.FreshNumericId("_arr+_index");

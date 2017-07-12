@@ -3787,6 +3787,13 @@ namespace Microsoft.Dafny {
     }
     protected readonly bool isGhost;
     public bool IsGhost { get { return isGhost; } }
+    public bool IsInstanceIndependentConstant {
+      get {
+        var cf = this as ConstantField;
+        return cf != null && cf.constValue != null;
+      }
+    }
+
     public TopLevelDecl EnclosingClass;  // filled in during resolution
     public MemberDecl RefinementBase;  // filled in during the pre-resolution refinement transformation; null if the member is new here
     public MemberDecl(IToken tok, string name, bool hasStaticKeyword, bool isGhost, Attributes attributes, Declaration clonedFrom = null)

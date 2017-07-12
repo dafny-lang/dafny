@@ -72,3 +72,30 @@ module E {
     }
   }
 }
+
+// ---------- instanced-based initialization --------
+
+module F {
+  newtype Six = x | 6 <= x witness 6
+
+  trait Trait {
+    const x0: Six
+    const x1: Six := 7
+  }
+  
+  class InstanceInit extends Trait {
+    const y2: Six
+    const y3: Six := 12
+
+    constructor (u: int)
+      requires 10 <= u
+    {
+      x0 := 80;
+      x1 := 100;  // error: cannot set a const whose declaration has an initial value
+      y2 := 77 + y3;
+      y3 := 110;  // error: cannot set a const whose declaration has an initial value
+      new;
+      x0, x1, y2, y3 := 50, 50, 50, 50;  // error (x4): cannot set const's after "new;"
+    }
+  }
+}

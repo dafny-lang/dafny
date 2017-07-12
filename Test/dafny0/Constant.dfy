@@ -40,6 +40,8 @@ method Main() {
 
   var cl := new Class;
   cl.Test();
+  var ii := new InstanceInit(13);
+  print ii.x0, " ", ii.x1, " ", ii.y2, " ", ii.y3, " ", ii.r, "\n";  // 93, 7, 89, 12, 8.54
 }
 
 class C {
@@ -104,4 +106,30 @@ method MMethod(tr: Trait) {
   assert Trait.y == 7;
   assert tr.y == 7;
   assert tr == null || tr.x1 == 7;
+}
+
+// ---------- instanced-based initialization --------
+
+class InstanceInit extends Trait {
+  const y2: Six
+  const y3: Six := 12
+  const N: int := 20
+
+  var r: real
+
+  constructor (u: Six)
+    requires 10 <= u
+  {
+    x0 := 80 + u;
+    var arr := new real[N];
+    arr[8] := 2.7;
+    r := arr[8];
+    y2 := 77 + y3;
+    new;
+    assert x0 == u + 80 && x1 ==7;
+    assert y2 == 89 && y3 == 12;
+    assert arr.Length == 20;
+    arr[9] := 3.14;
+    r := r + arr[8] + arr[9];  // 8.54
+  }
 }

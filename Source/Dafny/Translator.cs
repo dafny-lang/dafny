@@ -7644,7 +7644,7 @@ namespace Microsoft.Dafny {
           formals.Add(new Bpl.Formal(f.tok, new Bpl.TypedIdent(f.tok, f is ConstantField ? "this" : Bpl.TypedIdent.NoName, receiverType), true));
         }
         Bpl.Formal result = new Bpl.Formal(f.tok, new Bpl.TypedIdent(f.tok, Bpl.TypedIdent.NoName, TrType(f.Type)), false);
-        var inlineAttribute = f is ConstantField && ((ConstantField)f).constValue != null ? new QKeyValue(f.tok, "inline", new List<object>(), null) : null;
+        var inlineAttribute = f.IsInstanceIndependentConstant ? new QKeyValue(f.tok, "inline", new List<object>(), null) : null;
         ff = new Bpl.Function(f.tok, f.FullSanitizedName, new List<TypeVariable>(), formals, result, null, inlineAttribute);
 
         if (InsertChecksums) {
@@ -8732,7 +8732,7 @@ namespace Microsoft.Dafny {
         // a DividedBlockStmt occurs only inside a Constructor body of a class
         var cl = (ClassDecl)((Constructor)codeContext).EnclosingClass;
         var fields = Concat(cl.InheritedMembers, cl.Members).ConvertAll(member =>
-          member is Field && !(member is ConstantField && ((ConstantField)member).constValue != null) ? (Field)member : null);
+          member is Field && !member.IsInstanceIndependentConstant ? (Field)member : null);
         fields.RemoveAll(f => f == null);
         var localSurrogates = fields.ConvertAll(f => new Bpl.LocalVariable(f.tok, new TypedIdent(f.tok, SurrogateName(f), TrType(f.Type))));
         locals.AddRange(localSurrogates);
@@ -12782,7 +12782,7 @@ namespace Microsoft.Dafny {
           var e = (MemberSelectExpr)expr;
           return e.MemberSelectCase(
             field => {
-              var useSurrogateLocal = translator.inBodyInitContext && Expression.AsThis(e.Obj) != null;
+              var useSurrogateLocal = translator.inBodyInitContext && Expression.AsThis(e.Obj) != null && !field.IsInstanceIndependentConstant;
               if (useSurrogateLocal) {
                 return new Bpl.IdentifierExpr(expr.tok, translator.SurrogateName(field), translator.TrType(field.Type));
               } else if (field is ConstantField) {
