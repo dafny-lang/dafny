@@ -7663,9 +7663,9 @@ namespace Microsoft.Dafny {
           // declare the function with its initial value, if any
           // function QQ():int { 3 }
           var cf = (ConstantField)f;
-          if (cf.constValue != null && RevealedInScope(cf)) {
+          if (cf.Rhs != null && RevealedInScope(cf)) {
             var etran = new ExpressionTranslator(this, predef, (Bpl.Expr)null);
-            ff.Body = etran.TrExpr(cf.constValue);
+            ff.Body = etran.TrExpr(cf.Rhs);
           }
           sink.AddTopLevelDeclaration(ff);
 

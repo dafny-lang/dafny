@@ -919,19 +919,19 @@ namespace Microsoft.Dafny {
           // skip
         } else if (member is ConstantField) {
           var cf = (ConstantField)member;
-          if (cf.constValue == null) {
+          if (cf.Rhs == null) {
             Contract.Assert(!cf.IsStatic);  // module-level and static const's must have a RHS (enforced by parser)
             Indent(indent, wr);
-            wr.WriteLine("public {0} _{1} = {2};", TypeName(cf.type, wr), cf.CompileName, DefaultValue(cf.type, wr));
+            wr.WriteLine("public {0} _{1} = {2};", TypeName(cf.Type, wr), cf.CompileName, DefaultValue(cf.Type, wr));
           }
           Indent(indent, wr);
-          wr.Write("public {2}{0} @{1}()", TypeName(cf.type, wr), cf.CompileName, cf.IsStatic ? "static " : "");
+          wr.Write("public {2}{0} @{1}()", TypeName(cf.Type, wr), cf.CompileName, cf.IsStatic ? "static " : "");
           wr.WriteLine("{");
-          if (cf.constValue == null) {
+          if (cf.Rhs == null) {
             Indent(indent + IndentAmount, wr);
             wr.WriteLine("return _{0};", cf.CompileName);
           } else {
-            CompileReturnBody(cf.constValue, indent + IndentAmount, wr);
+            CompileReturnBody(cf.Rhs, indent + IndentAmount, wr);
           }
           Indent(indent, wr); wr.WriteLine("}");
         } else if (member is Field) {
@@ -969,10 +969,10 @@ namespace Microsoft.Dafny {
             var cf = f as ConstantField;
             if (cf != null && cf.IsStatic) {
               Indent(indent, wr);
-              wr.Write("public static {0} @{1}()", TypeName(cf.type, wr), cf.CompileName);
+              wr.Write("public static {0} @{1}()", TypeName(cf.Type, wr), cf.CompileName);
               wr.WriteLine("{");
-              if (cf.constValue != null) {
-                CompileReturnBody(cf.constValue, indent + IndentAmount, wr);
+              if (cf.Rhs != null) {
+                CompileReturnBody(cf.Rhs, indent + IndentAmount, wr);
               } else {
                 wr.WriteLine("return {0};", DefaultValue(cf.Type, wr));
               }
@@ -994,18 +994,18 @@ namespace Microsoft.Dafny {
             }
           } else if (f is ConstantField) {
             var cf = (ConstantField)f;
-            if (cf.constValue == null) {
+            if (cf.Rhs == null) {
               Indent(indent, wr);
-              wr.WriteLine("public {3}{0} _{1} = {2};", TypeName(cf.type, wr), cf.CompileName, DefaultValue(cf.type, wr), f.IsStatic ? "static " : "");
+              wr.WriteLine("public {3}{0} _{1} = {2};", TypeName(cf.Type, wr), cf.CompileName, DefaultValue(cf.Type, wr), f.IsStatic ? "static " : "");
             }
             Indent(indent, wr);
-            wr.Write("public {2}{0} @{1}()", TypeName(cf.type, wr), cf.CompileName, f.IsStatic ? "static " : "");
+            wr.Write("public {2}{0} @{1}()", TypeName(cf.Type, wr), cf.CompileName, f.IsStatic ? "static " : "");
             wr.WriteLine("{");
-            if (cf.constValue == null) {
+            if (cf.Rhs == null) {
               Indent(indent + IndentAmount, wr);
               wr.WriteLine("return _{0};", cf.CompileName);
             } else {
-              CompileReturnBody(cf.constValue, indent + IndentAmount, wr);
+              CompileReturnBody(cf.Rhs, indent + IndentAmount, wr);
             }
             Indent(indent, wr); wr.WriteLine("}");
           } else {

@@ -3790,7 +3790,7 @@ namespace Microsoft.Dafny {
     public bool IsInstanceIndependentConstant {
       get {
         var cf = this as ConstantField;
-        return cf != null && cf.constValue != null;
+        return cf != null && cf.Rhs != null;
       }
     }
 
@@ -4036,16 +4036,14 @@ namespace Microsoft.Dafny {
   public class ConstantField : SpecialField, ICallable
   {
     public override string WhatKind { get { return "const field"; } }
-    public readonly Type type;
-    public readonly Expression constValue;
-    public ConstantField(IToken tok, string name, Expression/*?*/ constValue, bool hasStaticKeyword, bool isGhost, Type type, Attributes attributes)
+    public readonly Expression Rhs;
+    public ConstantField(IToken tok, string name, Expression/*?*/ rhs, bool hasStaticKeyword, bool isGhost, Type type, Attributes attributes)
       : base(tok, name, name, "", "", hasStaticKeyword, isGhost, false, false, type, attributes)
     {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
       Contract.Requires(type != null);
-      this.type = type;
-      this.constValue = constValue;
+      this.Rhs = rhs;
     }
 
     public override bool CanBeRevealed() {

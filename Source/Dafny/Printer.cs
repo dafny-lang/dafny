@@ -652,9 +652,9 @@ Everything) {
       }
       if (field is ConstantField) {
         var c = (ConstantField)field;
-        if (c.constValue != null) {
+        if (c.Rhs != null) {
           wr.Write(" := ");
-          PrintExpression(c.constValue, true);
+          PrintExpression(c.Rhs, true);
         }
       } else if (field.IsUserMutable) {
         // nothing more to say

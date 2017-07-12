@@ -683,7 +683,7 @@ namespace Microsoft.Dafny
       Contract.Requires(f != null);
       if (f is ConstantField) {
         var c = (ConstantField)f;
-        return new ConstantField(Tok(c.tok), c.Name, CloneExpr(c.constValue), c.IsStatic, c.IsGhost, CloneType(c.Type), CloneAttributes(c.Attributes));
+        return new ConstantField(Tok(c.tok), c.Name, CloneExpr(c.Rhs), c.IsStatic, c.IsGhost, CloneType(c.Type), CloneAttributes(c.Attributes));
       } else {
         Contract.Assert(!(f is SpecialField));  // we don't expect a SpecialField to be cloned (or do we?)
         return new Field(Tok(f.tok), f.Name, f.HasStaticKeyword, f.IsGhost, f.IsMutable, f.IsUserMutable, CloneType(f.Type), CloneAttributes(f.Attributes));
@@ -894,7 +894,7 @@ namespace Microsoft.Dafny
 
     public override Field CloneField(Field f) {
       var cf = f as ConstantField;
-      if (cf != null && cf.constValue != null && !RevealedInScope(f)) {
+      if (cf != null && cf.Rhs != null && !RevealedInScope(f)) {
         // We erase the RHS value. While we do that, we must also make sure the declaration does have a type, so instead of
         // cloning cf.Type, we assume "f" has been resolved and clone cf.Type.NormalizeExpandKeepConstraints().
         return new ConstantField(Tok(cf.tok), cf.Name, null, cf.IsStatic, cf.IsGhost, CloneType(cf.Type.NormalizeExpandKeepConstraints()), CloneAttributes(cf.Attributes));

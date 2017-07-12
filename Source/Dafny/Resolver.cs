@@ -4448,10 +4448,10 @@ namespace Microsoft.Dafny
     private void CheckTypeInference_Member(MemberDecl member) {
       if (member is ConstantField) {
         var field = (ConstantField) member;
-        if (field.constValue != null) {
-          CheckTypeInference(field.constValue, new NoContext(member.EnclosingClass.Module));
+        if (field.Rhs != null) {
+          CheckTypeInference(field.Rhs, new NoContext(member.EnclosingClass.Module));
         }
-        CheckTypeInference(field.type, new NoContext(member.EnclosingClass.Module), field.tok, "const");
+        CheckTypeInference(field.Type, new NoContext(member.EnclosingClass.Module), field.tok, "const");
       } else if (member is Method) {
         var m = (Method)member;
         m.Req.Iter(mfe => CheckTypeInference_MaybeFreeExpression(mfe, m));
@@ -6433,10 +6433,10 @@ namespace Microsoft.Dafny
           if (member is ConstantField) {
             // Resolve the value expression
             var field = (ConstantField)member;
-            if (field.constValue != null) {
-              ResolveExpression(field.constValue, new ResolveOpts(new NoContext(currentClass.Module), false));
+            if (field.Rhs != null) {
+              ResolveExpression(field.Rhs, new ResolveOpts(new NoContext(currentClass.Module), false));
               // make sure initialization only refers to constant field or literal expression
-              CheckConstantFieldInitialization(field, field.constValue);
+              CheckConstantFieldInitialization(field, field.Rhs);
             }
             SolveAllTypeConstraints();
           }
@@ -9153,7 +9153,7 @@ namespace Microsoft.Dafny
         var field = ll.Member as Field;
         if (field == null || !field.IsUserMutable) {
           var cf = field as ConstantField;
-          if (inBodyInitContext && cf != null && cf.constValue == null) {
+          if (inBodyInitContext && cf != null && cf.Rhs == null) {
             // it's cool; this field can be assigned to here
           } else {
             reporter.Error(MessageSource.Resolver, lhs, "LHS of assignment must denote a mutable field");
