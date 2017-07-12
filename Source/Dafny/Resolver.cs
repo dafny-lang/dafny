@@ -6419,9 +6419,8 @@ namespace Microsoft.Dafny
           ResolveAttributes(member.Attributes, member, new ResolveOpts(new NoContext(currentClass.Module), false));
           
           if (member is ConstantField) {
-            // setting the enclosing class for the corresponding function for the field. And resolve the value expression
+            // Resolve the value expression
             var field = (ConstantField)member;
-            field.function.EnclosingClass = cl;
             if (field.constValue != null) {
               ResolveExpression(field.constValue, new ResolveOpts(new NoContext(currentClass.Module), false));
               // make sure initialization only refers to constant field or literal expression
@@ -11981,16 +11980,9 @@ namespace Microsoft.Dafny
       }
       if (member is ConstantField) {
         var cf = (ConstantField)member;
-        // change the reference to constant field to a function call since that is what constant is translate to.
-        var r = new FunctionCallExpr(tok, member.Name, rr.Obj, tok, new List<Expression>());
-        r.Function = cf.function;
-        r.TypeArgumentSubstitutions = rr.TypeArgumentSubstitutions();
-        r.Type = rr.Type;
         AddCallGraphEdge(opts.codeContext, cf, rr, false);
-        return r;
-      } else {
-        return rr;
       }
+      return rr;
     }
 
     private bool IsFunctionReturnValue(Function fn, List<Expression> args, ResolveOpts opts) {

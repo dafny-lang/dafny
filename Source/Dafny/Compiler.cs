@@ -2688,8 +2688,15 @@ namespace Microsoft.Dafny {
         SpecialField sf = e.Member as SpecialField;
         if (sf != null) {
           wr.Write(sf.PreString);
-          TrParenExpr(e.Obj, wr, inLetExprBody);
+          if (sf.IsStatic) {
+            wr.Write(TypeName_Companion(e.Obj.Type, wr));
+          } else {
+            TrParenExpr(e.Obj, wr, inLetExprBody);
+          }
           wr.Write(".@{0}", sf.CompiledName);
+          if (sf is ConstantField) {
+            wr.Write("()");  // constant fields are compiled as functions (possibly with a backing field)
+          }
           wr.Write(sf.PostString);
         } else {
           TrExpr(e.Obj, wr, inLetExprBody);

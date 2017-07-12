@@ -1899,22 +1899,8 @@ namespace Microsoft.Dafny {
         if (member is Field) {
           Field f = (Field)member;
           if (f is ConstantField) {
-            // function QQ():int { 3 }
-            var cf = (ConstantField)f;
-            Function ff = cf.function;
-            var formals = new List<Variable>();
-            formals.AddRange(MkTyParamFormals(GetTypeParams(cf.EnclosingClass)));
-            if (!cf.IsStatic) {
-              formals.Add(new Bpl.Formal(cf.tok, new Bpl.TypedIdent(cf.tok, "this", predef.RefType), true));
-            }
-            var res = new Bpl.Formal(f.tok, new Bpl.TypedIdent(f.tok, Bpl.TypedIdent.NoName, TrType(ff.ResultType)), false);
-            var inlineAttribute = cf.constValue == null ? null : new QKeyValue(f.tok, "inline", new List<object>(), null);
-            var func = new Bpl.Function(f.tok, ff.FullSanitizedName, new List<TypeVariable>(), formals, res, null, inlineAttribute);
-            if (cf.constValue != null) {
-              var etran = new ExpressionTranslator(this, predef, (Bpl.Expr)null);
-              func.Body = etran.TrExpr(cf.constValue);
-            }
-            sink.AddTopLevelDeclaration(func);
+            // The following call has the side effect of idempotently creating and adding the function to the sink's top-level declarations
+            var boogieFunction = GetReadonlyField(f);
           } else {
             if (f.IsMutable) {
               Bpl.Constant fc = GetField(f);
@@ -7624,11 +7610,10 @@ namespace Microsoft.Dafny {
       if (fieldFunctions.TryGetValue(f, out ff)) {
         Contract.Assert(ff != null);
       } else {
+        // Here are some built-in functions defined in "predef" (so there's no need to cache them in "fieldFunctions")
         if (f.EnclosingClass is ArrayClassDecl && f.Name == "Length") { // link directly to the function in the prelude.
-          fieldFunctions.Add(f, predef.ArrayLength);
           return predef.ArrayLength;
         } else if (f.EnclosingClass == null && f.Name == "Floor") { // link directly to the function in the prelude.
-          fieldFunctions.Add(f, predef.RealFloor);
           return predef.RealFloor;
         } else if ((f is SpecialField) && (f.Name == "Keys" || f.Name == "Values" || f.Name == "Items")) { // link directly to function in the prelude.
           Contract.Assert(f is SpecialField && f.Type is SelfType);
@@ -7643,20 +7628,24 @@ namespace Microsoft.Dafny {
             return setType.Finite ? predef.MapItems : predef.IMapItems;
           }
         } else if (f.FullSanitizedName == "_System.__tuple_h2._0") {
-          fieldFunctions.Add(f, predef.Tuple2Destructors0);
           return predef.Tuple2Destructors0;
         } else if (f.FullSanitizedName == "_System.__tuple_h2._1") {
-          fieldFunctions.Add(f, predef.Tuple2Destructors1);
           return predef.Tuple2Destructors1;
         }
 
+        // Create a new function
         // function f(Ref): ty;
-        Bpl.Type ty = TrType(f.Type);
-        List<Variable> args = new List<Variable>();
-        Bpl.Type receiverType = f.EnclosingClass is ClassDecl ? predef.RefType : predef.DatatypeType;
-        args.Add(new Bpl.Formal(f.tok, new Bpl.TypedIdent(f.tok, Bpl.TypedIdent.NoName, receiverType), true));
-        Bpl.Formal result = new Bpl.Formal(f.tok, new Bpl.TypedIdent(f.tok, Bpl.TypedIdent.NoName, ty), false);
-        ff = new Bpl.Function(f.tok, f.FullSanitizedName, args, result);
+        List<Variable> formals = new List<Variable>();
+        if (f is ConstantField) {
+          formals.AddRange(MkTyParamFormals(GetTypeParams(f.EnclosingClass)));
+        }
+        if (!f.IsStatic) {
+          Bpl.Type receiverType = f.EnclosingClass is ClassDecl ? predef.RefType : predef.DatatypeType;
+          formals.Add(new Bpl.Formal(f.tok, new Bpl.TypedIdent(f.tok, f is ConstantField ? "this" : Bpl.TypedIdent.NoName, receiverType), true));
+        }
+        Bpl.Formal result = new Bpl.Formal(f.tok, new Bpl.TypedIdent(f.tok, Bpl.TypedIdent.NoName, TrType(f.Type)), false);
+        var inlineAttribute = f is ConstantField && ((ConstantField)f).constValue != null ? new QKeyValue(f.tok, "inline", new List<object>(), null) : null;
+        ff = new Bpl.Function(f.tok, f.FullSanitizedName, new List<TypeVariable>(), formals, result, null, inlineAttribute);
 
         if (InsertChecksums) {
           var dt = f.EnclosingClass as DatatypeDecl;
@@ -7666,9 +7655,21 @@ namespace Microsoft.Dafny {
           // TODO(wuestholz): Do we need to handle more cases?
         }
 
+        // add the newly created function to the cache, so that there will only be one copy of it
         fieldFunctions.Add(f, ff);
-        // treat certain fields specially
-        if (f.EnclosingClass is ArrayClassDecl) {
+
+        // declare function among Boogie top-level declarations, if needed, and treat certain fields specially
+        if (f is ConstantField) {
+          // declare the function with its initial value, if any
+          // function QQ():int { 3 }
+          var cf = (ConstantField)f;
+          if (cf.constValue != null) {
+            var etran = new ExpressionTranslator(this, predef, (Bpl.Expr)null);
+            ff.Body = etran.TrExpr(cf.constValue);
+          }
+          sink.AddTopLevelDeclaration(ff);
+
+        } else if (f.EnclosingClass is ArrayClassDecl) {
           // add non-negative-range axioms for array Length fields
           // axiom (forall o: Ref :: 0 <= array.Length(o));
           Bpl.BoundVariable oVar = new Bpl.BoundVariable(f.tok, new Bpl.TypedIdent(f.tok, "o", predef.RefType));
@@ -12784,6 +12785,23 @@ namespace Microsoft.Dafny {
               var useSurrogateLocal = translator.inBodyInitContext && Expression.AsThis(e.Obj) != null;
               if (useSurrogateLocal) {
                 return new Bpl.IdentifierExpr(expr.tok, translator.SurrogateName(field), translator.TrType(field.Type));
+              } else if (field is ConstantField) {
+                var isLit = true;
+                var args = e.TypeApplication.ConvertAll(translator.TypeToTy);
+                Bpl.Expr result;
+                if (field.IsStatic) {
+                  result = new Bpl.NAryExpr(expr.tok, new Bpl.FunctionCall(translator.GetReadonlyField(field)), args);
+                } else {
+                  Bpl.Expr obj = TrExpr(e.Obj);
+                  args.Add(obj);
+                  result = new Bpl.NAryExpr(expr.tok, new Bpl.FunctionCall(translator.GetReadonlyField(field)), args);
+                  isLit = translator.IsLit(obj);
+                }
+                result = translator.CondApplyUnbox(expr.tok, result, field.Type, expr.Type);
+                if (isLit) {
+                  result = MaybeLit(result, translator.TrType(expr.Type));
+                }
+                return result;
               } else {
                 Bpl.Expr obj = TrExpr(e.Obj);
                 Bpl.Expr result;

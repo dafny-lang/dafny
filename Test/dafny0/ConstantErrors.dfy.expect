@@ -1,8 +1,8 @@
 ConstantErrors.dfy(6,8): Error: type for constant two is int, but its initialization value type is real
 ConstantErrors.dfy(10,8): Error: constant definition contains a cycle: _default.six -> _default.five
 ConstantErrors.dfy(18,6): Error: 'this' is not allowed in a 'static' context
-ConstantErrors.dfy(29,6): Error: function calls are allowed only in specification contexts (consider declaring the function a 'function method')
-ConstantErrors.dfy(30,6): Error: function calls are allowed only in specification contexts (consider declaring the function a 'function method')
+ConstantErrors.dfy(29,6): Error: ghost fields are allowed only in specification contexts
+ConstantErrors.dfy(30,6): Error: ghost fields are allowed only in specification contexts
 ConstantErrors.dfy(41,7): Error: RHS (of type int) not assignable to LHS (of type SmallInt)
 ConstantErrors.dfy(64,10): Error: field 'x0' is inherited from trait 'Trait' and is not allowed to be re-declared
 ConstantErrors.dfy(65,10): Error: field 'x1' is inherited from trait 'Trait' and is not allowed to be re-declared

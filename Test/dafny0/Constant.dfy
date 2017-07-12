@@ -103,5 +103,5 @@ class Class extends Trait {
 method MMethod(tr: Trait) {
   assert Trait.y == 7;
   assert tr.y == 7;
-  assert tr.x1 == 7;
+  assert tr == null || tr.x1 == 7;
 }

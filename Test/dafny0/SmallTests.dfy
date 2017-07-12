@@ -876,3 +876,39 @@ module DatatypeTestZ {
     assert aa == bb;
   }
 }
+
+// ---------- null checks for constant fields ---------------
+
+module ConstantFieldReceiverNonNull {
+  newtype Six = x | 6 <= x witness 6
+    
+  trait Trait {
+    const x0: Six
+    const x1: Six := 7
+
+    static const y: Six := 7
+  }
+
+  class Class extends Trait {
+    method Test() {
+      assert x1 == 7 && y == 7;
+      print x0, " ", x1, " ", y, "\n";
+    }
+  }
+
+  method MMethod(tr: Trait) {
+    assert Trait.y == 7;
+    assert tr.y == 7;
+    assert tr == null || tr.x1 == 7;
+    assert tr.x1 == 7;  // error: "tr" might be null
+  }
+
+  class AnotherClass {
+    const u: int
+
+    static method M(ac: AnotherClass) returns (v: int)
+    {
+      v := ac.u;  // error: "ac" might be null
+    }
+  }
+}
