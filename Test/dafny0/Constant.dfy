@@ -42,6 +42,8 @@ method Main() {
   cl.Test();
   var ii := new InstanceInit(13);
   print ii.x0, " ", ii.x1, " ", ii.y2, " ", ii.y3, " ", ii.r, "\n";  // 93, 7, 89, 12, 8.54
+
+  print mmgg, " ", UninterpretedStaticsTrait.mmtt, " ", UninterpretedStaticsClass.mmcc, "\n";
 }
 
 class C {
@@ -132,4 +134,16 @@ class InstanceInit extends Trait {
     arr[9] := 3.14;
     r := r + arr[8] + arr[9];  // 8.54
   }
+}
+
+// ---------- class- and module-level const's without RHS --------
+
+const mmgg: Six
+
+trait UninterpretedStaticsTrait {
+  static const mmtt: Six
+}
+
+class UninterpretedStaticsClass extends UninterpretedStaticsTrait {
+  static const mmcc: Six
 }

@@ -133,3 +133,88 @@ abstract module Regression {
     import X : A
   }
 }
+
+// ----- const definitions in traits and modules, subject to export -----
+
+module ModuleContainTraitAndClass {
+  export X
+    reveals g0
+    provides Trait, Class
+    reveals Trait.s0, Trait.t0, Trait.t1
+    reveals Class.r0, Class.c0, Class.c1
+  export Y
+    provides g0
+    provides Trait, Class
+    provides Trait.s0, Trait.t0, Trait.t1
+    provides Class.r0, Class.c0, Class.c1
+
+  const g0 := 16
+  const g1: int
+
+  trait Trait {
+    static const s0 := 17
+    static const s1: int
+    const t0 := 18
+    const t1: int
+  }
+
+  class Class extends Trait {
+    static const r0 := 19
+    static const r1: int
+    const c0 := 20
+    const c1: int
+  }
+
+  method Tests0()
+  {
+    assert g0 == 16;
+    assert Trait.s0 == 17;
+    assert Class.r0 == 19;
+  }
+
+  method Tests1(t: Trait, c: Class)
+    requires t != null && c != null
+  {
+    assert t.t0 == 18;
+    assert c.t0 == 18;
+    assert c.c0 == 20;
+  }
+}
+
+module ModuleImportingTraitAndClassX {
+  import M = ModuleContainTraitAndClass`X
+
+  method Tests0()
+  {
+    assert M.g0 == 16;
+    assert M.Trait.s0 == 17;
+    assert M.Class.r0 == 19;
+  }
+
+  method Tests1(t: M.Trait, c: M.Class)
+    requires t != null && c != null
+  {
+    assert t.t0 == 18;
+    assert c.t0 == 18;
+    assert c.c0 == 20;
+  }
+}
+
+module ModuleImportingTraitAndClassY {
+  import M = ModuleContainTraitAndClass`Y
+
+  method Tests0()
+  {
+    assert M.g0 == 16;  // error: cannot determine this in Y
+    assert M.Trait.s0 == 17;  // error: cannot determine this in Y
+    assert M.Class.r0 == 19;  // error: cannot determine this in Y
+  }
+
+  method Tests1(t: M.Trait, c: M.Class)
+    requires t != null && c != null
+  {
+    assert t.t0 == 18;  // error: cannot determine this in Y
+    assert c.t0 == 18;  // error: cannot determine this in Y
+    assert c.c0 == 20;  // error: cannot determine this in Y
+  }
+}

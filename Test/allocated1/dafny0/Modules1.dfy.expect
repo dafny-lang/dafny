@@ -14,6 +14,24 @@ Modules1.dfy(94,18): Error: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Else
+Modules1.dfy(208,16): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+Modules1.dfy(209,22): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+Modules1.dfy(210,22): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+Modules1.dfy(216,16): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+Modules1.dfy(217,16): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+Modules1.dfy(218,16): Error: assertion violation
+Execution trace:
+    (0,0): anon0
 Modules1.dfy(56,8): Error: decreases expression must be bounded below by 0
 Modules1.dfy(54,12): Related location
 Execution trace:
@@ -22,4 +40,4 @@ Modules1.dfy(62,8): Error: failure to decrease termination measure
 Execution trace:
     (0,0): anon0
 
-Dafny program verifier finished with 4 verified, 6 errors
+Dafny program verifier finished with 8 verified, 12 errors

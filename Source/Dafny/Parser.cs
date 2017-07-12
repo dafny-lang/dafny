@@ -1528,15 +1528,8 @@ int StringToInt(string s, int defaultValue, string errString) {
 			Get();
 			Expression(out e, false, false);
 		}
-		if (e == null) {
-		 // some restrictions apply
-		 if (moduleLevelDecl) {
-		   SemErr(t, "a module-level const declaration must give a RHS value");
-		 } else if (dmod.IsStatic) {
-		   SemErr(t, "a static const declaration must give a RHS value");
-		 } else if (ty is InferredTypeProxy) {
-		   SemErr(t, "a const declaration must have a type or a RHS value");
-		 }
+		if (e == null && ty is InferredTypeProxy) {
+		 SemErr(id, "a const declaration must have a type or a RHS value");
 		}
 		mm.Add(new ConstantField(id, id.val, e, dmod.IsStatic, dmod.IsGhost, ty, attrs)); 
 		

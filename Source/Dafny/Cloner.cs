@@ -152,14 +152,8 @@ namespace Microsoft.Dafny
 
     public virtual MemberDecl CloneMember(MemberDecl member) {
       if (member is Field) {
-        if (member is ConstantField) {
-          var c = (ConstantField) member;
-          return new ConstantField(Tok(c.tok), c.Name, CloneExpr(c.constValue), c.IsStatic, c.IsGhost, CloneType(c.Type), CloneAttributes(c.Attributes));
-        } else {
-          Contract.Assert(!(member is SpecialField));  // we don't expect a SpecialField to be cloned (or do we?)
-          var f = (Field)member;
-          return new Field(Tok(f.tok), f.Name, f.HasStaticKeyword, f.IsGhost, f.IsMutable, f.IsUserMutable, CloneType(f.Type), CloneAttributes(f.Attributes));
-        }
+        var f = (Field)member;
+        return CloneField(f);
       } else if (member is Function) {
         var f = (Function)member;
         return CloneFunction(f);
@@ -685,6 +679,17 @@ namespace Microsoft.Dafny
       return new GuardedAlternative(Tok(alt.Tok), alt.IsExistentialGuard, CloneExpr(alt.Guard), alt.Body.ConvertAll(CloneStmt));
     }
 
+    public virtual Field CloneField(Field f) {
+      Contract.Requires(f != null);
+      if (f is ConstantField) {
+        var c = (ConstantField)f;
+        return new ConstantField(Tok(c.tok), c.Name, CloneExpr(c.constValue), c.IsStatic, c.IsGhost, CloneType(c.Type), CloneAttributes(c.Attributes));
+      } else {
+        Contract.Assert(!(f is SpecialField));  // we don't expect a SpecialField to be cloned (or do we?)
+        return new Field(Tok(f.tok), f.Name, f.HasStaticKeyword, f.IsGhost, f.IsMutable, f.IsUserMutable, CloneType(f.Type), CloneAttributes(f.Attributes));
+      }
+    }
+
     public virtual Function CloneFunction(Function f, string newName = null) {
       var tps = f.TypeArgs.ConvertAll(CloneTypeParam);
       var formals = f.Formals.ConvertAll(CloneFormal);
@@ -885,6 +890,16 @@ namespace Microsoft.Dafny
 
       return based;
       
+    }
+
+    public override Field CloneField(Field f) {
+      var cf = f as ConstantField;
+      if (cf != null && cf.constValue != null && !RevealedInScope(f)) {
+        // We erase the RHS value. While we do that, we must also make sure the declaration does have a type, so instead of
+        // cloning cf.Type, we assume "f" has been resolved and clone cf.Type.NormalizeExpandKeepConstraints().
+        return new ConstantField(Tok(cf.tok), cf.Name, null, cf.IsStatic, cf.IsGhost, CloneType(cf.Type.NormalizeExpandKeepConstraints()), CloneAttributes(cf.Attributes));
+      }
+      return base.CloneField(f);
     }
 
     public override Function CloneFunction(Function f, string newName = null) {

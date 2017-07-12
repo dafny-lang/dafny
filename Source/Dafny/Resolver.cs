@@ -1165,7 +1165,7 @@ namespace Microsoft.Dafny
           if (export.Decl is MemberDecl) {
             var member = (MemberDecl)export.Decl;
             if (!member.EnclosingClass.IsVisibleInScope(decl.Signature.VisibilityScope)) {
-              reporter.Error(MessageSource.Resolver, decl.tok, "Cannot export class member '{0}' without providing its enclosing class '{1}'", member.Name, member.EnclosingClass.Name);
+              reporter.Error(MessageSource.Resolver, export.Tok, "Cannot export class member '{0}' without providing its enclosing {1} '{2}'", member.Name, member.EnclosingClass.WhatKind, member.EnclosingClass.Name);
             }
           }
         }

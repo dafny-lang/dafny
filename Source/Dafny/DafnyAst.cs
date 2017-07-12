@@ -4036,8 +4036,8 @@ namespace Microsoft.Dafny {
   public class ConstantField : SpecialField, ICallable
   {
     public override string WhatKind { get { return "const field"; } }
-    public Type type;
-    public Expression constValue;
+    public readonly Type type;
+    public readonly Expression constValue;
     public ConstantField(IToken tok, string name, Expression/*?*/ constValue, bool hasStaticKeyword, bool isGhost, Type type, Attributes attributes)
       : base(tok, name, name, "", "", hasStaticKeyword, isGhost, false, false, type, attributes)
     {
@@ -4046,6 +4046,10 @@ namespace Microsoft.Dafny {
       Contract.Requires(type != null);
       this.type = type;
       this.constValue = constValue;
+    }
+
+    public override bool CanBeRevealed() {
+      return true;
     }
 
     // 
