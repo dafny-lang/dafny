@@ -101,6 +101,7 @@ readonly Expression/*!*/ dummyExpr;
 readonly AssignmentRhs/*!*/ dummyRhs;
 readonly FrameExpression/*!*/ dummyFrameExpr;  
 readonly Statement/*!*/ dummyStmt;
+readonly Statement/*!*/ dummyIfStmt;
 readonly Include theInclude;
 readonly ModuleDecl theModule;
 readonly BuiltIns theBuiltIns;
@@ -268,6 +269,8 @@ public Parser(Scanner/*!*/ scanner, Errors/*!*/ errors, Include include, ModuleD
   dummyRhs = new ExprRhs(dummyExpr, null);
   dummyFrameExpr = new FrameExpression(dummyExpr.tok, dummyExpr, null);
   dummyStmt = new ReturnStmt(Token.NoToken, Token.NoToken, null);
+  var dummyBlockStmt = new BlockStmt(Token.NoToken, Token.NoToken, new List<Statement>());
+  dummyIfStmt = new IfStmt(Token.NoToken, Token.NoToken, false, null, dummyBlockStmt, null);
   theInclude = include; // the "include" that includes this file
   theModule = module;
   theBuiltIns = builtIns;
@@ -2976,7 +2979,7 @@ List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, st
 		Statement els = null;
 		IToken bodyStart, bodyEnd, endTok;
 		List<GuardedAlternative> alternatives;
-		ifStmt = dummyStmt;  // to please the compiler
+		ifStmt = dummyIfStmt;  // to please the compiler
 		bool usesOptionalBraces;
 		
 		Expect(105);
