@@ -279,4 +279,5 @@ ResolutionErrors.dfy(1827,19): Error: in the first division of the constructor b
 ResolutionErrors.dfy(1828,8): Error: in the first division of the constructor body (before 'new;'), 'this' can only be used to assign to its fields
 ResolutionErrors.dfy(1861,15): Error: 'this' is not allowed in a 'static' context
 ResolutionErrors.dfy(1863,16): Error: 'this' is not allowed in a 'static' context
-278 resolution/type errors detected in ResolutionErrors.dfy
+ResolutionErrors.dfy(1879,8): Error: return statement is not allowed before 'new;' in a constructor
+279 resolution/type errors detected in ResolutionErrors.dfy

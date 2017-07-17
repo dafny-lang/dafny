@@ -7869,6 +7869,8 @@ namespace Microsoft.Dafny
           reporter.Error(MessageSource.Resolver, stmt, "yield statement is allowed only in iterators");
         } else if (stmt is ReturnStmt && !(codeContext is Method)) {
           reporter.Error(MessageSource.Resolver, stmt, "return statement is allowed only in method");
+        } else if (inBodyInitContext) {
+          reporter.Error(MessageSource.Resolver, stmt, "return statement is not allowed before 'new;' in a constructor");
         }
         var s = (ProduceStmt)stmt;
         if (s.rhss != null) {

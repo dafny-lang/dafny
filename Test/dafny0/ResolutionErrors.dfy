@@ -1867,3 +1867,17 @@ module ConstructorsThisUsage {
     }
   }
 }
+
+module ReturnBeforeNew {
+  class C {
+    var a: int
+    var b: int
+    constructor TriesToReturnBeforeNew(xyz: int)
+    {
+      a := 0;
+      if xyz < 100 {
+        return;  // error: "return" is not allowed before "new;"
+      }
+    }
+  }
+}
