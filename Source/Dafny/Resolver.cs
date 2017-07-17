@@ -8993,20 +8993,16 @@ namespace Microsoft.Dafny
       Contract.Requires(s != null);
       Contract.Requires(codeContext != null);
 
-      var varLhss = new List<IVariable>();
       if (s.AssumeToken == null) {
         // to ease in the verification of the existence check, only allow local variables as LHSs
         foreach (var lhs in s.Lhss) {
           var ide = lhs.Resolved as IdentifierExpr;
           if (ide == null) {
-            reporter.Error(MessageSource.Resolver, lhs, "the assign-such-that statement currently only supports local-variable LHSs");
-          } else {
-            varLhss.Add(ide.Var);
+            reporter.Error(MessageSource.Resolver, lhs, "an assign-such-that statement (without an 'assume' clause) currently only supports local-variable LHSs");
           }
         }
       }
 
-      var ec = reporter.Count(ErrorLevel.Error);
       ResolveExpression(s.Expr, new ResolveOpts(codeContext, true));
       ConstrainTypeExprBool(s.Expr, "type of RHS of assign-such-that statement must be boolean (got {0})");
     }

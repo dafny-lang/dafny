@@ -74,6 +74,7 @@ namespace Microsoft.Dafny
     public bool PrintStats = false;
     public bool PrintFunctionCallGraph = false;
     public bool WarnShadowing = false;
+    public bool EnforceDefiniteAssignment = false;
     public int DeprecationNoise = 1;
     public bool VerifyAllModules = false;
     public bool SeparateModuleOutput = false;
@@ -310,6 +311,14 @@ namespace Microsoft.Dafny
             return true;
           }
 
+        case "definiteAssignment": {
+            int da = 0;
+            if (ps.GetNumericArgument(ref da, 2)) {
+              EnforceDefiniteAssignment = da == 1;
+            }
+            return true;
+          }
+
         case "useRuntimeLib": {
             UseRuntimeLib = true;
             return true;
@@ -495,6 +504,9 @@ namespace Microsoft.Dafny
   /funcCallGraph Print out the function call graph.  Format is: func,mod=callee*
   /warnShadowing  Emits a warning if the name of a declared variable caused another variable
                 to be shadowed
+  /definiteAssignment:<n>
+                0 (default) - ignores definite assignment rules
+                1 - enforces definite assignment rules
   /deprecation:<n>
                 0 - don't give any warnings about deprecated features
                 1 (default) - show warnings about deprecated features

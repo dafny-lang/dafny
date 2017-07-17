@@ -1463,6 +1463,12 @@ namespace Microsoft.Dafny {
       return Util.Comma(targs, tp => "@" + tp.CompileName);
     }
 
+    public static bool TypeIsDifficultToInitialize(Type type) {
+      Contract.Requires(type != null);
+      // for now, return something rather coarse grained
+      return type.IsTypeParameter;
+    }
+
     string DefaultValue(Type type, TextWriter wr) {
       Contract.Requires(type != null);
       Contract.Ensures(Contract.Result<string>() != null);

@@ -3554,7 +3554,7 @@ namespace Microsoft.Dafny {
   {
     bool IsGhost { get; }
     List<TypeParameter> TypeArgs { get; }
-    List<Formal> Ins { get ; }
+    List<Formal> Ins { get; }
     ModuleDefinition EnclosingModule { get; }  // to be called only after signature-resolution is complete
     bool MustReverify { get; }
     string FullSanitizedName { get; }

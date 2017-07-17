@@ -2066,8 +2066,8 @@ namespace Microsoft.Dafny {
       Bpl.Procedure proc = AddIteratorProc(iter, MethodTranslationKind.SpecWellformedness);
       sink.AddTopLevelDeclaration(proc);
       if(InVerificationScope(iter)){
-      AddIteratorWellformed(iter, proc);
-        }
+        AddIteratorWellformed(iter, proc);
+      }
       // the method itself
       if (iter.Body != null && InVerificationScope(iter)) {
         proc = AddIteratorProc(iter, MethodTranslationKind.Implementation);
@@ -2340,7 +2340,7 @@ namespace Microsoft.Dafny {
       // do an initial YieldHavoc
       YieldHavoc(iter.tok, iter, builder, etran);
 
-      // translate the body of the method
+      // translate the body of the iterator
       var stmts = TrStmt2StmtList(builder, iter.Body, localVariables, etran);
 
       if (EmitImplementation(iter.Attributes)) {
@@ -3464,6 +3464,7 @@ namespace Microsoft.Dafny {
     ICallable codeContext = null;  // the method/iterator whose implementation is currently being translated or the function whose specification is being checked for well-formedness
     Bpl.LocalVariable yieldCountVariable = null;  // non-null when an iterator body is being translated
     bool inBodyInitContext = false;  // true during the translation of the .BodyInit portion of a divided constructor body
+    readonly Dictionary<string, Bpl.IdentifierExpr> definiteAssignmentTrackers = new Dictionary<string,Bpl.IdentifierExpr>();
     bool assertAsAssume = false; // generate assume statements instead of assert statements
     public enum StmtType { NONE, ASSERT, ASSUME };
     public StmtType stmtContext = StmtType.NONE;  // the Statement that is currently being translated
@@ -3689,7 +3690,18 @@ namespace Microsoft.Dafny {
         Contract.Assert(m.Body != null);  // follows from method precondition and the if guard
         // $_reverifyPost := false;
         builder.Add(Bpl.Cmd.SimpleAssign(m.tok, new Bpl.IdentifierExpr(m.tok, "$_reverifyPost", Bpl.Type.Bool), Bpl.Expr.False));
-        stmts = TrStmt2StmtList(builder, m.Body, localVariables, etran);
+        // register output parameters with definite-assignment trackers
+        Contract.Assert(definiteAssignmentTrackers.Count == 0);
+        if (!m.IsGhost) {
+          m.Outs.Iter(p => AddDefiniteAssignmentTracker(p, localVariables));
+        }
+        // translate the body
+        TrStmt(m.Body, builder, localVariables, etran);
+        m.Outs.Iter(p => CheckDefiniteAssignmentReturn(m.BodyEndTok, p, builder));
+        stmts = builder.Collect(m.Body.Tok);
+        // tear down definite-assignment trackers
+        m.Outs.Iter(RemoveDefiniteAssignmentTracker);
+        Contract.Assert(definiteAssignmentTrackers.Count == 0);
       } else {
         // check well-formedness of the preconditions, and then assume each one of them
         foreach (MaybeFreeExpression p in m.Req) {
@@ -3753,6 +3765,97 @@ namespace Microsoft.Dafny {
       isAllocContext = null;
       Reset();
     }
+
+    #region Definite-assignment tracking
+    void AddDefiniteAssignmentTracker(IVariable p, List<Variable> localVariables) {
+      Contract.Requires(p != null);
+      Contract.Requires(localVariables != null);
+
+      if (!DafnyOptions.O.EnforceDefiniteAssignment || p.IsGhost || !Compiler.TypeIsDifficultToInitialize(p.Type)) {
+        return;
+      }
+      var tracker = new Bpl.LocalVariable(p.Tok, new Bpl.TypedIdent(p.Tok, "defass#" + p.UniqueName, Bpl.Type.Bool));
+      localVariables.Add(tracker);
+      var ie = new Bpl.IdentifierExpr(p.Tok, tracker);
+      definiteAssignmentTrackers.Add(p.UniqueName, ie);
+    }
+
+    void RemoveDefiniteAssignmentTracker(IVariable p) {
+      Contract.Requires(p != null);
+      definiteAssignmentTrackers.Remove(p.UniqueName);
+    }
+
+    void AddDefiniteAssignmentTrackerSurrogate(Field field, List<Variable> localVariables) {
+      Contract.Requires(field != null);
+      Contract.Requires(localVariables != null);
+
+      if (!DafnyOptions.O.EnforceDefiniteAssignment || field.IsGhost || !Compiler.TypeIsDifficultToInitialize(field.Type)) {
+        return;
+      }
+      var nm = SurrogateName(field);
+      var tracker = new Bpl.LocalVariable(field.tok, new Bpl.TypedIdent(field.tok, "defass#" + nm, Bpl.Type.Bool));
+      localVariables.Add(tracker);
+      var ie = new Bpl.IdentifierExpr(field.tok, tracker);
+      definiteAssignmentTrackers.Add(nm, ie);
+    }
+
+    void RemoveDefiniteAssignmentTrackerSurrogate(Field field) {
+      Contract.Requires(field != null);
+      definiteAssignmentTrackers.Remove(SurrogateName(field));
+    }
+
+    void MarkDefiniteAssignmentTracker(IdentifierExpr expr, BoogieStmtListBuilder builder) {
+      Contract.Requires(expr != null);
+      Contract.Requires(builder != null);
+      MarkDefiniteAssignmentTracker(expr.tok, expr.Var.UniqueName, builder);
+    }
+
+    void MarkDefiniteAssignmentTracker(IToken tok, string name, BoogieStmtListBuilder builder) {
+      Contract.Requires(tok != null);
+      Contract.Requires(name != null);
+      Contract.Requires(builder != null);
+
+      Bpl.IdentifierExpr ie;
+      if (definiteAssignmentTrackers.TryGetValue(name, out ie)) {
+        builder.Add(Bpl.Cmd.SimpleAssign(tok, ie, Bpl.Expr.True));
+      }
+    }
+
+    void CheckDefiniteAssignment(IdentifierExpr expr, BoogieStmtListBuilder builder) {
+      Contract.Requires(expr != null);
+      Contract.Requires(builder!= null);
+
+      Bpl.IdentifierExpr ie;
+      if (definiteAssignmentTrackers.TryGetValue(expr.Var.UniqueName, out ie)) {
+        builder.Add(Assert(expr.tok, ie, string.Format("variable '{0}', which is subject to definite-assignment rules, might be used before it has been assigned", expr.Var.Name)));
+      }
+    }
+
+    void CheckDefiniteAssignmentSurrogate(IToken tok, Field field, bool atNew, BoogieStmtListBuilder builder) {
+      Contract.Requires(tok != null);
+      Contract.Requires(field != null);
+      Contract.Requires(builder != null);
+
+      var nm = SurrogateName(field);
+      Bpl.IdentifierExpr ie;
+      if (definiteAssignmentTrackers.TryGetValue(nm, out ie)) {
+        var msg = string.Format("field '{0}', which is subject to definite-assignment rules, {1}", field.Name,
+          atNew ? "might not have been defined at this point in the constructor body" : "might be used before it has been assigned");
+        builder.Add(Assert(tok, ie, msg));
+      }
+    }
+
+    void CheckDefiniteAssignmentReturn(IToken tok, Formal p, BoogieStmtListBuilder builder) {
+      Contract.Requires(tok != null);
+      Contract.Requires(p != null && !p.InParam);
+      Contract.Requires(builder != null);
+
+      Bpl.IdentifierExpr ie;
+      if (definiteAssignmentTrackers.TryGetValue(p.UniqueName, out ie)) {
+        builder.Add(Assert(tok, ie, string.Format("out-parameter '{0}', which is subject to definite-assignment rules, might not have been defined at this return point", p.Name)));
+      }
+    }
+    #endregion  // definite-assignment tracking
 
     void InitializeFuelConstant(IToken tok, BoogieStmtListBuilder builder, ExpressionTranslator etran) {
       if (this.functionFuel.Count > 0) {
@@ -5682,13 +5785,16 @@ namespace Microsoft.Dafny {
     /// fresh local variables and will append to .Assert assertions with appropriate error messages
     /// that can be used later.  As a convenience, the ProcessSavedReadsChecks will make use of .Locals
     /// and .Asserts (and AssignLocals) and update a given StmtListBuilder.
+    /// "LValueContext" indicates that the expression checked for well-formedness is an L-value of
+    /// some assignment.
     /// </summary>
     private class WFOptions
     {
-      public readonly List<Bpl.Variable> Locals;
-      public readonly List<Bpl.Cmd> Asserts;
       public readonly Function SelfCallsAllowance;
       public readonly bool DoReadsChecks;
+      public readonly List<Bpl.Variable> Locals;
+      public readonly List<Bpl.Cmd> Asserts;
+      public readonly bool LValueContext;
       public readonly Bpl.QKeyValue AssertKv;
 
       public WFOptions() {
@@ -5716,6 +5822,21 @@ namespace Microsoft.Dafny {
         Contract.Requires(options != null);
         SelfCallsAllowance = options.SelfCallsAllowance;
         DoReadsChecks = false;  // so just leave .Locals and .Asserts as null
+        LValueContext = options.LValueContext;
+        AssertKv = options.AssertKv;
+      }
+
+      /// <summary>
+      /// This constructor clones the given "options", but sets "LValueContext" to "lValueContext".
+      /// (I wish C# allowed me to name the constructor something to indicate this semantics in its name.  Sigh.)
+      /// </summary>
+      public WFOptions(bool lValueContext, WFOptions options) {
+        Contract.Requires(options != null);
+        SelfCallsAllowance = options.SelfCallsAllowance;
+        DoReadsChecks = options.DoReadsChecks;
+        Locals = options.Locals;
+        Asserts = options.Asserts;
+        LValueContext = lValueContext;
         AssertKv = options.AssertKv;
       }
 
@@ -5760,7 +5881,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    void TrStmt_CheckWellformed(Expression expr, BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran, bool subsumption) {
+    void TrStmt_CheckWellformed(Expression expr, BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran, bool subsumption, bool lValueContext = false) {
       Contract.Requires(expr != null);
       Contract.Requires(builder != null);
       Contract.Requires(locals != null);
@@ -5776,7 +5897,11 @@ namespace Microsoft.Dafny {
         args.Add(Bpl.Expr.Literal(0));
         kv = new Bpl.QKeyValue(expr.tok, "subsumption", args, null);
       }
-      CheckWellformed(expr, new WFOptions(kv), locals, builder, etran);
+      var options = new WFOptions(kv);
+      if (lValueContext) {
+        options = new WFOptions(true, options);
+      }
+      CheckWellformed(expr, options, locals, builder, etran);
       builder.Add(TrAssumeCmd(expr.tok, CanCallAssumption(expr, etran)));
     }
 
@@ -5912,10 +6037,21 @@ namespace Microsoft.Dafny {
       Contract.Requires(etran != null);
       Contract.Requires(predef != null);
 
+      var origOptions = options;
+      if (options.LValueContext) {
+        // Turn off LValueContext for any recursive call
+        options = new WFOptions(false, options);
+      }
+
       if (expr is LiteralExpr) {
         CheckResultToBeInType(expr.tok, expr, expr.Type, locals, builder, etran);
-      } else if (expr is ThisExpr || expr is IdentifierExpr || expr is WildcardExpr || expr is BoogieWrapper) {
+      } else if (expr is ThisExpr || expr is WildcardExpr || expr is BoogieWrapper) {
         // always allowed
+      } else if (expr is IdentifierExpr) {
+        var e = (IdentifierExpr)expr;
+        if (!origOptions.LValueContext) {
+          CheckDefiniteAssignment(e, builder);
+        }
       } else if (expr is DisplayExpression) {
         DisplayExpression e = (DisplayExpression)expr;
         foreach (Expression el in e.Elements) {
@@ -5932,12 +6068,19 @@ namespace Microsoft.Dafny {
         CheckFunctionSelectWF("naked function", builder, etran, e, " Possible solution: eta expansion.");
         CheckWellformed(e.Obj, options, locals, builder, etran);
         if (e.Obj.Type.IsRefType) {
-          CheckNonNull(expr.tok, e.Obj, builder, etran, options.AssertKv);
-          // Check that the receiver is available in the state in which the dereference occurs
-          if (etran.UsesOldHeap) {
-            Bpl.Expr wh = GetWhereClause(expr.tok, etran.TrExpr(e.Obj), e.Obj.Type, etran, ISALLOC, true);
-            if (wh != null) {
-              builder.Add(Assert(expr.tok, wh, "receiver must be allocated in the state in which its fields are accessed"));
+          if (inBodyInitContext && Expression.AsThis(e.Obj) != null && !e.Member.IsInstanceIndependentConstant) {
+            // this uses the surrogate local
+            if (!origOptions.LValueContext) {
+              CheckDefiniteAssignmentSurrogate(expr.tok, (Field)e.Member, false, builder);
+            }
+          } else {
+            CheckNonNull(expr.tok, e.Obj, builder, etran, options.AssertKv);
+            // Check that the receiver is available in the state in which the dereference occurs
+            if (etran.UsesOldHeap) {
+              Bpl.Expr wh = GetWhereClause(expr.tok, etran.TrExpr(e.Obj), e.Obj.Type, etran, ISALLOC, true);
+              if (wh != null) {
+                builder.Add(Assert(expr.tok, wh, "receiver must be allocated in the state in which its fields are accessed"));
+              }
             }
           }
         } else if (e.Member is DatatypeDestructor) {
@@ -8572,6 +8715,10 @@ namespace Microsoft.Dafny {
         if (s.hiddenUpdate != null) {
           TrStmt(s.hiddenUpdate, builder, locals, etran);
         }
+        if (codeContext is IMethodCodeContext) {
+          var method = (IMethodCodeContext)codeContext;
+          method.Outs.Iter(p => CheckDefiniteAssignmentReturn(stmt.Tok, p, builder));
+        }
         builder.Add(new Bpl.ReturnCmd(stmt.Tok));
       } else if (stmt is YieldStmt) {
         var s = (YieldStmt)stmt;
@@ -8649,6 +8796,12 @@ namespace Microsoft.Dafny {
         Bpl.Expr[] ignore1, ignore2;
         string[] ignore3;
         ProcessLhss(lhss, false, true, builder, locals, etran, out lhsBuilder, out bLhss, out ignore1, out ignore2, out ignore3);
+        foreach (var lhs in s.Lhss) {
+          var ide = lhs.Resolved as IdentifierExpr;
+          if (ide != null) {
+            MarkDefiniteAssignmentTracker(ide, builder);
+          }
+        }
         ProcessRhss(lhsBuilder, bLhss, lhss, havocRhss, builder, locals, etran);
         // Here comes the well-formedness check
         TrStmt_CheckWellformed(s.Expr, builder, locals, etran, false);
@@ -8712,7 +8865,7 @@ namespace Microsoft.Dafny {
           CheckLhssDistinctness(finalRhss, s.Rhss, lhss, builder, etran, lhsObjs, lhsFields, lhsNames);
           // Now actually perform the assignments to the LHS.
           for (int i = 0; i < lhss.Count; i++) {
-            lhsBuilder[i](finalRhss[i], builder, etran);
+            lhsBuilder[i](finalRhss[i], s.Rhss[i] is HavocRhs, builder, etran);
           }
           builder.Add(CaptureState(s));
         }
@@ -8728,14 +8881,16 @@ namespace Microsoft.Dafny {
 
       } else if (stmt is DividedBlockStmt) {
         var s = (DividedBlockStmt)stmt;
+        AddComment(builder, stmt, "divided block before new;");
         var tok = s.SeparatorTok ?? s.Tok;
         // a DividedBlockStmt occurs only inside a Constructor body of a class
         var cl = (ClassDecl)((Constructor)codeContext).EnclosingClass;
         var fields = Concat(cl.InheritedMembers, cl.Members).ConvertAll(member =>
-          member is Field && !member.IsInstanceIndependentConstant ? (Field)member : null);
+          member is Field && !member.IsStatic && !member.IsInstanceIndependentConstant ? (Field)member : null);
         fields.RemoveAll(f => f == null);
         var localSurrogates = fields.ConvertAll(f => new Bpl.LocalVariable(f.tok, new TypedIdent(f.tok, SurrogateName(f), TrType(f.Type))));
         locals.AddRange(localSurrogates);
+        fields.Iter(f => AddDefiniteAssignmentTrackerSurrogate(f, locals));
 
         Contract.Assert(!inBodyInitContext);
         inBodyInitContext = true;
@@ -8744,6 +8899,9 @@ namespace Microsoft.Dafny {
         inBodyInitContext = false;
 
         // The "new;" translates into an allocation of "this"
+        AddComment(builder, stmt, "new;");
+        fields.Iter(f => CheckDefiniteAssignmentSurrogate(s.SeparatorTok ?? s.EndTok, f, true, builder));
+        fields.Iter(f => RemoveDefiniteAssignmentTrackerSurrogate(f));
         var th = new ThisExpr(tok);
         th.Type = Resolver.GetThisType(tok, cl);  // resolve here
         var bplThis = (Bpl.IdentifierExpr)etran.TrExpr(th);
@@ -8755,11 +8913,20 @@ namespace Microsoft.Dafny {
         }
         CommitAllocatedObject(tok, bplThis, null, builder, etran);
 
+        AddComment(builder, stmt, "divided block after new;");
         TrStmtList(s.BodyProper, builder, locals, etran);
 
       } else if (stmt is BlockStmt) {
         var s = (BlockStmt)stmt;
+        var prevDefiniteAssignmentTrackerCount = definiteAssignmentTrackers.Count;
         TrStmtList(s.Body, builder, locals, etran);
+        foreach (var ss in s.Body) {
+          var vdecl = ss as VarDeclStmt;
+          if (vdecl != null) {
+            vdecl.Locals.Iter(RemoveDefiniteAssignmentTracker);
+          }
+        }
+        Contract.Assert(prevDefiniteAssignmentTrackerCount == definiteAssignmentTrackers.Count);
       } else if (stmt is IfStmt) {
         AddComment(builder, stmt, "if statement");
         IfStmt s = (IfStmt)stmt;
@@ -9063,6 +9230,7 @@ namespace Microsoft.Dafny {
       } else if (stmt is VarDeclStmt) {
         var s = (VarDeclStmt)stmt;
         var newLocalIds = new List<Bpl.IdentifierExpr>();
+        int i = 0;
         foreach (var local in s.Locals) {
           Bpl.Type varType = TrType(local.Type);
           Bpl.Expr wh = GetWhereClause(local.Tok,
@@ -9072,6 +9240,19 @@ namespace Microsoft.Dafny {
           var.Attributes = etran.TrAttributes(local.Attributes, null);
           newLocalIds.Add(new Bpl.IdentifierExpr(local.Tok, var));
           locals.Add(var);
+          // if needed, register definite-assignment tracking for this local
+          var needDefiniteAssignmentTracking = s.Update == null;
+          if (s.Update is UpdateStmt) {
+            // there is an initial assignment, but we need to look out for "*" being that assignment
+            var us = (UpdateStmt)s.Update;
+            if (i < us.Rhss.Count && us.Rhss[i] is HavocRhs) {
+              needDefiniteAssignmentTracking = true;
+            }
+          }
+          if (needDefiniteAssignmentTracking) {
+            AddDefiniteAssignmentTracker(local, locals);
+          }
+          i++;
         }
         if (s.Update == null) {
           // it is necessary to do a havoc here in order to give the variable the correct allocation state
@@ -9940,16 +10121,26 @@ namespace Microsoft.Dafny {
       ExpressionTranslator etranPreLoop = new ExpressionTranslator(this, predef, preLoopHeap);
       ExpressionTranslator updatedFrameEtran;
       string loopFrameName = "$Frame$" + suffix;
-      if (s.Mod.Expressions != null)
+      if (s.Mod.Expressions != null) {
         updatedFrameEtran = new ExpressionTranslator(etran, loopFrameName);
-      else
+      } else {
         updatedFrameEtran = etran;
+      }
 
       if (s.Mod.Expressions != null) { // check that the modifies is a subset
         CheckFrameSubset(s.Tok, s.Mod.Expressions, null, null, etran, builder, "loop modifies clause may violate context's modifies clause", null);
         DefineFrame(s.Tok, s.Mod.Expressions, builder, locals, loopFrameName);
       }
       builder.Add(Bpl.Cmd.SimpleAssign(s.Tok, preLoopHeap, etran.HeapExpr));
+
+      var daTrackersMonotonicity = new List<Tuple<Bpl.IdentifierExpr, Bpl.IdentifierExpr>>();
+      foreach (var dat in definiteAssignmentTrackers.Values) {  // TODO: the order is non-deterministic and may change been invocations of Dafny
+        var preLoopDat = new Bpl.LocalVariable(dat.tok, new Bpl.TypedIdent(dat.tok, "preLoop$" + suffix + "$" + dat.Name, dat.Type));
+        locals.Add(preLoopDat);
+        var ie = new Bpl.IdentifierExpr(s.Tok, preLoopDat);
+        daTrackersMonotonicity.Add(new Tuple<Bpl.IdentifierExpr, Bpl.IdentifierExpr>(ie, dat));
+        builder.Add(Bpl.Cmd.SimpleAssign(s.Tok, ie, dat));
+      }
 
       List<Bpl.Expr> initDecr = null;
       if (!Contract.Exists(theDecreases, e => e is WildcardExpr)) {
@@ -10008,6 +10199,12 @@ namespace Microsoft.Dafny {
         }
         // add a free invariant which says that the heap hasn't changed outside of the modifies clause.
         invariants.Add(TrAssumeCmd(s.Tok, FrameConditionUsingDefinedFrame(s.Tok, etranPreLoop, etran, updatedFrameEtran)));
+      }
+
+      // include a free invariant that says that all definite-assignment trackers have only become more "true"
+      foreach (var pair in daTrackersMonotonicity) {
+        Bpl.Expr monotonic = Bpl.Expr.Imp(pair.Item1, pair.Item2);
+        invariants.Add(TrAssumeCmd(s.Tok, monotonic));
       }
 
       // include a free invariant that says that all completed iterations so far have only decreased the termination metric
@@ -10219,7 +10416,7 @@ namespace Microsoft.Dafny {
         CheckSubrange(lhs.tok, bRhs, Resolver.SubstType(s.Method.Outs[i].Type, tySubst), rhsTypeConstraint, builder);
         bRhs = CondApplyBox(lhs.tok, bRhs, lhs.Type, lhsType);
 
-        lhsBuilders[i](bRhs, builder, etran);
+        lhsBuilders[i](bRhs, false, builder, etran);
       }
       if (codeContext is IteratorDecl) {
         var iter = (IteratorDecl)codeContext;
@@ -11102,9 +11299,7 @@ namespace Microsoft.Dafny {
         }
       }
       for (int i = 0; i < lhss.Count; i++) {
-        if (finalRhss[i] != null) {
-          lhsBuilder[i](finalRhss[i], builder, etran);
-        }
+        lhsBuilder[i](finalRhss[i], rhss[i] is HavocRhs, builder, etran);
       }
     }
 
@@ -11221,7 +11416,11 @@ namespace Microsoft.Dafny {
       }
     }
 
-    delegate void AssignToLhs(Bpl.Expr rhs, BoogieStmtListBuilder builder, ExpressionTranslator etran);
+    /// <summary>
+    /// Note, if "rhs" is "null", then the assignment has already been done elsewhere. However, any other bookkeeping
+    /// is still done.
+    /// </summary>
+    delegate void AssignToLhs(Bpl.Expr/*?*/ rhs, bool origRhsIsHavoc, BoogieStmtListBuilder builder, ExpressionTranslator etran);
 
     /// <summary>
     /// Creates a list of protected Boogie LHSs for the given Dafny LHSs.  Along the way,
@@ -11257,7 +11456,7 @@ namespace Microsoft.Dafny {
       foreach (var lhs in lhss) {
         Contract.Assume(!(lhs is ConcreteSyntaxExpression));
         IToken tok = lhs.tok;
-        TrStmt_CheckWellformed(lhs, builder, locals, etran, true);
+        TrStmt_CheckWellformed(lhs, builder, locals, etran, true, true);
 
         if (lhs is IdentifierExpr) {
           var ie = (IdentifierExpr)lhs;
@@ -11273,8 +11472,13 @@ namespace Microsoft.Dafny {
           prevNames[i] = ie.Name;
           var bLhs = (Bpl.IdentifierExpr)etran.TrExpr(lhs);  // TODO: is this cast always justified?
           bLhss.Add(rhsCanAffectPreviouslyKnownExpressions ? null : bLhs);
-          lhsBuilders.Add(delegate(Bpl.Expr rhs, BoogieStmtListBuilder bldr, ExpressionTranslator et) {
-            bldr.Add(Bpl.Cmd.SimpleAssign(tok, bLhs, rhs));
+          lhsBuilders.Add(delegate(Bpl.Expr rhs, bool origRhsIsHavoc, BoogieStmtListBuilder bldr, ExpressionTranslator et) {
+            if (rhs != null) {
+              bldr.Add(Bpl.Cmd.SimpleAssign(tok, bLhs, rhs));
+            }
+            if (!origRhsIsHavoc) {
+              MarkDefiniteAssignmentTracker(ie, bldr);
+            }
           });
 
         } else if (lhs is MemberSelectExpr) {
@@ -11305,22 +11509,30 @@ namespace Microsoft.Dafny {
           }
 
           if (useSurrogateLocal) {
-            var bLhs = new Bpl.IdentifierExpr(fse.tok, SurrogateName(field), TrType(field.Type));
+            var nm = SurrogateName(field);
+            var bLhs = new Bpl.IdentifierExpr(fse.tok, nm, TrType(field.Type));
             bLhss.Add(rhsCanAffectPreviouslyKnownExpressions ? null : bLhs);
-            lhsBuilders.Add(delegate(Bpl.Expr rhs, BoogieStmtListBuilder bldr, ExpressionTranslator et) {
-              bldr.Add(Bpl.Cmd.SimpleAssign(tok, bLhs, rhs));
+            lhsBuilders.Add(delegate(Bpl.Expr rhs, bool origRhsIsHavoc, BoogieStmtListBuilder bldr, ExpressionTranslator et) {
+              if (rhs != null) {
+                bldr.Add(Bpl.Cmd.SimpleAssign(tok, bLhs, rhs));
+              }
+              if (!origRhsIsHavoc) {
+                MarkDefiniteAssignmentTracker(lhs.tok, nm, bldr);
+              }
             });
           } else {
             bLhss.Add(null);
-            lhsBuilders.Add(delegate(Bpl.Expr rhs, BoogieStmtListBuilder bldr, ExpressionTranslator et) {
-              var fseField = fse.Member as Field;
-              Contract.Assert(fseField != null);
-              Check_NewRestrictions(tok, obj, fseField, rhs, bldr, et);
-              var h = (Bpl.IdentifierExpr)et.HeapExpr;  // TODO: is this cast always justified?
-              Bpl.Cmd cmd = Bpl.Cmd.SimpleAssign(tok, h, ExpressionTranslator.UpdateHeap(tok, h, obj, new Bpl.IdentifierExpr(tok, GetField(fseField)), rhs));
-              bldr.Add(cmd);
-              // assume $IsGoodHeap($Heap);
-              bldr.Add(AssumeGoodHeap(tok, et));
+            lhsBuilders.Add(delegate(Bpl.Expr rhs, bool origRhsIsHavoc, BoogieStmtListBuilder bldr, ExpressionTranslator et) {
+              if (rhs != null) {
+                var fseField = fse.Member as Field;
+                Contract.Assert(fseField != null);
+                Check_NewRestrictions(tok, obj, fseField, rhs, bldr, et);
+                var h = (Bpl.IdentifierExpr)et.HeapExpr;  // TODO: is this cast always justified?
+                Bpl.Cmd cmd = Bpl.Cmd.SimpleAssign(tok, h, ExpressionTranslator.UpdateHeap(tok, h, obj, new Bpl.IdentifierExpr(tok, GetField(fseField)), rhs));
+                bldr.Add(cmd);
+                // assume $IsGoodHeap($Heap);
+                bldr.Add(AssumeGoodHeap(tok, et));
+              }
             });
           }
 
@@ -11350,12 +11562,14 @@ namespace Microsoft.Dafny {
             }
           }
           bLhss.Add(null);
-          lhsBuilders.Add(delegate(Bpl.Expr rhs, BoogieStmtListBuilder bldr, ExpressionTranslator et) {
-            var h = (Bpl.IdentifierExpr)et.HeapExpr;  // TODO: is this cast always justified?
-            Bpl.Cmd cmd = Bpl.Cmd.SimpleAssign(tok, h, ExpressionTranslator.UpdateHeap(tok, h, obj, fieldName, rhs));
-            bldr.Add(cmd);
-            // assume $IsGoodHeap($Heap);
-            bldr.Add(AssumeGoodHeap(tok, et));
+          lhsBuilders.Add(delegate(Bpl.Expr rhs, bool origRhsIsHavoc, BoogieStmtListBuilder bldr, ExpressionTranslator et) {
+            if (rhs != null) {
+              var h = (Bpl.IdentifierExpr)et.HeapExpr;  // TODO: is this cast always justified?
+              Bpl.Cmd cmd = Bpl.Cmd.SimpleAssign(tok, h, ExpressionTranslator.UpdateHeap(tok, h, obj, fieldName, rhs));
+              bldr.Add(cmd);
+              // assume $IsGoodHeap($Heap);
+              bldr.Add(AssumeGoodHeap(tok, et));
+            }
           });
 
         } else {
@@ -11382,12 +11596,14 @@ namespace Microsoft.Dafny {
             }
           }
           bLhss.Add(null);
-          lhsBuilders.Add(delegate(Bpl.Expr rhs, BoogieStmtListBuilder bldr, ExpressionTranslator et) {
-            var h = (Bpl.IdentifierExpr)et.HeapExpr;  // TODO: is this cast always justified?
-            Bpl.Cmd cmd = Bpl.Cmd.SimpleAssign(tok, h, ExpressionTranslator.UpdateHeap(tok, h, obj, fieldName, rhs));
-            bldr.Add(cmd);
-            // assume $IsGoodHeap($Heap);
-            bldr.Add(AssumeGoodHeap(tok, etran));
+          lhsBuilders.Add(delegate(Bpl.Expr rhs, bool origRhsIsHavoc, BoogieStmtListBuilder bldr, ExpressionTranslator et) {
+            if (rhs != null) {
+              var h = (Bpl.IdentifierExpr)et.HeapExpr;  // TODO: is this cast always justified?
+              Bpl.Cmd cmd = Bpl.Cmd.SimpleAssign(tok, h, ExpressionTranslator.UpdateHeap(tok, h, obj, fieldName, rhs));
+              bldr.Add(cmd);
+              // assume $IsGoodHeap($Heap);
+              bldr.Add(AssumeGoodHeap(tok, etran));
+            }
           });
         }
 
