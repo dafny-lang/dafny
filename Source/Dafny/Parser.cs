@@ -3355,7 +3355,7 @@ List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, st
 	void Rhs(out AssignmentRhs r) {
 		Contract.Ensures(Contract.ValueAtReturn<AssignmentRhs>(out r) != null);
 		IToken/*!*/ x, newToken;  Expression/*!*/ e;
-		Type ty = null;
+		Type ty = new InferredTypeProxy();
 		List<Expression> ee = null;
 		List<Expression> args = null;
 		Expression arrayElementInit = null;
@@ -3368,7 +3368,6 @@ List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, st
 			newToken = t; 
 			if (la.kind == 52) {
 				NewArray(out ee, out arrayElementInit, out display);
-				ty = new InferredTypeProxy(); 
 			} else if (StartOf(6)) {
 				TypeAndToken(out x, out ty, false);
 				if (la.kind == 52 || la.kind == 54) {

@@ -2019,7 +2019,7 @@ UpdateStmt<out Statement/*!*/ s>
 Rhs<out AssignmentRhs r>
 = (. Contract.Ensures(Contract.ValueAtReturn<AssignmentRhs>(out r) != null);
      IToken/*!*/ x, newToken;  Expression/*!*/ e;
-     Type ty = null;
+     Type ty = new InferredTypeProxy();
      List<Expression> ee = null;
      List<Expression> args = null;
      Expression arrayElementInit = null;
@@ -2028,8 +2028,7 @@ Rhs<out AssignmentRhs r>
      Attributes attrs = null;
   .)
   ( "new"                              (. newToken = t; .)
-    ( NewArray<out ee, out arrayElementInit, out display>
-                                       (. ty = new InferredTypeProxy(); .)
+    ( NewArray<out ee, out arrayElementInit, out display>  // "ty" is set to InferredTypeProxy above
     | TypeAndToken<out x, out ty, false>
       [ NewArray<out ee, out arrayElementInit, out display>
       |                                (. x = null; args = new List<Expression/*!*/>(); .)
