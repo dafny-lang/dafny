@@ -2168,7 +2168,11 @@ Everything) {
         var e = (SetComprehension)expr;
         bool parensNeeded = !isRightmost;
         if (parensNeeded) { wr.Write("("); }
-        wr.Write("set ");
+        if (e.Finite) {
+          wr.Write("set ");
+        } else {
+          wr.Write("iset ");
+        }
         string sep = "";
         foreach (BoundVar bv in e.BoundVars) {
           wr.Write("{0}{1}", sep, bv.DisplayName);
