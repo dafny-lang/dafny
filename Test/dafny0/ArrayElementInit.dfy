@@ -1,4 +1,4 @@
-// RUN: %dafny /print:"%t.print" /rprint:"%t.dprint" "%s" > "%t"
+// RUN: %dafny /print:"%t.print" /definiteAssignment:1 /rprint:"%t.dprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 method M0(d: int)
@@ -75,7 +75,7 @@ method Q0(s: Six, y: int) returns (a: array<Six>)
   case true =>  a := new Six[10](_ => s);
   case true =>  a := new Six[10](x => 6+x);
   case true =>  a := new Six[10](_ => y);
-  case true =>  a := new Six[10];
+  case true =>  a := new Six[10];  // error: not allowed to allocate nonempty array of D's
   case true =>  a := new Six[0];
 }
 
@@ -83,9 +83,9 @@ method Q1<D>(s: D, n: int) returns (a: array<D>)
 {
   if
   case true =>  a := new D[10](_ => s);
-  //TODO:  case true =>  a := new D[10];  // error: not allowed to allocate nonempty array of D's
+  case true =>  a := new D[10];  // error: not allowed to allocate nonempty array of D's
   case n == 0 =>  a := new D[n];
-  //TODO:  case 0 <= n =>  a := new D[n];  // error: not allowed to allocate nonempty array of D's
+  case 0 <= n =>  a := new D[n];  // error: not allowed to allocate nonempty array of D's
 }
 
 method QCaller()
@@ -142,4 +142,22 @@ method Display1<D>(d: D, n: int, w: array<nat>)
 method Display2<D>(f: int -> D)
 {
   var a := new D[1] [ f(0) ];  // error: 0 may not be in the domain of f
+}
+
+// ---------- more initialization ----------------------
+
+method AllocateMatrix<D>(a: nat, b: nat, c: nat) returns (o: object)
+{
+  if
+  case true =>  o := new D[a];  // error: might request nonempty array
+  case a == 0 =>  o := new D[a];
+  case true =>  o := new D[a,b];  // error: might request nonempty array
+  case a == 0 =>  o := new D[a,b];
+  case b == 0 =>  o := new D[a,b];
+  case a+b == 0 =>  o := new D[a,b];
+  case true =>  o := new D[a,b,c];  // error: might request nonempty array
+  case a == 0 =>  o := new D[a,b,c];
+  case b == 0 =>  o := new D[a,b,c];
+  case c == 0 =>  o := new D[a,b,c];
+  case a+b == 0 || b+c == 0 || c+a == 0 =>  o := new D[a,b,c];
 }

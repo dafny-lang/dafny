@@ -3771,7 +3771,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(p != null);
       Contract.Requires(localVariables != null);
 
-      if (!DafnyOptions.O.EnforceDefiniteAssignment || p.IsGhost || !Compiler.TypeIsDifficultToInitialize(p.Type)) {
+      if (!DafnyOptions.O.EnforceDefiniteAssignment || p.IsGhost || Compiler.InitializerIsKnown(p.Type)) {
         return;
       }
       var tracker = new Bpl.LocalVariable(p.Tok, new Bpl.TypedIdent(p.Tok, "defass#" + p.UniqueName, Bpl.Type.Bool));
@@ -3789,7 +3789,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(field != null);
       Contract.Requires(localVariables != null);
 
-      if (!DafnyOptions.O.EnforceDefiniteAssignment || field.IsGhost || !Compiler.TypeIsDifficultToInitialize(field.Type)) {
+      if (!DafnyOptions.O.EnforceDefiniteAssignment || field.IsGhost || Compiler.InitializerIsKnown(field.Type)) {
         return;
       }
       var nm = SurrogateName(field);
@@ -11690,14 +11690,21 @@ namespace Microsoft.Dafny {
           }
           if (tRhs.ElementInit != null) {
             CheckWellformed(tRhs.ElementInit, new WFOptions(), locals, builder, etran);
-          }
-          if (tRhs.InitDisplay != null) {
+          } else if (tRhs.InitDisplay != null) {
             var dim = tRhs.ArrayDimensions[0];
             builder.Add(Assert(dim.tok, Bpl.Expr.Eq(etran.TrExpr(dim), Bpl.Expr.Literal(tRhs.InitDisplay.Count)),
               string.Format("given array size must agree with the number of expressions in the initializing display ({0})", tRhs.InitDisplay.Count)));
             foreach (var v in tRhs.InitDisplay) {
               CheckWellformed(v, new WFOptions(), locals, builder, etran);
             }
+          } else if (DafnyOptions.O.EnforceDefiniteAssignment && !Compiler.HasZeroInitializer(tRhs.EType)) {
+            // this is allowed only if the array size is such that it has no elements
+            Bpl.Expr zeroSize = Bpl.Expr.False;
+            foreach (Expression dim in tRhs.ArrayDimensions) {
+              zeroSize = BplOr(zeroSize, Bpl.Expr.Eq(Bpl.Expr.Literal(0), etran.TrExpr(dim)));
+            }
+            builder.Add(Assert(tRhs.Tok, zeroSize,
+              string.Format("unless an initializer is provided for the array elements, a new array of '{0}' must have empty size", tRhs.EType)));
           }
         }
 

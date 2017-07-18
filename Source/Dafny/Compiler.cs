@@ -1463,10 +1463,127 @@ namespace Microsoft.Dafny {
       return Util.Comma(targs, tp => "@" + tp.CompileName);
     }
 
-    public static bool TypeIsDifficultToInitialize(Type type) {
+    /// <summary>
+    /// Returns "true" if a value of type "type" can be initialized with the all-zero bit pattern.
+    /// </summary>
+    public static bool HasZeroInitializer(Type type) {
       Contract.Requires(type != null);
-      // for now, return something rather coarse grained
-      return type.IsTypeParameter;
+
+      var xType = type.NormalizeExpandKeepConstraints();
+      if (xType is TypeProxy) {
+        // unresolved proxy; just treat as bool, since no particular type information is apparently needed for this type
+        return true;
+      }
+
+      if (xType is BoolType) {
+        return true;
+      } else if (xType is CharType) {
+        return true;
+      } else if (xType is IntType) {
+        return true;
+      } else if (xType is RealType) {
+        return true;
+      } else if (xType is BitvectorType) {
+        return true;
+      } else if (xType is ObjectType) {
+        return true;
+      } else if (xType is CollectionType) {
+        return true;
+      } else if (xType is ArrowType) {
+        return true;
+      }
+
+      var udt = (UserDefinedType)xType;
+      if (udt.ResolvedParam != null) {
+        Contract.Assert(udt.ResolvedClass == null);
+        return false;
+      }
+      var cl = udt.ResolvedClass;
+      Contract.Assert(cl != null);
+      if (cl is NewtypeDecl) {
+        var td = (NewtypeDecl)cl;
+        if (td.Witness != null) {
+          return false;
+        } else {
+          return HasZeroInitializer(td.BaseType);
+        }
+      } else if (cl is SubsetTypeDecl) {
+        var td = (SubsetTypeDecl)cl;
+        if (td.Witness != null) {
+          return false;
+        } else {
+          return HasZeroInitializer(td.Rhs);
+        }
+      } else if (cl is ClassDecl) {
+        return true;
+      } else if (cl is DatatypeDecl) {
+        // TODO: only look at the initialization-chosen constructor, or at least look only at the type arguments that matter
+        return udt.TypeArgs.TrueForAll(HasZeroInitializer);
+      } else {
+        Contract.Assert(false); throw new cce.UnreachableException();  // unexpected type
+      }
+    }
+
+    /// <summary>
+    /// Returns "true" if "type" denotes a type for which a specific value (witness) is known.
+    /// </summary>
+    public static bool InitializerIsKnown(Type type) {
+      Contract.Requires(type != null);
+
+      var xType = type.NormalizeExpandKeepConstraints();
+      if (xType is TypeProxy) {
+        // unresolved proxy; just treat as bool, since no particular type information is apparently needed for this type
+        return true;
+      }
+
+      if (xType is BoolType) {
+        return true;
+      } else if (xType is CharType) {
+        return true;
+      } else if (xType is IntType) {
+        return true;
+      } else if (xType is RealType) {
+        return true;
+      } else if (xType is BitvectorType) {
+        return true;
+      } else if (xType is ObjectType) {
+        return true;
+      } else if (xType is CollectionType) {
+        return true;
+      } else if (xType is ArrowType) {
+        return true;
+      }
+
+      var udt = (UserDefinedType)xType;
+      if (udt.ResolvedParam != null) {
+        Contract.Assert(udt.ResolvedClass == null);
+        return false;
+      }
+      var cl = udt.ResolvedClass;
+      Contract.Assert(cl != null);
+      if (cl is NewtypeDecl) {
+        var td = (NewtypeDecl)cl;
+        if (td.Witness != null) {
+          return true;
+        } else if (td.NativeType != null) {
+          return true;
+        } else {
+          return InitializerIsKnown(td.BaseType);
+        }
+      } else if (cl is SubsetTypeDecl) {
+        var td = (SubsetTypeDecl)cl;
+        if (td.Witness != null) {
+          return true;
+        } else {
+          return InitializerIsKnown(td.Rhs);
+        }
+      } else if (cl is ClassDecl) {
+        return true;
+      } else if (cl is DatatypeDecl) {
+        return udt.TypeArgs.TrueForAll(InitializerIsKnown);
+      } else {
+        Contract.Assert(false); throw new cce.UnreachableException();  // unexpected type
+      }
     }
 
     string DefaultValue(Type type, TextWriter wr) {
@@ -1475,8 +1592,8 @@ namespace Microsoft.Dafny {
 
       var xType = type.NormalizeExpandKeepConstraints();
       if (xType is TypeProxy) {
-        // unresolved proxy; just treat as ref, since no particular type information is apparently needed for this type
-        return "null";
+        // unresolved proxy; just treat as bool, since no particular type information is apparently needed for this type
+        return "false";
       }
 
       if (xType is BoolType) {
