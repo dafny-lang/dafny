@@ -3467,6 +3467,11 @@ List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, st
 				}
 			}
 		} else SynErr(226);
+		if (ee.Count == 0) {
+		 // an error occurred while parsing, but we still want to make sure to return a nonempty "ee"
+		 ee.Add(new LiteralExpr(x, 0));
+		}
+		
 	}
 
 	void Expressions(List<Expression> args) {
