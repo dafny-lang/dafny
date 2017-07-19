@@ -11697,7 +11697,7 @@ namespace Microsoft.Dafny {
             foreach (var v in tRhs.InitDisplay) {
               CheckWellformed(v, new WFOptions(), locals, builder, etran);
             }
-          } else if (DafnyOptions.O.EnforceDefiniteAssignment && !Compiler.HasZeroInitializer(tRhs.EType)) {
+          } else if (DafnyOptions.O.EnforceDefiniteAssignment && !Compiler.InitializerIsKnown(tRhs.EType)) {
             // this is allowed only if the array size is such that it has no elements
             Bpl.Expr zeroSize = Bpl.Expr.False;
             foreach (Expression dim in tRhs.ArrayDimensions) {

@@ -1495,7 +1495,6 @@ namespace Microsoft.Dafny {
 
       var udt = (UserDefinedType)xType;
       if (udt.ResolvedParam != null) {
-        Contract.Assert(udt.ResolvedClass == null);
         return false;
       }
       var cl = udt.ResolvedClass;
@@ -1556,7 +1555,6 @@ namespace Microsoft.Dafny {
 
       var udt = (UserDefinedType)xType;
       if (udt.ResolvedParam != null) {
-        Contract.Assert(udt.ResolvedClass == null);
         return false;
       }
       var cl = udt.ResolvedClass;
