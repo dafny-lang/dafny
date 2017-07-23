@@ -2459,12 +2459,12 @@ namespace Microsoft.Dafny
             } else if (d is DatatypeDecl) {
               var dt = (DatatypeDecl)d;
               foreach (var tp in dt.TypeArgs) {
-                if (tp.EqualitySupport == TypeParameter.EqualitySupportValue.Unspecified) {
+                if (tp.Characteristics.EqualitySupport == TypeParameter.EqualitySupportValue.Unspecified) {
                   // here's our chance to infer the need for equality support
                   foreach (var ctor in dt.Ctors) {
                     foreach (var arg in ctor.Formals) {
                       if (InferRequiredEqualitySupport(tp, arg.Type)) {
-                        tp.EqualitySupport = TypeParameter.EqualitySupportValue.InferredRequired;
+                        tp.Characteristics.EqualitySupport = TypeParameter.EqualitySupportValue.InferredRequired;
                         inferredSomething = true;
                         goto DONE_DT;  // break out of the doubly-nested loop
                       }
@@ -2476,10 +2476,10 @@ namespace Microsoft.Dafny
             } else if (d is TypeSynonymDecl) {
               var syn = (TypeSynonymDecl)d;
               foreach (var tp in syn.TypeArgs) {
-                if (tp.EqualitySupport == TypeParameter.EqualitySupportValue.Unspecified) {
+                if (tp.Characteristics.EqualitySupport == TypeParameter.EqualitySupportValue.Unspecified) {
                   // here's our chance to infer the need for equality support
                   if (InferRequiredEqualitySupport(tp, syn.Rhs)) {
-                    tp.EqualitySupport = TypeParameter.EqualitySupportValue.InferredRequired;
+                    tp.Characteristics.EqualitySupport = TypeParameter.EqualitySupportValue.InferredRequired;
                     inferredSomething = true;
                   }
                 }
@@ -2493,11 +2493,11 @@ namespace Microsoft.Dafny
             var iter = (IteratorDecl)d;
             var done = false;
             foreach (var tp in iter.TypeArgs) {
-              if (tp.EqualitySupport == TypeParameter.EqualitySupportValue.Unspecified) {
+              if (tp.Characteristics.EqualitySupport == TypeParameter.EqualitySupportValue.Unspecified) {
                 // here's our chance to infer the need for equality support
                 foreach (var p in iter.Ins) {
                   if (InferRequiredEqualitySupport(tp, p.Type)) {
-                    tp.EqualitySupport = TypeParameter.EqualitySupportValue.InferredRequired;
+                    tp.Characteristics.EqualitySupport = TypeParameter.EqualitySupportValue.InferredRequired;
                     done = true;
                     break;
                   }
@@ -2505,7 +2505,7 @@ namespace Microsoft.Dafny
                 foreach (var p in iter.Outs) {
                   if (done) break;
                   if (InferRequiredEqualitySupport(tp, p.Type)) {
-                    tp.EqualitySupport = TypeParameter.EqualitySupportValue.InferredRequired;
+                    tp.Characteristics.EqualitySupport = TypeParameter.EqualitySupportValue.InferredRequired;
                     break;
                   }
                 }
@@ -2518,14 +2518,14 @@ namespace Microsoft.Dafny
                 if (member is Function) {
                   var f = (Function)member;
                   foreach (var tp in f.TypeArgs) {
-                    if (tp.EqualitySupport == TypeParameter.EqualitySupportValue.Unspecified) {
+                    if (tp.Characteristics.EqualitySupport == TypeParameter.EqualitySupportValue.Unspecified) {
                       // here's our chance to infer the need for equality support
                       if (InferRequiredEqualitySupport(tp, f.ResultType)) {
-                        tp.EqualitySupport = TypeParameter.EqualitySupportValue.InferredRequired;
+                        tp.Characteristics.EqualitySupport = TypeParameter.EqualitySupportValue.InferredRequired;
                       } else {
                         foreach (var p in f.Formals) {
                           if (InferRequiredEqualitySupport(tp, p.Type)) {
-                            tp.EqualitySupport = TypeParameter.EqualitySupportValue.InferredRequired;
+                            tp.Characteristics.EqualitySupport = TypeParameter.EqualitySupportValue.InferredRequired;
                             break;
                           }
                         }
@@ -2536,11 +2536,11 @@ namespace Microsoft.Dafny
                   var m = (Method)member;
                   bool done = false;
                   foreach (var tp in m.TypeArgs) {
-                    if (tp.EqualitySupport == TypeParameter.EqualitySupportValue.Unspecified) {
+                    if (tp.Characteristics.EqualitySupport == TypeParameter.EqualitySupportValue.Unspecified) {
                       // here's our chance to infer the need for equality support
                       foreach (var p in m.Ins) {
                         if (InferRequiredEqualitySupport(tp, p.Type)) {
-                          tp.EqualitySupport = TypeParameter.EqualitySupportValue.InferredRequired;
+                          tp.Characteristics.EqualitySupport = TypeParameter.EqualitySupportValue.InferredRequired;
                           done = true;
                           break;
                         }
@@ -2548,7 +2548,7 @@ namespace Microsoft.Dafny
                       foreach (var p in m.Outs) {
                         if (done) break;
                         if (InferRequiredEqualitySupport(tp, p.Type)) {
-                          tp.EqualitySupport = TypeParameter.EqualitySupportValue.InferredRequired;
+                          tp.Characteristics.EqualitySupport = TypeParameter.EqualitySupportValue.InferredRequired;
                           break;
                         }
                       }
@@ -5353,9 +5353,10 @@ namespace Microsoft.Dafny
           foreach (var formalTypeArg in s.Method.TypeArgs) {
             var actualTypeArg = subst[formalTypeArg];
             CheckEqualityTypes_Type(s.Tok, actualTypeArg);
-            if (formalTypeArg.MustSupportEquality && !actualTypeArg.SupportsEquality) {
-              resolver.reporter.Error(MessageSource.Resolver, s.Tok, "type parameter{0} ({1}) passed to method {2} must support equality (got {3}){4}",
-                s.Method.TypeArgs.Count == 1 ? "" : " " + i, formalTypeArg.Name, s.Method.Name, actualTypeArg, TypeEqualityErrorMessageHint(actualTypeArg));
+            string whatIsWrong, hint;
+            if (!CheckCharacteristics(formalTypeArg.Characteristics, actualTypeArg, out whatIsWrong, out hint)) {
+              resolver.reporter.Error(MessageSource.Resolver, s.Tok, "type parameter{0} ({1}) passed to method {2} must support {4} (got {3}){5}",
+                s.Method.TypeArgs.Count == 1 ? "" : " " + i, formalTypeArg.Name, s.Method.Name, actualTypeArg, whatIsWrong, hint);
             }
             i++;
           }
@@ -5392,6 +5393,22 @@ namespace Microsoft.Dafny
           }
           return false;  // we're done
         }
+        return true;
+      }
+      bool CheckCharacteristics(TypeParameter.TypeParameterCharacteristics formal, Type actual, out string whatIsWrong, out string hint) {
+        Contract.Ensures(Contract.Result<bool>() || (Contract.ValueAtReturn(out whatIsWrong) != null && Contract.ValueAtReturn(out hint) != null));
+        if (formal.EqualitySupport != TypeParameter.EqualitySupportValue.Unspecified && !actual.SupportsEquality) {
+          whatIsWrong = "equality";
+          hint = TypeEqualityErrorMessageHint(actual);
+          return false;
+        }
+        if (formal.MustSupportZeroInitialization && !Compiler.HasZeroInitializer(actual)) {
+          whatIsWrong = "zero initialization";
+          hint = "";
+          return false;
+        }
+        whatIsWrong = null;
+        hint = null;
         return true;
       }
       protected override bool VisitOneExpr(Expression expr, ref bool st) {
@@ -5454,9 +5471,10 @@ namespace Microsoft.Dafny
             foreach (var tp in ((ICallable)e.Member).TypeArgs) {
               var actualTp = e.TypeApplication[e.Member.EnclosingClass.TypeArgs.Count + i];
               CheckEqualityTypes_Type(e.tok, actualTp);
-              if (tp.MustSupportEquality && !actualTp.SupportsEquality) {
-                resolver.reporter.Error(MessageSource.Resolver, e.tok, "type parameter{0} ({1}) passed to {5} '{2}' must support equality (got {3}){4}",
-                  ((ICallable)e.Member).TypeArgs.Count == 1 ? "" : " " + i, tp.Name, e.Member.Name, actualTp, TypeEqualityErrorMessageHint(actualTp), e.Member.WhatKind);
+              string whatIsWrong, hint;
+              if (!CheckCharacteristics(tp.Characteristics, actualTp, out whatIsWrong, out hint)) {
+                resolver.reporter.Error(MessageSource.Resolver, e.tok, "type parameter{0} ({1}) passed to {2} '{3}' must support {5} (got {4}){6}",
+                  ((ICallable)e.Member).TypeArgs.Count == 1 ? "" : " " + i, tp.Name, e.Member.WhatKind, e.Member.Name, actualTp, whatIsWrong, hint);
               }
               i++;
             }
@@ -5468,9 +5486,10 @@ namespace Microsoft.Dafny
           foreach (var formalTypeArg in e.Function.TypeArgs) {
             var actualTypeArg = e.TypeArgumentSubstitutions[formalTypeArg];
             CheckEqualityTypes_Type(e.tok, actualTypeArg);
-            if (formalTypeArg.MustSupportEquality && !actualTypeArg.SupportsEquality) {
-              resolver.reporter.Error(MessageSource.Resolver, e.tok, "type parameter{0} ({1}) passed to function {2} must support equality (got {3}){4}",
-                e.Function.TypeArgs.Count == 1 ? "" : " " + i, formalTypeArg.Name, e.Function.Name, actualTypeArg, TypeEqualityErrorMessageHint(actualTypeArg));
+            string whatIsWrong, hint;
+            if (!CheckCharacteristics(formalTypeArg.Characteristics, actualTypeArg, out whatIsWrong, out hint)) {
+              resolver.reporter.Error(MessageSource.Resolver, e.tok, "type parameter{0} ({1}) passed to function {2} must support {4} (got {3}){5}",
+                e.Function.TypeArgs.Count == 1 ? "" : " " + i, formalTypeArg.Name, e.Function.Name, actualTypeArg, whatIsWrong, hint);
             }
             i++;
           }

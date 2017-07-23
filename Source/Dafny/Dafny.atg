@@ -1109,7 +1109,7 @@ NewtypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl td>
 OtherTypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl td>
 = (. IToken id, bvId;
      Attributes attrs = null;
-     var eqSupport = TypeParameter.EqualitySupportValue.Unspecified;
+     var characteristics = new TypeParameter.TypeParameterCharacteristics(false);
      var typeArgs = new List<TypeParameter>();
      td = null;
      Type ty = null;
@@ -1120,8 +1120,7 @@ OtherTypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl t
   "type"
   { Attribute<ref attrs> }
   NoUSIdent<out id>
-  [ "(" "==" ")"               (. eqSupport = TypeParameter.EqualitySupportValue.Required; .)
-  ]
+  { TypeParameterCharacteristics<ref characteristics> }
   [ GenericParameters<typeArgs> ]
   [ "="
     ( IF(IsIdentColonOrBar())
@@ -1130,17 +1129,17 @@ OtherTypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl t
       "|"
       Expression<out constraint, false, true>
       [ "witness" Expression<out witness, false, true> ]
-                             (. td = new SubsetTypeDecl(id, id.val, eqSupport, typeArgs, module, new BoundVar(bvId, bvId.val, ty), constraint, witness, attrs);
+                             (. td = new SubsetTypeDecl(id, id.val, characteristics, typeArgs, module, new BoundVar(bvId, bvId.val, ty), constraint, witness, attrs);
                                 kind = "Subset type";
                              .)
     |
-      Type<out ty>           (. td = new TypeSynonymDecl(id, id.val, eqSupport, typeArgs, module, ty, attrs);
+      Type<out ty>           (. td = new TypeSynonymDecl(id, id.val, characteristics, typeArgs, module, ty, attrs);
                                 kind = "Type synonym";
                              .)
     )
   ]
                              (. if (td == null) {
-                                  td = new OpaqueTypeDecl(id, id.val, module, eqSupport, typeArgs, attrs);
+                                  td = new OpaqueTypeDecl(id, id.val, module, characteristics, typeArgs, attrs);
                                 }
                              .)
   (. CheckDeclModifiers(dmod, kind, AllowedDeclModifiers.None); .)
@@ -1292,17 +1291,35 @@ IteratorDecl<DeclModifierData dmod, ModuleDefinition module, out IteratorDecl/*!
 GenericParameters<.List<TypeParameter/*!*/>/*!*/ typeArgs.>
 = (. Contract.Requires(cce.NonNullElements(typeArgs));
      IToken/*!*/ id;
-     TypeParameter.EqualitySupportValue eqSupport;
+     TypeParameter.TypeParameterCharacteristics characteristics;
   .)
   "<"
-  NoUSIdent<out id>          (. eqSupport = TypeParameter.EqualitySupportValue.Unspecified; .)
-  [ "(" "==" ")"             (. eqSupport = TypeParameter.EqualitySupportValue.Required; .)
-    ]                        (. typeArgs.Add(new TypeParameter(id, id.val, eqSupport)); .)
-  { "," NoUSIdent<out id>    (. eqSupport = TypeParameter.EqualitySupportValue.Unspecified; .)
-    [ "(" "==" ")"           (. eqSupport = TypeParameter.EqualitySupportValue.Required; .)
-    ]                        (. typeArgs.Add(new TypeParameter(id, id.val, eqSupport)); .)
+  NoUSIdent<out id>          (. characteristics = new TypeParameter.TypeParameterCharacteristics(false); .)
+  { TypeParameterCharacteristics<ref characteristics> }
+                             (. typeArgs.Add(new TypeParameter(id, id.val, characteristics)); .)
+  { "," NoUSIdent<out id>    (. characteristics = new TypeParameter.TypeParameterCharacteristics(false); .)
+    { TypeParameterCharacteristics<ref characteristics> }
+                             (. typeArgs.Add(new TypeParameter(id, id.val, characteristics)); .)
   }
   ">"
+  .
+TypeParameterCharacteristics<ref TypeParameter.TypeParameterCharacteristics characteristics>
+= "("
+  TPCharOption<ref characteristics>
+  { ","
+    TPCharOption<ref characteristics>
+  }
+  ")"
+  .
+TPCharOption<ref TypeParameter.TypeParameterCharacteristics characteristics>
+= ( "=="    (. characteristics.EqualitySupport = TypeParameter.EqualitySupportValue.Required; .)
+  | digits  (. if (t.val == "0") {
+                 characteristics.MustSupportZeroInitialization = true;
+               } else {
+                 SemErr(t, "unexpected TPCharOption");
+               }
+            .)
+  )
   .
 /*------------------------------------------------------------------------*/
 MethodDecl<DeclModifierData dmod, bool allowConstructor, bool isWithinAbstractModule, out Method/*!*/ m>

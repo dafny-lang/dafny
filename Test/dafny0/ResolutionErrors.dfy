@@ -1881,3 +1881,140 @@ module ReturnBeforeNew {
     }
   }
 }
+
+// ---------------- required zero initialization -----------------------
+
+module ZI {
+  // the following are different syntactic ways of saying that the type
+  // must support zero initialization
+  type ZA(0)
+  type ZB(==)(0)
+  type ZC(0)(==)
+  type ZD(==,0)
+  type ZE(0,==)
+  type Y
+
+  method P<G(0)>(x: G)
+  method M0<F,G(0)>(a: ZA, b: ZB, c: ZC, d: ZD, e: ZE, f: F, g: G, y: Y)
+  {
+    P(a);
+    P(b);
+    P(c);
+    P(d);
+    P(e);
+    P(f);  // error: type of argument is expected to support zero initialization
+    P(g);
+    P(y);  // error: type of argument is expected to support zero initialization
+  }
+
+  datatype List<T> = Nil | Cons(T, List<T>)  // this type DOES support zero initialization, regardless of T
+  method M1<G,H(0)>(xs: List<G>, ys: List<H>) {
+    P(xs);
+    P(ys);
+  }
+
+  class Cls {
+    var q: int
+    var rs: List<List<Cls>>
+  }
+  method M2(c: Cls) {
+    P(c);
+  }
+
+  newtype byte = x: int | 0 <= x < 256  // supports zero initialization
+  newtype MyInt = int  // supports zero initialization
+  newtype SixOrMore = x | 6 <= x witness 6
+  newtype AnotherSixOrMore = s: SixOrMore | true witness 6
+  newtype MySixOrMore = x: MyInt | 6 <= x witness 6
+  // The resolver uses the presence/absence of a "witness" clause to figure out if the type
+  // supports zero initialization.  This can be inaccurate.  If the type does not have a
+  // "witness" clause, some type replacements may slip by the resolver, but will then be
+  // caught by the verifier when the witness test is performed (because the witness test
+  // uses a zero value in the absence of a "witness" clause).  Regrettably, if a "witness"
+  // clause is supplied unnecessarily (perhaps to be explicit about the witness in the
+  // program text), then the resolver will treat the type as if it does not support
+  // zero initialization, and hence some good programs will be rejected by the resolver.
+  newtype UnclearA = x: int | true witness 0  // actually supports zero initialization, but has a "witness" clause
+  newtype UnclearB = x | 6 <= x  // "witness" clause omitted; type does not actually support zero initialization
+
+  method M3(a: byte, b: MyInt, c: SixOrMore, d: AnotherSixOrMore, e: MySixOrMore,
+            ua: UnclearA, ub: UnclearB) {
+    P(a);
+    P(b);
+    P(c);  // error: type of argument is expected to support zero initialization
+    P(d);  // error: type of argument is expected to support zero initialization
+    P(e);  // error: type of argument is expected to support zero initialization
+    P(ua);  // error: as far as the resolver can tell, type of argument does not support zero initialization
+    P(ub);  // fine, as far as the resolver can tell (but this would be caught later by the verifier)
+  }
+
+  type Sbyte = x: int | 0 <= x < 256  // supports zero initialization
+  type SMyInt = int  // supports zero initialization
+  type SSixOrMore = x | 6 <= x witness 6
+  type SAnotherSixOrMore = s: SSixOrMore | true witness 6
+  type SMySixOrMore = x: SMyInt | 6 <= x witness 6
+  type SUnclearA = x: int | true witness 0  // see note about for UnclearA
+  type SUnclearB = x | 6 <= x  // see note about for UnclearB
+
+  method M4(a: Sbyte, b: SMyInt, c: SSixOrMore, d: SAnotherSixOrMore, e: SMySixOrMore,
+            sua: SUnclearA, sub: SUnclearB) {
+    P<Sbyte>(a);
+    P<SMyInt>(b);
+    P<SSixOrMore>(c);  // error: type of argument is expected to support zero initialization
+    P<SAnotherSixOrMore>(d);  // error: type of argument is expected to support zero initialization
+    P<SMySixOrMore>(e);  // error: type of argument is expected to support zero initialization
+    P<SUnclearA>(sua);  // error: as far as the resolver can tell, type of argument does not support zero initialization
+    P<SUnclearB>(sub);  // fine, as far as the resolver can tell (but this would be caught later by the verifier)
+  }
+}
+
+abstract module ZI_RefinementAbstract {
+  type A
+  type A'
+  type B(0)
+  type B'(0)
+
+  type Mxx(0)
+  type Mx_
+  type M_x(0)
+  type M__
+
+  method Delta<Q(0),W,E(0),R>()
+}
+
+module ZI_RefinementConcrete0 refines ZI_RefinementAbstract {
+  newtype Six = x | 6 <= x witness 6  // does not support zero initialization
+  type A = int
+  type A' = Six
+  type B = int
+  type B' = Six  // error: RHS is expected to support zero initialization
+}
+
+module ZI_ExportSource {
+  export
+    reveals RGB
+    provides XYZ
+  datatype RGB = Red | Green | Blue
+  datatype XYZ = X | Y | Z
+}
+
+module ZI_RefinementConcrete1 refines ZI_RefinementAbstract {
+  import Z = ZI_ExportSource
+
+  method P<G(0)>(g: G)
+  method M(m: Z.RGB, n: Z.XYZ) {
+    P(m);
+    P(n);  // error: Z.XYZ is not known to support zero initialization
+  }
+
+  type Mxx  // error: not allowed to change zero-initialization setting
+  type Mx_
+  type M_x(0)
+  type M__(0)  // error: not allowed to change zero-initialization setting
+    
+  method Delta<
+    Q,  // error: not allowed to change zero-initialization setting
+    W,
+    E(0),
+    R(0)>()  // error: not allowed to change zero-initialization setting
+}

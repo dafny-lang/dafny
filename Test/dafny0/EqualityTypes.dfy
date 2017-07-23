@@ -37,7 +37,7 @@ module E refines C {
 }
 
 module F refines C {
-  datatype X<T> = Nil | Cons(T, X<T>)  // error: not allowed to add a type parameter to type X
+  datatype X<T(==)> = Nil | Cons(T, X<T>)  // error: not allowed to add a type parameter to type X
   class Y<T> { }  // error: not allowed to add a type parameter to type Y
 }
 

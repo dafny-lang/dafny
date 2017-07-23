@@ -682,7 +682,7 @@ namespace Microsoft.Dafny {
       if (dt is IndDatatypeDecl) {
         defaultCtor = ((IndDatatypeDecl)dt).DefaultCtor;
       } else {
-        defaultCtor = ((CoDatatypeDecl)dt).Ctors[0];  // pick any one of them
+        defaultCtor = ((CoDatatypeDecl)dt).Ctors[0];  // pick any one of them (but pick must be the same as in InitializerIsKnown and HasZeroInitializer)
       }
       wr.Write("new {0}", DtCtorName(defaultCtor, dt.TypeArgs));
       wr.Write("(");
@@ -1495,11 +1495,13 @@ namespace Microsoft.Dafny {
 
       var udt = (UserDefinedType)xType;
       if (udt.ResolvedParam != null) {
-        return false;
+        return udt.ResolvedParam.Characteristics.MustSupportZeroInitialization;
       }
       var cl = udt.ResolvedClass;
       Contract.Assert(cl != null);
-      if (cl is NewtypeDecl) {
+      if (cl is OpaqueTypeDecl) {
+        return ((OpaqueTypeDecl)cl).TheType.Characteristics.MustSupportZeroInitialization;
+      } else if (cl is NewtypeDecl) {
         var td = (NewtypeDecl)cl;
         if (td.Witness != null) {
           return false;
@@ -1513,11 +1515,18 @@ namespace Microsoft.Dafny {
         } else {
           return HasZeroInitializer(td.Rhs);
         }
+      } else if (cl is TypeSynonymDeclBase) {
+        return ((TypeSynonymDeclBase)cl).Characteristics.MustSupportZeroInitialization;
       } else if (cl is ClassDecl) {
         return true;
       } else if (cl is DatatypeDecl) {
-        // TODO: only look at the initialization-chosen constructor, or at least look only at the type arguments that matter
-        return udt.TypeArgs.TrueForAll(HasZeroInitializer);
+        DatatypeCtor defaultCtor;
+        if (cl is IndDatatypeDecl) {
+          defaultCtor = ((IndDatatypeDecl)cl).DefaultCtor;
+        } else {
+          defaultCtor = ((CoDatatypeDecl)cl).Ctors[0];  // pick any one of them (but must be the same as in CompileDatatypeStruct)
+        }
+        return defaultCtor.Formals.TrueForAll(formal => formal.IsGhost || HasZeroInitializer(formal.Type));
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected type
       }
@@ -1555,11 +1564,13 @@ namespace Microsoft.Dafny {
 
       var udt = (UserDefinedType)xType;
       if (udt.ResolvedParam != null) {
-        return false;
+        return udt.ResolvedParam.Characteristics.MustSupportZeroInitialization;
       }
       var cl = udt.ResolvedClass;
       Contract.Assert(cl != null);
-      if (cl is NewtypeDecl) {
+      if (cl is OpaqueTypeDecl) {
+        return ((OpaqueTypeDecl)cl).TheType.Characteristics.MustSupportZeroInitialization;
+      } else if (cl is NewtypeDecl) {
         var td = (NewtypeDecl)cl;
         if (td.Witness != null) {
           return true;
@@ -1575,10 +1586,18 @@ namespace Microsoft.Dafny {
         } else {
           return InitializerIsKnown(td.Rhs);
         }
+      } else if (cl is TypeSynonymDeclBase) {
+        return ((TypeSynonymDeclBase)cl).Characteristics.MustSupportZeroInitialization;
       } else if (cl is ClassDecl) {
         return true;
       } else if (cl is DatatypeDecl) {
-        return udt.TypeArgs.TrueForAll(InitializerIsKnown);
+        DatatypeCtor defaultCtor;
+        if (cl is IndDatatypeDecl) {
+          defaultCtor = ((IndDatatypeDecl)cl).DefaultCtor;
+        } else {
+          defaultCtor = ((CoDatatypeDecl)cl).Ctors[0];  // pick any one of them (but must be the same as in CompileDatatypeStruct)
+        }
+        return defaultCtor.Formals.TrueForAll(formal => formal.IsGhost || InitializerIsKnown(formal.Type));
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected type
       }
@@ -1615,7 +1634,9 @@ namespace Microsoft.Dafny {
 
       var udt = (UserDefinedType)xType;
       if (udt.ResolvedParam != null) {
-        Contract.Assert(udt.ResolvedClass == null);
+        // If the module is complete, we expect "udt.ResolvedClass == null" at this time. However, it could be that
+        // the compiler has already generated an error about this type not being compilable, in which case
+        // "udt.ResolvedClass" might be non-null here.
         return "default(" + TypeName_UDT(udt.FullCompileName, udt.TypeArgs, wr) + ")";
       }
       var cl = udt.ResolvedClass;

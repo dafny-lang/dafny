@@ -220,44 +220,45 @@ namespace Microsoft.Dafny
         if (nw is ModuleDecl) {
           reporter.Error(MessageSource.RefinementTransformer, nw, "a module ({0}) must refine another module", nw.Name);
         } else {
-          bool dDemandsEqualitySupport = ((OpaqueTypeDecl)d).MustSupportEquality;
+          var od = (OpaqueTypeDecl)d;
           if (nw is OpaqueTypeDecl) {
-            if (dDemandsEqualitySupport != ((OpaqueTypeDecl)nw).MustSupportEquality) {
+            if (od.MustSupportEquality != ((OpaqueTypeDecl)nw).MustSupportEquality) {
               reporter.Error(MessageSource.RefinementTransformer, nw, "type declaration '{0}' is not allowed to change the requirement of supporting equality", nw.Name);
             }
-            if (nw.TypeArgs.Count != d.TypeArgs.Count) {
-              reporter.Error(MessageSource.RefinementTransformer, nw, "type '{0}' is not allowed to change its number of type parameters (got {1}, expected {2})", nw.Name, nw.TypeArgs.Count, d.TypeArgs.Count);
+            if (od.Characteristics.MustSupportZeroInitialization != ((OpaqueTypeDecl)nw).Characteristics.MustSupportZeroInitialization) {
+              reporter.Error(MessageSource.RefinementTransformer, nw.tok, "type declaration '{0}' is not allowed to change the requirement of supporting zero initialization", nw.Name);
             }
-          } else if (dDemandsEqualitySupport) {
-            if (nw is ClassDecl) {
-              // fine, as long as "nw" takes the right number of type parameters
-              if (nw.TypeArgs.Count != d.TypeArgs.Count) {
-                reporter.Error(MessageSource.RefinementTransformer, nw, "opaque type '{0}' is not allowed to be replaced by a class that takes a different number of type parameters (got {1}, expected {2})", nw.Name, nw.TypeArgs.Count, d.TypeArgs.Count);
-              }
-            } else if (nw is NewtypeDecl) {
-              // fine, as long as "nw" does not take any type parameters
-              if (nw.TypeArgs.Count != 0) {
-                reporter.Error(MessageSource.RefinementTransformer, nw, "opaque type '{0}', which has {1} type argument{2}, is not allowed to be replaced by a newtype, which takes none", nw.Name, d.TypeArgs.Count, d.TypeArgs.Count == 1 ? "" : "s");
-              }
-            } else if (nw is CoDatatypeDecl) {
-              reporter.Error(MessageSource.RefinementTransformer, nw, "a type declaration that requires equality support cannot be replaced by a codatatype");
-            } else {
-              Contract.Assert(nw is IndDatatypeDecl || nw is TypeSynonymDecl);
-              if (nw.TypeArgs.Count != d.TypeArgs.Count) {
-                reporter.Error(MessageSource.RefinementTransformer, nw, "opaque type '{0}' is not allowed to be replaced by a type that takes a different number of type parameters (got {1}, expected {2})", nw.Name, nw.TypeArgs.Count, d.TypeArgs.Count);
+          } else {
+            if (od.MustSupportEquality) {
+              if (nw is ClassDecl || nw is NewtypeDecl) {
+                // fine
+              } else if (nw is CoDatatypeDecl) {
+                reporter.Error(MessageSource.RefinementTransformer, nw, "a type declaration that requires equality support cannot be replaced by a codatatype");
               } else {
+                Contract.Assert(nw is IndDatatypeDecl || nw is TypeSynonymDecl);
                 // Here, we need to figure out if the new type supports equality.  But we won't know about that until resolution has
                 // taken place, so we defer it until the PostResolve phase.
                 var udt = UserDefinedType.FromTopLevelDecl(nw.tok, nw);
                 postTasks.Enqueue(() => {
                   if (!udt.SupportsEquality) {
-                    reporter.Error(MessageSource.RefinementTransformer, udt.tok, "type '{0}' is used to refine an opaque type with equality support, but '{0}' does not support equality", udt.Name);
+                    reporter.Error(MessageSource.RefinementTransformer, udt.tok, "type '{0}', which does not support equality, is used to refine an opaque type with equality support", udt.Name);
                   }
                 });
               }
             }
-          } else if (d.TypeArgs.Count != nw.TypeArgs.Count) {
-            reporter.Error(MessageSource.RefinementTransformer, nw, "opaque type '{0}' is not allowed to be replaced by a type that takes a different number of type parameters (got {1}, expected {2})", nw.Name, nw.TypeArgs.Count, d.TypeArgs.Count);
+            if (od.Characteristics.MustSupportZeroInitialization) {
+              // We need to figure out if the new type supports zero initialization.  But we won't know about that until resolution has
+              // taken place, so we defer it until the PostResolve phase.
+              var udt = UserDefinedType.FromTopLevelDecl(nw.tok, nw);
+              postTasks.Enqueue(() => {
+                if (!Compiler.HasZeroInitializer(udt)) {
+                  reporter.Error(MessageSource.RefinementTransformer, udt.tok, "type '{0}', which does not support zero initialization, is used to refine an opaque type that expects zero initialization", udt.Name);
+                }
+              });
+            }
+          }
+          if (nw.TypeArgs.Count != d.TypeArgs.Count) {
+            reporter.Error(MessageSource.RefinementTransformer, nw, "type '{0}' is not allowed to change its number of type parameters (got {1}, expected {2})", nw.Name, nw.TypeArgs.Count, d.TypeArgs.Count);
           }
         }
       } else if (nw is OpaqueTypeDecl) {
@@ -752,8 +753,11 @@ namespace Microsoft.Dafny
             //     break;
             // }
             // Here's how we actually compute it:
-            if (o.EqualitySupport != TypeParameter.EqualitySupportValue.InferredRequired && o.EqualitySupport != n.EqualitySupport) {
+            if (o.Characteristics.EqualitySupport != TypeParameter.EqualitySupportValue.InferredRequired && o.Characteristics.EqualitySupport != n.Characteristics.EqualitySupport) {
               reporter.Error(MessageSource.RefinementTransformer, n.tok, "type parameter '{0}' is not allowed to change the requirement of supporting equality", n.Name);
+            }
+            if (o.Characteristics.MustSupportZeroInitialization != n.Characteristics.MustSupportZeroInitialization) {
+              reporter.Error(MessageSource.RefinementTransformer, n.tok, "type parameter '{0}' is not allowed to change the requirement of supporting zero initialization", n.Name);
             }
           }
         }
@@ -801,9 +805,12 @@ namespace Microsoft.Dafny
                 else
                 {
                     // Here's how we actually compute it:
-                    if (o.EqualitySupport != TypeParameter.EqualitySupportValue.InferredRequired && o.EqualitySupport != n.EqualitySupport)
+                    if (o.Characteristics.EqualitySupport != TypeParameter.EqualitySupportValue.InferredRequired && o.Characteristics.EqualitySupport != n.Characteristics.EqualitySupport)
                     {
                         reporter.Error(MessageSource.RefinementTransformer, n.tok, "type parameter '{0}' is not allowed to change the requirement of supporting equality", n.Name);
+                    }
+                    if (o.Characteristics.MustSupportZeroInitialization != n.Characteristics.MustSupportZeroInitialization) {
+                      reporter.Error(MessageSource.RefinementTransformer, n.tok, "type parameter '{0}' is not allowed to change the requirement of supporting zero initialization", n.Name);
                     }
                 }
             }

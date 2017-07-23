@@ -218,7 +218,7 @@ Everything) {
           var at = (OpaqueTypeDecl)d;
           if (i++ != 0) { wr.WriteLine(); }
           Indent(indent);
-          PrintClassMethodHelper("type", at.Attributes, at.Name + EqualitySupportSuffix(at.EqualitySupport), d.TypeArgs);
+          PrintClassMethodHelper("type", at.Attributes, at.Name + TPCharacteristicsSuffix(at.TheType.Characteristics), d.TypeArgs);
           wr.WriteLine();
         } else if (d is NewtypeDecl) {
           var dd = (NewtypeDecl)d;
@@ -246,7 +246,7 @@ Everything) {
           var dd = (SubsetTypeDecl)d;
           if (i++ != 0) { wr.WriteLine(); }
           Indent(indent);
-          PrintClassMethodHelper("type", dd.Attributes, dd.Name + EqualitySupportSuffix(dd.EqualitySupport), dd.TypeArgs);
+          PrintClassMethodHelper("type", dd.Attributes, dd.Name + TPCharacteristicsSuffix(dd.Characteristics), dd.TypeArgs);
           wr.Write(" = ");
           wr.Write(dd.Var.DisplayName);
           if (ShowType(dd.Var.Type)) {
@@ -264,7 +264,7 @@ Everything) {
           var dd = (TypeSynonymDecl)d;
           if (i++ != 0) { wr.WriteLine(); }
           Indent(indent);
-          PrintClassMethodHelper("type", dd.Attributes, dd.Name + EqualitySupportSuffix(dd.EqualitySupport), dd.TypeArgs);
+          PrintClassMethodHelper("type", dd.Attributes, dd.Name + TPCharacteristicsSuffix(dd.Characteristics), dd.TypeArgs);
           wr.Write(" = ");
           PrintType(dd.Rhs);
           wr.WriteLine();
@@ -571,7 +571,7 @@ Everything) {
       if (typeArgs.Count != 0 && !typeArgs[0].Name.StartsWith("_")) {
         wr.Write("<" +
                  Util.Comma(", ", typeArgs,
-                   tp => tp.Name + EqualitySupportSuffix(tp.EqualitySupport))
+                   tp => tp.Name + TPCharacteristicsSuffix(tp.Characteristics))
                  + ">");
       }
     }
@@ -918,12 +918,20 @@ Everything) {
       }
     }
 
-    string EqualitySupportSuffix(TypeParameter.EqualitySupportValue es) {
-      if (es == TypeParameter.EqualitySupportValue.Required ||
-        (es == TypeParameter.EqualitySupportValue.InferredRequired && DafnyOptions.O.DafnyPrintResolvedFile != null)) {
-        return "(==)";
-      } else {
+    string TPCharacteristicsSuffix(TypeParameter.TypeParameterCharacteristics characteristics) {
+      string s = null;
+      if (characteristics.EqualitySupport == TypeParameter.EqualitySupportValue.Required ||
+        (characteristics.EqualitySupport == TypeParameter.EqualitySupportValue.InferredRequired && DafnyOptions.O.DafnyPrintResolvedFile != null)) {
+        s = "==";
+      }
+      if (characteristics.MustSupportZeroInitialization) {
+        var prefix = s == null ? "" : s + ",";
+        s = prefix + "0";
+      }
+      if (s == null) {
         return "";
+      } else {
+        return "(" + s + ")";
       }
     }
 

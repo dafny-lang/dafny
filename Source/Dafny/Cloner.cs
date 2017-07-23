@@ -40,15 +40,15 @@ namespace Microsoft.Dafny
 
       if (d is OpaqueTypeDecl) {
         var dd = (OpaqueTypeDecl)d;
-        return new OpaqueTypeDecl(Tok(dd.tok), dd.Name, m, CloneEqSupp(dd.EqualitySupport), dd.TypeArgs.ConvertAll(CloneTypeParam), CloneAttributes(dd.Attributes), CloneFromValue(d));
+        return new OpaqueTypeDecl(Tok(dd.tok), dd.Name, m, CloneTPChar(dd.TheType.Characteristics), dd.TypeArgs.ConvertAll(CloneTypeParam), CloneAttributes(dd.Attributes), CloneFromValue(d));
       } else if (d is SubsetTypeDecl) {
         var dd = (SubsetTypeDecl)d;
         var tps = dd.TypeArgs.ConvertAll(CloneTypeParam);
-        return new SubsetTypeDecl(Tok(dd.tok), dd.Name, CloneEqSupp(dd.EqualitySupport), tps, m, CloneBoundVar(dd.Var), CloneExpr(dd.Constraint), CloneExpr(dd.Witness), CloneAttributes(dd.Attributes), CloneFromValue(dd));
+        return new SubsetTypeDecl(Tok(dd.tok), dd.Name, CloneTPChar(dd.Characteristics), tps, m, CloneBoundVar(dd.Var), CloneExpr(dd.Constraint), CloneExpr(dd.Witness), CloneAttributes(dd.Attributes), CloneFromValue(dd));
       } else if (d is TypeSynonymDecl) {
         var dd = (TypeSynonymDecl)d;
         var tps = dd.TypeArgs.ConvertAll(CloneTypeParam);
-        return new TypeSynonymDecl(Tok(dd.tok), dd.Name, CloneEqSupp(dd.EqualitySupport), tps, m, CloneType(dd.Rhs), CloneAttributes(dd.Attributes), CloneFromValue(dd));
+        return new TypeSynonymDecl(Tok(dd.tok), dd.Name, CloneTPChar(dd.Characteristics), tps, m, CloneType(dd.Rhs), CloneAttributes(dd.Attributes), CloneFromValue(dd));
       } else if (d is NewtypeDecl) {
         var dd = (NewtypeDecl)d;
           if (dd.Var == null) {
@@ -126,12 +126,14 @@ namespace Microsoft.Dafny
       }
     }
 
-    public TypeParameter.EqualitySupportValue CloneEqSupp(TypeParameter.EqualitySupportValue equalitySupport) {
-      if (equalitySupport == TypeParameter.EqualitySupportValue.InferredRequired) {
-        return TypeParameter.EqualitySupportValue.Unspecified;
+    public TypeParameter.TypeParameterCharacteristics CloneTPChar(TypeParameter.TypeParameterCharacteristics characteristics) {
+      TypeParameter.EqualitySupportValue eqSupport;
+      if (characteristics.EqualitySupport == TypeParameter.EqualitySupportValue.InferredRequired) {
+        eqSupport = TypeParameter.EqualitySupportValue.Unspecified;
       } else {
-        return equalitySupport;
+        eqSupport = characteristics.EqualitySupport;
       }
+      return new TypeParameter.TypeParameterCharacteristics(eqSupport, characteristics.MustSupportZeroInitialization);
     }
 
     public virtual T CloneFromValue<T>(T d) where T : TopLevelDecl {
@@ -147,7 +149,7 @@ namespace Microsoft.Dafny
     }
 
     public TypeParameter CloneTypeParam(TypeParameter tp) {
-      return new TypeParameter(Tok(tp.tok), tp.Name, CloneEqSupp(tp.EqualitySupport), tp);
+      return new TypeParameter(Tok(tp.tok), tp.Name, CloneTPChar(tp.Characteristics), tp);
     }
 
     public virtual MemberDecl CloneMember(MemberDecl member) {
@@ -882,8 +884,8 @@ namespace Microsoft.Dafny
       if (d is RevealableTypeDecl && !RevealedInScope(d)) {
         var dd = (RevealableTypeDecl)d;
         var tps = d.TypeArgs.ConvertAll(CloneTypeParam);
-        var eqsupp = TypeParameter.GetExplicitEqualitySupportValue(d);
-        based = new OpaqueTypeDecl(Tok(d.tok), d.Name, m, eqsupp, tps, CloneAttributes(d.Attributes), CloneFromValue(d));
+        var characteristics = TypeParameter.GetExplicitCharacteristics(d);
+        based = new OpaqueTypeDecl(Tok(d.tok), d.Name, m, characteristics, tps, CloneAttributes(d.Attributes), CloneFromValue(d));
       }
 
       reverseMap.Add(based, d);
