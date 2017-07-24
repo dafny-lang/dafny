@@ -1828,6 +1828,9 @@ module DividedConstructors {
       P(a);  // error: cannot use "this" here
       P(g);
       P(this.g);  // "this" is benign here
+      modify this;  // error: cannot use "this" here
+      modify this`g;  // error: cannot use "this" here
+      modify `g;  // error: cannot use (implicit) "this" here
       new;
       a := a + b;
       Helper();
