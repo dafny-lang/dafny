@@ -3771,7 +3771,9 @@ namespace Microsoft.Dafny {
       Contract.Requires(p != null);
       Contract.Requires(localVariables != null);
 
-      if (!DafnyOptions.O.EnforceDefiniteAssignment || p.IsGhost || Compiler.InitializerIsKnown(p.Type)) {
+      if (DafnyOptions.O.ForbidNondeterminism && !p.IsGhost) {
+        // add the variable, regardless of its type
+      } else if (!DafnyOptions.O.EnforceDefiniteAssignment || p.IsGhost || Compiler.InitializerIsKnown(p.Type)) {
         return;
       }
       var tracker = new Bpl.LocalVariable(p.Tok, new Bpl.TypedIdent(p.Tok, "defass#" + p.UniqueName, Bpl.Type.Bool));
@@ -3780,16 +3782,13 @@ namespace Microsoft.Dafny {
       definiteAssignmentTrackers.Add(p.UniqueName, ie);
     }
 
-    void RemoveDefiniteAssignmentTracker(IVariable p) {
-      Contract.Requires(p != null);
-      definiteAssignmentTrackers.Remove(p.UniqueName);
-    }
-
     void AddDefiniteAssignmentTrackerSurrogate(Field field, List<Variable> localVariables) {
       Contract.Requires(field != null);
       Contract.Requires(localVariables != null);
 
-      if (!DafnyOptions.O.EnforceDefiniteAssignment || field.IsGhost || Compiler.InitializerIsKnown(field.Type)) {
+      if (DafnyOptions.O.ForbidNondeterminism && !field.IsGhost) {
+        // add the field, regardless of its type
+      } else if (!DafnyOptions.O.EnforceDefiniteAssignment || field.IsGhost || Compiler.InitializerIsKnown(field.Type)) {
         return;
       }
       var nm = SurrogateName(field);
@@ -3797,6 +3796,11 @@ namespace Microsoft.Dafny {
       localVariables.Add(tracker);
       var ie = new Bpl.IdentifierExpr(field.tok, tracker);
       definiteAssignmentTrackers.Add(nm, ie);
+    }
+
+    void RemoveDefiniteAssignmentTracker(IVariable p) {
+      Contract.Requires(p != null);
+      definiteAssignmentTrackers.Remove(p.UniqueName);
     }
 
     void RemoveDefiniteAssignmentTrackerSurrogate(Field field) {

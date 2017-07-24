@@ -2169,8 +2169,6 @@ namespace Microsoft.Dafny {
         }
         if (s.Update != null) {
           wr.Write(TrStmt(s.Update, indent).ToString());
-        } else if (DafnyOptions.O.ForbidNondeterminism) {
-          Error("variable declaration without initialization (line {0}) forbidden by /deterministic option", wr, s.Tok.line);
         }
 
       } else if (stmt is LetStmt) {
