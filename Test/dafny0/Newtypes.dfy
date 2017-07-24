@@ -99,19 +99,19 @@ module PredicateTests {
   }
 
   method MidPoint_Bad(lo: char8, hi: char8) returns (mid: char8)
-    requires lo <= hi;
+    requires lo <= hi
   {
     mid := (lo + hi) / 2;  // error: intermediate result is out of range
   }
 
   method MidPoint_Good(lo: char8, hi: char8) returns (mid: char8)
-    requires lo <= hi;
+    requires lo <= hi
   {
     mid := lo + (hi - lo) / 2;
   }
 
   method MidPoint_AlsoFine(lo: char8, hi: char8) returns (mid: char8)
-    requires lo <= hi;
+    requires lo <= hi
   {
     mid := ((lo as int + hi as int) / 2) as char8;
   }
@@ -174,14 +174,14 @@ module IntegerBasedValues {
   newtype Even = x | x % 2 == 0
 
   method BadSpec(o: Even)
-    requires 1 < o;  // error: 1 is not of type Even
+    requires 1 < o  // error: 1 is not of type Even
 
-  method Arrays(n: nat, o: Even, i: Even, j: Even, k: nat) returns (x: T)
-    requires 0 <= o && 0 <= i && 0 <= j;
+  method Arrays(n: nat, o: Even, i: Even, j: Even, k: nat, t: T) returns (x: T)
+    requires 0 <= o && 0 <= i && 0 <= j
   {
-    var a := new T[n];
-    var b := new T[o];
-    var m := new T[o, n];
+    var a := new T[n](_ => t);
+    var b := new T[o](_ => t);
+    var m := new T[o, n]((_,_) => t);
     if {
       case i as int < n        =>  x := a[i];
       case i as int < a.Length =>  x := a[i];
@@ -192,13 +192,14 @@ module IntegerBasedValues {
       case i as int < m.Length0 && j as int < m.Length1 =>  x := m[i, j];
       case i as int < m.Length0 && j as int < m.Length1 =>  x := m[j, j];  // error: bad index 0
       case i as int < m.Length0 && j as int < m.Length1 =>  x := m[i, i];  // error: bad index 1
-      case true =>
+      case true => x := t;
     }
   }
   
-  method Sequences(a: seq<T>, n: nat, i: Even, lo: Even, hi: Even) returns (x: T, b: seq<T>)
-    requires 0 <= i && 0 <= lo <= hi;
+  method Sequences(a: seq<T>, n: nat, i: Even, lo: Even, hi: Even, t: T) returns (x: T, b: seq<T>)
+    requires 0 <= i && 0 <= lo <= hi
   {
+    x := t;
     if {
       case i as int < |a|                   =>  x := a[i];
       case |a| % 2 == 0 && i < |a| as Even  =>  x := a[i];
@@ -234,7 +235,7 @@ module Guessing_Termination_Metrics {
   method M_Bad() {
     var x: N, y: N;
     while x < y
-      decreases y - x;  // error: y-x may not be an N
+      decreases y - x  // error: y-x may not be an N
     {
       if 3 < y {
         y := 3;
@@ -274,7 +275,7 @@ module Guessing_Termination_Metrics {
   method P_Bad() {
     var x: R, y: R;
     while x < y
-      decreases y - x;  // error: y-x may not be an R
+      decreases y - x  // error: y-x may not be an R
     {
       if 12.0 < y {
         y := 10.0;
@@ -316,29 +317,29 @@ module SeqTests {
   newtype byte = i:int | 0 <= i < 0x100
 
   method M0(many_bytes: seq<byte>, one_byte: byte)
-    requires |many_bytes| == 1;
+    requires |many_bytes| == 1
   {
     assert 0 <= one_byte as int < 0x100;
     assert 0 <= many_bytes[0] as int < 0x100;
   }
 
   method M1(many_bytes: seq<byte>, many_ints: seq<int>) 
-    requires |many_bytes| == 1;
-    requires |many_ints| == 1;
+    requires |many_bytes| == 1
+    requires |many_ints| == 1
   {
     assert many_bytes[0] in many_bytes;
     assert many_ints[0] in many_ints;    
   }
 
   lemma Lemma2<T>(elt: T, s: seq<T>, index: nat)
-    requires index < |s|;
-    requires elt == s[index];
-    ensures elt in s;
+    requires index < |s|
+    requires elt == s[index]
+    ensures elt in s
   {}
 
   method M2(many_bytes: seq<byte>, many_ints: seq<int>) 
-    requires |many_bytes| == 1;
-    requires |many_ints| == 1;
+    requires |many_bytes| == 1
+    requires |many_ints| == 1
   {
     Lemma2(many_bytes[0], many_bytes, 0);
     Lemma2(many_ints[0], many_ints, 0);
@@ -347,14 +348,14 @@ module SeqTests {
   }
 
   lemma Lemma3_ints(data: seq<int>)
-    requires |data| > 25;
-    ensures  data[0..25] == [data[0]] + data[1..25];
+    requires |data| > 25
+    ensures  data[0..25] == [data[0]] + data[1..25]
   {
   }
 
   lemma Lemma3_bytes(data: seq<byte>)
-    requires |data| > 25;
-    ensures  data[0..25] == [data[0]] + data[1..25];
+    requires |data| > 25
+    ensures  data[0..25] == [data[0]] + data[1..25]
   {
   }
 }

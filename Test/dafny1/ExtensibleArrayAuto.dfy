@@ -12,7 +12,8 @@ class {:autocontracts} ExtensibleArray<T> {
   predicate Valid()
   {
     // shape of data structure
-    elements != null && elements.Length == 256 &&
+    ((elements == null == more && Contents == []) ||
+     (elements != null && elements.Length == 256)) &&
     (more != null ==>
         elements !in more.Repr &&
         |more.Contents| != 0 &&
@@ -36,7 +37,7 @@ class {:autocontracts} ExtensibleArray<T> {
   constructor Init()
     ensures Contents == []
   {
-    elements := new T[256];
+    elements := null;
     more := null;
     length := 0;
     M := 0;
@@ -74,6 +75,9 @@ class {:autocontracts} ExtensibleArray<T> {
     ensures Contents == old(Contents) + [t]
     decreases |Contents|
   {
+    if elements == null {
+      elements := new T[256](_ => t);
+    }
     if length == 0 || length % 256 != 0 {
       // there is room in "elements"
       elements[length - M] := t;
@@ -86,7 +90,7 @@ class {:autocontracts} ExtensibleArray<T> {
       more.Append(elements);
       Repr := Repr + more.Repr;
       M := M + 256;
-      elements := new T[256];
+      elements := new T[256](_ => t);
       Repr := Repr + {elements};
       elements[0] := t;
     }

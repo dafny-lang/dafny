@@ -35,7 +35,7 @@ EqualityTypesModuleExports.dfy(178,8): Error: type parameter (A) passed to type 
 EqualityTypesModuleExports.dfy(188,22): Error: set argument type must support equality (got A) (perhaps try declaring type parameter 'A' on line 188 as 'A(==)', which says it can only be instantiated with a type that supports equality)
 EqualityTypesModuleExports.dfy(189,24): Error: iset argument type must support equality (got A) (perhaps try declaring type parameter 'A' on line 189 as 'A(==)', which says it can only be instantiated with a type that supports equality)
 EqualityTypesModuleExports.dfy(195,8): Error: type parameter (A) passed to type MyClass must support equality (got Noeq)
-EqualityTypesModuleExports.dfy(214,7): Error: type 'Opa' is used to refine an opaque type with equality support, but 'Opa' does not support equality
+EqualityTypesModuleExports.dfy(214,7): Error: type 'Opa', which does not support equality, is used to refine an opaque type with equality support
 EqualityTypesModuleExports.dfy(230,8): Error: type parameter (A) passed to type S must support equality (got GGG.Opa'<int>)
 EqualityTypesModuleExports.dfy(231,8): Error: type parameter (A) passed to type S must support equality (got GGG.Syn'<int>)
 EqualityTypesModuleExports.dfy(232,8): Error: type parameter (A) passed to type S must support equality (got GGG.Sub'<int>)

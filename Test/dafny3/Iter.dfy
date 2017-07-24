@@ -13,7 +13,7 @@ class List<T> {
   {
     this in Repr && null !in Repr &&
     a in Repr &&
-    n <= a.Length != 0 &&
+    n <= a.Length &&
     Contents == a[..n]
   }
 
@@ -22,7 +22,7 @@ class List<T> {
     ensures Contents == [];
   {
     Contents, n := [], 0;
-    a := new T[25];
+    a := new T[0];
     Repr := {this, a};
   }
 
@@ -33,10 +33,8 @@ class List<T> {
     ensures Contents == old(Contents) + [t];
   {
     if (n == a.Length) {
-      var b := new T[2 * a.Length];
-      forall i | 0 <= i < a.Length {
-        b[i] := a[i];
-      }
+      var b := new T[2 * a.Length + 1](i requires 0 <= i && a != null reads this, a =>
+                                       if i < a.Length then a[i] else t);
       assert b[..n] == a[..n] == Contents;
       a, Repr := b, Repr + {b};
       assert b[..n] == Contents;

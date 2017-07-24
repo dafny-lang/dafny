@@ -2,20 +2,21 @@
 // RUN: %diff "%s.expect" "%t"
 
 class ExtensibleArray<T> {
-  ghost var Contents: seq<T>;
-  ghost var Repr: set<object>;
+  ghost var Contents: seq<T>
+  ghost var Repr: set<object>
 
-  var elements: array<T>;
-  var more: ExtensibleArray<array<T>>;
-  var length: int;
-  var M: int;  // shorthand for:  if more == null then 0 else 256 * |more.Contents|
+  var elements: array<T>
+  var more: ExtensibleArray<array<T>>
+  var length: int
+  var M: int  // shorthand for:  if more == null then 0 else 256 * |more.Contents|
 
   predicate Valid()
-    reads this, Repr;
+    reads this, Repr
   {
     // shape of data structure
     this in Repr && null !in Repr &&
-    elements != null && elements.Length == 256 && elements in Repr &&
+    ((elements == null && more == null && Contents == []) ||
+     (elements != null && elements.Length == 256 && elements in Repr)) &&
     (more != null ==>
         more in Repr && more.Repr <= Repr && this !in more.Repr && elements !in more.Repr &&
         more.Valid() &&
@@ -38,25 +39,25 @@ class ExtensibleArray<T> {
   }
 
   constructor Init()
-    ensures Valid() && fresh(Repr - {this});
-    ensures Contents == [];
+    ensures Valid() && fresh(Repr - {this})
+    ensures Contents == []
   {
-    elements := new T[256];
+    elements := null;
     more := null;
     length := 0;
     M := 0;
     
     Contents := [];
-    Repr := {this, elements};
+    Repr := {this};
   }
 
   method Get(i: int) returns (t: T)
-    requires Valid();
-    requires 0 <= i < |Contents|;
-    ensures t == Contents[i];
-    decreases Repr;
+    requires Valid()
+    requires 0 <= i < |Contents|
+    ensures t == Contents[i]
+    decreases Repr
   {
-    if (M <= i) {
+    if M <= i {
       t := elements[i - M];
     } else {
       var arr := more.Get(i / 256);
@@ -65,13 +66,13 @@ class ExtensibleArray<T> {
   }
 
   method Set(i: int, t: T)
-    requires Valid();
-    requires 0 <= i < |Contents|;
-    modifies Repr;
-    ensures Valid() && fresh(Repr - old(Repr));
-    ensures Contents == old(Contents)[i := t];
+    requires Valid()
+    requires 0 <= i < |Contents|
+    modifies Repr
+    ensures Valid() && fresh(Repr - old(Repr))
+    ensures Contents == old(Contents)[i := t]
   {
-    if (M <= i) {
+    if M <= i {
       elements[i - M] := t;
     } else {
       var arr := more.Get(i / 256);
@@ -81,17 +82,21 @@ class ExtensibleArray<T> {
   }
 
   method Append(t: T)
-    requires Valid();
-    modifies Repr;
-    ensures Valid() && fresh(Repr - old(Repr));
-    ensures Contents == old(Contents) + [t];
-    decreases |Contents|;
+    requires Valid()
+    modifies Repr
+    ensures Valid() && fresh(Repr - old(Repr))
+    ensures Contents == old(Contents) + [t]
+    decreases |Contents|
   {
-    if (length == 0 || length % 256 != 0) {
+    if elements == null {
+      elements := new T[256](_ => t);
+      Repr := Repr + {elements};
+    }
+    if length == 0 || length % 256 != 0 {
       // there is room in "elements"
       elements[length - M] := t;
     } else {
-      if (more == null) {
+      if more == null {
         more := new ExtensibleArray<array<T>>.Init();
         Repr := Repr + {more} + more.Repr;
       }
@@ -99,7 +104,7 @@ class ExtensibleArray<T> {
       more.Append(elements);
       Repr := Repr + more.Repr;
       M := M + 256;
-      elements := new T[256];
+      elements := new T[256](_ => t);
       Repr := Repr + {elements};
       elements[0] := t;
     }
@@ -111,9 +116,9 @@ class ExtensibleArray<T> {
 method Main() {
   var a := new ExtensibleArray<int>.Init();
   var n := 0;
-  while (n < 256*256+600)
-    invariant a.Valid() && fresh(a.Repr);
-    invariant |a.Contents| == n;
+  while n < 256*256+600
+    invariant a.Valid() && fresh(a.Repr)
+    invariant |a.Contents| == n
   {
     a.Append(n);
     n := n + 1;

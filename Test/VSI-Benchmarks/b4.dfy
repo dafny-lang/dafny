@@ -92,17 +92,16 @@ class Map<Key(==),Value> {
     }
   }
 
-  method Find(key: Key) returns (present: bool, val: Value)
+  method Find(key: Key) returns (result: Maybe<Value>)
     requires Valid()
-    ensures !present ==> key !in M
-    ensures present ==> key in M && val == M[key]
+    ensures result == None ==> key !in M
+    ensures result.Some? ==> key in M && result.get == M[key]
   {
     var prev, p := FindIndex(key);
     if p == null {
-      present := false;
+      result := None;
     } else {
-      val := p.val;
-      present := true;
+      result := Some(p.val);
     }
   }
 
@@ -196,3 +195,5 @@ class Node<Key,Value> {
   var next: Node<Key,Value>
   ghost var Spine: set<Node<Key,Value>>
 }
+
+datatype Maybe<T> = None | Some(get: T)

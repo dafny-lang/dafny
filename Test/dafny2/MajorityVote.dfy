@@ -114,14 +114,17 @@ method FindWinner<Candidate(==)>(a: seq<Candidate>, ghost K: Candidate) returns 
 // Here is the second version of the program, the one that also computes whether or not
 // there is a majority choice.
 
-method DetermineElection<Candidate(==)>(a: seq<Candidate>) returns (hasWinner: bool, cand: Candidate)
-  ensures hasWinner ==> 2 * Count(a, 0, |a|, cand) > |a|;
-  ensures !hasWinner ==> forall c :: 2 * Count(a, 0, |a|, c) <= |a|;
+datatype Result<Candidate> = NoWinner | Winner(cand: Candidate)
+
+method DetermineElection<Candidate(==)>(a: seq<Candidate>) returns (result: Result<Candidate>)
+  ensures result.Winner? ==> 2 * Count(a, 0, |a|, result.cand) > |a|
+  ensures result.NoWinner? ==> forall c :: 2 * Count(a, 0, |a|, c) <= |a|
 {
+  if |a| == 0 { return NoWinner; }
   ghost var b := exists c :: 2 * Count(a, 0, |a|, c) > |a|;
   ghost var w :| b ==> 2 * Count(a, 0, |a|, w) > |a|;
-  cand := SearchForWinner(a, b, w);
-  return 2 * Count(a, 0, |a|, cand) > |a|, cand;
+  var cand := SearchForWinner(a, b, w);
+  return if 2 * Count(a, 0, |a|, cand) > |a| then Winner(cand) else NoWinner;
 }
 
 // The difference between SearchForWinner for FindWinner above are the occurrences of the
@@ -129,10 +132,10 @@ method DetermineElection<Candidate(==)>(a: seq<Candidate>) returns (hasWinner: b
 // statement.
 
 method SearchForWinner<Candidate(==)>(a: seq<Candidate>, ghost hasWinner: bool, ghost K: Candidate) returns (k: Candidate)
+  requires |a| != 0
   requires hasWinner ==> 2 * Count(a, 0, |a|, K) > |a|;  // K has a (strict) majority of the votes
   ensures hasWinner ==> k == K;  // find K
 {
-  if (|a| == 0) { return; }
   k := a[0];
   var n, c, s := 1, 1, 0;
   while (n < |a|)

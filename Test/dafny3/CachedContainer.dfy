@@ -41,7 +41,7 @@ abstract module M1 refines M0 {
 // implement the set in terms of a sequence
 module M2 refines M1 {
   class Container<T(==)> {
-    var elems: seq<T>;
+    var elems: seq<T>
     protected predicate Valid()
     {
       Contents == (set x | x in elems) &&
@@ -68,13 +68,13 @@ module M2 refines M1 {
     }
     method Add... {
       var j := FindIndex(t);
-      if (j == |elems|) {
+      if j == |elems| {
         elems := elems + [t];
       }
     }
     method Remove... {
       var j := FindIndex(t);
-      if (j < |elems|) {
+      if j < |elems| {
         elems := elems[..j] + elems[j+1..];
       }
     }
@@ -87,29 +87,31 @@ module M2 refines M1 {
 
 // implement a cache
 module M3 refines M2 {
+  datatype Cache<T> = None | Some(index: nat, value: T)
   class Container<T(==)> {
-    var cachedValue: T;
-    var cachedIndex: int;
+    var cache: Cache<T>
     protected predicate Valid() {
-      0 <= cachedIndex ==> cachedIndex < |elems| && elems[cachedIndex] == cachedValue
+      cache.Some? ==> cache.index < |elems| && elems[cache.index] == cache.value
     }
     constructor... {
-      cachedIndex := -1;
+      cache := None;
     }
     method FindIndex... {
-      if (0 <= cachedIndex && cachedValue == t) {
-        return cachedIndex;
+      if cache.Some? && cache.value == t {
+        return cache.index;
       }
     }
     method Remove... {
       ...;
       if ... {
-        if (cachedIndex == j) {
-          // clear the cache
-          cachedIndex := -1;
-        } else if (j < cachedIndex) {
-          // adjust for the shifting down
-          cachedIndex := cachedIndex - 1;
+        if cache.Some? {
+          if cache.index == j {
+            // clear the cache
+            cache := None;
+          } else if j < cache.index {
+            // adjust for the shifting down
+            cache := cache.(index := cache.index - 1);
+          }
         }
       }
     }

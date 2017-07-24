@@ -150,4 +150,4 @@ SubsetTypes.dfy(170,20): Error: cannot establish the existence of LHS values tha
 Execution trace:
     (0,0): anon0
 
-Dafny program verifier finished with 2 verified, 44 errors
+Dafny program verifier finished with 3 verified, 44 errors

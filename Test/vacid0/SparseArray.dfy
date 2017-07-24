@@ -1,7 +1,11 @@
 // RUN: %dafny /compile:0 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
-class SparseArray<T> {
+// This file was created in the early stages of Dafny, when the
+// language didn't even support arrays yet.  Still, as written,
+// it does verify.
+
+class SparseArray<T(0)> {
   ghost var Contents: seq<T>;
   var zero: T;
   /*private*/ var a: seq<T>;  // should really be an array
@@ -104,7 +108,7 @@ class SparseArray<T> {
 }
 
 /* The following method is here only to simulate support of arrays in Dafny */
-/*private*/ method AllocateArray<G>(n: int) returns (arr: seq<G>)
+/*private*/ method AllocateArray<G(0)>(n: int) returns (arr: seq<G>)
   requires 0 <= n;
   ensures |arr| == n;
 {

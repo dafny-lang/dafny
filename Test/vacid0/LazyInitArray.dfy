@@ -1,17 +1,17 @@
 // RUN: %dafny /compile:0 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
-class LazyInitArray<T> {
-  ghost var Contents: seq<T>;
-  var Zero: T;
-  /*private*/ var a: array<T>;
-  /*private*/ var b: array<int>;
-  /*private*/ var c: array<int>;
-  /*private*/ var n: int;
-  /*private*/ ghost var d: seq<int>;
-  /*private*/ ghost var e: seq<int>;
-  function Valid(): bool
-    reads this, a, b, c;
+class LazyInitArray<T(0)> {
+  ghost var Contents: seq<T>
+  var Zero: T
+  /*private*/ var a: array<T>
+  /*private*/ var b: array<int>
+  /*private*/ var c: array<int>
+  /*private*/ var n: int
+  /*private*/ ghost var d: seq<int>
+  /*private*/ ghost var e: seq<int>
+  predicate Valid()
+    reads this, a, b, c
   {
     a != null && b != null && c != null &&
     a.Length == |Contents| &&
@@ -38,11 +38,11 @@ class LazyInitArray<T> {
   }
 
   method Init(N: int, zero: T)
-    requires 0 <= N;
-    modifies this, a, b, c;
-    ensures Valid();
-    ensures |Contents| == N && Zero == zero;
-    ensures (forall x :: x in Contents ==> x == zero);
+    requires 0 <= N
+    modifies this, a, b, c
+    ensures Valid()
+    ensures |Contents| == N && Zero == zero
+    ensures forall x :: x in Contents ==> x == zero
   {
     a := new T[N];
     b := new int[N];
@@ -54,10 +54,10 @@ class LazyInitArray<T> {
     ghost var s := [];
     ghost var id := [];
     ghost var k := 0;
-    while (k < N)
-      invariant k <= N;
-      invariant |s| == k && (forall i :: 0 <= i && i < |s| ==> s[i] == zero);
-      invariant |id| == k && (forall i :: 0 <= i && i < k ==> id[i] == i);
+    while k < N
+      invariant k <= N
+      invariant |s| == k && forall i :: 0 <= i && i < |s| ==> s[i] == zero
+      invariant |id| == k && forall i :: 0 <= i && i < k ==> id[i] == i
     {
       s := s + [zero];
       id := id + [k];
@@ -71,11 +71,11 @@ class LazyInitArray<T> {
   }
 
   method Get(i: int) returns (x: T)
-    requires Valid();
-    requires 0 <= i && i < |Contents|;
-    ensures x == Contents[i];
+    requires Valid()
+    requires 0 <= i && i < |Contents|
+    ensures x == Contents[i]
   {
-    if (0 <= b[i] && b[i] < n && c[b[i]] == i) {
+    if 0 <= b[i] && b[i] < n && c[b[i]] == i {
       x := a[i];
     } else {
       x := Zero;
@@ -83,14 +83,14 @@ class LazyInitArray<T> {
   }
 
   method Set(i: int, x: T)
-    requires Valid();
-    requires 0 <= i && i < |Contents|;
-    modifies this, a, b, c;
-    ensures Valid();
-    ensures |Contents| == |old(Contents)| && Contents == Contents[i := x];
-    ensures Zero == old(Zero);
+    requires Valid()
+    requires 0 <= i && i < |Contents|
+    modifies this, a, b, c
+    ensures Valid()
+    ensures |Contents| == |old(Contents)| && Contents == Contents[i := x]
+    ensures Zero == old(Zero)
   {
-    if (0 <= b[i] && b[i] < n && c[b[i]] == i) {
+    if 0 <= b[i] && b[i] < n && c[b[i]] == i {
     } else {
       assert n <= e[i];  // lemma
       b[i] := n;

@@ -74,7 +74,7 @@ namespace Microsoft.Dafny
     public bool PrintStats = false;
     public bool PrintFunctionCallGraph = false;
     public bool WarnShadowing = false;
-    public bool EnforceDefiniteAssignment = false;
+    public bool EnforceDefiniteAssignment = true;
     public int DeprecationNoise = 1;
     public bool VerifyAllModules = false;
     public bool SeparateModuleOutput = false;
@@ -505,8 +505,8 @@ namespace Microsoft.Dafny
   /warnShadowing  Emits a warning if the name of a declared variable caused another variable
                 to be shadowed
   /definiteAssignment:<n>
-                0 (default) - ignores definite assignment rules
-                1 - enforces definite assignment rules
+                0 - ignores definite assignment rules
+                1 (default) - enforces definite assignment rules
   /deprecation:<n>
                 0 - don't give any warnings about deprecated features
                 1 (default) - show warnings about deprecated features

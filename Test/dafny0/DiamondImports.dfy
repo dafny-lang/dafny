@@ -3,7 +3,7 @@
 
 module ImportByName {
   module A {
-    type T
+    type T(0)
     function method P(): T
     method M(t: T)
   }
@@ -58,7 +58,7 @@ module ImportByName {
 
 module ImportOpened {
   module A {
-    type T
+    type T(0)
     function method P(): T
     method M(t: T)
   }
@@ -87,7 +87,7 @@ module ImportOpened {
     import opened C'
 
     method Client() returns (t: B.A.T, u: C.A.T, v: C'.A.T, w: B.T) {
-      t,u, v, w := u, v, w, t;
+      t, u, v, w := u, v, w, t;
       var x, y, z := B.A.P(), C.A.P(), C'.A.P();
       assert x == y == z;
       var o;

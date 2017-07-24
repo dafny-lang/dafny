@@ -1,21 +1,21 @@
 // RUN: %dafny /compile:0 /dprint:"%t.dprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
-class RingBuffer<T>
+class RingBuffer<T(0)>
 {
   // public view of the class:
-  ghost var Contents: seq<T>;  // the contents of the ring buffer
-  ghost var N: nat;  // the capacity of the ring buffer
-  ghost var Repr: set<object>;  // the set of objects used in the implementation
+  ghost var Contents: seq<T>  // the contents of the ring buffer
+  ghost var N: nat  // the capacity of the ring buffer
+  ghost var Repr: set<object>  // the set of objects used in the implementation
 
   // private implementation:
-  var data: array<T>;
-  var start: nat;
-  var len: nat;
+  var data: array<T>
+  var start: nat
+  var len: nat
 
   // Valid encodes the consistency of RingBuffer objects (think, invariant)
   predicate Valid()
-    reads this, Repr;
+    reads this, Repr
   {
     this in Repr && null !in Repr &&
     data != null && data in Repr &&
@@ -27,8 +27,8 @@ class RingBuffer<T>
   }
 
   constructor Create(n: nat)
-    ensures Valid() && fresh(Repr - {this});
-    ensures Contents == [] && N == n;
+    ensures Valid() && fresh(Repr - {this})
+    ensures Contents == [] && N == n
   {
     data := new T[n];
     Repr := {this, data};
@@ -37,29 +37,29 @@ class RingBuffer<T>
   }
 
   method Clear()
-    requires Valid();
-    modifies Repr;
-    ensures Valid() && fresh(Repr - old(Repr));
-    ensures Contents == [] && N == old(N);
+    requires Valid()
+    modifies Repr
+    ensures Valid() && fresh(Repr - old(Repr))
+    ensures Contents == [] && N == old(N)
   {
     len := 0;
     Contents := [];
   }
 
   method Head() returns (x: T)
-    requires Valid();
-    requires Contents != [];
-    ensures x == Contents[0];
+    requires Valid()
+    requires Contents != []
+    ensures x == Contents[0]
   {
     x := data[start];
   }
 
   method Enqueue(x: T)
-    requires Valid();
-    requires |Contents| != N;
-    modifies Repr;
-    ensures Valid() && fresh(Repr - old(Repr));
-    ensures Contents == old(Contents) + [x] && N == old(N);
+    requires Valid()
+    requires |Contents| != N
+    modifies Repr
+    ensures Valid() && fresh(Repr - old(Repr))
+    ensures Contents == old(Contents) + [x] && N == old(N)
   {
     var nextEmpty := if start + len < data.Length 
                      then start + len else start + len - data.Length;
@@ -69,11 +69,11 @@ class RingBuffer<T>
   }
 
   method Dequeue() returns (x: T)
-    requires Valid();
-    requires Contents != [];
-    modifies Repr;
-    ensures Valid() && fresh(Repr - old(Repr));
-    ensures x == old(Contents)[0] && Contents == old(Contents)[1..] && N == old(N);
+    requires Valid()
+    requires Contents != []
+    modifies Repr
+    ensures Valid() && fresh(Repr - old(Repr))
+    ensures x == old(Contents)[0] && Contents == old(Contents)[1..] && N == old(N)
   {
     x := data[start];  assert x == Contents[0];
     start, len := if start + 1 == data.Length then 0 else start + 1, len - 1;

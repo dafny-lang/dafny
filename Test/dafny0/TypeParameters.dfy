@@ -17,13 +17,10 @@ class C<U(==)> {
   {
     var t := F(3,u) && F(this,u);
     var kz := M(t,u);
-	var a := G();
+    var a := G();
     assert kz && (a || !a);
   }
   method G<Y>() returns (a: Y)
-  {
-    
-  }
 }
 
 class SetTest {
@@ -188,11 +185,11 @@ class TyKn_C<T> {
   function G(): T
     reads this;
   {
-     x
+    x
   }
   method M() returns (t: T)
   {
-
+    return x;
   }
 }
 

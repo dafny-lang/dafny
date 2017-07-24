@@ -2,10 +2,10 @@
 // RUN: %diff "%s.expect" "%t"
 
 class MyClass<T> {
-  var f: T;
+  var f: T
 }
 
-method M<T>()
+method M<T(0)>()
 {
   var a, b := new T[100], new T[100];
   forall i | 0 <= i < 100 {
@@ -20,8 +20,8 @@ method M<T>()
 }
 
 method N<T>(a: MyClass<T>, b: MyClass<T>)
-  requires a != null && b != null;
-  modifies a, b;
+  requires a != null && b != null
+  modifies a, b
 {
   var q := [a, b];
   forall i | 0 <= i < 2 {
@@ -43,16 +43,16 @@ method P<T>(t0: T, t1: T, t2: T) {
 }
 
 method Q<T>(c0: MyClass<T>, c1: MyClass<T>)
-  requires c0 != null && c1 != null;
-  modifies c0, c1;
+  requires c0 != null && c1 != null
+  modifies c0, c1
 {
   c0.f, c1.f := c0.f, c0.f;  // okay -- RHSs are the same
   c0.f, c0.f, c0.f, c0.f := *, *, c1.f, *;  // okay -- only one RHS is non-*
   c0.f, c0.f, c0.f, c0.f := c0.f, *, c1.f, *;  // error -- duplicate LHR
 }
 
-method R<T>(i: nat, j: nat)
-  requires i < 10 && j < 10;
+method R<T(0)>(i: nat, j: nat)
+  requires i < 10 && j < 10
 {
   var a := new T[10];
   a[i], a[j] := a[5], a[5];  // okay -- RHSs are the same
@@ -60,8 +60,8 @@ method R<T>(i: nat, j: nat)
   a[i], a[i], a[i], a[j] := *, a[i], a[j], a[i];  // error -- possible duplicate LHS
 }
 
-method S<T>(i: nat, j: nat)
-  requires i < 10 && j < 20;
+method S<T(0)>(i: nat, j: nat)
+  requires i < 10 && j < 20
 {
   var a := new T[10,20];
   a[i,j], a[i,i] := a[5,7], a[5,7];  // okay -- RHSs are the same

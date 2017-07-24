@@ -164,10 +164,10 @@ class DatatypeInduction<T> {
 abstract module OpaqueTypesWithParameters {
   type P<A>
 
-  method M<B>(p: P<B>) returns (q: P<B>)
+  method M<B>(p: P<B>, it: P<int>) returns (q: P<B>)
   {
     q := p;
-    var a := new P<int>[500];
+    var a := new P<int>[500](_ => it);
   }
 
   method DifferentTypes(a: array<P<int>>, b: array<P<bool>>)
