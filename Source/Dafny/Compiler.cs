@@ -1597,7 +1597,8 @@ namespace Microsoft.Dafny {
         } else {
           defaultCtor = ((CoDatatypeDecl)cl).Ctors[0];  // pick any one of them (but must be the same as in CompileDatatypeStruct)
         }
-        return defaultCtor.Formals.TrueForAll(formal => formal.IsGhost || InitializerIsKnown(formal.Type));
+        var subst = Resolver.TypeSubstitutionMap(cl.TypeArgs, udt.TypeArgs);
+        return defaultCtor.Formals.TrueForAll(formal => formal.IsGhost || InitializerIsKnown(Resolver.SubstType(formal.Type, subst)));
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected type
       }
