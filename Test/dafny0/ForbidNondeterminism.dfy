@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:1 /deterministic "%s" > "%t"
+// RUN: %dafny /compile:1 /definiteAssignment:3 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 class C {
@@ -21,7 +21,7 @@ method M(c: C, u: int) returns (r: int)
     r := y;  // fine
   } else if u < 30 {
     y := 4;
-    y := *;  // compiler error under /deterministic
+    y := *;  // compiler error under deterministic rules
     r := y;  // allowed by definite-assignment rules, but the previous line is reported by compiler
   }
   r := x;
@@ -54,4 +54,10 @@ class CK {
   constructor Init() {
     x := 10;
   }  // error: value of y left nondeterministic
+}
+
+method ArrayAllocation(n: nat, p: nat, q: nat)
+{
+  var a := new int[n];  // error: the array elements will be assigned nondeterministically
+  var m := new bool[p,q];  // error: the matrix elements will be assigned nondeterministically
 }

@@ -46,7 +46,6 @@ namespace Microsoft.Dafny
     public bool UnicodeOutput = false;
     public bool DisallowSoundnessCheating = false;
     public bool Dafnycc = false;
-    public bool ForbidNondeterminism = false;
     public int Induction = 3;
     public int InductionHeuristic = 6;
     public string DafnyPrelude = null;
@@ -74,7 +73,10 @@ namespace Microsoft.Dafny
     public bool PrintStats = false;
     public bool PrintFunctionCallGraph = false;
     public bool WarnShadowing = false;
-    public bool EnforceDefiniteAssignment = true;
+    public int DefiniteAssignmentLevel = 1;  // [0..4]
+    public bool ForbidNondeterminism {
+      get { return DefiniteAssignmentLevel == 3; }
+    }
     public int DeprecationNoise = 1;
     public bool VerifyAllModules = false;
     public bool SeparateModuleOutput = false;
@@ -191,10 +193,6 @@ namespace Microsoft.Dafny
             }
             return true;
           }
-
-        case "deterministic":
-          ForbidNondeterminism = true;
-          return true;
 
         case "induction":
           ps.GetNumericArgument(ref Induction, 4);
@@ -313,8 +311,8 @@ namespace Microsoft.Dafny
 
         case "definiteAssignment": {
             int da = 0;
-            if (ps.GetNumericArgument(ref da, 2)) {
-              EnforceDefiniteAssignment = da == 1;
+            if (ps.GetNumericArgument(ref da, 4)) {
+              DefiniteAssignmentLevel = da;
             }
             return true;
           }
@@ -448,7 +446,6 @@ namespace Microsoft.Dafny
   /out:<file>
                 filename and location for the generated .cs, .dll or .exe files 
   /dafnycc      Disable features not supported by DafnyCC
-  /deterministic  Forbid the use of compiled nondeterministic statements
   /noCheating:<n>
                 0 (default) - allow assume statements and free invariants
                 1 - treat all assumptions as asserts, and drop free.
@@ -505,8 +502,15 @@ namespace Microsoft.Dafny
   /warnShadowing  Emits a warning if the name of a declared variable caused another variable
                 to be shadowed
   /definiteAssignment:<n>
-                0 - ignores definite assignment rules
-                1 (default) - enforces definite assignment rules
+                0 - ignores definite-assignment rules; this mode is for testing only--it is
+                    not sound to be used with compilation
+                1 (default) - enforces definite-assignment rules
+                2 - enforces definite-assignment for all non-ghost variables and fields,
+                    regardless of their types
+                3 - like 2, but also performs checks in the compiler that no nondeterministic
+                    statements are used; thus, a program that passes at this level 3 is one
+                    that the language guarantees that values seen during execution will be
+                    the same in every run of the program
   /deprecation:<n>
                 0 - don't give any warnings about deprecated features
                 1 (default) - show warnings about deprecated features

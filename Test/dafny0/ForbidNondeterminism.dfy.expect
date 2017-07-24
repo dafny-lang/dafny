@@ -24,5 +24,11 @@ Execution trace:
 ForbidNondeterminism.dfy(48,11): Error: variable 'a', which is subject to definite-assignment rules, might be used before it has been assigned
 Execution trace:
     (0,0): anon0
+ForbidNondeterminism.dfy(61,11): Error: unless an initializer is provided for the array elements, a new array of 'int' must have empty size
+Execution trace:
+    (0,0): anon0
+ForbidNondeterminism.dfy(62,11): Error: unless an initializer is provided for the array elements, a new array of 'bool' must have empty size
+Execution trace:
+    (0,0): anon0
 
-Dafny program verifier finished with 1 verified, 7 errors
+Dafny program verifier finished with 1 verified, 9 errors
