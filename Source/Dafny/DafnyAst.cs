@@ -3683,7 +3683,7 @@ namespace Microsoft.Dafny {
                         List<MaybeFreeExpression> yieldRequires,
                         List<MaybeFreeExpression> yieldEnsures,
                         BlockStmt body, Attributes attributes, IToken signatureEllipsis)
-      : base(tok, name, module, typeArgs, new List<MemberDecl>(), attributes, null)
+      : base(tok, name, module, MutateIntoRequiringZeroInitBit(typeArgs), new List<MemberDecl>(), attributes, null)
     {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
@@ -3716,6 +3716,15 @@ namespace Microsoft.Dafny {
 
       YieldCountVariable = new LocalVariable(tok, tok, "_yieldCount", new EverIncreasingType(), true);
       YieldCountVariable.type = YieldCountVariable.OptionalType;  // resolve YieldCountVariable here
+    }
+
+    private static List<TypeParameter> MutateIntoRequiringZeroInitBit(List<TypeParameter> typeArgs) {
+      Contract.Requires(typeArgs != null);
+      Contract.Ensures(Contract.Result<List<TypeParameter>>() == typeArgs);
+      foreach (var tp in typeArgs) {
+        tp.Characteristics.MustSupportZeroInitialization = true;
+      }
+      return typeArgs;
     }
 
     /// <summary>

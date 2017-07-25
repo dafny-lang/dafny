@@ -69,7 +69,7 @@ iterator M<T>(l: List<T>, c: Cell) yields (x: T)
   }
 }
 
-method Client<T(==)>(l: List, stop: T) returns (s: seq<T>)
+method Client<T(==,0)>(l: List, stop: T) returns (s: seq<T>)
   requires l != null && l.Valid();
 {
   var c := new Cell;

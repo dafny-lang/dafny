@@ -505,8 +505,8 @@ namespace Microsoft.Dafny
                 0 - ignores definite-assignment rules; this mode is for testing only--it is
                     not sound to be used with compilation
                 1 (default) - enforces definite-assignment rules
-                2 - enforces definite-assignment for all non-ghost variables and fields,
-                    regardless of their types
+                2 - enforces definite-assignment for all non-ghost non-yield-parameter
+                    variables and fields, regardless of their types
                 3 - like 2, but also performs checks in the compiler that no nondeterministic
                     statements are used; thus, a program that passes at this level 3 is one
                     that the language guarantees that values seen during execution will be

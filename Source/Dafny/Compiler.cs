@@ -214,6 +214,10 @@ namespace Microsoft.Dafny {
             //     }
             //   }
 
+            if (DafnyOptions.O.ForbidNondeterminism && iter.Outs.Count > 0) {
+              Error("since yield parameters are initialized arbitrarily, iterators (line {0}) are forbidden by /deterministic option", wr, iter.tok.line);
+            }
+
             Indent(indent, wr);
             wr.Write("public class @{0}", iter.CompileName);
             if (iter.TypeArgs.Count != 0) {

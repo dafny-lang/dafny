@@ -1,5 +1,6 @@
 
-Dafny program verifier finished with 2 verified, 0 errors
+Dafny program verifier finished with 4 verified, 0 errors
+Compilation error: since yield parameters are initialized arbitrarily, iterators (line 72) are forbidden by /deterministic option
 Compilation error: nondeterministic assignment (line 18) forbidden by /deterministic option
 Compilation error: nondeterministic assignment (line 19) forbidden by /deterministic option
 Compilation error: assign-such-that statement (line 20) forbidden by /deterministic option

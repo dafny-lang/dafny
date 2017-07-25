@@ -64,3 +64,11 @@ method DeclWithHavoc()
   var b: int := *;  // error: technically fine, since b is never used, but here the compiler
                     // checking is overly conservative
 }
+
+iterator IterWeird() yields ()  // no yields parameters, so allowed
+{
+}
+
+iterator Iter() yields (x: int)  // error: not allowed by determinism rules
+{
+}

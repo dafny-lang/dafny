@@ -58,7 +58,7 @@ iterator Iter<T>(s: set<T>) yields (x: T)
   }
 }
 
-method UseIterToCopy<T>(s: set<T>) returns (t: set<T>)
+method UseIterToCopy<T(0)>(s: set<T>) returns (t: set<T>)
   ensures s == t;
 {
   t := {};
