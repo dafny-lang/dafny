@@ -321,58 +321,6 @@ namespace Microsoft.Dafny {
       foreach (var decl in builtIns.SystemModule.TopLevelDecls) {
         if (decl is ArrayClassDecl) {
           int dims = ((ArrayClassDecl)decl).Dims;
-          // public static T[,] InitNewArray2<T>(BigInteger size0, BigInteger size1) {
-          Indent(3 * IndentAmount, wr);
-          wr.Write("public static T[");
-          RepeatWrite(wr, dims, "", ",");
-          wr.Write("] InitNewArray{0}<T>(", dims);
-          RepeatWrite(wr, dims, "BigInteger size{0}", ", ");
-          wr.WriteLine(") {");
-          // int s0 = (int)size0;
-          for (int i = 0; i < dims; i++) {
-            Indent(4 * IndentAmount, wr);
-            wr.WriteLine("int s{0} = (int)size{0};", i);
-          }
-          // T[,] a = new T[s0, s1];
-          Indent(4 * IndentAmount, wr);
-          wr.Write("T[");
-          RepeatWrite(wr, dims, "", ",");
-          wr.Write("] a = new T[");
-          RepeatWrite(wr, dims, "s{0}", ",");
-          wr.WriteLine("];");
-          // BigInteger[,] b = a as BigInteger[,];
-          Indent(4 * IndentAmount, wr);
-          wr.Write("BigInteger[");
-          RepeatWrite(wr, dims, "", ",");
-          wr.Write("] b = a as BigInteger[");
-          RepeatWrite(wr, dims, "", ",");
-          wr.WriteLine("];");
-          // if (b != null) {
-          Indent(4 * IndentAmount, wr);
-          wr.WriteLine("if (b != null) {");
-          // BigInteger z = new BigInteger(0);
-          Indent(5 * IndentAmount, wr);
-          wr.WriteLine("BigInteger z = new BigInteger(0);");
-          // for (int i0 = 0; i0 < s0; i0++)
-          //   for (int i1 = 0; i1 < s1; i1++)
-          for (int i = 0; i < dims; i++) {
-            Indent((5 + i) * IndentAmount, wr);
-            wr.WriteLine("for (int i{0} = 0; i{0} < s{0}; i{0}++)", i);
-          }
-          // b[i0,i1] = z;
-          Indent((5 + dims) * IndentAmount, wr);
-          wr.Write("b[");
-          RepeatWrite(wr, dims, "i{0}", ",");
-          wr.WriteLine("] = z;");
-          // }
-          Indent(4 * IndentAmount, wr);
-          wr.WriteLine("}");
-          // return a;
-          Indent(4 * IndentAmount, wr);
-          wr.WriteLine("return a;");
-          // }
-          Indent(3 * IndentAmount, wr);
-          wr.WriteLine("}");  // end of method
 
           // Here is an overloading of the method name, where there is an initialValue parameter
           // public static T[,] InitNewArray2<T>(T z, BigInteger size0, BigInteger size1) {
@@ -2595,17 +2543,6 @@ namespace Microsoft.Dafny {
             foreach (Expression dim in tp.ArrayDimensions) {
               wr.Write(", ");
               TrParenExpr(dim, wr, false);
-            }
-            wr.Write(")");
-          } else if (tp.EType.IsIntegerType || tp.EType.IsTypeParameter) {
-            // Because the default constructor for BigInteger does not generate a valid BigInteger, we have
-            // to excplicitly initialize the elements of an integer array.  This is all done in a helper routine.
-            wr.Write("Dafny.ArrayHelpers.InitNewArray{0}<{1}>", tp.ArrayDimensions.Count, TypeName(tp.EType, wr));
-            string prefix = "(";
-            foreach (Expression dim in tp.ArrayDimensions) {
-              wr.Write(prefix);
-              TrParenExpr(dim, wr, false);
-              prefix = ", ";
             }
             wr.Write(")");
           } else {
