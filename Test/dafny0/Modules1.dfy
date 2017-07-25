@@ -125,7 +125,7 @@ abstract module Regression {
     predicate p<c,d>(m: map<c,d>)
 
     lemma m<a,b>(m: map<a,b>)
-      ensures exists m {:nowarn} :: p(var m : map<a,b> := m; m) // WISH: Zeta-expanding the let binding would provide a good trigger
+      ensures exists m :: p(var m : map<a,b> := m; m)
   }
 
   abstract module B
