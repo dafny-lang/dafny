@@ -4,12 +4,12 @@ Program compiled successfully
 Running...
 
 55
-Trunc( (-3.0 / 1.0) ) = -3 (expected -3)
+Trunc( -3.0 ) = -3 (expected -3)
 Trunc( (-28.0 / 10.0) ) = -3 (expected -3)
 Trunc( (-22.0 / 10.0) ) = -3 (expected -3)
 Trunc( (-1.0 / 10.0) ) = -1 (expected -1)
-Trunc( (0.0 / 1.0) ) = 0 (expected 0)
+Trunc( 0.0 ) = 0 (expected 0)
 Trunc( (1.0 / 10.0) ) = 0 (expected 0)
 Trunc( (22.0 / 10.0) ) = 2 (expected 2)
 Trunc( (28.0 / 10.0) ) = 2 (expected 2)
-Trunc( (3.0 / 1.0) ) = 3 (expected 3)
+Trunc( 3.0 ) = 3 (expected 3)
