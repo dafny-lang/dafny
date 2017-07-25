@@ -49,7 +49,9 @@ namespace Microsoft.Dafny {
 
       string s = string.Format("Compilation error: " + msg, args);
       ErrorWriter.WriteLine(s);
-      wr.WriteLine("/* {0} */", s);
+      if (wr != null) {
+        wr.WriteLine("/* {0} */", s);
+      }
       ErrorCount++;
     }
 
@@ -1421,67 +1423,10 @@ namespace Microsoft.Dafny {
     public static bool HasZeroInitializer(Type type) {
       Contract.Requires(type != null);
 
-      var xType = type.NormalizeExpandKeepConstraints();
-      if (xType is TypeProxy) {
-        // unresolved proxy; just treat as bool, since no particular type information is apparently needed for this type
-        return true;
-      }
-
-      if (xType is BoolType) {
-        return true;
-      } else if (xType is CharType) {
-        return true;
-      } else if (xType is IntType) {
-        return true;
-      } else if (xType is RealType) {
-        return true;
-      } else if (xType is BitvectorType) {
-        return true;
-      } else if (xType is ObjectType) {
-        return true;
-      } else if (xType is CollectionType) {
-        return true;
-      } else if (xType is ArrowType) {
-        return true;
-      }
-
-      var udt = (UserDefinedType)xType;
-      if (udt.ResolvedParam != null) {
-        return udt.ResolvedParam.Characteristics.MustSupportZeroInitialization;
-      }
-      var cl = udt.ResolvedClass;
-      Contract.Assert(cl != null);
-      if (cl is OpaqueTypeDecl) {
-        return ((OpaqueTypeDecl)cl).TheType.Characteristics.MustSupportZeroInitialization;
-      } else if (cl is NewtypeDecl) {
-        var td = (NewtypeDecl)cl;
-        if (td.Witness != null) {
-          return false;
-        } else {
-          return HasZeroInitializer(td.BaseType);
-        }
-      } else if (cl is SubsetTypeDecl) {
-        var td = (SubsetTypeDecl)cl;
-        if (td.Witness != null) {
-          return false;
-        } else {
-          return HasZeroInitializer(td.Rhs);
-        }
-      } else if (cl is TypeSynonymDeclBase) {
-        return ((TypeSynonymDeclBase)cl).Characteristics.MustSupportZeroInitialization;
-      } else if (cl is ClassDecl) {
-        return true;
-      } else if (cl is DatatypeDecl) {
-        DatatypeCtor defaultCtor;
-        if (cl is IndDatatypeDecl) {
-          defaultCtor = ((IndDatatypeDecl)cl).DefaultCtor;
-        } else {
-          defaultCtor = ((CoDatatypeDecl)cl).Ctors[0];  // pick any one of them (but must be the same as in CompileDatatypeStruct)
-        }
-        return defaultCtor.Formals.TrueForAll(formal => formal.IsGhost || HasZeroInitializer(formal.Type));
-      } else {
-        Contract.Assert(false); throw new cce.UnreachableException();  // unexpected type
-      }
+      bool hz, ik;
+      string dv;
+      TypeInitialization(type, null, null, out hz, out ik, out dv);
+      return hz;
     }
 
     /// <summary>
@@ -1490,150 +1435,203 @@ namespace Microsoft.Dafny {
     public static bool InitializerIsKnown(Type type) {
       Contract.Requires(type != null);
 
-      var xType = type.NormalizeExpandKeepConstraints();
-      if (xType is TypeProxy) {
-        // unresolved proxy; just treat as bool, since no particular type information is apparently needed for this type
-        return true;
-      }
-
-      if (xType is BoolType) {
-        return true;
-      } else if (xType is CharType) {
-        return true;
-      } else if (xType is IntType) {
-        return true;
-      } else if (xType is RealType) {
-        return true;
-      } else if (xType is BitvectorType) {
-        return true;
-      } else if (xType is ObjectType) {
-        return true;
-      } else if (xType is CollectionType) {
-        return true;
-      } else if (xType is ArrowType) {
-        return true;
-      }
-
-      var udt = (UserDefinedType)xType;
-      if (udt.ResolvedParam != null) {
-        return udt.ResolvedParam.Characteristics.MustSupportZeroInitialization;
-      }
-      var cl = udt.ResolvedClass;
-      Contract.Assert(cl != null);
-      if (cl is OpaqueTypeDecl) {
-        return ((OpaqueTypeDecl)cl).TheType.Characteristics.MustSupportZeroInitialization;
-      } else if (cl is NewtypeDecl) {
-        var td = (NewtypeDecl)cl;
-        if (td.Witness != null) {
-          return true;
-        } else if (td.NativeType != null) {
-          return true;
-        } else {
-          return InitializerIsKnown(td.BaseType);
-        }
-      } else if (cl is SubsetTypeDecl) {
-        var td = (SubsetTypeDecl)cl;
-        if (td.Witness != null) {
-          return true;
-        } else {
-          return InitializerIsKnown(td.Rhs);
-        }
-      } else if (cl is TypeSynonymDeclBase) {
-        return ((TypeSynonymDeclBase)cl).Characteristics.MustSupportZeroInitialization;
-      } else if (cl is ClassDecl) {
-        return true;
-      } else if (cl is DatatypeDecl) {
-        DatatypeCtor defaultCtor;
-        if (cl is IndDatatypeDecl) {
-          defaultCtor = ((IndDatatypeDecl)cl).DefaultCtor;
-        } else {
-          defaultCtor = ((CoDatatypeDecl)cl).Ctors[0];  // pick any one of them (but must be the same as in CompileDatatypeStruct)
-        }
-        var subst = Resolver.TypeSubstitutionMap(cl.TypeArgs, udt.TypeArgs);
-        return defaultCtor.Formals.TrueForAll(formal => formal.IsGhost || InitializerIsKnown(Resolver.SubstType(formal.Type, subst)));
-      } else {
-        Contract.Assert(false); throw new cce.UnreachableException();  // unexpected type
-      }
+      bool hz, ik;
+      string dv;
+      TypeInitialization(type, null, null, out hz, out ik, out dv);
+      return ik;
     }
 
     string DefaultValue(Type type, TextWriter wr) {
       Contract.Requires(type != null);
       Contract.Ensures(Contract.Result<string>() != null);
 
+      bool hz, ik;
+      string dv;
+      TypeInitialization(type, this, wr, out hz, out ik, out dv);
+      return dv;
+    }
+
+    /// <summary>
+    /// This method returns three things about the given type. Since the three things are related,
+    /// it makes sense to compute them side by side.
+    ///   hasZeroInitializer - "true" if a value of type "type" can be initialized with the all-zero bit pattern.
+    ///   initializerIsKnown - "true" if "type" denotes a type for which a specific value (witness) is known.
+    ///   defaultValue - If "compiler" is non-null, "defaultValue" is the C# representation of one possible value of the
+    ///                  type (not necessarily the same value as the zero initializer, if any, may give).
+    ///                  If "compiler" is null, then "defaultValue" can return as anything.
+    /// </summary>
+    static void TypeInitialization(Type type, Compiler/*?*/ compiler, TextWriter/*?*/ wr, out bool hasZeroInitializer, out bool initializerIsKnown, out string defaultValue) {
+      Contract.Requires(type != null);
+      Contract.Ensures(!Contract.ValueAtReturn(out hasZeroInitializer) || Contract.ValueAtReturn(out initializerIsKnown));  // hasZeroInitializer ==> initializerIsKnown
+      Contract.Ensures(compiler == null || Contract.ValueAtReturn(out defaultValue) != null);
+
       var xType = type.NormalizeExpandKeepConstraints();
       if (xType is TypeProxy) {
         // unresolved proxy; just treat as bool, since no particular type information is apparently needed for this type
-        return "false";
+        xType = new BoolType();
       }
 
       if (xType is BoolType) {
-        return "false";
+        hasZeroInitializer = true;
+        initializerIsKnown = true;
+        defaultValue = "false";
+        return;
       } else if (xType is CharType) {
-        return "'D'";
+        hasZeroInitializer = true;
+        initializerIsKnown = true;
+        defaultValue = "'D'";
+        return;
       } else if (xType is IntType) {
-        return "BigInteger.Zero";
+        hasZeroInitializer = true;
+        initializerIsKnown = true;
+        defaultValue = "BigInteger.Zero";
+        return;
       } else if (xType is RealType) {
-        return "Dafny.BigRational.ZERO";
+        hasZeroInitializer = true;
+        initializerIsKnown = true;
+        defaultValue = "Dafny.BigRational.ZERO";
+        return;
       } else if (xType is BitvectorType) {
         var t = (BitvectorType)xType;
-        return t.NativeType != null ? "0" : "BigInteger.Zero";
+        hasZeroInitializer = true;
+        initializerIsKnown = true;
+        defaultValue = t.NativeType != null ? "0" : "BigInteger.Zero";
+        return;
       } else if (xType is ObjectType) {
-        return "(object)null";
+        hasZeroInitializer = true;
+        initializerIsKnown = true;
+        defaultValue = "(object)null";
+        return;
       } else if (xType is CollectionType) {
-        return TypeName(xType, wr) + ".Empty";
+        hasZeroInitializer = false;
+        initializerIsKnown = true;
+        defaultValue = compiler == null ? null : compiler.TypeName(xType, wr) + ".Empty";
+        return;
       } else if (xType is ArrowType) {
-        return "null";  // TODO: shouldn't this be preceded by a type-name cast?
+        hasZeroInitializer = true;
+        initializerIsKnown = true;
+        defaultValue = "null";  // TODO: shouldn't this be preceded by a type-name cast?
+        return;
       }
 
       var udt = (UserDefinedType)xType;
       if (udt.ResolvedParam != null) {
+        hasZeroInitializer = udt.ResolvedParam.Characteristics.MustSupportZeroInitialization;
+        initializerIsKnown = hasZeroInitializer;
         // If the module is complete, we expect "udt.ResolvedClass == null" at this time. However, it could be that
         // the compiler has already generated an error about this type not being compilable, in which case
         // "udt.ResolvedClass" might be non-null here.
-        return "default(" + TypeName_UDT(udt.FullCompileName, udt.TypeArgs, wr) + ")";
+        defaultValue = compiler == null ? null : "default(" + compiler.TypeName_UDT(udt.FullCompileName, udt.TypeArgs, wr) + ")";
+        return;
       }
       var cl = udt.ResolvedClass;
       Contract.Assert(cl != null);
-      if (cl is NewtypeDecl) {
+      if (cl is OpaqueTypeDecl) {
+        hasZeroInitializer = ((OpaqueTypeDecl)cl).TheType.Characteristics.MustSupportZeroInitialization;
+        initializerIsKnown = hasZeroInitializer;
+        // The compiler should never need to know a "defaultValue" for an opaque type, but this routine may
+        // be asked from outside the compiler about one of the other output booleans.
+        Contract.Assume(compiler == null);
+        defaultValue = null;
+        return;
+      } else if (cl is NewtypeDecl) {
         var td = (NewtypeDecl)cl;
         if (td.Witness != null) {
-          return TypeName_UDT(udt.FullCompileName, udt.TypeArgs, wr) + ".Witness";
+          hasZeroInitializer = false;
+          initializerIsKnown = true;
+          defaultValue = compiler == null ? null : compiler.TypeName_UDT(udt.FullCompileName, udt.TypeArgs, wr) + ".Witness";
+          return;
         } else if (td.NativeType != null) {
-          return "0";
+          hasZeroInitializer = HasZeroInitializer(td.BaseType);
+          initializerIsKnown = true;
+          defaultValue = "0";
+          return;
         } else {
-          return DefaultValue(td.BaseType, wr);
+          TypeInitialization(td.BaseType, compiler, wr, out hasZeroInitializer, out initializerIsKnown, out defaultValue);
+          return;
         }
       } else if (cl is SubsetTypeDecl) {
         var td = (SubsetTypeDecl)cl;
         if (td.Witness != null) {
-          return TypeName_UDT(udt.FullCompileName, udt.TypeArgs, wr) + ".Witness";
+          hasZeroInitializer = false;
+          initializerIsKnown = true;
+          defaultValue = compiler == null ? null : compiler.TypeName_UDT(udt.FullCompileName, udt.TypeArgs, wr) + ".Witness";
+          return;
         } else {
-          return DefaultValue(td.Rhs, wr);
+          TypeInitialization(td.Rhs, compiler, wr, out hasZeroInitializer, out initializerIsKnown, out defaultValue);
+          return;
         }
+      } else if (cl is TypeSynonymDeclBase) {
+        hasZeroInitializer = ((TypeSynonymDeclBase)cl).Characteristics.MustSupportZeroInitialization;
+        initializerIsKnown = hasZeroInitializer;
+        // The compiler should never need to know a "defaultValue" for a(n internal) type synonym, but this routine may
+        // be asked from outside the compiler about one of the other output booleans.
+        Contract.Assume(compiler == null);
+        defaultValue = null;
+        return;
       } else if (cl is ClassDecl) {
-        return string.Format("({0})null", TypeName(xType, wr));
+        hasZeroInitializer = true;
+        initializerIsKnown = true;
+        defaultValue = compiler == null ? null : string.Format("({0})null", compiler.TypeName(xType, wr));
+        return;
       } else if (cl is DatatypeDecl) {
-        var s = "@" + udt.FullCompileName;
-        var rc = cl;
-        if (DafnyOptions.O.IronDafny &&
-            !(xType is ArrowType) &&
-            rc != null &&
-            rc.Module != null &&
-            !rc.Module.IsDefaultModule) {
-          while (rc.ClonedFrom != null || rc.ExclusiveRefinement != null) {
-            if (rc.ClonedFrom != null) {
-              rc = (TopLevelDecl)rc.ClonedFrom;
-            } else {
-              Contract.Assert(rc.ExclusiveRefinement != null);
-              rc = rc.ExclusiveRefinement;
+        // --- hasZeroInitializer ---
+        hasZeroInitializer = false;  // TODO: improve this one
+        // --- initializerIsKnown ---
+        if (cl is CoDatatypeDecl) {
+          // The constructors of a codatatype may use type arguments that are not "smaller" than "type",
+          // in which case recursing on the types of the constructor's formals may lead to an infinite loop
+          // here.  If this were important, the code here could be changed to detect such loop, which would
+          // let "initializerIsKnown" be computed more precisely.  For now, set it to "true" if the type
+          // has a zero initializer.
+          initializerIsKnown = hasZeroInitializer;
+        } else {
+          DatatypeCtor defaultCtor = ((IndDatatypeDecl)cl).DefaultCtor;
+          var subst = Resolver.TypeSubstitutionMap(cl.TypeArgs, udt.TypeArgs);
+          // Compute:
+          //   initializerIsKnown = defaultCtor.Formals.TrueForAll(formal => formal.IsGhost || InitializerIsKnown(Resolver.SubstType(formal.Type, subst)));
+          initializerIsKnown = true;
+          foreach (var formal in defaultCtor.Formals) {
+            if (formal.IsGhost) {
+              continue;
+            }
+            bool hz, ik;
+            string dv;
+            var ty = Resolver.SubstType(formal.Type, subst);
+            TypeInitialization(ty, compiler, wr, out hz, out ik, out dv);
+            if (!ik) {
+              initializerIsKnown = false;
+              break;
             }
           }
-          s = "@" + rc.FullCompileName;
         }
-        if (udt.TypeArgs.Count != 0) {
-          s += "<" + TypeNames(udt.TypeArgs, wr) + ">";
+        // --- defaultValue ---
+        if (compiler == null) {
+          defaultValue = null;
+        } else {
+          var s = "@" + udt.FullCompileName;
+          var rc = cl;
+          if (DafnyOptions.O.IronDafny &&
+              !(xType is ArrowType) &&
+              rc != null &&
+              rc.Module != null &&
+              !rc.Module.IsDefaultModule) {
+            while (rc.ClonedFrom != null || rc.ExclusiveRefinement != null) {
+              if (rc.ClonedFrom != null) {
+                rc = (TopLevelDecl)rc.ClonedFrom;
+              } else {
+                Contract.Assert(rc.ExclusiveRefinement != null);
+                rc = rc.ExclusiveRefinement;
+              }
+            }
+            s = "@" + rc.FullCompileName;
+          }
+          if (udt.TypeArgs.Count != 0) {
+            s += "<" + compiler.TypeNames(udt.TypeArgs, wr) + ">";
+          }
+          defaultValue = string.Format("new {0}()", s);
         }
-        return string.Format("new {0}()", s);
+        return;
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected type
       }

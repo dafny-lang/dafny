@@ -1910,10 +1910,10 @@ module ZI {
     P(y);  // error: type of argument is expected to support zero initialization
   }
 
-  datatype List<T> = Nil | Cons(T, List<T>)  // this type DOES support zero initialization, regardless of T
+  datatype List<T> = Nil | Cons(T, List<T>)  // this type COULD support zero initialization, regardless of T
   method M1<G,H(0)>(xs: List<G>, ys: List<H>) {
-    P(xs);
-    P(ys);
+    P(xs);  // error: type of argument is expected to support zero initialization
+    P(ys);  // error: type of argument is expected to support zero initialization
   }
 
   class Cls {
@@ -2006,7 +2006,7 @@ module ZI_RefinementConcrete1 refines ZI_RefinementAbstract {
 
   method P<G(0)>(g: G)
   method M(m: Z.RGB, n: Z.XYZ) {
-    P(m);
+    P(m);  // error: Z.RGB is not known to support zero initialization (wish that this weren't so)
     P(n);  // error: Z.XYZ is not known to support zero initialization
   }
 

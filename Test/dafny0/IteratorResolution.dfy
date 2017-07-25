@@ -257,9 +257,9 @@ module IteratorTypeParameters {
 
   method AnotherClient() {
     if * {
-      var iter := new AnotherIter<string,Stream>("hello");  // error (x2): cannot pass in Stream as B(==)
+      var iter := new AnotherIter<real,Stream>(3.2);  // error (x2): cannot pass in Stream as B(==)
     } else {
-      var iter := new AnotherIter<string,Six>("hello");  // error (x2): cannot pass in Six as B(0)
+      var iter := new AnotherIter<real,Six>(3.2);  // error (x2): cannot pass in Six as B(0)
     }
   }
 }
