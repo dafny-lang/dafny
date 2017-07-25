@@ -423,6 +423,7 @@ namespace DafnyLanguage
                 case "calc":
                 case "case":
                 case "class":
+                case "const":
                 case "trait":
                 case "extends":
                 case "codatatype":
