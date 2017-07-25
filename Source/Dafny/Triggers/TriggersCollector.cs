@@ -193,34 +193,45 @@ namespace Microsoft.Dafny.Triggers {
         return cached;
       }
 
-      expr.SubExpressions.Iter(e => Annotate(e));
+      TriggerAnnotation annotation = null; // TODO: Using ApplySuffix fixes the unresolved members problem in GenericSort
 
-      TriggerAnnotation annotation; // TODO: Using ApplySuffix fixes the unresolved members problem in GenericSort
-      if (IsPotentialTriggerCandidate(expr)) { 
-        annotation = AnnotatePotentialCandidate(expr);
-      } else if (expr is QuantifierExpr) {
-        annotation = AnnotateQuantifier((QuantifierExpr)expr);
-      } else if (expr is LetExpr) {
-        annotation = AnnotateLetExpr((LetExpr)expr);
-      } else if (expr is IdentifierExpr) {
-        annotation = AnnotateIdentifier((IdentifierExpr)expr);
-      } else if (expr is ApplySuffix) {
-        annotation = AnnotateApplySuffix((ApplySuffix)expr);
-      } else if (expr is MatchExpr) {
-        annotation = AnnotateMatchExpr((MatchExpr)expr);
-      } else if (expr is ComprehensionExpr) {
-        annotation = AnnotateComprehensionExpr((ComprehensionExpr)expr);
-      } else if (expr is ConcreteSyntaxExpression ||
-                 expr is LiteralExpr ||
-                 expr is OldExpr ||
-                 expr is ThisExpr ||
-                 expr is BoxingCastExpr ||
-                 expr is MultiSetFormingExpr) {
-        annotation = AnnotateOther(expr, false);
-      } else {
-        annotation = AnnotateOther(expr, true);
+      if (expr is LetExpr) {
+        var le = (LetExpr)expr;
+        if (le.LHSs.Count == 1 && le.LHSs[0].Var != null) {
+          // Inline the let expression before doing trigger selection.
+          annotation = Annotate(Translator.Substitute(le.Body, le.LHSs[0].Var, le.RHSs[0]));
+        }
       }
+      
+      if (annotation == null) {
+        expr.SubExpressions.Iter(e => Annotate(e));
 
+        if (IsPotentialTriggerCandidate(expr)) {
+          annotation = AnnotatePotentialCandidate(expr);
+        } else if (expr is QuantifierExpr) {
+          annotation = AnnotateQuantifier((QuantifierExpr)expr);
+        } else if (expr is LetExpr) {
+          annotation = AnnotateLetExpr((LetExpr)expr);
+        } else if (expr is IdentifierExpr) {
+          annotation = AnnotateIdentifier((IdentifierExpr)expr);
+        } else if (expr is ApplySuffix) {
+          annotation = AnnotateApplySuffix((ApplySuffix)expr);
+        } else if (expr is MatchExpr) {
+          annotation = AnnotateMatchExpr((MatchExpr)expr);
+        } else if (expr is ComprehensionExpr) {
+          annotation = AnnotateComprehensionExpr((ComprehensionExpr)expr);
+        } else if (expr is ConcreteSyntaxExpression ||
+                   expr is LiteralExpr ||
+                   expr is OldExpr ||
+                   expr is ThisExpr ||
+                   expr is BoxingCastExpr ||
+                   expr is MultiSetFormingExpr) {
+          annotation = AnnotateOther(expr, false);
+        } else {
+          annotation = AnnotateOther(expr, true);
+        }
+      }
+    
       TriggerUtils.DebugTriggers("{0} ({1})\n{2}", Printer.ExprToString(expr), expr.GetType(), annotation);
       cache.annotations[expr] = annotation;
       return annotation;
