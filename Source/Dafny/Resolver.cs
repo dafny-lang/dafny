@@ -5327,7 +5327,7 @@ namespace Microsoft.Dafny
         } else if (stmt is AssignStmt) {
           var s = (AssignStmt)stmt;
           var tRhs = s.Rhs as TypeRhs;
-          if (tRhs != null) {
+          if (tRhs != null && tRhs.Type is UserDefinedType) {
             var udt = (UserDefinedType)tRhs.Type;
             var formalTypeArgs = udt.ResolvedClass.TypeArgs;
             var actualTypeArgs = tRhs.Type.TypeArgs;
