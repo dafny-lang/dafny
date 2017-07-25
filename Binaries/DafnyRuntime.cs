@@ -1289,9 +1289,16 @@ namespace Dafny
   {
     public static readonly BigRational ZERO = new BigRational(0);
 
-    BigInteger num, den;  // invariant 1 <= den
+    // We need to deal with the special case "num == 0 && den == 0", because
+    // that's what C#'s default struct constructor will produce for BigRational. :(
+    // To deal with it, we ignore "den" when "num" is 0.
+    BigInteger num, den;  // invariant 1 <= den || (num == 0 && den == 0)
     public override string ToString() {
-      return string.Format("({0}.0 / {1}.0)", num, den);
+      if (num.IsZero || den.IsOne) {
+        return string.Format("{0}.0", num);
+      } else {
+        return string.Format("({0}.0 / {1}.0)", num, den);
+      }
     }
     public BigRational(int n) {
       num = new BigInteger(n);
@@ -1303,7 +1310,9 @@ namespace Dafny
       den = d;
     }
     public BigInteger ToBigInteger() {
-      if (0 <= num) {
+      if (num.IsZero || den.IsOne) {
+        return num;
+      } else if (0 < num.Sign) {
         return num / den;
       } else {
         return (num - den + 1) / den;
@@ -1313,13 +1322,23 @@ namespace Dafny
     /// Returns values such that aa/dd == a and bb/dd == b.
     /// </summary>
     private static void Normalize(BigRational a, BigRational b, out BigInteger aa, out BigInteger bb, out BigInteger dd) {
-      var gcd = BigInteger.GreatestCommonDivisor(a.den, b.den);
-      var xx = a.den / gcd;
-      var yy = b.den / gcd;
-      // We now have a == a.num / (xx * gcd) and b == b.num / (yy * gcd).
-      aa = a.num * yy;
-      bb = b.num * xx;
-      dd = a.den * yy;
+      if (a.num.IsZero) {
+        aa = a.num;
+        bb = b.num;
+        dd = b.den;
+      } else if (b.num.IsZero) {
+        aa = a.num;
+        dd = a.den;
+        bb = b.num;
+      } else {
+        var gcd = BigInteger.GreatestCommonDivisor(a.den, b.den);
+        var xx = a.den / gcd;
+        var yy = b.den / gcd;
+        // We now have a == a.num / (xx * gcd) and b == b.num / (yy * gcd).
+        aa = a.num * yy;
+        bb = b.num * xx;
+        dd = a.den * yy;
+      }
     }
     public int CompareTo(BigRational that) {
       // simple things first
@@ -1355,10 +1374,10 @@ namespace Dafny
       return a.CompareTo(b) != 0;
     }
     public static bool operator >(BigRational a, BigRational b) {
-      return 0 < a.CompareTo(b);
+      return a.CompareTo(b) > 0;
     }
     public static bool operator >=(BigRational a, BigRational b) {
-      return 0 <= a.CompareTo(b);
+      return a.CompareTo(b) >= 0;
     }
     public static bool operator <(BigRational a, BigRational b) {
       return a.CompareTo(b) < 0;
@@ -1385,7 +1404,7 @@ namespace Dafny
     public static BigRational operator /(BigRational a, BigRational b) {
       // Compute the reciprocal of b
       BigRational bReciprocal;
-      if (0 < b.num) {
+      if (0 < b.num.Sign) {
         bReciprocal = new BigRational(b.den, b.num);
       } else {
         // this is the case b.num < 0

@@ -1,0 +1,11 @@
+
+Dafny program verifier finished with 2 verified, 0 errors
+Program compiled successfully
+Running...
+
+r= 0.0  s= (34.0 / 10.0)
+a= 0.0  b= (34.0 / 10.0)  z= 0.0
+a==z = True
+a= (2.0 / 3.0)  b= 0.0  z= 0.0
+b==z = True
+x= 0  y= 0
