@@ -58,5 +58,11 @@ Execution trace:
     (0,0): anon0
     (0,0): anon4_Then
     (0,0): anon3
+DefiniteAssignment.dfy(238,12): Error: variable 'a', which is subject to definite-assignment rules, might be used before it has been assigned
+Execution trace:
+    (0,0): anon0
+DefiniteAssignment.dfy(239,12): Error: variable 'b', which is subject to definite-assignment rules, might be used before it has been assigned
+Execution trace:
+    (0,0): anon0
 
-Dafny program verifier finished with 8 verified, 12 errors
+Dafny program verifier finished with 10 verified, 14 errors

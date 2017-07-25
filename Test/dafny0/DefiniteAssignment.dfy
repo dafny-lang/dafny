@@ -219,3 +219,45 @@ method Loop<G>(a: G, b: G, n: nat, k: int) returns (g: G)
     i := i - 1;
   }
 }
+
+// ----- multiple returns, LHS patterns, and underscores -----
+
+function method Two<T>(t: T): (T, T)
+{
+  (t, t)
+}
+
+method TwoMethod<T>(t: T) returns (a: T, b: T)
+{
+  a, b := t, t;
+}
+
+method UnderscoresAndPatterns0<T>(tt: T)
+{
+  var a: T, b: T;
+  var a' := a;  // error: use before definition
+  var b' := b;  // error: use before definition
+  print a', " ", b', "\n";
+}
+
+method UnderscoresAndPatterns1<T>(tt: T)
+{
+  var (a, b) := Two<T>(tt);
+  var a' := b;
+  var b' := b;
+  print a', " ", b', "\n";
+}
+
+method UnderscoresAndPatterns2<T>(tt: T)
+{
+  var (_, b) := Two<T>(tt);
+  var a' := b;
+  var b' := b;
+  print a', " ", b', "\n";
+}
+
+method UnderscoresAndPatterns3<T>(tt: T)
+{
+  var _, b := TwoMethod<T>(tt);
+  var b' := b;
+}
