@@ -143,3 +143,123 @@ module DecreasesFields {
     assert _decreases0 == null;  // error: there is no _decreases0
   }
 }
+
+// ---------- iterator (and other) type parameters -------------------------------
+
+module IteratorTypeParameters {
+  type Five = x | 5 <= x witness 6
+  type Six = x | 6 <= x witness 6
+  codatatype Stream = More(r: real, s: Stream)
+  
+  class MyClass<A(==),B(0)> {
+  }
+  method TestClass() {
+    var ma := new MyClass<Stream,int>;  // error (x2): cannot pass in Stream as type parameter A(==)
+    var mb := new MyClass<Five,Six>;  // error (x2): cannot pass in Six as type parameter B(0)
+  }
+
+  class ClassWithConstructorX<A(==),B(0)> {
+    constructor Init() { }
+  }
+  method TestClassWCX() {
+    var ma := new ClassWithConstructorX<Stream,int>.Init();  // error (x2): cannot pass in Stream as type parameter A(==)
+    var mb := new ClassWithConstructorX<Five,Six>.Init();  // error (x2): cannot pass in Six as type parameter B(0)
+  }
+
+  class ClassWithConstructorY {
+    constructor Init<A(==),B(0)>() { }
+  }
+  method TestClassWCY() {
+    var ma := new ClassWithConstructorY.Init<Stream,int>();  // error: cannot pass in Stream as type parameter A(==)
+    var mb := new ClassWithConstructorY.Init<Five,Six>();  // error: cannot pass in Six as type parameter B(0)
+  }
+
+  method MyMethod<A(==),B(0)>() { }
+  method TestMethod() {
+    MyMethod<Stream,int>();  // error: cannot pass in Stream as type parameter A(==)
+    MyMethod<Five,Six>();  // error: cannot pass in Six as type parameter B(0)
+  }
+  
+  function method MyFunction<A(==),B(0)>(): int { 65 }
+  method TestFunction() {
+    var x := MyFunction<Stream,int>();  // error: cannot pass in Stream as type parameter A(==)
+    var y := MyFunction<Five,Six>();  // error: cannot pass in Six as type parameter B(0)
+  }
+  
+  iterator MyIter<A(==)(0),B(0)>(a: A) yields (b: B)
+    ensures false  // never ends
+  {
+    while true
+    {
+      yield;  // notice that "b" has not been explicitly initialized
+    }
+  }
+  
+  method GoodClient() {
+    var iter := new MyIter<char,nat>('i');
+    var n := iter.b;  // this could be bad, if "b" has not been properly initialized
+    assert 0 <= n;  // this is what would go wrong (false at run time, but undetected by verifier)
+    var i := 0;
+    while i < n {
+      var more := iter.MoveNext();
+      assert more;  // the iterator never ends
+      i := i + 1;
+    }
+  }
+  
+  method DisallowedClientA() {
+    if * {
+      var s;
+      var iter := new MyIter<Stream,int>(s);  // error (x2): cannot instantiate iterator with Stream for A(==)
+    } else if * {
+      var s: Stream;
+      var iter := new MyIter(s);  // error (x2): cannot instantiate iterator with Stream for A(==)
+      assert iter.b <= 0 || 0 <= iter.b;
+    } else if * {
+      var s: Stream;
+      var o: object := new MyIter<Stream,int>(s);  // error: cannot instantiate iterator with Stream for A(==)
+      var p: object := new MyIter<char,Six>('g');  // error: cannot instantiate iterator with Six for B(0)
+    } else if * {
+      var iter: MyIter<Stream,int>;  // error: even this variable declaration is disallowed
+    } else if * {
+      var arr := new int[25];
+      forall iter: MyIter<Stream,int> | false {  // error: even this variable declaration is disallowed
+        arr[2] := 60;
+      }
+    } else {
+      var bl: bool := forall iter: MyIter<Stream,int> | iter in {} :: true;  // error (x2): ditto
+    }
+  }
+
+  method DisallowedClientB() {
+    var iter := new MyIter<Five,Six>(12);  // error (x2): cannot instantiate iterator with Five or Six
+    var n := iter.b;  // this could be bad, if "b" has not been properly initialized
+    assert 6 <= n;  // this is what would go wrong (false at run time, but undetected by verifier)
+    var i := 0;
+    while i < n
+      invariant iter.a == 12
+    {
+      var more := iter.MoveNext();
+      assert more;  // the iterator never ends
+      assert 6 <= iter.b;  // the verifier thinks this is okay, but it wouldn't be at run time, if this were allowed
+      i := i + 1;
+    }
+  }
+
+  iterator AnotherIter<A(==,0),B(==)(0)>(a: A) yields (b: B)
+    ensures false  // never ends
+  {
+    while true
+    {
+      yield;  // notice that "b" has not been explicitly initialized
+    }
+  }
+
+  method AnotherClient() {
+    if * {
+      var iter := new AnotherIter<string,Stream>("hello");  // error (x2): cannot pass in Stream as B(==)
+    } else {
+      var iter := new AnotherIter<string,Six>("hello");  // error (x2): cannot pass in Six as B(0)
+    }
+  }
+}

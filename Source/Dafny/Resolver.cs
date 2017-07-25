@@ -5324,6 +5324,26 @@ namespace Microsoft.Dafny
           foreach (var v in s.BoundVars) {
             CheckEqualityTypes_Type(v.Tok, v.Type);
           }
+        } else if (stmt is AssignStmt) {
+          var s = (AssignStmt)stmt;
+          var tRhs = s.Rhs as TypeRhs;
+          if (tRhs != null) {
+            var udt = (UserDefinedType)tRhs.Type;
+            var formalTypeArgs = udt.ResolvedClass.TypeArgs;
+            var actualTypeArgs = tRhs.Type.TypeArgs;
+            Contract.Assert(formalTypeArgs.Count == actualTypeArgs.Count);
+            var i = 0;
+            foreach (var argType in actualTypeArgs) {
+              var formalTypeArg = formalTypeArgs[i];
+              string whatIsWrong, hint;
+              if (!CheckCharacteristics(formalTypeArg.Characteristics, argType, out whatIsWrong, out hint)) {
+                resolver.reporter.Error(MessageSource.Resolver, tRhs.Tok, "type parameter{0} ({1}) passed to type {2} must support {4} (got {3}){5}",
+                  actualTypeArgs.Count == 1 ? "" : " " + i, formalTypeArg.Name, udt.ResolvedClass.Name, argType, whatIsWrong, hint);
+              }
+              CheckEqualityTypes_Type(tRhs.Tok, argType);
+              i++;
+            }
+          }
         } else if (stmt is WhileStmt) {
           var s = (WhileStmt)stmt;
           // don't recurse on the specification parts, which are ghost
@@ -5586,9 +5606,10 @@ namespace Microsoft.Dafny
             var i = 0;
             foreach (var argType in udt.TypeArgs) {
               var formalTypeArg = formalTypeArgs[i];
-              if (formalTypeArg.MustSupportEquality && !argType.SupportsEquality) {
-                resolver.reporter.Error(MessageSource.Resolver, tok, "type parameter{0} ({1}) passed to type {2} must support equality (got {3}){4}",
-                  udt.TypeArgs.Count == 1 ? "" : " " + i, formalTypeArg.Name, udt.ResolvedClass.Name, argType, TypeEqualityErrorMessageHint(argType));
+              string whatIsWrong, hint;
+              if (!CheckCharacteristics(formalTypeArg.Characteristics, argType, out whatIsWrong, out hint)) {
+                resolver.reporter.Error(MessageSource.Resolver, tok, "type parameter{0} ({1}) passed to type {2} must support {4} (got {3}){5}",
+                  udt.TypeArgs.Count == 1 ? "" : " " + i, formalTypeArg.Name, udt.ResolvedClass.Name, argType, whatIsWrong, hint);
               }
               CheckEqualityTypes_Type(tok, argType);
               i++;
