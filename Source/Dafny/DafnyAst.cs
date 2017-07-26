@@ -3721,6 +3721,8 @@ namespace Microsoft.Dafny {
     private static List<TypeParameter> MutateIntoRequiringZeroInitBit(List<TypeParameter> typeArgs) {
       Contract.Requires(typeArgs != null);
       Contract.Ensures(Contract.Result<List<TypeParameter>>() == typeArgs);
+      // Note! This is not the only place where IteratorDecl type parameters come through.  Some may
+      // be created by "FillInTypeArguments".
       foreach (var tp in typeArgs) {
         tp.Characteristics.MustSupportZeroInitialization = true;
       }

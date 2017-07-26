@@ -263,3 +263,17 @@ module IteratorTypeParameters {
     }
   }
 }
+
+module FilledInTypeParameters {
+  iterator Iter() yields (s: seq)
+  {
+  }
+
+  codatatype Co = More(Co)
+  
+  method Test()
+  {
+    var iter := new Iter();
+    var m: seq<Co> := iter.s;
+  }
+}

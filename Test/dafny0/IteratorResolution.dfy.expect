@@ -43,4 +43,6 @@ IteratorResolution.dfy(260,10): Error: type parameter 1 (B) passed to type Anoth
 IteratorResolution.dfy(260,18): Error: type parameter 1 (B) passed to type AnotherIter must support equality (got Stream)
 IteratorResolution.dfy(262,10): Error: type parameter 1 (B) passed to type AnotherIter must support zero initialization (got Six)
 IteratorResolution.dfy(262,18): Error: type parameter 1 (B) passed to type AnotherIter must support zero initialization (got Six)
-45 resolution/type errors detected in IteratorResolution.dfy
+IteratorResolution.dfy(276,8): Error: type parameter (_T0) passed to type Iter must support zero initialization (got Co)
+IteratorResolution.dfy(276,16): Error: type parameter (_T0) passed to type Iter must support zero initialization (got Co)
+47 resolution/type errors detected in IteratorResolution.dfy

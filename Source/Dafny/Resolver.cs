@@ -7826,6 +7826,9 @@ namespace Microsoft.Dafny
           // extend defaultTypeArguments, if needed
           for (int i = defaultTypeArguments.Count; i < n; i++) {
             var tp = new TypeParameter(tok, "_T" + i, i, option.Parent);
+            if (option.Parent is IteratorDecl) {
+              tp.Characteristics.MustSupportZeroInitialization = true;
+            }
             defaultTypeArguments.Add(tp);
           }
         }
