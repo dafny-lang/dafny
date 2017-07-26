@@ -1,7 +1,7 @@
 // RUN: %dafny "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
-class Ref<A> {
+class Ref<A(0)> {
   var val : A;
 }
 

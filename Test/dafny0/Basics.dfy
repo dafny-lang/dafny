@@ -169,7 +169,10 @@ method TestMulti(m: Multi, p: Multi)
 }
 
 class MyBoxyClass<T> {
-  var f: T;
+  var f: T
+  constructor MyBoxyClass(t: T) {
+    f := t;
+  }
 }
 
 method TestBoxAssignment<T>(x: MyBoxyClass<int>, y: MyBoxyClass<T>, t: T)
@@ -533,6 +536,9 @@ module AssumeTypeAssumptions {
   }
   class Cell<T> {
     var data: T
+    constructor (t: T) {
+      data := t;
+    }
   }
 
   method Client_Fixed(x: IntCell)
@@ -578,7 +584,7 @@ module AssumeTypeAssumptions {
     a[j] := *;
   }
 
-  method Client_CellU<U>(x: Cell<Cell<U>>, a: array<Cell<U>>, j: int, u: Cell<U>)
+  method Client_CellU<U>(x: Cell<Cell<U>>, a: array<Cell<U>>, j: int, u: Cell<U>, u1: U)
     requires x != null && a != null && 0 <= j < a.Length
     modifies x, a
   {
@@ -592,8 +598,8 @@ module AssumeTypeAssumptions {
     x.data := *;
     a[j] := *;
     // new assignments
-    xx := new Cell<U>;
-    x.data := new Cell<U>;
-    a[j] := new Cell<U>;
+    xx := new Cell<U>(u1);
+    x.data := new Cell<U>(u1);
+    a[j] := new Cell<U>(u1);
   }
 }

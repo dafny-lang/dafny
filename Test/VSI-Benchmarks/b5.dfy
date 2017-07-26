@@ -1,7 +1,7 @@
 // RUN: %dafny /compile:0 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
-class Queue<T> {
+class Queue<T(0)> {
   var head: Node<T>;
   var tail: Node<T>;
 
@@ -120,7 +120,7 @@ class Queue<T> {
 
 }
 
-class Node<T> {
+class Node<T(0)> {
   var data: T;
   var next: Node<T>;
 
@@ -147,8 +147,8 @@ class Node<T> {
   }
 }
 
-class Main<U> {
-  method A<T>(t: T, u: T, v: T)
+class Main<U(0)> {
+  method A<T(0)>(t: T, u: T, v: T)
   {
     var q0 := new Queue<T>.Init();
     var q1 := new Queue<T>.Init();

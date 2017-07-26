@@ -8,7 +8,7 @@
 // separation logic, the contents (here called 'q') would indeed be passed around in that way, whereas
 // separating conjunction and the abstract predicate ListSegment would take care of staking out which
 // subpart of the heap is being occupied by the linked-list representation.
-class Node<T> {
+class Node<T(0)> {
   var data: T;
   var next: Node<T>;
 
@@ -49,7 +49,7 @@ class Node<T> {
 
 // The following class is a variation of the one above.  The difference is that, in this one, each node
 // keeps track of its own contents (called 'q' above) and representation (called 'S' and 'U' above).
-class ListNode<T> {
+class ListNode<T(0)> {
   ghost var Contents: seq<T>;
   ghost var Repr: set<ListNode<T>>;
 
@@ -108,7 +108,7 @@ class ListNode<T> {
 // of a List object includes a number of linked-list nodes.  To make the treatment of the empty list
 // nicer than in the class above, the List object starts its list with a sentinel object whose 'data'
 // field is not used.
-class List<T>
+class List<T(0)>
 {
   ghost var Contents: seq<T>;
   ghost var Repr: set<object>;
@@ -155,7 +155,7 @@ class List<T>
   }
 }
 
-class LLNode<T>
+class LLNode<T(0)>
 {
   var data: T;
   var next: LLNode<T>;

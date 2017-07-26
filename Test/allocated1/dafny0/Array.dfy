@@ -266,7 +266,10 @@ method Test_ArrayElementLhsOfCall(a: array<nat>, i: int, c: Cdefg<nat>) returns 
 }
 
 class Cdefg<T> {
-  var t: T;
+  var t: T
+  constructor (t: T) {
+    this.t := t;
+  }
 }
 
 // ---------- allocation business -----------

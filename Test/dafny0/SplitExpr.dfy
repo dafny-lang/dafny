@@ -2,12 +2,12 @@
 // RUN: %diff "%s.expect" "%t"
 
 class UnboundedStack<T> {
-  var top: Node<T>;
-  ghost var footprint: set<object>;
-  ghost var content: seq<T>; 
+  var top: Node<T>
+  ghost var footprint: set<object>
+  ghost var content: seq<T>;
 
-  function IsUnboundedStack(): bool
-    reads {this} + footprint;
+  predicate IsUnboundedStack()
+    reads {this} + footprint
   {
     this in footprint &&
     (top == null  ==>  content == []) &&
@@ -15,14 +15,14 @@ class UnboundedStack<T> {
                        top.prev == null && content == top.content && top.Valid())
   }
 
-  function IsEmpty(): bool
+  predicate IsEmpty()
     reads {this};
   { content == [] }
 
   method Pop() returns (result: T)
-    requires IsUnboundedStack() && !IsEmpty();
-    modifies footprint;
-    ensures IsUnboundedStack() && content == old(content)[1..];
+    requires IsUnboundedStack() && !IsEmpty()
+    modifies footprint
+    ensures IsUnboundedStack() && content == old(content)[1..]
   {
     result := top.val;
     // The following assert does the trick, because it gets inlined and thus
@@ -31,21 +31,25 @@ class UnboundedStack<T> {
     // In a previous version of the implementation of the SplitExpr transformation, the
     // following assert did not have the intended effect of being used as a lemma:
     assert top != null ==> top.Valid();
-    if (top != null) {
+    if top != null {
       footprint := footprint + top.footprint;  top.prev := null;
     }
     content := content[1..];
 } }
 
 class Node<T> {
-  var val: T;  
-  var next: Node<T>;
-  var prev: Node<T>;
-  var footprint: set<Node<T>>;
-  var content: seq<T>;
+  var val: T
+  var next: Node<T>
+  var prev: Node<T>
+  var footprint: set<Node<T>>
+  var content: seq<T>
 
-  function Valid(): bool
-    reads this, footprint;
+  constructor (v: T) {
+    val := v;
+  }
+
+  predicate Valid()
+    reads this, footprint
   {
     this in footprint && !(null in footprint) &&
     (next == null  ==>  content == [val])  &&
@@ -70,8 +74,8 @@ function F(x: nat): int
 method M(N: nat)
 {
   var i := 0;
-  while (i < N)
-    invariant forall x {:induction false} :: 0 <= x <= i ==> F(x) == x;
+  while i < N
+    invariant forall x {:induction false} :: 0 <= x <= i ==> F(x) == x
   {
     i := i + 1;
   }
@@ -89,7 +93,7 @@ method NoLoop(N: nat)
 {
   var i;
   while i < N
-    invariant AnyPredicate(i, N);  // error: may not hold initially
+    invariant AnyPredicate(i, N)  // error: may not hold initially
   {
     i := i + 1;
     break;  // this makes the loop not a loop

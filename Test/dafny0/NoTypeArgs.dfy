@@ -35,10 +35,10 @@ method M1() {  // same thing as above, but with types filled in explicitly
   var z: int := y.data;
 }
 
-class MyClass<G> {
-  var data: G;
+class MyClass<G(0)> {
+  var data: G
   method Init(g: G)
-    modifies this;
+    modifies this
   {
     data := g;
   }

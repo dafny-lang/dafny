@@ -16,4 +16,7 @@ method M(x: int)
 class C<T> {
   var u: T
   method P<T>(t: T)  // warning: this shadows the type parameter 'T'
+  constructor (t: T) {
+    u := t;
+  }
 }

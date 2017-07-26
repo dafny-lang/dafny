@@ -3,7 +3,7 @@
 
 class C<U(==)> {
   method M<T>(x: T, u: U) returns (y: T)
-    ensures x == y && u == u;
+    ensures x == y && u == u
   {
     y := x;
   }
@@ -25,7 +25,7 @@ class C<U(==)> {
 
 class SetTest {
   method Add<T>(s: set<T>, x: T) returns (t: set<T>)
-    ensures t == s + {x};
+    ensures t == s + {x}
   {
     t := s + {x};
   }
@@ -47,7 +47,7 @@ class SetTest {
 
 class SequenceTest {
   method Add<T>(s: seq<T>, x: T) returns (t: seq<T>)
-    ensures t == s + [x];
+    ensures t == s + [x]
   {
     t := s + [x];
   }
@@ -69,12 +69,12 @@ class SequenceTest {
 
 // -------------------------
 
-class CC<T> {
-  var x: T;
+class CC<T(0)> {
+  var x: T
   method M(c: CC<T>, z: T) returns (y: T)
-    requires c != null;
-    modifies this;
-    ensures y == c.x && x == z;
+    requires c != null
+    modifies this
+    ensures y == c.x && x == z
   {
     x := c.x;
     x := z;
@@ -86,11 +86,11 @@ class CClient {
   method Main() {
     var c := new CC<int>;
     var k := c.x + 3;
-    if (c.x == c.x) {
+    if c.x == c.x {
       k := k + 1;
     }
     var m := c.x;
-    if (m == c.x) {
+    if m == c.x {
       k := k + 1;
     }
     c.x := 5;
@@ -103,13 +103,13 @@ class CClient {
 // -------------------------
 
 function IsCelebrity<Person>(c: Person, people: set<Person>): bool
-  requires c == c || c in people;
+  requires c == c || c in people
 {
   false
 }
 
 method FindCelebrity3(people: set<int>, ghost c: int)
-  requires IsCelebrity(c, people);  // once upon a time, this caused the translator to produce bad Boogie
+  requires IsCelebrity(c, people)  // once upon a time, this caused the translator to produce bad Boogie
 {
   ghost var b: bool;
   b := IsCelebrity(c, people);
@@ -117,7 +117,7 @@ method FindCelebrity3(people: set<int>, ghost c: int)
 }
 
 function F(c: int, people: set<int>): bool
-  requires IsCelebrity(c, people);
+  requires IsCelebrity(c, people)
 {
   false
 }
@@ -147,17 +147,17 @@ function Groovy<G>(g: G, x: int): G
 }
 
 method IsRogerCool(n: int)
-  requires RogerThat(true);  // once upon a time, this caused the translator to produce bad Boogie
+  requires RogerThat(true)  // once upon a time, this caused the translator to produce bad Boogie
 {
-  if (*) {
+  if * {
     assert Cool(2 < 3 && n < n && n < n+1);  // the error message here will peek into the argument of Cool
-  } else if (*) {
+  } else if * {
     assert RogerThat(2 < 3 && n < n && n < n+1);  // same here; cool, huh?
-  } else if (*) {
+  } else if * {
     assert Rockin'(false);  // error
-  } else if (*) {
+  } else if * {
     assert Groovy(n < n, 80);  // error
-  } else if (*) {
+  } else if * {
     assert Groovy(n + 1 <= n, 81);  // error
   }
 }
@@ -165,14 +165,14 @@ method IsRogerCool(n: int)
 method LoopyRoger(n: int)
 {
   var i := 0;
-  while (i < n)
-    invariant RogerThat(0 <= n ==> i <= n);
+  while i < n
+    invariant RogerThat(0 <= n ==> i <= n)
   {
     i := i + 1;
   }
   i := 0;
-  while (i < n)
-    invariant RogerThat(0 <= n ==> i <= n);  // error: failure to maintain loop invariant
+  while i < n
+    invariant RogerThat(0 <= n ==> i <= n)  // error: failure to maintain loop invariant
   {
     i := i + 2;
   }
@@ -180,10 +180,10 @@ method LoopyRoger(n: int)
 
 // ----------------------
 
-class TyKn_C<T> {
-  var x: T;
+class TyKn_C<T(0)> {
+  var x: T
   function G(): T
-    reads this;
+    reads this
   {
     x
   }
@@ -248,22 +248,22 @@ predicate Subset(xs: List, ys: List)
   forall x :: InList(x, xs) ==> InList(x, ys)
 }
 ghost method ListLemma_T(xs: List, ys: List)
-  requires forall x :: InList(x, xs) ==> InList(x, ys);
+  requires forall x :: InList(x, xs) ==> InList(x, ys)
 {
   assert Subset(xs, ys);
 }
 ghost method ammeLtsiL_T(xs: List, ys: List)
-  requires Subset(xs, ys);
+  requires Subset(xs, ys)
 {
   assert forall x :: InList(x, xs) ==> InList(x, ys);
 }
 ghost method ListLemma_int(xs: List<int>, ys: List<int>)
-  requires forall x :: InList(x, xs) ==> InList(x, ys);
+  requires forall x :: InList(x, xs) ==> InList(x, ys)
 {
   assert Subset(xs, ys);
 }
 ghost method ammeLtsiL_int(xs: List<int>, ys: List<int>)
-  requires Subset(xs, ys);
+  requires Subset(xs, ys)
 {
   assert forall x :: InList(x, xs) ==> InList(x, ys);
 }
@@ -312,7 +312,7 @@ method IdentityMap(s: set<Pair>) returns (m: map)
   m := map[];
   var s := s;
   while s != {}
-    decreases s;
+    decreases s
   {
     var p :| p in s;
     m, s := m[p.0 := p.1], s - {p};
@@ -327,7 +327,7 @@ module ArrayTypeMagic {
   }
 
   method F(b: array) returns (s: seq)
-    requires b != null;
+    requires b != null
   {
     return b[..];
   }

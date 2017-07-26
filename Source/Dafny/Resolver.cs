@@ -2675,12 +2675,51 @@ namespace Microsoft.Dafny
       // ----------------------------------------------------------------------------
 
       if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
+        // Check that usage of "this" is restricted before "new;" in constructor bodies,
+        // and that a class without any constructor only has fields with known initializers.
         var cdci = new CheckDividedConstructorInit_Visitor(this);
         foreach (var cl in ModuleDefinition.AllClasses(declarations)) {
+          if (cl is TraitDecl) {
+            // traits never have constructors
+            continue;
+          }
+          var hasConstructor = false;
+          Field fieldWithoutKnownInitializer = null;
           foreach (var member in cl.Members) {
-            var constructor = member as Constructor;
-            if (constructor != null && constructor.BodyInit != null) {
-              cdci.CheckInit(constructor.BodyInit);
+            if (member is Constructor) {
+              hasConstructor = true;
+              var constructor = (Constructor)member;
+              if (constructor.BodyInit != null) {
+                cdci.CheckInit(constructor.BodyInit);
+              }
+            } else if (member is Field && fieldWithoutKnownInitializer == null) {
+              var f = (Field)member;
+              if (f is ConstantField && ((ConstantField)f).Rhs != null) {
+                // fine
+              } else if (!Compiler.InitializerIsKnown(f.Type)) {
+                fieldWithoutKnownInitializer = f;
+              }
+            }
+          }
+          if (!hasConstructor) {
+            if (fieldWithoutKnownInitializer == null) {
+              // time to check inherited members
+              foreach (var member in cl.InheritedMembers) {
+                if (member is Field) {
+                  var f = (Field)member;
+                  if (f is ConstantField && ((ConstantField)f).Rhs != null) {
+                    // fine
+                  } else if (!Compiler.InitializerIsKnown(f.Type)) {
+                    fieldWithoutKnownInitializer = f;
+                    break;
+                  }
+                }
+              }
+            }
+            // go through inherited members...
+            if (fieldWithoutKnownInitializer != null) {
+              reporter.Error(MessageSource.Resolver, cl.tok, "class '{0}' with fields without known initializers, like '{1}' of type '{2}', must declare a constructor",
+                cl.Name, fieldWithoutKnownInitializer.Name, fieldWithoutKnownInitializer.Type);
             }
           }
         }
@@ -6474,9 +6513,12 @@ namespace Microsoft.Dafny
             // Resolve the value expression
             var field = (ConstantField)member;
             if (field.Rhs != null) {
+              var ec = reporter.Count(ErrorLevel.Error);
               ResolveExpression(field.Rhs, new ResolveOpts(new NoContext(currentClass.Module), false));
-              // make sure initialization only refers to constant field or literal expression
-              CheckConstantFieldInitialization(field, field.Rhs);
+              if (reporter.Count(ErrorLevel.Error) == ec) {
+                // make sure initialization only refers to constant field or literal expression
+                CheckConstantFieldInitialization(field, field.Rhs);
+              }
             }
             SolveAllTypeConstraints();
           }
@@ -6517,7 +6559,7 @@ namespace Microsoft.Dafny
      if (IsConstantExpr(field, expr)) {
         ConstrainSubtypeRelation(field.Type, expr.Type, field.tok, "type for constant {0} is {1}, but its initialization value type is {2}", field.Name, field.Type, expr.Type);
       } else {
-          reporter.Error(MessageSource.Resolver, field.tok, "only constants are allowed in the expression to initialize constant {0}", field.Name);
+        reporter.Error(MessageSource.Resolver, field.tok, "only constants are allowed in the expression to initialize constant {0}", field.Name);
       }
       if (field.EnclosingModule.CallGraph.GetSCCSize(field) != 1) {
         var cycle = Util.Comma(" -> ", field.EnclosingModule.CallGraph.GetSCC(field), clbl => clbl.NameRelativeToModule);
@@ -6528,7 +6570,12 @@ namespace Microsoft.Dafny
     bool IsConstantExpr(ConstantField field, Expression expr) {
       bool isConstant = false;
       if (expr is LiteralExpr && !(expr is StaticReceiverExpr)) {
-        isConstant = true;
+        return true;
+      } else if (expr.Resolved is DatatypeValue) {
+        var dtv = (DatatypeValue)expr.Resolved;
+        if (dtv.Arguments.Count == 0) {
+          return true;
+        }
       } else if (expr is NameSegment) {
         var other = FindConstantField((NameSegment)expr);
         if (other != null) {
@@ -6537,7 +6584,7 @@ namespace Microsoft.Dafny
             // detect self-loops here, since they don't show up in the graph's SSC methods
             reporter.Error(MessageSource.Resolver, field.tok, "recursive dependency involving constant initialization: {0} -> {0}", field.Name);
           }
-          isConstant = true;
+          return true;
         }
       } else if (expr is ExprDotName) {
         var v = (ExprDotName)expr;

@@ -18,17 +18,17 @@ Execution trace:
     (0,0): anon0
     (0,0): anon5_Else
     (0,0): anon6_Then
-NatTypes.dfy(94,21): Error: value does not satisfy the subset constraints of 'nat'
+NatTypes.dfy(97,21): Error: value does not satisfy the subset constraints of 'nat'
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Then
-NatTypes.dfy(109,44): Error: value does not satisfy the subset constraints of 'nat'
+NatTypes.dfy(112,44): Error: value does not satisfy the subset constraints of 'nat'
 Execution trace:
     (0,0): anon0
     (0,0): anon8_Else
     (0,0): anon9_Else
     (0,0): anon10_Then
-NatTypes.dfy(132,34): Error: value does not satisfy the subset constraints of 'nat'
+NatTypes.dfy(135,34): Error: value does not satisfy the subset constraints of 'nat'
 Execution trace:
     (0,0): anon0
     (0,0): anon4_Then
@@ -40,4 +40,4 @@ Execution trace:
     NatTypes.dfy(23,5): anon11_Else
     (0,0): anon12_Then
 
-Dafny program verifier finished with 5 verified, 9 errors
+Dafny program verifier finished with 6 verified, 9 errors

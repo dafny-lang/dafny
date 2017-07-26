@@ -2021,3 +2021,51 @@ module ZI_RefinementConcrete1 refines ZI_RefinementAbstract {
     E(0),
     R(0)>()  // error: not allowed to change zero-initialization setting
 }
+
+// ----- constructor-less classes with need for initialization -----
+
+module ConstructorlessClasses {
+  class C<T(==)> {  // error: must have constructor
+    var x: int
+    var s: string
+    var t: set<T>
+    var u: T
+    const c: T
+  }
+
+  method Test()
+  {
+    var c := new C<set<real>>;
+    print "int: ", c.x, "\n";
+    print "string: ", c.s, "\n";
+    print "set<set<real>>: ", c.t, "\n";
+    print "real: ", c.u, "\n";
+    print "real: ", c.c, "\n";
+  }
+
+  codatatype Co = CoEnd | Suc(Co)
+
+  trait Trait {
+    var co: Co  // has no known initializer
+  }
+  class Class extends Trait {  // error: must have constructor, because of inherited field "co"
+  }
+
+  class CoClass0 {  // error: must have constructor
+    const co: Co
+  }
+
+  class CoClass1 {  // fine
+    const co: Co := CoEnd
+  }
+
+  trait CoTrait {
+    const co: Co := CoEnd
+  }
+  class CoClass2 extends CoTrait {  // fine
+  }
+
+  iterator Iter<T>(u: T) yields (v: T)
+  {
+  }
+}

@@ -3,6 +3,9 @@
 
 class MyClass<T> {
   var f: T
+  constructor(t: T) {
+    f := t;
+  }
 }
 
 method M<T(0)>()

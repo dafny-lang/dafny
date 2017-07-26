@@ -2,12 +2,12 @@
 // RUN: %diff "%s.expect" "%t"
 
 class UnboundedStack<T> {
-  ghost var representation: set<object>;
-  ghost var content: seq<T>;
-  var top: Node<T>;
+  ghost var representation: set<object>
+  ghost var content: seq<T>
+  var top: Node<T>
 
-  function IsUnboundedStack(): bool
-    reads this, representation;
+  predicate IsUnboundedStack()
+    reads this, representation
   {
     this in representation &&
     (top == null ==>
@@ -19,9 +19,9 @@ class UnboundedStack<T> {
   }
 
   method InitUnboundedStack()
-    modifies this;
-    ensures IsUnboundedStack();
-    ensures content == [];
+    modifies this
+    ensures IsUnboundedStack()
+    ensures content == []
   {
     this.top := null;
     this.content := [];
@@ -29,10 +29,10 @@ class UnboundedStack<T> {
   }
 
   method Push(val: T)
-    requires IsUnboundedStack();
-    modifies this;
-    ensures IsUnboundedStack();
-    ensures content == [val] + old(content);
+    requires IsUnboundedStack()
+    modifies this
+    ensures IsUnboundedStack()
+    ensures content == [val] + old(content)
   {
     top := new Node<T>.InitNode(val,top);
     representation := representation + top.footprint;
@@ -40,11 +40,11 @@ class UnboundedStack<T> {
   }
 
   method Pop() returns (result: T)
-    requires IsUnboundedStack();
-    requires content != [];
-    modifies this;
-    ensures IsUnboundedStack();
-    ensures content == old(content)[1..];
+    requires IsUnboundedStack()
+    requires content != []
+    modifies this
+    ensures IsUnboundedStack()
+    ensures content == old(content)[1..]
   {
     result := top.val;
     top := top.next;
@@ -52,21 +52,21 @@ class UnboundedStack<T> {
   }
 
   method isEmpty() returns (result: bool)
-    requires IsUnboundedStack();
-    ensures result <==> content == [];
+    requires IsUnboundedStack()
+    ensures result <==> content == []
   {
     result := top == null;
   }
 }
 
 class Node<T> {
-  ghost var footprint: set<object>;
-  ghost var content: seq<T>;
-  var val: T;
-  var next: Node<T>;
+  ghost var footprint: set<object>
+  ghost var content: seq<T>
+  var val: T
+  var next: Node<T>
 
-  function Valid(): bool
-    reads this, footprint;
+  predicate Valid()
+    reads this, footprint
   {
     this in footprint &&
     (next == null ==>
@@ -77,18 +77,17 @@ class Node<T> {
       next.Valid())
   }
 
-  method InitNode(val: T, next: Node<T>)
-    requires next != null ==> next.Valid() && !(this in next.footprint);
-    modifies this;
-    ensures Valid();
+  constructor InitNode(val: T, next: Node<T>)
+    requires next != null ==> next.Valid()
+    ensures Valid()
     ensures next != null ==> content == [val] + next.content && 
-                             footprint == {this} + next.footprint;
+                             footprint == {this} + next.footprint
     ensures next == null ==> content == [val] &&
-                             footprint == {this};
+                             footprint == {this}
   {
     this.val := val;
     this.next := next;
-    if (next == null) {
+    if next == null {
       this.footprint := {this};
       this.content := [val];      
     } else {

@@ -3,7 +3,7 @@
 
 // calling fields should not make a resolution error:
 
-class Ref<A> {
+class Ref<A(0)> {
   var val: A;
 }
 
@@ -12,7 +12,7 @@ method Nope() {
   assert f.val(0);
 }
 
-class FnRef<A,B> {
+class FnRef<A(0),B(0)> {
   var fn: A -> B;
 }
 

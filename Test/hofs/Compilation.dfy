@@ -2,7 +2,12 @@
 // RUN: %diff "%s.expect" "%t"
 
 class Ref<A> {
-  var val : A;
+  var val : A
+  constructor (a : A)
+    ensures val == a
+  {
+    val := a;
+  }
 }
 
 method Main() {
@@ -22,8 +27,7 @@ method Main() {
   print "4 = ", f(3), "\n";
 
   // reference
-  var z := new Ref<int>;
-  z.val := 1;
+  var z := new Ref(1);
   f := x reads z requires z != null => x + z.val;
   print "3 = ", f(2), "\n";
   print "4 = ", f(3), "\n";
@@ -34,9 +38,9 @@ method Main() {
   // loop
   f := x => x;
   y := 10;
-  while (y > 0)
-    invariant forall x :: f.requires(x);
-    invariant forall x :: f.reads(x) == {};
+  while y > 0
+    invariant forall x :: f.requires(x)
+    invariant forall x :: f.reads(x) == {}
   {
     f := x => f(x+y);
     y := y - 1;

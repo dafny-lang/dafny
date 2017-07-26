@@ -115,8 +115,8 @@ class Map<Key(==),Value> {
   {
     var prev, p := FindIndex(key);
     if p == null {
-      var h := new Node;
-      h.key, h.val, h.next, h.Spine := key, val, head, Spine;
+      var h := new Node(key, val);
+      h.next, h.Spine := head, Spine;
       head, Spine, Repr := h, Spine + {h}, Repr + {h};
       M := M[key := val];
     } else {
@@ -194,6 +194,12 @@ class Node<Key,Value> {
   var val: Value
   var next: Node<Key,Value>
   ghost var Spine: set<Node<Key,Value>>
+
+  constructor (key: Key, val: Value)
+    ensures this.key == key && this.val == val
+  {
+    this.key, this.val := key, val;
+  }
 }
 
 datatype Maybe<T> = None | Some(get: T)

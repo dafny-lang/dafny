@@ -82,7 +82,10 @@ method MatchIt(list: List<object>) returns (k: nat)
 }
 
 class GenEric<T> {
-  var f: T;
+  var f: T
+  constructor (t: T) {
+    f := t;
+  }
 }
 
 function method GE<T>(d: GenEric<T>): bool { true }
