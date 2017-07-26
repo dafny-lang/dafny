@@ -199,11 +199,7 @@ namespace Microsoft.Dafny.Triggers {
         var le = (LetExpr)expr;
         if (le.LHSs.All(p => p.Var != null)) {
           // Inline the let expression before doing trigger selection.
-          var substMap = new Dictionary<IVariable, Expression>();
-          for (var i = 0; i < le.LHSs.Count; i++) {
-            substMap.Add(le.LHSs[i].Var, le.RHSs[i]);
-          }
-          annotation = Annotate(Translator.Substitute(le.Body, null, substMap));
+          annotation = Annotate(Translator.InlineLet(le));
         }
       }
       

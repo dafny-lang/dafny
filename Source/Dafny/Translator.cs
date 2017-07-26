@@ -15480,6 +15480,15 @@ namespace Microsoft.Dafny {
       return s.Substitute(expr);
     }
 
+    public static Expression InlineLet(LetExpr letExpr) {
+      Contract.Requires(letExpr.LHSs.All(p => p.Var != null));
+      var substMap = new Dictionary<IVariable, Expression>();
+      for (var i = 0; i < letExpr.LHSs.Count; i++) {
+        substMap.Add(letExpr.LHSs[i].Var, letExpr.RHSs[i]);
+      }
+      return Translator.Substitute(letExpr.Body, null, substMap);
+    }
+
     public class FunctionCallSubstituter : Substituter
     {
       public readonly Function A, B;
