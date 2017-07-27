@@ -2940,8 +2940,6 @@ List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, st
 			
 		} else if (la.kind == 54) {
 			Get();
-			var letLHSs = new List<CasePattern>();
-			var letRHSs = new List<Expression>();
 			List<CasePattern> arguments = new List<CasePattern>();
 			CasePattern pat;
 			Expression e = dummyExpr;
@@ -2961,7 +2959,6 @@ List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, st
 			string ctor = BuiltIns.TupleTypeCtorNamePrefix + arguments.Count;  //use the TupleTypeCtors
 			pat = new CasePattern(id, ctor, arguments); 
 			if (isGhost) { pat.Vars.Iter(bv => bv.IsGhost = true); }
-			letLHSs.Add(pat);
 			
 			if (la.kind == 86) {
 				Get();
@@ -2973,9 +2970,8 @@ List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, st
 				SemErr(pat.tok, "LHS of assign-such-that expression must be variables, not general patterns"); 
 			} else SynErr(209);
 			Expression(out e, false, true);
-			letRHSs.Add(e); 
 			Expect(30);
-			s = new LetStmt(e.tok, e.tok, letLHSs, letRHSs); 
+			s = new LetStmt(e.tok, e.tok, pat, e);
 		} else SynErr(210);
 	}
 

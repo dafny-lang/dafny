@@ -7828,27 +7828,18 @@ namespace Microsoft.Dafny
         }
       } else if (stmt is LetStmt) {
         LetStmt s = (LetStmt)stmt;
-        foreach (var rhs in s.RHSs) {
-          ResolveExpression(rhs, new ResolveOpts(codeContext, true));
+        ResolveExpression(s.RHS, new ResolveOpts(codeContext, true));
+
+        ResolveCasePattern(s.LHS, s.RHS.Type, codeContext);
+        // Check for duplicate names now, because not until after resolving the case pattern do we know if identifiers inside it refer to bound variables or nullary constructors
+        var c = 0;
+        foreach (var bv in s.LHS.Vars) {
+          ScopePushAndReport(scope, bv, "local_variable");
+          c++;
         }
-        if (s.LHSs.Count != s.RHSs.Count) {
-          reporter.Error(MessageSource.Resolver, stmt, "let statement must have same number of LHSs (found {0}) as RHSs (found {1})", s.LHSs.Count, s.RHSs.Count);
-        }
-        var i = 0;
-        foreach (var lhs in s.LHSs) {
-          var rhsType = i < s.RHSs.Count ? s.RHSs[i].Type : new InferredTypeProxy();
-          ResolveCasePattern(lhs, rhsType, codeContext);
-          // Check for duplicate names now, because not until after resolving the case pattern do we know if identifiers inside it refer to bound variables or nullary constructors
-          var c = 0;
-          foreach (var bv in lhs.Vars) {
-            ScopePushAndReport(scope, bv, "local_variable");
-            c++;
-          }
-          if (c == 0) {
-            // Every identifier-looking thing in the pattern resolved to a constructor; that is, this LHS is a constant literal
-            reporter.Error(MessageSource.Resolver, lhs.tok, "LHS is a constant literal; to be legal, it must introduce at least one bound variable");
-          }
-          i++;
+        if (c == 0) {
+          // Every identifier-looking thing in the pattern resolved to a constructor; that is, this LHS is a constant literal
+          reporter.Error(MessageSource.Resolver, s.LHS.tok, "LHS is a constant literal; to be legal, it must introduce at least one bound variable");
         }
       } else if (stmt is AssignStmt) {
         AssignStmt s = (AssignStmt)stmt;
