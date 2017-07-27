@@ -391,8 +391,17 @@ bool IsLambda(bool allowLambda)
 }
 
 bool IsIdentParen() {
+  scanner.ResetPeek();
   Token x = scanner.Peek();
   return la.kind == _ident && x.kind == _openparen;
+}
+
+/* Used to disambiguate the LHS of a VarDeclStmt. If it looks like the start of a CasePattern,
+ * we consider it to be a LetStmt. But if we are looking at a simple identifier, then we
+ * consider it to be a VarDeclStmt.
+ */
+bool IsLetStmt() {
+  return IsIdentParen() || la.kind == _openparen;
 }
 
 bool IsIdentColonOrBar() {
@@ -2110,7 +2119,8 @@ VarDeclStatement<.out Statement/*!*/ s.>
   [ "ghost"                                 (. isGhost = true;  x = t; .)
   ]
   "var"                                     (. if (!isGhost) { x = t; } .)
-  ( { Attribute<ref attrs> }
+  ( IF(!IsLetStmt())
+    { Attribute<ref attrs> }
     LocalIdentTypeOptional<out d, isGhost>    (. lhss.Add(d); d.Attributes = attrs; attrs = null; .)
     { ","
       { Attribute<ref attrs> }
@@ -2146,21 +2156,11 @@ VarDeclStatement<.out Statement/*!*/ s.>
        }
        s = new VarDeclStmt(x, endTok, lhss, update);
     .)
-  | "("                             (. List<CasePattern> arguments = new List<CasePattern>();
-                                       CasePattern pat;
-                                       Expression e = dummyExpr;
-                                       IToken id = t;
-                                    .)
-      [ CasePattern<out pat>            (. arguments.Add(pat); .)
-        { "," CasePattern<out pat>      (. arguments.Add(pat); .)
-        }
-      ]
-    ")"                             (. // Parse parenthesis without an identifier as a built in tuple type.
-                                       theBuiltIns.TupleType(id, arguments.Count, true); // make sure the tuple type exists
-                                       string ctor = BuiltIns.TupleTypeCtorNamePrefix + arguments.Count;  //use the TupleTypeCtors
-                                       pat = new CasePattern(id, ctor, arguments); 
-                                       if (isGhost) { pat.Vars.Iter(bv => bv.IsGhost = true); }
-                                    .)
+  | (. CasePattern pat;
+       Expression e = dummyExpr;
+       IToken id = t;
+     .)
+     CasePattern<out pat> (. if (isGhost) { pat.Vars.Iter(bv => bv.IsGhost = true); } .)
     ( ":="
     | { Attribute<ref attrs> }
       ":|"                          (.  SemErr(pat.tok, "LHS of assign-such-that expression must be variables, not general patterns"); .)
