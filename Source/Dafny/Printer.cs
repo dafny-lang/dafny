@@ -1228,15 +1228,10 @@ Everything) {
 
       } else if (stmt is LetStmt) {
         var s = (LetStmt)stmt;
-        wr.Write("var");
-        string sep = "";
-        foreach (var lhs in s.LHSs) {
-          wr.Write(sep);
-          PrintCasePattern(lhs);
-          sep = ", ";
-        }
+        wr.Write("var ");
+        PrintCasePattern(s.LHS);
         wr.Write(" := ");
-        PrintExpressionList(s.RHSs, true);
+        PrintExpression(s.RHS, true);
         wr.WriteLine(";");
 
       } else if (stmt is SkeletonStatement) {

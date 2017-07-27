@@ -9050,19 +9050,16 @@ namespace Microsoft.Dafny {
             builder.Add(TrAssumeCmd(bv.Tok, wh));
           }
         }
-        Contract.Assert(s.LHSs.Count == s.RHSs.Count);  // checked by resolution
         var varNameGen = CurrentIdGenerator.NestedFreshIdGenerator("let#");
-        for (int i = 0; i < s.LHSs.Count; i++) {
-          var pat = s.LHSs[i];
-          var rhs = s.RHSs[i];
-          var nm = varNameGen.FreshId(string.Format("#{0}#", i));
-          var r = new Bpl.LocalVariable(pat.tok, new Bpl.TypedIdent(pat.tok, nm, TrType(rhs.Type)));
-          locals.Add(r);
-          var rIe = new Bpl.IdentifierExpr(rhs.tok, r);
-          CheckWellformedWithResult(s.RHSs[i], new WFOptions(null, false, false), rIe, pat.Expr.Type, locals, builder, etran);
-          CheckCasePatternShape(pat, rIe, rhs.tok, pat.Expr.Type, builder);
-          builder.Add(TrAssumeCmd(pat.tok, Bpl.Expr.Eq(etran.TrExpr(pat.Expr), rIe)));
-        }
+        var pat = s.LHS;
+        var rhs = s.RHS;
+        var nm = varNameGen.FreshId(string.Format("#{0}#", 0));
+        var r = new Bpl.LocalVariable(pat.tok, new Bpl.TypedIdent(pat.tok, nm, TrType(rhs.Type)));
+        locals.Add(r);
+        var rIe = new Bpl.IdentifierExpr(rhs.tok, r);
+        CheckWellformedWithResult(rhs, new WFOptions(null, false, false), rIe, pat.Expr.Type, locals, builder, etran);
+        CheckCasePatternShape(pat, rIe, rhs.tok, pat.Expr.Type, builder);
+        builder.Add(TrAssumeCmd(pat.tok, Bpl.Expr.Eq(etran.TrExpr(pat.Expr), rIe)));
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected statement
       }

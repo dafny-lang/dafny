@@ -624,7 +624,7 @@ namespace Microsoft.Dafny
 
       } else if (stmt is LetStmt) {
         var s = (LetStmt) stmt;
-        r = new LetStmt(Tok(s.Tok), Tok(s.EndTok), s.LHSs.ConvertAll(CloneCasePattern), s.RHSs.ConvertAll(CloneExpr));
+        r = new LetStmt(Tok(s.Tok), Tok(s.EndTok), CloneCasePattern(s.LHS), CloneExpr(s.RHS));
 
       } else if (stmt is ModifyStmt) {
         var s = (ModifyStmt)stmt;

@@ -474,8 +474,17 @@ bool IsLambda(bool allowLambda)
 }
 
 bool IsIdentParen() {
+  scanner.ResetPeek();
   Token x = scanner.Peek();
   return la.kind == _ident && x.kind == _openparen;
+}
+
+/* Used to disambiguate the LHS of a VarDeclStmt. If it looks like the start of a CasePattern,
+ * we consider it to be a LetStmt. But if we are looking at a simple identifier, then we
+ * consider it to be a VarDeclStmt.
+ */
+bool IsLetStmt() {
+  return IsIdentParen() || la.kind == _openparen;
 }
 
 bool IsIdentColonOrBar() {
@@ -2879,7 +2888,7 @@ List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, st
 		}
 		Expect(84);
 		if (!isGhost) { x = t; } 
-		if (la.kind == 1 || la.kind == 50) {
+		if (!IsLetStmt()) {
 			while (la.kind == 50) {
 				Attribute(ref attrs);
 			}
@@ -2938,31 +2947,13 @@ List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, st
 			}
 			s = new VarDeclStmt(x, endTok, lhss, update);
 			
-		} else if (la.kind == 54) {
-			Get();
-			var letLHSs = new List<CasePattern>();
-			var letRHSs = new List<Expression>();
-			List<CasePattern> arguments = new List<CasePattern>();
+		} else if (la.kind == 1 || la.kind == 54) {
 			CasePattern pat;
 			Expression e = dummyExpr;
 			IToken id = t;
 			
-			if (la.kind == 1 || la.kind == 54) {
-				CasePattern(out pat);
-				arguments.Add(pat); 
-				while (la.kind == 23) {
-					Get();
-					CasePattern(out pat);
-					arguments.Add(pat); 
-				}
-			}
-			Expect(55);
-			theBuiltIns.TupleType(id, arguments.Count, true); // make sure the tuple type exists
-			string ctor = BuiltIns.TupleTypeCtorNamePrefix + arguments.Count;  //use the TupleTypeCtors
-			pat = new CasePattern(id, ctor, arguments); 
-			if (isGhost) { pat.Vars.Iter(bv => bv.IsGhost = true); }
-			letLHSs.Add(pat);
-			
+			CasePattern(out pat);
+			if (isGhost) { pat.Vars.Iter(bv => bv.IsGhost = true); } 
 			if (la.kind == 86) {
 				Get();
 			} else if (la.kind == 26 || la.kind == 50) {
@@ -2973,9 +2964,8 @@ List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, st
 				SemErr(pat.tok, "LHS of assign-such-that expression must be variables, not general patterns"); 
 			} else SynErr(209);
 			Expression(out e, false, true);
-			letRHSs.Add(e); 
 			Expect(30);
-			s = new LetStmt(e.tok, e.tok, letLHSs, letRHSs); 
+			s = new LetStmt(e.tok, e.tok, pat, e); 
 		} else SynErr(210);
 	}
 
