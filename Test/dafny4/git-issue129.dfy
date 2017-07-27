@@ -24,3 +24,13 @@ method BarPoint()
 {
     var Point(x, y) := FooPoint();
 }
+
+datatype Option<A> = Some(val: A) | None
+
+method UseOption()
+{
+    var x := Some(3);
+    var Some(n) := x;
+    x := None;
+    var Some(m) := x;  // error: RHS is not certain to look like the pattern 'Some'
+}
