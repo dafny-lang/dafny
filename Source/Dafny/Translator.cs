@@ -9612,6 +9612,9 @@ namespace Microsoft.Dafny {
         var empty = new SeqDisplayExpr(tok, new List<Expression>());
         empty.Type = typ;
         return empty;
+      } else if (typ is ArrowType) {
+        // TODO: do better than just returning null
+        return null;
       } else {
         Contract.Assume(false);  // unexpected type
         return null;
