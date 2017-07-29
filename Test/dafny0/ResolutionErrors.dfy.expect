@@ -305,4 +305,5 @@ ResolutionErrors.dfy(2036,5): Error: type parameter (G) passed to method P must 
 ResolutionErrors.dfy(2054,8): Error: class 'C' with fields without known initializers, like 'u' of type 'T', must declare a constructor
 ResolutionErrors.dfy(2077,8): Error: class 'Class' with fields without known initializers, like 'co' of type 'Co', must declare a constructor
 ResolutionErrors.dfy(2080,8): Error: class 'CoClass0' with fields without known initializers, like 'co' of type 'Co', must declare a constructor
-304 resolution/type errors detected in ResolutionErrors.dfy
+ResolutionErrors.dfy(2102,13): Error: ghost fields are allowed only in specification contexts
+305 resolution/type errors detected in ResolutionErrors.dfy

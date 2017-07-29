@@ -1,0 +1,19 @@
+RollYourOwnArrowType.dfy(4,5): Error: cannot find witness that shows type is inhabited; try giving a hint through a 'witness' clause
+Execution trace:
+    (0,0): anon0
+RollYourOwnArrowType.dfy(8,18): Error: insufficient reads clause to invoke function
+Execution trace:
+    (0,0): anon0
+RollYourOwnArrowType.dfy(14,18): Error: insufficient reads clause to invoke function
+Execution trace:
+    (0,0): anon0
+RollYourOwnArrowType.dfy(27,18): Error: insufficient reads clause to invoke function
+Execution trace:
+    (0,0): anon0
+RollYourOwnArrowType.dfy(53,2): Error: insufficient reads clause to invoke function
+Execution trace:
+    (0,0): anon0
+    (0,0): anon6_Then
+    (0,0): anon7_Else
+
+Dafny program verifier finished with 5 verified, 5 errors

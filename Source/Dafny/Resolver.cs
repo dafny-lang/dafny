@@ -2168,7 +2168,7 @@ namespace Microsoft.Dafny
             if (reporter.Count(ErrorLevel.Error) == prevErrCnt) {
               CheckTypeInference(dd.Witness, dd);
             }
-            if (reporter.Count(ErrorLevel.Error) == prevErrCnt) {
+            if (reporter.Count(ErrorLevel.Error) == prevErrCnt && !dd.WitnessIsGhost) {
               CheckIsCompilable(dd.Witness);
             }
           }

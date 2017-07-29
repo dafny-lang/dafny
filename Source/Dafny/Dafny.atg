@@ -235,6 +235,17 @@ bool IsLoopSpec() {
   return la.kind == _invariant || la.kind == _decreases || la.kind == _modifies;
 }
 
+bool IsWitness() {
+  scanner.ResetPeek();
+  if (la.kind == _witness) {
+    return true;
+  } else if (la.kind == _ghost) {
+    Token x = scanner.Peek();
+    return x.kind == _witness;
+  }
+  return false;
+}
+
 bool IsFunctionDecl() {
   switch (la.kind) {
     case _function:
@@ -681,6 +692,8 @@ TOKENS
   modifies = "modifies".
   reads = "reads".
   requires = "requires".
+  ghost = "ghost".
+  witness = "witness".
   lbrace = '{'.
   rbrace = '}'.
   lbracket = '['.
@@ -1090,6 +1103,7 @@ NewtypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl td>
      Type baseType = null;
      Expression constraint;
      Expression witness = null;
+     bool witnessIsGhost = false;
      CheckDeclModifiers(dmod, "Newtypes", AllowedDeclModifiers.None);
   .)
   "newtype"
@@ -1101,8 +1115,12 @@ NewtypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl td>
     [ ":" Type<out baseType> ]       (. if (baseType == null) { baseType = new InferredTypeProxy(); } .)
     "|"
     Expression<out constraint, false, true>
-    [ "witness" Expression<out witness, false, true> ]
-                                     (. td = new NewtypeDecl(id, id.val, module, new BoundVar(bvId, bvId.val, baseType), constraint, witness, attrs); .)
+    [ IF(IsWitness())
+      [ "ghost"                      (. witnessIsGhost = true; .)
+      ]
+      "witness" Expression<out witness, false, true>
+    ]
+                                     (. td = new NewtypeDecl(id, id.val, module, new BoundVar(bvId, bvId.val, baseType), constraint, witness, witnessIsGhost, attrs); .)
   | Type<out baseType>               (. td = new NewtypeDecl(id, id.val, module, baseType, attrs); .)
   )
   .
@@ -1115,6 +1133,7 @@ OtherTypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl t
      Type ty = null;
      Expression constraint;
      Expression witness = null;
+     bool witnessIsGhost = false;
      var kind = "Opaque type";
   .)
   "type"
@@ -1128,8 +1147,12 @@ OtherTypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl t
       [ ":" Type<out ty> ]   (. if (ty == null) { ty = new InferredTypeProxy(); } .)
       "|"
       Expression<out constraint, false, true>
-      [ "witness" Expression<out witness, false, true> ]
-                             (. td = new SubsetTypeDecl(id, id.val, characteristics, typeArgs, module, new BoundVar(bvId, bvId.val, ty), constraint, witness, attrs);
+      [ IF(IsWitness())
+        [ "ghost"            (. witnessIsGhost = true; .)
+        ]
+        "witness" Expression<out witness, false, true>
+      ]
+                             (. td = new SubsetTypeDecl(id, id.val, characteristics, typeArgs, module, new BoundVar(bvId, bvId.val, ty), constraint, witness, witnessIsGhost, attrs);
                                 kind = "Subset type";
                              .)
     |

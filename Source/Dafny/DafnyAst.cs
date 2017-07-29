@@ -123,7 +123,7 @@ namespace Microsoft.Dafny {
       var bvNat = new BoundVar(Token.NoToken, "x", Type.Int);
       var natConstraint = Expression.CreateAtMost(Expression.CreateIntLiteral(Token.NoToken, 0), Expression.CreateIdentExpr(bvNat));
       var ax = new Attributes("axiom", new List<Expression>(), null);
-      var nat = new SubsetTypeDecl(Token.NoToken, "nat", new TypeParameter.TypeParameterCharacteristics(TypeParameter.EqualitySupportValue.InferredRequired, false), new List<TypeParameter>(), SystemModule, bvNat, natConstraint, null, ax);
+      var nat = new SubsetTypeDecl(Token.NoToken, "nat", new TypeParameter.TypeParameterCharacteristics(TypeParameter.EqualitySupportValue.InferredRequired, false), new List<TypeParameter>(), SystemModule, bvNat, natConstraint, null, false, ax);
       SystemModule.TopLevelDecls.Add(nat);
       // create trait 'object'
       ObjectDecl = new TraitDecl(Token.NoToken, "object", SystemModule, new List<TypeParameter>(), new List<MemberDecl>(), DontCompile(), null);
@@ -4148,6 +4148,7 @@ namespace Microsoft.Dafny {
     BoundVar/*?*/ Var { get; }
     Expression/*?*/ Constraint { get; }
     Expression/*?*/ Witness { get; }
+    bool WitnessIsGhost { get; }  // irrelevant if "Witness" is "null"
     FreshIdGenerator IdGenerator { get; }
   }
 
@@ -4233,7 +4234,8 @@ namespace Microsoft.Dafny {
     public readonly Type BaseType;
     public readonly BoundVar Var;  // can be null (if non-null, then object.ReferenceEquals(Var.Type, BaseType))
     public readonly Expression Constraint;  // is null iff Var is
-    public readonly Expression Witness;  // is null if (but not "only if") Var is
+    public readonly Expression/*?*/ Witness;  // is null if (but not "only if") Var is
+    public readonly bool WitnessIsGhost;  // irrelevant if "Witness" is "null"
     public NativeType NativeType; // non-null for fixed-size representations (otherwise, use BigIntegers for integers)
     public NewtypeDecl(IToken tok, string name, ModuleDefinition module, Type baseType, Attributes attributes, NewtypeDecl clonedFrom = null)
       : base(tok, name, module, new List<TypeParameter>(), attributes, clonedFrom) {
@@ -4243,7 +4245,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(baseType != null);
       BaseType = baseType;
     }
-    public NewtypeDecl(IToken tok, string name, ModuleDefinition module, BoundVar bv, Expression constraint, Expression witness, Attributes attributes, NewtypeDecl clonedFrom = null)
+    public NewtypeDecl(IToken tok, string name, ModuleDefinition module, BoundVar bv, Expression constraint, Expression witness, bool witnessIsGhost, Attributes attributes, NewtypeDecl clonedFrom = null)
       : base(tok, name, module, new List<TypeParameter>(), attributes, clonedFrom) {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
@@ -4253,6 +4255,7 @@ namespace Microsoft.Dafny {
       Var = bv;
       Constraint = constraint;
       Witness = witness;
+      WitnessIsGhost = witnessIsGhost;
       this.NewSelfSynonym();
     }
 
@@ -4274,6 +4277,7 @@ namespace Microsoft.Dafny {
     BoundVar RedirectingTypeDecl.Var { get { return Var; } }
     Expression RedirectingTypeDecl.Constraint { get { return Constraint; } }
     Expression RedirectingTypeDecl.Witness { get { return Witness; } }
+    bool RedirectingTypeDecl.WitnessIsGhost { get { return WitnessIsGhost; } }
     FreshIdGenerator RedirectingTypeDecl.IdGenerator { get { return IdGenerator; } }
 
     bool ICodeContext.IsGhost { get { return true; } }
@@ -4344,6 +4348,7 @@ namespace Microsoft.Dafny {
     BoundVar RedirectingTypeDecl.Var { get { return null; } }
     Expression RedirectingTypeDecl.Constraint { get { return null; } }
     Expression RedirectingTypeDecl.Witness { get { return null; } }
+    bool RedirectingTypeDecl.WitnessIsGhost { get { return false; } }  // value is irrelevant, since Witness is null
     FreshIdGenerator RedirectingTypeDecl.IdGenerator { get { return IdGenerator; } }
 
     bool ICodeContext.IsGhost { get { return false; } }
@@ -4391,8 +4396,9 @@ namespace Microsoft.Dafny {
     public readonly BoundVar Var;
     public readonly Expression Constraint;
     public readonly Expression/*?*/ Witness;
+    public readonly bool WitnessIsGhost;  // irrelevant if "Witness" is "null"
     public SubsetTypeDecl(IToken tok, string name, TypeParameter.TypeParameterCharacteristics characteristics, List<TypeParameter> typeArgs, ModuleDefinition module,
-      BoundVar id, Expression constraint, Expression witness,
+      BoundVar id, Expression constraint, Expression witness, bool witnessIsGhost,
       Attributes attributes, SubsetTypeDecl clonedFrom = null)
       : base(tok, name, characteristics, typeArgs, module, id.Type, attributes, clonedFrom) {
       Contract.Requires(tok != null);
@@ -4404,10 +4410,12 @@ namespace Microsoft.Dafny {
       Var = id;
       Constraint = constraint;
       Witness = witness;
+      WitnessIsGhost = witnessIsGhost;
     }
     BoundVar RedirectingTypeDecl.Var { get { return Var; } }
     Expression RedirectingTypeDecl.Constraint { get { return Constraint; } }
     Expression RedirectingTypeDecl.Witness { get { return Witness; } }
+    bool RedirectingTypeDecl.WitnessIsGhost { get { return WitnessIsGhost; } }
   }
 
   [ContractClass(typeof(IVariableContracts))]

@@ -237,6 +237,9 @@ Everything) {
             wr.Write(" | ");
             PrintExpression(dd.Constraint, true);
             if (dd.Witness != null) {
+              if (dd.WitnessIsGhost) {
+                wr.Write(" ghost");
+              }
               wr.Write(" witness ");
               PrintExpression(dd.Witness, true);
             }
@@ -256,6 +259,9 @@ Everything) {
           wr.Write(" | ");
           PrintExpression(dd.Constraint, true);
           if (dd.Witness != null) {
+            if (dd.WitnessIsGhost) {
+              wr.Write(" ghost");
+            }
             wr.Write(" witness ");
             PrintExpression(dd.Witness, true);
           }

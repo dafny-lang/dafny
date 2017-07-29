@@ -2095,3 +2095,18 @@ module ConstructorlessClasses {
   {
   }
 }
+
+module GhostWitness {
+  type BadGhost_EffectlessArrow<A,B> = f: A -> B
+    | true
+    witness (GhostEffectlessArrowWitness<A,B>)  // error: a ghost witness must use the keyword "ghost"
+
+  type GoodGhost_EffectlessArrow<A,B> = f: A -> B
+    | true
+    ghost witness (GhostEffectlessArrowWitness<A,B>)
+
+  function GhostEffectlessArrowWitness<A,B>(a: A): B
+  {
+    var b: B :| true; b
+  }
+}

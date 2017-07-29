@@ -44,7 +44,7 @@ namespace Microsoft.Dafny
       } else if (d is SubsetTypeDecl) {
         var dd = (SubsetTypeDecl)d;
         var tps = dd.TypeArgs.ConvertAll(CloneTypeParam);
-        return new SubsetTypeDecl(Tok(dd.tok), dd.Name, CloneTPChar(dd.Characteristics), tps, m, CloneBoundVar(dd.Var), CloneExpr(dd.Constraint), CloneExpr(dd.Witness), CloneAttributes(dd.Attributes), CloneFromValue(dd));
+        return new SubsetTypeDecl(Tok(dd.tok), dd.Name, CloneTPChar(dd.Characteristics), tps, m, CloneBoundVar(dd.Var), CloneExpr(dd.Constraint), CloneExpr(dd.Witness), dd.WitnessIsGhost, CloneAttributes(dd.Attributes), CloneFromValue(dd));
       } else if (d is TypeSynonymDecl) {
         var dd = (TypeSynonymDecl)d;
         var tps = dd.TypeArgs.ConvertAll(CloneTypeParam);
@@ -54,7 +54,7 @@ namespace Microsoft.Dafny
           if (dd.Var == null) {
             return new NewtypeDecl(Tok(dd.tok), dd.Name, m, CloneType(dd.BaseType), CloneAttributes(dd.Attributes), CloneFromValue(dd));
           } else {
-            return new NewtypeDecl(Tok(dd.tok), dd.Name, m, CloneBoundVar(dd.Var), CloneExpr(dd.Constraint), CloneExpr(dd.Witness), CloneAttributes(dd.Attributes), CloneFromValue(dd));
+            return new NewtypeDecl(Tok(dd.tok), dd.Name, m, CloneBoundVar(dd.Var), CloneExpr(dd.Constraint), CloneExpr(dd.Witness), dd.WitnessIsGhost, CloneAttributes(dd.Attributes), CloneFromValue(dd));
           }
       } else if (d is TupleTypeDecl) {
         var dd = (TupleTypeDecl)d;

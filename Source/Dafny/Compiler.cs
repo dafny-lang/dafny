@@ -137,7 +137,7 @@ namespace Microsoft.Dafny {
             Error("Opaque type ('{0}') cannot be compiled", wr, at.FullName);
           } else if (d is TypeSynonymDecl) {
             var sst = d as SubsetTypeDecl;
-            if (sst == null || sst.Witness == null) {
+            if (sst == null || sst.Witness == null || sst.WitnessIsGhost) {
               // do nothing, just bypass type synonyms and witness-less subset types in the compiler
             } else {
               Indent(indent, wr);
@@ -165,7 +165,7 @@ namespace Microsoft.Dafny {
               Indent(indent + IndentAmount, wr);
               wr.WriteLine("}");
             }
-            if (nt.Witness != null) {
+            if (nt.Witness != null && !nt.WitnessIsGhost) {
               Indent(indent + IndentAmount, wr);
               if (nt.NativeType == null) {
                 wr.Write("public static readonly {0} Witness = ", TypeName(nt.BaseType, wr));
@@ -1522,7 +1522,7 @@ namespace Microsoft.Dafny {
         return;
       } else if (cl is NewtypeDecl) {
         var td = (NewtypeDecl)cl;
-        if (td.Witness != null) {
+        if (td.Witness != null && !td.WitnessIsGhost) {
           hasZeroInitializer = false;
           initializerIsKnown = true;
           defaultValue = compiler == null ? null : compiler.TypeName_UDT(udt.FullCompileName, udt.TypeArgs, wr) + ".Witness";
@@ -1538,7 +1538,7 @@ namespace Microsoft.Dafny {
         }
       } else if (cl is SubsetTypeDecl) {
         var td = (SubsetTypeDecl)cl;
-        if (td.Witness != null) {
+        if (td.Witness != null && !td.WitnessIsGhost) {
           hasZeroInitializer = false;
           initializerIsKnown = true;
           defaultValue = compiler == null ? null : compiler.TypeName_UDT(udt.FullCompileName, udt.TypeArgs, wr) + ".Witness";
