@@ -2109,11 +2109,8 @@ namespace Microsoft.Dafny {
 
       } else if (stmt is LetStmt) {
         var s = (LetStmt)stmt;
-        for (int i = 0; i < s.LHSs.Count; i++) {
-          var lhs = s.LHSs[i];
-          if (Contract.Exists(lhs.Vars, bv => !bv.IsGhost)) {
-            TrCasePatternOpt(lhs, s.RHSs[i], null, indent, wr, false);
-          }
+        if (Contract.Exists(s.LHS.Vars, bv => !bv.IsGhost)) {
+          TrCasePatternOpt(s.LHS, s.RHS, null, indent, wr, false);
         }
       } else if (stmt is ModifyStmt) {
         var s = (ModifyStmt)stmt;

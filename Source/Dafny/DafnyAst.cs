@@ -5880,13 +5880,13 @@ namespace Microsoft.Dafny {
 
   public class LetStmt : Statement 
   {
-    public readonly List<CasePattern> LHSs;
-    public readonly List<Expression> RHSs;
+    public readonly CasePattern LHS;
+    public readonly Expression RHS;
 
-    public LetStmt(IToken tok, IToken endTok, List<CasePattern> lhss, List<Expression> rhss)
+    public LetStmt(IToken tok, IToken endTok, CasePattern lhs, Expression rhs)
       : base(tok, endTok) {
-      LHSs = lhss;
-      RHSs = rhss;
+      LHS = lhs;
+      RHS = rhs;
     }
 
     public override IEnumerable<Expression> SubExpressions {
@@ -5894,18 +5894,16 @@ namespace Microsoft.Dafny {
         foreach (var e in Attributes.SubExpressions(Attributes)) {
           yield return e;
         }
-        foreach (var rhs in RHSs) {
-          yield return rhs;
-        }
+        
+        yield return RHS;
+        
       }
     }
 
     public IEnumerable<BoundVar> BoundVars {
       get {
-        foreach (var lhs in LHSs) {
-          foreach (var bv in lhs.Vars) {
-            yield return bv;
-          }
+        foreach (var bv in LHS.Vars) {
+          yield return bv;
         }
       }
     }

@@ -2428,7 +2428,7 @@ namespace Microsoft.Dafny {
         if (prev != null) {
           Formals.AddRange(prev.Formals);
           foreach (var e in prev.ReplacementExprs) {
-            ReplacementExprs.Add(translator.Substitute(e, null, substMap));
+            ReplacementExprs.Add(Translator.Substitute(e, null, substMap));
           }
           foreach (var rf in prev.ReplacementFormals) {
             if (rf != formal) {
@@ -2436,7 +2436,7 @@ namespace Microsoft.Dafny {
             }
           }
           foreach (var entry in prev.SubstMap) {
-            SubstMap.Add(entry.Key, translator.Substitute(entry.Value, null, substMap));
+            SubstMap.Add(entry.Key, Translator.Substitute(entry.Value, null, substMap));
           }
         }
         if (formal is Formal) {
@@ -9284,19 +9284,16 @@ namespace Microsoft.Dafny {
             builder.Add(TrAssumeCmd(bv.Tok, wh));
           }
         }
-        Contract.Assert(s.LHSs.Count == s.RHSs.Count);  // checked by resolution
         var varNameGen = CurrentIdGenerator.NestedFreshIdGenerator("let#");
-        for (int i = 0; i < s.LHSs.Count; i++) {
-          var pat = s.LHSs[i];
-          var rhs = s.RHSs[i];
-          var nm = varNameGen.FreshId(string.Format("#{0}#", i));
-          var r = new Bpl.LocalVariable(pat.tok, new Bpl.TypedIdent(pat.tok, nm, TrType(rhs.Type)));
-          locals.Add(r);
-          var rIe = new Bpl.IdentifierExpr(rhs.tok, r);
-          CheckWellformedWithResult(s.RHSs[i], new WFOptions(null, false, false), rIe, pat.Expr.Type, locals, builder, etran);
-          CheckCasePatternShape(pat, rIe, rhs.tok, pat.Expr.Type, builder);
-          builder.Add(TrAssumeCmd(pat.tok, Bpl.Expr.Eq(etran.TrExpr(pat.Expr), rIe)));
-        }
+        var pat = s.LHS;
+        var rhs = s.RHS;
+        var nm = varNameGen.FreshId(string.Format("#{0}#", 0));
+        var r = new Bpl.LocalVariable(pat.tok, new Bpl.TypedIdent(pat.tok, nm, TrType(rhs.Type)));
+        locals.Add(r);
+        var rIe = new Bpl.IdentifierExpr(rhs.tok, r);
+        CheckWellformedWithResult(rhs, new WFOptions(null, false, false), rIe, pat.Expr.Type, locals, builder, etran);
+        CheckCasePatternShape(pat, rIe, rhs.tok, pat.Expr.Type, builder);
+        builder.Add(TrAssumeCmd(pat.tok, Bpl.Expr.Eq(etran.TrExpr(pat.Expr), rIe)));
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected statement
       }
@@ -12093,7 +12090,7 @@ namespace Microsoft.Dafny {
         FTVs = template.FTVs;
         FTV_Types = template.FTV_Types.ConvertAll(t => Resolver.SubstType(t, typeMap));
         FVs = template.FVs;
-        FV_Exprs = template.FV_Exprs.ConvertAll(e => translator.Substitute(e, null, substMap, typeMap));
+        FV_Exprs = template.FV_Exprs.ConvertAll(e => Translator.Substitute(e, null, substMap, typeMap));
         UsesHeap = template.UsesHeap;
         UsesOldHeap = template.UsesOldHeap;
         ThisType = template.ThisType;
@@ -12875,7 +12872,7 @@ namespace Microsoft.Dafny {
         for (int i = 0; i < e.LHSs.Count; i++) {
           translator.AddCasePatternVarSubstitutions(e.LHSs[i], TrExpr(e.RHSs[i]), substMap);
         }
-        return translator.Substitute(e.Body, null, substMap);
+        return Translator.Substitute(e.Body, null, substMap);
       }
 
       public Expr MaybeLit(Expr expr, Bpl.Type type) {
@@ -13830,7 +13827,7 @@ namespace Microsoft.Dafny {
             var bv = e.BoundVars[0];
             Bpl.Expr typeAntecedent = translator.MkIsBox(new Bpl.IdentifierExpr(expr.tok, yVar), bv.Type);
             var yUnboxed = translator.UnboxIfBoxed(new Bpl.IdentifierExpr(expr.tok, yVar), bv.Type);
-            var range = translator.Substitute(e.Range, bv, new BoogieWrapper(yUnboxed, bv.Type));
+            var range = Translator.Substitute(e.Range, bv, new BoogieWrapper(yUnboxed, bv.Type));
             lbody = BplAnd(typeAntecedent, TrExpr(range));
           } else {
             // lambda y: BoxType :: (exists xs :: CorrectType(xs) && R && y==Box(T))
@@ -13866,9 +13863,9 @@ namespace Microsoft.Dafny {
           Dictionary<IVariable, Expression> subst = new Dictionary<IVariable,Expression>();
           subst.Add(e.BoundVars[0], new BoogieWrapper(unboxy,e.BoundVars[0].Type));
 
-          var ebody = BplAnd(typeAntecedent ?? Bpl.Expr.True, TrExpr(translator.Substitute(e.Range, null, subst)));
+          var ebody = BplAnd(typeAntecedent ?? Bpl.Expr.True, TrExpr(Translator.Substitute(e.Range, null, subst)));
           Bpl.Expr l1 = new Bpl.LambdaExpr(e.tok, new List<TypeVariable>(), new List<Variable> { yVar }, kv, ebody);
-          ebody = TrExpr(translator.Substitute(e.Term, null, subst));
+          ebody = TrExpr(Translator.Substitute(e.Term, null, subst));
           Bpl.Expr l2 = new Bpl.LambdaExpr(e.tok, new List<TypeVariable>(), new List<Variable> { yVar }, kv, BoxIfNecessary(expr.tok, ebody, e.Term.Type));
 
           bool finite = e.Finite;
@@ -13964,12 +13961,12 @@ namespace Microsoft.Dafny {
         var ly = BplBoundVar(varNameGen.FreshId("#ly#"), predef.LayerType, lvars);
         et = et.WithLayer(ly);
 
-        var ebody = et.TrExpr(translator.Substitute(e.Body, null, subst));
+        var ebody = et.TrExpr(Translator.Substitute(e.Body, null, subst));
         ebody = translator.BoxIfUnboxed(ebody, e.Body.Type);
 
         Bpl.Expr reqbody = Bpl.Expr.True;
         if (e.Range != null) {
-          reqbody = et.TrExpr(translator.Substitute(e.Range, null, subst));
+          reqbody = et.TrExpr(Translator.Substitute(e.Range, null, subst));
         }
         if (e.OneShot) {
           reqbody = BplAnd(reqbody, Bpl.Expr.Eq(HeapExpr, heap));
@@ -14023,7 +14020,7 @@ namespace Microsoft.Dafny {
             }
             argIndex++;
           }
-          var c = translator.Substitute(mc.Body, null, substMap);
+          var c = Translator.Substitute(mc.Body, null, substMap);
           if (r == null) {
             r = c;
           } else {
@@ -14266,7 +14263,7 @@ namespace Microsoft.Dafny {
           if (compr.TermIsSimple) {
             // CorrectType(elmt) && R[xs := elmt]
             Bpl.Expr typeAntecedent = translator.GetWhereClause(compr.tok, elmt, compr.BoundVars[0].Type, this, NOALLOC) ?? Bpl.Expr.True;
-            var range = translator.Substitute(compr.Range, compr.BoundVars[0], new BoogieWrapper(elmt, compr.BoundVars[0].Type));
+            var range = Translator.Substitute(compr.Range, compr.BoundVars[0], new BoogieWrapper(elmt, compr.BoundVars[0].Type));
             return BplAnd(typeAntecedent, TrExpr(range));
           } else {
             // exists xs :: CorrectType(xs) && R && elmt==T
@@ -15832,7 +15829,7 @@ namespace Microsoft.Dafny {
     /// <summary>
     /// Returns an expression like "expr", but where free occurrences of "v" have been replaced by "e".
     /// </summary>
-    public Expression Substitute(Expression expr, IVariable v, Expression e) {
+    public static Expression Substitute(Expression expr, IVariable v, Expression e) {
       Contract.Requires(expr != null);
       Contract.Requires(v != null);
       Contract.Requires(e != null);
@@ -15842,12 +15839,21 @@ namespace Microsoft.Dafny {
       return Substitute(expr, null, substMap);
     }
 
-    public Expression Substitute(Expression expr, Expression receiverReplacement, Dictionary<IVariable, Expression/*!*/>/*!*/ substMap, Dictionary<TypeParameter, Type>/*?*/ typeMap = null) {
+    public static Expression Substitute(Expression expr, Expression receiverReplacement, Dictionary<IVariable, Expression/*!*/>/*!*/ substMap, Dictionary<TypeParameter, Type>/*?*/ typeMap = null) {
       Contract.Requires(expr != null);
       Contract.Requires(cce.NonNullDictionaryAndValues(substMap));
       Contract.Ensures(Contract.Result<Expression>() != null);
       var s = new Substituter(receiverReplacement, substMap, typeMap ?? new Dictionary<TypeParameter, Type>());
       return s.Substitute(expr);
+    }
+
+    public static Expression InlineLet(LetExpr letExpr) {
+      Contract.Requires(letExpr.LHSs.All(p => p.Var != null));
+      var substMap = new Dictionary<IVariable, Expression>();
+      for (var i = 0; i < letExpr.LHSs.Count; i++) {
+        substMap.Add(letExpr.LHSs[i].Var, letExpr.RHSs[i]);
+      }
+      return Translator.Substitute(letExpr.Body, null, substMap);
     }
 
     public class FunctionCallSubstituter : Substituter

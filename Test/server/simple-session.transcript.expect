@@ -50,7 +50,7 @@ Verification completed successfully!
 [SUCCESS] [[DAFNY-SERVER: EOM]]
 Verification completed successfully!
 [SUCCESS] [[DAFNY-SERVER: EOM]]
-transcript(7,0): Error: invalid VarDeclStatement
+transcript(7,0): Error: ident expected
 Verification completed successfully!
 [SUCCESS] [[DAFNY-SERVER: EOM]]
 Verification completed successfully!

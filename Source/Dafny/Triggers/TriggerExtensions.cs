@@ -44,17 +44,31 @@ namespace Microsoft.Dafny.Triggers {
   }
 
   internal static class ExprExtensions {
-    internal static IEnumerable<Expression> AllSubExpressions(this Expression expr, bool wrapOld, bool strict) {
+    internal static bool IsInlineable(this LetExpr expr) {
+      return expr.LHSs.All(p => p.Var != null);
+    }
+
+    internal static IEnumerable<Expression> AllSubExpressions(this Expression expr, bool wrapOld, bool strict, bool inlineLets = false) {
       bool isOld = expr is OldExpr;
 
+      if (inlineLets && expr is LetExpr && ((LetExpr)expr).IsInlineable()) {
+        var le = (LetExpr)expr;
+        foreach (var subexpr in AllSubExpressions(Translator.InlineLet(le), wrapOld, strict, inlineLets)) {
+          yield return subexpr;
+        }
+        // If strict is false, then the recursive call will already yield a copy of (the inlined version) of expr, 
+        // so there's no need to yield expr itself below.
+        yield break;
+      }
+
       foreach (var subexpr in expr.SubExpressions) {
-        foreach (var r_subexpr in AllSubExpressions(subexpr, wrapOld, false)) {
+        foreach (var r_subexpr in AllSubExpressions(subexpr, wrapOld, false, inlineLets)) {
           yield return TriggerUtils.MaybeWrapInOld(r_subexpr, isOld);
         }
       }
 
       if (expr is StmtExpr) {
-        foreach (var r_subexpr in AllSubExpressions(((StmtExpr)expr).S, wrapOld, false)) {
+        foreach (var r_subexpr in AllSubExpressions(((StmtExpr)expr).S, wrapOld, false, inlineLets)) {
           yield return TriggerUtils.MaybeWrapInOld(r_subexpr, isOld);
         }
       }
@@ -64,15 +78,15 @@ namespace Microsoft.Dafny.Triggers {
       }
     }
 
-    internal static IEnumerable<Expression> AllSubExpressions(this Statement stmt, bool wrapOld, bool strict) {
+    internal static IEnumerable<Expression> AllSubExpressions(this Statement stmt, bool wrapOld, bool strict, bool inlineLets = false) {
       foreach (var subexpr in stmt.SubExpressions) {
-        foreach (var r_subexpr in AllSubExpressions(subexpr, wrapOld, false)) {
+        foreach (var r_subexpr in AllSubExpressions(subexpr, wrapOld, false, inlineLets)) {
           yield return r_subexpr;
         }
       }
 
       foreach (var substmt in stmt.SubStatements) {
-        foreach (var r_subexpr in AllSubExpressions(substmt, wrapOld, false)) {
+        foreach (var r_subexpr in AllSubExpressions(substmt, wrapOld, false, inlineLets)) {
           yield return r_subexpr;
         }
       }
@@ -134,7 +148,7 @@ namespace Microsoft.Dafny.Triggers {
     }
 
     internal static IEnumerable<TriggerMatch> SubexpressionsMatchingTrigger(this ComprehensionExpr quantifier, Expression trigger) {
-      return quantifier.AllSubExpressions(true, true)
+      return quantifier.AllSubExpressions(true, true, true)
         .Select(e => TriggerUtils.PrepareExprForInclusionInTrigger(e).MatchAgainst(trigger, quantifier.BoundVars, e))
         .Where(e => e.HasValue).Select(e => e.Value);
     }
