@@ -146,12 +146,10 @@ namespace Microsoft.Dafny {
                 wr.Write("<{0}>", TypeParameters(sst.TypeArgs));
               }
               wr.WriteLine(" {");
-              if (sst.Witness != null) {
-                Indent(indent + IndentAmount, wr);
-                wr.Write("public static readonly {0} Witness = ", TypeName(sst.Rhs, wr));
-                TrExpr(sst.Witness, wr, false);
-                wr.WriteLine(";");
-              }
+              Indent(indent + IndentAmount, wr);
+              wr.Write("public static readonly {0} Witness = ", TypeName(sst.Rhs, wr));
+              TrExpr(sst.Witness, wr, false);
+              wr.WriteLine(";");
               Indent(indent, wr);
               wr.WriteLine("}");
             }
@@ -1375,12 +1373,6 @@ namespace Microsoft.Dafny {
       if (typeArgs.Count != 0) {
         if (typeArgs.Exists(ComplicatedTypeParameterForCompilation)) {
           Error("compilation does not support trait types as a type parameter; consider introducing a ghost", wr);
-        } else {
-          foreach (var ta in typeArgs) {
-            if (NonZeroInitialization(ta)) {
-              Error("compilation currently does not support '{0}' as a type parameter, because it is a type that may require non-zero initialiation", wr, ta);
-            }
-          }
         }
         s += "<" + TypeNames(typeArgs, wr) + ">";
       }
@@ -1390,12 +1382,6 @@ namespace Microsoft.Dafny {
     bool ComplicatedTypeParameterForCompilation(Type t) {
       Contract.Requires(t != null);
       return t.IsTraitType;
-    }
-
-    bool NonZeroInitialization(Type t) {
-      Contract.Requires(t != null);
-      var r = t.NormalizeExpandKeepConstraints().AsRedirectingType;
-      return r != null && r.Witness != null;
     }
 
     string/*!*/ TypeNames(List<Type/*!*/>/*!*/ types, TextWriter wr) {
@@ -2534,7 +2520,7 @@ namespace Microsoft.Dafny {
         if (tp.ArrayDimensions == null) {
           wr.Write("new {0}()", TypeName(tp.EType, wr));
         } else {
-          if (NonZeroInitialization(tp.EType)) {
+          if (!HasZeroInitializer(tp.EType)) {
             wr.Write("Dafny.ArrayHelpers.InitNewArray{0}<{1}>", tp.ArrayDimensions.Count, TypeName(tp.EType, wr));
             wr.Write("(");
             wr.Write(DefaultValue(tp.EType, wr));
