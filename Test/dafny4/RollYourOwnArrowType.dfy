@@ -2,29 +2,20 @@
 // RUN: %diff "%s.expect" "%t"
 
 type NoWitness_EffectlessArrow<A,B> = f: A -> B  // error: cannot find witness
-  // Issue:  The constraint expression on the next line reads the heap in f.reads(a).  Like in
-  //         a case below in this file, it seems that perhaps this could eb specialized cased
-  //         for functions with an always-empty reads clause.
-  | forall a :: f.reads(a) == {}  // error: insufficient reads clause to read reads clause :(
+  | forall a :: f.reads(a) == {}
 
 type NonGhost_EffectlessArrow<A,B> = f: A -> B
-  // Issue:  The constraint expression on the next line reads the heap in f.reads(a).  Like in
-  //         a case below in this file, it seems that perhaps this could eb specialized cased
-  //         for functions with an always-empty reads clause.
-  | forall a :: f.reads(a) == {}  // error: insufficient reads clause to read reads clause :(
+  | forall a :: f.reads(a) == {}
   // Issue:  The parsing of the next line requires parentheses around the whole expression.  Is
   //         it possible to end the lookahead with not just a close-paren, but also with a keyword?
   witness (EffectlessArrowWitness<A,B>)
 
-// Issue: The following compilable function, which is used in the witness clause above, can never
-// be implemented, because there is no way to produce a B.
+// The following compilable function, which is used in the witness clause above, can never
+// be implemented, because there is no way to produce a B (for any B) in compiled code.
 function method EffectlessArrowWitness<A,B>(a: A): B
 
 type EffectlessArrow<A,B> = f: A -> B
-  // Issue:  The constraint expression on the next line reads the heap in f.reads(a).  Like in
-  //         a case below in this file, it seems that perhaps this could eb specialized cased
-  //         for functions with an always-empty reads clause.
-  | forall a :: f.reads(a) == {}  // error: insufficient reads clause to read reads clause :(
+  | forall a :: f.reads(a) == {}
   // Issue:  The parsing of the next line requires parentheses around the whole expression.  Is
   //         it possible to end the lookahead with not just a close-paren, but also with a keyword?
   ghost witness (GhostEffectlessArrowWitness<A,B>)
@@ -36,11 +27,13 @@ function GhostEffectlessArrowWitness<A,B>(a: A): B
 
 
 function method Twice(f: EffectlessArrow<int,int>, x: int): int
-  reads f.reads  // Without a special type, it is unfortunate that this is needed (perhaps
+//  reads f.reads  // Without a special type, it is unfortunate that this is needed (perhaps
                  // the reads check for functions should be specialized to say:
                  //    assert (forall a :: f.reads(a) == {}) || f.reads(x) <= Twice.reads(f, x)
                  // Strange that TwoTimes below can be verified without a reads clause.
-  requires forall x :: f.requires(x)
+  requires
+    assert forall x :: f.reads(x) == {};  // error: BUG: why is this needed and why cannot it not be verified?
+    forall x :: f.requires(x)
 {
   var y := f(x);
   f(y)
@@ -62,7 +55,6 @@ function method Twice''(f: EffectlessArrow<int,int>, x: int): int
 }
 
 function method TwoTimes(f: int -> int, x: int): int
-//  reads f.reads
   requires forall x :: f.reads(x) == {}
   requires forall x :: f.requires(x)
 {
@@ -80,4 +72,33 @@ method Main()
   assert y == 5;
   var z := Twice(Inc, 12);
   assert z == 14;
+}
+
+predicate Total<A,B>(f: A -> B)
+  reads f.reads
+{
+  forall a :: f.reads(a) == {} && f.requires(a)
+}
+
+type TotalArrow<A,B> = f: EffectlessArrow<A,B>
+  | Total(f)
+  ghost witness
+    (TotalWitnessIsTotal<A,B>();  // BUG: why is this lemma needed?
+     TotalWitness<A,B>)
+
+function TotalWitness<A,B>(a: A): B
+{
+  var b: B :| true; b
+}
+
+lemma TotalWitnessIsTotal<A,B>()
+  ensures Total(TotalWitness<A,B>)
+{
+}
+
+function TotalClientTwice(f: TotalArrow<int,int>, x: int): int
+{
+  assert Total(f);  // error: BUG: why doesn't this prove
+  assert f.reads(x) == {};  // BUG: why is the previous line necessary to prove this condition
+  f(f(x))  // BUG: why is one of the previous lines needed to prove sufficient reads clauses here
 }

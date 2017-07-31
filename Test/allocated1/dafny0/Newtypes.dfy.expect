@@ -1,10 +1,11 @@
-Newtypes.dfy(74,10): Error: cannot find witness that shows type is inhabited (only tried 0); try giving a hint through a 'witness' clause
+Newtypes.dfy(74,10): Error: cannot find witness that shows type is inhabited (only tried 0); try giving a hint through a 'witness' or 'ghost witness' clause
 Execution trace:
     (0,0): anon0
+    (0,0): anon4_Else
 Newtypes.dfy(76,44): Error: possible division by zero
 Execution trace:
     (0,0): anon0
-    (0,0): anon3_Then
+    (0,0): anon7_Then
 Newtypes.dfy(87,13): Error: result of operation might violate newtype constraint for 'char8'
 Execution trace:
     (0,0): anon0

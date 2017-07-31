@@ -5336,35 +5336,59 @@ namespace Microsoft.Dafny {
 
       DefineFrame(decl.tok, new List<FrameExpression>(), builder, locals, null);
 
-      // check well-formedness of the constraint (including termination, and reads checks)
-      CheckWellformed(decl.Constraint, new WFOptions(null, true), locals, builder, etran);
+      // some initialization stuff;  // This is collected in builderInitializationArea
+      // define frame;
+      // if (*) {
+      //   // The following is collected in constraintCheckBuilder:
+      //   check constraint is well-formed;
+      //   assume constraint;
+      //   do reads checks;
+      // } else {
+      //   // The following is collected in witnessCheckBuilder:
+      //   check witness;
+      // }
+
+      // check well-formedness of the constraint (including termination, and delayed reads checks)
+      var constraintCheckBuilder = new BoogieStmtListBuilder(this);
+      var builderInitializationArea = new BoogieStmtListBuilder(this);
+      var wfo = new WFOptions(null, true, true /* do delayed reads checks */);
+      CheckWellformedAndAssume(decl.Constraint, wfo, locals, constraintCheckBuilder, etran);
+      wfo.ProcessSavedReadsChecks(locals, builderInitializationArea, constraintCheckBuilder);
 
       // Check that the type is inhabited.
       // Note, the possible witness in this check should be coordinated with the compiler, so the compiler knows how to do the initialization
+      var witnessCheckBuilder = new BoogieStmtListBuilder(this);
       if (decl.Witness != null) {
         // check well-formedness of the witness expression (including termination, and reads checks)
-        CheckWellformed(decl.Witness, new WFOptions(null, true), locals, builder, etran);
+        CheckWellformed(decl.Witness, new WFOptions(null, true), locals, witnessCheckBuilder, etran);
         // check that the witness expression checks out
         var witnessCheck = etran.TrExpr(Substitute(decl.Constraint, decl.Var, decl.Witness));
-        builder.Add(Assert(decl.Witness.tok, witnessCheck, "the given witness expression might not satisfy constraint"));
+        witnessCheckBuilder.Add(Assert(decl.Witness.tok, witnessCheck, "the given witness expression might not satisfy constraint"));
       } else {
         var witness = Zero(decl.tok, decl.Var.Type);
         if (witness == null) {
-          builder.Add(Assert(decl.tok, Bpl.Expr.False, "cannot find witness that shows type is inhabited; try giving a hint through a 'witness' clause"));
+          witnessCheckBuilder.Add(Assert(decl.tok, Bpl.Expr.False, "cannot find witness that shows type is inhabited; try giving a hint through a 'witness' or 'ghost witness' clause"));
         } else {
           var witnessCheck = etran.TrExpr(Substitute(decl.Constraint, decl.Var, witness));
-          builder.Add(Assert(decl.tok, witnessCheck,
-            string.Format("cannot find witness that shows type is inhabited (only tried {0}); try giving a hint through a 'witness' clause",
+          witnessCheckBuilder.Add(Assert(decl.tok, witnessCheck,
+            string.Format("cannot find witness that shows type is inhabited (only tried {0}); try giving a hint through a 'witness' or 'ghost witness' clause",
             Printer.ExprToString(witness))));
         }
       }
 
+      builder.Add(new Bpl.IfCmd(decl.tok, null, constraintCheckBuilder.Collect(decl.tok), null, witnessCheckBuilder.Collect(decl.tok)));
+
+      var s0 = builderInitializationArea.Collect(decl.tok);
+      var s1 = builder.Collect(decl.tok);
+      var implBody = new StmtList(new List<BigBlock>(s0.BigBlocks.Concat(s1.BigBlocks)), decl.tok);
+
       if (EmitImplementation(decl.Attributes)) {
         // emit the impl only when there are proof obligations.
         QKeyValue kv = etran.TrAttributes(decl.Attributes, null);
+
         var impl = new Bpl.Implementation(decl.tok, proc.Name,
           new List<Bpl.TypeVariable>(), implInParams, new List<Variable>(),
-          locals, builder.Collect(decl.tok), kv);
+          locals, implBody, kv);
         sink.AddTopLevelDeclaration(impl);
       }
 
