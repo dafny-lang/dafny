@@ -473,8 +473,44 @@ bool IsGenericInstantiation(bool inExpressionContext) {
     case _eq:
     case _neq:
     case _neqAlt:
+    case _as:
+    case _by:
+    case _in:
     case _openAngleBracket:
     case _closeAngleBracket:
+    case _EOF:
+    // (specification clauses that can follow an expression)
+    case _decreases:
+    case _modifies:
+    case _reads:
+    case _requires:
+    case _ensures:
+    case _invariant:
+    case _witness:
+    // (top-level declarations that can follow an expression)
+    case _function:
+    case _predicate:
+    case _inductive:
+    case _twostate:
+    case _lemma:
+    case _copredicate:
+    case _ghost:
+    case _static:
+    case _protected:
+    case _import:
+    case _export:
+    case _class:
+    case _trait:
+    case _datatype:
+    case _codatatype:
+    case _var:
+    case _const:
+    case _newtype:
+    case _type:
+    case _iterator:
+    case _method:
+    case _colemma:
+    case _constructor:
       return true;
     default:
       return false;
@@ -690,6 +726,8 @@ TOKENS
   then = "then".
   else = "else".
   as = "as".
+  by = "by".
+  in = "in".
   decreases = "decreases".
   invariant = "invariant".
   function = "function".
@@ -698,9 +736,26 @@ TOKENS
   twostate = "twostate".
   lemma = "lemma".
   copredicate = "copredicate".
+  static = "static".
+  protected = "protected".
+  import = "import".
+  export = "export".
+  class = "class".
+  trait = "trait".
+  datatype = "datatype".
+  codatatype = "codatatype".
+  var = "var".
+  const = "const".
+  newtype = "newtype".
+  type = "type".
+  iterator = "iterator".
+  method = "method".
+  colemma = "colemma".
+  constructor = "constructor".
   modifies = "modifies".
   reads = "reads".
   requires = "requires".
+  ensures = "ensures".
   ghost = "ghost".
   witness = "witness".
   lbrace = '{'.

@@ -6,9 +6,7 @@ type NoWitness_EffectlessArrow<A,B> = f: A -> B  // error: cannot find witness
 
 type NonGhost_EffectlessArrow<A,B> = f: A -> B
   | forall a :: f.reads(a) == {}
-  // Issue:  The parsing of the next line requires parentheses around the whole expression.  Is
-  //         it possible to end the lookahead with not just a close-paren, but also with a keyword?
-  witness (EffectlessArrowWitness<A,B>)
+  witness EffectlessArrowWitness<A,B>
 
 // The following compilable function, which is used in the witness clause above, can never
 // be implemented, because there is no way to produce a B (for any B) in compiled code.
@@ -16,9 +14,7 @@ function method EffectlessArrowWitness<A,B>(a: A): B
 
 type EffectlessArrow<A,B> = f: A -> B
   | forall a :: f.reads(a) == {}
-  // Issue:  The parsing of the next line requires parentheses around the whole expression.  Is
-  //         it possible to end the lookahead with not just a close-paren, but also with a keyword?
-  ghost witness (GhostEffectlessArrowWitness<A,B>)
+  ghost witness GhostEffectlessArrowWitness<A,B>
 
 function GhostEffectlessArrowWitness<A,B>(a: A): B
 {
@@ -27,10 +23,6 @@ function GhostEffectlessArrowWitness<A,B>(a: A): B
 
 
 function method Twice(f: EffectlessArrow<int,int>, x: int): int
-//  reads f.reads  // Without a special type, it is unfortunate that this is needed (perhaps
-                 // the reads check for functions should be specialized to say:
-                 //    assert (forall a :: f.reads(a) == {}) || f.reads(x) <= Twice.reads(f, x)
-                 // Strange that TwoTimes below can be verified without a reads clause.
   requires
     assert forall x :: f.reads(x) == {};  // error: BUG: why is this needed and why cannot it not be verified?
     forall x :: f.requires(x)
