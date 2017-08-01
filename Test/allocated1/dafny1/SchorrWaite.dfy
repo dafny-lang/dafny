@@ -207,7 +207,7 @@ class Main {
                   forall j :: 0 <= j < n.childrenVisited ==>
                     n.children[j] == null || n.children[j].marked
       invariant forall n :: n in stackNodes ==> n.childrenVisited < |n.children|
-      invariant forall n {:autotriggers false} :: n in S && n.marked && n !in stackNodes && n != t ==>
+      invariant forall n {:trigger n.children} {:trigger n in stackNodes} {:trigger n in S} :: n in S && n.marked && n !in stackNodes && n != t ==>
                   forall ch :: ch in n.children && ch != null ==> ch.marked
       invariant forall n :: n in S && n !in stackNodes && n != t ==>
                   n.childrenVisited == old(n.childrenVisited)

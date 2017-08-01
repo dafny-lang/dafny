@@ -1181,13 +1181,17 @@ namespace Microsoft.Dafny {
         }
         if (etran.Statistics_HeapUses != 0) {
           var heap = new Bpl.BoundVariable(dd.tok, new Bpl.TypedIdent(dd.tok, predef.HeapVarName, predef.HeapType));
-          //TRIG (exists $Heap: Heap :: $IsGoodHeap($Heap) && LitInt(0) <= $o#0 && $o#0 < 100)
+          //TRIG (exists $Heap: Heap :: $IsGoodHeap($Heap) && LitInt(0) <= $o#0 && $o#0 < 100) &&
+          //TRIG (forall $Heap: Heap :: $IsGoodHeap($Heap) ==> LitInt(0) <= $o#0 && $o#0 < 100)
           // TODO: Since dd.Constraint really shouldn't depend on the heap anyway, it would be better to use an "etran"
           // that used some global-constant dummy heap.  But some heap is needed to make for a correct translation into
           // Boogie, as for instance this example shows:
           //      class C { }
           //      newtype MyInt = x: int | {} == set c: C | true :: c
-          constraint = new Bpl.ExistsExpr(dd.tok, new List<Variable> { heap }, BplAnd(FunctionCall(dd.tok, BuiltinFunction.IsGoodHeap, null, etran.HeapExpr), constraint));  // LL_TRIGGER
+          var range = FunctionCall(dd.tok, BuiltinFunction.IsGoodHeap, null, etran.HeapExpr);
+          var e = new Bpl.ExistsExpr(dd.tok, new List<Variable> { heap }, BplAnd(range, constraint));  // LL_TRIGGER
+          var a = new Bpl.ForallExpr(dd.tok, new List<Variable> { heap }, BplImp(range, constraint));  // LL_TRIGGER
+          constraint = BplAnd(e, a);
         }
         body = BplIff(is_o, BplAnd(parentConstraint, constraint));
       }
@@ -12662,6 +12666,9 @@ namespace Microsoft.Dafny {
       // HeapExpr == null ==> translation of pure (no-heap) expression
       readonly Bpl.Expr _the_heap_expr;
       public Bpl.Expr HeapExpr {
+        // The increment of Statistics_HeapUses in the following line is a hack and not entirely a good idea.
+        // Not only does one need to be careful not to mention HeapExpr in contracts (in particular, in ObjectInvariant()
+        // below), but also, the debugger may invoke HeapExpr and that will cause an increment as well.
         get { Statistics_HeapUses++; return _the_heap_expr; }
       }
       public readonly PredefinedDecls predef;
@@ -12678,7 +12685,9 @@ namespace Microsoft.Dafny {
       [ContractInvariantMethod]
       void ObjectInvariant()
       {
-        Contract.Invariant(HeapExpr == null || HeapExpr is Bpl.OldExpr || HeapExpr is Bpl.IdentifierExpr);
+        // In the following line, it is important to use _the_heap_expr directly, rather than HeapExpr, because
+        // the HeapExpr getter has a side effect on Statistics_HeapUses.
+        Contract.Invariant(_the_heap_expr == null || _the_heap_expr is Bpl.OldExpr || _the_heap_expr is Bpl.IdentifierExpr);
         Contract.Invariant(predef != null);
         Contract.Invariant(translator != null);
         Contract.Invariant(This != null);

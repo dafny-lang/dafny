@@ -23,9 +23,7 @@ function GhostEffectlessArrowWitness<A,B>(a: A): B
 
 
 function method Twice(f: EffectlessArrow<int,int>, x: int): int
-  requires
-    assert forall x :: f.reads(x) == {};  // error: BUG: why is this needed and why cannot it not be verified?
-    forall x :: f.requires(x)
+  requires forall x :: f.requires(x)
 {
   var y := f(x);
   f(y)
@@ -35,7 +33,7 @@ function method Twice'(f: EffectlessArrow<int,int>, x: int): int
   reads f.reads
   requires forall x :: f.requires(x)
 {
-  f(f(x))  // error: insufficient reads clause--BUG: why doesn't this verify, just like function Twice above?
+  f(f(x))
 }
 
 function method Twice''(f: EffectlessArrow<int,int>, x: int): int
@@ -90,7 +88,5 @@ lemma TotalWitnessIsTotal<A,B>()
 
 function TotalClientTwice(f: TotalArrow<int,int>, x: int): int
 {
-  assert Total(f);  // error: BUG: why doesn't this prove
-  assert f.reads(x) == {};  // BUG: why is the previous line necessary to prove this condition
-  f(f(x))  // BUG: why is one of the previous lines needed to prove sufficient reads clauses here
+  f(f(x))
 }
