@@ -223,8 +223,8 @@ namespace Microsoft.Dafny {
 
         // declaration of total arrow-type 
         tps = Util.Map(Enumerable.Range(0, arity + 1), x => new TypeParameter(tok, x == arity ? "R" : "T" + x));
-        tys = Util.Map(Enumerable.Range(0, arity), i => (Type)(new UserDefinedType(tps[i])));
-        id = new BoundVar(tok, "f", new ArrowType(tok, tys, new UserDefinedType(tps[arity]), SystemModule));  // TODO: type should be the partial-arrow
+        tys = tps.ConvertAll(tp => (Type)(new UserDefinedType(tp)));
+        id = new BoundVar(tok, "f", new UserDefinedType(tok, partialArrow.Name, partialArrow, tys));
         var totalArrow = new SubsetTypeDecl(tok, ArrowType.TotalArrowTypeName(arity),
           new TypeParameter.TypeParameterCharacteristics(false), tps, SystemModule,
           id, ArrowSubtypeConstraint(tok, id, req, tps, true), SubsetTypeDecl.WKind.Special, null, DontCompile());

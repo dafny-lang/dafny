@@ -45,7 +45,7 @@ module _System {
     | f.reads() == {}
     /*special witness*/
 
-  type {:compile false} _#TotalFunc0<R> = f: () -> R
+  type {:compile false} _#TotalFunc0<R> = f: _#PartialFunc0<R>
     | f.requires()
     /*special witness*/
 
@@ -61,7 +61,7 @@ module _System {
     | forall x0: T0 :: f.reads(x0) == {}
     /*special witness*/
 
-  type {:compile false} _#TotalFunc1<T0, R> = f: T0 -> R
+  type {:compile false} _#TotalFunc1<T0, R> = f: _#PartialFunc1<T0, R>
     | forall x0: T0 :: f.requires(x0)
     /*special witness*/
 
