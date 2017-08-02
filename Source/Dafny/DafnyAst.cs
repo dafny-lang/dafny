@@ -123,7 +123,7 @@ namespace Microsoft.Dafny {
       var bvNat = new BoundVar(Token.NoToken, "x", Type.Int);
       var natConstraint = Expression.CreateAtMost(Expression.CreateIntLiteral(Token.NoToken, 0), Expression.CreateIdentExpr(bvNat));
       var ax = new Attributes("axiom", new List<Expression>(), null);
-      var nat = new SubsetTypeDecl(Token.NoToken, "nat", new TypeParameter.TypeParameterCharacteristics(TypeParameter.EqualitySupportValue.InferredRequired, false), new List<TypeParameter>(), SystemModule, bvNat, natConstraint, null, false, ax);
+      var nat = new SubsetTypeDecl(Token.NoToken, "nat", new TypeParameter.TypeParameterCharacteristics(TypeParameter.EqualitySupportValue.InferredRequired, false), new List<TypeParameter>(), SystemModule, bvNat, natConstraint, SubsetTypeDecl.WKind.None, null, ax);
       SystemModule.TopLevelDecls.Add(nat);
       // create trait 'object'
       ObjectDecl = new TraitDecl(Token.NoToken, "object", SystemModule, new List<TypeParameter>(), new List<MemberDecl>(), DontCompile(), null);
@@ -180,14 +180,14 @@ namespace Microsoft.Dafny {
     }
 
     /// <summary>
-    /// Idempotently add an arrow type with arity 'arity' to the system module.
+    /// Idempotently add an arrow type with arity 'arity' to the system module, and along
+    /// with this arrow type, the two built-in subset types based on the arrow type.
     /// </summary>
     public void CreateArrowTypeDecl(int arity) {
       Contract.Requires(0 <= arity);
       if (!arrowTypeDecls.ContainsKey(arity)) {
         IToken tok = Token.NoToken;
-        var tps = Util.Map(Enumerable.Range(0, arity + 1),
-          x => new TypeParameter(tok, "T" + x));
+        var tps = Util.Map(Enumerable.Range(0, arity + 1), x => new TypeParameter(tok, x == arity ? "R" : "T" + x));
         var tys = tps.ConvertAll(tp => (Type)(new UserDefinedType(tp)));
         var args = Util.Map(Enumerable.Range(0, arity), i => new Formal(tok, "x" + i, tys[i], true, false));
         var argExprs = args.ConvertAll(a =>
@@ -211,7 +211,66 @@ namespace Microsoft.Dafny {
         var arrowDecl = new ArrowTypeDecl(tps, req, reads, SystemModule, DontCompile(), null);
         arrowTypeDecls.Add(arity, arrowDecl);
         SystemModule.TopLevelDecls.Add(arrowDecl);
+
+        // declaration of read-effect-free arrow-type, aka heap-independent arrow-type, aka partial-function arrow-type
+        tps = Util.Map(Enumerable.Range(0, arity + 1), x => new TypeParameter(tok, x == arity ? "R" : "T" + x));
+        tys = Util.Map(Enumerable.Range(0, arity), i => (Type)(new UserDefinedType(tps[i])));
+        var id = new BoundVar(tok, "f", new ArrowType(tok, tys, new UserDefinedType(tps[arity]), SystemModule));
+        var partialArrow = new SubsetTypeDecl(tok, ArrowType.PartialArrowTypeName(arity),
+          new TypeParameter.TypeParameterCharacteristics(false), tps, SystemModule,
+          id, ArrowSubtypeConstraint(tok, id, reads, tps, false), SubsetTypeDecl.WKind.Special, null, DontCompile());
+        SystemModule.TopLevelDecls.Add(partialArrow);
+
+        // declaration of total arrow-type 
+        tps = Util.Map(Enumerable.Range(0, arity + 1), x => new TypeParameter(tok, x == arity ? "R" : "T" + x));
+        tys = Util.Map(Enumerable.Range(0, arity), i => (Type)(new UserDefinedType(tps[i])));
+        id = new BoundVar(tok, "f", new ArrowType(tok, tys, new UserDefinedType(tps[arity]), SystemModule));  // TODO: type should be the partial-arrow
+        var totalArrow = new SubsetTypeDecl(tok, ArrowType.TotalArrowTypeName(arity),
+          new TypeParameter.TypeParameterCharacteristics(false), tps, SystemModule,
+          id, ArrowSubtypeConstraint(tok, id, req, tps, true), SubsetTypeDecl.WKind.Special, null, DontCompile());
+        SystemModule.TopLevelDecls.Add(totalArrow);
       }
+    }
+
+    /// <summary>
+    /// Returns an expression that is the constraint of:
+    /// the built-in partial-arrow type (if "!total", in which case "member" is expected to denote the "reads" member), or
+    /// the built-in total-arrow type (if "total", in which case "member" is expected to denote the "requires" member).
+    /// The given "id" is expected to be already resolved.
+    /// </summary>
+    private Expression ArrowSubtypeConstraint(IToken tok, BoundVar id, Function member, List<TypeParameter> tps, bool total) {
+      Contract.Requires(tok != null);
+      Contract.Requires(id != null);
+      Contract.Requires(member != null);
+      Contract.Requires(tps != null && 1 <= tps.Count);
+      var f = new IdentifierExpr(tok, id);
+      // forall x0,x1,x2 :: f.reads(x0,x1,x2) == {}
+      // OR
+      // forall x0,x1,x2 :: f.requires(x0,x1,x2)
+      var bvs = new List<BoundVar>();
+      var args = new List<Expression>();
+      for (int i = 0; i < tps.Count - 1; i++) {
+        var bv = new BoundVar(tok, "x" + i, new UserDefinedType(tps[i]));
+        bvs.Add(bv);
+        args.Add(new IdentifierExpr(tok, bv));
+      }
+      var fn = new MemberSelectExpr(tok, f, member.Name) {
+        Member = member,
+        TypeApplication = f.Type.TypeArgs,
+        Type = member.Type
+      };
+      Expression body = new ApplyExpr(tok, fn, args);
+      body.Type = member.ResultType;  // resolve here
+      if (!total) {
+        Expression emptySet = new SetDisplayExpr(tok, true, new List<Expression>());
+        emptySet.Type = member.ResultType;  // resolve here
+        body = Expression.CreateEq(body, emptySet, member.ResultType);
+      }
+      if (tps.Count > 1) {
+        body = new ForallExpr(tok, bvs, null, body, null);
+        body.Type = Type.Bool;  // resolve here
+      }
+      return body;
     }
 
     public TupleTypeDecl TupleType(IToken tok, int dims, bool allowCreationOfNewType) {
@@ -1728,6 +1787,24 @@ namespace Microsoft.Dafny {
     [Pure]
     public static bool IsArrowTypeName(string s) {
       return s.StartsWith("_#Func");
+    }
+
+    public static string PartialArrowTypeName(int arity) {
+      return "_#PartialFunc" + arity;
+    }
+
+    [Pure]
+    public static bool IsPartialArrowTypeName(string s) {
+      return s.StartsWith("_#PartialFunc");
+    }
+
+    public static string TotalArrowTypeName(int arity) {
+      return "_#TotalFunc" + arity;
+    }
+
+    [Pure]
+    public static bool IsTotalArrowTypeName(string s) {
+      return s.StartsWith("_#TotalFunc");
     }
 
     public override string TypeName(ModuleDefinition context, bool parseAble) {
@@ -4147,8 +4224,8 @@ namespace Microsoft.Dafny {
     ModuleDefinition Module { get; }
     BoundVar/*?*/ Var { get; }
     Expression/*?*/ Constraint { get; }
-    Expression/*?*/ Witness { get; }
-    bool WitnessIsGhost { get; }  // irrelevant if "Witness" is "null"
+    SubsetTypeDecl.WKind WitnessKind { get; }
+    Expression/*?*/ Witness { get; }  // non-null iff WitnessKind is Compiled or Ghost
     FreshIdGenerator IdGenerator { get; }
   }
 
@@ -4234,8 +4311,8 @@ namespace Microsoft.Dafny {
     public readonly Type BaseType;
     public readonly BoundVar Var;  // can be null (if non-null, then object.ReferenceEquals(Var.Type, BaseType))
     public readonly Expression Constraint;  // is null iff Var is
-    public readonly Expression/*?*/ Witness;  // is null if (but not "only if") Var is
-    public readonly bool WitnessIsGhost;  // irrelevant if "Witness" is "null"
+    public readonly SubsetTypeDecl.WKind WitnessKind = SubsetTypeDecl.WKind.None;
+    public readonly Expression/*?*/ Witness;  // non-null iff WitnessKind is Compiled or Ghost
     public NativeType NativeType; // non-null for fixed-size representations (otherwise, use BigIntegers for integers)
     public NewtypeDecl(IToken tok, string name, ModuleDefinition module, Type baseType, Attributes attributes, NewtypeDecl clonedFrom = null)
       : base(tok, name, module, new List<TypeParameter>(), attributes, clonedFrom) {
@@ -4245,17 +4322,18 @@ namespace Microsoft.Dafny {
       Contract.Requires(baseType != null);
       BaseType = baseType;
     }
-    public NewtypeDecl(IToken tok, string name, ModuleDefinition module, BoundVar bv, Expression constraint, Expression witness, bool witnessIsGhost, Attributes attributes, NewtypeDecl clonedFrom = null)
+    public NewtypeDecl(IToken tok, string name, ModuleDefinition module, BoundVar bv, Expression constraint, SubsetTypeDecl.WKind witnessKind, Expression witness, Attributes attributes, NewtypeDecl clonedFrom = null)
       : base(tok, name, module, new List<TypeParameter>(), attributes, clonedFrom) {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
       Contract.Requires(module != null);
       Contract.Requires(bv != null && bv.Type != null);
+      Contract.Requires((witnessKind == SubsetTypeDecl.WKind.Compiled || witnessKind == SubsetTypeDecl.WKind.Ghost) == (witness != null));
       BaseType = bv.Type;
       Var = bv;
       Constraint = constraint;
       Witness = witness;
-      WitnessIsGhost = witnessIsGhost;
+      WitnessKind = witnessKind;
       this.NewSelfSynonym();
     }
 
@@ -4276,8 +4354,8 @@ namespace Microsoft.Dafny {
     ModuleDefinition RedirectingTypeDecl.Module { get { return Module; } }
     BoundVar RedirectingTypeDecl.Var { get { return Var; } }
     Expression RedirectingTypeDecl.Constraint { get { return Constraint; } }
+    SubsetTypeDecl.WKind RedirectingTypeDecl.WitnessKind { get { return WitnessKind; } }
     Expression RedirectingTypeDecl.Witness { get { return Witness; } }
-    bool RedirectingTypeDecl.WitnessIsGhost { get { return WitnessIsGhost; } }
     FreshIdGenerator RedirectingTypeDecl.IdGenerator { get { return IdGenerator; } }
 
     bool ICodeContext.IsGhost { get { return true; } }
@@ -4347,8 +4425,8 @@ namespace Microsoft.Dafny {
     ModuleDefinition RedirectingTypeDecl.Module { get { return Module; } }
     BoundVar RedirectingTypeDecl.Var { get { return null; } }
     Expression RedirectingTypeDecl.Constraint { get { return null; } }
+    SubsetTypeDecl.WKind RedirectingTypeDecl.WitnessKind { get { return SubsetTypeDecl.WKind.None; } }
     Expression RedirectingTypeDecl.Witness { get { return null; } }
-    bool RedirectingTypeDecl.WitnessIsGhost { get { return false; } }  // value is irrelevant, since Witness is null
     FreshIdGenerator RedirectingTypeDecl.IdGenerator { get { return IdGenerator; } }
 
     bool ICodeContext.IsGhost { get { return false; } }
@@ -4395,10 +4473,11 @@ namespace Microsoft.Dafny {
     public override string WhatKind { get { return "subset type"; } }
     public readonly BoundVar Var;
     public readonly Expression Constraint;
-    public readonly Expression/*?*/ Witness;
-    public readonly bool WitnessIsGhost;  // irrelevant if "Witness" is "null"
+    public enum WKind { None, Compiled, Ghost, Special }
+    public readonly SubsetTypeDecl.WKind WitnessKind;
+    public readonly Expression/*?*/ Witness;  // non-null iff WitnessKind is Compiled or Ghost
     public SubsetTypeDecl(IToken tok, string name, TypeParameter.TypeParameterCharacteristics characteristics, List<TypeParameter> typeArgs, ModuleDefinition module,
-      BoundVar id, Expression constraint, Expression witness, bool witnessIsGhost,
+      BoundVar id, Expression constraint, WKind witnessKind, Expression witness,
       Attributes attributes, SubsetTypeDecl clonedFrom = null)
       : base(tok, name, characteristics, typeArgs, module, id.Type, attributes, clonedFrom) {
       Contract.Requires(tok != null);
@@ -4407,15 +4486,16 @@ namespace Microsoft.Dafny {
       Contract.Requires(module != null);
       Contract.Requires(id != null && id.Type != null);
       Contract.Requires(constraint != null);
+      Contract.Requires((witnessKind == WKind.Compiled || witnessKind == WKind.Ghost) == (witness != null));
       Var = id;
       Constraint = constraint;
       Witness = witness;
-      WitnessIsGhost = witnessIsGhost;
+      WitnessKind = witnessKind;
     }
     BoundVar RedirectingTypeDecl.Var { get { return Var; } }
     Expression RedirectingTypeDecl.Constraint { get { return Constraint; } }
+    WKind RedirectingTypeDecl.WitnessKind { get { return WitnessKind; } }
     Expression RedirectingTypeDecl.Witness { get { return Witness; } }
-    bool RedirectingTypeDecl.WitnessIsGhost { get { return WitnessIsGhost; } }
   }
 
   [ContractClass(typeof(IVariableContracts))]

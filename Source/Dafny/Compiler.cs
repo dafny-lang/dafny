@@ -137,9 +137,7 @@ namespace Microsoft.Dafny {
             Error("Opaque type ('{0}') cannot be compiled", wr, at.FullName);
           } else if (d is TypeSynonymDecl) {
             var sst = d as SubsetTypeDecl;
-            if (sst == null || sst.Witness == null || sst.WitnessIsGhost) {
-              // do nothing, just bypass type synonyms and witness-less subset types in the compiler
-            } else {
+            if (sst != null && sst.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
               Indent(indent, wr);
               wr.Write("public class @{0}", sst.CompileName);
               if (sst.TypeArgs.Count != 0) {
@@ -152,6 +150,8 @@ namespace Microsoft.Dafny {
               wr.WriteLine(";");
               Indent(indent, wr);
               wr.WriteLine("}");
+            } else {
+              // do nothing, just bypass type synonyms and witness-less subset types in the compiler
             }
           } else if (d is NewtypeDecl) {
             var nt = (NewtypeDecl)d;
@@ -165,7 +165,7 @@ namespace Microsoft.Dafny {
               Indent(indent + IndentAmount, wr);
               wr.WriteLine("}");
             }
-            if (nt.Witness != null && !nt.WitnessIsGhost) {
+            if (nt.WitnessKind == SubsetTypeDecl.WKind.Compiled) { 
               Indent(indent + IndentAmount, wr);
               if (nt.NativeType == null) {
                 wr.Write("public static readonly {0} Witness = ", TypeName(nt.BaseType, wr));
@@ -1493,11 +1493,6 @@ namespace Microsoft.Dafny {
         initializerIsKnown = true;
         defaultValue = compiler == null ? null : compiler.TypeName(xType, wr) + ".Empty";
         return;
-      } else if (xType is ArrowType) {
-        hasZeroInitializer = true;
-        initializerIsKnown = true;
-        defaultValue = "null";  // TODO: shouldn't this be preceded by a type-name cast?
-        return;
       }
 
       var udt = (UserDefinedType)xType;
@@ -1522,7 +1517,7 @@ namespace Microsoft.Dafny {
         return;
       } else if (cl is NewtypeDecl) {
         var td = (NewtypeDecl)cl;
-        if (td.Witness != null && !td.WitnessIsGhost) {
+        if (td.Witness != null) {
           hasZeroInitializer = false;
           initializerIsKnown = true;
           defaultValue = compiler == null ? null : compiler.TypeName_UDT(udt.FullCompileName, udt.TypeArgs, wr) + ".Witness";
@@ -1533,18 +1528,42 @@ namespace Microsoft.Dafny {
           defaultValue = "0";
           return;
         } else {
+          Contract.Assert(td.WitnessKind != SubsetTypeDecl.WKind.Special);  // this value is never used with NewtypeDecl
           TypeInitialization(td.BaseType, compiler, wr, out hasZeroInitializer, out initializerIsKnown, out defaultValue);
           return;
         }
       } else if (cl is SubsetTypeDecl) {
         var td = (SubsetTypeDecl)cl;
-        if (td.Witness != null && !td.WitnessIsGhost) {
+        if (td.Witness != null) {
           hasZeroInitializer = false;
           initializerIsKnown = true;
           defaultValue = compiler == null ? null : compiler.TypeName_UDT(udt.FullCompileName, udt.TypeArgs, wr) + ".Witness";
           return;
+        } else if (td.WitnessKind == SubsetTypeDecl.WKind.Special) {
+          Contract.Assert(ArrowType.IsPartialArrowTypeName(td.Name) || ArrowType.IsTotalArrowTypeName(td.Name));  // Special is currently used only with partial and total arrows
+          if (ArrowType.IsPartialArrowTypeName(td.Name)) {
+            // partial arrow
+            hasZeroInitializer = true;
+            initializerIsKnown = true;
+            defaultValue = compiler == null ? null : string.Format("(({0})null)", compiler.TypeName(type, wr));
+            return;
+          } else {
+            // total arrow
+            Contract.Assert(udt.TypeArgs.Count == td.TypeArgs.Count);
+            Contract.Assert(1 <= udt.TypeArgs.Count);  // the return type is one of the type arguments
+            hasZeroInitializer = false;
+            bool hz;
+            TypeInitialization(udt.TypeArgs.Last(), compiler, wr, out hz, out initializerIsKnown, out defaultValue);
+            if (compiler != null && defaultValue != null) {
+              // return the lambda expression ((Ty0 x0, Ty1 x1, Ty2 x2) => defaultValue)
+              defaultValue = string.Format("(({0}) => {1})",
+                Util.Comma(udt.TypeArgs.Count - 1, i => string.Format("{0} x{1}", compiler.TypeName(udt.TypeArgs[i], wr), i)),
+                defaultValue);
+            }
+            return;
+          }
         } else {
-          TypeInitialization(td.Rhs, compiler, wr, out hasZeroInitializer, out initializerIsKnown, out defaultValue);
+          TypeInitialization(td.RhsWithArgument(udt.TypeArgs), compiler, wr, out hasZeroInitializer, out initializerIsKnown, out defaultValue);
           return;
         }
       } else if (cl is TypeSynonymDeclBase) {

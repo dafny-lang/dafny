@@ -1191,7 +1191,9 @@ int StringToInt(string s, int defaultValue, string errString) {
 				Expect(70);
 				Expression(out witness, false, true);
 			}
-			td = new NewtypeDecl(id, id.val, module, new BoundVar(bvId, bvId.val, baseType), constraint, witness, witnessIsGhost, attrs); 
+			var witnessKind = witness == null ? SubsetTypeDecl.WKind.None :
+			 witnessIsGhost ? SubsetTypeDecl.WKind.Ghost : SubsetTypeDecl.WKind.Compiled;
+			td = new NewtypeDecl(id, id.val, module, new BoundVar(bvId, bvId.val, baseType), constraint, witnessKind, witness, attrs); 
 		} else if (StartOf(6)) {
 			Type(out baseType);
 			td = new NewtypeDecl(id, id.val, module, baseType, attrs); 
@@ -1240,7 +1242,9 @@ int StringToInt(string s, int defaultValue, string errString) {
 					Expect(70);
 					Expression(out witness, false, true);
 				}
-				td = new SubsetTypeDecl(id, id.val, characteristics, typeArgs, module, new BoundVar(bvId, bvId.val, ty), constraint, witness, witnessIsGhost, attrs);
+				var witnessKind = witness == null ? SubsetTypeDecl.WKind.None :
+				 witnessIsGhost ? SubsetTypeDecl.WKind.Ghost : SubsetTypeDecl.WKind.Compiled;
+				td = new SubsetTypeDecl(id, id.val, characteristics, typeArgs, module, new BoundVar(bvId, bvId.val, ty), constraint, witnessKind, witness, attrs);
 				kind = "Subset type";
 				
 			} else if (StartOf(6)) {

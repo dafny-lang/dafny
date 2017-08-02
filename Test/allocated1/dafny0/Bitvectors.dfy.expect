@@ -6,7 +6,8 @@ module _System {
    */
   type string(==) = seq<char>
 
-  type {:axiom} nat(==) = x: int | 0 <= x
+  type {:axiom} nat(==) = x: int
+    | 0 <= x
 
   trait {:compile false} object { }
 
@@ -14,7 +15,7 @@ module _System {
     var Length: int  // immutable
   }
 
-  class {:compile false} _#Func0<T0> {
+  class {:compile false} _#Func0<R> {
     function requires(): bool
       reads reads()
 
@@ -22,17 +23,33 @@ module _System {
       reads reads()
   }
 
+  type {:compile false} _#PartialFunc0<R> = f: () -> R
+    | f.reads() == {}
+    /*special witness*/
+
+  type {:compile false} _#TotalFunc0<R> = f: () -> R
+    | f.requires()
+    /*special witness*/
+
   datatype _tuple#0 = _#Make0
 
   datatype {:compile false} _tuple#2<T0, T1> = _#Make2(0: T0, 1: T1)
 
-  class {:compile false} _#Func1<T0, T1> {
+  class {:compile false} _#Func1<T0, R> {
     function requires(x0: T0): bool
       reads reads(x0)
 
     function reads(x0: T0): set<object>
       reads reads(x0)
   }
+
+  type {:compile false} _#PartialFunc1<T0, R> = f: T0 -> R
+    | forall x0: T0 :: f.reads(x0) == {}
+    /*special witness*/
+
+  type {:compile false} _#TotalFunc1<T0, R> = f: T0 -> R
+    | forall x0: T0 :: f.requires(x0)
+    /*special witness*/
 }
 // bitvector types in use: bv1 bv32 bv47 bv16 bv0 bv67 bv64 bv53 bv33 bv31 bv15 bv8 bv6 bv2 bv7 bv12
 */
@@ -371,7 +388,8 @@ method PrintRotates<T>(s: string, a: T, b: T)
   print "PrintRotates: ", s, ": ", a, " ", b, "\n";
 }
 
-newtype Handful = x: int | 0 <= x < 80
+newtype Handful = x: int
+  | 0 <= x < 80
 
 Dafny program verifier finished with 11 verified, 0 errors
 Program compiled successfully

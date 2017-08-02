@@ -228,23 +228,20 @@ Everything) {
           wr.Write(" = ");
           if (dd.Var == null) {
             PrintType(dd.BaseType);
+            wr.WriteLine();
           } else {
             wr.Write(dd.Var.DisplayName);
             if (ShowType(dd.Var.Type)) {
               wr.Write(": ");
               PrintType(dd.BaseType);
             }
-            wr.Write(" | ");
+            wr.WriteLine();
+            Indent(indent + IndentAmount);
+            wr.Write("| ");
             PrintExpression(dd.Constraint, true);
-            if (dd.Witness != null) {
-              if (dd.WitnessIsGhost) {
-                wr.Write(" ghost");
-              }
-              wr.Write(" witness ");
-              PrintExpression(dd.Witness, true);
-            }
+            wr.WriteLine();
+            PrintWitnessClause(dd, indent + IndentAmount);
           }
-          wr.WriteLine();
         } else if (d is SubsetTypeDecl) {
           var dd = (SubsetTypeDecl)d;
           if (i++ != 0) { wr.WriteLine(); }
@@ -256,16 +253,12 @@ Everything) {
             wr.Write(": ");
             PrintType(dd.Rhs);
           }
-          wr.Write(" | ");
-          PrintExpression(dd.Constraint, true);
-          if (dd.Witness != null) {
-            if (dd.WitnessIsGhost) {
-              wr.Write(" ghost");
-            }
-            wr.Write(" witness ");
-            PrintExpression(dd.Witness, true);
-          }
           wr.WriteLine();
+          Indent(indent + IndentAmount);
+          wr.Write("| ");
+          PrintExpression(dd.Constraint, true);
+          wr.WriteLine();
+          PrintWitnessClause(dd, indent + IndentAmount);
         } else if (d is TypeSynonymDecl) {
           var dd = (TypeSynonymDecl)d;
           if (i++ != 0) { wr.WriteLine(); }
@@ -362,6 +355,33 @@ Everything) {
         } else {
           Contract.Assert(false);  // unexpected TopLevelDecl
         }
+      }
+    }
+
+    private void PrintWitnessClause(RedirectingTypeDecl dd, int indent) {
+      Contract.Requires(dd != null);
+      Contract.Requires(0 <= indent);
+      if (dd.WitnessKind == SubsetTypeDecl.WKind.None) {
+        return;
+      }
+      Indent(indent);
+      switch (dd.WitnessKind) {
+        case SubsetTypeDecl.WKind.Ghost:
+          wr.Write("ghost ");
+          goto case SubsetTypeDecl.WKind.Compiled;
+        case SubsetTypeDecl.WKind.Compiled:
+          wr.Write("witness ");
+          PrintExpression(dd.Witness, true);
+          wr.WriteLine();
+          break;
+        case SubsetTypeDecl.WKind.None:
+          break;
+        case SubsetTypeDecl.WKind.Special:
+          wr.WriteLine("/*special witness*/");
+          break;
+        default:
+          Contract.Assert(false);  // unexpected WKind
+          break;
       }
     }
 
