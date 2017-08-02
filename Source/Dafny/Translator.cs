@@ -5366,14 +5366,18 @@ namespace Microsoft.Dafny {
         // check well-formedness of the witness expression (including termination, and reads checks)
         CheckWellformed(decl.Witness, new WFOptions(null, true), locals, witnessCheckBuilder, etran);
         // check that the witness expression checks out
-        var witnessCheck = etran.TrExpr(Substitute(decl.Constraint, decl.Var, decl.Witness));
+        var w = Substitute(decl.Constraint, decl.Var, decl.Witness);
+        var witnessCheck = etran.TrExpr(w);
+        witnessCheckBuilder.Add(new Bpl.AssumeCmd(decl.Witness.tok, CanCallAssumption(w, etran)));
         witnessCheckBuilder.Add(Assert(decl.Witness.tok, witnessCheck, "the given witness expression might not satisfy constraint"));
       } else {
         var witness = Zero(decl.tok, decl.Var.Type);
         if (witness == null) {
           witnessCheckBuilder.Add(Assert(decl.tok, Bpl.Expr.False, "cannot find witness that shows type is inhabited; try giving a hint through a 'witness' or 'ghost witness' clause"));
         } else {
-          var witnessCheck = etran.TrExpr(Substitute(decl.Constraint, decl.Var, witness));
+          var w = Substitute(decl.Constraint, decl.Var, witness);
+          var witnessCheck = etran.TrExpr(w);
+          witnessCheckBuilder.Add(new Bpl.AssumeCmd(decl.Witness.tok, CanCallAssumption(w, etran)));
           witnessCheckBuilder.Add(Assert(decl.tok, witnessCheck,
             string.Format("cannot find witness that shows type is inhabited (only tried {0}); try giving a hint through a 'witness' or 'ghost witness' clause",
             Printer.ExprToString(witness))));
@@ -8669,13 +8673,13 @@ namespace Microsoft.Dafny {
           if (Attributes.Contains(stmt.Attributes, "prependAssertToken")) {
             enclosingToken = stmt.Tok;
           }
-          bool splitHappened;
           BoogieStmtListBuilder proofBuilder = null;
           if (stmt is AssertStmt && ((AssertStmt)stmt).Proof != null) {
             proofBuilder = new BoogieStmtListBuilder(this);
             AddComment(proofBuilder, stmt, "assert statement proof");
             TrStmt(((AssertStmt)stmt).Proof, proofBuilder, locals, etran);
           }
+          bool splitHappened;
           var ss = TrSplitExpr(s.Expr, etran, true, out splitHappened);
           if (!splitHappened) {
             var tok = enclosingToken == null ? s.Expr.tok : new NestedToken(enclosingToken, s.Expr.tok);

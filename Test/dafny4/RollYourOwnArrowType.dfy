@@ -72,9 +72,7 @@ predicate Total<A,B>(f: A -> B)
 
 type TotalArrow<A,B> = f: EffectlessArrow<A,B>
   | Total(f)
-  ghost witness
-    (TotalWitnessIsTotal<A,B>();  // BUG: why is this lemma needed?
-     TotalWitness<A,B>)
+  ghost witness TotalWitness<A,B>
 
 function TotalWitness<A,B>(a: A): B
 {
