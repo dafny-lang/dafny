@@ -5361,26 +5361,43 @@ namespace Microsoft.Dafny {
 
       // Check that the type is inhabited.
       // Note, the possible witness in this check should be coordinated with the compiler, so the compiler knows how to do the initialization
+      Expression witnessExpr = null;
+      string witnessErrorMsg = null;
       var witnessCheckBuilder = new BoogieStmtListBuilder(this);
       if (decl.Witness != null) {
         // check well-formedness of the witness expression (including termination, and reads checks)
         CheckWellformed(decl.Witness, new WFOptions(null, true), locals, witnessCheckBuilder, etran);
         // check that the witness expression checks out
-        var w = Substitute(decl.Constraint, decl.Var, decl.Witness);
-        var witnessCheck = etran.TrExpr(w);
-        witnessCheckBuilder.Add(new Bpl.AssumeCmd(decl.Witness.tok, CanCallAssumption(w, etran)));
-        witnessCheckBuilder.Add(Assert(decl.Witness.tok, witnessCheck, "the given witness expression might not satisfy constraint"));
+        witnessExpr = Substitute(decl.Constraint, decl.Var, decl.Witness);
+        witnessErrorMsg = "the given witness expression might not satisfy constraint";
       } else {
         var witness = Zero(decl.tok, decl.Var.Type);
         if (witness == null) {
           witnessCheckBuilder.Add(Assert(decl.tok, Bpl.Expr.False, "cannot find witness that shows type is inhabited; try giving a hint through a 'witness' or 'ghost witness' clause"));
         } else {
-          var w = Substitute(decl.Constraint, decl.Var, witness);
-          var witnessCheck = etran.TrExpr(w);
-          witnessCheckBuilder.Add(new Bpl.AssumeCmd(decl.Witness.tok, CanCallAssumption(w, etran)));
-          witnessCheckBuilder.Add(Assert(decl.tok, witnessCheck,
+          witnessExpr = Substitute(decl.Constraint, decl.Var, witness);
+          witnessErrorMsg =
             string.Format("cannot find witness that shows type is inhabited (only tried {0}); try giving a hint through a 'witness' or 'ghost witness' clause",
-            Printer.ExprToString(witness))));
+            Printer.ExprToString(witness));
+        }
+      }
+      if (witnessExpr != null) {
+        Contract.Assert(witnessErrorMsg != null);
+        var witnessCheckTok = decl.Witness != null ? decl.Witness.tok : decl.tok;
+        witnessCheckBuilder.Add(new Bpl.AssumeCmd(witnessCheckTok, CanCallAssumption(witnessExpr, etran)));
+        var witnessCheck = etran.TrExpr(witnessExpr);
+
+        bool splitHappened;
+        var ss = TrSplitExpr(witnessExpr, etran, true, out splitHappened);
+        if (!splitHappened) {
+          witnessCheckBuilder.Add(Assert(witnessCheckTok, etran.TrExpr(witnessExpr), witnessErrorMsg));
+        } else {
+          foreach (var split in ss) {
+            if (split.IsChecked) {
+              var tok = new NestedToken(witnessCheckTok, split.E.tok);
+              witnessCheckBuilder.Add(AssertNS(tok, split.E, witnessErrorMsg));
+            }
+          }
         }
       }
 

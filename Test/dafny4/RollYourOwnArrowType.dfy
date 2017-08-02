@@ -108,3 +108,34 @@ function DirectTotalClientTwice(f: DirectTotalArrow<int,int>, x: int): int
 {
   f(f(x))
 }
+
+// ----- using two predicates, and showing which conjunct of constraint is violated ------
+
+predicate EmptyReads<A,B>(f: A -> B)
+  reads f.reads
+{
+  forall a :: f.reads(a) == {}
+}
+
+predicate TruePre<A,B>(f: A -> B)
+  reads f.reads
+{
+  forall a :: f.requires(a)
+}
+
+type TwoPred_TotalArrow<A,B> = f: A -> B
+  | EmptyReads(f) && TruePre(f)
+  ghost witness TotalWitness<A,B>
+
+predicate SomeCondition<A>(a: A)
+
+function PartialFunction<A,B>(a: A): B
+  requires SomeCondition(a)
+{
+  var b: B :| true; b
+}
+
+type Bad_TwoPred_TotalArrow<A,B> = f: A -> B
+  | EmptyReads(f) && TruePre(f)
+  // cool: the type instantiation of "PartialFunction" below is inferred
+  ghost witness PartialFunction  // error: the second conjunct of the constraint is not satisfied
