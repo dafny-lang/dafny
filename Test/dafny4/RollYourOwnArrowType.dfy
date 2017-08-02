@@ -1,6 +1,8 @@
 // RUN: %dafny /dprint:"%t.rprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
+// ----- arrows with no read effects -------------------------------------
+
 type NoWitness_EffectlessArrow<A,B> = f: A -> B  // error: cannot find witness
   | forall a :: f.reads(a) == {}
 
@@ -64,6 +66,8 @@ method Main()
   assert z == 14;
 }
 
+// ----- totality constraint by predicate Total -------------------------------------
+
 predicate Total<A,B>(f: A -> B)
   reads f.reads
 {
@@ -85,6 +89,22 @@ lemma TotalWitnessIsTotal<A,B>()
 }
 
 function TotalClientTwice(f: TotalArrow<int,int>, x: int): int
+{
+  f(f(x))
+}
+
+// ----- inlined totality constraint -------------------------------------
+
+type DirectTotalArrow<A,B> = f: EffectlessArrow<A,B>
+  | forall a :: f.requires(a)
+  ghost witness TotalWitness<A,B>
+
+lemma DirectTotalWitnessIsTotal<A,B>(f: DirectTotalArrow<A,B>)
+  ensures Total(TotalWitness<A,B>)
+{
+}
+
+function DirectTotalClientTwice(f: DirectTotalArrow<int,int>, x: int): int
 {
   f(f(x))
 }
