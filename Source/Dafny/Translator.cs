@@ -6655,16 +6655,14 @@ namespace Microsoft.Dafny {
         builder.Add(new Bpl.CommentCmd("Begin Comprehension WF check"));
         BplIfIf(e.tok, lam != null, null, builder, newBuilder => {
           if (lam != null) {
-            // Havoc heap, unless oneShot
-            if (!lam.OneShot) {
-              Bpl.Expr oldHeap;
-              locals.Add(BplLocalVar(CurrentIdGenerator.FreshId("$oldHeap#"), predef.HeapType, out oldHeap));
-              newBuilder.Add(BplSimplestAssign(oldHeap, etran.HeapExpr));
-              newBuilder.Add(new HavocCmd(expr.tok, Singleton((Bpl.IdentifierExpr)etran.HeapExpr)));
-              newBuilder.Add(new AssumeCmd(expr.tok,
-                FunctionCall(expr.tok, BuiltinFunction.IsGoodHeap, null, etran.HeapExpr)));
-              newBuilder.Add(new AssumeCmd(expr.tok, HeapSameOrSucc(oldHeap, etran.HeapExpr)));
-            }
+            // Havoc heap
+            Bpl.Expr oldHeap;
+            locals.Add(BplLocalVar(CurrentIdGenerator.FreshId("$oldHeap#"), predef.HeapType, out oldHeap));
+            newBuilder.Add(BplSimplestAssign(oldHeap, etran.HeapExpr));
+            newBuilder.Add(new HavocCmd(expr.tok, Singleton((Bpl.IdentifierExpr)etran.HeapExpr)));
+            newBuilder.Add(new AssumeCmd(expr.tok,
+              FunctionCall(expr.tok, BuiltinFunction.IsGoodHeap, null, etran.HeapExpr)));
+            newBuilder.Add(new AssumeCmd(expr.tok, HeapSameOrSucc(oldHeap, etran.HeapExpr)));
 
             // Set up a new frame
             var frameName = CurrentIdGenerator.FreshId("$_Frame#l");
@@ -6694,7 +6692,7 @@ namespace Microsoft.Dafny {
             CheckWellformed(body, newOptions, locals, b, newEtran);
           });
 
-          if (lam != null && !lam.OneShot) {
+          if (lam != null) {
             // assume false (heap was havoced inside an if)
             Contract.Assert(newBuilder != builder);
             newBuilder.Add(new AssumeCmd(e.tok, Bpl.Expr.False));
@@ -14060,9 +14058,6 @@ namespace Microsoft.Dafny {
         if (e.Range != null) {
           reqbody = et.TrExpr(Translator.Substitute(e.Range, null, subst));
         }
-        if (e.OneShot) {
-          reqbody = BplAnd(reqbody, Bpl.Expr.Eq(HeapExpr, heap));
-        }
 
         var rdvars = new List<Bpl.Variable>();
         var o = BplBoundVar(varNameGen.FreshId("#o#"), predef.RefType, rdvars);
@@ -16352,7 +16347,7 @@ namespace Microsoft.Dafny {
               newExpr = new ExistsExpr(expr.tok, ((QuantifierExpr)expr).TypeArgs, newBoundVars, newRange, newTerm, newAttrs);
             } else if (expr is LambdaExpr) {
               var l = (LambdaExpr)expr;
-              newExpr = new LambdaExpr(e.tok, l.OneShot, newBoundVars, newRange, l.Reads.ConvertAll(SubstFrameExpr), newTerm);
+              newExpr = new LambdaExpr(e.tok, newBoundVars, newRange, l.Reads.ConvertAll(SubstFrameExpr), newTerm);
             } else {
               Contract.Assert(false);  // unexpected ComprehensionExpr
             }

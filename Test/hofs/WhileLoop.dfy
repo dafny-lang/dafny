@@ -28,7 +28,7 @@ method OneShot(n: int) {
     invariant forall u :: f(u) == u + i
   {
     i := i + 1;
-    f := x reads f.reads(x) -> f(x) + 1;
+    f := x requires f.requires(x) reads f.reads(x) => f(x) + 1;
   }
 }
 

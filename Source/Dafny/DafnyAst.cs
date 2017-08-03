@@ -9472,16 +9472,13 @@ namespace Microsoft.Dafny {
 
   public class LambdaExpr : ComprehensionExpr
   {
-    public readonly bool OneShot;
-
     public readonly List<FrameExpression> Reads;
 
-    public LambdaExpr(IToken tok, bool oneShot, List<BoundVar> bvars, Expression requires, List<FrameExpression> reads, Expression body)
+    public LambdaExpr(IToken tok, List<BoundVar> bvars, Expression requires, List<FrameExpression> reads, Expression body)
       : base(tok, bvars, requires, body, null)
     {
       Contract.Requires(reads != null);
       Reads = reads;
-      OneShot = oneShot;
     }
 
     // Synonym

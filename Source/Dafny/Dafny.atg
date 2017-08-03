@@ -401,7 +401,7 @@ bool IsLambda(bool allowLambda)
   // tuple all of whose subexpressions are identifiers).
   // It is a lambda expression if what follows is something that must be a lambda.
   x = scanner.Peek();
-  return x.kind == _darrow || x.kind == _arrow || x.kind == _reads || x.kind == _requires;
+  return x.kind == _darrow || x.kind == _reads || x.kind == _requires;
 }
 
 bool IsIdentParen() {
@@ -429,10 +429,6 @@ bool SemiFollowsCall(bool allowSemi, Expression e) {
 
 bool IsNotEndOfCase() {
   return la.kind != _EOF && la.kind != _rbrace && la.kind != _case;
-}
-
-bool IsArrow() {
-  return la.kind == _arrow;
 }
 
 /* The following is the largest lookahead there is. It needs to check if what follows
@@ -719,7 +715,6 @@ TOKENS
   backtick = "`".
   semi = ';'.
   darrow = "=>".
-  arrow = "->".
   assume = "assume".
   calc = "calc".
   case = "case".
@@ -1718,8 +1713,7 @@ TypeAndToken<out IToken tok, out Type ty, bool inExpressionContext>
     }
     (. ty = new UserDefinedType(e.tok, e); .)
   )
-  [ IF(IsArrow())
-    "->"                  (. tok = t; Type t2; .)
+  [ "->"                  (. tok = t; Type t2; .)
     Type<out t2>
     (. if (tupleArgTypes != null) {
          gt = tupleArgTypes;
@@ -3173,12 +3167,7 @@ ConstAtomExpression<out Expression e, bool allowSemi, bool allowLambda>
   )
   .
 
-LambdaArrow<out bool oneShot>
-= (. oneShot = true; .)
-  ( "=>" (. oneShot = false; .)
-  | "->" (. oneShot = true; .)
-  )
-  .
+LambdaArrow = "=>".
 
 LambdaExpression<out Expression e, bool allowSemi, bool allowBitwiseOps>
 = (. IToken x = Token.NoToken;
@@ -3187,7 +3176,6 @@ LambdaExpression<out Expression e, bool allowSemi, bool allowBitwiseOps>
      FrameExpression fe;  Expression ee;
      var reads = new List<FrameExpression>();
      Expression req = null;
-     bool oneShot;
      Expression body = null;
   .)
   ( WildIdent<out id, true>                  (. x = t; bvs.Add(new BoundVar(id, id.val, new InferredTypeProxy())); .)
@@ -3206,9 +3194,9 @@ LambdaExpression<out Expression e, bool allowSemi, bool allowBitwiseOps>
     }
   | "requires" Expression<out ee, true, false>        (. req = req == null ? ee : new BinaryExpr(req.tok, BinaryExpr.Opcode.And, req, ee); .)
   }
-  LambdaArrow<out oneShot>
+  LambdaArrow
   Expression<out body, allowSemi, true, allowBitwiseOps>
-  (. e = new LambdaExpr(x, oneShot, bvs, req, reads, body);
+  (. e = new LambdaExpr(x, bvs, req, reads, body);
      theBuiltIns.CreateArrowTypeDecl(bvs.Count);
   .)
   .

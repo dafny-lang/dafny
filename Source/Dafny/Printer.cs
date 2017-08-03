@@ -2243,7 +2243,7 @@ Everything) {
           PrintExpression(read.E, false);
           readsPrefix = ", ";
         }
-        wr.Write(e.OneShot ? " -> " : " => ");
+        wr.Write(" => ");
         PrintExpression(e.Body, isFollowedBySemicolon);
         if (parensNeeded) { wr.Write(")"); }
 
