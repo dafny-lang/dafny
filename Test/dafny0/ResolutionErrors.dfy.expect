@@ -122,9 +122,9 @@ ResolutionErrors.dfy(953,4): Warning: note, this forall statement has no body
 ResolutionErrors.dfy(954,11): Error: unresolved identifier: s
 ResolutionErrors.dfy(973,18): Error: member 3 does not exist in datatype _tuple#3
 ResolutionErrors.dfy(973,28): Error: member x does not exist in datatype _tuple#2
-ResolutionErrors.dfy(966,39): Error: RHS (of type (int,real,int)) not assignable to LHS (of type (int,real,int,real))
+ResolutionErrors.dfy(966,39): Error: RHS (of type (int, real, int)) not assignable to LHS (of type (int, real, int, real))
 ResolutionErrors.dfy(972,18): Error: condition is expected to be of type bool, but is int
-ResolutionErrors.dfy(965,34): Error: RHS (of type (int,int,real)) not assignable to LHS (of type (int,real,int)) (covariant type parameter 1 would require real <: int)
+ResolutionErrors.dfy(965,34): Error: RHS (of type (int, int, real)) not assignable to LHS (of type (int, real, int)) (covariant type parameter 1 would require real <: int)
 ResolutionErrors.dfy(996,19): Error: type of right argument to / (int) must agree with the result type (real)
 ResolutionErrors.dfy(997,12): Error: type of right argument to % (real) must agree with the result type (int)
 ResolutionErrors.dfy(997,6): Error: RHS (of type int) not assignable to LHS (of type real)
@@ -193,7 +193,7 @@ ResolutionErrors.dfy(1377,15): Error: The name Inner ambiguously refers to a typ
 ResolutionErrors.dfy(1387,29): Error: ghost variables are allowed only in specification contexts
 ResolutionErrors.dfy(1389,49): Error: ghost variables are allowed only in specification contexts
 ResolutionErrors.dfy(1389,54): Error: ghost variables are allowed only in specification contexts
-ResolutionErrors.dfy(1398,33): Error: set argument type must support equality (got (int,int -> bool))
+ResolutionErrors.dfy(1398,33): Error: set argument type must support equality (got (int, int -> bool))
 ResolutionErrors.dfy(1410,11): Error: name of type (X) is used as a variable
 ResolutionErrors.dfy(1410,16): Error: name of type (X) is used as a variable
 ResolutionErrors.dfy(1411,11): Error: name of module (Y) is used as a variable

@@ -348,7 +348,7 @@ Everything) {
             } else {
               wr.Write("export ");
             }
-            if (e.Extends.Count > 0) wr.Write(" extends {0}", Util.Comma(e.Extends, id => id));
+            if (e.Extends.Count > 0) wr.Write(" extends {0}", Util.Comma(", ", e.Extends, id => id));
             PrintModuleExportDecl(e, indent, fileBeingPrinted);
           }
 
@@ -578,14 +578,22 @@ Everything) {
       Contract.Requires(kind != null);
       Contract.Requires(name != null);
       Contract.Requires(typeArgs != null);
-      if (kind.Length != 0) {
-        wr.Write(kind);
-      }
 
+      wr.Write(kind);
       PrintAttributes(attrs);
 
-      wr.Write(" {0}", name);
-      PrintTypeParams(typeArgs);
+      if (ArrowType.IsArrowTypeName(name)) {
+        PrintArrowType(ArrowType.ANY_ARROW, name, typeArgs);
+      } else if (ArrowType.IsPartialArrowTypeName(name)) {
+        PrintArrowType(ArrowType.PARTIAL_ARROW, name, typeArgs);
+      } else if (ArrowType.IsTotalArrowTypeName(name)) {
+        PrintArrowType(ArrowType.TOTAL_ARROW, name, typeArgs);
+      } else if (BuiltIns.IsTupleTypeName(name)) {
+        wr.Write(" /*{0}*/ ({1})", name, Util.Comma(", ", typeArgs, tp => tp.Name + TPCharacteristicsSuffix(tp.Characteristics)));
+      } else {
+        wr.Write(" {0}", name);
+        PrintTypeParams(typeArgs);
+      }
     }
 
     private void PrintTypeParams(List<TypeParameter> typeArgs) {
@@ -595,11 +603,26 @@ Everything) {
         typeArgs.All(tp => !tp.Name.StartsWith("_")));
 
       if (typeArgs.Count != 0 && !typeArgs[0].Name.StartsWith("_")) {
-        wr.Write("<" +
-                 Util.Comma(", ", typeArgs,
-                   tp => tp.Name + TPCharacteristicsSuffix(tp.Characteristics))
-                 + ">");
+        wr.Write("<{0}>", Util.Comma(", ", typeArgs, tp => tp.Name + TPCharacteristicsSuffix(tp.Characteristics)));
       }
+    }
+
+    private void PrintArrowType(string arrow, string internalName, List<TypeParameter> typeArgs) {
+      Contract.Requires(arrow != null);
+      Contract.Requires(internalName != null);
+      Contract.Requires(typeArgs != null);
+      Contract.Requires(1 <= typeArgs.Count);  // argument list ends with the result type
+      wr.Write(" /*{0}*/ ", internalName);
+      int arity = typeArgs.Count - 1;
+      if (arity != 1) {
+        wr.Write("(");
+      }
+      wr.Write(Util.Comma(", ", arity, i => typeArgs[i].Name + TPCharacteristicsSuffix(typeArgs[i].Characteristics)));
+      if (arity != 1) {
+        wr.Write(")");
+      }
+      wr.Write(" {0} ", arrow);
+      wr.Write("{0}{1}", typeArgs[arity].Name, TPCharacteristicsSuffix(typeArgs[arity].Characteristics));
     }
 
     private void PrintTypeInstantiation(List<Type> typeArgs) {

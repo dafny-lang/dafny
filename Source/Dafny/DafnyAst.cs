@@ -1807,13 +1807,34 @@ namespace Microsoft.Dafny {
       return s.StartsWith("_#TotalFunc");
     }
 
+#if SOON
+    public const string ANY_ARROW = "~>";
+#else
+    public const string ANY_ARROW = "->";
+#endif
+    public const string PARTIAL_ARROW = "-->";
+    public const string TOTAL_ARROW = "->";
+
     public override string TypeName(ModuleDefinition context, bool parseAble) {
+      return PrettyArrowTypeName(ANY_ARROW, Args, Result, context, parseAble);
+    }
+
+    /// <summary>
+    /// Pretty prints an arrow type.  If "result" is null, then all arguments, including the result type are expected in "typeArgs".
+    /// If "result" is non-null, then only the in-arguments are in "typeArgs".
+    /// </summary>
+    public static string PrettyArrowTypeName(string arrow, List<Type> typeArgs, Type result, ModuleDefinition context, bool parseAble) {
+      Contract.Requires(arrow != null);
+      Contract.Requires(typeArgs != null);
+      Contract.Requires(result != null || 1 <= typeArgs.Count);
+
+      int arity = result == null ? typeArgs.Count - 1 : typeArgs.Count;
       var domainNeedsParens = false;
-      if (Arity != 1) {
+      if (arity != 1) {
         // 0 or 2-or-more arguments:  need parentheses
         domainNeedsParens = true;
       } else {
-        var arg = Args[0].Normalize();  // note, we do Normalize(), not NormalizeExpand(), since the TypeName will use any synonym
+        var arg = typeArgs[0].Normalize();  // note, we do Normalize(), not NormalizeExpand(), since the TypeName will use any synonym
         if (arg is ArrowType) {
           // arrows are right associative, so we need parentheses around the domain type
           domainNeedsParens = true;
@@ -1828,10 +1849,10 @@ namespace Microsoft.Dafny {
       }
       string s = "";
       if (domainNeedsParens) { s += "("; }
-      s += Util.Comma(Args, arg => arg.TypeName(context, parseAble));
+      s += Util.Comma(", ", typeArgs.Take(arity), arg => arg.TypeName(context, parseAble));
       if (domainNeedsParens) { s += ")"; }
-      s += " -> ";
-      s += Result.TypeName(context, parseAble);
+      s += " " + arrow + " ";
+      s += (result ?? typeArgs.Last()).TypeName(context, parseAble);
       return s;
     }
 
@@ -2303,7 +2324,11 @@ namespace Microsoft.Dafny {
     public override string TypeName(ModuleDefinition context, bool parseAble) {
       Contract.Ensures(Contract.Result<string>() != null);
       if (BuiltIns.IsTupleTypeName(Name)) {
-        return "(" + Util.Comma(",", TypeArgs, ty => ty.TypeName(context, parseAble)) + ")";
+        return "(" + Util.Comma(", ", TypeArgs, ty => ty.TypeName(context, parseAble)) + ")";
+      } else if (ArrowType.IsPartialArrowTypeName(Name)) {
+        return ArrowType.PrettyArrowTypeName(ArrowType.PARTIAL_ARROW, TypeArgs, null, context, parseAble);
+      } else if (ArrowType.IsTotalArrowTypeName(Name)) {
+        return ArrowType.PrettyArrowTypeName(ArrowType.TOTAL_ARROW, TypeArgs, null, context, parseAble);
       } else {
 #if TEST_TYPE_SYNONYM_TRANSPARENCY
         if (Name == "type#synonym#transparency#test" && ResolvedClass is TypeSynonymDecl) {

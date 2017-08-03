@@ -15,6 +15,7 @@ namespace Microsoft.Dafny {
     }
 
     public static string Comma<T>(string comma, IEnumerable<T> l, Func<T,string> f) {
+      Contract.Requires(comma != null);
       string res = "";
       string c = "";
       foreach(var t in l) {
@@ -26,11 +27,17 @@ namespace Microsoft.Dafny {
 
     public static string Comma(int count, Func<int, string> f) {
       Contract.Requires(0 <= count);
+      return Comma(",", count, f);
+    }
+
+    public static string Comma(string comma, int count, Func<int, string> f) {
+      Contract.Requires(comma != null);
+      Contract.Requires(0 <= count);
       string res = "";
       string c = "";
       for (int i = 0; i < count; i++) {
         res += c + f(i);
-        c = ",";
+        c = comma;
       }
       return res;
     }

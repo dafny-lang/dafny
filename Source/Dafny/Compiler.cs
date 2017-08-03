@@ -1557,7 +1557,7 @@ namespace Microsoft.Dafny {
             if (compiler != null && defaultValue != null) {
               // return the lambda expression ((Ty0 x0, Ty1 x1, Ty2 x2) => defaultValue)
               defaultValue = string.Format("(({0}) => {1})",
-                Util.Comma(udt.TypeArgs.Count - 1, i => string.Format("{0} x{1}", compiler.TypeName(udt.TypeArgs[i], wr), i)),
+                Util.Comma(", ", udt.TypeArgs.Count - 1, i => string.Format("{0} x{1}", compiler.TypeName(udt.TypeArgs[i], wr), i)),
                 defaultValue);
             }
             return;
