@@ -443,12 +443,15 @@ bool IsNonFinalColon() {
   return la.kind == _colon && scanner.Peek().kind != _rbracket;
 }
 bool IsMapDisplay() {
+  scanner.ResetPeek();
   return la.kind == _map && scanner.Peek().kind == _lbracket;
 }
 bool IsIMapDisplay() {
+  scanner.ResetPeek();
   return la.kind == _imap && scanner.Peek().kind == _lbracket;
 }
 bool IsISetDisplay() {
+  scanner.ResetPeek();
   return la.kind == _iset && scanner.Peek().kind == _lbrace;
 }
 

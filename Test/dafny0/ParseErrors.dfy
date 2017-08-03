@@ -141,3 +141,11 @@ copredicate CoP(ghost x: int)  // error: formal not allowed to be declared "ghos
 
 twostate function F2(ghost x: int): int  // error: formal not allowed to be declared "ghost" here -- a function is already ghost
 twostate predicate P2(ghost x: int)  // error: formal not allowed to be declared "ghost" here -- a predicate is already ghost
+
+// ------------------------- set and map displays ------------------------------
+method Displays()
+    // all of these should parse, but at one point they did not
+    ensures iset{} == iset{}
+    ensures map[] == map[]
+    ensures imap[] == imap[]
+
