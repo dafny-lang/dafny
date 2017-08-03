@@ -2696,7 +2696,7 @@ namespace Microsoft.Dafny
               var f = (Field)member;
               if (f is ConstantField && ((ConstantField)f).Rhs != null) {
                 // fine
-              } else if (!Compiler.InitializerIsKnown(f.Type)) {
+              } else if (!Compiler.InitializerIsKnown(f.Type, f.tok)) {
                 fieldWithoutKnownInitializer = f;
               }
             }
@@ -2709,7 +2709,7 @@ namespace Microsoft.Dafny
                   var f = (Field)member;
                   if (f is ConstantField && ((ConstantField)f).Rhs != null) {
                     // fine
-                  } else if (!Compiler.InitializerIsKnown(f.Type)) {
+                  } else if (!Compiler.InitializerIsKnown(f.Type, f.tok)) {
                     fieldWithoutKnownInitializer = f;
                     break;
                   }
@@ -5376,7 +5376,7 @@ namespace Microsoft.Dafny
             foreach (var argType in actualTypeArgs) {
               var formalTypeArg = formalTypeArgs[i];
               string whatIsWrong, hint;
-              if (!CheckCharacteristics(formalTypeArg.Characteristics, argType, out whatIsWrong, out hint)) {
+              if (!CheckCharacteristics(formalTypeArg.Characteristics, argType, tRhs.Tok, out whatIsWrong, out hint)) {
                 resolver.reporter.Error(MessageSource.Resolver, tRhs.Tok, "type parameter{0} ({1}) passed to type {2} must support {4} (got {3}){5}",
                   actualTypeArgs.Count == 1 ? "" : " " + i, formalTypeArg.Name, udt.ResolvedClass.Name, argType, whatIsWrong, hint);
               }
@@ -5414,7 +5414,7 @@ namespace Microsoft.Dafny
             var actualTypeArg = subst[formalTypeArg];
             CheckEqualityTypes_Type(s.Tok, actualTypeArg);
             string whatIsWrong, hint;
-            if (!CheckCharacteristics(formalTypeArg.Characteristics, actualTypeArg, out whatIsWrong, out hint)) {
+            if (!CheckCharacteristics(formalTypeArg.Characteristics, actualTypeArg, s.Tok, out whatIsWrong, out hint)) {
               resolver.reporter.Error(MessageSource.Resolver, s.Tok, "type parameter{0} ({1}) passed to method {2} must support {4} (got {3}){5}",
                 s.Method.TypeArgs.Count == 1 ? "" : " " + i, formalTypeArg.Name, s.Method.Name, actualTypeArg, whatIsWrong, hint);
             }
@@ -5455,14 +5455,14 @@ namespace Microsoft.Dafny
         }
         return true;
       }
-      bool CheckCharacteristics(TypeParameter.TypeParameterCharacteristics formal, Type actual, out string whatIsWrong, out string hint) {
+      bool CheckCharacteristics(TypeParameter.TypeParameterCharacteristics formal, Type actual, IToken tok, out string whatIsWrong, out string hint) {
         Contract.Ensures(Contract.Result<bool>() || (Contract.ValueAtReturn(out whatIsWrong) != null && Contract.ValueAtReturn(out hint) != null));
         if (formal.EqualitySupport != TypeParameter.EqualitySupportValue.Unspecified && !actual.SupportsEquality) {
           whatIsWrong = "equality";
           hint = TypeEqualityErrorMessageHint(actual);
           return false;
         }
-        if (formal.MustSupportZeroInitialization && !Compiler.HasZeroInitializer(actual)) {
+        if (formal.MustSupportZeroInitialization && !Compiler.HasZeroInitializer(actual, tok)) {
           whatIsWrong = "zero initialization";
           hint = "";
           return false;
@@ -5532,7 +5532,7 @@ namespace Microsoft.Dafny
               var actualTp = e.TypeApplication[e.Member.EnclosingClass.TypeArgs.Count + i];
               CheckEqualityTypes_Type(e.tok, actualTp);
               string whatIsWrong, hint;
-              if (!CheckCharacteristics(tp.Characteristics, actualTp, out whatIsWrong, out hint)) {
+              if (!CheckCharacteristics(tp.Characteristics, actualTp, e.tok, out whatIsWrong, out hint)) {
                 resolver.reporter.Error(MessageSource.Resolver, e.tok, "type parameter{0} ({1}) passed to {2} '{3}' must support {5} (got {4}){6}",
                   ((ICallable)e.Member).TypeArgs.Count == 1 ? "" : " " + i, tp.Name, e.Member.WhatKind, e.Member.Name, actualTp, whatIsWrong, hint);
               }
@@ -5547,7 +5547,7 @@ namespace Microsoft.Dafny
             var actualTypeArg = e.TypeArgumentSubstitutions[formalTypeArg];
             CheckEqualityTypes_Type(e.tok, actualTypeArg);
             string whatIsWrong, hint;
-            if (!CheckCharacteristics(formalTypeArg.Characteristics, actualTypeArg, out whatIsWrong, out hint)) {
+            if (!CheckCharacteristics(formalTypeArg.Characteristics, actualTypeArg, e.tok, out whatIsWrong, out hint)) {
               resolver.reporter.Error(MessageSource.Resolver, e.tok, "type parameter{0} ({1}) passed to function {2} must support {4} (got {3}){5}",
                 e.Function.TypeArgs.Count == 1 ? "" : " " + i, formalTypeArg.Name, e.Function.Name, actualTypeArg, whatIsWrong, hint);
             }
@@ -5647,7 +5647,7 @@ namespace Microsoft.Dafny
             foreach (var argType in udt.TypeArgs) {
               var formalTypeArg = formalTypeArgs[i];
               string whatIsWrong, hint;
-              if (!CheckCharacteristics(formalTypeArg.Characteristics, argType, out whatIsWrong, out hint)) {
+              if (!CheckCharacteristics(formalTypeArg.Characteristics, argType, tok, out whatIsWrong, out hint)) {
                 resolver.reporter.Error(MessageSource.Resolver, tok, "type parameter{0} ({1}) passed to type {2} must support {4} (got {3}){5}",
                   udt.TypeArgs.Count == 1 ? "" : " " + i, formalTypeArg.Name, udt.ResolvedClass.Name, argType, whatIsWrong, hint);
               }

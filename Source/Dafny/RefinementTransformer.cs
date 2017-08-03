@@ -251,7 +251,7 @@ namespace Microsoft.Dafny
               // taken place, so we defer it until the PostResolve phase.
               var udt = UserDefinedType.FromTopLevelDecl(nw.tok, nw);
               postTasks.Enqueue(() => {
-                if (!Compiler.HasZeroInitializer(udt)) {
+                if (!Compiler.HasZeroInitializer(udt, udt.tok)) {
                   reporter.Error(MessageSource.RefinementTransformer, udt.tok, "type '{0}', which does not support zero initialization, is used to refine an opaque type that expects zero initialization", udt.Name);
                 }
               });

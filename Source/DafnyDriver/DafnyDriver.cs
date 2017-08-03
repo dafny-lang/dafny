@@ -441,12 +441,12 @@ namespace Microsoft.Dafny
 
       // Compile the Dafny program into a string that contains the C# program
       StringWriter sw = new StringWriter();
-      Dafny.Compiler compiler = new Dafny.Compiler();
-      compiler.ErrorWriter = outputWriter;
+      var oldErrorCount = dafnyProgram.reporter.Count(ErrorLevel.Error);
+      Dafny.Compiler compiler = new Dafny.Compiler(dafnyProgram.reporter);
       var hasMain = compiler.HasMain(dafnyProgram);
       compiler.Compile(dafnyProgram, sw);
       var csharpProgram = sw.ToString();
-      bool completeProgram = compiler.ErrorCount == 0;
+      bool completeProgram = dafnyProgram.reporter.Count(ErrorLevel.Error) == oldErrorCount;
 
       // blurt out the code to a file, if requested, or if other files were specified for the C# command line.
       string targetFilename = null;
