@@ -115,9 +115,6 @@ class Benchmark3 {
     m := q.Dequeue();
     assert m == qq[0];
     assert [m] + q.contents == qq && q.contents == qq[1..];
-    assert |old(q.contents)| == |q.contents| + 1;
-
-    assert q.contents == old(q.contents)[k+1..] + old(q.contents)[..k];  
   }
 
   lemma RotationLemma(O: seq, j: nat, A: seq, C: seq)

@@ -5370,6 +5370,11 @@ namespace Microsoft.Dafny {
       if (decl.Witness != null) {
         // check well-formedness of the witness expression (including termination, and reads checks)
         CheckWellformed(decl.Witness, new WFOptions(null, true), locals, witnessCheckBuilder, etran);
+        // check that the witness is assignable to the type of the given bound variable
+        if (decl is SubsetTypeDecl) {
+          // Note, for new-types, this has already been checked by CheckWellformed.
+          CheckResultToBeInType(decl.Witness.tok, decl.Witness, decl.Var.Type, locals, witnessCheckBuilder, etran);
+        }
         // check that the witness expression checks out
         witnessExpr = Substitute(decl.Constraint, decl.Var, decl.Witness);
         witnessErrorMsg = "the given witness expression might not satisfy constraint";
@@ -5378,6 +5383,9 @@ namespace Microsoft.Dafny {
         if (witness == null) {
           witnessCheckBuilder.Add(Assert(decl.tok, Bpl.Expr.False, "cannot find witness that shows type is inhabited; try giving a hint through a 'witness' or 'ghost witness' clause"));
         } else {
+          // before trying 0 as a witness, check that 0 can be assigned to decl.Var
+          CheckResultToBeInType(decl.tok, witness, decl.Var.Type, locals, witnessCheckBuilder, etran, string.Format("trying witness {0}: ", Printer.ExprToString(witness)));
+
           witnessExpr = Substitute(decl.Constraint, decl.Var, witness);
           witnessErrorMsg =
             string.Format("cannot find witness that shows type is inhabited (only tried {0}); try giving a hint through a 'witness' or 'ghost witness' clause",
@@ -6957,12 +6965,13 @@ namespace Microsoft.Dafny {
     /// <summary>
     /// Emit checks that "expr" (which may or may not be a value of type "expr.Type"!) is a value of type "toType".
     /// </summary>
-    void CheckResultToBeInType(IToken tok, Expression expr, Type toType, List<Bpl.Variable> locals, BoogieStmtListBuilder builder, ExpressionTranslator etran) {
+    void CheckResultToBeInType(IToken tok, Expression expr, Type toType, List<Bpl.Variable> locals, BoogieStmtListBuilder builder, ExpressionTranslator etran, string errorMsgPrefix = "") {
       Contract.Requires(tok != null);
       Contract.Requires(expr != null);
       Contract.Requires(toType != null);
       Contract.Requires(builder != null);
       Contract.Requires(etran != null);
+      Contract.Requires(errorMsgPrefix != null);
 
       // Lazily create a local variable "o" to hold the value of the from-expression
       Bpl.IdentifierExpr o = null;
@@ -6982,7 +6991,7 @@ namespace Microsoft.Dafny {
         var from = FunctionCall(tok, BuiltinFunction.RealToInt, null, o);
         Bpl.Expr e = FunctionCall(tok, BuiltinFunction.IntToReal, null, from);
         e = Bpl.Expr.Binary(tok, Bpl.BinaryOperator.Opcode.Eq, e, o);
-        builder.Add(Assert(tok, e, "the real-based number must be an integer (if you want truncation, apply .Floor to the real-based number)"));
+        builder.Add(Assert(tok, e, errorMsgPrefix + "the real-based number must be an integer (if you want truncation, apply .Floor to the real-based number)"));
       }
 
       if (toType.IsBitVectorType) {
@@ -7011,7 +7020,7 @@ namespace Microsoft.Dafny {
           boundsCheck = Bpl.Expr.And(Bpl.Expr.Le(Bpl.Expr.Literal(0), oi), Bpl.Expr.Lt(oi, bound));
         }
         if (boundsCheck != null) {
-          builder.Add(Assert(tok, boundsCheck, string.Format("value to be converted might not fit in {0}", toType)));
+          builder.Add(Assert(tok, boundsCheck, string.Format("{0}value to be converted might not fit in {1}", errorMsgPrefix, toType)));
         }
       }
       
@@ -7019,7 +7028,7 @@ namespace Microsoft.Dafny {
         if (expr.Type.IsNumericBased(Type.NumericPersuation.Int)) {
           PutSourceIntoLocal();
           Bpl.Expr boundsCheck = Bpl.Expr.And(Bpl.Expr.Le(Bpl.Expr.Literal(0), o), Bpl.Expr.Lt(o, Bpl.Expr.Literal(65536)));
-          builder.Add(Assert(tok, boundsCheck, string.Format("value to be converted might not fit in {0}", toType)));
+          builder.Add(Assert(tok, boundsCheck, string.Format("{0}value to be converted might not fit in {1}", errorMsgPrefix, toType)));
         }
       }
 
@@ -7032,15 +7041,16 @@ namespace Microsoft.Dafny {
           be = o;
         }
         var dafnyType = toType.NormalizeExpand();
-        CheckResultToBeInType_Aux(tok, new BoogieWrapper(be, dafnyType), toType.NormalizeExpandKeepConstraints(), builder, etran);
+        CheckResultToBeInType_Aux(tok, new BoogieWrapper(be, dafnyType), toType.NormalizeExpandKeepConstraints(), builder, etran, errorMsgPrefix);
       }
     }
-    void CheckResultToBeInType_Aux(IToken tok, Expression expr, Type toType, BoogieStmtListBuilder builder, ExpressionTranslator etran) {
+    void CheckResultToBeInType_Aux(IToken tok, Expression expr, Type toType, BoogieStmtListBuilder builder, ExpressionTranslator etran, string errorMsgPrefix) {
       Contract.Requires(tok != null);
       Contract.Requires(expr != null);
       Contract.Requires(toType != null && toType.AsRedirectingType != null);
       Contract.Requires(builder != null);
       Contract.Requires(etran != null);
+      Contract.Requires(errorMsgPrefix != null);
       // First, check constraints of base types
       var udt = (UserDefinedType)toType;
       var rdt = (RedirectingTypeDecl)udt.ResolvedClass;
@@ -7054,13 +7064,16 @@ namespace Microsoft.Dafny {
         kind = "newtype";
       }
       if (baseType.AsRedirectingType != null) {
-        CheckResultToBeInType_Aux(tok, expr, baseType, builder, etran);
+        CheckResultToBeInType_Aux(tok, expr, baseType, builder, etran, errorMsgPrefix);
       }
       // Check any constraint defined in 'dd'
       if (rdt.Var != null) {
         // TODO: use TrSplitExpr
-        var constraint = etran.TrExpr(Substitute(rdt.Constraint, rdt.Var, expr));
-        builder.Add(Assert(tok, constraint, string.Format("result of operation might violate {1} constraint for '{0}'", rdt.Name, kind)));
+        var substMap = new Dictionary<IVariable, Expression>();
+        substMap.Add(rdt.Var, expr);
+        var typeMap = Resolver.TypeSubstitutionMap(rdt.TypeArgs, udt.TypeArgs);
+        var constraint = etran.TrExpr(Substitute(rdt.Constraint, null, substMap, typeMap));
+        builder.Add(Assert(tok, constraint, string.Format("{2}result of operation might violate {1} constraint for '{0}'", rdt.Name, kind, errorMsgPrefix)));
       }
     }
 
@@ -13021,18 +13034,32 @@ namespace Microsoft.Dafny {
         } else if (expr is SetDisplayExpr) {
           SetDisplayExpr e = (SetDisplayExpr)expr;
           Bpl.Expr s = translator.FunctionCall(expr.tok, e.Finite ? BuiltinFunction.SetEmpty : BuiltinFunction.ISetEmpty, predef.BoxType);
+          var isLit = true;
           foreach (Expression ee in e.Elements) {
-            Bpl.Expr ss = BoxIfNecessary(expr.tok, TrExpr(ee), cce.NonNull(ee.Type));
+            var rawElement = TrExpr(ee);
+            isLit = isLit && translator.IsLit(rawElement);
+            Bpl.Expr ss = BoxIfNecessary(expr.tok, rawElement, cce.NonNull(ee.Type));
             s = translator.FunctionCall(expr.tok, e.Finite ? BuiltinFunction.SetUnionOne : BuiltinFunction.ISetUnionOne, predef.BoxType, s, ss);
+          }
+          if (isLit) {
+            // Lit-lifting: All elements are lit, so the set is Lit too
+            s = MaybeLit(s, predef.BoxType);
           }
           return s;
 
         } else if (expr is MultiSetDisplayExpr) {
           MultiSetDisplayExpr e = (MultiSetDisplayExpr)expr;
           Bpl.Expr s = translator.FunctionCall(expr.tok, BuiltinFunction.MultiSetEmpty, predef.BoxType);
+          var isLit = true;
           foreach (Expression ee in e.Elements) {
-            Bpl.Expr ss = BoxIfNecessary(expr.tok, TrExpr(ee), cce.NonNull(ee.Type));
+            var rawElement = TrExpr(ee);
+            isLit = isLit && translator.IsLit(rawElement);
+            Bpl.Expr ss = BoxIfNecessary(expr.tok, rawElement, cce.NonNull(ee.Type));
             s = translator.FunctionCall(expr.tok, BuiltinFunction.MultiSetUnionOne, predef.BoxType, s, ss);
+          }
+          if (isLit) {
+            // Lit-lifting: All elements are lit, so the multiset is Lit too
+            s = MaybeLit(s, predef.BoxType);
           }
           return s;
 
@@ -13040,7 +13067,7 @@ namespace Microsoft.Dafny {
           SeqDisplayExpr e = (SeqDisplayExpr)expr;
           // Note: a LiteralExpr(string) is really another kind of SeqDisplayExpr
           Bpl.Expr s = translator.FunctionCall(expr.tok, BuiltinFunction.SeqEmpty, predef.BoxType);
-          bool isLit = true;
+          var isLit = true;
           foreach (Expression ee in e.Elements) {
             var rawElement = TrExpr(ee);
             isLit = isLit && translator.IsLit(rawElement);
@@ -13057,10 +13084,18 @@ namespace Microsoft.Dafny {
           MapDisplayExpr e = (MapDisplayExpr)expr;
           Bpl.Type maptype = predef.MapType(expr.tok, e.Finite, predef.BoxType, predef.BoxType);
           Bpl.Expr s = translator.FunctionCall(expr.tok, e.Finite ? BuiltinFunction.MapEmpty : BuiltinFunction.IMapEmpty, predef.BoxType);
+          var isLit = true;
           foreach (ExpressionPair p in e.Elements) {
-            Bpl.Expr elt = BoxIfNecessary(expr.tok, TrExpr(p.A), cce.NonNull(p.A.Type));
-            Bpl.Expr elt2 = BoxIfNecessary(expr.tok, TrExpr(p.B), cce.NonNull(p.B.Type));
+            var rawA = TrExpr(p.A);
+            var rawB = TrExpr(p.B);
+            isLit = isLit && translator.IsLit(rawA) && translator.IsLit(rawB);
+            Bpl.Expr elt = BoxIfNecessary(expr.tok, rawA, cce.NonNull(p.A.Type));
+            Bpl.Expr elt2 = BoxIfNecessary(expr.tok, rawB, cce.NonNull(p.B.Type));
             s = translator.FunctionCall(expr.tok, e.Finite ? "Map#Build" : "IMap#Build", maptype, s, elt, elt2);
+          }
+          if (isLit) {
+            // Lit-lifting: All keys and values are lit, so the map is Lit too
+            s = MaybeLit(s, predef.BoxType);
           }
           return s;
 

@@ -146,6 +146,7 @@ class DoublyLinkedList {
     x.R.L := x;
     x.L.R := x;
     Nodes := Nodes[..k] + [x] + Nodes[k..];
+    assert forall i,j :: 0 <= i < j < |Nodes| ==> Nodes[i] != Nodes[j];
   }
 }
 

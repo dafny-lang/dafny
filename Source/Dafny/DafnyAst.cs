@@ -2129,7 +2129,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(tok != null);
       Contract.Requires(cd != null);
       Contract.Assert((cd is ArrowTypeDecl) == ArrowType.IsArrowTypeName(cd.Name));
-      var args =  cd.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp));
+      var args = cd.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp));
       if (cd is ArrowTypeDecl) {
         return new ArrowType(tok, (ArrowTypeDecl)cd, args);
       } else {
