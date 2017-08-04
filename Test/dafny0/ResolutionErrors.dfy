@@ -687,6 +687,7 @@ module UnderspecifiedTypes {
     var T3'1: multiset<int> :| 120 in T3'1;
     var T3'2: map<int,bool> :| 120 in T3'2;
     var T3'3: seq<int> :| 120 in T3'3;
+    var T3'4: bool :| 120 in T3'4;  // error: second argument to 'in' cannot be bool
     var T4 :| T4 <= S;
   }
 }

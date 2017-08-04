@@ -3652,6 +3652,7 @@ namespace Microsoft.Dafny
               satisfied = true;
             } else {
               satisfied = false;
+              break;
             }
             return true;
           case "SeqUpdatable": {
