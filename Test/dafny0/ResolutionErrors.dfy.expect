@@ -43,7 +43,7 @@ ResolutionErrors.dfy(355,18): Error: arguments must have the same type (got DTD_
 ResolutionErrors.dfy(356,27): Error: arguments must have the same type (got bool and int)
 ResolutionErrors.dfy(369,17): Error: ghost variables are allowed only in specification contexts
 ResolutionErrors.dfy(396,7): Error: incorrect type of method in-parameter 0 (expected GenericClass<bool>, got GenericClass<int>) (invariant type parameter would require bool = int)
-ResolutionErrors.dfy(408,20): Error: incorrect type of datatype constructor argument (found GList<_T0>, expected GList<int>) (covariant type parameter would require int <: _T0)
+ResolutionErrors.dfy(408,20): Error: incorrect type of datatype constructor argument (found GList<_T0>, expected GList<int>) (covariant type parameter would require _T0 <: int)
 ResolutionErrors.dfy(417,8): Error: all lines in a calculation must have the same type (got int after bool)
 ResolutionErrors.dfy(421,8): Error: all lines in a calculation must have the same type (got int after bool)
 ResolutionErrors.dfy(424,8): Error: first argument to ==> must be of type bool (instead got int)
@@ -71,9 +71,9 @@ ResolutionErrors.dfy(485,8): Error: when allocating an object of type 'Y', one o
 ResolutionErrors.dfy(490,8): Error: when allocating an object of type 'Luci', one of its constructor methods must be called
 ResolutionErrors.dfy(491,8): Error: when allocating an object of type 'Luci', one of its constructor methods must be called
 ResolutionErrors.dfy(493,11): Error: class Lamb does not have an anonymous constructor
-ResolutionErrors.dfy(546,7): Error: RHS (of type List<A>) not assignable to LHS (of type List<B>) (covariant type parameter would require B <: A)
-ResolutionErrors.dfy(551,7): Error: RHS (of type List<A>) not assignable to LHS (of type List<B>) (covariant type parameter would require B <: A)
-ResolutionErrors.dfy(565,23): Error: type of case bodies do not agree (found Tree<_T1, _T0>, previous types Tree<_T0, _T1>) (covariant type parameter 0 would require _T0 <: _T1)
+ResolutionErrors.dfy(546,7): Error: RHS (of type List<A>) not assignable to LHS (of type List<B>) (covariant type parameter would require A <: B)
+ResolutionErrors.dfy(551,7): Error: RHS (of type List<A>) not assignable to LHS (of type List<B>) (covariant type parameter would require A <: B)
+ResolutionErrors.dfy(565,23): Error: type of case bodies do not agree (found Tree<_T1, _T0>, previous types Tree<_T0, _T1>) (covariant type parameter 0 would require _T1 <: _T0)
 ResolutionErrors.dfy(577,24): Error: Wrong number of type arguments (0 instead of 2) passed to datatype: Tree
 ResolutionErrors.dfy(592,20): Error: unresolved identifier: w
 ResolutionErrors.dfy(611,8): Error: the type of this local variable is underspecified
@@ -124,7 +124,7 @@ ResolutionErrors.dfy(973,18): Error: member 3 does not exist in datatype _tuple#
 ResolutionErrors.dfy(973,28): Error: member x does not exist in datatype _tuple#2
 ResolutionErrors.dfy(966,39): Error: RHS (of type (int, real, int)) not assignable to LHS (of type (int, real, int, real))
 ResolutionErrors.dfy(972,18): Error: condition is expected to be of type bool, but is int
-ResolutionErrors.dfy(965,34): Error: RHS (of type (int, int, real)) not assignable to LHS (of type (int, real, int)) (covariant type parameter 1 would require real <: int)
+ResolutionErrors.dfy(965,34): Error: RHS (of type (int, int, real)) not assignable to LHS (of type (int, real, int)) (covariant type parameter 1 would require int <: real)
 ResolutionErrors.dfy(996,19): Error: type of right argument to / (int) must agree with the result type (real)
 ResolutionErrors.dfy(997,12): Error: type of right argument to % (real) must agree with the result type (int)
 ResolutionErrors.dfy(997,6): Error: RHS (of type int) not assignable to LHS (of type real)

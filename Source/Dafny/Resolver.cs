@@ -3182,8 +3182,8 @@ namespace Microsoft.Dafny
         var pol = polarities[i];
         var tp = p == 1 ? "" : " " + i;
         var errMsg = new TypeConstraint.ErrorMsgWithBase(errorMsg,
-          pol < 0 ? "contravariant type parameter{0} would require {2} <: {1}" :
-          pol > 0 ? "covariant type parameter{0} would require {1} <: {2}" :
+          pol < 0 ? "contravariant type parameter{0} would require {1} <: {2}" :
+          pol > 0 ? "covariant type parameter{0} would require {2} <: {1}" :
           "invariant type parameter{0} would require {1} = {2}",
           tp, super.TypeArgs[i], sub.TypeArgs[i]);
         if (pol >= 0) {

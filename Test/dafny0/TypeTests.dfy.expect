@@ -26,8 +26,8 @@ TypeTests.dfy(23,9): Error: because of cyclic dependencies among constructor arg
 TypeTests.dfy(169,7): Error: non-ghost variable cannot be assigned a value that depends on a ghost
 TypeTests.dfy(179,6): Error: cannot assign to non-ghost variable in a ghost context
 TypeTests.dfy(180,9): Error: cannot assign to non-ghost variable in a ghost context
-TypeTests.dfy(198,15): Error: incorrect type of datatype constructor argument (found int ~> int, expected int -> Dt<int>) (covariant type parameter 1 would require Dt<int> <: int)
-TypeTests.dfy(204,15): Error: incorrect type of datatype constructor argument (found ? ~> ?, expected ? -> Dt<?>) (covariant type parameter 1 would require Dt<?> <: ?)
+TypeTests.dfy(198,15): Error: incorrect type of datatype constructor argument (found int ~> int, expected int -> Dt<int>) (covariant type parameter 1 would require int <: Dt<int>)
+TypeTests.dfy(204,15): Error: incorrect type of datatype constructor argument (found ? ~> ?, expected ? -> Dt<?>) (covariant type parameter 1 would require ? <: Dt<?>)
 TypeTests.dfy(211,6): Error: RHS (of type set<?>) not assignable to LHS (of type ?)
 TypeTests.dfy(222,9): Error: Assignment to array element is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)
 32 resolution/type errors detected in TypeTests.dfy
