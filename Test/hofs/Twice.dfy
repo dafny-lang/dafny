@@ -1,7 +1,7 @@
 // RUN: %dafny /print:"%t.print" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
-function method Twice<A>(f : A -> A): A -> A
+function method Twice<A>(f : A ~> A): A ~> A
 {
   x requires f.requires(x) && f.requires(f(x))
     reads f.reads(x) reads if f.requires(x) then f.reads(f(x)) else {}
@@ -29,7 +29,7 @@ method WithReads() {
 }
 
 
-function method Twice_bad<A>(f : A -> A): A -> A
+function method Twice_bad<A>(f : A ~> A): A ~> A
 {
   x requires f.requires(x) && f.requires(f(x))
     reads f.reads(x) + f.reads(f(x))

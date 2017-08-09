@@ -3,10 +3,10 @@
 
 // ----- arrows with no read effects -------------------------------------
 
-type NoWitness_EffectlessArrow<A,B> = f: A -> B  // error: cannot find witness
+type NoWitness_EffectlessArrow<A,B> = f: A ~> B  // error: cannot find witness
   | forall a :: f.reads(a) == {}
 
-type NonGhost_EffectlessArrow<A,B> = f: A -> B
+type NonGhost_EffectlessArrow<A,B> = f: A ~> B
   | forall a :: f.reads(a) == {}
   witness EffectlessArrowWitness<A,B>
 
@@ -14,7 +14,7 @@ type NonGhost_EffectlessArrow<A,B> = f: A -> B
 // be implemented, because there is no way to produce a B (for any B) in compiled code.
 function method EffectlessArrowWitness<A,B>(a: A): B
 
-type EffectlessArrow<A,B> = f: A -> B
+type EffectlessArrow<A,B> = f: A ~> B
   | forall a :: f.reads(a) == {}
   ghost witness GhostEffectlessArrowWitness<A,B>
 
@@ -46,7 +46,7 @@ function method Twice''(f: EffectlessArrow<int,int>, x: int): int
   f(f(x))
 }
 
-function method TwoTimes(f: int -> int, x: int): int
+function method TwoTimes(f: int ~> int, x: int): int
   requires forall x :: f.reads(x) == {}
   requires forall x :: f.requires(x)
 {
@@ -68,7 +68,7 @@ method Main()
 
 // ----- totality constraint by predicate Total -------------------------------------
 
-predicate Total<A,B>(f: A -> B)
+predicate Total<A,B>(f: A ~> B)
   reads f.reads
 {
   forall a :: f.reads(a) == {} && f.requires(a)
@@ -111,19 +111,19 @@ function DirectTotalClientTwice(f: DirectTotalArrow<int,int>, x: int): int
 
 // ----- using two predicates, and showing which conjunct of constraint is violated ------
 
-predicate EmptyReads<A,B>(f: A -> B)
+predicate EmptyReads<A,B>(f: A ~> B)
   reads f.reads
 {
   forall a :: f.reads(a) == {}
 }
 
-predicate TruePre<A,B>(f: A -> B)
+predicate TruePre<A,B>(f: A ~> B)
   reads f.reads
 {
   forall a :: f.requires(a)
 }
 
-type TwoPred_TotalArrow<A,B> = f: A -> B
+type TwoPred_TotalArrow<A,B> = f: A ~> B
   | EmptyReads(f) && TruePre(f)
   ghost witness TotalWitness<A,B>
 
@@ -135,7 +135,7 @@ function PartialFunction<A,B>(a: A): B
   var b: B :| true; b
 }
 
-type Bad_TwoPred_TotalArrow<A,B> = f: A -> B
+type Bad_TwoPred_TotalArrow<A,B> = f: A ~> B
   | EmptyReads(f) && TruePre(f)
   // cool: the type instantiation of "PartialFunction" below is inferred
   ghost witness PartialFunction  // error: the second conjunct of the constraint is not satisfied

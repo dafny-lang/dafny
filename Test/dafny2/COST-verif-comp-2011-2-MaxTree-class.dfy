@@ -114,10 +114,12 @@ class Tree {
     Repr := lft.Repr + {this} + rgt.Repr;
   }
 
-  lemma exists_intro<T>(P: T -> bool, x: T)
+  lemma exists_intro<T>(P: T ~> bool, x: T)
     requires P.requires(x)
     requires P(x)
-    ensures exists y :: P.requires(y) && P(y) { }
+    ensures exists y :: P.requires(y) && P(y)
+  {
+  }
 
   method ComputeMax() returns (mx: int)
     requires Valid() && !IsEmpty();

@@ -5,29 +5,29 @@ function method MkId<A>() : A -> A {
   x => x
 }
 
-function method IntId() : int -> int {
+function method IntId() : int ~> int {
   y => y
 }
 
-function method DivZero() : int -> int
+function method DivZero() : int ~> int
 {
   z => 5 / z  // div by zero
 }
 
-function method DivZeroWithReq() : int -> int
+function method DivZeroWithReq() : int ~> int
 {
   (z) requires z != 0 => 5 / z
 }
 
-function method DivZero2() : (int, int) -> int {
+function method DivZero2() : (int, int) ~> int {
   (x, y) requires y != 0 => x / y
 }
 
-function method DivZero3() : int -> int {
+function method DivZero3() : int ~> int {
   z => z / 0   // div by zero
 }
 
-function method Shadow() : int -> real -> real {
+function method Shadow() : int ~> real ~> real {
   x => x => x
 }
 
@@ -40,7 +40,7 @@ method Reqs() {
 method Main() {
   var id := IntId();
   print id(5);
-  var polyid : int -> int := MkId();
+  var polyid : int ~> int := MkId();
   print polyid(5);
   assert id(2) == polyid(2);
   assert id(3) != 4 && 5 != polyid(6);
@@ -74,7 +74,7 @@ method Main3() {
 }
 
 
-function P<A,B>(f: A -> B, x : A): B
+function P<A,B>(f: A ~> B, x : A): B
   reads (f.reads)(x)
   requires (f.requires)(x)
 {
@@ -82,14 +82,14 @@ function P<A,B>(f: A -> B, x : A): B
 }
 
 
-function Q<U,V>(f: U -> V, x : U): V
+function Q<U,V>(f: U ~> V, x : U): V
   reads P.reads(f,x)
   requires f.requires(x)  // would be nice to be able to write P.requires(f,x)
 {
   P(f,x)
 }
 
-function QQ<U,V>(f: U -> V, x : U): V
+function QQ<U,V>(f: U ~> V, x : U): V
   reads ((() => ((()=>f)()).reads)())((()=>x)())
   requires ((() => ((()=>f)()).requires)())((()=>x)())
 {

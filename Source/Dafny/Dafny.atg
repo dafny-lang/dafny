@@ -1713,15 +1713,31 @@ TypeAndToken<out IToken tok, out Type ty, bool inExpressionContext>
     }
     (. ty = new UserDefinedType(e.tok, e); .)
   )
-  [ "->"                  (. tok = t; Type t2; .)
+  [ (. int arrowKind = 0; /* 0: any, 1: partial, 2: total */
+       Type t2;
+    .)
+    ( "~>"           (. tok = t; arrowKind = 0; .)
+    | "-->"          (. tok = t; arrowKind = 1; .)
+    | "->"           (. tok = t; arrowKind = 2; .)
+    )
     Type<out t2>
     (. if (tupleArgTypes != null) {
          gt = tupleArgTypes;
         } else {
          gt = new List<Type>{ ty };
        }
-       ty = new ArrowType(tok, gt, t2);
-       theBuiltIns.CreateArrowTypeDecl(gt.Count);
+       var arity = gt.Count;
+       theBuiltIns.CreateArrowTypeDecl(arity);
+       if (arrowKind == 0) {
+         ty = new ArrowType(tok, gt, t2);
+       } else {
+         gt.Add(t2);
+         if (arrowKind == 1) {
+           ty = new UserDefinedType(tok, ArrowType.PartialArrowTypeName(arity), gt);
+         } else {
+           ty = new UserDefinedType(tok, ArrowType.TotalArrowTypeName(arity), gt);
+         }
+       }
     .)
   ]
   .

@@ -38,7 +38,7 @@ module AssignmentToNat {
   function method Pf(n: nat): int
   function method Pg(x: int): nat
 
-  method P(x: int, f: nat -> int) returns (g: int -> nat)
+  method P(x: int, f: nat ~> int) returns (g: int ~> nat)
     requires f.requires(x)  // error
   {
     var y := f(x);  // error
@@ -95,7 +95,7 @@ module AssignmentToSetNat {
   function method Pf(n: set<nat>): set<int>
   function method Pg(x: set<int>): set<nat>
 
-  method P(x: set<int>, f: set<nat> -> set<int>) returns (g: set<int> -> set<nat>)
+  method P(x: set<int>, f: set<nat> ~> set<int>) returns (g: set<int> ~> set<nat>)
     requires f.requires(x)  // error
   {
     var y := f(x);  // error
@@ -129,7 +129,7 @@ module OutParameters {
 }
 
 module Contravariance {
-  method M0(a: int -> int, b: int -> nat, c: nat -> int, d: nat -> nat) returns (r: int -> int) {
+  method M0(a: int ~> int, b: int ~> nat, c: nat ~> int, d: nat ~> nat) returns (r: int ~> int) {
     if {
       case true =>  r := a;
       case true =>  r := b;
@@ -137,7 +137,7 @@ module Contravariance {
       case true =>  r := d;  // error
     }
   }
-  method M1(a: int -> int, b: int -> nat, c: nat -> int, d: nat -> nat) returns (r: int -> nat) {
+  method M1(a: int ~> int, b: int ~> nat, c: nat ~> int, d: nat ~> nat) returns (r: int ~> nat) {
     if {
       case true =>  r := a;  // error
       case true =>  r := b;
@@ -145,7 +145,7 @@ module Contravariance {
       case true =>  r := d;  // error
     }
   }
-  method M2(a: int -> int, b: int -> nat, c: nat -> int, d: nat -> nat) returns (r: nat -> int) {
+  method M2(a: int ~> int, b: int ~> nat, c: nat ~> int, d: nat ~> nat) returns (r: nat ~> int) {
     if {
       case true =>  r := a;
       case true =>  r := b;
@@ -153,7 +153,7 @@ module Contravariance {
       case true =>  r := d;
     }
   }
-  method M3(a: int -> int, b: int -> nat, c: nat -> int, d: nat -> nat) returns (r: nat -> nat) {
+  method M3(a: int ~> int, b: int ~> nat, c: nat ~> int, d: nat ~> nat) returns (r: nat ~> nat) {
     if {
       case true =>  r := a;  // error
       case true =>  r := b;

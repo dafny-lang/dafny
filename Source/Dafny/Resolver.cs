@@ -2874,9 +2874,9 @@ namespace Microsoft.Dafny
     }
     private bool ConstrainSubtypeRelation_Aux(Type super, Type sub, TypeConstraint c, bool keepConstraints = false) {
       Contract.Requires(sub != null);
-      Contract.Requires(!(sub is TypeProxy) || ((TypeProxy)sub).T == null);  // caller is expected to have called .NormalizeExpand
+      Contract.Requires(!(sub is TypeProxy) || ((TypeProxy)sub).T == null);  // caller is expected to have Normalized away proxies
       Contract.Requires(super != null);
-      Contract.Requires(!(super is TypeProxy) || ((TypeProxy)super).T == null);  // caller is expected to have called .NormalizeExpand
+      Contract.Requires(!(super is TypeProxy) || ((TypeProxy)super).T == null);  // caller is expected to have Normalized away proxies
       Contract.Requires(c != null);
 
       if (object.ReferenceEquals(super, sub)) {
@@ -2976,7 +2976,7 @@ namespace Microsoft.Dafny
 
     void CheckEnds(Type t, out bool isRoot, out bool isLeaf, out bool headIsRoot, out bool headIsLeaf) {
       Contract.Requires(t != null);
-      Contract.Requires(!(t is TypeProxy) || ((TypeProxy)t).T == null);  // caller is expected to call NormalizeExpand
+      Contract.Requires(!(t is TypeProxy) || ((TypeProxy)t).T == null);  // caller is expected to have Normalized away proxies
       if (t.IsBoolType || t.IsCharType || t.IsNumericBased() || t.IsBitVectorType) {
         isRoot = true; isLeaf = true;
         headIsRoot = true; headIsLeaf = true;
@@ -3005,7 +3005,10 @@ namespace Microsoft.Dafny
         var udf = (UserDefinedType)t;
         var cl = udf.ResolvedClass;
         if (cl != null) {
-          if (cl is TraitDecl) {
+          if (cl is SubsetTypeDecl) {
+            isRoot = false; isLeaf = false;
+            headIsRoot = false; headIsLeaf = false;
+          } else if (cl is TraitDecl) {
             isRoot = false; isLeaf = false;
             headIsRoot = false; headIsLeaf = false;
           } else if (cl is ClassDecl) {
@@ -10067,6 +10070,7 @@ namespace Microsoft.Dafny
         } else if (t.ResolvedClass != null) {
           List<Type> newArgs = null;  // allocate it lazily
           var resolvedClass = t.ResolvedClass;
+          var isArrowType = ArrowType.IsPartialArrowTypeName(resolvedClass.Name) || ArrowType.IsTotalArrowTypeName(resolvedClass.Name);
 #if TEST_TYPE_SYNONYM_TRANSPARENCY
           if (resolvedClass is TypeSynonymDecl && resolvedClass.Name == "type#synonym#transparency#test") {
             // Usually, all type parameters mentioned in the definition of a type synonym are also type parameters
@@ -10083,7 +10087,7 @@ namespace Microsoft.Dafny
           for (int i = 0; i < t.TypeArgs.Count; i++) {
             Type p = t.TypeArgs[i];
             Type s = SubstType(p, subst);
-            if (s is InferredTypeProxy) {
+            if (s is InferredTypeProxy && !isArrowType) {
               ((InferredTypeProxy)s).KeepConstraints = true;
             }
             if (s != p && newArgs == null) {
@@ -10367,7 +10371,8 @@ namespace Microsoft.Dafny
             e.TypeApplication.Add(prox);
           }
           subst = BuildTypeArgumentSubstitute(subst);
-          e.Type = new ArrowType(fn.tok, fn.Formals.ConvertAll(f => SubstType(f.Type, subst)), SubstType(fn.ResultType, subst), builtIns.SystemModule);
+          e.Type = SelectAppropriateArrowType(fn.tok, fn.Formals.ConvertAll(f => SubstType(f.Type, subst)), SubstType(fn.ResultType, subst),
+            fn.Reads.Count != 0, fn.Req.Count != 0);
           AddCallGraphEdge(opts.codeContext, fn, e, false);
         } else if (member is Field) {
           var field = (Field)member;
@@ -10843,7 +10848,7 @@ namespace Microsoft.Dafny
         ResolveExpression(e.Term, opts);
         Contract.Assert(e.Term.Type != null);
         scope.PopMarker();
-        expr.Type = new ArrowType(e.tok, Util.Map(e.BoundVars, v => v.Type), e.Body.Type, builtIns.SystemModule);
+        expr.Type = SelectAppropriateArrowType(e.tok, e.BoundVars.ConvertAll(v => v.Type), e.Body.Type, e.Reads.Count != 0, e.Range != null);
       } else if (expr is WildcardExpr) {
         expr.Type = new SetType(true, new ObjectType());
       } else if (expr is StmtExpr) {
@@ -10887,6 +10892,25 @@ namespace Microsoft.Dafny
       if (expr.Type == null) {
         // some resolution error occurred
         expr.Type = new InferredTypeProxy();
+      }
+    }
+
+    private Type SelectAppropriateArrowType(IToken tok, List<Type> typeArgs, Type resultType, bool hasReads, bool hasReq) {
+      Contract.Requires(tok != null);
+      Contract.Requires(typeArgs != null);
+      Contract.Requires(resultType != null);
+      if (hasReads) {
+        // any arrow
+        return new ArrowType(tok, typeArgs, resultType, builtIns.SystemModule);
+      } else {
+        var arity = typeArgs.Count;
+        if (hasReq) {
+          // partial arrow
+          return new UserDefinedType(tok, ArrowType.PartialArrowTypeName(arity), builtIns.PartialArrowTypeDecls[arity], Util.Snoc(typeArgs, resultType));
+        } else {
+          // total arrow
+          return new UserDefinedType(tok, ArrowType.TotalArrowTypeName(arity), builtIns.TotalArrowTypeDecls[arity], Util.Snoc(typeArgs, resultType));
+        }
       }
     }
 

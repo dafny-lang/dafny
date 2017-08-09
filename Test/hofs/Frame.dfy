@@ -4,7 +4,7 @@
 
 class C { var u : int; }
 
-method M(f : int -> int)
+method M(f : int ~> int)
   requires f.requires(0);
 {
   var init := f(0);
@@ -69,7 +69,7 @@ method Refs() {
   }
 }
 
-method Fiddling(k : int -> int)
+method Fiddling(k : int ~> int)
 {
 
   var mkGet := (arr : array<int>) =>
@@ -90,7 +90,7 @@ method Fiddling(k : int -> int)
   assert get() == a[0];
 }
 
-method HeapSucc0(k : int -> int)
+method HeapSucc0(k : int ~> int)
   requires k.requires(0);
 {
   var init := k(0);
@@ -98,7 +98,7 @@ method HeapSucc0(k : int -> int)
   assert k(0) == init;
 }
 
-method HeapSucc1(k : int -> int, c : C)
+method HeapSucc1(k : int ~> int, c : C)
   requires k.requires(0);
   requires c !in k.reads(0);
   modifies c;
@@ -110,7 +110,7 @@ method HeapSucc1(k : int -> int, c : C)
   }
 }
 
-method HeapSucc2(k : int -> int, c : C)
+method HeapSucc2(k : int ~> int, c : C)
   requires k.requires(0);
   modifies c;
 {

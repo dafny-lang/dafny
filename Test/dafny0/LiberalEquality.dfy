@@ -69,7 +69,7 @@ method m6<T>(a: Iter<T>, b: Iter<int>)
 {
 }
 
-method m7<T>(a: T -> int, b: int -> T, c: int -> int)
+method m7<T>(a: T ~> int, b: int ~> T, c: int ~> int)
   requires a != c;  // error: arrow types don't fall under the liberal equality rules
   requires b != c;  // error: ditto
 {

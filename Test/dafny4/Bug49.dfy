@@ -5,7 +5,7 @@ method Main()
 {
   print apply(i => i + 1, 5), "\n";
   print mapply(map[5 := 6], 5), "\n";
-  var f;
+  var f: int -> int;
   print five(f), "\n";
 }
 

@@ -2,7 +2,7 @@
 // RUN: %diff "%s.expect" "%t"
 
 // this is a rather verbose version of the VectorUpdate method
-method VectorUpdate<A>(N: int, a : array<A>, f : (int,A) -> A)
+method VectorUpdate<A>(N: int, a : array<A>, f : (int,A) ~> A)
   requires a != null
   requires N == a.Length
   requires forall j :: 0 <= j < N ==> f.requires(j,a[j])
@@ -25,7 +25,7 @@ method VectorUpdate<A>(N: int, a : array<A>, f : (int,A) -> A)
 }
 
 // here's a shorter version of the method above
-method VectorUpdate'<A>(a : array<A>, f : (int,A) -> A)
+method VectorUpdate'<A>(a : array<A>, f : (int,A) ~> A)
   requires a != null
   requires forall j :: 0 <= j < a.Length ==> a !in f.reads(j,a[j]) && f.requires(j,a[j])
   modifies a
@@ -43,7 +43,7 @@ method VectorUpdate'<A>(a : array<A>, f : (int,A) -> A)
 }
 
 // here's yet another version
-method VectorUpdate''<A>(a : array<A>, f : (int,A) -> A)
+method VectorUpdate''<A>(a : array<A>, f : (int,A) ~> A)
   requires a != null
   requires forall j :: 0 <= j < a.Length ==> a !in f.reads(j,a[j]) && f.requires(j,a[j])
   modifies a

@@ -94,7 +94,7 @@ class Cell { var data: int }
 
 // Test the benefits of the new reads checking for function checking
 
-function ApplyToSet<X>(S: set<X>, f: X -> X): set<X>
+function ApplyToSet<X>(S: set<X>, f: X ~> X): set<X>
   requires forall x :: x in S ==> f.reads(x) == {} && f.requires(x)
 {
   if S == {} then {} else
@@ -102,28 +102,28 @@ function ApplyToSet<X>(S: set<X>, f: X -> X): set<X>
     ApplyToSet(S - {x}, f) + {f(x)}
 }
 
-function ApplyToSet_AltSignature0<X>(S: set<X>, f: X -> X): set<X>
+function ApplyToSet_AltSignature0<X>(S: set<X>, f: X ~> X): set<X>
   requires forall x :: x in S ==> f.requires(x) && f.reads(x) == {}
 
-function ApplyToSet_AltSignature1<X>(S: set<X>, f: X -> X): set<X>
+function ApplyToSet_AltSignature1<X>(S: set<X>, f: X ~> X): set<X>
   requires forall x :: x in S ==> f.reads(x) == {}
   requires forall x :: x in S ==> f.requires(x)
 
-function ApplyToSet_AltSignature2<X>(S: set<X>, f: X -> X): set<X>
+function ApplyToSet_AltSignature2<X>(S: set<X>, f: X ~> X): set<X>
   requires (forall x :: x in S ==> f.reads(x) == {}) ==> forall x :: x in S ==> f.requires(x)
   // (this precondition would not be good enough to check the body above)
 
 function FunctionInQuantifier0(): int
-  requires exists f: int -> int :: f(10) == 100  // error (x2): precondition violation and insufficient reads
+  requires exists f: int ~> int :: f(10) == 100  // error (x2): precondition violation and insufficient reads
 
 function FunctionInQuantifier1(): int
-  requires exists f: int -> int :: f.requires(10) && f(10) == 100  // error: insufficient reads
+  requires exists f: int ~> int :: f.requires(10) && f(10) == 100  // error: insufficient reads
 
 function FunctionInQuantifier2(): int
-  requires exists f: int -> int :: f.reads(10) == {} && f.requires(10) && f(10) == 100
+  requires exists f: int ~> int :: f.reads(10) == {} && f.requires(10) && f(10) == 100
   ensures FunctionInQuantifier2() == 100
 {
-  var f: int -> int :| f.reads(10) == {} && f.requires(10) && f(10) == 100;  // fine :) :)
+  var f: int ~> int :| f.reads(10) == {} && f.requires(10) && f(10) == 100;  // fine :) :)
   f(10)
 }
 

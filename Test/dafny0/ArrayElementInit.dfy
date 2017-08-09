@@ -14,13 +14,13 @@ method M1(d: int)
   assert a.Length == 25;
 }
 
-method M2(f: int -> real)
+method M2(f: int ~> real)
 {
   var a := new real[25](f);  // error: nothing is known about the precondition of "f"
   assert a.Length == 25;
 }
 
-method M3(f: int -> real)
+method M3(f: int ~> real)
   requires forall x :: x < 25 ==> f.requires(x)
 {
   var a := new real[25](f);
@@ -95,7 +95,7 @@ method QCaller()
   var b := Q1(s, 2);
 }
 
-method SubtypeConstraint(f: int -> int, g: int -> nat)
+method SubtypeConstraint(f: int ~> int, g: int ~> nat)
   requires forall x :: 0 <= x < 100 ==> f.requires(x) && g.requires(x)
 {
   var a := new nat[100](g);
@@ -139,7 +139,7 @@ method Display1<D>(d: D, n: int, w: array<nat>)
   assert e[0] == e[1];  // error: no, they're not the same
 }
 
-method Display2<D>(f: int -> D)
+method Display2<D>(f: int ~> D)
 {
   var a := new D[1] [ f(0) ];  // error: 0 may not be in the domain of f
 }

@@ -1,4 +1,4 @@
-Types.dfy(9,20): Error: arguments must have the same type (got A -> A -> A and (A -> A) -> A)
-Types.dfy(14,20): Error: arguments must have the same type (got (A -> A) -> A and A -> A -> A)
-Types.dfy(18,20): Error: arguments must have the same type (got A -> A -> A and (A -> A) -> A)
+Types.dfy(9,20): Error: arguments must have the same type (got A ~> A -> A and (A -> A) ~> A)
+Types.dfy(14,20): Error: arguments must have the same type (got (A -> A) ~> A and A ~> A -> A)
+Types.dfy(18,20): Error: arguments must have the same type (got A ~> A -> A and (A -> A) ~> A)
 3 resolution/type errors detected in Types.dfy

@@ -110,6 +110,8 @@ namespace Microsoft.Dafny {
     public readonly ModuleDefinition SystemModule = new ModuleDefinition(Token.NoToken, "_System", false, false, false, /*isExclusiveRefinement:*/ false, null, null, null, true);
     readonly Dictionary<int, ClassDecl> arrayTypeDecls = new Dictionary<int, ClassDecl>();
     readonly Dictionary<int, ArrowTypeDecl> arrowTypeDecls = new Dictionary<int, ArrowTypeDecl>();
+    public readonly Dictionary<int, SubsetTypeDecl> PartialArrowTypeDecls = new Dictionary<int, SubsetTypeDecl>();  // same keys as arrowTypeDecl
+    public readonly Dictionary<int, SubsetTypeDecl> TotalArrowTypeDecls = new Dictionary<int, SubsetTypeDecl>();  // same keys as arrowTypeDecl
     readonly Dictionary<int, TupleTypeDecl> tupleTypeDecls = new Dictionary<int, TupleTypeDecl>();
     public readonly ISet<int> Bitwidths = new HashSet<int>();
 
@@ -219,6 +221,7 @@ namespace Microsoft.Dafny {
         var partialArrow = new SubsetTypeDecl(tok, ArrowType.PartialArrowTypeName(arity),
           new TypeParameter.TypeParameterCharacteristics(false), tps, SystemModule,
           id, ArrowSubtypeConstraint(tok, id, reads, tps, false), SubsetTypeDecl.WKind.Special, null, DontCompile());
+        PartialArrowTypeDecls.Add(arity, partialArrow);
         SystemModule.TopLevelDecls.Add(partialArrow);
 
         // declaration of total arrow-type 
@@ -228,6 +231,7 @@ namespace Microsoft.Dafny {
         var totalArrow = new SubsetTypeDecl(tok, ArrowType.TotalArrowTypeName(arity),
           new TypeParameter.TypeParameterCharacteristics(false), tps, SystemModule,
           id, ArrowSubtypeConstraint(tok, id, req, tps, true), SubsetTypeDecl.WKind.Special, null, DontCompile());
+        TotalArrowTypeDecls.Add(arity, totalArrow);
         SystemModule.TopLevelDecls.Add(totalArrow);
       }
     }
@@ -914,6 +918,19 @@ namespace Microsoft.Dafny {
         var t = NormalizeExpand();
         var udt = UserDefinedType.DenotesClass(t);
         return udt == null ? null : udt.ResolvedClass as ArrayClassDecl;
+      }
+    }
+    /// <summary>
+    /// Returns "true" if the type is one of the 3 built-in arrow types.
+    /// </summary>
+    public bool IsBuiltinArrowType {
+      get {
+        var t = Normalize();  // but don't expand synonyms or strip off constraints
+        if (t is ArrowType) {
+          return true;
+        }
+        var udt = t as UserDefinedType;
+        return udt != null && (ArrowType.IsPartialArrowTypeName(udt.Name) || ArrowType.IsTotalArrowTypeName(udt.Name));
       }
     }
     public bool IsArrowType {
@@ -1807,11 +1824,7 @@ namespace Microsoft.Dafny {
       return s.StartsWith("_#TotalFunc");
     }
 
-#if SOON
     public const string ANY_ARROW = "~>";
-#else
-    public const string ANY_ARROW = "->";
-#endif
     public const string PARTIAL_ARROW = "-->";
     public const string TOTAL_ARROW = "->";
 
@@ -1833,18 +1846,15 @@ namespace Microsoft.Dafny {
       if (arity != 1) {
         // 0 or 2-or-more arguments:  need parentheses
         domainNeedsParens = true;
+      } else if (typeArgs[0].IsBuiltinArrowType) {
+        // arrows are right associative, so we need parentheses around the domain type
+        domainNeedsParens = true;
       } else {
-        var arg = typeArgs[0].Normalize();  // note, we do Normalize(), not NormalizeExpand(), since the TypeName will use any synonym
-        if (arg is ArrowType) {
-          // arrows are right associative, so we need parentheses around the domain type
+        // if the domain type consists of a single tuple type, then an extra set of parentheses is needed
+        // Note, we do NOT call .AsDatatype or .AsIndDatatype here, because those calls will do a NormalizeExpand().  Instead, we do the check manually.
+        var udt = typeArgs[0].Normalize() as UserDefinedType;  // note, we do Normalize(), not NormalizeExpand(), since the TypeName will use any synonym
+        if (udt != null && udt.ResolvedClass is TupleTypeDecl) {
           domainNeedsParens = true;
-        } else {
-          // if the domain type consists of a single tuple type, then an extra set of parentheses is needed
-          // Note, we do NOT call .AsDatatype or .AsIndDatatype here, because those calls will do a NormalizeExpand().  Instead, we do the check manually.
-          var udt = arg as UserDefinedType;
-          if (udt != null && udt.ResolvedClass is TupleTypeDecl) {
-            domainNeedsParens = true;
-          }
         }
       }
       string s = "";
@@ -2249,9 +2259,17 @@ namespace Microsoft.Dafny {
       if (i is UserDefinedType) {
         var ii = (UserDefinedType)i;
         var t = that.NormalizeExpandKeepConstraints() as UserDefinedType;
-        if (t == null || ii.ResolvedParam != t.ResolvedParam || ii.ResolvedClass != t.ResolvedClass || ii.TypeArgs.Count != t.TypeArgs.Count) {
+        if (t == null || ii.ResolvedParam != t.ResolvedParam) {
           return false;
+        } else if (ii.ResolvedClass != t.ResolvedClass) {
+          var tsubset = t.ResolvedClass as SubsetTypeDecl;
+          if (tsubset == null) {
+            return false;
+          } else {
+            return IsSupertypeOf_WithSubsetTypes(tsubset.RhsWithArgument(i.TypeArgs));
+          }
         } else {
+          Contract.Assert(ii.TypeArgs.Count == t.TypeArgs.Count);  // the have the same class, and therefore will also have the same number of type arguments
           for (int j = 0; j < ii.TypeArgs.Count; j++) {
             var a0 = ii.TypeArgs[j];
             var a1 = t.TypeArgs[j];
@@ -2533,7 +2551,7 @@ namespace Microsoft.Dafny {
   public class InferredTypeProxy : TypeProxy {
     public bool KeepConstraints;
     public InferredTypeProxy() : base() {
-      KeepConstraints = false; // whethere the typeProxy should be inferred to base type or as subset type
+      KeepConstraints = false; // whether the typeProxy should be inferred to base type or as subset type
     }
   }
 

@@ -1,14 +1,14 @@
 // RUN: %dafny /print:"%t.print" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
-function Apply<A,B>(f: A -> B, x: A): B
+function Apply<A,B>(f: A ~> B, x: A): B
   reads f.reads(x);
   requires f.requires(x);
 {
   f(x)
 }
 
-function Apply'<A,B>(f: A -> B) : A -> B
+function Apply'<A,B>(f: A ~> B) : A ~> B
 {
   x reads f.reads(x)
     requires f.requires(x)
@@ -16,7 +16,7 @@ function Apply'<A,B>(f: A -> B) : A -> B
 }
 
 
-function Compose<A,B,C>(f: B -> C, g:A -> B): A -> C
+function Compose<A,B,C>(f: B ~> C, g:A ~> B): A ~> C
 {
   x reads g.reads(x)
     reads if g.requires(x) then f.reads(g(x)) else {}
@@ -25,21 +25,21 @@ function Compose<A,B,C>(f: B -> C, g:A -> B): A -> C
     => f(g(x))
 }
 
-function W<A>(f : (A,A) -> A): A -> A
+function W<A>(f : (A,A) ~> A): A ~> A
 {
   x requires f.requires(x,x)
     reads f.reads(x,x)
     => f(x,x)
 }
 
-function Curry<A,B,C>(f : (A,B) -> C) : A -> B -> C
+function Curry<A,B,C>(f : (A,B) ~> C) : A ~> B ~> C
 {
   x => y requires f.requires(x,y)
          reads f.reads(x,y)
          => f(x,y)
 }
 
-function Uncurry<A,B,C>(f : A -> B -> C) : (A,B) -> C
+function Uncurry<A,B,C>(f : A ~> B ~> C) : (A,B) ~> C
 {
   (x,y) requires f.requires(x)
         requires f(x).requires(y)
@@ -48,7 +48,7 @@ function Uncurry<A,B,C>(f : A -> B -> C) : (A,B) -> C
         => f(x)(y)
 }
 
-function S<A,B,C>(f : (A,B) -> C, g : A -> B): A -> C
+function S<A,B,C>(f : (A,B) ~> C, g : A ~> B): A ~> C
 {
   x requires g.requires(x)
     requires f.requires(x,g(x))

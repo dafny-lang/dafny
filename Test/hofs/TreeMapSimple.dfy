@@ -20,13 +20,13 @@ function TreeData(t0 : Tree) : set
   {x} + set t, y | t in ListData(ts) && y in TreeData(t) :: y
 }
 
-function Pre<A,B>(f : A -> B, s : set<A>) : bool
+function Pre<A,B>(f : A ~> B, s : set<A>) : bool
   reads (set x, y | x in s && y in f.reads(x) :: y)
 {
   forall x :: x in s ==> f.reads(x) == {} && f.requires(x)
 }
 
-function method Map<A,B>(xs : List<A>, f : A -> B): List<B>
+function method Map<A,B>(xs : List<A>, f : A ~> B): List<B>
   reads Pre.reads(f, ListData(xs))
   requires Pre(f, ListData(xs))
   decreases xs
@@ -36,7 +36,7 @@ function method Map<A,B>(xs : List<A>, f : A -> B): List<B>
     case Cons(x,xs) => Cons(f(x),Map(xs,f))
 }
 
-function method TMap<A,B>(t0 : Tree<A>, f : A -> B) : Tree<B>
+function method TMap<A,B>(t0 : Tree<A>, f : A ~> B) : Tree<B>
   reads Pre.reads(f, TreeData(t0))
   requires Pre(f, TreeData(t0))
   decreases t0

@@ -33,12 +33,12 @@ function method SeqToList(s: seq): List
   if s == [] then Nil else Cons(s[0], SeqToList(s[1..]))
 }
 
-predicate Total2<T,U,R>(f: (T,U) -> R)
+predicate Total2<T,U,R>(f: (T,U) ~> R)
   reads f.reads
 {
   forall t,u :: f.reads(t,u) == {} && f.requires(t,u)
 }
-predicate Total3<T,U,V,R>(f: (T,U,V) -> R)
+predicate Total3<T,U,V,R>(f: (T,U,V) ~> R)
   reads f.reads
 {
   forall t,u,v :: f.reads(t,u,v) == {} && f.requires(t,u,v)
@@ -46,7 +46,7 @@ predicate Total3<T,U,V,R>(f: (T,U,V) -> R)
 
 // ----- foldr ----------
 
-function method foldr<A,B>(f: (A,B) -> B, b: B, xs: List<A>): B
+function method foldr<A,B>(f: (A,B) ~> B, b: B, xs: List<A>): B
   requires Total2(f)
 {
   match xs
@@ -56,14 +56,14 @@ function method foldr<A,B>(f: (A,B) -> B, b: B, xs: List<A>): B
 
 // The following predicate says that "inv" is invariant under "stp".
 // "stp" is really just a relational version of the function "f" passed to fold.
-predicate InvR<A,B>(inv: (List<A>,B) -> bool, stp: (A,B,B) -> bool)
+predicate InvR<A,B>(inv: (List<A>,B) ~> bool, stp: (A,B,B) ~> bool)
   requires Total2(inv) && Total3(stp)
 {
   forall x, xs, b, b' ::
   inv(xs, b) && stp(x, b, b') ==> inv(Cons(x, xs), b')
 }
 
-lemma FoldR_Property<A,B>(inv: (List<A>,B) -> bool, stp: (A,B,B) -> bool, f: (A,B) -> B, b: B, xs: List<A>)
+lemma FoldR_Property<A,B>(inv: (List<A>,B) ~> bool, stp: (A,B,B) ~> bool, f: (A,B) ~> B, b: B, xs: List<A>)
   requires Total2(inv) && Total3(stp) && Total2(f)
   requires InvR(inv, stp)
   requires forall a,b :: stp(a, b, f(a,b))
@@ -87,7 +87,7 @@ lemma FoldR_Property<A,B>(inv: (List<A>,B) -> bool, stp: (A,B,B) -> bool, f: (A,
     }
 }
 
-lemma FoldR_Property_ShortProof<A,B>(inv: (List<A>,B) -> bool, stp: (A,B,B) -> bool, f: (A,B) -> B, b: B, xs: List<A>)
+lemma FoldR_Property_ShortProof<A,B>(inv: (List<A>,B) ~> bool, stp: (A,B,B) ~> bool, f: (A,B) ~> B, b: B, xs: List<A>)
   requires Total2(inv) && Total3(stp) && Total2(f)
   requires InvR(inv, stp)
   requires forall a,b :: stp(a, b, f(a,b))
@@ -135,7 +135,7 @@ method FoldR_Use_Direct_lambda(xs: List<int>)
 }
 
 // It is not necessary to use the relation "stp".  Instead, the function "f" can be used directly.
-lemma FoldR_Property_inv_f<A,B>(inv: (List<A>,B) -> bool, f: (A,B) -> B, b: B, xs: List<A>)
+lemma FoldR_Property_inv_f<A,B>(inv: (List<A>,B) ~> bool, f: (A,B) ~> B, b: B, xs: List<A>)
   requires Total2(inv) && Total2(f)
   requires forall x, xs, b :: inv(xs, b) ==> inv(Cons(x, xs), f(x, b))
   requires inv(Nil, b)
@@ -152,7 +152,7 @@ lemma FoldingIncR(xs: List<int>)
 
 // ----- foldl ----------
 
-function method foldl<A,B>(f: (B,A) -> B, b: B, xs: List<A>): B
+function method foldl<A,B>(f: (B,A) ~> B, b: B, xs: List<A>): B
   requires Total2(f)
 {
   match xs
@@ -162,7 +162,7 @@ function method foldl<A,B>(f: (B,A) -> B, b: B, xs: List<A>): B
 
 // InvL is like InvR above, but the implication goes from larger lists to smaller ones (which is
 // in the opposite direction from in InvR).
-predicate InvL<A,B>(inv: (B,List<A>) -> bool, stp: (B,A,B) -> bool)
+predicate InvL<A,B>(inv: (B,List<A>) ~> bool, stp: (B,A,B) ~> bool)
   requires Total2(inv) && Total3(stp)
 {
   forall x, xs, b, b' ::
@@ -173,7 +173,7 @@ predicate InvL<A,B>(inv: (B,List<A>) -> bool, stp: (B,A,B) -> bool)
 //     inv(Nil, b) ==> inv(xs, foldr(f, b, xs))
 // this lemma proves
 //     inv(b, xs) ==> inv(foldl(f, b, xs), Nil)
-lemma FoldL_Property<A,B>(inv: (B,List<A>) -> bool, stp: (B,A,B) -> bool, f: (B,A) -> B, b: B, xs: List<A>)
+lemma FoldL_Property<A,B>(inv: (B,List<A>) ~> bool, stp: (B,A,B) ~> bool, f: (B,A) ~> B, b: B, xs: List<A>)
   requires Total2(inv) && Total3(stp) && Total2(f)
   requires InvL(inv, stp)
   requires forall b,a :: stp(b, a, f(b, a))
@@ -210,7 +210,7 @@ lemma FoldL_Use(xs: List<int>)
 }
 
 // Here is FoldL_Property again, but this time with "f" instead of "stp".
-lemma FoldL_Property_inv_f<A,B>(inv: (B,List<A>) -> bool, f: (B,A) -> B, b: B, xs: List<A>)
+lemma FoldL_Property_inv_f<A,B>(inv: (B,List<A>) ~> bool, f: (B,A) ~> B, b: B, xs: List<A>)
   requires Total2(inv) && Total2(f)
   requires forall x, xs, b :: inv(b, Cons(x, xs)) ==> inv(f(b, x), xs)
   requires inv(b, xs)

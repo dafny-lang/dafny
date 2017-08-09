@@ -3,14 +3,14 @@
 
 
 class Ref<A(0)> {
-  var val: A;
+  var val: A
 }
 
 method Nope() {
-  var f : Ref<int -> bool>;
-  var g : int -> bool;
+  var f : Ref<int ~> bool>;
+  var g : int ~> bool;
 
-  f := new Ref<int -> bool>;
+  f := new Ref<int ~> bool>;
 
   f.val := x => true;
 
@@ -18,10 +18,10 @@ method Nope() {
 }
 
 method M() {
-  var f : Ref<int -> bool>;
-  var g : int -> bool;
+  var f : Ref<int ~> bool>;
+  var g : int ~> bool;
 
-  f := new Ref<int -> bool>;
+  f := new Ref<int ~> bool>;
 
   f.val := x => true;
 
@@ -38,8 +38,8 @@ method M() {
 
 
 method L() {
-  var f : Ref<() -> bool>;
-  f := new Ref<() -> bool>;
+  var f : Ref<() ~> bool>;
+  f := new Ref<() ~> bool>;
   f.val := () reads f reads f.val.reads() requires !f.val.requires() => true;
 
   if (f.val.requires()) {
@@ -51,8 +51,8 @@ method L() {
 
 method LRead() {
   var o : object;
-  var f : Ref<() -> bool>;
-  f := new Ref<() -> bool>;
+  var f : Ref<() ~> bool>;
+  f := new Ref<() ~> bool>;
   f.val := () reads f
               reads f.val.reads()
               reads if o in f.val.reads() then {} else {o}

@@ -19,10 +19,10 @@ method K() {
 
 
 class T {
-  var h : int -> int;
+  var h : int ~> int;
 }
 
-function B(t : T) : int -> int
+function B(t : T) : int ~> int
   requires t != null;
   reads t;
 {
