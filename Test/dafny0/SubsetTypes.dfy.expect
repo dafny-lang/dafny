@@ -149,5 +149,10 @@ Execution trace:
 SubsetTypes.dfy(170,20): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
 Execution trace:
     (0,0): anon0
+SubsetTypes.dfy(183,11): Error: value does not satisfy the subset constraints of 'int ~> nat'
+Execution trace:
+    (0,0): anon0
+    (0,0): anon29_Then
+    SubsetTypes.dfy(183,12): anon30_Else
 
-Dafny program verifier finished with 3 verified, 44 errors
+Dafny program verifier finished with 3 verified, 45 errors

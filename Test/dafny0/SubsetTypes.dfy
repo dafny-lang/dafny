@@ -170,3 +170,18 @@ module AssignSuchThat {
     var b: SmallInt :| b == 11;  // error
   }
 }
+
+module SoftCasts {
+  method P(n: nat) returns (g: int ~> nat)
+  {
+    if
+    case true =>
+      g := z => if z < 0 then -z else z;
+    case true =>
+      g := z => if z <= 0 then -z else z-1;
+    case true =>
+      g := z => if z < 0 then -z else z-1;  // error: may fail to return a nat
+    case true =>
+      g := z => n;
+  }
+}
