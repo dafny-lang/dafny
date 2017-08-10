@@ -2822,8 +2822,8 @@ namespace Microsoft.Dafny
       Contract.Requires(errMsg != null);
       keepConstraints = keepConstraints || (super is InferredTypeProxy ? ((InferredTypeProxy)super).KeepConstraints : false);
       keepConstraints = keepConstraints || (sub is InferredTypeProxy ? ((InferredTypeProxy)sub).KeepConstraints : false);
-      super = keepConstraints ? super.NormalizeExpandKeepConstraints() : super.NormalizeExpand().StripSubsetConstraints();
-      sub = keepConstraints ? sub.NormalizeExpandKeepConstraints() : sub.NormalizeExpand().StripSubsetConstraints();
+      super = super.NormalizeExpand(keepConstraints);
+      sub = sub.NormalizeExpand(keepConstraints);
       var c = new TypeConstraint(super, sub, errMsg);
       AllTypeConstraints.Add(c);
       return ConstrainSubtypeRelation_Aux(super, sub, c, keepConstraints);
