@@ -439,9 +439,6 @@ Everything) {
       PrintAttributes(module.Attributes);
       wr.Write(" {0} ", module.Name);
       if (module.RefinementBaseName != null) {
-        if (module.IsExclusiveRefinement) {
-          wr.Write("exclusively ");
-        }
         wr.Write("refines {0} ", module.RefinementBaseName.val);
       }
       if (module.TopLevelDecls.Count == 0) {

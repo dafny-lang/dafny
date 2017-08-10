@@ -933,7 +933,6 @@ int StringToInt(string s, int defaultValue, string errString) {
 		ModuleDefinition module;
 		submodule = null; // appease compiler
 		bool isAbstract = dmod.IsAbstract;
-		bool isExclusively = false;
 		bool isProtected = dmod.IsProtected;
 		bool opened = false;
 		CheckDeclModifiers(dmod, "Modules", AllowedDeclModifiers.Abstract | AllowedDeclModifiers.Extern | AllowedDeclModifiers.Protected);
@@ -948,9 +947,8 @@ int StringToInt(string s, int defaultValue, string errString) {
 			if (la.kind == 89) {
 				Get();
 				ModuleName(out idRefined);
-				isExclusively = false; 
 			}
-			module = new ModuleDefinition(id, id.val, isAbstract, isProtected, false, isExclusively, idRefined, parent, attrs, false); module.IsToBeVerified = theVerifyThisFile; 
+			module = new ModuleDefinition(id, id.val, isAbstract, isProtected, false, idRefined, parent, attrs, false); module.IsToBeVerified = theVerifyThisFile; 
 			Expect(70);
 			module.BodyStartTok = t; 
 			while (StartOf(1)) {

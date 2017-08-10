@@ -117,11 +117,7 @@ namespace Microsoft.Dafny {
         }
         int indent = 0;
         if (!m.IsDefaultModule) {
-          var m_prime = m;
-          while (DafnyOptions.O.IronDafny && m_prime.ClonedFrom != null) {
-            m_prime = m.ClonedFrom;
-          }
-          wr.WriteLine("namespace @{0} {{", m_prime.CompileName);
+          wr.WriteLine("namespace @{0} {{", m.CompileName);
         } else {
           wr.WriteLine("namespace @__default {");
         }
@@ -749,9 +745,6 @@ namespace Microsoft.Dafny {
 
     string DtName(DatatypeDecl decl) {
       var d = (TopLevelDecl)decl;
-      while (DafnyOptions.O.IronDafny && d.ClonedFrom != null) {
-        d = (TopLevelDecl)d.ClonedFrom;
-      }
       return d.Module.IsDefaultModule ? d.CompileName : d.FullCompileName;
     }
     string DtCtorName(DatatypeCtor ctor) {
@@ -1325,14 +1318,6 @@ namespace Microsoft.Dafny {
             rc != null &&
             rc.Module != null &&
             !rc.Module.IsDefaultModule) {
-          while (rc.ClonedFrom != null || rc.ExclusiveRefinement != null) {
-            if (rc.ClonedFrom != null) {
-              rc = (TopLevelDecl)rc.ClonedFrom;
-            } else {
-              Contract.Assert(rc.ExclusiveRefinement != null);
-              rc = rc.ExclusiveRefinement;
-            }
-          }
           s = rc.FullCompileName;
         }
         return TypeName_UDT(s, udt.TypeArgs, wr);
@@ -1621,14 +1606,6 @@ namespace Microsoft.Dafny {
               rc != null &&
               rc.Module != null &&
               !rc.Module.IsDefaultModule) {
-            while (rc.ClonedFrom != null || rc.ExclusiveRefinement != null) {
-              if (rc.ClonedFrom != null) {
-                rc = (TopLevelDecl)rc.ClonedFrom;
-              } else {
-                Contract.Assert(rc.ExclusiveRefinement != null);
-                rc = rc.ExclusiveRefinement;
-              }
-            }
             s = "@" + rc.FullCompileName;
           }
           if (udt.TypeArgs.Count != 0) {

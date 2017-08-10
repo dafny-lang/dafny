@@ -352,32 +352,6 @@ namespace Microsoft.Dafny
       RevealAllInScope(prog.BuiltIns.SystemModule.TopLevelDecls, systemNameInfo.VisibilityScope);
       ResolveBasicTypeMembers();
 
-      // first, we need to detect which top-level modules have exclusive refinement relationships.
-      foreach (ModuleDecl decl in sortedDecls) {
-        if (decl is LiteralModuleDecl) {
-          var literalMDecl = (LiteralModuleDecl)decl;
-          var mdef = literalMDecl.ModuleDef;
-          if (mdef.RefinementBaseRoot != null) {
-            if (mdef.IsExclusiveRefinement) {
-              foreach (var d in sortedDecls) {
-                // refinement dependencies won't be later in the sorted module list than the one we're looking at.
-                if (Object.ReferenceEquals(d, decl)) {
-                  break;
-                }
-                if (d is LiteralModuleDecl) {
-                  var ld = (LiteralModuleDecl)d;
-                  // currently, only exclusive refinements of top-level modules are supported.
-                  if (string.Equals(mdef.RefinementBaseName.val, mdef.RefinementBaseRoot.Name, StringComparison.InvariantCulture)
-                      && string.Equals(mdef.RefinementBaseName.val, ld.ModuleDef.Name, StringComparison.InvariantCulture)) {
-                    ld.ModuleDef.ExclusiveRefinementCount += 1;
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-
       var compilationModuleClones = new Dictionary<ModuleDefinition, ModuleDefinition>();
       foreach (var decl in sortedDecls) {
         if (decl is LiteralModuleDecl) {
@@ -476,12 +450,7 @@ namespace Microsoft.Dafny
           ModuleSignature p;
           if (ResolveExport(abs, abs.Root, abs.Module, abs.Path, abs.Exports, out p, reporter)) {
             abs.OriginalSignature = p;
-            // ModuleDefinition.ExclusiveRefinement may not be set at this point but ExclusiveRefinementCount will be.
-            if (0 == abs.Root.Signature.ModuleDef.ExclusiveRefinementCount) {
-              abs.Signature = MakeAbstractSignature(p, abs.FullCompileName, abs.Height, prog.ModuleSigs, compilationModuleClones);
-            } else {
-              abs.Signature = p;
-            }
+            abs.Signature = MakeAbstractSignature(p, abs.FullCompileName, abs.Height, prog.ModuleSigs, compilationModuleClones);
           } else {
             abs.Signature = new ModuleSignature(); // there was an error, give it a valid but empty signature
           }
@@ -1383,7 +1352,7 @@ namespace Microsoft.Dafny
       if (resolver != null) { //needed because ResolveOpenedImports is used statically for a refinement check
           if (sig.TopLevels["_default"] is AmbiguousTopLevelDecl) {
               Contract.Assert(sig.TopLevels["_default"].WhatKind == "class");
-              var cl = new DefaultClassDecl(moduleDef, sig.StaticMembers.Values.ToList(), null);
+              var cl = new DefaultClassDecl(moduleDef, sig.StaticMembers.Values.ToList());
               sig.TopLevels["_default"] = cl;
               resolver.classMembers[cl] = cl.Members.ToDictionary(m => m.Name);
           }
@@ -1428,10 +1397,7 @@ namespace Microsoft.Dafny
                     if (sig.Ctors.TryGetValue(kv.Key, out pair)) {
                         // The same ctor can be imported from two different imports (e.g "diamond" imports), in which case, 
                         // they are not duplicates.
-                        if (!Object.ReferenceEquals(kv.Value.Item1, pair.Item1) &&
-                            (!DafnyOptions.O.IronDafny ||
-                                (!Object.ReferenceEquals(kv.Value.Item1.ClonedFrom, pair.Item1) &&
-                                !Object.ReferenceEquals(kv.Value.Item1, pair.Item1.ClonedFrom)))) {
+                        if (!Object.ReferenceEquals(kv.Value.Item1, pair.Item1)) {
                             // mark it as a duplicate
                             sig.Ctors[kv.Key] = new Tuple<DatatypeCtor, bool>(pair.Item1, true);
                         }
@@ -1810,8 +1776,7 @@ namespace Microsoft.Dafny
       Contract.Requires(compilationModuleClones != null);
       var errCount = reporter.Count(ErrorLevel.Error);
 
-      var mod = new ModuleDefinition(Token.NoToken, Name + ".Abs", true, true, true, /*isExclusiveRefinement:*/ false, null, null, null, false);
-      mod.ClonedFrom = new CompilationCloner(compilationModuleClones).CloneFromValue_Module(p.ModuleDef);
+      var mod = new ModuleDefinition(Token.NoToken, Name + ".Abs", true, true, true, null, null, null, false);
       mod.Height = Height;
       mod.IsToBeVerified = p.ModuleDef.IsToBeVerified;
       bool hasDefaultClass = false;
@@ -1828,7 +1793,6 @@ namespace Microsoft.Dafny
       sig.Refines = p.Refines;
       sig.CompileSignature = p;
       sig.IsAbstract = p.IsAbstract;
-      sig.ExclusiveRefinement = p.ExclusiveRefinement;
       mods.Add(mod,sig);
       ResolveModuleDefinition(mod, sig);
       if (reporter.Count(ErrorLevel.Error) == errCount) {
@@ -1970,14 +1934,6 @@ namespace Microsoft.Dafny
 
       var typeRedirectionDependencies = new Graph<RedirectingTypeDecl>();
       foreach (TopLevelDecl d in declarations) {
-        if (DafnyOptions.O.IronDafny && d.Module.IsExclusiveRefinement) {
-          var refinementOf =
-            def.RefinementBase.TopLevelDecls.Find(
-              i => String.Equals(i.Name, d.Name, StringComparison.InvariantCulture));
-          if (refinementOf != null && refinementOf.ExclusiveRefinement == null) {
-            refinementOf.ExclusiveRefinement = d;
-          }      
-        }
         Contract.Assert(d != null);
         allTypeParameters.PushMarker();
         ResolveTypeParameters(d.TypeArgs, true, d);
@@ -7732,21 +7688,11 @@ namespace Microsoft.Dafny
             var d = r.Decl;
             if (d is OpaqueTypeDecl) {
               var dd = (OpaqueTypeDecl)d;
-              if (dd.Module.ClonedFrom != null && dd.Module.ClonedFrom.ExclusiveRefinement != null) {
-                t.ResolvedParam = ((OpaqueTypeDecl)dd.ClonedFrom).TheType;
-                t.ResolvedClass = d;  // Store the decl, so the compiler will generate the fully qualified name
-              } else {
-                t.ResolvedParam = ((OpaqueTypeDecl)d).TheType;
-                // resolve like a type parameter, and it may have type parameters if it's an opaque type
-                t.ResolvedClass = d;  // Store the decl, so the compiler will generate the fully qualified name
-              }
+              t.ResolvedParam = dd.TheType;
+              // resolve like a type parameter, and it may have type parameters if it's an opaque type
+              t.ResolvedClass = d;  // Store the decl, so the compiler will generate the fully qualified name
             } else if (d is SubsetTypeDecl) {
               var dd = (SubsetTypeDecl)d;
-              if (DafnyOptions.O.IronDafny) {
-                while (dd.ClonedFrom != null) {
-                  dd = (SubsetTypeDecl)dd.ClonedFrom;
-                }
-              }
               var caller = context as ICallable;
               if (caller != null && !(caller is SpecialFunction)) {
                 caller.EnclosingModule.CallGraph.AddEdge(caller, dd);
@@ -7758,11 +7704,6 @@ namespace Microsoft.Dafny
               t.ResolvedClass = dd;
             } else if (d is NewtypeDecl) {
               var dd = (NewtypeDecl)d;
-              if (DafnyOptions.O.IronDafny) {
-                while (dd.ClonedFrom != null) {
-                  dd = (NewtypeDecl)dd.ClonedFrom;
-                }
-              }
               var caller = context as ICallable;
               if (caller != null) {
                 caller.EnclosingModule.CallGraph.AddEdge(caller, dd);
