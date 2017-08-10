@@ -5150,8 +5150,12 @@ List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, st
 			QSep();
 			Expression(out body, allowSemi, allowLambda, allowBitwiseOps);
 		}
-		if (body == null && bvars.Count != 1) { SemErr(t, "a set comprehension with more than one bound variable must have a term expression"); }
-		q = new SetComprehension(setToken, finite, bvars, range, body, attrs);
+		if (body == null && bvars.Count != 1) {
+		 SemErr(t, "a set comprehension with more than one bound variable must have a term expression");
+		 q = dummyExpr;
+		} else {
+		 q = new SetComprehension(setToken, finite, bvars, range, body, attrs);
+		}
 		
 	}
 

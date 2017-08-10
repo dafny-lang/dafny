@@ -141,3 +141,11 @@ copredicate CoP(ghost x: int)  // error: formal not allowed to be declared "ghos
 
 twostate function F2(ghost x: int): int  // error: formal not allowed to be declared "ghost" here -- a function is already ghost
 twostate predicate P2(ghost x: int)  // error: formal not allowed to be declared "ghost" here -- a predicate is already ghost
+
+
+method SetComprehensionParsingRegression0()
+{
+  // these once had crashed the parser
+  var s0 := set x,y;
+  var s1 := set x,y | true;
+}

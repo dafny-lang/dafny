@@ -3695,8 +3695,12 @@ SetComprehensionExpr<IToken setToken, bool finite, out Expression q, bool allowS
     QSep
     Expression<out body, allowSemi, allowLambda, allowBitwiseOps>
   ]
-  (. if (body == null && bvars.Count != 1) { SemErr(t, "a set comprehension with more than one bound variable must have a term expression"); }
-     q = new SetComprehension(setToken, finite, bvars, range, body, attrs);
+  (. if (body == null && bvars.Count != 1) {
+       SemErr(t, "a set comprehension with more than one bound variable must have a term expression");
+       q = dummyExpr;
+     } else {
+       q = new SetComprehension(setToken, finite, bvars, range, body, attrs);
+     }
   .)
   .
 Expressions<.List<Expression> args.>
