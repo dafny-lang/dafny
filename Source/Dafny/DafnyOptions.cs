@@ -85,7 +85,7 @@ namespace Microsoft.Dafny
     public int OptimizeResolution = 2;
     public bool UseRuntimeLib = false;
     public bool DisableScopes = false;
-    public int Allocated = 2;
+    public int Allocated = 3;
     public bool IronDafny = 
 #if ENABLE_IRONDAFNY 
       true
@@ -287,7 +287,7 @@ namespace Microsoft.Dafny
         }
 
         case "allocated": {
-            ps.GetNumericArgument(ref Allocated, 3);
+            ps.GetNumericArgument(ref Allocated, 4);
             return true;
         }
 
@@ -536,9 +536,10 @@ namespace Microsoft.Dafny
                     (these assumptions are free, since non-ghost variables
                     always contain allocated values at run-time).  This option
                     may speed up verification relative to /allocated:2.
-                2 - (default) Assert/assume allocated(x) on all variables,
+                2 - Assert/assume allocated(x) on all variables,
                     even bound variables in quantifiers.  This option is
                     the easiest to use for heapful code.
+                3 - (default) Frugal use of heap parameters.
   /ironDafny    Enable experimental features needed to support Ironclad/Ironfleet. Use of
                 these features may cause your code to become incompatible with future
                 releases of Dafny.

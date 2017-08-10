@@ -22,7 +22,7 @@ Execution trace:
     (0,0): anon0
 Predicates.dfy[Q1](154,4): Error BP5003: A postcondition might not hold on this return path.
 Predicates.dfy[Q1](153,14): Related location: This is the postcondition that might not hold.
-Predicates.dfy[Q1](153,45): Related location
+Predicates.dfy[Q1](153,61): Related location
 Execution trace:
     (0,0): anon0
 

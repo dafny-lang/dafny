@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:0 /print:"%t.print" /dprint:"%t.dprint" /autoTriggers:1  "%s" > "%t"
+// RUN: %dafny /compile:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module A {
@@ -150,7 +150,7 @@ module Q0 {
     }
     method M()
       modifies this;
-      ensures forall c: C :: c != null ==> c.P();
+      ensures forall c: C :: c != null && allocated(c) ==> c.P();
     {  // error: in module Q1, the postcondition no longer holds
     }
     predicate Q()

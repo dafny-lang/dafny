@@ -4,7 +4,7 @@
 function method inhabited(world: array2<bool>): bool
     requires world != null
 {
-    exists i,j :: 0 <= i < world.Length0 && 0 <= j < world.Length1 && world[i,j]
+    exists i,j :: 0 <= i < world.Length0 && 0 <= j < world.Length1 && world[i,j]  // error: insufficient reads clause
 }
 method GameOfLife(size: nat, N: nat)
     requires 0 < size
@@ -23,7 +23,7 @@ method GameOfLife(size: nat, N: nat)
 
 function method inhabited2(world: array2<bool>): bool
     requires world != null
-    reads world;
+    reads world
 {
     exists i,j :: 0 <= i < world.Length0 && 0 <= j < world.Length1 && world[i,j]
 }
@@ -36,7 +36,7 @@ method GameOfLife2(size: nat, N: nat)
         forall i,j | 0 <= i < size && 0 <= j < size {
             world[i,j] := false;
         }
-        assert inhabited2(world); 
+        assert inhabited2(world); // error: everything is now "false"
         // ...
         n := n + 1;
     }

@@ -42,35 +42,6 @@ class Comparable {
 
 
 class Benchmark3 {
-
-  method Sort(q: Queue<int>) returns (r: Queue<int>)
-    requires q != null;
-    modifies q;
-    ensures r != null && fresh(r);
-    ensures |r.contents| == |old(q.contents)|;
-    ensures forall i, j :: 0 <= i < j < |r.contents| ==> r.Get(i) <= r.Get(j);
-    // the final Queue is a permutation of the input Queue
-    ensures multiset(r.contents) == multiset(old(q.contents));
-  {
-    r := new Queue<int>.Init();
-    while |q.contents| != 0
-      invariant |r.contents| + |q.contents| == |old(q.contents)|;
-      invariant forall i, j :: 0 <= i < j < |r.contents| ==> r.contents[i] <= r.contents[j];
-      invariant forall i, j ::
-                    0 <= i < |r.contents| &&
-                    0 <= j < |q.contents|
-                    ==> r.contents[i] <= q.contents[j];
-      // the current array is that permutation of the input array
-      invariant multiset(r.contents + q.contents) == multiset(old(q.contents));
-    {
-      ghost var qc := q.contents;
-      var m,k := RemoveMin(q);
-      assert qc == qc[..k] + [m] + qc[k+1..];
-      r.Enqueue(m);
-    }
-  }
-  
-  
   method RemoveMin(q: Queue<int>) returns (m: int, k: int) //m is the min, k is m's index in q
     requires q != null && |q.contents| != 0;
     modifies q;
@@ -138,6 +109,33 @@ class Benchmark3 {
       O[j+1..] + O[..j] + O[j..j+1];
       O[j+1..] + (O[..j] + O[j..j+1]);
       O[j+1..] + O[..j+1];
+    }
+  }
+
+  method Sort(q: Queue<int>) returns (r: Queue<int>)
+    requires q != null;
+    modifies q;
+    ensures r != null && fresh(r);
+    ensures |r.contents| == |old(q.contents)|;
+    ensures forall i, j :: 0 <= i < j < |r.contents| ==> r.Get(i) <= r.Get(j);
+    // the final Queue is a permutation of the input Queue
+    ensures multiset(r.contents) == multiset(old(q.contents));
+  {
+    r := new Queue<int>.Init();
+    while |q.contents| != 0
+      invariant |r.contents| + |q.contents| == |old(q.contents)|;
+      invariant forall i, j :: 0 <= i < j < |r.contents| ==> r.contents[i] <= r.contents[j];
+      invariant forall i, j ::
+                    0 <= i < |r.contents| &&
+                    0 <= j < |q.contents|
+                    ==> r.contents[i] <= q.contents[j];
+      // the current array is that permutation of the input array
+      invariant multiset(r.contents + q.contents) == multiset(old(q.contents));
+    {
+      ghost var qc := q.contents;
+      var m,k := RemoveMin(q);
+      assert qc == qc[..k] + [m] + qc[k+1..];
+      r.Enqueue(m);
     }
   }
 }
