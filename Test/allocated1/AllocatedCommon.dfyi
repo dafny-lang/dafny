@@ -164,7 +164,7 @@ method MGood(c:C, ghost gc:C, d:D, ghost gd:D, a:array<C>, ghost ga:array<C>, s:
   l, gl := MCall(); assert allocated(l);
 }
 
-method MBad(c:C, ghost gc:C, d:D, ghost gd:D, a:array<C>, ghost ga:array<C>, s:set<C>, ghost gs:set<C>, f:C->C)
+method MBad(c:C, ghost gc:C, d:D, ghost gd:D, a:array<C>, ghost ga:array<C>, s:set<C>, ghost gs:set<C>, f:C~>C)
   returns(r:C, ghost gr:C)
   requires c != null
   requires gc != null
@@ -253,7 +253,7 @@ method MModifiesGood(c1:C, c2:C)
   c1.g := c2;
 }
 
-method MModifiesFunGood1(c1:C, c2:C, ghost g1:C, ghost g2:C, f:C->C)
+method MModifiesFunGood1(c1:C, c2:C, ghost g1:C, ghost g2:C, f:C~>C)
   requires c1 != null
   requires f.requires(g1) && f(g1) == g2 && f.reads(g1) == {}
   modifies c1
@@ -262,7 +262,7 @@ method MModifiesFunGood1(c1:C, c2:C, ghost g1:C, ghost g2:C, f:C->C)
   assert f(g1) == g2; // succeeds
 }
 
-method MModifiesFunGood2(c1:C, c2:C, ghost g1:C, ghost g2:C, f:C->C)
+method MModifiesFunGood2(c1:C, c2:C, ghost g1:C, ghost g2:C, f:C~>C)
   requires c1 != null
   requires f.requires(g1) && f(g1) == g2 && (forall o :: o in f.reads(g1) ==> allocated(o))
   requires c1 !in f.reads(g1)
@@ -272,7 +272,7 @@ method MModifiesFunGood2(c1:C, c2:C, ghost g1:C, ghost g2:C, f:C->C)
   assert f(g1) == g2; // succeeds: everything f reads from is allocated, so if g1 is unallocated, f can't read from it
 }
 
-method MModifiesFunBad(c1:C, c2:C, ghost g1:C, ghost g2:C, f:C->C)
+method MModifiesFunBad(c1:C, c2:C, ghost g1:C, ghost g2:C, f:C~>C)
   requires c1 != null
   requires f.requires(g1) && f(g1) == g2
   requires c1 !in f.reads(g1)

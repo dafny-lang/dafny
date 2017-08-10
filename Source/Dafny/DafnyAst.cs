@@ -2263,7 +2263,7 @@ namespace Microsoft.Dafny {
           if (tsubset == null) {
             return false;
           } else {
-            return IsSupertypeOf_WithSubsetTypes(tsubset.RhsWithArgument(i.TypeArgs));
+            return IsSupertypeOf_WithSubsetTypes(tsubset.RhsWithArgument(t.TypeArgs));
           }
         } else {
           Contract.Assert(ii.TypeArgs.Count == t.TypeArgs.Count);  // the have the same class, and therefore will also have the same number of type arguments
