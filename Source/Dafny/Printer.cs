@@ -586,7 +586,7 @@ Everything) {
       } else if (ArrowType.IsTotalArrowTypeName(name)) {
         PrintArrowType(ArrowType.TOTAL_ARROW, name, typeArgs);
       } else if (BuiltIns.IsTupleTypeName(name)) {
-        wr.Write(" /*{0}*/ ({1})", name, Util.Comma(", ", typeArgs, tp => tp.Name + TPCharacteristicsSuffix(tp.Characteristics)));
+        wr.Write(" /*{0}*/ ({1})", name, Util.Comma(", ", typeArgs, TypeParamString));
       } else {
         wr.Write(" {0}", name);
         PrintTypeParams(typeArgs);
@@ -600,8 +600,28 @@ Everything) {
         typeArgs.All(tp => !tp.Name.StartsWith("_")));
 
       if (typeArgs.Count != 0 && !typeArgs[0].Name.StartsWith("_")) {
-        wr.Write("<{0}>", Util.Comma(", ", typeArgs, tp => tp.Name + TPCharacteristicsSuffix(tp.Characteristics)));
+        wr.Write("<{0}>", Util.Comma(", ", typeArgs, TypeParamString));
       }
+    }
+
+    private string TypeParamString(TypeParameter tp) {
+      Contract.Requires(tp != null);
+      string variance;
+      switch (tp.VarianceSyntax) {
+        case TypeParameter.TPVarianceSyntax.Co:
+          variance = "+";
+          break;
+        case TypeParameter.TPVarianceSyntax.Inv:
+          variance = "=";
+          break;
+        case TypeParameter.TPVarianceSyntax.Contra:
+          variance = "-";
+          break;
+        default:
+          variance = "";
+          break;
+      }
+      return variance + tp.Name + TPCharacteristicsSuffix(tp.Characteristics);
     }
 
     private void PrintArrowType(string arrow, string internalName, List<TypeParameter> typeArgs) {
@@ -614,12 +634,11 @@ Everything) {
       if (arity != 1) {
         wr.Write("(");
       }
-      wr.Write(Util.Comma(", ", arity, i => typeArgs[i].Name + TPCharacteristicsSuffix(typeArgs[i].Characteristics)));
+      wr.Write(Util.Comma(", ", arity, i => TypeParamString(typeArgs[i])));
       if (arity != 1) {
         wr.Write(")");
       }
-      wr.Write(" {0} ", arrow);
-      wr.Write("{0}{1}", typeArgs[arity].Name, TPCharacteristicsSuffix(typeArgs[arity].Characteristics));
+      wr.Write(" {0} {1}", arrow, TypeParamString(typeArgs[arity]));
     }
 
     private void PrintTypeInstantiation(List<Type> typeArgs) {

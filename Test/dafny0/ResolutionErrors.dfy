@@ -396,7 +396,7 @@ module MiscEvenMore {
     MG0(x, w);  // error: types don't match up
   }
 
-  datatype GList<T> = GNil | GCons(hd: T, tl: GList)
+  datatype GList<+T> = GNil | GCons(hd: T, tl: GList)
 
   method MG1(l: GList, n: nat)
   {
@@ -533,8 +533,8 @@ module MiscAgain {
 // Put the following tests in a separate module, so that the method bodies will
 // be type checked even if there are resolution errors in other modules.
 module NoTypeArgs0 {
-  datatype List<T> = Nil | Cons(T, List)
-  datatype Tree<A,B> = Leaf(A, B) | Node(Tree, Tree<B,A>)
+  datatype List<+T> = Nil | Cons(T, List)
+  datatype Tree<+A,+B> = Leaf(A, B) | Node(Tree, Tree<B,A>)
 
   method DoAPrefix0<A, B, C>(xs: List) returns (ys: List<A>)
   {

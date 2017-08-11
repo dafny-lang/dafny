@@ -2631,6 +2631,30 @@ namespace Microsoft.Dafny
       // ----------------------------------------------------------------------------
 
       if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
+        // Check that type-parameter variance is respected in type definitions
+        foreach (TopLevelDecl d in declarations) {
+          if (d is IteratorDecl || d is ClassDecl) {
+            foreach (var tp in d.TypeArgs) {
+              if (tp.Variance != TypeParameter.TPVariance.Inv) {
+                reporter.Error(MessageSource.Resolver, tp.tok, "a {0} only supports invariant type parameters", d.WhatKind);
+              }
+            }
+          } else if (d is SubsetTypeDecl) {
+            var dd = (SubsetTypeDecl)d;
+            CheckVariance(dd.Rhs);
+          } else if (d is NewtypeDecl) {
+            var dd = (NewtypeDecl)d;
+            CheckVariance(dd.BaseType);
+          } else if (d is DatatypeDecl) {
+            var dd = (DatatypeDecl)d;
+            foreach (var ctor in dd.Ctors) {
+              ctor.Formals.Iter(formal => CheckVariance(formal.Type));
+            }
+          }
+        }
+      }
+
+      if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
         // Check that usage of "this" is restricted before "new;" in constructor bodies,
         // and that a class without any constructor only has fields with known initializers.
         var cdci = new CheckDividedConstructorInit_Visitor(this);
@@ -3214,19 +3238,6 @@ namespace Microsoft.Dafny
         var tt = (MapType)super;
         var uu = sub as MapType;
         return uu != null && tt.Finite == uu.Finite ? new List<int> { 1, 1 } : null;
-      } else if (super is ArrowType) {
-        var tt = (ArrowType)super;
-        var uu = sub as ArrowType;
-        if (uu != null && tt.Arity == uu.Arity) {
-          var polarities = new List<int>();
-          for (int i = 0; i < tt.Arity; i++) {
-            polarities.Add(-1);
-          }
-          polarities.Add(1);
-          return polarities;
-        } else {
-          return null;
-        }
       } else if (super is ObjectType) {
         return sub.IsRefType ? new List<int>() : null;
       } else {
@@ -3251,10 +3262,13 @@ namespace Microsoft.Dafny
         } else if (clSuper == clSub) {
           // good
           var polarities = new List<int>();
-          for (int i = 0; i < sub.TypeArgs.Count; i++) {
-            // datatypes are co-variant in their argument types, whereas
-            // classes, traits, and opaque types are invariant in their argument types
-            polarities.Add(clSuper is DatatypeDecl ? 1 : 0);
+          Contract.Assert(clSuper.TypeArgs.Count == udfSuper.TypeArgs.Count);
+          Contract.Assert(clSuper.TypeArgs.Count == udfSub.TypeArgs.Count);
+          foreach (var tp in clSuper.TypeArgs) {
+            var polarity =
+              tp.Variance == TypeParameter.TPVariance.Co ? 1 :
+              tp.Variance == TypeParameter.TPVariance.Contra ? -1 : 0;
+            polarities.Add(polarity);
           }
           return polarities;
         } else if (clSub is ClassDecl && ((ClassDecl)clSub).DerivesFrom(clSuper)) {
@@ -9556,7 +9570,7 @@ namespace Microsoft.Dafny
             for (int ii = 0; ii < rr.ArrayDimensions.Count; ii++) {
               args.Add(Type.Int);
             }
-            var arrowType = new ArrowType(rr.ElementInit.tok, args, rr.EType);
+            var arrowType = new ArrowType(rr.ElementInit.tok, builtIns.ArrowTypeDecls[rr.ArrayDimensions.Count], args, rr.EType);
             string underscores;
             if (rr.ArrayDimensions.Count == 1) {
               underscores = "_";
@@ -10062,6 +10076,52 @@ namespace Microsoft.Dafny
         }
         var s = SubstType(t.T, subst);
         return s == t.T ? type : s;
+      } else {
+        Contract.Assert(false); throw new cce.UnreachableException();  // unexpected type
+      }
+    }
+
+    /// <summary>
+    /// Check that the type uses formal type parameters in a way that is agreeable with their variance specifications.
+    /// "context == Co" says that "type" is allowed to vary in the positive direction.
+    /// "context == Contra" says that "type" is allowed to vary in the negative direction.
+    /// "context == Inv" says that "type" must not vary at all.
+    /// </summary>
+    public void CheckVariance(Type type, TypeParameter.TPVariance context = TypeParameter.TPVariance.Co) {
+      Contract.Requires(type != null);
+
+      type = type.NormalizeExpandKeepConstraints();  // we keep constraints, since subset types have their own type-parameter variance specifications
+      if (type is BasicType) {
+        // fine
+      } else if (type is MapType) {
+        var t = (MapType)type;
+        CheckVariance(t.Domain, context);
+        CheckVariance(t.Range, context);
+      } else if (type is CollectionType) {
+        var t = (CollectionType)type;
+        CheckVariance(t.Arg, context);
+      } else if (type is UserDefinedType) {
+        var t = (UserDefinedType)type;
+        if (t.ResolvedParam != null) {
+          if (t.ResolvedParam.Variance == TypeParameter.TPVariance.Inv) {
+            // fine, since nothing changes
+          } else if (t.ResolvedParam.Variance != context) {
+            reporter.Error(MessageSource.Resolver, t.tok, "formal type parameter '{0}' is not used according to its variance specification", t.ResolvedParam.Name);
+          }
+        } else {
+          var resolvedClass = t.ResolvedClass;
+          Contract.Assert(resolvedClass != null);  // follows from that the given type was successfully resolved
+          Contract.Assert(resolvedClass.TypeArgs.Count == t.TypeArgs.Count);
+          for (int i = 0; i < t.TypeArgs.Count; i++) {
+            Type p = t.TypeArgs[i];
+            var pv = resolvedClass.TypeArgs[i].Variance;
+            if (context == TypeParameter.TPVariance.Inv || pv == TypeParameter.TPVariance.Inv) {
+              CheckVariance(p, TypeParameter.TPVariance.Inv);
+            } else {
+              CheckVariance(p, context == TypeParameter.TPVariance.Co ? pv : TypeParameter.Negate(pv));
+            }
+          }
+        }
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected type
       }
@@ -10841,18 +10901,17 @@ namespace Microsoft.Dafny
       Contract.Requires(tok != null);
       Contract.Requires(typeArgs != null);
       Contract.Requires(resultType != null);
+      var arity = typeArgs.Count;
+      var typeArgsAndResult = Util.Snoc(typeArgs, resultType);
       if (hasReads) {
         // any arrow
-        return new ArrowType(tok, typeArgs, resultType, builtIns.SystemModule);
+        return new ArrowType(tok, builtIns.ArrowTypeDecls[arity], typeArgsAndResult);
+      } else if (hasReq) {
+        // partial arrow
+        return new UserDefinedType(tok, ArrowType.PartialArrowTypeName(arity), builtIns.PartialArrowTypeDecls[arity], typeArgsAndResult);
       } else {
-        var arity = typeArgs.Count;
-        if (hasReq) {
-          // partial arrow
-          return new UserDefinedType(tok, ArrowType.PartialArrowTypeName(arity), builtIns.PartialArrowTypeDecls[arity], Util.Snoc(typeArgs, resultType));
-        } else {
-          // total arrow
-          return new UserDefinedType(tok, ArrowType.TotalArrowTypeName(arity), builtIns.TotalArrowTypeDecls[arity], Util.Snoc(typeArgs, resultType));
-        }
+        // total arrow
+        return new UserDefinedType(tok, ArrowType.TotalArrowTypeName(arity), builtIns.TotalArrowTypeDecls[arity], typeArgsAndResult);
       }
     }
 
@@ -12043,7 +12102,9 @@ namespace Microsoft.Dafny
           subst.Add(fn.TypeArgs[i], ta);
         }
         subst = BuildTypeArgumentSubstitute(subst);
-        rr.Type = new ArrowType(fn.tok, fn.Formals.ConvertAll(f => SubstType(f.Type, subst)), SubstType(fn.ResultType, subst), builtIns.SystemModule);
+        rr.Type = new ArrowType(fn.tok, builtIns.ArrowTypeDecls[fn.Formals.Count],
+          fn.Formals.ConvertAll(f => SubstType(f.Type, subst)),
+          SubstType(fn.ResultType, subst));
         AddCallGraphEdge(opts.codeContext, fn, rr, IsFunctionReturnValue(fn, args, opts));
       } else {
         // the member is a method

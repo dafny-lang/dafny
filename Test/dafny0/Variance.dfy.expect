@@ -1,0 +1,28 @@
+// Variance.dfy
+
+datatype MyData<+A, =B, -C, D> = MakeA(A) | MakeB(B) | MakeC(C) | makeD(D)
+
+type Syn<X, -Y, Z> = MyData<X, Y, Z, Z>
+
+type Cyn<M, -N> = MyData<int -> M, M, N -> int, N>
+
+class MyClass<=Inv> { }
+
+datatype CheckIt<+A> = Cons(A, MyData<int, int, int, int>) | Fn(int ~> A) | Nf(A ~> int) | Double((A ~> int) ~> int) | ToSet(real -> set<A>) | FromSet(set<A> ~> real) | Classy(MyClass<A>) | MakeA(MyData<A, int, int, int>) | MakeB(MyData<int, A, int, int>) | MakeC(MyData<int, int, A, int>) | MakeD(MyData<int, int, int, A>)
+
+class VaryingClass<A, B, C, +HotDog, D, -Whale> { }
+iterator VaryingIter<A(0), B(0), C(0), +HotDog(0), D(0), -Whale(0)>()
+{
+}
+Variance.dfy(7,10): Error: formal type parameter 'C' is not used according to its variance specification
+Variance.dfy(19,7): Error: formal type parameter 'A' is not used according to its variance specification
+Variance.dfy(22,16): Error: formal type parameter 'A' is not used according to its variance specification
+Variance.dfy(23,19): Error: formal type parameter 'A' is not used according to its variance specification
+Variance.dfy(25,21): Error: formal type parameter 'A' is not used according to its variance specification
+Variance.dfy(26,25): Error: formal type parameter 'A' is not used according to its variance specification
+Variance.dfy(27,29): Error: formal type parameter 'A' is not used according to its variance specification
+Variance.dfy(29,26): Error: a class only supports invariant type parameters
+Variance.dfy(29,36): Error: a class only supports invariant type parameters
+Variance.dfy(33,28): Error: a iterator only supports invariant type parameters
+Variance.dfy(33,38): Error: a iterator only supports invariant type parameters
+11 resolution/type errors detected in Variance.dfy

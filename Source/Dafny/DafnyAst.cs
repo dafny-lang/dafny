@@ -109,7 +109,7 @@ namespace Microsoft.Dafny {
   {
     public readonly ModuleDefinition SystemModule = new ModuleDefinition(Token.NoToken, "_System", false, false, false, null, null, null, true);
     readonly Dictionary<int, ClassDecl> arrayTypeDecls = new Dictionary<int, ClassDecl>();
-    readonly Dictionary<int, ArrowTypeDecl> arrowTypeDecls = new Dictionary<int, ArrowTypeDecl>();
+    public readonly Dictionary<int, ArrowTypeDecl> ArrowTypeDecls = new Dictionary<int, ArrowTypeDecl>();
     public readonly Dictionary<int, SubsetTypeDecl> PartialArrowTypeDecls = new Dictionary<int, SubsetTypeDecl>();  // same keys as arrowTypeDecl
     public readonly Dictionary<int, SubsetTypeDecl> TotalArrowTypeDecls = new Dictionary<int, SubsetTypeDecl>();  // same keys as arrowTypeDecl
     readonly Dictionary<int, TupleTypeDecl> tupleTypeDecls = new Dictionary<int, TupleTypeDecl>();
@@ -187,9 +187,11 @@ namespace Microsoft.Dafny {
     /// </summary>
     public void CreateArrowTypeDecl(int arity) {
       Contract.Requires(0 <= arity);
-      if (!arrowTypeDecls.ContainsKey(arity)) {
+      if (!ArrowTypeDecls.ContainsKey(arity)) {
         IToken tok = Token.NoToken;
-        var tps = Util.Map(Enumerable.Range(0, arity + 1), x => new TypeParameter(tok, x == arity ? "R" : "T" + x));
+        var tps = Util.Map(Enumerable.Range(0, arity + 1), x => x < arity ?
+          new TypeParameter(tok, "T" + x, TypeParameter.TPVarianceSyntax.Contra) :
+          new TypeParameter(tok, "R", TypeParameter.TPVarianceSyntax.Co));
         var tys = tps.ConvertAll(tp => (Type)(new UserDefinedType(tp)));
         var args = Util.Map(Enumerable.Range(0, arity), i => new Formal(tok, "x" + i, tys[i], true, false));
         var argExprs = args.ConvertAll(a =>
@@ -211,13 +213,15 @@ namespace Microsoft.Dafny {
         readsIS.Function = reads;  // just so we can really claim the member declarations are resolved
         readsIS.TypeArgumentSubstitutions = Util.Dict(tps, tys);  // ditto
         var arrowDecl = new ArrowTypeDecl(tps, req, reads, SystemModule, DontCompile());
-        arrowTypeDecls.Add(arity, arrowDecl);
+        ArrowTypeDecls.Add(arity, arrowDecl);
         SystemModule.TopLevelDecls.Add(arrowDecl);
 
         // declaration of read-effect-free arrow-type, aka heap-independent arrow-type, aka partial-function arrow-type
-        tps = Util.Map(Enumerable.Range(0, arity + 1), x => new TypeParameter(tok, x == arity ? "R" : "T" + x));
-        tys = Util.Map(Enumerable.Range(0, arity), i => (Type)(new UserDefinedType(tps[i])));
-        var id = new BoundVar(tok, "f", new ArrowType(tok, tys, new UserDefinedType(tps[arity]), SystemModule));
+        tps = Util.Map(Enumerable.Range(0, arity + 1), x => x < arity ?
+          new TypeParameter(tok, "T" + x, TypeParameter.TPVarianceSyntax.Contra) :
+          new TypeParameter(tok, "R", TypeParameter.TPVarianceSyntax.Co));
+        tys = tps.ConvertAll(tp => (Type)(new UserDefinedType(tp)));
+        var id = new BoundVar(tok, "f", new ArrowType(tok, arrowDecl, tys));
         var partialArrow = new SubsetTypeDecl(tok, ArrowType.PartialArrowTypeName(arity),
           new TypeParameter.TypeParameterCharacteristics(false), tps, SystemModule,
           id, ArrowSubtypeConstraint(tok, id, reads, tps, false), SubsetTypeDecl.WKind.Special, null, DontCompile());
@@ -225,7 +229,10 @@ namespace Microsoft.Dafny {
         SystemModule.TopLevelDecls.Add(partialArrow);
 
         // declaration of total arrow-type 
-        tps = Util.Map(Enumerable.Range(0, arity + 1), x => new TypeParameter(tok, x == arity ? "R" : "T" + x));
+        
+        tps = Util.Map(Enumerable.Range(0, arity + 1), x => x < arity ?
+          new TypeParameter(tok, "T" + x, TypeParameter.TPVarianceSyntax.Contra) :
+          new TypeParameter(tok, "R", TypeParameter.TPVarianceSyntax.Co));
         tys = tps.ConvertAll(tp => (Type)(new UserDefinedType(tp)));
         id = new BoundVar(tok, "f", new UserDefinedType(tok, partialArrow.Name, partialArrow, tys));
         var totalArrow = new SubsetTypeDecl(tok, ArrowType.TotalArrowTypeName(arity),
@@ -1713,7 +1720,7 @@ namespace Microsoft.Dafny {
     public TypeParameter TypeArg;
     public Type ResolvedType;
     public SelfType() : base() {
-      TypeArg = new TypeParameter(Token.NoToken, "selfType");
+      TypeArg = new TypeParameter(Token.NoToken, "selfType", TypeParameter.TPVarianceSyntax.Unspecified);
     }
 
     [Pure]
@@ -1772,24 +1779,23 @@ namespace Microsoft.Dafny {
     /// <summary>
     /// Constructs and returns a resolved arrow type.
     /// </summary>
-    public ArrowType(IToken tok, List<Type> args, Type result, ModuleDefinition systemModule)
-      : this(tok, args, result) {
-      Contract.Requires(tok != null);
-      Contract.Requires(args != null);
-      Contract.Requires(result != null);
-      Contract.Requires(systemModule != null);
-      ResolvedClass = systemModule.TopLevelDecls.Find(d => d.Name == Name);
-      Contract.Assume(ResolvedClass != null);
-    }
-    /// <summary>
-    /// Constructs and returns a resolved arrow type.
-    /// </summary>
     public ArrowType(IToken tok, ArrowTypeDecl atd, List<Type> typeArgsAndResult)
       : base(tok, ArrowTypeName(atd.Arity), atd, typeArgsAndResult) {
       Contract.Requires(tok != null);
       Contract.Requires(atd != null);
       Contract.Requires(typeArgsAndResult != null);
       Contract.Requires(typeArgsAndResult.Count == atd.Arity + 1);
+    }
+    /// <summary>
+    /// Constructs and returns a resolved arrow type.
+    /// </summary>
+    public ArrowType(IToken tok, ArrowTypeDecl atd, List<Type> typeArgs, Type result)
+      : this(tok, atd, Util.Snoc(typeArgs, result)) {
+      Contract.Requires(tok != null);
+      Contract.Requires(atd != null);
+      Contract.Requires(typeArgs!= null);
+      Contract.Requires(typeArgs.Count == atd.Arity);
+      Contract.Requires(result != null);
     }
 
     public const string Arrow_FullCompileName = "Func";  // this is the same for all arities
@@ -2688,7 +2694,7 @@ namespace Microsoft.Dafny {
   public class OpaqueType_AsParameter : TypeParameter {
     public readonly List<TypeParameter> TypeArgs;
     public OpaqueType_AsParameter(IToken tok, string name, TypeParameterCharacteristics characteristics, List<TypeParameter> typeArgs)
-      : base(tok, name, characteristics) {
+      : base(tok, name, TypeParameter.TPVarianceSyntax.Unspecified, characteristics) {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
       Contract.Requires(typeArgs != null);
@@ -2715,6 +2721,37 @@ namespace Microsoft.Dafny {
         parent = value;
       }
     }
+
+    public enum TPVarianceSyntax { Unspecified, Co, Inv, Contra }
+    public enum TPVariance { Co, Inv, Contra }
+    public static TPVariance Negate(TPVariance v) {
+      switch (v) {
+        case TPVariance.Co:
+          return TPVariance.Contra;
+        case TPVariance.Contra:
+          return TPVariance.Co;
+        default:
+          return v;
+      }
+    }
+    public TPVarianceSyntax VarianceSyntax;
+    public TPVariance Variance {
+      get {
+        switch (VarianceSyntax) {
+          case TPVarianceSyntax.Co:
+            return TPVariance.Co;
+          case TPVarianceSyntax.Unspecified:
+          case TPVarianceSyntax.Inv:
+            return TPVariance.Inv;
+          case TPVarianceSyntax.Contra:
+            return TPVariance.Contra;
+          default:
+            Contract.Assert(false);  // unexpected VarianceSyntax
+            throw new cce.UnreachableException();
+        }
+      }
+    }
+
     public enum EqualitySupportValue { Required, InferredRequired, Unspecified }
     public struct TypeParameterCharacteristics
     {
@@ -2744,21 +2781,22 @@ namespace Microsoft.Dafny {
     }
     public int PositionalIndex; // which type parameter this is (ie. in C<S, T, U>, S is 0, T is 1 and U is 2).
 
-    public TypeParameter(IToken tok, string name, TypeParameterCharacteristics characteristics)
+    public TypeParameter(IToken tok, string name, TPVarianceSyntax varianceS, TypeParameterCharacteristics characteristics)
       : base(tok, name, null) {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
       Characteristics = characteristics;
+      VarianceSyntax = varianceS;
     }
 
-    public TypeParameter(IToken tok, string name)
-      : this(tok, name, new TypeParameterCharacteristics(false)) {
+    public TypeParameter(IToken tok, string name, TPVarianceSyntax varianceS)
+      : this(tok, name, varianceS, new TypeParameterCharacteristics(false)) {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
     }
 
     public TypeParameter(IToken tok, string name, int positionalIndex, ParentType parent)
-       : this(tok, name)
+       : this(tok, name, TPVarianceSyntax.Unspecified)
     {
       PositionalIndex = positionalIndex;
       Parent = parent;
@@ -3423,7 +3461,7 @@ namespace Microsoft.Dafny {
     public readonly int Dims;
     public ArrayClassDecl(int dims, ModuleDefinition module, Attributes attrs)
     : base(Token.NoToken, BuiltIns.ArrayClassName(dims), module,
-      new List<TypeParameter>(new TypeParameter[]{new TypeParameter(Token.NoToken, "arg")}),
+      new List<TypeParameter>(new TypeParameter[]{ new TypeParameter(Token.NoToken, "arg", TypeParameter.TPVarianceSyntax.Unspecified) }),
       new List<MemberDecl>(), attrs, null)
     {
       Contract.Requires(1 <= dims);
@@ -3514,7 +3552,7 @@ namespace Microsoft.Dafny {
     /// Construct a resolved built-in tuple type with "dim" arguments.  "systemModule" is expected to be the _System module.
     /// </summary>
     public TupleTypeDecl(int dims, ModuleDefinition systemModule, Attributes attributes)
-      : this(systemModule, CreateTypeParameters(dims), attributes) {
+      : this(systemModule, CreateCovariantTypeParameters(dims), attributes) {
       Contract.Requires(0 <= dims);
       Contract.Requires(systemModule != null);
     }
@@ -3534,11 +3572,11 @@ namespace Microsoft.Dafny {
       }
       this.EqualitySupport = ES.ConsultTypeArguments;
     }
-    private static List<TypeParameter> CreateTypeParameters(int dims) {
+    private static List<TypeParameter> CreateCovariantTypeParameters(int dims) {
       Contract.Requires(0 <= dims);
       var ts = new List<TypeParameter>();
       for (int i = 0; i < dims; i++) {
-        var tp = new TypeParameter(Token.NoToken, "T" + i);
+        var tp = new TypeParameter(Token.NoToken, "T" + i, TypeParameter.TPVarianceSyntax.Co);
         tp.NecessaryForEqualitySupportOfSurroundingInductiveDatatype = true;
         ts.Add(tp);
       }
@@ -9265,7 +9303,7 @@ namespace Microsoft.Dafny {
     }
   
     public TypeParameter Refresh(TypeParameter p, FreshIdGenerator idGen) {
-      var cp = new TypeParameter(p.tok, idGen.FreshId(p.Name + "#"), p.Characteristics);
+      var cp = new TypeParameter(p.tok, idGen.FreshId(p.Name + "#"), p.VarianceSyntax, p.Characteristics);
       cp.Parent = this;
       return cp;
     }

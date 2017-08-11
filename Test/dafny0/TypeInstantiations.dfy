@@ -41,12 +41,12 @@ module M1 refines M0 {
   type H<X1> = List<X1>  // error: H needs two type parameters
   type J = List<real>  // error: J needs one type parameter
 
-  type K0<W> = List<W>
-  type K1<W>
-  type L<V(==)> = List<V>  // fine
+  type K0<W> = List<W>  // error: change in (==)
+  type K1<W>  // error: change in (==)
+  type L<V(==)> = List<V>  // error: change in (==)
   type M<U'> = int  // fine, because M<U'> does support equality
   type N<U'> = List<U'>  // error: N<U'> does not support equality
-  type O<U'(==)> = List<U'>  // fine
+  type O<U'(==)> = List<U'>  // error: change in (==)
   type P<U'> = List<U'>  // fine
   class R { }  // error: wrong number of type arguments
   class S<T> { }

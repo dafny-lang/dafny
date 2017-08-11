@@ -27,7 +27,7 @@ class Class0 extends Tr { var x: int }
 
 class Class1 extends Tr { var y: real }
 
-datatype Dt<A> = Atom(get: A)
+datatype Dt<+A> = Atom(get: A)
 
 method H() {
   var c := new Class0;

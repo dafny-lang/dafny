@@ -1005,7 +1005,7 @@ ClassDecl<DeclModifierData dmodClass, ModuleDefinition/*!*/ module, out ClassDec
   { Attribute<ref attrs> }
   NoUSIdent<out id>
   (. EncodeExternAsAttribute(dmodClass, ref attrs, id); .)
-  [ GenericParameters<typeArgs> ]
+  [ GenericParameters<typeArgs, true> ]
   ["extends" 
   Type<out trait>    (. traits.Add(trait); .) 
   {"," Type<out trait>  (. traits.Add(trait); .) }
@@ -1037,7 +1037,7 @@ TraitDecl<DeclModifierData dmodIn, ModuleDefinition/*!*/ module, out TraitDecl/*
   "trait"
   { Attribute<ref attrs> }
   NoUSIdent<out id>
-  [ GenericParameters<typeArgs> ]
+  [ GenericParameters<typeArgs, true> ]
     "{"                                            (. bodyStart = t; .)
       {                                            (. dmod  = new DeclModifierData(); .)
         { DeclModifier<ref dmod> }
@@ -1094,7 +1094,7 @@ DatatypeDecl<DeclModifierData dmod, ModuleDefinition/*!*/ module, out DatatypeDe
   )
   { Attribute<ref attrs> }
   NoUSIdent<out id>
-  [ GenericParameters<typeArgs> ]
+  [ GenericParameters<typeArgs, true> ]
   "="                                      (. bodyStart = t; .)
   [ "|" ] DatatypeMemberDecl<ctors>
   { "|" DatatypeMemberDecl<ctors> }
@@ -1203,7 +1203,7 @@ OtherTypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl t
   { Attribute<ref attrs> }
   NoUSIdent<out id>
   { TypeParameterCharacteristics<ref characteristics> }
-  [ GenericParameters<typeArgs> ]
+  [ GenericParameters<typeArgs, true> ]
   [ "="
     ( IF(IsIdentColonOrBar())
       NoUSIdent<out bvId>
@@ -1353,7 +1353,7 @@ IteratorDecl<DeclModifierData dmod, ModuleDefinition module, out IteratorDecl/*!
   { Attribute<ref attrs> }
   NoUSIdent<out id>
   (
-    [ GenericParameters<typeArgs> ]
+    [ GenericParameters<typeArgs, true> ]
     Formals<true, true, false, ins>
     [ ( "yields"
       | "returns"           (. SemErr(t, "iterators don't have a 'returns' clause; did you mean 'yields'?"); .)
@@ -1376,20 +1376,46 @@ IteratorDecl<DeclModifierData dmod, ModuleDefinition module, out IteratorDecl/*!
  .)
   .
 /*------------------------------------------------------------------------*/
-GenericParameters<.List<TypeParameter/*!*/>/*!*/ typeArgs.>
+GenericParameters<.List<TypeParameter/*!*/>/*!*/ typeArgs, bool allowVariance.>
 = (. Contract.Requires(cce.NonNullElements(typeArgs));
      IToken/*!*/ id;
      TypeParameter.TypeParameterCharacteristics characteristics;
+     TypeParameter.TPVarianceSyntax variance = TypeParameter.TPVarianceSyntax.Unspecified;  // assignment is to please compiler
+     characteristics = new TypeParameter.TypeParameterCharacteristics(false);
   .)
-  "<"
-  NoUSIdent<out id>          (. characteristics = new TypeParameter.TypeParameterCharacteristics(false); .)
+  // There's a subtle issue here.  The next things in the input could be a '<' followed by an '=' (and then an identifier).
+  // This is legal (provided "allowVariance" is "true").  However, unless there's whitespace between the '<' and '=', the
+  // scanner will read these two characters as a "<=" token.
+  ( "<"
+    [ Variance<out variance>  (. if (!allowVariance) { SemErr(t, "type-parameter variance is not allowed to be specified in this context"); } .)
+    ]
+  | "<="                      (. variance = TypeParameter.TPVarianceSyntax.Inv;
+                                 if (!allowVariance) { t.pos++; t.col++; t.val = "=";
+                                                       SemErr(t, "type-parameter variance is not allowed to be specified in this context"); }
+                              .)
+  )
+  NoUSIdent<out id>
   { TypeParameterCharacteristics<ref characteristics> }
-                             (. typeArgs.Add(new TypeParameter(id, id.val, characteristics)); .)
-  { "," NoUSIdent<out id>    (. characteristics = new TypeParameter.TypeParameterCharacteristics(false); .)
+  (. typeArgs.Add(new TypeParameter(id, id.val, variance, characteristics)); .)
+  { ","
+    (. variance = TypeParameter.TPVarianceSyntax.Unspecified;
+       characteristics = new TypeParameter.TypeParameterCharacteristics(false);
+    .)
+    [ Variance<out variance>  (. if (!allowVariance) { SemErr(t, "type-parameter variance is not allowed to be specified in this context"); } .)
+    ]
+    NoUSIdent<out id>
     { TypeParameterCharacteristics<ref characteristics> }
-                             (. typeArgs.Add(new TypeParameter(id, id.val, characteristics)); .)
+    (. typeArgs.Add(new TypeParameter(id, id.val, variance, characteristics)); .)
   }
   ">"
+  .
+Variance<out TypeParameter.TPVarianceSyntax variance>
+= (. variance = TypeParameter.TPVarianceSyntax.Unspecified;  // never used; here just to please the C# compiler
+  .)
+  ( "+"  (. variance = TypeParameter.TPVarianceSyntax.Co; .)
+  | "="  (. variance = TypeParameter.TPVarianceSyntax.Inv; .)
+  | "-"  (. variance = TypeParameter.TPVarianceSyntax.Contra; .)
+  )
   .
 TypeParameterCharacteristics<ref TypeParameter.TypeParameterCharacteristics characteristics>
 = "("
@@ -1479,7 +1505,7 @@ MethodDecl<DeclModifierData dmod, bool allowConstructor, bool isWithinAbstractMo
      EncodeExternAsAttribute(dmod, ref attrs, id);
   .)
   (
-    [ GenericParameters<typeArgs> ]
+    [ GenericParameters<typeArgs, false> ]
     (. var isCompilable = (isPlainOlMethod && !dmod.IsGhost) || isConstructor; .)
     Formals<true, isCompilable, isTwoStateLemma, ins>
     [ "returns"                                 (. if (isConstructor) { SemErr(t, "constructors cannot have out-parameters"); } .)
@@ -1800,7 +1826,7 @@ FunctionDecl<DeclModifierData dmod, bool isWithinAbstractModule, out Function/*!
     { Attribute<ref attrs> }
     NoUSIdent<out id>
     (
-      [ GenericParameters<typeArgs> ]
+      [ GenericParameters<typeArgs, false> ]
       Formals<true, isFunctionMethod, isTwoState, formals>
       ":"
       (  IF(FollowedByColon()) 
@@ -1840,7 +1866,7 @@ FunctionDecl<DeclModifierData dmod, bool isWithinAbstractModule, out Function/*!
     { Attribute<ref attrs> }
     NoUSIdent<out id>
     (
-      [ GenericParameters<typeArgs> ]                   (. missingOpenParen = true; .)
+      [ GenericParameters<typeArgs, false> ]                 (. missingOpenParen = true; .)
       [ Formals<true, isFunctionMethod, isTwoState, formals> (. missingOpenParen = false; .)
       ]                                                 (. if (missingOpenParen) { errors.Warning(t, "with the new support of higher-order functions in Dafny, parentheses-less predicates are no longer supported; in the new syntax, parentheses are required for the declaration and uses of predicates, even if the predicate takes no additional arguments"); } .)
       [ ":"                    (. SemErr(t, "predicates do not have an explicitly declared return type; it is always bool"); .)
@@ -1858,7 +1884,7 @@ FunctionDecl<DeclModifierData dmod, bool isWithinAbstractModule, out Function/*!
     { Attribute<ref attrs> }
     NoUSIdent<out id>
     (
-      [ GenericParameters<typeArgs> ]
+      [ GenericParameters<typeArgs, false> ]
       Formals<true, isFunctionMethod, false, formals>
       [ ":"                    (. SemErr(t, "inductive predicates do not have an explicitly declared return type; it is always bool"); .)
       ]
@@ -1875,7 +1901,7 @@ FunctionDecl<DeclModifierData dmod, bool isWithinAbstractModule, out Function/*!
     { Attribute<ref attrs> }
     NoUSIdent<out id>
     (
-      [ GenericParameters<typeArgs> ]
+      [ GenericParameters<typeArgs, false> ]
       Formals<true, isFunctionMethod, false, formals>
       [ ":"                    (. SemErr(t, "copredicates do not have an explicitly declared return type; it is always bool"); .)
       ]
