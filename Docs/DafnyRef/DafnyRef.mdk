@@ -8026,8 +8026,6 @@ Second, clone source code (into sibling directories)
 
 -   [Dafny](https://github.com/Microsoft/dafny)
 -   [Boogie](https://github.com/boogie-org/boogie)
--   [BoogiePartners](https://github.com/boogie-org/boogie-partners)
--   copy [Coco.exe](http://www.ssw.uni-linz.ac.at/Research/Projects/Coco/) to `\boogiepartners\CocoRdownload`
 
 Last, follow the conventions:
 
