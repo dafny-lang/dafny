@@ -1,13 +1,13 @@
 
 Dafny program verifier finished with 2 verified, 0 errors
-Compilation error: Opaque type ('_module.MyType') cannot be compiled
-Compilation error: Iterator _module.Iter has no body
-Compilation error: an assume statement cannot be compiled (line 12)
-Compilation error: Method _module._default.M has no body
-Compilation error: Method _module._default.P has no body
-Compilation error: Function _module._default.F has no body
-Compilation error: Function _module._default.H has no body
-Compilation error: an assume statement cannot be compiled (line 22)
-Compilation error: an assume statement cannot be compiled (line 25)
-Compilation error: an assume statement cannot be compiled (line 30)
-Compilation error: an assume statement cannot be compiled (line 39)
+CompilationErrors.dfy(4,5): Error: Opaque type ('_module.MyType') cannot be compiled
+CompilationErrors.dfy(5,9): Error: Iterator _module.Iter has no body
+CompilationErrors.dfy(12,6): Error: an assume statement cannot be compiled
+CompilationErrors.dfy(6,13): Error: Method _module._default.M has no body
+CompilationErrors.dfy(7,7): Error: Method _module._default.P has no body
+CompilationErrors.dfy(18,9): Error: Function _module._default.F has no body
+CompilationErrors.dfy(19,16): Error: Function _module._default.H has no body
+CompilationErrors.dfy(22,2): Error: an assume statement cannot be compiled
+CompilationErrors.dfy(25,2): Error: an assume statement cannot be compiled
+CompilationErrors.dfy(30,2): Error: an assume statement cannot be compiled
+CompilationErrors.dfy(39,6): Error: an assume statement cannot be compiled

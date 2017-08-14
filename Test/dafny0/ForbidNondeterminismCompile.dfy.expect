@@ -1,14 +1,14 @@
 
 Dafny program verifier finished with 4 verified, 0 errors
-Compilation error: since yield parameters are initialized arbitrarily, iterators (line 72) are forbidden by /definiteAssignment:3 option
-Compilation error: nondeterministic assignment (line 18) forbidden by /definiteAssignment:3 option
-Compilation error: nondeterministic assignment (line 19) forbidden by /definiteAssignment:3 option
-Compilation error: assign-such-that statement (line 20) forbidden by /definiteAssignment:3 option
-Compilation error: nondeterministic if statement (line 21) forbidden by /definiteAssignment:3 option
-Compilation error: case-based if statement (line 24) forbidden by /definiteAssignment:3 option
-Compilation error: binding if statement (line 33) forbidden by /definiteAssignment:3 option
-Compilation error: nondeterministic loop (line 36) forbidden by /definiteAssignment:3 option
-Compilation error: case-based loop (line 41) forbidden by /definiteAssignment:3 option
-Compilation error: nondeterministic assignment (line 49) forbidden by /definiteAssignment:3 option
-Compilation error: modify statement without a body (line 51) forbidden by /definiteAssignment:3 option
-Compilation error: nondeterministic assignment (line 64) forbidden by /definiteAssignment:3 option
+ForbidNondeterminismCompile.dfy(72,9): Error: since yield parameters are initialized arbitrarily, iterators are forbidden by /definiteAssignment:3 option
+ForbidNondeterminismCompile.dfy(18,7): Error: nondeterministic assignment forbidden by /definiteAssignment:3 option
+ForbidNondeterminismCompile.dfy(19,13): Error: nondeterministic assignment forbidden by /definiteAssignment:3 option
+ForbidNondeterminismCompile.dfy(20,4): Error: assign-such-that statement forbidden by /definiteAssignment:3 option
+ForbidNondeterminismCompile.dfy(21,2): Error: nondeterministic if statement forbidden by /definiteAssignment:3 option
+ForbidNondeterminismCompile.dfy(24,2): Error: case-based if statement forbidden by /definiteAssignment:3 option
+ForbidNondeterminismCompile.dfy(33,2): Error: binding if statement forbidden by /definiteAssignment:3 option
+ForbidNondeterminismCompile.dfy(36,2): Error: nondeterministic loop forbidden by /definiteAssignment:3 option
+ForbidNondeterminismCompile.dfy(41,2): Error: case-based loop forbidden by /definiteAssignment:3 option
+ForbidNondeterminismCompile.dfy(49,12): Error: nondeterministic assignment forbidden by /definiteAssignment:3 option
+ForbidNondeterminismCompile.dfy(51,2): Error: modify statement without a body forbidden by /definiteAssignment:3 option
+ForbidNondeterminismCompile.dfy(64,16): Error: nondeterministic assignment forbidden by /definiteAssignment:3 option
