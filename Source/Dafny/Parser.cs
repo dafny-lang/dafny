@@ -1676,8 +1676,10 @@ int StringToInt(string s, int defaultValue, string errString) {
 					bool isGhost;
 					bool isOld;
 					
-					GIdentType(isFunctionMethod, false, out resultId, out ty, out isGhost, out isOld);
-					result = new Formal(resultId, resultId.val, ty, false, isGhost, isOld); 
+					GIdentType(false, false, out resultId, out ty, out isGhost, out isOld);
+					Contract.Assert(!isGhost && !isOld);
+					result = new Formal(resultId, resultId.val, ty, false, false, false);
+					
 					Expect(75);
 				} else if (StartOf(6)) {
 					Type(out returnType);

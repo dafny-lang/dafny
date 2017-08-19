@@ -12663,7 +12663,7 @@ namespace Microsoft.Dafny
         }
         // if there are bounds that are not determined yet and the number of undetermined bounds
         // changed, we will need to do another iteration.
-        if (count >0 && count != orgCount) {
+        if (count > 0 && count != orgCount) {
           changed = true;
           knownBounds = bests;
           orgCount = count;

@@ -1811,11 +1811,10 @@ FunctionDecl<DeclModifierData dmod, bool isWithinAbstractModule, out Function/*!
               bool isGhost;
               bool isOld;
            .)
-            GIdentType<isFunctionMethod, false, out resultId, out ty, out isGhost, out isOld>
-           /* WildIdent<out resultId, true>
-           ":"
-           Type<out ty> */
-           (. result = new Formal(resultId, resultId.val, ty, false, isGhost, isOld); .)
+           GIdentType<false, false, out resultId, out ty, out isGhost, out isOld>
+           (. Contract.Assert(!isGhost && !isOld);
+              result = new Formal(resultId, resultId.val, ty, false, false, false);
+           .)
          ")"
          | Type<out returnType>
       )
