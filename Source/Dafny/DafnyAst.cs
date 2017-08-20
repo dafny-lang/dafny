@@ -3892,7 +3892,13 @@ namespace Microsoft.Dafny {
         Contract.Requires(EnclosingClass != null);
         Contract.Ensures(Contract.Result<string>() != null);
 
-        return EnclosingClass.FullSanitizedName + "." + CompileName;
+        if (Name == "requires") {
+          return Translator.Requires(((ArrowTypeDecl)EnclosingClass).Arity);
+        } else if (Name == "reads") {
+          return Translator.Reads(((ArrowTypeDecl)EnclosingClass).Arity);
+        } else {
+          return EnclosingClass.FullSanitizedName + "." + CompileName;
+        }
       }
     }
     public virtual string FullSanitizedRefinementName {
@@ -3900,7 +3906,13 @@ namespace Microsoft.Dafny {
         Contract.Requires(EnclosingClass != null);
         Contract.Ensures(Contract.Result<string>() != null);
 
-        return EnclosingClass.FullSanitizedRefinementName + "." + CompileName;
+        if (Name == "requires") {
+          return Translator.Requires(((ArrowTypeDecl)EnclosingClass).Arity);
+        } else if (Name == "reads") {
+          return Translator.Reads(((ArrowTypeDecl)EnclosingClass).Arity);
+        } else {
+          return EnclosingClass.FullSanitizedRefinementName + "." + CompileName;
+        }
       }
     }
     public virtual string FullNameInContext(ModuleDefinition context) {

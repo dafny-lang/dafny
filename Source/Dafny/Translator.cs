@@ -6286,8 +6286,8 @@ namespace Microsoft.Dafny {
 
         var args = Concat(
           Map(tt.TypeArgs, TypeToTy),
-          Cons(etran.TrExpr(e.Function),
           Cons(etran.HeapExpr,
+          Cons(etran.TrExpr(e.Function),
           e.Args.ConvertAll(arg => TrArg(arg)))));
 
         // check precond
@@ -7113,15 +7113,15 @@ namespace Microsoft.Dafny {
       return "Handle" + arity;
     }
 
-    public string Apply(int arity) {
+    public static string Apply(int arity) {
       return "Apply" + arity;
     }
 
-    public string Requires(int arity) {
+    public static string Requires(int arity) {
       return "Requires" + arity;
     }
 
-    public string Reads(int arity) {
+    public static string Reads(int arity) {
       return "Reads" + arity;
     }
 
@@ -7211,7 +7211,7 @@ namespace Microsoft.Dafny {
           //   = [Box] F(Ty1, .., TyN, Layer, Heap, self, [Unbox] arg1, .., [Unbox] argN)
 
           var fhandle = FunctionCall(f.tok, name, predef.HandleType, SnocSelf(SnocPrevH(args)));
-          var lhs = FunctionCall(f.tok, Apply(arity), TrType(f.ResultType), Concat(tyargs, Cons(fhandle, Cons(h, lhs_args))));
+          var lhs = FunctionCall(f.tok, Apply(arity), TrType(f.ResultType), Concat(tyargs, Cons(h, Cons(fhandle, lhs_args))));
           var args_h = AlwaysUseHeap || f.ReadsHeap ? Snoc(SnocPrevH(args), h) : args;
           var rhs = FunctionCall(f.tok, f.FullSanitizedName, TrType(f.ResultType), Concat(SnocSelf(args_h), rhs_args));
           var rhs_boxed = BoxIfUnboxed(rhs, f.ResultType);
@@ -7225,7 +7225,7 @@ namespace Microsoft.Dafny {
           //   = F#Requires(Ty1, .., TyN, Layer, Heap, self, [Unbox] arg1, .., [Unbox] argN)
 
           var fhandle = FunctionCall(f.tok, name, predef.HandleType, SnocSelf(SnocPrevH(args)));
-          var lhs = FunctionCall(f.tok, Requires(arity), Bpl.Type.Bool, Concat(tyargs, Cons(fhandle, Cons(h, lhs_args))));
+          var lhs = FunctionCall(f.tok, Requires(arity), Bpl.Type.Bool, Concat(tyargs, Cons(h, Cons(fhandle, lhs_args))));
           Bpl.Expr rhs;
           if (fromArrowType) {
             // In case this is the /requires/ or /reads/ function, then there is no precondition
@@ -7244,7 +7244,7 @@ namespace Microsoft.Dafny {
           //   =  $Frame_F(args...)
 
           var fhandle = FunctionCall(f.tok, name, predef.HandleType, SnocSelf(SnocPrevH(args)));
-          Bpl.Expr lhs_inner = FunctionCall(f.tok, Reads(arity), TrType(new SetType(true, new ObjectType())), Concat(tyargs, Cons(fhandle, Cons(h, lhs_args))));
+          Bpl.Expr lhs_inner = FunctionCall(f.tok, Reads(arity), TrType(new SetType(true, new ObjectType())), Concat(tyargs, Cons(h, Cons(fhandle, lhs_args))));
 
           Bpl.Expr bx; var bxVar = BplBoundVar("$bx", predef.BoxType, out bx);
           Bpl.Expr unboxBx = FunctionCall(f.tok, BuiltinFunction.Unbox, predef.RefType, bx);
@@ -7264,7 +7264,7 @@ namespace Microsoft.Dafny {
           var fhandle = FunctionCall(f.tok, name, predef.HandleType, SnocSelf(SnocPrevH(args)));
           var args_h = AlwaysUseHeap || f.ReadsHeap ? Snoc(SnocPrevH(args), h) : args;
           var lhs = FunctionCall(f.tok, f.FullSanitizedName, TrType(f.ResultType), Concat(SnocSelf(args_h), func_args));
-          var rhs = FunctionCall(f.tok, Apply(arity), TrType(f.ResultType), Concat(tyargs, Cons(fhandle, Cons(h, boxed_func_args))));
+          var rhs = FunctionCall(f.tok, Apply(arity), TrType(f.ResultType), Concat(tyargs, Cons(h, Cons(fhandle, boxed_func_args))));
           var rhs_unboxed = UnboxIfBoxed(rhs, f.ResultType);
           var tr = BplTriggerHeap(this, f.tok, lhs, AlwaysUseHeap || f.ReadsHeap ? null : h);
           
@@ -7305,8 +7305,8 @@ namespace Microsoft.Dafny {
       Action<string, Bpl.Type> SelectorFunction = (s, t) => {
         var args = new List<Bpl.Variable>();
         MapM(Enumerable.Range(0, arity + 1), i => args.Add(BplFormalVar(null, predef.Ty, true)));
-        args.Add(BplFormalVar(null, predef.HandleType, true));
         args.Add(BplFormalVar(null, predef.HeapType, true));
+        args.Add(BplFormalVar(null, predef.HandleType, true));
         MapM(Enumerable.Range(0, arity), i => args.Add(BplFormalVar(null, predef.BoxType, true)));
         sink.AddTopLevelDeclaration(new Bpl.Function(Token.NoToken, s, args, BplFormalVar(null, t, false)));
       };
@@ -7320,9 +7320,9 @@ namespace Microsoft.Dafny {
 
       {
         // forall t1, .., tN+1 : Ty, p: [Heap, Box, ..., Box] Box, heap : Heap, b1, ..., bN : Box
-        //      :: ApplyN(t1, .. tN+1, HandleN(h, r, rd), heap, b1, ..., bN) == h[heap, b1, ..., bN]
-        //      :: RequiresN(t1, .. tN+1, HandleN(h, r, rd), heap, b1, ..., bN) <== r[heap, b1, ..., bN]
-        //      :: ReadsN(t1, .. tN+1, HandleN(h, r, rd), heap, b1, ..., bN) == rd[heap, b1, ..., bN]
+        //      :: ApplyN(t1, .. tN+1, heap, HandleN(h, r, rd), b1, ..., bN) == h[heap, b1, ..., bN]
+        //      :: RequiresN(t1, .. tN+1, heap, HandleN(h, r, rd), b1, ..., bN) <== r[heap, b1, ..., bN]
+        //      :: ReadsN(t1, .. tN+1, heap, HandleN(h, r, rd), b1, ..., bN) == rd[heap, b1, ..., bN]
         Action<string, Bpl.Type, string, Bpl.Type, string, Bpl.Type> SelectorSemantics = (selector, selectorTy, selectorVar, selectorVarTy, precond, precondTy) => {
           Contract.Assert((precond == null) == (precondTy == null));
           var bvars = new List<Bpl.Variable>();
@@ -7339,7 +7339,7 @@ namespace Microsoft.Dafny {
 
           var boxes = Map(Enumerable.Range(0, arity), i => BplBoundVar("bx" + i, predef.BoxType, bvars));
 
-          var lhsargs = Concat(types, Cons(FunctionCall(tok, Handle(arity), predef.HandleType, handleargs), Cons(heap, boxes)));
+          var lhsargs = Concat(types, Cons(heap, Cons(FunctionCall(tok, Handle(arity), predef.HandleType, handleargs), boxes)));
           Bpl.Expr lhs = FunctionCall(tok, selector, selectorTy, lhsargs);
           Func<Bpl.Expr, Bpl.Expr> pre = x => x;
           if (precond != null) {
@@ -7366,9 +7366,6 @@ namespace Microsoft.Dafny {
         SelectorSemantics(Reads(arity), objset_ty, "rd", reads_ty, null, null);
 
         // function {:inline true}
-        //   FuncN._requires(G...G G: Ty, H:Heap, f:Handle, x ... x :Box): bool
-        //   { RequiresN(f, H, x...x) }
-        // function {:inline true}
         //   FuncN._requires#canCall(G...G G: Ty, H:Heap, f:Handle, x ... x :Box): bool
         //   { true }
         // + similar for Reads
@@ -7379,21 +7376,17 @@ namespace Microsoft.Dafny {
           MapM(Enumerable.Range(0, arity + 1), i => rhsargs.Add(BplFormalVar("t" + i, predef.Ty, true, formals)));
 
           var heap = BplFormalVar("heap", predef.HeapType, true, formals);
-          rhsargs.Add(BplFormalVar("f", predef.HandleType, true, formals));
           rhsargs.Add(heap);
+          rhsargs.Add(BplFormalVar("f", predef.HandleType, true, formals));
 
           MapM(Enumerable.Range(0, arity), i => rhsargs.Add(BplFormalVar("bx" + i, predef.BoxType, true, formals)));
 
-          Action<string, Bpl.Type, Bpl.Expr> sink_function = (nm, res_ty, body) =>
-            sink.AddTopLevelDeclaration(
-              new Bpl.Function(f.tok, nm, new List<TypeVariable>(), formals,
-                BplFormalVar(null, res_ty, false), null,
-                new QKeyValue(f.tok, "inline", new List<object>(), null)) {
-                  Body = body
-                });
-
-          sink_function(f.FullSanitizedName, TrType(f.ResultType), FunctionCall(f.tok, fname, Bpl.Type.Bool, rhsargs));
-          sink_function(f.FullSanitizedName + "#canCall", Bpl.Type.Bool, Bpl.Expr.True);
+          sink.AddTopLevelDeclaration(
+            new Bpl.Function(f.tok, f.FullSanitizedName + "#canCall", new List<TypeVariable>(), formals,
+              BplFormalVar(null, Bpl.Type.Bool, false), null,
+              new QKeyValue(f.tok, "inline", new List<object>(), null)) {
+                Body = Bpl.Expr.True
+              });
         };
 
         UserSelectorFunction(Requires(ad.Arity), ad.Requires);
@@ -7460,13 +7453,13 @@ namespace Microsoft.Dafny {
                 Bpl.Expr.Neq(o, predef.Null),
                 // Note, the MkIsAlloc conjunct of "isness" implies that everything in the reads frame is allocated in "h0", which by HeapSucc(h0,h1) also implies the frame is allocated in "h1"
                 new Bpl.NAryExpr(tok, new Bpl.MapSelect(tok, 1), new List<Bpl.Expr> {
-                  FunctionCall(tok, Reads(ad.Arity), objset_ty, Concat(types, Cons(f, Cons(hN, boxes)))),
+                  FunctionCall(tok, Reads(ad.Arity), objset_ty, Concat(types, Cons(hN, Cons(f, boxes)))),
                   FunctionCall(tok, BuiltinFunction.Box, null, o)
                 })
               ),
               Bpl.Expr.Eq(ReadHeap(tok, h0, o, fld), ReadHeap(tok, h1, o, fld))));
 
-            Func<Bpl.Expr, Bpl.Expr> fn = h => FunctionCall(tok, fname, Bpl.Type.Bool, Concat(types, Cons(f, Cons<Bpl.Expr>(h, boxes))));
+            Func<Bpl.Expr, Bpl.Expr> fn = h => FunctionCall(tok, fname, Bpl.Type.Bool, Concat(types, Cons(h, Cons<Bpl.Expr>(f, boxes))));
 
             sink.AddTopLevelDeclaration(new Axiom(tok,
               BplForall(bvars,
@@ -7506,8 +7499,8 @@ namespace Microsoft.Dafny {
           var boxes = Map(Enumerable.Range(0, arity), i => BplBoundVar("bx" + i, predef.BoxType, bvarsInner));
           var goodHeap = FunctionCall(tok, BuiltinFunction.IsGoodHeap, null, h);
           var isBoxes = BplAnd(Map(Enumerable.Range(0, arity), i => MkIs(boxes[i], types[i], true)));
-          var pre = FunctionCall(tok, Requires(ad.Arity), predef.BoxType, Concat(types, Cons(f, Cons<Bpl.Expr>(h, boxes))));
-          var applied = FunctionCall(tok, Apply(ad.Arity), predef.BoxType, Concat(types, Cons(f, Cons<Bpl.Expr>(h, boxes))));
+          var pre = FunctionCall(tok, Requires(ad.Arity), predef.BoxType, Concat(types, Cons(h, Cons<Bpl.Expr>(f, boxes))));
+          var applied = FunctionCall(tok, Apply(ad.Arity), predef.BoxType, Concat(types, Cons(h, Cons<Bpl.Expr>(f, boxes))));
           var applied_is = MkIs(applied, types[ad.Arity], true);
 
           sink.AddTopLevelDeclaration(new Axiom(tok,
@@ -7584,14 +7577,14 @@ namespace Microsoft.Dafny {
           var boxes = Map(Enumerable.Range(0, arity), i => BplBoundVar("bx" + i, predef.BoxType, bvarsInner));
           var isAllocBoxes = BplAnd(Map(Enumerable.Range(0, arity), i =>
             BplAnd(MkIs(boxes[i], types[i], true), MkIsAlloc(boxes[i], types[i], h, true))));
-          var pre = FunctionCall(tok, Requires(ad.Arity), predef.BoxType, Concat(types, Cons(f, Cons<Bpl.Expr>(h, boxes))));
-          var applied = FunctionCall(tok, Apply(ad.Arity), predef.BoxType, Concat(types, Cons(f, Cons<Bpl.Expr>(h, boxes))));
+          var pre = FunctionCall(tok, Requires(ad.Arity), predef.BoxType, Concat(types, Cons(h, Cons<Bpl.Expr>(f, boxes))));
+          var applied = FunctionCall(tok, Apply(ad.Arity), predef.BoxType, Concat(types, Cons(h, Cons<Bpl.Expr>(f, boxes))));
 
           // (forall r: ref :: {Reads1(t0, t1, f, h, bx0)[$Box(r)]}  r != null && Reads1(t0, t1, f, h, bx0)[$Box(r)] ==> h[r, alloc])
           var bvarsR = new List<Bpl.Variable>();
           var r = BplBoundVar("r", predef.RefType, bvarsR);
           var rNonNull = Bpl.Expr.Neq(r, predef.Null);
-          var reads = FunctionCall(tok, Reads(ad.Arity), predef.BoxType, Concat(types, Cons(f, Cons<Bpl.Expr>(h, boxes))));
+          var reads = FunctionCall(tok, Reads(ad.Arity), predef.BoxType, Concat(types, Cons(h, Cons<Bpl.Expr>(f, boxes))));
           var rInReads = Bpl.Expr.Select(reads, FunctionCall(tok, BuiltinFunction.Box, null, r));
           var rAlloc = IsAlloced(tok, h, r);
           var isAllocReads = BplForall(bvarsR, BplTrigger(rInReads), BplImp(BplAnd(rNonNull, rInReads), rAlloc));
@@ -7629,8 +7622,8 @@ namespace Microsoft.Dafny {
           var bvarsInner = new List<Bpl.Variable>();
           var boxes = Map(Enumerable.Range(0, arity), i => BplBoundVar("bx" + i, predef.BoxType, bvarsInner));
           var isAllocBoxes = BplAnd(Map(Enumerable.Range(0, arity), i => MkIsAlloc(boxes[i], types[i], h, true)));
-          var pre = FunctionCall(tok, Requires(ad.Arity), predef.BoxType, Concat(types, Cons(f, Cons<Bpl.Expr>(h, boxes))));
-          var applied = FunctionCall(tok, Apply(ad.Arity), predef.BoxType, Concat(types, Cons(f, Cons<Bpl.Expr>(h, boxes))));
+          var pre = FunctionCall(tok, Requires(ad.Arity), predef.BoxType, Concat(types, Cons(h, Cons<Bpl.Expr>(f, boxes))));
+          var applied = FunctionCall(tok, Apply(ad.Arity), predef.BoxType, Concat(types, Cons(h, Cons<Bpl.Expr>(f, boxes))));
           var applied_isAlloc = MkIsAlloc(applied, types[ad.Arity], h, true);
 
           sink.AddTopLevelDeclaration(new Axiom(tok,
@@ -11787,8 +11780,8 @@ namespace Microsoft.Dafny {
               var args = Concat(
                 Map(Enumerable.Range(0, tRhs.ArrayDimensions.Count), ii => TypeToTy(sourceType.Args[ii])),
                 Cons(TypeToTy(sourceType.Result),
-                Cons(etran.TrExpr(tRhs.ElementInit),
                 Cons(etran.HeapExpr,
+                Cons(etran.TrExpr(tRhs.ElementInit),
                 indicies.ConvertAll(idx => (Bpl.Expr)FunctionCall(tok, BuiltinFunction.Box, null, idx))))));
               // check precond
               var pre = FunctionCall(tok, Requires(tRhs.ArrayDimensions.Count), Bpl.Type.Bool, args);
@@ -13270,9 +13263,9 @@ namespace Microsoft.Dafny {
 
           Func<Expression, Bpl.Expr> TrArg = arg => translator.BoxIfUnboxed(TrExpr(arg), arg.Type);
 
-          var applied = translator.FunctionCall(expr.tok, translator.Apply(arity), predef.BoxType,
+          var applied = translator.FunctionCall(expr.tok, Translator.Apply(arity), predef.BoxType,
             Concat(Map(tt.TypeArgs,translator.TypeToTy),
-            Cons(TrExpr(e.Function), Cons(HeapExpr, e.Args.ConvertAll(arg => TrArg(arg))))));
+            Cons(HeapExpr, Cons(TrExpr(e.Function), e.Args.ConvertAll(arg => TrArg(arg))))));
 
           return translator.UnboxIfBoxed(applied, tt.Result);
 
