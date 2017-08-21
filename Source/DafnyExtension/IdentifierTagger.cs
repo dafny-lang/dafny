@@ -568,7 +568,8 @@ namespace DafnyLanguage
         }
         Start = tok.pos;
         Length = decl.Name.Length;
-        HoverText = string.Format("({4}{2}{3}) {0}: {1}", decl.FullNameInContext(context), showType.TypeName(context),
+        var name = decl.EnclosingClass != null ? decl.FullNameInContext(context) : decl.Name;  // some built-in members like "Keys" may not have an .EnclosingClass
+        HoverText = string.Format("({4}{2}{3}) {0}: {1}", name, showType.TypeName(context),
           decl.IsGhost ? "ghost " : "",
           kind,
           decl.IsUserMutable || decl is DatatypeDestructor ? "" : decl.IsMutable ? " non-assignable " : "immutable ");
