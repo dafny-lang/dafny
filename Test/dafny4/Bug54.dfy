@@ -1,7 +1,7 @@
 // RUN: %dafny /compile:0  "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
-predicate G<X>(f:X->bool)
+predicate G<X>(f:X~>bool)
   reads f.reads;
   requires forall x :: f.requires(x) && f(x);
 {

@@ -1,7 +1,7 @@
 // RUN: %dafny /compile:0  "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
-predicate {:opaque} G(f:int->bool)
+predicate {:opaque} G(f:int~>bool)
   reads f.reads;
   requires f.requires(0);
 {

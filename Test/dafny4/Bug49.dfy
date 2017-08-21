@@ -12,7 +12,7 @@ method Main()
 // -----
 // test that the definition axiom for function "apply" is available
 
-function method apply(f:int->int, a:int): int
+function method apply(f:int~>int, a:int): int
   reads f.reads
   requires f.requires(a)
 {

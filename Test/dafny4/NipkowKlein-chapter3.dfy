@@ -22,21 +22,8 @@ datatype aexp = N(n: int) | V(vname) | Plus(aexp, aexp)  // arithmetic expressio
 
 type val = int
 type state = vname -> val
-// In Dafny, functions can in general read the heap (which is not interesting to these examples--in fact, for
-// the examples in this file, the fact that functions can read the state is just a distraction, so you can
-// just ignore all the lines "reads s.reads" if you prefer) and may have preconditions (that is, the function
-// may have some domain that is not specific than what its type says).
-// The following predicate holds for a given s if s can be applied to any vname
-predicate Total(s: state)
-  reads s.reads  // this says that Total(s) can read anything that s can (on any input)
-{
-  // the following line is the conjunction, over all x, of the precondition of the call s(x)
-  forall x :: s.requires(x)
-}
 
 function aval(a: aexp, s: state): val
-  reads s.reads
-  requires Total(s)
 {
   match a
   case N(n) => n
@@ -76,7 +63,6 @@ function asimp_const(a: aexp): aexp
 }
 
 lemma AsimpConst(a: aexp, s: state)
-  requires Total(s)
   ensures aval(asimp_const(a), s) == aval(a, s)
 {
   // by induction
@@ -109,7 +95,6 @@ function plus(a0: aexp, a1: aexp): aexp
 }
 
 lemma AvalPlus(a0: aexp, a1: aexp, s: state)
-  requires Total(s)
   ensures aval(plus(a0, a1), s) == aval(a0, s) + aval(a1, s)
 {
   // this proof is done automatically
@@ -124,7 +109,6 @@ function asimp(a: aexp): aexp
 }
 
 lemma AsimpCorrect(a: aexp, s: state)
-  requires Total(s)
   ensures aval(asimp(a), s) == aval(a, s)
 {
   // call the induction hypothesis on every value a' that is structurally smaller than a
@@ -142,8 +126,6 @@ lemma ASimplInvolutive(a: aexp)
 datatype bexp = Bc(v: bool) | Not(bexp) | And(bexp, bexp) | Less(aexp, aexp)
 
 function bval(b: bexp, s: state): bool
-  reads s.reads
-  requires Total(s)
 {
   match b
   case Bc(v) => v
@@ -191,7 +173,6 @@ function bsimp(b: bexp): bexp
 }
 
 lemma BsimpCorrect(b: bexp, s: state)
-  requires Total(s)
   ensures bval(bsimp(b), s) == bval(b, s)
 {
 /*  Here is one proof, which uses the induction hypothesis any anything smaller than b and also invokes
@@ -220,8 +201,6 @@ datatype instr = LOADI(val) | LOAD(vname) | ADD
 type stack = List<val>
 
 function exec1(i: instr, s: state, stk: stack): stack
-  reads s.reads
-  requires Total(s)
 {
   match i
   case LOADI(n) => Cons(n, stk)
@@ -235,8 +214,6 @@ function exec1(i: instr, s: state, stk: stack): stack
 }
 
 function exec(ii: List<instr>, s: state, stk: stack): stack
-  reads s.reads
-  requires Total(s)
 {
   match ii
   case Nil => stk
@@ -254,7 +231,6 @@ function comp(a: aexp): List<instr>
 }
 
 lemma CorrectCompilation(a: aexp, s: state, stk: stack)
-  requires Total(s)
   ensures exec(comp(a), s, stk) == Cons(aval(a, s), stk)
 {
   match a
@@ -284,7 +260,6 @@ lemma CorrectCompilation(a: aexp, s: state, stk: stack)
 }
 
 lemma ExecAppend(ii0: List<instr>, ii1: List<instr>, s: state, stk: stack)
-  requires Total(s)
   ensures exec(append(ii0, ii1), s, stk) == exec(ii1, s, exec(ii0, s, stk))
 {
   // the proof (which is by induction) is done automatically

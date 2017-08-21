@@ -1,7 +1,7 @@
 // RUN: %dafny /compile:0 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
-function{:opaque} MapSetToSet<X, Y>(xs:set<X>, f:X->Y):set<Y>
+function{:opaque} MapSetToSet<X, Y>(xs:set<X>, f:X~>Y):set<Y>
 //function MapSetToSet<X, Y>(xs:set<X>, f:X->Y):set<Y>
   reads f.reads;
   requires forall x :: f.requires(x);

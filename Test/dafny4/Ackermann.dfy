@@ -58,23 +58,12 @@ function A(m: int): int -> int
 }
 
 function Iter(f: int -> int, n: int): int
-  requires IsTotal(f)
   decreases n
 {
   if n <= 0 then
     f(1)
   else
     f(Iter(f, n-1))
-}
-
-// In the 3-part definition above, function Iter needs to know that it can
-// apply its function parameter "f".  Therefore, Iter's precondition says that
-// "f" must be total.  We define totality of "f" by saying that its precondition
-// holds for any n and that it never reads the heap:
-predicate IsTotal(f: int -> int)
-  reads f.reads
-{
-  forall n :: f.requires(n) && f.reads(n) == {}
 }
 
 // Now, we can prove certain things about CurriedAckermann.  The first thing we
@@ -115,21 +104,18 @@ lemma MonotonicM(m: nat, n: nat, m': nat)
 // to as "f is a function that is always below g".  The lemma ABelow(m, m') used above establishes
 // FunctionBelow(A(m), A(m')).
 predicate FunctionBelow(f: int -> int, g: int -> int)
-  requires IsTotal(f) && IsTotal(g)
 {
   forall n :: f(n) <= g(n)
 }
 
 // The next property says that a function is monotonic.
 predicate FunctionMonotonic(f: int -> int)
-  requires IsTotal(f)
 {
   forall n,n' :: n <= n' ==> f(n) <= f(n')
 }
 
 // The third property says that a function's return value is strictly greater than its argument.
 predicate Expanding(f: int -> int)
-  requires IsTotal(f)
 {
   forall n :: n < f(n)
 }
@@ -139,7 +125,7 @@ predicate Expanding(f: int -> int)
 
 // Provided that "f" is monotonic and expanding, Iter(f, _) is monotonic.
 lemma IterIsMonotonicN(f: int -> int, n: int, n': int)
-  requires IsTotal(f) && Expanding(f) && FunctionMonotonic(f) && n <= n'
+  requires Expanding(f) && FunctionMonotonic(f) && n <= n'
   ensures Iter(f, n) <= Iter(f, n')
 {
   // This proof is a simple induction over n' and Dafny completes the proof automatically.
@@ -149,7 +135,7 @@ lemma IterIsMonotonicN(f: int -> int, n: int, n': int)
 // such that FunctionBelow(f, g), we have Iter(f, n) <= Iter(g, n).  The lemma requires
 // "f" to be monotonic, but we don't have to state the same property for g.
 lemma IterIsMonotonicF(f: int -> int, g: int -> int, n: int)
-  requires IsTotal(f) && IsTotal(g) && FunctionMonotonic(f) && FunctionBelow(f, g)
+  requires FunctionMonotonic(f) && FunctionBelow(f, g)
   ensures Iter(f, n) <= Iter(g, n)
 {
   // This proof is a simple induction over n and Dafny completes the proof automatically.
@@ -157,7 +143,7 @@ lemma IterIsMonotonicF(f: int -> int, g: int -> int, n: int)
 
 // Finally, we shows that for any expanding function "f", Iter(f, _) is also expanding.
 lemma IterExpanding(f: int -> int, n: int)
-  requires IsTotal(f) && Expanding(f)
+  requires Expanding(f)
   ensures n < Iter(f, n)
 {
   // Here, too, the proof is a simple induction of n and Dafny completes it automatically.

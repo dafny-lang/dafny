@@ -55,19 +55,11 @@ lemma Lemma_InSubStream<T>(x: T, s: Stream<T>, u: Stream<T>)
 
 type Predicate<T> = T -> bool
 
-predicate Total<T,U>(f: T -> U)
-  reads f.reads
-{
-  forall t :: f.reads(t) == {} && f.requires(t)
-}
-
 copredicate AllP(s: Stream, P: Predicate)
-  requires Total(P)
 {
   P(s.head) && AllP(s.tail, P)
 }
 lemma Lemma_InAllP<T>(x: T, s: Stream<T>, P: Predicate)
-  requires Total(P)
   requires In(x, s) && AllP(s, P)
   ensures P(x)
 {
@@ -83,17 +75,14 @@ lemma Lemma_InAllP<T>(x: T, s: Stream<T>, P: Predicate)
 }
 
 predicate IsAnother(s: Stream, P: Predicate)
-  requires Total(P)
 {
   exists n :: 0 <= n && P(Tail(s, n).head)
 }
 copredicate AlwaysAnother(s: Stream, P: Predicate)
-  requires Total(P)
 {
   IsAnother(s, P) && AlwaysAnother(s.tail, P)
 }
 colemma Lemma_AllImpliesAlwaysAnother(s: Stream, P: Predicate)
-  requires Total(P)
   requires AllP(s, P)
   ensures AlwaysAnother(s, P)
 {
@@ -101,7 +90,6 @@ colemma Lemma_AllImpliesAlwaysAnother(s: Stream, P: Predicate)
 }
 
 function Next(s: Stream, P: Predicate): nat
-  requires Total(P)
   requires AlwaysAnother(s, P)
   ensures P(Tail(s, Next(s, P)).head)
   ensures forall i :: 0 <= i < Next(s, P) ==> !P(Tail(s, i).head)
@@ -111,7 +99,6 @@ function Next(s: Stream, P: Predicate): nat
 }
 // the following is an auxiliary function of the definition of Next
 function NextMinimizer(s: Stream, P: Predicate, n: nat): nat
-  requires Total(P)
   requires P(Tail(s, n).head)
   ensures P(Tail(s, NextMinimizer(s, P, n)).head)
   ensures forall i :: 0 <= i < NextMinimizer(s, P, n) ==> !P(Tail(s, i).head)
@@ -124,7 +111,6 @@ function NextMinimizer(s: Stream, P: Predicate, n: nat): nat
 }
 
 function Filter(s: Stream, P: Predicate): Stream
-  requires Total(P)
   requires AlwaysAnother(s, P)
   decreases Next(s, P)
 {
@@ -135,7 +121,6 @@ function Filter(s: Stream, P: Predicate): Stream
 }
 // properties about Filter
 colemma Filter_AlwaysAnother(s: Stream, P: Predicate)
-  requires Total(P)
   requires AlwaysAnother(s, P)
   ensures AllP(Filter(s, P), P)
   decreases Next(s, P)
@@ -147,7 +132,6 @@ colemma Filter_AlwaysAnother(s: Stream, P: Predicate)
   }
 }
 colemma Filter_IsSubStream(s: Stream, P: Predicate)
-  requires Total(P)
   requires AlwaysAnother(s, P)
   ensures IsSubStream(Filter(s, P), s)
   decreases Next(s, P)
@@ -179,7 +163,6 @@ colemma Filter_IsSubStream(s: Stream, P: Predicate)
 
 // The following says nothing about the order of the elements in the stream
 lemma Theorem_Filter<T>(s: Stream<T>, P: Predicate)
-  requires Total(P)
   requires AlwaysAnother(s, P)
   ensures forall x :: In(x, Filter(s, P)) <==> In(x, s) && P(x)
 {
@@ -197,7 +180,6 @@ lemma Theorem_Filter<T>(s: Stream<T>, P: Predicate)
 }
 
 lemma FS_Ping<T>(s: Stream<T>, P: Predicate, x: T)
-  requires Total(P)
   requires AlwaysAnother(s, P) && In(x, Filter(s, P));
   ensures In(x, s) && P(x);
 {
@@ -210,7 +192,6 @@ lemma FS_Ping<T>(s: Stream<T>, P: Predicate, x: T)
 }
 
 lemma FS_Pong<T>(s: Stream<T>, P: Predicate, x: T, k: nat)
-  requires Total(P)
   requires AlwaysAnother(s, P) && In(x, s) && P(x)
   requires Tail(s, k).head == x
   ensures In(x, Filter(s, P))
@@ -239,24 +220,20 @@ lemma FS_Pong<T>(s: Stream<T>, P: Predicate, x: T, k: nat)
 type Ord<T> = T -> int
 
 copredicate Increasing(s: Stream, ord: Ord)
-  requires Total(ord)
 {
   ord(s.head) < ord(s.tail.head) && Increasing(s.tail, ord)
 }
 copredicate IncrFrom(s: Stream, low: int, ord: Ord)
-  requires Total(ord)
 {
   low <= ord(s.head) && IncrFrom(s.tail, ord(s.head) + 1, ord)
 }
 
 colemma Lemma_Incr0(s: Stream, low: int, ord: Ord)
-  requires Total(ord)
   requires IncrFrom(s, low, ord)
   ensures Increasing(s, ord)
 {
 }
 colemma Lemma_Incr1(s: Stream, ord: Ord)
-  requires Total(ord)
   requires Increasing(s, ord);
   ensures IncrFrom(s, ord(s.head), ord);
 {
@@ -264,7 +241,6 @@ colemma Lemma_Incr1(s: Stream, ord: Ord)
 }
 
 lemma Theorem_FilterPreservesOrdering(s: Stream, P: Predicate, ord: Ord)
-  requires Total(P) && Total(ord)
   requires Increasing(s, ord) && AlwaysAnother(s, P)
   ensures Increasing(Filter(s, P), ord)
 {
@@ -273,7 +249,6 @@ lemma Theorem_FilterPreservesOrdering(s: Stream, P: Predicate, ord: Ord)
   Lemma_Incr0(Filter(s, P), ord(s.head), ord);
 }
 colemma Lemma_FilterPreservesIncrFrom(s: Stream, P: Predicate, low: int, ord: Ord)
-  requires Total(P) && Total(ord)
   requires IncrFrom(s, low, ord) && AlwaysAnother(s, P) && low <= ord(s.head)
   ensures IncrFrom(Filter(s, P), low, ord)
   decreases Next(s, P)

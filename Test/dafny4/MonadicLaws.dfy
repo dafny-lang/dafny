@@ -7,12 +7,6 @@
 
 datatype List<T> = Nil | Cons(head: T, tail: List)
 
-predicate Total<T,U>(p: T ~> U)
-  reads p.reads
-{
-  forall x :: p.reads(x) == {} && p.requires(x)
-}
-
 function append(xs: List, ys: List): List
 {
   match xs
@@ -35,16 +29,14 @@ function Return<T>(a: T): List
   Cons(a, Nil)
 }
 
-function Bind<T,U>(xs: List<T>, f: T ~> List<U>): List<U>
-  requires Total(f)
+function Bind<T,U>(xs: List<T>, f: T -> List<U>): List<U>
 {
   match xs
   case Nil => Nil
   case Cons(x, xs') => append(f(x), Bind(xs', f))
 }
 
-lemma LeftIdentity<T>(a: T, f: T ~> List)
-  requires Total(f)
+lemma LeftIdentity<T>(a: T, f: T -> List)
   ensures Bind(Return(a), f) == f(a)
 {
   AppendNil(f(a));
@@ -64,8 +56,7 @@ lemma RightIdentity<T>(m: List)
     }
 }
 
-lemma Associativity<T>(m: List, f: T ~> List, g: T ~> List)
-  requires Total(f) && Total(g)
+lemma Associativity<T>(m: List, f: T -> List, g: T -> List)
   ensures Bind(Bind(m, f), g) == Bind(m, x => Bind(f(x), g))
 {
   match m
@@ -89,8 +80,7 @@ lemma Associativity<T>(m: List, f: T ~> List, g: T ~> List)
       }
 }
 
-lemma BindOverAppend<T>(xs: List, ys: List, g: T ~> List)
-  requires Total(g)
+lemma BindOverAppend<T>(xs: List, ys: List, g: T -> List)
   ensures Bind(append(xs, ys), g) == append(Bind(xs, g), Bind(ys, g))
 {
   match xs

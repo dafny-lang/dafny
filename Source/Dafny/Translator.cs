@@ -6276,17 +6276,40 @@ namespace Microsoft.Dafny {
           Cons(etran.TrExpr(e.Function),
           e.Args.ConvertAll(arg => TrArg(arg)))));
 
-        // check precond
-        var precond = FunctionCall(e.tok, Requires(arity), Bpl.Type.Bool, args);
-        builder.Add(Assert(expr.tok, precond, "possible violation of function precondition"));
+        // Because type inference often gravitates towards inferring non-constrained types, we'll
+        // do some digging on our own to see if we can discover a more precise type.
+        var fnCore = e.Function;
+        while (true) {
+          var prevCore = fnCore;
+          fnCore = Expression.StripParens(fnCore.Resolved);
+          if (object.ReferenceEquals(fnCore, prevCore)) {
+            break;  // we've done what we can do
+          }
+        }
+        Type fnCoreType;
+        if (fnCore is IdentifierExpr) {
+          var v = (IdentifierExpr)fnCore;
+          fnCoreType = v.Var.Type;
+        } else if (fnCore is MemberSelectExpr) {
+          var m = (MemberSelectExpr)fnCore;
+          fnCoreType = m.Member is Field ? ((Field)m.Member).Type : ((Function)m.Member).Type;
+        } else {
+          fnCoreType = fnCore.Type;
+        }
+        if (!fnCoreType.IsArrowTypeWithoutPreconditions) {
+          // check precond
+          var precond = FunctionCall(e.tok, Requires(arity), Bpl.Type.Bool, args);
+          builder.Add(Assert(expr.tok, precond, "possible violation of function precondition"));
+        }
 
-        if (options.DoReadsChecks) {
+        if (options.DoReadsChecks && !fnCoreType.IsArrowTypeWithoutReadEffects) {
+          // check read effects
           Type objset = new SetType(true, new ObjectType());
           Expression wrap = new BoogieWrapper(
             FunctionCall(e.tok, Reads(arity), TrType(objset), args),
             objset);
           var reads = new FrameExpression(e.tok, wrap, null);
-          CheckFrameSubset(expr.tok, new List<FrameExpression>{ reads }, null, null,
+          CheckFrameSubset(expr.tok, new List<FrameExpression> { reads }, null, null,
             etran, options.AssertSink(this, builder), "insufficient reads clause to invoke function", options.AssertKv);
         }
 

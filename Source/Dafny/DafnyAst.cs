@@ -940,6 +940,50 @@ namespace Microsoft.Dafny {
         return udt != null && (ArrowType.IsPartialArrowTypeName(udt.Name) || ArrowType.IsTotalArrowTypeName(udt.Name));
       }
     }
+    /// <summary>
+    /// Returns "true" if the type is a partial arrow or any subset type thereof.
+    /// </summary>
+    public bool IsArrowTypeWithoutReadEffects {
+      get {
+        var t = this;
+        while (true) {
+          var udt = t.NormalizeExpandKeepConstraints() as UserDefinedType;
+          if (udt == null) {
+            return false;
+          } else if (ArrowType.IsPartialArrowTypeName(udt.Name)) {
+            return true;
+          }
+          var sst = udt.ResolvedClass as SubsetTypeDecl;
+          if (sst != null) {
+            t = sst.RhsWithArgument(udt.TypeArgs);  // continue the search up the chain of subset types
+          } else {
+            return false;
+          }
+        }
+      }
+    }
+    /// <summary>
+    /// Returns "true" if the type is a total arrow or any subset type thereof.
+    /// </summary>
+    public bool IsArrowTypeWithoutPreconditions {
+      get {
+        var t = this;
+        while (true) {
+          var udt = t.NormalizeExpandKeepConstraints() as UserDefinedType;
+          if (udt == null) {
+            return false;
+          } else if (ArrowType.IsTotalArrowTypeName(udt.Name)) {
+            return true;
+          }
+          var sst = udt.ResolvedClass as SubsetTypeDecl;
+          if (sst != null) {
+            t = sst.RhsWithArgument(udt.TypeArgs);  // continue the search up the chain of subset types
+          } else {
+            return false;
+          }
+        }
+      }
+    }
     public bool IsArrowType {
       get { return AsArrowType != null; }
     }
@@ -7380,15 +7424,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(expr.Type.IsBoolType);
       Contract.Ensures(cce.NonNullElements(Contract.Result<IEnumerable<Expression>>()));
 
-      // strip off parens
-      while (true) {
-        var pr = expr as ParensExpression;
-        if (pr == null) {
-          break;
-        } else {
-          expr = pr.E;
-        }
-      }
+      expr = StripParens(expr);
 
       var bin = expr as BinaryExpr;
       if (bin != null && bin.ResolvedOp == BinaryExpr.ResolvedOpcode.And) {

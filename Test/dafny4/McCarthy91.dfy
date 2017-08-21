@@ -60,7 +60,6 @@ function method mc91(n: int): int
 // Iterating a function f e times starting from n
 
 function method iter(e: nat, f: int -> int, n: int): int
-  requires forall x :: f.requires(x) && f.reads(x) == {}
 {
   if e == 0 then n else iter(e-1, f, f(n))
 }

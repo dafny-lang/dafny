@@ -12,9 +12,8 @@ method Simple() {
   assert Twice(x => x + 1)(0) == 2;
   assert Twice(Twice(x => x + 1))(0) == 4;
 
-  // why does these fail? need requires/reads for literals?
-  // assert Twice(Twice)(x => x + 1)(0) == 4;
-  // assert Twice(Twice)(Twice)(x => x + 1)(0) == 16;
+  assert Twice(Twice)(x => x + 1)(0) == 4;
+  assert Twice(Twice)(Twice)(x => x + 1)(0) == 16;
 }
 
 method WithReads() {
