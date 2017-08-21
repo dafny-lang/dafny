@@ -42,7 +42,6 @@ class Comparable {
 
 
 class Benchmark3 {
-
   method Sort(q: Queue<int>) returns (r: Queue<int>)
     requires q != null;
     modifies q;
@@ -69,8 +68,7 @@ class Benchmark3 {
       r.Enqueue(m);
     }
   }
-  
-  
+
   method RemoveMin(q: Queue<int>) returns (m: int, k: int) //m is the min, k is m's index in q
     requires q != null && |q.contents| != 0;
     modifies q;
@@ -97,7 +95,21 @@ class Benchmark3 {
       j := j+1;
     }
 
-    j := 0;
+    Rotate(q, k);
+
+    assert q.contents == old(q.contents)[k..] + old(q.contents)[..k];
+    ghost var qq := q.contents;
+    m := q.Dequeue();
+    assert m == qq[0];
+    assert [m] + q.contents == qq && q.contents == qq[1..];
+  }
+
+  method Rotate(q: Queue<int>, k: nat)
+    requires q != null && k <= |q.contents|
+    modifies q
+    ensures q.contents == old(q.contents)[k..] + old(q.contents)[..k]
+  {
+    var j := 0;
     while j < k
       invariant j <= k;
       invariant q.contents == old(q.contents)[j..] + old(q.contents)[..j]; 
@@ -108,13 +120,7 @@ class Benchmark3 {
       RotationLemma(old(q.contents), j, qc0, q.contents);
       j := j+1;
     }
-
     assert j == k;  
-    assert q.contents == old(q.contents)[k..] + old(q.contents)[..k];
-    ghost var qq := q.contents;
-    m := q.Dequeue();
-    assert m == qq[0];
-    assert [m] + q.contents == qq && q.contents == qq[1..];
   }
 
   lemma RotationLemma(O: seq, j: nat, A: seq, C: seq)

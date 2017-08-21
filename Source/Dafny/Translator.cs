@@ -1168,7 +1168,7 @@ namespace Microsoft.Dafny {
         name += "$Is";
         // $Is(o, ..)
         is_o = MkIs(o, o_ty);
-        var etran = new ExpressionTranslator(this, predef, dd.tok);
+        var etran = new ExpressionTranslator(this, predef, new Bpl.IdentifierExpr(dd.tok, "$OneHeap", predef.HeapType));
         Bpl.Expr parentConstraint, constraint;
         if (dd.Var.Type.IsNumericBased() || dd.Var.Type.IsBitVectorType || dd.Var.Type.IsBoolType) {
           // optimize this to only use the numeric/bitvector constraint, not the whole $Is thing on the base type
@@ -1180,20 +1180,6 @@ namespace Microsoft.Dafny {
           parentConstraint = MkIs(o, dd.Var.Type);
           // conjoin the constraint
           constraint = etran.TrExpr(dd.Constraint);
-        }
-        if (etran.Statistics_HeapUses != 0) {
-          var heap = new Bpl.BoundVariable(dd.tok, new Bpl.TypedIdent(dd.tok, predef.HeapVarName, predef.HeapType));
-          //TRIG (exists $Heap: Heap :: $IsGoodHeap($Heap) && LitInt(0) <= $o#0 && $o#0 < 100) &&
-          //TRIG (forall $Heap: Heap :: $IsGoodHeap($Heap) ==> LitInt(0) <= $o#0 && $o#0 < 100)
-          // TODO: Since dd.Constraint really shouldn't depend on the heap anyway, it would be better to use an "etran"
-          // that used some global-constant dummy heap.  But some heap is needed to make for a correct translation into
-          // Boogie, as for instance this example shows:
-          //      class C { }
-          //      newtype MyInt = x: int | {} == set c: C | true :: c
-          var range = FunctionCall(dd.tok, BuiltinFunction.IsGoodHeap, null, etran.HeapExpr);
-          var e = new Bpl.ExistsExpr(dd.tok, new List<Variable> { heap }, BplAnd(range, constraint));  // LL_TRIGGER
-          var a = new Bpl.ForallExpr(dd.tok, new List<Variable> { heap }, BplImp(range, constraint));  // LL_TRIGGER
-          constraint = BplAnd(e, a);
         }
         body = BplIff(is_o, BplAnd(parentConstraint, constraint));
       }
@@ -1223,7 +1209,7 @@ namespace Microsoft.Dafny {
         }
         sink.AddTopLevelDeclaration(fn);
 
-        List<Variable> bvs;
+        List<Bpl.Variable> bvs;
         List<Bpl.Expr> args;
 
 
@@ -1284,10 +1270,11 @@ namespace Microsoft.Dafny {
               { $Is(C(x0,...,xn), T(G)) }
               $Is(C(x0,...,xn), T(G)) <==>
               $Is[Box](x0, C0(G)) && ... && $Is[Box](xn, Cn(G)));
-            (forall x0 : C0, ..., xn : Cn, G : Ty •
-                { $IsAlloc(C(G, x0,...,xn), T(G)) }
-                $IsAlloc(C(G, x0,...,xn), T(G)) ==>
-                    $IsAlloc[Box](x0, C0(G)) && ... && $IsAlloc[Box](xn, Cn(G)));
+            (forall x0 : C0, ..., xn : Cn, G : Ty, H : Heap •
+                { $IsAlloc(C(G, x0,...,xn), T(G), H) }
+                IsGoodHeap(H) ==>
+                   ($IsAlloc(C(G, x0,...,xn), T(G), H) <==>
+                    $IsAlloc[Box](x0, C0(G), H) && ... && $IsAlloc[Box](xn, Cn(G), H)));
           */
           List<Bpl.Expr> tyexprs;
           var tyvars = MkTyParamBinders(dt.TypeArgs, out tyexprs);
@@ -1298,7 +1285,7 @@ namespace Microsoft.Dafny {
           for (var i = 0; i < ctor.Formals.Count; i++) {
             var arg = ctor.Formals[i];
             if (is_alloc) {
-              if (AlwaysUseHeap || (NonGhostsUseHeap && !arg.IsGhost)) {
+              if (AlwaysUseHeapMethod || (NonGhostsUseHeap && !arg.IsGhost)) {
                 conj = BplAnd(conj, MkIsAlloc(args[i], arg.Type, h));
               }
             } else {
@@ -1313,7 +1300,7 @@ namespace Microsoft.Dafny {
             sink.AddTopLevelDeclaration(new Bpl.Axiom(ctor.tok,
                 BplForall(bvs, BplTrigger(c_is), BplIff(c_is, conj)),
                 "Constructor $Is"));
-          } else if (is_alloc && (AlwaysUseHeap || NonGhostsUseHeap)) {
+          } else if (is_alloc && (AlwaysUseHeapMethod || NonGhostsUseHeap)) {
             var isGoodHeap = FunctionCall(ctor.tok, BuiltinFunction.IsGoodHeap, null, h);
             var c_alloc = MkIsAlloc(c_params, c_ty, h);
             bvs.Add(hVar);
@@ -1321,6 +1308,53 @@ namespace Microsoft.Dafny {
                 BplForall(bvs, BplTrigger(c_alloc),
                                BplImp(isGoodHeap, BplIff(c_alloc, conj))),
                 "Constructor $IsAlloc"));
+          }
+          if (is_alloc && AlwaysUseHeapMethod && !AlwaysUseHeap) {
+            for (int i = 0; i < ctor.Formals.Count; i++) {
+              var arg = ctor.Formals[i];
+              var dtor = GetReadonlyField(ctor.Destructors[i]);
+              /* (forall d : DatatypeType, G : Ty, H : Heap •
+                     { $IsAlloc[Box](Dtor(d), D(G), H) }
+                     IsGoodHeap(H) &&
+                     C?(d) &&
+                     (exists G' : Ty :: $IsAlloc(d, T(G,G'), H))
+                     ==>
+                         $IsAlloc[Box](Dtor(d), D(G), H))
+               */
+              Bpl.Expr dId; var dBv = BplBoundVar("d", predef.DatatypeType, out dId);
+              var isGoodHeap = FunctionCall(ctor.tok, BuiltinFunction.IsGoodHeap, null, h);
+              Bpl.Expr dtq = FunctionCall(ctor.tok, ctor.QueryField.FullSanitizedName, Bpl.Type.Bool, dId);
+              var c_alloc = MkIsAlloc(dId, c_ty, h);
+              var dtorD = FunctionCall(ctor.tok, dtor.Name, TrType(arg.Type), dId);
+              var d_alloc = MkIsAlloc(dtorD, arg.Type, h);
+
+              // split tyvars into G,G' where G are the type variables that are used in the type of the destructor
+              var freeTypeVars = new HashSet<TypeParameter>();
+              ComputeFreeTypeVariables_All(arg.Type, freeTypeVars);
+              var tyvarsG = new List<Bpl.Variable>();
+              var tyvarsGprime = new List<Bpl.Variable>();
+              Contract.Assert(dt.TypeArgs.Count == tyvars.Count);
+              for (int j = 0; j < dt.TypeArgs.Count; j++) {
+                var tv = tyvars[j];
+                if (freeTypeVars.Contains(dt.TypeArgs[j])) {
+                  tyvarsG.Add(tv);
+                } else {
+                  tyvarsGprime.Add(tv);
+                }
+              }
+
+              bvs = new List<Bpl.Variable>();
+              bvs.Add(dBv);
+              bvs.AddRange(tyvarsG);
+              bvs.Add(hVar);
+              if (tyvarsGprime.Count != 0) {
+                c_alloc = new Bpl.ExistsExpr(ctor.tok, tyvarsGprime, BplTrigger(c_alloc), c_alloc);
+              }
+              sink.AddTopLevelDeclaration(new Bpl.Axiom(ctor.tok,
+                  BplForall(bvs, BplTrigger(d_alloc),
+                                 BplImp(BplAnd(isGoodHeap, BplAnd(dtq, c_alloc)), d_alloc)),
+                  "Destructor $IsAlloc"));
+            }
           }
         });
 
@@ -1783,6 +1817,7 @@ namespace Microsoft.Dafny {
     // i.e. h[x, alloc]
     public Bpl.Expr IsAlloced(IToken tok, Bpl.Expr heapExpr, Bpl.Expr e) {
       Contract.Requires(tok != null);
+      Contract.Requires(heapExpr != null);
       Contract.Requires(e != null);
       Contract.Ensures(Contract.Result<Bpl.Expr>() != null);
 
@@ -2043,7 +2078,7 @@ namespace Microsoft.Dafny {
         AddFrameAxiom(f);
       }
       // add consequence axiom
-      sink.AddTopLevelDeclaration(FunctionConsequenceAxiom(f, f.Ens));
+      AddFunctionConsequenceAxiom(f, f.Ens);
       // add definition axioms, suitably specialized for literals
       if (f.Body != null && RevealedInScope(f)) {
         AddFunctionAxiom(f, f.Body.Resolved);
@@ -2487,11 +2522,10 @@ namespace Microsoft.Dafny {
       }
     }
 
-    Bpl.Axiom FunctionConsequenceAxiom(Function f, List<Expression> ens) {
+    void AddFunctionConsequenceAxiom(Function f, List<Expression> ens) {
       Contract.Requires(f != null);
       Contract.Requires(predef != null);
       Contract.Requires(f.EnclosingClass != null);
-      Contract.Ensures(Contract.Result<Bpl.Axiom>() != null);
 
       bool readsHeap = AlwaysUseHeap || f.ReadsHeap;
       foreach (Expression e in f.Req.Concat(ens)) {
@@ -2504,7 +2538,7 @@ namespace Microsoft.Dafny {
       if (f is TwoStateFunction) {
         bvPrevHeap = new Bpl.BoundVariable(f.tok, new Bpl.TypedIdent(f.tok, "$prevHeap", predef.HeapType));
         etran = new ExpressionTranslator(this, predef,
-          new Bpl.IdentifierExpr(f.tok, predef.HeapVarName, predef.HeapType),
+          f.ReadsHeap ? new Bpl.IdentifierExpr(f.tok, predef.HeapVarName, predef.HeapType) : null,
           new Bpl.IdentifierExpr(f.tok, bvPrevHeap));
         etranHeap = etran;
       } else {
@@ -2567,17 +2601,17 @@ namespace Microsoft.Dafny {
         // ante:  $IsGoodHeap($prevHeap) &&
         ante = BplAnd(ante, FunctionCall(f.tok, BuiltinFunction.IsGoodHeap, null, etran.Old.HeapExpr));
       }
-      Bpl.Expr goodHeap = FunctionCall(f.tok, BuiltinFunction.IsGoodHeap, null, etranHeap.HeapExpr);
       var bvHeap = new Bpl.BoundVariable(f.tok, new Bpl.TypedIdent(f.tok, predef.HeapVarName, predef.HeapType));
       if (AlwaysUseHeap || f.ReadsHeap) {
         args.Add(new Bpl.IdentifierExpr(f.tok, bvHeap));
       }
       // ante:  $IsGoodHeap($Heap) && $HeapSucc($prevHeap, $Heap) && this != null && formals-have-the-expected-types &&
       if (readsHeap) {
+        Bpl.Expr goodHeap = FunctionCall(f.tok, BuiltinFunction.IsGoodHeap, null, etranHeap.HeapExpr);
         formals.Add(bvHeap);
         ante = BplAnd(ante, goodHeap);
       }
-      if (f is TwoStateFunction) {
+      if (f is TwoStateFunction && f.ReadsHeap) {
         ante = BplAnd(ante, HeapSucc(etran.Old.HeapExpr, etran.HeapExpr));
       }
 
@@ -2659,7 +2693,19 @@ namespace Microsoft.Dafny {
       Bpl.Expr ax = BplForall(f.tok, new List<Bpl.TypeVariable>(), formals, null, tr, Bpl.Expr.Imp(ante, post));
       var activate = AxiomActivation(f, etran);
       string comment = "consequence axiom for " + f.FullSanitizedName;
-      return new Bpl.Axiom(f.tok, Bpl.Expr.Imp(activate, ax), comment);
+      sink.AddTopLevelDeclaration(new Bpl.Axiom(f.tok, Bpl.Expr.Imp(activate, ax), comment));
+
+      if (AlwaysUseHeapMethod && !readsHeap) {
+        whr = GetWhereClause(f.tok, funcAppl, f.ResultType, etranHeap, NOALLOC, true);
+        if (whr != null) {
+          Bpl.Expr goodHeap = FunctionCall(f.tok, BuiltinFunction.IsGoodHeap, null, etranHeap.HeapExpr);
+          formals = Util.Cons(bvHeap, formals);
+          ante = BplAnd(ante, goodHeap);
+          ax = BplForall(f.tok, new List<Bpl.TypeVariable>(), formals, null, BplTrigger(whr), Bpl.Expr.Imp(ante, whr));
+          activate = AxiomActivation(f, etran);
+          sink.AddTopLevelDeclaration(new Bpl.Axiom(f.tok, Bpl.Expr.Imp(activate, ax)));
+        }
+      }
     }
 
     Bpl.Expr AxiomActivation(Function f, ExpressionTranslator etran) {
@@ -2699,10 +2745,10 @@ namespace Microsoft.Dafny {
       if (f is TwoStateFunction) {
         bvPrevHeap = new Bpl.BoundVariable(f.tok, new Bpl.TypedIdent(f.tok, "$prevHeap", predef.HeapType));
         etran = new ExpressionTranslator(this, predef,
-          new Bpl.IdentifierExpr(f.tok, predef.HeapVarName, predef.HeapType),
+          f.ReadsHeap ? new Bpl.IdentifierExpr(f.tok, predef.HeapVarName, predef.HeapType) : null,
           new Bpl.IdentifierExpr(f.tok, bvPrevHeap));
       } else {
-        etran = (AlwaysUseHeap || readsHeap) ?
+        etran = AlwaysUseHeap || readsHeap ?
           new ExpressionTranslator(this, predef, f.tok) :
           new ExpressionTranslator(this, predef, (Bpl.Expr)null);
       }
@@ -2803,7 +2849,7 @@ namespace Microsoft.Dafny {
         goodHeap = FunctionCall(f.tok, BuiltinFunction.IsGoodHeap, null, etran.HeapExpr);
         ante = BplAnd(ante, goodHeap);
       }
-      if (f is TwoStateFunction) {
+      if (f is TwoStateFunction && f.ReadsHeap) {
         ante = BplAnd(ante, HeapSucc(etran.Old.HeapExpr, etran.HeapExpr));
       }
 
@@ -3256,7 +3302,7 @@ namespace Microsoft.Dafny {
         prefixArgsLimited.Add(h);
       }
       // ante:  $IsGoodHeap($Heap) && this != null && formals-have-the-expected-types &&
-      Bpl.Expr ante = FunctionCall(tok, BuiltinFunction.IsGoodHeap, null, etran.HeapExpr);
+      Bpl.Expr ante = pp.ReadsHeap ? FunctionCall(tok, BuiltinFunction.IsGoodHeap, null, etran.HeapExpr) : (Bpl.Expr)Bpl.Expr.True;
 
       if (!pp.IsStatic) {
         var bvThis = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, etran.This, predef.RefType));
@@ -3398,12 +3444,12 @@ namespace Microsoft.Dafny {
 
       if (is_array) {
         is_hf = MkIs(oDotF, tyexprs[0], true);
-        if (AlwaysUseHeap || NonGhostsUseHeap) {
+        if (AlwaysUseHeapMethod || NonGhostsUseHeap) {
           isalloc_hf = MkIsAlloc(oDotF, tyexprs[0], h, true);
         }
       } else {
         is_hf = MkIs(oDotF, f.Type);              // $Is(h[o, f], ..)
-        if (AlwaysUseHeap || (NonGhostsUseHeap && !f.IsGhost)) {
+        if (AlwaysUseHeapMethod || (NonGhostsUseHeap && !f.IsGhost)) {
           isalloc_hf = MkIsAlloc(oDotF, f.Type, h); // $IsAlloc(h[o, f], ..)
         }
       }
@@ -3960,11 +4006,13 @@ namespace Microsoft.Dafny {
         var inParams_Heap = new List<Bpl.Variable>();
         if (f is TwoStateFunction) {
           var prevHeapVar = new Bpl.Formal(f.tok, new Bpl.TypedIdent(f.tok, "previous$Heap", predef.HeapType), true);
-          var currHeapVar = new Bpl.Formal(f.tok, new Bpl.TypedIdent(f.tok, "current$Heap", predef.HeapType), true);
           inParams_Heap.Add(prevHeapVar);
-          inParams_Heap.Add(currHeapVar);
           prevHeap = new Bpl.IdentifierExpr(f.tok, prevHeapVar);
-          currHeap = new Bpl.IdentifierExpr(f.tok, currHeapVar);
+          if (f.ReadsHeap) {
+            var currHeapVar = new Bpl.Formal(f.tok, new Bpl.TypedIdent(f.tok, "current$Heap", predef.HeapType), true);
+            inParams_Heap.Add(currHeapVar);
+            currHeap = new Bpl.IdentifierExpr(f.tok, currHeapVar);
+          }
           etran = new ExpressionTranslator(this, predef, currHeap, prevHeap);
         } else {
           etran = ordinaryEtran;
@@ -4741,21 +4789,19 @@ namespace Microsoft.Dafny {
     ///        IsHeapAnchor(h0) AND HeapSucc(h0,h1)
     ///        AND
     ///        (forall(alpha) o: ref, f: Field alpha ::
-    ///            o != null [AND h0[o,alloc] AND h1[o,alloc] AND]
+    ///            o != null [AND h0[o,alloc] AND]  // note that HeapSucc(h0,h1) && h0[o,alloc] ==> h1[o,alloc]
     ///            o in reads clause of formals in h0
     ///            IMPLIES h0[o,f] == h1[o,f])
     ///        IMPLIES
     ///        F(s,h0,formals) == F(s,h1,formals)
     ///      );
-    /// Or, in the simple case where the function has an empty "reads" clause, generates:
-    ///   function F#frame(ly, formals): T;
-    ///   axiom (forall s,h: HeapType, formals... ::
-    ///        { F(s,h,formals) }
-    ///        heap is well-formed [and formals are allocated]
-    ///        IMPLIES
-    ///        F(s,h,formals) == F#frame(s,formals)
-    ///      );
-    /// Expressions in [...] are omitted in /allocated:0, /allocated:1; see comments in AddArrowTypeAxioms
+    /// Expressions in [...] are omitted if
+    ///   - /allocated:0, or
+    ///   - /allocated:1, or
+    ///   - /allocated:3, except if "reads" clause is "*" of if the function is a two-state function;
+    /// see comments in AddArrowTypeAxioms
+    /// Also, with /allocated:3, the frame axiom is omitted altogether if the (one-state) function has an
+    /// empty "reads" clause (because then the function doesn't take a heap argument at all).
     /// </summary>
     void AddFrameAxiom(Function f)
     {
@@ -4763,184 +4809,101 @@ namespace Microsoft.Dafny {
       Contract.Requires(sink != null && predef != null);
 
       var comment = "frame axiom for " + f.FullSanitizedName;
-#if POSSIBLY_FUTURE_OPTIMIZATION
-      if (f.Reads.Count == 0) {
-        // This is the simple case
-
-        // declare a frame-axiom helper function
-        var typeParams = TrTypeParamDecls(f.TypeArgs);
-        {
-          var formals = new List<Variable>();
-          if (f.IsFuelAware()) {
-            formals.Add(new Bpl.Formal(f.tok, new Bpl.TypedIdent(f.tok, "$ly", predef.LayerType), true));
-          }
-          if (!f.IsStatic) {
-            formals.Add(new Bpl.Formal(f.tok, new Bpl.TypedIdent(f.tok, "this", predef.RefType), true));
-          }
-          foreach (var p in f.Formals) {
-            formals.Add(new Bpl.Formal(p.tok, new Bpl.TypedIdent(p.tok, p.AssignUniqueName(f), TrType(p.Type)), true));
-          }
-          var res = new Bpl.Formal(f.tok, new Bpl.TypedIdent(f.tok, Bpl.TypedIdent.NoName, TrType(f.ResultType)), false);
-          var funcFrame = new Bpl.Function(f.tok, f.FullSanitizedName + "#frame", typeParams, formals, res, comment);
-          sink.AddTopLevelDeclaration(funcFrame);
-        }
-
-        var heapVar = new Bpl.BoundVariable(f.tok, new Bpl.TypedIdent(f.tok, "$h", predef.HeapType));
-        Bpl.Expr heap = new Bpl.IdentifierExpr(f.tok, heapVar);
-        var etran = new ExpressionTranslator(this, predef, heap);
-
-        Bpl.Expr wellFormed = FunctionCall(f.tok, BuiltinFunction.IsGoodHeap, null, etran.HeapExpr);
-
-        List<Variable> bvars = new List<Variable>();
-        List<Bpl.Expr> argsF = new List<Bpl.Expr>();
-        List<Bpl.Expr> argsFFrame = new List<Bpl.Expr>();
-        List<Bpl.Expr> argsCanCall = new List<Bpl.Expr>();
-        if (f.IsFuelAware()) {
-          var sV = new Bpl.BoundVariable(f.tok, new Bpl.TypedIdent(f.tok, "$ly", predef.LayerType));
-          var s = new Bpl.IdentifierExpr(f.tok, sV);
-          bvars.Add(sV);
-          argsF.Add(s); argsFFrame.Add(s);  // but not argsCanCall
-        }
-
-        bvars.Add(heapVar);
-        argsF.Add(heap); argsCanCall.Add(heap);  // but not argsFFrame
-
-        if (!f.IsStatic) {
-          Bpl.BoundVariable thVar = new Bpl.BoundVariable(f.tok, new Bpl.TypedIdent(f.tok, "this", predef.RefType));
-          Bpl.Expr th = new Bpl.IdentifierExpr(f.tok, thVar);
-          bvars.Add(thVar);
-          argsF.Add(th); argsFFrame.Add(th); argsCanCall.Add(th);
-
-          Type thisType = Resolver.GetReceiverType(f.tok, f);
-          Bpl.Expr wh = Bpl.Expr.And(Bpl.Expr.Neq(th, predef.Null), etran.GoodRef(f.tok, th, thisType));
-          wellFormed = Bpl.Expr.And(wellFormed, wh);
-        }
-
-        // (formalsAreWellFormed[h0] || canCallF(h0,...))
-        Bpl.Expr fwf0 = Bpl.Expr.True;
-        foreach (Formal p in f.Formals) {
-          Bpl.BoundVariable bv = new Bpl.BoundVariable(p.tok, new Bpl.TypedIdent(p.tok, p.AssignUniqueName(f), TrType(p.Type)));
-          bvars.Add(bv);
-          Bpl.Expr formal = new Bpl.IdentifierExpr(p.tok, bv);
-          argsF.Add(formal); argsFFrame.Add(formal); argsCanCall.Add(formal);
-          Bpl.Expr wh = GetWhereClause(p.tok, formal, p.Type, etran, NOALLOC);
-          if (wh != null) { fwf0 = Bpl.Expr.And(fwf0, wh); }
-        }
-        var canCall = new Bpl.FunctionCall(new Bpl.IdentifierExpr(f.tok, f.FullSanitizedName + "#canCall", Bpl.Type.Bool));
-        wellFormed = Bpl.Expr.And(wellFormed, Bpl.Expr.Or(new Bpl.NAryExpr(f.tok, canCall, argsCanCall), fwf0));
-
-        var fn = new Bpl.FunctionCall(new Bpl.IdentifierExpr(f.tok, f.FullSanitizedName, TrType(f.ResultType)));
-        var F0 = new Bpl.NAryExpr(f.tok, fn, argsF);
-        var fnFrame = new Bpl.FunctionCall(new Bpl.IdentifierExpr(f.tok, f.FullSanitizedName + "#frame", TrType(f.ResultType)));
-        var F1 = new Bpl.NAryExpr(f.tok, fnFrame, argsFFrame);
-        var eq = Bpl.Expr.Eq(F0, F1);
-        var tr = new Bpl.Trigger(f.tok, true, new List<Bpl.Expr> { F0 });
-
-        var ax = new Bpl.ForallExpr(f.tok, typeParams, bvars, null, tr, Bpl.Expr.Imp(wellFormed, eq));
-        sink.AddTopLevelDeclaration(new Bpl.Axiom(f.tok, ax));
-      } else {
-#else
-        // This is the general case
-        Bpl.Expr prevH = null;
-        Bpl.BoundVariable prevHVar = null;
-        if (f is TwoStateFunction) {
-          // The previous-heap argument is the same for both function arguments.  That is,
-          // the frame axiom says nothing about functions invoked with different previous heaps.
-          prevHVar = BplBoundVar("$prevHeap", predef.HeapType, out prevH);
-        }
-        Bpl.Expr h0; var h0Var = BplBoundVar("$h0", predef.HeapType, out h0);
-        Bpl.Expr h1; var h1Var = BplBoundVar("$h1", predef.HeapType, out h1);
-
-        var etran0 = new ExpressionTranslator(this, predef, h0);
-        var etran1 = new ExpressionTranslator(this, predef, h1);
-
-        Bpl.Expr wellFormed = Bpl.Expr.And(
-          FunctionCall(f.tok, BuiltinFunction.IsGoodHeap, null, etran0.HeapExpr),
-          FunctionCall(f.tok, BuiltinFunction.IsGoodHeap, null, etran1.HeapExpr));
-
-        Bpl.TypeVariable alpha = new Bpl.TypeVariable(f.tok, "alpha");
-        Bpl.Expr o; var oVar = BplBoundVar("$o", predef.RefType, out o);
-        Bpl.Expr field; var fieldVar = BplBoundVar("$f", predef.FieldName(f.tok, alpha), out field);
-        Bpl.Expr oNotNull = Bpl.Expr.Neq(o, predef.Null);
-        Bpl.Expr oNotNullAlloced = !AlwaysUseHeap ? oNotNull :
-          Bpl.Expr.And(oNotNull, Bpl.Expr.And(etran0.IsAlloced(f.tok, o), etran1.IsAlloced(f.tok, o)));
-        Bpl.Expr unchanged = Bpl.Expr.Eq(ReadHeap(f.tok, h0, o, field), ReadHeap(f.tok, h1, o, field));
-
-        Bpl.Expr h0IsHeapAnchor = FunctionCall(h0.tok, BuiltinFunction.IsHeapAnchor, null, h0);
-        Bpl.Expr heapSucc = HeapSucc(h0, h1);
-        Bpl.Expr r0 = InRWClause(f.tok, o, field, f.Reads, etran0, null, null);
-        Bpl.Expr q0 = new Bpl.ForallExpr(f.tok, new List<TypeVariable> { alpha }, new List<Variable> { oVar, fieldVar },
-          Bpl.Expr.Imp(Bpl.Expr.And(oNotNullAlloced, r0), unchanged));
-
-        List<Bpl.Expr> tyexprs;
-        var bvars = MkTyParamBinders(GetTypeParams(f), out tyexprs);
-        var f0args = new List<Bpl.Expr>(tyexprs);
-        var f1args = new List<Bpl.Expr>(tyexprs);
-        var f0argsCanCall = new List<Bpl.Expr>(tyexprs);
-        var f1argsCanCall = new List<Bpl.Expr>(tyexprs);
-        if (f.IsFuelAware()) {
-          Bpl.Expr s; var sV = BplBoundVar("$ly", predef.LayerType, out s);
-          bvars.Add(sV);
-          f0args.Add(s); f1args.Add(s);  // but don't add to f0argsCanCall or f1argsCanCall
-        }
-
-        if (prevH != null) {
-          bvars.Add(prevHVar);
-          f0args.Add(prevH); f1args.Add(prevH); f0argsCanCall.Add(prevH); f1argsCanCall.Add(prevH);
-        }
-        bvars.Add(h0Var); bvars.Add(h1Var);
-        f0args.Add(h0); f1args.Add(h1); f0argsCanCall.Add(h0); f1argsCanCall.Add(h1);
-        if (!f.IsStatic) {
-          Bpl.Expr th; var thVar = BplBoundVar("this", predef.RefType, out th);
-          bvars.Add(thVar);
-          f0args.Add(th); f1args.Add(th); f0argsCanCall.Add(th); f1argsCanCall.Add(th);
-
-          Type thisType = Resolver.GetReceiverType(f.tok, f);
-          Bpl.Expr wh = Bpl.Expr.And(Bpl.Expr.Neq(th, predef.Null),
-            Bpl.Expr.And(etran0.GoodRef(f.tok, th, thisType), etran1.GoodRef(f.tok, th, thisType)));
-          wellFormed = Bpl.Expr.And(wellFormed, wh);
-        }
-
-        // (formalsAreWellFormed[h0] || canCallF(h0,...)) && (formalsAreWellFormed[h1] || canCallF(h1,...))
-        Bpl.Expr fwf0 = Bpl.Expr.True;
-        Bpl.Expr fwf1 = Bpl.Expr.True;
-        foreach (Formal p in f.Formals) {
-          Bpl.BoundVariable bv = new Bpl.BoundVariable(p.tok, new Bpl.TypedIdent(p.tok, p.AssignUniqueName(f.IdGenerator), TrType(p.Type)));
-          bvars.Add(bv);
-          Bpl.Expr formal = new Bpl.IdentifierExpr(p.tok, bv);
-          f0args.Add(formal); f1args.Add(formal); f0argsCanCall.Add(formal); f1argsCanCall.Add(formal);
-          Bpl.Expr wh = GetWhereClause(p.tok, formal, p.Type, etran0, NOALLOC);
-          if (wh != null) { fwf0 = Bpl.Expr.And(fwf0, wh); }
-          wh = GetWhereClause(p.tok, formal, p.Type, etran1, NOALLOC);
-          if (wh != null) { fwf1 = Bpl.Expr.And(fwf1, wh); }
-        }
-        var canCall = new Bpl.FunctionCall(new Bpl.IdentifierExpr(f.tok, f.FullSanitizedName + "#canCall", Bpl.Type.Bool));
-        wellFormed = Bpl.Expr.And(wellFormed, Bpl.Expr.And(
-          Bpl.Expr.Or(new Bpl.NAryExpr(f.tok, canCall, f0argsCanCall), fwf0),
-          Bpl.Expr.Or(new Bpl.NAryExpr(f.tok, canCall, f1argsCanCall), fwf1)));
-
-        /*
-        DR: I conjecture that this should be enough,
-            as the requires is preserved when the frame is:
-
-        wellFormed = Bpl.Expr.And(wellFormed,
-          Bpl.Expr.Or(new Bpl.NAryExpr(f.tok, canCall, f0argsCanCall), fwf0));
-        */
-
-        var fn = new Bpl.FunctionCall(new Bpl.IdentifierExpr(f.tok, f.FullSanitizedName, TrType(f.ResultType)));
-        var F0 = new Bpl.NAryExpr(f.tok, fn, f0args);
-        var F1 = new Bpl.NAryExpr(f.tok, fn, f1args);
-        var eq = Bpl.Expr.Eq(F0, F1);
-        var tr = new Bpl.Trigger(f.tok, true, new List<Bpl.Expr> { h0IsHeapAnchor, heapSucc, F1 });
-
-        var ax = new Bpl.ForallExpr(f.tok, new List<Bpl.TypeVariable>(), bvars, null, tr,
-          Bpl.Expr.Imp(Bpl.Expr.And(wellFormed, Bpl.Expr.And(h0IsHeapAnchor, heapSucc)),
-          Bpl.Expr.Imp(q0, eq)));
-        sink.AddTopLevelDeclaration(new Bpl.Axiom(f.tok, ax, comment));
-#endif
-#if POSSIBLY_FUTURE_OPTIMIZATION
+      // This is the general case
+      Bpl.Expr prevH = null;
+      Bpl.BoundVariable prevHVar = null;
+      if (f is TwoStateFunction) {
+        // The previous-heap argument is the same for both function arguments.  That is,
+        // the frame axiom says nothing about functions invoked with different previous heaps.
+        prevHVar = BplBoundVar("$prevHeap", predef.HeapType, out prevH);
       }
-#endif
+      Bpl.Expr h0; var h0Var = BplBoundVar("$h0", predef.HeapType, out h0);
+      Bpl.Expr h1; var h1Var = BplBoundVar("$h1", predef.HeapType, out h1);
+
+      var etran0 = new ExpressionTranslator(this, predef, h0);
+      var etran1 = new ExpressionTranslator(this, predef, h1);
+
+      Bpl.Expr wellFormed = Bpl.Expr.And(
+        FunctionCall(f.tok, BuiltinFunction.IsGoodHeap, null, etran0.HeapExpr),
+        FunctionCall(f.tok, BuiltinFunction.IsGoodHeap, null, etran1.HeapExpr));
+
+      Bpl.TypeVariable alpha = new Bpl.TypeVariable(f.tok, "alpha");
+      Bpl.Expr o; var oVar = BplBoundVar("$o", predef.RefType, out o);
+      Bpl.Expr field; var fieldVar = BplBoundVar("$f", predef.FieldName(f.tok, alpha), out field);
+      Bpl.Expr oNotNull = Bpl.Expr.Neq(o, predef.Null);
+      Bpl.Expr oNotNullAlloced = !AlwaysUseHeap ? oNotNull : Bpl.Expr.And(oNotNull, etran0.IsAlloced(f.tok, o));
+      Bpl.Expr unchanged = Bpl.Expr.Eq(ReadHeap(f.tok, h0, o, field), ReadHeap(f.tok, h1, o, field));
+
+      Bpl.Expr h0IsHeapAnchor = FunctionCall(h0.tok, BuiltinFunction.IsHeapAnchor, null, h0);
+      Bpl.Expr heapSucc = HeapSucc(h0, h1);
+      Bpl.Expr r0 = InRWClause(f.tok, o, field, f.Reads, etran0, null, null);
+      Bpl.Expr q0 = new Bpl.ForallExpr(f.tok, new List<TypeVariable> { alpha }, new List<Variable> { oVar, fieldVar },
+        Bpl.Expr.Imp(Bpl.Expr.And(oNotNullAlloced, r0), unchanged));
+
+      List<Bpl.Expr> tyexprs;
+      var bvars = MkTyParamBinders(GetTypeParams(f), out tyexprs);
+      var f0args = new List<Bpl.Expr>(tyexprs);
+      var f1args = new List<Bpl.Expr>(tyexprs);
+      var f0argsCanCall = new List<Bpl.Expr>(tyexprs);
+      var f1argsCanCall = new List<Bpl.Expr>(tyexprs);
+      if (f.IsFuelAware()) {
+        Bpl.Expr s; var sV = BplBoundVar("$ly", predef.LayerType, out s);
+        bvars.Add(sV);
+        f0args.Add(s); f1args.Add(s);  // but don't add to f0argsCanCall or f1argsCanCall
+      }
+
+      if (prevH != null) {
+        bvars.Add(prevHVar);
+        f0args.Add(prevH); f1args.Add(prevH); f0argsCanCall.Add(prevH); f1argsCanCall.Add(prevH);
+      }
+      bvars.Add(h0Var); bvars.Add(h1Var);
+      f0args.Add(h0); f1args.Add(h1); f0argsCanCall.Add(h0); f1argsCanCall.Add(h1);
+
+      var useAlloc = AlwaysUseHeapMethod && !AlwaysUseHeap && f.Reads.Exists(fe => fe.E is WildcardExpr) ? ISALLOC : NOALLOC;
+      if (!f.IsStatic) {
+        Bpl.Expr th; var thVar = BplBoundVar("this", predef.RefType, out th);
+        bvars.Add(thVar);
+        f0args.Add(th); f1args.Add(th); f0argsCanCall.Add(th); f1argsCanCall.Add(th);
+
+        Type thisType = Resolver.GetReceiverType(f.tok, f);
+        Bpl.Expr wh = Bpl.Expr.And(Bpl.Expr.Neq(th, predef.Null), GetWhereClause(f.tok, th, thisType, etran0, useAlloc));
+        wellFormed = Bpl.Expr.And(wellFormed, wh);
+      }
+
+      // (formalsAreWellFormed[h0] || canCallF(h0,...)) && (formalsAreWellFormed[h1] || canCallF(h1,...))
+      Bpl.Expr fwf0 = Bpl.Expr.True;
+      Bpl.Expr fwf1 = Bpl.Expr.True;
+      foreach (Formal p in f.Formals) {
+        Bpl.BoundVariable bv = new Bpl.BoundVariable(p.tok, new Bpl.TypedIdent(p.tok, p.AssignUniqueName(f.IdGenerator), TrType(p.Type)));
+        bvars.Add(bv);
+        Bpl.Expr formal = new Bpl.IdentifierExpr(p.tok, bv);
+        f0args.Add(formal); f1args.Add(formal); f0argsCanCall.Add(formal); f1argsCanCall.Add(formal);
+        Bpl.Expr wh = GetWhereClause(p.tok, formal, p.Type, etran0, useAlloc);
+        if (wh != null) { fwf0 = Bpl.Expr.And(fwf0, wh); }
+      }
+      var canCall = new Bpl.FunctionCall(new Bpl.IdentifierExpr(f.tok, f.FullSanitizedName + "#canCall", Bpl.Type.Bool));
+      wellFormed = Bpl.Expr.And(wellFormed, Bpl.Expr.And(
+        Bpl.Expr.Or(new Bpl.NAryExpr(f.tok, canCall, f0argsCanCall), fwf0),
+        Bpl.Expr.Or(new Bpl.NAryExpr(f.tok, canCall, f1argsCanCall), fwf1)));
+
+      /*
+      DR: I conjecture that this should be enough,
+          as the requires is preserved when the frame is:
+
+      wellFormed = Bpl.Expr.And(wellFormed,
+        Bpl.Expr.Or(new Bpl.NAryExpr(f.tok, canCall, f0argsCanCall), fwf0));
+      */
+
+      var fn = new Bpl.FunctionCall(new Bpl.IdentifierExpr(f.tok, f.FullSanitizedName, TrType(f.ResultType)));
+      var F0 = new Bpl.NAryExpr(f.tok, fn, f0args);
+      var F1 = new Bpl.NAryExpr(f.tok, fn, f1args);
+      var eq = Bpl.Expr.Eq(F0, F1);
+      var tr = new Bpl.Trigger(f.tok, true, new List<Bpl.Expr> { h0IsHeapAnchor, heapSucc, F1 });
+
+      var ax = new Bpl.ForallExpr(f.tok, new List<Bpl.TypeVariable>(), bvars, null, tr,
+        Bpl.Expr.Imp(Bpl.Expr.And(wellFormed, Bpl.Expr.And(h0IsHeapAnchor, heapSucc)),
+        Bpl.Expr.Imp(q0, eq)));
+      sink.AddTopLevelDeclaration(new Bpl.Axiom(f.tok, ax, comment));
     }
 
     Bpl.Expr InRWClause(IToken tok, Bpl.Expr o, Bpl.Expr f, List<FrameExpression> rw, ExpressionTranslator etran,
@@ -5006,7 +4969,7 @@ namespace Microsoft.Dafny {
         Bpl.Expr disjunct;
         var eType = e.Type.NormalizeExpand();
         if (e is WildcardExpr) {
-          // For /allocated:0 and /allocated:1, "function f(...)... reads *"
+          // For /allocated:{0,1,3}, "function f(...)... reads *"
           // is more useful if "reads *" excludes unallocated references,
           // because otherwise, "reads *" lets f depend on unallocated state,
           // which means that f may change whenever any new allocation occurs,
@@ -5089,13 +5052,15 @@ namespace Microsoft.Dafny {
       }
       foreach (Formal p in f.Formals) {
         Bpl.Type varType = TrType(p.Type);
-        Bpl.Expr wh = GetWhereClause(p.tok, new Bpl.IdentifierExpr(p.tok, p.AssignUniqueName(f.IdGenerator), varType), p.Type, p.IsOld ? etran.Old : etran, NOALLOC);
+        Bpl.Expr wh = GetWhereClause(p.tok, new Bpl.IdentifierExpr(p.tok, p.AssignUniqueName(f.IdGenerator), varType), p.Type,
+          p.IsOld ? etran.Old : etran, AlwaysUseHeapMethod && f is TwoStateFunction ? ISALLOC : NOALLOC);
         inParams.Add(new Bpl.Formal(p.tok, new Bpl.TypedIdent(p.tok, p.AssignUniqueName(f.IdGenerator), varType, wh), true));
       }
       if (f.Result != null) {
         Formal p = f.Result;
+        Contract.Assert(!p.IsOld);
         Bpl.Type varType = TrType(p.Type);
-        Bpl.Expr wh = GetWhereClause(p.tok, new Bpl.IdentifierExpr(p.tok, p.AssignUniqueName(f.IdGenerator), varType), p.Type, p.IsOld ? etran.Old : etran, NOALLOC);
+        Bpl.Expr wh = GetWhereClause(p.tok, new Bpl.IdentifierExpr(p.tok, p.AssignUniqueName(f.IdGenerator), varType), p.Type, etran, NOALLOC);
         outParams.Add(new Bpl.Formal(p.tok, new Bpl.TypedIdent(p.tok, p.AssignUniqueName(f.IdGenerator), varType, wh), true));     
       }
       // the procedure itself
@@ -5831,7 +5796,7 @@ namespace Microsoft.Dafny {
         // also ok
       } else {
         builder.Add(Assert(tok, Bpl.Expr.Neq(etran.TrExpr(e), predef.Null), "target object may be null", kv));
-        if (!AlwaysUseHeap) {
+        if (!AlwaysUseHeapMethod) {
           builder.Add(Assert(tok, MkIsAlloc(etran.TrExpr(e), e.Type, etran.HeapExpr), "target object may not be allocated", kv));
         }
       }
@@ -6170,7 +6135,7 @@ namespace Microsoft.Dafny {
         Bpl.Expr seq = etran.TrExpr(e.Seq);
         if (eSeqType.IsArrayType) {
           builder.Add(Assert(e.Seq.tok, Bpl.Expr.Neq(seq, predef.Null), "array may be null"));
-          if (!AlwaysUseHeap) {
+          if (!AlwaysUseHeapMethod) {
             builder.Add(Assert(e.Seq.tok, MkIsAlloc(seq, eSeqType, etran.HeapExpr), "array may not be allocated"));
           }
         }
@@ -6307,8 +6272,8 @@ namespace Microsoft.Dafny {
 
         var args = Concat(
           Map(tt.TypeArgs, TypeToTy),
-          Cons(etran.TrExpr(e.Function),
           Cons(etran.HeapExpr,
+          Cons(etran.TrExpr(e.Function),
           e.Args.ConvertAll(arg => TrArg(arg)))));
 
         // check precond
@@ -6360,7 +6325,7 @@ namespace Microsoft.Dafny {
             CheckSubrange(ee.tok, etran.TrExpr(ee), ee.Type, et, builder);
             Bpl.Cmd cmd = Bpl.Cmd.SimpleAssign(p.tok, lhs, CondApplyBox(p.tok, etran.TrExpr(ee), cce.NonNull(ee.Type), et));
             builder.Add(cmd);
-            if (AlwaysUseHeap && !etran.UsesOldHeap) {
+            if (AlwaysUseHeapMethod && !etran.UsesOldHeap) {
               // the argument can't be assumed to be allocated for the old heap
               builder.Add(new Bpl.CommentCmd("assume allocatedness for argument to function"));
               builder.Add(TrAssumeCmd(e.Args[i].tok, MkIsAlloc(lhs, et, etran.HeapExpr)));
@@ -7134,15 +7099,15 @@ namespace Microsoft.Dafny {
       return "Handle" + arity;
     }
 
-    public string Apply(int arity) {
+    public static string Apply(int arity) {
       return "Apply" + arity;
     }
 
-    public string Requires(int arity) {
+    public static string Requires(int arity) {
       return "Requires" + arity;
     }
 
-    public string Reads(int arity) {
+    public static string Reads(int arity) {
       return "Reads" + arity;
     }
 
@@ -7232,7 +7197,7 @@ namespace Microsoft.Dafny {
           //   = [Box] F(Ty1, .., TyN, Layer, Heap, self, [Unbox] arg1, .., [Unbox] argN)
 
           var fhandle = FunctionCall(f.tok, name, predef.HandleType, SnocSelf(SnocPrevH(args)));
-          var lhs = FunctionCall(f.tok, Apply(arity), TrType(f.ResultType), Concat(tyargs, Cons(fhandle, Cons(h, lhs_args))));
+          var lhs = FunctionCall(f.tok, Apply(arity), TrType(f.ResultType), Concat(tyargs, Cons(h, Cons(fhandle, lhs_args))));
           var args_h = AlwaysUseHeap || f.ReadsHeap ? Snoc(SnocPrevH(args), h) : args;
           var rhs = FunctionCall(f.tok, f.FullSanitizedName, TrType(f.ResultType), Concat(SnocSelf(args_h), rhs_args));
           var rhs_boxed = BoxIfUnboxed(rhs, f.ResultType);
@@ -7246,7 +7211,7 @@ namespace Microsoft.Dafny {
           //   = F#Requires(Ty1, .., TyN, Layer, Heap, self, [Unbox] arg1, .., [Unbox] argN)
 
           var fhandle = FunctionCall(f.tok, name, predef.HandleType, SnocSelf(SnocPrevH(args)));
-          var lhs = FunctionCall(f.tok, Requires(arity), Bpl.Type.Bool, Concat(tyargs, Cons(fhandle, Cons(h, lhs_args))));
+          var lhs = FunctionCall(f.tok, Requires(arity), Bpl.Type.Bool, Concat(tyargs, Cons(h, Cons(fhandle, lhs_args))));
           Bpl.Expr rhs;
           if (fromArrowType) {
             // In case this is the /requires/ or /reads/ function, then there is no precondition
@@ -7265,7 +7230,7 @@ namespace Microsoft.Dafny {
           //   =  $Frame_F(args...)
 
           var fhandle = FunctionCall(f.tok, name, predef.HandleType, SnocSelf(SnocPrevH(args)));
-          Bpl.Expr lhs_inner = FunctionCall(f.tok, Reads(arity), TrType(new SetType(true, new ObjectType())), Concat(tyargs, Cons(fhandle, Cons(h, lhs_args))));
+          Bpl.Expr lhs_inner = FunctionCall(f.tok, Reads(arity), TrType(new SetType(true, new ObjectType())), Concat(tyargs, Cons(h, Cons(fhandle, lhs_args))));
 
           Bpl.Expr bx; var bxVar = BplBoundVar("$bx", predef.BoxType, out bx);
           Bpl.Expr unboxBx = FunctionCall(f.tok, BuiltinFunction.Unbox, predef.RefType, bx);
@@ -7285,7 +7250,7 @@ namespace Microsoft.Dafny {
           var fhandle = FunctionCall(f.tok, name, predef.HandleType, SnocSelf(SnocPrevH(args)));
           var args_h = AlwaysUseHeap || f.ReadsHeap ? Snoc(SnocPrevH(args), h) : args;
           var lhs = FunctionCall(f.tok, f.FullSanitizedName, TrType(f.ResultType), Concat(SnocSelf(args_h), func_args));
-          var rhs = FunctionCall(f.tok, Apply(arity), TrType(f.ResultType), Concat(tyargs, Cons(fhandle, Cons(h, boxed_func_args))));
+          var rhs = FunctionCall(f.tok, Apply(arity), TrType(f.ResultType), Concat(tyargs, Cons(h, Cons(fhandle, boxed_func_args))));
           var rhs_unboxed = UnboxIfBoxed(rhs, f.ResultType);
           var tr = BplTriggerHeap(this, f.tok, lhs, AlwaysUseHeap || f.ReadsHeap ? null : h);
           
@@ -7326,8 +7291,8 @@ namespace Microsoft.Dafny {
       Action<string, Bpl.Type> SelectorFunction = (s, t) => {
         var args = new List<Bpl.Variable>();
         MapM(Enumerable.Range(0, arity + 1), i => args.Add(BplFormalVar(null, predef.Ty, true)));
-        args.Add(BplFormalVar(null, predef.HandleType, true));
         args.Add(BplFormalVar(null, predef.HeapType, true));
+        args.Add(BplFormalVar(null, predef.HandleType, true));
         MapM(Enumerable.Range(0, arity), i => args.Add(BplFormalVar(null, predef.BoxType, true)));
         sink.AddTopLevelDeclaration(new Bpl.Function(Token.NoToken, s, args, BplFormalVar(null, t, false)));
       };
@@ -7341,9 +7306,9 @@ namespace Microsoft.Dafny {
 
       {
         // forall t1, .., tN+1 : Ty, p: [Heap, Box, ..., Box] Box, heap : Heap, b1, ..., bN : Box
-        //      :: ApplyN(t1, .. tN+1, HandleN(h, r, rd), heap, b1, ..., bN) == h[heap, b1, ..., bN]
-        //      :: RequiresN(t1, .. tN+1, HandleN(h, r, rd), heap, b1, ..., bN) <== r[heap, b1, ..., bN]
-        //      :: ReadsN(t1, .. tN+1, HandleN(h, r, rd), heap, b1, ..., bN) == rd[heap, b1, ..., bN]
+        //      :: ApplyN(t1, .. tN+1, heap, HandleN(h, r, rd), b1, ..., bN) == h[heap, b1, ..., bN]
+        //      :: RequiresN(t1, .. tN+1, heap, HandleN(h, r, rd), b1, ..., bN) <== r[heap, b1, ..., bN]
+        //      :: ReadsN(t1, .. tN+1, heap, HandleN(h, r, rd), b1, ..., bN) == rd[heap, b1, ..., bN]
         Action<string, Bpl.Type, string, Bpl.Type, string, Bpl.Type> SelectorSemantics = (selector, selectorTy, selectorVar, selectorVarTy, precond, precondTy) => {
           Contract.Assert((precond == null) == (precondTy == null));
           var bvars = new List<Bpl.Variable>();
@@ -7360,7 +7325,7 @@ namespace Microsoft.Dafny {
 
           var boxes = Map(Enumerable.Range(0, arity), i => BplBoundVar("bx" + i, predef.BoxType, bvars));
 
-          var lhsargs = Concat(types, Cons(FunctionCall(tok, Handle(arity), predef.HandleType, handleargs), Cons(heap, boxes)));
+          var lhsargs = Concat(types, Cons(heap, Cons(FunctionCall(tok, Handle(arity), predef.HandleType, handleargs), boxes)));
           Bpl.Expr lhs = FunctionCall(tok, selector, selectorTy, lhsargs);
           Func<Bpl.Expr, Bpl.Expr> pre = x => x;
           if (precond != null) {
@@ -7387,9 +7352,6 @@ namespace Microsoft.Dafny {
         SelectorSemantics(Reads(arity), objset_ty, "rd", reads_ty, null, null);
 
         // function {:inline true}
-        //   FuncN._requires(G...G G: Ty, H:Heap, f:Handle, x ... x :Box): bool
-        //   { RequiresN(f, H, x...x) }
-        // function {:inline true}
         //   FuncN._requires#canCall(G...G G: Ty, H:Heap, f:Handle, x ... x :Box): bool
         //   { true }
         // + similar for Reads
@@ -7400,21 +7362,17 @@ namespace Microsoft.Dafny {
           MapM(Enumerable.Range(0, arity + 1), i => rhsargs.Add(BplFormalVar("t" + i, predef.Ty, true, formals)));
 
           var heap = BplFormalVar("heap", predef.HeapType, true, formals);
-          rhsargs.Add(BplFormalVar("f", predef.HandleType, true, formals));
           rhsargs.Add(heap);
+          rhsargs.Add(BplFormalVar("f", predef.HandleType, true, formals));
 
           MapM(Enumerable.Range(0, arity), i => rhsargs.Add(BplFormalVar("bx" + i, predef.BoxType, true, formals)));
 
-          Action<string, Bpl.Type, Bpl.Expr> sink_function = (nm, res_ty, body) =>
-            sink.AddTopLevelDeclaration(
-              new Bpl.Function(f.tok, nm, new List<TypeVariable>(), formals,
-                BplFormalVar(null, res_ty, false), null,
-                new QKeyValue(f.tok, "inline", new List<object>(), null)) {
-                  Body = body
-                });
-
-          sink_function(f.FullSanitizedName, TrType(f.ResultType), FunctionCall(f.tok, fname, Bpl.Type.Bool, rhsargs));
-          sink_function(f.FullSanitizedName + "#canCall", Bpl.Type.Bool, Bpl.Expr.True);
+          sink.AddTopLevelDeclaration(
+            new Bpl.Function(f.tok, f.FullSanitizedName + "#canCall", new List<TypeVariable>(), formals,
+              BplFormalVar(null, Bpl.Type.Bool, false), null,
+              new QKeyValue(f.tok, "inline", new List<object>(), null)) {
+                Body = Bpl.Expr.True
+              });
         };
 
         UserSelectorFunction(Requires(ad.Arity), ad.Requires);
@@ -7464,9 +7422,9 @@ namespace Microsoft.Dafny {
           var isness = BplAnd(
             Snoc(Map(Enumerable.Range(0, arity), i =>
               BplAnd(MkIs(boxes[i], types[i], true),
-                AlwaysUseHeap ? MkIsAlloc(boxes[i], types[i], h0, true) : Bpl.Expr.True)),
+                AlwaysUseHeapMethod && !Allocated3_QuantIsAllocCheat ? MkIsAlloc(boxes[i], types[i], h0, true) : Bpl.Expr.True)),
             BplAnd(MkIs(f, ClassTyCon(ad, types)),
-              AlwaysUseHeap ? MkIsAlloc(f, ClassTyCon(ad, types), h0) : Bpl.Expr.True)));
+              AlwaysUseHeapMethod && !Allocated3_QuantIsAllocCheat ? MkIsAlloc(f, ClassTyCon(ad, types), h0) : Bpl.Expr.True)));
 
           Action<Bpl.Expr, string> AddFrameForFunction = (hN, fname) => {
 
@@ -7481,20 +7439,20 @@ namespace Microsoft.Dafny {
                 Bpl.Expr.Neq(o, predef.Null),
                 // Note, the MkIsAlloc conjunct of "isness" implies that everything in the reads frame is allocated in "h0", which by HeapSucc(h0,h1) also implies the frame is allocated in "h1"
                 new Bpl.NAryExpr(tok, new Bpl.MapSelect(tok, 1), new List<Bpl.Expr> {
-                  FunctionCall(tok, Reads(ad.Arity), objset_ty, Concat(types, Cons(f, Cons(hN, boxes)))),
+                  FunctionCall(tok, Reads(ad.Arity), objset_ty, Concat(types, Cons(hN, Cons(f, boxes)))),
                   FunctionCall(tok, BuiltinFunction.Box, null, o)
                 })
               ),
               Bpl.Expr.Eq(ReadHeap(tok, h0, o, fld), ReadHeap(tok, h1, o, fld))));
 
-            Func<Bpl.Expr, Bpl.Expr> fn = h => FunctionCall(tok, fname, Bpl.Type.Bool, Concat(types, Cons(f, Cons<Bpl.Expr>(h, boxes))));
+            Func<Bpl.Expr, Bpl.Expr> fn = h => FunctionCall(tok, fname, Bpl.Type.Bool, Concat(types, Cons(h, Cons<Bpl.Expr>(f, boxes))));
 
             sink.AddTopLevelDeclaration(new Axiom(tok,
               BplForall(bvars,
-                new Bpl.Trigger(tok, true, new List<Bpl.Expr> {heapSucc, fn(h1)}),
+                new Bpl.Trigger(tok, true, new List<Bpl.Expr> { heapSucc, fn(h1) }),
                 BplImp(
                   BplAnd(BplAnd(BplAnd(heapSucc, goodHeaps), isness), inner_forall),
-                  Bpl.Expr.Eq(fn(h0), fn(h1))))));
+                  Bpl.Expr.Eq(fn(h0), fn(h1)))), "frame axiom for " + fname));
           };
 
           AddFrameForFunction(h0, Reads(ad.Arity));
@@ -7503,6 +7461,85 @@ namespace Microsoft.Dafny {
           AddFrameForFunction(h1, Requires(ad.Arity));
           AddFrameForFunction(h0, Apply(ad.Arity));
           AddFrameForFunction(h1, Apply(ad.Arity));
+        }
+
+        /* axiom (forall T..: Ty, heap: Heap, f: HandleType, bx..: Box ::
+         *   { ReadsN(T.., $OneHeap, f, bx..), $IsGoodHeap(heap) }
+         *   { ReadsN(T.., heap, f, bx..) }
+         *   $IsGoodHeap(heap) && Is...(f...bx...) ==>
+         *   Set#Equal(ReadsN(T.., OneHeap, f, bx..), EmptySet) == Set#Equal(ReadsN(T.., heap, f, bx..), EmptySet));
+         */
+        {
+          var bvars = new List<Bpl.Variable>();
+          var types = Map(Enumerable.Range(0, arity + 1), i => BplBoundVar("t" + i, predef.Ty, bvars));
+          var oneheap = new Bpl.IdentifierExpr(tok, "$OneHeap", predef.HeapType);
+          var h = BplBoundVar("heap", predef.HeapType, bvars);
+          var f = BplBoundVar("f", predef.HandleType, bvars);
+          var boxes = Map(Enumerable.Range(0, arity), i => BplBoundVar("bx" + i, predef.BoxType, bvars));
+
+          var goodHeap = FunctionCall(tok, BuiltinFunction.IsGoodHeap, null, h);
+
+          var isness = BplAnd(
+            Snoc(Map(Enumerable.Range(0, arity), i =>
+              BplAnd(MkIs(boxes[i], types[i], true),
+                AlwaysUseHeapMethod && !Allocated3_QuantIsAllocCheat ? MkIsAlloc(boxes[i], types[i], h, true) : Bpl.Expr.True)),
+            BplAnd(MkIs(f, ClassTyCon(ad, types)),
+              AlwaysUseHeapMethod && !Allocated3_QuantIsAllocCheat ? MkIsAlloc(f, ClassTyCon(ad, types), h) : Bpl.Expr.True)));
+
+          var readsOne = FunctionCall(tok, Reads(arity), objset_ty, Concat(types, Cons(oneheap, Cons(f, boxes))));
+          var readsH = FunctionCall(tok, Reads(arity), objset_ty, Concat(types, Cons(h, Cons(f, boxes))));
+          var empty = FunctionCall(tok, BuiltinFunction.SetEmpty, predef.BoxType);
+          var readsNothingOne = FunctionCall(tok, BuiltinFunction.SetEqual, null, readsOne, empty);
+          var readsNothingH = FunctionCall(tok, BuiltinFunction.SetEqual, null, readsH, empty);
+
+          sink.AddTopLevelDeclaration(new Axiom(tok, BplForall(bvars,
+            new Bpl.Trigger(tok, true, new List<Bpl.Expr> { readsOne, goodHeap },
+            new Bpl.Trigger(tok, true, new List<Bpl.Expr> { readsH })),
+            BplImp(
+              BplAnd(goodHeap, isness), 
+              BplIff(readsNothingOne, readsNothingH))),
+            string.Format("empty-reads property for {0} ", Reads(arity))));
+        }
+
+        /* axiom (forall T..: Ty, heap: Heap, f: HandleType, bx..: Box ::
+         *   { RequiresN(T.., OneHeap, f, bx..), $IsGoodHeap(heap) }
+         *   { RequiresN(T.., heap, f, bx..) }
+         *   $IsGoodHeap(heap) && Is...(f...bx...) &&
+         *   Set#Equal(ReadsN(T.., OneHeap, f, bx..), EmptySet)
+         *   ==>
+         *   RequiresN(T.., OneHeap, f, bx..) == RequiresN(T.., heap, f, bx..));
+         */
+        {
+          var bvars = new List<Bpl.Variable>();
+          var types = Map(Enumerable.Range(0, arity + 1), i => BplBoundVar("t" + i, predef.Ty, bvars));
+          var oneheap = new Bpl.IdentifierExpr(tok, "$OneHeap", predef.HeapType);
+          var h = BplBoundVar("heap", predef.HeapType, bvars);
+          var f = BplBoundVar("f", predef.HandleType, bvars);
+          var boxes = Map(Enumerable.Range(0, arity), i => BplBoundVar("bx" + i, predef.BoxType, bvars));
+
+          var goodHeap = FunctionCall(tok, BuiltinFunction.IsGoodHeap, null, h);
+
+          var isness = BplAnd(
+            Snoc(Map(Enumerable.Range(0, arity), i =>
+              BplAnd(MkIs(boxes[i], types[i], true),
+                AlwaysUseHeapMethod && !Allocated3_QuantIsAllocCheat ? MkIsAlloc(boxes[i], types[i], h, true) : Bpl.Expr.True)),
+            BplAnd(MkIs(f, ClassTyCon(ad, types)),
+              AlwaysUseHeapMethod && !Allocated3_QuantIsAllocCheat ? MkIsAlloc(f, ClassTyCon(ad, types), h) : Bpl.Expr.True)));
+
+          var readsOne = FunctionCall(tok, Reads(arity), objset_ty, Concat(types, Cons(oneheap, Cons(f, boxes))));
+          var empty = FunctionCall(tok, BuiltinFunction.SetEmpty, predef.BoxType);
+          var readsNothingOne = FunctionCall(tok, BuiltinFunction.SetEqual, null, readsOne, empty);
+
+          var requiresOne = FunctionCall(tok, Requires(arity), Bpl.Type.Bool, Concat(types, Cons(oneheap, Cons(f, boxes))));
+          var requiresH = FunctionCall(tok, Requires(arity), Bpl.Type.Bool, Concat(types, Cons(h, Cons(f, boxes))));
+
+          sink.AddTopLevelDeclaration(new Axiom(tok, BplForall(bvars,
+            new Bpl.Trigger(tok, true, new List<Bpl.Expr> { requiresOne, goodHeap },
+            new Bpl.Trigger(tok, true, new List<Bpl.Expr> { requiresH })),
+            BplImp(
+              BplAnd(BplAnd(goodHeap, isness), readsNothingOne),
+              Bpl.Expr.Eq(requiresOne, requiresH))),
+            string.Format("empty-reads property for {0}", Requires(arity))));
         }
 
         // $Is and $IsAlloc axioms
@@ -7527,8 +7564,8 @@ namespace Microsoft.Dafny {
           var boxes = Map(Enumerable.Range(0, arity), i => BplBoundVar("bx" + i, predef.BoxType, bvarsInner));
           var goodHeap = FunctionCall(tok, BuiltinFunction.IsGoodHeap, null, h);
           var isBoxes = BplAnd(Map(Enumerable.Range(0, arity), i => MkIs(boxes[i], types[i], true)));
-          var pre = FunctionCall(tok, Requires(ad.Arity), predef.BoxType, Concat(types, Cons(f, Cons<Bpl.Expr>(h, boxes))));
-          var applied = FunctionCall(tok, Apply(ad.Arity), predef.BoxType, Concat(types, Cons(f, Cons<Bpl.Expr>(h, boxes))));
+          var pre = FunctionCall(tok, Requires(ad.Arity), predef.BoxType, Concat(types, Cons(h, Cons<Bpl.Expr>(f, boxes))));
+          var applied = FunctionCall(tok, Apply(ad.Arity), predef.BoxType, Concat(types, Cons(h, Cons<Bpl.Expr>(f, boxes))));
           var applied_is = MkIs(applied, types[ad.Arity], true);
 
           sink.AddTopLevelDeclaration(new Axiom(tok,
@@ -7561,7 +7598,7 @@ namespace Microsoft.Dafny {
             var bx = BplBoundVar("bx", predef.BoxType, bvarsInner);
             var isBoxA = MkIs(bx, a, true);
             var isBoxB = MkIs(bx, b, true);
-            var tr = new Bpl.Trigger(tok, true, new [] { isBoxA }, new Bpl.Trigger(tok, true, new [] { isBoxB }));
+            var tr = new Bpl.Trigger(tok, true, new[] { isBoxA }, new Bpl.Trigger(tok, true, new[] { isBoxB }));
             var imp = BplImp(isBoxA, isBoxB);
             return BplForall(bvarsInner, tr, imp);
           };
@@ -7573,7 +7610,7 @@ namespace Microsoft.Dafny {
           body = BplAnd(body, Inner(typesT[arity], typesU[arity]));
           body = BplImp(body, IsU);
           sink.AddTopLevelDeclaration(new Axiom(tok,
-            BplForall(bvarsOuter, new Bpl.Trigger(tok, true, new [] { IsT, IsU }), body)));
+            BplForall(bvarsOuter, new Bpl.Trigger(tok, true, new[] { IsT, IsU }), body)));
         }
         /*  This is the definition of $IsAlloc function the arrow type:
           axiom (forall f: HandleType, t0: Ty, t1: Ty, h: Heap ::
@@ -7605,14 +7642,14 @@ namespace Microsoft.Dafny {
           var boxes = Map(Enumerable.Range(0, arity), i => BplBoundVar("bx" + i, predef.BoxType, bvarsInner));
           var isAllocBoxes = BplAnd(Map(Enumerable.Range(0, arity), i =>
             BplAnd(MkIs(boxes[i], types[i], true), MkIsAlloc(boxes[i], types[i], h, true))));
-          var pre = FunctionCall(tok, Requires(ad.Arity), predef.BoxType, Concat(types, Cons(f, Cons<Bpl.Expr>(h, boxes))));
-          var applied = FunctionCall(tok, Apply(ad.Arity), predef.BoxType, Concat(types, Cons(f, Cons<Bpl.Expr>(h, boxes))));
+          var pre = FunctionCall(tok, Requires(ad.Arity), predef.BoxType, Concat(types, Cons(h, Cons<Bpl.Expr>(f, boxes))));
+          var applied = FunctionCall(tok, Apply(ad.Arity), predef.BoxType, Concat(types, Cons(h, Cons<Bpl.Expr>(f, boxes))));
 
           // (forall r: ref :: {Reads1(t0, t1, f, h, bx0)[$Box(r)]}  r != null && Reads1(t0, t1, f, h, bx0)[$Box(r)] ==> h[r, alloc])
           var bvarsR = new List<Bpl.Variable>();
           var r = BplBoundVar("r", predef.RefType, bvarsR);
           var rNonNull = Bpl.Expr.Neq(r, predef.Null);
-          var reads = FunctionCall(tok, Reads(ad.Arity), predef.BoxType, Concat(types, Cons(f, Cons<Bpl.Expr>(h, boxes))));
+          var reads = FunctionCall(tok, Reads(ad.Arity), predef.BoxType, Concat(types, Cons(h, Cons<Bpl.Expr>(f, boxes))));
           var rInReads = Bpl.Expr.Select(reads, FunctionCall(tok, BuiltinFunction.Box, null, r));
           var rAlloc = IsAlloced(tok, h, r);
           var isAllocReads = BplForall(bvarsR, BplTrigger(rInReads), BplImp(BplAnd(rNonNull, rInReads), rAlloc));
@@ -7620,7 +7657,7 @@ namespace Microsoft.Dafny {
           sink.AddTopLevelDeclaration(new Axiom(tok,
             BplForall(bvarsOuter, BplTrigger(isAlloc),
               BplImp(goodHeap,
-                BplIff(isAlloc, !AlwaysUseHeap ? Bpl.Expr.True :
+                BplIff(isAlloc, !AlwaysUseHeapMethod ? Bpl.Expr.True :
                   BplForall(bvarsInner,
                     new Bpl.Trigger(tok, true, new List<Bpl.Expr> { applied }, BplTrigger(reads)),
                     BplImp(BplAnd(isAllocBoxes, pre), isAllocReads)))))));
@@ -7639,7 +7676,7 @@ namespace Microsoft.Dafny {
                     $IsAllocBox(Apply1(t0, t1, f, h, bx0), t1, h))
             ));
         */
-        if (AlwaysUseHeap) {
+        if (AlwaysUseHeapMethod) {
           var bvarsOuter = new List<Bpl.Variable>();
           var f = BplBoundVar("f", predef.HandleType, bvarsOuter);
           var types = Map(Enumerable.Range(0, arity + 1), i => BplBoundVar("t" + i, predef.Ty, bvarsOuter));
@@ -7650,8 +7687,8 @@ namespace Microsoft.Dafny {
           var bvarsInner = new List<Bpl.Variable>();
           var boxes = Map(Enumerable.Range(0, arity), i => BplBoundVar("bx" + i, predef.BoxType, bvarsInner));
           var isAllocBoxes = BplAnd(Map(Enumerable.Range(0, arity), i => MkIsAlloc(boxes[i], types[i], h, true)));
-          var pre = FunctionCall(tok, Requires(ad.Arity), predef.BoxType, Concat(types, Cons(f, Cons<Bpl.Expr>(h, boxes))));
-          var applied = FunctionCall(tok, Apply(ad.Arity), predef.BoxType, Concat(types, Cons(f, Cons<Bpl.Expr>(h, boxes))));
+          var pre = FunctionCall(tok, Requires(ad.Arity), predef.BoxType, Concat(types, Cons(h, Cons<Bpl.Expr>(f, boxes))));
+          var applied = FunctionCall(tok, Apply(ad.Arity), predef.BoxType, Concat(types, Cons(h, Cons<Bpl.Expr>(f, boxes))));
           var applied_isAlloc = MkIsAlloc(applied, types[ad.Arity], h, true);
 
           sink.AddTopLevelDeclaration(new Axiom(tok,
@@ -11808,8 +11845,8 @@ namespace Microsoft.Dafny {
               var args = Concat(
                 Map(Enumerable.Range(0, tRhs.ArrayDimensions.Count), ii => TypeToTy(sourceType.Args[ii])),
                 Cons(TypeToTy(sourceType.Result),
-                Cons(etran.TrExpr(tRhs.ElementInit),
                 Cons(etran.HeapExpr,
+                Cons(etran.TrExpr(tRhs.ElementInit),
                 indicies.ConvertAll(idx => (Bpl.Expr)FunctionCall(tok, BuiltinFunction.Box, null, idx))))));
               // check precond
               var pre = FunctionCall(tok, Requires(tRhs.ArrayDimensions.Count), Bpl.Type.Bool, args);
@@ -12676,7 +12713,7 @@ namespace Microsoft.Dafny {
       }
 
       internal static IsAllocType Var(bool isGhost) {
-        return (AlwaysUseHeap || (NonGhostsUseHeap && !isGhost)) ? ISALLOC : NOALLOC;
+        return (AlwaysUseHeapMethod || (NonGhostsUseHeap && !isGhost)) ? ISALLOC : NOALLOC;
       }
 
       internal IsAllocType Var(LocalVariable local) {
@@ -13291,9 +13328,9 @@ namespace Microsoft.Dafny {
 
           Func<Expression, Bpl.Expr> TrArg = arg => translator.BoxIfUnboxed(TrExpr(arg), arg.Type);
 
-          var applied = translator.FunctionCall(expr.tok, translator.Apply(arity), predef.BoxType,
+          var applied = translator.FunctionCall(expr.tok, Translator.Apply(arity), predef.BoxType,
             Concat(Map(tt.TypeArgs,translator.TypeToTy),
-            Cons(TrExpr(e.Function), Cons(HeapExpr, e.Args.ConvertAll(arg => TrArg(arg))))));
+            Cons(HeapExpr, Cons(TrExpr(e.Function), e.Args.ConvertAll(arg => TrArg(arg))))));
 
           return translator.UnboxIfBoxed(applied, tt.Result);
 
@@ -13886,7 +13923,7 @@ namespace Microsoft.Dafny {
             });
             }
 
-            antecedent = BplAnd(antecedent, bodyEtran.TrBoundVariables(e.BoundVars, bvars)); // initHeapForAllStmt
+            antecedent = BplAnd(antecedent, bodyEtran.TrBoundVariables(e.BoundVars, bvars, false, Allocated3_QuantIsAllocCheat)); // initHeapForAllStmt
 
             Bpl.QKeyValue kv = TrAttributes(e.Attributes, "trigger");
             Bpl.Trigger tr = translator.TrTrigger(bodyEtran, e.Attributes, e.tok, bvars, null, null);
@@ -14124,7 +14161,7 @@ namespace Microsoft.Dafny {
         return TrBoundVariables(boundVars, bvars, false);
       }
 
-      public Bpl.Expr TrBoundVariables(List<BoundVar/*!*/> boundVars, List<Variable> bvars, bool translateAsLocals) {
+      public Bpl.Expr TrBoundVariables(List<BoundVar/*!*/> boundVars, List<Variable> bvars, bool translateAsLocals, bool skipAllocation = false) {
         Contract.Requires(boundVars != null);
         Contract.Ensures(Contract.Result<Bpl.Expr>() != null);
 
@@ -14447,6 +14484,7 @@ namespace Microsoft.Dafny {
       // --------------- help routines ---------------
 
       public Bpl.Expr IsAlloced(IToken tok, Bpl.Expr e) {
+        Contract.Requires(HeapExpr != null);
         return translator.IsAlloced(tok, HeapExpr, e);
       }
 
@@ -15798,6 +15836,14 @@ namespace Microsoft.Dafny {
       ty.NormalizeExpand().TypeArgs.Iter(tt => ComputeFreeTypeVariables(tt, fvs));
     }
 
+    static void ComputeFreeTypeVariables_All(Type ty, ISet<TypeParameter> fvs) {
+      // Add type parameters
+      if (ty.IsTypeParameter) {
+        fvs.Add(ty.AsTypeParameter);
+      }
+      ty.NormalizeExpand().TypeArgs.Iter(tt => ComputeFreeTypeVariables_All(tt, fvs));
+    }
+
     public static ISet<IVariable> ComputeFreeVariables(Expression expr) {
       Contract.Requires(expr != null);
       ISet<IVariable> fvs = new HashSet<IVariable>();
@@ -15871,8 +15917,10 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public static bool NonGhostsUseHeap { get { return DafnyOptions.O.Allocated >= 1; } }
-    public static bool AlwaysUseHeap { get { return DafnyOptions.O.Allocated >= 2; } }
+    public static bool NonGhostsUseHeap { get { return DafnyOptions.O.Allocated == 1 || DafnyOptions.O.Allocated == 2; } }
+    public static bool AlwaysUseHeap { get { return DafnyOptions.O.Allocated == 2; } }
+    public static bool AlwaysUseHeapMethod { get { return DafnyOptions.O.Allocated >= 2; } }  // used in method contexts
+    public static bool Allocated3_QuantIsAllocCheat { get { return DafnyOptions.O.Allocated == 3; } }  // BUGBUG: temporary use
 
     public static bool UsesHeap(Expression expr) {
       UsesHeapVisitor visitor = new UsesHeapVisitor();

@@ -104,7 +104,7 @@ module Basic {
     twostate function Sw1(n: nat, x: U, new y: U): real
       requires x == y
     {
-      if n == 0 then 8.29 else Sw1(n-1, y, x)  // fine
+      if n == 0 then 8.29 else Sw1(n-1, y, x)  // error under /allocated:1
     }
   }
 }
@@ -128,12 +128,12 @@ module M0 {
   }
   class Cl extends Tr {
     twostate function G(c: C, new d: C): int
-      requires c != null && allocated(c) ==> c.data <= old(c.data)
+      requires c != null && allocated(c) ==> c.data <= old(c.data)  // error under /allocated:1 (c dereferenced inside old)
       reads c
-      ensures c != null && allocated(c) ==> G(c, d) == c.data
+      ensures c != null && allocated(c) ==> G(c, d) == c.data  // error under /allocated:1 (c passed as old parameter to G)
       ensures d != null && allocated(d) ==> 0 <= old(d.data)  // error: d is not available in old state
     {
-      if c == null then 2 else c.data
+      if c == null then 2 else c.data  // error under /allocated:1 (c dereferenced at all)
     }
     twostate lemma L(c: C, new d: C)
       requires c != null && allocated(c) ==> c.data <= old(c.data)

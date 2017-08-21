@@ -404,6 +404,12 @@ function $IsGoodHeap(Heap): bool;
 function $IsHeapAnchor(Heap): bool;
 var $Heap: Heap where $IsGoodHeap($Heap) && $IsHeapAnchor($Heap);
 
+// The following is used as a reference heap in places where the translation needs a heap
+// but the expression generated is really one that is (at least in a correct program)
+// independent of the heap.
+const $OneHeap: Heap;
+axiom $IsGoodHeap($OneHeap);
+
 function $HeapSucc(Heap, Heap): bool;
 axiom (forall<alpha> h: Heap, r: ref, f: Field alpha, x: alpha :: { update(h, r, f, x) }
   $IsGoodHeap(update(h, r, f, x)) ==>

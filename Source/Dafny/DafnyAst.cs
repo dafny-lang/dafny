@@ -1086,6 +1086,11 @@ namespace Microsoft.Dafny {
         return true;
       }
     }
+    public virtual bool MayInvolveReferences {
+      get {
+        return false;
+      }
+    }
 
     /// <summary>
     /// Returns true if it is known how to meaningfully compare the type's inhabitants.
@@ -1751,6 +1756,11 @@ namespace Microsoft.Dafny {
     public override bool IsSupertypeOf_WithSubsetTypes(Type that) {
       return that.IsRefType;
     }
+    public override bool MayInvolveReferences {
+      get {
+        return true;
+      }
+    }
   }
 
   public class ArrowType : UserDefinedType
@@ -1935,6 +1945,12 @@ namespace Microsoft.Dafny {
       this.arg = arg;
       this.TypeArgs = new List<Type> { arg, other };
     }
+
+    public override bool MayInvolveReferences {
+      get {
+        return Arg.MayInvolveReferences;
+      }
+    }
   }
 
   public class SetType : CollectionType {
@@ -2066,6 +2082,11 @@ namespace Microsoft.Dafny {
         // A map type supports equality if both its Keys type and Values type does.  It is checked
         // that the Keys type always supports equality, so we only need to check the Values type here.
         return range.SupportsEquality;
+      }
+    }
+    public override bool MayInvolveReferences {
+      get {
+        return Domain.MayInvolveReferences || Range.MayInvolveReferences;
       }
     }
   }
@@ -2407,6 +2428,36 @@ namespace Microsoft.Dafny {
         return true;
       }
     }
+
+    public override bool MayInvolveReferences {
+      get {
+        if (ResolvedClass is ClassDecl) {
+          return true;
+        } else if (ResolvedClass is NewtypeDecl) {
+          return false;
+        } else if (ResolvedClass is DatatypeDecl) {
+          var dt = (DatatypeDecl)ResolvedClass;
+          if (!dt.IsRevealedInScope(Type.GetScope())) {
+            return true;
+          }
+          Contract.Assert(dt.TypeArgs.Count == TypeArgs.Count);
+          return TypeArgs.TrueForAll(ta => ta.MayInvolveReferences);
+        } else if (ResolvedClass is TypeSynonymDeclBase) {
+          var t = (TypeSynonymDeclBase)ResolvedClass;
+          // (Note, if type parameters/opaque types could have a may-involve-references characteristic, then it would be consulted here)
+          if (t.IsRevealedInScope(Type.GetScope())) {
+            return t.RhsWithArgument(TypeArgs).MayInvolveReferences;
+          } else {
+            return true;
+          }
+        } else if (ResolvedParam != null) {
+          // (Note, if type parameters/opaque types could have a may-involve-references characteristic, then it would be consulted here)
+          return true;
+        }
+        Contract.Assume(false);  // the MayInvolveReferences getter requires the Type to have been successfully resolved
+        return true;
+      }
+    }
   }
 
   public abstract class TypeProxy : Type {
@@ -2503,6 +2554,15 @@ namespace Microsoft.Dafny {
           return T.SupportsEquality;
         } else {
           return base.SupportsEquality;
+        }
+      }
+    }
+    public override bool MayInvolveReferences {
+      get {
+        if (T != null) {
+          return T.MayInvolveReferences;
+        } else {
+          return true;
         }
       }
     }
@@ -3930,7 +3990,13 @@ namespace Microsoft.Dafny {
         Contract.Requires(EnclosingClass != null);
         Contract.Ensures(Contract.Result<string>() != null);
 
-        return EnclosingClass.FullSanitizedName + "." + CompileName;
+        if (Name == "requires") {
+          return Translator.Requires(((ArrowTypeDecl)EnclosingClass).Arity);
+        } else if (Name == "reads") {
+          return Translator.Reads(((ArrowTypeDecl)EnclosingClass).Arity);
+        } else {
+          return EnclosingClass.FullSanitizedName + "." + CompileName;
+        }
       }
     }
     public virtual string FullSanitizedRefinementName {
@@ -3938,7 +4004,13 @@ namespace Microsoft.Dafny {
         Contract.Requires(EnclosingClass != null);
         Contract.Ensures(Contract.Result<string>() != null);
 
-        return EnclosingClass.FullSanitizedRefinementName + "." + CompileName;
+        if (Name == "requires") {
+          return Translator.Requires(((ArrowTypeDecl)EnclosingClass).Arity);
+        } else if (Name == "reads") {
+          return Translator.Reads(((ArrowTypeDecl)EnclosingClass).Arity);
+        } else {
+          return EnclosingClass.FullSanitizedRefinementName + "." + CompileName;
+        }
       }
     }
     public virtual string FullNameInContext(ModuleDefinition context) {

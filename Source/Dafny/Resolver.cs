@@ -4647,6 +4647,16 @@ namespace Microsoft.Dafny
                 }
               }
             }
+#if SOON
+            if (codeContext is Function && missingBounds.Count != 0) {
+              // functions are not allowed to depend on the set of allocated objects
+              foreach (var bv in missingBounds) {
+                if (bv.Type.MayInvolveReferences) {
+                  resolver.reporter.Error(MessageSource.Resolver, e, "a {0} involved in a function definition is not allowed to depend on the set of allocated references; Dafny's heuristics can't figure out a bound for the values of '{1}'", what, bv.Name);
+                }
+              }
+            }
+#else
             if (codeContext is Function && e.Bounds != null) {
               // functions are not allowed to depend on the set of allocated objects
               Contract.Assert(e.Bounds.Count == e.BoundVars.Count);
@@ -4658,6 +4668,7 @@ namespace Microsoft.Dafny
                 }
               }
             }
+#endif
           }
 
         } else if (expr is MemberSelectExpr) {
@@ -12724,7 +12735,7 @@ namespace Microsoft.Dafny
         }
         // if there are bounds that are not determined yet and the number of undetermined bounds
         // changed, we will need to do another iteration.
-        if (count >0 && count != orgCount) {
+        if (count > 0 && count != orgCount) {
           changed = true;
           knownBounds = bests;
           orgCount = count;

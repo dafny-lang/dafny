@@ -395,7 +395,7 @@ lemma Proposition3b_Lemma(t: Tree, h: nat, p: Stream<int>)
           // assert LowerThan(ch, h);
       }
       // Putting these together, by ch.Cons? and the definition of LowerThan(ch, h), we get:
-      // assert LowerThan(ch.head.children, h-1);
+      assert LowerThan(ch.head.children, h-1);
       // And now we can invoke the induction hypothesis:
       // Proposition3b_Lemma(ch.head, h-1, tail);
   }

@@ -66,6 +66,8 @@ lemma Example1(s: state, t: state)
     big_step(Seq(Assign("x", N(5)), Assign("y", V("x"))), s, t);
     // 5 is suffiiently high
     big_step#[5](Seq(Assign("x", N(5)), Assign("y", V("x"))), s, t);
+    exists sm ::
+      big_step#[4](Assign("x", N(5)), s, sm) && big_step#[4](Assign("y", V("x")), sm, t);
     big_step#[4](Assign("x", N(5)), s, s') && big_step#[4](Assign("y", V("x")), s', t);
     // the rest is done automatically
     true;

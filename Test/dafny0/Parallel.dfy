@@ -210,7 +210,7 @@ class TwoState_C { ghost var data: int }
 // contexts are not allowed to allocate state.  Callers of this ghost method will know
 // that the postcondition is tantamount to 'false'.
 ghost method TwoState0(y: int)
-  ensures exists o: TwoState_C {:nowarn} :: o != null && fresh(o)
+  ensures exists o: TwoState_C {:nowarn} :: o != null && allocated(o) && fresh(o)
 
 method TwoState_Main0() {
   forall x { TwoState0(x); }
@@ -236,7 +236,7 @@ method X_Legit(c: TwoState_C)
 method TwoState_Main2()
 {
   forall x: int
-    ensures exists o: TwoState_C {:nowarn} :: o != null && fresh(o)
+    ensures exists o: TwoState_C {:nowarn} :: o != null && allocated(o) && fresh(o)
   {
     TwoState0(x);
   }
@@ -252,7 +252,7 @@ method TwoState_Main2()
 method TwoState_Main3()
 {
   forall x: int
-    ensures exists o: TwoState_C {:nowarn} :: o != null && fresh(o)
+    ensures exists o: TwoState_C {:nowarn} :: o != null && allocated(o) && fresh(o)
   {
     assume false;  // (there's no other way to achieve this forall-statement postcondition)
   }
