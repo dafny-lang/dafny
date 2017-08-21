@@ -139,3 +139,42 @@ type Bad_TwoPred_TotalArrow<A,B> = f: A ~> B
   | EmptyReads(f) && TruePre(f)
   // cool: the type instantiation of "PartialFunction" below is inferred
   ghost witness PartialFunction  // error: the second conjunct of the constraint is not satisfied
+
+// ----- Interaction between user-defined conditions and built-in arrows -----
+
+method Any_to_Partial(f: int ~> int) returns (g: int --> int)
+  requires forall x :: f.reads(x) == {}
+{
+  g := f;
+}
+
+method Partial_to_Any(g: int --> int) returns (f: int ~> int)
+  ensures forall x :: f.reads(x) == {}
+{
+  f := g;
+}
+
+method Partial_to_Total(g: int --> int) returns (tot: int -> int)
+  requires forall x :: g.requires(x)
+{
+  tot := g;
+}
+
+method Total_to_Partial(tot: int -> int) returns (g: int --> int)
+  ensures forall x :: g.requires(x)
+{
+  g := tot;
+}
+
+
+method Any_to_Total(f: int ~> int) returns (tot: int -> int)
+  requires forall x :: f.reads(x) == {} && f.requires(x)
+{
+  tot := f;
+}
+
+method Total_to_Any(tot: int -> int) returns (f: int ~> int)
+  ensures forall x :: f.reads(x) == {} && f.requires(x)
+{
+  f := tot;
+}

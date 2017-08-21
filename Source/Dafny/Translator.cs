@@ -1168,7 +1168,7 @@ namespace Microsoft.Dafny {
         name += "$Is";
         // $Is(o, ..)
         is_o = MkIs(o, o_ty);
-        var etran = new ExpressionTranslator(this, predef, dd.tok);
+        var etran = new ExpressionTranslator(this, predef, new Bpl.IdentifierExpr(dd.tok, "$OneHeap", predef.HeapType));
         Bpl.Expr parentConstraint, constraint;
         if (dd.Var.Type.IsNumericBased() || dd.Var.Type.IsBitVectorType || dd.Var.Type.IsBoolType) {
           // optimize this to only use the numeric/bitvector constraint, not the whole $Is thing on the base type
@@ -1180,20 +1180,6 @@ namespace Microsoft.Dafny {
           parentConstraint = MkIs(o, dd.Var.Type);
           // conjoin the constraint
           constraint = etran.TrExpr(dd.Constraint);
-        }
-        if (etran.Statistics_HeapUses != 0) {
-          var heap = new Bpl.BoundVariable(dd.tok, new Bpl.TypedIdent(dd.tok, predef.HeapVarName, predef.HeapType));
-          //TRIG (exists $Heap: Heap :: $IsGoodHeap($Heap) && LitInt(0) <= $o#0 && $o#0 < 100) &&
-          //TRIG (forall $Heap: Heap :: $IsGoodHeap($Heap) ==> LitInt(0) <= $o#0 && $o#0 < 100)
-          // TODO: Since dd.Constraint really shouldn't depend on the heap anyway, it would be better to use an "etran"
-          // that used some global-constant dummy heap.  But some heap is needed to make for a correct translation into
-          // Boogie, as for instance this example shows:
-          //      class C { }
-          //      newtype MyInt = x: int | {} == set c: C | true :: c
-          var range = FunctionCall(dd.tok, BuiltinFunction.IsGoodHeap, null, etran.HeapExpr);
-          var e = new Bpl.ExistsExpr(dd.tok, new List<Variable> { heap }, BplAnd(range, constraint));  // LL_TRIGGER
-          var a = new Bpl.ForallExpr(dd.tok, new List<Variable> { heap }, BplImp(range, constraint));  // LL_TRIGGER
-          constraint = BplAnd(e, a);
         }
         body = BplIff(is_o, BplAnd(parentConstraint, constraint));
       }
@@ -7463,7 +7449,7 @@ namespace Microsoft.Dafny {
 
             sink.AddTopLevelDeclaration(new Axiom(tok,
               BplForall(bvars,
-                new Bpl.Trigger(tok, true, new List<Bpl.Expr> {heapSucc, fn(h1)}),
+                new Bpl.Trigger(tok, true, new List<Bpl.Expr> { heapSucc, fn(h1) }),
                 BplImp(
                   BplAnd(BplAnd(BplAnd(heapSucc, goodHeaps), isness), inner_forall),
                   Bpl.Expr.Eq(fn(h0), fn(h1)))), "frame axiom for " + fname));
@@ -7475,6 +7461,85 @@ namespace Microsoft.Dafny {
           AddFrameForFunction(h1, Requires(ad.Arity));
           AddFrameForFunction(h0, Apply(ad.Arity));
           AddFrameForFunction(h1, Apply(ad.Arity));
+        }
+
+        /* axiom (forall T..: Ty, heap: Heap, f: HandleType, bx..: Box ::
+         *   { ReadsN(T.., $OneHeap, f, bx..), $IsGoodHeap(heap) }
+         *   { ReadsN(T.., heap, f, bx..) }
+         *   $IsGoodHeap(heap) && Is...(f...bx...) ==>
+         *   Set#Equal(ReadsN(T.., OneHeap, f, bx..), EmptySet) == Set#Equal(ReadsN(T.., heap, f, bx..), EmptySet));
+         */
+        {
+          var bvars = new List<Bpl.Variable>();
+          var types = Map(Enumerable.Range(0, arity + 1), i => BplBoundVar("t" + i, predef.Ty, bvars));
+          var oneheap = new Bpl.IdentifierExpr(tok, "$OneHeap", predef.HeapType);
+          var h = BplBoundVar("heap", predef.HeapType, bvars);
+          var f = BplBoundVar("f", predef.HandleType, bvars);
+          var boxes = Map(Enumerable.Range(0, arity), i => BplBoundVar("bx" + i, predef.BoxType, bvars));
+
+          var goodHeap = FunctionCall(tok, BuiltinFunction.IsGoodHeap, null, h);
+
+          var isness = BplAnd(
+            Snoc(Map(Enumerable.Range(0, arity), i =>
+              BplAnd(MkIs(boxes[i], types[i], true),
+                AlwaysUseHeapMethod && !Allocated3_QuantIsAllocCheat ? MkIsAlloc(boxes[i], types[i], h, true) : Bpl.Expr.True)),
+            BplAnd(MkIs(f, ClassTyCon(ad, types)),
+              AlwaysUseHeapMethod && !Allocated3_QuantIsAllocCheat ? MkIsAlloc(f, ClassTyCon(ad, types), h) : Bpl.Expr.True)));
+
+          var readsOne = FunctionCall(tok, Reads(arity), objset_ty, Concat(types, Cons(oneheap, Cons(f, boxes))));
+          var readsH = FunctionCall(tok, Reads(arity), objset_ty, Concat(types, Cons(h, Cons(f, boxes))));
+          var empty = FunctionCall(tok, BuiltinFunction.SetEmpty, predef.BoxType);
+          var readsNothingOne = FunctionCall(tok, BuiltinFunction.SetEqual, null, readsOne, empty);
+          var readsNothingH = FunctionCall(tok, BuiltinFunction.SetEqual, null, readsH, empty);
+
+          sink.AddTopLevelDeclaration(new Axiom(tok, BplForall(bvars,
+            new Bpl.Trigger(tok, true, new List<Bpl.Expr> { readsOne, goodHeap },
+            new Bpl.Trigger(tok, true, new List<Bpl.Expr> { readsH })),
+            BplImp(
+              BplAnd(goodHeap, isness), 
+              BplIff(readsNothingOne, readsNothingH))),
+            string.Format("empty-reads property for {0} ", Reads(arity))));
+        }
+
+        /* axiom (forall T..: Ty, heap: Heap, f: HandleType, bx..: Box ::
+         *   { RequiresN(T.., OneHeap, f, bx..), $IsGoodHeap(heap) }
+         *   { RequiresN(T.., heap, f, bx..) }
+         *   $IsGoodHeap(heap) && Is...(f...bx...) &&
+         *   Set#Equal(ReadsN(T.., OneHeap, f, bx..), EmptySet)
+         *   ==>
+         *   RequiresN(T.., OneHeap, f, bx..) == RequiresN(T.., heap, f, bx..));
+         */
+        {
+          var bvars = new List<Bpl.Variable>();
+          var types = Map(Enumerable.Range(0, arity + 1), i => BplBoundVar("t" + i, predef.Ty, bvars));
+          var oneheap = new Bpl.IdentifierExpr(tok, "$OneHeap", predef.HeapType);
+          var h = BplBoundVar("heap", predef.HeapType, bvars);
+          var f = BplBoundVar("f", predef.HandleType, bvars);
+          var boxes = Map(Enumerable.Range(0, arity), i => BplBoundVar("bx" + i, predef.BoxType, bvars));
+
+          var goodHeap = FunctionCall(tok, BuiltinFunction.IsGoodHeap, null, h);
+
+          var isness = BplAnd(
+            Snoc(Map(Enumerable.Range(0, arity), i =>
+              BplAnd(MkIs(boxes[i], types[i], true),
+                AlwaysUseHeapMethod && !Allocated3_QuantIsAllocCheat ? MkIsAlloc(boxes[i], types[i], h, true) : Bpl.Expr.True)),
+            BplAnd(MkIs(f, ClassTyCon(ad, types)),
+              AlwaysUseHeapMethod && !Allocated3_QuantIsAllocCheat ? MkIsAlloc(f, ClassTyCon(ad, types), h) : Bpl.Expr.True)));
+
+          var readsOne = FunctionCall(tok, Reads(arity), objset_ty, Concat(types, Cons(oneheap, Cons(f, boxes))));
+          var empty = FunctionCall(tok, BuiltinFunction.SetEmpty, predef.BoxType);
+          var readsNothingOne = FunctionCall(tok, BuiltinFunction.SetEqual, null, readsOne, empty);
+
+          var requiresOne = FunctionCall(tok, Requires(arity), Bpl.Type.Bool, Concat(types, Cons(oneheap, Cons(f, boxes))));
+          var requiresH = FunctionCall(tok, Requires(arity), Bpl.Type.Bool, Concat(types, Cons(h, Cons(f, boxes))));
+
+          sink.AddTopLevelDeclaration(new Axiom(tok, BplForall(bvars,
+            new Bpl.Trigger(tok, true, new List<Bpl.Expr> { requiresOne, goodHeap },
+            new Bpl.Trigger(tok, true, new List<Bpl.Expr> { requiresH })),
+            BplImp(
+              BplAnd(BplAnd(goodHeap, isness), readsNothingOne),
+              Bpl.Expr.Eq(requiresOne, requiresH))),
+            string.Format("empty-reads property for {0}", Requires(arity))));
         }
 
         // $Is and $IsAlloc axioms
@@ -7533,7 +7598,7 @@ namespace Microsoft.Dafny {
             var bx = BplBoundVar("bx", predef.BoxType, bvarsInner);
             var isBoxA = MkIs(bx, a, true);
             var isBoxB = MkIs(bx, b, true);
-            var tr = new Bpl.Trigger(tok, true, new [] { isBoxA }, new Bpl.Trigger(tok, true, new [] { isBoxB }));
+            var tr = new Bpl.Trigger(tok, true, new[] { isBoxA }, new Bpl.Trigger(tok, true, new[] { isBoxB }));
             var imp = BplImp(isBoxA, isBoxB);
             return BplForall(bvarsInner, tr, imp);
           };
@@ -7545,7 +7610,7 @@ namespace Microsoft.Dafny {
           body = BplAnd(body, Inner(typesT[arity], typesU[arity]));
           body = BplImp(body, IsU);
           sink.AddTopLevelDeclaration(new Axiom(tok,
-            BplForall(bvarsOuter, new Bpl.Trigger(tok, true, new [] { IsT, IsU }), body)));
+            BplForall(bvarsOuter, new Bpl.Trigger(tok, true, new[] { IsT, IsU }), body)));
         }
         /*  This is the definition of $IsAlloc function the arrow type:
           axiom (forall f: HandleType, t0: Ty, t1: Ty, h: Heap ::
