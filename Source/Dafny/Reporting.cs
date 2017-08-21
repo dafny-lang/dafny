@@ -13,7 +13,8 @@ namespace Microsoft.Dafny {
   public enum MessageSource {
     Parser, Resolver, Translator, Rewriter, Other,
     RefinementTransformer,
-    Cloner
+    Cloner,
+    Compiler
   }
 
   public struct ErrorMessage {
@@ -150,15 +151,11 @@ namespace Microsoft.Dafny {
     }
 
     public static string ErrorToString(ErrorLevel header, IToken tok, string msg) {
-      return ErrorToString_Internal(": " + header.ToString(), tok.filename, tok.line, tok.col, ": " + msg);
+      return String.Format("{0}: {1}{2}", TokenToString(tok), header.ToString(), ": " + msg);
     }
 
-    public static string ErrorToString(ErrorLevel header, string filename, int oneBasedLine, int oneBasedColumn, string msg) {
-      return ErrorToString_Internal(": " + header.ToString(), filename, oneBasedLine, oneBasedColumn, ": " + msg);
-    }
-
-    public static string ErrorToString_Internal(string header, string filename, int oneBasedLine, int oneBasedColumn, string msg) {
-      return String.Format("{0}({1},{2}){3}{4}", filename, oneBasedLine, oneBasedColumn - 1, header, msg ?? "");
+    public static string TokenToString(IToken tok) {
+      return String.Format("{0}({1},{2})", tok.filename, tok.line, tok.col - 1);
     }
   }
 

@@ -3825,7 +3825,7 @@ namespace Microsoft.Dafny {
 
       if (DafnyOptions.O.DefiniteAssignmentLevel == 0 || p.IsGhost) {
         return;
-      } else if (DafnyOptions.O.DefiniteAssignmentLevel == 1 && Compiler.InitializerIsKnown(p.Type)) {
+      } else if (DafnyOptions.O.DefiniteAssignmentLevel == 1 && Compiler.InitializerIsKnown(p.Type, p.Tok)) {
         return;
       }
       var tracker = new Bpl.LocalVariable(p.Tok, new Bpl.TypedIdent(p.Tok, "defass#" + p.UniqueName, Bpl.Type.Bool));
@@ -3840,7 +3840,7 @@ namespace Microsoft.Dafny {
 
       if (DafnyOptions.O.DefiniteAssignmentLevel == 0 || field.IsGhost) {
         return;
-      } else if (DafnyOptions.O.DefiniteAssignmentLevel == 1 && Compiler.InitializerIsKnown(field.Type)) {
+      } else if (DafnyOptions.O.DefiniteAssignmentLevel == 1 && Compiler.InitializerIsKnown(field.Type, field.tok)) {
         return;
       }
       var nm = SurrogateName(field);
@@ -4701,7 +4701,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(tok != null);
       Contract.Ensures(Contract.Result<Bpl.Cmd>() != null);
       var col = tok.col + (isEndToken ? tok.val.Length : 0);
-      string description = ErrorReporter.ErrorToString_Internal(additionalInfo == null ? "" : ": ", tok.filename, tok.line, col, additionalInfo ?? "");
+      string description = String.Format("{0}{1}", ErrorReporter.TokenToString(tok), additionalInfo == null ? "" : (": " + additionalInfo));
       QKeyValue kv = new QKeyValue(tok, "captureState", new List<object>() { description }, null);
       return TrAssumeCmd(tok, Bpl.Expr.True, kv);
     }
@@ -11803,7 +11803,7 @@ namespace Microsoft.Dafny {
             }
           } else if (DafnyOptions.O.DefiniteAssignmentLevel == 0) {
             // cool
-          } else if (2 <= DafnyOptions.O.DefiniteAssignmentLevel || !Compiler.InitializerIsKnown(tRhs.EType)) {
+          } else if (2 <= DafnyOptions.O.DefiniteAssignmentLevel || !Compiler.InitializerIsKnown(tRhs.EType, tRhs.Tok)) {
             // this is allowed only if the array size is such that it has no elements
             Bpl.Expr zeroSize = Bpl.Expr.False;
             foreach (Expression dim in tRhs.ArrayDimensions) {
