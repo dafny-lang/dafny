@@ -99,20 +99,6 @@ class DoublyLinkedList {
     Nodes := nodes;
   }
 
-  function PopMiddle<T>(s: seq<T>, k: nat) : seq<T>
-    requires k < |s| {
-      s[..k] + s[k+1..]
-  }
-
-  predicate Injective<T>(s: seq<T>) {
-    forall j, k :: 0 <= j < k < |s| ==> s[j] != s[k]
-  }
-
-  lemma InjectiveAfterPop<T>(s: seq<T>, k: nat)
-    requires k < |s|
-    requires Injective(s)
-    ensures  Injective(PopMiddle(s, k)) { }
-
   method Remove(x: Node) returns (ghost k: int)
     requires Valid()
     requires x in Nodes && x != Nodes[0] && x != Nodes[|Nodes|-1]  // not allowed to remove end nodes; you may think of them as a sentinel nodes
@@ -125,7 +111,6 @@ class DoublyLinkedList {
     x.R.L := x.L;
     x.L.R := x.R;
 
-    InjectiveAfterPop(Nodes, k);
     Nodes := Nodes[..k] + Nodes[k+1..];
     assert Valid();
   }
