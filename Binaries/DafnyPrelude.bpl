@@ -1016,9 +1016,6 @@ axiom (forall<U,V> m: Map U V :: { Set#Card(Map#Domain(m)) }
 
 function Map#Values<U,V>(Map U V) : Set V;
 
-axiom (forall<U,V> m: Map U V :: { Set#Card(Map#Values(m)) }
-  Set#Card(Map#Values(m)) == Map#Card(m));
-
 axiom (forall<U,V> m: Map U V, v: V :: { Map#Values(m)[v] }
   Map#Values(m)[v] ==
 	(exists u: U :: { Map#Domain(m)[u] } { Map#Elements(m)[u] }	
