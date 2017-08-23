@@ -137,6 +137,7 @@ class Benchmark3 {
       { assert [O[j]] == O[j..j+1]; }
       O[j+1..] + O[..j] + O[j..j+1];
       O[j+1..] + (O[..j] + O[j..j+1]);
+      { assert O[..j] + O[j..j+1] == O[..j+1]; }
       O[j+1..] + O[..j+1];
     }
   }
