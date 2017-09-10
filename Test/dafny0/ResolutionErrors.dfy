@@ -2111,3 +2111,57 @@ module GhostWitness {
     var b: B :| true; b
   }
 }
+
+module IteratorDuplicateParameterNames {
+  // each of the following once caused a crash in the resolver
+  iterator MyIterX(u: char) yields (u: char)  // error: duplicate name "u"
+  iterator MyIterY(us: char) yields (u: char)  // error: in-effect-duplicate name "us"
+}
+
+module DontQualifyWithNonNullTypeWhenYouMeanAClass {
+  module Z {
+    class MyClass {
+      static const g := 100
+    }
+    method M0() {
+      var x := MyClass?.g;  // error: use MyClass, not MyClass?
+      assert x == 100;
+    }
+    method M1() {
+      var x := MyClass.g;  // that's it!
+      assert x == 100;
+    }
+    method P(from: MyClass) returns (to: MyClass?) {
+      to := from;
+    }
+    method Q() {
+      var x := MyClass;  // error: type used as variable
+      var y := MyClass?;  // error: type used as variable
+    }
+  }
+
+  module A {
+    class MyClass {
+      static const g := 100
+    }
+  }
+
+  module B {
+    import A
+    method M0() {
+      var x := A.MyClass?.g;  // error: use MyClass, not MyClass?
+      assert x == 100;
+    }
+    method M1() {
+      var x := A.MyClass.g;  // that's it!
+      assert x == 100;
+    }
+    method P(from: A.MyClass) returns (to: A.MyClass?) {
+      to := from;
+    }
+    method Q() {
+      var x := A.MyClass;  // error: type used as variable
+      var y := A.MyClass?;  // error: type used as variable
+    }
+  }
+}

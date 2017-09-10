@@ -3,7 +3,7 @@
 
 class A {
   method M() {
-    var y := new A[100];
+    var y := new A?[100];
     y[5] := null;
   }
 
@@ -14,7 +14,7 @@ class A {
     }
   }
 
-  method N1(a: array<int>)
+  method N1(a: array?<int>)
     modifies a;
   {
     var b := a.Length;  // error: a may be null
@@ -38,7 +38,7 @@ class A {
   var zz0: array<A>;
   var zz1: array<B>;
   method O() {
-    var zz2 := new A[25];
+    var zz2 := new A?[25];
     assert zz2 != zz0;  // holds because zz2 is newly allocated
     var o: object := zz0;
     assert this != o;  // holds because zz0 has a different type

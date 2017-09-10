@@ -15,7 +15,7 @@ twostate lemma L(c: A, new d: A)
 
 class A {
   var f: int 
-  var g: A
+  var g: A?
 
   function GimmieF(): int
     reads this
@@ -84,8 +84,8 @@ class A {
 
 class Node {
   var x: int
-  var next: Node
-  ghost var Repr: set<Node>
+  var next: Node?
+  ghost var Repr: set<Node?>
   predicate Valid()
     reads this, Repr
   {
@@ -195,7 +195,7 @@ class Node {
 
 class {:autocontracts} NodeAuto {
   var x: int
-  var next: NodeAuto
+  var next: NodeAuto?
   constructor (y: int)
   {
     x, next := y, null;

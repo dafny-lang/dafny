@@ -6,7 +6,7 @@ class RingBuffer<T(0)>
   // public view of the class:
   ghost var Contents: seq<T>  // the contents of the ring buffer
   ghost var N: nat  // the capacity of the ring buffer
-  ghost var Repr: set<object>  // the set of objects used in the implementation
+  ghost var Repr: set<object?>  // the set of objects used in the implementation
 
   // private implementation:
   var data: array<T>
@@ -18,7 +18,7 @@ class RingBuffer<T(0)>
     reads this, Repr
   {
     this in Repr && null !in Repr &&
-    data != null && data in Repr &&
+    data in Repr &&
     data.Length == N &&
     (N == 0 ==> len == start == 0 && Contents == []) &&
     (N != 0 ==> len <= N && start < N) &&

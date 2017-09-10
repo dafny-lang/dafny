@@ -45,7 +45,7 @@ function ok4(c : C, xs : set<C>):()
 
 // reads over itself
 
-class R { var r : R; }
+class R { var r : R constructor () { r := this; } }
 
 function nope5(r : R):()
   reads if r != null then {r.r} else {};

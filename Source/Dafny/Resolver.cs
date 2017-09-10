@@ -247,14 +247,14 @@ namespace Microsoft.Dafny
       iMapItems.AddVisibilityScope(prog.BuiltIns.SystemModule.VisibilityScope, false);
       basicTypeMembers[(int)BasicTypeVariety.IMap].Add(items.Name, iMapItems);
 
-      List<Formal> formals = new List<Formal>();
-      formals.Add(new Formal(Token.NoToken, "w", new UserDefinedType(Token.NoToken, "nat", null), true, false, false));
+      List<Formal> formals = new List<Formal> { new Formal(Token.NoToken, "w", Type.Nat(), true, false, false) };
       var rotateLeft = new SpecialFunction(Token.NoToken, "RotateLeft", false, false, false, new List<TypeParameter>(), formals, new SelfType(),
         new List<Expression>(), new List<FrameExpression>(), new List<Expression>(), new Specification<Expression>(new List<Expression>(), null), null, null, null);
       rotateLeft.AddVisibilityScope(prog.BuiltIns.SystemModule.VisibilityScope, false);
       basicTypeMembers[(int)BasicTypeVariety.Bitvector].Add(rotateLeft.Name, rotateLeft);
       builtIns.CreateArrowTypeDecl(formals.Count);
 
+      formals = new List<Formal> { new Formal(Token.NoToken, "w", Type.Nat(), true, false, false) };
       var rotateRight = new SpecialFunction(Token.NoToken, "RotateRight", false, false, false, new List<TypeParameter>(), formals, new SelfType(),
         new List<Expression>(), new List<FrameExpression>(), new List<Expression>(), new Specification<Expression>(new List<Expression>(), null), null, null, null);
       rotateLeft.AddVisibilityScope(prog.BuiltIns.SystemModule.VisibilityScope, false);
@@ -333,7 +333,7 @@ namespace Microsoft.Dafny
       rewriters = new List<IRewriter>();
       refinementTransformer = new RefinementTransformer(prog);
       rewriters.Add(refinementTransformer);
-      rewriters.Add(new AutoContractsRewriter(reporter));
+      rewriters.Add(new AutoContractsRewriter(reporter, builtIns));
       rewriters.Add(new OpaqueFunctionRewriter(this.reporter));
       rewriters.Add(new AutoReqFunctionRewriter(this.reporter));
       rewriters.Add(new TimeLimitRewriter(reporter));
@@ -351,6 +351,17 @@ namespace Microsoft.Dafny
       prog.CompileModules.Add(prog.BuiltIns.SystemModule);
       RevealAllInScope(prog.BuiltIns.SystemModule.TopLevelDecls, systemNameInfo.VisibilityScope);
       ResolveBasicTypeMembers();
+      // The SystemModule is constructed with all its members already being resolved. Except for
+      // the non-null type corresponding to class types.  They are resolved here:
+      var systemModuleClassesWithNonNullTypes = new List<TopLevelDecl>(prog.BuiltIns.SystemModule.TopLevelDecls.Where(d => d is ClassDecl && ((ClassDecl)d).NonNullTypeDecl != null));
+      foreach (var cl in systemModuleClassesWithNonNullTypes) {
+        var d = ((ClassDecl)cl).NonNullTypeDecl;
+        allTypeParameters.PushMarker();
+        ResolveTypeParameters(d.TypeArgs, true, d);
+        ResolveType(d.tok, d.Rhs, d, ResolveTypeOptionEnum.AllowPrefix, d.TypeArgs);
+        allTypeParameters.PopMarker();
+      }
+      ResolveTopLevelDecls_Core(systemModuleClassesWithNonNullTypes, new Graph<IndDatatypeDecl>(), new Graph<CoDatatypeDecl>());
 
       var compilationModuleClones = new Dictionary<ModuleDefinition, ModuleDefinition>();
       foreach (var decl in sortedDecls) {
@@ -389,9 +400,7 @@ namespace Microsoft.Dafny
           var tempVis = new VisibilityScope();
           tempVis.Augment(sig.VisibilityScope);
           tempVis.Augment(systemNameInfo.VisibilityScope);
-          Type.PushScope(tempVis);
-
-          
+          Type.PushScope(tempVis);          
 
           prog.ModuleSigs[m] = sig;
 
@@ -692,7 +701,16 @@ namespace Microsoft.Dafny
       return anyChangeToDecreases;
     }
 
-    public static Expression FrameArrowToObjectSet(Expression e, FreshIdGenerator idGen) {
+    public Expression FrameArrowToObjectSet(Expression e, FreshIdGenerator idGen) {
+      Contract.Requires(e != null);
+      Contract.Requires(idGen != null);
+      return FrameArrowToObjectSet(e, idGen, builtIns);
+    }
+
+    public static Expression FrameArrowToObjectSet(Expression e, FreshIdGenerator idGen, BuiltIns builtIns) {
+      Contract.Requires(e != null);
+      Contract.Requires(idGen != null);
+      Contract.Requires(builtIns != null);
       var arrTy = e.Type.AsArrowType;
       if (arrTy != null) {
         var bvars = new List<BoundVar>();
@@ -702,7 +720,7 @@ namespace Microsoft.Dafny
           bvars.Add(bv);
           bexprs.Add(new IdentifierExpr(e.tok, bv.Name) { Type = bv.Type, Var = bv });
         }
-        var oVar = new BoundVar(e.tok, idGen.FreshId("_o"), new ObjectType());
+        var oVar = new BoundVar(e.tok, idGen.FreshId("_o"), builtIns.Object());
         var obj = new IdentifierExpr(e.tok, oVar.Name) { Type = oVar.Type, Var = oVar };
         bvars.Add(oVar);
 
@@ -711,21 +729,21 @@ namespace Microsoft.Dafny
             new BinaryExpr(e.tok, BinaryExpr.Opcode.In, obj,
               new ApplyExpr(e.tok, e, bexprs)
               {
-                Type = new SetType(true, new ObjectType())
+                Type = new SetType(true, builtIns.Object())
               })
             {
               ResolvedOp = BinaryExpr.ResolvedOpcode.InSet,
               Type = Type.Bool
             }, obj, null)
           {
-            Type = new SetType(true, new ObjectType())
+            Type = new SetType(true, builtIns.Object())
           };
       } else {
         return e;
       }
     }
 
-    public static Expression FrameToObjectSet(List<FrameExpression> fexprs) {
+    public Expression FrameToObjectSet(List<FrameExpression> fexprs) {
       Contract.Requires(fexprs != null);
       Contract.Ensures(Contract.Result<Expression>() != null);
 
@@ -761,7 +779,7 @@ namespace Microsoft.Dafny
             }
             sInE.Type = Type.Bool;  // resolve here
             var s = new SetComprehension(e.tok, true, new List<BoundVar>() { bv }, sInE, bvIE, null);
-            s.Type = new SetType(true, new ObjectType());  // resolve here
+            s.Type = new SetType(true, builtIns.Object());  // resolve here
             sets.Add(s);
           } else {
             // e is already a set
@@ -772,19 +790,19 @@ namespace Microsoft.Dafny
       }
       if (singletons != null) {
         Expression display = new SetDisplayExpr(singletons[0].tok, true, singletons);
-        display.Type = new SetType(true, new ObjectType());  // resolve here
+        display.Type = new SetType(true, builtIns.Object());  // resolve here
         sets.Add(display);
       }
       if (sets.Count == 0) {
         Expression emptyset = new SetDisplayExpr(Token.NoToken, true, new List<Expression>());
-        emptyset.Type = new SetType(true, new ObjectType());  // resolve here
+        emptyset.Type = new SetType(true, builtIns.Object());  // resolve here
         return emptyset;
       } else {
         Expression s = sets[0];
         for (int i = 1; i < sets.Count; i++) {
           BinaryExpr union = new BinaryExpr(s.tok, BinaryExpr.Opcode.Add, s, sets[i]);
           union.ResolvedOp = BinaryExpr.ResolvedOpcode.Union;  // resolve here
-          union.Type = new SetType(true, new ObjectType());  // resolve here
+          union.Type = new SetType(true, builtIns.Object());  // resolve here
           s = union;
         }
         return s;
@@ -930,10 +948,9 @@ namespace Microsoft.Dafny
           string name = export.Id;
 
           if (export.ClassId != null) {
-            if (sig.TopLevels.TryGetValue(export.ClassId, out cldecl)
-              && cldecl is ClassDecl) {
-
-              var cl = (ClassDecl)cldecl;
+            if (sig.TopLevels.TryGetValue(export.ClassId, out cldecl) &&
+              ((cldecl is ClassDecl && ((ClassDecl)cldecl).NonNullTypeDecl == null) || cldecl is NonNullTypeDecl)) {  // we are looking for a class name, not a type name
+              var cl = (ClassDecl)cldecl.ViewAsClass;
               var lmem = cl.Members.FirstOrDefault(l => l.Name == export.Id);
               if (lmem != null) {
                 decl = lmem;
@@ -945,9 +962,9 @@ namespace Microsoft.Dafny
               reporter.Error(MessageSource.Resolver, export.ClassIdTok, "No class '{0}' found", export.ClassId);
               continue;
             }
-          } else if (sig.TopLevels.TryGetValue(name, out tdecl)) {
+          } else if (sig.TopLevels.TryGetValue(name, out tdecl) && (!(tdecl is ClassDecl) || ((ClassDecl)tdecl).NonNullTypeDecl == null)) {  // pretend that C? types are not there
             // Member of the enclosing module
-            decl = tdecl;
+            decl = tdecl.ViewAsClass;  // interpret the export as a class name, not a type name
           } else if (sig.StaticMembers.TryGetValue(name, out member)) {
             decl = member;
           } else {
@@ -968,9 +985,15 @@ namespace Microsoft.Dafny
           export.Decl = decl;
           decl.AddVisibilityScope(d.ThisScope, export.Opaque);
 
-          if (export.Decl is ClassDecl && !export.Opaque) {
-            foreach (var mdecl in ((ClassDecl)export.Decl).Members) {
-              mdecl.AddVisibilityScope(d.ThisScope, false);
+          if (export.Decl is ClassDecl) {
+            var cl = (ClassDecl)export.Decl;
+            if (cl.NonNullTypeDecl != null) {
+              cl.NonNullTypeDecl.AddVisibilityScope(d.ThisScope, false);  // the associated non-null type is always exported as revealed
+            }
+            if (!export.Opaque) {
+              foreach (var mdecl in cl.Members) {
+                mdecl.AddVisibilityScope(d.ThisScope, false);
+              }
             }
           }
         }
@@ -1036,18 +1059,28 @@ namespace Microsoft.Dafny
 
       //some decls may not be set due to resolution errors
       foreach (var e in sortedDecls.SelectMany(e => e.Exports).Where(e => e.Decl != null)) {
-        exported.Add(new Tuple<Declaration, bool>(e.Decl, e.Opaque));
-        if (!e.Opaque && e.Decl.CanBeRevealed()) {
-          exported.Add(new Tuple<Declaration, bool>(e.Decl, true));
+        var decl = e.Decl;
+        exported.Add(new Tuple<Declaration, bool>(decl, e.Opaque));
+        if (!e.Opaque && decl.CanBeRevealed()) {
+          exported.Add(new Tuple<Declaration, bool>(decl, true));
         }
-        if (e.Opaque && (e.Decl is DatatypeDecl || e.Decl is TypeSynonymDecl)) {
+
+        if (decl is ClassDecl && ((ClassDecl)decl).NonNullTypeDecl != null) {
+          decl = ((ClassDecl)decl).NonNullTypeDecl;
+          exported.Add(new Tuple<Declaration, bool>(decl, e.Opaque));
+          if (!e.Opaque && decl.CanBeRevealed()) {
+            exported.Add(new Tuple<Declaration, bool>(decl, true));
+          }
+        }
+
+        if (e.Opaque && (decl is DatatypeDecl || decl is TypeSynonymDecl)) {
           // Datatypes and type synonyms are marked as _provided when they appear in any provided export.  If a
           // declaration is never provided, then either it isn't visible outside the module at all or its whole
           // definition is.  Datatype and type-synonym declarations undergo some inference from their definitions.
           // Such inference should not be done for provided declarations, since different views of the module
           // would then get different inferred properties.
-          e.Decl.Attributes = new Attributes("_provided", new List<Expression>(), e.Decl.Attributes);
-          reporter.Info(MessageSource.Resolver, e.Decl.tok, "{:_provided}");
+          decl.Attributes = new Attributes("_provided", new List<Expression>(), decl.Attributes);
+          reporter.Info(MessageSource.Resolver, decl.tok, "{:_provided}");
         }
       }
 
@@ -1435,11 +1468,7 @@ namespace Microsoft.Dafny
       sig.VisibilityScope = new VisibilityScope();
       sig.VisibilityScope.Augment(moduleDef.VisibilityScope);
 
-
-
       List<TopLevelDecl> declarations = moduleDef.TopLevelDecls;
-
-      
 
       // This is solely used to detect duplicates amongst the various e
       Dictionary<string, TopLevelDecl> toplevels = new Dictionary<string, TopLevelDecl>();
@@ -1455,8 +1484,10 @@ namespace Microsoft.Dafny
         if (toplevels.ContainsKey(d.Name)) {
           reporter.Error(MessageSource.Resolver, d, "Duplicate name of top-level declaration: {0}", d.Name);
         } else {
-          toplevels[d.Name] = d;
-          sig.TopLevels[d.Name] = d;
+          var cl = d as ClassDecl;
+          TopLevelDecl dprime = cl != null && cl.NonNullTypeDecl != null ? cl.NonNullTypeDecl : d;
+          toplevels[d.Name] = dprime;
+          sig.TopLevels[d.Name] = dprime;
         }
         if (d is ModuleDecl) {
           // nothing to do
@@ -1485,10 +1516,12 @@ namespace Microsoft.Dafny
               iter.Members.Add(field);
             }
           }
+          var nonDuplicateOuts = new List<Formal>();
           foreach (var p in iter.Outs) {
             if (members.ContainsKey(p.Name)) {
               reporter.Error(MessageSource.Resolver, p, "Name of yield-parameter is used by another member of the iterator: {0}", p.Name);
             } else {
+              nonDuplicateOuts.Add(p);
               var field = new SpecialField(p.tok, p.Name, p.CompileName, "", "", p.IsGhost, true, true, p.Type, null);
               field.EnclosingClass = iter;  // resolve here
               field.InheritVisibility(iter);
@@ -1497,27 +1530,29 @@ namespace Microsoft.Dafny
               iter.Members.Add(field);
             }
           }
-          foreach (var p in iter.Outs) {
+          foreach (var p in nonDuplicateOuts) {
             var nm = p.Name + "s";
             if (members.ContainsKey(nm)) {
               reporter.Error(MessageSource.Resolver, p.tok, "Name of implicit yield-history variable '{0}' is already used by another member of the iterator", p.Name);
-            } else {
-              var tp = new SeqType(p.Type.StripSubsetConstraints());
-              var field = new SpecialField(p.tok, nm, nm, "", "", true, true, false, tp, null);
-              field.EnclosingClass = iter;  // resolve here
-              field.InheritVisibility(iter);
-              iter.OutsHistoryFields.Add(field);  // for now, just record this field (until all parameters have been added as members)
+              nm = p.Name + "*";  // bogus name, but at least it'll be unique
             }
+            // we add some field to OutsHistoryFields, even if there was an error; the name of the field, in case of error, is not so important
+            var tp = new SeqType(p.Type.StripSubsetConstraints());
+            var field = new SpecialField(p.tok, nm, nm, "", "", true, true, false, tp, null);
+            field.EnclosingClass = iter;  // resolve here
+            field.InheritVisibility(iter);
+            iter.OutsHistoryFields.Add(field);  // for now, just record this field (until all parameters have been added as members)
           }
+          Contract.Assert(iter.OutsFields.Count == iter.OutsHistoryFields.Count);  // the code above makes sure this holds, even in the face of errors
           // now that already-used 'ys' names have been checked for, add these yield-history variables
           iter.OutsHistoryFields.ForEach(f => {
             members.Add(f.Name, f);
             iter.Members.Add(f);
           });
           // add the additional special variables as fields
-          iter.Member_Reads = new SpecialField(iter.tok, "_reads", "_reads",          "", "", true, false, false, new SetType(true, new ObjectType()), null);
-          iter.Member_Modifies = new SpecialField(iter.tok, "_modifies", "_modifies", "", "", true, false, false, new SetType(true, new ObjectType()), null);
-          iter.Member_New = new SpecialField(iter.tok, "_new", "_new",                "", "", true, true, true, new SetType(true, new ObjectType()), null);
+          iter.Member_Reads = new SpecialField(iter.tok, "_reads", "_reads",          "", "", true, false, false, new SetType(true, builtIns.Object()), null);
+          iter.Member_Modifies = new SpecialField(iter.tok, "_modifies", "_modifies", "", "", true, false, false, new SetType(true, builtIns.Object()), null);
+          iter.Member_New = new SpecialField(iter.tok, "_new", "_new",                "", "", true, true, true, new SetType(true, builtIns.Object()), null);
           foreach (var field in new List<Field>() { iter.Member_Reads, iter.Member_Modifies, iter.Member_New }) {
             field.EnclosingClass = iter;  // resolve here
             field.InheritVisibility(iter);
@@ -1600,7 +1635,6 @@ namespace Microsoft.Dafny
 
         } else if (d is ClassDecl) {
           ClassDecl cl = (ClassDecl)d;
-
 
           // register the names of the class members
           var members = new Dictionary<string, MemberDecl>();
@@ -1765,6 +1799,19 @@ namespace Microsoft.Dafny
           }
         }
       }
+      // Now, for each class, register its possibly-null type
+      foreach (TopLevelDecl d in declarations) {
+        if (d is ClassDecl && ((ClassDecl)d).NonNullTypeDecl != null) {
+          var name = d.Name + "?";
+          TopLevelDecl prev;
+          if (toplevels.TryGetValue(name, out prev)) {
+            reporter.Error(MessageSource.Resolver, d, "A module that already contains a top-level declaration '{0}' is not allowed to declare a {1} '{2}'", name, d.WhatKind, d.Name);
+          } else {
+            toplevels[name] = d;
+            sig.TopLevels[name] = d;
+          }
+        }
+      }
       return sig;
     }
 
@@ -1782,8 +1829,10 @@ namespace Microsoft.Dafny
       bool hasDefaultClass = false;
       foreach (var kv in p.TopLevels) {
         hasDefaultClass = kv.Value is DefaultClassDecl || hasDefaultClass;
-
-        mod.TopLevelDecls.Add(CloneDeclaration(p.VisibilityScope,kv.Value, mod, mods, Name, compilationModuleClones));
+        if (!(kv.Value is NonNullTypeDecl)) {
+          var clone = CloneDeclaration(p.VisibilityScope, kv.Value, mod, mods, Name, compilationModuleClones);
+          mod.TopLevelDecls.Add(clone);
+        }
       }
       if (!hasDefaultClass) {
         DefaultClassDecl cl = new DefaultClassDecl(mod, p.StaticMembers.Values.ToList());
@@ -1895,11 +1944,15 @@ namespace Microsoft.Dafny
     public void RevealAllInScope(List<TopLevelDecl> declarations, VisibilityScope scope) {
       foreach (TopLevelDecl d in declarations) {
         d.AddVisibilityScope(scope, false);
-        if (d is ClassDecl) {
-          foreach (var mem in ((ClassDecl)d).Members) {
+        var cl = d as ClassDecl;
+        if (cl != null) {
+          foreach (var mem in cl.Members) {
             if (!mem.ScopeIsInherited) {
               mem.AddVisibilityScope(scope, false);
             }
+          }
+          if (cl.NonNullTypeDecl != null) {
+            cl.NonNullTypeDecl.AddVisibilityScope(scope, false);
           }
         }
       }
@@ -1933,7 +1986,7 @@ namespace Microsoft.Dafny
       }
 
       var typeRedirectionDependencies = new Graph<RedirectingTypeDecl>();
-      foreach (TopLevelDecl d in declarations) {
+      foreach (TopLevelDecl d in ModuleDefinition.AllDeclarationsAndNonNullTypeDecls(declarations)) {
         Contract.Assert(d != null);
         allTypeParameters.PushMarker();
         ResolveTypeParameters(d.TypeArgs, true, d);
@@ -2032,9 +2085,10 @@ namespace Microsoft.Dafny
       // fields.  This is needed for the resolution of the other declarations, because those other declarations may invoke DiscoverBounds, which
       // looks at the .Constraint field of any such types involved.
       // The third loop resolves the other declarations.  It also resolves any witness expressions of newtype/subset-type declarations.
-      foreach (TopLevelDecl d in declarations) {
-        Contract.Assert(d != null);
-        Contract.Assert(VisibleInScope(d));
+      foreach (TopLevelDecl topd in declarations) {
+        Contract.Assert(topd != null);
+        Contract.Assert(VisibleInScope(topd));
+        TopLevelDecl d = topd is ClassDecl ? ((ClassDecl)topd).NonNullTypeDecl : topd;
         if (d is NewtypeDecl) {
           var dd = (NewtypeDecl)d;
           ResolveAttributes(d.Attributes, d, new ResolveOpts(new NoContext(d.Module), false));
@@ -2093,7 +2147,8 @@ namespace Microsoft.Dafny
       Contract.Assert(AllTypeConstraints.Count == 0);
       if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
         // Check type inference, which also discovers bounds, in newtype/subset-type constraints
-        foreach (TopLevelDecl d in declarations) {
+        foreach (TopLevelDecl topd in declarations) {
+          TopLevelDecl d = topd is ClassDecl ? ((ClassDecl)topd).NonNullTypeDecl : topd;
           if (d is NewtypeDecl || d is SubsetTypeDecl) {
             var dd = (RedirectingTypeDecl)d;
             if (dd.Constraint != null) {
@@ -2925,13 +2980,13 @@ namespace Microsoft.Dafny
           case TypeProxy.Family.Ref:
             if (TypeProxy.GetFamily(sub) != TypeProxy.Family.Ref) {
               headSymbolsAgree = false;
-            } else if (super is ObjectType) {
+            } else if (super.IsObject) {
               headSymbolsAgree = true;
-            } else if (sub is ObjectType) {
+            } else if (sub.IsObject) {
               headSymbolsAgree = false;
             } else {
-              var a = ((UserDefinedType)super).ResolvedClass;  // cast justification: any other .Ref must be a class or trait
-              var b = ((UserDefinedType)sub).ResolvedClass;  // cast justification: any other .Ref must be a class or trait
+              var a = ((UserDefinedType)super.NormalizeExpand()).ResolvedClass;  // cast justification: any other .Ref must be a class or trait
+              var b = ((UserDefinedType)sub.NormalizeExpand()).ResolvedClass;  // cast justification: any other .Ref must be a class or trait
               if (a == b) {
                 headSymbolsAgree = true;
               } else {
@@ -2963,7 +3018,7 @@ namespace Microsoft.Dafny
       } else if (t is ArtificialType) {
         isRoot = false; isLeaf = false;
         headIsRoot = false; headIsLeaf = false;
-      } else if (t is ObjectType) {
+      } else if (t.IsObject) {
         isRoot = true; isLeaf = false;
         headIsRoot = true; headIsLeaf = false;
       } else if (t is ArrowType) {
@@ -3141,7 +3196,9 @@ namespace Microsoft.Dafny
     /// In most cases, "sub" being a subtype of "super" means that "sub" and "super" have the same head symbol and, therefore, the
     /// same number of type arguments. Depending on the polarities of the type parameters, the corresponding arguments
     /// of "sub" and "super" must be in co-, in-, or contra-variant relationships to each other.
-    /// The only way "sub" can be a subtype of "super" without the two having the same head symbol is when "super" is a trait (possibly
+    /// There are two says "sub" can be a subtype of "super" without the two having the same head symbol.
+    /// One way is that "sub" is a subset type. In this case, the method starts by moving "sub" up toward "super".
+    /// The other way is that "super" is a trait (possibly
     /// the trait "object").  By a current restriction in Dafny's type system, traits have no type parameters, so in this case, it
     /// suffices to check that the head symbol of "super" is something that derives from "sub".
     /// </summary>
@@ -3149,7 +3206,7 @@ namespace Microsoft.Dafny
       Contract.Requires(super != null && !(super is TypeProxy));
       Contract.Requires(sub != null && !(sub is TypeProxy));
       Contract.Requires(errorMsg != null);
-      List<int> polarities = ConstrainTypeHead(super, sub);
+      List<int> polarities = ConstrainTypeHead_ModuloSubsetTypeParents(super, ref sub);
       if (polarities == null) {
         errorMsg.FlagAsError();
         return false;
@@ -3178,6 +3235,30 @@ namespace Microsoft.Dafny
         }
      }
       return true;
+    }
+
+    /// <summary>
+    /// This is a more liberal version of "ConstrainTypeHead" below. It is willing to move "sub"
+    /// upward toward its subset-type parents until it finds a head that matches "super", if any.
+    /// </summary>
+    private List<int> ConstrainTypeHead_ModuloSubsetTypeParents(Type super, ref Type sub) {
+      Contract.Requires(super != null);
+      Contract.Requires(sub != null);
+      var X = sub;
+      while (true) {
+        var polarities = ConstrainTypeHead(super, X);
+        if (polarities != null) {
+          sub = X;
+          return polarities;
+        }
+        var udt = X as UserDefinedType;
+        if (udt != null && udt.ResolvedClass is SubsetTypeDecl) {
+          var sst = (SubsetTypeDecl)udt.ResolvedClass;
+          X = sst.RhsWithArgument(udt.TypeArgs).NormalizeExpandKeepConstraints();
+        } else {
+          return null;
+        }
+      }
     }
 
     /// <summary>
@@ -3238,7 +3319,7 @@ namespace Microsoft.Dafny
         var tt = (MapType)super;
         var uu = sub as MapType;
         return uu != null && tt.Finite == uu.Finite ? new List<int> { 1, 1 } : null;
-      } else if (super is ObjectType) {
+      } else if (super.IsObject) {
         return sub.IsRefType ? new List<int>() : null;
       } else {
         // The only remaining cases are that "super" is a (co)datatype, opaque type, or non-object trait/class.
@@ -3306,7 +3387,7 @@ namespace Microsoft.Dafny
         return true;
       } else if (super is ArrowType) {
         return false;
-      } else if (super is ObjectType) {
+      } else if (super.IsObject) {
         return false;
       } else {
         // super is UserDefinedType
@@ -3353,7 +3434,7 @@ namespace Microsoft.Dafny
         var tt = (ArrowType)a;
         var uu = b as ArrowType;
         return uu != null && tt.Arity == uu.Arity ? tt.Arity + 1 : -1;
-      } else if (a is ObjectType || b is ObjectType) {
+      } else if (a.IsObject || b.IsObject) {
         return a.IsRefType && b.IsRefType ? 0 : -1;
       } else {
         // The only remaining cases are that "super" is a (co)datatype, opaque type, or non-object trait/class.
@@ -3432,7 +3513,7 @@ namespace Microsoft.Dafny
         var tt = (ArrowType)a;
         var uu = b as ArrowType;
         return uu != null && tt.Arity == uu.Arity ? tt.Arity + 1 : -1;
-      } else if (a is ObjectType || b is ObjectType) {
+      } else if (a.IsObject || b.IsObject) {
         return a.IsRefType && b.IsRefType ? 0 : -1;
       } else {
         // The only remaining cases are that "a" is a (co)datatype, opaque type, or non-object trait/class.
@@ -3584,7 +3665,7 @@ namespace Microsoft.Dafny
               // that it does have the form "array<?>", since "object" would not be Indexable.
               var proxy = (TypeProxy)t;
               Type meet = null;
-              if (Resolver.MeetOfAllSubtypes(proxy, ref meet, new HashSet<TypeProxy>()) && meet != null) {
+              if (resolver.MeetOfAllSubtypes(proxy, ref meet, new HashSet<TypeProxy>()) && meet != null) {
                 var tt = Type.HeadWithProxyArgs(meet);
                 satisfied = tt is SeqType || tt is MultiSetType || tt is MapType || (tt.IsArrayType && tt.AsArrayType.Dims == 1);
                 if (satisfied) {
@@ -3604,7 +3685,7 @@ namespace Microsoft.Dafny
               // that it does have the form "array<?>", since "object" would not be Indexable.
               var proxy = (TypeProxy)t;
               Type meet = null;
-              if (Resolver.MeetOfAllSubtypes(proxy, ref meet, new HashSet<TypeProxy>()) && meet != null) {
+              if (resolver.MeetOfAllSubtypes(proxy, ref meet, new HashSet<TypeProxy>()) && meet != null) {
                 var tt = Type.HeadWithProxyArgs(meet);
                 satisfied = tt is SeqType || (tt.IsArrayType && tt.AsArrayType.Dims == 1);
                 if (satisfied) {
@@ -3685,7 +3766,11 @@ namespace Microsoft.Dafny
             } else if (t is MapType) {
               resultType = ((MapType)t).Range;
             } else if (t is MultiSetType) {
+#if SOON
+              resultType = Type.Nat();
+#else
               resultType = new IntType();  // TODO: this could even be "nat"
+#endif
             } else {
               // some other head symbol; that's cool
               return true;
@@ -3792,7 +3877,7 @@ namespace Microsoft.Dafny
               if (t is TypeProxy) {
                 if (collType != null) {
                   // we know enough to convert into a subtyping constraint
-                  resolver.ConstrainSubtypeRelation(new ObjectType(), t, errorMsg);
+                  resolver.ConstrainSubtypeRelation(resolver.builtIns.Object(), t, errorMsg);
                   resolver.ConstrainSubtypeRelation(u, t, errorMsg);
                   resolver.ConstrainSubtypeRelation(t, u, errorMsg);
                   convertedIntoOtherTypeConstraints = true;
@@ -3823,7 +3908,7 @@ namespace Microsoft.Dafny
               if (t is TypeProxy) {
                 if (collType != null) {
                   // we know enough to convert into a subtyping constraint
-                  resolver.ConstrainSubtypeRelation(new ObjectType(), t, errorMsg);
+                  resolver.ConstrainSubtypeRelation(resolver.builtIns.Object(), t, errorMsg);
                   resolver.ConstrainSubtypeRelation(u, t, errorMsg);
                   resolver.ConstrainSubtypeRelation(t, u, errorMsg);
                   convertedIntoOtherTypeConstraints = true;
@@ -4142,7 +4227,7 @@ namespace Microsoft.Dafny
         }
         int i = 0;
         for (; i < meets.Count; i++) {
-          var j = Type.Meet(meets[i], su);
+          var j = Type.Meet(meets[i], su, builtIns);
           if (j != null) {
             meets[i] = j;
             break;
@@ -4166,7 +4251,7 @@ namespace Microsoft.Dafny
         }
         int i = 0;
         for (; i < joins.Count; i++) {
-          var j = Type.Join(joins[i], su);
+          var j = Type.Join(joins[i], su, builtIns);
           if (j != null) {
             joins[i] = j;
             break;
@@ -4196,7 +4281,7 @@ namespace Microsoft.Dafny
         }
         int i = 0;
         for (; i < meets.Count; i++) {
-          var j = Type.Meet(meets[i], su);
+          var j = Type.Meet(meets[i], su, builtIns);
           if (j != null) {
             meets[i] = j;
             break;
@@ -4225,7 +4310,7 @@ namespace Microsoft.Dafny
         }
         int i = 0;
         for (; i < joins.Count; i++) {
-          var j = Type.Join(joins[i], su);
+          var j = Type.Join(joins[i], su, builtIns);
           if (j != null) {
             joins[i] = j;
             break;
@@ -6284,7 +6369,7 @@ namespace Microsoft.Dafny
       // Resolve names of traits extended
       foreach (var tt in cl.TraitsTyp) {
         var prevErrorCount = reporter.Count(ErrorLevel.Error);
-        ResolveType(cl.tok, tt, new NoContext(cl.Module), ResolveTypeOptionEnum.DontInfer, null);
+        ResolveType_ClassName(cl.tok, tt, new NoContext(cl.Module), ResolveTypeOptionEnum.DontInfer, null);
         if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
           var udt = tt as UserDefinedType;
           if (udt != null && udt.ResolvedClass is TraitDecl) {
@@ -7305,7 +7390,8 @@ namespace Microsoft.Dafny
       if (iter.SignatureIsOmitted) {
         reporter.Error(MessageSource.Resolver, iter, "iterator signature can be omitted only in refining methods");
       }
-      var option = iter.TypeArgs.Count == 0 ? new ResolveTypeOption(iter) : new ResolveTypeOption(ResolveTypeOptionEnum.AllowPrefix);
+      var initiallyNoTypeArguments = iter.TypeArgs.Count == 0;
+      var option = initiallyNoTypeArguments ? new ResolveTypeOption(iter) : new ResolveTypeOption(ResolveTypeOptionEnum.AllowPrefix);
       // resolve the types of the parameters
       var prevErrorCount = reporter.Count(ErrorLevel.Error);
       foreach (var p in iter.Ins.Concat(iter.Outs)) {
@@ -7316,6 +7402,17 @@ namespace Microsoft.Dafny
         foreach (var p in iter.OutsHistoryFields) {
           ResolveType(p.tok, p.Type, iter, option, iter.TypeArgs);
         }
+      }
+      if (iter.TypeArgs.Count != iter.NonNullTypeDecl.TypeArgs.Count) {
+        // Apparently, the type resolution automatically added type arguments to the iterator. We'll add these to the
+        // corresponding non-null type as well.
+        Contract.Assert(initiallyNoTypeArguments);
+        Contract.Assert(iter.NonNullTypeDecl.TypeArgs.Count == 0);
+        var nnt = iter.NonNullTypeDecl;
+        nnt.TypeArgs.AddRange(iter.TypeArgs.ConvertAll(tp => new TypeParameter(tp.tok, tp.Name, tp.VarianceSyntax, tp.Characteristics)));
+        var varUdt = (UserDefinedType)nnt.Var.Type;
+        Contract.Assert(varUdt.TypeArgs.Count == 0);
+        varUdt.TypeArgs = nnt.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp));
       }
       scope.PopMarker();
     }
@@ -7590,6 +7687,34 @@ namespace Microsoft.Dafny
 
     /// <summary>
     /// See ResolveTypeOption for a description of the option/defaultTypeArguments parameters.
+    /// This method differs from the other ResolveType methods in that it looks at the type name given
+    /// as a class name.  In other words, if "type" is given as "C" where "C" is a class, then "type" will
+    /// silently resolve to the class "C", not the non-null type "C".  Conversely, if "type" is given
+    /// as "C?" where "C" is a class, then an error will be emitted (as, to recover from this error,
+    /// "type" will resolve to the class "C".
+    /// </summary>
+    public void ResolveType_ClassName(IToken tok, Type type, ICodeContext context, ResolveTypeOptionEnum eopt, List<TypeParameter> defaultTypeArguments) {
+      Contract.Requires(tok != null);
+      Contract.Requires(type != null);
+      Contract.Requires(context != null);
+      Contract.Requires(eopt != ResolveTypeOptionEnum.AllowPrefixExtend);
+      var prevErrorCount = reporter.Count(ErrorLevel.Error);
+      ResolveType(tok, type, context, eopt, defaultTypeArguments);
+      if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
+        var udt = type as UserDefinedType;
+        if (udt != null) {
+          if (udt.ResolvedClass is ClassDecl && ((ClassDecl)udt.ResolvedClass).NonNullTypeDecl != null) {
+            // the input must have said "C?" for some class/trait/iterator "C"
+            reporter.Error(MessageSource.Resolver, tok, "{0} expected; perhaps you meant to write '{1}' instead of '{2}'", udt.ResolvedClass.WhatKind, udt.ResolvedClass.Name, udt.Name);
+          } else {
+            udt.ResolvedClass = udt.ResolvedClass.ViewAsClass;
+          }
+        }
+      }
+    }
+
+    /// <summary>
+    /// See ResolveTypeOption for a description of the option/defaultTypeArguments parameters.
     /// </summary>
     public void ResolveType(IToken tok, Type type, ICodeContext context, ResolveTypeOptionEnum eopt, List<TypeParameter> defaultTypeArguments) {
       Contract.Requires(tok != null);
@@ -7853,11 +7978,11 @@ namespace Microsoft.Dafny
     /// Callers are expected to provide "arg" as an already resolved type.  (Note, a proxy type is resolved--
     /// only types that contain identifiers stand the possibility of not being resolved.)
     /// </summary>
-    Type ResolvedArrayType(IToken tok, int dims, Type arg, ICodeContext context) {
+    Type ResolvedArrayType(IToken tok, int dims, Type arg, ICodeContext context, bool useClassNameType = false) {
       Contract.Requires(tok != null);
       Contract.Requires(1 <= dims);
       Contract.Requires(arg != null);
-      var at = builtIns.ArrayType(tok, dims, new List<Type> { arg }, false);
+      var at = builtIns.ArrayType(tok, dims, new List<Type> { arg }, false, useClassNameType);
       ResolveType(tok, at, context, ResolveTypeOptionEnum.DontInfer, null);
       return at;
     }
@@ -9571,7 +9696,7 @@ namespace Microsoft.Dafny
             ConstrainToIntegerType(dim, string.Format("new must use an integer-based expression for the array size (got {{0}}{0})", rr.ArrayDimensions.Count == 1 ? "" : " for index " + i));
             i++;
           }
-          rr.Type = ResolvedArrayType(stmt.Tok, rr.ArrayDimensions.Count, rr.EType, codeContext);
+          rr.Type = ResolvedArrayType(stmt.Tok, rr.ArrayDimensions.Count, rr.EType, codeContext, true);
           if (rr.ElementInit != null) {
             ResolveExpression(rr.ElementInit, new ResolveOpts(codeContext, false));
             // Check
@@ -9600,7 +9725,7 @@ namespace Microsoft.Dafny
         } else {
           bool callsConstructor = false;
           if (rr.Arguments == null) {
-            ResolveType(stmt.Tok, rr.EType, codeContext, ResolveTypeOptionEnum.InferTypeProxies, null);
+            ResolveType_ClassName(stmt.Tok, rr.EType, codeContext, ResolveTypeOptionEnum.InferTypeProxies, null);
             if (!rr.EType.IsRefType) {
               reporter.Error(MessageSource.Resolver, stmt, "new can be applied only to reference types (got {0})", rr.EType);
             }
@@ -9709,7 +9834,7 @@ namespace Microsoft.Dafny
         MemberDecl member;
         if (!classMembers[cd].TryGetValue(memberName, out member)) {
           if (memberName == "_ctor") {
-            reporter.Error(MessageSource.Resolver, tok, "{0} {1} does not have an anonymous constructor", cd.WhatKind, ctype.Name);
+            reporter.Error(MessageSource.Resolver, tok, "{0} {1} does not have an anonymous constructor", cd.WhatKind, cd.Name);
           } else {
             // search the static members of the enclosing module or its imports
             if (!classMembersOnly && moduleInfo.StaticMembers.TryGetValue(memberName, out member)) {
@@ -9722,11 +9847,13 @@ namespace Microsoft.Dafny
                 return member;
               }
             } else {
-              reporter.Error(MessageSource.Resolver, tok, "member {0} does not exist in {2} {1}", memberName, ctype.Name, cd.WhatKind);
+              reporter.Error(MessageSource.Resolver, tok, "member {0} does not exist in {2} {1}", memberName, cd.Name, cd.WhatKind);
             }
           }
           nptype = null;
           return null;
+        } else if (!VisibleInScope(member)) {
+          reporter.Error(MessageSource.Resolver, tok, "member '{0}' has not been imported in this scope and cannot be accessed here", memberName);
         } else {
           nptype = ctype;
           return member;
@@ -9853,7 +9980,7 @@ namespace Microsoft.Dafny
           pickThisMeet = true;
         } else if (memberName != null) {
           // If "meet" has a member called "memberName" and no supertype of "meet" does, then we'll pick this meet
-          if (meet.IsRefType && !(meet is ObjectType)) {
+          if (meet.IsRefType && !meet.IsObject) {
             var cl = ((UserDefinedType)meet).ResolvedClass as ClassDecl;
             if (cl != null) {
               // TODO: the following could be improved by also supplying an upper bound of the search (computed as a join of the supertypes)
@@ -9914,7 +10041,7 @@ namespace Microsoft.Dafny
     /// in "visited".  The empty meet is represented by "null".
     /// The return is "true" if the meet exists.
     /// </summary>
-    static bool MeetOfAllSubtypes(Type t, ref Type meet, ISet<TypeProxy> visited) {
+    bool MeetOfAllSubtypes(Type t, ref Type meet, ISet<TypeProxy> visited) {
       Contract.Requires(t != null);
       Contract.Requires(visited != null);
 
@@ -9945,8 +10072,8 @@ namespace Microsoft.Dafny
         meet = Type.HeadWithProxyArgs(t);
         return true;
       } else {
-        meet = Type.Meet(meet, Type.HeadWithProxyArgs(t));  // the only way this can succeed is if we obtain a trait
-        Contract.Assert(meet == null || meet is ObjectType || (meet is UserDefinedType && ((UserDefinedType)meet).ResolvedClass is TraitDecl));
+        meet = Type.Meet(meet, Type.HeadWithProxyArgs(t), builtIns);  // the only way this can succeed is if we obtain a trait
+        Contract.Assert(meet == null || meet.IsObject || (meet is UserDefinedType && ((UserDefinedType)meet).ResolvedClass is TraitDecl));
         return meet != null;
       }
     }
@@ -10246,7 +10373,7 @@ namespace Microsoft.Dafny
         } else {
           if (e.Value == null) {
             e.Type = new InferredTypeProxy();
-            ConstrainSubtypeRelation(new ObjectType(), e.Type, e.tok, "type of 'null' is a reference type, but it is used as {0}", e.Type);
+            ConstrainSubtypeRelation(builtIns.Object(), e.Type, e.tok, "type of 'null' is a reference type, but it is used as {0}", e.Type);
           } else if (e.Value is BigInteger) {
             var proxy = new InferredTypeProxy();
             e.Type = proxy;
@@ -10260,7 +10387,7 @@ namespace Microsoft.Dafny
           } else if (e is CharLiteralExpr) {
             e.Type = Type.Char;
           } else if (e is StringLiteralExpr) {
-            e.Type = new UserDefinedType(e.tok, "string", (List<Type>)null);
+            e.Type = Type.String();
             ResolveType(e.tok, e.Type, opts.codeContext, ResolveTypeOptionEnum.DontInfer, null);
           } else {
             Contract.Assert(false); throw new cce.UnreachableException();  // unexpected literal type
@@ -10863,7 +10990,7 @@ namespace Microsoft.Dafny
         scope.PopMarker();
         expr.Type = SelectAppropriateArrowType(e.tok, e.BoundVars.ConvertAll(v => v.Type), e.Body.Type, e.Reads.Count != 0, e.Range != null);
       } else if (expr is WildcardExpr) {
-        expr.Type = new SetType(true, new ObjectType());
+        expr.Type = new SetType(true, builtIns.Object());
       } else if (expr is StmtExpr) {
         var e = (StmtExpr)expr;
         int prevErrorCount = reporter.Count(ErrorLevel.Error);
@@ -11649,6 +11776,15 @@ namespace Microsoft.Dafny
           // looking at may be followed by a further suffix that makes this into an expresion. We postpone the rest of the
           // resolution to any such suffix. For now, we create a temporary expression that will never be seen by the compiler
           // or verifier, just to have a placeholder where we can recorded what we have found.
+          if (!isLastNameSegment) {
+            if (decl is ClassDecl && ((ClassDecl)decl).NonNullTypeDecl != null) {
+              // A possibly-null type C? was mentioned. But it does not have any further members. The program should have used
+              // the name of the class, C. Report an error and continue.
+              reporter.Error(MessageSource.Resolver, expr.tok, "To access members of {0} '{1}', write '{1}', not '{2}'", decl.WhatKind, decl.Name, name);
+            } else {
+              decl = decl.ViewAsClass;
+            }
+          }
           r = CreateResolver_IdentifierExpr(expr.tok, name, expr.OptTypeArguments, decl);
         }
 
@@ -11673,7 +11809,11 @@ namespace Microsoft.Dafny
         expr.Type = new InferredTypeProxy();
       } else {
         expr.ResolvedExpression = r;
+#if SLOPPY_ABOUT_BEING_PRECISE
         expr.Type = r.Type.StripSubsetConstraints();
+#else
+        expr.Type = r.Type;
+#endif
       }
       return rWithArgs;
     }
@@ -11883,6 +12023,15 @@ namespace Microsoft.Dafny
             // looking at may be followed by a further suffix that makes this into an expresion. We postpone the rest of the
             // resolution to any such suffix. For now, we create a temporary expression that will never be seen by the compiler
             // or verifier, just to have a placeholder where we can recorded what we have found.
+            if (!isLastNameSegment) {
+              if (decl is ClassDecl && ((ClassDecl)decl).NonNullTypeDecl != null) {
+                // A possibly-null type C? was mentioned. But it does not have any further members. The program should have used
+                // the name of the class, C. Report an error and continue.
+                reporter.Error(MessageSource.Resolver, expr.tok, "To access members of {0} '{1}', write '{1}', not '{2}'", decl.WhatKind, decl.Name, name);
+              } else {
+                decl = decl.ViewAsClass;
+              }
+            }
             r = CreateResolver_IdentifierExpr(expr.tok, name, expr.OptTypeArguments, decl);
           }
         } else if (sig.StaticMembers.TryGetValue(name, out member)) {
@@ -11948,7 +12097,7 @@ namespace Microsoft.Dafny
         }
       } else if (lhs != null) {
         // ----- 4. Look up name in the type of the Lhs
-        bool classMemberOnly = UserDefinedType.DenotesClass(expr.Lhs.Type) == null ? false : true;
+        bool classMemberOnly = UserDefinedType.DenotesClass(expr.Lhs.Type) != null;
         NonProxyType nptype;
         member = ResolveMember(expr.tok, expr.Lhs.Type, name, out nptype, classMemberOnly);
         if (member != null) {

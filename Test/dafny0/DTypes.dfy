@@ -5,16 +5,16 @@ class C {
   var n: set<Node>;
 
   method M(v: Stack)
-    requires v != null
+    //requires v != null
   {
     var n': set<object> := n;
     assert v !in n';  // should be known from the types involved
   }
 
-  method N(v: Stack)
-    /* this time without the precondition */
+  method N(v: Stack?)
+    /* this time with the possibility of "v" being null */
   {
-    var n': set<object> := n;
+    var n': set<object?> := n;
     assert v !in n';  // error: v may be null
   }
 

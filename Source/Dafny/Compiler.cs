@@ -1257,7 +1257,7 @@ namespace Microsoft.Dafny {
       if (udt != null && udt.ResolvedClass is TraitDecl) {
         string s = udt.FullCompanionCompileName;
         if (udt.TypeArgs.Count != 0) {
-          if (udt.TypeArgs.Exists(argType => argType is ObjectType)) {
+          if (udt.TypeArgs.Exists(argType => argType.NormalizeExpand().IsObject)) {
             Error(udt.tok, "compilation does not support type 'object' as a type parameter; consider introducing a ghost", wr);
           }
           s += "<" + TypeNames(udt.TypeArgs, wr, udt.tok) + ">";
@@ -1294,7 +1294,7 @@ namespace Microsoft.Dafny {
           return nativeType.Name;
         }
         return TypeName(xType.AsNewtype.BaseType, wr, tok);
-      } else if (xType is ObjectType) {
+      } else if (xType.IsObject) {
         return "object";
       } else if (xType.IsArrayType) {
         ArrayClassDecl at = xType.AsArrayType;
@@ -1464,11 +1464,6 @@ namespace Microsoft.Dafny {
         initializerIsKnown = true;
         defaultValue = t.NativeType != null ? "0" : "BigInteger.Zero";
         return;
-      } else if (xType is ObjectType) {
-        hasZeroInitializer = true;
-        initializerIsKnown = true;
-        defaultValue = "(object)null";
-        return;
       } else if (xType is CollectionType) {
         hasZeroInitializer = false;
         initializerIsKnown = true;
@@ -1521,14 +1516,15 @@ namespace Microsoft.Dafny {
           defaultValue = compiler == null ? null : compiler.TypeName_UDT(udt.FullCompileName, udt.TypeArgs, wr, udt.tok) + ".Witness";
           return;
         } else if (td.WitnessKind == SubsetTypeDecl.WKind.Special) {
-          Contract.Assert(ArrowType.IsPartialArrowTypeName(td.Name) || ArrowType.IsTotalArrowTypeName(td.Name));  // Special is currently used only with partial and total arrows
+          // WKind.Special is only used with -->, ->, and non-null types:
+          Contract.Assert(ArrowType.IsPartialArrowTypeName(td.Name) || ArrowType.IsTotalArrowTypeName(td.Name) || td is NonNullTypeDecl);
           if (ArrowType.IsPartialArrowTypeName(td.Name)) {
             // partial arrow
             hasZeroInitializer = true;
             initializerIsKnown = true;
             defaultValue = compiler == null ? null : string.Format("(({0})null)", compiler.TypeName(type, wr, udt.tok));
             return;
-          } else {
+          } else if (ArrowType.IsTotalArrowTypeName(td.Name)) {
             // total arrow
             Contract.Assert(udt.TypeArgs.Count == td.TypeArgs.Count);
             Contract.Assert(1 <= udt.TypeArgs.Count);  // the return type is one of the type arguments
@@ -1541,6 +1537,22 @@ namespace Microsoft.Dafny {
                 Util.Comma(", ", udt.TypeArgs.Count - 1, i => string.Format("{0} x{1}", compiler.TypeName(udt.TypeArgs[i], wr, udt.tok), i)),
                 defaultValue);
             }
+            return;
+          } else if (((NonNullTypeDecl)td).Class is ArrayClassDecl) {
+            // non-null array type; we know how to initialize them
+            hasZeroInitializer = false;
+            initializerIsKnown = true;
+            Contract.Assert(udt.TypeArgs.Count == 1);
+            var arrayClass = (ArrayClassDecl)((NonNullTypeDecl)td).Class;
+            defaultValue = compiler == null ? null : string.Format("new {0}[{1}]", compiler.TypeName(udt.TypeArgs[0], wr, udt.tok),
+              Util.Comma(arrayClass.Dims, _ => "0"));
+          } else {
+            // non-null (non-array) type
+            hasZeroInitializer = false;
+            initializerIsKnown = false;  // (this could be improved in some cases)
+            // even though the type doesn't necessarily have a known initializer, it could be that the the compiler needs to
+            // lay down some bits to please the C#'s compiler's different definite-assignment rules.
+            defaultValue = compiler == null ? null : string.Format("default({0})", compiler.TypeName(type, wr, udt.tok));
             return;
           }
         } else {

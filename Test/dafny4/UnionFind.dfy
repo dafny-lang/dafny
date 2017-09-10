@@ -146,7 +146,7 @@ abstract module M2 refines M1 {
     method FindAux(ghost d: nat, e: Element) returns (r: Element)
       requires e in M && Reaches(d, e, M[e], Collect())
       ensures M == old(M) && M[e] == r
-      ensures forall d: nat, e, r :: e in old(Collect()) && Reaches(d, e, r, old(Collect())) ==> Reaches(d, e, r, Collect())
+      ensures forall d: nat, e, r: Element :: e in old(Collect()) && Reaches(d, e, r, old(Collect())) ==> Reaches(d, e, r, Collect())
     {
       match e.c
       case Root(_) =>
@@ -164,9 +164,9 @@ abstract module M2 refines M1 {
       requires tt in C && Reaches(td, tt, tm, C)
       requires C' == C[tt := Link(tm)] && C'[tt].Link? && tm in C' && C'[tm].Root?
       requires null !in C' && forall f :: f in C && C'[f].Link? ==> C'[f].next in C
-      ensures forall d: nat, e, r :: e in C && Reaches(d, e, r, C) ==> Reaches(d, e, r, C')
+      ensures forall d: nat, e, r: Element :: e in C && Reaches(d, e, r, C) ==> Reaches(d, e, r, C')
     {
-      forall d: nat, e, r | e in C && Reaches(d, e, r, C)
+      forall d: nat, e, r: Element | e in C && Reaches(d, e, r, C)
         ensures Reaches(d, e, r, C')
       {
         ConstructReach(d, e, r, C, td, tt, tm, C');
@@ -243,7 +243,7 @@ module M3 refines M2 {
       requires r0 in C && r1 in C && C[r0].Root? && C[r1].Root? && C[r0].depth == C[r1].depth && r0 != r1
       requires C' == C[r0 := Link(r1)][r1 := Root(C[r1].depth + 1)]
       requires GoodCMap(C')
-      ensures forall d: nat, e, r :: e in C && Reaches(d, e, r, C) && r != r0 && r != r1 ==> Reaches(d, e, r, C')  // proved automatically by induction
+      ensures forall d: nat, e, r: Element :: e in C && Reaches(d, e, r, C) && r != r0 && r != r1 ==> Reaches(d, e, r, C')  // proved automatically by induction
       ensures forall e :: e in C && Reaches(C[r0].depth, e, r0, C) ==> Reaches(C'[r1].depth, e, r1, C')
       ensures forall e :: e in C && Reaches(C[r1].depth, e, r1, C) ==> Reaches(C'[r1].depth, e, r1, C')
     {
@@ -289,10 +289,10 @@ module M3 refines M2 {
       requires r0 in C && r1 in C && C[r0].Root? && C[r1].Root? && C[r0].depth < C[r1].depth
       requires C' == C[r0 := Link(r1)]
       requires GoodCMap(C')
-      ensures forall d: nat, e, r :: e in C && Reaches(d, e, r, C) && r != r0 ==> Reaches(d, e, r, C')
+      ensures forall d: nat, e, r: Element :: e in C && Reaches(d, e, r, C) && r != r0 ==> Reaches(d, e, r, C')
       ensures forall e :: e in C && Reaches(C[r0].depth, e, r0, C) ==> Reaches(C[r1].depth, e, r1, C')
     {
-      forall d: nat, e, r | e in C && Reaches(d, e, r, C) && r != r0
+      forall d: nat, e, r: Element | e in C && Reaches(d, e, r, C) && r != r0
         ensures Reaches(d, e, r, C')
       {
         ReachUnaffectedByChangeFromRoot(d, e, r, C, C[r0].depth, r0, r1, C');

@@ -5,10 +5,10 @@ module OneModule {
   class {:autocontracts} D { }
   class {:autocontracts} C {
     var data: int
-    var anotherC: C
-    var dd: D
-    var {:autocontracts false} ee: D
-    var arr: array<C>
+    var anotherC: C?
+    var dd: D?
+    var {:autocontracts false} ee: D?
+    var arr: array?<C?>
     protected predicate Valid()
     {
       0 <= data < 100
@@ -63,7 +63,7 @@ module N0 {
     method B()
     method C() { }
     predicate Valid()
-    ghost var Repr: set<object>
+    ghost var Repr: set<object?>
     method {:autocontracts false} K()
       requires Valid() modifies Repr ensures Valid() && fresh(Repr - old(Repr))
     method {:autocontracts false} L()

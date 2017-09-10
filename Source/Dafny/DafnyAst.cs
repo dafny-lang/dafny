@@ -115,7 +115,9 @@ namespace Microsoft.Dafny {
     readonly Dictionary<int, TupleTypeDecl> tupleTypeDecls = new Dictionary<int, TupleTypeDecl>();
     public readonly ISet<int> Bitwidths = new HashSet<int>();
 
-    public readonly ClassDecl ObjectDecl;
+    public readonly TraitDecl ObjectDecl;
+    public Type Object() { return new UserDefinedType(Token.NoToken, "object?", null) { ResolvedClass = ObjectDecl }; }
+
     public BuiltIns() {
       SystemModule.Height = -1;  // the system module doesn't get a height assigned later, so we set it here to something below everything else
       // create type synonym 'string'
@@ -124,7 +126,7 @@ namespace Microsoft.Dafny {
       // create subset type 'nat'
       var bvNat = new BoundVar(Token.NoToken, "x", Type.Int);
       var natConstraint = Expression.CreateAtMost(Expression.CreateIntLiteral(Token.NoToken, 0), Expression.CreateIdentExpr(bvNat));
-      var ax = new Attributes("axiom", new List<Expression>(), null);
+      var ax = AxiomAttribute();
       var nat = new SubsetTypeDecl(Token.NoToken, "nat", new TypeParameter.TypeParameterCharacteristics(TypeParameter.EqualitySupportValue.InferredRequired, false), new List<TypeParameter>(), SystemModule, bvNat, natConstraint, SubsetTypeDecl.WKind.None, null, ax);
       SystemModule.TopLevelDecls.Add(nat);
       // create trait 'object'
@@ -145,18 +147,26 @@ namespace Microsoft.Dafny {
       return new Attributes("compile", new List<Expression>() { flse }, null);
     }
 
+    public static Attributes AxiomAttribute() {
+      return new Attributes("axiom", new List<Expression>(), null);
+    }
+
     public UserDefinedType ArrayType(int dims, Type arg, bool allowCreationOfNewClass) {
       Contract.Requires(1 <= dims);
       Contract.Requires(arg != null);
       return ArrayType(Token.NoToken, dims, new List<Type>() { arg }, allowCreationOfNewClass);
     }
-    public UserDefinedType ArrayType(IToken tok, int dims, List<Type> optTypeArgs, bool allowCreationOfNewClass) {
+    public UserDefinedType ArrayType(IToken tok, int dims, List<Type> optTypeArgs, bool allowCreationOfNewClass, bool useClassNameType = false) {
       Contract.Requires(tok != null);
       Contract.Requires(1 <= dims);
       Contract.Requires(optTypeArgs == null || optTypeArgs.Count > 0);  // ideally, it is 1, but more will generate an error later, and null means it will be filled in automatically
       Contract.Ensures(Contract.Result<UserDefinedType>() != null);
 
-      UserDefinedType udt = new UserDefinedType(tok, ArrayClassName(dims), optTypeArgs);
+      var arrayName = ArrayClassName(dims);
+      if (useClassNameType) {
+        arrayName = arrayName + "?";
+      }
+      UserDefinedType udt = new UserDefinedType(tok, arrayName, optTypeArgs);
       if (allowCreationOfNewClass && !arrayTypeDecls.ContainsKey(dims)) {
         ArrayClassDecl arrayClass = new ArrayClassDecl(dims, SystemModule, DontCompile());
         for (int d = 0; d < dims; d++) {
@@ -197,7 +207,7 @@ namespace Microsoft.Dafny {
         var argExprs = args.ConvertAll(a =>
               (Expression)new IdentifierExpr(tok, a.Name) { Var = a, Type = a.Type });
         var readsIS = new FunctionCallExpr(tok, "reads", new ImplicitThisExpr(tok), tok, argExprs) {
-          Type = new SetType(true, new ObjectType()),
+          Type = new SetType(true, Object()),
         };
         var readsFrame = new List<FrameExpression> { new FrameExpression(tok, readsIS, null) };
         var req = new Function(tok, "requires", false, false, true,
@@ -206,7 +216,7 @@ namespace Microsoft.Dafny {
           new Specification<Expression>(new List<Expression>(), null),
           null, null, null);
         var reads = new Function(tok, "reads", false, false, true,
-          new List<TypeParameter>(), args, null, new SetType(true, new ObjectType()),
+          new List<TypeParameter>(), args, null, new SetType(true, Object()),
           new List<Expression>(), readsFrame, new List<Expression>(),
           new Specification<Expression>(new List<Expression>(), null),
           null, null, null);
@@ -614,6 +624,8 @@ namespace Microsoft.Dafny {
     public static readonly CharType Char = new CharType();
     public static readonly IntType Int = new IntType();
     public static readonly RealType Real = new RealType();
+    public static Type Nat() { return new UserDefinedType(Token.NoToken, "nat", null); }
+    public static Type String() { return new UserDefinedType(Token.NoToken, "string", null); }  // note, this returns an unresolved type
 
     [ThreadStatic]
     private static List<VisibilityScope> scopes = new List<VisibilityScope>();
@@ -668,9 +680,9 @@ namespace Microsoft.Dafny {
 
       if (typeArgs != null && typeArgs.Count > 0 && 
           (!parseAble || !typeArgs[0].TypeName(context, parseAble).StartsWith("_"))){
-        return String.Format("<{0}>",Util.Comma(", ", typeArgs, ty => ty.TypeName(context, parseAble)));
+        return string.Format("<{0}>",Util.Comma(", ", typeArgs, ty => ty.TypeName(context, parseAble)));
       }
-      return String.Empty;
+      return "";
     }
 
     public static string TypeArgsToString(List<Type> typeArgs, bool parseAble = false) {
@@ -682,7 +694,11 @@ namespace Microsoft.Dafny {
     }
 
     // Type arguments to the type
+#if PREVIOUS
     public List<Type> TypeArgs = new List<Type> { };
+#else
+    public List<Type> TypeArgs = new List<Type>();
+#endif
 
     [Pure]
     public abstract string TypeName(ModuleDefinition/*?*/ context, bool parseAble = false);
@@ -894,25 +910,46 @@ namespace Microsoft.Dafny {
 
     public bool IsRefType {
       get {
-        var t = NormalizeExpand();
-        if (t is ObjectType) {
-          return true;
-        } else {
-          var udt = t as UserDefinedType;
-          return udt != null && udt.ResolvedParam == null && udt.ResolvedClass is ClassDecl
-            && !(udt.ResolvedClass is ArrowTypeDecl);
+        var udt = NormalizeExpand() as UserDefinedType;
+        return udt != null && udt.ResolvedParam == null && udt.ResolvedClass is ClassDecl
+          && !(udt.ResolvedClass is ArrowTypeDecl);
+      }
+    }
+    /// <summary>
+    /// Returns "true" if the type represents the "object?".
+    /// </summary>
+    public bool IsObject {
+      get {
+        var udt = NormalizeExpandKeepConstraints() as UserDefinedType;
+        return udt != null && udt.ResolvedClass is ClassDecl && ((ClassDecl)udt.ResolvedClass).Name == "object";
+      }
+    }
+    /// <summary>
+    /// Returns "true" if the type is a non-null type or any subset type thereof.
+    /// </summary>
+    public bool IsNonNullRefType {
+      get {
+        var t = this;
+        while (true) {
+          var udt = t.NormalizeExpandKeepConstraints() as UserDefinedType;
+          if (udt == null) {
+            return false;
+          } else if (udt.ResolvedClass is NonNullTypeDecl) {
+            return true;
+          }
+          var sst = udt.ResolvedClass as SubsetTypeDecl;
+          if (sst != null) {
+            t = sst.RhsWithArgument(udt.TypeArgs);  // continue the search up the chain of subset types
+          } else {
+            return false;
+          }
         }
       }
     }
     public bool IsTraitType {
       get {
-        var t = NormalizeExpand();
-        if (t is ObjectType) {
-          return true;
-        } else {
-          var udt = t as UserDefinedType;
-          return udt != null && udt.ResolvedParam == null && udt.ResolvedClass is TraitDecl;
-        }
+        var udt = NormalizeExpand() as UserDefinedType;
+        return udt != null && udt.ResolvedParam == null && udt.ResolvedClass is TraitDecl;
       }
     }
     public bool IsArrayType {
@@ -1207,9 +1244,9 @@ namespace Microsoft.Dafny {
           }
         }
         return IsSupertype(super.TypeArgs[n], sub.TypeArgs[n]);  // arrow types are co-variant in the result type
-      } else if (super is ObjectType) {
+      } else if (super.IsObject) {
         return sub.IsRefType;
-      } else if (sub is ObjectType) {
+      } else if (sub.IsObject) {
         return false;
       } else {
         // "a" is a class, trait, or opaque type
@@ -1263,9 +1300,9 @@ namespace Microsoft.Dafny {
         var aa = super.AsArrowType;
         var bb = sub.AsArrowType;
         return bb != null && aa.Arity == bb.Arity;
-      } else if (super is ObjectType) {
+      } else if (super.IsObject) {
         return sub.IsRefType;
-      } else if (sub is ObjectType) {
+      } else if (sub.IsObject) {
         return false;
       } else {
         // "a" is a class, trait, or opaque type
@@ -1319,12 +1356,13 @@ namespace Microsoft.Dafny {
     /// For a positive direction, computes Join(a[i], b[i]), provided this join exists.
     /// Returns null if any operation fails.
     /// </summary>
-    public static List<Type> ComputeExtrema(List<int> directions, List<Type> a, List<Type> b) {
+    public static List<Type> ComputeExtrema(List<int> directions, List<Type> a, List<Type> b, BuiltIns builtIns) {
       Contract.Requires(directions != null);
       Contract.Requires(a != null);
       Contract.Requires(b != null);
       Contract.Requires(directions.Count == a.Count);
       Contract.Requires(directions.Count == b.Count);
+      Contract.Requires(builtIns != null);
       var n = directions.Count;
       var r = new List<Type>(n);
       for (int i = 0; i < n; i++) {
@@ -1335,7 +1373,7 @@ namespace Microsoft.Dafny {
             return null;
           }
         } else {
-          var t = directions[i] < 0 ? Meet(a[i], b[i]) : Join(a[i], b[i]);
+          var t = directions[i] < 0 ? Meet(a[i], b[i], builtIns) : Join(a[i], b[i], builtIns);
           if (t == null) {
             return null;
           }
@@ -1348,9 +1386,10 @@ namespace Microsoft.Dafny {
     /// <summary>
     /// Does a best-effort to compute the meet of "a" and "b", returning "null" if not successful.
     /// </summary>
-    public static Type Meet(Type a, Type b) {
+    public static Type Meet(Type a, Type b, BuiltIns builtIns) {
       Contract.Requires(a != null);
       Contract.Requires(b != null);
+      Contract.Requires(builtIns != null);
       a = a.NormalizeExpand();
       b = b.NormalizeExpand();
       if (a.IsBoolType || a.IsCharType || a.IsTypeParameter || a.IsInternalTypeSynonym || a is TypeProxy) {
@@ -1365,7 +1404,7 @@ namespace Microsoft.Dafny {
           return null;
         }
         // sets are co-variant in their argument type
-        var typeArg = Meet(a.TypeArgs[0], b.TypeArgs[0]);
+        var typeArg = Meet(a.TypeArgs[0], b.TypeArgs[0], builtIns);
         return typeArg == null ? null : new SetType(aa.Finite, typeArg);
       } else if (a is MultiSetType) {
         var aa = (MultiSetType)a;
@@ -1374,7 +1413,7 @@ namespace Microsoft.Dafny {
           return null;
         }
         // multisets are co-variant in their argument type
-        var typeArg = Meet(a.TypeArgs[0], b.TypeArgs[0]);
+        var typeArg = Meet(a.TypeArgs[0], b.TypeArgs[0], builtIns);
         return typeArg == null ? null : new MultiSetType(typeArg);
       } else if (a is SeqType) {
         var aa = (SeqType)a;
@@ -1383,7 +1422,7 @@ namespace Microsoft.Dafny {
           return null;
         }
         // sequences are co-variant in their argument type
-        var typeArg = Meet(a.TypeArgs[0], b.TypeArgs[0]);
+        var typeArg = Meet(a.TypeArgs[0], b.TypeArgs[0], builtIns);
         return typeArg == null ? null : new SeqType(typeArg);
       } else if (a is MapType) {
         var aa = (MapType)a;
@@ -1392,8 +1431,8 @@ namespace Microsoft.Dafny {
           return null;
         }
         // maps are co-variant in both argument types
-        var typeArgDomain = Meet(a.TypeArgs[0], b.TypeArgs[0]);
-        var typeArgRange = Meet(a.TypeArgs[1], b.TypeArgs[1]);
+        var typeArgDomain = Meet(a.TypeArgs[0], b.TypeArgs[0], builtIns);
+        var typeArgRange = Meet(a.TypeArgs[1], b.TypeArgs[1], builtIns);
         return typeArgDomain == null || typeArgRange == null ? null : new MapType(aa.Finite, typeArgDomain, typeArgRange);
       } else if (a.IsDatatype) {
         var aa = a.AsDatatype;
@@ -1409,7 +1448,7 @@ namespace Microsoft.Dafny {
         for (int i = 0; i < n; i++) {
           directions.Add(-1);  // datatypes are co-variant in their argument types, so compute meets
         }
-        var typeArgs = ComputeExtrema(directions, a.TypeArgs, b.TypeArgs);
+        var typeArgs = ComputeExtrema(directions, a.TypeArgs, b.TypeArgs, builtIns);
         if (typeArgs == null) {
           return null;
         }
@@ -1430,15 +1469,15 @@ namespace Microsoft.Dafny {
           directions.Add(-1);  // arrow types are contra-variant in the argument types, so compute joins of these
         }
         directions.Add(1);  // arrow types are co-variant in the result type, so compute the meet of these
-        var typeArgs = ComputeExtrema(directions, a.TypeArgs, b.TypeArgs);
+        var typeArgs = ComputeExtrema(directions, a.TypeArgs, b.TypeArgs, builtIns);
         if (typeArgs == null) {
           return null;
         }
         var arr = (ArrowType)aa;
         return new ArrowType(arr.tok, (ArrowTypeDecl)arr.ResolvedClass, typeArgs);
-      } else if (b is ObjectType) {
+      } else if (b.IsObject) {
         return a.IsRefType ? b : null;
-      } else if (a is ObjectType) {
+      } else if (a.IsObject) {
         return b.IsRefType ? a : null;
       } else {
         // "a" is a class, trait, or opaque type
@@ -1457,7 +1496,7 @@ namespace Microsoft.Dafny {
           for (int i = 0; i < n; i++) {
             directions.Add(0);  // type arguments of classes, traits, and opaque types are invariant
           }
-          var typeArgs = ComputeExtrema(directions, a.TypeArgs, b.TypeArgs);
+          var typeArgs = ComputeExtrema(directions, a.TypeArgs, b.TypeArgs, builtIns);
           if (typeArgs == null) {
             return null;
           }
@@ -1474,7 +1513,7 @@ namespace Microsoft.Dafny {
           } else if (B.DerivesFrom(A)) {
             return a;
           } else if (A is TraitDecl || B is TraitDecl) {
-            return new ObjectType();
+            return builtIns.Object();
           }
           // A and B are classes. They always have object as a common supertype, but they may also both be extending some other
           // trait.  If such a trait is unique, pick it. (Unfortunately, this makes the meet operation not associative.)
@@ -1488,7 +1527,7 @@ namespace Microsoft.Dafny {
             return commonTraits[0];
           } else {
             // the unfortunate part is when commonTraits.Count > 1 here :(
-            return new ObjectType();
+            return builtIns.Object();
           }
         } else {
           return null;
@@ -1499,9 +1538,10 @@ namespace Microsoft.Dafny {
     /// <summary>
     /// Does a best-effort to compute the join of "a" and "b", returning "null" if not successful.
     /// </summary>
-    public static Type Join(Type a, Type b) {
+    public static Type Join(Type a, Type b, BuiltIns builtIns) {
       Contract.Requires(a != null);
       Contract.Requires(b != null);
+      Contract.Requires(builtIns != null);
       a = a.NormalizeExpand();
       b = b.NormalizeExpand();
       if (a.IsBoolType || a.IsCharType || a.IsTypeParameter || a.IsInternalTypeSynonym || a is TypeProxy) {
@@ -1523,7 +1563,7 @@ namespace Microsoft.Dafny {
           return null;
         }
         // sets are co-variant in their argument type
-        var typeArg = Join(a.TypeArgs[0], b.TypeArgs[0]);
+        var typeArg = Join(a.TypeArgs[0], b.TypeArgs[0], builtIns);
         return typeArg == null ? null : new SetType(aa.Finite, typeArg);
       } else if (a is MultiSetType) {
         var aa = (MultiSetType)a;
@@ -1532,7 +1572,7 @@ namespace Microsoft.Dafny {
           return null;
         }
         // multisets are co-variant in their argument type
-        var typeArg = Join(a.TypeArgs[0], b.TypeArgs[0]);
+        var typeArg = Join(a.TypeArgs[0], b.TypeArgs[0], builtIns);
         return typeArg == null ? null : new MultiSetType(typeArg);
       } else if (a is SeqType) {
         var aa = (SeqType)a;
@@ -1541,7 +1581,7 @@ namespace Microsoft.Dafny {
           return null;
         }
         // sequences are co-variant in their argument type
-        var typeArg = Join(a.TypeArgs[0], b.TypeArgs[0]);
+        var typeArg = Join(a.TypeArgs[0], b.TypeArgs[0], builtIns);
         return typeArg == null ? null : new SeqType(typeArg);
       } else if (a is MapType) {
         var aa = (MapType)a;
@@ -1550,8 +1590,8 @@ namespace Microsoft.Dafny {
           return null;
         }
         // maps are co-variant in both argument types
-        var typeArgDomain = Join(a.TypeArgs[0], b.TypeArgs[0]);
-        var typeArgRange = Join(a.TypeArgs[1], b.TypeArgs[1]);
+        var typeArgDomain = Join(a.TypeArgs[0], b.TypeArgs[0], builtIns);
+        var typeArgRange = Join(a.TypeArgs[1], b.TypeArgs[1], builtIns);
         return typeArgDomain == null || typeArgRange == null ? null : new MapType(aa.Finite, typeArgDomain, typeArgRange);
       } else if (a.IsDatatype) {
         var aa = a.AsDatatype;
@@ -1567,7 +1607,7 @@ namespace Microsoft.Dafny {
         for (int i = 0; i < n; i++) {
           directions.Add(1);  // datatypes are co-variant in their argument types, so compute joins
         }
-        var typeArgs = ComputeExtrema(directions, a.TypeArgs, b.TypeArgs);
+        var typeArgs = ComputeExtrema(directions, a.TypeArgs, b.TypeArgs, builtIns);
         if (typeArgs == null) {
           return null;
         }
@@ -1588,15 +1628,15 @@ namespace Microsoft.Dafny {
           directions.Add(1);  // arrow types are contra-variant in the argument types, so compute meets of these
         }
         directions.Add(-1);  // arrow types are co-variant in the result type, so compute the join of these
-        var typeArgs = ComputeExtrema(directions, a.TypeArgs, b.TypeArgs);
+        var typeArgs = ComputeExtrema(directions, a.TypeArgs, b.TypeArgs, builtIns);
         if (typeArgs == null) {
           return null;
         }
         var arr = (ArrowType)aa;
         return new ArrowType(arr.tok, (ArrowTypeDecl)arr.ResolvedClass, typeArgs);
-      } else if (b is ObjectType) {
+      } else if (b.IsObject) {
         return a.IsRefType ? a : null;
-      } else if (a is ObjectType) {
+      } else if (a.IsObject) {
         return b.IsRefType ? b : null;
       } else {
         // "a" is a class, trait, or opaque type
@@ -1615,7 +1655,7 @@ namespace Microsoft.Dafny {
           for (int i = 0; i < n; i++) {
             directions.Add(0);  // type arguments of classes, traits, and opaque types are invariant
           }
-          var typeArgs = ComputeExtrema(directions, a.TypeArgs, b.TypeArgs);
+          var typeArgs = ComputeExtrema(directions, a.TypeArgs, b.TypeArgs, builtIns);
           if (typeArgs == null) {
             return null;
           }
@@ -1785,25 +1825,6 @@ namespace Microsoft.Dafny {
     }
     public override bool IsSupertypeOf_WithSubsetTypes(Type that) {
       return Equals(that);
-    }
-  }
-
-  public class ObjectType : BasicType
-  {
-    [Pure]
-    public override string TypeName(ModuleDefinition context, bool parseAble) {
-      return "object";
-    }
-    public override bool Equals(Type that) {
-      return that.NormalizeExpand() is ObjectType;
-    }
-    public override bool IsSupertypeOf_WithSubsetTypes(Type that) {
-      return that.IsRefType;
-    }
-    public override bool MayInvolveReferences {
-      get {
-        return true;
-      }
     }
   }
 
@@ -2172,10 +2193,12 @@ namespace Microsoft.Dafny {
     }
     public virtual string FullCompileName {
       get {
-        if (ResolvedClass != null && !ResolvedClass.Module.IsDefaultModule) {
-          return ResolvedClass.Module.CompileName + ".@" + ResolvedClass.CompileName;
-        } else {
+        if (ResolvedClass == null) {
           return CompileName;
+        } else if (ResolvedClass.Module.IsDefaultModule) {
+          return ResolvedClass.CompileName;
+        } else {
+          return ResolvedClass.Module.CompileName + ".@" + ResolvedClass.CompileName;
         }
       }
     }
@@ -2184,7 +2207,7 @@ namespace Microsoft.Dafny {
         Contract.Requires(ResolvedClass is TraitDecl);
         var m = ResolvedClass.Module;
         var s = m.IsDefaultModule ? "" : m.CompileName + ".";
-        return s + "@_Companion_" + CompileName;
+        return s + "@_Companion_" + ResolvedClass.CompileName;
       }
     }
 
@@ -3404,6 +3427,20 @@ namespace Microsoft.Dafny {
       }
     }
 
+    /// <summary>
+    /// Emits the declarations in "declarations", but for each such declaration that is a class with
+    /// a corresponding non-null type, also emits that non-null type *after* the class declaration.
+    /// </summary>
+    public static IEnumerable<TopLevelDecl> AllDeclarationsAndNonNullTypeDecls(List<TopLevelDecl> declarations) {
+      foreach (var d in declarations) {
+        yield return d;
+        var cl = d as ClassDecl;
+        if (cl != null && cl.NonNullTypeDecl != null) {
+          yield return cl.NonNullTypeDecl;
+        }
+      }
+    }
+
     public static IEnumerable<FixpointLemma> AllFixpointLemmas(List<TopLevelDecl> declarations) {
       foreach (var d in declarations) {
         var cl = d as ClassDecl;
@@ -3498,6 +3535,16 @@ namespace Microsoft.Dafny {
         }
       }
     }
+
+    public TopLevelDecl ViewAsClass {
+      get {
+        if (this is NonNullTypeDecl) {
+          return ((NonNullTypeDecl)this).Class;
+        } else {
+          return this;
+        }
+      }
+    }
   }
 
   public class TraitDecl : ClassDecl
@@ -3517,6 +3564,7 @@ namespace Microsoft.Dafny {
     public readonly List<Type> TraitsTyp;  // these are the types that are parsed after the keyword 'extends'
     public readonly List<TraitDecl> TraitsObj = new List<TraitDecl>();  // populated during resolution
     public bool HasConstructor;  // filled in (early) during resolution; true iff there exists a member that is a Constructor
+    public readonly SubsetTypeDecl NonNullTypeDecl;
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(cce.NonNullElements(Members));
@@ -3534,6 +3582,9 @@ namespace Microsoft.Dafny {
       Contract.Requires(cce.NonNullElements(members));
       Members = members;
       TraitsTyp = traits ?? new List<Type>();
+      if (!IsDefaultClass && !(this is ArrowTypeDecl)) {
+        NonNullTypeDecl = new NonNullTypeDecl(this);
+      }
     }
     public virtual bool IsDefaultClass {
       get {
@@ -4606,6 +4657,39 @@ namespace Microsoft.Dafny {
     Expression RedirectingTypeDecl.Constraint { get { return Constraint; } }
     WKind RedirectingTypeDecl.WitnessKind { get { return WitnessKind; } }
     Expression RedirectingTypeDecl.Witness { get { return Witness; } }
+  }
+
+  public class NonNullTypeDecl : SubsetTypeDecl
+  {
+    public readonly ClassDecl Class;
+    /// <summary>
+    /// The public constructor is NonNullTypeDecl(ClassDecl cl). The rest is pretty crazy: There are stages of "this"-constructor calls
+    /// in order to build values that depend on previously computed parameters.
+    /// </summary>
+    public NonNullTypeDecl(ClassDecl cl)
+      : this(cl, cl.TypeArgs.ConvertAll(tp => new TypeParameter(tp.tok, tp.Name, tp.VarianceSyntax, tp.Characteristics)))
+    {
+      Contract.Requires(cl != null);
+    }
+
+    private NonNullTypeDecl(ClassDecl cl, List<TypeParameter> tps)
+      : this(cl, tps,
+      new BoundVar(cl.tok, "c", new UserDefinedType(cl.tok, cl.Name + "?", tps.Count == 0 ? null : tps.ConvertAll(tp => (Type)new UserDefinedType(tp)))))
+    {
+      Contract.Requires(cl != null);
+      Contract.Requires(tps != null);
+    }
+
+    private NonNullTypeDecl(ClassDecl cl, List<TypeParameter> tps, BoundVar id)
+      : base(cl.tok, cl.Name, new TypeParameter.TypeParameterCharacteristics(), tps, cl.Module, id,
+      new BinaryExpr(cl.tok, BinaryExpr.Opcode.Neq, new IdentifierExpr(cl.tok, id), new LiteralExpr(cl.tok)),
+      SubsetTypeDecl.WKind.Special, null, BuiltIns.AxiomAttribute())
+    {
+      Contract.Requires(cl != null);
+      Contract.Requires(tps != null);
+      Contract.Requires(id != null);
+      Class = cl;
+    }
   }
 
   [ContractClass(typeof(IVariableContracts))]
@@ -8109,7 +8193,11 @@ namespace Microsoft.Dafny {
       Contract.Requires(v != null);
       Name = v.Name;
       Var = v;
+#if SLOPPY_ABOUT_BEING_PRECISE
       Type = v.Type.StripSubsetConstraints();
+#else
+      Type = v.Type;
+#endif
     }
   }
 

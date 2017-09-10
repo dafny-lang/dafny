@@ -41,14 +41,14 @@ Execution trace:
 ArrayElementInit.dfy(152,21): Error: unless an initializer is provided for the array elements, a new array of 'D' must have empty size
 Execution trace:
     (0,0): anon0
-    (0,0): anon17_Then
+    (0,0): anon18_Then
 ArrayElementInit.dfy(154,21): Error: unless an initializer is provided for the array elements, a new array of 'D' must have empty size
 Execution trace:
     (0,0): anon0
-    (0,0): anon19_Then
+    (0,0): anon20_Then
 ArrayElementInit.dfy(158,21): Error: unless an initializer is provided for the array elements, a new array of 'D' must have empty size
 Execution trace:
     (0,0): anon0
-    (0,0): anon23_Then
+    (0,0): anon24_Then
 
 Dafny program verifier finished with 9 verified, 14 errors

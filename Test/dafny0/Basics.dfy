@@ -12,7 +12,7 @@ class Global {
         var g: Global;
         r := g.G(x);
       case true =>
-        var g: Global := null;
+        var g: Global? := null;
         r := g.G(x);
       case true =>
         r := Global.G(x);
@@ -21,7 +21,7 @@ class Global {
 }
 
 method TestCalls(k: nat) {
-  var g: Global, h: Global;
+  var g: Global?, h: Global?;
   assume g != h;
   ghost var r: int;
   ghost var s := Global.G(k);
@@ -100,7 +100,7 @@ method ExpliesAssociativityM(A: bool, B: bool, C: bool) {
   }
 }
 
-method ExpliesShortCircuiting(a: array)
+method ExpliesShortCircuiting(a: array?)
 {
   assert a == null || 0 <= a.Length;  // (W)
   assert a != null ==> 0 <= a.Length;  // (X) -- same as (W)
@@ -120,8 +120,8 @@ method ExpliesShortCircuiting(a: array)
 class Multi {
   var x: int;
   var y: int;
-  var next: Multi;
-  method Mutate(z: int) returns (m: Multi)
+  var next: Multi?;
+  method Mutate(z: int) returns (m: Multi?)
     requires 0 <= z;
     modifies this;
     ensures y == old(y);

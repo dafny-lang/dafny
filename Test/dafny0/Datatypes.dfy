@@ -5,7 +5,7 @@ datatype List<T> = Nil | Cons(T, List<T>)
 
 class Node {
   var data: int;
-  var next: Node;
+  var next: Node?;
 
   function Repr(list: List<int>): bool
     reads *;
@@ -36,9 +36,9 @@ class Node {
 
 class AnotherNode {
   var data: int;
-  var next: AnotherNode;
+  var next: AnotherNode?;
 
-  function Repr(n: AnotherNode, list: List<int>): bool
+  function Repr(n: AnotherNode?, list: List<int>): bool
     reads *;
     decreases list;
   { match list
@@ -48,7 +48,7 @@ class AnotherNode {
       n != null && n.data == d && Repr(n.next, cdr)
   }
 
-  method Create() returns (n: AnotherNode)
+  method Create() returns (n: AnotherNode?)
     ensures Repr(n, Nil);
   {
     n := null;

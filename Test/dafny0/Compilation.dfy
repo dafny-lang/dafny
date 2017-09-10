@@ -278,7 +278,7 @@ module EqualityTests {
   method TestMain()
   {
     // regression tests:
-    var a: C<int>, b: C<int> := null, null;
+    var a: C?<int>, b: C?<int> := null, null;
     if a == null {
       print "a is null\n";
     }

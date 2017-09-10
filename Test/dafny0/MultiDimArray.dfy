@@ -8,7 +8,7 @@ class A {
   var c: array <A>;
   var d: array1 <A>;  // this is a synonym for array<A>
   var e: array2 <A>;
-  var f: array3 <A>;
+  var f: array3 <A?>;
   var g: array300 <A>;
 //  var h: array3000 <array2<int>>; // too big!
 
@@ -73,9 +73,9 @@ class A {
     decreases i;
   {
     if (i != 0) {
-      var z := new A[2,3,5];  // first three primes (nice!)
+      var z := new A?[2,3,5];  // first three primes (nice!)
       var s := z[1,2,4];  // first three powers of 2 (tra-la-la)
-      var some: A;
+      var some: A?;
       f[i,j,k] := some;
       M3(i-1, j, k);
       assert s == z[1,2,4];

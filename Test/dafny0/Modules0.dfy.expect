@@ -6,6 +6,8 @@ Modules0.dfy(10,7): Error: Duplicate name of top-level declaration: WazzupA
 Modules0.dfy(13,7): Error: Duplicate name of top-level declaration: WazzupB
 Modules0.dfy(14,8): Error: Duplicate name of top-level declaration: WazzupB
 Modules0.dfy(15,11): Error: Duplicate name of top-level declaration: WazzupB
+Modules0.dfy(8,8): Error: A module that already contains a top-level declaration 'WazzupA?' is not allowed to declare a class 'WazzupA'
+Modules0.dfy(39,8): Error: class 'X' with fields without known initializers, like 't' of type 'MM.T', must declare a constructor
 Modules0.dfy(56,21): Error: Undeclared top-level type or type parameter: MyClass1 (did you forget to qualify a name or declare a module import 'opened?')
 Modules0.dfy(57,21): Error: Undeclared top-level type or type parameter: MyClass2 (did you forget to qualify a name or declare a module import 'opened?')
 Modules0.dfy(68,21): Error: Undeclared top-level type or type parameter: MyClass2 (did you forget to qualify a name or declare a module import 'opened?')
@@ -32,4 +34,4 @@ Modules0.dfy(323,10): Error: new can be applied only to reference types (got Q_I
 Modules0.dfy(324,30): Error: member Create does not exist in class Klassy
 Modules0.dfy(318,13): Error: arguments must have the same type (got Q_Imp.Node and Node)
 Modules0.dfy(348,11): Error: a datatype declaration (T) in a refinement module can only replace an opaque type declaration
-32 resolution/type errors detected in Modules0.dfy
+34 resolution/type errors detected in Modules0.dfy

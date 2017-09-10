@@ -315,8 +315,6 @@ namespace Microsoft.Dafny
         return next is IntType;
       } else if (prev is RealType) {
         return next is RealType;
-      } else if (prev is ObjectType) {
-        return next is ObjectType;
       } else if (prev is SetType) {
         return next is SetType && ((SetType)prev).Finite == ((SetType)next).Finite &&
           ResolvedTypesAreTheSame(((SetType)prev).Arg, ((SetType)next).Arg);

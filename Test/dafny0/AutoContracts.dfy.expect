@@ -10,16 +10,22 @@ module _System {
     | 0 <= x
 
   trait {:compile false} object { }
+  /*-- non-null type
+  type {:axiom} object(==) = c: object? | c != null    /*special witness*/
+  */
 
   class {:compile false} array<arg> {
     var Length: int  // immutable
   }
+  /*-- non-null type
+  type {:axiom} array(==)<arg> = c: array?<arg> | c != null    /*special witness*/
+  */
 
   class {:compile false} /*_#Func0*/ () ~> +R {
     function requires(): bool
       reads reads()
 
-    function reads(): set<object>
+    function reads(): set<object?>
       reads reads()
   }
 
@@ -39,7 +45,7 @@ module _System {
     function requires(x0: T0): bool
       reads reads(x0)
 
-    function reads(x0: T0): set<object>
+    function reads(x0: T0): set<object?>
       reads reads(x0)
   }
 
@@ -83,7 +89,7 @@ module OneModule {
    *   nat
    */
   class {:autocontracts} D {
-    ghost var Repr: set<object>
+    ghost var Repr: set<object?>
 
     predicate Valid()
       reads this, Repr
@@ -94,13 +100,16 @@ module OneModule {
       true
     }
   }
+  /*-- non-null type
+  type {:axiom} D(==) = c: D? | c != null    /*special witness*/
+  */
 
   class {:autocontracts} C {
     var data: int
-    var anotherC: C
-    var dd: D
-    var {:autocontracts false} ee: D
-    var arr: array<C>
+    var anotherC: C?
+    var dd: D?
+    var {:autocontracts false} ee: D?
+    var arr: array?<C?>
 
     protected predicate Valid()
       reads this, Repr
@@ -200,8 +209,11 @@ module OneModule {
       ensures Valid()
       ensures fresh(Repr - old(Repr))
 
-    ghost var Repr: set<object>
+    ghost var Repr: set<object?>
   }
+  /*-- non-null type
+  type {:axiom} C(==) = c: C? | c != null    /*special witness*/
+  */
 }
 
 module N0 {
@@ -273,7 +285,7 @@ module N0 {
       true
     }
 
-    ghost var Repr: set<object>
+    ghost var Repr: set<object?>
 
     method {:autocontracts false} K()
       requires Valid()
@@ -292,6 +304,9 @@ module N0 {
     {
     }
   }
+  /*-- non-null type
+  type {:axiom} C(==) = c: C? | c != null    /*special witness*/
+  */
 }
 
 module N1 refines N0 {
@@ -386,8 +401,11 @@ module N1 refines N0 {
       true
     }
 
-    ghost var Repr: set<object>
+    ghost var Repr: set<object?>
   }
+  /*-- non-null type
+  type {:axiom} C(==) = c: C? | c != null    /*special witness*/
+  */
 }
 
 module N2 refines N1 {
@@ -482,8 +500,11 @@ module N2 refines N1 {
       true
     }
 
-    ghost var Repr: set<object>
+    ghost var Repr: set<object?>
   }
+  /*-- non-null type
+  type {:axiom} C(==) = c: C? | c != null    /*special witness*/
+  */
 }
 AutoContracts.dfy(17,4): Error BP5003: A postcondition might not hold on this return path.
 AutoContracts.dfy(17,4): Related location: This is the postcondition that might not hold.

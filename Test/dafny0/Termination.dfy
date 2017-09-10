@@ -159,8 +159,8 @@ method FailureToProveTermination5(b: bool, N: int)
 }
 
 class Node {
-  var next: Node;
-  var footprint: set<Node>;
+  var next: Node?;
+  var footprint: set<Node?>;
 
   function Valid(): bool
     reads this, footprint;
@@ -338,8 +338,8 @@ ghost method Lemma_ReachBack()
 
 class DefaultDecreasesFunction {
   var data: int;
-  ghost var Repr: set<object>;
-  var next: DefaultDecreasesFunction;
+  ghost var Repr: set<object?>;
+  var next: DefaultDecreasesFunction?;
   predicate Valid()
     reads this, Repr;
   {
