@@ -335,6 +335,4 @@ ResolutionErrors.dfy(2139,8): Error: an ORDINAL type is not allowed to be used a
 ResolutionErrors.dfy(2141,25): Error: an ORDINAL type is not allowed to be used as a type argument
 ResolutionErrors.dfy(2142,7): Error: type of bound variable 'yt' is not allowed to use type ORDINAL
 ResolutionErrors.dfy(2146,11): Error: type of bound variable 'zt' is not allowed to use type ORDINAL
-ResolutionErrors.dfy(2149,11): Error: type of bound variable 'om' is not allowed to use type ORDINAL
-ResolutionErrors.dfy(2154,11): Error: type of bound variable 'om' is not allowed to use type ORDINAL
-336 resolution/type errors detected in ResolutionErrors.dfy
+334 resolution/type errors detected in ResolutionErrors.dfy

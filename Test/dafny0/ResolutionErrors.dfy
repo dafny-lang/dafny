@@ -2146,12 +2146,12 @@ module BigOrdinalRestrictions {
       case zt: ORDINAL :| zt == 180 =>  // error: cannot quantify over ORDINAL
         ghost var pg := P(zt);
     }
-    forall om: ORDINAL  // error: cannot quantify over ORDINAL
-      ensures true
+    forall om: ORDINAL  // allowed
+      ensures om < om+1
     {
     }
     var arr := new int[23];
-    forall om: ORDINAL | om == 11  // error: cannot quantify over ORDINAL
+    forall om: ORDINAL | om == 11  // allowed
     {
       arr[0] := 0;
     }
