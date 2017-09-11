@@ -2133,8 +2133,12 @@ module BigOrdinalRestrictions {
     var mp1 := map['G' := o];  // error: cannot use ORDINAL as type argument (to map)
     var w := var h: ORDINAL := 100; h + 40;  // okay
     var w': (int, ORDINAL);  // error: cannot use ORDINAL as type argument
-    var u: ORDINAL :| u == 15;  // error: cannot quantify over ORDINAL
-    var ti: ORDINAL :| assume true;  // error: cannot quantify over ORDINAL
+    var u: ORDINAL :| u == 15;
+    var ti: ORDINAL :| assume true;
+    var u': (ORDINAL, int) :| u' == (15, 15);  // error (x2): ORDINAL cannot be a type argument
+    var ti': (ORDINAL, ORDINAL) :| assume true;  // error (x4): ORDINAL cannot be a type argument
+    var lstLocal := var lst: ORDINAL :| lst == 15; lst;
+    var lstLocal' := var lst: (ORDINAL, int) :| lst == (15, 15); lst.1;  // error: ORDINAL cannot be a type argument
     if yt: ORDINAL :| yt == 16 {  // error: cannot quantify over ORDINAL
       ghost var pg := P(yt);
     }

@@ -4599,7 +4599,7 @@ namespace Microsoft.Dafny
           }
           foreach (var lhs in s.Lhss) {
             var what = lhs is IdentifierExpr ? string.Format("variable '{0}'", ((IdentifierExpr)lhs).Name) : "LHS";
-            CheckContainsNoOrdinal(lhs.tok, lhs.Type, string.Format("type of {0} is not allowed to use type ORDINAL", what));
+            CheckTypeArgsContainNoOrdinal(lhs.tok, lhs.Type);
           }
         } else if (stmt is CalcStmt) {
           var s = (CalcStmt)stmt;
@@ -4724,10 +4724,8 @@ namespace Microsoft.Dafny
             foreach (var x in p.Vars) {
               if (!IsDetermined(x.Type.Normalize())) {
                 resolver.reporter.Error(MessageSource.Resolver, x.tok, "the type of the bound variable '{0}' could not be determined", x.Name);
-              } else if (e.Exact) {
-                CheckTypeArgsContainNoOrdinal(x.tok, x.Type);
               } else {
-                CheckContainsNoOrdinal(x.tok, x.Type, string.Format("type of bound variable '{0}' is not allowed to use type ORDINAL", x.Name));
+                CheckTypeArgsContainNoOrdinal(x.tok, x.Type);
               }
             }
           }
