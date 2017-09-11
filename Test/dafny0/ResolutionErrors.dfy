@@ -2111,3 +2111,49 @@ module GhostWitness {
     var b: B :| true; b
   }
 }
+
+module BigOrdinalRestrictions {
+  method Test() {
+    var st: set<ORDINAL>;  // error: cannot use ORDINAL as type argument
+    var p: (int, ORDINAL);  // error: cannot use ORDINAL as type argument
+    var o: ORDINAL;  // okay
+    ghost var f := F(o);  // error: cannot use ORDINAL as type argument 
+    f := F'<ORDINAL>();  // error: cannot use ORDINAL as type argument
+    f := F'<(char,ORDINAL)>();  // error: cannot use ORDINAL as type argument
+    var lambda := F'<ORDINAL>;  // error: cannot use ORDINAL as type argument
+    ParameterizedMethod(o);  // error: cannot use ORDINAL as type argument
+    assert forall r: ORDINAL :: P(r);  // error: cannot quantify over ORDINAL
+    assert forall r: (ORDINAL, int) :: F(r.1) < 8;  // error: cannot use ORDINAL as type argument
+    assert exists x: int, r: ORDINAL, y: char :: P(r) && F(x) == F(y);  // error: cannot quantify over ORDINAL
+    var s := set r: ORDINAL | r in {};  // error (x2): cannot use ORDINAL as type argument (to set)
+    var s' := set r: ORDINAL | true :: 'G';  // error: cannot use ORDINAL as type of bound variable
+    ghost var m := imap r: ORDINAL :: 10;  // error (x2): cannot use ORDINAL as type argument (to imap)
+    var sq := [o, o];  // error: cannot use ORDINAL as type argument (to seq)
+    var mp0 := map[o := 'G'];  // error: cannot use ORDINAL as type argument (to map)
+    var mp1 := map['G' := o];  // error: cannot use ORDINAL as type argument (to map)
+    var w := var h: ORDINAL := 100; h + 40;  // okay
+    var w': (int, ORDINAL);  // error: cannot use ORDINAL as type argument
+    var u: ORDINAL :| u == 15;  // error: cannot quantify over ORDINAL
+    var ti: ORDINAL :| assume true;  // error: cannot quantify over ORDINAL
+    if yt: ORDINAL :| yt == 16 {  // error: cannot quantify over ORDINAL
+      ghost var pg := P(yt);
+    }
+    if {
+      case zt: ORDINAL :| zt == 180 =>  // error: cannot quantify over ORDINAL
+        ghost var pg := P(zt);
+    }
+    forall om: ORDINAL  // error: cannot quantify over ORDINAL
+      ensures true
+    {
+    }
+    var arr := new int[23];
+    forall om: ORDINAL | om == 11  // error: cannot quantify over ORDINAL
+    {
+      arr[0] := 0;
+    }
+  }
+  function F<G>(g: G): int
+  function F'<G>(): int
+  method ParameterizedMethod<G>(g: G)
+  predicate P(g: ORDINAL)
+}

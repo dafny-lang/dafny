@@ -4564,16 +4564,21 @@ namespace Microsoft.Dafny
           var s = (VarDeclStmt)stmt;
           foreach (var local in s.Locals) {
             CheckTypeIsDetermined(local.Tok, local.Type, "local variable");
+            CheckTypeArgsContainNoOrdinal(local.Tok, local.type);
           }
         } else if (stmt is LetStmt) {
           var s = (LetStmt)stmt;
           s.BoundVars.Iter(bv => CheckTypeIsDetermined(bv.tok, bv.Type, "bound variable"));
+          s.BoundVars.Iter(bv => CheckTypeArgsContainNoOrdinal(bv.tok, bv.Type));
 
         } else if (stmt is ForallStmt) {
           var s = (ForallStmt)stmt;
           s.BoundVars.Iter(bv => CheckTypeIsDetermined(bv.tok, bv.Type, "bound variable"));
           List<BoundVar> missingBounds;
           s.Bounds = DiscoverBestBounds_MultipleVars(s.BoundVars, s.Range, true, true, out missingBounds);
+          foreach (var bv in s.BoundVars) {
+            CheckContainsNoOrdinal(bv.tok, bv.Type, string.Format("type of bound variable '{0}' is not allowed to use type ORDINAL", bv.Name));
+          }
 
         } else if (stmt is AssignSuchThatStmt) {
           var s = (AssignSuchThatStmt)stmt;
@@ -4591,6 +4596,10 @@ namespace Microsoft.Dafny
               Contract.Assert(bestBounds != null);
               s.Bounds = bestBounds;
             }
+          }
+          foreach (var lhs in s.Lhss) {
+            var what = lhs is IdentifierExpr ? string.Format("variable '{0}'", ((IdentifierExpr)lhs).Name) : "LHS";
+            CheckContainsNoOrdinal(lhs.tok, lhs.Type, string.Format("type of {0} is not allowed to use type ORDINAL", what));
           }
         } else if (stmt is CalcStmt) {
           var s = (CalcStmt)stmt;
@@ -4619,6 +4628,8 @@ namespace Microsoft.Dafny
           foreach (var bv in e.BoundVars) {
             if (!IsDetermined(bv.Type.Normalize())) {
               resolver.reporter.Error(MessageSource.Resolver, bv.tok, "type of bound variable '{0}' could not be determined; please specify the type explicitly", bv.Name);
+            } else {
+              CheckContainsNoOrdinal(bv.tok, bv.Type, string.Format("type of bound variable '{0}' is not allowed to use type ORDINAL", bv.Name));
             }
           }
           // apply bounds discovery to quantifiers, finite sets, and finite maps
@@ -4689,6 +4700,8 @@ namespace Microsoft.Dafny
             foreach (var p in e.TypeApplication) {
               if (!IsDetermined(p.Normalize())) {
                 resolver.reporter.Error(MessageSource.Resolver, e.tok, "type '{0}' to the {2} '{1}' is not determined", p, e.Member.Name, e.Member.WhatKind);
+              } else {
+                CheckContainsNoOrdinal(e.tok, p, string.Format("type '{0}' to the {2} '{1}' is not allowed to use ORDINAL", p, e.Member.Name, e.Member.WhatKind));
               }
             }
           }
@@ -4701,6 +4714,8 @@ namespace Microsoft.Dafny
                 ? ". If you are making an opaque function, make sure that the function can be called."
                 : ""
               );
+            } else {
+              CheckContainsNoOrdinal(e.tok, p.Value, string.Format("type argument to function call '{1}' (for type variable '{0}') is not allowed to use type ORDINAL", p.Key.Name, e.Name));
             }
           }
         } else if (expr is LetExpr) {
@@ -4708,7 +4723,11 @@ namespace Microsoft.Dafny
           foreach (var p in e.LHSs) {
             foreach (var x in p.Vars) {
               if (!IsDetermined(x.Type.Normalize())) {
-                resolver.reporter.Error(MessageSource.Resolver, e.tok, "the type of the bound variable '{0}' could not be determined", x.Name);
+                resolver.reporter.Error(MessageSource.Resolver, x.tok, "the type of the bound variable '{0}' could not be determined", x.Name);
+              } else if (e.Exact) {
+                CheckTypeArgsContainNoOrdinal(x.tok, x.Type);
+              } else {
+                CheckContainsNoOrdinal(x.tok, x.Type, string.Format("type of bound variable '{0}' is not allowed to use type ORDINAL", x.Name));
               }
             }
           }
@@ -4766,6 +4785,22 @@ namespace Microsoft.Dafny
         }
         // Recurse on type arguments:
         return t.TypeArgs.All(rg => CheckTypeIsDetermined(tok, rg, what));
+      }
+      public void CheckTypeArgsContainNoOrdinal(IToken tok, Type t) {
+        Contract.Requires(tok != null);
+        Contract.Requires(t != null);
+        t = t.NormalizeExpand();
+        t.TypeArgs.Iter(rg => CheckContainsNoOrdinal(tok, rg, "an ORDINAL type is not allowed to be used as a type argument"));
+      }
+      public void CheckContainsNoOrdinal(IToken tok, Type t, string errMsg) {
+        Contract.Requires(tok != null);
+        Contract.Requires(t != null);
+        Contract.Requires(errMsg != null);
+        t = t.NormalizeExpand();
+        if (t.IsBigOrdinalType) {
+          resolver.reporter.Error(MessageSource.Resolver, tok, errMsg);
+        }
+        t.TypeArgs.Iter(rg => CheckContainsNoOrdinal(tok, rg, errMsg));
       }
     }
     #endregion CheckTypeInference
