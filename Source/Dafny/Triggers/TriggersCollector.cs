@@ -246,10 +246,23 @@ namespace Microsoft.Dafny.Triggers {
           expr is ApplyExpr ||
           expr is DisplayExpression ||
           expr is DatatypeValue ||
-          TranslateToFunctionCall(expr) ||
-          (expr is UnaryOpExpr && (((UnaryOpExpr)expr).Op == UnaryOpExpr.Opcode.Cardinality)) || // FIXME || ((UnaryOpExpr)expr).Op == UnaryOpExpr.Opcode.Fresh doesn't work, as fresh is a pretty tricky predicate when it's not about datatypes. See translator.cs:10944
-          (expr is BinaryExpr && (((BinaryExpr)expr).Op == BinaryExpr.Opcode.NotIn || ((BinaryExpr)expr).Op == BinaryExpr.Opcode.In) && !(((BinaryExpr)expr).E1 is DisplayExpression))) {
+          TranslateToFunctionCall(expr)) {
         return true;
+      } else if (expr is BinaryExpr) {
+        var e = (BinaryExpr)expr;
+        if ((e.Op == BinaryExpr.Opcode.NotIn || e.Op == BinaryExpr.Opcode.In) && !(e.E1 is DisplayExpression)) {
+          return true;
+        } else if (e.E0.Type.IsBigOrdinalType && (e.ResolvedOp == BinaryExpr.ResolvedOpcode.Lt || e.ResolvedOp == BinaryExpr.ResolvedOpcode.Gt)) {
+          return true;
+        } else {
+          return false;
+        }
+      } else if (expr is UnaryOpExpr) {
+        var e = (UnaryOpExpr)expr;
+        return e.Op == UnaryOpExpr.Opcode.Cardinality;  // FIXME || e.Op == UnaryOpExpr.Opcode.Fresh doesn't work, as fresh is a pretty tricky predicate when it's not about datatypes. See translator.cs:10944
+      } else if (expr is ConversionExpr) {
+        var e = (ConversionExpr)expr;
+        return e.ToType.IsBigOrdinalType;
       } else {
         return false;
       }

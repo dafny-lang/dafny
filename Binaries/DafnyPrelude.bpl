@@ -318,24 +318,26 @@ type ORDINAL = Box;  // :| There are more big ordinals than boxes
 
 // The following two functions give an abstracton over all ordinals.
 // Function ORD#IsNat returns true when the ordinal is one of the natural
-// numbers.  Function ORD#Succs gives how many successors (that is,
+// numbers.  Function ORD#Offset gives how many successors (that is,
 // +1 operations) an ordinal is above the nearest lower limit ordinal.
-// That is, if the ordinal is \lambda+n, then ORD#Succs returns n.
+// That is, if the ordinal is \lambda+n, then ORD#Offset returns n.
 function ORD#IsNat(ORDINAL): bool;
-function ORD#Succs(ORDINAL): int;
-axiom (forall o:ORDINAL :: { ORD#Succs(o) } 0 <= ORD#Succs(o));
+function ORD#Offset(ORDINAL): int;
+axiom (forall o:ORDINAL :: { ORD#Offset(o) } 0 <= ORD#Offset(o));
+
+function {:inline} ORD#IsLimit(o: ORDINAL): bool { ORD#Offset(o) == 0 }
 
 function ORD#FromNat(int): ORDINAL;
 axiom (forall n:int :: { ORD#FromNat(n) }
-  0 <= n ==> ORD#IsNat(ORD#FromNat(n)) && ORD#Succs(ORD#FromNat(n)) == n);
-axiom (forall o:ORDINAL :: { ORD#Succs(o) } { ORD#IsNat(o) }
-  ORD#IsNat(o) ==> o == ORD#FromNat(ORD#Succs(o)));
+  0 <= n ==> ORD#IsNat(ORD#FromNat(n)) && ORD#Offset(ORD#FromNat(n)) == n);
+axiom (forall o:ORDINAL :: { ORD#Offset(o) } { ORD#IsNat(o) }
+  ORD#IsNat(o) ==> o == ORD#FromNat(ORD#Offset(o)));
 
 function ORD#Less(ORDINAL, ORDINAL): bool;
 axiom (forall o,p: ORDINAL :: { ORD#Less(o,p) }
   (ORD#Less(o,p) ==> o != p) &&  // irreflexivity
   (ORD#IsNat(o) && !ORD#IsNat(p) ==> ORD#Less(o,p)) &&
-  (ORD#IsNat(o) && ORD#IsNat(p) ==> ORD#Less(o,p) == (ORD#Succs(o) < ORD#Succs(p))));
+  (ORD#IsNat(o) && ORD#IsNat(p) ==> ORD#Less(o,p) == (ORD#Offset(o) < ORD#Offset(p))));
 // ORD#Less is irreflexive:
 axiom (forall o,p: ORDINAL :: { ORD#Less(o,p) }
   ORD#Less(o,p) ==> o != p);
@@ -353,13 +355,23 @@ axiom (forall o,p: ORDINAL :: { ORD#Plus(o,p) }
   (ORD#IsNat(ORD#Plus(o,p)) ==> ORD#IsNat(o) && ORD#IsNat(p)) &&
   (ORD#IsNat(p) ==>
     ORD#IsNat(ORD#Plus(o,p)) == ORD#IsNat(o) &&
-    ORD#Succs(ORD#Plus(o,p)) == ORD#Succs(o) + ORD#Succs(p)));
+    ORD#Offset(ORD#Plus(o,p)) == ORD#Offset(o) + ORD#Offset(p)));
+axiom (forall o,p: ORDINAL :: { ORD#Plus(o,p) }
+  (o == ORD#Plus(o, p) || ORD#Less(o, ORD#Plus(o, p))) &&
+  (p == ORD#Plus(o, p) || ORD#Less(p, ORD#Plus(o, p))));
+axiom (forall o,p: ORDINAL :: { ORD#Plus(o,p) }
+  (o == ORD#FromNat(0) ==> ORD#Plus(o, p) == p) &&
+  (p == ORD#FromNat(0) ==> ORD#Plus(o, p) == o));
 
 function ORD#Minus(ORDINAL, ORDINAL): ORDINAL;
 axiom (forall o,p: ORDINAL :: { ORD#Minus(o,p) }
-  ORD#IsNat(p) && ORD#Succs(p) <= ORD#Succs(o) ==>
+  ORD#IsNat(p) && ORD#Offset(p) <= ORD#Offset(o) ==>
     ORD#IsNat(ORD#Minus(o,p)) == ORD#IsNat(o) &&
-    ORD#Succs(ORD#Minus(o,p)) == ORD#Succs(o) - ORD#Succs(p));
+    ORD#Offset(ORD#Minus(o,p)) == ORD#Offset(o) - ORD#Offset(p));
+axiom (forall o,p: ORDINAL :: { ORD#Minus(o,p) }
+  ORD#IsNat(p) && ORD#Offset(p) <= ORD#Offset(o) ==>
+    (p == ORD#FromNat(0) && ORD#Minus(o, p) == o) ||
+    (p != ORD#FromNat(0) && ORD#Less(ORD#Minus(o, p), o)));
 
 // ---------------------------------------------------------------
 // -- Axiom contexts ---------------------------------------------

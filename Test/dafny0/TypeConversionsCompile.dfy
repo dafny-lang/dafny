@@ -78,4 +78,7 @@ method Main()
   var oord := iord as ORDINAL;
   print "Something about ORDINAL: ", ord, " ", iord, " ", oord, " ", ord + 4, " ", ord - 100, "\n";
   print "ORDINAL and bitvectors: ", 20 as bv32 as ORDINAL, " ", 20 as bv300 as ORDINAL, "\n";
+  print ord.IsLimit, " ", ord.Offset, " ", ord.IsNat, "\n";
+  ord := 0;
+  print ord.IsLimit, " ", ord.Offset, " ", ord.IsNat, "\n";
 }

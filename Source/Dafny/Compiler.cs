@@ -2751,7 +2751,9 @@ namespace Microsoft.Dafny {
           } else {
             TrParenExpr(e.Obj, wr, inLetExprBody);
           }
-          wr.Write(".@{0}", sf.CompiledName);
+          if (sf.CompiledName.Length != 0) {
+            wr.Write(".@{0}", sf.CompiledName);
+          }
           if (sf is ConstantField) {
             wr.Write("()");  // constant fields are compiled as functions (possibly with a backing field)
           }

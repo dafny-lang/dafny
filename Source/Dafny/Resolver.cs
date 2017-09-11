@@ -191,8 +191,9 @@ namespace Microsoft.Dafny
     readonly Dictionary<ClassDecl, Dictionary<string, MemberDecl>> classMembers = new Dictionary<ClassDecl, Dictionary<string, MemberDecl>>();
     readonly Dictionary<DatatypeDecl, Dictionary<string, MemberDecl>> datatypeMembers = new Dictionary<DatatypeDecl, Dictionary<string, MemberDecl>>();
     readonly Dictionary<DatatypeDecl, Dictionary<string, DatatypeCtor>> datatypeCtors = new Dictionary<DatatypeDecl, Dictionary<string, DatatypeCtor>>();
-    enum BasicTypeVariety { Bool = 0, Int, Real, Bitvector, Map, IMap, None }  // note, these are ordered, so they can be used as indices into basicTypeMembers
+    enum BasicTypeVariety { Bool = 0, Int, Real, BigOrdinal, Bitvector, Map, IMap, None }  // note, these are ordered, so they can be used as indices into basicTypeMembers
     readonly Dictionary<string, MemberDecl>[] basicTypeMembers = new Dictionary<string, MemberDecl>[] {
+      new Dictionary<string, MemberDecl>(),
       new Dictionary<string, MemberDecl>(),
       new Dictionary<string, MemberDecl>(),
       new Dictionary<string, MemberDecl>(),
@@ -220,6 +221,18 @@ namespace Microsoft.Dafny
       var floor = new SpecialField(Token.NoToken, "Floor", "ToBigInteger()", "", "", false, false, false, Type.Int, null);
       floor.AddVisibilityScope(prog.BuiltIns.SystemModule.VisibilityScope, false);
       basicTypeMembers[(int)BasicTypeVariety.Real].Add(floor.Name, floor);
+
+      var isLimit = new SpecialField(Token.NoToken, "IsLimit", "", "Dafny.Helpers.BigOrdinal_IsLimit(", ")", false, false, false, Type.Bool, null);
+      isLimit.AddVisibilityScope(prog.BuiltIns.SystemModule.VisibilityScope, false);
+      basicTypeMembers[(int)BasicTypeVariety.BigOrdinal].Add(isLimit.Name, isLimit);
+
+      var limitOffset = new SpecialField(Token.NoToken, "Offset", "", "Dafny.Helpers.BigOrdinal_Offset(", ")", false, false, false, Type.Int, null);
+      limitOffset.AddVisibilityScope(prog.BuiltIns.SystemModule.VisibilityScope, false);
+      basicTypeMembers[(int)BasicTypeVariety.BigOrdinal].Add(limitOffset.Name, limitOffset);
+
+      var isNat = new SpecialField(Token.NoToken, "IsNat", "", "Dafny.Helpers.BigOrdinal_IsNat(", ")", false, false, false, Type.Bool, null);
+      isNat.AddVisibilityScope(prog.BuiltIns.SystemModule.VisibilityScope, false);
+      basicTypeMembers[(int)BasicTypeVariety.BigOrdinal].Add(isNat.Name, isNat);
 
       var keys = new SpecialField(Token.NoToken, "Keys", "Keys", "", "", false, false, false, new SelfType(), null);
       keys.AddVisibilityScope(prog.BuiltIns.SystemModule.VisibilityScope, false);
@@ -9796,6 +9809,8 @@ namespace Microsoft.Dafny
         basic = BasicTypeVariety.Int;
       } else if (receiverType.IsNumericBased(Type.NumericPersuation.Real)) {
         basic = BasicTypeVariety.Real;
+      } else if (receiverType.IsBigOrdinalType) {
+        basic = BasicTypeVariety.BigOrdinal;
       } else if (receiverType.IsBitVectorType) {
         basic = BasicTypeVariety.Bitvector;
       } else if (receiverType.IsMapType) {

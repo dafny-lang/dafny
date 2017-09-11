@@ -247,6 +247,9 @@ namespace Microsoft.Dafny {
       private readonly Bpl.TypeCtorDecl imapTypeCtor;
       public readonly Bpl.Function ArrayLength;
       public readonly Bpl.Function RealFloor;
+      public readonly Bpl.Function ORDINAL_IsLimit;
+      public readonly Bpl.Function ORDINAL_Offset;
+      public readonly Bpl.Function ORDINAL_IsNat;
       public readonly Bpl.Function MapDomain;
       public readonly Bpl.Function IMapDomain;
       public readonly Bpl.Function MapValues;
@@ -281,6 +284,9 @@ namespace Microsoft.Dafny {
         Contract.Invariant(multiSetTypeCtor != null);
         Contract.Invariant(ArrayLength != null);
         Contract.Invariant(RealFloor != null);
+        Contract.Invariant(ORDINAL_IsLimit != null);
+        Contract.Invariant(ORDINAL_Offset != null);
+        Contract.Invariant(ORDINAL_IsNat != null);
         Contract.Invariant(MapDomain != null);
         Contract.Invariant(IMapDomain != null);
         Contract.Invariant(MapValues != null);
@@ -353,7 +359,9 @@ namespace Microsoft.Dafny {
       public PredefinedDecls(Bpl.TypeCtorDecl charType, Bpl.TypeCtorDecl refType, Bpl.TypeCtorDecl boxType, Bpl.TypeCtorDecl tickType,
                              Bpl.TypeSynonymDecl setTypeCtor, Bpl.TypeSynonymDecl isetTypeCtor, Bpl.TypeSynonymDecl multiSetTypeCtor,
                              Bpl.TypeCtorDecl mapTypeCtor, Bpl.TypeCtorDecl imapTypeCtor,
-                             Bpl.Function arrayLength, Bpl.Function realFloor,  Bpl.Function mapDomain, Bpl.Function imapDomain,
+                             Bpl.Function arrayLength, Bpl.Function realFloor,
+                             Bpl.Function ORD_isLimit, Bpl.Function ORD_offset, Bpl.Function ORD_isNat,
+                             Bpl.Function mapDomain, Bpl.Function imapDomain,
                              Bpl.Function mapValues, Bpl.Function imapValues, Bpl.Function mapItems, Bpl.Function imapItems,
                              Bpl.Function tuple2Destructors0, Bpl.Function tuple2Destructors1,
                              Bpl.TypeCtorDecl seqTypeCtor, Bpl.TypeSynonymDecl bv0TypeDecl,
@@ -373,6 +381,9 @@ namespace Microsoft.Dafny {
         Contract.Requires(imapTypeCtor != null);
         Contract.Requires(arrayLength != null);
         Contract.Requires(realFloor != null);
+        Contract.Requires(ORD_isLimit != null);
+        Contract.Requires(ORD_offset != null);
+        Contract.Requires(ORD_isNat != null);
         Contract.Requires(mapDomain != null);
         Contract.Requires(imapDomain != null);
         Contract.Requires(mapValues != null);
@@ -406,6 +417,9 @@ namespace Microsoft.Dafny {
         this.imapTypeCtor = imapTypeCtor;
         this.ArrayLength = arrayLength;
         this.RealFloor = realFloor;
+        this.ORDINAL_IsLimit = ORD_isLimit;
+        this.ORDINAL_Offset = ORD_offset;
+        this.ORDINAL_IsNat= ORD_isNat;
         this.MapDomain = mapDomain;
         this.IMapDomain = imapDomain;
         this.MapValues = mapValues;
@@ -447,6 +461,9 @@ namespace Microsoft.Dafny {
       Bpl.TypeSynonymDecl multiSetTypeCtor = null;
       Bpl.Function arrayLength = null;
       Bpl.Function realFloor = null;
+      Bpl.Function ORDINAL_isLimit = null;
+      Bpl.Function ORDINAL_offset = null;
+      Bpl.Function ORDINAL_isNat = null;
       Bpl.Function mapDomain = null;
       Bpl.Function imapDomain = null;
       Bpl.Function mapValues = null;
@@ -535,6 +552,12 @@ namespace Microsoft.Dafny {
             arrayLength = f;
           } else if (f.Name == "_System.real.Floor") {
             realFloor = f;
+          } else if (f.Name == "ORD#IsLimit") {
+            ORDINAL_isLimit = f;
+          } else if (f.Name == "ORD#Offset") {
+            ORDINAL_offset = f;
+          } else if (f.Name == "ORD#IsNat") {
+            ORDINAL_isNat = f;
           } else if (f.Name == "Map#Domain") {
             mapDomain = f;
           } else if (f.Name == "IMap#Domain") {
@@ -570,6 +593,12 @@ namespace Microsoft.Dafny {
         Console.WriteLine("Error: Dafny prelude is missing declaration of function _System.array.Length");
       } else if (realFloor == null) {
         Console.WriteLine("Error: Dafny prelude is missing declaration of function _System.real.Floor");
+      } else if (ORDINAL_isLimit == null) {
+        Console.WriteLine("Error: Dafny prelude is missing declaration of function ORD#IsLimit");
+      } else if (ORDINAL_offset == null) {
+        Console.WriteLine("Error: Dafny prelude is missing declaration of function ORD#Offset");
+      } else if (ORDINAL_isNat == null) {
+        Console.WriteLine("Error: Dafny prelude is missing declaration of function ORD#IsNat");
       } else if (mapDomain == null) {
         Console.WriteLine("Error: Dafny prelude is missing declaration of function Map#Domain");
       } else if (imapDomain == null) {
@@ -622,7 +651,9 @@ namespace Microsoft.Dafny {
         return new PredefinedDecls(charType, refType, boxType, tickType,
                                    setTypeCtor, isetTypeCtor, multiSetTypeCtor,
                                    mapTypeCtor, imapTypeCtor,
-                                   arrayLength, realFloor, mapDomain, imapDomain,
+                                   arrayLength, realFloor,
+                                   ORDINAL_isLimit, ORDINAL_offset, ORDINAL_isNat,
+                                   mapDomain, imapDomain,
                                    mapValues, imapValues, mapItems, imapItems,
                                    tuple2Destructors0, tuple2Destructors1,
                                    seqTypeCtor, bv0TypeDecl,
@@ -6543,9 +6574,9 @@ namespace Microsoft.Dafny {
             if (e.ResolvedOp == BinaryExpr.ResolvedOpcode.Sub && e.E0.Type.IsBigOrdinalType) {
               var rhsIsNat = FunctionCall(expr.tok, "ORD#IsNat", Bpl.Type.Bool, etran.TrExpr(e.E1));
               builder.Add(Assert(expr.tok, rhsIsNat, "RHS of ORDINAL subtraction must be a natural number, but the given RHS might be larger"));
-              var succs0 = FunctionCall(expr.tok, "ORD#Succs", Bpl.Type.Int, etran.TrExpr(e.E0));
-              var succs1 = FunctionCall(expr.tok, "ORD#Succs", Bpl.Type.Int, etran.TrExpr(e.E1));
-              builder.Add(Assert(expr.tok, Bpl.Expr.Le(succs1, succs0), "ORDINAL subtraction might underflow a limit ordinal (that is, RHS might be too large)"));
+              var offset0 = FunctionCall(expr.tok, "ORD#Offset", Bpl.Type.Int, etran.TrExpr(e.E0));
+              var offset1 = FunctionCall(expr.tok, "ORD#Offset", Bpl.Type.Int, etran.TrExpr(e.E1));
+              builder.Add(Assert(expr.tok, Bpl.Expr.Le(offset1, offset0), "ORDINAL subtraction might underflow a limit ordinal (that is, RHS might be too large)"));
             }
             CheckResultToBeInType(expr.tok, expr, expr.Type, locals, builder, etran);
             break;
@@ -6933,7 +6964,7 @@ namespace Microsoft.Dafny {
         return FunctionCall(tok, BuiltinFunction.CharToInt, null, r);
       } else if (fromType.IsBigOrdinalType) {
         Contract.Assert(toType.IsNumericBased(Type.NumericPersuation.Int));
-        return FunctionCall(tok, "ORD#Succs", Bpl.Type.Int, r);
+        return FunctionCall(tok, "ORD#Offset", Bpl.Type.Int, r);
       } else {
         Contract.Assert(fromType.IsNumericBased(Type.NumericPersuation.Int));
         if (toType.IsNumericBased(Type.NumericPersuation.Real)) {
@@ -7904,11 +7935,11 @@ namespace Microsoft.Dafny {
         Contract.Assert(ff != null);
       } else {
         // Here are some built-in functions defined in "predef" (so there's no need to cache them in "fieldFunctions")
-        if (f.EnclosingClass is ArrayClassDecl && f.Name == "Length") { // link directly to the function in the prelude.
+        if (f.EnclosingClass is ArrayClassDecl && f.Name == "Length") {
           return predef.ArrayLength;
-        } else if (f.EnclosingClass == null && f.Name == "Floor") { // link directly to the function in the prelude.
+        } else if (f.EnclosingClass == null && f.Name == "Floor") {
           return predef.RealFloor;
-        } else if ((f is SpecialField) && (f.Name == "Keys" || f.Name == "Values" || f.Name == "Items")) { // link directly to function in the prelude.
+        } else if (f is SpecialField && (f.Name == "Keys" || f.Name == "Values" || f.Name == "Items")) {
           Contract.Assert(f is SpecialField && f.Type is SelfType);
           var selfType = f.Type as SelfType;
           Contract.Assert(selfType.ResolvedType is SetType);
@@ -7920,6 +7951,12 @@ namespace Microsoft.Dafny {
           } else {
             return setType.Finite ? predef.MapItems : predef.IMapItems;
           }
+        } else if (f is SpecialField && f.Name == "IsLimit") {
+          return predef.ORDINAL_IsLimit;
+        } else if (f is SpecialField && f.Name == "Offset") {
+          return predef.ORDINAL_Offset;
+        } else if (f is SpecialField && f.Name == "IsNat") {
+          return predef.ORDINAL_IsNat;
         } else if (f.FullSanitizedName == "_System.__tuple_h2._0") {
           return predef.Tuple2Destructors0;
         } else if (f.FullSanitizedName == "_System.__tuple_h2._1") {
@@ -8487,8 +8524,7 @@ namespace Microsoft.Dafny {
     // Translates a type into the representation Boogie type,
     // c.f. TypeToTy which translates a type to its Boogie expression
     // to be used in $Is and $IsAlloc.
-    Bpl.Type TrType(Type type)
-     {
+    Bpl.Type TrType(Type type) {
       Contract.Requires(type != null);
       Contract.Requires(predef != null);
       Contract.Ensures(Contract.Result<Bpl.Type>() != null);
