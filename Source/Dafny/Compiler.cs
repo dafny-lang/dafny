@@ -2931,11 +2931,11 @@ namespace Microsoft.Dafny {
             TrExpr(e.E, wr, inLetExprBody);
             wr.Write(")");
           } else {
-            // (int or bv) -> (int or bv)
+            // (int or bv) -> (int or bv or ORDINAL)
             var fromNative = AsNativeType(e.E.Type);
             var toNative = AsNativeType(e.ToType);
             if (fromNative == null && toNative == null) {
-              // big-integer (int or bv) -> big-integer (int or bv), so identity will do
+              // big-integer (int or bv) -> big-integer (int or bv or ORDINAL), so identity will do
               TrExpr(e.E, wr, inLetExprBody);
             } else if (fromNative != null && toNative == null) {
               // native (int or bv) -> big-integer (int or bv)
@@ -2981,6 +2981,11 @@ namespace Microsoft.Dafny {
             TrParenExpr(e.E, wr, inLetExprBody);
             wr.Write(".ToBigInteger()");
           }
+        } else {
+          Contract.Assert(e.E.Type.IsBigOrdinalType);
+          Contract.Assert(e.ToType.IsNumericBased(Type.NumericPersuation.Int));
+          // identity will do
+          TrExpr(e.E, wr, inLetExprBody);
         }
 
       } else if (expr is BinaryExpr) {

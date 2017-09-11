@@ -51,7 +51,7 @@ module _System {
     | forall x0: T0 :: f.requires(x0)
     /*special witness*/
 }
-// bitvector types in use: bv67 bv32 bv7 bv0
+// bitvector types in use: bv67 bv32 bv7 bv0 bv300
 */
 
 /* CALL GRAPH for module _module:
@@ -151,6 +151,11 @@ method Main()
   print x, " ", handful, " ", a0, " ", w, "\n";
   x, handful, a0, w := a.Length, a.Length as Handful, a.Length as Abundance, a.Length as bv32;
   print x, " ", handful, " ", a0, " ", w, "\n";
+  var ord: ORDINAL := 143;
+  var iord: int := ord as int;
+  var oord: ORDINAL := iord as ORDINAL;
+  print "Something about ORDINAL: ", ord, " ", iord, " ", oord, " ", ord + 4, " ", ord - 100, "\n";
+  print "ORDINAL and bitvectors: ", 20 as bv32 as ORDINAL, " ", 20 as bv300 as ORDINAL, "\n";
 }
 
 Dafny program verifier finished with 6 verified, 0 errors
@@ -191,3 +196,5 @@ got 14, expected 14
 120 -1 4 8589934592 6345789 -9223372036854775808
 4 4 4 4
 68 68 68 68
+Something about ORDINAL: 143 143 143 147 43
+ORDINAL and bitvectors: 20 20
