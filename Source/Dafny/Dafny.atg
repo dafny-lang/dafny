@@ -572,6 +572,7 @@ bool IsType(ref IToken pt) {
     case _nat:
     case _int:
     case _real:
+    case _ORDINAL:
     case _object:
     case _string:
       pt = scanner.Peek();
@@ -703,6 +704,7 @@ TOKENS
   int = "int".
   nat = "nat".
   real = "real".
+  ORDINAL = "ORDINAL".
   object = "object".
   string = "string".
   set = "set".
@@ -1677,6 +1679,7 @@ TypeAndToken<out IToken tok, out Type ty, bool inExpressionContext>
   | "int"                           (. tok = t;  ty = new IntType(); .)
   | "nat"                           (. tok = t;  ty = new UserDefinedType(tok, tok.val, null); .)
   | "real"                          (. tok = t;  ty = new RealType(); .)
+  | "ORDINAL"                       (. tok = t;  ty = new BigOrdinalType(); .)
   | bvToken                         (. tok = t;
                                        int w = StringToInt(tok.val.Substring(2), 0, "bitvectors that wide");
                                        ty = new BitvectorType(w);

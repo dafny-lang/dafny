@@ -58,7 +58,7 @@ ResolutionErrors.dfy(430,12): Error: first argument to ==> must be of type bool 
 ResolutionErrors.dfy(430,12): Error: second argument to ==> must be of type bool (instead got int)
 ResolutionErrors.dfy(429,8): Error: first argument to ==> must be of type bool (instead got int)
 ResolutionErrors.dfy(429,8): Error: second argument to ==> must be of type bool (instead got int)
-ResolutionErrors.dfy(416,8): Error: type of + must be of a numeric type, a bitvector type, a sequence type, or a set-like type (instead got bool)
+ResolutionErrors.dfy(416,8): Error: type of + must be of a numeric type, a bitvector type, ORDINAL, a sequence type, or a set-like type (instead got bool)
 ResolutionErrors.dfy(416,8): Error: arguments must have the same type (got bool and int)
 ResolutionErrors.dfy(416,8): Error: arguments must have the same type (got bool and int)
 ResolutionErrors.dfy(420,8): Error: arguments must have the same type (got bool and int)

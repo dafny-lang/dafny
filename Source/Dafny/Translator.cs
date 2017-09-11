@@ -236,6 +236,9 @@ namespace Microsoft.Dafny {
       public readonly Bpl.Type CharType;
       public readonly Bpl.Type RefType;
       public readonly Bpl.Type BoxType;
+      public Bpl.Type BigOrdinalType {
+        get { return BoxType; }
+      }
       public readonly Bpl.Type TickType;
       private readonly Bpl.TypeSynonymDecl setTypeCtor;
       private readonly Bpl.TypeSynonymDecl isetTypeCtor;
@@ -6537,6 +6540,13 @@ namespace Microsoft.Dafny {
           case BinaryExpr.ResolvedOpcode.Sub:
           case BinaryExpr.ResolvedOpcode.Mul:
             CheckWellformed(e.E1, options, locals, builder, etran);
+            if (e.ResolvedOp == BinaryExpr.ResolvedOpcode.Sub && e.E0.Type.IsBigOrdinalType) {
+              var rhsIsNat = FunctionCall(expr.tok, "ORD#IsNat", Bpl.Type.Bool, etran.TrExpr(e.E1));
+              builder.Add(Assert(expr.tok, rhsIsNat, "RHS of ORDINAL subtraction must be a natural number, but the given RHS might be larger"));
+              var succs0 = FunctionCall(expr.tok, "ORD#Succs", Bpl.Type.Int, etran.TrExpr(e.E0));
+              var succs1 = FunctionCall(expr.tok, "ORD#Succs", Bpl.Type.Int, etran.TrExpr(e.E1));
+              builder.Add(Assert(expr.tok, Bpl.Expr.Le(succs1, succs0), "ORDINAL subtraction might underflow a limit ordinal (that is, RHS might be too large)"));
+            }
             CheckResultToBeInType(expr.tok, expr, expr.Type, locals, builder, etran);
             break;
           case BinaryExpr.ResolvedOpcode.Div:
@@ -6921,10 +6931,15 @@ namespace Microsoft.Dafny {
       } else if (fromType.IsCharType) {
         Contract.Assert(toType.IsNumericBased(Type.NumericPersuation.Int));
         return FunctionCall(tok, BuiltinFunction.CharToInt, null, r);
+      } else if (fromType.IsBigOrdinalType) {
+        Contract.Assert(toType.IsNumericBased(Type.NumericPersuation.Int));
+        return FunctionCall(tok, "ORD#Succs", Bpl.Type.Int, r);
       } else {
         Contract.Assert(fromType.IsNumericBased(Type.NumericPersuation.Int));
         if (toType.IsNumericBased(Type.NumericPersuation.Real)) {
           return FunctionCall(tok, BuiltinFunction.IntToReal, null, r);
+        } else if (toType.IsBigOrdinalType) {
+          return FunctionCall(tok, "ORD#FromNat", predef.BigOrdinalType, r);
         }
       }
       if (toType.IsNumericBased(Type.NumericPersuation.Int)) {
@@ -7016,6 +7031,14 @@ namespace Microsoft.Dafny {
           Bpl.Expr boundsCheck = Bpl.Expr.And(Bpl.Expr.Le(Bpl.Expr.Literal(0), o), Bpl.Expr.Lt(o, Bpl.Expr.Literal(65536)));
           builder.Add(Assert(tok, boundsCheck, string.Format("{0}value to be converted might not fit in {1}", errorMsgPrefix, toType)));
         }
+      } else if (toType.IsBigOrdinalType && expr.Type.IsNumericBased(Type.NumericPersuation.Int)) {
+        PutSourceIntoLocal();
+        Bpl.Expr boundsCheck = Bpl.Expr.Le(Bpl.Expr.Literal(0), o);
+        builder.Add(Assert(tok, boundsCheck, string.Format("{0}a negative integer cannot be converted to an {1}", errorMsgPrefix, toType)));
+      } else if (expr.Type.IsBigOrdinalType && toType.IsNumericBased(Type.NumericPersuation.Int)) {
+        PutSourceIntoLocal();
+        Bpl.Expr boundsCheck = FunctionCall(tok, "ORD#IsNat", Bpl.Type.Bool, o);
+        builder.Add(Assert(tok, boundsCheck, string.Format("{0}value to be converted might be bigger than every natural number", errorMsgPrefix)));
       }
 
       if (toType.NormalizeExpandKeepConstraints().AsRedirectingType != null) {
@@ -8491,6 +8514,8 @@ namespace Microsoft.Dafny {
         return Bpl.Type.Int;
       } else if (type is RealType) {
         return Bpl.Type.Real;
+      } else if (type is BigOrdinalType) {
+        return predef.BigOrdinalType;
       } else if (type is BitvectorType) {
         var t = (BitvectorType)type;
         return BplBvType(t.Width);
@@ -9710,6 +9735,10 @@ namespace Microsoft.Dafny {
         return Expression.CreateIntLiteral(tok, 0);
       } else if (typ.IsNumericBased(Type.NumericPersuation.Real)) {
         return Expression.CreateRealLiteral(tok, Basetypes.BigDec.ZERO);
+      } else if (typ.IsBigOrdinalType) {
+        var nn = new LiteralExpr(tok, 0);
+        nn.Type = Type.BigOrdinal;
+        return nn;
       } else if (typ.IsBitVectorType) {
         var z = new LiteralExpr(tok, 0);
         z.Type = typ;
@@ -11006,6 +11035,8 @@ namespace Microsoft.Dafny {
         return u is ArrowType;
       } else if (t is BitvectorType) {
         return u is BitvectorType;
+      } else if (t is BigOrdinalType) {
+        return u is BigOrdinalType;
       } else {
         Contract.Assert(t.IsTypeParameter || t.IsInternalTypeSynonym);
         return false;  // don't consider any type parameters to be the same (since we have no comparison function for them anyway)
@@ -11128,6 +11159,11 @@ namespace Microsoft.Dafny {
         less = FunctionCall(tok, "lt_bv" + bv.Width, Bpl.Type.Bool, e0, e1);
         atmost = FunctionCall(tok, "ge_bv" + bv.Width, Bpl.Type.Bool, e0, e1);
 
+      } else if (ty0 is BigOrdinalType) {
+        eq = Bpl.Expr.Eq(e0, e1);
+        less = FunctionCall(tok, "ORD#Less", Bpl.Type.Bool, e0, e1);
+        atmost = BplOr(eq, less);
+
       } else {
         // reference type
         Contract.Assert(ty0.IsRefType);  // otherwise, unexpected type
@@ -11207,6 +11243,8 @@ namespace Microsoft.Dafny {
         return FunctionCall(Token.NoToken, "TBitvector", predef.Ty, Bpl.Expr.Literal(t.Width));
       } else if (normType is IntType) {
         return new Bpl.IdentifierExpr(Token.NoToken, "TInt", predef.Ty);
+      } else if (normType is BigOrdinalType) {
+        return new Bpl.IdentifierExpr(Token.NoToken, "TORDINAL", predef.Ty);
       } else if (normType is ObjectType) {
         return ClassTyCon(program.BuiltIns.ObjectDecl, new List<Bpl.Expr>());
       } else if (normType is ParamTypeProxy) {
@@ -11314,7 +11352,7 @@ namespace Microsoft.Dafny {
       }
 
       Bpl.Expr isAlloc;
-      if (type.IsNumericBased() || type.IsBitVectorType || type.IsBoolType || type.IsCharType) {
+      if (type.IsNumericBased() || type.IsBitVectorType || type.IsBoolType || type.IsCharType || type.IsBigOrdinalType) {
         isAlloc = null;
       } else if ((AlwaysUseHeap || alloc == ISALLOC) && etran.HeapExpr != null) {
         isAlloc = MkIsAlloc(x, type.NormalizeExpand(), etran.HeapExpr);
@@ -13049,6 +13087,9 @@ namespace Microsoft.Dafny {
             var n = Microsoft.Basetypes.BigNum.FromBigInt((BigInteger)e.Value);
             if (e.Type is BitvectorType) {
               return MaybeLit(translator.BplBvLiteralExpr(e.tok, n, (BitvectorType)e.Type));
+            } else if (e.Type.IsBigOrdinalType) {
+              var fromNat = translator.FunctionCall(expr.tok, "ORD#FromNat", predef.BigOrdinalType, Bpl.Expr.Literal(n));
+              return MaybeLit(fromNat, predef.BigOrdinalType);
             } else {
               return MaybeLit(Bpl.Expr.Literal(n));
             }
@@ -13595,6 +13636,8 @@ namespace Microsoft.Dafny {
             case BinaryExpr.ResolvedOpcode.Lt:
               if (0 <= bvWidth) {
                 return TrToFunctionCall(expr.tok, "lt_bv" + bvWidth, Bpl.Type.Bool, e0, e1, liftLit);
+              } else if (e.E0.Type.IsBigOrdinalType) {
+                return translator.FunctionCall(expr.tok, "ORD#Less", Bpl.Type.Bool, e0, e1);
               } else if (isReal || !DafnyOptions.O.DisableNLarith) {
                 typ = Bpl.Type.Bool;
                 bOpcode = BinaryOperator.Opcode.Lt;
@@ -13606,6 +13649,10 @@ namespace Microsoft.Dafny {
               keepLits = true;
               if (0 <= bvWidth) {
                 return TrToFunctionCall(expr.tok, "le_bv" + bvWidth, Bpl.Type.Bool, e0, e1, false);
+              } else if (e.E0.Type.IsBigOrdinalType) {
+                var less = translator.FunctionCall(expr.tok, "ORD#Less", Bpl.Type.Bool, e0, e1);
+                var eq = Bpl.Expr.Eq(e0, e1);
+                return BplOr(eq, less);
               } else if (isReal || !DafnyOptions.O.DisableNLarith) {
                 typ = Bpl.Type.Bool;
                 bOpcode = BinaryOperator.Opcode.Le;
@@ -13617,6 +13664,10 @@ namespace Microsoft.Dafny {
               keepLits = true;
               if (0 <= bvWidth) {
                 return TrToFunctionCall(expr.tok, "ge_bv" + bvWidth, Bpl.Type.Bool, e0, e1, false);
+              } else if (e.E0.Type.IsBigOrdinalType) {
+                var less = translator.FunctionCall(expr.tok, "ORD#Less", Bpl.Type.Bool, e1, e0);
+                var eq = Bpl.Expr.Eq(e1, e0);
+                return BplOr(eq, less);
               } else if (isReal || !DafnyOptions.O.DisableNLarith) {
                 typ = Bpl.Type.Bool;
                 bOpcode = BinaryOperator.Opcode.Ge;
@@ -13627,6 +13678,8 @@ namespace Microsoft.Dafny {
             case BinaryExpr.ResolvedOpcode.Gt:
               if (0 <= bvWidth) {
                 return TrToFunctionCall(expr.tok, "gt_bv" + bvWidth, Bpl.Type.Bool, e0, e1, liftLit);
+              } else if (e.E0.Type.IsBigOrdinalType) {
+                return translator.FunctionCall(expr.tok, "ORD#Less", Bpl.Type.Bool, e1, e0);
               } else if (isReal || !DafnyOptions.O.DisableNLarith) {
                 typ = Bpl.Type.Bool;
                 bOpcode = BinaryOperator.Opcode.Gt;
@@ -13638,6 +13691,8 @@ namespace Microsoft.Dafny {
             case BinaryExpr.ResolvedOpcode.Add:
               if (0 <= bvWidth) {
                 return TrToFunctionCall(expr.tok, "add_bv" + bvWidth, translator.BplBvType(bvWidth), e0, e1, liftLit);
+              } else if (e.E0.Type.IsBigOrdinalType) {
+                return TrToFunctionCall(expr.tok, "ORD#Plus", predef.BigOrdinalType, e0, e1, liftLit);
               } else if (DafnyOptions.O.DisableNLarith && !isReal) {
                 return TrToFunctionCall(expr.tok, "INTERNAL_add_boogie", Bpl.Type.Int, e0, e1, liftLit);
               } else {
@@ -13648,6 +13703,8 @@ namespace Microsoft.Dafny {
             case BinaryExpr.ResolvedOpcode.Sub:
               if (0 <= bvWidth) {
                 return TrToFunctionCall(expr.tok, "sub_bv" + bvWidth, translator.BplBvType(bvWidth), e0, e1, liftLit);
+              } else if (e.E0.Type.IsBigOrdinalType) {
+                return TrToFunctionCall(expr.tok, "ORD#Minus", predef.BigOrdinalType, e0, e1, liftLit);
               } else if (DafnyOptions.O.DisableNLarith && !isReal) {
                 return TrToFunctionCall(expr.tok, "INTERNAL_sub_boogie", Bpl.Type.Int, e0, e1, liftLit);
               } else {

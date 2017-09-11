@@ -614,6 +614,7 @@ namespace Microsoft.Dafny {
     public static readonly CharType Char = new CharType();
     public static readonly IntType Int = new IntType();
     public static readonly RealType Real = new RealType();
+    public static readonly BigOrdinalType BigOrdinal = new BigOrdinalType();
 
     [ThreadStatic]
     private static List<VisibilityScope> scopes = new List<VisibilityScope>();
@@ -841,6 +842,7 @@ namespace Microsoft.Dafny {
     public bool IsCharType { get { return NormalizeExpand() is CharType; } }
     public bool IsIntegerType { get { return NormalizeExpand() is IntType; } }
     public bool IsRealType { get { return NormalizeExpand() is RealType; } }
+    public bool IsBigOrdinalType { get { return NormalizeExpand() is BigOrdinalType; } }
     public bool IsBitVectorType { get { return NormalizeExpand() is BitvectorType; } }
     public bool IsNumericBased() {
       var t = NormalizeExpand();
@@ -1738,6 +1740,17 @@ namespace Microsoft.Dafny {
     }
   }
 
+  public class BigOrdinalType : BasicType
+  {
+    [Pure]
+    public override string TypeName(ModuleDefinition context, bool parseAble) {
+      return "ORDINAL";
+    }
+    public override bool Equals(Type that) {
+      return that.IsBigOrdinalType;
+    }
+  }
+
   public class BitvectorType : BasicType
   {
     public readonly int Width;
@@ -2549,7 +2562,7 @@ namespace Microsoft.Dafny {
       SubtypeConstraints.Add(c);
     }
 
-    public enum Family { Unknown, Bool, Char, IntLike, RealLike, BitVector, ValueType, Ref, Opaque }
+    public enum Family { Unknown, Bool, Char, IntLike, RealLike, Ordinal, BitVector, ValueType, Ref, Opaque }
     public Family family = Family.Unknown;
     public static Family GetFamily(Type t) {
       Contract.Ensures(Contract.Result<Family>() != Family.Unknown || t is TypeProxy || t is Resolver_IdentifierExpr.ResolverType);  // return Unknown ==> t is TypeProxy || t is ResolverType
@@ -2561,6 +2574,8 @@ namespace Microsoft.Dafny {
         return Family.IntLike;
       } else if (t.IsNumericBased(NumericPersuation.Real) || t is RealVarietiesSupertype) {
         return Family.RealLike;
+      } else if (t.IsBigOrdinalType) {
+        return Family.Ordinal;
       } else if (t.IsBitVectorType) {
         return Family.BitVector;
       } else if (t.AsCollectionType != null || t.AsArrowType != null || t.IsDatatype) {

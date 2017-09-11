@@ -2894,6 +2894,7 @@ namespace Microsoft.Dafny
             break;
           case TypeProxy.Family.IntLike:
           case TypeProxy.Family.BitVector:
+          case TypeProxy.Family.Ordinal:
             headSymbolsAgree = super is IntVarietiesSupertype || super.IsSupertypeOf_WithSubsetTypes(sub);
             break;
           case TypeProxy.Family.RealLike:
@@ -2957,7 +2958,7 @@ namespace Microsoft.Dafny
     void CheckEnds(Type t, out bool isRoot, out bool isLeaf, out bool headIsRoot, out bool headIsLeaf) {
       Contract.Requires(t != null);
       Contract.Requires(!(t is TypeProxy) || ((TypeProxy)t).T == null);  // caller is expected to have Normalized away proxies
-      if (t.IsBoolType || t.IsCharType || t.IsNumericBased() || t.IsBitVectorType) {
+      if (t.IsBoolType || t.IsCharType || t.IsNumericBased() || t.IsBitVectorType || t.IsBigOrdinalType) {
         isRoot = true; isLeaf = true;
         headIsRoot = true; headIsLeaf = true;
       } else if (t is ArtificialType) {
@@ -3080,7 +3081,8 @@ namespace Microsoft.Dafny
       var followedRequestedAssignment = true;
       foreach (var su in proxy.Supertypes) {
         if (su is IntVarietiesSupertype) {
-          if (TypeProxy.GetFamily(t) == TypeProxy.Family.IntLike || TypeProxy.GetFamily(t) == TypeProxy.Family.BitVector) {
+          var fam = TypeProxy.GetFamily(t);
+          if (fam == TypeProxy.Family.IntLike || fam == TypeProxy.Family.BitVector || fam == TypeProxy.Family.Ordinal) {
             // good, let's continue with the request to equate the proxy with t
           } else {
             // hijack the setting of proxy; to do that, we decide on a particular int variety now
@@ -3195,7 +3197,8 @@ namespace Microsoft.Dafny
       Contract.Requires(super != null && !(super is TypeProxy));
       Contract.Requires(sub != null && !(sub is TypeProxy));
       if (super is IntVarietiesSupertype) {
-        if (TypeProxy.GetFamily(sub) == TypeProxy.Family.IntLike || TypeProxy.GetFamily(sub) == TypeProxy.Family.BitVector || super.Equals(sub)) {
+        var famSub = TypeProxy.GetFamily(sub);
+        if (famSub == TypeProxy.Family.IntLike || famSub == TypeProxy.Family.BitVector || famSub == TypeProxy.Family.Ordinal || super.Equals(sub)) {
           return new List<int>();
         } else {
           return null;
@@ -3212,6 +3215,7 @@ namespace Microsoft.Dafny
         case TypeProxy.Family.Char:
         case TypeProxy.Family.IntLike:
         case TypeProxy.Family.RealLike:
+        case TypeProxy.Family.Ordinal:
         case TypeProxy.Family.BitVector:
           if (super.Equals(sub)) {
             return new List<int>();
@@ -3223,6 +3227,7 @@ namespace Microsoft.Dafny
         case TypeProxy.Family.Opaque:
           break;  // more elaborate work below
         case TypeProxy.Family.Unknown:
+        default:  // just in case the family is mentioned explicitly as one of the cases
           Contract.Assert(false);  // unexpected type (the precondition of ConstrainTypeHead says "no proxies")
           return null;  // please compiler
       }
@@ -3293,6 +3298,7 @@ namespace Microsoft.Dafny
         case TypeProxy.Family.Char:
         case TypeProxy.Family.IntLike:
         case TypeProxy.Family.RealLike:
+        case TypeProxy.Family.Ordinal:
         case TypeProxy.Family.BitVector:
           return false;
         case TypeProxy.Family.ValueType:
@@ -3329,6 +3335,7 @@ namespace Microsoft.Dafny
         case TypeProxy.Family.Char:
         case TypeProxy.Family.IntLike:
         case TypeProxy.Family.RealLike:
+        case TypeProxy.Family.Ordinal:
         case TypeProxy.Family.BitVector:
         case TypeProxy.Family.Unknown:
           return a.Equals(b) ? 0 : -1;
@@ -3407,6 +3414,7 @@ namespace Microsoft.Dafny
         case TypeProxy.Family.IntLike:
         case TypeProxy.Family.BitVector:
         case TypeProxy.Family.RealLike:
+        case TypeProxy.Family.Ordinal:
           return a.Equals(b) ? 0 : -1;
         case TypeProxy.Family.ValueType:
         case TypeProxy.Family.Ref:
@@ -3533,10 +3541,10 @@ namespace Microsoft.Dafny
             satisfied = t.IsBitVectorType;
             break;
           case "Orderable_Lt":
-            satisfied = t.IsNumericBased() || t.IsBitVectorType || t.IsCharType || t is SeqType || t is SetType || t is MultiSetType;
+            satisfied = t.IsNumericBased() || t.IsBitVectorType || t.IsBigOrdinalType || t.IsCharType || t is SeqType || t is SetType || t is MultiSetType;
             break;
           case "Orderable_Gt":
-            satisfied = t.IsNumericBased() || t.IsBitVectorType || t.IsCharType || t is SetType || t is MultiSetType;
+            satisfied = t.IsNumericBased() || t.IsBitVectorType || t.IsBigOrdinalType || t.IsCharType || t is SetType || t is MultiSetType;
             break;
           case "RankOrderable": {
               var u = Types[1].NormalizeExpand();
@@ -3547,16 +3555,19 @@ namespace Microsoft.Dafny
               break;
             }
           case "Plussable":
-            satisfied = t.IsNumericBased() || t.IsBitVectorType || t is SeqType || t is SetType || t is MultiSetType;
+            satisfied = t.IsNumericBased() || t.IsBitVectorType || t.IsBigOrdinalType || t is SeqType || t is SetType || t is MultiSetType;
             break;
-          case "SubMul-able":
+          case "Minusable":
+            satisfied = t.IsNumericBased() || t.IsBitVectorType || t.IsBigOrdinalType || t is SetType || t is MultiSetType;
+            break;
+          case "Mullable":
             satisfied = t.IsNumericBased() || t.IsBitVectorType || t is SetType || t is MultiSetType;
             break;
           case "NumericOrBitvector":
             satisfied = t.IsNumericBased() || t.IsBitVectorType;
             break;
-          case "NumericOrBitvectorOrChar":
-            satisfied = t.IsNumericBased() || t.IsBitVectorType || t.IsCharType;
+          case "NumericOrBitvectorOrCharOrORDINAL":
+            satisfied = t.IsNumericBased() || t.IsBitVectorType || t.IsCharType || t.IsBigOrdinalType;
             break;
           case "IntLikeOrBitvector":
             satisfied = t.IsNumericBased(Type.NumericPersuation.Int) || t.IsBitVectorType;
@@ -3858,6 +3869,7 @@ namespace Microsoft.Dafny
           case TypeProxy.Family.Char:
           case TypeProxy.Family.IntLike:
           case TypeProxy.Family.RealLike:
+          case TypeProxy.Family.Ordinal:
           case TypeProxy.Family.BitVector:
             return true;
           case TypeProxy.Family.ValueType:
@@ -10537,13 +10549,15 @@ namespace Microsoft.Dafny
         ResolveType(e.tok, e.ToType, opts.codeContext, new ResolveTypeOption(ResolveTypeOptionEnum.DontInfer), null);
         if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
           if (e.ToType.IsNumericBased(Type.NumericPersuation.Int)) {
-            AddXConstraint(expr.tok, "NumericOrBitvectorOrChar", e.E.Type, "type conversion to an int-based type is allowed only from numeric, char and bitvector types (got {0})");
+            AddXConstraint(expr.tok, "NumericOrBitvectorOrCharOrORDINAL", e.E.Type, "type conversion to an int-based type is allowed only from numeric and bitvector types, char, and ORDINAL (got {0})");
           } else if (e.ToType.IsNumericBased(Type.NumericPersuation.Real)) {
-            AddXConstraint(expr.tok, "NumericOrBitvector", e.E.Type, "type conversion to an real-based type is allowed only from numeric and bitvector types (got {0})");
+            AddXConstraint(expr.tok, "NumericOrBitvector", e.E.Type, "type conversion to a real-based type is allowed only from numeric and bitvector types (got {0})");
           } else if (e.ToType.IsBitVectorType) {
-            AddXConstraint(expr.tok, "NumericOrBitvector", e.E.Type, "type conversion to an bitvector-based type is allowed only from numeric and bitvector types (got {0})");
+            AddXConstraint(expr.tok, "NumericOrBitvector", e.E.Type, "type conversion to a bitvector-based type is allowed only from numeric and bitvector types (got {0})");
           } else if (e.ToType.IsCharType) {
-            AddXConstraint(expr.tok, "NumericOrBitvector", e.E.Type, "type conversion to an char type is allowed only from numeric and bitvector types (got {0})");
+            AddXConstraint(expr.tok, "NumericOrBitvector", e.E.Type, "type conversion to a char type is allowed only from numeric and bitvector types (got {0})");
+          } else if (e.ToType.IsBigOrdinalType) {
+            AddXConstraint(expr.tok, "NumericOrBitvector", e.E.Type, "type conversion to an ORDINAL type is allowed only from numeric and bitvector types (got {0})");
           } else {
             reporter.Error(MessageSource.Resolver, expr, "type conversions are not supported to this type (got {0})", e.ToType);
           }
@@ -10594,7 +10608,7 @@ namespace Microsoft.Dafny
                 ConstrainSubtypeRelation(cmpType, e.E0.Type, err);
                 ConstrainSubtypeRelation(cmpType, e.E1.Type, err);
                 AddXConstraint(expr.tok, "Orderable_Lt", e.E0.Type, e.E1.Type,
-                  "arguments to " + BinaryExpr.OpcodeString(e.Op) + " must be of a numeric type, bitvector type, char, a sequence type, or a set-like type (instead got {0} and {1})");
+                  "arguments to " + BinaryExpr.OpcodeString(e.Op) + " must be of a numeric type, bitvector type, ORDINAL, char, a sequence type, or a set-like type (instead got {0} and {1})");
               }
               expr.Type = Type.Bool;
             }
@@ -10611,7 +10625,7 @@ namespace Microsoft.Dafny
                 ConstrainSubtypeRelation(cmpType, e.E0.Type, err);
                 ConstrainSubtypeRelation(cmpType, e.E1.Type, err);
                 AddXConstraint(expr.tok, "Orderable_Gt", e.E0.Type, e.E1.Type,
-                  "arguments to " + BinaryExpr.OpcodeString(e.Op) + " must be of a numeric type, bitvector type, char, or a set-like type (instead got {0} and {1})");
+                  "arguments to " + BinaryExpr.OpcodeString(e.Op) + " must be of a numeric type, bitvector type, ORDINAL, char, or a set-like type (instead got {0} and {1})");
               }
               expr.Type = Type.Bool;
             }
@@ -10628,22 +10642,25 @@ namespace Microsoft.Dafny
 
           case BinaryExpr.Opcode.Add: {
               expr.Type = new InferredTypeProxy();
-              AddXConstraint(e.tok, "Plussable", expr.Type, "type of + must be of a numeric type, a bitvector type, a sequence type, or a set-like type (instead got {0})");
+              AddXConstraint(e.tok, "Plussable", expr.Type, "type of + must be of a numeric type, a bitvector type, ORDINAL, a sequence type, or a set-like type (instead got {0})");
               ConstrainSubtypeRelation(expr.Type, e.E0.Type, expr.tok, "type of left argument to + ({0}) must agree with the result type ({1})", e.E0.Type, expr.Type);
               ConstrainSubtypeRelation(expr.Type, e.E1.Type, expr.tok, "type of right argument to + ({0}) must agree with the result type ({1})", e.E1.Type, expr.Type);
             }
             break;
 
-          case BinaryExpr.Opcode.Sub:
+          case BinaryExpr.Opcode.Sub: {
+              expr.Type = new InferredTypeProxy();
+              AddXConstraint(e.tok, "Minusable", expr.Type, "type of - must be of a numeric type, bitvector type, ORDINAL, or a set-like type (instead got {0})");
+              ConstrainSubtypeRelation(expr.Type, e.E0.Type, expr.tok, "type of left argument to - ({0}) must agree with the result type ({1})", e.E0.Type, expr.Type);
+              ConstrainSubtypeRelation(expr.Type, e.E1.Type, expr.tok, "type of right argument to - ({0}) must agree with the result type ({1})", e.E1.Type, expr.Type);
+            }
+            break;
+
           case BinaryExpr.Opcode.Mul: {
               expr.Type = new InferredTypeProxy();
-              AddXConstraint(e.tok, "SubMul-able", expr.Type, "type of " + BinaryExpr.OpcodeString(e.Op) + " must be of a numeric type, bitvector type, or a set-like type (instead got {0})");
-              ConstrainSubtypeRelation(expr.Type, e.E0.Type, expr.tok,
-                "type of left argument to " + BinaryExpr.OpcodeString(e.Op) + " ({0}) must agree with the result type ({1})",
-                e.E0.Type, expr.Type);
-              ConstrainSubtypeRelation(expr.Type, e.E1.Type, expr.tok,
-                "type of right argument to " + BinaryExpr.OpcodeString(e.Op) + " ({0}) must agree with the result type ({1})",
-                e.E1.Type, expr.Type);
+              AddXConstraint(e.tok, "Mullable", expr.Type, "type of * must be of a numeric type, bitvector type, or a set-like type (instead got {0})");
+              ConstrainSubtypeRelation(expr.Type, e.E0.Type, expr.tok, "type of left argument to * ({0}) must agree with the result type ({1})", e.E0.Type, expr.Type);
+              ConstrainSubtypeRelation(expr.Type, e.E1.Type, expr.tok, "type of right argument to * ({0}) must agree with the result type ({1})", e.E1.Type, expr.Type);
             }
             break;
 

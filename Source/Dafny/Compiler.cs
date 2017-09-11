@@ -1281,7 +1281,7 @@ namespace Microsoft.Dafny {
         return "bool";
       } else if (xType is CharType) {
         return "char";
-      } else if (xType is IntType) {
+      } else if (xType is IntType || xType is BigOrdinalType) {
         return "BigInteger";
       } else if (xType is RealType) {
         return "Dafny.BigRational";
@@ -1448,7 +1448,7 @@ namespace Microsoft.Dafny {
         initializerIsKnown = true;
         defaultValue = "'D'";
         return;
-      } else if (xType is IntType) {
+      } else if (xType is IntType || xType is BigOrdinalType) {
         hasZeroInitializer = true;
         initializerIsKnown = true;
         defaultValue = "BigInteger.Zero";

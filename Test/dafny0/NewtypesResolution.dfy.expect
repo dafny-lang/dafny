@@ -40,4 +40,6 @@ NewtypesResolution.dfy(277,7): Error: recursive dependency involving a subset ty
 NewtypesResolution.dfy(278,7): Error: recursive dependency involving a subset type: AA -> EE -> DD -> CC -> BB
 NewtypesResolution.dfy(279,10): Error: recursive dependency involving a newtype: AA -> EE -> DD -> CC -> BB
 NewtypesResolution.dfy(280,10): Error: recursive dependency involving a newtype: AA -> EE -> DD -> CC -> BB
-42 resolution/type errors detected in NewtypesResolution.dfy
+NewtypesResolution.dfy(284,10): Error: newtypes must be based on some numeric type (got ORDINAL)
+NewtypesResolution.dfy(285,10): Error: newtypes must be based on some numeric type (got ORDINAL)
+44 resolution/type errors detected in NewtypesResolution.dfy

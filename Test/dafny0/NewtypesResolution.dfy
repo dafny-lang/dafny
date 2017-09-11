@@ -279,3 +279,8 @@ module CycleViaConstraintsOrWitnesses {
   newtype DD = d: int | true witness var e: EE := 0; if e < 100 then 0 else 2  // error: cycle
   newtype EE = e: int | var a: AA := 0; a < 1  // error: cycle
 }
+
+module BigOrdinals {
+  newtype MyOrdinal = ORDINAL  // error: cannot use ORDINAL here
+  newtype MyOrdinal' = o: ORDINAL | true  // error: cannot use ORDINAL here
+}

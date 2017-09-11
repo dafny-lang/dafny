@@ -19,6 +19,7 @@ const unique TBool : Ty;
 const unique TChar : Ty;
 const unique TInt  : Ty;
 const unique TReal : Ty;
+const unique TORDINAL  : Ty;
 function TBitvector(int) : Ty;
 function TSet(Ty)      : Ty;
 function TISet(Ty)     : Ty;
@@ -27,6 +28,8 @@ function TSeq(Ty)      : Ty;
 function TMap(Ty, Ty)  : Ty;
 function TIMap(Ty, Ty) : Ty;
 
+function Inv0_TBitvector(Ty) : int;
+axiom (forall w: int :: { TBitvector(w) } Inv0_TBitvector(TBitvector(w)) == w);
 function Inv0_TSet(Ty) : Ty;
 axiom (forall t: Ty :: { TSet(t) } Inv0_TSet(TSet(t)) == t);
 function Inv0_TISet(Ty) : Ty;
@@ -54,6 +57,7 @@ const unique TagBool     : TyTag;
 const unique TagChar     : TyTag;
 const unique TagInt      : TyTag;
 const unique TagReal     : TyTag;
+const unique TagORDINAL  : TyTag;
 const unique TagSet      : TyTag;
 const unique TagISet     : TyTag;
 const unique TagMultiSet : TyTag;
@@ -66,6 +70,7 @@ axiom Tag(TBool) == TagBool;
 axiom Tag(TChar) == TagChar;
 axiom Tag(TInt) == TagInt;
 axiom Tag(TReal) == TagReal;
+axiom Tag(TORDINAL) == TagORDINAL;
 axiom (forall t: Ty    :: { TSet(t) }      Tag(TSet(t))      == TagSet);
 axiom (forall t: Ty    :: { TISet(t) }     Tag(TISet(t))     == TagISet);
 axiom (forall t: Ty    :: { TMultiSet(t) } Tag(TMultiSet(t)) == TagMultiSet);
@@ -179,11 +184,13 @@ axiom(forall v : int  :: { $Is(v,TInt) }  $Is(v,TInt));
 axiom(forall v : real :: { $Is(v,TReal) } $Is(v,TReal));
 axiom(forall v : bool :: { $Is(v,TBool) } $Is(v,TBool));
 axiom(forall v : char :: { $Is(v,TChar) } $Is(v,TChar));
+axiom(forall v : ORDINAL :: { $Is(v,TORDINAL) } $Is(v,TORDINAL));
 
 axiom(forall h : Heap, v : int  :: { $IsAlloc(v,TInt,h) }  $IsAlloc(v,TInt,h));
 axiom(forall h : Heap, v : real :: { $IsAlloc(v,TReal,h) } $IsAlloc(v,TReal,h));
 axiom(forall h : Heap, v : bool :: { $IsAlloc(v,TBool,h) } $IsAlloc(v,TBool,h));
 axiom(forall h : Heap, v : char :: { $IsAlloc(v,TChar,h) } $IsAlloc(v,TChar,h));
+axiom(forall h : Heap, v : ORDINAL :: { $IsAlloc(v,TORDINAL,h) } $IsAlloc(v,TORDINAL,h));
 
 axiom (forall v: Set Box, t0: Ty :: { $Is(v, TSet(t0)) }
   $Is(v, TSet(t0)) <==>
@@ -302,6 +309,57 @@ function DtRank(DatatypeType): int;
 function BoxRank(Box): int;
 
 axiom (forall d: DatatypeType :: {BoxRank($Box(d))} BoxRank($Box(d)) == DtRank(d));
+
+// ---------------------------------------------------------------
+// -- Big Ordinals -----------------------------------------------
+// ---------------------------------------------------------------
+
+type ORDINAL = Box;  // :| There are more big ordinals than boxes
+
+// The following two functions give an abstracton over all ordinals.
+// Function ORD#IsNat returns true when the ordinal is one of the natural
+// numbers.  Function ORD#Succs gives how many successors (that is,
+// +1 operations) an ordinal is above the nearest lower limit ordinal.
+// That is, if the ordinal is \lambda+n, then ORD#Succs returns n.
+function ORD#IsNat(ORDINAL): bool;
+function ORD#Succs(ORDINAL): int;
+axiom (forall o:ORDINAL :: { ORD#Succs(o) } 0 <= ORD#Succs(o));
+
+function ORD#FromNat(int): ORDINAL;
+axiom (forall n:int :: { ORD#FromNat(n) }
+  0 <= n ==> ORD#IsNat(ORD#FromNat(n)) && ORD#Succs(ORD#FromNat(n)) == n);
+axiom (forall o:ORDINAL :: { ORD#Succs(o) } { ORD#IsNat(o) }
+  ORD#IsNat(o) ==> o == ORD#FromNat(ORD#Succs(o)));
+
+function ORD#Less(ORDINAL, ORDINAL): bool;
+axiom (forall o,p: ORDINAL :: { ORD#Less(o,p) }
+  (ORD#Less(o,p) ==> o != p) &&  // irreflexivity
+  (ORD#IsNat(o) && !ORD#IsNat(p) ==> ORD#Less(o,p)) &&
+  (ORD#IsNat(o) && ORD#IsNat(p) ==> ORD#Less(o,p) == (ORD#Succs(o) < ORD#Succs(p))));
+// ORD#Less is irreflexive:
+axiom (forall o,p: ORDINAL :: { ORD#Less(o,p) }
+  ORD#Less(o,p) ==> o != p);
+// ORD#Less is trichotomous:
+axiom (forall o,p: ORDINAL :: { ORD#Less(o,p), ORD#Less(p,o) }
+  ORD#Less(o,p) || o == p || ORD#Less(p,o));
+// ORD#Less is transitive:
+axiom (forall o,p,r: ORDINAL ::
+  { ORD#Less(o,p), ORD#Less(p,r) }
+  { ORD#Less(o,p), ORD#Less(o,r) }
+  ORD#Less(o,p) && ORD#Less(p,r) ==> ORD#Less(o,r));
+
+function ORD#Plus(ORDINAL, ORDINAL): ORDINAL;
+axiom (forall o,p: ORDINAL :: { ORD#Plus(o,p) }
+  (ORD#IsNat(ORD#Plus(o,p)) ==> ORD#IsNat(o) && ORD#IsNat(p)) &&
+  (ORD#IsNat(p) ==>
+    ORD#IsNat(ORD#Plus(o,p)) == ORD#IsNat(o) &&
+    ORD#Succs(ORD#Plus(o,p)) == ORD#Succs(o) + ORD#Succs(p)));
+
+function ORD#Minus(ORDINAL, ORDINAL): ORDINAL;
+axiom (forall o,p: ORDINAL :: { ORD#Minus(o,p) }
+  ORD#IsNat(p) && ORD#Succs(p) <= ORD#Succs(o) ==>
+    ORD#IsNat(ORD#Minus(o,p)) == ORD#IsNat(o) &&
+    ORD#Succs(ORD#Minus(o,p)) == ORD#Succs(o) - ORD#Succs(p));
 
 // ---------------------------------------------------------------
 // -- Axiom contexts ---------------------------------------------
