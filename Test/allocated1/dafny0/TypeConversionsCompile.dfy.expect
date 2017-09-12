@@ -37,3 +37,7 @@ got 14, expected 14
 120 -1 4 8589934592 6345789 -9223372036854775808
 4 4 4 4
 68 68 68 68
+Something about ORDINAL: 143 143 143 147 43
+ORDINAL and bitvectors: 20 20
+False 143 True
+True 0 True
