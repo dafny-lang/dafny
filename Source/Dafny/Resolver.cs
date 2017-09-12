@@ -229,6 +229,7 @@ namespace Microsoft.Dafny
       var limitOffset = new SpecialField(Token.NoToken, "Offset", "", "Dafny.Helpers.BigOrdinal_Offset(", ")", false, false, false, Type.Int, null);
       limitOffset.AddVisibilityScope(prog.BuiltIns.SystemModule.VisibilityScope, false);
       basicTypeMembers[(int)BasicTypeVariety.BigOrdinal].Add(limitOffset.Name, limitOffset);
+      builtIns.ORDINAL_Offset = limitOffset;
 
       var isNat = new SpecialField(Token.NoToken, "IsNat", "", "Dafny.Helpers.BigOrdinal_IsNat(", ")", false, false, false, Type.Bool, null);
       isNat.AddVisibilityScope(prog.BuiltIns.SystemModule.VisibilityScope, false);
@@ -1635,8 +1636,14 @@ namespace Microsoft.Dafny
                 MemberDecl extraMember;
                 var cloner = new Cloner();
                 var formals = new List<Formal>();
-                var natType = new UserDefinedType(m.tok, "nat", (List<Type>)null);
-                var k = new ImplicitFormal(m.tok, "_k", natType, true, false);
+                Type typeOfK;
+                bool useNatType = false;
+                if (Attributes.ContainsBool(m.Attributes, "knat", ref useNatType) && useNatType) {
+                  typeOfK = new UserDefinedType(m.tok, "nat", (List<Type>)null);
+                } else {
+                  typeOfK = new BigOrdinalType();
+                }
+                var k = new ImplicitFormal(m.tok, "_k", typeOfK, true, false);
                 formals.Add(k);
                 if (m is FixpointPredicate) {
                   var cop = (FixpointPredicate)m;

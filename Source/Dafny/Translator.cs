@@ -1582,7 +1582,7 @@ namespace Microsoft.Dafny {
           };
         };
 
-        Action<bool, Action<Tuple<List<Type>, List<Type>>, List<Bpl.Variable>, List<Bpl.Expr>, List<Bpl.Expr>, Bpl.Variable, Bpl.Expr, Bpl.Expr, Bpl.Expr, Bpl.Expr, Bpl.Expr>> CoAxHelper = (add_k, K) => {
+        Action<Bpl.Type, Action<Tuple<List<Type>, List<Type>>, List<Bpl.Variable>, List<Bpl.Expr>, List<Bpl.Expr>, Bpl.Variable, Bpl.Expr, Bpl.Expr, Bpl.Expr, Bpl.Expr, Bpl.Expr>> CoAxHelper = (typeOfK, K) => {
           Func<string, List<TypeParameter>> renew = s =>
             Map(codecl.TypeArgs, tp =>
               new TypeParameter(tp.tok, tp.Name + "#" + s, tp.PositionalIndex, tp.Parent));
@@ -1596,9 +1596,13 @@ namespace Microsoft.Dafny {
 
           Bpl.Expr k, kGtZero;
           Bpl.Variable kVar;
-          if (add_k) {
-            kVar = BplBoundVar("k", Bpl.Type.Int, out k); vars.Add(kVar);
-            kGtZero = Bpl.Expr.Lt(Bpl.Expr.Literal(0), k);
+          if (typeOfK != null) {
+            kVar = BplBoundVar("k", typeOfK, out k); vars.Add(kVar);
+            if (typeOfK.IsInt) {
+              kGtZero = Bpl.Expr.Lt(Bpl.Expr.Literal(0), k);
+            } else {
+              kGtZero = Bpl.Expr.Lt(Bpl.Expr.Literal(0), FunctionCall(k.tok, "ORD#Offset", Bpl.Type.Int, k));
+            }
           } else {
             kVar = null; k = null; kGtZero = Bpl.Expr.True;
           }
@@ -1609,18 +1613,18 @@ namespace Microsoft.Dafny {
           K(tyargs, vars, lexprs, rexprs, kVar, k, kGtZero, ly, d0, d1);
         };
 
-        Action<Boolean> AddAxioms = add_k => {
+        Action<Bpl.Type> AddAxioms = typeOfK => {
           {
             // Add two copies of the type parameter lists!
             var args = MkTyParamFormals(Concat(GetTypeParams(dt), GetTypeParams(dt)), false);
-            if (add_k) {
-              args.Add(BplFormalVar(null, Bpl.Type.Int, true));
+            if (typeOfK != null) {
+              args.Add(BplFormalVar(null, typeOfK, true));
             }
             args.Add(BplFormalVar(null, predef.LayerType, true));
             args.Add(BplFormalVar(null, predef.DatatypeType, true));
             args.Add(BplFormalVar(null, predef.DatatypeType, true));
             var r = BplFormalVar(null, Bpl.Type.Bool, false);
-            var fn_nm = add_k ? CoPrefixName(codecl) : CoEqualName(codecl);
+            var fn_nm = typeOfK != null ? CoPrefixName(codecl) : CoEqualName(codecl);
             var fn = new Bpl.Function(dt.tok, fn_nm, args, r);
             if (InsertChecksums) {
               InsertChecksum(dt, fn);
@@ -1636,7 +1640,7 @@ namespace Microsoft.Dafny {
           //      0 < k ==>
           //        (d0.Nil? && d1.Nil?) ||
           //        (d0.Cons? && d1.Cons? && d0.head == d1.head && Eq(G0, .., Gn, ly, k-1, d0.tail, d1.tail)))
-          CoAxHelper(add_k, (tyargs, vars, lexprs, rexprs, kVar, k, kGtZero, ly, d0, d1) => {
+          CoAxHelper(typeOfK, (tyargs, vars, lexprs, rexprs, kVar, k, kGtZero, ly, d0, d1) => {
             var eqDt = CoEqualCall(codecl, lexprs, rexprs, k, LayerSucc(ly), d0, d1);
             var iss = BplAnd(MkIs(d0, ClassTyCon(dt, lexprs)), MkIs(d1, ClassTyCon(dt, rexprs)));
             var body = BplImp(
@@ -1652,7 +1656,7 @@ namespace Microsoft.Dafny {
           //    0 < k ==>
           //      (Eq(G0, .., Gn, S(ly), k, d0, d1) <==>
           //       Eq(G0, .., Gn, ly, k, d0, d))
-          CoAxHelper(add_k, (tyargs, vars, lexprs, rexprs, kVar, k, kGtZero, ly, d0, d1) => {
+          CoAxHelper(typeOfK, (tyargs, vars, lexprs, rexprs, kVar, k, kGtZero, ly, d0, d1) => {
             var eqDtSL = CoEqualCall(codecl, lexprs, rexprs, k, LayerSucc(ly), d0, d1);
             var eqDtL  = CoEqualCall(codecl, lexprs, rexprs, k, ly, d0, d1);
             var body = BplImp(kGtZero, BplIff(eqDtSL, eqDtL));
@@ -1661,10 +1665,10 @@ namespace Microsoft.Dafny {
           });
         };
 
-        AddAxioms(false); // Add the above axioms for $Equal
+        AddAxioms(null); // Add the above axioms for $Equal
 
         // axiom (forall d0, d1: DatatypeType, k: int :: { $Equal(d0, d1) } :: Equal(d0, d1) <==> d0 == d1);
-        CoAxHelper(false, (tyargs, vars, lexprs, rexprs, kVar, k, kGtZero, ly, d0, d1) => {
+        CoAxHelper(null, (tyargs, vars, lexprs, rexprs, kVar, k, kGtZero, ly, d0, d1) => {
           var Eq = CoEqualCall(codecl, lexprs, rexprs, k, LayerSucc(ly), d0, d1);
           var equal = Bpl.Expr.Eq(d0, d1);
           sink.AddTopLevelDeclaration(new Axiom(dt.tok,
@@ -1672,12 +1676,19 @@ namespace Microsoft.Dafny {
             "Equality for codatatypes"));
         });
 
-        AddAxioms(true); // Add the above axioms for $PrefixEqual
+        bool useNatType = false;
+        Bpl.Type theTypeOfK;
+        if (Attributes.ContainsBool(dt.Attributes, "knat", ref useNatType) && useNatType) {
+          theTypeOfK = Bpl.Type.Int;
+        } else {
+          theTypeOfK = predef.BigOrdinalType;
+        }
+        AddAxioms(theTypeOfK); // Add the above axioms for $PrefixEqual
 
         // The connection between the full codatatype equality and its prefix version
         // axiom (forall d0, d1: DatatypeType :: $Eq#Dt(d0, d1) <==>
         //                                       (forall k: int :: 0 <= k ==> $PrefixEqual#Dt(k, d0, d1)));
-        CoAxHelper(true, (tyargs, vars, lexprs, rexprs, kVar, k, kGtZero, ly, d0, d1) => {
+        CoAxHelper(theTypeOfK, (tyargs, vars, lexprs, rexprs, kVar, k, kGtZero, ly, d0, d1) => {
           var Eq = CoEqualCall(codecl, lexprs, rexprs, null, LayerSucc(ly), d0, d1);
           var PEq = CoEqualCall(codecl, lexprs, rexprs, k, LayerSucc(ly), d0, d1);
           vars.Remove(kVar);
@@ -1688,7 +1699,7 @@ namespace Microsoft.Dafny {
 
         // A consequence of the definition of prefix equalities is the following:
         // axiom (forall k, m: int, d0, d1: DatatypeType :: 0 <= k <= m && $PrefixEq#Dt(m, d0, d1) ==> $PrefixEq#0#Dt(k, d0, d1));
-        CoAxHelper(true, (tyargs, vars, lexprs, rexprs, kVar, k, kGtZero, ly, d0, d1) => {
+        CoAxHelper(theTypeOfK, (tyargs, vars, lexprs, rexprs, kVar, k, kGtZero, ly, d0, d1) => {
           var m = BplBoundVar("m", Bpl.Type.Int, vars);
           var PEqK = CoEqualCall(codecl, lexprs, rexprs, k, LayerSucc(ly), d0, d1);
           var PEqM = CoEqualCall(codecl, lexprs, rexprs, m, LayerSucc(ly), d0, d1);
@@ -1704,7 +1715,7 @@ namespace Microsoft.Dafny {
         // equality, which in turn requires the full codatatype equality to be present.  The following axiom
         // provides a shortcut:
         // axiom (forall d0, d1: DatatypeType, k: int :: d0 == d1 && 0 <= k ==> $PrefixEqual#_module.Stream(k, d0, d1));
-        CoAxHelper(true, (tyargs, vars, lexprs, rexprs, kVar, k, kGtZero, ly, d0, d1) => {
+        CoAxHelper(theTypeOfK, (tyargs, vars, lexprs, rexprs, kVar, k, kGtZero, ly, d0, d1) => {
           var equal = Bpl.Expr.Eq(d0, d1);
           var PEq = CoEqualCall(codecl, lexprs, rexprs, k, LayerSucc(ly), d0, d1);
           var trigger = BplTrigger(PEq);
@@ -3144,12 +3155,21 @@ namespace Microsoft.Dafny {
       var k = new IdentifierExpr(pp.tok, pp.K.Name);
       k.Var = pp.K;  // resolve here
       k.Type = pp.K.Type;  // resolve here
-      var kMinusOne = Expression.CreateSubtract(k, Expression.CreateIntLiteral(pp.tok, 1));
+      Expression kMinusOne = Expression.CreateSubtract(k, Expression.CreateNatLiteral(pp.tok, 1, pp.K.Type));
 
       var s = new PrefixCallSubstituter(null, paramMap, typeMap, pp.FixpointPred, kMinusOne);
       body = s.Substitute(body);
 
-      var kIsPositive = Expression.CreateLess(Expression.CreateIntLiteral(pp.tok, 0), k);
+      Expression kIsPositive;
+      if (pp.K.Type.IsBigOrdinalType) {
+        // 0 < k.Offset
+        Contract.Assume(program.BuiltIns.ORDINAL_Offset != null);  // should have been filled in by the resolver
+        var kOffset = new MemberSelectExpr(pp.tok, k, program.BuiltIns.ORDINAL_Offset);
+        kIsPositive = Expression.CreateLess(Expression.CreateIntLiteral(pp.tok, 0), kOffset);
+      } else {
+        // 0 < k
+        kIsPositive = Expression.CreateLess(Expression.CreateIntLiteral(pp.tok, 0), k);
+      }
       if (pp.FixpointPred is CoPredicate) {
         // add antecedent "0 < _k ==>"
         return Expression.CreateImplies(kIsPositive, body);
@@ -3408,7 +3428,9 @@ namespace Microsoft.Dafny {
       var moreBvs = new List<Variable>();
       moreBvs.AddRange(bvs);
       moreBvs.Add(k);
-      var z = Bpl.Expr.Eq(kId, Bpl.Expr.Literal(0));
+      var z = Bpl.Expr.Eq(kId, pp.Formals[0].Type.IsBigOrdinalType ?
+        (Bpl.Expr)FunctionCall(tok, "ORD#FromNat", predef.BigOrdinalType, Bpl.Expr.Literal(0)) :
+        Bpl.Expr.Literal(0));
       funcID = new Bpl.IdentifierExpr(tok, pp.FullSanitizedName, TrType(pp.ResultType));
       Bpl.Expr prefixLimitedBody = new Bpl.NAryExpr(tok, new Bpl.FunctionCall(funcID), prefixArgsLimited);
       Bpl.Expr prefixLimited = pp.FixpointPred is InductivePredicate ? Bpl.Expr.Not(prefixLimitedBody) : prefixLimitedBody;
@@ -9772,9 +9794,7 @@ namespace Microsoft.Dafny {
       } else if (typ.IsNumericBased(Type.NumericPersuation.Real)) {
         return Expression.CreateRealLiteral(tok, Basetypes.BigDec.ZERO);
       } else if (typ.IsBigOrdinalType) {
-        var nn = new LiteralExpr(tok, 0);
-        nn.Type = Type.BigOrdinal;
-        return nn;
+        return Expression.CreateNatLiteral(tok, 0, Type.BigOrdinal);
       } else if (typ.IsBitVectorType) {
         var z = new LiteralExpr(tok, 0);
         z.Type = typ;
@@ -10719,7 +10739,14 @@ namespace Microsoft.Dafny {
         if (i == 0 && method is FixpointLemma && isRecursiveCall) {
           // Treat this call to M(args) as a call to the corresponding prefix lemma M#(_k - 1, args), so insert an argument here.
           var k = ((PrefixLemma)codeContext).K;
-          bActual = Bpl.Expr.Sub(new Bpl.IdentifierExpr(k.tok, k.AssignUniqueName(currentDeclaration.IdGenerator), Bpl.Type.Int), Bpl.Expr.Literal(1));
+          var bplK = new Bpl.IdentifierExpr(k.tok, k.AssignUniqueName(currentDeclaration.IdGenerator), TrType(k.Type));
+          if (k.Type.IsBigOrdinalType) {
+            bActual = FunctionCall(k.tok, "ORD#Minus", predef.BigOrdinalType,
+              bplK,
+              FunctionCall(k.tok, "ORD#FromNat", predef.BigOrdinalType, Bpl.Expr.Literal(1)));
+          } else {
+            bActual = Bpl.Expr.Sub(bplK, Bpl.Expr.Literal(1));
+          }
         } else {
           Expression actual;
           if (method is FixpointLemma && isRecursiveCall) {
@@ -15456,25 +15483,31 @@ namespace Microsoft.Dafny {
           var k = etran.TrExpr(e.E0);
           var A = etran.TrExpr(e.E1);
           var B = etran.TrExpr(e.E2);
-          // split as shows here for possibly infinite lists:
-          //   checked $PrefixEqual#Dt(k, A, B) || (0 < k ==> A.Nil? ==> B.Nil?)
-          //   checked $PrefixEqual#Dt(k, A, B) || (0 < k ==> A.Cons? ==> B.Cons? && A.head == B.head && $PrefixEqual#2#Dt(k - 1, A.tail, B.tail))  // note the #2 in the recursive call, just like for user-defined predicates that are inlined by TrSplitExpr
-          //   free $PrefixEqual#Dt(k, A, B);
-          var kPos = Bpl.Expr.Lt(Bpl.Expr.Literal(0), k);
-          var prefixEqK = CoEqualCall(codecl, e1type.TypeArgs, e2type.TypeArgs, k, etran.layerInterCluster.LayerN((int)FuelSetting.FuelAmount.HIGH), A, B); // FunctionCall(expr.tok, CoPrefixName(codecl, 1), Bpl.Type.Bool, k, A, B);
-          var kMinusOne = Bpl.Expr.Sub(k, Bpl.Expr.Literal(1));
-          // for the inlining of the definition of prefix equality, translate the two main equality operands arguments with a higher offset (to obtain #2 functions)
-          var etran2 = etran.LayerOffset(1);
-          var A2 = etran2.TrExpr(e.E1);
-          var B2 = etran2.TrExpr(e.E2);
-          var needsTokenAdjust = TrSplitNeedsTokenAdjustment(expr);
-          Bpl.Expr layer = etran.layerInterCluster.LayerN((int)FuelSetting.FuelAmount.HIGH);
-          foreach (var c in CoPrefixEquality(needsTokenAdjust ? new ForceCheckToken(expr.tok) : expr.tok, codecl, e1type.TypeArgs, e2type.TypeArgs, kMinusOne, layer, A2, B2, true)) {
-            var p = Bpl.Expr.Binary(c.tok, BinaryOperator.Opcode.Or, prefixEqK, Bpl.Expr.Imp(kPos, c));
-            splits.Add(new SplitExprInfo(SplitExprInfo.K.Checked, p));
+          bool useNatType = false;
+          if (Attributes.ContainsBool(codecl.Attributes, "knat", ref useNatType) && useNatType) {
+            // split as shown here for possibly infinite lists:
+            //   checked $PrefixEqual#Dt(k, A, B) || (0 < k ==> A.Nil? ==> B.Nil?)
+            //   checked $PrefixEqual#Dt(k, A, B) || (0 < k ==> A.Cons? ==> B.Cons? && A.head == B.head && $PrefixEqual#2#Dt(k - 1, A.tail, B.tail))  // note the #2 in the recursive call, just like for user-defined predicates that are inlined by TrSplitExpr
+            //   free $PrefixEqual#Dt(k, A, B);
+            var kPos = Bpl.Expr.Lt(Bpl.Expr.Literal(0), k);
+            var prefixEqK = CoEqualCall(codecl, e1type.TypeArgs, e2type.TypeArgs, k, etran.layerInterCluster.LayerN((int)FuelSetting.FuelAmount.HIGH), A, B); // FunctionCall(expr.tok, CoPrefixName(codecl, 1), Bpl.Type.Bool, k, A, B);
+            var kMinusOne = Bpl.Expr.Sub(k, Bpl.Expr.Literal(1));
+            // for the inlining of the definition of prefix equality, translate the two main equality operands arguments with a higher offset (to obtain #2 functions)
+            var etran2 = etran.LayerOffset(1);
+            var A2 = etran2.TrExpr(e.E1);
+            var B2 = etran2.TrExpr(e.E2);
+            var needsTokenAdjust = TrSplitNeedsTokenAdjustment(expr);
+            Bpl.Expr layer = etran.layerInterCluster.LayerN((int)FuelSetting.FuelAmount.HIGH);
+            foreach (var c in CoPrefixEquality(needsTokenAdjust ? new ForceCheckToken(expr.tok) : expr.tok, codecl, e1type.TypeArgs, e2type.TypeArgs, kMinusOne, layer, A2, B2, true)) {
+              var p = Bpl.Expr.Binary(c.tok, BinaryOperator.Opcode.Or, prefixEqK, Bpl.Expr.Imp(kPos, c));
+              splits.Add(new SplitExprInfo(SplitExprInfo.K.Checked, p));
+            }
+            splits.Add(new SplitExprInfo(SplitExprInfo.K.Free, prefixEqK));
+            return true;
+          } else {
+            // TODO: could split up into the ordinal cases here
+            return false;
           }
-          splits.Add(new SplitExprInfo(SplitExprInfo.K.Free, prefixEqK));
-          return true;
         }
 
       } else if (expr is ITEExpr) {

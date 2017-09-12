@@ -114,6 +114,7 @@ namespace Microsoft.Dafny {
     public readonly Dictionary<int, SubsetTypeDecl> TotalArrowTypeDecls = new Dictionary<int, SubsetTypeDecl>();  // same keys as arrowTypeDecl
     readonly Dictionary<int, TupleTypeDecl> tupleTypeDecls = new Dictionary<int, TupleTypeDecl>();
     public readonly ISet<int> Bitwidths = new HashSet<int>();
+    public SpecialField ORDINAL_Offset;  // filled in by the resolver, used by the translator
 
     public readonly ClassDecl ObjectDecl;
     public BuiltIns() {
@@ -7509,7 +7510,8 @@ namespace Microsoft.Dafny {
       Contract.Requires(e1.Type != null);
       Contract.Requires(
         (e0.Type.IsNumericBased(Type.NumericPersuation.Int) && e1.Type.IsNumericBased(Type.NumericPersuation.Int)) ||
-        (e0.Type.IsNumericBased(Type.NumericPersuation.Real) && e1.Type.IsNumericBased(Type.NumericPersuation.Real)));
+        (e0.Type.IsNumericBased(Type.NumericPersuation.Real) && e1.Type.IsNumericBased(Type.NumericPersuation.Real)) ||
+        (e0.Type.IsBigOrdinalType && e1.Type.IsBigOrdinalType));
       Contract.Ensures(Contract.Result<Expression>() != null);
       var s = new BinaryExpr(e0.tok, BinaryExpr.Opcode.Sub, e0, e1);
       s.ResolvedOp = BinaryExpr.ResolvedOpcode.Sub;  // resolve here
@@ -7570,6 +7572,18 @@ namespace Microsoft.Dafny {
       Contract.Requires(tok != null);
       var nn = new LiteralExpr(tok, x);
       nn.Type = Type.Real;
+      return nn;
+    }
+
+    /// <summary>
+    /// Create a resolved expression of the form "n", for either type "int" or type "ORDINAL".
+    /// </summary>
+    public static Expression CreateNatLiteral(IToken tok, int n, Type ty) {
+      Contract.Requires(tok != null);
+      Contract.Requires(0 <= n);
+      Contract.Requires(ty is IntType || ty is BigOrdinalType);
+      var nn = new LiteralExpr(tok, n);
+      nn.Type = ty;
       return nn;
     }
 
@@ -7644,7 +7658,9 @@ namespace Microsoft.Dafny {
     public static Expression CreateLess(Expression e0, Expression e1) {
       Contract.Requires(e0 != null);
       Contract.Requires(e1 != null);
-      Contract.Requires(e0.Type.IsNumericBased(Type.NumericPersuation.Int) && e1.Type.IsNumericBased(Type.NumericPersuation.Int));
+      Contract.Requires(
+        (e0.Type.IsNumericBased(Type.NumericPersuation.Int) && e1.Type.IsNumericBased(Type.NumericPersuation.Int)) ||
+        (e0.Type.IsBigOrdinalType && e1.Type.IsBigOrdinalType));
       Contract.Ensures(Contract.Result<Expression>() != null);
       var s = new BinaryExpr(e0.tok, BinaryExpr.Opcode.Lt, e0, e1);
       s.ResolvedOp = BinaryExpr.ResolvedOpcode.Lt;  // resolve here
@@ -8338,9 +8354,9 @@ namespace Microsoft.Dafny {
         var receiverType = obj.Type.NormalizeExpand();
         this.TypeApplication = receiverType.TypeArgs;  // resolve here
       }
-      Contract.Assert(this.TypeApplication.Count == field.EnclosingClass.TypeArgs.Count);
+      Contract.Assert(field.EnclosingClass == null || this.TypeApplication.Count == field.EnclosingClass.TypeArgs.Count);
       var subst = new Dictionary<TypeParameter, Type>();
-      for (int i = 0; i < field.EnclosingClass.TypeArgs.Count; i++) {
+      for (int i = 0; i < this.TypeApplication.Count; i++) {
         subst.Add(field.EnclosingClass.TypeArgs[i], this.TypeApplication[i]);
       }
       this.Type = Resolver.SubstType(field.Type, subst);  // resolve here

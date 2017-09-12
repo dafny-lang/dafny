@@ -13,12 +13,12 @@ lemma M(x: natinf)
   requires Even(x)
   ensures x.N? && x.n % 2 == 0
 {
-  var k: nat :| Even#[k](x);
+  var k: ORDINAL :| Even#[k](x);
   M'(k, x);
 }
 
 // yay!  my first proof involving an inductive predicate :)
-lemma {:induction false} M'(k: nat, x: natinf)
+lemma {:induction false} M'(k: ORDINAL, x: natinf)
   requires Even#[k](x)
   ensures x.N? && x.n % 2 == 0
 {
@@ -32,7 +32,7 @@ lemma {:induction false} M'(k: nat, x: natinf)
   }
 }
 
-lemma M'_auto(k: nat, x: natinf)
+lemma M'_auto(k: ORDINAL, x: natinf)
   requires Even#[k](x)
   ensures x.N? && x.n % 2 == 0
 {
