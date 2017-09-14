@@ -88,7 +88,7 @@ namespace Microsoft.Dafny {
     }
 
     static class KremlinAst {
-      public const string Version = "20";
+      public const string Version = "24";
 
       // InputAst.Decl
       public const string DFunction = "DFunction";        // of (calling_convention option * flag list * typ * lident * binder list * expr)
@@ -96,7 +96,7 @@ namespace Microsoft.Dafny {
       public const string DGlobal = "DGlobal";            // of (flag list * lident * typ * expr)
       public const string DTypeFlat = "DTypeFlat";        // (lident * int * fields_t)  (** The boolean indicates if the field is mutable *)
       public const string DExternal = "DExternal";        // of (calling_convention option * lident * typ)
-      public const string DTypeVariant = "DTypeVariant";  // of (lident * int * branches_t)
+      public const string DTypeVariant = "DTypeVariant";  // of (lident * flag list * int * branches_t)
 
       // fields_t = (ident * (typ * bool)) list
       // branches_t = (ident * fields_t) list
@@ -113,7 +113,6 @@ namespace Microsoft.Dafny {
       public const string TBool = "TBool";
       public const string TAny = "TAny";
       public const string TArrow = "TArrow";              // of (typ * typ)   (** t1 -> t2 *)
-      public const string TZ = "TZ";
       public const string TBound = "TBound";              // of int
       public const string TApp = "TApp";                  // of (lident * typ list)
 
@@ -123,6 +122,7 @@ namespace Microsoft.Dafny {
       public const string EConstant = "EConstant";        // of K.t
       public const string EUnit = "EUnit";
       public const string EApp = "EApp";                  // of (expr * expr list)
+      public const string ETApp = "ETApp";                // of (expr * typ list)
       public const string ELet = "ELet";                  // of (binder * expr * expr)
       public const string EIfThenElse = "EIfThenElse";    // of (expr * expr * expr)
       public const string ESequence = "ESequence";        // of expr list
@@ -147,6 +147,8 @@ namespace Microsoft.Dafny {
       public const string EBufCreateL = "EBufCreateL";    // of (lifetime * expr list)
       public const string ETuple = "ETuple";              // of expr list
       public const string ECons = "ECons";                // of (typ * ident * expr list)
+      public const string EFun = "EFun";                  // of (binder list * expr * typ)
+      public const string EAbortS = "EAbortS";            // of string
 
       // InputAst.pattern
       public const string PUnit = "PUnit";
@@ -692,9 +694,12 @@ namespace Microsoft.Dafny {
       if (ShouldBeEnum(dt)) {
         WriteToken(dt.tok);
         using (WriteArray()) {
-          j.WriteValue(KremlinAst.DTypeVariant); // (lident * int * branches_t)
+          j.WriteValue(KremlinAst.DTypeVariant); // (lident * flag list * int * branches_t)
           using (WriteArray()) {
             WriteLident(dt.FullName);
+            // Write down an empty set of flags
+            using (WriteArray()) { // NoExtract flag can be added here if needed
+            }
             j.WriteValue(0); // int type index
             using (WriteArray()) { // branches_t = (ident * fields_t) list
                 foreach (DatatypeCtor ctor in dt.Ctors) {
