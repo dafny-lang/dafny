@@ -32,7 +32,7 @@ The language itself draws pieces of influence from:
 
 * Euclid (from the mindset of a designing a language whose programs are to be verified),
 * Eiffel (like the built-in contract features),
-* CLU (like its iterators, and inpiration for the out-parameter syntax),
+* CLU (like its iterators, and inspiration for the out-parameter syntax),
 * Java, C#, and Scala (like the classes and traits, and syntax for functions),
 * ML (like the module system, and its functions and inductive datatypes), and
 * Coq and VeriFast (like the ability to include co-inductive datatypes and being able to write inductive and co-inductive proofs).
