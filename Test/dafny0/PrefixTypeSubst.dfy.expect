@@ -87,68 +87,82 @@ module _System {
 */
 
 /* CALL GRAPH for module _module:
- * SCC at height 30:
+ * SCC at height 36:
+ *   _default.RstRst10#
+ * SCC at height 35:
+ *   _default.RstRst10
+ * SCC at height 34:
+ *   _default.RstRst9
+ *   _default.RstRst9#
+ * SCC at height 33:
+ *   _default.RstRst8
+ *   _default.RstRst8#
+ * SCC at height 32:
  *   _default.RstRst7#
- * SCC at height 29:
+ * SCC at height 31:
  *   _default.RstRst7
- * SCC at height 28:
+ * SCC at height 30:
  *   _default.RstRst6
  *   _default.RstRst6#
- * SCC at height 27:
+ * SCC at height 29:
  *   _default.RstRst5
  *   _default.RstRst5#
- * SCC at height 26:
+ * SCC at height 28:
  *   _default.RstRst4#
- * SCC at height 25:
+ * SCC at height 27:
  *   _default.RstRst4
- * SCC at height 24:
+ * SCC at height 26:
  *   _default.RstRst3#
- * SCC at height 23:
+ * SCC at height 25:
  *   _default.RstRst3
- * SCC at height 22:
+ * SCC at height 24:
  *   _default.RstRst2#
- * SCC at height 21:
+ * SCC at height 23:
  *   _default.RstRst2
- * SCC at height 20:
+ * SCC at height 22:
  *   _default.RstRst1#
- * SCC at height 19:
+ * SCC at height 21:
  *   _default.RstRst1
- * SCC at height 18:
+ * SCC at height 20:
  *   _default.RstRst0#
- * SCC at height 17:
+ * SCC at height 19:
  *   _default.RstRst0
- * SCC at height 16:
+ * SCC at height 18:
  *   _default.O#
- * SCC at height 15:
+ * SCC at height 17:
  *   _default.O
- * SCC at height 14:
+ * SCC at height 16:
  *   _default.N#
- * SCC at height 13:
+ * SCC at height 15:
  *   _default.N
- * SCC at height 12:
+ * SCC at height 14:
  *   MyClass.M#
- * SCC at height 11:
+ * SCC at height 13:
  *   MyClass.M
- * SCC at height 10:
+ * SCC at height 12:
  *   MyClass.L#
- * SCC at height 9:
+ * SCC at height 11:
  *   MyClass.L
- * SCC at height 8:
- *   MyClass.RST#
- * SCC at height 7:
- *   MyClass.RST
- * SCC at height 6:
- *   MyClass.S#
- * SCC at height 5:
- *   MyClass.S
- * SCC at height 4:
- *   MyClass.R#
- * SCC at height 3:
- *   MyClass.R
- * SCC at height 2:
- *   MyClass.P#
- * SCC at height 1:
+ * SCC at height 10:
+ *   MyClass.RST_Nat#
+ * SCC at height 9:
  *   nat
+ * SCC at height 8:
+ *   MyClass.RST_Nat
+ * SCC at height 7:
+ *   MyClass.RST#
+ * SCC at height 6:
+ *   MyClass.RST
+ * SCC at height 5:
+ *   MyClass.S#
+ * SCC at height 4:
+ *   MyClass.S
+ * SCC at height 3:
+ *   MyClass.R#
+ * SCC at height 2:
+ *   MyClass.R
+ * SCC at height 1:
+ *   MyClass.P#
  * SCC at height 0:
  *   MyClass.P
  */
@@ -158,7 +172,7 @@ class MyClass<A, B> {
     P(x, y)
   }
   /*** (note, what is printed here does not show substitutions of calls to prefix predicates)
-  predicate P#<X, Y>[_k: nat](x: X, y: Y)
+  predicate P#<X, Y>[_k: ORDINAL](x: X, y: Y)
     decreases _k
   {
     P(x, y)
@@ -170,7 +184,7 @@ class MyClass<A, B> {
     R<T>()
   }
   /*** (note, what is printed here does not show substitutions of calls to prefix predicates)
-  predicate R#<T>[_k: nat]()
+  predicate R#<T>[_k: ORDINAL]()
     decreases _k
   {
     R<T>()
@@ -182,7 +196,7 @@ class MyClass<A, B> {
     S<Q>()
   }
   /*** (note, what is printed here does not show substitutions of calls to prefix predicates)
-  static predicate S#<Q>[_k: nat]()
+  static predicate S#<Q>[_k: ORDINAL]()
     decreases _k
   {
     S<Q>()
@@ -194,10 +208,22 @@ class MyClass<A, B> {
     MyClass<B, A>.RST<QQ>()
   }
   /*** (note, what is printed here does not show substitutions of calls to prefix predicates)
-  static predicate RST#<QQ>[_k: nat]()
+  static predicate RST#<QQ>[_k: ORDINAL]()
     decreases _k
   {
     MyClass<B, A>.RST<QQ>()
+  }
+  ***/
+
+  static copredicate RST_Nat<QQ>[nat]()
+  {
+    MyClass<B, A>.RST_Nat<QQ>()
+  }
+  /*** (note, what is printed here does not show substitutions of calls to prefix predicates)
+  static predicate RST_Nat#<QQ>[_k: nat]()
+    decreases _k
+  {
+    MyClass<B, A>.RST_Nat<QQ>()
   }
   ***/
 
@@ -207,12 +233,18 @@ class MyClass<A, B> {
     L(u, v);
   }
   /***
-  ghost method /*{:_induction _k}*/ L#<U, V>[_k: nat](u: U, v: V)
+  lemma /*{:_induction _k}*/ L#<U, V>[_k: ORDINAL](u: U, v: V)
     ensures P#[_k](u, v)
     decreases _k
   {
-    if 0 < _k {
+    if 0 < _k.Offset {
       L#[_k - 1](u, v);
+    } else {
+      forall _k': ORDINAL, u: U, v: V /*{:_autorequires}*/ /*{:_trustWellformed}*/ {:auto_generated} | _k' < _k
+        ensures this.P#[_k'](u, v)
+      {
+        L#[_k'](u, v)
+      }
     }
   }
   ***/
@@ -224,13 +256,19 @@ class MyClass<A, B> {
     assert R#<char>[_k - 1]();
   }
   /***
-  ghost method /*{:_induction _k}*/ M#<W>[_k: nat]()
+  lemma /*{:_induction _k}*/ M#<W>[_k: ORDINAL]()
     ensures R#<char>[_k]()
     decreases _k
   {
-    if 0 < _k {
+    if 0 < _k.Offset {
       M#<W>[_k - 1]();
       assert R#<char>[_k - 1]();
+    } else {
+      forall _k': ORDINAL /*{:_autorequires}*/ /*{:_trustWellformed}*/ {:auto_generated} | _k' < _k
+        ensures this.R#[_k']()
+      {
+        M#[_k']()
+      }
     }
   }
   ***/
@@ -243,13 +281,19 @@ colemma N<D0, D1, D2>(o: MyClass<D0, D1>)
   N<D0, D1, D2>(o);
 }
 /***
-ghost method /*{:_induction _k}*/ N#<D0, D1, D2>[_k: nat](o: MyClass<D0, D1>)
+lemma /*{:_induction _k}*/ N#<D0, D1, D2>[_k: ORDINAL](o: MyClass<D0, D1>)
   requires o != null
   ensures o.R#<D2>[_k]()
   decreases _k, o
 {
-  if 0 < _k {
+  if 0 < _k.Offset {
     N#<D0, D1, D2>[_k - 1](o);
+  } else {
+    forall _k': ORDINAL, o: MyClass<D0, D1> /*{:_autorequires}*/ /*{:_trustWellformed}*/ {:auto_generated} | _k' < _k
+      ensures o.R#[_k']()
+    {
+      N#[_k'](o)
+    }
   }
 }
 ***/
@@ -260,12 +304,18 @@ colemma O<D0, D1, D2>()
   O<D0, D1, D2>();
 }
 /***
-ghost method /*{:_induction _k}*/ O#<D0, D1, D2>[_k: nat]()
+lemma /*{:_induction _k}*/ O#<D0, D1, D2>[_k: ORDINAL]()
   ensures MyClass<D0, D1>.S#<D2>[_k]()
   decreases _k
 {
-  if 0 < _k {
+  if 0 < _k.Offset {
     O#<D0, D1, D2>[_k - 1]();
+  } else {
+    forall _k': ORDINAL /*{:_autorequires}*/ /*{:_trustWellformed}*/ {:auto_generated} | _k' < _k
+      ensures MyClass<D0, D1>.S#[_k']()
+    {
+      O#[_k']()
+    }
   }
 }
 ***/
@@ -276,12 +326,18 @@ colemma {:induction false} RstRst0<alpha, gamma>()
   RstRst0<int, gamma>();
 }
 /***
-ghost method {:induction false} RstRst0#<alpha, gamma>[_k: nat]()
+lemma {:induction false} RstRst0#<alpha, gamma>[_k: ORDINAL]()
   ensures MyClass<alpha, char>.RST#<gamma>[_k]()
   decreases _k
 {
-  if 0 < _k {
+  if 0 < _k.Offset {
     RstRst0#<int, gamma>[_k - 1]();
+  } else {
+    forall _k': ORDINAL /*{:_autorequires}*/ /*{:_trustWellformed}*/ {:auto_generated} | _k' < _k
+      ensures MyClass<alpha, char>.RST#[_k']()
+    {
+      RstRst0#[_k']()
+    }
   }
 }
 ***/
@@ -292,12 +348,18 @@ colemma {:induction false} RstRst1<alpha, gamma>()
   RstRst1<int, int>();
 }
 /***
-ghost method {:induction false} RstRst1#<alpha, gamma>[_k: nat]()
+lemma {:induction false} RstRst1#<alpha, gamma>[_k: ORDINAL]()
   ensures MyClass<alpha, char>.RST#<gamma>[_k]()
   decreases _k
 {
-  if 0 < _k {
+  if 0 < _k.Offset {
     RstRst1#<int, int>[_k - 1]();
+  } else {
+    forall _k': ORDINAL /*{:_autorequires}*/ /*{:_trustWellformed}*/ {:auto_generated} | _k' < _k
+      ensures MyClass<alpha, char>.RST#[_k']()
+    {
+      RstRst1#[_k']()
+    }
   }
 }
 ***/
@@ -308,12 +370,18 @@ colemma {:induction false} RstRst2<alpha, gamma>()
   RstRst2<alpha, gamma>();
 }
 /***
-ghost method {:induction false} RstRst2#<alpha, gamma>[_k: nat]()
+lemma {:induction false} RstRst2#<alpha, gamma>[_k: ORDINAL]()
   ensures MyClass<alpha, char>.RST#<gamma>[_k]()
   decreases _k
 {
-  if 0 < _k {
+  if 0 < _k.Offset {
     RstRst2#<alpha, gamma>[_k - 1]();
+  } else {
+    forall _k': ORDINAL /*{:_autorequires}*/ /*{:_trustWellformed}*/ {:auto_generated} | _k' < _k
+      ensures MyClass<alpha, char>.RST#[_k']()
+    {
+      RstRst2#[_k']()
+    }
   }
 }
 ***/
@@ -324,12 +392,18 @@ colemma {:induction false} RstRst3<alpha, beta, gamma>()
   RstRst3<alpha, beta, gamma>();
 }
 /***
-ghost method {:induction false} RstRst3#<alpha, beta, gamma>[_k: nat]()
+lemma {:induction false} RstRst3#<alpha, beta, gamma>[_k: ORDINAL]()
   ensures MyClass<alpha, beta>.RST#<gamma>[_k]()
   decreases _k
 {
-  if 0 < _k {
+  if 0 < _k.Offset {
     RstRst3#<alpha, beta, gamma>[_k - 1]();
+  } else {
+    forall _k': ORDINAL /*{:_autorequires}*/ /*{:_trustWellformed}*/ {:auto_generated} | _k' < _k
+      ensures MyClass<alpha, beta>.RST#[_k']()
+    {
+      RstRst3#[_k']()
+    }
   }
 }
 ***/
@@ -340,12 +414,18 @@ colemma {:induction false} RstRst4<alpha, beta, gamma>()
   RstRst4<beta, alpha, gamma>();
 }
 /***
-ghost method {:induction false} RstRst4#<alpha, beta, gamma>[_k: nat]()
+lemma {:induction false} RstRst4#<alpha, beta, gamma>[_k: ORDINAL]()
   ensures MyClass<alpha, beta>.RST#<gamma>[_k]()
   decreases _k
 {
-  if 0 < _k {
+  if 0 < _k.Offset {
     RstRst4#<beta, alpha, gamma>[_k - 1]();
+  } else {
+    forall _k': ORDINAL /*{:_autorequires}*/ /*{:_trustWellformed}*/ {:auto_generated} | _k' < _k
+      ensures MyClass<alpha, beta>.RST#[_k']()
+    {
+      RstRst4#[_k']()
+    }
   }
 }
 ***/
@@ -353,18 +433,28 @@ ghost method {:induction false} RstRst4#<alpha, beta, gamma>[_k: nat]()
 colemma {:induction false} RstRst5<alpha, gamma>()
   ensures MyClass<alpha, char>.RST<gamma>()
 {
-  if 2 <= _k {
+  if 2 <= _k.Offset {
     RstRst5#<alpha, gamma>[_k - 2]();
+  } else {
+    assert _k.Offset == 1;
   }
 }
 /***
-ghost method {:induction false} RstRst5#<alpha, gamma>[_k: nat]()
+lemma {:induction false} RstRst5#<alpha, gamma>[_k: ORDINAL]()
   ensures MyClass<alpha, char>.RST#<gamma>[_k]()
   decreases _k
 {
-  if 0 < _k {
-    if 2 <= _k {
+  if 0 < _k.Offset {
+    if 2 <= _k.Offset {
       RstRst5#<alpha, gamma>[_k - 2]();
+    } else {
+      assert _k.Offset == 1;
+    }
+  } else {
+    forall _k': ORDINAL /*{:_autorequires}*/ /*{:_trustWellformed}*/ {:auto_generated} | _k' < _k
+      ensures MyClass<alpha, char>.RST#[_k']()
+    {
+      RstRst5#[_k']()
     }
   }
 }
@@ -373,18 +463,28 @@ ghost method {:induction false} RstRst5#<alpha, gamma>[_k: nat]()
 colemma {:induction false} RstRst6<alpha, beta, gamma>()
   ensures MyClass<alpha, beta>.RST<gamma>()
 {
-  if 2 <= _k {
+  if
+  case true =>
+    RstRst6<beta, alpha, gamma>();
+  case 2 <= _k.Offset =>
     RstRst6#<alpha, beta, gamma>[_k - 2]();
-  }
 }
 /***
-ghost method {:induction false} RstRst6#<alpha, beta, gamma>[_k: nat]()
+lemma {:induction false} RstRst6#<alpha, beta, gamma>[_k: ORDINAL]()
   ensures MyClass<alpha, beta>.RST#<gamma>[_k]()
   decreases _k
 {
-  if 0 < _k {
-    if 2 <= _k {
+  if 0 < _k.Offset {
+    if
+    case true =>
+      RstRst6#<beta, alpha, gamma>[_k - 1]();
+    case 2 <= _k.Offset =>
       RstRst6#<alpha, beta, gamma>[_k - 2]();
+  } else {
+    forall _k': ORDINAL /*{:_autorequires}*/ /*{:_trustWellformed}*/ {:auto_generated} | _k' < _k
+      ensures MyClass<alpha, beta>.RST#[_k']()
+    {
+      RstRst6#[_k']()
     }
   }
 }
@@ -393,39 +493,114 @@ ghost method {:induction false} RstRst6#<alpha, beta, gamma>[_k: nat]()
 colemma RstRst7<alpha, beta, gamma>()
   ensures MyClass<alpha, beta>.RST<gamma>()
 {
+  if _k != 1 && _k.Offset == 1 {
+    RstRst6<beta, alpha, gamma>();
+  } else {
+  }
 }
 /***
-ghost method /*{:_induction _k}*/ RstRst7#<alpha, beta, gamma>[_k: nat]()
+lemma /*{:_induction _k}*/ RstRst7#<alpha, beta, gamma>[_k: ORDINAL]()
   ensures MyClass<alpha, beta>.RST#<gamma>[_k]()
+  decreases _k
+{
+  if 0 < _k.Offset {
+    if _k != 1 && _k.Offset == 1 {
+      RstRst6<beta, alpha, gamma>();
+    } else {
+    }
+  } else {
+    forall _k': ORDINAL /*{:_autorequires}*/ /*{:_trustWellformed}*/ {:auto_generated} | _k' < _k
+      ensures MyClass<alpha, beta>.RST#[_k']()
+    {
+      RstRst7#[_k']()
+    }
+  }
+}
+***/
+
+colemma {:induction false} RstRst8<alpha, gamma>[nat]()
+  ensures MyClass<alpha, char>.RST_Nat<gamma>()
+{
+  if 2 <= _k {
+    RstRst8#<alpha, gamma>[_k - 2]();
+  }
+}
+/***
+lemma {:induction false} RstRst8#<alpha, gamma>[_k: nat]()
+  ensures MyClass<alpha, char>.RST_Nat#<gamma>[_k]()
+  decreases _k
+{
+  if 0 < _k {
+    if 2 <= _k {
+      RstRst8#<alpha, gamma>[_k - 2]();
+    }
+  }
+}
+***/
+
+colemma {:induction false} RstRst9<alpha, beta, gamma>[nat]()
+  ensures MyClass<alpha, beta>.RST_Nat<gamma>()
+{
+  if 2 <= _k {
+    RstRst9#<alpha, beta, gamma>[_k - 2]();
+  }
+}
+/***
+lemma {:induction false} RstRst9#<alpha, beta, gamma>[_k: nat]()
+  ensures MyClass<alpha, beta>.RST_Nat#<gamma>[_k]()
+  decreases _k
+{
+  if 0 < _k {
+    if 2 <= _k {
+      RstRst9#<alpha, beta, gamma>[_k - 2]();
+    }
+  }
+}
+***/
+
+colemma RstRst10<alpha, beta, gamma>[nat]()
+  ensures MyClass<alpha, beta>.RST_Nat<gamma>()
+{
+}
+/***
+lemma /*{:_induction _k}*/ RstRst10#<alpha, beta, gamma>[_k: nat]()
+  ensures MyClass<alpha, beta>.RST_Nat#<gamma>[_k]()
   decreases _k
 {
   if 0 < _k {
   }
 }
 ***/
-PrefixTypeSubst.dfy(49,0): Error BP5003: A postcondition might not hold on this return path.
-PrefixTypeSubst.dfy(48,30): Related location: This is the postcondition that might not hold.
+PrefixTypeSubst.dfy(53,0): Error BP5003: A postcondition might not hold on this return path.
+PrefixTypeSubst.dfy(52,30): Related location: This is the postcondition that might not hold.
 PrefixTypeSubst.dfy(19,17): Related location
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Then
-PrefixTypeSubst.dfy(55,0): Error BP5003: A postcondition might not hold on this return path.
-PrefixTypeSubst.dfy(54,30): Related location: This is the postcondition that might not hold.
+PrefixTypeSubst.dfy(59,0): Error BP5003: A postcondition might not hold on this return path.
+PrefixTypeSubst.dfy(58,30): Related location: This is the postcondition that might not hold.
 PrefixTypeSubst.dfy(19,17): Related location
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Then
-PrefixTypeSubst.dfy(61,0): Error BP5003: A postcondition might not hold on this return path.
-PrefixTypeSubst.dfy(60,30): Related location: This is the postcondition that might not hold.
+PrefixTypeSubst.dfy(65,0): Error BP5003: A postcondition might not hold on this return path.
+PrefixTypeSubst.dfy(64,30): Related location: This is the postcondition that might not hold.
 PrefixTypeSubst.dfy(19,17): Related location
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Then
-PrefixTypeSubst.dfy(67,0): Error BP5003: A postcondition might not hold on this return path.
-PrefixTypeSubst.dfy(66,30): Related location: This is the postcondition that might not hold.
+PrefixTypeSubst.dfy(71,0): Error BP5003: A postcondition might not hold on this return path.
+PrefixTypeSubst.dfy(70,30): Related location: This is the postcondition that might not hold.
 PrefixTypeSubst.dfy(19,17): Related location
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Then
+PrefixTypeSubst.dfy(86,9): Error BP5003: A postcondition might not hold on this return path.
+PrefixTypeSubst.dfy(82,30): Related location: This is the postcondition that might not hold.
+PrefixTypeSubst.dfy(19,17): Related location
+Execution trace:
+    (0,0): anon0
+    (0,0): anon5_Then
+    (0,0): anon6_Else
 
-Dafny program verifier finished with 13 verified, 4 errors
+Dafny program verifier finished with 16 verified, 5 errors

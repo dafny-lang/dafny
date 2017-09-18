@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:3 "%s" > "%t"
+// RUN: %dafny "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 class C {
@@ -111,7 +111,7 @@ method TestV(c: C)
 
 // ---- Now for the generated prefix predicates
 
-method TestPrefixPredicatesP(k: nat, c: C, e: C)
+method TestPrefixPredicatesP(k: ORDINAL, c: C, e: C)
   requires c != null && P#[k](c)
   modifies c, e
 {
@@ -124,13 +124,13 @@ method TestPrefixPredicatesP(k: nat, c: C, e: C)
     assert P#[k](c);  // a newly allocated object does not affect P(c)
   case e != null && e != c =>
     e.data := e.data + 1;  // change anything in the existing heap...
-    assert P#[k](c);  // error: ... and we no longer know if P(c) holds
+    assert P#[k](c);  // error (x2): ... and we no longer know if P(c) holds
   case true =>
     c.data := c.data + 1;
-    assert P#[k](c);  // error: same reason as above
+    assert P#[k](c);  // error (x2): same reason as above
 }
 
-method TestPrefixPredicatesQ(k: nat, c: C, e: C)
+method TestPrefixPredicatesQ(k: ORDINAL, c: C, e: C)
   requires c != null && Q#[k](c)
   modifies c, e
 {
@@ -146,10 +146,10 @@ method TestPrefixPredicatesQ(k: nat, c: C, e: C)
     assert Q#[k](c);  // ditto
   case true =>
     c.data := c.data + 1;
-    assert Q#[k](c);  // error: can't tell it's still the same
+    assert Q#[k](c);  // error (x2): can't tell it's still the same
 }
 
-method TestPrefixPredicatesR(k: nat, c: C)
+method TestPrefixPredicatesR(k: ORDINAL, c: C)
   requires c != null && R#[k](c)
   modifies c
 {
@@ -165,20 +165,20 @@ method TestPrefixPredicatesR(k: nat, c: C)
   case true =>
     c.data := c.data + 1;
     RAlwaysHolds#[k+7](c);
-    assert R#[k](c);  // error: the lemma doesn't immediately tell us this
+    assert R#[k](c);  // error (x2): the lemma doesn't immediately tell us this
   case true =>
     c.data := c.data + 1;
-    assert R#[k](c);  // error: can't tell it's still the same
+    assert R#[k](c);  // error (x2): can't tell it's still the same
 }
 
-method TestPrefixPredicatesV(k: nat, c: C)
+method TestPrefixPredicatesV(k: ORDINAL, c: C)
   requires c != null && V#[k](c)
   modifies c
 {
   if
   case true =>
     c.data := c.data + 1;
-    assert V#[k](c);  // error: can't tell if V(c) holds here
+    assert V#[k](c);  // error (x2): can't tell if V(c) holds here
   case true =>
     VNeverHolds#[k](c);
     c.data := c.data + 1;

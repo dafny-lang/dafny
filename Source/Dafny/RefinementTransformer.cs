@@ -417,10 +417,10 @@ namespace Microsoft.Dafny
         return new Predicate(tok, f.Name, f.HasStaticKeyword, f.IsProtected, isGhost, tps, formals,
           req, reads, ens, decreases, body, bodyOrigin, refinementCloner.MergeAttributes(f.Attributes, moreAttributes), null);
       } else if (f is InductivePredicate) {
-        return new InductivePredicate(tok, f.Name, f.HasStaticKeyword, f.IsProtected, tps, formals,
+        return new InductivePredicate(tok, f.Name, f.HasStaticKeyword, f.IsProtected, ((InductivePredicate)f).TypeOfK, tps, formals,
           req, reads, ens, body, refinementCloner.MergeAttributes(f.Attributes, moreAttributes), null);
       } else if (f is CoPredicate) {
-        return new CoPredicate(tok, f.Name, f.HasStaticKeyword, f.IsProtected, tps, formals,
+        return new CoPredicate(tok, f.Name, f.HasStaticKeyword, f.IsProtected, ((CoPredicate)f).TypeOfK, tps, formals,
           req, reads, ens, body, refinementCloner.MergeAttributes(f.Attributes, moreAttributes), null);
       } else if (f is TwoStatePredicate) {
         return new TwoStatePredicate(tok, f.Name, f.HasStaticKeyword, tps, formals,
@@ -460,10 +460,10 @@ namespace Microsoft.Dafny
       }
       var body = newBody ?? refinementCloner.CloneBlockStmt(m.BodyForRefinement);
       if (m is InductiveLemma) {
-        return new InductiveLemma(new RefinementToken(m.tok, moduleUnderConstruction), m.Name, m.HasStaticKeyword, tps, ins, m.Outs.ConvertAll(refinementCloner.CloneFormal),
+        return new InductiveLemma(new RefinementToken(m.tok, moduleUnderConstruction), m.Name, m.HasStaticKeyword, ((InductiveLemma)m).TypeOfK, tps, ins, m.Outs.ConvertAll(refinementCloner.CloneFormal),
           req, mod, ens, decreases, body, refinementCloner.MergeAttributes(m.Attributes, moreAttributes), null);
       } else if (m is CoLemma) {
-        return new CoLemma(new RefinementToken(m.tok, moduleUnderConstruction), m.Name, m.HasStaticKeyword, tps, ins, m.Outs.ConvertAll(refinementCloner.CloneFormal),
+        return new CoLemma(new RefinementToken(m.tok, moduleUnderConstruction), m.Name, m.HasStaticKeyword, ((CoLemma)m).TypeOfK, tps, ins, m.Outs.ConvertAll(refinementCloner.CloneFormal),
           req, mod, ens, decreases, body, refinementCloner.MergeAttributes(m.Attributes, moreAttributes), null);
       } else if (m is Lemma) {
         return new Lemma(new RefinementToken(m.tok, moduleUnderConstruction), m.Name, m.HasStaticKeyword, tps, ins, m.Outs.ConvertAll(refinementCloner.CloneFormal),

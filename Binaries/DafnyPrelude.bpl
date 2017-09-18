@@ -326,6 +326,7 @@ function ORD#Offset(ORDINAL): int;
 axiom (forall o:ORDINAL :: { ORD#Offset(o) } 0 <= ORD#Offset(o));
 
 function {:inline} ORD#IsLimit(o: ORDINAL): bool { ORD#Offset(o) == 0 }
+function {:inline} ORD#IsSucc(o: ORDINAL): bool { 0 < ORD#Offset(o) }
 
 function ORD#FromNat(int): ORDINAL;
 axiom (forall n:int :: { ORD#FromNat(n) }
@@ -372,6 +373,29 @@ axiom (forall o,p: ORDINAL :: { ORD#Minus(o,p) }
   ORD#IsNat(p) && ORD#Offset(p) <= ORD#Offset(o) ==>
     (p == ORD#FromNat(0) && ORD#Minus(o, p) == o) ||
     (p != ORD#FromNat(0) && ORD#Less(ORD#Minus(o, p), o)));
+
+// o+m+n == o+(m+n)
+axiom (forall o: ORDINAL, m,n: int ::
+  { ORD#Plus(ORD#Plus(o, ORD#FromNat(m)), ORD#FromNat(n)) } 
+  0 <= m && 0 <= n ==>
+  ORD#Plus(ORD#Plus(o, ORD#FromNat(m)), ORD#FromNat(n)) == ORD#Plus(o, ORD#FromNat(m+n)));
+// o-m-n == o+(m+n)
+axiom (forall o: ORDINAL, m,n: int ::
+  { ORD#Minus(ORD#Minus(o, ORD#FromNat(m)), ORD#FromNat(n)) } 
+  0 <= m && 0 <= n && m+n <= ORD#Offset(o) ==>
+  ORD#Minus(ORD#Minus(o, ORD#FromNat(m)), ORD#FromNat(n)) == ORD#Minus(o, ORD#FromNat(m+n)));
+// o+m-n == EITHER o+(m-n) OR o-(n-m)
+axiom (forall o: ORDINAL, m,n: int ::
+  { ORD#Minus(ORD#Plus(o, ORD#FromNat(m)), ORD#FromNat(n)) } 
+  0 <= m && 0 <= n && n <= ORD#Offset(o) + m ==>
+    (0 <= m - n ==> ORD#Minus(ORD#Plus(o, ORD#FromNat(m)), ORD#FromNat(n)) == ORD#Plus(o, ORD#FromNat(m-n))) &&
+    (m - n <= 0 ==> ORD#Minus(ORD#Plus(o, ORD#FromNat(m)), ORD#FromNat(n)) == ORD#Minus(o, ORD#FromNat(n-m))));
+// o-m+n == EITHER o-(m-n) OR o+(n-m)
+axiom (forall o: ORDINAL, m,n: int ::
+  { ORD#Plus(ORD#Minus(o, ORD#FromNat(m)), ORD#FromNat(n)) } 
+  0 <= m && 0 <= n && n <= ORD#Offset(o) + m ==>
+    (0 <= m - n ==> ORD#Plus(ORD#Minus(o, ORD#FromNat(m)), ORD#FromNat(n)) == ORD#Minus(o, ORD#FromNat(m-n))) &&
+    (m - n <= 0 ==> ORD#Plus(ORD#Minus(o, ORD#FromNat(m)), ORD#FromNat(n)) == ORD#Plus(o, ORD#FromNat(n-m))));
 
 // ---------------------------------------------------------------
 // -- Axiom contexts ---------------------------------------------

@@ -108,19 +108,19 @@ module Mojul1 {
 module CallGraph {
   // colemma -> copredicate -> colemma
   // colemma -> copredicate -> prefix lemma
-  colemma CoLemma(n: nat)
+  colemma CoLemma(n: ORDINAL)
   {
     var q := Q(n);  // error
     var r := R(n);  // error
   }
 
-  copredicate Q(n: nat)
+  copredicate Q(n: ORDINAL)
   {
     calc { 87; { CoLemma(n); } }  // error: this recursive call not allowed
     false
   }
 
-  copredicate R(n: nat)
+  copredicate R(n: ORDINAL)
   {
     calc { 87; { CoLemma#[n](n); } }  // error: this recursive call not allowed
     false
@@ -128,19 +128,19 @@ module CallGraph {
 
   // colemma -> prefix predicate -> colemma
   // colemma -> prefix predicate -> prefix lemma
-  colemma CoLemma_D(n: nat)
+  colemma CoLemma_D(n: ORDINAL)
   {
     var q := Q_D#[n](n);  // error
     var r := R_D#[n](n);  // error
   }
 
-  copredicate Q_D(n: nat)
+  copredicate Q_D(n: ORDINAL)
   {
     calc { 88; { CoLemma_D(n); } }  // error: this recursive call not allowed
     false
   }
 
-  copredicate R_D(n: nat)
+  copredicate R_D(n: ORDINAL)
   {
     calc { 89; { CoLemma_D#[n](n); } }  // error: this recursive call not allowed
     false
@@ -148,19 +148,19 @@ module CallGraph {
 
   // copredicate -> function -> copredicate
   // copredicate -> function -> prefix predicate
-  copredicate P(n: nat)
+  copredicate P(n: ORDINAL)
   {
     G0(n)  // error
     <
     G1(n)  // error
   }
 
-  function G0(n: nat): int
+  function G0(n: ORDINAL): int
   {
     calc { true; { assert P(n); } }
     100
   }
-  function G1(n: nat): int
+  function G1(n: ORDINAL): int
   {
     calc { true; { assert P#[n](n); } }
     101

@@ -2161,3 +2161,18 @@ module BigOrdinalRestrictions {
   method ParameterizedMethod<G>(g: G)
   predicate P(g: ORDINAL)
 }
+
+module TernaryTypeCheckinngAndInference {
+  codatatype Stream = Cons(int, Stream)
+
+  method M(k: nat, K: ORDINAL, A: Stream, B: Stream)
+    requires A == B
+  {
+    // all of the following are fine
+    assert A ==#[k] B;
+    assert A ==#[K] B;
+    assert A ==#[3] B;
+    var b;
+    assert A ==#[b] B;
+  }
+}

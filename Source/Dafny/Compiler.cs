@@ -1859,7 +1859,7 @@ namespace Microsoft.Dafny {
 
       } else if (stmt is ForallStmt) {
         var s = (ForallStmt)stmt;
-        if (s.Kind != ForallStmt.ParBodyKind.Assign) {
+        if (s.Kind != ForallStmt.BodyKind.Assign) {
           // Call and Proof have no side effects, so they can simply be optimized away.
           return wr;
         } else if (s.BoundVars.Count == 0) {

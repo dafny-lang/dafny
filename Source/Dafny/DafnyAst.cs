@@ -5098,15 +5098,23 @@ namespace Microsoft.Dafny {
 
   public abstract class FixpointPredicate : Function
   {
+    public enum KType { Unspecified, Nat, ORDINAL }
+    public readonly KType TypeOfK;
+    public bool KNat {
+      get {
+        return TypeOfK == KType.Nat;
+      }
+    }
     public readonly List<FunctionCallExpr> Uses = new List<FunctionCallExpr>();  // filled in during resolution, used by verifier
     public PrefixPredicate PrefixPredicate;  // filled in during resolution (name registration)
 
-    public FixpointPredicate(IToken tok, string name, bool hasStaticKeyword, bool isProtected,
+    public FixpointPredicate(IToken tok, string name, bool hasStaticKeyword, bool isProtected, KType typeOfK,
                              List<TypeParameter> typeArgs, List<Formal> formals,
                              List<Expression> req, List<FrameExpression> reads, List<Expression> ens,
                              Expression body, Attributes attributes, IToken signatureEllipsis)
       : base(tok, name, hasStaticKeyword, isProtected, true, typeArgs, formals, null, Type.Bool,
              req, reads, ens, new Specification<Expression>(new List<Expression>(), null), body, attributes, signatureEllipsis) {
+      TypeOfK = typeOfK;
     }
 
     /// <summary>
@@ -5149,11 +5157,11 @@ namespace Microsoft.Dafny {
   public class InductivePredicate : FixpointPredicate
   {
     public override string WhatKind { get { return "inductive predicate"; } }
-    public InductivePredicate(IToken tok, string name, bool hasStaticKeyword, bool isProtected,
+    public InductivePredicate(IToken tok, string name, bool hasStaticKeyword, bool isProtected, KType typeOfK,
                               List<TypeParameter> typeArgs, List<Formal> formals,
                               List<Expression> req, List<FrameExpression> reads, List<Expression> ens,
                               Expression body, Attributes attributes, IToken signatureEllipsis)
-      : base(tok, name, hasStaticKeyword, isProtected, typeArgs, formals,
+      : base(tok, name, hasStaticKeyword, isProtected, typeOfK, typeArgs, formals,
              req, reads, ens, body, attributes, signatureEllipsis) {
     }
   }
@@ -5161,11 +5169,11 @@ namespace Microsoft.Dafny {
   public class CoPredicate : FixpointPredicate
   {
     public override string WhatKind { get { return "copredicate"; } }
-    public CoPredicate(IToken tok, string name, bool hasStaticKeyword, bool isProtected,
+    public CoPredicate(IToken tok, string name, bool hasStaticKeyword, bool isProtected, KType typeOfK,
                        List<TypeParameter> typeArgs, List<Formal> formals,
                        List<Expression> req, List<FrameExpression> reads, List<Expression> ens,
                        Expression body, Attributes attributes, IToken signatureEllipsis)
-      : base(tok, name, hasStaticKeyword, isProtected, typeArgs, formals,
+      : base(tok, name, hasStaticKeyword, isProtected, typeOfK, typeArgs, formals,
              req, reads, ens, body, attributes, signatureEllipsis) {
     }
   }
@@ -5470,10 +5478,16 @@ namespace Microsoft.Dafny {
 
   public abstract class FixpointLemma : Method
   {
+    public readonly FixpointPredicate.KType TypeOfK;
+    public bool KNat {
+      get {
+        return TypeOfK == FixpointPredicate.KType.Nat;
+      }
+    }
     public PrefixLemma PrefixLemma;  // filled in during resolution (name registration)
 
     public FixpointLemma(IToken tok, string name,
-                         bool hasStaticKeyword,
+                         bool hasStaticKeyword, FixpointPredicate.KType typeOfK,
                          List<TypeParameter> typeArgs,
                          List<Formal> ins, [Captured] List<Formal> outs,
                          List<MaybeFreeExpression> req, [Captured] Specification<FrameExpression> mod,
@@ -5491,6 +5505,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(mod != null);
       Contract.Requires(cce.NonNullElements(ens));
       Contract.Requires(decreases != null);
+      TypeOfK = typeOfK;
     }
   }
 
@@ -5499,7 +5514,7 @@ namespace Microsoft.Dafny {
     public override string WhatKind { get { return "inductive lemma"; } }
 
     public InductiveLemma(IToken tok, string name,
-                          bool hasStaticKeyword,
+                          bool hasStaticKeyword, FixpointPredicate.KType typeOfK,
                           List<TypeParameter> typeArgs,
                           List<Formal> ins, [Captured] List<Formal> outs,
                           List<MaybeFreeExpression> req, [Captured] Specification<FrameExpression> mod,
@@ -5507,7 +5522,7 @@ namespace Microsoft.Dafny {
                           Specification<Expression> decreases,
                           BlockStmt body,
                           Attributes attributes, IToken signatureEllipsis)
-      : base(tok, name, hasStaticKeyword, typeArgs, ins, outs, req, mod, ens, decreases, body, attributes, signatureEllipsis) {
+      : base(tok, name, hasStaticKeyword, typeOfK, typeArgs, ins, outs, req, mod, ens, decreases, body, attributes, signatureEllipsis) {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
       Contract.Requires(cce.NonNullElements(typeArgs));
@@ -5525,7 +5540,7 @@ namespace Microsoft.Dafny {
     public override string WhatKind { get { return "colemma"; } }
 
     public CoLemma(IToken tok, string name,
-                   bool hasStaticKeyword,
+                   bool hasStaticKeyword, FixpointPredicate.KType typeOfK,
                    List<TypeParameter> typeArgs,
                    List<Formal> ins, [Captured] List<Formal> outs,
                    List<MaybeFreeExpression> req, [Captured] Specification<FrameExpression> mod,
@@ -5533,7 +5548,7 @@ namespace Microsoft.Dafny {
                    Specification<Expression> decreases,
                    BlockStmt body,
                    Attributes attributes, IToken signatureEllipsis)
-      : base(tok, name, hasStaticKeyword, typeArgs, ins, outs, req, mod, ens, decreases, body, attributes, signatureEllipsis) {
+      : base(tok, name, hasStaticKeyword, typeOfK, typeArgs, ins, outs, req, mod, ens, decreases, body, attributes, signatureEllipsis) {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
       Contract.Requires(cce.NonNullElements(typeArgs));
@@ -6729,7 +6744,7 @@ namespace Microsoft.Dafny {
   public class ForallStmt : Statement
   {
     public readonly List<BoundVar> BoundVars;  // note, can be the empty list, in which case Range denotes "true"
-    public readonly Expression Range;
+    public Expression Range;  // mostly readonly, except that it may in some cases be updated during resolution to conjoin the precondition of the call in the body
     public readonly List<MaybeFreeExpression> Ens;
     public readonly Statement Body;
     public List<Expression> ForallExpressions;   // fill in by rewriter.
@@ -6755,8 +6770,8 @@ namespace Microsoft.Dafny {
     /// * One could allow Proof even without ensures clauses that "export" what was learned.
     ///   However, that might give the false impression that the body is nevertheless exported.
     /// </summary>
-    public enum ParBodyKind { Assign, Call, Proof }
-    public ParBodyKind Kind;  // filled in during resolution
+    public enum BodyKind { Assign, Call, Proof }
+    public BodyKind Kind;  // filled in during resolution
 
     [ContractInvariantMethod]
     void ObjectInvariant() {
@@ -7106,7 +7121,7 @@ namespace Microsoft.Dafny {
 
     /// <summary>
     /// Right-hand side of a step expression.
-    /// Note that Rhs(op.StepExpr(line0, line1)) != line1 when op is <==.
+    /// Note that Rhs(op.StepExpr(line0, line1)) != line1 when op is REVERSE-IMPLICATION.
     /// </summary>
     public static Expression Rhs(Expression step)
     {
@@ -7581,7 +7596,7 @@ namespace Microsoft.Dafny {
     public static Expression CreateNatLiteral(IToken tok, int n, Type ty) {
       Contract.Requires(tok != null);
       Contract.Requires(0 <= n);
-      Contract.Requires(ty is IntType || ty is BigOrdinalType);
+      Contract.Requires(ty.IsNumericBased(Type.NumericPersuation.Int) || ty is BigOrdinalType);
       var nn = new LiteralExpr(tok, n);
       nn.Type = ty;
       return nn;
@@ -9065,6 +9080,7 @@ namespace Microsoft.Dafny {
     public readonly Expression E1;
     public readonly Expression E2;
     public enum Opcode { /*SOON: IfOp,*/ PrefixEqOp, PrefixNeqOp }
+    public static readonly bool PrefixEqUsesNat = false;  // "k" is either a "nat" or an "ORDINAL"
     public TernaryExpr(IToken tok, Opcode op, Expression e0, Expression e1, Expression e2)
       : base(tok) {
       Contract.Requires(tok != null);

@@ -55,8 +55,10 @@ module _System {
 */
 
 /* CALL GRAPH for module _module:
- * SCC at height 8:
+ * SCC at height 9:
  *   _default.Main
+ * SCC at height 8:
+ *   _default.OrdinalTests
  * SCC at height 7:
  *   int64
  * SCC at height 6:
@@ -151,6 +153,11 @@ method Main()
   print x, " ", handful, " ", a0, " ", w, "\n";
   x, handful, a0, w := a.Length, a.Length as Handful, a.Length as Abundance, a.Length as bv32;
   print x, " ", handful, " ", a0, " ", w, "\n";
+  OrdinalTests();
+}
+
+method OrdinalTests()
+{
   var ord: ORDINAL := 143;
   var iord: int := ord as int;
   var oord: ORDINAL := iord as ORDINAL;
@@ -161,7 +168,7 @@ method Main()
   print ord.IsLimit, " ", ord.Offset, " ", ord.IsNat, "\n";
 }
 
-Dafny program verifier finished with 6 verified, 0 errors
+Dafny program verifier finished with 7 verified, 0 errors
 Program compiled successfully
 Running...
 
