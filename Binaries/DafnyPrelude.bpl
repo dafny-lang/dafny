@@ -351,6 +351,11 @@ axiom (forall o,p,r: ORDINAL ::
   { ORD#Less(o,p), ORD#Less(o,r) }
   ORD#Less(o,p) && ORD#Less(p,r) ==> ORD#Less(o,r));
 
+// ORD#LessThanLimit is a synonym of ORD#Less, introduced for more selected triggering
+function ORD#LessThanLimit(ORDINAL, ORDINAL): bool;
+axiom (forall o,p: ORDINAL :: { ORD#LessThanLimit(o, p) }
+  ORD#LessThanLimit(o, p) == ORD#Less(o, p));
+
 function ORD#Plus(ORDINAL, ORDINAL): ORDINAL;
 axiom (forall o,p: ORDINAL :: { ORD#Plus(o,p) }
   (ORD#IsNat(ORD#Plus(o,p)) ==> ORD#IsNat(o) && ORD#IsNat(p)) &&

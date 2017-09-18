@@ -8787,6 +8787,7 @@ namespace Microsoft.Dafny {
       NeqCommon,
       // integers, reals, bitvectors
       Lt,
+      LessThanLimit,  // a synonym for Lt for ORDINAL, used only during translation
       Le,
       Ge,
       Gt,
@@ -8974,6 +8975,7 @@ namespace Microsoft.Dafny {
         case ResolvedOpcode.NotInMap:
           return Opcode.NotIn;
 
+        case ResolvedOpcode.LessThanLimit:  // not expected here (but if it were, the same case as Lt could perhaps be used)
         default:
           Contract.Assert(false);  // unexpected ResolvedOpcode
           return Opcode.Add;  // please compiler

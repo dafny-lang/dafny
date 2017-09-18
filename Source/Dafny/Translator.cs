@@ -3211,7 +3211,6 @@ namespace Microsoft.Dafny {
         var kIsLimit = Expression.CreateEq(Expression.CreateIntLiteral(pp.tok, 0), kOffset, Type.Int);
         var kprimeVar = new BoundVar(pp.tok, "_k'", Type.BigOrdinal);
         var kprime = new IdentifierExpr(pp.tok, kprimeVar);
-        var smaller = Expression.CreateLess(kprime, k);
 
         var substMap = new Dictionary<IVariable, Expression>();
         substMap.Add(pp.K, kprime);
@@ -3229,10 +3228,18 @@ namespace Microsoft.Dafny {
         Expression limitCalls;
         if (pp.FixpointPred is CoPredicate) {
           // forall k':ORDINAL | _k' LESS _k :: pp(_k', args)
+          var smaller = Expression.CreateLess(kprime, k);
           limitCalls = new ForallExpr(pp.tok, new List<BoundVar> { kprimeVar }, smaller, ppCall, triggerAttr);
           limitCalls.Type = Type.Bool;  // resolve here
         } else {
           // exists k':ORDINAL | _k' LESS _k :: pp(_k', args)
+          // Here, instead of using the usual ORD#Less, we use the semantically equivalent ORD#LessThanLimit, because this
+          // allows us to write a good trigger for a targeted monotonicity axiom.  That axiom, in turn, makes the
+          // automatica verification more powerful for inductive lemmas that have more than one focal-predicate term.
+          var smaller = new BinaryExpr(kprime.tok, BinaryExpr.Opcode.Lt, kprime, k) {
+            ResolvedOp = BinaryExpr.ResolvedOpcode.LessThanLimit,
+            Type = Type.Bool
+          };
           limitCalls = new ExistsExpr(pp.tok, new List<BoundVar> { kprimeVar }, smaller, ppCall, triggerAttr);
           limitCalls.Type = Type.Bool;  // resolve here
         }
@@ -3441,12 +3448,13 @@ namespace Microsoft.Dafny {
     ///   AXIOM_ACTIVATION ==> forall args :: { P(args) } args-have-appropriate-values && P(args) ==> QQQ k { P#[k](args) } :: 0 ATMOST k HHH P#[k](args)
     ///   AXIOM_ACTIVATION ==> forall args :: { P(args) } args-have-appropriate-values && (QQQ k :: 0 ATMOST k HHH P#[k](args)) ==> P(args)
     ///   AXIOM_ACTIVATION ==> forall args,k :: args-have-appropriate-values && k == 0 ==> NNN P#0#[k](args)
-    ///   AXIOM_ACTIVATION ==> forall args,k,m :: args-have-appropriate-values && 0 ATMOST k LESS m ==> (P#[k](args) EEE P#[m](args))
+    ///   AXIOM_ACTIVATION ==> forall args,k,m :: args-have-appropriate-values && 0 ATMOST k LESS m ==> (P#[k](args) EEE P#[m](args))  (*)
     /// where
     /// AXIOM_ACTIVATION
     /// means:
     ///   mh LESS ModuleContextHeight ||
     ///   (mh == ModuleContextHeight && fh ATMOST FunctionContextHeight)
+    /// There is also a specialized version of (*) for inductive predicates.
     /// </summary>
     void AddPrefixPredicateAxioms(PrefixPredicate pp) {
       Contract.Requires(pp != null);
@@ -3603,6 +3611,32 @@ namespace Microsoft.Dafny {
       sink.AddTopLevelDeclaration(new Bpl.Axiom(tok, Bpl.Expr.Imp(activation, monotonicity),
         "prefix predicate monotonicity axiom"));
 #endif
+      // A more targeted monotonicity axiom used to increase the power of automation for proving the limit case for
+      // inductive predicates that have more than one focal-predicate term.
+      if (pp.FixpointPred is InductivePredicate && pp.Formals[0].Type.IsBigOrdinalType) {
+        // forall args,k,m,limit ::
+        //   { P#[k](args), ORD#LessThanLimit(k,limit), ORD#LessThanLimit(m,limit) }
+        //   args-have-appropriate-values && k < m && P#[k](args) ==> P#[m](args))
+        var limit = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, "_limit", TrType(Type.BigOrdinal)));
+        var limitId = new Bpl.IdentifierExpr(limit.tok, limit);
+        moreBvs = new List<Variable>();
+        moreBvs.AddRange(bvs);
+        moreBvs.Add(k);
+        moreBvs.Add(m);
+        moreBvs.Add(limit);
+        var kLessLimit = FunctionCall(tok, "ORD#LessThanLimit", Bpl.Type.Bool, kId, limitId);
+        var mLessLimit = FunctionCall(tok, "ORD#LessThanLimit", Bpl.Type.Bool, mId, limitId);
+        var kLessM = FunctionCall(tok, "ORD#Less", Bpl.Type.Bool, kId, mId);
+        funcID = new Bpl.IdentifierExpr(tok, pp.FullSanitizedName, TrType(pp.ResultType));
+        var prefixPred_K = new Bpl.NAryExpr(tok, new Bpl.FunctionCall(funcID), prefixArgsLimited);
+        var prefixPred_M = new Bpl.NAryExpr(tok, new Bpl.FunctionCall(funcID), prefixArgsLimitedM);
+        var direction = BplImp(prefixPred_K, prefixPred_M);
+
+        var trigger3 = new Bpl.Trigger(tok, true, new List<Bpl.Expr> { prefixPred_K, kLessLimit, mLessLimit });
+        var monotonicity = new Bpl.ForallExpr(tok, moreBvs, trigger3, BplImp(kLessM, direction));
+        sink.AddTopLevelDeclaration(new Bpl.Axiom(tok, Bpl.Expr.Imp(activation, monotonicity),
+          "targeted prefix predicate monotonicity axiom"));
+      }
     }
 
     /// <summary>
@@ -13870,6 +13904,8 @@ namespace Microsoft.Dafny {
               } else {
                 return TrToFunctionCall(expr.tok, "INTERNAL_lt_boogie", Bpl.Type.Bool, e0, e1, liftLit);
               }
+            case BinaryExpr.ResolvedOpcode.LessThanLimit:
+              return translator.FunctionCall(expr.tok, "ORD#LessThanLimit", Bpl.Type.Bool, e0, e1);
             case BinaryExpr.ResolvedOpcode.Le:
               keepLits = true;
               if (0 <= bvWidth) {

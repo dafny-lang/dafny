@@ -252,7 +252,8 @@ namespace Microsoft.Dafny.Triggers {
         var e = (BinaryExpr)expr;
         if ((e.Op == BinaryExpr.Opcode.NotIn || e.Op == BinaryExpr.Opcode.In) && !(e.E1 is DisplayExpression)) {
           return true;
-        } else if (e.E0.Type.IsBigOrdinalType && (e.ResolvedOp == BinaryExpr.ResolvedOpcode.Lt || e.ResolvedOp == BinaryExpr.ResolvedOpcode.Gt)) {
+        } else if (e.E0.Type.IsBigOrdinalType &&
+          (e.ResolvedOp == BinaryExpr.ResolvedOpcode.Lt || e.ResolvedOp == BinaryExpr.ResolvedOpcode.LessThanLimit || e.ResolvedOp == BinaryExpr.ResolvedOpcode.Gt)) {
           return true;
         } else {
           return false;
@@ -286,7 +287,7 @@ namespace Microsoft.Dafny.Triggers {
         case BinaryExpr.ResolvedOpcode.Mul:
         case BinaryExpr.ResolvedOpcode.Div:
         case BinaryExpr.ResolvedOpcode.Mod:
-          if (!isReal && !e.E0.Type.IsBitVectorType && DafnyOptions.O.DisableNLarith) {
+          if (!isReal && !e.E0.Type.IsBitVectorType && !e.E0.Type.IsBigOrdinalType && DafnyOptions.O.DisableNLarith) {
             return true;
           }
           break;

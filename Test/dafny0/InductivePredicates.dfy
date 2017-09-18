@@ -227,3 +227,23 @@ module Monotonicity {
   }
 }
 ************/
+
+// The following example is slightly tricky with ORDINALs, because of the limit
+// step where one wants both P(x,y,z) and P(x,y,z') to go down to the same lower
+// ORDINAL.  The targeted monotonicity axiom helps verify this example automatically.
+module TargetedMonotonicity {
+  function Next(x: int): int
+  
+  inductive predicate P(x: int, y: int, z: int)
+  {
+    (x == 0 && y == z) ||
+    (x != 0 && P(Next(x), y, z))
+  }
+
+  inductive lemma Deterministic(x: int, y: int, z: int, z': int)
+    requires P(x, y, z) && P(x, y, z')
+    ensures z == z'
+  {
+    // take that!
+  }
+}
