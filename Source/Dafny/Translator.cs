@@ -3225,14 +3225,15 @@ namespace Microsoft.Dafny {
         ppCall.Type = Type.Bool;
         ppCall.TypeArgumentSubstitutions = typeArgumentSubstitutions;
 
+        Attributes triggerAttr = new Attributes("trigger", new List<Expression> { ppCall }, null);
         Expression limitCalls;
         if (pp.FixpointPred is CoPredicate) {
-          // forall k':ORDINAL | _k' LESS _k :: pp(_k', args)  // TODO: TRIGGER?
-          limitCalls = new ForallExpr(pp.tok, new List<BoundVar> { kprimeVar }, smaller, ppCall, null);
+          // forall k':ORDINAL | _k' LESS _k :: pp(_k', args)
+          limitCalls = new ForallExpr(pp.tok, new List<BoundVar> { kprimeVar }, smaller, ppCall, triggerAttr);
           limitCalls.Type = Type.Bool;  // resolve here
         } else {
-          // exists k':ORDINAL | _k' LESS _k :: pp(_k', args)  // TODO: TRIGGER?
-          limitCalls = new ExistsExpr(pp.tok, new List<BoundVar> { kprimeVar }, smaller, ppCall, null);
+          // exists k':ORDINAL | _k' LESS _k :: pp(_k', args)
+          limitCalls = new ExistsExpr(pp.tok, new List<BoundVar> { kprimeVar }, smaller, ppCall, triggerAttr);
           limitCalls.Type = Type.Bool;  // resolve here
         }
         var a = Expression.CreateImplies(kIsPositive, body);
