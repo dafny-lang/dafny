@@ -12,13 +12,13 @@ class Map<Key(==),Value> {
   ghost var M: map<Key,Value>
   ghost var Repr: set<object>
 
-  var head: Node<Key,Value>
+  var head: Node?<Key,Value>
   ghost var Spine: set<Node<Key,Value>>
 
   predicate Valid()
     reads this, Repr
   {
-    this in Repr && null !in Repr && Spine <= Repr &&
+    this in Repr && Spine <= Repr &&
     SpineValid(Spine, head) &&
     (forall k :: k in M ==> exists n :: n in Spine && n.key == k) &&
     (forall n :: n in Spine ==> n.key in M && n.val == M[n.key]) &&
@@ -26,28 +26,26 @@ class Map<Key(==),Value> {
     (forall n :: n in Spine ==> n.next != head) &&
     (forall n,n' :: n in Spine && n' in Spine && n.next == n'.next ==> n == n')
   }
-  static predicate SpineValid(spine: set<Node<Key,Value>>, n: Node<Key,Value>)
+  static predicate SpineValid(spine: set<Node<Key,Value>>, n: Node?<Key,Value>)
     reads spine
   {
     (n == null && spine == {}) ||
     (n != null && n in spine && n.Spine == spine - {n} && SpineValid(n.Spine, n.next))
   }
-  static predicate SpineValid_One(spine: set<Node<Key,Value>>, n: Node<Key,Value>)
+  static predicate SpineValid_One(spine: set<Node<Key,Value>>, n: Node?<Key,Value>)
     reads spine
   {
     (n == null && spine == {}) ||
     (n != null && n in spine && n.Spine == spine - {n})
   }
-  lemma SpineValidSplit(spine: set<Node<Key,Value>>, p: Node<Key,Value>)
-    requires null !in spine
+  lemma SpineValidSplit(spine: set<Node<Key,Value>>, p: Node?<Key,Value>)
     requires SpineValid(spine, p)
     ensures SpineValid_One(spine, p)
     ensures forall n :: n in spine ==> SpineValid_One(n.Spine, n.next)
     ensures forall n :: n in spine ==> n.next == null || n.next in spine
   {
   }
-  lemma SpineValidCombine(spine: set<Node<Key,Value>>, p: Node<Key,Value>)
-    requires null !in spine
+  lemma SpineValidCombine(spine: set<Node<Key,Value>>, p: Node?<Key,Value>)
     requires SpineValid_One(spine, p)
     requires forall n :: n in spine ==> SpineValid_One(n.Spine, n.next)
     ensures SpineValid(spine, p)
@@ -55,8 +53,7 @@ class Map<Key(==),Value> {
   }
 
 
-  method Init()
-    modifies this
+  constructor Init()
     ensures Valid() && fresh(Repr - {this})
     ensures M == map[]
   {
@@ -64,7 +61,7 @@ class Map<Key(==),Value> {
     M, Repr := map[], {this};
   }
 
-  /*private*/ method FindIndex(key: Key) returns (prev: Node<Key,Value>, p: Node<Key,Value>)
+  /*private*/ method FindIndex(key: Key) returns (prev: Node?<Key,Value>, p: Node?<Key,Value>)
     requires Valid()
     ensures p == null ==> key !in M
     ensures p != null ==>
@@ -192,7 +189,7 @@ class Map<Key(==),Value> {
 class Node<Key,Value> {
   var key: Key
   var val: Value
-  var next: Node<Key,Value>
+  var next: Node?<Key,Value>
   ghost var Spine: set<Node<Key,Value>>
 
   constructor (key: Key, val: Value)

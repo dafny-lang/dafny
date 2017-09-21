@@ -4,8 +4,8 @@
 // ----------------- wellformed specifications ----------------------
 
 class SoWellformed {
-  var xyz: int;
-  var next: SoWellformed;
+  var xyz: int
+  var next: SoWellformed?
 
   function F(x: int): int
   { 5 / x }  // error: possible division by zero
@@ -23,7 +23,7 @@ class SoWellformed {
     decreases 5/x;
   { 12 }
 
-  method M(a: SoWellformed, b: int) returns (c: bool, d: SoWellformed)
+  method M(a: SoWellformed?, b: int) returns (c: bool, d: SoWellformed?)
     requires a.xyz == 7;  // error: not always defined
     ensures c ==> d.xyz == -7;  // error: not always defined
     decreases 5 / b;  // error: not always defined
@@ -31,7 +31,7 @@ class SoWellformed {
     c := false;
   }
 
-  method N(a: SoWellformed, b: int) returns (c: bool, d: SoWellformed)
+  method N(a: SoWellformed?, b: int) returns (c: bool, d: SoWellformed?)
     decreases 5 / b;
     requires a.next != null;  // error: not always defined
     requires a.next.xyz == 7;  // this is well-defined, given that the previous line is
@@ -41,27 +41,27 @@ class SoWellformed {
     c := true;
   }
 
-  method O(a: SoWellformed, b: int) returns (c: bool, d: SoWellformed)
+  method O(a: SoWellformed?, b: int) returns (c: bool, d: SoWellformed?)
     modifies a.next;  // error: this is not well-defined if a == null (but it's okay to have a.next==null)
   {
     c := true;
   }
 
-  method P(a: SoWellformed, b: int) returns (c: bool, d: SoWellformed)
+  method P(a: SoWellformed?, b: int) returns (c: bool, d: SoWellformed?)
     requires next != null;
     modifies this;
     ensures next.xyz < 100;  // error: may not be well-defined (if body sets next to null)
   {
 
   }
-  method Q(a: SoWellformed, s: set<SoWellformed>) returns (c: bool, d: SoWellformed)
+  method Q(a: SoWellformed?, s: set<SoWellformed?>) returns (c: bool, d: SoWellformed?)
     requires next != null;
     modifies s;
     ensures next.xyz < 100;  // error: may not be well-defined (if this in s and body sets next to null)
   {
 
   }
-  method R(a: SoWellformed, s: set<SoWellformed>) returns (c: bool, d: SoWellformed)
+  method R(a: SoWellformed?, s: set<SoWellformed?>) returns (c: bool, d: SoWellformed?)
     requires next != null && this !in s;
     modifies s;
     ensures next.xyz < 100;  // fine
@@ -73,17 +73,17 @@ class SoWellformed {
 // ---------------------- welldefinedness checks for statements -------------------
 
 class StatementTwoShoes {
-  var x: int;
-  var s: StatementTwoShoes;
-  function method F(b: int): StatementTwoShoes
-    requires 0 <= b;
-    reads this;
+  var x: int
+  var s: StatementTwoShoes?
+  function method F(b: int): StatementTwoShoes?
+    requires 0 <= b
+    reads this
   {
     s
   }
 
-  method M(p: StatementTwoShoes, a: int)
-    modifies this, p;
+  method M(p: StatementTwoShoes?, a: int)
+    modifies this, p
   {
     p.x := a;  // error: receiver may be null
     F(a).x := a;  // error: LHS may not be well defined (fn precondition)
@@ -204,7 +204,7 @@ class StatementTwoShoes {
 
 class Mountain { var x: int; }
 
-function Postie0(c: Mountain): Mountain
+function Postie0(c: Mountain?): Mountain?
   requires c != null;
   ensures Postie0(c) != null && Postie0(c).x <= Postie0(c).x;
   ensures Postie0(c).x == Postie0(c).x;
@@ -212,21 +212,21 @@ function Postie0(c: Mountain): Mountain
   c
 }
 
-function Postie1(c: Mountain): Mountain
+function Postie1(c: Mountain?): Mountain?
   requires c != null;
   ensures Postie1(c) != null && Postie1(c).x == 5;  // error: postcondition violation (but no well-formedness problem)
 {
   c
 }
 
-function Postie2(c: Mountain): Mountain
+function Postie2(c: Mountain?): Mountain?
   requires c != null && c.x == 5; reads c;
   ensures Postie2(c).x == 5;  // error: well-formedness error (null dereference)
 {
   c
 }
 
-function Postie3(c: Mountain): Mountain  // all is cool
+function Postie3(c: Mountain?): Mountain?  // all is cool
   requires c != null && c.x == 5; reads c;
   ensures Postie3(c) != null && Postie3(c).x < 10;
   ensures Postie3(c).x == 5;
@@ -234,7 +234,7 @@ function Postie3(c: Mountain): Mountain  // all is cool
   c
 }
 
-function Postie4(c: Mountain): Mountain
+function Postie4(c: Mountain?): Mountain?
   requires c != null && c.x <= 5; reads c;
   ensures Postie4(c) != null && Postie4(c).x < 10;
   ensures Postie4(c).x == 5;  // error: postcondition might not hold

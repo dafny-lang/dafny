@@ -5782,6 +5782,9 @@ namespace Microsoft.Dafny {
       } else if (pat.Arguments != null) {
         Contract.Assert(pat.Ctor != null);  // follows from successful resolution
         Contract.Assert(pat.Arguments.Count == pat.Ctor.Destructors.Count);  // follows from successful resolution
+        Contract.Assert(rhsType is UserDefinedType && ((UserDefinedType)rhsType).ResolvedClass != null);
+        var rhsTypeUdt = (UserDefinedType)rhsType;
+        var typeSubstMap = Resolver.TypeSubstitutionMap(rhsTypeUdt.ResolvedClass.TypeArgs, rhsTypeUdt.TypeArgs);
         for (int i = 0; i < pat.Arguments.Count; i++) {
           var arg = pat.Arguments[i];
           var ctor = pat.Ctor;
@@ -5795,8 +5798,9 @@ namespace Microsoft.Dafny {
           }
 
           var r = new Bpl.NAryExpr(arg.tok, new Bpl.FunctionCall(GetReadonlyField(dtor)), new List<Bpl.Expr> { rhs });
-          var de = CondApplyUnbox(arg.tok, r, dtor.Type, arg.Expr.Type);
-          CheckCasePatternShape(arg, de, arg.tok, arg.Expr.Type, builder);
+          Type argType = Resolver.SubstType(dtor.Type, typeSubstMap);
+          var de = CondApplyUnbox(arg.tok, r, dtor.Type, argType);
+          CheckCasePatternShape(arg, de, arg.tok, argType, builder);
         }
       }
     }
@@ -8305,7 +8309,10 @@ namespace Microsoft.Dafny {
 
         Bpl.Expr wh;
         if (m is Constructor && kind == MethodTranslationKind.Implementation) {
-          wh = null;
+          var th = new Bpl.IdentifierExpr(tok, "this", predef.RefType);
+          wh = Bpl.Expr.And(
+            Bpl.Expr.Neq(th, predef.Null),
+            GetWhereClause(tok, th, receiverType, etran, NOALLOC));
         } else {
           var th = new Bpl.IdentifierExpr(tok, "this", predef.RefType);
           wh = Bpl.Expr.And(
@@ -11982,11 +11989,14 @@ namespace Microsoft.Dafny {
       if (includeHavoc) {
         // havoc $nw;
         builder.Add(new Bpl.HavocCmd(tok, new List<Bpl.IdentifierExpr> { nw }));
+        // assume $nw != null && dtype($nw) == RHS;
+        var nwNotNull = Bpl.Expr.Neq(nw, predef.Null);
+        var rightType = DType(nw, TypeToTy(type));
+        builder.Add(TrAssumeCmd(tok, Bpl.Expr.And(nwNotNull, rightType)));
       }
-      // assume $nw != null && !$Heap[$nw, alloc] && dtype($nw) == RHS;
-      var nwNotNull = Bpl.Expr.Neq(nw, predef.Null);
-      var rightType = etran.GoodRef_(tok, nw, type);
-      builder.Add(TrAssumeCmd(tok, Bpl.Expr.And(nwNotNull, rightType)));
+      // assume !$Heap[$nw, alloc];
+      var notAlloc = Bpl.Expr.Not(etran.IsAlloced(tok, nw));
+      builder.Add(TrAssumeCmd(tok, notAlloc));
     }
 
     private void CommitAllocatedObject(IToken tok, Bpl.IdentifierExpr nw, Bpl.Cmd extraCmd, BoogieStmtListBuilder builder, ExpressionTranslator etran) {
@@ -12023,7 +12033,25 @@ namespace Microsoft.Dafny {
       Contract.Requires(sourceType != null);
       Contract.Requires(targetType != null);
 
+#if PREVIOUSLY
       if (targetType.IsSupertypeOf_WithSubsetTypes(sourceType)) {
+#else
+#if PREVIOUSLY
+      // TODO: the following should be built into a method that checks that type parameters correctly
+      bool isSupertype = Type.IsHeadSupertypeOf_Improved(targetType, sourceType);
+      if (isSupertype) {
+        var tt = targetType.NormalizeExpand();
+        var ss = sourceType.NormalizeExpand();
+        Contract.Assume(tt.IsTraitType || tt.TypeArgs.Count == ss.TypeArgs.Count);
+        for (var i = 0; isSupertype && i < tt.TypeArgs.Count; i++) {
+          isSupertype = tt.TypeArgs[i].Equals(ss.TypeArgs[i]);
+        }
+      }
+      if (isSupertype) {
+#else
+      if (Type.IsSupertype_Improved(targetType, sourceType)) {
+#endif
+#endif
         // We should always be able to use Is, but this is an optimisation.
         msg = null;
         return null;
@@ -14555,17 +14583,6 @@ namespace Microsoft.Dafny {
 
         // Add $Is and $IsAlloc
         return translator.GetWhereClause(tok, e, type, this, ISALLOC);
-      }
-
-      public Bpl.Expr GoodRef_(IToken tok, Bpl.Expr e, Type ty) {
-        Contract.Requires(tok != null);
-        Contract.Requires(e != null);
-        Contract.Requires(ty != null);
-
-        Bpl.Expr tr_ty = translator.TypeToTy(ty);
-        Bpl.Expr notAlloc = Bpl.Expr.Not(IsAlloced(tok, e));
-
-        return Bpl.Expr.And(notAlloc, translator.DType(e, tr_ty));
       }
     }
 

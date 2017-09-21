@@ -1,5 +1,12 @@
-DTypes.dfy(182,2): Error BP5003: A postcondition might not hold on this return path.
-DTypes.dfy(181,14): Related location: This is the postcondition that might not hold.
+DTypes.dfy(214,14): Warning: the type of the other operand is a non-null type, so this comparison with 'null' will always return 'false' (to make it possible for variable 'm' to have the value 'null', declare its type to be 'MyClass?')
+DTypes.dfy(215,14): Warning: the type of the other operand is a non-null type, so this comparison with 'null' will always return 'false' (to make it possible for variable 'b' to have the value 'null', declare its type to be 'Cell?<MyClass>')
+DTypes.dfy(222,14): Warning: the type of the other operand is a non-null type, so this comparison with 'null' will always return 'false' (to make it possible for variable 'm' to have the value 'null', declare its type to be 'MyClass?')
+DTypes.dfy(223,14): Warning: the type of the other operand is a non-null type, so this comparison with 'null' will always return 'false' (to make it possible for variable 'c' to have the value 'null', declare its type to be 'Cell?<MyClass>')
+DTypes.dfy(231,14): Warning: the type of the other operand is a non-null type, so this comparison with 'null' will always return 'false' (to make it possible for variable 'm' to have the value 'null', declare its type to be 'MyClass?')
+DTypes.dfy(232,14): Warning: the type of the other operand is a non-null type, so this comparison with 'null' will always return 'false' (to make it possible for variable 'c' to have the value 'null', declare its type to be 'Cell?<MyClass>')
+DTypes.dfy(233,14): Warning: the type of the other operand is a non-null type, so this comparison with 'null' will always return 'false' (to make it possible for variable 'd' to have the value 'null', declare its type to be 'Cell?<MyClass>')
+DTypes.dfy(179,2): Error BP5003: A postcondition might not hold on this return path.
+DTypes.dfy(178,14): Related location: This is the postcondition that might not hold.
 Execution trace:
     (0,0): anon0
 DTypes.dfy(18,13): Error: assertion violation
@@ -21,11 +28,11 @@ DTypes.dfy(132,5): Related location
 DTypes.dfy(93,19): Related location
 Execution trace:
     (0,0): anon0
-DTypes.dfy(158,11): Error: assertion violation
+DTypes.dfy(156,11): Error: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon5_Then
     (0,0): anon6_Then
     (0,0): anon4
 
-Dafny program verifier finished with 18 verified, 7 errors
+Dafny program verifier finished with 22 verified, 7 errors

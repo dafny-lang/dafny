@@ -324,3 +324,25 @@ method LetSuchThat_Deterministic() returns (x: int)
   var s := var a, b :| a in t && b in t && a != b; {a} + {b};
   assert s == t;
 }
+
+// ----------------------------------
+
+module PatternsWithExplicitTypes {
+  datatype Tuple<T,U> = Pair(0: T, 1: U)
+  method LetExpr(p: Tuple<nat,bool>, q: Tuple<int,bool>) returns (z: int)
+  {
+    z := var Pair(xx: nat, yy) := q; xx;  // error: int-to-nat failure
+  }
+  method LetStmt(p: Tuple<nat,bool>, q: Tuple<int,bool>) returns (z: int)
+  {
+    var Pair(xx: nat, yy) := q;  // error: int-to-nat failure
+  }
+  method LetExpr'(p: Tuple<nat,bool>, q: Tuple<int,bool>) returns (z: int)
+  {
+    z := var Pair(xx: int, yy) := p; xx;
+  }
+  method LetStmt'(p: Tuple<nat,bool>, q: Tuple<int,bool>) returns (z: int)
+  {
+    var Pair(xx: int, yy) := p;
+  }
+}

@@ -3045,7 +3045,7 @@ RelOp<out IToken/*!*/ x, out BinaryExpr.Opcode op, out Expression k>
     [ "#" "[" Expression<out k, true, true> "]" ]
   | "in"           (. x = t;  op = BinaryExpr.Opcode.In; .)
   | notIn          (. x = t;  op = BinaryExpr.Opcode.NotIn; .)
-  | /* The next operator is "!!", but we have to scan it as two "!", since the scanner is gready
+  | /* The next operator is "!!", but we have to scan it as two "!", since the scanner is greedy
        so if "!!" is a valid token, we won't be able to scan it as two "!" when needed: */
     "!"            (. x = t;  y = Token.NoToken; .)
     [ IF(la.val == "!")

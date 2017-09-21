@@ -70,7 +70,7 @@ class Cell {
   var data: int;
 }
 
-iterator IterA(c: Cell)
+iterator IterA(c: Cell?)
   requires c != null;
   modifies c;
 {
@@ -91,7 +91,7 @@ method TestIterA()
 
 // -----------------------------------------------------------
 
-iterator IterB(c: Cell)
+iterator IterB(c: Cell?)
   requires c != null;
   modifies c;
   yield ensures c.data == old(c.data);
@@ -122,7 +122,7 @@ method TestIterB()
 
 // ------------------ yield statements, and_decreases variables ----------------------------------
 
-iterator IterC(c: Cell)
+iterator IterC(c: Cell?)
   requires c != null;
   modifies c;
   reads c;
@@ -157,7 +157,7 @@ method TestIterC()
 
 // ------------------ allocations inside an iterator ------------------
 
-iterator AllocationIterator(x: Cell)
+iterator AllocationIterator(x: Cell?)
 {
   assert _new == {};
   var h := new Cell;
@@ -182,18 +182,18 @@ method SomeMethod()
 {
 }
 
-method AnotherMethod() returns (u: Cell, v: Cell)
+method AnotherMethod() returns (u: Cell?, v: Cell?)
   ensures u != null && fresh(u);
 {
   u := new Cell;
 }
 
-iterator DoleOutReferences(u: Cell) yields (r: Cell, c: Cell)
+iterator DoleOutReferences(u: Cell?) yields (r: Cell?, c: Cell?)
   yield ensures r != null && fresh(r) && r !in _new;
   yield ensures c != null && fresh(c);  // but we don't say whether it's in _new
   ensures false;  // goes forever
 {
-  var myCells: seq<Cell> := [];
+  var myCells: seq<Cell?> := [];
   while (true)
     invariant forall z :: z in myCells ==> z in _new;
   {
@@ -240,7 +240,7 @@ method ClientOfNewReferences()
 // ------ recursive iterators --------------------------------------
 
 module ITER_A {
-  iterator RecursiveIterator(n: nat, r: RecIterCaller, good: bool)
+  iterator RecursiveIterator(n: nat, r: RecIterCaller?, good: bool)
     requires r != null;
     decreases n+2, 0;
   {
@@ -263,7 +263,7 @@ module ITER_A {
   }
 }
 module ITER_B {
-  iterator RecursiveIterator(n: nat, r: RecIterCaller, good: bool)
+  iterator RecursiveIterator(n: nat, r: RecIterCaller?, good: bool)
     requires r != null;
     decreases n;
   {
@@ -286,7 +286,7 @@ module ITER_B {
   }
 }
 module ITER_C {
-  iterator RecursiveIterator(n: nat, r: RecIterCaller, good: bool)
+  iterator RecursiveIterator(n: nat, r: RecIterCaller?, good: bool)
     requires r != null;
   {
     if n == 0 {
@@ -307,7 +307,7 @@ module ITER_C {
   }
 }
 module ITER_D {
-  iterator RecursiveIterator(n: nat, r: RecIterCaller, good: bool)
+  iterator RecursiveIterator(n: nat, r: RecIterCaller?, good: bool)
     requires r != null;
   {
     if n == 0 {
@@ -331,7 +331,7 @@ module ITER_E {
   class Cell {
     var data: nat;
   }
-  iterator RecursiveIterator(cell: Cell, n: nat, r: RecIterCaller, good: bool)
+  iterator RecursiveIterator(cell: Cell?, n: nat, r: RecIterCaller?, good: bool)
     requires cell != null && r != null;
     modifies cell;
     decreases if cell.data < 2 then n else n+n-n;
@@ -358,7 +358,7 @@ module ITER_F {
   class Cell {
     var data: nat;
   }
-  iterator RecursiveIterator(cell: Cell, n: nat, r: RecIterCaller, good: bool)
+  iterator RecursiveIterator(cell: Cell?, n: nat, r: RecIterCaller?, good: bool)
     requires cell != null && r != null;
     modifies cell;
     decreases if cell.data < 2 then n else n+n-n, 0;

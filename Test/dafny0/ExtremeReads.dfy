@@ -3,35 +3,35 @@
 
 class C {
   var data: int
-  var next: C
+  var next: C?
 }
 
-copredicate P(c: C)
+copredicate P(c: C?)
   requires c != null
   reads *
 {
   c.next != null && P(c.next)
 }
 
-copredicate Q(c: C)
+copredicate Q(c: C?)
   requires c != null
   reads c
 {
   c.next != null && Q(c)
 }
 
-copredicate R(c: C)
+copredicate R(c: C?)
   reads c  // gratuitous
 {
   R(c)
 }
 
-colemma RAlwaysHolds(c: C)
+colemma RAlwaysHolds(c: C?)
   ensures R(c)
 {
 }
 
-method TestP(c: C, e: C)
+method TestP(c: C?, e: C?)
   requires c != null && P(c)
   modifies c, e
 {
@@ -50,7 +50,7 @@ method TestP(c: C, e: C)
     assert P(c);  // error: same reason as above
 }
 
-method TestQ(c: C, e: C)
+method TestQ(c: C?, e: C?)
   requires c != null && Q(c)
   modifies c, e
 {
@@ -69,7 +69,7 @@ method TestQ(c: C, e: C)
     assert Q(c);  // error: can't tell it's still the same
 }
 
-method TestR(c: C)
+method TestR(c: C?)
   requires c != null && R(c)
   modifies c
 {
@@ -83,19 +83,19 @@ method TestR(c: C)
     assert R(c);  // error: can't tell it's still the same
 }
 
-inductive predicate V(c: C)
+inductive predicate V(c: C?)
   reads c
 {
   V(c)
 }
 
-inductive lemma VNeverHolds(c: C)
+inductive lemma VNeverHolds(c: C?)
   requires V(c)
   ensures false
 {
 }
 
-method TestV(c: C)
+method TestV(c: C?)
   requires c != null && V(c)
   modifies c
 {
@@ -111,7 +111,7 @@ method TestV(c: C)
 
 // ---- Now for the generated prefix predicates
 
-method TestPrefixPredicatesP(k: nat, c: C, e: C)
+method TestPrefixPredicatesP(k: nat, c: C?, e: C?)
   requires c != null && P#[k](c)
   modifies c, e
 {
@@ -130,7 +130,7 @@ method TestPrefixPredicatesP(k: nat, c: C, e: C)
     assert P#[k](c);  // error: same reason as above
 }
 
-method TestPrefixPredicatesQ(k: nat, c: C, e: C)
+method TestPrefixPredicatesQ(k: nat, c: C?, e: C?)
   requires c != null && Q#[k](c)
   modifies c, e
 {
@@ -149,7 +149,7 @@ method TestPrefixPredicatesQ(k: nat, c: C, e: C)
     assert Q#[k](c);  // error: can't tell it's still the same
 }
 
-method TestPrefixPredicatesR(k: nat, c: C)
+method TestPrefixPredicatesR(k: nat, c: C?)
   requires c != null && R#[k](c)
   modifies c
 {
@@ -171,7 +171,7 @@ method TestPrefixPredicatesR(k: nat, c: C)
     assert R#[k](c);  // error: can't tell it's still the same
 }
 
-method TestPrefixPredicatesV(k: nat, c: C)
+method TestPrefixPredicatesV(k: nat, c: C?)
   requires c != null && V#[k](c)
   modifies c
 {

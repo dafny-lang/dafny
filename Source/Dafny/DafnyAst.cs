@@ -116,7 +116,7 @@ namespace Microsoft.Dafny {
     public readonly ISet<int> Bitwidths = new HashSet<int>();
 
     public readonly TraitDecl ObjectDecl;
-    public Type Object() { return new UserDefinedType(Token.NoToken, "object?", null) { ResolvedClass = ObjectDecl }; }
+    public UserDefinedType Object() { return new UserDefinedType(Token.NoToken, "object?", null) { ResolvedClass = ObjectDecl }; }
 
     public BuiltIns() {
       SystemModule.Height = -1;  // the system module doesn't get a height assigned later, so we set it here to something below everything else
@@ -929,19 +929,30 @@ namespace Microsoft.Dafny {
     /// </summary>
     public bool IsNonNullRefType {
       get {
+        return AsNonNullRefType != null;
+      }
+    }
+    /// <summary>
+    /// If the type is a non-null type or any subset type thereof, return the UserDefinedType whose
+    /// .ResolvedClass value is a NonNullTypeDecl.
+    /// Otherwise, return "null".
+    /// </summary>
+    public UserDefinedType AsNonNullRefType {
+      get {
         var t = this;
         while (true) {
           var udt = t.NormalizeExpandKeepConstraints() as UserDefinedType;
           if (udt == null) {
-            return false;
-          } else if (udt.ResolvedClass is NonNullTypeDecl) {
-            return true;
+            return null;
+          }
+          if (udt.ResolvedClass is NonNullTypeDecl) {
+            return udt;
           }
           var sst = udt.ResolvedClass as SubsetTypeDecl;
           if (sst != null) {
             t = sst.RhsWithArgument(udt.TypeArgs);  // continue the search up the chain of subset types
           } else {
-            return false;
+            return null;
           }
         }
       }
@@ -1274,6 +1285,223 @@ namespace Microsoft.Dafny {
     }
 
     /// <summary>
+    /// Returns "true" iff "sub" is a subtype of "super".
+    /// Expects that neither "super" nor "sub" is an unresolved proxy.
+    /// </summary>
+    /// <param name="super"></param>
+    /// <param name="sub"></param>
+    /// <returns></returns>
+    public static bool IsSupertype_Improved(Type super, Type sub) {
+      Contract.Requires(super != null);
+      Contract.Requires(sub != null);
+      if (!IsHeadSupertypeOf_Improved(super, sub)) {
+        return false;
+      }
+      super = super.NormalizeExpand();
+      sub = sub.NormalizeExpand();
+      var polarities = GetPolarities(super);
+      Contract.Assert(super.IsTraitType ? polarities.Count == 0 : polarities.Count == super.TypeArgs.Count && polarities.Count == sub.TypeArgs.Count);
+      if (super.IsTraitType) {
+        return true;
+      }
+      var allGood = true;
+      for (int i = 0; allGood && i < polarities.Count; i++) {
+        switch (polarities[i]) {
+          case TypeParameter.TPVariance.Co:
+            allGood = IsSupertype_Improved(super.TypeArgs[i], sub.TypeArgs[i]);
+            break;
+          case TypeParameter.TPVariance.Contra:
+            allGood = IsSupertype_Improved(sub.TypeArgs[i], super.TypeArgs[i]);
+            break;
+          case TypeParameter.TPVariance.Inv:
+          default:  // "default" shouldn't ever happen
+            allGood = Equal_Improved(super.TypeArgs[i], sub.TypeArgs[i]);
+            break;
+        }
+      }
+      return allGood;
+    }
+
+    /// <summary>
+    /// Expects that "type" has already been normalized.
+    /// </summary>
+    public static List<TypeParameter.TPVariance> GetPolarities(Type type) {
+      Contract.Requires(type != null);
+      if (type is BasicType || type is ArtificialType) {
+        // there are no type parameters
+        return new List<TypeParameter.TPVariance>();
+      } else if (type is MapType) {
+        return new List<TypeParameter.TPVariance> { TypeParameter.TPVariance.Co, TypeParameter.TPVariance.Co };
+      } else if (type is CollectionType) {
+        return new List<TypeParameter.TPVariance> { TypeParameter.TPVariance.Co };
+      } else {
+        var udf = (UserDefinedType)type;
+        if (udf.TypeArgs.Count == 0) {
+          return new List<TypeParameter.TPVariance>();
+        }
+        // look up the declaration of the formal type parameters
+        var cl = udf.ResolvedClass;
+        return cl.TypeArgs.ConvertAll(tp => tp.Variance);
+      }
+    }
+
+    /// <summary>
+    /// Returns "true" iff the head symbols of "sub" can be a subtype of the head symbol of "super".
+    /// Expects that neither "super" nor "sub" is an unresolved proxy type (but their type arguments are
+    /// allowed to be, since this method does not inspect the type arguments).
+    /// </summary>
+    public static bool IsHeadSupertypeOf_Improved(Type super, Type sub) {
+      Contract.Requires(super != null);
+      Contract.Requires(sub != null);
+      super = super.NormalizeExpandKeepConstraints();  // expand type synonyms
+      var origSub = sub;
+      sub = sub.NormalizeExpand();  // expand type synonyms AND constraints
+      if (super is BoolType) {
+        return sub is BoolType;
+      } else if (super is CharType) {
+        return sub is CharType;
+      } else if (super is IntType) {
+        return sub is IntType;
+      } else if (super is RealType) {
+        return sub is RealType;
+      } else if (super is BitvectorType) {
+        var bitvectorSuper = (BitvectorType)super;
+        var bitvectorSub = sub as BitvectorType;
+        return bitvectorSub != null && bitvectorSuper.Width == bitvectorSub.Width;
+      } else if (super is IntVarietiesSupertype) {
+        while (sub.AsNewtype != null) {
+          sub = sub.AsNewtype.BaseType.NormalizeExpand();
+        }
+        return sub.IsIntegerType || sub is BitvectorType;
+      } else if (super is RealVarietiesSupertype) {
+        while (sub.AsNewtype != null) {
+          sub = sub.AsNewtype.BaseType.NormalizeExpand();
+        }
+        return sub is RealType;
+#if BIG_ORDINALS
+      } else if (super is BigOrdinalType) {
+        return sub is BigOrdinalType;
+#endif
+      } else if (super is SetType) {
+        return sub is SetType && (super.IsISetType || !sub.IsISetType);
+      } else if (super is SeqType) {
+        return sub is SeqType;
+      } else if (super is MultiSetType) {
+        return sub is MultiSetType;
+      } else if (super is MapType) {
+        return sub is MapType && (super.IsIMapType || !sub.IsIMapType);
+      } else if (super is ArrowType) {
+        var asuper = (ArrowType)super;
+        var asub = sub as ArrowType;
+        return asub != null && asuper.Arity == asub.Arity;
+      } else if (super.IsObject) {
+        var clSub = sub as UserDefinedType;
+        return sub.IsObject || (clSub != null && clSub.ResolvedClass is ClassDecl);
+      } else if (super is UserDefinedType) {
+        var udtSuper = (UserDefinedType)super;
+        if (udtSuper.ResolvedParam != null) {
+          return udtSuper.ResolvedParam == sub.AsTypeParameter;
+        } else {
+          Contract.Assert(udtSuper.ResolvedClass != null);
+          sub = origSub.NormalizeExpandKeepConstraints();  // get back to the starting point, including any and all constraints
+          while (true) {
+            var udtSub = sub as UserDefinedType;
+            if (udtSub == null) {
+              return false;
+            } else if (udtSuper.ResolvedClass == udtSub.ResolvedClass) {
+              return true;
+            } else if (udtSub.ResolvedClass is SubsetTypeDecl) {
+              sub = ((SubsetTypeDecl)udtSub.ResolvedClass).RhsWithArgument(udtSub.TypeArgs);
+              if (udtSub.ResolvedClass is NonNullTypeDecl && udtSuper.ResolvedClass is NonNullTypeDecl) {
+                // move "super" up the base-type chain, as was done with "sub", because non-nullness is essentially a co-variant type constructor
+                super = ((SubsetTypeDecl)udtSuper.ResolvedClass).RhsWithArgument(udtSuper.TypeArgs);
+                if (super.IsObject) {
+                  return true;
+                }
+              }
+            } else if (udtSub.ResolvedClass is ClassDecl) {
+              var cl = (ClassDecl)udtSub.ResolvedClass;
+              return cl.DerivesFrom(udtSuper.ResolvedClass);
+            } else {
+              return false;
+            }
+          }
+        }
+      } else {
+        Contract.Assert(false);  // unexpected kind of type
+        return true;  // to please the compiler
+      }
+    }
+
+    /// <summary>
+    /// Returns "true" iff "a" and "b" denote the same type, expanding type synonyms (but treating types with
+    /// constraints as being separate types).
+    /// Expects that neither "a" nor "b" is or contains an unresolved proxy type.
+    /// </summary>
+    public static bool Equal_Improved(Type a, Type b) {
+      Contract.Requires(a != null);
+      Contract.Requires(b != null);
+      a = a.NormalizeExpandKeepConstraints();  // expand type synonyms
+      b = b.NormalizeExpandKeepConstraints();  // expand type synonyms
+      if (a is BoolType) {
+        return b is BoolType;
+      } else if (a is CharType) {
+        return b is CharType;
+      } else if (a is IntType) {
+        return b is IntType;
+      } else if (a is RealType) {
+        return b is RealType;
+      } else if (a is BitvectorType) {
+        var bitvectorSuper = (BitvectorType)a;
+        var bitvectorSub = b as BitvectorType;
+        return bitvectorSub != null && bitvectorSuper.Width == bitvectorSub.Width;
+#if BIG_ORDINALS
+      } else if (super is BigOrdinalType) {
+        return sub is BigOrdinalType;
+#endif
+      } else if (a is SetType) {
+        return b is SetType && (a.IsISetType || !b.IsISetType);
+      } else if (a is SeqType) {
+        return b is SeqType;
+      } else if (a is MultiSetType) {
+        return b is MultiSetType;
+      } else if (a is MapType) {
+        return b is MapType && (a.IsIMapType || !b.IsIMapType);
+      } else if (a is ArrowType) {
+        var asuper = (ArrowType)a;
+        var asub = b as ArrowType;
+        return asub != null && asuper.Arity == asub.Arity;
+      } else if (a is UserDefinedType) {
+        var udtA = (UserDefinedType)a;
+        if (udtA.ResolvedParam != null) {
+          Contract.Assert(udtA.TypeArgs.Count == 0);  // (is this true? what about opaque types with type arguments?)
+          return udtA.ResolvedParam == b.AsTypeParameter;
+        } else {
+          Contract.Assert(udtA.ResolvedClass != null);
+          while (true) {
+            var udtB = b as UserDefinedType;
+            if (udtB == null) {
+              return false;
+            } else if (udtA.ResolvedClass != udtB.ResolvedClass) {
+              return false;
+            } else {
+              Contract.Assert(udtA.TypeArgs.Count == udtB.TypeArgs.Count);
+              for (int i = 0; i < udtA.TypeArgs.Count; i++) {
+                if (!Equal_Improved(udtA.TypeArgs[i], udtB.TypeArgs[i])) {
+                  return false;
+                }
+              }
+              return true;
+            }
+          }
+        }
+      } else {
+        Contract.Assert(false);  // unexpected kind of type
+        return true;  // to please the compiler
+      }
+    }
+
+    /// <summary>
     /// Returns "true" iff the head symbols of "sub" can be a subtype of the head symbol of "super".
     /// </summary>
     public static bool IsHeadSupertype(Type super, Type sub) {
@@ -1350,13 +1578,39 @@ namespace Microsoft.Dafny {
     }
 
     /// <summary>
+    /// Returns a stack of base types leading to "type".  More precisely, of the tower returned,
+    ///     tower[0] == type.NormalizeExpand()
+    ///     tower.Last == type.NormalizeExpandKeepConstraints()
+    /// In between, for consecutive indices i and i+1:
+    ///     tower[i] is the base type (that is, .Rhs) of the subset type tower[i+1]
+    /// The tower thus has the property that:
+    ///     tower[0] is not a UserDefinedType with .ResolvedClass being a SubsetTypeDecl,
+    ///     but all other tower[i] (for i > 0) are.
+    /// </summary>
+    public static List<Type> GetTowerOfSubsetTypes(Type type) {
+      Contract.Requires(type != null);
+      type = type.NormalizeExpandKeepConstraints();
+      List<Type> tower;
+      var udt = type as UserDefinedType;
+      if (udt != null && udt.ResolvedClass is SubsetTypeDecl) {
+        var sst = (SubsetTypeDecl)udt.ResolvedClass;
+        var parent = sst.RhsWithArgument(udt.TypeArgs);
+        tower = GetTowerOfSubsetTypes(parent);
+      } else {
+        tower = new List<Type>();
+      }
+      tower.Add(type);
+      return tower;
+    }
+
+    /// <summary>
     /// For each i, computes some combination of a[i] and b[i], according to direction[i].
-    /// For a negative direction, computes Meet(a[i], b[i]), provided this meet exists.
-    /// For a zero direction, uses a[i], provided a[i] and b[i] are equal.
-    /// For a positive direction, computes Join(a[i], b[i]), provided this join exists.
+    /// For a negative direction (Contra), computes Meet(a[i], b[i]), provided this meet exists.
+    /// For a zero direction (Inv), uses a[i], provided a[i] and b[i] are equal.
+    /// For a positive direction (Co), computes Join(a[i], b[i]), provided this join exists.
     /// Returns null if any operation fails.
     /// </summary>
-    public static List<Type> ComputeExtrema(List<int> directions, List<Type> a, List<Type> b, BuiltIns builtIns) {
+    public static List<Type> ComputeExtrema(List<TypeParameter.TPVariance> directions, List<Type> a, List<Type> b, BuiltIns builtIns) {
       Contract.Requires(directions != null);
       Contract.Requires(a != null);
       Contract.Requires(b != null);
@@ -1366,14 +1620,14 @@ namespace Microsoft.Dafny {
       var n = directions.Count;
       var r = new List<Type>(n);
       for (int i = 0; i < n; i++) {
-        if (directions[i] == 0) {
+        if (directions[i] == TypeParameter.TPVariance.Inv) {
           if (a[i].Equals(b[i])) {
             r.Add(a[i]);
           } else {
             return null;
           }
         } else {
-          var t = directions[i] < 0 ? Meet(a[i], b[i], builtIns) : Join(a[i], b[i], builtIns);
+          var t = directions[i] == TypeParameter.TPVariance.Contra ? Meet(a[i], b[i], builtIns) : Join(a[i], b[i], builtIns);
           if (t == null) {
             return null;
           }
@@ -1390,8 +1644,35 @@ namespace Microsoft.Dafny {
       Contract.Requires(a != null);
       Contract.Requires(b != null);
       Contract.Requires(builtIns != null);
-      a = a.NormalizeExpand();
-      b = b.NormalizeExpand();
+
+      // Before we do anything else, make a note of whether or not both "a" and "b" are non-null types.
+      var abNonNullTypes = a.IsNonNullRefType && b.IsNonNullRefType;
+
+      var towerA = GetTowerOfSubsetTypes(a);
+      var towerB = GetTowerOfSubsetTypes(b);
+      for (var n = Math.Min(towerA.Count, towerB.Count); 1 <= --n; ) {
+        a = towerA[n];
+        b = towerB[n];
+        var udtA = (UserDefinedType)a;
+        var udtB = (UserDefinedType)b;
+        if (udtA.ResolvedClass == udtB.ResolvedClass) {
+          // We have two subset types with equal heads
+          if (a.Equals(b)) {  // optimization for a special case, which applies for example when there are no arguments or when the types happen to be the same
+            return a;
+          }
+          Contract.Assert(a.TypeArgs.Count == b.TypeArgs.Count);
+          var directions = udtA.ResolvedClass.TypeArgs.ConvertAll(tp => TypeParameter.Negate(tp.Variance));
+          var typeArgs = ComputeExtrema(directions, a.TypeArgs, b.TypeArgs, builtIns);
+          if (typeArgs == null) {
+            return null;
+          }
+          return new UserDefinedType(udtA.tok, udtA.Name, udtA.ResolvedClass, typeArgs);
+        }
+      }
+      // We exhausted all possibilities of subset types being equal, so use the base-most types.
+      a = towerA[0];
+      b = towerB[0];
+
       if (a.IsBoolType || a.IsCharType || a.IsTypeParameter || a.IsInternalTypeSynonym || a is TypeProxy) {
         return a.Equals(b) ? a : null;
       } else if (a.IsNumericBased()) {
@@ -1443,11 +1724,7 @@ namespace Microsoft.Dafny {
           return a;
         }
         Contract.Assert(a.TypeArgs.Count == b.TypeArgs.Count);
-        var n = a.TypeArgs.Count;
-        var directions = new List<int>();
-        for (int i = 0; i < n; i++) {
-          directions.Add(-1);  // datatypes are co-variant in their argument types, so compute meets
-        }
+        var directions = aa.TypeArgs.ConvertAll(tp => TypeParameter.Negate(tp.Variance));
         var typeArgs = ComputeExtrema(directions, a.TypeArgs, b.TypeArgs, builtIns);
         if (typeArgs == null) {
           return null;
@@ -1460,15 +1737,15 @@ namespace Microsoft.Dafny {
         if (bb == null || aa.Arity != bb.Arity) {
           return null;
         }
-        int n = aa.Arity;
-        Contract.Assert(a.TypeArgs.Count == n + 1);
-        Contract.Assert(b.TypeArgs.Count == n + 1);
+        int arity = aa.Arity;
+        Contract.Assert(a.TypeArgs.Count == arity + 1);
+        Contract.Assert(b.TypeArgs.Count == arity + 1);
         Contract.Assert(((ArrowType)a).ResolvedClass == ((ArrowType)b).ResolvedClass);
-        var directions = new List<int>();
-        for (int i = 0; i < n; i++) {
-          directions.Add(-1);  // arrow types are contra-variant in the argument types, so compute joins of these
+        var directions = new List<TypeParameter.TPVariance>();
+        for (int i = 0; i < arity; i++) {
+          directions.Add(TypeParameter.Negate(TypeParameter.TPVariance.Contra));  // arrow types are contra-variant in the argument types, so compute joins of these
         }
-        directions.Add(1);  // arrow types are co-variant in the result type, so compute the meet of these
+        directions.Add(TypeParameter.Negate(TypeParameter.TPVariance.Co));  // arrow types are co-variant in the result type, so compute the meet of these
         var typeArgs = ComputeExtrema(directions, a.TypeArgs, b.TypeArgs, builtIns);
         if (typeArgs == null) {
           return null;
@@ -1476,9 +1753,11 @@ namespace Microsoft.Dafny {
         var arr = (ArrowType)aa;
         return new ArrowType(arr.tok, (ArrowTypeDecl)arr.ResolvedClass, typeArgs);
       } else if (b.IsObject) {
-        return a.IsRefType ? b : null;
+        var udtB = (UserDefinedType)b;
+        return !a.IsRefType ? null : abNonNullTypes ? UserDefinedType.CreateNonNullType(udtB) : udtB;
       } else if (a.IsObject) {
-        return b.IsRefType ? a : null;
+        var udtA = (UserDefinedType)a;
+        return !b.IsRefType ? null : abNonNullTypes ? UserDefinedType.CreateNonNullType(udtA) : udtA;
       } else {
         // "a" is a class, trait, or opaque type
         var aa = ((UserDefinedType)a).ResolvedClass;
@@ -1490,18 +1769,15 @@ namespace Microsoft.Dafny {
         if (a.Equals(b)) {  // optimization for a special case, which applies for example when there are no arguments or when the types happen to be the same
           return a;
         } else if (aa == bb) {
-          var n = a.TypeArgs.Count;
           Contract.Assert(a.TypeArgs.Count == b.TypeArgs.Count);
-          var directions = new List<int>();
-          for (int i = 0; i < n; i++) {
-            directions.Add(0);  // type arguments of classes, traits, and opaque types are invariant
-          }
+          var directions = aa.TypeArgs.ConvertAll(tp => TypeParameter.Negate(tp.Variance));
           var typeArgs = ComputeExtrema(directions, a.TypeArgs, b.TypeArgs, builtIns);
           if (typeArgs == null) {
             return null;
           }
-          var udf = (UserDefinedType)a;
-          return new UserDefinedType(udf.tok, udf.Name, aa, typeArgs);
+          var udt = (UserDefinedType)a;
+          var xx = new UserDefinedType(udt.tok, udt.Name, aa, typeArgs);
+          return abNonNullTypes ? UserDefinedType.CreateNonNullType(xx) : xx;
         } else if (aa is ClassDecl && bb is ClassDecl) {
           var A = (ClassDecl)aa;
           var B = (ClassDecl)bb;
@@ -1509,11 +1785,13 @@ namespace Microsoft.Dafny {
           Contract.Assert(!(A is TraitDecl) || (A.TypeArgs.Count == 0 && ((TraitDecl)A).TraitsTyp.Count == 0));
           Contract.Assert(!(B is TraitDecl) || (B.TypeArgs.Count == 0 && ((TraitDecl)B).TraitsTyp.Count == 0));
           if (A.DerivesFrom(B)) {
-            return b;
+            var udtB = (UserDefinedType)b;
+            return abNonNullTypes ? UserDefinedType.CreateNonNullType(udtB) : udtB;
           } else if (B.DerivesFrom(A)) {
-            return a;
+            var udtA = (UserDefinedType)a;
+            return abNonNullTypes ? UserDefinedType.CreateNonNullType(udtA) : udtA;
           } else if (A is TraitDecl || B is TraitDecl) {
-            return builtIns.Object();
+            return abNonNullTypes ? UserDefinedType.CreateNonNullType(builtIns.Object()) : builtIns.Object();
           }
           // A and B are classes. They always have object as a common supertype, but they may also both be extending some other
           // trait.  If such a trait is unique, pick it. (Unfortunately, this makes the meet operation not associative.)
@@ -1524,10 +1802,11 @@ namespace Microsoft.Dafny {
             }
           }
           if (commonTraits.Count == 1) {
-            return commonTraits[0];
+            var udtTrait = (UserDefinedType)commonTraits[0];  // in a successfully resolved program, we expect all .TraitsTyp to be a UserDefinedType
+            return abNonNullTypes ? UserDefinedType.CreateNonNullType(udtTrait) : udtTrait;
           } else {
             // the unfortunate part is when commonTraits.Count > 1 here :(
-            return builtIns.Object();
+            return abNonNullTypes ? UserDefinedType.CreateNonNullType(builtIns.Object()) : builtIns.Object();
           }
         } else {
           return null;
@@ -1603,10 +1882,7 @@ namespace Microsoft.Dafny {
         }
         Contract.Assert(a.TypeArgs.Count == b.TypeArgs.Count);
         var n = a.TypeArgs.Count;
-        var directions = new List<int>();
-        for (int i = 0; i < n; i++) {
-          directions.Add(1);  // datatypes are co-variant in their argument types, so compute joins
-        }
+        var directions = aa.TypeArgs.ConvertAll(tp => tp.Variance);
         var typeArgs = ComputeExtrema(directions, a.TypeArgs, b.TypeArgs, builtIns);
         if (typeArgs == null) {
           return null;
@@ -1623,11 +1899,11 @@ namespace Microsoft.Dafny {
         Contract.Assert(a.TypeArgs.Count == n + 1);
         Contract.Assert(b.TypeArgs.Count == n + 1);
         Contract.Assert(((ArrowType)a).ResolvedClass == ((ArrowType)b).ResolvedClass);
-        var directions = new List<int>();
+        var directions = new List<TypeParameter.TPVariance>();
         for (int i = 0; i < n; i++) {
-          directions.Add(1);  // arrow types are contra-variant in the argument types, so compute meets of these
+          directions.Add(TypeParameter.TPVariance.Contra);  // arrow types are contra-variant in the argument types, so compute meets of these
         }
-        directions.Add(-1);  // arrow types are co-variant in the result type, so compute the join of these
+        directions.Add(TypeParameter.TPVariance.Co);  // arrow types are co-variant in the result type, so compute the join of these
         var typeArgs = ComputeExtrema(directions, a.TypeArgs, b.TypeArgs, builtIns);
         if (typeArgs == null) {
           return null;
@@ -1651,10 +1927,7 @@ namespace Microsoft.Dafny {
         } else if (aa == bb) {
           var n = a.TypeArgs.Count;
           Contract.Assert(a.TypeArgs.Count == b.TypeArgs.Count);
-          var directions = new List<int>();
-          for (int i = 0; i < n; i++) {
-            directions.Add(0);  // type arguments of classes, traits, and opaque types are invariant
-          }
+          var directions = aa.TypeArgs.ConvertAll(tp => tp.Variance);
           var typeArgs = ComputeExtrema(directions, a.TypeArgs, b.TypeArgs, builtIns);
           if (typeArgs == null) {
             return null;
@@ -2254,6 +2527,8 @@ namespace Microsoft.Dafny {
       var args = cd.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp));
       if (cd is ArrowTypeDecl) {
         return new ArrowType(tok, (ArrowTypeDecl)cd, args);
+      } else if (cd is ClassDecl) {
+        return new UserDefinedType(tok, cd.Name + "?", cd, args);
       } else {
         return new UserDefinedType(tok, cd.Name, cd, args);
       }
@@ -2277,6 +2552,13 @@ namespace Microsoft.Dafny {
       ns.ResolvedExpression = r;
       ns.Type = r.Type;
       this.NamePath = ns;
+    }
+
+    public static UserDefinedType CreateNonNullType(UserDefinedType udtNullableType) {
+      Contract.Requires(udtNullableType != null);
+      Contract.Requires(udtNullableType.ResolvedClass is ClassDecl);
+      var cl = (ClassDecl)udtNullableType.ResolvedClass;
+      return new UserDefinedType(udtNullableType.tok, cl.NonNullTypeDecl.Name, cl.NonNullTypeDecl, udtNullableType.TypeArgs);
     }
 
     /// <summary>
@@ -3564,7 +3846,7 @@ namespace Microsoft.Dafny {
     public readonly List<Type> TraitsTyp;  // these are the types that are parsed after the keyword 'extends'
     public readonly List<TraitDecl> TraitsObj = new List<TraitDecl>();  // populated during resolution
     public bool HasConstructor;  // filled in (early) during resolution; true iff there exists a member that is a Constructor
-    public readonly SubsetTypeDecl NonNullTypeDecl;
+    public readonly NonNullTypeDecl NonNullTypeDecl;
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(cce.NonNullElements(Members));
@@ -6385,6 +6667,9 @@ namespace Microsoft.Dafny {
       this.EndTok = endTok;
       this.name = name;
       this.OptionalType = type;
+      if (type is InferredTypeProxy) {
+        ((InferredTypeProxy)type).KeepConstraints = true;
+      }
       this.IsGhost = isGhost;
     }
 
@@ -7535,7 +7820,7 @@ namespace Microsoft.Dafny {
       Contract.Ensures(Contract.Result<Expression>() != null);
       var s = new BinaryExpr(e0.tok, BinaryExpr.Opcode.Add, e0, e1);
       s.ResolvedOp = BinaryExpr.ResolvedOpcode.Add;  // resolve here
-      s.Type = e0.Type;  // resolve here
+      s.Type = e0.Type.NormalizeExpand();  // resolve here
       return s;
     }
 
@@ -7582,7 +7867,7 @@ namespace Microsoft.Dafny {
       Contract.Ensures(Contract.Result<Expression>() != null);
       var s = new BinaryExpr(e0.tok, BinaryExpr.Opcode.Sub, e0, e1);
       s.ResolvedOp = BinaryExpr.ResolvedOpcode.Sub;  // resolve here
-      s.Type = e0.Type;  // resolve here
+      s.Type = e0.Type.NormalizeExpand();  // resolve here
       return s;
     }
 

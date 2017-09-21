@@ -29,20 +29,18 @@ class AmortizedQueue<T(0)> {
     List == front.List + rear.ReverseSeq(rear.List)
   }
 
-  method Init()
-    modifies this
+  constructor Init()
     ensures Valid() && List == []
   {
     front := new LinkedList<T>.Init();
     rear := new LinkedList<T>.Init();
-    Repr := {this};
-    Repr := Repr + front.Repr + rear.Repr;
+    new;
+    Repr := {this} + front.Repr + rear.Repr;
     List := [];
   }
 
-  method InitFromPieces(f: LinkedList<T>, r: LinkedList<T>)
+  constructor InitFromPieces(f: LinkedList<T>, r: LinkedList<T>)
     requires f != null && f.Valid() && r != null && r.Valid()
-    modifies this
     ensures Valid() && List == f.List + r.ReverseSeq(r.List)
   {
     if (r.length <= f.length) {
@@ -55,8 +53,8 @@ class AmortizedQueue<T(0)> {
 
       rear := new LinkedList<T>.Init();
     }
-    Repr := {this};
-    Repr := Repr + front.Repr + rear.Repr;
+    new;
+    Repr := {this} + front.Repr + rear.Repr;
     List := front.List + rear.ReverseSeq(rear.List);
   }
 
@@ -86,7 +84,7 @@ class AmortizedQueue<T(0)> {
 
 class LinkedList<T(0)> {
   var head: T
-  var tail: LinkedList<T>
+  var tail: LinkedList?<T>
   var length: int
 
   ghost var List: seq<T>
@@ -106,8 +104,7 @@ class LinkedList<T(0)> {
       length == tail.length + 1)
   }
 
-  method Init()
-    modifies this
+  constructor Init()
     ensures Valid() && List == []
   {
     tail := null;
@@ -116,11 +113,15 @@ class LinkedList<T(0)> {
     Repr := {this};
   }
 
+  constructor ()
+  {
+  }
+
   method Cons(d: T) returns (r: LinkedList<T>)
     requires Valid()
     ensures r != null && r.Valid() && r.List == [d] + List
   {
-    r := new LinkedList<T>;
+    r := new LinkedList<T>();
     r.head := d;
     r.tail := this;
     r.length := length + 1;

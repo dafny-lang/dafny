@@ -72,13 +72,71 @@ module M1 refines M0 {
     }
   }
 }
+
+module TypeOfThis {
+  class LinkedList<T(0)> {
+    ghost var Repr: set<LinkedList<T>>
+    ghost var Rapr: set<LinkedList?<T>>
+    ghost var S: set<object>
+    ghost var T: set<object?>
+
+    constructor Init()
+    {
+      Repr := {this};
+    }
+
+    constructor Init'()
+    {
+      Rapr := {this};
+    }
+
+    constructor Create()
+    {
+      S := {this};
+    }
+
+    constructor Create'()
+    {
+      T := {this};
+    }
+
+    constructor Two()
+    {
+      new;
+      var ll: LinkedList? := this;
+      var o: object? := this;
+      if
+      case true =>
+        T := {o};
+      case true =>
+        S := {o};
+      case true =>
+        Repr := {ll};
+      case true =>
+        Rapr := {ll};
+      case true =>
+        S := {ll};
+      case true =>
+        T := {ll};
+    }
+
+    method Mutate()
+      modifies this
+    {
+      Repr := {this};
+      Rapr := {this};
+      S := {this};
+      T := {this};
+    }
+  }
+}
 method Main()
 {
   var m := new M0.MyClass.Init(20);
   print m.a, ", ", m.b, ", ", m.c, "\n";
 }
 
-Dafny program verifier finished with 9 verified, 0 errors
+Dafny program verifier finished with 13 verified, 0 errors
 Program compiled successfully
 Running...
 
