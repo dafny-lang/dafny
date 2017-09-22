@@ -1,3 +1,7 @@
+Bug170.dfy(8,22): Info: _k: ORDINAL
+Bug170.dfy(13,22): Info: _k: ORDINAL
+Bug170.dfy(18,18): Info: _k: ORDINAL
+Bug170.dfy(26,18): Info: _k: ORDINAL
 Bug170.dfy(19,14): Info: A#[_k]
 Bug170.dfy(18,18): Info: AA# specialized for A,B
 Bug170.dfy(21,7): Info: B#[_k - 1]
@@ -8,6 +12,10 @@ Bug170.dfy(29,7): Info: A#[_k - 1]
 Bug170.dfy(30,6): Info: AA#[_k - 1]
 Bug170.dfy(10,12): Info: B#[_k - 1]
 Bug170.dfy(15,12): Info: A#[_k - 1]
+Bug170.dfy(36,14): Info: _k: ORDINAL
+Bug170.dfy(41,14): Info: _k: ORDINAL
+Bug170.dfy(46,10): Info: _k: ORDINAL
+Bug170.dfy(53,10): Info: _k: ORDINAL
 Bug170.dfy(47,13): Info: A#[_k]
 Bug170.dfy(46,10): Info: AA# specialized for A,B
 Bug170.dfy(49,4): Info: BB#[_k - 1]

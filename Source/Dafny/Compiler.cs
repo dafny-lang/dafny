@@ -1281,7 +1281,7 @@ namespace Microsoft.Dafny {
         return "bool";
       } else if (xType is CharType) {
         return "char";
-      } else if (xType is IntType) {
+      } else if (xType is IntType || xType is BigOrdinalType) {
         return "BigInteger";
       } else if (xType is RealType) {
         return "Dafny.BigRational";
@@ -1448,7 +1448,7 @@ namespace Microsoft.Dafny {
         initializerIsKnown = true;
         defaultValue = "'D'";
         return;
-      } else if (xType is IntType) {
+      } else if (xType is IntType || xType is BigOrdinalType) {
         hasZeroInitializer = true;
         initializerIsKnown = true;
         defaultValue = "BigInteger.Zero";
@@ -1871,7 +1871,7 @@ namespace Microsoft.Dafny {
 
       } else if (stmt is ForallStmt) {
         var s = (ForallStmt)stmt;
-        if (s.Kind != ForallStmt.ParBodyKind.Assign) {
+        if (s.Kind != ForallStmt.BodyKind.Assign) {
           // Call and Proof have no side effects, so they can simply be optimized away.
           return wr;
         } else if (s.BoundVars.Count == 0) {
@@ -2763,7 +2763,9 @@ namespace Microsoft.Dafny {
           } else {
             TrParenExpr(e.Obj, wr, inLetExprBody);
           }
-          wr.Write(".@{0}", sf.CompiledName);
+          if (sf.CompiledName.Length != 0) {
+            wr.Write(".@{0}", sf.CompiledName);
+          }
           if (sf is ConstantField) {
             wr.Write("()");  // constant fields are compiled as functions (possibly with a backing field)
           }
@@ -2943,11 +2945,11 @@ namespace Microsoft.Dafny {
             TrExpr(e.E, wr, inLetExprBody);
             wr.Write(")");
           } else {
-            // (int or bv) -> (int or bv)
+            // (int or bv) -> (int or bv or ORDINAL)
             var fromNative = AsNativeType(e.E.Type);
             var toNative = AsNativeType(e.ToType);
             if (fromNative == null && toNative == null) {
-              // big-integer (int or bv) -> big-integer (int or bv), so identity will do
+              // big-integer (int or bv) -> big-integer (int or bv or ORDINAL), so identity will do
               TrExpr(e.E, wr, inLetExprBody);
             } else if (fromNative != null && toNative == null) {
               // native (int or bv) -> big-integer (int or bv)
@@ -2993,6 +2995,11 @@ namespace Microsoft.Dafny {
             TrParenExpr(e.E, wr, inLetExprBody);
             wr.Write(".ToBigInteger()");
           }
+        } else {
+          Contract.Assert(e.E.Type.IsBigOrdinalType);
+          Contract.Assert(e.ToType.IsNumericBased(Type.NumericPersuation.Int));
+          // identity will do
+          TrExpr(e.E, wr, inLetExprBody);
         }
 
       } else if (expr is BinaryExpr) {

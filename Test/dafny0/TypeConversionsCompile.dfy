@@ -72,4 +72,17 @@ method Main()
   print x, " ", handful, " ", a0, " ", w, "\n";
   x, handful, a0, w := a.Length, a.Length as Handful, a.Length as Abundance, a.Length as bv32;
   print x, " ", handful, " ", a0, " ", w, "\n";
+
+  OrdinalTests();
+}
+
+method OrdinalTests() {
+  var ord: ORDINAL := 143;
+  var iord := ord as int;
+  var oord := iord as ORDINAL;
+  print "Something about ORDINAL: ", ord, " ", iord, " ", oord, " ", ord + 4, " ", ord - 100, "\n";
+  print "ORDINAL and bitvectors: ", 20 as bv32 as ORDINAL, " ", 20 as bv300 as ORDINAL, "\n";
+  print ord.IsLimit, " ", ord.Offset, " ", ord.IsNat, "\n";
+  ord := 0;
+  print ord.IsLimit, " ", ord.Offset, " ", ord.IsNat, "\n";
 }

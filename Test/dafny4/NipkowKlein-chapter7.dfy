@@ -130,8 +130,20 @@ lemma equiv_c_transitive(c: com, c': com, c'': com)
 {
 }
 
-inductive lemma IMP_is_deterministic(c: com, s: state, t: state, t': state)
+lemma IMP_is_deterministic(c: com, s: state, t: state, t': state)
   requires big_step(c, s, t) && big_step(c, s, t')
+  ensures t == t'
+{
+  // If we use iterates indexed by nat (not ORDINAL) and declare this lemma as an
+  // "inductive lemma", then Dafny proves the lemma automatically (Dafny totally rocks!).
+  // However, with ORDINAL, we have to supply the .IsLimit case ourselves (well,
+  // Dafny is still pretty good).
+  var k :| big_step#[k](c, s, t);
+  var k' :| big_step#[k'](c, s, t');
+  IMP_is_deterministic_Aux(k, k', c, s, t, t');
+}
+lemma IMP_is_deterministic_Aux(k: ORDINAL, k': ORDINAL, c: com, s: state, t: state, t': state)
+  requires big_step#[k](c, s, t) && big_step#[k'](c, s, t')
   ensures t == t'
 {
   // Dafny totally rocks!
@@ -154,22 +166,61 @@ inductive predicate small_step(c: com, s: state, c': com, s': state)
     c' == If(b, Seq(body, While(b, body)), SKIP) && s' == s
 }
 
-inductive lemma SmallStep_is_deterministic(cs: (com, state), cs': (com, state), cs'': (com, state))
+// When working with iterates indexed by ORDINAL, it takes a little more effort to
+// figure out that the disjuncts of Seq are exclusive, that is, that c0 != SKIP in
+// the second case.
+lemma SeqCasesAreExclusive(k: ORDINAL, c0: com, c1: com, s: state, c': com, s': state)
+  requires k.Offset > 0 && small_step#[k](Seq(c0, c1), s, c', s')
+  ensures c0 == SKIP ==> c' == c1 && s' == s
+{
+  assert k.Offset != 0;
+  if c0 == SKIP && k.Offset == 1 {
+    assert (c0 == SKIP && c' == c1 && s' == s) || exists c0' :: c' == Seq(c0', c1) && small_step(c0, s, c0', s');
+    if {
+      case c0 == SKIP && c' == c1 && s' == s =>
+        // trivial
+      case exists c0' :: c' == Seq(c0', c1) && small_step(c0, s, c0', s') =>
+        assert false;  // absurd
+    }
+  }
+}
+
+lemma SmallStep_is_deterministic(cs: (com, state), cs': (com, state), cs'': (com, state))
   requires small_step(cs.0, cs.1, cs'.0, cs'.1)
   requires small_step(cs.0, cs.1, cs''.0, cs''.1)
   ensures cs' == cs''
 {
-  match cs.0
-  case Assign(x, a) =>
-  case Seq(c0, c1) =>
-    if c0 == SKIP {
-    } else {
-      var c0' :| cs'.0 == Seq(c0', c1) && small_step(c0, cs.1, c0', cs'.1);
-      var c0'' :| cs''.0 == Seq(c0'', c1) && small_step(c0, cs.1, c0'', cs''.1);
-      SmallStep_is_deterministic((c0, cs.1), (c0', cs'.1), (c0'', cs''.1));
-    }
-  case If(b, thn, els) =>
-  case While(b, body) =>
+  var k :| small_step#[k](cs.0, cs.1, cs'.0, cs'.1);
+  var k' :| small_step#[k'](cs.0, cs.1, cs''.0, cs''.1);
+  SmallStep_is_deterministic_Aux(k, k', cs, cs', cs'');
+}
+
+lemma SmallStep_is_deterministic_Aux(k: ORDINAL, k': ORDINAL, cs: (com, state), cs': (com, state), cs'': (com, state))
+  requires small_step#[k](cs.0, cs.1, cs'.0, cs'.1)
+  requires small_step#[k'](cs.0, cs.1, cs''.0, cs''.1)
+  ensures cs' == cs''
+{
+  if k.IsLimit {
+    var m :| m < k && small_step#[m](cs.0, cs.1, cs'.0, cs'.1);
+    SmallStep_is_deterministic_Aux(m, k', cs, cs', cs'');
+  } else if k'.IsLimit {
+    var m :| m < k' && small_step#[m](cs.0, cs.1, cs''.0, cs''.1);
+    SmallStep_is_deterministic_Aux(k, m, cs, cs', cs'');
+  } else {
+    match cs.0
+    case Assign(x, a) =>
+    case Seq(c0, c1) =>
+      SeqCasesAreExclusive(k, c0, c1, cs.1, cs'.0, cs'.1);
+      SeqCasesAreExclusive(k', c0, c1, cs.1, cs''.0, cs''.1);
+      if c0 == SKIP {
+      } else {
+        var c0' :| cs'.0 == Seq(c0', c1) && small_step#[k-1](c0, cs.1, c0', cs'.1);
+        var c0'' :| cs''.0 == Seq(c0'', c1) && small_step#[k'-1](c0, cs.1, c0'', cs''.1);
+        SmallStep_is_deterministic_Aux(k-1, k'-1, (c0, cs.1), (c0', cs'.1), (c0'', cs''.1));
+      }
+    case If(b, thn, els) =>
+    case While(b, body) =>
+  }
 }
 
 inductive predicate small_step_star(c: com, s: state, c': com, s': state)

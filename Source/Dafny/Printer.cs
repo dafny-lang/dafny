@@ -121,8 +121,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public static string ModuleDefinitionToString(ModuleDefinition m, DafnyOptions.PrintModes printMode = DafnyOptions.PrintModes.
-Everything) {
+    public static string ModuleDefinitionToString(ModuleDefinition m, DafnyOptions.PrintModes printMode = DafnyOptions.PrintModes.Everything) {
       Contract.Requires(m != null);
       using (var wr = new System.IO.StringWriter()) {
         var pr = new Printer(wr, printMode);
@@ -764,6 +763,9 @@ Everything) {
       if (f.SignatureIsOmitted) {
         wr.WriteLine(" ...");
       } else {
+        if (f is FixpointPredicate) {
+          PrintKTypeIndication(((FixpointPredicate)f).TypeOfK);
+        }
         PrintFormals(f.Formals, f, f.Name);
         if (!isPredicate && !(f is FixpointPredicate) && !(f is TwoStatePredicate)) {
           wr.Write(": ");
@@ -835,16 +837,21 @@ Everything) {
       string k = method is Constructor ? "constructor" :
         method is InductiveLemma ? "inductive lemma" :
         method is CoLemma ? "colemma" :
-        method is Lemma ? "lemma" :
+        method is Lemma || method is PrefixLemma ? "lemma" :
         method is TwoStateLemma ? "twostate lemma" :
         "method";
       if (method.HasStaticKeyword) { k = "static " + k; }
-      if (method.IsGhost && !(method is Lemma) && !(method is TwoStateLemma) && !(method is FixpointLemma)) { k = "ghost " + k; }
+      if (method.IsGhost && !(method is Lemma) && !(method is PrefixLemma) && !(method is TwoStateLemma) && !(method is FixpointLemma)) {
+        k = "ghost " + k;
+      }
       string nm = method is Constructor && !((Constructor)method).HasName ? "" : method.Name;
       PrintClassMethodHelper(k, method.Attributes, nm, method.TypeArgs);
       if (method.SignatureIsOmitted) {
         wr.WriteLine(" ...");
       } else {
+        if (method is FixpointLemma) {
+          PrintKTypeIndication(((FixpointLemma)method).TypeOfK);
+        }
         PrintFormals(method.Ins, method, method.Name);
         if (method.Outs.Count != 0) {
           if (method.Ins.Count + method.Outs.Count <= 3) {
@@ -871,6 +878,22 @@ Everything) {
         Indent(indent);
         PrintStatement(method.Body, indent);
         wr.WriteLine();
+      }
+    }
+
+    void PrintKTypeIndication(FixpointPredicate.KType kType) {
+      switch (kType) {
+        case FixpointPredicate.KType.Nat:
+          wr.Write("[nat]");
+          break;
+        case FixpointPredicate.KType.ORDINAL:
+          wr.Write("[ORDINAL]");
+          break;
+        case FixpointPredicate.KType.Unspecified:
+          break;
+        default:
+          Contract.Assume(false);  // unexpected KType value
+          break;
       }
     }
 
@@ -1184,9 +1207,13 @@ Everything) {
 
       } else if (stmt is ForallStmt) {
         var s = (ForallStmt)stmt;
-        if (s.ForallExpressions != null) {
+        if (DafnyOptions.O.DafnyPrintResolvedFile != null && s.ForallExpressions != null) {
           foreach (var expr in s.ForallExpressions) {
-            PrintExpression(expr, false, " ensures ");
+            PrintExpression(expr, false, new string(' ', indent + IndentAmount) + "ensures ");
+          }
+          if (s.Body != null) {
+            wr.WriteLine();
+            Indent(indent);
           }
         } else {
           wr.Write("forall");
@@ -1295,6 +1322,13 @@ Everything) {
         }
         PrintUpdateRHS(s);
         wr.Write(";");
+
+      } else if (stmt is CallStmt) {
+        // Most calls are printed from their concrete syntax given in the input. However, recursive calls to
+        // prefix lemmas end up as CallStmt's by the end of resolution and they may need to be printed here.
+        var s = (CallStmt)stmt;
+        PrintExpression(s.MethodSelect, false);
+        PrintActualArguments(s.Args, s.Method.Name);
 
       } else if (stmt is VarDeclStmt) {
         var s = (VarDeclStmt)stmt;
@@ -2205,8 +2239,12 @@ Everything) {
         PrintTypeParams(e.TypeArgs); // new!
         wr.Write(" ");
         PrintQuantifierDomain(e.BoundVars, e.Attributes, e.Range);
-        string s = keyword ?? " :: ";
-        wr.Write("{0}", s);
+        if (keyword == null) {
+          wr.Write(" :: ");
+        } else {
+          wr.WriteLine();
+          wr.Write(keyword);
+        }
         if (0 <= indent) {
           int ind = indent + IndentAmount;
           wr.WriteLine();

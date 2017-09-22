@@ -22,7 +22,7 @@ namespace Microsoft.Dafny.Triggers {
       var e = expr as ComprehensionExpr;
 
       // only consider quantifiers that are not empty (Bound.Vars.Count > 0)
-      if (e != null && (e.BoundVars.Count > 0) && !quantifiers.Contains(e)) {
+      if (e != null && e.BoundVars.Count > 0 && !quantifiers.Contains(e)) {
         if (e is SetComprehension || e is MapComprehension) {
           quantifiers.Add(e);
           quantifierCollections.Add(new QuantifiersCollection(e, Enumerable.Repeat(e, 1), reporter));

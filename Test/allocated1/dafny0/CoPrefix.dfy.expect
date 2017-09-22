@@ -15,14 +15,16 @@ Execution trace:
 CoPrefix.dfy(205,6): Error: the calculation step between the previous line and this line might not hold
 Execution trace:
     (0,0): anon0
-    (0,0): anon8_Then
-    (0,0): anon10_Then
+    (0,0): anon11_Then
+    (0,0): anon13_Then
 CoPrefix.dfy(207,6): Error: the calculation step between the previous line and this line might not hold
 Execution trace:
     (0,0): anon0
-    (0,0): anon8_Then
     (0,0): anon11_Then
-CoPrefix.dfy(220,12): Error: prefix-equality limit must be at least 0
+    (0,0): anon14_Then
+    (0,0): anon15_Then
+    (0,0): anon7
+CoPrefix.dfy(220,12): Error: ORDINAL subtraction might underflow a limit ordinal (that is, RHS might be too large)
 Execution trace:
     (0,0): anon0
     (0,0): anon8_Then
@@ -62,4 +64,4 @@ Execution trace:
     (0,0): anon0
     (0,0): anon3_Else
 
-Dafny program verifier finished with 21 verified, 12 errors
+Dafny program verifier finished with 20 verified, 12 errors

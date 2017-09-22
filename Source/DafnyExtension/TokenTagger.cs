@@ -502,6 +502,7 @@ namespace DafnyLanguage
                 case "nat":
                 case "object":
                 case "object?":
+                case "ORDINAL":
                 case "real":
                 case "seq":
                 case "set":

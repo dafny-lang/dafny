@@ -103,7 +103,7 @@ namespace Microsoft.Dafny
       protected override bool VisitOneStmt(Statement stmt, ref bool st) {
         if (stmt is ForallStmt && ((ForallStmt)stmt).CanConvert) {
           ForallStmt s = (ForallStmt)stmt;
-          if (s.Kind == ForallStmt.ParBodyKind.Proof) {
+          if (s.Kind == ForallStmt.BodyKind.Proof) {
             Expression term = s.Ens.Count != 0 ? s.Ens[0].E : Expression.CreateBoolLiteral(s.Tok, true);
             for (int i = 1; i < s.Ens.Count; i++) {
               term = new BinaryExpr(s.Tok, BinaryExpr.ResolvedOpcode.And, term, s.Ens[i].E);
@@ -113,7 +113,7 @@ namespace Microsoft.Dafny
             expr.Type = Type.Bool; // resolve here
             exprList.Add(expr);
             s.ForallExpressions = exprList;
-          } else if (s.Kind == ForallStmt.ParBodyKind.Assign) {
+          } else if (s.Kind == ForallStmt.BodyKind.Assign) {
             if (s.BoundVars.Count != 0) {
               var s0 = (AssignStmt)s.S0;
               if (s0.Rhs is ExprRhs) {
@@ -196,7 +196,7 @@ namespace Microsoft.Dafny
                 s.ForallExpressions = exprList;
               }
             }
-          } else if (s.Kind == ForallStmt.ParBodyKind.Call) {
+          } else if (s.Kind == ForallStmt.BodyKind.Call) {
             var s0 = (CallStmt)s.S0;
             var argsSubstMap = new Dictionary<IVariable, Expression>();  // maps formal arguments to actuals
             Contract.Assert(s0.Method.Ins.Count == s0.Args.Count);

@@ -572,6 +572,7 @@ bool IsType(ref IToken pt) {
     case _nat:
     case _int:
     case _real:
+    case _ORDINAL:
     case _string:
     case _object_q:
     case _object:
@@ -704,6 +705,7 @@ TOKENS
   int = "int".
   nat = "nat".
   real = "real".
+  ORDINAL = "ORDINAL".
   object = "object".
   object_q = "object?".
   string = "string".
@@ -1482,6 +1484,7 @@ MethodDecl<DeclModifierData dmod, bool allowConstructor, bool isWithinAbstractMo
      IToken bodyEnd = Token.NoToken;
      AllowedDeclModifiers allowed = AllowedDeclModifiers.None;
      string caption = "";
+     FixpointPredicate.KType kType = FixpointPredicate.KType.Unspecified;
   .)
   SYNC
   ( "method"                        (. isPlainOlMethod = true; caption = "Methods";
@@ -1526,6 +1529,8 @@ MethodDecl<DeclModifierData dmod, bool allowConstructor, bool isWithinAbstractMo
   .)
   (
     [ GenericParameters<typeArgs, false> ]
+    [ KType<ref kType>              (. if (!(isCoLemma || isIndLemma)) { SemErr(t, "type of _k can only be specified for inductive lemmas and co-lemmas"); } .)
+    ]
     (. var isCompilable = (isPlainOlMethod && !dmod.IsGhost) || isConstructor; .)
     Formals<true, isCompilable, isTwoStateLemma, ins>
     [ "returns"                                 (. if (isConstructor) { SemErr(t, "constructors cannot have out-parameters"); } .)
@@ -1550,10 +1555,10 @@ MethodDecl<DeclModifierData dmod, bool allowConstructor, bool isWithinAbstractMo
        m = new Constructor(tok, hasName ? id.val : "_ctor", typeArgs, ins,
                            req, new Specification<FrameExpression>(mod, modAttrs), ens, new Specification<Expression>(dec, decAttrs), (DividedBlockStmt)body, attrs, signatureEllipsis);
      } else if (isIndLemma) {
-       m = new InductiveLemma(tok, id.val, dmod.IsStatic, typeArgs, ins, outs,
+       m = new InductiveLemma(tok, id.val, dmod.IsStatic, kType, typeArgs, ins, outs,
                               req, new Specification<FrameExpression>(mod, modAttrs), ens, new Specification<Expression>(dec, decAttrs), body, attrs, signatureEllipsis);
      } else if (isCoLemma) {
-       m = new CoLemma(tok, id.val, dmod.IsStatic, typeArgs, ins, outs,
+       m = new CoLemma(tok, id.val, dmod.IsStatic, kType, typeArgs, ins, outs,
                        req, new Specification<FrameExpression>(mod, modAttrs), ens, new Specification<Expression>(dec, decAttrs), body, attrs, signatureEllipsis);
      } else if (isLemma) {
        m = new Lemma(tok, id.val, dmod.IsStatic, typeArgs, ins, outs,
@@ -1569,6 +1574,13 @@ MethodDecl<DeclModifierData dmod, bool allowConstructor, bool isWithinAbstractMo
      m.BodyStartTok = bodyStart;
      m.BodyEndTok = bodyEnd;
  .)
+  .
+KType<ref FixpointPredicate.KType kType>
+= "["
+  ( "nat"       (. kType = FixpointPredicate.KType.Nat; .)
+  | "ORDINAL"   (. kType = FixpointPredicate.KType.ORDINAL; .)
+  )
+  "]"
   .
 MethodSpec<.List<MaybeFreeExpression> req, List<FrameExpression> mod, List<MaybeFreeExpression> ens,
             List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, string caption, bool performThisDeprecatedCheck.>
@@ -1679,6 +1691,7 @@ TypeAndToken<out IToken tok, out Type ty, bool inExpressionContext>
   | "int"                           (. tok = t;  ty = new IntType(); .)
   | "nat"                           (. tok = t;  ty = new UserDefinedType(tok, tok.val, null); .)
   | "real"                          (. tok = t;  ty = new RealType(); .)
+  | "ORDINAL"                       (. tok = t;  ty = new BigOrdinalType(); .)
   | bvToken                         (. tok = t;
                                        int w = StringToInt(tok.val.Substring(2), 0, "bitvectors that wide");
                                        ty = new BitvectorType(w);
@@ -1826,6 +1839,7 @@ FunctionDecl<DeclModifierData dmod, bool isWithinAbstractModule, out Function/*!
      IToken signatureEllipsis = null;
      bool missingOpenParen;
      bool isTwoState = false;
+     FixpointPredicate.KType kType = FixpointPredicate.KType.Unspecified;
   .)
   /* ----- function ----- */
   [ "twostate"               (. isTwoState = true; .)
@@ -1905,6 +1919,7 @@ FunctionDecl<DeclModifierData dmod, bool isWithinAbstractModule, out Function/*!
     NoUSIdent<out id>
     (
       [ GenericParameters<typeArgs, false> ]
+      [ KType<ref kType> ]
       Formals<true, isFunctionMethod, false, formals>
       [ ":"                    (. SemErr(t, "inductive predicates do not have an explicitly declared return type; it is always bool"); .)
       ]
@@ -1922,6 +1937,7 @@ FunctionDecl<DeclModifierData dmod, bool isWithinAbstractModule, out Function/*!
     NoUSIdent<out id>
     (
       [ GenericParameters<typeArgs, false> ]
+      [ KType<ref kType> ]
       Formals<true, isFunctionMethod, false, formals>
       [ ":"                    (. SemErr(t, "copredicates do not have an explicitly declared return type; it is always bool"); .)
       ]
@@ -1949,10 +1965,10 @@ FunctionDecl<DeclModifierData dmod, bool isWithinAbstractModule, out Function/*!
         f = new Predicate(tok, id.val, dmod.IsStatic, dmod.IsProtected, !isFunctionMethod, typeArgs, formals,
                           reqs, reads, ens, new Specification<Expression>(decreases, null), body, Predicate.BodyOriginKind.OriginalOrInherited, attrs, signatureEllipsis);
      } else if (isIndPredicate) {
-        f = new InductivePredicate(tok, id.val, dmod.IsStatic, dmod.IsProtected, typeArgs, formals,
+        f = new InductivePredicate(tok, id.val, dmod.IsStatic, dmod.IsProtected, kType, typeArgs, formals,
                                    reqs, reads, ens, body, attrs, signatureEllipsis);
      } else if (isCoPredicate) {
-        f = new CoPredicate(tok, id.val, dmod.IsStatic, dmod.IsProtected, typeArgs, formals,
+        f = new CoPredicate(tok, id.val, dmod.IsStatic, dmod.IsProtected, kType, typeArgs, formals,
                             reqs, reads, ens, body, attrs, signatureEllipsis);
      } else {
         f = new Function(tok, id.val, dmod.IsStatic, dmod.IsProtected, !isFunctionMethod, typeArgs, formals, result, returnType,

@@ -127,7 +127,7 @@ function method UpLet1(n: int): Stream<int>
 
 // ---------------------------------------------------
 
-codatatype Lang<S> = L(nullable: bool, deriv: S -> Lang<S>)
+codatatype Lang<S> = L(nullable: bool, deriv: S ~> Lang<S>)
 
 function method Nothing(): Lang
 {
@@ -153,8 +153,33 @@ colemma NothingTotal<S>()
 colemma OnlyDsTotal()
   ensures TotalLang(OnlyDs())
 {
+  NothingTotal<char>();  // Note, to demonstrate the point made below in OnlyDsTotal_Nat, replace this line with "assume 0 < _k.Offset;", which shows that's the only case where "NothingTotal<char>();" is needed
   OnlyDsTotal();
-  // surprisingly, NothingTotal<char>() does not need to be invoked in this proof
+}
+
+copredicate TotalLang_Nat<S>[nat](l: Lang<S>)
+  reads *
+{
+  forall s: S :: l.deriv.reads(s) == {} && l.deriv.requires(s) && TotalLang_Nat(l.deriv(s))
+}
+
+colemma NothingTotal_Nat<S>[nat]()
+  ensures TotalLang_Nat(Nothing<S>())
+{
+}
+
+colemma OnlyDsTotal_Nat[nat]()
+  ensures TotalLang_Nat(OnlyDs())
+{
+  // Unlike the [ORDINAL] version of this colemma above, this version does not
+  // need the following call:
+  //    NothingTotal_Nat<char>();
+  // The reason is that, here, two levels of unrolling will get to a .deriv function
+  // that looks just like the one after one unrolling.  One can then infer what is
+  // needed about the "Nothing()" branch.  In contrast, after one level of unrolling
+  // in the [ORDINAL] version, there may be a limit ordinal.  In that case, one needs
+  // one more unrolling before getting to another .deriv function.
+  OnlyDsTotal_Nat();
 }
 
 // ---------------------------------------------------

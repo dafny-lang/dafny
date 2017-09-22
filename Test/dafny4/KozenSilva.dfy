@@ -17,14 +17,14 @@ codatatype Stream<A> = Cons(hd: A, tl: Stream)
 // --------------------------------------------------------------------------
 
 // A co-predicate is defined as a largest fix-point.
-copredicate LexLess(s: Stream<int>, t: Stream<int>)
+copredicate LexLess[nat](s: Stream<int>, t: Stream<int>)
 {
   s.hd <= t.hd &&
   (s.hd == t.hd ==> LexLess(s.tl, t.tl))
 }
 
 // A co-lemma is used to establish the truth of a co-predicate.
-colemma Theorem1_LexLess_Is_Transitive(s: Stream<int>, t: Stream<int>, u: Stream<int>)
+colemma Theorem1_LexLess_Is_Transitive[nat](s: Stream<int>, t: Stream<int>, u: Stream<int>)
   requires LexLess(s, t) && LexLess(t, u)
   ensures LexLess(s, u)
 {
@@ -39,7 +39,7 @@ colemma Theorem1_LexLess_Is_Transitive(s: Stream<int>, t: Stream<int>, u: Stream
 }
 
 // Actually, Dafny can do the proof of the previous lemma completely automatically.  Here it is:
-colemma Theorem1_LexLess_Is_Transitive_Automatic(s: Stream<int>, t: Stream<int>, u: Stream<int>)
+colemma Theorem1_LexLess_Is_Transitive_Automatic[nat](s: Stream<int>, t: Stream<int>, u: Stream<int>)
   requires LexLess(s, t) && LexLess(t, u)
   ensures LexLess(s, u)
 {
@@ -68,7 +68,7 @@ lemma EquivalenceTheorem(s: Stream<int>, t: Stream<int>)
     EquivalenceTheorem1(s, t);
   }
 }
-colemma EquivalenceTheorem0(s: Stream<int>, t: Stream<int>)
+colemma EquivalenceTheorem0[nat](s: Stream<int>, t: Stream<int>)
   requires !NotLexLess(s, t)
   ensures LexLess(s, t)
 {
@@ -123,7 +123,7 @@ function PointwiseAdd(s: Stream<int>, t: Stream<int>): Stream<int>
   Cons(s.hd + t.hd, PointwiseAdd(s.tl, t.tl))
 }
 
-colemma Theorem2_Pointwise_Addition_Is_Monotone(s: Stream<int>, t: Stream<int>, u: Stream<int>, v: Stream<int>)
+colemma Theorem2_Pointwise_Addition_Is_Monotone[nat](s: Stream<int>, t: Stream<int>, u: Stream<int>, v: Stream<int>)
   requires LexLess(s, t) && LexLess(u, v)
   ensures LexLess(PointwiseAdd(s, u), PointwiseAdd(t, v))
 {
@@ -173,19 +173,19 @@ codatatype Val = ValConst(Const) | ValCl(cl: Cl)
 codatatype Cl = Closure(abs: LambdaAbs, env: ClEnv)
 codatatype ClEnv = ClEnvironment(m: map<Var, Val>)  // The built-in Dafny "map" type denotes finite maps
 
-copredicate ClEnvBelow(c: ClEnv, d: ClEnv)
+copredicate ClEnvBelow[nat](c: ClEnv, d: ClEnv)
 {
   // The expression "y in c.m" says that y is in the domain of the finite map
   // c.m.
   forall y :: y in c.m ==> y in d.m && ValBelow(c.m[y], d.m[y])
 }
-copredicate ValBelow(u: Val, v: Val)
+copredicate ValBelow[nat](u: Val, v: Val)
 {
   (u.ValConst? && v.ValConst? && u == v) ||
   (u.ValCl? && v.ValCl? && u.cl.abs == v.cl.abs && ClEnvBelow(u.cl.env, v.cl.env))
 }
 
-colemma Theorem4a_ClEnvBelow_Is_Transitive(c: ClEnv, d: ClEnv, e: ClEnv)
+colemma Theorem4a_ClEnvBelow_Is_Transitive[nat](c: ClEnv, d: ClEnv, e: ClEnv)
   requires ClEnvBelow(c, d) && ClEnvBelow(d, e)
   ensures ClEnvBelow(c, e)
 {
@@ -193,7 +193,7 @@ colemma Theorem4a_ClEnvBelow_Is_Transitive(c: ClEnv, d: ClEnv, e: ClEnv)
     Theorem4b_ValBelow_Is_Transitive#[_k-1](c.m[y], d.m[y], e.m[y]);
   }
 }
-colemma Theorem4b_ValBelow_Is_Transitive(u: Val, v: Val, w: Val)
+colemma Theorem4b_ValBelow_Is_Transitive[nat](u: Val, v: Val, w: Val)
   requires ValBelow(u, v) && ValBelow(v, w)
   ensures ValBelow(u, w)
 {
@@ -230,7 +230,7 @@ predicate CapsuleEnvironmentBelow(s: map<Var, ConstOrAbs>, t: map<Var, ConstOrAb
   forall y :: y in s ==> y in t && s[y] == t[y]
 }
 
-colemma Theorem5_ClosureConversion_Is_Monotone(s: map<Var, ConstOrAbs>, t: map<Var, ConstOrAbs>)
+colemma Theorem5_ClosureConversion_Is_Monotone[nat](s: map<Var, ConstOrAbs>, t: map<Var, ConstOrAbs>)
   requires CapsuleEnvironmentBelow(s, t)
   ensures ClEnvBelow(ClosureConvertedMap(s), ClosureConvertedMap(t))
 {

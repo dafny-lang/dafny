@@ -11,27 +11,27 @@ predicate In<T>(x: T, s: Stream<T>)
 {
   exists n :: 0 <= n && Tail(s, n).head == x
 }
-copredicate IsSubStream(s: Stream, u: Stream)
+copredicate IsSubStream[nat](s: Stream, u: Stream)
 {
   In(s.head, u) && IsSubStream(s.tail, u)
 }
 
 lemma Lemma_InTail<T>(x: T, s: Stream<T>)
-  requires In(x, s.tail);
-  ensures In(x, s);
+  requires In(x, s.tail)
+  ensures In(x, s)
 {
   var n :| 0 <= n && Tail(s.tail, n).head == x;
   assert Tail(s, n+1).head == x;
 }
-colemma Lemma_TailSubStream(s: Stream, u: Stream)
-  requires IsSubStream(s, u.tail);
-  ensures IsSubStream(s, u);
+colemma Lemma_TailSubStream[nat](s: Stream, u: Stream)
+  requires IsSubStream(s, u.tail)
+  ensures IsSubStream(s, u)
 {
   Lemma_InTail(s.head, u);
 }
 lemma Lemma_TailSubStreamK(s: Stream, u: Stream, k: nat)  // this lemma could have been used to prove the previous one
-  requires IsSubStream#[k](s, u.tail);
-  ensures IsSubStream#[k](s, u);
+  requires IsSubStream#[k](s, u.tail)
+  ensures IsSubStream#[k](s, u)
 {
   if k != 0 {
     Lemma_InTail(s.head, u);
@@ -39,15 +39,15 @@ lemma Lemma_TailSubStreamK(s: Stream, u: Stream, k: nat)  // this lemma could ha
   }
 }
 lemma Lemma_InSubStream<T>(x: T, s: Stream<T>, u: Stream<T>)
-  requires In(x, s) && IsSubStream(s, u);
-  ensures In(x, u);
+  requires In(x, s) && IsSubStream(s, u)
+  ensures In(x, u)
 {
   var n :| 0 <= n && Tail(s, n).head == x;
   var t := s;
   while n != 0
-    invariant 0 <= n;
-    invariant Tail(t, n).head == x;
-    invariant IsSubStream(t, u);
+    invariant 0 <= n
+    invariant Tail(t, n).head == x
+    invariant IsSubStream(t, u)
   {
     t, n := t.tail, n - 1;
   }
@@ -110,6 +110,13 @@ function NextMinimizer(s: Stream, P: Predicate, n: nat): nat
     NextMinimizer(s, P, k)
 }
 
+lemma NextLemma(s: Stream, P: Predicate)
+  requires AlwaysAnother(s, P) && !P(s.head)
+  ensures Next(s.tail, P) < Next(s, P)
+{
+  assert forall i :: 0 < i ==> Tail(s, i) == Tail(s.tail, i-1);
+}
+
 function Filter(s: Stream, P: Predicate): Stream
   requires AlwaysAnother(s, P)
   decreases Next(s, P)
@@ -117,6 +124,7 @@ function Filter(s: Stream, P: Predicate): Stream
   if P(s.head) then
     Cons(s.head, Filter(s.tail, P))
   else
+    NextLemma(s, P);
     Filter(s.tail, P)
 }
 // properties about Filter
@@ -128,10 +136,11 @@ colemma Filter_AlwaysAnother(s: Stream, P: Predicate)
   if P(s.head) {
     Filter_AlwaysAnother(s.tail, P);
   } else {
+    NextLemma(s, P);
     Filter_AlwaysAnother#[_k](s.tail, P);
   }
 }
-colemma Filter_IsSubStream(s: Stream, P: Predicate)
+colemma Filter_IsSubStream[nat](s: Stream, P: Predicate)
   requires AlwaysAnother(s, P)
   ensures IsSubStream(Filter(s, P), s)
   decreases Next(s, P)
@@ -157,6 +166,7 @@ colemma Filter_IsSubStream(s: Stream, P: Predicate)
       true;
     }
   } else {
+    NextLemma(s, P);
     Lemma_TailSubStreamK(Filter(s.tail, P), s, _k);
   }
 }
@@ -180,8 +190,8 @@ lemma Theorem_Filter<T>(s: Stream<T>, P: Predicate)
 }
 
 lemma FS_Ping<T>(s: Stream<T>, P: Predicate, x: T)
-  requires AlwaysAnother(s, P) && In(x, Filter(s, P));
-  ensures In(x, s) && P(x);
+  requires AlwaysAnother(s, P) && In(x, Filter(s, P))
+  ensures In(x, s) && P(x)
 {
   Filter_IsSubStream(s, P);
   Lemma_InSubStream(x, Filter(s, P), s);
@@ -223,7 +233,7 @@ copredicate Increasing(s: Stream, ord: Ord)
 {
   ord(s.head) < ord(s.tail.head) && Increasing(s.tail, ord)
 }
-copredicate IncrFrom(s: Stream, low: int, ord: Ord)
+copredicate IncrFrom[nat](s: Stream, low: int, ord: Ord)
 {
   low <= ord(s.head) && IncrFrom(s.tail, ord(s.head) + 1, ord)
 }
@@ -233,9 +243,9 @@ colemma Lemma_Incr0(s: Stream, low: int, ord: Ord)
   ensures Increasing(s, ord)
 {
 }
-colemma Lemma_Incr1(s: Stream, ord: Ord)
-  requires Increasing(s, ord);
-  ensures IncrFrom(s, ord(s.head), ord);
+colemma Lemma_Incr1[nat](s: Stream, ord: Ord)
+  requires Increasing(s, ord)
+  ensures IncrFrom(s, ord(s.head), ord)
 {
   Lemma_Incr1(s.tail, ord);
 }
@@ -248,7 +258,7 @@ lemma Theorem_FilterPreservesOrdering(s: Stream, P: Predicate, ord: Ord)
   Lemma_FilterPreservesIncrFrom(s, P, ord(s.head), ord);
   Lemma_Incr0(Filter(s, P), ord(s.head), ord);
 }
-colemma Lemma_FilterPreservesIncrFrom(s: Stream, P: Predicate, low: int, ord: Ord)
+colemma Lemma_FilterPreservesIncrFrom[nat](s: Stream, P: Predicate, low: int, ord: Ord)
   requires IncrFrom(s, low, ord) && AlwaysAnother(s, P) && low <= ord(s.head)
   ensures IncrFrom(Filter(s, P), low, ord)
   decreases Next(s, P)
@@ -256,6 +266,7 @@ colemma Lemma_FilterPreservesIncrFrom(s: Stream, P: Predicate, low: int, ord: Or
   if P(s.head) {
     Lemma_FilterPreservesIncrFrom(s.tail, P, ord(s.head)+1, ord);
   } else {
+    NextLemma(s, P);
     Lemma_FilterPreservesIncrFrom#[_k](s.tail, P, low, ord);
   }
 }

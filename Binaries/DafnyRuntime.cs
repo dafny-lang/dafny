@@ -1283,6 +1283,19 @@ namespace Dafny
     public static A Id<A>(A a) {
       return a;
     }
+
+    public static bool BigOrdinal_IsLimit(BigInteger ord) {
+      return ord == 0;
+    }
+    public static bool BigOrdinal_IsSucc(BigInteger ord) {
+      return 0 < ord;
+    }
+    public static BigInteger BigOrdinal_Offset(BigInteger ord) {
+      return ord;
+    }
+    public static bool BigOrdinal_IsNat(BigInteger ord) {
+      return true;  // at run time, every ORDINAL is a natural number
+    }
   }
 
   public struct BigRational

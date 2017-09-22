@@ -2118,6 +2118,71 @@ module IteratorDuplicateParameterNames {
   iterator MyIterY(us: char) yields (u: char)  // error: in-effect-duplicate name "us"
 }
 
+module BigOrdinalRestrictions {
+  method Test() {
+    var st: set<ORDINAL>;  // error: cannot use ORDINAL as type argument
+    var p: (int, ORDINAL);  // error: cannot use ORDINAL as type argument
+    var o: ORDINAL;  // okay
+    ghost var f := F(o);  // error: cannot use ORDINAL as type argument 
+    f := F'<ORDINAL>();  // error: cannot use ORDINAL as type argument
+    f := F'<(char,ORDINAL)>();  // error: cannot use ORDINAL as type argument
+    var lambda := F'<ORDINAL>;  // error: cannot use ORDINAL as type argument
+    ParameterizedMethod(o);  // error: cannot use ORDINAL as type argument
+    assert forall r: ORDINAL :: P(r);  // error: cannot quantify over ORDINAL
+    assert forall r: (ORDINAL, int) :: F(r.1) < 8;  // error: cannot use ORDINAL as type argument
+    assert exists x: int, r: ORDINAL, y: char :: P(r) && F(x) == F(y);  // error: cannot quantify over ORDINAL
+    var s := set r: ORDINAL | r in {};  // error (x2): cannot use ORDINAL as type argument (to set)
+    var s' := set r: ORDINAL | true :: 'G';  // error: cannot use ORDINAL as type of bound variable
+    ghost var m := imap r: ORDINAL :: 10;  // error (x2): cannot use ORDINAL as type argument (to imap)
+    var sq := [o, o];  // error: cannot use ORDINAL as type argument (to seq)
+    var mp0 := map[o := 'G'];  // error: cannot use ORDINAL as type argument (to map)
+    var mp1 := map['G' := o];  // error: cannot use ORDINAL as type argument (to map)
+    var w := var h: ORDINAL := 100; h + 40;  // okay
+    var w': (int, ORDINAL);  // error: cannot use ORDINAL as type argument
+    var u: ORDINAL :| u == 15;
+    var ti: ORDINAL :| assume true;
+    var u': (ORDINAL, int) :| u' == (15, 15);  // error (x2): ORDINAL cannot be a type argument
+    var ti': (ORDINAL, ORDINAL) :| assume true;  // error (x4): ORDINAL cannot be a type argument
+    var lstLocal := var lst: ORDINAL :| lst == 15; lst;
+    var lstLocal' := var lst: (ORDINAL, int) :| lst == (15, 15); lst.1;  // error: ORDINAL cannot be a type argument
+    if yt: ORDINAL :| yt == 16 {  // error: cannot quantify over ORDINAL
+      ghost var pg := P(yt);
+    }
+    if {
+      case zt: ORDINAL :| zt == 180 =>  // error: cannot quantify over ORDINAL
+        ghost var pg := P(zt);
+    }
+    forall om: ORDINAL  // allowed
+      ensures om < om+1
+    {
+    }
+    var arr := new int[23];
+    forall om: ORDINAL | om == 11  // allowed
+    {
+      arr[0] := 0;
+    }
+  }
+  function F<G>(g: G): int
+  function F'<G>(): int
+  method ParameterizedMethod<G>(g: G)
+  predicate P(g: ORDINAL)
+}
+
+module TernaryTypeCheckinngAndInference {
+  codatatype Stream = Cons(int, Stream)
+
+  method M(k: nat, K: ORDINAL, A: Stream, B: Stream)
+    requires A == B
+  {
+    // all of the following are fine
+    assert A ==#[k] B;
+    assert A ==#[K] B;
+    assert A ==#[3] B;
+    var b;
+    assert A ==#[b] B;
+  }
+}
+
 module DontQualifyWithNonNullTypeWhenYouMeanAClass {
   module Z {
     class MyClass {

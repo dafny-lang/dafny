@@ -44,7 +44,7 @@ colemma {:induction false} Theorem0()
 ghost method Theorem0_Manual()
   ensures atmost(zeros(), ones());
 {
-  forall k: nat {
+  forall k: ORDINAL {
     Theorem0_Lemma(k);
   }
 }
@@ -78,7 +78,7 @@ colemma {:induction false} Theorem0_TerminationFailure_DefaultDecreases(y: Natur
   Theorem0_TerminationFailure_DefaultDecreases#[_k-1](y);
 }
 
-ghost method {:induction true} Theorem0_Lemma(k: nat)
+ghost method {:induction true} Theorem0_Lemma(k: ORDINAL)
   ensures atmost#[k](zeros(), ones());
 {
 }
@@ -203,7 +203,7 @@ module PrefixEquality {
       s;
       ==#[_k-1]
       t;  // error: this step might not hold
-      ==#[if 2 <= _k then _k-2 else _k-1]
+      ==#[if 2 <= _k.Offset then _k-2 else _k-1]
       s;  // error: this step might not hold
       ==#[0]
       t;
@@ -217,7 +217,7 @@ module PrefixEquality {
       s;
       ==#[_k-1]
       t;
-      ==#[_k-2]  // error: prefix-equality limit must be at least 0
+      ==#[_k-2]  // error: the ORDINAL _k might have an .Offset less than 2
       s;
       ==#[0]
       t;

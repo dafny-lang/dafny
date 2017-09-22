@@ -706,10 +706,10 @@ namespace Microsoft.Dafny
         return new Predicate(Tok(f.tok), newName, f.HasStaticKeyword, f.IsProtected, f.IsGhost, tps, formals,
           req, reads, ens, decreases, body, Predicate.BodyOriginKind.OriginalOrInherited, CloneAttributes(f.Attributes), null);
       } else if (f is InductivePredicate) {
-        return new InductivePredicate(Tok(f.tok), newName, f.HasStaticKeyword, f.IsProtected, tps, formals,
+        return new InductivePredicate(Tok(f.tok), newName, f.HasStaticKeyword, f.IsProtected, ((InductivePredicate)f).TypeOfK, tps, formals,
           req, reads, ens, body, CloneAttributes(f.Attributes), null);
       } else if (f is CoPredicate) {
-        return new CoPredicate(Tok(f.tok), newName, f.HasStaticKeyword, f.IsProtected, tps, formals,
+        return new CoPredicate(Tok(f.tok), newName, f.HasStaticKeyword, f.IsProtected, ((CoPredicate)f).TypeOfK, tps, formals,
           req, reads, ens, body, CloneAttributes(f.Attributes), null);
       } else if (f is TwoStatePredicate) {
         return new TwoStatePredicate(Tok(f.tok), newName, f.HasStaticKeyword, tps, formals,
@@ -740,10 +740,10 @@ namespace Microsoft.Dafny
         return new Constructor(Tok(m.tok), m.Name, tps, ins,
           req, mod, ens, decreases, (DividedBlockStmt)body, CloneAttributes(m.Attributes), null);
       } else if (m is InductiveLemma) {
-        return new InductiveLemma(Tok(m.tok), m.Name, m.HasStaticKeyword, tps, ins, m.Outs.ConvertAll(CloneFormal),
+        return new InductiveLemma(Tok(m.tok), m.Name, m.HasStaticKeyword, ((InductiveLemma)m).TypeOfK, tps, ins, m.Outs.ConvertAll(CloneFormal),
           req, mod, ens, decreases, body, CloneAttributes(m.Attributes), null);
       } else if (m is CoLemma) {
-        return new CoLemma(Tok(m.tok), m.Name, m.HasStaticKeyword, tps, ins, m.Outs.ConvertAll(CloneFormal),
+        return new CoLemma(Tok(m.tok), m.Name, m.HasStaticKeyword, ((CoLemma)m).TypeOfK, tps, ins, m.Outs.ConvertAll(CloneFormal),
           req, mod, ens, decreases, body, CloneAttributes(m.Attributes), null);
       } else if (m is Lemma) {
         return new Lemma(Tok(m.tok), m.Name, m.HasStaticKeyword, tps, ins, m.Outs.ConvertAll(CloneFormal),

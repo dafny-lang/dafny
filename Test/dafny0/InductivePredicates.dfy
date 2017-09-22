@@ -13,26 +13,30 @@ lemma M(x: natinf)
   requires Even(x)
   ensures x.N? && x.n % 2 == 0
 {
-  var k: nat :| Even#[k](x);
+  var k: ORDINAL :| Even#[k](x);
   M'(k, x);
 }
 
 // yay!  my first proof involving an inductive predicate :)
-lemma {:induction false} M'(k: nat, x: natinf)
+lemma {:induction false} M'(k: ORDINAL, x: natinf)
   requires Even#[k](x)
   ensures x.N? && x.n % 2 == 0
 {
-  if 0 < k {
+  if k.IsSucc {
     if {
       case x.N? && x.n == 0 =>
         // trivial
       case x.N? && 2 <= x.n && Even#[k-1](N(x.n - 2)) =>
         M'(k-1, N(x.n - 2));
     }
+  } else {
+    assert k.IsLimit;
+    var k' :| k' < k && Even#[k'](x);
+    M'(k', x);
   }
 }
 
-lemma M'_auto(k: nat, x: natinf)
+lemma M'_auto(k: ORDINAL, x: natinf)
   requires Even#[k](x)
   ensures x.N? && x.n % 2 == 0
 {
@@ -180,5 +184,66 @@ module Alt {
     requires Even(x)
     ensures Even(S(S(x)))
   {
+  }
+}
+
+/***********
+ * These are test cases for monotonicity of the the _k parameter.  However, monotonicity
+ * does not appear to be useful in the test suite, and it is possible that the axioms
+ * about monotonicity are expensive performance-wise.  Therefore, the monotonicity axioms
+ * are currently not produced--they are controled by #if WILLING_TO_TAKE_THE_PERFORMANCE_HIT.
+ ***********
+module Monotonicity {
+  inductive predicate P(x: char)
+
+  lemma MonotonicityP(k: ORDINAL, k': ORDINAL, x: char)
+    requires P#[k](x) && k <= k'
+    ensures P#[k'](x)
+  {
+  }
+
+  inductive predicate Q[nat](x: char)
+
+  lemma MonotonicityQ(k: nat, k': nat, x: char)
+    requires Q#[k](x) && k <= k'
+    ensures Q#[k'](x)
+  {
+  }
+
+  copredicate H[nat](x: char)
+
+  lemma MonotonicityH(k: nat, k': nat, x: char)
+    requires H#[k](x) && k' <= k
+    ensures H#[k'](x)
+  {
+  }
+
+  copredicate J(x: char)
+
+  lemma MonotonicityJ(k: ORDINAL, k': ORDINAL, x: char)
+    requires J#[k](x) && k' <= k
+    ensures J#[k'](x)
+  {
+  }
+}
+************/
+
+// The following example is slightly tricky with ORDINALs, because of the limit
+// step where one wants both P(x,y,z) and P(x,y,z') to go down to the same lower
+// ORDINAL.  The targeted monotonicity axiom helps verify this example automatically.
+module TargetedMonotonicity {
+  function Next(x: int): int
+  
+  inductive predicate P(x: int, y: int, z: int)
+  {
+    (x == 0 && y == z) ||
+    (x != 0 && P(Next(x), y, z))
+  }
+
+  inductive lemma Deterministic(x: int, y: int, z: int, z': int)
+    requires P(x, y, z) && P(x, y, z')
+    ensures z == z'
+  {
+    // take that!
   }
 }

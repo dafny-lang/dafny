@@ -138,7 +138,7 @@ lemma Theorem0(t: Tree)
 }
 lemma FindNil(s: Stream<Tree>, n: nat) returns (k: nat)
   requires LowerThan(s, n);
-  ensures !InfiniteEverywhere#[k](s);
+  ensures !InfiniteEverywhere#[k as ORDINAL](s);
 {
   match s {
     case Nil => k := 1;

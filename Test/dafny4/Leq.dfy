@@ -67,7 +67,7 @@ lemma LeqTheorem(a: Nat, b: Nat)
     Leq0_infinite(m, b);
   }
   if Leq(a, b) {
-    var k:nat :| Leq#[k](a, b);
+    var k :| Leq#[k](a, b);
     var m, n := Leq1(k, a, b);
   }
 }
@@ -86,12 +86,15 @@ lemma Leq0_infinite(m: nat, b: Nat)
   // proof is automatic
 }
 
-lemma Leq1(k: nat, a: Nat, b: Nat) returns (m: nat, n: nat)
+lemma Leq1(k: ORDINAL, a: Nat, b: Nat) returns (m: nat, n: nat)
   requires Leq#[k](a, b)
   ensures a == Num(m)
   ensures IsInfinity(b) || (b == Num(n) && m <= n)
 {
-  if a == Z {
+  if k.IsLimit {
+    var k' :| k' < k && Leq#[k'](a, b);
+    m, n := Leq1(k', a, b);
+  } else if a == Z {
     m := 0;
     NatCases(b);
     if !IsInfinity(b) {

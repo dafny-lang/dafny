@@ -18,6 +18,10 @@ class MyClass<A,B> {
   {
     MyClass<B,A>.RST<QQ>()
   }
+  static copredicate RST_Nat<QQ>[nat]()
+  {
+    MyClass<B,A>.RST_Nat<QQ>()
+  }
   colemma L<U,V>(u: U, v: V)
     ensures P(u, v)
   {
@@ -77,21 +81,53 @@ colemma {:induction false} RstRst4<alpha,beta,gamma>()
 colemma {:induction false} RstRst5<alpha,gamma>()
   ensures MyClass<alpha,char>.RST<gamma>()
 {
-  if 2 <= _k {
+  if 2 <= _k.Offset {
     RstRst5#<alpha,gamma>[_k-2]();  // yes (RST for _k gets unfolded twice)
+  } else {  // error: this case does not work out
+    assert _k.Offset == 1;
   }
 }
 
 colemma {:induction false} RstRst6<alpha,beta,gamma>()
   ensures MyClass<alpha,beta>.RST<gamma>()
 {
-  if 2 <= _k {
+  if
+  case true =>
+    // This is the expected and usual proof for all (non-limit) cases
+    RstRst6<beta,alpha,gamma>();
+  case 2 <= _k.Offset =>
+    // here is a "faster" proof
     RstRst6#<alpha,beta,gamma>[_k-2]();  // yes (RST for _k gets unfolded twice)
-  }
 }
 
 colemma RstRst7<alpha,beta,gamma>()
   ensures MyClass<alpha,beta>.RST<gamma>()
+{
+  if _k != 1 && _k.Offset == 1 {
+    RstRst6<beta,alpha,gamma>();
+  } else {
+    // in all remaining cases, (unfolding and) automatic induction takes care of the proof
+  }
+}
+
+colemma {:induction false} RstRst8<alpha,gamma>[nat]()
+  ensures MyClass<alpha,char>.RST_Nat<gamma>()
+{
+  if 2 <= _k {
+    RstRst8#<alpha,gamma>[_k-2]();  // yes (RST for _k gets unfolded twice)
+  }
+}
+
+colemma {:induction false} RstRst9<alpha,beta,gamma>[nat]()
+  ensures MyClass<alpha,beta>.RST_Nat<gamma>()
+{
+  if 2 <= _k {
+    RstRst9#<alpha,beta,gamma>[_k-2]();  // yes (RST for _k gets unfolded twice)
+  }
+}
+
+colemma RstRst10<alpha,beta,gamma>[nat]()
+  ensures MyClass<alpha,beta>.RST_Nat<gamma>()
 {
   // automatic induction takes care of the proof
 }
