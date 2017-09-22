@@ -175,7 +175,7 @@ method FlyRobots(b0:Bot, b1:Bot)
 function ArmyRepr(bots:seq<Bot>) : set<object>
   reads set b | b in bots 
 {
-  set b,o | b in bots && b != null && o in b.Repr :: o
+  set b,o | b in bots && o in b.Repr :: o
 }
 
 // An army is a sequence of disjoint, valid robots

@@ -602,9 +602,7 @@ namespace Microsoft.Dafny {
 
     public VisibilityScope(bool newScope, string name) {
       scopeTokens.Add(maxScopeID);
-#if DEBUG
       scopeIds.Add(name);
-#endif
       if (maxScopeID == uint.MaxValue) {
         Contract.Assert(false);
       }
@@ -694,11 +692,7 @@ namespace Microsoft.Dafny {
     }
 
     // Type arguments to the type
-#if PREVIOUS
-    public List<Type> TypeArgs = new List<Type> { };
-#else
     public List<Type> TypeArgs = new List<Type>();
-#endif
 
     [Pure]
     public abstract string TypeName(ModuleDefinition/*?*/ context, bool parseAble = false);
@@ -1641,6 +1635,13 @@ namespace Microsoft.Dafny {
     /// Does a best-effort to compute the meet of "a" and "b", returning "null" if not successful.
     /// </summary>
     public static Type Meet(Type a, Type b, BuiltIns builtIns) {
+#if DEBUG_PRINT
+      var j = MeetX(a, b, builtIns);
+      Console.WriteLine("DEBUG: Meet( {0}, {1} ) = {2}", a, b, j);
+      return j;
+    }
+    public static Type MeetX(Type a, Type b, BuiltIns builtIns) {
+#endif
       Contract.Requires(a != null);
       Contract.Requires(b != null);
       Contract.Requires(builtIns != null);
@@ -1729,8 +1730,8 @@ namespace Microsoft.Dafny {
         if (typeArgs == null) {
           return null;
         }
-        var udf = (UserDefinedType)a;
-        return new UserDefinedType(udf.tok, udf.Name, aa, typeArgs);
+        var udt = (UserDefinedType)a;
+        return new UserDefinedType(udt.tok, udt.Name, aa, typeArgs);
       } else if (a.AsArrowType != null) {
         var aa = a.AsArrowType;
         var bb = b.AsArrowType;
@@ -1818,11 +1819,59 @@ namespace Microsoft.Dafny {
     /// Does a best-effort to compute the join of "a" and "b", returning "null" if not successful.
     /// </summary>
     public static Type Join(Type a, Type b, BuiltIns builtIns) {
+#if DEBUG_PRINT
+      var j = JoinX(a, b, builtIns);
+      Console.WriteLine("DEBUG: Join( {0}, {1} ) = {2}", a, b, j);
+      return j;
+    }
+    public static Type JoinX(Type a, Type b, BuiltIns builtIns) {
+#endif
       Contract.Requires(a != null);
       Contract.Requires(b != null);
       Contract.Requires(builtIns != null);
-      a = a.NormalizeExpand();
-      b = b.NormalizeExpand();
+
+      // Before we do anything else, make a note of whether or not either "a" or "b" is a non-null type.
+      var abNonNullType = a.IsNonNullRefType || b.IsNonNullRefType;
+
+      var towerA = GetTowerOfSubsetTypes(a);
+      var towerB = GetTowerOfSubsetTypes(b);
+      if (towerB.Count < towerA.Count) {
+      // make A be the shorter tower
+        var tmp0 = a; a = b; b = tmp0;
+        var tmp1 = towerA; towerA = towerB; towerB = tmp1;
+      }
+      var n = towerA.Count;
+      Contract.Assert(1 <= n);  // guaranteed by GetTowerOfSubsetTypes
+      if (towerA.Count < towerB.Count) {
+        // B is strictly taller. The join exists only if towerA[n-1] is a supertype of towerB[n-1], and
+        // then the join is "b".
+        return Type.IsSupertype_Improved(towerA[n - 1], towerB[n - 1]) ? b : null;
+      }
+      Contract.Assert(towerA.Count == towerB.Count);
+      a = towerA[n - 1];
+      b = towerB[n - 1];
+      if (2 <= n) {
+        var udtA = (UserDefinedType)a;
+        var udtB = (UserDefinedType)b;
+        if (udtA.ResolvedClass == udtB.ResolvedClass) {
+          // We have two subset types with equal heads
+          if (a.Equals(b)) {  // optimization for a special case, which applies for example when there are no arguments or when the types happen to be the same
+            return a;
+          }
+          Contract.Assert(a.TypeArgs.Count == b.TypeArgs.Count);
+          var directions = udtA.ResolvedClass.TypeArgs.ConvertAll(tp => tp.Variance);
+          var typeArgs = ComputeExtrema(directions, a.TypeArgs, b.TypeArgs, builtIns);
+          if (typeArgs == null) {
+            return null;
+          }
+          return new UserDefinedType(udtA.tok, udtA.Name, udtA.ResolvedClass, typeArgs);
+        } else {
+          // The two subset types do not have the same head, so there is no join
+          return null;
+        }
+      }
+      Contract.Assert(towerA.Count == 1 && towerB.Count == 1);
+
       if (a.IsBoolType || a.IsCharType || a.IsTypeParameter || a.IsInternalTypeSynonym || a is TypeProxy) {
         return a.Equals(b) ? a : null;
       } else if (a is IntVarietiesSupertype) {
@@ -1881,26 +1930,25 @@ namespace Microsoft.Dafny {
           return a;
         }
         Contract.Assert(a.TypeArgs.Count == b.TypeArgs.Count);
-        var n = a.TypeArgs.Count;
         var directions = aa.TypeArgs.ConvertAll(tp => tp.Variance);
         var typeArgs = ComputeExtrema(directions, a.TypeArgs, b.TypeArgs, builtIns);
         if (typeArgs == null) {
           return null;
         }
-        var udf = (UserDefinedType)a;
-        return new UserDefinedType(udf.tok, udf.Name, aa, typeArgs);
+        var udt = (UserDefinedType)a;
+        return new UserDefinedType(udt.tok, udt.Name, aa, typeArgs);
       } else if (a.AsArrowType != null) {
         var aa = a.AsArrowType;
         var bb = b.AsArrowType;
         if (bb == null || aa.Arity != bb.Arity) {
           return null;
         }
-        int n = aa.Arity;
-        Contract.Assert(a.TypeArgs.Count == n + 1);
-        Contract.Assert(b.TypeArgs.Count == n + 1);
+        int arity = aa.Arity;
+        Contract.Assert(a.TypeArgs.Count == arity + 1);
+        Contract.Assert(b.TypeArgs.Count == arity + 1);
         Contract.Assert(((ArrowType)a).ResolvedClass == ((ArrowType)b).ResolvedClass);
         var directions = new List<TypeParameter.TPVariance>();
-        for (int i = 0; i < n; i++) {
+        for (int i = 0; i < arity; i++) {
           directions.Add(TypeParameter.TPVariance.Contra);  // arrow types are contra-variant in the argument types, so compute meets of these
         }
         directions.Add(TypeParameter.TPVariance.Co);  // arrow types are co-variant in the result type, so compute the join of these
@@ -1925,21 +1973,29 @@ namespace Microsoft.Dafny {
         if (a.Equals(b)) {  // optimization for a special case, which applies for example when there are no arguments or when the types happen to be the same
           return a;
         } else if (aa == bb) {
-          var n = a.TypeArgs.Count;
           Contract.Assert(a.TypeArgs.Count == b.TypeArgs.Count);
           var directions = aa.TypeArgs.ConvertAll(tp => tp.Variance);
           var typeArgs = ComputeExtrema(directions, a.TypeArgs, b.TypeArgs, builtIns);
           if (typeArgs == null) {
             return null;
           }
-          var udf = (UserDefinedType)a;
-          return new UserDefinedType(udf.tok, udf.Name, aa, typeArgs);
-        } else if (aa is ClassDecl && ((ClassDecl)aa).DerivesFrom(bb)) {
-          Contract.Assert(bb is TraitDecl && b.TypeArgs.Count == 0);
-          return a;
-        } else if (bb is ClassDecl && ((ClassDecl)bb).DerivesFrom(aa)) {
-          Contract.Assert(aa is TraitDecl && a.TypeArgs.Count == 0);
-          return b;
+          var udt = (UserDefinedType)a;
+          var xx = new UserDefinedType(udt.tok, udt.Name, aa, typeArgs);
+          return abNonNullType ? UserDefinedType.CreateNonNullType(xx) : xx;
+        } else if (aa is ClassDecl && bb is ClassDecl) {
+          var A = (ClassDecl)aa;
+          var B = (ClassDecl)bb;
+          if (A.DerivesFrom(B)) {
+            Contract.Assert(B is TraitDecl && b.TypeArgs.Count == 0);
+            var udtA = (UserDefinedType)a;
+            return abNonNullType ? UserDefinedType.CreateNonNullType(udtA) : udtA;
+          } else if (B.DerivesFrom(A)) {
+            Contract.Assert(A is TraitDecl && a.TypeArgs.Count == 0);
+            var udtB = (UserDefinedType)b;
+            return abNonNullType ? UserDefinedType.CreateNonNullType(udtB) : udtB;
+          } else {
+            return null;
+          }
         } else {
           return null;
         }
@@ -2309,7 +2365,10 @@ namespace Microsoft.Dafny {
       return t != null && Finite == t.Finite && Arg.Equals(t.Arg);
     }
     public override bool IsSupertypeOf_WithSubsetTypes(Type that) {
+#if I_CHANGED_THE_FOLLOWING
       var t = that.NormalizeExpandKeepConstraints() as SetType;
+#endif
+      var t = that.NormalizeExpand() as SetType;
       return t != null && Finite == t.Finite && Arg.IsSupertypeOf_WithSubsetTypes(t.Arg);
     }
     public override bool PossiblyEquals_W(Type that) {
@@ -2519,12 +2578,14 @@ namespace Microsoft.Dafny {
     /// the given declaration takes type parameters, these are filled as references to the formal type parameters
     /// themselves.  (Usually, this method is called when the type parameters in the result don't matter, other
     /// than that they need to be filled in, so as to make a properly resolved UserDefinedType.)
+    /// If "typeArgs" is non-null, then its type parameters are used in constructing the returned type.
+    /// If "typeArgs" is null, then the formal type parameters of "cd" are used.
     /// </summary>
-    public static UserDefinedType FromTopLevelDecl(IToken tok, TopLevelDecl cd) {
+    public static UserDefinedType FromTopLevelDecl(IToken tok, TopLevelDecl cd, List<TypeParameter> typeArgs = null) {
       Contract.Requires(tok != null);
       Contract.Requires(cd != null);
       Contract.Assert((cd is ArrowTypeDecl) == ArrowType.IsArrowTypeName(cd.Name));
-      var args = cd.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp));
+      var args = (typeArgs ?? cd.TypeArgs).ConvertAll(tp => (Type)new UserDefinedType(tp));
       if (cd is ArrowTypeDecl) {
         return new ArrowType(tok, (ArrowTypeDecl)cd, args);
       } else if (cd is ClassDecl) {
@@ -2543,6 +2604,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(cd != null);
       Contract.Requires(cce.NonNullElements(typeArgs));
       Contract.Requires(cd.TypeArgs.Count == typeArgs.Count);
+      Contract.Requires(!(cd is ClassDecl) || (cd is ArrowTypeDecl) || name == cd.Name + "?");
       this.tok = tok;
       this.Name = name;
       this.ResolvedClass = cd;
@@ -2816,7 +2878,11 @@ namespace Microsoft.Dafny {
     public IEnumerable<Type> Supertypes {
       get {
         foreach (var c in SupertypeConstraints) {
-          yield return c.Super.NormalizeExpand();
+          if (c.KeepConstraints) {
+            yield return c.Super.NormalizeExpandKeepConstraints();
+          } else {
+            yield return c.Super.NormalizeExpand();
+          }
         }
       }
     }
@@ -2835,7 +2901,11 @@ namespace Microsoft.Dafny {
     public IEnumerable<Type> Subtypes {
       get {
         foreach (var c in SubtypeConstraints) {
-          yield return c.Sub.NormalizeExpand();
+          if (c.KeepConstraints) {
+            yield return c.Sub.NormalizeExpandKeepConstraints();
+          } else {
+            yield return c.Sub.NormalizeExpand();
+          }
         }
       }
     }
@@ -4950,7 +5020,7 @@ namespace Microsoft.Dafny {
     /// </summary>
     public NonNullTypeDecl(ClassDecl cl)
       : this(cl, cl.TypeArgs.ConvertAll(tp => new TypeParameter(tp.tok, tp.Name, tp.VarianceSyntax, tp.Characteristics)))
-    {
+ {
       Contract.Requires(cl != null);
     }
 
@@ -8241,7 +8311,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(tok != null);
       Contract.Requires(cl != null);
       var typeArgs = cl.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp));
-      Type = new UserDefinedType(tok, cl.Name, cl, typeArgs);
+      Type = new UserDefinedType(tok, cl.Name + "?", cl, typeArgs);
       UnresolvedType = Type;
       Implicit = isImplicit;
     }
