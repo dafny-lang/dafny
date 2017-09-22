@@ -480,7 +480,7 @@ namespace Microsoft.Dafny
           cp.OutputAssembly = Path.ChangeExtension(dafnyProgramName, "dll");
           cp.GenerateInMemory = false;
         }
-        cp.CompilerOptions = "/debug /nowarn:0164 /nowarn:0219 /nowarn:1717";  // warning CS0164 complains about unreferenced labels, CS0219 is about unused variables, CS1717 is about assignments of a variable to itself
+        cp.CompilerOptions = "/debug /nowarn:0164 /nowarn:0219 /nowarn:1717 /nowarn:0162";  // warning CS0164 complains about unreferenced labels, CS0219 is about unused variables, CS1717 is about assignments of a variable to itself, CS0162 is about unreachable code
         cp.ReferencedAssemblies.Add("System.Numerics.dll");
         cp.ReferencedAssemblies.Add("System.Core.dll");
         cp.ReferencedAssemblies.Add("System.dll");

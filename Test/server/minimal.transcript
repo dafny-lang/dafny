@@ -1,4 +1,4 @@
-# RUN: "%server" "%s" > "%t"
+# RUN: %server "%s" > "%t"
 # RUN: %diff "%s.expect" "%t"
 verify
 eyJhcmdzIjpbIi9jb21waWxlOjAiLCIvbm9sb2dvIiwiL3ByaW50VG9vbHRpcHMiLCIvdGltZUxp

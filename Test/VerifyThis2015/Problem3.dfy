@@ -109,7 +109,9 @@ class DoublyLinkedList {
   lemma InjectiveAfterPop<T>(s: seq<T>, k: nat)
     requires k < |s|
     requires Injective(s)
-    ensures  Injective(PopMiddle(s, k)) { }
+    ensures  Injective(PopMiddle(s, k))
+  {
+  }
 
   method Remove(x: Node?) returns (ghost k: int)
     requires Valid()
@@ -123,7 +125,6 @@ class DoublyLinkedList {
     x.R.L := x.L;
     x.L.R := x.R;
 
-    InjectiveAfterPop(Nodes, k);
     Nodes := Nodes[..k] + Nodes[k+1..];
     assert Valid();
   }
