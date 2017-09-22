@@ -12,7 +12,7 @@ namespace Microsoft.Dafny
     private ErrorReporter errorReporter;
 
     public DafnyOptions(ErrorReporter errorReporter = null)
-      : base("Dafny", "Dafny") {
+      : base("Dafny", "Dafny program verifier") {
         this.errorReporter = errorReporter;
         SetZ3ExecutableName();
     }
@@ -24,6 +24,11 @@ namespace Microsoft.Dafny
           + "[IronDafny]"
 #endif
           ;
+      }
+    }
+    public override string Version {
+      get {
+        return ToolName + VersionSuffix;
       }
     }
     public override string VersionSuffix {
