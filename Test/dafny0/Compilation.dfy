@@ -178,7 +178,6 @@ method DigitsIdents(t: Tuple<int, Tuple<int, bool>>)
 class DigitsClass {
   var 7: bool;
   method M(c: DigitsClass)
-    requires c != null;
   {
     var x: int := if this.7 then 7 else if c.7 then 8 else 9;
   }

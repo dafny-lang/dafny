@@ -88,7 +88,7 @@ method A1(x: int) returns (r: int)
 }
 
 method DutchFlag(A: array<int>, N: int, l: int, r: int) returns (result: int)
-  requires A != null && N == A.Length;
+  requires N == A.Length;
   requires 0 <= l && l+2 <= r && r <= N;
   modifies A;
   ensures l <= result && result < r;

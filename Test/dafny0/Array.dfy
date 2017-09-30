@@ -308,15 +308,14 @@ method AllocationBusiness2(a: array2<MyClass>, i: int, j: int)
 
 module DtypeRegression {
   predicate array_equal(a: array<int>, b: array<int>)
-    requires a != null && b != null;
     reads a, b;
   {
     a[..] == b[..]
   }
 
   method duplicate_array(input: array<int>, len: int) returns (output: array<int>) 
-    requires input != null && len == input.Length;
-    ensures output != null && array_equal(input, output);
+    requires len == input.Length;
+    ensures array_equal(input, output);
   {
     output := new int[len];
     var i := 0;

@@ -13,8 +13,7 @@ class A {
 //  var h: array3000 <array2<int>>; // too big!
 
   method M0()
-    requires a != null && b != null;
-    modifies a;
+    modifies a
   {
     if (5 <= a.Length && a.Length <= b.Length) {
       var x := b[2];
@@ -28,7 +27,6 @@ class A {
   }
 
   method M1()
-    requires a != null && d != null;
     modifies a;
   {
     if (5 <= a.Length && a.Length <= d.Length) {
@@ -43,7 +41,6 @@ class A {
   }
 
   method M2(i: int, j: int, k: int, val: A)
-    requires f != null;
     requires 0 <= i && i < f.Length0;
     requires 0 <= j && j < f.Length1;
     requires 0 <= k && k < f.Length2;
@@ -65,7 +62,6 @@ class A {
   }
 
   method M3(i: int, j: int, k: int)
-    requires f != null;
     requires 0 <= i && i < f.Length0;
     requires 0 <= j && j < f.Length1;
     requires 0 <= k && k < f.Length2;
@@ -86,7 +82,6 @@ class A {
   }
 
   method M4(a: array2<bool>) returns (k: int)
-    requires a != null;
     ensures 0 <= k;
   {
     k := a.Length0 + a.Length1;

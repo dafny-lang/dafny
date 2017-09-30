@@ -167,7 +167,6 @@ namespace Microsoft.Dafny {
       if (useClassNameType) {
         arrayName = arrayName + "?";
       }
-      UserDefinedType udt = new UserDefinedType(tok, arrayName, optTypeArgs);
       if (allowCreationOfNewClass && !arrayTypeDecls.ContainsKey(dims)) {
         ArrayClassDecl arrayClass = new ArrayClassDecl(dims, SystemModule, DontCompile());
         for (int d = 0; d < dims; d++) {
@@ -180,6 +179,7 @@ namespace Microsoft.Dafny {
         arrayTypeDecls.Add(dims, arrayClass);
         SystemModule.TopLevelDecls.Add(arrayClass);
       }
+      UserDefinedType udt = new UserDefinedType(tok, arrayName, optTypeArgs);
       return udt;
     }
 

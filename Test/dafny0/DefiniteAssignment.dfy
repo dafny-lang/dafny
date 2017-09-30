@@ -65,9 +65,8 @@ method M1<G>(x: int, a: G, b: G) returns (y: G, z: G)
 class C { var u: int }
 
 function method F(): C
-  ensures F() != null
 
-type NonNullC = c: C | c != null witness F()
+type NonNullC = c: C? | c != null witness F()
 
 method Main()
 {

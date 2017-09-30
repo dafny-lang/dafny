@@ -3110,9 +3110,16 @@ namespace Microsoft.Dafny
       }
     }
 
+    /// <summary>
+    /// "root" says that the type is a non-artificial type with no proper supertypes.
+    /// "leaf" says that the only possible proper subtypes are subset types of the type. Thus, the only
+    /// types that are not leaf types are traits and artificial types.
+    /// The "headIs" versions speak only about the head symbols, so it is possible that the given
+    /// type arguments would change the root/leaf status of the entire type.
+    /// </summary>
     void CheckEnds(Type t, out bool isRoot, out bool isLeaf, out bool headIsRoot, out bool headIsLeaf) {
       Contract.Requires(t != null);
-      Contract.Requires(!(t is TypeProxy) || ((TypeProxy)t).T == null);  // caller is expected to have Normalized away proxies
+      t = t.NormalizeExpandKeepConstraints();
       if (t.IsBoolType || t.IsCharType || t.IsNumericBased() || t.IsBitVectorType || t.IsBigOrdinalType) {
         isRoot = true; isLeaf = true;
         headIsRoot = true; headIsLeaf = true;
@@ -3130,7 +3137,7 @@ namespace Microsoft.Dafny
         for (int i = 0; i < arr.TypeArgs.Count; i++) {
           var arg = arr.TypeArgs[i];
           bool r, l, hr, hl;
-          CheckEnds(arg.NormalizeExpand(), out r, out l, out hr, out hl);
+          CheckEnds(arg, out r, out l, out hr, out hl);
           if (i < arr.Arity) {
             isRoot &= l; isLeaf &= r;  // argument types are contravariant
           } else {
@@ -3138,38 +3145,41 @@ namespace Microsoft.Dafny
           }
         }
       } else if (t is UserDefinedType) {
-        var udf = (UserDefinedType)t;
-        var cl = udf.ResolvedClass;
+        var udt = (UserDefinedType)t;
+        var cl = udt.ResolvedClass;
         if (cl != null) {
           if (cl is SubsetTypeDecl) {
-            isRoot = false; isLeaf = false;
-            headIsRoot = false; headIsLeaf = false;
+            headIsRoot = false; headIsLeaf = true;
           } else if (cl is TraitDecl) {
-            isRoot = false; isLeaf = false;
             headIsRoot = false; headIsLeaf = false;
           } else if (cl is ClassDecl) {
-            isRoot = false; isLeaf = true;  // all type parameters are invariant
             headIsRoot = false; headIsLeaf = true;
           } else if (cl is OpaqueTypeDecl) {
-            isRoot = true; isLeaf = true;  // all type parameters are invariant
             headIsRoot = true; headIsLeaf = true;
           } else if (cl is InternalTypeSynonymDecl) {
             Contract.Assert(object.ReferenceEquals(t, t.NormalizeExpand())); // should be opaque in scope
-            isRoot = true; isLeaf = true;  // all type parameters are invariant
             headIsRoot = true; headIsLeaf = true;
           } else {
             Contract.Assert(cl is DatatypeDecl);
-            // type parameters of datatypes are covariant
-            isRoot = true; isLeaf = true;
-            foreach (var arg in t.TypeArgs) {
-              bool r, l, hr, hl;
-              CheckEnds(arg.NormalizeExpand(), out r, out l, out hr, out hl);
-              isRoot &= r; isLeaf &= l;
-            }
             headIsRoot = true; headIsLeaf = true;
           }
+          // for "isRoot" and "isLeaf", also take into consideration the root/leaf status of type arguments
+          isRoot = headIsRoot; isLeaf = headIsLeaf;
+          Contract.Assert(udt.TypeArgs.Count == cl.TypeArgs.Count);
+          for (int i = 0; i < udt.TypeArgs.Count; i++) {
+            var variance = cl.TypeArgs[i].Variance;
+            if (variance != TypeParameter.TPVariance.Inv) {
+              bool r, l, hr, hl;
+              CheckEnds(udt.TypeArgs[i], out r, out l, out hr, out hl);
+              if (variance == TypeParameter.TPVariance.Co) {
+                isRoot &= r; isLeaf &= l;
+              } else {
+                isRoot &= l; isLeaf &= r;
+              }
+            }
+          }
         } else if (t.IsTypeParameter) {
-          var tp = udf.AsTypeParameter;
+          var tp = udt.AsTypeParameter;
           Contract.Assert(tp != null);
           isRoot = true; isLeaf = true;  // all type parameters are invariant
           headIsRoot = true; headIsLeaf = true;
@@ -3180,22 +3190,19 @@ namespace Microsoft.Dafny
       } else if (t is MapType) {  // map, imap
         Contract.Assert(t.TypeArgs.Count == 2);
         bool r0, l0, r1, l1, hr, hl;
-        CheckEnds(t.TypeArgs[0].NormalizeExpand(), out r0, out l0, out hr, out hl);
-        CheckEnds(t.TypeArgs[1].NormalizeExpand(), out r1, out l1, out hr, out hl);
+        CheckEnds(t.TypeArgs[0], out r0, out l0, out hr, out hl);
+        CheckEnds(t.TypeArgs[1], out r1, out l1, out hr, out hl);
         isRoot = r0 & r1; isLeaf = r0 & r1;  // map types are covariant in both type arguments
         headIsRoot = true; headIsLeaf = true;
       } else if (t is CollectionType) {  // set, iset, multiset, seq
         Contract.Assert(t.TypeArgs.Count == 1);
         bool hr, hl;
-        CheckEnds(t.TypeArgs[0].NormalizeExpand(), out isRoot, out isLeaf, out hr, out hl);  // type is covariant is type argument
+        CheckEnds(t.TypeArgs[0], out isRoot, out isLeaf, out hr, out hl);  // type is covariant is type argument
         headIsRoot = true; headIsLeaf = true;
       } else {
         isRoot = false; isLeaf = false;  // don't know
         headIsRoot = false; headIsLeaf = false;
       }
-      // Actually, in the presence of subset constraints, there are never any leaf types.
-      isLeaf = false;
-      headIsLeaf = false;
     }
 
     int _recursionDepth = 0;
@@ -3689,7 +3696,7 @@ namespace Microsoft.Dafny
       }
     }
 
-    #region ExactProxies
+#region ExactProxies
     List<InferredTypeProxy> proxiesThatAreSometimesAndCurrentlyInferredWithConstraints = new List<InferredTypeProxy>();
     bool ExactProxiesSense = true;
     int PushMarkExactProxies() {
@@ -3715,7 +3722,7 @@ namespace Microsoft.Dafny
       Contract.Assert(proxiesThatAreSometimesAndCurrentlyInferredWithConstraints.Count == 0);
       proxiesThatAreSometimesAndCurrentlyInferredWithConstraints = ipState;
     }
-    #endregion
+#endregion
 
     public List<TypeConstraint> AllTypeConstraints = new List<TypeConstraint>();
     public List<XConstraint> AllXConstraints = new List<XConstraint>();
@@ -4719,7 +4726,7 @@ namespace Microsoft.Dafny
     // ------------------------------------------------------------------------------------------------------
     // ----- Visitors ---------------------------------------------------------------------------------------
     // ------------------------------------------------------------------------------------------------------
-    #region Visitors
+#region Visitors
     class ResolverBottomUpVisitor : BottomUpVisitor
     {
       protected Resolver resolver;
@@ -4736,12 +4743,12 @@ namespace Microsoft.Dafny
         this.resolver = resolver;
       }
     }
-    #endregion Visitors
+#endregion Visitors
 
     // ------------------------------------------------------------------------------------------------------
     // ----- CheckTypeInference -----------------------------------------------------------------------------
     // ------------------------------------------------------------------------------------------------------
-    #region CheckTypeInference
+#region CheckTypeInference
     private void CheckTypeInference_Member(MemberDecl member) {
       if (member is ConstantField) {
         var field = (ConstantField) member;
@@ -5150,12 +5157,12 @@ namespace Microsoft.Dafny
         t.TypeArgs.Iter(rg => CheckContainsNoOrdinal(tok, rg, errMsg));
       }
     }
-    #endregion CheckTypeInference
+#endregion CheckTypeInference
 
     // ------------------------------------------------------------------------------------------------------
     // ----- CheckExpression --------------------------------------------------------------------------------
     // ------------------------------------------------------------------------------------------------------
-    #region CheckExpression
+#region CheckExpression
     /// <summary>
     /// This method computes ghost interests in the statement portion of StmtExpr's and
     /// checks for hint restrictions in any CalcStmt.
@@ -5202,12 +5209,12 @@ namespace Microsoft.Dafny
         }
       }
     }
-    #endregion
+#endregion
 
     // ------------------------------------------------------------------------------------------------------
     // ----- CheckTailRecursive -----------------------------------------------------------------------------
     // ------------------------------------------------------------------------------------------------------
-    #region CheckTailRecursive
+#region CheckTailRecursive
     enum TailRecursionStatus
     {
       NotTailRecursive, // contains code that makes the enclosing method body not tail recursive (in way that is supported)
@@ -5445,12 +5452,12 @@ namespace Microsoft.Dafny
       }
       return TailRecursionStatus.CanBeFollowedByAnything;
     }
-    #endregion CheckTailRecursive
+#endregion CheckTailRecursive
 
     // ------------------------------------------------------------------------------------------------------
     // ----- FuelAdjustmentChecks ---------------------------------------------------------------------------
     // ------------------------------------------------------------------------------------------------------
-    #region FuelAdjustmentChecks
+#region FuelAdjustmentChecks
 
     protected void CheckForFuelAdjustments(IToken tok, Attributes attrs, ModuleDefinition currentModule) {
       List<List<Expression>> results = Attributes.FindAllExpressions(attrs, "fuel");
@@ -5506,12 +5513,12 @@ namespace Microsoft.Dafny
       }
     }
 
-    #endregion FuelAdjustmentChecks
+#endregion FuelAdjustmentChecks
 
     // ------------------------------------------------------------------------------------------------------
     // ----- FixpointPredicateChecks ------------------------------------------------------------------------
     // ------------------------------------------------------------------------------------------------------
-    #region FixpointPredicateChecks
+#region FixpointPredicateChecks
     enum CallingPosition { Positive, Negative, Neither }
     static CallingPosition Invert(CallingPosition cp) {
       switch (cp) {
@@ -5667,12 +5674,12 @@ namespace Microsoft.Dafny
       var v = new FixpointPredicateChecks_Visitor(this, context);
       v.Visit(expr, cp);
     }
-    #endregion FixpointPredicateChecks
+#endregion FixpointPredicateChecks
 
     // ------------------------------------------------------------------------------------------------------
     // ----- FixpointLemmaChecks ----------------------------------------------------------------------------
     // ------------------------------------------------------------------------------------------------------
-    #region FixpointLemmaChecks
+#region FixpointLemmaChecks
     class FixpointLemmaChecks_Visitor : ResolverBottomUpVisitor
     {
       FixpointLemma context;
@@ -5715,12 +5722,12 @@ namespace Microsoft.Dafny
       var v = new FixpointLemmaChecks_Visitor(this, context);
       v.Visit(stmt);
     }
-    #endregion FixpointLemmaChecks
+#endregion FixpointLemmaChecks
 
     // ------------------------------------------------------------------------------------------------------
     // ----- CheckEqualityTypes -----------------------------------------------------------------------------
     // ------------------------------------------------------------------------------------------------------
-    #region CheckEqualityTypes
+#region CheckEqualityTypes
     class CheckEqualityTypes_Visitor : ResolverTopDownVisitor<bool>
     {
       public CheckEqualityTypes_Visitor(Resolver resolver)
@@ -6067,12 +6074,12 @@ namespace Microsoft.Dafny
       v.CheckEqualityTypes_Type(tok, type);
     }
 
-    #endregion CheckEqualityTypes
+#endregion CheckEqualityTypes
 
     // ------------------------------------------------------------------------------------------------------
     // ----- ComputeGhostInterest ---------------------------------------------------------------------------
     // ------------------------------------------------------------------------------------------------------
-    #region ComputeGhostInterest
+#region ComputeGhostInterest
     public void ComputeGhostInterest(Statement stmt, bool mustBeErasable, ICodeContext codeContext) {
       Contract.Requires(stmt != null);
       Contract.Requires(codeContext != null);
@@ -6407,12 +6414,12 @@ namespace Microsoft.Dafny
         }
       }
     }
-    #endregion
+#endregion
 
     // ------------------------------------------------------------------------------------------------------
     // ----- FillInDefaultLoopDecreases ---------------------------------------------------------------------
     // ------------------------------------------------------------------------------------------------------
-    #region FillInDefaultLoopDecreases
+#region FillInDefaultLoopDecreases
     class FillInDefaultLoopDecreases_Visitor : ResolverBottomUpVisitor
     {
       readonly ICallable EnclosingMethod;
@@ -6432,12 +6439,12 @@ namespace Microsoft.Dafny
         }
       }
     }
-    #endregion FillInDefaultLoopDecreases
+#endregion FillInDefaultLoopDecreases
 
     // ------------------------------------------------------------------------------------------------------
     // ----- ReportMoreAdditionalInformation ----------------------------------------------------------------
     // ------------------------------------------------------------------------------------------------------
-    #region ReportOtherAdditionalInformation_Visitor
+#region ReportOtherAdditionalInformation_Visitor
     class ReportOtherAdditionalInformation_Visitor : ResolverBottomUpVisitor
     {
       public ReportOtherAdditionalInformation_Visitor(Resolver resolver)
@@ -6480,12 +6487,12 @@ namespace Microsoft.Dafny
         }
       }
     }
-    #endregion ReportOtherAdditionalInformation_Visitor
+#endregion ReportOtherAdditionalInformation_Visitor
 
     // ------------------------------------------------------------------------------------------------------
     // ----- ReportMoreAdditionalInformation ----------------------------------------------------------------
     // ------------------------------------------------------------------------------------------------------
-    #region CheckDividedConstructorInit
+#region CheckDividedConstructorInit
     class CheckDividedConstructorInit_Visitor : ResolverTopDownVisitor<int>
     {
       public CheckDividedConstructorInit_Visitor(Resolver resolver)
@@ -6609,7 +6616,7 @@ namespace Microsoft.Dafny
         }
       }
     }
-    #endregion
+#endregion
 
     // ------------------------------------------------------------------------------------------------------
     // ------------------------------------------------------------------------------------------------------
@@ -10024,7 +10031,7 @@ namespace Microsoft.Dafny
             ConstrainToIntegerType(dim, string.Format("new must use an integer-based expression for the array size (got {{0}}{0})", rr.ArrayDimensions.Count == 1 ? "" : " for index " + i));
             i++;
           }
-          rr.Type = ResolvedArrayType(stmt.Tok, rr.ArrayDimensions.Count, rr.EType, codeContext, true);
+          rr.Type = ResolvedArrayType(stmt.Tok, rr.ArrayDimensions.Count, rr.EType, codeContext, false);
           if (rr.ElementInit != null) {
             ResolveExpression(rr.ElementInit, new ResolveOpts(codeContext, false));
             // Check
@@ -10395,6 +10402,7 @@ namespace Microsoft.Dafny
       Contract.Requires(visited != null);
 
       t = t.NormalizeExpandKeepConstraints();
+
       var proxy = t as TypeProxy;
       if (proxy != null) {
         if (visited.Contains(proxy)) {

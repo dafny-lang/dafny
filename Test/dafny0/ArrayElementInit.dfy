@@ -114,7 +114,7 @@ method Display0<D>(d: D, n: int)
 }
 
 method Display1<D>(d: D, n: int, w: array<nat>)
-  requires 0 <= n && w != null && 100 <= w.Length
+  requires 0 <= n && 100 <= w.Length
 {
   var a := new nat[4] [100, 75, 50, 25];
   assert a.Length == 4;
