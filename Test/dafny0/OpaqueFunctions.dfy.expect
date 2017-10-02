@@ -5,82 +5,82 @@ OpaqueFunctions.dfy(52,7): Error BP5002: A precondition for this call might not 
 OpaqueFunctions.dfy(24,15): Related location: This is the precondition that might not hold.
 Execution trace:
     (0,0): anon0
-OpaqueFunctions.dfy(58,19): Error: assertion violation
+OpaqueFunctions.dfy(57,19): Error: assertion violation
 Execution trace:
     (0,0): anon0
-OpaqueFunctions.dfy(60,20): Error: assertion violation
+OpaqueFunctions.dfy(59,20): Error: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon5_Then
-OpaqueFunctions.dfy(63,20): Error: assertion violation
+OpaqueFunctions.dfy(62,20): Error: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon6_Then
-OpaqueFunctions.dfy(66,20): Error: assertion violation
+OpaqueFunctions.dfy(65,20): Error: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon6_Else
-OpaqueFunctions.dfy(77,20): Error: assertion violation
+OpaqueFunctions.dfy(76,20): Error: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Then
-OpaqueFunctions.dfy(79,9): Error BP5002: A precondition for this call might not hold.
+OpaqueFunctions.dfy(78,9): Error BP5002: A precondition for this call might not hold.
 OpaqueFunctions.dfy[A'](24,15): Related location: This is the precondition that might not hold.
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Else
-OpaqueFunctions.dfy(86,19): Error: assertion violation
+OpaqueFunctions.dfy(84,19): Error: assertion violation
 Execution trace:
     (0,0): anon0
-OpaqueFunctions.dfy(88,20): Error: assertion violation
+OpaqueFunctions.dfy(86,20): Error: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon5_Then
-OpaqueFunctions.dfy(91,20): Error: assertion violation
+OpaqueFunctions.dfy(89,20): Error: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon6_Then
-OpaqueFunctions.dfy(94,20): Error: assertion violation
+OpaqueFunctions.dfy(92,20): Error: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon6_Else
-OpaqueFunctions.dfy(105,20): Error: assertion violation
+OpaqueFunctions.dfy(103,20): Error: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Then
-OpaqueFunctions.dfy(107,9): Error BP5002: A precondition for this call might not hold.
+OpaqueFunctions.dfy(105,9): Error BP5002: A precondition for this call might not hold.
 OpaqueFunctions.dfy[A'](24,15): Related location: This is the precondition that might not hold.
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Else
-OpaqueFunctions.dfy(114,19): Error: assertion violation
+OpaqueFunctions.dfy(111,19): Error: assertion violation
 Execution trace:
     (0,0): anon0
+OpaqueFunctions.dfy(113,20): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    (0,0): anon5_Then
 OpaqueFunctions.dfy(116,20): Error: assertion violation
 Execution trace:
     (0,0): anon0
-    (0,0): anon5_Then
+    (0,0): anon6_Then
 OpaqueFunctions.dfy(119,20): Error: assertion violation
 Execution trace:
     (0,0): anon0
-    (0,0): anon6_Then
-OpaqueFunctions.dfy(122,20): Error: assertion violation
-Execution trace:
-    (0,0): anon0
     (0,0): anon6_Else
-OpaqueFunctions.dfy(138,11): Error: assertion violation
+OpaqueFunctions.dfy(135,11): Error: assertion violation
 Execution trace:
     (0,0): anon0
-OpaqueFunctions.dfy(202,11): Error: assertion violation
+OpaqueFunctions.dfy(199,11): Error: assertion violation
 Execution trace:
     (0,0): anon0
-OpaqueFunctions.dfy(218,11): Error: assertion violation
+OpaqueFunctions.dfy(215,11): Error: assertion violation
 Execution trace:
     (0,0): anon0
-OpaqueFunctions.dfy(170,15): Error: assertion violation
+OpaqueFunctions.dfy(167,15): Error: assertion violation
 Execution trace:
     (0,0): anon0
-OpaqueFunctions.dfy(185,19): Error: assertion violation
+OpaqueFunctions.dfy(182,19): Error: assertion violation
 Execution trace:
     (0,0): anon0
 

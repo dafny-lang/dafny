@@ -1,9 +1,9 @@
-MultiDimArray.dfy(56,20): Error: assertion violation
+MultiDimArray.dfy(53,20): Error: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon11_Then
     (0,0): anon12_Then
-MultiDimArray.dfy(83,24): Error: assertion violation
+MultiDimArray.dfy(79,24): Error: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon5_Then

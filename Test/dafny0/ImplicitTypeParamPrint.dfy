@@ -6,23 +6,19 @@
 
 datatype List<T> = Nil | Cons(car: T, cdr: List)
 
-function method funkyNil(l : List): List
+function method funkyNil(l: List): List
 {
-  match l { 
-     case Cons(x,y) => funkyNil(y)
-     case Nil => l 
-  }
+  match l
+  case Cons(x,y) => funkyNil(y)
+  case Nil => l 
 }
 
-method H(a: array, l : List)
-  requires a != null
+method H(a: array, l: List)
 {
- match l {
-    case Cons(x,y) => {
-      if (a.Length > 0 && a[0] == x){
-      }
+  match l
+  case Cons(x,y) =>
+    if a.Length > 0 && a[0] == x {
     }
-    case Nil =>
- }
+  case Nil =>
 }
 

@@ -2,10 +2,9 @@
 // RUN: %diff "%s.expect" "%t"
 
 class Node {
-  var nxt: Node;
+  var nxt: Node?
 
-  method ReverseInPlace(x: Node, r: set<Node>) returns (reverse: Node)
-    requires null !in r;
+  method ReverseInPlace(x: Node?, r: set<Node>) returns (reverse: Node?)
     requires x == null || x in r;
     requires (forall y :: y in r ==> y.nxt == null || y.nxt in r);  // region closure
     modifies r;
@@ -13,7 +12,7 @@ class Node {
     ensures (forall y :: y in r ==> y.nxt == null || y.nxt in r);  // region closure
     decreases *;
   {
-    var current := x;
+    var current: Node? := x;
     reverse := null;
     while (current != null)
       invariant current == null || current in r;

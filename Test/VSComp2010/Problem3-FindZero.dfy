@@ -40,7 +40,7 @@ class Node {
 
   static method Cons(x: int, tail: Node?) returns (n: Node)
     requires tail == null || tail.Valid()
-    ensures n != null && n.Valid()
+    ensures n.Valid()
     ensures if tail == null then n.List == [x] else n.List == [x] + tail.List
   {
     n := new Node;
@@ -56,7 +56,7 @@ class Node {
   }
 }
 
-method Search(ll: Node) returns (r: int)
+method Search(ll: Node?) returns (r: int)
   requires ll == null || ll.Valid()
   ensures ll == null ==> r == 0
   ensures ll != null ==>
@@ -85,10 +85,10 @@ method Search(ll: Node) returns (r: int)
 method Main()
 {
   var list: Node? := null;
-  list := list.Cons(0, list);
-  list := list.Cons(5, list);
-  list := list.Cons(0, list);
-  list := list.Cons(8, list);
+  list := Node.Cons(0, list);
+  list := Node.Cons(5, list);
+  list := Node.Cons(0, list);
+  list := Node.Cons(8, list);
   var r := Search(list);
   print "Search returns ", r, "\n";
   assert r == 1;

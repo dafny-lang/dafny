@@ -3,43 +3,43 @@
 
 abstract module M0 {
   class Cell {
-    var data: int;
+    var data: int
     constructor (d: int)
-      ensures data == d;
+      ensures data == d
     { data := d; }
   }
   class Counter {
-    ghost var N: int;
-    ghost var Repr: set<object>;
+    ghost var N: int
+    ghost var Repr: set<object>
     protected predicate Valid()
-      reads this, Repr;
+      reads this, Repr
     {
-      this in Repr && null !in Repr
+      this in Repr
     }
 
     constructor Init()
-      ensures N == 0;
-      ensures Valid() && fresh(Repr - {this});
+      ensures N == 0
+      ensures Valid() && fresh(Repr - {this})
     {
       Repr := {};
       new;
-      ghost var repr :| {this} <= repr && null !in repr && fresh(repr - {this});
+      ghost var repr :| {this} <= repr && fresh(repr - {this});
       N, Repr := 0, repr;
     }
 
     method Inc()
-      requires Valid();
-      modifies Repr;
-      ensures N == old(N) + 1;
-      ensures Valid() && fresh(Repr - old(Repr));
+      requires Valid()
+      modifies Repr
+      ensures N == old(N) + 1
+      ensures Valid() && fresh(Repr - old(Repr))
     {
       N := N + 1;
       modify Repr - {this};
     }
 
     method Get() returns (n: int)
-      requires Valid();
-      ensures n == N;
+      requires Valid()
+      ensures n == N
     {
       n :| assume n == N;
     }
@@ -48,12 +48,12 @@ abstract module M0 {
 
 module M1 refines M0 {
   class Counter {
-    var c: Cell;
-    var d: Cell;
+    var c: Cell
+    var d: Cell
     protected predicate Valid...
     {
-      c != null && c in Repr &&
-      d != null && d in Repr &&
+      c in Repr &&
+      d in Repr &&
       c != d &&
       N == c.data - d.data
     }

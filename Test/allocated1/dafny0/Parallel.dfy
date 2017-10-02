@@ -17,9 +17,8 @@ method ParallelStatement_Resolve(
     spine: set<C>,
     Repr: set<object>,
     S: set<int>,
-    clx: C, cly: C, clk: int
+    clx: C?, cly: C?, clk: int
   )
-  requires a != null && null !in spine
   modifies a, spine
 {
   forall i | 0 <= i < a.Length && i % 2 == 0 {
@@ -56,7 +55,7 @@ method ParallelStatement_Resolve(
   }
 }
 
-lemma Lemma(c: C, x: int, y: int)
+lemma Lemma(c: C?, x: int, y: int)
   requires c != null && allocated(c)
   ensures c.data <= x+y
 lemma PowerLemma(x: int, y: int)
@@ -71,7 +70,6 @@ function Pred(x: int, y: int): bool
 // ---------------------------------------------------------------------
 
 method M0(S: set<C>)
-  requires null !in S
   modifies S
   ensures forall o :: o in S ==> o.data == 85
   ensures forall o :: o != null && o !in S && !fresh(o) ==> o.data == old(o.data)
@@ -82,7 +80,7 @@ method M0(S: set<C>)
 }
 
 method M1(S: set<C>, x: C)
-  requires null !in S && x in S
+  requires x in S
 {
   forall s | s in S
     ensures s.data < 100
@@ -103,7 +101,6 @@ method M1(S: set<C>, x: C)
 }
 
 method M2() returns (a: array<int>)
-  ensures a != null
   ensures forall i,j :: 0 <= i < a.Length/2 <= j < a.Length ==> a[i] < a[j]
 {
   a := new int[250];
@@ -118,7 +115,7 @@ method M2() returns (a: array<int>)
 method M4(S: set<C>, k: int)
   modifies S
 {
-  forall s | s in S && s != null {
+  forall s | s in S {
     s.n := k;  // error: k might be negative
   }
 }
@@ -210,7 +207,7 @@ class TwoState_C { ghost var data: int }
 // contexts are not allowed to allocate state.  Callers of this ghost method will know
 // that the postcondition is tantamount to 'false'.
 ghost method TwoState0(y: int)
-  ensures exists o: TwoState_C {:nowarn} :: o != null && allocated(o) && fresh(o)
+  ensures exists o: TwoState_C {:nowarn} :: allocated(o) && fresh(o)
 
 method TwoState_Main0() {
   forall x { TwoState0(x); }
@@ -218,7 +215,6 @@ method TwoState_Main0() {
 }
 
 method X_Legit(c: TwoState_C)
-  requires c != null
   modifies c
 {
   c.data := c.data + 1;
@@ -236,7 +232,7 @@ method X_Legit(c: TwoState_C)
 method TwoState_Main2()
 {
   forall x: int
-    ensures exists o: TwoState_C {:nowarn} :: o != null && allocated(o) && fresh(o)
+    ensures exists o: TwoState_C {:nowarn} :: allocated(o) && fresh(o)
   {
     TwoState0(x);
   }
@@ -252,7 +248,7 @@ method TwoState_Main2()
 method TwoState_Main3()
 {
   forall x: int
-    ensures exists o: TwoState_C {:nowarn} :: o != null && allocated(o) && fresh(o)
+    ensures exists o: TwoState_C {:nowarn} :: allocated(o) && fresh(o)
   {
     assume false;  // (there's no other way to achieve this forall-statement postcondition)
   }
@@ -333,7 +329,7 @@ method BogosityClient()
 predicate False(x: int) { false }
 
 method Bogus(c: C)
-  requires c != null && c.data == 3
+  requires c.data == 3
   modifies c
   ensures false
 {

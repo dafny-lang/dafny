@@ -42,7 +42,7 @@ module Loose {
     protected predicate Valid()
       reads this, Repr;
     {
-      this in Repr && null !in Repr &&
+      this in Repr &&
       0 <= N
     }
     constructor Init()
@@ -150,7 +150,7 @@ module Q0 {
     }
     method M()
       modifies this;
-      ensures forall c: C :: c != null ==> c.P();
+      ensures forall c: C :: c.P();
     {  // error: in module Q1, the postcondition no longer holds
     }
     predicate Q()

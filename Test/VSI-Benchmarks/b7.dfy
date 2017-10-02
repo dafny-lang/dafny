@@ -39,7 +39,7 @@ class Stream {
   function Valid():bool
     reads this, footprint;
   {
-    null !in footprint && this in footprint && isOpen
+    this in footprint && isOpen
   }
   
   method GetCount() returns (c:int)
@@ -105,9 +105,8 @@ class Stream {
 
 class Client {
   method Sort(q: Queue<int>) returns (r: Queue<int>)
-    requires q != null;
     modifies q;
-    ensures r != null && fresh(r);
+    ensures fresh(r);
     ensures |r.contents| == |old(q.contents)|;
     ensures forall i, j :: 0 <= i < j < |r.contents| ==> r.Get(i) <= r.Get(j);
     // the final Queue is a permutation of the input Queue

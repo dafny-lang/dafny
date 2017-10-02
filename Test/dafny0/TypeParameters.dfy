@@ -327,7 +327,6 @@ module ArrayTypeMagic {
   }
 
   method F(b: array) returns (s: seq)
-    requires b != null
   {
     return b[..];
   }

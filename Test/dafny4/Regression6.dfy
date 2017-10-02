@@ -2,7 +2,7 @@
 // RUN: %diff "%s.expect" "%t"
 
 function method Sum(a: array<int>, lo: int, hi: int): int
-  requires a != null && 0 <= lo <= hi <= a.Length
+  requires 0 <= lo <= hi <= a.Length
   reads a
   decreases hi - lo
 {

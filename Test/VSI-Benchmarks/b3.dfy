@@ -43,9 +43,8 @@ class Comparable {
 
 class Benchmark3 {
   method Sort(q: Queue<int>) returns (r: Queue<int>)
-    requires q != null;
     modifies q;
-    ensures r != null && fresh(r);
+    ensures fresh(r);
     ensures |r.contents| == |old(q.contents)|;
     ensures forall i, j :: 0 <= i < j < |r.contents| ==> r.Get(i) <= r.Get(j);
     // the final Queue is a permutation of the input Queue
@@ -70,7 +69,7 @@ class Benchmark3 {
   }
 
   method RemoveMin(q: Queue<int>) returns (m: int, k: int) //m is the min, k is m's index in q
-    requires q != null && |q.contents| != 0;
+    requires |q.contents| != 0;
     modifies q;
     ensures |old(q.contents)| == |q.contents| + 1;
     ensures 0 <= k < |old(q.contents)| && old(q.contents[k]) == m;
@@ -105,7 +104,7 @@ class Benchmark3 {
   }
 
   method Rotate(q: Queue<int>, k: nat)
-    requires q != null && k <= |q.contents|
+    requires k <= |q.contents|
     modifies q
     ensures q.contents == old(q.contents)[k..] + old(q.contents)[..k]
   {

@@ -58,22 +58,21 @@ You may assume that the array contains values between 0 and n-1.
 // verifies and compiles the program (for this program in less than 11 seconds)
 // without further human intervention.
 
-function IsDuplicate(a: array<int>, p: int): bool
-  requires a != null;
-  reads a;
+predicate IsDuplicate(a: array<int>, p: int)
+  reads a
 {
   IsPrefixDuplicate(a, a.Length, p)
 }
 
-function IsPrefixDuplicate(a: array<int>, k: int, p: int): bool
-  requires a != null && 0 <= k <= a.Length;
+predicate IsPrefixDuplicate(a: array<int>, k: int, p: int)
+  requires 0 <= k <= a.Length;
   reads a;
 {
   exists i,j :: 0 <= i < j < k && a[i] == a[j] == p
 }
 
 method Search(a: array<int>) returns (p: int, q: int)
-  requires a != null && 4 <= a.Length;
+  requires 4 <= a.Length;
   requires exists p,q :: p != q && IsDuplicate(a, p) && IsDuplicate(a, q);  // two distinct duplicates exist
   requires forall i :: 0 <= i < a.Length ==> 0 <= a[i] < a.Length - 2;  // the elements of "a" in the range [0.. a.Length-2]
   ensures p != q && IsDuplicate(a, p) && IsDuplicate(a, q);

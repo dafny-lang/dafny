@@ -23,8 +23,8 @@ class AmortizedQueue<T(0)> {
     reads this, Repr
   {
     this in Repr &&
-    front != null && front in Repr && front.Repr <= Repr && front.Valid() &&
-    rear != null && rear in Repr && rear.Repr <= Repr && rear.Valid() &&
+    front in Repr && front.Repr <= Repr && front.Valid() &&
+    rear in Repr && rear.Repr <= Repr && rear.Valid() &&
     |rear.List| <= |front.List| &&
     List == front.List + rear.ReverseSeq(rear.List)
   }
@@ -40,7 +40,7 @@ class AmortizedQueue<T(0)> {
   }
 
   constructor InitFromPieces(f: LinkedList<T>, r: LinkedList<T>)
-    requires f != null && f.Valid() && r != null && r.Valid()
+    requires f.Valid() && r.Valid()
     ensures Valid() && List == f.List + r.ReverseSeq(r.List)
   {
     if (r.length <= f.length) {
@@ -67,14 +67,14 @@ class AmortizedQueue<T(0)> {
 
   method Tail() returns (r: AmortizedQueue<T>)
     requires Valid() && List != []
-    ensures r != null && r.Valid() && r.List == List[1..]
+    ensures r.Valid() && r.List == List[1..]
   {
     r := new AmortizedQueue<T>.InitFromPieces(front.tail, rear);
   }
 
   method Enqueue(item: T) returns (r: AmortizedQueue<T>)
     requires Valid()
-    ensures r != null && r.Valid() && r.List == List + [item]
+    ensures r.Valid() && r.List == List + [item]
   {
     var rr := rear.Cons(item);
     r := new AmortizedQueue<T>.InitFromPieces(front, rr);
@@ -119,7 +119,7 @@ class LinkedList<T(0)> {
 
   method Cons(d: T) returns (r: LinkedList<T>)
     requires Valid()
-    ensures r != null && r.Valid() && r.List == [d] + List
+    ensures r.Valid() && r.List == [d] + List
   {
     r := new LinkedList<T>();
     r.head := d;
@@ -130,8 +130,8 @@ class LinkedList<T(0)> {
   }
 
   method Concat(end: LinkedList<T>) returns (r: LinkedList<T>)
-    requires Valid() && end != null && end.Valid()
-    ensures r != null && r.Valid() && r.List == List + end.List
+    requires Valid() && end.Valid()
+    ensures r.Valid() && r.List == List + end.List
     decreases Repr;
   {
     if (length == 0) {
@@ -144,7 +144,7 @@ class LinkedList<T(0)> {
 
   method Reverse() returns (r: LinkedList<T>)
     requires Valid()
-    ensures r != null && r.Valid() && |List| == |r.List|
+    ensures r.Valid() && |List| == |r.List|
     ensures (forall k :: 0 <= k && k < |List| ==> List[k] == r.List[|List|-1-k])
     ensures r.List == ReverseSeq(List)
     decreases Repr

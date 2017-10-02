@@ -7,14 +7,12 @@ class C {
 }
 
 function F(c: C): int
-  requires c != null
   reads c
 {
   c.x
 }
 
 twostate function G(a: C, new b: C): int
-  requires a != null && b != null
   reads b
 {
   old(a.x) + b.x
@@ -27,7 +25,6 @@ twostate lemma K(a: C, new B: C)
 { }
 
 method M0(p: C)
-  requires p != null
 {
   var c, d := new C, new C;
   ghost var x;
@@ -48,7 +45,6 @@ method M0(p: C)
     x := old(L(c); 5);  // BUG: should check L's parameter to be allocated in the old state
   }
 method M1(p: C)
-  requires p != null
 {
   var c := new C;
   ghost var x;
@@ -65,7 +61,6 @@ method M1(p: C)
              10);
 }
 method M2(p: C)
-  requires p != null
 {
   var c := new C;
   ghost var x;

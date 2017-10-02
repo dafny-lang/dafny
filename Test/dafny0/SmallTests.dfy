@@ -3,10 +3,10 @@
 // RUN: %diff "%s.expect" "%t"
 
 class Node {
-  var next: Node;
+  var next: Node?
 
-  function IsList(r: set<Node>): bool
-    reads r;
+  predicate IsList(r: set<Node>)
+    reads r
   {
     this in r &&
     (next != null  ==>  next.IsList(r - {this}))
@@ -21,7 +21,7 @@ class Node {
   }
 
   method Create()
-    modifies this;
+    modifies this
   {
     next := null;
     var tmp: Node;
@@ -75,11 +75,11 @@ class Node {
 // ------------------ modifies clause tests ------------------------
 
 class Modifies {
-  var x: int;
-  var next: Modifies;
+  var x: int
+  var next: Modifies?
 
-  method A(p: Modifies)
-    modifies this, p;
+  method A(p: Modifies?)
+    modifies this, p
   {
     x := x + 1;
     while (p != null && p.x < 75)
@@ -89,75 +89,74 @@ class Modifies {
     }
   }
 
-  method Aprime(p: Modifies)
-    modifies this, p;
+  method Aprime(p: Modifies?)
+    modifies this, p
   {
     x := x + 1;
-    while (p != null && p.x < 75)
+    while p != null && p.x < 75
       decreases if p != null then 75 - p.x else 0;  // given explicitly (but see Adoubleprime below)
     {
       p.x := p.x + 1;
     }
   }
 
-  method Adoubleprime(p: Modifies)
-    modifies this, p;
+  method Adoubleprime(p: Modifies?)
+    modifies this, p
   {
     x := x + 1;
-    while (p != null && p.x < 75)  // here, the decreases clause is heuristically inferred (to be the
+    while p != null && p.x < 75  // here, the decreases clause is heuristically inferred (to be the
     {                              // same as the one in Aprime above)
       p.x := p.x + 1;
     }
   }
 
   method B(p: Modifies)
-    modifies this;
+    modifies this
   {
     A(this);
-    if (p == this) {
+    if p == this {
       p.A(p);
     }
     A(p);  // error: may violate modifies clause
   }
 
   method C(b: bool)
-    modifies this;
+    modifies this
     ensures !b ==> x == old(x) && next == old(next)
   {
   }
 
   method D(p: Modifies, y: int)
-    requires p != null
   {
     if (y == 3) {
       p.C(true);  // error: may violate modifies clause
     } else {
       p.C(false);  // error: may violation modifies clause (the check is done without regard
-                        // for the postcondition, which also makes sense, since there may, in
-                        // principle, be other fields of the object that are not constrained by the
-                        // postcondition)
+                   // for the postcondition, which also makes sense, since there may, in
+                   // principle, be other fields of the object that are not constrained by the
+                   // postcondition)
     }
   }
 
   method E()
-    modifies this;
+    modifies this
   {
     A(null);  // allowed
   }
 
   method F(s: set<Modifies>)
-    modifies s;
+    modifies s
   {
     forall m | m in s && m != null && 2 <= m.x {
       m.x := m.x + 1;
     }
-    if (this in s) {
+    if this in s {
       x := 2 * x;
     }
   }
 
   method G(s: set<Modifies>)
-    modifies this;
+    modifies this
   {
     var m := 3;  // this is a different m
 
@@ -201,7 +200,7 @@ class AllocatedTests {
     case true =>  assert !fresh(null);
     case true =>  assert allocated(null);  // null is a literal, so it is always allocated
   }
-  method Set0(k: Node)
+  method Set0(k: Node?)
   {
     var n := new Node;
     var U := {k,n};
@@ -218,7 +217,7 @@ class AllocatedTests {
   method Set1(k: Node)
   {
     M();  // a method call, which introduces another allocation state
-    var n: Node;  // null or an allocated object of type Node
+    var n: Node?;  // null or an allocated object of type Node
     var U := {k,n};
     if
     case true =>  assert old(allocated(U));  // error: n may be an object allocated inside M()
@@ -228,7 +227,7 @@ class AllocatedTests {
     case !old(allocated(n)) =>  assert fresh(n);  // yes, if n was not available initially, then it is non-null and fresh
     case fresh(n) =>  assert n != null;
   }
-  method Seq0(k: Node)
+  method Seq0(k: Node?)
   {
     var n := new Node;
     var U := [k,n];
@@ -245,10 +244,10 @@ class AllocatedTests {
     case k != null =>  assert !fresh(U[0]);  // this is a lemma that helps prove the next line
                         assert !fresh(U);
   }
-  method Seq1(k: Node)
+  method Seq1(k: Node?)
   {
     M();  // a method call, which introduces another allocation state
-    var n: Node;  // null or an allocated object of type Node
+    var n: Node?;  // null or an allocated object of type Node
     var U := [k,n];
     if
     case true =>  assert old(allocated(U));  // error: n may be an object allocated inside M()
@@ -268,18 +267,18 @@ datatype Lindgren =
 // --------------------------------------------------
 
 class InitCalls {
-  var z: int;
-  var p: InitCalls;
+  var z: int
+  var p: InitCalls?
 
   method Init(y: int)
-    modifies this;
+    modifies this
     ensures z == y
   {
     z := y;
   }
 
   method InitFromReference(q: InitCalls)
-    requires q != null && 15 <= q.z
+    requires 15 <= q.z
     modifies this;
     ensures p == q
   {
@@ -355,7 +354,6 @@ class SomeType
 {
   var x: int;
   method DoIt(stack: seq<SomeType>)
-    requires null !in stack
     modifies stack;
   {
     forall n | n in stack {
@@ -645,7 +643,7 @@ method AssignSuchThat5()
 method AssignSuchThat6()
 {
   var n: Node;
-  n :| assume n != null && fresh(n);  // there is no non-null fresh object, so this amounts to 'assume false;'
+  n :| assume fresh(n);  // there is no non-null fresh object, so this amounts to 'assume false;'
   assert false;  // no problemo
 }
 
@@ -753,10 +751,10 @@ class GT {
   {
     if (*) {
       P0();
-      assert forall x: GT {:nowarn} :: x != null && allocated(x) ==> old(allocated(x));  // error: method P2 may have allocated stuff
+      assert forall x: GT {:nowarn} :: allocated(x) ==> old(allocated(x));  // error: method P2 may have allocated stuff
     } else {
       P1();
-      assert forall x: GT {:nowarn} :: x != null && allocated(x) ==> old(allocated(x));  // fine, because the ghost method does not allocate anything
+      assert forall x: GT {:nowarn} :: allocated(x) ==> old(allocated(x));  // fine, because the ghost method does not allocate anything
     }
   }
 }
@@ -896,7 +894,7 @@ module ConstantFieldReceiverNonNull {
     }
   }
 
-  method MMethod(tr: Trait) {
+  method MMethod(tr: Trait?) {
     assert Trait.y == 7;
     assert tr.y == 7;
     assert tr == null || tr.x1 == 7;
@@ -906,7 +904,7 @@ module ConstantFieldReceiverNonNull {
   class AnotherClass {
     const u: int
 
-    static method M(ac: AnotherClass) returns (v: int)
+    static method M(ac: AnotherClass?) returns (v: int)
     {
       v := ac.u;  // error: "ac" might be null
     }

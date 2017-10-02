@@ -6,7 +6,7 @@ trait P1
 {
   method N0() {
     var a: array<int>;
-    if (a != null && 5 < a.Length) {
+    if (5 < a.Length) {
       a[5] := 12;  // error: violates modifies clause
     }
   }
@@ -33,7 +33,7 @@ class C1 extends P1
   }
 
   method Testing(arr:array<int>)
-    requires arr != null && arr.Length == 2 && arr[0]== 1 && arr[1] == 10;
+    requires arr.Length == 2 && arr[0]== 1 && arr[1] == 10;
   {
     N0(); //calling parent trait methods
     var x := 2;

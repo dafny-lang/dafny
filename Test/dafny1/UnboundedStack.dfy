@@ -4,7 +4,7 @@
 class UnboundedStack<T> {
   ghost var representation: set<object>
   ghost var content: seq<T>
-  var top: Node<T>
+  var top: Node?<T>
 
   predicate IsUnboundedStack()
     reads this, representation
@@ -63,7 +63,7 @@ class Node<T> {
   ghost var footprint: set<object>
   ghost var content: seq<T>
   var val: T
-  var next: Node<T>
+  var next: Node?<T>
 
   predicate Valid()
     reads this, footprint
@@ -77,7 +77,7 @@ class Node<T> {
       next.Valid())
   }
 
-  constructor InitNode(val: T, next: Node<T>)
+  constructor InitNode(val: T, next: Node?<T>)
     requires next != null ==> next.Valid()
     ensures Valid()
     ensures next != null ==> content == [val] + next.content && 

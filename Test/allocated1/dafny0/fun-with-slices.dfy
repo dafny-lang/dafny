@@ -4,7 +4,6 @@
 // This test was contributed by Bryan. It has shown some instabilities in the past.
 
 method seqIntoArray<A>(s: seq<A>, a: array<A>, index: nat)
-  requires a != null
   requires index + |s| <= a.Length
   modifies a
   ensures  a[..] == old(a[0..index]) + s + old(a[index + |s|..]) {

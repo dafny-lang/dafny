@@ -6,7 +6,7 @@ class ExtensibleArray<T> {
   ghost var Repr: set<object?>
 
   var elements: array?<T>
-  var more: ExtensibleArray?<array<T>>
+  var more: ExtensibleArray?<array?<T>>
   var length: int
   var M: int  // shorthand for:  if more == null then 0 else 256 * |more.Contents|
 

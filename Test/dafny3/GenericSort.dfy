@@ -20,7 +20,7 @@ abstract module Sort {
   import O : TotalOrder  // let O denote some module that has the members of TotalOrder
 
   predicate Sorted(a: array<O.T>, low: int, high: int)
-    requires a != null && 0 <= low <= high <= a.Length
+    requires 0 <= low <= high <= a.Length
     reads a
     // The body of the predicate is hidden outside the module, but the postcondition is
     // "exported" (that is, visible, known) outside the module.  Here, we choose the
@@ -33,7 +33,7 @@ abstract module Sort {
   // In the insertion sort routine below, it's more convenient to keep track of only that
   // neighboring elements of the array are sorted...
   predicate NeighborSorted(a: array<O.T>, low: int, high: int)
-    requires a != null && 0 <= low <= high <= a.Length
+    requires 0 <= low <= high <= a.Length
     reads a
   {
     forall i :: low < i < high ==> O.Leq(a[i-1], a[i])
@@ -41,7 +41,7 @@ abstract module Sort {
   // ...but we show that property to imply all pairs to be sorted.  The proof of this
   // lemma uses the transitivity property.
   lemma NeighborSorted_implies_Sorted(a: array<O.T>, low: int, high: int)
-    requires a != null && 0 <= low <= high <= a.Length
+    requires 0 <= low <= high <= a.Length
     requires NeighborSorted(a, low, high)
     ensures Sorted(a, low, high)
     decreases high - low
@@ -57,7 +57,6 @@ abstract module Sort {
 
   // Standard insertion sort method
   method InsertionSort(a: array<O.T>)
-    requires a != null
     modifies a
     ensures Sorted(a, 0, a.Length)
     ensures multiset(a[..]) == old(multiset(a[..]))

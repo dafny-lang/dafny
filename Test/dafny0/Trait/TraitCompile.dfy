@@ -41,7 +41,6 @@ class CC extends TT
 }
 
 method Client(t: TT)
-  requires t != null
 {
   var x := t.Plus(10, 2);
   print "x=", x, "\n";

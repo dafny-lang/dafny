@@ -3,7 +3,6 @@
 
 class Benchmark2 {
   method BinarySearch(a: array<int>, key: int) returns (result: int)
-    requires a != null;
     requires forall i, j :: 0 <= i < j < a.Length ==> a[i] <= a[j];
     ensures -1 <= result < a.Length;
     ensures 0 <= result ==> a[result] == key;
@@ -50,7 +49,6 @@ method Main() {
 }
 
 method TestSearch(a: array<int>, key: int)
-  requires a != null;
   requires forall i, j :: 0 <= i < j < a.Length ==> a[i] <= a[j];
 {
   var b := new Benchmark2;

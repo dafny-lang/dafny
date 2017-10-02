@@ -34,11 +34,11 @@ class C {
       var t := this.x.x;  // error: null dereference (because InitAndMutate set this.x to null)
     }
 
-    if (a != null && 10 <= a.Length) {
+    if 10 <= a.Length {
       a[2] := new C;
       a[3] := *;
     }
-    if (b != null && 10 <= b.Length0 && 20 <= b.Length1) {
+    if 10 <= b.Length0 && 20 <= b.Length1 {
       b[2,14] := new C;
       b[3,11] := *;
     }
@@ -51,7 +51,6 @@ class C {
     var d := new int[if c == null then 10 else -3];  // run-time error if c were non-null, but it ain't
   }
   method InitAndMutate(c: C)
-    requires c != null
     modifies c
     ensures c.x == null
   {

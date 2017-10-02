@@ -27,7 +27,7 @@ class MyClass {
     assert x == 18;  // error: cannot conclude this here
   }
 
-  method P(other: MyClass)
+  method P(other: MyClass?)
     modifies this;
   {
     x := 18;

@@ -8,6 +8,5 @@
 // array instead of the array itself.
 
 method M(m: array2<int>)
-  requires m != null
   ensures forall i, j :: m[i, j] == 0
 { }

@@ -5,13 +5,12 @@
 // code provided in the problem statement since it
 // is generic in the type of the array elements.
 method swap<T>(a: array<T>, i: int, j: int)
-  requires a != null;
-  requires 0 <= i < j < a.Length;
-  modifies a;
-  ensures a[i] == old(a[j]);
-  ensures a[j] == old(a[i]);
-  ensures forall m :: 0 <= m < a.Length && m != i && m != j ==> a[m] == old(a[m]);
-  ensures multiset(a[..]) == old(multiset(a[..]));
+  requires 0 <= i < j < a.Length
+  modifies a
+  ensures a[i] == old(a[j])
+  ensures a[j] == old(a[i])
+  ensures forall m :: 0 <= m < a.Length && m != i && m != j ==> a[m] == old(a[m])
+  ensures multiset(a[..]) == old(multiset(a[..]))
 {
   var t := a[i];
   a[i] := a[j];
@@ -35,18 +34,17 @@ method swap<T>(a: array<T>, i: int, j: int)
 // (without changing any of the other specifications or
 // annotations).
 method two_way_sort(a: array<bool>)
-  requires a != null;
-  modifies a;
-  ensures forall m,n :: 0 <= m < n < a.Length ==> (!a[m] || a[n]);
-  ensures multiset(a[..]) == old(multiset(a[..]));
+  modifies a
+  ensures forall m,n :: 0 <= m < n < a.Length ==> (!a[m] || a[n])
+  ensures multiset(a[..]) == old(multiset(a[..]))
 {
   var i := 0;
   var j := a.Length - 1;
   while (i <= j)
-    invariant 0 <= i <= j + 1 <= a.Length;
-    invariant forall m :: 0 <= m < i ==> !a[m];
-    invariant forall n :: j < n < a.Length ==> a[n];
-    invariant multiset(a[..]) == old(multiset(a[..]));
+    invariant 0 <= i <= j + 1 <= a.Length
+    invariant forall m :: 0 <= m < i ==> !a[m]
+    invariant forall n :: j < n < a.Length ==> a[n]
+    invariant multiset(a[..]) == old(multiset(a[..]))
   {
     if (!a[i]) {
       i := i+1;

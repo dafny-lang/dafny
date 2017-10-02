@@ -2,36 +2,36 @@
 // RUN: %diff "%s.expect" "%t"
 
 module ReadsRequiresReads {
-  function MyReadsOk<A,B>(f : A ~> B, a : A) : set<object>
+  function MyReadsOk<A,B>(f : A ~> B, a : A) : set<object?>
     reads f.reads(a)
   {
     f.reads(a)
   }
 
-  function MyReadsOk2<A,B>(f : A ~> B, a : A) : set<object>
+  function MyReadsOk2<A,B>(f : A ~> B, a : A) : set<object?>
     reads f.reads(a)
   {
     (f.reads)(a)
   }
 
-  function MyReadsOk3<A,B>(f : A ~> B, a : A) : set<object>
+  function MyReadsOk3<A,B>(f : A ~> B, a : A) : set<object?>
     reads (f.reads)(a)
   {
     f.reads(a)
   }
 
-  function MyReadsOk4<A,B>(f : A ~> B, a : A) : set<object>
+  function MyReadsOk4<A,B>(f : A ~> B, a : A) : set<object?>
     reads (f.reads)(a)
   {
     (f.reads)(a)
   }
 
-  function MyReadsBad<A,B>(f : A ~> B, a : A) : set<object>
+  function MyReadsBad<A,B>(f : A ~> B, a : A) : set<object?>
   {
     f.reads(a)  // error: MyReadsBad does not have permission to read what f.reads(a) reads
   }
 
-  function MyReadsBad2<A,B>(f : A ~> B, a : A) : set<object>
+  function MyReadsBad2<A,B>(f : A ~> B, a : A) : set<object?>
   {
     (f.reads)(a)  // error: MyReadsBad2 does not have permission to read what f.reads(a) reads
   }
@@ -72,10 +72,10 @@ module WhatWeKnowAboutReads {
   }
 
   class S {
-    var s : S
+    var s : S?
   }
 
-  function ReadsSomething(s : S):()
+  function ReadsSomething(s : S?):()
     reads s
   {()}
 

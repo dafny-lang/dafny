@@ -5,24 +5,24 @@ module M0 {
   datatype Kind = Constant | Ident | Binary
 
   class Expr {
-    var kind: Kind;
-    var value: int;  // value if kind==Constant; id if kind==VarDecl; operator if kind==Binary
-    var left: Expr;  // if kind==Binary
-    var right: Expr;  // if kind==Binary
+    var kind: Kind
+    var value: int  // value if kind==Constant; id if kind==VarDecl; operator if kind==Binary
+    var left: Expr?  // if kind==Binary
+    var right: Expr?  // if kind==Binary
 
-    ghost var Repr: set<object>;
+    ghost var Repr: set<object>
 
     protected predicate Valid()
-      reads this, Repr;
+      reads this, Repr
     {
-      this in Repr && null !in Repr &&
+      this in Repr &&
       (left != null ==> left in Repr && this !in left.Repr && right !in left.Repr && left.Repr <= Repr && left.Valid()) &&
       (right != null ==> right in Repr && this !in right.Repr && left !in right.Repr && right.Repr <= Repr && right.Valid()) &&
       (kind == Binary ==> left != null && right != null && left.Repr !! right.Repr)
     }
 
     constructor CreateConstant(x: int)
-      ensures Valid() && fresh(Repr - {this});
+      ensures Valid() && fresh(Repr - {this})
     {
       kind, value := Constant, x;
       left, right := null, null;
@@ -30,7 +30,7 @@ module M0 {
     }
 
     constructor CreateIdent(name: int)
-      ensures Valid() && fresh(Repr - {this});
+      ensures Valid() && fresh(Repr - {this})
     {
       kind, value := Ident, name;
       left, right := null, null;
@@ -38,8 +38,8 @@ module M0 {
     }
 
     constructor CreateBinary(op: int, left: Expr, right: Expr)
-      requires left != null && left.Valid()
-      requires right != null && right.Valid()
+      requires left.Valid()
+      requires right.Valid()
       requires left.Repr !! right.Repr
       ensures Valid() && fresh(Repr - {this} - left.Repr - right.Repr)
     {
@@ -53,7 +53,7 @@ module M0 {
 // Introduce the idea of resolved
 module M1 refines M0 {
   class Expr {
-    ghost var resolved: bool;
+    ghost var resolved: bool
 
     protected predicate Valid()
     {
@@ -77,11 +77,11 @@ module M1 refines M0 {
     }
 
     method Resolve()
-      requires Valid();  // it's okay if it's already resolved
-      modifies Repr;
-      ensures Valid() && fresh(Repr - old(Repr));
-      ensures resolved;
-      decreases Repr;
+      requires Valid()  // it's okay if it's already resolved
+      modifies Repr
+      ensures Valid() && fresh(Repr - old(Repr))
+      ensures resolved
+      decreases Repr
     {
       if (kind == Binary) {
         left.Resolve();
@@ -99,7 +99,7 @@ module M2 refines M1 {
   }
 
   class Expr {
-    var decl: VarDecl;  // if kind==Ident, filled in during resolution
+    var decl: VarDecl?  // if kind==Ident, filled in during resolution
 
     protected predicate Valid()
     {
@@ -119,14 +119,14 @@ module M2 refines M1 {
 // Finally, supposing each VarDecl has a value, evaluate a resolved expression
 module M3 refines M2 {
   class VarDecl {
-    var val: int;
+    var val: int
   }
 
   class Expr {
     method Eval() returns (r: int)
-      requires Valid();
-      requires resolved;
-      decreases Repr;
+      requires Valid()
+      requires resolved
+      decreases Repr
     {
       match (kind) {
         case Constant =>

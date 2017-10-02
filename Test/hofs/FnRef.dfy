@@ -50,7 +50,7 @@ method L() {
 }
 
 method LRead() {
-  var o : object;
+  var o : object?;
   var f : Ref<() ~> bool>;
   f := new Ref<() ~> bool>;
   f.val := () reads f

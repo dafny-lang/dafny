@@ -6,8 +6,8 @@ method test0(x: int)
   ghost var {:assumption} a0 := false;  // error
   ghost var a1, {:assumption} a2 := true, false;  // error
   ghost var {:assumption} a3: bool;
-  ghost var {:assumption} a4;  // error: type must be bool
-
+  ghost var {:assumption} a4;  // type of "a4" inferred to be bool
+  ghost var {:assumption} a5: int;  // error: type must be bool
   a0 := a0 && (0 < x);
 
   a1 := a1 && true;

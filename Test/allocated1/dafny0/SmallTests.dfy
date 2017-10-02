@@ -3,7 +3,7 @@
 // RUN: %diff "%s.expect" "%t"
 
 class Node {
-  var next: Node;
+  var next: Node?
 
   function IsList(r: set<Node>): bool
     reads r;
@@ -75,10 +75,10 @@ class Node {
 // ------------------ modifies clause tests ------------------------
 
 class Modifies {
-  var x: int;
-  var next: Modifies;
+  var x: int
+  var next: Modifies?
 
-  method A(p: Modifies)
+  method A(p: Modifies?)
     modifies this, p;
   {
     x := x + 1;
@@ -89,7 +89,7 @@ class Modifies {
     }
   }
 
-  method Aprime(p: Modifies)
+  method Aprime(p: Modifies?)
     modifies this, p;
   {
     x := x + 1;
@@ -100,7 +100,7 @@ class Modifies {
     }
   }
 
-  method Adoubleprime(p: Modifies)
+  method Adoubleprime(p: Modifies?)
     modifies this, p;
   {
     x := x + 1;
@@ -127,7 +127,6 @@ class Modifies {
   }
 
   method D(p: Modifies, y: int)
-    requires p != null
   {
     if (y == 3) {
       p.C(true);  // error: may violate modifies clause
@@ -201,7 +200,7 @@ class AllocatedTests {
     case true =>  assert !fresh(null);
     case true =>  assert allocated(null);  // null is a literal, so it is always allocated
   }
-  method Set0(k: Node)
+  method Set0(k: Node?)
   {
     var n := new Node;
     var U := {k,n};
@@ -215,10 +214,10 @@ class AllocatedTests {
     case k != null =>  assert fresh(U);  // error: k was allocated initially
     case k != null =>  assert !fresh(U);
   }
-  method Set1(k: Node)
+  method Set1(k: Node?)
   {
     M();  // a method call, which introduces another allocation state
-    var n: Node;  // null or an allocated object of type Node
+    var n: Node?;  // null or an allocated object of type Node
     var U := {k,n};
     if
     case true =>  assert old(allocated(U));  // error: n may be an object allocated inside M()
@@ -228,7 +227,7 @@ class AllocatedTests {
     case !old(allocated(n)) =>  assert fresh(n);  // yes, if n was not available initially, then it is non-null and fresh
     case fresh(n) =>  assert n != null;
   }
-  method Seq0(k: Node)
+  method Seq0(k: Node?)
   {
     var n := new Node;
     var U := [k,n];
@@ -245,10 +244,10 @@ class AllocatedTests {
     case k != null =>  assert !fresh(U[0]);  // this is a lemma that helps prove the next line
                         assert !fresh(U);
   }
-  method Seq1(k: Node)
+  method Seq1(k: Node?)
   {
     M();  // a method call, which introduces another allocation state
-    var n: Node;  // null or an allocated object of type Node
+    var n: Node?;  // null or an allocated object of type Node
     var U := [k,n];
     if
     case true =>  assert old(allocated(U));  // error: n may be an object allocated inside M()
@@ -268,8 +267,8 @@ datatype Lindgren =
 // --------------------------------------------------
 
 class InitCalls {
-  var z: int;
-  var p: InitCalls;
+  var z: int
+  var p: InitCalls?
 
   method Init(y: int)
     modifies this;
@@ -279,7 +278,7 @@ class InitCalls {
   }
 
   method InitFromReference(q: InitCalls)
-    requires q != null && 15 <= q.z
+    requires 15 <= q.z
     modifies this;
     ensures p == q
   {
@@ -355,7 +354,6 @@ class SomeType
 {
   var x: int;
   method DoIt(stack: seq<SomeType>)
-    requires null !in stack
     modifies stack;
   {
     forall n | n in stack {
@@ -645,7 +643,7 @@ method AssignSuchThat5()
 method AssignSuchThat6()
 {
   var n: Node;
-  n :| assume n != null && fresh(n);  // there is no non-null fresh object, so this amounts to 'assume false;'
+  n :| assume fresh(n);  // there is no non-null fresh object, so this amounts to 'assume false;'
   assert false;  // no problemo
 }
 
@@ -753,10 +751,10 @@ class GT {
   {
     if (*) {
       P0();
-      assert forall x: GT {:nowarn} :: x != null && allocated(x) ==> old(allocated(x));  // error: method P2 may have allocated stuff
+      assert forall x: GT {:nowarn} :: allocated(x) ==> old(allocated(x));  // error: method P2 may have allocated stuff
     } else {
       P1();
-      assert forall x: GT {:nowarn} :: x != null && allocated(x) ==> old(allocated(x));  // fine, because the ghost method does not allocate anything
+      assert forall x: GT {:nowarn} :: allocated(x) ==> old(allocated(x));  // fine, because the ghost method does not allocate anything
     }
   }
 }

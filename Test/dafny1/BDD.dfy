@@ -12,7 +12,7 @@ module SimpleBDD
     ghost var Contents: map<seq<bool>, bool>
     ghost var Repr: set<object>
     ghost var n: nat
-    var f: BDDNode, t: BDDNode
+    var f: BDDNode?, t: BDDNode?
     var b: bool
     predicate valid()
       reads this, Repr
@@ -36,8 +36,11 @@ module SimpleBDD
     predicate valid()
       reads this, Repr
     {
-      root != null && root in Repr && root.Repr <= Repr && root.valid() && 
+      root in Repr && root.Repr <= Repr && root.valid() && 
       n == root.n && Contents == root.Contents
+    }
+    constructor () {
+      root := new BDDNode;
     }
 
     ghost var Contents: map<seq<bool>, bool>
@@ -51,8 +54,8 @@ module SimpleBDD
       var node: BDDNode := root;
       var i := n;
       assert s[n-i..] == s;
-      while(i > 0)
-        invariant node != null && node.valid();
+      while i > 0
+        invariant node.valid();
         invariant 0 <= i == node.n <= n;
         invariant Contents[s] == node.Contents[s[n-i..]];
       {

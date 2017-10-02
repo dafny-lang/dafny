@@ -1529,17 +1529,22 @@ namespace Microsoft.Dafny {
         // "a" is a class, trait, or opaque type
         var aa = ((UserDefinedType)super).ResolvedClass;
         Contract.Assert(aa != null);
-        if (!(sub is UserDefinedType)) {
-          return false;
-        }
-        var bb = ((UserDefinedType)sub).ResolvedClass;
-        if (aa == bb) {
-          return true;
-        } else if (bb is ClassDecl && ((ClassDecl)bb).DerivesFrom(aa)) {
-          Contract.Assert(aa is TraitDecl && super.TypeArgs.Count == 0);
-          return true;
-        } else {
-          return false;
+        while (true) {
+          if (!(sub is UserDefinedType)) {
+            return false;
+          }
+          var bb = ((UserDefinedType)sub).ResolvedClass;
+          if (aa == bb) {
+            return true;
+          } else if (bb is ClassDecl && ((ClassDecl)bb).DerivesFrom(aa)) {
+            Contract.Assert(aa is TraitDecl && super.TypeArgs.Count == 0);
+            return true;
+          } else if (bb is SubsetTypeDecl) {
+            // walk up the parent chain
+            sub = ((SubsetTypeDecl)bb).RhsWithArgument(sub.TypeArgs);
+          } else {
+            return false;
+          }
         }
       }
     }
@@ -2614,7 +2619,9 @@ namespace Microsoft.Dafny {
       Contract.Requires(cd != null);
       Contract.Requires(cce.NonNullElements(typeArgs));
       Contract.Requires(cd.TypeArgs.Count == typeArgs.Count);
-      Contract.Requires(!(cd is ClassDecl) || (cd is ArrowTypeDecl) || name == cd.Name + "?");
+      Contract.Requires(!(cd is ClassDecl) || cd is DefaultClassDecl || cd is ArrowTypeDecl || name == cd.Name + "?");
+      Contract.Requires(!(cd is ArrowTypeDecl) || name == cd.Name);
+      Contract.Requires(!(cd is DefaultClassDecl) || name == cd.Name);
       this.tok = tok;
       this.Name = name;
       this.ResolvedClass = cd;
@@ -8353,7 +8360,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(tok != null);
       Contract.Requires(cl != null);
       var typeArgs = cl.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp));
-      Type = new UserDefinedType(tok, cl.Name + "?", cl, typeArgs);
+      Type = new UserDefinedType(tok, cl.IsDefaultClass ? cl.Name : cl.Name + "?", cl, typeArgs);
       UnresolvedType = Type;
       Implicit = isImplicit;
     }

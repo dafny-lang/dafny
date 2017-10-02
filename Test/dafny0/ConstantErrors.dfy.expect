@@ -1,4 +1,4 @@
-ConstantErrors.dfy(6,8): Error: type for constant two is int, but its initialization value type is real
+ConstantErrors.dfy(6,8): Error: type for constant 'two' is 'int', but its initialization value type is 'real'
 ConstantErrors.dfy(10,8): Error: constant definition contains a cycle: _default.six -> _default.five
 ConstantErrors.dfy(18,6): Error: 'this' is not allowed in a 'static' context
 ConstantErrors.dfy(29,6): Error: ghost fields are allowed only in specification contexts

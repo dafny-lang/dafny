@@ -17,11 +17,11 @@ method Main() {
 
 class MyClass
 {
-  var arr: array2<int>;
+  var arr: array2<int>
 
   method K0(i: int, j: int)
-    requires arr != null && 0 <= i < arr.Length0 && 0 <= j < arr.Length1;
-    modifies arr;
+    requires 0 <= i < arr.Length0 && 0 <= j < arr.Length1
+    modifies arr
   {
     forall k | k in {-3, 4} {
       arr[i,j] := 50;
@@ -29,7 +29,7 @@ class MyClass
   }
 
   method K1(i: int, j: int)
-    requires arr != null && 0 <= i < arr.Length0 && 0 <= j < arr.Length1;
+    requires 0 <= i < arr.Length0 && 0 <= j < arr.Length1
     // note the absence of a modifies clause
   {
     forall k: int | k in {} {
@@ -38,8 +38,8 @@ class MyClass
   }
 
   method K2(i: int, j: int)
-    requires arr != null && 0 <= i < arr.Length0 && 0 <= j < arr.Length1;
-    modifies arr;
+    requires 0 <= i < arr.Length0 && 0 <= j < arr.Length1
+    modifies arr
   {
     forall k: int | k in {-3, 4} {
       // The following would have been an error (since this test file tests
@@ -49,8 +49,8 @@ class MyClass
   }
 
   method K3(i: int, j: int)
-    requires arr != null && 0 <= i < arr.Length0 && 0 <= j < arr.Length1;
-    modifies arr;
+    requires 0 <= i < arr.Length0 && 0 <= j < arr.Length1
+    modifies arr
   {
     forall k: nat | k in {-3, 4} && k <= i {
       arr[k,j] := 50;  // fine, since k:nat is at least 0
@@ -58,8 +58,8 @@ class MyClass
   }
 
   method K4(j: int)
-    requires arr != null && 0 <= j < arr.Length1;
-    modifies arr;
+    requires 0 <= j < arr.Length1
+    modifies arr
   {
     forall i, k: nat | 0 <= i < arr.Length0 && k in {-3, 4} {
       arr[i,j] := k;  // fine, since k can only take on one value

@@ -1,9 +1,9 @@
-Parallel.dfy(297,21): Error: assertion violation
+Parallel.dfy(293,21): Error: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon4_Else
-Parallel.dfy(34,9): Error BP5002: A precondition for this call might not hold.
-Parallel.dfy(60,13): Related location: This is the precondition that might not hold.
+Parallel.dfy(33,9): Error BP5002: A precondition for this call might not hold.
+Parallel.dfy(59,13): Related location: This is the precondition that might not hold.
 Execution trace:
     (0,0): anon0
     (0,0): anon29_Else
@@ -12,7 +12,7 @@ Execution trace:
     (0,0): anon34_Then
     (0,0): anon35_Then
     (0,0): anon14
-Parallel.dfy(38,4): Error: target object may be null
+Parallel.dfy(37,4): Error: target object may be null
 Execution trace:
     (0,0): anon0
     (0,0): anon29_Else
@@ -22,7 +22,7 @@ Execution trace:
     (0,0): anon37_Then
     (0,0): anon38_Then
     (0,0): anon20
-Parallel.dfy(42,17): Error: possible violation of postcondition of forall statement
+Parallel.dfy(41,17): Error: possible violation of postcondition of forall statement
 Execution trace:
     (0,0): anon0
     (0,0): anon29_Else
@@ -32,7 +32,7 @@ Execution trace:
     (0,0): anon39_Then
     (0,0): anon40_Then
     (0,0): anon26
-Parallel.dfy(47,18): Error: assertion violation
+Parallel.dfy(46,18): Error: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon29_Else
@@ -41,31 +41,29 @@ Execution trace:
     (0,0): anon36_Else
     (0,0): anon39_Then
     (0,0): anon40_Then
-Parallel.dfy(93,18): Error: assertion violation
+Parallel.dfy(91,18): Error: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon10_Else
     (0,0): anon11_Then
-Parallel.dfy(99,19): Error: possible violation of postcondition of forall statement
+Parallel.dfy(97,19): Error: possible violation of postcondition of forall statement
 Execution trace:
     (0,0): anon0
     (0,0): anon10_Else
     (0,0): anon11_Then
     (0,0): anon12_Then
-Parallel.dfy(122,11): Error: value does not satisfy the subset constraints of 'nat'
+Parallel.dfy(119,11): Error: value does not satisfy the subset constraints of 'nat'
 Execution trace:
     (0,0): anon0
-    (0,0): anon6_Then
-    (0,0): anon7_Then
-    (0,0): anon3
-Parallel.dfy(185,11): Error: left-hand sides for different forall-statement bound variables may refer to the same location
+    (0,0): anon4_Then
+Parallel.dfy(182,11): Error: left-hand sides for different forall-statement bound variables may refer to the same location
 Execution trace:
     (0,0): anon0
     (0,0): anon19_Then
     (0,0): anon20_Then
     (0,0): anon5
-Parallel.dfy(346,9): Error: assertion violation
-Parallel.dfy(333,26): Related location
+Parallel.dfy(342,9): Error: assertion violation
+Parallel.dfy(329,26): Related location
 Execution trace:
     (0,0): anon0
     (0,0): anon4_Else

@@ -9,13 +9,12 @@
 // separating conjunction and the abstract predicate ListSegment would take care of staking out which
 // subpart of the heap is being occupied by the linked-list representation.
 class Node<T(0)> {
-  var data: T;
-  var next: Node<T>;
+  var data: T
+  var next: Node?<T>
 
-  static function ListSegment(q: seq<T>, from: Node<T>, to: Node<T>, S: set<Node<T>>): bool
-    reads S;
+  static predicate ListSegment(q: seq<T>, from: Node?<T>, to: Node?<T>, S: set<Node<T>>)
+    reads S
   {
-    null !in S &&
     if q == []
     then from == to
     else from != null && from in S && from.data == q[0] && ListSegment(q[1..], from.next, to, S - {from})
@@ -36,7 +35,7 @@ class Node<T(0)> {
     }
   }
 
-  static method Cons(x: T, tail: Node<T>, ghost q: seq<T>, ghost S: set<Node<T>>) returns (l: Node<T>, ghost U: set<Node<T>>)
+  static method Cons(x: T, tail: Node?<T>, ghost q: seq<T>, ghost S: set<Node<T>>) returns (l: Node<T>, ghost U: set<Node<T>>)
     requires ListSegment(q, tail, null, S);
     ensures ListSegment([x] + q, l, null, U) && fresh(U - S);
   {
@@ -50,27 +49,25 @@ class Node<T(0)> {
 // The following class is a variation of the one above.  The difference is that, in this one, each node
 // keeps track of its own contents (called 'q' above) and representation (called 'S' and 'U' above).
 class ListNode<T(0)> {
-  ghost var Contents: seq<T>;
-  ghost var Repr: set<ListNode<T>>;
+  ghost var Contents: seq<T>
+  ghost var Repr: set<ListNode<T>>
 
-  var data: T;
-  var next: ListNode<T>;
+  var data: T
+  var next: ListNode?<T>
 
-  static function IsList(l: ListNode<T>): bool
-    reads l, if l != null then l.Repr else {};
+  static predicate IsList(l: ListNode?<T>)
+    reads l, if l != null then l.Repr else {}
   {
     if l == null then
       true
+    else if l.next == null then
+      l in l.Repr && l.Contents == [l.data]
     else
-      null !in l.Repr &&
-      if l.next == null then
-        l in l.Repr && l.Contents == [l.data]
-      else
-        {l, l.next} <= l.Repr && l.Contents == [l.data] + l.next.Contents && l.next.Repr <= l.Repr - {l} && IsList(l.next)
+      {l, l.next} <= l.Repr && l.Contents == [l.data] + l.next.Contents && l.next.Repr <= l.Repr - {l} && IsList(l.next)
   }
 
   static method Create(x: T) returns (l: ListNode<T>)
-    ensures IsList(l) && l != null && l.Contents == [x] && fresh({l} + l.Repr);
+    ensures IsList(l) && l.Contents == [x] && fresh({l} + l.Repr);
   {
     // By using the following non-deterministic 'if' statement, the example shows that 'Create' can be
     // implemented either directly or by call 'Cons'.
@@ -85,16 +82,16 @@ class ListNode<T(0)> {
     }
   }
 
-  static method Cons(x: T, tail: ListNode<T>) returns (l: ListNode<T>)
-    requires IsList(tail);
-    ensures IsList(l) && l != null;
-    ensures tail == null ==> l.Contents == [x] && fresh({l} + l.Repr);
-    ensures tail != null ==> l.Contents == [x] + tail.Contents && fresh({l} + l.Repr - tail.Repr);
+  static method Cons(x: T, tail: ListNode?<T>) returns (l: ListNode<T>)
+    requires IsList(tail)
+    ensures IsList(l)
+    ensures tail == null ==> l.Contents == [x] && fresh({l} + l.Repr)
+    ensures tail != null ==> l.Contents == [x] + tail.Contents && fresh({l} + l.Repr - tail.Repr)
   {
     l := new ListNode<T>;
     l.data := x;
     l.next := tail;
-    if (tail != null) {
+    if tail != null {
       l.Repr := tail.Repr + {l};
       l.Contents := [x] + tail.Contents;
     } else {
@@ -110,23 +107,22 @@ class ListNode<T(0)> {
 // field is not used.
 class List<T(0)>
 {
-  ghost var Contents: seq<T>;
-  ghost var Repr: set<object>;
-  var head: LLNode<T>;
+  ghost var Contents: seq<T>
+  ghost var Repr: set<object>
+  var head: LLNode<T>
 
-  function IsList(): bool
-    reads this, Repr;
+  predicate IsList()
+    reads this, Repr
   {
-    this in Repr && head != null && head in Repr &&
+    this in Repr && head in Repr &&
     head.Repr <= Repr && this !in head.Repr && head.IsWellFormed() &&
     Contents == head.TailContents
   }
 
-  method Init()
-    modifies this;
-    ensures IsList() && Contents == [] && fresh(Repr - {this});
+  constructor Init()
+    ensures IsList() && Contents == [] && fresh(Repr - {this})
   {
-    var h := new LLNode<T>;
+    var h: LLNode<T> := new LLNode<T>;
     h.next := null;
     h.TailContents := [];
     h.Repr := {h};
@@ -137,14 +133,14 @@ class List<T(0)>
   }
 
   method Cons(x: T)
-    requires IsList();
-    modifies Repr;
-    ensures IsList() && Contents == [x] + old(Contents) && fresh(Repr - old(Repr));
+    requires IsList()
+    modifies Repr
+    ensures IsList() && Contents == [x] + old(Contents) && fresh(Repr - old(Repr))
   {
     head.data := x;
     assert head.IsWellFormed();  // head remains well-formed even after assigning to an object (namely, head) in head.Repr
 
-    var h := new LLNode<T>;
+    var h: LLNode<T> := new LLNode<T>;
     h.next := head;
     h.TailContents := [x] + head.TailContents;
     h.Repr := {h} + head.Repr;
@@ -157,13 +153,13 @@ class List<T(0)>
 
 class LLNode<T(0)>
 {
-  var data: T;
-  var next: LLNode<T>;
-  ghost var TailContents: seq<T>;
-  ghost var Repr: set<object>;
+  var data: T
+  var next: LLNode?<T>
+  ghost var TailContents: seq<T>
+  ghost var Repr: set<object>
 
-  function IsWellFormed(): bool
-    reads this, Repr;
+  predicate IsWellFormed()
+    reads this, Repr
   {
     this in Repr &&
     (next == null ==> TailContents == []) &&

@@ -7,7 +7,7 @@
 class MyClass<T,U> {
   var x: int;
 
-  method M(s: bool, lotsaObjects: set<object>) returns (t: object, u: set<int>, v: seq<MyClass<bool,U>>)
+  method M(s: bool, lotsaObjects: set<object>) returns (t: object, u: set<int>, v: seq<MyClass?<bool,U>>)
     requires s;
     modifies this, lotsaObjects;
     ensures t == t;

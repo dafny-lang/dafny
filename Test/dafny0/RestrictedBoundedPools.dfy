@@ -189,27 +189,27 @@ module Allocated {
   }
 
   method M0() {
-    assert forall c: Cell :: c != null ==> c.data < 100;
+    assert forall c: Cell :: c.data < 100;
   }
 
   method M1() {
-    assert forall c: Cell :: c != null && allocated(c) ==> c.data < 100;
+    assert forall c: Cell :: allocated(c) ==> c.data < 100;
   }
   
   method N0() returns (s: set<Cell>) {
-    s := set c: Cell | c != null && c.data < 100;  // error: this involves the allocated state
+    s := set c: Cell | c.data < 100;  // error: this involves the allocated state
   }
 
   method N1() returns (s: set<Cell>) {
-    s := set c: Cell | c != null && allocated(c) && c.data < 100;  // error: finite, but not (comfortably) compilable
+    s := set c: Cell | allocated(c) && c.data < 100;  // error: finite, but not (comfortably) compilable
   }
 
   ghost method N2() returns (s: set<Cell>) {
-    s := set c: Cell | c != null && allocated(c) && c.data < 100;  // fine: this is finite and need not be compiled
+    s := set c: Cell | allocated(c) && c.data < 100;  // fine: this is finite and need not be compiled
   }
 
   function F(): set<Cell> {
-    set c: Cell | c != null && allocated(c) && c.data < 100  // error: function not allowed to depend on allocation state
+    set c: Cell | allocated(c) && c.data < 100  // error: function not allowed to depend on allocation state
   }
 
   function A(c: Cell): bool
