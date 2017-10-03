@@ -8,7 +8,7 @@ if [[ ! -x "$MONO" ]]; then
     exit 1
 fi
 
-if [[ ! -x "$DAFNY" ]]; then
+if [[ ! -e "$DAFNY" ]]; then
     echo "Error: Dafny.exe not found at $DAFNY."
     exit 1
 fi
