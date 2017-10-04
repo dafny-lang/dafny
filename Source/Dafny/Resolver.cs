@@ -10355,6 +10355,16 @@ namespace Microsoft.Dafny
         if (headIsRoot) {
           // we're good to go -- by picking "meet" (whose type parameters have been replaced by fresh proxies), we're not losing any generality
           pickThisMeet = true;
+        } else if (memberName == "_#apply" || memberName == "requires" || memberName == "reads") {
+          var generalArrowType = meet.AsArrowType;  // go all the way to the base type, to get to the general arrow type, if any0
+          if (generalArrowType != null) {
+            // pick the supertype "generalArrowType" of "meet"
+            ConstrainSubtypeRelation(generalArrowType, t, tok, "Function application requires a subtype of {0} (got something more like {1})", generalArrowType, t);
+#if DEBUG_PRINT
+            Console.WriteLine("  ----> improved to {0} through meet and function application", generalArrowType);
+#endif
+            return generalArrowType;
+          }
         } else if (memberName != null) {
           // If "meet" has a member called "memberName" and no supertype of "meet" does, then we'll pick this meet
           if (meet.IsRefType) {
@@ -10373,7 +10383,11 @@ namespace Microsoft.Dafny
                     // pick the supertype "mbr.EnclosingClass" of "cl"
                     Contract.Assert(mbr.EnclosingClass is TraitDecl);  // a proper supertype of a ClassDecl must be a TraitDecl
                     var pickItFromHere = new UserDefinedType(tok, mbr.EnclosingClass.Name, mbr.EnclosingClass, new List<Type>());
+#if !PREVIOUS_THING_WHICH_SEEMS_WRONG
                     ConstrainSubtypeRelation(pickItFromHere, meet, tok, "Member selection requires a subtype of {0} (got something more like {1})", pickItFromHere, meet);
+#else
+                    ConstrainSubtypeRelation(pickItFromHere, t, tok, "Member selection requires a subtype of {0} (got something more like {1})", pickItFromHere, meet);
+#endif
 #if DEBUG_PRINT
                     Console.WriteLine("  ----> improved to {0} through meet and member lookup", pickItFromHere);
 #endif
@@ -12878,7 +12892,7 @@ namespace Microsoft.Dafny
         foreach (var arg in e.Args) {
           ResolveExpression(arg, opts);
         }
-        PartiallyResolveTypeForMemberSelection(e.Lhs.tok, e.Lhs.Type);
+        PartiallyResolveTypeForMemberSelection(e.Lhs.tok, e.Lhs.Type, "_#apply");
         var fnType = e.Lhs.Type.AsArrowType;
         if (fnType == null) {
           var lhs = e.Lhs.Resolved;

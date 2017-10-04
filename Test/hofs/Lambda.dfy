@@ -22,7 +22,6 @@ method M<A>() {
 
     var f9 := () requires u == 0 => true;
     assert !f9.requires();
-
 }
 
 datatype List<A> = Cons(A,List<A>) | Nil
