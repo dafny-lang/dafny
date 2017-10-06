@@ -3820,6 +3820,9 @@ namespace Microsoft.Dafny
           case "IsRefType":
             satisfied = t.IsRefType;
             break;
+          case "IsNullableRefType":
+            satisfied = t.IsRefType && !t.IsNonNullRefType;
+            break;
           case "Orderable_Lt":
             satisfied = t.IsNumericBased() || t.IsBitVectorType || t.IsBigOrdinalType || t.IsCharType || t is SeqType || t is SetType || t is MultiSetType;
             break;
@@ -4214,133 +4217,178 @@ namespace Microsoft.Dafny
     /// appropriate for the partial solving that's done before a member lookup.
     /// </summary>
     void PartiallySolveTypeConstraints(bool allowDecisions) {
-      bool fullStrength = false;
+      /*
+       * 0:  ProcessOneSubtypingConstraintsAndItsSubs
+       * 0:  AssignKnownEnds
+       * if any new constraints, goto 0
+       * 
+       * 1: Confirm XConstraints
+       * if any new constraints, goto 0
+       * 
+       * 2: Process default numeric types (int, real)
+       * if any new constraints, goto 0
+       * 
+       * 3: ProcessFullStrength_{Sub,Super}Direction
+       * goto 5
+       * 
+       * 4: Process default reference types (object?)
+       * if any new constraints, goto 0
+       * 
+       * 5: 0 with fullStrength
+       * if any new constraints, goto 0
+       * 
+       * 6: 1 with fullStrength
+       * if any new constraints, goto 0
+       * 
+       * 7: 2 with fullStrength
+       * if any new constraints, goto 0
+       * 
+       * 8: union together proxy:>proxy constraints
+       * exit
+       */
+      int state = 0;
       while (true) {
-        var anyNewConstraints = false;
-        // Process subtyping constraints
-        PrintTypeConstraintState(fullStrength ? 220 : 22);
-        if (fullStrength) {
-          var allTC = AllTypeConstraints;
-          AllTypeConstraints = new List<TypeConstraint>();
-          var proxyProcessed = new HashSet<TypeProxy>();
-          foreach (var c in allTC) {
-            ProcessFullStrength_SubDirection(c.Super, proxyProcessed, ref anyNewConstraints);
-          }
-          proxyProcessed = new HashSet<TypeProxy>();
-          foreach (var c in allTC) {
-            ProcessFullStrength_SuperDirection(c.Sub, proxyProcessed, ref anyNewConstraints);
-          }
-          AllTypeConstraints.AddRange(allTC);
-        }
-
-        var allTypeConstraints = AllTypeConstraints;
-        AllTypeConstraints = new List<TypeConstraint>();
-        var processed = new HashSet<TypeConstraint>();
-        foreach (var c in allTypeConstraints) {
-          ProcessOneSubtypingConstraintAndItsSubs(c, processed, fullStrength, ref anyNewConstraints);
-        }
-
-        allTypeConstraints = AllTypeConstraints;
-        AllTypeConstraints = new List<TypeConstraint>();
-        foreach (var c in allTypeConstraints) {
-          var super = c.Super.NormalizeExpand() as TypeProxy;
-          if (AssignKnownEnd(super, true)) {
-            anyNewConstraints = true;
-          } else if (super != null && fullStrength && AssignKnownEndsFullstrength(super)) {  // KRML: is this used any more?
-            anyNewConstraints = true;
-          } else {
-            AllTypeConstraints.Add(c);
-          }
-        }
-        if (anyNewConstraints) {
-          fullStrength = false;
-          continue;
-        }
-        // Process XConstraints
-        // confirm as many XConstraints as possible, setting "anyNewConstraints" to "true" if the confirmation
-        // of an XConstraint gives rise to new constraints to be handled in the loop above
-        List<XConstraint> allXConstraints;
-        bool generatedMoreXConstraints;
-        do {
-          generatedMoreXConstraints = false;
-          allXConstraints = AllXConstraints;
-          AllXConstraints = new List<XConstraint>();
-          foreach (var xc in allXConstraints) {
-            bool convertedIntoOtherTypeConstraints, moreXConstraints;
-            if (xc.Confirm(this, fullStrength, out convertedIntoOtherTypeConstraints, out moreXConstraints)) {
-              if (convertedIntoOtherTypeConstraints) {
-                anyNewConstraints = true;
-              } else {
-                generatedMoreXConstraints = true;
-              }
-              if (moreXConstraints) {
-                generatedMoreXConstraints = true;
-              }
-            } else {
-              AllXConstraints.Add(xc);
-            }
-          }
-        } while (generatedMoreXConstraints);
-        if (anyNewConstraints) {
-          fullStrength = false;  // restart the first loop without full strength
-          continue;
-        }
-        if (!allowDecisions) {
+        if (2 <= state && !allowDecisions) {
           // time to say goodnight to Napoli
           return;
         }
-        // Process default types
-        allTypeConstraints = AllTypeConstraints;
-        AllTypeConstraints = new List<TypeConstraint>();
-        foreach (var c in allTypeConstraints) {
-          if (c.Super is ArtificialType) {
-            var proxy = c.Sub.NormalizeExpand() as TypeProxy;
-            if (proxy != null) {
-              AssignProxyAndHandleItsConstraints(proxy, c.Super is IntVarietiesSupertype ? (Type)Type.Int : Type.Real);
-              anyNewConstraints = true;
-              continue;
+
+        var anyNewConstraints = false;
+        var fullStrength = false;
+        // Process subtyping constraints
+        PrintTypeConstraintState(220 + 2*state);
+        switch (state) {
+          case 0: {
+              var allTypeConstraints = AllTypeConstraints;
+              AllTypeConstraints = new List<TypeConstraint>();
+              var processed = new HashSet<TypeConstraint>();
+              foreach (var c in allTypeConstraints) {
+                ProcessOneSubtypingConstraintAndItsSubs(c, processed, fullStrength, ref anyNewConstraints);
+              }
+
+              allTypeConstraints = AllTypeConstraints;
+              AllTypeConstraints = new List<TypeConstraint>();
+              foreach (var c in allTypeConstraints) {
+                var super = c.Super.NormalizeExpand() as TypeProxy;
+                if (AssignKnownEnd(super, true)) {
+                  anyNewConstraints = true;
+                } else if (super != null && fullStrength && AssignKnownEndsFullstrength(super)) {  // KRML: is this used any more?
+                  anyNewConstraints = true;
+                } else {
+                  AllTypeConstraints.Add(c);
+                }
+              }
             }
-          }
-          AllTypeConstraints.Add(c);
-        }
-        allXConstraints = AllXConstraints;
-        AllXConstraints = new List<XConstraint>();
-        foreach (var xc in allXConstraints) {
-          if (xc.ConstraintName == "IsRefType") {
-            var proxy = xc.Types[0].Normalize() as TypeProxy;  // before we started processing default types, this would have been a proxy (since it's still in the A
-            if (proxy != null) {
-              AssignProxyAndHandleItsConstraints(proxy, builtIns.Object());
-              anyNewConstraints = true;
-              continue;
+            break;
+
+          case 1: {
+              // Process XConstraints
+              // confirm as many XConstraints as possible, setting "anyNewConstraints" to "true" if the confirmation
+              // of an XConstraint gives rise to new constraints to be handled in the loop above
+              List<XConstraint> allXConstraints;
+              bool generatedMoreXConstraints;
+              do {
+                generatedMoreXConstraints = false;
+                allXConstraints = AllXConstraints;
+                AllXConstraints = new List<XConstraint>();
+                foreach (var xc in allXConstraints) {
+                  bool convertedIntoOtherTypeConstraints, moreXConstraints;
+                  if (xc.Confirm(this, fullStrength, out convertedIntoOtherTypeConstraints, out moreXConstraints)) {
+                    if (convertedIntoOtherTypeConstraints) {
+                      anyNewConstraints = true;
+                    } else {
+                      generatedMoreXConstraints = true;
+                    }
+                    if (moreXConstraints) {
+                      generatedMoreXConstraints = true;
+                    }
+                  } else {
+                    AllXConstraints.Add(xc);
+                  }
+                }
+              } while (generatedMoreXConstraints);
             }
-          }
-          AllXConstraints.Add(xc);
+            break;
+
+          case 2: {
+              // Process default numeric types
+              var allTypeConstraints = AllTypeConstraints;
+              AllTypeConstraints = new List<TypeConstraint>();
+              foreach (var c in allTypeConstraints) {
+                if (c.Super is ArtificialType) {
+                  var proxy = c.Sub.NormalizeExpand() as TypeProxy;
+                  if (proxy != null) {
+                    AssignProxyAndHandleItsConstraints(proxy, c.Super is IntVarietiesSupertype ? (Type)Type.Int : Type.Real);
+                    anyNewConstraints = true;
+                    continue;
+                  }
+                }
+                AllTypeConstraints.Add(c);
+              }
+            }
+            break;
+
+          case 3: {
+              var allTC = AllTypeConstraints;
+              AllTypeConstraints = new List<TypeConstraint>();
+              var proxyProcessed = new HashSet<TypeProxy>();
+              foreach (var c in allTC) {
+                ProcessFullStrength_SubDirection(c.Super, proxyProcessed, ref anyNewConstraints);
+              }
+              proxyProcessed = new HashSet<TypeProxy>();
+              foreach (var c in allTC) {
+                ProcessFullStrength_SuperDirection(c.Sub, proxyProcessed, ref anyNewConstraints);
+              }
+              AllTypeConstraints.AddRange(allTC);
+            }
+            break;
+
+          case 4: {
+              // Process default reference types
+              var allXConstraints = AllXConstraints;
+              AllXConstraints = new List<XConstraint>();
+              foreach (var xc in allXConstraints) {
+                if (xc.ConstraintName == "IsRefType" || xc.ConstraintName == "IsNullableRefType") {
+                  var proxy = xc.Types[0].Normalize() as TypeProxy;  // before we started processing default types, this would have been a proxy (since it's still in the A
+                  if (proxy != null) {
+                    AssignProxyAndHandleItsConstraints(proxy, builtIns.Object());
+                    anyNewConstraints = true;
+                    continue;
+                  }
+                }
+                AllXConstraints.Add(xc);
+              }
+            }
+            break;
+
+          case 5: fullStrength = true; goto case 0;
+          case 6: fullStrength = true; goto case 1;
+          case 7: fullStrength = true; goto case 2;
+
+          case 8: {
+              // Finally, collapse constraints involving only proxies, which will have the effect of trading some type error
+              // messages for type-underspecification messages.
+              var allTypeConstraints = AllTypeConstraints;
+              AllTypeConstraints = new List<TypeConstraint>();
+              foreach (var c in allTypeConstraints) {
+                var super = c.Super.NormalizeExpand();
+                var sub = c.Sub.NormalizeExpand();
+                if (super == sub) {
+                  continue;
+                } else if (super is TypeProxy && sub is TypeProxy) {
+                  var proxy = (TypeProxy)super;
+                  proxy.T = sub;
+                  continue;
+                }
+                AllTypeConstraints.Add(c);
+              }
+              return;
+            }
         }
         if (anyNewConstraints) {
-          fullStrength = false;  // restart the first loop without full strength
-          continue;
-        }
-        // Increase the strength of the solving strategy, if possible
-        if (!fullStrength) {
-          fullStrength = true;  // keep going, but with full strength this time
+          state = 0;
         } else {
-          // Finally, collapse constraints involving only proxies, which will have the effect of trading some type error
-          // messages for type-underspecification messages.
-          allTypeConstraints = AllTypeConstraints;
-          AllTypeConstraints = new List<TypeConstraint>();
-          foreach (var c in allTypeConstraints) {
-            var super = c.Super.NormalizeExpand();
-            var sub = c.Sub.NormalizeExpand();
-            if (super == sub) {
-              continue;
-            } else if (super is TypeProxy && sub is TypeProxy) {
-              var proxy = (TypeProxy)super;
-              proxy.T = sub;
-              continue;
-            }
-            AllTypeConstraints.Add(c);
-          }
-          return;
+          state++;
         }
       }
     }
@@ -4524,29 +4572,79 @@ namespace Microsoft.Dafny
       Contract.Requires(proxy != null && proxy.T == null);
       // If the meet of the subtypes exists, use it
       var meets = new List<Type>();
+      var proxySubs = new HashSet<TypeProxy>();
+      proxySubs.Add(proxy);
       foreach (var su in proxy.SubtypesKeepConstraints) {
         if (su is TypeProxy) {
-          continue;  // don't include proxies in the meet computation
-        }
-        int i = 0;
-        for (; i < meets.Count; i++) {
-          var j = Type.Meet(meets[i], su, builtIns);
-          if (j != null) {
-            meets[i] = j;
-            break;
+          proxySubs.Add((TypeProxy)su);
+        } else {
+          int i = 0;
+          for (; i < meets.Count; i++) {
+            var j = Type.Meet(meets[i], su, builtIns);
+            if (j != null) {
+              meets[i] = j;
+              break;
+            }
           }
-        }
-        if (i == meets.Count) {
-          // we went to the end without finding a place to meet up
-          meets.Add(su);
+          if (i == meets.Count) {
+            // we went to the end without finding a place to meet up
+            meets.Add(su);
+          }
         }
       }
       if (meets.Count == 1 && !Reaches(meets[0], proxy, 1, new HashSet<TypeProxy>())) {
-        // we were able to compute a meet of all the subtyping constraints, so use it
+        // We were able to compute a meet of all the subtyping constraints, so use it.
+        // Well, maybe.  If "meets[0]" denotes a non-null type and "proxy" is something
+        // that could be assigned "null", then set "proxy" to the nullable version of "meets[0]".
+        // Stated differently, think of an applicable "IsNullableRefType" constraint as
+        // being part of the meet computation, essentially throwing in a "...?".
+        if (meets[0].IsNonNullRefType) {
+          CloseOverAssignableRhss(proxySubs);
+          if (HasApplicableNullableRefTypeConstraint(proxySubs)) {
+#if DEBUG_PRINT
+            Console.WriteLine("DEBUG: Found meet {0} for proxy {1}, but strengthening it to {2}", meets[0], proxy, meets[0].NormalizeExpand());
+#endif
+            AssignProxyAndHandleItsConstraints(proxy, meets[0].NormalizeExpand(), true);
+            return true;
+          }
+        }
         AssignProxyAndHandleItsConstraints(proxy, meets[0], true);
         return true;
       }
       return false;
+    }
+
+    private void CloseOverAssignableRhss(ISet<TypeProxy> proxySet) {
+      Contract.Requires(proxySet != null);
+      while (true) {
+        var moreChanges = false;
+        foreach (var xc in AllXConstraints) {
+          if (xc.ConstraintName == "Assignable") {
+            var source = xc.Types[0].Normalize() as TypeProxy;
+            var sink = xc.Types[1].Normalize() as TypeProxy;
+            if (source != null && sink != null && proxySet.Contains(source) && !proxySet.Contains(sink)) {
+              proxySet.Add(sink);
+              moreChanges = true;
+            }
+          }
+        }
+        if (!moreChanges) {
+          return;
+        }
+      }
+    }
+    private bool HasApplicableNullableRefTypeConstraint(ISet<TypeProxy> proxySet) {
+      Contract.Requires(proxySet != null);
+      var nullableProxies = new HashSet<TypeProxy>();
+      foreach (var xc in AllXConstraints) {
+        if (xc.ConstraintName == "IsNullableRefType") {
+          var npr = xc.Types[0].Normalize() as TypeProxy;
+          if (npr != null) {
+            nullableProxies.Add(npr);
+          }
+        }
+      }
+      return proxySet.Any(nullableProxies.Contains);
     }
 
     bool AssignKnownEndsFullstrength_SuperDirection(TypeProxy proxy) {
@@ -6722,7 +6820,8 @@ namespace Microsoft.Dafny
     ClassDecl currentClass;
     Method currentMethod;
     bool inBodyInitContext;  // "true" only if "currentMethod is Constructor"
-    readonly Scope<TypeParameter>/*!*/ allTypeParameters = new Scope<TypeParameter>();
+    readonly Scope<TypeParameter>/*!*/
+      allTypeParameters = new Scope<TypeParameter>();
     readonly Scope<IVariable>/*!*/ scope = new Scope<IVariable>();
     Scope<Statement>/*!*/ labeledStatements = new Scope<Statement>();
     List<Statement> loopStack = new List<Statement>();  // the enclosing loops (from which it is possible to break out)
@@ -10837,7 +10936,7 @@ namespace Microsoft.Dafny
         } else {
           if (e.Value == null) {
             e.Type = new InferredTypeProxy();
-            AddXConstraint(e.tok, "IsRefType", e.Type, "type of 'null' is a reference type, but it is used as {0}");
+            AddXConstraint(e.tok, "IsNullableRefType", e.Type, "type of 'null' is a reference type, but it is used as {0}");
           } else if (e.Value is BigInteger) {
             var proxy = new InferredTypeProxy();
             e.Type = proxy;

@@ -116,7 +116,7 @@ class Client
 
     while (b)
       invariant iter.Valid() && b == iter.HasCurrent() && fresh(iter.footprint)
-      invariant c.Valid() && fresh(c.footprint - {null}) && iter.footprint !! c.footprint //disjoint footprints
+      invariant c.Valid() && fresh(c.footprint) && iter.footprint !! c.footprint //disjoint footprints
       invariant 0 <= iter.pos && iter.pos <= |c.elements| && s == c.elements[..iter.pos]
       invariant iter.c == c
       decreases |c.elements| - iter.pos
