@@ -2934,7 +2934,21 @@ namespace Microsoft.Dafny {
         }
       }
     }
-    
+
+    public IEnumerable<Type> SubtypesKeepConstraints_WithAssignable(List<Resolver.XConstraint> allXConstraints) {
+      Contract.Requires(allXConstraints != null);
+      foreach (var c in SubtypeConstraints) {
+        yield return c.Sub.NormalizeExpandKeepConstraints();
+      }
+      foreach (var xc in allXConstraints) {
+        if (xc.ConstraintName == "Assignable") {
+          if (xc.Types[0].Normalize() == this) {
+            yield return xc.Types[1].NormalizeExpandKeepConstraints();
+          }
+        }
+      }
+    }
+
     public void AddSubtype(Resolver.TypeConstraint c) {
       Contract.Requires(c != null);
       Contract.Requires(c.Super == this);

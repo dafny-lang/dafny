@@ -4240,10 +4240,7 @@ namespace Microsoft.Dafny
        * 6: 1 with fullStrength
        * if any new constraints, goto 0
        * 
-       * 7: 2 with fullStrength
-       * if any new constraints, goto 0
-       * 
-       * 8: union together proxy:>proxy constraints
+       * 7: union together proxy:>proxy constraints
        * exit
        */
       int state = 0;
@@ -4310,7 +4307,7 @@ namespace Microsoft.Dafny
             }
             break;
 
-          case 2: {
+          case 3: {
               // Process default numeric types
               var allTypeConstraints = AllTypeConstraints;
               AllTypeConstraints = new List<TypeConstraint>();
@@ -4328,12 +4325,17 @@ namespace Microsoft.Dafny
             }
             break;
 
-          case 3: {
+          case 2: {
               var allTC = AllTypeConstraints;
               AllTypeConstraints = new List<TypeConstraint>();
               var proxyProcessed = new HashSet<TypeProxy>();
               foreach (var c in allTC) {
                 ProcessFullStrength_SubDirection(c.Super, proxyProcessed, ref anyNewConstraints);
+              }
+              foreach (var xc in AllXConstraints) {
+                if (xc.ConstraintName == "Assignable") {
+                  ProcessFullStrength_SubDirection(xc.Types[0], proxyProcessed, ref anyNewConstraints);
+                }
               }
               proxyProcessed = new HashSet<TypeProxy>();
               foreach (var c in allTC) {
@@ -4363,9 +4365,8 @@ namespace Microsoft.Dafny
 
           case 5: fullStrength = true; goto case 0;
           case 6: fullStrength = true; goto case 1;
-          case 7: fullStrength = true; goto case 2;
 
-          case 8: {
+          case 7: {
               // Finally, collapse constraints involving only proxies, which will have the effect of trading some type error
               // messages for type-underspecification messages.
               var allTypeConstraints = AllTypeConstraints;
@@ -4436,7 +4437,7 @@ namespace Microsoft.Dafny
         }
         processed.Add(proxy);
 
-        foreach (var u in proxy.Subtypes) {
+        foreach (var u in proxy.SubtypesKeepConstraints_WithAssignable(AllXConstraints)) {
           ProcessFullStrength_SubDirection(u, processed, ref anyNewConstraints);
         }
         proxy = proxy.NormalizeExpand() as TypeProxy;
@@ -4574,7 +4575,7 @@ namespace Microsoft.Dafny
       var meets = new List<Type>();
       var proxySubs = new HashSet<TypeProxy>();
       proxySubs.Add(proxy);
-      foreach (var su in proxy.SubtypesKeepConstraints) {
+      foreach (var su in proxy.SubtypesKeepConstraints_WithAssignable(AllXConstraints)) {
         if (su is TypeProxy) {
           proxySubs.Add((TypeProxy)su);
         } else {
@@ -7102,7 +7103,7 @@ namespace Microsoft.Dafny
 
    void CheckConstantFieldInitialization(ConstantField field, Expression expr) {
      if (IsConstantExpr(field, expr)) {
-        AddXConstraint(field.tok, "Assignable", field.Type, expr.Type, "type for constant '" + field.Name + "' is '{0}', but its initialization value type is '{1}'");
+        AddAssignableConstraint(field.tok, field.Type, expr.Type, "type for constant '" + field.Name + "' is '{0}', but its initialization value type is '{1}'");
       } else {
         reporter.Error(MessageSource.Resolver, field.tok, "only constants are allowed in the expression to initialize constant {0}", field.Name);
       }
@@ -7618,7 +7619,7 @@ namespace Microsoft.Dafny
         var prevErrorCount = reporter.Count(ErrorLevel.Error);
         ResolveExpression(f.Body, new ResolveOpts(f, f is TwoStateFunction));
         Contract.Assert(f.Body.Type != null);  // follows from postcondition of ResolveExpression
-        AddXConstraint(f.tok, "Assignable", f.ResultType, f.Body.Type, "Function body type mismatch (expected {0}, got {1})");
+        AddAssignableConstraint(f.tok, f.ResultType, f.Body.Type, "Function body type mismatch (expected {0}, got {1})");
         SolveAllTypeConstraints();
       }
 
@@ -8716,11 +8717,11 @@ namespace Microsoft.Dafny
           ExprRhs rr = (ExprRhs)s.Rhs;
           ResolveExpression(rr.Expr, new ResolveOpts(codeContext, true));
           Contract.Assert(rr.Expr.Type != null);  // follows from postcondition of ResolveExpression
-          AddXConstraint(stmt.Tok, "Assignable", lhsType, rr.Expr.Type, "RHS (of type {1}) not assignable to LHS (of type {0})");
+          AddAssignableConstraint(stmt.Tok, lhsType, rr.Expr.Type, "RHS (of type {1}) not assignable to LHS (of type {0})");
         } else if (s.Rhs is TypeRhs) {
           TypeRhs rr = (TypeRhs)s.Rhs;
           Type t = ResolveTypeRhs(rr, stmt, codeContext);
-          AddXConstraint(stmt.Tok, "Assignable", lhsType, t, "type {1} is not assignable to LHS (of type {0})");
+          AddAssignableConstraint(stmt.Tok, lhsType, t, "type {1} is not assignable to LHS (of type {0})");
         } else if (s.Rhs is HavocRhs) {
           // nothing else to do
         } else {
@@ -9175,10 +9176,11 @@ namespace Microsoft.Dafny
         return;
       }
 
-      List<Dictionary<string, DatatypeCtor>> ctorsList = new List<Dictionary<string, DatatypeCtor>>();
-      if ((s.Source.Type.AsDatatype is TupleTypeDecl)) {
+      var ctorsList = new List<Dictionary<string, DatatypeCtor>>();
+      if (s.Source.Type.AsDatatype is TupleTypeDecl) {
         var udt = s.Source.Type.NormalizeExpand() as UserDefinedType;
         foreach (Type typeArg in udt.TypeArgs) {
+          PartiallyResolveTypeForMemberSelection(s.Tok, typeArg);
           var t = typeArg.NormalizeExpand() as UserDefinedType;
           if (t != null) {
             dtd = cce.NonNull((DatatypeDecl)t.ResolvedClass);
@@ -9749,13 +9751,13 @@ namespace Microsoft.Dafny
         for (int i = 0; i < callee.Ins.Count; i++) {
           var it = callee.Ins[i].Type.StripSubsetConstraints();
           Type st = SubstType(it, subst);
-          AddXConstraint(s.Tok, "Assignable", st, s.Args[i].Type, "incorrect type of method in-parameter" + (callee.Ins.Count == 1 ? "" : " " + i) + " (expected {0}, got {1})");
+          AddAssignableConstraint(s.Tok, st, s.Args[i].Type, "incorrect type of method in-parameter" + (callee.Ins.Count == 1 ? "" : " " + i) + " (expected {0}, got {1})");
         }
         for (int i = 0; i < callee.Outs.Count; i++) {
           var it = callee.Outs[i].Type.StripSubsetConstraints();
           Type st = SubstType(it, subst);
           var lhs = s.Lhs[i];
-          AddXConstraint(s.Tok, "Assignable", lhs.Type, st, "incorrect type of method out-parameter" + (callee.Outs.Count == 1 ? "" : " " + i) + " (expected {0}, got {1})");
+          AddAssignableConstraint(s.Tok, lhs.Type, st, "incorrect type of method out-parameter" + (callee.Outs.Count == 1 ? "" : " " + i) + " (expected {0}, got {1})");
           // LHS must denote a mutable field.
           CheckIsLvalue(lhs.Resolved, codeContext);
         }
@@ -10193,7 +10195,7 @@ namespace Microsoft.Dafny
           } else if (rr.InitDisplay != null) {
             foreach (var v in rr.InitDisplay) {
               ResolveExpression(v, new ResolveOpts(codeContext, false));
-              AddXConstraint(v.tok, "Assignable", rr.EType, v.Type, "initial value must be assignable to array's elements (expected '{0}', got '{1}')");
+              AddAssignableConstraint(v.tok, rr.EType, v.Type, "initial value must be assignable to array's elements (expected '{0}', got '{1}')");
             }
           }
         } else {
@@ -11166,7 +11168,7 @@ namespace Microsoft.Dafny
           reporter.Error(MessageSource.Resolver, e.tok, "wrong number of arguments to function application (function type '{0}' expects {1}, got {2})", fnType, fnType.Arity, e.Args.Count);
         } else {
           for (var i = 0; i < fnType.Arity; i++) {
-            AddXConstraint(e.Args[i].tok, "Assignable", fnType.Args[i], e.Args[i].Type, "type mismatch for argument" + (fnType.Arity == 1 ? "" : " " + i) + " (function expects {0}, got {1})");
+            AddAssignableConstraint(e.Args[i].tok, fnType.Args[i], e.Args[i].Type, "type mismatch for argument" + (fnType.Arity == 1 ? "" : " " + i) + " (function expects {0}, got {1})");
           }
         }
         expr.Type = fnType == null ? new InferredTypeProxy() : fnType.Result;
@@ -11684,6 +11686,13 @@ namespace Microsoft.Dafny
       Contract.Requires(types != null);
       return types.Any(ty => ty is InferredTypeProxy && ExactProxiesContains((InferredTypeProxy)ty));
     }
+    void AddAssignableConstraint(IToken tok, Type lhs, Type rhs, string errMsgFormat) {
+      Contract.Requires(tok != null);
+      Contract.Requires(lhs != null);
+      Contract.Requires(rhs != null);
+      Contract.Requires(errMsgFormat != null);
+      AddXConstraint(tok, "Assignable", lhs, rhs, errMsgFormat);
+    }
     private void AddXConstraint(IToken tok, string constraintName, Type type, string errMsgFormat) {
       Contract.Requires(tok != null);
       Contract.Requires(constraintName != null);
@@ -11985,10 +11994,11 @@ namespace Microsoft.Dafny
         // no constructors, there is no need to desugar
         return;
       }
-      List<Dictionary<string, DatatypeCtor>> ctorsList = new List<Dictionary<string, DatatypeCtor>>();
-      if ((me.Source.Type.AsDatatype is TupleTypeDecl)) {
+      var ctorsList = new List<Dictionary<string, DatatypeCtor>>();
+      if (me.Source.Type.AsDatatype is TupleTypeDecl) {
         var udt = me.Source.Type.NormalizeExpand() as UserDefinedType;
         foreach (Type typeArg in udt.TypeArgs) {
+          PartiallyResolveTypeForMemberSelection(me.tok, typeArg);
           var t = typeArg.NormalizeExpand() as UserDefinedType;
           if (t != null) {
             dtd = cce.NonNull((DatatypeDecl)t.ResolvedClass);
@@ -13044,7 +13054,7 @@ namespace Microsoft.Dafny
             reporter.Error(MessageSource.Resolver, e.tok, "wrong number of arguments to function application ({0} expects {1}, got {2})", what, fnType.Arity, e.Args.Count);
           } else {
             for (var i = 0; i < fnType.Arity; i++) {
-              AddXConstraint(e.Args[i].tok, "Assignable", fnType.Args[i], e.Args[i].Type, "type mismatch for argument" + (fnType.Arity == 1 ? "" : " " + i) + " (function expects {0}, got {1})");
+              AddAssignableConstraint(e.Args[i].tok, fnType.Args[i], e.Args[i].Type, "type mismatch for argument" + (fnType.Arity == 1 ? "" : " " + i) + " (function expects {0}, got {1})");
             }
             if (errorCount != reporter.Count(ErrorLevel.Error)) {
               // do nothing else; error has been reported
@@ -13154,7 +13164,7 @@ namespace Microsoft.Dafny
         Contract.Assert(arg.Type != null);  // follows from postcondition of ResolveExpression
         if (formal != null) {
           Type st = SubstType(formal.Type, subst);
-          ConstrainSubtypeRelation(st, arg.Type, arg, "incorrect type of datatype constructor argument (found {0}, expected {1})", arg.Type, st);
+          AddAssignableConstraint(arg.tok, st, arg.Type, "incorrect type of datatype constructor argument (found {1}, expected {0})");
         }
         j++;
       }
@@ -13423,7 +13433,7 @@ namespace Microsoft.Dafny
             ResolveExpression(farg, opts);
             Contract.Assert(farg.Type != null);  // follows from postcondition of ResolveExpression
             Type s = SubstType(function.Formals[i].Type, subst);
-            AddXConstraint(e.tok, "Assignable", s, farg.Type, "incorrect type of function argument" + (function.Formals.Count == 1 ? "" : " " + i) + " (expected {0}, got {1})");
+            AddAssignableConstraint(e.tok, s, farg.Type, "incorrect type of function argument" + (function.Formals.Count == 1 ? "" : " " + i) + " (expected {0}, got {1})");
           }
           e.Type = SubstType(function.ResultType, subst).StripSubsetConstraints();
         }

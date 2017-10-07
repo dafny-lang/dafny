@@ -39,10 +39,39 @@ class MyClass {
 method Generic<T>(i: int, t0: T, t1: T) returns (r: T) {
   if (0 < i) {
     var n: nat := 5;
-    var j := Generic(i-1, n, -4);
-    assert 0 <= j;  // error: the result is an int, not a nat
-    var q := FenEric(n, -4);
-    assert 0 <= q;  // error: the result is an int, not a nat
+    if
+    case true =>
+      var j := Generic(i-1, n, -4);  // error: the type parameter is inferred as nat, but -4 is not a nat
+      assert 0 <= j;
+    case true =>
+      var j := Generic(i-1, n, 4);
+      assert 0 <= j;  // fine, since type parameter was inferred as nat in previous call
+    case true =>
+      var j := Generic(i-1, n as int, -4);  // now, the type parameter is inferred as int
+      assert 0 <= j;  // error: result may not be a nat
+    case true =>
+      var j := Generic<int>(i-1, n, -4);
+      assert 0 <= j;  // error: result may not be a nat
+  }
+  r := t1;
+}
+
+method HenEric<T>(i: int, t0: T, t1: T) returns (r: T) {
+  if (0 < i) {
+    var n: nat := 5;
+    if
+    case true =>
+      var q := FenEric(n, -4);  // error: type parameter is inferred as nat, but -4 is not a nat
+      assert 0 <= q;
+    case true =>
+      var q := FenEric(n, 4);
+      assert 0 <= q;  // fine, since type parameter was inferred as nat in previous call
+    case true =>
+      var q := FenEric(n as int, -4);  // now, the type parameter is inferred as int
+      assert 0 <= q;  // error: result isn't a nat
+    case true =>
+      var q := FenEric<int>(n, -4);
+      assert 0 <= q;  // error: result isn't a nat
   }
   r := t1;
 }
@@ -142,4 +171,16 @@ function Integrally_Good(): int
   ensures TakesANat(Integrally_Good());  // here, the needed information follows from the preceding ensures clause
 {
   17
+}
+
+// -------------------------------
+
+datatype GList<G> = GNil | GCons(G, GList<G>)
+
+method GList_Append(xs: GList<nat>, x: int) returns (ys: GList<nat>) {
+  if 100 <= x {
+    ys := GCons(x, xs);  // fine, result is a GList<nat> and x is a nat
+  } else {
+    ys := GCons(x, xs);  // error: result is a GList<nat>, but x may not be a nat
+  }
 }
