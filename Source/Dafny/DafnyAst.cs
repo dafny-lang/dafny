@@ -1678,7 +1678,7 @@ namespace Microsoft.Dafny {
       a = towerA[0];
       b = towerB[0];
 
-      if (a.IsBoolType || a.IsCharType || a.IsBigOrdinalType || a.IsTypeParameter || a.IsInternalTypeSynonym || a is TypeProxy) {
+      if (a.IsBoolType || a.IsCharType || a.IsBitVectorType || a.IsBigOrdinalType || a.IsTypeParameter || a.IsInternalTypeSynonym || a is TypeProxy) {
         return a.Equals(b) ? a : null;
       } else if (a.IsNumericBased()) {
         // Note, for meet, we choose not to step down to IntVarietiesSupertype or RealVarietiesSupertype
