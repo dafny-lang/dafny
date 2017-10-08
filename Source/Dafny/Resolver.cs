@@ -3119,6 +3119,8 @@ namespace Microsoft.Dafny
     /// </summary>
     void CheckEnds(Type t, out bool isRoot, out bool isLeaf, out bool headIsRoot, out bool headIsLeaf) {
       Contract.Requires(t != null);
+      Contract.Ensures(!Contract.ValueAtReturn(out isRoot) || Contract.ValueAtReturn(out headIsRoot)); // isRoot ==> headIsRoot
+      Contract.Ensures(!Contract.ValueAtReturn(out isLeaf) || Contract.ValueAtReturn(out headIsLeaf)); // isLeaf ==> headIsLeaf
       t = t.NormalizeExpandKeepConstraints();
       if (t.IsBoolType || t.IsCharType || t.IsNumericBased() || t.IsBitVectorType || t.IsBigOrdinalType) {
         isRoot = true; isLeaf = true;
@@ -4483,8 +4485,12 @@ namespace Microsoft.Dafny
         CheckEnds(su, out isRoot, out isLeaf, out headRoot, out headLeaf);
         Contract.Assert(!isRoot || headRoot);  // isRoot ==> headRoot
         if (isRoot) {  // TODO: this is just a special case of the "else if" -- get rid of this check
-          AssignProxyAndHandleItsConstraints(proxy, su, keepConstraints);
-          return true;
+          if (Reaches(su, proxy, 1, new HashSet<TypeProxy>())) {
+            // adding a constraint here would cause a bad cycle, so we don't
+          } else {
+            AssignProxyAndHandleItsConstraints(proxy, su, keepConstraints);
+            return true;
+          }
         } else if (headRoot) {
           if (Reaches(su, proxy, 1, new HashSet<TypeProxy>())) {
             // adding a constraint here would cause a bad cycle, so we don't
@@ -4500,8 +4506,12 @@ namespace Microsoft.Dafny
         CheckEnds(su, out isRoot, out isLeaf, out headRoot, out headLeaf);
         Contract.Assert(!isLeaf || headLeaf);  // isLeaf ==> headLeaf
         if (isLeaf) {  // TODO: this is just a special case of the "else if" -- get rid of this check
-          AssignProxyAndHandleItsConstraints(proxy, su, keepConstraints);
-          return true;
+          if (Reaches(su, proxy, -1, new HashSet<TypeProxy>())) {
+            // adding a constraint here would cause a bad cycle, so we don't
+          } else {
+            AssignProxyAndHandleItsConstraints(proxy, su, keepConstraints);
+            return true;
+          }
         } else if (headLeaf) {
           if (Reaches(su, proxy, -1, new HashSet<TypeProxy>())) {
             // adding a constraint here would cause a bad cycle, so we don't
@@ -9749,15 +9759,15 @@ namespace Microsoft.Dafny
         // type check the arguments
         var subst = s.MethodSelect.TypeArgumentSubstitutions();
         for (int i = 0; i < callee.Ins.Count; i++) {
-          var it = callee.Ins[i].Type.StripSubsetConstraints();
+          var it = callee.Ins[i].Type;
           Type st = SubstType(it, subst);
           AddAssignableConstraint(s.Tok, st, s.Args[i].Type, "incorrect type of method in-parameter" + (callee.Ins.Count == 1 ? "" : " " + i) + " (expected {0}, got {1})");
         }
         for (int i = 0; i < callee.Outs.Count; i++) {
-          var it = callee.Outs[i].Type.StripSubsetConstraints();
+          var it = callee.Outs[i].Type;
           Type st = SubstType(it, subst);
           var lhs = s.Lhs[i];
-          AddAssignableConstraint(s.Tok, lhs.Type, st, "incorrect type of method out-parameter" + (callee.Outs.Count == 1 ? "" : " " + i) + " (expected {0}, got {1})");
+          AddAssignableConstraint(s.Tok, lhs.Type, st, "incorrect type of method out-parameter" + (callee.Outs.Count == 1 ? "" : " " + i) + " (expected {1}, got {0})");
           // LHS must denote a mutable field.
           CheckIsLvalue(lhs.Resolved, codeContext);
         }

@@ -295,7 +295,7 @@ module EqualityTests {
     ArrayTests(H);
   }
 
-  method ArrayTests<T>(H: array<T>)
+  method ArrayTests<T>(H: array?<T>)
   {
     var G := new int[10];
     if G == H {  // this comparison is allowed in Dafny, but requires a cast in C#
