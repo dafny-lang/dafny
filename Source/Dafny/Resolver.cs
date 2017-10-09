@@ -5235,7 +5235,7 @@ namespace Microsoft.Dafny
                   goto case BinaryExpr.ResolvedOpcode.InMap;
                 case BinaryExpr.ResolvedOpcode.InMap: {
                     var ty = other.Type.NormalizeExpand();
-                    if (((MapType)ty).Range.IsNonNullRefType) {
+                    if (((MapType)ty).Domain.IsNonNullRefType) {
                       resolver.reporter.Warning(MessageSource.Resolver, e.tok,
                         string.Format("the type of the other operand is a map to a non-null type, so the inclusion test of 'null' will always return '{0}'",
                         sense ? "false" : "true"));

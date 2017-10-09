@@ -27,7 +27,7 @@ class A {
   }
 
   method N3(a: array<int>)
-    requires a != null && 5 < a.Length
+    requires 5 < a.Length
     modifies a
     ensures (forall i :: 0 <= i && i < a.Length ==> a[i] == old(a[i]) || (i == 5 && a[i] == 12));
   {
@@ -88,7 +88,6 @@ class A {
   }
 
   method ArrayToSequenceTests(a: array<int>, lo: int, hi: int)
-    requires a != null
   {
     if a.Length == 10 {
       var s;
@@ -133,7 +132,7 @@ class A {
   }
   function AnotherGoodRangeReads(a: array<int>, j: int): bool
   {
-    a != null && allocated(a) && 0 <= j && j <= a.Length &&
+    allocated(a) && 0 <= j && j <= a.Length &&
     a[j..j] == []
   }
 
@@ -165,17 +164,17 @@ class ArrayTests {
   function F1(): bool
     reads this
   {
-    b != null && 10 <= b.Length &&
+    10 <= b.Length &&
     b[7] == 13  // error: reads on something outside reads clause
   }
 
   function F2(a: array<int>): bool
     reads this, b, a
   {
-    a != null && allocated(a) && 10 <= a.Length &&
+    allocated(a) && 10 <= a.Length &&
     a[7] == 13  // good
     &&
-    b != null && 10 <= b.Length &&
+    10 <= b.Length &&
     b[7] == 13  // good
   }
 

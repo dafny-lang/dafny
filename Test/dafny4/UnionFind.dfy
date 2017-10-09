@@ -43,7 +43,7 @@ abstract module M1 refines M0 {
   type CMap = map<Element, Contents>
   predicate GoodCMap(C: CMap)
   {
-    null !in C && forall f :: f in C && C[f].Link? ==> C[f].next in C
+    forall f :: f in C && C[f].Link? ==> C[f].next in C
   }
 
   class UnionFind {
@@ -56,7 +56,7 @@ abstract module M1 refines M0 {
 
     // This function returns a snapshot of the .c fields of the objects in the domain of M
     function {:autocontracts false} Collect(): CMap
-      requires null !in M && forall f :: f in M && f.c.Link? ==> f.c.next in M
+      requires forall f :: f in M && f.c.Link? ==> f.c.next in M
       reads this, set a | a in M
       ensures GoodCMap(Collect())
     {
@@ -163,7 +163,7 @@ abstract module M2 refines M1 {
       requires GoodCMap(C)
       requires tt in C && Reaches(td, tt, tm, C)
       requires C' == C[tt := Link(tm)] && C'[tt].Link? && tm in C' && C'[tm].Root?
-      requires null !in C' && forall f :: f in C && C'[f].Link? ==> C'[f].next in C
+      requires forall f :: f in C && C'[f].Link? ==> C'[f].next in C
       ensures forall d: nat, e, r: Element :: e in C && Reaches(d, e, r, C) ==> Reaches(d, e, r, C')
     {
       forall d: nat, e, r: Element | e in C && Reaches(d, e, r, C)
