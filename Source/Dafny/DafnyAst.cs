@@ -2603,7 +2603,7 @@ namespace Microsoft.Dafny {
       var args = (typeArgs ?? cd.TypeArgs).ConvertAll(tp => (Type)new UserDefinedType(tp));
       if (cd is ArrowTypeDecl) {
         return new ArrowType(tok, (ArrowTypeDecl)cd, args);
-      } else if (cd is ClassDecl) {
+      } else if (cd is ClassDecl && !(cd is DefaultClassDecl)) {
         return new UserDefinedType(tok, cd.Name + "?", cd, args);
       } else {
         return new UserDefinedType(tok, cd.Name, cd, args);
@@ -2619,7 +2619,9 @@ namespace Microsoft.Dafny {
       Contract.Requires(cd != null);
       Contract.Requires(cce.NonNullElements(typeArgs));
       Contract.Requires(cd.TypeArgs.Count == typeArgs.Count);
-      Contract.Requires(!(cd is ClassDecl) || cd is DefaultClassDecl || cd is ArrowTypeDecl || name == cd.Name + "?");
+      // The following is almost a precondition. In a few places, the source program names a class, not a type,
+      // and in then name==cd.Name for a ClassDecl.
+      //Contract.Requires(!(cd is ClassDecl) || cd is DefaultClassDecl || cd is ArrowTypeDecl || name == cd.Name + "?");
       Contract.Requires(!(cd is ArrowTypeDecl) || name == cd.Name);
       Contract.Requires(!(cd is DefaultClassDecl) || name == cd.Name);
       this.tok = tok;

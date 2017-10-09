@@ -8019,6 +8019,7 @@ namespace Microsoft.Dafny {
     }
 
     private string AddTyAxioms(TopLevelDecl td) {
+      Contract.Requires(td != null);
       IToken tok = td.tok;
 
       var ty_repr = TrType(UserDefinedType.FromTopLevelDecl(td.tok, td));
