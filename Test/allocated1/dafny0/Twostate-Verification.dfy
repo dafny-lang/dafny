@@ -7,7 +7,7 @@ method Main() {
 }
 
 twostate lemma L(c: A, new d: A)
-  requires c != null && d != null && allocated(c) && allocated(d)
+  requires allocated(c) && allocated(d)
 {
   var x := old(c.f);
   var y := old(d.f);  // error: trying to use new 'd' in previous state
@@ -15,7 +15,7 @@ twostate lemma L(c: A, new d: A)
 
 class A {
   var f: int 
-  var g: A
+  var g: A?
 
   function GimmieF(): int
     reads this
@@ -24,7 +24,6 @@ class A {
   }
 
   twostate lemma L1(other: A) returns (res: bool)
-    requires other != null
     requires unchanged(this)
     ensures res ==> this == other
   {  
@@ -36,17 +35,17 @@ class A {
   {}
 
   twostate lemma L3(a: A, new b: A)
-    requires a != null && b != null && allocated(a) && allocated(b)
+    requires allocated(a) && allocated(b)
     requires old(a.f != b.f)  // error: b might not exist in the old state
   {}
 
   twostate lemma L3_and_a_half(a: A, new b: A)
-    requires a != null && b != null && allocated(a) && allocated(b)
+    requires allocated(a) && allocated(b)
     requires old(a.GimmieF() == b.GimmieF())  // error: b might not exist in old state
   {}
 
   twostate lemma L4(new a: A)
-    requires a != null && allocated(a)
+    requires allocated(a)
     requires unchanged(a)
   {
     assert a.f == old(a.f);
@@ -68,7 +67,6 @@ class A {
   {}
     
   twostate lemma L6(a: A)
-    requires a != null
     requires unchanged(a)
   {
     assert a.f == old(a.f);
@@ -76,7 +74,6 @@ class A {
   }
 
   twostate lemma L7(a: A)
-    requires a != null
   {
     assert a.f == old(a.f);  // error: state need not agree on a.f
   }
@@ -84,12 +81,12 @@ class A {
 
 class Node {
   var x: int
-  var next: Node
+  var next: Node?
   ghost var Repr: set<Node>
   predicate Valid()
     reads this, Repr
   {
-    this in Repr && null !in Repr && (forall o :: o in Repr ==> allocated(o)) &&
+    this in Repr && (forall o :: o in Repr ==> allocated(o)) &&
     (next != null ==> next in Repr && next.Repr <= Repr && this !in next.Repr && next.Valid())
   }
   constructor (y: int)
@@ -99,7 +96,7 @@ class Node {
     Repr := {this};
   }
   constructor Prepend(y: int, nxt: Node)
-    requires nxt != null && nxt.Valid()
+    requires nxt.Valid()
     ensures Valid() && fresh(Repr - {this} - nxt.Repr)
   {
     x, next := y, nxt;
@@ -115,7 +112,6 @@ class Node {
 
   method M(node: Node)
     requires Valid()
-    requires node != null
     modifies node
     ensures Valid()
   {
@@ -127,7 +123,7 @@ class Node {
 
   twostate lemma M_Lemma(node: Node)
     requires old(Valid())
-    requires node != null && old(node.x) <= node.x && old((node.next, node.Repr)) == (node.next, node.Repr)
+    requires old(node.x) <= node.x && old((node.next, node.Repr)) == (node.next, node.Repr)
     requires unchanged(old(Repr) - {node})
     ensures Valid() && old(Sum()) <= Sum()
     decreases Repr
@@ -138,8 +134,8 @@ class Node {
   }
 
   static twostate lemma M_Lemma_Static(self: Node, node: Node)
-    requires self != null && old(self.Valid())
-    requires node != null && old(node.x) <= node.x && old((node.next, node.Repr)) == (node.next, node.Repr)
+    requires old(self.Valid())
+    requires old(node.x) <= node.x && old((node.next, node.Repr)) == (node.next, node.Repr)
     requires unchanged(old(self.Repr) - {node})
     ensures self.Valid() && old(self.Sum()) <= self.Sum()
     decreases self.Repr
@@ -150,13 +146,13 @@ class Node {
   }
 
   static twostate lemma M_Lemma_Forall(self: Node, node: Node)
-    requires self != null && old(self.Valid())
-    requires node != null && old(node.x) <= node.x && old((node.next, node.Repr)) == (node.next, node.Repr)
+    requires old(self.Valid())
+    requires old(node.x) <= node.x && old((node.next, node.Repr)) == (node.next, node.Repr)
     requires unchanged(old(self.Repr) - {node})
     ensures self.Valid() && old(self.Sum()) <= self.Sum()
     decreases self.Repr
   {
-    forall n: Node | n != null && old(allocated(n)) && old(n.Repr < self.Repr && n.Valid())
+    forall n: Node | old(allocated(n)) && old(n.Repr < self.Repr && n.Valid())
       ensures n.Valid() && old(n.Sum()) <= n.Sum()
     {
       M_Lemma_Forall(n, node);
@@ -170,7 +166,7 @@ class Node {
 
   twostate lemma M_Lemma_Alt(node: Node)
     requires old(Valid())
-    requires node != null && old(node.x) <= node.x && old((node.next, node.Repr)) == (node.next, node.Repr)
+    requires old(node.x) <= node.x && old((node.next, node.Repr)) == (node.next, node.Repr)
     requires forall n :: n in old(Repr) && n != node ==> n.x == old(n.x) && n.next == old(n.next) && n.Repr == old(n.Repr)
     ensures Valid() && old(Sum()) <= Sum()
     decreases Repr
@@ -181,8 +177,8 @@ class Node {
   }
 
   static twostate lemma M_Lemma_Alt_Static(self: Node, node: Node)
-    requires self != null && old(self.Valid())
-    requires node != null && old(node.x) <= node.x && old((node.next, node.Repr)) == (node.next, node.Repr)
+    requires old(self.Valid())
+    requires old(node.x) <= node.x && old((node.next, node.Repr)) == (node.next, node.Repr)
     requires forall n :: n in old(self.Repr) && n != node ==> n.x == old(n.x) && n.next == old(n.next) && n.Repr == old(n.Repr)
     ensures self.Valid() && old(self.Sum()) <= self.Sum()
     decreases self.Repr
@@ -195,13 +191,13 @@ class Node {
 
 class {:autocontracts} NodeAuto {
   var x: int
-  var next: NodeAuto
+  var next: NodeAuto?
   constructor (y: int)
   {
     x, next := y, null;
   }
   constructor {:autocontracts false} Prepend(y: int, nxt: NodeAuto)
-    requires nxt != null && nxt.Valid() && allocated(nxt.Repr);
+    requires nxt.Valid() && allocated(nxt.Repr);
     ensures Valid() && fresh(Repr - {this} - nxt.Repr)
   {
     x, next := y, nxt;
@@ -214,7 +210,6 @@ class {:autocontracts} NodeAuto {
   }
 
   method M(node: NodeAuto)
-    requires node != null
     modifies node
   {
     var s := Sum();
@@ -224,7 +219,7 @@ class {:autocontracts} NodeAuto {
   }
 
   twostate lemma M_Lemma(node: NodeAuto)
-    requires node != null && old(node.x) <= node.x && old((node.next, node.Repr)) == (node.next, node.Repr)
+    requires old(node.x) <= node.x && old((node.next, node.Repr)) == (node.next, node.Repr)
     requires unchanged(old(Repr) - {node})
     ensures Valid() && old(Sum()) <= Sum()
     decreases Repr
@@ -235,7 +230,7 @@ class {:autocontracts} NodeAuto {
   }
 
   twostate lemma M_Lemma_Alt(node: NodeAuto)
-    requires node != null && old(node.x) <= node.x && old((node.next, node.Repr)) == (node.next, node.Repr)
+    requires old(node.x) <= node.x && old((node.next, node.Repr)) == (node.next, node.Repr)
     requires forall n: NodeAuto :: n in old(Repr) && n != node ==> n.x == old(n.x) && n.next == old(n.next) && n.Repr == old(n.Repr)
     ensures Valid() && old(Sum()) <= Sum()
     decreases Repr

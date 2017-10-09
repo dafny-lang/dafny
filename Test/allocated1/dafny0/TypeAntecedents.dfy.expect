@@ -22,7 +22,7 @@ Execution trace:
     (0,0): anon25_Else
     (0,0): anon26_Then
     (0,0): anon27_Else
-TypeAntecedents.dfy(80,46): Error: target object may not be allocated
+TypeAntecedents.dfy(80,47): Error: target object may not be allocated
 Execution trace:
     (0,0): anon0
     (0,0): anon25_Then
@@ -32,7 +32,7 @@ Execution trace:
     (0,0): anon29_Else
     (0,0): anon31_Else
     (0,0): anon33_Then
-TypeAntecedents.dfy(82,51): Error: target object may not be allocated
+TypeAntecedents.dfy(82,52): Error: target object may not be allocated
 Execution trace:
     (0,0): anon0
     (0,0): anon25_Then
