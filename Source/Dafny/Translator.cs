@@ -6945,8 +6945,8 @@ namespace Microsoft.Dafny {
         CheckWellformed(e.Test, options, locals, builder, etran);
         var bThen = new BoogieStmtListBuilder(this);
         var bElse = new BoogieStmtListBuilder(this);
-        if (e.IsExistentialGuard) {
-          // if it is ExistentialGuard, e.Thn is a let-such-that created from the ExistentialGuard.
+        if (e.IsBindingGuard) {
+          // if it is BindingGuard, e.Thn is a let-such-that created from the BindingGuard.
           // We don't need to do well-formedness check on the Rhs of the LetExpr since it
           // has already been checked in e.Test
           var letExpr = (LetExpr)e.Thn;
@@ -9330,12 +9330,12 @@ namespace Microsoft.Dafny {
         if (s.Guard == null) {
           guard = null;
         } else {
-          guard = s.IsExistentialGuard ? AlphaRename((ExistsExpr)s.Guard, "eg$") : s.Guard;
+          guard = s.IsBindingGuard ? AlphaRename((ExistsExpr)s.Guard, "eg$") : s.Guard;
           TrStmt_CheckWellformed(guard, builder, locals, etran, true);
         }
         BoogieStmtListBuilder b = new BoogieStmtListBuilder(this);
         CurrentIdGenerator.Push();
-        if (s.IsExistentialGuard) {
+        if (s.IsBindingGuard) {
           var exists = (ExistsExpr)s.Guard;  // the original (that is, not alpha-renamed) guard
           IntroduceAndAssignExistentialVars(exists, b, builder, locals, etran, stmt.IsGhost);
         }
@@ -9344,7 +9344,7 @@ namespace Microsoft.Dafny {
         Bpl.StmtList els;
         Bpl.IfCmd elsIf = null;
         b = new BoogieStmtListBuilder(this);
-        if (s.IsExistentialGuard) {
+        if (s.IsBindingGuard) {
           b.Add(TrAssumeCmd(guard.tok, Bpl.Expr.Not(etran.TrExpr(guard))));
         }
         if (s.Els == null) {
@@ -9359,7 +9359,7 @@ namespace Microsoft.Dafny {
             }
           }
         }
-        builder.Add(new Bpl.IfCmd(stmt.Tok, guard == null || s.IsExistentialGuard ? null : etran.TrExpr(guard), thn, elsIf, els));
+        builder.Add(new Bpl.IfCmd(stmt.Tok, guard == null || s.IsBindingGuard ? null : etran.TrExpr(guard), thn, elsIf, els));
 
       } else if (stmt is AlternativeStmt) {
         AddComment(builder, stmt, "alternative statement");
@@ -10703,8 +10703,8 @@ namespace Microsoft.Dafny {
         return;
       }
 
-      // alpha-rename any existential guards
-      var guards = alternatives.ConvertAll(alt => alt.IsExistentialGuard ? AlphaRename((ExistsExpr)alt.Guard, "eg$") : alt.Guard);
+      // alpha-rename any binding guards
+      var guards = alternatives.ConvertAll(alt => alt.IsBindingGuard ? AlphaRename((ExistsExpr)alt.Guard, "eg$") : alt.Guard);
 
       // build the negation of the disjunction of all guards (that is, the conjunction of their negations)
       Bpl.Expr noGuard = Bpl.Expr.True;
@@ -10729,7 +10729,7 @@ namespace Microsoft.Dafny {
         var alternative = alternatives[i];
         b = new BoogieStmtListBuilder(this);
         TrStmt_CheckWellformed(guards[i], b, locals, etran, true);
-        if (alternative.IsExistentialGuard) {
+        if (alternative.IsBindingGuard) {
           var exists = (ExistsExpr)alternative.Guard;  // the original (that is, not alpha-renamed) guard
           IntroduceAndAssignExistentialVars(exists, b, builder, locals, etran, isGhost);
         } else {
@@ -16788,7 +16788,7 @@ namespace Microsoft.Dafny {
           Expression thn = Substitute(e.Thn);
           Expression els = Substitute(e.Els);
           if (test != e.Test || thn != e.Thn || els != e.Els) {
-            newExpr = new ITEExpr(expr.tok, e.IsExistentialGuard, test, thn, els);
+            newExpr = new ITEExpr(expr.tok, e.IsBindingGuard, test, thn, els);
           }
 
         } else if (expr is ConcreteSyntaxExpression) {
@@ -17049,7 +17049,7 @@ namespace Microsoft.Dafny {
           r = SubstBlockStmt((BlockStmt)stmt);
         } else if (stmt is IfStmt) {
           var s = (IfStmt)stmt;
-          r = new IfStmt(s.Tok, s.EndTok, s.IsExistentialGuard, Substitute(s.Guard), SubstBlockStmt(s.Thn), SubstStmt(s.Els));
+          r = new IfStmt(s.Tok, s.EndTok, s.IsBindingGuard, Substitute(s.Guard), SubstBlockStmt(s.Thn), SubstStmt(s.Els));
         } else if (stmt is AlternativeStmt) {
           var s = (AlternativeStmt)stmt;
           r = new AlternativeStmt(s.Tok, s.EndTok, s.Alternatives.ConvertAll(SubstGuardedAlternative), s.UsesOptionalBraces);
@@ -17149,7 +17149,7 @@ namespace Microsoft.Dafny {
 
       protected GuardedAlternative SubstGuardedAlternative(GuardedAlternative alt) {
         Contract.Requires(alt != null);
-        return new GuardedAlternative(alt.Tok, alt.IsExistentialGuard, Substitute(alt.Guard), alt.Body.ConvertAll(SubstStmt));
+        return new GuardedAlternative(alt.Tok, alt.IsBindingGuard, Substitute(alt.Guard), alt.Body.ConvertAll(SubstStmt));
       }
 
       protected MaybeFreeExpression SubstMayBeFreeExpr(MaybeFreeExpression expr) {

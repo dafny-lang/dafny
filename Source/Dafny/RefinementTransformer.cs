@@ -1056,9 +1056,9 @@ namespace Microsoft.Dafny
                 var resultingThen = MergeBlockStmt(skel.Thn, oldIf.Thn);
                 var resultingElse = MergeElse(skel.Els, oldIf.Els);
                 var e = refinementCloner.CloneExpr(oldIf.Guard);
-                var r = new IfStmt(skel.Tok, skel.EndTok, oldIf.IsExistentialGuard, e, resultingThen, resultingElse);
+                var r = new IfStmt(skel.Tok, skel.EndTok, oldIf.IsBindingGuard, e, resultingThen, resultingElse);
                 body.Add(r);
-                reporter.Info(MessageSource.RefinementTransformer, c.ConditionEllipsis, Printer.GuardToString(oldIf.IsExistentialGuard, e));
+                reporter.Info(MessageSource.RefinementTransformer, c.ConditionEllipsis, Printer.GuardToString(oldIf.IsBindingGuard, e));
                 i++; j++;
               }
 
@@ -1223,7 +1223,7 @@ namespace Microsoft.Dafny
             var cNew = (IfStmt)cur;
             var cOld = oldS as IfStmt;
             if (cOld != null && cOld.Guard == null) {
-              var r = new IfStmt(cNew.Tok, cNew.EndTok, cNew.IsExistentialGuard, cNew.Guard, MergeBlockStmt(cNew.Thn, cOld.Thn), MergeElse(cNew.Els, cOld.Els));
+              var r = new IfStmt(cNew.Tok, cNew.EndTok, cNew.IsBindingGuard, cNew.Guard, MergeBlockStmt(cNew.Thn, cOld.Thn), MergeElse(cNew.Els, cOld.Els));
               body.Add(r);
               i++; j++;
             } else {

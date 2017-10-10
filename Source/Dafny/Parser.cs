@@ -334,12 +334,12 @@ bool FollowedByColon() {
   return x.kind == _colon;
 }
 
-// an existential guard starts with an identifier and is then followed by
+// a binding guard starts with an identifier and is then followed by
 // * a colon (if the first identifier is given an explicit type),
 // * a comma (if there's a list a bound variables and the first one is not given an explicit type),
 // * a start-attribute (if there's one bound variable and it is not given an explicit type and there are attributes), or
 // * a bored smiley (if there's one bound variable and it is not given an explicit type).
-bool IsExistentialGuard() {
+bool IsBindingGuard() {
   scanner.ResetPeek();
   if (la.kind == _ident) {
     Token x = scanner.Peek();
@@ -3162,7 +3162,7 @@ List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, st
 
 	void IfStmt(out Statement/*!*/ ifStmt) {
 		Contract.Ensures(Contract.ValueAtReturn(out ifStmt) != null); IToken/*!*/ x;
-		Expression guard = null;  IToken guardEllipsis = null;  bool isExistentialGuard = false;
+		Expression guard = null;  IToken guardEllipsis = null;  bool isBindingGuard = false;
 		BlockStmt/*!*/ thn;
 		BlockStmt/*!*/ bs;
 		Statement/*!*/ s;
@@ -3178,9 +3178,9 @@ List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, st
 			AlternativeBlock(true, out alternatives, out usesOptionalBraces, out endTok);
 			ifStmt = new AlternativeStmt(x, endTok, alternatives, usesOptionalBraces); 
 		} else if (StartOf(23)) {
-			if (IsExistentialGuard()) {
-				ExistentialGuard(out guard, true);
-				isExistentialGuard = true; 
+			if (IsBindingGuard()) {
+				BindingGuard(out guard, true);
+				isBindingGuard = true; 
 			} else if (StartOf(24)) {
 				Guard(out guard);
 			} else {
@@ -3200,9 +3200,9 @@ List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, st
 				} else SynErr(218);
 			}
 			if (guardEllipsis != null) {
-			 ifStmt = new SkeletonStatement(new IfStmt(x, endTok, isExistentialGuard, guard, thn, els), guardEllipsis, null);
+			 ifStmt = new SkeletonStatement(new IfStmt(x, endTok, isBindingGuard, guard, thn, els), guardEllipsis, null);
 			} else {
-			 ifStmt = new IfStmt(x, endTok, isExistentialGuard, guard, thn, els);
+			 ifStmt = new IfStmt(x, endTok, isBindingGuard, guard, thn, els);
 			}
 			
 		} else SynErr(219);
@@ -3725,7 +3725,7 @@ List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, st
 		
 	}
 
-	void AlternativeBlock(bool allowExistentialGuards, out List<GuardedAlternative> alternatives, out bool usesOptionalBraces, out IToken endTok) {
+	void AlternativeBlock(bool allowBindingGuards, out List<GuardedAlternative> alternatives, out bool usesOptionalBraces, out IToken endTok) {
 		alternatives = new List<GuardedAlternative>();
 		endTok = null;
 		usesOptionalBraces = false;
@@ -3735,22 +3735,22 @@ List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, st
 			Get();
 			usesOptionalBraces = true; 
 			while (la.kind == 35) {
-				AlternativeBlockCase(allowExistentialGuards, out alt);
+				AlternativeBlockCase(allowBindingGuards, out alt);
 				alternatives.Add(alt); 
 			}
 			Expect(72);
 		} else if (la.kind == 35) {
-			AlternativeBlockCase(allowExistentialGuards, out alt);
+			AlternativeBlockCase(allowBindingGuards, out alt);
 			alternatives.Add(alt); 
 			while (la.kind == _case) {
-				AlternativeBlockCase(allowExistentialGuards, out alt);
+				AlternativeBlockCase(allowBindingGuards, out alt);
 				alternatives.Add(alt); 
 			}
 		} else SynErr(235);
 		endTok = t; 
 	}
 
-	void ExistentialGuard(out Expression e, bool allowLambda) {
+	void BindingGuard(out Expression e, bool allowLambda) {
 		var bvars = new List<BoundVar>();
 		BoundVar bv;  IToken x;
 		Attributes attrs = null;
@@ -3787,16 +3787,16 @@ List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, st
 		} else SynErr(236);
 	}
 
-	void AlternativeBlockCase(bool allowExistentialGuards, out GuardedAlternative alt) {
+	void AlternativeBlockCase(bool allowBindingGuards, out GuardedAlternative alt) {
 		IToken x;
-		Expression e; bool isExistentialGuard;
+		Expression e; bool isBindingGuard;
 		List<Statement> body;
 		
 		Expect(35);
-		x = t; isExistentialGuard = false; e = dummyExpr; 
-		if (allowExistentialGuards && IsExistentialGuard()) {
-			ExistentialGuard(out e, false );
-			isExistentialGuard = true; 
+		x = t; isBindingGuard = false; e = dummyExpr; 
+		if (allowBindingGuards && IsBindingGuard()) {
+			BindingGuard(out e, false );
+			isBindingGuard = true; 
 		} else if (StartOf(9)) {
 			Expression(out e, true, false);
 		} else SynErr(237);
@@ -3807,7 +3807,7 @@ List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, st
 			Stmt(body);
 			while (!(StartOf(31))) {SynErr(239); Get();}
 		}
-		alt = new GuardedAlternative(x, isExistentialGuard, e, body); 
+		alt = new GuardedAlternative(x, isBindingGuard, e, body); 
 	}
 
 	void LoopSpec(List<MaybeFreeExpression> invariants, List<Expression> decreases, ref List<FrameExpression> mod, ref Attributes decAttrs, ref Attributes modAttrs) {
@@ -4785,16 +4785,16 @@ List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, st
 		IToken/*!*/ x;
 		Expression e0, e1;
 		Statement s;
-		bool isExistentialGuard = false;
+		bool isBindingGuard = false;
 		e = dummyExpr;
 		
 		switch (la.kind) {
 		case 113: {
 			Get();
 			x = t; 
-			if (IsExistentialGuard()) {
-				ExistentialGuard(out e, true);
-				isExistentialGuard = true; 
+			if (IsBindingGuard()) {
+				BindingGuard(out e, true);
+				isBindingGuard = true; 
 			} else if (StartOf(9)) {
 				Expression(out e, true, true);
 			} else SynErr(272);
@@ -4802,7 +4802,7 @@ List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, st
 			Expression(out e0, true, true, true);
 			Expect(37);
 			Expression(out e1, allowSemi, allowLambda, allowBitwiseOps);
-			if (isExistentialGuard) {
+			if (isBindingGuard) {
 			 var exists = (ExistsExpr) e;
 			 List<CasePattern> LHSs = new List<CasePattern>();
 			 foreach (var v in exists.BoundVars) {
@@ -4810,7 +4810,7 @@ List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, st
 			 }
 			 e0 = new LetExpr(e.tok, LHSs, new List<Expression>() { exists.Term }, e0, false);                                                           
 			}
-			e = new ITEExpr(x, isExistentialGuard, e, e0, e1);
+			e = new ITEExpr(x, isBindingGuard, e, e0, e1);
 			
 			break;
 		}

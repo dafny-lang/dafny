@@ -6503,24 +6503,24 @@ namespace Microsoft.Dafny {
   }
 
   public class IfStmt : Statement {
-    public readonly bool IsExistentialGuard;
+    public readonly bool IsBindingGuard;
     public readonly Expression Guard;
     public readonly BlockStmt Thn;
     public readonly Statement Els;
     [ContractInvariantMethod]
     void ObjectInvariant() {
-      Contract.Invariant(!IsExistentialGuard || (Guard is ExistsExpr && ((ExistsExpr)Guard).Range == null));
+      Contract.Invariant(!IsBindingGuard || (Guard is ExistsExpr && ((ExistsExpr)Guard).Range == null));
       Contract.Invariant(Thn != null);
       Contract.Invariant(Els == null || Els is BlockStmt || Els is IfStmt || Els is SkeletonStatement);
     }
-    public IfStmt(IToken tok, IToken endTok, bool isExistentialGuard, Expression guard, BlockStmt thn, Statement els)
+    public IfStmt(IToken tok, IToken endTok, bool isBindingGuard, Expression guard, BlockStmt thn, Statement els)
       : base(tok, endTok) {
       Contract.Requires(tok != null);
       Contract.Requires(endTok != null);
-      Contract.Requires(!isExistentialGuard || (guard is ExistsExpr && ((ExistsExpr)guard).Range == null));
+      Contract.Requires(!isBindingGuard || (guard is ExistsExpr && ((ExistsExpr)guard).Range == null));
       Contract.Requires(thn != null);
       Contract.Requires(els == null || els is BlockStmt || els is IfStmt || els is SkeletonStatement);
-      this.IsExistentialGuard = isExistentialGuard;
+      this.IsBindingGuard = isBindingGuard;
       this.Guard = guard;
       this.Thn = thn;
       this.Els = els;
@@ -6546,24 +6546,24 @@ namespace Microsoft.Dafny {
   public class GuardedAlternative
   {
     public readonly IToken Tok;
-    public readonly bool IsExistentialGuard;
+    public readonly bool IsBindingGuard;
     public readonly Expression Guard;
     public readonly List<Statement> Body;
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(Tok != null);
       Contract.Invariant(Guard != null);
-      Contract.Invariant(!IsExistentialGuard || (Guard is ExistsExpr && ((ExistsExpr)Guard).Range == null));
+      Contract.Invariant(!IsBindingGuard || (Guard is ExistsExpr && ((ExistsExpr)Guard).Range == null));
       Contract.Invariant(Body != null);
     }
-    public GuardedAlternative(IToken tok, bool isExistentialGuard, Expression guard, List<Statement> body)
+    public GuardedAlternative(IToken tok, bool isBindingGuard, Expression guard, List<Statement> body)
     {
       Contract.Requires(tok != null);
       Contract.Requires(guard != null);
-      Contract.Requires(!isExistentialGuard || (guard is ExistsExpr && ((ExistsExpr)guard).Range == null));
+      Contract.Requires(!isBindingGuard || (guard is ExistsExpr && ((ExistsExpr)guard).Range == null));
       Contract.Requires(body != null);
       this.Tok = tok;
-      this.IsExistentialGuard = isExistentialGuard;
+      this.IsBindingGuard = isBindingGuard;
       this.Guard = guard;
       this.Body = body;
     }
@@ -9692,7 +9692,7 @@ namespace Microsoft.Dafny {
 
   public class ITEExpr : Expression
   {
-    public readonly bool IsExistentialGuard;
+    public readonly bool IsBindingGuard;
     public readonly Expression Test;
     public readonly Expression Thn;
     public readonly Expression Els;
@@ -9703,13 +9703,13 @@ namespace Microsoft.Dafny {
       Contract.Invariant(Els != null);
     }
 
-    public ITEExpr(IToken tok, bool isExistentialGuard, Expression test, Expression thn, Expression els)
+    public ITEExpr(IToken tok, bool isBindingGuard, Expression test, Expression thn, Expression els)
       : base(tok) {
       Contract.Requires(tok != null);
       Contract.Requires(test != null);
       Contract.Requires(thn != null);
       Contract.Requires(els != null);
-      this.IsExistentialGuard = isExistentialGuard;
+      this.IsBindingGuard = isBindingGuard;
       this.Test = test;
       this.Thn = thn;
       this.Els = els;

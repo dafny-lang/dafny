@@ -8308,7 +8308,7 @@ namespace Microsoft.Dafny
         }
 
         scope.PushMarker();
-        if (s.IsExistentialGuard) {
+        if (s.IsBindingGuard) {
           var exists = (ExistsExpr)s.Guard;
           foreach (var v in exists.BoundVars) {
             ScopePushAndReport(scope, v, "bound-variable");
@@ -9241,7 +9241,7 @@ namespace Microsoft.Dafny
       }
       foreach (var alternative in alternatives) {
         scope.PushMarker();
-        if (alternative.IsExistentialGuard) {
+        if (alternative.IsBindingGuard) {
           var exists = (ExistsExpr)alternative.Guard;
           foreach (var v in exists.BoundVars) {
             ScopePushAndReport(scope, v, "bound-variable");
