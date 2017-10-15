@@ -2972,6 +2972,59 @@ namespace Microsoft.Dafny
       return ConstrainSubtypeRelation(super, sub, new TypeConstraint.ErrorMsgWithToken(tok, msg, msgArgs));
     }
 
+    private void ConstrainAssignable(NonProxyType lhs, Type rhs, TypeConstraint.ErrorMsg errMsg, out bool moreXConstraints) {
+      Contract.Requires(lhs != null);
+      Contract.Requires(rhs != null);
+      Contract.Requires(errMsg != null);
+
+      var lhsWithProxyArgs = Type.HeadWithProxyArgs(lhs);
+      ConstrainSubtypeRelation(lhsWithProxyArgs, rhs, errMsg);
+
+      var A = lhsWithProxyArgs.TypeArgs;
+      var B = lhs.TypeArgs;
+      var tok = errMsg.Tok;
+      Contract.Assert(A.Count == B.Count);
+      if (B.Count == 0) {
+        // all done
+        moreXConstraints = false;
+      } else if (lhs is MapType) {
+        var em = new TypeConstraint.ErrorMsgWithBase(errMsg, "covariance for type parameter 0 expects {1} <: {0}", A[0], B[0]);
+        AddAssignableConstraint(tok, A[0], B[0], em);
+        em = new TypeConstraint.ErrorMsgWithBase(errMsg, "covariance for type parameter 1 expects {1} <: {0}", A[1], B[1]);
+        AddAssignableConstraint(tok, A[1], B[1], em);
+        moreXConstraints = true;
+      } else if (lhs is CollectionType) {
+        var em = new TypeConstraint.ErrorMsgWithBase(errMsg, "covariance for type parameter expects {1} <: {0}", A[0], B[0]);
+        AddAssignableConstraint(tok, A[0], B[0], em);
+        moreXConstraints = true;
+      } else {
+        var udt = (UserDefinedType)lhs;  // note, collections, maps, and user-defined types are the only one with TypeArgs.Count != 0
+        var cl = udt.ResolvedClass;
+        Contract.Assert(cl != null);
+        Contract.Assert(cl.TypeArgs.Count == B.Count);
+        moreXConstraints = false;
+        for (int i = 0; i < B.Count; i++) {
+          var msgFormat = "variance for type parameter" + (B.Count == 1 ? "" : "" + i) + " expects {1} <: {0}";
+          if (cl.TypeArgs[i].Variance == TypeParameter.TPVariance.Co) {
+            var em = new TypeConstraint.ErrorMsgWithBase(errMsg, "co" + msgFormat, A[i], B[i]);
+            AddAssignableConstraint(tok, A[i], B[i], em);
+            moreXConstraints = true;
+          } else if (cl.TypeArgs[i].Variance == TypeParameter.TPVariance.Contra) {
+            var em = new TypeConstraint.ErrorMsgWithBase(errMsg, "contra" + msgFormat, B[i], A[i]);
+            AddAssignableConstraint(tok, B[i], A[i], em);
+            moreXConstraints = true;
+          } else {
+            var proxy = (TypeProxy)A[i];
+            Contract.Assert(proxy.T == null);
+#if DEBUG_PRINT
+            Console.WriteLine("DEBUG: (invariance) assigning proxy {0}.T := {1}", proxy, B[i]);
+#endif
+            proxy.T = B[i];
+          }
+        }
+      }
+    }
+
     /// <summary>
     /// Adds the subtyping constraint that "sub" is a subtype of "super".
     /// If this constraint seems feasible, returns "true".  Otherwise, prints error message (either "errMsg" or something
@@ -3018,6 +3071,9 @@ namespace Microsoft.Dafny
         if (pSuper.IsSubtypeOfArtificial() || pSub.IsSubtypeOfArtificial()) {
           pSuper.SupertypeConstraints.ForEach(ct => pSub.SupertypeConstraints.Add(ct));
           pSuper.SubtypeConstraints.ForEach(ct => pSub.SubtypeConstraints.Add(ct));
+#if DEBUG_PRINT
+          Console.WriteLine("DEBUG: (merging in aux) assigning proxy {0}.T := {1}", pSuper, pSub);
+#endif
           pSuper.T = pSub;
         } else {
           pSub.AddSupertype(c);
@@ -3788,9 +3844,14 @@ namespace Microsoft.Dafny
         switch (ConstraintName) {
           case "Assignable": {
               var u = Types[1].NormalizeExpandKeepConstraints();
-              if (t is NonProxyType) {
+              if (!(t.Normalize() is TypeProxy) && CheckTypeInference_Visitor.IsDetermined(t.Normalize())) {
                 // This is the best case.  We convert Assignable(t, u) to the subtype constraint base(t) :> u.
-                resolver.ConstrainSubtypeRelation(t, u, errorMsg);
+                resolver.ConstrainAssignable((NonProxyType)t, u, errorMsg, out moreXConstraints);
+                convertedIntoOtherTypeConstraints = true;
+                return true;
+              } else if (fullstrength && t is NonProxyType) {
+                // We convert Assignable(t, u) to the subtype constraint base(t) :> u.
+                resolver.ConstrainAssignable((NonProxyType)t, u, errorMsg, out moreXConstraints);
                 convertedIntoOtherTypeConstraints = true;
                 return true;
               } else if (u is NonProxyType) {
@@ -3934,8 +3995,8 @@ namespace Microsoft.Dafny
             }
             break;
           case "Innable":
-            if (t is CollectionType || t is MapType) {
-              Type elementType = t is CollectionType ? ((CollectionType)t).Arg : ((MapType)t).Domain;
+            if (t is CollectionType) {
+              Type elementType = ((CollectionType)t).Arg;
               var u = Types[1];  // note, it's okay if "u" is a TypeProxy
               resolver.ConstrainSubtypeRelation(elementType, u, new TypeConstraint.ErrorMsgWithBase(errorMsg, "expecting element type {0} <: {1}", u, elementType));
               convertedIntoOtherTypeConstraints = true;
@@ -4219,32 +4280,6 @@ namespace Microsoft.Dafny
     /// appropriate for the partial solving that's done before a member lookup.
     /// </summary>
     void PartiallySolveTypeConstraints(bool allowDecisions) {
-      /*
-       * 0:  ProcessOneSubtypingConstraintsAndItsSubs
-       * 0:  AssignKnownEnds
-       * if any new constraints, goto 0
-       * 
-       * 1: Confirm XConstraints
-       * if any new constraints, goto 0
-       * 
-       * 2: Process default numeric types (int, real)
-       * if any new constraints, goto 0
-       * 
-       * 3: ProcessFullStrength_{Sub,Super}Direction
-       * goto 5
-       * 
-       * 4: Process default reference types (object?)
-       * if any new constraints, goto 0
-       * 
-       * 5: 0 with fullStrength
-       * if any new constraints, goto 0
-       * 
-       * 6: 1 with fullStrength
-       * if any new constraints, goto 0
-       * 
-       * 7: union together proxy:>proxy constraints
-       * exit
-       */
       int state = 0;
       while (true) {
         if (2 <= state && !allowDecisions) {
@@ -4284,11 +4319,10 @@ namespace Microsoft.Dafny
               // Process XConstraints
               // confirm as many XConstraints as possible, setting "anyNewConstraints" to "true" if the confirmation
               // of an XConstraint gives rise to new constraints to be handled in the loop above
-              List<XConstraint> allXConstraints;
               bool generatedMoreXConstraints;
               do {
                 generatedMoreXConstraints = false;
-                allXConstraints = AllXConstraints;
+                var allXConstraints = AllXConstraints;
                 AllXConstraints = new List<XConstraint>();
                 foreach (var xc in allXConstraints) {
                   bool convertedIntoOtherTypeConstraints, moreXConstraints;
@@ -4309,25 +4343,53 @@ namespace Microsoft.Dafny
             }
             break;
 
-          case 3: {
-              // Process default numeric types
-              var allTypeConstraints = AllTypeConstraints;
-              AllTypeConstraints = new List<TypeConstraint>();
-              foreach (var c in allTypeConstraints) {
-                if (c.Super is ArtificialType) {
-                  var proxy = c.Sub.NormalizeExpand() as TypeProxy;
-                  if (proxy != null) {
-                    AssignProxyAndHandleItsConstraints(proxy, c.Super is IntVarietiesSupertype ? (Type)Type.Int : Type.Real);
-                    anyNewConstraints = true;
-                    continue;
+          case 2: {
+              var assignables = AllXConstraints.Where(xc => xc.ConstraintName == "Assignable").ToList();
+              while (true) {
+                var anyChange = false;
+                foreach (var constraint in AllTypeConstraints) {
+                  var lhs = constraint.Super.Normalize() as TypeProxy;
+                  if (lhs != null) {
+                    var rhss = assignables.Where(xc => xc.Types[0].Normalize() == lhs).Select(xc => xc.Types[1]).ToList();
+                    if (ProcessAssignable(lhs, rhss)) {
+                      anyChange = true;
+                      anyNewConstraints = true;  // next time around the big loop, start with state 0 again
+                    }
                   }
                 }
-                AllTypeConstraints.Add(c);
+                foreach (var assignable in assignables) {
+                  var lhs = assignable.Types[0].Normalize() as TypeProxy;
+                  if (lhs != null) {
+                    var rhss = assignables.Where(xc => xc.Types[0].Normalize() == lhs).Select(xc => xc.Types[1]).ToList();
+                    if (ProcessAssignable(lhs, rhss)) {
+                      anyChange = true;
+                      anyNewConstraints = true;  // next time around the big loop, start with state 0 again
+                    }
+                  }
+                }
+                if (!anyChange) {
+                  break;
+                }
               }
             }
             break;
 
-          case 2: {
+          case 3: {
+              // If (the head of) the RHS of an Assignable is known, convert the XConstraint into a subtyping constraint
+              var allX = AllXConstraints;
+              AllXConstraints = new List<XConstraint>();
+              foreach (var xc in allX) {
+                if (xc.ConstraintName == "Assignable" && xc.Types[1].Normalize() is NonProxyType) {
+                  ConstrainSubtypeRelation(xc.Types[0].NormalizeExpand(), xc.Types[1], xc.errorMsg, true);
+                  anyNewConstraints = true;
+                } else {
+                  AllXConstraints.Add(xc);
+                }
+              }
+            }
+            break;
+
+          case 4: {
               var allTC = AllTypeConstraints;
               AllTypeConstraints = new List<TypeConstraint>();
               var proxyProcessed = new HashSet<TypeProxy>();
@@ -4347,7 +4409,25 @@ namespace Microsoft.Dafny
             }
             break;
 
-          case 4: {
+          case 5: {
+              // Process default numeric types
+              var allTypeConstraints = AllTypeConstraints;
+              AllTypeConstraints = new List<TypeConstraint>();
+              foreach (var c in allTypeConstraints) {
+                if (c.Super is ArtificialType) {
+                  var proxy = c.Sub.NormalizeExpand() as TypeProxy;
+                  if (proxy != null) {
+                    AssignProxyAndHandleItsConstraints(proxy, c.Super is IntVarietiesSupertype ? (Type)Type.Int : Type.Real);
+                    anyNewConstraints = true;
+                    continue;
+                  }
+                }
+                AllTypeConstraints.Add(c);
+              }
+            }
+            break;
+
+          case 6: {
               // Process default reference types
               var allXConstraints = AllXConstraints;
               AllXConstraints = new List<XConstraint>();
@@ -4365,10 +4445,10 @@ namespace Microsoft.Dafny
             }
             break;
 
-          case 5: fullStrength = true; goto case 0;
-          case 6: fullStrength = true; goto case 1;
+          case 7: fullStrength = true; goto case 0;
+          case 8: fullStrength = true; goto case 1;
 
-          case 7: {
+          case 9: {
               // Finally, collapse constraints involving only proxies, which will have the effect of trading some type error
               // messages for type-underspecification messages.
               var allTypeConstraints = AllTypeConstraints;
@@ -4380,6 +4460,9 @@ namespace Microsoft.Dafny
                   continue;
                 } else if (super is TypeProxy && sub is TypeProxy) {
                   var proxy = (TypeProxy)super;
+#if DEBUG_PRINT
+                  Console.WriteLine("DEBUG: (merge in PartiallySolve) assigning proxy {0}.T := {1}", proxy, sub);
+#endif
                   proxy.T = sub;
                   continue;
                 }
@@ -4393,6 +4476,47 @@ namespace Microsoft.Dafny
         } else {
           state++;
         }
+      }
+    }
+
+    /// <summary>
+    /// Set "lhs" to the meet of "rhss" and "lhs.Subtypes, if possible.
+    /// Returns "true' if something was done, or "false" otherwise.
+    /// </summary>
+    private bool ProcessAssignable(TypeProxy lhs, List<Type> rhss) {
+      Contract.Requires(lhs != null && lhs.T == null);
+      Contract.Requires(rhss != null);
+#if DEBUG_PRINT
+      Console.Write("DEBUG: ProcessAssignable: {0} with rhss:", lhs);
+      foreach (var rhs in rhss) {
+        Console.Write(" {0}", rhs);
+      }
+      Console.Write(" subtypes:");
+      foreach (var sub in lhs.SubtypesKeepConstraints) {
+        Console.Write(" {0}", sub);
+      }
+      Console.WriteLine();
+#endif
+      Type meet = null;
+      foreach (var rhs in rhss) {
+        if (rhs is TypeProxy) { return false; }
+        meet = meet == null ? rhs : Type.Meet(meet, rhs, builtIns);
+      }
+      foreach (var sub in lhs.SubtypesKeepConstraints) {
+        if (sub is TypeProxy) { return false; }
+        meet = meet == null ? sub : Type.Meet(meet, sub, builtIns);
+      }
+      if (meet == null) {
+        return false;
+      } else if (Reaches(meet, lhs, 1, new HashSet<TypeProxy>())) {
+        // would cause a cycle, so don't do it
+        return false;
+      } else {
+#if DEBUG_PRINT
+        Console.WriteLine("DEBUG: ProcessAssignable: assigning proxy {0}.T := {1}", lhs, meet);
+#endif
+        lhs.T = meet;
+        return true;
       }
     }
 
@@ -4797,6 +4921,7 @@ namespace Microsoft.Dafny
       }
       abstract public class ErrorMsg
       {
+        public abstract IToken Tok { get; }
         bool reported;
         public void FlagAsError() {
           TypeConstraint.ErrorsToBeReported.Add(this);
@@ -4814,33 +4939,35 @@ namespace Microsoft.Dafny
             var err = (ErrorMsgWithToken)this;
             Contract.Assert(err.Tok != null);
             reporter.Error(MessageSource.Resolver, err.Tok, err.Msg + suffix, err.MsgArgs);
-          } else if (this is ErrorMsgWithBase) {
+          } else {
             var err = (ErrorMsgWithBase)this;
             err.BaseMsg.Reporting(reporter, " (" + string.Format(err.Msg, err.MsgArgs) + ")" + suffix);
-          } else {
-            var err = (ErrorMsgWithOriginal)this;
-            err.Original.Reporting(reporter, suffix);
-            err.Err.reported = true;
           }
           reported = true;
         }
       }
       public class ErrorMsgWithToken : ErrorMsg
       {
-        public readonly IToken Tok;
+        readonly IToken tok;
+        public override IToken Tok {
+          get { return tok; }
+        }
         public readonly string Msg;
         public readonly object[] MsgArgs;
         public ErrorMsgWithToken(IToken tok, string msg, params object[] msgArgs) {
           Contract.Requires(tok != null);
           Contract.Requires(msg != null);
           Contract.Requires(msgArgs != null);
-          Tok = tok;
-          Msg = msg;
-          MsgArgs = msgArgs;
+          this.tok = tok;
+          this.Msg = msg;
+          this.MsgArgs = msgArgs;
         }
       }
       public class ErrorMsgWithBase : ErrorMsg
       {
+        public override IToken Tok {
+          get { return BaseMsg.Tok; }
+        }
         public readonly ErrorMsg BaseMsg;
         public readonly string Msg;
         public readonly object[] MsgArgs;
@@ -4851,15 +4978,6 @@ namespace Microsoft.Dafny
           BaseMsg = baseMsg;
           Msg = msg;
           MsgArgs = msgArgs;
-        }
-      }
-      public class ErrorMsgWithOriginal : ErrorMsg
-      {
-        public readonly ErrorMsg Err;
-        public readonly ErrorMsg Original;
-        public ErrorMsgWithOriginal(ErrorMsg err, ErrorMsg original) {
-          Err = err;
-          Original = original;
         }
       }
       public readonly ErrorMsg errorMsg;
@@ -5263,12 +5381,6 @@ namespace Microsoft.Dafny
           }
         }
       }
-      /// <summary>
-      /// This method checks to see if 't' has been determined and returns the result.
-      /// However, if t denotes an int-based or real-based type, then t is set to int or real,
-      /// respectively, here.  Similarly, if t is an unresolved type for "null", then t
-      /// is set to "object".
-      /// </summary>
       public static bool IsDetermined(Type t) {
         Contract.Requires(t != null);
         Contract.Requires(!(t is TypeProxy) || ((TypeProxy)t).T == null);
@@ -11711,6 +11823,13 @@ namespace Microsoft.Dafny
       var types = new Type[] { type };
       AllXConstraints.Add(new XConstraint(tok, constraintName, ExactProxiesKeepConstraints(types), types, new TypeConstraint.ErrorMsgWithToken(tok, errMsgFormat, types)));
     }
+    void AddAssignableConstraint(IToken tok, Type lhs, Type rhs, TypeConstraint.ErrorMsg errMsg) {
+      Contract.Requires(tok != null);
+      Contract.Requires(lhs != null);
+      Contract.Requires(rhs != null);
+      Contract.Requires(errMsg != null);
+      AddXConstraint(tok, "Assignable", lhs, rhs, errMsg);
+    }
     private void AddXConstraint(IToken tok, string constraintName, Type type, TypeConstraint.ErrorMsg errMsg) {
       Contract.Requires(tok != null);
       Contract.Requires(constraintName != null);
@@ -12906,9 +13025,10 @@ namespace Microsoft.Dafny
           subst.Add(fn.TypeArgs[i], ta);
         }
         subst = BuildTypeArgumentSubstitute(subst);
-        rr.Type = new ArrowType(fn.tok, builtIns.ArrowTypeDecls[fn.Formals.Count],
+        rr.Type = SelectAppropriateArrowType(fn.tok,
           fn.Formals.ConvertAll(f => SubstType(f.Type, subst)),
-          SubstType(fn.ResultType, subst));
+          SubstType(fn.ResultType, subst),
+          fn.Reads.Count != 0, fn.Req.Count != 0);
         AddCallGraphEdge(opts.codeContext, fn, rr, IsFunctionReturnValue(fn, args, opts));
       } else {
         // the member is a method
