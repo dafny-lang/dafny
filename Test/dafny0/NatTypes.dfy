@@ -117,7 +117,7 @@ class GenEric<T> {
   }
 }
 
-function method GE<T>(d: GenEric<T>): bool { true }
+function method GE<T>(d: GenEric?<T>): bool { true }
 
 method TestGenEric() {
   var ge;

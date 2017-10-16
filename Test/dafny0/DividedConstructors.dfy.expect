@@ -136,7 +136,7 @@ method Main()
   print m.a, ", ", m.b, ", ", m.c, "\n";
 }
 
-Dafny program verifier finished with 13 verified, 0 errors
+Dafny program verifier finished with 11 verified, 0 errors
 Program compiled successfully
 Running...
 

@@ -3015,11 +3015,12 @@ namespace Microsoft.Dafny
             moreXConstraints = true;
           } else {
             var proxy = (TypeProxy)A[i];
-            Contract.Assert(proxy.T == null);
+            if (proxy.T == null) {  // the call ConstrainSubtypeRelation(lhsWithProxyArgs,...) above may have assigned proxy.T
 #if DEBUG_PRINT
-            Console.WriteLine("DEBUG: (invariance) assigning proxy {0}.T := {1}", proxy, B[i]);
+              Console.WriteLine("DEBUG: (invariance) assigning proxy {0}.T := {1}", proxy, B[i]);
 #endif
-            proxy.T = B[i];
+              proxy.T = B[i];
+            }
           }
         }
       }
@@ -3843,8 +3844,9 @@ namespace Microsoft.Dafny
         bool satisfied;
         switch (ConstraintName) {
           case "Assignable": {
+              Contract.Assert(t == t.Normalize());  // it's already been normalized above
               var u = Types[1].NormalizeExpandKeepConstraints();
-              if (!(t.Normalize() is TypeProxy) && CheckTypeInference_Visitor.IsDetermined(t.Normalize())) {
+              if (!(t is TypeProxy) && CheckTypeInference_Visitor.IsDetermined(t)) {
                 // This is the best case.  We convert Assignable(t, u) to the subtype constraint base(t) :> u.
                 resolver.ConstrainAssignable((NonProxyType)t, u, errorMsg, out moreXConstraints);
                 convertedIntoOtherTypeConstraints = true;
@@ -10693,7 +10695,7 @@ namespace Microsoft.Dafny
         if (meet == null) {
           // also consider "Assignable" constraints
           foreach (var c in AllXConstraints) {
-            if (c.ConstraintName == "Assignable" && c.Types[0] == proxy) {
+            if (c.ConstraintName == "Assignable" && c.Types[0].Normalize() == proxy) {
               var s = c.Types[1].NormalizeExpandKeepConstraints();
               if (!MeetOfAllSubtypes(s, ref meet, visited)) {
                 return false;
@@ -10742,6 +10744,17 @@ namespace Microsoft.Dafny
           var s = c.Super.NormalizeExpandKeepConstraints();
           if (!JoinOfAllSupertypes(s, ref join, visited)) {
             return false;
+          }
+        }
+        if (join == null) {
+          // also consider "Assignable" constraints
+          foreach (var c in AllXConstraints) {
+            if (c.ConstraintName == "Assignable" && c.Types[1].Normalize() == proxy) {
+              var s = c.Types[0].NormalizeExpandKeepConstraints();
+              if (!JoinOfAllSupertypes(s, ref join, visited)) {
+                return false;
+              }
+            }
           }
         }
         return true;
