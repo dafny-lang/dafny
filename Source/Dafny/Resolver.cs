@@ -4300,16 +4300,13 @@ namespace Microsoft.Dafny
                 ProcessOneSubtypingConstraintAndItsSubs(c, processed, fullStrength, ref anyNewConstraints);
               }
 
-              allTypeConstraints = AllTypeConstraints;
-              AllTypeConstraints = new List<TypeConstraint>();
+              allTypeConstraints = new List<TypeConstraint>(AllTypeConstraints);  // copy the list
               foreach (var c in allTypeConstraints) {
                 var super = c.Super.NormalizeExpand() as TypeProxy;
                 if (AssignKnownEnd(super, true)) {
                   anyNewConstraints = true;
                 } else if (super != null && fullStrength && AssignKnownEndsFullstrength(super)) {  // KRML: is this used any more?
                   anyNewConstraints = true;
-                } else {
-                  AllTypeConstraints.Add(c);
                 }
               }
             }
