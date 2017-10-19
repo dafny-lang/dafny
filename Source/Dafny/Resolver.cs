@@ -2979,26 +2979,32 @@ namespace Microsoft.Dafny
 
       var lhsWithProxyArgs = Type.HeadWithProxyArgs(lhs);
       ConstrainSubtypeRelation(lhsWithProxyArgs, rhs, errMsg);
+      ConstrainAssignableTypeArgs(lhs, lhsWithProxyArgs.TypeArgs, lhs.TypeArgs, errMsg, out moreXConstraints);
+    }
 
-      var A = lhsWithProxyArgs.TypeArgs;
-      var B = lhs.TypeArgs;
+    private void ConstrainAssignableTypeArgs(Type typeHead, List<Type> A, List<Type> B, TypeConstraint.ErrorMsg errMsg, out bool moreXConstraints) {
+      Contract.Requires(typeHead != null);
+      Contract.Requires(A != null);
+      Contract.Requires(B != null);
+      Contract.Requires(A.Count == B.Count);
+      Contract.Requires(errMsg != null);
+
       var tok = errMsg.Tok;
-      Contract.Assert(A.Count == B.Count);
       if (B.Count == 0) {
         // all done
         moreXConstraints = false;
-      } else if (lhs is MapType) {
+      } else if (typeHead is MapType) {
         var em = new TypeConstraint.ErrorMsgWithBase(errMsg, "covariance for type parameter 0 expects {1} <: {0}", A[0], B[0]);
         AddAssignableConstraint(tok, A[0], B[0], em);
         em = new TypeConstraint.ErrorMsgWithBase(errMsg, "covariance for type parameter 1 expects {1} <: {0}", A[1], B[1]);
         AddAssignableConstraint(tok, A[1], B[1], em);
         moreXConstraints = true;
-      } else if (lhs is CollectionType) {
+      } else if (typeHead is CollectionType) {
         var em = new TypeConstraint.ErrorMsgWithBase(errMsg, "covariance for type parameter expects {1} <: {0}", A[0], B[0]);
         AddAssignableConstraint(tok, A[0], B[0], em);
         moreXConstraints = true;
       } else {
-        var udt = (UserDefinedType)lhs;  // note, collections, maps, and user-defined types are the only one with TypeArgs.Count != 0
+        var udt = (UserDefinedType)typeHead;  // note, collections, maps, and user-defined types are the only one with TypeArgs.Count != 0
         var cl = udt.ResolvedClass;
         Contract.Assert(cl != null);
         Contract.Assert(cl.TypeArgs.Count == B.Count);
@@ -3015,7 +3021,7 @@ namespace Microsoft.Dafny
             moreXConstraints = true;
           } else {
             var proxy = (TypeProxy)A[i];
-            if (proxy.T == null) {  // the call ConstrainSubtypeRelation(lhsWithProxyArgs,...) above may have assigned proxy.T
+            if (proxy.T == null && !Reaches(B[i], proxy, 1, new HashSet<TypeProxy>())) {  // the call ConstrainSubtypeRelation(lhsWithProxyArgs,...) above may have assigned proxy.T
 #if DEBUG_PRINT
               Console.WriteLine("DEBUG: (invariance) assigning proxy {0}.T := {1}", proxy, B[i]);
 #endif
@@ -3846,29 +3852,29 @@ namespace Microsoft.Dafny
           case "Assignable": {
               Contract.Assert(t == t.Normalize());  // it's already been normalized above
               var u = Types[1].NormalizeExpandKeepConstraints();
-              if (!(t is TypeProxy) && CheckTypeInference_Visitor.IsDetermined(t)) {
+              if (CheckTypeInference_Visitor.IsDetermined(t)) {
                 // This is the best case.  We convert Assignable(t, u) to the subtype constraint base(t) :> u.
                 resolver.ConstrainAssignable((NonProxyType)t, u, errorMsg, out moreXConstraints);
                 convertedIntoOtherTypeConstraints = true;
+                return true;
+              } else if (u.IsTypeParameter) {
+                // we need the constraint base(t) :> u, which for a type parameter t can happen iff t :> u
+                resolver.ConstrainSubtypeRelation(t, u, errorMsg);
+                convertedIntoOtherTypeConstraints = true;
+                return true;
+              } else if (Type.SameHead(t, u)) {
+                resolver.ConstrainAssignableTypeArgs(t, t.TypeArgs, u.TypeArgs, errorMsg, out moreXConstraints);
                 return true;
               } else if (fullstrength && t is NonProxyType) {
                 // We convert Assignable(t, u) to the subtype constraint base(t) :> u.
                 resolver.ConstrainAssignable((NonProxyType)t, u, errorMsg, out moreXConstraints);
                 convertedIntoOtherTypeConstraints = true;
                 return true;
-              } else if (u is NonProxyType) {
-                // There's not much we can do, unless "u" happens to be a type parameter (which we know will never have a subset-type subtype)
-                if (u.IsTypeParameter) {
-                  // we need the constraint base(t) :> u, which can happen iff t :> u
-                  resolver.ConstrainSubtypeRelation(t, u, errorMsg);
-                  convertedIntoOtherTypeConstraints = true;
-                  return true;
-                } else if (fullstrength) {
-                  // We're willing to change "base(t) :> u" to the stronger constraint "t :> u" for the sake of making progress.
-                  resolver.ConstrainSubtypeRelation(t, u, errorMsg);
-                  convertedIntoOtherTypeConstraints = true;
-                  return true;
-                }
+              } else if (fullstrength && u is NonProxyType) {
+                // We're willing to change "base(t) :> u" to the stronger constraint "t :> u" for the sake of making progress.
+                resolver.ConstrainSubtypeRelation(t, u, errorMsg);
+                convertedIntoOtherTypeConstraints = true;
+                return true;
               }
               // There's not enough information to say anything
               return false;

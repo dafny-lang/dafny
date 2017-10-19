@@ -1170,6 +1170,12 @@ namespace Microsoft.Dafny {
         return ct == null ? null : ct.ResolvedParam;
       }
     }
+    public bool IsOpaqueType {
+      get {
+        var udt = this.Normalize() as UserDefinedType;  // note, it is important to use 'this.Normalize()' here, not 'this.NormalizeExpand()'
+        return udt != null && udt.ResolvedClass is OpaqueTypeDecl;
+      }
+    }
     public virtual bool SupportsEquality {
       get {
         return true;
@@ -1343,6 +1349,33 @@ namespace Microsoft.Dafny {
     }
 
     /// <summary>
+    /// Returns true if t and u have the same head type.
+    /// It is assumed that t and u have been normalized and expanded by the caller, according
+    /// to its purposes.
+    /// </summary>
+    public static bool SameHead(Type t, Type u) {
+      Contract.Requires(t != null);
+      Contract.Requires(u != null);
+      if (t is TypeProxy) {
+        return t == u;
+      } else if (t.TypeArgs.Count == 0) {
+        return Equal_Improved(t, u);
+      } else if (t is SetType) {
+        return u is SetType && t.IsISetType == u.IsISetType;
+      } else if (t is SeqType) {
+        return u is SeqType;
+      } else if (t is MultiSetType) {
+        return u is MultiSetType;
+      } else if (t is MapType) {
+        return u is MapType && t.IsIMapType == u.IsIMapType;
+      } else {
+        var udtT = (UserDefinedType)t;
+        var udtU = u as UserDefinedType;
+        return udtU != null && udtT.ResolvedClass == udtU.ResolvedClass;
+      }
+    }
+
+    /// <summary>
     /// Returns "true" iff the head symbols of "sub" can be a subtype of the head symbol of "super".
     /// Expects that neither "super" nor "sub" is an unresolved proxy type (but their type arguments are
     /// allowed to be, since this method does not inspect the type arguments).
@@ -1498,9 +1531,13 @@ namespace Microsoft.Dafny {
     /// Returns "true" iff the head symbols of "sub" can be a subtype of the head symbol of "super".
     /// </summary>
     public static bool IsHeadSupertype(Type super, Type sub) {
-      Contract.Requires(super != null && !(super is TypeProxy) && !(super is ArtificialType));
-      Contract.Requires(sub != null && !(sub is TypeProxy) && !(sub is ArtificialType));
-      if (super.IsBoolType || super.IsCharType || super.IsNumericBased() || super.IsTypeParameter || super.IsInternalTypeSynonym) {
+      Contract.Requires(super != null && !(super is TypeProxy));
+      Contract.Requires(sub != null && !(sub is TypeProxy));
+      if (super is IntVarietiesSupertype) {
+        return sub.IsNumericBased(NumericPersuation.Int);
+      } else if (super is RealVarietiesSupertype) {
+        return sub.IsNumericBased(NumericPersuation.Real);
+      } else if (super.IsBoolType || super.IsCharType || super.IsNumericBased() || super.IsTypeParameter || super.IsInternalTypeSynonym) {
         return super.Equals(sub);
       } else if (super is SetType) {
         var aa = (SetType)super;
@@ -2977,7 +3014,7 @@ namespace Microsoft.Dafny {
         return Family.ValueType;
       } else if (t.IsRefType) {
         return Family.Ref;
-      } else if (t.IsTypeParameter || t.IsInternalTypeSynonym) {
+      } else if (t.IsTypeParameter || t.IsOpaqueType || t.IsInternalTypeSynonym) {
         return Family.Opaque;
       } else if (t is TypeProxy) {
         return ((TypeProxy)t).family;
@@ -3051,11 +3088,25 @@ namespace Microsoft.Dafny {
       return AsSubtypeOfArtificial() != null;
     }
     internal Type AsSubtypeOfArtificial() {
+      return AsSubtypeOfArtificial_aux(new HashSet<TypeProxy>());
+    }
+    private Type AsSubtypeOfArtificial_aux(ISet<TypeProxy> visitedProxies) {
+      Contract.Requires(visitedProxies != null);
+      if (visitedProxies.Contains(this)) {
+        return null;
+      }
+      visitedProxies.Add(this);
       foreach (var c in SupertypeConstraints) {
-        if (c.Super is IntVarietiesSupertype) {
+        var sup = c.Super.Normalize();
+        if (sup is IntVarietiesSupertype) {
           return Type.Int;
-        } else if (c.Super is RealVarietiesSupertype) {
+        } else if (sup is RealVarietiesSupertype) {
           return Type.Real;
+        } else if (sup is TypeProxy) {
+          var a = ((TypeProxy)sup).AsSubtypeOfArtificial_aux(visitedProxies);
+          if (a != null) {
+            return a;
+          }
         }
       }
       return null;
