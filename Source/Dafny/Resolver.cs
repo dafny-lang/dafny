@@ -11226,7 +11226,7 @@ namespace Microsoft.Dafny
           } else {
             e.TypeApplication = field.EnclosingClass.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp));
           }
-          if (e.Obj is StaticReceiverExpr) {
+          if (e.Obj is StaticReceiverExpr && !field.IsStatic) {
             reporter.Error(MessageSource.Resolver, expr, "a field must be selected via an object, not just a class name");
           }
           var ctype = nptype as UserDefinedType;

@@ -1648,7 +1648,7 @@ int StringToInt(string s, int defaultValue, string errString) {
 		if (ty == null) { ty = new InferredTypeProxy(); } 
 		if (la.kind == 97) {
 			Get();
-			Expression(out e, false, false);
+			Expression(out e, false, true);
 		}
 		if (e == null && ty is InferredTypeProxy) {
 		 SemErr(id, "a const declaration must have a type or a RHS value");
