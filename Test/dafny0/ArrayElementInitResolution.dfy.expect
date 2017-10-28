@@ -1,4 +1,4 @@
-ArrayElementInitResolution.dfy(15,10): Error: RHS (of type real -> real) not assignable to LHS (of type int ~> real) (contravariant type parameter 0 would require int <: real)
+ArrayElementInitResolution.dfy(16,26): Error: array-allocation initialization expression expected to have type 'int ~> real' (instead got 'real -> real') (contravariant type parameter 0 would require int <: real)
 ArrayElementInitResolution.dfy(23,23): Error: array-allocation initialization expression expected to have type 'int ~> D' (instead got 'D') (perhaps write '_ =>' in front of the expression you gave in order to make it an arrow type)
 ArrayElementInitResolution.dfy(38,33): Error: array-allocation initialization expression expected to have type '(int, int, int) ~> char' (instead got 'int -> char')
 ArrayElementInitResolution.dfy(55,31): Error: array-allocation initialization expression expected to have type '(int, int, int, int, int) ~> D' (instead got 'D') (perhaps write '(_,_,_,_,_) =>' in front of the expression you gave in order to make it an arrow type)

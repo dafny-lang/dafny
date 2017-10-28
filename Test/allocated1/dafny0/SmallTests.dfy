@@ -5,8 +5,8 @@
 class Node {
   var next: Node?
 
-  function IsList(r: set<Node>): bool
-    reads r;
+  predicate IsList(r: set<Node>)
+    reads r
   {
     this in r &&
     (next != null  ==>  next.IsList(r - {this}))
@@ -21,7 +21,7 @@ class Node {
   }
 
   method Create()
-    modifies this;
+    modifies this
   {
     next := null;
     var tmp: Node;
@@ -79,49 +79,49 @@ class Modifies {
   var next: Modifies?
 
   method A(p: Modifies?)
-    modifies this, p;
+    modifies this, p
   {
     x := x + 1;
-    while (p != null && p.x < 75)
-      decreases 75 - p.x;  // error: not defined (null deref) at top of each iteration (there's good reason
+    while p != null && p.x < 75
+      decreases 75 - p.x  // error: not defined (null deref) at top of each iteration (there's good reason
     {                      // to insist on this; for example, the decrement check could not be performed
       p.x := p.x + 1;      // at the end of the loop body if p were set to null in the loop body)
     }
   }
 
   method Aprime(p: Modifies?)
-    modifies this, p;
+    modifies this, p
   {
     x := x + 1;
-    while (p != null && p.x < 75)
-      decreases if p != null then 75 - p.x else 0;  // given explicitly (but see Adoubleprime below)
+    while p != null && p.x < 75
+      decreases if p != null then 75 - p.x else 0  // given explicitly (but see Adoubleprime below)
     {
       p.x := p.x + 1;
     }
   }
 
   method Adoubleprime(p: Modifies?)
-    modifies this, p;
+    modifies this, p
   {
     x := x + 1;
-    while (p != null && p.x < 75)  // here, the decreases clause is heuristically inferred (to be the
+    while p != null && p.x < 75  // here, the decreases clause is heuristically inferred (to be the
     {                              // same as the one in Aprime above)
       p.x := p.x + 1;
     }
   }
 
   method B(p: Modifies)
-    modifies this;
+    modifies this
   {
     A(this);
-    if (p == this) {
+    if p == this {
       p.A(p);
     }
     A(p);  // error: may violate modifies clause
   }
 
   method C(b: bool)
-    modifies this;
+    modifies this
     ensures !b ==> x == old(x) && next == old(next)
   {
   }
@@ -132,31 +132,31 @@ class Modifies {
       p.C(true);  // error: may violate modifies clause
     } else {
       p.C(false);  // error: may violation modifies clause (the check is done without regard
-                        // for the postcondition, which also makes sense, since there may, in
-                        // principle, be other fields of the object that are not constrained by the
-                        // postcondition)
+                   // for the postcondition, which also makes sense, since there may, in
+                   // principle, be other fields of the object that are not constrained by the
+                   // postcondition)
     }
   }
 
   method E()
-    modifies this;
+    modifies this
   {
     A(null);  // allowed
   }
 
   method F(s: set<Modifies>)
-    modifies s;
+    modifies s
   {
     forall m | m in s && m != null && 2 <= m.x {
       m.x := m.x + 1;
     }
-    if (this in s) {
+    if this in s {
       x := 2 * x;
     }
   }
 
   method G(s: set<Modifies>)
-    modifies this;
+    modifies this
   {
     var m := 3;  // this is a different m
 
@@ -271,7 +271,7 @@ class InitCalls {
   var p: InitCalls?
 
   method Init(y: int)
-    modifies this;
+    modifies this
     ensures z == y
   {
     z := y;
@@ -613,9 +613,9 @@ method AssignSuchThat2(i: int, j: int, ghost S: set<Node>)
   if (0 <= i < j < 25) {
     a[i], t, a[j], n.next, n :| assume allocated(n);
   }
-  if (n != null && n.next != null) {
+  if (n.next != null) {
     assume n in S && n.next in S;
-    n.next.next, n.next :| assume n != null && n.next != null && n.next.next == n.next;  // error: n.next may equal n (thus aliasing n.next.next and n.next)
+    n.next.next, n.next :| assume n.next != null && n.next.next == n.next;  // error: n.next may equal n (thus aliasing n.next.next and n.next)
   } else if (0 <= i < 25 && 0 <= j < 25) {
     t, a[i], a[j] :| assume t < a[i] < a[j];  // error: i may equal j (thus aliasing a[i] and a[j])
   }
@@ -623,13 +623,13 @@ method AssignSuchThat2(i: int, j: int, ghost S: set<Node>)
 
 method AssignSuchThat3()
 {
-  var n := new Node;
+  var n: Node? := new Node;
   n, n.next :| assume n.next == n;  // error: RHS is not well defined (RHS is evaluated after the havocking of the LHS)
 }
 
 method AssignSuchThat4()
 {
-  var n := new Node;
+  var n: Node? := new Node;
   n, n.next :| assume n != null && allocated(n) && n.next == n;  // that's the ticket
 }
 

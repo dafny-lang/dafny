@@ -10,16 +10,22 @@ module _System {
     | 0 <= x
 
   trait {:compile false} object { }
+  /*-- non-null type
+  type {:axiom} object(==) = c: object? | c != null    /*special witness*/
+  */
 
   class {:compile false} array<arg> {
     var Length: int  // immutable
   }
+  /*-- non-null type
+  type {:axiom} array(==)<arg> = c: array?<arg> | c != null    /*special witness*/
+  */
 
   class {:compile false} /*_#Func0*/ () ~> +R {
     function requires(): bool
       reads reads()
 
-    function reads(): set<object>
+    function reads(): set<object?>
       reads reads()
   }
 
@@ -39,7 +45,7 @@ module _System {
     function requires(x0: T0): bool
       reads reads(x0)
 
-    function reads(x0: T0): set<object>
+    function reads(x0: T0): set<object?>
       reads reads(x0)
   }
 
@@ -55,10 +61,12 @@ module _System {
 */
 
 /* CALL GRAPH for module _module:
- * SCC at height 9:
+ * SCC at height 10:
  *   _default.Main
- * SCC at height 8:
+ * SCC at height 9:
  *   _default.OrdinalTests
+ * SCC at height 8:
+ *   array
  * SCC at height 7:
  *   int64
  * SCC at height 6:

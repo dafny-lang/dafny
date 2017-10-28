@@ -61,7 +61,7 @@ class C {
   {
     var a := new CP<int,C>;
     var b := new CP<int,object>;
-    while (a != null)
+    while (a != null)  // warning: "a" is never null
       decreases *;  // omit loop termination check (in fact, the loop does not terminate)
     {
       var x: object? := a;

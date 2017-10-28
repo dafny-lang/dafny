@@ -82,8 +82,8 @@ class Modifies {
     modifies this, p
   {
     x := x + 1;
-    while (p != null && p.x < 75)
-      decreases 75 - p.x;  // error: not defined (null deref) at top of each iteration (there's good reason
+    while p != null && p.x < 75
+      decreases 75 - p.x  // error: not defined (null deref) at top of each iteration (there's good reason
     {                      // to insist on this; for example, the decrement check could not be performed
       p.x := p.x + 1;      // at the end of the loop body if p were set to null in the loop body)
     }
@@ -94,7 +94,7 @@ class Modifies {
   {
     x := x + 1;
     while p != null && p.x < 75
-      decreases if p != null then 75 - p.x else 0;  // given explicitly (but see Adoubleprime below)
+      decreases if p != null then 75 - p.x else 0  // given explicitly (but see Adoubleprime below)
     {
       p.x := p.x + 1;
     }
@@ -613,9 +613,9 @@ method AssignSuchThat2(i: int, j: int, ghost S: set<Node>)
   if (0 <= i < j < 25) {
     a[i], t, a[j], n.next, n :| assume true;
   }
-  if (n != null && n.next != null) {
+  if (n.next != null) {
     assume n in S && n.next in S;
-    n.next.next, n.next :| assume n != null && n.next != null && n.next.next == n.next;  // error: n.next may equal n (thus aliasing n.next.next and n.next)
+    n.next.next, n.next :| assume n.next != null && n.next.next == n.next;  // error: n.next may equal n (thus aliasing n.next.next and n.next)
   } else if (0 <= i < 25 && 0 <= j < 25) {
     t, a[i], a[j] :| assume t < a[i] < a[j];  // error: i may equal j (thus aliasing a[i] and a[j])
   }
@@ -623,13 +623,13 @@ method AssignSuchThat2(i: int, j: int, ghost S: set<Node>)
 
 method AssignSuchThat3()
 {
-  var n := new Node;
+  var n: Node? := new Node;
   n, n.next :| assume n.next == n;  // error: RHS is not well defined (RHS is evaluated after the havocking of the LHS)
 }
 
 method AssignSuchThat4()
 {
-  var n := new Node;
+  var n: Node? := new Node;
   n, n.next :| assume n != null && n.next == n;  // that's the ticket
 }
 
