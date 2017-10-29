@@ -12531,7 +12531,7 @@ namespace Microsoft.Dafny
           receiver = new ImplicitThisExpr(expr.tok);
           receiver.Type = GetThisType(expr.tok, (ClassDecl)member.EnclosingClass);  // resolve here
         }
-        r = ResolveExprDotCall(expr.tok, receiver, member, args, expr.OptTypeArguments, opts, allowMethodCall);
+        r = ResolveExprDotCall(expr.tok, receiver, null, member, args, expr.OptTypeArguments, opts, allowMethodCall);
       } else if (isLastNameSegment && moduleInfo.Ctors.TryGetValue(name, out pair)) {
         // ----- 2. datatype constructor
         if (pair.Item2) {
@@ -12580,7 +12580,7 @@ namespace Microsoft.Dafny
           reporter.Error(MessageSource.Resolver, expr.tok, "The name {0} ambiguously refers to a static member in one of the modules {1} (try qualifying the member name with the module name)", expr.Name, ambiguousMember.ModuleNames());
         } else {
           var receiver = new StaticReceiverExpr(expr.tok, (ClassDecl)member.EnclosingClass, true);
-          r = ResolveExprDotCall(expr.tok, receiver, member, args, expr.OptTypeArguments, opts, allowMethodCall);
+          r = ResolveExprDotCall(expr.tok, receiver, null, member, args, expr.OptTypeArguments, opts, allowMethodCall);
         }
 
       } else {
@@ -12826,7 +12826,7 @@ namespace Microsoft.Dafny
             reporter.Error(MessageSource.Resolver, expr.tok, "The name {0} ambiguously refers to a static member in one of the modules {1} (try qualifying the member name with the module name)", expr.SuffixName, ambiguousMember.ModuleNames());
           } else {
             var receiver = new StaticReceiverExpr(expr.tok, (ClassDecl)member.EnclosingClass, true);
-            r = ResolveExprDotCall(expr.tok, receiver, member, args, expr.OptTypeArguments, opts, allowMethodCall);
+            r = ResolveExprDotCall(expr.tok, receiver, null, member, args, expr.OptTypeArguments, opts, allowMethodCall);
           }
         } else {
           reporter.Error(MessageSource.Resolver, expr.tok, "unresolved identifier: {0}", name);
@@ -12855,7 +12855,7 @@ namespace Microsoft.Dafny
               // nevertheless, continue creating an expression that approximates a correct one
             }
             var receiver = new StaticReceiverExpr(expr.tok, (UserDefinedType)ty.NormalizeExpand(), (ClassDecl)member.EnclosingClass, false);
-            r = ResolveExprDotCall(expr.tok, receiver, member, args, expr.OptTypeArguments, opts, allowMethodCall);
+            r = ResolveExprDotCall(expr.tok, receiver, null, member, args, expr.OptTypeArguments, opts, allowMethodCall);
           }
         } else if (ty.IsDatatype) {
           // ----- LHS is a datatype
@@ -12892,7 +12892,7 @@ namespace Microsoft.Dafny
             Contract.Assert(nptype.IsRefType);  // only reference types have static methods
             receiver = new StaticReceiverExpr(expr.tok, (UserDefinedType)nptype, (ClassDecl)member.EnclosingClass, false);
           }
-          r = ResolveExprDotCall(expr.tok, receiver, member, args, expr.OptTypeArguments, opts, allowMethodCall);
+          r = ResolveExprDotCall(expr.tok, receiver, nptype, member, args, expr.OptTypeArguments, opts, allowMethodCall);
         }
       }
 
@@ -13002,7 +13002,7 @@ namespace Microsoft.Dafny
       return null;
     }
 
-    Expression ResolveExprDotCall(IToken tok, Expression receiver, MemberDecl member, List<Expression> args, List<Type> optTypeArguments, ResolveOpts opts, bool allowMethodCall) {
+    Expression ResolveExprDotCall(IToken tok, Expression receiver, Type receiverTypeBound/*?*/, MemberDecl member, List<Expression> args, List<Type> optTypeArguments, ResolveOpts opts, bool allowMethodCall) {
       Contract.Requires(tok != null);
       Contract.Requires(receiver != null);
       Contract.Requires(receiver.WasResolved());
@@ -13016,7 +13016,7 @@ namespace Microsoft.Dafny
       // parameters used in this NameSegment/ExprDotName.
       // Add to "subst" the type parameters given to the member's class/datatype
       Dictionary<TypeParameter, Type> subst;
-      var udt = receiver.Type.NormalizeExpand() as UserDefinedType;
+      var udt = (receiverTypeBound ?? receiver.Type).NormalizeExpand() as UserDefinedType;
       rr.TypeApplication = new List<Type>();
       if (udt != null && udt.ResolvedClass != null) {
         subst = TypeSubstitutionMap(udt.ResolvedClass.TypeArgs, udt.TypeArgs);
