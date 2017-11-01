@@ -11310,9 +11310,6 @@ namespace Microsoft.Dafny {
       else return null;
     }
 
-    /// <summary>
-    /// Requires ty0 and ty1 to be non-proxy non-synonym types (that is, caller is expected have have invoked NormalizeExpand)
-    /// </summary>
     void ComputeLessEq(IToken tok, Type ty0, Type ty1, Bpl.Expr e0, Bpl.Expr e1, out Bpl.Expr less, out Bpl.Expr atmost, out Bpl.Expr eq, bool includeLowerBound)
     {
       Contract.Requires(tok != null);
@@ -11325,6 +11322,8 @@ namespace Microsoft.Dafny {
       Contract.Ensures(Contract.ValueAtReturn(out atmost)!=null);
       Contract.Ensures(Contract.ValueAtReturn(out eq)!=null);
 
+      ty0 = ty0.NormalizeExpand();
+      ty1 = ty1.NormalizeExpand();
       var rk0 = RankFunction(ty0);
       var rk1 = RankFunction(ty1);
       if (rk0 != null && rk1 != null && rk0 != rk1) {
