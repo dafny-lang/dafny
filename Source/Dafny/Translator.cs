@@ -2234,15 +2234,16 @@ namespace Microsoft.Dafny {
         // USER-DEFINED SPECIFICATIONS
         var comment = "user-defined preconditions";
         foreach (var p in iter.Requires) {
+          string errorMessage = CustomErrorMessage(p.Attributes);
           if (p.IsFree && !DafnyOptions.O.DisallowSoundnessCheating) {
-            req.Add(Requires(p.E.tok, true, etran.TrExpr(p.E), null, comment));
+            req.Add(Requires(p.E.tok, true, etran.TrExpr(p.E), errorMessage, comment));
             comment = null;
           } else {
             foreach (var s in TrSplitExprForMethodSpec(p.E, etran, kind)) {
               if (kind == MethodTranslationKind.Call && RefinementToken.IsInherited(s.E.tok, currentModule)) {
                 // this precondition was inherited into this module, so just ignore it
               } else {
-                req.Add(Requires(s.E.tok, s.IsOnlyFree, s.E, null, comment));
+                req.Add(Requires(s.E.tok, s.IsOnlyFree, s.E, errorMessage, comment));
                 comment = null;
                 // the free here is not linked to the free on the original expression (this is free things generated in the splitting.)
               }
@@ -2604,14 +2605,14 @@ namespace Microsoft.Dafny {
       }
     }
 
-    void AddFunctionConsequenceAxiom(Function f, List<Expression> ens) {
+    void AddFunctionConsequenceAxiom(Function f, List<MaybeFreeExpression> ens) {
       Contract.Requires(f != null);
       Contract.Requires(predef != null);
       Contract.Requires(f.EnclosingClass != null);
 
       bool readsHeap = AlwaysUseHeap || f.ReadsHeap;
-      foreach (Expression e in f.Req.Concat(ens)) {
-        readsHeap = readsHeap || UsesHeap(e);
+      foreach (MaybeFreeExpression e in f.Req.Concat(ens)) {
+        readsHeap = readsHeap || UsesHeap(e.E);
       }
 
       ExpressionTranslator etranHeap;
@@ -2744,8 +2745,8 @@ namespace Microsoft.Dafny {
       }
 
       Bpl.Expr pre = Bpl.Expr.True;
-      foreach (Expression req in f.Req) {
-        pre = BplAnd(pre, etran.TrExpr(Substitute(req, null, substMap)));
+      foreach (MaybeFreeExpression req in f.Req) {
+        pre = BplAnd(pre, etran.TrExpr(Substitute(req.E, null, substMap)));
       }
       // useViaContext: (mh != ModuleContextHeight || fh != FunctionContextHeight)
       var mod = f.EnclosingClass.Module;
@@ -2765,8 +2766,8 @@ namespace Microsoft.Dafny {
       if (f.Result != null) {
         substMap.Add(f.Result, new BoogieWrapper(funcAppl, f.ResultType));
       }
-      foreach (Expression p in ens) {
-        Bpl.Expr q = etran.TrExpr(Substitute(p, null, substMap));
+      foreach (MaybeFreeExpression p in ens) {
+        Bpl.Expr q = etran.TrExpr(Substitute(p.E, null, substMap));
         post = BplAnd(post, q);
       }
       Bpl.Expr whr = GetWhereClause(f.tok, funcAppl, f.ResultType, etran, NOALLOC);
@@ -2815,8 +2816,8 @@ namespace Microsoft.Dafny {
       Contract.Ensures((Contract.Result<Bpl.Axiom>() == null) == (body == null));
 
       bool readsHeap = AlwaysUseHeap || f.ReadsHeap;
-      foreach (Expression e in f.Req) {
-        readsHeap = readsHeap || UsesHeap(e);
+      foreach (MaybeFreeExpression e in f.Req) {
+        readsHeap = readsHeap || UsesHeap(e.E);
       }
       if (body != null && UsesHeap(body)) {
         readsHeap = true;
@@ -2981,8 +2982,8 @@ namespace Microsoft.Dafny {
       }
 
       Bpl.Expr pre = Bpl.Expr.True;
-      foreach (Expression req in f.Req) {
-        pre = BplAnd(pre, etran.TrExpr(Substitute(req, null, substMap)));
+      foreach (MaybeFreeExpression req in f.Req) {
+        pre = BplAnd(pre, etran.TrExpr(Substitute(req.E, null, substMap)));
       }
       var preReqAxiom = pre;
       if (f is TwoStateFunction) {
@@ -4391,7 +4392,7 @@ namespace Microsoft.Dafny {
       //generating class post-conditions
       foreach (var en in f.Ens)
       {
-        builder.Add(TrAssumeCmd(f.tok, etran.TrExpr(en)));
+        builder.Add(TrAssumeCmd(f.tok, etran.TrExpr(en.E)));
       }
 
       //generating assume J.F(ins) == C.F(ins)
@@ -4430,7 +4431,7 @@ namespace Microsoft.Dafny {
 
       //generating trait post-conditions with class variables
       foreach (var en in f.OverriddenFunction.Ens) {
-        Expression postcond = Substitute(en, null, substMap);
+        Expression postcond = Substitute(en.E, null, substMap);
         bool splitHappened;  // we don't actually care
         foreach (var s in TrSplitExpr(postcond, etran, false, out splitHappened)) {
           if (s.IsChecked) {
@@ -4504,13 +4505,13 @@ namespace Microsoft.Dafny {
       Contract.Requires(substMap != null);
       //generating trait pre-conditions with class variables
       foreach (var req in f.OverriddenFunction.Req) {
-        Expression precond = Substitute(req, null, substMap);
+        Expression precond = Substitute(req.E, null, substMap);
         builder.Add(TrAssumeCmd(f.tok, etran.TrExpr(precond)));
       }
       //generating class pre-conditions
       foreach (var req in f.Req) {
         bool splitHappened;  // we actually don't care
-        foreach (var s in TrSplitExpr(req, etran, false, out splitHappened)) {
+        foreach (var s in TrSplitExpr(req.E, etran, false, out splitHappened)) {
           if (s.IsChecked) {
             builder.Add(Assert(f.tok, s.E, "the function must provide an equal or more permissive precondition than in its parent trait"));
           }
@@ -5321,13 +5322,14 @@ namespace Microsoft.Dafny {
       };
       // check that postconditions hold
       var ens = new List<Bpl.Ensures>();
-      foreach (Expression p in f.Ens) {
+      foreach (MaybeFreeExpression p in f.Ens) {
         var functionHeight = currentModule.CallGraph.GetSCCRepresentativeId(f);
         var splits = new List<SplitExprInfo>();
-        bool splitHappened /*we actually don't care*/ = TrSplitExpr(p, splits, true, functionHeight, true, true, etran);
+        bool splitHappened /*we actually don't care*/ = TrSplitExpr(p.E, splits, true, functionHeight, true, true, etran);
+        string errorMessage = CustomErrorMessage(p.Attributes);
         foreach (var s in splits) {
           if (s.IsChecked && !RefinementToken.IsInherited(s.E.tok, currentModule)) {
-            AddEnsures(ens, Ensures(s.E.tok, false, s.E, null, null));
+            AddEnsures(ens, Ensures(s.E.tok, false, s.E, errorMessage, null));
           }
         }
       }
@@ -5363,8 +5365,8 @@ namespace Microsoft.Dafny {
       // assume each one of them.  After all that (in particular, after assuming all
       // of them), do the postponed reads checks.
       var wfo = new WFOptions(null, true, true /* do delayed reads checks */);
-      foreach (Expression p in f.Req) {
-        CheckWellformedAndAssume(p, wfo, locals, builder, etran);
+      foreach (MaybeFreeExpression p in f.Req) {
+        CheckWellformedAndAssume(p.E, wfo, locals, builder, etran);
       }
       wfo.ProcessSavedReadsChecks(locals, builderInitializationArea, builder);
 
@@ -5421,9 +5423,9 @@ namespace Microsoft.Dafny {
         }
       }
       // Now for the ensures clauses
-      foreach (Expression p in f.Ens) {
+      foreach (MaybeFreeExpression p in f.Ens) {
         // assume the postcondition for the benefit of checking the remaining postconditions
-        CheckWellformedAndAssume(p, new WFOptions(f, false), locals, postCheckBuilder, etran);
+        CheckWellformedAndAssume(p.E, new WFOptions(f, false), locals, postCheckBuilder, etran);
       }
       // Here goes the body (and include both termination checks and reads checks)
       BoogieStmtListBuilder bodyCheckBuilder = new BoogieStmtListBuilder(this);
@@ -6535,6 +6537,7 @@ namespace Microsoft.Dafny {
         } else {
           fnCoreType = fnCore.Type;
         }
+        
         if (!fnCoreType.IsArrowTypeWithoutPreconditions) {
           // check precond
           var precond = FunctionCall(e.tok, Requires(arity), Bpl.Type.Bool, args);
@@ -6634,17 +6637,18 @@ namespace Microsoft.Dafny {
             }
           }
           // check that the preconditions for the call hold
-          foreach (Expression p in e.Function.Req) {
-            Expression precond = Substitute(p, e.Receiver, substMap, e.TypeArgumentSubstitutions);
+          foreach (MaybeFreeExpression p in e.Function.Req) {
+            Expression precond = Substitute(p.E, e.Receiver, substMap, e.TypeArgumentSubstitutions);
             bool splitHappened;  // we don't actually care
+            string errorMessage = CustomErrorMessage(p.Attributes);
             foreach (var ss in TrSplitExpr(precond, etran, true, out splitHappened)) {
               if (ss.IsChecked) {
                 var tok = new NestedToken(expr.tok, ss.E.tok);
                 if (options.AssertKv != null) {
                   // use the given assert attribute only
-                  builder.Add(Assert(tok, ss.E, "possible violation of function precondition", options.AssertKv));
+                  builder.Add(Assert(tok, ss.E, errorMessage ?? "possible violation of function precondition", options.AssertKv));
                 } else {
-                  builder.Add(AssertNS(tok, ss.E, "possible violation of function precondition"));
+                  builder.Add(AssertNS(tok, ss.E, errorMessage ?? "possible violation of function precondition"));
                 }
               }
             }
@@ -8393,8 +8397,9 @@ namespace Microsoft.Dafny {
         // USER-DEFINED SPECIFICATIONS
         var comment = "user-defined preconditions";
         foreach (var p in m.Req) {
+          string errorMessage = CustomErrorMessage(p.Attributes);
           if (p.IsFree && !DafnyOptions.O.DisallowSoundnessCheating) {
-            req.Add(Requires(p.E.tok, true, etran.TrExpr(p.E), null, comment));
+            req.Add(Requires(p.E.tok, true, etran.TrExpr(p.E), errorMessage, comment));
             comment = null;
           } else {
             foreach (var s in TrSplitExprForMethodSpec(p.E, etran, kind)) {
@@ -8403,7 +8408,7 @@ namespace Microsoft.Dafny {
               } else if (s.IsOnlyFree && !bodyKind) {
                 // don't include in split -- it would be ignored, anyhow
               } else {
-                req.Add(Requires(s.E.tok, s.IsOnlyFree, s.E, null, comment));
+                req.Add(Requires(s.E.tok, s.IsOnlyFree, s.E, errorMessage, comment));
                 comment = null;
                 // the free here is not linked to the free on the original expression (this is free things generated in the splitting.)
               }
@@ -8412,10 +8417,11 @@ namespace Microsoft.Dafny {
         }
         comment = "user-defined postconditions";
         foreach (var p in m.Ens) {
-          AddEnsures(ens, Ensures(p.E.tok, true, CanCallAssumption(p.E, etran), null, comment));
+          string errorMessage = CustomErrorMessage(p.Attributes);
+          AddEnsures(ens, Ensures(p.E.tok, true, CanCallAssumption(p.E, etran), errorMessage, comment));
           comment = null;
           if (p.IsFree && !DafnyOptions.O.DisallowSoundnessCheating) {
-            AddEnsures(ens, Ensures(p.E.tok, true, etran.TrExpr(p.E), null, null));
+            AddEnsures(ens, Ensures(p.E.tok, true, etran.TrExpr(p.E), errorMessage, null));
           } else {
             foreach (var s in TrSplitExprForMethodSpec(p.E, etran, kind)) {
               var post = s.E;
@@ -8428,7 +8434,7 @@ namespace Microsoft.Dafny {
               } else if (s.IsOnlyChecked && !bodyKind) {
                 // don't include in split
               } else {
-                AddEnsures(ens, Ensures(s.E.tok, s.IsOnlyFree, post, null, null));
+                AddEnsures(ens, Ensures(s.E.tok, s.IsOnlyFree, post, errorMessage, null));
               }
             }
           }
@@ -9008,6 +9014,19 @@ namespace Microsoft.Dafny {
       builder.Add(ifCmd);
     }
 
+    string CustomErrorMessage(Attributes attrs) 
+    {
+      if (attrs == null) { return null; }
+      List<Expression> args = Attributes.FindExpressions(attrs, "error");
+      if (args == null) { return null; }
+      if (args.Count > 0) {
+        StringLiteralExpr l = args[0] as StringLiteralExpr;
+        return (string)l.Value;
+      } else {
+        return null;
+      }    
+    }
+
     void TrStmt(Statement stmt, BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran)
     {
       Contract.Requires(stmt != null);
@@ -9021,6 +9040,7 @@ namespace Microsoft.Dafny {
       adjustFuelForExists = true;  // fuel for exists might need to be adjusted based on whether it's in an assert or assume stmt.
       if (stmt is PredicateStmt) {
         var stmtBuilder = new BoogieStmtListBuilder(this);
+        string errorMessage = CustomErrorMessage(stmt.Attributes);
         this.fuelContext = FuelSetting.ExpandFuelContext(stmt.Attributes, stmt.Tok, this.fuelContext, this.reporter);
         var defineFuel = DefineFuelConstant(stmt.Tok, stmt.Attributes, stmtBuilder, etran);
         var b = defineFuel ? stmtBuilder : builder;
@@ -9043,12 +9063,12 @@ namespace Microsoft.Dafny {
           var ss = TrSplitExpr(s.Expr, etran, true, out splitHappened);
           if (!splitHappened) {
             var tok = enclosingToken == null ? s.Expr.tok : new NestedToken(enclosingToken, s.Expr.tok);
-            (proofBuilder ?? b).Add(Assert(tok, etran.TrExpr(s.Expr), "assertion violation", stmt.Tok, etran.TrAttributes(stmt.Attributes, null)));
+            (proofBuilder ?? b).Add(Assert(tok, etran.TrExpr(s.Expr), errorMessage ?? "assertion violation", stmt.Tok, etran.TrAttributes(stmt.Attributes, null)));
           } else {
             foreach (var split in ss) {
               if (split.IsChecked) {
                 var tok = enclosingToken == null ? split.E.tok : new NestedToken(enclosingToken, split.E.tok);
-                (proofBuilder ?? b).Add(AssertNS(tok, split.E, "assertion violation", stmt.Tok, etran.TrAttributes(stmt.Attributes, null)));  // attributes go on every split
+                (proofBuilder ?? b).Add(AssertNS(tok, split.E, errorMessage ?? "assertion violation", stmt.Tok, etran.TrAttributes(stmt.Attributes, null)));  // attributes go on every split
               }
             }
           }
@@ -10565,6 +10585,7 @@ namespace Microsoft.Dafny {
       List<Bpl.PredicateCmd> invariants = new List<Bpl.PredicateCmd>();
       BoogieStmtListBuilder invDefinednessBuilder = new BoogieStmtListBuilder(this);
       foreach (MaybeFreeExpression loopInv in s.Invariants) {
+        string errorMessage = CustomErrorMessage(loopInv.Attributes);
         TrStmt_CheckWellformed(loopInv.E, invDefinednessBuilder, locals, etran, false);
         invDefinednessBuilder.Add(TrAssumeCmd(loopInv.E.tok, etran.TrExpr(loopInv.E)));
 
@@ -10576,12 +10597,12 @@ namespace Microsoft.Dafny {
           var ss = TrSplitExpr(loopInv.E, etran, false, out splitHappened);
           if (!splitHappened) {
             var wInv = Bpl.Expr.Imp(w, etran.TrExpr(loopInv.E));
-            invariants.Add(Assert(loopInv.E.tok, wInv, "loop invariant violation"));
+            invariants.Add(Assert(loopInv.E.tok, wInv, errorMessage??"loop invariant violation"));
           } else {
             foreach (var split in ss) {
               var wInv = Bpl.Expr.Binary(split.E.tok, BinaryOperator.Opcode.Imp, w, split.E);
               if (split.IsChecked) {
-                invariants.Add(Assert(split.E.tok, wInv, "loop invariant violation"));  // TODO: it would be fine to have this use {:subsumption 0}
+                invariants.Add(Assert(split.E.tok, wInv, errorMessage??"loop invariant violation"));  // TODO: it would be fine to have this use {:subsumption 0}
               } else {
                 invariants.Add(TrAssumeCmd(split.E.tok, wInv));
               }

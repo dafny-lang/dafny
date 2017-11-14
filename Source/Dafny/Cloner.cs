@@ -690,10 +690,10 @@ namespace Microsoft.Dafny
     public virtual Function CloneFunction(Function f, string newName = null) {
       var tps = f.TypeArgs.ConvertAll(CloneTypeParam);
       var formals = f.Formals.ConvertAll(CloneFormal);
-      var req = f.Req.ConvertAll(CloneExpr);
+      var req = f.Req.ConvertAll(CloneMayBeFreeExpr);
       var reads = f.Reads.ConvertAll(CloneFrameExpr);
       var decreases = CloneSpecExpr(f.Decreases);
-      var ens = f.Ens.ConvertAll(CloneExpr);
+      var ens = f.Ens.ConvertAll(CloneMayBeFreeExpr);
       Expression body;
       body = CloneExpr(f.Body);
 

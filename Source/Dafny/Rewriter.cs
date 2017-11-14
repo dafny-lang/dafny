@@ -458,7 +458,7 @@ namespace Microsoft.Dafny
       // ...unless an instance function with that name is already present
       if (!cl.Members.Exists(member => member is Function && member.Name == "Valid" && !member.IsStatic)) {
         var valid = new Predicate(cl.tok, "Valid", false, false, true, new List<TypeParameter>(), new List<Formal>(),
-          new List<Expression>(), new List<FrameExpression>(), new List<Expression>(), new Specification<Expression>(new List<Expression>(), null),
+          new List<MaybeFreeExpression>(), new List<FrameExpression>(), new List<MaybeFreeExpression>(), new Specification<Expression>(new List<Expression>(), null),
           null, Predicate.BodyOriginKind.OriginalOrInherited, null, null);
         cl.Members.Add(valid);
         // It will be added to hover text later
@@ -492,7 +492,7 @@ namespace Microsoft.Dafny
           var f = (Function)member;
           // requires Valid()
           var valid = new FunctionCallExpr(tok, "Valid", new ImplicitThisExpr(tok), tok, new List<Expression>());
-          f.Req.Insert(0, valid);
+          f.Req.Insert(0, new MaybeFreeExpression(valid));
           var format = "requires {0}";
           var repr = new MemberSelectExpr(tok, new ImplicitThisExpr(tok), "Repr");
           if (f.Reads.Count == 0) {
@@ -1024,18 +1024,23 @@ namespace Microsoft.Dafny
             parentFunction = fn;  // Remember where the recursion started
             containsMatch = false;  // Assume no match statements are involved
 
-            List<Expression> auto_reqs = new List<Expression>();
+            List<MaybeFreeExpression> auto_reqs = new List<MaybeFreeExpression>();
 
             // First handle all of the requirements' preconditions
-            foreach (Expression req in fn.Req) {
-              auto_reqs.AddRange(generateAutoReqs(req));
+            foreach (MaybeFreeExpression req in fn.Req) {
+              foreach (Expression e in generateAutoReqs(req.E)) {
+                auto_reqs.Add(new MaybeFreeExpression(e, req.IsFree, req.Attributes));
+              }
             }
             fn.Req.InsertRange(0, auto_reqs); // Need to come before the actual requires
             addAutoReqToolTipInfoToFunction("pre", fn, auto_reqs);
 
             // Then the body itself, if any          
             if (fn.Body != null) {
-              auto_reqs = generateAutoReqs(fn.Body);
+              auto_reqs = new List<MaybeFreeExpression>();
+              foreach (Expression e in generateAutoReqs(fn.Body)) {
+                auto_reqs.Add(new MaybeFreeExpression(e));
+              }
               fn.Req.AddRange(auto_reqs);
               addAutoReqToolTipInfoToFunction("post", fn, auto_reqs);
             }            
@@ -1080,16 +1085,16 @@ namespace Microsoft.Dafny
       return sub.Substitute(e);
     }
 
-    public void addAutoReqToolTipInfoToFunction(string label, Function f, List<Expression> reqs) {
+    public void addAutoReqToolTipInfoToFunction(string label, Function f, List<MaybeFreeExpression> reqs) {
       string prefix = "auto requires " + label + " ";
       string tip = "";
 
       string sep = "";
       foreach (var req in reqs) {
         if (containsMatch) {  // Pretty print the requirements
-          tip += sep + prefix + Printer.ExtendedExprToString(req) + ";";
+          tip += sep + prefix + Printer.ExtendedExprToString(req.E) + ";";
         } else {
-          tip += sep + prefix + Printer.ExprToString(req) + ";";
+          tip += sep + prefix + Printer.ExprToString(req.E) + ";";
         }
         sep = "\n";
       }
@@ -1156,7 +1161,7 @@ namespace Microsoft.Dafny
 
         foreach (var req in f.Req) {
           Translator.Substituter sub = new Translator.Substituter(f_this, substMap, typeMap);          
-          translated_f_reqs.Add(sub.Substitute(req));         
+          translated_f_reqs.Add(sub.Substitute(req.E));         
         }
       }
 

@@ -1586,7 +1586,7 @@ MethodSpec<.List<MaybeFreeExpression> req, List<FrameExpression> mod, List<Maybe
      Contract.Requires(cce.NonNullElements(mod));
      Contract.Requires(cce.NonNullElements(ens));
      Contract.Requires(cce.NonNullElements(decreases));
-     Expression e;  FrameExpression fe;  bool isFree = false; Attributes ensAttrs = null;
+     Expression e;  FrameExpression fe;  bool isFree = false; Attributes ensAttrs = null; Attributes reqAttrs = null;
   .)
   SYNC
   ( "modifies" { IF(IsAttribute()) Attribute<ref modAttrs> }
@@ -1598,7 +1598,9 @@ MethodSpec<.List<MaybeFreeExpression> req, List<FrameExpression> mod, List<Maybe
                                                                 errors.Deprecated(t, "the 'free' keyword is soon to be deprecated");
                                                              .)
     ]
-    ( "requires" Expression<out e, false, false> OldSemi     (. req.Add(new MaybeFreeExpression(e, isFree)); .)
+    ( "requires" 
+		  { IF(IsAttribute()) Attribute<ref reqAttrs> }
+		  Expression<out e, false, false> OldSemi                (. req.Add(new MaybeFreeExpression(e, isFree, reqAttrs)); .)
     | "ensures"
       { IF(IsAttribute()) Attribute<ref ensAttrs> }
       Expression<out e, false, false> OldSemi                (. ens.Add(new MaybeFreeExpression(e, isFree, ensAttrs)); .)
@@ -1824,8 +1826,8 @@ FunctionDecl<DeclModifierData dmod, bool isWithinAbstractModule, out Function/*!
      List<Formal/*!*/> formals = new List<Formal/*!*/>();
      Formal/*!*/ result = null;
      Type/*!*/ returnType = new BoolType();
-     List<Expression/*!*/> reqs = new List<Expression/*!*/>();
-     List<Expression/*!*/> ens = new List<Expression/*!*/>();
+     List<MaybeFreeExpression/*!*/> reqs = new List<MaybeFreeExpression/*!*/>();
+     List<MaybeFreeExpression/*!*/> ens = new List<MaybeFreeExpression/*!*/>();
      List<FrameExpression/*!*/> reads = new List<FrameExpression/*!*/>();
      List<Expression/*!*/> decreases;
      Expression body = null;
@@ -1980,19 +1982,24 @@ FunctionDecl<DeclModifierData dmod, bool isWithinAbstractModule, out Function/*!
      }
   .)
   .
-FunctionSpec<.List<Expression/*!*/>/*!*/ reqs, List<FrameExpression/*!*/>/*!*/ reads, List<Expression/*!*/>/*!*/ ens, List<Expression/*!*/> decreases.>
+FunctionSpec<.List<MaybeFreeExpression/*!*/>/*!*/ reqs, List<FrameExpression/*!*/>/*!*/ reads, List<MaybeFreeExpression/*!*/>/*!*/ ens, List<Expression/*!*/> decreases.>
 = (. Contract.Requires(cce.NonNullElements(reqs));
      Contract.Requires(cce.NonNullElements(reads));
      Contract.Requires(decreases == null || cce.NonNullElements(decreases));
-     Expression/*!*/ e;  FrameExpression/*!*/ fe; .)
+     Expression/*!*/ e;  FrameExpression/*!*/ fe;
+		 Attributes ensAttrs = null; Attributes reqAttrs = null; .)
   SYNC
-  ( "requires" Expression<out e, false, false> OldSemi  (. reqs.Add(e); .)
+  ( "requires" 
+	  { IF(IsAttribute()) Attribute<ref reqAttrs> }
+		  Expression<out e, false, false> OldSemi                (. reqs.Add(new MaybeFreeExpression(e, false, reqAttrs)); .)
   | "reads"
     PossiblyWildFrameExpression<out fe, false>          (. reads.Add(fe); .)
     { "," PossiblyWildFrameExpression<out fe, false>    (. reads.Add(fe); .)
     }
     OldSemi
-  | "ensures" Expression<out e, false, false> OldSemi       (. ens.Add(e); .)
+  | "ensures"
+	  { IF(IsAttribute()) Attribute<ref ensAttrs> }
+      Expression<out e, false, false> OldSemi                (. ens.Add(new MaybeFreeExpression(e, false, ensAttrs)); .)
   | "decreases"                               (. if (decreases == null) {
                                                    SemErr(t, "'decreases' clauses are meaningless for copredicates, so they are not allowed");
                                                    decreases = new List<Expression/*!*/>();
