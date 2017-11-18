@@ -1785,16 +1785,16 @@ namespace Microsoft.Dafny {
             wr.Write(TrStmt(s.Thn, indent).ToString());
           }
         } else {
-          if (s.IsExistentialGuard && DafnyOptions.O.ForbidNondeterminism) {
+          if (s.IsBindingGuard && DafnyOptions.O.ForbidNondeterminism) {
             Error(s.Tok, "binding if statement forbidden by /definiteAssignment:3 option", wr);
           }
           Indent(indent, wr); wr.Write("if (");
-          TrExpr(s.IsExistentialGuard ? Translator.AlphaRename((ExistsExpr)s.Guard, "eg_d") : s.Guard, wr, false);
+          TrExpr(s.IsBindingGuard ? Translator.AlphaRename((ExistsExpr)s.Guard, "eg_d") : s.Guard, wr, false);
           wr.WriteLine(")");
 
           // We'd like to do "TrStmt(s.Thn, indent)", except we want the scope of any existential variables to come inside the block
           Indent(indent, wr); wr.WriteLine("{");
-          if (s.IsExistentialGuard) {
+          if (s.IsBindingGuard) {
             IntroduceAndAssignBoundVars(indent + IndentAmount, (ExistsExpr)s.Guard, wr);
           }
           TrStmtList(s.Thn.Body, indent, wr);
@@ -1814,9 +1814,9 @@ namespace Microsoft.Dafny {
         Indent(indent, wr);
         foreach (var alternative in s.Alternatives) {
           wr.Write("if (");
-          TrExpr(alternative.IsExistentialGuard ? Translator.AlphaRename((ExistsExpr)alternative.Guard, "eg_d") : alternative.Guard, wr, false);
+          TrExpr(alternative.IsBindingGuard ? Translator.AlphaRename((ExistsExpr)alternative.Guard, "eg_d") : alternative.Guard, wr, false);
           wr.WriteLine(") {");
-          if (alternative.IsExistentialGuard) {
+          if (alternative.IsBindingGuard) {
             IntroduceAndAssignBoundVars(indent + IndentAmount, (ExistsExpr)alternative.Guard, wr);
           }
           TrStmtList(alternative.Body, indent, wr);

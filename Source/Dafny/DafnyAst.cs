@@ -213,12 +213,12 @@ namespace Microsoft.Dafny {
         var readsFrame = new List<FrameExpression> { new FrameExpression(tok, readsIS, null) };
         var req = new Function(tok, "requires", false, false, true,
           new List<TypeParameter>(), args, null, Type.Bool,
-          new List<Expression>(), readsFrame, new List<Expression>(),
+          new List<MaybeFreeExpression>(), readsFrame, new List<MaybeFreeExpression>(),
           new Specification<Expression>(new List<Expression>(), null),
           null, null, null);
         var reads = new Function(tok, "reads", false, false, true,
           new List<TypeParameter>(), args, null, new SetType(true, Object()),
-          new List<Expression>(), readsFrame, new List<Expression>(),
+          new List<MaybeFreeExpression>(), readsFrame, new List<MaybeFreeExpression>(),
           new Specification<Expression>(new List<Expression>(), null),
           null, null, null);
         readsIS.Function = reads;  // just so we can really claim the member declarations are resolved
@@ -4611,7 +4611,7 @@ namespace Microsoft.Dafny {
   {
     public SpecialFunction(IToken tok, string name, bool hasStaticKeyword, bool isProtected, bool isGhost,
                     List<TypeParameter> typeArgs, List<Formal> formals, Type resultType,
-                    List<Expression> req, List<FrameExpression> reads, List<Expression> ens, Specification<Expression> decreases,
+                    List<MaybeFreeExpression> req, List<FrameExpression> reads, List<MaybeFreeExpression> ens, Specification<Expression> decreases,
                     Expression body, Attributes attributes, IToken signatureEllipsis)
       : base(tok, name, hasStaticKeyword, isProtected, isGhost, typeArgs, formals, null, resultType, req, reads, ens, decreases, body, attributes, signatureEllipsis) 
     { }
@@ -5418,9 +5418,9 @@ namespace Microsoft.Dafny {
     public readonly List<Formal> Formals;
     public readonly Formal Result;
     public readonly Type ResultType;
-    public readonly List<Expression> Req;
+    public readonly List<MaybeFreeExpression> Req;
     public readonly List<FrameExpression> Reads;
-    public readonly List<Expression> Ens;
+    public readonly List<MaybeFreeExpression> Ens;
     public readonly Specification<Expression> Decreases;
     public Expression Body;  // an extended expression; Body is readonly after construction, except for any kind of rewrite that may take place around the time of resolution
     public bool SignatureIsOmitted { get { return SignatureEllipsis != null; } }  // is "false" for all Function objects that survive into resolution
@@ -5436,13 +5436,13 @@ namespace Microsoft.Dafny {
     public override IEnumerable<Expression> SubExpressions {
       get {
         foreach (var e in Req) {
-          yield return e;
+          yield return e.E;
         }
         foreach (var e in Reads) {
           yield return e.E;
         }
         foreach (var e in Ens) {
-          yield return e;
+          yield return e.E;
         }
         foreach (var e in Decreases.Expressions) {
           yield return e;
@@ -5496,7 +5496,7 @@ namespace Microsoft.Dafny {
     /// </summary>
     public Function(IToken tok, string name, bool hasStaticKeyword, bool isProtected, bool isGhost,
                     List<TypeParameter> typeArgs, List<Formal> formals, Formal result, Type resultType,
-                    List<Expression> req, List<FrameExpression> reads, List<Expression> ens, Specification<Expression> decreases,
+                    List<MaybeFreeExpression> req, List<FrameExpression> reads, List<MaybeFreeExpression> ens, Specification<Expression> decreases,
                     Expression body, Attributes attributes, IToken signatureEllipsis)
       : base(tok, name, hasStaticKeyword, isGhost, attributes) {
 
@@ -5574,7 +5574,7 @@ namespace Microsoft.Dafny {
     public readonly BodyOriginKind BodyOrigin;
     public Predicate(IToken tok, string name, bool hasStaticKeyword, bool isProtected, bool isGhost,
                      List<TypeParameter> typeArgs, List<Formal> formals,
-                     List<Expression> req, List<FrameExpression> reads, List<Expression> ens, Specification<Expression> decreases,
+                     List<MaybeFreeExpression> req, List<FrameExpression> reads, List<MaybeFreeExpression> ens, Specification<Expression> decreases,
                      Expression body, BodyOriginKind bodyOrigin, Attributes attributes, IToken signatureEllipsis)
       : base(tok, name, hasStaticKeyword, isProtected, isGhost, typeArgs, formals, null, Type.Bool, req, reads, ens, decreases, body, attributes, signatureEllipsis) {
       Contract.Requires(bodyOrigin == Predicate.BodyOriginKind.OriginalOrInherited || body != null);
@@ -5592,7 +5592,7 @@ namespace Microsoft.Dafny {
     public readonly FixpointPredicate FixpointPred;
     public PrefixPredicate(IToken tok, string name, bool hasStaticKeyword, bool isProtected,
                      List<TypeParameter> typeArgs, Formal k, List<Formal> formals,
-                     List<Expression> req, List<FrameExpression> reads, List<Expression> ens, Specification<Expression> decreases,
+                     List<MaybeFreeExpression> req, List<FrameExpression> reads, List<MaybeFreeExpression> ens, Specification<Expression> decreases,
                      Expression body, Attributes attributes, FixpointPredicate fixpointPred)
       : base(tok, name, hasStaticKeyword, isProtected, true, typeArgs, formals, null, Type.Bool, req, reads, ens, decreases, body, attributes, null) {
       Contract.Requires(k != null);
@@ -5617,7 +5617,7 @@ namespace Microsoft.Dafny {
 
     public FixpointPredicate(IToken tok, string name, bool hasStaticKeyword, bool isProtected, KType typeOfK,
                              List<TypeParameter> typeArgs, List<Formal> formals,
-                             List<Expression> req, List<FrameExpression> reads, List<Expression> ens,
+                             List<MaybeFreeExpression> req, List<FrameExpression> reads, List<MaybeFreeExpression> ens,
                              Expression body, Attributes attributes, IToken signatureEllipsis)
       : base(tok, name, hasStaticKeyword, isProtected, true, typeArgs, formals, null, Type.Bool,
              req, reads, ens, new Specification<Expression>(new List<Expression>(), null), body, attributes, signatureEllipsis) {
@@ -5666,7 +5666,7 @@ namespace Microsoft.Dafny {
     public override string WhatKind { get { return "inductive predicate"; } }
     public InductivePredicate(IToken tok, string name, bool hasStaticKeyword, bool isProtected, KType typeOfK,
                               List<TypeParameter> typeArgs, List<Formal> formals,
-                              List<Expression> req, List<FrameExpression> reads, List<Expression> ens,
+                              List<MaybeFreeExpression> req, List<FrameExpression> reads, List<MaybeFreeExpression> ens,
                               Expression body, Attributes attributes, IToken signatureEllipsis)
       : base(tok, name, hasStaticKeyword, isProtected, typeOfK, typeArgs, formals,
              req, reads, ens, body, attributes, signatureEllipsis) {
@@ -5678,7 +5678,7 @@ namespace Microsoft.Dafny {
     public override string WhatKind { get { return "copredicate"; } }
     public CoPredicate(IToken tok, string name, bool hasStaticKeyword, bool isProtected, KType typeOfK,
                        List<TypeParameter> typeArgs, List<Formal> formals,
-                       List<Expression> req, List<FrameExpression> reads, List<Expression> ens,
+                       List<MaybeFreeExpression> req, List<FrameExpression> reads, List<MaybeFreeExpression> ens,
                        Expression body, Attributes attributes, IToken signatureEllipsis)
       : base(tok, name, hasStaticKeyword, isProtected, typeOfK, typeArgs, formals,
              req, reads, ens, body, attributes, signatureEllipsis) {
@@ -5690,7 +5690,7 @@ namespace Microsoft.Dafny {
     public override string WhatKind { get { return "twostate function"; } }
     public TwoStateFunction(IToken tok, string name, bool hasStaticKeyword,
                      List<TypeParameter> typeArgs, List<Formal> formals, Formal result, Type resultType,
-                     List<Expression> req, List<FrameExpression> reads, List<Expression> ens, Specification<Expression> decreases,
+                     List<MaybeFreeExpression> req, List<FrameExpression> reads, List<MaybeFreeExpression> ens, Specification<Expression> decreases,
                      Expression body, Attributes attributes, IToken signatureEllipsis)
       : base(tok, name, hasStaticKeyword, false, true, typeArgs, formals, result, resultType, req, reads, ens, decreases, body, attributes, signatureEllipsis) {
       Contract.Requires(tok != null);
@@ -5711,7 +5711,7 @@ namespace Microsoft.Dafny {
     public override string WhatKind { get { return "twostate predicate"; } }
     public TwoStatePredicate(IToken tok, string name, bool hasStaticKeyword,
                      List<TypeParameter> typeArgs, List<Formal> formals,
-                     List<Expression> req, List<FrameExpression> reads, List<Expression> ens, Specification<Expression> decreases,
+                     List<MaybeFreeExpression> req, List<FrameExpression> reads, List<MaybeFreeExpression> ens, Specification<Expression> decreases,
                      Expression body, Attributes attributes, IToken signatureEllipsis)
       : base(tok, name, hasStaticKeyword, typeArgs, formals, null, Type.Bool, req, reads, ens, decreases, body, attributes, signatureEllipsis) {
       Contract.Requires(tok != null);
@@ -6219,6 +6219,13 @@ namespace Microsoft.Dafny {
           yield return Proof;
         }
       }
+    }
+    public void AddCustomizedErrorMessage(IToken tok, string s) {
+      var args = new List<Expression>() { new StringLiteralExpr(tok, s, true) };
+      IToken openBrace = tok;
+      IToken colon = new Token(tok.line, tok.col + 1);
+      IToken closeBrace = new Token(tok.line, tok.col + 7 + s.Length + 1); // where 7 = length(":error ")
+      this.Attributes = new UserSuppliedAttributes(tok, openBrace, colon, closeBrace, args, this.Attributes);
     }
   }
 
@@ -7013,24 +7020,24 @@ namespace Microsoft.Dafny {
   }
 
   public class IfStmt : Statement {
-    public readonly bool IsExistentialGuard;
+    public readonly bool IsBindingGuard;
     public readonly Expression Guard;
     public readonly BlockStmt Thn;
     public readonly Statement Els;
     [ContractInvariantMethod]
     void ObjectInvariant() {
-      Contract.Invariant(!IsExistentialGuard || (Guard is ExistsExpr && ((ExistsExpr)Guard).Range == null));
+      Contract.Invariant(!IsBindingGuard || (Guard is ExistsExpr && ((ExistsExpr)Guard).Range == null));
       Contract.Invariant(Thn != null);
       Contract.Invariant(Els == null || Els is BlockStmt || Els is IfStmt || Els is SkeletonStatement);
     }
-    public IfStmt(IToken tok, IToken endTok, bool isExistentialGuard, Expression guard, BlockStmt thn, Statement els)
+    public IfStmt(IToken tok, IToken endTok, bool isBindingGuard, Expression guard, BlockStmt thn, Statement els)
       : base(tok, endTok) {
       Contract.Requires(tok != null);
       Contract.Requires(endTok != null);
-      Contract.Requires(!isExistentialGuard || (guard is ExistsExpr && ((ExistsExpr)guard).Range == null));
+      Contract.Requires(!isBindingGuard || (guard is ExistsExpr && ((ExistsExpr)guard).Range == null));
       Contract.Requires(thn != null);
       Contract.Requires(els == null || els is BlockStmt || els is IfStmt || els is SkeletonStatement);
-      this.IsExistentialGuard = isExistentialGuard;
+      this.IsBindingGuard = isBindingGuard;
       this.Guard = guard;
       this.Thn = thn;
       this.Els = els;
@@ -7056,24 +7063,24 @@ namespace Microsoft.Dafny {
   public class GuardedAlternative
   {
     public readonly IToken Tok;
-    public readonly bool IsExistentialGuard;
+    public readonly bool IsBindingGuard;
     public readonly Expression Guard;
     public readonly List<Statement> Body;
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(Tok != null);
       Contract.Invariant(Guard != null);
-      Contract.Invariant(!IsExistentialGuard || (Guard is ExistsExpr && ((ExistsExpr)Guard).Range == null));
+      Contract.Invariant(!IsBindingGuard || (Guard is ExistsExpr && ((ExistsExpr)Guard).Range == null));
       Contract.Invariant(Body != null);
     }
-    public GuardedAlternative(IToken tok, bool isExistentialGuard, Expression guard, List<Statement> body)
+    public GuardedAlternative(IToken tok, bool isBindingGuard, Expression guard, List<Statement> body)
     {
       Contract.Requires(tok != null);
       Contract.Requires(guard != null);
-      Contract.Requires(!isExistentialGuard || (guard is ExistsExpr && ((ExistsExpr)guard).Range == null));
+      Contract.Requires(!isBindingGuard || (guard is ExistsExpr && ((ExistsExpr)guard).Range == null));
       Contract.Requires(body != null);
       this.Tok = tok;
-      this.IsExistentialGuard = isExistentialGuard;
+      this.IsBindingGuard = isBindingGuard;
       this.Guard = guard;
       this.Body = body;
     }
@@ -10206,7 +10213,7 @@ namespace Microsoft.Dafny {
 
   public class ITEExpr : Expression
   {
-    public readonly bool IsExistentialGuard;
+    public readonly bool IsBindingGuard;
     public readonly Expression Test;
     public readonly Expression Thn;
     public readonly Expression Els;
@@ -10217,13 +10224,13 @@ namespace Microsoft.Dafny {
       Contract.Invariant(Els != null);
     }
 
-    public ITEExpr(IToken tok, bool isExistentialGuard, Expression test, Expression thn, Expression els)
+    public ITEExpr(IToken tok, bool isBindingGuard, Expression test, Expression thn, Expression els)
       : base(tok) {
       Contract.Requires(tok != null);
       Contract.Requires(test != null);
       Contract.Requires(thn != null);
       Contract.Requires(els != null);
-      this.IsExistentialGuard = isExistentialGuard;
+      this.IsBindingGuard = isBindingGuard;
       this.Test = test;
       this.Thn = thn;
       this.Els = els;
@@ -10525,6 +10532,14 @@ namespace Microsoft.Dafny {
       E = e;
       IsFree = isFree;
       Attributes = attrs;
+    }
+
+    public void AddCustomizedErrorMessage(IToken tok, string s) {
+      var args = new List<Expression>() { new StringLiteralExpr(tok, s, true) };
+      IToken openBrace = tok;
+      IToken colon = new Token(tok.line, tok.col + 1);
+      IToken closeBrace = new Token(tok.line, tok.col + 7 + s.Length + 1); // where 7 = length(":error ")
+      this.Attributes = new UserSuppliedAttributes(tok, openBrace, colon, closeBrace, args, this.Attributes);
     }
   }
 

@@ -40,11 +40,11 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public static string GuardToString(bool isExistentialGuard, Expression expr) {
-      Contract.Requires(!isExistentialGuard || (expr is ExistsExpr && ((ExistsExpr)expr).Range == null));
+    public static string GuardToString(bool isBindingGuard, Expression expr) {
+      Contract.Requires(!isBindingGuard || (expr is ExistsExpr && ((ExistsExpr)expr).Range == null));
       using (var wr = new System.IO.StringWriter()) {
         var pr = new Printer(wr);
-        pr.PrintGuard(isExistentialGuard, expr);
+        pr.PrintGuard(isBindingGuard, expr);
         return wr.ToString();
       }
     }
@@ -1447,7 +1447,7 @@ namespace Microsoft.Dafny {
         wr.Write("if ... ");
       } else {
         wr.Write("if ");
-        PrintGuard(s.IsExistentialGuard, s.Guard);
+        PrintGuard(s.IsBindingGuard, s.Guard);
         wr.Write(" ");
       }
       PrintStatement(s.Thn, indent);
@@ -1485,9 +1485,9 @@ namespace Microsoft.Dafny {
         wr.WriteLine();
         Indent(indent);
         wr.Write("case ");
-        if (alternative.IsExistentialGuard) {
+        if (alternative.IsBindingGuard) {
           var exists = (ExistsExpr)alternative.Guard;
-          PrintExistentialGuard(exists);
+          PrintBindingGuard(exists);
         } else {
           PrintExpression(alternative.Guard, false);
         }
@@ -1557,19 +1557,19 @@ namespace Microsoft.Dafny {
       }
     }
 
-    void PrintGuard(bool isExistentialGuard, Expression guard) {
-      Contract.Requires(!isExistentialGuard || (guard is ExistsExpr && ((ExistsExpr)guard).Range == null));
+    void PrintGuard(bool isBindingGuard, Expression guard) {
+      Contract.Requires(!isBindingGuard || (guard is ExistsExpr && ((ExistsExpr)guard).Range == null));
       if (guard == null) {
         wr.Write("*");
-      } else if (isExistentialGuard) {
+      } else if (isBindingGuard) {
         var exists = (ExistsExpr)guard;
-        PrintExistentialGuard(exists);
+        PrintBindingGuard(exists);
       } else {
         PrintExpression(guard, false);
       }
     }
 
-    void PrintExistentialGuard(ExistsExpr guard) {
+    void PrintBindingGuard(ExistsExpr guard) {
       Contract.Requires(guard != null);
       Contract.Requires(guard.Range == null);
       PrintQuantifierDomain(guard.BoundVars, guard.Attributes, null);

@@ -369,14 +369,14 @@ namespace Microsoft.Dafny
       moduleUnderConstruction = null;
     }
 
-    Function CloneFunction(IToken tok, Function f, bool isGhost, List<Expression> moreEnsures, Formal moreResult, Expression moreBody, Expression replacementBody, bool checkPrevPostconditions, Attributes moreAttributes) {
+    Function CloneFunction(IToken tok, Function f, bool isGhost, List<MaybeFreeExpression> moreEnsures, Formal moreResult, Expression moreBody, Expression replacementBody, bool checkPrevPostconditions, Attributes moreAttributes) {
       Contract.Requires(tok != null);
       Contract.Requires(moreBody == null || f is Predicate);
       Contract.Requires(moreBody == null || replacementBody == null);
 
       var tps = f.TypeArgs.ConvertAll(refinementCloner.CloneTypeParam);
       var formals = f.Formals.ConvertAll(refinementCloner.CloneFormal);
-      var req = f.Req.ConvertAll(refinementCloner.CloneExpr);
+      var req = f.Req.ConvertAll(refinementCloner.CloneMayBeFreeExpr);
       var reads = f.Reads.ConvertAll(refinementCloner.CloneFrameExpr);
       var decreases = refinementCloner.CloneSpecExpr(f.Decreases);
       var result = f.Result ?? moreResult;
@@ -384,11 +384,11 @@ namespace Microsoft.Dafny
         result = refinementCloner.CloneFormal(result);
       }
 
-      List<Expression> ens;
+      List<MaybeFreeExpression> ens;
       if (checkPrevPostconditions)  // note, if a postcondition includes something that changes in the module, the translator will notice this and still re-check the postcondition
-        ens = f.Ens.ConvertAll(rawCloner.CloneExpr);
+        ens = f.Ens.ConvertAll(rawCloner.CloneMayBeFreeExpr);
       else
-        ens = f.Ens.ConvertAll(refinementCloner.CloneExpr);
+        ens = f.Ens.ConvertAll(refinementCloner.CloneMayBeFreeExpr);
       if (moreEnsures != null) {
         ens.AddRange(moreEnsures);
       }
@@ -594,7 +594,7 @@ namespace Microsoft.Dafny
             } else {
               var prevFunction = (Function)member;
               if (f.Req.Count != 0) {
-                reporter.Error(MessageSource.RefinementTransformer, f.Req[0].tok, "a refining {0} is not allowed to add preconditions", f.WhatKind);
+                reporter.Error(MessageSource.RefinementTransformer, f.Req[0].E.tok, "a refining {0} is not allowed to add preconditions", f.WhatKind);
               }
               if (f.Reads.Count != 0) {
                 reporter.Error(MessageSource.RefinementTransformer, f.Reads[0].E.tok, "a refining {0} is not allowed to extend the reads clause", f.WhatKind);
@@ -1054,9 +1054,9 @@ namespace Microsoft.Dafny
                 var resultingThen = MergeBlockStmt(skel.Thn, oldIf.Thn);
                 var resultingElse = MergeElse(skel.Els, oldIf.Els);
                 var e = refinementCloner.CloneExpr(oldIf.Guard);
-                var r = new IfStmt(skel.Tok, skel.EndTok, oldIf.IsExistentialGuard, e, resultingThen, resultingElse);
+                var r = new IfStmt(skel.Tok, skel.EndTok, oldIf.IsBindingGuard, e, resultingThen, resultingElse);
                 body.Add(r);
-                reporter.Info(MessageSource.RefinementTransformer, c.ConditionEllipsis, Printer.GuardToString(oldIf.IsExistentialGuard, e));
+                reporter.Info(MessageSource.RefinementTransformer, c.ConditionEllipsis, Printer.GuardToString(oldIf.IsBindingGuard, e));
                 i++; j++;
               }
 
@@ -1221,7 +1221,7 @@ namespace Microsoft.Dafny
             var cNew = (IfStmt)cur;
             var cOld = oldS as IfStmt;
             if (cOld != null && cOld.Guard == null) {
-              var r = new IfStmt(cNew.Tok, cNew.EndTok, cNew.IsExistentialGuard, cNew.Guard, MergeBlockStmt(cNew.Thn, cOld.Thn), MergeElse(cNew.Els, cOld.Els));
+              var r = new IfStmt(cNew.Tok, cNew.EndTok, cNew.IsBindingGuard, cNew.Guard, MergeBlockStmt(cNew.Thn, cOld.Thn), MergeElse(cNew.Els, cOld.Els));
               body.Add(r);
               i++; j++;
             } else {

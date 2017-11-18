@@ -1666,8 +1666,8 @@ int StringToInt(string s, int defaultValue, string errString) {
 		List<Formal/*!*/> formals = new List<Formal/*!*/>();
 		Formal/*!*/ result = null;
 		Type/*!*/ returnType = new BoolType();
-		List<Expression/*!*/> reqs = new List<Expression/*!*/>();
-		List<Expression/*!*/> ens = new List<Expression/*!*/>();
+		List<MaybeFreeExpression/*!*/> reqs = new List<MaybeFreeExpression/*!*/>();
+		List<MaybeFreeExpression/*!*/> ens = new List<MaybeFreeExpression/*!*/>();
 		List<FrameExpression/*!*/> reads = new List<FrameExpression/*!*/>();
 		List<Expression/*!*/> decreases;
 		Expression body = null;
@@ -2600,7 +2600,7 @@ List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, st
 		Contract.Requires(cce.NonNullElements(mod));
 		Contract.Requires(cce.NonNullElements(ens));
 		Contract.Requires(cce.NonNullElements(decreases));
-		Expression e;  FrameExpression fe;  bool isFree = false; Attributes ensAttrs = null;
+		Expression e;  FrameExpression fe;  bool isFree = false; Attributes ensAttrs = null; Attributes reqAttrs = null;
 		
 		while (!(StartOf(19))) {SynErr(199); Get();}
 		if (la.kind == 66) {
@@ -2625,9 +2625,12 @@ List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, st
 			}
 			if (la.kind == 68) {
 				Get();
+				while (IsAttribute()) {
+					Attribute(ref reqAttrs);
+				}
 				Expression(out e, false, false);
 				OldSemi();
-				req.Add(new MaybeFreeExpression(e, isFree)); 
+				req.Add(new MaybeFreeExpression(e, isFree, reqAttrs)); 
 			} else if (la.kind == 69) {
 				Get();
 				while (IsAttribute()) {
@@ -2745,17 +2748,21 @@ List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, st
 		Expect(79);
 	}
 
-	void FunctionSpec(List<Expression/*!*/>/*!*/ reqs, List<FrameExpression/*!*/>/*!*/ reads, List<Expression/*!*/>/*!*/ ens, List<Expression/*!*/> decreases) {
+	void FunctionSpec(List<MaybeFreeExpression/*!*/>/*!*/ reqs, List<FrameExpression/*!*/>/*!*/ reads, List<MaybeFreeExpression/*!*/>/*!*/ ens, List<Expression/*!*/> decreases) {
 		Contract.Requires(cce.NonNullElements(reqs));
 		Contract.Requires(cce.NonNullElements(reads));
 		Contract.Requires(decreases == null || cce.NonNullElements(decreases));
-		Expression/*!*/ e;  FrameExpression/*!*/ fe; 
+		Expression/*!*/ e;  FrameExpression/*!*/ fe;
+		Attributes ensAttrs = null; Attributes reqAttrs = null; 
 		while (!(StartOf(20))) {SynErr(203); Get();}
 		if (la.kind == 68) {
 			Get();
+			while (IsAttribute()) {
+				Attribute(ref reqAttrs);
+			}
 			Expression(out e, false, false);
 			OldSemi();
-			reqs.Add(e); 
+			reqs.Add(new MaybeFreeExpression(e, false, reqAttrs)); 
 		} else if (la.kind == 67) {
 			Get();
 			PossiblyWildFrameExpression(out fe, false);
@@ -2768,9 +2775,12 @@ List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, st
 			OldSemi();
 		} else if (la.kind == 69) {
 			Get();
+			while (IsAttribute()) {
+				Attribute(ref ensAttrs);
+			}
 			Expression(out e, false, false);
 			OldSemi();
-			ens.Add(e); 
+			ens.Add(new MaybeFreeExpression(e, false, ensAttrs)); 
 		} else if (la.kind == 42) {
 			Get();
 			if (decreases == null) {

@@ -264,14 +264,14 @@ namespace Microsoft.Dafny
 
       List<Formal> formals = new List<Formal> { new Formal(Token.NoToken, "w", Type.Nat(), true, false, false) };
       var rotateLeft = new SpecialFunction(Token.NoToken, "RotateLeft", false, false, false, new List<TypeParameter>(), formals, new SelfType(),
-        new List<Expression>(), new List<FrameExpression>(), new List<Expression>(), new Specification<Expression>(new List<Expression>(), null), null, null, null);
+        new List<MaybeFreeExpression>(), new List<FrameExpression>(), new List<MaybeFreeExpression>(), new Specification<Expression>(new List<Expression>(), null), null, null, null);
       rotateLeft.AddVisibilityScope(prog.BuiltIns.SystemModule.VisibilityScope, false);
       basicTypeMembers[(int)BasicTypeVariety.Bitvector].Add(rotateLeft.Name, rotateLeft);
       builtIns.CreateArrowTypeDecl(formals.Count);
 
       formals = new List<Formal> { new Formal(Token.NoToken, "w", Type.Nat(), true, false, false) };
       var rotateRight = new SpecialFunction(Token.NoToken, "RotateRight", false, false, false, new List<TypeParameter>(), formals, new SelfType(),
-        new List<Expression>(), new List<FrameExpression>(), new List<Expression>(), new Specification<Expression>(new List<Expression>(), null), null, null, null);
+        new List<MaybeFreeExpression>(), new List<FrameExpression>(), new List<MaybeFreeExpression>(), new Specification<Expression>(new List<Expression>(), null), null, null, null);
       rotateLeft.AddVisibilityScope(prog.BuiltIns.SystemModule.VisibilityScope, false);
       basicTypeMembers[(int)BasicTypeVariety.Bitvector].Add(rotateRight.Name, rotateRight);
     }
@@ -1598,9 +1598,9 @@ namespace Microsoft.Dafny
           // --- here comes predicate Valid()
           var valid = new Predicate(iter.tok, "Valid", false, true, true, new List<TypeParameter>(),
             new List<Formal>(),
-            new List<Expression>(),
+            new List<MaybeFreeExpression>(),
             new List<FrameExpression>(),
-            new List<Expression>(),
+            new List<MaybeFreeExpression>(),
             new Specification<Expression>(new List<Expression>(), null),
             null, Predicate.BodyOriginKind.OriginalOrInherited, null, null);
           // --- here comes method MoveNext
@@ -1685,9 +1685,9 @@ namespace Microsoft.Dafny
                   // create prefix predicate
                   cop.PrefixPredicate = new PrefixPredicate(cop.tok, extraName, cop.HasStaticKeyword, cop.IsProtected,
                     tyvars, k, formals,
-                    cop.Req.ConvertAll(cloner.CloneExpr),
+                    cop.Req.ConvertAll(cloner.CloneMayBeFreeExpr),
                     cop.Reads.ConvertAll(cloner.CloneFrameExpr),
-                    cop.Ens.ConvertAll(cloner.CloneExpr),
+                    cop.Ens.ConvertAll(cloner.CloneMayBeFreeExpr),
                     new Specification<Expression>(new List<Expression>() { new IdentifierExpr(cop.tok, k.Name) }, null),
                     cop.Body,
                     null,
@@ -2727,7 +2727,7 @@ namespace Microsoft.Dafny
                 // Check here for the presence of any 'ensures' clauses, which are not allowed (because we're not sure
                 // of their soundness)
                 if (fn.Ens.Count != 0) {
-                  reporter.Error(MessageSource.Resolver, fn.Ens[0].tok, "a {0} is not allowed to declare any ensures clause", member.WhatKind);
+                  reporter.Error(MessageSource.Resolver, fn.Ens[0].E.tok, "a {0} is not allowed to declare any ensures clause", member.WhatKind);
                 }
                 if (fn.Body != null) {
                   FixpointPredicateChecks(fn.Body, fn, CallingPosition.Positive);
@@ -5055,8 +5055,8 @@ namespace Microsoft.Dafny
       } else if (member is Function) {
         var f = (Function)member;
         var errorCount = reporter.Count(ErrorLevel.Error);
-        f.Req.Iter(e => CheckTypeInference(e, f));
-        f.Ens.Iter(e => CheckTypeInference(e, f));
+        f.Req.Iter(e => CheckTypeInference(e.E, f));
+        f.Ens.Iter(e => CheckTypeInference(e.E, f));
         f.Reads.Iter(fe => CheckTypeInference(fe.E, f));
         CheckTypeInference_Specification_Expr(f.Decreases, f);
         if (f.Body != null) {
@@ -7718,7 +7718,8 @@ namespace Microsoft.Dafny
       if (Attributes.ContainsBool(f.Attributes, "warnShadowing", ref warnShadowing)) {
         DafnyOptions.O.WarnShadowing = warnShadowing;  // set the value according to the attribute
       }
-      foreach (Expression r in f.Req) {
+      foreach (MaybeFreeExpression e in f.Req) {
+        Expression r = e.E;
         ResolveExpression(r, new ResolveOpts(f, f is TwoStateFunction));
         Contract.Assert(r.Type != null);  // follows from postcondition of ResolveExpression
         ConstrainTypeExprBool(r, "Precondition must be a boolean (got {0})");
@@ -7726,7 +7727,8 @@ namespace Microsoft.Dafny
       foreach (FrameExpression fr in f.Reads) {
         ResolveFrameExpression(fr, FrameExpressionUse.Reads, f);
       }
-      foreach (Expression r in f.Ens) {
+      foreach (MaybeFreeExpression e in f.Ens) {
+        Expression r = e.E;
         if (f.Result != null) {
           scope.PushMarker();
           scope.Push(f.Result.Name, f.Result);  // function return only visible in post-conditions
@@ -8872,7 +8874,7 @@ namespace Microsoft.Dafny
         }
 
         scope.PushMarker();
-        if (s.IsExistentialGuard) {
+        if (s.IsBindingGuard) {
           var exists = (ExistsExpr)s.Guard;
           foreach (var v in exists.BoundVars) {
             ScopePushAndReport(scope, v, "bound-variable");
@@ -9799,7 +9801,7 @@ namespace Microsoft.Dafny
       }
       foreach (var alternative in alternatives) {
         scope.PushMarker();
-        if (alternative.IsExistentialGuard) {
+        if (alternative.IsBindingGuard) {
           var exists = (ExistsExpr)alternative.Guard;
           foreach (var v in exists.BoundVars) {
             ScopePushAndReport(scope, v, "bound-variable");
