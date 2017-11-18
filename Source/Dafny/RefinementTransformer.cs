@@ -345,7 +345,7 @@ namespace Microsoft.Dafny
           // or class field.
           return aa.ResolvedParam.PositionalIndex == bb.ResolvedParam.PositionalIndex &&
                  aa.ResolvedParam.IsToplevelScope == bb.ResolvedParam.IsToplevelScope;
-        } else if (aa.ResolvedParam.IsAbstractTypeDeclaration && bb.ResolvedClass != null) {
+        } else if (aa.ResolvedParam != null && aa.ResolvedParam.IsAbstractTypeDeclaration && bb.ResolvedClass != null) {
           return (aa.ResolvedParam.Name == bb.ResolvedClass.Name);
         } else {
           // something is wrong; either aa or bb wasn't properly resolved, or they aren't the same
