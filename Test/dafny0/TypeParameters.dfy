@@ -71,8 +71,8 @@ class SequenceTest {
 
 class CC<T(0)> {
   var x: T
+
   method M(c: CC<T>, z: T) returns (y: T)
-    requires c != null
     modifies this
     ensures y == c.x && x == z
   {
@@ -197,9 +197,9 @@ class TyKn_K {
   function F(): int { 176 }
 }
 
-method TyKn_Main(k0: TyKn_K) {
-  var c := new TyKn_C<TyKn_K>;
-  var k1: TyKn_K;
+method TyKn_Main(k0: TyKn_K?) {
+  var c := new TyKn_C<TyKn_K?>;
+  var k1: TyKn_K?;
 
   assert k0 != null ==> k0.F() == 176;
   assert k1 != null ==> k1.F() == 176;

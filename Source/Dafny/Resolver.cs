@@ -4508,9 +4508,9 @@ namespace Microsoft.Dafny
     /// Convert each Assignable(A, B) constraint into a subtyping constraint A :> B,
     /// provided that:
     ///  - B is a non-proxy, and
-    ///  - either "proxySpecialization" is null or "proxySpecialization" prominently appears in A.
+    ///  - either "proxySpecialization" is null or some proxy in "proxySpecializations" prominently appears in A.
     /// </summary>
-    bool ConvertAssignableToSubtypeConstraints(TypeProxy/*?*/ proxySpecialization) {
+    bool ConvertAssignableToSubtypeConstraints(ISet<TypeProxy>/*?*/ proxySpecializations) {
       var anyNewConstraints = false;
       // If (the head of) the RHS of an Assignable is known, convert the XConstraint into a subtyping constraint
       var allX = AllXConstraints;
@@ -4518,7 +4518,8 @@ namespace Microsoft.Dafny
       foreach (var xc in allX) {
         if (xc.ConstraintName == "Assignable" && xc.Types[1].Normalize() is NonProxyType) {
           var t0 = xc.Types[0].NormalizeExpand();
-          if (proxySpecialization == null || t0 == proxySpecialization || t0.TypeArgs.Contains(proxySpecialization)) {
+          if (proxySpecializations == null || proxySpecializations.Contains(t0) ||
+            t0.TypeArgs.Exists(ta => proxySpecializations.Contains(ta))) {
             ConstrainSubtypeRelation(t0, xc.Types[1], xc.errorMsg, true);
             anyNewConstraints = true;
             continue;
@@ -9162,20 +9163,14 @@ namespace Microsoft.Dafny
       if (reporter.Count(ErrorLevel.Error) != errorCount) {
         return;
       }
-      UserDefinedType sourceType = null;
-      DatatypeDecl dtd = null;
-      PartiallyResolveTypeForMemberSelection(s.Source.tok, s.Source.Type);
-      if (s.Source.Type.IsDatatype) {
-        sourceType = (UserDefinedType)s.Source.Type.NormalizeExpand();
-        dtd = cce.NonNull((DatatypeDecl)sourceType.ResolvedClass);
-      }
+      var sourceType = PartiallyResolveTypeForMemberSelection(s.Source.tok, s.Source.Type).NormalizeExpand();
+      var dtd = sourceType.AsDatatype;
       var subst = new Dictionary<TypeParameter, Type>();
       Dictionary<string, DatatypeCtor> ctors;
       if (dtd == null) {
         reporter.Error(MessageSource.Resolver, s.Source, "the type of the match source expression must be a datatype (instead found {0})", s.Source.Type);
         ctors = null;
       } else {
-        Contract.Assert(sourceType != null);  // dtd and sourceType are set together above
         ctors = datatypeCtors[dtd];
         Contract.Assert(ctors != null);  // dtd should have been inserted into datatypeCtors during a previous resolution stage
 
@@ -9301,8 +9296,7 @@ namespace Microsoft.Dafny
       if (s.Source.Type.AsDatatype is TupleTypeDecl) {
         var udt = s.Source.Type.NormalizeExpand() as UserDefinedType;
         foreach (Type typeArg in udt.TypeArgs) {
-          PartiallyResolveTypeForMemberSelection(s.Tok, typeArg);
-          var t = typeArg.NormalizeExpand() as UserDefinedType;
+          var t = PartiallyResolveTypeForMemberSelection(s.Tok, typeArg).NormalizeExpand() as UserDefinedType;
           if (t != null) {
             dtd = cce.NonNull((DatatypeDecl)t.ResolvedClass);
             ctorsList.Add(datatypeCtors[dtd]);
@@ -10526,20 +10520,17 @@ namespace Microsoft.Dafny
     }
 
     /// <summary>
-    /// Tries to figure out the head of the type of "t" without making any inference decisions.
-    /// If it can be figured out completely, then "t" (suitably determined) is returned.
-    /// If "memberName" is null, the return value is always (a normalized version of) "t",
-    /// regardless of if "t" was figured out completely.
-    /// If "memberName" is non-null, then the determination will make use of the fact that
-    /// the determined type must have a member named "memberName".  In the event that "t" can
-    /// only be determined enough to figure out where to unambiguously pick up "memberName", then
-    /// that type (call it "r") is returned after adding a type constraint that "t" is a subtype of "r".
+    /// Roughly speaking, tries to figure out the head of the type of "t", making as few inference decisions as possible.
+    /// More precisely, returns a type that contains all the members of "t"; or if "memberName" is non-null, a type
+    /// that at least contains the member "memberName" of "t".  Typically, this type is the head type of "t",
+    /// but it may also be a type in a super- or subtype relation to "t".
+    /// In some cases, it is necessary to make some inference decisions in order to figure out the type to return.
     /// </summary>
     Type PartiallyResolveTypeForMemberSelection(IToken tok, Type t, string memberName = null, bool haveAlreadyTriedTheSimpleThings = false) {
       Contract.Requires(tok != null);
       Contract.Requires(t != null);
+      Contract.Ensures(Contract.Result<Type>() != null);
       Contract.Ensures(!(Contract.Result<Type>() is TypeProxy) || ((TypeProxy)Contract.Result<Type>()).T == null);
-      Contract.Ensures(memberName != null || Contract.Result<Type>() == t || Contract.Result<Type>().Equals(t.NormalizeExpand()));
       t = t.NormalizeExpand();
       if (!(t is TypeProxy)) {
         return t;  // we're good
@@ -10548,7 +10539,9 @@ namespace Microsoft.Dafny
       // simplify constraints
       PrintTypeConstraintState(10);
       if (haveAlreadyTriedTheSimpleThings) {
-        ConvertAssignableToSubtypeConstraints((TypeProxy)t);
+        var proxySpecializations = new HashSet<TypeProxy>();
+        GetRelatedTypeProxies(t, proxySpecializations);
+        ConvertAssignableToSubtypeConstraints(proxySpecializations);
       }
       PartiallySolveTypeConstraints(false);
       PrintTypeConstraintState(11);
@@ -10578,7 +10571,13 @@ namespace Microsoft.Dafny
         bool isRoot, isLeaf, headIsRoot, headIsLeaf;
         CheckEnds(meet, out isRoot, out isLeaf, out headIsRoot, out headIsLeaf);
         bool pickThisMeet = false;
-        if (headIsRoot) {
+        if (meet.IsDatatype) {
+          if (DafnyOptions.O.TypeInferenceDebug) {
+            Console.WriteLine("  ----> meet is a datatype: {0}", meet);
+          }
+          ConstrainSubtypeRelation(t, meet, tok, "Member selection requires a supertype of {0} (got something more like {1})", t, meet);
+          return meet;
+        } else if (headIsRoot) {
           // we're good to go -- by picking "meet" (whose type parameters have been replaced by fresh proxies), we're not losing any generality
           pickThisMeet = true;
         } else if (memberName == "_#apply" || memberName == "requires" || memberName == "reads") {
@@ -10609,11 +10608,7 @@ namespace Microsoft.Dafny
                     // pick the supertype "mbr.EnclosingClass" of "cl"
                     Contract.Assert(mbr.EnclosingClass is TraitDecl);  // a proper supertype of a ClassDecl must be a TraitDecl
                     var pickItFromHere = new UserDefinedType(tok, mbr.EnclosingClass.Name, mbr.EnclosingClass, new List<Type>());
-#if !PREVIOUS_THING_WHICH_SEEMS_WRONG
                     ConstrainSubtypeRelation(pickItFromHere, meet, tok, "Member selection requires a subtype of {0} (got something more like {1})", pickItFromHere, meet);
-#else
-                    ConstrainSubtypeRelation(pickItFromHere, t, tok, "Member selection requires a subtype of {0} (got something more like {1})", pickItFromHere, meet);
-#endif
 #if DEBUG_PRINT
                     Console.WriteLine("  ----> improved to {0} through meet and member lookup", pickItFromHere);
 #endif
@@ -10638,18 +10633,37 @@ namespace Microsoft.Dafny
       }
 
       // Compute the join of the proxy's supertypes
-      if (memberName != null) {
-        Type join = null;
-        if (JoinOfAllSupertypes(proxy, ref join, new HashSet<TypeProxy>()) && join != null) {
-          // If the join does have the member, then this looks promising. It could be that the
-          // type would get further constrained later to pick some subtype (in particular, a
-          // subclass that overrides the member) of this join. But this is the best we can do
-          // now.
+      Type join = null;
+      if (JoinOfAllSupertypes(proxy, ref join, new HashSet<TypeProxy>(), false) && join != null) {
+        // If the join does have the member, then this looks promising. It could be that the
+        // type would get further constrained later to pick some subtype (in particular, a
+        // subclass that overrides the member) of this join. But this is the best we can do
+        // now.
+        if (join is TypeProxy) {
+          if (proxy == join.Normalize()) {
+            // can this really ever happen?
 #if DEBUG_PRINT
-          Console.WriteLine("  ----> improved to {0} through join", join);
+            Console.WriteLine("  ----> found no improvement (other than the proxy itself)");
 #endif
+            return t;
+          } else {
+#if DEBUG_PRINT
+            Console.WriteLine("  ----> (merging, then trying to improve further) assigning proxy {0}.T := {1}", proxy, join);
+#endif
+            Contract.Assert(proxy != join);
+            proxy.T = join;
+            Contract.Assert(t.NormalizeExpand() == join);
+            return PartiallyResolveTypeForMemberSelection(tok, t, memberName, true);
+          }
+        }
+#if DEBUG_PRINT
+        Console.WriteLine("  ----> improved to {0} through join", join);
+#endif
+        if (memberName != null) {
           AssignProxyAndHandleItsConstraints(proxy, join, true);
           return proxy.NormalizeExpand();  // we return proxy.T instead of join, in case the assignment gets hijacked
+        } else {
+          return join;
         }
       }
 
@@ -10664,6 +10678,30 @@ namespace Microsoft.Dafny
         Console.WriteLine("  ----> found no improvement using simple things, trying harder once more");
 #endif
         return PartiallyResolveTypeForMemberSelection(tok, t, memberName, true);
+      }
+    }
+
+    private void GetRelatedTypeProxies(Type t, ISet<TypeProxy> proxies) {
+      Contract.Requires(t != null);
+      Contract.Requires(proxies != null);
+      var proxy = t.Normalize() as TypeProxy;
+      if (proxy == null || proxies.Contains(proxy)) {
+        return;
+      }
+#if DEBUG_PRINT
+      Console.WriteLine("DEBUG: GetRelatedTypeProxies: finding {0} interesting", proxy);
+#endif
+      proxies.Add(proxy);
+      // close over interesting constraints
+      foreach (var xc in AllXConstraints) {
+        var xc0 = xc.Types[0].Normalize();
+        if (xc.ConstraintName == "Assignable" && xc0 == proxy || xc0.TypeArgs.Exists(ta => ta.Normalize() == proxy)) {
+          GetRelatedTypeProxies(xc.Types[1], proxies);
+        } else if (xc.ConstraintName == "Innable" && xc.Types[1].Normalize() == proxy) {
+          GetRelatedTypeProxies(xc.Types[0], proxies);
+        } else if ((xc.ConstraintName == "ModifiesFrame" || xc.ConstraintName == "ReadsFrame") && xc.Types[1].Normalize() == proxy) {
+          GetRelatedTypeProxies(xc.Types[0], proxies);
+        }
       }
     }
 
@@ -10734,12 +10772,14 @@ namespace Microsoft.Dafny
     }
 
     /// <summary>
-    /// Attempts to compute the join of "join", "t", and all of "t"'s known supertype( constraint)s.  The join
-    /// ignores type parameters.  It is assumed that "join" on entry already includes the join of all proxies
+    /// Attempts to compute the join of "join", all of "t"'s known supertype( constraint)s, and, if "includeT"
+    /// and "t" has no supertype( constraint)s, "t".
+    /// The join ignores type parameters. (Really?? --KRML)
+    /// It is assumed that "join" on entry already includes the join of all proxies
     /// in "visited".  The empty join is represented by "null".
     /// The return is "true" if the join exists.
     /// </summary>
-    bool JoinOfAllSupertypes(Type t, ref Type join, ISet<TypeProxy> visited) {
+    bool JoinOfAllSupertypes(Type t, ref Type join, ISet<TypeProxy> visited, bool includeT) {
       Contract.Requires(t != null);
       Contract.Requires(visited != null);
 
@@ -10751,24 +10791,36 @@ namespace Microsoft.Dafny
         }
         visited.Add(proxy);
 
+        var delegatedToOthers = false;
         foreach (var c in proxy.SupertypeConstraints) {
           var s = c.Super.NormalizeExpandKeepConstraints();
-          if (!JoinOfAllSupertypes(s, ref join, visited)) {
+          delegatedToOthers = true;
+          if (!JoinOfAllSupertypes(s, ref join, visited, true)) {
             return false;
           }
         }
-        if (join == null) {
+        if (!delegatedToOthers) {
           // also consider "Assignable" constraints
           foreach (var c in AllXConstraints) {
             if (c.ConstraintName == "Assignable" && c.Types[1].Normalize() == proxy) {
               var s = c.Types[0].NormalizeExpandKeepConstraints();
-              if (!JoinOfAllSupertypes(s, ref join, visited)) {
+              delegatedToOthers = true;
+              if (!JoinOfAllSupertypes(s, ref join, visited, true)) {
                 return false;
               }
             }
           }
         }
-        return true;
+        if (delegatedToOthers) {
+          return true;
+        } else if (!includeT) {
+          return true;
+        } else if (join == null || join.Normalize() == proxy) {
+          join = proxy;
+          return true;
+        } else {
+          return false;
+        }
       }
 
       if (join == null) {
@@ -11281,8 +11333,7 @@ namespace Microsoft.Dafny
       } else if (expr is DatatypeUpdateExpr) {
         var e = (DatatypeUpdateExpr)expr;
         ResolveExpression(e.Root, opts);
-        var ty = e.Root.Type;
-        PartiallyResolveTypeForMemberSelection(expr.tok, ty);
+        var ty = PartiallyResolveTypeForMemberSelection(expr.tok, e.Root.Type);
         if (!ty.IsDatatype) {
           reporter.Error(MessageSource.Resolver, expr, "datatype update expression requires a root expression of a datatype (got {0})", ty);
         } else {
@@ -12012,13 +12063,8 @@ namespace Microsoft.Dafny
       if (reporter.Count(ErrorLevel.Error) != errorCount) {
         return;
       }
-      UserDefinedType sourceType = null;
-      DatatypeDecl dtd = null;
-      PartiallyResolveTypeForMemberSelection(me.Source.tok, me.Source.Type);
-      if (me.Source.Type.IsDatatype) {
-        sourceType = (UserDefinedType)me.Source.Type.NormalizeExpand();
-        dtd = cce.NonNull((DatatypeDecl)sourceType.ResolvedClass);
-      }
+      var sourceType = PartiallyResolveTypeForMemberSelection(me.Source.tok, me.Source.Type).NormalizeExpand();
+      var dtd = sourceType.AsDatatype;
       var subst = new Dictionary<TypeParameter, Type>();
       Dictionary<string, DatatypeCtor> ctors;
       if (dtd == null) {
@@ -12148,8 +12194,7 @@ namespace Microsoft.Dafny
       if (me.Source.Type.AsDatatype is TupleTypeDecl) {
         var udt = me.Source.Type.NormalizeExpand() as UserDefinedType;
         foreach (Type typeArg in udt.TypeArgs) {
-          PartiallyResolveTypeForMemberSelection(me.tok, typeArg);
-          var t = typeArg.NormalizeExpand() as UserDefinedType;
+          var t = PartiallyResolveTypeForMemberSelection(me.tok, typeArg).NormalizeExpand() as UserDefinedType;
           if (t != null) {
             dtd = cce.NonNull((DatatypeDecl)t.ResolvedClass);
             ctorsList.Add(datatypeCtors[dtd]);
