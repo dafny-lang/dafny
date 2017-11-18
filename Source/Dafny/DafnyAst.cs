@@ -1,4 +1,4 @@
-//#define DEBUG_PRINT
+#define TI_DEBUG_PRINT
 //-----------------------------------------------------------------------------
 //
 // Copyright (C) Microsoft Corporation.  All Rights Reserved.
@@ -1676,13 +1676,13 @@ namespace Microsoft.Dafny {
     /// Does a best-effort to compute the meet of "a" and "b", returning "null" if not successful.
     /// </summary>
     public static Type Meet(Type a, Type b, BuiltIns builtIns) {
-#if DEBUG_PRINT
       var j = MeetX(a, b, builtIns);
-      Console.WriteLine("DEBUG: Meet( {0}, {1} ) = {2}", a, b, j);
+      if (DafnyOptions.O.TypeInferenceDebug) {
+        Console.WriteLine("DEBUG: Meet( {0}, {1} ) = {2}", a, b, j);
+      }
       return j;
     }
     public static Type MeetX(Type a, Type b, BuiltIns builtIns) {
-#endif
       Contract.Requires(a != null);
       Contract.Requires(b != null);
       Contract.Requires(builtIns != null);
@@ -1860,13 +1860,13 @@ namespace Microsoft.Dafny {
     /// Does a best-effort to compute the join of "a" and "b", returning "null" if not successful.
     /// </summary>
     public static Type Join(Type a, Type b, BuiltIns builtIns) {
-#if DEBUG_PRINT
       var j = JoinX(a, b, builtIns);
-      Console.WriteLine("DEBUG: Join( {0}, {1} ) = {2}", a, b, j);
+      if (DafnyOptions.O.TypeInferenceDebug) {
+        Console.WriteLine("DEBUG: Join( {0}, {1} ) = {2}", a, b, j);
+      }
       return j;
     }
     public static Type JoinX(Type a, Type b, BuiltIns builtIns) {
-#endif
       Contract.Requires(a != null);
       Contract.Requires(b != null);
       Contract.Requires(builtIns != null);
@@ -3026,18 +3026,19 @@ namespace Microsoft.Dafny {
     internal TypeProxy() {
     }
 
-#if DEBUG_PRINT
+#if TI_DEBUG_PRINT
     static int _id = 0;
     int id = _id++;
 #endif
     [Pure]
     public override string TypeName(ModuleDefinition context, bool parseAble) {
       Contract.Ensures(Contract.Result<string>() != null);
-#if DEBUG_PRINT
-      return T == null ? "?" + id : T.TypeName(context);
-#else
-      return T == null ? "?" : T.TypeName(context, parseAble);
+#if TI_DEBUG_PRINT
+      if (DafnyOptions.O.TypeInferenceDebug) {
+        return T == null ? "?" + id : T.TypeName(context);
+      }
 #endif
+      return T == null ? "?" : T.TypeName(context, parseAble);
     }
     public override bool SupportsEquality {
       get {
