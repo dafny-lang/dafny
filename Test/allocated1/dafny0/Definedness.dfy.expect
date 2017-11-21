@@ -99,6 +99,7 @@ Execution trace:
     (0,0): anon6_LoopBody
     (0,0): anon7_Then
 Definedness.dfy(133,21): Error BP5004: This loop invariant might not hold on entry.
+Definedness.dfy(133,21): Related message: loop invariant violation
 Execution trace:
     (0,0): anon0
 Definedness.dfy(134,16): Error: possible violation of function precondition
@@ -127,6 +128,7 @@ Execution trace:
     (0,0): anon20_LoopBody
     Definedness.dfy(162,5): anon21_Else
 Definedness.dfy(175,27): Error BP5004: This loop invariant might not hold on entry.
+Definedness.dfy(175,27): Related message: loop invariant violation
 Execution trace:
     (0,0): anon0
 Definedness.dfy(181,16): Error: possible violation of function precondition
@@ -149,6 +151,7 @@ Execution trace:
     (0,0): anon6_LoopBody
     (0,0): anon7_Then
 Definedness.dfy(196,22): Error BP5004: This loop invariant might not hold on entry.
+Definedness.dfy(196,22): Related message: loop invariant violation
 Execution trace:
     (0,0): anon0
 Definedness.dfy(196,27): Error: possible division by zero
