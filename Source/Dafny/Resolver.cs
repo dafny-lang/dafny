@@ -2968,9 +2968,16 @@ namespace Microsoft.Dafny
       Contract.Requires(rhs != null);
       Contract.Requires(errMsg != null);
 
-      var lhsWithProxyArgs = Type.HeadWithProxyArgs(lhs);
-      ConstrainSubtypeRelation(lhsWithProxyArgs, rhs, errMsg, false, allowDecisions);
-      ConstrainAssignableTypeArgs(lhs, lhsWithProxyArgs.TypeArgs, lhs.TypeArgs, errMsg, out moreXConstraints);
+      bool isRoot, isLeaf, headIsRoot, headIsLeaf;
+      CheckEnds(lhs, out isRoot, out isLeaf, out headIsRoot, out headIsLeaf);
+      if (isRoot) {
+        ConstrainSubtypeRelation(lhs, rhs, errMsg, false, allowDecisions);
+        moreXConstraints = false;
+      } else {
+        var lhsWithProxyArgs = Type.HeadWithProxyArgs(lhs);
+        ConstrainSubtypeRelation(lhsWithProxyArgs, rhs, errMsg, false, allowDecisions);
+        ConstrainAssignableTypeArgs(lhs, lhsWithProxyArgs.TypeArgs, lhs.TypeArgs, errMsg, out moreXConstraints);
+      }
     }
 
     private void ConstrainAssignableTypeArgs(Type typeHead, List<Type> A, List<Type> B, TypeConstraint.ErrorMsg errMsg, out bool moreXConstraints) {
@@ -3853,8 +3860,8 @@ namespace Microsoft.Dafny
                 resolver.ConstrainSubtypeRelation(t, u, errorMsg);
                 convertedIntoOtherTypeConstraints = true;
                 return true;
-              } else if (Type.SameHead(t, u)) {
-                resolver.ConstrainAssignableTypeArgs(t, t.TypeArgs, u.TypeArgs, errorMsg, out moreXConstraints);
+              } else if (Type.FromSameHead(t, u, out Type tUp, out Type uUp)) {
+                resolver.ConstrainAssignableTypeArgs(tUp, tUp.TypeArgs, uUp.TypeArgs, errorMsg, out moreXConstraints);
                 return true;
               } else if (fullstrength && t is NonProxyType) {
                 // We convert Assignable(t, u) to the subtype constraint base(t) :> u.
@@ -4340,30 +4347,24 @@ namespace Microsoft.Dafny
 
           case 2: {
               var assignables = AllXConstraints.Where(xc => xc.ConstraintName == "Assignable").ToList();
-              while (true) {
-                var anyChange = false;
-                foreach (var constraint in AllTypeConstraints) {
-                  var lhs = constraint.Super.Normalize() as TypeProxy;
-                  if (lhs != null) {
-                    var rhss = assignables.Where(xc => xc.Types[0].Normalize() == lhs).Select(xc => xc.Types[1]).ToList();
-                    if (ProcessAssignable(lhs, rhss)) {
-                      anyChange = true;
-                      anyNewConstraints = true;  // next time around the big loop, start with state 0 again
-                    }
+              foreach (var constraint in AllTypeConstraints) {
+                var lhs = constraint.Super.Normalize() as TypeProxy;
+                if (lhs != null) {
+                  var rhss = assignables.Where(xc => xc.Types[0].Normalize() == lhs).Select(xc => xc.Types[1]).ToList();
+                  if (ProcessAssignable(lhs, rhss)) {
+                    anyNewConstraints = true;  // next time around the big loop, start with state 0 again
                   }
                 }
-                foreach (var assignable in assignables) {
-                  var lhs = assignable.Types[0].Normalize() as TypeProxy;
-                  if (lhs != null) {
-                    var rhss = assignables.Where(xc => xc.Types[0].Normalize() == lhs).Select(xc => xc.Types[1]).ToList();
-                    if (ProcessAssignable(lhs, rhss)) {
-                      anyChange = true;
-                      anyNewConstraints = true;  // next time around the big loop, start with state 0 again
-                    }
+              }
+              foreach (var assignable in assignables) {
+                var lhs = assignable.Types[0].Normalize() as TypeProxy;
+                if (lhs != null) {
+                  var rhss = assignables.Where(xc => xc.Types[0].Normalize() == lhs).Select(xc => xc.Types[1]).ToList();
+                  if (ProcessAssignable(lhs, rhss)) {
+                    anyNewConstraints = true;  // next time around the big loop, start with state 0 again
+                                               // process only one Assignable constraint in this way
+                    break;
                   }
-                }
-                if (!anyChange) {
-                  break;
                 }
               }
             }
@@ -10531,7 +10532,7 @@ namespace Microsoft.Dafny
     /// but it may also be a type in a super- or subtype relation to "t".
     /// In some cases, it is necessary to make some inference decisions in order to figure out the type to return.
     /// </summary>
-    Type PartiallyResolveTypeForMemberSelection(IToken tok, Type t, string memberName = null, bool haveAlreadyTriedTheSimpleThings = false) {
+    Type PartiallyResolveTypeForMemberSelection(IToken tok, Type t, string memberName = null, int strength = 0) {
       Contract.Requires(tok != null);
       Contract.Requires(t != null);
       Contract.Ensures(Contract.Result<Type>() != null);
@@ -10543,10 +10544,16 @@ namespace Microsoft.Dafny
 
       // simplify constraints
       PrintTypeConstraintState(10);
-      if (haveAlreadyTriedTheSimpleThings) {
+      if (strength > 0) {
         var proxySpecializations = new HashSet<TypeProxy>();
         GetRelatedTypeProxies(t, proxySpecializations);
-        ConvertAssignableToSubtypeConstraints(proxySpecializations);
+        bool anyNewConstraints = ConvertAssignableToSubtypeConstraints(proxySpecializations);
+        if ((strength > 1 && !anyNewConstraints) || strength == 10) {
+          if (DafnyOptions.O.TypeInferenceDebug) {
+            Console.WriteLine("  ----> found no improvement, giving up");
+          }
+          return t;
+        }
       }
       PartiallySolveTypeConstraints(false);
       PrintTypeConstraintState(11);
@@ -10575,7 +10582,6 @@ namespace Microsoft.Dafny
       if (MeetOfAllSubtypes(proxy, ref meet, new HashSet<TypeProxy>()) && meet != null) {
         bool isRoot, isLeaf, headIsRoot, headIsLeaf;
         CheckEnds(meet, out isRoot, out isLeaf, out headIsRoot, out headIsLeaf);
-        bool pickThisMeet = false;
         if (meet.IsDatatype) {
           if (DafnyOptions.O.TypeInferenceDebug) {
             Console.WriteLine("  ----> meet is a datatype: {0}", meet);
@@ -10584,7 +10590,11 @@ namespace Microsoft.Dafny
           return meet;
         } else if (headIsRoot) {
           // we're good to go -- by picking "meet" (whose type parameters have been replaced by fresh proxies), we're not losing any generality
-          pickThisMeet = true;
+          if (DafnyOptions.O.TypeInferenceDebug) {
+            Console.WriteLine("  ----> improved to {0} through meet", meet);
+          }
+          AssignProxyAndHandleItsConstraints(proxy, meet, true);
+          return proxy.NormalizeExpand();  // we return proxy.T instead of meet, in case the assignment gets hijacked
         } else if (memberName == "_#apply" || memberName == "requires" || memberName == "reads") {
           var generalArrowType = meet.AsArrowType;  // go all the way to the base type, to get to the general arrow type, if any0
           if (generalArrowType != null) {
@@ -10608,7 +10618,12 @@ namespace Microsoft.Dafny
                 if (plausibleMembers.Count == 1) {
                   var mbr = plausibleMembers.First();
                   if (mbr.EnclosingClass == cl) {
-                    pickThisMeet = true;  // do it below
+                    if (DafnyOptions.O.TypeInferenceDebug) {
+                      Console.WriteLine("  ----> improved to {0} through member-selection meet", meet);
+                    }
+                    var meetRoot = meet.NormalizeExpand();  // blow passed any constraints
+                    ConstrainSubtypeRelation(meetRoot, t, tok, "Member selection requires a subtype of {0} (got something more like {1})", meetRoot, t);
+                    return meet;
                   } else {
                     // pick the supertype "mbr.EnclosingClass" of "cl"
                     Contract.Assert(mbr.EnclosingClass is TraitDecl);  // a proper supertype of a ClassDecl must be a TraitDecl
@@ -10623,13 +10638,6 @@ namespace Microsoft.Dafny
               }
             }
           }
-        }
-        if (pickThisMeet) {
-          if (DafnyOptions.O.TypeInferenceDebug) {
-            Console.WriteLine("  ----> improved to {0} through meet", meet);
-          }
-          AssignProxyAndHandleItsConstraints(proxy, meet, true);
-          return proxy.NormalizeExpand();  // we return proxy.T instead of meet, in case the assignment gets hijacked
         }
         if (DafnyOptions.O.TypeInferenceDebug) {
           Console.WriteLine("  ----> found no improvement, because meet does not determine type enough");
@@ -10658,7 +10666,7 @@ namespace Microsoft.Dafny
             Contract.Assert(proxy != join);
             proxy.T = join;
             Contract.Assert(t.NormalizeExpand() == join);
-            return PartiallyResolveTypeForMemberSelection(tok, t, memberName, true);
+            return PartiallyResolveTypeForMemberSelection(tok, t, memberName, strength + 1);
           }
         }
         if (DafnyOptions.O.TypeInferenceDebug) {
@@ -10672,18 +10680,11 @@ namespace Microsoft.Dafny
         }
       }
 
-      // we can't do it
-      if (haveAlreadyTriedTheSimpleThings) {
-        if (DafnyOptions.O.TypeInferenceDebug) {
-          Console.WriteLine("  ----> found no improvement");
-        }
-        return t;
-      } else {
-        if (DafnyOptions.O.TypeInferenceDebug) {
-          Console.WriteLine("  ----> found no improvement using simple things, trying harder once more");
-        }
-        return PartiallyResolveTypeForMemberSelection(tok, t, memberName, true);
+      // we weren't able to do it
+      if (DafnyOptions.O.TypeInferenceDebug) {
+        Console.WriteLine("  ----> found no improvement using simple things, trying harder once more");
       }
+      return PartiallyResolveTypeForMemberSelection(tok, t, memberName, strength + 1);
     }
 
     private void GetRelatedTypeProxies(Type t, ISet<TypeProxy> proxies) {
@@ -10698,6 +10699,12 @@ namespace Microsoft.Dafny
       }
       proxies.Add(proxy);
       // close over interesting constraints
+      foreach (var c in AllTypeConstraints) {
+        var super = c.Super.Normalize();
+        if (super.TypeArgs.Exists(ta => ta.Normalize() == proxy)) {
+          GetRelatedTypeProxies(c.Sub, proxies);
+        }
+      }
       foreach (var xc in AllXConstraints) {
         var xc0 = xc.Types[0].Normalize();
         if (xc.ConstraintName == "Assignable" && xc0 == proxy || xc0.TypeArgs.Exists(ta => ta.Normalize() == proxy)) {

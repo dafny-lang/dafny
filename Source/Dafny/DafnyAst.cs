@@ -1348,6 +1348,21 @@ namespace Microsoft.Dafny {
       }
     }
 
+    public static bool FromSameHead(Type t, Type u, out Type a, out Type b) {
+      a = t;
+      b = u;
+      var towerA = GetTowerOfSubsetTypes(a);
+      var towerB = GetTowerOfSubsetTypes(b);
+      for (var n = Math.Min(towerA.Count, towerB.Count); 0 <= --n;) {
+        a = towerA[n];
+        b = towerB[n];
+        if (SameHead(a, b)) {
+          return true;
+        }
+      }
+      return false;
+    }
+
     /// <summary>
     /// Returns true if t and u have the same head type.
     /// It is assumed that t and u have been normalized and expanded by the caller, according
@@ -1655,7 +1670,11 @@ namespace Microsoft.Dafny {
       var n = directions.Count;
       var r = new List<Type>(n);
       for (int i = 0; i < n; i++) {
-        if (directions[i] == TypeParameter.TPVariance.Inv) {
+        if (a[i].Normalize() is TypeProxy) {
+          r.Add(b[i]);
+        } else if (b[i].Normalize() is TypeProxy) {
+          r.Add(a[i]);
+        } else if (directions[i] == TypeParameter.TPVariance.Inv) {
           if (a[i].Equals(b[i])) {
             r.Add(a[i]);
           } else {

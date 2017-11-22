@@ -16,7 +16,7 @@ class Node {
   {
     var existingRegion: set<Node>;
     assume root == null || root in existingRegion;
-    assume (forall o: Node :: o != null && o in existingRegion && o.nxt != null ==> o.nxt in existingRegion);
+    assume (forall o: Node :: o in existingRegion && o.nxt != null ==> o.nxt in existingRegion);
 
     var newRoot: Node? := null;
     var oldListPtr := root;
@@ -29,7 +29,6 @@ class Node {
 
       while (oldListPtr != null)
         invariant newRoot in newRegion;
-        invariant (forall o: Node :: o in newRegion ==> o != null);
         invariant (forall o: Node :: o in newRegion && o.nxt != null ==> o.nxt in newRegion);
         invariant prev in newRegion;
         invariant fresh(newRegion);

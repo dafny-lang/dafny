@@ -68,7 +68,7 @@ class Node<T> {
     reverse.List := [data];
     
     while current != null
-      invariant reverse != null && reverse.Valid() && reverse.Repr <= old(Repr)
+      invariant reverse.Valid() && reverse.Repr <= old(Repr)
       invariant current == null ==> |old(List)| == |reverse.List|
       invariant current != null ==>
         current.Valid() &&

@@ -46,7 +46,7 @@ Execution trace:
 SubsetTypes.dfy(50,15): Error: value does not satisfy the subset constraints of 'nat'
 Execution trace:
     (0,0): anon0
-SubsetTypes.dfy(52,9): Error: value does not satisfy the subset constraints of 'int ~> nat'
+SubsetTypes.dfy(52,9): Error: value does not satisfy the subset constraints of 'int -> nat'
 Execution trace:
     (0,0): anon0
     SubsetTypes.dfy(51,15): anon3_Else
@@ -102,7 +102,7 @@ Execution trace:
 SubsetTypes.dfy(107,15): Error: value does not satisfy the subset constraints of 'set<nat>'
 Execution trace:
     (0,0): anon0
-SubsetTypes.dfy(109,9): Error: value does not satisfy the subset constraints of 'set<int> ~> set<nat>'
+SubsetTypes.dfy(109,9): Error: value does not satisfy the subset constraints of 'set<int> -> set<nat>'
 Execution trace:
     (0,0): anon0
     SubsetTypes.dfy(108,15): anon3_Else
