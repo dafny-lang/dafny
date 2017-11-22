@@ -3018,16 +3018,38 @@ namespace Microsoft.Dafny
             AddAssignableConstraint(tok, B[i], A[i], em);
             moreXConstraints = true;
           } else {
-            var proxy = A[i].NormalizeExpandKeepConstraints() as TypeProxy;
-            if (proxy != null && proxy.T == null && !Reaches(B[i], proxy, 1, new HashSet<TypeProxy>())) {  // the call ConstrainSubtypeRelation(lhsWithProxyArgs,...) above may have assigned proxy.T
-              if (DafnyOptions.O.TypeInferenceDebug) {
-                Console.WriteLine("DEBUG: (invariance) assigning proxy {0}.T := {1}", proxy, B[i]);
-              }
-              proxy.T = B[i];
-            }
+            var em = new TypeConstraint.ErrorMsgWithBase(errMsg, "inv" + msgFormat, A[i], B[i]);
+            ConstrainSubtypeRelation_Equal(A[i], B[i], em);
           }
         }
       }
+    }
+
+    /// <summary>
+    /// Adds the subtyping constraint that "a" and "b" are the same type.
+    /// </summary>
+    private void ConstrainSubtypeRelation_Equal(Type a, Type b, TypeConstraint.ErrorMsg errMsg) {
+      Contract.Requires(a != null);
+      Contract.Requires(b != null);
+      Contract.Requires(errMsg != null);
+
+      var proxy = a.Normalize() as TypeProxy;
+      if (proxy != null && proxy.T == null && !Reaches(b, proxy, 1, new HashSet<TypeProxy>())) {
+        if (DafnyOptions.O.TypeInferenceDebug) {
+          Console.WriteLine("DEBUG: (invariance) assigning proxy {0}.T := {1}", proxy, b);
+        }
+        proxy.T = b;
+      }
+      proxy = b.Normalize() as TypeProxy;
+      if (proxy != null && proxy.T == null && !Reaches(a, proxy, 1, new HashSet<TypeProxy>())) {
+        if (DafnyOptions.O.TypeInferenceDebug) {
+          Console.WriteLine("DEBUG: (invariance) assigning proxy {0}.T := {1}", proxy, a);
+        }
+        proxy.T = a;
+      }
+
+      ConstrainSubtypeRelation(a, b, errMsg, true);
+      ConstrainSubtypeRelation(b, a, errMsg, true);
     }
 
     /// <summary>
@@ -3759,7 +3781,7 @@ namespace Microsoft.Dafny
       }
     }
 
-    #region ExactProxies
+#region ExactProxies
     List<InferredTypeProxy> proxiesThatAreSometimesAndCurrentlyInferredWithConstraints = new List<InferredTypeProxy>();
     bool ExactProxiesSense = true;
     int PushMarkExactProxies() {
@@ -3785,7 +3807,7 @@ namespace Microsoft.Dafny
       Contract.Assert(proxiesThatAreSometimesAndCurrentlyInferredWithConstraints.Count == 0);
       proxiesThatAreSometimesAndCurrentlyInferredWithConstraints = ipState;
     }
-    #endregion
+#endregion
 
     public List<TypeConstraint> AllTypeConstraints = new List<TypeConstraint>();
     public List<XConstraint> AllXConstraints = new List<XConstraint>();
@@ -4181,8 +4203,7 @@ namespace Microsoft.Dafny
                   // we know enough to convert into a subtyping constraint
                   resolver.AddXConstraint(Token.NoToken/*bogus, but it seems this token would be used only when integers are involved*/, "IsRefType", t, errorMsg);
                   moreXConstraints = true;
-                  resolver.ConstrainSubtypeRelation(u, t, errorMsg);
-                  resolver.ConstrainSubtypeRelation(t, u, errorMsg);
+                  resolver.ConstrainSubtypeRelation_Equal(u, t, errorMsg);
                   moreXConstraints = true;
                   convertedIntoOtherTypeConstraints = true;
                   return true;
@@ -4191,8 +4212,7 @@ namespace Microsoft.Dafny
                 }
               }
               if (t.IsRefType) {
-                resolver.ConstrainSubtypeRelation(u, t, errorMsg);
-                resolver.ConstrainSubtypeRelation(t, u, errorMsg);
+                resolver.ConstrainSubtypeRelation_Equal(u, t, errorMsg);
                 convertedIntoOtherTypeConstraints = true;
                 return true;
               }
@@ -4213,8 +4233,7 @@ namespace Microsoft.Dafny
                 if (collType != null) {
                   // we know enough to convert into a subtyping constraint
                   resolver.AddXConstraint(Token.NoToken/*bogus, but it seems this token would be used only when integers are involved*/, "IsRefType", t, errorMsg);
-                  resolver.ConstrainSubtypeRelation(u, t, errorMsg);
-                  resolver.ConstrainSubtypeRelation(t, u, errorMsg);
+                  resolver.ConstrainSubtypeRelation_Equal(u, t, errorMsg);
                   moreXConstraints = true;
                   convertedIntoOtherTypeConstraints = true;
                   return true;
@@ -4223,8 +4242,7 @@ namespace Microsoft.Dafny
                 }
               }
               if (t.IsRefType) {
-                resolver.ConstrainSubtypeRelation(u, t, errorMsg);
-                resolver.ConstrainSubtypeRelation(t, u, errorMsg);
+                resolver.ConstrainSubtypeRelation_Equal(u, t, errorMsg);
                 convertedIntoOtherTypeConstraints = true;
                 return true;
               }
