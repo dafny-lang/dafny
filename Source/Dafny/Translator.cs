@@ -10072,6 +10072,8 @@ namespace Microsoft.Dafny {
       } else if (typ is ArrowType) {
         // TODO: do better than just returning null
         return null;
+      } else if (typ.IsOpaqueType) {
+        return null;
       } else {
         Contract.Assume(false);  // unexpected type
         return null;

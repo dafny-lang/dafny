@@ -4637,7 +4637,7 @@ namespace Microsoft.Dafny
         bool isRoot, isLeaf, headRoot, headLeaf;
         CheckEnds(su, out isRoot, out isLeaf, out headRoot, out headLeaf);
         Contract.Assert(!isRoot || headRoot);  // isRoot ==> headRoot
-        if (isRoot) {  // TODO: this is just a special case of the "else if" -- get rid of this check
+        if (isRoot) {
           if (Reaches(su, proxy, 1, new HashSet<TypeProxy>())) {
             // adding a constraint here would cause a bad cycle, so we don't
           } else {
@@ -4659,7 +4659,7 @@ namespace Microsoft.Dafny
           bool isRoot, isLeaf, headRoot, headLeaf;
           CheckEnds(su, out isRoot, out isLeaf, out headRoot, out headLeaf);
           Contract.Assert(!isLeaf || headLeaf);  // isLeaf ==> headLeaf
-          if (isLeaf) {  // TODO: this is just a special case of the "else if" -- get rid of this check
+          if (isLeaf) {
             if (Reaches(su, proxy, -1, new HashSet<TypeProxy>())) {
               // adding a constraint here would cause a bad cycle, so we don't
             } else {
