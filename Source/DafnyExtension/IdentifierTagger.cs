@@ -205,9 +205,9 @@ namespace DafnyLanguage
                 foreach (var p in f.Formals) {
                   IdRegion.Add(newRegions, program, p.tok, p, true, f, module);
                 }
-                f.Req.ForEach(e => ExprRegions(e, newRegions, program, module));
+                f.Req.ForEach(e => ExprRegions(e.E, newRegions, program, module));
                 f.Reads.ForEach(fe => FrameExprRegions(fe, newRegions, true, program, module));
-                f.Ens.ForEach(e => ExprRegions(e, newRegions, program, module));
+                f.Ens.ForEach(e => ExprRegions(e.E, newRegions, program, module));
                 f.Decreases.Expressions.ForEach(e => ExprRegions(e, newRegions, program, module));
                 if (f.Body != null) {
                   ExprRegions(f.Body, newRegions, program, module);
