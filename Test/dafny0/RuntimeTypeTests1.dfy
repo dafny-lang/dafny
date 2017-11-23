@@ -13,7 +13,6 @@ class MyClass<A> {
 }
 
 method M(s: set<object>) returns (t: set<MyClass<nat>>)
-  requires null !in s
   ensures t <= s
 {
   t := set x: MyClass<nat> | x in s;  // error: this must not be compilable
@@ -30,7 +29,6 @@ method N()
   var t := M(o);
   assert forall z: MyClass<nat> :: z in t ==> 0 <= z.a;
   while |t| != 0
-    invariant null !in t
   {
     var u: MyClass<nat> :| u in t;
     assert 0 <= u.a;

@@ -1864,7 +1864,8 @@ namespace Microsoft.Dafny {
           }
           if (commonTraits.Count == 1) {
             var udtTrait = (UserDefinedType)commonTraits[0];  // in a successfully resolved program, we expect all .TraitsTyp to be a UserDefinedType
-            return abNonNullTypes ? UserDefinedType.CreateNonNullType(udtTrait) : udtTrait;
+            Contract.Assert(udtTrait.ResolvedClass is NonNullTypeDecl);  // in fact, we expect it to be the non-null version of the trait type
+            return abNonNullTypes ? udtTrait : udtTrait.NormalizeExpand();
           } else {
             // the unfortunate part is when commonTraits.Count > 1 here :(
             return abNonNullTypes ? UserDefinedType.CreateNonNullType(builtIns.Object()) : builtIns.Object();

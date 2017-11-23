@@ -32,7 +32,6 @@ method Main()
 }
 
 method Print(j: J)
-  requires j != null;
 {
   print ".x = ", j.x, "\n";
 }
