@@ -1457,8 +1457,9 @@ namespace Microsoft.Dafny {
               sub = ((SubsetTypeDecl)udtSub.ResolvedClass).RhsWithArgument(udtSub.TypeArgs);
               if (udtSub.ResolvedClass is NonNullTypeDecl && udtSuper.ResolvedClass is NonNullTypeDecl) {
                 // move "super" up the base-type chain, as was done with "sub", because non-nullness is essentially a co-variant type constructor
-                super = ((SubsetTypeDecl)udtSuper.ResolvedClass).RhsWithArgument(udtSuper.TypeArgs);
-                if (super.IsObject) {
+                var possiblyNullSuper = ((SubsetTypeDecl)udtSuper.ResolvedClass).RhsWithArgument(udtSuper.TypeArgs);
+                udtSuper = (UserDefinedType)possiblyNullSuper;  // applying .RhsWithArgument to a NonNullTypeDecl should always yield a UserDefinedType
+                if (udtSuper.IsObject) {
                   return true;
                 }
               }

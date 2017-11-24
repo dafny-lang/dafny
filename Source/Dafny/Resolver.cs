@@ -3978,6 +3978,13 @@ namespace Microsoft.Dafny
             break;
           case "MultiSetConvertible":
             satisfied = (t is SetType && ((SetType)t).Finite) || t is SeqType;
+            if (satisfied) {
+              Type elementType = ((CollectionType)t).Arg;
+              var u = Types[1];  // note, it's okay if "u" is a TypeProxy
+              var em = new TypeConstraint.ErrorMsgWithBase(errorMsg, "expecting element type {0} (got {1})", u, elementType);
+              resolver.ConstrainSubtypeRelation_Equal(elementType, u, em);
+              convertedIntoOtherTypeConstraints = true;
+            }
             break;
           case "IsCoDatatype":
             satisfied = t.IsCoDatatype;
@@ -4026,8 +4033,8 @@ namespace Microsoft.Dafny
             if (t is CollectionType) {
               Type elementType = ((CollectionType)t).Arg;
               var u = Types[1];  // note, it's okay if "u" is a TypeProxy
-              resolver.ConstrainSubtypeRelation(elementType, u, new TypeConstraint.ErrorMsgWithBase(errorMsg, "expecting element type {0} <: {1}", u, elementType));
-              convertedIntoOtherTypeConstraints = true;
+              resolver.AddAssignableConstraint(this.tok, elementType, u, new TypeConstraint.ErrorMsgWithBase(errorMsg, "expecting element type {0} <: {1}", u, elementType));
+              moreXConstraints = true;
               satisfied = true;
             } else {
               satisfied = false;
@@ -4365,9 +4372,18 @@ namespace Microsoft.Dafny
 
           case 2: {
               var assignables = AllXConstraints.Where(xc => xc.ConstraintName == "Assignable").ToList();
+              var postponeForNow = new HashSet<TypeProxy>();
+              foreach (var constraint in AllTypeConstraints) {
+                var lhs = constraint.Super.NormalizeExpandKeepConstraints() as NonProxyType;
+                if (lhs != null) {
+                  foreach (var ta in lhs.TypeArgs) {
+                    AddAllProxies(ta, postponeForNow);
+                  }
+                }
+              }
               foreach (var constraint in AllTypeConstraints) {
                 var lhs = constraint.Super.Normalize() as TypeProxy;
-                if (lhs != null) {
+                if (lhs != null && !postponeForNow.Contains(lhs)) {
                   var rhss = assignables.Where(xc => xc.Types[0].Normalize() == lhs).Select(xc => xc.Types[1]).ToList();
                   if (ProcessAssignable(lhs, rhss)) {
                     anyNewConstraints = true;  // next time around the big loop, start with state 0 again
@@ -4478,6 +4494,19 @@ namespace Microsoft.Dafny
           state = 0;
         } else {
           state++;
+        }
+      }
+    }
+
+    private void AddAllProxies(Type type, HashSet<TypeProxy> proxies) {
+      Contract.Requires(type != null);
+      Contract.Requires(proxies != null);
+      var proxy = type as TypeProxy;
+      if (proxy != null) {
+        proxies.Add(proxy);
+      } else {
+        foreach (var ta in type.TypeArgs) {
+          AddAllProxies(ta, proxies);
         }
       }
     }
@@ -11195,7 +11224,7 @@ namespace Microsoft.Dafny
         var e = (IdentifierExpr)expr;
         e.Var = scope.Find(e.Name);
         if (e.Var != null) {
-          expr.Type = e.Var.Type.StripSubsetConstraints();
+          expr.Type = e.Var.Type;
         } else {
           reporter.Error(MessageSource.Resolver, expr, "Identifier does not denote a local variable, parameter, or bound variable: {0}", e.Name);
         }
@@ -11400,8 +11429,9 @@ namespace Microsoft.Dafny
       } else if (expr is MultiSetFormingExpr) {
         MultiSetFormingExpr e = (MultiSetFormingExpr)expr;
         ResolveExpression(e.E, opts);
-        AddXConstraint(e.E.tok, "MultiSetConvertible", e.E.Type, "can only form a multiset from a seq or set (got {0})");
-        expr.Type = new MultiSetType(e.E.Type.AsCollectionType.Arg);
+        var elementType = new InferredTypeProxy();
+        AddXConstraint(e.E.tok, "MultiSetConvertible", e.E.Type, elementType, "can only form a multiset from a seq or set (got {0})");
+        expr.Type = new MultiSetType(elementType);
 
       } else if (expr is OldExpr) {
         OldExpr e = (OldExpr)expr;

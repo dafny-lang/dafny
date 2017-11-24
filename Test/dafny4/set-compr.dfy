@@ -7,8 +7,8 @@ method M()
 }
 
 method N()
-  requires null in set o: object | true  // (X) allowed, since comprehension is in ghost context
-  ensures null in set o: object | true  // (X) allowed, since comprehension is in ghost context
+  requires null in set o: object? | true  // (X) allowed, since comprehension is in ghost context
+  ensures null in set o: object? | true  // (X) allowed, since comprehension is in ghost context
   decreases set o: object | true  // (X) allowed, since comprehension is in ghost context
 {
   N();
@@ -16,7 +16,7 @@ method N()
 
 method O() returns (ghost p: set<object>)
 {
-  assert null in set o: object | true;  // (X) allowed -- in a ghost context
+  assert null in set o: object? | true;  // (X) allowed -- in a ghost context
   p := set o: object | true;  // (X) allowed -- in a ghost context
 }
 
@@ -55,12 +55,12 @@ function method G(p: object): int
 }
 
 method M0() returns (ghost r: int, s: int)
-  requires null in set o: object | true  // allowed
-  ensures null in set o: object | true  // allowed
+  requires null in set o: object? | true  // allowed
+  ensures null in set o: object? | true  // allowed
   modifies set o: object | true  // allowed
   decreases set o: object | true  // allowed
 {
-  if null in set o: object | true {  // this makes the "if" a ghost
+  if null in set o: object? | true {  // this makes the "if" a ghost
     r := G(null);
     s := G(null);  // error: assignment of non-ghost not allowed inside ghost "if"
   } else {
@@ -69,12 +69,12 @@ method M0() returns (ghost r: int, s: int)
 }
 
 method M1() returns (ghost r: int, s: int)
-  requires null in set o: object | true  // (X) allowed
-  ensures null in set o: object | true  // (X) allowed
+  requires null in set o: object? | true  // (X) allowed
+  ensures null in set o: object? | true  // (X) allowed
   modifies set o: object | true  // allowed
   decreases set o: object | true  // (X) allowed
 {
-  if null in set o: object | true {  // this makes the "if" a ghost
+  if null in set o: object? | true {  // this makes the "if" a ghost
     r := G(null);
     s := G(null);  // error: assignment of non-ghost not allowed inside ghost "if"
   } else {

@@ -50,7 +50,6 @@ method O()
   var s: set<Tr> := {c0, c1};
   var t := set cc: Class1 | cc in s;  // error: this must not be compilable
   while |t| != 0
-    invariant null !in t
   {
     var u: Class1 :| u in t;
     print u.y, "\n";
