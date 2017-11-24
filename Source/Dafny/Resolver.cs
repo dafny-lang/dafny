@@ -4392,7 +4392,7 @@ namespace Microsoft.Dafny
               }
               foreach (var assignable in assignables) {
                 var lhs = assignable.Types[0].Normalize() as TypeProxy;
-                if (lhs != null) {
+                if (lhs != null && !postponeForNow.Contains(lhs)) {
                   var rhss = assignables.Where(xc => xc.Types[0].Normalize() == lhs).Select(xc => xc.Types[1]).ToList();
                   if (ProcessAssignable(lhs, rhss)) {
                     anyNewConstraints = true;  // next time around the big loop, start with state 0 again
