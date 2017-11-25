@@ -1348,6 +1348,34 @@ namespace Microsoft.Dafny {
       }
     }
 
+    public static bool FromSameHead_Subtype(Type t, Type u, BuiltIns builtIns, out Type a, out Type b) {
+      Contract.Requires(builtIns != null);
+      if (FromSameHead(t, u, out a, out b)) {
+        return true;
+      }
+      t = t.NormalizeExpand();
+      u = u.NormalizeExpand();
+      if (t.IsRefType && u.IsRefType) {
+        if (t.IsObject) {
+          a = b = t;
+          return true;
+        } else if (u.IsObject) {
+          a = b = u;
+          return true;
+        }
+        var tt = ((UserDefinedType)t).ResolvedClass as ClassDecl;
+        var uu = ((UserDefinedType)u).ResolvedClass as ClassDecl;
+        if (tt.DerivesFrom(uu)) {
+          a = b = u;
+          return true;
+        } else if (uu.DerivesFrom(tt)) {
+          a = b = t;
+          return true;
+        }
+      }
+      return false;
+    }
+
     public static bool FromSameHead(Type t, Type u, out Type a, out Type b) {
       a = t;
       b = u;
@@ -1537,6 +1565,10 @@ namespace Microsoft.Dafny {
             }
           }
         }
+      } else if (a is Resolver_IdentifierExpr.ResolverType_Module) {
+        return b is Resolver_IdentifierExpr.ResolverType_Module;
+      } else if (a is Resolver_IdentifierExpr.ResolverType_Type) {
+        return b is Resolver_IdentifierExpr.ResolverType_Type;
       } else {
         Contract.Assert(false);  // unexpected kind of type
         return true;  // to please the compiler

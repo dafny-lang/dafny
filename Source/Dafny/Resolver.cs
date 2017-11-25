@@ -3626,161 +3626,6 @@ namespace Microsoft.Dafny
       }
     }
 
-    /// <summary>
-    /// Returns -1 if the head symbols are not equatable.  Otherwise, returns the number of
-    /// type arguments of both "a" and "b" that need to be eq-comparable in order for "a" and "b"
-    /// to be equatable.  If "treatTypeParametersAsWildcards" returns as true, then the type
-    /// arguments of a/b should be compared while treating type parameters as wildcards.
-    /// </summary>
-    public static int AreHeadSymbolsEquatable(Type a, Type b, out bool treatTypeParametersAsWildcards) {
-      Contract.Requires(a != null && !(a is TypeProxy) && !(a is ArtificialType));
-      Contract.Requires(b != null && !(b is TypeProxy) && !(b is ArtificialType));
-      treatTypeParametersAsWildcards = false;
-      switch (TypeProxy.GetFamily(a)) {
-        case TypeProxy.Family.Bool:
-        case TypeProxy.Family.Char:
-        case TypeProxy.Family.IntLike:
-        case TypeProxy.Family.RealLike:
-        case TypeProxy.Family.Ordinal:
-        case TypeProxy.Family.BitVector:
-        case TypeProxy.Family.Unknown:
-          return a.Equals(b) ? 0 : -1;
-        case TypeProxy.Family.ValueType:
-        case TypeProxy.Family.Ref:
-        case TypeProxy.Family.Opaque:
-          break;  // more elaborate work below
-      }
-      if (a is SetType) {
-        var tt = (SetType)a;
-        var uu = b as SetType;
-        return uu != null && tt.Finite == uu.Finite ? 1 : -1;
-      } else if (a is SeqType) {
-        return b is SeqType ? 1 : -1;
-      } else if (a is MultiSetType) {
-        return b is MultiSetType ? 1 : -1;
-      } else if (a is MapType) {
-        var tt = (MapType)a;
-        var uu = b as MapType;
-        return uu != null && tt.Finite == uu.Finite ? 2 : -1;
-      } else if (a is ArrowType) {
-        var tt = (ArrowType)a;
-        var uu = b as ArrowType;
-        return uu != null && tt.Arity == uu.Arity ? tt.Arity + 1 : -1;
-      } else if (a.IsObject || b.IsObject) {
-        return a.IsRefType && b.IsRefType ? 0 : -1;
-      } else {
-        // The only remaining cases are that "super" is a (co)datatype, opaque type, or non-object trait/class.
-        // In each of these cases, "super" is a UserDefinedType.
-        var udfA = (UserDefinedType)a;
-        var clA = udfA.ResolvedClass;
-        if (clA == null) {
-          Contract.Assert(a.TypeArgs.Count == 0);
-          if (a.IsTypeParameter) {
-            // we're looking at a type parameter
-            return a.AsTypeParameter == b.AsTypeParameter ? 0 : -1;
-          } else {
-            Contract.Assert(a.IsInternalTypeSynonym);
-            return a.AsInternalTypeSynonym == b.AsInternalTypeSynonym ? 0 : -1;
-          }
-        }
-        treatTypeParametersAsWildcards = a.IsRefType;
-        var udfB = b as UserDefinedType;
-        var clB = udfB == null ? null : udfB.ResolvedClass;
-        if (clB == null) {
-          return -1;
-        } else if (clA == clB) {
-          return clA.TypeArgs.Count;
-        } else if (clB is ClassDecl && ((ClassDecl)clB).DerivesFrom(clA)) {
-          Contract.Assert(clA.TypeArgs.Count == 0);  // traits are currently not allowed to have any type parameters
-          return 0;
-        } else if (clA is ClassDecl && ((ClassDecl)clA).DerivesFrom(clB)) {
-          Contract.Assert(clB.TypeArgs.Count == 0);  // traits are currently not allowed to have any type parameters
-          return 0;
-        } else {
-          return -1;
-        }
-      }
-    }
-
-    /// <summary>
-    /// Returns -1 if the head symbols are not eq-comparable.  Otherwise, returns the number of
-    /// type arguments of both "a" and "b" that need to be eq-comparable in order for "a" and "b"
-    /// to be.  If "treatTypeParametersAsWildcards" is "true", then any comparison with a type
-    /// parameter returns "true".
-    /// </summary>
-    public static int AreHeadSymbolsEqComparable(Type a, Type b, bool treatTypeParametersAsWildcards) {
-      Contract.Requires(a != null && !(a is TypeProxy) && !(a is ArtificialType));
-      Contract.Requires(b != null && !(b is TypeProxy) && !(b is ArtificialType));
-      if (treatTypeParametersAsWildcards && (a.IsTypeParameter || b.IsTypeParameter)) {
-        return 0;
-      }
-      switch (TypeProxy.GetFamily(a)) {
-        case TypeProxy.Family.Bool:
-        case TypeProxy.Family.Char:
-        case TypeProxy.Family.IntLike:
-        case TypeProxy.Family.BitVector:
-        case TypeProxy.Family.RealLike:
-        case TypeProxy.Family.Ordinal:
-          return a.Equals(b) ? 0 : -1;
-        case TypeProxy.Family.ValueType:
-        case TypeProxy.Family.Ref:
-        case TypeProxy.Family.Opaque:
-          break;  // more elaborate work below
-        case TypeProxy.Family.Unknown:
-          Contract.Assert(false);  // unexpected type (the precondition of ConstrainTypeHead says "no proxies")
-          return 0;  // please compiler
-      }
-      if (a is SetType) {
-        var tt = (SetType)a;
-        var uu = b as SetType;
-        return uu != null && tt.Finite == uu.Finite ? 1 : -1;
-      } else if (a is SeqType) {
-        return b is SeqType ? 1 : -1;
-      } else if (a is MultiSetType) {
-        return b is MultiSetType ? 1 : -1;
-      } else if (a is MapType) {
-        var tt = (MapType)a;
-        var uu = b as MapType;
-        return uu != null && tt.Finite == uu.Finite ? 2 : -1;
-      } else if (a is ArrowType) {
-        var tt = (ArrowType)a;
-        var uu = b as ArrowType;
-        return uu != null && tt.Arity == uu.Arity ? tt.Arity + 1 : -1;
-      } else if (a.IsObject || b.IsObject) {
-        return a.IsRefType && b.IsRefType ? 0 : -1;
-      } else {
-        // The only remaining cases are that "a" is a (co)datatype, opaque type, or non-object trait/class.
-        // In each of these cases, "a" is a UserDefinedType.
-        var udfA = (UserDefinedType)a;
-        var clA = udfA.ResolvedClass;
-        if (clA == null) {
-          Contract.Assert(a.TypeArgs.Count == 0);
-          if (a.IsTypeParameter) {
-            // we're looking at a type parameter
-            return a.AsTypeParameter == b.AsTypeParameter ? 0 : -1;
-          } else {
-            Contract.Assert(a.IsInternalTypeSynonym);
-            return a.AsInternalTypeSynonym == b.AsInternalTypeSynonym ? 0 : -1;
-          }
-        }
-        var udfB = b as UserDefinedType;
-        var clB = udfB == null ? null : udfB.ResolvedClass;
-        if (clB == null) {
-          return -1;
-        } else if (clA == clB) {
-          return clA.TypeArgs.Count;
-        } else if (clB is ClassDecl && ((ClassDecl)clB).DerivesFrom(clA)) {
-          Contract.Assert(clA.TypeArgs.Count == 0);  // traits are currently not allowed to have any type parameters
-          return 0;
-        } else if (clA is ClassDecl && ((ClassDecl)clA).DerivesFrom(clB)) {
-          Contract.Assert(clB.TypeArgs.Count == 0);  // traits are currently not allowed to have any type parameters
-          return 0;
-        } else {
-          return -1;
-        }
-      }
-    }
-
 #region ExactProxies
     List<InferredTypeProxy> proxiesThatAreSometimesAndCurrentlyInferredWithConstraints = new List<InferredTypeProxy>();
     bool ExactProxiesSense = true;
@@ -3857,7 +3702,7 @@ namespace Microsoft.Dafny
           switch (ConstraintName) {
             case "Assignable":
             case "Equatable":
-            case "EqComparable":
+            case "EquatableArg":
             case "Indexable":
             case "MultiIndexable":
             case "IntOrORDINAL":
@@ -4112,79 +3957,108 @@ namespace Microsoft.Dafny
             convertedIntoOtherTypeConstraints = true;
             return true;
           case "Equatable": {
-              var u = Types[1].NormalizeExpand();
+              t = Types[0].NormalizeExpandKeepConstraints();
+              var u = Types[1].NormalizeExpandKeepConstraints();
               if (object.ReferenceEquals(t, u)) {
                 return true;
               }
               if (t is TypeProxy && u is TypeProxy) {
                 return false;  // not enough information to do anything sensible
-              } else if (t is TypeProxy && (fullstrength || IsEqDetermined(u))) {
-                var proxy = (TypeProxy)t;
-                // the following is rather aggressive
-                if (Resolver.TypeConstraintsIncludeProxy(u, proxy)) {
-                  return false;
-                } else {
-                  satisfied = resolver.AssignProxyAndHandleItsConstraints(proxy, u);
-                  convertedIntoOtherTypeConstraints = true;
-                  break;
-                }
-              } else if (u is TypeProxy && (fullstrength || IsEqDetermined(t))) {
-                var proxy = (TypeProxy)u;
-                // the following is rather aggressive
-                if (Resolver.TypeConstraintsIncludeProxy(t, proxy)) {
-                  return false;
-                } else {
-                  satisfied = resolver.AssignProxyAndHandleItsConstraints(proxy, t);
-                  convertedIntoOtherTypeConstraints = true;
-                  break;
-                }
               } else if (t is TypeProxy || u is TypeProxy) {
-                return false;  // not enough information
+                TypeProxy proxy;
+                Type other;
+                if (t is TypeProxy) {
+                  proxy = (TypeProxy)t;
+                  other = u;
+                } else {
+                  proxy = (TypeProxy)u;
+                  other = t;
+                }
+                if (other.IsNumericBased() || other.IsBitVectorType || other.IsBigOrdinalType) {
+                  resolver.ConstrainSubtypeRelation(other.NormalizeExpand(), proxy, errorMsg, true);
+                  convertedIntoOtherTypeConstraints = true;
+                  return true;
+                } else if (fullstrength) {
+                  // the following is rather aggressive
+                  if (Resolver.TypeConstraintsIncludeProxy(other, proxy)) {
+                    return false;
+                  } else {
+                    satisfied = resolver.AssignProxyAndHandleItsConstraints(proxy, other, true);
+                    convertedIntoOtherTypeConstraints = true;
+                    break;
+                  }
+                } else {
+                  return false;  // not enough information
+                }
               }
-              bool treatTypeParametersAsWildcards;
-              var n = Resolver.AreHeadSymbolsEquatable(t, u, out treatTypeParametersAsWildcards);
-              satisfied = 0 <= n;
-              // put constraints of type parameters
-              Contract.Assert(n <= t.TypeArgs.Count && n <= u.TypeArgs.Count);
-              for (int i = 0; i < n; i++) {
-                resolver.AddXConstraint(tok, treatTypeParametersAsWildcards ? "EqComparableTPWild" : "EqComparable", t.TypeArgs[i], u.TypeArgs[i], errorMsg);
-                moreXConstraints = true;
+              satisfied = Type.FromSameHead_Subtype(t, u, resolver.builtIns, out Type a, out Type b);
+              if (satisfied) {
+                Contract.Assert(a.TypeArgs.Count == b.TypeArgs.Count);
+                var cl = a is UserDefinedType ? ((UserDefinedType)a).ResolvedClass : null;
+                for (int i = 0; i < a.TypeArgs.Count; i++) {
+                  resolver.AllXConstraints.Add(new XConstraint_EquatableArg(tok,
+                    a.TypeArgs[i], b.TypeArgs[i],
+                    a is CollectionType || (cl != null && cl.TypeArgs[i].Variance != TypeParameter.TPVariance.Inv),
+                    a.IsRefType,
+                    errorMsg));
+                  moreXConstraints = true;
+                }
               }
               break;
             }
-          case "EqComparableTPWild":
-          case "EqComparable": {
-              var u = Types[1].NormalizeExpand();
+          case "EquatableArg": {
+              t = Types[0].NormalizeExpandKeepConstraints();
+              var u = Types[1].NormalizeExpandKeepConstraints();
+              var moreExactThis = (XConstraint_EquatableArg)this;
               if (t is TypeProxy && u is TypeProxy) {
                 return false;  // not enough information to do anything sensible
-              } else if (t is TypeProxy && (fullstrength || IsEqDetermined(u))) {
-                var proxy = (TypeProxy)t;
-                if (Resolver.TypeConstraintsIncludeProxy(u, proxy)) {
-                  return false;
-                } else {
-                  satisfied = resolver.AssignProxyAndHandleItsConstraints(proxy, u);
-                  convertedIntoOtherTypeConstraints = true;
-                  break;
-                }
-              } else if (u is TypeProxy && (fullstrength || IsEqDetermined(t))) {
-                var proxy = (TypeProxy)u;
-                if (Resolver.TypeConstraintsIncludeProxy(t, proxy)) {
-                  return false;
-                } else {
-                  satisfied = resolver.AssignProxyAndHandleItsConstraints(proxy, t);
-                  convertedIntoOtherTypeConstraints = true;
-                  break;
-                }
               } else if (t is TypeProxy || u is TypeProxy) {
-                return false;  // not enough information
+                TypeProxy proxy;
+                Type other;
+                if (t is TypeProxy) {
+                  proxy = (TypeProxy)t;
+                  other = u;
+                } else {
+                  proxy = (TypeProxy)u;
+                  other = t;
+                }
+                if (other.IsNumericBased() || other.IsBitVectorType || other.IsBigOrdinalType) {
+                  resolver.ConstrainSubtypeRelation(other.NormalizeExpand(), proxy, errorMsg, true);
+                  convertedIntoOtherTypeConstraints = true;
+                  return true;
+                } else if (fullstrength) {
+                  // the following is rather aggressive
+                  if (Resolver.TypeConstraintsIncludeProxy(other, proxy)) {
+                    return false;
+                  } else {
+                    satisfied = resolver.AssignProxyAndHandleItsConstraints(proxy, other, true);
+                    convertedIntoOtherTypeConstraints = true;
+                    break;
+                  }
+                } else {
+                  return false;  // not enough information
+                }
               }
-              var n = Resolver.AreHeadSymbolsEqComparable(t, u, ConstraintName == "EqComparableTPWild");
-              satisfied = 0 <= n;
-              // put constraints of type parameters
-              Contract.Assert(n <= t.TypeArgs.Count && n <= u.TypeArgs.Count);
-              for (int i = 0; i < n; i++) {
-                resolver.AddXConstraint(tok, ConstraintName, t.TypeArgs[i], u.TypeArgs[i], errorMsg);
-                moreXConstraints = true;
+              if (moreExactThis.TreatTypeParamAsWild && (t.IsTypeParameter || u.IsTypeParameter)) {
+                return true;
+              } else if (!moreExactThis.AllowSuperSub) {
+                resolver.ConstrainSubtypeRelation_Equal(t, u, errorMsg);
+                convertedIntoOtherTypeConstraints = true;
+                return true;
+              }
+              // okay if t<:u or u<:t (this makes type inference more manageable, though it is more liberal than one might wish)
+              satisfied = Type.FromSameHead_Subtype(t, u, resolver.builtIns, out Type a, out Type b);
+              if (satisfied) {
+                Contract.Assert(a.TypeArgs.Count == b.TypeArgs.Count);
+                var cl = a is UserDefinedType ? ((UserDefinedType)a).ResolvedClass : null;
+                for (int i = 0; i < a.TypeArgs.Count; i++) {
+                  resolver.AllXConstraints.Add(new XConstraint_EquatableArg(tok,
+                    a.TypeArgs[i], b.TypeArgs[i],
+                    a is CollectionType || (cl != null && cl.TypeArgs[i].Variance != TypeParameter.TPVariance.Inv),
+                    false,
+                    errorMsg));
+                  moreXConstraints = true;
+                }
               }
               break;
             }
@@ -4301,6 +4175,21 @@ namespace Microsoft.Dafny
         Contract.Requires(exprs != null);
         Contract.Requires(errMsg != null);
         this.Exprs = exprs;
+      }
+    }
+
+    public class XConstraint_EquatableArg : XConstraint
+    {
+      public bool AllowSuperSub;
+      public bool TreatTypeParamAsWild;
+      public XConstraint_EquatableArg(IToken tok, Type a, Type b, bool allowSuperSub, bool treatTypeParamAsWild, TypeConstraint.ErrorMsg errMsg)
+        : base(tok, "EquatableArg", true, new Type[] { a, b }, errMsg) {
+        Contract.Requires(tok != null);
+        Contract.Requires(a != null);
+        Contract.Requires(b != null);
+        Contract.Requires(errMsg != null);
+        AllowSuperSub = allowSuperSub;
+        TreatTypeParamAsWild = treatTypeParamAsWild;
       }
     }
 
@@ -10372,7 +10261,7 @@ namespace Microsoft.Dafny
             ResolveType_ClassName(stmt.Tok, rr.EType, codeContext, ResolveTypeOptionEnum.InferTypeProxies, null);
             var udt = rr.EType as UserDefinedType;
             var cl = udt == null ? null : udt.ResolvedClass as NonNullTypeDecl;
-            if (cl != null && !(rr.EType.IsTraitType)) {
+            if (cl != null && !(rr.EType.IsTraitType && !rr.EType.NormalizeExpand().IsObject)) {
               // life is good
             } else {
               reporter.Error(MessageSource.Resolver, stmt, "new can be applied only to class types (got {0})", rr.EType);

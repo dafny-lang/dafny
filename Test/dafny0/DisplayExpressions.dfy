@@ -69,8 +69,8 @@ module CC {
     case 8 <= |bytes| =>  yn := bytes[0..8] == [0, 0, 0, 0, 0, 0, 0, 2];
     case true =>
       var ints: seq<int>;
-      var cmp := [2, 0];  // seq<byte> (the comparison "bytes == cmp" gets to the constraint first)
-      yn := bytes == cmp;
-      yn := ints == cmp;  // error: mismatched types
+      var cmp := [2, 0];  // seq<int>
+      yn := ints == cmp;
+      yn := bytes == cmp;  // error: mismatched types
   }
 }

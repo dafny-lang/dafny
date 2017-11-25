@@ -96,9 +96,9 @@ method m9<T>(a: array<List<int>>, b: array<List<bool>>,
   requires a != c;
   requires b != c;  // error
   requires c != d;
-  requires a != e;
-  requires b != e;
-  requires d != e;
+  requires a != e;  // error
+  requires b != e;  // error
+  requires d != e;  // error
   requires a != f;
   requires b != f;  // error
 {
