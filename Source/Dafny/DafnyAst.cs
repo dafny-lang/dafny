@@ -116,6 +116,8 @@ namespace Microsoft.Dafny {
     public readonly ISet<int> Bitwidths = new HashSet<int>();
     public SpecialField ORDINAL_Offset;  // filled in by the resolver, used by the translator
 
+    public readonly SubsetTypeDecl NatDecl;
+    public UserDefinedType Nat() { return new UserDefinedType(Token.NoToken, "nat", NatDecl, new List<Type>()); }
     public readonly TraitDecl ObjectDecl;
     public UserDefinedType Object() { return new UserDefinedType(Token.NoToken, "object?", null) { ResolvedClass = ObjectDecl }; }
 
@@ -128,8 +130,8 @@ namespace Microsoft.Dafny {
       var bvNat = new BoundVar(Token.NoToken, "x", Type.Int);
       var natConstraint = Expression.CreateAtMost(Expression.CreateIntLiteral(Token.NoToken, 0), Expression.CreateIdentExpr(bvNat));
       var ax = AxiomAttribute();
-      var nat = new SubsetTypeDecl(Token.NoToken, "nat", new TypeParameter.TypeParameterCharacteristics(TypeParameter.EqualitySupportValue.InferredRequired, false), new List<TypeParameter>(), SystemModule, bvNat, natConstraint, SubsetTypeDecl.WKind.None, null, ax);
-      SystemModule.TopLevelDecls.Add(nat);
+      NatDecl = new SubsetTypeDecl(Token.NoToken, "nat", new TypeParameter.TypeParameterCharacteristics(TypeParameter.EqualitySupportValue.InferredRequired, false), new List<TypeParameter>(), SystemModule, bvNat, natConstraint, SubsetTypeDecl.WKind.None, null, ax);
+      SystemModule.TopLevelDecls.Add(NatDecl);
       // create trait 'object'
       ObjectDecl = new TraitDecl(Token.NoToken, "object", SystemModule, new List<TypeParameter>(), new List<MemberDecl>(), DontCompile());
       SystemModule.TopLevelDecls.Add(ObjectDecl);
@@ -623,7 +625,7 @@ namespace Microsoft.Dafny {
     public static readonly CharType Char = new CharType();
     public static readonly IntType Int = new IntType();
     public static readonly RealType Real = new RealType();
-    public static Type Nat() { return new UserDefinedType(Token.NoToken, "nat", null); }
+    public static Type Nat() { return new UserDefinedType(Token.NoToken, "nat", null); }  // note, this returns an unresolved type
     public static Type String() { return new UserDefinedType(Token.NoToken, "string", null); }  // note, this returns an unresolved type
     public static readonly BigOrdinalType BigOrdinal = new BigOrdinalType();
 

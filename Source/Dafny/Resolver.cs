@@ -3119,71 +3119,8 @@ namespace Microsoft.Dafny
         return true;
       } else {
         // two non-proxy types
-#if !OLD
         // set "headSymbolsAgree" to "false" if it's clear the head symbols couldn't be the same; "true" means they may be the same
         bool headSymbolsAgree = Type.IsHeadSupertypeOf_Improved(super.NormalizeExpand(keepConstraints), sub);
-#else
-        bool headSymbolsAgree;  // the code below sets "headSymbolsAgree" to "false" if it's clear the head symbols couldn't be the same; "true" means they may be the same
-        switch (TypeProxy.GetFamily(super)) {
-          case TypeProxy.Family.Bool:
-          case TypeProxy.Family.Char:
-            headSymbolsAgree = super.IsSupertypeOf_WithSubsetTypes(sub);
-            break;
-          case TypeProxy.Family.IntLike:
-          case TypeProxy.Family.BitVector:
-          case TypeProxy.Family.Ordinal:
-            headSymbolsAgree = super is IntVarietiesSupertype || super.IsSupertypeOf_WithSubsetTypes(sub);
-            break;
-          case TypeProxy.Family.RealLike:
-            headSymbolsAgree = super is RealVarietiesSupertype || super.IsSupertypeOf_WithSubsetTypes(sub);
-            break;
-          case TypeProxy.Family.Opaque:
-            headSymbolsAgree = super.AsTypeParameter == sub.AsTypeParameter;
-            break;
-          case TypeProxy.Family.ValueType:
-            if (super.AsSetType != null) {
-              headSymbolsAgree = sub.AsSetType != null && (super.IsISetType || !sub.IsISetType);
-            } else if (super.AsSeqType != null) {
-              headSymbolsAgree = sub.AsSeqType != null;
-            } else if (super.AsMultiSetType != null) {
-              headSymbolsAgree = sub.AsMultiSetType != null;
-            } else if (super.AsMapType != null) {
-              headSymbolsAgree = sub.AsMapType != null && (super.IsIMapType || !sub.IsIMapType);
-            } else if (super.IsArrowType) {
-              var a = super.AsArrowType;
-              var b = sub.AsArrowType;
-              headSymbolsAgree = b != null && a.Arity == b.Arity;
-            } else {
-              // two datatypes
-              var a = super.AsDatatype;
-              Contract.Assert(a != null);  // datatypes should be the only remaining .ValueType to check
-              headSymbolsAgree = a == sub.AsDatatype;
-            }
-            break;
-          case TypeProxy.Family.Ref:
-            if (TypeProxy.GetFamily(sub) != TypeProxy.Family.Ref) {
-              headSymbolsAgree = false;
-            } else if (super.IsObject) {
-              headSymbolsAgree = true;
-            } else if (sub.IsObject) {
-              headSymbolsAgree = false;
-            } else {
-              var a = ((UserDefinedType)super.NormalizeExpand()).ResolvedClass;  // cast justification: any other .Ref must be a class or trait
-              var b = ((UserDefinedType)sub.NormalizeExpand()).ResolvedClass;  // cast justification: any other .Ref must be a class or trait
-              if (a == b) {
-                headSymbolsAgree = true;
-              } else {
-                var cl = (ClassDecl)b;  // a class is the only other case
-                headSymbolsAgree = cl.DerivesFrom(a);
-              }
-              // Note: the code that follows below for checking type arguments would need to be adjusted a little if traits could take type arguments
-            }
-            break;
-          default:
-            Contract.Assert(false);  // unexpected type family
-            return false;  // to please the compiler
-        }
-#endif
         if (!headSymbolsAgree) {
           c.FlagAsError();
           return false;
@@ -3943,11 +3880,7 @@ namespace Microsoft.Dafny
             } else if (t is MapType) {
               resultType = ((MapType)t).Range;
             } else if (t is MultiSetType) {
-#if SOON
-              resultType = Type.Nat();
-#else
-              resultType = new IntType();  // TODO: this could even be "nat"
-#endif
+              resultType = resolver.builtIns.Nat();
             } else {
               // some other head symbol; that's cool
               return true;
@@ -8670,11 +8603,7 @@ namespace Microsoft.Dafny
             var lhs = (IdentifierExpr)upd.Lhss[i];  // the LHS in this case will be an IdentifierExpr, because that's how the parser creates the VarDeclStmt
             Contract.Assert(lhs.Type == null);  // not yet resolved
             lhs.Var = local;
-#if THE_OLD_WAY_TO_DO_IT
-            lhs.Type = local.Type.StripSubsetConstraints();
-#else
             lhs.Type = local.Type;
-#endif
           }
           // resolve the whole thing
           ResolveConcreteUpdateStmt(s.Update, codeContext);
@@ -11433,7 +11362,7 @@ namespace Microsoft.Dafny
 
           case BinaryExpr.Opcode.Eq:
           case BinaryExpr.Opcode.Neq:
-            AddXConstraint(expr.tok, "Equatable", e.E0.Type, e.E1.Type, "arguments must have the same type (got {0} and {1})");
+            AddXConstraint(expr.tok, "Equatable", e.E0.Type, e.E1.Type, "arguments must have comparable types (got {0} and {1})");
             expr.Type = Type.Bool;
             break;
 
@@ -12587,11 +12516,7 @@ namespace Microsoft.Dafny
         expr.Type = new InferredTypeProxy();
       } else {
         expr.ResolvedExpression = r;
-#if SLOPPY_ABOUT_BEING_PRECISE
-        expr.Type = r.Type.StripSubsetConstraints();
-#else
         expr.Type = r.Type;
-#endif
       }
       return rWithArgs;
     }
