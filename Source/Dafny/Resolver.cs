@@ -3641,6 +3641,7 @@ namespace Microsoft.Dafny
             case "Equatable":
             case "EquatableArg":
             case "Indexable":
+            case "Innable":
             case "MultiIndexable":
             case "IntOrORDINAL":
               // have a go downstairs
@@ -3811,18 +3812,24 @@ namespace Microsoft.Dafny
               }
             }
             break;
-          case "Innable":
-            if (t is CollectionType) {
-              Type elementType = ((CollectionType)t).Arg;
-              var u = Types[1];  // note, it's okay if "u" is a TypeProxy
-              resolver.AddAssignableConstraint(this.tok, elementType, u, new TypeConstraint.ErrorMsgWithBase(errorMsg, "expecting element type {0} <: {1}", u, elementType));
-              moreXConstraints = true;
-              satisfied = true;
-            } else {
+          case "Innable": {
+              var elementType = FindCollectionType(t, true, new HashSet<TypeProxy>()) ?? FindCollectionType(t, false, new HashSet<TypeProxy>());
+              if (elementType != null) {
+                var u = Types[1];  // note, it's okay if "u" is a TypeProxy
+#if BETTER_ERROR_MESSAGE
+                resolver.AddAssignableConstraint(this.tok, elementType, u, new TypeConstraint.ErrorMsgWithBase(errorMsg, "expecting element type to be assignable to {1} (got {0})", u, elementType));
+#else
+                resolver.AddAssignableConstraint(this.tok, elementType, u, new TypeConstraint.ErrorMsgWithBase(errorMsg, "expecting element type {0} <: {1}", u, elementType));
+#endif
+                moreXConstraints = true;
+                return true;
+              }
+              if (t is TypeProxy) {
+                return false;  // not enough information to do anything
+              }
               satisfied = false;
               break;
             }
-            return true;
           case "SeqUpdatable": {
               var xcWithExprs = (XConstraintWithExprs)this;
               var index = xcWithExprs.Exprs[0];
@@ -4094,6 +4101,38 @@ namespace Microsoft.Dafny
 
       internal bool CouldBeAnything() {
         return Types.All(t => t.NormalizeExpand() is TypeProxy);
+      }
+
+      /// <summary>
+      /// If "t" or any type among its transitive sub/super-types (depending on "towardsSub")
+      /// is a collection type, then returns the element/domain type of that collection.
+      /// Otherwise, returns null.
+      /// </summary>
+      static Type FindCollectionType(Type t, bool towardsSub, ISet<TypeProxy> visited) {
+        Contract.Requires(t != null);
+        Contract.Requires(visited != null);
+        t = t.NormalizeExpand();
+        if (DafnyOptions.O.TypeInferenceDebug) {
+          Console.WriteLine("DEBUG: FindCollectionType({0}, {1})", t, towardsSub ? "sub" : "super");
+        }
+        if (t is CollectionType) {
+          if (DafnyOptions.O.TypeInferenceDebug) {
+            Console.WriteLine("DEBUG: FindCollectionType({0}) = {1}", t, ((CollectionType)t).Arg);
+          }
+          return ((CollectionType)t).Arg;
+        }
+        var proxy = t as TypeProxy;
+        if (proxy == null || visited.Contains(proxy)) {
+          return null;
+        }
+        visited.Add(proxy);
+        foreach (var sub in towardsSub ? proxy.Subtypes : proxy.Supertypes) {
+          var e = FindCollectionType(sub, towardsSub, visited);
+          if (e != null) {
+            return e;
+          }
+        }
+        return null;
       }
     }
 
@@ -4615,14 +4654,21 @@ namespace Microsoft.Dafny
         // that could be assigned "null", then set "proxy" to the nullable version of "meets[0]".
         // Stated differently, think of an applicable "IsNullableRefType" constraint as
         // being part of the meet computation, essentially throwing in a "...?".
+        // Except: If the meet is a tight bound--meaning, it is also a join--then pick it
+        // after all, because that seems to give rise to less confusing error messages.
         if (meets[0].IsNonNullRefType) {
-          CloseOverAssignableRhss(proxySubs);
-          if (HasApplicableNullableRefTypeConstraint(proxySubs)) {
-            if (DafnyOptions.O.TypeInferenceDebug) {
-              Console.WriteLine("DEBUG: Found meet {0} for proxy {1}, but strengthening it to {2}", meets[0], proxy, meets[0].NormalizeExpand());
+          Type join = null;
+          if (JoinOfAllSupertypes(proxy, ref join, new HashSet<TypeProxy>(), false) && join != null && Type.SameHead(meets[0], join)) {
+            // leave it
+          } else {
+            CloseOverAssignableRhss(proxySubs);
+            if (HasApplicableNullableRefTypeConstraint(proxySubs)) {
+              if (DafnyOptions.O.TypeInferenceDebug) {
+                Console.WriteLine("DEBUG: Found meet {0} for proxy {1}, but weakening it to {2}", meets[0], proxy, meets[0].NormalizeExpand());
+              }
+              AssignProxyAndHandleItsConstraints(proxy, meets[0].NormalizeExpand(), true);
+              return true;
             }
-            AssignProxyAndHandleItsConstraints(proxy, meets[0].NormalizeExpand(), true);
-            return true;
           }
         }
         AssignProxyAndHandleItsConstraints(proxy, meets[0], true);

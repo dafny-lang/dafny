@@ -83,9 +83,9 @@ module Mx {
 
       var h2 := new GenericIteratorResult;  // error: constructor is not mentioned
 
-      var h3 := new GenericIterator._ctor(30);
+      var h3 := new GenericIterator._ctor(30);  // see two lines down
       if h3.t == h3.u {
-        assert !h3.t;  // error: type mismatch
+        assert !h3.t;  // error: type mismatch (here or two lines ago)
       }
     }
   }

@@ -1,9 +1,8 @@
 IteratorResolution.dfy(64,9): Error: LHS of assignment must denote a mutable field
 IteratorResolution.dfy(84,13): Error: when allocating an object of type 'GenericIteratorResult', one of its constructor methods must be called
 IteratorResolution.dfy(81,19): Error: RHS (of type bool) not assignable to LHS (of type int)
-IteratorResolution.dfy(88,15): Error: condition is expected to be of type bool, but is int
-IteratorResolution.dfy(88,19): Error: logical/bitwise negation expects a boolean or bitvector argument (instead got int)
-IteratorResolution.dfy(69,18): Error: arguments must have the same type (got _T0 and int)
+IteratorResolution.dfy(86,36): Error: incorrect type of method in-parameter (expected bool, got int)
+IteratorResolution.dfy(69,18): Error: arguments must have comparable types (got _T0 and int)
 IteratorResolution.dfy(22,9): Error: LHS of assignment must denote a mutable field
 IteratorResolution.dfy(24,9): Error: LHS of assignment must denote a mutable field
 IteratorResolution.dfy(129,11): Error: unresolved identifier: _decreases3
@@ -45,4 +44,4 @@ IteratorResolution.dfy(262,10): Error: type parameter 1 (B) passed to type Anoth
 IteratorResolution.dfy(262,18): Error: type parameter 1 (B) passed to type AnotherIter must support zero initialization (got Six)
 IteratorResolution.dfy(276,8): Error: type parameter (_T0) passed to type Iter must support zero initialization (got Co)
 IteratorResolution.dfy(276,16): Error: type parameter (_T0) passed to type Iter must support zero initialization (got Co)
-47 resolution/type errors detected in IteratorResolution.dfy
+46 resolution/type errors detected in IteratorResolution.dfy

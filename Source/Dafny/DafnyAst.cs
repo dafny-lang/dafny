@@ -1431,7 +1431,9 @@ namespace Microsoft.Dafny {
       super = super.NormalizeExpandKeepConstraints();  // expand type synonyms
       var origSub = sub;
       sub = sub.NormalizeExpand();  // expand type synonyms AND constraints
-      if (super is BoolType) {
+      if (super is TypeProxy) {
+        return super == sub;
+      } else if (super is BoolType) {
         return sub is BoolType;
       } else if (super is CharType) {
         return sub is CharType;

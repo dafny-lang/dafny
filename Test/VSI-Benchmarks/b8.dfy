@@ -53,8 +53,6 @@ class Glossary {
       invariant rs.Valid() && fresh(rs.footprint)
       invariant glossary.Valid()
       invariant glossary !in rs.footprint
-      invariant null !in glossary.keys
-      invariant forall d :: d in glossary.values ==> null !in d
       invariant q !in rs.footprint
       invariant q.contents == glossary.keys
       decreases *  // we leave out the decreases clause - unbounded stream
@@ -80,8 +78,7 @@ class Glossary {
     while 0 < |q.contents|
       invariant wr.Valid() && fresh(wr.footprint)
       invariant glossary.Valid()
-      invariant glossary !in wr.footprint && null !in glossary.keys
-      invariant forall d :: d in glossary.values ==> null !in d
+      invariant glossary !in wr.footprint
       invariant q !in wr.footprint
       invariant forall k :: k in q.contents ==> k in glossary.keys
     {
@@ -89,7 +86,6 @@ class Glossary {
       var r := glossary.Find(term);
       assert r.Some?;
       var definition := r.get;
-      assert null !in definition;
       
       // write term with a html anchor
       wr.PutWordInsideTag(term, term);
@@ -99,8 +95,7 @@ class Glossary {
       while i < |definition|
         invariant wr.Valid() && fresh(wr.footprint)
         invariant glossary.Valid()
-        invariant glossary !in wr.footprint && null !in glossary.keys
-        invariant forall d :: d in glossary.values ==> null !in d
+        invariant glossary !in wr.footprint
         invariant q !in wr.footprint
         invariant qcon == q.contents
         invariant forall k :: k in q.contents ==> k in glossary.keys
