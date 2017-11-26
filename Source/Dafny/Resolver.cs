@@ -3816,11 +3816,7 @@ namespace Microsoft.Dafny
               var elementType = FindCollectionType(t, true, new HashSet<TypeProxy>()) ?? FindCollectionType(t, false, new HashSet<TypeProxy>());
               if (elementType != null) {
                 var u = Types[1];  // note, it's okay if "u" is a TypeProxy
-#if BETTER_ERROR_MESSAGE
                 resolver.AddAssignableConstraint(this.tok, elementType, u, new TypeConstraint.ErrorMsgWithBase(errorMsg, "expecting element type to be assignable to {1} (got {0})", u, elementType));
-#else
-                resolver.AddAssignableConstraint(this.tok, elementType, u, new TypeConstraint.ErrorMsgWithBase(errorMsg, "expecting element type {0} <: {1}", u, elementType));
-#endif
                 moreXConstraints = true;
                 return true;
               }

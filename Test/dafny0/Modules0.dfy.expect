@@ -26,7 +26,7 @@ Modules0.dfy(289,16): Error: type of the receiver is not fully determined at thi
 Modules0.dfy(289,17): Error: expected method call, found expression
 Modules0.dfy(290,16): Error: type of the receiver is not fully determined at this program point
 Modules0.dfy(290,17): Error: expected method call, found expression
-Modules0.dfy(314,18): Error: second argument to "in" must be a set, multiset, or sequence with elements of type Q_Imp.Node, or a map with domain Q_Imp.Node (instead got set<Node>) (expecting element type Q_Imp.Node <: Node)
+Modules0.dfy(314,18): Error: second argument to "in" must be a set, multiset, or sequence with elements of type Q_Imp.Node, or a map with domain Q_Imp.Node (instead got set<Node>) (expecting element type to be assignable to Node (got Q_Imp.Node))
 Modules0.dfy(319,11): Error: Undeclared top-level type or type parameter: LongLostModule (did you forget to qualify a name or declare a module import 'opened?')
 Modules0.dfy(320,11): Error: Undeclared top-level type or type parameter: Wazzup (did you forget to qualify a name or declare a module import 'opened?')
 Modules0.dfy(321,17): Error: module 'Q_Imp' does not declare a type 'Edon'
