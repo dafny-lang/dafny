@@ -1,17 +1,17 @@
-TypeConstraints.dfy(42,6): Error: RHS (of type int) not assignable to LHS (of type bool)
-TypeConstraints.dfy(50,6): Error: RHS (of type bool) not assignable to LHS (of type int)
-TypeConstraints.dfy(58,6): Error: RHS (of type int) not assignable to LHS (of type bool)
-TypeConstraints.dfy(68,6): Error: RHS (of type int) not assignable to LHS (of type bool)
-TypeConstraints.dfy(78,6): Error: RHS (of type MyInt) not assignable to LHS (of type int)
-TypeConstraints.dfy(79,6): Error: RHS (of type int) not assignable to LHS (of type MyInt)
+TypeConstraints.dfy(40,9): Error: RHS (of type bool) not assignable to LHS (of type int)
+TypeConstraints.dfy(48,9): Error: RHS (of type bool) not assignable to LHS (of type int)
+TypeConstraints.dfy(56,9): Error: RHS (of type int) not assignable to LHS (of type bool)
+TypeConstraints.dfy(65,6): Error: RHS (of type bool) not assignable to LHS (of type int)
 TypeConstraints.dfy(80,6): Error: RHS (of type MyInt) not assignable to LHS (of type int)
 TypeConstraints.dfy(81,6): Error: RHS (of type int) not assignable to LHS (of type MyInt)
+TypeConstraints.dfy(78,6): Error: RHS (of type MyInt) not assignable to LHS (of type int)
+TypeConstraints.dfy(79,6): Error: RHS (of type int) not assignable to LHS (of type MyInt)
 TypeConstraints.dfy(94,8): Error: the type of this local variable is underspecified
 TypeConstraints.dfy(94,11): Error: the type of this local variable is underspecified
 TypeConstraints.dfy(94,14): Error: the type of this local variable is underspecified
 TypeConstraints.dfy(134,16): Error: type of + must be of a numeric type, a bitvector type, ORDINAL, a sequence type, or a set-like type (instead got bool)
+TypeConstraints.dfy(145,16): Error: type of + must be of a numeric type, a bitvector type, ORDINAL, a sequence type, or a set-like type (instead got C?)
 TypeConstraints.dfy(143,16): Error: type of + must be of a numeric type, a bitvector type, ORDINAL, a sequence type, or a set-like type (instead got map<bool, int>)
-TypeConstraints.dfy(145,16): Error: type of + must be of a numeric type, a bitvector type, ORDINAL, a sequence type, or a set-like type (instead got C)
 TypeConstraints.dfy(147,16): Error: type of + must be of a numeric type, a bitvector type, ORDINAL, a sequence type, or a set-like type (instead got C)
 TypeConstraints.dfy(174,6): Error: RHS (of type C) not assignable to LHS (of type R)
 TypeConstraints.dfy(180,6): Error: RHS (of type object) not assignable to LHS (of type C)
@@ -28,16 +28,22 @@ module _System {
     | 0 <= x
 
   trait {:compile false} object { }
+  /*-- non-null type
+  type {:axiom} object(==) = c: object? | c != null    /*special witness*/
+  */
 
   class {:compile false} array<arg> {
     var Length: int  // immutable
   }
+  /*-- non-null type
+  type {:axiom} array(==)<arg> = c: array?<arg> | c != null    /*special witness*/
+  */
 
   class {:compile false} /*_#Func0*/ () ~> +R {
     function requires(): bool
       reads reads()
 
-    function reads(): set<object>
+    function reads(): set<object?>
       reads reads()
   }
 
@@ -53,7 +59,7 @@ module _System {
     function requires(x0: T0): bool
       reads reads(x0)
 
-    function reads(x0: T0): set<object>
+    function reads(x0: T0): set<object?>
       reads reads(x0)
   }
 
@@ -96,15 +102,18 @@ module Tests {
 
     method M()
     {
-      var a: int := f;
+      var a: nat := f;
       var b: int := g;
-      var c: int := F();
+      var c: nat := F();
       var w: int;
-      var d: int := N(w);
+      var d: nat := N(w);
     }
 
     method N(m: nat) returns (n: nat)
   }
+  /*-- non-null type
+  type {:axiom} CC(==) = c: CC? | c != null    /*special witness*/
+  */
 
   method ChainOfAssignments() returns (x: int, y: int, n: nat)
   {
@@ -117,7 +126,7 @@ module Tests {
     k := l;
     l := m;
     m := x;
-    var p: int, q: int;
+    var p: nat, q: nat;
     p := q;
     q := n;
   }
@@ -135,7 +144,7 @@ module HereAreErrors {
 
   method Error0() returns (x: int, z: bool)
   {
-    var a: int, b: int, c: int;
+    var a: int, b: bool, c: bool;
     a, b := b, c;
     x := a;
     z := c;
@@ -143,7 +152,7 @@ module HereAreErrors {
 
   method Error1() returns (x: int, z: bool)
   {
-    var a: bool, b: bool, c: bool;
+    var a: int, b: bool, c: bool;
     a, b := b, c;
     z := c;
     x := a;
@@ -151,7 +160,7 @@ module HereAreErrors {
 
   method Error2() returns (x: int, z: bool)
   {
-    var a: int, b: int, c: int;
+    var a: int, b: bool, c: int;
     a, b := c, c;
     x := a;
     z := b;
@@ -159,7 +168,7 @@ module HereAreErrors {
 
   method Error3() returns (x: int, z: bool)
   {
-    var a: int, b: int, c: int;
+    var a: int, b: bool, c: int;
     c := a;
     c := b;
     x := a;
@@ -253,8 +262,10 @@ module PlusTests {
 
 module MorePlusTests {
   /* CALL GRAPH for module MorePlusTests:
-   * SCC at height 1:
+   * SCC at height 2:
    *   _default.Plusses
+   * SCC at height 1:
+   *   C
    * SCC at height 0:
    *   MyInt
    */
@@ -262,6 +273,9 @@ module MorePlusTests {
     | true
 
   class C { }
+  /*-- non-null type
+  type {:axiom} C(==) = c: C? | c != null    /*special witness*/
+  */
 
   method Plusses(b: bool, i: int, j: MyInt, r: real)
   {
@@ -278,7 +292,7 @@ module MorePlusTests {
     var p: map<bool, int> := map[false:=17];
     var pp: map<bool, int> := p + p;
     var n: C := null;
-    var nn: C := n + n;
+    var nn: C? := n + n;
     var c: C := new C;
     var cc: C := c + c;
   }
@@ -286,14 +300,44 @@ module MorePlusTests {
 
 module References {
   /* CALL GRAPH for module References:
+   * SCC at height 8:
+   *   _default.M3
+   * SCC at height 7:
+   *   _default.M2
+   * SCC at height 6:
+   *   _default.M1
+   * SCC at height 5:
+   *   _default.M0
+   * SCC at height 4:
+   *   M
+   * SCC at height 3:
+   *   K
+   * SCC at height 2:
+   *   object
+   * SCC at height 1:
+   *   R
+   * SCC at height 0:
+   *   C
    */
   class C extends K, M { }
+  /*-- non-null type
+  type {:axiom} C(==) = c: C? | c != null    /*special witness*/
+  */
 
   trait R { }
+  /*-- non-null type
+  type {:axiom} R(==) = c: R? | c != null    /*special witness*/
+  */
 
   trait K { }
+  /*-- non-null type
+  type {:axiom} K(==) = c: K? | c != null    /*special witness*/
+  */
 
   trait M { }
+  /*-- non-null type
+  type {:axiom} M(==) = c: M? | c != null    /*special witness*/
+  */
 
   method M0() returns (c: C, r: R)
   {
@@ -329,20 +373,43 @@ module References {
 
 module SimpleClassesAndTraits {
   /* CALL GRAPH for module SimpleClassesAndTraits:
-   * SCC at height 0:
+   * SCC at height 4:
    *   _default.Infer
+   * SCC at height 3:
+   *   D
+   * SCC at height 2:
+   *   K
+   * SCC at height 1:
+   *   object
+   * SCC at height 0:
+   *   C
    */
   class C extends K, M { }
+  /*-- non-null type
+  type {:axiom} C(==) = c: C? | c != null    /*special witness*/
+  */
 
   class D extends K, M { }
+  /*-- non-null type
+  type {:axiom} D(==) = c: D? | c != null    /*special witness*/
+  */
 
   trait R { }
+  /*-- non-null type
+  type {:axiom} R(==) = c: R? | c != null    /*special witness*/
+  */
 
   trait K {
     var h: int
   }
+  /*-- non-null type
+  type {:axiom} K(==) = c: K? | c != null    /*special witness*/
+  */
 
   trait M { }
+  /*-- non-null type
+  type {:axiom} M(==) = c: M? | c != null    /*special witness*/
+  */
 
   method Infer(c: C, o: object, k: K, d: D)
       returns (k': K)
@@ -360,12 +427,12 @@ module SimpleClassesAndTraits {
     var z: object := c;
     z := o;
     var p: object := o;
-    var y: C;
+    var y: C?;
     var d: C := y;
-    var n: object := null;
-    var n': K := null;
+    var n: object? := null;
+    var n': K? := null;
     n' := k;
-    var n'': K := null;
+    var n'': K? := null;
     k' := n'';
   }
 }
@@ -439,20 +506,41 @@ module Datatypes {
 
 module TraitStuff {
   /* CALL GRAPH for module TraitStuff:
-   * SCC at height 0:
+   * SCC at height 3:
    *   Aggregate._ctor
+   * SCC at height 2:
+   *   PartZ
+   * SCC at height 1:
+   *   PartY
+   * SCC at height 0:
+   *   PartX
    */
   trait Part {
     var id: int
   }
+  /*-- non-null type
+  type {:axiom} Part(==) = c: Part? | c != null    /*special witness*/
+  */
 
   trait Motorized { }
+  /*-- non-null type
+  type {:axiom} Motorized(==) = c: Motorized? | c != null    /*special witness*/
+  */
 
   class PartX extends Part { }
+  /*-- non-null type
+  type {:axiom} PartX(==) = c: PartX? | c != null    /*special witness*/
+  */
 
   class PartY extends Part, Motorized { }
+  /*-- non-null type
+  type {:axiom} PartY(==) = c: PartY? | c != null    /*special witness*/
+  */
 
   class PartZ extends Part, Motorized { }
+  /*-- non-null type
+  type {:axiom} PartZ(==) = c: PartZ? | c != null    /*special witness*/
+  */
 
   class Aggregate {
     ghost var Repr: set<object>
@@ -471,36 +559,71 @@ module TraitStuff {
       var ooo: set<object> := {y, z};
     }
   }
+  /*-- non-null type
+  type {:axiom} Aggregate(==) = c: Aggregate? | c != null    /*special witness*/
+  */
 }
 
 module OtherTraitsAndClasses {
   /* CALL GRAPH for module OtherTraitsAndClasses:
-   * SCC at height 6:
-   *   _default.Q1
-   * SCC at height 5:
+   * SCC at height 13:
    *   _default.Q0
-   * SCC at height 4:
-   *   _default.G
-   * SCC at height 3:
-   *   _default.Displays
-   * SCC at height 2:
+   * SCC at height 12:
    *   _default.Basics
-   * SCC at height 1:
+   * SCC at height 11:
+   *   _default.Q1
+   * SCC at height 10:
+   *   MyClass
+   * SCC at height 9:
    *   _default.M
-   * SCC at height 0:
+   * SCC at height 8:
    *   nat
+   * SCC at height 7:
+   *   _default.G
+   * SCC at height 6:
+   *   object
+   * SCC at height 5:
+   *   _default.Displays
+   * SCC at height 4:
+   *   K
+   * SCC at height 3:
+   *   J
+   * SCC at height 2:
+   *   E
+   * SCC at height 1:
+   *   D
+   * SCC at height 0:
+   *   C
    */
   trait J { }
+  /*-- non-null type
+  type {:axiom} J(==) = c: J? | c != null    /*special witness*/
+  */
 
   trait K { }
+  /*-- non-null type
+  type {:axiom} K(==) = c: K? | c != null    /*special witness*/
+  */
 
   class C extends J { }
+  /*-- non-null type
+  type {:axiom} C(==) = c: C? | c != null    /*special witness*/
+  */
 
   class D extends J, K { }
+  /*-- non-null type
+  type {:axiom} D(==) = c: D? | c != null    /*special witness*/
+  */
 
   class E { }
+  /*-- non-null type
+  type {:axiom} E(==) = c: E? | c != null    /*special witness*/
+  */
 
   class MyClass { }
+  /*-- non-null type
+  type {:axiom} MyClass(==) = c: MyClass? | c != null    /*special witness*/
+  */
 
   method Basics(x: int) returns (y: int)
   {
@@ -528,7 +651,7 @@ module OtherTraitsAndClasses {
 
   method M() returns (r: nat)
   {
-    var x: int, y: int, z: bool, w: int;
+    var x: nat, y: nat, z: bool, w: int;
     x := x + y;
     z := true;
     y := r;
@@ -582,8 +705,10 @@ module LetPatterns {
 
 module Arrays_and_SubsetTypes {
   /* CALL GRAPH for module Arrays_and_SubsetTypes:
-   * SCC at height 1:
+   * SCC at height 2:
    *   _default.M
+   * SCC at height 1:
+   *   array
    * SCC at height 0:
    *   nat
    */

@@ -620,7 +620,7 @@ module GhostAllocationTests {
   iterator GIter() { }
 
   ghost method GhostNew0()
-    ensures exists o: G :: o != null && fresh(o);
+    ensures exists o: G :: fresh(o);
   {
     var p := new G;  // error: ghost context is not allowed to allocate state
     p := new G;  // error: ditto
@@ -1271,7 +1271,7 @@ module NonInferredTypeVariables {
   {
     var b0 := forall s :: s <= {} ==> s == {};  // error: type of s underspecified
     var b1 := forall s: set :: s <= {} ==> s == {};  // error: type of s underspecified
-    var b2 := forall c: C :: c in {null} ==> c == null;  // error: type of s underspecified
+    var b2 := forall c: C? :: c in {null} ==> c == null;  // error: type parameter of c underspecified
 
     // In the following, the type of the bound variable is completely determined.
     var S: set<set<int>>;
@@ -1279,9 +1279,9 @@ module NonInferredTypeVariables {
     var d1 := forall s: set :: s in S ==> s == {};
     var ggcc0: C;
     var ggcc1: C;  // error: full type cannot be determined
-    ghost var d2 := forall c: C :: c != null ==> c.f == 10;
-    ghost var d2' := forall c: C :: c == ggcc0 && c != null ==> c.f == 10;
-    ghost var d2'' := forall c: C :: c == ggcc1 && c != null ==> c.f == c.f; // error: here, type of c is not determined
+    ghost var d2 := forall c: C? :: c != null ==> c.f == 10;
+    ghost var d2' := forall c: C? :: c == ggcc0 && c != null ==> c.f == 10;
+    ghost var d2'' := forall c: C? :: c == ggcc1 && c != null ==> c.f == c.f; // error: here, type of c is not determined
 
     var d0' := forall s :: s == {7} ==> s != {};
     var d0'' := forall s :: s <= {7} ==> s == {};
@@ -1655,8 +1655,8 @@ module LoopResolutionTests {
     ghost var y: int
   }
 
+  
   ghost method M(c: C)
-    requires c != null
     modifies c
   {
     var n := 0;
@@ -1668,8 +1668,8 @@ module LoopResolutionTests {
     }
   }
 
+
   method MM(c: C)
-    requires c != null
     modifies c
   {
     var n := 0;
@@ -1681,8 +1681,8 @@ module LoopResolutionTests {
     }
   }
 
+  
   method MMX(c: C, ghost g: int)
-    requires c != null
     modifies c
   {
     var n := 0;
@@ -1696,8 +1696,8 @@ module LoopResolutionTests {
     }
   }
 
+  
   method MD0(c: C, ghost g: nat)
-    requires c != null
     modifies c
     decreases *
   {
@@ -1710,8 +1710,8 @@ module LoopResolutionTests {
     }
   }
 
+  
   method MD1(c: C, ghost g: nat)
-    requires c != null
     modifies c
     decreases *
   {
@@ -1751,7 +1751,7 @@ module UnderspecifiedTypesInAttributes {
 module AdvancedIndexableInference {
   datatype MyRecord = Make(x: int, y: int)
   method M(d: array<MyRecord>, e: seq<MyRecord>)
-    requires d != null && d.Length == 100 == |e|
+    requires d.Length == 100 == |e|
   {
     if * {
       var c := d;
@@ -1947,7 +1947,7 @@ module ZI {
     var q: int
     var rs: List<List<Cls>>
   }
-  method M2(c: Cls) {
+  method M2(c: Cls?) {
     P(c);
   }
 

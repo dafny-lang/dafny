@@ -5,34 +5,34 @@ module Basic {
   class U {
     var aa: int
     var bb: int
-    var next: U
+    var next: U?
 
     static twostate function H0(new u: U): int
-      requires u != null && allocated(u) && 10 <= old(u.aa)  // error: u is not available in the old state
+      requires allocated(u) && 10 <= old(u.aa)  // error: u is not available in the old state
     {
       5
     }
 
     static twostate function H1(new u: U): int
-      requires u != null && allocated(u)
+      requires allocated(u)
     {
       old(u.aa)  // error: u is not available in the old state
     }
 
     twostate function K0(u: U): int
-      requires u != null && allocated(u)
+      requires allocated(u)
     {
       u.aa  // error: reads clause must include u
     }
 
     twostate function K1(u: U): int
-      requires u != null && allocated(u) && old(allocated(u))
+      requires allocated(u) && old(allocated(u))
     {
       old(u.aa)  // note, no reads clause needed to read the old state
     }
 
     twostate predicate R(u: U)
-      requires u != null && allocated(u) && old(allocated(u)) && 10 <= old(u.aa)
+      requires allocated(u) && old(allocated(u)) && 10 <= old(u.aa)
       reads u
       ensures u.aa < old(u.aa) < 50 ==> R(u)
     {
@@ -58,7 +58,7 @@ module Basic {
     }
 
     method AM(x: U, y: U)
-      requires x != null && y != null && allocated(x) && allocated(y)
+      requires allocated(x) && allocated(y)
       modifies y
       ensures unchanged(`aa) || AIsIncreased()
     {
@@ -114,30 +114,30 @@ module M0 {
     var data: nat
   }
   twostate function F(x: int, c: C, new d: C): int
-    requires c != null && d != null && allocated(c) && allocated(d)
+    requires allocated(c) && allocated(d)
     reads c, d
     
   trait Tr {
-    twostate function G(c: C, new d: C): int
+    twostate function G(c: C?, new d: C): int
       requires c != null && allocated(c) && unchanged(c)
       reads c, d
       ensures old(c.data) <= G(c, d)
     twostate lemma L(c: C, new d: C)
-      requires c != null && allocated(c) && unchanged(c)
+      requires allocated(c) && unchanged(c)
       ensures old(c.data) <= G(c, d)
   }
   class Cl extends Tr {
-    twostate function G(c: C, new d: C): int
+    twostate function G(c: C?, new d: C): int
       requires c != null && allocated(c) ==> c.data <= old(c.data)  // error under /allocated:1 (c dereferenced inside old)
       reads c
       ensures c != null && allocated(c) ==> G(c, d) == c.data  // error under /allocated:1 (c passed as old parameter to G)
-      ensures d != null && allocated(d) ==> 0 <= old(d.data)  // error: d is not available in old state
+      ensures allocated(d) ==> 0 <= old(d.data)  // error: d is not available in old state
     {
       if c == null then 2 else c.data  // error under /allocated:1 (c dereferenced at all)
     }
     twostate lemma L(c: C, new d: C)
-      requires c != null && allocated(c) ==> c.data <= old(c.data)
-      ensures c != null && allocated(c) ==> G(c, d) == c.data
+      requires allocated(c) ==> c.data <= old(c.data)
+      ensures allocated(c) ==> G(c, d) == c.data
     {
     }
   }
@@ -158,13 +158,13 @@ module Hof {
   class D {
     var data: int
     twostate function P(d: D): int
-      requires d != null && allocated(d)
+      requires allocated(d)
       reads d
     {
       d.data
     }
     method M(e: D) returns (ghost x: int)
-      requires e != null && allocated(e)
+      requires allocated(e)
     {
       var d := new D;
       if * {
@@ -179,13 +179,13 @@ module Hof {
     }
     // same thing as above, but with a static two-state function and method
     static twostate function Q(d: D): int
-      requires d != null && allocated(d)
+      requires allocated(d)
       reads d
     {
       d.data
     }
     static method N(e: D) returns (ghost x: int)
-      requires e != null && allocated(e)
+      requires allocated(e)
     {
       var d := new D;
       if * {

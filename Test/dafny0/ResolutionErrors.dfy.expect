@@ -7,9 +7,9 @@ ResolutionErrors.dfy(94,16): Error: the name 'David' denotes a datatype construc
 ResolutionErrors.dfy(96,16): Error: the name 'David' denotes a datatype constructor, but does not do so uniquely; add an explicit qualification (for example, 'Abc.David')
 ResolutionErrors.dfy(98,20): Error: wrong number of arguments to datatype constructor David (found 2, expected 1)
 ResolutionErrors.dfy(13,18): Error: a possibly infinite loop is allowed only if the enclosing method is declared (with 'decreases *') to be possibly non-terminating
-ResolutionErrors.dfy(25,13): Error: array selection requires an array2 (got array3?<T>)
-ResolutionErrors.dfy(27,13): Error: array selection requires an array4 (got array?<T>)
-ResolutionErrors.dfy(26,14): Error: element selection requires a sequence, array, multiset, or map (got array3?<T>)
+ResolutionErrors.dfy(25,13): Error: array selection requires an array2 (got array3<T>)
+ResolutionErrors.dfy(27,13): Error: array selection requires an array4 (got array<T>)
+ResolutionErrors.dfy(26,14): Error: element selection requires a sequence, array, multiset, or map (got array3<T>)
 ResolutionErrors.dfy(57,16): Error: accessing member 'X' requires an instance expression
 ResolutionErrors.dfy(58,9): Error: unresolved identifier: F
 ResolutionErrors.dfy(59,16): Error: accessing member 'F' requires an instance expression
@@ -38,14 +38,14 @@ ResolutionErrors.dfy(311,4): Error: duplicate label
 ResolutionErrors.dfy(337,6): Error: when allocating an object of type 'ClassWithConstructor', one of its constructor methods must be called
 ResolutionErrors.dfy(338,6): Error: when allocating an object of type 'ClassWithConstructor', one of its constructor methods must be called
 ResolutionErrors.dfy(340,11): Error: a constructor is allowed to be called only when an object is being allocated
-ResolutionErrors.dfy(354,18): Error: arguments must have the same type (got int and DTD_List)
-ResolutionErrors.dfy(355,18): Error: arguments must have the same type (got DTD_List and int)
-ResolutionErrors.dfy(356,27): Error: arguments must have the same type (got bool and int)
+ResolutionErrors.dfy(356,27): Error: arguments must have comparable types (got bool and int)
+ResolutionErrors.dfy(354,18): Error: arguments must have comparable types (got int and DTD_List)
+ResolutionErrors.dfy(355,18): Error: arguments must have comparable types (got DTD_List and int)
 ResolutionErrors.dfy(369,17): Error: ghost variables are allowed only in specification contexts
 ResolutionErrors.dfy(396,7): Error: incorrect type of method in-parameter 0 (expected GenericClass?<bool>, got GenericClass?<int>) (invariant type parameter would require bool = int)
 ResolutionErrors.dfy(408,20): Error: incorrect type of datatype constructor argument (found GList<_T0>, expected GList<int>) (covariant type parameter would require _T0 <: int)
-ResolutionErrors.dfy(417,8): Error: all lines in a calculation must have the same type (got int after bool)
-ResolutionErrors.dfy(421,8): Error: all lines in a calculation must have the same type (got int after bool)
+ResolutionErrors.dfy(417,8): Error: all lines in a calculation must have comparable types (got int after bool)
+ResolutionErrors.dfy(421,8): Error: all lines in a calculation must have comparable types (got int after bool)
 ResolutionErrors.dfy(424,8): Error: first argument to ==> must be of type bool (instead got int)
 ResolutionErrors.dfy(424,8): Error: second argument to ==> must be of type bool (instead got int)
 ResolutionErrors.dfy(425,12): Error: first argument to ==> must be of type bool (instead got int)
@@ -59,10 +59,10 @@ ResolutionErrors.dfy(430,12): Error: second argument to ==> must be of type bool
 ResolutionErrors.dfy(429,8): Error: first argument to ==> must be of type bool (instead got int)
 ResolutionErrors.dfy(429,8): Error: second argument to ==> must be of type bool (instead got int)
 ResolutionErrors.dfy(416,8): Error: type of + must be of a numeric type, a bitvector type, ORDINAL, a sequence type, or a set-like type (instead got bool)
-ResolutionErrors.dfy(416,8): Error: arguments must have the same type (got bool and int)
-ResolutionErrors.dfy(416,8): Error: arguments must have the same type (got bool and int)
-ResolutionErrors.dfy(420,8): Error: arguments must have the same type (got bool and int)
-ResolutionErrors.dfy(420,8): Error: arguments must have the same type (got bool and int)
+ResolutionErrors.dfy(416,8): Error: arguments must have comparable types (got bool and int)
+ResolutionErrors.dfy(416,8): Error: arguments must have comparable types (got bool and int)
+ResolutionErrors.dfy(420,8): Error: arguments must have comparable types (got bool and int)
+ResolutionErrors.dfy(420,8): Error: arguments must have comparable types (got bool and int)
 ResolutionErrors.dfy(454,13): Error: calls to methods with side-effects are not allowed inside a hint
 ResolutionErrors.dfy(456,16): Error: a hint is not allowed to update heap locations
 ResolutionErrors.dfy(458,12): Error: a hint is not allowed to update a variable declared outside the hint
@@ -70,7 +70,7 @@ ResolutionErrors.dfy(479,4): Error: More than one anonymous constructor
 ResolutionErrors.dfy(485,8): Error: when allocating an object of type 'Y', one of its constructor methods must be called
 ResolutionErrors.dfy(490,8): Error: when allocating an object of type 'Luci', one of its constructor methods must be called
 ResolutionErrors.dfy(491,8): Error: when allocating an object of type 'Luci', one of its constructor methods must be called
-ResolutionErrors.dfy(493,11): Error: class Lamb? does not have an anonymous constructor
+ResolutionErrors.dfy(493,11): Error: class Lamb does not have an anonymous constructor
 ResolutionErrors.dfy(546,7): Error: RHS (of type List<A>) not assignable to LHS (of type List<B>) (covariant type parameter would require A <: B)
 ResolutionErrors.dfy(551,7): Error: RHS (of type List<A>) not assignable to LHS (of type List<B>) (covariant type parameter would require A <: B)
 ResolutionErrors.dfy(565,23): Error: type of case bodies do not agree (found Tree<_T1, _T0>, previous types Tree<_T0, _T1>) (covariant type parameter 0 would require _T1 <: _T0)
@@ -100,10 +100,10 @@ ResolutionErrors.dfy(816,4): Error: ghost variables are allowed only in specific
 ResolutionErrors.dfy(827,36): Error: ghost variables are allowed only in specification contexts
 ResolutionErrors.dfy(836,17): Error: function calls are allowed only in specification contexts (consider declaring the function a 'function method')
 ResolutionErrors.dfy(850,6): Error: RHS (of type B) not assignable to LHS (of type object)
+ResolutionErrors.dfy(852,6): Error: RHS (of type B) not assignable to LHS (of type object)
 ResolutionErrors.dfy(857,6): Error: RHS (of type G) not assignable to LHS (of type object)
 ResolutionErrors.dfy(858,6): Error: RHS (of type Dt) not assignable to LHS (of type object)
 ResolutionErrors.dfy(859,6): Error: RHS (of type CoDt) not assignable to LHS (of type object)
-ResolutionErrors.dfy(852,6): Error: RHS (of type B) not assignable to LHS (of type object)
 ResolutionErrors.dfy(851,6): Error: RHS (of type int) not assignable to LHS (of type object)
 ResolutionErrors.dfy(871,13): Error: a modifies-clause expression must denote an object or a collection of objects (instead got int)
 ResolutionErrors.dfy(875,16): Error: in a ghost context, only ghost fields can be mentioned as modifies frame targets (x)
@@ -123,12 +123,13 @@ ResolutionErrors.dfy(954,4): Warning: note, this forall statement has no body
 ResolutionErrors.dfy(955,11): Error: unresolved identifier: s
 ResolutionErrors.dfy(974,18): Error: member 3 does not exist in datatype _tuple#3
 ResolutionErrors.dfy(974,28): Error: member x does not exist in datatype _tuple#2
-ResolutionErrors.dfy(967,39): Error: RHS (of type (int, real, int)) not assignable to LHS (of type (int, real, int, real))
 ResolutionErrors.dfy(973,18): Error: condition is expected to be of type bool, but is int
+ResolutionErrors.dfy(967,39): Error: RHS (of type (int, real, int)) not assignable to LHS (of type (int, real, int, real))
 ResolutionErrors.dfy(966,34): Error: RHS (of type (int, int, real)) not assignable to LHS (of type (int, real, int)) (covariant type parameter 1 would require int <: real)
-ResolutionErrors.dfy(997,19): Error: type of right argument to / (int) must agree with the result type (real)
+ResolutionErrors.dfy(966,34): Error: RHS (of type (int, int, real)) not assignable to LHS (of type (int, real, int)) (covariant type parameter 2 would require real <: int)
 ResolutionErrors.dfy(998,12): Error: type of right argument to % (real) must agree with the result type (int)
 ResolutionErrors.dfy(998,6): Error: RHS (of type int) not assignable to LHS (of type real)
+ResolutionErrors.dfy(997,19): Error: type of right argument to / (int) must agree with the result type (real)
 ResolutionErrors.dfy(1025,11): Error: Wrong number of type arguments (2 instead of 1) passed to subset type: array3
 ResolutionErrors.dfy(1026,11): Error: Wrong number of type arguments (2 instead of 1) passed to subset type: C
 ResolutionErrors.dfy(1037,7): Error: Duplicate name of top-level declaration: BadSyn2
@@ -154,10 +155,10 @@ ResolutionErrors.dfy(1121,6): Error: RHS (of type P<int>) not assignable to LHS 
 ResolutionErrors.dfy(1126,6): Error: RHS (of type P<A>) not assignable to LHS (of type P<B>) (invariant type parameter would require B = A)
 ResolutionErrors.dfy(1131,6): Error: RHS (of type P<A>) not assignable to LHS (of type P<int>) (invariant type parameter would require int = A)
 ResolutionErrors.dfy(1132,6): Error: RHS (of type P<int>) not assignable to LHS (of type P<A>) (invariant type parameter would require A = int)
-ResolutionErrors.dfy(1137,13): Error: arguments must have the same type (got P<int> and P<X>)
-ResolutionErrors.dfy(1138,13): Error: arguments must have the same type (got P<bool> and P<X>)
-ResolutionErrors.dfy(1139,13): Error: arguments must have the same type (got P<int> and P<bool>)
-ResolutionErrors.dfy(1150,10): Error: new cannot be applied to a trait
+ResolutionErrors.dfy(1137,13): Error: arguments must have comparable types (got P<int> and P<X>)
+ResolutionErrors.dfy(1138,13): Error: arguments must have comparable types (got P<bool> and P<X>)
+ResolutionErrors.dfy(1139,13): Error: arguments must have comparable types (got P<int> and P<bool>)
+ResolutionErrors.dfy(1150,10): Error: new can be applied only to class types (got JJ)
 ResolutionErrors.dfy(1158,31): Error: a set comprehension involved in a function definition is not allowed to depend on the set of allocated references; Dafny's heuristics can't figure out a bound for the values of 'o'
 ResolutionErrors.dfy(1160,38): Error: a set comprehension involved in a function definition is not allowed to depend on the set of allocated references; Dafny's heuristics can't figure out a bound for the values of 'o'
 ResolutionErrors.dfy(1165,24): Error: set comprehensions in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce or compile a bounded set of values for 'o'
@@ -167,6 +168,7 @@ ResolutionErrors.dfy(1195,16): Error: a possibly infinite loop is allowed only i
 ResolutionErrors.dfy(1260,13): Error: type variable 'PT' in the function call to 'P' could not be determined
 ResolutionErrors.dfy(1261,14): Error: the type of this variable is underspecified
 ResolutionErrors.dfy(1261,19): Error: type variable 'QT' in the function call to 'Q' could not be determined
+ResolutionErrors.dfy(1261,20): Error: the type of this expression is underspecified
 ResolutionErrors.dfy(1262,4): Error: type '?' to the method 'M' is not determined
 ResolutionErrors.dfy(1263,8): Error: the type of this variable is underspecified
 ResolutionErrors.dfy(1263,13): Error: type '?' to the method 'N' is not determined
@@ -181,10 +183,10 @@ ResolutionErrors.dfy(1272,21): Error: type of bound variable 's' could not be de
 ResolutionErrors.dfy(1273,31): Error: the type of this variable is underspecified
 ResolutionErrors.dfy(1273,48): Error: the type of this expression is underspecified
 ResolutionErrors.dfy(1273,21): Error: type of bound variable 's' could not be determined; please specify the type explicitly
-ResolutionErrors.dfy(1274,29): Error: the type of this variable is underspecified
+ResolutionErrors.dfy(1274,30): Error: the type of this variable is underspecified
 ResolutionErrors.dfy(1274,21): Error: type of bound variable 'c' could not be determined; please specify the type explicitly
 ResolutionErrors.dfy(1281,8): Error: the type of this local variable is underspecified
-ResolutionErrors.dfy(1284,37): Error: the type of this variable is underspecified
+ResolutionErrors.dfy(1284,38): Error: the type of this variable is underspecified
 ResolutionErrors.dfy(1284,29): Error: type of bound variable 'c' could not be determined; please specify the type explicitly
 ResolutionErrors.dfy(1295,21): Error: Undeclared top-level type or type parameter: X (did you forget to qualify a name or declare a module import 'opened?')
 ResolutionErrors.dfy(1296,24): Error: Undeclared top-level type or type parameter: X (did you forget to qualify a name or declare a module import 'opened?')
@@ -201,16 +203,16 @@ ResolutionErrors.dfy(1412,11): Error: name of module (Y) is used as a variable
 ResolutionErrors.dfy(1412,16): Error: name of module (Y) is used as a variable
 ResolutionErrors.dfy(1413,11): Error: name of type (X) is used as a variable
 ResolutionErrors.dfy(1414,11): Error: name of module (Y) is used as a variable
-ResolutionErrors.dfy(1413,13): Error: second argument to "in" must be a set, multiset, or sequence with elements of type #type, or a map with domain #type (instead got map<real, string>) (expecting element type #type <: real)
-ResolutionErrors.dfy(1414,13): Error: second argument to "in" must be a set, multiset, or sequence with elements of type #module, or a map with domain #module (instead got map<real, string>) (expecting element type #module <: real)
+ResolutionErrors.dfy(1413,13): Error: second argument to "in" must be a set, multiset, or sequence with elements of type #type, or a map with domain #type (instead got map<real, string>) (expecting element type to be assignable to real (got #type))
+ResolutionErrors.dfy(1414,13): Error: second argument to "in" must be a set, multiset, or sequence with elements of type #module, or a map with domain #module (instead got map<real, string>) (expecting element type to be assignable to real (got #module))
 ResolutionErrors.dfy(1419,16): Error: name of type (X) is used as a variable
 ResolutionErrors.dfy(1420,16): Error: name of module (Y) is used as a variable
 ResolutionErrors.dfy(1421,4): Error: name of type (X) is used as a variable
 ResolutionErrors.dfy(1422,4): Error: name of module (Y) is used as a variable
-ResolutionErrors.dfy(1419,13): Error: arguments must have the same type (got int and #type)
-ResolutionErrors.dfy(1420,13): Error: arguments must have the same type (got int and #module)
-ResolutionErrors.dfy(1431,11): Error: type of RHS of assign-such-that statement must be boolean (got int)
+ResolutionErrors.dfy(1419,13): Error: arguments must have comparable types (got int and #type)
+ResolutionErrors.dfy(1420,13): Error: arguments must have comparable types (got int and #module)
 ResolutionErrors.dfy(1432,9): Error: type of RHS of assign-such-that statement must be boolean (got int)
+ResolutionErrors.dfy(1431,11): Error: type of RHS of assign-such-that statement must be boolean (got int)
 ResolutionErrors.dfy(1433,13): Error: type of RHS of assign-such-that statement must be boolean (got int)
 ResolutionErrors.dfy(1436,15): Error: type of RHS of let-such-that expression must be boolean (got int)
 ResolutionErrors.dfy(1479,20): Error: calls to methods with side-effects are not allowed inside a hint
@@ -258,9 +260,9 @@ ResolutionErrors.dfy(1741,38): Error: the type of the bound variable 'u' could n
 ResolutionErrors.dfy(1781,11): Error: type conversions are not supported to this type (got J)
 ResolutionErrors.dfy(1784,11): Error: type conversions are not supported to this type (got C)
 ResolutionErrors.dfy(1785,19): Error: Undeclared top-level type or type parameter: realint (did you forget to qualify a name or declare a module import 'opened?')
-ResolutionErrors.dfy(1780,6): Error: RHS (of type object) not assignable to LHS (of type J?)
-ResolutionErrors.dfy(1783,6): Error: RHS (of type J?) not assignable to LHS (of type C?)
-ResolutionErrors.dfy(1793,44): Error: range of comprehension must be of type bool (instead got C?)
+ResolutionErrors.dfy(1780,6): Error: RHS (of type object) not assignable to LHS (of type J)
+ResolutionErrors.dfy(1783,6): Error: RHS (of type J) not assignable to LHS (of type C)
+ResolutionErrors.dfy(1793,44): Error: range of comprehension must be of type bool (instead got C)
 ResolutionErrors.dfy(1800,14): Error: Duplicate member name: P
 ResolutionErrors.dfy(1802,10): Error: Duplicate member name: L
 ResolutionErrors.dfy(1810,4): Error: second argument to && must be of type bool (instead got int)
@@ -302,7 +304,7 @@ ResolutionErrors.dfy(2043,7): Error: type declaration 'M__' is not allowed to ch
 ResolutionErrors.dfy(2046,4): Error: type parameter 'Q' is not allowed to change the requirement of supporting zero initialization
 ResolutionErrors.dfy(2049,4): Error: type parameter 'R' is not allowed to change the requirement of supporting zero initialization
 ResolutionErrors.dfy(2036,5): Error: type parameter (G) passed to method P must support zero initialization (got Z.RGB)
-ResolutionErrors.dfy(2037,5): Error: type parameter (G) passed to method P must support zero initialization (got XYZ)
+ResolutionErrors.dfy(2037,5): Error: type parameter (G) passed to method P must support zero initialization (got Z.XYZ)
 ResolutionErrors.dfy(2055,8): Error: class 'C' with fields without known initializers, like 'u' of type 'T', must declare a constructor
 ResolutionErrors.dfy(2078,8): Error: class 'Class' with fields without known initializers, like 'co' of type 'Co', must declare a constructor
 ResolutionErrors.dfy(2081,8): Error: class 'CoClass0' with fields without known initializers, like 'co' of type 'Co', must declare a constructor

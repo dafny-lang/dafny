@@ -7,7 +7,7 @@
 // Copyright (c) 2008, Microsoft.
 
 class Node {
-  var children: seq<Node>
+  var children: seq<Node?>
   var marked: bool
   var childrenVisited: int
   ghost var pathFromRoot: Path
@@ -20,7 +20,7 @@ class Main {
   method RecursiveMark(root: Node, ghost S: set<Node>)
     requires root in S
     // S is closed under 'children':
-    requires forall n :: n in S ==> n != null &&
+    requires forall n :: n in S ==>
                 forall ch :: ch in n.children ==> ch == null || ch in S
     requires forall n :: n in S ==> !n.marked && n.childrenVisited == 0
     modifies S

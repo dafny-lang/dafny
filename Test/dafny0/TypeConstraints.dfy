@@ -39,7 +39,7 @@ module HereAreErrors {
     var a, b, c;
     a, b := b, c;
     x := a;
-    z := c;  // error
+    z := c;  // error (or on one of the lines above)
   }
 
   method Error1() returns (x: int, z: bool)
@@ -47,7 +47,7 @@ module HereAreErrors {
     var a, b, c;
     a, b := b, c;
     z := c;
-    x := a;  // error
+    x := a;  // error (or on one of the lines above)
   }
 
   method Error2() returns (x: int, z: bool)
@@ -55,7 +55,7 @@ module HereAreErrors {
     var a, b, c;
     a, b := c, c;
     x := a;
-    z := b;  // error
+    z := b;  // error (or on one of the lines above)
   }
 
   method Error3() returns (x: int, z: bool)
@@ -65,7 +65,7 @@ module HereAreErrors {
     c := b;
 
     x := a;
-    z := b;  // error
+    z := b;  // error (or on one of the lines above)
   }
 
   newtype MyInt = x: int | true
