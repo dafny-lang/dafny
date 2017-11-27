@@ -113,26 +113,26 @@ module M0 {
     reads c, d
     
   trait Tr {
-    twostate function G(c: C, new d: C): int
+    twostate function G(c: C?, new d: C): int
       requires unchanged(c)
       reads c, d
-      ensures old(c.data) <= G(c, d)
+      ensures c != null ==> old(c.data) <= G(c, d)
     twostate lemma L(c: C, new d: C)
       requires unchanged(c)
       ensures old(c.data) <= G(c, d)
   }
   class Cl extends Tr {
-    twostate function G(c: C?, new d: C?): int
+    twostate function G(c: C?, new d: C): int
       requires c != null ==> c.data <= old(c.data)
       reads c
       ensures c != null ==> G(c, d) == c.data
-      ensures d != null ==> 0 <= old(d.data)  // error: d is not available in old state
+      ensures 0 <= old(d.data)  // error: d is not available in old state
     {
       if c == null then 2 else c.data
     }
-    twostate lemma L(c: C?, new d: C)
-      requires c != null ==> c.data <= old(c.data)
-      ensures c != null ==> G(c, d) == c.data
+    twostate lemma L(c: C, new d: C)
+      requires c.data <= old(c.data)
+      ensures G(c, d) == c.data
     {
     }
   }

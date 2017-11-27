@@ -331,7 +331,7 @@ namespace Microsoft.Dafny
         }
         UserDefinedType aa = (UserDefinedType)prev;
         UserDefinedType bb = (UserDefinedType)next;
-        if (aa.ResolvedClass != null && bb.ResolvedClass != null && aa.ResolvedClass.Name == bb.ResolvedClass.Name) {
+        if (aa.ResolvedClass != null && bb.ResolvedClass != null && aa.ResolvedClass == bb.ResolvedClass) {
           // these are both resolved class/datatype types
           Contract.Assert(aa.TypeArgs.Count == bb.TypeArgs.Count);
           for (int i = 0; i < aa.TypeArgs.Count; i++)

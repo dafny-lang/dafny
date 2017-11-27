@@ -5032,7 +5032,7 @@ namespace Microsoft.Dafny {
     {
       Contract.Requires(tok != null);
       Contract.Requires(calleeFrame != null);
-      Contract.Requires((receiverReplacement == null) == (substMap == null));
+      Contract.Requires(receiverReplacement == null || substMap != null);
       Contract.Requires(etran != null);
       Contract.Requires(MakeAssert != null);
       Contract.Requires(errorMessage != null);
@@ -5186,7 +5186,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(cce.NonNullElements(rw));
       Contract.Requires(substMap == null || cce.NonNullDictionaryAndValues(substMap));
       Contract.Requires(predef != null);
-      Contract.Requires((receiverReplacement == null) == (substMap == null));
+      Contract.Requires(receiverReplacement == null || substMap != null);
       Contract.Ensures(Contract.Result<Bpl.Expr>() != null);
       return InRWClause(tok, o, f, rw, false, etran, receiverReplacement, substMap);
     }
@@ -5200,7 +5200,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(cce.NonNullElements(rw));
       Contract.Requires(substMap == null || cce.NonNullDictionaryAndValues(substMap));
       Contract.Requires(predef != null);
-      Contract.Requires((receiverReplacement == null) == (substMap == null));
+      Contract.Requires(receiverReplacement == null || substMap != null);
       Contract.Ensures(Contract.Result<Bpl.Expr>() != null);
       var boxO = FunctionCall(tok, BuiltinFunction.Box, null, o);
       return InRWClause_Aux(tok, o, boxO, f, rw, useInUnchanged, etran, receiverReplacement, substMap);
@@ -5221,7 +5221,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(cce.NonNullElements(rw));
       Contract.Requires(substMap == null || cce.NonNullDictionaryAndValues(substMap));
       Contract.Requires(predef != null);
-      Contract.Requires((receiverReplacement == null) == (substMap == null));
+      Contract.Requires(receiverReplacement == null || substMap != null);
       Contract.Ensures(Contract.Result<Bpl.Expr>() != null);
 
       // requires o to denote an expression of type RefType
@@ -5230,9 +5230,10 @@ namespace Microsoft.Dafny {
       Bpl.Expr disjunction = Bpl.Expr.False;
       foreach (FrameExpression rwComponent in rw) {
         Expression e = rwComponent.E;
-        if (receiverReplacement != null) {
-          Contract.Assert(substMap != null);
+        if (substMap != null) {
           e = Substitute(e, receiverReplacement, substMap);
+        } else {
+          Contract.Assert(receiverReplacement == null);
         }
 
         e = Resolver.FrameArrowToObjectSet(e, CurrentIdGenerator, program.BuiltIns);
