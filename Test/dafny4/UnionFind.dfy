@@ -49,7 +49,8 @@ abstract module M1 refines M0 {
   class UnionFind {
     protected predicate Valid...
     {
-      (forall e :: e in M ==> e in Repr && M[e] in M && M[M[e]] == M[e]) &&
+      M.Keys <= Repr &&
+      (forall e :: e in M ==> M[e] in M && M[M[e]] == M[e]) &&
       (forall e :: e in M && e.c.Link? ==> e.c.next in M) &&
       (forall e :: e in M ==> M[e].c.Root? && Reaches(M[e].c.depth, e, M[e], Collect()))
     }

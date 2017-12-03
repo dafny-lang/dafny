@@ -3093,19 +3093,8 @@ namespace Microsoft.Dafny
         return true;
       } else if (super is TypeProxy && sub is TypeProxy) {
         // both are proxies
-        var pSuper = (TypeProxy)super;
-        var pSub = (TypeProxy)sub;
-        if (pSuper.IsSubtypeOfArtificial() || pSub.IsSubtypeOfArtificial()) {
-          pSuper.SupertypeConstraints.ForEach(ct => pSub.SupertypeConstraints.Add(ct));
-          pSuper.SubtypeConstraints.ForEach(ct => pSub.SubtypeConstraints.Add(ct));
-          if (DafnyOptions.O.TypeInferenceDebug) {
-            Console.WriteLine("DEBUG: (merging in aux) assigning proxy {0}.T := {1}", pSuper, pSub);
-          }
-          pSuper.T = pSub;
-        } else {
-          pSub.AddSupertype(c);
-          pSuper.AddSubtype(c);
-        }
+        ((TypeProxy)sub).AddSupertype(c);
+        ((TypeProxy)super).AddSubtype(c);
         return true;
       } else if (sub is TypeProxy) {
         var proxy = (TypeProxy)sub;
@@ -4500,6 +4489,9 @@ namespace Microsoft.Dafny
           ProcessOneSubtypingConstraintAndItsSubs(cc, processed, fullStrength, ref anyNewConstraints);
         }
       }
+      // the processing may have assigned some proxies, so we'll refresh super and sub
+      super = super.NormalizeExpandKeepConstraints();
+      sub = sub.NormalizeExpandKeepConstraints();
 
       if (super.Equals(sub)) {
         // the constraint is satisfied, so just drop it
@@ -4756,9 +4748,32 @@ namespace Microsoft.Dafny
 
     bool AssignKnownEndsFullstrength_SuperDirection(TypeProxy proxy) {
       Contract.Requires(proxy != null && proxy.T == null);
+      // First, compute the the meet of the Assignable LHSs.  Then, compute
+      // the join of that meet and the supertypes.
+      var meets = new List<Type>();
+      foreach (var xc in AllXConstraints) {
+        if (xc.ConstraintName == "Assignable" && xc.Types[1].Normalize() == proxy) {
+          var su = xc.Types[0].NormalizeExpandKeepConstraints();
+          if (su is TypeProxy) {
+            continue;  // don't include proxies in the meet computation
+          }
+          int i = 0;
+          for (; i < meets.Count; i++) {
+            var j = Type.Meet(meets[i], su, builtIns);
+            if (j != null) {
+              meets[i] = j;
+              break;
+            }
+          }
+          if (i == meets.Count) {
+            // we went to the end without finding a place to meet in
+            meets.Add(su);
+          }
+        }
+      }
       // If the join of the supertypes exists, use it
-      var joins = new List<Type>();
-      foreach (var su in proxy.SupertypesKeepConstraints_WithAssignable(AllXConstraints)) {
+      var joins = new List<Type>(meets);
+      foreach (var su in proxy.SupertypesKeepConstraints) {
         if (su is TypeProxy) {
           continue;  // don't include proxies in the join computation
         }
@@ -10524,7 +10539,7 @@ namespace Microsoft.Dafny
         memberName == null ? "" : " (" + memberName + ")");
       }
 
-      var artificialSuper = proxy.AsSubtypeOfArtificial();
+      var artificialSuper = proxy.InClusterOfArtificial(AllXConstraints);
       if (artificialSuper != null) {
         if (DafnyOptions.O.TypeInferenceDebug) {
           Console.WriteLine("  ----> use artificial supertype: {0}", artificialSuper);
@@ -11124,7 +11139,7 @@ namespace Microsoft.Dafny
         if (!scope.AllowInstance) {
           reporter.Error(MessageSource.Resolver, expr, "'this' is not allowed in a 'static' context");
         }
-        if (currentClass != null) {
+        if (currentClass != null && !currentClass.IsDefaultClass) {
           expr.Type = GetThisType(expr.tok, currentClass);  // do this regardless of scope.AllowInstance, for better error reporting
         }
 

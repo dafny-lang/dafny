@@ -1732,6 +1732,9 @@ namespace Microsoft.Dafny {
     /// Does a best-effort to compute the meet of "a" and "b", returning "null" if not successful.
     /// </summary>
     public static Type Meet(Type a, Type b, BuiltIns builtIns) {
+      Contract.Requires(a != null);
+      Contract.Requires(b != null);
+      Contract.Requires(builtIns != null);
       var j = MeetX(a, b, builtIns);
       if (DafnyOptions.O.TypeInferenceDebug) {
         Console.WriteLine("DEBUG: Meet( {0}, {1} ) = {2}", a, b, j);
@@ -1771,8 +1774,16 @@ namespace Microsoft.Dafny {
       a = towerA[0];
       b = towerB[0];
 
-      if (a.IsBoolType || a.IsCharType || a.IsBitVectorType || a.IsBigOrdinalType || a.IsTypeParameter || a.IsInternalTypeSynonym || a is TypeProxy) {
+      if (a is IntVarietiesSupertype) {
+        return b is IntVarietiesSupertype || b.IsNumericBased(NumericPersuation.Int) || b.IsBigOrdinalType || b.IsBitVectorType ? b : null;
+      } else if (b is IntVarietiesSupertype) {
+        return a.IsNumericBased(NumericPersuation.Int) || a.IsBigOrdinalType || a.IsBitVectorType ? a : null;
+      } else if (a.IsBoolType || a.IsCharType || a.IsBitVectorType || a.IsBigOrdinalType || a.IsTypeParameter || a.IsInternalTypeSynonym || a is TypeProxy) {
         return a.Equals(b) ? a : null;
+      } else if (a is RealVarietiesSupertype) {
+        return b is RealVarietiesSupertype || b.IsNumericBased(NumericPersuation.Real) ? b : null;
+      } else if (b is RealVarietiesSupertype) {
+        return a.IsNumericBased(NumericPersuation.Real) ? a : null;
       } else if (a.IsNumericBased()) {
         // Note, for meet, we choose not to step down to IntVarietiesSupertype or RealVarietiesSupertype
         return a.Equals(b) ? a : null;
@@ -1917,7 +1928,36 @@ namespace Microsoft.Dafny {
     /// Does a best-effort to compute the join of "a" and "b", returning "null" if not successful.
     /// </summary>
     public static Type Join(Type a, Type b, BuiltIns builtIns) {
-      var j = JoinX(a, b, builtIns);
+      Contract.Requires(a != null);
+      Contract.Requires(b != null);
+      Contract.Requires(builtIns != null);
+      a = a.NormalizeExpandKeepConstraints();
+      b = b.NormalizeExpandKeepConstraints();
+
+      var joinNeedsNonNullConstraint = false;
+      Type j;
+      if (a is UserDefinedType && ((UserDefinedType)a).ResolvedClass is NonNullTypeDecl) {
+        joinNeedsNonNullConstraint = true;
+        var nnt = (NonNullTypeDecl)((UserDefinedType)a).ResolvedClass;
+        j = JoinX(nnt.RhsWithArgument(a.TypeArgs), b, builtIns);
+      } else if (b is UserDefinedType && ((UserDefinedType)b).ResolvedClass is NonNullTypeDecl) {
+        joinNeedsNonNullConstraint = true;
+        var nnt = (NonNullTypeDecl)((UserDefinedType)b).ResolvedClass;
+        j = JoinX(a, nnt.RhsWithArgument(b.TypeArgs), builtIns);
+      } else {
+        j = JoinX(a, b, builtIns);
+      }
+      if (j != null && joinNeedsNonNullConstraint && !j.IsNonNullRefType) {
+        // try to make j into a non-null type; if that's not possible, then there is no join
+        var udt = j as UserDefinedType;
+        if (udt != null && udt.ResolvedClass is ClassDecl) {
+          // add the non-null constraint back in
+          j = UserDefinedType.CreateNonNullType(udt);
+        } else {
+          // the original a and b have no join
+          j = null;
+        }
+      }
       if (DafnyOptions.O.TypeInferenceDebug) {
         Console.WriteLine("DEBUG: Join( {0}, {1} ) = {2}", a, b, j);
       }
@@ -1927,9 +1967,6 @@ namespace Microsoft.Dafny {
       Contract.Requires(a != null);
       Contract.Requires(b != null);
       Contract.Requires(builtIns != null);
-
-      // Before we do anything else, make a note of whether or not either "a" or "b" is a non-null type.
-      var abNonNullType = a.IsNonNullRefType || b.IsNonNullRefType;
 
       var towerA = GetTowerOfSubsetTypes(a);
       var towerB = GetTowerOfSubsetTypes(b);
@@ -2078,19 +2115,16 @@ namespace Microsoft.Dafny {
             return null;
           }
           var udt = (UserDefinedType)a;
-          var xx = new UserDefinedType(udt.tok, udt.Name, aa, typeArgs);
-          return abNonNullType ? UserDefinedType.CreateNonNullType(xx) : xx;
+          return new UserDefinedType(udt.tok, udt.Name, aa, typeArgs);
         } else if (aa is ClassDecl && bb is ClassDecl) {
           var A = (ClassDecl)aa;
           var B = (ClassDecl)bb;
           if (A.DerivesFrom(B)) {
             Contract.Assert(B is TraitDecl && b.TypeArgs.Count == 0);
-            var udtA = (UserDefinedType)a;
-            return abNonNullType ? UserDefinedType.CreateNonNullType(udtA) : udtA;
+            return a;
           } else if (B.DerivesFrom(A)) {
             Contract.Assert(A is TraitDecl && a.TypeArgs.Count == 0);
-            var udtB = (UserDefinedType)b;
-            return abNonNullType ? UserDefinedType.CreateNonNullType(udtB) : udtB;
+            return b;
           } else {
             return null;
           }
@@ -3006,19 +3040,6 @@ namespace Microsoft.Dafny {
         }
       }
     }
-    public IEnumerable<Type> SupertypesKeepConstraints_WithAssignable(List<Resolver.XConstraint> allXConstraints) {
-      Contract.Requires(allXConstraints != null);
-      foreach (var c in SupertypeConstraints) {
-        yield return c.Super.NormalizeExpandKeepConstraints();
-      }
-      foreach (var xc in allXConstraints) {
-        if (xc.ConstraintName == "Assignable") {
-          if (xc.Types[1].Normalize() == this) {
-            yield return xc.Types[0].NormalizeExpandKeepConstraints();
-          }
-        }
-      }
-    }
     public void AddSupertype(Resolver.TypeConstraint c) {
       Contract.Requires(c != null);
       Contract.Requires(c.Sub == this);
@@ -3155,14 +3176,13 @@ namespace Microsoft.Dafny {
       Contract.Requires(t != null);
       return t is ArtificialType;
     }
-    internal bool IsSubtypeOfArtificial() {
-      return AsSubtypeOfArtificial() != null;
+    internal Type InClusterOfArtificial(List<Resolver.XConstraint> allXConstraints) {
+      Contract.Requires(allXConstraints != null);
+      return InClusterOfArtificial_aux(new HashSet<TypeProxy>(), allXConstraints);
     }
-    internal Type AsSubtypeOfArtificial() {
-      return AsSubtypeOfArtificial_aux(new HashSet<TypeProxy>());
-    }
-    private Type AsSubtypeOfArtificial_aux(ISet<TypeProxy> visitedProxies) {
+    private Type InClusterOfArtificial_aux(ISet<TypeProxy> visitedProxies, List<Resolver.XConstraint> allXConstraints) {
       Contract.Requires(visitedProxies != null);
+      Contract.Requires(allXConstraints != null);
       if (visitedProxies.Contains(this)) {
         return null;
       }
@@ -3174,7 +3194,16 @@ namespace Microsoft.Dafny {
         } else if (sup is RealVarietiesSupertype) {
           return Type.Real;
         } else if (sup is TypeProxy) {
-          var a = ((TypeProxy)sup).AsSubtypeOfArtificial_aux(visitedProxies);
+          var a = ((TypeProxy)sup).InClusterOfArtificial_aux(visitedProxies, allXConstraints);
+          if (a != null) {
+            return a;
+          }
+        }
+      }
+      foreach (var su in SubtypesKeepConstraints_WithAssignable(allXConstraints)) {
+        var pr = su as TypeProxy;
+        if (pr != null) {
+          var a = pr.InClusterOfArtificial_aux(visitedProxies, allXConstraints);
           if (a != null) {
             return a;
           }
