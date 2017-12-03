@@ -2971,7 +2971,7 @@ namespace Microsoft.Dafny
       bool isRoot, isLeaf, headIsRoot, headIsLeaf;
       CheckEnds(lhs, out isRoot, out isLeaf, out headIsRoot, out headIsLeaf);
       if (isRoot) {
-        ConstrainSubtypeRelation(lhs, rhs, errMsg, false, allowDecisions);
+        ConstrainSubtypeRelation(lhs, rhs, errMsg, true, allowDecisions);
         moreXConstraints = false;
       } else {
         var lhsWithProxyArgs = Type.HeadWithProxyArgs(lhs);
@@ -3271,6 +3271,15 @@ namespace Microsoft.Dafny
           var fam = TypeProxy.GetFamily(t);
           if (fam == TypeProxy.Family.IntLike || fam == TypeProxy.Family.BitVector || fam == TypeProxy.Family.Ordinal) {
             // good, let's continue with the request to equate the proxy with t
+            // unless...
+            if (t != t.NormalizeExpand()) {
+              // force the type to be a base type
+              if (DafnyOptions.O.TypeInferenceDebug) {
+                Console.WriteLine("DEBUG: hijacking {0}.T := {1} to instead assign {2}", proxy, t, t.NormalizeExpand());
+              }
+              t = t.NormalizeExpand();
+              followedRequestedAssignment = false;
+            }
           } else {
             // hijack the setting of proxy; to do that, we decide on a particular int variety now
             if (DafnyOptions.O.TypeInferenceDebug) {
@@ -3283,6 +3292,15 @@ namespace Microsoft.Dafny
         } else if (su is RealVarietiesSupertype) {
           if (TypeProxy.GetFamily(t) == TypeProxy.Family.RealLike) {
             // good, let's continue with the request to equate the proxy with t
+            // unless...
+            if (t != t.NormalizeExpand()) {
+              // force the type to be a base type
+              if (DafnyOptions.O.TypeInferenceDebug) {
+                Console.WriteLine("DEBUG: hijacking {0}.T := {1} to instead assign {2}", proxy, t, t.NormalizeExpand());
+              }
+              t = t.NormalizeExpand();
+              followedRequestedAssignment = false;
+            }
           } else {
             // hijack the setting of proxy; to do that, we decide on a particular real variety now
             if (DafnyOptions.O.TypeInferenceDebug) {
@@ -3655,7 +3673,10 @@ namespace Microsoft.Dafny
           case "Assignable": {
               Contract.Assert(t == t.Normalize());  // it's already been normalized above
               var u = Types[1].NormalizeExpandKeepConstraints();
-              if (CheckTypeInference_Visitor.IsDetermined(t)) {
+              if (CheckTypeInference_Visitor.IsDetermined(t) &&
+                (fullstrength
+                || !ProxyWithNoSubTypeConstraint(u, resolver)
+                || (Types[0].NormalizeExpandKeepConstraints().IsNonNullRefType && u is TypeProxy && resolver.HasApplicableNullableRefTypeConstraint(new HashSet<TypeProxy>() { (TypeProxy)u })))) {
                 // This is the best case.  We convert Assignable(t, u) to the subtype constraint base(t) :> u.
                 resolver.ConstrainAssignable((NonProxyType)t, u, errorMsg, out moreXConstraints, fullstrength);
                 convertedIntoOtherTypeConstraints = true;
@@ -4076,6 +4097,24 @@ namespace Microsoft.Dafny
         return true;  // the XConstraint has served its purpose
       }
 
+      public bool ProxyWithNoSubTypeConstraint(Type u, Resolver resolver) {
+        Contract.Requires(u != null);
+        Contract.Requires(resolver != null);
+        var proxy = u as TypeProxy;
+        if (proxy != null) {
+          if (proxy.SubtypeConstraints.Any()) {
+            return false;
+          }
+          foreach (var xc in resolver.AllXConstraints) {
+            if (xc.ConstraintName == "Assignable" && xc.Types[0] == proxy) {
+              return false;
+            }
+          }
+          return true;
+        }
+        return false;
+      }
+
       bool IsEqDetermined(Type t) {
         Contract.Requires(t != null);
         switch (TypeProxy.GetFamily(t)) {
@@ -4277,9 +4316,17 @@ namespace Microsoft.Dafny
                   ProcessFullStrength_SubDirection(xc.Types[0], proxyProcessed, ref anyNewConstraints);
                 }
               }
-              proxyProcessed = new HashSet<TypeProxy>();
-              foreach (var c in allTC) {
-                ProcessFullStrength_SuperDirection(c.Sub, proxyProcessed, ref anyNewConstraints);
+              if (!anyNewConstraints) {
+                // only do super-direction if sub-direction had no effect
+                proxyProcessed = new HashSet<TypeProxy>();
+                foreach (var c in allTC) {
+                  ProcessFullStrength_SuperDirection(c.Sub, proxyProcessed, ref anyNewConstraints);
+                }
+                foreach (var xc in AllXConstraints) {
+                  if (xc.ConstraintName == "Assignable") {
+                    ProcessFullStrength_SuperDirection(xc.Types[1], proxyProcessed, ref anyNewConstraints);
+                  }
+                }
               }
               AllTypeConstraints.AddRange(allTC);
             }
@@ -4423,8 +4470,9 @@ namespace Microsoft.Dafny
       foreach (var xc in allX) {
         if (xc.ConstraintName == "Assignable" && xc.Types[1].Normalize() is NonProxyType) {
           var t0 = xc.Types[0].NormalizeExpand();
-          if (proxySpecializations == null || proxySpecializations.Contains(t0) ||
-            t0.TypeArgs.Exists(ta => proxySpecializations.Contains(ta))) {
+          if (proxySpecializations == null
+            || proxySpecializations.Contains(t0)
+            || t0.TypeArgs.Exists(ta => proxySpecializations.Contains(ta))) {
             ConstrainSubtypeRelation(t0, xc.Types[1], xc.errorMsg, true);
             anyNewConstraints = true;
             continue;
@@ -4710,7 +4758,7 @@ namespace Microsoft.Dafny
       Contract.Requires(proxy != null && proxy.T == null);
       // If the join of the supertypes exists, use it
       var joins = new List<Type>();
-      foreach (var su in proxy.SupertypesKeepConstraints) {
+      foreach (var su in proxy.SupertypesKeepConstraints_WithAssignable(AllXConstraints)) {
         if (su is TypeProxy) {
           continue;  // don't include proxies in the join computation
         }

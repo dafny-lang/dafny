@@ -6,11 +6,11 @@ class CC {
   var g: int
   function method F(): nat
   method M() {
-    var a := f;  // int
+    var a := f;  // nat
     var b := g;  // int
-    var c := F();  // int (not nat)
-    var w;  // int (not nat)
-    var d := N(w);  // int (not nat)
+    var c := F();  // nat
+    var w;  // nat
+    var d := N(w);  // nat
   }
   method N(m: nat) returns (n: nat)
 }
@@ -28,7 +28,7 @@ method ChainOfAssignments() returns (x: int, y: int, n: nat)
   l := m;
   m := x;
 
-  var p, q;  // int, int
+  var p, q;  // nat, nat
   p := q;
   q := n;
 }
@@ -75,8 +75,8 @@ module HereAreErrors {
     var b := 0;  // MyInt
     r := a;
     s := b;
-    a := b;  // error
-    b := a;  // error
+    a := b;  // error (or on the previous line)
+    b := a;  // error (or on the previous two lines)
     r := s;  // error
     s := r;  // error
     var d, e;  // MyInt, MyInt

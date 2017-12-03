@@ -147,7 +147,7 @@ class Modifies {
   method F(s: set<Modifies>)
     modifies s
   {
-    forall m | m in s && m != null && 2 <= m.x {
+    forall m | m in s && 2 <= m.x {
       m.x := m.x + 1;
     }
     if this in s {
@@ -169,8 +169,8 @@ class Modifies {
       }
       F(s);
     }
-    forall (m | m in s) ensures true; { assert m == null || m.x < m.x + 10; }
-    forall (m | m != null && m in s) {
+    forall (m | m in s) ensures true; { assert m.x < m.x + 10; }
+    forall (m | m in s) {
       m.x := m.x + 1;  // error: may violate modifies clause
     }
   }

@@ -1449,7 +1449,7 @@ namespace Microsoft.Dafny {
         while (sub.AsNewtype != null) {
           sub = sub.AsNewtype.BaseType.NormalizeExpand();
         }
-        return sub.IsIntegerType || sub is BitvectorType;
+        return sub.IsIntegerType || sub is BitvectorType || sub is BigOrdinalType;
       } else if (super is RealVarietiesSupertype) {
         while (sub.AsNewtype != null) {
           sub = sub.AsNewtype.BaseType.NormalizeExpand();
@@ -3003,6 +3003,19 @@ namespace Microsoft.Dafny {
       get {
         foreach (var c in SupertypeConstraints) {
           yield return c.Super.NormalizeExpandKeepConstraints();
+        }
+      }
+    }
+    public IEnumerable<Type> SupertypesKeepConstraints_WithAssignable(List<Resolver.XConstraint> allXConstraints) {
+      Contract.Requires(allXConstraints != null);
+      foreach (var c in SupertypeConstraints) {
+        yield return c.Super.NormalizeExpandKeepConstraints();
+      }
+      foreach (var xc in allXConstraints) {
+        if (xc.ConstraintName == "Assignable") {
+          if (xc.Types[1].Normalize() == this) {
+            yield return xc.Types[0].NormalizeExpandKeepConstraints();
+          }
         }
       }
     }

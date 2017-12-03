@@ -47,10 +47,6 @@ Execution trace:
     (0,0): anon0
     (0,0): anon5_Else
     (0,0): anon6_Then
-NatTypes.dfy(126,21): Error: value does not satisfy the subset constraints of 'nat'
-Execution trace:
-    (0,0): anon0
-    (0,0): anon3_Then
 NatTypes.dfy(141,44): Error: value does not satisfy the subset constraints of 'nat'
 Execution trace:
     (0,0): anon0
@@ -66,4 +62,4 @@ Execution trace:
     (0,0): anon0
     (0,0): anon3_Else
 
-Dafny program verifier finished with 6 verified, 14 errors
+Dafny program verifier finished with 7 verified, 13 errors

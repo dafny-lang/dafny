@@ -5,44 +5,44 @@ TypeAntecedents.dfy(58,0): Error BP5003: A postcondition might not hold on this 
 TypeAntecedents.dfy(57,14): Related location: This is the postcondition that might not hold.
 Execution trace:
     (0,0): anon0
-    (0,0): anon25_Then
+    (0,0): anon21_Then
     (0,0): anon6
-    (0,0): anon28_Then
+    (0,0): anon24_Then
     (0,0): anon8
-    (0,0): anon29_Else
-    (0,0): anon31_Else
-    (0,0): anon33_Then
+    (0,0): anon25_Else
+    (0,0): anon26_Else
+    (0,0): anon27_Then
+    (0,0): anon16
+    (0,0): anon28_Then
+    (0,0): anon29_Then
     (0,0): anon20
-    (0,0): anon34_Then
-    (0,0): anon35_Then
-    (0,0): anon24
 TypeAntecedents.dfy(66,15): Error: assertion violation
 Execution trace:
     (0,0): anon0
-    (0,0): anon25_Else
-    (0,0): anon26_Then
-    (0,0): anon27_Else
+    (0,0): anon21_Else
+    (0,0): anon22_Then
+    (0,0): anon23_Else
 TypeAntecedents.dfy(80,47): Error: target object may not be allocated
 Execution trace:
     (0,0): anon0
-    (0,0): anon25_Then
+    (0,0): anon21_Then
     (0,0): anon6
-    (0,0): anon28_Then
+    (0,0): anon24_Then
     (0,0): anon8
-    (0,0): anon29_Else
-    (0,0): anon31_Else
-    (0,0): anon33_Then
+    (0,0): anon25_Else
+    (0,0): anon26_Else
+    (0,0): anon27_Then
 TypeAntecedents.dfy(82,52): Error: target object may not be allocated
 Execution trace:
     (0,0): anon0
-    (0,0): anon25_Then
+    (0,0): anon21_Then
     (0,0): anon6
-    (0,0): anon28_Then
+    (0,0): anon24_Then
     (0,0): anon8
-    (0,0): anon29_Else
-    (0,0): anon31_Else
-    (0,0): anon33_Then
-    (0,0): anon20
-    (0,0): anon34_Then
+    (0,0): anon25_Else
+    (0,0): anon26_Else
+    (0,0): anon27_Then
+    (0,0): anon16
+    (0,0): anon28_Then
 
 Dafny program verifier finished with 5 verified, 5 errors

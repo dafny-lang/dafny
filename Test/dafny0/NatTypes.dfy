@@ -123,7 +123,7 @@ method TestGenEric() {
   var ge;
   if (ge != null) {
     var b := GE(ge);
-    var n: nat := ge.f;  // error: the generic instantiation uses int, not nat
+    var n: nat := ge.f;  // the generic instantiation is inferred to be nat, so this is okay
   }
 }
 

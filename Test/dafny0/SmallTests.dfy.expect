@@ -47,12 +47,10 @@ Execution trace:
 SmallTests.dfy(174,8): Error: assignment may update an object field not in the enclosing context's modifies clause
 Execution trace:
     (0,0): anon0
+    (0,0): anon18_Else
+    (0,0): anon20_Else
     (0,0): anon22_Else
-    (0,0): anon24_Else
-    (0,0): anon26_Else
-    (0,0): anon28_Then
-    (0,0): anon29_Then
-    (0,0): anon19
+    (0,0): anon23_Then
 SmallTests.dfy(196,25): Error: assertion violation
 Execution trace:
     (0,0): anon0

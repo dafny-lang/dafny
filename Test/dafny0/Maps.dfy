@@ -186,7 +186,6 @@ method m14()
 class A { var x: int; }
 
 method m15(b: set<A>) 
-  requires forall a | a in b :: a != null;
 {
   var m := map a | a in b :: a.x;
   var aa := new A;
