@@ -8,6 +8,6 @@ method M() {
   if * {
     assert "2" in s;  // This causes the type of s to be inferred as seq<string>.
   } else if * {       // Thus, the n in the next line is inferred as string (or seq<char>)
-    assert exists n :: n in s && n != 1;  // error: comparing seq<char> and int not allowed
+    assert exists n :: n in s && n != 1;  // error: mismatched types
   }
 }

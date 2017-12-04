@@ -12,7 +12,7 @@ class {:autocontracts} ExtensibleArray<T> {
   predicate Valid()
   {
     // shape of data structure
-    ((elements == null == more && Contents == []) ||
+    ((elements == null && more == null && Contents == []) ||
      (elements != null && elements.Length == 256)) &&
     (more != null ==>
         elements !in more.Repr &&

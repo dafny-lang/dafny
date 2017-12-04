@@ -13,7 +13,7 @@ ResolveError.dfy(38,22): Error: arguments must have comparable types (got set<ob
 ResolveError.dfy(47,18): Error: Precondition must be boolean (got int)
 ResolveError.dfy(46,15): Error: a reads-clause expression must denote an object or a collection of objects (instead got int)
 ResolveError.dfy(56,9): Error: condition is expected to be of type bool, but is () -> bool
-ResolveError.dfy(59,39): Error: arguments must have comparable types (got A -> B and object?)
+ResolveError.dfy(59,42): Error: type of 'null' is a reference type, but it is used as A -> B
 ResolveError.dfy(62,11): Error: arguments must have comparable types (got A -> B and object)
 ResolveError.dfy(68,24): Error: unresolved identifier: _
 ResolveError.dfy(86,6): Error: RHS (of type ((int, bool)) -> real) not assignable to LHS (of type (int, bool) -> real)

@@ -42,10 +42,12 @@ ResolutionErrors.dfy(356,27): Error: arguments must have comparable types (got b
 ResolutionErrors.dfy(354,18): Error: arguments must have comparable types (got int and DTD_List)
 ResolutionErrors.dfy(355,18): Error: arguments must have comparable types (got DTD_List and int)
 ResolutionErrors.dfy(369,17): Error: ghost variables are allowed only in specification contexts
-ResolutionErrors.dfy(396,7): Error: incorrect type of method in-parameter 0 (expected GenericClass?<bool>, got GenericClass?<int>) (invariant type parameter would require bool = int)
-ResolutionErrors.dfy(408,20): Error: incorrect type of datatype constructor argument (found GList<_T0>, expected GList<int>) (covariant type parameter would require _T0 <: int)
-ResolutionErrors.dfy(417,8): Error: all lines in a calculation must have comparable types (got int after bool)
-ResolutionErrors.dfy(421,8): Error: all lines in a calculation must have comparable types (got int after bool)
+ResolutionErrors.dfy(395,11): Error: RHS (of type int) not assignable to LHS (of type bool)
+ResolutionErrors.dfy(396,18): Error: arguments must have comparable types (got bool and int)
+ResolutionErrors.dfy(407,19): Error: incorrect type of datatype constructor argument (found int, expected _T0)
+ResolutionErrors.dfy(408,15): Error: incorrect type of datatype constructor argument (found int, expected _T0)
+ResolutionErrors.dfy(417,8): Error: all lines in a calculation must have the same type (got int after bool)
+ResolutionErrors.dfy(421,8): Error: all lines in a calculation must have the same type (got int after bool)
 ResolutionErrors.dfy(424,8): Error: first argument to ==> must be of type bool (instead got int)
 ResolutionErrors.dfy(424,8): Error: second argument to ==> must be of type bool (instead got int)
 ResolutionErrors.dfy(425,12): Error: first argument to ==> must be of type bool (instead got int)
@@ -127,8 +129,8 @@ ResolutionErrors.dfy(973,18): Error: condition is expected to be of type bool, b
 ResolutionErrors.dfy(967,39): Error: RHS (of type (int, real, int)) not assignable to LHS (of type (int, real, int, real))
 ResolutionErrors.dfy(966,34): Error: RHS (of type (int, int, real)) not assignable to LHS (of type (int, real, int)) (covariant type parameter 1 would require int <: real)
 ResolutionErrors.dfy(966,34): Error: RHS (of type (int, int, real)) not assignable to LHS (of type (int, real, int)) (covariant type parameter 2 would require real <: int)
-ResolutionErrors.dfy(998,12): Error: type of right argument to % (real) must agree with the result type (int)
-ResolutionErrors.dfy(998,6): Error: RHS (of type int) not assignable to LHS (of type real)
+ResolutionErrors.dfy(998,12): Error: type of left argument to % (int) must agree with the result type (real)
+ResolutionErrors.dfy(998,12): Error: arguments to % must be integer-numeric or bitvector types (got real)
 ResolutionErrors.dfy(997,19): Error: type of right argument to / (int) must agree with the result type (real)
 ResolutionErrors.dfy(1025,11): Error: Wrong number of type arguments (2 instead of 1) passed to subset type: array3
 ResolutionErrors.dfy(1026,11): Error: Wrong number of type arguments (2 instead of 1) passed to subset type: C

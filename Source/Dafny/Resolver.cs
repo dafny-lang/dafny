@@ -3826,7 +3826,7 @@ namespace Microsoft.Dafny
               var elementType = FindCollectionType(t, true, new HashSet<TypeProxy>()) ?? FindCollectionType(t, false, new HashSet<TypeProxy>());
               if (elementType != null) {
                 var u = Types[1];  // note, it's okay if "u" is a TypeProxy
-                resolver.AddAssignableConstraint(this.tok, elementType, u, new TypeConstraint.ErrorMsgWithBase(errorMsg, "expecting element type to be assignable to {1} (got {0})", u, elementType));
+                resolver.AddXConstraint(this.tok, "Equatable", elementType, u, new TypeConstraint.ErrorMsgWithBase(errorMsg, "expecting element type to be assignable to {1} (got {0})", u, elementType));
                 moreXConstraints = true;
                 return true;
               }
@@ -3929,6 +3929,9 @@ namespace Microsoft.Dafny
                   if (Resolver.TypeConstraintsIncludeProxy(other, proxy)) {
                     return false;
                   } else {
+                    if (other.IsRefType && resolver.HasApplicableNullableRefTypeConstraint_SubDirection(proxy)) {
+                      other = other.NormalizeExpand();  // shave off all constraints
+                    }
                     satisfied = resolver.AssignProxyAndHandleItsConstraints(proxy, other, true);
                     convertedIntoOtherTypeConstraints = true;
                     break;
@@ -3977,6 +3980,9 @@ namespace Microsoft.Dafny
                   if (Resolver.TypeConstraintsIncludeProxy(other, proxy)) {
                     return false;
                   } else {
+                    if (other.IsRefType && resolver.HasApplicableNullableRefTypeConstraint_SubDirection(proxy)) {
+                      other = other.NormalizeExpand();  // shave off all constraints
+                    }
                     satisfied = resolver.AssignProxyAndHandleItsConstraints(proxy, other, true);
                     convertedIntoOtherTypeConstraints = true;
                     break;
@@ -4340,6 +4346,32 @@ namespace Microsoft.Dafny
             break;
 
           case 6: {
+              fullStrength = true;
+              bool generatedMoreXConstraints;
+              do {
+                generatedMoreXConstraints = false;
+                var allXConstraints = AllXConstraints;
+                AllXConstraints = new List<XConstraint>();
+                foreach (var xc in allXConstraints) {
+                  bool convertedIntoOtherTypeConstraints, moreXConstraints;
+                  if ((xc.ConstraintName == "Equatable" || xc.ConstraintName == "EquatableArg") && xc.Confirm(this, fullStrength, out convertedIntoOtherTypeConstraints, out moreXConstraints)) {
+                    if (convertedIntoOtherTypeConstraints) {
+                      anyNewConstraints = true;
+                    } else {
+                      generatedMoreXConstraints = true;
+                    }
+                    if (moreXConstraints) {
+                      generatedMoreXConstraints = true;
+                    }
+                  } else {
+                    AllXConstraints.Add(xc);
+                  }
+                }
+              } while (generatedMoreXConstraints);
+            }
+            break;
+
+          case 7: {
               // Process default reference types
               var allXConstraints = AllXConstraints;
               AllXConstraints = new List<XConstraint>();
@@ -4357,10 +4389,10 @@ namespace Microsoft.Dafny
             }
             break;
 
-          case 7: fullStrength = true; goto case 0;
-          case 8: fullStrength = true; goto case 1;
+          case 8: fullStrength = true; goto case 0;
+          case 9: fullStrength = true; goto case 1;
 
-          case 9: {
+          case 10: {
               // Finally, collapse constraints involving only proxies, which will have the effect of trading some type error
               // messages for type-underspecification messages.
               var allTypeConstraints = AllTypeConstraints;
@@ -4463,6 +4495,26 @@ namespace Microsoft.Dafny
             || proxySpecializations.Contains(t0)
             || t0.TypeArgs.Exists(ta => proxySpecializations.Contains(ta))) {
             ConstrainSubtypeRelation(t0, xc.Types[1], xc.errorMsg, true);
+            anyNewConstraints = true;
+            continue;
+          }
+        }
+        AllXConstraints.Add(xc);
+      }
+      return anyNewConstraints;
+    }
+
+    bool TightenUpEquatable(ISet<TypeProxy> proxiesOfInterest) {
+      Contract.Requires(proxiesOfInterest != null);
+      var anyNewConstraints = false;
+      var allX = AllXConstraints;
+      AllXConstraints = new List<XConstraint>();
+      foreach (var xc in allX) {
+        if (xc.ConstraintName == "Equatable" || xc.ConstraintName == "EquatableArg") {
+          var t0 = xc.Types[0].NormalizeExpandKeepConstraints();
+          var t1 = xc.Types[1].NormalizeExpandKeepConstraints();
+          if (proxiesOfInterest.Contains(t0) || proxiesOfInterest.Contains(t1)) {
+            ConstrainSubtypeRelation_Equal(t0, t1, xc.errorMsg);
             anyNewConstraints = true;
             continue;
           }
@@ -4744,6 +4796,41 @@ namespace Microsoft.Dafny
         }
       }
       return proxySet.Any(nullableProxies.Contains);
+    }
+    private bool HasApplicableNullableRefTypeConstraint_SubDirection(TypeProxy proxy) {
+      Contract.Requires(proxy != null);
+      var nullableProxies = new HashSet<TypeProxy>();
+      foreach (var xc in AllXConstraints) {
+        if (xc.ConstraintName == "IsNullableRefType") {
+          var npr = xc.Types[0].Normalize() as TypeProxy;
+          if (npr != null) {
+            nullableProxies.Add(npr);
+          }
+        }
+      }
+      return HasApplicableNullableRefTypeConstraint_SubDirection_aux(proxy, nullableProxies, new HashSet<TypeProxy>());
+    }
+    private bool HasApplicableNullableRefTypeConstraint_SubDirection_aux(TypeProxy proxy, ISet<TypeProxy> nullableProxies, ISet<TypeProxy> visitedProxies) {
+      Contract.Requires(proxy != null);
+      Contract.Requires(nullableProxies != null);
+      Contract.Requires(visitedProxies != null);
+
+      if (visitedProxies.Contains(proxy)) {
+        return false;
+      }
+      visitedProxies.Add(proxy);
+
+      if (nullableProxies.Contains(proxy)) {
+        return true;
+      }
+
+      foreach (var sub in proxy.SubtypesKeepConstraints_WithAssignable(AllXConstraints)) {
+        var psub = sub as TypeProxy;
+        if (psub != null && HasApplicableNullableRefTypeConstraint_SubDirection_aux(psub, nullableProxies, visitedProxies)) {
+          return true;
+        }
+      }
+      return false;
     }
 
     bool AssignKnownEndsFullstrength_SuperDirection(TypeProxy proxy) {
@@ -10517,8 +10604,9 @@ namespace Microsoft.Dafny
       if (strength > 0) {
         var proxySpecializations = new HashSet<TypeProxy>();
         GetRelatedTypeProxies(t, proxySpecializations);
-        bool anyNewConstraints = ConvertAssignableToSubtypeConstraints(proxySpecializations);
-        if ((strength > 1 && !anyNewConstraints) || strength == 10) {
+        var anyNewConstraintsAssignable = ConvertAssignableToSubtypeConstraints(proxySpecializations);
+        var anyNewConstraintsEquatable = TightenUpEquatable(proxySpecializations);
+        if ((strength > 1 && !anyNewConstraintsAssignable && !anyNewConstraintsEquatable) || strength == 10) {
           if (DafnyOptions.O.TypeInferenceDebug) {
             Console.WriteLine("  ----> found no improvement, giving up");
           }

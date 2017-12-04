@@ -389,11 +389,11 @@ module MiscEvenMore {
     var y := new GenericClass;
     MG0(x, y);  // also fine (and now y's type argument is constrained to be that of x's)
     var z := new GenericClass<int>;
-    y.data := z.data;  // this will have the effect of unifying all type args so far to be 'int'
-    assert x.data == 5;  // this is type correct
-
     var w := new GenericClass<bool>;
-    MG0(x, w);  // error: types don't match up
+    MG0(x, w);  // this has the effect of making x's and y's type GenericClass<bool>
+    
+    y.data := z.data;  // error: bool vs int
+    assert x.data == 5;  // error: bool vs int
   }
 
   datatype GList<+T> = GNil | GCons(hd: T, tl: GList)
@@ -404,8 +404,8 @@ module MiscEvenMore {
       MG1(l, n-1);
       MG1(GCons(12, GCons(20, GNil)), n-1);
     }
-    var t := GCons(100, GNil);
-    t := GCons(120, l);  // error: types don't match up (List<T$0> versus List<int>)
+    var t := GCons(100, GNil);  // error: types don't match up (List<_T0> versus List<int>)
+    t := GCons(120, l);  // error: types don't match up (List<_T0> versus List<int>)
   }
 
   // ------------------- calc statements ------------------------------

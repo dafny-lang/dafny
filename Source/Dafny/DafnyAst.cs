@@ -1351,6 +1351,8 @@ namespace Microsoft.Dafny {
     }
 
     public static bool FromSameHead_Subtype(Type t, Type u, BuiltIns builtIns, out Type a, out Type b) {
+      Contract.Requires(t != null);
+      Contract.Requires(u != null);
       Contract.Requires(builtIns != null);
       if (FromSameHead(t, u, out a, out b)) {
         return true;
@@ -1367,11 +1369,11 @@ namespace Microsoft.Dafny {
         }
         var tt = ((UserDefinedType)t).ResolvedClass as ClassDecl;
         var uu = ((UserDefinedType)u).ResolvedClass as ClassDecl;
-        if (tt.DerivesFrom(uu)) {
-          a = b = u;
-          return true;
-        } else if (uu.DerivesFrom(tt)) {
+        if (uu.DerivesFrom(tt)) {
           a = b = t;
+          return true;
+        } else if (tt.DerivesFrom(uu)) {
+          a = b = u;
           return true;
         }
       }

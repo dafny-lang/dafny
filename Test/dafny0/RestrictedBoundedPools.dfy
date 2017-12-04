@@ -13,10 +13,10 @@ module Methods_EverythingGoes {
   datatype List<G> = Nil | Cons(G, List<G>)
 
   method M0()
-    requires forall x: Opaque :: R(x)  // error: may seem innocent enough, but it quantifies over all Opauqe
+    requires forall x: Opaque :: R(x)  // error: may seem innocent enough, but it quantifies over all Opaque
 
   method E0()
-    requires exists x: Opaque :: R(x)  // error: may seem innocent enough, but it quantifies over all Opauqe
+    requires exists x: Opaque :: R(x)  // error: may seem innocent enough, but it quantifies over all Opaque
 
   method M1<X>()
     requires forall x: X :: R(x)  // error: may seem innocent enough, but it quantifies over all X
@@ -65,12 +65,12 @@ module Functions_RestrictionsApply {
 
   predicate M0()
   {
-    forall x: Opaque :: R(x)  // error: may seem innocent enough, but it quantifies over all Opauqe
+    forall x: Opaque :: R(x)  // error: may seem innocent enough, but it quantifies over all Opaque
   }
   
   predicate E0()
   {
-    exists x: Opaque :: R(x)  // error: may seem innocent enough, but it quantifies over all Opauqe
+    exists x: Opaque :: R(x)  // error: may seem innocent enough, but it quantifies over all Opaque
   }
 
   predicate M1<X>()
