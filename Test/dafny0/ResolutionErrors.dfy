@@ -2112,12 +2112,6 @@ module GhostWitness {
   }
 }
 
-module IteratorDuplicateParameterNames {
-  // each of the following once caused a crash in the resolver
-  iterator MyIterX(u: char) yields (u: char)  // error: duplicate name "u"
-  iterator MyIterY(us: char) yields (u: char)  // error: in-effect-duplicate name "us"
-}
-
 module BigOrdinalRestrictions {
   method Test() {
     var st: set<ORDINAL>;  // error: cannot use ORDINAL as type argument
@@ -2166,6 +2160,12 @@ module BigOrdinalRestrictions {
   function F'<G>(): int
   method ParameterizedMethod<G>(g: G)
   predicate P(g: ORDINAL)
+}
+
+module IteratorDuplicateParameterNames {
+  // each of the following once caused a crash in the resolver
+  iterator MyIterX(u: char) yields (u: char)  // error: duplicate name "u"
+  iterator MyIterY(us: char) yields (u: char)  // error: in-effect-duplicate name "us"
 }
 
 module TernaryTypeCheckinngAndInference {

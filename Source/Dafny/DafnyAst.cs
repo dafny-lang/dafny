@@ -2140,6 +2140,15 @@ namespace Microsoft.Dafny {
       action(this);
       TypeArgs.ForEach(x => x.ForeachTypeComponent(action));
     }
+
+    public bool ContainsProxy(TypeProxy proxy) {
+      Contract.Requires(proxy != null && proxy.T == null);
+      if (this == proxy) {
+        return true;
+      } else {
+        return TypeArgs.Exists(t => t.ContainsProxy(proxy));
+      }
+    }
   }
 
   /// <summary>

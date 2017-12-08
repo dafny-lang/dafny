@@ -73,7 +73,7 @@ method Fiddling(k : int ~> int)
 {
 
   var mkGet := (arr : array<int>) =>
-               () reads arr requires arr != null requires arr.Length > 0 => arr[0];
+               () reads arr requires arr.Length > 0 => arr[0];
 
   var a := new int[1];
   var b := new int[1];
@@ -98,7 +98,7 @@ method HeapSucc0(k : int ~> int)
   assert k(0) == init;
 }
 
-method HeapSucc1(k : int ~> int, c : C)
+method HeapSucc1(k : int ~> int, c : C?)
   requires k.requires(0);
   requires c !in k.reads(0);
   modifies c;
@@ -110,7 +110,7 @@ method HeapSucc1(k : int ~> int, c : C)
   }
 }
 
-method HeapSucc2(k : int ~> int, c : C)
+method HeapSucc2(k : int ~> int, c : C?)
   requires k.requires(0);
   modifies c;
 {

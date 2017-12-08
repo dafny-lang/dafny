@@ -10607,6 +10607,16 @@ namespace Microsoft.Dafny
         var anyNewConstraintsAssignable = ConvertAssignableToSubtypeConstraints(proxySpecializations);
         var anyNewConstraintsEquatable = TightenUpEquatable(proxySpecializations);
         if ((strength > 1 && !anyNewConstraintsAssignable && !anyNewConstraintsEquatable) || strength == 10) {
+          if (t is TypeProxy) {
+            // One more try
+            var r = GetBaseTypeFromProxy((TypeProxy)t, new Dictionary<TypeProxy, Type>());
+            if (r != null) {
+              if (DafnyOptions.O.TypeInferenceDebug) {
+                Console.WriteLine("  ----> found improvement through GetBaseTypeFromProxy: {0}", r);
+              }
+              return r;
+            }
+          }
           if (DafnyOptions.O.TypeInferenceDebug) {
             Console.WriteLine("  ----> found no improvement, giving up");
           }
@@ -10743,6 +10753,89 @@ namespace Microsoft.Dafny
         Console.WriteLine("  ----> found no improvement using simple things, trying harder once more");
       }
       return PartiallyResolveTypeForMemberSelection(tok, t, memberName, strength + 1);
+    }
+
+    private Type/*?*/ GetBaseTypeFromProxy(TypeProxy proxy, Dictionary<TypeProxy,Type/*?*/> determinedProxies) {
+      Contract.Requires(proxy != null);
+      Contract.Requires(determinedProxies != null);
+      Type t;
+      if (determinedProxies.TryGetValue(proxy, out t)) {
+        // "t" may be null (meaning search for "proxy" is underway or was unsuccessful) or non-null (search for
+        // "proxy" has completed successfully), but we return it in either case
+        return t;
+      }
+      determinedProxies.Add(proxy, null);  // record that search for "proxy" is underway
+      // First, go through subtype constraints, treating each as if it were an equality
+      foreach (var c in AllTypeConstraints) {
+        t = GetBaseTypeFromProxy_Eq(proxy, c.Super, c.Sub, determinedProxies);
+        if (t != null) {
+          determinedProxies[proxy] = t;
+          return t;
+        }
+      }
+      // Next, check XConstraints that can be seen as equality constraints
+      foreach (var xc in AllXConstraints) {
+        switch (xc.ConstraintName) {
+          case "Assignable":
+          case "Equatable":
+          case "EquatableArg":
+            t = GetBaseTypeFromProxy_Eq(proxy, xc.Types[0], xc.Types[1], determinedProxies);
+            if (t != null) {
+              determinedProxies[proxy] = t;
+              return t;
+            }
+            break;
+          case "InSet":
+            // etc. TODO
+            break;
+          default:
+            break;
+        }
+      }
+      return null;
+    }
+    /// <summary>
+    /// Tries to find a non-proxy type corresponding to "proxy", under the assumption that "t" equals "u" and
+    /// "determinedProxies" assumptions.  In the process, may add to "determinedProxies".
+    /// </summary>
+    private Type/*?*/ GetBaseTypeFromProxy_Eq(TypeProxy proxy, Type t, Type u, Dictionary<TypeProxy, Type/*?*/> determinedProxies) {
+      Contract.Requires(proxy != null);
+      Contract.Requires(determinedProxies != null);
+      Contract.Requires(t != null);
+      Contract.Requires(u != null);
+      t = t.NormalizeExpand();
+      u = u.NormalizeExpand();
+      return GetBaseTypeFromProxy_EqAux(proxy, t, u, determinedProxies) ?? GetBaseTypeFromProxy_EqAux(proxy, u, t, determinedProxies);
+    }
+    private Type/*?*/ GetBaseTypeFromProxy_EqAux(TypeProxy proxy, Type t, Type u, Dictionary<TypeProxy, Type/*?*/> determinedProxies) {
+      Contract.Requires(proxy != null);
+      Contract.Requires(determinedProxies != null);
+      Contract.Requires(t != null && (!(t is TypeProxy) || ((TypeProxy)t).T == null));
+      Contract.Requires(u != null && (!(u is TypeProxy) || ((TypeProxy)u).T == null));
+      if (t == proxy) {
+        if (u is TypeProxy) {
+          return GetBaseTypeFromProxy((TypeProxy)u, determinedProxies);
+        } else {
+          return u;
+        }
+      } else if (t.ContainsProxy(proxy)) {
+        if (u is TypeProxy) {
+          u = GetBaseTypeFromProxy((TypeProxy)u, determinedProxies);
+          if (u == null) {
+            return null;
+          }
+        }
+        if (Type.SameHead(t, u)) {
+          Contract.Assert(t.TypeArgs.Count == u.TypeArgs.Count);
+          for (int i = 0; i < t.TypeArgs.Count; i++) {
+            var r = GetBaseTypeFromProxy_Eq(proxy, t.TypeArgs[i], u.TypeArgs[i], determinedProxies);
+            if (r != null) {
+              return r;
+            }
+          }
+        }
+      }
+      return null;
     }
 
     private void GetRelatedTypeProxies(Type t, ISet<TypeProxy> proxies) {
