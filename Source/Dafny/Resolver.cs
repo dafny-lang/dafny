@@ -734,7 +734,7 @@ namespace Microsoft.Dafny
           bvars.Add(bv);
           bexprs.Add(new IdentifierExpr(e.tok, bv.Name) { Type = bv.Type, Var = bv });
         }
-        var oVar = new BoundVar(e.tok, idGen.FreshId("_o"), builtIns.Object());
+        var oVar = new BoundVar(e.tok, idGen.FreshId("_o"), builtIns.ObjectQ());
         var obj = new IdentifierExpr(e.tok, oVar.Name) { Type = oVar.Type, Var = oVar };
         bvars.Add(oVar);
 
@@ -742,12 +742,12 @@ namespace Microsoft.Dafny
           new SetComprehension(e.tok, true, bvars,
             new BinaryExpr(e.tok, BinaryExpr.Opcode.In, obj,
               new ApplyExpr(e.tok, e, bexprs) {
-                Type = new SetType(true, builtIns.Object())
+                Type = new SetType(true, builtIns.ObjectQ())
               }) {
               ResolvedOp = BinaryExpr.ResolvedOpcode.InSet,
               Type = Type.Bool
             }, obj, null) {
-            Type = new SetType(true, builtIns.Object())
+            Type = new SetType(true, builtIns.ObjectQ())
           };
       } else {
         return e;
@@ -790,7 +790,7 @@ namespace Microsoft.Dafny
             }
             sInE.Type = Type.Bool;  // resolve here
             var s = new SetComprehension(e.tok, true, new List<BoundVar>() { bv }, sInE, bvIE, null);
-            s.Type = new SetType(true, builtIns.Object());  // resolve here
+            s.Type = new SetType(true, builtIns.ObjectQ());  // resolve here
             sets.Add(s);
           } else {
             // e is already a set
@@ -801,19 +801,19 @@ namespace Microsoft.Dafny
       }
       if (singletons != null) {
         Expression display = new SetDisplayExpr(singletons[0].tok, true, singletons);
-        display.Type = new SetType(true, builtIns.Object());  // resolve here
+        display.Type = new SetType(true, builtIns.ObjectQ());  // resolve here
         sets.Add(display);
       }
       if (sets.Count == 0) {
         Expression emptyset = new SetDisplayExpr(Token.NoToken, true, new List<Expression>());
-        emptyset.Type = new SetType(true, builtIns.Object());  // resolve here
+        emptyset.Type = new SetType(true, builtIns.ObjectQ());  // resolve here
         return emptyset;
       } else {
         Expression s = sets[0];
         for (int i = 1; i < sets.Count; i++) {
           BinaryExpr union = new BinaryExpr(s.tok, BinaryExpr.Opcode.Add, s, sets[i]);
           union.ResolvedOp = BinaryExpr.ResolvedOpcode.Union;  // resolve here
-          union.Type = new SetType(true, builtIns.Object());  // resolve here
+          union.Type = new SetType(true, builtIns.ObjectQ());  // resolve here
           s = union;
         }
         return s;
@@ -1561,9 +1561,9 @@ namespace Microsoft.Dafny
             iter.Members.Add(f);
           });
           // add the additional special variables as fields
-          iter.Member_Reads = new SpecialField(iter.tok, "_reads", "_reads", "", "", true, false, false, new SetType(true, builtIns.Object()), null);
-          iter.Member_Modifies = new SpecialField(iter.tok, "_modifies", "_modifies", "", "", true, false, false, new SetType(true, builtIns.Object()), null);
-          iter.Member_New = new SpecialField(iter.tok, "_new", "_new", "", "", true, true, true, new SetType(true, builtIns.Object()), null);
+          iter.Member_Reads = new SpecialField(iter.tok, "_reads", "_reads", "", "", true, false, false, new SetType(true, builtIns.ObjectQ()), null);
+          iter.Member_Modifies = new SpecialField(iter.tok, "_modifies", "_modifies", "", "", true, false, false, new SetType(true, builtIns.ObjectQ()), null);
+          iter.Member_New = new SpecialField(iter.tok, "_new", "_new", "", "", true, true, true, new SetType(true, builtIns.ObjectQ()), null);
           foreach (var field in new List<Field>() { iter.Member_Reads, iter.Member_Modifies, iter.Member_New }) {
             field.EnclosingClass = iter;  // resolve here
             field.InheritVisibility(iter);
@@ -3137,7 +3137,7 @@ namespace Microsoft.Dafny
       } else if (t is ArtificialType) {
         isRoot = false; isLeaf = false;
         headIsRoot = false; headIsLeaf = false;
-      } else if (t.IsObject) {
+      } else if (t.IsObjectQ) {
         isRoot = true; isLeaf = false;
         headIsRoot = true; headIsLeaf = false;
       } else if (t is ArrowType) {
@@ -3493,7 +3493,7 @@ namespace Microsoft.Dafny
         var tt = (MapType)super;
         var uu = sub as MapType;
         return uu != null && tt.Finite == uu.Finite ? new List<int> { 1, 1 } : null;
-      } else if (super.IsObject) {
+      } else if (super.IsObjectQ) {
         return sub.IsRefType ? new List<int>() : null;
       } else {
         // The only remaining cases are that "super" is a (co)datatype, opaque type, or non-object trait/class.
@@ -3562,7 +3562,7 @@ namespace Microsoft.Dafny
         return true;
       } else if (super is ArrowType) {
         return false;
-      } else if (super.IsObject) {
+      } else if (super.IsObjectQ) {
         return false;
       } else {
         // super is UserDefinedType
@@ -4379,7 +4379,7 @@ namespace Microsoft.Dafny
                 if (xc.ConstraintName == "IsRefType" || xc.ConstraintName == "IsNullableRefType") {
                   var proxy = xc.Types[0].Normalize() as TypeProxy;  // before we started processing default types, this would have been a proxy (since it's still in the A
                   if (proxy != null) {
-                    AssignProxyAndHandleItsConstraints(proxy, builtIns.Object());
+                    AssignProxyAndHandleItsConstraints(proxy, builtIns.ObjectQ());
                     anyNewConstraints = true;
                     continue;
                   }
@@ -10382,7 +10382,7 @@ namespace Microsoft.Dafny
             ResolveType_ClassName(stmt.Tok, rr.EType, codeContext, ResolveTypeOptionEnum.InferTypeProxies, null);
             var udt = rr.EType as UserDefinedType;
             var cl = udt == null ? null : udt.ResolvedClass as NonNullTypeDecl;
-            if (cl != null && !(rr.EType.IsTraitType && !rr.EType.NormalizeExpand().IsObject)) {
+            if (cl != null && !(rr.EType.IsTraitType && !rr.EType.NormalizeExpand().IsObjectQ)) {
               // life is good
             } else {
               reporter.Error(MessageSource.Resolver, stmt, "new can be applied only to class types (got {0})", rr.EType);
@@ -10677,7 +10677,7 @@ namespace Microsoft.Dafny
           // If "meet" has a member called "memberName" and no supertype of "meet" does, then we'll pick this meet
           if (meet.IsRefType) {
             var meetExpanded = meet.NormalizeExpand();  // go all the way to the base type, to get to the class
-            if (!meetExpanded.IsObject) {
+            if (!meetExpanded.IsObjectQ) {
               var cl = ((UserDefinedType)meetExpanded).ResolvedClass as ClassDecl;
               if (cl != null) {
                 // TODO: the following could be improved by also supplying an upper bound of the search (computed as a join of the supertypes)
@@ -10929,7 +10929,7 @@ namespace Microsoft.Dafny
         return true;
       } else {
         meet = Type.Meet(meet, Type.HeadWithProxyArgs(t), builtIns);  // the only way this can succeed is if we obtain a trait
-        Contract.Assert(meet == null || meet.IsObject || (meet is UserDefinedType && ((UserDefinedType)meet).ResolvedClass is TraitDecl));
+        Contract.Assert(meet == null || meet.IsObjectQ || (meet is UserDefinedType && ((UserDefinedType)meet).ResolvedClass is TraitDecl));
         return meet != null;
       }
     }
@@ -11958,7 +11958,7 @@ namespace Microsoft.Dafny
         scope.PopMarker();
         expr.Type = SelectAppropriateArrowType(e.tok, e.BoundVars.ConvertAll(v => v.Type), e.Body.Type, e.Reads.Count != 0, e.Range != null);
       } else if (expr is WildcardExpr) {
-        expr.Type = new SetType(true, builtIns.Object());
+        expr.Type = new SetType(true, builtIns.ObjectQ());
       } else if (expr is StmtExpr) {
         var e = (StmtExpr)expr;
         int prevErrorCount = reporter.Count(ErrorLevel.Error);

@@ -119,7 +119,10 @@ namespace Microsoft.Dafny {
     public readonly SubsetTypeDecl NatDecl;
     public UserDefinedType Nat() { return new UserDefinedType(Token.NoToken, "nat", NatDecl, new List<Type>()); }
     public readonly TraitDecl ObjectDecl;
-    public UserDefinedType Object() { return new UserDefinedType(Token.NoToken, "object?", null) { ResolvedClass = ObjectDecl }; }
+    public UserDefinedType ObjectQ() {
+      Contract.Assume(ObjectDecl != null);
+      return new UserDefinedType(Token.NoToken, "object?", null) { ResolvedClass = ObjectDecl };
+    }
 
     public BuiltIns() {
       SystemModule.Height = -1;  // the system module doesn't get a height assigned later, so we set it here to something below everything else
@@ -210,7 +213,7 @@ namespace Microsoft.Dafny {
         var argExprs = args.ConvertAll(a =>
               (Expression)new IdentifierExpr(tok, a.Name) { Var = a, Type = a.Type });
         var readsIS = new FunctionCallExpr(tok, "reads", new ImplicitThisExpr(tok), tok, argExprs) {
-          Type = new SetType(true, Object()),
+          Type = new SetType(true, ObjectQ()),
         };
         var readsFrame = new List<FrameExpression> { new FrameExpression(tok, readsIS, null) };
         var req = new Function(tok, "requires", false, false, true,
@@ -219,7 +222,7 @@ namespace Microsoft.Dafny {
           new Specification<Expression>(new List<Expression>(), null),
           null, null, null);
         var reads = new Function(tok, "reads", false, false, true,
-          new List<TypeParameter>(), args, null, new SetType(true, Object()),
+          new List<TypeParameter>(), args, null, new SetType(true, ObjectQ()),
           new List<MaybeFreeExpression>(), readsFrame, new List<MaybeFreeExpression>(),
           new Specification<Expression>(new List<Expression>(), null),
           null, null, null);
@@ -917,7 +920,7 @@ namespace Microsoft.Dafny {
     /// <summary>
     /// Returns "true" if the type represents the "object?".
     /// </summary>
-    public bool IsObject {
+    public bool IsObjectQ {
       get {
         var udt = NormalizeExpandKeepConstraints() as UserDefinedType;
         return udt != null && udt.ResolvedClass is ClassDecl && ((ClassDecl)udt.ResolvedClass).Name == "object";
@@ -1260,9 +1263,9 @@ namespace Microsoft.Dafny {
           }
         }
         return IsSupertype(super.TypeArgs[n], sub.TypeArgs[n]);  // arrow types are co-variant in the result type
-      } else if (super.IsObject) {
+      } else if (super.IsObjectQ) {
         return sub.IsRefType;
-      } else if (sub.IsObject) {
+      } else if (sub.IsObjectQ) {
         return false;
       } else {
         // "a" is a class, trait, or opaque type
@@ -1360,10 +1363,10 @@ namespace Microsoft.Dafny {
       t = t.NormalizeExpand();
       u = u.NormalizeExpand();
       if (t.IsRefType && u.IsRefType) {
-        if (t.IsObject) {
+        if (t.IsObjectQ) {
           a = b = t;
           return true;
-        } else if (u.IsObject) {
+        } else if (u.IsObjectQ) {
           a = b = u;
           return true;
         }
@@ -1471,9 +1474,9 @@ namespace Microsoft.Dafny {
         var asuper = (ArrowType)super;
         var asub = sub as ArrowType;
         return asub != null && asuper.Arity == asub.Arity;
-      } else if (super.IsObject) {
+      } else if (super.IsObjectQ) {
         var clSub = sub as UserDefinedType;
-        return sub.IsObject || (clSub != null && clSub.ResolvedClass is ClassDecl);
+        return sub.IsObjectQ || (clSub != null && clSub.ResolvedClass is ClassDecl);
       } else if (super is UserDefinedType) {
         var udtSuper = (UserDefinedType)super;
         if (udtSuper.ResolvedParam != null) {
@@ -1493,7 +1496,7 @@ namespace Microsoft.Dafny {
                 // move "super" up the base-type chain, as was done with "sub", because non-nullness is essentially a co-variant type constructor
                 var possiblyNullSuper = ((SubsetTypeDecl)udtSuper.ResolvedClass).RhsWithArgument(udtSuper.TypeArgs);
                 udtSuper = (UserDefinedType)possiblyNullSuper;  // applying .RhsWithArgument to a NonNullTypeDecl should always yield a UserDefinedType
-                if (udtSuper.IsObject) {
+                if (udtSuper.IsObjectQ) {
                   return true;
                 }
               }
@@ -1612,9 +1615,9 @@ namespace Microsoft.Dafny {
         var aa = super.AsArrowType;
         var bb = sub.AsArrowType;
         return bb != null && aa.Arity == bb.Arity;
-      } else if (super.IsObject) {
+      } else if (super.IsObjectQ) {
         return sub.IsRefType;
-      } else if (sub.IsObject) {
+      } else if (sub.IsObjectQ) {
         return false;
       } else {
         // "a" is a class, trait, or opaque type
@@ -1863,10 +1866,10 @@ namespace Microsoft.Dafny {
         }
         var arr = (ArrowType)aa;
         return new ArrowType(arr.tok, (ArrowTypeDecl)arr.ResolvedClass, typeArgs);
-      } else if (b.IsObject) {
+      } else if (b.IsObjectQ) {
         var udtB = (UserDefinedType)b;
         return !a.IsRefType ? null : abNonNullTypes ? UserDefinedType.CreateNonNullType(udtB) : udtB;
-      } else if (a.IsObject) {
+      } else if (a.IsObjectQ) {
         var udtA = (UserDefinedType)a;
         return !b.IsRefType ? null : abNonNullTypes ? UserDefinedType.CreateNonNullType(udtA) : udtA;
       } else {
@@ -1902,7 +1905,7 @@ namespace Microsoft.Dafny {
             var udtA = (UserDefinedType)a;
             return abNonNullTypes ? UserDefinedType.CreateNonNullType(udtA) : udtA;
           } else if (A is TraitDecl || B is TraitDecl) {
-            return abNonNullTypes ? UserDefinedType.CreateNonNullType(builtIns.Object()) : builtIns.Object();
+            return abNonNullTypes ? UserDefinedType.CreateNonNullType(builtIns.ObjectQ()) : builtIns.ObjectQ();
           }
           // A and B are classes. They always have object as a common supertype, but they may also both be extending some other
           // trait.  If such a trait is unique, pick it. (Unfortunately, this makes the meet operation not associative.)
@@ -1918,7 +1921,7 @@ namespace Microsoft.Dafny {
             return abNonNullTypes ? udtTrait : udtTrait.NormalizeExpand();
           } else {
             // the unfortunate part is when commonTraits.Count > 1 here :(
-            return abNonNullTypes ? UserDefinedType.CreateNonNullType(builtIns.Object()) : builtIns.Object();
+            return abNonNullTypes ? UserDefinedType.CreateNonNullType(builtIns.ObjectQ()) : builtIns.ObjectQ();
           }
         } else {
           return null;
@@ -2095,9 +2098,9 @@ namespace Microsoft.Dafny {
         }
         var arr = (ArrowType)aa;
         return new ArrowType(arr.tok, (ArrowTypeDecl)arr.ResolvedClass, typeArgs);
-      } else if (b.IsObject) {
+      } else if (b.IsObjectQ) {
         return a.IsRefType ? a : null;
-      } else if (a.IsObject) {
+      } else if (a.IsObjectQ) {
         return b.IsRefType ? b : null;
       } else {
         // "a" is a class, trait, or opaque type

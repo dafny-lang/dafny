@@ -1257,7 +1257,7 @@ namespace Microsoft.Dafny {
       if (udt != null && udt.ResolvedClass is TraitDecl) {
         string s = udt.FullCompanionCompileName;
         if (udt.TypeArgs.Count != 0) {
-          if (udt.TypeArgs.Exists(argType => argType.NormalizeExpand().IsObject)) {
+          if (udt.TypeArgs.Exists(argType => argType.NormalizeExpand().IsObjectQ)) {
             Error(udt.tok, "compilation does not support type 'object' as a type parameter; consider introducing a ghost", wr);
           }
           s += "<" + TypeNames(udt.TypeArgs, wr, udt.tok) + ">";
@@ -1294,7 +1294,7 @@ namespace Microsoft.Dafny {
           return nativeType.Name;
         }
         return TypeName(xType.AsNewtype.BaseType, wr, tok);
-      } else if (xType.IsObject) {
+      } else if (xType.IsObjectQ) {
         return "object";
       } else if (xType.IsArrayType) {
         ArrayClassDecl at = xType.AsArrayType;
