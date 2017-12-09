@@ -7,7 +7,7 @@
 
 
 // The following method demonstrates that Remove and PutBack (defined below) have the desired properties
-method Test(dd: DoublyLinkedList, x: Node?)
+method Test(dd: DoublyLinkedList, x: Node)
   requires dd.Valid()
   requires x in dd.Nodes && x != dd.Nodes[0] && x != dd.Nodes[|dd.Nodes|-1]
   modifies dd, dd.Nodes
@@ -18,7 +18,7 @@ method Test(dd: DoublyLinkedList, x: Node?)
 }
 // It is also possible to remove and put back any number of elements, provided these operations are
 // done in a FOLI order.
-method TestMany(dd: DoublyLinkedList, xs: seq<Node?>)
+method TestMany(dd: DoublyLinkedList, xs: seq<Node>)
   requires dd.Valid()
   requires forall x {:matchinglooprewrite false} :: x in xs ==> x in dd.Nodes && x != dd.Nodes[0] && x != dd.Nodes[|dd.Nodes|-1]
   requires forall i,j :: 0 <= i < j < |xs| ==> xs[i] != xs[j]
@@ -113,7 +113,7 @@ class DoublyLinkedList {
   {
   }
 
-  method Remove(x: Node?) returns (ghost k: int)
+  method Remove(x: Node) returns (ghost k: int)
     requires Valid()
     requires x in Nodes && x != Nodes[0] && x != Nodes[|Nodes|-1]  // not allowed to remove end nodes; you may think of them as a sentinel nodes
     modifies this, Nodes

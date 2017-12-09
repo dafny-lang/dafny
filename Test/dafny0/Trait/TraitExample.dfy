@@ -2,7 +2,7 @@
 // RUN: %diff "%s.expect" "%t"
 
 trait Automobile {
-  ghost var Repr: set<object?>
+  ghost var Repr: set<object>
   predicate Valid()
     reads this, Repr
     ensures Valid() ==> this in Repr
