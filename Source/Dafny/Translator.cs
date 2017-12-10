@@ -12354,25 +12354,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(sourceType != null);
       Contract.Requires(targetType != null);
 
-#if PREVIOUSLY
-      if (targetType.IsSupertypeOf_WithSubsetTypes(sourceType)) {
-#else
-#if PREVIOUSLY
-      // TODO: the following should be built into a method that checks that type parameters correctly
-      bool isSupertype = Type.IsHeadSupertypeOf_Improved(targetType, sourceType);
-      if (isSupertype) {
-        var tt = targetType.NormalizeExpand();
-        var ss = sourceType.NormalizeExpand();
-        Contract.Assume(tt.IsTraitType || tt.TypeArgs.Count == ss.TypeArgs.Count);
-        for (var i = 0; isSupertype && i < tt.TypeArgs.Count; i++) {
-          isSupertype = tt.TypeArgs[i].Equals(ss.TypeArgs[i]);
-        }
-      }
-      if (isSupertype) {
-#else
-      if (Type.IsSupertype_Improved(targetType, sourceType)) {
-#endif
-#endif
+      if (Type.IsSupertype(targetType, sourceType)) {
         // We should always be able to use Is, but this is an optimisation.
         msg = null;
         return null;

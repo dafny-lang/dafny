@@ -1548,7 +1548,7 @@ namespace Microsoft.Dafny
               nm = p.Name + "*";  // bogus name, but at least it'll be unique
             }
             // we add some field to OutsHistoryFields, even if there was an error; the name of the field, in case of error, is not so important
-            var tp = new SeqType(p.Type.StripSubsetConstraints());
+            var tp = new SeqType(p.Type.NormalizeExpand());
             var field = new SpecialField(p.tok, nm, nm, "", "", true, true, false, tp, null);
             field.EnclosingClass = iter;  // resolve here
             field.InheritVisibility(iter);
@@ -2302,7 +2302,7 @@ namespace Microsoft.Dafny
                 var rolemodel = dtor.CorrespondingFormals[0];
                 for (int i = 1; i < dtor.CorrespondingFormals.Count; i++) {
                   var other = dtor.CorrespondingFormals[i];
-                  if (!rolemodel.Type.ExactlyEquals(other.Type)) {
+                  if (!Type.Equal_Improved(rolemodel.Type, other.Type)) {
                     reporter.Error(MessageSource.Resolver, other,
                       "shared destructors must have the same type, but '{0}' has type '{1}' in constructor '{2}' and type '{3}' in constructor '{4}'",
                       rolemodel.Name, rolemodel.Type, dtor.EnclosingCtors[0].Name, other.Type, dtor.EnclosingCtors[i].Name);
@@ -3109,7 +3109,7 @@ namespace Microsoft.Dafny
       } else {
         // two non-proxy types
         // set "headSymbolsAgree" to "false" if it's clear the head symbols couldn't be the same; "true" means they may be the same
-        bool headSymbolsAgree = Type.IsHeadSupertypeOf_Improved(super.NormalizeExpand(keepConstraints), sub);
+        bool headSymbolsAgree = Type.IsHeadSupertypeOf(super.NormalizeExpand(keepConstraints), sub);
         if (!headSymbolsAgree) {
           c.FlagAsError();
           return false;
@@ -4927,11 +4927,9 @@ namespace Microsoft.Dafny
       PartiallySolveTypeConstraints(true);
       PrintTypeConstraintState(1);
       foreach (var constraint in AllTypeConstraints) {
-        var super = constraint.Super.NormalizeExpand();
-        var sub = constraint.Sub.NormalizeExpand();
-        if (Type.IsSupertype(super, sub)) {
+        if (Type.IsSupertype(constraint.Super, constraint.Sub)) {
           // unexpected condition -- PartiallySolveTypeConstraints is supposed to have continued until no more sub-typing constraints can be satisfied
-          Contract.Assume(false, string.Format("DEBUG: Unexpectedly satisfied supertype relation ({0} :> {1}) |||| ", super, sub));
+          Contract.Assume(false, string.Format("DEBUG: Unexpectedly satisfied supertype relation ({0} :> {1}) |||| ", constraint.Super, constraint.Sub));
         } else {
           constraint.FlagAsError();
         }
@@ -10891,10 +10889,10 @@ namespace Microsoft.Dafny
       if (meet == null) {
         meet = Type.HeadWithProxyArgs(t);
         return true;
-      } else if (Type.IsHeadSupertype(meet, t)) {
+      } else if (Type.IsHeadSupertypeOf(meet, t)) {
         // stick with what we've got
         return true;
-      } else if (Type.IsHeadSupertype(t, meet)) {
+      } else if (Type.IsHeadSupertypeOf(t, meet)) {
         meet = Type.HeadWithProxyArgs(t);
         return true;
       } else {
@@ -10959,10 +10957,10 @@ namespace Microsoft.Dafny
       if (join == null) {
         join = Type.HeadWithProxyArgs(t);
         return true;
-      } else if (Type.IsHeadSupertype(t, join)) {
+      } else if (Type.IsHeadSupertypeOf(t, join)) {
         // stick with what we've got
         return true;
-      } else if (Type.IsHeadSupertype(join, t)) {
+      } else if (Type.IsHeadSupertypeOf(join, t)) {
         join = Type.HeadWithProxyArgs(t);
         return true;
       } else {
@@ -13457,32 +13455,6 @@ namespace Microsoft.Dafny
       }
     }
 
-    private bool ComparableTypes(Type A, Type B) {
-      // If we know that both A and B denote classes and they denote the same class,
-      // then we will say the types are comparable (for the purpose of the == and !=
-      // opeators) if it isn't blatantly impossible to instantiate the type parameters
-      // of the enclosing context so that A and B are exactly the same type.
-      var a = A.NormalizeExpand() as UserDefinedType;
-      var b = B.NormalizeExpand() as UserDefinedType;
-      if (a != null && b != null) {
-        if (a is ArrowType || b is ArrowType) {
-          return false;
-        }
-        var acl = a.ResolvedClass;
-        var bcl = b.ResolvedClass;
-        if (acl is ClassDecl && bcl is ClassDecl && acl == bcl) {
-          for (int i = 0; i < acl.TypeArgs.Count; i++) {
-            if (!a.TypeArgs[i].PossiblyEquals(b.TypeArgs[i])) {
-              return false;
-            }
-          }
-          // all parameters could be the same
-          return true;
-        }
-      }
-      return false;
-    }
-
     /// <summary>
     /// Generate an error for every non-ghost feature used in "expr".
     /// Requires "expr" to have been successfully resolved.
@@ -13722,7 +13694,7 @@ namespace Microsoft.Dafny
             Type s = SubstType(function.Formals[i].Type, subst);
             AddAssignableConstraint(e.tok, s, farg.Type, "incorrect type of function argument" + (function.Formals.Count == 1 ? "" : " " + i) + " (expected {0}, got {1})");
           }
-          e.Type = SubstType(function.ResultType, subst).StripSubsetConstraints();
+          e.Type = SubstType(function.ResultType, subst).NormalizeExpand();
         }
         AddCallGraphEdge(opts.codeContext, function, e, IsFunctionReturnValue(function, e.Args, opts));
       }

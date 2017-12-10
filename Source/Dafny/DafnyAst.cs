@@ -795,64 +795,15 @@ namespace Microsoft.Dafny {
       return NormalizeExpand(true);
     }
 
-    public Type StripSubsetConstraints() {
-      Type type = Normalize();
-      var syn = type.AsTypeSynonym;
-      if (syn != null) {
-        var scope = Type.GetScope();
-        if (!syn.IsRevealedInScope(scope)) {
-          return type;
-        }
-
-        var udt = (UserDefinedType)type;
-        var rhs = syn.RhsWithArgument(udt.TypeArgs);
-        var r = rhs.StripSubsetConstraints();
-        if (syn is SubsetTypeDecl) {
-          return r;
-        } else if (object.ReferenceEquals(r, rhs)) {
-          // There was nothing further in RHS to strip, and "type" was just a
-          // type synonym, so ignore the RHS and just return "type" (because that
-          // gives rise to better error messages).
-          return type;
-        } else {
-          return r;
-        }
-      }
-      return type;
-    }
-
     /// <summary>
     /// Returns whether or not "this" and "that" denote the same type, module proxies and type synonyms and subset types.
     /// </summary>
     [Pure]
     public abstract bool Equals(Type that);
     /// <summary>
-    /// Returns whether or not "this" and "that" denote the same type, module proxies and type synonyms, but treating subset types as different.
-    /// </summary>
-    public bool ExactlyEquals(Type that) {
-      return this.IsSupertypeOf_WithSubsetTypes(that) && that.IsSupertypeOf_WithSubsetTypes(this);
-    }
-    /// <summary>
     /// Returns whether or not "this" is a supertype of "that", modulo proxies and type synonyms, but treating subset types as different.
     /// </summary>
     public abstract bool IsSupertypeOf_WithSubsetTypes(Type that);
-    /// <summary>
-    /// Returns whether or not "this" and "that" could denote the same type, module proxies and type synonyms and subset types, if
-    /// type parameters are treated as wildcards.
-    /// </summary>
-    public bool PossiblyEquals(Type that) {
-      Contract.Requires(that != null);
-      var a = NormalizeExpand();
-      var b = that.NormalizeExpand();
-      return a.AsTypeParameter != null || b.AsTypeParameter != null || a.PossiblyEquals_W(b);
-    }
-    /// <summary>
-    /// Overridable worker routine for PossiblyEquals. Implementations can assume "that" to be non-null,
-    /// and that NormalizeExpand() has been applied to both "this" and "that". Furthermore, neither "this"
-    /// nor "that" is a TypeParameter, because that case is handled by PossiblyEquals. Recursive calls
-    /// should go to PossiblyEquals, not directly to PossiblyEquals_W.
-    /// </summary>
-    public abstract bool PossiblyEquals_W(Type that);
 
     public bool IsBoolType { get { return NormalizeExpand() is BoolType; } }
     public bool IsCharType { get { return NormalizeExpand() is CharType; } }
@@ -1204,105 +1155,12 @@ namespace Microsoft.Dafny {
 
     /// <summary>
     /// Returns "true" iff "sub" is a subtype of "super".
+    /// Expects that neither "super" nor "sub" is an unresolved proxy.
     /// </summary>
     public static bool IsSupertype(Type super, Type sub) {
       Contract.Requires(super != null);
       Contract.Requires(sub != null);
-      super = super.NormalizeExpand();
-      sub = sub.NormalizeExpand();
-      if (super.IsBoolType || super.IsCharType || super.IsNumericBased() || super.IsTypeParameter || super.IsInternalTypeSynonym || super is TypeProxy) {
-        return super.Equals(sub);
-      } else if (super is IntVarietiesSupertype) {
-        return sub.IsNumericBased(NumericPersuation.Int) || sub.IsBitVectorType;
-      } else if (super is RealVarietiesSupertype) {
-        return sub.IsNumericBased(NumericPersuation.Real);
-      } else if (super is SetType) {
-        var aa = (SetType)super;
-        var bb = sub as SetType;
-        // sets are co-variant in their argument type
-        return bb != null && aa.Finite == bb.Finite && IsSupertype(super.TypeArgs[0], sub.TypeArgs[0]);
-      } else if (super is MultiSetType) {
-        var aa = (MultiSetType)super;
-        var bb = sub as MultiSetType;
-        // multisets are co-variant in their argument type
-        return bb != null && IsSupertype(super.TypeArgs[0], sub.TypeArgs[0]);
-      } else if (super is SeqType) {
-        var aa = (SeqType)super;
-        var bb = sub as SeqType;
-        // sequences are co-variant in their argument type
-        return bb != null && IsSupertype(super.TypeArgs[0], sub.TypeArgs[0]);
-      } else if (super is MapType) {
-        var aa = (MapType)super;
-        var bb = sub as MapType;
-        // maps are co-variant in both argument types
-        return bb != null && aa.Finite == bb.Finite && IsSupertype(super.TypeArgs[0], sub.TypeArgs[0]) && IsSupertype(super.TypeArgs[1], sub.TypeArgs[1]);
-      } else if (super.IsDatatype) {
-        var aa = super.AsDatatype;
-        if (aa != sub.AsDatatype) {
-          return false;
-        }
-        Contract.Assert(super.TypeArgs.Count == sub.TypeArgs.Count);
-        for (int i = 0; i < super.TypeArgs.Count; i++) {
-          if (!IsSupertype(super.TypeArgs[i], sub.TypeArgs[i])) {  // datatypes are co-variant in their argument types
-            return false;
-          }
-        }
-        return true;
-      } else if (super.AsArrowType != null) {
-        var aa = super.AsArrowType;
-        var bb = sub.AsArrowType;
-        if (bb == null || aa.Arity != bb.Arity) {
-          return false;
-        }
-        int n = aa.Arity;
-        Contract.Assert(super.TypeArgs.Count == n + 1);
-        Contract.Assert(sub.TypeArgs.Count == n + 1);
-        for (int i = 0; i < n; i++) {
-          if (!IsSupertype(sub.TypeArgs[i], super.TypeArgs[i])) {  // arrow types are contra-variant in the argument types
-            return false;
-          }
-        }
-        return IsSupertype(super.TypeArgs[n], sub.TypeArgs[n]);  // arrow types are co-variant in the result type
-      } else if (super.IsObjectQ) {
-        return sub.IsRefType;
-      } else if (sub.IsObjectQ) {
-        return false;
-      } else {
-        // "a" is a class, trait, or opaque type
-        var aa = ((UserDefinedType)super).ResolvedClass;
-        Contract.Assert(aa != null);
-        if (!(sub is UserDefinedType)) {
-          return false;
-        }
-        var bb = ((UserDefinedType)sub).ResolvedClass;
-        if (aa == bb) {
-          Contract.Assert(super.TypeArgs.Count == sub.TypeArgs.Count);
-          for (int i = 0; i < super.TypeArgs.Count; i++) {
-            if (!super.TypeArgs[i].Equals(sub.TypeArgs[i])) {  // type arguments of classes, traits, and opaque types are invariant
-              return false;
-            }
-          }
-          return true;
-        } else if (bb is ClassDecl && ((ClassDecl)bb).DerivesFrom(aa)) {
-          Contract.Assert(aa is TraitDecl && super.TypeArgs.Count == 0);
-          return true;
-        } else {
-          return false;
-        }
-      }
-    }
-
-    /// <summary>
-    /// Returns "true" iff "sub" is a subtype of "super".
-    /// Expects that neither "super" nor "sub" is an unresolved proxy.
-    /// </summary>
-    /// <param name="super"></param>
-    /// <param name="sub"></param>
-    /// <returns></returns>
-    public static bool IsSupertype_Improved(Type super, Type sub) {
-      Contract.Requires(super != null);
-      Contract.Requires(sub != null);
-      if (!IsHeadSupertypeOf_Improved(super, sub)) {
+      if (!IsHeadSupertypeOf(super, sub)) {
         return false;
       }
       super = super.NormalizeExpand();
@@ -1316,10 +1174,10 @@ namespace Microsoft.Dafny {
       for (int i = 0; allGood && i < polarities.Count; i++) {
         switch (polarities[i]) {
           case TypeParameter.TPVariance.Co:
-            allGood = IsSupertype_Improved(super.TypeArgs[i], sub.TypeArgs[i]);
+            allGood = IsSupertype(super.TypeArgs[i], sub.TypeArgs[i]);
             break;
           case TypeParameter.TPVariance.Contra:
-            allGood = IsSupertype_Improved(sub.TypeArgs[i], super.TypeArgs[i]);
+            allGood = IsSupertype(sub.TypeArgs[i], super.TypeArgs[i]);
             break;
           case TypeParameter.TPVariance.Inv:
           default:  // "default" shouldn't ever happen
@@ -1430,7 +1288,7 @@ namespace Microsoft.Dafny {
     /// Expects that neither "super" nor "sub" is an unresolved proxy type (but their type arguments are
     /// allowed to be, since this method does not inspect the type arguments).
     /// </summary>
-    public static bool IsHeadSupertypeOf_Improved(Type super, Type sub) {
+    public static bool IsHeadSupertypeOf(Type super, Type sub) {
       Contract.Requires(super != null);
       Contract.Requires(sub != null);
       super = super.NormalizeExpandKeepConstraints();  // expand type synonyms
@@ -1552,11 +1410,7 @@ namespace Microsoft.Dafny {
         return asub != null && asuper.Arity == asub.Arity;
       } else if (a is UserDefinedType) {
         var udtA = (UserDefinedType)a;
-        if (udtA.ResolvedParam != null) {
-          Contract.Assert(udtA.TypeArgs.Count == 0);  // (is this true? what about opaque types with type arguments?)
-          return udtA.ResolvedParam == b.AsTypeParameter;
-        } else {
-          Contract.Assert(udtA.ResolvedClass != null);
+        if (udtA.ResolvedClass != null) {
           while (true) {
             var udtB = b as UserDefinedType;
             if (udtB == null) {
@@ -1573,6 +1427,10 @@ namespace Microsoft.Dafny {
               return true;
             }
           }
+        } else {
+          Contract.Assert(udtA.ResolvedParam != null);
+          Contract.Assert(udtA.TypeArgs.Count == 0);
+          return udtA.ResolvedParam == b.AsTypeParameter;
         }
       } else if (a is Resolver_IdentifierExpr.ResolverType_Module) {
         return b is Resolver_IdentifierExpr.ResolverType_Module;
@@ -1581,65 +1439,6 @@ namespace Microsoft.Dafny {
       } else {
         Contract.Assert(false);  // unexpected kind of type
         return true;  // to please the compiler
-      }
-    }
-
-    /// <summary>
-    /// Returns "true" iff the head symbols of "sub" can be a subtype of the head symbol of "super".
-    /// </summary>
-    public static bool IsHeadSupertype(Type super, Type sub) {
-      Contract.Requires(super != null && !(super is TypeProxy));
-      Contract.Requires(sub != null && !(sub is TypeProxy));
-      if (super is IntVarietiesSupertype) {
-        return sub.IsNumericBased(NumericPersuation.Int);
-      } else if (super is RealVarietiesSupertype) {
-        return sub.IsNumericBased(NumericPersuation.Real);
-      } else if (super.IsBoolType || super.IsCharType || super.IsNumericBased() || super.IsTypeParameter || super.IsInternalTypeSynonym) {
-        return super.Equals(sub);
-      } else if (super is SetType) {
-        var aa = (SetType)super;
-        var bb = sub as SetType;
-        return bb != null && aa.Finite == bb.Finite;
-      } else if (super is MultiSetType) {
-        return sub is MultiSetType;
-      } else if (super is SeqType) {
-        return sub is SeqType;
-      } else if (super is MapType) {
-        var aa = (MapType)super;
-        var bb = sub as MapType;
-        // maps are co-variant in both argument types
-        return bb != null && aa.Finite == bb.Finite;
-      } else if (super.IsDatatype) {
-        return super.AsDatatype == sub.AsDatatype;
-      } else if (super.AsArrowType != null) {
-        var aa = super.AsArrowType;
-        var bb = sub.AsArrowType;
-        return bb != null && aa.Arity == bb.Arity;
-      } else if (super.IsObjectQ) {
-        return sub.IsRefType;
-      } else if (sub.IsObjectQ) {
-        return false;
-      } else {
-        // "a" is a class, trait, or opaque type
-        var aa = ((UserDefinedType)super).ResolvedClass;
-        Contract.Assert(aa != null);
-        while (true) {
-          if (!(sub is UserDefinedType)) {
-            return false;
-          }
-          var bb = ((UserDefinedType)sub).ResolvedClass;
-          if (aa == bb) {
-            return true;
-          } else if (bb is ClassDecl && ((ClassDecl)bb).DerivesFrom(aa)) {
-            Contract.Assert(aa is TraitDecl && super.TypeArgs.Count == 0);
-            return true;
-          } else if (bb is SubsetTypeDecl) {
-            // walk up the parent chain
-            sub = ((SubsetTypeDecl)bb).RhsWithArgument(sub.TypeArgs);
-          } else {
-            return false;
-          }
-        }
       }
     }
 
@@ -1985,7 +1784,7 @@ namespace Microsoft.Dafny {
       if (towerA.Count < towerB.Count) {
         // B is strictly taller. The join exists only if towerA[n-1] is a supertype of towerB[n-1], and
         // then the join is "b".
-        return Type.IsSupertype_Improved(towerA[n - 1], towerB[n - 1]) ? b : null;
+        return Type.IsSupertype(towerA[n - 1], towerB[n - 1]) ? b : null;
       }
       Contract.Assert(towerA.Count == towerB.Count);
       a = towerA[n - 1];
@@ -2159,9 +1958,6 @@ namespace Microsoft.Dafny {
   /// </summary>
   public abstract class ArtificialType : Type
   {
-    public override bool PossiblyEquals_W(Type that) {
-      return Equals(that);
-    }
     public override bool IsSupertypeOf_WithSubsetTypes(Type that) {
       return Equals(that);
     }
@@ -2200,9 +1996,6 @@ namespace Microsoft.Dafny {
 
   public abstract class BasicType : NonProxyType
   {
-    public override bool PossiblyEquals_W(Type that) {
-      return Equals(that);
-    }
     public override bool IsSupertypeOf_WithSubsetTypes(Type that) {
       return Equals(that);
     }
@@ -2306,9 +2099,6 @@ namespace Microsoft.Dafny {
       return that.NormalizeExpand() is SelfType;
     }
 
-    public override bool PossiblyEquals_W(Type that) {
-      return Equals(that);
-    }
     public override bool IsSupertypeOf_WithSubsetTypes(Type that) {
       return Equals(that);
     }
@@ -2528,10 +2318,6 @@ namespace Microsoft.Dafny {
       var t = that.NormalizeExpand() as SetType;
       return t != null && Finite == t.Finite && Arg.IsSupertypeOf_WithSubsetTypes(t.Arg);
     }
-    public override bool PossiblyEquals_W(Type that) {
-      var t = that as SetType;
-      return t != null && Finite == t.Finite && Arg.PossiblyEquals(t.Arg);
-    }
     public override bool SupportsEquality {
       get {
         // Sets always support equality, because there is a check that the set element type always does.
@@ -2553,10 +2339,6 @@ namespace Microsoft.Dafny {
       var t = that.NormalizeExpandKeepConstraints() as MultiSetType;
       return t != null && Arg.IsSupertypeOf_WithSubsetTypes(t.Arg);
     }
-    public override bool PossiblyEquals_W(Type that) {
-      var t = that as MultiSetType;
-      return t != null && Arg.PossiblyEquals(t.Arg);
-    }
     public override bool SupportsEquality {
       get {
         // Multisets always support equality, because there is a check that the set element type always does.
@@ -2576,10 +2358,6 @@ namespace Microsoft.Dafny {
     public override bool IsSupertypeOf_WithSubsetTypes(Type that) {
       var t = that.NormalizeExpandKeepConstraints() as SeqType;
       return t != null && Arg.IsSupertypeOf_WithSubsetTypes(t.Arg);
-    }
-    public override bool PossiblyEquals_W(Type that) {
-      var t = that as SeqType;
-      return t != null && Arg.PossiblyEquals(t.Arg);
     }
     public override bool SupportsEquality {
       get {
@@ -2626,10 +2404,6 @@ namespace Microsoft.Dafny {
     public override bool IsSupertypeOf_WithSubsetTypes(Type that) {
       var t = that.NormalizeExpandKeepConstraints() as MapType;
       return t != null && Finite == t.Finite && Arg.IsSupertypeOf_WithSubsetTypes(t.Arg) && Range.IsSupertypeOf_WithSubsetTypes(t.Range);
-    }
-    public override bool PossiblyEquals_W(Type that) {
-      var t = that as MapType;
-      return t != null && Finite == t.Finite && Arg.PossiblyEquals(t.Arg) && Range.PossiblyEquals(t.Range);
     }
     public override bool SupportsEquality {
       get {
@@ -2891,19 +2665,6 @@ namespace Microsoft.Dafny {
       } else {
         return i.IsSupertypeOf_WithSubsetTypes(that);
       }
-    }
-    public override bool PossiblyEquals_W(Type that) {
-      Contract.Assume(ResolvedParam == null);  // we get this assumption from the caller, PossiblyEquals
-      var t = that as UserDefinedType;
-      if (t != null && ResolvedClass != null && ResolvedClass == t.ResolvedClass) {
-        for (int j = 0; j < TypeArgs.Count; j++) {
-          if (!TypeArgs[j].PossiblyEquals(t.TypeArgs[j])) {
-            return false;
-          }
-        }
-        return true;
-      }
-      return false;
     }
 
     /// <summary>
@@ -3180,9 +2941,6 @@ namespace Microsoft.Dafny {
       } else {
         return i.IsSupertypeOf_WithSubsetTypes(that);
       }
-    }
-    public override bool PossiblyEquals_W(Type that) {
-      return false;  // we don't consider unresolved proxies as worthy of "possibly equals" status
     }
 
     [Pure]
@@ -8839,9 +8597,6 @@ namespace Microsoft.Dafny {
       public override bool Equals(Type that) {
         return that.NormalizeExpand() is ResolverType_Module;
       }
-      public override bool PossiblyEquals_W(Type that) {
-        return false;
-      }
     }
     public class ResolverType_Type : ResolverType {
       [Pure]
@@ -8851,9 +8606,6 @@ namespace Microsoft.Dafny {
       }
       public override bool Equals(Type that) {
         return that.NormalizeExpand() is ResolverType_Type;
-      }
-      public override bool PossiblyEquals_W(Type that) {
-        return false;
       }
     }
 
