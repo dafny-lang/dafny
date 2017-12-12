@@ -203,7 +203,7 @@ namespace Microsoft.Dafny
             for (int i = 0; i < s0.Method.Ins.Count; i++) {
               argsSubstMap.Add(s0.Method.Ins[i], s0.Args[i]);
             }
-            var substituter = new Translator.AlphaConverting_Substituter(s0.Receiver, argsSubstMap, new Dictionary<TypeParameter, Type>());
+            var substituter = new Translator.AlphaConverting_Substituter(s0.Receiver, argsSubstMap, s0.MethodSelect.TypeArgumentSubstitutions());
             // substitute the call's actuals for the method's formals
             Expression term = s0.Method.Ens.Count != 0 ? substituter.Substitute(s0.Method.Ens[0].E) : Expression.CreateBoolLiteral(s.Tok, true);
             for (int i = 1; i < s0.Method.Ens.Count; i++) {

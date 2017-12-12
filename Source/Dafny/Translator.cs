@@ -10363,33 +10363,41 @@ namespace Microsoft.Dafny {
         var bvars = new List<Variable>();
         Dictionary<IVariable, Expression> substMap;
         Bpl.Trigger antitriggerBoundVarTypes;
-        var ante = initEtran.TrBoundVariablesRename(boundVars, bvars, out substMap, out antitriggerBoundVarTypes);
+        Bpl.Expr ante; 
         var argsSubstMap = new Dictionary<IVariable, Expression>();  // maps formal arguments to actuals
         Contract.Assert(s0.Method.Ins.Count == s0.Args.Count);
-        for (int i = 0; i < s0.Method.Ins.Count; i++) {
-          var arg = Substitute(s0.Args[i], null, substMap, s0.MethodSelect.TypeArgumentSubstitutions());  // substitute the renamed bound variables for the declared ones
-          argsSubstMap.Add(s0.Method.Ins[i], new BoogieWrapper(initEtran.TrExpr(arg), s0.Args[i].Type));
-        }
         var callEtran = new ExpressionTranslator(this, predef, etran.HeapExpr, initHeap);
-        ante = BplAnd(ante, initEtran.TrExpr(Substitute(range, null, substMap)));
-        if (additionalRange != null) {
-          ante = BplAnd(ante, additionalRange(substMap, initEtran));
-        }
-        var receiver = new BoogieWrapper(initEtran.TrExpr(Substitute(s0.Receiver, null, substMap, s0.MethodSelect.TypeArgumentSubstitutions())), s0.Receiver.Type);
         Bpl.Expr post = Bpl.Expr.True;
-        foreach (var ens in s0.Method.Ens) {
-          var p = Substitute(ens.E, receiver, argsSubstMap, s0.MethodSelect.TypeArgumentSubstitutions());  // substitute the call's actuals for the method's formals
-          post = BplAnd(post, callEtran.TrExpr(p));
-        }
-
-        Bpl.Trigger tr = null;
+        Bpl.Trigger tr;
         if (forallExpressions != null) {
+          // tranlate based on the forallExpressions since the triggers are computed based on it already.
           QuantifierExpr expr = (QuantifierExpr)forallExpressions[0];
           while (expr.SplitQuantifier != null) {
             expr = (QuantifierExpr)expr.SplitQuantifierExpression;
           }
+          boundVars = expr.BoundVars;
+          ante = initEtran.TrBoundVariablesRename(boundVars, bvars, out substMap, out antitriggerBoundVarTypes);
+          ante = BplAnd(ante, initEtran.TrExpr(Substitute(expr.Range, null, substMap)));
+          if (additionalRange != null) {
+            ante = BplAnd(ante, additionalRange(substMap, initEtran));
+          }
           tr = TrTrigger(callEtran, expr.Attributes, expr.tok, bvars, substMap, s0.MethodSelect.TypeArgumentSubstitutions());
+          post = callEtran.TrExpr(Substitute(expr.Term, null, substMap));
         } else {
+          ante = initEtran.TrBoundVariablesRename(boundVars, bvars, out substMap, out antitriggerBoundVarTypes);
+          for (int i = 0; i < s0.Method.Ins.Count; i++) {
+            var arg = Substitute(s0.Args[i], null, substMap, s0.MethodSelect.TypeArgumentSubstitutions());  // substitute the renamed bound variables for the declared ones
+            argsSubstMap.Add(s0.Method.Ins[i], new BoogieWrapper(initEtran.TrExpr(arg), s0.Args[i].Type));
+          }
+          ante = BplAnd(ante, initEtran.TrExpr(Substitute(range, null, substMap)));
+          if (additionalRange != null) {
+            ante = BplAnd(ante, additionalRange(substMap, initEtran));
+          }
+          var receiver = new BoogieWrapper(initEtran.TrExpr(Substitute(s0.Receiver, null, substMap, s0.MethodSelect.TypeArgumentSubstitutions())), s0.Receiver.Type);
+          foreach (var ens in s0.Method.Ens) {
+            var p = Substitute(ens.E, receiver, argsSubstMap, s0.MethodSelect.TypeArgumentSubstitutions());  // substitute the call's actuals for the method's formals
+            post = BplAnd(post, callEtran.TrExpr(p));
+          }
           tr = antitriggerBoundVarTypes;
         }
 

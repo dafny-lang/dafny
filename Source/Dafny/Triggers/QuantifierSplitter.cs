@@ -138,11 +138,11 @@ namespace Microsoft.Dafny.Triggers
 
     public QuantifierExpr RewriteMatchingLoops(QuantifierWithTriggers q)
     {
-      // rewrite quantifier to avoid mathing loops
+      // rewrite quantifier to avoid matching loops
       // before:
       //    assert forall i :: 0 <= i < a.Length-1 ==> a[i] <= a[i+1];
       // after: 
-      //    assert forall i,j :: j == i+1 ==> 0 <= i < a.Length-1 ==> a[i] <= a[i+1];
+      //    assert forall i,j :: j == i+1 ==> 0 <= i < a.Length-1 ==> a[i] <= a[j];
       substMap = new Dictionary<Expression, IdentifierExpr>();
       usedMap = new Dictionary<Expression, IdentifierExpr>();
       foreach (var m in q.LoopingMatches) {
