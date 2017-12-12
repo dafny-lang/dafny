@@ -2,7 +2,6 @@
 // RUN: %diff "%s.expect" "%t"
 
 function existential(mat: array2<bool>): bool
-    requires mat != null
     reads mat
 {
     exists i, j :: 0 <= i < mat.Length0 && 0 <= j < mat.Length1 && mat[i,j]

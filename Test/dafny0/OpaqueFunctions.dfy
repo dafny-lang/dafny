@@ -52,7 +52,6 @@ module B {
     c.M();  // error, because Valid() is opaque
   }
   method L(c: X.C)
-    requires c != null;
     modifies c;
   {
     assert c.Get() == c.x;  // error because Get() is opaque
@@ -80,7 +79,6 @@ module B_direct {
     }
   }
   method L(c: X.C)
-    requires c != null;
     modifies c;
   {
     assert c.Get() == c.x;  // error because Get() s opaque
@@ -108,7 +106,6 @@ module B' refines B {
     }
   }
   method L'(c: X.C)
-    requires c != null;
     modifies c;
   {
     assert c.Get() == c.x;  // error because Get() s opaque

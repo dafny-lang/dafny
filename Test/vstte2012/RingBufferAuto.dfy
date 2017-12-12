@@ -15,7 +15,6 @@ class {:autocontracts} RingBuffer<T(0)>
   // Valid encodes the consistency of RingBuffer objects (think, invariant)
   predicate Valid()
   {
-    data != null &&
     data.Length == N &&
     (N == 0 ==> len == start == 0 && Contents == []) &&
     (N != 0 ==> len <= N && start < N) &&

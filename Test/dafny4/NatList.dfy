@@ -4,7 +4,7 @@
 // This file tests some programs where "nat" is a type parameter to
 // a datatype.
 
-datatype List<T> = Nil | Cons(head: T, tail: List<T>)
+datatype List<+T> = Nil | Cons(head: T, tail: List<T>)
 
 method Main() {
   var ns := Nil;

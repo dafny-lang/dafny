@@ -11,7 +11,7 @@ class C {
 
 method K() {
   var f := C.Static;
-  var o : object;
+  var o : object?;
   assert o !in f.reads();
   assert f.requires();
   assert f();
@@ -19,18 +19,16 @@ method K() {
 
 
 class T {
-  var h : int ~> int;
+  var h : int ~> int
 }
 
 function B(t : T) : int ~> int
-  requires t != null;
-  reads t;
+  reads t
 {
   t.h
 }
 
 function J(t : T) : int
-  requires t != null
   reads t
   reads t.h.reads(0)
 {
@@ -41,8 +39,7 @@ function J(t : T) : int
 }
 
 method U(t : T)
-  requires t != null;
-  modifies t;
+  modifies t
 {
   t.h := x => x;
   assert J(t) == 0; // ok
@@ -56,7 +53,6 @@ class MyClass {
 	  data
 	}	
   method M(that: MyClass)
-	  requires that != null
 	{
 	  var fn := that.F;  // "that" is captured into the closure
 	  var d := fn();

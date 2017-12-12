@@ -6,7 +6,6 @@
 method Main() { }
 
 method H(a: array<int>, c: array<int>, n: nat, j: nat)
-  requires a != null && c != null
   requires j < n == a.Length == c.Length
 {
   var A := a[..];
@@ -28,7 +27,6 @@ method H(a: array<int>, c: array<int>, n: nat, j: nat)
 }
 
 method K(a: array<int>, c: array<int>, n: nat)
-  requires a != null && c != null
   requires n <= a.Length && n <= c.Length
 {
   var A := a[..n];
@@ -43,7 +41,6 @@ method K(a: array<int>, c: array<int>, n: nat)
 }
 
 method L(a: array<int>, c: array<int>, n: nat)
-  requires a != null && c != null
   requires n <= a.Length == c.Length
 {
   var A := a[n..];
@@ -59,7 +56,6 @@ method L(a: array<int>, c: array<int>, n: nat)
 }
 
 method M(a: array<int>, c: array<int>, m: nat, n: nat, k: nat, l: nat)
-  requires a != null && c != null
   requires k + m <= a.Length
   requires l + n <= c.Length
 {

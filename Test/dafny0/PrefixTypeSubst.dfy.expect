@@ -10,16 +10,22 @@ module _System {
     | 0 <= x
 
   trait {:compile false} object { }
+  /*-- non-null type
+  type {:axiom} object(==) = c: object? | c != null    /*special witness*/
+  */
 
   class {:compile false} array<arg> {
     var Length: int  // immutable
   }
+  /*-- non-null type
+  type {:axiom} array(==)<arg> = c: array?<arg> | c != null    /*special witness*/
+  */
 
   class {:compile false} /*_#Func0*/ () ~> +R {
     function requires(): bool
       reads reads()
 
-    function reads(): set<object>
+    function reads(): set<object?>
       reads reads()
   }
 
@@ -35,7 +41,7 @@ module _System {
     function requires(x0: T0, x1: T1): bool
       reads reads(x0, x1)
 
-    function reads(x0: T0, x1: T1): set<object>
+    function reads(x0: T0, x1: T1): set<object?>
       reads reads(x0, x1)
   }
 
@@ -51,7 +57,7 @@ module _System {
     function requires(x0: T0, x1: T1, x2: T2): bool
       reads reads(x0, x1, x2)
 
-    function reads(x0: T0, x1: T1, x2: T2): set<object>
+    function reads(x0: T0, x1: T1, x2: T2): set<object?>
       reads reads(x0, x1, x2)
   }
 
@@ -67,7 +73,7 @@ module _System {
     function requires(x0: T0): bool
       reads reads(x0)
 
-    function reads(x0: T0): set<object>
+    function reads(x0: T0): set<object?>
       reads reads(x0)
   }
 
@@ -87,54 +93,56 @@ module _System {
 */
 
 /* CALL GRAPH for module _module:
- * SCC at height 36:
+ * SCC at height 37:
  *   _default.RstRst10#
- * SCC at height 35:
+ * SCC at height 36:
  *   _default.RstRst10
- * SCC at height 34:
+ * SCC at height 35:
  *   _default.RstRst9
  *   _default.RstRst9#
- * SCC at height 33:
+ * SCC at height 34:
  *   _default.RstRst8
  *   _default.RstRst8#
- * SCC at height 32:
+ * SCC at height 33:
  *   _default.RstRst7#
- * SCC at height 31:
+ * SCC at height 32:
  *   _default.RstRst7
- * SCC at height 30:
+ * SCC at height 31:
  *   _default.RstRst6
  *   _default.RstRst6#
- * SCC at height 29:
+ * SCC at height 30:
  *   _default.RstRst5
  *   _default.RstRst5#
- * SCC at height 28:
+ * SCC at height 29:
  *   _default.RstRst4#
- * SCC at height 27:
+ * SCC at height 28:
  *   _default.RstRst4
- * SCC at height 26:
+ * SCC at height 27:
  *   _default.RstRst3#
- * SCC at height 25:
+ * SCC at height 26:
  *   _default.RstRst3
- * SCC at height 24:
+ * SCC at height 25:
  *   _default.RstRst2#
- * SCC at height 23:
+ * SCC at height 24:
  *   _default.RstRst2
- * SCC at height 22:
+ * SCC at height 23:
  *   _default.RstRst1#
- * SCC at height 21:
+ * SCC at height 22:
  *   _default.RstRst1
- * SCC at height 20:
+ * SCC at height 21:
  *   _default.RstRst0#
- * SCC at height 19:
+ * SCC at height 20:
  *   _default.RstRst0
- * SCC at height 18:
+ * SCC at height 19:
  *   _default.O#
- * SCC at height 17:
+ * SCC at height 18:
  *   _default.O
- * SCC at height 16:
+ * SCC at height 17:
  *   _default.N#
- * SCC at height 15:
+ * SCC at height 16:
  *   _default.N
+ * SCC at height 15:
+ *   MyClass
  * SCC at height 14:
  *   MyClass.M#
  * SCC at height 13:
@@ -273,16 +281,17 @@ class MyClass<A, B> {
   }
   ***/
 }
+/*-- non-null type
+type {:axiom} MyClass(==)<A, B> = c: MyClass?<A, B> | c != null  /*special witness*/
+*/
 
 colemma N<D0, D1, D2>(o: MyClass<D0, D1>)
-  requires o != null
   ensures o.R<D2>()
 {
   N<D0, D1, D2>(o);
 }
 /***
 lemma /*{:_induction _k}*/ N#<D0, D1, D2>[_k: ORDINAL](o: MyClass<D0, D1>)
-  requires o != null
   ensures o.R#<D2>[_k]()
   decreases _k, o
 {
@@ -571,32 +580,32 @@ lemma /*{:_induction _k}*/ RstRst10#<alpha, beta, gamma>[_k: nat]()
   }
 }
 ***/
-PrefixTypeSubst.dfy(53,0): Error BP5003: A postcondition might not hold on this return path.
-PrefixTypeSubst.dfy(52,30): Related location: This is the postcondition that might not hold.
+PrefixTypeSubst.dfy(52,0): Error BP5003: A postcondition might not hold on this return path.
+PrefixTypeSubst.dfy(51,30): Related location: This is the postcondition that might not hold.
 PrefixTypeSubst.dfy(19,17): Related location
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Then
-PrefixTypeSubst.dfy(59,0): Error BP5003: A postcondition might not hold on this return path.
-PrefixTypeSubst.dfy(58,30): Related location: This is the postcondition that might not hold.
+PrefixTypeSubst.dfy(58,0): Error BP5003: A postcondition might not hold on this return path.
+PrefixTypeSubst.dfy(57,30): Related location: This is the postcondition that might not hold.
 PrefixTypeSubst.dfy(19,17): Related location
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Then
-PrefixTypeSubst.dfy(65,0): Error BP5003: A postcondition might not hold on this return path.
-PrefixTypeSubst.dfy(64,30): Related location: This is the postcondition that might not hold.
+PrefixTypeSubst.dfy(64,0): Error BP5003: A postcondition might not hold on this return path.
+PrefixTypeSubst.dfy(63,30): Related location: This is the postcondition that might not hold.
 PrefixTypeSubst.dfy(19,17): Related location
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Then
-PrefixTypeSubst.dfy(71,0): Error BP5003: A postcondition might not hold on this return path.
-PrefixTypeSubst.dfy(70,30): Related location: This is the postcondition that might not hold.
+PrefixTypeSubst.dfy(70,0): Error BP5003: A postcondition might not hold on this return path.
+PrefixTypeSubst.dfy(69,30): Related location: This is the postcondition that might not hold.
 PrefixTypeSubst.dfy(19,17): Related location
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Then
-PrefixTypeSubst.dfy(86,9): Error BP5003: A postcondition might not hold on this return path.
-PrefixTypeSubst.dfy(82,30): Related location: This is the postcondition that might not hold.
+PrefixTypeSubst.dfy(85,9): Error BP5003: A postcondition might not hold on this return path.
+PrefixTypeSubst.dfy(81,30): Related location: This is the postcondition that might not hold.
 PrefixTypeSubst.dfy(19,17): Related location
 Execution trace:
     (0,0): anon0

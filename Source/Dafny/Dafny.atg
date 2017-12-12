@@ -573,8 +573,9 @@ bool IsType(ref IToken pt) {
     case _int:
     case _real:
     case _ORDINAL:
-    case _object:
     case _string:
+    case _object_q:
+    case _object:
       pt = scanner.Peek();
       return true;
     case _arrayToken:
@@ -706,6 +707,7 @@ TOKENS
   real = "real".
   ORDINAL = "ORDINAL".
   object = "object".
+  object_q = "object?".
   string = "string".
   set = "set".
   iset = "iset".
@@ -1169,7 +1171,7 @@ ConstantFieldDecl<.DeclModifierData dmod, List<MemberDecl/*!*/>/*!*/ mm, bool mo
   "const"
   { Attribute<ref attrs> }
   CIdentType<out id, out ty>                 (. if (ty == null) { ty = new InferredTypeProxy(); } .)
-  [ ":=" Expression<out e, false, false> ]
+  [ ":=" Expression<out e, false, true> ]
                                              (. if (e == null && ty is InferredTypeProxy) {
                                                   SemErr(id, "a const declaration must have a type or a RHS value");
                                                 }
@@ -1696,7 +1698,6 @@ TypeAndToken<out IToken tok, out Type ty, bool inExpressionContext>
                                        int w = StringToInt(tok.val.Substring(2), 0, "bitvectors that wide");
                                        ty = new BitvectorType(w);
                                     .)
-  | "object"                        (. tok = t;  ty = new ObjectType(); .)
   | "set"                           (. tok = t;.)
     OptGenericInstantiation<out gt, inExpressionContext>
                                     (. if (gt != null && gt.Count > 1) {
@@ -1726,6 +1727,8 @@ TypeAndToken<out IToken tok, out Type ty, bool inExpressionContext>
                                        ty = new SeqType(gt != null ? gt[0] : null);
                                     .)
   | "string"                        (. tok = t;  ty = new UserDefinedType(tok, tok.val, null); .)
+  | "object"                        (. tok = t;  ty = new UserDefinedType(tok, tok.val, null); .)
+  | "object?"                       (. tok = t;  ty = new UserDefinedType(tok, tok.val, null); .)
   | "map"                           (. tok = t; .)
     OptGenericInstantiation<out gt, inExpressionContext>
                                     (. if (gt == null) {
@@ -3065,7 +3068,7 @@ RelOp<out IToken/*!*/ x, out BinaryExpr.Opcode op, out Expression k>
     [ "#" "[" Expression<out k, true, true> "]" ]
   | "in"           (. x = t;  op = BinaryExpr.Opcode.In; .)
   | notIn          (. x = t;  op = BinaryExpr.Opcode.NotIn; .)
-  | /* The next operator is "!!", but we have to scan it as two "!", since the scanner is gready
+  | /* The next operator is "!!", but we have to scan it as two "!", since the scanner is greedy
        so if "!!" is a valid token, we won't be able to scan it as two "!" when needed: */
     "!"            (. x = t;  y = Token.NoToken; .)
     [ IF(la.val == "!")

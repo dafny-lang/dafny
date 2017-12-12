@@ -8,36 +8,58 @@ Execution trace:
 NatTypes.dfy(10,4): Error: value does not satisfy the subset constraints of 'nat'
 Execution trace:
     (0,0): anon0
-NatTypes.dfy(43,13): Error: assertion violation
+NatTypes.dfy(44,31): Error: value does not satisfy the subset constraints of 'nat'
 Execution trace:
     (0,0): anon0
-    (0,0): anon4_Then
-NatTypes.dfy(45,13): Error: assertion violation
+    (0,0): anon9_Then
+    (0,0): anon10_Then
+NatTypes.dfy(51,15): Error: assertion violation
 Execution trace:
     (0,0): anon0
-    (0,0): anon4_Then
-NatTypes.dfy(62,15): Error: assertion violation
+    (0,0): anon9_Then
+    (0,0): anon12_Then
+NatTypes.dfy(54,15): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    (0,0): anon9_Then
+    (0,0): anon13_Then
+NatTypes.dfy(64,26): Error: value does not satisfy the subset constraints of 'nat'
+Execution trace:
+    (0,0): anon0
+    (0,0): anon9_Then
+    (0,0): anon10_Then
+NatTypes.dfy(71,15): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    (0,0): anon9_Then
+    (0,0): anon12_Then
+NatTypes.dfy(74,15): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    (0,0): anon9_Then
+    (0,0): anon13_Then
+NatTypes.dfy(91,15): Error: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Then
-NatTypes.dfy(76,15): Error: assertion violation
+NatTypes.dfy(105,15): Error: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon5_Else
     (0,0): anon6_Then
-NatTypes.dfy(97,21): Error: value does not satisfy the subset constraints of 'nat'
-Execution trace:
-    (0,0): anon0
-    (0,0): anon3_Then
-NatTypes.dfy(112,44): Error: value does not satisfy the subset constraints of 'nat'
+NatTypes.dfy(141,44): Error: value does not satisfy the subset constraints of 'nat'
 Execution trace:
     (0,0): anon0
     (0,0): anon8_Else
     (0,0): anon9_Else
     (0,0): anon10_Then
-NatTypes.dfy(135,34): Error: value does not satisfy the subset constraints of 'nat'
+NatTypes.dfy(164,34): Error: value does not satisfy the subset constraints of 'nat'
 Execution trace:
     (0,0): anon0
     (0,0): anon4_Then
+NatTypes.dfy(184,16): Error: value does not satisfy the subset constraints of 'nat'
+Execution trace:
+    (0,0): anon0
+    (0,0): anon3_Else
 
-Dafny program verifier finished with 6 verified, 9 errors
+Dafny program verifier finished with 7 verified, 13 errors

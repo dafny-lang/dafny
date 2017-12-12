@@ -33,7 +33,7 @@ namespace Microsoft.Dafny
     }
     public override string VersionSuffix {
       get {
-        return " " + VersionNumber + " technical preview 0";
+        return " " + VersionNumber;
       }
     }
 
@@ -53,6 +53,7 @@ namespace Microsoft.Dafny
     public bool Dafnycc = false;
     public int Induction = 3;
     public int InductionHeuristic = 6;
+    public bool TypeInferenceDebug = false;
     public string DafnyPrelude = null;
     public string DafnyPrintFile = null;
     public enum PrintModes { Everything, DllEmbed, NoIncludes, NoGhost };
@@ -198,6 +199,10 @@ namespace Microsoft.Dafny
             }
             return true;
           }
+
+        case "titrace":
+          TypeInferenceDebug = true;
+          return true;
 
         case "induction":
           ps.GetNumericArgument(ref Induction, 4);
@@ -425,6 +430,7 @@ namespace Microsoft.Dafny
   /rprint:<file>
                 print Dafny program after resolving it
                 (use - as <file> to print to console)
+  /titrace      print type-inference debug info
   /view:<view1, view2>
                 print the filtered views of a module after it is resolved (/rprint).
                 if print before the module is resolved (/dprint), then everthing in the module is printed

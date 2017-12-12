@@ -4,7 +4,6 @@
 // Binary search using standard integers
 
 method BinarySearch(a: array<int>, key: int) returns (r: int)
-  requires a != null
   requires forall i,j :: 0 <= i < j < a.Length ==> a[i] <= a[j]
   ensures 0 <= r ==> r < a.Length && a[r] == key
   ensures r < 0 ==> key !in a[..]
@@ -31,7 +30,7 @@ method BinarySearch(a: array<int>, key: int) returns (r: int)
 newtype int32 = x | -0x8000_0000 <= x < 0x8000_0000
 
 method BinarySearchInt32_bad(a: array<int>, key: int) returns (r: int32)
-  requires a != null && a.Length < 0x8000_0000
+  requires a.Length < 0x8000_0000
   requires forall i,j :: 0 <= i < j < a.Length ==> a[i] <= a[j]
   ensures 0 <= r ==> r < a.Length as int32 && a[r] == key
   ensures r < 0 ==> key !in a[..]
@@ -54,7 +53,7 @@ method BinarySearchInt32_bad(a: array<int>, key: int) returns (r: int32)
 }
 
 method BinarySearchInt32_good(a: array<int>, key: int) returns (r: int32)
-  requires a != null && a.Length < 0x8000_0000
+  requires a.Length < 0x8000_0000
   requires forall i,j :: 0 <= i < j < a.Length ==> a[i] <= a[j]
   ensures 0 <= r ==> r < a.Length as int32 && a[r] == key
   ensures r < 0 ==> key !in a[..]

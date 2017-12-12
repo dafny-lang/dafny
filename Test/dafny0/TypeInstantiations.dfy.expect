@@ -23,4 +23,5 @@ TypeInstantiations.dfy(109,8): Error: the type of this variable is underspecifie
 TypeInstantiations.dfy(127,27): Error: RHS (of type int) not assignable to LHS (of type C.Classic<real>)
 TypeInstantiations.dfy(137,8): Error: the type of this variable is underspecified
 TypeInstantiations.dfy(137,23): Error: type variable 'A' in the function call to 'F' could not be determined
-25 resolution/type errors detected in TypeInstantiations.dfy
+TypeInstantiations.dfy(137,24): Error: the type of this expression is underspecified
+26 resolution/type errors detected in TypeInstantiations.dfy

@@ -51,7 +51,6 @@ class C {
   static const y: int := 5
   var z: int
   static function method G(c: C): int
-    requires c != null
     ensures G(c) == 16
   {
     x + y + c.y
@@ -60,7 +59,6 @@ class C {
   const a: int := b+2
   const b: int := 50
   function method H(c: C): int
-    requires c != null
     ensures H(c) == 50 + 52 + 50 + 6 + 5 + 5 + 5 == 173
   {
     a + b + c.b + x + y + c.y + C.y
@@ -104,7 +102,7 @@ class Class extends Trait {
   }
 }
 
-method MMethod(tr: Trait) {
+method MMethod(tr: Trait?) {
   assert Trait.y == 7;
   assert tr.y == 7;
   assert tr == null || tr.x1 == 7;

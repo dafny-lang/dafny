@@ -117,12 +117,12 @@ method m13()
 class A { var x: int; }
 
 method m15(b: set<A>) 
-  requires forall a | a in b :: a != null;
 {
   ghost var m := imap a | a in b :: a.x;
   var aa := new A;
   assert aa !in m;
 }
+
 
 method minf()
 {

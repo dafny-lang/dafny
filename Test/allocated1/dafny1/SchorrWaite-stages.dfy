@@ -12,7 +12,7 @@ abstract module M0 {
   // and implementation of the Schorr-Waite algorithm.
 
   class Node {
-    var children: seq<Node>
+    var children: seq<Node?>
     var marked: bool
     var childrenVisited: nat
   }
@@ -21,14 +21,12 @@ abstract module M0 {
 
   predicate Reachable(source: Node, sink: Node, S: set<Node>)
     reads S
-    requires null !in S
   {
     exists via :: ReachableVia(source, via, sink, S)
   }
 
   predicate ReachableVia(source: Node, p: Path, sink: Node, S: set<Node>)
     reads S
-    requires null !in S
     decreases p
   {
     match p
@@ -39,7 +37,7 @@ abstract module M0 {
   method SchorrWaite(root: Node, ghost S: set<Node>)
     requires root in S
     // S is closed under 'children':
-    requires forall n :: n in S ==> n != null && allocated(n) &&
+    requires forall n :: n in S ==> allocated(n) &&
                 forall ch :: ch in n.children ==> ch == null || ch in S
     // the graph starts off with nothing marked and nothing being indicated as currently being visited:
     requires forall n :: n in S ==> !n.marked && n.childrenVisited == 0
@@ -57,7 +55,7 @@ abstract module M0 {
     decreases *  // leave termination checking for a later refinement
   {
     root.marked := true;
-    var t, p: Node := root, null;
+    var t, p: Node? := root, null;
     ghost var stackNodes: seq<Node> := [];
     while true
       // stackNodes is a sequence of nodes from S:

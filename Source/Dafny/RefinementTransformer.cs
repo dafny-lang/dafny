@@ -315,8 +315,6 @@ namespace Microsoft.Dafny
         return next is IntType;
       } else if (prev is RealType) {
         return next is RealType;
-      } else if (prev is ObjectType) {
-        return next is ObjectType;
       } else if (prev is SetType) {
         return next is SetType && ((SetType)prev).Finite == ((SetType)next).Finite &&
           ResolvedTypesAreTheSame(((SetType)prev).Arg, ((SetType)next).Arg);
@@ -333,7 +331,7 @@ namespace Microsoft.Dafny
         }
         UserDefinedType aa = (UserDefinedType)prev;
         UserDefinedType bb = (UserDefinedType)next;
-        if (aa.ResolvedClass != null && bb.ResolvedClass != null && aa.ResolvedClass.Name == bb.ResolvedClass.Name) {
+        if (aa.ResolvedClass != null && bb.ResolvedClass != null && aa.ResolvedClass == bb.ResolvedClass) {
           // these are both resolved class/datatype types
           Contract.Assert(aa.TypeArgs.Count == bb.TypeArgs.Count);
           for (int i = 0; i < aa.TypeArgs.Count; i++)
@@ -347,7 +345,7 @@ namespace Microsoft.Dafny
           // or class field.
           return aa.ResolvedParam.PositionalIndex == bb.ResolvedParam.PositionalIndex &&
                  aa.ResolvedParam.IsToplevelScope == bb.ResolvedParam.IsToplevelScope;
-        } else if (aa.ResolvedParam.IsAbstractTypeDeclaration && bb.ResolvedClass != null) {
+        } else if (aa.ResolvedParam != null && aa.ResolvedParam.IsAbstractTypeDeclaration && bb.ResolvedClass != null) {
           return (aa.ResolvedParam.Name == bb.ResolvedClass.Name);
         } else {
           // something is wrong; either aa or bb wasn't properly resolved, or they aren't the same

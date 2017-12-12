@@ -13,12 +13,12 @@ class Queue<T(0)> {
     reads this, footprint;
   {
     this in footprint && spine <= footprint &&
-    head != null && head in spine &&
-    tail != null && tail in spine &&
+    head in spine &&
+    tail in spine &&
     tail.next == null &&
     (forall n ::
       n in spine ==>
-        n != null && n.footprint <= footprint && this !in n.footprint &&
+        n.footprint <= footprint && this !in n.footprint &&
         n.Valid() &&
         (n.next == null ==> n == tail)) &&
     (forall n ::
@@ -27,9 +27,8 @@ class Queue<T(0)> {
     contents == head.tailContents
   }
 
-  method Init()
-    modifies this;
-    ensures Valid() && fresh(footprint - {this,null});
+  constructor Init()
+    ensures Valid() && fresh(footprint - {this});
     ensures |contents| == 0;
   {
     var n := new Node<T>.Init();
@@ -50,7 +49,7 @@ class Queue<T(0)> {
   method Enqueue(t: T)
     requires Valid();
     modifies footprint;
-    ensures Valid() && fresh(footprint - old(footprint) - {null});
+    ensures Valid() && fresh(footprint - old(footprint));
     ensures contents == old(contents) + [t];
   {
     var n := new Node<T>.Init();
@@ -96,7 +95,7 @@ class Queue<T(0)> {
     requires Valid();
     requires 0 < |contents|;
     modifies footprint;
-    ensures Valid() && fresh(footprint - old(footprint) - {null});
+    ensures Valid() && fresh(footprint - old(footprint));
     ensures contents == old(contents)[1..] + old(contents)[..1];
   {
     var t := Front();
@@ -108,7 +107,7 @@ class Queue<T(0)> {
     requires Valid();
     requires 0 < |contents|;
     modifies footprint;
-    ensures Valid() && fresh(footprint - old(footprint) - {null});
+    ensures Valid() && fresh(footprint - old(footprint));
     ensures |contents| == |old(contents)|;
     ensures (exists i :: 0 <= i && i <= |contents| &&
               contents == old(contents)[i..] + old(contents)[..i]);
@@ -122,7 +121,7 @@ class Queue<T(0)> {
 
 class Node<T(0)> {
   var data: T;
-  var next: Node<T>;
+  var next: Node?<T>;
 
   ghost var tailContents: seq<T>;
   ghost var footprint: set<object>;
@@ -136,8 +135,7 @@ class Node<T(0)> {
     (next != null ==> tailContents == [next.data] + next.tailContents)
   }
 
-  method Init()
-    modifies this;
+  constructor Init()
     ensures Valid() && fresh(footprint - {this});
     ensures next == null;
   {
@@ -172,13 +170,13 @@ class Main<U(0)> {
   }
 
   method Main2(t: U, u: U, v: U, q0: Queue<U>, q1: Queue<U>)
-    requires q0 != null && q0.Valid();
-    requires q1 != null && q1.Valid();
+    requires q0.Valid();
+    requires q1.Valid();
     requires q0.footprint !! q1.footprint;
     requires |q0.contents| == 0;
     modifies q0.footprint, q1.footprint;
-    ensures fresh(q0.footprint - old(q0.footprint) - {null});
-    ensures fresh(q1.footprint - old(q1.footprint) - {null});
+    ensures fresh(q0.footprint - old(q0.footprint));
+    ensures fresh(q1.footprint - old(q1.footprint));
   {
     q0.Enqueue(t);
     q0.Enqueue(u);

@@ -1,33 +1,33 @@
-Twostate-Verification.dfy(40,26): Error: target object may not be allocated
+Twostate-Verification.dfy(39,26): Error: target object may not be allocated
 Execution trace:
     (0,0): anon0
-Twostate-Verification.dfy(45,34): Error: target object may not be allocated
+Twostate-Verification.dfy(44,34): Error: target object may not be allocated
 Execution trace:
     (0,0): anon0
-Twostate-Verification.dfy(61,26): Error: receiver must be allocated in the state in which its fields are accessed
-Execution trace:
-    (0,0): anon0
-    (0,0): anon3_Then
-Twostate-Verification.dfy(61,26): Error: target object may not be allocated
+Twostate-Verification.dfy(60,26): Error: receiver must be allocated in the state in which its fields are accessed
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Then
-Twostate-Verification.dfy(63,32): Error: receiver argument must be allocated in the state in which the function is invoked
+Twostate-Verification.dfy(60,26): Error: target object may not be allocated
+Execution trace:
+    (0,0): anon0
+    (0,0): anon3_Then
+Twostate-Verification.dfy(62,32): Error: receiver argument must be allocated in the state in which the function is invoked
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Else
-Twostate-Verification.dfy(63,34): Error: target object may not be allocated
+Twostate-Verification.dfy(62,34): Error: target object may not be allocated
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Else
-Twostate-Verification.dfy(81,15): Error: assertion violation
+Twostate-Verification.dfy(78,15): Error: assertion violation
 Execution trace:
     (0,0): anon0
-Twostate-Verification.dfy(239,69): Error: target object may not be allocated
+Twostate-Verification.dfy(234,69): Error: target object may not be allocated
 Execution trace:
     (0,0): anon0
     (0,0): anon4_Then
-Twostate-Verification.dfy(239,80): Error: target object may not be allocated
+Twostate-Verification.dfy(234,80): Error: target object may not be allocated
 Execution trace:
     (0,0): anon0
     (0,0): anon4_Then

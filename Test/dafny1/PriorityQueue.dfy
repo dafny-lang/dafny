@@ -19,7 +19,7 @@ class PriorityQueue {
     reads this, Repr;
   {
     this in Repr && a in Repr &&
-    a != null && a.Length == N+1 &&
+    a.Length == N+1 &&
     0 <= n && n <= N
   }
 
@@ -134,7 +134,7 @@ class PriorityQueue_Alternative {
     reads this, Repr;
   {
     this in Repr && a in Repr &&
-    a != null && a.Length == N+1 &&
+    a.Length == N+1 &&
     0 <= n && n <= N
   }
 

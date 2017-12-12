@@ -25,7 +25,7 @@ function method Fib(n: nat): nat
 }
 
 method M3(a: array<int>) returns (r: int)
-  requires a != null && forall i :: 0 <= i < a.Length ==> a[i] == 6;
+  requires forall i :: 0 <= i < a.Length ==> a[i] == 6;
   ensures (r + var t := r; t*2) == 3*r;
 {
   assert Fib(2) + Fib(4) == Fib(0) + Fib(1) + Fib(2) + Fib(3);
@@ -50,7 +50,7 @@ method M3(a: array<int>) returns (r: int)
 
 // M4 is pretty much the same as M3, except with things rolled into expressions.
 method M4(a: array<int>) returns (r: int)
-  requires a != null && forall i :: 0 <= i < a.Length ==> a[i] == 6;
+  requires forall i :: 0 <= i < a.Length ==> a[i] == 6;
   ensures (r + var t := r; t*2) == 3*r;
 {
   assert Fib(2) + Fib(4) == Fib(0) + Fib(1) + Fib(2) + Fib(3);
@@ -69,7 +69,7 @@ method M4(a: array<int>) returns (r: int)
 class AClass {
   var index: int;
   method P(a: array<int>) returns (b: bool, ii: int)
-    requires a != null && exists k :: 0 <= k < a.Length && a[k] == 19;
+    requires exists k :: 0 <= k < a.Length && a[k] == 19;
     modifies this, a;
     ensures ii == index;
     // The following uses a variable with a non-old definition inside an old expression:
@@ -98,7 +98,7 @@ class AClass {
   }
 
   method PMain(a: array<int>)
-    requires a != null && exists k :: 0 <= k < a.Length && a[k] == 19;
+    requires exists k :: 0 <= k < a.Length && a[k] == 19;
     modifies this, a;
   {
     var s := a[..];
@@ -323,4 +323,26 @@ method LetSuchThat_Deterministic() returns (x: int)
   var t := {3, 5};
   var s := var a, b :| a in t && b in t && a != b; {a} + {b};
   assert s == t;
+}
+
+// ----------------------------------
+
+module PatternsWithExplicitTypes {
+  datatype Tuple<T,U> = Pair(0: T, 1: U)
+  method LetExpr(p: Tuple<nat,bool>, q: Tuple<int,bool>) returns (z: int)
+  {
+    z := var Pair(xx: nat, yy) := q; xx;  // error: int-to-nat failure
+  }
+  method LetStmt(p: Tuple<nat,bool>, q: Tuple<int,bool>) returns (z: int)
+  {
+    var Pair(xx: nat, yy) := q;  // error: int-to-nat failure
+  }
+  method LetExpr'(p: Tuple<nat,bool>, q: Tuple<int,bool>) returns (z: int)
+  {
+    z := var Pair(xx: int, yy) := p; xx;
+  }
+  method LetStmt'(p: Tuple<nat,bool>, q: Tuple<int,bool>) returns (z: int)
+  {
+    var Pair(xx: int, yy) := p;
+  }
 }

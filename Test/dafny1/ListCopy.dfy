@@ -2,23 +2,23 @@
 // RUN: %diff "%s.expect" "%t"
 
 class Node {
-  var nxt: Node;
+  var nxt: Node?
 
   method Init()
-    modifies this;
-    ensures nxt == null;
+    modifies this
+    ensures nxt == null
   {
     nxt := null;
   }
 
-  method Copy(root: Node) returns (result: Node)
-    decreases *;
+  method Copy(root: Node?) returns (result: Node?)
+    decreases *
   {
     var existingRegion: set<Node>;
     assume root == null || root in existingRegion;
-    assume (forall o: Node :: o != null && o in existingRegion && o.nxt != null ==> o.nxt in existingRegion);
+    assume (forall o: Node :: o in existingRegion && o.nxt != null ==> o.nxt in existingRegion);
 
-    var newRoot := null;
+    var newRoot: Node? := null;
     var oldListPtr := root;
     var newRegion: set<Node> := {};
 
@@ -29,7 +29,6 @@ class Node {
 
       while (oldListPtr != null)
         invariant newRoot in newRegion;
-        invariant (forall o: Node :: o in newRegion ==> o != null);
         invariant (forall o: Node :: o in newRegion && o.nxt != null ==> o.nxt in newRegion);
         invariant prev in newRegion;
         invariant fresh(newRegion);

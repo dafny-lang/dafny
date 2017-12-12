@@ -2,57 +2,57 @@
 // RUN: %diff "%s.expect" "%t"
 
 class C {
-  var n: set<Node>;
+  var n: set<Node?>
 
   method M(v: Stack)
-    requires v != null
+    //requires v != null
   {
-    var n': set<object> := n;
+    var n': set<object?> := n;
     assert v !in n';  // should be known from the types involved
   }
 
-  method N(v: Stack)
-    /* this time without the precondition */
+  method N(v: Stack?)
+    /* this time with the possibility of "v" being null */
   {
-    var n': set<object> := n;
+    var n': set<object?> := n;
     assert v !in n';  // error: v may be null
   }
 
-  method A0(a: CP<int,C>, b: CP<int,object>)
+  method A0(a: CP?<int,C>, b: CP?<int,object>)
   {
-    var x: object := a;
-    var y: object := b;
+    var x: object? := a;
+    var y: object? := b;
     assert x == y ==> x == null;
   }
 
-  method A1(a: CP<int,C>)
+  method A1(a: CP?<int,C>)
   {
-    var x: object := a;
-    assert (forall b: CP<int,Stack> {:nowarn} :: x == b ==> b == null);  // follows from type antecedents
+    var x: object? := a;
+    assert (forall b: CP?<int,Stack> {:nowarn} :: x == b ==> b == null);  // follows from type antecedents
   }
 
-  var a2x: set<CP<C,Node>>;
-  method A2(b: set<CP<Node,C>>)
+  var a2x: set<CP?<C,Node>>;
+  method A2(b: set<CP?<Node,C>>)
     requires null !in b
   {
-    var x: set<object> := a2x;
-    var y: set<object> := b;
+    var x: set<object?> := a2x;
+    var y: set<object?> := b;
     assert x * y == {};
   }
 
-  method A3(b: set<CP<Node,C>>)
+  method A3(b: set<CP?<Node,C>>)
     /* this time without the precondition */
   {
-    var x: set<object> := a2x;
-    var y: set<object> := b;
+    var x: set<object?> := a2x;
+    var y: set<object?> := b;
     assert x * y <= {null};
   }
 
-  method A4(b: set<CP<Node,C>>)
+  method A4(b: set<CP?<Node,C>>)
     /* again, without the precondition */
   {
-    var x: set<object> := a2x;
-    var y: set<object> := b;
+    var x: set<object?> := a2x;
+    var y: set<object?> := b;
     assert x * y == {};  // error
   }
 
@@ -61,11 +61,11 @@ class C {
   {
     var a := new CP<int,C>;
     var b := new CP<int,object>;
-    while (a != null)
+    while (a != null)  // warning: "a" is never null
       decreases *;  // omit loop termination check (in fact, the loop does not terminate)
     {
-      var x: object := a;
-      var y: object := b;
+      var x: object? := a;
+      var y: object? := b;
       assert x == y ==> x == null;
       a := a;  // make 'a' a loop target
     }
@@ -140,7 +140,6 @@ class DatatypeInduction<T> {
   // ----- here is a test for induction over integers
 
   method IntegerInduction_Succeeds(a: array<int>)
-    requires a != null
     requires a.Length == 0 || a[0] == 0
     requires forall j {:nowarn} {:matchinglooprewrite false} :: 1 <= j < a.Length ==> a[j] == a[j-1]+2*j-1 // WISH: If induction was more powerful, we wouldn't need to rely on the quantifier to produce the j-1 term.
   {
@@ -149,7 +148,6 @@ class DatatypeInduction<T> {
   }
 
   method IntegerInduction_Fails(a: array<int>)
-    requires a != null
     requires a.Length == 0 || a[0] == 0
     requires forall j :: 1 <= j < a.Length ==> a[j] == a[j-1]+2*j-1 // WISH: Same as above
   {
@@ -171,7 +169,6 @@ abstract module OpaqueTypesWithParameters {
   }
 
   method DifferentTypes(a: array<P<int>>, b: array<P<bool>>)
-    requires a != null && b != null
     // If P were a known type, then it would also be known that P<int> and P<bool>
     // would be different types, and then the types of 'a' and 'b' would be different,
     // which would imply that the following postcondition would hold.
@@ -189,5 +186,50 @@ module CaseInPoint refines OpaqueTypesWithParameters {
     var x := new real[100];
     DifferentTypes(x, x);
     assert false;  // this is provable here, since DifferentTypes has a bogus postcondition
+  }
+}
+
+module SomeTypeInferenceTests {
+  class MyClass {
+    constructor ()
+  }
+
+  class Cell<G> {
+    var data: G
+    constructor (g: G) {
+      data := g;
+    }
+  }
+
+  // The following methods test type inference.  To see that type inference did the
+  // right thing, we could use /rprint:- for this test file.  However, that also
+  // prints a bunch of other things that we don't care to test here.  So, instead
+  // we do some comparisons against "null" and see whether or not they produce
+  // null-redundancy warnings.
+
+  method Test0() {
+    var m := new MyClass();
+    var b := new Cell(m);
+    var test;
+    test := m == null;  // warning
+    test := b == null;  // warning
+  }
+
+  method Test1() {
+    var m := new MyClass();
+    var c := new Cell<MyClass>(m);
+    var test;
+    test := m == null;  // warning
+    test := c == null;  // warning
+  }
+
+  method Test2() {
+    var m := new MyClass();
+    var c := new Cell<MyClass>(m);
+    var d: Cell<MyClass> := c;
+    var test;
+    test := m == null;  // warning
+    test := c == null;  // warning
+    test := d == null;  // warning
   }
 }

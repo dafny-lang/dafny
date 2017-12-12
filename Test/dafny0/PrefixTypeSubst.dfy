@@ -36,7 +36,6 @@ class MyClass<A,B> {
 }
 
 colemma N<D0,D1,D2>(o: MyClass<D0,D1>)
-  requires o != null
   ensures o.R<D2>()
 {
   N<D0,D1,D2>(o);

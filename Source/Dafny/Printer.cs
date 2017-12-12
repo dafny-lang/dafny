@@ -16,6 +16,7 @@ namespace Microsoft.Dafny {
     TextWriter wr;
     DafnyOptions.PrintModes printMode;
     bool afterResolver;
+    bool printingExportSet = false;
 
     [ContractInvariantMethod]
     void ObjectInvariant()
@@ -252,11 +253,17 @@ namespace Microsoft.Dafny {
             wr.Write(": ");
             PrintType(dd.Rhs);
           }
-          wr.WriteLine();
-          Indent(indent + IndentAmount);
+          if (dd is NonNullTypeDecl) {
+            wr.Write(" ");
+          } else {
+            wr.WriteLine();
+            Indent(indent + IndentAmount);
+          }
           wr.Write("| ");
           PrintExpression(dd.Constraint, true);
-          wr.WriteLine();
+          if (!(dd is NonNullTypeDecl)) {
+            wr.WriteLine();
+          }
           PrintWitnessClause(dd, indent + IndentAmount);
         } else if (d is TypeSynonymDecl) {
           var dd = (TypeSynonymDecl)d;
@@ -282,9 +289,9 @@ namespace Microsoft.Dafny {
           if (DafnyOptions.O.DafnyPrintResolvedFile != null) {
             // also print the members that were created as part of the interpretation of the iterator
             Contract.Assert(iter.Members.Count != 0);  // filled in during resolution
-            wr.WriteLine("/*---------- iterator members ----------");
-            PrintIteratorClass(iter, indent, fileBeingPrinted);
-            wr.WriteLine("---------- iterator members ----------*/");
+            Indent(indent); wr.WriteLine("/*---------- iterator members ----------");
+            Indent(indent); PrintIteratorClass(iter, indent, fileBeingPrinted);
+            Indent(indent); wr.WriteLine("---------- iterator members ----------*/");
           }
 
         } else if (d is ClassDecl) {
@@ -348,7 +355,9 @@ namespace Microsoft.Dafny {
               wr.Write("export ");
             }
             if (e.Extends.Count > 0) wr.Write(" extends {0}", Util.Comma(", ", e.Extends, id => id));
-            PrintModuleExportDecl(e, indent, fileBeingPrinted);
+            wr.WriteLine();
+            PrintModuleExportDecl(e, indent + IndentAmount, fileBeingPrinted);
+            wr.WriteLine();
           }
 
         } else {
@@ -385,43 +394,39 @@ namespace Microsoft.Dafny {
     }
 
     void PrintModuleExportDecl(ModuleExportDecl m, int indent, string fileBeingPrinted) {
-      ModuleSignature sig = m.Signature;
-      // has been resolved yet, just print the strings
-      string bodyKind = "";
-      string opaque = "provides";
-      string reveal = "reveals";
-      string delimeter = " ";
+      Contract.Requires(m != null);
 
-      foreach (ExportSignature id in m.Exports) {
-        delimeter = ",";
+      var i = 0;
+      while (i < m.Exports.Count) {
+        var start = i;
+        var bodyKind = m.Exports[start].Opaque;
+        do {
+          i++;
+        } while (i < m.Exports.Count && m.Exports[i].Opaque == bodyKind);
+        // print [start..i)
+        Indent(indent);
+        wr.Write("{0} ", bodyKind ? "provides" : "reveals");
+        wr.WriteLine(Util.Comma(", ", i - start, j => m.Exports[start + j].ToString()));
 
-        if (id.Opaque && bodyKind != opaque) {
-          bodyKind = opaque;
-          wr.Write(" " + bodyKind);
-          delimeter = " ";
-        } else if (!id.Opaque && bodyKind != reveal) {
-          bodyKind = reveal;
-          wr.Write(" " + bodyKind);
-          delimeter = " ";
-        }
-        wr.Write(delimeter + "{0}", id.ToString());
-        if (id.Decl != null) {
-          wr.WriteLine();
-          Indent(indent + IndentAmount);
-          wr.WriteLine("/*");
-          if (id.Decl is TopLevelDecl) {
-            PrintTopLevelDecls(new List<TopLevelDecl> { (TopLevelDecl)id.Decl }, indent + IndentAmount, fileBeingPrinted);
-          } else if (id.Decl is MemberDecl) {
-            PrintMembers(new List<MemberDecl> { (MemberDecl)id.Decl }, indent + IndentAmount, fileBeingPrinted);
+        if (DafnyOptions.O.DafnyPrintResolvedFile != null) {
+          Contract.Assert(!printingExportSet);
+          printingExportSet = true;
+          Indent(indent);
+          wr.WriteLine("/*----- exported view:");
+          for (int j = start; j < i; j++) {
+            var id = m.Exports[j];
+            if (id.Decl is TopLevelDecl) {
+              PrintTopLevelDecls(new List<TopLevelDecl> { (TopLevelDecl)id.Decl }, indent + IndentAmount, fileBeingPrinted);
+            } else if (id.Decl is MemberDecl) {
+              PrintMembers(new List<MemberDecl> { (MemberDecl)id.Decl }, indent + IndentAmount, fileBeingPrinted);
+            }
           }
-
-          Indent(indent + IndentAmount);
-          wr.WriteLine("*/");
-          Indent(indent + IndentAmount);
+          Indent(indent);
+          wr.WriteLine("-----*/");
+          Contract.Assert(printingExportSet);
+          printingExportSet = false;
         }
       }
-      wr.WriteLine();
-
     }
 
     public void PrintModuleDefinition(ModuleDefinition module, VisibilityScope scope, int indent, string fileBeingPrinted) {
@@ -508,10 +513,14 @@ namespace Microsoft.Dafny {
       wr.WriteLine(" {");
       PrintMembers(iter.Members, indent + IndentAmount, fileBeingPrinted);
       Indent(indent); wr.WriteLine("}");
+
+      Contract.Assert(iter.NonNullTypeDecl != null);
+      PrintTopLevelDecls(new List<TopLevelDecl> { iter.NonNullTypeDecl }, indent, fileBeingPrinted);
     }
 
     public void PrintClass(ClassDecl c, int indent, string fileBeingPrinted) {
       Contract.Requires(c != null);
+
       Indent(indent);
       PrintClassMethodHelper((c is TraitDecl) ? "trait" : "class", c.Attributes, c.Name, c.TypeArgs);
       string sep = " extends ";
@@ -527,6 +536,16 @@ namespace Microsoft.Dafny {
         PrintMembers(c.Members, indent + IndentAmount, fileBeingPrinted);
         Indent(indent);
         wr.WriteLine("}");
+      }
+
+      if (DafnyOptions.O.DafnyPrintResolvedFile != null && c.NonNullTypeDecl != null) {
+        if (!printingExportSet) {
+          Indent(indent); wr.WriteLine("/*-- non-null type");
+        }
+        PrintTopLevelDecls(new List<TopLevelDecl> { c.NonNullTypeDecl }, indent, fileBeingPrinted);
+        if (!printingExportSet) {
+          Indent(indent); wr.WriteLine("*/");
+        }
       }
     }
 

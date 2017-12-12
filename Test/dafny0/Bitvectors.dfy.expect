@@ -10,16 +10,22 @@ module _System {
     | 0 <= x
 
   trait {:compile false} object { }
+  /*-- non-null type
+  type {:axiom} object(==) = c: object? | c != null    /*special witness*/
+  */
 
   class {:compile false} array<arg> {
     var Length: int  // immutable
   }
+  /*-- non-null type
+  type {:axiom} array(==)<arg> = c: array?<arg> | c != null    /*special witness*/
+  */
 
   class {:compile false} /*_#Func0*/ () ~> +R {
     function requires(): bool
       reads reads()
 
-    function reads(): set<object>
+    function reads(): set<object?>
       reads reads()
   }
 
@@ -39,7 +45,7 @@ module _System {
     function requires(x0: T0): bool
       reads reads(x0)
 
-    function reads(x0: T0): set<object>
+    function reads(x0: T0): set<object?>
       reads reads(x0)
   }
 

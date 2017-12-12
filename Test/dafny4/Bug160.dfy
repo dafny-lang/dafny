@@ -10,13 +10,11 @@ class HostEnvironment{
 }
 
 method {:axiom} MakePtr<T>(v:T, ghost env:HostEnvironment) returns (ptr:Ptr<T>) // Using int or seq<T> instead of Ptr<T> eliminates the problem
-        requires env != null; 
         modifies env;
         ensures  ToU(ptr) in env.heap();
 
 
 method test(ghost env:HostEnvironment)
-    requires env != null;
     modifies env;
 {
     var myptr := MakePtr(0, env);

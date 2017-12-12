@@ -4,7 +4,7 @@
 class Global {
   static function G(x: int): int { x+x }
   static method N(ghost x: int) returns (ghost r: int)
-    ensures r == Global.G(x);
+    ensures r == Global.G(x)
   {
     if {
       case true =>  r := G(x+0);
@@ -12,7 +12,7 @@ class Global {
         var g: Global;
         r := g.G(x);
       case true =>
-        var g: Global := null;
+        var g: Global? := null;
         r := g.G(x);
       case true =>
         r := Global.G(x);
@@ -21,7 +21,7 @@ class Global {
 }
 
 method TestCalls(k: nat) {
-  var g: Global, h: Global;
+  var g: Global?, h: Global?;
   assume g != h;
   ghost var r: int;
   ghost var s := Global.G(k);
@@ -49,19 +49,19 @@ method TestCalls(k: nat) {
 // ---------- chaining operators ------------------------------------
 
 function UpTruth(j: int, k: int): bool
-  requires 10 <= j < 180 < 220 <= k;
+  requires 10 <= j < 180 < 220 <= k
 {
   0 < 2 <= 2 < j != 200 < k < k + 1
 }
 
 function DownTruth(j: int, k: int): bool
-  requires k >= 220 > 180 > j >= 10;
+  requires k >= 220 > 180 > j >= 10
 {
   k + 1 > k > 200 != j > 2 >= 2 > 0
 }
 
 method ChallengeTruth(j: int, k: int)
-  requires 80 <= j < 150 && 250 <= k < 1000;
+  requires 80 <= j < 150 && 250 <= k < 1000
 {
   assert UpTruth(j, k);
   assert DownTruth(j, k);
@@ -72,7 +72,7 @@ method ChallengeTruth(j: int, k: int)
 // ---------- reverse implication ------------------------------------
 
 method Explies(s: seq<int>, i: nat)
-  requires forall x :: x in s ==> x > 0;
+  requires forall x :: x in s ==> x > 0
 {
   var a, b, c: bool;
   assert a <== b <== c <== false;   // OK, because <== is left-associative
@@ -100,7 +100,7 @@ method ExpliesAssociativityM(A: bool, B: bool, C: bool) {
   }
 }
 
-method ExpliesShortCircuiting(a: array)
+method ExpliesShortCircuiting(a: array?)
 {
   assert a == null || 0 <= a.Length;  // (W)
   assert a != null ==> 0 <= a.Length;  // (X) -- same as (W)
@@ -120,25 +120,24 @@ method ExpliesShortCircuiting(a: array)
 class Multi {
   var x: int;
   var y: int;
-  var next: Multi;
-  method Mutate(z: int) returns (m: Multi)
-    requires 0 <= z;
-    modifies this;
-    ensures y == old(y);
+  var next: Multi?;
+  method Mutate(z: int) returns (m: Multi?)
+    requires 0 <= z
+    modifies this
+    ensures y == old(y)
   {
     x := x + z;
   }
   method IncX() returns (oldX: int)
-    modifies this;
-    ensures x == old(x) + 1 && oldX == old(x);
+    modifies this
+    ensures x == old(x) + 1 && oldX == old(x)
   {
     x, oldX := x + 1, x;
   }
 }
 
 method TestMulti(m: Multi, p: Multi)
-  requires m != null && p != null;
-  modifies m, p;
+  modifies m, p
 {
   m.x := 10;
   m.y := 12;
@@ -176,8 +175,7 @@ class MyBoxyClass<T> {
 }
 
 method TestBoxAssignment<T>(x: MyBoxyClass<int>, y: MyBoxyClass<T>, t: T)
-  requires x != null && y != null;
-  modifies x, y;
+  modifies x, y
 {
   y.f := t;
   x.f := 15;
@@ -187,8 +185,8 @@ method TestBoxAssignment<T>(x: MyBoxyClass<int>, y: MyBoxyClass<T>, t: T)
 }
 
 method TestCallsWithFancyLhss(m: Multi)
-  requires m != null && m.next != null;
-  modifies m, m.next;
+  requires m.next != null
+  modifies m, m.next
 {
   m.x := 10;
   var p := m.next;
@@ -219,7 +217,7 @@ method TestCallsWithFancyLhss(m: Multi)
 }
 
 method SwapEm(a: int, b: int) returns (x: int, y: int)
-  ensures x == b && y == a;
+  ensures x == b && y == a
 {
   x, y := b, a;
 }
@@ -230,7 +228,7 @@ function method abs(a:int): int
 }
 // test of verifier using euclidean division.
 method EuclideanTest(a: int, b: int)
-   requires b != 0;
+   requires b != 0
 {
    var q, r := a / b, a % b;
    assert 0 <= r < abs(b);
@@ -252,8 +250,8 @@ method m()
 }
 
 method swap(a: array<int>, i: nat, j: nat)
-  requires a != null && 0 <= i < a.Length && 0 <= j < a.Length;
-  modifies a;
+  requires 0 <= i < a.Length && 0 <= j < a.Length
+  modifies a
 {
   a[i], a[j] := a[j], a[i];
 }
@@ -264,29 +262,26 @@ class CC {
 }
 
 method notQuiteSwap(c: CC, d: CC)
-  requires c != null && d != null;
-  modifies c,d;
+  modifies c,d
 {
   c.x, d.x := c.x, c.x;
 }
 
 method notQuiteSwap2(c: CC, d: CC)
-  requires c != null && d != null;
-  modifies c,d;
+  modifies c,d
 {
   c.x, d.x := d.x, c.y; // BAD: c and d could be the same.
 }
 
 method OKNowIt'sSwapAgain(c: CC, d: CC)
-  requires c != null && d != null;
-  modifies c,d;
+  modifies c,d
 {
   c.x, d.x := d.x, c.x;
 }
 
 method notQuiteSwap3(c: CC, d: CC)
-  requires c != null && d != null && c != d;
-  modifies c,d;
+  requires c != d
+  modifies c,d
 {
   c.x, d.x := 4, c.y;
   c.x, c.y := 3, c.y;
@@ -296,20 +291,20 @@ method notQuiteSwap3(c: CC, d: CC)
 // regression tests of things that were once errors
 
 method InlineMultisetFormingExpr(s: seq<int>)
-  ensures MSFE(s);
+  ensures MSFE(s)
 predicate MSFE(s: seq<int>)
 {
   multiset(s) == multiset(s)
 }
 
 copredicate CoPredTypeCheck(n: int)
-  requires n != 0;
+  requires n != 0
 
 // -------------------- set cardinality ----------------------------------
 
 module SetCardinality {
   method A(s: set<int>)
-    requires s != {};
+    requires s != {}
   {
     if {
       case true =>  assert s != {};
@@ -320,7 +315,7 @@ module SetCardinality {
   }
 
   method B(s: set<int>)
-    requires |s| != 0;
+    requires |s| != 0
   {
     if {
       case true =>  assert s != {};
@@ -331,7 +326,7 @@ module SetCardinality {
   }
 
   method C(s: set<int>)
-    requires exists x :: x in s;
+    requires exists x :: x in s
   {
     if {
       case true =>  assert s != {};
@@ -342,7 +337,7 @@ module SetCardinality {
   }
 
   method A'(s: set<int>)
-    requires s == {};
+    requires s == {}
   {
     if {
       case true =>  assert s == {};
@@ -353,7 +348,7 @@ module SetCardinality {
   }
 
   method B'(s: set<int>)
-    requires |s| == 0;
+    requires |s| == 0
   {
     if {
       case true =>  assert s == {};
@@ -364,7 +359,7 @@ module SetCardinality {
   }
 
   method C'(s: set<int>)
-    requires forall x :: x !in s;
+    requires forall x :: x !in s
   {
     if {
       case true =>  assert s == {};
@@ -375,13 +370,13 @@ module SetCardinality {
   }
 
   method LetSuchThatExpression(s: set<int>)
-    ensures |s| != 0 ==> var x :| x in s; true;
+    ensures |s| != 0 ==> var x :| x in s; true
   {
   }
 
   method G<T>(s: set<T>, t: set<T>)
-    requires s <= t;
-    ensures |s| <= |t|;  // it doesn't get this immediately, but the method body offers different proofs
+    requires s <= t
+    ensures |s| <= |t|  // it doesn't get this immediately, but the method body offers different proofs
   {
     if {
       case true =>  assert |t - s| + |t * s| == |t|;
@@ -395,8 +390,8 @@ module SetCardinality {
   }
 
   method H(s: multiset<int>, t: multiset<int>)
-    requires s <= t;
-    ensures |s| <= |t|;  // it doesn't get this immediately, but the method body offers different proofs
+    requires s <= t
+    ensures |s| <= |t|  // it doesn't get this immediately, but the method body offers different proofs
   {
     if {
       case true =>  assert |t - s| + |t * s| == |t|;
@@ -511,7 +506,7 @@ module AssumeTypeAssumptions {
   }
 
   method Q2(a: array<seq<int>>, j: int)
-    requires a != null && 0 <= j < a.Length
+    requires 0 <= j < a.Length
     modifies a
   {
     var other: int;
@@ -521,7 +516,7 @@ module AssumeTypeAssumptions {
   }
 
   method Q1(a: array<seq<int>>, j: int)
-    requires a != null && 0 <= j < a.Length
+    requires 0 <= j < a.Length
     modifies a
   {
     a[j] := *;
@@ -542,7 +537,6 @@ module AssumeTypeAssumptions {
   }
 
   method Client_Fixed(x: IntCell)
-    requires x != null
     modifies x
   {
     var xx: int;
@@ -555,7 +549,7 @@ module AssumeTypeAssumptions {
   }
 
   method Client_Int(x: Cell<int>, a: array<int>, j: int)
-    requires x != null && a != null && 0 <= j < a.Length
+    requires 0 <= j < a.Length
     modifies x, a
   {
     var xx: int;
@@ -570,7 +564,7 @@ module AssumeTypeAssumptions {
   }
 
   method Client_U<U>(x: Cell<U>, a: array<U>, j: int, u: U)
-    requires x != null && a != null && 0 <= j < a.Length
+    requires 0 <= j < a.Length
     modifies x, a
   {
     var xx: U;
@@ -585,7 +579,7 @@ module AssumeTypeAssumptions {
   }
 
   method Client_CellU<U>(x: Cell<Cell<U>>, a: array<Cell<U>>, j: int, u: Cell<U>, u1: U)
-    requires x != null && a != null && 0 <= j < a.Length
+    requires 0 <= j < a.Length
     modifies x, a
   {
     var xx: Cell<U>;

@@ -3,7 +3,7 @@
 
 module M0 {
   class C {
-    method M(c: C, x: int, y: int) returns (r: int)
+    method M(c: C?, x: int, y: int) returns (r: int)
       requires 0 <= x && 0 <= y;
       ensures r < 100;
     {

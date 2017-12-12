@@ -5,14 +5,12 @@ class N
 {
    var i: int;
    method newN(n: N)
-      requires n != null;
       modifies this, n;
    {
       n.i := 1;
       i := 1;
    }
    method safe(n: N)
-      requires n != null;
       modifies this;
    {
       i := n.i;
@@ -48,7 +46,6 @@ method testing3() returns (a: int, b: int)
 }
 
 method testing4(nnn: N) returns (n: N)
-   requires nnn != null;
 {
    return new N.safe(nnn); // only modifies 'this', which is the fresh N
 }

@@ -13,7 +13,6 @@ class LazyInitArray<T(0)> {
   predicate Valid()
     reads this, a, b, c
   {
-    a != null && b != null && c != null &&
     a.Length == |Contents| &&
     b.Length == |Contents| &&
     c.Length == |Contents| &&

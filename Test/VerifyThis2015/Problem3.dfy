@@ -8,7 +8,7 @@
 
 // The following method demonstrates that Remove and PutBack (defined below) have the desired properties
 method Test(dd: DoublyLinkedList, x: Node)
-  requires dd != null && dd.Valid()
+  requires dd.Valid()
   requires x in dd.Nodes && x != dd.Nodes[0] && x != dd.Nodes[|dd.Nodes|-1]
   modifies dd, dd.Nodes
   ensures dd.Valid() && dd.Nodes == old(dd.Nodes)
@@ -19,7 +19,7 @@ method Test(dd: DoublyLinkedList, x: Node)
 // It is also possible to remove and put back any number of elements, provided these operations are
 // done in a FOLI order.
 method TestMany(dd: DoublyLinkedList, xs: seq<Node>)
-  requires dd != null && dd.Valid()
+  requires dd.Valid()
   requires forall x {:matchinglooprewrite false} :: x in xs ==> x in dd.Nodes && x != dd.Nodes[0] && x != dd.Nodes[|dd.Nodes|-1]
   requires forall i,j :: 0 <= i < j < |xs| ==> xs[i] != xs[j]
   modifies dd, dd.Nodes
@@ -54,8 +54,8 @@ method Main()
 }
 
 class Node {
-  var L: Node
-  var R: Node
+  var L: Node?
+  var R: Node?
 }
 
 class DoublyLinkedList {
@@ -64,7 +64,6 @@ class DoublyLinkedList {
   predicate Valid()
     reads this, Nodes
   {
-    (forall i :: 0 <= i < |Nodes| ==> Nodes[i] != null) &&
     (|Nodes| > 0 ==>
       Nodes[0].L == null && (forall i {:matchinglooprewrite false} :: 1 <= i < |Nodes| ==> Nodes[i].L == Nodes[i-1]) &&
       (forall i {:matchinglooprewrite false} :: 0 <= i < |Nodes|-1 ==> Nodes[i].R == Nodes[i+1]) && Nodes[|Nodes|-1].R == null
@@ -76,7 +75,6 @@ class DoublyLinkedList {
   // will change all the .L and .R pointers of the given nodes in order to create a properly
   // formed list.
   constructor (nodes: seq<Node>)
-    requires forall i :: 0 <= i < |nodes| ==> nodes[i] != null
     requires forall i,j :: 0 <= i < j < |nodes| ==> nodes[i] != nodes[j]
     modifies nodes
     ensures Valid() && Nodes == nodes
@@ -97,6 +95,22 @@ class DoublyLinkedList {
       }
     }
     Nodes := nodes;
+  }
+
+  function PopMiddle<T>(s: seq<T>, k: nat) : seq<T>
+    requires k < |s| {
+      s[..k] + s[k+1..]
+  }
+
+  predicate Injective<T>(s: seq<T>) {
+    forall j, k :: 0 <= j < k < |s| ==> s[j] != s[k]
+  }
+
+  lemma InjectiveAfterPop<T>(s: seq<T>, k: nat)
+    requires k < |s|
+    requires Injective(s)
+    ensures  Injective(PopMiddle(s, k))
+  {
   }
 
   method Remove(x: Node) returns (ghost k: int)
@@ -123,7 +137,7 @@ class DoublyLinkedList {
   // value "k".
   method PutBack(x: Node, ghost k: int)
     requires Valid()
-    requires x != null && 1 <= k < |Nodes| && x.L == Nodes[k-1] && x.R == Nodes[k]
+    requires 1 <= k < |Nodes| && x.L == Nodes[k-1] && x.R == Nodes[k]
     modifies this, Nodes, x
     ensures Valid()
     ensures Nodes == old(Nodes)[..k] + [x] + old(Nodes)[k..]
@@ -142,10 +156,10 @@ class DoublyLinkedList {
 // precondition, have no net effect on any .L or .R field.
 
 method Alt(x: Node)
-  requires x != null && x.L != null && x.R != null
+  requires x.L != null && x.R != null
   requires x.L.R == x && x.R.L == x  // links are mirrored
   modifies x, x.L, x.R
-  ensures forall y: Node :: y != null && old(allocated(y)) ==> y.L == old(y.L) && y.R == old(y.R)
+  ensures forall y: Node :: old(allocated(y)) ==> y.L == old(y.L) && y.R == old(y.R)
 {
   // remove
   x.R.L := x.L;

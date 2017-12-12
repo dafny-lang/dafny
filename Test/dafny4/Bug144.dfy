@@ -18,7 +18,7 @@ class Test
     var arr : array<int>;
     predicate p(i: int)
     method foo()
-        requires arr != null && arr.Length > 0
+        requires arr.Length > 0
         modifies arr
     {
         assume exists i :: p(i);

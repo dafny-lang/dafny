@@ -77,3 +77,55 @@ module M1 refines M0 {
     }
   }
 }
+
+module TypeOfThis {
+  class LinkedList<T(0)> {
+    ghost var Repr: set<LinkedList<T>>
+    ghost var Rapr: set<LinkedList?<T>>
+    ghost var S: set<object>
+    ghost var T: set<object?>
+
+    constructor Init()
+    {
+      Repr := {this};  // regression test: this should pass, but once upon a time didn't
+    }
+
+    constructor Init'()
+    {
+      Rapr := {this};
+    }
+
+    constructor Create()
+    {
+      S := {this};  // regression test: this should pass, but once upon a time didn't
+    }
+
+    constructor Create'()
+    {
+      T := {this};
+    }
+
+    constructor Two()
+    {
+      new;
+      var ll: LinkedList? := this;
+      var o: object? := this;
+      if
+      case true =>  T := {o};
+      case true =>  S := {o};
+      case true =>  Repr := {ll};
+      case true =>  Rapr := {ll};
+      case true =>  S := {ll};
+      case true =>  T := {ll};
+    }
+  
+    method Mutate()
+      modifies this
+    {
+      Repr := {this};
+      Rapr := {this};
+      S := {this};
+      T := {this};
+    }
+  }
+}

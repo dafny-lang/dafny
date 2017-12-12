@@ -2,11 +2,11 @@
 // RUN: %diff "%s.expect" "%t"
 
 class C {
-  var x: C;
+  var x: C?
 
   method M(S: set<C>, a: array<C>, b: array2<C>)
-    requires S != {};
-    modifies this, a, b;
+    requires S != {}
+    modifies this, a, b
   {
     x := new C;
     x := new C.Init();
@@ -34,26 +34,25 @@ class C {
       var t := this.x.x;  // error: null dereference (because InitAndMutate set this.x to null)
     }
 
-    if (a != null && 10 <= a.Length) {
+    if 10 <= a.Length {
       a[2] := new C;
       a[3] := *;
     }
-    if (b != null && 10 <= b.Length0 && 20 <= b.Length1) {
+    if 10 <= b.Length0 && 20 <= b.Length1 {
       b[2,14] := new C;
       b[3,11] := *;
     }
   }
 
   method Init() { }
-  method InitOther(c: C)
-    requires c == null;
+  method InitOther(c: C?)
+    requires c == null
   {
     var d := new int[if c == null then 10 else -3];  // run-time error if c were non-null, but it ain't
   }
   method InitAndMutate(c: C)
-    requires c != null;
-    modifies c;
-    ensures c.x == null;
+    modifies c
+    ensures c.x == null
   {
     c.x := null;
   }

@@ -220,7 +220,7 @@ module ATr {
 module BTr {
   import A = ATr
   class Y {
-    method N() returns (x: A.X)
+    method N() returns (x: A.X?)
       ensures x != null;
     {
       x := new X;
@@ -263,7 +263,7 @@ module NonLocalB {
     method N() { }
   }
   class D {
-    method K() returns (b: B)
+    method K() returns (b: B?)
       ensures b != null;
     {
       return new B;
@@ -371,7 +371,7 @@ module X1_corrected {
 module BTr_corrected {
   import A = ATr
   class Y {
-    method N() returns (x: A.X)
+    method N() returns (x: A.X?)
       ensures x != null;
   }
 }

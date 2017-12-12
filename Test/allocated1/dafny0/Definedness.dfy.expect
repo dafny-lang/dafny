@@ -161,7 +161,7 @@ Execution trace:
     (0,0): anon6_LoopBody
     (0,0): anon7_Then
 Definedness.dfy(215,9): Error BP5003: A postcondition might not hold on this return path.
-Definedness.dfy(217,70): Related location: This is the postcondition that might not hold.
+Definedness.dfy(217,48): Related location: This is the postcondition that might not hold.
 Execution trace:
     (0,0): anon0
     (0,0): anon4_Else

@@ -2,20 +2,19 @@
 // RUN: %diff "%s.expect" "%t"
 
 class Node {
-  var left: Node;
-  var right: Node;
-  var parent: Node;
-  var anc: set<Node>;
-  var desc: set<Node>;
-  var sense: bool;
-  var pc: int;
+  var left: Node?
+  var right: Node?
+  var parent: Node?
+  var anc: set<Node>
+  var desc: set<Node>
+  var sense: bool
+  var pc: int
 
 
-  function validDown(): bool
-    reads this, desc;    
+  predicate validDown()
+    reads this, desc
   {
     this !in desc &&
-    null !in desc &&
     left != right &&  // not needed, but speeds up verification
 
     (right != null ==> right in desc && left !in right.desc) &&
@@ -39,47 +38,46 @@ class Node {
 
 
 
-  function  validUp(): bool
-    reads this, anc;    
+  predicate validUp()
+    reads this, anc
   {
     this !in anc &&
-    null !in anc &&
     (parent != null ==> parent in anc && anc == { parent } + parent.anc && parent.validUp()) &&
     (parent == null ==> anc == {}) &&
     (after() ==> forall m :: m in anc ==> m.after())
   }
 
-  function valid(): bool
-    reads this, desc, anc;
+  predicate valid()
+    reads this, desc, anc
   { validUp() && validDown() && desc !! anc }
 
-  function before(): bool
-    reads this;
+  predicate before()
+    reads this
   { !sense && pc <= 2 }
 
-  function blocked(): bool
-    reads this;
+  predicate blocked()
+    reads this
   { sense }
 
-  function after(): bool
-    reads this;
+  predicate after()
+    reads this
   { !sense && 3 <= pc }
 
 
   method barrier()
-    requires valid();
-    requires before();
-    modifies this, left, right;
-    decreases *;  // allow the method to not terminate
+    requires valid()
+    requires before()
+    modifies this, left, right
+    decreases *  // allow the method to not terminate
   {
 //A
     pc := 1;
     if(left != null) {
       while(!left.sense) 
-        modifies left;
-        invariant validDown(); // this seems necessary to get the necessary unfolding of functions
-        invariant valid();
-        decreases *;  // to by-pass termination checking for this loop
+        modifies left
+        invariant validDown() // this seems necessary to get the necessary unfolding of functions
+        invariant valid()
+        decreases *  // to by-pass termination checking for this loop
       {
         // this loop body is supposed to model what the "left" thread
         // might do to its node. This body models a transition from
@@ -95,10 +93,10 @@ class Node {
     }
     if(right != null) {
       while(!right.sense) 
-        modifies right;
-        invariant validDown(); // this seems necessary to get the necessary unfolding of functions
-        invariant valid();
-        decreases *;  // to by-pass termination checking for this loop
+        modifies right
+        invariant validDown() // this seems necessary to get the necessary unfolding of functions
+        invariant valid()
+        decreases *  // to by-pass termination checking for this loop
       {
         // analogous to the previous loop
         right.sense := *; 
@@ -114,13 +112,13 @@ class Node {
 //C
     pc := 3;
     while(sense)
-        modifies this;
-        invariant validUp(); // this seems necessary to get the necessary unfolding of functions
-        invariant valid();
-        invariant left == old(left);
-        invariant right == old(right);
-        invariant sense ==> parent != null;
-        decreases *;  // to by-pass termination checking for this loop
+        modifies this
+        invariant validUp() // this seems necessary to get the necessary unfolding of functions
+        invariant valid()
+        invariant left == old(left)
+        invariant right == old(right)
+        invariant sense ==> parent != null
+        decreases *  // to by-pass termination checking for this loop
     {
       // this loop body is supposed to model what the "parent" thread
       // might do to its node. The body models a transition from

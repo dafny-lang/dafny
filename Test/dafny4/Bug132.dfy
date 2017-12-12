@@ -8,7 +8,7 @@ class Cell {
     reads this
   { data < 0 }
 
-  predicate Q(e: Cell)
+  predicate Q(e: Cell?)
     reads this, e
   { e != null ==> e.data == data }
 

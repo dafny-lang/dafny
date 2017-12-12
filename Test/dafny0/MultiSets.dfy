@@ -32,7 +32,6 @@ method test3(s: set<int>)
    assert forall x :: x in s <==> x in multiset(s);
 }
 method test4(sq: seq<int>, a: array<int>)
-   requires a != null;
    modifies a;
 {
    assert sq == sq[..|sq|];
@@ -50,7 +49,7 @@ method test5()
 }
 
 method test6(a: array<int>, n: int, e: int)
-   requires a != null && 0 <= n < a.Length;
+   requires 0 <= n < a.Length;
    modifies a;
    ensures multiset(a[..n+1]) == multiset(a[..n]) + multiset{e};
 {
@@ -58,7 +57,7 @@ method test6(a: array<int>, n: int, e: int)
   assert a[..n+1] == a[..n] + [e];
 }
 method test7(a: array<int>, i: int, j: int)
-   requires a != null && 0 <= i < j < a.Length;
+   requires 0 <= i < j < a.Length;
    modifies a;
    ensures old(multiset(a[..])) == multiset(a[..]);
    ensures a[j] == old (a[i]) && a[i] == old(a[j]);
@@ -71,7 +70,7 @@ method test7(a: array<int>, i: int, j: int)
    assert s == a[..i] + [old(a[i])] + a[i+1 .. j] + [old(a[j])] + a[j+1..];
 }
 method test8(a: array<int>, i: int, j: int)
-   requires a != null && 0 <= i < j < a.Length;
+   requires 0 <= i < j < a.Length;
    modifies a;
    ensures old(multiset(a[..])) == multiset(a[..]);
    ensures a[j] == old (a[i]) && a[i] == old(a[j]);
@@ -80,7 +79,7 @@ method test8(a: array<int>, i: int, j: int)
    a[i], a[j] := a[j], a[i];
 }
 method test9(a: array<int>, i: int, j: int, limit: int)
-   requires a != null && 0 <= i < j < limit <= a.Length;
+   requires 0 <= i < j < limit <= a.Length;
    modifies a;
    ensures multiset(a[0..limit]) == old(multiset(a[0..limit]));
    ensures a[j] == old (a[i]) && a[i] == old(a[j]);
@@ -97,7 +96,7 @@ method test10(s: seq<int>)
 }
 
 method test11(a: array<int>, n: int, c: int)
-   requires a != null && 0 <= c < n <= a.Length;
+   requires 0 <= c < n <= a.Length;
    modifies a;
    ensures multiset(a[c..n-1]) == multiset(a[c..n]) - multiset{a[n-1]};
 {

@@ -50,7 +50,7 @@ class MyClass {
   function H(): int { 5 }
 }
 
-datatype List =  Nil | Cons(MyClass, List)
+datatype List =  Nil | Cons(MyClass?, List)
 
 method M(list: List, S: set<MyClass>) returns (ret: int)
   modifies S;
@@ -72,14 +72,14 @@ method M(list: List, S: set<MyClass>) returns (ret: int)
   ghost var l := st.NF();
   assert l != null ==> l.H() == 5;
 
-  forall s | s in S ensures true; { assert s == null || s.H() == 5; }
-  forall s | s != null && s in S {
+  forall s | s in S ensures true; { assert s.H() == 5; }
+  forall s | s in S {
     s.x := 0;
   }
 
-  assert (forall t: MyClass :: t == null || t.H() == 5);
+  assert (forall t: MyClass? :: t == null || t.H() == 5);
   // note, the definedness problem in the next line sits inside an unreachable branch
-  assert (forall t: MyClass :: t != null ==> (if t.H() == 5 then true else 10 / 0 == 3));
+  assert (forall t: MyClass? :: t != null ==> (if t.H() == 5 then true else 10 / 0 == 3));
 
   assert TakesADatatype(List.Nil) == 12;
   assert TakesADatatype(List.Cons(null, List.Nil)) == 12;
@@ -87,14 +87,13 @@ method M(list: List, S: set<MyClass>) returns (ret: int)
 }
 
 method N() returns (k: MyClass)
-  ensures k != null;
 {
   k := new MyClass;
 }
 
 class State {
-  var a: MyClass;
-  function NF(): MyClass reads this; { a }
+  var a: MyClass?
+  function NF(): MyClass? reads this; { a }
 }
 
 function TakesADatatype(a: List): int { 12 }

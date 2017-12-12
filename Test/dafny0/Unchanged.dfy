@@ -5,8 +5,8 @@ class C {
   var f: int
   var g: int
 
+
   method M(c: C, d: C, x: int)
-    requires c != null && d != null
     modifies this, c
   {
     c.f := c.f + x;
@@ -24,8 +24,8 @@ class C {
     assert unchanged(c);
     assert unchanged(R);
   }
+
   method N(c: C, d: C, x: int)
-    requires c != null && d != null
     modifies this, c
   {
     c.f := c.f + 1;

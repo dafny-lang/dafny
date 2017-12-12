@@ -4,7 +4,7 @@
 module A {
   import B = Babble
   class X {
-    function Fx(z: B.Z): int
+    function Fx(z: B.Z?): int
       requires z != null;
       decreases 5, 4, 3;
     { z.G() }  // fine; this goes to a different module
@@ -172,7 +172,7 @@ module ModuleContainTraitAndClass {
     assert Class.r0 == 19;
   }
 
-  method Tests1(t: Trait, c: Class)
+  method Tests1(t: Trait?, c: Class?)
     requires t != null && c != null
   {
     assert t.t0 == 18;
@@ -191,7 +191,7 @@ module ModuleImportingTraitAndClassX {
     assert M.Class.r0 == 19;
   }
 
-  method Tests1(t: M.Trait, c: M.Class)
+  method Tests1(t: M.Trait?, c: M.Class?)
     requires t != null && c != null
   {
     assert t.t0 == 18;
@@ -210,7 +210,7 @@ module ModuleImportingTraitAndClassY {
     assert M.Class.r0 == 19;  // error: cannot determine this in Y
   }
 
-  method Tests1(t: M.Trait, c: M.Class)
+  method Tests1(t: M.Trait?, c: M.Class?)
     requires t != null && c != null
   {
     assert t.t0 == 18;  // error: cannot determine this in Y

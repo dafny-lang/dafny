@@ -19,20 +19,18 @@ module M0 {
       var g1 := G<real>;
 
       var mc: MyClass<int,bool>, tt, uu, yy;
-      if mc != null {
-        var h0 := mc.H(5.0);
-        tt, uu, yy := h0.0, h0.1, h0.2;
-        if (tt, uu, yy) == MyClass.H(4.0) {
-        }
-        var h1 := MyClass.H(4.0);  // error: types to MyClass underspecified
-        var h2 := MyClass<bool, int>.H(4.0);
-        var pt: T, pu: U;
-        var h3 := MyClass<T,U>.H(3.2);
-        h3 := MyClass.H(3.2);
-        pt := h3.0;
-        pu := h3.1;
-        var r := h3.2 + 0.3;
+      var h0 := mc.H(5.0);
+      tt, uu, yy := h0.0, h0.1, h0.2;
+      if (tt, uu, yy) == MyClass.H(4.0) {
       }
+      var h1 := MyClass.H(4.0);  // error: types to MyClass underspecified
+      var h2 := MyClass<bool, int>.H(4.0);
+      var pt: T, pu: U;
+      var h3 := MyClass<T,U>.H(3.2);
+      h3 := MyClass.H(3.2);
+      pt := h3.0;
+      pu := h3.1;
+      var r := h3.2 + 0.3;
     }
   }
 }

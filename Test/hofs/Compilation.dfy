@@ -28,7 +28,7 @@ method Main() {
 
   // reference
   var z := new Ref(1);
-  f := x reads z requires z != null => x + z.val;
+  f := x reads z => x + z.val;
   print "3 = ", f(2), "\n";
   print "4 = ", f(3), "\n";
   z.val := 2;

@@ -2,24 +2,24 @@
 // RUN: %diff "%s.expect" "%t"
 
 class List<T> {
-  ghost var Contents: seq<T>;
-  ghost var Repr: set<object>;
+  ghost var Contents: seq<T>
+  ghost var Repr: set<object>
 
-  var a: array<T>;
-  var n: nat;
+  var a: array<T>
+  var n: nat
 
   predicate Valid()
-    reads this, Repr;
+    reads this, Repr
   {
-    this in Repr && null !in Repr &&
+    this in Repr &&
     a in Repr &&
     n <= a.Length &&
     Contents == a[..n]
   }
 
   constructor Init()
-    ensures Valid() && fresh(Repr - {this});
-    ensures Contents == [];
+    ensures Valid() && fresh(Repr - {this})
+    ensures Contents == []
   {
     Contents, n := [], 0;
     a := new T[0];
@@ -27,13 +27,13 @@ class List<T> {
   }
 
   method Add(t: T)
-    requires Valid();
-    modifies Repr;
-    ensures Valid() && fresh(Repr - old(Repr));
-    ensures Contents == old(Contents) + [t];
+    requires Valid()
+    modifies Repr
+    ensures Valid() && fresh(Repr - old(Repr))
+    ensures Contents == old(Contents) + [t]
   {
     if (n == a.Length) {
-      var b := new T[2 * a.Length + 1](i requires 0 <= i && a != null reads this, a =>
+      var b := new T[2 * a.Length + 1](i requires 0 <= i reads this, a =>
                                        if i < a.Length then a[i] else t);
       assert b[..n] == a[..n] == Contents;
       a, Repr := b, Repr + {b};
@@ -43,20 +43,20 @@ class List<T> {
   }
 }
 
-class Cell { var data: int; }
+class Cell { var data: int }
 
 iterator M<T>(l: List<T>, c: Cell) yields (x: T)
-  requires l != null && l.Valid() && c != null;
-  reads l.Repr;
-  modifies c;
-  yield requires true;
-  yield ensures xs <= l.Contents;  // this is needed in order for the next line to be well-formed
-  yield ensures x == l.Contents[|xs|-1];
-  ensures xs == l.Contents;
+  requires l.Valid()
+  reads l.Repr
+  modifies c
+  yield requires true
+  yield ensures xs <= l.Contents  // this is needed in order for the next line to be well-formed
+  yield ensures x == l.Contents[|xs|-1]
+  ensures xs == l.Contents
 {
   var i := 0;
-  while (i < l.n)
-    invariant i <= l.n && i == |xs| && xs <= l.Contents;
+  while i < l.n
+    invariant i <= l.n && i == |xs| && xs <= l.Contents
   {
     if (*) { assert l.Valid(); }  // this property is maintained, due to the reads clause
     if (*) {
@@ -70,15 +70,15 @@ iterator M<T>(l: List<T>, c: Cell) yields (x: T)
 }
 
 method Client<T(==,0)>(l: List, stop: T) returns (s: seq<T>)
-  requires l != null && l.Valid();
+  requires l.Valid()
 {
   var c := new Cell;
   var iter := new M(l, c);
   s := [];
-  while (true)
-    invariant iter.Valid() && fresh(iter._new);
-    invariant iter.xs <= l.Contents;
-    decreases |l.Contents| - |iter.xs|;
+  while true
+    invariant iter.Valid() && fresh(iter._new)
+    invariant iter.xs <= l.Contents
+    decreases |l.Contents| - |iter.xs|
   {
     var more := iter.MoveNext();
     if (!more) { break; }
@@ -90,7 +90,7 @@ method Client<T(==,0)>(l: List, stop: T) returns (s: seq<T>)
 method PrintSequence<T>(s: seq<T>)
 {
   var i := 0;
-  while (i < |s|)
+  while i < |s|
   {
     print s[i], " ";
     i := i + 1;
@@ -102,8 +102,8 @@ method Main()
 {
   var myList := new List.Init();
   var i := 0;
-  while (i < 100)
-    invariant myList.Valid() && fresh(myList.Repr);
+  while i < 100
+    invariant myList.Valid() && fresh(myList.Repr)
   {
     myList.Add(i);
     i := i + 2;

@@ -25,7 +25,7 @@ method Main()
 }
 
 method SingleValued(d: int) returns (a: array<int>)
-  ensures a != null && a.Length == 8
+  ensures a.Length == 8
 {
   a := new int[8](_ => d);
 }
@@ -37,19 +37,16 @@ function method F(x: int): char
 
 method InitArray<D>(f: int -> D) returns (a: array<D>)
   requires forall x :: 0 <= x < 12 ==> f.requires(x)
-  ensures a != null
 {
   a := new D[12](f);
 }
 
 method NewMatrix() returns (m: array2<int>)
-  ensures m != null
 {
   m := new int[5, 4]((x,y) => x+y);
 }
 
 method PrintMatrix(m: array2<int>)
-  requires m != null
 {
   var i := 0;
   while i < m.Length0
@@ -66,7 +63,6 @@ method PrintMatrix(m: array2<int>)
 }
 
 method PrintArray<D>(a: array<D>)
-  requires a != null
 {
   var i := 0;
   while i < a.Length
@@ -79,10 +75,10 @@ method PrintArray<D>(a: array<D>)
 
 class TrickyLets
 {
-  var next: TrickyLets
+  var next: TrickyLets?
   var arr: array<char>
   
-  constructor (n: nat, w: TLWrapper)
+  constructor (n: nat, w: TLWrapper?)
     modifies w
     ensures w != null ==> w.data == null
   {
@@ -131,7 +127,7 @@ class TrickyLets
 
 class TLWrapper
 {
-  var data: TrickyLets
+  var data: TrickyLets?
 }
 
 type Six = x | 6 <= x witness 7

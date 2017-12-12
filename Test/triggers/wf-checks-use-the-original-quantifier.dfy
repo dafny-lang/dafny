@@ -24,5 +24,5 @@ class C { var x: int; }
 
 method M(s: set<C>)
   requires forall n: nat :: 0 <= f(n) && P(f(n))
-  requires forall c, c' | c in s && c' in s :: c != null && c'!= null && c.x == c'.x {
+  requires forall c, c' | c in s && c' in s :: c.x == c'.x {
 }

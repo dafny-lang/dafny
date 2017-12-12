@@ -3,14 +3,14 @@
 
 // regular modifies sanity test:
 method Testing1(a: array<int>)
-   requires a != null && a.Length > 0;
+   requires a.Length > 0;
 {
    a[0] := 0; // ERROR
 }
 
 // array inside while loop, without explict modifies clause:
 method Testing2(a: array<int>)
-   requires a != null && a.Length > 0;
+   requires a.Length > 0;
 {
    var i := 0;
    while(i < 10) 
@@ -23,7 +23,7 @@ method Testing2(a: array<int>)
 
 // array inside while loop, without explict modifies clause:
 method Testing2A(a: array<int>)
-   requires a != null && a.Length > 0;
+   requires a.Length > 0;
    modifies a;
 {
    var i := 0;
@@ -38,7 +38,7 @@ method Testing2A(a: array<int>)
 
 // array inside while loop, with explict modifies clause:
 method Testing3(a: array<int>)
-   requires a != null && a.Length > 0;
+   requires a.Length > 0;
 {
    var i := 0;
    while(i < 10) 
@@ -52,7 +52,7 @@ method Testing3(a: array<int>)
 
 // modifies restricts:
 method Testing4(a: array<int>)
-   requires a != null && a.Length > 0;
+   requires a.Length > 0;
    modifies a;
 {
    var i := 0;
@@ -69,7 +69,7 @@ method Testing4(a: array<int>)
 
 // modifies not a subset:
 method Testing5(a: array<int>)
-   requires a != null && a.Length > 0;
+   requires a.Length > 0;
    modifies {};
 {
    var i := 0;
@@ -84,8 +84,8 @@ method Testing5(a: array<int>)
 
 // modifies is a subset, but modifications occur outside:
 method Testing6(a: array<int>, b: array<int>)
-   requires a != null && a.Length > 0;
-   requires b != null && b.Length > 0;
+   requires a.Length > 0;
+   requires b.Length > 0;
    modifies a, b;
 {
    var i := 0;
@@ -104,8 +104,8 @@ method Testing6(a: array<int>, b: array<int>)
 
 // heap outside modifies is actually preserved:
 method Testing7(a: array<int>, b: array<int>)
-   requires a != null && a.Length > 0;
-   requires b != null && b.Length > 0;
+   requires a.Length > 0;
+   requires b.Length > 0;
    requires a != b;
    modifies a, b;
 {
@@ -125,9 +125,9 @@ method Testing7(a: array<int>, b: array<int>)
 
 // modifies actually restrict frame when nested:
 method Testing8(a: array<int>, b: array<int>, c: array<int>)
-   requires a != null && a.Length > 0;
-   requires b != null && b.Length > 0;
-   requires c != null && c.Length > 0;
+   requires a.Length > 0;
+   requires b.Length > 0;
+   requires c.Length > 0;
    requires a != b && b != c && c != a;
    modifies a, b, c;
 {
@@ -155,9 +155,9 @@ method Testing8(a: array<int>, b: array<int>, c: array<int>)
 
 // heap outside modifies preserved when nested:
 method Testing9(a: array<int>, b: array<int>, c: array<int>)
-   requires a != null && a.Length > 0;
-   requires b != null && b.Length > 0;
-   requires c != null && c.Length > 0;
+   requires a.Length > 0;
+   requires b.Length > 0;
+   requires c.Length > 0;
    requires a != b && b != c && c != a;
    modifies a, b, c;
 {
@@ -186,7 +186,7 @@ method Testing9(a: array<int>, b: array<int>, c: array<int>)
 
 // allocated things not automatically in modifies of loops:
 method Testing10(a: array<int>)
-   requires a != null && a.Length > 0;
+   requires a.Length > 0;
    modifies a;
 {
    var i := 0;
@@ -203,7 +203,7 @@ method Testing10(a: array<int>)
 
 // unless no modifies given, in which case the context is used:
 method Testing10a(a: array<int>)
-   requires a != null && a.Length > 0;
+   requires a.Length > 0;
    modifies a;
 {
    var i := 0;
@@ -220,8 +220,8 @@ method Testing10a(a: array<int>)
 
 // loop inherits modifies clause of enclosing loop, not method.
 method Testing10b(a: array<int>, b: array<int>)
-   requires a != null && a.Length > 0;
-   requires b != null && b.Length > 0;
+   requires a.Length > 0;
+   requires b.Length > 0;
    requires a != b;
    modifies a,b;
 {
@@ -268,7 +268,7 @@ method Testing11()
 
 // allocation inside a loop is still ok:
 method Testing11a(a: array<int>)
-   requires a != null && a.Length > 0;
+   requires a.Length > 0;
    modifies a;
 {
    var i := 0;
@@ -298,7 +298,6 @@ class Elem
 
 // capture of modifies clause at beginning of loop:
 method Testing12(a: Elem, b: Elem, c: Elem)
-   requires a != null && b != null && c != null;
    requires a != b && b != c && c != a; // all different.
    modifies a, b, c;
 {

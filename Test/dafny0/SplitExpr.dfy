@@ -2,9 +2,9 @@
 // RUN: %diff "%s.expect" "%t"
 
 class UnboundedStack<T> {
-  var top: Node<T>
+  var top: Node?<T>
   ghost var footprint: set<object>
-  ghost var content: seq<T>;
+  ghost var content: seq<T>
 
   predicate IsUnboundedStack()
     reads {this} + footprint
@@ -39,8 +39,8 @@ class UnboundedStack<T> {
 
 class Node<T> {
   var val: T
-  var next: Node<T>
-  var prev: Node<T>
+  var next: Node?<T>
+  var prev: Node?<T>
   var footprint: set<Node<T>>
   var content: seq<T>
 
@@ -51,7 +51,7 @@ class Node<T> {
   predicate Valid()
     reads this, footprint
   {
-    this in footprint && !(null in footprint) &&
+    this in footprint &&
     (next == null  ==>  content == [val])  &&
     (next != null  ==>  next in footprint &&
                         next.footprint < footprint &&

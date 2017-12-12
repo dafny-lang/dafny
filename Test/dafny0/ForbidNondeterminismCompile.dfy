@@ -8,7 +8,6 @@ class C {
 predicate method P(z: int) { true }
 
 method M(c: C)
-  requires c != null
   modifies c
   decreases *
 {

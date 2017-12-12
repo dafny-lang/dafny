@@ -11,8 +11,7 @@ datatype Maybe<T> = None | Some(get: T)
 
 class Queue<T> {
   var contents: seq<T>
-  method Init()
-    modifies this
+  constructor Init()
     ensures |contents| == 0
   method Enqueue(x: T)
     modifies this
@@ -34,12 +33,10 @@ class Queue<T> {
 
 class Glossary {
   method Sort(q: Queue<Word>) returns (r: Queue<Word>)
-    requires q != null
     modifies q
-    ensures r != null && fresh(r)
+    ensures fresh(r)
     ensures |r.contents| == |old(q.contents)|
     ensures forall i, j :: 0 <= i && i < j && j < |r.contents| ==>
-               r.Get(i) != null &&
                r.Get(i).AtMost(r.Get(j))
     // the final Queue is a permutation of the input Queue
     ensures multiset(r.contents) == multiset(old(q.contents))
@@ -50,14 +47,12 @@ class Glossary {
     var rs:= new ReaderStream;
     rs.Open();
     var glossary := new Map<Word,seq<Word>>.Init();
-    var q := new Queue<Word>.Init();
+    var q:Queue<Word> := new Queue<Word>.Init();
     
     while true
       invariant rs.Valid() && fresh(rs.footprint)
       invariant glossary.Valid()
       invariant glossary !in rs.footprint
-      invariant null !in glossary.keys
-      invariant forall d :: d in glossary.values ==> null !in d
       invariant q !in rs.footprint
       invariant q.contents == glossary.keys
       decreases *  // we leave out the decreases clause - unbounded stream
@@ -83,8 +78,7 @@ class Glossary {
     while 0 < |q.contents|
       invariant wr.Valid() && fresh(wr.footprint)
       invariant glossary.Valid()
-      invariant glossary !in wr.footprint && null !in glossary.keys
-      invariant forall d :: d in glossary.values ==> null !in d
+      invariant glossary !in wr.footprint
       invariant q !in wr.footprint
       invariant forall k :: k in q.contents ==> k in glossary.keys
     {
@@ -92,7 +86,6 @@ class Glossary {
       var r := glossary.Find(term);
       assert r.Some?;
       var definition := r.get;
-      assert null !in definition;
       
       // write term with a html anchor
       wr.PutWordInsideTag(term, term);
@@ -102,8 +95,7 @@ class Glossary {
       while i < |definition|
         invariant wr.Valid() && fresh(wr.footprint)
         invariant glossary.Valid()
-        invariant glossary !in wr.footprint && null !in glossary.keys
-        invariant forall d :: d in glossary.values ==> null !in d
+        invariant glossary !in wr.footprint
         invariant q !in wr.footprint
         invariant qcon == q.contents
         invariant forall k :: k in q.contents ==> k in glossary.keys
@@ -122,8 +114,8 @@ class Glossary {
   }
     
 
-  method readDefinition(rs:ReaderStream) returns (term:Word, definition:seq<Word>)
-    requires rs != null && rs.Valid()
+  method readDefinition(rs:ReaderStream) returns (term:Word?, definition:seq<Word?>)
+    requires rs.Valid()
     modifies rs.footprint
     ensures rs.Valid() && fresh(rs.footprint - old(rs.footprint))
     ensures term != null ==> null !in definition
@@ -159,7 +151,7 @@ class ReaderStream {
   predicate Valid()
     reads this, footprint
   {
-    null !in footprint && this in footprint && isOpen
+    this in footprint && isOpen
   }
   
   method Open() //reading
@@ -170,7 +162,7 @@ class ReaderStream {
     isOpen :=true;
   }
   
-  method GetWord() returns (x: Word)
+  method GetWord() returns (x: Word?)
     requires Valid()
     modifies footprint
     ensures Valid() && fresh(footprint - old(footprint))
@@ -193,7 +185,7 @@ class WriterStream {
   predicate Valid()
     reads this, footprint
   {
-    null !in footprint && this in footprint && isOpen
+    this in footprint && isOpen
   }
   
   method Create() //writing
@@ -214,7 +206,6 @@ class WriterStream {
   
   method PutWord(w:Word )
     requires Valid()
-    requires  w != null;
     modifies footprint
     ensures Valid() && fresh(footprint - old(footprint))
     ensures old(stream) <= stream
@@ -223,7 +214,6 @@ class WriterStream {
 
   method PutWordInsideTag(tag:Word,w:Word )
     requires Valid()
-    requires tag != null && w != null
     modifies footprint
     ensures Valid() && fresh(footprint - old(footprint))
     ensures old(stream) <= stream
@@ -232,10 +222,9 @@ class WriterStream {
   
   method PutWordInsideHyperlink(tag:Word, w:Word)
     requires Valid()
-    requires tag != null && w != null
     modifies footprint
     ensures Valid() && fresh(footprint - old(footprint))
-    ensures old(stream)<= stream
+    ensures old(stream) <= stream
   {
   }
    

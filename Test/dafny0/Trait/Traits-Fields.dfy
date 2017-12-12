@@ -14,7 +14,7 @@ class C extends J
 method Main() 
 {
   var c := new C;
-  var j: J := new C;
+  var j: J? := new C;
 
   j.x := 8;
   c.x := 9;
@@ -32,7 +32,6 @@ method Main()
 }
 
 method Print(j: J)
-  requires j != null;
 {
   print ".x = ", j.x, "\n";
 }

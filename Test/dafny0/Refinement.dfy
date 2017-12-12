@@ -113,7 +113,7 @@ module Abstract {
     protected predicate Valid()
       reads this, Repr;
     {
-      this in Repr && null !in Repr
+      this in Repr
     }
     constructor Init()
       ensures N == 0;

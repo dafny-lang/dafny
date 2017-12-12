@@ -4,7 +4,7 @@
 function method Twice<A>(f : A ~> A): A ~> A
 {
   x requires f.requires(x) && f.requires(f(x))
-    reads f.reads(x) reads if f.requires(x) then f.reads(f(x)) else {}
+    reads f.reads(x), if f.requires(x) then f.reads(f(x)) else {}
   => f(f(x))
 }
 

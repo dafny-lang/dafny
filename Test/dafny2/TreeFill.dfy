@@ -11,21 +11,20 @@ function Contains<T>(t: Tree, v: T): bool
 }
 
 method Fill<T>(t: Tree, a: array<T>, start: int) returns (end: int)
-  requires a != null && 0 <= start <= a.Length;
-  modifies a;
-  ensures start <= end <= a.Length;
-  ensures forall i :: 0 <= i < start ==> a[i] == old(a[i]);
-  ensures forall i :: start <= i < end ==> Contains(t, a[i]);
+  requires 0 <= start <= a.Length
+  modifies a
+  ensures start <= end <= a.Length
+  ensures forall i :: 0 <= i < start ==> a[i] == old(a[i])
+  ensures forall i :: start <= i < end ==> Contains(t, a[i])
 {
-  match t {
-    case Leaf =>
-      end := start;
-    case Node(left, x, right) =>
-      end := Fill(left, a, start);
-      if end < a.Length {
-        a[end] := x;
-        end := Fill(right, a, end + 1);
-      }
-  }
+  match t
+  case Leaf =>
+    end := start;
+  case Node(left, x, right) =>
+    end := Fill(left, a, start);
+    if end < a.Length {
+      a[end] := x;
+      end := Fill(right, a, end + 1);
+    }
 }
 

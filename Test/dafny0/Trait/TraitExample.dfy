@@ -20,7 +20,7 @@ class Fiat extends Automobile {
     reads this, Repr
     ensures Valid() ==> this in Repr
   {
-    this in Repr && null !in Repr && position <= 100
+    this in Repr && position <= 100
   }
   constructor (pos: int)
     requires pos <= 100
@@ -47,7 +47,7 @@ class Volvo extends Automobile {
     reads this, Repr
     ensures Valid() ==> this in Repr
   {
-    this in Repr && null !in Repr && odometer in Repr &&
+    this in Repr && odometer in Repr &&
     position % 10 == 0 &&  // position is always a multiple of 10
     odometer.value == position
   }
@@ -95,7 +95,7 @@ class Catacar extends Automobile {
     reads this, Repr
     ensures Valid() ==> this in Repr
   {
-    this in Repr && null !in Repr &&
+    this in Repr &&
     f in Repr && this !in f.Repr && f.Repr <= Repr && f.Valid() &&
     v in Repr && this !in v.Repr && v.Repr <= Repr && v.Valid() &&
     f.Repr !! v.Repr &&
@@ -137,7 +137,7 @@ method Main() {
 }
 
 method WorkIt(auto: Automobile)
-  requires auto != null && auto.Valid()
+  requires auto.Valid()
   modifies auto.Repr
 {
   auto.Drive();

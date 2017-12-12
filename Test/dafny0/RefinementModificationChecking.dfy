@@ -49,7 +49,7 @@ module M1 refines M0 {
       var a := new C;  // fine
       var b := new C.Init();  // fine
       var c := new C.InitWithSideEffects(b);  // error: modifies previous state
-      if arr != null && 12 < arr.Length {
+      if 12 < arr.Length {
         arr[12] := 26;  // error: modifies previously defined state
       }
     }

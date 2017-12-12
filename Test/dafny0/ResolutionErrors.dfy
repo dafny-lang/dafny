@@ -389,11 +389,11 @@ module MiscEvenMore {
     var y := new GenericClass;
     MG0(x, y);  // also fine (and now y's type argument is constrained to be that of x's)
     var z := new GenericClass<int>;
-    y.data := z.data;  // this will have the effect of unifying all type args so far to be 'int'
-    assert x.data == 5;  // this is type correct
-
     var w := new GenericClass<bool>;
-    MG0(x, w);  // error: types don't match up
+    MG0(x, w);  // this has the effect of making x's and y's type GenericClass<bool>
+    
+    y.data := z.data;  // error: bool vs int
+    assert x.data == 5;  // error: bool vs int
   }
 
   datatype GList<+T> = GNil | GCons(hd: T, tl: GList)
@@ -404,8 +404,8 @@ module MiscEvenMore {
       MG1(l, n-1);
       MG1(GCons(12, GCons(20, GNil)), n-1);
     }
-    var t := GCons(100, GNil);
-    t := GCons(120, l);  // error: types don't match up (List<T$0> versus List<int>)
+    var t := GCons(100, GNil);  // error: types don't match up (List<_T0> versus List<int>)
+    t := GCons(120, l);  // error: types don't match up (List<_T0> versus List<int>)
   }
 
   // ------------------- calc statements ------------------------------
@@ -620,7 +620,7 @@ module GhostAllocationTests {
   iterator GIter() { }
 
   ghost method GhostNew0()
-    ensures exists o: G :: o != null && fresh(o);
+    ensures exists o: G :: fresh(o);
   {
     var p := new G;  // error: ghost context is not allowed to allocate state
     p := new G;  // error: ditto
@@ -1271,7 +1271,7 @@ module NonInferredTypeVariables {
   {
     var b0 := forall s :: s <= {} ==> s == {};  // error: type of s underspecified
     var b1 := forall s: set :: s <= {} ==> s == {};  // error: type of s underspecified
-    var b2 := forall c: C :: c in {null} ==> c == null;  // error: type of s underspecified
+    var b2 := forall c: C? :: c in {null} ==> c == null;  // error: type parameter of c underspecified
 
     // In the following, the type of the bound variable is completely determined.
     var S: set<set<int>>;
@@ -1279,9 +1279,9 @@ module NonInferredTypeVariables {
     var d1 := forall s: set :: s in S ==> s == {};
     var ggcc0: C;
     var ggcc1: C;  // error: full type cannot be determined
-    ghost var d2 := forall c: C :: c != null ==> c.f == 10;
-    ghost var d2' := forall c: C :: c == ggcc0 && c != null ==> c.f == 10;
-    ghost var d2'' := forall c: C :: c == ggcc1 && c != null ==> c.f == c.f; // error: here, type of c is not determined
+    ghost var d2 := forall c: C? :: c != null ==> c.f == 10;
+    ghost var d2' := forall c: C? :: c == ggcc0 && c != null ==> c.f == 10;
+    ghost var d2'' := forall c: C? :: c == ggcc1 && c != null ==> c.f == c.f; // error: here, type of c is not determined
 
     var d0' := forall s :: s == {7} ==> s != {};
     var d0'' := forall s :: s <= {7} ==> s == {};
@@ -1655,8 +1655,8 @@ module LoopResolutionTests {
     ghost var y: int
   }
 
+  
   ghost method M(c: C)
-    requires c != null
     modifies c
   {
     var n := 0;
@@ -1668,8 +1668,8 @@ module LoopResolutionTests {
     }
   }
 
+
   method MM(c: C)
-    requires c != null
     modifies c
   {
     var n := 0;
@@ -1681,8 +1681,8 @@ module LoopResolutionTests {
     }
   }
 
+  
   method MMX(c: C, ghost g: int)
-    requires c != null
     modifies c
   {
     var n := 0;
@@ -1696,8 +1696,8 @@ module LoopResolutionTests {
     }
   }
 
+  
   method MD0(c: C, ghost g: nat)
-    requires c != null
     modifies c
     decreases *
   {
@@ -1710,8 +1710,8 @@ module LoopResolutionTests {
     }
   }
 
+  
   method MD1(c: C, ghost g: nat)
-    requires c != null
     modifies c
     decreases *
   {
@@ -1751,7 +1751,7 @@ module UnderspecifiedTypesInAttributes {
 module AdvancedIndexableInference {
   datatype MyRecord = Make(x: int, y: int)
   method M(d: array<MyRecord>, e: seq<MyRecord>)
-    requires d != null && d.Length == 100 == |e|
+    requires d.Length == 100 == |e|
   {
     if * {
       var c := d;
@@ -1947,7 +1947,7 @@ module ZI {
     var q: int
     var rs: List<List<Cls>>
   }
-  method M2(c: Cls) {
+  method M2(c: Cls?) {
     P(c);
   }
 
@@ -2162,6 +2162,12 @@ module BigOrdinalRestrictions {
   predicate P(g: ORDINAL)
 }
 
+module IteratorDuplicateParameterNames {
+  // each of the following once caused a crash in the resolver
+  iterator MyIterX(u: char) yields (u: char)  // error: duplicate name "u"
+  iterator MyIterY(us: char) yields (u: char)  // error: in-effect-duplicate name "us"
+}
+
 module TernaryTypeCheckinngAndInference {
   codatatype Stream = Cons(int, Stream)
 
@@ -2174,5 +2180,53 @@ module TernaryTypeCheckinngAndInference {
     assert A ==#[3] B;
     var b;
     assert A ==#[b] B;
+  }
+}
+
+module DontQualifyWithNonNullTypeWhenYouMeanAClass {
+  module Z {
+    class MyClass {
+      static const g := 100
+    }
+    method M0() {
+      var x := MyClass?.g;  // error: use MyClass, not MyClass?
+      assert x == 100;
+    }
+    method M1() {
+      var x := MyClass.g;  // that's it!
+      assert x == 100;
+    }
+    method P(from: MyClass) returns (to: MyClass?) {
+      to := from;
+    }
+    method Q() {
+      var x := MyClass;  // error: type used as variable
+      var y := MyClass?;  // error: type used as variable
+    }
+  }
+
+  module A {
+    class MyClass {
+      static const g := 100
+    }
+  }
+
+  module B {
+    import A
+    method M0() {
+      var x := A.MyClass?.g;  // error: use MyClass, not MyClass?
+      assert x == 100;
+    }
+    method M1() {
+      var x := A.MyClass.g;  // that's it!
+      assert x == 100;
+    }
+    method P(from: A.MyClass) returns (to: A.MyClass?) {
+      to := from;
+    }
+    method Q() {
+      var x := A.MyClass;  // error: type used as variable
+      var y := A.MyClass?;  // error: type used as variable
+    }
   }
 }

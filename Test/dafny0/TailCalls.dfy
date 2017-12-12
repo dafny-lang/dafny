@@ -76,7 +76,7 @@ method H2(q: int) returns (x: int)
   decreases 5;  // fine
 
 class {:autocontracts} MyAutoContractClass {
-  var left: MyAutoContractClass;
+  var left: MyAutoContractClass?
 
   predicate Valid() { true }
 

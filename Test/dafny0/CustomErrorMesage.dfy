@@ -3,12 +3,12 @@
 
 method m(x:int)
 { 
-   assert {:error "m: x must be positive"}  x > 0;
+  assert {:error "m: x must be positive"}  x > 0;
 } 
 
 function f(x:int):int {
- assert {:error "f: x must be positive"}  x > 0;
- x
+  assert {:error "f: x must be positive"}  x > 0;
+  x
 }
 
 function f1():int {
@@ -16,8 +16,8 @@ function f1():int {
 }
 
 function foo(x:int) : (y:int)
-   requires {:error "when calling foo, you must supply a positive x"} x > 0
-   ensures  {:error "cannot establish that return value of foo is always negative"} y < 0
+  requires {:error "when calling foo, you must supply a positive x"} x > 0
+  ensures  {:error "cannot establish that return value of foo is always negative"} y < 0
 {
   x
 }
@@ -27,14 +27,14 @@ method m2() {
 }
 
 method bar(x:int) returns (y: int)
-   requires {:error "when calling bar, you must supply a positive x"} x > 0
-	 ensures  {:error "cannot establish that return value of bar is always negative"} y < 0
+  requires {:error "when calling bar, you must supply a positive x"} x > 0
+  ensures  {:error "cannot establish that return value of bar is always negative"} y < 0
 {
   y := x;
 }
 
 method duplicate_array(input: array<int>, len: int) returns (output: array<int>) 
-    requires input != null && len == input.Length;
+  requires len == input.Length;
 {
   output := new int[len];
   var i := 0;

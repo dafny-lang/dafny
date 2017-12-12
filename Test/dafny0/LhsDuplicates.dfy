@@ -23,7 +23,6 @@ method M<T(0)>()
 }
 
 method N<T>(a: MyClass<T>, b: MyClass<T>)
-  requires a != null && b != null
   modifies a, b
 {
   var q := [a, b];
@@ -46,7 +45,6 @@ method P<T>(t0: T, t1: T, t2: T) {
 }
 
 method Q<T>(c0: MyClass<T>, c1: MyClass<T>)
-  requires c0 != null && c1 != null
   modifies c0, c1
 {
   c0.f, c1.f := c0.f, c0.f;  // okay -- RHSs are the same

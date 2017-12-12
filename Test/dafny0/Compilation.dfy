@@ -178,7 +178,6 @@ method DigitsIdents(t: Tuple<int, Tuple<int, bool>>)
 class DigitsClass {
   var 7: bool;
   method M(c: DigitsClass)
-    requires c != null;
   {
     var x: int := if this.7 then 7 else if c.7 then 8 else 9;
   }
@@ -278,7 +277,7 @@ module EqualityTests {
   method TestMain()
   {
     // regression tests:
-    var a: C<int>, b: C<int> := null, null;
+    var a: C?<int>, b: C?<int> := null, null;
     if a == null {
       print "a is null\n";
     }
@@ -296,7 +295,7 @@ module EqualityTests {
     ArrayTests(H);
   }
 
-  method ArrayTests<T>(H: array<T>)
+  method ArrayTests<T>(H: array?<T>)
   {
     var G := new int[10];
     if G == H {  // this comparison is allowed in Dafny, but requires a cast in C#

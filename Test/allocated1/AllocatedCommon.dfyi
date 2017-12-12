@@ -3,8 +3,8 @@
 
 class C
 {
-  var c:C;
-  ghost var g:C;
+  var c:C?
+  ghost var g:C?
 }
 
 datatype D = D(c:C, ghost g:C)
@@ -16,8 +16,8 @@ function f1(c:C):C
 function method fm1(c:C):C
 
 function fBad(c:C, d:D, a:array<C>, s:set<C>):C
-  requires c != null
-  requires a != null
+
+
 {
   // each of the following lines fails:
   assert true by { assert allocated(c); }
@@ -38,8 +38,8 @@ function fBad(c:C, d:D, a:array<C>, s:set<C>):C
 }
 
 function method fmBad(c:C, d:D, a:array<C>, s:set<C>):C
-  requires c != null
-  requires a != null
+
+
 {
   // each of the following lines fails:
   assert true by { assert allocated(c); }
@@ -60,8 +60,8 @@ function method fmBad(c:C, d:D, a:array<C>, s:set<C>):C
 }
 
 lemma LGood(c:C, d:D, a:array<C>, s:set<C>)
-  requires c != null
-  requires a != null
+
+
 {
   assert true by { assert allocated(null); }
   assert true by { assert allocated(c) ==> allocated(c.c); }
@@ -72,8 +72,8 @@ lemma LCall() returns(c:C)
 
 lemma LBad(c:C, d:D, a:array<C>, s:set<C>)
   returns(r:C)
-  requires c != null
-  requires a != null
+
+
 {
   var l:C;
   // each of the following lines fails:
@@ -99,8 +99,8 @@ lemma LBad(c:C, d:D, a:array<C>, s:set<C>)
 }
 
 ghost method GGood(c:C, d:D, a:array<C>, s:set<C>)
-  requires c != null
-  requires a != null
+
+
 {
   assert true by { assert allocated(c) ==> allocated(c.c); }
   assert true by { assert allocated(a) && a.Length > 0 ==> allocated(a[0]); }
@@ -108,8 +108,8 @@ ghost method GGood(c:C, d:D, a:array<C>, s:set<C>)
 
 ghost method GBad(c:C, d:D, a:array<C>, s:set<C>)
   returns(r:C)
-  requires c != null
-  requires a != null
+
+
 {
   var l:C;
   // each of the following lines fails:
@@ -137,14 +137,18 @@ ghost method GBad(c:C, d:D, a:array<C>, s:set<C>)
 method MCall() returns(c:C, ghost gc:C)
 
 method MGood(c:C, ghost gc:C, d:D, ghost gd:D, a:array<C>, ghost ga:array<C>, s:set<C>, ghost gs:set<C>)
-  returns(r:C, ghost gr:C)
-  requires c != null
-  requires gc != null
-  requires a != null
-  requires ga != null
+  returns(r:C?, ghost gr:C?)
+
+
+
+
+
+
+
+
 {
-  var l:C;
-  ghost var gl:C;
+  var l:C?;
+  ghost var gl:C?;
   assert true by { assert allocated(c); }
   assert true by { assert allocated(d); }
   assert true by { assert allocated(a); }
@@ -165,11 +169,7 @@ method MGood(c:C, ghost gc:C, d:D, ghost gd:D, a:array<C>, ghost ga:array<C>, s:
 }
 
 method MBad(c:C, ghost gc:C, d:D, ghost gd:D, a:array<C>, ghost ga:array<C>, s:set<C>, ghost gs:set<C>, f:C~>C)
-  returns(r:C, ghost gr:C)
-  requires c != null
-  requires gc != null
-  requires a != null
-  requires ga != null
+  returns(r:C?, ghost gr:C?)
 {
   var l:C;
   ghost var gl:C;
@@ -200,53 +200,46 @@ method MBad(c:C, ghost gc:C, d:D, ghost gd:D, a:array<C>, ghost ga:array<C>, s:s
   l, gl := MCall(); assert allocated(gl);
 }
 
-function fReadGood(c1:C, c2:C):C
-  requires c1 != null && allocated(c1)
-  requires c2 != null && allocated(c2)
-  reads c1;
+function fReadGood(c1:C, c2:C):C?
+  requires allocated(c1)
+  requires allocated(c2)
+  reads c1
 {
   c1.c // succeeds
 }
 
-function fReadBad1(c1:C, c2:C):C
-  requires c1 != null && allocated(c1)
-  requires c2 != null && allocated(c2)
-  reads c1;
+function fReadBad1(c1:C, c2:C):C?
+  requires allocated(c1)
+  requires allocated(c2)
+  reads c1
 {
   c2.c // fails, c2 not in reads set
 }
 
-function fReadBad2(c1:C, c2:C):C
-  requires c1 != null && allocated(c1)
-  requires c2 != null && allocated(c2)
+function fReadBad2(c1:C, c2:C):C?
+  requires allocated(c1)
+  requires allocated(c2)
 {
   c2.c // fails, c2 not in reads set
 }
 
 function fId1(c1:C, c2:C):C
-  requires c1 != null
-  requires c2 != null
   reads c1
 {
   c1
 }
 
 function fId2(c1:C, c2:C):C
-  requires c1 != null
-  requires c2 != null
   reads c1
   ensures fId2(c1, c2) == c1
 
 lemma LId(c1:C, c2:C)
-  requires c1 != null
-  requires c2 != null
 {
   assert fId1(c1, c2) == c1; // succeeds: the definition axiom applies even when c1 and c2 may be unallocated
   assert fId2(c1, c2) == c1; // succeeds: the consequence axiom applies even when c1 and c2 may be unallocated
 }
 
 method MModifiesGood(c1:C, c2:C)
-  requires c1 != null
   modifies c1
 {
   c1.c := c2;
@@ -254,7 +247,6 @@ method MModifiesGood(c1:C, c2:C)
 }
 
 method MModifiesFunGood1(c1:C, c2:C, ghost g1:C, ghost g2:C, f:C~>C)
-  requires c1 != null
   requires f.requires(g1) && f(g1) == g2 && f.reads(g1) == {}
   modifies c1
 {
@@ -263,7 +255,6 @@ method MModifiesFunGood1(c1:C, c2:C, ghost g1:C, ghost g2:C, f:C~>C)
 }
 
 method MModifiesFunGood2(c1:C, c2:C, ghost g1:C, ghost g2:C, f:C~>C)
-  requires c1 != null
   requires f.requires(g1) && f(g1) == g2 && (forall o :: o in f.reads(g1) ==> allocated(o))
   requires c1 !in f.reads(g1)
   modifies c1
@@ -272,8 +263,17 @@ method MModifiesFunGood2(c1:C, c2:C, ghost g1:C, ghost g2:C, f:C~>C)
   assert f(g1) == g2; // succeeds: everything f reads from is allocated, so if g1 is unallocated, f can't read from it
 }
 
+
+
+
+
+
+
+
+
+
+
 method MModifiesFunBad(c1:C, c2:C, ghost g1:C, ghost g2:C, f:C~>C)
-  requires c1 != null
   requires f.requires(g1) && f(g1) == g2
   requires c1 !in f.reads(g1)
   modifies c1
@@ -289,7 +289,7 @@ class Reader
 }
 
 method MReader(r:Reader)
-  requires r != null && allocated(r)
+  requires allocated(r)
 {
   var f := r.f; // ok
   var c := f(); // ok

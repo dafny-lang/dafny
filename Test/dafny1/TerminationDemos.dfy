@@ -5,7 +5,7 @@ class Example {
   method M(n: int)
   {
     var i := 0;
-    while (i < n)
+    while i < n
     {
       i := i + 1;
     }
@@ -35,8 +35,8 @@ class Ackermann {
   }
 
   function G(m: int, n: int): int
-    requires 0 <= m && 0 <= n;
-    ensures 0 <= G(m, n);
+    requires 0 <= m && 0 <= n
+    ensures 0 <= G(m, n)
   {
     if m == 0 then
       n + 1
@@ -58,9 +58,9 @@ class Ackermann {
 
   method ComputeAck(m: nat, n: nat) returns (r: nat)
   {
-    if (m == 0) {
+    if m == 0 {
       r := n + 1;
-    } else if (n == 0) {
+    } else if n == 0 {
       r := ComputeAck(m - 1, 1);
     } else {
       var s := ComputeAck(m, n - 1);
@@ -72,12 +72,12 @@ class Ackermann {
 // -----------------------------------
 
 class List {
-  var data: int;
-  var next: List;
-  ghost var ListNodes: set<List>;
-  function IsAcyclic(): bool
-    reads *;
-    decreases ListNodes;
+  var data: int
+  var next: List?
+  ghost var ListNodes: set<List>
+  predicate IsAcyclic()
+    reads *
+    decreases ListNodes
   {
     this in ListNodes &&
     (next != null ==>
@@ -86,7 +86,7 @@ class List {
   }
 
   method Singleton(x: int) returns (list: List)
-    ensures list != null && list.IsAcyclic();
+    ensures list.IsAcyclic()
   {
     list := new List;
     list.data := x;
@@ -94,9 +94,9 @@ class List {
     list.ListNodes := {list};
   }
 
-  method Prepend(x: int, tail: List) returns (list: List)
+  method Prepend(x: int, tail: List?) returns (list: List)
     requires tail == null || tail.IsAcyclic();
-    ensures list != null && list.IsAcyclic();
+    ensures list.IsAcyclic();
   {
     list := new List;
     list.data := x;
@@ -105,9 +105,9 @@ class List {
   }
 
   function Sum(): int
-    requires IsAcyclic();
-    reads *;
-    decreases ListNodes;
+    requires IsAcyclic()
+    reads *
+    decreases ListNodes
   {
     if next == null then data else data + next.Sum()
   }

@@ -2,19 +2,17 @@
 // RUN: %diff "%s.expect" "%t"
 
 class C {
-  var next: C
+  var next: C?
   var x: int
 }
 
 function F(c: C): int
-  requires c != null
   reads c
 {
   c.x
 }
 
 twostate function G(a: C, new b: C): int
-  requires a != null && b != null
   reads b
 {
   old(a.x) + b.x
@@ -27,7 +25,6 @@ twostate lemma K(a: C, new B: C)
 { }
 
 method M0(p: C)
-  requires p != null
 {
   var c, d := new C, new C;
   ghost var x;
@@ -37,18 +34,17 @@ method M0(p: C)
   case true =>
     x := old(F(c));  // error
   case true =>
-    x := old(L(  // BUG: should check L's parameter to be allocated in the old state
+    x := old(L(
                if F(d) == 10 then c else c  // error
              ); 5);
   case true =>
-    x := old(L(  // BUG: should check L's parameter to be allocated in the old state
-               if F(p) == 10 then c else c
+    x := old(L(
+               if F(p) == 10 then c else c  // error: argument is not allocated in old state
              ); 5);
   case true =>
-    x := old(L(c); 5);  // BUG: should check L's parameter to be allocated in the old state
+    x := old(L(c); 5);  // error: c is not allocated in old state
   }
 method M1(p: C)
-  requires p != null
 {
   var c := new C;
   ghost var x;
@@ -58,14 +54,13 @@ method M1(p: C)
   case true =>
     x := old(calc {
                5;
-               { L(c); }  // BUG: should check L's parameter to be allocated in the old state
+               { L(c); }  // error: c is not allocated in old state
                5;
                F(c);  // error
              }
              10);
 }
 method M2(p: C)
-  requires p != null
 {
   var c := new C;
   ghost var x;

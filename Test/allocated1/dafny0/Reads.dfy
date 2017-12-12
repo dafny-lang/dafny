@@ -6,52 +6,52 @@
 class C { var u : int; }
 
 function nope1(c : C):()
-     requires c != null && allocated(c) && c.u > 0;
+     requires allocated(c) && c.u > 0;
 {()}
 
 function ok1(c : C):()
-     requires c != null && allocated(c) && c.u > 0;
+     requires allocated(c) && c.u > 0;
      reads c;
 {()}
 
-function nope2(c : C):()
+function nope2(c : C?):()
      requires c != null && allocated(c) && c.u > 0;
      reads if c != null then {} else {c};
 {()}
 
-function ok2(c : C):()
+function ok2(c : C?):()
      requires c != null && allocated(c) && c.u > 0;
      reads if c != null then {c} else {};
 {()}
 
-function nope3(xs : seq<C>):()
+function nope3(xs : seq<C?>):()
      requires |xs| > 0 && xs[0] != null && allocated(xs[0]) && xs[0].u > 0;
 {()}
 
-function ok3(xs : seq<C>):()
+function ok3(xs : seq<C?>):()
      requires |xs| > 0 && xs[0] != null && allocated(xs[0]) && xs[0].u > 0;
      reads xs;
 {()}
 
 function nope4(c : C, xs : set<C>):()
-     requires c != null && allocated(c) && c !in xs ==> c.u > 0;
+     requires allocated(c) && c !in xs ==> c.u > 0;
      reads xs;
 {()}
 
 function ok4(c : C, xs : set<C>):()
-     requires c != null && allocated(c) && c in xs ==> c.u > 0;
+     requires allocated(c) && c in xs ==> c.u > 0;
      reads xs;
 {()}
 
 // reads over itself
 
-class R { var r : R; }
+class R { var r : R? }
 
-function nope5(r : R):()
+function nope5(r : R?):()
   reads if r != null && allocated(r) then {r.r} else {};
 {()}
 
-function ok5(r : R):()
+function ok5(r : R?):()
   reads if r != null && allocated(r) then {r, r.r} else {};
 {()}
 
@@ -82,11 +82,11 @@ class CircularChecking {
   function H1(cell: Cell): int
     reads this, Repr
     requires cell in Repr
-    requires cell != null && allocated(cell) && cell.data == 10
+    requires allocated(cell) && cell.data == 10
 
   function H2(cell: Cell): int
     reads this, Repr
-    requires cell != null && allocated(cell) && cell.data == 10  // this is okay, too, since reads checks are postponed
+    requires allocated(cell) && cell.data == 10  // this is okay, too, since reads checks are postponed
     requires cell in Repr
 }
 

@@ -48,7 +48,7 @@ module AssignmentToNat {
     var f := Pf;
     var g := Pg;
     var a := f(x);  // error
-    var id := u => u;
+    var id := (u: int) => u;
     g := id;  // error
   }
 
@@ -180,7 +180,7 @@ module SoftCasts {
     case true =>
       g := z => if z <= 0 then -z else z-1;
     case true =>
-      g := z => if z < 0 then -z else z-1;  // error: may fail to return a nat
+      g := (z: int) => if z < 0 then -z else z-1;  // error: may fail to return a nat
     case true =>
       g := z => n;
   }

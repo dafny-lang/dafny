@@ -1,4 +1,4 @@
-Twostate-Functions.dfy(11,56): Error: target object may not be allocated
+Twostate-Functions.dfy(11,43): Error: target object may not be allocated
 Execution trace:
     (0,0): anon0
 Twostate-Functions.dfy(19,12): Error: target object may not be allocated
@@ -50,7 +50,7 @@ Execution trace:
     (0,0): anon16_Else
     (0,0): anon4
     (0,0): anon18_Then
-Twostate-Functions.dfy(134,55): Error: target object may not be allocated
+Twostate-Functions.dfy(134,42): Error: target object may not be allocated
 Execution trace:
     (0,0): anon0
     (0,0): anon16_Then

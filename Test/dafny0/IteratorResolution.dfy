@@ -10,8 +10,8 @@ module Mx {
   iterator ExampleIterator(k: int) yields (x: int, y: int)
   {
     var i := k;
-    while (true) {
-      if (i % 77 == 0) { yield; }
+    while true {
+      if i % 77 == 0 { yield; }
       yield i, -i;
       i := i + 1;
     }
@@ -23,9 +23,9 @@ module Mx {
     iter.x := 12;  // allowed (but this destroys the validity of 'iter'
     iter.xs := [];  // error: not allowed to assign to iterator's yield-history variables
     var j := 0;
-    while (j < 100) {
+    while j < 100 {
       var more := iter.MoveNext();
-      if (!more) {
+      if !more {
         break;
       }
       print iter.x, iter.y;
@@ -40,7 +40,7 @@ module Mx {
 
   module Inner {
     iterator YetAnother(x: int, y: int, z: int) yields (a: bool, b: bool)
-      requires true;
+      requires true
   }
 
   class Client {
@@ -52,14 +52,14 @@ module Mx {
     method Worker(xi: ExampleIterator) returns (k: int, m: int) {
       k, m := xi.k + xi.x, xi.y;
       var mr := xi.MoveNext();
-      if (mr) {
+      if mr {
         k := xi.x;
       } else {
         assert k == xi.k + xi.x && m == xi.y;
       }
     }
     method GenericTester(g0: GenericIterator<bool>, g2: GenericIterator)
-      requires g0.u;
+      requires g0.u
     {
       g0.t := true;  // error: not allowed to assign to .t
       g0.u := true;  // allowed (but this destroys the validity of 'iter'
@@ -83,16 +83,16 @@ module Mx {
 
       var h2 := new GenericIteratorResult;  // error: constructor is not mentioned
 
-      var h3 := new GenericIterator._ctor(30);
-      if (h3.t == h3.u) {
-        assert !h3.t;  // error: type mismatch
+      var h3 := new GenericIterator._ctor(30);  // see two lines down
+      if h3.t == h3.u {
+        assert !h3.t;  // error: type mismatch (here or two lines ago)
       }
     }
   }
 
   iterator GenericIterator<T>(t: T) yields (u: T)
   {
-    while (true) {
+    while true {
       yield t;
     }
   }
@@ -117,7 +117,7 @@ module Mx {
 module DecreasesFields {
   class Cell
   {
-    var data: int;
+    var data: int
   }
 
   iterator Dieter0(c: Cell)

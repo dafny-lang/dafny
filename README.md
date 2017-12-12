@@ -19,6 +19,7 @@ and instructions for installing the [Dafny mode for Emacs](https://github.com/bo
 
 Here are some ways to get started with Dafny:
 
+* New overview article: [Accessible Software Verification with Dafny](https://www.computer.org/csdl/mags/so/2017/06/mso2017060094-abs.html), IEEE Software, Nov/Dec 2017
 * [Online tutorial](http://rise4fun.com/Dafny/tutorial/guide), focusing mostly on simple imperative programs 
 * [3-page tutorial notes](http://research.microsoft.com/en-us/um/people/leino/papers/krml233.pdf) with examples (ICSE 2013) 
 * Dafny [Quick Reference](http://research.microsoft.com/en-us/projects/dafny/reference.aspx)
@@ -26,7 +27,6 @@ Here are some ways to get started with Dafny:
 * [Cheatsheet](https://docs.google.com/document/d/1kz5_yqzhrEyXII96eCF1YoHZhnb_6dzv-K3u79bMMis/edit?pref=2&pli=1): basic Dafny syntax on two pages 
 * Dafny Reference Manual [[html](https://github.com/Microsoft/dafny/blob/master/Docs/DafnyRef/out/DafnyRef.html)] [[pdf](https://github.com/Microsoft/dafny/blob/master/Docs/DafnyRef/out/DafnyRef.pdf)]
 * Videos at [Verification Corner](https://www.youtube.com/channel/UCP2eLEql4tROYmIYm5mA27A)
-* For more papers on Dafny, see the Dafny section of Rustan Leino's [paper page](http://research.microsoft.com/en-us/um/people/leino/papers.html)
 
 The language itself draws pieces of influence from:
 
