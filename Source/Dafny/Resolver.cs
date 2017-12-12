@@ -3628,6 +3628,7 @@ namespace Microsoft.Dafny
           }
         }
         bool satisfied;
+        Type tUp, uUp;
         switch (ConstraintName) {
           case "Assignable": {
               Contract.Assert(t == t.Normalize());  // it's already been normalized above
@@ -3645,7 +3646,7 @@ namespace Microsoft.Dafny
                 resolver.ConstrainSubtypeRelation(t, u, errorMsg);
                 convertedIntoOtherTypeConstraints = true;
                 return true;
-              } else if (Type.FromSameHead(t, u, out Type tUp, out Type uUp)) {
+              } else if (Type.FromSameHead(t, u, out tUp, out uUp)) {
                 resolver.ConstrainAssignableTypeArgs(tUp, tUp.TypeArgs, uUp.TypeArgs, errorMsg, out moreXConstraints);
                 return true;
               } else if (fullstrength && t is NonProxyType) {
@@ -3910,7 +3911,8 @@ namespace Microsoft.Dafny
                   return false;  // not enough information
                 }
               }
-              satisfied = Type.FromSameHead_Subtype(t, u, resolver.builtIns, out Type a, out Type b);
+              Type a,b;
+              satisfied = Type.FromSameHead_Subtype(t, u, resolver.builtIns, out a, out b);
               if (satisfied) {
                 Contract.Assert(a.TypeArgs.Count == b.TypeArgs.Count);
                 var cl = a is UserDefinedType ? ((UserDefinedType)a).ResolvedClass : null;
@@ -3968,8 +3970,9 @@ namespace Microsoft.Dafny
                 convertedIntoOtherTypeConstraints = true;
                 return true;
               }
+              Type a, b;
               // okay if t<:u or u<:t (this makes type inference more manageable, though it is more liberal than one might wish)
-              satisfied = Type.FromSameHead_Subtype(t, u, resolver.builtIns, out Type a, out Type b);
+              satisfied = Type.FromSameHead_Subtype(t, u, resolver.builtIns, out a, out b);
               if (satisfied) {
                 Contract.Assert(a.TypeArgs.Count == b.TypeArgs.Count);
                 var cl = a is UserDefinedType ? ((UserDefinedType)a).ResolvedClass : null;
