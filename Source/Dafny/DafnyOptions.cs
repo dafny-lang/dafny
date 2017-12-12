@@ -33,7 +33,7 @@ namespace Microsoft.Dafny
     }
     public override string VersionSuffix {
       get {
-        return " " + VersionNumber + " technical preview 0";
+        return " " + VersionNumber;
       }
     }
 
