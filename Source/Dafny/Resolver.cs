@@ -4179,6 +4179,9 @@ namespace Microsoft.Dafny
         if (2 <= state && !allowDecisions) {
           // time to say goodnight to Napoli
           return;
+        } else if (AllTypeConstraints.Count == 0 && AllXConstraints.Count == 0) {
+          // we're done
+          return;
         }
 
         var anyNewConstraints = false;
@@ -4381,12 +4384,17 @@ namespace Microsoft.Dafny
                     Console.WriteLine("DEBUG: (merge in PartiallySolve) assigning proxy {0}.T := {1}", proxy, sub);
                   }
                   proxy.T = sub;
+                  anyNewConstraints = true;  // signal a change in the constraints
                   continue;
                 }
                 AllTypeConstraints.Add(c);
               }
-              return;
             }
+            break;
+
+          case 11:
+            // we're so out of here
+            return;
         }
         if (anyNewConstraints) {
           state = 0;
