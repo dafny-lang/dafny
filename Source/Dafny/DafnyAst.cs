@@ -8543,11 +8543,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(v != null);
       Name = v.Name;
       Var = v;
-#if SLOPPY_ABOUT_BEING_PRECISE
-      Type = v.Type.StripSubsetConstraints();
-#else
       Type = v.Type;
-#endif
     }
   }
 

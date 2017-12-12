@@ -16560,6 +16560,11 @@ namespace Microsoft.Dafny {
           IdentifierExpr e = (IdentifierExpr)expr;
           Expression substExpr;
           if (substMap.TryGetValue(e.Var, out substExpr)) {
+            var substIdExpr = substExpr as IdentifierExpr;
+            if (substIdExpr != null) {
+              // clone it, using the source location of the original
+              substExpr = new IdentifierExpr(expr.tok, substIdExpr.Var);
+            }
             return cce.NonNull(substExpr);
           }
         } else if (expr is DisplayExpression) {
