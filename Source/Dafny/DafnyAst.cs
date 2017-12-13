@@ -3096,7 +3096,7 @@ namespace Microsoft.Dafny {
         if (compileName == null) {
           object externValue = "";
           string errorMessage = "";
-          bool isExternal = Attributes.ContainsMatchingValue(this.Attributes, "extern", ref externValue,
+          bool isExternal = !DafnyOptions.O.DisallowExterns && Attributes.ContainsMatchingValue(this.Attributes, "extern", ref externValue,
             new Attributes.MatchingValueOption[] { Attributes.MatchingValueOption.String },
             err => errorMessage = err);
           if (isExternal) {
@@ -3590,7 +3590,7 @@ namespace Microsoft.Dafny {
         if (compileName == null) {
           object externValue = "";
           string errorMessage = "";
-          bool isExternal = Attributes.ContainsMatchingValue(this.Attributes, "extern", ref externValue,
+          bool isExternal = !DafnyOptions.O.DisallowExterns && Attributes.ContainsMatchingValue(this.Attributes, "extern", ref externValue,
             new Attributes.MatchingValueOption[] { Attributes.MatchingValueOption.String },
             err => errorMessage = err);
           if (isExternal) {

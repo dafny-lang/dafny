@@ -957,7 +957,7 @@ namespace Microsoft.Dafny {
           var f = (Function)member;
           if (f.Body == null && !(c is TraitDecl && !f.IsStatic)) {
             // A (ghost or non-ghost) function must always have a body, except if it's an instance function in a trait.
-            if (forCompanionClass || Attributes.Contains(f.Attributes, "axiom") || Attributes.Contains(f.Attributes, "extern")) {
+            if (forCompanionClass || Attributes.Contains(f.Attributes, "axiom") || (!DafnyOptions.O.DisallowExterns && Attributes.Contains(f.Attributes, "extern"))) {
               // suppress error message (in the case of "forCompanionClass", the non-forCompanionClass call will produce the error message)
             } else {
               Error(f.tok, "Function {0} has no body", wr, f.FullName);
@@ -988,7 +988,7 @@ namespace Microsoft.Dafny {
           var m = (Method)member;
           if (m.Body == null && !(c is TraitDecl && !m.IsStatic)) {
             // A (ghost or non-ghost) method must always have a body, except if it's an instance method in a trait.
-            if (forCompanionClass || Attributes.Contains(m.Attributes, "axiom") || Attributes.Contains(m.Attributes, "extern")) {
+            if (forCompanionClass || Attributes.Contains(m.Attributes, "axiom") || (!DafnyOptions.O.DisallowExterns && Attributes.Contains(m.Attributes, "extern"))) {
               // suppress error message (in the case of "forCompanionClass", the non-forCompanionClass call will produce the error message)
             } else {
               Error(m.tok, "Method {0} has no body", wr, m.FullName);

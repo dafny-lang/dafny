@@ -67,6 +67,7 @@ namespace Microsoft.Dafny
     public bool RunAfterCompile = false;
     public bool SpillTargetCode = false;
     public bool DisallowIncludes = false;
+    public bool DisallowExterns = false;
     public bool DisableNLarith = false;
     public string AutoReqPrintFile = null;
     public bool ignoreAutoReq = false;
@@ -214,6 +215,10 @@ namespace Microsoft.Dafny
 
         case "noIncludes":
           DisallowIncludes = true;
+          return true;
+
+        case "noExterns":
+          DisallowExterns = true;
           return true;
 
         case "noNLarith":
@@ -474,6 +479,7 @@ namespace Microsoft.Dafny
                     how discriminating they are:  0 < 1 < 2 < (3,4) < 5 < 6
                 6 (default) - most discriminating
   /noIncludes   Ignore include directives
+  /noExterns    Ignore extern attributes
   /noNLarith    Reduce Z3's knowledge of non-linear arithmetic (*,/,%).
                 Results in more manual work, but also produces more predictable behavior.
   /autoReqPrint:<file>
