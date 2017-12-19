@@ -3006,6 +3006,7 @@ namespace Microsoft.Dafny {
         BinaryExpr e = (BinaryExpr)expr;
         string opString = null;
         string preOpString = "";
+        string postOpString = "";
         string callString = null;
         string staticCallString = null;
         bool reverseArguments = false;
@@ -3073,9 +3074,19 @@ namespace Microsoft.Dafny {
           case BinaryExpr.ResolvedOpcode.RightShift:
             opString = ">>"; convertE1_to_int = true; break;
           case BinaryExpr.ResolvedOpcode.Add:
-            opString = "+"; truncateResult = true; break;
+            opString = "+"; truncateResult = true;
+            if (expr.Type.IsCharType) {
+              preOpString = "(char)(";
+              postOpString = ")";
+            }
+            break;
           case BinaryExpr.ResolvedOpcode.Sub:
-            opString = "-"; truncateResult = true; break;
+            opString = "-"; truncateResult = true;
+            if (expr.Type.IsCharType) {
+              preOpString = "(char)(";
+              postOpString = ")";
+            }
+            break;
           case BinaryExpr.ResolvedOpcode.Mul:
             opString = "*"; truncateResult = true; break;
           case BinaryExpr.ResolvedOpcode.Div:
@@ -3174,12 +3185,14 @@ namespace Microsoft.Dafny {
           if (needsCast) {
             wr.Write(")");
           }
+          wr.Write(postOpString);
         } else if (callString != null) {
           wr.Write(preOpString);
           TrParenExpr(e0, wr, inLetExprBody);
           wr.Write(".@{0}(", callString);
           TrExpr(e1, wr, inLetExprBody);
           wr.Write(")");
+          wr.Write(postOpString);
         } else if (staticCallString != null) {
           wr.Write(preOpString);
           wr.Write("{0}(", staticCallString);
@@ -3187,6 +3200,7 @@ namespace Microsoft.Dafny {
           wr.Write(", ");
           TrExpr(e1, wr, inLetExprBody);
           wr.Write(")");
+          wr.Write(postOpString);
         }
         if (truncateResult && e.Type.IsBitVectorType) {
           BitvectorTruncation((BitvectorType)e.Type, wr, true, true);

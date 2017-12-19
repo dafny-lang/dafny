@@ -3693,10 +3693,10 @@ namespace Microsoft.Dafny
               break;
             }
           case "Plussable":
-            satisfied = t.IsNumericBased() || t.IsBitVectorType || t.IsBigOrdinalType || t is SeqType || t is SetType || t is MultiSetType;
+            satisfied = t.IsNumericBased() || t.IsBitVectorType || t.IsBigOrdinalType || t.IsCharType || t is SeqType || t is SetType || t is MultiSetType;
             break;
           case "Minusable":
-            satisfied = t.IsNumericBased() || t.IsBitVectorType || t.IsBigOrdinalType || t is SetType || t is MultiSetType;
+            satisfied = t.IsNumericBased() || t.IsBitVectorType || t.IsBigOrdinalType || t.IsCharType || t is SetType || t is MultiSetType;
             break;
           case "Mullable":
             satisfied = t.IsNumericBased() || t.IsBitVectorType || t is SetType || t is MultiSetType;
@@ -11664,7 +11664,7 @@ namespace Microsoft.Dafny
 
           case BinaryExpr.Opcode.Add: {
               expr.Type = new InferredTypeProxy();
-              AddXConstraint(e.tok, "Plussable", expr.Type, "type of + must be of a numeric type, a bitvector type, ORDINAL, a sequence type, or a set-like type (instead got {0})");
+              AddXConstraint(e.tok, "Plussable", expr.Type, "type of + must be of a numeric type, a bitvector type, ORDINAL, char, a sequence type, or a set-like type (instead got {0})");
               ConstrainSubtypeRelation(expr.Type, e.E0.Type, expr.tok, "type of left argument to + ({0}) must agree with the result type ({1})", e.E0.Type, expr.Type);
               ConstrainSubtypeRelation(expr.Type, e.E1.Type, expr.tok, "type of right argument to + ({0}) must agree with the result type ({1})", e.E1.Type, expr.Type);
             }
@@ -11672,7 +11672,7 @@ namespace Microsoft.Dafny
 
           case BinaryExpr.Opcode.Sub: {
               expr.Type = new InferredTypeProxy();
-              AddXConstraint(e.tok, "Minusable", expr.Type, "type of - must be of a numeric type, bitvector type, ORDINAL, or a set-like type (instead got {0})");
+              AddXConstraint(e.tok, "Minusable", expr.Type, "type of - must be of a numeric type, bitvector type, ORDINAL, char, or a set-like type (instead got {0})");
               ConstrainSubtypeRelation(expr.Type, e.E0.Type, expr.tok, "type of left argument to - ({0}) must agree with the result type ({1})", e.E0.Type, expr.Type);
               ConstrainSubtypeRelation(expr.Type, e.E1.Type, expr.tok, "type of right argument to - ({0}) must agree with the result type ({1})", e.E1.Type, expr.Type);
             }

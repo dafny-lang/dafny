@@ -146,7 +146,7 @@ namespace Microsoft.Dafny {
               case '\'': special = '\''; break;
               case '\"': special = '\"'; break;
               case '\\': special = '\\'; break;
-              case '\0': special = '\0'; break;
+              case '0': special = '\0'; break;
               case 'n': special = '\n'; break;
               case 'r': special = '\r'; break;
               case 't': special = '\t'; break;

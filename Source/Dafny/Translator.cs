@@ -6822,6 +6822,15 @@ namespace Microsoft.Dafny {
               var offset0 = FunctionCall(expr.tok, "ORD#Offset", Bpl.Type.Int, etran.TrExpr(e.E0));
               var offset1 = FunctionCall(expr.tok, "ORD#Offset", Bpl.Type.Int, etran.TrExpr(e.E1));
               builder.Add(Assert(expr.tok, Bpl.Expr.Le(offset1, offset0), "ORDINAL subtraction might underflow a limit ordinal (that is, RHS might be too large)"));
+            } else if (e.Type.IsCharType) {
+              var e0 = FunctionCall(expr.tok, "char#ToInt", Bpl.Type.Int, etran.TrExpr(e.E0));
+              var e1 = FunctionCall(expr.tok, "char#ToInt", Bpl.Type.Int, etran.TrExpr(e.E1));
+              if (e.ResolvedOp == BinaryExpr.ResolvedOpcode.Add) {
+                builder.Add(Assert(expr.tok, Bpl.Expr.Lt(Bpl.Expr.Binary(BinaryOperator.Opcode.Add, e0, e1), Bpl.Expr.Literal(65536)), "char addition might overflow"));
+              } else {
+                Contract.Assert(e.ResolvedOp == BinaryExpr.ResolvedOpcode.Sub);  // .Mul is not supported for char
+                builder.Add(Assert(expr.tok, Bpl.Expr.Le(e1, e0), "char subtraction might underflow"));
+              }
             }
             CheckResultToBeInType(expr.tok, expr, expr.Type, locals, builder, etran);
             break;
@@ -14032,6 +14041,8 @@ namespace Microsoft.Dafny {
                 return TrToFunctionCall(expr.tok, "add_bv" + bvWidth, translator.BplBvType(bvWidth), e0, e1, liftLit);
               } else if (e.E0.Type.IsBigOrdinalType) {
                 return TrToFunctionCall(expr.tok, "ORD#Plus", predef.BigOrdinalType, e0, e1, liftLit);
+              } else if (e.E0.Type.IsCharType) {
+                return TrToFunctionCall(expr.tok, "char#Plus", predef.CharType, e0, e1, liftLit);
               } else if (DafnyOptions.O.DisableNLarith && !isReal) {
                 return TrToFunctionCall(expr.tok, "INTERNAL_add_boogie", Bpl.Type.Int, e0, e1, liftLit);
               } else {
@@ -14044,6 +14055,8 @@ namespace Microsoft.Dafny {
                 return TrToFunctionCall(expr.tok, "sub_bv" + bvWidth, translator.BplBvType(bvWidth), e0, e1, liftLit);
               } else if (e.E0.Type.IsBigOrdinalType) {
                 return TrToFunctionCall(expr.tok, "ORD#Minus", predef.BigOrdinalType, e0, e1, liftLit);
+              } else if (e.E0.Type.IsCharType) {
+                return TrToFunctionCall(expr.tok, "char#Minus", predef.CharType, e0, e1, liftLit);
               } else if (DafnyOptions.O.DisableNLarith && !isReal) {
                 return TrToFunctionCall(expr.tok, "INTERNAL_sub_boogie", Bpl.Type.Int, e0, e1, liftLit);
               } else {

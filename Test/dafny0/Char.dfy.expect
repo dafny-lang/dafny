@@ -12,5 +12,15 @@ Char.dfy(63,16): Error: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon5_Else
+Char.dfy(81,13): Error: char addition might overflow
+Execution trace:
+    (0,0): anon0
+    (0,0): anon6_Else
+    (0,0): anon7_Then
+Char.dfy(89,7): Error: char subtraction might underflow
+Execution trace:
+    (0,0): anon0
+    (0,0): anon6_Else
+    (0,0): anon7_Then
 
-Dafny program verifier finished with 5 verified, 3 errors
+Dafny program verifier finished with 8 verified, 5 errors
