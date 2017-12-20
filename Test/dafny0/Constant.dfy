@@ -145,3 +145,35 @@ trait UninterpretedStaticsTrait {
 class UninterpretedStaticsClass extends UninterpretedStaticsTrait {
   static const mmcc: Six
 }
+
+// ---------- test type/allocation axiom of const fields --------
+
+type byte = x | 0 <= x < 256
+  
+class MyClass {
+  const B: array<byte>
+
+  method M()
+  {
+    var x: array?<byte> := B;
+    var y: array<byte> := x;  // this line generates a proof obligation, but it should pass
+  }
+}
+
+// ---------- static const fields in a generic class have its own axioms --------
+
+class MyOnePurposeClass {
+  static const z: int
+  static const w: int := 76
+  static const self: MyOnePurposeClass?
+}
+
+class MyGenericClass<X,Y> {
+//  static const x: X
+//  static const y: Y
+  static const z: int
+  static const w: int := 76
+  static const self: MyGenericClass?<X,Y>
+  static const almostSelf: MyGenericClass?<Y,X>
+  static const another: MyGenericClass?<byte,seq<X>>
+}
