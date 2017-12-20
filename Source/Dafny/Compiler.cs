@@ -1387,29 +1387,31 @@ namespace Microsoft.Dafny {
     /// <summary>
     /// Returns "true" if a value of type "type" can be initialized with the all-zero bit pattern.
     /// </summary>
-    public static bool HasZeroInitializer(Type type, Bpl.IToken tok) {
+    public static bool HasZeroInitializer(Type type) {
       Contract.Requires(type != null);
 
       bool hz, ik;
       string dv;
-      TypeInitialization(type, null, null, tok, out hz, out ik, out dv);
+      TypeInitialization(type, null, null, null, out hz, out ik, out dv);
       return hz;
     }
 
     /// <summary>
-    /// Returns "true" if "type" denotes a type for which a specific value (witness) is known.
+    /// Returns "true" if "type" denotes a type for which a specific compiled value (non-ghost witness) is known.
     /// </summary>
-    public static bool InitializerIsKnown(Type type, Bpl.IToken tok) {
+    public static bool InitializerIsKnown(Type type) {
       Contract.Requires(type != null);
 
       bool hz, ik;
       string dv;
-      TypeInitialization(type, null, null, tok, out hz, out ik, out dv);
+      TypeInitialization(type, null, null, null, out hz, out ik, out dv);
       return ik;
     }
 
     string DefaultValue(Type type, TextWriter wr, Bpl.IToken tok) {
       Contract.Requires(type != null);
+      Contract.Requires(wr != null);
+      Contract.Requires(tok != null);
       Contract.Ensures(Contract.Result<string>() != null);
 
       bool hz, ik;
@@ -1427,8 +1429,9 @@ namespace Microsoft.Dafny {
     ///                  type (not necessarily the same value as the zero initializer, if any, may give).
     ///                  If "compiler" is null, then "defaultValue" can return as anything.
     /// </summary>
-    static void TypeInitialization(Type type, Compiler/*?*/ compiler, TextWriter/*?*/ wr, Bpl.IToken tok, out bool hasZeroInitializer, out bool initializerIsKnown, out string defaultValue) {
+    static void TypeInitialization(Type type, Compiler/*?*/ compiler, TextWriter/*?*/ wr, Bpl.IToken/*?*/ tok, out bool hasZeroInitializer, out bool initializerIsKnown, out string defaultValue) {
       Contract.Requires(type != null);
+      Contract.Requires(compiler == null || (wr != null && tok != null));
       Contract.Ensures(!Contract.ValueAtReturn(out hasZeroInitializer) || Contract.ValueAtReturn(out initializerIsKnown));  // hasZeroInitializer ==> initializerIsKnown
       Contract.Ensures(compiler == null || Contract.ValueAtReturn(out defaultValue) != null);
 
@@ -1495,11 +1498,11 @@ namespace Microsoft.Dafny {
         var td = (NewtypeDecl)cl;
         if (td.Witness != null) {
           hasZeroInitializer = false;
-          initializerIsKnown = true;
+          initializerIsKnown = td.WitnessKind != SubsetTypeDecl.WKind.Ghost;
           defaultValue = compiler == null ? null : compiler.TypeName_UDT(udt.FullCompileName, udt.TypeArgs, wr, udt.tok) + ".Witness";
           return;
         } else if (td.NativeType != null) {
-          hasZeroInitializer = HasZeroInitializer(td.BaseType, udt.tok);
+          hasZeroInitializer = HasZeroInitializer(td.BaseType);
           initializerIsKnown = true;
           defaultValue = "0";
           return;
@@ -1512,7 +1515,7 @@ namespace Microsoft.Dafny {
         var td = (SubsetTypeDecl)cl;
         if (td.Witness != null) {
           hasZeroInitializer = false;
-          initializerIsKnown = true;
+          initializerIsKnown = td.WitnessKind != SubsetTypeDecl.WKind.Ghost;
           defaultValue = compiler == null ? null : compiler.TypeName_UDT(udt.FullCompileName, udt.TypeArgs, wr, udt.tok) + ".Witness";
           return;
         } else if (td.WitnessKind == SubsetTypeDecl.WKind.Special) {
@@ -2521,7 +2524,7 @@ namespace Microsoft.Dafny {
         if (tp.ArrayDimensions == null) {
           wr.Write("new {0}()", TypeName(tp.EType, wr, rhs.Tok));
         } else {
-          if (!HasZeroInitializer(tp.EType, rhs.Tok)) {
+          if (!HasZeroInitializer(tp.EType)) {
             wr.Write("Dafny.ArrayHelpers.InitNewArray{0}<{1}>", tp.ArrayDimensions.Count, TypeName(tp.EType, wr, rhs.Tok));
             wr.Write("(");
             wr.Write(DefaultValue(tp.EType, wr, rhs.Tok));

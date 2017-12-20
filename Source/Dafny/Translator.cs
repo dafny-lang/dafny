@@ -4179,7 +4179,7 @@ namespace Microsoft.Dafny {
 
       if (DafnyOptions.O.DefiniteAssignmentLevel == 0 || p.IsGhost) {
         return;
-      } else if (DafnyOptions.O.DefiniteAssignmentLevel == 1 && Compiler.InitializerIsKnown(p.Type, p.Tok)) {
+      } else if (DafnyOptions.O.DefiniteAssignmentLevel == 1 && Compiler.InitializerIsKnown(p.Type)) {
         return;
       }
       var tracker = new Bpl.LocalVariable(p.Tok, new Bpl.TypedIdent(p.Tok, "defass#" + p.UniqueName, Bpl.Type.Bool));
@@ -4194,7 +4194,7 @@ namespace Microsoft.Dafny {
 
       if (DafnyOptions.O.DefiniteAssignmentLevel == 0 || field.IsGhost) {
         return;
-      } else if (DafnyOptions.O.DefiniteAssignmentLevel == 1 && Compiler.InitializerIsKnown(field.Type, field.tok)) {
+      } else if (DafnyOptions.O.DefiniteAssignmentLevel == 1 && Compiler.InitializerIsKnown(field.Type)) {
         return;
       }
       var nm = SurrogateName(field);
@@ -12296,7 +12296,7 @@ namespace Microsoft.Dafny {
             }
           } else if (DafnyOptions.O.DefiniteAssignmentLevel == 0) {
             // cool
-          } else if (2 <= DafnyOptions.O.DefiniteAssignmentLevel || !Compiler.InitializerIsKnown(tRhs.EType, tRhs.Tok)) {
+          } else if (2 <= DafnyOptions.O.DefiniteAssignmentLevel || !Compiler.InitializerIsKnown(tRhs.EType)) {
             // this is allowed only if the array size is such that it has no elements
             Bpl.Expr zeroSize = Bpl.Expr.False;
             foreach (Expression dim in tRhs.ArrayDimensions) {
