@@ -9976,9 +9976,13 @@ namespace Microsoft.Dafny
         var field = ll.Member as Field;
         if (field == null || !field.IsUserMutable) {
           var cf = field as ConstantField;
-          if (inBodyInitContext && cf != null && cf.Rhs == null) {
-            // it's cool; this field can be assigned to here
-          } else {
+          if (inBodyInitContext && cf != null && !cf.IsStatic && cf.Rhs == null) {
+            if (Expression.AsThis(ll.Obj) != null) {
+              // it's cool; this field can be assigned to here
+            } else {
+              reporter.Error(MessageSource.Resolver, lhs, "LHS of assignment must denote a mutable field of 'this'");
+            }
+          } else {  
             reporter.Error(MessageSource.Resolver, lhs, "LHS of assignment must denote a mutable field");
           }
         }

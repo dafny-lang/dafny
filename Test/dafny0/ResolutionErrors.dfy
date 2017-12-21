@@ -2271,3 +2271,35 @@ module UninterpretedModuleLevelConst {
     ghost const z: MyClass  // ghost, so no prob
   }
 }
+
+module NonThisConstAssignments {
+  const X: int
+
+  class Cla {
+    constructor () {
+      X := 15;  // error: can never assign to static const (this used to crash)
+      Clb.Y := 15;  // error: can never assign to static const (this used to crash)
+    }
+  }
+
+  class Clb {
+    static const Y: int
+    constructor () {
+      Y := 15;  // error: cannot ever assign to a static const (this used to crash)
+    }
+  }
+
+  class Clc {
+    const Z: int
+    constructor (c: Clc) {
+      c.Z := 15;  // error: can assign to const only for 'this' (this used to crash)
+    }
+  }
+
+  class Cld {
+    const Z: int
+    constructor () {
+      Z := 15;
+    }
+  }
+}
