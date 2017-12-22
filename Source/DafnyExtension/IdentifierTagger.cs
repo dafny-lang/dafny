@@ -199,11 +199,22 @@ namespace DafnyLanguage
               IdRegion.AddRecognizedAttributes(member.Attributes, newRegions, program);
               if (Attributes.Contains(member.Attributes, "auto_generated")) {
                 // do nothing
-              } else  if (member is Function) {
+              } else if (member is Function) {
                 var f = (Function)member;
-                IdRegion.Add(newRegions, program, f.tok, string.Format("{0} {1}", f.WhatKind, f.Name), f.TypeArgs);
+                var kind = f.WhatKind;
+                var name = f.Name;
+                if (!(f.EnclosingClass is DefaultClassDecl)) {
+                  if (f.IsStatic) {
+                    kind = "static " + kind;
+                  }
+                  name = f.EnclosingClass.Name + "." + name;
+                }
+                IdRegion.Add(newRegions, program, f.tok, string.Format("{0} {1}", kind, name), f.TypeArgs);
                 foreach (var p in f.Formals) {
                   IdRegion.Add(newRegions, program, p.tok, p, true, f, module);
+                }
+                if (f.Result != null) {
+                  IdRegion.Add(newRegions, program, f.Result.tok, f.Result, true, f, module);
                 }
                 f.Req.ForEach(e => ExprRegions(e.E, newRegions, program, module));
                 f.Reads.ForEach(fe => FrameExprRegions(fe, newRegions, true, program, module));
@@ -214,7 +225,15 @@ namespace DafnyLanguage
                 }
               } else if (member is Method) {
                 var m = (Method)member;
-                IdRegion.Add(newRegions, program, m.tok, string.Format("{0} {1}", m.WhatKind, m.Name), m.TypeArgs);
+                var kind = m.WhatKind;
+                var name = m.Name;
+                if (!(m.EnclosingClass is DefaultClassDecl)) {
+                  if (m.IsStatic) {
+                    kind = "static " + kind;
+                  }
+                  name = m.EnclosingClass.Name + "." + name;
+                }
+                IdRegion.Add(newRegions, program, m.tok, string.Format("{0} {1}", kind, name), m.TypeArgs);
                 foreach (var p in m.Ins) {
                   IdRegion.Add(newRegions, program, p.tok, p, true, m, module);
                 }
@@ -228,6 +247,12 @@ namespace DafnyLanguage
                 if (m.Body != null) {
                   StatementRegions(m.Body, newRegions, program, module);
                 }
+              } else if (member is ConstantField) {
+                var cf = (ConstantField)member;
+                IdRegion.Add(newRegions, program, cf.tok, cf, null, cf.IsStatic && !(cf.EnclosingClass is DefaultClassDecl) ? "static const" : "const", true, module);
+                if (cf.Rhs != null) {
+                  ExprRegions(cf.Rhs, newRegions, program, module);
+                }
               } else if (member is SpecialField) {
                 // do nothing
               } else if (member is Field) {
@@ -237,6 +262,12 @@ namespace DafnyLanguage
             }
           } else if (d is NewtypeDecl) {
             var dd = (NewtypeDecl)d;
+            if (dd.Var != null) {
+              IdRegion.Add(newRegions, program, dd.Var.tok, dd.Var, true, (ICallable)null, module);
+              ExprRegions(dd.Constraint, newRegions, program, module);
+            }
+          } else if (d is SubsetTypeDecl) {
+            var dd = (SubsetTypeDecl)d;
             if (dd.Var != null) {
               IdRegion.Add(newRegions, program, dd.Var.tok, dd.Var, true, (ICallable)null, module);
               ExprRegions(dd.Constraint, newRegions, program, module);
@@ -258,7 +289,8 @@ namespace DafnyLanguage
       }
       if (fe.Field != null) {
         Microsoft.Dafny.Type showType = null;  // TODO: if we had the instantiated type of this field, that would have been nice to use here (but the Resolver currently does not compute or store the instantiated type for a FrameExpression)
-        IdRegion.Add(regions, prog, fe.tok, fe.Field, showType, "field", false, module);
+        var kind = !(fe.Field is ConstantField) ? "field" : fe.Field.IsStatic && !(fe.Field.EnclosingClass is DefaultClassDecl) ? "static const" : "const";
+        IdRegion.Add(regions, prog, fe.tok, fe.Field, showType, kind, false, module);
         RecordUseAndDef(prog, fe.tok, fe.Field.Name.Length, fe.Field.tok);
       }
     }
@@ -277,7 +309,8 @@ namespace DafnyLanguage
         var e = (MemberSelectExpr)expr;
         var field = e.Member as Field;
         if (field != null) {
-          IdRegion.Add(regions, prog, e.tok, field, e.Type, "field", false, module);
+          var kind = !(field is ConstantField) ? "field" : field.IsStatic && !(field.EnclosingClass is DefaultClassDecl) ? "static const" : "const";
+          IdRegion.Add(regions, prog, e.tok, field, e.Type, kind, false, module);
         }
         if (e.Member != null) {
           RecordUseAndDef(prog, e.tok, e.Member.Name.Length, e.Member.tok);
@@ -301,6 +334,19 @@ namespace DafnyLanguage
         IdRegion.AddRecognizedAttributes(e.Attributes, regions, prog);
         foreach (var bv in e.BoundVars) {
           IdRegion.Add(regions, prog, bv.tok, bv, true, (ICallable)null, module);
+        }
+        if (expr is QuantifierExpr) {
+          // If the quantifier has a SplitQuantifier, then its .SubExpressions routine goes over each split.
+          // That's not what we want here, because it would cause duplicated hover texts.  Instead, we just
+          // do what a QuantifierExpr would do without a SplitQuantifier, which is as follows:
+          foreach (var ee in Attributes.SubExpressions(e.Attributes)) {
+            ExprRegions(ee, regions, prog, module);
+          }
+          if (e.Range != null) {
+            ExprRegions(e.Range, regions, prog, module);
+          }
+          ExprRegions(e.Term, regions, prog, module);
+          return;
         }
       } else if (expr is MatchExpr) {
         var e = (MatchExpr)expr;
@@ -568,11 +614,11 @@ namespace DafnyLanguage
         }
         Start = tok.pos;
         Length = decl.Name.Length;
-        var name = decl.EnclosingClass != null ? decl.FullNameInContext(context) : decl.Name;  // some built-in members like "Keys" may not have an .EnclosingClass
+        var name = decl.EnclosingClass != null && !(decl.EnclosingClass is DefaultClassDecl) ? decl.FullNameInContext(context) : decl.Name;  // some built-in members like "Keys" may not have an .EnclosingClass
         HoverText = string.Format("({4}{2}{3}) {0}: {1}", name, showType.TypeName(context),
           decl.IsGhost ? "ghost " : "",
           kind,
-          decl.IsUserMutable || decl is DatatypeDestructor ? "" : decl.IsMutable ? " non-assignable " : "immutable ");
+          decl.IsUserMutable || decl is ConstantField || decl is DatatypeDestructor ? "" : decl.IsMutable ? " non-assignable " : "immutable ");
         Kind = !isDefinition ? OccurrenceKind.Use : OccurrenceKind.Definition;
       }
 

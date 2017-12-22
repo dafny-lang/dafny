@@ -389,7 +389,15 @@ namespace DafnyLanguage
               continue;
             }
           } else {
+            // In the following, "trailingDigits" is the number of digits just before position "end" or,
+            // if "trailingDigits" is positive and "trailingDigitsAreFollowedByQuery" is true, just before
+            // position "end-1".
+            // The value of "trailingDigitsAreFollowedByQuery" is relevant only if "trailingDigits" is non-0.
+            // If "trailingDigits" is 0, the value of "trailingDigitsAreFollowedByQuery" can be anything.
+            // (This design means we don't have to update "trailingDigitsAreFollowedByQuery" often in the
+            // loop.)
             int trailingDigits = 0;
+            bool trailingDigitsAreFollowedByQuery = false;
             for (; end < N; end++) {
               char ch = txt[end];
               if ('a' <= ch && ch <= 'z') {
@@ -397,17 +405,27 @@ namespace DafnyLanguage
               } else if ('A' <= ch && ch <= 'Z') {
                 trailingDigits = 0;
               } else if ('0' <= ch && ch <= '9') {
-                trailingDigits++;
-              } else if (ch == '\'' || ch == '_' || ch == '?' || ch == '\\') {
+                if (trailingDigitsAreFollowedByQuery) {  // note, "trailingDigits" could be 0, but then this still does the right thing
+                  trailingDigits = 1; trailingDigitsAreFollowedByQuery = false;
+                } else {
+                  trailingDigits++;
+                }
+              } else if (ch == '?') {
+                if (trailingDigitsAreFollowedByQuery) {  // note, "trailingDigits" could be 0, but then this still does the right thing
+                  trailingDigits = 0;
+                } else {
+                  trailingDigitsAreFollowedByQuery = true;
+                }
+              } else if (ch == '\'' || ch == '_' || ch == '\\') {
                 trailingDigits = 0;
               } else break;
             }
             // we have a keyword or an identifier
             string s = txt.Substring(cur, end - cur);
-            if (0 < trailingDigits && s.Length == 5 + trailingDigits && s.StartsWith("array") && s[5] != '0' && (trailingDigits != 1 || s[5] != '1')) {
-              // this is a keyword for a built-in type (array2, array3, ...)
+            if (0 < trailingDigits && s.Length == 5 + trailingDigits + (trailingDigitsAreFollowedByQuery ? 1 : 0) && s.StartsWith("array") && s[5] != '0' && (trailingDigits != 1 || s[5] != '1')) {
+              // this is a keyword for a built-in type (array2, array3, ..., or array2?, array3?, ...)
               ty = DafnyTokenKind.BuiltInType;
-            } else if (0 < trailingDigits && s.Length == 2 + trailingDigits && s.StartsWith("bv") && (s[2] != '0' || trailingDigits == 1)) {
+            } else if (0 < trailingDigits && !trailingDigitsAreFollowedByQuery && s.Length == 2 + trailingDigits && s.StartsWith("bv") && (s[2] != '0' || trailingDigits == 1)) {
               // this is a keyword for a built-in type (bv0, bv1, ...)
               ty = DafnyTokenKind.BuiltInType;
             } else {
@@ -492,6 +510,7 @@ namespace DafnyLanguage
                   break;
                 #region keywords for built-in types
                 case "array":
+                case "array?":
                 case "bool":
                 case "char":
                 case "imap":
