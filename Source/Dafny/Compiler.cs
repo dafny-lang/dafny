@@ -861,13 +861,12 @@ namespace Microsoft.Dafny {
         } else if (member is ConstantField) {
           var cf = (ConstantField)member;
           if (cf.Rhs == null) {
-            Contract.Assert(!cf.IsStatic);  // module-level and static const's must have a RHS (enforced by parser)
+            Contract.Assert(!cf.IsStatic);  // as checked above, only instance members can be inherited
             Indent(indent, wr);
             wr.WriteLine("public {0} _{1} = {2};", TypeName(cf.Type, wr, cf.tok), cf.CompileName, DefaultValue(cf.Type, wr, cf.tok));
           }
           Indent(indent, wr);
-          wr.Write("public {2}{0} @{1}()", TypeName(cf.Type, wr, cf.tok), cf.CompileName, cf.IsStatic ? "static " : "");
-          wr.WriteLine("{");
+          wr.WriteLine("public {2}{0} @{1}() {{", TypeName(cf.Type, wr, cf.tok), cf.CompileName, cf.IsStatic ? "static " : "");
           if (cf.Rhs == null) {
             Indent(indent + IndentAmount, wr);
             wr.WriteLine("return _{0};", cf.CompileName);
@@ -910,8 +909,7 @@ namespace Microsoft.Dafny {
             var cf = f as ConstantField;
             if (cf != null && cf.IsStatic) {
               Indent(indent, wr);
-              wr.Write("public static {0} @{1}()", TypeName(cf.Type, wr, cf.tok), cf.CompileName);
-              wr.WriteLine("{");
+              wr.WriteLine("public static {0} @{1}() {{", TypeName(cf.Type, wr, cf.tok), cf.CompileName);
               if (cf.Rhs != null) {
                 CompileReturnBody(cf.Rhs, indent + IndentAmount, wr);
               } else {
@@ -940,8 +938,7 @@ namespace Microsoft.Dafny {
               wr.WriteLine("public {3}{0} _{1} = {2};", TypeName(cf.Type, wr, cf.tok), cf.CompileName, DefaultValue(cf.Type, wr, cf.tok), f.IsStatic ? "static " : "");
             }
             Indent(indent, wr);
-            wr.Write("public {2}{0} @{1}()", TypeName(cf.Type, wr, cf.tok), cf.CompileName, f.IsStatic ? "static " : "");
-            wr.WriteLine("{");
+            wr.WriteLine("public {2}{0} @{1}() {{", TypeName(cf.Type, wr, cf.tok), cf.CompileName, f.IsStatic ? "static " : "");
             if (cf.Rhs == null) {
               Indent(indent + IndentAmount, wr);
               wr.WriteLine("return _{0};", cf.CompileName);

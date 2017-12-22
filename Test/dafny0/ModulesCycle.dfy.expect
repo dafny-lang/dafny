@@ -1,3 +1,3 @@
 ModulesCycle.dfy(5,9): Error: module T does not exist
-ModulesCycle.dfy(8,7): Error: module definition contains a cycle (note: parent modules implicitly depend on submodules): A -> D -> C -> B
+ModulesCycle.dfy(8,7): Error: module definition contains a cycle (note: parent modules implicitly depend on submodules): A -> B -> C -> D
 2 resolution/type errors detected in ModulesCycle.dfy

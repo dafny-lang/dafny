@@ -62,59 +62,59 @@ module _System {
 
 /* CALL GRAPH for module _module:
  * SCC at height 26:
- *   _default.M
+ *   M
  * SCC at height 25:
- *   _default.Main
+ *   Main
  * SCC at height 24:
- *   _default.Rotates
+ *   Rotates
  * SCC at height 23:
- *   _default.PrintRotates
+ *   PrintRotates
  * SCC at height 22:
- *   _default.Shifts
+ *   Shifts
  * SCC at height 21:
- *   _default.PrintShifts
+ *   PrintShifts
  * SCC at height 20:
  *   Handful
  * SCC at height 19:
- *   _default.TestCompilationTruncations
+ *   TestCompilationTruncations
  * SCC at height 18:
- *   _default.P2
+ *   P2
  * SCC at height 17:
- *   _default.M0
+ *   M0
  * SCC at height 16:
- *   _default.M1
+ *   M1
  * SCC at height 15:
- *   _default.M6
+ *   M6
  * SCC at height 14:
- *   _default.M8
+ *   M8
  * SCC at height 13:
- *   _default.M15
+ *   M15
  * SCC at height 12:
- *   _default.M16
+ *   M16
  * SCC at height 11:
- *   _default.M31
+ *   M31
  * SCC at height 10:
- *   _default.M32
+ *   M32
  * SCC at height 9:
- *   _default.M33
+ *   M33
  * SCC at height 8:
- *   _default.M53
+ *   M53
  * SCC at height 7:
- *   _default.M64
+ *   M64
  * SCC at height 6:
- *   _default.M67
+ *   M67
  * SCC at height 5:
- *   _default.Bv0Stuff
+ *   Bv0Stuff
  * SCC at height 4:
- *   _default.SummoTests
+ *   SummoTests
  * SCC at height 3:
- *   _default.Unary
+ *   Unary
  * SCC at height 2:
- *   _default.DoArith32
+ *   DoArith32
  * SCC at height 1:
- *   _default.Arithmetic
+ *   Arithmetic
  * SCC at height 0:
- *   _default.BitwiseOperations
+ *   BitwiseOperations
  */
 newtype Handful = x: int
   | 0 <= x < 80

@@ -362,4 +362,6 @@ ResolutionErrors.dfy(2280,6): Error: LHS of assignment must denote a mutable fie
 ResolutionErrors.dfy(2281,10): Error: LHS of assignment must denote a mutable field
 ResolutionErrors.dfy(2288,6): Error: LHS of assignment must denote a mutable field
 ResolutionErrors.dfy(2295,8): Error: LHS of assignment must denote a mutable field of 'this'
-361 resolution/type errors detected in ResolutionErrors.dfy
+ResolutionErrors.dfy(2309,20): Error: ghost fields are allowed only in specification contexts
+ResolutionErrors.dfy(2312,18): Error: ghost fields are allowed only in specification contexts
+363 resolution/type errors detected in ResolutionErrors.dfy

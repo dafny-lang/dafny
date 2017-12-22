@@ -1,17 +1,21 @@
-ConstantErrors.dfy(6,8): Error: type for constant 'two' is 'int', but its initialization value type is 'real'
-ConstantErrors.dfy(10,8): Error: constant definition contains a cycle: _default.six -> _default.five
-ConstantErrors.dfy(18,6): Error: 'this' is not allowed in a 'static' context
-ConstantErrors.dfy(29,6): Error: ghost fields are allowed only in specification contexts
-ConstantErrors.dfy(30,6): Error: ghost fields are allowed only in specification contexts
-ConstantErrors.dfy(41,7): Error: RHS (of type int) not assignable to LHS (of type SmallInt)
-ConstantErrors.dfy(64,10): Error: field 'x0' is inherited from trait 'Trait' and is not allowed to be re-declared
-ConstantErrors.dfy(65,10): Error: field 'x1' is inherited from trait 'Trait' and is not allowed to be re-declared
-ConstantErrors.dfy(66,10): Error: field 'x2' is inherited from trait 'Trait' and is not allowed to be re-declared
-ConstantErrors.dfy(67,10): Error: field 'x3' is inherited from trait 'Trait' and is not allowed to be re-declared
-ConstantErrors.dfy(94,6): Error: LHS of assignment must denote a mutable field
-ConstantErrors.dfy(96,6): Error: LHS of assignment must denote a mutable field
-ConstantErrors.dfy(98,6): Error: LHS of assignment must denote a mutable field
-ConstantErrors.dfy(98,10): Error: LHS of assignment must denote a mutable field
-ConstantErrors.dfy(98,14): Error: LHS of assignment must denote a mutable field
-ConstantErrors.dfy(98,18): Error: LHS of assignment must denote a mutable field
-16 resolution/type errors detected in ConstantErrors.dfy
+ConstantErrors.dfy(5,8): Error: type for constant 'two' is 'int', but its initialization value type is 'real'
+ConstantErrors.dfy(12,8): Error: const definition contains a cycle: six -> five
+ConstantErrors.dfy(21,6): Error: 'this' is not allowed in a 'static' context
+ConstantErrors.dfy(32,6): Error: ghost fields are allowed only in specification contexts
+ConstantErrors.dfy(33,6): Error: ghost fields are allowed only in specification contexts
+ConstantErrors.dfy(44,7): Error: RHS (of type int) not assignable to LHS (of type SmallInt)
+ConstantErrors.dfy(67,10): Error: field 'x0' is inherited from trait 'Trait' and is not allowed to be re-declared
+ConstantErrors.dfy(68,10): Error: field 'x1' is inherited from trait 'Trait' and is not allowed to be re-declared
+ConstantErrors.dfy(69,10): Error: field 'x2' is inherited from trait 'Trait' and is not allowed to be re-declared
+ConstantErrors.dfy(70,10): Error: field 'x3' is inherited from trait 'Trait' and is not allowed to be re-declared
+ConstantErrors.dfy(97,6): Error: LHS of assignment must denote a mutable field
+ConstantErrors.dfy(99,6): Error: LHS of assignment must denote a mutable field
+ConstantErrors.dfy(101,6): Error: LHS of assignment must denote a mutable field
+ConstantErrors.dfy(101,10): Error: LHS of assignment must denote a mutable field
+ConstantErrors.dfy(101,14): Error: LHS of assignment must denote a mutable field
+ConstantErrors.dfy(101,18): Error: LHS of assignment must denote a mutable field
+ConstantErrors.dfy(109,8): Error: const definition contains a cycle: b -> c -> a
+ConstantErrors.dfy(115,14): Error: const definition contains a cycle: H -> x
+ConstantErrors.dfy(119,14): Error: const definition contains a cycle: x' -> H'
+ConstantErrors.dfy(123,8): Error: recursive dependency involving constant initialization: ur -> ur
+20 resolution/type errors detected in ConstantErrors.dfy

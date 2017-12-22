@@ -323,8 +323,7 @@ namespace Microsoft.Dafny
       // is violated, so Processing dependencies will not succeed.
       ProcessDependencies(prog.DefaultModule, b, dependencies);
       // check for cycles in the import graph
-      List<ModuleDecl> cycle = dependencies.TryFindCycle();
-      if (cycle != null) {
+      foreach (var cycle in dependencies.AllCycles()) {
         var cy = Util.Comma(" -> ", cycle, m => m.Name);
         reporter.Error(MessageSource.Resolver, cycle[0], "module definition contains a cycle (note: parent modules implicitly depend on submodules): {0}", cy);
       }
@@ -906,12 +905,13 @@ namespace Microsoft.Dafny
       }
 
       // detect cycles in the extend
-      var cycle = exportDependencies.TryFindCycle();
-      if (cycle != null) {
+      var cycleError = false;
+      foreach (var cycle in exportDependencies.AllCycles()) {
         var cy = Util.Comma(" -> ", cycle, c => c.Name);
         reporter.Error(MessageSource.Resolver, cycle[0], "module export contains a cycle: {0}", cy);
-        return;
+        cycleError = true;
       }
+      if (cycleError) { return; } // give up on trying to resolve anything else
 
       // fill in the exports for the extends.
       List<ModuleExportDecl> sortedDecls = exportDependencies.TopologicallySortedComponents();
@@ -2061,8 +2061,7 @@ namespace Microsoft.Dafny
       }
 
       // perform acyclicity test on type synonyms
-      var cycle = typeRedirectionDependencies.TryFindCycle();
-      if (cycle != null) {
+      foreach (var cycle in typeRedirectionDependencies.AllCycles()) {
         Contract.Assert(cycle.Count != 0);
         var erste = cycle[0];
         reporter.Error(MessageSource.Resolver, erste.Tok, "Cycle among redirecting types (newtypes, subset types, type synonyms): {0} -> {1}", Util.Comma(" -> ", cycle, syn => syn.Name), erste.Name);
@@ -2719,6 +2718,8 @@ namespace Microsoft.Dafny
         // with fixpoint-predicates of the same polarity), and
         // check that colemmas are not recursive with non-colemma methods.
         // Also, check that newtypes and subset types sit in their own SSC.
+        // And check that const initializers are not cyclic.
+        var constCycleRepresentatives = new HashSet<ICallable>();
         foreach (var d in declarations) {
           if (d is ClassDecl) {
             foreach (var member in ((ClassDecl)d).Members) {
@@ -2736,6 +2737,19 @@ namespace Microsoft.Dafny
                 var m = (FixpointLemma)member;
                 if (m.Body != null) {
                   FixpointLemmaChecks(m.Body, m);
+                }
+              } else if (member is ConstantField) {
+                var cf = (ConstantField)member;
+                if (cf.EnclosingModule.CallGraph.GetSCCSize(cf) != 1) {
+                  var r = cf.EnclosingModule.CallGraph.GetSCCRepresentative(cf);
+                  if (constCycleRepresentatives.Contains(r)) {
+                    // An error has already been reported for this cycle, so don't report another.
+                    // Note, the representative, "r", may itself not be a const.
+                  } else {
+                    constCycleRepresentatives.Add(r);
+                    var cycle = Util.Comma(" -> ", cf.EnclosingModule.CallGraph.GetSCC(cf), clbl => clbl.NameRelativeToModule);
+                    reporter.Error(MessageSource.Resolver, cf.tok, "const definition contains a cycle: " + cycle);
+                  }
                 }
               }
             }
@@ -7247,14 +7261,16 @@ namespace Microsoft.Dafny
       foreach (MemberDecl member in cl.Members) {
         Contract.Assert(VisibleInScope(member));
         if (member is Field) {
-          ResolveAttributes(member.Attributes, member, new ResolveOpts(new NoContext(currentClass.Module), false));
+          // const fields are ICodeContext's
+          var opts = new ResolveOpts(member as ICodeContext ?? new NoContext(currentClass.Module), false);
+          ResolveAttributes(member.Attributes, member, opts);
           
           if (member is ConstantField) {
             // Resolve the value expression
             var field = (ConstantField)member;
             if (field.Rhs != null) {
               var ec = reporter.Count(ErrorLevel.Error);
-              ResolveExpression(field.Rhs, new ResolveOpts(new NoContext(currentClass.Module), false));
+              ResolveExpression(field.Rhs, opts);
               if (reporter.Count(ErrorLevel.Error) == ec) {
                 // make sure initialization only refers to constant field or literal expression
                 CheckConstantFieldInitialization(field, field.Rhs);
@@ -7295,69 +7311,39 @@ namespace Microsoft.Dafny
       currentClass = null;
     }
 
-   void CheckConstantFieldInitialization(ConstantField field, Expression expr) {
-     if (IsConstantExpr(field, expr)) {
+    void CheckConstantFieldInitialization(ConstantField field, Expression expr) {
+      Contract.Requires(field != null);
+      Contract.Requires(expr != null);
+      if (CheckIsConstantExpr(field, expr)) {
         AddAssignableConstraint(field.tok, field.Type, expr.Type, "type for constant '" + field.Name + "' is '{0}', but its initialization value type is '{1}'");
-      } else {
-        reporter.Error(MessageSource.Resolver, field.tok, "only constants are allowed in the expression to initialize constant {0}", field.Name);
       }
-      if (field.EnclosingModule.CallGraph.GetSCCSize(field) != 1) {
-        var cycle = Util.Comma(" -> ", field.EnclosingModule.CallGraph.GetSCC(field), clbl => clbl.NameRelativeToModule);
-        reporter.Error(MessageSource.Resolver, field.tok, "constant definition contains a cycle: " + cycle);
+      if (!field.IsGhost) {
+        CheckIsCompilable(expr);
       }
     }
 
-    bool IsConstantExpr(ConstantField field, Expression expr) {
-      bool isConstant = false;
-      if (expr is LiteralExpr && !(expr is StaticReceiverExpr)) {
-        return true;
-      } else if (expr.Resolved is DatatypeValue) {
-        var dtv = (DatatypeValue)expr.Resolved;
-        if (dtv.Arguments.Count == 0) {
-          return true;
+    /// <summary>
+    /// Checks if "expr" is a constant (that is, heap independent) expression that can be assigned to "field".
+    /// If it is, return "true". Otherwise, report an error and return "false".
+    /// This method also adds dependency edges to the module's call graph and checks for self-loops. If a self-loop
+    /// is detected, "false" is returned.
+    /// </summary>
+    bool CheckIsConstantExpr(ConstantField field, Expression expr) {
+      Contract.Requires(field != null);
+      Contract.Requires(expr != null);
+      if (expr is MemberSelectExpr) {
+        var e = (MemberSelectExpr)expr;
+        if (e.Member is Field && ((Field)e.Member).IsMutable) {
+          reporter.Error(MessageSource.Resolver, field.tok, "only constants are allowed in the expression to initialize constant {0}", field.Name);
+          return false;
         }
-      } else if (expr is NameSegment) {
-        var other = FindConstantField((NameSegment)expr);
-        if (other != null) {
+        if (e.Member is ICallable) {
+          var other = (ICallable)e.Member;
           field.EnclosingModule.CallGraph.AddEdge(field, other);
-          if (field == other) {
-            // detect self-loops here, since they don't show up in the graph's SSC methods
-            reporter.Error(MessageSource.Resolver, field.tok, "recursive dependency involving constant initialization: {0} -> {0}", field.Name);
-          }
-          return true;
         }
-      } else if (expr is ExprDotName) {
-        var v = (ExprDotName)expr;
-        while (v.Lhs is ExprDotName) {
-          v = (ExprDotName)v.Lhs;
-        }
-        isConstant = IsConstantExpr(field, v.Lhs);
-      } else {
-        bool hasSubfield = false;
-        isConstant = true;
-        foreach (var ee in expr.SubExpressions) {
-          hasSubfield = true;
-          if (!IsConstantExpr(field, ee)) {
-            isConstant = false;
-            break;
-          }
-        }
-        isConstant = hasSubfield ? isConstant : false;
+        // okay so far; now, go on checking subexpressions
       }
-      return isConstant;
-    }
-
-    ConstantField FindConstantField(NameSegment expr) {
-      Dictionary<string, MemberDecl> members;
-      MemberDecl member;
-      if (currentClass != null && classMembers.TryGetValue(currentClass, out members) && members.TryGetValue(expr.Name, out member)) {
-        if (member is ConstantField)
-          return (ConstantField)member;
-      } else if (moduleInfo.StaticMembers.TryGetValue(expr.Name, out member)) {
-        if (member is ConstantField)
-          return (ConstantField)member;
-      }
-      return null;
+      return expr.SubExpressions.All(e => CheckIsConstantExpr(field, e));
     }
 
     /// <summary>
@@ -11457,6 +11443,7 @@ namespace Microsoft.Dafny
             var subst = TypeSubstitutionMap(ctype.ResolvedClass.TypeArgs, ctype.TypeArgs);
             e.Type = SubstType(field.Type, subst);
           }
+          AddCallGraphEdgeForField(opts.codeContext, field, e);
         } else {
           reporter.Error(MessageSource.Resolver, expr, "member {0} in type {1} does not refer to a field or a function", e.MemberName, nptype);
         }
@@ -13191,11 +13178,13 @@ namespace Microsoft.Dafny
       }
 
       if (member is Field) {
+        var field = (Field)member;
         if (optTypeArguments != null) {
-          reporter.Error(MessageSource.Resolver, tok, "a field ({0}) does not take any type arguments (got {1})", member.Name, optTypeArguments.Count);
+          reporter.Error(MessageSource.Resolver, tok, "a field ({0}) does not take any type arguments (got {1})", field.Name, optTypeArguments.Count);
         }
         subst = BuildTypeArgumentSubstitute(subst);
-        rr.Type = SubstType(((Field)member).Type, subst);
+        rr.Type = SubstType(field.Type, subst);
+        AddCallGraphEdgeForField(opts.codeContext, field, rr);
       } else if (member is Function) {
         var fn = (Function)member;
         if (fn is TwoStateFunction && !opts.twoState) {
@@ -13232,10 +13221,6 @@ namespace Microsoft.Dafny
           rr.TypeApplication.Add(ta);
         }
         rr.Type = new InferredTypeProxy();  // fill in this field, in order to make "rr" resolved
-      }
-      if (member is ConstantField) {
-        var cf = (ConstantField)member;
-        AddCallGraphEdge(opts.codeContext, cf, rr, false);
       }
       return rr;
     }
@@ -13728,6 +13713,21 @@ namespace Microsoft.Dafny
           e.Type = SubstType(function.ResultType, subst).NormalizeExpand();
         }
         AddCallGraphEdge(opts.codeContext, function, e, IsFunctionReturnValue(function, e.Args, opts));
+      }
+    }
+
+    private void AddCallGraphEdgeForField(ICodeContext callingContext, Field field, Expression e) {
+      Contract.Requires(callingContext != null);
+      Contract.Requires(field != null);
+      Contract.Requires(e != null);
+      var cf = field as ConstantField;
+      if (cf != null) {
+        if (cf == callingContext) {
+          // detect self-loops here, since they don't show up in the graph's SSC methods
+          reporter.Error(MessageSource.Resolver, cf.tok, "recursive dependency involving constant initialization: {0} -> {0}", cf.Name);
+        } else {
+          AddCallGraphEdge(callingContext, cf, e, false);
+        }
       }
     }
 

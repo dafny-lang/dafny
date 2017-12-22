@@ -78,45 +78,45 @@ module _System {
 
 /* CALL GRAPH for module _module:
  * SCC at height 23:
- *   _default.TestActualRotate
+ *   TestActualRotate
  * SCC at height 22:
- *   _default.TestActualShifting
+ *   TestActualShifting
  * SCC at height 21:
- *   _default.R
+ *   R
  * SCC at height 20:
- *   _default.Q
+ *   Q
  * SCC at height 19:
- *   _default.P
+ *   P
  * SCC at height 18:
- *   _default.N4
+ *   N4
  * SCC at height 17:
- *   _default.N3
+ *   N3
  * SCC at height 16:
- *   _default.N2
+ *   N2
  * SCC at height 15:
- *   _default.N1
+ *   N1
  * SCC at height 14:
- *   _default.N0
+ *   N0
  * SCC at height 13:
- *   _default.M
+ *   M
  * SCC at height 12:
- *   _default.Rotate
+ *   Rotate
  * SCC at height 11:
- *   _default.Shifts6
+ *   Shifts6
  * SCC at height 10:
- *   _default.Shifts5
+ *   Shifts5
  * SCC at height 9:
- *   _default.Shifts4
+ *   Shifts4
  * SCC at height 8:
- *   _default.Shifts3
+ *   Shifts3
  * SCC at height 7:
- *   _default.Shifts2
+ *   Shifts2
  * SCC at height 6:
- *   _default.Shifts1
+ *   Shifts1
  * SCC at height 5:
- *   _default.Shifts0
+ *   Shifts0
  * SCC at height 4:
- *   _default.PQ
+ *   PQ
  * SCC at height 3:
  *   Handful
  * SCC at height 2:

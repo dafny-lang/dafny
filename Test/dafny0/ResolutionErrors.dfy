@@ -2303,3 +2303,20 @@ module NonThisConstAssignments {
     }
   }
 }
+
+module ConstGhostRhs {
+  class S {
+    const m: int := n  // error: use of ghost to assign non-ghost field
+    ghost const n: int
+  }
+  const a: int := b  // error: use of ghost to assign non-ghost field
+  ghost const b: int
+
+  class S' {
+    ghost const m': int := n'
+    const n': int
+  }
+  ghost const a': int := b'
+  const b': int
+
+}

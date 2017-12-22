@@ -94,53 +94,53 @@ module _System {
 
 /* CALL GRAPH for module _module:
  * SCC at height 37:
- *   _default.RstRst10#
+ *   RstRst10#
  * SCC at height 36:
- *   _default.RstRst10
+ *   RstRst10
  * SCC at height 35:
- *   _default.RstRst9
- *   _default.RstRst9#
+ *   RstRst9
+ *   RstRst9#
  * SCC at height 34:
- *   _default.RstRst8
- *   _default.RstRst8#
+ *   RstRst8
+ *   RstRst8#
  * SCC at height 33:
- *   _default.RstRst7#
+ *   RstRst7#
  * SCC at height 32:
- *   _default.RstRst7
+ *   RstRst7
  * SCC at height 31:
- *   _default.RstRst6
- *   _default.RstRst6#
+ *   RstRst6
+ *   RstRst6#
  * SCC at height 30:
- *   _default.RstRst5
- *   _default.RstRst5#
+ *   RstRst5
+ *   RstRst5#
  * SCC at height 29:
- *   _default.RstRst4#
+ *   RstRst4#
  * SCC at height 28:
- *   _default.RstRst4
+ *   RstRst4
  * SCC at height 27:
- *   _default.RstRst3#
+ *   RstRst3#
  * SCC at height 26:
- *   _default.RstRst3
+ *   RstRst3
  * SCC at height 25:
- *   _default.RstRst2#
+ *   RstRst2#
  * SCC at height 24:
- *   _default.RstRst2
+ *   RstRst2
  * SCC at height 23:
- *   _default.RstRst1#
+ *   RstRst1#
  * SCC at height 22:
- *   _default.RstRst1
+ *   RstRst1
  * SCC at height 21:
- *   _default.RstRst0#
+ *   RstRst0#
  * SCC at height 20:
- *   _default.RstRst0
+ *   RstRst0
  * SCC at height 19:
- *   _default.O#
+ *   O#
  * SCC at height 18:
- *   _default.O
+ *   O
  * SCC at height 17:
- *   _default.N#
+ *   N#
  * SCC at height 16:
- *   _default.N
+ *   N
  * SCC at height 15:
  *   MyClass
  * SCC at height 14:

@@ -2043,7 +2043,10 @@ namespace Microsoft.Dafny {
           Field f = (Field)member;
           if (f is ConstantField) {
             // The following call has the side effect of idempotently creating and adding the function to the sink's top-level declarations
+            Contract.Assert(currentModule == null);
+            currentModule = f.EnclosingClass.Module;
             var boogieFunction = GetReadonlyField(f);
+            currentModule = null;
             AddAllocationAxiom(f, c);
           } else {
             if (f.IsMutable) {
@@ -3881,7 +3884,7 @@ namespace Microsoft.Dafny {
       return Bpl.Expr.And(lower, upper);
     }
 
-    ModuleDefinition currentModule = null;  // the name of the module whose members are currently being translated
+    ModuleDefinition currentModule = null;  // the module whose members are currently being translated
     ICallable codeContext = null;  // the method/iterator whose implementation is currently being translated or the function whose specification is being checked for well-formedness
     Bpl.LocalVariable yieldCountVariable = null;  // non-null when an iterator body is being translated
     bool inBodyInitContext = false;  // true during the translation of the .BodyInit portion of a divided constructor body

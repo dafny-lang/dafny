@@ -1,5 +1,5 @@
 
-Dafny program verifier finished with 12 verified, 0 errors
+Dafny program verifier finished with 13 verified, 0 errors
 Program compiled successfully
 Running...
 
@@ -14,3 +14,7 @@ noRhs.y = 6
 6 7 7
 93 7 89 12 (854.0 / 100.0)
 6 6 6
+20 20 20
+20
+42 21 21 21
+62

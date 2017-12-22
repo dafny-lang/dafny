@@ -228,8 +228,8 @@ namespace Microsoft.Dafny {
     void SearchC(Vertex/*!*/ v, Stack<Vertex/*!*/>/*!*/ stack, ref int cnt){
       Contract.Requires(v != null);
       Contract.Requires(cce.NonNullElements(stack));
-     Contract.Requires(v.Visited == VisitedStatus.Unvisited);
-     Contract.Requires(topologicallySortedRepresentatives != null);
+      Contract.Requires(v.Visited == VisitedStatus.Unvisited);
+      Contract.Requires(topologicallySortedRepresentatives != null);
       Contract.Ensures(v.Visited != VisitedStatus.Unvisited);
 
       v.DfNumber = cnt;
@@ -261,6 +261,75 @@ namespace Microsoft.Dafny {
           if (x == v) { break; }
         }
       }
+    }
+
+    /// <summary>
+    /// Return all cycles in the graph.
+    /// More precisely, return a maximal set of non-overlapping cycles.
+    /// </summary>
+    public List<List<Node>> AllCycles() {
+      // reset all visited information
+      foreach (Vertex v in vertices.Values) {
+        v.Visited = VisitedStatus.Unvisited;
+      }
+      var stack = new List<Vertex>();
+      var allCycles = new List<List<Node>>();
+      foreach (var v in vertices.Values) {
+        Contract.Assert(v.Visited != VisitedStatus.OnStack);
+        if (v.Visited == VisitedStatus.Unvisited) {
+          AllCycles_aux(v, stack, allCycles);
+        }
+      }
+      return allCycles;
+    }
+
+    private void AllCycles_aux(Vertex vertex, List<Vertex> stack, List<List<Node>> cycles) {
+      Contract.Requires(vertex != null);
+      Contract.Requires(cycles != null);
+      Contract.Requires(vertex.Visited == VisitedStatus.Unvisited);
+      // requires: everything on "stack" is either Unvisited or OnStack
+      Contract.Ensures(vertex.Visited == VisitedStatus.Visited);
+
+      vertex.Visited = VisitedStatus.OnStack;
+      stack.Add(vertex);
+      foreach (var succ in vertex.Successors) {
+        switch (succ.Visited) {
+          case VisitedStatus.Visited:
+            // ignore this successor
+            break;
+          case VisitedStatus.Unvisited:
+            AllCycles_aux(succ, stack, cycles);
+            break;
+          case VisitedStatus.OnStack: {
+              // We discovered a cycle. succ is somewhere on the stack.
+              var s = stack.Count;
+              while (true) {
+                --s;
+                if (stack[s].Visited == VisitedStatus.Visited) {
+                  // a cycle involving stack[s] has already been reported, so don't report the new cycle we found
+                  break;
+                }
+                Contract.Assert(stack[s].Visited == VisitedStatus.OnStack);
+                if (stack[s] == succ) {
+                  // this is where the cycle starts
+                  var cycle = new List<Node>();
+                  for (int i = s; i < stack.Count; i++) {
+                    cycle.Add(stack[i].N);
+                    stack[i].Visited = VisitedStatus.Visited;
+                  }
+                  cycles.Add(cycle);
+                  break;
+                }
+              }
+            }
+            break;
+          default:
+            Contract.Assert(false); // unexpected Visited value
+            break;
+        }
+      }
+      stack.RemoveAt(stack.Count - 1);  // pop
+      vertex.Visited = VisitedStatus.Visited;
     }
 
     /// <summary>
@@ -300,7 +369,7 @@ namespace Microsoft.Dafny {
     List<Vertex/*!*/> CycleSearch(Vertex v)
     {
       Contract.Requires(v != null);
-     Contract.Requires(v.Visited == VisitedStatus.Unvisited);
+      Contract.Requires(v.Visited == VisitedStatus.Unvisited);
       Contract.Ensures(v.Visited != VisitedStatus.Unvisited);
       Contract.Ensures(Contract.Result<List<Vertex>>() != null || v.Visited == VisitedStatus.Visited);
       Contract.Ensures(Contract.Result<List<Vertex>>() == null || Contract.Result<List<Vertex>>().Count != 0);

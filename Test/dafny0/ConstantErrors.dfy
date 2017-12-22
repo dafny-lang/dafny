@@ -2,12 +2,15 @@
 // RUN: %diff "%s.expect" "%t"
 
 module A {
-  const one:int := 1;
-  const two:int := 2.5;   // error: type does not match
-  const three:int := 3;
-  const four:int := three + one;
-  const five:int := six - one;  // error: cycle five -> six
-  const six: int := five + one;
+  const two:int := 2.5   // error: type does not match
+}
+
+module A' {
+  const one:int := 1
+  const three:int := 3
+  const four:int := three + one
+  const five:int := six - one  // error: cycle five -> six
+  const six: int := five + one  // error: cycle five -> six
 }
 
 module B {  // non-static const's
@@ -99,3 +102,24 @@ module F {
     }
   }
 }
+
+// ---------- cyclic dependencies --------
+
+module G {
+  const a: int := c  // error: cyclic dependency between a, b, and c
+  const b := G(a)  // error: ditto
+  const c := F(b)  // error: ditto
+  function method G(x: int): int { x + 2 }
+  function method F(x: int): int { 2 * x }
+
+  ghost const x: int := H(10)  // error: cyclic dependency between x and H
+  function H(y: int): int { y + x }
+
+  function H'(y: int): int { y + x' }
+  ghost const x': int := H'(10)  // error: cyclic dependency between x' and H'
+}
+
+module H { // self cycles are checked earlier
+  const ur: int := ur  // error: cycle
+}
+

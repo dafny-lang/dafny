@@ -85,7 +85,7 @@ module Tests {
    * SCC at height 4:
    *   CC.M
    * SCC at height 3:
-   *   _default.ChainOfAssignments
+   *   ChainOfAssignments
    * SCC at height 2:
    *   CC.N
    * SCC at height 1:
@@ -134,7 +134,7 @@ module Tests {
 module HereAreErrors {
   /* CALL GRAPH for module HereAreErrors:
    * SCC at height 1:
-   *   _default.Literals
+   *   Literals
    * SCC at height 0:
    *   MyInt
    */
@@ -192,7 +192,7 @@ module HereAreErrors {
 module PL {
   /* CALL GRAPH for module PL:
    * SCC at height 0:
-   *   _default.PlainLiterals
+   *   PlainLiterals
    */
   method PlainLiterals()
   {
@@ -204,15 +204,15 @@ module PL {
 module PlusTests {
   /* CALL GRAPH for module PlusTests:
    * SCC at height 5:
-   *   _default.Plus4
+   *   Plus4
    * SCC at height 4:
-   *   _default.Plus3
+   *   Plus3
    * SCC at height 3:
-   *   _default.Plus2
+   *   Plus2
    * SCC at height 2:
-   *   _default.Plus1
+   *   Plus1
    * SCC at height 1:
-   *   _default.Plus5
+   *   Plus5
    * SCC at height 0:
    *   MyInt
    */
@@ -262,7 +262,7 @@ module PlusTests {
 module MorePlusTests {
   /* CALL GRAPH for module MorePlusTests:
    * SCC at height 2:
-   *   _default.Plusses
+   *   Plusses
    * SCC at height 1:
    *   C
    * SCC at height 0:
@@ -300,13 +300,13 @@ module MorePlusTests {
 module References {
   /* CALL GRAPH for module References:
    * SCC at height 8:
-   *   _default.M3
+   *   M3
    * SCC at height 7:
-   *   _default.M2
+   *   M2
    * SCC at height 6:
-   *   _default.M1
+   *   M1
    * SCC at height 5:
-   *   _default.M0
+   *   M0
    * SCC at height 4:
    *   M
    * SCC at height 3:
@@ -373,7 +373,7 @@ module References {
 module SimpleClassesAndTraits {
   /* CALL GRAPH for module SimpleClassesAndTraits:
    * SCC at height 4:
-   *   _default.Infer
+   *   Infer
    * SCC at height 3:
    *   D
    * SCC at height 2:
@@ -439,7 +439,7 @@ module SimpleClassesAndTraits {
 module TypeParameters {
   /* CALL GRAPH for module TypeParameters:
    * SCC at height 0:
-   *   _default.M
+   *   M
    */
   type A
 
@@ -470,9 +470,9 @@ module TypeParameters {
 module Datatypes {
   /* CALL GRAPH for module Datatypes:
    * SCC at height 1:
-   *   _default.P
+   *   P
    * SCC at height 0:
-   *   _default.M
+   *   M
    */
   datatype Color = Red | Green | Blue
 
@@ -566,23 +566,23 @@ module TraitStuff {
 module OtherTraitsAndClasses {
   /* CALL GRAPH for module OtherTraitsAndClasses:
    * SCC at height 13:
-   *   _default.Q0
+   *   Q0
    * SCC at height 12:
-   *   _default.Basics
+   *   Basics
    * SCC at height 11:
-   *   _default.Q1
+   *   Q1
    * SCC at height 10:
    *   MyClass
    * SCC at height 9:
-   *   _default.M
+   *   M
    * SCC at height 8:
    *   nat
    * SCC at height 7:
-   *   _default.G
+   *   G
    * SCC at height 6:
    *   object
    * SCC at height 5:
-   *   _default.Displays
+   *   Displays
    * SCC at height 4:
    *   K
    * SCC at height 3:
@@ -672,11 +672,11 @@ module OtherTraitsAndClasses {
 module LetPatterns {
   /* CALL GRAPH for module LetPatterns:
    * SCC at height 2:
-   *   _default.M
+   *   M
    * SCC at height 1:
-   *   _default.Q
+   *   Q
    * SCC at height 0:
-   *   _default.P
+   *   P
    */
   datatype MyDt = AAA(x: int) | BBB(y: int)
 
@@ -705,7 +705,7 @@ module LetPatterns {
 module Arrays_and_SubsetTypes {
   /* CALL GRAPH for module Arrays_and_SubsetTypes:
    * SCC at height 2:
-   *   _default.M
+   *   M
    * SCC at height 1:
    *   array
    * SCC at height 0:
